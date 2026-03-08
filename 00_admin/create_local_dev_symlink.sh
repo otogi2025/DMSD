@@ -7,7 +7,7 @@ set -euo pipefail
 
 SRC_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 TARGET_DIR="$HOME/dev"
-LINK_PATH="$TARGET_DIR/AC_Dormitory_system"
+LINK_PATH="$TARGET_DIR/DMSD"
 
 mkdir -p "$TARGET_DIR"
 ln -sfn "$SRC_DIR" "$LINK_PATH"
