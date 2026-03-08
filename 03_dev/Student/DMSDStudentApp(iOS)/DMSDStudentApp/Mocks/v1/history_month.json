@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "data": {
+    "month": "2026-02",
+    "day_items": [
+      { "date": "2026-02-10", "calendar_status": "normal" },
+      { "date": "2026-02-11", "calendar_status": "late" },
+      { "date": "2026-02-12", "calendar_status": "absent" }
+    ],
+    "anomaly_items": [
+      { "date": "2026-02-11", "reason": "teacher_override" },
+      { "date": "2026-02-12", "reason": "absence_request_pending" }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Xcode user/local files
+**/xcuserdata/
+**/*.xcuserstate
+DerivedData/
+
+# SwiftPM user state
+.swiftpm/xcode/package.xcworkspace/xcuserdata/
+
+# Google Drive conflict artifacts (if any)
+*conflicted copy*
