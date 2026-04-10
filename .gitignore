@@ -13,3 +13,6 @@ DerivedData/
 
 # Google Drive conflict artifacts (if any)
 *conflicted copy*
+
+# 早期 GPT 对话三件套(2025-12,与 v1.0 规格无直接依赖,仅作历史归档)
+99_archive/2025-12_早期GPT对话/
