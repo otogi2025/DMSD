@@ -9,19 +9,20 @@
 
 | 路径 | CC 权限 |
 |---|---|
-| `全量日志/YYYY-MM-DD.md` | **读写**（主要工作区）|
-| `AC素材_候选/` | **只读** |
-| `AC素材_成品/` | **只读** |
+| `05_logs/raw/YYYY-MM-DD.md` | **读写**（第 1 层 CC 每日 dump）|
+| `05_logs/dev_log/` `problem_solving/` `learning_path.md` `project_evolution.md` | itsuki 自己写。CC 可读可引用，**改动前必须先告知** |
+| `05_logs/decision_log.md` | **itsuki 手写**。CC 只在 `raw/` 用 `[决策]` 标签捕捉原始对话，**不写 decision_log.md** |
+| `iCloud/…/AC素材_候选/` `AC素材_成品/` | CC 不触碰（itsuki 月度在 Mac 上做）|
 | 代码/docs | 按正常开发权限 |
 
-CC 永远不写 `AC素材_候选/` 和 `AC素材_成品/`。
+CC 永远不写 iCloud 的 `AC素材_候选/` 和 `AC素材_成品/`。
 
 ---
 
 ## 2. 会话开始
 
 1. 用 `date` 确认今天日期。
-2. 检查 `全量日志/YYYY-MM-DD.md` 是否存在，不存在则创建（见 §5 模板）。
+2. 检查 `05_logs/raw/YYYY-MM-DD.md` 是否存在，不存在则创建（见 §5 模板）。
 3. 问 itsuki：「上次会话之后有没有没记下来的事？先记一下再开工？」
 4. 读 `00_admin/progress_overview.md`（若存在），了解项目状态。
 
@@ -49,7 +50,7 @@ CC 永远不写 `AC素材_候选/` 和 `AC素材_成品/`。
 
 识别到后先问：
 ```
-刚才这个我记一下到 全量日志/YYYY-MM-DD.md 好吗？
+刚才这个我记一下到 05_logs/raw/YYYY-MM-DD.md 好吗？
 归类：[标签] / 可能对应 AC 核心问题 #X
 ```
 
@@ -122,6 +123,8 @@ itsuki 同意 → append 到当日文件末尾。
 
 **宁多勿少**。itsuki 事后可删可加。
 
+CC 只打标签，**不替 itsuki 判断升不升级到第 2 层**。月度回顾时 itsuki 在 Mac 上挑选 `#AC候选` 碎片，手动复制到 iCloud `AC素材_候选/`。
+
 ---
 
 ## 7. 5 个核心问题（CC 用来打标签）
@@ -143,7 +146,7 @@ itsuki 同意 → append 到当日文件末尾。
 1. **刷新当日目录**（§5）
 2. **列出今天 dump 的所有碎片**给 itsuki 确认：
    ```
-   今天记录了 N 条到 全量日志/YYYY-MM-DD.md：
+   今天记录了 N 条到 05_logs/raw/YYYY-MM-DD.md：
    - HH:MM [标签] 主题 #AC候选
    - ...
    其中 M 条是 #AC候选。
@@ -155,7 +158,10 @@ itsuki 同意 → append 到当日文件末尾。
    ```
 5. **月末提醒**（每月最后一次会话）：
    ```
-   这是 YYYY-MM 最后一次会话，记得做月度回顾 → AC素材_候选/ 的挑选 + AC素材_成品/monthly_review/YYYY-MM.md
+   这是 YYYY-MM 最后一次会话。月度回顾提醒：
+   - 在 Mac 上挑本月 #AC候选 → iCloud AC素材_候选/
+   - 写 iCloud AC素材_成品/monthly_review/YYYY-MM.md
+   - 写完后把该 monthly_review/YYYY-MM.md 复制回 DMSD 某处入 git 做备份（itsuki 的决策 A）
    ```
 
 **不做**：内容总结 / 会话回顾长文 / 替 itsuki 写感想。
@@ -164,12 +170,14 @@ itsuki 同意 → append 到当日文件末尾。
 
 ## 9. 禁止事项
 
-- ❌ 写入 `AC素材_候选/` `AC素材_成品/`
+- ❌ 写入 iCloud `AC素材_候选/` `AC素材_成品/`
+- ❌ 写入 `05_logs/decision_log.md`（itsuki 手写区）
+- ❌ 未告知就改动 `05_logs/dev_log/` `problem_solving/` `learning_path.md` `project_evolution.md`
 - ❌ 润色 itsuki 原话（保留原话）
 - ❌ 在当日日志里加"事后才知道的信息"
-- ❌ 替 itsuki 判断"这条该进 AC素材候选"（CC 只打 `#AC候选` 标签，升级到第 2 层是 itsuki 的月度回顾工作）
+- ❌ 替 itsuki 判断"这条该进 AC素材候选"
 - ❌ 主动写自我推荐书/志愿理由书内容
-- ❌ 未告知就创建非 `全量日志/` 的新文件
+- ❌ 未告知就在 `05_logs/` 下创建新子目录或非 `raw/YYYY-MM-DD.md` 的文件
 
 ---
 
@@ -183,7 +191,15 @@ itsuki 同意 → append 到当日文件末尾。
 
 ## 11. 闪念不归 CC 管
 
-itsuki 的临时想法通过手机备忘录 → Claude app 整理 → itsuki 自己粘贴进 `全量日志/`，标签 `[闪念-补]`。CC 不管这部分。
+itsuki 的临时想法通过手机备忘录 → Claude app 整理 → itsuki 自己粘贴进 `05_logs/raw/YYYY-MM-DD.md`，标签 `[闪念-补]`。CC 不管这部分。
+
+---
+
+## 12. raw/ 目录的历史命名
+
+历史上 `raw/` 下有按主题命名的文件（`2026-04-12_NFC架构讨论.md` 等），是 v3 前的写法。
+v3 起 CC 新增的 dump 统一用 `YYYY-MM-DD.md`（一天一文件）。
+两种文件共存，历史文件不动。
 
 ---
 

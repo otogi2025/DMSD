@@ -3,7 +3,7 @@
 > **最后更新**: 2026-04-13
 > **当前版本**: v0.2.0(见 `CHANGELOG.md`)
 >
-> 这是项目的**当前状态快照**。详细的日志、问题解决、决策过程在 `05_logs_ac/` 下。
+> 这是项目的**当前状态快照**。详细的日志、问题解决、决策过程在 `05_logs/` 下。
 
 ---
 
@@ -81,7 +81,7 @@ Phase 2 追加:
 
 ### 防作弊核心: 语音播报
 
-点呼机读卡后自动播报学生姓名,老师人眼对照。把"机器识别身份"和"老师人眼识别"实时配对,攻击者必须本人到场(详见 `05_logs_ac/decision_log.md`)。
+点呼机读卡后自动播报学生姓名,老师人眼对照。把"机器识别身份"和"老师人眼识别"实时配对,攻击者必须本人到场(详见 `05_logs/decision_log.md`)。
 
 ---
 
@@ -178,7 +178,7 @@ Phase 2 追加:
 
 ## 关键决策记录(索引)
 
-详细前因后果见 `05_logs_ac/decision_log.md`。
+详细前因后果见 `05_logs/decision_log.md`。
 
 | 日期 | 决策 |
 |------|------|
@@ -196,7 +196,7 @@ Phase 2 追加:
 
 ## 问题解决记录(索引)
 
-详细记录在 `05_logs_ac/problem_solving/`。
+详细记录在 `05_logs/problem_solving/`。
 
 | 日期 | 问题 | 类型 |
 |------|------|-----|
@@ -221,8 +221,8 @@ Phase 2 追加:
 ### 优先(短期)
 
 - [ ] 填 4-10 dev_log 的 4 个【】占位符
-- [ ] 填 reflection_2026-04-10 的 5 个【】占位符
-- [ ] 回答 `05_logs_ac/ac_入試准备/项目起源_真实观察.md` 里的 AC 起源问题
+- [ ] 填 reflection_2026-04-10 的 5 个【】占位符（已迁 iCloud `AC素材_成品/reflection/`）
+- [ ] 回答 `AC素材_成品/ac_入試准备/项目起源_真实观察.md` 里的 AC 起源问题（已迁 iCloud）
 - [ ] 继续 Python 学习(下一个: 循环 + 列表)
 
 ### 中期
@@ -237,8 +237,8 @@ Phase 2 追加:
 
 - [ ] 采购 Raspberry Pi + NFC 模块,搭建第一台点呼机原型
 - [ ] 建 README.md(开始写代码时)
-- [ ] 和真人讨论项目(填 `05_logs_ac/interview_log/`)
-- [ ] 月度回顾(每月最后一周,填 `05_logs_ac/monthly_review/`)
+- [ ] 和真人讨论项目(填 iCloud `AC素材_成品/interview_log/`)
+- [ ] 月度回顾(每月最后一周,填 iCloud `AC素材_成品/monthly_review/`)
 
 ---
 
@@ -264,15 +264,12 @@ DMSD/
 │       └── v0.1_冻结决策.md
 ├── 03_dev/                          代码(待开始)
 │   └── Student/DMSDStudentApp(iOS)/  早期 throwaway 代码,将重写
-├── 05_logs_ac/                      AC 入試记录
-│   ├── AC考试记录指南.md
-│   ├── decision_log.md
-│   ├── ai_协作记录.md
-│   ├── raw/                         原始未润色素材
-│   ├── dev_log/                     润色后的日志
-│   ├── problem_solving/             问题解决
-│   ├── interview_log/               访谈记录(空)
-│   ├── monthly_review/              月度回顾(空)
-│   └── reflection_*.md              反思
+├── 05_logs/                      DMSD 开发 log（AC 纯素材已迁 iCloud）
+│   ├── decision_log.md              itsuki 手写决策索引
+│   ├── learning_path.md
+│   ├── project_evolution.md
+│   ├── raw/                         CC 每日 dump（YYYY-MM-DD.md）
+│   ├── dev_log/                     itsuki 自己写的叙述式日志
+│   └── problem_solving/             问题解决记录
 └── 99_archive/                      归档
 ```
