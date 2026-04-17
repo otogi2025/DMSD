@@ -14,12 +14,4 @@ DerivedData/
 # Google Drive conflict artifacts (if any)
 *conflicted copy*
 
-# 早期 GPT 对话三件套(2025-12,与 v1.0 规格无直接依赖,仅作历史归档)
-99_archive/2025-12_早期GPT对话/
-
-# 2026-04-15 目录重构：AC 纯素材从 git 移出（itsuki 手动搬 iCloud 后在 Mac 上删这些残留）
-99_archive/05_logs_ac_v2归档/
-
-# 撤销的空目录（曾试验全量日志/,已废弃）
-全量日志/
 

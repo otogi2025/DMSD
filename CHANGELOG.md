@@ -1,44 +1,273 @@
 # Changelog
 
-> 版本号规则: [语义化版本 (SemVer)](https://semver.org/) — 主版本号.次版本号.修订号
+> 版本号规则：[语义化版本 (SemVer)](https://semver.org/) — 主版本号.次版本号.修订号
 >
-> **说明**: 项目早期 spec 文件名里写的 "v1.0" 是指"规格文档的第一版",
-> 不是项目的正式发布版本。项目的实际版本从 0.1.0 开始,
-> 1.0.0 = 系统在宿舍正式上线运行。
+> **本项目约定**：
+> - `v0.x.y` = 开发阶段，`0.x` 本意就是"不稳定，什么都能改"
+> - `v1.0.0` = 系统在宿舍正式上线运行（对外第一次兼容性承诺）
+> - spec 实质内容未变的版本 bump = patch（`0.0.y` / `0.x.y`），只有"新范围进来"才 minor bump
+>
+> **pre-0.1 的追认**：下方 `0.0.x` 系列是在 2026-04-17 回溯 chat log 后补标的。
+> 原始迭代发生在 ChatGPT 对话里，未进入 git（见 `05_logs/raw/2025-12_NFC系统早期设计对话.md` 节选）。
+> 打这些标签的目的：让"讨论了十几种方案才写第一版文档"这件事有可追溯的证据链。
+
+---
+
+## [0.2.0] - 2026-04-17 晚
+
+> **为什么 minor bump**：字典三件套全部重写 + `DEVICE_REGISTRY` 新建 = spec 实质改动，触达 SemVer minor 阈值。原计划的 v0.1.4（纯元工作）因此次 commit 合并了字典改动被合并到 v0.2.0 一并发布。
+
+### Added — spec 实质变动
+- `01_specs/rollcall/DEVICE_REGISTRY_v0.1.md` 新建：`device_type` 三类 / 4 台候选位置 / 注册流程 / 生命周期
+- `ENUM_REGISTRY` 新增：`session_event_source` / `device_type` / `path_type` / `day_type` / `student_group` / `schedule_mode`
+- `FIELD_REGISTRY` 新增：`device_id` / `started_source` / `ended_source` / `device_*` 6 字段
+- `ERROR_CODES` 新增：`UNKNOWN_CARD` / `UNKNOWN_DEVICE` / `DEVICE_NOT_ACTIVE` / `NO_ROLLCALL_FOR_TODAY` / `INVALID_SIGNATURE`
+- spec 附录 B.9 扩写"修改时间窗矩阵"（角色×时间，月结冻结）
+- spec 附录 A.2 明确"当前假设：足球部祝休日训练导致时间与平日相同 + 待 itsuki 最终确认"
+
+### Changed — spec 实质变动
+- `ENUM_REGISTRY.base_status` 重命名（原 `background_status`）+ overlay 分两类（badge / range）
+- `ERROR_CODES` 按通用/场次/签到分组 + 移除 `NOT_STARTED`/`ENDED`（用 `SESSION_NOT_RUNNING` 替代）
+- `FIELD_REGISTRY` 废弃 `background_status`
+- spec 附录 B.11 从 🟢 升 🟡（Phase 1 无 App 时申请流程的根本问题记入 spec 主体）
+
+### Added — 元工作
+- CHANGELOG 细粒度重建：pre-0.1 追认 6 条（2025-12 ChatGPT 方案级迭代）+ 2-02 至今每实质节点一条
+- `99_archive/README.md`：10 项归档条目 + 归档原则 + 清理 SLA
+- `raw/2026-04-17.md`：全项目审查（16 处文档/字典内部冲突 + 5 个外人视角担忧）+ 版本号方法论修正 + 早期 chat log 整合 + 9 项重要不紧急问题方案 + 2025-12 对话日期锁定（2025-12-19 23:11 JST）+ project_evolution 起点章节草稿
+
+### Changed — 元工作（单源化 / 反冗余）
+- `CLAUDE.md`：权限表 / 目录结构改为唯一真值源
+- `CLAUDE_CODE_记录指南.md`：大幅简化，5 核心问题 / 目录边界都改为"见 CLAUDE.md"；新增 `[方法论决策]` 标签
+- 元文档行数：1563 → 1362（省 201 行）
+
+### Changed — 清理（6 项 🟢）
+- 删 `05_logs/.trash_dev_log/` / `.trash_problem_solving/` / `.trash_raw/` 三个空目录
+- `00_admin/Folder Structure Overview.pages` → `99_archive/2026-03-08_Folder_Structure_Overview.pages`
+- `01_specs/Overview/*.docx`（2 个 Word 原稿）→ `99_archive/01_specs_Overview_原稿/`
+- `.gitignore` 删 3 条过期规则（`99_archive/2025-12_早期GPT对话/` 已 tracked；`99_archive/05_logs_ac_v2归档/` 与 `全量日志/` 已不存在）
+- `99_archive/2025-12_早期GPT对话/` 三个 JSON 文件正式入 git
+- `00_admin/executable_dev_checklist_v0.1.md` → `99_archive/2026-04-12_executable_dev_checklist_v0.1.md`（功能被 TODO.md 吸收）
+- `00_admin/目录架构.md` 删除（CLAUDE.md §目录结构是权威源；git 历史可恢复）
+
+### Notes
+- spec 主体 rewrite（§1 双路径 / §2 Q1 / §5 / §7 / §9 / §10 / 附录 C）仍未落地 → 留给 v0.2.1 或 v0.3.0
+- 本 commit 由两个 CC 会话并行工作的合流产物（无文件冲突，字典与清理零重叠）
+
+---
+
+## [0.1.3] - 2026-04-17 上午
+
+### Added
+- `01_specs/rollcall/RollCall_Spec_v0.1.md`：把 .pages 原稿数字化为 Markdown，附录 A（7 项整理时发现的问题）+ 附录 B（18 项深度审查发现的 spec 漏洞，共 25 项）
+- iCloud AC 素材第 2 层首次批量填充：10 条候选 + 候选索引
+- iCloud AC 目录结构重构（扁平版与嵌套版合并，按编号分类）
+- AC 入试记录指南 v3.0 → v3.1（§1 目录图、§11 起步清单修订）
+- `DMSD/CLAUDE.md` iCloud 权限子表（CC 可读 iCloud AC 目录；写 03/04 需当场授权；永不写 05_产出）
+
+### Changed
+- spec 源权威性从 `.pages`（二进制，Git 无法 diff）过渡到 `.md`（可追溯）
+- 修正 RollCall spec 中若干日文打字错误（おす→押す、人ってから→入ってから 等）
+- spec §2 颜色优先级统一为详细版（两套写法合并）
+
+### Notes
+- 本版本是 **spec 可追溯化** 的里程碑：从此 spec 修改每一次都能被 git 看见
+- spec 主体（§1 "App 触碰" 与 Phase 1 "卡触碰" 脱节）未重写 → 留给 v0.2.0
+
+---
+
+## [0.1.2] - 2026-04-15
+
+### Added
+- 核心架构原则：**thin client / thick server**（点呼机只搬运数据，业务判断全在后端，由 itsuki 主动提出反驳 AI 的过度配置）
+- Phase 2 双路径架构：卡（RFID）+ iPhone（读点呼机外贴静态 NFC 标签 → 自己联网发后端 → WS 推回点呼机播报），不走 HCE
+- iOS 第三方 App 无 Secure Element / HCE 权限的根本限制认知（Apple Pay 背后是 SE + 一次性 token）
+- RPi vs ESP32 全维度重开对比 → 确认方向 A（Raspberry Pi），推翻 4-12 "已决定 RPi" 的伪决策
+
+### Changed
+- 点呼机硬件配置降级：Pi 4B 4GB → Pi Zero 2 W / Pi 4B 2GB 候选（职责最简化 → 配置需求最小化）
+- 点呼机代码估计 < 100 行 Python（极简化）
+
+### Notes
+- 本版本是 **架构原则层** 的升级，spec 文件未改 → patch
+- 发现 spec gap：v0.1 spec 完全没写点呼机契约（记入项目债）
+- Android 版 Phase 2 方案未细化（HCE 机制与 iOS 不同，记入项目债）
 
 ---
 
 ## [0.1.1] - 2026-04-13
 
-> **注**：本版本原标记为 0.2.0，但内容实质上仅为 **命名与元数据整理**（spec 文件实质内容未变），按 SemVer 规范应为 patch (0.1.1) 而非 minor bump。2026-04-17 审查时更正。
+> **注**：本版本原标记为 0.2.0，但内容实质上仅为 **命名与元数据整理**（spec 文件实质内容未变），按 SemVer 规范应为 patch 而非 minor bump。2026-04-17 审查时更正。
 
 ### Added
 - `CHANGELOG.md` 版本记录文件
-- 版本管理实践指南（放在 iCloud `00_通用指南/` — 通用文件,适用于所有项目）
-- AC 入試 三层记录体系（raw / 候选 / 成品；详见 `00_admin/CLAUDE_CODE_记录指南.md` + iCloud `AC入试记录指南_v3.md`）
+- 版本管理实践指南（放在 iCloud `00_通用指南/`）
+- AC 入試 三层记录体系（raw / 候选 / 成品）
 - `00_admin/WIP.md` 多会话协调文档
+- `00_admin/CLAUDE_CODE_记录指南.md` CC 操作手册
 
 ### Changed
-- **spec 文件命名统一**: 所有 spec 文件从 "v1.0" 重命名为 "v0.1"，项目版本从 0.x.x 开始，1.0.0 = 宿舍正式上线
-- 更新 `00_admin/executable_dev_checklist_v0.1.md`: 点呼主闭环增加硬件架构和分阶段说明
-- 更新 `CLAUDE.md`: 反映分阶段策略和版本管理
+- spec 文件命名统一：所有文件从 "v1.0" 重命名为 "v0.1"
+- 更新 `00_admin/executable_dev_checklist_v0.1.md`：点呼主闭环增加硬件架构和分阶段说明
+- 更新 `CLAUDE.md`：反映分阶段策略和版本管理
 
 ### Notes
 - 本版本是 **命名与元数据整理**，spec 文件实质内容无变化
-- 4-12 的设计决策（NFC 硬件方案 / 分阶段策略 / 语音播报防作弊 / NFC vs 二维码）未写入 spec，记录在 `05_logs/decision_log.md`
-- v0.2.0 将在 spec 实质重写完成后发布（当前进行中，见 `00_admin/TODO.md` 的"RollCall v0.1 spec 待修订事项"）
+- 4-12 的设计决策（NFC 硬件 / 分阶段 / 播报防作弊 / NFC vs 二维码）未写入 spec，记录在 `05_logs/decision_log.md`
+- commit hash: `3b01345` / `e637034` / `e346dca` / `43c73ec` / `91a4294` / `d89b435` / `666faf8`
 
 ---
 
 ## [0.1.0] - 2026-02-12
 
 ### Added
-- 规格文档冻结 (ENUM_REGISTRY, FIELD_REGISTRY, API_CONVENTIONS, ERROR_CODES)
-- RollCall_Spec 点呼行为规格
+- 规格文档冻结：`ENUM_REGISTRY` / `FIELD_REGISTRY` / `API_CONVENTIONS` / `ERROR_CODES`
+- `RollCall_Spec` 点呼行为规格（.pages 原稿）
+- `v0.1_冻结决策.md`：纪律阈值（迟到 0.5 / 缺席 1.0 / 月 ≥4 罚扫 / ≥9 禁足）+ session 状态机 + 规则优先级
+- 8 条验收场景
 - 可执行开发清单
-- 冻结决策文档
-- 项目目录结构建立
 
 ### Notes
-- 这是项目的第一个正式版本基线
-- 原始文件名使用 "v1.0",已在 0.2.0 中统一重命名为 "v0.1"
+- 这是项目的 **第一个正式版本基线**
+- 原始文件名使用 "v1.0"，已在 0.1.1 中统一重命名为 "v0.1"
+- 冻结的是 **规则与数据模型**，未冻结硬件架构 / 点呼机契约 / API 详细 schema（留给后续版本）
+
+---
+
+## [0.0.10] - 2026-02-08
+
+### Added
+- 学生分类（普通寮生 / 足球部 / 未分类）与点呼场次合并思路
+
+### Notes
+- 为 v0.1.0 冻结做准备的倒数第二稿
+- 来源：`05_logs/dev_log/2026-02-08_学生分类和点呼合并.md`
+
+---
+
+## [0.0.9] - 2026-02-04
+
+### Changed
+- 全体計画改善（全体规划迭代）
+
+### Notes
+- 来源：`05_logs/dev_log/2026-02-04_全体計画の改善.md`
+
+---
+
+## [0.0.8] - 2026-02-03
+
+### Added
+- 点呼规格大纲（第一版成文的点呼业务规则）
+
+### Notes
+- 来源：`05_logs/dev_log/2026-02-03_点呼规格大纲完成.md`
+- 这是 spec 的前身
+
+---
+
+## [0.0.7] - 2026-02-02
+
+### Added
+- 项目目录结构与命名规划初稿
+
+### Notes
+- 来源：`05_logs/dev_log/2026-02-02_目录结构和命名规划.md`
+- 进入 git 时代前夕的工程基础
+
+---
+
+## [0.0.6] - ~2025-12（追认，日期不精确）
+
+> **pre-0.1 追认**：以下版本记录的是 2025-12 ChatGPT 对话里的方案级迭代。原始记录见 `05_logs/raw/2025-12_NFC系统早期设计对话.md`。日期是大致估计，不是精确 tag 时间。
+
+### Added
+- **v2.1 加固版**：Android 碎片化对策（enableReaderMode 前台模式 + NDEF 纯文本避免系统抢占）
+- ECDSA 签名格式强制统一（DER base64），避免 iOS/Android 验签不兼容
+- nonce 预取池（解决弱网下 challenge→submit 的逻辑悖论）
+- 内网服务发现：路由器静态 DHCP + 内网 DNS + App 内置管理员改 Base URL 入口
+- 内网 HTTPS 策略：校内自建 CA 或证书 Pinning，不用"自签 + 忽略"
+- 复用监控服务器的 I/O 争抢对策：PostgreSQL 数据目录必须与监控录像分盘
+- PostgreSQL 备份策略：每日 pg_dump 加密 + 双地点落地
+- 物理瓶颈修正：同一教室贴 2-3 个 NFC 标签并行读取，避免门口堵死
+- 无 NFC 学生兜底：老师手动签到 + 临时设备登记
+
+### Notes
+- 这是 pre-0.1 最成熟的方案；之后的 v0.0.7（2-02 目录规划）开始才落纸进 git 体系
+
+---
+
+## [0.0.5] - ~2025-12（追认）
+
+### Added
+- **v2.1 方案**：去掉 FaceID（iPhone / Android 统一）；身份证明改为"账号登录 + 设备私钥签名"
+- 后端选型：Python + FastAPI + PostgreSQL + WebSocket
+- 部署方向：宿舍内网本地服务器（复用现有"监控服务器"跑该系统，尽量低成本）
+- Android 支持：Android Keystore 生成 P-256 私钥（hardware-backed 优先，不强制 StrongBox）
+
+### Removed
+- FaceID / 生物识别依赖（统一 iOS + Android 不对生物识别做要求）
+
+### Notes
+- 去 FaceID 后，"防代刷"靠老师现场监督 + 单设备绑定 + 换机审批 + nonce/验签，**不靠纯技术**
+- 开始明确"内网 + 不一定要公网 IP + 预算极低"的现实约束
+
+---
+
+## [0.0.4] - ~2025-12（追认）
+
+### Added
+- **v2 综合方案**：
+  - 安全闭环：设备密钥（iOS Secure Enclave / CryptoKit）+ P-256 ECDSA + 一次性 nonce + 服务端 session 时间窗
+  - 可选强化：Apple App Attest（防伪造 App/脚本）
+  - 扫除拍照：水印 + 照片 hash + 设备签名证明（非单纯水印）
+  - 数据模型：事件溯源（append-only）+ 状态投影（seat_status_snapshot）
+  - 状态机：present / late / absent / invalid / manual_override + 规则优先级
+  - 运维可靠性：学生端本地队列 + 重试 + 幂等 key；老师端 WS 断线重连 + 全量快照校准
+
+### Notes
+- v2 是第一个"可交付级"综合方案，但还依赖 FaceID（后在 v0.0.5 被去除）
+
+---
+
+## [0.0.3] - ~2025-12（追认）
+
+### Added
+- 学习 NXP NTAG 424 DNA 的 **SDM/SUN 动态认证机制**
+- 认知："每次触碰 tap-unique"→ 后端用 AES key 验证 CMAC + 防重放计数器
+- 理解"复制 tag 数据 ≠ 能伪造签到，关键是服务端验的是什么"
+
+### Changed
+- 点位防复制方案从"普通静态 tag"升级为"安全标签"候选
+
+### Notes
+- 这是关键认知突破：从"静态 ID 不能当凭证"到"需要动态认证机制"
+
+---
+
+## [0.0.2] - ~2025-12（追认）
+
+### Added
+- 方案改为 **iPhone 读固定点位 NFC tag**（Core NFC 原生能力）
+- 服务端 session 时间窗 + 挑战/签名 + 设备绑定的基础安全模型
+
+### Removed
+- HCE 手机当卡方案（iOS 第三方 App 无 HCE 权限，Apple 只对 EEA 开放且有授权条件）
+
+### Notes
+- 第一个重大方案推翻。认知：iPhone 不能被"自制读卡器"读作卡；只能反过来让手机读标签
+
+---
+
+## [0.0.1] - ~2025-12（追认）
+
+### Added
+- **最初设想**：学生手机当 NFC 卡，碰一碰教室里的读卡机完成签到（灵感来自日本 NFC 自动贩卖机）
+- 最初业务方案：钥匙贴二维码 = 学生信息，一人一设备绑定，老师 iPad 座位表实时亮灯
+- 扣分处分规则雏形（迟到 0.5 / 缺席 1.0 / ≥4 罚扫 / ≥8 禁足）
+- 扫除拍照审核 + 加分抵扣设想
+
+### Notes
+- 这是项目的起点方案，**多处被后续迭代推翻**（HCE 不可行、钥匙二维码是隐私雷、单纯水印防伪不足）
+- 但业务形态（固定时间 / 固定教室 / 固定座位 / 碰一下签到 / 老师 iPad 实时亮）**从头到尾保留至今**
+- 证据：`05_logs/raw/2025-12_NFC系统早期设计对话.md` 早期段落

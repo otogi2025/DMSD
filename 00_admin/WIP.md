@@ -13,8 +13,8 @@
 
 ---
 
-**最后更新**: 2026-04-17 18:00 by [Mac-主会话 (CC-Opus-4.7)]
-**当前总版本**: v0.1.1（AC 入试记录指南：v3.1） — v0.2 修订进行中
+**最后更新**: 2026-04-17 18:09 by [Mac-主会话 (CC-Opus-4.7)]
+**当前总版本**: v0.2.0（AC 入试记录指南：v3.1） — v0.2 修订进行中
 
 ---
 
@@ -64,12 +64,13 @@
   - **commit 2（spec 修订）**: RollCall_Spec 主体 rewrite (双路径) + ENUM/FIELD 修 + ERROR_CODES 补 + DEVICE_REGISTRY 新建
   - **commit 3（硬件落实）**: spec §3.2 A/B → A/B/C/D + progress_overview 起草更新
 - **已完成**:
-  - [x] CHANGELOG.md revert 0.2.0 → 0.1.1
+  - [x] CHANGELOG.md revert 0.2.0 → 0.1.1（commit `8706fed`）
   - [x] CLAUDE.md "规格 v0.2 已更新" 措辞修正
   - [x] WIP.md 顶部 + 焦点 + 进行中任务更新
   - [x] raw/2026-04-17.md 18:00 dump 追加
-- **当前停在**: commit 1 元数据修订完成，等 itsuki 确认后 commit
-- **下一步**: itsuki 确认 → commit 1 → 进入 commit 2 spec 修订
+  - [x] **commit 1 已 push 准备**（`8706fed` — 7 files / +1220 / -34）
+- **当前停在**: 进入 commit 2（spec 主体 rewrite + 字典三件套修订 + DEVICE_REGISTRY 新建）
+- **下一步**: 重写 RollCall_Spec_v0.1.md 主体为双路径并存 + 修字典 + 补错误码 + 新建 DEVICE_REGISTRY
 
 ---
 
@@ -180,7 +181,7 @@
 
 新会话读完 `CLAUDE.md` 和本文件应该知道:
 
-1. **当前版本**: v0.1.1（v0.2 修订进行中） — 项目还在规格和设计阶段,未开始写代码
+1. **当前版本**: v0.2.0（v0.2 修订进行中） — 项目还在规格和设计阶段,未开始写代码。CHANGELOG 已于 4-17 晚重建为细粒度（pre-0.1 追认 6 条 + 2-02 至今每个实质节点一条）
 2. **分阶段策略**: Phase 1 = NFC 卡 + 后端 + Raspberry Pi 点呼机(不需要学生 App)|  Phase 2 = 加手机 App
 3. **防作弊核心**: 语音播报(原创设计,详见 `05_logs/decision_log.md`)
 4. **版本体系**: 0.x.x = 开发中,1.0.0 = 宿舍正式上线
@@ -197,3 +198,4 @@
 - 2026-04-13 深夜 — [Mac-主会话] 补充今天的完成清单(commit 91a4294/d89b435/666faf8 + 2025-12 raw)
 - 2026-04-15 晚 — [Mac-主会话] 刷新当前焦点(Phase 1+2 架构敲定,进入硬件收尾+spec 补完阶段);登记 4-15 完成清单;记入两项新项目债(点呼机 spec、Android Phase 2 方案)
 - 2026-04-17 18:00 — [Mac-主会话] 启动 RollCall v0.1 spec 修订(3 commit 计划);版本号 v0.2.0 revert 到 v0.1.1 patch（命名整理而已，spec 内容未变）;新增"进行中任务 A"
+- 2026-04-17 18:09 — [Mac-主会话] CHANGELOG 细粒度重建：pre-0.1 追认 6 条 2025-12 方案级迭代（HCE→tag→SDM/SUN→v2→v2.1→v2.1加固版，来源 itsuki 贴出的早期 ChatGPT log）+ 2-02 至今每个实质节点一条 patch，当前 = v0.2.0

@@ -26,7 +26,7 @@
 - 技术栈：iOS（Swift / SwiftUI）+ 后端（FastAPI / Python / PostgreSQL）
 - 分阶段：Phase 1 NFC 卡 + 后端（无手机 App）；Phase 2 iOS + Android
 - 规格：`01_specs/` v0.1 冻结于 2026-02-12；v0.2 修订进行中（见 `00_admin/TODO.md`）
-- 版本：SemVer，当前 v0.1.1，见 `CHANGELOG.md`
+- 版本：SemVer，当前 **v0.2.0**（2026-04-17 晚），见 `CHANGELOG.md`；v0.2.0 等 spec 主体 rewrite 完成后发布
 - **版本号 bump 时必须触发 AC 记录**（对应核心问题 #3 重大决策）
 
 ## 目录结构
@@ -106,7 +106,7 @@ DMSD/
 | 路径 | CC 权限 |
 |---|---|
 | `05_logs/raw/YYYY-MM-DD.md`（第 1 层 CC dump）| 读写 |
-| `05_logs/` 其他子项（dev_log / problem_solving / decision_log.md / learning_path.md / project_evolution.md）| itsuki 自己写的日志。CC 可读可引用，改动前先告知 |
+| `05_logs/` 其他子项（dev_log / problem_solving / decision_log.md / learning_path.md / project_evolution.md）| itsuki 自己写的日志。CC 可读可引用，**改动前必须先告知** |
 | `00_admin/CLAUDE_CODE_记录指南.md` | 只读 |
 | `00_admin/WIP.md` | 读写 |
 | `00_admin/progress_overview.md` | 起草（不直写）|
