@@ -26,7 +26,7 @@
 - 技术栈：iOS（Swift / SwiftUI）+ 后端（FastAPI / Python / PostgreSQL）
 - 分阶段：Phase 1 NFC 卡 + 后端（无手机 App）；Phase 2 iOS + Android
 - 规格：`01_specs/` v0.1 冻结于 2026-02-12；v0.2 修订进行中（见 `00_admin/TODO.md`）
-- 版本：SemVer，当前 **v0.2.0**（2026-04-17 晚），见 `CHANGELOG.md`；v0.2.0 等 spec 主体 rewrite 完成后发布
+- 版本：SemVer，当前 **v0.3.0**（2026-04-17 晚），见 `CHANGELOG.md`；v0.3.0 等 spec 主体 rewrite 完成后发布
 - **版本号 bump 时必须触发 AC 记录**（对应核心问题 #3 重大决策）
 
 ## 目录结构

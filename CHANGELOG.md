@@ -13,6 +13,38 @@
 
 ---
 
+## [0.3.0] - 2026-04-17 晚（spec 主体 rewrite）
+
+> **为什么 minor bump**：v0.2.0 完成了字典三件套 + DEVICE_REGISTRY 的"定义层"。本版本完成"业务规则层"——把新字典实际写进 spec 主体，并新增 3 块业务规则（双路径信号流 / 4 台协调 / 改判时限+扣分联动）。是 v0.2.0 承诺的实现完成。
+
+### Added — spec 主体新增章节
+- **§1 双路径并存**：路径 A（NFC 卡 / Phase 1） + 路径 B（iPhone 静态标签 / Phase 2）双路径定义 + thin client 架构原则
+- **§5.1 双路径签到信号流**：路径 A / 路径 B 的端到端流程图 + §5.1.3 防代签人防补偿
+- **§9 系统组件职责** rewrite：thin client / thick server 落地到 7 个组件分工 + 引用 DEVICE_REGISTRY
+- **§11.3 改判时限矩阵**（角色 × 时间）：解决附录 B.9 涉及金钱/处分字段的时间窗
+- **§11.4 改判与扣分联动表**：6 种状态转换的自动 ledger 规则
+- **附录 C — 4 台点呼机协调规则**（C.1-C.5）：学生归属 / session 边界 / 重复碰处理 / 物理布局候选 / 学生 → session 归属
+- **附录 D — v0.2 收口清单**：附录 A/B 共 25 项的 ✅/🟡/🔄 状态盘点
+
+### Changed — spec 主体对齐字典
+- §1 概述移除"App 触碰"假设（A.1 ✅ 收口）
+- §2.1 base_status 表：`exempt_range` 从 overlay 改为 base（Q1 落地）
+- §2.2 overlay_badges：分两类（纯装饰型 / 改底色型）
+- §2.4 底色优先级：`exempt_range` 进入排序
+- §3.2 弹窗信息：`本场来自的点位（A 或 B）` → `device_id` + `path_type`（B.16 ✅ 收口）
+- §5 重排：原 5.1-5.4 → 5.2-5.5，新插 5.1 双路径信号流
+- §7 边界：`NOT_STARTED` / `ENDED` → 统一 `SESSION_NOT_RUNNING`；新增 5 个错误码引用
+- §8.2 / §8.3：`EXEMPT_RANGE` 不再是 overlay
+- §10 数据模型：rollcall_event 新增 `device_id` / `path_type` / `applied_group` / `idempotency_key`
+- 所有大写状态值（`INIT/PRESENT/LATE/ABSENT/EXEMPT_RANGE`）改为小写以匹配 ENUM_REGISTRY 规则
+
+### Notes
+- 附录 A/B 仍开放项（约 9 项 🔄）留给 itsuki 拍板或 v0.4 / v0.5 继续
+- spec 现 958 行，比 v0.2.0 时增加 ~280 行（新增 3 块规则 + 附录 C/D + 信号流图）
+- `.pages` 原稿继续保留为历史快照，本 `.md` 是唯一真值
+
+---
+
 ## [0.2.0] - 2026-04-17 晚
 
 > **为什么 minor bump**：字典三件套全部重写 + `DEVICE_REGISTRY` 新建 = spec 实质改动，触达 SemVer minor 阈值。原计划的 v0.1.4（纯元工作）因此次 commit 合并了字典改动被合并到 v0.2.0 一并发布。

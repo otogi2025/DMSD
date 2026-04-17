@@ -1,63 +1,84 @@
 # RollCall Spec v0.1（点呼仕様）
 
-> **冻结日期**：2026-02-12
-> **版本**：v0.1（已冻结）
-> **来源**：由 `RollCall_Spec_v0.1.pages` 整理为 Markdown
-> **整理日期**：2026-04-17
-> **整理说明**：内容由 itsuki 从原 `.pages` 文件复制粘贴提供，CC 整理为 Markdown 结构。
-> 已修正若干明显的日文打字错误（详见附录 A.5）。
-> 如发现与原 `.pages` 不一致之处，以原 `.pages` 为准，并请告知 CC 修正。
+> **v0.1 初版冻结**：2026-02-12（来源 `.pages` 原稿）
+> **v0.2 主体改写**：2026-04-17 晚（双路径并存 / Q1-Q5 决策落地 / 附录 B 漏洞收口）
+> **当前文件状态**：spec 主体已对齐 4-17 决策；`.pages` 原稿仅作历史快照保留
+> **权威来源**：本 `.md` 是唯一真值，与字典四件套（ENUM/FIELD/ERROR_CODES/DEVICE_REGISTRY）相互引用
 
 ---
 
 ## 1. 概述
 
-老师从管理网站（タブレット）查看座席表，按 **「点呼開始」** 按钮开启点呼场次。
-学生进入点呼室后，打开手机 App 触碰机器即视为签到成功。
-学生签到后，对应座位的颜色在老师管理网站上变化（绿/黄/红等）。
+DMSD 点呼系统支持 **双路径并存**：
 
-> ⚠️ 本 spec 假设的签到方式是「学生手机 App 触碰点呼机」（即 Phase 2 路径）。
-> Phase 1 实际采用「NFC 卡 + 点呼机直读」，与本节描述不一致。详见附录 A.1。
+| 路径 | 触发方式 | 上线节奏 |
+|---|---|---|
+| **路径 A — NFC 卡** | 学生把卡贴到点呼机的 PN532 读头 | **Phase 1**（先上线，不需要学生 App）|
+| **路径 B — iPhone 静态标签** | 学生 iPhone 读点呼机外贴的静态 NFC 标签 | **Phase 2**（追加，与卡共存；Android 方案另议）|
+
+两条路径都遵循同一个业务流程：
+
+1. 老师从管理网站（タブレット）查看座席表，按 **「点呼開始」** 按钮开启点呼场次
+2. 学生在时间窗内通过 **路径 A 或路径 B** 触发签到
+3. 签到事件由 **服务器** 唯一判定（准时 / 迟到 / 缺席 / 拒绝）
+4. 老师管理网站的对应座位颜色实时变化（灰 / 绿 / 黄 / 红 / 黑），通过 WebSocket 推送
+5. 老师在场监督（**Phase 1 防代签的关键人防补偿**，详见 §9 + 附录 B.1）
+
+**架构原则（4-15 拍板）**：
+- **thin client / thick server**：点呼机只搬运数据（读 NFC + HTTP 发后端 + 听 WebSocket + 播报 + 亮灯），**业务判断全在后端**
+- **服务器是唯一判定者**：是否在窗口内 / 准时还是迟到 / 是否结算缺席 —— 全由服务器以 `server_now (JST)` 为准
+- **客户端时间不参与判定**，只用于 UI 展示
+
+详细协议契约见 `DEVICE_REGISTRY_v0.1.md` + `ENUM_REGISTRY_v0.1.md` §12-13（`device_type` / `path_type`）。
 
 ---
 
 ## 2. 座位颜色定义
 
-### 2.1 底色（基础状态）
+> **4-17 修订（Q1 A）**：`exempt_range` 从"叠加角标"改为 `base_status`。
+> 因为"免"表示"学生当天根本不参与判定"（结构上和 init/present/late/absent 同级），不是"签到了带个标记"。
+> 字典见 `ENUM_REGISTRY_v0.1.md` §3-4。
+
+### 2.1 底色（`base_status` — 五选一）
 
 | 颜色 | 状态值 | 含义 |
 |------|--------|------|
-| 灰 | `INIT` | 初始（未签到） |
-| 绿 | `PRESENT` | 准时出席 |
-| 黄 | `LATE` | 迟到出席 |
-| 红 | `ABSENT` | 缺席 |
+| 灰 | `init` | 初始（未签到） |
+| 绿 | `present` | 准时出席 |
+| 黄 | `late` | 迟到出席 |
+| 红 | `absent` | 缺席 |
+| 绿 | `exempt_range` | 事先申请免点呼（如外泊），不参与判定 |
 
-### 2.2 叠加角标（与底色独立）
+### 2.2 叠加角标（`overlay_badges` — 可多选）
 
-| 标记 | 状态值 | 含义 |
-|------|--------|------|
-| 红十字 | `HEALTH_FLAG` | 健康状态异常 |
-| 免 | `EXEMPT_RANGE` | 事先申请免点呼（如外泊） |
-| 申 | `ABSENCE_REQUEST_PENDING` | 本场不参加申请，待老师处理 |
+> overlay 分两类：**纯装饰型**（不改底色） vs **改底色型**（强制 override 底色）。
+
+| 标记 | 状态值 | 类型 | 含义 |
+|------|--------|------|------|
+| 红十字 | `health_issue` | 纯装饰型 | 健康状态异常（不改底色，永远叠加显示）|
+| 申（黑底） | `absence_request_pending` | 改底色型 | 本场不参加申请，待老师处理（强制底色变黑）|
 
 ### 2.3 显示规则
 
-- **红十字**：永远叠加显示，不改变底色，不参与底色优先级排序
-- **免**：底色固定为 **绿色**
-- **申**：底色固定为 **黑色**
-- **免** 和 **申** 都允许同时叠加红十字
+- **`health_issue`（红十字）**：永远叠加显示，不改变底色，不参与底色优先级排序
+- **`absence_request_pending`（申）**：强制底色变黑，覆盖任何 `base_status`
+- 任何 `base_status` 都允许同时叠加 `health_issue`（红十字）
+- 当 `absence_request_pending` 存在时仍可同时叠加 `health_issue`（黑底 + 红十字）
 
 ### 2.4 底色优先级（从高到低）
 
-1. 申（黑）
-2. 免（绿）
-3. `ABSENT`（红）
-4. `LATE`（黄）
-5. `PRESENT`（绿）
-6. `INIT`（灰）
+1. `absence_request_pending`（黑 — overlay 强制 override）
+2. `absent`（红）
+3. `late`（黄）
+4. `exempt_range`（绿）
+5. `present`（绿）
+6. `init`（灰）
 
-> 多个状态同时存在时，按上述优先级决定最终底色。
-> 红十字始终叠加，不参与排序。
+> 多个 `base_status` 不会同时存在（互斥）。
+> 上面的优先级在以下场景适用：
+> - 老师手动改判时若曾经 settle 过，需要按优先级决定显示
+> - 老师审批"申"为"拒绝"时：移除 `absence_request_pending` → 底色变 `absent`
+> - `health_issue` 始终叠加显示，不参与排序
 
 ---
 
@@ -71,12 +92,15 @@
 ### 3.2 本场信息
 - `session_type`：`morning` / `evening`
 - `day_type`：`weekday` / `weekend_holiday`
-- 本场来自的点位（A 或 B）
+- `device_id`（本场签到来自哪台点呼机；详见 `DEVICE_REGISTRY_v0.1.md`）
+- `path_type`：`A`（卡）/ `B`（iPhone 静态标签）
 
 ### 3.3 本场结果信息
-- `attendance_status`（出席状态）
+- `base_status`（出席状态 — 取值见 ENUM `base_status`）
+- `overlay_badges`（叠加角标 — 数组，取值见 ENUM `overlay_badge`）
 - `checked_in_at`（签到时间）
 - `server_time`（服务器时间）
+- `applied_group`（本次判定使用的 `effective_group`，详见 §6.4）
 - 健康内容（如有）
 - 缺席理由（红色时）
 - 申请审批结果（同意 / 拒绝）
@@ -144,13 +168,77 @@
 
 ## 5. 系统逻辑
 
-### 5.1 开始与结束流程
+### 5.1 签到信号流（路径 A vs 路径 B）
+
+> **共同前提**：服务器是唯一判定者；client/iPhone/卡的本地时间均不参与判定；`device_id` 必须先在 `DEVICE_REGISTRY` 注册。
+
+#### 5.1.1 路径 A — NFC 卡（Phase 1 主推）
+
+```
+学生卡 ──贴近──> 点呼机 PN532 读头
+                 │
+                 ├─ 1. 读到卡 UID
+                 ├─ 2. POST /api/v1/checkin
+                 │     {device_id, uid, ts_local}     ← 仅搬运，无判定
+                 ▼
+              后端
+                 │
+                 ├─ 3. 校验：device_active / UID 绑定 / session running / 时间窗
+                 ├─ 4. 判定：present/late/duplicate/timeout/...
+                 ├─ 5. 写 attendance_event (append-only)
+                 ├─ 6. WS 推送 → 老师端座位点亮
+                 ▼
+              返回点呼机：
+                 ├─ 成功 → 学生姓名 + 状态 → 点呼机播报"张三 准时" + 绿灯
+                 └─ 失败 → 错误码 → 点呼机红灯 + 失败声音
+```
+
+#### 5.1.2 路径 B — iPhone 静态标签（Phase 2 追加，与路径 A 共存）
+
+```
+学生 iPhone ──贴近──> 点呼机外贴静态 NFC 标签
+                       │
+                       ├─ 1. iPhone Core NFC 读到 device_id
+                       ▼
+                    iPhone App
+                       │
+                       ├─ 2. App 取一次性 nonce（预取池或在线获取）
+                       ├─ 3. 用本机私钥 ECDSA 签名 (session_id || device_id || nonce || ...)
+                       ├─ 4. POST /api/v1/checkin (WiFi/4G 自己发，不经过点呼机)
+                       │     {student_id, device_id, ts_local, signature, nonce, idempotency_key}
+                       ▼
+                    后端
+                       │
+                       ├─ 5. 校验：签名 / nonce / device_active / session running / 时间窗
+                       ├─ 6. 判定：present/late/...
+                       ├─ 7. 写 attendance_event
+                       ├─ 8. WS 推送 → 老师端座位点亮
+                       └─ 9. WS 推回点呼机 → 播报"张三 准时" + 绿灯
+                       ▼
+                    iPhone App 收到响应 → 本地展示结果
+```
+
+**关键差异**：
+- 路径 A 的 device 是 **主动通信节点**（带 PN532 + 树莓派），device_id 写在配置里
+- 路径 B 的 device 是 **被动 NFC 标签**，仅供 iPhone 读取拿 device_id；iPhone 自己发后端
+- 同一台树莓派可同时承载 A 卡读头 + B 静态标签 → `device_type = hybrid`（详见 `DEVICE_REGISTRY_v0.1.md` §3.3）
+
+#### 5.1.3 防代签（Phase 1 关键人防补偿）
+
+NFC 卡固有弱点：卡可被转交。技术不能完全防代签 → **必须靠老师在场监督**：
+- 老师站在点呼机旁边，目视学生本人碰卡
+- 听点呼机播报姓名 → 对照人脸（"张三 准时" + 看到张三本人）
+- spec 把这条作为 Phase 1 的 **硬约束** 写入，不是建议（详见附录 B.1）
+
+Phase 2 路径 B 通过 device 绑定 + 签名 + 单设备策略缓解（但仍无法 100% 防"借手机"）。
+
+### 5.2 开始与结束流程
 
 1. 老师到点呼室，在管理网站按 **「点呼開始」** 按钮 → 学生才能开始签到
-2. 学生比老师先到也无法签到（按钮没按 = 系统不接受）
-3. 老师按 **「点呼終了」** 按钮 → 仍未签到的学生座位变红（缺席）
+2. 学生比老师先到也无法签到（按钮没按 = 系统返回 `SESSION_NOT_RUNNING`）
+3. 老师按 **「点呼終了」** 按钮 → 仍未签到的学生座位变红（`absent`）
 
-### 5.2 时间窗结构（写死规则）
+### 5.3 时间窗结构（写死规则）
 
 每场点呼有 4 个关键时刻：
 
@@ -165,7 +253,7 @@ window_start  →  on_time_end  →  late_end  →  auto_end_at
 - `late_end = on_time_end + 1 秒`
 - `auto_end_at = on_time_end + X 分钟`（X 待最终确定，详见附录 A.3）
 
-### 5.3 老师"提前开始"与窗口平移
+### 5.4 老师"提前开始"与窗口平移
 
 如果老师在 `scheduled_window_start` 之前点击开始：
 
@@ -184,14 +272,16 @@ effective_auto_end_at  = started_at + (scheduled_auto_end_at  - scheduled_window
 
 > ⚠️ 此规则会导致老师提前开始时，准时截止时间也提前。是否符合实际意图？详见附录 A.4。
 
-### 5.4 自动开始 / 自动结束（系统兜底）
+### 5.5 自动开始 / 自动结束（系统兜底）
 
 **自动开始**
 
 到达 `scheduled_window_start` 时，老师仍未按开始 → 系统自动开始：
 
 - `started_at = scheduled_window_start`
-- `started_source = system`
+- `started_source = system`（取值见 ENUM `session_event_source`）
+
+如果系统已自动开始后老师再按 **「点呼開始」** → 返回 `ALREADY_RUNNING`，不变更状态。
 
 **自动结束**
 
@@ -265,15 +355,23 @@ effective_auto_end_at  = started_at + (scheduled_auto_end_at  - scheduled_window
 
 | 判定 | 条件 |
 |------|------|
-| `PRESENT`（绿） | `effective_window_start ≤ t ≤ effective_on_time_end` |
-| `LATE`（黄） | `effective_on_time_end < t ≤ effective_late_end` |
-| `ABSENT`（红） | 到结算时刻仍未签到（见第 8 节） |
+| `present`（绿） | `effective_window_start ≤ t ≤ effective_on_time_end` |
+| `late`（黄） | `effective_on_time_end < t ≤ effective_late_end` |
+| `absent`（红） | 到结算时刻仍未签到（见第 8 节） |
 
 ### 边界情况
 
+> 所有错误码定义见 `ERROR_CODES_v0.1.md`。
+
 - **`t > effective_late_end` 的签到**：返回 `TIMEOUT`，不改变座位结果，最终由结算置为缺席
-- **`started_at` 之前的签到**：返回 `NOT_STARTED`
-- **`ended_at` 之后的签到**：返回 `ENDED`，不允许补签
+- **`started_at` 之前 / `ended_at` 之后的签到**：返回 `SESSION_NOT_RUNNING`（统一覆盖"还没开始"和"已结束"两种情况）
+- **重复签到**（同一 `student_id` 在同一 session 内已签到）：返回 `DUPLICATE_REQUEST`，silently ignore（不变更状态、不重复播报，但记 audit log）
+- **未注册卡 / 陌生 UID**（路径 A）：返回 `UNKNOWN_CARD`，点呼机红灯 + 失败声音 + 不播报姓名
+- **卡未启用**（路径 A，UID 在表里但 `device_active=false` 或学生离寮）：返回 `UNREGISTERED_UID`
+- **未注册设备**（路径 B，iPhone 发的 `device_id` 不在 device 表里）：返回 `UNKNOWN_DEVICE`
+- **设备已停用**：返回 `DEVICE_NOT_ACTIVE`
+- **签名校验失败**（路径 B）：返回 `INVALID_SIGNATURE`
+- **配置缺失**（时间窗表无对应 `(session_type, day_type, effective_group)` 组合）：返回 `NO_ROLLCALL_FOR_TODAY`，阻止 session 创建
 
 ---
 
@@ -287,66 +385,103 @@ settle_at = min(ended_at, effective_auto_end_at)
 
 到达 `settle_at` 时：
 
-> **将仍为 `INIT` 且不在免点呼范围、且不存在 申 待处理 的座位，置为 `ABSENT`。**
+> **将仍为 `init` 且 `base_status ≠ exempt_range` 且不存在 `absence_request_pending` overlay 的座位，置为 `absent`。**
 
-### 8.2 免（`EXEMPT_RANGE`）的结算
+### 8.2 `exempt_range` 的结算（4-17 修订：`exempt_range` 现为 `base_status`，不是 overlay）
 
-- 免点呼范围内的座位 **不参与缺席结算**
-- 即使仍为 `INIT` 也不置为 `ABSENT`
-- 座位显示保持 **免（绿色）**
+- session 创建时，由后台根据"免点呼范围表"把符合条件的学生 `base_status` 直接初始化为 `exempt_range`
+- 这些座位 **不参与缺席结算**
+- 即使到 `settle_at` 也不会被置为 `absent`
+- 座位显示保持 **`exempt_range`（绿色）**
 - 本场统计单列 `exempt_count`
-- `exempt` 不计入 `present` / `late` / `absent`
+- `exempt_range` 不计入 `present` / `late` / `absent` / `init`
 
-### 8.3 申（`ABSENCE_REQUEST_PENDING`）的结算
+### 8.3 `absence_request_pending`（申）的结算
 
-- 申待处理的座位 **不自动置为 `ABSENT`**
-- 座位显示保持 **申（黑色）**
+- 带有 `absence_request_pending` overlay 的座位 **不自动置为 `absent`**
+- 座位显示保持 **黑底**（overlay 强制 override base_status）
 - 本场统计单列 `pending_request_count`
-- `pending_request` 不计入 `present` / `late` / `absent`
+- `pending_request` 不计入 `present` / `late` / `absent` / `init` / `exempt_range`
 - 老师审批后才落最终结果：
-  - **同意** → 移除 申 → 置为 **免（绿色）**
-  - **拒绝** → 移除 申 → 置为 **`ABSENT`（红色）**，按制度扣分
+  - **同意** → 移除 `absence_request_pending` overlay → `base_status` 变为 **`exempt_range`（绿色）**
+  - **拒绝** → 移除 `absence_request_pending` overlay → `base_status` 变为 **`absent`（红色）**，按制度扣分
 
 ---
 
-## 9. 系统组件职责
+## 9. 系统组件职责（thin client / thick server）
+
+> **核心原则（4-15 拍板）**：点呼机只搬运数据，业务判断全在后端。改规则只改后端一处；设备越蠢越安全。
 
 | 组件 | 负责 | 不负责 |
 |------|------|--------|
-| 学生端 App | 触发签到；展示结果与错误提示 | 颜色判定；最终结算 |
-| 老师端管理页面 | 开始 / 结束点呼；查看座位颜色与统计 | 判定逻辑 |
-| 点呼机（NFC） | 提供 `reader_id` / `tag_id` 让手机碰一下触发签到 | 不保存学生身份信息；不参与判定 |
-| 服务器 | **唯一判定者**：是否开始/结束、是否在窗口内、准时/迟到/缺席<br>**唯一结算者**：结束/自动结算时把 pending → absent<br>**唯一信息源**：老师端实时状态由服务器推送 | — |
+| **学生 iPhone App**（路径 B / Phase 2）| Core NFC 读静态标签拿 `device_id`；本机 P-256 ECDSA 签名；POST 发后端；展示结果与错误提示 | 颜色判定；最终结算；时间窗判定 |
+| **老师端管理页面**（iPad）| 开始/结束点呼（按按钮触发 session_event）；查看座位颜色与统计；手动改判（reason 必填）；处理「申」审批；Device 注册管理 | 判定逻辑；自动结算逻辑 |
+| **点呼机：路径 A `card_reader`** | 读 NFC 卡 UID；HTTP 发后端；听 WebSocket；播报姓名/状态；亮灯 | 不保存学生身份；不查表；不判定准时/迟到 |
+| **点呼机：路径 B `iphone_tag`**（被动标签）| 把 `device_id` 暴露给 iPhone 读取 | 不通信；不参与流程 |
+| **点呼机：路径 A+B `hybrid`**（同台树莓派）| 同时承载卡读头（A）+ 静态标签（B）；卡通信由 PN532 负责，iPhone 通信不经过点呼机 | 同上 |
+| **服务器** | **唯一判定者**：session 是否 running / 时间窗内 / 准时/迟到 / 缺席<br>**唯一结算者**：到 `settle_at` 把符合条件的座位置为 `absent`<br>**唯一信息源**：老师端实时状态由服务器 WebSocket 推送<br>**Device 守门人**：所有 `device_id` 必须先在 `DEVICE_REGISTRY` 注册并 `device_active=true` | — |
+| **老师本人（人防）** | Phase 1 防代签的关键：站点呼机旁监督；听播报对照人脸；异常时立即手动改判 | （非系统职责，但是 Phase 1 的硬约束）|
 
 ### 时间基准
 
 - 判定时间使用 **服务器收到请求的时间** `server_now`
 - 时区固定为 **JST**
-- 客户端时间 **不参与判定**，只用于展示
+- 客户端时间 **不参与判定**，只用于 UI 展示
+
+### Device 注册
+
+详见 `DEVICE_REGISTRY_v0.1.md`：
+- 所有签到 API 必须传 `device_id`
+- 未注册 → `UNKNOWN_DEVICE`；已停用 → `DEVICE_NOT_ACTIVE`
+- Q3 决策：**部署 4 台**（具体位置 + 物理布局 Q4 待定）
 
 ---
 
 ## 10. 数据模型与字段（关键补充）
 
+> 完整字段定义见 `FIELD_REGISTRY_v0.1.md`。本节只列 spec 主体相关的关键字段。
+
 ### 10.1 `rollcall_session`（点呼场次）
 
-新增 / 确认字段：
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `session_id` | UUID | 主键 |
+| `session_type` | enum | `morning` / `evening` |
+| `session_status` | enum | `draft` / `running` / `ended` |
+| `schedule_mode` | enum | `split` / `merged_normal`；默认 `split` |
+| `started_at` | timestamp | 实际开始时间（JST）|
+| `started_source` | enum | `teacher` / `system`（取值见 ENUM `session_event_source`）|
+| `ended_at` | timestamp | 实际结束时间 |
+| `ended_source` | enum | 同 `started_source` |
+| `scheduled_window_start_at` 等 4 个 | timestamp | 计划时间窗 |
+| `effective_window_start_at` 等 4 个 | timestamp | 老师提前开始后平移过的实际判定区间（必须保存）|
+| `settle_at` | timestamp | `min(ended_at, effective_auto_end_at)` |
 
-- `schedule_mode`：`split` / `merged_normal`
-- `started_source`：`teacher` / `system`（可选）
-- `ended_source`：`teacher` / `system`（可选）
-- `scheduled_window_start_at` 等（可选，可直接复用 `window_*_at`）
-- `effective_window_start_at` 等（建议保存，便于追溯老师提前开始后的实际判定区间）
+### 10.2 `rollcall_event`（签到事件 — append-only）
 
-### 10.2 `rollcall_event`（签到事件）
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `event_id` | UUID | 主键 |
+| `session_id` | FK | 关联场次 |
+| `student_id` | FK | 学生 |
+| `device_id` | FK | 来自哪台点呼机（详见 `DEVICE_REGISTRY_v0.1.md`）|
+| `path_type` | enum | `A`（卡）/ `B`（iPhone 静态标签）|
+| `base_status` | enum | 判定结果 |
+| `status_source` | enum | `auto_nfc` / `auto_settle` / `manual_checkin` / `teacher_override` |
+| `applied_group` | enum | 本次判定使用的 `effective_group`（`normal` / `soccer`），用来解释"足球部当天合并点呼为什么按普通时间窗算" |
+| `checked_in_at` | timestamp | 服务器接收时间 = 判定时间 |
+| `idempotency_key` | string | 客户端生成 UUID，防重提 |
 
-新增字段：
+### 10.3 `device`（设备表）
 
-- `applied_group`（可选）：记录本次判定使用的 `effective_group`（`normal` / `soccer`），
-  用来解释 "足球部当天合并点呼，为什么按普通时间窗算"
+详见 `DEVICE_REGISTRY_v0.1.md`。spec 主体只引用 `device_id` 与 `device_active` 两个字段。
 
-> 其余字段、API、WebSocket、幂等、错误码、审计 章节保持原稿。
-> 注意：判定使用 `effective_*`，结算使用 `effective_auto_end_at`，查表使用 `(session_type, day_type, effective_group)`。
+### 10.4 字段一致性约束
+
+- `base_status` 取值必须来自 `ENUM_REGISTRY` §3
+- `overlay_badges` 数组元素必须来自 `ENUM_REGISTRY` §4
+- 所有错误码必须来自 `ERROR_CODES_v0.1.md`
+- 判定使用 `effective_*`，结算使用 `effective_auto_end_at`，查表使用 `(session_type, day_type, effective_group)`
 
 ---
 
@@ -366,6 +501,34 @@ settle_at = min(ended_at, effective_auto_end_at)
 
 - `reason` 为空 → **不允许提交**
 - 记录 **只追加，不允许修改**
+
+### 11.3 改判时限矩阵（4-17 新增 — 收口附录 B.9）
+
+涉及金钱/处分的字段必须有时间窗约束。规则：**角色 × 时间** 的二维矩阵。
+
+| 字段类型 | 可改时限 | 角色 | 留痕要求 |
+|---|---|---|---|
+| 备注 / 改判理由（非状态字段）| 无限制 | 所有老师 | 修改历史 |
+| 出勤状态改判 | ≤ 7 天 且 当月月结前 | 所有老师 | 必填 reason |
+| 出勤状态改判 | 8-30 天 | 仅舍监 | 必填 reason + 舍监签字 |
+| 出勤状态改判 | > 30 天 | **只读** | 走「追溯申请」独立流程（v0.3 设计）|
+| 已发处分名单对应的 session | 原则只读 | — | 若必改需撤销处分通知 + 重新发放 |
+| 纪律分（月汇总产出后）| 只读 | — | 修正只能下月补扣 / 补还 |
+
+### 11.4 改判与扣分联动（4-17 新增 — 收口附录 B.9）
+
+| 改判方向 | 自动扣分动作 | ledger 记录 |
+|---|---|---|
+| `present` → `late` | 自动 +0.5 分 | `type=adjust_late` |
+| `present` → `absent` | 自动 +1.0 分 | `type=adjust_absent` |
+| `late` → `present` | 自动 -0.5 分（回退）| `type=reverse_late` |
+| `late` → `absent` | 自动 +0.5 分（差值）| `type=adjust_absent` |
+| `absent` → `present` | 自动 -1.0 分（回退）| `type=reverse_absent` |
+| `absent` → `late` | 自动 -0.5 分（差值）| `type=adjust_late` |
+| 任意 → `exempt_range` | 之前自动加的分全回退 | `type=reverse_*` |
+
+> 老师改判 = 改 status；扣分自动跟随；不允许"只改状态不改分"或"只改分不改状态"（避免审计断链）。
+> 所有 ledger 条目都关联 `override_at` + `override_by` + `reason`。
 
 ---
 
@@ -677,4 +840,119 @@ Phase 1 点呼机 → 老师端的播报反馈，Phase 2 学生 App → 老师�
 
 ---
 
-**END** — RollCall Spec v0.1
+---
+
+## 附录 C — 4 台点呼机协调规则（4-17 新增 — 收口附录 B.2 / B.5 / B.16）
+
+> Q3 拍板：**部署 4 台**。本附录定义"4 台之间如何协调"的硬规则。
+> 物理布局（卡读头 vs 静态标签的具体位置）= Q4 待定，详见 `DEVICE_REGISTRY_v0.1.md` §3.3 + §6。
+
+### C.1 学生归属
+
+**默认规则**：学生 **不绑定固定机器**。任何一台 `device_active=true` 的机器都可以用来签到。
+
+理由：
+- 寮舍 4 个入口，学生从最近的一个进 → 强制绑定固定机器会造成不必要的拒签
+- 防代签靠"老师在场监督"+"播报对照人脸"，不靠"必须用某台机器"
+
+**例外**：如果未来某栋寮舍要单独管理（比如足球部寮 vs 普通寮），可以加 `device_id ↔ student_group` 的可选限制规则。v0.2 暂不实现。
+
+### C.2 一个 session = 全寮一场
+
+**4 台机器同属于 1 个 session**（早点呼一场 + 晚点呼一场 = 每天 2 个 session）。
+
+不是"每台机器一场 = 4 个 session"。原因：
+- 学生可能从不同入口回，不应该被分成 4 套座位表
+- 老师 iPad 看的是**全寮总座位表**，一个 session 一张表
+- 统计、扣分、月汇总都在 session 级别
+
+### C.3 学生先碰 A 再碰 B（同一 session 内）
+
+**第一次碰**：判定为 `present` / `late`，写 `attendance_event`，老师端座位点亮。
+**第二次及之后碰**：服务器返回 `DUPLICATE_REQUEST`，silently ignore（不变更状态、不重复播报，但记 audit log）。
+
+老师端弹窗显示**第一次碰的 device_id**（事实证据）；后续重复碰不会覆盖。
+
+### C.4 物理布局（Q4 待定 — 4-17 立此存照）
+
+每台树莓派的"卡读头 vs iPhone 标签"相对位置有 3 个候选：
+
+| 布局 | 描述 | 优点 | 缺点 |
+|---|---|---|---|
+| **A** | 同台树莓派 = `hybrid`（卡读头 + 静态标签贴在外壳上） | 节省机器数；学生不用区分 | 卡和 iPhone 用同一物理点位，碰错概率低但需要清晰指示 |
+| **B** | 卡读头 4 台 + 静态标签 4 张分开布置 | 物理隔离清晰 | 需要 8 个点位 |
+| **C** | 同台树莓派但卡读头和静态标签分两个面（如正面 + 侧面）| 隔离 + 节省 | 安装稍复杂 |
+
+→ 等现实调研（`00_admin/TODO.md` 的"现实世界调研"段）后定。
+
+### C.5 学生 → session 的归属（收口附录 B.5）
+
+**session 由系统按时刻表自动创建**：
+- 每天 morning 1 个 + evening 1 个 = 2 个 session
+- 创建时刻：`scheduled_window_start - 5 分钟`（系统兜底，老师可以更早手动开始）
+- 如果时间窗表无对应 `(session_type, day_type, effective_group)` 组合 → 不创建该 session，签到返回 `NO_ROLLCALL_FOR_TODAY`
+
+**学生属于哪些 session**：
+- 默认：全体在寮学生都属于当天的 morning + evening session
+- `student_status` 字段（v0.3 引入）：`active`（在寮）/ `paused`（请假）/ `transferred`（转学）/ `graduated`（退寮）
+- 仅 `active` 学生进入 session 的座位表
+- 状态变更必须留 audit（包括变更日期、操作老师、原因）
+
+**新入寮 / 转学 / 退寮的边界**：
+- 新入寮：`student_status` 设为 `active` 后的第一个 session 起开始计算
+- 退寮：`student_status` 改 `transferred` / `graduated` 之后的 session 不再计入
+- 中途请假：`paused` 期间用「免点呼范围」覆盖（参见 §8.2）
+
+---
+
+---
+
+## 附录 D — v0.2 主体改写收口清单（2026-04-17 晚）
+
+> 本附录记录 v0.2 主体改写解决了哪些附录 A/B 项，以及哪些仍开放。
+> 标 ✅ = 已落地；标 🟡 = 部分解决，剩余开放部分注明；标 🔄 = 留给 v0.3。
+
+### D.1 收口附录 A（整理时发现的问题）
+
+| 项 | 状态 | 落地位置 |
+|---|---|---|
+| A.1 Phase 1 vs spec 脱节 | ✅ | §1 整体改写为双路径并存 |
+| A.2 祝休日足球部时间存疑 | 🟡 | 假设"故意如此"，待 itsuki 最终确认 |
+| A.3 X 分钟未定值 | 🔄 | 等 itsuki 拍板（候选 5/10/15/30）|
+| A.4 提前开始平移规则反直觉 | 🔄 | 设计意图待 itsuki 确认 |
+| A.5 日文打字错误 | ✅ | CC 已修正（此前已落地）|
+| A.6 颜色优先级两套写法 | ✅ | 已采用详细版 + Q1 落地 |
+| A.7 NFC 标签位置概念 | ✅ | 与 §9 + DEVICE_REGISTRY 一致 |
+
+### D.2 收口附录 B（深度审查发现的 spec 漏洞）
+
+| 项 | 状态 | 落地位置 |
+|---|---|---|
+| B.1 代签 / 替考 | ✅ | §5.1.3 明确"老师在场监督"为 Phase 1 硬约束 + §9 写入"老师本人"为人防组件 |
+| B.2 4 台点呼机协调 | ✅ | 附录 C.1-C.3 |
+| B.3 重复签到 | ✅ | §7 边界："silently ignore + DUPLICATE_REQUEST + 记 audit" |
+| B.4 未注册卡 / 陌生 UID | ✅ | §7 边界 + `UNKNOWN_CARD` / `UNREGISTERED_UID` / `UNKNOWN_DEVICE` 错误码 |
+| B.5 学生 → session 归属 | ✅ | 附录 C.5 |
+| B.6 老师延后按开始钮 | ✅ | §5.5（`ALREADY_RUNNING`）|
+| B.7 学生比老师先到 UX | 🟡 | §7 边界返回 `SESSION_NOT_RUNNING`；点呼机灯/声音的"等待中"细分 🔄 v0.3 |
+| B.8 离线策略 | 🔄 | 需要 itsuki 拍板 |
+| B.9 改判扣分 + 修改时间窗 | ✅ | §11.3 + §11.4 |
+| B.10 免学生意外回来碰卡 | 🔄 | 需要 itsuki 拍板 |
+| B.11 申请审批流程细节 + Phase 1 无 App | 🔄 | 需要 itsuki 决定代录入 / 口头报备协议 |
+| B.12 `schedule_mode` 默认值 | ✅ | §10.1 默认 `split` |
+| B.13 节假日表来源 | 🔄 | 建议自动从内閣府 CSV 预填，待 itsuki 拍板 |
+| B.14 `health_flag` 生命周期 | 🔄 | 待 itsuki 拍板 |
+| B.15 `evidence` 字段格式 | 🔄 | 待 itsuki 拍板 |
+| B.16 「点位 A 或 B」含义未明 | ✅ | §3.2 改为 `device_id` + `path_type`，含义明确 |
+| B.17 WebSocket 协议 | 🔄 | v0.3 写专门的 WebSocket spec |
+| B.18 幂等键 | 🟡 | §10.2 引入 `idempotency_key`，具体格式 🔄 v0.3 |
+
+### D.3 v0.2 主体改写后仍开放的项目债
+
+🔄 留给 v0.3 / 实现阶段：
+- **设计意图类**（待 itsuki 拍板）：A.2 / A.3 / A.4 / B.8 / B.10 / B.11 / B.13 / B.14 / B.15
+- **协议细化类**（v0.3 专项）：B.7 UX / B.17 WebSocket / B.18 幂等键格式
+
+---
+
+**END** — RollCall Spec v0.1（v0.2 主体改写 / 2026-04-17 晚）
