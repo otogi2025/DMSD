@@ -25,8 +25,8 @@
 - 核心：宿舍点呼数字化（NFC 签到 / 自动判定 / 纪律扣分）
 - 技术栈：iOS（Swift / SwiftUI）+ 后端（FastAPI / Python / PostgreSQL）
 - 分阶段：Phase 1 NFC 卡 + 后端（无手机 App）；Phase 2 iOS + Android
-- 规格：`01_specs/` v0.2 已于 2026-04-12 更新
-- 版本：SemVer，当前 v0.2.0，见 `CHANGELOG.md`
+- 规格：`01_specs/` v0.1 冻结于 2026-02-12；v0.2 修订进行中（见 `00_admin/TODO.md`）
+- 版本：SemVer，当前 v0.1.1，见 `CHANGELOG.md`
 - **版本号 bump 时必须触发 AC 记录**（对应核心问题 #3 重大决策）
 
 ## 目录结构
@@ -37,7 +37,7 @@ DMSD/
 │   ├── WIP.md                         # 书签级，每次会话头尾读写
 │   ├── progress_overview.md           # 章节级，CC 起草由 itsuki 确认
 │   └── CLAUDE_CODE_记录指南.md         # AC 记录操作手册（仅格式需要时读）
-├── 01_specs/                          # 规格文档，v0.2 冻结
+├── 01_specs/                          # 规格文档，v0.1 冻结，v0.2 修订中
 ├── 02_design/
 ├── 03_dev/                            # 代码（backend / Student-iOS / …）
 ├── 04_ops/
@@ -57,7 +57,7 @@ DMSD/
 └── CLAUDE.md                          # 本文件
 ```
 
-**iCloud（CC 不访问）**：`筑波大学 AC入試 準備/` 下的 `AC素材_候选/` `AC素材_成品/` 是 AC 记录第 2、3 层，itsuki 在 Mac 上手动搬运。
+**iCloud 路径**：`iCloud/02_学习与知识/升学/AC/筑波大学 AC入試 準備/`（结构见本文件"AC 记录协作"节）。
 
 ## 开发环境
 
@@ -101,6 +101,8 @@ DMSD/
 
 ## 目录边界
 
+### DMSD 仓库内
+
 | 路径 | CC 权限 |
 |---|---|
 | `05_logs/raw/YYYY-MM-DD.md`（第 1 层 CC dump）| 读写 |
@@ -108,7 +110,21 @@ DMSD/
 | `00_admin/CLAUDE_CODE_记录指南.md` | 只读 |
 | `00_admin/WIP.md` | 读写 |
 | `00_admin/progress_overview.md` | 起草（不直写）|
-| iCloud `AC素材_候选/` `AC素材_成品/`（第 2、3 层）| 不访问 |
+
+### iCloud AC 目录（2026-04-17 起 CC 可访问，有边界）
+
+iCloud 根路径：`iCloud/02_学习与知识/升学/AC/筑波大学 AC入試 準備/`
+
+| 路径 | CC 权限 |
+|---|---|
+| `00_指南/` | 读（`AC入试记录指南_v3.md` / 文件结构图）|
+| `01_官网资料/` | 读 |
+| `02_分析与调研/` | 读 |
+| `03_素材_候选/`（第 2 层）| 默认不写；itsuki **当场明确授权**后可写。升级第 2 层的筛选判断权在 itsuki |
+| `04_素材_成品/`（第 3 层）| 默认不写；itsuki **当场明确授权**后可写 |
+| `05_产出/`（志望理由书 / 自我推荐书 / 面试准备）| **永不写**——这是 itsuki 的原创作品，AI 不参与起草 |
+| `99_archive/` | 读；可写到 `99_archive/` 的新子目录（归档用途）|
+| `状态快照.md` | 读；改动前先告知 itsuki |
 
 ## 触发清单（CC 每次回复前心里过一遍）
 
@@ -152,8 +168,9 @@ itsuki 说下列任一词时**必做**（不用问）：
 
 - 主动识别 + 口头触发词兜底
 - **先问再写**，绝不擅自写入
-- CC 只打 `#AC候选` 标签，不替 itsuki 判断升不升级到第 2 层
-- 不擅自在 iCloud AC 素材目录写任何东西
+- CC 默认只打 `#AC候选` 标签；升级第 2 层的判断权在 itsuki
+- **写 iCloud 第 2/3 层需 itsuki 当场授权**（不是默认行为）——没有明确指令时不动
+- **永不写 `05_产出/`**——志望理由书 / 自我推荐书 / 面试准备是 itsuki 的原创作品
 - 发现 itsuki 把 AC 私密反思直接写进 `05_logs/` 某个会被推 GitHub 的文件时，提醒她（Private repo 短期无风险，但长期应挪 iCloud）
 
 ## 元规则

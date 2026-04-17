@@ -13,8 +13,8 @@
 
 ---
 
-**最后更新**: 2026-04-15 晚 by [Mac-主会话]
-**当前总版本**: v0.2.0
+**最后更新**: 2026-04-17 18:00 by [Mac-主会话 (CC-Opus-4.7)]
+**当前总版本**: v0.1.1（AC 入试记录指南：v3.1） — v0.2 修订进行中
 
 ---
 
@@ -38,26 +38,51 @@
 
 **下一个大动作**: 补点呼机 spec → 硬件收尾型号定 → 采购 → Phase 1 代码(后端骨架 + 点呼机读卡)。
 
+**4-17 18:00 启动**: itsuki 二轮审查发现 7 个结构性问题（CHANGELOG 名不副实 / spec 主体 Phase 视角错 / 4 台是幽灵 / device_id 裸字段 / progress_overview 过时等），拍板 5 个硬决策（Q1 `exempt_range` = base / Q2 spec 主体改写双路径 / Q3 = **4 台** / Q4 物理布局 TBD / Q5 = revert 到 v0.1.1）。spec 修订工作分 3 个 commit 推进（详见下面"进行中任务 A"）。
+
 ---
 
 ## 🔄 进行中的任务
 
-*(当前没有进行中的任务。下面是格式示例。)*
+### 任务 A: RollCall v0.1 spec 修订（来自 2026-04-17 二轮审查）
 
-~~### 【示例】任务 A: 搭建 FastAPI 后端骨架
-- **认领者**: Mac-后端会话
-- **开始时间**: 2026-04-20 10:00
-- **为什么做**: v0.3.0 需要后端能跑起来
-- **涉及的文件/目录**(其他会话不要动): `03_dev/backend/`, `CHANGELOG.md`, `WIP.md`
+- **认领者**: [Mac-主会话 (CC-Opus-4.7)]
+- **开始时间**: 2026-04-17 18:00
+- **为什么做**: 4-17 itsuki 二轮审查发现 16 项文档/字典内部冲突 + 5 个外人视角担忧（详见 raw/2026-04-17.md 17:56 dump）；之前 25 项漏洞 + 这些都要系统性修订
+- **涉及的文件/目录**（其他会话不要动）:
+  - `01_specs/rollcall/RollCall_Spec_v0.1.md`
+  - `01_specs/rollcall/FIELD_REGISTRY_v0.1.md`
+  - `01_specs/rollcall/ENUM_REGISTRY_v0.1.md`
+  - `01_specs/rollcall/ERROR_CODES_v0.1.md`
+  - `01_specs/rollcall/DEVICE_REGISTRY_v0.1.md`（新建）
+  - `CHANGELOG.md`
+  - `CLAUDE.md`
+  - `WIP.md`
+  - `00_admin/progress_overview.md`
+- **执行计划（3 commit）**:
+  - **commit 1（元数据）**: CHANGELOG 0.2.0→0.1.1 + CLAUDE.md "规格 v0.2" 措辞修正 + raw dump + WIP 更新 ← **进行中**
+  - **commit 2（spec 修订）**: RollCall_Spec 主体 rewrite (双路径) + ENUM/FIELD 修 + ERROR_CODES 补 + DEVICE_REGISTRY 新建
+  - **commit 3（硬件落实）**: spec §3.2 A/B → A/B/C/D + progress_overview 起草更新
 - **已完成**:
-  - [x] 初始化 Python venv
-  - [x] 装 FastAPI + uvicorn
-- **当前停在**: 准备写 `main.py` 的 hello world
-- **下一步**: 跑通 `GET /health` 接口,返回 `{ok: true}`~~
+  - [x] CHANGELOG.md revert 0.2.0 → 0.1.1
+  - [x] CLAUDE.md "规格 v0.2 已更新" 措辞修正
+  - [x] WIP.md 顶部 + 焦点 + 进行中任务更新
+  - [x] raw/2026-04-17.md 18:00 dump 追加
+- **当前停在**: commit 1 元数据修订完成，等 itsuki 确认后 commit
+- **下一步**: itsuki 确认 → commit 1 → 进入 commit 2 spec 修订
 
 ---
 
 ## ✅ 最近完成(24-48 小时内)
+
+### 2026-04-17
+
+- **[Mac-主会话]** 把 `RollCall_Spec_v0.1.pages` 数字化为 Markdown（`01_specs/rollcall/RollCall_Spec_v0.1.md`），顺便反向审查 spec 漏洞 7+18=**25 项**（附录 A + B，5 项 🔴 为 Phase 1 阻塞项）
+- **[Mac-主会话]** **iCloud AC 目录结构大重构**：两个冗余 "筑波大学 AC入試 準備" 合并；按编号分类（00_指南 / 01_官网资料 / 02_分析与调研 / 03_素材_候选 / 04_素材_成品 / 05_产出 / 99_archive）；扁平版过期文件进 `99_archive/_deprecated_4-14扁平版snapshot/`（建议 4-24 前眼检后删）
+- **[Mac-主会话]** **AC 素材第 2 层首次批量填充**：CC 经 itsuki 明确授权，从 `05_logs/raw/` 5 个历史文件挑出 10 条候选 + 候选索引，搬进 iCloud `03_素材_候选/`（常规流程仍是 itsuki 月度做）
+- **[Mac-主会话]** **CC 权限边界更新**（`DMSD/CLAUDE.md`）：CC 可读 iCloud AC 目录；写 03/04 需当场授权；永不写 05_产出
+- **[Mac-主会话]** **AC 入试记录指南 v3.0 → v3.1**：§1 目录图、§11 起步清单修订为当前真实状态（版本号 bump = AC 记录触发）
+- **[Mac-主会话]** 清理 `iCloud/04_Dev/Projects/AC_DMSD/` 老镜像：提取 8 个早期 .pages/.pdf 到 `99_archive/早期手写材料/`，镜像壳标 `_deprecated_AC_DMSD_旧镜像_至2026-04-24`
 
 ### 2026-04-15
 
@@ -155,7 +180,7 @@
 
 新会话读完 `CLAUDE.md` 和本文件应该知道:
 
-1. **当前版本**: v0.2.0 — 项目还在规格和设计阶段,未开始写代码
+1. **当前版本**: v0.1.1（v0.2 修订进行中） — 项目还在规格和设计阶段,未开始写代码
 2. **分阶段策略**: Phase 1 = NFC 卡 + 后端 + Raspberry Pi 点呼机(不需要学生 App)|  Phase 2 = 加手机 App
 3. **防作弊核心**: 语音播报(原创设计,详见 `05_logs/decision_log.md`)
 4. **版本体系**: 0.x.x = 开发中,1.0.0 = 宿舍正式上线
@@ -171,3 +196,4 @@
 - 2026-04-13 晚 — [Mac-主会话] 开放任务迁移到 `TODO.md`;WIP 聚焦多会话协调;更新当前焦点(NFC 硬件选型中)
 - 2026-04-13 深夜 — [Mac-主会话] 补充今天的完成清单(commit 91a4294/d89b435/666faf8 + 2025-12 raw)
 - 2026-04-15 晚 — [Mac-主会话] 刷新当前焦点(Phase 1+2 架构敲定,进入硬件收尾+spec 补完阶段);登记 4-15 完成清单;记入两项新项目债(点呼机 spec、Android Phase 2 方案)
+- 2026-04-17 18:00 — [Mac-主会话] 启动 RollCall v0.1 spec 修订(3 commit 计划);版本号 v0.2.0 revert 到 v0.1.1 patch（命名整理而已，spec 内容未变）;新增"进行中任务 A"
