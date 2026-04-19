@@ -13,7 +13,7 @@
 
 ---
 
-**最后更新**: 2026-04-19 22:00 by [Mac-主会话 (CC-Opus-4.7)] — 文档同步机制 A+B+C 建立
+**最后更新**: 2026-04-19 22:50 by [Mac-主会话 (CC-Opus-4.7)] — 会话结束（3 commit 链完整锁定）
 **当前版本**: 见 `CHANGELOG.md` 顶部 · **重大状态**: 4-19 晚 G2 决策（取消分阶段，v1.0 一次上） + 项目审查 backlog 87 条 + 文档同步机制（单源真值 + 同步清单 + pre-commit hook）建立
 
 ---
@@ -216,3 +216,6 @@
 - 2026-04-17 19:00 — [Mac-主会话] **会话结束**：v0.3.0 spec 主体 rewrite 完成（commit `2ef7ff7`） + v0.2.0/v0.3.0 双 tag 推上 GitHub；任务 A 全结，移到"最近完成"
 - 2026-04-19 21:15 — [Mac-主会话] **会话结束**：G2 取消分阶段决策 + NFC 卡生命周期定稿 + Android tap 贴纸路线 + App 账号规则 + 三路径幂等 + 记录指南 §3.4 新增 + raw/2026-04-19.md（12 条 / 11 #AC 候选） + MEMORY.md 过期 3 条修正 + 项目审查 backlog（87 条）落地。**git 暂未 commit/push**（itsuki 有另一个 agent 在改文件，避让）。下次开会话先 commit 这批 + v0.3.1 Tier 1 文档同步开工
 - 2026-04-19 22:00 — [Mac-主会话] **文档同步机制 A+B+C 建立**（本次会话）：itsuki 从"版本号漂移"症状识别系统性病根，选最彻底方案。新建 `00_admin/文档同步点清单.md` + `00_admin/hooks/pre-commit` + `install.sh` + `README.md`；CLAUDE.md 加"文档一致性规则"节 + 去硬编码版本号；WIP / TODO 去硬编码。backlog 打 x 4 条 + 加 M1。AC 记录追加 raw §21:30
+- 2026-04-19 22:30 — [Mac-主会话] commit `1557cef` 锁定主体工作（11 文件 / +1750 / -66）；commit `cc12ebc` 加 CLAUDE.md §会话结束 第 6 步"git 要解释"前提规则（CC 当时理解错方向，以为是讲 git 工具）
+- 2026-04-19 22:45 — [Mac-主会话] itsuki 指出 `cc12ebc` 规则方向错了（应是讲 commit **内容**，不是讲 git **工具**）→ commit `ad31d7b` 纠正 CLAUDE.md，加 ❌/✅ 例子对比 + 逃生条款（itsuki 主动问才讲工具）
+- 2026-04-19 22:50 — [Mac-主会话] **会话正式结束**：3 个 commit 都在本地（`1557cef` / `cc12ebc` / `ad31d7b`），**未 push**；pre-commit hook 三次都自动跑 ✅；下次会话先做 v0.3.1 Tier 1 剩余项（根目录 README / project_evolution 补 4-15/4-17/4-19 / decision_log 4-17/4-19 手写 / progress_overview 章节级更新 / 志望動機 #5 占位 / 原创设计 showcase / AI 协作声明）
