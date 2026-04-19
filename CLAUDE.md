@@ -227,7 +227,13 @@ itsuki 是主角，CC 辅助。CC 越提醒越少、她越来越能自己识别 
 5. 跑 `§文档一致性规则 → 会话结束前一致性检查` 的 3 项（pre-commit 预演 + 时间戳新鲜度 + 同步点发现）
 6. **git commit 本次会话所有变动**（2026-04-19 规则更新，itsuki 明确要求）：
 
-   > **前提（4-19 22:30 补充）**：**每一步 git 操作都要向 itsuki 口头解释**——itsuki 零基础，`git add` / `git commit` / HEREDOC / pre-commit hook 的行为 / 为什么这样拆分，都要边做边讲清楚。不只是跑命令。对应 memory Communication Rules 第 2 条（explain English terms and command parameters）
+   > **前提（4-19 22:30 / 22:45 纠正）**：**`git` 命令跑完后要给 itsuki 一段中文人话总结"这次 commit 做了什么"** —— 不是讲 `git add` / `git commit` / HEREDOC 这些工具怎么用，是告诉她本次 commit **实际改了什么 / 覆盖了哪些 backlog 条目 / 下一步是什么**。只贴 git 命令输出不够。
+   >
+   > 例子对比：
+   > - ❌ 错（讲工具）："`git add` 是把文件放进 staging area，`git commit` 把 staging 做成快照"
+   > - ✅ 对（讲内容）："本次 commit `1557cef` 锁定了 G2 决策 + 87 条 backlog + A+B+C 同步机制，覆盖漏洞 D22/D23/D24/D25/L11，下一步 v0.3.1 Tier 1 剩余项（README / 志望動機占位 / 原创设计 showcase）"
+   >
+   > 只有 itsuki 主动问 "这个命令是什么意思"时才讲工具。默认讲内容。
 
    - commit message **必须详细**：首行简短总结（`feat/fix/chore: 简述` + 版本号 / scope 前缀），空行后主体分点列 **why + what**（不只是 what）
    - 参考之前 commit log 风格：`v0.3.0: spec main body rewrite — 双路径并存 + thin client + ...` <!-- VERSION_OK -->
