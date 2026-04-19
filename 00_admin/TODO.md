@@ -6,8 +6,8 @@
 > - 和 `progress_overview.md` 的区别: progress_overview 是稳定的章节目录,TODO 是可以频繁增删的任务池
 > - 完成的任务: 在 checkbox 前打 x,隔段时间(每周或每月)批量移到"已完成归档"
 
-**最后更新**: 2026-04-17 晚
-**当前版本**: v0.3.0（v0.2 修订进行中）
+**最后更新**: 2026-04-19
+**当前版本**: 见 `CHANGELOG.md` 顶部 · 单源真值，见 `00_admin/文档同步点清单.md`
 
 > **2026-04-17 归档说明**：`executable_dev_checklist_v0.1.md` 已归档到 `99_archive/2026-04-12_executable_dev_checklist_v0.1.md`（内容已过期，功能被本 TODO.md 吸收）。
 
@@ -145,8 +145,8 @@
 
 ## 🟢 低优先级(整理 / 维护)
 
-- [ ] **git push 今天(4-13)的 4 个 commit 到 GitHub**
-  - `3b01345` 版本号重置 v1.0 → v0.1
+- [x] **git push 今天(4-13)的 4 个 commit 到 GitHub** ~~2026-04-19 打 x：已完成（后续又 push 了 v0.2.0/v0.3.0 双 tag）。backlog D14~~
+  - `3b01345` 版本号重置 v1.0 → v0.1 <!-- VERSION_OK -->
   - `e637034` 建立 AC 入試完整记录体系
   - `e346dca` 目录结构整理 + 历史内容抢救
   - `43c73ec` 2026-04-12 NFC 方案设计日 dev_log
@@ -163,10 +163,10 @@
 - [ ] **归档早期 iOS throwaway 代码**
   - 从 `03_dev/Student/` → `99_archive/`
 
-- [ ] **给空目录建 README 或 .gitkeep 或删除**
+- [x] **给空目录建 README 或 .gitkeep 或删除** ~~2026-04-19 打 x：这些目录根本不在 git 里（git 不 track 空目录），本地 find 也没列出来 → 该 TODO 条目虚，无需处理。backlog D16~~
   - `02_design/`, `04_ops/`, `06_assets/`, `07_release/`
 
-- [ ] **建 `.gitignore`**
+- [x] **建 `.gitignore`** ~~2026-04-19 打 x：.gitignore 已存在（4-13 前），该 TODO 条目过期。backlog D15~~
   - 至少忽略 .pages 临时副本、macOS 的 .DS_Store 等
 
 - [ ] **建 `README.md`**(项目根目录,GitHub 首页)

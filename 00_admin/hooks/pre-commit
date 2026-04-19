@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# DMSD pre-commit hook — 文档版本号一致性检查
+#
+# 检查规则：
+# "声明性文件"（CLAUDE.md / WIP / TODO / progress_overview）不应硬编码版本号。
+# 单源真值 = CHANGELOG.md 顶部。其他文件用指针 "当前版本见 CHANGELOG.md"。
+#
+# 背景：
+#   - 00_admin/文档同步点清单.md §1
+#   - 00_admin/2026-04-19_项目审查_backlog.md（D22 / D23 / D25 / L11 一类漏洞）
+#   - 2026-04-19 itsuki 发现"迭代到 v0.3.0 了但文件还写 v0.1 / v0.2 / 'v0.2 修订进行中'"
+#
+# 豁免：行末加 <!-- VERSION_OK --> 注释的行会被跳过。
+# 紧急绕过：git commit --no-verify（不推荐）
+
+set -e
+
+# 要检查的"声明性文件"清单（与 00_admin/文档同步点清单.md §1 同步）
+DECLARATIVE_FILES=(
+    "CLAUDE.md"
+    "00_admin/WIP.md"
+    "00_admin/TODO.md"
+    "00_admin/progress_overview.md"
+)
+
+# 每个文件只检查前 N 行（状态声明通常在头部；日志 / 历史引用区放行）
+# 30 行够涵盖所有头部 metadata + "当前状态" 段；具体见 00_admin/文档同步点清单.md §1
+HEADER_LINES=30
+
+FAIL=0
+
+for file in "${DECLARATIVE_FILES[@]}"; do
+    if [ ! -f "$file" ]; then
+        continue
+    fi
+
+    # 只扫前 HEADER_LINES 行（保留原文件行号），排除 VERSION_OK 豁免行
+    FOUND=$(grep -nE "v[0-9]+\.[0-9]+\.[0-9]+" "$file" 2>/dev/null | awk -F: -v max=$HEADER_LINES '$1 <= max' | grep -v "VERSION_OK" || true)
+
+    if [ -n "$FOUND" ]; then
+        if [ $FAIL -eq 0 ]; then
+            echo ""
+            echo "❌ DMSD 声明性文件含有硬编码版本号（违反单源真值规则）："
+            echo ""
+        fi
+        echo "  $file:"
+        echo "$FOUND" | sed 's/^/    /'
+        echo ""
+        FAIL=1
+    fi
+done
+
+if [ $FAIL -eq 1 ]; then
+    echo "─────────────────────────────────────────────"
+    echo "解决方法："
+    echo "  1. 改成 \"当前版本见 CHANGELOG.md 顶部\" 指针（推荐）"
+    echo "  2. 必须保留（历史引用 / 文字模板示例）→ 同一行末尾加 <!-- VERSION_OK -->"
+    echo ""
+    echo "背景：00_admin/文档同步点清单.md §1"
+    echo ""
+    echo "紧急绕过（不推荐）：git commit --no-verify"
+    echo "─────────────────────────────────────────────"
+    exit 1
+fi
+
+echo "✅ pre-commit 一致性检查通过"
+exit 0

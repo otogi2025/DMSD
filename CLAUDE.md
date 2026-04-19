@@ -23,10 +23,11 @@
 
 - DMSD（Dormitory Management System Digitalization）宿舍管理系统电子化
 - 核心：宿舍点呼数字化（NFC 签到 / 自动判定 / 纪律扣分）
-- 技术栈：iOS（Swift / SwiftUI）+ 后端（FastAPI / Python / PostgreSQL）
-- 分阶段：Phase 1 NFC 卡 + 后端（无手机 App）；Phase 2 iOS + Android
-- 规格：`01_specs/` v0.1 冻结于 2026-02-12；v0.2 修订进行中（见 `00_admin/TODO.md`）
-- 版本：SemVer，当前 **v0.3.0**（2026-04-17 晚），见 `CHANGELOG.md`；v0.3.0 等 spec 主体 rewrite 完成后发布
+- 技术栈：iOS（Swift / SwiftUI）+ Android（Kotlin，走 NFC 贴纸方案 + 自建 APK 分发）+ 后端（FastAPI / Python / PostgreSQL）+ RPi 点呼机（Python）+ NFC 卡（NTAG215）
+- **上线姿态**（2026-04-19 G2 决策）：**v1.0 直接 iOS + Android + 卡 完整版一次上线**；取消原 Phase 1 / Phase 2 分阶段
+- **开发节奏**：内部按 M1→M5 里程碑推进（兜底：做不完至少 M1+M2 可 demo）
+- 规格：`01_specs/` 初版冻结于 2026-02-12；后续修订进度见 `CHANGELOG.md`
+- 版本：SemVer。**当前版本见 `CHANGELOG.md` 顶部**（单源真值，见下方"文档一致性规则"节）
 - **版本号 bump 时必须触发 AC 记录**（对应核心问题 #3 重大决策）
 
 ## 目录结构
@@ -58,6 +59,46 @@ DMSD/
 ```
 
 **iCloud 路径**：`iCloud/02_学习与知识/升学/AC/筑波大学 AC入試 準備/`（结构见本文件"AC 记录协作"节）。
+
+## 文档一致性规则（2026-04-19 加）
+
+> **背景**：2026-04-19 itsuki 发现"迭代了几个版本但多个文件还写过期版本号"。根本原因 = "同一信息多处存储 → 必然漂移"。解法 = 单源真值 + 同步清单 + pre-commit hook 三件套。
+
+### 单源真值（Single Source of Truth）
+
+| 共享概念 | 权威源 | 其他文件怎么引用 |
+|---|---|---|
+| 版本号 | `CHANGELOG.md` 顶部 | "当前版本见 `CHANGELOG.md`" |
+| 目录结构 | 本文件 §目录结构 | "见 CLAUDE.md §目录结构" |
+| 5 AC 核心问题 | 本文件 §5 个 AC 核心问题 | "见 CLAUDE.md §5 个 AC 核心问题" |
+| 分阶段策略 | `CHANGELOG.md` + `RollCall_Spec_*.md §1` | 用指针 |
+
+完整同步点清单 + Release Checklist + Onboarding Checklist → `00_admin/文档同步点清单.md`。
+
+### 声明性文件（不允许硬编码版本号 — pre-commit hook 会拦）
+
+- `CLAUDE.md`（本文件）
+- `00_admin/WIP.md`
+- `00_admin/TODO.md`
+- `00_admin/progress_overview.md`
+
+豁免：行末加 `<!-- VERSION_OK -->` 注释。详见 `00_admin/hooks/README.md`。
+
+### 会话结束前一致性检查（CC 必做）
+
+每次会话结束前：
+
+1. **pre-commit 检查预演**：跑 `bash 00_admin/hooks/pre-commit`（不需要真 commit 就能看结果），有 ❌ 就提示 itsuki
+2. **时间戳新鲜度扫描**：过去 7 天 commit 改过但文件头"最后更新"没动的文件 → 提醒 itsuki
+3. **同步点发现**：本次会话新建了声明性文件 → 提醒 itsuki 加入 `00_admin/文档同步点清单.md`
+
+### pre-commit hook 安装
+
+每个 clone 本 repo 的机器首次跑一次（Mac / VPS 各跑）：
+
+    bash 00_admin/hooks/install.sh
+
+详见 `00_admin/hooks/README.md`。
 
 ## 开发环境
 
@@ -183,9 +224,17 @@ itsuki 是主角，CC 辅助。CC 越提醒越少、她越来越能自己识别 
 2. 列出今天 dump 了哪些碎片给 itsuki 确认
 3. 直接更新 `WIP.md`（完成任务 → 最近完成，新认领任务 → 进行中）
 4. 起草 `progress_overview.md` 更新草稿，等 itsuki 确认后保存
-5. 月末最后一次会话：提醒做月度回顾（挑 `#AC候选` + 写 `monthly_review/YYYY-MM.md` 到 iCloud）
+5. 跑 `§文档一致性规则 → 会话结束前一致性检查` 的 3 项（pre-commit 预演 + 时间戳新鲜度 + 同步点发现）
+6. **git commit 本次会话所有变动**（2026-04-19 规则更新，itsuki 明确要求）：
+   - commit message **必须详细**：首行简短总结（`feat/fix/chore: 简述` + 版本号 / scope 前缀），空行后主体分点列 **why + what**（不只是 what）
+   - 参考之前 commit log 风格：`v0.3.0: spec main body rewrite — 双路径并存 + thin client + ...` <!-- VERSION_OK -->
+   - **不写 `Co-Authored-By` trailer**（见 memory `feedback_commit_style.md`）
+   - pre-commit hook 会自动跑（含硬编码版本号会被拦）
+   - 用 HEREDOC 传 message 保证换行和中文正确
+   - **不 push**（除非 itsuki 明说"push"）
+7. 月末最后一次会话：提醒做月度回顾（挑 `#AC候选` + 写 `monthly_review/YYYY-MM.md` 到 iCloud）
 
-**不做**：长篇会话总结 / 直接写进 iCloud AC 目录。
+**不做**：长篇会话总结 / 直接写进 iCloud AC 目录 / 未授权 `git push` 或 `git tag`。
 
 ---
 

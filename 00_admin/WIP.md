@@ -13,70 +13,83 @@
 
 ---
 
-**最后更新**: 2026-04-17 18:09 by [Mac-主会话 (CC-Opus-4.7)]
-**当前总版本**: v0.3.0（AC 入试记录指南：v3.1） — v0.2 修订进行中
+**最后更新**: 2026-04-19 22:00 by [Mac-主会话 (CC-Opus-4.7)] — 文档同步机制 A+B+C 建立
+**当前版本**: 见 `CHANGELOG.md` 顶部 · **重大状态**: 4-19 晚 G2 决策（取消分阶段，v1.0 一次上） + 项目审查 backlog 87 条 + 文档同步机制（单源真值 + 同步清单 + pre-commit hook）建立
 
 ---
 
 ## 🎯 当前焦点
 
-**Phase 1 + Phase 2 的架构设计基本完成**(2026-04-15 会话),现在进入硬件型号收尾 + 文档补完阶段。
+**4-19 G2 决策 + 点呼流程定稿 + 项目审查 backlog 落地** — 架构 / 流程 / 记录规则全部重大更新。
 
-**架构层已确定**:
-- **核心原则**: 点呼机只搬运数据,业务判断全在后端(thin client / thick server)
-- **Phase 1(卡方案)**: 卡 → 点呼机(读 UID)→ 后端(查表 + 判断)→ 返回姓名 → 点呼机播报
-- **Phase 2(加 iPhone,卡仍保留)**: iPhone 读点呼机外贴的静态 NFC 标签拿到 device_id → iPhone 自己通过 WiFi/4G 发 `{student_id, device_id, ts, 签名}` 给后端 → 后端判断 → 通过 WebSocket 推回点呼机播报。**不走"手机伪装 NFC 卡"路径**(iOS 第三方 App 无 Secure Element 权限)。
-- **硬件大脑方向**: A(Raspberry Pi),经重新对比 ESP32 后再次确认。
+**架构层（4-19 重大转向）**:
+- **G2 拍板**: 取消 Phase 1 / Phase 2 分阶段上线；**v1.0 直接 iOS + Android + 卡 完整版一次上线**。开发内部仍按 M1→M5 里程碑顺序（风险兜底：做不完至少 M1+M2 可 demo）。
+- **点呼路径**: A 路径（NFC 卡 tap 点呼机 PN532）+ B 路径（iPhone / Android 都走 tap 外贴静态 NFC 贴纸）三路共存；Android **不走 HCE**，保持跨平台一致。
+- **核心原则保留**: thin client / thick server；服务器唯一判定者；语音播报防作弊。
 
-**剩下的硬件收尾**:
-1. 宿舍点呼位置网络情况(itsuki 要去问老师)—— 影响最终型号
-2. 型号最终选择:Pi Zero 2 W (¥100 RMB) vs Pi 4 2GB (¥300 RMB) vs 其他 —— 认知更新后已不需要 4GB 高配
+**卡生命周期（4-19 定稿）**:
+- 空白 NTAG215 + 学生自贴"名字便签"（为毕业回收复用，不贴学号）
+- App 内"绑定卡片" → tap 卡 → UID 录入学生账户（自助绑定）
+- 没手机学生走"管理员代录"特殊通道
+- 丢卡：新卡发 + 新绑定 + 旧 UID 作废（不收钱）
+- 毕业：清除卡 UID 绑定（账户保留作历史记录），卡可回收给下一届
 
-**新发现的项目债**:
-- v0.1 spec **完全没写点呼机契约**(spec 冻结于 2026-02-12,NFC 硬件是 4-12 才加的设计)—— 要补一份设备端 API 契约文档
-- Android 版 Phase 2 方案还没细化(HCE 机制和 iOS 不同)
+**App 账号规则（4-19 定稿）**:
+- 注册：姓名 + 生日 + 性别（**不要学号**）
+- 一设备一账号；换设备必须老师→管理员后台操作（学生不能自助换机）
+- Android 分发：自建网站托管 APK，学生下载
 
-**下一个大动作**: 补点呼机 spec → 硬件收尾型号定 → 采购 → Phase 1 代码(后端骨架 + 点呼机读卡)。
+**点呼规则（4-19 定稿）**:
+- 三路径（卡 / iPhone / Android）并存，学生随便用
+- 每时间窗只能点呼一次（幂等）
 
-**4-17 18:00 启动**: itsuki 二轮审查发现 7 个结构性问题（CHANGELOG 名不副实 / spec 主体 Phase 视角错 / 4 台是幽灵 / device_id 裸字段 / progress_overview 过时等），拍板 5 个硬决策（Q1 `exempt_range` = base / Q2 spec 主体改写双路径 / Q3 = **4 台** / Q4 物理布局 TBD / Q5 = revert 到 v0.1.1）。spec 修订工作分 3 个 commit 推进（详见下面"进行中任务 A"）。
+**记录体系更新（4-19）**:
+- `00_admin/CLAUDE_CODE_记录指南.md §3.4` 新增"记录详细度要求"（5 模块 + 篇幅指引 + 失败模式清单）
+- raw 每条目标 500-2000 字（按重要度），不再是 100-300 字的"决策快照"
+
+**仍挂的遗留（下次会话讨论）**:
+- iPhone / Android tap 贴纸的技术细节（Background Tag Reading / Android 后台唤 App）
+- 一设备一账号的具体实现（设备指纹 / 硬件 ID / 推送 token）
+- 风控策略起草（CC 起草 → itsuki review）
+- Demo 范围构思（G2 兜底）
+- 点呼机硬件零件选型（最后做，等 spec 定）
+- 宿舍点呼位置网络情况（itsuki 问老师）
+
+**下一个大动作（v0.3.1 Tier 1，1-3 天）**: **文档同步 + AC readiness 第一步**（详见 `00_admin/2026-04-19_项目审查_backlog.md` Tier 1，87 条漏洞里的 11 条）—— 根目录 README / project_evolution 补 3 次转折 / decision_log 补 3 条 / progress_overview 全面更新 / CLAUDE.md 修过期表述 / 志望動機 #5 占位 / 原创设计 showcase / AI 协作坦诚声明。
+
+**v0.3.0 → v0.3.1 → v0.4.0 → v0.5.0 → v0.6.0 路线图**见 backlog Part 5。
 
 ---
 
 ## 🔄 进行中的任务
 
-### 任务 A: RollCall v0.1 spec 修订（来自 2026-04-17 二轮审查）
-
-- **认领者**: [Mac-主会话 (CC-Opus-4.7)]
-- **开始时间**: 2026-04-17 18:00
-- **为什么做**: 4-17 itsuki 二轮审查发现 16 项文档/字典内部冲突 + 5 个外人视角担忧（详见 raw/2026-04-17.md 17:56 dump）；之前 25 项漏洞 + 这些都要系统性修订
-- **涉及的文件/目录**（其他会话不要动）:
-  - `01_specs/rollcall/RollCall_Spec_v0.1.md`
-  - `01_specs/rollcall/FIELD_REGISTRY_v0.1.md`
-  - `01_specs/rollcall/ENUM_REGISTRY_v0.1.md`
-  - `01_specs/rollcall/ERROR_CODES_v0.1.md`
-  - `01_specs/rollcall/DEVICE_REGISTRY_v0.1.md`（新建）
-  - `CHANGELOG.md`
-  - `CLAUDE.md`
-  - `WIP.md`
-  - `00_admin/progress_overview.md`
-- **执行计划（3 commit）**:
-  - **commit 1（元数据）**: CHANGELOG 0.2.0→0.1.1 + CLAUDE.md "规格 v0.2" 措辞修正 + raw dump + WIP 更新 ← **进行中**
-  - **commit 2（spec 修订）**: RollCall_Spec 主体 rewrite (双路径) + ENUM/FIELD 修 + ERROR_CODES 补 + DEVICE_REGISTRY 新建
-  - **commit 3（硬件落实）**: spec §3.2 A/B → A/B/C/D + progress_overview 起草更新
-- **已完成**:
-  - [x] CHANGELOG.md revert 0.2.0 → 0.1.1（commit `8706fed`）
-  - [x] CLAUDE.md "规格 v0.2 已更新" 措辞修正
-  - [x] WIP.md 顶部 + 焦点 + 进行中任务更新
-  - [x] raw/2026-04-17.md 18:00 dump 追加
-  - [x] **commit 1 已 push 准备**（`8706fed` — 7 files / +1220 / -34）
-- **当前停在**: 进入 commit 2（spec 主体 rewrite + 字典三件套修订 + DEVICE_REGISTRY 新建）
-- **下一步**: 重写 RollCall_Spec_v0.1.md 主体为双路径并存 + 修字典 + 补错误码 + 新建 DEVICE_REGISTRY
+*(无进行中任务。会话结束，下次开会话时再认领。)*
 
 ---
 
 ## ✅ 最近完成(24-48 小时内)
 
-### 2026-04-17
+### 2026-04-19 晚（点呼流程 + 卡生命周期 + 记录规则 + 项目审查 backlog）
+
+- **[Mac-主会话]** **点呼流程重新拍板**：会话开场 itsuki "之前的决定全砍了，从 0 开始"；CC 连续跳步 3 次（默认双路径架构 / 没读 spec 推 C5 / 又跳硬件）每次被纠正；最终确立"先流程后硬件"方法论
+- **[Mac-主会话]** **G2 决策** — 取消 Phase 1/Phase 2 分阶段上线；v1.0 一次全上（iOS + Android + 卡）；开发内部保留 M1→M5 里程碑
+- **[Mac-主会话]** **NFC 卡完整生命周期定稿** — F1 修订（空白 NTAG215 + 学生自贴名字）/ App 内 tap 绑定 / 没手机学生管理员代录 / 丢卡不收钱 / 毕业清 UID 绑定保留账户 / 卡可回收复用
+- **[Mac-主会话]** **App 账号规则定稿** — 姓名+生日+性别（不要学号）/ 一设备一账号 / 换机走管理员
+- **[Mac-主会话]** **Android 路线拍板** — tap 贴纸（不走 HCE）+ APK 自建网站分发
+- **[Mac-主会话]** **三路径 + 时间窗幂等规则定稿**
+- **[Mac-主会话]** **记录指南 §3.4 新增** — 记录详细度要求（5 模块 / 篇幅指引表 / 失败模式清单）。触发点：itsuki 反馈"简略的 raw 等于没记录"
+- **[Mac-主会话]** **`05_logs/raw/2026-04-19.md`** — 12 条碎片 / 11 条 #AC候选 / ~700 行（经 2 轮重写，按新 §3.4 标准展开）
+- **[Mac-主会话]** **`00_admin/2026-04-19_项目审查_backlog.md` 落地** — 87 条漏洞清单（D30 + S20 + A13 + T13 + L11）+ Tier 0-4 版本路线图 v0.3.1 → v0.6.0（**本会话没动清理，Tier 0/1 归入 v0.3.1 下次会话**）
+- **[Mac-主会话]** **memory 治理** — 新建 raw_log_depth feedback 后撤回（理由：not git-tracked / 不跨机器同步），规则 merge 进 `CLAUDE_CODE_记录指南.md §3.4`；顺手修 MEMORY.md 3 条过期（v1.0 iOS only → iOS+Android / v1.0 frozen → v0.1 frozen / VPS 不再推进 DMSD）
+- **[Mac-主会话]** **文档同步机制 A+B+C 建立** — itsuki 从 spec 文件名 v0.1 vs 内容 v0.2 不同步（raw 20:45）发现根因"多源必然漂移"，拍板全做 A+B+C。**A 单源真值**：新建 `00_admin/文档同步点清单.md`（§1 版本号 / §2 目录结构 / §3 5 核心问题 / §4 分阶段 / §5 时间戳 / §6 Release Checklist / §7 Onboarding Checklist）。**B 会话结束前扫描**：CLAUDE.md 新增"文档一致性规则"节（单源真值表 + 声明性文件清单 + 会话结束前 CC 必做 3 项）。**C pre-commit hook**：`00_admin/hooks/pre-commit` + `install.sh` + `README.md`（首次 clone 后跑 install.sh 设 `core.hooksPath`；hook 拦截声明性文件里的硬编码版本号，支持 `<!-- VERSION_OK -->` 豁免）。配套改动：CLAUDE.md / WIP / TODO 去硬编码版本号 + 反映 G2 决策；backlog D22/D23/D25/L11 打 ✅ + 加元条目 M1；AC 素材记入 `raw/2026-04-19.md §21:30`
+
+### 2026-04-17 晚（spec 修订 3-commit 全部完成）
+
+- **[Mac-主会话]** **v0.3.0**（commit `2ef7ff7`，已 push + tag）— spec 主体 rewrite：§1 双路径并存 / §5.1 双路径信号流 / §11.3 改判时限矩阵 / §11.4 改判扣分联动 / 附录 C 4 台协调 / 附录 D 25 项收口清单。spec 681→958 行（+277）。收口附录 ✅ 13 项 / 🔄 10 项
+- **[Mac-主会话]** **v0.2.0**（commit `48e9b38`，已 push + tag）— 字典三件套全改（base_status 重命名 / overlay 分两类 / +5 ENUM 枚举 / +6 FIELD 字段 / +5 ERROR_CODES）+ DEVICE_REGISTRY 新建 + 6 项 🟢 清理（删 .trash_* / 归档 Folder Structure / Overview.docx → 99_archive/ / .gitignore 删 3 条 / 99_archive/README.md / 目录架构.md 删除）+ CHANGELOG 细粒度重建（pre-0.1 追认 6 条 + 2-02 至今每节点一条）+ 元文档单源化（CLAUDE.md ↔ CLAUDE_CODE_记录指南.md，1563→1362 行）
+- **[Mac-主会话]** **v0.1.1**（commit `8706fed`，已 push）— CHANGELOG revert v0.2.0→v0.1.1 + CLAUDE.md 措辞修正 + raw 18:00 dump + WIP 启动 spec 修订 3-commit 计划
+
+### 2026-04-17 上午
 
 - **[Mac-主会话]** 把 `RollCall_Spec_v0.1.pages` 数字化为 Markdown（`01_specs/rollcall/RollCall_Spec_v0.1.md`），顺便反向审查 spec 漏洞 7+18=**25 项**（附录 A + B，5 项 🔴 为 Phase 1 阻塞项）
 - **[Mac-主会话]** **iCloud AC 目录结构大重构**：两个冗余 "筑波大学 AC入試 準備" 合并；按编号分类（00_指南 / 01_官网资料 / 02_分析与调研 / 03_素材_候选 / 04_素材_成品 / 05_产出 / 99_archive）；扁平版过期文件进 `99_archive/_deprecated_4-14扁平版snapshot/`（建议 4-24 前眼检后删）
@@ -181,13 +194,14 @@
 
 新会话读完 `CLAUDE.md` 和本文件应该知道:
 
-1. **当前版本**: v0.3.0（v0.2 修订进行中） — 项目还在规格和设计阶段,未开始写代码。CHANGELOG 已于 4-17 晚重建为细粒度（pre-0.1 追认 6 条 + 2-02 至今每个实质节点一条）
-2. **分阶段策略**: Phase 1 = NFC 卡 + 后端 + Raspberry Pi 点呼机(不需要学生 App)|  Phase 2 = 加手机 App
-3. **防作弊核心**: 语音播报(原创设计,详见 `05_logs/decision_log.md`)
-4. **版本体系**: 0.x.x = 开发中,1.0.0 = 宿舍正式上线
+1. **当前版本**: 见 `CHANGELOG.md` 顶部 — 项目仍在规格和设计阶段，未开始写代码。CHANGELOG 已于 2026-04-17 晚重建为细粒度（pre-0.1 追认 + 2-02 至今每实质节点一条）
+2. **上线姿态（4-19 G2 决策）**: 取消 Phase 1 / Phase 2 分阶段；v1.0 直接 iOS + Android + 卡 完整版一次上线。开发内部仍按 M1→M5 里程碑
+3. **防作弊核心**: 语音播报（原创设计，详见 `05_logs/decision_log.md`）
+4. **版本体系**: 0.x.x = 开发中，1.0.0 = 宿舍正式上线
 5. **记录体系**: CC 侧见 `00_admin/CLAUDE_CODE_记录指南.md`；方法论总章（`AC入试记录指南_v3.md`）在 iCloud，CC 不读
-6. **文件地图**: `00_admin/目录架构.md`
-7. **itsuki 的偏好**: 给选项用 A/B/C 不用甲乙丙;决策她拍板;不盲从 AI
+6. **文件地图**: 见 `CLAUDE.md §目录结构`（单源真值，见 `00_admin/文档同步点清单.md §2`）
+7. **文档一致性**: 声明性文件不写硬编码版本号，见 `CLAUDE.md §文档一致性规则` + `00_admin/文档同步点清单.md` + `00_admin/hooks/pre-commit`
+8. **itsuki 的偏好**: 给选项用 A/B/C 不用甲乙丙；决策她拍板；不盲从 AI
 
 ---
 
@@ -199,3 +213,6 @@
 - 2026-04-15 晚 — [Mac-主会话] 刷新当前焦点(Phase 1+2 架构敲定,进入硬件收尾+spec 补完阶段);登记 4-15 完成清单;记入两项新项目债(点呼机 spec、Android Phase 2 方案)
 - 2026-04-17 18:00 — [Mac-主会话] 启动 RollCall v0.1 spec 修订(3 commit 计划);版本号 v0.3.0 revert 到 v0.1.1 patch（命名整理而已，spec 内容未变）;新增"进行中任务 A"
 - 2026-04-17 18:09 — [Mac-主会话] CHANGELOG 细粒度重建：pre-0.1 追认 6 条 2025-12 方案级迭代（HCE→tag→SDM/SUN→v2→v2.1→v2.1加固版，来源 itsuki 贴出的早期 ChatGPT log）+ 2-02 至今每个实质节点一条 patch，当前 = v0.3.0
+- 2026-04-17 19:00 — [Mac-主会话] **会话结束**：v0.3.0 spec 主体 rewrite 完成（commit `2ef7ff7`） + v0.2.0/v0.3.0 双 tag 推上 GitHub；任务 A 全结，移到"最近完成"
+- 2026-04-19 21:15 — [Mac-主会话] **会话结束**：G2 取消分阶段决策 + NFC 卡生命周期定稿 + Android tap 贴纸路线 + App 账号规则 + 三路径幂等 + 记录指南 §3.4 新增 + raw/2026-04-19.md（12 条 / 11 #AC 候选） + MEMORY.md 过期 3 条修正 + 项目审查 backlog（87 条）落地。**git 暂未 commit/push**（itsuki 有另一个 agent 在改文件，避让）。下次开会话先 commit 这批 + v0.3.1 Tier 1 文档同步开工
+- 2026-04-19 22:00 — [Mac-主会话] **文档同步机制 A+B+C 建立**（本次会话）：itsuki 从"版本号漂移"症状识别系统性病根，选最彻底方案。新建 `00_admin/文档同步点清单.md` + `00_admin/hooks/pre-commit` + `install.sh` + `README.md`；CLAUDE.md 加"文档一致性规则"节 + 去硬编码版本号；WIP / TODO 去硬编码。backlog 打 x 4 条 + 加 M1。AC 记录追加 raw §21:30
