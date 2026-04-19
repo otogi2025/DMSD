@@ -226,6 +226,9 @@ itsuki 是主角，CC 辅助。CC 越提醒越少、她越来越能自己识别 
 4. 起草 `progress_overview.md` 更新草稿，等 itsuki 确认后保存
 5. 跑 `§文档一致性规则 → 会话结束前一致性检查` 的 3 项（pre-commit 预演 + 时间戳新鲜度 + 同步点发现）
 6. **git commit 本次会话所有变动**（2026-04-19 规则更新，itsuki 明确要求）：
+
+   > **前提（4-19 22:30 补充）**：**每一步 git 操作都要向 itsuki 口头解释**——itsuki 零基础，`git add` / `git commit` / HEREDOC / pre-commit hook 的行为 / 为什么这样拆分，都要边做边讲清楚。不只是跑命令。对应 memory Communication Rules 第 2 条（explain English terms and command parameters）
+
    - commit message **必须详细**：首行简短总结（`feat/fix/chore: 简述` + 版本号 / scope 前缀），空行后主体分点列 **why + what**（不只是 what）
    - 参考之前 commit log 风格：`v0.3.0: spec main body rewrite — 双路径并存 + thin client + ...` <!-- VERSION_OK -->
    - **不写 `Co-Authored-By` trailer**（见 memory `feedback_commit_style.md`）
