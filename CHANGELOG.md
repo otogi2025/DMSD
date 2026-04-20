@@ -1,5 +1,7 @@
 # Changelog
 
+> **最后更新**: 2026-04-20（Tier 1 Batch 1 产出：README + 原创设计 showcase + 本字段）
+>
 > 版本号规则：[语义化版本 (SemVer)](https://semver.org/) — 主版本号.次版本号.修订号
 >
 > **本项目约定**：
