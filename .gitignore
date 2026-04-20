@@ -1,17 +1,90 @@
-# macOS
+# ── macOS ─────────────────────────────────────────
 .DS_Store
 **/.DS_Store
 **/._*
 
-# Xcode user/local files
+# ── Xcode user/local files ────────────────────────
 **/xcuserdata/
 **/*.xcuserstate
 DerivedData/
 
-# SwiftPM user state
+# ── SwiftPM user state ────────────────────────────
 .swiftpm/xcode/package.xcworkspace/xcuserdata/
 
-# Google Drive conflict artifacts (if any)
+# ── Google Drive conflict artifacts (if any) ──────
 *conflicted copy*
 
+# ── Python (后端 FastAPI + Pi 点呼机) ────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+.venv/
+venv/
+env/
+ENV/
+.env
+.env.local
+.env.*.local
+pip-log.txt
+pip-delete-this-directory.txt
 
+# ── Python 测试 / 覆盖率 ──────────────────────────
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+
+# ── Node (teacher_web 如果用 Node 栈) ─────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.next/
+out/
+dist/
+build/
+
+# ── Android (Phase 2 Android App) ─────────────────
+*.apk
+*.aab
+*.ap_
+*.dex
+local.properties
+.gradle/
+captures/
+# keystore 一律不进 git（memory: 备份方案见 TODO）
+*.jks
+*.keystore
+
+# ── IDE / 编辑器 ──────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── 日志 ──────────────────────────────────────────
+*.log
+logs/
+
+# ── 操作系统临时 ──────────────────────────────────
+Thumbs.db
+Desktop.ini
+
+# ── Claude Code 本地设置（含机器路径，不入 repo） ─
+.claude/settings.local.json
+
+# ── 数据库本地文件 ────────────────────────────────
+*.sqlite
+*.sqlite3
+*.db

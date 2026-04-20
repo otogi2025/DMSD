@@ -13,8 +13,8 @@
 
 ---
 
-**最后更新**: 2026-04-20 深夜 by [Mac-主会话 (CC-Opus-4.7)] — **v0.3.1 发布就绪**（Tier 1 Batch 1/2/3 全部 CC 侧工作完成） <!-- VERSION_OK -->
-**当前版本**: 见 `CHANGELOG.md` 顶部 · **重大状态**: v0.3.1 = AC readiness 文档层 + 文档同步机制 A+B+C + backlog 10 ✅ / 11 ⏳（等 itsuki 合并 Batch 2/3 draft 后 v0.3.2）+ M2 新增（指南待更）+ 今日下午另一会话定稿 iPhone BTR + ST25DV + Pi 2GB（素材见 `05_logs/raw/2026-04-20.md`） <!-- VERSION_OK -->
+**最后更新**: 2026-04-20 深夜 by [Mac-主会话 (CC-Opus-4.7)] — **v0.3.1 tag 已打** + post-release patch 4 条 ✅（A5/A6/A9/T4）+ 代 commit 下午会话产出 <!-- VERSION_OK -->
+**当前版本**: 见 `CHANGELOG.md` 顶部 · **重大状态**: v0.3.1 AC readiness 文档层发布（`fb330c2`）+ 下午 4-20 议题 A/B/C/D 产出配对落盘（`f36d10b`，post-release）+ 本会话深夜补 A5/A6/A9/T4（raw/README + AC_提交_checklist + 空白期反思锚点 + .gitignore 扩充）+ backlog ✅ 累计 15（11+4）/ ⏳ 11 / 剩余 61 <!-- VERSION_OK -->
 
 
 ---
@@ -69,6 +69,16 @@
 ---
 
 ## ✅ 最近完成(24-48 小时内)
+
+### 2026-04-20 深夜后续（v0.3.1 post-release patch + 代 commit 下午会话）
+
+- **[Mac-主会话]** **raw log 落盘**：`05_logs/raw/2026-04-20_v0.3.1发布执行.md`（同日主题版，4 条 / 4 #AC候选）—— itsuki"漏洞都修好了吗"追问（#2+#4）/ Batch 1/2/3 权限三分类设计（#3+#4）/ v0.3.1 tag 判据（#3+#4）/ 多会话协调不揉 02_design（#3）
+- **[Mac-主会话]** **A5 ✅** `05_logs/raw/README.md` —— 给教授读者的 raw/ 说明 + 命名规则 + "不从 raw 读项目" 指引 + "作品集在哪里" 清单
+- **[Mac-主会话]** **A9 ✅** `05_logs/dev_log/2026-04-10_空白期反思_索引.md` —— 100 字内 in-repo 锚点指向 iCloud 原文，不泄露私密反思内容
+- **[Mac-主会话]** **A6 ✅** `00_admin/AC_提交_checklist.md` —— 5/6/7/8/9/10 月每月 gate + 技术/AC 叙事双线详细 checklist + 滑动条件降级规则
+- **[Mac-主会话]** **T4 ✅** `.gitignore` 18 → ~80 行（Python/Node/Android/IDE/日志/OS/SQLite/.claude 本地设置）
+- **[Mac-主会话]** **代 commit 下午 [Mac-另一会话] 产出**（`f36d10b`，**v0.3.1-post** 不进 v0.3.1 tag）：02_design/flow_design_v0.1.md (246 行) + hardware_design_v0.1.md (260 行) + raw/2026-04-20.md (958 行，5 条 / 4 #AC候选) + TODO.md 新增 2 条（宿舍官网 + keystore 备份）。commit message 明确归属 + scope 分隔
+- **[Mac-主会话]** **backlog 更新**：A5 / A6 / A9 / T4 打 ✅（Tier 3 AC 补强 + Tier 4 基建预备）
 
 ### 2026-04-20 深夜（Tier 1 Batch 2/3 — v0.3.1 发布就绪）
 
@@ -243,4 +253,5 @@
 - 2026-04-19 22:45 — [Mac-主会话] itsuki 指出 `cc12ebc` 规则方向错了（应是讲 commit **内容**，不是讲 git **工具**）→ commit `ad31d7b` 纠正 CLAUDE.md，加 ❌/✅ 例子对比 + 逃生条款（itsuki 主动问才讲工具）
 - 2026-04-19 22:50 — [Mac-主会话] **会话正式结束**：3 个 commit 都在本地（`1557cef` / `cc12ebc` / `ad31d7b`），**未 push**；pre-commit hook 三次都自动跑 ✅；下次会话先做 v0.3.1 Tier 1 剩余项（根目录 README / project_evolution 补 4-15/4-17/4-19 / decision_log 4-17/4-19 手写 / progress_overview 章节级更新 / 志望動機 #5 占位 / 原创设计 showcase / AI 协作声明）
 - 2026-04-20 晚 — [Mac-主会话] **Tier 1 Batch 1 完成**：backlog 4 项 ✅（A1 / A3 / A11 / D20）；2 commit 落盘（`e39910c` README+A11 / `7db04ea` 原创设计 showcase + CHANGELOG 时间戳 + backlog ✅），都过 pre-commit ✅，均**未 push**。**未触碰** `05_logs/raw/2026-04-20.md`（下午另一会话的 AC 素材，留 itsuki 或下次会话处理）
-- 2026-04-20 深夜 — [Mac-主会话] **Tier 1 Batch 2/3 完成 + v0.3.1 tag 发布**：itsuki 指令"修啊，别忘了迭代版本"后一次性推进；新建 3 文件（progress_overview draft / AC_志望動機占位 / Batch3 素材指引） + backlog 12 处更新（A2 ✅ / D1-D4 + D7-D13 加 ⏳ / M2 新增） + CHANGELOG v0.3.1 条目（Added 8 新文件 / Changed 多文件同步 / Fixed 10 ✅ 11 ⏳ / Notes 无代码 + 未 push + raw/4-20 留 + v0.3.2 scope）。**v0.3.1 tag 已打**（暂未 push）；**下次会话**：等 itsuki 合并 Batch 2/3 draft → 闭合 11 ⏳ → v0.3.2 patch。M2（iCloud 指南 §5/§7/§12 更新）等 itsuki 手动
+- 2026-04-20 深夜 — [Mac-主会话] **Tier 1 Batch 2/3 完成 + v0.3.1 tag 发布**：itsuki 指令"修啊，别忘了迭代版本"后一次性推进；新建 3 文件（progress_overview draft / AC_志望動機占位 / Batch3 素材指引） + backlog 12 处更新（A2 ✅ / D1-D4 + D7-D13 加 ⏳ / M2 新增） + CHANGELOG v0.3.1 条目。**v0.3.1 tag 已打**（`fb330c2`，暂未 push）
+- 2026-04-20 深夜后续 — [Mac-主会话] itsuki "没做完的接着做 + 记得写 log" → 本会话 raw 落盘（4 条 #AC候选） + A5/A6/A9/T4 ✅ 四条 patch（`raw/README.md` / `AC_提交_checklist.md` / 空白期反思锚点 / `.gitignore` 大扩充） + 代 commit 下午会话产出 `f36d10b`（v0.3.1-post，02_design + raw/4-20 + TODO 新增）+ backlog 累计 ✅ 15 / ⏳ 11 / 剩余 61
