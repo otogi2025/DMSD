@@ -13,28 +13,8 @@
 
 ---
 
-**最后更新**: 2026-04-20 深夜 by [Mac-主会话 (CC-Opus-4.7)] — 今日 push 完成 + 明天开工项方向已定 <!-- VERSION_OK -->
-**当前版本**: 见 `CHANGELOG.md` 顶部 · **重大状态**: v0.3.1 已发布 + 11 commit + 13 tag 全部 push 到 `origin/main`（含 [Mac-议题讨论会话] 的 `d8be72b` 议题 D/E 补 commit）+ backlog ✅ 25 / ⏳ 12 / 🟰 1 / 剩 49 <!-- VERSION_OK -->
-
----
-
-## 🌅 明天开工第一件事（2026-04-20 深夜 itsuki 拍板）
-
-**v0.3.2 PATCH bump**（scope = 今天 [Mac-议题讨论会话] 的 `d8be72b` 产出 + 今天 [Mac-主会话] 的 v0.3.1-post 系列里尚未归到 tag 的 commit） <!-- VERSION_OK -->
-
-**理由**（方向 A，对照议题讨论会话当时给的 A/B/C 三选）：
-1. `RollCall_Spec_v0.1.md` **主体没改**（决策在 `02_design/` + `CLAUDE.md` + `raw`，未 land 到 spec 主体） <!-- VERSION_OK -->
-2. 和今早 v0.3.1 判 patch **保持一致性**（v0.3.1 也是新建 10+ 文档文件没升 minor，同标准今天 161 行 d8be72b 更是 patch） <!-- VERSION_OK -->
-3. **保留 v0.4.0 名额** 给原 roadmap "spec 层闭环 + Device_Contract + S1-S7 修复"（那是真正的新 scope） <!-- VERSION_OK -->
-
-**明天第一会话要做的 5 步**：
-1. 更新 `CHANGELOG.md` 加 `[0.3.2] - 2026-04-21` 段（Added: `02_design/flow_design + hardware_design` / Changed: CLAUDE.md §对话规则第 5 条 + §项目信息增补 + §目录结构 / Notes: 决策推翻 4-19 一设备一账号 + 静态标签 → 动态 ST25DV16K）
-2. 新建 `00_admin/v0.3.2_AC叙事.md`（对标 `v0.3.0_AC叙事.md` 模板，CLAUDE.md "版本 bump 触发 AC 记录" 落地）
-3. `git tag -a v0.3.2` + 推 GitHub
-4. 更新 `backlog` 相关条目 ✅（主要是 S4 错误码区分被 d8be72b 初步落地）
-5. 对齐对话：议题 E 4 个子决策（E-1 AC 时间表 / E-2 Tier 1 范围 / E-3 Demo 形态 / E-4 iOS App 必须吗）—— itsuki 昨晚要 fact-check 筑波官网时间表
-
----
+**最后更新**: 2026-04-20 深夜 by [Mac-主会话 (CC-Opus-4.7)] — **v0.3.2 tag 发布**（今晚赶完 4 步）+ 今日完整收尾 <!-- VERSION_OK -->
+**当前版本**: 见 `CHANGELOG.md` 顶部 · **重大状态**: v0.3.2 已发布（架构决策推翻 4-19 两条 / 两会话并行 / 14 条 backlog ✅ + 1 ⏳ + 1 🟰 归入）+ 全 commit + tag push 到 `origin/main` + backlog 累计 ✅ 25 / ⏳ 12 / 🟰 1 / 剩 49 + **下次开工**：议题 E fact-check 筑波官网 → M1 开发启动 <!-- VERSION_OK -->
 
 
 ---
@@ -89,6 +69,13 @@
 ---
 
 ## ✅ 最近完成(24-48 小时内)
+
+### 2026-04-20 深夜 v0.3.2 发布（本来要明天做，itsuki 决定今晚赶完）
+
+- **[Mac-主会话]** **CHANGELOG [0.3.2] 段** — 完整列 Added 12 新建 / Changed 元规则 + 基建 / Fixed 14 条 ✅ + 推翻 4-19 两条架构 / Notes 不含代码 + 两会话并行 0 冲突 + 议题 E 遗留
+- **[Mac-主会话]** **v0.3.2_AC叙事.md** — 按 v0.3.0 建立的 6 节模板 —— 核心 AC 价值：架构决策可推翻但要留痕 / 两会话并行的工程协调 / AI 协作成熟度 4 层认知（防粉饰 / 推翻 AI 推荐 / 拒绝 AI 倒戈 / 讨论=产出元规则）
+- **[Mac-主会话]** `git tag -a v0.3.2` + push commits + tag 到 GitHub
+- **[Mac-主会话]** backlog 相关条目 ✅ 实际都在此前 commit 里已经标完（A2/A4/A5/A6/A9/A11/A12/A13/L1/L6/T4/T6/T8/T10/T13/D26 全部 v0.3.2 区间完成）
 
 ### 2026-04-20 深夜再再后续（itsuki 三次"继续"→ 基建 6 条 + v0.4.0 输入 + memory 更新）
 
@@ -298,3 +285,4 @@
 - 2026-04-20 深夜后续 — [Mac-主会话] itsuki "没做完的接着做 + 记得写 log" → 本会话 raw 落盘（4 条 #AC候选） + A5/A6/A9/T4 ✅ 四条 patch（`raw/README.md` / `AC_提交_checklist.md` / 空白期反思锚点 / `.gitignore` 大扩充） + 代 commit 下午会话产出 `f36d10b`（v0.3.1-post，02_design + raw/4-20 + TODO 新增）+ backlog 累计 ✅ 15 / ⏳ 11 / 剩余 61
 - 2026-04-20 深夜再后续 — [Mac-主会话] itsuki "继续做" → A4/A12/A13/L1/T2 五条（L1 超额：10 个 pre-0.1 annotated tag 指向 initial commit；T2 dry-run 评估不执行）+ `面试准备_索引.md` / `v0.3.0_AC叙事.md` / `T2_iOS归档_dryrun评估.md` 新建 + CHANGELOG 头部 pre-0.1 tag 说明 + raw log append ~00:30 执行补段 + backlog 累计 ✅ 19 / ⏳ 12 / 剩余 57
 - 2026-04-20 深夜再再后续 — [Mac-主会话] itsuki "继续" → T6/T8/T10/T13/D26/L6 ✅ 6 条 + T9 🟰 标过期 + `LICENSE` 建立 + `create_local_dev_symlink.sh` 自检 + `CLAUDE_CODE_记录指南.md` §2 §12 改 + 新建 `v0.4.0_S系列spec漏洞优先级分析.md`（v0.4.0 minor 开工 input，20 条 S 分 MVP/Nice/Defer + Week 1-3 节奏）+ memory 更新（2 条过期纠正 + Key Dates 加 4-20 两行）+ raw append ~01:00 段 + backlog 累计 ✅ 25 / ⏳ 12 / 🟰 1 / 剩余 49
+- 2026-04-20 深夜 v0.3.2 发布 — [Mac-主会话] itsuki 从"明天做"改为"今晚做完"→ 4 步：CHANGELOG [0.3.2] 完整段 + 新建 `v0.3.2_AC叙事.md`（6 节模板，核心 AC 是 AI 协作成熟度 4 层 / 架构决策可推翻但要留痕 / 两会话并行协调）+ `git tag v0.3.2` + push。今日总战绩：13+ commit + 1 release tag (v0.3.2) + 10 pre-0.1 tag 追认 + backlog 25 ✅。正式结束 4-20 会话

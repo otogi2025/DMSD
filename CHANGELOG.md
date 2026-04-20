@@ -1,6 +1,6 @@
 # Changelog
 
-> **最后更新**: 2026-04-20（v0.3.1 发布 — AC readiness 文档层 + 文档同步机制 + backlog 10 ✅ / 11 ⏳）
+> **最后更新**: 2026-04-20 深夜（v0.3.2 发布 — v0.3.1 post 持续推进 + 议题 D 结论 + 架构决策推翻 4-19 部分 + backlog 25 ✅ / 12 ⏳）
 >
 > 版本号规则：[语义化版本 (SemVer)](https://semver.org/) — 主版本号.次版本号.修订号
 >
@@ -14,6 +14,88 @@
 > 打这些标签的目的：让"讨论了十几种方案才写第一版文档"这件事有可追溯的证据链。
 >
 > **2026-04-20 更新**：10 个 pre-0.1 annotated tag（`v0.0.1` - `v0.0.10`）已追认打在 initial commit `3baa168` 上，每个 tag message 里写了对应版本的核心内容 + 指向 CHANGELOG / raw 的指针。`git tag -l | sort -V` 可以看到完整版本历史。
+
+---
+
+## [0.3.2] - 2026-04-20 深夜（v0.3.1 post 持续推进 + 议题 D 结论 + 架构决策推翻 4-19 部分）
+
+> **为什么 patch bump**（对照版本管理指南 §2 / §3 + CHANGELOG 自身约定 "spec 实质内容未变 = patch"）：
+> 1. `RollCall_Spec_v0.1.md` 主体**没改一行** —— 所有新决策落在 `02_design/`（新文档层）+ `CLAUDE.md`（元规则 / 项目信息）+ `raw/`（AC 素材），spec 主体留给 v0.4.0 闭环
+> 2. 和同日早些的 v0.3.1 patch 判断**保持一致性**（v0.3.1 新建 10+ 文档文件也是 patch）
+> 3. 保留 v0.4.0 名额给原 roadmap `spec 层闭环 + Device_Contract + S1-S7 修复`
+>
+> **两会话并行协调成果**：今日 DMSD 仓库有两个并行 CC 会话 —— `[Mac-主会话]`（8 commit，持续推 backlog）+ `[Mac-议题讨论会话]`（1 commit `d8be72b`，推 5 议题 A-E）。通过 commit 分工 + 不覆盖对方文件协调。两会话未冲突。
+
+### Added — 12 个新建文件
+
+**设计文档层**（`02_design/`）:
+- `02_design/flow_design_v0.1.md`（324 行）— 签到端到端流程 + 攻击路径 + 防御机制
+- `02_design/hardware_design_v0.1.md`（260 行）— 硬件选型 + 采购清单 + keystore 备份方案
+
+**AC readiness / 面试准备**:
+- `00_admin/AC_提交_checklist.md` — 5-10 月每月 gate + 技术/AC 叙事双线 + 滑动条件降级
+- `00_admin/面试准备_索引.md` — 6 大类 42+ 题目 + 素材指针 + 教授追问模板
+- `00_admin/v0.3.0_AC叙事.md` — CLAUDE.md "版本 bump 触发 AC 记录" 首次落地 + 未来模板
+
+**基建 / 评估文档**:
+- `LICENSE` — All Rights Reserved + AC 后 4 方向评估表
+- `00_admin/T2_iOS归档_dryrun评估.md` — 3 方案对比 + 推荐 A + 完整执行命令（不执行，待授权）
+- `00_admin/v0.4.0_S系列spec漏洞优先级分析.md` — 20 条 S 分 MVP(7)/Nice-to-have(8)/Defer(5) + Week 1-3 节奏 + 总估 15-20 小时
+
+**AC 素材 / 读者导航**:
+- `05_logs/raw/2026-04-20.md`（958 行）— 下午议题讨论会话 AC 素材，14 条 / 10 #AC候选
+- `05_logs/raw/2026-04-20_v0.3.1发布执行.md` — 本主会话 AC 素材，4 条 #AC候选
+- `05_logs/raw/README.md` — 给教授/访客的 raw/ 目录导航
+- `05_logs/dev_log/2026-04-10_空白期反思_索引.md` — 指向 iCloud 反思原文（不泄露私密）
+
+### Changed — 元规则 / 基建修订
+
+**CLAUDE.md**（两会话各自改一次）:
+- §项目信息 技术栈细化（BTR / App Links / Pi 4B 2GB / ST25DV16K / Android 10+）+ 防御核心 + 硬件流程权威源指针
+- §项目信息 **推翻 4-19 G2 "一设备一账号"决策** → 改为"任意设备签名 + 入学日老师扫码面签确认"（下午议题 C 新决策）
+- §项目信息 keystore 备份方案定稿（Mac + 服务器加密压缩包 + 纸质密码 + 不存 iCloud）
+- §目录结构 `02_design/` 加注释
+- §对话规则 **新增第 5 条 "讨论=产出，不等会话结束"**（itsuki 元规则 + memory `feedback_discuss_means_produce` 新建）
+
+**记录指南**:
+- `CLAUDE_CODE_记录指南.md §2` 去 `date` 命令冗余（改为读 env prompt `currentDate`）
+- `CLAUDE_CODE_记录指南.md §12` raw 命名规则改为 3 步判断决策树（D26 + L6）
+
+**基建**:
+- `.gitignore` 从 18 行扩到 ~80 行（Python/Node/Android/IDE/日志/OS/SQLite/.claude 本地设置）
+- `00_admin/create_local_dev_symlink.sh` 加 26 行头部注释 + 两层自检（Mac vs VPS 场景判别）
+- `00_admin/TODO.md` 新增 4 条（宿舍综合官网 / keystore 备份 / 异常行为检测 v0.6.0+ 推迟 / 毕业交接包 2028-01）
+- `CHANGELOG.md` 头部加 2026-04-20 pre-0.1 tag 追认说明
+
+### Fixed — 架构决策推翻 + backlog 收口 14 条 ✅
+
+**推翻 4-19 G2 两条**:
+- "一设备一账号" → 取消（议题 C，改老师面签）
+- "Phase 2 静态 NFC 贴纸" → 升级动态 ST25DV16K（议题 B，URL 复制漏洞）
+
+**backlog 打 ✅（本版本 14 条）**:
+- A2（志望動機占位）/ A4（commit 消息动机坦诚在 README）/ A5（raw/README）/ A6（AC 提交 checklist）/ A9（空白期反思锚点）/ A11（AI 协作声明在 README）/ A12（v0.3.0 AC 叙事模板）/ A13（面试准备索引）
+- L1 超额（10 个 pre-0.1 annotated tag）/ L6（raw 命名决策树）
+- T4（.gitignore 扩充）/ T6（LICENSE）/ T8（symlink 脚本注释+自检）/ T10（payload.json PII 检查无敏感）/ T13（.claude/settings.local.json 未 tracked）
+- D26（记录指南 §2 date 去冗余）
+
+**新增 backlog ⏳ 1 条**：T2 iOS 归档 dry-run 评估完成，待 itsuki 授权执行
+
+**标过期 🟰 1 条**：T9 Mac↔VPS 同步协议（VPS 已停用）
+
+**新增 backlog M2 元条目**：版本管理指南 §5 / §7 / §12 iCloud 更新建议
+
+### Notes
+
+- **不含代码 / 不动 spec 主体** — 仍是 spec-only 项目状态
+- **backlog 总进度**：✅ 25 / ⏳ 12 / 🟰 1 / 剩 49（从 v0.3.1 的 11 ✅ 升到 25 ✅）
+- **git tag 追认**：本版本区间内补了 10 个 pre-0.1 annotated tag（`v0.0.1` - `v0.0.10`）指向 initial commit，完整版本历史可用 `git tag | sort -V` 查看
+- **10 commit 归入本版本**：
+  - `f36d10b` / `8fac003` / `d7e587e` / `85e3b21`（[Mac-主会话] v0.3.1 发布后的持续 patch）
+  - `d8be72b`（[Mac-议题讨论会话] 议题 D/E 补）
+  - `ca16614`（WIP 锚 v0.3.2 方向）
+- **议题 E 遗留**（Demo 范围）2026-04-21 itsuki fact-check 筑波官网时间表后拍板
+- **下一步 v0.4.0 minor** = 原 roadmap scope：Device_Contract + 字典补字段（S2/S3）+ spec 主体漏洞 S1/S4/S7 修复 + 其他 Nice-to-have
 
 ---
 
