@@ -13,8 +13,9 @@
 
 ---
 
-**最后更新**: 2026-04-19 22:50 by [Mac-主会话 (CC-Opus-4.7)] — 会话结束（3 commit 链完整锁定）
-**当前版本**: 见 `CHANGELOG.md` 顶部 · **重大状态**: 4-19 晚 G2 决策（取消分阶段，v1.0 一次上） + 项目审查 backlog 87 条 + 文档同步机制（单源真值 + 同步清单 + pre-commit hook）建立
+**最后更新**: 2026-04-20 深夜 by [Mac-主会话 (CC-Opus-4.7)] — **v0.3.1 发布就绪**（Tier 1 Batch 1/2/3 全部 CC 侧工作完成） <!-- VERSION_OK -->
+**当前版本**: 见 `CHANGELOG.md` 顶部 · **重大状态**: v0.3.1 = AC readiness 文档层 + 文档同步机制 A+B+C + backlog 10 ✅ / 11 ⏳（等 itsuki 合并 Batch 2/3 draft 后 v0.3.2）+ M2 新增（指南待更）+ 今日下午另一会话定稿 iPhone BTR + ST25DV + Pi 2GB（素材见 `05_logs/raw/2026-04-20.md`） <!-- VERSION_OK -->
+
 
 ---
 
@@ -68,6 +69,28 @@
 ---
 
 ## ✅ 最近完成(24-48 小时内)
+
+### 2026-04-20 深夜（Tier 1 Batch 2/3 — v0.3.1 发布就绪）
+
+- **[Mac-主会话]** **Batch 2a**：`00_admin/progress_overview_draft_2026-04-20.md`（CC 起草完整新版，含 D7-D13 所有修订 + G2 决策整段替换原"分阶段策略" + 硬件采购段 + 5 次新转折索引 + 仓库结构地图修正）—— 等 itsuki 审完整体替换
+- **[Mac-主会话]** **Batch 2b**：`00_admin/AC_志望動機_素材.md`（A2 占位框架 —— 8 个必答子问题 Q1-Q8 + 辅助素材清单 + 填写顺序 + 更新触发信号）**✅ 打 x**（占位符本身是目标）
+- **[Mac-主会话]** **Batch 3 辅助**：`00_admin/Batch3_itsuki手笔素材指引.md`（§1 9 条 decision_log draft / §2 5 次 project_evolution 转折 draft / §3 Python Day 2 坦诚 draft / §4 PostgreSQL 选型 5 条理由 draft）—— 粘贴式使用，itsuki 30-45 分钟闭合 D1/D2/D3/D4/D7-D13
+- **[Mac-主会话]** **backlog 更新**：A2 打 ✅ / D1-D4 + D7-D13 加 ⏳ 标注 draft 就绪 + 新增元条目 M2（版本管理指南 §5/§7/§12 需更新）
+- **[Mac-主会话]** **CHANGELOG v0.3.1 条目**：Added（8 新文件）+ Changed（文档同步）+ Fixed（backlog 10 ✅ / 11 ⏳）+ Notes（无代码 / 未 push / raw/4-20 留 / v0.3.2 预期 scope）
+- **[Mac-主会话]** **v0.3.1 tag 准备**：总计 v0.3.0 → v0.3.1 区间 8 个 commit（`1557cef` / `cc12ebc` / `ad31d7b` / `2a7751d` / `e39910c` / `7db04ea` + 即将的 Batch 2/3 commit）
+
+### 2026-04-20 晚（Tier 1 Batch 1 — AC readiness 第一步）
+
+- **[Mac-主会话]** **backlog Tier 1 Batch 1 完成**（4/4 产出）：
+  - **A1 🔴** 新建根目录 `README.md`（103 行，commit `e39910c`）—— 结构：是什么 / 为什么做 / 做到哪了 / 目录导航 / 技术栈（反映 G2）/ AI 协作声明 / 升学目标
+  - **A11 🔴** AI 协作坦诚声明内嵌 README（~200 字，独立章节）—— 选方案 A 不选独立文件（独立文件易被跳过），指向 CLAUDE.md + decision_log 4-15 + backlog
+  - **A3 🔴** 新建 `00_admin/原创设计_语音播报防作弊.md`（135 行，commit `7db04ea`）—— 故事叙事风格，第一人称，按"起点观察（宿舍代刷）→ 四步推导 → 替代方案对比 → 设计本质 → 面试原话 → 证据链"结构
+  - **D20 🟡** `CHANGELOG.md` 第 3 行加 `**最后更新**: 2026-04-20` 字段
+- **[Mac-主会话]** **2 commit 落盘**（都过 pre-commit ✅，均未 push）：
+  - `e39910c` docs(README): A1 + A11
+  - `7db04ea` docs(v0.3.1-wip): A3 + D20 + backlog 4 ✅
+- **[Mac-主会话]** **backlog 四条 ✅**：A1 / A3 / A11 / D20（格式与 M1 / D19 / D22 / D23 / D24 / D25 / L11 一致，保留原文 + ~~附注~~）
+- **[Mac-另一会话（今日下午）]** **iPhone 路径 + 动态 NFC 贴纸定稿**（素材在 `05_logs/raw/2026-04-20.md`，**untracked / 未 commit**）：BTR + Universal Link + AASA（选项 A 正式域名）→ itsuki 发现 URL 复制漏洞（方案 A/B/C/D 选 B 彻底）→ 下单 ST25DV16K × 4（¥100 RMB）+ Qwiic 转杜邦线（nonce 10 秒刷新）→ 追问"为什么要树莓派"确认 thin client ≠ no client，拍板 Pi 4B 2GB × 4（¥1200 RMB）。**5 条 / 4 #AC候选**
 
 ### 2026-04-19 晚（点呼流程 + 卡生命周期 + 记录规则 + 项目审查 backlog）
 
@@ -219,3 +242,5 @@
 - 2026-04-19 22:30 — [Mac-主会话] commit `1557cef` 锁定主体工作（11 文件 / +1750 / -66）；commit `cc12ebc` 加 CLAUDE.md §会话结束 第 6 步"git 要解释"前提规则（CC 当时理解错方向，以为是讲 git 工具）
 - 2026-04-19 22:45 — [Mac-主会话] itsuki 指出 `cc12ebc` 规则方向错了（应是讲 commit **内容**，不是讲 git **工具**）→ commit `ad31d7b` 纠正 CLAUDE.md，加 ❌/✅ 例子对比 + 逃生条款（itsuki 主动问才讲工具）
 - 2026-04-19 22:50 — [Mac-主会话] **会话正式结束**：3 个 commit 都在本地（`1557cef` / `cc12ebc` / `ad31d7b`），**未 push**；pre-commit hook 三次都自动跑 ✅；下次会话先做 v0.3.1 Tier 1 剩余项（根目录 README / project_evolution 补 4-15/4-17/4-19 / decision_log 4-17/4-19 手写 / progress_overview 章节级更新 / 志望動機 #5 占位 / 原创设计 showcase / AI 协作声明）
+- 2026-04-20 晚 — [Mac-主会话] **Tier 1 Batch 1 完成**：backlog 4 项 ✅（A1 / A3 / A11 / D20）；2 commit 落盘（`e39910c` README+A11 / `7db04ea` 原创设计 showcase + CHANGELOG 时间戳 + backlog ✅），都过 pre-commit ✅，均**未 push**。**未触碰** `05_logs/raw/2026-04-20.md`（下午另一会话的 AC 素材，留 itsuki 或下次会话处理）
+- 2026-04-20 深夜 — [Mac-主会话] **Tier 1 Batch 2/3 完成 + v0.3.1 tag 发布**：itsuki 指令"修啊，别忘了迭代版本"后一次性推进；新建 3 文件（progress_overview draft / AC_志望動機占位 / Batch3 素材指引） + backlog 12 处更新（A2 ✅ / D1-D4 + D7-D13 加 ⏳ / M2 新增） + CHANGELOG v0.3.1 条目（Added 8 新文件 / Changed 多文件同步 / Fixed 10 ✅ 11 ⏳ / Notes 无代码 + 未 push + raw/4-20 留 + v0.3.2 scope）。**v0.3.1 tag 已打**（暂未 push）；**下次会话**：等 itsuki 合并 Batch 2/3 draft → 闭合 11 ⏳ → v0.3.2 patch。M2（iCloud 指南 §5/§7/§12 更新）等 itsuki 手动

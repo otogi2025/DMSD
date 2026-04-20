@@ -1,6 +1,6 @@
 # Changelog
 
-> **最后更新**: 2026-04-20（Tier 1 Batch 1 产出：README + 原创设计 showcase + 本字段）
+> **最后更新**: 2026-04-20（v0.3.1 发布 — AC readiness 文档层 + 文档同步机制 + backlog 10 ✅ / 11 ⏳）
 >
 > 版本号规则：[语义化版本 (SemVer)](https://semver.org/) — 主版本号.次版本号.修订号
 >
@@ -12,6 +12,49 @@
 > **pre-0.1 的追认**：下方 `0.0.x` 系列是在 2026-04-17 回溯 chat log 后补标的。
 > 原始迭代发生在 ChatGPT 对话里，未进入 git（见 `05_logs/raw/2025-12_NFC系统早期设计对话.md` 节选）。
 > 打这些标签的目的：让"讨论了十几种方案才写第一版文档"这件事有可追溯的证据链。
+
+---
+
+## [0.3.1] - 2026-04-20（AC readiness 文档层同步 + 文档同步机制 A+B+C）
+
+> **为什么 patch bump**：本版本是"修正已有内容到事实一致 + 补必要的外观文档"，不新增 spec 范围。按版本管理指南 §2 / §3 属于 Patch 语义（"攒了一批小修复准备发布"）。
+>
+> **scope**：闭合 backlog Tier 1 Batch 1（4 项 ✅）+ Batch 2/3 draft（CC 起草待 itsuki 合并，4 项 ⏳）+ M1 文档同步机制（4-19 建立）+ A2 志望動機占位。项目审查 backlog 87 条里累计处理 10 条 ✅ + 11 条 ⏳。
+>
+> **路径**：v0.3.0（2026-04-17 spec 主体 rewrite）→ v0.3.1（文档同步 + AC 门面） → v0.3.2（itsuki 手笔区补完）→ v0.4.0（spec 层闭环 + Device_Contract）
+
+### Added — 新建文件
+
+- `README.md`（根目录，103 行）：项目门面。段落：是什么 / 为什么做 / 做到哪了 / 目录导航（推荐阅读顺序）/ 技术栈（反映 4-19 G2 决策）/ 关于 AI 协作（A11 内嵌声明）/ 升学目标（坦诚 AC 动机）
+- `00_admin/原创设计_语音播报防作弊.md`（135 行）：核心原创设计 showcase。按"起点观察（宿舍代刷）→ 四步推导 → 替代方案对比 → 设计本质 → 面试原话 → 证据链"结构。第一人称叙事，不是 spec 风格
+- `00_admin/AC_志望動機_素材.md`：A2 占位框架（8 个必答子问题 Q1-Q8 + 辅助素材收集清单 + 填写顺序建议 + 更新触发信号）。内容留白由 itsuki 自己填
+- `00_admin/文档同步点清单.md`（M1，4-19）：版本号 / 目录结构 / 5 核心问题 / 分阶段策略的单源真值清单 + Release / Onboarding Checklist
+- `00_admin/2026-04-19_项目审查_backlog.md`（4-19）：87 条漏洞 + Tier 0-4 版本路线图
+- `00_admin/hooks/pre-commit` + `install.sh` + `README.md`（M1，4-19）：声明性文件版本号硬编码拦截机制
+- `00_admin/progress_overview_draft_2026-04-20.md`（⏳ Batch 2a draft，待 itsuki 审合并后删）
+- `00_admin/Batch3_itsuki手笔素材指引.md`（⏳ Batch 3 辅助，9 条 decision + 5 次 project_evolution 转折 + Python/PostgreSQL 补答 draft，待 itsuki 粘贴后删）
+
+### Changed — 文档同步
+
+- `CLAUDE.md` §项目信息 整段重写（去硬编码版本号 + 反映 4-19 G2 决策"v1.0 一次上，取消 Phase 1/Phase 2"）
+- `CLAUDE.md` 新增 §文档一致性规则 章节（单源真值表 + 声明性文件清单 + 会话结束前 CC 必做 3 项 + hook 安装指令）
+- `CLAUDE.md` §会话结束 扩展到 7 步 + 增加"git 后要讲 commit 内容不讲 git 工具"的前提规则（含 ❌/✅ 对比）
+- `TODO.md` 头部版本号改指针 + 3 条过期 🟢 TODO 打 ✅（D14 / D15 / D16）
+- `WIP.md` 多次更新（头部时间戳 4-19 → 4-20 / 最近完成 4-19 段 + 4-20 段 / 更新日志 append 6 条）
+- `CHANGELOG.md` 头部加"最后更新"时间戳（D20）
+
+### Fixed — backlog 处理（10 条 ✅ + 11 条 ⏳）
+
+- ✅ D19 / D20 / D22 / D23 / D24 / D25 / L11 / A1 / A2 / A3 / A11
+- ⏳ D1 / D2 / D3 / D4 / D7 / D8 / D9 / D10 / D11 / D12 / D13（CC 起 draft 就绪，等 itsuki 手动合并，见 Batch3 素材指引 + progress_overview draft）
+
+### Notes
+
+- **本版本不含代码改动**（项目仍 spec-only）
+- **未 push 到 origin**：所有 commit 都在 local。itsuki 说"push" 时再推
+- **raw/2026-04-20.md**（今日下午另一会话定稿 BTR + ST25DV + Pi 2GB 的 5 条 AC 素材）不在本版本 commit 里，留 itsuki 或下次会话处理
+- **v0.3.2 预期 scope**：itsuki 手动合并 Batch 2 / Batch 3 draft → decision_log / project_evolution / learning_path / progress_overview 正文更新到位 → 闭合剩余 11 条 ⏳
+- **M2 新增**（指南待更新）：版本管理指南 iCloud §5 / §7 / §12 与实际脱节，详见 backlog §3.6 M2，等 itsuki 手动改
 
 ---
 
