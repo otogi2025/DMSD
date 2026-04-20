@@ -13,8 +13,8 @@
 
 ---
 
-**最后更新**: 2026-04-20 深夜 by [Mac-主会话 (CC-Opus-4.7)] — **v0.3.1 tag 已打** + post-release patch 4 条 ✅（A5/A6/A9/T4）+ 代 commit 下午会话产出 <!-- VERSION_OK -->
-**当前版本**: 见 `CHANGELOG.md` 顶部 · **重大状态**: v0.3.1 AC readiness 文档层发布（`fb330c2`）+ 下午 4-20 议题 A/B/C/D 产出配对落盘（`f36d10b`，post-release）+ 本会话深夜补 A5/A6/A9/T4（raw/README + AC_提交_checklist + 空白期反思锚点 + .gitignore 扩充）+ backlog ✅ 累计 15（11+4）/ ⏳ 11 / 剩余 61 <!-- VERSION_OK -->
+**最后更新**: 2026-04-20 深夜 by [Mac-主会话 (CC-Opus-4.7)] — itsuki 二次 "继续做" 后再推 5 条（A4/A12/A13/L1 ✅ + T2 ⏳ dry-run）+ pre-0.1 tag × 10 <!-- VERSION_OK -->
+**当前版本**: 见 `CHANGELOG.md` 顶部 · **重大状态**: v0.3.1 AC readiness 文档层发布（`fb330c2`）+ 下午产出配对（`f36d10b`）+ 深夜补 A5/A6/A9/T4（`8fac003`）+ 继续补 A4/A12/A13/L1/T2 + 10 个 pre-0.1 tag 追认 + backlog ✅ 累计 19 / ⏳ 12 / 剩余 57 <!-- VERSION_OK -->
 
 
 ---
@@ -69,6 +69,15 @@
 ---
 
 ## ✅ 最近完成(24-48 小时内)
+
+### 2026-04-20 深夜再后续（itsuki 二次"继续做"→ Tier 2/3 五条 + pre-0.1 tag）
+
+- **[Mac-主会话]** **A4 🟡 ✅** —— README 已覆盖 AC 动机坦诚声明（Batch 1 阶段做的），本次只是 backlog 打 ✅
+- **[Mac-主会话]** **A13 🟡 ✅** `00_admin/面试准备_索引.md` —— 6 大类 42+ 题目标签 + 素材指针 + 教授追问模板（回答正文留 iCloud `05_产出/`）
+- **[Mac-主会话]** **A12 🟡 ✅** `00_admin/v0.3.0_AC叙事.md` —— CLAUDE.md "版本 bump 触发 AC 记录" 首次落地 + 未来 v 版本号叙事的模板
+- **[Mac-主会话]** **L1 🟢 ✅ 超额** —— 打 10 个 pre-git annotated tag（v0.0.1 - v0.0.10）指向 initial commit `3baa168`，CHANGELOG 头部加更新段。`git tag | sort -V` 现看完整版本历史 10 + 3 = 13 个 tag
+- **[Mac-主会话]** **T2 🔴 ⏳** `00_admin/T2_iOS归档_dryrun评估.md` —— dry-run 评估（不执行）：3 方案对比 + CC 推荐 A（git mv 归档 + 改名去括号 + 全英路径）+ 含完整执行命令。**关键发现**：T2 原描述 "xcuserdata 已在 repo" 诊断**过期**，实测 `git ls-files` 为 none（原 .gitignore 早就排除）。**等 itsuki 明确授权"做 T2 方案 A"后执行**
+- **[Mac-主会话]** **raw log append** —— `raw/2026-04-20_v0.3.1发布执行.md` 末尾加 "~00:30 [执行补]" 段，记录本批 5 条 + L1 超额 + T2 诊断纠正
 
 ### 2026-04-20 深夜后续（v0.3.1 post-release patch + 代 commit 下午会话）
 
@@ -255,3 +264,4 @@
 - 2026-04-20 晚 — [Mac-主会话] **Tier 1 Batch 1 完成**：backlog 4 项 ✅（A1 / A3 / A11 / D20）；2 commit 落盘（`e39910c` README+A11 / `7db04ea` 原创设计 showcase + CHANGELOG 时间戳 + backlog ✅），都过 pre-commit ✅，均**未 push**。**未触碰** `05_logs/raw/2026-04-20.md`（下午另一会话的 AC 素材，留 itsuki 或下次会话处理）
 - 2026-04-20 深夜 — [Mac-主会话] **Tier 1 Batch 2/3 完成 + v0.3.1 tag 发布**：itsuki 指令"修啊，别忘了迭代版本"后一次性推进；新建 3 文件（progress_overview draft / AC_志望動機占位 / Batch3 素材指引） + backlog 12 处更新（A2 ✅ / D1-D4 + D7-D13 加 ⏳ / M2 新增） + CHANGELOG v0.3.1 条目。**v0.3.1 tag 已打**（`fb330c2`，暂未 push）
 - 2026-04-20 深夜后续 — [Mac-主会话] itsuki "没做完的接着做 + 记得写 log" → 本会话 raw 落盘（4 条 #AC候选） + A5/A6/A9/T4 ✅ 四条 patch（`raw/README.md` / `AC_提交_checklist.md` / 空白期反思锚点 / `.gitignore` 大扩充） + 代 commit 下午会话产出 `f36d10b`（v0.3.1-post，02_design + raw/4-20 + TODO 新增）+ backlog 累计 ✅ 15 / ⏳ 11 / 剩余 61
+- 2026-04-20 深夜再后续 — [Mac-主会话] itsuki "继续做" → A4/A12/A13/L1/T2 五条（L1 超额：10 个 pre-0.1 annotated tag 指向 initial commit；T2 dry-run 评估不执行）+ `面试准备_索引.md` / `v0.3.0_AC叙事.md` / `T2_iOS归档_dryrun评估.md` 新建 + CHANGELOG 头部 pre-0.1 tag 说明 + raw log append ~00:30 执行补段 + backlog 累计 ✅ 19 / ⏳ 12 / 剩余 57
