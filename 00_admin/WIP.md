@@ -13,8 +13,28 @@
 
 ---
 
-**最后更新**: 2026-04-20 深夜 by [Mac-主会话 (CC-Opus-4.7)] — itsuki 三次 "继续" 后再推 6 条（T6/T8/T10/T13/D26/L6 ✅ + T9 🟰）+ v0.4.0 S 漏洞优先级分析 + memory 更新 <!-- VERSION_OK -->
-**当前版本**: 见 `CHANGELOG.md` 顶部 · **重大状态**: v0.3.1 已发布（`fb330c2`）+ 4 轮深夜后续 commit(`f36d10b` / `8fac003` / `d7e587e` / 待 commit) + 10 个 pre-0.1 tag 追认 + LICENSE 建立 + backlog ✅ 累计 25 / ⏳ 12 / 🟰 1 / 剩余 49 + **v0.4.0 输入就位**（S 系列 20 条分 MVP/Nice/Defer） <!-- VERSION_OK -->
+**最后更新**: 2026-04-20 深夜 by [Mac-主会话 (CC-Opus-4.7)] — 今日 push 完成 + 明天开工项方向已定 <!-- VERSION_OK -->
+**当前版本**: 见 `CHANGELOG.md` 顶部 · **重大状态**: v0.3.1 已发布 + 11 commit + 13 tag 全部 push 到 `origin/main`（含 [Mac-议题讨论会话] 的 `d8be72b` 议题 D/E 补 commit）+ backlog ✅ 25 / ⏳ 12 / 🟰 1 / 剩 49 <!-- VERSION_OK -->
+
+---
+
+## 🌅 明天开工第一件事（2026-04-20 深夜 itsuki 拍板）
+
+**v0.3.2 PATCH bump**（scope = 今天 [Mac-议题讨论会话] 的 `d8be72b` 产出 + 今天 [Mac-主会话] 的 v0.3.1-post 系列里尚未归到 tag 的 commit） <!-- VERSION_OK -->
+
+**理由**（方向 A，对照议题讨论会话当时给的 A/B/C 三选）：
+1. `RollCall_Spec_v0.1.md` **主体没改**（决策在 `02_design/` + `CLAUDE.md` + `raw`，未 land 到 spec 主体） <!-- VERSION_OK -->
+2. 和今早 v0.3.1 判 patch **保持一致性**（v0.3.1 也是新建 10+ 文档文件没升 minor，同标准今天 161 行 d8be72b 更是 patch） <!-- VERSION_OK -->
+3. **保留 v0.4.0 名额** 给原 roadmap "spec 层闭环 + Device_Contract + S1-S7 修复"（那是真正的新 scope） <!-- VERSION_OK -->
+
+**明天第一会话要做的 5 步**：
+1. 更新 `CHANGELOG.md` 加 `[0.3.2] - 2026-04-21` 段（Added: `02_design/flow_design + hardware_design` / Changed: CLAUDE.md §对话规则第 5 条 + §项目信息增补 + §目录结构 / Notes: 决策推翻 4-19 一设备一账号 + 静态标签 → 动态 ST25DV16K）
+2. 新建 `00_admin/v0.3.2_AC叙事.md`（对标 `v0.3.0_AC叙事.md` 模板，CLAUDE.md "版本 bump 触发 AC 记录" 落地）
+3. `git tag -a v0.3.2` + 推 GitHub
+4. 更新 `backlog` 相关条目 ✅（主要是 S4 错误码区分被 d8be72b 初步落地）
+5. 对齐对话：议题 E 4 个子决策（E-1 AC 时间表 / E-2 Tier 1 范围 / E-3 Demo 形态 / E-4 iOS App 必须吗）—— itsuki 昨晚要 fact-check 筑波官网时间表
+
+---
 
 
 ---
