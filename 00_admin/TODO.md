@@ -183,6 +183,15 @@
 - [ ] **学 Swift / SwiftUI 基础**(Phase 2 学生 App 才用到)
 - [ ] **学 C/C++ + Arduino / ESP-IDF**(如果选 ESP32 路线)
 
+- [ ] **搭建宿舍综合官网** `dmsd.otogi2025.com`（或同类域名）
+  - 承载：APK 下载 + 学生首次安装引导 / AASA 文件（iOS Universal Link）/ assetlinks.json（Android App Links）/ 未来的学生端通知公告 / 老师端管理网站入口 / 校外联系方式
+  - 来源：2026-04-20 议题 B-8，itsuki 自己的想法——把"APK 分发页"扩展为"完整宿舍官网"
+  - 时机：议题 E 后 / v0.5.0 左右，不急
+
+- [ ] **keystore 备份（Android App 签名证书）**
+  - 方案：iCloud 主存 + 后端服务器加密压缩包冗余 + 密码纸质单独存 + 年度校验
+  - 时机：开始打包 Android App 时（M3-M4 里程碑），不早于 v0.6.0
+
 ---
 
 ## ✅ 已完成归档(最近 1 个月)
