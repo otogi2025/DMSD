@@ -1,0 +1,31 @@
+All Rights Reserved
+
+Copyright (c) 2026 itsuki (otogi2025)
+
+---
+
+## 当前授权状态（2026-04-20）
+
+本仓库目前是 **Private**（GitHub 私有仓库）+ **All Rights Reserved**（保留所有权利）：
+
+- ❌ 未授权任何人 fork / clone / redistribute
+- ❌ 未授权商业使用
+- ❌ 未授权在其他项目中引用 DMSD 代码 / 设计
+- ✅ itsuki 本人及其授权的协作者（AI 工具 / 老师 / 同学）可以读写
+
+## 将来的许可证选择
+
+本项目是 itsuki 的筑波大学 AC 入試 提交材料 + 长期宿舍点呼系统。AC 提交后可能的变化：
+
+| 场景 | 许可证方向 |
+|---|---|
+| 仍私有使用（仅学校宿舍） | 保留 All Rights Reserved |
+| 开源让其他学校使用 | 考虑 MIT / Apache 2.0 |
+| 保留部分源码，公开 spec | spec 部分用 CC BY 4.0；代码部分用 MIT |
+| 要求衍生作品开源（防商用垄断） | 考虑 AGPL 3.0 |
+
+**具体决定等 AC 提交后（约 2026-10 或以后）做**。
+
+## 联系
+
+otogi2025 @ github

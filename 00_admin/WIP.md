@@ -13,8 +13,8 @@
 
 ---
 
-**最后更新**: 2026-04-20 深夜 by [Mac-主会话 (CC-Opus-4.7)] — itsuki 二次 "继续做" 后再推 5 条（A4/A12/A13/L1 ✅ + T2 ⏳ dry-run）+ pre-0.1 tag × 10 <!-- VERSION_OK -->
-**当前版本**: 见 `CHANGELOG.md` 顶部 · **重大状态**: v0.3.1 AC readiness 文档层发布（`fb330c2`）+ 下午产出配对（`f36d10b`）+ 深夜补 A5/A6/A9/T4（`8fac003`）+ 继续补 A4/A12/A13/L1/T2 + 10 个 pre-0.1 tag 追认 + backlog ✅ 累计 19 / ⏳ 12 / 剩余 57 <!-- VERSION_OK -->
+**最后更新**: 2026-04-20 深夜 by [Mac-主会话 (CC-Opus-4.7)] — itsuki 三次 "继续" 后再推 6 条（T6/T8/T10/T13/D26/L6 ✅ + T9 🟰）+ v0.4.0 S 漏洞优先级分析 + memory 更新 <!-- VERSION_OK -->
+**当前版本**: 见 `CHANGELOG.md` 顶部 · **重大状态**: v0.3.1 已发布（`fb330c2`）+ 4 轮深夜后续 commit(`f36d10b` / `8fac003` / `d7e587e` / 待 commit) + 10 个 pre-0.1 tag 追认 + LICENSE 建立 + backlog ✅ 累计 25 / ⏳ 12 / 🟰 1 / 剩余 49 + **v0.4.0 输入就位**（S 系列 20 条分 MVP/Nice/Defer） <!-- VERSION_OK -->
 
 
 ---
@@ -69,6 +69,18 @@
 ---
 
 ## ✅ 最近完成(24-48 小时内)
+
+### 2026-04-20 深夜再再后续（itsuki 三次"继续"→ 基建 6 条 + v0.4.0 输入 + memory 更新）
+
+- **[Mac-主会话]** **T8 🟡 ✅** `create_local_dev_symlink.sh` 加注释 + 两层自检（Mac / VPS 场景区分）
+- **[Mac-主会话]** **T10 🟡 ✅** `99_archive/2025-12_早期GPT对话/payload.json` PII 检查 —— 无敏感（2025-12 DMSD 设计 prompt）
+- **[Mac-主会话]** **T13 🟢 ✅** `.claude/settings.local.json` check —— 仅 permissions 字段，未 tracked，.gitignore 已排除
+- **[Mac-主会话]** **D26 🟢 ✅** `CLAUDE_CODE_记录指南.md §2` 第 1 条改："用 `date`" → "从 environment prompt 看 `currentDate`"
+- **[Mac-主会话]** **L6 🟢 ✅** `CLAUDE_CODE_记录指南.md §12` raw 命名规则加判断决策树（日期版 vs 主题版如何选）
+- **[Mac-主会话]** **T6 🟡 ✅** 新建 `LICENSE`（All Rights Reserved + AC 后 4 方向评估表）
+- **[Mac-主会话]** **T9 🟡 🟰** 标注过期（VPS 已停用 DMSD，Mac ↔ VPS 协议无必要建）
+- **[Mac-主会话]** **v0.4.0 输入就位** 新建 `00_admin/v0.4.0_S系列spec漏洞优先级分析.md` —— 20 条 S 分 MVP 必修(7) / Nice-to-have(8) / Defer(5) + 每条复杂度估算 + Week 1/2/3 节奏建议 + 总工作量约 15-20 小时
+- **[Mac-主会话]** **memory 更新** 2 条过期（v0.2 rewrite 已完成 / .pages PDF 版本错误）+ Key Dates 加 4-20 两行
 
 ### 2026-04-20 深夜再后续（itsuki 二次"继续做"→ Tier 2/3 五条 + pre-0.1 tag）
 
@@ -265,3 +277,4 @@
 - 2026-04-20 深夜 — [Mac-主会话] **Tier 1 Batch 2/3 完成 + v0.3.1 tag 发布**：itsuki 指令"修啊，别忘了迭代版本"后一次性推进；新建 3 文件（progress_overview draft / AC_志望動機占位 / Batch3 素材指引） + backlog 12 处更新（A2 ✅ / D1-D4 + D7-D13 加 ⏳ / M2 新增） + CHANGELOG v0.3.1 条目。**v0.3.1 tag 已打**（`fb330c2`，暂未 push）
 - 2026-04-20 深夜后续 — [Mac-主会话] itsuki "没做完的接着做 + 记得写 log" → 本会话 raw 落盘（4 条 #AC候选） + A5/A6/A9/T4 ✅ 四条 patch（`raw/README.md` / `AC_提交_checklist.md` / 空白期反思锚点 / `.gitignore` 大扩充） + 代 commit 下午会话产出 `f36d10b`（v0.3.1-post，02_design + raw/4-20 + TODO 新增）+ backlog 累计 ✅ 15 / ⏳ 11 / 剩余 61
 - 2026-04-20 深夜再后续 — [Mac-主会话] itsuki "继续做" → A4/A12/A13/L1/T2 五条（L1 超额：10 个 pre-0.1 annotated tag 指向 initial commit；T2 dry-run 评估不执行）+ `面试准备_索引.md` / `v0.3.0_AC叙事.md` / `T2_iOS归档_dryrun评估.md` 新建 + CHANGELOG 头部 pre-0.1 tag 说明 + raw log append ~00:30 执行补段 + backlog 累计 ✅ 19 / ⏳ 12 / 剩余 57
+- 2026-04-20 深夜再再后续 — [Mac-主会话] itsuki "继续" → T6/T8/T10/T13/D26/L6 ✅ 6 条 + T9 🟰 标过期 + `LICENSE` 建立 + `create_local_dev_symlink.sh` 自检 + `CLAUDE_CODE_记录指南.md` §2 §12 改 + 新建 `v0.4.0_S系列spec漏洞优先级分析.md`（v0.4.0 minor 开工 input，20 条 S 分 MVP/Nice/Defer + Week 1-3 节奏）+ memory 更新（2 条过期纠正 + Key Dates 加 4-20 两行）+ raw append ~01:00 段 + backlog 累计 ✅ 25 / ⏳ 12 / 🟰 1 / 剩余 49
