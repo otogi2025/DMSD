@@ -23,12 +23,21 @@
 
 - DMSD（Dormitory Management System Digitalization）宿舍管理系统电子化
 - 核心：宿舍点呼数字化（NFC 签到 / 自动判定 / 纪律扣分）
-- 技术栈：iOS（Swift / SwiftUI）+ Android（Kotlin，走 NFC 贴纸方案 + 自建 APK 分发）+ 后端（FastAPI / Python / PostgreSQL）+ RPi 点呼机（Python）+ NFC 卡（NTAG215）
+- 技术栈（2026-04-20 议题 A/B/C 细化）：
+  - iOS（Swift / SwiftUI，**BTR + Universal Link + AASA** 实现"碰一下自动唤 App"）
+  - Android（Kotlin，**App Links + assetlinks.json** + 自建 APK 分发，最低支持 **Android 10+**）
+  - 后端（FastAPI / Python / PostgreSQL，托管域名 `dmsd.otogi2025.com` 或同类）
+  - 点呼机（**Pi 4B 2GB + Python**，I²C 接 **PN532 卡读头** + **ST25DV16K 动态 NFC 贴纸模块**）
+  - NFC 卡（NTAG215 空白卡，学生自贴名字）
+- **防御核心**（2026-04-20 议题 A 定稿）：ST25DV16K 每 10 秒刷新一次性 nonce（URL 复制无效）+ ECDSA 签名（私钥存 Keychain/Keystore 硬件级）+ 老师现场监督 + session 幂等
+- **账号规则**（2026-04-20 议题 C 修订，**推翻 4-19 "一设备一账号"**）：不锁定单设备。注册 = 姓名+生日+性别 + **入学日老师扫码面签确认**（防账号盗用）。任意已激活设备 + 学生私钥签名即可签到；换机无需老师（学生新机登录自助，旧设备密钥自动作废）
 - **上线姿态**（2026-04-19 G2 决策）：**v1.0 直接 iOS + Android + 卡 完整版一次上线**；取消原 Phase 1 / Phase 2 分阶段
 - **开发节奏**：内部按 M1→M5 里程碑推进（兜底：做不完至少 M1+M2 可 demo）
 - 规格：`01_specs/` 初版冻结于 2026-02-12；后续修订进度见 `CHANGELOG.md`
+- **硬件 + 流程权威源**：`02_design/hardware_design_v0.1.md` + `02_design/flow_design_v0.1.md`（2026-04-20 建立）
 - 版本：SemVer。**当前版本见 `CHANGELOG.md` 顶部**（单源真值，见下方"文档一致性规则"节）
 - **版本号 bump 时必须触发 AC 记录**（对应核心问题 #3 重大决策）
+- **keystore（Android App 签名证书）备份**（议题 B 定稿）：本地 Mac 主拷贝 + 后端服务器加密备份（跨人传承）+ 纸质密码笔记本（毕业交接转交）+ 年度校验。**不存 iCloud**（个人账号不可传承）
 
 ## 目录结构
 
@@ -39,7 +48,7 @@ DMSD/
 │   ├── progress_overview.md           # 章节级，CC 起草由 itsuki 确认
 │   └── CLAUDE_CODE_记录指南.md         # AC 记录操作手册（仅格式需要时读）
 ├── 01_specs/                          # 规格文档，v0.1 冻结，v0.2 修订中
-├── 02_design/
+├── 02_design/                         # 设计文档（hardware_design_v0.1 + flow_design_v0.1，硬件+流程权威源）
 ├── 03_dev/                            # 代码（backend / Student-iOS / …）
 ├── 04_ops/
 ├── 05_logs/                           # DMSD 开发 log
@@ -112,6 +121,7 @@ DMSD/
 2. 主动告诉 itsuki 不知道但应该知道的概念（她不知道自己不知道什么）
 3. 不假设 itsuki 有任何先验知识（变量 / API / HTTP / 数据库都要解释）
 4. 出练习题尽量结合 DMSD 场景（点呼、扣分、签到）
+5. **讨论 = 产出，不等会话结束**（2026-04-20 itsuki 新规则）— 每轮讨论完拍板重大决策后**立即**检查是否要更新 CLAUDE.md / `02_design/` 等权威文档，**当场改**，不攒到会话结束的 5 步流程里。触发点：议题切换前、推翻旧决策后、产生新技术栈/新规则时。详见 memory `feedback_discuss_means_produce.md`。itsuki 原话："我跟你讨论，最终目的是让你产出，以后别忘了记得加到 CLAUDE.md 里"
 
 ## 代码编写原则
 
