@@ -12,7 +12,8 @@
 
 ## 项目简介
 
-**DMSD**(Dormitory Management System Digitalization)— 宿舍管理系统电子化
+- **项目名**（仓库/开发代号）：**DMSD**（Dormitory Management System Digitalization）
+- **系统/产品名**（对外）：**Tomoshibi**（灯火 / ともしび，2026-04-21 定名）
 
 把宿舍的纸质点呼考勤、纪律管理流程数字化,通过 NFC 卡 + 后端服务器 + 手机 App 实现。
 

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1366, initial-scale=1" />
+<title>Tomoshibi · Round 2 — Login + Roll-Call + Override</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #f4f5f7; }
+  *, *::before, *::after { box-sizing: border-box; }
+  button { font-family: inherit; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="round2/theme.jsx"></script>
+<script type="text/babel" src="round2/login.jsx"></script>
+<script type="text/babel" src="round2/shell.jsx"></script>
+<script type="text/babel" src="round2/roll-call-landing.jsx"></script>
+<script type="text/babel" src="round2/live.jsx"></script>
+<script type="text/babel" src="round2/override-modal.jsx"></script>
+
+<script type="text/babel">
+const { ROSTER, LoginScreen, Shell, RollCallLanding, LiveRollCall, OverrideModal } = window;
+
+// Seed demo roster — simulated partial check-ins so the grid has variety.
+function seed() {
+  return ROSTER.map(([room, id, name], i) => {
+    // Progress demo: first 17 checked in, 2 absent, 2 exempt, rest unknown
+    let status = 'unknown', checkinAt, health, pending, override, exemptReason;
+    if (i < 14) { status = 'ok'; checkinAt = `19:${30 + Math.floor(i / 2)}:${String((i * 13) % 60).padStart(2, '0')}`; }
+    if (i === 3) { status = 'ok'; checkinAt = '19:30:51'; health = '発熱 37.8℃'; }
+    if (i === 5) { status = 'unknown'; pending = { reason: '体調不良のため本日は免除を希望します。', submittedAt: '19:22' }; }
+    if (i === 9) { status = 'ok'; checkinAt = '19:31:38'; override = { by: '田中 先生', reason: '未携帯 · 対面確認' }; }
+    if (i === 2) { status = 'exempt'; exemptReason = '部活遠征（〜4/22）'; }
+    if (i === 14) { status = 'exempt'; exemptReason = '帰省中（〜4/23）'; }
+    if (i === 11) { status = 'absent'; }
+    if (i === 17) { status = 'absent'; }
+    return { key: id, id, room, name, status, checkinAt, health, pending, override, exemptReason };
+  });
+}
+
+function Prototype() {
+  const [route, setRoute] = React.useState('login'); // login · landing · live · ended
+  const [user, setUser] = React.useState(null);
+  const [active, setActive] = React.useState('roll-call');
+  const [students, setStudents] = React.useState(seed);
+  const [session, setSession] = React.useState(null); // { name, startedAt }
+  const [overrideStudent, setOverrideStudent] = React.useState(null);
+  const [lastEnded, setLastEnded] = React.useState(null);
+  const [toast, setToast] = React.useState(null);
+
+  const showToast = (m) => { setToast(m); setTimeout(() => setToast(null), 2200); };
+
+  const startSession = (name) => {
+    setStudents(seed());
+    setSession({ name, startedAt: Date.now() });
+    setRoute('live');
+  };
+
+  const endSession = () => {
+    const cnt = students.reduce((a, s) => { a[s.status] = (a[s.status] || 0) + 1; return a; }, {});
+    const done = (cnt.ok || 0);
+    const total = students.length;
+    const end = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    setLastEnded({ start: `${pad(new Date(session.startedAt).getHours())}:${pad(new Date(session.startedAt).getMinutes())}`, end: `${pad(end.getHours())}:${pad(end.getMinutes())}`, rate: `${done}/${total}` });
+    setSession(null);
+    setRoute('landing');
+    showToast('点呼を終了しました。結果は記録に保存されました。');
+  };
+
+  const applyOverride = ({ status, reason, approveLeave }) => {
+    setStudents(list => list.map(s => s.key === overrideStudent.key ? {
+      ...s,
+      status: approveLeave ? 'exempt' : status,
+      checkinAt: status === 'ok' ? (s.checkinAt || new Date().toLocaleTimeString('ja-JP')) : undefined,
+      exemptReason: approveLeave ? '欠席届 承認' : s.exemptReason,
+      pending: approveLeave ? null : s.pending,
+      override: { by: '田中 先生', reason },
+    } : s));
+    showToast(`${overrideStudent.name} を「${approveLeave ? '免除' : statusJa(status)}」に更新しました。`);
+    setOverrideStudent(null);
+  };
+
+  const resetDemo = () => { setStudents(seed()); showToast('デモ用データをリセットしました。'); };
+
+  if (route === 'login') return (
+    <>
+      <LoginScreen onLogin={(u) => { setUser(u); setRoute('landing'); }} />
+      {toast && <Toast msg={toast} />}
+    </>
+  );
+
+  if (route === 'live' && session) return (
+    <>
+      <LiveRollCall
+        sessionName={session.name}
+        startedAt={session.startedAt}
+        students={students}
+        onEnd={endSession}
+        onOverride={setOverrideStudent}
+        onReset={resetDemo}
+      />
+      {overrideStudent && (
+        <OverrideModal
+          student={overrideStudent}
+          onClose={() => setOverrideStudent(null)}
+          onSave={applyOverride}
+        />
+      )}
+      {toast && <Toast msg={toast} />}
+    </>
+  );
+
+  return (
+    <>
+      <Shell
+        user={user}
+        active={active}
+        onNav={setActive}
+        sessionActive={false}
+        onLogout={() => { setUser(null); setRoute('login'); }}
+      >
+        {active === 'roll-call' ? (
+          <RollCallLanding onStart={startSession} lastEnded={lastEnded} />
+        ) : (
+          <Placeholder label={active} />
+        )}
+      </Shell>
+      {toast && <Toast msg={toast} />}
+    </>
+  );
+}
+
+function statusJa(s) { return { ok: '時間内', absent: '欠席', exempt: '免除', unknown: '未点呼' }[s]; }
+
+function Placeholder({ label }) {
+  const T = window.RYO;
+  return (
+    <div style={{ padding: 32, color: T.ink3, fontFamily: T.font }}>
+      <div style={{ fontSize: 11, letterSpacing: 2, fontWeight: 700 }}>開発中</div>
+      <div style={{ fontSize: 20, color: T.ink, fontWeight: 700, marginTop: 6 }}>{label}</div>
+      <div style={{ marginTop: 8, fontSize: 13 }}>Round 3 で実装予定。今回は「点呼」を中心にご確認ください。</div>
+    </div>
+  );
+}
+
+function Toast({ msg }) {
+  const T = window.RYO;
+  return (
+    <div style={{
+      position: 'fixed', left: '50%', bottom: 28, transform: 'translateX(-50%)',
+      background: T.ink, color: '#fff', padding: '10px 20px', borderRadius: 999, fontSize: 13, fontWeight: 500,
+      fontFamily: T.font, boxShadow: T.shadow2, zIndex: 200,
+    }}>{msg}</div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Prototype />);
+</script>
+</body>
+</html>

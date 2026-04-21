@@ -1,10 +1,11 @@
 # DMSD 签到流程设计 v0.1  <!-- VERSION_OK -->
 
+> **系统对外名**：**Tomoshibi**（灯火，2026-04-21 定名）；DMSD 是项目/仓库代号。
 > **本文版本**: v0.1（2026-04-20 首版）
 > **本文作用**: 签到端到端流程 + 攻击路径 + 防御机制的唯一真值
 > **上游参考**: `01_specs/rollcall/RollCall_Spec_v0.1.md` §5.1 签到信号流
 > **配套文档**: `02_design/hardware_design_v0.1.md`（硬件选型）
-> **最后更新**: 2026-04-20
+> **最后更新**: 2026-04-21（系统命名 Tomoshibi 同步）
 
 ---
 
@@ -80,11 +81,11 @@
 ┌──────────────────────────────────────────────────────────────────┐
 │ 【学生 tap，T=0】                                                  │
 │                                                                  │
-│   1. 王小明拿出 iPhone（已装 DMSD App、已注册、已绑定设备）           │
+│   1. 王小明拿出 iPhone（已装 Tomoshibi App、已注册、已绑定设备）           │
 │   2. 贴近 ST25DV16K 贴纸（距离 2-5cm）                              │
 │   3. iOS BTR 读到 NDEF URL（无需打开 App / 无需解锁 iOS 14+）        │
-│   4. iOS 查缓存的 AASA 文件 → 匹配 DMSD App 的 Associated Domains   │
-│   5. 【iOS 直接启动 DMSD App】到签到页，不弹通知，不开 Safari        │
+│   4. iOS 查缓存的 AASA 文件 → 匹配 Tomoshibi App 的 Associated Domains   │
+│   5. 【iOS 直接启动 Tomoshibi App】到签到页，不弹通知，不开 Safari        │
 │   6. App 从 URL 参数拿到 device_id=DEV001, nonce=X7Kp9wQ2fB         │
 └──────────────────────────────────────────────────────────────────┘
 
@@ -211,7 +212,7 @@ Step 3. 【关键】10 秒过去
         → 后端 X7Kp9wQ2fB 标记过期
 
 Step 4. A 在房间 tap 假贴纸
-        → DMSD App 被 BTR 唤起
+        → Tomoshibi App 被 BTR 唤起
         → POST 带 nonce=X7Kp9wQ2fB（旧）
 
 Step 5. 后端校验
@@ -226,7 +227,7 @@ Step 6. 代签失败 ✅ （防御生效）
 
 ### 5.3 攻击场景 γ — URL 泄漏到公网（无账号防御生效）
 
-第三方从公网拿到 URL，但没有 DMSD App / 没注册账户 → 签到流程走不通。✅
+第三方从公网拿到 URL，但没有 Tomoshibi App / 没注册账户 → 签到流程走不通。✅
 
 ### 5.4 议题 D 补全（2026-04-20）
 
@@ -284,7 +285,7 @@ Step 6. 代签失败 ✅ （防御生效）
 ### 7.1 新规则（议题 C 方案 A + C-3）
 
 **注册流程**（入学第一天）：
-1. 新生下载 DMSD App
+1. 新生下载 Tomoshibi App
 2. 填姓名 + 生日 + 性别
 3. App 显示一个二维码（含一次性注册 token）
 4. **老师扫码 → 屏幕显示"张三 / 女 / 2008-03-15"**

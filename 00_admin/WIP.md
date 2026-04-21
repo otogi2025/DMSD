@@ -13,15 +13,29 @@
 
 ---
 
-**最后更新**: 2026-04-21 by [Mac-主会话 (CC-Opus-4.7)] — **v0.4.0 开工启动日**（D21 ✅ + S2/S3 draft ⏳ + Device_Contract 骨架 draft） <!-- VERSION_OK -->
-**当前版本**: 见 `CHANGELOG.md` 顶部 · **重大状态**: v0.3.2 已 release；今日推 v0.4.0 开工（不打 tag）—— D21 CHANGELOG HH:MM 精化 ✅ / S2+S3 字段定义 draft ⏳ / Device_Contract 骨架 + OQ1-OQ9 待 itsuki 拍板 / backlog 累计 ✅ 26 / ⏳ 14 / 🟰 1 / 剩 46 + **下次开工**：itsuki 审 OQ1-9 + S2/S3 draft → merge 进字典 → 补 S1/S4/S7/S10 spec 修复 → v0.4.0 release <!-- VERSION_OK -->
+**最后更新**: 2026-04-21 深夜 by [Mac-naming-sync] — **系统正式命名 Tomoshibi（灯火）** itsuki 拍板（2026-04-21）+ 全局文档同步扫除（CLAUDE.md §项目信息 / README 标题段 / CHANGELOG v0.4.0-wip 新条 / progress_overview 项目简介 / specs / design / demo_4-28 材料 / AC 叙事层 / backlog / 面试准备索引 / raw 2026-04-21 新 dump）+ memory `project_naming_tomoshibi.md` 新建。项目名 DMSD 保留（repo / 开发代号 / AC 叙事项目），系统/产品名 = Tomoshibi（学生 App / 老师 Web / 点呼机终端 / 对管理员/教授文案）。前一次 [Code-Agent (CC-Opus-4.7)]：读完 briefing 8 档 + 盘点 backend skeleton 缺口 + 建 `questions_for_requirements.md` 首批 5 阻塞问题，等 itsuki 回复 Q1-Q5 后 4-22 上午 D2 开工。 <!-- VERSION_OK -->
+**当前版本**: 见 `CHANGELOG.md` 顶部 · **重大状态**: **4-28 管理员 demo 为最高优先级** — 7 天冲刺（4-21→4-28）— 硬件 Pi 3A+（推翻 4-20 Pi 4B 2GB）+ 采购分阶段 Demo 1 台 / 部署 3 台 + 范围硬裁剪（保点呼机全 + Web 全 + iOS Xcode + 快捷指令代 App tap / 砍 Android / 砍外壳 / 砍风控）+ sprint plan 建立。v0.4.0 S2/S3 + Device_Contract 主线由 [Mac-主会话] 维护，本会话不碰。 <!-- VERSION_OK -->
 
 
 ---
 
 ## 🎯 当前焦点
 
-**v0.4.0 开工启动（2026-04-21）** — spec 层闭环 + 设备契约 + MVP 必修 S1-S10 修复。今天先备 draft：S2/S3 字段定义 + Device_Contract 骨架 + OQ1-9 open questions。等 itsuki 审后合入字典 + spec。不打 tag。CHANGELOG 暂未加 [0.4.0] 段（留到 release）。 <!-- VERSION_OK -->
+**4-28 宿舍管理员 Demo 冲刺（2026-04-21 启动 → 4-28 Demo Day）** — 最高优先级，真实 stakeholder（宿舍管理员）决定是否采纳系统。权威 sprint plan：`00_admin/demo_4-28_sprint.md`。
+
+**范围**（议题 E 2026-04-21 拍板）：
+- ✅ 保：点呼机全功能 + 老师 Web（记录/实时/外宿/归国审批）+ iOS Xcode 模拟器 + iOS 快捷指令代 App tap
+- ❌ 砍：点呼机外壳 / Android 端 / 完整风控 / 扣分系统 / 多点呼机协调
+
+**硬件**（2026-04-21 推翻 4-20 Pi 4B 2GB 选型）：**Raspberry Pi 3 Model A+**
+- 理由：thin client 用不上 over-spec + 实际价 ¥500 太贵 + 双频 WiFi + 3.5mm 音频口内置
+- Demo 1 台（日本 Amazon ¥12380 日元 ≈ ¥620 RMB，明天 4-22 到）
+- 部署扩容 3 台（管理员采纳后淘宝批量 ¥1345 RMB）
+- 详见 `02_design/hardware_design_v0.1.md §4`
+
+**并行**：v0.4.0 主线（S2/S3 + Device_Contract）由 [Mac-主会话] 维护，demo sprint 不动 `00_admin/v0.4.0_*.md`。
+
+**历史焦点（保留参考）**：v0.4.0 开工（2026-04-21 上午 S2/S3 draft + Device_Contract 骨架 + OQ1-9）。 <!-- VERSION_OK -->
 
 **历史焦点（上个阶段收尾，保留参考）**：4-19 G2 决策 + 点呼流程定稿 + 项目审查 backlog 落地 — 架构 / 流程 / 记录规则全部重大更新。
 
@@ -66,7 +80,75 @@
 
 ## 🔄 进行中的任务
 
-*(无进行中任务。会话结束，下次开会话时再认领。)*
+### [Mac-demo-sprint] 4-28 Demo 冲刺（D1 · 2026-04-21）
+
+**认领文件**：
+- `00_admin/demo_4-28/`（新文件夹，含 README / sprint / scope_tier / ST25DV_fallback / demo_script 5 个档案）
+- `02_design/hardware_design_v0.1.md`（§2.1 + §2.3 + §2.5 + §4 修订）
+- `CLAUDE.md` §项目信息硬件/demo 段
+- `05_logs/raw/2026-04-21.md`（新建 + 追加）
+- `03_dev/backend/`（skeleton 起好，代码后续交其他 agent）
+- `00_admin/TODO.md` 顶部加 demo sprint 指针段
+
+**分工（2026-04-21 itsuki 明示）**：
+- 本会话 [Mac-demo-sprint] 只做需求/文档/清单
+- 前端/后端/iOS/点呼机代码实现交其他 agent 做
+- 代码 agent 的需求来源 = `00_admin/demo_4-28/scope_tier.md`
+
+**不动文件**（[Mac-主会话] 认领）：
+- `00_admin/v0.4.0_S2_S3_字段draft.md`
+- `00_admin/v0.4.0_Device_Contract骨架.md`
+- `00_admin/v0.4.0_S系列spec漏洞优先级分析.md`
+- `00_admin/2026-04-19_项目审查_backlog.md`
+- `CHANGELOG.md`（等 demo 后评估如何纳入版本）
+
+**D1 已完成**：
+- [x] 议题 E 拍板（E-1/E-2/E-3/E-4）
+- [x] Pi 3A+ 选型推翻 Pi 4B 2GB（5 方案对比 + Pi 3A+ 反直觉胜出）
+- [x] MVP 思维：硬件采购分阶段（Demo 1 台 / 部署 3 台）
+- [x] `02_design/hardware_design_v0.1.md` §2.1 + §2.5 + §4 完整修订
+- [x] `CLAUDE.md` §项目信息 硬件 + demo 段更新
+- [x] `05_logs/raw/2026-04-21.md` 建立（6 条碎片 / 3 条 #AC候选🌟）
+- [x] `03_dev/backend/` skeleton 起好（README / requirements / database / models / schemas / ws_manager / main / seed，14 个 API 端点 + WebSocket）
+- [x] **Scope 扩展讨论 + Tier 分层拍板**（Tier 1 真跑 / Tier 2 UI skeleton / Tier 3 砍）
+- [x] **ST25DV fallback 决策**（方案 A：NTAG215 + iOS Shortcuts Automation，iOS 26 确认）
+- [x] **扣分规则拍板**（暂定数字 + discipline_config 可配置表）
+- [x] **文件夹化** `00_admin/demo_4-28/`（sprint.md 迁入 + 4 子档新建：README / scope_tier / ST25DV_fallback / demo_script）
+- [x] `CLAUDE.md` 第二轮更新（路径 + ST25DV fallback + 扣分可配置）
+
+**D1 剩余**（今晚 / 明天早）：
+- [ ] itsuki Amazon 日本下单 Pi 3A+ + 配件（明天 4-22 到）
+- [ ] itsuki 淘宝下单 ST25DV16K（供货延迟但仍买，v1.0 上线用）
+- [ ] itsuki 看 `demo_4-28/scope_tier.md §5` 补 Tier 1 漏项 / Tier 2 升级项（如需）
+- [ ] itsuki 看 `demo_4-28/demo_script.md` 确认台词风格
+- [x] 代码 agent 起会话 —— `[Code-Agent]` 2026-04-21 晚接管（下一段认领）
+
+### [Code-Agent] 4-28 Demo 代码实现（D1 onboard · 2026-04-21 晚）
+
+**身份**：代码实现 agent（前端 / 后端 / iOS / Pi 点呼机所有代码），需求来源 = `00_admin/demo_4-28/scope_tier.md`。
+
+**认领文件**（briefing `for_code_agent.md §3` 权限内，**路径根据 itsuki 2026-04-21 "demo 文件不要污染主项目" 指令全部挪到 `03_dev/demo_4-28/` 下**）：
+- `03_dev/demo_4-28/backend/`（**2026-04-21 晚 itsuki 拍板后 mv 自原 `03_dev/backend/`** —— skeleton 保持完整，README.md path 已同步更新）
+- `03_dev/demo_4-28/teacher_web/`（新建；**2026-04-21 晚 Claude Design Round 2 handoff bundle 已导入**：`index.html` + `round2/*.jsx` 6 组件 + `standalone-offline-backup.html` 8.4MB + `handoff/` 归档含 chat1.md AC 素材；设计方向 = Ryo / Noto Sans JP / 近黑+コバルト；Round 2 已做 login + roll-call dashboard + live 座席表 + override modal 4 项，Tier 1 剩 7 页 + Tier 2 15 skeleton 留 Round 3；D3 起把 seed 换成 API fetch + WS 订阅）
+- `03_dev/demo_4-28/Student_iOS_new/`（新建，SwiftUI；已建 `DESIGN_BRIEF.md` = Claude Design 任务书，iOS 版和 Web 版分开 project）
+- `03_dev/demo_4-28/device/`（新建，Python + PN532 + pyttsx3）
+- `00_admin/demo_4-28/questions_for_requirements.md`（新建，提问队列，只写自己的问题段，不改 itsuki/需求会话的回复段）
+- `00_admin/WIP.md` 本段（进度登记）
+
+**不碰**：`00_admin/demo_4-28/{README,sprint,scope_tier,demo_script,ST25DV_fallback,for_code_agent}.md` / `01_specs/` / `02_design/` / `00_admin/v0.4.0_*.md` / `CLAUDE.md` / `05_logs/raw/` / `CHANGELOG.md` / `00_admin/2026-04-19_项目审查_backlog.md` / 旧 `03_dev/Student/`（throwaway）。
+
+**D1 已完成**：
+- [x] 读完 briefing 8 个文件（CLAUDE / WIP / demo_4-28 5 档 / hardware_design / backend README）+ 实际看了 backend 全 6 个源码文件摸清缺口
+- [x] 建 `questions_for_requirements.md` 首批 5 阻塞 Q + 3 非阻塞建议
+- [x] 识别 Tier 1 实际技术缺口：`Checkin.status` 字段 / `roll_call/live` 聚合 API / 改判 / 健康 / 请假 / 扣分配置表 / 搜索聚合 6 处
+- [x] WIP 登记本段
+
+**D1 剩余 / D2 开工前阻塞**：
+- [ ] itsuki 回复 Q1-Q5（questions_for_requirements.md）→ 否则 schema 不敢定
+- [ ] Q 回复 + D2 上午开工：backend `models.Checkin.status` + discipline_config 表 + seed 扩到 30 学生 + 造扣分历史
+- [ ] D2 下午：端到端本地测 `POST /api/checkin` + WS 推送（先用 `wscat` 测）
+
+**当前等**：itsuki 回复 Q1-Q5，然后 4-22 上午 D2 开工。今晚不动代码（等 Q 回答 + 等硬件到 + 避免改完发现 schema 不对返工）。
 
 ---
 
@@ -297,3 +379,4 @@
 - 2026-04-20 深夜再再后续 — [Mac-主会话] itsuki "继续" → T6/T8/T10/T13/D26/L6 ✅ 6 条 + T9 🟰 标过期 + `LICENSE` 建立 + `create_local_dev_symlink.sh` 自检 + `CLAUDE_CODE_记录指南.md` §2 §12 改 + 新建 `v0.4.0_S系列spec漏洞优先级分析.md`（v0.4.0 minor 开工 input，20 条 S 分 MVP/Nice/Defer + Week 1-3 节奏）+ memory 更新（2 条过期纠正 + Key Dates 加 4-20 两行）+ raw append ~01:00 段 + backlog 累计 ✅ 25 / ⏳ 12 / 🟰 1 / 剩余 49
 - 2026-04-20 深夜 v0.3.2 发布 — [Mac-主会话] itsuki 从"明天做"改为"今晚做完"→ 4 步：CHANGELOG [0.3.2] 完整段 + 新建 `v0.3.2_AC叙事.md`（6 节模板，核心 AC 是 AI 协作成熟度 4 层 / 架构决策可推翻但要留痕 / 两会话并行协调）+ `git tag v0.3.2` + push。今日总战绩：13+ commit + 1 release tag (v0.3.2) + 10 pre-0.1 tag 追认 + backlog 25 ✅。正式结束 4-20 会话
 - 2026-04-21 — [Mac-主会话] **v0.4.0 开工启动日（不打 tag）**：D21 ✅（CHANGELOG HH:MM）+ S2/S3 字段 draft ⏳（card_uid / student_status 完整定义 + 配套生命周期字段 + 业务决策点）+ Device_Contract 骨架 draft（9 节 + OQ1-9 清单）+ backlog 累计 ✅ 26 / ⏳ 14 / 剩 46。等 itsuki 审 draft + 拍板 OQ → 合并进字典 + spec → 继续修 S1/S4/S7/S10 → 打 v0.4.0 tag
+- 2026-04-21 晚 — [Code-Agent] **Demo 4-28 代码实现会话 onboard**：读完 `for_code_agent.md` briefing + 剩余 8 档 + backend 全 6 源码；盘点 Tier 1 真实技术缺口 6 处（`Checkin.status` / `/api/roll-call/live` 聚合 / 改判 / 健康 / 请假 / discipline_config + 搜索聚合）；建 `00_admin/demo_4-28/questions_for_requirements.md` 首批 5 阻塞问题（Q1 缺席记录产生时机 / Q2 Checkin.status + 迟到窗口阈值 / Q3 iOS 切学生方案 / Q4 Web UI 中文 vs 日语 / Q5 seed 扩到 30 人 + 造扣分历史）+ 3 非阻塞建议（N1 红十字改 🏥 / N2 IP 配置策略 / N3 WS 先上 fallback 后备）；WIP §进行中 加本会话段登记文件认领边界。**今晚不写代码**（等 Q 回复 + 硬件 4-22 到），D2（4-22）上午按答复启动 schema + seed + 6 API 缺口补全

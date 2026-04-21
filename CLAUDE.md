@@ -21,18 +21,24 @@
 
 ## 项目信息
 
-- DMSD（Dormitory Management System Digitalization）宿舍管理系统电子化
+- **项目名**：DMSD（Dormitory Management System Digitalization）— 开发项目 / 仓库代号 / AC 叙事项目
+- **系统/产品名**：**Tomoshibi**（灯火 / ともしび）— 面向用户的系统名，2026-04-21 拍板
+  - 使用场景：学生 iOS / Android App 名字、老师 Web 标题、点呼机终端品牌、README / 介绍文案、对管理员/教授的所有表述
+  - 保留 DMSD 的场景：项目开发过程、git 历史、spec / commit / 版本号、CLAUDE.md 这类"对 CC 的项目指令"
+  - **AC 面试话术**（itsuki 原话定版）："我在日本留学，宿舍是我在异国的第二个家。这个系统守护的是'灯火'——每个学生夜晚平安归来、房间亮起一盏灯。所以取日语名 Tomoshibi（灯火）。"
 - 核心：宿舍点呼数字化（NFC 签到 / 自动判定 / 纪律扣分）
 - 技术栈（2026-04-20 议题 A/B/C 细化）：
   - iOS（Swift / SwiftUI，**BTR + Universal Link + AASA** 实现"碰一下自动唤 App"）
   - Android（Kotlin，**App Links + assetlinks.json** + 自建 APK 分发，最低支持 **Android 10+**）
   - 后端（FastAPI / Python / PostgreSQL，托管域名 `dmsd.otogi2025.com` 或同类）
-  - 点呼机（**Pi 4B 2GB + Python**，I²C 接 **PN532 卡读头** + **ST25DV16K 动态 NFC 贴纸模块**）
+  - 点呼机（**Raspberry Pi 3 Model A+ + Python**，I²C 接 **PN532 卡读头** + **ST25DV16K 动态 NFC 贴纸模块**；**2026-04-21 推翻 4-20 Pi 4B 2GB 选型**，原因：thin client 用不上 over-spec + 实际市场价 ¥500 太贵 + Pi 3A+ 双频 WiFi + 3.5mm 音频口内置）
   - NFC 卡（NTAG215 空白卡，学生自贴名字）
 - **防御核心**（2026-04-20 议题 A 定稿）：ST25DV16K 每 10 秒刷新一次性 nonce（URL 复制无效）+ ECDSA 签名（私钥存 Keychain/Keystore 硬件级）+ 老师现场监督 + session 幂等
 - **账号规则**（2026-04-20 议题 C 修订，**推翻 4-19 "一设备一账号"**）：不锁定单设备。注册 = 姓名+生日+性别 + **入学日老师扫码面签确认**（防账号盗用）。任意已激活设备 + 学生私钥签名即可签到；换机无需老师（学生新机登录自助，旧设备密钥自动作废）
 - **上线姿态**（2026-04-19 G2 决策）：**v1.0 直接 iOS + Android + 卡 完整版一次上线**；取消原 Phase 1 / Phase 2 分阶段
 - **开发节奏**：内部按 M1→M5 里程碑推进（兜底：做不完至少 M1+M2 可 demo）
+- **4-28 管理员 demo 冲刺**（2026-04-21 议题 E 拍板 + scope 扩展 + ST25DV fallback）：宿舍管理员决定是否采纳系统 → 7 天冲刺（4-21 → 4-28）→ 范围 **Tier 分层**：Tier 1 真跑（点呼 / 座位表 / 改判 / 健康 / 请假 / 外宿 / 归国 / 扣分 / 检索）+ Tier 2 UI skeleton（扫除 / 巴士 / 活动 / 宿舍互动 5 项 / 快递 / 归县 / 出租车 / 通知中心 / 长期豁免）+ Tier 3 砍。**ST25DV16K 供货延迟** → 替代方案：NTAG215 静态贴纸 + iOS Shortcuts Automation（iOS 26 已确认）。**扣分规则**暂定（迟到 0.5 / 缺席 1 / 月 4 罚扫 / 月 8 禁足），后端做成 `discipline_config` 可配置表，上线前和老师商议。**权威源**：`00_admin/demo_4-28/`（文件夹，含 README.md / sprint.md / scope_tier.md / ST25DV_fallback.md / demo_script.md）。**分工**：本会话 [Mac-demo-sprint] 只做需求/文档/清单，代码实现交其他 agent
+- **采购策略**（2026-04-21 MVP 思维拍板）：**Demo 阶段先 1 台**（日本 Amazon，¥12380 日元 ≈ ¥620 RMB）→ 管理员采纳后扩容 3 台（淘宝，¥1345 RMB）。详见 `02_design/hardware_design_v0.1.md §4`
 - 规格：`01_specs/` 初版冻结于 2026-02-12；后续修订进度见 `CHANGELOG.md`
 - **硬件 + 流程权威源**：`02_design/hardware_design_v0.1.md` + `02_design/flow_design_v0.1.md`（2026-04-20 建立）
 - 版本：SemVer。**当前版本见 `CHANGELOG.md` 顶部**（单源真值，见下方"文档一致性规则"节）

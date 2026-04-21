@@ -1,6 +1,6 @@
 # Changelog
 
-> **最后更新**: 2026-04-21（D21 时间戳精化：v0.2.0 / v0.3.0 header 加 HH:MM；v0.4.0 开工启动，draft 进 `00_admin/`）
+> **最后更新**: 2026-04-21（系统正式命名 Tomoshibi；D21 时间戳精化：v0.2.0 / v0.3.0 header 加 HH:MM；v0.4.0 开工启动，draft 进 `00_admin/`）
 >
 > 版本号规则：[语义化版本 (SemVer)](https://semver.org/) — 主版本号.次版本号.修订号
 >
@@ -14,6 +14,35 @@
 > 打这些标签的目的：让"讨论了十几种方案才写第一版文档"这件事有可追溯的证据链。
 >
 > **2026-04-20 更新**：10 个 pre-0.1 annotated tag（`v0.0.1` - `v0.0.10`）已追认打在 initial commit `3baa168` 上，每个 tag message 里写了对应版本的核心内容 + 指向 CHANGELOG / raw 的指针。`git tag -l | sort -V` 可以看到完整版本历史。
+
+---
+
+## [0.4.0-wip] - 2026-04-21（v0.4.0 开工 + 系统正式命名）
+
+> v0.4.0 在 commit `eeb39d2` 开工（S2/S3 字段 draft + Device_Contract 骨架 + D21）；本条追加 2026-04-21 晚的命名决策。尚未 tag。
+
+### Naming — 系统正式命名 **Tomoshibi**（灯火 / ともしび）
+
+**决策**：
+- **项目名**（repo / 开发代号 / AC 叙事项目名）保留 **DMSD**（Dormitory Management System Digitalization）
+- **系统/产品名**（面向用户、学生 App、老师 Web、点呼机终端品牌、对管理员/教授文案）定名 **Tomoshibi**
+
+**理由**（itsuki 定版 AC 面试话术）：
+> "我在日本留学，宿舍是我在异国的第二个家。这个系统守护的是'灯火'——每个学生夜晚平安归来、房间亮起一盏灯。所以取日语名 Tomoshibi（灯火）。"
+
+**为什么不 bump 到 v0.4.0**：命名是产品品牌层面决策，不改 spec 实质、不改字段 / 枚举 / 接口 / 版本语义。归入 v0.4.0-wip 里随主体一起发。
+
+### Changed — 全局系统名同步
+
+- `CLAUDE.md §项目信息` 第一行区分项目名 vs 系统名 + AC 话术定稿
+- `README.md` 标题改 "DMSD → Tomoshibi（灯火）"，新增"为什么叫 Tomoshibi"段
+- 所有面向用户 / 面向教授的文档（spec / design / demo_4-28 材料 / AC 叙事 / backlog / 面试准备索引）同步更新
+- 项目 / 仓库 / git 历史 / commit 上下文继续用 DMSD
+- 早期 throwaway iOS 代码（`03_dev/Student/DMSDStudentApp*`）不改（本就是待归档产物）
+
+### Added
+
+- `~/.claude/projects/-Users-kurekoduki-dev-DMSD/memory/project_naming_tomoshibi.md`（跨会话 memory，future sessions 自动读到）
 
 ---
 
