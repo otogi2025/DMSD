@@ -13,15 +13,17 @@
 
 ---
 
-**最后更新**: 2026-04-20 深夜 by [Mac-主会话 (CC-Opus-4.7)] — **v0.3.2 tag 发布**（今晚赶完 4 步）+ 今日完整收尾 <!-- VERSION_OK -->
-**当前版本**: 见 `CHANGELOG.md` 顶部 · **重大状态**: v0.3.2 已发布（架构决策推翻 4-19 两条 / 两会话并行 / 14 条 backlog ✅ + 1 ⏳ + 1 🟰 归入）+ 全 commit + tag push 到 `origin/main` + backlog 累计 ✅ 25 / ⏳ 12 / 🟰 1 / 剩 49 + **下次开工**：议题 E fact-check 筑波官网 → M1 开发启动 <!-- VERSION_OK -->
+**最后更新**: 2026-04-21 by [Mac-主会话 (CC-Opus-4.7)] — **v0.4.0 开工启动日**（D21 ✅ + S2/S3 draft ⏳ + Device_Contract 骨架 draft） <!-- VERSION_OK -->
+**当前版本**: 见 `CHANGELOG.md` 顶部 · **重大状态**: v0.3.2 已 release；今日推 v0.4.0 开工（不打 tag）—— D21 CHANGELOG HH:MM 精化 ✅ / S2+S3 字段定义 draft ⏳ / Device_Contract 骨架 + OQ1-OQ9 待 itsuki 拍板 / backlog 累计 ✅ 26 / ⏳ 14 / 🟰 1 / 剩 46 + **下次开工**：itsuki 审 OQ1-9 + S2/S3 draft → merge 进字典 → 补 S1/S4/S7/S10 spec 修复 → v0.4.0 release <!-- VERSION_OK -->
 
 
 ---
 
 ## 🎯 当前焦点
 
-**4-19 G2 决策 + 点呼流程定稿 + 项目审查 backlog 落地** — 架构 / 流程 / 记录规则全部重大更新。
+**v0.4.0 开工启动（2026-04-21）** — spec 层闭环 + 设备契约 + MVP 必修 S1-S10 修复。今天先备 draft：S2/S3 字段定义 + Device_Contract 骨架 + OQ1-9 open questions。等 itsuki 审后合入字典 + spec。不打 tag。CHANGELOG 暂未加 [0.4.0] 段（留到 release）。 <!-- VERSION_OK -->
+
+**历史焦点（上个阶段收尾，保留参考）**：4-19 G2 决策 + 点呼流程定稿 + 项目审查 backlog 落地 — 架构 / 流程 / 记录规则全部重大更新。
 
 **架构层（4-19 重大转向）**:
 - **G2 拍板**: 取消 Phase 1 / Phase 2 分阶段上线；**v1.0 直接 iOS + Android + 卡 完整版一次上线**。开发内部仍按 M1→M5 里程碑顺序（风险兜底：做不完至少 M1+M2 可 demo）。
@@ -69,6 +71,14 @@
 ---
 
 ## ✅ 最近完成(24-48 小时内)
+
+### 2026-04-21（v0.4.0 开工启动 — 不打 tag）
+
+- **[Mac-主会话]** **D21 🟡 ✅** CHANGELOG.md v0.2.0 / v0.3.0 header 加 HH:MM 区分（v0.2.0 → 18:22 / v0.3.0 → 18:53）；CHANGELOG 头部"最后更新"同步到 2026-04-21
+- **[Mac-主会话]** **S2 🔴 ⏳** 起草 `00_admin/v0.4.0_S2_S3_字段draft.md §1`：card_uid 完整定义 + 配套 §2.9 卡生命周期 4 字段（char(14) UNIQUE / 多对一到 student_id / 小写 hex）+ 依赖链（S1+S10+S4）+ 备选方案对比
+- **[Mac-主会话]** **S3 🔴 ⏳** 同 draft §2：student_status 4 取值 ENUM + 配套 §2.10 学生生命周期 audit 字段 + 对应 spec 附录 C.5 状态转换 + paused 不区分理由 / graduated 保留历史两业务决策待 itsuki 拍板
+- **[Mac-主会话]** 新建 `00_admin/v0.4.0_Device_Contract骨架.md`：9 节骨架（目的/职责/HTTP 契约/WS 协议/配置/错误处理/生命周期/硬件/交叉引用）+ 9 个 Open Questions 汇总表（OQ1 mTLS / OQ2 nonce+HMAC / OQ3 HTTP 超时 / OQ4 device 注册 / OQ5 心跳 / OQ6 降级策略 / OQ7 固件更新 / OQ8 LED 语义 / OQ9 path_type 扩展 — 每条含 CC 推荐方案 + 阻塞 Phase 1 标注）
+- **[Mac-主会话]** backlog 打 ✅ 1 条（D21）+ 打 ⏳ 2 条（S2/S3）；累计 ✅ 26 / ⏳ 14 / 🟰 1 / 剩 46
 
 ### 2026-04-20 深夜 v0.3.2 发布（本来要明天做，itsuki 决定今晚赶完）
 
@@ -286,3 +296,4 @@
 - 2026-04-20 深夜再后续 — [Mac-主会话] itsuki "继续做" → A4/A12/A13/L1/T2 五条（L1 超额：10 个 pre-0.1 annotated tag 指向 initial commit；T2 dry-run 评估不执行）+ `面试准备_索引.md` / `v0.3.0_AC叙事.md` / `T2_iOS归档_dryrun评估.md` 新建 + CHANGELOG 头部 pre-0.1 tag 说明 + raw log append ~00:30 执行补段 + backlog 累计 ✅ 19 / ⏳ 12 / 剩余 57
 - 2026-04-20 深夜再再后续 — [Mac-主会话] itsuki "继续" → T6/T8/T10/T13/D26/L6 ✅ 6 条 + T9 🟰 标过期 + `LICENSE` 建立 + `create_local_dev_symlink.sh` 自检 + `CLAUDE_CODE_记录指南.md` §2 §12 改 + 新建 `v0.4.0_S系列spec漏洞优先级分析.md`（v0.4.0 minor 开工 input，20 条 S 分 MVP/Nice/Defer + Week 1-3 节奏）+ memory 更新（2 条过期纠正 + Key Dates 加 4-20 两行）+ raw append ~01:00 段 + backlog 累计 ✅ 25 / ⏳ 12 / 🟰 1 / 剩余 49
 - 2026-04-20 深夜 v0.3.2 发布 — [Mac-主会话] itsuki 从"明天做"改为"今晚做完"→ 4 步：CHANGELOG [0.3.2] 完整段 + 新建 `v0.3.2_AC叙事.md`（6 节模板，核心 AC 是 AI 协作成熟度 4 层 / 架构决策可推翻但要留痕 / 两会话并行协调）+ `git tag v0.3.2` + push。今日总战绩：13+ commit + 1 release tag (v0.3.2) + 10 pre-0.1 tag 追认 + backlog 25 ✅。正式结束 4-20 会话
+- 2026-04-21 — [Mac-主会话] **v0.4.0 开工启动日（不打 tag）**：D21 ✅（CHANGELOG HH:MM）+ S2/S3 字段 draft ⏳（card_uid / student_status 完整定义 + 配套生命周期字段 + 业务决策点）+ Device_Contract 骨架 draft（9 节 + OQ1-9 清单）+ backlog 累计 ✅ 26 / ⏳ 14 / 剩 46。等 itsuki 审 draft + 拍板 OQ → 合并进字典 + spec → 继续修 S1/S4/S7/S10 → 打 v0.4.0 tag
