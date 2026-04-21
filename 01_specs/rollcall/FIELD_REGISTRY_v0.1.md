@@ -1,6 +1,6 @@
 # DMSD v0.1 字段字典（唯一命名）
 
-更新时间：2026-04-17（4-17 修订基于 itsuki Q1-Q5 拍板，详见 `RollCall_Spec_v0.1.md` 附录 C）
+更新时间：2026-04-21（4-21 修订：补 `card_uid` / `student_status` + 配套生命周期字段 — 对应 backlog S2 / S3）
 
 ## 1. 强制规则
 - 同一概念只允许一个字段名。
@@ -23,6 +23,7 @@
 - `teacher_id`
 - `seat_no`
 - `device_id`（**4-17 新增** — 详见 `DEVICE_REGISTRY_v0.1.md`）
+- `card_uid`（**4-21 新增** — 路径 A 核心。NTAG215 UID 7 bytes hex 编码，存为 14 位小写 hex 字符串无分隔符。`UNIQUE` 约束。多对一到 `student_id`（换卡场景：旧 UID 作废记录保留 / 新 UID 绑定同一 `student_id`）。仅路径 A 使用。详见 2.9 卡生命周期 + `RollCall_Spec_v0.1.md §10.2`）
 
 ### 2.3 场次与时间
 - `session_type`
@@ -72,6 +73,28 @@
 - `device_registered_at`
 - `device_registered_by`
 - `device_notes`（自由文本，硬件型号等）
+
+### 2.9 卡生命周期（**4-21 新增** — 对应 backlog S2）
+- `card_uid`（见 2.2）
+- `card_active`（boolean。false = 卡已停用但历史记录保留，不删除 row）
+- `card_issued_at`（发卡时间）
+- `card_revoked_at`（作废时间；null = 仍在用）
+- `card_revoke_reason`（自由文本："挂失补办" / "毕业回收" / "被停用" 等）
+
+**幂等 / 唯一约束**（v0.6.0 migration 阶段落地）：
+- `UNIQUE INDEX on (card_uid) WHERE card_revoked_at IS NULL` —— 同一时刻同一 UID 只能绑一个 active 学生
+- 作废后 UID 可以重新绑定到新学生（毕业回收场景）
+
+### 2.10 学生生命周期（**4-21 新增** — 对应 backlog S3 + `RollCall_Spec_v0.1.md` 附录 C.5）
+- `student_status`（ENUM，取值见 `ENUM_REGISTRY_v0.1.md §14 student_status`）
+- `student_status_changed_at`（最近一次变更时间）
+- `student_status_changed_by`（操作老师 `teacher_id`）
+- `student_status_change_reason`（自由文本）
+
+**业务规则**（对应 spec 附录 C.5）：
+- 仅 `active` 学生进入 session 座位表；其他状态保留名单但不计入
+- 状态变更必须 audit（四个配套字段缺一不可）
+- 毕业 / 转学学生数据永久保留（`student_status = graduated` / `transferred` 但 row 不删）
 
 ## 3. 禁止字段（示例）
 - `my_status`

@@ -1,6 +1,6 @@
 # DMSD v0.1 枚举字典（唯一取值）
 
-更新时间：2026-04-17（4-17 修订基于 itsuki Q1-Q5 拍板，详见 `RollCall_Spec_v0.1.md` 附录 C）
+更新时间：2026-04-21（4-21 修订：新增 §14 `student_status` — 对应 backlog S3 + `RollCall_Spec_v0.1.md` 附录 C.5）
 
 ## 1. session_type
 - `morning`
@@ -84,7 +84,27 @@
 - `A`（卡路径：卡 → 点呼机 PN532 → 后端）
 - `B`（iPhone 路径：iPhone 读静态标签 → iPhone 自己发后端）
 
-## 14. 大小写与拼写规则
+## 14. student_status（4-21 新增 — 对应 `RollCall_Spec_v0.1.md` 附录 C.5）
+
+> **用途**：`student.student_status`。描述学生当前是否参与点呼。
+
+| 取值 | 中文 | 含义 | 是否进入座位表 |
+|---|---|---|---|
+| `active` | 在寮 | 正常参与点呼 | ✅ |
+| `paused` | 长期请假 | 请假期间（病假 / 留学 / 家庭原因），用"免点呼范围"覆盖（spec §8.2） | ❌（名单保留） |
+| `transferred` | 转学 | 已转去别的学校 / 寮 | ❌ |
+| `graduated` | 毕业退寮 | 毕业后离寮 | ❌ |
+
+**状态转换规则**：
+- 新入寮：null → `active`（首个 session 起计算）
+- 长期请假：`active` → `paused`（请假期间免点呼）
+- 请假结束：`paused` → `active`（回寮当天起恢复）
+- 离寮：`active` / `paused` → `transferred` / `graduated`（此后 session 不再计入）
+- 任意转换必须 audit：记录 `student_status_changed_at` + `student_status_changed_by` + `student_status_change_reason`（见 `FIELD_REGISTRY_v0.1.md §2.10`）
+
+**default**：`active`（新学生入寮默认为 active）
+
+## 15. 大小写与拼写规则
 - 全部采用小写蛇形或小写单词。
 - 枚举值必须逐字匹配，不允许别名。
 - 前后端代码直接拷贝本文件取值，禁止二次命名。

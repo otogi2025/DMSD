@@ -366,8 +366,8 @@ effective_auto_end_at  = started_at + (scheduled_auto_end_at  - scheduled_window
 - **`t > effective_late_end` 的签到**：返回 `TIMEOUT`，不改变座位结果，最终由结算置为缺席
 - **`started_at` 之前 / `ended_at` 之后的签到**：返回 `SESSION_NOT_RUNNING`（统一覆盖"还没开始"和"已结束"两种情况）
 - **重复签到**（同一 `student_id` 在同一 session 内已签到）：返回 `DUPLICATE_REQUEST`，silently ignore（不变更状态、不重复播报，但记 audit log）
-- **未注册卡 / 陌生 UID**（路径 A）：返回 `UNKNOWN_CARD`，点呼机红灯 + 失败声音 + 不播报姓名
-- **卡未启用**（路径 A，UID 在表里但 `device_active=false` 或学生离寮）：返回 `UNREGISTERED_UID`
+- **未注册卡 / 陌生 UID**（路径 A，UID 在 `card_uid` 表里**完全没有记录** — 新卡 / 外部卡）：返回 `UNKNOWN_CARD`，点呼机红灯 + 失败声音 + 不播报姓名
+- **卡已停用 / 学生离寮**（路径 A，UID 有记录但 `card_active=false`，或绑定的学生 `student_status != 'active'`）：返回 `UNREGISTERED_UID`。（**4-21 修订 — S1 + S4 修复**：原描述的 `device_active=false` 字段错位 — `device_active` 是点呼机 device 字段不是 card/student 字段。新语义区分 `UNKNOWN_CARD` = UID 全无记录 vs `UNREGISTERED_UID` = UID 有记录但 card 或 student 非 active）
 - **未注册设备**（路径 B，iPhone 发的 `device_id` 不在 device 表里）：返回 `UNKNOWN_DEVICE`
 - **设备已停用**：返回 `DEVICE_NOT_ACTIVE`
 - **签名校验失败**（路径 B）：返回 `INVALID_SIGNATURE`
@@ -470,7 +470,7 @@ settle_at = min(ended_at, effective_auto_end_at)
 | `status_source` | enum | `auto_nfc` / `auto_settle` / `manual_checkin` / `teacher_override` |
 | `applied_group` | enum | 本次判定使用的 `effective_group`（`normal` / `soccer`），用来解释"足球部当天合并点呼为什么按普通时间窗算" |
 | `checked_in_at` | timestamp | 服务器接收时间 = 判定时间 |
-| `idempotency_key` | string | 客户端生成 UUID，防重提 |
+| `idempotency_key` | string | **路径 B**：客户端（iPhone / Android App）生成 UUID，防重提。**路径 A**：不使用此字段（thin client 原则，点呼机不生成 key）；改用 `(card_uid, session_id, ts_secondbucket)` 复合唯一索引做幂等，后端去重（**4-21 修订 — S10 修复**）|
 
 ### 10.3 `device`（设备表）
 
