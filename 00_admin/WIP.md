@@ -188,7 +188,9 @@
   - 旧 v1 DESIGN_BRIEF 重命名 `_archived_v1_DESIGN_BRIEF_2026-04-21.md` 保留推翻痕迹
 - **[Mac-demo-sprint]** **CLAUDE.md §账号规则 patch 到 v3**：推翻 2026-04-20 议题 C "入学日面签" → App 内 4-step 注册即激活 + 锁定升级 + 账号 ID 分配（00 demo seed / 01+ 真实）+ 密码重置走宿管后台（feedback_overruled_rule_means_update_rule 执行）
 - **[Mac-demo-sprint]** **raw log**：`05_logs/raw/2026-04-22_iOS前端设计_Round1.md`（同日主题版，6 条碎片 / 2 条 #AC候选🌟）—— 架构重构心路历程 + 00 号 seed demo 魔法 product thinking + 会话开场方式变化 + 跨文档同步治理
-- **等 itsuki**: audit Round1_Prompt.md 字段级 → 开 claude.ai 新 project → 拖 references/ + paste prompt → 收 Phase A 3 variations → 选定 → Phase B 73 画面 standalone 一次出 → 导入 `designs/`
+- **[Mac-demo-sprint] 2026-04-22 夜续（收尾段）**：itsuki 已跑 Phase A 3 variations → 选定 → Phase B 73 画面 standalone（1.93 MB）产出。CC 导入 `designs/Tomoshibi_iOS_PhaseB.html` + Python 解包 11 资源 → **QA 产出** `QA_Round1_PhaseB.md`（🔴 C1 中文残留 / C2 データ Web 不一致 / C3 申请类型 8 vs 7 / C4 iPhone frame 双层）→ **CC 直接改 JS 源 + gzip+base64 重打包** 产出 **`Tomoshibi_iOS_PhaseB_v2.html`**（C1 + C2 全修 · 点歌→リクエスト曲 + 宿舍墙→寮ウォール + 快递→宅配 + 晚→晩 全量 + W101→M101 / 女寮→男寮 / 4.0→4.5 + SEED.points/rollcall 重建 · template 剥离 integrity/crossorigin 避 file:// CORS）。C3 写 `Round2_Prompt_C3.md` 待 itsuki 决定（默认接受 Claude Design 8 种重构方案 (iii)）。写 `handoff_for_code_agent.md` 拟做 Xcode WKWebView 壳（~30 行 SwiftUI + CSS override 隐藏 Phase B 自带 iPhone frame + 工程放 `~/dev/TomoshibiiOSApp/` DMSD 外）。
+- **[Mac-demo-sprint] ⭐ itsuki 推翻 Xcode 壳方案** → 选 "普通浏览器（Safari）直接打开" → handoff 标 DEPRECATED（保留作推翻痕迹 + post-demo v1.0 Xcode 起点参考）。**Demo 演示路径改 Safari 直开 v2 HTML**（Mac 接大屏 → Safari → file:// → 点 caption "🏠 Home" 快捷 → 走 73 页）。**iOS Round 1 正式收尾** ✅
+- **AC log 追加**：raw/2026-04-22_iOS前端设计_Round1.md §20:00（Phase B 导入 + QA + v2 产出）+ §21:00 #AC候选🌟（**itsuki 推翻 Xcode 壳 · 最简工程决策** — CC 写 30 行 SwiftUI + handoff.md + Round 2 prompt 的"最优路径"被 10 字推翻；AC 面试核心素材："AI 提示的完美方案不一定是正确答案 · 过度工程识别能力"）
 
 ### 2026-04-22 下午（Web Round 3 导入 + 解包 + debug · [Code-Agent]）
 
