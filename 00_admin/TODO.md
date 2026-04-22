@@ -6,10 +6,31 @@
 > - 和 `progress_overview.md` 的区别: progress_overview 是稳定的章节目录,TODO 是可以频繁增删的任务池
 > - 完成的任务: 在 checkbox 前打 x,隔段时间(每周或每月)批量移到"已完成归档"
 
-**最后更新**: 2026-04-19
+**最后更新**: 2026-04-21
 **当前版本**: 见 `CHANGELOG.md` 顶部 · 单源真值，见 `00_admin/文档同步点清单.md`
 
 > **2026-04-17 归档说明**：`executable_dev_checklist_v0.1.md` 已归档到 `99_archive/2026-04-12_executable_dev_checklist_v0.1.md`（内容已过期，功能被本 TODO.md 吸收）。
+
+---
+
+## 🎯 2026-04-28 管理员 Demo 冲刺（最高优先级）
+
+**Deadline**: 2026-04-28（7 天）
+**权威源**: `00_admin/demo_4-28/`（整个文件夹）
+**总纲**: [`00_admin/demo_4-28/sprint.md`](./demo_4-28/sprint.md)
+
+本 TODO 不展开 demo 细节，避免和 sprint plan 重复。demo 相关的所有任务看 sprint.md §3 时间表。
+
+**itsuki 侧 D1 剩余**：
+- [ ] Amazon 日本下单 Pi 3A+ + 配件（明天 4-22 到）
+- [ ] 淘宝下单 ST25DV16K（供货延迟也要买，v1.0 用）
+- [ ] 看 `demo_4-28/scope_tier.md §5` 补 Tier 漏项（如需）
+- [ ] 看 `demo_4-28/demo_script.md` 确认台词风格
+- [ ] 给代码 agent 分配任务（前端 / 后端 / iOS / Pi 4 个模块）
+
+**demo 后（4-29+）**：
+- [ ] 管理员反馈整理到 `05_logs/raw/2026-04-28.md`
+- [ ] 根据反馈决定：推进 v1.0（纳入 v0.5.0 路线）/ 推翻重做 / 局部调整
 
 ---
 

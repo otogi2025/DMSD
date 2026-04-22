@@ -13,7 +13,9 @@
 
 ---
 
-**最后更新**: 2026-04-21 深夜 by [Mac-naming-sync] — **系统正式命名 Tomoshibi（灯火）** itsuki 拍板（2026-04-21）+ 全局文档同步扫除（CLAUDE.md §项目信息 / README 标题段 / CHANGELOG v0.4.0-wip 新条 / progress_overview 项目简介 / specs / design / demo_4-28 材料 / AC 叙事层 / backlog / 面试准备索引 / raw 2026-04-21 新 dump）+ memory `project_naming_tomoshibi.md` 新建。项目名 DMSD 保留（repo / 开发代号 / AC 叙事项目），系统/产品名 = Tomoshibi（学生 App / 老师 Web / 点呼机终端 / 对管理员/教授文案）。前一次 [Code-Agent (CC-Opus-4.7)]：读完 briefing 8 档 + 盘点 backend skeleton 缺口 + 建 `questions_for_requirements.md` 首批 5 阻塞问题，等 itsuki 回复 Q1-Q5 后 4-22 上午 D2 开工。 <!-- VERSION_OK -->
+**最后更新**: 2026-04-22 晚 by [Code-Agent] — **4-28 demo · Web 学生アカウント管理页面新建**（iOS 设计 §9.2 pending → 直接在 Round 3 实装完成）：对齐刚出炉的 `Student_iOS_new/IOS_DESIGN_LOG.md` 架构（00 号 リュウ イヒ demo 本体 / 01- 起真实学生自增 / 密码不可自改 → 老师后台代办）→ 新加 `teacher_web/round3/src/components/accounts.jsx`（AccountsPage + AccountDetailModal 2 tab）+ `theme.jsx` 加 `window.ACCOUNTS` seed 24 人 + Shell 左 nav 加「学生アカウント管理」+ app.jsx route。功能：列表（番号/氏名/部屋/メール/電話/最終ログイン/状態）+ 4 stat card + 搜索 normalize + 4 filter（全員/男寮/女寮/ロック中）· 详情 modal：プロフィール（邮箱/电话/部屋 可改 + パスワード初期化 button + ロック解除）+ アクティビティ履歴（点呼/申请/扣分/体調/登录失败时间线，番号 00 リュウ イヒ 有完整剧本数据）。13 jsx 组件 Babel 全 ✓。rebuild 后 single-file 32.2 MB。同步 IOS_DESIGN_LOG §9.2 ✅ + WEB_DESIGN_LOG Timeline 新增。 <!-- VERSION_OK -->
+**上一次更新（保留参考）**: 2026-04-22 晚 by [Mac-demo-sprint] — iOS 前端设计 Round 1 Prompt 落盘（3 按钮 nav + Home omnibus + 中央点呼 sheet + 注册 4-step + 锁定升级 + 00 号 seed + Round1_Prompt.md 38KB / 878 行 / 73 画面 Phase A+B 一次出） <!-- VERSION_OK -->
+**上上一次更新（保留参考）**: 2026-04-22 下午 by [Code-Agent] — Web Round 3 导入 + 解包 + 4 UI 调整 + 2 次白屏 debug + 日语 native 文案审查 + single-file bundle 脚本化 <!-- VERSION_OK -->
 **当前版本**: 见 `CHANGELOG.md` 顶部 · **重大状态**: **4-28 管理员 demo 为最高优先级** — 7 天冲刺（4-21→4-28）— 硬件 Pi 3A+（推翻 4-20 Pi 4B 2GB）+ 采购分阶段 Demo 1 台 / 部署 3 台 + 范围硬裁剪（保点呼机全 + Web 全 + iOS Xcode + 快捷指令代 App tap / 砍 Android / 砍外壳 / 砍风控）+ sprint plan 建立。v0.4.0 S2/S3 + Device_Contract 主线由 [Mac-主会话] 维护，本会话不碰。 <!-- VERSION_OK -->
 
 
@@ -148,11 +150,53 @@
 - [ ] Q 回复 + D2 上午开工：backend `models.Checkin.status` + discipline_config 表 + seed 扩到 30 学生 + 造扣分历史
 - [ ] D2 下午：端到端本地测 `POST /api/checkin` + WS 推送（先用 `wscat` 测）
 
-**当前等**：itsuki 回复 Q1-Q5，然后 4-22 上午 D2 开工。今晚不动代码（等 Q 回答 + 等硬件到 + 避免改完发现 schema 不对返工）。
+**当前等**：
+- itsuki 明天（4-22）把 `round3_handoff/` 整个文件夹 + `Round3_Prompt.md` 内容贴到 Claude Design → 产出 Round 3 prototype → 给回 share link
+- 硬件 4-22 到货 → itsuki 烧 SD + 连 WiFi + SSH（D2）
+- D2 上午后端开工：`models.Checkin.status` 加字段 + `discipline_config` 表 + seed 扩 30 学生 + 造扣分历史 + 6 API 缺口补
+
+**今晚（D1 收尾）Code-Agent 产出清单**：
+- [x] 读 briefing 8 档 + 盘点 backend 缺口（6 处）
+- [x] questions_for_requirements.md 5 阻塞 Q + 3 非阻塞 + itsuki Q1-Q11 答复归档
+- [x] backend + 3 新目录挪到 `03_dev/demo_4-28/`
+- [x] Q2 late 状态理解错 → itsuki 纠正 → 回归 spec §4.1 §5.3 权威规则
+- [x] Claude Design Round 2 bundle 导入（index.html + 6 jsx + 8.4MB 内嵌 + handoff 归档）
+- [x] Tomoshibi rebrand 落地 Web（logo 图、wordmark、title）
+- [x] Round 3 prompt 敲稿 14 节（14 小修改 / 新增）+ round3_handoff/ 文件夹完整（prompt .md + .txt + 3 图 + README）
+- [x] WEB_DESIGN_LOG.md 归档所有 Web 设计决策（10 节 20KB）
+- [x] 文件结构指南.md 建立（全 repo 文件级清单 + 权限 + 反向索引）
+- [x] CLAUDE.md §目录结构 + §单源真值 同步加指针
+- [x] 文档同步点清单.md §2 升级双层
+- [x] AC 记录：raw/2026-04-21.md append 7 条（3 条 #AC候选🌟）
 
 ---
 
 ## ✅ 最近完成(24-48 小时内)
+
+### 2026-04-22 晚（iOS 前端设计 Round 1 Prompt 落盘）
+
+- **[Mac-demo-sprint]** **iOS 架构重构拍板**：推翻 [Code-Agent] 2026-04-21 晚写的 4-tab 旧方案（`Student_iOS_new/DESIGN_BRIEF.md v1` 已归档）→ 新架构 3 按钮 nav（申し込み / ⭐点呼 action button / マイページ）+ Home omnibus（承载除 2 tab 外所有功能：Community / 扣分 / 快递 / 遗失物 / 点歌 / 通知）+ 中央点呼 sheet flow（iOS 26 Liquid Glass 毛玻璃 + SUNTORY ジハンピ 风格 4 态动画）+ 注册 flow 4-step（氏名 / 生日→自动分寮 / 学生区分 一般 or サッカー部 / 联络先 / 密码 ×2）+ 锁定升级 5 阶段（30 秒 → 1 分 → 5 分 → 30 分 → 1 时 → 永久锁）+ 00 号测试账户 seed "demo 魔法"（注册流程演示 + 实际登入预 seed 00 号 リュウ イヒ · 4 分扣分）+ 持续顶部点呼 bar 全 App（3 态 + 可点反馈 sheet）+ 导航规则（Level 1 Home icon 简笔画 / L2+ ← / 长按 0.4 秒 breadcrumb）
+- **[Mac-demo-sprint]** **Q1-Q8 + N1-N20 全答**：iPhone 17 Pro + iOS 26 Liquid Glass / Home 加 tabs+sections / Claude Design 一轮全出 Phase A+B / logo 仅 splash 用 / 暗色模式做 / 宿舍墙实名 / Demo 切学生砍（注册 flow 取代）等 28 条决策归档进 `IOS_DESIGN_LOG.md`
+- **[Mac-demo-sprint]** 落盘 4 档件 + 4 参考图到 `03_dev/demo_4-28/Student_iOS_new/`：
+  - `IOS_DESIGN_LOG.md`（303 行 / 15 KB） — 决策归档
+  - `DESIGN_BRIEF.md`（168 行 / 10 KB） — 实装进度追踪
+  - `round1_handoff/Round1_Prompt.md`（**878 行 / 38 KB**）— 发给 Claude Design 的完整 prompt（73 画面字段级 spec + Phase A 3 variations 指令 + Phase B 一次出 + Seed data + Interactive behaviors）
+  - `round1_handoff/README.md` — itsuki 发送手順
+  - `round1_handoff/references/` 4 图（logo / 手绘 nav / SUNTORY 扫 sheet ×2，从 `.claude/image-cache/` 导入）
+  - 旧 v1 DESIGN_BRIEF 重命名 `_archived_v1_DESIGN_BRIEF_2026-04-21.md` 保留推翻痕迹
+- **[Mac-demo-sprint]** **CLAUDE.md §账号规则 patch 到 v3**：推翻 2026-04-20 议题 C "入学日面签" → App 内 4-step 注册即激活 + 锁定升级 + 账号 ID 分配（00 demo seed / 01+ 真实）+ 密码重置走宿管后台（feedback_overruled_rule_means_update_rule 执行）
+- **[Mac-demo-sprint]** **raw log**：`05_logs/raw/2026-04-22_iOS前端设计_Round1.md`（同日主题版，6 条碎片 / 2 条 #AC候选🌟）—— 架构重构心路历程 + 00 号 seed demo 魔法 product thinking + 会话开场方式变化 + 跨文档同步治理
+- **等 itsuki**: audit Round1_Prompt.md 字段级 → 开 claude.ai 新 project → 拖 references/ + paste prompt → 收 Phase A 3 variations → 选定 → Phase B 73 画面 standalone 一次出 → 导入 `designs/`
+
+### 2026-04-22 下午（Web Round 3 导入 + 解包 + debug · [Code-Agent]）
+
+- **[Code-Agent]** Claude Design Round 3 `Tomoshibi_Prototype_v3__Standalone_.html`（9.4 MB）导入 `03_dev/demo_4-28/teacher_web/round3/` + Python 脚本解包 manifest（146 资源）→ `round3/src/` 12 组件 + 3 vendor + 130 字体（人类可读）
+- **[Code-Agent]** itsuki 走查发现 4 项调整：詳細列宽 / リュウ イヒ 男寮迁移 W101 → M101 / 扣分触发清扫线 / 名前搜索 normalize 去空格
+- **[Code-Agent]** 2 次白屏 debug：Round 1 file:// CORS（integrity/crossorigin strip）+ Round 2 数组越界（roster 13 人但 statuses 12 项 → `i % len` 修复）
+- **[Code-Agent]** 日语 native 文案审查：名単→リスト / 距 X まで→X まで残り / 晚点呼→晩点呼 / スプレッドシート×入力→食数の自由記入可 等约 12 处中文残留修正
+- **[Code-Agent]** `build_single_file.py` 脚本：woff2 字体 base64 inline → `Tomoshibi_v3_single.html` 32 MB（U 盘 demo 兜底）
+- **[Code-Agent]** WEB_DESIGN_LOG §1 Timeline + §4.0 Round 3 完整清单 + §9 开放项刷新 + §10 quick-start 更新
+- **[Code-Agent]** raw log：`05_logs/raw/2026-04-22.md`（日期版，7 条碎片 / 3 条 #AC候选🌟）
 
 ### 2026-04-21（v0.4.0 开工启动 — 不打 tag）
 
@@ -380,3 +424,5 @@
 - 2026-04-20 深夜 v0.3.2 发布 — [Mac-主会话] itsuki 从"明天做"改为"今晚做完"→ 4 步：CHANGELOG [0.3.2] 完整段 + 新建 `v0.3.2_AC叙事.md`（6 节模板，核心 AC 是 AI 协作成熟度 4 层 / 架构决策可推翻但要留痕 / 两会话并行协调）+ `git tag v0.3.2` + push。今日总战绩：13+ commit + 1 release tag (v0.3.2) + 10 pre-0.1 tag 追认 + backlog 25 ✅。正式结束 4-20 会话
 - 2026-04-21 — [Mac-主会话] **v0.4.0 开工启动日（不打 tag）**：D21 ✅（CHANGELOG HH:MM）+ S2/S3 字段 draft ⏳（card_uid / student_status 完整定义 + 配套生命周期字段 + 业务决策点）+ Device_Contract 骨架 draft（9 节 + OQ1-9 清单）+ backlog 累计 ✅ 26 / ⏳ 14 / 剩 46。等 itsuki 审 draft + 拍板 OQ → 合并进字典 + spec → 继续修 S1/S4/S7/S10 → 打 v0.4.0 tag
 - 2026-04-21 晚 — [Code-Agent] **Demo 4-28 代码实现会话 onboard**：读完 `for_code_agent.md` briefing + 剩余 8 档 + backend 全 6 源码；盘点 Tier 1 真实技术缺口 6 处（`Checkin.status` / `/api/roll-call/live` 聚合 / 改判 / 健康 / 请假 / discipline_config + 搜索聚合）；建 `00_admin/demo_4-28/questions_for_requirements.md` 首批 5 阻塞问题（Q1 缺席记录产生时机 / Q2 Checkin.status + 迟到窗口阈值 / Q3 iOS 切学生方案 / Q4 Web UI 中文 vs 日语 / Q5 seed 扩到 30 人 + 造扣分历史）+ 3 非阻塞建议（N1 红十字改 🏥 / N2 IP 配置策略 / N3 WS 先上 fallback 后备）；WIP §进行中 加本会话段登记文件认领边界。**今晚不写代码**（等 Q 回复 + 硬件 4-22 到），D2（4-22）上午按答复启动 schema + seed + 6 API 缺口补全
+- 2026-04-22 下午 — [Code-Agent] **Web Round 3 产出导入 + 解包 + 修正**：Claude Design Round 3 成品 `Tomoshibi_Prototype_v3__Standalone_.html` 9.4 MB 导入 → Python 解包 manifest 146 资源到 `round3/src/`（12 组件 + 3 vendor + 130 字体 人类可读）+ itsuki 走查 4 项 UI 调整（詳細列宽 / リュウ迁 M101 / 扣分线 / 搜索 normalize）+ 2 次白屏 debug（file:// CORS / 数组越界 `i % len`）+ 日语 native 文案审查（约 12 处中文残留修正 名単→リスト / 晚→晩 等）+ `build_single_file.py` 脚本化 32 MB U 盘版。等 itsuki 视觉 QA
+- 2026-04-22 晚 — [Mac-demo-sprint] **iOS 前端设计 Round 1 Prompt 落盘**：推翻 4-21 [Code-Agent] 的 4-tab iOS 方案（归档）→ 3 按钮 nav + Home omnibus + 中央点呼 sheet（iOS 26 Liquid Glass）+ 注册 flow 4-step + 锁定升级 5 阶段 + 00 号 seed demo 魔法 + 长按 breadcrumb；Q1-8 + N1-20 全答；落盘 4 档件（IOS_DESIGN_LOG 15 KB / DESIGN_BRIEF 10 KB / **Round1_Prompt.md 38 KB / 878 行 / 73 画面 Phase A+B 一次出** / README）+ 4 参考图（logo / 手绘 nav / SUNTORY 扫 sheet ×2）；CLAUDE.md §账号规则 patch v3（推翻 4-20 议题 C 面签 → 即激活）；raw log `2026-04-22_iOS前端设计_Round1.md`（6 条 / 2 #AC候选🌟）。**等 itsuki audit Prompt → 送 Claude Design 新 project → Phase A → Phase B**
