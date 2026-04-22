@@ -15,6 +15,8 @@
 | 2026-04-22 晚 · [Mac-demo-sprint] 早段 | itsuki 提供完整新架构：**3 按钮 nav + Home omnibus + 中央点呼按钮 + 注册 flow + 锁定升级**，推翻旧 4-tab 方案 |
 | 2026-04-22 晚 · [Mac-demo-sprint] 中段 | itsuki 答 Q1-Q8 + N1-N20 + 00 号 seed 详细配置；"其他由你决定" → 全默认采纳 |
 | 2026-04-22 晚 · [Mac-demo-sprint] 晚段 | 本 LOG 最终化 + `round1_handoff/Round1_Prompt.md` 落盘 + references 导入 + DESIGN_BRIEF.md 升到 v2 final |
+| 2026-04-22 晚 · 18:45 | itsuki 拍板：**Pi 3A+ 购买不及 → demo 当天用银行卡 + iPhone 快捷指令代替点呼機**。[Code-Agent] 在 `teacher_web/round3/` 实装 `demo_server.py`（POST `/checkin?no=XX`）+ `live-roll-call.jsx` polling + SpeechSynthesis 日语 TTS + `NFC_DEMO_SETUP.md` 教程。见 `teacher_web/NFC_DEMO_SETUP.md`（iPhone 快捷指令配置 + 局域网 IP + 演示台本） |
+| 2026-04-22 夜 · 19:10 | itsuki 拍板 **外泊申请提交期限规则**：出発日の属する週の水曜日 23:59 または 出発 48 時間前、いずれか早い方。iOS App 側は期限後の送信ブロック必須（UI：送信ボタン disabled + 説明「期限を過ぎました。寮監と直接相談してください」+ 寮監室への導線）。Web 側は既に `teacher_web/round3/src/components/applications.jsx` + `outstay-detail-modal.jsx` に実装済（`outstayDeadline()` helper / 列表の 期限 badge / 詳細 modal の §提出期限 section + 面談必要アラート + 説明 banner）· iOS Round 1/2 Prompt を書くときにこのルールを申請 flow step 2 or 3 に加えること |
 
 ---
 

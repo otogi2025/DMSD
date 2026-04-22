@@ -1,10 +1,10 @@
 # DMSD（项目）/ Tomoshibi（系统）Demo 4-28 Sprint Plan（总纲）  <!-- VERSION_OK -->
 
 > **命名**（2026-04-21 定名）：项目 = DMSD，系统/产品 = **Tomoshibi（灯火）**。管理员 demo 介绍系统时统一用 "Tomoshibi"。Demo 当天向管理员开场可说"这是我开发的 Tomoshibi（灯火）宿舍点呼系统"。
-> **本文作用**: 4-28 管理员 demo 冲刺的**总纲**（时间表 + 决策复盘 + 指针）。具体内容分散到 4 个子档。
+> **本文作用**: 4-28 管理员 demo 冲刺的**总纲**（时间表 + 决策复盘 + 指针）。具体内容分散到子档。
 > **触发**: 2026-04-21 议题 E 拍板（详见 `05_logs/raw/2026-04-21.md §16:50`）
 > **文件夹位置**: `00_admin/demo_4-28/`（本文件夹包含所有 demo 规划档案，不污染 `00_admin/` 根目录）
-> **最后更新**: 2026-04-21 深夜（系统命名 Tomoshibi 同步）
+> **最后更新**: 2026-04-22（砍 Pi 点呼机硬件 → 纯软件 demo + 新建 questions_for_admin + wifi_survey_howto）
 
 ---
 
@@ -15,7 +15,9 @@
 | 今天是 D?，做什么 | 本文 §3 时间表 |
 | 某个功能怎么做 / API 规格 / 字段定义 | [`scope_tier.md`](./scope_tier.md) Tier 1/2/3 清单 |
 | 演示当天台词 + 动作 | [`demo_script.md`](./demo_script.md) |
-| ST25DV 替代方案 + iOS Shortcuts 配置 | [`ST25DV_fallback.md`](./ST25DV_fallback.md) |
+| NFC 替代方案 + iOS Shortcuts 配置 | [`ST25DV_fallback.md`](./ST25DV_fallback.md) |
+| **要问管理员的问题清单**（Wi-Fi / 预算 / 合规 / 规模）| **[`questions_for_admin.md`](./questions_for_admin.md)** 🆕 2026-04-22 |
+| **Wi-Fi 实地测试手册**（demo 后 30 分钟的自测指南）| **[`wifi_survey_howto.md`](./wifi_survey_howto.md)** 🆕 2026-04-22 |
 | 文件夹整体导览 | [`README.md`](./README.md) |
 
 ---
@@ -38,11 +40,21 @@
 ### 0.4 形态
 **实机演示**（老师进 itsuki 房间 → iPad + 真点呼机 + iPhone + Xcode 模拟器）。演示台词见 [`demo_script.md`](./demo_script.md)。
 
-### 0.5 硬件
-- Pi 3A+ × 1（Amazon 日本 ¥6480，4-22 到，详见 `02_design/hardware_design_v0.1.md §2.1`）
-- NTAG215 × 10（Amazon 日本 ¥400，4-22 到）
-- PN532 + 杜邦线 + 小喇叭 + 电源 + SD 卡（同上到货）
-- **ST25DV16K**（淘宝空运 7-10 天，demo 前到不了）→ **替代方案 A**：NTAG215 静态贴纸 + iOS Shortcuts Automation，详见 [`ST25DV_fallback.md`](./ST25DV_fallback.md)
+### 0.5 硬件（2026-04-22 砍 — 详见 [`scope_tier.md §0.1`](./scope_tier.md)）
+
+**推翻 4-21 采购计划** — Demo 阶段**不下单任何硬件**。
+- ~~Pi 3A+ × 1~~ → **不下单**（7 天 deadline 硬件调试风险太高，上线采纳后再买）
+- ~~NTAG215 × 10~~ → **不下单**（demo 只演 itsuki 一人，用她手里已有的 NFC 卡）
+- ~~PN532 + 杜邦线 + 小喇叭 + 电源 + SD 卡~~ → **全不下单**
+- ~~ST25DV16K~~ → **不下单**（上线版功能，demo 阶段不需要）
+
+**Demo 实物清单**（0 采购）：
+- itsuki 自有 Mac（跑后端 FastAPI + 开 Xcode iOS 模拟器）
+- itsuki 自有 iPhone（跑 iOS Shortcuts Automation 触发签到）
+- itsuki 自有 iPad（打开 Safari 看老师 Web + 承担 TTS 发声）
+- itsuki 手里一张 NFC 卡（银行卡 / Suica / PASMO / 学生证 任选）
+
+**硬件选型文档保留**：`02_design/hardware_design_v0.1.md` 仍然是上线版权威，**demo 给管理员看这份文档佐证"已经做过选型"**。
 
 ### 0.6 扣分规则（2026-04-21 拍板）
 **暂定数字 + 后端做成可配置阈值**：默认迟到 0.5 / 缺席 1 / 月累计 4 罚扫 / 月累计 8 禁足。Demo 时说明"数字最终和老师商议"。详见 [`scope_tier.md §1.12`](./scope_tier.md)。
@@ -91,56 +103,62 @@ itsuki iPhone iOS 26（最新）→ Shortcuts Automation "不问确认" 完全�
 
 | Day | 日期 | Tier 1 主线（真跑）| Tier 2 穿插（skeleton）| 里程碑 |
 |---|---|---|---|---|
-| **D1** | 4-21 今晚 | ✅ 文档层（sprint / scope_tier / ST25DV_fallback / demo_script / backend skeleton / hardware_design 修订）| - | 规划完成 |
-| **D2** | 4-22 周三 | 硬件到 → Pi 3A+ 烧 SD / 连 WiFi / SSH 打通；后端签到 API 本地测通 | - | 硬件上电 |
-| **D3** | 4-23 周四 | 点呼机 NFC 驱动（PN532 I²C 读 UID）；iOS Shortcuts Automation 配置；端到端第一次跑通"iPhone tap → 后端 → iPad 显示"| - | 核心链路通 |
-| **D4** | 4-24 周五 | Pi TTS 语音喊名；老师 Web 登录 + 主框架 + **实时座位表（颜色渲染）** | Web 左侧菜单 7 大类导航就位 | Web 骨架 |
+| **D1** | 4-21 | ✅ 文档层（sprint / scope_tier / ST25DV_fallback / demo_script / backend skeleton / hardware_design 修订）| - | 规划完成 |
+| **D2** | 4-22 周三 | **砍 Pi 决策** + questions_for_admin.md / wifi_survey_howto.md 落盘 + 7 文件同步更新；itsuki iOS Shortcuts 自测（NFC 卡能否识别）；后端签到 API 本地测通 | Round 3 prototype 整合继续 | **方向大调整** |
+| **D3** | 4-23 周四 | iOS Shortcuts Automation 配置完成（itsuki 亲自）；端到端本地跑通"iPhone tap NFC 卡 → 后端 → iPad 显示变绿"| - | 核心链路通（纯软件）|
+| **D4** | 4-24 周五 | **iPad Safari Web Speech API 语音喊名**（fallback Mac `say`）；老师 Web 登录 + 主框架 + **实时座位表（颜色渲染）** | Web 左侧菜单 7 大类导航就位 | Web 骨架 |
 | **D5** | 4-25 周六（全天）| **座位手动改判** + **健康状态上报**（App + Web 叠加红十字）+ **单次不去点呼申请** + 一键审批 | Tier 2 一批：扫除 / 巴士 / 活动 / 匿名建议（4 个页面 skeleton）| 点呼核心完整 |
 | **D6** | 4-26 周日（全天）| **外宿 + 归国**（iOS Xcode form + Web 审批）+ **扣分展示**（学生端 + 老师端排名，含 discipline_config 可配置表）+ **后台检索**（按学生 / 按日期）| Tier 2 另一批：遗失物 / 宿舍墙 / 点歌 / 快递 / 归县 / 出租车 / 通知中心 / 长期豁免（8 个页面 skeleton） | 功能面完整 |
-| **D7** | 4-27 周一 | **彩排 3 遍** + bug 修 + demo 脚本定稿 | Tier 2 扫尾 + 连续超标预警 skeleton | 彩排通过 |
-| **D8** | **4-28 周二 🎯** | **Demo Day**（按 demo_script.md 走）| - | 管理员反馈入袋 |
+| **D7** | 4-27 周一 | **彩排 3 遍** + bug 修 + demo 脚本定稿 + **Tier A 8 问口袋小抄打印** | Tier 2 扫尾 + 连续超标预警 skeleton | 彩排通过 |
+| **D8** | **4-28 周二 🎯** | **Demo Day**（按 demo_script.md 走）+ **demo 后 30 min Wi-Fi 实地测试**（按 wifi_survey_howto.md）| - | 管理员反馈入袋 |
 
 ---
 
-## 4. 技术架构（MVP 简化版）
+## 4. 技术架构（Demo MVP，2026-04-22 砍点呼机后）
 
 ```
 ┌─────────────────┐         ┌───────────────────────────────┐
-│  itsuki iPhone  │ ──────> │   后端 FastAPI (Python)       │ <──┐
-│  (NFC tap +     │  POST   │   - SQLite (demo)             │    │
-│   Shortcuts     │         │   - WebSocket broadcast       │    │
-│   Automation)   │         │   - discipline_config 可配置  │    │
-└─────────────────┘         └───────────────────────────────┘    │
-                                  │                 ▲             │
-                                  │ WS push         │ POST 签到   │
-                                  │                 │             │
-                        ┌─────────▼────────┐   ┌────┴──────────┐ │
-                        │  老师 Web (iPad) │   │ Pi 3A+ 点呼机 │ │
-                        │  - HTML + JS     │   │ - Python      │ │
-                        │  - WS client     │   │ - PN532 NFC   │ │
-                        │  - 实时座位表    │   │ - pyttsx3 TTS │ │
-                        └──────────────────┘   └───────────────┘ │
-                                                                  │
-                        ┌──────────────────┐                      │
-                        │ iOS App (Xcode)  │──POST 申请 / 健康────┘
-                        │  - SwiftUI form  │
-                        └──────────────────┘
+│  itsuki iPhone  │ ──────> │   后端 FastAPI (Python)       │
+│  碰 NFC 卡      │  POST   │   跑在 itsuki Mac 本地        │
+│  iOS Shortcuts  │         │   - SQLite (demo)             │
+│  Automation     │         │   - WebSocket broadcast       │
+└─────────────────┘         │   - discipline_config 可配置  │
+                            │   - Fallback `say -v Kyoko`   │
+                            └───────────────────────────────┘
+                                  │                 ▲
+                                  │ WS push         │ POST 签到 / 申请
+                                  │                 │
+                        ┌─────────▼────────┐   ┌────┴──────────────┐
+                        │  老师 Web (iPad) │   │ iOS App (Xcode 模) │
+                        │  - HTML + JS     │   │  - SwiftUI form   │
+                        │  - WS client     │   │  - 切学生下拉     │
+                        │  - 实时座位表    │   │  - 健康 / 请假 /  │
+                        │  - Web Speech    │   │    外宿 / 归国 /  │
+                        │    API 发声 🗣  │   │    扣分 6 屏      │
+                        └──────────────────┘   └───────────────────┘
+                          ⬆ 管理员看 + 听         ⬆ itsuki 切学生演示
 ```
+
+**砍掉的原架构**（对比）：
+- ~~Pi 3A+ 点呼机 × 1 (Python + PN532 NFC + pyttsx3 TTS + 3.5mm 喇叭)~~ → 用 iPhone + NFC 卡 + iPad Safari TTS 代替
+- **上线版本（v1.0）保留**：仍按 `hardware_design_v0.1.md §2.1` 的 Pi 3A+ 方案实装，管理员采纳 demo 后启动
 
 ---
 
-## 5. 风险清单
+## 5. 风险清单（2026-04-22 更新 — 砍硬件后风险大幅降低）
 
 | 风险 | 概率 | 影响 | 应对 |
 |---|---|---|---|
-| ST25DV16K 到货晚于 4-27 | 高 | 中 | 已有方案 A（NTAG215 + iOS Shortcuts），见 [`ST25DV_fallback.md`](./ST25DV_fallback.md) |
-| Pi 3A+ 512MB RAM 吃紧 | 低 | 中 | Raspbian Lite（不装桌面）+ 不跑浏览器 |
-| PN532 驱动调不通 | 中 | 高 | 备 2 个库（adafruit / Pi-Py532），限 D3 内解决 |
+| ~~ST25DV / Pi / PN532 相关硬件风险~~ | — | — | **2026-04-22 砍硬件 → 全部消除** ✅ |
+| **iOS Shortcuts 不认银行卡** | 中 | 中 | itsuki D2 前自测；换 Suica / PASMO / 学生证 |
+| **iPad Safari speechSynthesis 不触发** | 中 | 中 | Fallback A：后端 `say -v Kyoko`；Fallback B：预录 30 mp3 |
 | WebSocket 连不通 iPad | 中 | 高 | Fallback：前端 3 秒轮询 `/api/checkins/latest` |
 | itsuki 学 Swift 来不及 | 高 | 低 | iOS App 只做 6 屏；代码 agent 代写；itsuki 理解后 demo 时能讲 |
 | Shortcuts Automation 不触发 | 低 | 中 | 备方案 B（桌面 Shortcut 按钮） |
 | Demo 当天网络故障 | 低 | 高 | Mac 开热点 + 本地跑后端 |
 | Tier 2 skeleton 来不及 | 中 | 低 | D7 删减到 5-6 个 skeleton 也可接受（管理员感受打 80 分）|
+| **管理员问"为什么没真点呼机"** | 高 | 低 | `demo_script.md §11 Q4.5` 有话术（demo 成功率优先的工程判断）|
+| **管理员不让测 Wi-Fi** | 中 | 中 | `wifi_survey_howto.md §8` 降级方案 |
 
 ---
 

@@ -2,7 +2,7 @@
 
 > **作用**: Tier 1/2/3 分层完整清单。代码 agent 直接读这个做事。
 > **权威**: 本文件是 demo 功能范围的唯一真值。`sprint.md §2` 只放摘要，详情看这里。
-> **最后更新**: 2026-04-21
+> **最后更新**: 2026-04-22（**砍点呼机硬件** — 详见本文 §0.1）
 
 ---
 
@@ -15,6 +15,26 @@
 | **Tier 3** | demo 当天**完全不出现**（砍）| Demo 后按管理员反馈再决定做不做、何时做 |
 
 **管理员视角**: 左侧菜单 7 大类齐全 + 核心点呼流程真跑 → 感受到"系统完整" + "技术可行"。
+
+### 0.1 重大 scope 调整（2026-04-22）：砍点呼机硬件
+
+**itsuki 拍板**：
+- **Pi 3A+ / PN532 / 喇叭 / 外壳 不下单**（原 sprint.md §0.5 采购全部推翻，hardware_design_v0.1.md §4.1 同步砍）
+- **NTAG215 卡也不必买** — demo 只演 itsuki 一人签到，用她手里已有的 NFC 卡（银行卡 / Suica / PASMO / 学生证）即可
+- **现场流程**：iPhone 碰 itsuki 自己的 NFC 卡 → iOS Shortcuts Automation 触发 → POST 后端 → WebSocket 推 iPad → iPad Safari **页面 リュウイヒ 座位变绿 + iPad 扬声器 TTS 播报 "リュウイヒ"**
+- **原"点呼机喇叭播报"降级**：语音从 Pi 移到 iPad（Web Speech API）/ Mac（`say -v Kyoko` 命令）
+
+**为什么砍**（AC 叙事 🌟）：
+- 7 天 deadline + 零基础 → PN532 I²C 驱动 + 线材接线 + Pi 烧 SD + TTS 配置是硬件最大不确定性
+- 砍硬件 = demo 成功率从 60% 拉到 95%
+- 不影响架构说服力：demo 讲"上线版会有专用点呼机"，给管理员看 hardware_design 文档的硬件选型过程，比现场跑一个不稳定的 Pi 更专业
+- 原创设计"语音播报防作弊"从硬件层移到软件层：iPad 发声同样达到"大家都能听到签到人名字"的效果，防作弊叙事不变
+
+**影响哪些条目**：
+- §1.5 **点呼机语音喊名** → 改为 "iPad / Mac 语音喊名"（见下方修订）
+- §1.4 **硬件替代** → ST25DV fallback 简化（卡贴桌面而非点呼机）
+- §4 **代码 agent 入口** → 删除 `03_dev/demo_4-28/device/` 任务
+- `sprint.md §0.5` §3 时间表 / `hardware_design §4` 采购 / `CLAUDE.md` 项目信息段 — 已同步
 
 ---
 
@@ -65,20 +85,26 @@
 | 请求 body | `{student_id: int, method: 'shortcut'|'card'|'app'}` |
 | 幂等 | 同一 session 同一学生重复签到返回已有记录 |
 | WS 事件 | `checkin`（广播：`{checkin_id, student_id, student_name, session_id, checkin_at, method}`） |
-| **硬件替代** | ST25DV16K 延迟 → 用 NTAG215 静态贴纸 + iOS Shortcuts Automation。详见 `ST25DV_fallback.md` |
-| Demo 动作 | itsuki iPhone 碰点呼机贴纸 → Shortcut 自动触发 → POST 到后端 → WS 推 iPad |
-| 估时 | 0（已有后端）+ 0.5 天（iOS Shortcuts 配置 itsuki 亲自）|
+| **硬件（2026-04-22 调整）** | **砍点呼机 + 不买 NTAG215**。itsuki 用她手里已有的任意 NFC 卡（银行卡 / Suica / PASMO / 学生证），iOS Shortcuts Automation 绑定该卡 → 触发 POST 后端。详见 `ST25DV_fallback.md`（已更名叙事：卡贴桌面不贴 Pi） |
+| **前置测试**（itsuki D2 前自测）| iOS Shortcuts → 自动化 → 个人自动化 → NFC → 扫描，把手里 NFC 卡扫一下看能不能识别绑定。银行卡如因 EMV 协议失败，换 Suica / 门禁卡 |
+| Demo 动作 | itsuki iPhone 碰 NFC 卡 → Shortcut 自动触发 → POST 后端 → WS 推 iPad 变绿 + iPad TTS 发声 |
+| 估时 | 0（已有后端）+ 0.3 天（iOS Shortcuts 配置 itsuki 亲自，20 分钟配完）|
 
-### 1.5 点呼机语音喊名
+### 1.5 语音喊名（iPad / Mac，**2026-04-22 大改 — 砍 Pi**）
 
 | 项 | 规格 |
 |---|---|
-| 硬件 | Pi 3A+ + 3.5mm 小喇叭 |
-| 软件 | Python + `pyttsx3`（本地 TTS）或 `gTTS`（联网 TTS）|
-| 触发 | Pi 轮询 `GET /api/roll-call/sessions?status=active` + WS 订阅 `checkin` 事件 → 拿到 student_name → TTS 播报 |
-| 播报内容 | "{姓名} 签到成功" 或 "{姓名} 签到失败"（用日语可选）|
-| Demo 动作 | iPhone tap 后 2-3 秒内喇叭出声 |
-| 估时 | 1 天（Pi 程序）|
+| ~~硬件（原方案）~~ | ~~Pi 3A+ + 3.5mm 小喇叭~~ → **砍**（见 §0.1） |
+| **新方案** | 无专用硬件。声音从 **iPad Safari 自带扬声器** 发出（管理员手里的设备"开口"），Fallback Mac `say` |
+| **实现 A 优先** | 老师 Web 前端在 WebSocket 收到 `checkin` 事件时调用 `window.speechSynthesis.speak(new SpeechSynthesisUtterance(studentName))`，设 `lang='ja-JP'` |
+| **Fallback B** | 后端收到 `POST /api/checkin` 后 subprocess 调 macOS `say -v Kyoko {student_name}` —— Mac 扬声器发声（Mac 和 iPad 都在 itsuki 房间里，管理员能听到）|
+| **Fallback C 兜底** | 预录 30 学生姓名 mp3 → 前端收到 WS 播对应 mp3 (`new Audio('/audio/00.mp3').play()`) |
+| **iPad Safari 注意** | `speechSynthesis` 需要用户交互上下文才能触发 — 管理员点"开始点呼"按钮即触发后可持续使用，D4 实测确认 |
+| 触发 | 前端 WebSocket 订阅 `/ws/teacher` → 收到 `checkin` 事件 → 立刻 speak |
+| 播报内容 | **姓名（日语发音）** 如"リュウイヒ"— 不加 "签到成功"后缀，简洁即可 |
+| Demo 动作 | iPhone tap 后 **1-2 秒内 iPad 出声** + 座位同步变绿 |
+| 估时 | 0.2 天（前端加 10 行 JS）+ 0.1 天（后端 subprocess fallback，如需要）|
+| **AC 叙事** | "原创防作弊语音喊名" 从硬件层（Pi 喇叭）迁到软件层（iPad TTS）— 管理员可以听见所有签到人名字，防代签叙事不变 |
 
 ### 1.6 座位手动改判
 
@@ -362,10 +388,12 @@
 - **空的**：`03_dev/teacher_web/`（待建，技术选型 HTML + Vanilla JS + WebSocket）
 - 代码 agent 自己决定是否改用 React/Vue（7 天 deadline + 零基础评估）
 
-### 点呼机（Pi 3A+）
+### ~~点呼机（Pi 3A+）~~ **2026-04-22 砍**
 
-- **空的**：`03_dev/device/`（待建）
-- 技术栈：Python + adafruit-circuitpython-pn532（或 py532lib）+ pyttsx3
+- ~~`03_dev/demo_4-28/device/`~~ → **demo 不做**，post-demo 管理员采纳后再启动
+- 语音喊名（§1.5）改在前端 iPad Safari 用 Web Speech API 实现
+- NFC 读卡（§1.4）改在 iPhone 用 iOS Shortcuts Automation 实现
+- 硬件选型保留在 `02_design/hardware_design_v0.1.md §2.1`（上线版仍按 Pi 3A+ 设计，只是 demo 不做）
 
 ### iOS App
 

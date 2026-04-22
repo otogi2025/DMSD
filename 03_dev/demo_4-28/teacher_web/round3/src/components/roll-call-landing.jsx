@@ -42,6 +42,9 @@ function RollCallLanding({ teacher, onStart, lastEnded, onNav, trend }) {
         }}>点呼を開始 →</button>
       </div>
 
+      {/* ⭐ NFC 快捷指令 URL card（デモ用・点呼機代替） */}
+      <NfcQuickUrlCard />
+
       {/* Day stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
         <Stat label="本日実施" value="1" suffix="/ 2" note="朝点呼 完了" onClick={() => onNav('records')} />
@@ -142,4 +145,59 @@ function Legend({ c, label }) {
   </span>;
 }
 
+function NfcQuickUrlCard() {
+  const T = window.RYO;
+  const [info, setInfo] = React.useState(null);
+  const [no, setNo] = React.useState('00');
+  const [copied, setCopied] = React.useState(false);
+
+  React.useEffect(() => {
+    fetch('/api/server-info', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(setInfo)
+      .catch(() => setInfo(null));
+  }, []);
+
+  const fullUrl = info ? `http://${info.primary}:${info.port}/checkin?no=${no}` : '';
+
+  const copy = async () => {
+    if (!fullUrl) return;
+    try { await navigator.clipboard.writeText(fullUrl); }
+    catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = fullUrl; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (!info) return null;
+
+  return (
+    <div style={{
+      background: T.surface, border: `1px solid ${T.line}`, borderRadius: 10,
+      padding: '10px 14px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10,
+    }}>
+      <select value={no} onChange={e => setNo(e.target.value)}
+        style={{ padding: '6px 10px', background: T.surface, border: `1px solid ${T.lineStrong}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 12, color: T.ink, outline: 'none', minWidth: 190 }}>
+        {(window.ACCOUNTS || []).map(a => (
+          <option key={a.no} value={a.no}>番号 {a.no} · {a.name}</option>
+        ))}
+      </select>
+      <div style={{
+        flex: 1, padding: '6px 10px', background: T.surfaceAlt, color: T.ink,
+        border: `1px solid ${T.line}`, borderRadius: 6, fontFamily: T.mono, fontSize: 12,
+        whiteSpace: 'nowrap', overflow: 'auto', userSelect: 'all',
+      }}>{fullUrl}</div>
+      <button onClick={copy} style={{
+        padding: '6px 14px', background: copied ? T.ok : T.cobalt, color: '#fff',
+        border: 'none', borderRadius: 6, fontFamily: 'inherit', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+        minWidth: 72,
+      }}>{copied ? '✓' : 'コピー'}</button>
+    </div>
+  );
+}
+
 window.RollCallLanding = RollCallLanding;
+window.NfcQuickUrlCard = NfcQuickUrlCard;

@@ -1,0 +1,5 @@
+# 临时解包产物（从 Tomoshibi_iOS_PhaseB.html 可重建）
+phaseB_src/
+
+# 系统文件
+.DS_Store

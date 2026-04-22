@@ -1,4 +1,48 @@
 // /applications landing + outstay detail modal (digitised from real form).
+//
+// ⭐ 外泊申請の提出期限ルール (2026-04-22 itsuki 拍板):
+//   出発日の属する週の水曜日 23:59 / 出発予定時刻の 48 時間前、いずれか早い方。
+//   期限後の申請は受付不可 → iOS App でも送信ブロック、寮監との直接面談必要。
+//   老師 Web 側では "期限超過" badge + modal でアラート表示。
+
+function parseJst(s) {
+  // 受け入れる形: 'YYYY-MM-DD HH:MM' or 'MM-DD HH:MM'（その場合は 2026 年扱い）
+  const full = (s && s.length <= 11) ? '2026-' + s : s;
+  return full ? new Date(full.replace(' ', 'T') + ':00+09:00') : null;
+}
+
+function outstayDeadline(departStr) {
+  const depart = parseJst(departStr);
+  if (!depart) return null;
+  // (a) 出発 48h 前
+  const h48 = new Date(depart.getTime() - 48 * 3600 * 1000);
+  // (b) 出発日の属する週の水曜 23:59（週始 = 月曜の ISO 方式）
+  const wed = new Date(depart);
+  const dow = wed.getDay(); // 0=日, 1=月, ..., 3=水, ..., 6=土
+  const isoDow = dow === 0 ? 6 : dow - 1; // 0=月
+  const delta = 2 - isoDow; // 水曜までの差
+  wed.setDate(wed.getDate() + delta);
+  wed.setHours(23, 59, 59, 999);
+  return wed < h48 ? wed : h48;
+}
+
+function isLateSubmission(departStr, submittedStr) {
+  const deadline = outstayDeadline(departStr);
+  const submitted = parseJst(submittedStr);
+  if (!deadline || !submitted) return false;
+  return submitted > deadline;
+}
+
+function formatJst(d) {
+  if (!d) return '—';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const jaDow = ['日','月','火','水','木','金','土'][d.getDay()];
+  return `${y}-${m}-${day}（${jaDow}） ${hh}:${mm}`;
+}
 
 function ApplicationsPage({ onOpen }) {
   const T = window.RYO;
@@ -32,11 +76,34 @@ function ApplicationsPage({ onOpen }) {
         ))}
       </div>
 
+      {tab === 'outstay' && <OutstayRuleBanner />}
+
       {tab === 'outstay' ? (
         <OutstayList sub={sub} setSub={setSub} onOpen={onOpen} />
       ) : (
         <SkeletonTabBody tab={tabs.find(t => t.k === tab).label} />
       )}
+    </div>
+  );
+}
+
+function OutstayRuleBanner() {
+  const T = window.RYO;
+  const [open, setOpen] = React.useState(true);
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} style={{ padding: '7px 14px', background: 'transparent', color: T.ink3, border: `1px dashed ${T.lineStrong}`, borderRadius: 8, fontFamily: 'inherit', fontSize: 11, cursor: 'pointer', marginBottom: 14 }}>📅 外泊申請の提出期限ルールを表示</button>
+    );
+  }
+  return (
+    <div style={{ padding: '12px 16px', background: T.cobaltSoft, color: T.cobaltDeep, border: `1px solid ${T.infoBorder}`, borderRadius: 10, fontSize: 12, lineHeight: 1.7, marginBottom: 14, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+      <span style={{ fontSize: 16 }}>📅</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: 700, marginBottom: 4 }}>外泊申請 提出期限ルール</div>
+        <div>提出期限 = <b>出発日の属する週の水曜日 23:59</b> または <b>出発予定時刻の 48 時間前</b>、<b>いずれか早い方</b>。</div>
+        <div style={{ marginTop: 3 }}>期限後は iOS App から送信できません。やむを得ない事情がある場合は、<b>必ず生徒本人が寮監室に来て直接相談</b>してください。</div>
+      </div>
+      <button onClick={() => setOpen(false)} style={{ background: 'transparent', border: 'none', color: T.cobaltDeep, cursor: 'pointer', fontSize: 14, padding: 0 }}>×</button>
     </div>
   );
 }
@@ -63,11 +130,11 @@ function OutstayList({ sub, setSub, onOpen }) {
       </div>
 
       <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 12, overflow: 'hidden', boxShadow: T.shadow1 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '140px 80px 90px 150px 150px 130px 110px 90px 100px', background: T.surfaceAlt, color: T.ink2, fontSize: 11, fontWeight: 600, letterSpacing: 1, borderBottom: `1px solid ${T.line}` }}>
-          {['申請者', '部屋', '担当寮', '出発日時', '帰舎予定', '行先', '提出時刻', '状態', '操作'].map(h => <div key={h} style={{ padding: '10px 12px' }}>{h}</div>)}
+        <div style={{ display: 'grid', gridTemplateColumns: '140px 70px 80px 140px 140px 90px 120px 110px 90px 80px', background: T.surfaceAlt, color: T.ink2, fontSize: 11, fontWeight: 600, letterSpacing: 1, borderBottom: `1px solid ${T.line}` }}>
+          {['申請者', '部屋', '担当寮', '出発日時', '帰舎予定', '行先', '提出時刻', '期限', '状態', '操作'].map(h => <div key={h} style={{ padding: '10px 12px' }}>{h}</div>)}
         </div>
         {filtered.map((a, i) => (
-          <div key={a.id} onClick={() => onOpen(a)} style={{ display: 'grid', gridTemplateColumns: '140px 80px 90px 150px 150px 130px 110px 90px 100px', borderTop: i > 0 ? `1px solid ${T.line}` : 'none', fontSize: 12, alignItems: 'center', cursor: 'pointer', transition: 'background .1s' }}
+          <div key={a.id} onClick={() => onOpen(a)} style={{ display: 'grid', gridTemplateColumns: '140px 70px 80px 140px 140px 90px 120px 110px 90px 80px', borderTop: i > 0 ? `1px solid ${T.line}` : 'none', fontSize: 12, alignItems: 'center', cursor: 'pointer', transition: 'background .1s' }}
                onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
             <div style={{ padding: '10px 12px', fontWeight: 600 }}>{a.applicant}</div>
@@ -77,6 +144,7 @@ function OutstayList({ sub, setSub, onOpen }) {
             <div style={{ padding: '10px 12px', fontFamily: T.mono, color: T.ink2 }}>{a.return_}</div>
             <div style={{ padding: '10px 12px' }}>{a.city}</div>
             <div style={{ padding: '10px 12px', fontFamily: T.mono, color: T.ink3 }}>{a.submitted}</div>
+            <div style={{ padding: '10px 12px' }}><DeadlineBadge depart={a.depart} submitted={a.submitted} /></div>
             <div style={{ padding: '10px 12px' }}><StateBadge s={a.state} /></div>
             <div style={{ padding: '10px 12px', color: T.cobalt, fontSize: 12, fontWeight: 700, textAlign: 'left' }}>詳細 →</div>
           </div>
@@ -95,7 +163,15 @@ function StateBadge({ s }) {
     rejected: [T.danger, T.dangerSoft, T.dangerBorder, '却下'],
     question: [T.cobalt, T.cobaltSoft, T.infoBorder, '質問あり'],
   }[s];
-  return <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: map[1], color: map[0], border: `1px solid ${map[2]}`, letterSpacing: .5 }}>{map[3]}</span>;
+  return <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: map[1], color: map[0], border: `1px solid ${map[2]}`, letterSpacing: .5, whiteSpace: 'nowrap' }}>{map[3]}</span>;
+}
+
+function DeadlineBadge({ depart, submitted }) {
+  const T = window.RYO;
+  const late = isLateSubmission(depart, submitted);
+  const commonStyle = { fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, letterSpacing: .5, whiteSpace: 'nowrap' };
+  if (late) return <span title="期限後提出 · 寮監との面談が必要" style={{ ...commonStyle, background: T.dangerSoft, color: T.danger, border: `1px solid ${T.dangerBorder}` }}>⚠ 期限後</span>;
+  return <span title="期限内に提出済" style={{ ...commonStyle, background: T.okSoft, color: T.ok, border: `1px solid ${T.okBorder}` }}>✓ 期限内</span>;
 }
 
 function SkeletonTabBody({ tab }) {
@@ -164,7 +240,7 @@ window.OUTSTAY_APPS = [
     meals: { breakfast: 1, lunch: 2, dinner: 1, selfInput: false },
     reason: '法事のため帰省。',
     note: '', parentOk: { confirmed: true, phone: '090-zzzz-zzzz' },
-    submitted: '04-18 20:40', state: 'approved',
+    submitted: '04-15 20:00', state: 'approved',
     city: '倉敷',
     approvals: [
       { role: '担任', name: '田中 健一', state: 'approved' },
@@ -197,3 +273,8 @@ window.OUTSTAY_APPS = [
 
 window.ApplicationsPage = ApplicationsPage;
 window.StateBadge = StateBadge;
+window.DeadlineBadge = DeadlineBadge;
+window.outstayDeadline = outstayDeadline;
+window.isLateSubmission = isLateSubmission;
+window.formatJstDeadline = formatJst;
+window.parseJst = parseJst;

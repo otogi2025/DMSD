@@ -5,6 +5,9 @@ function LiveRollCall({ teacher, sessionName, startedAt, students, setStudents, 
   const [now, setNow] = React.useState(Date.now());
   const [showLegend, setShowLegend] = React.useState(false);
   const [showConsole, setShowConsole] = React.useState(false);
+  const [lastSeq, setLastSeq] = React.useState(0);
+  const [nfcStatus, setNfcStatus] = React.useState('idle'); // 'idle' | 'ok' | 'error'
+  const lastBroadcastRef = React.useRef(null);
 
   React.useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
 
@@ -19,6 +22,66 @@ function LiveRollCall({ teacher, sessionName, startedAt, students, setStudents, 
       setStudents(list => list.map(s => s.status === 'unknown' && !s.pending ? { ...s, status: 'late' } : s));
     }
   }, [elapsed >= window.LATE_THRESHOLD_SEC]); // eslint-disable-line
+
+  // ⭐ NFC/iPhone Shortcut 点呼受信（/events/latest を 1 秒ごとに poll）
+  // itsuki のデモ構成（2026-04-22 拍板）：
+  //   iPhone 快捷指令 → POST /checkin?no=XX → 本 effect が検知 → 座席変色 + 日本語読み上げ
+  React.useEffect(() => {
+    let initialSeq = null;
+    let mounted = true;
+    const speak = (name) => {
+      if (!window.speechSynthesis) return;
+      try {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(name);
+        u.lang = 'ja-JP';
+        u.rate = 0.95;
+        u.pitch = 1.0;
+        u.volume = 1.0;
+        window.speechSynthesis.speak(u);
+      } catch (e) { /* silent */ }
+    };
+    const poll = async () => {
+      if (!mounted) return;
+      try {
+        const r = await fetch('/events/latest', { cache: 'no-store' });
+        if (!r.ok) return;
+        const ev = await r.json();
+        if (!ev || typeof ev.seq !== 'number') return;
+        if (initialSeq === null) { initialSeq = ev.seq; lastBroadcastRef.current = ev.seq; return; }
+        if (ev.seq === lastBroadcastRef.current) return;
+        lastBroadcastRef.current = ev.seq;
+
+        const acct = (window.ACCOUNTS || []).find(a => a.no === ev.no);
+        if (!acct) {
+          console.warn('[NFC] 不明な番号:', ev.no);
+          setNfcStatus('error');
+          setTimeout(() => { if (mounted) setNfcStatus('idle'); }, 2500);
+          return;
+        }
+
+        // 担当寮と違う学生 → 警告しつつ無視
+        setStudents(list => {
+          const s = list.find(x => x.id === acct.sid);
+          if (!s) {
+            console.warn('[NFC] この session にない学生:', acct.name);
+            return list;
+          }
+          const d = new Date();
+          const t = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+          const isLate = (Date.now() - startedAt) / 1000 >= window.LATE_THRESHOLD_SEC;
+          speak(acct.name);
+          setNfcStatus('ok');
+          setLastSeq(ev.seq);
+          setTimeout(() => { if (mounted) setNfcStatus('idle'); }, 3000);
+          return list.map(x => x.id === acct.sid ? { ...x, status: isLate ? 'late' : 'ok', checkinAt: t, nfcHighlight: Date.now() } : x);
+        });
+      } catch (e) { /* server off / file:// mode → silent */ }
+    };
+    const id = setInterval(poll, 1000);
+    poll();
+    return () => { mounted = false; clearInterval(id); };
+  }, [setStudents, startedAt]);
 
   const cnt = students.reduce((a, s) => { a[s.status] = (a[s.status] || 0) + 1; return a; }, {});
   const done = (cnt.ok || 0) + (cnt.absent || 0) + (cnt.exempt || 0) + (cnt.late || 0);
@@ -54,6 +117,7 @@ function LiveRollCall({ teacher, sessionName, startedAt, students, setStudents, 
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <NfcIndicator status={nfcStatus} seq={lastSeq} />
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 10, color: T.ink3, letterSpacing: 1.5, fontWeight: 600 }}>経過時間</div>
             <div style={{ fontSize: 22, fontFamily: T.mono, fontWeight: 700, letterSpacing: 1, color: T.ink }}>{hh}:{mm}:{ss}</div>
@@ -100,6 +164,23 @@ const fabBtn = (T, active) => ({
   border: `1px solid ${active ? T.ink : T.lineStrong}`, borderRadius: 10, fontFamily: 'inherit',
   fontSize: 12, fontWeight: 600, cursor: 'pointer', boxShadow: T.shadow1,
 });
+
+function NfcIndicator({ status, seq }) {
+  const T = window.RYO;
+  const map = {
+    idle:  { fg: T.ink3,   bg: T.surfaceAlt, bd: T.line,        icon: '📡', label: 'NFC 待機中' },
+    ok:    { fg: T.ok,     bg: T.okSoft,     bd: T.okBorder,    icon: '✓',  label: '受信 OK' },
+    error: { fg: T.danger, bg: T.dangerSoft, bd: T.dangerBorder, icon: '⚠',  label: '不明な番号' },
+  }[status] || { fg: T.ink3, bg: T.surfaceAlt, bd: T.line, icon: '📡', label: 'NFC' };
+  return (
+    <div title={`seq=${seq} · iPhone 快捷指令 POST /checkin?no=XX で座席更新`}
+      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: map.bg, color: map.fg, border: `1px solid ${map.bd}`, borderRadius: 999, fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>
+      <span style={{ fontSize: 12 }}>{map.icon}</span>
+      <span>{map.label}</span>
+      {seq > 0 && <span style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, fontWeight: 500 }}>· {seq}</span>}
+    </div>
+  );
+}
 
 function Metric({ label, value, sub, color }) {
   const T = window.RYO;

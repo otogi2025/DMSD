@@ -50,6 +50,9 @@ function OutstayDetailModal({ app, onClose, onAction }) {
             <F label="帰舎予定日時" mono>{app.return_}</F>
           </Section>
 
+          <DeadlineSection app={app} />
+
+
           <Section title="移動手段">
             <F label="行き">{app.methodGo}{app.flightNo && ` (${app.flightNo})`}</F>
             <F label="帰り">{app.methodBack}</F>
@@ -119,4 +122,46 @@ function OutstayDetailModal({ app, onClose, onAction }) {
   );
 }
 
+function DeadlineSection({ app }) {
+  const T = window.RYO;
+  const deadline = window.outstayDeadline ? window.outstayDeadline(app.depart) : null;
+  const submittedDt = window.parseJst ? window.parseJst(app.submitted) : null;
+  const late = window.isLateSubmission ? window.isLateSubmission(app.depart, app.submitted) : false;
+  const fmt = window.formatJstDeadline || (() => '—');
+  const diffMs = deadline && submittedDt ? submittedDt - deadline : 0;
+  const diffHours = Math.abs(diffMs) / 3600000;
+  const diffText = diffHours >= 48 ? `${Math.floor(diffHours / 24)} 日` : `${diffHours.toFixed(1)} 時間`;
+
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ fontSize: 10, color: T.ink3, letterSpacing: 2, fontWeight: 700, marginBottom: 8, paddingBottom: 4, borderBottom: `1px solid ${T.line}` }}>§ 提出期限</div>
+      <div style={{ padding: 14, background: late ? T.dangerSoft : T.okSoft, border: `1px solid ${late ? T.dangerBorder : T.okBorder}`, borderRadius: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          {late
+            ? <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 4, background: T.danger, color: '#fff', letterSpacing: .5, whiteSpace: 'nowrap' }}>⚠ 期限後</span>
+            : <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 4, background: T.ok, color: '#fff', letterSpacing: .5, whiteSpace: 'nowrap' }}>✓ 期限内</span>}
+          <span style={{ fontSize: 12, color: T.ink2 }}>
+            {late ? `期限の ${diffText} 後に提出` : `期限の ${diffText} 前に提出`}
+          </span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '5px 10px', fontSize: 13 }}>
+          <div style={{ color: T.ink3, fontSize: 12 }}>提出期限</div>
+          <div style={{ fontFamily: T.mono, color: T.ink }}>{fmt(deadline)}</div>
+          <div style={{ color: T.ink3, fontSize: 12 }}>実際の提出時刻</div>
+          <div style={{ fontFamily: T.mono, color: late ? T.danger : T.ink }}>{fmt(submittedDt)}</div>
+        </div>
+        {late && (
+          <div style={{ marginTop: 12, padding: '10px 12px', background: T.surface, border: `1px solid ${T.dangerBorder}`, borderRadius: 8, fontSize: 12, lineHeight: 1.7, color: T.ink2 }}>
+            <b style={{ color: T.danger }}>⚠ 面談必須</b> · 本来は iOS App から送信できない申請です（紙申請または管理者代理で登録されたもの）。<b>生徒本人を直接呼び、事情を確認した上で承認可否を判断してください。</b>
+          </div>
+        )}
+        <div style={{ marginTop: 10, fontSize: 11, color: T.ink3, lineHeight: 1.6 }}>
+          提出期限 = 出発日の属する週の水曜日 23:59 または 出発予定時刻の 48 時間前、いずれか早い方。
+        </div>
+      </div>
+    </div>
+  );
+}
+
 window.OutstayDetailModal = OutstayDetailModal;
+window.DeadlineSection = DeadlineSection;

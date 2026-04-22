@@ -1,9 +1,12 @@
-# ST25DV16K 替代方案：NTAG215 + iOS Shortcuts Automation  <!-- VERSION_OK -->
+# NFC 替代方案：iPhone Shortcuts + itsuki 自有 NFC 卡（银行卡 / Suica / 学生证）  <!-- VERSION_OK -->
 
-> **背景**: ST25DV16K 动态 NFC 贴纸淘宝空运 7-10 天，4-28 demo 前到不了
-> **决策**: 2026-04-21 拍板方案 A（NTAG215 静态贴纸 + iOS Shortcuts Automation）
-> **影响**: Demo 版安全性降级（静态 URL 可复制）+ 用户体验 100% 对齐最终版（iPhone 碰一下自动签到）
-> **最后更新**: 2026-04-21
+> **背景**: Demo 阶段 ~~ST25DV16K 供货延迟~~ **整个点呼机硬件砍掉**（2026-04-22 拍板，见 `scope_tier.md §0.1`）
+> **决策**: **不买任何 NFC 硬件**，itsuki 用她手里已有的 NFC 卡（银行卡 / Suica / PASMO / 学生证 任选）+ iOS Shortcuts Automation 绑定该卡 + POST 后端
+> **影响**:
+> - Demo 安全性降级（静态 UID 可被读；但 demo 只演 itsuki 一人所以不展示代签场景）
+> - 用户体验 100% 对齐最终版（iPhone 碰一下自动签到）
+> - 采购 0 成本（砍了 NTAG215 + 点呼机硬件）
+> **最后更新**: 2026-04-22（从"NTAG215 + 点呼机"简化为"itsuki 自有卡 + 无硬件"）
 
 ---
 
@@ -19,48 +22,51 @@
 
 ---
 
-## 2. 硬件准备
+## 2. 硬件准备（2026-04-22 简化 — 0 采购）
 
 ### 2.1 材料
 
-- 1 张 NTAG215 空白卡（Amazon 日本买的 10 张之一）
-- 双面胶 / 3M 贴（把卡粘在点呼机 Pi 3A+ 外壳上）
+- **itsuki 手里已有的任意 NFC 卡**（不用买）：
+  - 银行卡（日本 IC 付带カード）— **先测**，EMV 协议可能被 iOS Shortcuts 拒识别
+  - **Suica / PASMO / ICOCA** 交通卡 — FeliCa 规范，大概率 iOS 能识别
+  - **学生证** — 如果是 FeliCa / Mifare 芯片可识别
+  - **门禁卡** — 如果是 Mifare Classic / NTAG 系列可识别
+- 不需要双面胶，不贴任何东西（demo 时 itsuki 手持 NFC 卡，手机碰卡即可）
 
-### 2.2 贴的位置
+### 2.2 位置安排
 
-点呼机外壳正面醒目位置，建议：
-- 距离 Pi 主板至少 5cm（避免干扰）
-- 贴一个图标"📱 把手机放这里签到"作为视觉引导
+Demo 桌面上放 NFC 卡即可（或 itsuki 手持）：
+- 不贴点呼机（没点呼机了）
+- 现场动作：itsuki 把卡拿出来，手机碰一下
+- **叙事**（给管理员听）："上线版这张卡是贴在玄关点呼机上的专用 NFC 贴纸，每 10 秒刷新防代签；今天 demo 用我自己的卡代替，动作一样"
 
 ---
 
-## 3. NTAG215 写入步骤（iPhone 操作）
+## 3. NFC 卡准备（2026-04-22 简化）
 
-### 3.1 装 NFC Tools App
+**不需要写卡** — itsuki 自己的 NFC 卡已有固定的 UID（硬件厂商烧的），Shortcuts 直接按 UID 绑定即可触发。
 
-- App Store 搜 "NFC Tools"（开发者：wakdev，免费，蓝色图标）
-- 下载安装
+### 3.1 自测步骤（itsuki D2 前做）
 
-### 3.2 写入 URL
+1. iPhone 解锁，打开 **"快捷指令"**（Shortcuts）App
+2. 底部 **"自动化"** → **"+"** → **"NFC"** → **"扫描"**
+3. 把你的 NFC 卡（银行卡 / Suica / PASMO / 学生证 / 门禁卡）靠近 iPhone 顶部
+4. 如果 iPhone 震动 + 出现 "扫描完成" → ✅ **这张卡可用**，给它命名 `Tomoshibi-学生卡-00`
+5. 如果 iPhone 无反应或报错 "无法读取此标签" → ❌ 换下一张卡重测
+6. 推荐优先级：**Suica / PASMO > 学生证 / 门禁卡 > 银行卡**（银行卡因 EMV 协议，Shortcuts 失败率最高）
 
-1. 打开 NFC Tools App
-2. 下方 tab 切到 **"Write"**
-3. 点 **"Add a record"**
-4. 选 **"URL / URI"**
-5. 填入 URL：
-   ```
-   https://dmsd.local/checkin?device=DEV001&student=1
-   ```
-   - **注意**：demo 阶段 URL 可以是"看起来像 URL"的字符串，只要 iOS Shortcut 能识别触发就行
-   - 也可以用真实后端 URL：`http://[Mac的局域网IP]:8000/api/checkin?student=1`
-   - **student=1 是硬编码 student_id，demo 时演 itsuki 签到**。如果要演别的学生切别的卡
-6. 点右上 **"Write"**
-7. iPhone 靠近 NTAG215 空白卡 → "Tag written" → 完成
+### 3.2 如果手里所有卡都失败怎么办
 
-### 3.3 验证
+**Fallback 采购**：日本 Amazon 买 NTAG215 空白卡 10 张（¥400 日元，明天到），按下方 §3.3 写一次 URL 即可。
 
-- 把 iPhone 再靠近刚写的卡
-- iPhone 屏幕顶部会弹 URL 预览（确认 URL 内容正确）
+### 3.3 NTAG215 写入（仅 Fallback 情况用）
+
+（原步骤保留作 fallback，只在 §3.1 自测全失败时才执行）
+
+1. App Store 装 **NFC Tools**（wakdev，免费）
+2. App 里 Write → Add a record → URL / URI
+3. 填任意 URL（例如 `https://tomoshibi.demo/checkin/00`），写入 NTAG215
+4. 然后回到 §4 配 Shortcuts Automation
 
 ---
 
@@ -104,13 +110,13 @@
 
 ## 5. 现场演示叙事（给管理员听的说法）
 
-### 5.1 演示时 itsuki 的话术
+### 5.1 演示时 itsuki 的话术（2026-04-22 更新）
 
-开点呼后，itsuki 把 iPhone 靠近点呼机贴纸：
+开点呼后，itsuki 拿出 NFC 卡，iPhone 靠近它：
 
-> "我现在拿手机碰一下点呼机上这个 NFC 贴纸。（碰一下，iPad 座位瞬间变绿 + 喇叭出声）
+> "我现在拿手机碰一下这张 NFC 卡。上线版这张卡是贴在宿舍玄关点呼机上的专用贴纸，今天用我手里这张卡代替，动作一样。（碰一下，iPad 座位瞬间变绿 + iPad 发声）
 >
-> 看，老师手上的 iPad 实时显示我签到成功，点呼机也喊出了我的名字。"
+> 看，老师手上的 iPad 实时显示我签到成功，iPad 也念出了我的名字 リュウイヒ。"
 
 ### 5.2 如果管理员追问"学生把 URL 复制发给别人代签怎么办"
 
@@ -142,18 +148,18 @@
 
 ---
 
-## 7. Demo 前 itsuki checklist
+## 7. Demo 前 itsuki checklist（2026-04-22 简化）
 
-D7 彩排前必确认：
+**D2（4-22）前**：
+- [ ] iOS Shortcuts 自测 NFC 卡识别（见 §3.1，找到至少 1 张能用的卡）
+- [ ] 如果全失败 → Amazon 日本下单 NTAG215 × 10（¥400 日元）
 
-- [ ] NFC Tools App 装好
-- [ ] NTAG215 写入 URL 成功
-- [ ] 贴纸贴在点呼机正确位置
-- [ ] Shortcuts Automation 配置完成
-- [ ] "运行前询问" 已关闭
-- [ ] 测试一次：iPhone 碰贴纸 → 后端日志收到 POST 请求
-- [ ] 备用卡 2-3 张（每张写不同 student_id 演多学生）
-- [ ] 方案 B 桌面 Shortcut 按钮也做一个作为 fallback
+**D7（4-27）彩排前**：
+- [ ] Shortcuts Automation 配置完成（见 §4）
+- [ ] "运行前询问"已关闭
+- [ ] 测试一次：iPhone 碰 NFC 卡 → 后端日志收到 POST 请求
+- [ ] 备用卡 2-3 张（防现场那张读不出来）
+- [ ] 方案 B 桌面 Shortcut 按钮也做一个作为 fallback（无 NFC 也能 demo）
 
 ---
 

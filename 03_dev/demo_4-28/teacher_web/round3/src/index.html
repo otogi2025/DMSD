@@ -4860,6 +4860,9 @@ function RollCallLanding({ teacher, onStart, lastEnded, onNav, trend }) {
         }}>点呼を開始 →</button>
       </div>
 
+      {/* ⭐ NFC 快捷指令 URL card（デモ用・点呼機代替） */}
+      <NfcQuickUrlCard />
+
       {/* Day stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
         <Stat label="本日実施" value="1" suffix="/ 2" note="朝点呼 完了" onClick={() => onNav('records')} />
@@ -4960,7 +4963,62 @@ function Legend({ c, label }) {
   </span>;
 }
 
+function NfcQuickUrlCard() {
+  const T = window.RYO;
+  const [info, setInfo] = React.useState(null);
+  const [no, setNo] = React.useState('00');
+  const [copied, setCopied] = React.useState(false);
+
+  React.useEffect(() => {
+    fetch('/api/server-info', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(setInfo)
+      .catch(() => setInfo(null));
+  }, []);
+
+  const fullUrl = info ? `http://${info.primary}:${info.port}/checkin?no=${no}` : '';
+
+  const copy = async () => {
+    if (!fullUrl) return;
+    try { await navigator.clipboard.writeText(fullUrl); }
+    catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = fullUrl; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (!info) return null;
+
+  return (
+    <div style={{
+      background: T.surface, border: `1px solid ${T.line}`, borderRadius: 10,
+      padding: '10px 14px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10,
+    }}>
+      <select value={no} onChange={e => setNo(e.target.value)}
+        style={{ padding: '6px 10px', background: T.surface, border: `1px solid ${T.lineStrong}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 12, color: T.ink, outline: 'none', minWidth: 190 }}>
+        {(window.ACCOUNTS || []).map(a => (
+          <option key={a.no} value={a.no}>番号 {a.no} · {a.name}</option>
+        ))}
+      </select>
+      <div style={{
+        flex: 1, padding: '6px 10px', background: T.surfaceAlt, color: T.ink,
+        border: `1px solid ${T.line}`, borderRadius: 6, fontFamily: T.mono, fontSize: 12,
+        whiteSpace: 'nowrap', overflow: 'auto', userSelect: 'all',
+      }}>{fullUrl}</div>
+      <button onClick={copy} style={{
+        padding: '6px 14px', background: copied ? T.ok : T.cobalt, color: '#fff',
+        border: 'none', borderRadius: 6, fontFamily: 'inherit', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+        minWidth: 72,
+      }}>{copied ? '✓' : 'コピー'}</button>
+    </div>
+  );
+}
+
 window.RollCallLanding = RollCallLanding;
+window.NfcQuickUrlCard = NfcQuickUrlCard;
 
 </script>
 <script type="text/babel" data-source="components/live-roll-call.jsx">
@@ -4971,6 +5029,9 @@ function LiveRollCall({ teacher, sessionName, startedAt, students, setStudents, 
   const [now, setNow] = React.useState(Date.now());
   const [showLegend, setShowLegend] = React.useState(false);
   const [showConsole, setShowConsole] = React.useState(false);
+  const [lastSeq, setLastSeq] = React.useState(0);
+  const [nfcStatus, setNfcStatus] = React.useState('idle'); // 'idle' | 'ok' | 'error'
+  const lastBroadcastRef = React.useRef(null);
 
   React.useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
 
@@ -4985,6 +5046,66 @@ function LiveRollCall({ teacher, sessionName, startedAt, students, setStudents, 
       setStudents(list => list.map(s => s.status === 'unknown' && !s.pending ? { ...s, status: 'late' } : s));
     }
   }, [elapsed >= window.LATE_THRESHOLD_SEC]); // eslint-disable-line
+
+  // ⭐ NFC/iPhone Shortcut 点呼受信（/events/latest を 1 秒ごとに poll）
+  // itsuki のデモ構成（2026-04-22 拍板）：
+  //   iPhone 快捷指令 → POST /checkin?no=XX → 本 effect が検知 → 座席変色 + 日本語読み上げ
+  React.useEffect(() => {
+    let initialSeq = null;
+    let mounted = true;
+    const speak = (name) => {
+      if (!window.speechSynthesis) return;
+      try {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(name);
+        u.lang = 'ja-JP';
+        u.rate = 0.95;
+        u.pitch = 1.0;
+        u.volume = 1.0;
+        window.speechSynthesis.speak(u);
+      } catch (e) { /* silent */ }
+    };
+    const poll = async () => {
+      if (!mounted) return;
+      try {
+        const r = await fetch('/events/latest', { cache: 'no-store' });
+        if (!r.ok) return;
+        const ev = await r.json();
+        if (!ev || typeof ev.seq !== 'number') return;
+        if (initialSeq === null) { initialSeq = ev.seq; lastBroadcastRef.current = ev.seq; return; }
+        if (ev.seq === lastBroadcastRef.current) return;
+        lastBroadcastRef.current = ev.seq;
+
+        const acct = (window.ACCOUNTS || []).find(a => a.no === ev.no);
+        if (!acct) {
+          console.warn('[NFC] 不明な番号:', ev.no);
+          setNfcStatus('error');
+          setTimeout(() => { if (mounted) setNfcStatus('idle'); }, 2500);
+          return;
+        }
+
+        // 担当寮と違う学生 → 警告しつつ無視
+        setStudents(list => {
+          const s = list.find(x => x.id === acct.sid);
+          if (!s) {
+            console.warn('[NFC] この session にない学生:', acct.name);
+            return list;
+          }
+          const d = new Date();
+          const t = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+          const isLate = (Date.now() - startedAt) / 1000 >= window.LATE_THRESHOLD_SEC;
+          speak(acct.name);
+          setNfcStatus('ok');
+          setLastSeq(ev.seq);
+          setTimeout(() => { if (mounted) setNfcStatus('idle'); }, 3000);
+          return list.map(x => x.id === acct.sid ? { ...x, status: isLate ? 'late' : 'ok', checkinAt: t, nfcHighlight: Date.now() } : x);
+        });
+      } catch (e) { /* server off / file:// mode → silent */ }
+    };
+    const id = setInterval(poll, 1000);
+    poll();
+    return () => { mounted = false; clearInterval(id); };
+  }, [setStudents, startedAt]);
 
   const cnt = students.reduce((a, s) => { a[s.status] = (a[s.status] || 0) + 1; return a; }, {});
   const done = (cnt.ok || 0) + (cnt.absent || 0) + (cnt.exempt || 0) + (cnt.late || 0);
@@ -5020,6 +5141,7 @@ function LiveRollCall({ teacher, sessionName, startedAt, students, setStudents, 
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <NfcIndicator status={nfcStatus} seq={lastSeq} />
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 10, color: T.ink3, letterSpacing: 1.5, fontWeight: 600 }}>経過時間</div>
             <div style={{ fontSize: 22, fontFamily: T.mono, fontWeight: 700, letterSpacing: 1, color: T.ink }}>{hh}:{mm}:{ss}</div>
@@ -5066,6 +5188,23 @@ const fabBtn = (T, active) => ({
   border: `1px solid ${active ? T.ink : T.lineStrong}`, borderRadius: 10, fontFamily: 'inherit',
   fontSize: 12, fontWeight: 600, cursor: 'pointer', boxShadow: T.shadow1,
 });
+
+function NfcIndicator({ status, seq }) {
+  const T = window.RYO;
+  const map = {
+    idle:  { fg: T.ink3,   bg: T.surfaceAlt, bd: T.line,        icon: '📡', label: 'NFC 待機中' },
+    ok:    { fg: T.ok,     bg: T.okSoft,     bd: T.okBorder,    icon: '✓',  label: '受信 OK' },
+    error: { fg: T.danger, bg: T.dangerSoft, bd: T.dangerBorder, icon: '⚠',  label: '不明な番号' },
+  }[status] || { fg: T.ink3, bg: T.surfaceAlt, bd: T.line, icon: '📡', label: 'NFC' };
+  return (
+    <div title={`seq=${seq} · iPhone 快捷指令 POST /checkin?no=XX で座席更新`}
+      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: map.bg, color: map.fg, border: `1px solid ${map.bd}`, borderRadius: 999, fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>
+      <span style={{ fontSize: 12 }}>{map.icon}</span>
+      <span>{map.label}</span>
+      {seq > 0 && <span style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, fontWeight: 500 }}>· {seq}</span>}
+    </div>
+  );
+}
 
 function Metric({ label, value, sub, color }) {
   const T = window.RYO;
@@ -5281,6 +5420,50 @@ window.OverrideModal = OverrideModal;
 </script>
 <script type="text/babel" data-source="components/applications.jsx">
 // /applications landing + outstay detail modal (digitised from real form).
+//
+// ⭐ 外泊申請の提出期限ルール (2026-04-22 itsuki 拍板):
+//   出発日の属する週の水曜日 23:59 / 出発予定時刻の 48 時間前、いずれか早い方。
+//   期限後の申請は受付不可 → iOS App でも送信ブロック、寮監との直接面談必要。
+//   老師 Web 側では "期限超過" badge + modal でアラート表示。
+
+function parseJst(s) {
+  // 受け入れる形: 'YYYY-MM-DD HH:MM' or 'MM-DD HH:MM'（その場合は 2026 年扱い）
+  const full = (s && s.length <= 11) ? '2026-' + s : s;
+  return full ? new Date(full.replace(' ', 'T') + ':00+09:00') : null;
+}
+
+function outstayDeadline(departStr) {
+  const depart = parseJst(departStr);
+  if (!depart) return null;
+  // (a) 出発 48h 前
+  const h48 = new Date(depart.getTime() - 48 * 3600 * 1000);
+  // (b) 出発日の属する週の水曜 23:59（週始 = 月曜の ISO 方式）
+  const wed = new Date(depart);
+  const dow = wed.getDay(); // 0=日, 1=月, ..., 3=水, ..., 6=土
+  const isoDow = dow === 0 ? 6 : dow - 1; // 0=月
+  const delta = 2 - isoDow; // 水曜までの差
+  wed.setDate(wed.getDate() + delta);
+  wed.setHours(23, 59, 59, 999);
+  return wed < h48 ? wed : h48;
+}
+
+function isLateSubmission(departStr, submittedStr) {
+  const deadline = outstayDeadline(departStr);
+  const submitted = parseJst(submittedStr);
+  if (!deadline || !submitted) return false;
+  return submitted > deadline;
+}
+
+function formatJst(d) {
+  if (!d) return '—';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const jaDow = ['日','月','火','水','木','金','土'][d.getDay()];
+  return `${y}-${m}-${day}（${jaDow}） ${hh}:${mm}`;
+}
 
 function ApplicationsPage({ onOpen }) {
   const T = window.RYO;
@@ -5314,11 +5497,34 @@ function ApplicationsPage({ onOpen }) {
         ))}
       </div>
 
+      {tab === 'outstay' && <OutstayRuleBanner />}
+
       {tab === 'outstay' ? (
         <OutstayList sub={sub} setSub={setSub} onOpen={onOpen} />
       ) : (
         <SkeletonTabBody tab={tabs.find(t => t.k === tab).label} />
       )}
+    </div>
+  );
+}
+
+function OutstayRuleBanner() {
+  const T = window.RYO;
+  const [open, setOpen] = React.useState(true);
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} style={{ padding: '7px 14px', background: 'transparent', color: T.ink3, border: `1px dashed ${T.lineStrong}`, borderRadius: 8, fontFamily: 'inherit', fontSize: 11, cursor: 'pointer', marginBottom: 14 }}>📅 外泊申請の提出期限ルールを表示</button>
+    );
+  }
+  return (
+    <div style={{ padding: '12px 16px', background: T.cobaltSoft, color: T.cobaltDeep, border: `1px solid ${T.infoBorder}`, borderRadius: 10, fontSize: 12, lineHeight: 1.7, marginBottom: 14, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+      <span style={{ fontSize: 16 }}>📅</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: 700, marginBottom: 4 }}>外泊申請 提出期限ルール</div>
+        <div>提出期限 = <b>出発日の属する週の水曜日 23:59</b> または <b>出発予定時刻の 48 時間前</b>、<b>いずれか早い方</b>。</div>
+        <div style={{ marginTop: 3 }}>期限後は iOS App から送信できません。やむを得ない事情がある場合は、<b>必ず生徒本人が寮監室に来て直接相談</b>してください。</div>
+      </div>
+      <button onClick={() => setOpen(false)} style={{ background: 'transparent', border: 'none', color: T.cobaltDeep, cursor: 'pointer', fontSize: 14, padding: 0 }}>×</button>
     </div>
   );
 }
@@ -5345,11 +5551,11 @@ function OutstayList({ sub, setSub, onOpen }) {
       </div>
 
       <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 12, overflow: 'hidden', boxShadow: T.shadow1 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '140px 80px 90px 150px 150px 130px 110px 90px 100px', background: T.surfaceAlt, color: T.ink2, fontSize: 11, fontWeight: 600, letterSpacing: 1, borderBottom: `1px solid ${T.line}` }}>
-          {['申請者', '部屋', '担当寮', '出発日時', '帰舎予定', '行先', '提出時刻', '状態', '操作'].map(h => <div key={h} style={{ padding: '10px 12px' }}>{h}</div>)}
+        <div style={{ display: 'grid', gridTemplateColumns: '140px 70px 80px 140px 140px 90px 120px 110px 90px 80px', background: T.surfaceAlt, color: T.ink2, fontSize: 11, fontWeight: 600, letterSpacing: 1, borderBottom: `1px solid ${T.line}` }}>
+          {['申請者', '部屋', '担当寮', '出発日時', '帰舎予定', '行先', '提出時刻', '期限', '状態', '操作'].map(h => <div key={h} style={{ padding: '10px 12px' }}>{h}</div>)}
         </div>
         {filtered.map((a, i) => (
-          <div key={a.id} onClick={() => onOpen(a)} style={{ display: 'grid', gridTemplateColumns: '140px 80px 90px 150px 150px 130px 110px 90px 100px', borderTop: i > 0 ? `1px solid ${T.line}` : 'none', fontSize: 12, alignItems: 'center', cursor: 'pointer', transition: 'background .1s' }}
+          <div key={a.id} onClick={() => onOpen(a)} style={{ display: 'grid', gridTemplateColumns: '140px 70px 80px 140px 140px 90px 120px 110px 90px 80px', borderTop: i > 0 ? `1px solid ${T.line}` : 'none', fontSize: 12, alignItems: 'center', cursor: 'pointer', transition: 'background .1s' }}
                onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
             <div style={{ padding: '10px 12px', fontWeight: 600 }}>{a.applicant}</div>
@@ -5359,6 +5565,7 @@ function OutstayList({ sub, setSub, onOpen }) {
             <div style={{ padding: '10px 12px', fontFamily: T.mono, color: T.ink2 }}>{a.return_}</div>
             <div style={{ padding: '10px 12px' }}>{a.city}</div>
             <div style={{ padding: '10px 12px', fontFamily: T.mono, color: T.ink3 }}>{a.submitted}</div>
+            <div style={{ padding: '10px 12px' }}><DeadlineBadge depart={a.depart} submitted={a.submitted} /></div>
             <div style={{ padding: '10px 12px' }}><StateBadge s={a.state} /></div>
             <div style={{ padding: '10px 12px', color: T.cobalt, fontSize: 12, fontWeight: 700, textAlign: 'left' }}>詳細 →</div>
           </div>
@@ -5377,7 +5584,15 @@ function StateBadge({ s }) {
     rejected: [T.danger, T.dangerSoft, T.dangerBorder, '却下'],
     question: [T.cobalt, T.cobaltSoft, T.infoBorder, '質問あり'],
   }[s];
-  return <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: map[1], color: map[0], border: `1px solid ${map[2]}`, letterSpacing: .5 }}>{map[3]}</span>;
+  return <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: map[1], color: map[0], border: `1px solid ${map[2]}`, letterSpacing: .5, whiteSpace: 'nowrap' }}>{map[3]}</span>;
+}
+
+function DeadlineBadge({ depart, submitted }) {
+  const T = window.RYO;
+  const late = isLateSubmission(depart, submitted);
+  const commonStyle = { fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, letterSpacing: .5, whiteSpace: 'nowrap' };
+  if (late) return <span title="期限後提出 · 寮監との面談が必要" style={{ ...commonStyle, background: T.dangerSoft, color: T.danger, border: `1px solid ${T.dangerBorder}` }}>⚠ 期限後</span>;
+  return <span title="期限内に提出済" style={{ ...commonStyle, background: T.okSoft, color: T.ok, border: `1px solid ${T.okBorder}` }}>✓ 期限内</span>;
 }
 
 function SkeletonTabBody({ tab }) {
@@ -5446,7 +5661,7 @@ window.OUTSTAY_APPS = [
     meals: { breakfast: 1, lunch: 2, dinner: 1, selfInput: false },
     reason: '法事のため帰省。',
     note: '', parentOk: { confirmed: true, phone: '090-zzzz-zzzz' },
-    submitted: '04-18 20:40', state: 'approved',
+    submitted: '04-15 20:00', state: 'approved',
     city: '倉敷',
     approvals: [
       { role: '担任', name: '田中 健一', state: 'approved' },
@@ -5479,6 +5694,11 @@ window.OUTSTAY_APPS = [
 
 window.ApplicationsPage = ApplicationsPage;
 window.StateBadge = StateBadge;
+window.DeadlineBadge = DeadlineBadge;
+window.outstayDeadline = outstayDeadline;
+window.isLateSubmission = isLateSubmission;
+window.formatJstDeadline = formatJst;
+window.parseJst = parseJst;
 
 </script>
 <script type="text/babel" data-source="components/outstay-detail-modal.jsx">
@@ -5533,6 +5753,9 @@ function OutstayDetailModal({ app, onClose, onAction }) {
             <F label="出発予定日時" mono>{app.depart}</F>
             <F label="帰舎予定日時" mono>{app.return_}</F>
           </Section>
+
+          <DeadlineSection app={app} />
+
 
           <Section title="移動手段">
             <F label="行き">{app.methodGo}{app.flightNo && ` (${app.flightNo})`}</F>
@@ -5603,7 +5826,49 @@ function OutstayDetailModal({ app, onClose, onAction }) {
   );
 }
 
+function DeadlineSection({ app }) {
+  const T = window.RYO;
+  const deadline = window.outstayDeadline ? window.outstayDeadline(app.depart) : null;
+  const submittedDt = window.parseJst ? window.parseJst(app.submitted) : null;
+  const late = window.isLateSubmission ? window.isLateSubmission(app.depart, app.submitted) : false;
+  const fmt = window.formatJstDeadline || (() => '—');
+  const diffMs = deadline && submittedDt ? submittedDt - deadline : 0;
+  const diffHours = Math.abs(diffMs) / 3600000;
+  const diffText = diffHours >= 48 ? `${Math.floor(diffHours / 24)} 日` : `${diffHours.toFixed(1)} 時間`;
+
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ fontSize: 10, color: T.ink3, letterSpacing: 2, fontWeight: 700, marginBottom: 8, paddingBottom: 4, borderBottom: `1px solid ${T.line}` }}>§ 提出期限</div>
+      <div style={{ padding: 14, background: late ? T.dangerSoft : T.okSoft, border: `1px solid ${late ? T.dangerBorder : T.okBorder}`, borderRadius: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          {late
+            ? <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 4, background: T.danger, color: '#fff', letterSpacing: .5, whiteSpace: 'nowrap' }}>⚠ 期限後</span>
+            : <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 4, background: T.ok, color: '#fff', letterSpacing: .5, whiteSpace: 'nowrap' }}>✓ 期限内</span>}
+          <span style={{ fontSize: 12, color: T.ink2 }}>
+            {late ? `期限の ${diffText} 後に提出` : `期限の ${diffText} 前に提出`}
+          </span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '5px 10px', fontSize: 13 }}>
+          <div style={{ color: T.ink3, fontSize: 12 }}>提出期限</div>
+          <div style={{ fontFamily: T.mono, color: T.ink }}>{fmt(deadline)}</div>
+          <div style={{ color: T.ink3, fontSize: 12 }}>実際の提出時刻</div>
+          <div style={{ fontFamily: T.mono, color: late ? T.danger : T.ink }}>{fmt(submittedDt)}</div>
+        </div>
+        {late && (
+          <div style={{ marginTop: 12, padding: '10px 12px', background: T.surface, border: `1px solid ${T.dangerBorder}`, borderRadius: 8, fontSize: 12, lineHeight: 1.7, color: T.ink2 }}>
+            <b style={{ color: T.danger }}>⚠ 面談必須</b> · 本来は iOS App から送信できない申請です（紙申請または管理者代理で登録されたもの）。<b>生徒本人を直接呼び、事情を確認した上で承認可否を判断してください。</b>
+          </div>
+        )}
+        <div style={{ marginTop: 10, fontSize: 11, color: T.ink3, lineHeight: 1.6 }}>
+          提出期限 = 出発日の属する週の水曜日 23:59 または 出発予定時刻の 48 時間前、いずれか早い方。
+        </div>
+      </div>
+    </div>
+  );
+}
+
 window.OutstayDetailModal = OutstayDetailModal;
+window.DeadlineSection = DeadlineSection;
 
 </script>
 <script type="text/babel" data-source="components/discipline.jsx">

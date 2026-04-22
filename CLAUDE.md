@@ -44,8 +44,8 @@
   - **权威源**：`03_dev/demo_4-28/Student_iOS_new/IOS_DESIGN_LOG.md §3`
 - **上线姿态**（2026-04-19 G2 决策）：**v1.0 直接 iOS + Android + 卡 完整版一次上线**；取消原 Phase 1 / Phase 2 分阶段
 - **开发节奏**：内部按 M1→M5 里程碑推进（兜底：做不完至少 M1+M2 可 demo）
-- **4-28 管理员 demo 冲刺**（2026-04-21 议题 E 拍板 + scope 扩展 + ST25DV fallback）：宿舍管理员决定是否采纳系统 → 7 天冲刺（4-21 → 4-28）→ 范围 **Tier 分层**：Tier 1 真跑（点呼 / 座位表 / 改判 / 健康 / 请假 / 外宿 / 归国 / 扣分 / 检索）+ Tier 2 UI skeleton（扫除 / 巴士 / 活动 / 宿舍互动 5 项 / 快递 / 归县 / 出租车 / 通知中心 / 长期豁免）+ Tier 3 砍。**ST25DV16K 供货延迟** → 替代方案：NTAG215 静态贴纸 + iOS Shortcuts Automation（iOS 26 已确认）。**扣分规则**暂定（迟到 0.5 / 缺席 1 / 月 4 罚扫 / 月 8 禁足），后端做成 `discipline_config` 可配置表，上线前和老师商议。**权威源**：`00_admin/demo_4-28/`（文件夹，含 README.md / sprint.md / scope_tier.md / ST25DV_fallback.md / demo_script.md）。**分工**：本会话 [Mac-demo-sprint] 只做需求/文档/清单，代码实现交其他 agent
-- **采购策略**（2026-04-21 MVP 思维拍板）：**Demo 阶段先 1 台**（日本 Amazon，¥12380 日元 ≈ ¥620 RMB）→ 管理员采纳后扩容 3 台（淘宝，¥1345 RMB）。详见 `02_design/hardware_design_v0.1.md §4`
+- **4-28 管理员 demo 冲刺**（2026-04-21 议题 E 拍板 + scope 扩展 + **2026-04-22 砍硬件**）：宿舍管理员决定是否采纳系统 → 7 天冲刺（4-21 → 4-28）→ 范围 **Tier 分层**：Tier 1 真跑（点呼 / 座位表 / 改判 / 健康 / 请假 / 外宿 / 归国 / 扣分 / 检索）+ Tier 2 UI skeleton（扫除 / 巴士 / 活动 / 宿舍互动 5 项 / 快递 / 归县 / 出租车 / 通知中心 / 长期豁免）+ Tier 3 砍。**4-22 重大调整**：砍 Pi 点呼机硬件 → demo 纯软件跑（itsuki iPhone 碰自有 NFC 卡 → 后端 → iPad 座位变绿 + iPad Safari Web Speech API 日语播报 / fallback Mac `say -v Kyoko`）。**扣分规则**暂定（迟到 0.5 / 缺席 1 / 月 4 罚扫 / 月 8 禁足），后端做成 `discipline_config` 可配置表，上线前和老师商议。**权威源**：`00_admin/demo_4-28/`（文件夹，含 README.md / sprint.md / scope_tier.md / ST25DV_fallback.md / demo_script.md / **questions_for_admin.md** / **wifi_survey_howto.md**）。**分工**：本会话 [Mac-demo-sprint] 只做需求/文档/清单，代码实现交其他 agent
+- **采购策略**（2026-04-22 二次修订）：**Demo 阶段 0 采购**（推翻 4-21 的"Demo 1 台 ¥12380"计划，砍硬件调试风险）→ 管理员采纳后扩容 3 台（淘宝，¥1345 RMB）。上线版硬件选型（Pi 3A+）保留在 `02_design/hardware_design_v0.1.md §2.1`。详见 `02_design/hardware_design_v0.1.md §4` + `00_admin/demo_4-28/scope_tier.md §0.1`
 - 规格：`01_specs/` 初版冻结于 2026-02-12；后续修订进度见 `CHANGELOG.md`
 - **硬件 + 流程权威源**：`02_design/hardware_design_v0.1.md` + `02_design/flow_design_v0.1.md`（2026-04-20 建立）
 - 版本：SemVer。**当前版本见 `CHANGELOG.md` 顶部**（单源真值，见下方"文档一致性规则"节）

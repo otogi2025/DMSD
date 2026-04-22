@@ -13,7 +13,9 @@
 
 ---
 
-**最后更新**: 2026-04-22 晚 by [Code-Agent] — **4-28 demo · Web 学生アカウント管理页面新建**（iOS 设计 §9.2 pending → 直接在 Round 3 实装完成）：对齐刚出炉的 `Student_iOS_new/IOS_DESIGN_LOG.md` 架构（00 号 リュウ イヒ demo 本体 / 01- 起真实学生自增 / 密码不可自改 → 老师后台代办）→ 新加 `teacher_web/round3/src/components/accounts.jsx`（AccountsPage + AccountDetailModal 2 tab）+ `theme.jsx` 加 `window.ACCOUNTS` seed 24 人 + Shell 左 nav 加「学生アカウント管理」+ app.jsx route。功能：列表（番号/氏名/部屋/メール/電話/最終ログイン/状態）+ 4 stat card + 搜索 normalize + 4 filter（全員/男寮/女寮/ロック中）· 详情 modal：プロフィール（邮箱/电话/部屋 可改 + パスワード初期化 button + ロック解除）+ アクティビティ履歴（点呼/申请/扣分/体調/登录失败时间线，番号 00 リュウ イヒ 有完整剧本数据）。13 jsx 组件 Babel 全 ✓。rebuild 后 single-file 32.2 MB。同步 IOS_DESIGN_LOG §9.2 ✅ + WEB_DESIGN_LOG Timeline 新增。 <!-- VERSION_OK -->
+**最后更新**: 2026-04-22 夜 by [Code-Agent] — **4-28 demo 收尾**：今日 [Code-Agent] 一整天代码实装累计 — (a) Round 3 导入+解包+bug 修+日语 2 轮 QA+single-file 打包（32MB）(b) **点呼機代替方案完整实装**：`demo_server.py`（POST `/checkin?no=XX` + GET `/events/latest` + `/api/server-info` + CORS + UDP socket IP 检测）· `live-roll-call.jsx` polling + `SpeechSynthesisUtterance` 日语 TTS + `NfcIndicator` 3 态 · `NFC_DEMO_SETUP.md` 教程 (c) **UI 新建**：学生アカウント管理页面 `accounts.jsx` (24 seed + 2 tab modal) + Dashboard `NfcQuickUrlCard` 精简 1 行 (d) **外泊提交期限规则实装**：`outstayDeadline()` = min(当週水曜 23:59, 48h 前) · `DeadlineBadge` + modal `§提出期限` section + 面谈必须警示 + banner + 2 late / 2 on-time seed (e) **`./tomoshibi` bash CLI**（ANSI 彩色 + 7 subcommand: start/stop/status/ip/rebuild/pack/help）— demo 演出"pro 感"。13 jsx Babel ✅。`raw/2026-04-22.md` §19:00 / §19:10 / §19:40 / §19:55 追加 4 条 dump。`WEB_DESIGN_LOG` Timeline 同步 6 条。`IOS_DESIGN_LOG §9.2` ✅ + 19:10 外泊期限规则要求 iOS 同步实装。 <!-- VERSION_OK -->
+**上一次更新（保留参考）**: 2026-04-22 夜 by [Mac-demo-sprint] — 砍 Pi 文档层落地 + 35 问管理员清单 + Wi-Fi 测试手册（文档会话方向；和本 Code-Agent 代码方向配对） <!-- VERSION_OK -->
+**上一次更新（保留参考）**: 2026-04-22 晚 by [Code-Agent] — Web 学生アカウント管理页面新建（`accounts.jsx` + `ACCOUNTS` seed 24 人 + Shell nav + modal 2 tab + iOS 设计 §9.2 ✅） <!-- VERSION_OK -->
 **上一次更新（保留参考）**: 2026-04-22 晚 by [Mac-demo-sprint] — iOS 前端设计 Round 1 Prompt 落盘（3 按钮 nav + Home omnibus + 中央点呼 sheet + 注册 4-step + 锁定升级 + 00 号 seed + Round1_Prompt.md 38KB / 878 行 / 73 画面 Phase A+B 一次出） <!-- VERSION_OK -->
 **上上一次更新（保留参考）**: 2026-04-22 下午 by [Code-Agent] — Web Round 3 导入 + 解包 + 4 UI 调整 + 2 次白屏 debug + 日语 native 文案审查 + single-file bundle 脚本化 <!-- VERSION_OK -->
 **当前版本**: 见 `CHANGELOG.md` 顶部 · **重大状态**: **4-28 管理员 demo 为最高优先级** — 7 天冲刺（4-21→4-28）— 硬件 Pi 3A+（推翻 4-20 Pi 4B 2GB）+ 采购分阶段 Demo 1 台 / 部署 3 台 + 范围硬裁剪（保点呼机全 + Web 全 + iOS Xcode + 快捷指令代 App tap / 砍 Android / 砍外壳 / 砍风控）+ sprint plan 建立。v0.4.0 S2/S3 + Device_Contract 主线由 [Mac-主会话] 维护，本会话不碰。 <!-- VERSION_OK -->
@@ -25,15 +27,15 @@
 
 **4-28 宿舍管理员 Demo 冲刺（2026-04-21 启动 → 4-28 Demo Day）** — 最高优先级，真实 stakeholder（宿舍管理员）决定是否采纳系统。权威 sprint plan：`00_admin/demo_4-28_sprint.md`。
 
-**范围**（议题 E 2026-04-21 拍板）：
-- ✅ 保：点呼机全功能 + 老师 Web（记录/实时/外宿/归国审批）+ iOS Xcode 模拟器 + iOS 快捷指令代 App tap
-- ❌ 砍：点呼机外壳 / Android 端 / 完整风控 / 扣分系统 / 多点呼机协调
+**范围**（2026-04-22 二次修订 — 砍 Pi 硬件）：
+- ✅ 保：老师 Web 全（记录/实时/外宿/归国审批）+ iOS Xcode 模拟器（6 屏）+ **iPhone Shortcuts + itsuki 自有 NFC 卡**（代替 Pi 点呼机）+ **iPad Safari Web Speech API 日语 TTS**（代替 Pi 喇叭）
+- ❌ 砍：**Pi 点呼机硬件（4-22 新砍）** / 点呼机外壳 / Android 端 / 完整风控 / 多点呼机协调
 
-**硬件**（2026-04-21 推翻 4-20 Pi 4B 2GB 选型）：**Raspberry Pi 3 Model A+**
-- 理由：thin client 用不上 over-spec + 实际价 ¥500 太贵 + 双频 WiFi + 3.5mm 音频口内置
-- Demo 1 台（日本 Amazon ¥12380 日元 ≈ ¥620 RMB，明天 4-22 到）
-- 部署扩容 3 台（管理员采纳后淘宝批量 ¥1345 RMB）
-- 详见 `02_design/hardware_design_v0.1.md §4`
+**硬件**（2026-04-22 再次推翻 4-21 "Pi 3A+ 下单"计划）：**Demo 阶段 0 采购**
+- 理由：7 天 deadline + 零基础，PN532 I²C 驱动 + TTS + 接线是最大失败风险
+- Demo 成功率 60% → 95%（砍硬件后）
+- **上线版 v1.0 仍按 Pi 3A+ 方案**（`02_design/hardware_design_v0.1.md §2.1` 保留，管理员采纳后启动）
+- 详见 `00_admin/demo_4-28/scope_tier.md §0.1` + `hardware_design_v0.1.md §4.1`
 
 **并行**：v0.4.0 主线（S2/S3 + Device_Contract）由 [Mac-主会话] 维护，demo sprint 不动 `00_admin/v0.4.0_*.md`。
 
