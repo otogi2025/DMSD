@@ -1,6 +1,6 @@
 # DMSD v0.1 字段字典（唯一命名）
 
-更新时间：2026-04-22（4-22 修订：§2.8 补 `device_retired_at` — 对应 backlog S12；之前 4-21 修订：补 `card_uid` / `student_status` + 配套生命周期字段 S2 / S3）
+更新时间：2026-04-22（4-22 修订：§2.8 补 `device_retired_at` S12 + §3 禁止字段加来源指针 S20+L10；之前 4-21 修订：补 `card_uid` / `student_status` + 配套生命周期字段 S2 / S3）
 
 ## 1. 强制规则
 - 同一概念只允许一个字段名。
@@ -97,12 +97,16 @@
 - 状态变更必须 audit（四个配套字段缺一不可）
 - 毕业 / 转学学生数据永久保留（`student_status = graduated` / `transferred` 但 row 不删）
 
-## 3. 禁止字段（示例）
-- `my_status`
-- `my_base_status`
-- `seat_status`
-- `state`
-- `background_status`（**4-17 废弃** — 统一为 `base_status`）
+## 3. 禁止字段 —— 4-22 补来源（S20 + L10 修复）
+
+> 这些字段名在早期设计讨论里出现过，最终未采用。统一登记此处以防新代码意外复用。每条注明来源 + 废弃时间。
+
+- `my_status` — 来源：`99_archive/2025-12_早期GPT对话/` 原稿（2025-12 GPT-5.2-pro 讨论里的候选命名）。未进入任何 spec 版本即淘汰；**废弃时间**：2026-02-12（v0.1 冻结时选定 `base_status` 家族命名，同时否决以 `my_` 前缀作字段名的风格）
+- `my_base_status` — 来源：同上（`my_status` 的派生候选）。**废弃时间**：同上
+- `seat_status` — 来源：`99_archive/2025-12_早期GPT对话/prompt.txt` 行 82 "更新该学生座位 seat_status = present 或 late"。语义和 `base_status` 重复，淘汰；**废弃时间**：2026-02-12（v0.1 冻结）
+- `state` — 来源：泛名，早期设计里偶用；太宽泛无法单义（session_status / base_status / device_active 等都可能被混叫 `state`）。**废弃时间**：2026-02-12（v0.1 冻结引入 `base_status` / `session_status` 等具体命名）
+- `background_status` — 来源：`01_specs/rollcall/v0.1_冻结决策.md` + `RollCall_Spec_v0.1.md` v0.1 原版；**废弃时间**：2026-04-17（Q1 决策重命名为 `base_status`，详见 `ENUM_REGISTRY_v0.1.md §3` 4-17 修订）
 
 说明：
 - 历史文档里出现的旧字段视为废弃，不得进入新代码。
+- 未来发现新的"候选命名 → 否决"时追加登记此处。
