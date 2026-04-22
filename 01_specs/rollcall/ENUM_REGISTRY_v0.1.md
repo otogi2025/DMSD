@@ -1,6 +1,6 @@
 # DMSD v0.1 枚举字典（唯一取值）
 
-更新时间：2026-04-21（4-21 修订：新增 §14 `student_status` — 对应 backlog S3 + `RollCall_Spec_v0.1.md` 附录 C.5）
+更新时间：2026-04-22（4-22 修订：§13 `path_type` 加扩展性说明 — 对应 backlog S9）
 
 ## 1. session_type
 - `morning`
@@ -83,6 +83,8 @@
 
 - `A`（卡路径：卡 → 点呼机 PN532 → 后端）
 - `B`（iPhone 路径：iPhone 读静态标签 → iPhone 自己发后端）
+
+> **扩展性说明（4-22 新增 — S9 修复）**：A/B 是当前（v0.3.x/v0.4.x）的全部取值。未来如果引入 Android HCE 主动上报路径（当前 4-19 G2 决策 Android 也走静态标签 = path_type=B，和 iPhone 一致），**新起独立取值 `C`**，不要扩展 A/B 语义。保持单字母单义。
 
 ## 14. student_status（4-21 新增 — 对应 `RollCall_Spec_v0.1.md` 附录 C.5）
 

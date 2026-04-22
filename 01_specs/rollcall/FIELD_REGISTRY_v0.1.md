@@ -1,6 +1,6 @@
 # DMSD v0.1 字段字典（唯一命名）
 
-更新时间：2026-04-21（4-21 修订：补 `card_uid` / `student_status` + 配套生命周期字段 — 对应 backlog S2 / S3）
+更新时间：2026-04-22（4-22 修订：§2.8 补 `device_retired_at` — 对应 backlog S12；之前 4-21 修订：补 `card_uid` / `student_status` + 配套生命周期字段 S2 / S3）
 
 ## 1. 强制规则
 - 同一概念只允许一个字段名。
@@ -69,7 +69,8 @@
 ### 2.8 设备（**4-17 新增** — 详见 `DEVICE_REGISTRY_v0.1.md`）
 - `device_type`（取值见 ENUM `device_type`）
 - `device_location`（自由文本，描述设备物理位置如"寮舍 A 入口"）
-- `device_active`（boolean，是否启用）
+- `device_active`（boolean，**临时**启用/停用 — 维修 / 故障等场景 toggle）
+- `device_retired_at`（**4-22 新增 — S12 修复** — 永久注销时间戳。null = 仍在使用 / 非 null = 永久注销。注销后不允许再把 `device_active` toggle 回 true。详见 `DEVICE_REGISTRY_v0.1.md §5`）
 - `device_registered_at`
 - `device_registered_by`
 - `device_notes`（自由文本，硬件型号等）

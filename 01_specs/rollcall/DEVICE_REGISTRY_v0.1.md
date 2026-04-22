@@ -1,6 +1,6 @@
 # DMSD v0.1 设备字典 — 点呼机设备注册
 
-更新时间：2026-04-17（4-17 新建，基于 itsuki Q3 决策"4 台" + `RollCall_Spec_v0.1.md` 附录 B.5 device 建模需求）
+更新时间：2026-04-22（4-22 修订：`device_active` 语义收窄为"临时停用" + 新增 `device_retired_at` 区分永久注销 — 对应 backlog S12）
 
 ## 1. 适用范围
 
@@ -17,9 +17,10 @@
 | `device_id` | UUID 或自定义短码 | ✅ | 设备唯一标识。建议格式 `dorm-{location}-{seq}`（如 `dorm-A-01`） |
 | `device_type` | enum | ✅ | `card_reader` / `iphone_tag` / `hybrid` —— 详见 ENUM §12 |
 | `device_location` | string | ✅ | 物理位置自由文本（如"寮舍 A 入口" "寮舍 B 入口"等，等现实调研后定） |
-| `device_active` | boolean | ✅ | 是否启用（false 时所有签到 API 返回 `DEVICE_NOT_ACTIVE`） |
+| `device_active` | boolean | ✅ | **临时启用/停用**标志（维修 / 故障时 toggle）。false 时所有签到 API 返回 `DEVICE_NOT_ACTIVE` |
 | `device_registered_at` | timestamp | ✅ | 注册时间（JST） |
 | `device_registered_by` | teacher_id | ✅ | 注册人（管理员） |
+| `device_retired_at` | timestamp | ⬜ | **永久注销**时间（**4-22 新增 — S12 修复**：区分临时停用 vs 永久注销）。null = 设备仍在使用 / 非 null = 永久注销日期。注销后 `device_active` 也应置 false |
 | `device_notes` | string | ⬜ | 备注（如硬件型号 `RPi 4B 2GB` 等） |
 
 ## 3. `device_type` 详解
@@ -56,18 +57,33 @@
 
 ## 5. 生命周期
 
-### 5.1 启用 / 停用
+### 5.1 临时停用（启用/停用 toggle）
 
-- 老师可在后台 toggle `device_active`（true/false）
+**场景**：设备故障送修 / 网络临时中断 / 软件升级中 / 运营决定本机暂停几天。
+
+- 老师在后台 toggle `device_active`（true/false），`device_retired_at` 保持 null
 - `device_active=false` 时：
   - 路径 A：点呼机仍可工作（它本身只搬运），但后端会拒绝所有 `device_id=X` 的签到，返回 `DEVICE_NOT_ACTIVE`
   - 路径 B：iPhone 读到该 `device_id` 发请求 → 同样返回 `DEVICE_NOT_ACTIVE`
 - 所有 `device_active` 变更必须留档（参考 spec §11 改判审计字段）
+- 可反复 toggle（故障修好后设 true 恢复）
 
-### 5.2 注销
+### 5.2 永久注销（4-22 修订 — S12 修复）
 
-- 设备退役时，**不删除 device 记录**（保留历史可追溯性），仅 `device_active=false`
-- 若需重新分配 `device_id`：建议另发新 ID，不复用旧 ID
+**场景**：设备彻底报废 / 部署位置撤销 / 换为新型号设备（此 device_id 不再启用）。
+
+- 操作：设 `device_retired_at = server_now` + `device_active=false`（两个字段同时变更）
+- 注销后**不允许再 toggle `device_active` 回 true**（逻辑由后端校验拦截）
+- **不删除 device 记录**：保留历史 `rollcall_event` 可追溯性；老师端历史查询"这条签到来自哪台设备"仍能找到
+- 若部署新设备替换：**另发新 `device_id`**，不复用旧 ID（避免历史记录语义混淆）
+
+### 5.3 历史查询时区分两类状态
+
+| 查询场景 | 判据 |
+|---|---|
+| 设备当前在不在用 | `device_active=true AND device_retired_at IS NULL` |
+| 设备是临时故障 / 还是永久注销 | `device_retired_at IS NULL` → 临时（可能还会回来）/ `IS NOT NULL` → 永久注销 |
+| 某日的签到属于哪台设备 | 按 `rollcall_event.device_id` 查，不受当前 active/retired 状态影响 |
 
 ## 6. 4 台部署（Q3 — 待现实调研后定具体位置）
 

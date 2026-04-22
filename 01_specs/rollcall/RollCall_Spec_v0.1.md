@@ -366,6 +366,7 @@ effective_auto_end_at  = started_at + (scheduled_auto_end_at  - scheduled_window
 
 - **`t > effective_late_end` 的签到**：返回 `TIMEOUT`，不改变座位结果，最终由结算置为缺席
 - **`started_at` 之前 / `ended_at` 之后的签到**：返回 `SESSION_NOT_RUNNING`（统一覆盖"还没开始"和"已结束"两种情况）
+- **session 已开始后老师再按"点呼開始"**（系统 `started_source=system` 自动开始后，老师 21:58 才注意并按按钮；或老师双击按钮）：返回 `ALREADY_RUNNING`，不变更 `started_at`（**4-22 修订 — S16 修复**：§5.5 约定此错误码，原 §7 边界列表漏列，现补入。ERROR_CODES 里对应条目已有）
 - **重复签到**（同一 `student_id` 在同一 session 内已签到）：返回 `DUPLICATE_REQUEST`，silently ignore（不变更状态、不重复播报，但记 audit log）
 - **未注册卡 / 陌生 UID**（路径 A，UID 在 `card_uid` 表里**完全没有记录** — 新卡 / 外部卡）：返回 `UNKNOWN_CARD`，点呼机红灯 + 失败声音 + 不播报姓名
 - **卡已停用 / 学生离寮**（路径 A，UID 有记录但 `card_active=false`，或绑定的学生 `student_status != 'active'`）：返回 `UNREGISTERED_UID`。（**4-21 修订 — S1 + S4 修复**：原描述的 `device_active=false` 字段错位 — `device_active` 是点呼机 device 字段不是 card/student 字段。新语义区分 `UNKNOWN_CARD` = UID 全无记录 vs `UNREGISTERED_UID` = UID 有记录但 card 或 student 非 active）
@@ -516,7 +517,7 @@ settle_at = min(ended_at, effective_auto_end_at)
 | 已发处分名单对应的 session | 原则只读 | — | 若必改需撤销处分通知 + 重新发放 |
 | 纪律分（月汇总产出后）| 只读 | — | 修正只能下月补扣 / 补还 |
 
-### 11.4 改判与扣分联动（4-17 新增 — 收口附录 B.9）
+### 11.4 改判与扣分联动（4-17 新增 — 收口附录 B.9 / 4-22 补反向 transition — S11 修复）
 
 | 改判方向 | 自动扣分动作 | ledger 记录 |
 |---|---|---|
@@ -527,9 +528,13 @@ settle_at = min(ended_at, effective_auto_end_at)
 | `absent` → `present` | 自动 -1.0 分（回退）| `type=reverse_absent` |
 | `absent` → `late` | 自动 -0.5 分（差值）| `type=adjust_late` |
 | 任意 → `exempt_range` | 之前自动加的分全回退 | `type=reverse_*` |
+| `exempt_range` → `present` | 不扣分（原本也未扣）| `type=reinstate_present` |
+| `exempt_range` → `late` | 自动 +0.5 分 | `type=adjust_late` |
+| `exempt_range` → `absent` | 自动 +1.0 分（典型场景：申请拒绝 / 事后改判 / 证据作假 — 引用 §8.3）| `type=adjust_absent` |
 
 > 老师改判 = 改 status；扣分自动跟随；不允许"只改状态不改分"或"只改分不改状态"（避免审计断链）。
 > 所有 ledger 条目都关联 `override_at` + `override_by` + `reason`。
+> **反向 transition 说明（4-22 S11）**：`exempt_range` → 其他状态发生在两类场景：① `absence_request_pending` 审批拒绝后自动落 `absent`（§8.3）；② 老师事后手动改判（如发现外泊证明作假）。两类共享同一扣分表。
 
 ---
 
