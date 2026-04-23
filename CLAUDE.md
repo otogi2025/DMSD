@@ -41,7 +41,7 @@
   - **密码重置**：App 无自助路径，学生必须找宿管，宿管在老师 Web 后台手动重置（⚠ 老师 Web 待加页面，见 `teacher_web/Round4` backlog）
   - **密码锁定升级**：连错 3 次 → 锁 30 秒 + 通报老师 → 解锁后再错 1 次 → 1 分钟 → 5 分 → 30 分 → 1 小时 → **永久锁死**（找宿管）；成功登录 counter 清零
   - **签到**：不锁定单设备；任意已激活设备 + 学生私钥签名即可签到；换机无需老师（学生新机登录自助，旧设备密钥自动作废）
-  - **权威源**：`03_dev/demo_4-28/Student_iOS_new/IOS_DESIGN_LOG.md §3`
+  - **权威源**：`03_dev/student_ios/IOS_DESIGN_LOG.md §3`
 - **上线姿态**（2026-04-19 G2 决策）：**v1.0 直接 iOS + Android + 卡 完整版一次上线**；取消原 Phase 1 / Phase 2 分阶段
 - **开发节奏**：内部按 M1→M5 里程碑推进（兜底：做不完至少 M1+M2 可 demo）
 - **4-28 管理员 demo 冲刺**（2026-04-21 议题 E 拍板 + scope 扩展 + **2026-04-22 砍硬件**）：宿舍管理员决定是否采纳系统 → 7 天冲刺（4-21 → 4-28）→ 范围 **Tier 分层**：Tier 1 真跑（点呼 / 座位表 / 改判 / 健康 / 请假 / 外宿 / 归国 / 扣分 / 检索）+ Tier 2 UI skeleton（扫除 / 巴士 / 活动 / 宿舍互动 5 项 / 快递 / 归县 / 出租车 / 通知中心 / 长期豁免）+ Tier 3 砍。**4-22 重大调整**：砍 Pi 点呼机硬件 → demo 纯软件跑（itsuki iPhone 碰自有 NFC 卡 → 后端 → iPad 座位变绿 + iPad Safari Web Speech API 日语播报 / fallback Mac `say -v Kyoko`）。**扣分规则**暂定（迟到 0.5 / 缺席 1 / 月 4 罚扫 / 月 8 禁足），后端做成 `discipline_config` 可配置表，上线前和老师商议。**权威源**：`00_admin/demo_4-28/`（文件夹，含 README.md / sprint.md / scope_tier.md / ST25DV_fallback.md / demo_script.md / **questions_for_admin.md** / **wifi_survey_howto.md**）。**分工**：本会话 [Mac-demo-sprint] 只做需求/文档/清单，代码实现交其他 agent
@@ -66,7 +66,7 @@ DMSD/
 │   └── CLAUDE_CODE_记录指南.md         # AC 记录操作手册（仅格式需要时读）
 ├── 01_specs/                          # 规格文档，v0.1 冻结，v0.2 修订中
 ├── 02_design/                         # 设计文档（hardware_design_v0.1 + flow_design_v0.1，硬件+流程权威源）
-├── 03_dev/                            # 代码（backend / Student-iOS / …）
+├── 03_dev/                            # 代码（backend / teacher_web / student_ios）
 ├── 04_ops/
 ├── 05_logs/                           # DMSD 开发 log
 │   ├── raw/                           # CC 每日 dump YYYY-MM-DD.md（+ 历史主题文件）
@@ -94,11 +94,15 @@ DMSD/
 
 | 共享概念 | 权威源 | 其他文件怎么引用 |
 |---|---|---|
+| **最新 HTML プロトタイプ 位置**（iOS / Web）| **`03_dev/LATEST.md`** | "见 `03_dev/LATEST.md`" |
 | 版本号 | `CHANGELOG.md` 顶部 | "当前版本见 `CHANGELOG.md`" |
 | 顶级目录结构 | 本文件 §目录结构 | "见 CLAUDE.md §目录结构" |
 | **文件级清单 + 作用 + 权限** | **`00_admin/文件结构指南.md`** | "见 `00_admin/文件结构指南.md`" |
 | 5 AC 核心问题 | 本文件 §5 个 AC 核心问题 | "见 CLAUDE.md §5 个 AC 核心问题" |
 | 分阶段策略 | `CHANGELOG.md` + `RollCall_Spec_*.md §1` | 用指针 |
+| **iOS + Web + 後端 共用功能**（账号 / 申請 / 通知 / コミュニティ / 規律）| **`02_design/system_features_v0.1.md`** | "见 system_features_v0.1.md §X" |
+| iOS 専属設計（視覚 / flow / Phase）| `03_dev/student_ios/IOS_DESIGN_LOG.md` | 専属項目のみ / 共用機能は system_features に |
+| Web 専属設計（Ryō tokens / 老师動線）| `03_dev/teacher_web/WEB_DESIGN_LOG.md` | 同上 |
 
 完整同步点清单 + Release Checklist + Onboarding Checklist → `00_admin/文档同步点清单.md`。
 
@@ -118,6 +122,31 @@ DMSD/
 1. **pre-commit 检查预演**：跑 `bash 00_admin/hooks/pre-commit`（不需要真 commit 就能看结果），有 ❌ 就提示 itsuki
 2. **时间戳新鲜度扫描**：过去 7 天 commit 改过但文件头"最后更新"没动的文件 → 提醒 itsuki
 3. **同步点发现**：本次会话新建了声明性文件 → 提醒 itsuki 加入 `00_admin/文档同步点清单.md`
+
+### 跨 repo 同步规则（2026-04-23 加 — iOS Swift 実装は独立 repo）
+
+**問題**: Tomoshibi iOS App の Swift 実装は独立 repo `otogi2025/Tomoshibi-iOS`（`~/dev/TomoshibiiOSApp/`）。Anthropic cloud agent が並走するため、cloud 環境からは DMSD repo を取得不可 → iOS 側から参照する設計文書は `Tomoshibi-iOS/refs/` に **物理コピー**で配置する必要がある。
+
+**Single Source of Truth は常に DMSD 側**。`Tomoshibi-iOS/refs/` は複製品（直接編集禁止）。
+
+**同期対象ファイル**（DMSD → Tomoshibi-iOS/refs/）:
+- `02_design/system_features_v0.1.md`
+- `03_dev/student_ios/IOS_DESIGN_LOG.md`
+- `03_dev/student_ios/designs/Tomoshibi_iOS_PhaseB_v2.html`
+- `03_dev/student_ios/designs/phaseB_src/`
+- `03_dev/student_ios/designs/QA_Round1_PhaseB.md`
+
+**同期方法**: DMSD 内の `bin/sync-ios-refs.sh` を実行 → 物理コピー → Tomoshibi-iOS 側で `git status` 確認 → itsuki が手動 commit（自動 push しない）。
+
+**CC 必須動作**:
+
+| 状況 | アクション |
+|---|---|
+| iOS 機能 / 設計を改動した（DMSD 側 LOG 更新済）| 会話末尾に `bash bin/sync-ios-refs.sh` を走らせる + itsuki に Tomoshibi-iOS 側 commit を促す |
+| Swift コードで機能挙動を変えた（Tomoshibi-iOS 側）| `STATUS.md` 更新 + itsuki に通知 → 「DMSD 側 `IOS_DESIGN_LOG.md` + `system_features_v0.1.md` への逆同期が必要」と明示 |
+| 新機能を iOS で設計した | 先に DMSD 側 `system_features_v0.1.md` + `IOS_DESIGN_LOG.md` を更新 → sync script → Tomoshibi-iOS 側で実装 |
+
+**跨会话改动履歴**: Tomoshibi-iOS 側の `STATUS.md` + `REMOTE_AGENT_GUIDE.md` に "最近の改动 log" section を設ける。どの agent がどの feature に何を変えたか時系列記録 → 別 agent が拾える。
 
 ### pre-commit hook 安装
 

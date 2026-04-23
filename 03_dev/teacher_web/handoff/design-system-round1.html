@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DMSD · Design System — Round 1 · 3 Variations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #f0eee9; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+  body { overflow: hidden; }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="variations/sei.jsx"></script>
+<script type="text/babel" src="variations/mitsu.jsx"></script>
+<script type="text/babel" src="variations/ryo.jsx"></script>
+
+<script type="text/babel">
+const { DesignCanvas, DCSection, DCArtboard, DCPostIt } = window;
+
+function App() {
+  return (
+    <DesignCanvas>
+      <DCSection id="intro" title="DMSD · 老師Web — Round 1 Design System" subtitle="3 variations across 配色 × 字体 × 密度 axes · iPad 1366×1024 landscape · 日本語 UI">
+        <DCArtboard id="A" label="A · 静 (Sei) — Navy / ヒラギノ / Normal" width={1366} height={1024}>
+          <SeiArtboard />
+        </DCArtboard>
+        <DCArtboard id="B" label="B · 密 (Mitsu) — Charcoal / 游ゴシック / Compact" width={1366} height={1024}>
+          <MitsuArtboard />
+        </DCArtboard>
+        <DCArtboard id="C" label="C · 涼 (Ryō) — Cool Black / Noto Sans JP / Normal" width={1366} height={1024}>
+          <RyoArtboard />
+        </DCArtboard>
+
+        <DCPostIt top={-6} left={1000} width={240} rotate={1.5}>
+          クリックでフォーカス表示 · ←/→ で切替 · Esc で戻る。ラベルやタイトルは直接クリックで編集可能。
+        </DCPostIt>
+      </DCSection>
+
+      <DCSection id="notes" title="設計ノート" subtitle="3 案の狙いと違い — itsuki が mix & match 用に">
+        <DCArtboard id="compare" label="比較 · Axes & Intent" width={1366} height={720}>
+          <CompareCard />
+        </DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+function CompareCard() {
+  const rows = [
+    {
+      axis: '配色 (Color)',
+      a: { label: 'ネイビー + 朱（事務・堅実）', hex: '#1f3763 / #a8302a' },
+      b: { label: 'チャコール + 苔緑（中立・地味）', hex: '#2a2a24 / #4e6b3f' },
+      c: { label: 'Near-Black + コバルト（モダン）', hex: '#14171f / #2b4d8c' },
+    },
+    {
+      axis: '字体 (Typography)',
+      a: { label: 'ヒラギノ角ゴ ProN', hex: 'Apple 系標準 · 堅い印象' },
+      b: { label: '游ゴシック + IBM Plex Mono', hex: '数字 mono 固定幅 · デスク向け' },
+      c: { label: 'Noto Sans JP', hex: 'Google Fonts · Web 最安定' },
+    },
+    {
+      axis: '密度 (Density)',
+      a: { label: '標準', hex: 'row 36px · fs 14' },
+      b: { label: '高密度', hex: 'row 24px · fs 12.5' },
+      c: { label: '標準+', hex: 'row 38px · fs 13.5' },
+    },
+    {
+      axis: '形状 (Shape)',
+      a: { label: '直角・線で構造化・シャドウなし', hex: 'radius 0' },
+      b: { label: '完全直角・罫線主導・ゼブラ行', hex: 'radius 0' },
+      c: { label: '丸み（8–12）・極薄シャドウ', hex: 'radius 8/10/12' },
+    },
+    {
+      axis: '座席表 (Seat)',
+      a: { label: '左 3px アクセントバー + 淡いステータス背景', hex: '氏名 + 時刻' },
+      b: { label: '全辺ボーダー · mono 数字 · 1文字略号', hex: '氏名 + 略号 + 秒' },
+      c: { label: '丸角 + tag-pill + 軽シャドウ', hex: '氏名 + 時刻' },
+    },
+    {
+      axis: '向き (Tone)',
+      a: { label: '学校事務・公文書・管理', hex: 'Classi 系' },
+      b: { label: '監視デスク・ターミナル寄り', hex: 'monoxer 系 + IDE' },
+      c: { label: 'モダン SaaS（堅すぎない）', hex: 'Studyplus 系' },
+    },
+  ];
+
+  const nav = 220;
+  return (
+    <div style={{
+      width: '100%', height: '100%', overflow: 'auto',
+      fontFamily: '"Noto Sans JP",-apple-system,sans-serif', fontSize: 13, color: '#2a2a24',
+      background: '#fbfaf5', padding: '28px 36px',
+    }}>
+      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.3 }}>3 案比較 · どれを、どう混ぜるか</div>
+      <div style={{ color: '#6a6f7d', marginTop: 4 }}>Follow-up prompt 例：<i style={{ color: '#2b4d8c' }}>「Bの配色、Aの字体、Cの密度で merge」</i></div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: `${nav}px 1fr 1fr 1fr`, marginTop: 20, border: '1px solid #e3e5eb', background: '#fff' }}>
+        <Hd>軸</Hd><Hd tone="#1f3763">A · 静 Sei</Hd><Hd tone="#2a2a24">B · 密 Mitsu</Hd><Hd tone="#14171f">C · 涼 Ryō</Hd>
+        {rows.map(r => (
+          <React.Fragment key={r.axis}>
+            <Cell bg="#f9fafb" bold>{r.axis}</Cell>
+            <Cell>{r.a.label}<Mono>{r.a.hex}</Mono></Cell>
+            <Cell>{r.b.label}<Mono>{r.b.hex}</Mono></Cell>
+            <Cell>{r.c.label}<Mono>{r.c.hex}</Mono></Cell>
+          </React.Fragment>
+        ))}
+      </div>
+
+      <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <Box title="全案で共通（もう決まっている）">
+          <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
+            <li>状態色：<b>時間内 / 欠席 / 未点呼 / 免除</b> の 4 ステート（late なし · itsuki ルール）</li>
+            <li>叠加バッジ：体調報告（＋）／審査中（?）／手動調整（M）—— 主色を上書きしない</li>
+            <li>1366×1024 優先、1024×768 で崩れない 8 列座席グリッド</li>
+            <li>数字は必ず tabular-nums / mono — 時刻・減点・通数が縦揃い</li>
+            <li>emoji は機能アイコンに使わない（座席の小バッジは一文字記号で代替）</li>
+          </ul>
+        </Box>
+        <Box title="第 2 轮以降でやること">
+          <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
+            <li>Round 2 · 選定案で <code>/login</code> + <code>/roll-call</code> + 改判 modal（完全 interaction）</li>
+            <li>Round 3 · Tier 1 残り 5 ページ + Tier 2 の SkeletonPage 一式</li>
+            <li>Round 4 · Tweaks パネル（配色切替・字体サイズ・密度・UI 言語）</li>
+            <li>最後：Save as standalone HTML で単一ファイル出力 → designs/ に保管</li>
+          </ul>
+        </Box>
+      </div>
+    </div>
+  );
+}
+
+function Hd({ children, tone }) {
+  return <div style={{
+    padding: '10px 14px', fontSize: 12, fontWeight: 700, letterSpacing: 1,
+    background: tone || '#f4f5f7', color: tone ? '#fff' : '#3a404d',
+    borderBottom: '1px solid #e3e5eb',
+  }}>{children}</div>;
+}
+function Cell({ children, bg, bold }) {
+  return <div style={{
+    padding: '10px 14px', background: bg || '#fff',
+    borderTop: '1px solid #f0f1f4', borderRight: '1px solid #f0f1f4',
+    fontSize: 12.5, fontWeight: bold ? 700 : 400, lineHeight: 1.5,
+  }}>{children}</div>;
+}
+function Mono({ children }) {
+  return <div style={{ fontFamily: '"JetBrains Mono",monospace', fontSize: 10.5, color: '#6a6f7d', marginTop: 3 }}>{children}</div>;
+}
+function Box({ title, children }) {
+  return (
+    <div style={{ border: '1px solid #e3e5eb', background: '#fff', padding: '14px 18px' }}>
+      <div style={{ fontSize: 12, letterSpacing: 1.5, fontWeight: 700, color: '#3a404d', marginBottom: 10, textTransform: 'uppercase' }}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -13,7 +13,8 @@
 
 ---
 
-**最后更新**: 2026-04-22 夜 by [Code-Agent] — **4-28 demo 收尾**：今日 [Code-Agent] 一整天代码实装累计 — (a) Round 3 导入+解包+bug 修+日语 2 轮 QA+single-file 打包（32MB）(b) **点呼機代替方案完整实装**：`demo_server.py`（POST `/checkin?no=XX` + GET `/events/latest` + `/api/server-info` + CORS + UDP socket IP 检测）· `live-roll-call.jsx` polling + `SpeechSynthesisUtterance` 日语 TTS + `NfcIndicator` 3 态 · `NFC_DEMO_SETUP.md` 教程 (c) **UI 新建**：学生アカウント管理页面 `accounts.jsx` (24 seed + 2 tab modal) + Dashboard `NfcQuickUrlCard` 精简 1 行 (d) **外泊提交期限规则实装**：`outstayDeadline()` = min(当週水曜 23:59, 48h 前) · `DeadlineBadge` + modal `§提出期限` section + 面谈必须警示 + banner + 2 late / 2 on-time seed (e) **`./tomoshibi` bash CLI**（ANSI 彩色 + 7 subcommand: start/stop/status/ip/rebuild/pack/help）— demo 演出"pro 感"。13 jsx Babel ✅。`raw/2026-04-22.md` §19:00 / §19:10 / §19:40 / §19:55 追加 4 条 dump。`WEB_DESIGN_LOG` Timeline 同步 6 条。`IOS_DESIGN_LOG §9.2` ✅ + 19:10 外泊期限规则要求 iOS 同步实装。 <!-- VERSION_OK -->
+**最后更新**: 2026-04-23 夜 by [Mac-demo-sprint] — **D3 設計ラッシュ + 03_dev 重構**：(1) **学号体系 6 桁拍板**（学年 × 組 × 番号、中高一貫 6 年制、A=01/B=02、060218 = 高3 B 18、リュウ イヒ demo seed 00 → 060218）(2) **跨会话同步規則 A+B+C**（system_features_v0.1.md 新建 = iOS+Web+後端共用真值 / `bin/sync-ios-refs.sh` 建立 / CLAUDE.md 明文ルール）(3) **[iOS-Swift-CC] との独立収束確認**（両会話が独立に 6 桁規則到達、`00_admin/跨会话_ios_共享决策.md` + 本会話の system_features 互指ポインタで統合）(4) **学生改动履歴（監査ログ）規格**（学号/房间号/メール/電話/パスワード事実 全記録、老师 Web アクティビティ履歴 tab + 学生 App 変更履歴）(5) **房间号管理**（注册時学生手入力 + v1.1 老师 Web 一括分配 drag & drop + 学生 App 自動受信）(6) **コミュニティ 拆分決定**（通報保留 / 宅配+忘れ物 フロント業務へ / リクエスト曲 古い順 + 寮内 BGM / 朝晩字段 pending）(7) **男寮教員 新股/小林/難波 + 姓後先生統一**（theme.jsx TEACHERS + applications.jsx 承認 workflow 全 approver）(8) **巴士実公告 2026-03-22 保管** → `06_assets/real_samples/bus_notice_2026-03-22_特別運行便.md` + 規格入 system_features §6.6（閲覧/CRUD/乗車名簿）(9) **03_dev/ 物理重構**: `demo_4-28/` 嵌套解除 → `03_dev/{backend,teacher_web,student_ios}/` 平置化 + `Student/DMSDStudentApp(iOS)` → `99_archive/2026-03-08_throwaway_ios_swift/` + 27 MD ファイル path 引用更新 + `03_dev/LATEST.md` 新建（最新 HTML 索引）(10) **HTML build 順序明文化**: jsx 改 → `rebuild.command` → `build_single_file.py` の 3 段階。Prototype_v3.html 凍結版削除（密码 12345678 弾き事故防止）。`raw/2026-04-23.md` 10 section 新建（AC 候補 🌟 5 件）。 <!-- VERSION_OK -->
+**上一次更新（保留参考）**: 2026-04-22 夜 by [Code-Agent] — **4-28 demo 收尾**：Round 3 導入+解包+bug修+日語 2 輪 QA+single-file 打包(32MB) + 点呼機代替（demo_server.py + polling TTS）+ accounts.jsx 学生管理 + 外泊期限規則 + ./tomoshibi CLI <!-- VERSION_OK -->
 **上一次更新（保留参考）**: 2026-04-22 夜 by [Mac-demo-sprint] — 砍 Pi 文档层落地 + 35 问管理员清单 + Wi-Fi 测试手册（文档会话方向；和本 Code-Agent 代码方向配对） <!-- VERSION_OK -->
 **上一次更新（保留参考）**: 2026-04-22 晚 by [Code-Agent] — Web 学生アカウント管理页面新建（`accounts.jsx` + `ACCOUNTS` seed 24 人 + Shell nav + modal 2 tab + iOS 设计 §9.2 ✅） <!-- VERSION_OK -->
 **上一次更新（保留参考）**: 2026-04-22 晚 by [Mac-demo-sprint] — iOS 前端设计 Round 1 Prompt 落盘（3 按钮 nav + Home omnibus + 中央点呼 sheet + 注册 4-step + 锁定升级 + 00 号 seed + Round1_Prompt.md 38KB / 878 行 / 73 画面 Phase A+B 一次出） <!-- VERSION_OK -->
@@ -132,10 +133,10 @@
 **身份**：代码实现 agent（前端 / 后端 / iOS / Pi 点呼机所有代码），需求来源 = `00_admin/demo_4-28/scope_tier.md`。
 
 **认领文件**（briefing `for_code_agent.md §3` 权限内，**路径根据 itsuki 2026-04-21 "demo 文件不要污染主项目" 指令全部挪到 `03_dev/demo_4-28/` 下**）：
-- `03_dev/demo_4-28/backend/`（**2026-04-21 晚 itsuki 拍板后 mv 自原 `03_dev/backend/`** —— skeleton 保持完整，README.md path 已同步更新）
-- `03_dev/demo_4-28/teacher_web/`（新建；**2026-04-21 晚 Claude Design Round 2 handoff bundle 已导入**：`index.html` + `round2/*.jsx` 6 组件 + `standalone-offline-backup.html` 8.4MB + `handoff/` 归档含 chat1.md AC 素材；设计方向 = Ryo / Noto Sans JP / 近黑+コバルト；Round 2 已做 login + roll-call dashboard + live 座席表 + override modal 4 项，Tier 1 剩 7 页 + Tier 2 15 skeleton 留 Round 3；D3 起把 seed 换成 API fetch + WS 订阅）
-- `03_dev/demo_4-28/Student_iOS_new/`（新建，SwiftUI；已建 `DESIGN_BRIEF.md` = Claude Design 任务书，iOS 版和 Web 版分开 project）
-- `03_dev/demo_4-28/device/`（新建，Python + PN532 + pyttsx3）
+- `03_dev/backend/`（**2026-04-21 晚 itsuki 拍板后 mv 自原 `03_dev/backend/`** —— skeleton 保持完整，README.md path 已同步更新）
+- `03_dev/teacher_web/`（新建；**2026-04-21 晚 Claude Design Round 2 handoff bundle 已导入**：`index.html` + `round2/*.jsx` 6 组件 + `standalone-offline-backup.html` 8.4MB + `handoff/` 归档含 chat1.md AC 素材；设计方向 = Ryo / Noto Sans JP / 近黑+コバルト；Round 2 已做 login + roll-call dashboard + live 座席表 + override modal 4 项，Tier 1 剩 7 页 + Tier 2 15 skeleton 留 Round 3；D3 起把 seed 换成 API fetch + WS 订阅）
+- `03_dev/student_ios/`（新建，SwiftUI；已建 `DESIGN_BRIEF.md` = Claude Design 任务书，iOS 版和 Web 版分开 project）
+- `03_dev/device/`（新建，Python + PN532 + pyttsx3）
 - `00_admin/demo_4-28/questions_for_requirements.md`（新建，提问队列，只写自己的问题段，不改 itsuki/需求会话的回复段）
 - `00_admin/WIP.md` 本段（进度登记）
 
@@ -177,9 +178,9 @@
 
 ### 2026-04-22 晚（iOS 前端设计 Round 1 Prompt 落盘）
 
-- **[Mac-demo-sprint]** **iOS 架构重构拍板**：推翻 [Code-Agent] 2026-04-21 晚写的 4-tab 旧方案（`Student_iOS_new/DESIGN_BRIEF.md v1` 已归档）→ 新架构 3 按钮 nav（申し込み / ⭐点呼 action button / マイページ）+ Home omnibus（承载除 2 tab 外所有功能：Community / 扣分 / 快递 / 遗失物 / 点歌 / 通知）+ 中央点呼 sheet flow（iOS 26 Liquid Glass 毛玻璃 + SUNTORY ジハンピ 风格 4 态动画）+ 注册 flow 4-step（氏名 / 生日→自动分寮 / 学生区分 一般 or サッカー部 / 联络先 / 密码 ×2）+ 锁定升级 5 阶段（30 秒 → 1 分 → 5 分 → 30 分 → 1 时 → 永久锁）+ 00 号测试账户 seed "demo 魔法"（注册流程演示 + 实际登入预 seed 00 号 リュウ イヒ · 4 分扣分）+ 持续顶部点呼 bar 全 App（3 态 + 可点反馈 sheet）+ 导航规则（Level 1 Home icon 简笔画 / L2+ ← / 长按 0.4 秒 breadcrumb）
+- **[Mac-demo-sprint]** **iOS 架构重构拍板**：推翻 [Code-Agent] 2026-04-21 晚写的 4-tab 旧方案（`student_ios/DESIGN_BRIEF.md v1` 已归档）→ 新架构 3 按钮 nav（申し込み / ⭐点呼 action button / マイページ）+ Home omnibus（承载除 2 tab 外所有功能：Community / 扣分 / 快递 / 遗失物 / 点歌 / 通知）+ 中央点呼 sheet flow（iOS 26 Liquid Glass 毛玻璃 + SUNTORY ジハンピ 风格 4 态动画）+ 注册 flow 4-step（氏名 / 生日→自动分寮 / 学生区分 一般 or サッカー部 / 联络先 / 密码 ×2）+ 锁定升级 5 阶段（30 秒 → 1 分 → 5 分 → 30 分 → 1 时 → 永久锁）+ 00 号测试账户 seed "demo 魔法"（注册流程演示 + 实际登入预 seed 00 号 リュウ イヒ · 4 分扣分）+ 持续顶部点呼 bar 全 App（3 态 + 可点反馈 sheet）+ 导航规则（Level 1 Home icon 简笔画 / L2+ ← / 长按 0.4 秒 breadcrumb）
 - **[Mac-demo-sprint]** **Q1-Q8 + N1-N20 全答**：iPhone 17 Pro + iOS 26 Liquid Glass / Home 加 tabs+sections / Claude Design 一轮全出 Phase A+B / logo 仅 splash 用 / 暗色模式做 / 宿舍墙实名 / Demo 切学生砍（注册 flow 取代）等 28 条决策归档进 `IOS_DESIGN_LOG.md`
-- **[Mac-demo-sprint]** 落盘 4 档件 + 4 参考图到 `03_dev/demo_4-28/Student_iOS_new/`：
+- **[Mac-demo-sprint]** 落盘 4 档件 + 4 参考图到 `03_dev/student_ios/`：
   - `IOS_DESIGN_LOG.md`（303 行 / 15 KB） — 决策归档
   - `DESIGN_BRIEF.md`（168 行 / 10 KB） — 实装进度追踪
   - `round1_handoff/Round1_Prompt.md`（**878 行 / 38 KB**）— 发给 Claude Design 的完整 prompt（73 画面字段级 spec + Phase A 3 variations 指令 + Phase B 一次出 + Seed data + Interactive behaviors）
@@ -194,7 +195,7 @@
 
 ### 2026-04-22 下午（Web Round 3 导入 + 解包 + debug · [Code-Agent]）
 
-- **[Code-Agent]** Claude Design Round 3 `Tomoshibi_Prototype_v3__Standalone_.html`（9.4 MB）导入 `03_dev/demo_4-28/teacher_web/round3/` + Python 脚本解包 manifest（146 资源）→ `round3/src/` 12 组件 + 3 vendor + 130 字体（人类可读）
+- **[Code-Agent]** Claude Design Round 3 `Tomoshibi_Prototype_v3__Standalone_.html`（9.4 MB）导入 `03_dev/teacher_web/round3/` + Python 脚本解包 manifest（146 资源）→ `round3/src/` 12 组件 + 3 vendor + 130 字体（人类可读）
 - **[Code-Agent]** itsuki 走查发现 4 项调整：詳細列宽 / リュウ イヒ 男寮迁移 W101 → M101 / 扣分触发清扫线 / 名前搜索 normalize 去空格
 - **[Code-Agent]** 2 次白屏 debug：Round 1 file:// CORS（integrity/crossorigin strip）+ Round 2 数组越界（roster 13 人但 statuses 12 项 → `i % len` 修复）
 - **[Code-Agent]** 日语 native 文案审查：名単→リスト / 距 X まで→X まで残り / 晚点呼→晩点呼 / スプレッドシート×入力→食数の自由記入可 等约 12 处中文残留修正
@@ -382,7 +383,7 @@
 |------|-------|
 | `03_dev/backend/` | 后端会话 |
 | `03_dev/device/` | 设备会话(Raspberry Pi) |
-| `03_dev/Student_iOS_new/` | iOS 会话 |
+| `03_dev/student_ios/` | iOS 会话 |
 | `03_dev/teacher_web/` | 老师端会话 |
 | `01_specs/` | 一次只允许一个会话改(规格冻结区) |
 | `00_admin/` | 主会话管理 |

@@ -1,0 +1,33 @@
+{
+  "ok": true,
+  "data": {
+    "month": "2026-02",
+    "total_points": 5,
+    "remaining_to_cleaning": {
+      "late": 8,
+      "absent": 4
+    },
+    "remaining_to_confinement": {
+      "late": 16,
+      "absent": 8
+    },
+    "next_cleaning_at": null,
+    "confinement_until": null,
+    "days": [
+      { "date": "2026-02-01", "am_status": "none", "pm_status": "none" },
+      { "date": "2026-02-02", "am_status": "normal", "pm_status": "normal" },
+      { "date": "2026-02-03", "am_status": "normal", "pm_status": "late" },
+      { "date": "2026-02-04", "am_status": "normal", "pm_status": "normal" },
+      { "date": "2026-02-05", "am_status": "late", "pm_status": "normal" },
+      { "date": "2026-02-06", "am_status": "normal", "pm_status": "absent" },
+      { "date": "2026-02-07", "am_status": "none", "pm_status": "none" },
+      { "date": "2026-02-08", "am_status": "none", "pm_status": "none" },
+      { "date": "2026-02-09", "am_status": "normal", "pm_status": "normal" },
+      { "date": "2026-02-10", "am_status": "normal", "pm_status": "normal" },
+      { "date": "2026-02-11", "am_status": "late", "pm_status": "normal" },
+      { "date": "2026-02-12", "am_status": "absent", "pm_status": "none" },
+      { "date": "2026-02-13", "am_status": "none", "pm_status": "none" },
+      { "date": "2026-02-14", "am_status": "none", "pm_status": "none" }
+    ]
+  }
+}
