@@ -13,7 +13,7 @@
 
 ---
 
-**当前版本**: v0.5.0（2026-04-29 close — Demo 4-28 sprint 落地 + 版本管理 SOP 建立）<!-- VERSION_OK -->
+**当前版本**: v0.6.0（2026-04-29 晚 close — 老师 4-29 LINE 38 条受领 + RollCall_Spec 5 处修订 + system_features 大重写 + 03_dev demo/v1 分离）<!-- VERSION_OK -->
 **版本管理 SOP**: `00_admin/版本管理SOP.md`（CC 改 spec / 02_design / 03_dev 主体后必读 §2 决策树）
 
 **最后更新**: 2026-04-29 下午 by [Mac-VersionMgmt-CC] — **版本管理总修 + v0.4.0+v0.5.0 双 minor close**：(1) `00_admin/版本管理SOP.md` 建立（运行手册 12 节，和 iCloud 教科书分工）(2) **4 层叠加机制让 Claude 必读 SOP**：CLAUDE.md inline 5 条核心 + WIP 头部当前版本行 + pre-commit hook 改 spec 提醒 + §会话结束 第 4 项 30 秒 bump 判断 (3) CHANGELOG `[0.4.0-wip]` → `[0.4.0]` + 新建 `[0.5.0]`（4-21 → 4-29 9 天累积 15 commit + 本 release commit 一次 close）(4) **11 文件去 `_v0.1` 后缀**（另一会话 14:06 已 git mv，本会话补 36 个活跃文档 perl 引用替换 + 5 类例外清单）(5) `v0.4.0_AC叙事.md` + `v0.5.0_AC叙事.md`（按 v0.3.0 模板 6 节，留 itsuki 自补面试原话标注；v0.5.0 标"项目第一个 stakeholder-facing 版本"特殊地位）(6) 双 git tag v0.4.0 + v0.5.0 已打 + push GitHub (7) 文档同步点清单 §9 / 文件结构指南 / 版本演变一览 全部联动更新。`raw/2026-04-29.md §11` ⭐⭐⭐ #AC候选 dump（失败转成系统性解法 / 4 层 fault-tolerant 设计）。 <!-- VERSION_OK -->

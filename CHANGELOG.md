@@ -1,6 +1,6 @@
 # Changelog
 
-> **最后更新**: 2026-04-29（**v0.4.0 + v0.5.0 双 minor 闭合** — 4-21 至 4-29 9 天累积一次性 close；文件名 `_v0.1` 去后缀；**版本管理 SOP 建立**解决"不会迭代"问题，详见 `00_admin/版本管理SOP.md`）
+> **最后更新**: 2026-04-29 晚（**v0.6.0 close** — 老师 4-29 LINE 38 条受领 + RollCall_Spec 5 处时序修订 + system_features 中文骨架大重写 + 03_dev demo/v1 分离）。早些更新：v0.4.0 + v0.5.0 双 minor 闭合 — 4-21 至 4-29 9 天累积一次性 close；文件名 `_v0.1` 去后缀；**版本管理 SOP 建立**
 >
 > 版本号规则：[语义化版本 (SemVer)](https://semver.org/) — 主版本号.次版本号.修订号
 >
@@ -14,6 +14,56 @@
 > 打这些标签的目的：让"讨论了十几种方案才写第一版文档"这件事有可追溯的证据链。
 >
 > **2026-04-20 更新**：10 个 pre-0.1 annotated tag（`v0.0.1` - `v0.0.10`）已追认打在 initial commit `3baa168` 上，每个 tag message 里写了对应版本的核心内容 + 指向 CHANGELOG / raw 的指针。`git tag -l | sort -V` 可以看到完整版本历史。
+
+---
+
+## [0.6.0] - 2026-04-29 晚（老师 4-29 LINE 38 条受领 + spec 主体修订 + 设计大重写 + demo/v1 分离）
+
+> **为什么 minor bump**（对照版本管理 SOP §2 决策树）：本版本完成 4-28 demo 通过老师认可后的全套响应：
+> - **#1 改了 spec 业务规则主体** → RollCall_Spec.md 5 处时序修订（§4.2 老师时刻表 + §5.2 流程 + §5.4 窗口固定不平移 + §5.5 自动开始时点 + §5.6 「点呼総結」中层页 + 附录 A.4 close）
+> - **#3 改了 02_design 设计文档** → system_features.md 357 → 830 行 大重写（中文骨架 + R1-R4 硬约束 + 14 子节功能矩阵）
+> - **#4 03_dev/ 大幅重组** → backend/teacher_web/student_ios 各自分 demo/v1，210+ 文件 rename
+>
+> **2 commit 归入本版本**：`0d1da76`（cleanup checkpoint — 4-29 19:45 itsuki 自做）+ 本 release commit（4-29 晚）
+
+### Added — 4-28 demo 后的需求收纳 + 长期治理基建
+
+**老师需求受领 + 整理**（`00_admin/TODO.md` + `02_design/system_features.md` + APPENDIX A）:
+- 老师 4-29 LINE 38 条产品要件 + 1 条订正（通知 = 邮件）
+- itsuki 4 条砍/留（学生发帖/社区/匿名 砍 + 音乐 留）
+- 12 个待问 Q（Q1-Q12 已答其中关键 11 个）
+- 4 条硬约束 R1-R4（邮件 / 一本道 / 教师单独账号 / 1·2 寮 vs 4 寮 分别）
+
+**RollCall_Spec.md 时序规则全面修订**（5 处）:
+- §4.2 老师侧时刻表 — 加列"应开始(-5min)"+"兜底自动开启(-3min)"+ 注明"未签到不自动变黄"
+- §5.2 流程 — 从 3 步扩到 5 步，明确"老师按结束 → 跳总结页"
+- §5.4 老师手动开始 — **改写**：推翻原"窗口平移"规则 → 窗口固定 + 边界 4 行表
+- §5.5 自动开始 — 时点从 `window_start` 改到 `on_time_end - 3min`
+- §5.6 「点呼総結」中层页 — **新增**：4 区块（缺席 / 迟到 / 特殊要求 / 外宿自动跳过）+ "回主页"按钮 + 主页保留入口
+- 附录 A.4 ✅ CLOSED
+
+**system_features.md 中文骨架大重写**（357 → 830 行）:
+- 文档头删掉文件级 v0.x 版本号（违反单源真值原则，git 是单源）
+- §2 必读硬约束 R1-R4 顶部新章
+- §3 5 角色体系 + 设备分布（職員室 / 事務室 / 寮管室 iPad / 食堂 iPad）
+- §7 功能矩阵 14 子节覆盖老师 38 条（出寮届 / 学習 / 点呼 / 行事 / 巴士 / 食堂 / 出寮者一覧 / 指导履历 / 个人数据 / 砍掉功能 等）
+- §8 数据模型扩充（applications / study / events / bus / meals / teachers + R4 一致性 CHECK）
+- APPENDIX A 老师 LINE 原文（evidence 保留日语原文）
+
+### Changed — 03_dev demo/v1 分离
+
+- `03_dev/backend/` → `backend/{demo,v1}/`（10 文件挪到 demo/，新建顶层 README + v1/README 占位）
+- `03_dev/teacher_web/round3/` → `teacher_web/demo/`（157 文件整体 rename + 新建 v1/README 占位）
+- `03_dev/student_ios/designs/` → `student_ios/demo/`（4 文件 rename + 新建 v1/README 指向 ~/dev/TomoshibiiOSApp/）
+- `bin/sync-ios-refs.sh` 路径修正 designs → demo
+- `03_dev/LATEST.md` + `00_admin/文件结构指南.md` 同步反映新路径
+
+### Notes — itsuki 拍板的治理决策
+
+- **demo 锁定不动 / 正式版从 demo 复制需要的部分**（4-29 拍板）→ 防止 demo 临时性代码污染长期维护
+- **三层档案分层**（共用真值 system_features / iOS 専属 LOG / Web 専属 LOG）
+- **CC 触发清单加一条**「档案体系 / 文件管理规范 元思考」→ 让 CC 主动识别同类元决策（CLAUDE.md + CLAUDE_CODE_记录指南.md 同步加）
+- **AC §13 ⭐⭐⭐ 长期治理思维**（~2000 字方法论级 dump in `05_logs/raw/2026-04-29.md`）
 
 ---
 

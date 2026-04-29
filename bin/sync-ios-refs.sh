@@ -27,15 +27,15 @@ mkdir -p "$IOS/refs/phaseB_src"
 cp -v "$DMSD/03_dev/student_ios/IOS_DESIGN_LOG.md" \
       "$IOS/refs/IOS_DESIGN_LOG.md"
 
-cp -v "$DMSD/03_dev/student_ios/designs/QA_Round1_PhaseB.md" \
+cp -v "$DMSD/03_dev/student_ios/demo/QA_Round1_PhaseB.md" \
       "$IOS/refs/QA_Round1_PhaseB.md" 2>/dev/null || echo "  (skip QA — not found)"
 
-cp -v "$DMSD/03_dev/student_ios/designs/Tomoshibi_iOS_PhaseB_v2.html" \
+cp -v "$DMSD/03_dev/student_ios/demo/Tomoshibi_iOS_PhaseB_v2.html" \
       "$IOS/refs/Tomoshibi_iOS_PhaseB_v2.html"
 
 # JSX 解包源
-if [ -d "$DMSD/03_dev/student_ios/designs/phaseB_src" ]; then
-    cp -v "$DMSD/03_dev/student_ios/designs/phaseB_src/"*.js \
+if [ -d "$DMSD/03_dev/student_ios/demo/phaseB_src" ]; then
+    cp -v "$DMSD/03_dev/student_ios/demo/phaseB_src/"*.js \
           "$IOS/refs/phaseB_src/" 2>/dev/null || true
 fi
 
