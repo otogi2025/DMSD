@@ -3,39 +3,19 @@
 > **项目名（仓库/开发代号）**：DMSD — Dormitory Management System Digitalization
 > **系统/产品名（对外）**：**Tomoshibi**（灯火 / ともしび）
 >
-> 把我们宿舍的纸质点呼流程数字化，解决"学生代刷"等长期存在的真实问题。
+> 把我们宿舍的纸质点呼流程数字化。
 >
 > **当前版本**：见 [`CHANGELOG.md`](./CHANGELOG.md)（单源真值）
 > **状态**：规格设计 + 架构决策阶段，首行代码尚未开始
-> **作者**：itsuki（日本高中三年级，零基础起步，边学边做）
-
----
-
-## 为什么叫 Tomoshibi（灯火）
-
-我在日本留学，宿舍是我在异国的**第二个家**。这个系统守护的是"灯火"——每个学生夜晚平安归来、房间亮起一盏灯。所以取日语名 **Tomoshibi**（ともしび / 灯火）。
-
-- **DMSD** = 项目开发代号（Git 仓库名 / AC 叙事里指"这个项目"）
-- **Tomoshibi** = 面向用户的系统/产品名（学生装的 App / 老师用的 Web / 点呼机终端的品牌）
+> **作者**：itsuki（伊月）— 零基础起步，边学边做
 
 ---
 
 ## 这是什么
 
-我住的宿舍每天都要点呼，现在用的是纸质签到表。这种方式慢、容易漏，而且**有个我亲眼见过的问题：同学之间会互相代签**（把手机/签到表递给别人代打）。
+我住的宿舍每天都要点呼，现在用的是纸质签到表。这种方式慢、容易漏。
 
-Tomoshibi 用 NFC 卡 + 服务器 + 手机 App + 墙上的专用小设备（点呼机）把这整个流程数字化，**并且从设计上挡住"代签"这件事**。
-
----
-
-## 为什么做
-
-一个核心观察：**任何"验证设备"的方案都挡不住代签**。只要卡 / 手机 / 二维码能被交给别人，代签就堵不死。
-
-所以 Tomoshibi 的设计里有一条原创的反作弊机制：点呼机读到卡后**用扬声器大声念出学生名字**，老师在旁边一看，人和名字对不上就当场发现。
-**技术负责识别身份，老师负责识别人**。
-
-完整的设计推导过程（从宿舍里的观察怎么一步步变成这个方案）写在：[`00_admin/原创设计_语音播报防作弊.md`](./00_admin/原创设计_语音播报防作弊.md)。
+Tomoshibi 用 NFC 卡 + 服务器 + 手机 App + 墙上的专用小设备（点呼机）把这整个流程数字化。
 
 ---
 
@@ -47,7 +27,7 @@ Tomoshibi 用 NFC 卡 + 服务器 + 手机 App + 墙上的专用小设备（点�
 - ✅ 字典体系（枚举 / 字段 / 错误码 / 设备注册）成型
 - ✅ 硬件架构决策（Raspberry Pi + PN532 NFC + 扬声器）
 - ✅ 双路径架构：NFC 卡 + 手机 App 同时支持，没智能手机的学生不被排除
-- ✅ 反作弊核心设计：语音播报 + 动态 NFC 贴纸（ST25DV16K，每 10 秒刷新一次性 nonce，防 URL 复制）
+- ✅ 反作弊机制：动态 NFC 贴纸（ST25DV16K，每 10 秒刷新一次性 nonce，防 URL 复制）+ 语音播报
 - ✅ 系统正式命名 **Tomoshibi（灯火）**（2026-04-21）
 - ✅ Spec S 系列闭合（v0.4.0，2026-04-22）
 - ✅ 老师 Web prototype Round 3（12 组件 + 学生账号管理 + 座席表 + 改判 + カレンダー + リクエスト曲）
@@ -67,12 +47,11 @@ Tomoshibi 用 NFC 卡 + 服务器 + 手机 App + 墙上的专用小设备（点�
 | 顺序 | 文件 | 看什么 |
 |---|---|---|
 | 1 | [`CHANGELOG.md`](./CHANGELOG.md) | 项目版本变更历史（含 pre-0.1 追认） |
-| 2 | [`00_admin/原创设计_语音播报防作弊.md`](./00_admin/原创设计_语音播报防作弊.md) | 我**从真实观察推导出**的核心设计 |
-| 3 | [`01_specs/rollcall/RollCall_Spec.md`](./01_specs/rollcall/RollCall_Spec.md) | 点呼系统完整规格（~1000 行，业务 + API） |
-| 4 | [`05_logs/decision_log.md`](./05_logs/decision_log.md) | 每个重要决策的"之前 → 现在 → 为什么" |
-| 5 | [`05_logs/project_evolution.md`](./05_logs/project_evolution.md) | 项目整体如何从"想法"演变到"可动手蓝图" |
-| 6 | [`05_logs/learning_path.md`](./05_logs/learning_path.md) | 我作为零基础学习者的学习路径 |
-| 7 | [`00_admin/progress_overview.md`](./00_admin/progress_overview.md) | 阶段进度快照（章节级） |
+| 2 | [`01_specs/rollcall/RollCall_Spec.md`](./01_specs/rollcall/RollCall_Spec.md) | 点呼系统完整规格（~1000 行，业务 + API） |
+| 3 | [`05_logs/decision_log.md`](./05_logs/decision_log.md) | 每个重要决策的"之前 → 现在 → 为什么" |
+| 4 | [`05_logs/project_evolution.md`](./05_logs/project_evolution.md) | 项目整体如何从"想法"演变到"可动手蓝图" |
+| 5 | [`05_logs/learning_path.md`](./05_logs/learning_path.md) | 我作为零基础学习者的学习路径 |
+| 6 | [`00_admin/progress_overview.md`](./00_admin/progress_overview.md) | 阶段进度快照（章节级） |
 
 ---
 
@@ -85,7 +64,7 @@ Tomoshibi 用 NFC 卡 + 服务器 + 手机 App + 墙上的专用小设备（点�
 | 后端 | FastAPI / Python + PostgreSQL |
 | 点呼机 | Raspberry Pi + PN532 NFC + 扬声器 + Python |
 | NFC 卡 | NTAG215（空白卡批量采购） |
-| 版本 / 协作 | Git + GitHub（私有仓库） |
+| 版本 / 协作 | Git + GitHub |
 
 **上线姿态**（2026-04-19 决定）：v1.0 **一次性**上线三种使用方式（卡 / iPhone / Android），不做"先上卡再上 App"的分阶段。开发内部按 M1→M5 里程碑推进，兜底是"做不完至少 M1+M2 可以 demo"。
 
@@ -114,6 +93,6 @@ Tomoshibi 用 NFC 卡 + 服务器 + 手机 App + 墙上的专用小设备（点�
 ## 联系 / 其他
 
 - **开发者**：itsuki（otogi2025@gmail.com）
-- **GitHub**：https://github.com/otogi2025/DMSD（私有仓库）
+- **GitHub**：https://github.com/otogi2025/DMSD
 - **项目起始**：2026-02
 - **升学目标**：筑波大学 情報学群 情報科学類 AC 入試（2027 年 4 月入学）—— DMSD 也是我 AC 入試 的核心叙事项目。这个动机我不回避：**"真诚解决真问题"和"把解决过程作为升学叙事"本来就不冲突**。
