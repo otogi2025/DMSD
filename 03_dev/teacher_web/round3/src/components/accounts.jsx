@@ -47,15 +47,16 @@ function AccountsPage({ teacher }) {
 
   React.useEffect(() => { if (toast) { const id = setTimeout(() => setToast(null), 4000); return () => clearTimeout(id); } }, [toast]);
 
-  const nextNo = String(accounts.length).padStart(2, '0');
+  const DEMO_NO = window.DEMO_SEED_NO; // 060218 = リュウ イヒ
+  const nextNoHint = '06????'; // 番号 6 桁: 学年(2)+組(2)+番号(2)。iOS 登録時に学生本人入力
 
   return (
-    <div style={{ padding: '28px 32px 48px', maxWidth: 1400 }}>
+    <div style={{ padding: '28px 32px 48px' }}>
       <div style={{ fontSize: 11, color: T.ink3, letterSpacing: 2, fontWeight: 600 }}>学生管理</div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, margin: '4px 0 20px' }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.3 }}>学生アカウント管理</h1>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => alert(`次の新規登録 = 番号 ${nextNo}（iOS App からの自動採番 · demo 版未対応）`)} style={{ padding: '8px 14px', background: 'transparent', color: T.cobalt, border: `1px solid ${T.cobalt}`, borderRadius: 8, fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>＋ 新規追加（次は {nextNo}）</button>
+          <button onClick={() => alert(`新規登録は iOS App から本人入力（番号 = 学年 2 桁 + 組 2 桁 + 番号 2 桁、例：高 3 B 18 = 060218）。demo 版で老師側追加未対応`)} style={{ padding: '8px 14px', background: 'transparent', color: T.cobalt, border: `1px solid ${T.cobalt}`, borderRadius: 8, fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>＋ 新規追加（iOS から）</button>
           <button onClick={() => alert('CSV 出力 · Demo 版未対応')} style={{ padding: '8px 14px', background: 'transparent', color: T.ink3, border: `1px solid ${T.lineStrong}`, borderRadius: 8, fontFamily: 'inherit', fontSize: 13, cursor: 'pointer' }}>CSV 出力</button>
         </div>
       </div>
@@ -64,7 +65,7 @@ function AccountsPage({ teacher }) {
         <AcctStat label="総アカウント" value={stats.total} note={`男性寮 ${stats.men} · 女性寮 ${stats.women}`} color={T.ink} />
         <AcctStat label="今月新規" value={stats.thisMonthNew} note={stats.thisMonthNew > 0 ? '2026-04' : '無し'} color={T.cobalt} />
         <AcctStat label="ロック中" value={stats.locked} note={stats.locked > 0 ? '要対応' : '異常無し'} color={stats.locked > 0 ? T.danger : T.ok} onClick={stats.locked > 0 ? () => setDormFilter('locked') : null} />
-        <AcctStat label="次の新規番号" value={nextNo} note="iOS 登録時採番" color={T.ink3} mono />
+        <AcctStat label="番号フォーマット" value={nextNoHint} note="学年+組+番号 6 桁" color={T.ink3} mono />
       </div>
 
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
@@ -78,16 +79,16 @@ function AccountsPage({ teacher }) {
       </div>
 
       <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 12, overflow: 'hidden', boxShadow: T.shadow1 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '70px 160px 90px 90px 1fr 140px 130px 110px 90px', background: T.surfaceAlt, fontSize: 11, color: T.ink2, fontWeight: 600, letterSpacing: 1, borderBottom: `1px solid ${T.line}` }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '130px 160px 90px 90px 1fr 140px 130px 110px 90px', background: T.surfaceAlt, fontSize: 11, color: T.ink2, fontWeight: 600, letterSpacing: 1, borderBottom: `1px solid ${T.line}` }}>
           {['番号', '氏名', '部屋', '担当寮', 'メールアドレス', '電話番号', '最終ログイン', '状態', ''].map(h => <div key={h} style={{ padding: '10px 12px' }}>{h}</div>)}
         </div>
         {visible.map((a, i) => (
           <div key={a.no} onClick={() => setDetailTarget(a)}
-            style={{ display: 'grid', gridTemplateColumns: '70px 160px 90px 90px 1fr 140px 130px 110px 90px', borderTop: i > 0 ? `1px solid ${T.line}` : 'none', fontSize: 12.5, alignItems: 'center', cursor: 'pointer', transition: 'background .1s' }}
+            style={{ display: 'grid', gridTemplateColumns: '130px 160px 90px 90px 1fr 140px 130px 110px 90px', borderTop: i > 0 ? `1px solid ${T.line}` : 'none', fontSize: 12.5, alignItems: 'center', cursor: 'pointer', transition: 'background .1s' }}
             onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-            <div style={{ padding: '10px 12px', fontFamily: T.mono, fontWeight: 700, color: a.no === '00' ? T.cobalt : T.ink2 }}>
-              {a.no}{a.no === '00' && <span style={{ fontSize: 9, marginLeft: 6, padding: '1px 5px', background: T.cobaltSoft, color: T.cobaltDeep, borderRadius: 3, letterSpacing: 1 }}>DEMO</span>}
+            <div style={{ padding: '10px 12px', fontFamily: T.mono, fontWeight: 700, color: a.no === DEMO_NO ? T.cobalt : T.ink2 }}>
+              {a.no}{a.no === DEMO_NO && <span style={{ fontSize: 9, marginLeft: 6, padding: '1px 5px', background: T.cobaltSoft, color: T.cobaltDeep, borderRadius: 3, letterSpacing: 1 }}>DEMO</span>}
             </div>
             <div style={{ padding: '10px 12px', fontWeight: 600 }}>{a.name}</div>
             <div style={{ padding: '10px 12px', fontFamily: T.mono, color: T.ink3 }}>{a.room}</div>
@@ -275,7 +276,7 @@ function buildActivityMock(a) {
   ];
   if (a.failedLoginCount > 0) base.push({ icon: '⚠', color: T.warn, title: `ログイン失敗 ${a.failedLoginCount} 回`, body: 'パスワード誤入力 · 自動ロック前の警告', when: '04-22 17:50' });
   if (a.locked) base.push({ icon: '🔒', color: T.danger, title: 'アカウントロック', body: 'ログイン失敗 3 回 · 30 秒ロック → エスカレート', when: '04-22 18:00' });
-  if (a.no === '00') {
+  if (a.sid === 'S001') { // リュウ イヒ = demo seed (高3 B 18 = 060218)
     base.push(
       { icon: '✗', color: T.danger, title: '欠席', body: '晩点呼 · 未チェックイン · 減点 1.0', when: '04-20 19:35' },
       { icon: '⏰', color: T.late,   title: '遅刻', body: '晩点呼 · 19:34 チェックイン · 減点 0.5', when: '04-12 19:34' },
@@ -285,10 +286,8 @@ function buildActivityMock(a) {
       { icon: '📝', color: T.cobalt, title: '外泊申請 提出', body: '岡山市内 · 2026-04-22 09:15 出発 · 審査待ち', when: '04-21 14:22' },
       { icon: '🎵', color: T.info,   title: 'コミュニティ投稿', body: 'リクエスト曲「春日和 / Aimer」', when: '04-22 07:30' },
     );
-  } else if (a.no === '01') {
+  } else if (a.sid === 'S103') { // 田中 隼人
     base.push({ icon: '📝', color: T.cobalt, title: '外泊申請 提出', body: '岡山市内 · 2026-04-25 〜 04-27', when: '04-21 09:10' });
-  } else if (a.no === '08') {
-    base.push({ icon: '⏰', color: T.late, title: '遅刻', body: '晩点呼 · 19:36 · 今月 5 回目 · 要面談', when: '04-21 19:36' });
   }
   // newest first
   return base.sort((x, y) => y.when.localeCompare(x.when)).slice(0, 10);

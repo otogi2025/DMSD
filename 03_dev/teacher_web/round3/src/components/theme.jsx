@@ -40,56 +40,37 @@ window.TEACHERS = [
   { id: 't4', name: '山田 花子', dorm: 'women', lastLoginMins: null, initial: '山' }, // 初回
 ];
 
-// ⭐ Roster — 13 men (M101-M113) + 11 women (W102-W112)
+// ⭐ Roster — 4 men + 3 women（2026-04-24 デモ用に最小構成へ削減）
 // リュウ イヒ (S001, 男性寮 M101) = itsuki demo binding
 // 2026-04-22 itsuki 決定：男子寮へ移動（demo で男寮担任視点で自分が見える）
+// 2026-04-24 itsuki 削減：男寮 リュウ/田中 隼人/ゴテンウ/ヨウシエン、女寮 リシンさん/ソンキゼン/ゴキンウ のみ残す
 window.ROSTER_MEN = [
   ['M101','S001','リュウ イヒ'],
-  ['M102','S101','佐藤 健太'], ['M103','S102','高橋 翔'],
-  ['M104','S103','渡辺 隼人'], ['M105','S104','中村 大樹'],
-  ['M106','S105','吉田 蓮'],   ['M107','S106','山口 健'],
-  ['M108','S107','松本 翔太'], ['M109','S108','斎藤 晴'],
-  ['M110','S109','阿部 悠真'], ['M111','S110','木村 拓哉'],
-  ['M112','S111','山崎 航'],   ['M113','S112','佐々木 颯'],
+  ['M104','S103','田中 隼人'],
+  ['M114','S113','ゴテンウ'],
+  ['M115','S114','ヨウシエン'],
 ];
 window.ROSTER_WOMEN = [
-  ['W102','S002','田中 美咲'],
-  ['W103','S003','山本 綾'],     ['W104','S004','小林 美優'],
-  ['W105','S005','加藤 陽菜'],   ['W106','S006','山田 千夏'],
-  ['W107','S007','井上 結衣'],   ['W108','S008','清水 花音'],
-  ['W109','S009','林 美奈'],     ['W110','S010','池田 咲希'],
-  ['W111','S011','橋本 紗羅'],   ['W112','S012','鈴木 涼'],
+  ['W113','S013','リシンさん'],
+  ['W114','S014','ソンキゼン'],
+  ['W115','S015','ゴキンウ'],
 ];
 window.ROSTER_ALL = [...window.ROSTER_MEN.map(r => [...r, 'men']), ...window.ROSTER_WOMEN.map(r => [...r, 'women'])];
 
 // ⭐ Accounts — iOS 設計 §3.2 と整合。番号 00 = リュウ イヒ（demo seed 本体、itsuki 本人）、01-23 = 他の寮生
 // フィールド: no, sid（学籍番号）, name, birthday, gender, category, room, dorm,
 //            email, phone, registeredAt, lastLoginAt, locked, failedLoginCount
+// 番号 6 桁 = 学年(2) + 組(2) + 番号(2)。学年: 中1=01〜高3=06、組: A=01 / B=02、番号: 01-99。
+// 全員 高3（学年 06）、リュウ イヒ = 高3 B 18号 = 060218（itsuki 本人, demo seed · iOS SEED と一致）。
+window.DEMO_SEED_NO = '060218';
 window.ACCOUNTS = [
-  { no: '00', sid: 'S001', name: 'リュウ イヒ', birthday: '2006-10-14', gender: 'female', category: '一般寮生', room: 'M101', dorm: 'men',   email: 'ryu.ihi@tomoshibi.local',   phone: '090-0000-0000', registeredAt: '2026-02-10', lastLoginAt: '2026-04-22 18:05', locked: false, failedLoginCount: 0 },
-  { no: '01', sid: 'S101', name: '佐藤 健太', birthday: '2008-03-22', gender: 'male',   category: 'サッカー部', room: 'M102', dorm: 'men',   email: 'sato.kenta@tomoshibi.local', phone: '090-1234-5678', registeredAt: '2026-03-05', lastLoginAt: '2026-04-22 19:12', locked: false, failedLoginCount: 0 },
-  { no: '02', sid: 'S102', name: '高橋 翔',   birthday: '2007-09-05', gender: 'male',   category: '一般寮生', room: 'M103', dorm: 'men',   email: 'takahashi.sho@tomoshibi.local', phone: '090-9876-5432', registeredAt: '2026-03-05', lastLoginAt: '2026-04-22 18:30', locked: false, failedLoginCount: 0 },
-  { no: '03', sid: 'S103', name: '渡辺 隼人', birthday: '2008-01-15', gender: 'male',   category: 'サッカー部', room: 'M104', dorm: 'men',   email: 'watanabe.h@tomoshibi.local',   phone: '090-2345-6789', registeredAt: '2026-03-07', lastLoginAt: '2026-04-21 20:10', locked: false, failedLoginCount: 0 },
-  { no: '04', sid: 'S104', name: '中村 大樹', birthday: '2007-11-28', gender: 'male',   category: '一般寮生', room: 'M105', dorm: 'men',   email: 'nakamura.t@tomoshibi.local',   phone: '090-3456-7890', registeredAt: '2026-03-07', lastLoginAt: '2026-04-22 17:45', locked: false, failedLoginCount: 0 },
-  { no: '05', sid: 'S105', name: '吉田 蓮',   birthday: '2008-05-03', gender: 'male',   category: 'サッカー部', room: 'M106', dorm: 'men',   email: 'yoshida.ren@tomoshibi.local',  phone: '090-4567-8901', registeredAt: '2026-03-08', lastLoginAt: '2026-04-22 18:00', locked: false, failedLoginCount: 1 },
-  { no: '06', sid: 'S106', name: '山口 健',   birthday: '2008-07-19', gender: 'male',   category: '一般寮生', room: 'M107', dorm: 'men',   email: 'yamaguchi.k@tomoshibi.local',  phone: '090-5678-9012', registeredAt: '2026-03-10', lastLoginAt: '2026-04-20 22:15', locked: false, failedLoginCount: 0 },
-  { no: '07', sid: 'S107', name: '松本 翔太', birthday: '2007-12-02', gender: 'male',   category: '一般寮生', room: 'M108', dorm: 'men',   email: 'matsumoto.s@tomoshibi.local',  phone: '090-6789-0123', registeredAt: '2026-03-10', lastLoginAt: '2026-04-22 19:30', locked: false, failedLoginCount: 0 },
-  { no: '08', sid: 'S108', name: '斎藤 晴',   birthday: '2008-02-11', gender: 'male',   category: 'サッカー部', room: 'M109', dorm: 'men',   email: 'saito.haru@tomoshibi.local',   phone: '090-7890-1234', registeredAt: '2026-03-12', lastLoginAt: '2026-04-22 19:00', locked: true,  failedLoginCount: 3 },
-  { no: '09', sid: 'S109', name: '阿部 悠真', birthday: '2007-10-08', gender: 'male',   category: '一般寮生', room: 'M110', dorm: 'men',   email: 'abe.yuma@tomoshibi.local',     phone: '090-8901-2345', registeredAt: '2026-03-12', lastLoginAt: '2026-04-22 17:00', locked: false, failedLoginCount: 0 },
-  { no: '10', sid: 'S110', name: '木村 拓哉', birthday: '2008-04-17', gender: 'male',   category: '一般寮生', room: 'M111', dorm: 'men',   email: 'kimura.t@tomoshibi.local',     phone: '090-9012-3456', registeredAt: '2026-03-15', lastLoginAt: '2026-04-22 18:20', locked: false, failedLoginCount: 0 },
-  { no: '11', sid: 'S111', name: '山崎 航',   birthday: '2008-06-25', gender: 'male',   category: 'サッカー部', room: 'M112', dorm: 'men',   email: 'yamazaki.w@tomoshibi.local',   phone: '090-0123-4567', registeredAt: '2026-03-15', lastLoginAt: '2026-04-22 18:40', locked: false, failedLoginCount: 0 },
-  { no: '12', sid: 'S112', name: '佐々木 颯', birthday: '2007-08-30', gender: 'male',   category: '一般寮生', room: 'M113', dorm: 'men',   email: 'sasaki.hayate@tomoshibi.local', phone: '090-1111-2222', registeredAt: '2026-03-16', lastLoginAt: '2026-04-22 19:05', locked: false, failedLoginCount: 0 },
-  { no: '13', sid: 'S002', name: '田中 美咲', birthday: '2007-05-14', gender: 'female', category: '一般寮生', room: 'W102', dorm: 'women', email: 'tanaka.misaki@tomoshibi.local', phone: '080-2222-3333', registeredAt: '2026-03-05', lastLoginAt: '2026-04-22 18:12', locked: false, failedLoginCount: 0 },
-  { no: '14', sid: 'S003', name: '山本 綾',   birthday: '2007-09-21', gender: 'female', category: '一般寮生', room: 'W103', dorm: 'women', email: 'yamamoto.aya@tomoshibi.local',  phone: '080-3333-4444', registeredAt: '2026-03-06', lastLoginAt: '2026-04-22 17:50', locked: false, failedLoginCount: 0 },
-  { no: '15', sid: 'S004', name: '小林 美優', birthday: '2008-01-04', gender: 'female', category: '一般寮生', room: 'W104', dorm: 'women', email: 'kobayashi.m@tomoshibi.local',   phone: '080-4444-5555', registeredAt: '2026-03-08', lastLoginAt: '2026-04-22 19:20', locked: false, failedLoginCount: 0 },
-  { no: '16', sid: 'S005', name: '加藤 陽菜', birthday: '2008-03-11', gender: 'female', category: '一般寮生', room: 'W105', dorm: 'women', email: 'kato.hina@tomoshibi.local',     phone: '080-5555-6666', registeredAt: '2026-03-08', lastLoginAt: '2026-04-21 21:00', locked: false, failedLoginCount: 0 },
-  { no: '17', sid: 'S006', name: '山田 千夏', birthday: '2007-07-07', gender: 'female', category: '一般寮生', room: 'W106', dorm: 'women', email: 'yamada.chinatsu@tomoshibi.local', phone: '080-6666-7777', registeredAt: '2026-03-10', lastLoginAt: '2026-04-22 18:00', locked: false, failedLoginCount: 0 },
-  { no: '18', sid: 'S007', name: '井上 結衣', birthday: '2008-05-19', gender: 'female', category: '一般寮生', room: 'W107', dorm: 'women', email: 'inoue.yui@tomoshibi.local',     phone: '080-7777-8888', registeredAt: '2026-03-11', lastLoginAt: '2026-04-22 19:45', locked: false, failedLoginCount: 2 },
-  { no: '19', sid: 'S008', name: '清水 花音', birthday: '2008-08-02', gender: 'female', category: '一般寮生', room: 'W108', dorm: 'women', email: 'shimizu.kanon@tomoshibi.local',  phone: '080-8888-9999', registeredAt: '2026-03-13', lastLoginAt: '2026-04-22 18:35', locked: false, failedLoginCount: 0 },
-  { no: '20', sid: 'S009', name: '林 美奈',   birthday: '2007-11-16', gender: 'female', category: '一般寮生', room: 'W109', dorm: 'women', email: 'hayashi.mina@tomoshibi.local',  phone: '080-9999-0000', registeredAt: '2026-03-13', lastLoginAt: '2026-04-20 23:30', locked: false, failedLoginCount: 0 },
-  { no: '21', sid: 'S010', name: '池田 咲希', birthday: '2008-02-28', gender: 'female', category: '一般寮生', room: 'W110', dorm: 'women', email: 'ikeda.saki@tomoshibi.local',    phone: '080-0000-1111', registeredAt: '2026-03-15', lastLoginAt: '2026-04-22 18:50', locked: false, failedLoginCount: 0 },
-  { no: '22', sid: 'S011', name: '橋本 紗羅', birthday: '2007-12-23', gender: 'female', category: '一般寮生', room: 'W111', dorm: 'women', email: 'hashimoto.sara@tomoshibi.local', phone: '080-1111-2223', registeredAt: '2026-03-15', lastLoginAt: '2026-04-22 17:35', locked: false, failedLoginCount: 0 },
-  { no: '23', sid: 'S012', name: '鈴木 涼',   birthday: '2008-06-08', gender: 'female', category: '一般寮生', room: 'W112', dorm: 'women', email: 'suzuki.ryo@tomoshibi.local',    phone: '080-2222-3334', registeredAt: '2026-03-16', lastLoginAt: '2026-04-22 19:10', locked: false, failedLoginCount: 0 },
+  { no: '060218', sid: 'S001', name: 'リュウ イヒ', birthday: '2006-10-14', gender: 'male',   category: '一般寮生', room: 'M101', dorm: 'men',   email: 'ryu.ihi@tomoshibi.local',   phone: '090-0000-0000', registeredAt: '2026-02-10', lastLoginAt: '2026-04-22 18:05', locked: false, failedLoginCount: 0 },
+  { no: '060103', sid: 'S103', name: '田中 隼人', birthday: '2008-01-15', gender: 'male',   category: 'サッカー部', room: 'M104', dorm: 'men',   email: 'tanaka.hayato@tomoshibi.local', phone: '090-2345-6789', registeredAt: '2026-03-07', lastLoginAt: '2026-04-21 20:10', locked: false, failedLoginCount: 0 },
+  { no: '060112', sid: 'S113', name: 'ゴテンウ',  birthday: '2007-04-18', gender: 'male',   category: '一般寮生', room: 'M114', dorm: 'men',   email: 'go.tenu@tomoshibi.local',       phone: '090-3333-4444', registeredAt: '2026-04-10', lastLoginAt: '2026-04-23 19:30', locked: false, failedLoginCount: 0 },
+  { no: '060225', sid: 'S114', name: 'ヨウシエン', birthday: '2008-08-25', gender: 'male',   category: '一般寮生', room: 'M115', dorm: 'men',   email: 'you.shien@tomoshibi.local',     phone: '090-5555-6666', registeredAt: '2026-04-10', lastLoginAt: '2026-04-23 20:15', locked: false, failedLoginCount: 0 },
+  { no: '060108', sid: 'S013', name: 'リシンさん', birthday: '2006-11-30', gender: 'female', category: '一般寮生', room: 'W113', dorm: 'women', email: 'ri.shinsan@tomoshibi.local',    phone: '080-3333-4445', registeredAt: '2026-04-10', lastLoginAt: '2026-04-23 19:00', locked: false, failedLoginCount: 0 },
+  { no: '060214', sid: 'S014', name: 'ソンキゼン', birthday: '2009-02-07', gender: 'female', category: '一般寮生', room: 'W114', dorm: 'women', email: 'son.kizen@tomoshibi.local',     phone: '080-5555-6667', registeredAt: '2026-04-10', lastLoginAt: '2026-04-23 18:40', locked: false, failedLoginCount: 0 },
+  { no: '060121', sid: 'S015', name: 'ゴキンウ',   birthday: '2007-06-13', gender: 'female', category: '一般寮生', room: 'W115', dorm: 'women', email: 'go.kinu@tomoshibi.local',       phone: '080-7777-8889', registeredAt: '2026-04-10', lastLoginAt: '2026-04-23 21:05', locked: false, failedLoginCount: 0 },
 ];
 
 // Helpers

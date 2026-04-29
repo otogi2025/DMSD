@@ -142,6 +142,19 @@
 
 ## 🔴 高优先级(开发相关)
 
+- [ ] **v1.0 产品化前：清理 Tomoshibi iOS / Web 的 demo-only 代码**（2026-04-24 itsuki 提出）
+  - 背景：4-28 演示用的 iOS + Web 两个前端，itsuki 决定演示通过后直接拿去产品化（不重写）
+  - 但为了演示方便加了 **客户端自造状态** 的 demo 捷径，正式上线前必须删干净，否则变成安全漏洞（学生能自己伪造点呼状态）
+  - 已知清单：
+    - iOS：`Features/Home/HomeStubs.swift` 点数卡 `LongPressGesture` → `app.cycleDemoRollState()`
+    - iOS：`Foundation/AppState/AppStore.swift` 的 `cycleDemoRollState()` + `tickCountdown()` + `simulateCheckin()` 前端自走倒计时逻辑
+    - iOS：SEED.user 硬编码 リュウ イヒ / 060218 / 男寮 M101 / 4.5 点 → 生产版走登录拉后端
+    - iOS：AppStore.changeLog 里的 "高2→高3" seed
+    - iOS：各种 `"Demo · ..."` 前缀的 toast 文案
+    - Web（teacher_web/round3）：同类 demo seed / mock state（需 grep 清单）
+  - 权威备忘：`memory/project_demo_scaffolds_to_remove_before_v1.md`
+  - 执行时机：v1.0 spec 冻结前，或接真后端那一刻（两者取早）
+
 - [ ] **补点呼机契约 spec**(v0.2 spec gap)
   - Phase 1 代码开工前必须写
   - 至少含:`POST /api/v1/checkin` 请求/响应格式、WebSocket 消息协议、点呼机职责边界("只搬运,不判断")

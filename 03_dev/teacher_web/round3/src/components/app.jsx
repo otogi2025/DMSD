@@ -57,10 +57,14 @@ function App() {
 
   const startSession = (name) => {
     const seeded = window.seedStudents(teacher.dorm);
-    // demo: add a few interesting states
-    seeded[0].pending = { reason: '岡山市内で家族と合流、夕食後帰舎予定 · 03-15 承認後再申請', submittedAt: '19:22' };
-    seeded[2].health = '発熱 38.1°C、保健室で休養中';
-    seeded[8].status = 'exempt'; seeded[8].exemptReason = '部活合宿 04-19〜04-22';
+    // demo: add a few interesting states (roster が短い場合は安全に skip)
+    if (seeded[0]) seeded[0].pending = { reason: '岡山市内で家族と合流、夕食後帰舎予定 · 03-15 承認後再申請', submittedAt: '19:22' };
+    if (seeded[2]) seeded[2].health = '発熱 38.1°C、保健室で休養中';
+    const exemptIdx = Math.min(seeded.length - 1, 3); // 最後付近の枠を免除に
+    if (seeded[exemptIdx] && exemptIdx !== 0 && exemptIdx !== 2) {
+      seeded[exemptIdx].status = 'exempt';
+      seeded[exemptIdx].exemptReason = '外宿 04-19〜04-22';
+    }
     setStudents(seeded);
     setSession({ name, startedAt: Date.now() });
     setLiveMode(true);
@@ -138,6 +142,8 @@ function App() {
       body = <window.InfoPage teacher={teacher} />; break;
     case 'community':
       body = <window.CommunityPage teacher={teacher} />; break;
+    case 'front-desk':
+      body = <window.FrontDeskPage teacher={teacher} />; break;
     case 'accounts':
       body = <window.AccountsPage teacher={teacher} />; break;
     default:

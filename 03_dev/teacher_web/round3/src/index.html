@@ -4271,56 +4271,37 @@ window.TEACHERS = [
   { id: 't4', name: '山田 花子', dorm: 'women', lastLoginMins: null, initial: '山' }, // 初回
 ];
 
-// ⭐ Roster — 13 men (M101-M113) + 11 women (W102-W112)
+// ⭐ Roster — 4 men + 3 women（2026-04-24 デモ用に最小構成へ削減）
 // リュウ イヒ (S001, 男性寮 M101) = itsuki demo binding
 // 2026-04-22 itsuki 決定：男子寮へ移動（demo で男寮担任視点で自分が見える）
+// 2026-04-24 itsuki 削減：男寮 リュウ/田中 隼人/ゴテンウ/ヨウシエン、女寮 リシンさん/ソンキゼン/ゴキンウ のみ残す
 window.ROSTER_MEN = [
   ['M101','S001','リュウ イヒ'],
-  ['M102','S101','佐藤 健太'], ['M103','S102','高橋 翔'],
-  ['M104','S103','渡辺 隼人'], ['M105','S104','中村 大樹'],
-  ['M106','S105','吉田 蓮'],   ['M107','S106','山口 健'],
-  ['M108','S107','松本 翔太'], ['M109','S108','斎藤 晴'],
-  ['M110','S109','阿部 悠真'], ['M111','S110','木村 拓哉'],
-  ['M112','S111','山崎 航'],   ['M113','S112','佐々木 颯'],
+  ['M104','S103','田中 隼人'],
+  ['M114','S113','ゴテンウ'],
+  ['M115','S114','ヨウシエン'],
 ];
 window.ROSTER_WOMEN = [
-  ['W102','S002','田中 美咲'],
-  ['W103','S003','山本 綾'],     ['W104','S004','小林 美優'],
-  ['W105','S005','加藤 陽菜'],   ['W106','S006','山田 千夏'],
-  ['W107','S007','井上 結衣'],   ['W108','S008','清水 花音'],
-  ['W109','S009','林 美奈'],     ['W110','S010','池田 咲希'],
-  ['W111','S011','橋本 紗羅'],   ['W112','S012','鈴木 涼'],
+  ['W113','S013','リシンさん'],
+  ['W114','S014','ソンキゼン'],
+  ['W115','S015','ゴキンウ'],
 ];
 window.ROSTER_ALL = [...window.ROSTER_MEN.map(r => [...r, 'men']), ...window.ROSTER_WOMEN.map(r => [...r, 'women'])];
 
 // ⭐ Accounts — iOS 設計 §3.2 と整合。番号 00 = リュウ イヒ（demo seed 本体、itsuki 本人）、01-23 = 他の寮生
 // フィールド: no, sid（学籍番号）, name, birthday, gender, category, room, dorm,
 //            email, phone, registeredAt, lastLoginAt, locked, failedLoginCount
+// 番号 6 桁 = 学年(2) + 組(2) + 番号(2)。学年: 中1=01〜高3=06、組: A=01 / B=02、番号: 01-99。
+// 全員 高3（学年 06）、リュウ イヒ = 高3 B 18号 = 060218（itsuki 本人, demo seed · iOS と一致）。
+window.DEMO_SEED_NO = '060218';
 window.ACCOUNTS = [
-  { no: '00', sid: 'S001', name: 'リュウ イヒ', birthday: '2006-10-14', gender: 'female', category: '一般寮生', room: 'M101', dorm: 'men',   email: 'ryu.ihi@tomoshibi.local',   phone: '090-0000-0000', registeredAt: '2026-02-10', lastLoginAt: '2026-04-22 18:05', locked: false, failedLoginCount: 0 },
-  { no: '01', sid: 'S101', name: '佐藤 健太', birthday: '2008-03-22', gender: 'male',   category: 'サッカー部', room: 'M102', dorm: 'men',   email: 'sato.kenta@tomoshibi.local', phone: '090-1234-5678', registeredAt: '2026-03-05', lastLoginAt: '2026-04-22 19:12', locked: false, failedLoginCount: 0 },
-  { no: '02', sid: 'S102', name: '高橋 翔',   birthday: '2007-09-05', gender: 'male',   category: '一般寮生', room: 'M103', dorm: 'men',   email: 'takahashi.sho@tomoshibi.local', phone: '090-9876-5432', registeredAt: '2026-03-05', lastLoginAt: '2026-04-22 18:30', locked: false, failedLoginCount: 0 },
-  { no: '03', sid: 'S103', name: '渡辺 隼人', birthday: '2008-01-15', gender: 'male',   category: 'サッカー部', room: 'M104', dorm: 'men',   email: 'watanabe.h@tomoshibi.local',   phone: '090-2345-6789', registeredAt: '2026-03-07', lastLoginAt: '2026-04-21 20:10', locked: false, failedLoginCount: 0 },
-  { no: '04', sid: 'S104', name: '中村 大樹', birthday: '2007-11-28', gender: 'male',   category: '一般寮生', room: 'M105', dorm: 'men',   email: 'nakamura.t@tomoshibi.local',   phone: '090-3456-7890', registeredAt: '2026-03-07', lastLoginAt: '2026-04-22 17:45', locked: false, failedLoginCount: 0 },
-  { no: '05', sid: 'S105', name: '吉田 蓮',   birthday: '2008-05-03', gender: 'male',   category: 'サッカー部', room: 'M106', dorm: 'men',   email: 'yoshida.ren@tomoshibi.local',  phone: '090-4567-8901', registeredAt: '2026-03-08', lastLoginAt: '2026-04-22 18:00', locked: false, failedLoginCount: 1 },
-  { no: '06', sid: 'S106', name: '山口 健',   birthday: '2008-07-19', gender: 'male',   category: '一般寮生', room: 'M107', dorm: 'men',   email: 'yamaguchi.k@tomoshibi.local',  phone: '090-5678-9012', registeredAt: '2026-03-10', lastLoginAt: '2026-04-20 22:15', locked: false, failedLoginCount: 0 },
-  { no: '07', sid: 'S107', name: '松本 翔太', birthday: '2007-12-02', gender: 'male',   category: '一般寮生', room: 'M108', dorm: 'men',   email: 'matsumoto.s@tomoshibi.local',  phone: '090-6789-0123', registeredAt: '2026-03-10', lastLoginAt: '2026-04-22 19:30', locked: false, failedLoginCount: 0 },
-  { no: '08', sid: 'S108', name: '斎藤 晴',   birthday: '2008-02-11', gender: 'male',   category: 'サッカー部', room: 'M109', dorm: 'men',   email: 'saito.haru@tomoshibi.local',   phone: '090-7890-1234', registeredAt: '2026-03-12', lastLoginAt: '2026-04-22 19:00', locked: true,  failedLoginCount: 3 },
-  { no: '09', sid: 'S109', name: '阿部 悠真', birthday: '2007-10-08', gender: 'male',   category: '一般寮生', room: 'M110', dorm: 'men',   email: 'abe.yuma@tomoshibi.local',     phone: '090-8901-2345', registeredAt: '2026-03-12', lastLoginAt: '2026-04-22 17:00', locked: false, failedLoginCount: 0 },
-  { no: '10', sid: 'S110', name: '木村 拓哉', birthday: '2008-04-17', gender: 'male',   category: '一般寮生', room: 'M111', dorm: 'men',   email: 'kimura.t@tomoshibi.local',     phone: '090-9012-3456', registeredAt: '2026-03-15', lastLoginAt: '2026-04-22 18:20', locked: false, failedLoginCount: 0 },
-  { no: '11', sid: 'S111', name: '山崎 航',   birthday: '2008-06-25', gender: 'male',   category: 'サッカー部', room: 'M112', dorm: 'men',   email: 'yamazaki.w@tomoshibi.local',   phone: '090-0123-4567', registeredAt: '2026-03-15', lastLoginAt: '2026-04-22 18:40', locked: false, failedLoginCount: 0 },
-  { no: '12', sid: 'S112', name: '佐々木 颯', birthday: '2007-08-30', gender: 'male',   category: '一般寮生', room: 'M113', dorm: 'men',   email: 'sasaki.hayate@tomoshibi.local', phone: '090-1111-2222', registeredAt: '2026-03-16', lastLoginAt: '2026-04-22 19:05', locked: false, failedLoginCount: 0 },
-  { no: '13', sid: 'S002', name: '田中 美咲', birthday: '2007-05-14', gender: 'female', category: '一般寮生', room: 'W102', dorm: 'women', email: 'tanaka.misaki@tomoshibi.local', phone: '080-2222-3333', registeredAt: '2026-03-05', lastLoginAt: '2026-04-22 18:12', locked: false, failedLoginCount: 0 },
-  { no: '14', sid: 'S003', name: '山本 綾',   birthday: '2007-09-21', gender: 'female', category: '一般寮生', room: 'W103', dorm: 'women', email: 'yamamoto.aya@tomoshibi.local',  phone: '080-3333-4444', registeredAt: '2026-03-06', lastLoginAt: '2026-04-22 17:50', locked: false, failedLoginCount: 0 },
-  { no: '15', sid: 'S004', name: '小林 美優', birthday: '2008-01-04', gender: 'female', category: '一般寮生', room: 'W104', dorm: 'women', email: 'kobayashi.m@tomoshibi.local',   phone: '080-4444-5555', registeredAt: '2026-03-08', lastLoginAt: '2026-04-22 19:20', locked: false, failedLoginCount: 0 },
-  { no: '16', sid: 'S005', name: '加藤 陽菜', birthday: '2008-03-11', gender: 'female', category: '一般寮生', room: 'W105', dorm: 'women', email: 'kato.hina@tomoshibi.local',     phone: '080-5555-6666', registeredAt: '2026-03-08', lastLoginAt: '2026-04-21 21:00', locked: false, failedLoginCount: 0 },
-  { no: '17', sid: 'S006', name: '山田 千夏', birthday: '2007-07-07', gender: 'female', category: '一般寮生', room: 'W106', dorm: 'women', email: 'yamada.chinatsu@tomoshibi.local', phone: '080-6666-7777', registeredAt: '2026-03-10', lastLoginAt: '2026-04-22 18:00', locked: false, failedLoginCount: 0 },
-  { no: '18', sid: 'S007', name: '井上 結衣', birthday: '2008-05-19', gender: 'female', category: '一般寮生', room: 'W107', dorm: 'women', email: 'inoue.yui@tomoshibi.local',     phone: '080-7777-8888', registeredAt: '2026-03-11', lastLoginAt: '2026-04-22 19:45', locked: false, failedLoginCount: 2 },
-  { no: '19', sid: 'S008', name: '清水 花音', birthday: '2008-08-02', gender: 'female', category: '一般寮生', room: 'W108', dorm: 'women', email: 'shimizu.kanon@tomoshibi.local',  phone: '080-8888-9999', registeredAt: '2026-03-13', lastLoginAt: '2026-04-22 18:35', locked: false, failedLoginCount: 0 },
-  { no: '20', sid: 'S009', name: '林 美奈',   birthday: '2007-11-16', gender: 'female', category: '一般寮生', room: 'W109', dorm: 'women', email: 'hayashi.mina@tomoshibi.local',  phone: '080-9999-0000', registeredAt: '2026-03-13', lastLoginAt: '2026-04-20 23:30', locked: false, failedLoginCount: 0 },
-  { no: '21', sid: 'S010', name: '池田 咲希', birthday: '2008-02-28', gender: 'female', category: '一般寮生', room: 'W110', dorm: 'women', email: 'ikeda.saki@tomoshibi.local',    phone: '080-0000-1111', registeredAt: '2026-03-15', lastLoginAt: '2026-04-22 18:50', locked: false, failedLoginCount: 0 },
-  { no: '22', sid: 'S011', name: '橋本 紗羅', birthday: '2007-12-23', gender: 'female', category: '一般寮生', room: 'W111', dorm: 'women', email: 'hashimoto.sara@tomoshibi.local', phone: '080-1111-2223', registeredAt: '2026-03-15', lastLoginAt: '2026-04-22 17:35', locked: false, failedLoginCount: 0 },
-  { no: '23', sid: 'S012', name: '鈴木 涼',   birthday: '2008-06-08', gender: 'female', category: '一般寮生', room: 'W112', dorm: 'women', email: 'suzuki.ryo@tomoshibi.local',    phone: '080-2222-3334', registeredAt: '2026-03-16', lastLoginAt: '2026-04-22 19:10', locked: false, failedLoginCount: 0 },
+  { no: '060218', sid: 'S001', name: 'リュウ イヒ', birthday: '2006-10-14', gender: 'male',   category: '一般寮生', room: 'M101', dorm: 'men',   email: 'ryu.ihi@tomoshibi.local',   phone: '090-0000-0000', registeredAt: '2026-02-10', lastLoginAt: '2026-04-22 18:05', locked: false, failedLoginCount: 0 },
+  { no: '060103', sid: 'S103', name: '田中 隼人', birthday: '2008-01-15', gender: 'male',   category: 'サッカー部', room: 'M104', dorm: 'men',   email: 'tanaka.hayato@tomoshibi.local', phone: '090-2345-6789', registeredAt: '2026-03-07', lastLoginAt: '2026-04-21 20:10', locked: false, failedLoginCount: 0 },
+  { no: '060112', sid: 'S113', name: 'ゴテンウ',  birthday: '2007-04-18', gender: 'male',   category: '一般寮生', room: 'M114', dorm: 'men',   email: 'go.tenu@tomoshibi.local',       phone: '090-3333-4444', registeredAt: '2026-04-10', lastLoginAt: '2026-04-23 19:30', locked: false, failedLoginCount: 0 },
+  { no: '060225', sid: 'S114', name: 'ヨウシエン', birthday: '2008-08-25', gender: 'male',   category: '一般寮生', room: 'M115', dorm: 'men',   email: 'you.shien@tomoshibi.local',     phone: '090-5555-6666', registeredAt: '2026-04-10', lastLoginAt: '2026-04-23 20:15', locked: false, failedLoginCount: 0 },
+  { no: '060108', sid: 'S013', name: 'リシンさん', birthday: '2006-11-30', gender: 'female', category: '一般寮生', room: 'W113', dorm: 'women', email: 'ri.shinsan@tomoshibi.local',    phone: '080-3333-4445', registeredAt: '2026-04-10', lastLoginAt: '2026-04-23 19:00', locked: false, failedLoginCount: 0 },
+  { no: '060214', sid: 'S014', name: 'ソンキゼン', birthday: '2009-02-07', gender: 'female', category: '一般寮生', room: 'W114', dorm: 'women', email: 'son.kizen@tomoshibi.local',     phone: '080-5555-6667', registeredAt: '2026-04-10', lastLoginAt: '2026-04-23 18:40', locked: false, failedLoginCount: 0 },
+  { no: '060121', sid: 'S015', name: 'ゴキンウ',   birthday: '2007-06-13', gender: 'female', category: '一般寮生', room: 'W115', dorm: 'women', email: 'go.kinu@tomoshibi.local',       phone: '080-7777-8889', registeredAt: '2026-04-10', lastLoginAt: '2026-04-23 21:05', locked: false, failedLoginCount: 0 },
 ];
 
 // Helpers
@@ -4662,6 +4643,7 @@ function Shell({ teacher, active, onNav, children, sessionActive, onLogout, onSw
     ['cleaning', '清掃確認'],
     ['info', 'お知らせ・バス'],
     ['community', 'コミュニティ管理'],
+    ['front-desk', 'フロント業務'],
     ['accounts', '学生アカウント管理'],
   ];
 
@@ -4669,6 +4651,7 @@ function Shell({ teacher, active, onNav, children, sessionActive, onLogout, onSw
     'roll-call': '点呼', notifications: '通知', discipline: '規律・処分',
     applications: '申請', records: '記録', cleaning: '清掃確認',
     info: 'お知らせ・バス', community: 'コミュニティ管理',
+    'front-desk': 'フロント業務',
     accounts: '学生アカウント管理', search: '検索結果',
   }[active] || '';
 
@@ -4827,7 +4810,7 @@ function RollCallLanding({ teacher, onStart, lastEnded, onNav, trend }) {
   const todayLabel = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}（${['日','月','火','水','木','金','土'][today.getDay()]}）`;
 
   return (
-    <div style={{ padding: '28px 32px 48px', maxWidth: 1180 }}>
+    <div style={{ padding: '28px 32px 48px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>点呼ダッシュボード</h1>
         <span style={{ fontSize: 12, color: T.ink3 }}>{todayLabel}</span>
@@ -4860,9 +4843,6 @@ function RollCallLanding({ teacher, onStart, lastEnded, onNav, trend }) {
           boxShadow: '0 4px 12px rgba(43,77,140,.28)',
         }}>点呼を開始 →</button>
       </div>
-
-      {/* ⭐ NFC 快捷指令 URL card（デモ用・点呼機代替） */}
-      <NfcQuickUrlCard />
 
       {/* Day stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
@@ -4897,6 +4877,73 @@ function RollCallLanding({ teacher, onStart, lastEnded, onNav, trend }) {
           </div>
         ))}
       </div>
+
+      {/* ⭐ 手机デモ用・iOS ショートカット貼り付け URL */}
+      <ShortcutsDemoCard />
+    </div>
+  );
+}
+
+function ShortcutsDemoCard() {
+  const T = window.RYO;
+  const LS_KEY = 'tomoshibi.demo.host';
+  const [host, setHost] = React.useState(() => localStorage.getItem(LS_KEY) || '192.168.1.100:8080');
+  const [auto, setAuto] = React.useState(false); // true = サーバーが自動検出した IP
+  const [no, setNo] = React.useState(window.DEMO_SEED_NO || ((window.ACCOUNTS || [{}])[0].no || ''));
+  const [copied, setCopied] = React.useState(false);
+
+  // demo_server.py の /api/server-info から LAN IP を自動取得（失敗時は手動入力にフォールバック）
+  React.useEffect(() => {
+    fetch('/api/server-info', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(info => {
+        if (info && info.primary && info.port) {
+          setHost(`${info.primary}:${info.port}`);
+          setAuto(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  React.useEffect(() => { if (!auto) localStorage.setItem(LS_KEY, host); }, [host, auto]);
+
+  const accounts = window.ACCOUNTS || [];
+  const url = `http://${host}/checkin?no=${no}`;
+
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(url); }
+    catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = url; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+
+  return (
+    <div style={{
+      marginTop: 20, background: T.surface, border: `1px solid ${T.line}`, borderRadius: 10,
+      padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+    }}>
+      <span style={{ fontSize: 11, color: T.ink3, fontWeight: 600 }}>📱 ショートカット URL</span>
+      {auto ? (
+        <span title="demo_server.py から自動検出" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', background: T.okSoft, color: T.ok, border: `1px solid ${T.okBorder}`, borderRadius: 6, fontFamily: T.mono, fontSize: 11, fontWeight: 600 }}>
+          <span style={{ width: 6, height: 6, borderRadius: 3, background: T.ok }} />{host}
+        </span>
+      ) : (
+        <input value={host} onChange={e => setHost(e.target.value)} placeholder="192.168.1.100:8080"
+          style={{ width: 160, padding: '5px 8px', background: T.surfaceAlt, color: T.ink, border: `1px solid ${T.lineStrong}`, borderRadius: 6, fontFamily: T.mono, fontSize: 11, outline: 'none' }} />
+      )}
+      <select value={no} onChange={e => setNo(e.target.value)}
+        style={{ padding: '5px 8px', background: T.surface, border: `1px solid ${T.lineStrong}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, color: T.ink, outline: 'none' }}>
+        {accounts.map(a => <option key={a.no} value={a.no}>{a.no} · {a.name}</option>)}
+      </select>
+      <div style={{ flex: 1, minWidth: 200, padding: '5px 10px', background: T.surfaceAlt, color: T.ink, border: `1px solid ${T.line}`, borderRadius: 6, fontFamily: T.mono, fontSize: 11, whiteSpace: 'nowrap', overflow: 'auto', userSelect: 'all' }}>{url}</div>
+      <button onClick={copy} style={{
+        padding: '5px 14px', background: copied ? T.ok : T.cobalt, color: '#fff',
+        border: 'none', borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer', minWidth: 64,
+      }}>{copied ? '✓' : 'コピー'}</button>
     </div>
   );
 }
@@ -4967,7 +5014,7 @@ function Legend({ c, label }) {
 function NfcQuickUrlCard() {
   const T = window.RYO;
   const [info, setInfo] = React.useState(null);
-  const [no, setNo] = React.useState('00');
+  const [no, setNo] = React.useState(window.DEMO_SEED_NO || ((window.ACCOUNTS || [{}])[0].no || ''));
   const [copied, setCopied] = React.useState(false);
 
   React.useEffect(() => {
@@ -5020,6 +5067,7 @@ function NfcQuickUrlCard() {
 
 window.RollCallLanding = RollCallLanding;
 window.NfcQuickUrlCard = NfcQuickUrlCard;
+window.ShortcutsDemoCard = ShortcutsDemoCard;
 
 </script>
 <script type="text/babel" data-source="components/live-roll-call.jsx">
@@ -5331,7 +5379,7 @@ function OverrideModal({ student, onClose, onSave }) {
 
   const statuses = [
     { k: 'ok',      label: '時間内', color: T.ok,     soft: T.okSoft,     hint: '対面確認済み' },
-    { k: 'late',    label: '遅刻',   color: T.late,   soft: T.lateSoft,   hint: '閾値超で入寮' },
+    { k: 'late',    label: '遅刻',   color: T.late,   soft: T.lateSoft,   hint: '定刻に間に合わず' },
     { k: 'absent',  label: '欠席',   color: T.danger, soft: T.dangerSoft, hint: '未確認のまま終了' },
     { k: 'exempt',  label: '免除',   color: T.info,   soft: T.infoSoft,   hint: '本日は点呼対象外' },
   ];
@@ -5480,7 +5528,7 @@ function ApplicationsPage({ onOpen }) {
   ];
 
   return (
-    <div style={{ padding: '28px 32px 48px', maxWidth: 1300 }}>
+    <div style={{ padding: '28px 32px 48px' }}>
       <div style={{ fontSize: 11, color: T.ink3, letterSpacing: 2, fontWeight: 600 }}>申請 &gt; {tabs.find(t=>t.k===tab).label}</div>
       <h1 style={{ fontSize: 24, fontWeight: 700, margin: '4px 0 18px', letterSpacing: -0.3 }}>申請センター</h1>
 
@@ -5621,7 +5669,7 @@ window.OUTSTAY_APPS = [
     reason: '保護者と合流して市内観光・買い物。',
     note: '帰舎は日曜夕方までに確実に戻ります。',
     parentOk: { confirmed: true, phone: '090-xxxx-xxxx' },
-    submitted: '04-21 14:22', state: 'pending',
+    submitted: '04-19 20:10', state: 'pending',
     city: '岡山',
     approvals: [
       { role: '担任', name: '新股 先生', state: 'pending' },
@@ -5631,7 +5679,7 @@ window.OUTSTAY_APPS = [
     ],
   },
   {
-    id: 'O-2026-0421-02', applicant: '佐藤 健太', room: 'M102', dorm: 'men',
+    id: 'O-2026-0421-02', applicant: '田中 隼人', room: 'M104', dorm: 'men',
     grade: '中 2 年 2 組', phone: '080-1234-5678',
     companion: { name: '—', phone: '—' },
     depart: '2026-04-25 15:00', return_: '2026-04-27 18:00',
@@ -5652,7 +5700,7 @@ window.OUTSTAY_APPS = [
     ],
   },
   {
-    id: 'O-2026-0420-03', applicant: '田中 美咲', room: 'W102', dorm: 'women',
+    id: 'O-2026-0420-03', applicant: 'リシンさん', room: 'W113', dorm: 'women',
     grade: '中 1 年 2 組', phone: '080-2345-6789',
     companion: { name: '—', phone: '—' },
     depart: '2026-04-19 10:00', return_: '2026-04-20 19:00',
@@ -5672,7 +5720,7 @@ window.OUTSTAY_APPS = [
     ],
   },
   {
-    id: 'O-2026-0419-04', applicant: '高橋 翔', room: 'M103', dorm: 'men',
+    id: 'O-2026-0419-04', applicant: 'ゴテンウ', room: 'M114', dorm: 'men',
     grade: '中 2 年 1 組', phone: '080-9876-5432',
     companion: { name: '—', phone: '—' },
     depart: '2026-04-18 18:00', return_: '2026-04-19 21:00',
@@ -5893,7 +5941,7 @@ function DisciplinePage({ teacher, onNav }) {
   const warnList = data.filter(d => d.total >= 3 && d.total < 4);
 
   return (
-    <div style={{ padding: '28px 32px 48px', maxWidth: 1280 }}>
+    <div style={{ padding: '28px 32px 48px' }}>
       <div style={{ fontSize: 11, color: T.ink3, letterSpacing: 2, fontWeight: 600 }}>規律・処分</div>
       <h1 style={{ fontSize: 24, fontWeight: 700, margin: '4px 0 6px', letterSpacing: -0.3 }}>規律・処分</h1>
       <div style={{ color: T.ink2, fontSize: 13, marginBottom: 22 }}>{window.dormLabel(dorm)} · 2026 年 4 月</div>
@@ -5948,7 +5996,7 @@ function DisciplinePage({ teacher, onNav }) {
           <span style={{ fontSize: 10, fontWeight: 700, color: T.warn, background: T.warnSoft, padding: '2px 8px', borderRadius: 4, letterSpacing: 1 }}>開発中</span>
         </div>
         <div style={{ fontSize: 12, color: T.ink3, lineHeight: 1.7, marginBottom: 10 }}>
-          将来、後端サーバーに常駐スクリプトを設置し、特定学生の遅刻・欠席が一定数に達した時点で自動的に宿監へアラート短評を生成する予定です。現 demo 版では手動確認のみ。
+          将来、後端サーバーに常駐スクリプトを設置し、特定学生の遅刻・欠席が一定数に達した時点で自動的に寮監へアラート短評を生成する予定です。現 demo 版では手動確認のみ。
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {data.slice(0, 2).map((d, i) => (
@@ -6005,6 +6053,287 @@ function StudentCardRow({ list, color, label, empty }) {
 window.DisciplinePage = DisciplinePage;
 
 </script>
+<script type="text/babel" data-source="components/front-desk.jsx">
+// Front Desk page — 宅配通知 + 忘れ物（2026-04-24 追加、コミュニティから拆分）
+
+function FrontDeskPage({ teacher }) {
+  const T = window.RYO;
+  const [tab, setTab] = React.useState('delivery');
+  const [deliveries, setDeliveries] = React.useState(window.FRONT_DELIVERIES);
+  const [lostItems, setLostItems] = React.useState(window.FRONT_LOST_ITEMS);
+  const [filter, setFilter] = React.useState('all');
+  const [composing, setComposing] = React.useState(false);
+
+  const markPicked = (id) => setDeliveries(deliveries.map(d => d.id === id ? { ...d, picked: true, pickedAt: formatNow() } : d));
+  const deleteDelivery = (id) => { if (confirm('この宅配通知を削除しますか？')) setDeliveries(deliveries.filter(d => d.id !== id)); };
+  const addDelivery = (data) => { setDeliveries([{ ...data, id: 'D' + Date.now(), date: todayShort(), time: nowHHMM(), picked: false }, ...deliveries]); setComposing(false); };
+
+  const returnLost = (id) => setLostItems(lostItems.map(l => l.id === id ? { ...l, status: 'returned', returnedAt: formatNow() } : l));
+  const archiveLost = (id) => setLostItems(lostItems.map(l => l.id === id ? { ...l, status: 'archived' } : l));
+  const addLost = (data) => { setLostItems([{ ...data, id: 'L' + Date.now(), date: todayShort(), status: 'open' }, ...lostItems]); setComposing(false); };
+
+  const delFiltered = deliveries.filter(d => filter === 'all' ? true : filter === 'unpicked' ? !d.picked : d.picked);
+  const lostFiltered = lostItems.filter(l => filter === 'all' ? true : filter === 'open' ? l.status === 'open' : filter === 'returned' ? l.status === 'returned' : l.status === 'archived');
+
+  const stats = tab === 'delivery' ? {
+    total: deliveries.length,
+    unpicked: deliveries.filter(d => !d.picked).length,
+    today: deliveries.filter(d => d.date === todayShort()).length,
+    picked: deliveries.filter(d => d.picked).length,
+  } : {
+    total: lostItems.length,
+    open: lostItems.filter(l => l.status === 'open').length,
+    returned: lostItems.filter(l => l.status === 'returned').length,
+    archived: lostItems.filter(l => l.status === 'archived').length,
+  };
+
+  return (
+    <div style={{ padding: '28px 32px 48px' }}>
+      <div style={{ fontSize: 11, color: T.ink3, letterSpacing: 2, fontWeight: 600 }}>フロント業務</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, margin: '4px 0 6px' }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.3 }}>フロント業務</h1>
+        <button onClick={() => setComposing(true)} style={{ padding: '8px 16px', background: T.cobalt, color: '#fff', border: 'none', borderRadius: 8, fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: T.shadow1 }}>＋ {tab === 'delivery' ? '宅配通知を追加' : '忘れ物を登録'}</button>
+      </div>
+      <div style={{ fontSize: 12, color: T.ink3, marginBottom: 18 }}>寮監前台受付の代行記録 — 宅配便の到着通知と、館内で見つかった忘れ物の管理。</div>
+
+      {/* stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+        {tab === 'delivery' ? (
+          <>
+            <FdStat label="累計" value={stats.total} note="全受付" color={T.ink} />
+            <FdStat label="未受取" value={stats.unpicked} note="要対応" color={T.warn} onClick={stats.unpicked > 0 ? () => setFilter('unpicked') : null} />
+            <FdStat label="本日受付" value={stats.today} note={todayShort()} color={T.cobalt} />
+            <FdStat label="受取済" value={stats.picked} note="完了" color={T.ok} />
+          </>
+        ) : (
+          <>
+            <FdStat label="累計" value={stats.total} note="全登録" color={T.ink} />
+            <FdStat label="未返却" value={stats.open} note="持主探索中" color={T.warn} onClick={stats.open > 0 ? () => setFilter('open') : null} />
+            <FdStat label="返却済" value={stats.returned} note="持主判明" color={T.ok} />
+            <FdStat label="保管庫行" value={stats.archived} note="1ヶ月経過" color={T.ink3} />
+          </>
+        )}
+      </div>
+
+      {/* tabs */}
+      <div style={{ display: 'flex', gap: 4, borderBottom: `1px solid ${T.line}`, marginBottom: 14 }}>
+        {[['delivery', '宅配通知', deliveries.length], ['lost', '忘れ物', lostItems.length]].map(([k, l, n]) => (
+          <button key={k} onClick={() => { setTab(k); setFilter('all'); }} style={{ padding: '10px 16px', background: 'transparent', border: 'none', borderBottom: tab === k ? `2px solid ${T.cobalt}` : '2px solid transparent', color: tab === k ? T.cobaltDeep : T.ink3, fontWeight: tab === k ? 700 : 500, fontFamily: 'inherit', fontSize: 13, cursor: 'pointer', marginBottom: -1 }}>
+            {l} <span style={{ color: T.ink3, fontSize: 11, fontWeight: 500 }}>({n})</span>
+          </button>
+        ))}
+      </div>
+
+      {/* filter chips */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, fontSize: 12, color: T.ink2 }}>
+        {tab === 'delivery' ? (
+          [['all', '全て'], ['unpicked', '未受取'], ['picked', '受取済']].map(([k, l]) => (
+            <button key={k} onClick={() => setFilter(k)} style={chipStyle(T, filter === k)}>{l}</button>
+          ))
+        ) : (
+          [['all', '全て'], ['open', '未返却'], ['returned', '返却済'], ['archived', '保管庫']].map(([k, l]) => (
+            <button key={k} onClick={() => setFilter(k)} style={chipStyle(T, filter === k)}>{l}</button>
+          ))
+        )}
+      </div>
+
+      {/* list */}
+      {tab === 'delivery' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {delFiltered.length === 0 && <EmptyRow T={T} />}
+          {delFiltered.map(d => <DeliveryRow key={d.id} d={d} T={T} onPick={markPicked} onDelete={deleteDelivery} />)}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {lostFiltered.length === 0 && <EmptyRow T={T} />}
+          {lostFiltered.map(l => <LostItemRow key={l.id} l={l} T={T} onReturn={returnLost} onArchive={archiveLost} />)}
+        </div>
+      )}
+
+      {composing && tab === 'delivery' && <DeliveryComposeModal T={T} onClose={() => setComposing(false)} onSubmit={addDelivery} />}
+      {composing && tab === 'lost' && <LostItemComposeModal T={T} onClose={() => setComposing(false)} onSubmit={addLost} />}
+    </div>
+  );
+}
+
+function FdStat({ label, value, note, color, onClick }) {
+  const T = window.RYO;
+  return (
+    <div onClick={onClick || undefined} style={{ padding: '14px 16px', background: T.surface, border: `1px solid ${T.line}`, borderRadius: 10, cursor: onClick ? 'pointer' : 'default' }}>
+      <div style={{ fontSize: 10, color: T.ink3, letterSpacing: 1.5, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 26, fontWeight: 700, color, fontFamily: T.mono, margin: '4px 0' }}>{value}</div>
+      <div style={{ fontSize: 11, color: T.ink3 }}>{note}</div>
+    </div>
+  );
+}
+
+function DeliveryRow({ d, T, onPick, onDelete }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', background: T.surface, border: `1px solid ${d.picked ? T.line : T.warnBorder}`, borderRadius: 10 }}>
+      <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: d.picked ? T.okSoft : T.warnSoft, color: d.picked ? T.ok : T.warn, border: `1px solid ${d.picked ? T.okBorder : T.warnBorder}`, letterSpacing: .5, whiteSpace: 'nowrap', minWidth: 68, textAlign: 'center' }}>
+        {d.picked ? '受取済' : '未受取'}
+      </span>
+      <span style={{ fontFamily: T.mono, fontSize: 12, color: T.ink3, minWidth: 95 }}>{d.date} {d.time}</span>
+      <span style={{ fontSize: 13, fontWeight: 600, minWidth: 120 }}>{d.student}</span>
+      <span style={{ fontFamily: T.mono, fontSize: 11, color: T.ink3, minWidth: 50 }}>{d.room}</span>
+      <span style={{ fontSize: 12, color: T.ink2, flex: 1 }}>{d.carrier} · {d.count} 件{d.memo && ` · ${d.memo}`}</span>
+      {d.picked && d.pickedAt && <span style={{ fontSize: 11, color: T.ink3, fontFamily: T.mono }}>{d.pickedAt} 受取</span>}
+      {!d.picked && <button onClick={() => onPick(d.id)} style={actionBtn(T, 'ok')}>受取済に</button>}
+      <button onClick={() => onDelete(d.id)} style={actionBtn(T, 'danger')}>削除</button>
+    </div>
+  );
+}
+
+function LostItemRow({ l, T, onReturn, onArchive }) {
+  const statusMap = { open: [T.warn, T.warnSoft, T.warnBorder, '未返却'], returned: [T.ok, T.okSoft, T.okBorder, '返却済'], archived: [T.ink3, T.surfaceAlt, T.line, '保管庫'] };
+  const [col, bg, bd, lbl] = statusMap[l.status];
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', background: T.surface, border: `1px solid ${bd}`, borderRadius: 10 }}>
+      <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: bg, color: col, border: `1px solid ${bd}`, letterSpacing: .5, whiteSpace: 'nowrap', minWidth: 68, textAlign: 'center' }}>{lbl}</span>
+      <span style={{ fontFamily: T.mono, fontSize: 12, color: T.ink3, minWidth: 55 }}>{l.date}</span>
+      <span style={{ fontSize: 13, fontWeight: 600, minWidth: 150 }}>{l.title}</span>
+      <span style={{ fontSize: 12, color: T.ink3, minWidth: 100 }}>発見場所: {l.foundAt}</span>
+      <span style={{ fontSize: 12, color: T.ink2, flex: 1 }}>{l.memo}</span>
+      {l.status === 'returned' && l.returnedAt && <span style={{ fontSize: 11, color: T.ink3, fontFamily: T.mono }}>{l.returnedAt} 返却</span>}
+      {l.status === 'open' && <>
+        <button onClick={() => onReturn(l.id)} style={actionBtn(T, 'ok')}>返却済に</button>
+        <button onClick={() => onArchive(l.id)} style={actionBtn(T, 'ghost')}>保管庫へ</button>
+      </>}
+    </div>
+  );
+}
+
+function DeliveryComposeModal({ T, onClose, onSubmit }) {
+  const [student, setStudent] = React.useState('');
+  const [room, setRoom] = React.useState('');
+  const [carrier, setCarrier] = React.useState('ヤマト運輸');
+  const [count, setCount] = React.useState('1');
+  const [memo, setMemo] = React.useState('');
+  const studentOptions = window.ROSTER_ALL || [];
+
+  const handleStudentChange = (name) => {
+    setStudent(name);
+    const match = studentOptions.find(([, , n]) => n === name);
+    if (match) setRoom(match[0]);
+  };
+
+  return (
+    <ModalShell T={T} title="宅配通知を追加" onClose={onClose}>
+      <Field T={T} label="受取人">
+        <input list="roster-list" value={student} onChange={e => handleStudentChange(e.target.value)} placeholder="学生名を入力または選択" style={inputStyle(T)} />
+        <datalist id="roster-list">
+          {studentOptions.map(([r, id, n]) => <option key={id} value={n}>{r}号室</option>)}
+        </datalist>
+      </Field>
+      <Field T={T} label="部屋番号"><input value={room} onChange={e => setRoom(e.target.value)} placeholder="M101 / W113 等" style={inputStyle(T)} /></Field>
+      <Field T={T} label="配送業者">
+        <select value={carrier} onChange={e => setCarrier(e.target.value)} style={inputStyle(T)}>
+          {['ヤマト運輸', '佐川急便', '日本郵便', 'Amazon', '福山通運', 'その他'].map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </Field>
+      <Field T={T} label="件数"><input type="number" min="1" value={count} onChange={e => setCount(e.target.value)} style={inputStyle(T)} /></Field>
+      <Field T={T} label="備考"><input value={memo} onChange={e => setMemo(e.target.value)} placeholder="例：冷蔵必要 / 大型" style={inputStyle(T)} /></Field>
+      <ModalFooter T={T} onClose={onClose} onSubmit={() => student.trim() && onSubmit({ student: student.trim(), room: room.trim() || '—', carrier, count: parseInt(count, 10) || 1, memo: memo.trim() })} disabled={!student.trim()} />
+    </ModalShell>
+  );
+}
+
+function LostItemComposeModal({ T, onClose, onSubmit }) {
+  const [title, setTitle] = React.useState('');
+  const [foundAt, setFoundAt] = React.useState('');
+  const [memo, setMemo] = React.useState('');
+  return (
+    <ModalShell T={T} title="忘れ物を登録" onClose={onClose}>
+      <Field T={T} label="物品名"><input value={title} onChange={e => setTitle(e.target.value)} placeholder="例：黒の折り畳み傘" style={inputStyle(T)} /></Field>
+      <Field T={T} label="発見場所"><input value={foundAt} onChange={e => setFoundAt(e.target.value)} placeholder="玄関 / 食堂 / 風呂場 / ロビー 等" style={inputStyle(T)} /></Field>
+      <Field T={T} label="特徴・備考"><textarea value={memo} onChange={e => setMemo(e.target.value)} rows={3} placeholder="色・サイズ・拾った人等" style={{ ...inputStyle(T), resize: 'vertical', lineHeight: 1.5 }} /></Field>
+      <ModalFooter T={T} onClose={onClose} onSubmit={() => title.trim() && onSubmit({ title: title.trim(), foundAt: foundAt.trim() || '—', memo: memo.trim() })} disabled={!title.trim()} />
+    </ModalShell>
+  );
+}
+
+// Shared modal atoms
+function ModalShell({ T, title, onClose, children }) {
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(20,23,31,0.55)', zIndex: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: T.surface, borderRadius: 14, width: 540, maxWidth: '100%', boxShadow: T.shadowModal, overflow: 'hidden' }}>
+        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${T.line}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: 15, fontWeight: 700 }}>{title}</div>
+          <button onClick={onClose} style={{ background: 'transparent', border: 'none', fontSize: 20, color: T.ink3, cursor: 'pointer' }}>×</button>
+        </div>
+        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+function Field({ T, label, children }) {
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: T.ink3, fontWeight: 600, letterSpacing: 1, marginBottom: 6 }}>{label}</div>
+      {children}
+    </div>
+  );
+}
+function ModalFooter({ T, onClose, onSubmit, disabled }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>
+      <button onClick={onClose} style={{ padding: '8px 16px', background: T.surface, color: T.ink2, border: `1px solid ${T.lineStrong}`, borderRadius: 8, fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>キャンセル</button>
+      <button onClick={onSubmit} disabled={disabled} style={{ padding: '8px 16px', background: disabled ? T.line : T.cobalt, color: '#fff', border: 'none', borderRadius: 8, fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer' }}>登録</button>
+    </div>
+  );
+}
+function EmptyRow({ T }) {
+  return <div style={{ padding: 36, textAlign: 'center', color: T.ink3, fontSize: 13, background: T.surface, border: `1px dashed ${T.lineStrong}`, borderRadius: 10 }}>該当する項目はありません</div>;
+}
+
+// Style helpers
+function chipStyle(T, on) {
+  return { padding: '4px 10px', background: on ? T.cobaltSoft : T.surface, color: on ? T.cobaltDeep : T.ink3, border: `1px solid ${on ? T.cobalt : T.lineStrong}`, borderRadius: 999, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' };
+}
+function actionBtn(T, kind) {
+  const map = { ok: [T.ok, T.okBorder], danger: [T.danger, T.dangerBorder], ghost: [T.ink3, T.lineStrong] };
+  const [col, bd] = map[kind];
+  return { padding: '5px 12px', background: T.surface, color: col, border: `1px solid ${bd}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' };
+}
+function inputStyle(T) {
+  return { width: '100%', padding: '9px 12px', border: `1px solid ${T.lineStrong}`, borderRadius: 8, fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', background: T.surface, color: T.ink };
+}
+
+// Date helpers
+function todayShort() {
+  const d = new Date();
+  return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function nowHHMM() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+function formatNow() { return `${todayShort()} ${nowHHMM()}`; }
+
+// Seed data
+window.FRONT_DELIVERIES = [
+  { id: 'D001', student: 'リュウ イヒ', room: 'M101', carrier: 'ヤマト運輸', count: 1, memo: '', date: '04-22', time: '14:30', picked: false },
+  { id: 'D002', student: '田中 隼人', room: 'M104', carrier: '佐川急便', count: 2, memo: '', date: '04-22', time: '11:15', picked: false },
+  { id: 'D003', student: 'リシンさん', room: 'W113', carrier: 'Amazon', count: 1, memo: '', date: '04-21', time: '18:20', picked: true, pickedAt: '04-21 19:30' },
+  { id: 'D004', student: 'ゴテンウ', room: 'M114', carrier: '日本郵便', count: 1, memo: '書留', date: '04-20', time: '10:05', picked: true, pickedAt: '04-20 18:22' },
+  { id: 'D005', student: 'ソンキゼン', room: 'W114', carrier: 'ヤマト運輸', count: 3, memo: '冷蔵', date: '04-19', time: '09:30', picked: true, pickedAt: '04-19 19:10' },
+];
+
+window.FRONT_LOST_ITEMS = [
+  { id: 'L001', title: 'ピンクの水筒', foundAt: '食堂', memo: 'サーモス製、ステッカー付き', date: '04-22', status: 'open' },
+  { id: 'L002', title: '黒の折り畳み傘', foundAt: '玄関', memo: '傘袋なし', date: '04-21', status: 'open' },
+  { id: 'L003', title: 'ワイヤレスイヤホン（AirPods）', foundAt: '風呂場付近', memo: 'ケースにシール有り', date: '04-19', status: 'returned', returnedAt: '04-20 08:30' },
+  { id: 'L004', title: '青色ボールペン', foundAt: 'ロビー', memo: '', date: '03-15', status: 'archived' },
+];
+
+window.FrontDeskPage = FrontDeskPage;
+// 共有 modal helper（pages-records-search-etc の BusPostComposeModal / 他から使用）
+window.ModalShell = ModalShell;
+window.ModalField = Field;
+window.ModalFooter = ModalFooter;
+window.modalInputStyle = inputStyle;
+
+</script>
 <script type="text/babel" data-source="components/pages-records-search-etc.jsx">
 // /records, /search, /notifications, /cleaning, /info, /community pages.
 
@@ -6013,7 +6342,7 @@ function RecordsPage({ teacher, params, onNav }) {
   const date = params && params.date || '2026-04-21';
   const roster = teacher.dorm === 'men' ? window.ROSTER_MEN : window.ROSTER_WOMEN;
   const statuses = ['ok','ok','ok','late','ok','absent','ok','ok','exempt','ok','ok','ok'];
-  const methods  = ['NFC卡','NFC卡','Shortcut','手動','NFC卡','—','NFC卡','NFC卡','—','NFC卡','NFC卡','Shortcut'];
+  const methods  = ['NFC卡','NFC卡','スマホ','手動','NFC卡','—','NFC卡','NFC卡','—','NFC卡','NFC卡','スマホ'];
   const times    = ['19:30','19:31','19:31','19:34','19:32','—','19:33','19:31','—','19:32','19:30','19:31'];
   const rows = roster.map(([room, id, name], i) => {
     const k = i % statuses.length;
@@ -6021,7 +6350,7 @@ function RecordsPage({ teacher, params, onNav }) {
   });
 
   return (
-    <div style={{ padding: '28px 32px 48px', maxWidth: 1280 }}>
+    <div style={{ padding: '28px 32px 48px' }}>
       <div style={{ fontSize: 11, color: T.ink3, letterSpacing: 2, fontWeight: 600 }}>記録</div>
       <h1 style={{ fontSize: 24, fontWeight: 700, margin: '4px 0 18px', letterSpacing: -0.3 }}>点呼記録</h1>
 
@@ -6078,7 +6407,7 @@ function SearchPage({ teacher, query }) {
   const crossDorm = allMatch && !ownMatch;
 
   return (
-    <div style={{ padding: '28px 32px 48px', maxWidth: 1180 }}>
+    <div style={{ padding: '28px 32px 48px' }}>
       <div style={{ fontSize: 11, color: T.ink3, letterSpacing: 2, fontWeight: 600 }}>検索 {q && `> ${q}`}</div>
       <h1 style={{ fontSize: 24, fontWeight: 700, margin: '4px 0 18px', letterSpacing: -0.3 }}>検索結果</h1>
 
@@ -6173,11 +6502,12 @@ function EmptyState({ msg }) {
 function NotificationsPage({ teacher, onNav }) {
   const T = window.RYO;
   const roster = teacher && teacher.dorm === 'men' ? window.ROSTER_MEN : window.ROSTER_WOMEN;
-  const sample1 = roster[0][2];
-  const sample2 = roster[3][2];
-  const sample3 = roster[1][2];
+  const pick = (i) => (roster[i % roster.length] || roster[0])[2];
+  const sample1 = pick(0);
+  const sample2 = pick(3);
+  const sample3 = pick(1);
   return (
-    <div style={{ padding: '28px 32px 48px', maxWidth: 1100 }}>
+    <div style={{ padding: '28px 32px 48px' }}>
       <div style={{ fontSize: 11, color: T.ink3, letterSpacing: 2, fontWeight: 600 }}>通知</div>
       <h1 style={{ fontSize: 24, fontWeight: 700, margin: '4px 0 18px', letterSpacing: -0.3 }}>通知中心</h1>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
@@ -6225,7 +6555,7 @@ function CleaningPage() {
       <h1 style={{ fontSize: 24, fontWeight: 700 }}>清掃確認 <span style={{ fontSize: 11, fontWeight: 700, color: T.warn, background: T.warnSoft, padding: '2px 8px', borderRadius: 4, letterSpacing: 1, marginLeft: 8, verticalAlign: 3 }}>開発中</span></h1>
       <div style={{ color: T.ink3, fontSize: 13, marginTop: 4, marginBottom: 20 }}>学生清掃写真の審査</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-        {[['田中 美咲', 'W102', '04-21'], ['山本 綾', 'W103', '04-20'], ['小林 美優', 'W104', '04-20']].map(([n, r, d], i) => (
+        {[['リシンさん', 'W113', '04-21'], ['ソンキゼン', 'W114', '04-20'], ['ゴキンウ', 'W115', '04-20']].map(([n, r, d], i) => (
           <div key={i} style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 12, padding: 12, boxShadow: T.shadow1 }}>
             <div style={{ height: 140, background: T.surfaceAlt, border: `1px dashed ${T.lineStrong}`, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.ink3, fontSize: 12 }}>写真プレビュー</div>
             <div style={{ marginTop: 10, fontSize: 14, fontWeight: 600 }}>{n}</div>
@@ -6282,10 +6612,272 @@ function InfoPage({ teacher }) {
           ))}
         </div>
       )}
-      {tab === 'event' && (<div>{[['04-25', '避難訓練'], ['04-28', 'デモ日'], ['05-03', 'GW 始め']].map(([d, m], i) => <Row key={i} date={d} msg={m} />)}</div>)}
-      {tab === 'bus' && (<div>{[['07:00', '寮 → 学校'], ['12:00', '寮 → 市街'], ['18:00', '市街 → 寮']].map(([d, m], i) => <Row key={i} date={d} msg={m} />)}</div>)}
+      {tab === 'event' && <EventCalendar events={window.CALENDAR_EVENTS || []} teacher={teacher} />}
+      {tab === 'bus' && <BusSchedulePanel teacher={teacher} />}
       {composing && <ComposeNoticeModal onClose={() => setComposing(false)} onSubmit={handlePost} />}
     </div>
+  );
+}
+
+// バス時刻表 管理 — 2026-04-24 新規。実運用サンプル = 06_assets/real_samples/bus_notice_2026-03-22_特別運行便.md
+// 行事カレンダー（iOS と同型レイアウト：月グリッド + 選択日イベントリスト）
+function EventCalendar({ events, teacher }) {
+  const T = window.RYO;
+  const today = new Date();
+  const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const todayKey = fmt(today);
+  const [cursor, setCursor] = React.useState(new Date(today.getFullYear(), today.getMonth(), 1));
+  const [selected, setSelected] = React.useState(todayKey);
+  const [composing, setComposing] = React.useState(false);
+  const [list, setList] = React.useState(events);
+
+  const y = cursor.getFullYear();
+  const m = cursor.getMonth();
+  const firstDow = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < firstDow; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const eventsByDate = list.reduce((acc, e) => { (acc[e.date] = acc[e.date] || []).push(e); return acc; }, {});
+  const dayKey = (d) => `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  const selEvents = (eventsByDate[selected] || []).slice().sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
+  const selDate = new Date(selected + 'T00:00:00');
+  const selJa = `${selDate.getMonth()+1} 月 ${selDate.getDate()} 日（${['日','月','火','水','木','金','土'][selDate.getDay()]}）`;
+  const monthJa = `${y} 年 ${m+1} 月`;
+
+  const dowLabels = ['日','月','火','水','木','金','土'];
+  const navMonth = (delta) => setCursor(new Date(y, m + delta, 1));
+
+  const addEvent = (e) => { setList([...list, e].sort((a,b) => a.date.localeCompare(b.date))); setComposing(false); setSelected(e.date); };
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(420px, 1.3fr) 1fr', gap: 20, alignItems: 'start' }}>
+      <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 12, padding: '18px 20px', boxShadow: T.shadow1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <button onClick={() => navMonth(-1)} title="前月" style={{ width: 32, height: 32, border: `1px solid ${T.line}`, background: T.surface, borderRadius: 8, cursor: 'pointer', fontSize: 14, color: T.ink2, fontFamily: 'inherit' }}>‹</button>
+          <div style={{ fontSize: 16, fontWeight: 700, color: T.ink, fontFamily: T.font }}>{monthJa}</div>
+          <button onClick={() => navMonth(1)} title="次月" style={{ width: 32, height: 32, border: `1px solid ${T.line}`, background: T.surface, borderRadius: 8, cursor: 'pointer', fontSize: 14, color: T.ink2, fontFamily: 'inherit' }}>›</button>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 6 }}>
+          {dowLabels.map((d, i) => (
+            <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: i === 0 ? T.danger : i === 6 ? T.cobalt : T.ink3, padding: '6px 0' }}>{d}</div>
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+          {cells.map((d, i) => {
+            if (d == null) return <div key={i} style={{ aspectRatio: '1 / 1' }} />;
+            const k = dayKey(d);
+            const has = (eventsByDate[k] || []).length > 0;
+            const isSel = k === selected;
+            const isToday = k === todayKey;
+            const dow = (firstDow + d - 1) % 7;
+            const baseColor = dow === 0 ? T.danger : dow === 6 ? T.cobalt : T.ink;
+            return (
+              <button key={i} onClick={() => setSelected(k)} style={{
+                aspectRatio: '1 / 1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                gap: 3, padding: 0, fontFamily: 'inherit',
+                background: isSel ? T.cobalt : (isToday ? T.cobaltSoft : 'transparent'),
+                color: isSel ? '#fff' : baseColor,
+                border: isSel ? `1px solid ${T.cobalt}` : `1px solid transparent`,
+                borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: isSel || isToday ? 700 : 500,
+                position: 'relative',
+              }}>
+                <span>{d}</span>
+                {has && <span style={{ width: 5, height: 5, borderRadius: 3, background: isSel ? '#fff' : T.cobalt }} />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12 }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: T.ink }}>{selJa}</div>
+          <div style={{ flex: 1 }} />
+          <span style={{ fontSize: 11, color: T.ink3, background: T.surfaceAlt, border: `1px solid ${T.line}`, padding: '3px 9px', borderRadius: 999, fontFamily: T.mono }}>{selEvents.length} 件</span>
+          <button onClick={() => setComposing(true)} style={{ padding: '5px 12px', background: T.cobalt, color: '#fff', border: 'none', borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>＋ 追加</button>
+        </div>
+        {selEvents.length === 0 ? (
+          <div style={{ padding: 36, textAlign: 'center', color: T.ink3, fontSize: 13, background: T.surface, border: `1px dashed ${T.lineStrong}`, borderRadius: 12 }}>この日に予定はありません</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {selEvents.map((e, i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: 12, padding: '12px 14px', background: T.surface, border: `1px solid ${T.line}`, borderRadius: 10, boxShadow: T.shadow1 }}>
+                <div style={{ fontFamily: T.mono, color: T.cobaltDeep, fontWeight: 700, fontSize: 14 }}>{e.time || '終日'}</div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>{e.title}</div>
+                  {e.location && <div style={{ fontSize: 12, color: T.ink3, marginTop: 2 }}>📍 {e.location}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {composing && <EventComposeModal initialDate={selected} onClose={() => setComposing(false)} onSubmit={addEvent} />}
+    </div>
+  );
+}
+
+function EventComposeModal({ initialDate, onClose, onSubmit }) {
+  const T = window.RYO;
+  const [date, setDate] = React.useState(initialDate);
+  const [time, setTime] = React.useState('');
+  const [title, setTitle] = React.useState('');
+  const [location, setLocation] = React.useState('');
+  const Shell = window.ModalShell;
+  const Field = window.ModalField;
+  const Footer = window.ModalFooter;
+  const inputStyle = window.modalInputStyle(T);
+
+  const submit = () => {
+    if (!title.trim() || !date) return;
+    onSubmit({ date, time: time || null, title: title.trim(), location: location.trim() || '—' });
+  };
+  const valid = title.trim() && date;
+
+  return (
+    <Shell T={T} title="行事を追加" onClose={onClose}>
+      <Field T={T} label="日付 *">
+        <input type="date" value={date} onChange={e => setDate(e.target.value)} style={inputStyle} />
+      </Field>
+      <Field T={T} label="時刻（任意 · 空欄なら終日）">
+        <input type="time" value={time} onChange={e => setTime(e.target.value)} style={inputStyle} />
+      </Field>
+      <Field T={T} label="タイトル *">
+        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="例：避難訓練" style={inputStyle} />
+      </Field>
+      <Field T={T} label="場所">
+        <input value={location} onChange={e => setLocation(e.target.value)} placeholder="例：グラウンド" style={inputStyle} />
+      </Field>
+      <Footer T={T} onClose={onClose} onSubmit={submit} disabled={!valid} />
+    </Shell>
+  );
+}
+
+function BusSchedulePanel({ teacher }) {
+  const T = window.RYO;
+  const [posts, setPosts] = React.useState(window.BUS_POSTS);
+  const [openPost, setOpenPost] = React.useState(() => (window.BUS_POSTS[0] || {}).id || null);
+  const [editing, setEditing] = React.useState(null); // null | 'new' | postId | { postId, eventIdx } | { postId, eventIdx, itemIdx }
+
+  const togglePost = (id) => setOpenPost(openPost === id ? null : id);
+  const deletePost = (id) => { if (confirm('この告知を削除しますか？')) setPosts(posts.filter(p => p.id !== id)); };
+  const togglePin = (id) => setPosts(posts.map(p => p.id === id ? { ...p, pinned: !p.pinned } : p));
+  const savePost = (data) => {
+    if (editing === 'new') {
+      setPosts([{ ...data, id: 'BP' + Date.now(), events: [], pinned: false }, ...posts]);
+    } else {
+      setPosts(posts.map(p => p.id === editing ? { ...p, ...data } : p));
+    }
+    setEditing(null);
+  };
+
+  const sorted = [...posts].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 10 }}>
+        <div style={{ fontSize: 12, color: T.ink3 }}>特別運行便・定期便の告知管理。各告知 → 日付ごとの行事 → 時刻行の 3 階層。</div>
+        <button onClick={() => setEditing('new')} style={{ padding: '7px 14px', background: T.cobalt, color: '#fff', border: 'none', borderRadius: 8, fontFamily: 'inherit', fontSize: 12, fontWeight: 700, cursor: 'pointer', boxShadow: T.shadow1, whiteSpace: 'nowrap' }}>＋ 新規告知</button>
+      </div>
+
+      {sorted.map(post => (
+        <BusPostCard key={post.id} post={post} T={T} open={openPost === post.id} onToggle={() => togglePost(post.id)}
+          onEditPost={() => setEditing(post.id)} onDeletePost={() => deletePost(post.id)} onPin={() => togglePin(post.id)} />
+      ))}
+
+      {sorted.length === 0 && <div style={{ padding: 36, textAlign: 'center', color: T.ink3, fontSize: 13, background: T.surface, border: `1px dashed ${T.lineStrong}`, borderRadius: 10 }}>告知はまだありません。「＋ 新規告知」から追加してください。</div>}
+
+      {editing && <BusPostComposeModal T={T} initial={editing === 'new' ? null : posts.find(p => p.id === editing)} onClose={() => setEditing(null)} onSubmit={savePost} />}
+    </div>
+  );
+}
+
+function BusPostCard({ post, T, open, onToggle, onEditPost, onDeletePost, onPin }) {
+  return (
+    <div style={{ background: T.surface, border: `1px solid ${post.pinned ? T.cobalt : T.line}`, borderRadius: 10, marginBottom: 10, overflow: 'hidden', boxShadow: post.pinned ? T.shadow1 : 'none' }}>
+      <div onClick={onToggle} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', cursor: 'pointer' }}>
+        <span style={{ fontSize: 14, color: T.ink3, fontFamily: T.mono, width: 14, textAlign: 'center' }}>{open ? '▼' : '▶'}</span>
+        {post.pinned && <span style={{ fontSize: 10, color: '#fff', background: T.cobalt, padding: '2px 6px', borderRadius: 4, fontWeight: 700, letterSpacing: 1 }}>PIN</span>}
+        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: post.category === '特別運行便' ? T.cobaltSoft : T.surfaceAlt, color: post.category === '特別運行便' ? T.cobaltDeep : T.ink2, border: `1px solid ${post.category === '特別運行便' ? T.cobalt : T.line}`, whiteSpace: 'nowrap' }}>{post.category}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: T.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{post.title}</div>
+          <div style={{ fontSize: 11, color: T.ink3, fontFamily: T.mono, marginTop: 2 }}>
+            {post.posted_on} · {post.posted_by} · {post.effective_from}{post.effective_until ? ` 〜 ${post.effective_until}` : ' 〜 継続中'} · {post.events.length} 件
+          </div>
+        </div>
+        <button onClick={(e) => { e.stopPropagation(); onPin(); }} style={{ padding: '4px 10px', background: post.pinned ? T.cobaltSoft : T.surface, color: post.pinned ? T.cobaltDeep : T.ink3, border: `1px solid ${post.pinned ? T.cobalt : T.lineStrong}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{post.pinned ? 'ピン解除' : 'ピン留め'}</button>
+        <button onClick={(e) => { e.stopPropagation(); onEditPost(); }} style={{ padding: '4px 10px', background: T.surface, color: T.ink2, border: `1px solid ${T.lineStrong}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>編集</button>
+        <button onClick={(e) => { e.stopPropagation(); onDeletePost(); }} style={{ padding: '4px 10px', background: T.surface, color: T.danger, border: `1px solid ${T.dangerBorder}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>削除</button>
+      </div>
+      {open && (
+        <div style={{ padding: '4px 14px 14px', borderTop: `1px solid ${T.line}`, background: T.surfaceAlt }}>
+          {post.body && <div style={{ padding: '10px 12px', margin: '10px 0', background: T.surface, border: `1px solid ${T.line}`, borderRadius: 8, fontSize: 12, lineHeight: 1.7, color: T.ink2, whiteSpace: 'pre-wrap' }}>{post.body}</div>}
+          {post.events.length === 0 && <div style={{ padding: 20, textAlign: 'center', color: T.ink3, fontSize: 12 }}>行事がまだ登録されていません</div>}
+          {post.events.map((ev, i) => <BusEventBlock key={i} ev={ev} T={T} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BusEventBlock({ ev, T }) {
+  return (
+    <div style={{ margin: '10px 0', padding: 12, background: T.surface, border: `1px solid ${T.line}`, borderRadius: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, paddingBottom: 8, borderBottom: `1px solid ${T.line}` }}>
+        <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', background: T.cobaltSoft, color: T.cobaltDeep, borderRadius: 4, fontFamily: T.mono, letterSpacing: .5 }}>{ev.date}</span>
+        <div style={{ fontSize: 13, fontWeight: 700, color: T.ink, flex: 1 }}>{ev.name}</div>
+        {ev.audience && <div style={{ fontSize: 10, color: T.ink3, maxWidth: 280, textAlign: 'right', lineHeight: 1.4 }}>対象: {ev.audience}</div>}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {ev.items.map((it, j) => (
+          <div key={j} style={{ display: 'flex', alignItems: 'baseline', gap: 12, fontSize: 12, padding: '5px 0', borderBottom: j < ev.items.length - 1 ? `1px dashed ${T.line}` : 'none' }}>
+            <span style={{ fontFamily: T.mono, color: T.cobalt, fontWeight: 700, minWidth: 48 }}>{it.time}</span>
+            <span style={{ color: T.ink, flex: 1, fontWeight: 500 }}>{it.action}</span>
+            {it.location && <span style={{ fontSize: 11, color: T.ink3, minWidth: 68, textAlign: 'right' }}>{it.location}</span>}
+            {it.memo && <span style={{ fontSize: 11, color: T.ink3, flex: 2, textAlign: 'left', fontStyle: 'italic' }}>{it.memo}</span>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BusPostComposeModal({ T, initial, onClose, onSubmit }) {
+  const MS = window.ModalShell;
+  const MField = window.ModalField;
+  const MFooter = window.ModalFooter;
+  const inputS = window.modalInputStyle;
+  const [title, setTitle] = React.useState(initial ? initial.title : '');
+  const [category, setCategory] = React.useState(initial ? initial.category : '特別運行便');
+  const [postedOn, setPostedOn] = React.useState(initial ? initial.posted_on : new Date().toISOString().slice(0, 10));
+  const [postedBy, setPostedBy] = React.useState(initial ? initial.posted_by : '国際交流部');
+  const [effectiveFrom, setEffectiveFrom] = React.useState(initial ? initial.effective_from : '');
+  const [effectiveUntil, setEffectiveUntil] = React.useState(initial ? (initial.effective_until || '') : '');
+  const [body, setBody] = React.useState(initial ? initial.body : '');
+  return (
+    <MS T={T} title={initial ? '告知を編集' : '新規告知を作成'} onClose={onClose}>
+      <MField T={T} label="タイトル"><input value={title} onChange={e => setTitle(e.target.value)} placeholder="例：特別運行便に関するお知らせ" style={inputS(T)} /></MField>
+      <MField T={T} label="カテゴリー">
+        <select value={category} onChange={e => setCategory(e.target.value)} style={inputS(T)}>
+          {['特別運行便', '定期便', 'イベント', '臨時'].map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </MField>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <MField T={T} label="掲載日"><input type="date" value={postedOn} onChange={e => setPostedOn(e.target.value)} style={inputS(T)} /></MField>
+        <MField T={T} label="発信元"><input value={postedBy} onChange={e => setPostedBy(e.target.value)} style={inputS(T)} /></MField>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <MField T={T} label="有効 開始日"><input type="date" value={effectiveFrom} onChange={e => setEffectiveFrom(e.target.value)} style={inputS(T)} /></MField>
+        <MField T={T} label="有効 終了日 (空欄 = 継続中)"><input type="date" value={effectiveUntil} onChange={e => setEffectiveUntil(e.target.value)} style={inputS(T)} /></MField>
+      </div>
+      <MField T={T} label="本文（前文 / 注意事項）"><textarea value={body} onChange={e => setBody(e.target.value)} rows={5} placeholder="学校休業日等に..." style={{ ...inputS(T), resize: 'vertical', lineHeight: 1.6 }} /></MField>
+      <div style={{ fontSize: 11, color: T.ink3, padding: '6px 0' }}>※ 行事（日付ごとの時刻表）は告知作成後、詳細画面から追加できます（demo 段階では行事追加 UI は簡略化）。</div>
+      <MFooter T={T} onClose={onClose} onSubmit={() => title.trim() && onSubmit({ title: title.trim(), category, posted_on: postedOn, posted_by: postedBy.trim(), effective_from: effectiveFrom, effective_until: effectiveUntil || null, body: body.trim() })} disabled={!title.trim()} />
+    </MS>
   );
 }
 
@@ -6325,16 +6917,56 @@ function CommunityPage({ teacher }) {
   const [tab, setTab] = React.useState('board');
   const [posts, setPosts] = React.useState(window.COMMUNITY_POSTS);
   const [filter, setFilter] = React.useState('all');
+  const [slotFilter, setSlotFilter] = React.useState('all'); // song tab 専用: all / morning / evening
+
+  const [songFilter, setSongFilter] = React.useState('pending'); // song tab 専用: pending / approved / rejected / all
+  const [dormFilter, setDormFilter] = React.useState(teacher && teacher.dorm ? teacher.dorm : 'men'); // song tab 専用: men / women / all（既定は担当寮）
+  const dormOf = (p) => (p && p.room && p.room.charAt(0) === 'M') ? 'men' : 'women';
 
   const handleDelete = (id) => { if (confirm('この投稿を削除しますか？学生のアプリからも非表示になります。')) setPosts(posts.map(p => p.id === id ? { ...p, deleted: true } : p)); };
   const handlePin = (id) => setPosts(posts.map(p => p.id === id ? { ...p, pinned: !p.pinned } : p));
   const handleResolve = (id) => setPosts(posts.map(p => p.id === id ? { ...p, flagCount: 0, resolved: true } : p));
+  const handleSongDecision = (id, decision) => setPosts(posts.map(p => p.id === id ? {
+    ...p,
+    songStatus: decision,
+    decidedAt: new Date().toTimeString().slice(0, 5),
+    decidedBy: teacher ? `${teacher.name} 先生` : '担当 先生',
+  } : p));
 
   const catPosts = posts.filter(p => p.cat === tab && !p.deleted);
   let visible = catPosts;
   if (filter === 'flagged') visible = catPosts.filter(p => p.flagCount > 0 && !p.resolved);
   if (filter === 'pinned') visible = catPosts.filter(p => p.pinned);
-  visible = [...visible].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+  if (tab === 'song' && slotFilter !== 'all') visible = visible.filter(p => p.timeSlot === slotFilter);
+  if (tab === 'song' && songFilter !== 'all') {
+    visible = visible.filter(p => (p.songStatus || 'pending') === songFilter);
+  }
+  if (tab === 'song' && dormFilter !== 'all') {
+    visible = visible.filter(p => dormOf(p) === dormFilter);
+  }
+
+  // リクエスト曲は 古い順（投稿順、昇順）= 放送キュー順。ピン留め上部。その他 tab は 従来通り ピン留め上部 + 降順。
+  if (tab === 'song') {
+    visible = [...visible].sort((a, b) => {
+      const pinDiff = (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+      if (pinDiff !== 0) return pinDiff;
+      const aKey = `${a.date} ${a.time || ''}`;
+      const bKey = `${b.date} ${b.time || ''}`;
+      return aKey.localeCompare(bKey); // 昇順 = 古い順 = キュー順
+    });
+  } else {
+    visible = [...visible].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+  }
+
+  // 承認済みキューの順番 #n を割り当て（寮 × 朝/晩 の組合せごとに古い順 = 提出順）
+  const approvedOrder = {};
+  ['men', 'women'].forEach(d => {
+    ['morning', 'evening'].forEach(slot => {
+      posts.filter(p => p.cat === 'song' && !p.deleted && p.songStatus === 'approved' && p.timeSlot === slot && dormOf(p) === d)
+        .sort((a, b) => `${a.date} ${a.time || ''}`.localeCompare(`${b.date} ${b.time || ''}`))
+        .forEach((p, i) => { approvedOrder[p.id] = i + 1; });
+    });
+  });
 
   const stats = {
     total: posts.filter(p => !p.deleted).length,
@@ -6345,14 +6977,12 @@ function CommunityPage({ teacher }) {
 
   const tabs = [
     ['board', '掲示板', '学生からの一般投稿'],
-    ['song', 'リクエスト曲', '館内 BGM リクエスト'],
-    ['lost', '忘れ物', '拾得物・紛失物の共有'],
+    ['song', 'リクエスト曲', '寮内 BGM リクエスト · 提出順に再生'],
     ['anon', '匿名建議', '匿名で寮運営への意見'],
-    ['delivery', '宅配通知', '宅配到着の自動通知'],
   ];
 
   return (
-    <div style={{ padding: '28px 32px 48px', maxWidth: 1280 }}>
+    <div style={{ padding: '28px 32px 48px' }}>
       <div style={{ fontSize: 11, color: T.ink3, letterSpacing: 2, fontWeight: 600 }}>コミュニティ管理</div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, margin: '4px 0 20px' }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.3 }}>コミュニティ管理</h1>
@@ -6379,15 +7009,37 @@ function CommunityPage({ teacher }) {
         })}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, fontSize: 12, color: T.ink2 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, fontSize: 12, color: T.ink2, flexWrap: 'wrap' }}>
         <span style={{ color: T.ink3 }}>{tabs.find(t => t[0] === tab)[2]} ·</span>
         {[['all', '全て'], ['flagged', '通報あり'], ['pinned', 'ピン留め']].map(([k, l]) => (
           <button key={k} onClick={() => setFilter(k)} style={{ padding: '4px 10px', background: filter === k ? T.cobaltSoft : T.surface, color: filter === k ? T.cobaltDeep : T.ink3, border: `1px solid ${filter === k ? T.cobalt : T.lineStrong}`, borderRadius: 999, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{l}</button>
         ))}
+        {tab === 'song' && (
+          <>
+            <span style={{ color: T.ink3, marginLeft: 6 }}>寮 ·</span>
+            {[['men', '男寮'], ['women', '女寮'], ['all', '両方']].map(([k, l]) => {
+              const n = posts.filter(p => p.cat === 'song' && !p.deleted && (k === 'all' || dormOf(p) === k)).length;
+              return (
+                <button key={k} onClick={() => setDormFilter(k)} style={{ padding: '4px 10px', background: dormFilter === k ? T.cobaltSoft : T.surface, color: dormFilter === k ? T.cobaltDeep : T.ink3, border: `1px solid ${dormFilter === k ? T.cobalt : T.lineStrong}`, borderRadius: 999, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{l} <span style={{ fontFamily: T.mono, opacity: 0.7 }}>{n}</span></button>
+              );
+            })}
+            <span style={{ color: T.ink3, marginLeft: 6 }}>放送枠 ·</span>
+            {[['all', '両方'], ['morning', '朝 ☀'], ['evening', '晩 🌙']].map(([k, l]) => (
+              <button key={k} onClick={() => setSlotFilter(k)} style={{ padding: '4px 10px', background: slotFilter === k ? T.cobaltSoft : T.surface, color: slotFilter === k ? T.cobaltDeep : T.ink3, border: `1px solid ${slotFilter === k ? T.cobalt : T.lineStrong}`, borderRadius: 999, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{l}</button>
+            ))}
+            <span style={{ color: T.ink3, marginLeft: 6 }}>審査 ·</span>
+            {[['pending', '未対応'], ['approved', '承認'], ['rejected', '拒否'], ['all', '全て']].map(([k, l]) => {
+              const n = posts.filter(p => p.cat === 'song' && !p.deleted && (k === 'all' || (p.songStatus || 'pending') === k)).length;
+              return (
+                <button key={k} onClick={() => setSongFilter(k)} style={{ padding: '4px 10px', background: songFilter === k ? T.cobaltSoft : T.surface, color: songFilter === k ? T.cobaltDeep : T.ink3, border: `1px solid ${songFilter === k ? T.cobalt : T.lineStrong}`, borderRadius: 999, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{l} <span style={{ fontFamily: T.mono, opacity: 0.7 }}>{n}</span></button>
+              );
+            })}
+          </>
+        )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: tab === 'delivery' ? '1fr' : 'repeat(auto-fill, minmax(360px, 1fr))', gap: 12 }}>
-        {visible.map(p => <PostCard key={p.id} post={p} onDelete={handleDelete} onPin={handlePin} onResolve={handleResolve} />)}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 12 }}>
+        {visible.map(p => <PostCard key={p.id} post={p} onDelete={handleDelete} onPin={handlePin} onResolve={handleResolve} onSongDecision={handleSongDecision} queueNo={approvedOrder[p.id]} />)}
         {visible.length === 0 && <div style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: T.ink3, fontSize: 13, background: T.surface, border: `1px dashed ${T.lineStrong}`, borderRadius: 12 }}>このカテゴリーに投稿はありません</div>}
       </div>
     </div>
@@ -6405,44 +7057,67 @@ function StatCard({ label, value, note, color, onClick }) {
   );
 }
 
-function PostCard({ post, onDelete, onPin, onResolve }) {
+function PostCard({ post, onDelete, onPin, onResolve, onSongDecision, queueNo }) {
   const T = window.RYO;
   const isAnon = post.cat === 'anon';
-  const isDelivery = post.cat === 'delivery';
+  const isSong = post.cat === 'song';
   const avatarColor = hashColor(post.author || 'A', T);
   const initial = isAnon ? '？' : (post.author || '').charAt(0) || '・';
+  const slotLabel = isSong && post.timeSlot === 'morning' ? '朝 ☀' : isSong && post.timeSlot === 'evening' ? '晩 🌙' : null;
+  const songStatus = isSong ? (post.songStatus || 'pending') : null;
+  const statusMap = {
+    pending:  { label: '未対応', fg: T.warn,   bg: T.warnSoft,   bd: T.warnBorder },
+    approved: { label: '承認',   fg: T.ok,     bg: T.okSoft,     bd: T.okBorder },
+    rejected: { label: '拒否',   fg: T.danger, bg: T.dangerSoft, bd: T.dangerBorder },
+  };
+  const st = songStatus && statusMap[songStatus];
+  const borderColor = post.pinned ? T.cobalt
+    : post.flagCount > 0 && !post.resolved ? T.danger
+    : songStatus === 'approved' ? T.okBorder
+    : songStatus === 'rejected' ? T.dangerBorder
+    : T.line;
   return (
-    <div style={{ padding: 14, background: T.surface, border: `1px solid ${post.pinned ? T.cobalt : post.flagCount > 0 && !post.resolved ? T.danger : T.line}`, borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 10, boxShadow: post.pinned ? T.shadow1 : 'none' }}>
+    <div style={{ padding: 14, background: T.surface, border: `1px solid ${borderColor}`, borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 10, boxShadow: post.pinned ? T.shadow1 : 'none', opacity: songStatus === 'rejected' ? 0.7 : 1 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+        {isSong && songStatus === 'approved' && queueNo && (
+          <div title={`放送キュー #${queueNo}`} style={{ width: 36, height: 36, borderRadius: '50%', background: T.okSoft, color: T.ok, border: `1.5px solid ${T.okBorder}`, fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: T.mono }}>#{queueNo}</div>
+        )}
         <div style={{ width: 36, height: 36, borderRadius: '50%', background: avatarColor, color: '#fff', fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{initial}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{isAnon ? '匿名' : post.author}{post.room && !isAnon && <span style={{ color: T.ink3, fontWeight: 500, marginLeft: 6, fontSize: 11 }}>· {post.room}</span>}</div>
           <div style={{ fontSize: 11, color: T.ink3, fontFamily: T.mono, marginTop: 2 }}>{post.date} {post.time}</div>
         </div>
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          {slotLabel && <span style={{ fontSize: 10, color: T.cobaltDeep, background: T.cobaltSoft, padding: '2px 7px', borderRadius: 4, fontWeight: 700, border: `1px solid ${T.cobalt}33`, whiteSpace: 'nowrap' }}>{slotLabel}</span>}
+          {st && <span style={{ fontSize: 10, color: st.fg, background: st.bg, padding: '2px 7px', borderRadius: 4, fontWeight: 700, border: `1px solid ${st.bd}`, whiteSpace: 'nowrap' }}>{st.label}</span>}
           {post.pinned && <span style={{ fontSize: 10, color: '#fff', background: T.cobalt, padding: '2px 6px', borderRadius: 4, fontWeight: 700, letterSpacing: 1 }}>PIN</span>}
           {post.flagCount > 0 && !post.resolved && <span style={{ fontSize: 10, color: T.danger, background: T.dangerSoft, padding: '2px 6px', borderRadius: 4, fontWeight: 700, border: `1px solid ${T.dangerBorder}` }}>通報 {post.flagCount}</span>}
         </div>
       </div>
 
       {post.title && <div style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>{post.title}</div>}
-      <div style={{ fontSize: 13, lineHeight: 1.6, color: T.ink2, whiteSpace: 'pre-wrap' }}>{post.body}</div>
+      {post.body && <div style={{ fontSize: 13, lineHeight: 1.6, color: T.ink2, whiteSpace: 'pre-wrap' }}>{post.body}</div>}
+      {isSong && post.decidedBy && (
+        <div style={{ fontSize: 11, color: T.ink3, fontFamily: T.mono }}>{songStatus === 'approved' ? '承認' : '拒否'}：{post.decidedBy} · {post.decidedAt}</div>
+      )}
 
-      {!isDelivery && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 6, borderTop: `1px solid ${T.line}`, fontSize: 11, color: T.ink3 }}>
-          <span>♥ {post.likes || 0}</span>
-          <span>💬 {post.comments || 0}</span>
-          <div style={{ flex: 1 }} />
-          {post.flagCount > 0 && !post.resolved && <button onClick={() => onResolve(post.id)} style={{ padding: '4px 10px', background: T.surface, color: T.ok, border: `1px solid ${T.okBorder}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>通報解除</button>}
-          <button onClick={() => onPin(post.id)} style={{ padding: '4px 10px', background: post.pinned ? T.cobaltSoft : T.surface, color: post.pinned ? T.cobaltDeep : T.ink3, border: `1px solid ${post.pinned ? T.cobalt : T.lineStrong}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{post.pinned ? 'ピン解除' : 'ピン留め'}</button>
-          <button onClick={() => onDelete(post.id)} style={{ padding: '4px 10px', background: T.surface, color: T.danger, border: `1px solid ${T.dangerBorder}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>削除</button>
-        </div>
-      )}
-      {isDelivery && (
-        <div style={{ display: 'flex', gap: 8, paddingTop: 6, borderTop: `1px solid ${T.line}` }}>
-          <span style={{ fontSize: 10, color: post.picked ? T.ok : T.warn, background: post.picked ? T.okSoft : T.warnSoft, padding: '3px 8px', borderRadius: 4, fontWeight: 700, border: `1px solid ${post.picked ? T.okBorder : T.warnBorder}` }}>{post.picked ? '受取済' : '未受取'}</span>
-        </div>
-      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 6, borderTop: `1px solid ${T.line}`, fontSize: 11, color: T.ink3, flexWrap: 'wrap' }}>
+        <span>♥ {post.likes || 0}</span>
+        <span>💬 {post.comments || 0}</span>
+        <div style={{ flex: 1 }} />
+        {isSong && songStatus === 'pending' && (
+          <>
+            <button onClick={() => onSongDecision && onSongDecision(post.id, 'rejected')} style={{ padding: '4px 10px', background: T.surface, color: T.danger, border: `1px solid ${T.dangerBorder}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>拒否</button>
+            <button onClick={() => onSongDecision && onSongDecision(post.id, 'approved')} style={{ padding: '4px 10px', background: T.ok, color: '#fff', border: `1px solid ${T.ok}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>承認</button>
+          </>
+        )}
+        {isSong && songStatus !== 'pending' && (
+          <button onClick={() => onSongDecision && onSongDecision(post.id, 'pending')} style={{ padding: '4px 10px', background: T.surface, color: T.ink3, border: `1px solid ${T.lineStrong}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>審査取消</button>
+        )}
+        {post.flagCount > 0 && !post.resolved && <button onClick={() => onResolve(post.id)} style={{ padding: '4px 10px', background: T.surface, color: T.ok, border: `1px solid ${T.okBorder}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>通報解除</button>}
+        <button onClick={() => onPin(post.id)} style={{ padding: '4px 10px', background: post.pinned ? T.cobaltSoft : T.surface, color: post.pinned ? T.cobaltDeep : T.ink3, border: `1px solid ${post.pinned ? T.cobalt : T.lineStrong}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{post.pinned ? 'ピン解除' : 'ピン留め'}</button>
+        <button onClick={() => onDelete(post.id)} style={{ padding: '4px 10px', background: T.surface, color: T.danger, border: `1px solid ${T.dangerBorder}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>削除</button>
+      </div>
     </div>
   );
 }
@@ -6473,28 +7148,129 @@ window.NOTICE_POSTS = [
 
 window.COMMUNITY_POSTS = [
   { id: 'C001', cat: 'board', author: 'リュウ イヒ', room: 'M101', date: '04-22', time: '08:14', body: '明日の朝食、卵焼きリクエストです 🍳 みんなで食堂のメニュー会議しませんか？', likes: 12, comments: 4, pinned: true, flagCount: 0 },
-  { id: 'C002', cat: 'board', author: '田中 美咲', room: 'W102', date: '04-22', time: '07:50', body: '今日の避難訓練、女子寮は何時集合でしたっけ？', likes: 3, comments: 2, flagCount: 0 },
-  { id: 'C003', cat: 'board', author: '佐藤 健太', room: 'M102', date: '04-21', time: '22:10', body: '22 時消灯のはずなのに隣の部屋うるさいです。誰か静かにさせてください。', likes: 1, comments: 0, flagCount: 2 },
-  { id: 'C004', cat: 'board', author: '高橋 翔', room: 'M103', date: '04-21', time: '18:45', body: 'Wi-Fi が不安定です。運営に報告しました。復旧は明日とのこと。', likes: 8, comments: 1, flagCount: 0 },
-  { id: 'C005', cat: 'board', author: '山本 綾', room: 'W103', date: '04-20', time: '20:00', body: '寮の門限って何時までですか？新入生なのでまだ把握してなくて…', likes: 2, comments: 5, flagCount: 0 },
+  { id: 'C002', cat: 'board', author: 'リシンさん', room: 'W113', date: '04-22', time: '07:50', body: '今日の避難訓練、女子寮は何時集合でしたっけ？', likes: 3, comments: 2, flagCount: 0 },
+  { id: 'C003', cat: 'board', author: '田中 隼人', room: 'M104', date: '04-21', time: '22:10', body: '22 時消灯のはずなのに隣の部屋うるさいです。誰か静かにさせてください。', likes: 1, comments: 0, flagCount: 2 },
+  { id: 'C004', cat: 'board', author: 'ゴテンウ', room: 'M114', date: '04-21', time: '18:45', body: 'Wi-Fi が不安定です。運営に報告しました。復旧は明日とのこと。', likes: 8, comments: 1, flagCount: 0 },
+  { id: 'C005', cat: 'board', author: 'ソンキゼン', room: 'W114', date: '04-20', time: '20:00', body: '寮の門限って何時までですか？新入生なのでまだ把握してなくて…', likes: 2, comments: 5, flagCount: 0 },
 
-  { id: 'C010', cat: 'song', author: 'リュウ イヒ', room: 'M101', date: '04-22', time: '07:30', title: '春日和 / Aimer', body: '朝の放送で流してほしいです。気分が上がります。', likes: 9, comments: 1, flagCount: 0 },
-  { id: 'C011', cat: 'song', author: '田中 美咲', room: 'W102', date: '04-21', time: '19:15', title: 'ハナウタ / Kenshi Yonezu', body: '夜の BGM におすすめ。', likes: 6, comments: 0, flagCount: 0 },
-  { id: 'C012', cat: 'song', author: '山本 綾', room: 'W103', date: '04-21', time: '18:40', title: '青と夏 / Mrs. Green Apple', body: '', likes: 4, comments: 0, flagCount: 0 },
-  { id: 'C013', cat: 'song', author: '佐藤 健太', room: 'M102', date: '04-20', time: '22:00', title: 'Pretender / Official髭男dism', body: '', likes: 7, comments: 2, flagCount: 0 },
-  { id: 'C014', cat: 'song', author: '高橋 翔', room: 'M103', date: '04-20', time: '21:45', title: '夜に駆ける / YOASOBI', body: '', likes: 11, comments: 3, flagCount: 0 },
+  // リクエスト曲（寮内 BGM）— 古い順で表示。各投稿に timeSlot: 'morning'（朝）/ 'evening'（晩）。
+  { id: 'C010', cat: 'song', author: 'ゴテンウ', room: 'M114', date: '04-20', time: '21:45', title: '夜に駆ける / YOASOBI', body: '', timeSlot: 'evening', songStatus: 'approved', decidedBy: '新股 先生', decidedAt: '22:10', likes: 11, comments: 3, flagCount: 0 },
+  { id: 'C011', cat: 'song', author: '田中 隼人', room: 'M104', date: '04-20', time: '22:00', title: 'Pretender / Official髭男dism', body: '', timeSlot: 'evening', songStatus: 'approved', decidedBy: '新股 先生', decidedAt: '22:12', likes: 7, comments: 2, flagCount: 0 },
+  { id: 'C012', cat: 'song', author: 'ソンキゼン', room: 'W114', date: '04-21', time: '18:40', title: '青と夏 / Mrs. Green Apple', body: '', timeSlot: 'evening', songStatus: 'pending', likes: 4, comments: 0, flagCount: 0 },
+  { id: 'C013', cat: 'song', author: 'リシンさん', room: 'W113', date: '04-21', time: '19:15', title: 'ハナウタ / Kenshi Yonezu', body: '夜の BGM におすすめ。', timeSlot: 'evening', songStatus: 'pending', likes: 6, comments: 0, flagCount: 0 },
+  { id: 'C014', cat: 'song', author: 'リュウ イヒ', room: 'M101', date: '04-22', time: '07:30', title: '春日和 / Aimer', body: '朝の放送で流してほしいです。気分が上がります。', timeSlot: 'morning', songStatus: 'pending', likes: 9, comments: 1, flagCount: 0 },
+  { id: 'C015', cat: 'song', author: '田中 隼人', room: 'M104', date: '04-19', time: '23:10', title: '残酷な天使のテーゼ / 高橋洋子', body: '深夜テンションで申請。', timeSlot: 'evening', songStatus: 'rejected', decidedBy: '新股 先生', decidedAt: '23:20', likes: 2, comments: 4, flagCount: 0 },
 
-  { id: 'C020', cat: 'lost', author: 'チャン ユエ', room: 'W104', date: '04-22', time: '09:00', title: 'ピンクの水筒', body: '食堂に置き忘れました。見つけた方は W104 まで…', likes: 0, comments: 1, flagCount: 0 },
-  { id: 'C021', cat: 'lost', author: '山本 綾', room: 'W103', date: '04-21', time: '16:20', title: '黒の折り畳み傘', body: '玄関に置いてあったのですが朝には消えてました。', likes: 0, comments: 0, flagCount: 0 },
-  { id: 'C022', cat: 'lost', author: '高橋 翔', room: 'M103', date: '04-19', time: '08:00', title: 'ワイヤレスイヤホン（AirPods）', body: '風呂場周辺で紛失。', likes: 0, comments: 2, flagCount: 0 },
-
-  { id: 'C030', cat: 'anon', author: '匿名', date: '04-22', time: '03:20', body: '洗濯機の予約制にしてほしい。いつも順番待ちでつらいです。', likes: 15, comments: 8, flagCount: 0 },
+  { id: 'C030', cat: 'anon', author: '匿名', date: '04-22', time: '03:20', body: '自販機にミネラルウォーターをもう少し増やしてほしいです。よく売り切れてます。', likes: 15, comments: 8, flagCount: 0 },
   { id: 'C031', cat: 'anon', author: '匿名', date: '04-20', time: '23:50', body: '食堂のメニュー、もう少し多様化してほしいです。外国人留学生向けの選択肢が少ない。', likes: 22, comments: 12, flagCount: 0 },
   { id: 'C032', cat: 'anon', author: '匿名', date: '04-18', time: '14:00', body: 'Wi-Fi の速度を改善してほしい。', likes: 9, comments: 3, flagCount: 0 },
+];
 
-  { id: 'C040', cat: 'delivery', author: 'リュウ イヒ', room: 'M101', date: '04-22', time: '14:30', body: '荷物 1 件（ヤマト運輸）フロント預かり', picked: false, flagCount: 0 },
-  { id: 'C041', cat: 'delivery', author: '佐藤 健太', room: 'M102', date: '04-22', time: '11:15', body: '荷物 2 件（佐川急便）フロント預かり', picked: false, flagCount: 0 },
-  { id: 'C042', cat: 'delivery', author: '田中 美咲', room: 'W102', date: '04-21', time: '18:20', body: '荷物 1 件（Amazon）受取済', picked: true, flagCount: 0 },
+// 行事カレンダー seed — iOS 側と同型データ。date は YYYY-MM-DD。
+window.CALENDAR_EVENTS = [
+  { date: '2026-04-23', time: '18:00', title: '新入生歓迎会',     location: '食堂' },
+  { date: '2026-04-25', time: '14:00', title: '避難訓練',         location: 'グラウンド' },
+  { date: '2026-04-28', time: '09:00', title: 'デモ日',           location: '寮玄関' },
+  { date: '2026-05-03', time: null,    title: 'GW 始め',          location: '—' },
+  { date: '2026-05-13', time: '08:30', title: '春期中間試験 開始', location: '高校棟' },
+  { date: '2026-05-17', time: '15:00', title: '春期中間試験 終了', location: '高校棟' },
+];
+
+// バス告知 seed — 2026-03-22 特別運行便（実公告ベース、詳細は 06_assets/real_samples/bus_notice_2026-03-22_特別運行便.md）
+window.BUS_POSTS = [
+  {
+    id: 'BP001',
+    category: '特別運行便',
+    title: '特別運行便に関するお知らせ',
+    posted_on: '2026-03-22',
+    posted_by: '国際交流部・技師',
+    effective_from: '2026-04-01',
+    effective_until: null,
+    pinned: true,
+    body: '学校休業日等に、寮生やボランティア等に取り組む通学生は、特別運航便(無料スクールバス)に乗車して構いません。寮生は乗車名簿に事前にチェックをつけて下さい。バス乗車時は、挨拶等の礼儀作法に気をつけてください。\n\n＊集中して学習やスポーツに取り組む時間と自由なオフタイムのメリハリをつけ、節約しながら休日は思いっ切りリフレッシュしてほしいので、特別運航便を案内しますが、技師(運転士)から悪い報告を受けた場合は該当者の乗車を一定期間拒否することがあり得ます。\n\n＊乗車簿を寮監が確認後、多すぎる場合は乗車便調整を行う場合があります。\n\n＊長期間の帰省・一時帰国等のタイミングは、情勢変化によって変更があり得ます。',
+    events: [
+      { date: '2026-04-05', name: '留4アクティビティ', audience: '4月生及び4月生をサポートする意志・日本語力・英語力を有する者のみ乗車・参加 → 参加希望者は高野まで', items: [
+        { time: '08:30', action: 'お花見弁当受取り', location: '食堂', memo: '女子寮・渡邊へ（15 食 +α）' },
+        { time: '08:50', action: '朝点呼', location: '', memo: '渡邊・ジェニファー' },
+        { time: '09:10', action: '日本語プレイスメントテスト', location: '', memo: '' },
+        { time: '10:10', action: '英語プレイスメントテスト', location: '', memo: '' },
+        { time: '11:25', action: '留4スクバ乗車', location: '', memo: '' },
+        { time: '12:15', action: 'RSK 山陽放送局前下車・徒歩移動', location: 'RSK', memo: '県立図書館紹介' },
+        { time: '12:30', action: '岡山城芝生広場で昼食・見学', location: '岡山城', memo: '' },
+        { time: '14:00', action: '記念撮影', location: '岡山城', memo: '' },
+        { time: '14:15', action: '後楽園散策', location: '後楽園', memo: '' },
+        { time: '15:00', action: 'さくらカーニバル 自由散策', location: '河川敷', memo: '各自現金持参' },
+        { time: '16:00', action: '後楽園入口集合', location: '後楽園', memo: '' },
+        { time: '16:15', action: '丸善岡山シンフォニーホール見学', location: '', memo: '日本語・各科目コーナー中心' },
+        { time: '16:45', action: '出口集合', location: '', memo: '' },
+        { time: '17:00', action: 'RSK 山陽放送局前乗車', location: 'RSK', memo: 'バスは駐車不可、必ず待つ' },
+        { time: '17:45', action: '帰寮', location: '', memo: '' },
+      ] },
+      { date: '2026-04-07', name: '帰寮日', audience: '', items: [
+        { time: '15:33', action: '金川駅発（寮行き）', location: '金川駅', memo: '' },
+        { time: '18:45', action: '岡山駅西口発（寮行き）', location: '岡山駅西口', memo: '' },
+      ] },
+      { date: '2026-04-11', name: 'みつ元気プロジェクト・買い物等', audience: '', items: [
+        { time: '08:30', action: '西口発', location: '西口', memo: '' },
+        { time: '09:20', action: '高校棟バス乗り場発（御津公民館行き）', location: '高校棟', memo: '' },
+        { time: '09:45', action: '御津公民館着 → 戦略会議', location: '御津公民館', memo: '' },
+        { time: '10:10', action: '高校棟バス乗り場発（金川駅行き）', location: '高校棟', memo: '' },
+        { time: '12:00', action: '御津公民館発', location: '御津公民館', memo: '' },
+        { time: '12:20', action: '高校棟バス乗り場発（西口行き）', location: '高校棟', memo: '' },
+        { time: '13:00', action: '西口着', location: '西口', memo: '' },
+        { time: '15:33', action: '金川駅発（寮行き）', location: '金川駅', memo: '' },
+        { time: '17:02', action: '金川駅発（寮行き）', location: '金川駅', memo: '' },
+      ] },
+      { date: '2026-04-29', name: 'GW 外泊・帰省等、買い物等', audience: '', items: [
+        { time: '07:30', action: '高校棟バス乗り場発（岡山駅西口行き）', location: '高校棟', memo: '' },
+        { time: '10:10', action: '高校棟バス乗り場発（金川駅行き）', location: '高校棟', memo: '' },
+        { time: '15:33', action: '金川駅発（寮行き）', location: '金川駅', memo: '' },
+        { time: '17:02', action: '金川駅発（寮行き）', location: '金川駅', memo: '' },
+      ] },
+      { date: '2026-05-06', name: 'GW 後帰寮日、買い物等', audience: '', items: [
+        { time: '09:20', action: '高校棟バス乗り場発（金川駅行き）', location: '高校棟', memo: '' },
+        { time: '10:10', action: '高校棟バス乗り場発（金川駅行き）', location: '高校棟', memo: '' },
+        { time: '15:33', action: '金川駅発（寮行き）', location: '金川駅', memo: '' },
+        { time: '18:45', action: '岡山駅西口発（寮行き）', location: '岡山駅西口', memo: '' },
+      ] },
+      { date: '2026-05-23', name: '音楽と青空市（岡山市立御津公民館）', audience: '基本ボランティア用、時間帯等注意', items: [
+        { time: '07:30', action: '岡山駅西口発', location: '岡山駅西口', memo: '' },
+        { time: '08:15', action: '高校棟発', location: '高校棟', memo: '' },
+        { time: '08:35', action: '御津公民館着', location: '御津公民館', memo: '' },
+        { time: '16:00', action: '御津公民館発', location: '御津公民館', memo: '' },
+        { time: '16:20', action: '高校棟発', location: '高校棟', memo: '' },
+        { time: '17:00', action: '岡山駅西口着', location: '岡山駅西口', memo: '' },
+      ] },
+      { date: '2026-05-31', name: '英検第 1 回一次試験・買い物等', audience: '英検時程に合わせて時程調整予定', items: [
+        { time: '06:40', action: '高校棟バス乗り場発（金川駅行き）', location: '高校棟', memo: '級受験者＋買い物等希望者' },
+        { time: '09:20', action: '高校棟バス乗り場発（金川駅行き）', location: '高校棟', memo: '買い物等希望者' },
+        { time: '11:00', action: '高校棟バス乗り場発（金川駅行き）', location: '高校棟', memo: '英検級受験者＋買い物等希望者' },
+        { time: '15:33', action: '金川駅発（寮行き）', location: '金川駅', memo: '買い物等希望者' },
+        { time: '17:31', action: '金川駅発（寮行き）', location: '金川駅', memo: '英検級受験者＋買い物等希望者' },
+      ] },
+    ],
+  },
+  {
+    id: 'BP002',
+    category: '定期便',
+    title: '平日 通学定期便',
+    posted_on: '2026-04-01',
+    posted_by: '寮務課',
+    effective_from: '2026-04-01',
+    effective_until: null,
+    pinned: false,
+    body: '平日（月〜金）の定期スクールバス運行時刻。長期休業期間は運休。',
+    events: [
+      { date: '平日', name: '登校便', audience: '全寮生', items: [
+        { time: '07:30', action: '岡山駅西口 → 高校棟', location: '岡山駅西口', memo: '毎日 1 便' },
+      ] },
+      { date: '平日', name: '下校便', audience: '全寮生', items: [
+        { time: '17:00', action: '高校棟発 → 寮', location: '高校棟', memo: '' },
+        { time: '18:30', action: '高校棟発 → 寮', location: '高校棟', memo: '部活動対応' },
+        { time: '21:00', action: '高校棟発 → 寮', location: '高校棟', memo: '自習室閉館後' },
+      ] },
+    ],
+  },
 ];
 
 window.RecordsPage = RecordsPage;
@@ -6555,15 +7331,16 @@ function AccountsPage({ teacher }) {
 
   React.useEffect(() => { if (toast) { const id = setTimeout(() => setToast(null), 4000); return () => clearTimeout(id); } }, [toast]);
 
-  const nextNo = String(accounts.length).padStart(2, '0');
+  const DEMO_NO = window.DEMO_SEED_NO; // 060218 = リュウ イヒ
+  const nextNoHint = '06????'; // 番号 6 桁: 学年(2)+組(2)+番号(2)。iOS 登録時に学生本人入力
 
   return (
-    <div style={{ padding: '28px 32px 48px', maxWidth: 1400 }}>
+    <div style={{ padding: '28px 32px 48px' }}>
       <div style={{ fontSize: 11, color: T.ink3, letterSpacing: 2, fontWeight: 600 }}>学生管理</div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, margin: '4px 0 20px' }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.3 }}>学生アカウント管理</h1>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => alert(`次の新規登録 = 番号 ${nextNo}（iOS App からの自動採番 · demo 版未対応）`)} style={{ padding: '8px 14px', background: 'transparent', color: T.cobalt, border: `1px solid ${T.cobalt}`, borderRadius: 8, fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>＋ 新規追加（次は {nextNo}）</button>
+          <button onClick={() => alert(`新規登録は iOS App から本人入力（番号 = 学年 2 桁 + 組 2 桁 + 番号 2 桁、例：高 3 B 18 = 060218）。demo 版で老師側追加未対応`)} style={{ padding: '8px 14px', background: 'transparent', color: T.cobalt, border: `1px solid ${T.cobalt}`, borderRadius: 8, fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>＋ 新規追加（iOS から）</button>
           <button onClick={() => alert('CSV 出力 · Demo 版未対応')} style={{ padding: '8px 14px', background: 'transparent', color: T.ink3, border: `1px solid ${T.lineStrong}`, borderRadius: 8, fontFamily: 'inherit', fontSize: 13, cursor: 'pointer' }}>CSV 出力</button>
         </div>
       </div>
@@ -6572,7 +7349,7 @@ function AccountsPage({ teacher }) {
         <AcctStat label="総アカウント" value={stats.total} note={`男性寮 ${stats.men} · 女性寮 ${stats.women}`} color={T.ink} />
         <AcctStat label="今月新規" value={stats.thisMonthNew} note={stats.thisMonthNew > 0 ? '2026-04' : '無し'} color={T.cobalt} />
         <AcctStat label="ロック中" value={stats.locked} note={stats.locked > 0 ? '要対応' : '異常無し'} color={stats.locked > 0 ? T.danger : T.ok} onClick={stats.locked > 0 ? () => setDormFilter('locked') : null} />
-        <AcctStat label="次の新規番号" value={nextNo} note="iOS 登録時採番" color={T.ink3} mono />
+        <AcctStat label="番号フォーマット" value={nextNoHint} note="学年+組+番号 6 桁" color={T.ink3} mono />
       </div>
 
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
@@ -6586,16 +7363,16 @@ function AccountsPage({ teacher }) {
       </div>
 
       <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 12, overflow: 'hidden', boxShadow: T.shadow1 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '70px 160px 90px 90px 1fr 140px 130px 110px 90px', background: T.surfaceAlt, fontSize: 11, color: T.ink2, fontWeight: 600, letterSpacing: 1, borderBottom: `1px solid ${T.line}` }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '130px 160px 90px 90px 1fr 140px 130px 110px 90px', background: T.surfaceAlt, fontSize: 11, color: T.ink2, fontWeight: 600, letterSpacing: 1, borderBottom: `1px solid ${T.line}` }}>
           {['番号', '氏名', '部屋', '担当寮', 'メールアドレス', '電話番号', '最終ログイン', '状態', ''].map(h => <div key={h} style={{ padding: '10px 12px' }}>{h}</div>)}
         </div>
         {visible.map((a, i) => (
           <div key={a.no} onClick={() => setDetailTarget(a)}
-            style={{ display: 'grid', gridTemplateColumns: '70px 160px 90px 90px 1fr 140px 130px 110px 90px', borderTop: i > 0 ? `1px solid ${T.line}` : 'none', fontSize: 12.5, alignItems: 'center', cursor: 'pointer', transition: 'background .1s' }}
+            style={{ display: 'grid', gridTemplateColumns: '130px 160px 90px 90px 1fr 140px 130px 110px 90px', borderTop: i > 0 ? `1px solid ${T.line}` : 'none', fontSize: 12.5, alignItems: 'center', cursor: 'pointer', transition: 'background .1s' }}
             onMouseEnter={e => e.currentTarget.style.background = T.surfaceAlt}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-            <div style={{ padding: '10px 12px', fontFamily: T.mono, fontWeight: 700, color: a.no === '00' ? T.cobalt : T.ink2 }}>
-              {a.no}{a.no === '00' && <span style={{ fontSize: 9, marginLeft: 6, padding: '1px 5px', background: T.cobaltSoft, color: T.cobaltDeep, borderRadius: 3, letterSpacing: 1 }}>DEMO</span>}
+            <div style={{ padding: '10px 12px', fontFamily: T.mono, fontWeight: 700, color: a.no === DEMO_NO ? T.cobalt : T.ink2 }}>
+              {a.no}{a.no === DEMO_NO && <span style={{ fontSize: 9, marginLeft: 6, padding: '1px 5px', background: T.cobaltSoft, color: T.cobaltDeep, borderRadius: 3, letterSpacing: 1 }}>DEMO</span>}
             </div>
             <div style={{ padding: '10px 12px', fontWeight: 600 }}>{a.name}</div>
             <div style={{ padding: '10px 12px', fontFamily: T.mono, color: T.ink3 }}>{a.room}</div>
@@ -6783,7 +7560,7 @@ function buildActivityMock(a) {
   ];
   if (a.failedLoginCount > 0) base.push({ icon: '⚠', color: T.warn, title: `ログイン失敗 ${a.failedLoginCount} 回`, body: 'パスワード誤入力 · 自動ロック前の警告', when: '04-22 17:50' });
   if (a.locked) base.push({ icon: '🔒', color: T.danger, title: 'アカウントロック', body: 'ログイン失敗 3 回 · 30 秒ロック → エスカレート', when: '04-22 18:00' });
-  if (a.no === '00') {
+  if (a.sid === 'S001') { // リュウ イヒ = demo seed (高3 B 18 = 060218)
     base.push(
       { icon: '✗', color: T.danger, title: '欠席', body: '晩点呼 · 未チェックイン · 減点 1.0', when: '04-20 19:35' },
       { icon: '⏰', color: T.late,   title: '遅刻', body: '晩点呼 · 19:34 チェックイン · 減点 0.5', when: '04-12 19:34' },
@@ -6793,10 +7570,8 @@ function buildActivityMock(a) {
       { icon: '📝', color: T.cobalt, title: '外泊申請 提出', body: '岡山市内 · 2026-04-22 09:15 出発 · 審査待ち', when: '04-21 14:22' },
       { icon: '🎵', color: T.info,   title: 'コミュニティ投稿', body: 'リクエスト曲「春日和 / Aimer」', when: '04-22 07:30' },
     );
-  } else if (a.no === '01') {
+  } else if (a.sid === 'S103') { // 田中 隼人
     base.push({ icon: '📝', color: T.cobalt, title: '外泊申請 提出', body: '岡山市内 · 2026-04-25 〜 04-27', when: '04-21 09:10' });
-  } else if (a.no === '08') {
-    base.push({ icon: '⏰', color: T.late, title: '遅刻', body: '晩点呼 · 19:36 · 今月 5 回目 · 要面談', when: '04-21 19:36' });
   }
   // newest first
   return base.sort((x, y) => y.when.localeCompare(x.when)).slice(0, 10);
@@ -6865,10 +7640,14 @@ function App() {
 
   const startSession = (name) => {
     const seeded = window.seedStudents(teacher.dorm);
-    // demo: add a few interesting states
-    seeded[0].pending = { reason: '岡山市内で家族と合流、夕食後帰舎予定 · 03-15 承認後再申請', submittedAt: '19:22' };
-    seeded[2].health = '発熱 38.1°C、保健室で休養中';
-    seeded[8].status = 'exempt'; seeded[8].exemptReason = '部活合宿 04-19〜04-22';
+    // demo: add a few interesting states (roster が短い場合は安全に skip)
+    if (seeded[0]) seeded[0].pending = { reason: '岡山市内で家族と合流、夕食後帰舎予定 · 03-15 承認後再申請', submittedAt: '19:22' };
+    if (seeded[2]) seeded[2].health = '発熱 38.1°C、保健室で休養中';
+    const exemptIdx = Math.min(seeded.length - 1, 3); // 最後付近の枠を免除に
+    if (seeded[exemptIdx] && exemptIdx !== 0 && exemptIdx !== 2) {
+      seeded[exemptIdx].status = 'exempt';
+      seeded[exemptIdx].exemptReason = '外宿 04-19〜04-22';
+    }
     setStudents(seeded);
     setSession({ name, startedAt: Date.now() });
     setLiveMode(true);
@@ -6946,6 +7725,8 @@ function App() {
       body = <window.InfoPage teacher={teacher} />; break;
     case 'community':
       body = <window.CommunityPage teacher={teacher} />; break;
+    case 'front-desk':
+      body = <window.FrontDeskPage teacher={teacher} />; break;
     case 'accounts':
       body = <window.AccountsPage teacher={teacher} />; break;
     default:

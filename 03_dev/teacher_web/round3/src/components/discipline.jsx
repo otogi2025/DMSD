@@ -18,7 +18,7 @@ function DisciplinePage({ teacher, onNav }) {
   const warnList = data.filter(d => d.total >= 3 && d.total < 4);
 
   return (
-    <div style={{ padding: '28px 32px 48px', maxWidth: 1280 }}>
+    <div style={{ padding: '28px 32px 48px' }}>
       <div style={{ fontSize: 11, color: T.ink3, letterSpacing: 2, fontWeight: 600 }}>規律・処分</div>
       <h1 style={{ fontSize: 24, fontWeight: 700, margin: '4px 0 6px', letterSpacing: -0.3 }}>規律・処分</h1>
       <div style={{ color: T.ink2, fontSize: 13, marginBottom: 22 }}>{window.dormLabel(dorm)} · 2026 年 4 月</div>
@@ -73,7 +73,7 @@ function DisciplinePage({ teacher, onNav }) {
           <span style={{ fontSize: 10, fontWeight: 700, color: T.warn, background: T.warnSoft, padding: '2px 8px', borderRadius: 4, letterSpacing: 1 }}>開発中</span>
         </div>
         <div style={{ fontSize: 12, color: T.ink3, lineHeight: 1.7, marginBottom: 10 }}>
-          将来、後端サーバーに常駐スクリプトを設置し、特定学生の遅刻・欠席が一定数に達した時点で自動的に宿監へアラート短評を生成する予定です。現 demo 版では手動確認のみ。
+          将来、後端サーバーに常駐スクリプトを設置し、特定学生の遅刻・欠席が一定数に達した時点で自動的に寮監へアラート短評を生成する予定です。現 demo 版では手動確認のみ。
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {data.slice(0, 2).map((d, i) => (
