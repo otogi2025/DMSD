@@ -1,12 +1,14 @@
 # NFC 替代方案：iPhone Shortcuts + itsuki 自有 NFC 卡（银行卡 / Suica / 学生证）  <!-- VERSION_OK -->
 
+> **⚠️ 文档状态（2026-04-29 加注）**：本文件为 **demo 4-28 阶段的临时 fallback 方案**。demo 已 4-28 跑完且管理员同意采纳系统。**v1.0 上线时硬件路径恢复 = ST25DV16K 动态 NFC 贴纸**（见 `02_design/hardware_design.md §2.1`）。本文件作为"v1.0 上线遇到 ST25DV 供货 / 部署问题时的硬件 fallback 参考"保留，**不是当前活跃方案**。
+>
 > **背景**: Demo 阶段 ~~ST25DV16K 供货延迟~~ **整个点呼机硬件砍掉**（2026-04-22 拍板，见 `scope_tier.md §0.1`）
 > **决策**: **不买任何 NFC 硬件**，itsuki 用她手里已有的 NFC 卡（银行卡 / Suica / PASMO / 学生证 任选）+ iOS Shortcuts Automation 绑定该卡 + POST 后端
 > **影响**:
 > - Demo 安全性降级（静态 UID 可被读；但 demo 只演 itsuki 一人所以不展示代签场景）
 > - 用户体验 100% 对齐最终版（iPhone 碰一下自动签到）
 > - 采购 0 成本（砍了 NTAG215 + 点呼机硬件）
-> **最后更新**: 2026-04-22（从"NTAG215 + 点呼机"简化为"itsuki 自有卡 + 无硬件"）
+> **最后更新**: 2026-04-29（加 v1.0 fallback 定位说明；4-22 内容保留）
 
 ---
 

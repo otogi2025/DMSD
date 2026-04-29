@@ -60,13 +60,18 @@
 DMSD/
 ├── 00_admin/
 │   ├── WIP.md                         # 书签级，每次会话头尾读写
+│   ├── TODO.md                        # itsuki 维护的全部待办 + 4-29 老师反馈 38 条 backlog
 │   ├── 文件结构指南.md                 # ⭐ 文件级清单 + 作用 + 权限（每次找不到文件先查这里）
 │   ├── 文档同步点清单.md               # 单源真值表 + release/onboarding checklist
+│   ├── 版本管理SOP.md                  # ⭐ 运行手册 — 决策树 / bump 5 步 / commit 前缀（CC 改 spec 必读）
 │   ├── progress_overview.md           # 章节级，CC 起草由 itsuki 确认
-│   └── CLAUDE_CODE_记录指南.md         # AC 记录操作手册（仅格式需要时读）
+│   ├── CLAUDE_CODE_记录指南.md         # AC 记录操作手册（仅格式需要时读）
+│   ├── demo_4-28/                     # 4-28 管理员 demo 需求档（sprint / scope_tier / demo_script / questions / wifi_survey）
+│   ├── hooks/                         # pre-commit hook 三件套（拦硬编码版本号）
+│   └── vX.Y.Z_AC叙事.md                # 每次 minor bump 后写的 AC 素材卡
 ├── 01_specs/                          # 规格文档（rollcall/ 字典+主体，文件名不带版本号）
 ├── 02_design/                         # 设计文档（hardware_design + flow_design + system_features 等，硬件+流程+共用功能权威源）
-├── 03_dev/                            # 代码（backend / teacher_web / student_ios）
+├── 03_dev/                            # 代码（backend / teacher_web / student_ios — Swift 实装在独立 repo Tomoshibi-iOS）
 ├── 04_ops/
 ├── 05_logs/                           # DMSD 开发 log
 │   ├── raw/                           # CC 每日 dump YYYY-MM-DD.md（+ 历史主题文件）
@@ -77,9 +82,10 @@ DMSD/
 │   └── project_evolution.md
 │   # AC 纯素材（reflection/ weekly_review/ monthly_review/ interview_log/
 │   # ai_协作记录.md dmsd_app_ideas.md 证据/ ac_入試准备/）已移 iCloud，不在 git
-├── 06_assets/
+├── 06_assets/                         # real_samples/（实公告等参考材料）
 ├── 07_release/
 ├── 99_archive/                        # 2025-12 早期 GPT 对话等
+├── bin/                               # sync-ios-refs.sh 等脚本
 ├── CHANGELOG.md
 └── CLAUDE.md                          # 本文件
 ```
@@ -177,9 +183,10 @@ DMSD/
 
 ## 开发环境
 
-- 学校 iPad → SSH 到 VPS（`~/DMSD`）→ CC（后端、文档、学习）
-- 家 Mac → 本地（`~/dev/DMSD`）→ CC + Xcode + VS Code（iOS 开发）
-- 通过 GitHub 同步（Private repo）
+- **家 Mac** → 本地（`~/dev/DMSD`）→ CC + Xcode + VS Code（iOS 开发）— **当前唯一开发环境**
+- ~~学校 iPad → SSH 到 VPS（`~/DMSD`）~~ — **2026-04-19 已停用 for DMSD**（itsuki 决策，VPS 仍可用于学习/通用，但 DMSD 工作集中在 Mac）
+- GitHub（`otogi2025/DMSD`）= 唯一远端真值；2026-04-29 起 **public**（之前 private）
+- 独立 repo：Tomoshibi-iOS（`~/dev/TomoshibiiOSApp/`，GitHub `otogi2025/Tomoshibi-iOS`）— Swift 实装，与 DMSD 通过 `bin/sync-ios-refs.sh` 物理 copy 同步设计文档
 
 ## 对话规则
 
