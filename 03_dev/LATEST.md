@@ -18,7 +18,7 @@
 | Design System | Ryō（涼）— Paper + Cobalt + Noto Sans JP |
 | 設計 LOG | `03_dev/teacher_web/WEB_DESIGN_LOG.md` |
 
-**旧 Round 2** は `03_dev/teacher_web/round2/` + ルート `index.html`（歴史保留、改動禁止）。
+**旧 Round 1 / Round 2 関連物**（handoff / index.html / round2 jsx / round3_handoff 入力素材）は **2026-04-29 大整理で `99_archive/2026-04-29_pre_v1.0_cleanup/` に移動済**（歴史保留、本ファイルからは指し示さない）。
 
 ### ⚠️ ビルド順序（jsx 改動時）
 
@@ -36,7 +36,6 @@
 | 項 | パス |
 |---|---|
 | ⭐ **最新 HTML プロトタイプ**（Phase B v2）| `03_dev/student_ios/designs/Tomoshibi_iOS_PhaseB_v2.html` |
-| 旧 Phase B v1 | `03_dev/student_ios/designs/Tomoshibi_iOS_PhaseB.html`（歴史保留）|
 | JSX 解包源（Swift agent が参照）| `03_dev/student_ios/designs/phaseB_src/` |
 | QA 記録 | `03_dev/student_ios/designs/QA_Round1_PhaseB.md` |
 | Version | Phase B v2（2026-04-22 完成）|
