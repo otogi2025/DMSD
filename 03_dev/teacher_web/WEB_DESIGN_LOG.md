@@ -356,7 +356,7 @@ round3/
 - **后端实装方案**：FastAPI scheduled task (apscheduler) 或独立 worker 进程
 - **关联 feature**：規律・処分 / 通知中心 / 学生 iOS App 本人向け警告
 - **实装时机**：demo 采纳后第一批 post-demo feature
-- **persisted location**：`00_admin/demo_4-28/questions_for_requirements.md §N4.5`
+- **persisted location**：`99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/questions_for_requirements.md §N4.5`
 
 ### 6.2 男女寮数据库分离（后端）
 

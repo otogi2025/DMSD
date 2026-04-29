@@ -1,6 +1,6 @@
 # Tomoshibi Backend (Demo Sprint v1) — 项目代号 DMSD
 
-> 4-28 宿舍管理员 demo 用后端。系统对外名 **Tomoshibi**（灯火，2026-04-21 定名）；项目/仓库代号 DMSD。权威规划：`00_admin/demo_4-28/sprint.md`。
+> 4-28 宿舍管理员 demo 用后端。系统对外名 **Tomoshibi**（灯火，2026-04-21 定名）；项目/仓库代号 DMSD。权威规划：`99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/sprint.md`。
 >
 > **Demo 版特性**：SQLite（零配置）+ FastAPI + WebSocket 实时推送。部署版后续迁 PostgreSQL。
 

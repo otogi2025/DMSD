@@ -119,7 +119,7 @@ Tomoshibi 点呼系统的硬件体系由 4 类物理设备构成：
 **⚠️ 2026-04-21 demo 阶段降级说明**：
 - ST25DV16K 淘宝空运 7-10 天，4-28 demo 前到不了
 - **Demo 阶段替代方案**：用 NTAG215 静态贴纸 + iOS Shortcuts Automation（NFC 触发自动调签到 API）
-- 替代方案配置详见 `00_admin/demo_4-28/ST25DV_fallback.md`
+- 替代方案配置详见 `99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/ST25DV_fallback.md`
 - **影响**：Demo 阶段 URL 固定（可复制代签，不演示这个漏洞）；用户体验（iPhone 碰一下）100% 对齐上线版
 - **上线版本保持 ST25DV16K 动态 nonce 方案不变**（nonce 每 10 秒刷新防代签）
 - Demo 日后 ST25DV16K 到货 → 迁移零用户侧改动（换贴纸物理即可，iOS Shortcuts Automation 不需改）
@@ -220,7 +220,7 @@ Tomoshibi 点呼系统的硬件体系由 4 类物理设备构成：
 | ~~杜邦线 / 面包板~~ | ❌ 不下单 | 无需接线 |
 | **Demo 合计** | **¥0** | 从 ¥12,380 日元 降到 0 |
 
-**替代方案**: 见 `00_admin/demo_4-28/ST25DV_fallback.md` v2（2026-04-22 简化版）
+**替代方案**: 见 `99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/ST25DV_fallback.md` v2（2026-04-22 简化版）
 
 ### 4.2 部署扩容阶段（4-28 demo 后管理员采纳 → 淘宝批量）
 

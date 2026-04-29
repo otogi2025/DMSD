@@ -27,30 +27,19 @@
   - 保留 DMSD 的场景：项目开发过程、git 历史、spec / commit / 版本号、CLAUDE.md 这类"对 CC 的项目指令"
   - **AC 面试话术**（itsuki 原话定版）："我在日本留学，宿舍是我在异国的第二个家。这个系统守护的是'灯火'——每个学生夜晚平安归来、房间亮起一盏灯。所以取日语名 Tomoshibi（灯火）。"
 - 核心：宿舍点呼数字化（NFC 签到 / 自动判定 / 纪律扣分）
-- 技术栈（2026-04-20 议题 A/B/C 细化）：
-  - iOS（Swift / SwiftUI，**BTR + Universal Link + AASA** 实现"碰一下自动唤 App"）
-  - Android（Kotlin，**App Links + assetlinks.json** + 自建 APK 分发，最低支持 **Android 10+**）
-  - 后端（FastAPI / Python / PostgreSQL，托管域名 `dmsd.otogi2025.com` 或同类）
-  - 点呼机（**Raspberry Pi 3 Model A+ + Python**，I²C 接 **PN532 卡读头** + **ST25DV16K 动态 NFC 贴纸模块**；**2026-04-21 推翻 4-20 Pi 4B 2GB 选型**，原因：thin client 用不上 over-spec + 实际市场价 ¥500 太贵 + Pi 3A+ 双频 WiFi + 3.5mm 音频口内置）
-  - NFC 卡（NTAG215 空白卡，学生自贴名字）
-- **防御核心**（2026-04-20 议题 A 定稿）：ST25DV16K 每 10 秒刷新一次性 nonce（URL 复制无效）+ ECDSA 签名（私钥存 Keychain/Keystore 硬件级）+ 老师现场监督 + session 幂等
-- **账号规则**（2026-04-22 Demo 简化修订，**推翻 4-20 议题 C "入学日面签确认"**；4-20 议题 C 的"不锁定单设备"原则沿用）：
-  - **注册**：App 内 4-step 流程（氏名 + 生日 + 性别 + 学生类别 一般/サッカー部 + 邮箱 + 电话 + 密码 ×2 + 头像）→ **即激活**（demo 阶段无老师面签；v1.0 可恢复面签核验）
-  - **账号 ID**：系统分配 2 位数字（`00` 保留为 demo seed = リュウ イヒ / 女寮 W101 / 4 分扣分；真实学生 `01` 起自动分配）
-  - **登录**：号码 + 密码，**永久保持 session** 直到主动 ログアウト
-  - **密码重置**：App 无自助路径，学生必须找宿管，宿管在老师 Web 后台手动重置（⚠ 老师 Web 待加页面，见 `teacher_web/Round4` backlog）
-  - **密码锁定升级**：连错 3 次 → 锁 30 秒 + 通报老师 → 解锁后再错 1 次 → 1 分钟 → 5 分 → 30 分 → 1 小时 → **永久锁死**（找宿管）；成功登录 counter 清零
-  - **签到**：不锁定单设备；任意已激活设备 + 学生私钥签名即可签到；换机无需老师（学生新机登录自助，旧设备密钥自动作废）
-  - **权威源**：`03_dev/student_ios/IOS_DESIGN_LOG.md §3`
-- **上线姿态**（2026-04-19 G2 决策）：**v1.0 直接 iOS + Android + 卡 完整版一次上线**；取消原 Phase 1 / Phase 2 分阶段
+- **技术栈**：iOS（Swift/SwiftUI）+ Android（Kotlin/Java）+ 后端（FastAPI/Python/PostgreSQL）+ 点呼机（Pi 3A+ + Python，I²C PN532 + ST25DV16K）+ NTAG215 NFC 卡 — **详见**：`02_design/hardware_design.md §2.1`（硬件选型 + 推翻 4-20 Pi 4B 2GB 理由）
+- **防御核心**：动态 NFC 贴纸（ST25DV16K 10 秒 nonce）+ ECDSA 签名（私钥硬件级存）+ 老师现场监督 + session 幂等 — **详见**：`02_design/hardware_design.md §2.3` + `02_design/flow_design.md §3.1-3.3`
+- **账号规则**：App 内多步注册即激活 + 6 桁账号 ID（学年+組+番号，如 `060218`）+ 永久 session + 密码连错锁定升级 + 不锁单设备（任意激活设备+签名即可签到）— **权威源**：`03_dev/student_ios/IOS_DESIGN_LOG.md §3`（§3.1 注册流程 + §3.6 锁定升级 + §3.9 学号 6 桁 + §3.10 房间号）+ `02_design/system_features.md §6.1`（共用规则）
+- **上线姿态**（2026-04-19 G2 决策）：**v1.0 直接 iOS + Android + 卡 完整版一次上线**；取消原 Phase 1 / Phase 2 分阶段 <!-- VERSION_OK -->
 - **开发节奏**：内部按 M1→M5 里程碑推进（兜底：做不完至少 M1+M2 可 demo）
-- **4-28 管理员 demo 冲刺**（2026-04-21 议题 E 拍板 + scope 扩展 + **2026-04-22 砍硬件**）：宿舍管理员决定是否采纳系统 → 7 天冲刺（4-21 → 4-28）→ 范围 **Tier 分层**：Tier 1 真跑（点呼 / 座位表 / 改判 / 健康 / 请假 / 外宿 / 归国 / 扣分 / 检索）+ Tier 2 UI skeleton（扫除 / 巴士 / 活动 / 宿舍互动 5 项 / 快递 / 归县 / 出租车 / 通知中心 / 长期豁免）+ Tier 3 砍。**4-22 重大调整**：砍 Pi 点呼机硬件 → demo 纯软件跑（itsuki iPhone 碰自有 NFC 卡 → 后端 → iPad 座位变绿 + iPad Safari Web Speech API 日语播报 / fallback Mac `say -v Kyoko`）。**扣分规则**暂定（迟到 0.5 / 缺席 1 / 月 4 罚扫 / 月 8 禁足），后端做成 `discipline_config` 可配置表，上线前和老师商议。**权威源**：`00_admin/demo_4-28/`（文件夹，含 README.md / sprint.md / scope_tier.md / ST25DV_fallback.md / demo_script.md / **questions_for_admin.md** / **wifi_survey_howto.md**）。**分工**：本会话 [Mac-demo-sprint] 只做需求/文档/清单，代码实现交其他 agent
-- **采购策略**（2026-04-22 二次修订）：**Demo 阶段 0 采购**（推翻 4-21 的"Demo 1 台 ¥12380"计划，砍硬件调试风险）→ 管理员采纳后扩容 3 台（淘宝，¥1345 RMB）。上线版硬件选型（Pi 3A+）保留在 `02_design/hardware_design.md §2.1`。详见 `02_design/hardware_design.md §4` + `00_admin/demo_4-28/scope_tier.md §0.1`
+- **Demo 4-28**（2026-04-28 跑通，管理员 4-29 口头同意采纳）：纯软件跑（iPhone 碰 NFC 卡 → 后端 → iPad 座位变绿 + 日语播报）。**已归档**：`99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/`（sprint / scope_tier / demo_script / questions_for_admin 等 8 文件）。**仅 `00_admin/wifi_survey_howto.md` 提到顶级**（itsuki 调研日待跑）
+- **扣分规则**：迟到 +0.5 / 缺席 +1.0 / 月累计 ≥4 罚扫 / 月累计 ≥8 禁足。**单源真值**：`00_admin/文档同步点清单.md §10` + `01_specs/rollcall/v0.1_冻结决策.md §1`
+- **采购策略**：Demo 阶段 0 采购（4-22 砍 Pi 调试风险），管理员采纳后扩容 3 台。**详见**：`02_design/hardware_design.md §4`
 - 规格：`01_specs/` 初版冻结于 2026-02-12；后续修订进度见 `CHANGELOG.md`
-- **硬件 + 流程权威源**：`02_design/hardware_design.md` + `02_design/flow_design.md`（2026-04-20 建立）
+- **硬件 + 流程权威源**：`02_design/hardware_design.md` + `02_design/flow_design.md`
 - 版本：SemVer。**当前版本见 `CHANGELOG.md` 顶部**（单源真值，见下方"文档一致性规则"节）
 - **版本号 bump 时必须触发 AC 记录**（对应核心问题 #3 重大决策）
-- **keystore（Android App 签名证书）备份**（议题 B 定稿）：本地 Mac 主拷贝 + 后端服务器加密备份（跨人传承）+ 纸质密码笔记本（毕业交接转交）+ 年度校验。**不存 iCloud**（个人账号不可传承）
+- **keystore 备份**（议题 B 定稿）：本地 Mac + 后端服务器加密 + 纸质密码 + 年度校验。**不存 iCloud**（个人账号不可传承）
 
 ## 目录结构
 
@@ -66,7 +55,7 @@ DMSD/
 │   ├── 版本管理SOP.md                  # ⭐ 运行手册 — 决策树 / bump 5 步 / commit 前缀（CC 改 spec 必读）
 │   ├── progress_overview.md           # 章节级，CC 起草由 itsuki 确认
 │   ├── CLAUDE_CODE_记录指南.md         # AC 记录操作手册（仅格式需要时读）
-│   ├── demo_4-28/                     # 4-28 管理员 demo 需求档（sprint / scope_tier / demo_script / questions / wifi_survey）
+│   ├── wifi_survey_howto.md           # 宿舍 WiFi 调研步骤（itsuki 调研日跑）
 │   ├── hooks/                         # pre-commit hook 三件套（拦硬编码版本号）
 │   └── vX.Y.Z_AC叙事.md                # 每次 minor bump 后写的 AC 素材卡
 ├── 01_specs/                          # 规格文档（rollcall/ 字典+主体，文件名不带版本号）

@@ -109,8 +109,8 @@
 ## 🎯 2026-04-28 管理员 Demo 冲刺（最高优先级）
 
 **Deadline**: 2026-04-28（7 天）
-**权威源**: `00_admin/demo_4-28/`（整个文件夹）
-**总纲**: [`00_admin/demo_4-28/sprint.md`](./demo_4-28/sprint.md)
+**权威源**: `99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/`（整个文件夹）
+**总纲**: [`99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/sprint.md`](./demo_4-28/sprint.md)
 
 本 TODO 不展开 demo 细节，避免和 sprint plan 重复。demo 相关的所有任务看 sprint.md §3 时间表。
 
