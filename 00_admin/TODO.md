@@ -127,6 +127,42 @@
 
 ---
 
+## 📌 2026-04-29 项目审查 — 内容整理待拍板(CC agent 找的,等 itsuki 决定)
+
+> **背景**:4-29 itsuki 让 CC 排查项目"内容重复/部分章节重复/关键事实点散到多处"。CC 派 agent 扫两遍,处理了 3 类(扣分阈值漂移/CLAUDE.md 长段硬编码/demo_4-28 路径),剩下 3 条等 itsuki 拍板。
+>
+> **完整 39 条 finding 清单** → CC 本地 plan 文件 `~/.claude/plans/bug-ac-parallel-pumpkin.md`(含严重度分类+验证方法+不动的边界)
+
+- [ ] **CLAUDE.md vs CLAUDE_CODE_记录指南.md 完全重复 5 核心问题 + 触发清单**
+  - 现状:两文件分别写了 "5 个 AC 核心问题(1-5)" + "触发清单(CC 每次回复前心里过一遍)",**一字不差**
+  - 选项 a:CLAUDE_CODE_记录指南.md 删这两段,改为 "见 CLAUDE.md §5 个 AC 核心问题 / §触发清单" 指针
+  - 选项 b:保留分工(CLAUDE.md 是规则源,记录指南是操作手册,重复但都很短可接受)
+
+- [ ] **DESIGN_BRIEF.md vs WEB_DESIGN_LOG.md(`03_dev/teacher_web/` 内)Round 历史 + 颜色 tokens 重复**
+  - 现状:DESIGN_BRIEF 是"当前设计快照",WEB_DESIGN_LOG 是"完整设计 log"。但 DESIGN_BRIEF 里的颜色值和 Round 1-3 时间线在 LOG 也写了一遍
+  - 选项 a:DESIGN_BRIEF 关于颜色/Round 历史的段改为 "见 WEB_DESIGN_LOG.md §3/§1 时间线" 指针
+  - 选项 b:保留分散(DESIGN_BRIEF 简版给新人快速 onboard,LOG 是详档)
+
+- [ ] **`Batch3_itsuki手笔素材指引.md` 5 块 draft 90% 没粘进对应文件**
+  - 内容:4-20 CC 起草 5 块给 itsuki 复制粘贴用的 draft:
+    - decision_log 新增 9 条决策
+    - project_evolution 5 次转折
+    - learning_path Python Day 2 主动延后坦诚
+    - learning_path PostgreSQL 选型理由
+  - 现状:4-29 检查发现 90% 还没粘到 `05_logs/decision_log.md` / `project_evolution.md` / `learning_path.md`
+  - 选项 a:itsuki 抽 30-45 分钟把 draft 粘进对应文件 → 粘完后删 Batch3
+  - 选项 b:决定不补了 → 直接归档 Batch3 到 99_archive/
+  - 选项 c:暂搁置 → Batch3 继续放着等以后
+
+- [ ] **CLAUDE.md 4-step vs IOS_DESIGN_LOG 5-step 矛盾(同时存在)**
+  - 现状:CLAUDE.md 之前写"App 内 4-step 注册流程",IOS_DESIGN_LOG.md §3.9.2 升级到"新 5 step"加学年/組/番号 step
+  - 当前已规避:CLAUDE.md 改成"多步注册"避免硬编码,但**真值未确认**
+  - 待 itsuki 确认:当前是 4-step 还是 5-step?哪个权威?
+  - 选项 a:确认 5-step 是真值,CLAUDE.md 改回"5-step"具体描述,IOS_DESIGN_LOG 是权威
+  - 选项 b:确认 4-step 是真值,IOS_DESIGN_LOG §3.9.2 是过期描述要回滚
+
+---
+
 ## 🚨 当前卡住的决策(必须先做,不然项目推不动)
 
 ### 硬件架构层
