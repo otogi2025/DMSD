@@ -27,6 +27,7 @@ function Shell({ teacher, active, onNav, children, sessionActive, onLogout, onSw
     ['cleaning', '清掃確認'],
     ['info', 'お知らせ・バス'],
     ['community', 'コミュニティ管理'],
+    ['front-desk', 'フロント業務'],
     ['accounts', '学生アカウント管理'],
   ];
 
@@ -34,6 +35,7 @@ function Shell({ teacher, active, onNav, children, sessionActive, onLogout, onSw
     'roll-call': '点呼', notifications: '通知', discipline: '規律・処分',
     applications: '申請', records: '記録', cleaning: '清掃確認',
     info: 'お知らせ・バス', community: 'コミュニティ管理',
+    'front-desk': 'フロント業務',
     accounts: '学生アカウント管理', search: '検索結果',
   }[active] || '';
 

@@ -8,7 +8,7 @@ function RollCallLanding({ teacher, onStart, lastEnded, onNav, trend }) {
   const todayLabel = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}（${['日','月','火','水','木','金','土'][today.getDay()]}）`;
 
   return (
-    <div style={{ padding: '28px 32px 48px', maxWidth: 1180 }}>
+    <div style={{ padding: '28px 32px 48px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>点呼ダッシュボード</h1>
         <span style={{ fontSize: 12, color: T.ink3 }}>{todayLabel}</span>
@@ -41,9 +41,6 @@ function RollCallLanding({ teacher, onStart, lastEnded, onNav, trend }) {
           boxShadow: '0 4px 12px rgba(43,77,140,.28)',
         }}>点呼を開始 →</button>
       </div>
-
-      {/* ⭐ NFC 快捷指令 URL card（デモ用・点呼機代替） */}
-      <NfcQuickUrlCard />
 
       {/* Day stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
@@ -78,6 +75,73 @@ function RollCallLanding({ teacher, onStart, lastEnded, onNav, trend }) {
           </div>
         ))}
       </div>
+
+      {/* ⭐ 手机デモ用・iOS ショートカット貼り付け URL */}
+      <ShortcutsDemoCard />
+    </div>
+  );
+}
+
+function ShortcutsDemoCard() {
+  const T = window.RYO;
+  const LS_KEY = 'tomoshibi.demo.host';
+  const [host, setHost] = React.useState(() => localStorage.getItem(LS_KEY) || '192.168.1.100:8080');
+  const [auto, setAuto] = React.useState(false); // true = サーバーが自動検出した IP
+  const [no, setNo] = React.useState(window.DEMO_SEED_NO || ((window.ACCOUNTS || [{}])[0].no || ''));
+  const [copied, setCopied] = React.useState(false);
+
+  // demo_server.py の /api/server-info から LAN IP を自動取得（失敗時は手動入力にフォールバック）
+  React.useEffect(() => {
+    fetch('/api/server-info', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(info => {
+        if (info && info.primary && info.port) {
+          setHost(`${info.primary}:${info.port}`);
+          setAuto(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  React.useEffect(() => { if (!auto) localStorage.setItem(LS_KEY, host); }, [host, auto]);
+
+  const accounts = window.ACCOUNTS || [];
+  const url = `http://${host}/checkin?no=${no}`;
+
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(url); }
+    catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = url; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+
+  return (
+    <div style={{
+      marginTop: 20, background: T.surface, border: `1px solid ${T.line}`, borderRadius: 10,
+      padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+    }}>
+      <span style={{ fontSize: 11, color: T.ink3, fontWeight: 600 }}>📱 ショートカット URL</span>
+      {auto ? (
+        <span title="demo_server.py から自動検出" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', background: T.okSoft, color: T.ok, border: `1px solid ${T.okBorder}`, borderRadius: 6, fontFamily: T.mono, fontSize: 11, fontWeight: 600 }}>
+          <span style={{ width: 6, height: 6, borderRadius: 3, background: T.ok }} />{host}
+        </span>
+      ) : (
+        <input value={host} onChange={e => setHost(e.target.value)} placeholder="192.168.1.100:8080"
+          style={{ width: 160, padding: '5px 8px', background: T.surfaceAlt, color: T.ink, border: `1px solid ${T.lineStrong}`, borderRadius: 6, fontFamily: T.mono, fontSize: 11, outline: 'none' }} />
+      )}
+      <select value={no} onChange={e => setNo(e.target.value)}
+        style={{ padding: '5px 8px', background: T.surface, border: `1px solid ${T.lineStrong}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, color: T.ink, outline: 'none' }}>
+        {accounts.map(a => <option key={a.no} value={a.no}>{a.no} · {a.name}</option>)}
+      </select>
+      <div style={{ flex: 1, minWidth: 200, padding: '5px 10px', background: T.surfaceAlt, color: T.ink, border: `1px solid ${T.line}`, borderRadius: 6, fontFamily: T.mono, fontSize: 11, whiteSpace: 'nowrap', overflow: 'auto', userSelect: 'all' }}>{url}</div>
+      <button onClick={copy} style={{
+        padding: '5px 14px', background: copied ? T.ok : T.cobalt, color: '#fff',
+        border: 'none', borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer', minWidth: 64,
+      }}>{copied ? '✓' : 'コピー'}</button>
     </div>
   );
 }
@@ -148,7 +212,7 @@ function Legend({ c, label }) {
 function NfcQuickUrlCard() {
   const T = window.RYO;
   const [info, setInfo] = React.useState(null);
-  const [no, setNo] = React.useState('00');
+  const [no, setNo] = React.useState(window.DEMO_SEED_NO || ((window.ACCOUNTS || [{}])[0].no || ''));
   const [copied, setCopied] = React.useState(false);
 
   React.useEffect(() => {
@@ -201,3 +265,4 @@ function NfcQuickUrlCard() {
 
 window.RollCallLanding = RollCallLanding;
 window.NfcQuickUrlCard = NfcQuickUrlCard;
+window.ShortcutsDemoCard = ShortcutsDemoCard;

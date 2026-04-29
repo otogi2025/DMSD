@@ -10,7 +10,7 @@ function OverrideModal({ student, onClose, onSave }) {
 
   const statuses = [
     { k: 'ok',      label: '時間内', color: T.ok,     soft: T.okSoft,     hint: '対面確認済み' },
-    { k: 'late',    label: '遅刻',   color: T.late,   soft: T.lateSoft,   hint: '閾値超で入寮' },
+    { k: 'late',    label: '遅刻',   color: T.late,   soft: T.lateSoft,   hint: '定刻に間に合わず' },
     { k: 'absent',  label: '欠席',   color: T.danger, soft: T.dangerSoft, hint: '未確認のまま終了' },
     { k: 'exempt',  label: '免除',   color: T.info,   soft: T.infoSoft,   hint: '本日は点呼対象外' },
   ];

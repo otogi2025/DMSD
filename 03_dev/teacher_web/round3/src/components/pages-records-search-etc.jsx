@@ -5,7 +5,7 @@ function RecordsPage({ teacher, params, onNav }) {
   const date = params && params.date || '2026-04-21';
   const roster = teacher.dorm === 'men' ? window.ROSTER_MEN : window.ROSTER_WOMEN;
   const statuses = ['ok','ok','ok','late','ok','absent','ok','ok','exempt','ok','ok','ok'];
-  const methods  = ['NFC卡','NFC卡','Shortcut','手動','NFC卡','—','NFC卡','NFC卡','—','NFC卡','NFC卡','Shortcut'];
+  const methods  = ['NFC卡','NFC卡','スマホ','手動','NFC卡','—','NFC卡','NFC卡','—','NFC卡','NFC卡','スマホ'];
   const times    = ['19:30','19:31','19:31','19:34','19:32','—','19:33','19:31','—','19:32','19:30','19:31'];
   const rows = roster.map(([room, id, name], i) => {
     const k = i % statuses.length;
@@ -13,7 +13,7 @@ function RecordsPage({ teacher, params, onNav }) {
   });
 
   return (
-    <div style={{ padding: '28px 32px 48px', maxWidth: 1280 }}>
+    <div style={{ padding: '28px 32px 48px' }}>
       <div style={{ fontSize: 11, color: T.ink3, letterSpacing: 2, fontWeight: 600 }}>記録</div>
       <h1 style={{ fontSize: 24, fontWeight: 700, margin: '4px 0 18px', letterSpacing: -0.3 }}>点呼記録</h1>
 
@@ -70,7 +70,7 @@ function SearchPage({ teacher, query }) {
   const crossDorm = allMatch && !ownMatch;
 
   return (
-    <div style={{ padding: '28px 32px 48px', maxWidth: 1180 }}>
+    <div style={{ padding: '28px 32px 48px' }}>
       <div style={{ fontSize: 11, color: T.ink3, letterSpacing: 2, fontWeight: 600 }}>検索 {q && `> ${q}`}</div>
       <h1 style={{ fontSize: 24, fontWeight: 700, margin: '4px 0 18px', letterSpacing: -0.3 }}>検索結果</h1>
 
@@ -165,11 +165,12 @@ function EmptyState({ msg }) {
 function NotificationsPage({ teacher, onNav }) {
   const T = window.RYO;
   const roster = teacher && teacher.dorm === 'men' ? window.ROSTER_MEN : window.ROSTER_WOMEN;
-  const sample1 = roster[0][2];
-  const sample2 = roster[3][2];
-  const sample3 = roster[1][2];
+  const pick = (i) => (roster[i % roster.length] || roster[0])[2];
+  const sample1 = pick(0);
+  const sample2 = pick(3);
+  const sample3 = pick(1);
   return (
-    <div style={{ padding: '28px 32px 48px', maxWidth: 1100 }}>
+    <div style={{ padding: '28px 32px 48px' }}>
       <div style={{ fontSize: 11, color: T.ink3, letterSpacing: 2, fontWeight: 600 }}>通知</div>
       <h1 style={{ fontSize: 24, fontWeight: 700, margin: '4px 0 18px', letterSpacing: -0.3 }}>通知中心</h1>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
@@ -217,7 +218,7 @@ function CleaningPage() {
       <h1 style={{ fontSize: 24, fontWeight: 700 }}>清掃確認 <span style={{ fontSize: 11, fontWeight: 700, color: T.warn, background: T.warnSoft, padding: '2px 8px', borderRadius: 4, letterSpacing: 1, marginLeft: 8, verticalAlign: 3 }}>開発中</span></h1>
       <div style={{ color: T.ink3, fontSize: 13, marginTop: 4, marginBottom: 20 }}>学生清掃写真の審査</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-        {[['田中 美咲', 'W102', '04-21'], ['山本 綾', 'W103', '04-20'], ['小林 美優', 'W104', '04-20']].map(([n, r, d], i) => (
+        {[['リシンさん', 'W113', '04-21'], ['ソンキゼン', 'W114', '04-20'], ['ゴキンウ', 'W115', '04-20']].map(([n, r, d], i) => (
           <div key={i} style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 12, padding: 12, boxShadow: T.shadow1 }}>
             <div style={{ height: 140, background: T.surfaceAlt, border: `1px dashed ${T.lineStrong}`, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.ink3, fontSize: 12 }}>写真プレビュー</div>
             <div style={{ marginTop: 10, fontSize: 14, fontWeight: 600 }}>{n}</div>
@@ -274,10 +275,272 @@ function InfoPage({ teacher }) {
           ))}
         </div>
       )}
-      {tab === 'event' && (<div>{[['04-25', '避難訓練'], ['04-28', 'デモ日'], ['05-03', 'GW 始め']].map(([d, m], i) => <Row key={i} date={d} msg={m} />)}</div>)}
-      {tab === 'bus' && (<div>{[['07:00', '寮 → 学校'], ['12:00', '寮 → 市街'], ['18:00', '市街 → 寮']].map(([d, m], i) => <Row key={i} date={d} msg={m} />)}</div>)}
+      {tab === 'event' && <EventCalendar events={window.CALENDAR_EVENTS || []} teacher={teacher} />}
+      {tab === 'bus' && <BusSchedulePanel teacher={teacher} />}
       {composing && <ComposeNoticeModal onClose={() => setComposing(false)} onSubmit={handlePost} />}
     </div>
+  );
+}
+
+// バス時刻表 管理 — 2026-04-24 新規。実運用サンプル = 06_assets/real_samples/bus_notice_2026-03-22_特別運行便.md
+// 行事カレンダー（iOS と同型レイアウト：月グリッド + 選択日イベントリスト）
+function EventCalendar({ events, teacher }) {
+  const T = window.RYO;
+  const today = new Date();
+  const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const todayKey = fmt(today);
+  const [cursor, setCursor] = React.useState(new Date(today.getFullYear(), today.getMonth(), 1));
+  const [selected, setSelected] = React.useState(todayKey);
+  const [composing, setComposing] = React.useState(false);
+  const [list, setList] = React.useState(events);
+
+  const y = cursor.getFullYear();
+  const m = cursor.getMonth();
+  const firstDow = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < firstDow; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const eventsByDate = list.reduce((acc, e) => { (acc[e.date] = acc[e.date] || []).push(e); return acc; }, {});
+  const dayKey = (d) => `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  const selEvents = (eventsByDate[selected] || []).slice().sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
+  const selDate = new Date(selected + 'T00:00:00');
+  const selJa = `${selDate.getMonth()+1} 月 ${selDate.getDate()} 日（${['日','月','火','水','木','金','土'][selDate.getDay()]}）`;
+  const monthJa = `${y} 年 ${m+1} 月`;
+
+  const dowLabels = ['日','月','火','水','木','金','土'];
+  const navMonth = (delta) => setCursor(new Date(y, m + delta, 1));
+
+  const addEvent = (e) => { setList([...list, e].sort((a,b) => a.date.localeCompare(b.date))); setComposing(false); setSelected(e.date); };
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(420px, 1.3fr) 1fr', gap: 20, alignItems: 'start' }}>
+      <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 12, padding: '18px 20px', boxShadow: T.shadow1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <button onClick={() => navMonth(-1)} title="前月" style={{ width: 32, height: 32, border: `1px solid ${T.line}`, background: T.surface, borderRadius: 8, cursor: 'pointer', fontSize: 14, color: T.ink2, fontFamily: 'inherit' }}>‹</button>
+          <div style={{ fontSize: 16, fontWeight: 700, color: T.ink, fontFamily: T.font }}>{monthJa}</div>
+          <button onClick={() => navMonth(1)} title="次月" style={{ width: 32, height: 32, border: `1px solid ${T.line}`, background: T.surface, borderRadius: 8, cursor: 'pointer', fontSize: 14, color: T.ink2, fontFamily: 'inherit' }}>›</button>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 6 }}>
+          {dowLabels.map((d, i) => (
+            <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: i === 0 ? T.danger : i === 6 ? T.cobalt : T.ink3, padding: '6px 0' }}>{d}</div>
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+          {cells.map((d, i) => {
+            if (d == null) return <div key={i} style={{ aspectRatio: '1 / 1' }} />;
+            const k = dayKey(d);
+            const has = (eventsByDate[k] || []).length > 0;
+            const isSel = k === selected;
+            const isToday = k === todayKey;
+            const dow = (firstDow + d - 1) % 7;
+            const baseColor = dow === 0 ? T.danger : dow === 6 ? T.cobalt : T.ink;
+            return (
+              <button key={i} onClick={() => setSelected(k)} style={{
+                aspectRatio: '1 / 1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                gap: 3, padding: 0, fontFamily: 'inherit',
+                background: isSel ? T.cobalt : (isToday ? T.cobaltSoft : 'transparent'),
+                color: isSel ? '#fff' : baseColor,
+                border: isSel ? `1px solid ${T.cobalt}` : `1px solid transparent`,
+                borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: isSel || isToday ? 700 : 500,
+                position: 'relative',
+              }}>
+                <span>{d}</span>
+                {has && <span style={{ width: 5, height: 5, borderRadius: 3, background: isSel ? '#fff' : T.cobalt }} />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12 }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: T.ink }}>{selJa}</div>
+          <div style={{ flex: 1 }} />
+          <span style={{ fontSize: 11, color: T.ink3, background: T.surfaceAlt, border: `1px solid ${T.line}`, padding: '3px 9px', borderRadius: 999, fontFamily: T.mono }}>{selEvents.length} 件</span>
+          <button onClick={() => setComposing(true)} style={{ padding: '5px 12px', background: T.cobalt, color: '#fff', border: 'none', borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>＋ 追加</button>
+        </div>
+        {selEvents.length === 0 ? (
+          <div style={{ padding: 36, textAlign: 'center', color: T.ink3, fontSize: 13, background: T.surface, border: `1px dashed ${T.lineStrong}`, borderRadius: 12 }}>この日に予定はありません</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {selEvents.map((e, i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: 12, padding: '12px 14px', background: T.surface, border: `1px solid ${T.line}`, borderRadius: 10, boxShadow: T.shadow1 }}>
+                <div style={{ fontFamily: T.mono, color: T.cobaltDeep, fontWeight: 700, fontSize: 14 }}>{e.time || '終日'}</div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>{e.title}</div>
+                  {e.location && <div style={{ fontSize: 12, color: T.ink3, marginTop: 2 }}>📍 {e.location}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {composing && <EventComposeModal initialDate={selected} onClose={() => setComposing(false)} onSubmit={addEvent} />}
+    </div>
+  );
+}
+
+function EventComposeModal({ initialDate, onClose, onSubmit }) {
+  const T = window.RYO;
+  const [date, setDate] = React.useState(initialDate);
+  const [time, setTime] = React.useState('');
+  const [title, setTitle] = React.useState('');
+  const [location, setLocation] = React.useState('');
+  const Shell = window.ModalShell;
+  const Field = window.ModalField;
+  const Footer = window.ModalFooter;
+  const inputStyle = window.modalInputStyle(T);
+
+  const submit = () => {
+    if (!title.trim() || !date) return;
+    onSubmit({ date, time: time || null, title: title.trim(), location: location.trim() || '—' });
+  };
+  const valid = title.trim() && date;
+
+  return (
+    <Shell T={T} title="行事を追加" onClose={onClose}>
+      <Field T={T} label="日付 *">
+        <input type="date" value={date} onChange={e => setDate(e.target.value)} style={inputStyle} />
+      </Field>
+      <Field T={T} label="時刻（任意 · 空欄なら終日）">
+        <input type="time" value={time} onChange={e => setTime(e.target.value)} style={inputStyle} />
+      </Field>
+      <Field T={T} label="タイトル *">
+        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="例：避難訓練" style={inputStyle} />
+      </Field>
+      <Field T={T} label="場所">
+        <input value={location} onChange={e => setLocation(e.target.value)} placeholder="例：グラウンド" style={inputStyle} />
+      </Field>
+      <Footer T={T} onClose={onClose} onSubmit={submit} disabled={!valid} />
+    </Shell>
+  );
+}
+
+function BusSchedulePanel({ teacher }) {
+  const T = window.RYO;
+  const [posts, setPosts] = React.useState(window.BUS_POSTS);
+  const [openPost, setOpenPost] = React.useState(() => (window.BUS_POSTS[0] || {}).id || null);
+  const [editing, setEditing] = React.useState(null); // null | 'new' | postId | { postId, eventIdx } | { postId, eventIdx, itemIdx }
+
+  const togglePost = (id) => setOpenPost(openPost === id ? null : id);
+  const deletePost = (id) => { if (confirm('この告知を削除しますか？')) setPosts(posts.filter(p => p.id !== id)); };
+  const togglePin = (id) => setPosts(posts.map(p => p.id === id ? { ...p, pinned: !p.pinned } : p));
+  const savePost = (data) => {
+    if (editing === 'new') {
+      setPosts([{ ...data, id: 'BP' + Date.now(), events: [], pinned: false }, ...posts]);
+    } else {
+      setPosts(posts.map(p => p.id === editing ? { ...p, ...data } : p));
+    }
+    setEditing(null);
+  };
+
+  const sorted = [...posts].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 10 }}>
+        <div style={{ fontSize: 12, color: T.ink3 }}>特別運行便・定期便の告知管理。各告知 → 日付ごとの行事 → 時刻行の 3 階層。</div>
+        <button onClick={() => setEditing('new')} style={{ padding: '7px 14px', background: T.cobalt, color: '#fff', border: 'none', borderRadius: 8, fontFamily: 'inherit', fontSize: 12, fontWeight: 700, cursor: 'pointer', boxShadow: T.shadow1, whiteSpace: 'nowrap' }}>＋ 新規告知</button>
+      </div>
+
+      {sorted.map(post => (
+        <BusPostCard key={post.id} post={post} T={T} open={openPost === post.id} onToggle={() => togglePost(post.id)}
+          onEditPost={() => setEditing(post.id)} onDeletePost={() => deletePost(post.id)} onPin={() => togglePin(post.id)} />
+      ))}
+
+      {sorted.length === 0 && <div style={{ padding: 36, textAlign: 'center', color: T.ink3, fontSize: 13, background: T.surface, border: `1px dashed ${T.lineStrong}`, borderRadius: 10 }}>告知はまだありません。「＋ 新規告知」から追加してください。</div>}
+
+      {editing && <BusPostComposeModal T={T} initial={editing === 'new' ? null : posts.find(p => p.id === editing)} onClose={() => setEditing(null)} onSubmit={savePost} />}
+    </div>
+  );
+}
+
+function BusPostCard({ post, T, open, onToggle, onEditPost, onDeletePost, onPin }) {
+  return (
+    <div style={{ background: T.surface, border: `1px solid ${post.pinned ? T.cobalt : T.line}`, borderRadius: 10, marginBottom: 10, overflow: 'hidden', boxShadow: post.pinned ? T.shadow1 : 'none' }}>
+      <div onClick={onToggle} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', cursor: 'pointer' }}>
+        <span style={{ fontSize: 14, color: T.ink3, fontFamily: T.mono, width: 14, textAlign: 'center' }}>{open ? '▼' : '▶'}</span>
+        {post.pinned && <span style={{ fontSize: 10, color: '#fff', background: T.cobalt, padding: '2px 6px', borderRadius: 4, fontWeight: 700, letterSpacing: 1 }}>PIN</span>}
+        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: post.category === '特別運行便' ? T.cobaltSoft : T.surfaceAlt, color: post.category === '特別運行便' ? T.cobaltDeep : T.ink2, border: `1px solid ${post.category === '特別運行便' ? T.cobalt : T.line}`, whiteSpace: 'nowrap' }}>{post.category}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: T.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{post.title}</div>
+          <div style={{ fontSize: 11, color: T.ink3, fontFamily: T.mono, marginTop: 2 }}>
+            {post.posted_on} · {post.posted_by} · {post.effective_from}{post.effective_until ? ` 〜 ${post.effective_until}` : ' 〜 継続中'} · {post.events.length} 件
+          </div>
+        </div>
+        <button onClick={(e) => { e.stopPropagation(); onPin(); }} style={{ padding: '4px 10px', background: post.pinned ? T.cobaltSoft : T.surface, color: post.pinned ? T.cobaltDeep : T.ink3, border: `1px solid ${post.pinned ? T.cobalt : T.lineStrong}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{post.pinned ? 'ピン解除' : 'ピン留め'}</button>
+        <button onClick={(e) => { e.stopPropagation(); onEditPost(); }} style={{ padding: '4px 10px', background: T.surface, color: T.ink2, border: `1px solid ${T.lineStrong}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>編集</button>
+        <button onClick={(e) => { e.stopPropagation(); onDeletePost(); }} style={{ padding: '4px 10px', background: T.surface, color: T.danger, border: `1px solid ${T.dangerBorder}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>削除</button>
+      </div>
+      {open && (
+        <div style={{ padding: '4px 14px 14px', borderTop: `1px solid ${T.line}`, background: T.surfaceAlt }}>
+          {post.body && <div style={{ padding: '10px 12px', margin: '10px 0', background: T.surface, border: `1px solid ${T.line}`, borderRadius: 8, fontSize: 12, lineHeight: 1.7, color: T.ink2, whiteSpace: 'pre-wrap' }}>{post.body}</div>}
+          {post.events.length === 0 && <div style={{ padding: 20, textAlign: 'center', color: T.ink3, fontSize: 12 }}>行事がまだ登録されていません</div>}
+          {post.events.map((ev, i) => <BusEventBlock key={i} ev={ev} T={T} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BusEventBlock({ ev, T }) {
+  return (
+    <div style={{ margin: '10px 0', padding: 12, background: T.surface, border: `1px solid ${T.line}`, borderRadius: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, paddingBottom: 8, borderBottom: `1px solid ${T.line}` }}>
+        <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', background: T.cobaltSoft, color: T.cobaltDeep, borderRadius: 4, fontFamily: T.mono, letterSpacing: .5 }}>{ev.date}</span>
+        <div style={{ fontSize: 13, fontWeight: 700, color: T.ink, flex: 1 }}>{ev.name}</div>
+        {ev.audience && <div style={{ fontSize: 10, color: T.ink3, maxWidth: 280, textAlign: 'right', lineHeight: 1.4 }}>対象: {ev.audience}</div>}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {ev.items.map((it, j) => (
+          <div key={j} style={{ display: 'flex', alignItems: 'baseline', gap: 12, fontSize: 12, padding: '5px 0', borderBottom: j < ev.items.length - 1 ? `1px dashed ${T.line}` : 'none' }}>
+            <span style={{ fontFamily: T.mono, color: T.cobalt, fontWeight: 700, minWidth: 48 }}>{it.time}</span>
+            <span style={{ color: T.ink, flex: 1, fontWeight: 500 }}>{it.action}</span>
+            {it.location && <span style={{ fontSize: 11, color: T.ink3, minWidth: 68, textAlign: 'right' }}>{it.location}</span>}
+            {it.memo && <span style={{ fontSize: 11, color: T.ink3, flex: 2, textAlign: 'left', fontStyle: 'italic' }}>{it.memo}</span>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BusPostComposeModal({ T, initial, onClose, onSubmit }) {
+  const MS = window.ModalShell;
+  const MField = window.ModalField;
+  const MFooter = window.ModalFooter;
+  const inputS = window.modalInputStyle;
+  const [title, setTitle] = React.useState(initial ? initial.title : '');
+  const [category, setCategory] = React.useState(initial ? initial.category : '特別運行便');
+  const [postedOn, setPostedOn] = React.useState(initial ? initial.posted_on : new Date().toISOString().slice(0, 10));
+  const [postedBy, setPostedBy] = React.useState(initial ? initial.posted_by : '国際交流部');
+  const [effectiveFrom, setEffectiveFrom] = React.useState(initial ? initial.effective_from : '');
+  const [effectiveUntil, setEffectiveUntil] = React.useState(initial ? (initial.effective_until || '') : '');
+  const [body, setBody] = React.useState(initial ? initial.body : '');
+  return (
+    <MS T={T} title={initial ? '告知を編集' : '新規告知を作成'} onClose={onClose}>
+      <MField T={T} label="タイトル"><input value={title} onChange={e => setTitle(e.target.value)} placeholder="例：特別運行便に関するお知らせ" style={inputS(T)} /></MField>
+      <MField T={T} label="カテゴリー">
+        <select value={category} onChange={e => setCategory(e.target.value)} style={inputS(T)}>
+          {['特別運行便', '定期便', 'イベント', '臨時'].map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </MField>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <MField T={T} label="掲載日"><input type="date" value={postedOn} onChange={e => setPostedOn(e.target.value)} style={inputS(T)} /></MField>
+        <MField T={T} label="発信元"><input value={postedBy} onChange={e => setPostedBy(e.target.value)} style={inputS(T)} /></MField>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <MField T={T} label="有効 開始日"><input type="date" value={effectiveFrom} onChange={e => setEffectiveFrom(e.target.value)} style={inputS(T)} /></MField>
+        <MField T={T} label="有効 終了日 (空欄 = 継続中)"><input type="date" value={effectiveUntil} onChange={e => setEffectiveUntil(e.target.value)} style={inputS(T)} /></MField>
+      </div>
+      <MField T={T} label="本文（前文 / 注意事項）"><textarea value={body} onChange={e => setBody(e.target.value)} rows={5} placeholder="学校休業日等に..." style={{ ...inputS(T), resize: 'vertical', lineHeight: 1.6 }} /></MField>
+      <div style={{ fontSize: 11, color: T.ink3, padding: '6px 0' }}>※ 行事（日付ごとの時刻表）は告知作成後、詳細画面から追加できます（demo 段階では行事追加 UI は簡略化）。</div>
+      <MFooter T={T} onClose={onClose} onSubmit={() => title.trim() && onSubmit({ title: title.trim(), category, posted_on: postedOn, posted_by: postedBy.trim(), effective_from: effectiveFrom, effective_until: effectiveUntil || null, body: body.trim() })} disabled={!title.trim()} />
+    </MS>
   );
 }
 
@@ -317,16 +580,56 @@ function CommunityPage({ teacher }) {
   const [tab, setTab] = React.useState('board');
   const [posts, setPosts] = React.useState(window.COMMUNITY_POSTS);
   const [filter, setFilter] = React.useState('all');
+  const [slotFilter, setSlotFilter] = React.useState('all'); // song tab 専用: all / morning / evening
+
+  const [songFilter, setSongFilter] = React.useState('pending'); // song tab 専用: pending / approved / rejected / all
+  const [dormFilter, setDormFilter] = React.useState(teacher && teacher.dorm ? teacher.dorm : 'men'); // song tab 専用: men / women / all（既定は担当寮）
+  const dormOf = (p) => (p && p.room && p.room.charAt(0) === 'M') ? 'men' : 'women';
 
   const handleDelete = (id) => { if (confirm('この投稿を削除しますか？学生のアプリからも非表示になります。')) setPosts(posts.map(p => p.id === id ? { ...p, deleted: true } : p)); };
   const handlePin = (id) => setPosts(posts.map(p => p.id === id ? { ...p, pinned: !p.pinned } : p));
   const handleResolve = (id) => setPosts(posts.map(p => p.id === id ? { ...p, flagCount: 0, resolved: true } : p));
+  const handleSongDecision = (id, decision) => setPosts(posts.map(p => p.id === id ? {
+    ...p,
+    songStatus: decision,
+    decidedAt: new Date().toTimeString().slice(0, 5),
+    decidedBy: teacher ? `${teacher.name} 先生` : '担当 先生',
+  } : p));
 
   const catPosts = posts.filter(p => p.cat === tab && !p.deleted);
   let visible = catPosts;
   if (filter === 'flagged') visible = catPosts.filter(p => p.flagCount > 0 && !p.resolved);
   if (filter === 'pinned') visible = catPosts.filter(p => p.pinned);
-  visible = [...visible].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+  if (tab === 'song' && slotFilter !== 'all') visible = visible.filter(p => p.timeSlot === slotFilter);
+  if (tab === 'song' && songFilter !== 'all') {
+    visible = visible.filter(p => (p.songStatus || 'pending') === songFilter);
+  }
+  if (tab === 'song' && dormFilter !== 'all') {
+    visible = visible.filter(p => dormOf(p) === dormFilter);
+  }
+
+  // リクエスト曲は 古い順（投稿順、昇順）= 放送キュー順。ピン留め上部。その他 tab は 従来通り ピン留め上部 + 降順。
+  if (tab === 'song') {
+    visible = [...visible].sort((a, b) => {
+      const pinDiff = (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+      if (pinDiff !== 0) return pinDiff;
+      const aKey = `${a.date} ${a.time || ''}`;
+      const bKey = `${b.date} ${b.time || ''}`;
+      return aKey.localeCompare(bKey); // 昇順 = 古い順 = キュー順
+    });
+  } else {
+    visible = [...visible].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+  }
+
+  // 承認済みキューの順番 #n を割り当て（寮 × 朝/晩 の組合せごとに古い順 = 提出順）
+  const approvedOrder = {};
+  ['men', 'women'].forEach(d => {
+    ['morning', 'evening'].forEach(slot => {
+      posts.filter(p => p.cat === 'song' && !p.deleted && p.songStatus === 'approved' && p.timeSlot === slot && dormOf(p) === d)
+        .sort((a, b) => `${a.date} ${a.time || ''}`.localeCompare(`${b.date} ${b.time || ''}`))
+        .forEach((p, i) => { approvedOrder[p.id] = i + 1; });
+    });
+  });
 
   const stats = {
     total: posts.filter(p => !p.deleted).length,
@@ -337,14 +640,12 @@ function CommunityPage({ teacher }) {
 
   const tabs = [
     ['board', '掲示板', '学生からの一般投稿'],
-    ['song', 'リクエスト曲', '館内 BGM リクエスト'],
-    ['lost', '忘れ物', '拾得物・紛失物の共有'],
+    ['song', 'リクエスト曲', '寮内 BGM リクエスト · 提出順に再生'],
     ['anon', '匿名建議', '匿名で寮運営への意見'],
-    ['delivery', '宅配通知', '宅配到着の自動通知'],
   ];
 
   return (
-    <div style={{ padding: '28px 32px 48px', maxWidth: 1280 }}>
+    <div style={{ padding: '28px 32px 48px' }}>
       <div style={{ fontSize: 11, color: T.ink3, letterSpacing: 2, fontWeight: 600 }}>コミュニティ管理</div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, margin: '4px 0 20px' }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.3 }}>コミュニティ管理</h1>
@@ -371,15 +672,37 @@ function CommunityPage({ teacher }) {
         })}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, fontSize: 12, color: T.ink2 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, fontSize: 12, color: T.ink2, flexWrap: 'wrap' }}>
         <span style={{ color: T.ink3 }}>{tabs.find(t => t[0] === tab)[2]} ·</span>
         {[['all', '全て'], ['flagged', '通報あり'], ['pinned', 'ピン留め']].map(([k, l]) => (
           <button key={k} onClick={() => setFilter(k)} style={{ padding: '4px 10px', background: filter === k ? T.cobaltSoft : T.surface, color: filter === k ? T.cobaltDeep : T.ink3, border: `1px solid ${filter === k ? T.cobalt : T.lineStrong}`, borderRadius: 999, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{l}</button>
         ))}
+        {tab === 'song' && (
+          <>
+            <span style={{ color: T.ink3, marginLeft: 6 }}>寮 ·</span>
+            {[['men', '男寮'], ['women', '女寮'], ['all', '両方']].map(([k, l]) => {
+              const n = posts.filter(p => p.cat === 'song' && !p.deleted && (k === 'all' || dormOf(p) === k)).length;
+              return (
+                <button key={k} onClick={() => setDormFilter(k)} style={{ padding: '4px 10px', background: dormFilter === k ? T.cobaltSoft : T.surface, color: dormFilter === k ? T.cobaltDeep : T.ink3, border: `1px solid ${dormFilter === k ? T.cobalt : T.lineStrong}`, borderRadius: 999, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{l} <span style={{ fontFamily: T.mono, opacity: 0.7 }}>{n}</span></button>
+              );
+            })}
+            <span style={{ color: T.ink3, marginLeft: 6 }}>放送枠 ·</span>
+            {[['all', '両方'], ['morning', '朝 ☀'], ['evening', '晩 🌙']].map(([k, l]) => (
+              <button key={k} onClick={() => setSlotFilter(k)} style={{ padding: '4px 10px', background: slotFilter === k ? T.cobaltSoft : T.surface, color: slotFilter === k ? T.cobaltDeep : T.ink3, border: `1px solid ${slotFilter === k ? T.cobalt : T.lineStrong}`, borderRadius: 999, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{l}</button>
+            ))}
+            <span style={{ color: T.ink3, marginLeft: 6 }}>審査 ·</span>
+            {[['pending', '未対応'], ['approved', '承認'], ['rejected', '拒否'], ['all', '全て']].map(([k, l]) => {
+              const n = posts.filter(p => p.cat === 'song' && !p.deleted && (k === 'all' || (p.songStatus || 'pending') === k)).length;
+              return (
+                <button key={k} onClick={() => setSongFilter(k)} style={{ padding: '4px 10px', background: songFilter === k ? T.cobaltSoft : T.surface, color: songFilter === k ? T.cobaltDeep : T.ink3, border: `1px solid ${songFilter === k ? T.cobalt : T.lineStrong}`, borderRadius: 999, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{l} <span style={{ fontFamily: T.mono, opacity: 0.7 }}>{n}</span></button>
+              );
+            })}
+          </>
+        )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: tab === 'delivery' ? '1fr' : 'repeat(auto-fill, minmax(360px, 1fr))', gap: 12 }}>
-        {visible.map(p => <PostCard key={p.id} post={p} onDelete={handleDelete} onPin={handlePin} onResolve={handleResolve} />)}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 12 }}>
+        {visible.map(p => <PostCard key={p.id} post={p} onDelete={handleDelete} onPin={handlePin} onResolve={handleResolve} onSongDecision={handleSongDecision} queueNo={approvedOrder[p.id]} />)}
         {visible.length === 0 && <div style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: T.ink3, fontSize: 13, background: T.surface, border: `1px dashed ${T.lineStrong}`, borderRadius: 12 }}>このカテゴリーに投稿はありません</div>}
       </div>
     </div>
@@ -397,44 +720,67 @@ function StatCard({ label, value, note, color, onClick }) {
   );
 }
 
-function PostCard({ post, onDelete, onPin, onResolve }) {
+function PostCard({ post, onDelete, onPin, onResolve, onSongDecision, queueNo }) {
   const T = window.RYO;
   const isAnon = post.cat === 'anon';
-  const isDelivery = post.cat === 'delivery';
+  const isSong = post.cat === 'song';
   const avatarColor = hashColor(post.author || 'A', T);
   const initial = isAnon ? '？' : (post.author || '').charAt(0) || '・';
+  const slotLabel = isSong && post.timeSlot === 'morning' ? '朝 ☀' : isSong && post.timeSlot === 'evening' ? '晩 🌙' : null;
+  const songStatus = isSong ? (post.songStatus || 'pending') : null;
+  const statusMap = {
+    pending:  { label: '未対応', fg: T.warn,   bg: T.warnSoft,   bd: T.warnBorder },
+    approved: { label: '承認',   fg: T.ok,     bg: T.okSoft,     bd: T.okBorder },
+    rejected: { label: '拒否',   fg: T.danger, bg: T.dangerSoft, bd: T.dangerBorder },
+  };
+  const st = songStatus && statusMap[songStatus];
+  const borderColor = post.pinned ? T.cobalt
+    : post.flagCount > 0 && !post.resolved ? T.danger
+    : songStatus === 'approved' ? T.okBorder
+    : songStatus === 'rejected' ? T.dangerBorder
+    : T.line;
   return (
-    <div style={{ padding: 14, background: T.surface, border: `1px solid ${post.pinned ? T.cobalt : post.flagCount > 0 && !post.resolved ? T.danger : T.line}`, borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 10, boxShadow: post.pinned ? T.shadow1 : 'none' }}>
+    <div style={{ padding: 14, background: T.surface, border: `1px solid ${borderColor}`, borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 10, boxShadow: post.pinned ? T.shadow1 : 'none', opacity: songStatus === 'rejected' ? 0.7 : 1 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+        {isSong && songStatus === 'approved' && queueNo && (
+          <div title={`放送キュー #${queueNo}`} style={{ width: 36, height: 36, borderRadius: '50%', background: T.okSoft, color: T.ok, border: `1.5px solid ${T.okBorder}`, fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: T.mono }}>#{queueNo}</div>
+        )}
         <div style={{ width: 36, height: 36, borderRadius: '50%', background: avatarColor, color: '#fff', fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{initial}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{isAnon ? '匿名' : post.author}{post.room && !isAnon && <span style={{ color: T.ink3, fontWeight: 500, marginLeft: 6, fontSize: 11 }}>· {post.room}</span>}</div>
           <div style={{ fontSize: 11, color: T.ink3, fontFamily: T.mono, marginTop: 2 }}>{post.date} {post.time}</div>
         </div>
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          {slotLabel && <span style={{ fontSize: 10, color: T.cobaltDeep, background: T.cobaltSoft, padding: '2px 7px', borderRadius: 4, fontWeight: 700, border: `1px solid ${T.cobalt}33`, whiteSpace: 'nowrap' }}>{slotLabel}</span>}
+          {st && <span style={{ fontSize: 10, color: st.fg, background: st.bg, padding: '2px 7px', borderRadius: 4, fontWeight: 700, border: `1px solid ${st.bd}`, whiteSpace: 'nowrap' }}>{st.label}</span>}
           {post.pinned && <span style={{ fontSize: 10, color: '#fff', background: T.cobalt, padding: '2px 6px', borderRadius: 4, fontWeight: 700, letterSpacing: 1 }}>PIN</span>}
           {post.flagCount > 0 && !post.resolved && <span style={{ fontSize: 10, color: T.danger, background: T.dangerSoft, padding: '2px 6px', borderRadius: 4, fontWeight: 700, border: `1px solid ${T.dangerBorder}` }}>通報 {post.flagCount}</span>}
         </div>
       </div>
 
       {post.title && <div style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>{post.title}</div>}
-      <div style={{ fontSize: 13, lineHeight: 1.6, color: T.ink2, whiteSpace: 'pre-wrap' }}>{post.body}</div>
+      {post.body && <div style={{ fontSize: 13, lineHeight: 1.6, color: T.ink2, whiteSpace: 'pre-wrap' }}>{post.body}</div>}
+      {isSong && post.decidedBy && (
+        <div style={{ fontSize: 11, color: T.ink3, fontFamily: T.mono }}>{songStatus === 'approved' ? '承認' : '拒否'}：{post.decidedBy} · {post.decidedAt}</div>
+      )}
 
-      {!isDelivery && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 6, borderTop: `1px solid ${T.line}`, fontSize: 11, color: T.ink3 }}>
-          <span>♥ {post.likes || 0}</span>
-          <span>💬 {post.comments || 0}</span>
-          <div style={{ flex: 1 }} />
-          {post.flagCount > 0 && !post.resolved && <button onClick={() => onResolve(post.id)} style={{ padding: '4px 10px', background: T.surface, color: T.ok, border: `1px solid ${T.okBorder}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>通報解除</button>}
-          <button onClick={() => onPin(post.id)} style={{ padding: '4px 10px', background: post.pinned ? T.cobaltSoft : T.surface, color: post.pinned ? T.cobaltDeep : T.ink3, border: `1px solid ${post.pinned ? T.cobalt : T.lineStrong}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{post.pinned ? 'ピン解除' : 'ピン留め'}</button>
-          <button onClick={() => onDelete(post.id)} style={{ padding: '4px 10px', background: T.surface, color: T.danger, border: `1px solid ${T.dangerBorder}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>削除</button>
-        </div>
-      )}
-      {isDelivery && (
-        <div style={{ display: 'flex', gap: 8, paddingTop: 6, borderTop: `1px solid ${T.line}` }}>
-          <span style={{ fontSize: 10, color: post.picked ? T.ok : T.warn, background: post.picked ? T.okSoft : T.warnSoft, padding: '3px 8px', borderRadius: 4, fontWeight: 700, border: `1px solid ${post.picked ? T.okBorder : T.warnBorder}` }}>{post.picked ? '受取済' : '未受取'}</span>
-        </div>
-      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 6, borderTop: `1px solid ${T.line}`, fontSize: 11, color: T.ink3, flexWrap: 'wrap' }}>
+        <span>♥ {post.likes || 0}</span>
+        <span>💬 {post.comments || 0}</span>
+        <div style={{ flex: 1 }} />
+        {isSong && songStatus === 'pending' && (
+          <>
+            <button onClick={() => onSongDecision && onSongDecision(post.id, 'rejected')} style={{ padding: '4px 10px', background: T.surface, color: T.danger, border: `1px solid ${T.dangerBorder}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>拒否</button>
+            <button onClick={() => onSongDecision && onSongDecision(post.id, 'approved')} style={{ padding: '4px 10px', background: T.ok, color: '#fff', border: `1px solid ${T.ok}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>承認</button>
+          </>
+        )}
+        {isSong && songStatus !== 'pending' && (
+          <button onClick={() => onSongDecision && onSongDecision(post.id, 'pending')} style={{ padding: '4px 10px', background: T.surface, color: T.ink3, border: `1px solid ${T.lineStrong}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>審査取消</button>
+        )}
+        {post.flagCount > 0 && !post.resolved && <button onClick={() => onResolve(post.id)} style={{ padding: '4px 10px', background: T.surface, color: T.ok, border: `1px solid ${T.okBorder}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>通報解除</button>}
+        <button onClick={() => onPin(post.id)} style={{ padding: '4px 10px', background: post.pinned ? T.cobaltSoft : T.surface, color: post.pinned ? T.cobaltDeep : T.ink3, border: `1px solid ${post.pinned ? T.cobalt : T.lineStrong}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{post.pinned ? 'ピン解除' : 'ピン留め'}</button>
+        <button onClick={() => onDelete(post.id)} style={{ padding: '4px 10px', background: T.surface, color: T.danger, border: `1px solid ${T.dangerBorder}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>削除</button>
+      </div>
     </div>
   );
 }
@@ -465,28 +811,129 @@ window.NOTICE_POSTS = [
 
 window.COMMUNITY_POSTS = [
   { id: 'C001', cat: 'board', author: 'リュウ イヒ', room: 'M101', date: '04-22', time: '08:14', body: '明日の朝食、卵焼きリクエストです 🍳 みんなで食堂のメニュー会議しませんか？', likes: 12, comments: 4, pinned: true, flagCount: 0 },
-  { id: 'C002', cat: 'board', author: '田中 美咲', room: 'W102', date: '04-22', time: '07:50', body: '今日の避難訓練、女子寮は何時集合でしたっけ？', likes: 3, comments: 2, flagCount: 0 },
-  { id: 'C003', cat: 'board', author: '佐藤 健太', room: 'M102', date: '04-21', time: '22:10', body: '22 時消灯のはずなのに隣の部屋うるさいです。誰か静かにさせてください。', likes: 1, comments: 0, flagCount: 2 },
-  { id: 'C004', cat: 'board', author: '高橋 翔', room: 'M103', date: '04-21', time: '18:45', body: 'Wi-Fi が不安定です。運営に報告しました。復旧は明日とのこと。', likes: 8, comments: 1, flagCount: 0 },
-  { id: 'C005', cat: 'board', author: '山本 綾', room: 'W103', date: '04-20', time: '20:00', body: '寮の門限って何時までですか？新入生なのでまだ把握してなくて…', likes: 2, comments: 5, flagCount: 0 },
+  { id: 'C002', cat: 'board', author: 'リシンさん', room: 'W113', date: '04-22', time: '07:50', body: '今日の避難訓練、女子寮は何時集合でしたっけ？', likes: 3, comments: 2, flagCount: 0 },
+  { id: 'C003', cat: 'board', author: '田中 隼人', room: 'M104', date: '04-21', time: '22:10', body: '22 時消灯のはずなのに隣の部屋うるさいです。誰か静かにさせてください。', likes: 1, comments: 0, flagCount: 2 },
+  { id: 'C004', cat: 'board', author: 'ゴテンウ', room: 'M114', date: '04-21', time: '18:45', body: 'Wi-Fi が不安定です。運営に報告しました。復旧は明日とのこと。', likes: 8, comments: 1, flagCount: 0 },
+  { id: 'C005', cat: 'board', author: 'ソンキゼン', room: 'W114', date: '04-20', time: '20:00', body: '寮の門限って何時までですか？新入生なのでまだ把握してなくて…', likes: 2, comments: 5, flagCount: 0 },
 
-  { id: 'C010', cat: 'song', author: 'リュウ イヒ', room: 'M101', date: '04-22', time: '07:30', title: '春日和 / Aimer', body: '朝の放送で流してほしいです。気分が上がります。', likes: 9, comments: 1, flagCount: 0 },
-  { id: 'C011', cat: 'song', author: '田中 美咲', room: 'W102', date: '04-21', time: '19:15', title: 'ハナウタ / Kenshi Yonezu', body: '夜の BGM におすすめ。', likes: 6, comments: 0, flagCount: 0 },
-  { id: 'C012', cat: 'song', author: '山本 綾', room: 'W103', date: '04-21', time: '18:40', title: '青と夏 / Mrs. Green Apple', body: '', likes: 4, comments: 0, flagCount: 0 },
-  { id: 'C013', cat: 'song', author: '佐藤 健太', room: 'M102', date: '04-20', time: '22:00', title: 'Pretender / Official髭男dism', body: '', likes: 7, comments: 2, flagCount: 0 },
-  { id: 'C014', cat: 'song', author: '高橋 翔', room: 'M103', date: '04-20', time: '21:45', title: '夜に駆ける / YOASOBI', body: '', likes: 11, comments: 3, flagCount: 0 },
+  // リクエスト曲（寮内 BGM）— 古い順で表示。各投稿に timeSlot: 'morning'（朝）/ 'evening'（晩）。
+  { id: 'C010', cat: 'song', author: 'ゴテンウ', room: 'M114', date: '04-20', time: '21:45', title: '夜に駆ける / YOASOBI', body: '', timeSlot: 'evening', songStatus: 'approved', decidedBy: '新股 先生', decidedAt: '22:10', likes: 11, comments: 3, flagCount: 0 },
+  { id: 'C011', cat: 'song', author: '田中 隼人', room: 'M104', date: '04-20', time: '22:00', title: 'Pretender / Official髭男dism', body: '', timeSlot: 'evening', songStatus: 'approved', decidedBy: '新股 先生', decidedAt: '22:12', likes: 7, comments: 2, flagCount: 0 },
+  { id: 'C012', cat: 'song', author: 'ソンキゼン', room: 'W114', date: '04-21', time: '18:40', title: '青と夏 / Mrs. Green Apple', body: '', timeSlot: 'evening', songStatus: 'pending', likes: 4, comments: 0, flagCount: 0 },
+  { id: 'C013', cat: 'song', author: 'リシンさん', room: 'W113', date: '04-21', time: '19:15', title: 'ハナウタ / Kenshi Yonezu', body: '夜の BGM におすすめ。', timeSlot: 'evening', songStatus: 'pending', likes: 6, comments: 0, flagCount: 0 },
+  { id: 'C014', cat: 'song', author: 'リュウ イヒ', room: 'M101', date: '04-22', time: '07:30', title: '春日和 / Aimer', body: '朝の放送で流してほしいです。気分が上がります。', timeSlot: 'morning', songStatus: 'pending', likes: 9, comments: 1, flagCount: 0 },
+  { id: 'C015', cat: 'song', author: '田中 隼人', room: 'M104', date: '04-19', time: '23:10', title: '残酷な天使のテーゼ / 高橋洋子', body: '深夜テンションで申請。', timeSlot: 'evening', songStatus: 'rejected', decidedBy: '新股 先生', decidedAt: '23:20', likes: 2, comments: 4, flagCount: 0 },
 
-  { id: 'C020', cat: 'lost', author: 'チャン ユエ', room: 'W104', date: '04-22', time: '09:00', title: 'ピンクの水筒', body: '食堂に置き忘れました。見つけた方は W104 まで…', likes: 0, comments: 1, flagCount: 0 },
-  { id: 'C021', cat: 'lost', author: '山本 綾', room: 'W103', date: '04-21', time: '16:20', title: '黒の折り畳み傘', body: '玄関に置いてあったのですが朝には消えてました。', likes: 0, comments: 0, flagCount: 0 },
-  { id: 'C022', cat: 'lost', author: '高橋 翔', room: 'M103', date: '04-19', time: '08:00', title: 'ワイヤレスイヤホン（AirPods）', body: '風呂場周辺で紛失。', likes: 0, comments: 2, flagCount: 0 },
-
-  { id: 'C030', cat: 'anon', author: '匿名', date: '04-22', time: '03:20', body: '洗濯機の予約制にしてほしい。いつも順番待ちでつらいです。', likes: 15, comments: 8, flagCount: 0 },
+  { id: 'C030', cat: 'anon', author: '匿名', date: '04-22', time: '03:20', body: '自販機にミネラルウォーターをもう少し増やしてほしいです。よく売り切れてます。', likes: 15, comments: 8, flagCount: 0 },
   { id: 'C031', cat: 'anon', author: '匿名', date: '04-20', time: '23:50', body: '食堂のメニュー、もう少し多様化してほしいです。外国人留学生向けの選択肢が少ない。', likes: 22, comments: 12, flagCount: 0 },
   { id: 'C032', cat: 'anon', author: '匿名', date: '04-18', time: '14:00', body: 'Wi-Fi の速度を改善してほしい。', likes: 9, comments: 3, flagCount: 0 },
+];
 
-  { id: 'C040', cat: 'delivery', author: 'リュウ イヒ', room: 'M101', date: '04-22', time: '14:30', body: '荷物 1 件（ヤマト運輸）フロント預かり', picked: false, flagCount: 0 },
-  { id: 'C041', cat: 'delivery', author: '佐藤 健太', room: 'M102', date: '04-22', time: '11:15', body: '荷物 2 件（佐川急便）フロント預かり', picked: false, flagCount: 0 },
-  { id: 'C042', cat: 'delivery', author: '田中 美咲', room: 'W102', date: '04-21', time: '18:20', body: '荷物 1 件（Amazon）受取済', picked: true, flagCount: 0 },
+// 行事カレンダー seed — iOS 側と同型データ。date は YYYY-MM-DD。
+window.CALENDAR_EVENTS = [
+  { date: '2026-04-23', time: '18:00', title: '新入生歓迎会',     location: '食堂' },
+  { date: '2026-04-25', time: '14:00', title: '避難訓練',         location: 'グラウンド' },
+  { date: '2026-04-28', time: '09:00', title: 'デモ日',           location: '寮玄関' },
+  { date: '2026-05-03', time: null,    title: 'GW 始め',          location: '—' },
+  { date: '2026-05-13', time: '08:30', title: '春期中間試験 開始', location: '高校棟' },
+  { date: '2026-05-17', time: '15:00', title: '春期中間試験 終了', location: '高校棟' },
+];
+
+// バス告知 seed — 2026-03-22 特別運行便（実公告ベース、詳細は 06_assets/real_samples/bus_notice_2026-03-22_特別運行便.md）
+window.BUS_POSTS = [
+  {
+    id: 'BP001',
+    category: '特別運行便',
+    title: '特別運行便に関するお知らせ',
+    posted_on: '2026-03-22',
+    posted_by: '国際交流部・技師',
+    effective_from: '2026-04-01',
+    effective_until: null,
+    pinned: true,
+    body: '学校休業日等に、寮生やボランティア等に取り組む通学生は、特別運航便(無料スクールバス)に乗車して構いません。寮生は乗車名簿に事前にチェックをつけて下さい。バス乗車時は、挨拶等の礼儀作法に気をつけてください。\n\n＊集中して学習やスポーツに取り組む時間と自由なオフタイムのメリハリをつけ、節約しながら休日は思いっ切りリフレッシュしてほしいので、特別運航便を案内しますが、技師(運転士)から悪い報告を受けた場合は該当者の乗車を一定期間拒否することがあり得ます。\n\n＊乗車簿を寮監が確認後、多すぎる場合は乗車便調整を行う場合があります。\n\n＊長期間の帰省・一時帰国等のタイミングは、情勢変化によって変更があり得ます。',
+    events: [
+      { date: '2026-04-05', name: '留4アクティビティ', audience: '4月生及び4月生をサポートする意志・日本語力・英語力を有する者のみ乗車・参加 → 参加希望者は高野まで', items: [
+        { time: '08:30', action: 'お花見弁当受取り', location: '食堂', memo: '女子寮・渡邊へ（15 食 +α）' },
+        { time: '08:50', action: '朝点呼', location: '', memo: '渡邊・ジェニファー' },
+        { time: '09:10', action: '日本語プレイスメントテスト', location: '', memo: '' },
+        { time: '10:10', action: '英語プレイスメントテスト', location: '', memo: '' },
+        { time: '11:25', action: '留4スクバ乗車', location: '', memo: '' },
+        { time: '12:15', action: 'RSK 山陽放送局前下車・徒歩移動', location: 'RSK', memo: '県立図書館紹介' },
+        { time: '12:30', action: '岡山城芝生広場で昼食・見学', location: '岡山城', memo: '' },
+        { time: '14:00', action: '記念撮影', location: '岡山城', memo: '' },
+        { time: '14:15', action: '後楽園散策', location: '後楽園', memo: '' },
+        { time: '15:00', action: 'さくらカーニバル 自由散策', location: '河川敷', memo: '各自現金持参' },
+        { time: '16:00', action: '後楽園入口集合', location: '後楽園', memo: '' },
+        { time: '16:15', action: '丸善岡山シンフォニーホール見学', location: '', memo: '日本語・各科目コーナー中心' },
+        { time: '16:45', action: '出口集合', location: '', memo: '' },
+        { time: '17:00', action: 'RSK 山陽放送局前乗車', location: 'RSK', memo: 'バスは駐車不可、必ず待つ' },
+        { time: '17:45', action: '帰寮', location: '', memo: '' },
+      ] },
+      { date: '2026-04-07', name: '帰寮日', audience: '', items: [
+        { time: '15:33', action: '金川駅発（寮行き）', location: '金川駅', memo: '' },
+        { time: '18:45', action: '岡山駅西口発（寮行き）', location: '岡山駅西口', memo: '' },
+      ] },
+      { date: '2026-04-11', name: 'みつ元気プロジェクト・買い物等', audience: '', items: [
+        { time: '08:30', action: '西口発', location: '西口', memo: '' },
+        { time: '09:20', action: '高校棟バス乗り場発（御津公民館行き）', location: '高校棟', memo: '' },
+        { time: '09:45', action: '御津公民館着 → 戦略会議', location: '御津公民館', memo: '' },
+        { time: '10:10', action: '高校棟バス乗り場発（金川駅行き）', location: '高校棟', memo: '' },
+        { time: '12:00', action: '御津公民館発', location: '御津公民館', memo: '' },
+        { time: '12:20', action: '高校棟バス乗り場発（西口行き）', location: '高校棟', memo: '' },
+        { time: '13:00', action: '西口着', location: '西口', memo: '' },
+        { time: '15:33', action: '金川駅発（寮行き）', location: '金川駅', memo: '' },
+        { time: '17:02', action: '金川駅発（寮行き）', location: '金川駅', memo: '' },
+      ] },
+      { date: '2026-04-29', name: 'GW 外泊・帰省等、買い物等', audience: '', items: [
+        { time: '07:30', action: '高校棟バス乗り場発（岡山駅西口行き）', location: '高校棟', memo: '' },
+        { time: '10:10', action: '高校棟バス乗り場発（金川駅行き）', location: '高校棟', memo: '' },
+        { time: '15:33', action: '金川駅発（寮行き）', location: '金川駅', memo: '' },
+        { time: '17:02', action: '金川駅発（寮行き）', location: '金川駅', memo: '' },
+      ] },
+      { date: '2026-05-06', name: 'GW 後帰寮日、買い物等', audience: '', items: [
+        { time: '09:20', action: '高校棟バス乗り場発（金川駅行き）', location: '高校棟', memo: '' },
+        { time: '10:10', action: '高校棟バス乗り場発（金川駅行き）', location: '高校棟', memo: '' },
+        { time: '15:33', action: '金川駅発（寮行き）', location: '金川駅', memo: '' },
+        { time: '18:45', action: '岡山駅西口発（寮行き）', location: '岡山駅西口', memo: '' },
+      ] },
+      { date: '2026-05-23', name: '音楽と青空市（岡山市立御津公民館）', audience: '基本ボランティア用、時間帯等注意', items: [
+        { time: '07:30', action: '岡山駅西口発', location: '岡山駅西口', memo: '' },
+        { time: '08:15', action: '高校棟発', location: '高校棟', memo: '' },
+        { time: '08:35', action: '御津公民館着', location: '御津公民館', memo: '' },
+        { time: '16:00', action: '御津公民館発', location: '御津公民館', memo: '' },
+        { time: '16:20', action: '高校棟発', location: '高校棟', memo: '' },
+        { time: '17:00', action: '岡山駅西口着', location: '岡山駅西口', memo: '' },
+      ] },
+      { date: '2026-05-31', name: '英検第 1 回一次試験・買い物等', audience: '英検時程に合わせて時程調整予定', items: [
+        { time: '06:40', action: '高校棟バス乗り場発（金川駅行き）', location: '高校棟', memo: '級受験者＋買い物等希望者' },
+        { time: '09:20', action: '高校棟バス乗り場発（金川駅行き）', location: '高校棟', memo: '買い物等希望者' },
+        { time: '11:00', action: '高校棟バス乗り場発（金川駅行き）', location: '高校棟', memo: '英検級受験者＋買い物等希望者' },
+        { time: '15:33', action: '金川駅発（寮行き）', location: '金川駅', memo: '買い物等希望者' },
+        { time: '17:31', action: '金川駅発（寮行き）', location: '金川駅', memo: '英検級受験者＋買い物等希望者' },
+      ] },
+    ],
+  },
+  {
+    id: 'BP002',
+    category: '定期便',
+    title: '平日 通学定期便',
+    posted_on: '2026-04-01',
+    posted_by: '寮務課',
+    effective_from: '2026-04-01',
+    effective_until: null,
+    pinned: false,
+    body: '平日（月〜金）の定期スクールバス運行時刻。長期休業期間は運休。',
+    events: [
+      { date: '平日', name: '登校便', audience: '全寮生', items: [
+        { time: '07:30', action: '岡山駅西口 → 高校棟', location: '岡山駅西口', memo: '毎日 1 便' },
+      ] },
+      { date: '平日', name: '下校便', audience: '全寮生', items: [
+        { time: '17:00', action: '高校棟発 → 寮', location: '高校棟', memo: '' },
+        { time: '18:30', action: '高校棟発 → 寮', location: '高校棟', memo: '部活動対応' },
+        { time: '21:00', action: '高校棟発 → 寮', location: '高校棟', memo: '自習室閉館後' },
+      ] },
+    ],
+  },
 ];
 
 window.RecordsPage = RecordsPage;

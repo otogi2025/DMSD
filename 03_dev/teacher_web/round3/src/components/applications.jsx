@@ -58,7 +58,7 @@ function ApplicationsPage({ onOpen }) {
   ];
 
   return (
-    <div style={{ padding: '28px 32px 48px', maxWidth: 1300 }}>
+    <div style={{ padding: '28px 32px 48px' }}>
       <div style={{ fontSize: 11, color: T.ink3, letterSpacing: 2, fontWeight: 600 }}>申請 &gt; {tabs.find(t=>t.k===tab).label}</div>
       <h1 style={{ fontSize: 24, fontWeight: 700, margin: '4px 0 18px', letterSpacing: -0.3 }}>申請センター</h1>
 
@@ -199,7 +199,7 @@ window.OUTSTAY_APPS = [
     reason: '保護者と合流して市内観光・買い物。',
     note: '帰舎は日曜夕方までに確実に戻ります。',
     parentOk: { confirmed: true, phone: '090-xxxx-xxxx' },
-    submitted: '04-21 14:22', state: 'pending',
+    submitted: '04-19 20:10', state: 'pending',
     city: '岡山',
     approvals: [
       { role: '担任', name: '新股 先生', state: 'pending' },
@@ -209,7 +209,7 @@ window.OUTSTAY_APPS = [
     ],
   },
   {
-    id: 'O-2026-0421-02', applicant: '佐藤 健太', room: 'M102', dorm: 'men',
+    id: 'O-2026-0421-02', applicant: '田中 隼人', room: 'M104', dorm: 'men',
     grade: '中 2 年 2 組', phone: '080-1234-5678',
     companion: { name: '—', phone: '—' },
     depart: '2026-04-25 15:00', return_: '2026-04-27 18:00',
@@ -230,7 +230,7 @@ window.OUTSTAY_APPS = [
     ],
   },
   {
-    id: 'O-2026-0420-03', applicant: '田中 美咲', room: 'W102', dorm: 'women',
+    id: 'O-2026-0420-03', applicant: 'リシンさん', room: 'W113', dorm: 'women',
     grade: '中 1 年 2 組', phone: '080-2345-6789',
     companion: { name: '—', phone: '—' },
     depart: '2026-04-19 10:00', return_: '2026-04-20 19:00',
@@ -250,7 +250,7 @@ window.OUTSTAY_APPS = [
     ],
   },
   {
-    id: 'O-2026-0419-04', applicant: '高橋 翔', room: 'M103', dorm: 'men',
+    id: 'O-2026-0419-04', applicant: 'ゴテンウ', room: 'M114', dorm: 'men',
     grade: '中 2 年 1 組', phone: '080-9876-5432',
     companion: { name: '—', phone: '—' },
     depart: '2026-04-18 18:00', return_: '2026-04-19 21:00',
