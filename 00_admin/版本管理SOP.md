@@ -158,6 +158,25 @@
 - `[X.Y.Z-wip]` 标在 CHANGELOG 顶部期间，多会话可以一起往里堆 commit
 - 但 close（去掉 `-wip`）+ 打 tag = `[Mac-主会话]` 一个人做
 
+### ⚠️ Staging area 污染防御（2026-04-29 实战教训）
+
+**事件**：4-29 [Mac-VersionMgmt-CC] commit `0e9fbb7` 时，staging area 已含**另一会话 stage 但未 commit** 的 `D 02_design/teacher_requirements.md`（删除）。当前会话 `git add 00_admin/WIP.md` 后 commit，把别人 stage 的删除**一起 push 出去**，导致 GitHub 上 main 误删该文件 6 分钟。
+
+**为什么 hook 没拦下**：pre-commit hook 只检查"声明性文件硬编码版本号"，不验证 staged files 是否符合本次会话意图。
+
+**铁律**：
+- **commit 前必须 `git status` 逐项核对 staged 内容**
+- 看到不是本会话改的文件出现在 staged area → **`git restore --staged <file>`** 取消 stage（不动工作树）
+- 不要假设 "我没改的就不会被 commit"（错的，staging area 可能被另一会话污染）
+
+**实操话术**（CC 在 commit 前必跑）：
+```
+git status --short
+# 逐行问："这一行是本会话产出吗？" 不是的 → git restore --staged
+```
+
+**为什么会话间 staging 污染？** Mac 上多个 CC 会话共用同一个 git index（`.git/index` 文件），任何会话 git mv / git add / git rm 都改这个共享 index。所以 staged area 不属于"本会话"。
+
 ---
 
 ## § 7 — 何时不 bump（错觉清单）
