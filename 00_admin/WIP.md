@@ -13,8 +13,11 @@
 
 ---
 
+**当前版本**: v0.5.0（2026-04-29 close — Demo 4-28 sprint 落地）<!-- VERSION_OK -->
+**版本管理 SOP**: `00_admin/版本管理SOP.md`（CC 改 spec / 02_design / 03_dev 主体后必读 §2 决策树）
+
 **最后更新**: 2026-04-29 by [Mac-Web-CC] — **Web 4-28 demo prep 收尾**：(1) **roster 削减 4 男+3 女**（リュウ/田中 隼人/ゴテンウ/ヨウシエン + リシンさん/ソンキゼン/ゴキンウ）+ **ghost student 全清扫** 3 文件 sed 1:1 替换 5 名 5 房间号 (2) **crash bug 修 2 处**（startSession seeded[8] / NotificationsPage roster[3] — hardcoded index 不防御短 roster）(3) **個人番号 6 桁化跟 iOS 对齐**（DEMO_SEED_NO=060218 单源 + sid-based 判定 + accounts.jsx 番号列 70→130px + 「次の新規 07」→「フォーマット 06????」）(4) **行事カレンダー仿 iOS**（月グリッド + 选择日列表 + ＋追加 modal 复用 ModalShell 共有）(5) **リクエスト曲管理 男女寮分け + 提出順 + 承認/拒否ワークフロー**（#番号 寮×朝/晩 4 組合別自動採番）(6) **主页ショートカット URL 自动检测 LAN IP**（demo_server.py /api/server-info + manual fallback + localStorage）+ 上下重複の上カード削除 (7) **全页面 maxWidth 砍** sed 1 命令 9 容器 → iPad/Mac 浏览器自适应 (8) **巴士平日登校便修正** 寮発→岡山駅西口発 7:30 単一便 (9) **細部文案 4 件**：匿名建議 自販機 / 記録 Shortcut→スマホ / override 閾値超で入寮→定刻に間に合わず / 期限後→期限内 (10) **デフォルト中文回答漂移** 自我観察 → memory feedback_default_chinese_response.md。`raw/2026-04-29.md` 10 section（AC 候補 ⭐ 5 件）。 <!-- VERSION_OK -->
-**上一次更新（保留参考）**: 2026-04-23 夜 by [Mac-demo-sprint] — **D3 設計ラッシュ + 03_dev 重構**：(1) **学号体系 6 桁拍板**（学年 × 組 × 番号、中高一貫 6 年制、A=01/B=02、060218 = 高3 B 18、リュウ イヒ demo seed 00 → 060218）(2) **跨会话同步規則 A+B+C**（system_features_v0.1.md 新建 = iOS+Web+後端共用真值 / `bin/sync-ios-refs.sh` 建立 / CLAUDE.md 明文ルール）(3) **[iOS-Swift-CC] との独立収束確認**（両会話が独立に 6 桁規則到達、`00_admin/跨会话_ios_共享决策.md` + 本会話の system_features 互指ポインタで統合）(4) **学生改动履歴（監査ログ）規格**（学号/房间号/メール/電話/パスワード事実 全記録、老师 Web アクティビティ履歴 tab + 学生 App 変更履歴）(5) **房间号管理**（注册時学生手入力 + v1.1 老师 Web 一括分配 drag & drop + 学生 App 自動受信）(6) **コミュニティ 拆分決定**（通報保留 / 宅配+忘れ物 フロント業務へ / リクエスト曲 古い順 + 寮内 BGM / 朝晩字段 pending）(7) **男寮教員 新股/小林/難波 + 姓後先生統一**（theme.jsx TEACHERS + applications.jsx 承認 workflow 全 approver）(8) **巴士実公告 2026-03-22 保管** → `06_assets/real_samples/bus_notice_2026-03-22_特別運行便.md` + 規格入 system_features §6.6（閲覧/CRUD/乗車名簿）(9) **03_dev/ 物理重構**: `demo_4-28/` 嵌套解除 → `03_dev/{backend,teacher_web,student_ios}/` 平置化 + `Student/DMSDStudentApp(iOS)` → `99_archive/2026-03-08_throwaway_ios_swift/` + 27 MD ファイル path 引用更新 + `03_dev/LATEST.md` 新建（最新 HTML 索引）(10) **HTML build 順序明文化**: jsx 改 → `rebuild.command` → `build_single_file.py` の 3 段階。Prototype_v3.html 凍結版削除（密码 12345678 弾き事故防止）。`raw/2026-04-23.md` 10 section 新建（AC 候補 🌟 5 件）。 <!-- VERSION_OK -->
+**上一次更新（保留参考）**: 2026-04-23 夜 by [Mac-demo-sprint] — **D3 設計ラッシュ + 03_dev 重構**：(1) **学号体系 6 桁拍板**（学年 × 組 × 番号、中高一貫 6 年制、A=01/B=02、060218 = 高3 B 18、リュウ イヒ demo seed 00 → 060218）(2) **跨会话同步規則 A+B+C**（system_features.md 新建 = iOS+Web+後端共用真值 / `bin/sync-ios-refs.sh` 建立 / CLAUDE.md 明文ルール）(3) **[iOS-Swift-CC] との独立収束確認**（両会話が独立に 6 桁規則到達、`00_admin/跨会话_ios_共享决策.md` + 本会話の system_features 互指ポインタで統合）(4) **学生改动履歴（監査ログ）規格**（学号/房间号/メール/電話/パスワード事実 全記録、老师 Web アクティビティ履歴 tab + 学生 App 変更履歴）(5) **房间号管理**（注册時学生手入力 + v1.1 老师 Web 一括分配 drag & drop + 学生 App 自動受信）(6) **コミュニティ 拆分決定**（通報保留 / 宅配+忘れ物 フロント業務へ / リクエスト曲 古い順 + 寮内 BGM / 朝晩字段 pending）(7) **男寮教員 新股/小林/難波 + 姓後先生統一**（theme.jsx TEACHERS + applications.jsx 承認 workflow 全 approver）(8) **巴士実公告 2026-03-22 保管** → `06_assets/real_samples/bus_notice_2026-03-22_特別運行便.md` + 規格入 system_features §6.6（閲覧/CRUD/乗車名簿）(9) **03_dev/ 物理重構**: `demo_4-28/` 嵌套解除 → `03_dev/{backend,teacher_web,student_ios}/` 平置化 + `Student/DMSDStudentApp(iOS)` → `99_archive/2026-03-08_throwaway_ios_swift/` + 27 MD ファイル path 引用更新 + `03_dev/LATEST.md` 新建（最新 HTML 索引）(10) **HTML build 順序明文化**: jsx 改 → `rebuild.command` → `build_single_file.py` の 3 段階。Prototype_v3.html 凍結版削除（密码 12345678 弾き事故防止）。`raw/2026-04-23.md` 10 section 新建（AC 候補 🌟 5 件）。 <!-- VERSION_OK -->
 **上一次更新（保留参考）**: 2026-04-22 夜 by [Code-Agent] — **4-28 demo 收尾**：Round 3 導入+解包+bug修+日語 2 輪 QA+single-file 打包(32MB) + 点呼機代替（demo_server.py + polling TTS）+ accounts.jsx 学生管理 + 外泊期限規則 + ./tomoshibi CLI <!-- VERSION_OK -->
 **上一次更新（保留参考）**: 2026-04-22 夜 by [Mac-demo-sprint] — 砍 Pi 文档层落地 + 35 问管理员清单 + Wi-Fi 测试手册（文档会话方向；和本 Code-Agent 代码方向配对） <!-- VERSION_OK -->
 **上一次更新（保留参考）**: 2026-04-22 晚 by [Code-Agent] — Web 学生アカウント管理页面新建（`accounts.jsx` + `ACCOUNTS` seed 24 人 + Shell nav + modal 2 tab + iOS 设计 §9.2 ✅） <!-- VERSION_OK -->
@@ -36,8 +39,8 @@
 **硬件**（2026-04-22 再次推翻 4-21 "Pi 3A+ 下单"计划）：**Demo 阶段 0 采购**
 - 理由：7 天 deadline + 零基础，PN532 I²C 驱动 + TTS + 接线是最大失败风险
 - Demo 成功率 60% → 95%（砍硬件后）
-- **上线版 v1.0 仍按 Pi 3A+ 方案**（`02_design/hardware_design_v0.1.md §2.1` 保留，管理员采纳后启动）
-- 详见 `00_admin/demo_4-28/scope_tier.md §0.1` + `hardware_design_v0.1.md §4.1`
+- **上线版 v1.0 仍按 Pi 3A+ 方案**（`02_design/hardware_design.md §2.1` 保留，管理员采纳后启动）
+- 详见 `00_admin/demo_4-28/scope_tier.md §0.1` + `hardware_design.md §4.1`
 
 **并行**：v0.4.0 主线（S2/S3 + Device_Contract）由 [Mac-主会话] 维护，demo sprint 不动 `00_admin/v0.4.0_*.md`。
 
@@ -90,7 +93,7 @@
 
 **认领文件**：
 - `00_admin/demo_4-28/`（新文件夹，含 README / sprint / scope_tier / ST25DV_fallback / demo_script 5 个档案）
-- `02_design/hardware_design_v0.1.md`（§2.1 + §2.3 + §2.5 + §4 修订）
+- `02_design/hardware_design.md`（§2.1 + §2.3 + §2.5 + §4 修订）
 - `CLAUDE.md` §项目信息硬件/demo 段
 - `05_logs/raw/2026-04-21.md`（新建 + 追加）
 - `03_dev/backend/`（skeleton 起好，代码后续交其他 agent）
@@ -112,7 +115,7 @@
 - [x] 议题 E 拍板（E-1/E-2/E-3/E-4）
 - [x] Pi 3A+ 选型推翻 Pi 4B 2GB（5 方案对比 + Pi 3A+ 反直觉胜出）
 - [x] MVP 思维：硬件采购分阶段（Demo 1 台 / 部署 3 台）
-- [x] `02_design/hardware_design_v0.1.md` §2.1 + §2.5 + §4 完整修订
+- [x] `02_design/hardware_design.md` §2.1 + §2.5 + §4 完整修订
 - [x] `CLAUDE.md` §项目信息 硬件 + demo 段更新
 - [x] `05_logs/raw/2026-04-21.md` 建立（6 条碎片 / 3 条 #AC候选🌟）
 - [x] `03_dev/backend/` skeleton 起好（README / requirements / database / models / schemas / ws_manager / main / seed，14 个 API 端点 + WebSocket）
@@ -247,7 +250,7 @@
 - **[Mac-主会话]** **A9 ✅** `05_logs/dev_log/2026-04-10_空白期反思_索引.md` —— 100 字内 in-repo 锚点指向 iCloud 原文，不泄露私密反思内容
 - **[Mac-主会话]** **A6 ✅** `00_admin/AC_提交_checklist.md` —— 5/6/7/8/9/10 月每月 gate + 技术/AC 叙事双线详细 checklist + 滑动条件降级规则
 - **[Mac-主会话]** **T4 ✅** `.gitignore` 18 → ~80 行（Python/Node/Android/IDE/日志/OS/SQLite/.claude 本地设置）
-- **[Mac-主会话]** **代 commit 下午 [Mac-另一会话] 产出**（`f36d10b`，**v0.3.1-post** 不进 v0.3.1 tag）：02_design/flow_design_v0.1.md (246 行) + hardware_design_v0.1.md (260 行) + raw/2026-04-20.md (958 行，5 条 / 4 #AC候选) + TODO.md 新增 2 条（宿舍官网 + keystore 备份）。commit message 明确归属 + scope 分隔
+- **[Mac-主会话]** **代 commit 下午 [Mac-另一会话] 产出**（`f36d10b`，**v0.3.1-post** 不进 v0.3.1 tag）：02_design/flow_design.md (246 行) + hardware_design.md (260 行) + raw/2026-04-20.md (958 行，5 条 / 4 #AC候选) + TODO.md 新增 2 条（宿舍官网 + keystore 备份）。commit message 明确归属 + scope 分隔
 - **[Mac-主会话]** **backlog 更新**：A5 / A6 / A9 / T4 打 ✅（Tier 3 AC 补强 + Tier 4 基建预备）
 
 ### 2026-04-20 深夜（Tier 1 Batch 2/3 — v0.3.1 发布就绪）
@@ -294,7 +297,7 @@
 
 ### 2026-04-17 上午
 
-- **[Mac-主会话]** 把 `RollCall_Spec_v0.1.pages` 数字化为 Markdown（`01_specs/rollcall/RollCall_Spec_v0.1.md`），顺便反向审查 spec 漏洞 7+18=**25 项**（附录 A + B，5 项 🔴 为 Phase 1 阻塞项）
+- **[Mac-主会话]** 把 `RollCall_Spec_v0.1.pages` 数字化为 Markdown（`01_specs/rollcall/RollCall_Spec.md`），顺便反向审查 spec 漏洞 7+18=**25 项**（附录 A + B，5 项 🔴 为 Phase 1 阻塞项）
 - **[Mac-主会话]** **iCloud AC 目录结构大重构**：两个冗余 "筑波大学 AC入試 準備" 合并；按编号分类（00_指南 / 01_官网资料 / 02_分析与调研 / 03_素材_候选 / 04_素材_成品 / 05_产出 / 99_archive）；扁平版过期文件进 `99_archive/_deprecated_4-14扁平版snapshot/`（建议 4-24 前眼检后删）
 - **[Mac-主会话]** **AC 素材第 2 层首次批量填充**：CC 经 itsuki 明确授权，从 `05_logs/raw/` 5 个历史文件挑出 10 条候选 + 候选索引，搬进 iCloud `03_素材_候选/`（常规流程仍是 itsuki 月度做）
 - **[Mac-主会话]** **CC 权限边界更新**（`DMSD/CLAUDE.md`）：CC 可读 iCloud AC 目录；写 03/04 需当场授权；永不写 05_产出

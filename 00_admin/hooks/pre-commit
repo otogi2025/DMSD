@@ -63,5 +63,44 @@ if [ $FAIL -eq 1 ]; then
     exit 1
 fi
 
+# ============================================================
+# 版本 bump 提醒（2026-04-29 加 — 非阻塞，仅提示）
+#
+# 触发条件: 本次 commit 包含可能触发版本 bump 的文件改动。
+# 目的: 让 CC / itsuki 不漏掉"累积改动该 bump 但忘了"的情况。
+# 对应 00_admin/版本管理SOP.md §2 决策树。
+# ============================================================
+
+STAGED_FILES=$(git diff --cached --name-only)
+
+BUMP_TRIGGER=""
+
+if echo "$STAGED_FILES" | grep -qE "^01_specs/.+\.md$"; then
+    BUMP_TRIGGER="${BUMP_TRIGGER}
+  - 01_specs/ 改动（字典 / spec 主体）→ Minor 候选（SOP §2 条件 1+2）"
+fi
+
+if echo "$STAGED_FILES" | grep -qE "^02_design/(system_features|flow_design|hardware_design|teacher_requirements)\.md$"; then
+    BUMP_TRIGGER="${BUMP_TRIGGER}
+  - 02_design/ 主设计文档改动 → Minor 候选（SOP §2 条件 3）"
+fi
+
+if echo "$STAGED_FILES" | grep -qE "^03_dev/.*/(IOS_DESIGN_LOG|WEB_DESIGN_LOG)\.md$"; then
+    BUMP_TRIGGER="${BUMP_TRIGGER}
+  - 03_dev/ 业务设计 LOG 改动 → Minor 候选（SOP §2 条件 4）"
+fi
+
+if [ -n "$BUMP_TRIGGER" ]; then
+    echo ""
+    echo "ℹ️  版本 bump 提醒（非阻塞，仅提示）"
+    echo "─────────────────────────────────────────────"
+    echo "本次改动可能触发版本 bump：${BUMP_TRIGGER}"
+    echo ""
+    echo "  → 对照 00_admin/版本管理SOP.md §2 决策树判断"
+    echo "  → 单次不 bump 也 OK，但累积 5+ commit 时回看 SOP §10"
+    echo "─────────────────────────────────────────────"
+    echo ""
+fi
+
 echo "✅ pre-commit 一致性检查通过"
 exit 0

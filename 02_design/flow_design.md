@@ -3,8 +3,8 @@
 > **系统对外名**：**Tomoshibi**（灯火，2026-04-21 定名）；DMSD 是项目/仓库代号。
 > **本文版本**: v0.1（2026-04-20 首版）
 > **本文作用**: 签到端到端流程 + 攻击路径 + 防御机制的唯一真值
-> **上游参考**: `01_specs/rollcall/RollCall_Spec_v0.1.md` §5.1 签到信号流
-> **配套文档**: `02_design/hardware_design_v0.1.md`（硬件选型）
+> **上游参考**: `01_specs/rollcall/RollCall_Spec.md` §5.1 签到信号流
+> **配套文档**: `02_design/hardware_design.md`（硬件选型）
 > **最后更新**: 2026-04-21（系统命名 Tomoshibi 同步）
 
 ---
@@ -47,7 +47,7 @@
 
 ## 2. 路径 A — NFC 卡 tap
 
-详见 `RollCall_Spec_v0.1.md §5.1.1`。本文不重复，引用链路：
+详见 `RollCall_Spec.md §5.1.1`。本文不重复，引用链路：
 
 ```
 学生卡 ──贴近──> 点呼机 PN532 读头

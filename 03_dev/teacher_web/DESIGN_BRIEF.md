@@ -63,7 +63,7 @@ Tier 2 skeleton 15 项（一个统一 `<SkeletonPage>` 组件复用）：
 
 ## 5. ⚠️ Spec 对齐项（Round 3 前 itsuki 决策一次）
 
-Round 2 原型里 `theme.jsx` 的状态只有 4 色（`ok / absent / exempt / unknown`，**无 late**），注释 `// seat statuses (no late)`。但 2026-04-21 晚 itsuki 纠正："黄色是迟到，等到了具体时间还没签到的人，就自动变成黄色"，并指明 `01_specs/rollcall/RollCall_Spec_v0.1.md §4.1 §5.3` 里有权威规则（绿/黄/红/灰/蓝 + overlay 黑）。
+Round 2 原型里 `theme.jsx` 的状态只有 4 色（`ok / absent / exempt / unknown`，**无 late**），注释 `// seat statuses (no late)`。但 2026-04-21 晚 itsuki 纠正："黄色是迟到，等到了具体时间还没签到的人，就自动变成黄色"，并指明 `01_specs/rollcall/RollCall_Spec.md §4.1 §5.3` 里有权威规则（绿/黄/红/灰/蓝 + overlay 黑）。
 
 **影响**：`theme.jsx` 需要加 `late` token（黄色系）+ `late` status；`live.jsx` 需渲染第 5 色；session 开始后达到迟到阈值（默认 3 分钟 = `on_time_end - window_start`）时前端自动把"未签到的 unknown"渲染成 late 黄。
 

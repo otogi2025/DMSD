@@ -45,9 +45,9 @@
 - **上线姿态**（2026-04-19 G2 决策）：**v1.0 直接 iOS + Android + 卡 完整版一次上线**；取消原 Phase 1 / Phase 2 分阶段
 - **开发节奏**：内部按 M1→M5 里程碑推进（兜底：做不完至少 M1+M2 可 demo）
 - **4-28 管理员 demo 冲刺**（2026-04-21 议题 E 拍板 + scope 扩展 + **2026-04-22 砍硬件**）：宿舍管理员决定是否采纳系统 → 7 天冲刺（4-21 → 4-28）→ 范围 **Tier 分层**：Tier 1 真跑（点呼 / 座位表 / 改判 / 健康 / 请假 / 外宿 / 归国 / 扣分 / 检索）+ Tier 2 UI skeleton（扫除 / 巴士 / 活动 / 宿舍互动 5 项 / 快递 / 归县 / 出租车 / 通知中心 / 长期豁免）+ Tier 3 砍。**4-22 重大调整**：砍 Pi 点呼机硬件 → demo 纯软件跑（itsuki iPhone 碰自有 NFC 卡 → 后端 → iPad 座位变绿 + iPad Safari Web Speech API 日语播报 / fallback Mac `say -v Kyoko`）。**扣分规则**暂定（迟到 0.5 / 缺席 1 / 月 4 罚扫 / 月 8 禁足），后端做成 `discipline_config` 可配置表，上线前和老师商议。**权威源**：`00_admin/demo_4-28/`（文件夹，含 README.md / sprint.md / scope_tier.md / ST25DV_fallback.md / demo_script.md / **questions_for_admin.md** / **wifi_survey_howto.md**）。**分工**：本会话 [Mac-demo-sprint] 只做需求/文档/清单，代码实现交其他 agent
-- **采购策略**（2026-04-22 二次修订）：**Demo 阶段 0 采购**（推翻 4-21 的"Demo 1 台 ¥12380"计划，砍硬件调试风险）→ 管理员采纳后扩容 3 台（淘宝，¥1345 RMB）。上线版硬件选型（Pi 3A+）保留在 `02_design/hardware_design_v0.1.md §2.1`。详见 `02_design/hardware_design_v0.1.md §4` + `00_admin/demo_4-28/scope_tier.md §0.1`
+- **采购策略**（2026-04-22 二次修订）：**Demo 阶段 0 采购**（推翻 4-21 的"Demo 1 台 ¥12380"计划，砍硬件调试风险）→ 管理员采纳后扩容 3 台（淘宝，¥1345 RMB）。上线版硬件选型（Pi 3A+）保留在 `02_design/hardware_design.md §2.1`。详见 `02_design/hardware_design.md §4` + `00_admin/demo_4-28/scope_tier.md §0.1`
 - 规格：`01_specs/` 初版冻结于 2026-02-12；后续修订进度见 `CHANGELOG.md`
-- **硬件 + 流程权威源**：`02_design/hardware_design_v0.1.md` + `02_design/flow_design_v0.1.md`（2026-04-20 建立）
+- **硬件 + 流程权威源**：`02_design/hardware_design.md` + `02_design/flow_design.md`（2026-04-20 建立）
 - 版本：SemVer。**当前版本见 `CHANGELOG.md` 顶部**（单源真值，见下方"文档一致性规则"节）
 - **版本号 bump 时必须触发 AC 记录**（对应核心问题 #3 重大决策）
 - **keystore（Android App 签名证书）备份**（议题 B 定稿）：本地 Mac 主拷贝 + 后端服务器加密备份（跨人传承）+ 纸质密码笔记本（毕业交接转交）+ 年度校验。**不存 iCloud**（个人账号不可传承）
@@ -64,8 +64,8 @@ DMSD/
 │   ├── 文档同步点清单.md               # 单源真值表 + release/onboarding checklist
 │   ├── progress_overview.md           # 章节级，CC 起草由 itsuki 确认
 │   └── CLAUDE_CODE_记录指南.md         # AC 记录操作手册（仅格式需要时读）
-├── 01_specs/                          # 规格文档，v0.1 冻结，v0.2 修订中
-├── 02_design/                         # 设计文档（hardware_design_v0.1 + flow_design_v0.1，硬件+流程权威源）
+├── 01_specs/                          # 规格文档（rollcall/ 字典+主体，文件名不带版本号）
+├── 02_design/                         # 设计文档（hardware_design + flow_design + system_features 等，硬件+流程+共用功能权威源）
 ├── 03_dev/                            # 代码（backend / teacher_web / student_ios）
 ├── 04_ops/
 ├── 05_logs/                           # DMSD 开发 log
@@ -95,12 +95,13 @@ DMSD/
 | 共享概念 | 权威源 | 其他文件怎么引用 |
 |---|---|---|
 | **最新 HTML プロトタイプ 位置**（iOS / Web）| **`03_dev/LATEST.md`** | "见 `03_dev/LATEST.md`" |
-| 版本号 | `CHANGELOG.md` 顶部 | "当前版本见 `CHANGELOG.md`" |
+| 版本号 | `CHANGELOG.md` 顶部 + `WIP.md` 头部 | "当前版本见 `CHANGELOG.md`" |
+| **版本 bump 操作流程** | **`00_admin/版本管理SOP.md`** | "见 SOP §X" |
 | 顶级目录结构 | 本文件 §目录结构 | "见 CLAUDE.md §目录结构" |
 | **文件级清单 + 作用 + 权限** | **`00_admin/文件结构指南.md`** | "见 `00_admin/文件结构指南.md`" |
 | 5 AC 核心问题 | 本文件 §5 个 AC 核心问题 | "见 CLAUDE.md §5 个 AC 核心问题" |
 | 分阶段策略 | `CHANGELOG.md` + `RollCall_Spec_*.md §1` | 用指针 |
-| **iOS + Web + 後端 共用功能**（账号 / 申請 / 通知 / コミュニティ / 規律）| **`02_design/system_features_v0.1.md`** | "见 system_features_v0.1.md §X" |
+| **iOS + Web + 後端 共用功能**（账号 / 申請 / 通知 / コミュニティ / 規律）| **`02_design/system_features.md`** | "见 system_features.md §X" |
 | iOS 専属設計（視覚 / flow / Phase）| `03_dev/student_ios/IOS_DESIGN_LOG.md` | 専属項目のみ / 共用機能は system_features に |
 | Web 専属設計（Ryō tokens / 老师動線）| `03_dev/teacher_web/WEB_DESIGN_LOG.md` | 同上 |
 
@@ -115,6 +116,23 @@ DMSD/
 
 豁免：行末加 `<!-- VERSION_OK -->` 注释。详见 `00_admin/hooks/README.md`。
 
+### 版本号操作核心 5 条（2026-04-29 加 — 解决"4-21 → 4-29 9 天没 bump"问题）
+
+> **运行手册全文**: `00_admin/版本管理SOP.md`（CC 触发条件见 SOP §0 §12）。**理论 / 历史教训** 在 iCloud `00_通用指南/版本管理实践指南.md`（CC 一般不读）。
+
+1. **当前版本** = `CHANGELOG.md` 顶部第一条 + `00_admin/WIP.md` 头部"当前版本"行（双源同步，bump 时一起改）
+2. **改了 spec 主体 / 字典 / 02_design / 03_dev 主体后** → 必读 SOP §2 决策树（每条改动都判一次）
+3. **decide bump** → 跑 SOP §3 五步 + 对照 SOP §4 联动文件清单（**必改 6 处**：CHANGELOG / WIP 头部 / 版本演变一览 / vX.Y.Z_AC叙事 / raw 当日 dump / git tag）
+4. **commit 前缀** = SOP §5 速查表（feat=Minor 候选 / fix=Patch 候选 / docs+chore+refactor=不 bump）
+5. **打 tag = 发布动作** → CC **不能自动**打 tag，必须 itsuki 明示
+
+> **触发本 SOP 阅读的情景**（命中任一 → 立即读 SOP 对应节）：
+> - 即将 commit `feat:` / `fix:` 前缀 → SOP §2 §5
+> - 改了 `01_specs/` 主体或 `02_design/system_features.md` → SOP §2 §3 §4
+> - itsuki 说 "bump" / "打 tag" / "迭代版本" → SOP §3 §4
+> - 用户问"现在版本是多少" → SOP §1
+> - pre-commit hook 输出 "考虑 bump" 提醒 → SOP §2
+
 ### 会话结束前一致性检查（CC 必做）
 
 每次会话结束前：
@@ -122,6 +140,7 @@ DMSD/
 1. **pre-commit 检查预演**：跑 `bash 00_admin/hooks/pre-commit`（不需要真 commit 就能看结果），有 ❌ 就提示 itsuki
 2. **时间戳新鲜度扫描**：过去 7 天 commit 改过但文件头"最后更新"没动的文件 → 提醒 itsuki
 3. **同步点发现**：本次会话新建了声明性文件 → 提醒 itsuki 加入 `00_admin/文档同步点清单.md`
+4. **版本 bump 判断**（2026-04-29 加 — 跑 `00_admin/版本管理SOP.md §10` 30 秒 4 问）：本会话改了 spec / design / 03_dev 主体？CHANGELOG 顶部还停在 `[X.Y.Z-wip]`？累积 5+ commit 包含实质改动？itsuki 有"今天结束"信号？任一命中 → 主动询问 itsuki 是否 bump（用 SOP §10 固定话术）
 
 ### 跨 repo 同步规则（2026-04-23 加 — iOS Swift 実装は独立 repo）
 
@@ -130,7 +149,7 @@ DMSD/
 **Single Source of Truth は常に DMSD 側**。`Tomoshibi-iOS/refs/` は複製品（直接編集禁止）。
 
 **同期対象ファイル**（DMSD → Tomoshibi-iOS/refs/）:
-- `02_design/system_features_v0.1.md`
+- `02_design/system_features.md`
 - `03_dev/student_ios/IOS_DESIGN_LOG.md`
 - `03_dev/student_ios/designs/Tomoshibi_iOS_PhaseB_v2.html`
 - `03_dev/student_ios/designs/phaseB_src/`
@@ -143,8 +162,8 @@ DMSD/
 | 状況 | アクション |
 |---|---|
 | iOS 機能 / 設計を改動した（DMSD 側 LOG 更新済）| 会話末尾に `bash bin/sync-ios-refs.sh` を走らせる + itsuki に Tomoshibi-iOS 側 commit を促す |
-| Swift コードで機能挙動を変えた（Tomoshibi-iOS 側）| `STATUS.md` 更新 + itsuki に通知 → 「DMSD 側 `IOS_DESIGN_LOG.md` + `system_features_v0.1.md` への逆同期が必要」と明示 |
-| 新機能を iOS で設計した | 先に DMSD 側 `system_features_v0.1.md` + `IOS_DESIGN_LOG.md` を更新 → sync script → Tomoshibi-iOS 側で実装 |
+| Swift コードで機能挙動を変えた（Tomoshibi-iOS 側）| `STATUS.md` 更新 + itsuki に通知 → 「DMSD 側 `IOS_DESIGN_LOG.md` + `system_features.md` への逆同期が必要」と明示 |
+| 新機能を iOS で設計した | 先に DMSD 側 `system_features.md` + `IOS_DESIGN_LOG.md` を更新 → sync script → Tomoshibi-iOS 側で実装 |
 
 **跨会话改动履歴**: Tomoshibi-iOS 側の `STATUS.md` + `REMOTE_AGENT_GUIDE.md` に "最近の改动 log" section を設ける。どの agent がどの feature に何を変えたか時系列記録 → 別 agent が拾える。
 

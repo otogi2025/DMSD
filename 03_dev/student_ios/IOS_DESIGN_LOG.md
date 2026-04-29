@@ -152,7 +152,7 @@ Claude Design **必须**默认创建 00 号账户，seed 数据：
 
 ### 3.9 学号体系 6 桁（2026-04-23 拍板）
 
-**⚠ 権威源は `02_design/system_features_v0.1.md §3`。ここは iOS 視点の抜粋 + App 固有の UI 仕様のみ。**
+**⚠ 権威源は `02_design/system_features.md §3`。ここは iOS 視点の抜粋 + App 固有の UI 仕様のみ。**
 
 #### 3.9.1 編碼
 
@@ -195,7 +195,7 @@ Claude Design **必须**默认创建 00 号账户，seed 数据：
 
 ### 3.10 房间号（2026-04-23 拍板）
 
-**⚠ 権威源は `02_design/system_features_v0.1.md §4`。**
+**⚠ 権威源は `02_design/system_features.md §4`。**
 
 #### 3.10.1 注册時
 
@@ -219,7 +219,7 @@ Claude Design **必须**默认创建 00 号账户，seed 数据：
 
 ### 3.11 学生改动履歴（監査ログ、2026-04-23 拍板）
 
-**⚠ 権威源は `02_design/system_features_v0.1.md §5`。**
+**⚠ 権威源は `02_design/system_features.md §5`。**
 
 #### 3.11.1 原則
 

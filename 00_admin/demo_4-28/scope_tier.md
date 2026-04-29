@@ -19,7 +19,7 @@
 ### 0.1 重大 scope 调整（2026-04-22）：砍点呼机硬件
 
 **itsuki 拍板**：
-- **Pi 3A+ / PN532 / 喇叭 / 外壳 不下单**（原 sprint.md §0.5 采购全部推翻，hardware_design_v0.1.md §4.1 同步砍）
+- **Pi 3A+ / PN532 / 喇叭 / 外壳 不下单**（原 sprint.md §0.5 采购全部推翻，hardware_design.md §4.1 同步砍）
 - **NTAG215 卡也不必买** — demo 只演 itsuki 一人签到，用她手里已有的 NFC 卡（银行卡 / Suica / PASMO / 学生证）即可
 - **现场流程**：iPhone 碰 itsuki 自己的 NFC 卡 → iOS Shortcuts Automation 触发 → POST 后端 → WebSocket 推 iPad → iPad Safari **页面 リュウイヒ 座位变绿 + iPad 扬声器 TTS 播报 "リュウイヒ"**
 - **原"点呼机喇叭播报"降级**：语音从 Pi 移到 iPad（Web Speech API）/ Mac（`say -v Kyoko` 命令）
@@ -393,7 +393,7 @@
 - ~~`03_dev/demo_4-28/device/`~~ → **demo 不做**，post-demo 管理员采纳后再启动
 - 语音喊名（§1.5）改在前端 iPad Safari 用 Web Speech API 实现
 - NFC 读卡（§1.4）改在 iPhone 用 iOS Shortcuts Automation 实现
-- 硬件选型保留在 `02_design/hardware_design_v0.1.md §2.1`（上线版仍按 Pi 3A+ 设计，只是 demo 不做）
+- 硬件选型保留在 `02_design/hardware_design.md §2.1`（上线版仍按 Pi 3A+ 设计，只是 demo 不做）
 
 ### iOS App
 

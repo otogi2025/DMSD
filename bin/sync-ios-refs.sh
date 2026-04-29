@@ -39,10 +39,10 @@ if [ -d "$DMSD/03_dev/student_ios/designs/phaseB_src" ]; then
           "$IOS/refs/phaseB_src/" 2>/dev/null || true
 fi
 
-# 跨会话共享决策（如果 web-CC 建了 system_features_v0.1.md 就复制）
-if [ -f "$DMSD/02_design/system_features_v0.1.md" ]; then
-    cp -v "$DMSD/02_design/system_features_v0.1.md" \
-          "$IOS/refs/system_features_v0.1.md"
+# 跨会话共享决策（如果 web-CC 建了 system_features.md 就复制）
+if [ -f "$DMSD/02_design/system_features.md" ]; then
+    cp -v "$DMSD/02_design/system_features.md" \
+          "$IOS/refs/system_features.md"
 fi
 
 # 临时决策文档（iOS-Swift-CC 会话建的）

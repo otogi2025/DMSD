@@ -13,7 +13,7 @@
 
 ## 3. base_status
 
-> **4-17 修订（Q1 A）**：原叫 `background_status`，统一为 `base_status`（与 `FIELD_REGISTRY_v0.1.md` 一致）。
+> **4-17 修订（Q1 A）**：原叫 `background_status`，统一为 `base_status`（与 `FIELD_REGISTRY.md` 一致）。
 > `exempt_range` 归 base（不是 overlay），表示"学生当天根本不参与判定"，不是"签到了带个标记"。
 
 - `init`
@@ -73,7 +73,7 @@
 - `split`
 - `merged_normal`
 
-## 12. device_type（4-17 新增 — 来自 `DEVICE_REGISTRY_v0.1.md`）
+## 12. device_type（4-17 新增 — 来自 `DEVICE_REGISTRY.md`）
 
 - `card_reader`（路径 A 的卡读头：PN532 + 树莓派）
 - `iphone_tag`（路径 B 的静态 NFC 标签：用于 iPhone 读取 `device_id`）
@@ -86,7 +86,7 @@
 
 > **扩展性说明（4-22 新增 — S9 修复）**：A/B 是当前（v0.3.x/v0.4.x）的全部取值。未来如果引入 Android HCE 主动上报路径（当前 4-19 G2 决策 Android 也走静态标签 = path_type=B，和 iPhone 一致），**新起独立取值 `C`**，不要扩展 A/B 语义。保持单字母单义。
 
-## 14. student_status（4-21 新增 — 对应 `RollCall_Spec_v0.1.md` 附录 C.5）
+## 14. student_status（4-21 新增 — 对应 `RollCall_Spec.md` 附录 C.5）
 
 > **用途**：`student.student_status`。描述学生当前是否参与点呼。
 
@@ -102,7 +102,7 @@
 - 长期请假：`active` → `paused`（请假期间免点呼）
 - 请假结束：`paused` → `active`（回寮当天起恢复）
 - 离寮：`active` / `paused` → `transferred` / `graduated`（此后 session 不再计入）
-- 任意转换必须 audit：记录 `student_status_changed_at` + `student_status_changed_by` + `student_status_change_reason`（见 `FIELD_REGISTRY_v0.1.md §2.10`）
+- 任意转换必须 audit：记录 `student_status_changed_at` + `student_status_changed_by` + `student_status_change_reason`（见 `FIELD_REGISTRY.md §2.10`）
 
 **default**：`active`（新学生入寮默认为 active）
 

@@ -10,7 +10,7 @@
 
 ## 2. 字段定义
 
-详见 `FIELD_REGISTRY_v0.1.md` §2.2 / §2.8。核心字段：
+详见 `FIELD_REGISTRY.md` §2.2 / §2.8。核心字段：
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
@@ -42,7 +42,7 @@
 
 - **物理形态**：同一台树莓派，上面装 PN532 卡读头（路径 A） + 外贴静态 NFC 标签（路径 B）
 - 在 device 表里登记为一条 `hybrid` 记录，对应一个 `device_id`
-- ⚠️ **物理布局**（卡读头 vs 静态标签的相对位置）参见 `RollCall_Spec_v0.1.md` 附录 C.4（Q4 待定）
+- ⚠️ **物理布局**（卡读头 vs 静态标签的相对位置）参见 `RollCall_Spec.md` 附录 C.4（Q4 待定）
 
 ## 4. 注册流程（4-17 默认方案）
 
@@ -102,9 +102,9 @@ itsuki Q3 决策：**4 台**点呼机。
 
 ## 7. 待补完项目（4-17 立此存照）
 
-- 设备的硬件型号、采购成本、维修流程 → 在 `00_admin/executable_dev_checklist_v0.1.md` 或新建 hardware_checklist 里完善
-- 设备故障 / 离线时的降级策略 → 见 `RollCall_Spec_v0.1.md` 附录 B.8（"离线策略"待决）
-- WebSocket 协议（点呼机 ↔ 后端）→ 见 `RollCall_Spec_v0.1.md` 附录 B.17
+- 设备的硬件型号、采购成本、维修流程 → 在 `00_admin/executable_dev_checklist.md` 或新建 hardware_checklist 里完善
+- 设备故障 / 离线时的降级策略 → 见 `RollCall_Spec.md` 附录 B.8（"离线策略"待决）
+- WebSocket 协议（点呼机 ↔ 后端）→ 见 `RollCall_Spec.md` 附录 B.17
 
 ---
 

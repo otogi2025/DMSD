@@ -16,7 +16,7 @@
 | 2026-04-21 晚 · 19:30 UTC 前 | itsuki 在 Claude Design 跑完 Round 1（3 variations）+ Round 2（login + dashboard + live + override modal）|
 | 2026-04-21 晚 · 19:38 | itsuki 发 Round 2 截图 "这个版本我很满意，就按照这个版本来" |
 | 2026-04-21 晚 · 19:42 | itsuki 发之前的 dmsd-demo-2026-04-15 原型截图（4×6 号室网格 + デモコンソール），提议座位表改房间号网格 |
-| 2026-04-21 晚 · 20:00 左右 | itsuki 纠正 Q2: "黄色是迟到，等到具体时间还没签到的人自动变黄" + 指明 `RollCall_Spec_v0.1.md §4.1 §5.3` 权威规则 |
+| 2026-04-21 晚 · 20:00 左右 | itsuki 纠正 Q2: "黄色是迟到，等到具体时间还没签到的人自动变黄" + 指明 `RollCall_Spec.md §4.1 §5.3` 权威规则 |
 | 2026-04-21 晚 · 稍后 | [Code-Agent] 通过 Anthropic design share link fetch Round 2 handoff bundle（6.3MB gzip → 9.1MB tar）+ 解压 + import 到 `teacher_web/` |
 | 2026-04-21 晚 · 命名 | 主会话 [Mac-naming-sync] 系统正式命名 **Tomoshibi（灯火）**，全局 doc 同步 |
 | 2026-04-21 晚 · 21:00 | itsuki 给 Q1-Q11 答复 + 要求"不要给选择题，列所有页面 + 功能，我一条条审" |
@@ -387,9 +387,9 @@ round3/
 | Round 3 图 1 火焰 logo | `round3_handoff/01_tomoshibi_icon.png` | 新 icon |
 | Round 3 图 2 外泊表 | `round3_handoff/02_gaihaku_form_reference.jpeg` | 实表数字化参考 |
 | Round 3 图 3 改前 header | `round3_handoff/03_current_header_before.png` | "改之前什么样" 给 Claude Design 看 |
-| Spec 色表权威 | `01_specs/rollcall/RollCall_Spec_v0.1.md §4.1` | 5 色 + overlay 黑 |
-| Spec 时间窗 | `01_specs/rollcall/RollCall_Spec_v0.1.md §5.3` | `window_start / on_time_end / late_end / auto_end_at` |
-| Spec 老师时刻表 | `01_specs/rollcall/RollCall_Spec_v0.1.md §4.2` | 朝/晚点呼 平日/祝休日 ×普通寮生/部活 |
+| Spec 色表权威 | `01_specs/rollcall/RollCall_Spec.md §4.1` | 5 色 + overlay 黑 |
+| Spec 时间窗 | `01_specs/rollcall/RollCall_Spec.md §5.3` | `window_start / on_time_end / late_end / auto_end_at` |
+| Spec 老师时刻表 | `01_specs/rollcall/RollCall_Spec.md §4.2` | 朝/晚点呼 平日/祝休日 ×普通寮生/部活 |
 
 ---
 
@@ -411,7 +411,7 @@ round3/
 
 ## 8.5 2026-04-23 追加決定（学号体系 + 房间号 + 改动履歴 + コミュニティ拆分）
 
-> **⚠ 権威源は `02_design/system_features_v0.1.md`**。ここは Web 視点の抜粋 + 実装要件のみ。
+> **⚠ 権威源は `02_design/system_features.md`**。ここは Web 視点の抜粋 + 実装要件のみ。
 
 ### 8.5.1 学号体系 6 桁化（`accounts.jsx` + `theme.jsx` 大改）
 

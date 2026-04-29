@@ -3,10 +3,10 @@
 > **系统对外名**：**Tomoshibi**（灯火）；DMSD 是项目/仓库代号。
 > **本文版本**: v0.1（2026-04-23 首版）
 > **本文作用**: **iOS App + 老师 Web + 后端 API 共用功能矩阵的唯一真值**。任何功能改动 → 先更新本文 → 再改实装。
-> **上游参考**: `01_specs/rollcall/RollCall_Spec_v0.1.md`（点呼业务规则）
+> **上游参考**: `01_specs/rollcall/RollCall_Spec.md`（点呼业务规则）
 > **配套文档**:
-> - `02_design/hardware_design_v0.1.md`（硬件）
-> - `02_design/flow_design_v0.1.md`（流程）
+> - `02_design/hardware_design.md`（硬件）
+> - `02_design/flow_design.md`（流程）
 > - `03_dev/student_ios/IOS_DESIGN_LOG.md`（iOS 专属设计）
 > - `03_dev/teacher_web/WEB_DESIGN_LOG.md`（Web 专属设计）
 > **最后更新**: 2026-04-23 首版
@@ -56,7 +56,7 @@
 DMSD は source of truth。Tomoshibi-iOS の `refs/` は複製品（cloud agent はDMSD repo を取得不可なので物理コピー必要）。
 
 DMSD 内 `bin/sync-ios-refs.sh` 1 コマンドで：
-- `02_design/system_features_v0.1.md` → `Tomoshibi-iOS/refs/`
+- `02_design/system_features.md` → `Tomoshibi-iOS/refs/`
 - `03_dev/student_ios/IOS_DESIGN_LOG.md` → `Tomoshibi-iOS/refs/`
 - `03_dev/student_ios/designs/Tomoshibi_iOS_PhaseB_v2.html` → `Tomoshibi-iOS/refs/`
 - `03_dev/student_ios/designs/phaseB_src/` → `Tomoshibi-iOS/refs/`

@@ -1,6 +1,6 @@
 # Changelog
 
-> **最后更新**: 2026-04-21（系统正式命名 Tomoshibi；D21 时间戳精化：v0.2.0 / v0.3.0 header 加 HH:MM；v0.4.0 开工启动，draft 进 `00_admin/`）
+> **最后更新**: 2026-04-29（**v0.4.0 + v0.5.0 双 minor 闭合** — 4-21 至 4-29 9 天累积一次性 close；文件名 `_v0.1` 去后缀；**版本管理 SOP 建立**解决"不会迭代"问题，详见 `00_admin/版本管理SOP.md`）
 >
 > 版本号规则：[语义化版本 (SemVer)](https://semver.org/) — 主版本号.次版本号.修订号
 >
@@ -17,32 +17,178 @@
 
 ---
 
-## [0.4.0-wip] - 2026-04-21（v0.4.0 开工 + 系统正式命名）
+## [0.5.0] - 2026-04-29（Demo 4-28 sprint 落地 + 跨会话同步机制 + 学号 6 桁体系）
 
-> v0.4.0 在 commit `eeb39d2` 开工（S2/S3 字段 draft + Device_Contract 骨架 + D21）；本条追加 2026-04-21 晚的命名决策。尚未 tag。
+> **为什么 minor bump**（对照版本管理 SOP §2 决策树）：本版本完成 demo-4-28 sprint 全套（D1-D2-D3 + demo-day fix + web 收尾），属于 03_dev/ prototype 大幅扩展（条件 4 minor 触发）+ 学号 6 桁体系是业务规则改动（条件 1 minor 触发）+ 跨会话同步规则 A+B+C 是新决策机制（条件 5 patch 触发，叠加上面 = minor）。
+>
+> **6 commit 归入本版本**：`d517cef` / `78aa611` / `57bc394` / `da959ef` / `0c8362c` / `9aedd36`（4-22 18:31 → 4-29 13:06）。
+>
+> **首次执行版本管理 SOP** — 本版本 close 是 SOP 建立后的第一次实践，CHANGELOG / WIP 头部 / 版本演变一览 / vX.Y.Z_AC叙事 / raw 当日 dump / git tag 6 处联动同步。
+
+### Added — Demo 4-28 sprint 全面落地
+
+**Web Round 3 完整 prototype**（`03_dev/teacher_web/round3/`）:
+- 12 组件 + 3 vendor + 130 字体（base64 inline）+ 32 MB single-file U 盘版
+- 学生アカウント管理页面（`accounts.jsx` + ACCOUNTS seed 24 人 + Shell nav + modal 2 tab）
+- login / dashboard / live 座席表 / override modal / roll-call landing
+- カレンダー仿 iOS（月グリッド + 选择日列表 + ＋追加 modal 复用 ModalShell）
+- リクエスト曲管理（男女寮分け + 提出順 + 承認/拒否 workflow + #番号 寮×朝/晩 4 組合別自動採番）
+- 主页ショートカット URL 自动检测 LAN IP（demo_server.py /api/server-info + manual fallback）
+- 男寮新教员（新股 / 小林 / 難波 + 姓后先生统一）+ applications.jsx 承認 workflow
+
+**iOS Round 1 落盘**（`03_dev/student_ios/`）:
+- `IOS_DESIGN_LOG.md`（303 行，决策归档）+ `Round1_Prompt.md`（878 行，73 画面 Phase A+B 一次出）+ 4 参考图
+- 3 按钮 nav + Home omnibus + 中央点呼 sheet（iOS 26 Liquid Glass）+ 注册 4-step + 锁定升级 5 阶段 + 长按 breadcrumb
+- Phase B v2 HTML（Tomoshibi_iOS_PhaseB_v2.html，QA 修 C1+C2）
+- 推翻 Xcode 壳方案 → Demo 当天 Safari 直开（itsuki 拍板，CC 30 行 SwiftUI 工程废弃）
+
+**学号 6 桁体系**（D3 拍板）:
+- 学年 × 組 × 番号、中高一貫 6 年制、A=01/B=02
+- リュウ イヒ demo seed: 00 → **060218**（高3 B 18）
+- DEMO_SEED_NO=060218 单源 + sid-based 判定 + accounts.jsx 番号列 70→130px
+
+**跨会话同步机制 A+B+C**（D3 建立）:
+- `02_design/system_features.md` 新建 = iOS+Web+後端共用真值（"単一真値"）
+- `bin/sync-ios-refs.sh` 建立（DMSD → Tomoshibi-iOS/refs/ 物理コピー）
+- CLAUDE.md §跨 repo 同步规则（明文 ルール）
+- 解决问题：Tomoshibi iOS Swift 实装在独立 repo（cloud agent 取不到 DMSD），需物理 copy
+
+**点呼机软件代替方案**（4-22 砍 Pi 后）:
+- `demo_server.py` + polling TTS（iPad Safari Web Speech API 日语播报 / fallback Mac `say -v Kyoko`）
+- iPhone Shortcuts + itsuki 自有 NFC 卡触发签到
+- `./tomoshibi` CLI 启动整套
+
+**学生改动履歴（监查 log）规格**（D3）:
+- 学号 / 房间号 / 邮箱 / 电话 / 密码事实全记录
+- 老师 Web アクティビティ履歴 tab + 学生 App 変更履歴
+
+**房间号管理**（D3）:
+- 注册时学生手入力 + v1.1 老师 Web 一括分配 drag & drop + 学生 App 自動受信
+
+**コミュニティ 拆分**（D3）:
+- 通報保留 / 宅配+忘れ物 フロント業務へ / リクエスト曲 古い順 + 寮内 BGM
+
+**巴士实公告 + 系統**（D3）:
+- 实公告 2026-03-22 保管 → `06_assets/real_samples/bus_notice_2026-03-22_特別運行便.md`
+- 規格入 system_features.md §6.6（閲覧 / CRUD / 乗車名簿）
+
+**新建文档**:
+- `00_admin/demo_4-28/demo_script.md`（286 行 demo 流程脚本）
+- `00_admin/demo_4-28/questions_for_requirements.md`（181 行问题队列）
+- `00_admin/demo_4-28/scope_tier.md`（384 行 Tier 1/2/3 范围分层）
+- `00_admin/文件结构指南.md`（366 行，全 repo 文件级清单 + 权限 + 反向索引）
+- `02_design/system_features.md`（共用功能真值）
+- `02_design/teacher_requirements.md`（老师需求文档）
+
+### Changed — 03_dev 物理重构 + 业务规则修订
+
+- **03_dev 物理重构**（D3）: `demo_4-28/` 嵌套解除 → `03_dev/{backend, teacher_web, student_ios, device}/` 平置化 + 27 MD 文件 path 引用更新 + `03_dev/LATEST.md` 新建（最新 HTML 索引）
+- **HTML build 顺序明文化**: jsx 改 → `rebuild.command` → `build_single_file.py` 三段
+- **CLAUDE.md §账号规则 patch v3**（推翻 4-20 议题 C "入学日面签确认"）: App 内 4-step 注册即激活 + 锁定升级 5 阶段 + 账号 ID 分配（00 demo seed / 01+ 真实）+ 密码重置走宿管后台
+- **demo-day fix**（4-29）: リュウ イヒ 060218 対齐 / 部活合宿→外宿 / 宿監→寮監 / 巴士平日登校便 寮発→岡山駅西口発 7:30 / roster 削减 4 男+3 女 + ghost student 全清扫 5 名 5 房间号 / 全页面 maxWidth 砍 9 容器 → iPad/Mac 浏览器自适应
+
+### Fixed — Demo crash + 文案细修
+
+- **crash bug 修 2 处**: startSession seeded[8] / NotificationsPage roster[3]（hardcoded index 不防御短 roster）
+- **白屏 debug 2 次**: file:// CORS（integrity/crossorigin strip）+ Round 2 数组越界（roster 13 人但 statuses 12 项 → `i % len`）
+- **日语 native 文案审查**: 名単→リスト / 距 X まで→X まで残り / 晚→晩 / スプレッドシート×入力→食数の自由記入可 / 名前搜索 normalize 去空格 等约 12+ 处中文残留修正
+- **细部文案 4 件**（4-29）: 匿名建議 自販機 / 記録 Shortcut→スマホ / override 閾値超で入寮→定刻に間に合わず / 期限後→期限内
+- **デフォルト中文回答漂移** 自我观察 → memory `feedback_default_chinese_response.md` 新建（多次纠正"做日语 UI 时 CC 整段日语漂移"）
+
+### Added — 4-29 close 时一并完成（v0.5.0 范围内）
+
+**版本管理 SOP 建立**（解决 "4-21 → 4-29 9 天没 bump" 问题）:
+- `00_admin/版本管理SOP.md` 新建（运行手册 — 当前版本 / 决策树 / 5 步 bump 流程 / 联动文件清单 / commit 前缀 / 多会话协调 / 30 秒判断 / 12 节）
+- 和 iCloud `00_通用指南/版本管理实践指南.md`（教科书）明文分工
+- **让 Claude 必读 SOP 的 4 层机制**：
+  1. CLAUDE.md inline "版本号操作核心 5 条" + 触发条件清单
+  2. WIP.md 头部第一行 `**当前版本**: vX.Y.Z`（带 VERSION_OK 豁免）
+  3. pre-commit hook 检测 `01_specs/` / `02_design/` 改动 → "考虑 bump" 提醒（非阻塞）
+  4. CLAUDE.md §会话结束 加第 4 项 "版本 bump 判断"（30 秒决策树）
+
+**文件名 `_v0.1` 去后缀**（按 iCloud 版本管理实践指南 §5）:
+- 11 个文件 git mv（+ 1 个 mv 处理 untracked）：API_CONVENTIONS / DEVICE_REGISTRY / ENUM_REGISTRY / ERROR_CODES / FIELD_REGISTRY / RollCall_Spec / flow_design / hardware_design / system_features / teacher_requirements
+- 36 个活跃文档 perl 批量替换引用（保留 5 类历史快照例外：raw/* / vX.Y.Z_AC叙事 / progress_overview_draft / Batch3 / 99_archive）
+- `v0.1_冻结决策.md` 保留（合法历史快照命名）
+
+**v0.4.0 + v0.5.0 双 minor close**（4-29）:
+- CHANGELOG 头部 + [0.4.0] 段 + [0.5.0] 段（一次性 close 4-21 至 4-29 9 天累积 15 commit）
+- `00_admin/v0.4.0_AC叙事.md` + `00_admin/v0.5.0_AC叙事.md`（按 v0.3.0 模板 6 节）
+- `00_admin/版本演变一览.md` 加 v0.4.0 + v0.5.0 段 + 路线表更新
+- `00_admin/文档同步点清单.md §9` 文件名版本号规则
+- `00_admin/文件结构指南.md` 加 SOP / 02_design 新文件 / AC 叙事
+
+### Notes
+
+- **本版本仍是 demo prototype 阶段**（Web HTML + iOS HTML + ./tomoshibi CLI），不是生产代码。`v1.0.0 = 系统在宿舍正式上线`目标不变
+- **Demo 4-28 当天**（2026-04-28）by itsuki 实际执行结果 → 见 `05_logs/raw/2026-04-28*.md`（如有）/ `00_admin/demo_4-28/post_mortem.md`（如有）
+- **跨会话改動履歴**: Tomoshibi-iOS 側 `STATUS.md` + `REMOTE_AGENT_GUIDE.md` 设 "最近の改动 log" section
+- **AC 素材新增**: `raw/2026-04-22_iOS前端设计_Round1.md` + `raw/2026-04-23.md`（10 section + AC 候补 🌟 5 件）+ `raw/2026-04-24.md` + `raw/2026-04-29.md`（10 section + AC 候补 ⭐ 5 件）
+- **本版本是项目第一个 "stakeholder-facing" 版本** — v0.5.0 AC 叙事文件指出这是 AC 叙事核心素材的特殊地位
+- **首次执行版本管理 SOP** — close 流程跑了 SOP §3 五步 + §4 联动 6 处（CHANGELOG / WIP 头部 / 版本演变一览 / vX.Y.Z_AC叙事 / raw / git tag 等 itsuki 拍板）
+
+---
+
+## [0.4.0] - 2026-04-22 17:00（系统正式命名 Tomoshibi + S 系列 spec 闭合 + Device_Contract 骨架）
+
+> **为什么 minor bump**（对照版本管理 SOP §2 决策树）：S 系列 spec 漏洞批量闭合（S1/S2/S3/S4/S7/S9/S10/S11/S12/S13/S14/S16/S19/S20）= 改了字典 + spec 主体（条件 1+2 minor 触发）+ Device_Contract 骨架是新设计层（条件 3 minor 触发）+ Tomoshibi 命名是 patch 但叠加上面归入 minor。
+>
+> **9 commit 归入本版本**：`2e49878` / `9d1cecf` / `eeb39d2` / `c8e05ea` / `b77b12a` / `71ffb38` / `d02ba18` / `00e5aab` / `8a9d226`（4-20 22:53 → 4-22 17:00）。
+>
+> **历史回顾**: 本版本 4-21 时标 `[0.4.0-wip]` 启动，但拖了 9 天没 close（直到 4-29 SOP 建立后回头追认 close）。教训：wip 状态有 deadline，不能拖。
 
 ### Naming — 系统正式命名 **Tomoshibi**（灯火 / ともしび）
 
-**决策**：
+**决策**（4-21 拍板）：
 - **项目名**（repo / 开发代号 / AC 叙事项目名）保留 **DMSD**（Dormitory Management System Digitalization）
 - **系统/产品名**（面向用户、学生 App、老师 Web、点呼机终端品牌、对管理员/教授文案）定名 **Tomoshibi**
 
 **理由**（itsuki 定版 AC 面试话术）：
 > "我在日本留学，宿舍是我在异国的第二个家。这个系统守护的是'灯火'——每个学生夜晚平安归来、房间亮起一盏灯。所以取日语名 Tomoshibi（灯火）。"
 
-**为什么不 bump 到 v0.4.0**：命名是产品品牌层面决策，不改 spec 实质、不改字段 / 枚举 / 接口 / 版本语义。归入 v0.4.0-wip 里随主体一起发。
+### Added — spec 实质改动
 
-### Changed — 全局系统名同步
+**字典扩**（`01_specs/rollcall/` 多文件）:
+- `ENUM_REGISTRY` 新增 enum 值（修 S1/S2/S3 字典缺）
+- `FIELD_REGISTRY` 新增字段（card_uid / student_status 等，修 S2/S3/S4）+ 禁止字段溯源（修 S20）
+- `ERROR_CODES` 响应约定（修 S19/S20）
+- `API_CONVENTIONS` 48 → 240 行扩写（URL / 动词 / 幂等 / 分页 / 日期 / 命名 / 状态码 / error.detail，修 S13）
+
+**v0.4.0 开工启动**（4-21 上午）:
+- `00_admin/v0.4.0_S2_S3_字段draft.md`（S2 card_uid 完整定义 + S3 student_status 4 取值 ENUM + 配套生命周期字段）
+- `00_admin/v0.4.0_Device_Contract骨架.md`（210 行，9 节骨架 + OQ1-9 Open Questions：mTLS / nonce+HMAC / HTTP 超时 / device 注册 / 心跳 / 降级策略 / 固件更新 / LED 语义 / path_type 扩展）
+
+**4-19 项目审查 backlog 剩余抽取**:
+- `00_admin/漏洞_剩余清单_2026-04-21.md`（38 条分 D / S / T-L 三段 + 权限标签）
+- 解决"backlog 87 条体量太大下次会话不知从哪开始"问题
+
+**版本演变一览升级**:
+- `00_admin/版本演变一览.md` 详细版（每个变化单独一句话解释，覆盖 18 tag + 补 v0.1.0 - v0.1.3 四个遗漏 tag）
+
+**memory**:
+- `~/.claude/projects/-Users-kurekoduki-dev-DMSD/memory/project_naming_tomoshibi.md`（跨会话 memory）
+
+### Changed — 全局系统名同步 + spec 主体修补
 
 - `CLAUDE.md §项目信息` 第一行区分项目名 vs 系统名 + AC 话术定稿
 - `README.md` 标题改 "DMSD → Tomoshibi（灯火）"，新增"为什么叫 Tomoshibi"段
-- 所有面向用户 / 面向教授的文档（spec / design / demo_4-28 材料 / AC 叙事 / backlog / 面试准备索引）同步更新
+- 所有面向用户 / 面向教授的文档（spec / design / demo_4-28 材料 / AC 叙事 / backlog / 面试准备索引）同步更新 Tomoshibi
+- spec 主体 `RollCall_Spec` §7 + §10.2 修漏洞（S1/S4/S7/S10）
 - 项目 / 仓库 / git 历史 / commit 上下文继续用 DMSD
 - 早期 throwaway iOS 代码（`03_dev/Student/DMSDStudentApp*`）不改（本就是待归档产物）
 
-### Added
+### Fixed — backlog 收口
 
-- `~/.claude/projects/-Users-kurekoduki-dev-DMSD/memory/project_naming_tomoshibi.md`（跨会话 memory，future sessions 自动读到）
+- ✅ S1 / S2 / S3 / S4 / S7 / S9 / S10 / S11 / S12 / S13 / S14 / S16 / S19 / S20（14 条 spec 漏洞批量闭合）
+- ✅ L10（FIELD_REGISTRY 禁止字段溯源）
+- ✅ D21（CHANGELOG v0.2.0 / v0.3.0 header 加 HH:MM 时间戳精化）
+
+### Notes
+
+- **不含代码 / 不动 spec 主体大改**（仍是 spec-only 项目状态）
+- **Device_Contract** 仍是骨架阶段，9 个 OQ 等 itsuki 拍板（部分留 v0.5.0+ 解决）
+- **Tomoshibi 命名落地** 跨 30+ 文件同步，但 git 历史 / spec 文件名 / 项目代号继续 DMSD（双层不冲突）
+- **首次跨会话并行下半天**: [Mac-主会话] 修 spec + [Mac-另一会话] 议 Tomoshibi 命名，commit 分工不冲突
 
 ---
 

@@ -21,7 +21,7 @@
 
 ## 関連文書（外部）
 
-- **共用機能マトリクス（long-term source of truth）**: `../../02_design/system_features_v0.1.md`
+- **共用機能マトリクス（long-term source of truth）**: `../../02_design/system_features.md`
 - **Swift 実装** : `~/dev/TomoshibiiOSApp/`（独立 repo）
 - **Swift 進捗** : `~/dev/TomoshibiiOSApp/STATUS.md`
 - **Remote Agent 仕様**: `~/dev/TomoshibiiOSApp/REMOTE_AGENT_GUIDE.md`

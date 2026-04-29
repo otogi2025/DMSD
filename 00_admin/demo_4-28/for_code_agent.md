@@ -46,7 +46,7 @@
 5. **`00_admin/demo_4-28/scope_tier.md`**（⭐ 最重要，你的需求来源：每个功能含 API 规格 / 字段 / 页面路径 / demo 动作）
 6. `00_admin/demo_4-28/demo_script.md`（Demo 当天演示台词，你写的代码要确保每一步真跑通）
 7. `00_admin/demo_4-28/ST25DV_fallback.md`（硬件 fallback：NTAG215 + iOS Shortcuts Automation 代 ST25DV16K）
-8. `02_design/hardware_design_v0.1.md`（硬件规格：Pi 3A+ / NTAG215 / PN532）
+8. `02_design/hardware_design.md`（硬件规格：Pi 3A+ / NTAG215 / PN532）
 9. `03_dev/backend/README.md`（backend skeleton 已建，怎么跑）
 
 ## 3. 你的职责边界

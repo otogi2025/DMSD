@@ -160,7 +160,7 @@ scope §1.3 + demo_script §5 用"红色十字"叠加表示健康问题。但日
 ## 2026-04-21 晚 · itsuki 答复首批 5 问
 
 - **Q1 答复** → 方案 A，session.end 时后端扫全员自动插 `Checkin(status='absent', method='auto')`。老师端展示用。
-- **Q2 答复**（2026-04-21 晚 itsuki 追加纠正，并指明 `RollCall_Spec_v0.1.md` 里写过权威规则）→ **保留 late 状态**，规则按 spec：
+- **Q2 答复**（2026-04-21 晚 itsuki 追加纠正，并指明 `RollCall_Spec.md` 里写过权威规则）→ **保留 late 状态**，规则按 spec：
   - **准时**：`window_start ≤ t ≤ on_time_end` → `on_time`（绿）
   - **迟到**：`t > on_time_end` 未签 → 座位自动变 `late`（黄），"过点了"预警给老师；过点后才来签到的仍记 `late`（签到成功但迟到）
   - **缺席**：老师点"结束点呼" → 所有仍未签到的（灰+黄）全变 `absent`（红）

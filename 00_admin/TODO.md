@@ -9,7 +9,7 @@
 **最后更新**: 2026-04-21
 **当前版本**: 见 `CHANGELOG.md` 顶部 · 单源真值，见 `00_admin/文档同步点清单.md`
 
-> **2026-04-17 归档说明**：`executable_dev_checklist_v0.1.md` 已归档到 `99_archive/2026-04-12_executable_dev_checklist_v0.1.md`（内容已过期，功能被本 TODO.md 吸收）。
+> **2026-04-17 归档说明**：`executable_dev_checklist.md` 已归档到 `99_archive/2026-04-12_executable_dev_checklist.md`（内容已过期，功能被本 TODO.md 吸收）。
 
 ---
 
@@ -97,7 +97,7 @@
 
 ## 📋 RollCall v0.1 spec 待修订事项(来自 2026-04-17 审查)
 
-> 25 项问题(附录 A 7 项 + 附录 B 18 项),详见 `01_specs/rollcall/RollCall_Spec_v0.1.md` 附录。
+> 25 项问题(附录 A 7 项 + 附录 B 18 项),详见 `01_specs/rollcall/RollCall_Spec.md` 附录。
 > 每项的完成方式:在 v0.2 spec 整理时改进文档,并对应到代码实现。
 
 ### 🔴 Phase 1 开工前必须解决(5 项)

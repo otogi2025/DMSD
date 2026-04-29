@@ -22,8 +22,8 @@
 - `student_id`
 - `teacher_id`
 - `seat_no`
-- `device_id`（**4-17 新增** — 详见 `DEVICE_REGISTRY_v0.1.md`）
-- `card_uid`（**4-21 新增** — 路径 A 核心。NTAG215 UID 7 bytes hex 编码，存为 14 位小写 hex 字符串无分隔符。`UNIQUE` 约束。多对一到 `student_id`（换卡场景：旧 UID 作废记录保留 / 新 UID 绑定同一 `student_id`）。仅路径 A 使用。详见 2.9 卡生命周期 + `RollCall_Spec_v0.1.md §10.2`）
+- `device_id`（**4-17 新增** — 详见 `DEVICE_REGISTRY.md`）
+- `card_uid`（**4-21 新增** — 路径 A 核心。NTAG215 UID 7 bytes hex 编码，存为 14 位小写 hex 字符串无分隔符。`UNIQUE` 约束。多对一到 `student_id`（换卡场景：旧 UID 作废记录保留 / 新 UID 绑定同一 `student_id`）。仅路径 A 使用。详见 2.9 卡生命周期 + `RollCall_Spec.md §10.2`）
 
 ### 2.3 场次与时间
 - `session_type`
@@ -66,11 +66,11 @@
 - `override_by`
 - `override_at`
 
-### 2.8 设备（**4-17 新增** — 详见 `DEVICE_REGISTRY_v0.1.md`）
+### 2.8 设备（**4-17 新增** — 详见 `DEVICE_REGISTRY.md`）
 - `device_type`（取值见 ENUM `device_type`）
 - `device_location`（自由文本，描述设备物理位置如"寮舍 A 入口"）
 - `device_active`（boolean，**临时**启用/停用 — 维修 / 故障等场景 toggle）
-- `device_retired_at`（**4-22 新增 — S12 修复** — 永久注销时间戳。null = 仍在使用 / 非 null = 永久注销。注销后不允许再把 `device_active` toggle 回 true。详见 `DEVICE_REGISTRY_v0.1.md §5`）
+- `device_retired_at`（**4-22 新增 — S12 修复** — 永久注销时间戳。null = 仍在使用 / 非 null = 永久注销。注销后不允许再把 `device_active` toggle 回 true。详见 `DEVICE_REGISTRY.md §5`）
 - `device_registered_at`
 - `device_registered_by`
 - `device_notes`（自由文本，硬件型号等）
@@ -86,8 +86,8 @@
 - `UNIQUE INDEX on (card_uid) WHERE card_revoked_at IS NULL` —— 同一时刻同一 UID 只能绑一个 active 学生
 - 作废后 UID 可以重新绑定到新学生（毕业回收场景）
 
-### 2.10 学生生命周期（**4-21 新增** — 对应 backlog S3 + `RollCall_Spec_v0.1.md` 附录 C.5）
-- `student_status`（ENUM，取值见 `ENUM_REGISTRY_v0.1.md §14 student_status`）
+### 2.10 学生生命周期（**4-21 新增** — 对应 backlog S3 + `RollCall_Spec.md` 附录 C.5）
+- `student_status`（ENUM，取值见 `ENUM_REGISTRY.md §14 student_status`）
 - `student_status_changed_at`（最近一次变更时间）
 - `student_status_changed_by`（操作老师 `teacher_id`）
 - `student_status_change_reason`（自由文本）
@@ -105,7 +105,7 @@
 - `my_base_status` — 来源：同上（`my_status` 的派生候选）。**废弃时间**：同上
 - `seat_status` — 来源：`99_archive/2025-12_早期GPT对话/prompt.txt` 行 82 "更新该学生座位 seat_status = present 或 late"。语义和 `base_status` 重复，淘汰；**废弃时间**：2026-02-12（v0.1 冻结）
 - `state` — 来源：泛名，早期设计里偶用；太宽泛无法单义（session_status / base_status / device_active 等都可能被混叫 `state`）。**废弃时间**：2026-02-12（v0.1 冻结引入 `base_status` / `session_status` 等具体命名）
-- `background_status` — 来源：`01_specs/rollcall/v0.1_冻结决策.md` + `RollCall_Spec_v0.1.md` v0.1 原版；**废弃时间**：2026-04-17（Q1 决策重命名为 `base_status`，详见 `ENUM_REGISTRY_v0.1.md §3` 4-17 修订）
+- `background_status` — 来源：`01_specs/rollcall/v0.1_冻结决策.md` + `RollCall_Spec.md` v0.1 原版；**废弃时间**：2026-04-17（Q1 决策重命名为 `base_status`，详见 `ENUM_REGISTRY.md §3` 4-17 修订）
 
 说明：
 - 历史文档里出现的旧字段视为废弃，不得进入新代码。

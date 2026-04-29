@@ -30,7 +30,7 @@ Tomoshibi 点呼系统支持 **双路径并存**：
 - **服务器是唯一判定者**：是否在窗口内 / 准时还是迟到 / 是否结算缺席 —— 全由服务器以 `server_now (JST)` 为准
 - **客户端时间不参与判定**，只用于 UI 展示
 
-详细协议契约见 `DEVICE_REGISTRY_v0.1.md` + `ENUM_REGISTRY_v0.1.md` §12-13（`device_type` / `path_type`）。
+详细协议契约见 `DEVICE_REGISTRY.md` + `ENUM_REGISTRY.md` §12-13（`device_type` / `path_type`）。
 
 ---
 
@@ -38,7 +38,7 @@ Tomoshibi 点呼系统支持 **双路径并存**：
 
 > **4-17 修订（Q1 A）**：`exempt_range` 从"叠加角标"改为 `base_status`。
 > 因为"免"表示"学生当天根本不参与判定"（结构上和 init/present/late/absent 同级），不是"签到了带个标记"。
-> 字典见 `ENUM_REGISTRY_v0.1.md` §3-4。
+> 字典见 `ENUM_REGISTRY.md` §3-4。
 
 ### 2.1 底色（`base_status` — 五选一）
 
@@ -93,7 +93,7 @@ Tomoshibi 点呼系统支持 **双路径并存**：
 ### 3.2 本场信息
 - `session_type`：`morning` / `evening`
 - `day_type`：`weekday` / `weekend_holiday`
-- `device_id`（本场签到来自哪台点呼机；详见 `DEVICE_REGISTRY_v0.1.md`）
+- `device_id`（本场签到来自哪台点呼机；详见 `DEVICE_REGISTRY.md`）
 - `path_type`：`A`（卡）/ `B`（iPhone 静态标签）
 
 ### 3.3 本场结果信息
@@ -222,7 +222,7 @@ Tomoshibi 点呼系统支持 **双路径并存**：
 **关键差异**：
 - 路径 A 的 device 是 **主动通信节点**（带 PN532 + 树莓派），device_id 写在配置里
 - 路径 B 的 device 是 **被动 NFC 标签**，仅供 iPhone 读取拿 device_id；iPhone 自己发后端
-- 同一台树莓派可同时承载 A 卡读头 + B 静态标签 → `device_type = hybrid`（详见 `DEVICE_REGISTRY_v0.1.md` §3.3）
+- 同一台树莓派可同时承载 A 卡读头 + B 静态标签 → `device_type = hybrid`（详见 `DEVICE_REGISTRY.md` §3.3）
 
 #### 5.1.3 防代签（Phase 1 关键人防补偿）
 
@@ -362,7 +362,7 @@ effective_auto_end_at  = started_at + (scheduled_auto_end_at  - scheduled_window
 
 ### 边界情况
 
-> 所有错误码定义见 `ERROR_CODES_v0.1.md`。
+> 所有错误码定义见 `ERROR_CODES.md`。
 
 - **`t > effective_late_end` 的签到**：返回 `TIMEOUT`，不改变座位结果，最终由结算置为缺席
 - **`started_at` 之前 / `ended_at` 之后的签到**：返回 `SESSION_NOT_RUNNING`（统一覆盖"还没开始"和"已结束"两种情况）
@@ -432,7 +432,7 @@ settle_at = min(ended_at, effective_auto_end_at)
 
 ### Device 注册
 
-详见 `DEVICE_REGISTRY_v0.1.md`：
+详见 `DEVICE_REGISTRY.md`：
 - 所有签到 API 必须传 `device_id`
 - 未注册 → `UNKNOWN_DEVICE`；已停用 → `DEVICE_NOT_ACTIVE`
 - Q3 决策：**部署 4 台**（具体位置 + 物理布局 Q4 待定）
@@ -441,7 +441,7 @@ settle_at = min(ended_at, effective_auto_end_at)
 
 ## 10. 数据模型与字段（关键补充）
 
-> 完整字段定义见 `FIELD_REGISTRY_v0.1.md`。本节只列 spec 主体相关的关键字段。
+> 完整字段定义见 `FIELD_REGISTRY.md`。本节只列 spec 主体相关的关键字段。
 
 ### 10.1 `rollcall_session`（点呼场次）
 
@@ -466,7 +466,7 @@ settle_at = min(ended_at, effective_auto_end_at)
 | `event_id` | UUID | 主键 |
 | `session_id` | FK | 关联场次 |
 | `student_id` | FK | 学生 |
-| `device_id` | FK | 来自哪台点呼机（详见 `DEVICE_REGISTRY_v0.1.md`）|
+| `device_id` | FK | 来自哪台点呼机（详见 `DEVICE_REGISTRY.md`）|
 | `path_type` | enum | `A`（卡）/ `B`（iPhone 静态标签）|
 | `base_status` | enum | 判定结果 |
 | `status_source` | enum | `auto_nfc` / `auto_settle` / `manual_checkin` / `teacher_override` |
@@ -476,13 +476,13 @@ settle_at = min(ended_at, effective_auto_end_at)
 
 ### 10.3 `device`（设备表）
 
-详见 `DEVICE_REGISTRY_v0.1.md`。spec 主体只引用 `device_id` 与 `device_active` 两个字段。
+详见 `DEVICE_REGISTRY.md`。spec 主体只引用 `device_id` 与 `device_active` 两个字段。
 
 ### 10.4 字段一致性约束
 
 - `base_status` 取值必须来自 `ENUM_REGISTRY` §3
 - `overlay_badges` 数组元素必须来自 `ENUM_REGISTRY` §4
-- 所有错误码必须来自 `ERROR_CODES_v0.1.md`
+- 所有错误码必须来自 `ERROR_CODES.md`
 - 判定使用 `effective_*`，结算使用 `effective_auto_end_at`，查表使用 `(session_type, day_type, effective_group)`
 
 ---
@@ -851,7 +851,7 @@ Phase 1 点呼机 → 老师端的播报反馈，Phase 2 学生 App → 老师�
 ## 附录 C — 4 台点呼机协调规则（4-17 新增 — 收口附录 B.2 / B.5 / B.16）
 
 > Q3 拍板：**部署 4 台**。本附录定义"4 台之间如何协调"的硬规则。
-> 物理布局（卡读头 vs 静态标签的具体位置）= Q4 待定，详见 `DEVICE_REGISTRY_v0.1.md` §3.3 + §6。
+> 物理布局（卡读头 vs 静态标签的具体位置）= Q4 待定，详见 `DEVICE_REGISTRY.md` §3.3 + §6。
 
 ### C.1 学生归属
 

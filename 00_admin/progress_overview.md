@@ -106,7 +106,7 @@ Phase 2 追加:
 - [x] 卡 vs 手机架构 → 分阶段策略
 - [x] 点呼机硬件方案: Raspberry Pi + PN532
 - [x] 语音播报防作弊设计
-- [x] 更新 `executable_dev_checklist_v0.1.md`
+- [x] 更新 `executable_dev_checklist.md`
 
 ### 阶段 0.6: 版本管理与记录体系 ✅ 已完成(2026-04-13)
 
@@ -254,17 +254,17 @@ DMSD/
 ├── CLAUDE.md                        Claude Code 项目指令
 ├── 00_admin/                        项目管理
 │   ├── progress_overview.md         ← 本文件
-│   └── executable_dev_checklist_v0.1.md
+│   └── executable_dev_checklist.md
 ├── 01_specs/                        规格文档(v0.1 冻结)
-│   ├── API_CONVENTIONS_v0.1.md
+│   ├── API_CONVENTIONS.md
 │   ├── API_Contract_v0.1.pages
 │   ├── IA_UI_v0.1.pages
 │   ├── v0.1完整计划.pdf
 │   └── rollcall/
 │       ├── RollCall_Spec_v0.1.pages
-│       ├── FIELD_REGISTRY_v0.1.md
-│       ├── ENUM_REGISTRY_v0.1.md
-│       ├── ERROR_CODES_v0.1.md
+│       ├── FIELD_REGISTRY.md
+│       ├── ENUM_REGISTRY.md
+│       ├── ERROR_CODES.md
 │       └── v0.1_冻结决策.md
 ├── 03_dev/                          代码(待开始)
 │   └── Student/DMSDStudentApp(iOS)/  早期 throwaway 代码,将重写

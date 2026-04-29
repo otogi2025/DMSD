@@ -54,7 +54,7 @@
 - itsuki 自有 iPad（打开 Safari 看老师 Web + 承担 TTS 发声）
 - itsuki 手里一张 NFC 卡（银行卡 / Suica / PASMO / 学生证 任选）
 
-**硬件选型文档保留**：`02_design/hardware_design_v0.1.md` 仍然是上线版权威，**demo 给管理员看这份文档佐证"已经做过选型"**。
+**硬件选型文档保留**：`02_design/hardware_design.md` 仍然是上线版权威，**demo 给管理员看这份文档佐证"已经做过选型"**。
 
 ### 0.6 扣分规则（2026-04-21 拍板）
 **暂定数字 + 后端做成可配置阈值**：默认迟到 0.5 / 缺席 1 / 月累计 4 罚扫 / 月累计 8 禁足。Demo 时说明"数字最终和老师商议"。详见 [`scope_tier.md §1.12`](./scope_tier.md)。
@@ -141,7 +141,7 @@ itsuki iPhone iOS 26（最新）→ Shortcuts Automation "不问确认" 完全�
 
 **砍掉的原架构**（对比）：
 - ~~Pi 3A+ 点呼机 × 1 (Python + PN532 NFC + pyttsx3 TTS + 3.5mm 喇叭)~~ → 用 iPhone + NFC 卡 + iPad Safari TTS 代替
-- **上线版本（v1.0）保留**：仍按 `hardware_design_v0.1.md §2.1` 的 Pi 3A+ 方案实装，管理员采纳 demo 后启动
+- **上线版本（v1.0）保留**：仍按 `hardware_design.md §2.1` 的 Pi 3A+ 方案实装，管理员采纳 demo 后启动
 
 ---
 
@@ -204,7 +204,7 @@ D2-D8 每天预期产生的 AC 素材：
 ## 9. 下次更新触发
 
 - itsuki 补 Tier 1 漏掉的 / Tier 2 升级真跑的项 → [`scope_tier.md §5`](./scope_tier.md) + 本文 §3 时间表
-- Amazon / 淘宝下单确认 → `02_design/hardware_design_v0.1.md §4.1`
+- Amazon / 淘宝下单确认 → `02_design/hardware_design.md §4.1`
 - 每日进展 → 本文 §3
 - 风险发生 → 本文 §5 + 对应子档
 

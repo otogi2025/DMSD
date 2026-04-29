@@ -62,7 +62,7 @@ Tomoshibi 用 NFC 卡 + 服务器 + 手机 App + 墙上的专用小设备（点�
 |---|---|---|
 | 1 | [`CHANGELOG.md`](./CHANGELOG.md) | 项目版本变更历史（含 pre-0.1 追认） |
 | 2 | [`00_admin/原创设计_语音播报防作弊.md`](./00_admin/原创设计_语音播报防作弊.md) | 我**从真实观察推导出**的核心设计 |
-| 3 | [`01_specs/rollcall/RollCall_Spec_v0.1.md`](./01_specs/rollcall/RollCall_Spec_v0.1.md) | 点呼系统完整规格（~1000 行，业务 + API） |
+| 3 | [`01_specs/rollcall/RollCall_Spec.md`](./01_specs/rollcall/RollCall_Spec.md) | 点呼系统完整规格（~1000 行，业务 + API） |
 | 4 | [`05_logs/decision_log.md`](./05_logs/decision_log.md) | 每个重要决策的"之前 → 现在 → 为什么" |
 | 5 | [`05_logs/project_evolution.md`](./05_logs/project_evolution.md) | 项目整体如何从"想法"演变到"可动手蓝图" |
 | 6 | [`05_logs/learning_path.md`](./05_logs/learning_path.md) | 我作为零基础学习者的学习路径 |

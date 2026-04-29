@@ -2,10 +2,10 @@
 
 > **作用**：iOS CC 会话（`~/dev/TomoshibiiOSApp/` Swift）と Web CC 会话（`~/dev/DMSD/teacher_web/` + `~/dev/DMSD/03_dev/student_ios/` HTML 原型）间的短期协作スナップショット + 実装 TODO。
 >
-> **⚠ 長期権威源は `02_design/system_features_v0.1.md`**（iOS + Web + 後端 共用機能マトリクス）。本文は **実装ワーク用の短期ビュー**（現時点の TODO 進捗 + 両会話の合意点の抜粋）。学号体系 / 房间号 / 改动履歴 の詳細仕様は system_features_v0.1.md に置く、本文は「今ここまでやった / 次これやる」の作業メモ。
+> **⚠ 長期権威源は `02_design/system_features.md`**（iOS + Web + 後端 共用機能マトリクス）。本文は **実装ワーク用の短期ビュー**（現時点の TODO 進捗 + 両会話の合意点の抜粋）。学号体系 / 房间号 / 改动履歴 の詳細仕様は system_features.md に置く、本文は「今ここまでやった / 次これやる」の作業メモ。
 >
 > **建立**：2026-04-23 by [iOS-Swift-CC]
-> **最后更新**：2026-04-23（[Mac-demo-sprint] Web-CC が system_features_v0.1.md 建立 + 本文との関係を明示）
+> **最后更新**：2026-04-23（[Mac-demo-sprint] Web-CC が system_features.md 建立 + 本文との関係を明示）
 
 ---
 

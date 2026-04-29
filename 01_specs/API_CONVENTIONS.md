@@ -173,7 +173,7 @@ GET /api/v1/teacher/sessions?page=1&page_size=20&order_by=started_at&order=desc
 - JSON 字段名 / 数据库字段名：**小写蛇形**（`student_id` / `base_status` / `scheduled_on_time_end_at`）
 - 枚举值：**小写蛇形**（`base_status` 取值 `init` / `present` / `late`）
 - 禁止 camelCase（`studentId`）或 PascalCase（`StudentID`）
-- 见 `FIELD_REGISTRY_v0.1.md §1 强制规则` + `ENUM_REGISTRY_v0.1.md §15`
+- 见 `FIELD_REGISTRY.md §1 强制规则` + `ENUM_REGISTRY.md §15`
 
 **URL 路径段**：也用小写蛇形（`/api/v1/rollcall_sessions/{id}`），**不使用 hyphen**（避免 `/roll-call-sessions` 和其他文档字段名风格不一致）。
 
