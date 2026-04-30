@@ -1,0 +1,1661 @@
+// AuthStubs.swift — Agent A · Auth feature v2 · HTML-fidelity 1:1 rewrite
+//
+// 对等 refs/phaseB_src/c13988a3__SplashPage_OnboardingPage_RegisterDonePage.js
+// 9 个 struct View（+ private helpers）:
+//   1. SplashView            — 火焰 wordmark · 2s fadeIn · → .onboarding
+//   2. OnboardingView        — 3 slide TabView + スキップ · → .login
+//   3. RegisterStep1View     — 氏名 / 生年月日 / 性別 / アバター
+//   4. RegisterStep2View     — 点呼区分 radio (一般寮生 / サッカー部)
+//   5. RegisterStep3View     — メール / 電話
+//   6. RegisterStep4View     — パスワード × 2
+//   7. RegisterDoneView      — ✅ zoom + アカウント番号 00
+//   8. LoginView             — 番号 / メール tab · magic seed
+//   9. LockoutView           — 30 秒 カウントダウン
+//   10. PwResetView          — 寮監ご連絡説明
+//
+// Fidelity 铁律:
+//   - 日文字符串逐字照抄 JSX（JSX 的 "晚" 按 v2 HTML 规约替换为 "晩"）
+//   - fontSize / padding / spacing 严格对照 JSX inline style
+//   - 颜色 = T.* tokens（JSX 独立 hex 用 Color(hex:) inline override）
+//   - 自绘 icon（flame / check / lock / phoneTap / mail / calendar）不用 SF Symbols
+//   - 动画: fadeIn 0.2s → .easeIn(0.2) · zoom 0.22s → .easeOut(0.22) · slideUp 0.34s → spring
+//   - 无 NavigationStack · 无 .sheet() · Route 驱动
+//   - Liquid Glass 仅 .glassEffect 许可 — Auth 流程不用 glass（bg = T.pearl / paper / gradient）
+
+import SwiftUI
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - §0.1 Splash
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// JSX 对等:
+//   background: radial-gradient(ellipse at 50% 42%, #e8f4f6 0%, #eff2f3 60%, #e4ebec 100%)
+//   logo 160×160, boxShadow 0 20px 60px rgba(31,107,116,0.2), borderRadius 36
+//   wordmark "Tomoshibi · 灯火"  fontSize:15, fontWeight:700, letterSpacing 0.12em
+//   version  "v0.1.0-demo"        fontSize:11, mono
+//   fadeIn 1s（JSX）— 以 iOS 感觉 0.8s fadeIn + 2s 总停留
+//   → router.replace(.onboarding)  (assignment override, JSX 走 /login)
+
+struct SplashView: View {
+    @EnvironmentObject var router: RouterStore
+    @State private var appear: Bool = false
+
+    var body: some View {
+        ZStack {
+            // 白/极浅灰 bg（Image #29 效果）
+            LinearGradient(
+                colors: [Color.white, Color(hex: 0xf4f7f8)],
+                startPoint: .top, endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                Spacer()
+
+                // 白色 rounded square card · 含火焰 logo
+                ZStack {
+                    RoundedRectangle(cornerRadius: 32, style: .continuous)
+                        .fill(Color.white)
+                        .shadow(color: Color.black.opacity(0.08), radius: 20, x: 0, y: 10)
+                        .shadow(color: Color.black.opacity(0.04), radius: 2, x: 0, y: 1)
+
+                    Image("TomoshibiFlame")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 120, height: 120)
+                }
+                .frame(width: 168, height: 168)
+
+                Spacer().frame(height: 36)
+
+                VStack(spacing: 8) {
+                    Text("Tomoshibi · 灯火")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(T.primaryDk)
+                        .kerning(2.2)
+                    Text("v0.1.0-demo")
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(T.inkMute)
+                }
+
+                Spacer()
+                Spacer()
+            }
+            .opacity(appear ? 1 : 0)
+        }
+        .onAppear {
+            withAnimation(.easeIn(duration: 0.6)) { appear = true }
+            Task {
+                try? await Task.sleep(nanoseconds: 2_200_000_000)
+                await MainActor.run { router.replace(.onboarding) }
+            }
+        }
+    }
+}
+
+#Preview("Splash") {
+    SplashView()
+        .environmentObject(RouterStore())
+        .environmentObject(AppStore())
+}
+
+// 自绘 Tomoshibi 火焰 logo（红橙外焰 + 黄色灯芯 · Image #29 样式）
+private struct TomoshibiFlameLogo: View {
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let h = geo.size.height
+            ZStack {
+                // 外焰（红橙渐变，描边样式）
+                FlameShape()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(hex: 0xff6a3d),  // 橙红 top
+                                Color(hex: 0xe23a1f)   // 深红 bottom
+                            ],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                    .overlay(
+                        FlameShape()
+                            .stroke(Color(hex: 0x3a1008), lineWidth: 1.5)
+                    )
+
+                // 黄色灯芯（底部中央圆）
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [Color(hex: 0xfff3a8), Color(hex: 0xffd24d)],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: w * 0.2
+                        )
+                    )
+                    .overlay(
+                        Circle().stroke(Color(hex: 0x3a1008), lineWidth: 1.2)
+                    )
+                    .frame(width: w * 0.32, height: w * 0.32)
+                    .offset(y: h * 0.18)
+            }
+        }
+    }
+}
+
+private struct FlameShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let w = rect.width
+        let h = rect.height
+        // teardrop-ish flame
+        p.move(to: CGPoint(x: w * 0.5, y: 0))
+        p.addCurve(
+            to: CGPoint(x: w, y: h * 0.62),
+            control1: CGPoint(x: w * 0.95, y: h * 0.22),
+            control2: CGPoint(x: w, y: h * 0.42)
+        )
+        p.addCurve(
+            to: CGPoint(x: w * 0.5, y: h),
+            control1: CGPoint(x: w, y: h * 0.88),
+            control2: CGPoint(x: w * 0.78, y: h)
+        )
+        p.addCurve(
+            to: CGPoint(x: 0, y: h * 0.62),
+            control1: CGPoint(x: w * 0.22, y: h),
+            control2: CGPoint(x: 0, y: h * 0.88)
+        )
+        p.addCurve(
+            to: CGPoint(x: w * 0.5, y: 0),
+            control1: CGPoint(x: 0, y: h * 0.34),
+            control2: CGPoint(x: w * 0.2, y: h * 0.18)
+        )
+        p.closeSubpath()
+        return p
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - §0.2 Onboarding
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// JSX 对等:
+//   background: T.paper
+//   top-right スキップ button (fontSize:14, fontWeight:500, T.inkSub)
+//   3 slides: [点呼自動化 / 申請線上化 / 生活機能一体]
+//   illustration: 220×220 rounded 28 with linear-gradient + Ic.phoneTap/mail/calendar(40) scaled 2.6
+//   tag   : fontSize:11, weight:700, letterSpacing 0.18em, uppercase
+//   title : fontSize:26, weight:700, lineHeight:1.35
+//   body  : fontSize:14, lineHeight:1.7
+//   dots  : active 24×8 / inactive 8×8, gap:8
+//   CTA   : 次へ / 始める (PrimaryBtn full)
+//   → router.replace(.login)   (assignment override, JSX 走 /register/1)
+
+struct OnboardingView: View {
+    @EnvironmentObject var router: RouterStore
+    @State private var idx: Int = 0
+
+    private struct Slide {
+        let sfSymbol: String
+        let title: String
+        let sub: String
+        let gradStart: UInt32
+        let gradEnd: UInt32
+        let fg: Color
+    }
+
+    private let slides: [Slide] = [
+        Slide(
+            sfSymbol: "wave.3.right.circle.fill",
+            title: "タッチで点呼",
+            sub: "NFC にかざすだけ",
+            gradStart: 0xe8f4f6, gradEnd: 0xa8dce2,
+            fg: T.primary
+        ),
+        Slide(
+            sfSymbol: "square.and.pencil.circle.fill",
+            title: "申請はアプリで",
+            sub: "外泊・帰省・タクシー",
+            gradStart: 0xfdf4e1, gradEnd: 0xffe9b5,
+            fg: T.warnDeep
+        ),
+        Slide(
+            sfSymbol: "sparkles",
+            title: "寮生活をひとつに",
+            sub: "バス・活動・荷物",
+            gradStart: 0xe3f1ea, gradEnd: 0x8bc6a3,
+            fg: T.okDeep
+        ),
+    ]
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Spacer()
+                Button("スキップ") { router.replace(.registerStep1) }
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(T.inkSub)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
+
+            TabView(selection: $idx) {
+                ForEach(slides.indices, id: \.self) { i in
+                    slideView(slides[i]).tag(i)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            VStack(spacing: 20) {
+                HStack(spacing: 8) {
+                    ForEach(slides.indices, id: \.self) { i in
+                        RoundedRectangle(cornerRadius: 4, style: .continuous)
+                            .fill(i == idx ? T.primary : T.inkFaint)
+                            .frame(width: i == idx ? 24 : 8, height: 8)
+                            .animation(.easeInOut(duration: 0.2), value: idx)
+                    }
+                }
+
+                PrimaryButton(title: idx < slides.count - 1 ? "次へ" : "始める") {
+                    if idx < slides.count - 1 {
+                        withAnimation { idx += 1 }
+                    } else {
+                        router.replace(.registerStep1)
+                    }
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 20)
+            .padding(.bottom, 32)
+        }
+        .background(T.paper.ignoresSafeArea())
+    }
+
+    @ViewBuilder
+    private func slideView(_ s: Slide) -> some View {
+        VStack(spacing: 0) {
+            RoundedRectangle(cornerRadius: 36, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color(hex: s.gradStart), Color(hex: s.gradEnd)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 240, height: 240)
+                .overlay {
+                    Image(systemName: s.sfSymbol)
+                        .font(.system(size: 120, weight: .regular))
+                        .foregroundStyle(s.fg)
+                }
+                .shadow(color: Color(hex: 0x0f1e22, alpha: 0.10), radius: 30, x: 0, y: 24)
+                .padding(.bottom, 44)
+
+            Text(s.title)
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(T.ink)
+                .padding(.bottom, 10)
+
+            Text(s.sub)
+                .font(.system(size: 15))
+                .foregroundStyle(T.inkSub)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+#Preview("Onboarding") {
+    OnboardingView()
+        .environmentObject(RouterStore())
+        .environmentObject(AppStore())
+}
+
+// ───────────────────────────── Inline Icon paths ──────────────────────────────
+// 对等 phaseB_src Ic.phoneTap / mail / calendar / check / lock 的 SVG d 属性
+
+private struct PhoneTapIcon: View {
+    var size: CGFloat = 40
+    var body: some View {
+        Canvas { ctx, canvasSize in
+            let scale = size / 48.0
+            // <rect x="16" y="10" width="16" height="28" rx="3"/>
+            let phoneRect = Path(roundedRect: CGRect(x: 16*scale, y: 10*scale, width: 16*scale, height: 28*scale), cornerRadius: 3*scale)
+            ctx.stroke(phoneRect, with: .foreground, style: StrokeStyle(lineWidth: 1.8*scale, lineCap: .round, lineJoin: .round))
+            // <path d="M22 33h4"/>
+            var home = Path()
+            home.move(to: CGPoint(x: 22*scale, y: 33*scale))
+            home.addLine(to: CGPoint(x: 26*scale, y: 33*scale))
+            ctx.stroke(home, with: .foreground, style: StrokeStyle(lineWidth: 1.8*scale, lineCap: .round, lineJoin: .round))
+            // wave arc 1: M35 18c1.8 1.5 3 3.6 3 6s-1.2 4.5-3 6
+            var wave1 = Path()
+            wave1.move(to: CGPoint(x: 35*scale, y: 18*scale))
+            wave1.addCurve(
+                to: CGPoint(x: 35*scale, y: 30*scale),
+                control1: CGPoint(x: 36.8*scale, y: 19.5*scale),
+                control2: CGPoint(x: 38*scale, y: 21.6*scale)
+            )
+            ctx.stroke(wave1, with: .foreground, style: StrokeStyle(lineWidth: 1.8*scale, lineCap: .round, lineJoin: .round))
+            // wave arc 2: M39 14c3 2.5 5 6 5 10s-2 7.5-5 10  (opacity .8)
+            var wave2 = Path()
+            wave2.move(to: CGPoint(x: 39*scale, y: 14*scale))
+            wave2.addCurve(
+                to: CGPoint(x: 39*scale, y: 34*scale),
+                control1: CGPoint(x: 42*scale, y: 16.5*scale),
+                control2: CGPoint(x: 44*scale, y: 20*scale)
+            )
+            ctx.opacity = 0.8
+            ctx.stroke(wave2, with: .foreground, style: StrokeStyle(lineWidth: 1.8*scale, lineCap: .round, lineJoin: .round))
+        }
+        .frame(width: size, height: size)
+    }
+}
+
+private struct MailIcon: View {
+    var size: CGFloat = 40
+    var body: some View {
+        Canvas { ctx, _ in
+            let scale = size / 24.0
+            // <rect x="3" y="5" width="18" height="14" rx="2.4"/>
+            let env = Path(roundedRect: CGRect(x: 3*scale, y: 5*scale, width: 18*scale, height: 14*scale), cornerRadius: 2.4*scale)
+            ctx.stroke(env, with: .foreground, style: StrokeStyle(lineWidth: 1.6*scale, lineCap: .round, lineJoin: .round))
+            // <path d="m3.6 6.4 8.4 7 8.4-7"/>
+            var flap = Path()
+            flap.move(to: CGPoint(x: 3.6*scale, y: 6.4*scale))
+            flap.addLine(to: CGPoint(x: 12*scale, y: 13.4*scale))
+            flap.addLine(to: CGPoint(x: 20.4*scale, y: 6.4*scale))
+            ctx.stroke(flap, with: .foreground, style: StrokeStyle(lineWidth: 1.6*scale, lineCap: .round, lineJoin: .round))
+        }
+        .frame(width: size, height: size)
+    }
+}
+
+private struct CalendarIcon: View {
+    var size: CGFloat = 40
+    var body: some View {
+        Canvas { ctx, _ in
+            let scale = size / 24.0
+            // <rect x="3.5" y="5" width="17" height="15" rx="2.4"/>
+            let frame = Path(roundedRect: CGRect(x: 3.5*scale, y: 5*scale, width: 17*scale, height: 15*scale), cornerRadius: 2.4*scale)
+            ctx.stroke(frame, with: .foreground, style: StrokeStyle(lineWidth: 1.6*scale, lineCap: .round, lineJoin: .round))
+            // M3.5 10h17
+            var top = Path()
+            top.move(to: CGPoint(x: 3.5*scale, y: 10*scale))
+            top.addLine(to: CGPoint(x: 20.5*scale, y: 10*scale))
+            ctx.stroke(top, with: .foreground, style: StrokeStyle(lineWidth: 1.6*scale, lineCap: .round, lineJoin: .round))
+            // M8 3v4
+            var peg1 = Path()
+            peg1.move(to: CGPoint(x: 8*scale, y: 3*scale))
+            peg1.addLine(to: CGPoint(x: 8*scale, y: 7*scale))
+            ctx.stroke(peg1, with: .foreground, style: StrokeStyle(lineWidth: 1.6*scale, lineCap: .round, lineJoin: .round))
+            // M16 3v4
+            var peg2 = Path()
+            peg2.move(to: CGPoint(x: 16*scale, y: 3*scale))
+            peg2.addLine(to: CGPoint(x: 16*scale, y: 7*scale))
+            ctx.stroke(peg2, with: .foreground, style: StrokeStyle(lineWidth: 1.6*scale, lineCap: .round, lineJoin: .round))
+        }
+        .frame(width: size, height: size)
+    }
+}
+
+private struct CheckIcon: View {
+    var size: CGFloat = 28
+    var body: some View {
+        Canvas { ctx, _ in
+            let scale = size / 24.0
+            // <path d="m5 12.5 5 5L19 7"/>
+            var check = Path()
+            check.move(to: CGPoint(x: 5*scale, y: 12.5*scale))
+            check.addLine(to: CGPoint(x: 10*scale, y: 17.5*scale))
+            check.addLine(to: CGPoint(x: 19*scale, y: 7*scale))
+            ctx.stroke(check, with: .foreground, style: StrokeStyle(lineWidth: 2.4*scale, lineCap: .round, lineJoin: .round))
+        }
+        .frame(width: size, height: size)
+    }
+}
+
+private struct LockIcon: View {
+    var size: CGFloat = 36
+    var body: some View {
+        Canvas { ctx, _ in
+            let scale = size / 24.0
+            // <rect x="5" y="10.5" width="14" height="10" rx="2.4"/>
+            let body = Path(roundedRect: CGRect(x: 5*scale, y: 10.5*scale, width: 14*scale, height: 10*scale), cornerRadius: 2.4*scale)
+            ctx.stroke(body, with: .foreground, style: StrokeStyle(lineWidth: 1.6*scale, lineCap: .round, lineJoin: .round))
+            // <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>
+            var shackle = Path()
+            shackle.move(to: CGPoint(x: 8*scale, y: 10.5*scale))
+            shackle.addLine(to: CGPoint(x: 8*scale, y: 8*scale))
+            shackle.addArc(
+                center: CGPoint(x: 12*scale, y: 8*scale),
+                radius: 4*scale,
+                startAngle: .degrees(180),
+                endAngle: .degrees(0),
+                clockwise: false
+            )
+            shackle.addLine(to: CGPoint(x: 16*scale, y: 10.5*scale))
+            ctx.stroke(shackle, with: .foreground, style: StrokeStyle(lineWidth: 1.6*scale, lineCap: .round, lineJoin: .round))
+        }
+        .frame(width: size, height: size)
+    }
+}
+
+private struct BackChevronIcon: View {
+    var size: CGFloat = 22
+    var body: some View {
+        Canvas { ctx, _ in
+            let scale = size / 24.0
+            // M15 5 8 12l7 7
+            var chev = Path()
+            chev.move(to: CGPoint(x: 15*scale, y: 5*scale))
+            chev.addLine(to: CGPoint(x: 8*scale, y: 12*scale))
+            chev.addLine(to: CGPoint(x: 15*scale, y: 19*scale))
+            ctx.stroke(chev, with: .foreground, style: StrokeStyle(lineWidth: 2*scale, lineCap: .round, lineJoin: .round))
+        }
+        .frame(width: size, height: size)
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - Register 共通: Progress bar + Header
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// JSX: アカウント作成 · step/4 · 4px capsule · linear-gradient 5fbec8 → 1f6b74 · width*25%
+
+private struct RegisterProgress: View {
+    let step: Int  // 1...4
+
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("アカウント作成")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(T.inkSub)
+                Spacer()
+                Text("\(step) / 4")
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(T.inkMute)
+            }
+
+            GeometryReader { g in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(T.hair)
+                        .frame(height: 4)
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [T.accent, T.primary],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                        )
+                        .frame(width: g.size.width * CGFloat(step) * 0.25, height: 4)
+                        .animation(.easeInOut(duration: 0.4), value: step)
+                }
+            }
+            .frame(height: 4)
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 12)
+        .padding(.bottom, 20)
+    }
+}
+
+// level=2 header (Back arrow + title centered) — 对等 phaseB_src PageHeader level=2
+// 不复用 Foundation PageHeader 因为那里 title 是 leading，JSX 要求居中 + 自绘 back icon
+private struct RegisterHeader: View {
+    let title: String
+    @EnvironmentObject var router: RouterStore
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Button { router.back() } label: {
+                BackChevronIcon(size: 22)
+                    .foregroundStyle(T.ink)
+                    .frame(width: 36, height: 36)
+            }
+            .buttonStyle(.plain)
+
+            Spacer(minLength: 0)
+
+            Text(title)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(T.ink)
+                .kerning(0.2)
+
+            Spacer(minLength: 0)
+
+            // spacer to balance back button (36pt) for centered title
+            Color.clear.frame(width: 36, height: 36)
+        }
+        .frame(height: 48)
+        .padding(.horizontal, 12)
+    }
+}
+
+// 对等 phaseB_src PrimaryBtn full + GhostBtn full (JSX 的 disabled tint = T.inkFaint)
+// Foundation PrimaryButton / GhostButton 已覆盖，仅 GhostButton full 需 wrapper
+
+private struct GhostButtonFull: View {
+    let title: String
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(T.ink)
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
+                .background {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(T.hair, lineWidth: 1)
+                }
+                .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - §0.3 RegisterStep1 基本情報
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// JSX:
+//   氏名 TField (default "リュウ イヒ")
+//   生年月日 button 48pt with date string (hint: ホイール式の日付ピッカーが表示されます)
+//   性別 Radio 男/女 (hint: 性別により自動的に男寮 / 女寮に配属されます)
+//   アバター: Avatar 64 letter + 2 buttons "写真を選択" / "デフォルトを使う"
+//   footer: PrimaryBtn full disabled=!ok  → go('/register/2')
+
+struct RegisterStep1View: View {
+    @EnvironmentObject var router: RouterStore
+    @State private var name: String = SEED.user.name
+    @State private var birth: Date = {
+        var c = DateComponents(); c.year = 2006; c.month = 10; c.day = 14
+        return Calendar.current.date(from: c) ?? Date()
+    }()
+    @State private var gender: String = SEED.user.gender == "男" ? "male" : "female"
+    @State private var avatar: String = "default"
+    @State private var grade: String = SEED.user.grade
+    @State private var classSuffix: String = SEED.user.classSuffix
+    @State private var seatNoStr: String = "\(SEED.user.seatNo)"
+    @State private var room: String = {
+        // SEED は "M101" / "W12B" 形式 → 先頭の M/W を除去（残りは数字+英字可）
+        var s = SEED.user.room
+        if let first = s.first, first == "M" || first == "W" { s.removeFirst() }
+        return s
+    }()
+
+    private let grades = ["中1", "中2", "中3", "高1", "高2", "高3"]
+
+    private var gradeCode: String {
+        switch grade {
+        case "中1": return "01"
+        case "中2": return "02"
+        case "中3": return "03"
+        case "高1": return "04"
+        case "高2": return "05"
+        case "高3": return "06"
+        default: return "00"
+        }
+    }
+
+    private var classCode: String {
+        classSuffix == "A" ? "01" : "02"   // A組 → 01 / B組 → 02
+    }
+
+    // 6 桁: 年級(2) + 組(2) + 出席番号(2) · 高3 B 18 → "060218"
+    private var computedAccount: String {
+        let n = max(0, min(99, Int(seatNoStr) ?? 0))
+        return gradeCode + classCode + String(format: "%02d", n)
+    }
+
+    private var canNext: Bool {
+        !name.trimmingCharacters(in: .whitespaces).isEmpty
+            && (Int(seatNoStr) ?? 0) > 0
+            && !room.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private var avatarLetter: String {
+        name.first.map { String($0) } ?? "リ"
+    }
+
+    private static let birthFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    var body: some View {
+        VStack(spacing: 0) {
+            RegisterHeader(title: "基本情報")
+            RegisterProgress(step: 1)
+
+            ScrollView {
+                VStack(spacing: 18) {
+                    // 1. アバター（最初に選ぶ）
+                    Field(label: "アバター") {
+                        HStack(alignment: .center, spacing: 14) {
+                            Avatar(letter: avatarLetter, size: 64)
+                            VStack(spacing: 8) {
+                                Button {
+                                    // demo — 不接真相册
+                                } label: {
+                                    Text("写真を選択")
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(T.ink)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 38)
+                                        .background {
+                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                .fill(T.pearl)
+                                        }
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                .stroke(T.hair, lineWidth: 1)
+                                        }
+                                }
+                                .buttonStyle(.plain)
+
+                                Button {
+                                    avatar = "default"
+                                } label: {
+                                    Text("デフォルトを使う")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundStyle(T.primary)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 38)
+                                        .background {
+                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                .fill(T.primary.opacity(0.08))
+                                        }
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+
+                    // 2. 氏名
+                    Field(label: "氏名", required: true) {
+                        TField(text: $name, placeholder: "リュウ イヒ")
+                    }
+
+                    // 3. 性別
+                    Field(
+                        label: "性別",
+                        hint: "性別により自動的に男寮 / 女寮に配属されます",
+                        required: true
+                    ) {
+                        HStack(spacing: 8) {
+                            inlineRadio(value: "male", label: "男")
+                            inlineRadio(value: "female", label: "女")
+                        }
+                    }
+
+                    // 4. 生年月日（inline wheel picker · 日本語 locale）
+                    Field(label: "生年月日", required: true) {
+                        DatePicker("", selection: $birth, in: ...Date(), displayedComponents: .date)
+                            .datePickerStyle(.wheel)
+                            .labelsHidden()
+                            .environment(\.locale, Locale(identifier: "ja_JP"))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 160)
+                            .clipped()
+                            .background {
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(T.pearl)
+                            }
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(T.hair, lineWidth: 1)
+                            }
+                    }
+
+                    // 5. 学年
+                    Field(label: "学年", required: true) {
+                        HStack(spacing: 6) {
+                            ForEach(grades, id: \.self) { g in
+                                Button {
+                                    grade = g
+                                } label: {
+                                    Text(g)
+                                        .font(.system(size: 13, weight: grade == g ? .bold : .medium))
+                                        .foregroundStyle(grade == g ? Color.white : T.ink)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 36)
+                                        .background {
+                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                .fill(grade == g ? T.primary : T.pearl)
+                                        }
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                .stroke(grade == g ? T.primary : T.hair, lineWidth: 1)
+                                        }
+                                        .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+
+                    // 6. 組
+                    Field(label: "組", required: true) {
+                        HStack(spacing: 8) {
+                            classChip("A")
+                            classChip("B")
+                        }
+                    }
+
+                    // 7. 出席番号
+                    Field(
+                        label: "出席番号",
+                        hint: "学年 + 組 + 番号でアカウント番号が自動生成されます（例：高3 B組 18番 → 060218）",
+                        required: true
+                    ) {
+                        TField(text: $seatNoStr, placeholder: "18", keyboard: .numberPad)
+                    }
+
+                    // 8. 部屋番号
+                    Field(
+                        label: "部屋番号",
+                        hint: "例：101 / 12B · 男寮 M / 女寮 W は性別から自動付与",
+                        required: true
+                    ) {
+                        TField(text: $room, placeholder: "101")
+                    }
+                    .onChange(of: room) { _, newVal in
+                        // 英数字のみ、最大 4 桁
+                        let filtered = newVal.filter { $0.isLetter || $0.isNumber }
+                            .uppercased()
+                        room = String(filtered.prefix(4))
+                    }
+
+                    // アカウント番号 プレビュー
+                    HStack {
+                        Text("アカウント番号")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(T.inkSub)
+                        Spacer()
+                        Text(computedAccount)
+                            .font(.system(size: 22, weight: .bold, design: .monospaced))
+                            .foregroundStyle(T.primary)
+                            .kerning(2)
+                    }
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                    .background {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(T.primary.opacity(0.06))
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(T.primary.opacity(0.15), lineWidth: 1)
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
+            }
+
+            footerSingle
+        }
+        .background(T.paper.ignoresSafeArea())
+    }
+
+    // Inline radio (row) — JSX Radio row layout 风格化
+    @ViewBuilder
+    private func inlineRadio(value: String, label: String) -> some View {
+        let sel = gender == value
+        Button { gender = value } label: {
+            Text(label)
+                .font(.system(size: 14, weight: sel ? .bold : .medium))
+                .foregroundStyle(sel ? T.primary : T.ink)
+                .frame(maxWidth: .infinity)
+                .frame(height: 42)
+                .background {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(sel ? T.primary.opacity(0.06) : T.pearl)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(sel ? T.primary : T.hair, lineWidth: sel ? 1.5 : 1)
+                }
+                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func classChip(_ v: String) -> some View {
+        let sel = classSuffix == v
+        Button { classSuffix = v } label: {
+            Text("\(v)組")
+                .font(.system(size: 14, weight: sel ? .bold : .medium))
+                .foregroundStyle(sel ? T.primary : T.ink)
+                .frame(maxWidth: .infinity)
+                .frame(height: 42)
+                .background {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(sel ? T.primary.opacity(0.06) : T.pearl)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(sel ? T.primary : T.hair, lineWidth: sel ? 1.5 : 1)
+                }
+                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var footerSingle: some View {
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(T.hair)
+                .frame(height: 0.5)
+            PrimaryButton(title: "次へ", enabled: canNext) {
+                // 保存 to SEED.user（demo 用）
+                SEED.user.name = name
+                SEED.user.gender = gender == "male" ? "男" : "女"
+                SEED.user.dorm = gender == "male" ? "男寮" : "女寮"
+                SEED.user.grade = grade
+                SEED.user.classSuffix = classSuffix
+                SEED.user.seatNo = Int(seatNoStr) ?? 18
+                let prefix = (gender == "male") ? "M" : "W"
+                SEED.user.room = prefix + room
+                SEED.user.account = computedAccount
+                SEED.user.avatar = name.first.map { String($0) } ?? "リ"
+                router.go(.registerStep2)
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 16)
+            .padding(.bottom, 32)
+        }
+        .background(T.paper)
+    }
+}
+
+#Preview("RegisterStep1") {
+    RegisterStep1View()
+        .environmentObject(RouterStore())
+        .environmentObject(AppStore())
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - §0.4 RegisterStep2 点呼区分
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// JSX:
+//   heading "あなたの点呼区分" fontSize:15, weight:700, marginBottom:14
+//   2 custom radio cards:
+//     regular : "一般寮生" + detail "平日: 朝 7:00 / 晩 21:00  ·  土日: 朝 8:00 / 晩 21:30"
+//     soccer  : "サッカー部" + detail "早朝練があるため  ·  平日: 朝 6:00 / 晩 21:00"
+//   card: padding 18, radius 16, border selected: 1.5 T.primary + bg: T.primary08 + shadow
+//   radio visual: 22×22 circle, when selected: border 6 T.primary + bg #fff
+//   footer: 2 buttons (戻る / 次へ) gap:10
+//   (注意: JSX 写作 "晚" — 按 REMOTE_AGENT_GUIDE §1.1 v2 HTML 已修为 "晩"，Swift 写 "晩")
+
+struct RegisterStep2View: View {
+    @EnvironmentObject var router: RouterStore
+    @State private var cat: String = "regular"
+
+    private struct CatOption {
+        let v: String
+        let l: String
+        let d: String
+    }
+
+    private let options: [CatOption] = [
+        CatOption(
+            v: "regular",
+            l: "一般寮生",
+            d: "平日: 朝 7:40 / 晩 22:00  ·  土日: 朝 8:50 / 晩 20:00"
+        ),
+        CatOption(
+            v: "soccer",
+            l: "サッカー部",
+            d: "平日: 朝 7:10 / 晩 22:00  ·  土日: 朝 7:10 / 晩 20:00"
+        ),
+    ]
+
+    var body: some View {
+        VStack(spacing: 0) {
+            RegisterHeader(title: "点呼区分")
+            RegisterProgress(step: 2)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("あなたの点呼区分")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(T.ink)
+                        .padding(.bottom, 2)
+
+                    ForEach(options, id: \.v) { o in
+                        catCard(o)
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
+            }
+
+            footerDouble(
+                onBack: { router.go(.registerStep1) },
+                onNext: { router.go(.registerStep3) }
+            )
+        }
+        .background(T.paper.ignoresSafeArea())
+    }
+
+    @ViewBuilder
+    private func catCard(_ o: CatOption) -> some View {
+        let sel = cat == o.v
+        Button { cat = o.v } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(o.l)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(T.ink)
+                    Spacer()
+                    // 22×22 custom radio marker
+                    ZStack {
+                        Circle()
+                            .stroke(sel ? T.primary : T.inkFaint, lineWidth: sel ? 6 : 1.5)
+                            .frame(width: 22, height: 22)
+                        if sel {
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 22 - 12, height: 22 - 12)
+                        }
+                    }
+                }
+                Text(o.d)
+                    .font(.system(size: 12.5))
+                    .foregroundStyle(T.inkSub)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(sel ? T.primary.opacity(0.03) : T.paper)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(sel ? T.primary : T.hair, lineWidth: sel ? 1.5 : 1)
+            }
+            .shadow(color: sel ? Color(hex: 0x1f6b74, alpha: 0.08) : .clear, radius: 14, x: 0, y: 4)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+#Preview("RegisterStep2") {
+    RegisterStep2View()
+        .environmentObject(RouterStore())
+        .environmentObject(AppStore())
+}
+
+// 共通 2 按钮 footer (戻る + 次へ) — private 避免污染其他 feature
+@MainActor
+@ViewBuilder
+private func footerDouble(
+    nextTitle: String = "次へ",
+    nextEnabled: Bool = true,
+    onBack: @escaping @MainActor () -> Void,
+    onNext: @escaping @MainActor () -> Void
+) -> some View {
+    VStack(spacing: 0) {
+        Rectangle()
+            .fill(T.hair)
+            .frame(height: 0.5)
+        HStack(spacing: 10) {
+            GhostButtonFull(title: "戻る", action: onBack)
+            PrimaryButton(title: nextTitle, enabled: nextEnabled, action: onNext)
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 16)
+        .padding(.bottom, 32)
+    }
+    .background(T.paper)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - §0.5 RegisterStep3 連絡先
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// JSX:
+//   メールアドレス (required, hint: 認証メールは送信されません。将来のパスワードリセット時の確認用です)
+//     default: otogi2025@gmail.com
+//   電話番号 (required, hint: 寮監があなたに連絡する場合に使います)
+//     default: 090-9482-8905
+
+struct RegisterStep3View: View {
+    @EnvironmentObject var router: RouterStore
+    @State private var email: String = "otogi2025@gmail.com"
+    @State private var phone: String = "090-9482-8905"
+
+    var body: some View {
+        VStack(spacing: 0) {
+            RegisterHeader(title: "連絡先")
+            RegisterProgress(step: 3)
+
+            ScrollView {
+                VStack(spacing: 18) {
+                    Field(
+                        label: "メールアドレス",
+                        hint: "学校のメールアドレスでも、ご自身のメールアドレスでも登録できます。認証メールは送信されません（将来のパスワードリセット時の確認用です）",
+                        required: true
+                    ) {
+                        TField(text: $email, placeholder: "example@email.com", keyboard: .emailAddress)
+                    }
+
+                    Field(
+                        label: "電話番号",
+                        hint: "寮監があなたに連絡する場合に使います",
+                        required: true
+                    ) {
+                        TField(text: $phone, placeholder: "090-1234-5678", keyboard: .phonePad)
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
+            }
+
+            footerDouble(
+                onBack: { router.go(.registerStep2) },
+                onNext: { router.go(.registerStep4) }
+            )
+        }
+        .background(T.paper.ignoresSafeArea())
+    }
+}
+
+#Preview("RegisterStep3") {
+    RegisterStep3View()
+        .environmentObject(RouterStore())
+        .environmentObject(AppStore())
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - §0.6 RegisterStep4 パスワード設定
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// JSX:
+//   amber banner: 24×24 orange circle with "!" + "ご注意ください" heading + body
+//     padding: 14×16, radius 14, bg T.warnBg, border T.warn40
+//   パスワード (required, hint "8 文字以上", secure)
+//   パスワード（確認） (required, error "パスワードが一致しません" when mismatch, secure)
+//   footer: 戻る + アカウント作成完了  (disabled when !pw || !pw2 || mismatch)
+
+struct RegisterStep4View: View {
+    @EnvironmentObject var router: RouterStore
+    @State private var pw: String = "demo1234"
+    @State private var pw2: String = "demo1234"
+
+    private var mismatch: Bool {
+        !pw.isEmpty && !pw2.isEmpty && pw != pw2
+    }
+
+    private var canSubmit: Bool {
+        !pw.isEmpty && !pw2.isEmpty && !mismatch
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            RegisterHeader(title: "パスワード設定")
+            RegisterProgress(step: 4)
+
+            ScrollView {
+                VStack(spacing: 20) {
+                    // amber 注意 banner
+                    HStack(alignment: .top, spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(T.warn)
+                                .frame(width: 24, height: 24)
+                            Text("!")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(.white)
+                        }
+                        .frame(width: 24, height: 24)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("ご注意ください")
+                                .font(.system(size: 12.5, weight: .bold))
+                                .foregroundStyle(T.warnDeep)
+                            Text("パスワードは自分では変更できません。変更には寮監への連絡が必要です。入力時は慎重にお願いします。")
+                                .font(.system(size: 12.5))
+                                .foregroundStyle(T.warnDeep)
+                                .lineSpacing(3)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .padding(.vertical, 14)
+                    .padding(.horizontal, 16)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .background {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(T.warnBg)
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(T.warn.opacity(0.25), lineWidth: 1)
+                    }
+
+                    Field(
+                        label: "パスワード",
+                        hint: "8 文字以上",
+                        required: true
+                    ) {
+                        TField(text: $pw, placeholder: "", secure: true)
+                    }
+
+                    Field(
+                        label: "パスワード（確認）",
+                        error: mismatch ? "パスワードが一致しません" : nil,
+                        required: true
+                    ) {
+                        TField(text: $pw2, placeholder: "", secure: true)
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
+            }
+
+            footerDouble(
+                nextTitle: "アカウント作成完了",
+                nextEnabled: canSubmit,
+                onBack: { router.go(.registerStep3) },
+                onNext: { router.replace(.registerDone) }
+            )
+        }
+        .background(T.paper.ignoresSafeArea())
+    }
+}
+
+#Preview("RegisterStep4") {
+    RegisterStep4View()
+        .environmentObject(RouterStore())
+        .environmentObject(AppStore())
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - §0.7 RegisterDoneView
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// JSX:
+//   100×100 green circle w/ linear-gradient #8bc6a3 → #4a9478
+//     Ic.check(28) scale(2.4) → 实际 ~67pt
+//     shadow: 0 12px 40px rgba(74,148,120,0.3)
+//     animation: zoom .4s cubic-bezier(0.2,0.8,0.2,1)
+//   "ようこそ、リュウ イヒ さん"  fontSize:22, weight:700
+//   "アカウントが作成されました"  fontSize:13, T.inkSub
+//   Account panel: padding 20×24, radius 20, bg linear-gradient #e8f4f6 → #a8dce2
+//     "あなたのアカウント番号" fontSize:11, weight:700, letterSpacing 0.18em, uppercase, T.primaryDk
+//     "00"  fontSize:64, weight:800, mono, T.primaryDk, letterSpacing -0.02em
+//     次回からはこの...  fontSize:12, T.primaryDk opacity:.8
+//   footer: "始める" PrimaryBtn full → go('/home')
+
+struct RegisterDoneView: View {
+    @EnvironmentObject var router: RouterStore
+    @State private var checkAppear: Bool = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Spacer()
+
+            // 100×100 green circle + check mark (zoom animation)
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(hex: 0x8bc6a3), Color(hex: 0x4a9478)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 100, height: 100)
+                    .shadow(color: Color(hex: 0x4a9478, alpha: 0.30), radius: 24, x: 0, y: 12)
+
+                // Ic.check(28) scale(2.4) ≈ 67pt canvas stroke
+                CheckIcon(size: 28)
+                    .scaleEffect(2.4)
+                    .foregroundStyle(.white)
+            }
+            .scaleEffect(checkAppear ? 1 : 0.2)
+            .opacity(checkAppear ? 1 : 0)
+            .padding(.bottom, 28)
+
+            // Welcome + subtitle
+            Text("ようこそ、\(SEED.user.name) さん")
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(T.ink)
+                .padding(.bottom, 10)
+
+            Text("アカウントが作成されました")
+                .font(.system(size: 13))
+                .foregroundStyle(T.inkSub)
+                .padding(.bottom, 32)
+
+            // Account number panel
+            VStack(alignment: .leading, spacing: 8) {
+                Text("あなたのアカウント番号")
+                    .font(.system(size: 11, weight: .bold))
+                    .kerning(2)
+                    .foregroundStyle(T.primaryDk)
+                    .textCase(.uppercase)
+
+                Text(SEED.user.account)
+                    .font(.system(size: 44, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(T.primaryDk)
+                    .kerning(-0.9)
+                    .padding(.top, -2)
+                    .minimumScaleFactor(0.6)
+                    .lineLimit(1)
+
+                Text("次回からはこの 6 桁番号\nまたはメールアドレスと\nパスワードでログインしてください")
+                    .font(.system(size: 12))
+                    .foregroundStyle(T.primaryDk.opacity(0.8))
+                    .lineSpacing(3)
+                    .padding(.top, 2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 20)
+            .padding(.horizontal, 24)
+            .background {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(hex: 0xe8f4f6), Color(hex: 0xa8dce2)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        )
+                    )
+            }
+            .padding(.horizontal, 32)
+
+            Spacer()
+
+            PrimaryButton(title: "始める") {
+                router.replace(.home)
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 16)
+            .padding(.bottom, 32)
+        }
+        .background(T.paper.ignoresSafeArea())
+        .onAppear {
+            // JSX: zoom .4s cubic-bezier(0.2,0.8,0.2,1)  — spring 对等
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                checkAppear = true
+            }
+        }
+    }
+}
+
+#Preview("RegisterDone") {
+    RegisterDoneView()
+        .environmentObject(RouterStore())
+        .environmentObject(AppStore())
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - §0.8 LoginView
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// JSX:
+//   bg: linear-gradient(180deg, #eff2f3 → #e4ebec)
+//   header centered: "Tomoshibi"  fontSize:28, weight:700, T.primaryDk, letterSpacing 0.04em
+//                    "灯火 · ログイン"  fontSize:12, T.inkMute, letterSpacing 0.08em
+//   mode tab 2 segments: 番号で / メールで  (active: T.paper bg + T.primary fg + shadow)
+//     container: T.pill (primary08) bg, radius 12, padding 3
+//   番号: アカウント番号 Input numeric (fontSize:20, mono, letterSpacing 0.1em), default "00"
+//   メール: メールアドレス Input type=email, default "otogi2025@gmail.com"
+//   パスワード: secure, default "demo1234"
+//   ログイン btn
+//   row: 新規登録 (T.inkSub) ←→ パスワードを忘れた → (T.primary)
+//   footer mono: Tomoshibi v0.1.0-demo · 2026 AC 入試プロジェクト
+//   magic seed: acc==='00' | email==='otogi2025@gmail.com'  → router.replace(.home)
+//   else → router.go(.lockout)  (assignment override, JSX Modal hint)
+
+struct LoginView: View {
+    @EnvironmentObject var router: RouterStore
+
+    enum Mode: Hashable { case number, email }
+
+    @State private var mode: Mode = .number
+    @State private var acc: String = "00"
+    @State private var email: String = "otogi2025@gmail.com"
+    @State private var pw: String = "demo1234"
+
+    var body: some View {
+        ZStack {
+            // JSX: linear-gradient(180deg, #eff2f3 0%, #e4ebec 100%)
+            LinearGradient(
+                colors: [T.pearl, Color(hex: 0xe4ebec)],
+                startPoint: .top, endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                // JSX padding: '40px 28px 16px' · Ag top 40pt
+                Spacer().frame(height: 40)
+
+                // Title · JSX textAlign center · marginBottom 36
+                VStack(spacing: 4) {
+                    Text("Tomoshibi")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundStyle(T.primaryDk)
+                        .kerning(1.12) // 0.04em on 28pt
+                    Text("灯火 · ログイン")
+                        .font(.system(size: 12))
+                        .foregroundStyle(T.inkMute)
+                        .kerning(1)
+                }
+                .padding(.bottom, 36)
+
+                // Mode tab (2 segments)
+                modeTab
+                    .padding(.horizontal, 28)
+                    .padding(.bottom, 22)
+
+                // Fields
+                VStack(spacing: 18) {
+                    if mode == .number {
+                        Field(label: "アカウント番号") {
+                            TField(
+                                text: $acc,
+                                placeholder: "00",
+                                keyboard: .numberPad
+                            )
+                            .font(.system(size: 20, design: .monospaced))
+                            .kerning(2)
+                        }
+                    } else {
+                        Field(label: "メールアドレス") {
+                            TField(
+                                text: $email,
+                                placeholder: "example@email.com",
+                                keyboard: .emailAddress
+                            )
+                        }
+                    }
+
+                    Field(label: "パスワード") {
+                        TField(text: $pw, placeholder: "", secure: true)
+                    }
+                }
+                .padding(.horizontal, 28)
+
+                // Login button
+                PrimaryButton(title: "ログイン") {
+                    tryLogin()
+                }
+                .padding(.horizontal, 28)
+                .padding(.top, 8)
+
+                // Footer links
+                HStack {
+                    Button("新規登録") {
+                        router.replace(.registerStep1)
+                    }
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(T.inkSub)
+
+                    Spacer()
+
+                    Button {
+                        router.go(.pwreset)
+                    } label: {
+                        Text("パスワードを忘れた →")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(T.primary)
+                    }
+                }
+                .padding(.horizontal, 28)
+                .padding(.top, 18)
+
+                Spacer()
+
+                Text("Tomoshibi v0.1.0-demo · 2026 AC 入試プロジェクト")
+                    .font(.system(size: 10.5, design: .monospaced))
+                    .foregroundStyle(T.inkMute)
+                    .kerning(0.4)
+                    .padding(.bottom, 32)
+            }
+        }
+    }
+
+    // JSX: 2-tab segmented control, bg T.pill, padding 3
+    @ViewBuilder
+    private var modeTab: some View {
+        HStack(spacing: 0) {
+            tabBtn(title: "番号で", active: mode == .number) { mode = .number }
+            tabBtn(title: "メールで", active: mode == .email) { mode = .email }
+        }
+        .padding(3)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(T.pill)
+        }
+    }
+
+    @ViewBuilder
+    private func tabBtn(title: String, active: Bool, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 13.5, weight: .bold))
+                .foregroundStyle(active ? T.primary : T.inkSub)
+                .frame(maxWidth: .infinity)
+                .frame(height: 40)
+                .background {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(active ? T.paper : .clear)
+                }
+                .shadow(color: active ? Color(hex: 0x0f1e22, alpha: 0.08) : .clear, radius: 6, x: 0, y: 2)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func tryLogin() {
+        let idOk: Bool
+        switch mode {
+        case .number:
+            // "00" 旧 magic + SEED.user.account（例 "0618"）
+            idOk = acc == "00" || acc == SEED.user.account
+        case .email:
+            idOk = email.lowercased() == "otogi2025@gmail.com" ||
+                   email.lowercased() == SEED.user.email.lowercased()
+        }
+        if idOk {
+            router.replace(.home)
+        } else {
+            router.go(.lockout)
+        }
+    }
+}
+
+#Preview("Login") {
+    LoginView()
+        .environmentObject(RouterStore())
+        .environmentObject(AppStore())
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - §0.9 LockoutView
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// JSX:
+//   100×100 danger circle bg T.dangerBg, Ic.lock(36) scale(1.6) fg T.danger
+//   "ログイン試行が多すぎます"  fontSize:20, weight:700, T.ink
+//   "MM:SS" fontSize:48, weight:700, mono, T.danger, letterSpacing 0.04em, margin 16/0
+//   "寮監に通知しました\nセキュリティのためロック中です"  fontSize:13, T.inkSub, lineHeight 1.6
+//   upgrade hint (amber pill): fontSize:11.5, T.warnDeep, padding 10×14, radius 10
+//   30s countdown → router.replace(.login)
+
+struct LockoutView: View {
+    @EnvironmentObject var router: RouterStore
+    @State private var sec: Int = 30
+    @State private var timer: Timer? = nil
+
+    private var mm: String { String(format: "%02d", sec / 60) }
+    private var ss: String { String(format: "%02d", sec % 60) }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Spacer()
+
+            // 100×100 danger circle + lock icon
+            ZStack {
+                Circle()
+                    .fill(T.dangerBg)
+                    .frame(width: 100, height: 100)
+                LockIcon(size: 36)
+                    .foregroundStyle(T.danger)
+                    .scaleEffect(1.6)
+            }
+            .padding(.bottom, 24)
+
+            Text("ログイン試行が多すぎます")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(T.ink)
+                .padding(.bottom, 8)
+
+            // Countdown
+            Text("\(mm):\(ss)")
+                .font(.system(size: 48, weight: .bold, design: .monospaced))
+                .foregroundStyle(T.danger)
+                .kerning(1.9) // 0.04em on 48 ≈ 1.9
+                .padding(.vertical, 16)
+
+            Text("寮監に通知しました\nセキュリティのためロック中です")
+                .font(.system(size: 13))
+                .foregroundStyle(T.inkSub)
+                .multilineTextAlignment(.center)
+                .lineSpacing(5)
+
+            // Upgrade hint pill (amber)
+            VStack(spacing: 2) {
+                Text("現在 1 回目のロック（30 秒）")
+                Text("次回失敗で 1 分間ロックに上がります")
+            }
+            .font(.system(size: 11.5))
+            .foregroundStyle(T.warnDeep)
+            .multilineTextAlignment(.center)
+            .lineSpacing(3)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(T.warnBg)
+            }
+            .padding(.top, 28)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(T.paper.ignoresSafeArea())
+        .onAppear { startTimer() }
+        .onDisappear { stopTimer() }
+    }
+
+    private func startTimer() {
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            Task { @MainActor in
+                guard sec > 0 else { return }
+                sec -= 1
+                if sec == 0 {
+                    stopTimer()
+                    router.replace(.login)
+                }
+            }
+        }
+    }
+
+    private func stopTimer() {
+        timer?.invalidate()
+        timer = nil
+    }
+}
+
+#Preview("Lockout") {
+    LockoutView()
+        .environmentObject(RouterStore())
+        .environmentObject(AppStore())
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - §0.10 PwResetView
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// JSX:
+//   header PageHeader level=2 title "パスワードをリセット"
+//   body: fontSize:15, T.ink, lineHeight:1.75
+//     "パスワードのリセットは App 内では行えません。寮監に直接お声がけください。
+//      寮監がシステム後台で手動でリセットします。"
+//   info box: padding 14×16, radius 14, bg T.primary0a, border T.primary22
+//     "ℹ リセット後、新しいパスワードが寮監から伝えられます"
+//   footer: "戻る" PrimaryBtn full  → go('/login')
+
+struct PwResetView: View {
+    @EnvironmentObject var router: RouterStore
+
+    var body: some View {
+        VStack(spacing: 0) {
+            RegisterHeader(title: "パスワードをリセット")
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("パスワードのリセットは App 内では行えません。寮監に直接お声がけください。寮監がシステム後台で手動でリセットします。")
+                        .font(.system(size: 15))
+                        .foregroundStyle(T.ink)
+                        .lineSpacing(8) // 1.75 on 15 ≈ 11; per line extra ≈ 8
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    // Info box
+                    HStack(alignment: .top, spacing: 6) {
+                        Text("ℹ")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(T.primary)
+                        Text("リセット後、新しいパスワードが寮監から伝えられます")
+                            .font(.system(size: 12.5))
+                            .foregroundStyle(T.primaryDk)
+                            .lineSpacing(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.vertical, 14)
+                    .padding(.horizontal, 16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(T.primary.opacity(0.04)) // 0a hex → ~0.04
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(T.primary.opacity(0.13), lineWidth: 1) // 22 hex → ~0.13
+                    }
+                }
+                .padding(.horizontal, 28)
+                .padding(.top, 24)
+                .padding(.bottom, 24)
+            }
+
+            VStack(spacing: 0) {
+                PrimaryButton(title: "戻る") {
+                    router.replace(.login)
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                .padding(.bottom, 32)
+            }
+            .background(T.paper)
+        }
+        .background(T.paper.ignoresSafeArea())
+    }
+}
+
+#Preview("PwReset") {
+    PwResetView()
+        .environmentObject(RouterStore())
+        .environmentObject(AppStore())
+}
