@@ -248,11 +248,11 @@ CREATE TABLE teachers (
   email           TEXT NOT NULL UNIQUE,
   password_hash   TEXT NOT NULL,
   role            TEXT NOT NULL CHECK (role IN (
-    '寮務部長','寮務課長','国際交流部長','管理係',
+    '寮務部長','寮務課長','国際交流部長','国際交流課長','管理係',
     '寮監','学習担当','寮務一般教师'
   )),
-  -- 注: 4-30 实物表 evidence 显示「国際交流課長」实际不存在（老师 LINE 误写）→ ENUM 删除
   -- 注: 4-30 D12 → 加「管理係」单独 role（实物表必有审批人）
+  -- 注: 4-30 itsuki 補正 → 「国際交流課長」役职は存在する（外泊届表に印欄が無いだけ、帰国届等 他届で関与する可能性）→ ENUM 保留
   -- 注: 「担任」不在本 ENUM — 通过下面 class_teacher_assignment 表关联（D11 拍板）
   assigned_dorm   SMALLINT CHECK (assigned_dorm IS NULL OR assigned_dorm IN (1, 2, 4)),
   -- NULL = 跨寮（如 寮務部長）/ 1 = 男寮（暗指 1+2 合同）/ 4 = 女寮（D2 拍板方案 A）
@@ -330,9 +330,10 @@ CREATE TABLE application_approvals (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   application_id  UUID NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
   approver_role   TEXT NOT NULL CHECK (approver_role IN (
-    '担任','寮務部長','寮務課長','国際交流部長','管理係'
+    '担任','寮務部長','寮務課長','国際交流部長','国際交流課長','管理係'
   )),
-  -- 4-30 实物表 evidence 反映: 担任 + 管理係 必有 / 国際交流課長 不存在
+  -- 4-30 实物表 evidence: 外泊届の chain 図には 担任 + 寮務課長 + 管理係（一般）/ + 国際交流部長 + 寮務部長（留学生）が必有
+  -- 「国際交流課長」は外泊届チェーンには印欄無いが、帰国届等の他届で関与する可能性 → ENUM 保留（実物表入手後 chain 生成ロジックで条件分岐）
   approver_id     UUID REFERENCES teachers(id),             -- NULL = 还没承认
   decided_at      TIMESTAMPTZ,
   decision        TEXT CHECK (decision IN ('approve','reject')),
@@ -875,7 +876,7 @@ dev/staging 用，触发 `email_send` 验证 provider 联通。
 | **D1** | 邮件 provider | ✅ **SendGrid** | §5.6 |
 | **D2** | `teachers.assigned_dorm` 编码方案 | ✅ 方案 A（`1` 暗指 1+2、业务层翻 `IN (1,2)` filter）| §4.3 / 全 dorm filter |
 | **D3** | 学生能否撤回未承认的出寮届？ | ✅ 能（leave_date 前 24h 之前；后端记 `withdrawn_at`）| §5.2.4 / iOS UI |
-| **D4** | **外泊届 / 帰国届 / 帰省届 承认 chain** | ✅ **实物表为准**（2026-04-30）：<br>• 外泊（一般）= **担任 + 寮務課長 + 管理係 = 3 人**<br>• 外泊（留学生）= **担任 + 国際交流部長 + 寮務課長 + 寮務部長 + 管理係 = 5 人**<br>• 帰省 / 帰国 chain = ⏳ 实物表 evidence 待 itsuki 补<br>**老师 4-29 LINE 文字推测被推翻**（漏写「担任」+「管理係」+「国際交流課長」实际不存在）| §4.5 / approval_chain 生成 |
+| **D4** | **外泊届 / 帰国届 / 帰省届 承认 chain** | ✅ **实物表为准**（2026-04-30）：<br>• 外泊（一般）= **担任 + 寮務課長 + 管理係 = 3 人**<br>• 外泊（留学生）= **担任 + 国際交流部長 + 寮務課長 + 寮務部長 + 管理係 = 5 人**<br>• 帰省 / 帰国 chain = ⏳ 实物表 evidence 待 itsuki 补<br>**老师 4-29 LINE 文字推测被推翻**（漏写「担任」+「管理係」+「国際交流課長」外泊届 chain 上不出现 — 但役职作为存在、帰国届等他届で関与する可能性、ENUM 保留）| §4.5 / approval_chain 生成 |
 | **D5** | 学生成功登录后 `lock_level` 清零 | ✅ 是（清 `failed_count` + `lock_level=0`）| §5.1.1 |
 | **D6** | v1 部署 target | ✅ itsuki 自有 VPS（先 staging）| §9 |
 | **D7** | API 前缀 vs subdomain | ✅ `/api/v1/` 同 host | 全 API |

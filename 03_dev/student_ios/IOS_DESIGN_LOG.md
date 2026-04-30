@@ -607,7 +607,7 @@ extension Color {
 | **I8** | demo scaffold 削除タイミング | ✅ **API 接続後即** + `#if DEBUG` で preview/snapshot 用 temporary 保留 |
 | **I9** | 学号 6 桁 入力 UX | ✅ **3 picker**（本档 §3.9.2 既決） |
 | **I10** | iOS 26 Min 制約 | ✅ **iOS 26 only** 既決 |
-| **I11** | **ApplicationDetailView 承认 chain 显示**（実物表対照、2026-04-30 D4 から）| ⏳ UI 動的 3 / 5 行切替（`student.is_overseas` + `application.kind`）。役职名称: 担任 / 寮務課長 / 管理係 / 国際交流部長 / 寮務部長（**「国際交流課長」は無し**）|
+| **I11** | **ApplicationDetailView 承认 chain 显示**（実物表対照、2026-04-30 D4 から）| ⏳ UI 動的切替（`student.is_overseas` + `application.kind`）。**外泊届の場合**: 一般 = 3 行（担任 / 寮務課長 / 管理係）/ 留学生 = 5 行（+ 国際交流部長 / 寮務部長）。**帰省 / 帰国届** chain は実物表 evidence 待ち。「国際交流課長」役职は存在するが外泊届チェーンには出現しない（他届で関与する可能性）|
 
 ### 11.10 P1 / P2 / P3
 
