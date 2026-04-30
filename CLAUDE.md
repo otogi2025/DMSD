@@ -184,6 +184,7 @@ DMSD/
 3. 不假设 itsuki 有任何先验知识（变量 / API / HTTP / 数据库都要解释）
 4. 出练习题尽量结合 DMSD 场景（点呼、扣分、签到）
 5. **讨论 = 产出，不等会话结束**（2026-04-20 itsuki 新规则）— 每轮讨论完拍板重大决策后**立即**检查是否要更新 CLAUDE.md / `02_design/` 等权威文档，**当场改**，不攒到会话结束的 5 步流程里。触发点：议题切换前、推翻旧决策后、产生新技术栈/新规则时。详见 memory `feedback_discuss_means_produce.md`。itsuki 原话："我跟你讨论，最终目的是让你产出，以后别忘了记得加到 CLAUDE.md 里"
+6. **术语 / 代号 / 日语 / 英文缩写第一次出现就翻译**（2026-04-30 itsuki 新规则）— 任何**项目内部代号**（R1-R4 / Q1-Q12 / S/D/L 编号 / G2 / M1-M5 / Phase / Tier / #1-#39 等）、**日语词**（寮監 / 寮務 / 一本道 / 帰省 / 外泊 / 帰国 / 願い出 等）、**英文缩写**（UX / UI / API / SDK / NFC / HCE / BTR / TTS / Universal Link 等）第一次出现都要给**中文意思 / 全名展开 / 大白话解释**。**对话和文档都适用**（TODO / WIP / spec / raw / commit message 任何 itsuki 会读的部分）。大白话优先,术语后置(术语放括号里)。长文档结尾加"术语小词典"给 itsuki 复习用。详见 memory `feedback_explain_terms_to_itsuki.md`。itsuki 原话："我需要你用我可以看懂的语言跟我对话给我介绍" / "看你说的话很费脑子"
 
 ## 代码编写原则
 

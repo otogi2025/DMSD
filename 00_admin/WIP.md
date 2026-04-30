@@ -91,6 +91,34 @@
 
 ## 🔄 进行中的任务
 
+> **2026-04-30 启动**: 38 条老师反馈 3 轨并行 — 路线图详见 `00_admin/TODO.md §🛣️ 推进路线图`。
+
+### [Mac-轨道A] 38 条状态盘点（2026-04-30 ✅ **DONE**）
+
+**完成** 2026-04-30 by 当前主会话
+**结果**: ✅ 设计完成 34 / 39 + ⏳ 设计待补 3 / 39（#21 #28 #30）+ 🚫 已砍 2 / 39（#35 #36）+ 🔧 全部 37 / 39 待实装(轨道 C)
+**落地**: `00_admin/TODO.md §📊 baseline` + 38 条逐条 emoji 前缀 + Q1-Q11 ✅ + Q12 ⚠️ 矛盾保留
+**raw dump**: `05_logs/raw/2026-04-30.md §1-§3`
+**未提 commit**(等 itsuki review)
+
+### [Mac-轨道B] §9 + Q12 拍板（2026-04-30 启动）
+
+**认领文件（主写）**: `02_design/system_features.md §9`（拍板消化）+ 拍板结论落地到 §3/§6/§7 对应位置
+**只读**: TODO.md / 设计文档全
+**目标**: 8 条 (a)-(h) + Q12 杭田 UI 矛盾 全部出结论
+- (a) 罚则 config 化 / (b) 学号变更要不要老师承认 / (d) 指导履历给学生看不看 / (e) 寮監当番 / (f) 高中名单 reset 时期 / (g) 寮物理关系 / (h) 杭田 UI 参不参考 / Q12 矛盾
+**冲突回避**: 不动 TODO.md / 不动 03_dev/REQUIREMENTS.md / 不动 §7 子节（§7 = C 的可写区）
+
+### [Mac-轨道C] 实装包拆分（2026-04-30 启动）
+
+**认领文件（主写）**: 新建 3 文件
+- `03_dev/backend/REQUIREMENTS.md`
+- `03_dev/teacher_web/REQUIREMENTS.md`
+- `03_dev/student_ios/REQUIREMENTS.md`
+**只读**: `02_design/system_features.md §7` + `01_specs/rollcall/RollCall_Spec.md` + IOS/WEB_DESIGN_LOG + TODO.md
+**目标**: P0 核心模块（出寮届 #1-9 + 点呼/学習 #14-20）的需求 brief 写到 code agent 输入级别。P1/P2/P3 可后续会话续写。
+**冲突回避**: 不动 TODO.md / 不动 system_features.md §9 / §7 子节大改前先和 itsuki 确认（避免与 B 撞）
+
 ### [Mac-demo-sprint] 4-28 Demo 冲刺（D1 · 2026-04-21）
 
 **认领文件**：
