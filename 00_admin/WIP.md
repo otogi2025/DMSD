@@ -16,7 +16,8 @@
 **当前版本**: v0.7.0（2026-04-30 晚 close — 三轨 A+B+C 同日完成：38 条 B 标准 baseline + system_features §9 8 条拍板 + 实装包拆分到 BACKEND/iOS/Web LOG + 实物表 evidence 推翻 LINE 文字推测 + 沟通规则 #6 + SOP §8.5 版本路线图）<!-- VERSION_OK -->
 **版本管理 SOP**: `00_admin/版本管理SOP.md`（CC 改 spec / 02_design / 03_dev 主体后必读 §2 决策树）
 
-**最后更新**: 2026-04-30 晚 by [Mac-主会话] — **v0.7.0 close**（5 commit 归入：`604bc9b` 轨道A baseline / `4272fc7` 轨道B §9 拍板 / `f25255b` SOP §8.5 路线图 / `6f508d4` 轨道B-followup / `184c0c6` 轨道C 实装包拆分 + 本 release commit）：三轨 A+B+C 同日完成 38 条老师反馈的「设计 → 拍板 → 实装 brief」全闭环。SOP §4 必改 6 处全同步：CHANGELOG / WIP 头部 / 版本演变一览 / v0.7.0_AC叙事.md（CC 起草等审）/ raw/2026-04-30.md §9 / git tag 等 itsuki 明示。**仍 ❌ 不动**：#21 老龄宿管老师 iPad UI / #30 教师当天代录 — B/C 范围外，留 v0.7.x patch 单议题处理。 <!-- VERSION_OK -->
+**最后更新**: 2026-04-30 夜 by [Mac-会话B-backend] — **会话 B backend P0 起手版 close**：`03_dev/backend/v1/` 从零搭建（FastAPI + SQLAlchemy 2.x 同期 + SQLite/PG + bcrypt + JWT），覆盖完成定义 4 项：(1) **#2 schema** = 帰省/外泊/帰国 三种 discriminated Pydantic + ORM models（applications + application_approvals + students + teachers + class_teacher_assignment + notification_log + audit_logs）(2) **#5 GET /applications/{id}** = 学生本人 + 教师 dorm filter 两路、承认 chain 全段返回 (3) **#6 SendGrid 邮件** = 提交时按 D4 实物表 chain → 全 chain 役职 email 一斉送信 + notification_log 记录 + 失败不阻塞 + dev mode（无 KEY 时降级 pending）+ `POST /notifications/test` smoke (4) **#7 食堂 Excel** = `GET /meals/calc`(JSON debug) + `GET /meals/export`(.xlsx) 双 sheet「日別集計 + 学生別詳細」openpyxl 实装、朝7/昼12/夕18 食时刻暫定值。**chain 实装**: 外泊 D4 实物表 evidence 为準（一般 3 行 / 留学生 5 行）/ 帰省・帰国 evidence 待補 → `EXTERNAL_ROLES_BY_KIND` 暫定値 + `PROVISIONAL_CHAINS` flag + response 头 `X-Approval-Chain-Provisional: true` 警告。**測試**: pytest 19 ケース全 pass（chain D4 5/3 行 / 暫定 / 他人届 403 / #3 出寮日今日 422 / Excel バイナリ妥当性 / SendGrid dev mode pending）。**seed**: 役职 7 種網羅（寮務部長/課長 + 国際交流部長/課長 + 管理係 + 寮監 + 学習担当）+ 担任 2 + 学生 2（留学生 060218 + 一般 060103）+ 共通密码 `tomoshibi-dev-2026`。**未实装**（後續会話）: 役职承認 #10-#13 / 学習出席 / 点呼 / Alembic migration / async 化 / Refresh token rotation。**实装的不动文件遵守**: `03_dev/student_ios/v1/*` (会话 A) / `03_dev/teacher_web/v1/*` (会话 C) は触っていない。 <!-- VERSION_OK -->
+**上一次更新（保留参考）**: 2026-04-30 晚 by [Mac-主会话] — **v0.7.0 close**（5 commit 归入：`604bc9b` 轨道A baseline / `4272fc7` 轨道B §9 拍板 / `f25255b` SOP §8.5 路线图 / `6f508d4` 轨道B-followup / `184c0c6` 轨道C 实装包拆分 + 本 release commit）：三轨 A+B+C 同日完成 38 条老师反馈的「设计 → 拍板 → 实装 brief」全闭环。SOP §4 必改 6 处全同步：CHANGELOG / WIP 头部 / 版本演变一览 / v0.7.0_AC叙事.md（CC 起草等审）/ raw/2026-04-30.md §9 / git tag 等 itsuki 明示。**仍 ❌ 不动**：#21 老龄宿管老师 iPad UI / #30 教师当天代录 — B/C 范围外，留 v0.7.x patch 单议题处理。 <!-- VERSION_OK -->
 **上一次更新（保留参考）**: 2026-04-30 by [Mac-轨道C] — **轨道 C close**：(1) 起手按 itsuki prompt 字面新建了 3 个 `REQUIREMENTS.md`，被 itsuki 指出违反"既存 LOG 已覆盖 + 单源真值"原则 → 全合并到既存 LOG（backend `BACKEND_DESIGN_LOG.md` 新建对称 / iOS+Web LOG §11 v1.0 实装清单 append + 砍重复段）+ 删原 REQUIREMENTS.md (2) **当日 25+ 条决策清完**：D1 SendGrid（自建 SMTP deliverability 劝退）/ D2-D9 一次过按 CC 推荐 / D5+I6+D10 注册即用 / D11 担任单独表 `class_teacher_assignment` / D12 ENUM 加管理係 / W1 升级 TS+Vite+Zustand / I1-I10 + W2-W8 一次过 (3) **⭐⭐⭐ 实物表 vs LINE 文字 evidence 推翻** — itsuki 给 2 张实物外泊届表，CC 之前所有 chain 推测被推翻：担任 + 管理係 必有（LINE 漏写）/ 国際交流課長 实际不存在（LINE 误写）/ 一般外泊 = 3 人 vs CC 推 2 人 / 留学生外泊 = 5 人 vs CC 推 4 人 → system_features §7.2.2 修订 + backend D4 ✅ + I11 / W9 实装 brief 调整 (4) `CLAUDE.md` + `00_admin/文件结构指南.md` 加 BACKEND_DESIGN_LOG 指针 (5) `TODO.md` 加「📦 轨道 C」section 含 evidence 缺口（帰省 / 帰国 实物表 ×4 + 担任 seed）(6) `raw/2026-04-30.md §7` dump 完整含 ⭐⭐⭐ AC 候选「信息源选择 lesson — chat 文字 vs 物理事实」+ CC 4 mistake 自审。 <!-- VERSION_OK -->
 **上一次更新（保留参考）**: 2026-04-30 晚 by [Mac-轨道B] — **轨道 B close**（commit `4272fc7`）：§9 8 条 (a)-(h) + Q12 全部拍板 + 落地 `system_features.md` 8 处章节（§3.3 寮物理关系 / §3.4 账号运用 4-30 修订 / §4.2 学号生命周期 / §5 房间号 M/A/W 编码新建 / §6 改动履历字段重分类 / §7.1+§7.10+§7.13 矩阵+通知 / §7.3 晚自习 UX 大扩充 / §8.1+§8.6 数据模型 + §9 全 close + §10 改订历史 +1 行）+ `raw/2026-04-30.md` 新建（轨道 A §1-§4 38 条 baseline + 沟通规则升级 ⭐⭐ AC 候选 + 轨道 B §5 8 条拍板含 (d) 指导履歴 scope 警觉 + (h) memory 自我修正 ⭐⭐ AC 候选 + §6 § 符号偏好 ⭐⭐ AC 候选）+ WIP §🔄 [Mac-轨道B] 标 ✅ DONE。**不 bump v0.6.0**（itsuki 明示）— 等轨道 C 完成统一评估。 <!-- VERSION_OK -->
 **上一次更新（保留参考）**: 2026-04-29 晚 by [Mac-主会话] — **v0.6.0 close**（commit `fd111be`、tag 已打、push 已发）：(1) **老师 4-29 LINE 38 条受领** → TODO.md 顶部最高优先级 backlog + R1-R4 4 条硬约束锁定 + Q1-Q12 已答 11 个 + itsuki 4 条砍/留（学生发帖/社区/匿名 砍 + 音乐 留）(2) **RollCall_Spec.md 5 处时序修订**：§4.2 老师时刻表加列「应开始 -5min / 兜底自动 -3min」+ §5.2 流程 3→5 步 + §5.4 推翻平移规则改"窗口固定" + §5.5 自动开始时点 window_start → on_time_end-3min + §5.6 「点呼総結」中层页新增（4 区块：缺席/迟到/特殊要求/外宿自动跳过）+ 附录 A.4 ✅ CLOSED (3) **system_features.md 中文骨架大重写**：357→830 行，删文件级 v0.x 版本号（违反单源真值）+ §2 R1-R4 顶部新章 + §3 5 角色+设备分布 + §7 14 子节功能矩阵全覆盖老师 38 条 + §8 数据模型扩充（applications/study/events/bus/meals/teachers + R4 一致性 CHECK）+ APPENDIX A 老师 LINE 原文 evidence (4) **03_dev demo/v1 分离**：backend/teacher_web/student_ios 各自分 demo/v1 + 4 README.md 占位 + bin/sync-ios-refs.sh 路径修正 designs→demo + LATEST.md/文件结构指南.md 同步 (5) **AC 记录**：raw §13 ⭐⭐⭐ 档案体系治理思维（~2000 字方法论级，"整理一次不够要建立规范"）+ §14 ⭐⭐ CC 第一次完整跑 SOP 自主决策 bump (6) **CLAUDE.md / CLAUDE_CODE_记录指南.md** 触发清单加一条「档案体系/文件管理规范 元思考」让 CC 主动识别同类元决策 (7) **SOP §4 必改 6 处全同步**：CHANGELOG / WIP 头部 / 版本演变一览 / v0.6.0_AC叙事.md（CC 起草等 itsuki 审）/ raw §14 / git tag v0.6.0 (8) **3 commit chain**：0d1da76（itsuki cleanup checkpoint） → d590159（CLAUDE.md 指针化 by 别会话） → fd111be（本 release）。 <!-- VERSION_OK -->
@@ -96,6 +97,39 @@
 
 > **2026-04-30 启动**: 38 条老师反馈 3 轨并行 — 路线图详见 `00_admin/TODO.md §🛣️ 推进路线图`。
 
+### [Code-iOS-会话C] iOS 状态列表 + 资源显示（2026-04-30 晚 ✅ **DONE**）
+
+**任务**: 老師 38 条反馈 #5 / #8 / #9 的 iOS 实装（mock 数据，B 后端就位后切真 API）。
+
+**新增文件**（全部位于尚未 git 追踪的 `03_dev/student_ios/v1/TomoshibiApp/`）:
+- `Features/StayList/StayListStubs.swift` — `StayListView`（申請履歴 一覧 + chain 摘要 dot 列）+ `StayDetailView`（縦 timeline 各役职 决定 + 时刻 + comment）+ `ApprovalChainBuilder`（IOS_DESIGN_LOG §11.9 I11 規則: 外泊・一般 = 3 行 / 外泊・留学生 = 5 行 / 帰省・帰国 = 暂同外泊待 evidence）+ `BusListMock` 占位
+- `Features/Schedule/ScheduleStubs.swift` — `ScheduleView`（任意月スクロール対応の月历 + 日选 + 多 dot 表示），`YearMonth` 値型自前計算（DateComponents + Asia/Tokyo 固定）。詳細は既存 `EventDetailView`（CommunityStubs.swift）再利用
+- `Features/BusList/BusListStubs.swift` — `BusListView`（`BusKind` フィルタ tab + 空港便 only switch + 日付別グループ）+ `SpecialBusRoute` 模型（system_features.md §7.6.1 bus_routes に対応）+ `BusListMock`（SEED.busSchedule から派生）
+
+**修改ファイル** (3 件):
+- `Foundation/Routing/Route.swift` — case 追加: `.stayList` / `.stayDetail(id:)` / `.schedule` / `.busList` + displayName 4 件 + isMyBranch 拡張
+- `Root/RootView.swift` — 4 ケースの dispatch 追加（§4 V1 リファレンス系）
+- `Features/MyPage/MyPageStubs.swift` — 「申請履歴」grid block の route を `.apply` → `.stayList` に修正（design 整合）+ Settings list に「行事予定」「特別運航便」2 行追加 → 3 view 全部マイページから到達可能
+
+**API 対応（B 未到位 → 全件 SEED ベースの mock 返却）**:
+| iOS 画面 | backend API（B 完了後切替） | mock 出処 |
+|---|---|---|
+| `StayListView` | `GET /applications/mine` | `StayListMock.all`（SEED.applications を StayApplication に拡張、kind/status から chain 自動生成）|
+| `StayDetailView` | `GET /applications/:id` | 同上 |
+| `ScheduleView` | `GET /events?from=&to=` | `SEED.events` 直読み |
+| `BusListView` | `GET /buses` | `SEED.busSchedule` を `SpecialBusRoute` に変換 |
+
+**チェック**: `swiftc -typecheck` 全 31 ファイルで 0 error / 0 warning（`xcrun --sdk iphonesimulator` で確認済）。Xcode 開いた時の SourceKit「Cannot find type X」は cross-file 解析ノイズで実コンパイルでは無視可。
+
+**未対応 / 申送り**:
+- 帰省・帰国届の chain 真値 = itsuki 实物表 evidence ×4 待ち。`ApprovalChainBuilder.holidayChain` は暫定で外泊と同 chain。実物表入手後は同関数の中身だけ調整（呼出側 view 修正不要）。
+- 留学生フラグ: `SEED.user` に `is_overseas` 無しなので `StayListMock.isOverseas = true` ハードコード（リュウ イヒ = 留学生扱い）。`User` モデル拡張は会话 A の StayForm 側で既に決まってる可能性あり、要確認。
+- API 接続切替時の取り回し: `StayListMock.all` → `URLSession + async/await`（IOS_DESIGN_LOG §11.9 I2）に置換。view 側の `@State`/`@StateObject` パターンは未変更で済むよう、static var → ObservableObject に移行する形が良さそう。
+
+**git commit 対応**: `03_dev/student_ios/v1/TomoshibiApp/` 全体が untracked、A/B/C 三轨混在の WIP。本会話単独 commit は他轨道 untracked Swift コード未取込のため clean clone 編集失敗 → **commit 見送り**、itsuki が三轨収束時に統一 commit 推奨。
+
+
+
 ### [Mac-轨道A] 38 条状态盘点（2026-04-30 ✅ **DONE**）
 
 **完成** 2026-04-30 by 当前主会话
@@ -113,6 +147,35 @@
 **落地**: `02_design/system_features.md` 8 处章节 + §10 改订历史 + 头部时间戳
 **raw dump**: `05_logs/raw/2026-04-30.md §5`(8 条拍板)+ §6(§ 符号 AC 候选 ⭐⭐)
 **已 commit**(本 commit), v0.6.0 不 bump(itsuki 明示)— 等轨道 C 完成后统一评估
+
+### ✅ [Mac-会话B-backend] backend v1.0 P0 起手（2026-04-30 夜 ✅ **DONE**）
+
+**完成** 2026-04-30 夜 by 本会话(Mac-会话B-backend)
+**目的**: 老師 38 条反馈の #2 schema / #5 GET / #6 邮件 / #7 食堂 Excel — 4 任務まとめて backend v1.0 起手版を 0 → 1 で築く（轨道 C で `BACKEND_DESIGN_LOG.md` D1-D12 拍板済 → そのまま実装に落とす）。
+
+**主写区**: `03_dev/backend/v1/`（新規 14 ファイル）
+- `app/` — FastAPI app: main.py / config.py / database.py / deps.py / security.py / models.py / schemas.py / routers/{auth,applications,meals,notifications}.py / services/{approval_chain,email,meals}.py
+- `tests/` — conftest.py + test_smoke.py（19 ケース全 pass）
+- `seed.py` — 役职 7 種網羅 + 担任 2 + 学生 2（留学生 + 一般）seed
+- `requirements.txt` / `.env.example` / `.gitignore` / `README.md`(更新)
+
+**完成定义チェック**:
+- ✅ POST /api/v1/applications（提出 + chain 自動生成 + R1 邮件 trigger）
+- ✅ GET /api/v1/applications/{id}（#5 承认状态、学生本人 / 教師 dorm filter 両対応）
+- ✅ GET /api/v1/applications/mine（自分の履歴）
+- ✅ GET /api/v1/meals/export（食堂 Excel — 2 sheet 双层）+ /meals/calc（JSON debug）
+- ✅ POST /api/v1/notifications/test（SendGrid smoke）
+- ✅ POST /api/v1/sessions/{student,teacher}（JWT login）
+- ✅ 表創建（`Base.metadata.create_all`、Alembic 後續）+ 役职 seed（7 種 + 担任）
+- ✅ SendGrid 発信ロジック（実 API 接続は API_KEY 未設定なので「dev mode = pending 扱い」記録、本物 KEY 入れ次第そのまま稼働）
+
+**chain 設計（D4 实物表 evidence 反映）**:
+- 外泊（一般）= 担任 + 寮務課長 + 管理係 = 3 ✅ 確定
+- 外泊（留学生）= 担任 + 国際交流部長 + 寮務課長 + 寮務部長 + 管理係 = 5 ✅ 確定
+- 帰省・帰国 = ⏳ 暫定（外泊 chain - 国際交流）/ `PROVISIONAL_CHAINS` flag + response header `X-Approval-Chain-Provisional: true` で警告
+- 实物表 ×4 入手後は `app/services/approval_chain.py` の `EXTERNAL_ROLES_BY_KIND` 定数だけ書き換える
+
+**残課題**（後續会話）: Alembic migration / async 化 / Refresh token rotation / lock_level 升級 / 役职承認 #10-#13 / コメント #13 / 学習出席 / 点呼 / 寮監事務室 一覧。
 
 ### ✅ [Mac-轨道C] 实装包拆分（2026-04-30 启动 → 2026-04-30 close）
 
