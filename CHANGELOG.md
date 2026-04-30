@@ -1,6 +1,6 @@
 # Changelog
 
-> **最后更新**: 2026-04-29 晚（**v0.6.0 close** — 老师 4-29 LINE 38 条受领 + RollCall_Spec 5 处时序修订 + system_features 中文骨架大重写 + 03_dev demo/v1 分离）。早些更新：v0.4.0 + v0.5.0 双 minor 闭合 — 4-21 至 4-29 9 天累积一次性 close；文件名 `_v0.1` 去后缀；**版本管理 SOP 建立**
+> **最后更新**: 2026-04-30 晚（**v0.7.0 close** — 三轨 A+B+C 同日完成：38 条 B 标准 baseline + system_features §9 8 条拍板 + 实装包拆分到 BACKEND/iOS/Web LOG + ⭐⭐⭐ 实物表 evidence 推翻 LINE 文字推测 + 沟通规则 #6 + SOP §8.5 版本路线图）。早些更新：v0.6.0 close（老师 4-29 LINE 38 条受领 + RollCall_Spec 5 处时序修订 + system_features 中文骨架大重写）；v0.4.0 + v0.5.0 双 minor 闭合；**版本管理 SOP 建立**
 >
 > 版本号规则：[语义化版本 (SemVer)](https://semver.org/) — 主版本号.次版本号.修订号
 >
@@ -14,6 +14,70 @@
 > 打这些标签的目的：让"讨论了十几种方案才写第一版文档"这件事有可追溯的证据链。
 >
 > **2026-04-20 更新**：10 个 pre-0.1 annotated tag（`v0.0.1` - `v0.0.10`）已追认打在 initial commit `3baa168` 上，每个 tag message 里写了对应版本的核心内容 + 指向 CHANGELOG / raw 的指针。`git tag -l | sort -V` 可以看到完整版本历史。
+
+---
+
+## [0.7.0] - 2026-04-30 晚（三轨 A+B+C 同日完成 — 38 条 B 标准 baseline + §9 8 条拍板 + 实装包拆分 + 实物表 evidence 推翻）
+
+> **为什么 minor bump**（对照版本管理 SOP §2 决策树）：本版本三轨 A+B+C 同日落地 38 条老师反馈的"设计 → 拍板 → 实装 brief"全闭环：
+> - **#1 改了 spec 业务规则主体** → `02_design/system_features.md` 8 处章节修订（§3.3 寮物理关系事实记录 / §3.4 账号运用 4-30 修订 / §4.2 学号生命周期 / §5 房间号 M/A/W 编码新建 / §6 改动履历字段重分类 / §7.1+§7.10+§7.13 矩阵+通知 / §7.3 晚自习 7 tab+双视图 大扩充 / §7.2.2 外泊届承认 chain 实物表修订 / §8.1+§8.6 数据模型 + disclosure_requests 表新建 + §9 全 close + §10 改订历史 +1 行）
+> - **#4 03_dev/ 大幅扩展** → `BACKEND_DESIGN_LOG.md` 新建（对称 iOS / Web 既存 LOG）+ iOS LOG §11 v1.0 实装清单 append + Web LOG §11 v1.0 实装清单 append
+> - **#5 改了 CLAUDE.md 元规则** → §对话规则 第 6 条沟通规则升级（代号/日语/英文缩写第一次出现要翻译）
+>
+> **5 commit 归入本版本**：`604bc9b` 轨道A baseline / `4272fc7` 轨道B §9 拍板 / `f25255b` SOP §8.5 路线图 / `6f508d4` 轨道B-followup / `184c0c6` 轨道C 实装包拆分
+
+### Added — 三轨并行机制 + 39 条 B 标准 baseline + 实装包
+
+**轨道 A：38 条逐条状态盘点（`604bc9b`）**:
+- `00_admin/TODO.md §📊 设计层覆盖度 baseline` 新建 — B 标准（UI 画过 + 字段都列了 + API 形状定了 三项全 = ✅）
+- 38 条 + itsuki 补足 1 条 = 39 条 emoji 前缀逐条标注：✅ 7 / ⏳ 27 / ❌ 3（#21 老龄宿管老师 iPad UI / #28 寮务追加删除学生 / #30 教师当天代录）/ 🚫 2（#35 学生发帖 / #36 匿名建议）
+- Q1-Q11 标 ✅ 完成 + Q12 标 ⚠️ 杭田 UI 矛盾保留 → 轨道 B 处理
+- §🛣️ 推进路线图 — 三轨 A/B/C 总览 + 文件锁定边界 + C 内部优先级 P0-P3
+- 末尾"术语小词典"（R1-R4 / Q1-Q12 / #1-#39 / D-V1-V1.1+ / system_features / RollCall_Spec）
+
+**轨道 B：system_features §9 8 条 (a)-(h) + Q12 全 close（`4272fc7`）**:
+- (a) 罚则数值 → hardcode 常量 + 不上线前确认（§7.12 注解，YAGNI 不做 admin UI）
+- (b) 学号变更 → 学生 read-only / 老师 Web 全权（首次注册除外）（§4.2 + §6 + §7.1 拆 2 行 + §7.13 通知反向）
+- (c) 房间号 → 个室 model + M/A/W 前缀编码（§5.0 编码规则新建：M???=1 寮男 / A?-A??=2 寮男 / W???=4 寮女 / 3 寮废止 + §5.1 backend regex 校验 + §8.1 CHECK 约束）
+- (d) 指导履历 → C 案 默认不显示 + 学生申请开示（§7.10 拆 4 行 + §7.13 通知 +2 + §8.6 disclosure_requests 表新建 8 字段）
+- (e) 寮監账号 → close 寮監几人 + 任意浏览器登录 + 前台禁止自助注册（§3.4 重写 "iPad 共用" → "登录设备不限定" + §7.1 +2 行：寮監账号管理 + 首个 bootstrap）
+- (f) 晚自习名单 → C 案 + 7 tab + 双视图 + 学期前邮件提醒（§7.3 大扩充 UX 详细规格 + 矩阵 5 行）
+- (g) 寮物理关系 → close + 事实记录（§3.3 表加列 + 1+2 寮紧邻 + 全活动合并）
+- (h) + Q12 杭田 UI → close 不存在矛盾（老师允许 + itsuki 拒绝可同时成立 → §9 (h) 删除）
+- §10 改订历史 +1 行
+
+**轨道 C：实装包拆分 + 25+ 条决策（`184c0c6`）**:
+- `03_dev/backend/BACKEND_DESIGN_LOG.md` **新建** — backend 専属設計 + v1.0 实装清单（对称 iOS / Web 既存 LOG）
+- `03_dev/student_ios/IOS_DESIGN_LOG.md §11` **append** — v1.0 实装清单
+- `03_dev/teacher_web/WEB_DESIGN_LOG.md §11` **append** — v1.0 实装清单
+- 当日 25+ 决策清完：D1 SendGrid（自建 SMTP deliverability 劝退）/ D2-D9 一次过按 CC 推荐 / D11 担任单独表 `class_teacher_assignment` / D12 ENUM 加管理係 / W1 升级 TS+Vite+Zustand / I1-I10 + W2-W8 一次过
+- `00_admin/文件结构指南.md` + `CLAUDE.md` 加 BACKEND_DESIGN_LOG 指针
+- `00_admin/TODO.md §📦 轨道 C` section 加 evidence 缺口（帰省 / 帰国 实物表 ×4 + 担任名簿 seed）
+
+**SOP §8.5 版本路线图（`f25255b`）**:
+- 新章节 — v0.7→v0.8 后端 → v0.9 Android → v0.10 iOS+Web 升级 → v1.0 联调上线 + 关键依赖图 + 4 条风险点 + 维护规则
+- 前提（itsuki 4-30 明示）：iOS / Web 前端 demo 改改可用 / Android + 后端从 0 写
+- §12 Onboarding 表加 1 行：用户问"下一个版本是什么" → 读 §8.5
+
+### Changed — `system_features.md §7.2.2` 实物表修订（⭐⭐⭐ AC 候选）
+
+**实物表 evidence 推翻老师 LINE 文字推测**：itsuki 给 2 张实物外泊届表，CC 之前 chain 推测全推翻：
+- 担任 + 管理係 必有（LINE 漏写）
+- 国際交流課長 实际不存在（LINE 误写）
+- 一般外泊 = 3 人（CC 推 2 人）
+- 留学生外泊 = 5 人（CC 推 4 人）
+- → §7.2.2 修订 + backend D4 ✅ + I11 / W9 实装 brief 调整
+
+→ AC 候选：信息源选择 lesson — chat 文字 vs 物理事实（raw §7.2 ⭐⭐⭐）
+
+### Notes — 沟通规则 #6 + 多会话治理升级
+
+- **CLAUDE.md §对话规则 第 6 条新增**（`604bc9b`）：项目内部代号（R1-R4 / Q1-Q12 / G2 / Phase / Tier / #1-#39 等）/ 日语词（寮監 / 寮務 / 一本道 / 帰省 等）/ 英文缩写（UX / API / NFC 等）第一次出现都要给中文意思 / 全名展开 / 大白话解释。对话和文档都适用。memory `feedback_explain_terms_to_itsuki.md` 详细规则 + 术语对照表。
+  - itsuki 原话："我需要你用我可以看懂的语言跟我对话给我介绍" + "看你说的话很费脑子"
+- **CC mistake list 自审**：(1) baseline 第一版用错标准（CC 自定义"列入 system_features.md = ✅" → ✅ 34/39，被 itsuki 推翻 → B 标准重做 → ✅ 7/39）(2) #21 老龄一本道 UX 一句话堆 4 个术语没翻译 (3) 起手按字面新建 3 REQUIREMENTS.md 违反单源真值原则（轨道 C） — 三处 mistake 都被 itsuki 当场纠正
+- **多会话治理实战验证**：A → `00_admin/TODO.md` / B → `02_design/system_features.md §9` / C → `03_dev/{backend,iOS,Web}/REQUIREMENTS.md`（后改名 LOG append） — 三方文件主写区不重合，5 commit 0 冲突
+- **#21 老龄宿管老师 iPad UI / #30 教师当天代录** 仍 ❌ baseline — B/C 范围外，留 v0.7.x patch 单议题处理
+- **AC §6-§8 候选 dump**（`raw/2026-04-30.md`）：§6 § 符号偏好 ⭐⭐ / §7.2 实物表 evidence 推翻 ⭐⭐⭐ / §8 Apple Developer 年费购入 ⭐⭐
 
 ---
 
