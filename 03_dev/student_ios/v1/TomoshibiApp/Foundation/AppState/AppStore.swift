@@ -169,4 +169,69 @@ final class AppStore: ObservableObject {
         guard rollState == .active, rollCountdownSec > 0 else { return }
         rollCountdownSec -= 1
     }
+
+    // MARK: - 学習（晚自习）状态机 — 2026-04-30 後續 itsuki 拍板
+    //
+    // ⚠️ DEMO-ONLY: amber Card 三态切换机制（system_features §7.3.8）
+    // v1.0 上线前必删，改为后端 event 驱动。
+    // memory project_demo_scaffolds_to_remove_before_v1.md #15
+
+    /// 学習开始 10 分前 → upcoming（amber Card 显示倒计时）/ 进行中 → active / 当晚已结束 → done
+    @Published var studyState: StudyState = .idle        // 平常打开 = idle (原扣分点显示)。long press amber Card 切到 upcoming 演示学習
+
+    /// 学習迟到倒计时（upcoming 时秒数）— demo init 600s = 10 分
+    @Published var studyCountdownSec: Int = 600
+
+    /// 当月学習请假次数（> 3 → 弹提醒文案）
+    @Published var studyLeaveCountThisMonth: Int = 3   // demo seed = 3 让 itsuki 提交一次就触发提醒
+
+    /// upcoming 时 1 秒一次 tick（HomeView Timer 同时触发 roll + study）
+    func tickStudyCountdown() {
+        guard studyState == .upcoming, studyCountdownSec > 0 else { return }
+        studyCountdownSec -= 1
+    }
+
+    /// 学習欠席届 提交（system_features §7.3.5）— 提交后 += 1，> 3 触发文案 A
+    func submitStudyLeave(reason: String, range: StudyLeaveRange) {
+        studyLeaveCountThisMonth += 1
+        if studyLeaveCountThisMonth > 3 {
+            // itsuki 4-30 拍板 文案 A
+            showToast("今月、もう \(studyLeaveCountThisMonth) 回お休みされていますね。体調管理、お気をつけて。")
+        } else {
+            showToast("学習欠席届を提出しました")
+        }
+    }
+
+    /// long press study card 切换 demo 状态（roll 同模式）
+    func cycleDemoStudyState() {
+        switch studyState {
+        case .idle:     studyState = .upcoming; studyCountdownSec = 600; showToast("Demo · 学習 10 分前 (倒计时 10:00)")
+        case .upcoming: studyState = .active; showToast("Demo · 学習進行中")
+        case .active:   studyState = .done; showToast("Demo · 学習終了")
+        case .done:     studyState = .idle; showToast("Demo · 学習対象外")
+        }
+    }
+}
+
+// MARK: - 学習状态 + 请假范围 (4-30 後續 拍板)
+
+enum StudyState: String {
+    case idle       // 平常 (非学習时段)
+    case upcoming   // 学習开始 10 分前 → amber Card 显示倒计时
+    case active     // 学習进行中
+    case done       // 当晚学習已结束
+}
+
+enum StudyLeaveRange: String, CaseIterable {
+    case first      // 前半節 19:40-20:40
+    case second     // 後半節 20:45-21:45
+    case both       // 両方
+
+    var label: String {
+        switch self {
+        case .first:  return "前半節（19:40〜20:40）"
+        case .second: return "後半節（20:45〜21:45）"
+        case .both:   return "両方"
+        }
+    }
 }

@@ -29,6 +29,7 @@ private let APPLY_TYPES: [ApplyTypeMeta] = [
     .init(k: "parcel",        name: "代理受取", icon: "shippingbox",                  desc: "不在時の荷物代理受取"),
     .init(k: "guest",         name: "来訪者",   icon: "person.2",                     desc: "家族・友人の来訪"),
     .init(k: "other",         name: "その他",   icon: "ellipsis.bubble",              desc: "上記以外のご依頼"),
+    .init(k: "studyAbsence",  name: "学習欠席", icon: "book.closed",                  desc: "晚自习の欠席届（前半・後半・両方）"),
 ]
 
 private func applyType(_ k: String) -> ApplyTypeMeta {
@@ -281,6 +282,8 @@ struct ApplyFormDispatcher: View {
         // §7.2 字段累積表に従い動的表示（StayForm 内部で kind 判定）
         if kind == "stay" || kind == "holiday" || kind == "returncountry" {
             StayForm(kind: kind)
+        } else if kind == "studyAbsence" {
+            StudyAbsenceForm()
         } else {
             GenericApplyForm(kind: kind)
         }
@@ -911,6 +914,7 @@ private struct DateField: View {
         }
         .labelsHidden()
         .datePickerStyle(.compact)
+        .environment(\.locale, Locale(identifier: "ja_JP"))   // itsuki 反馈: 月份要日语/数字 (西暦 2026年4月)
         .frame(maxWidth: .infinity, minHeight: 42)
         .padding(.horizontal, 8)
         .background {
@@ -928,6 +932,7 @@ private struct TimeField: View {
         DatePicker("", selection: $date, displayedComponents: .hourAndMinute)
             .labelsHidden()
             .datePickerStyle(.compact)
+            .environment(\.locale, Locale(identifier: "ja_JP"))   // itsuki 反馈: 月份/时刻要日语
             .frame(maxWidth: .infinity, minHeight: 42)
             .padding(.horizontal, 8)
             .background {
@@ -965,6 +970,114 @@ private struct MealCheckbox: View {
 
 // ============================================================================
 // §2.5 GenericApplyForm — 共通フォーム (outing / return / repair / parcel / guest / other)
+// ============================================================================
+
+// ============================================================================
+// §2.5 StudyAbsenceForm — 学習欠席届（晚自习请假）· system_features §7.3.5
+// 4-30 後續 itsuki 拍板 — 字段：理由 textarea + 范围 select（前半/后半/両方）
+// ============================================================================
+
+struct StudyAbsenceForm: View {
+    @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
+
+    @State private var reason: String = ""
+    @State private var range: StudyLeaveRange = .first
+
+    var body: some View {
+        VStack(spacing: 0) {
+            PageHeader(title: "学習欠席届", level: 2)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    // §1 範囲 select (3 choices)
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionLabel(n: "1", label: "欠席する範囲")
+                    VStack(spacing: 8) {
+                        ForEach(StudyLeaveRange.allCases, id: \.self) { r in
+                            Button { range = r } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: range == r ? "checkmark.circle.fill" : "circle")
+                                        .font(.system(size: 22))
+                                        .foregroundStyle(range == r ? T.primary : T.inkMute)
+                                    Text(r.label)
+                                        .font(.system(size: 14, weight: range == r ? .semibold : .regular))
+                                        .foregroundStyle(T.ink)
+                                    Spacer()
+                                }
+                                .padding(12)
+                                .background {
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .fill(range == r ? T.primary.opacity(0.06) : T.paper)
+                                }
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .stroke(range == r ? T.primary : T.hair, lineWidth: 1)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+
+                // §2 理由 textarea (必填)
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionLabel(n: "2", label: "理由（必須）")
+                    ZStack(alignment: .topLeading) {
+                        if reason.isEmpty {
+                            Text("欠席する理由を入力してください")
+                                .font(.system(size: 14))
+                                .foregroundStyle(T.inkMute)
+                                .padding(12)
+                        }
+                        TextEditor(text: $reason)
+                            .font(.system(size: 14))
+                            .padding(8)
+                            .frame(minHeight: 120)
+                            .scrollContentBackground(.hidden)
+                    }
+                    .background {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous).fill(T.paper)
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(T.hair, lineWidth: 1)
+                    }
+                }
+                .padding(.horizontal, 16)
+
+                // §3 提出 button
+                Button {
+                    guard !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                        app.showToast("理由を入力してください")
+                        return
+                    }
+                    app.submitStudyLeave(reason: reason, range: range)
+                    router.go(.applyDone(kind: "studyAbsence"))
+                } label: {
+                    Text("提出する")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .background(Capsule().fill(T.primary))
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 32)
+            }
+            .padding(.top, 16)
+            }
+        }
+        .background(T.pearl.ignoresSafeArea())
+    }
+}
+
+#Preview("StudyAbsenceForm") {
+    StudyAbsenceForm()
+        .environmentObject(RouterStore(initial: .applyForm(kind: "studyAbsence")))
+        .environmentObject(AppStore())
+}
+
 // ============================================================================
 
 struct GenericApplyForm: View {
@@ -1459,6 +1572,18 @@ struct ApplyDetailView: View {
     }
 
     var body: some View {
+        // 4-30 後續: 出寮届系（stay/holiday/returncountry/return）→ 显示 chain timeline (StayDetailView)
+        // 老师 #5 要求：申请人能看到 chain 上每个役职是否已许可
+        if ["stay", "holiday", "return", "returncountry"].contains(item.type) {
+            StayDetailView(id: id)
+        } else {
+            otherDetailBody
+        }
+    }
+
+    /// 出寮届以外（修繕 / 来訪 / 代理受取 等）的 demo 3 步 workflow
+    @ViewBuilder
+    private var otherDetailBody: some View {
         let a = item
         let t = applyType(a.type)
         let sp = statusPair(a.status)

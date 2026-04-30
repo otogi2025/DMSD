@@ -110,9 +110,7 @@ struct HomeView: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
-    @State private var tab: Tab = .life
-
-    enum Tab: String, CaseIterable { case life, community, notif }
+    // segmented + Tab 已砍 — itsuki 4-30: 通知去右上角，功能集中到一个页面（unread 留给右上角铃铛 badge）
 
     private var unread: Int {
         SEED.notifications.filter { $0.unread }.count
@@ -134,23 +132,15 @@ struct HomeView: View {
                 pointsCard
                     .padding(.horizontal, 16)
                     .padding(.top, 12).padding(.bottom, 6)
-                    .onReceive(countdownTimer) { _ in app.tickCountdown() }
-
-                // §3 Segmented control  ——  JSX: padding 14px 16px 0
-                segmented
-                    .padding(.horizontal, 16)
-                    .padding(.top, 14)
-
-                // §4 Tab content  ——  JSX: padding 14px 16px 16px
-                Group {
-                    switch tab {
-                    case .life:      LifeTab()
-                    case .community: CommunityTab()
-                    case .notif:     NotifTab()
+                    .onReceive(countdownTimer) { _ in
+                        app.tickCountdown()
+                        app.tickStudyCountdown()  // 4-30 學習 demo
                     }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 14).padding(.bottom, 16)
+
+                // §3 LifeTab 内容直显（segmented + コミュニティ + 通知 tab 砍掉，通知用右上角按钮看）
+                LifeTab()
+                    .padding(.horizontal, 16)
+                    .padding(.top, 14).padding(.bottom, 16)
             }
         }
         .background(T.pearl.ignoresSafeArea())
@@ -235,7 +225,11 @@ struct HomeView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
 
             Group {
-                if app.rollState == .idle {
+                // ⚠️ DEMO-ONLY 三态切换 (system_features §7.3.8 — v1.0 删)
+                // 学習対象学生 + studyState in upcoming/active → study mode 优先
+                if SEED.user.isStudyTarget && (app.studyState == .upcoming || app.studyState == .active) {
+                    studyContent(deepBrown: deepBrown)
+                } else if app.rollState == .idle {
                     idleContent(deepBrown: deepBrown)
                 } else {
                     rollActiveContent(deepBrown: deepBrown)
@@ -246,11 +240,17 @@ struct HomeView: View {
         .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .simultaneousGesture(
             LongPressGesture(minimumDuration: 0.6).onEnded { _ in
-                app.cycleDemoRollState()
+                // 学習 mode 时 cycle study state，否则 cycle roll state
+                if SEED.user.isStudyTarget && app.studyState != .idle {
+                    app.cycleDemoStudyState()
+                } else {
+                    app.cycleDemoRollState()
+                }
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             }
         )
         .animation(.spring(response: 0.34, dampingFraction: 0.82), value: app.rollState)
+        .animation(.spring(response: 0.34, dampingFraction: 0.82), value: app.studyState)
     }
 
     /// absent 時は赤グラデーション、それ以外は amber
@@ -273,6 +273,73 @@ struct HomeView: View {
             ],
             startPoint: .topLeading, endPoint: .bottomTrailing
         )
+    }
+
+    // MARK: study content (4-30 後續 拍板 — ⚠️ DEMO-ONLY · v1.0 删)
+    //
+    // 学習対象学生 + studyState upcoming/active 时 amber Card 显示这套:
+    // - 学習迟到倒计时（mm:ss）
+    // - 「請假」按钮 → 学習欠席届提交
+
+    @ViewBuilder
+    private func studyContent(deepBrown: Color) -> some View {
+        let mm = app.studyCountdownSec / 60
+        let ss = app.studyCountdownSec % 60
+        let countdownText = String(format: "%02d:%02d", mm, ss)
+        let isActive = app.studyState == .active
+        Button { router.go(.applyForm(kind: "studyAbsence")) } label: {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .top) {
+                    Text(isActive ? "学習中" : "学習開始まで")
+                        .font(.system(size: 11, weight: .bold))
+                        .kerning(1.98)
+                        .textCase(.uppercase)
+                        .foregroundStyle(deepBrown.opacity(0.8))
+                    Spacer()
+                    Text(isActive ? "進行中" : "10 分前")
+                        .font(.system(size: 11.5, weight: .bold))
+                        .kerning(0.22)
+                        .padding(.horizontal, 10).padding(.vertical, 3)
+                        .foregroundStyle(deepBrown)
+                        .background(Capsule().fill(Color.white.opacity(0.45)))
+                }
+                .padding(.bottom, 6)
+
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(isActive ? "進行中" : countdownText)
+                        .font(.system(size: 56, weight: .heavy, design: .monospaced))
+                        .kerning(-1.12)
+                        .foregroundStyle(deepBrown)
+                    if !isActive {
+                        Text("分:秒")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(deepBrown.opacity(0.75))
+                    }
+                }
+                .padding(.bottom, 12)
+
+                Text("前半節 19:40〜20:40 ／ 後半節 20:45〜21:45")
+                    .font(.system(size: 12))
+                    .foregroundStyle(deepBrown.opacity(0.85))
+                    .padding(.bottom, 12)
+
+                HStack {
+                    Text("休む場合は")
+                        .font(.system(size: 12))
+                        .foregroundStyle(deepBrown.opacity(0.85))
+                    Spacer()
+                    HStack(spacing: 4) {
+                        Ic.chevR(14)
+                        Text("請假")
+                            .font(.system(size: 12, weight: .bold))
+                    }
+                    .foregroundStyle(deepBrown)
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(Capsule().fill(Color.white.opacity(0.5)))
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: idle content（今月の減点 hero）
@@ -557,44 +624,6 @@ struct HomeView: View {
             }
             .font(.system(size: 10, design: .monospaced))
             .foregroundStyle(deepBrown.opacity(0.7))
-        }
-    }
-
-    // MARK: segmented control · JSX grid 1fr 1fr 1fr / gap 4 / padding 4 / ink.06 bg / radius 12
-
-    private var segmented: some View {
-        HStack(spacing: 4) {
-            ForEach(Tab.allCases, id: \.self) { t in
-                Button { withAnimation(.easeInOut(duration: 0.15)) { tab = t } } label: {
-                    Text(label(t))
-                        .font(.system(size: 13, weight: tab == t ? .bold : .medium))
-                        .foregroundStyle(tab == t ? T.ink : T.inkSub)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 34)
-                        .background {
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(tab == t ? T.paper : .clear)
-                                .shadow(
-                                    color: tab == t ? T.ink.opacity(0.08) : .clear,
-                                    radius: 2, x: 0, y: 1
-                                )
-                        }
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(4)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(T.ink.opacity(0.06))
-        )
-    }
-
-    private func label(_ t: Tab) -> String {
-        switch t {
-        case .life:      return "生活情報"
-        case .community: return "コミュニティ"
-        case .notif:     return unread > 0 ? "通知 · \(unread)" : "通知"
         }
     }
 
@@ -916,216 +945,6 @@ struct LifeTab: View {
     }
 }
 
-// ───────────────────────────────────────────────────────────
-// MARK: - CommunityTab · 宿舍墙 + 点歌 Top 3
-// ───────────────────────────────────────────────────────────
-
-struct CommunityTab: View {
-    @EnvironmentObject var router: RouterStore
-
-    var body: some View {
-        VStack(spacing: 10) {
-            wallCard
-            musicCard
-        }
-    }
-
-    // MARK: 宿舍墙 · JSX: top 3 post preview
-
-    private var wallCard: some View {
-        HomeCard(pad: 14) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Text("寮ウォール")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(T.ink)
-                    Spacer(minLength: 0)
-                    Button { router.go(.homeWall) } label: {
-                        Text("すべて見る →")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(T.primary)
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                VStack(spacing: 0) {
-                    ForEach(Array(SEED.wall.prefix(3).enumerated()), id: \.element.id) { idx, p in
-                        wallRow(p: p, isFirst: idx == 0)
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func wallRow(p: WallPost, isFirst: Bool) -> some View {
-        Button { router.go(.homeWall) } label: {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
-                    Avatar(letter: String(p.author.prefix(1)), size: 24)
-                    Text(p.author)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(T.ink)
-                    Spacer(minLength: 0)
-                    Text(p.time)
-                        .font(.system(size: 11))
-                        .foregroundStyle(T.inkMute)
-                }
-                // JSX: lineHeight 1.5 / 13 / ink
-                Text(p.text)
-                    .font(.system(size: 13))
-                    .lineSpacing(3)
-                    .foregroundStyle(T.ink)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                // JSX: gap 12 / 11 inkMute / heart + comment + count
-                HStack(spacing: 12) {
-                    HStack(spacing: 4) {
-                        Ic.heart(12).foregroundStyle(T.inkMute)
-                        Text("\(p.likes)")
-                            .font(.system(size: 11))
-                            .foregroundStyle(T.inkMute)
-                    }
-                    HStack(spacing: 4) {
-                        Ic.comment(12).foregroundStyle(T.inkMute)
-                        Text("\(p.comments)")
-                            .font(.system(size: 11))
-                            .foregroundStyle(T.inkMute)
-                    }
-                }
-                .padding(.top, 2)
-            }
-            .padding(.vertical, 10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .overlay(alignment: .top) {
-                if !isFirst {
-                    Rectangle().fill(T.hair).frame(height: 0.5)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    // MARK: 点歌 · Top 3 preview
-
-    private var musicCard: some View {
-        HomeCard(pad: 14) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Text("リクエスト曲 · 今週候補")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(T.ink)
-                    Spacer(minLength: 0)
-                    Button { router.go(.homeMusic) } label: {
-                        Text("すべて見る →")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(T.primary)
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                VStack(spacing: 0) {
-                    ForEach(Array(SEED.songs.prefix(3).enumerated()), id: \.element.id) { idx, s in
-                        musicRow(idx: idx, s: s)
-                    }
-                }
-            }
-        }
-    }
-
-    private func musicRow(idx: Int, s: SongItem) -> some View {
-        HStack(spacing: 10) {
-            // JSX: mono 14 bold / primary if idx 0 else inkMute / w 18
-            Text("\(idx + 1)")
-                .font(.system(size: 14, weight: .bold, design: .monospaced))
-                .foregroundStyle(idx == 0 ? T.primary : T.inkMute)
-                .frame(width: 18, alignment: .leading)
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text(s.title)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(T.ink)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                Text(s.artist)
-                    .font(.system(size: 11))
-                    .foregroundStyle(T.inkMute)
-            }
-            Spacer(minLength: 0)
-            // JSX: up + mono 11 bold / ok color
-            HStack(spacing: 4) {
-                Ic.up(12).foregroundStyle(T.ok)
-                Text("\(s.up)")
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundStyle(T.ok)
-            }
-        }
-        .padding(.vertical, 8)
-        .overlay(alignment: .top) {
-            if idx > 0 {
-                Rectangle().fill(T.hair).frame(height: 0.5)
-            }
-        }
-    }
-}
-
-// ───────────────────────────────────────────────────────────
-// MARK: - NotifTab · 5 notification card with pill tone
-// ───────────────────────────────────────────────────────────
-
-struct NotifTab: View {
-    @EnvironmentObject var router: RouterStore
-
-    var body: some View {
-        VStack(spacing: 8) {
-            ForEach(SEED.notifications) { n in
-                HomeCard(pad: 14, onTap: { router.go(.homeNotifications) }) {
-                    HStack(alignment: .top, spacing: 10) {
-                        // JSX: 8×8 dot primary if unread; else 8 placeholder
-                        if n.unread {
-                            Circle()
-                                .fill(T.primary)
-                                .frame(width: 8, height: 8)
-                                .padding(.top, 6)
-                        } else {
-                            Color.clear.frame(width: 8, height: 8)
-                                .padding(.top, 6)
-                        }
-                        VStack(alignment: .leading, spacing: 3) {
-                            HStack {
-                                NotifPill(text: n.type, tone: pillTone(for: n.type))
-                                Spacer(minLength: 0)
-                                Text(n.time)
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(T.inkMute)
-                            }
-                            // JSX: 14 700 / marginBottom 2
-                            Text(n.title)
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(T.ink)
-                                .multilineTextAlignment(.leading)
-                            // JSX: 12 inkSub / lineHeight 1.5
-                            Text(n.body)
-                                .font(.system(size: 12))
-                                .lineSpacing(2)
-                                .foregroundStyle(T.inkSub)
-                                .multilineTextAlignment(.leading)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /// JSX: type=='減点' → warn, type=='申請' → ok, else → accent
-    private func pillTone(for type: String) -> NotifPill.Tone {
-        switch type {
-        case "減点": return .warn
-        case "申請": return .ok
-        default:    return .accent
-        }
-    }
-}
 
 // ───────────────────────────────────────────────────────────
 // MARK: - RollcallSheet · 4 态 state machine (⭐ money shot)
@@ -1802,25 +1621,6 @@ private struct FlowLayout: Layout {
     .environmentObject(AppStore())
 }
 
-#Preview("CommunityTab") {
-    ScrollView {
-        CommunityTab()
-            .padding(16)
-    }
-    .background(T.pearl.ignoresSafeArea())
-    .environmentObject(RouterStore(initial: .home))
-    .environmentObject(AppStore())
-}
-
-#Preview("NotifTab") {
-    ScrollView {
-        NotifTab()
-            .padding(16)
-    }
-    .background(T.pearl.ignoresSafeArea())
-    .environmentObject(RouterStore(initial: .home))
-    .environmentObject(AppStore())
-}
 
 #Preview("RollcallSheet") {
     ZStack {
