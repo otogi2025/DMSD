@@ -97,8 +97,9 @@ DMSD/
 | 5 AC 核心问题 | 本文件 §5 个 AC 核心问题 | "见 CLAUDE.md §5 个 AC 核心问题" |
 | 分阶段策略 | `CHANGELOG.md` + `RollCall_Spec_*.md §1` | 用指针 |
 | **iOS + Web + 後端 共用功能**（账号 / 申請 / 通知 / コミュニティ / 規律）| **`02_design/system_features.md`** | "见 system_features.md §X" |
-| iOS 専属設計（視覚 / flow / Phase）| `03_dev/student_ios/IOS_DESIGN_LOG.md` | 専属項目のみ / 共用機能は system_features に |
-| Web 専属設計（Ryō tokens / 老师動線）| `03_dev/teacher_web/WEB_DESIGN_LOG.md` | 同上 |
+| iOS 専属設計（視覚 / flow / Phase）+ v1.0 实装清单 | `03_dev/student_ios/IOS_DESIGN_LOG.md` | 専属項目のみ / 共用機能は system_features に |
+| Web 専属設計（Ryō tokens / 老师動線）+ v1.0 实装清单 | `03_dev/teacher_web/WEB_DESIGN_LOG.md` | 同上 |
+| 後端専属設計（DB schema / API 形状 / 错误码）+ v1.0 实装清单 | `03_dev/backend/BACKEND_DESIGN_LOG.md` | 同上 |
 
 完整同步点清单 + Release Checklist + Onboarding Checklist → `00_admin/文档同步点清单.md`。
 

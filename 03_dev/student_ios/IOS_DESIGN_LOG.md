@@ -397,4 +397,242 @@ itsuki Q5 指示：**像 Web Round 1 一样，Claude Design 先列 3 variations�
 
 ---
 
+## 11. v1.0 实装清单（2026-04-30 加）
+
+> **作用**: 给 Swift code agent 接手 v1.0 实装的入口章。
+> **agent 阅读顺序**（两层结构）:
+> 1. **共用层（必读）**: `02_design/system_features.md` —— 角色 / 数据模型 / §7 14 子节功能矩阵 / R1-R4 / 38 条要件
+> 2. **专属层（本档全文）**: 本 LOG §1-§9 = iOS 设计决策 + §10 跨档同步 + 本 §11 = 实装层
+> 3. **后端 API 契约**: `03_dev/backend/BACKEND_DESIGN_LOG.md`
+>
+> **跨 repo**: Swift 实装在 `~/dev/TomoshibiiOSApp/`（GitHub `otogi2025/Tomoshibi-iOS`）。本档由 `bin/sync-ios-refs.sh` 物理复制到 `Tomoshibi-iOS/refs/`，cloud agent 通过 refs 读。
+>
+> **决策标记**: ✅ 已定 / 🟡 CC 假设（itsuki 有否决权）/ ⏳ 待拍板（聚集到 §11.9）
+
+### 11.1 P0 范围
+
+| 编号 | 模块 | 来源 |
+|---|---|---|
+| #1 | 自分の届のみ submit（代提交防止） | system_features §7.2 |
+| #2 | 帰省 / 外泊 / 帰国 3 種フィールド | 同上 §7.2.1 |
+| #3 | 出寮日 = 明日以降 | 同上 |
+| #4 | 動的非表示（不要な field 隠す） | 同上 |
+| #5 | 承認状態可視化 | 同上 §7.2.2 |
+| #6 | 役职メール通知 (R1) | iOS 側 = backend が email 送信、iOS は POST するだけ |
+| #13 | 役职コメント受信 | push + in-app |
+| 注册 | 5 step（学年・組・番号・房间号・留学生 flag）| 本档 §3.9 |
+| 認証 | login + 锁定升级 6 段階 | 本档 §3.5 §3.6 |
+
+**P0 範圍外**: 学習欠席届 (Q3) → P1 / 路径 B BTR + Universal Link → P1 / リクエスト曲 → P3 / 個人デ ータ aggregated → P2 / 巴士 + 行事 → P2 / 規律可視 → P3。
+
+### 11.2 技术栈（✅ 已定）
+
+| 層 | 選定 | 理由 |
+|---|---|---|
+| 言語 | **Swift 5.10+** | iOS 26 SDK 必須 |
+| UI | **SwiftUI** | iOS 26 Liquid Glass `.glassEffect()` SwiftUI 専用 API |
+| Min iOS | **26.0** 妥協なし | itsuki iPhone 17 Pro 確認 / AC 評価軸「最新」 / Liquid Glass demo 価値 |
+| 端末 | **iPhone Portrait Only** | 本档 §6.5 |
+| Dark Mode | **対応** | 本档 §6.5 |
+| Persistence | UserDefaults + Keychain（token） | ⏳ §11.9-I1 |
+| Networking | URLSession + async/await | ⏳ §11.9-I2 / Combine 不採用 |
+| 状態管理 | `@Observable` macro (Swift 5.9+) | ⏳ §11.9-I5 |
+| 依存 | Apple framework only | AC 「自分で全部書いた」叙事 |
+
+### 11.3 demo only scaffold 削除清单（v1 ship 前必ず除去）
+
+memory `project_demo_scaffolds_to_remove_before_v1.md` 真值。具体ファイル:
+
+| 場所 | 内容 |
+|---|---|
+| `Features/Home/HomeStubs.swift` | 点数カード `LongPressGesture` → `app.cycleDemoRollState()` |
+| `Foundation/AppState/AppStore.swift` | `cycleDemoRollState()` / `tickCountdown()` / `simulateCheckin()` |
+| 同上 | `SEED.user` 硬编码 リュウ イヒ / 060218 / 男寮 M101 / 4.5 点 |
+| `AppStore.changeLog` | "高2→高3" seed |
+| 各 toast | "Demo · ..." prefix 文案 |
+
+実装方針: P0 で API 接続するタイミングで削除 / `#if DEBUG` 限定で preview/snapshot 用に temporary 保留。
+
+### 11.4 全局约束（实装层 — 设计层見上 §3〜§6）
+
+#### R4 — dorm 表示
+
+学生は自分の `dorm_unit` のみ表示。マイページ「あなたの寮」で `1` / `2` / `4` を「男寮 (1 寮)」「男寮 (2 寮)」「女寮 (4 寮)」表示（system_features §3.3）。
+
+#### 通知
+
+- **push (APNs)**: 役职決定 / コメント受信 / 学号変更確認 / お知らせ
+- **in-app**: 同上 + 承認チェーン更新（push permission 拒否でも in-app 来る）
+- email: 学生は受けない（教師のみ R1）
+
+> **⏳ §11.9-I3**: APNs 設定（dev / prod cert / Push Notification capability）は v1 ship までに必要。P0 段階で push framework は組むが実 APNs は P1。
+
+#### オフライン
+
+- 出寮届 submit はオフライン保存 → リトライ（`URLSession.waitsForConnectivity = true`）
+- マイページ履歴は last fetch をキャッシュ + pull-to-refresh 更新
+- フォーム入力中はオートセーブ（`UserDefaults` で draft 保存、submit 成功 / cancel で破棄）
+
+#### i18n
+
+P0 = **日本語 only**。⏳ §11.9-I4 — 留学生用に英 / 中 toggle は v1.1+。
+
+#### セキュリティ
+
+- access_token / refresh_token = **Keychain**
+- 学号 / 房間号 / メール = UserDefaults（暗号化不要）
+- **デバッグログに学号 / 名前 / メール出さない**
+
+#### アクセシビリティ
+
+- VoiceOver 対応（Apple HIG 必須）
+- Dynamic Type 対応（最低 + 1 サイズまで layout 崩れない）
+- 緑 / 黄 / 赤 で意味伝える時必ず icon + 文字 label 併用
+
+### 11.5 状態管理 / Networking layer
+
+```swift
+// AppStore (singleton, @Observable)
+@Observable class AppStore {
+  var session: Session?
+  var lockedUntil: Date?
+  var lockLevel: Int
+  var student: Student?
+  var myApplications: [Application] = []
+  var pendingApplications: [Application] {
+    myApplications.filter { $0.status == .pending || $0.status == .approvedPartial }
+  }
+  var unreadNotifications: [Notification] = []
+}
+
+// APIClient
+struct APIClient {
+  let baseURL: URL              // env から
+  let auth: AuthStore           // token 管理
+
+  func request<T: Decodable>(_ endpoint: Endpoint) async throws -> T
+}
+```
+
+- `Endpoint` enum で全 endpoint 定義（path / method / body type / response type）
+- 401 → `AuthStore.refresh()` 自動呼び → 失敗時 logout
+- backend error code → typed Swift error throw（`APIError.accountLocked(until: Date)` など）
+
+### 11.6 機能別 — UI 設計と API 調用映射
+
+> UI の見た目 / 字段 / flow は本档 §3-§7 が真値。本節 = **どの screen がどの backend API を叩くか** の対応表のみ。
+
+| Screen | backend API（参 BACKEND_DESIGN_LOG §5）|
+|---|---|
+| RegisterStep5（§3.1 §3.9）| `POST /api/v1/accounts` |
+| Step2 番号 check | `GET /api/v1/accounts/check?student_no=060218` |
+| LoginView（§3.5 §3.6）| `POST /api/v1/sessions/student` |
+| ApplyForm submit | `POST /api/v1/applications` + `Idempotency-Key` header |
+| ApplicationHistoryList（マイページ §5）| `GET /api/v1/applications/mine?status=&from=&to=` |
+| ApplicationDetailView（承認チェーン）| `GET /api/v1/applications/:id` |
+| 撤回 button（⏳ §11.9-I7）| `DELETE /api/v1/applications/:id` |
+| LogoutView | `DELETE /api/v1/sessions/current` |
+| 通知センター | `GET /api/v1/notifications/mine` |
+| Token refresh（自動）| `POST /api/v1/sessions/refresh` |
+
+**出寮届 ApplyForm の動的字段（#4）**: kind 切替時 → 不要 field は「非表示 + 値リセット」（メモリ残存防止 + UX 直感）。
+
+**出寮日 #3 制約**:
+```swift
+DatePicker("出寮日", selection: $leaveDate, in: tomorrow..., displayedComponents: .date)
+// tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date.now)!
+// JST 強制: Calendar(identifier: .gregorian) + TimeZone(identifier: "Asia/Tokyo")
+```
+
+**API 失败 → iOS 動作 mapping**:
+
+| backend code | iOS 動作 |
+|---|---|
+| `INVALID_CREDENTIALS` | failed_count + 1; counter 表示「あと {3-N} 回」 |
+| `ACCOUNT_LOCKED` | LockedView 全画面 + counter（locked_until / lock_level） |
+| `ACCOUNT_INACTIVE` | error toast「アカウントが無効です」 |
+| `LEAVE_DATE_NOT_FUTURE` | DatePicker focus + error |
+| `INVALID_KIND_FIELDS` | field-level error highlight |
+| `FORBIDDEN_PROXY_SUBMIT` | ありえない（student_id 自動）→ 起きたら logout 強制 |
+
+### 11.7 共通 Component（HTML → Swift 写起こし）
+
+| HTML 要素 | Swift |
+|---|---|
+| Liquid Glass scan sheet | `View.glassEffect(.regular, in: .rect(cornerRadius: 28))` |
+| 中央 ⭐ 点呼 button | `Circle().fill(LinearGradient(...))` + scale animation on press |
+| Bottom 3-button nav | カスタム `TabView`（`SwiftUI.TabView` だと中央 action button 不可） |
+| iOS 26 native blur | `.glassEffect()` (新 API) — fallback `.background(.ultraThinMaterial)` |
+| 顶部点呼 bar | `RollCallStatusBar` view — 全画面 overlay（sheet 出てる時 hidden） |
+
+**HTML の color value をそのまま Swift `Color` 化**:
+```swift
+// theme.swift
+extension Color {
+  static let cobalt = Color(hex: "#2b4d8c")
+  static let cobaltSoft = Color(hex: "#e5ebf5")
+  static let okGreen = Color(hex: "#2f7a55")
+  // ...
+}
+```
+
+### 11.8 テスト + 配信
+
+#### テスト
+
+- XCTest + Swift Testing
+- 単体: 学号 generator / 出寮日制約 #3 / 5 step 注册遷移 / kind 切替動的非表示
+- snapshot: ApplicationDetailView 各 status 表示
+- UI test: 注册 5 step end-to-end → ホーム / 出寮届 submit → confirm → success / locked screen
+
+#### 配信
+
+- Xcode 17+ / iOS 26 SDK
+- TestFlight 配信（itsuki 自分のデバイス確認）
+- App Store 申請: AC 入試後 / itsuki 卒業後 ⏳
+
+### 11.9 ⏳ 待 itsuki 拍板（P0 阻塞）
+
+> **2026-04-30 進捗**：I1-I10 全部拍板。**残**：I11（実物表対応の動的 chain 表示 — 設計の一部、本 §11.6 に inline 落とす作業のみ）。
+
+| ID | 決策 | 状态 |
+|---|---|---|
+| **I1** | Persistence | ✅ **UserDefaults + manual cache**（P0 軽量、SwiftData は P2 で再検討） |
+| **I2** | Networking | ✅ **URLSession + async/await**（Combine 不採用） |
+| **I3** | APNs | ✅ P0 = **framework だけ**、実 push test は P1（学習欠席届と一緒） |
+| **I4** | i18n（英 / 中文） | ✅ **不要**（日本語 only）、v1.1 で再考 |
+| **I5** | 状態管理 | ✅ **`@Observable`** macro (Swift 5.9+) |
+| **I6** | 注册 = 即 active vs 教師承認 pending | ✅ **即 active**（backend D10 連動） |
+| **I7** | 学生は届を撤回できる？ | ✅ **可**（leave_date 24h 前まで、backend D3 連動） |
+| **I8** | demo scaffold 削除タイミング | ✅ **API 接続後即** + `#if DEBUG` で preview/snapshot 用 temporary 保留 |
+| **I9** | 学号 6 桁 入力 UX | ✅ **3 picker**（本档 §3.9.2 既決） |
+| **I10** | iOS 26 Min 制約 | ✅ **iOS 26 only** 既決 |
+| **I11** | **ApplicationDetailView 承认 chain 显示**（実物表対照、2026-04-30 D4 から）| ⏳ UI 動的 3 / 5 行切替（`student.is_overseas` + `application.kind`）。役职名称: 担任 / 寮務課長 / 管理係 / 国際交流部長 / 寮務部長（**「国際交流課長」は無し**）|
+
+### 11.10 P1 / P2 / P3
+
+#### P1
+- 路径 B BTR + Universal Link 実装（`com.tomoshibi://checkin?session=&device=`）
+- Core NFC framework integration
+- 学習欠席届 提出 (Q3 / 19:40 前)
+- 通知センター 完成（filter）
+- Push (APNs) 実 cert 設定 + production
+- マイページ 個人情報 編集（学号 / 房間号 / メール）
+
+#### P2
+- 巴士一覧 表示（マイページ「バス時刻」）
+- 帰省方法 = bus dropdown（external bus_route_id 関連付）
+- 行事予定 表示（Calendar UI）
+- 個人デ ータ aggregated（出寮履歴 / 学習履歴 / 点呼履歴 全部 tab）
+- 学号 / 房間号 履歴 表示
+- 帰寮通知
+
+#### P3
+- リクエスト曲（音楽 #37）
+- 規律処分 表示（自分の累計減点 / アラート）
+- 罚则可視化
+- iCloud アカウント連携（バックアップ）
+
+---
+
 **END** — 本档随 iOS 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。

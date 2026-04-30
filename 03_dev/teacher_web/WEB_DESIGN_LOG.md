@@ -479,4 +479,236 @@ round3/
 
 ---
 
+## 11. v1.0 实装清单（2026-04-30 加）
+
+> **作用**: 给 Web code agent 接手 v1.0 实装的入口章。
+> **agent 阅读顺序**（两层结构）:
+> 1. **共用层（必读）**: `02_design/system_features.md` —— 角色 / 数据模型 / §7 14 子节功能矩阵 / R1-R4 / 38 条要件
+> 2. **专属层（本档全文）**: 本 LOG §1-§9 = Web 设计决策 + §10 下次会话 quick-start + 本 §11 = 实装层
+> 3. **后端 API 契约**: `03_dev/backend/BACKEND_DESIGN_LOG.md`
+> 4. **点呼业務規則**: `01_specs/rollcall/RollCall_Spec.md`（特に §4 §5 §11）
+>
+> **決策標記**: ✅ 已定 / 🟡 CC 假设 / ⏳ 待拍板（聚集到 §11.9）
+
+### 11.1 P0 范围 + 角色 → 路由対応
+
+#### P0 角色 → 必有功能
+
+| 角色 | 設備 | P0 必有 |
+|---|---|---|
+| 寮務部長 / 寮務課長 | 〇 個人 PC（職員室）| 出寮届 一覧 + 承认（#10）+ コメント（#13） |
+| 国際交流部長 / 国際交流課長 | 〇 個人 PC | 同上（仅留学生 外泊/帰国 chain） |
+| **寮監** | **★ 寮管室 iPad** | 朝/夜点呼（#16-#19）+ 改判（一本道 R2） |
+| **学習担当** | **★ 寮管室 iPad** | 学習出席（#14-#15）+ 自動判定修正（#20） |
+| 寮務一般教师 | 〇 個人 PC | （P0 範囲外） |
+
+#### P0 路由
+
+```
+/login/teacher                    教师 login（學生 login は iOS App、Web では `/login/student` 備用）
+/                                 自動分流（按 role 重定向）
+/applications                     役职: 待承認一覧
+  /applications/:id               詳細 modal
+/study                            ★ iPad 学習担当: 当日出席列表（一本道）
+  /study/finalize                 ★ 一本道結束 button（19:55 等）
+/rollcall                         ★ iPad 寮監: 当天 session 选择
+  /rollcall/sessions/:id          ★ 座席表 live + 改判 modal
+  /rollcall/sessions/:id/summary  ★ 「点呼総結」中層頁（RollCall_Spec §5.6）
+/logout
+```
+
+#### Role → home 重定向
+
+- 寮監 / 学習担当 → 当天有 running session → `/rollcall/sessions/:id` 直跳；無 → `/study`（19:00-19:40）/ `/rollcall`（点呼前）/ landing
+- 役职 4 人 → `/applications`
+- 寮務一般教师 → P0 範囲外（landing「P0 未対応」）
+
+### 11.2 技术栈（demo R3 → v1 升级）
+
+| 層 | demo (R3) | v1 |
+|---|---|---|
+| Build | Babel standalone in-browser | **Vite + React 18** |
+| ファイル | `.jsx` | `.tsx` (TypeScript) |
+| 状態 | `window.X` global | **Zustand**（軽量） |
+| Routing | hash-based 自製 | **React Router v6** |
+| API | demo_server.py + polling | v1 backend (`/api/v1/*`) + polling + WebSocket |
+| 様式 | inline style + theme.jsx | **CSS Modules** + theme tokens 復用（**Ryō 配色保留**） |
+| icons | inline SVG | `lucide-react` |
+
+> **🟡 CC 推奨**: TS + Zustand + Vite 升级。理由: demo 已証明 R3 設計可行、v1 加权限 / 真后端复杂度上来 → TS 防 bug 価値大。⏳ §11.9-W1 待拍板。
+> **iPad Safari 互換性**: Vite 打包時 target = `safari14`（iPadOS Safari 17 已遠超）。
+
+### 11.3 起点（demo/ → v1/ 復制）
+
+| demo 組件 | v1 処置 |
+|---|---|
+| `theme.jsx` | tokens（color / font / shadow）復制、`window.ROSTER` / `ACCOUNTS` 等 mock seed 削除 |
+| `shell.jsx` | **大改** — R3 教師独自 login / role-based nav / logout button |
+| `login.jsx` | **重写** — demo 共有密码 → 教師 login_id + password |
+| `live-roll-call.jsx` | 5 色座席表 + 凡例 保留、**改后端连接** + R4 dorm filter |
+| `override-modal.jsx` | layout 保留、加 §11 时限矩阵 |
+| `applications.jsx` + `outstay-detail-modal.jsx` | **大改** — 4 段審認 → **4 役职並行**（chain ロジック変更）|
+| `accounts.jsx` | P2 学生管理参考、P0 不重写 |
+| `discipline.jsx` / `pages-records-search-etc.jsx` / `cleaning.jsx` / `info.jsx` / `community.jsx` | P0 不動（P3 範囲） |
+
+### 11.4 全局约束（实装层 — R2 概念定義は system_features §2）
+
+#### R2 — iPad ★ 一本道 在 Web 实装上的体现
+
+iPad ★ 路由（`/study` / `/rollcall/*`）**禁止**:
+- dropdown / select 多選項（除非"開始 / 結束"等価 button）
+- 多 tab 切替（同一頁面只有一個 main view）
+- 折叠的隠し機能（手指難按 / 老人不会発見）
+- 多 step フォーム（提交前 confirm 例外）
+
+iPad ★ 路由 **必須**:
+- 主操作 button ≥ 80px 高 / 文字 ≥ 24pt
+- 名前 list 文字 ≥ 18pt
+- 状態 color 明確（緑/黄/赤 + 文字 label、不只靠 color）
+- 「次に何をすれば」必ず文字明示
+- ログアウト button → 双重 confirm
+
+〇 路由（PC 用）不受 R2 限制。
+
+#### R4 — dorm 分離
+
+教師 JWT 含 `assigned_dorm`。前端:
+- iPad ★ 路由不显示 dorm switcher（自動按 assigned_dorm）
+- 役职 〇 路由可显示 dorm filter（默认全件、跨寮役职 4 人 = 全件）
+
+#### 自動退出（沿用 demo R3 §5.4）
+
+- 30 分钟无操作 → `/logout`
+- 25 分时 toast「あと 5 分で退出します」+「継続」
+- **iPad ★ 例外**: 点呼 session active 中 / 学習 active 中 (19:40-21:45) 不触发
+- demo `TIMEOUT_MS` constant 保留 + `// DEMO 用短縮` 注释
+
+#### ローディング / エラー / 空状態
+
+沿用 demo R3 全局 UX:
+- 空状態:「まだデータがありません」+ 薄 icon
+- 加载中: spinner
+- 错误: 顶 red banner +「再試行」
+- 削除/拒否前 confirm modal
+
+### 11.5 状態管理 + 認証
+
+#### Login flow
+
+```
+/login/teacher (login_id + password)
+  → POST /api/v1/sessions/teacher
+  → on success: 拉 teacher info（role + assigned_dorm + name）
+  → 按 role 重定向（§11.1）
+  → JWT 存 sessionStorage（不 localStorage — F5 恢复、关 Safari 必清登录）
+```
+
+> **🟡 CC 假设**: sessionStorage 不 localStorage。理由 = iPad 共用前提下、关 Safari 必清防忘 logout。
+> **⏳ §11.9-W3**: 学生 + 教师 login 同 `/login` vs 分两路？CC 推奨 = **分两路**（`/login/student` + `/login/teacher`、学生主入口は iOS App、Web 学生 login は備用）。
+
+#### Token 管理
+
+- access_token 24h → 失效時自動 refresh
+- 401 全局 interceptor → `/login/teacher`
+- React Router guard: 未登录路由強制 `/login/teacher`
+
+#### Zustand store
+
+```ts
+// auth store
+{ teacher: { id, name, role, assigned_dorm }, accessToken, refreshToken }
+
+// rollcall store (active session 時)
+{ sessionId, board: { studentId → status }, ws: WebSocket }
+
+// applications store
+{ pendingForMe: [...], filter: { status } }
+```
+
+### 11.6 路由 → API 調用映射
+
+> UI layout / sections / 列名 / state machine は本档 §5（Round 3 完整設計決策）が真値。本節 = **どの route がどの backend API を叩くか** の対応表のみ。
+
+| Route | API（参 BACKEND_DESIGN_LOG §5）|
+|---|---|
+| `/login/teacher` | `POST /api/v1/sessions/teacher` |
+| `/applications` | `GET /api/v1/applications/pending-for-me` + `GET /api/v1/applications` + Q params (filter) |
+| `/applications/:id` | `GET /api/v1/applications/:id`; `POST /api/v1/applications/:id/approvals`; `POST /api/v1/applications/:id/comments` |
+| `/study` | `GET /api/v1/study/today/attendees`; `POST /api/v1/study/checkins`; `PATCH /api/v1/study/checkins/:id`; `POST /api/v1/study/checkins/bulk-finalize`; `WS /ws/study/{date}` |
+| `/rollcall` | `GET /api/v1/rollcall/today/sessions` |
+| `/rollcall/sessions/:id` | `GET .../board`; `POST .../start`; `POST .../end`; `POST .../checkins`; `PATCH /api/v1/rollcall/events/:id`; `WS /ws/rollcall/{session_id}` |
+| `/rollcall/sessions/:id/summary` | `GET /api/v1/rollcall/sessions/:id/summary` |
+| `/logout` | `DELETE /api/v1/sessions/current` |
+
+### 11.7 共通 Component（demo R3 から升级）
+
+- `<Shell>` — 教師独自 login / role-based filter / 担当寮 badge / logout button / Tomoshibi logo / dynamic browser title
+- `<DormSwitch>` — PC 上方 dropdown（assigned_dorm IS NULL の役职のみ表示 / 操作）
+- `<ApprovalChain>` — 4 役职行 cards 組件
+- `<SeatGrid>` — demo `live-roll-call.jsx` 沿用 + R4 dorm 自動 filter
+- `<ConfirmModal>` — iPad ★ 大 button 大文字版（R2 一本道用）
+
+### 11.8 テスト + ビルド
+
+#### テスト
+
+- Vitest + React Testing Library
+- 必須 case:
+  - 役职が自分のロール行のみ操作可
+  - 留学生 + 外泊届 → 4 役职 chain 全表示 / 非留学生 → 2 役职
+  - iPad ★ R2 抽查: `/study` 不存在 dropdown / active session 中 idle 不退出
+  - R4: 男寮教師 login → 4 寮学生不見える
+  - 改判 reason 空 → button disabled
+  - WebSocket disconnect → 「再接続中」banner
+- E2E (Playwright): 「役职 login → 承認 → 学生通知 → ログアウト」一周
+
+#### ビルド / 部署
+
+- `pnpm build` → `dist/` static
+- nginx 配信 + `/api` → backend reverse proxy
+- iPad Safari (iPadOS 17+) 動作確認必須
+- ENV: `VITE_API_BASE_URL` / `VITE_WS_BASE_URL`
+
+### 11.9 待 itsuki 拍板（P0 阻塞）
+
+> **2026-04-30 進捗**：W1-W8 全部拍板。**残** = W9（实物表対応の動的 chain UI — backend D11 担任データモデル待ち）。
+
+| ID | 決策 | 状态 |
+|---|---|---|
+| **W1** | demo R3 → v1 升级 TS+Zustand+Vite | ✅ **升级**（产品级 + 类型安全 + AC 叙事） |
+| **W2** | i18n（英 / 中） | ✅ **否**（教师全部日本人） |
+| **W3** | login 同路 vs 分两路 | ✅ **分两路**（`/login/student` + `/login/teacher`） |
+| **W4** | 役职 dorm filter 範囲 | ✅ **跨寮役职 = 全件 / 寮監・学習担当 = 自寮のみ** |
+| **W5** | logout sessionStorage clear vs backend revoke | ✅ **両方**（frontend clear + backend `DELETE /sessions/current`） |
+| **W6** | iPad ★ 自动退出 active 中例外 | ✅ **両方 active 中例外**（点呼・学習中は退出 timer 停止） |
+| **W7** | RYO theme tokens 直接復用 | ✅ **復用**（demo 安定 + AC 叙事「同じデザイン言語で全システム」） |
+| **W8** | 外泊届 modal layout | ✅ **縦 1 列 cards**（iPad 縦持ち + 5 行 chain で縦のほうが自然） |
+| **W9** | **外泊届承认 chain 实物表対応**（2026-04-30 D4 から）| ⏳ 役职 cards を `student.is_overseas` + `application.kind` で動的生成（一般 = 3 行 / 留学生 = 5 行）。「担任」cards = `student.homeroom_teacher_id` 解决（backend D11 待）|
+
+### 11.10 P1 / P2 / P3
+
+#### P1
+- ● 寮監事務室 出寮者一覧 PC（#22-#27）— 印刷可能 + 編集不可 + 1·2/4 寮分離
+- 食堂食数 → 寮務 ダウンロード Excel button (#7)
+- iOS BTR の路径 B 表示
+
+#### P2
+- 寮務部教師 学生 CRUD (#28-#29)
+- 学生個人デ ータ aggregated view (#32)
+- 巴士編集 (#11) / 行事編集 (#12)
+- リクエスト曲管理（demo R3 community 移植 + 男女寮分け + 古い順）
+- 全局検索 + 学生個人デ ータ tap-to-jump (#33 杭田弱点 ⭐)
+- 指導歴 (#31) / 事案 (#33)
+- accounts.jsx 学生管理 page → role-based access
+
+#### P3
+- 規律処分 / 罚则アラート（demo R3 既存）
+- 月次集計
+- お知らせ / 行事 / バス CMS
+- 通知中心
+- print 専用 stylesheet / PDF export
+- CSV 一括出力
+
+---
+
 **END** — 本档随 Web 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。

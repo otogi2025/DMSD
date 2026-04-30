@@ -45,6 +45,21 @@
 
 3 轨全 done = 38 条状态层「设计 ✅ + 实装 brief 就位」→ 启动 **v0.7.0** 实装会话（code agent 接手）。
 
+### 📦 轨道 C 完成后的 evidence 待补 + 实装阻塞（2026-04-30）
+
+> **轨道 C close 状态**: P0 实装 brief 全部落地（backend `BACKEND_DESIGN_LOG.md` 新建 + iOS / Web `_DESIGN_LOG.md` §11 实装清单 append）。**当日决策**: D1 SendGrid / D4 实物表为准 / D5+I6+D10 注册即用 / W1 TS+Vite 升级 / D2-D9 + I1-I8 + W2-W8 一次过 / D11 单独表 / D12 ENUM 加管理係 — **全 25+ 条决策清完**。
+
+**残 evidence 待 itsuki 补**：
+
+- [ ] **帰省 实物表照片** ×2（一般学生 / 留学生）— 下次见老师拿原表拍 → backend D4 「帰省 chain」从 ⏳ 暫定 → ✅
+- [ ] **帰国 实物表照片** ×2（一般学生 / 留学生）— 同上 → backend D4 「帰国 chain」从 ⏳ 暫定 → ✅
+- [ ] **担任 名簿 seed 数据**（哪个老师担任哪个学年 × 組）— v1.0 上线前 itsuki 跟老师确认 → `class_teacher_assignment` 表初期データ导入
+
+**外泊届 chain 已 ✅**（2026-04-30 实物表 evidence 入手）— code agent 实装这部分不被这件事阻塞。
+
+**code agent 接手时不被阻塞的模块**: 学生注册 / login / 学習出席 / 点呼 / 邮件通知 framework / 数据库 schema / 全部 API endpoints。
+**唯一被阻塞的**: 帰省・帰国届の承认 chain 生成函数（外泊已可写、帰省・帰国は実物表 evidence 入るまで暫定で実装可、入った時点で chain 設定値だけ調整）。
+
 ---
 
 ## 🎯 4-28 demo 后老师反馈 backlog（2026-04-29 受领，最高优先级）
