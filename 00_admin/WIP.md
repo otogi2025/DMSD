@@ -16,7 +16,8 @@
 **当前版本**: v0.7.0（2026-04-30 晚 close — 三轨 A+B+C 同日完成：38 条 B 标准 baseline + system_features §9 8 条拍板 + 实装包拆分到 BACKEND/iOS/Web LOG + 实物表 evidence 推翻 LINE 文字推测 + 沟通规则 #6 + SOP §8.5 版本路线图）<!-- VERSION_OK -->
 **版本管理 SOP**: `00_admin/版本管理SOP.md`（CC 改 spec / 02_design / 03_dev 主体后必读 §2 决策树）
 
-**最后更新**: 2026-04-30 夜 by [Mac-主会话调配] — **4-30 後續 第二轮决策落地**（commit `512424d`）：iOS 起手实装 — SeedModels.User 加 isStudyTarget / AppStore 加 StudyState + StudyLeaveRange + 字段 + submitStudyLeave (>3 触发文案 A) + cycleDemoStudyState long press / HomeStubs **砍 segmented + コミュニティ tab + 通知 tab + 对应 #Preview**（itsuki: tab 重复砍，功能集中一页）→ Home 直显 LifeTab + amber Card **三态 ⚠️ DEMO-ONLY** / ApplyStubs APPLY_TYPES 加 studyAbsence + StudyAbsenceForm + DateField/TimeField **ja_JP locale**（修月份英语）+ ApplyDetailView **redirect StayDetailView**（修 #5 申请人看不到 chain bug）。**system_features.md 5 节落地**: §3.4 教师权限按职责勾选 + 旧教师辅助新教师 / §7.2.4-5 出寮届修改届（状态机 + 字段范围 + chain 重置 + audit log 可见性）/ §7.3.3-10 学習大扩充（NFC 3 次碰 + 时间锁定 + 状态机 + 异常老师手动判 + 月度 ≥3 次提醒文案 A + 今日中止 + amber Card 三态 DEMO-ONLY + 名单变更通知）/ §7.13 R1 邮件例外（学習 push + 老师 Web 通知中心）/ §10 +1。**memory** project_demo_scaffolds_to_remove_before_v1 #15 加 amber Card 三态。**raw/2026-04-30.md §11** AC 痕（⭐⭐ 学習 NFC 化 / ⭐⭐ 教师权限模型 / ⭐ R1 例外、~1500 字）。xcodebuild → BUILD SUCCEEDED。**仍 ⏳ 下次会话补**: §8 数据模型 6 张新表 / RollCall_Spec 加学習平行 / DESIGN_LOG.md 各 / TODO.md 38 条 baseline 更新 / iOS 待做（Music 入口 加 LifeTab / StayDetailView 编辑按钮 / 学習 NFC 真流程 / 注册登录 / マイページ）。 <!-- VERSION_OK -->
+**最后更新**: 2026-05-01 by [Mac-主会话] — **三端对齐审计 dump + 方案 ABC 提案 + Q1/Q2 阻塞**（不动手代码、等 itsuki 拍板）：3 个 Explore subagent 并行扫 backend v1 + iOS v1 Swift + teacher_web → 交叉对齐 → **失配清单 15 条 F1-F15**（🔴 阻塞 7 条 / 🟡 体面 5 条 / ⚪ 可延后 3 条）。核心阻塞: **F1 apply kind 三端不同值**（iOS `stay/holiday/returncountry` ↔ backend `外泊/帰省/帰国`）/ **F3 stay_locations 形状不同**（iOS 平面 string[] ↔ backend `[{kind,name,address?,phone?}]`）/ **F4 meals_skip 形状不同**（iOS `{date,meal:朝食}` ↔ backend `datetime`）/ **F5 iOS 多发 student_id（backend 拒）+ 少发 reason（backend 没这字段）/ F6 backend 没实装注册 endpoint（D10 纸上有代码无）/ F7 iOS 完全没接 URLSession**。**修正方案 ABC**: A = iOS 5 处映射 ~150 行 + backend 加 reason 字段 / B = A + APIClient + 注册登录全流程 / C = B + 文档同步 + Web v1 启动。CC 推荐先 A。**Q1/Q2 阻塞等 itsuki 拍**: Q1 = status 枚举对齐方案（iOS cancelled↔backend withdrawn 合并？iOS draft 保留？returned 砍掉？） / Q2 = reason 字段归属（backend 加 / iOS 砍 / leave_method 末尾 hack）。**dump**: `05_logs/raw/2026-05-01.md` 5 节（§3 失配清单 F1-F15 / §4 方案 ABC / §5 阻塞 Q1+Q2 + 接续指引）。**未动**: teacher_web demo（锁定）/ v1（未开工）/ system_features.md / DESIGN_LOG / 任何 Swift 或 Python 代码。 <!-- VERSION_OK -->
+**上一次更新（保留参考）**: 2026-04-30 夜 by [Mac-主会话调配] — **4-30 後續 第二轮决策落地**（commit `512424d`）：iOS 起手实装 — SeedModels.User 加 isStudyTarget / AppStore 加 StudyState + StudyLeaveRange + 字段 + submitStudyLeave (>3 触发文案 A) + cycleDemoStudyState long press / HomeStubs **砍 segmented + コミュニティ tab + 通知 tab + 对应 #Preview**（itsuki: tab 重复砍，功能集中一页）→ Home 直显 LifeTab + amber Card **三态 ⚠️ DEMO-ONLY** / ApplyStubs APPLY_TYPES 加 studyAbsence + StudyAbsenceForm + DateField/TimeField **ja_JP locale**（修月份英语）+ ApplyDetailView **redirect StayDetailView**（修 #5 申请人看不到 chain bug）。**system_features.md 5 节落地**: §3.4 教师权限按职责勾选 + 旧教师辅助新教师 / §7.2.4-5 出寮届修改届（状态机 + 字段范围 + chain 重置 + audit log 可见性）/ §7.3.3-10 学習大扩充（NFC 3 次碰 + 时间锁定 + 状态机 + 异常老师手动判 + 月度 ≥3 次提醒文案 A + 今日中止 + amber Card 三态 DEMO-ONLY + 名单变更通知）/ §7.13 R1 邮件例外（学習 push + 老师 Web 通知中心）/ §10 +1。**memory** project_demo_scaffolds_to_remove_before_v1 #15 加 amber Card 三态。**raw/2026-04-30.md §11** AC 痕（⭐⭐ 学習 NFC 化 / ⭐⭐ 教师权限模型 / ⭐ R1 例外、~1500 字）。xcodebuild → BUILD SUCCEEDED。**仍 ⏳ 下次会话补**: §8 数据模型 6 张新表 / RollCall_Spec 加学習平行 / DESIGN_LOG.md 各 / TODO.md 38 条 baseline 更新 / iOS 待做（Music 入口 加 LifeTab / StayDetailView 编辑按钮 / 学習 NFC 真流程 / 注册登录 / マイページ）。 <!-- VERSION_OK -->
 **上一次更新（保留参考）**: 2026-04-30 夜 by [Mac-会话B-backend] — **会话 B backend P0 起手版 close**：`03_dev/backend/v1/` 从零搭建（FastAPI + SQLAlchemy 2.x 同期 + SQLite/PG + bcrypt + JWT），覆盖完成定义 4 项：(1) **#2 schema** = 帰省/外泊/帰国 三种 discriminated Pydantic + ORM models（applications + application_approvals + students + teachers + class_teacher_assignment + notification_log + audit_logs）(2) **#5 GET /applications/{id}** = 学生本人 + 教师 dorm filter 两路、承认 chain 全段返回 (3) **#6 SendGrid 邮件** = 提交时按 D4 实物表 chain → 全 chain 役职 email 一斉送信 + notification_log 记录 + 失败不阻塞 + dev mode（无 KEY 时降级 pending）+ `POST /notifications/test` smoke (4) **#7 食堂 Excel** = `GET /meals/calc`(JSON debug) + `GET /meals/export`(.xlsx) 双 sheet「日別集計 + 学生別詳細」openpyxl 实装、朝7/昼12/夕18 食时刻暫定值。**chain 实装**: 外泊 D4 实物表 evidence 为準（一般 3 行 / 留学生 5 行）/ 帰省・帰国 evidence 待補 → `EXTERNAL_ROLES_BY_KIND` 暫定値 + `PROVISIONAL_CHAINS` flag + response 头 `X-Approval-Chain-Provisional: true` 警告。**測試**: pytest 19 ケース全 pass（chain D4 5/3 行 / 暫定 / 他人届 403 / #3 出寮日今日 422 / Excel バイナリ妥当性 / SendGrid dev mode pending）。**seed**: 役职 7 種網羅（寮務部長/課長 + 国際交流部長/課長 + 管理係 + 寮監 + 学習担当）+ 担任 2 + 学生 2（留学生 060218 + 一般 060103）+ 共通密码 `tomoshibi-dev-2026`。**未实装**（後續会話）: 役职承認 #10-#13 / 学習出席 / 点呼 / Alembic migration / async 化 / Refresh token rotation。**实装的不动文件遵守**: `03_dev/student_ios/v1/*` (会话 A) / `03_dev/teacher_web/v1/*` (会话 C) は触っていない。 <!-- VERSION_OK -->
 **上一次更新（保留参考）**: 2026-04-30 晚 by [Mac-主会话] — **v0.7.0 close**（5 commit 归入：`604bc9b` 轨道A baseline / `4272fc7` 轨道B §9 拍板 / `f25255b` SOP §8.5 路线图 / `6f508d4` 轨道B-followup / `184c0c6` 轨道C 实装包拆分 + 本 release commit）：三轨 A+B+C 同日完成 38 条老师反馈的「设计 → 拍板 → 实装 brief」全闭环。SOP §4 必改 6 处全同步：CHANGELOG / WIP 头部 / 版本演变一览 / v0.7.0_AC叙事.md（CC 起草等审）/ raw/2026-04-30.md §9 / git tag 等 itsuki 明示。**仍 ❌ 不动**：#21 老龄宿管老师 iPad UI / #30 教师当天代录 — B/C 范围外，留 v0.7.x patch 单议题处理。 <!-- VERSION_OK -->
 **上一次更新（保留参考）**: 2026-04-30 by [Mac-轨道C] — **轨道 C close**：(1) 起手按 itsuki prompt 字面新建了 3 个 `REQUIREMENTS.md`，被 itsuki 指出违反"既存 LOG 已覆盖 + 单源真值"原则 → 全合并到既存 LOG（backend `BACKEND_DESIGN_LOG.md` 新建对称 / iOS+Web LOG §11 v1.0 实装清单 append + 砍重复段）+ 删原 REQUIREMENTS.md (2) **当日 25+ 条决策清完**：D1 SendGrid（自建 SMTP deliverability 劝退）/ D2-D9 一次过按 CC 推荐 / D5+I6+D10 注册即用 / D11 担任单独表 `class_teacher_assignment` / D12 ENUM 加管理係 / W1 升级 TS+Vite+Zustand / I1-I10 + W2-W8 一次过 (3) **⭐⭐⭐ 实物表 vs LINE 文字 evidence 推翻** — itsuki 给 2 张实物外泊届表，CC 之前所有 chain 推测被推翻：担任 + 管理係 必有（LINE 漏写）/ 国際交流課長 实际不存在（LINE 误写）/ 一般外泊 = 3 人 vs CC 推 2 人 / 留学生外泊 = 5 人 vs CC 推 4 人 → system_features §7.2.2 修订 + backend D4 ✅ + I11 / W9 实装 brief 调整 (4) `CLAUDE.md` + `00_admin/文件结构指南.md` 加 BACKEND_DESIGN_LOG 指针 (5) `TODO.md` 加「📦 轨道 C」section 含 evidence 缺口（帰省 / 帰国 实物表 ×4 + 担任 seed）(6) `raw/2026-04-30.md §7` dump 完整含 ⭐⭐⭐ AC 候选「信息源选择 lesson — chat 文字 vs 物理事实」+ CC 4 mistake 自审。 <!-- VERSION_OK -->
@@ -97,6 +98,30 @@
 ## 🔄 进行中的任务
 
 > **2026-04-30 启动**: 38 条老师反馈 3 轨并行 — 路线图详见 `00_admin/TODO.md §🛣️ 推进路线图`。
+
+### [Mac-主会话] 三端对齐审计（2026-05-01 ⏸ **阻塞中**、等 Q1/Q2 答复）
+
+**任务**: itsuki「ios app 还有 web 还有后端三个都过几遍然后对齐和修正」。
+
+**完成 (1/2)**: 调查 + 失配清单 + 方案提案。
+- 3 Explore subagent 并行扫 backend v1 / iOS v1 Swift / teacher_web → 交叉对齐
+- **失配清单 F1-F15**: 🔴 阻塞 7 条 / 🟡 体面 5 条 / ⚪ 可延后 3 条
+- **修正方案 ABC**: A = iOS 5 处映射 ~150 行 + backend reason / B = A + APIClient + 注册全流程 / C = B + 文档同步 + Web v1
+- CC 推荐先 A（无 design trade-off、纯字段映射）
+- **dump**: `05_logs/raw/2026-05-01.md`
+
+**阻塞 (2/2)**: itsuki 答 Q1 + Q2 后才动手。
+- **Q1**: status 枚举对齐 — iOS 6 値 / backend 5 値，cancelled↔withdrawn 合并？draft 保留？returned 砍？
+- **Q2**: reason 字段归属 — backend 加 / iOS 砍 / hack 进 leave_method？
+
+**下次会话执行点**（A 方案）:
+- `03_dev/student_ios/v1/TomoshibiApp/Features/Apply/ApplyStubs.swift` — kind 映射 + stay_locations 形状 + meals_skip 形状 + 砍 student_id + 处理 reason
+- `03_dev/student_ios/v1/TomoshibiApp/Foundation/Seed/SeedModels.swift` — ApplicationItem.status 加 approved_partial / withdrawn
+- `03_dev/backend/v1/app/{models,schemas}.py` — Q2 选 A 时加 reason 字段 + Alembic（後續）
+
+**不动**: teacher_web 任何文件（demo 锁定 / v1 未开工）/ system_features.md / DESIGN_LOG。
+
+---
 
 ### [Code-iOS-会话C] iOS 状态列表 + 资源显示（2026-04-30 晚 ✅ **DONE**）
 
