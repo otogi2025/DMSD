@@ -57,10 +57,12 @@ enum Route: Hashable {
     case myPackages
     case mySettings
     case myAbout
+    case myStudy                     // 学習出席履歴 (system_features §7.3.10) — isStudyTarget のみ
 
     // §4 V1 リファレンス系（老師 38 条 #5 / #8 / #9）
     case stayList                    // #5 申請履歴 一覧（GET /applications/mine）
     case stayDetail(id: String)      // #5 申請詳細 + 承認 chain（GET /applications/:id）
+    case stayEdit(id: String)        // 出寮届 修改届 (system_features §7.2.4-5)
     case schedule                    // #9 行事予定 月历（GET /events）
     case busList                     // #8 寮生特別運航便 一覧（GET /buses）
 
@@ -107,15 +109,17 @@ enum Route: Hashable {
         case .myRollcall: return "点呼履歴"
         case .myRollcallDetail: return "詳細"
         case .myPoints: return "減点明細"
-        case .myPointsChart: return "推移"
+        case .myPointsChart: return "グラフ"
         case .myDiscipline: return "処分履歴"
         case .myHealth: return "体調報告履歴"
         case .myClean: return "掃除提出履歴"
         case .myPackages: return "宅配履歴"
         case .mySettings: return "設定"
         case .myAbout: return "Tomoshibi について"
+        case .myStudy: return "学習履歴"
         case .stayList: return "申請履歴"
         case .stayDetail: return "申請詳細"
+        case .stayEdit: return "修改届"
         case .schedule: return "行事予定"
         case .busList: return "特別運航便"
         }
@@ -142,8 +146,8 @@ enum Route: Hashable {
     var isMyBranch: Bool {
         switch self {
         case .my, .myInfo, .myInfoEdit, .myRollcall, .myRollcallDetail, .myPoints, .myPointsChart,
-             .myDiscipline, .myHealth, .myClean, .myPackages, .mySettings, .myAbout,
-             .stayList, .stayDetail, .schedule, .busList:
+             .myDiscipline, .myHealth, .myClean, .myPackages, .mySettings, .myAbout, .myStudy,
+             .stayList, .stayDetail, .stayEdit, .schedule, .busList:
             return true
         default: return false
         }

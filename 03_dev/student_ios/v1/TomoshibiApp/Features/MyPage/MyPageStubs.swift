@@ -54,14 +54,14 @@ struct MyLandingView: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
-    /// 对等 JSX blocks (8 件 · 2-col grid)
+    /// 对等 JSX blocks (8 件 · 2-col grid + 学習履歴 isStudyTarget のみ追加)
     private var blocks: [MyLandingGridBlock] {
         // JSX badge: points = 4.0 → 我们 SEED 是 4.5 → 动态取 SEED.user.points
         let pointsBadge = String(format: "%.1f", SEED.user.points)
         let pendingPackages = SEED.packages.filter { $0.status == "待領" }.count
         let packagesBadge = pendingPackages > 0 ? "\(pendingPackages)" : nil
 
-        return [
+        var arr: [MyLandingGridBlock] = [
             .init(key: "info", label: "個人情報", icon: "👤", badge: nil, route: .myInfo),
             .init(key: "rollcall", label: "点呼履歴", icon: "📋", badge: nil, route: .myRollcall),
             .init(key: "points", label: "減点明細", icon: "📉", badge: pointsBadge, route: .myPoints),
@@ -73,6 +73,11 @@ struct MyLandingView: View {
             .init(key: "clean", label: "掃除提出履歴", icon: "🧹", badge: nil, route: .myClean),
             .init(key: "packages", label: "荷物受取履歴", icon: "📦", badge: packagesBadge, route: .myPackages),
         ]
+        // 学習履歴 — 学習対象学生のみ表示（system_features §7.3.5「学習対象 / 非対象 区分」）
+        if SEED.user.isStudyTarget {
+            arr.append(.init(key: "study", label: "学習履歴", icon: "📚", badge: nil, route: .myStudy))
+        }
+        return arr
     }
 
     var body: some View {
@@ -400,132 +405,78 @@ struct MyInfoView: View {
     }
 }
 
-// MARK: - MyInfoEditView (L3) — 学年 / 組 / 番号 / 部屋 編集
+// MARK: - MyInfoEditView (L3) — 連絡先・部屋編集
+//
+// system_features §6「学生改动履歴」拍板:
+//   - 学生可改: 房间号(数字部) / 邮箱 / 电话 / 密码 / 头像
+//   - 老师专改(学生 read-only): 学号构成(学年/组/番号) / 姓名
+// → 当前 view は room/email/phone のみ編集可。学号・姓名は read-only 表示。
 
 struct MyInfoEditView: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
-    @State private var grade: String = SEED.user.grade
-    @State private var classSuffix: String = SEED.user.classSuffix
-    @State private var seatNoStr: String = "\(SEED.user.seatNo)"
     @State private var room: String = {
         var s = SEED.user.room
-        if let first = s.first, first == "M" || first == "W" { s.removeFirst() }
+        if let first = s.first, first == "M" || first == "A" || first == "W" {
+            s.removeFirst()
+        }
         return s
     }()
-
-    private let grades = ["中1", "中2", "中3", "高1", "高2", "高3"]
-
-    private var gradeCode: String {
-        switch grade {
-        case "中1": return "01"; case "中2": return "02"; case "中3": return "03"
-        case "高1": return "04"; case "高2": return "05"; case "高3": return "06"
-        default: return "00"
-        }
-    }
-    private var classCode: String { classSuffix == "A" ? "01" : "02" }
-    private var computedAccount: String {
-        let n = max(0, min(99, Int(seatNoStr) ?? 0))
-        return gradeCode + classCode + String(format: "%02d", n)
-    }
+    @State private var email: String = SEED.user.email
+    @State private var phone: String = SEED.user.phone
 
     private var canSave: Bool {
-        (Int(seatNoStr) ?? 0) > 0
-            && !room.trimmingCharacters(in: .whitespaces).isEmpty
+        !room.trimmingCharacters(in: .whitespaces).isEmpty
+            && !email.trimmingCharacters(in: .whitespaces).isEmpty
+            && !phone.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    /// 性別 → prefix（M = 男寮 1 寮 / W = 女寮 4 寮 / A = 男寮 2 寮）
+    /// 注: A 寮の判別は元 room の prefix を継承（性別だけでは決まらない）
+    private var roomPrefix: String {
+        let original = SEED.user.room
+        if let first = original.first, first == "A" { return "A" }
+        return SEED.user.gender == "男" ? "M" : "W"
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            PageHeader(title: "個人情報編集", level: 3)
+            PageHeader(title: "連絡先・部屋編集", level: 3)
             ScrollView {
                 VStack(spacing: 18) {
-                    Field(label: "学年", required: true) {
-                        HStack(spacing: 6) {
-                            ForEach(grades, id: \.self) { g in
-                                Button { grade = g } label: {
-                                    Text(g)
-                                        .font(.system(size: 13, weight: grade == g ? .bold : .medium))
-                                        .foregroundStyle(grade == g ? Color.white : T.ink)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 36)
-                                        .background {
-                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                                .fill(grade == g ? T.primary : T.pearl)
-                                        }
-                                        .overlay {
-                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                                .stroke(grade == g ? T.primary : T.hair, lineWidth: 1)
-                                        }
-                                        .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-
-                    Field(label: "組", required: true) {
-                        HStack(spacing: 8) {
-                            ForEach(["A", "B"], id: \.self) { v in
-                                let sel = classSuffix == v
-                                Button { classSuffix = v } label: {
-                                    Text("\(v)組")
-                                        .font(.system(size: 14, weight: sel ? .bold : .medium))
-                                        .foregroundStyle(sel ? T.primary : T.ink)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 42)
-                                        .background {
-                                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                                .fill(sel ? T.primary.opacity(0.06) : T.pearl)
-                                        }
-                                        .overlay {
-                                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                                .stroke(sel ? T.primary : T.hair, lineWidth: sel ? 1.5 : 1)
-                                        }
-                                        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-
-                    Field(label: "出席番号", required: true) {
-                        TField(text: $seatNoStr, placeholder: "18", keyboard: .numberPad)
-                    }
-
+                    readonlyHeader
                     Field(
                         label: "部屋番号",
-                        hint: "例：101 / 12B · 男寮 M / 女寮 W は性別から自動付与",
+                        hint: "数字部分のみ。寮プレフィックス（\(roomPrefix)）は性別・寮から自動付与",
                         required: true
                     ) {
-                        TField(text: $room, placeholder: "101")
+                        HStack(spacing: 8) {
+                            Text(roomPrefix)
+                                .font(.system(size: 18, weight: .heavy, design: .monospaced))
+                                .foregroundStyle(T.primary)
+                                .frame(width: 38, height: 48)
+                                .background {
+                                    RoundedRectangle(cornerRadius: T.Radius.sm, style: .continuous)
+                                        .fill(T.primary.opacity(0.08))
+                                }
+                            TField(text: $room, placeholder: "101", keyboard: .numberPad)
+                        }
                     }
                     .onChange(of: room) { _, newVal in
-                        let filtered = newVal.filter { $0.isLetter || $0.isNumber }
-                            .uppercased()
-                        room = String(filtered.prefix(4))
+                        let filtered = newVal.filter { $0.isNumber }
+                        room = String(filtered.prefix(3))
                     }
 
-                    // アカウント番号 プレビュー
-                    HStack {
-                        Text("アカウント番号（自動）")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(T.inkSub)
-                        Spacer()
-                        Text(computedAccount)
-                            .font(.system(size: 22, weight: .bold, design: .monospaced))
-                            .foregroundStyle(T.primary)
-                            .kerning(2)
+                    Field(label: "メール", required: true) {
+                        TField(text: $email, placeholder: "you@example.com", keyboard: .emailAddress)
                     }
-                    .padding(.horizontal, 14).padding(.vertical, 10)
-                    .background {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(T.primary.opacity(0.06))
+
+                    Field(label: "電話", required: true) {
+                        TField(text: $phone, placeholder: "090-1234-5678", keyboard: .phonePad)
                     }
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(T.primary.opacity(0.15), lineWidth: 1)
-                    }
+
+                    helpInfoBox
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 12)
@@ -546,24 +497,82 @@ struct MyInfoEditView: View {
         .background(T.paper.ignoresSafeArea())
     }
 
+    /// read-only 表示（学号 / 姓名 — 老师専改字段）
+    private var readonlyHeader: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("変更不可（先生に依頼）")
+                .font(.system(size: 11, weight: .bold))
+                .kerning(0.8)
+                .foregroundStyle(T.inkMute)
+                .textCase(.uppercase)
+            Card(padding: 0) {
+                VStack(spacing: 0) {
+                    HStack {
+                        Text("学号")
+                            .font(.system(size: 13))
+                            .foregroundStyle(T.inkSub)
+                            .frame(width: 90, alignment: .leading)
+                        Text(SEED.user.account)
+                            .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(T.ink)
+                        Spacer()
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(T.inkMute)
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 13)
+                    Divider().background(T.hair)
+                    HStack {
+                        Text("氏名")
+                            .font(.system(size: 13))
+                            .foregroundStyle(T.inkSub)
+                            .frame(width: 90, alignment: .leading)
+                        Text(SEED.user.name)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(T.ink)
+                        Spacer()
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(T.inkMute)
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 13)
+                }
+            }
+        }
+    }
+
+    private var helpInfoBox: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("ℹ 学号・姓名・生年月日・性別の変更は寮監にご連絡ください。")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(T.primaryDk)
+            Text("変更履歴は次の画面で確認できます。")
+                .font(.system(size: 11))
+                .foregroundStyle(T.primaryDk.opacity(0.85))
+        }
+        .padding(.horizontal, 14).padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(T.primary.opacity(0.04))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(T.primary.opacity(0.13), lineWidth: 1)
+        }
+    }
+
     private func saveAndLog() {
         let u0 = SEED.user
-        let newSeat = Int(seatNoStr) ?? u0.seatNo
-        // 性別から M/W プレフィックスを自動付与
-        let prefix = (u0.gender == "男") ? "M" : "W"
-        let newRoom = prefix + room
+        let newRoom = roomPrefix + room
 
-        app.appendChange(field: "grade",       label: "学年",     before: u0.grade,              after: grade)
-        app.appendChange(field: "classSuffix", label: "組",       before: u0.classSuffix,        after: classSuffix)
-        app.appendChange(field: "seatNo",      label: "出席番号", before: "\(u0.seatNo)",         after: "\(newSeat)")
-        app.appendChange(field: "room",        label: "部屋番号", before: u0.room,                after: newRoom)
-        app.appendChange(field: "account",     label: "アカウント番号", before: u0.account,        after: computedAccount)
+        app.appendChange(field: "room",  label: "部屋番号", before: u0.room,  after: newRoom)
+        app.appendChange(field: "email", label: "メール",   before: u0.email, after: email)
+        app.appendChange(field: "phone", label: "電話",     before: u0.phone, after: phone)
 
-        SEED.user.grade = grade
-        SEED.user.classSuffix = classSuffix
-        SEED.user.seatNo = newSeat
         SEED.user.room = newRoom
-        SEED.user.account = computedAccount
+        SEED.user.email = email
+        SEED.user.phone = phone
 
         app.showToast("保存しました")
         router.back()
@@ -789,7 +798,7 @@ struct MyPointsView: View {
                     Button {
                         router.go(.myPointsChart)
                     } label: {
-                        Text("推移 →")
+                        Text("グラフ →")
                             .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(T.primary)
                     }
@@ -967,7 +976,7 @@ struct MyPointsChartView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            PageHeader(title: "減点推移", level: 2)
+            PageHeader(title: "減点グラフ", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     Card(padding: 20) {
@@ -1356,7 +1365,7 @@ struct MySettingsView: View {
                         }
                     }
 
-                    // Dark mode toggle (iOS 扩展：不在 JSX 但 TASK_E 要求)
+                    // 暗色模式（iOS 扩展，不在 JSX 但 TASK_E 要求）
                     Card(padding: 0) {
                         HStack {
                             Text("ダークモード")
@@ -1374,6 +1383,10 @@ struct MySettingsView: View {
                         .padding(.horizontal, 18)
                         .padding(.vertical, 14)
                     }
+
+                    // Push 通知 demo 段（system_features §7.13 R1 例外）
+                    // ⚠️ DEMO-ONLY: 真后端 push listener 接通后必删
+                    pushDemoSection
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
@@ -1381,6 +1394,61 @@ struct MySettingsView: View {
             }
         }
         .background(T.pearl.ignoresSafeArea())
+    }
+
+    /// Push 通知 demo 触发段 — 4 个事件按钮（学習批 / 学習拒 / 名单加入 / 修改届再批）
+    private var pushDemoSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("⚠️ Push 通知 デモ")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(T.warnDeep)
+                .kerning(0.6)
+                .padding(.top, 8)
+            Text("この section は v1.0 上線前に削除されます。")
+                .font(.system(size: 10))
+                .foregroundStyle(T.inkMute)
+            Card(padding: 0) {
+                VStack(spacing: 0) {
+                    pushDemoRow(label: "学習欠席届 → 承認") {
+                        app.simulateStudyLeaveApproved()
+                    }
+                    Divider().background(T.hair)
+                    pushDemoRow(label: "学習欠席届 → 不承認") {
+                        app.simulateStudyLeaveRejected()
+                    }
+                    Divider().background(T.hair)
+                    pushDemoRow(label: "学習対象に追加された") {
+                        app.simulateStudyRosterAdded()
+                    }
+                    Divider().background(T.hair)
+                    pushDemoRow(label: "外泊届（修改届）が再承認された") {
+                        app.simulateAmendmentRebatch()
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func pushDemoRow(label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Image(systemName: "bell.badge.fill")
+                    .font(.system(size: 13))
+                    .foregroundStyle(T.warn)
+                Text(label)
+                    .font(.system(size: 13))
+                    .foregroundStyle(T.ink)
+                Spacer()
+                Text("送信")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(T.primary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -1471,6 +1539,263 @@ struct MyAboutView: View {
 #Preview("MyAbout") {
     MyAboutView()
         .environmentObject(RouterStore(initial: .myAbout))
+        .environmentObject(AppStore())
+}
+
+// MARK: - 学習履歴 (system_features §7.3.10) — isStudyTarget のみ
+
+struct MyStudyView: View {
+    @EnvironmentObject var app: AppStore
+
+    /// 当月（demo: 全件）の出席状況サマリ
+    private var thisMonthStats: (present: Int, late: Int, abnormal: Int, absentExcused: Int) {
+        let entries = app.studyHistory
+        // 日別 group → 各日 3 tap 揃ってる = present 1 / 1-2 tap = abnormal / 0 = absent
+        let dates = Set(entries.map { $0.date })
+        var present = 0, late = 0, abnormal = 0
+        for d in dates {
+            let dayEntries = entries.filter { $0.date == d }
+            let tapKinds = Set(dayEntries.map { $0.tapKind })
+            if tapKinds.count == 3 {
+                let lateNote = dayEntries.contains { $0.note?.contains("遅刻") == true }
+                if lateNote { late += 1 } else { present += 1 }
+            } else if tapKinds.count > 0 {
+                abnormal += 1
+            }
+        }
+        return (present, late, abnormal, app.studyLeaveCountThisMonth)
+    }
+
+    private var groupedByDate: [(date: String, items: [StudyHistoryEntry])] {
+        var seen: [String] = []
+        var map: [String: [StudyHistoryEntry]] = [:]
+        for e in app.studyHistory {
+            if map[e.date] == nil { seen.append(e.date) }
+            map[e.date, default: []].append(e)
+        }
+        return seen.map { (date: $0, items: map[$0] ?? []) }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            PageHeader(title: "学習履歴", level: 2)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    summaryCard
+                    leaveStatsCard
+                    historyCard
+                    helpInfoBox
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
+                .padding(.bottom, 24)
+            }
+        }
+        .background(T.pearl.ignoresSafeArea())
+    }
+
+    // MARK: 月度 summary
+
+    private var summaryCard: some View {
+        let stats = thisMonthStats
+        return Card(padding: 18) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Text("今月の学習出席")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(T.inkSub).kerning(1.2)
+                    Spacer()
+                    Text(SEED.user.isStudyTarget ? "対象" : "対象外")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(T.primary)
+                        .padding(.horizontal, 8).padding(.vertical, 2)
+                        .background { Capsule().fill(T.primary.opacity(0.10)) }
+                }
+                HStack(spacing: 12) {
+                    statBox(label: "出席", count: stats.present, color: T.ok)
+                    statBox(label: "遅刻", count: stats.late, color: T.warn)
+                    statBox(label: "異常", count: stats.abnormal, color: T.danger)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func statBox(label: String, count: Int, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(T.inkSub)
+            HStack(alignment: .lastTextBaseline, spacing: 3) {
+                Text("\(count)")
+                    .font(.system(size: 24, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(color)
+                Text("回")
+                    .font(.system(size: 11))
+                    .foregroundStyle(T.inkMute)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12).padding(.vertical, 10)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(T.pill)
+        }
+    }
+
+    // MARK: 当月 leave count
+
+    private var leaveStatsCard: some View {
+        Card(padding: 14) {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle().fill(T.warnBg).frame(width: 40, height: 40)
+                    Text("📝").font(.system(size: 22))
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("今月の学習欠席届")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(T.inkSub)
+                    HStack(alignment: .lastTextBaseline, spacing: 4) {
+                        Text("\(app.studyLeaveCountThisMonth)")
+                            .font(.system(size: 22, weight: .heavy, design: .monospaced))
+                            .foregroundStyle(app.studyLeaveCountThisMonth > 3 ? T.danger : T.ink)
+                        Text("回")
+                            .font(.system(size: 12))
+                            .foregroundStyle(T.inkMute)
+                    }
+                }
+                Spacer()
+                if app.studyLeaveCountThisMonth > 3 {
+                    Text("超過")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(T.danger)
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background { Capsule().fill(T.dangerBg) }
+                }
+            }
+        }
+    }
+
+    // MARK: 履歴 list
+
+    private var historyCard: some View {
+        Card(padding: 0) {
+            VStack(spacing: 0) {
+                HStack {
+                    Text("出席タップ履歴")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(T.inkSub).kerning(1.2)
+                    Spacer()
+                    Text("\(app.studyHistory.count) 件")
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(T.inkMute)
+                }
+                .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 8)
+
+                if app.studyHistory.isEmpty {
+                    VStack(spacing: 10) {
+                        Text("✨").font(.system(size: 40))
+                        Text("履歴はまだありません")
+                            .font(.system(size: 13))
+                            .foregroundStyle(T.inkMute)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 30)
+                } else {
+                    ForEach(Array(groupedByDate.enumerated()), id: \.offset) { (idx, grp) in
+                        if idx > 0 { Divider().background(T.hair) }
+                        dayBlock(date: grp.date, items: grp.items)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func dayBlock(date: String, items: [StudyHistoryEntry]) -> some View {
+        let kinds = Set(items.map { $0.tapKind })
+        let complete = kinds.count == 3
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text(date)
+                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(T.inkSub)
+                if complete {
+                    Text("時間内")
+                        .font(.system(size: 10.5, weight: .bold))
+                        .foregroundStyle(T.okDeep)
+                        .padding(.horizontal, 7).padding(.vertical, 2)
+                        .background { Capsule().fill(T.okBg) }
+                } else {
+                    Text("未完")
+                        .font(.system(size: 10.5, weight: .bold))
+                        .foregroundStyle(T.danger)
+                        .padding(.horizontal, 7).padding(.vertical, 2)
+                        .background { Capsule().fill(T.dangerBg) }
+                }
+                Spacer()
+                Text("\(items.count) / 3")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(T.inkMute)
+            }
+            VStack(spacing: 0) {
+                ForEach(Array(items.enumerated()), id: \.element.id) { (i, e) in
+                    HStack(spacing: 12) {
+                        Text(e.timeHM)
+                            .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(T.ink)
+                            .frame(width: 50, alignment: .leading)
+                        Text(e.tapLabel)
+                            .font(.system(size: 12.5))
+                            .foregroundStyle(T.ink)
+                        Spacer()
+                        if let n = e.note {
+                            Text(n)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(T.warnDeep)
+                                .padding(.horizontal, 6).padding(.vertical, 1)
+                                .background { Capsule().fill(T.warnBg) }
+                        }
+                    }
+                    .padding(.vertical, 6)
+                    if i < items.count - 1 {
+                        Rectangle().fill(T.hair).frame(height: 0.5)
+                    }
+                }
+            }
+            .padding(.leading, 4)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 10)
+    }
+
+    // MARK: help info box
+
+    private var helpInfoBox: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("ℹ 学習出席は NFC を 1 日 3 回タップ")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(T.primaryDk)
+            Text("学習開始 (19:40) ／ 中場 (20:45) ／ 学習終了 (21:45)。3 回揃わない場合は異常扱いとなり、学習担当の先生が手動で判定します。")
+                .font(.system(size: 11.5))
+                .foregroundStyle(T.primaryDk.opacity(0.85))
+                .lineSpacing(3)
+        }
+        .padding(.horizontal, 14).padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(T.primary.opacity(0.04))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(T.primary.opacity(0.13), lineWidth: 1)
+        }
+    }
+}
+
+#Preview("MyStudy") {
+    MyStudyView()
+        .environmentObject(RouterStore(initial: .myStudy))
         .environmentObject(AppStore())
 }
 

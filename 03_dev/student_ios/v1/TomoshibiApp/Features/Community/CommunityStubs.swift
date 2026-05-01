@@ -94,13 +94,15 @@ private struct HeaderPlusButton: View {
 // MARK: - §1 NotificationsView · 通知
 
 struct NotificationsView: View {
+    @EnvironmentObject var app: AppStore
     @State private var filter: String = "すべて"
-    // 对等 JSX: ['すべて','申請','減点','快递','活動'] → v2 修正 快递 → 宅配；补 リクエスト曲 以对齐 SEED
-    private let filters = ["すべて", "申請", "減点", "宅配", "活動", "リクエスト曲"]
+    // 4-30 加「学習」(R1 例外的 push 通知种类)
+    private let filters = ["すべて", "申請", "減点", "学習", "宅配", "活動", "リクエスト曲"]
 
     private var filtered: [NotificationItem] {
-        if filter == "すべて" { return SEED.notifications }
-        return SEED.notifications.filter { $0.type == filter }
+        // 数据源 = AppStore.allNotifications（push 模拟通知 + SEED.notifications）
+        if filter == "すべて" { return app.allNotifications }
+        return app.allNotifications.filter { $0.type == filter }
     }
 
     var body: some View {
@@ -634,10 +636,22 @@ struct LostDetailView: View {
         .environmentObject(AppStore())
 }
 
-// MARK: - §7 MusicView · リクエスト曲（v2 修正：点歌 → リクエスト曲）
+// MARK: - §7 MusicView · リクエスト曲（system_features §7.11 — 2026-05-01 拍板）
+//
+// 変更点:
+// - 並び順: 投稿順（新→旧 = id 降順）。賛/反対は廃止。
+// - 各 row に「⚠ 通報する」ボタンを追加。push で SheetKind.songReport 起動。
+// - 上部に hint banner: 「気になる曲があれば、通報ボタンから先生にお伝えできます。」
+//   (吊し上げ防止のため、通報件数は学生側に基本表示しない)
 
 struct MusicView: View {
     @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
+
+    /// 投稿順 (新→旧) — id が大きいものを先頭に
+    private var sortedSongs: [SongItem] {
+        SEED.songs.sorted { $0.id > $1.id }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -647,13 +661,18 @@ struct MusicView: View {
                 right: AnyView(HeaderPlusButton { router.go(.homeMusicNew) })
             )
             ScrollView {
-                // marginBottom 8 per card
-                VStack(spacing: 8) {
-                    ForEach(Array(SEED.songs.enumerated()), id: \.element.id) { idx, s in
-                        songCard(idx: idx, s: s)
+                VStack(spacing: 0) {
+                    hintBanner
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 12)
+
+                    VStack(spacing: 8) {
+                        ForEach(sortedSongs, id: \.id) { s in
+                            songCard(s: s)
+                        }
                     }
+                    .padding(.horizontal, 16)
                 }
-                .padding(.horizontal, 16)
                 .padding(.top, 4)
                 .padding(.bottom, 24)
             }
@@ -662,17 +681,35 @@ struct MusicView: View {
         .background(T.pearl.ignoresSafeArea())
     }
 
-    private func songCard(idx: Int, s: SongItem) -> some View {
-        Button { router.go(.homeMusicDetail(id: s.id)) } label: {
-            Card(padding: 14) {
-                // HStack alignItems center gap 12
-                HStack(alignment: .center, spacing: 12) {
-                    // rank · width 22 · fontSize 16 bold mono · top3 → primary, else inkMute
-                    Text("\(idx + 1)")
-                        .font(.system(size: 16, weight: .bold, design: .monospaced))
-                        .foregroundStyle(idx < 3 ? T.primary : T.inkMute)
-                        .frame(width: 22, alignment: .center)
-                    // 44x44 gradient album
+    /// 通報導線の存在を学生に認知させるための hint banner
+    private var hintBanner: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "info.circle.fill")
+                .font(.system(size: 13))
+                .foregroundStyle(T.primary)
+                .padding(.top, 1)
+            Text("気になる曲があれば、各曲の「⚠ 通報」ボタンから先生にお伝えできます。")
+                .font(.system(size: 12))
+                .foregroundStyle(T.primaryDk)
+                .lineSpacing(3)
+        }
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(T.primary.opacity(0.05))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(T.primary.opacity(0.18), lineWidth: 1)
+        }
+    }
+
+    private func songCard(s: SongItem) -> some View {
+        Card(padding: 14) {
+            HStack(alignment: .center, spacing: 12) {
+                // 44x44 gradient album (タップで詳細)
+                Button { router.go(.homeMusicDetail(id: s.id)) } label: {
                     ZStack {
                         LinearGradient(
                             colors: [T.accentSoft, T.accent],
@@ -683,8 +720,12 @@ struct MusicView: View {
                     }
                     .frame(width: 44, height: 44)
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    // title + meta · flex 1
-                    VStack(alignment: .leading, spacing: 0) {
+                }
+                .buttonStyle(.plain)
+
+                // title + meta · flex 1 (タップで詳細)
+                Button { router.go(.homeMusicDetail(id: s.id)) } label: {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(s.title)
                             .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(T.ink)
@@ -695,26 +736,33 @@ struct MusicView: View {
                             .foregroundStyle(T.inkSub)
                             .lineLimit(1)
                     }
-                    Spacer()
-                    // votes · VStack gap 3
-                    VStack(spacing: 3) {
-                        HStack(spacing: 3) {
-                            Ic.up(12).foregroundStyle(T.ok)
-                            Text("\(s.up)")
-                                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                .foregroundStyle(T.ok)
-                        }
-                        HStack(spacing: 3) {
-                            Ic.down(12).foregroundStyle(T.inkMute)
-                            Text("\(s.down)")
-                                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                .foregroundStyle(T.inkMute)
-                        }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                // 通報 button (system_features §7.11.2)
+                Button {
+                    app.openSheet(.songReport(songId: s.id))
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text("通報")
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    .foregroundStyle(T.warnDeep)
+                    .padding(.horizontal, 10).padding(.vertical, 6)
+                    .background {
+                        Capsule().fill(T.warnBg)
+                    }
+                    .overlay {
+                        Capsule().stroke(T.warn.opacity(0.3), lineWidth: 1)
                     }
                 }
+                .buttonStyle(.plain)
             }
         }
-        .buttonStyle(.plain)
     }
 }
 
@@ -739,6 +787,11 @@ struct MusicNewView: View {
             PageHeader(title: "曲を投稿", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
+                    if !app.canPostSong {
+                        banBanner
+                            .padding(.bottom, 18)
+                    }
+
                     Field(label: "Apple Music URL", hint: "曲情報を自動取得します") {
                         TField(text: $url, placeholder: "https://music.apple.com/...")
                     }
@@ -759,7 +812,7 @@ struct MusicNewView: View {
                     }
                     .padding(.bottom, 18)
 
-                    PrimaryButton(title: "投稿する") {
+                    PrimaryButton(title: "投稿する", enabled: app.canPostSong) {
                         app.showToast("投稿しました")
                         Task {
                             try? await Task.sleep(nanoseconds: 500_000_000)
@@ -775,6 +828,33 @@ struct MusicNewView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl.ignoresSafeArea())
     }
+
+    /// 通報多数で投稿封禁中の banner (system_features §7.11.2)
+    private var banBanner: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.octagon.fill")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(T.danger)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(app.songBanDescription ?? "投稿停止中")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(T.danger)
+                Text("通報多数のため、現在リクエスト曲の投稿はできません。詳細は寮監にご相談ください。")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(T.danger.opacity(0.85))
+                    .lineSpacing(3)
+            }
+        }
+        .padding(.horizontal, 14).padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(T.dangerBg)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(T.danger.opacity(0.3), lineWidth: 1)
+        }
+    }
 }
 
 #Preview {
@@ -788,7 +868,6 @@ struct MusicNewView: View {
 struct MusicDetailView: View {
     let id: Int
     @EnvironmentObject var app: AppStore
-    @State private var voted: String? = nil  // "up" / "down" / nil
 
     // JSX 原文 hard-coded Lilac · 我们用 id 找回 SEED song，fallback Lilac
     private var song: SongItem { SEED.songs.first(where: { $0.id == id }) ?? SEED.songs[0] }
@@ -805,7 +884,6 @@ struct MusicDetailView: View {
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
-                        // JSX 写 transform:scale(3.4) on music icon 24 ≈ 82
                         Ic.music(82).foregroundStyle(.white)
                     }
                     .frame(width: 160, height: 160)
@@ -813,7 +891,6 @@ struct MusicDetailView: View {
                     .shadow(color: T.primary.opacity(0.25), radius: 20, x: 0, y: 12)
                     .padding(.bottom, 20)
 
-                    // title textAlign center fontSize 22 heavy
                     Text(song.title)
                         .font(.system(size: 22, weight: .heavy))
                         .foregroundStyle(T.ink)
@@ -824,7 +901,6 @@ struct MusicDetailView: View {
                         .foregroundStyle(T.inkSub)
                         .padding(.bottom, 24)
 
-                    // reason card · marginBottom 14
                     Card(padding: 16) {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("投稿理由")
@@ -837,65 +913,43 @@ struct MusicDetailView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
-                    .padding(.bottom, 14)
-
-                    // voting buttons · gap 10 · height 52 borderRadius 16
-                    HStack(spacing: 10) {
-                        voteButton(kind: "up", label: "賛成", iconUp: true)
-                        voteButton(kind: "down", label: "反対", iconUp: false)
-                    }
                     .padding(.bottom, 18)
 
-                    // report 底部 link
+                    // 通報ボタン (賛/反対は 2026-05-01 拍板で廃止 — system_features §7.11)
                     Button {
-                        app.showToast("報告を送信しました")
+                        app.openSheet(.songReport(songId: song.id))
                     } label: {
-                        HStack(spacing: 4) {
-                            Ic.flag(14)
-                            Text("報告する")
-                                .font(.system(size: 12))
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                            Text("この曲を通報する")
+                                .font(.system(size: 15, weight: .bold))
                         }
-                        .foregroundStyle(T.inkMute)
+                        .foregroundStyle(T.warnDeep)
                         .frame(maxWidth: .infinity)
-                        .padding(10)
+                        .frame(height: 52)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous).fill(T.warnBg)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .stroke(T.warn.opacity(0.4), lineWidth: 1.5)
+                        )
                     }
                     .buttonStyle(.plain)
+                    .padding(.bottom, 10)
+
+                    Text("通報内容は寮務の先生に届きます。投稿者には通報した人は知られません。")
+                        .font(.system(size: 11))
+                        .foregroundStyle(T.inkMute)
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(3)
                 }
                 .padding(20)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl.ignoresSafeArea())
-    }
-
-    @ViewBuilder
-    private func voteButton(kind: String, label: String, iconUp: Bool) -> some View {
-        let selected = voted == kind
-        let isDanger = kind == "down"
-        let borderColor: Color = selected ? (isDanger ? T.danger : T.ok) : T.hair
-        let bgColor: Color = selected ? (isDanger ? T.dangerBg : T.okBg) : T.paper
-        let fgColor: Color = selected ? (isDanger ? T.danger : T.okDeep) : T.ink
-        Button {
-            voted = kind
-            app.showToast("投票しました")
-        } label: {
-            HStack(spacing: 8) {
-                if iconUp { Ic.up(16) } else { Ic.down(16) }
-                Text(label)
-                    .font(.system(size: 14, weight: .bold))
-            }
-            .foregroundStyle(fgColor)
-            .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous).fill(bgColor)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(borderColor, lineWidth: 1.5)
-            )
-        }
-        .buttonStyle(.plain)
     }
 }
 
@@ -1817,4 +1871,159 @@ struct SuggestFeedView: View {
     SuggestFeedView()
         .environmentObject(RouterStore(initial: .homeSuggestFeed))
         .environmentObject(AppStore())
+}
+
+// ───────────────────────────────────────────────────────────
+// MARK: - SongReportSheet · リクエスト曲 通報 (system_features §7.11.2)
+// ───────────────────────────────────────────────────────────
+//
+// 4 理由 + その他自由記入。提出時に AppStore.reportSong(...) を叩いて自動封禁判定を回す。
+
+struct SongReportSheet: View {
+    let songId: Int
+    @EnvironmentObject var app: AppStore
+
+    @State private var reason: SongReportReason? = nil
+    @State private var freeText: String = ""
+
+    private var song: SongItem? {
+        SEED.songs.first(where: { $0.id == songId })
+    }
+
+    private var canSubmit: Bool {
+        guard let r = reason else { return false }
+        if r == .other {
+            return !freeText.trimmingCharacters(in: .whitespaces).isEmpty
+        }
+        return true
+    }
+
+    var body: some View {
+        GlassSheet(onClose: { app.closeSheet() }) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("曲を通報する")
+                        .font(.system(size: 20, weight: .heavy))
+                        .foregroundStyle(T.ink)
+
+                    if let s = song {
+                        HStack(spacing: 10) {
+                            ZStack {
+                                LinearGradient(
+                                    colors: [T.accentSoft, T.accent],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                                Ic.music(18).foregroundStyle(.white)
+                            }
+                            .frame(width: 38, height: 38)
+                            .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(s.title)
+                                    .font(.system(size: 13.5, weight: .bold))
+                                    .foregroundStyle(T.ink)
+                                    .lineLimit(1)
+                                Text("\(s.artist) · \(s.by)")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(T.inkSub)
+                                    .lineLimit(1)
+                            }
+                            Spacer()
+                        }
+                        .padding(.horizontal, 12).padding(.vertical, 10)
+                        .background {
+                            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(T.pill)
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 7) {
+                        HStack(spacing: 4) {
+                            Text("通報の理由")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(T.inkSub)
+                            Text("*").foregroundStyle(T.danger)
+                        }
+                        VStack(spacing: 6) {
+                            ForEach(SongReportReason.allCases, id: \.self) { r in
+                                reasonRow(r)
+                            }
+                        }
+                    }
+
+                    if reason == .other {
+                        VStack(alignment: .leading, spacing: 7) {
+                            HStack(spacing: 4) {
+                                Text("詳細")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(T.inkSub)
+                                Text("*").foregroundStyle(T.danger)
+                            }
+                            TArea(text: $freeText,
+                                  placeholder: "通報の理由を具体的にお書きください",
+                                  rows: 3)
+                        }
+                    }
+
+                    Text("※ 通報内容は寮務の先生に届きます。投稿者には通報した人は知られません。\n※ 多数の通報を受けた場合、投稿者の投稿が一定期間制限される場合があります。")
+                        .font(.system(size: 11))
+                        .foregroundStyle(T.inkMute)
+                        .lineSpacing(3)
+
+                    PrimaryButton(title: "通報を送る", enabled: canSubmit) {
+                        guard let r = reason else { return }
+                        app.reportSong(
+                            songId: songId,
+                            reason: r,
+                            freeText: r == .other ? freeText : nil
+                        )
+                        app.closeSheet()
+                    }
+                }
+                .padding(.top, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(maxHeight: 600)
+        }
+    }
+
+    @ViewBuilder
+    private func reasonRow(_ r: SongReportReason) -> some View {
+        let selected = reason == r
+        Button { reason = r } label: {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .stroke(selected ? T.primary : T.inkFaint,
+                                lineWidth: selected ? 6 : 1.5)
+                        .frame(width: 20, height: 20)
+                    if selected {
+                        Circle().fill(.white).frame(width: 6, height: 6)
+                    }
+                }
+                Text(r.label)
+                    .font(.system(size: 14, weight: selected ? .bold : .medium))
+                    .foregroundStyle(selected ? T.primary : T.ink)
+                Spacer()
+            }
+            .padding(.horizontal, 14).padding(.vertical, 12)
+            .background {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(selected ? T.primary.opacity(0.05) : T.pearl)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(selected ? T.primary : T.hair,
+                            lineWidth: selected ? 1.5 : 1)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+#Preview("SongReportSheet") {
+    ZStack {
+        T.pearl.ignoresSafeArea()
+        SongReportSheet(songId: 1)
+    }
+    .environmentObject(AppStore())
 }

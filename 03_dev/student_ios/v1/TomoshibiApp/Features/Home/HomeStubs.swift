@@ -112,9 +112,8 @@ struct HomeView: View {
 
     // segmented + Tab 已砍 — itsuki 4-30: 通知去右上角，功能集中到一个页面（unread 留给右上角铃铛 badge）
 
-    private var unread: Int {
-        SEED.notifications.filter { $0.unread }.count
-    }
+    /// 未读数 — 用 AppStore.allNotifications（包含 push mock）
+    private var unread: Int { app.unreadNotificationCount }
 
     // 1 秒ごとに active 中の倒计时を進める Timer
     private let countdownTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -287,59 +286,181 @@ struct HomeView: View {
         let ss = app.studyCountdownSec % 60
         let countdownText = String(format: "%02d:%02d", mm, ss)
         let isActive = app.studyState == .active
-        Button { router.go(.applyForm(kind: "studyAbsence")) } label: {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .top) {
-                    Text(isActive ? "学習中" : "学習開始まで")
-                        .font(.system(size: 11, weight: .bold))
-                        .kerning(1.98)
-                        .textCase(.uppercase)
-                        .foregroundStyle(deepBrown.opacity(0.8))
-                    Spacer()
-                    Text(isActive ? "進行中" : "10 分前")
-                        .font(.system(size: 11.5, weight: .bold))
-                        .kerning(0.22)
-                        .padding(.horizontal, 10).padding(.vertical, 3)
-                        .foregroundStyle(deepBrown)
-                        .background(Capsule().fill(Color.white.opacity(0.45)))
-                }
-                .padding(.bottom, 6)
 
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(isActive ? "進行中" : countdownText)
-                        .font(.system(size: 56, weight: .heavy, design: .monospaced))
-                        .kerning(-1.12)
-                        .foregroundStyle(deepBrown)
-                    if !isActive {
-                        Text("分:秒")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(deepBrown.opacity(0.75))
-                    }
-                }
-                .padding(.bottom, 12)
-
-                Text("前半節 19:40〜20:40 ／ 後半節 20:45〜21:45")
-                    .font(.system(size: 12))
-                    .foregroundStyle(deepBrown.opacity(0.85))
-                    .padding(.bottom, 12)
-
-                HStack {
-                    Text("休む場合は")
-                        .font(.system(size: 12))
-                        .foregroundStyle(deepBrown.opacity(0.85))
-                    Spacer()
-                    HStack(spacing: 4) {
-                        Ic.chevR(14)
-                        Text("請假")
-                            .font(.system(size: 12, weight: .bold))
-                    }
+        VStack(alignment: .leading, spacing: 0) {
+            // header row — タイトル + ステータス pill
+            HStack(alignment: .top) {
+                Text(isActive ? "学習中" : "学習開始まで")
+                    .font(.system(size: 11, weight: .bold))
+                    .kerning(1.98)
+                    .textCase(.uppercase)
+                    .foregroundStyle(deepBrown.opacity(0.8))
+                Spacer()
+                Text(isActive ? "進行中" : "10 分前")
+                    .font(.system(size: 11.5, weight: .bold))
+                    .kerning(0.22)
+                    .padding(.horizontal, 10).padding(.vertical, 3)
                     .foregroundStyle(deepBrown)
-                    .padding(.horizontal, 10).padding(.vertical, 5)
-                    .background(Capsule().fill(Color.white.opacity(0.5)))
+                    .background(Capsule().fill(Color.white.opacity(0.45)))
+            }
+            .padding(.bottom, 6)
+
+            if isActive {
+                // active = NFC 3 回タップの進捗 + 「NFC で签到」入口（system_features §7.3.3）
+                studyTapsProgress(deepBrown: deepBrown)
+                    .padding(.bottom, 14)
+                studyActionButtons(deepBrown: deepBrown)
+            } else {
+                // upcoming = 倒计时 hero + 請假ボタン
+                Button { router.go(.applyForm(kind: "studyAbsence")) } label: {
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text(countdownText)
+                                .font(.system(size: 56, weight: .heavy, design: .monospaced))
+                                .kerning(-1.12)
+                                .foregroundStyle(deepBrown)
+                            Text("分:秒")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(deepBrown.opacity(0.75))
+                        }
+                        .padding(.bottom, 12)
+                        Text("前半節 19:40〜20:40 ／ 後半節 20:45〜21:45")
+                            .font(.system(size: 12))
+                            .foregroundStyle(deepBrown.opacity(0.85))
+                            .padding(.bottom, 12)
+                        HStack {
+                            Text("休む場合は")
+                                .font(.system(size: 12))
+                                .foregroundStyle(deepBrown.opacity(0.85))
+                            Spacer()
+                            HStack(spacing: 4) {
+                                Ic.chevR(14)
+                                Text("請假")
+                                    .font(.system(size: 12, weight: .bold))
+                            }
+                            .foregroundStyle(deepBrown)
+                            .padding(.horizontal, 10).padding(.vertical, 5)
+                            .background(Capsule().fill(Color.white.opacity(0.5)))
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    /// 学習 NFC 3 回タップの進捗 dot row（active のみ表示）
+    @ViewBuilder
+    private func studyTapsProgress(deepBrown: Color) -> some View {
+        let taps = app.studyTaps
+        let items: [(StudyTap, String, String)] = [
+            (.start, "開始",  "19:40"),
+            (.mid,   "中場",  "20:45"),
+            (.end,   "終了",  "21:45"),
+        ]
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 0) {
+                ForEach(Array(items.enumerated()), id: \.offset) { (i, item) in
+                    let (tap, label, time) = item
+                    let done = taps.contains(tap)
+                    VStack(spacing: 6) {
+                        ZStack {
+                            Circle()
+                                .fill(done ? Color.white : Color.white.opacity(0.3))
+                                .frame(width: 36, height: 36)
+                                .overlay(
+                                    Circle().stroke(deepBrown.opacity(done ? 1 : 0.4), lineWidth: 1.8)
+                                )
+                            if done {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 14, weight: .heavy))
+                                    .foregroundStyle(deepBrown)
+                            } else {
+                                Text("\(i + 1)")
+                                    .font(.system(size: 14, weight: .heavy, design: .monospaced))
+                                    .foregroundStyle(deepBrown.opacity(0.6))
+                            }
+                        }
+                        Text(label)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(deepBrown)
+                        Text(time)
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundStyle(deepBrown.opacity(0.7))
+                    }
+                    .frame(maxWidth: .infinity)
+                    if i < items.count - 1 {
+                        Rectangle()
+                            .fill(deepBrown.opacity(taps.contains(items[i + 1].0) ? 0.7 : 0.25))
+                            .frame(height: 2)
+                            .padding(.bottom, 28)
+                    }
                 }
             }
         }
-        .buttonStyle(.plain)
+    }
+
+    /// active 時のアクション row — 「NFC で签到」+「請假」 (next tap が無い時は「全 3 回完了」表示)
+    @ViewBuilder
+    private func studyActionButtons(deepBrown: Color) -> some View {
+        if let _ = app.nextStudyTap {
+            HStack(spacing: 10) {
+                Button {
+                    app.openSheet(.studyCheckin)
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "iphone.radiowaves.left.and.right")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("NFC で签到")
+                            .font(.system(size: 13.5, weight: .bold))
+                    }
+                    .foregroundStyle(deepBrown)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color.white.opacity(0.7))
+                    )
+                    .shadow(color: deepBrown.opacity(0.18), radius: 6, x: 0, y: 2)
+                }
+                .buttonStyle(.plain)
+                Button { router.go(.applyForm(kind: "studyAbsence")) } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "calendar.badge.exclamationmark")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("請假")
+                            .font(.system(size: 13.5, weight: .semibold))
+                    }
+                    .foregroundStyle(deepBrown)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color.white.opacity(0.45))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(Color.white.opacity(0.6), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        } else {
+            // 全 3 回完了
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                Text("本日の学習出席は完了しました")
+                    .font(.system(size: 13, weight: .bold))
+            }
+            .foregroundStyle(deepBrown)
+            .frame(maxWidth: .infinity)
+            .frame(height: 44)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.white.opacity(0.55))
+            )
+        }
     }
 
     // MARK: idle content（今月の減点 hero）
@@ -724,6 +845,7 @@ struct LifeTab: View {
             busCard
             packageCard
             eventsCard
+            musicCard
             lostCard
             suggestCard
         }
@@ -860,6 +982,47 @@ struct LifeTab: View {
                         .padding(.vertical, 6)
                     }
                 }
+            }
+        }
+    }
+
+    // MARK: Music — リクエスト曲（CommunityTab 砍后 #37 入口在这里恢复）
+    //
+    // 老師 38 条 #37「音楽機能は残す」→ 紫グラデの 44 アイコン + 件数 + トップ 1 曲のプレビュー
+    // top song = SEED.songs[0]（up 順で sort 済み seed）
+
+    private var musicCard: some View {
+        let topSong = SEED.songs.first
+        return HomeCard(pad: 14, onTap: { router.go(.homeMusic) }) {
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: 0xa78bfa), Color(hex: 0x7c3aed)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 44, height: 44)
+                    Ic.music(22).foregroundStyle(.white)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("リクエスト曲 · \(SEED.songs.count) 件")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(T.ink)
+                    if let s = topSong {
+                        Text("\(s.title) · \(s.artist)")
+                            .font(.system(size: 12))
+                            .foregroundStyle(T.inkSub)
+                            .lineLimit(1)
+                    } else {
+                        Text("まだ投稿がありません")
+                            .font(.system(size: 12))
+                            .foregroundStyle(T.inkMute)
+                    }
+                }
+                Spacer(minLength: 0)
+                Ic.chevR(16).foregroundStyle(T.inkMute)
             }
         }
     }
@@ -1262,6 +1425,360 @@ struct RollcallSheet: View {
     private func cancel() {
         app.closeSheet()
         step = .idle
+    }
+}
+
+// ───────────────────────────────────────────────────────────
+// MARK: - StudyCheckinSheet · 学習 NFC 3 回タップ签到 (system_features §7.3.3)
+// ───────────────────────────────────────────────────────────
+
+/// State: idle → scanning（0.5s）→ success（2s auto close）/ fail（retry）
+/// 1 sheet 開く度に 1 回分の tap を記録する（次回開いた時は次の tap）
+struct StudyCheckinSheet: View {
+    @EnvironmentObject var app: AppStore
+
+    enum Step { case idle, scanning, success, fail }
+
+    @State private var step: Step = .idle
+    @State private var pulseOn: Bool = false
+    @State private var rotating: Bool = false
+    @State private var recordedTap: StudyTap? = nil
+
+    private var nextTap: StudyTap? { app.nextStudyTap }
+
+    private var stepLabel: String {
+        switch nextTap {
+        case .start: return "学習開始のタップ"
+        case .mid:   return "中場のタップ"
+        case .end:   return "学習終了のタップ"
+        case .none:  return "本日完了"
+        }
+    }
+
+    private var stepNumber: Int {
+        switch nextTap {
+        case .start: return 1
+        case .mid:   return 2
+        case .end:   return 3
+        case .none:  return 3
+        }
+    }
+
+    private var stepTimeWindow: String {
+        switch nextTap {
+        case .start: return "19:35〜19:40"
+        case .mid:   return "20:40〜20:50"
+        case .end:   return "21:40〜21:50"
+        case .none:  return "—"
+        }
+    }
+
+    var body: some View {
+        GlassSheet(onClose: { cancel() }) {
+            ZStack {
+                switch step {
+                case .idle:     idleView
+                case .scanning: scanningView
+                case .success:  successView
+                case .fail:     failView
+                }
+            }
+            .animation(.easeOut(duration: 0.22), value: step)
+        }
+        .onAppear {
+            step = .idle
+            pulseOn = true
+        }
+        .onDisappear {
+            pulseOn = false
+            rotating = false
+        }
+    }
+
+    // MARK: idle
+
+    private var idleView: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("\(stepNumber) / 3 回目")
+                .font(.system(size: 11, weight: .heavy))
+                .kerning(1.8)
+                .textCase(.uppercase)
+                .foregroundStyle(T.primary)
+                .padding(.bottom, 6)
+            Text(stepLabel)
+                .font(.system(size: 24, weight: .heavy))
+                .kerning(-0.24)
+                .lineSpacing(6)
+                .foregroundStyle(T.ink)
+                .padding(.bottom, 12)
+
+            HStack(spacing: 6) {
+                Image(systemName: "clock")
+                    .font(.system(size: 12))
+                Text("受付時間: \(stepTimeWindow)")
+                    .font(.system(size: 12.5, weight: .semibold))
+            }
+            .foregroundStyle(T.inkSub)
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background {
+                RoundedRectangle(cornerRadius: 10, style: .continuous).fill(T.pill)
+            }
+            .padding(.bottom, 18)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("① 学習室入口の NFC マークにスマホをかざす")
+                Text("② 画面が光ったら完了")
+            }
+            .font(.system(size: 14))
+            .lineSpacing(4)
+            .foregroundStyle(T.inkSub)
+            .padding(.bottom, 22)
+
+            HStack {
+                Spacer()
+                ZStack {
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [T.accent.opacity(0.25), T.accent.opacity(0.05)],
+                                center: .center,
+                                startRadius: 0, endRadius: 70
+                            )
+                        )
+                        .frame(width: 140, height: 140)
+                        .overlay(Circle().stroke(T.accent, lineWidth: 2))
+                        .scaleEffect(pulseOn ? 1.0 : 0.94)
+                        .opacity(pulseOn ? 0.9 : 0.55)
+                        .animation(
+                            .easeInOut(duration: 0.7).repeatForever(autoreverses: true),
+                            value: pulseOn
+                        )
+                    Image(systemName: "iphone.radiowaves.left.and.right")
+                        .font(.system(size: 60, weight: .regular))
+                        .foregroundStyle(T.primary)
+                }
+                Spacer()
+            }
+            .padding(.bottom, 24)
+
+            Button { simulate() } label: {
+                Text("NFC をかざす（デモ）")
+                    .font(.system(size: 16, weight: .bold))
+                    .kerning(0.64)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(T.rollBtnGrad)
+                    }
+                    .shadow(color: T.primary.opacity(0.32), radius: 18, x: 0, y: 6)
+            }
+            .buttonStyle(.plain)
+            .padding(.bottom, 10)
+
+            Button { cancel() } label: {
+                Text("キャンセル")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(T.inkSub)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(T.ink.opacity(0.06))
+                    }
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 4)
+    }
+
+    private var scanningView: some View {
+        VStack(spacing: 18) {
+            Text("スキャン中…")
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(T.ink)
+
+            ZStack {
+                Circle().stroke(T.accent.opacity(0.3), lineWidth: 3)
+                    .frame(width: 120, height: 120)
+                Circle()
+                    .trim(from: 0, to: 0.3)
+                    .stroke(T.primary, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .frame(width: 120, height: 120)
+                    .rotationEffect(.degrees(rotating ? 360 : 0))
+                    .animation(
+                        .linear(duration: 0.9).repeatForever(autoreverses: false),
+                        value: rotating
+                    )
+                Image(systemName: "dot.radiowaves.left.and.right")
+                    .font(.system(size: 44))
+                    .foregroundStyle(T.primary)
+            }
+            .padding(.vertical, 6)
+            .onAppear { rotating = true }
+            .onDisappear { rotating = false }
+
+            Text("動かないでください")
+                .font(.system(size: 13))
+                .foregroundStyle(T.inkSub)
+        }
+        .padding(.vertical, 28)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var successView: some View {
+        VStack(spacing: 0) {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(hex: 0x8bc6a3), Color(hex: 0x4a9478)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 96, height: 96)
+                    .shadow(color: Color(hex: 0x4a9478).opacity(0.3), radius: 16, x: 0, y: 12)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 44, weight: .heavy))
+                    .foregroundStyle(.white)
+            }
+            .padding(.bottom, 20)
+
+            Text(successTitle)
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(T.ink)
+                .padding(.bottom, 10)
+
+            if let n = nextTapAfterRecord {
+                Text("次は \(n.label) を \(n.window) に")
+                    .font(.system(size: 13))
+                    .foregroundStyle(T.inkSub)
+            } else {
+                Text("\(Self.fmtNow()) · 本日の学習出席は完了")
+                    .font(.system(size: 13, weight: .bold))
+                    .kerning(0.26)
+                    .padding(.horizontal, 14).padding(.vertical, 6)
+                    .foregroundStyle(T.okDeep)
+                    .background(Capsule().fill(T.okBg))
+            }
+        }
+        .padding(.vertical, 28)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var successTitle: String {
+        switch recordedTap {
+        case .start: return "開始タップ完了"
+        case .mid:   return "中場タップ完了"
+        case .end:   return "終了タップ完了"
+        case .none:  return "完了"
+        }
+    }
+
+    private var nextTapAfterRecord: (label: String, window: String)? {
+        // record 後に次の tap があれば案内
+        let after = app.nextStudyTap
+        switch after {
+        case .start: return ("学習開始", "19:35〜19:40")
+        case .mid:   return ("中場", "20:40〜20:50")
+        case .end:   return ("学習終了", "21:40〜21:50")
+        case .none:  return nil
+        }
+    }
+
+    private var failView: some View {
+        VStack(spacing: 0) {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(hex: 0xe88a80), Color(hex: 0xc44848)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 88, height: 88)
+                    .shadow(color: T.danger.opacity(0.3), radius: 14, x: 0, y: 10)
+                Image(systemName: "xmark")
+                    .font(.system(size: 40, weight: .heavy))
+                    .foregroundStyle(.white)
+            }
+            .padding(.bottom, 18)
+
+            Text("失敗。もう一度")
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(T.ink)
+                .padding(.bottom, 10)
+
+            Text("NFC を読み取れませんでした")
+                .font(.system(size: 13))
+                .foregroundStyle(T.inkSub)
+                .padding(.bottom, 22)
+
+            Button {
+                withAnimation(.easeOut(duration: 0.22)) { step = .idle }
+            } label: {
+                Text("再試行")
+                    .font(.system(size: 16, weight: .bold))
+                    .kerning(0.64)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(T.rollBtnGrad)
+                    }
+                    .shadow(color: T.primary.opacity(0.32), radius: 18, x: 0, y: 6)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+    }
+
+    private func simulate() {
+        withAnimation(.easeOut(duration: 0.22)) { step = .scanning }
+        Task {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            await MainActor.run {
+                recordedTap = app.recordStudyTap()
+                withAnimation(.easeOut(duration: 0.22)) { step = .success }
+            }
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            await MainActor.run {
+                let label = recordedTap?.label ?? "—"
+                app.closeSheet()
+                if app.nextStudyTap == nil {
+                    app.showToast("学習出席完了 · 全 3 回 タップ済み")
+                } else {
+                    app.showToast("\(label) 完了")
+                }
+                step = .idle
+            }
+        }
+    }
+
+    private func cancel() {
+        app.closeSheet()
+        step = .idle
+    }
+
+    private static func fmtNow() -> String {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        f.locale = Locale(identifier: "ja_JP")
+        return f.string(from: Date())
+    }
+}
+
+private extension StudyTap {
+    var label: String {
+        switch self {
+        case .start: return "学習開始"
+        case .mid:   return "中場"
+        case .end:   return "学習終了"
+        }
     }
 }
 

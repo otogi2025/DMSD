@@ -23,6 +23,8 @@ struct User: Hashable {
     var seatNo: Int = 18
     /// 学習対象学生 flag (system_features §7.3 — 中学全员 / 高中考试不合格者). demo seed = true 让所有学習 UI 可见
     var isStudyTarget: Bool = true
+    /// 留学生 flag (system_features §8.1 / Q11 — 自己申报). リュウ イヒ = 留学生 (chain は 5 役职)
+    var isOverseas: Bool = true
 }
 
 struct PointRecord: Hashable, Identifiable {

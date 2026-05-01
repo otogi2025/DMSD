@@ -103,10 +103,12 @@ struct RootView: View {
         case .myPackages: MyPackagesView()
         case .mySettings: MySettingsView()
         case .myAbout: MyAboutView()
+        case .myStudy: MyStudyView()
 
         // §4 V1 リファレンス系 — 老師 38 条 #5 / #8 / #9（会话 C 实装）
         case .stayList: StayListView()
         case .stayDetail(let id): StayDetailView(id: id)
+        case .stayEdit(let id): StayEditForm(id: id)
         case .schedule: ScheduleView()
         case .busList: BusListView()
         }

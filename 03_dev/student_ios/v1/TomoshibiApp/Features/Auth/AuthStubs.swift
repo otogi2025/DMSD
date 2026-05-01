@@ -575,6 +575,7 @@ struct RegisterStep1View: View {
     }()
     @State private var gender: String = SEED.user.gender == "男" ? "male" : "female"
     @State private var avatar: String = "default"
+    @State private var isOverseas: Bool = SEED.user.isOverseas    // 留学生 flag (system_features §8.1 / Q11)
     @State private var grade: String = SEED.user.grade
     @State private var classSuffix: String = SEED.user.classSuffix
     @State private var seatNoStr: String = "\(SEED.user.seatNo)"
@@ -688,6 +689,18 @@ struct RegisterStep1View: View {
                         HStack(spacing: 8) {
                             inlineRadio(value: "male", label: "男")
                             inlineRadio(value: "female", label: "女")
+                        }
+                    }
+
+                    // 3.5 留学生 flag (system_features §8.1 / Q11 — 出寮届 chain が 3 vs 5 役职 で変わるため必須)
+                    Field(
+                        label: "学生区分",
+                        hint: "留学生は出寮届の承認に国際交流の先生方も加わります",
+                        required: true
+                    ) {
+                        HStack(spacing: 8) {
+                            overseasChip(value: false, label: "一般")
+                            overseasChip(value: true,  label: "留学生")
                         }
                     }
 
@@ -824,6 +837,28 @@ struct RegisterStep1View: View {
     }
 
     @ViewBuilder
+    private func overseasChip(value: Bool, label: String) -> some View {
+        let sel = isOverseas == value
+        Button { isOverseas = value } label: {
+            Text(label)
+                .font(.system(size: 14, weight: sel ? .bold : .medium))
+                .foregroundStyle(sel ? T.primary : T.ink)
+                .frame(maxWidth: .infinity)
+                .frame(height: 42)
+                .background {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(sel ? T.primary.opacity(0.06) : T.pearl)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(sel ? T.primary : T.hair, lineWidth: sel ? 1.5 : 1)
+                }
+                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
     private func classChip(_ v: String) -> some View {
         let sel = classSuffix == v
         Button { classSuffix = v } label: {
@@ -856,6 +891,7 @@ struct RegisterStep1View: View {
                 SEED.user.name = name
                 SEED.user.gender = gender == "male" ? "男" : "女"
                 SEED.user.dorm = gender == "male" ? "男寮" : "女寮"
+                SEED.user.isOverseas = isOverseas
                 SEED.user.grade = grade
                 SEED.user.classSuffix = classSuffix
                 SEED.user.seatNo = Int(seatNoStr) ?? 18
@@ -1320,6 +1356,7 @@ struct RegisterDoneView: View {
 
 struct LoginView: View {
     @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
 
     enum Mode: Hashable { case number, email }
 
@@ -1461,15 +1498,19 @@ struct LoginView: View {
         let idOk: Bool
         switch mode {
         case .number:
-            // "00" 旧 magic + SEED.user.account（例 "0618"）
+            // "00" 旧 magic + SEED.user.account（例 "060218"）
             idOk = acc == "00" || acc == SEED.user.account
         case .email:
             idOk = email.lowercased() == "otogi2025@gmail.com" ||
                    email.lowercased() == SEED.user.email.lowercased()
         }
-        if idOk {
+        // demo: パスワードは "demo1234" / "00" のみ正解
+        let pwOk = (pw == "demo1234" || pw == "00")
+        if idOk && pwOk {
+            app.resetLoginFailures()
             router.replace(.home)
         } else {
+            app.recordLoginFailure()
             router.go(.lockout)
         }
     }
@@ -1495,8 +1536,12 @@ struct LoginView: View {
 
 struct LockoutView: View {
     @EnvironmentObject var router: RouterStore
-    @State private var sec: Int = 30
+    @EnvironmentObject var app: AppStore
+    @State private var sec: Int = 0
     @State private var timer: Timer? = nil
+
+    // 是否永久锁（失败 6 次以上）
+    private var isPermanent: Bool { app.currentLockoutSeconds == nil }
 
     private var mm: String { String(format: "%02d", sec / 60) }
     private var ss: String { String(format: "%02d", sec % 60) }
@@ -1505,7 +1550,7 @@ struct LockoutView: View {
         VStack(spacing: 0) {
             Spacer()
 
-            // 100×100 danger circle + lock icon
+            // 100×100 红圈 + 锁 icon
             ZStack {
                 Circle()
                     .fill(T.dangerBg)
@@ -1516,40 +1561,56 @@ struct LockoutView: View {
             }
             .padding(.bottom, 24)
 
-            Text("ログイン試行が多すぎます")
+            Text(isPermanent ? "アカウントがロックされました" : "ログインに失敗しました")
                 .font(.system(size: 20, weight: .bold))
                 .foregroundStyle(T.ink)
                 .padding(.bottom, 8)
 
-            // Countdown
-            Text("\(mm):\(ss)")
-                .font(.system(size: 48, weight: .bold, design: .monospaced))
-                .foregroundStyle(T.danger)
-                .kerning(1.9) // 0.04em on 48 ≈ 1.9
-                .padding(.vertical, 16)
+            if isPermanent {
+                // 永久锁 — 不显示倒计时
+                Text("永久")
+                    .font(.system(size: 36, weight: .heavy))
+                    .foregroundStyle(T.danger)
+                    .padding(.vertical, 18)
 
-            Text("寮監に通知しました\nセキュリティのためロック中です")
-                .font(.system(size: 13))
-                .foregroundStyle(T.inkSub)
+                Text("試行回数の上限を超えました。\n寮監にご連絡ください。")
+                    .font(.system(size: 13))
+                    .foregroundStyle(T.inkSub)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(5)
+            } else {
+                // 倒计时
+                Text("\(mm):\(ss)")
+                    .font(.system(size: 48, weight: .bold, design: .monospaced))
+                    .foregroundStyle(T.danger)
+                    .kerning(1.9)
+                    .padding(.vertical, 16)
+
+                Text("セキュリティのため、しばらくログインできません。")
+                    .font(.system(size: 13))
+                    .foregroundStyle(T.inkSub)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(5)
+
+                // 当前阶段 + 下一阶段提示
+                VStack(spacing: 2) {
+                    Text("現在 \(app.loginFailCount) 回目のロック（\(app.currentLockoutLabel)）")
+                    if let next = app.nextLockoutLabel {
+                        Text("次回失敗で \(next) ロックに上がります")
+                    }
+                }
+                .font(.system(size: 11.5))
+                .foregroundStyle(T.warnDeep)
                 .multilineTextAlignment(.center)
-                .lineSpacing(5)
-
-            // Upgrade hint pill (amber)
-            VStack(spacing: 2) {
-                Text("現在 1 回目のロック（30 秒）")
-                Text("次回失敗で 1 分間ロックに上がります")
+                .lineSpacing(3)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(T.warnBg)
+                }
+                .padding(.top, 28)
             }
-            .font(.system(size: 11.5))
-            .foregroundStyle(T.warnDeep)
-            .multilineTextAlignment(.center)
-            .lineSpacing(3)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(T.warnBg)
-            }
-            .padding(.top, 28)
 
             Spacer()
         }
@@ -1559,7 +1620,11 @@ struct LockoutView: View {
         .onDisappear { stopTimer() }
     }
 
+    /// 启动倒计时 — 永久锁不计时
     private func startTimer() {
+        if isPermanent { return }
+        // demo 阶段时长按 spec 真值（30/60/300/1800/3600 秒），但前 30 秒看完就够演示
+        sec = app.currentLockoutSeconds ?? 30
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             Task { @MainActor in
                 guard sec > 0 else { return }

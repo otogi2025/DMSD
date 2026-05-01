@@ -206,10 +206,362 @@ final class AppStore: ObservableObject {
     func cycleDemoStudyState() {
         switch studyState {
         case .idle:     studyState = .upcoming; studyCountdownSec = 600; showToast("Demo · 学習 10 分前 (倒计时 10:00)")
-        case .upcoming: studyState = .active; showToast("Demo · 学習進行中")
+        case .upcoming: studyState = .active; studyTaps = []; showToast("Demo · 学習進行中（NFC で 3 回タップ）")
         case .active:   studyState = .done; showToast("Demo · 学習終了")
-        case .done:     studyState = .idle; showToast("Demo · 学習対象外")
+        case .done:     studyState = .idle; studyTaps = []; showToast("Demo · 学習対象外")
         }
+    }
+
+    // MARK: - 学習 NFC 3 回タップ签到 (system_features §7.3.3-6) — 2026-04-30 後續
+
+    /// 学習出席で達成した tap の集合（3 種類: start / mid / end）
+    @Published var studyTaps: Set<StudyTap> = []
+
+    /// 現在の学習出席状態（studyTaps + studyState から導出）
+    var studyAttendance: StudyAttendance {
+        // start / mid / end 集合に応じて state を判定（§7.3.6 異常テーブル）
+        let s = studyTaps.contains(.start)
+        let m = studyTaps.contains(.mid)
+        let e = studyTaps.contains(.end)
+        // 学習未開始 → idle
+        if studyState == .idle || studyState == .upcoming { return .idle }
+        // 全 3 回 tap → 緑（時間内）
+        if s && m && e { return .green }
+        // 1 + 3 だけ / 2 + 3 だけ / 1 + 2 だけ → ⚠️ 異常
+        if (s && !m && e) || (!s && m && e) || (s && m && !e) { return .abnormal }
+        // 1 だけ → まだ進行中（途中の通常）
+        if s && !m && !e { return .progressing }
+        // 2 + 3 のみ（開始未碰）→ 遅刻 + 異常（§7.3.6 4 行目に近い）
+        if !s && m && !e { return .progressing }
+        if !s && !m && e { return .abnormal }
+        // 何もしてない / done なのに何もない → 缺席 (§7.3.6 1 行目)
+        if studyState == .done && !s && !m && !e { return .red }
+        // active で何もしてない = 進行中だがまだ tap 0
+        return .none
+    }
+
+    /// 何回目の tap を期待しているか（next tap）— UI で次のステップを案内
+    var nextStudyTap: StudyTap? {
+        if !studyTaps.contains(.start) { return .start }
+        if !studyTaps.contains(.mid)   { return .mid }
+        if !studyTaps.contains(.end)   { return .end }
+        return nil
+    }
+
+    /// NFC 1 回 tap を記録（重複は無視）— sheet flow から呼ぶ
+    /// - Returns: 記録した tap 種別（既に全部 tap 済なら nil）
+    @discardableResult
+    func recordStudyTap() -> StudyTap? {
+        guard let next = nextStudyTap else { return nil }
+        studyTaps.insert(next)
+        // 履歴 1 件追加（最新が先頭）
+        let label: String = {
+            switch next {
+            case .start: return "学習開始"
+            case .mid:   return "中場確認"
+            case .end:   return "学習終了"
+            }
+        }()
+        let entry = StudyHistoryEntry(
+            date: Self.todayJa(),
+            tapKind: next,
+            tapLabel: label,
+            timeHM: Self.nowHM(),
+            note: nil
+        )
+        studyHistory.insert(entry, at: 0)
+        return next
+    }
+
+    /// マイページ「学習履歴」用 — 過去 N 日分の出席 entry 列
+    @Published var studyHistory: [StudyHistoryEntry] = StudyHistoryEntry.demoSeed
+
+    // MARK: - リクエスト曲 通報・封禁 (system_features §7.11.2) — 2026-05-01 拍板
+
+    /// 各曲の通報件数（songId → count）。一覧の老師側 badge は 7 件以上で出る。
+    @Published var songReportCounts: [Int: Int] = [:]
+
+    /// 自分が投稿した曲への通報合計（badge 7 判定用 + 自動封禁判定用）
+    @Published var myReportTotal: Int = 0
+
+    /// 自分の投稿封禁レベル（0=制限なし / 1=1ヶ月 / 2=3ヶ月 / 3=永久）
+    @Published var songBanLevel: Int = 0
+
+    /// 投稿封禁解除時刻（nil = 制限なし、level=3 は遠い未来扱いで実質 nil で許す）
+    @Published var songBanUntil: Date? = nil
+
+    /// 投稿可能か — banLevel + banUntil 判定
+    var canPostSong: Bool {
+        if songBanLevel == 0 { return true }
+        if songBanLevel >= 3 { return false }   // 永久禁止
+        guard let until = songBanUntil else { return true }
+        return Date() >= until
+    }
+
+    /// 封禁状態の表示文字列 (MusicNewView で表示)
+    var songBanDescription: String? {
+        guard !canPostSong else { return nil }
+        if songBanLevel >= 3 { return "投稿は永久に停止されています。" }
+        if let until = songBanUntil {
+            let f = DateFormatter()
+            f.dateFormat = "M月d日"
+            f.locale = Locale(identifier: "ja_JP")
+            return "現在投稿停止中（\(f.string(from: until)) まで）"
+        }
+        return "現在投稿停止中"
+    }
+
+    /// 通報を 1 件記録（demo: 全件自分宛にカウントして自動封禁を体感できるようにする）
+    /// 実装時は backend が songId → 投稿者 をルックアップして本人にだけ加算する。
+    func reportSong(songId: Int, reason: SongReportReason, freeText: String?) {
+        songReportCounts[songId, default: 0] += 1
+        // demo: 投稿者の本人累計にも加算（実 prod は songs.posted_by_id を見る）
+        myReportTotal += 1
+        // 5 件超で次の段階へ自動エスカレーション
+        let prevLevel = songBanLevel
+        if myReportTotal >= 15 {
+            songBanLevel = 3
+            songBanUntil = nil
+        } else if myReportTotal >= 10 {
+            songBanLevel = 2
+            songBanUntil = Calendar.current.date(byAdding: .month, value: 3, to: Date())
+        } else if myReportTotal >= 5 {
+            songBanLevel = 1
+            songBanUntil = Calendar.current.date(byAdding: .month, value: 1, to: Date())
+        }
+        if songBanLevel != prevLevel {
+            switch songBanLevel {
+            case 1: showToast("通報多数のため、1 ヶ月間投稿停止になりました。")
+            case 2: showToast("通報多数のため、3 ヶ月間投稿停止になりました。")
+            case 3: showToast("通報多数のため、永久に投稿停止になりました。")
+            default: break
+            }
+        } else {
+            showToast("通報を送信しました。")
+        }
+    }
+
+    /// demo 用 reset (マイページ 設定から呼ぶ想定 — 今回は未配線)
+    func resetSongBan() {
+        songBanLevel = 0
+        songBanUntil = nil
+        myReportTotal = 0
+        songReportCounts = [:]
+    }
+
+    private static func nowHM() -> String {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        f.locale = Locale(identifier: "ja_JP")
+        return f.string(from: Date())
+    }
+
+    private static func todayJa() -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "ja_JP")
+        return f.string(from: Date())
+    }
+
+    // MARK: - ログインロック升级 (CLAUDE.md §App 账号规则 + 4-22 拍板の 5 段階)
+    //
+    // 失敗回数 → ロック期間: 1=30秒 / 2=1分 / 3=5分 / 4=30分 / 5=1時間 / 6+=永久
+    // 永久ロックは寮監に連絡して解除。次回ログイン成功で counter リセット。
+
+    /// ログイン失敗累計 (永久ロックは 6 以上)
+    @Published var loginFailCount: Int = 0
+
+    /// ロック期間 (failCount に対応する秒数 — 6+ は nil = 永久)
+    static let lockoutDurations: [Int] = [30, 60, 300, 1800, 3600]
+
+    /// 現在のロック段階の秒数 (永久 → nil)
+    var currentLockoutSeconds: Int? {
+        let idx = loginFailCount - 1
+        guard idx >= 0 else { return nil }
+        if idx < Self.lockoutDurations.count {
+            return Self.lockoutDurations[idx]
+        }
+        return nil   // 永久
+    }
+
+    /// 現在のロック段階の表示文字列
+    var currentLockoutLabel: String {
+        switch loginFailCount {
+        case 1:  return "30 秒"
+        case 2:  return "1 分"
+        case 3:  return "5 分"
+        case 4:  return "30 分"
+        case 5:  return "1 時間"
+        default: return "永久"
+        }
+    }
+
+    /// 次の段階の表示文字列 (後段が無いなら nil)
+    var nextLockoutLabel: String? {
+        switch loginFailCount {
+        case 1: return "1 分"
+        case 2: return "5 分"
+        case 3: return "30 分"
+        case 4: return "1 時間"
+        case 5: return "永久"
+        default: return nil
+        }
+    }
+
+    /// ログイン失敗時に呼ぶ — failCount += 1
+    func recordLoginFailure() {
+        loginFailCount += 1
+    }
+
+    /// ログイン成功時 / ロック明け で呼ぶ — counter reset
+    func resetLoginFailures() {
+        loginFailCount = 0
+    }
+
+    // MARK: - Push 通知 mock (system_features §7.13 R1 例外)
+    //
+    // 真后端没接通,iOS push listener 用本地模拟:
+    // demo 用 settings 里点按钮 → simulatePush(...) → 给 pushNotifications 头部 insert 一条
+    // + 弹 toast banner。NotificationsView 显示 pushNotifications + SEED.notifications 合并。
+
+    /// demo 期间动态加进来的通知（push 接收的）— SEED.notifications 是静态默认
+    @Published var pushNotifications: [NotificationItem] = []
+
+    /// 通知中心显示用 — push 在前 + SEED.notifications
+    var allNotifications: [NotificationItem] {
+        pushNotifications + SEED.notifications
+    }
+
+    /// 未读数（home greetingRow bell badge 用）
+    var unreadNotificationCount: Int {
+        allNotifications.filter { $0.unread }.count
+    }
+
+    /// 模拟接收一条 push 通知
+    /// - Parameters:
+    ///   - type: NotificationItem.type 字段（"申請" / "減点" / "学習" / "リクエスト曲" 等）
+    ///   - title: 标题
+    ///   - body: 正文
+    func simulatePush(type: String, title: String, body: String) {
+        // 生成新 ID（避免和 SEED 冲突）
+        let nextId = (pushNotifications.map(\.id).max() ?? 999) + 1
+        let item = NotificationItem(
+            id: nextId,
+            type: type,
+            title: title,
+            time: "今",
+            body: body,
+            unread: true
+        )
+        pushNotifications.insert(item, at: 0)
+        showToast("📣 \(title)")
+    }
+
+    // 4 个 demo 触发器（system_features §7.13 R1 例外里列出的事件）
+
+    /// 学習欠席届 承認された
+    func simulateStudyLeaveApproved() {
+        simulatePush(
+            type: "学習",
+            title: "学習欠席届が承認されました",
+            body: "本日の前半節について、学習担当の先生から承認されました。"
+        )
+    }
+
+    /// 学習欠席届 不承認
+    func simulateStudyLeaveRejected() {
+        simulatePush(
+            type: "学習",
+            title: "学習欠席届が不承認でした",
+            body: "本日の前半節は出席をお願いします。詳細は学習担当の先生にお尋ねください。"
+        )
+    }
+
+    /// 学習対象 名单加入
+    func simulateStudyRosterAdded() {
+        simulatePush(
+            type: "学習",
+            title: "学習対象になりました",
+            body: "今日から晩自習の対象に追加されました。19:40 までに学習室へお越しください。"
+        )
+    }
+
+    /// 出寮届 修改届 chain 再批通过
+    func simulateAmendmentRebatch() {
+        simulatePush(
+            type: "申請",
+            title: "外泊届（修改届）が承認されました",
+            body: "修改届の内容で寮務課長まで承認が進みました。残り 1 名の承認をお待ちください。"
+        )
+    }
+}
+
+// MARK: - 学習 NFC 出席（system_features §7.3.3-6）
+
+enum StudyTap: String, Hashable, CaseIterable {
+    case start      // 19:35 ～ 19:40 学習開始
+    case mid        // 20:45 ± 中場
+    case end        // 21:45 学習終了
+}
+
+/// 出席状態（amber Card / マイページ で表示）
+enum StudyAttendance: String {
+    case idle           // 学習時間外
+    case none           // active だが 0 tap
+    case progressing    // 1 tap 済（通常進行中）
+    case green          // 全 3 tap 済 = 時間内
+    case yellow         // 遅刻
+    case red            // 缺席
+    case abnormal       // 不一致 = ⚠️ 異常 老師手動判
+    case excused        // 欠席承認済
+}
+
+// MARK: - 通報理由 (system_features §7.11.2)
+
+enum SongReportReason: String, CaseIterable, Hashable {
+    case noisy      // うるさい
+    case taste      // 曲調が好みでない / 不快
+    case lyrics     // 歌詞が不適切
+    case other      // その他（自由記入）
+
+    var label: String {
+        switch self {
+        case .noisy:  return "うるさい"
+        case .taste:  return "曲調が好みでない / 不快"
+        case .lyrics: return "歌詞が不適切"
+        case .other:  return "その他"
+        }
+    }
+}
+
+/// マイページ 学習履歴 entry
+struct StudyHistoryEntry: Hashable, Identifiable {
+    let id: UUID
+    let date: String        // "2026-04-30"
+    let tapKind: StudyTap
+    let tapLabel: String    // "学習開始" / "中場確認" / "学習終了"
+    let timeHM: String      // "19:38"
+    let note: String?
+
+    init(date: String, tapKind: StudyTap, tapLabel: String, timeHM: String, note: String?) {
+        self.id = UUID()
+        self.date = date
+        self.tapKind = tapKind
+        self.tapLabel = tapLabel
+        self.timeHM = timeHM
+        self.note = note
+    }
+
+    /// マイページ 学習履歴 demo seed
+    static var demoSeed: [StudyHistoryEntry] {
+        [
+            .init(date: "2026-04-29", tapKind: .end,   tapLabel: "学習終了", timeHM: "21:46", note: nil),
+            .init(date: "2026-04-29", tapKind: .mid,   tapLabel: "中場確認", timeHM: "20:46", note: nil),
+            .init(date: "2026-04-29", tapKind: .start, tapLabel: "学習開始", timeHM: "19:37", note: nil),
+            .init(date: "2026-04-28", tapKind: .end,   tapLabel: "学習終了", timeHM: "21:45", note: nil),
+            .init(date: "2026-04-28", tapKind: .mid,   tapLabel: "中場確認", timeHM: "20:46", note: nil),
+            .init(date: "2026-04-28", tapKind: .start, tapLabel: "学習開始", timeHM: "19:42", note: "1 分遅刻"),
+        ]
     }
 }
 

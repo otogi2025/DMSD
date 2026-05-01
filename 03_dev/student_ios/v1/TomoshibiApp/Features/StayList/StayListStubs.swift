@@ -58,16 +58,44 @@ struct ApprovalStep: Hashable, Identifiable {
 /// アプリ内で扱う出寮届の詳細（GET /applications/:id 返り値の iOS 模型）
 struct StayApplication: Hashable, Identifiable {
     let id: String                  // "a1" 等
-    let kind: ApplicationKind       // 外泊 / 帰省 / 帰国 / その他
-    let status: ApplicationStatus   // pending / approved / rejected / returned / cancelled / draft
-    let leaveDate: String           // "2026-05-03"
-    let returnDate: String?
-    let summary: String             // ApplicationItem.summary 互換
-    let destination: String?
-    let leaveMethod: String?
-    let returnMethod: String?
-    let chain: [ApprovalStep]
+    var kind: ApplicationKind       // 外泊 / 帰省 / 帰国 / その他
+    var status: ApplicationStatus   // pending / approved / rejected / returned / cancelled / draft
+    var leaveDate: String           // "2026-05-03"
+    var returnDate: String?
+    var summary: String             // ApplicationItem.summary 互換
+    var destination: String?
+    var leaveMethod: String?
+    var returnMethod: String?
+    var chain: [ApprovalStep]
     let submittedAt: String         // "2026-04-20 10:24"
+    var auditLog: [AuditLogEntry] = []   // 操作履歴（提出 / 修改届 / 差戻 / 承認）
+
+    /// 修改届 提出可: pending（審査中含む）/ returned（差戻）のみ可
+    /// system_features §7.2.4 「pending / partiallyApproved / returned で編集可」
+    var isEditable: Bool {
+        switch status {
+        case .pending, .returned: return true
+        default: return false
+        }
+    }
+}
+
+// MARK: - 操作履歴 entry
+
+struct AuditLogEntry: Hashable, Identifiable {
+    let id: UUID
+    let at: String          // "2026-05-01 14:32"
+    let action: String      // "提出" / "修改届を提出" / "差戻" / "承認" 等
+    let actor: String       // 役职名 + 担当者名 / 申請者本人
+    let detail: String?     // 修改届時の amendReason / 差戻理由 等
+
+    init(at: String, action: String, actor: String, detail: String? = nil) {
+        self.id = UUID()
+        self.at = at
+        self.action = action
+        self.actor = actor
+        self.detail = detail
+    }
 }
 
 enum ApplicationKind: String, Hashable {
@@ -150,12 +178,73 @@ enum ApprovalChainBuilder {
 
 // MARK: - モックデータ（B 未到位 → SEED.applications を拡張）
 
+@MainActor
 enum StayListMock {
     /// 暫定の留学生フラグ（SEED.user に is_overseas が無いため、リュウ イヒ = 留学生 扱いとする）
     static let isOverseas: Bool = true
 
-    /// SEED.applications を全件 StayApplication に拡張
+    /// 修改届 mock store（lazy init から initial seed を構築）
+    /// `@MainActor` で囲い込んでいるので nonisolated unsafe は不要。view は全て MainActor で動く。
+    /// API 接続時は `URLSession + async/await`（IOS_DESIGN_LOG §11.9 I2）に置換。
+    private static var _store: [StayApplication]? = nil
+
     static var all: [StayApplication] {
+        if _store == nil { _store = buildInitial() }
+        return _store ?? []
+    }
+
+    static func find(_ id: String) -> StayApplication? {
+        all.first(where: { $0.id == id })
+    }
+
+    /// 修改届 提出 — chain 全員 reset to pending + auditLog append + status = pending
+    /// system_features §7.2.5「修改届 提交后，承认 chain 全员重置」
+    static func applyAmendment(
+        id: String,
+        leaveDate: String,
+        returnDate: String?,
+        leaveMethod: String?,
+        returnMethod: String?,
+        destination: String?,
+        amendReason: String
+    ) {
+        if _store == nil { _store = buildInitial() }
+        guard var arr = _store, let idx = arr.firstIndex(where: { $0.id == id }) else { return }
+        var item = arr[idx]
+
+        // 字段更新
+        item.leaveDate = leaveDate
+        item.returnDate = returnDate
+        item.leaveMethod = leaveMethod
+        item.returnMethod = returnMethod
+        if destination != nil { item.destination = destination }
+
+        // chain 全員 reset to pending
+        item.chain = item.chain.map { step in
+            ApprovalStep(
+                role: step.role,
+                approverName: step.approverName,
+                decision: .pending,
+                decidedAt: nil,
+                comment: nil
+            )
+        }
+        item.status = .pending
+
+        // auditLog append（最新が先頭）
+        let entry = AuditLogEntry(
+            at: nowJaString(),
+            action: "修改届を提出",
+            actor: SEED.user.name,
+            detail: amendReason
+        )
+        item.auditLog.insert(entry, at: 0)
+
+        arr[idx] = item
+        _store = arr
+    }
+
+    private static func buildInitial() -> [StayApplication] {
         SEED.applications.compactMap { item in
             let kind = ApplicationKind.fromSeedType(item.type)
             let status = ApplicationStatus.fromSeed(item.status)
@@ -164,6 +253,26 @@ enum StayListMock {
             // outing / return / parcel / repair / guest / other は #5 の対象外（chain 無し）
             // → 見せても意味がないので、出寮届 系（stay / holiday / return）のみ表示
             guard kind != .other else { return nil }
+            // 初期 auditLog: 提出 entry 1 件 + 差戻 / 承認 ある場合の history も補足
+            var auditLog: [AuditLogEntry] = []
+            auditLog.append(AuditLogEntry(
+                at: "\(item.date) 10:24",
+                action: "提出",
+                actor: SEED.user.name,
+                detail: nil
+            ))
+            for step in steps where step.decision != .pending {
+                let actionLabel = step.decision == .approved ? "承認" : "差戻"
+                auditLog.append(AuditLogEntry(
+                    at: step.decidedAt ?? item.date,
+                    action: actionLabel,
+                    actor: "\(step.role.label)：\(step.approverName ?? "—")",
+                    detail: step.comment
+                ))
+            }
+            // 最新が先頭
+            auditLog.sort { $0.at > $1.at }
+
             return StayApplication(
                 id: item.id,
                 kind: kind,
@@ -175,13 +284,17 @@ enum StayListMock {
                 leaveMethod: "JR + バス",
                 returnMethod: "JR",
                 chain: steps,
-                submittedAt: "\(item.date) 10:24"
+                submittedAt: "\(item.date) 10:24",
+                auditLog: auditLog
             )
         }
     }
 
-    static func find(_ id: String) -> StayApplication? {
-        all.first(where: { $0.id == id })
+    private static func nowJaString() -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd HH:mm"
+        f.locale = Locale(identifier: "ja_JP")
+        return f.string(from: Date())
     }
 
     // chain の各 step に decision / decided_at を割り当てる（status から逆算）
@@ -470,6 +583,11 @@ private struct StayRow: View {
 struct StayDetailView: View {
     let id: String
     @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
+
+    @State private var tab: DetailTab = .detail
+
+    enum DetailTab: Hashable { case detail, history }
 
     private var item: StayApplication {
         StayListMock.find(id) ?? StayListMock.all.first ?? StayApplication(
@@ -484,13 +602,25 @@ struct StayDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             PageHeader(title: "申請詳細", level: 2)
+            tabBar
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    headerCard
-                    fieldsCard
-                    chainCard
-                    if let last = item.chain.last(where: { $0.comment != nil }) {
-                        commentCard(last)
+                    if tab == .detail {
+                        headerCard
+                        fieldsCard
+                        chainCard
+                        if let last = item.chain.last(where: { $0.comment != nil }) {
+                            commentCard(last)
+                        }
+                        if item.isEditable {
+                            editButton
+                        }
+                    } else {
+                        headerCard
+                        historyCard
                     }
                     Color.clear.frame(height: 12)
                 }
@@ -501,6 +631,140 @@ struct StayDetailView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl.ignoresSafeArea())
+    }
+
+    // MARK: - segmented tab
+
+    private var tabBar: some View {
+        HStack(spacing: 0) {
+            tabButton(label: "詳細", value: .detail)
+            tabButton(label: "履歴 (\(item.auditLog.count))", value: .history)
+        }
+        .padding(3)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(T.pill)
+        }
+    }
+
+    @ViewBuilder
+    private func tabButton(label: String, value: DetailTab) -> some View {
+        let selected = tab == value
+        Button { tab = value } label: {
+            Text(label)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(selected ? Color.white : T.inkSub)
+                .frame(maxWidth: .infinity)
+                .frame(height: 32)
+                .background {
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(selected ? T.primary : Color.clear)
+                }
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - 編集 button (isEditable のみ)
+
+    private var editButton: some View {
+        Button {
+            router.go(.stayEdit(id: item.id))
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "pencil")
+                    .font(.system(size: 14, weight: .semibold))
+                Text("修改届を提出")
+                    .font(.system(size: 14, weight: .bold))
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .background {
+                RoundedRectangle(cornerRadius: 14, style: .continuous).fill(T.primary)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - 履歴 card
+
+    private var historyCard: some View {
+        Card(padding: 18) {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Text("操作履歴")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(T.inkSub).kerning(1.2)
+                    Spacer()
+                    Text("\(item.auditLog.count) 件")
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(T.inkMute)
+                }
+                .padding(.bottom, 14)
+                if item.auditLog.isEmpty {
+                    Text("履歴はまだありません。")
+                        .font(.system(size: 12))
+                        .foregroundStyle(T.inkMute)
+                } else {
+                    ForEach(Array(item.auditLog.enumerated()), id: \.element.id) { (i, e) in
+                        auditRow(entry: e, isFirst: i == 0, isLast: i == item.auditLog.count - 1)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func auditRow(entry: AuditLogEntry, isFirst: Bool, isLast: Bool) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(spacing: 0) {
+                Circle()
+                    .fill(auditColor(entry.action))
+                    .frame(width: 10, height: 10)
+                if !isLast {
+                    Rectangle()
+                        .fill(T.hair)
+                        .frame(width: 1.5)
+                        .frame(maxHeight: .infinity)
+                        .padding(.top, 4)
+                }
+            }
+            .frame(width: 10)
+            .padding(.top, 4)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text(entry.action)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(T.ink)
+                    Text(entry.at)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(T.inkMute)
+                }
+                Text(entry.actor)
+                    .font(.system(size: 12))
+                    .foregroundStyle(T.inkSub)
+                if let d = entry.detail, !d.isEmpty {
+                    Text(d)
+                        .font(.system(size: 12))
+                        .foregroundStyle(T.inkSub)
+                        .lineSpacing(3)
+                        .padding(.top, 2)
+                        .padding(.horizontal, 10).padding(.vertical, 7)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background {
+                            RoundedRectangle(cornerRadius: 8, style: .continuous).fill(T.pill)
+                        }
+                }
+            }
+            .padding(.bottom, isLast ? 0 : 14)
+        }
+    }
+
+    private func auditColor(_ action: String) -> Color {
+        if action.contains("承認") { return T.ok }
+        if action.contains("差戻") { return T.danger }
+        if action.contains("修改") { return T.warn }
+        return T.primary
     }
 
     private var headerCard: some View {
@@ -575,7 +839,7 @@ struct StayDetailView: View {
         Card(padding: 18) {
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
-                    Text("承認 chain")
+                    Text("承認の流れ")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(T.inkSub).kerning(1.2)
                     Spacer()
@@ -585,7 +849,7 @@ struct StayDetailView: View {
                 }
                 .padding(.bottom, 14)
                 if item.chain.isEmpty {
-                    Text("この種別の届は承認 chain が定義されていません。")
+                    Text("この種別の届は承認手続きの設定がありません。")
                         .font(.system(size: 12))
                         .foregroundStyle(T.inkMute)
                 } else {
@@ -721,6 +985,372 @@ private struct ChainTimelineView: View {
     }
 }
 
+// ============================================================================
+// MARK: - StayEditForm · 出寮届 修改届（system_features §7.2.4-5）
+//
+// 提出条件: original.isEditable == true（status ∈ {pending, returned}）
+// 提出後: chain 全員 reset to pending + auditLog append + status = pending
+// 身份字段（学号/姓名/学年・組/寮・部屋/区分/携帯）read-only
+// 修改の理由 必填（chain 再批時に各 approver に見せる）
+// ============================================================================
+
+struct StayEditForm: View {
+    let id: String
+    @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
+
+    private var original: StayApplication {
+        StayListMock.find(id) ?? StayApplication(
+            id: id, kind: .stay, status: .pending,
+            leaveDate: "—", returnDate: nil, summary: "—",
+            destination: nil, leaveMethod: nil, returnMethod: nil,
+            chain: [], submittedAt: "—"
+        )
+    }
+
+    // ── 編集対象 (init で original から prefill) ──────────────────────────
+    @State private var leaveDate: Date = Date()
+    @State private var returnDate: Date = Date()
+    @State private var leaveMethod: String = "JR"
+    @State private var returnMethod: String = "JR"
+    @State private var destination: String = ""
+    @State private var amendReason: String = ""
+    @State private var didInit: Bool = false
+
+    private let TRANSPORTS = ["JR", "バス", "自家用車", "タクシー", "教員送迎", "飛行機", "その他"]
+
+    private var needsDestination: Bool {
+        original.kind == .stay || original.kind == .return
+    }
+
+    private var canSubmit: Bool {
+        !amendReason.trimmingCharacters(in: .whitespaces).isEmpty
+            && returnDate >= leaveDate
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            PageHeader(title: "\(original.kind.rawValue)届 修改届", level: 3)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    warningBanner
+                    identitySection
+                    dateSection
+                    methodSection
+                    if needsDestination {
+                        destinationSection
+                    }
+                    amendReasonSection
+                    submitRow
+                    Color.clear.frame(height: 8)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 32)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(T.pearl.ignoresSafeArea())
+        .onAppear { initFields() }
+    }
+
+    // MARK: - sections
+
+    private var warningBanner: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 13))
+                .foregroundStyle(T.warnDeep)
+                .padding(.top, 1)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("修改届を提出すると、承認の流れが最初からやり直しになります。")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(T.warnDeep)
+                Text("先にご承認いただいた先生にも、もう一度ご承認をお願いすることになります。")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(T.warnDeep.opacity(0.85))
+                    .lineSpacing(3)
+            }
+        }
+        .padding(.horizontal, 14).padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(T.warnBg)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(T.warn.opacity(0.3), lineWidth: 1)
+        }
+    }
+
+    private var identitySection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionLabel("申請者本人（変更不可）")
+            Card(padding: 0) {
+                VStack(spacing: 0) {
+                    idRow("学号", SEED.user.account, isFirst: true)
+                    idRow("氏名", SEED.user.name)
+                    idRow("学年・組", "\(SEED.user.grade) \(SEED.user.classSuffix)組 \(SEED.user.seatNo)番")
+                    idRow("寮・部屋", "\(SEED.user.dorm) \(SEED.user.room)")
+                    idRow("区分", SEED.user.category)
+                    idRow("携帯電話", SEED.user.phone)
+                }
+            }
+            Text("※ 身份情報の変更は寮監にご連絡ください。修改届では変更できません。")
+                .font(.system(size: 11))
+                .foregroundStyle(T.inkMute)
+        }
+    }
+
+    private var dateSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionLabel("出寮 / 帰寮日")
+            Card(padding: 14) {
+                VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("出寮日")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(T.inkSub)
+                        DatePicker("", selection: $leaveDate, displayedComponents: .date)
+                            .labelsHidden()
+                            .datePickerStyle(.compact)
+                            .environment(\.locale, Locale(identifier: "ja_JP"))
+                        if let orig = parseYMD(original.leaveDate) {
+                            originalNote(label: "原値", text: formatYMDJa(orig))
+                        }
+                    }
+                    Divider().background(T.hair)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("帰寮日")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(T.inkSub)
+                        DatePicker("", selection: $returnDate, in: leaveDate..., displayedComponents: .date)
+                            .labelsHidden()
+                            .datePickerStyle(.compact)
+                            .environment(\.locale, Locale(identifier: "ja_JP"))
+                        if let r = original.returnDate, let orig = parseYMD(r) {
+                            originalNote(label: "原値", text: formatYMDJa(orig))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var methodSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionLabel("移動方法")
+            Card(padding: 14) {
+                VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("出寮方法")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(T.inkSub)
+                        chipRow(options: TRANSPORTS, selected: $leaveMethod)
+                        if let m = original.leaveMethod, m != leaveMethod {
+                            originalNote(label: "原値", text: m)
+                        }
+                    }
+                    Divider().background(T.hair)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("帰寮方法")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(T.inkSub)
+                        chipRow(options: TRANSPORTS, selected: $returnMethod)
+                        if let m = original.returnMethod, m != returnMethod {
+                            originalNote(label: "原値", text: m)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var destinationSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionLabel("宿泊先")
+            Card(padding: 14) {
+                VStack(alignment: .leading, spacing: 8) {
+                    TField(text: $destination, placeholder: "例：祖父母宅（岡山市北区表町 1-1-3）")
+                    if let d = original.destination, d != destination {
+                        originalNote(label: "原値", text: d)
+                    }
+                }
+            }
+        }
+    }
+
+    private var amendReasonSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 4) {
+                sectionLabel("修改の理由")
+                Text("*").foregroundStyle(T.danger).font(.system(size: 13, weight: .heavy))
+            }
+            TArea(
+                text: $amendReason,
+                placeholder: "例：帰省日が祖母の通院と重なったため、1 日後ろ倒しにしたい。",
+                rows: 4
+            )
+            Text("※ 各役职の先生にこの理由が表示されます。")
+                .font(.system(size: 11))
+                .foregroundStyle(T.inkMute)
+        }
+    }
+
+    private var submitRow: some View {
+        HStack(spacing: 10) {
+            Button {
+                router.back()
+            } label: {
+                Text("キャンセル")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(T.inkSub)
+                    .frame(maxWidth: .infinity, minHeight: 52)
+                    .background {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous).fill(T.paper)
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(T.hair, lineWidth: 1.5)
+                    }
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                submit()
+            } label: {
+                Text("修改届を提出")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity, minHeight: 52)
+                    .background {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(canSubmit ? T.primary : T.inkFaint)
+                    }
+            }
+            .buttonStyle(.plain)
+            .disabled(!canSubmit)
+        }
+    }
+
+    // MARK: - helpers
+
+    private func initFields() {
+        guard !didInit else { return }
+        didInit = true
+        if let d = parseYMD(original.leaveDate) { leaveDate = d }
+        if let r = original.returnDate, let d = parseYMD(r) {
+            returnDate = d
+        } else {
+            returnDate = leaveDate
+        }
+        leaveMethod = original.leaveMethod ?? "JR"
+        returnMethod = original.returnMethod ?? "JR"
+        destination = original.destination ?? ""
+    }
+
+    private func submit() {
+        StayListMock.applyAmendment(
+            id: original.id,
+            leaveDate: formatYMD(leaveDate),
+            returnDate: formatYMD(returnDate),
+            leaveMethod: leaveMethod,
+            returnMethod: returnMethod,
+            destination: destination.trimmingCharacters(in: .whitespaces).isEmpty ? nil : destination,
+            amendReason: amendReason
+        )
+        app.showToast("修改届を提出しました")
+        router.back()
+    }
+
+    private func parseYMD(_ s: String) -> Date? {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f.date(from: s)
+    }
+
+    private func formatYMD(_ d: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f.string(from: d)
+    }
+
+    private func formatYMDJa(_ d: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy 年 M 月 d 日"
+        f.locale = Locale(identifier: "ja_JP")
+        return f.string(from: d)
+    }
+
+    @ViewBuilder
+    private func sectionLabel(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 13, weight: .bold))
+            .foregroundStyle(T.inkSub)
+            .kerning(0.5)
+    }
+
+    @ViewBuilder
+    private func idRow(_ k: String, _ v: String, isFirst: Bool = false) -> some View {
+        VStack(spacing: 0) {
+            if !isFirst { Divider().background(T.hair) }
+            HStack(alignment: .top) {
+                Text(k)
+                    .font(.system(size: 13))
+                    .foregroundStyle(T.inkSub)
+                    .frame(width: 90, alignment: .leading)
+                Text(v)
+                    .font(.system(size: 13.5, weight: .medium))
+                    .foregroundStyle(T.ink)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 16).padding(.vertical, 13)
+        }
+    }
+
+    @ViewBuilder
+    private func chipRow(options: [String], selected: Binding<String>) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(options, id: \.self) { opt in
+                    let on = selected.wrappedValue == opt
+                    Button { selected.wrappedValue = opt } label: {
+                        Text(opt)
+                            .font(.system(size: 12, weight: .semibold))
+                            .padding(.horizontal, 12).padding(.vertical, 7)
+                            .foregroundStyle(on ? Color.white : T.ink)
+                            .background {
+                                Capsule().fill(on ? T.primary : T.paper)
+                            }
+                            .overlay {
+                                Capsule().stroke(on ? T.primary : T.hair, lineWidth: 1)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func originalNote(label: String, text: String) -> some View {
+        HStack(spacing: 6) {
+            Text(label)
+                .font(.system(size: 10.5, weight: .semibold))
+                .foregroundStyle(T.inkMute)
+                .padding(.horizontal, 6).padding(.vertical, 1)
+                .background {
+                    Capsule().fill(T.pill)
+                }
+            Text(text)
+                .font(.system(size: 11))
+                .foregroundStyle(T.inkMute)
+        }
+    }
+}
+
 // MARK: - Previews
 
 #Preview("StayList · all") {
@@ -744,5 +1374,11 @@ private struct ChainTimelineView: View {
 #Preview("StayDetail · returned（差戻）") {
     StayDetailView(id: "a2")
         .environmentObject(RouterStore(initial: .stayDetail(id: "a2")))
+        .environmentObject(AppStore())
+}
+
+#Preview("StayEdit · 修改届") {
+    StayEditForm(id: "a2")
+        .environmentObject(RouterStore(initial: .stayEdit(id: "a2")))
         .environmentObject(AppStore())
 }
