@@ -9,7 +9,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import date
+from datetime import date, datetime, timezone, timedelta
 
 from sqlalchemy import select
 
@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("seed")
 
 # ---- ダミーパスワード (全員共通、dev only) ----
-DEV_PASSWORD = "tomoshibi-dev-2026"
+DEV_PASSWORD = "123456"
 
 # ---- 学生 ----
 STUDENTS = [
@@ -197,6 +197,54 @@ def main() -> None:
                 )
             )
             log.info("added homeroom: %s → %s%s", login_id, grade, klass)
+        db.commit()
+
+        # 学習名簿 — 両学生を 2026-spring に登録
+        all_students = db.scalars(select(models.Student)).all()
+        for student in all_students:
+            existing = db.scalars(
+                select(models.StudyRoster).where(
+                    models.StudyRoster.student_id == student.id,
+                    models.StudyRoster.academic_term == "2026-spring",
+                )
+            ).first()
+            if not existing:
+                db.add(models.StudyRoster(
+                    student_id=student.id,
+                    academic_term="2026-spring",
+                ))
+                log.info("added study roster: %s", student.name)
+        db.commit()
+
+        # 点呼 session — 今日 (JST) の朝 + 夜 (男寮 dorm 1+2)
+        JST = timezone(timedelta(hours=9))
+        today_jst = date.today()  # 実行日に合わせる
+        def make_session(session_type: str, h_start: int, m_start: int) -> None:
+            window_start = datetime(today_jst.year, today_jst.month, today_jst.day,
+                                     h_start, m_start, tzinfo=JST)
+            existing = db.scalars(
+                select(models.RollCallSession).where(
+                    models.RollCallSession.scheduled_window_start_at == window_start,
+                )
+            ).first()
+            if existing:
+                log.info("skip rollcall session: %s %s already exists", session_type, window_start)
+                return
+            db.add(models.RollCallSession(
+                dorm_unit_set=[1, 2],
+                session_type=session_type,
+                schedule_mode="split",
+                day_type="weekday",
+                session_status="draft",
+                scheduled_window_start_at=window_start,
+                scheduled_on_time_end_at=window_start + timedelta(minutes=10),
+                scheduled_late_end_at=window_start + timedelta(minutes=20),
+                scheduled_auto_end_at=window_start + timedelta(minutes=30),
+            ))
+            log.info("added rollcall session: %s %s", session_type, window_start)
+
+        make_session("morning", 6, 30)
+        make_session("evening", 22, 0)
         db.commit()
 
         log.info("=" * 60)

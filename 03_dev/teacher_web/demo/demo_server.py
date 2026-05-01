@@ -25,7 +25,11 @@ import json
 import time
 import os
 import sys
+import urllib.request
+import urllib.error
 from urllib.parse import urlparse, parse_qs
+
+BACKEND_URL = 'http://localhost:8000'
 
 PORT = 8787
 SRC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'src')
@@ -60,8 +64,36 @@ class TomoshibiHandler(http.server.SimpleHTTPRequestHandler):
         self.send_response(204)
         self.end_headers()
 
+    def _proxy_to_backend(self):
+        """将请求透传到 FastAPI 后端（localhost:8000）。"""
+        target = BACKEND_URL + self.path
+        body_len = int(self.headers.get('Content-Length', 0))
+        body = self.rfile.read(body_len) if body_len > 0 else None
+        req = urllib.request.Request(target, data=body, method=self.command)
+        for key in ('Content-Type', 'Authorization'):
+            if key in self.headers:
+                req.add_header(key, self.headers[key])
+        try:
+            with urllib.request.urlopen(req) as resp:
+                self.send_response(resp.status)
+                for k, v in resp.headers.items():
+                    if k.lower() not in ('transfer-encoding', 'connection'):
+                        self.send_header(k, v)
+                self.end_headers()
+                self.wfile.write(resp.read())
+        except urllib.error.HTTPError as e:
+            self.send_response(e.code)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(e.read())
+
     def do_GET(self):
         parsed = urlparse(self.path)
+
+        # /api/v1/ → FastAPI backend
+        if parsed.path.startswith('/api/v1/'):
+            self._proxy_to_backend()
+            return
 
         if parsed.path == '/events/latest':
             self.send_response(200)
@@ -116,6 +148,11 @@ class TomoshibiHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         parsed = urlparse(self.path)
+
+        # /api/v1/ → FastAPI backend
+        if parsed.path.startswith('/api/v1/'):
+            self._proxy_to_backend()
+            return
 
         if parsed.path == '/checkin':
             global latest_event

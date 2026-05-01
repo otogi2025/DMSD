@@ -4316,33 +4316,45 @@ window.seedStudents = (dorm) => {
 
 </script>
 <script type="text/babel" data-source="components/login.jsx">
-// /login — shared-password login for teaching staff.
-// Fields: アカウント ID (固定 'tomoshibi') + shared password.
-// 3 failures → 30s lock.
+// /login — 個人ログイン (login_id + password → JWT)
 
 function LoginScreen({ onLogin }) {
   const T = window.RYO;
-  const [u, setU] = React.useState('tomoshibi');
+  const [loginId, setLoginId] = React.useState('');
   const [p, setP] = React.useState('');
-  const [fails, setFails] = React.useState(0);
-  const [lockUntil, setLockUntil] = React.useState(0);
+  const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState('');
-  const [now, setNow] = React.useState(Date.now());
 
-  React.useEffect(() => { const id = setInterval(() => setNow(Date.now()), 500); return () => clearInterval(id); }, []);
-  const locked = now < lockUntil;
-  const lockLeft = Math.max(0, Math.ceil((lockUntil - now) / 1000));
-
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    if (locked) return;
-    if (u.trim() === 'tomoshibi' && p === window.SHARED_PASSWORD) {
-      setFails(0); setErr(''); onLogin();
-    } else {
-      const n = fails + 1; setFails(n);
-      if (n >= 3) { setLockUntil(Date.now() + 30000); setErr('3 回失敗しました。30 秒間ロックされます。'); setFails(0); }
-      else { setErr(`パスワードが違います (残り ${3 - n} 回)`); }
-      setP('');
+    if (loading) return;
+    setLoading(true); setErr('');
+    try {
+      const res = await fetch('/api/v1/sessions/teacher', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ login_id: loginId.trim(), password: p }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErr((data.detail && data.detail.message) || 'ログインに失敗しました');
+        setP(''); return;
+      }
+      window.AUTH_TOKEN = data.access_token;
+      // teacher info: {id, name, role, assigned_dorm, ...}
+      const t = data.teacher;
+      onLogin({
+        id: t.id,
+        name: t.name,
+        role: t.role,
+        dorm: t.assigned_dorm === 4 ? 'women' : 'men',
+        initial: t.name.slice(0, 1),
+        lastLoginMins: null,
+      });
+    } catch (ex) {
+      setErr('サーバーに接続できません');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -4366,31 +4378,25 @@ function LoginScreen({ onLogin }) {
           padding: '28px 28px 24px', boxShadow: T.shadow2,
         }}>
           <div style={{ fontSize: 19, fontWeight: 700, marginBottom: 4 }}>ログイン</div>
-          <div style={{ fontSize: 12, color: T.ink3, marginBottom: 22 }}>教職員共用アカウントでサインインしてください。</div>
+          <div style={{ fontSize: 12, color: T.ink3, marginBottom: 22 }}>個人 ID とパスワードでサインインしてください。</div>
 
-          <LField label="アカウント ID" value={u} onChange={setU} autoFocus disabled={locked} />
-          <LField label="パスワード (共用)" type="password" value={p} onChange={(v) => { setP(v); setErr(''); }} disabled={locked} />
+          <LField label="ログイン ID" value={loginId} onChange={setLoginId} autoFocus disabled={loading} />
+          <LField label="パスワード" type="password" value={p} onChange={(v) => { setP(v); setErr(''); }} disabled={loading} />
 
-          {err && !locked && (
+          {err && (
             <div style={{ marginTop: 2, marginBottom: 12, padding: '8px 12px', fontSize: 12,
               background: T.dangerSoft, color: T.danger, border: `1px solid ${T.dangerBorder}`, borderRadius: 8 }}>{err}</div>
           )}
-          {locked && (
-            <div style={{ marginTop: 2, marginBottom: 12, padding: '10px 12px', fontSize: 12,
-              background: T.warnSoft, color: T.warn, border: `1px solid ${T.warnBorder}`, borderRadius: 8,
-              fontFamily: T.mono }}>🔒 ロック中 · あと {lockLeft} 秒</div>
-          )}
 
-          <button type="submit" disabled={locked} style={{
+          <button type="submit" disabled={loading} style={{
             width: '100%', marginTop: 6, padding: '12px 16px',
-            background: locked ? T.lineStrong : T.cobalt, color: '#fff',
+            background: loading ? T.lineStrong : T.cobalt, color: '#fff',
             border: 'none', borderRadius: 10, fontFamily: 'inherit', fontSize: 14, fontWeight: 600,
-            cursor: locked ? 'not-allowed' : 'pointer',
-          }}>ログイン</button>
+            cursor: loading ? 'not-allowed' : 'pointer',
+          }}>{loading ? 'ログイン中…' : 'ログイン'}</button>
 
           <div style={{ marginTop: 18, paddingTop: 16, borderTop: `1px solid ${T.line}`, fontSize: 11, color: T.ink3, lineHeight: 1.6 }}>
-            <div>次の画面で「本日の担当者」を選択します。</div>
-            <div style={{ fontFamily: T.mono, marginTop: 4 }}>demo: tomoshibi / {window.SHARED_PASSWORD}</div>
+            <div style={{ fontFamily: T.mono }}>例: ryomu_buchou / 123456</div>
           </div>
         </form>
 
@@ -4636,6 +4642,7 @@ function Shell({ teacher, active, onNav, children, sessionActive, onLogout, onSw
 
   const NAV = [
     ['roll-call', '点呼'],
+    ['study', '学習管理'],
     ['notifications', '通知', 7],
     ['discipline', '規律・処分'],
     ['applications', '申請', 3],
@@ -4648,7 +4655,7 @@ function Shell({ teacher, active, onNav, children, sessionActive, onLogout, onSw
   ];
 
   const pageLabel = {
-    'roll-call': '点呼', notifications: '通知', discipline: '規律・処分',
+    'roll-call': '点呼', study: '学習管理', notifications: '通知', discipline: '規律・処分',
     applications: '申請', records: '記録', cleaning: '清掃確認',
     info: 'お知らせ・バス', community: 'コミュニティ管理',
     'front-desk': 'フロント業務',
@@ -5519,12 +5526,19 @@ function ApplicationsPage({ onOpen }) {
   const [tab, setTab] = React.useState('outstay');
   const [sub, setSub] = React.useState('pending');
 
-  const outstayPending = (window.OUTSTAY_APPS || []).filter(a => a.state === 'pending').length;
+  const [pendingCount, setPendingCount] = React.useState(0);
+  React.useEffect(() => {
+    const token = window.AUTH_TOKEN;
+    if (!token) return;
+    fetch('/api/v1/applications/pending-for-me', { headers: { 'Authorization': 'Bearer ' + token } })
+      .then(r => r.json()).then(data => { if (Array.isArray(data)) setPendingCount(data.filter(a => a.status === 'pending').length); })
+      .catch(() => {});
+  }, []);
   const tabs = [
-    { k: 'outstay', label: '外泊', badge: outstayPending },
-    { k: 'return',  label: '帰国', badge: 1 },
+    { k: 'outstay', label: '出寮届', badge: pendingCount },
+    { k: 'return',  label: '帰国', badge: 0 },
     { k: 'home',    label: '帰省', badge: 0 },
-    { k: 'taxi',    label: 'タクシー', badge: 1 },
+    { k: 'taxi',    label: 'タクシー', badge: 0 },
   ];
 
   return (
@@ -5580,9 +5594,55 @@ function OutstayRuleBanner() {
 
 function OutstayList({ sub, setSub, onOpen }) {
   const T = window.RYO;
-  const apps = window.OUTSTAY_APPS;
-  const subs = ['pending', 'approved', 'rejected', 'question', 'all'];
-  const subLabels = { pending: '審査待ち', approved: '承認済', rejected: '却下', question: '質問あり', all: '全て' };
+  const [apps, setApps] = React.useState([]);
+  const [apiErr, setApiErr] = React.useState(null);
+
+  // 実データを取得（pending-for-me → 全申請を表示するためにパラメータなし版も試みる）
+  React.useEffect(() => {
+    const token = window.AUTH_TOKEN;
+    if (!token) return;
+    fetch('/api/v1/applications/pending-for-me', {
+      headers: { 'Authorization': 'Bearer ' + token },
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (!Array.isArray(data)) { setApiErr('取得失敗'); return; }
+        // API → demo format 変換
+        const mapped = data.map(a => ({
+          id: a.id,
+          applicant: a.student ? a.student.name : '—',
+          room: a.student ? a.student.room_no : '—',
+          dorm: (a.student && a.student.dorm_unit === 4) ? 'women' : 'men',
+          grade: '—',
+          phone: '—',
+          companion: null,
+          depart: a.leave_date + ' ' + (a.leave_time || '00:00'),
+          return_: a.return_date + ' ' + (a.return_time || '00:00'),
+          methodGo: a.leave_method || '—',
+          methodBack: a.return_method || '—',
+          flightNo: '',
+          lodging: null,
+          meals: null,
+          reason: '—',
+          note: '',
+          parentOk: null,
+          submitted: a.submitted_at ? a.submitted_at.slice(5, 16).replace('T', ' ') : '—',
+          city: a.kind,
+          state: a.status === 'pending' ? 'pending' : a.status === 'approved' ? 'approved' : a.status === 'rejected' ? 'rejected' : 'pending',
+          approvals: (a.approval_chain || []).map(s => ({
+            role: s.approver_role,
+            name: '—',
+            state: s.decision === 'approve' ? 'approved' : s.decision === 'reject' ? 'rejected' : 'pending',
+          })),
+          _raw: a,
+        }));
+        setApps(mapped);
+      })
+      .catch(() => setApiErr('通信エラー'));
+  }, []);
+
+  const subs = ['pending', 'approved', 'rejected', 'all'];
+  const subLabels = { pending: '審査待ち', approved: '承認済', rejected: '却下', all: '全て' };
   const filtered = sub === 'all' ? apps : apps.filter(a => a.state === sub);
 
   return (
@@ -6914,7 +6974,7 @@ function ComposeNoticeModal({ onClose, onSubmit }) {
 
 function CommunityPage({ teacher }) {
   const T = window.RYO;
-  const [tab, setTab] = React.useState('board');
+  const [tab, setTab] = React.useState('song');
   const [posts, setPosts] = React.useState(window.COMMUNITY_POSTS);
   const [filter, setFilter] = React.useState('all');
   const [slotFilter, setSlotFilter] = React.useState('all'); // song tab 専用: all / morning / evening
@@ -6969,16 +7029,14 @@ function CommunityPage({ teacher }) {
   });
 
   const stats = {
-    total: posts.filter(p => !p.deleted).length,
-    today: posts.filter(p => !p.deleted && p.date === '04-22').length,
-    flagged: posts.filter(p => p.flagCount > 0 && !p.resolved && !p.deleted).length,
-    deleted: posts.filter(p => p.deleted).length,
+    total: posts.filter(p => p.cat === 'song' && !p.deleted).length,
+    today: posts.filter(p => p.cat === 'song' && !p.deleted && p.date === '04-22').length,
+    pending: posts.filter(p => p.cat === 'song' && !p.deleted && (p.songStatus || 'pending') === 'pending').length,
+    approved: posts.filter(p => p.cat === 'song' && !p.deleted && p.songStatus === 'approved').length,
   };
 
   const tabs = [
-    ['board', '掲示板', '学生からの一般投稿'],
     ['song', 'リクエスト曲', '寮内 BGM リクエスト · 提出順に再生'],
-    ['anon', '匿名建議', '匿名で寮運営への意見'],
   ];
 
   return (
@@ -6990,10 +7048,10 @@ function CommunityPage({ teacher }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
-        <StatCard label="総投稿" value={stats.total} note="アクティブ" color={T.ink} />
+        <StatCard label="総リクエスト" value={stats.total} note="アクティブ" color={T.ink} />
         <StatCard label="本日投稿" value={stats.today} note="04-22" color={T.cobalt} />
-        <StatCard label="通報中" value={stats.flagged} note="要確認" color={T.danger} onClick={stats.flagged > 0 ? () => setFilter('flagged') : null} />
-        <StatCard label="削除済み" value={stats.deleted} note="今月累計" color={T.ink3} />
+        <StatCard label="未審査" value={stats.pending} note="要対応" color={T.warn} onClick={stats.pending > 0 ? () => setSongFilter('pending') : null} />
+        <StatCard label="承認済み" value={stats.approved} note="放送キュー" color={T.ok} onClick={() => setSongFilter('approved')} />
       </div>
 
       <div style={{ display: 'flex', gap: 4, borderBottom: `1px solid ${T.line}`, marginBottom: 14, flexWrap: 'wrap' }}>
@@ -7580,6 +7638,435 @@ function buildActivityMock(a) {
 window.AccountsPage = AccountsPage;
 
 </script>
+<script type="text/babel" data-source="components/study-page.jsx">
+// 学習セッション管理 — 晩自習 3-tap NFC 出席管理 (§7.3)
+// デモ圧縮タイムライン: 開始から 2分→遅刻判定 / 7分→後半節 / 8分→休憩終了 / 13分→終了
+
+const STUDY_LATE_SEC   = 2 * 60;   // 2分後から遅刻判定 (実: 19:40)
+const STUDY_PHASE2_SEC = 7 * 60;   // 7分後から後半節   (実: 20:45)
+const STUDY_BREAK_END_SEC = 8 * 60; // 8分後に休憩終了
+const STUDY_END_SEC    = 13 * 60;  // 13分後で終了      (実: 21:45)
+
+function getStudyPhase(elapsedSec) {
+  if (elapsedSec < STUDY_LATE_SEC)      return 'phase1_ontime';
+  if (elapsedSec < STUDY_PHASE2_SEC)    return 'phase1_late';
+  if (elapsedSec < STUDY_BREAK_END_SEC) return 'break';
+  if (elapsedSec < STUDY_END_SEC)       return 'phase2';
+  return 'ended';
+}
+
+function computeStudentStatus(student, phase) {
+  if (student.status === 'exempted_outstay') return 'exempted_outstay';
+  if (student.status === 'exempted_absence') return 'exempted_absence';
+  const taps = student.taps;
+  if (taps.length === 0) return phase === 'ended' ? 'absent' : 'unknown';
+  const tap1Late = taps[0] && taps[0].elapsedSec >= STUDY_LATE_SEC;
+  if (taps.length === 3) return tap1Late ? 'late' : 'present';
+  if (phase === 'ended' || phase === 'phase2') return 'abnormal';
+  return tap1Late ? 'late_progress' : 'progress';
+}
+
+// ── Landing page ──────────────────────────────────────────────────────────────
+function StudyLanding({ teacher, onStart, lastEnded, absRequests, onDecideAbsence }) {
+  const T = window.RYO;
+  const [loading, setLoading] = React.useState(false);
+  const [summary, setSummary] = React.useState(null);
+  const [absTab, setAbsTab] = React.useState('pending');
+
+  React.useEffect(() => {
+    const token = window.AUTH_TOKEN;
+    if (!token) return;
+    fetch('/api/v1/study/today/attendees', { headers: { Authorization: 'Bearer ' + token } })
+      .then(r => r.json()).then(setSummary).catch(() => {});
+  }, []);
+
+  const today = new Date();
+  const todayLabel = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}（${['日','月','火','水','木','金','土'][today.getDay()]}）`;
+  const pendingAbs = (absRequests || []).filter(r => r.status === 'pending');
+  const visibleAbs = absTab === 'pending' ? pendingAbs : (absRequests || []);
+  const expected = summary ? (summary.expected_attendees || []).filter(a => a.expected_status === 'expected').length : '—';
+  const exempted = summary ? (summary.expected_attendees || []).filter(a => a.expected_status !== 'expected').length : 0;
+
+  const handleStart = async () => {
+    setLoading(true);
+    try {
+      const token = window.AUTH_TOKEN;
+      const r = await fetch('/api/v1/study/today/attendees', { headers: { Authorization: 'Bearer ' + token } });
+      const d = await r.json();
+      onStart(d.expected_attendees || []);
+    } catch (e) {}
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div style={{ padding: '28px 32px 48px' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>学習ダッシュボード</h1>
+        <span style={{ fontSize: 12, color: T.ink3 }}>{todayLabel}</span>
+      </div>
+      <div style={{ color: T.ink2, fontSize: 13, marginBottom: 22 }}>
+        対象 {expected} 名（うち控除 {exempted} 名）· 学習時間 19:40 – 21:45 · NFC 3タップ方式
+      </div>
+
+      {/* 開始カード */}
+      <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 14, padding: '22px 24px', boxShadow: T.shadow1, marginBottom: 20, display: 'grid', gridTemplateColumns: '1fr auto', gap: 24, alignItems: 'center' }}>
+        <div>
+          <div style={{ fontSize: 11, color: T.ink3, letterSpacing: 2, fontWeight: 600 }}>SESSION</div>
+          <div style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}>晩自習セッションを開始</div>
+          <div style={{ color: T.ink2, fontSize: 13, marginTop: 6 }}>
+            「開始」を押すと {typeof expected === 'number' ? expected : '—'} 名の出席管理画面に切り替わります。
+          </div>
+          <div style={{ marginTop: 6, fontSize: 11, color: T.ink3 }}>
+            ⚠ デモ圧縮: 開始2分後→遅刻判定 / 7分後→後半節 / 13分後→終了
+          </div>
+        </div>
+        <button onClick={handleStart} disabled={loading} style={{ padding: '16px 36px', background: loading ? T.ink3 : T.cobalt, color: '#fff', border: 'none', borderRadius: 12, fontFamily: 'inherit', fontSize: 16, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px rgba(43,77,140,.28)', whiteSpace: 'nowrap' }}>
+          {loading ? '読込中...' : '学習を開始 →'}
+        </button>
+      </div>
+
+      {/* 集計カード */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+        <Stat label="本日対象" value={typeof expected === 'number' ? String(expected) : '—'} note="晩自習参加者" />
+        <Stat label="欠席届 未対応" value={String(pendingAbs.length)} color={pendingAbs.length > 0 ? T.warn : T.ink} note={pendingAbs.length > 0 ? '要対応' : '全て処理済み'} />
+        <Stat label="昨日 欠席" value="2" color={T.danger} note="処分なし" />
+        <Stat label="今月 欠席届" value="5" color={T.cobalt} note="全承認" />
+      </div>
+
+      {/* 欠席届 inbox */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: T.ink, letterSpacing: 0.5 }}>学習欠席届</div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {[['pending', `未対応 ${pendingAbs.length}`], ['all', '全て']].map(([k, l]) => (
+              <button key={k} onClick={() => setAbsTab(k)} style={{ padding: '4px 10px', background: absTab === k ? T.cobaltSoft : T.surface, color: absTab === k ? T.cobaltDeep : T.ink3, border: `1px solid ${absTab === k ? T.cobalt : T.lineStrong}`, borderRadius: 999, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{l}</button>
+            ))}
+          </div>
+        </div>
+        {visibleAbs.length === 0 ? (
+          <div style={{ padding: 32, textAlign: 'center', color: T.ink3, fontSize: 12, background: T.surface, border: `1px dashed ${T.lineStrong}`, borderRadius: 12 }}>
+            {absTab === 'pending' ? '未対応の欠席届はありません' : '欠席届はありません'}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {visibleAbs.map(req => {
+              const isPending = req.status === 'pending';
+              const badge = isPending ? { label: '未対応', fg: T.warn, bg: T.warnSoft, bd: T.warnBorder }
+                : req.status === 'approved' ? { label: '承認済', fg: T.ok, bg: T.okSoft, bd: T.okBorder }
+                : { label: '却下', fg: T.danger, bg: T.dangerSoft, bd: T.dangerBorder };
+              return (
+                <div key={req.id} style={{ padding: '12px 16px', background: T.surface, border: `1px solid ${isPending ? T.warnBorder : T.line}`, borderRadius: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>{req.student_name || '学生'}</span>
+                      <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 4, fontWeight: 700, color: badge.fg, background: badge.bg, border: `1px solid ${badge.bd}` }}>{badge.label}</span>
+                      <span style={{ fontSize: 11, color: T.ink3, fontFamily: T.mono }}>{req.target_date}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: T.ink2, lineHeight: 1.5 }}>{req.reason}</div>
+                  </div>
+                  {isPending && (
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <button onClick={() => onDecideAbsence(req.id, 'rejected')} style={{ padding: '7px 14px', background: T.surface, color: T.danger, border: `1px solid ${T.dangerBorder}`, borderRadius: 6, fontFamily: 'inherit', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>却下</button>
+                      <button onClick={() => onDecideAbsence(req.id, 'approved')} style={{ padding: '7px 14px', background: T.ok, color: '#fff', border: 'none', borderRadius: 6, fontFamily: 'inherit', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>承認</button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 前回セッション */}
+      {lastEnded && (
+        <div style={{ background: T.surface, border: `1px solid ${T.line}`, borderRadius: 12, padding: '14px 18px', boxShadow: T.shadow1 }}>
+          <div style={{ fontSize: 11, color: T.ink3, letterSpacing: 1.5, fontWeight: 600, marginBottom: 8 }}>前回セッション</div>
+          <div style={{ display: 'flex', gap: 24, fontSize: 13, flexWrap: 'wrap' }}>
+            <span><span style={{ color: T.ink3 }}>開始 </span><span style={{ fontFamily: T.mono }}>{lastEnded.start}</span></span>
+            <span><span style={{ color: T.ink3 }}>終了 </span><span style={{ fontFamily: T.mono }}>{lastEnded.end}</span></span>
+            <span><span style={{ color: T.ink3 }}>出席率 </span><span style={{ fontFamily: T.mono, fontWeight: 700 }}>{lastEnded.rate}</span></span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Live session (full-screen) ────────────────────────────────────────────────
+function LiveStudySession({ teacher, session, students, setStudents, onEnd }) {
+  const T = window.RYO;
+  const [now, setNow] = React.useState(Date.now());
+  const [nfcStatus, setNfcStatus] = React.useState('idle');
+  const [lastSeq, setLastSeq] = React.useState(0);
+  const [showConsole, setShowConsole] = React.useState(false);
+  const lastBroadcastRef = React.useRef(null);
+
+  React.useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
+
+  const elapsedSec = Math.max(0, Math.floor((now - session.startedAt) / 1000));
+  const phase = getStudyPhase(elapsedSec);
+
+  // NFC poll — same /events/latest mechanism as roll call
+  React.useEffect(() => {
+    let initialSeq = null;
+    let mounted = true;
+    const speak = (text) => {
+      if (!window.speechSynthesis) return;
+      try {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'ja-JP'; u.rate = 0.95; u.pitch = 1.0; u.volume = 1.0;
+        window.speechSynthesis.speak(u);
+      } catch (e) {}
+    };
+    const poll = async () => {
+      if (!mounted) return;
+      try {
+        const r = await fetch('/events/latest', { cache: 'no-store' });
+        if (!r.ok) return;
+        const ev = await r.json();
+        if (!ev || typeof ev.seq !== 'number') return;
+        if (initialSeq === null) { initialSeq = ev.seq; lastBroadcastRef.current = ev.seq; return; }
+        if (ev.seq === lastBroadcastRef.current) return;
+        lastBroadcastRef.current = ev.seq;
+
+        const acct = (window.ACCOUNTS || []).find(a => a.no === ev.no);
+        if (!acct) {
+          setNfcStatus('error');
+          setTimeout(() => { if (mounted) setNfcStatus('idle'); }, 2500);
+          return;
+        }
+
+        setStudents(list => {
+          const s = list.find(x => x.id === acct.sid);
+          if (!s || s.status === 'exempted_outstay' || s.status === 'exempted_absence') return list;
+          if (s.taps.length >= 3) return list;
+          const d = new Date();
+          const t = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+          const elapsed = Math.floor((Date.now() - session.startedAt) / 1000);
+          const tapNo = s.taps.length + 1;
+          speak(tapNo === 1 ? acct.name : `${acct.name} ${tapNo}回目`);
+          setNfcStatus('ok'); setLastSeq(ev.seq);
+          setTimeout(() => { if (mounted) setNfcStatus('idle'); }, 3000);
+          return list.map(x => x.id === acct.sid ? { ...x, taps: [...x.taps, { tapNo, time: t, elapsedSec: elapsed }] } : x);
+        });
+      } catch (e) {}
+    };
+    const id = setInterval(poll, 1000);
+    poll();
+    return () => { mounted = false; clearInterval(id); };
+  }, [setStudents, session.startedAt]);
+
+  const hh = String(Math.floor(elapsedSec / 3600)).padStart(2, '0');
+  const mm = String(Math.floor(elapsedSec / 60) % 60).padStart(2, '0');
+  const ss = String(elapsedSec % 60).padStart(2, '0');
+
+  const phaseMap = {
+    phase1_ontime: { label: '前半節 · 受付中（遅刻なし）', color: T.ok, bg: T.okSoft, border: T.okBorder },
+    phase1_late:   { label: '前半節 · 遅刻判定中', color: T.late, bg: T.lateSoft, border: T.lateBorder },
+    break:         { label: '中間休憩 （5 分）', color: T.cobaltDeep, bg: T.cobaltSoft, border: T.cobalt },
+    phase2:        { label: '後半節 · 2 回目 / 3 回目タップ受付中', color: T.cobalt, bg: T.cobaltSoft, border: T.cobalt },
+    ended:         { label: '学習終了 · 集計してください', color: T.ink2, bg: T.surfaceAlt, border: T.lineStrong },
+  }[phase] || {};
+
+  const counts = students.reduce((a, s) => {
+    const st = computeStudentStatus(s, phase);
+    const key = (st === 'late_progress' || st === 'progress') ? 'progress' : st;
+    a[key] = (a[key] || 0) + 1;
+    return a;
+  }, {});
+
+  const simTap = (student) => {
+    if (student.status === 'exempted_outstay' || student.status === 'exempted_absence') return;
+    if (student.taps.length >= 3) return;
+    const d = new Date();
+    const t = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+    setStudents(list => list.map(x => x.id === student.id ? { ...x, taps: [...x.taps, { tapNo: x.taps.length + 1, time: t, elapsedSec }] } : x));
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', background: T.paper, color: T.ink, fontFamily: T.font, display: 'flex', flexDirection: 'column' }}>
+      {/* ヘッダー */}
+      <header style={{ background: T.surface, borderBottom: `1px solid ${T.line}`, padding: '14px 28px', display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: 20, boxShadow: T.shadow1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <img src={window.__resources.tomoshibiIcon} alt="" style={{ width: 32, height: 32, borderRadius: 8 }} />
+          <div>
+            <div style={{ fontSize: 11, color: T.ink3, letterSpacing: 2, fontWeight: 600 }}>STUDY SESSION</div>
+            <div style={{ fontSize: 16, fontWeight: 700, marginTop: 1 }}>晩自習 <span style={{ color: T.ink3, fontSize: 13, fontWeight: 500 }}>· {teacher.name} 先生</span></div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 24 }}>
+          <Metric label="出席" value={String(counts.present || 0)} color={T.ok} />
+          <Metric label="遅刻" value={String(counts.late || 0)} color={T.late} />
+          <Metric label="⚠ 異常" value={String(counts.abnormal || 0)} color={T.warn} />
+          <Metric label="欠席" value={String(counts.absent || 0)} color={T.danger} />
+          <Metric label="進行中" value={String(counts.progress || 0)} color={T.cobalt} />
+          <Metric label="未確認" value={String(counts.unknown || 0)} color={T.ink3} />
+          <Metric label="控除" value={String((counts.exempted_outstay || 0) + (counts.exempted_absence || 0))} color={T.info} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <NfcIndicator status={nfcStatus} seq={lastSeq} />
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 10, color: T.ink3, letterSpacing: 1.5, fontWeight: 600 }}>経過時間</div>
+            <div style={{ fontSize: 22, fontFamily: T.mono, fontWeight: 700, letterSpacing: 1 }}>{hh}:{mm}:{ss}</div>
+          </div>
+          <button onClick={onEnd} style={{ padding: '11px 22px', background: T.danger, color: '#fff', border: 'none', borderRadius: 10, fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>学習を終了</button>
+        </div>
+      </header>
+
+      {/* フェーズバー */}
+      <div style={{ padding: '8px 28px', background: phaseMap.bg, borderBottom: `1px solid ${phaseMap.border}`, color: phaseMap.color, fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span>◉ {phaseMap.label}</span>
+        <span style={{ opacity: 0.6, fontSize: 11 }}>— デモ圧縮: 2分→遅刻 / 7分→後半節 / 13分→終了</span>
+        <div style={{ flex: 1 }} />
+        <span style={{ fontFamily: T.mono, opacity: 0.8 }}>{hh}:{mm}:{ss} 経過</span>
+      </div>
+
+      {/* 学生グリッド */}
+      <div style={{ flex: 1, padding: '20px 28px 100px' }}>
+        {students.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 60, color: T.ink3, fontSize: 14 }}>学習名簿に学生が登録されていません</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 12 }}>
+            {students.map(s => <StudyStudentCard key={s.id} student={s} phase={phase} onSimTap={() => simTap(s)} />)}
+          </div>
+        )}
+      </div>
+
+      {/* 右下コントロール */}
+      <div style={{ position: 'fixed', right: 20, bottom: 20, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end', zIndex: 10 }}>
+        {showConsole && <StudyDemoConsole students={students} onSimTap={simTap} onClose={() => setShowConsole(false)} />}
+        <button onClick={() => setShowConsole(!showConsole)} style={fabBtn(T, showConsole)}>🔧 デモコンソール</button>
+      </div>
+    </div>
+  );
+}
+
+// ── 学生カード ─────────────────────────────────────────────────────────────────
+function StudyStudentCard({ student, phase, onSimTap }) {
+  const T = window.RYO;
+  const status = computeStudentStatus(student, phase);
+  const stMap = {
+    present:          { label: '出席',       fg: T.ok,       bg: T.okSoft,     bd: T.okBorder },
+    late:             { label: '遅刻',       fg: T.late,     bg: T.lateSoft,   bd: T.lateBorder },
+    late_progress:    { label: '遅刻（進行中）', fg: T.late, bg: T.lateSoft,   bd: T.lateBorder },
+    abnormal:         { label: '⚠ 異常',    fg: T.warn,     bg: T.warnSoft,   bd: T.warnBorder },
+    absent:           { label: '欠席',       fg: T.danger,   bg: T.dangerSoft, bd: T.dangerBorder },
+    progress:         { label: '進行中',     fg: T.cobalt,   bg: T.cobaltSoft, bd: T.cobalt },
+    unknown:          { label: '未確認',     fg: T.ink3,     bg: T.surface,    bd: T.lineStrong },
+    exempted_outstay: { label: '外出中',     fg: T.ink2,     bg: T.surfaceAlt, bd: T.lineStrong },
+    exempted_absence: { label: '欠席届',     fg: T.cobaltDeep, bg: T.cobaltSoft, bd: T.cobalt },
+  };
+  const st = stMap[status] || stMap['unknown'];
+  const canTap = status !== 'exempted_outstay' && status !== 'exempted_absence' && student.taps.length < 3 && phase !== 'ended';
+  const tapLabels = ['前半開始', '後半開始', '終了'];
+
+  return (
+    <button onClick={canTap ? onSimTap : undefined} style={{
+      background: st.bg, border: `1px solid ${st.bd}`,
+      borderLeft: `4px solid ${st.fg}`, borderRadius: 10, padding: '12px 14px 14px',
+      boxShadow: T.shadow1, cursor: canTap ? 'pointer' : 'default', fontFamily: T.font, textAlign: 'left',
+      minHeight: 120, display: 'flex', flexDirection: 'column', gap: 5,
+      transition: 'transform .12s, box-shadow .12s',
+    }}
+      onMouseEnter={e => { if (canTap) { e.currentTarget.style.boxShadow = T.shadow2; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = T.shadow1; e.currentTarget.style.transform = 'translateY(0)'; }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
+        <div>
+          <div style={{ fontSize: 11, fontFamily: T.mono, color: T.ink2, fontWeight: 600 }}>{student.room}</div>
+          <div style={{ fontSize: 10, fontFamily: T.mono, color: T.ink3 }}>{student.no}</div>
+        </div>
+        {/* 3 タップ indicator */}
+        <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
+          {[0, 1, 2].map(i => {
+            const tap = student.taps[i];
+            const isLate = tap && i === 0 && tap.elapsedSec >= STUDY_LATE_SEC;
+            const col = !tap ? T.line : isLate ? T.late : T.ok;
+            return (
+              <div key={i} title={tap ? `${tapLabels[i]}: ${tap.time}` : tapLabels[i]}
+                style={{ width: 14, height: 14, borderRadius: 7, background: tap ? col : 'transparent', border: `2px solid ${col}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {tap && <span style={{ fontSize: 8, color: '#fff', fontWeight: 700, lineHeight: 1 }}>✓</span>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ fontSize: 20, fontWeight: 700, color: T.ink, lineHeight: 1.2, letterSpacing: -0.3 }}>{student.name}</div>
+      <div style={{ fontSize: 11, fontFamily: T.mono, color: st.fg, fontWeight: 600 }}>{st.label}</div>
+      {student.taps.length > 0 && (
+        <div style={{ fontSize: 10, color: T.ink3, fontFamily: T.mono, lineHeight: 1.6 }}>
+          {student.taps.map((t, i) => <span key={i} style={{ marginRight: 6 }}>{i+1}:{t.time}</span>)}
+        </div>
+      )}
+      {canTap && <div style={{ fontSize: 10, color: T.cobalt, fontWeight: 600 }}>↑ クリックでシミュレーション</div>}
+    </button>
+  );
+}
+
+// ── デモコンソール ────────────────────────────────────────────────────────────
+function StudyDemoConsole({ students, onSimTap, onClose }) {
+  const T = window.RYO;
+  const active = students.filter(s => s.status !== 'exempted_outstay' && s.status !== 'exempted_absence');
+  return (
+    <div style={{ width: 440, background: T.surface, border: `1px solid ${T.line}`, borderRadius: 12, boxShadow: T.shadow2, padding: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, flex: 1 }}>デモコンソール — 3 タップシミュレーション</div>
+        <button onClick={onClose} style={{ border: 'none', background: 'transparent', color: T.ink3, cursor: 'pointer', fontSize: 14 }}>×</button>
+      </div>
+      <div style={{ fontSize: 11, color: T.ink3, marginBottom: 10, lineHeight: 1.5 }}>
+        NFC の代わりにボタンでタップをシミュレーション。3 回タップで出席完了。
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 320, overflowY: 'auto' }}>
+        {active.map(s => (
+          <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: T.surfaceAlt, borderRadius: 6 }}>
+            <span style={{ fontSize: 11, fontFamily: T.mono, color: T.ink2, minWidth: 60 }}>{s.no}</span>
+            <span style={{ fontSize: 12, flex: 1 }}>{s.name}</span>
+            <div style={{ display: 'flex', gap: 3, marginRight: 4 }}>
+              {[0, 1, 2].map(i => (
+                <div key={i} style={{ width: 10, height: 10, borderRadius: 5, background: s.taps[i] ? T.ok : T.line }} />
+              ))}
+            </div>
+            <button onClick={() => onSimTap(s)} disabled={s.taps.length >= 3}
+              style={{ padding: '4px 12px', background: s.taps.length >= 3 ? T.surface : T.cobalt, color: s.taps.length >= 3 ? T.ink3 : '#fff', border: `1px solid ${s.taps.length >= 3 ? T.lineStrong : T.cobalt}`, borderRadius: 5, fontFamily: 'inherit', fontSize: 11, fontWeight: 600, cursor: s.taps.length >= 3 ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
+              {s.taps.length >= 3 ? '完了' : `第 ${s.taps.length + 1} タップ`}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── StudyPage wrapper ─────────────────────────────────────────────────────────
+function StudyPage({ teacher, onStartStudy, lastStudyEnded }) {
+  const [absRequests, setAbsRequests] = React.useState([]);
+
+  const loadAbs = () => {
+    const token = window.AUTH_TOKEN;
+    if (!token) return;
+    fetch('/api/v1/study/absence-requests', { headers: { Authorization: 'Bearer ' + token } })
+      .then(r => r.json()).then(d => setAbsRequests(Array.isArray(d) ? d : [])).catch(() => {});
+  };
+  React.useEffect(() => { loadAbs(); }, []);
+
+  const decideAbsence = (id, decision) => {
+    const token = window.AUTH_TOKEN;
+    if (!token) return;
+    fetch(`/api/v1/study/absence-requests/${id}/decision`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ decision }),
+    }).then(r => { if (r.ok) loadAbs(); }).catch(() => {});
+  };
+
+  return <StudyLanding teacher={teacher} onStart={onStartStudy} lastEnded={lastStudyEnded} absRequests={absRequests} onDecideAbsence={decideAbsence} />;
+}
+
+window.StudyPage = StudyPage;
+window.LiveStudySession = LiveStudySession;
+
+</script>
 <script type="text/babel" data-source="components/app.jsx">
 // App root — router, state, auto-logout timer, demo toast.
 
@@ -7595,13 +8082,18 @@ function App() {
   const [searchQuery, setSearchQuery] = React.useState('');
   const [toast, setToast] = React.useState(null);
 
-  // Session state
+  // 点呼 session state
   const [session, setSession] = React.useState(null);     // {name, startedAt}
   const [students, setStudents] = React.useState([]);
   const [liveMode, setLiveMode] = React.useState(false);   // fullscreen live view
   const [lastEnded, setLastEnded] = React.useState(null);
   const [overrideTarget, setOverrideTarget] = React.useState(null);
   const [outstayTarget, setOutstayTarget] = React.useState(null);
+
+  // 学習 session state
+  const [studySession, setStudySession] = React.useState(null);   // {startedAt}
+  const [studyStudents, setStudyStudents] = React.useState([]);
+  const [lastStudyEnded, setLastStudyEnded] = React.useState(null);
 
   // Trend demo
   const trend = [
@@ -7626,7 +8118,7 @@ function App() {
     let warned = false;
     const id = setInterval(() => {
       const idle = Date.now() - lastActivity.current;
-      if (idle > window.TIMEOUT_MS) { setRoute('select-teacher'); setTeacher(null); setLiveMode(false); setToast({ type: 'warn', msg: '操作がないため担当者選択に戻りました' }); }
+      if (idle > window.TIMEOUT_MS) { window.AUTH_TOKEN = null; setRoute('login'); setTeacher(null); setLiveMode(false); setSession(null); setStudySession(null); setStudyStudents([]); setToast({ type: 'warn', msg: '操作がないためログイン画面に戻りました' }); }
       else if (!warned && idle > window.TIMEOUT_WARN_MS) { warned = true; setToast({ type: 'warn', msg: 'あと 5 分で担当者選択に戻ります' }); }
     }, 5000);
     return () => clearInterval(id);
@@ -7634,9 +8126,30 @@ function App() {
 
   React.useEffect(() => { if (toast) { const id = setTimeout(() => setToast(null), 4500); return () => clearTimeout(id); } }, [toast]);
 
-  const loginOk = () => setRoute('select-teacher');
-  const pickTeacher = (t) => { setTeacher(t); setLastTeacherId(t.id); setRoute('app'); setPage('roll-call'); setToast({ type: 'ok', msg: `${t.name} 先生でサインインしました · ${window.dormLabel(t.dorm)} 担当` }); };
-  const logout = () => { setRoute('login'); setTeacher(null); setLiveMode(false); setSession(null); };
+  const loginOk = (t) => { setTeacher(t); setLastTeacherId(t.id); setRoute('app'); setPage('roll-call'); setToast({ type: 'ok', msg: `${t.name} 先生でサインインしました` }); };
+  const pickTeacher = loginOk; // kept for compatibility
+  const logout = () => { window.AUTH_TOKEN = null; setRoute('login'); setTeacher(null); setLiveMode(false); setSession(null); setStudySession(null); setStudyStudents([]); };
+
+  const startStudy = (attendees) => {
+    const mapped = attendees.map(a => ({
+      id: a.student_id, no: a.student_no, name: a.name, room: a.room_no, dormUnit: a.dorm_unit,
+      status: a.expected_status !== 'expected' ? a.expected_status : 'unknown',
+      exemptReason: a.exemption_reason || null, taps: [],
+    }));
+    setStudyStudents(mapped);
+    setStudySession({ startedAt: Date.now() });
+  };
+  const endStudy = () => {
+    if (studySession) {
+      const d = new Date();
+      const t2 = (x) => `${String(x.getHours()).padStart(2,'0')}:${String(x.getMinutes()).padStart(2,'0')}`;
+      const present = studyStudents.filter(s => s.taps.length === 3).length;
+      const total = studyStudents.filter(s => s.status === 'unknown').length + present;
+      setLastStudyEnded({ start: t2(new Date(studySession.startedAt)), end: t2(d), rate: `${present}/${total}` });
+    }
+    setStudySession(null); setStudyStudents([]);
+    setToast({ type: 'ok', msg: '晩自習が終了しました · 集計保存済み' });
+  };
 
   const startSession = (name) => {
     const seeded = window.seedStudents(teacher.dorm);
@@ -7693,6 +8206,15 @@ function App() {
       onPick={pickTeacher} onDeleteTeacher={onTeacherDelete} onAddTeacher={onTeacherAdd} onLogout={logout} /><ToastSlot toast={toast} /></>;
   }
   // app
+  if (studySession) {
+    return (
+      <>
+        <window.LiveStudySession teacher={teacher} session={studySession}
+          students={studyStudents} setStudents={setStudyStudents} onEnd={endStudy} />
+        <ToastSlot toast={toast} />
+      </>
+    );
+  }
   if (liveMode && session) {
     return (
       <>
@@ -7709,6 +8231,8 @@ function App() {
   switch (page) {
     case 'roll-call':
       body = <window.RollCallLanding teacher={teacher} onStart={startSession} lastEnded={lastEnded} onNav={nav} trend={trend} />; break;
+    case 'study':
+      body = <window.StudyPage teacher={teacher} onStartStudy={startStudy} lastStudyEnded={lastStudyEnded} />; break;
     case 'applications':
       body = <window.ApplicationsPage onOpen={setOutstayTarget} />; break;
     case 'discipline':

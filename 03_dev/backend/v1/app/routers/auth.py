@@ -68,7 +68,7 @@ def login_student(body: schemas.StudentLoginIn, db: Session = Depends(get_db)):
     )
 
 
-@router.post("/teacher", response_model=schemas.TokenOut)
+@router.post("/teacher", response_model=schemas.TeacherTokenOut)
 def login_teacher(body: schemas.TeacherLoginIn, db: Session = Depends(get_db)):
     teacher = db.scalars(
         select(models.Teacher).where(models.Teacher.login_id == body.login_id)
@@ -97,7 +97,8 @@ def login_teacher(body: schemas.TeacherLoginIn, db: Session = Depends(get_db)):
     teacher.last_login_at = datetime.now(timezone.utc)
     teacher.failed_count = 0
     db.commit()
-    return schemas.TokenOut(
+    return schemas.TeacherTokenOut(
         access_token=token,
         expires_in=settings.jwt_access_expire_min * 60,
+        teacher=schemas.TeacherOut.model_validate(teacher),
     )
