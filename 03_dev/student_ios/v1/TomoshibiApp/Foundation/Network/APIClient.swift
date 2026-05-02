@@ -91,10 +91,10 @@ final class APIClient {
         case 401:
             throw APIError.unauthorized
         case 422:
-            let msg = (try? JSONDecoder().decode(DetailError.self, from: data))?.detail ?? "入力エラー"
+            let msg = DetailError.extractMessage(from: data) ?? "入力エラー"
             throw APIError.unprocessable(msg)
         default:
-            let msg = (try? JSONDecoder().decode(DetailError.self, from: data))?.detail ?? ""
+            let msg = DetailError.extractMessage(from: data) ?? ""
             throw APIError.server(http.statusCode, msg)
         }
     }
@@ -120,8 +120,31 @@ final class APIClient {
 
 // MARK: - Helper types
 
-private struct DetailError: Decodable {
-    let detail: String
+/// backend 的错误响应有 2 种形态，两种都要 decode 来抽取提示信息：
+///   1. `{"detail": "字符串"}` — FastAPI 自带 validation error
+///   2. `{"detail": {"code": "...", "message": "..."}}` — 自家 raise HTTPException(detail={...}) 形式
+private struct DetailError {
+    static func extractMessage(from data: Data) -> String? {
+        // 先试形态 2（自家形式信息量更大）
+        struct Nested: Decodable {
+            struct Inner: Decodable {
+                let code: String?
+                let message: String?
+            }
+            let detail: Inner
+        }
+        if let nested = try? JSONDecoder().decode(Nested.self, from: data),
+           let msg = nested.detail.message, !msg.isEmpty {
+            return msg
+        }
+        // 退到形态 1（FastAPI 默认的字符串 detail）
+        struct Flat: Decodable { let detail: String }
+        if let flat = try? JSONDecoder().decode(Flat.self, from: data),
+           !flat.detail.isEmpty {
+            return flat.detail
+        }
+        return nil
+    }
 }
 
 private struct EmptyResponse: Decodable {}
