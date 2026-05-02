@@ -597,8 +597,8 @@ extension Color {
 
 | ID | 決策 | 状态 |
 |---|---|---|
-| **I1** | Persistence | ✅ **UserDefaults + manual cache**（P0 軽量、SwiftData は P2 で再検討） |
-| **I2** | Networking | ✅ **URLSession + async/await**（Combine 不採用） |
+| **I1** | Persistence | ✅ **JWT は Keychain / その他は UserDefaults**（2026-05-02 实装、commit `cf5c9fa`：`Foundation/Network/KeychainService.swift` 新建。理由 = JWT は機密、UserDefaults は明文 plist で脆弱）/ SwiftData は P2 で再検討 |
+| **I2** | Networking | ✅ **URLSession + async/await**（Combine 不採用）/ 2026-05-02 endpoint module 5 個実装済（commit `624fea1`+`a992b4f`）|
 | **I3** | APNs | ✅ P0 = **framework だけ**、実 push test は P1（学習欠席届と一緒） |
 | **I4** | i18n（英 / 中文） | ✅ **不要**（日本語 only）、v1.1 で再考 |
 | **I5** | 状態管理 | ✅ **`@Observable`** macro (Swift 5.9+) |
