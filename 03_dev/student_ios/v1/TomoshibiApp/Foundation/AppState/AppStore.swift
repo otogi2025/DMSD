@@ -26,8 +26,8 @@ struct ChangeLogEntry: Hashable, Identifiable {
 
 @MainActor
 final class AppStore: ObservableObject {
-    /// JWT 访问 token — login 成功后 set、跟 APIClient.shared.token 同步
-    /// + KeychainService 永続化（app 重启后能复原）
+    /// JWT 访问 token — login 成功后赋值、跟 APIClient.shared.token 同步
+    /// 同时持久化到 KeychainService（app 重启后能恢复）
     @Published var authToken: String? = nil {
         didSet {
             APIClient.shared.token = authToken
@@ -39,10 +39,10 @@ final class AppStore: ObservableObject {
         }
     }
 
-    /// app 启动时从 Keychain 复原 token（自动登录）
+    /// app 启动时从 Keychain 恢复 token（实现自动登录）
     init() {
         if let saved = KeychainService.load() {
-            // 直接 set _authToken 会跳过 didSet → APIClient 同步不上、所以走 self.authToken
+            // 直接赋 _authToken 会跳过 didSet → APIClient 同步不上、所以走 self.authToken
             self.authToken = saved
         }
     }

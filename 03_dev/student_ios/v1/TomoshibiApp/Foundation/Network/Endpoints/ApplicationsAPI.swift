@@ -1,7 +1,7 @@
 // ApplicationsAPI.swift
 // Foundation · Network · Endpoints — 出寮届相关 endpoint 包装
 //
-// 包 backend 的 /api/v1/applications/* endpoint（学生侧能用的部分）:
+// 包 backend 的 /api/v1/applications/* endpoint（学生侧能用的部分）：
 //   - POST /applications              create
 //   - GET  /applications/mine          listMine
 //   - GET  /applications/:id           detail
@@ -19,7 +19,7 @@ enum ApplicationsAPI {
         return try await APIClient.shared.post(path: "/api/v1/applications", body: body)
     }
 
-    /// 我的申请一览（最近顺）
+    /// 我的申请一览（最近优先）
     @MainActor
     static func listMine() async throws -> [ApplicationOut] {
         return try await APIClient.shared.get(path: "/api/v1/applications/mine")

@@ -12,7 +12,7 @@ enum AuthAPI {
 
     /// POST /api/v1/sessions/student 用的请求 body
     struct StudentLoginRequest: Encodable {
-        let student_no: String  // "060218" 6 桁
+        let student_no: String  // 6 桁学号 "060218"
         let password: String
     }
 

@@ -70,11 +70,12 @@ struct StayApplication: Hashable, Identifiable {
     let submittedAt: String         // "2026-04-20 10:24"
     var auditLog: [AuditLogEntry] = []   // 操作履歴（提出 / 修改届 / 差戻 / 承認）
 
-    /// 修改届 提出可: pending（審査中含む）/ returned（差戻）のみ可
+    /// 修改届 可提交：仅 pending / approved_partial / returned 状态可
     /// system_features §7.2.4 「pending / partiallyApproved / returned で編集可」
+    /// backend PUT /applications/:id 同条件接受。
     var isEditable: Bool {
         switch status {
-        case .pending, .returned: return true
+        case .pending, .approved_partial, .returned: return true
         default: return false
         }
     }
@@ -116,31 +117,40 @@ enum ApplicationKind: String, Hashable {
 }
 
 enum ApplicationStatus: String, Hashable {
-    case draft, pending, approved, rejected, returned, withdrawn
+    case draft, pending
+    case approved_partial    // chain 部分通过的中间态（backend 6 个值之一）
+    case approved, rejected, returned, withdrawn
 
     var label: String {
         switch self {
-        case .draft:     return "下書き"
-        case .pending:   return "審査中"
-        case .approved:  return "承認済"
-        case .rejected:  return "差戻"
-        case .returned:  return "要修正"
-        case .withdrawn: return "取消済"
+        case .draft:             return "下書き"
+        case .pending:           return "審査中"
+        case .approved_partial:  return "一部承認"
+        case .approved:          return "承認済"
+        case .rejected:          return "差戻"
+        case .returned:          return "要修正"
+        case .withdrawn:         return "取消済"
         }
     }
 
     var tone: Pill.Tone {
         switch self {
-        case .draft:     return .neutral
-        case .pending:   return .warn
-        case .approved:  return .ok
-        case .rejected:  return .danger
-        case .returned:  return .danger
-        case .withdrawn: return .neutral
+        case .draft:             return .neutral
+        case .pending:           return .warn
+        case .approved_partial:  return .warn      // amber 色、介于 approved 和 pending 之间
+        case .approved:          return .ok
+        case .rejected:          return .danger
+        case .returned:          return .danger
+        case .withdrawn:         return .neutral
         }
     }
 
     static func fromSeed(_ s: String) -> ApplicationStatus {
+        ApplicationStatus(rawValue: s) ?? .pending
+    }
+
+    /// backend 的 status 字符串（6 个值）→ enum 转换。未知值就 fallback 到 pending。
+    static func fromBackend(_ s: String) -> ApplicationStatus {
         ApplicationStatus(rawValue: s) ?? .pending
     }
 }
@@ -312,12 +322,13 @@ enum StayListMock {
             .intlChief:  "小林 先生",
             .management: "田中 先生",
         ]
-        // status に応じて承認済の数を決める
+        // 按 status 判断已承认的役职数
         let approvedCount: Int = {
             switch status {
             case .approved:                  return roles.count
-            case .rejected, .returned:       return max(roles.count - 1, 1)   // 最後の役职が差戻
-            case .pending:                   return roles.count > 2 ? 1 : 0   // 進行中: 先頭だけ承認
+            case .approved_partial:          return max(roles.count - 1, 1)   // 部分承认: 最后一个还未决
+            case .rejected, .returned:       return max(roles.count - 1, 1)   // 最后一个差戻
+            case .pending:                   return roles.count > 2 ? 1 : 0   // 进行中: 仅头部承认
             case .draft, .withdrawn:         return 0
             }
         }()

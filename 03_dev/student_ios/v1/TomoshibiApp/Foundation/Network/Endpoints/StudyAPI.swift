@@ -4,8 +4,8 @@
 // 学生侧能用的:
 //   - POST /api/v1/study/absence-requests   学習欠席届 提交
 //
-// 不在这里的（教師侧 endpoint、学生不会调）:
-//   - 教師批准 / 拒否 学習欠席届
+// 不在这里的（教师侧 endpoint、学生不会调）:
+//   - 教师批准 / 拒否 学習欠席届
 //   - 学習出席 NFC tap 提交（backend 待实装）
 
 import Foundation
@@ -15,7 +15,7 @@ enum StudyAPI {
     /// POST /api/v1/study/absence-requests 用的请求 body
     struct AbsenceRequestBody: Encodable {
         let target_date: String     // "2026-05-03"
-        let reason: String          // 申请理由（必填、1-2000 文字）
+        let reason: String          // 申请理由（必填、1-2000 字）
     }
 
     /// 学習欠席届提交
