@@ -30,33 +30,20 @@ struct BottomNav: View {
 
     @available(iOS 26.0, *)
     private var liquidGlassBar: some View {
-        // GlassEffectContainer 内部の glassEffectID が同じ glass は、
-        // active 切替時に「滑って morph する」アニメーションを行う。
-        GlassEffectContainer(spacing: 0) {
-            ZStack {
-                // (1) active glass capsule — active tab の背後に 1 個だけ出現
-                HStack(spacing: 0) {
-                    glassSlot(visible: router.current.isApplyBranch)
-                    Spacer().frame(width: 80)
-                    glassSlot(visible: router.current.isMyBranch)
-                }
-                .padding(.horizontal, 12)
-                .frame(height: 62)
-
-                // (2) tab buttons (前景)
-                HStack(spacing: 0) {
-                    navTab(icon: "envelope.fill", label: "申し込み",
-                           active: router.current.isApplyBranch,
-                           action: { router.replace(.apply) })
-                    Spacer().frame(width: 80)
-                    navTab(icon: "person.fill", label: "マイページ",
-                           active: router.current.isMyBranch,
-                           action: { router.replace(.my) })
-                }
-                .padding(.horizontal, 12)
-                .frame(height: 62)
-            }
+        // 整个 bar 用 .glassEffect 做 Liquid Glass 胶囊。
+        // active tab 用 matchedGeometryEffect 让背景半透明 capsule 滑动 morph
+        // （iOS 26 .glassEffect API 在 button .background 里会覆盖 icon/label，故弃用）。
+        HStack(spacing: 0) {
+            navTab26(icon: "envelope.fill", label: "申し込み",
+                     active: router.current.isApplyBranch,
+                     action: { router.replace(.apply) })
+            Spacer().frame(width: 80)
+            navTab26(icon: "person.fill", label: "マイページ",
+                     active: router.current.isMyBranch,
+                     action: { router.replace(.my) })
         }
+        .padding(.horizontal, 12)
+        .frame(height: 62)
         .background(T.paper.opacity(0.78), in: Capsule(style: .continuous))
         .glassEffect(.regular, in: .capsule)
         .overlay(
@@ -68,24 +55,32 @@ struct BottomNav: View {
                    value: router.current)
     }
 
-    /// active glass capsule slot — 表示時のみ Capsule が glass + ID を持ち、
-    /// 反対側 slot から「滑り込む」morph を起こす。
+    /// nav tab (iOS 26 版) — active 时背后画一个半透明 primary tint capsule，
+    /// 用 matchedGeometryEffect 让它在切换时滑动 morph。
+    /// （注：之所以不用 .glassEffect + glassEffectID 是因为 iOS 26 glassEffect
+    /// 在 button .background 里会盖住 icon + label，导致 button 看不见。）
     @available(iOS 26.0, *)
-    @ViewBuilder
-    private func glassSlot(visible: Bool) -> some View {
-        if visible {
-            Capsule(style: .continuous)
-                .fill(Color.clear)
-                .glassEffect(
-                    .regular.tint(T.primary.opacity(0.22)).interactive(),
-                    in: Capsule(style: .continuous)
-                )
-                .glassEffectID("active-nav", in: glassNS)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.vertical, 6)
-        } else {
-            Color.clear.frame(maxWidth: .infinity)
+    private func navTab26(icon: String, label: String, active: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 3) {
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .medium))
+                Text(label)
+                    .font(.system(size: 10, weight: .semibold))
+            }
+            .foregroundStyle(active ? T.primary : T.inkMute)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .background {
+                if active {
+                    Capsule(style: .continuous)
+                        .fill(T.primary.opacity(0.12))
+                        .padding(.vertical, 6)
+                        .matchedGeometryEffect(id: "active-nav", in: glassNS)
+                }
+            }
         }
+        .buttonStyle(.plain)
     }
 
     // MARK: - iOS < 26 fallback

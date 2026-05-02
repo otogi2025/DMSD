@@ -28,6 +28,35 @@ private extension Color {
 }
 
 // ───────────────────────────────────────────────────────────
+// MARK: - DemoCardCycleGesture · amber Card 长按循环 demo 状态
+// ───────────────────────────────────────────────────────────
+//
+// production 版（默认）= no-op（不加任何 gesture）
+// demo 版（DEMO flag）= 长按 0.6 秒循环点呼 / 学習状态
+// memory project_demo_scaffolds_to_remove_before_v1.md #1, #15
+
+private struct DemoCardCycleGesture: ViewModifier {
+    let app: AppStore
+
+    func body(content: Content) -> some View {
+        #if DEMO
+        content.simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.6).onEnded { _ in
+                if SEED.user.isStudyTarget && app.studyState != .idle {
+                    app.cycleDemoStudyState()
+                } else {
+                    app.cycleDemoRollState()
+                }
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            }
+        )
+        #else
+        content
+        #endif
+    }
+}
+
+// ───────────────────────────────────────────────────────────
 // MARK: - 私有原子：HomeCard（JSX Card pad=14 · shadow · radius 18）
 // ───────────────────────────────────────────────────────────
 
@@ -237,17 +266,7 @@ struct HomeView: View {
             .padding(.horizontal, 22).padding(.vertical, 20)
         }
         .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .simultaneousGesture(
-            LongPressGesture(minimumDuration: 0.6).onEnded { _ in
-                // 学習 mode 时 cycle study state，否则 cycle roll state
-                if SEED.user.isStudyTarget && app.studyState != .idle {
-                    app.cycleDemoStudyState()
-                } else {
-                    app.cycleDemoRollState()
-                }
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            }
-        )
+        .modifier(DemoCardCycleGesture(app: app))
         .animation(.spring(response: 0.34, dampingFraction: 0.82), value: app.rollState)
         .animation(.spring(response: 0.34, dampingFraction: 0.82), value: app.studyState)
     }
@@ -1174,7 +1193,7 @@ struct RollcallSheet: View {
             HStack(alignment: .top, spacing: 6) {
                 Text("⚠")
                     .font(.system(size: 12))
-                Text("現在は点呼時間外です · デモ用に試すことができます")
+                Text("点呼時間外です。点呼開始まで少々お待ちください。")
                     .font(.system(size: 12))
                     .lineSpacing(2)
             }
@@ -1225,7 +1244,7 @@ struct RollcallSheet: View {
 
             // JSX: h 54 / radius 16 / btnGradRadial / 16 700 / letterSpacing 0.04em / shadow
             Button { simulate() } label: {
-                Text("NFC をかざす（デモ）")
+                Text("NFC をかざす")
                     .font(.system(size: 16, weight: .bold))
                     .kerning(0.64)           // 0.04em × 16
                     .foregroundStyle(.white)
@@ -1409,7 +1428,7 @@ struct RollcallSheet: View {
         Task {
             try? await Task.sleep(nanoseconds: 500_000_000)
             await MainActor.run {
-                app.simulateCheckin()
+                app.recordCheckin()
                 withAnimation(.easeOut(duration: 0.22)) { step = .success }
             }
             try? await Task.sleep(nanoseconds: 2_000_000_000)
@@ -1562,7 +1581,7 @@ struct StudyCheckinSheet: View {
             .padding(.bottom, 24)
 
             Button { simulate() } label: {
-                Text("NFC をかざす（デモ）")
+                Text("NFC をかざす")
                     .font(.system(size: 16, weight: .bold))
                     .kerning(0.64)
                     .foregroundStyle(.white)

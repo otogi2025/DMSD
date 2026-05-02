@@ -685,6 +685,13 @@ struct StayForm: View {
     }
 
     // MARK: - submit (mock POST /applications)
+    //
+    // TODO[backend]: 真 production 接 POST /applications（backend BACKEND_DESIGN_LOG §5.2.1）
+    //   - kind 映射: stay → "外泊" / holiday → "帰省" / returncountry → "帰国"
+    //   - stay_locations 形状: backend 期待 [{kind, name, address?, phone?}]
+    //   - meals_skip 形状: backend 期待 datetime ISO8601
+    //   - student_id 由 JWT auth 推断、前端不再发送
+    //   早上 5-01 audit §3 失配清单 F1-F5 列出全部映射差异。
 
     private func submit() {
         // ── (#1) 学生は自分のみ提出可: payload の student_id = ログイン中アカウント ──

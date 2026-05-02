@@ -73,7 +73,7 @@ struct SplashView: View {
                         .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(T.primaryDk)
                         .kerning(2.2)
-                    Text("v0.1.0-demo")
+                    Text(AppVersionTag.full)
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundStyle(T.inkMute)
                 }
@@ -699,7 +699,7 @@ struct RegisterStep1View: View {
                         required: true
                     ) {
                         HStack(spacing: 8) {
-                            overseasChip(value: false, label: "一般")
+                            overseasChip(value: false, label: "一般生")
                             overseasChip(value: true,  label: "留学生")
                         }
                     }
@@ -1126,8 +1126,21 @@ struct RegisterStep3View: View {
 
 struct RegisterStep4View: View {
     @EnvironmentObject var router: RouterStore
-    @State private var pw: String = "demo1234"
-    @State private var pw2: String = "demo1234"
+    // demo 版预填方便演示，production 留空
+    @State private var pw: String = {
+        #if DEMO
+        return "demo1234"
+        #else
+        return ""
+        #endif
+    }()
+    @State private var pw2: String = {
+        #if DEMO
+        return "demo1234"
+        #else
+        return ""
+        #endif
+    }()
 
     private var mismatch: Bool {
         !pw.isEmpty && !pw2.isEmpty && pw != pw2
@@ -1361,9 +1374,28 @@ struct LoginView: View {
     enum Mode: Hashable { case number, email }
 
     @State private var mode: Mode = .number
-    @State private var acc: String = "00"
-    @State private var email: String = "otogi2025@gmail.com"
-    @State private var pw: String = "demo1234"
+    // demo 版预填方便演示，production 全空
+    @State private var acc: String = {
+        #if DEMO
+        return "00"
+        #else
+        return ""
+        #endif
+    }()
+    @State private var email: String = {
+        #if DEMO
+        return "otogi2025@gmail.com"
+        #else
+        return ""
+        #endif
+    }()
+    @State private var pw: String = {
+        #if DEMO
+        return "demo1234"
+        #else
+        return ""
+        #endif
+    }()
 
     var body: some View {
         ZStack {
@@ -1454,7 +1486,7 @@ struct LoginView: View {
 
                 Spacer()
 
-                Text("Tomoshibi v0.1.0-demo · 2026 AC 入試プロジェクト")
+                Text("Tomoshibi \(AppVersionTag.full) · 2026 AC 入試プロジェクト")
                     .font(.system(size: 10.5, design: .monospaced))
                     .foregroundStyle(T.inkMute)
                     .kerning(0.4)
@@ -1495,16 +1527,19 @@ struct LoginView: View {
     }
 
     private func tryLogin() {
+        // TODO[backend]: 真 production 接 POST /sessions（学号 + 密码 → JWT），
+        //   失败 → recordLoginFailure() 走锁定升级。
+        //   当前 production 是 stub「任何输入都通过」。
+        //   demo 版加严格判定方便演示锁定升级。
+        #if DEMO
         let idOk: Bool
         switch mode {
         case .number:
-            // "00" 旧 magic + SEED.user.account（例 "060218"）
             idOk = acc == "00" || acc == SEED.user.account
         case .email:
             idOk = email.lowercased() == "otogi2025@gmail.com" ||
                    email.lowercased() == SEED.user.email.lowercased()
         }
-        // demo: パスワードは "demo1234" / "00" のみ正解
         let pwOk = (pw == "demo1234" || pw == "00")
         if idOk && pwOk {
             app.resetLoginFailures()
@@ -1513,6 +1548,13 @@ struct LoginView: View {
             app.recordLoginFailure()
             router.go(.lockout)
         }
+        #else
+        // production stub: 任何输入都通过（接 backend 后改成 await api.login(...)）
+        if !acc.isEmpty || !email.isEmpty {
+            app.resetLoginFailures()
+            router.replace(.home)
+        }
+        #endif
     }
 }
 

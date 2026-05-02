@@ -1384,9 +1384,10 @@ struct MySettingsView: View {
                         .padding(.vertical, 14)
                     }
 
-                    // Push 通知 demo 段（system_features §7.13 R1 例外）
-                    // ⚠️ DEMO-ONLY: 真后端 push listener 接通后必删
+                    #if DEMO
+                    // Push 通知 demo 触发段（仅 demo 版显示、production 编译时排除）
                     pushDemoSection
+                    #endif
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
@@ -1396,7 +1397,9 @@ struct MySettingsView: View {
         .background(T.pearl.ignoresSafeArea())
     }
 
+    #if DEMO
     /// Push 通知 demo 触发段 — 4 个事件按钮（学習批 / 学習拒 / 名单加入 / 修改届再批）
+    /// memory project_demo_scaffolds_to_remove_before_v1.md（push trigger 项）
     private var pushDemoSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("⚠️ Push 通知 デモ")
@@ -1404,7 +1407,7 @@ struct MySettingsView: View {
                 .foregroundStyle(T.warnDeep)
                 .kerning(0.6)
                 .padding(.top, 8)
-            Text("この section は v1.0 上線前に削除されます。")
+            Text("この section は demo 版限定です（production では非表示）。")
                 .font(.system(size: 10))
                 .foregroundStyle(T.inkMute)
             Card(padding: 0) {
@@ -1450,6 +1453,7 @@ struct MySettingsView: View {
         }
         .buttonStyle(.plain)
     }
+    #endif
 }
 
 #Preview("MySettings") {
@@ -1478,7 +1482,7 @@ struct MyAboutView: View {
                             .kerning(4.2)
                             .foregroundStyle(T.primary)
                             .padding(.bottom, 12)
-                        Text("v0.1.0-demo")
+                        Text(AppVersionTag.full)
                             .font(.system(size: 11))
                             .monospaced()
                             .foregroundStyle(T.inkMute)

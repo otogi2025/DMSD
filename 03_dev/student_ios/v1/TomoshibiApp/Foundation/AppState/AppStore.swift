@@ -50,11 +50,15 @@ final class AppStore: ObservableObject {
     /// 已签到判定（"時間内" / "遅刻"）
     @Published var checkinKind: String? = nil
 
-    /// アカウント関連の変更履歴（MyInfo 編集フロー）
-    @Published var changeLog: [ChangeLogEntry] = [
-        // demo seed: 過去の進級記録（例示用）
-        ChangeLogEntry(field: "grade", label: "学年", before: "高2", after: "高3"),
-    ]
+    /// 账号关联字段的变更履歴（MyInfo 编辑时 append）
+    /// production 版初始空、登录后从后端拉；demo 版有进级 placeholder seed。
+    @Published var changeLog: [ChangeLogEntry] = {
+        #if DEMO
+        return [ChangeLogEntry(field: "grade", label: "学年", before: "高2", after: "高3")]
+        #else
+        return []
+        #endif
+    }()
 
     /// 変更を記録（field ごと · before == after ならスキップ）
     func appendChange(field: String, label: String, before: String, after: String) {
@@ -91,26 +95,31 @@ final class AppStore: ObservableObject {
         }
     }
 
-    // MARK: - 点呼成功模拟（Demo 用）
+    // MARK: - 点呼 NFC 签到记录
+    //
+    // TODO[backend]: 真 production 流程 = NFC sheet "NFC をかざす" tap
+    //   → core NFC delegate 拿到 tag UID → POST /checkins (uid, session_id, ts)
+    //   → 后端返回 checkin record → 这里更新 rollState / checkinAt / checkinKind
+    // 当前是接入前的 mock：直接本地记录，后端联通后改成 await api.postCheckin(...)。
 
-    /// done 表示を自動で idle に戻すタスク（重複を防ぐため保持）
+    /// done 表示自动恢复 idle 的任务（避免重复持有）
     private var autoDismissDoneTask: Task<Void, Never>?
 
-    func simulateCheckin() {
+    /// NFC tap 成功后调（真 production 由后端 response 触发）
+    func recordCheckin() {
         let fmt = DateFormatter()
         fmt.dateFormat = "HH:mm"
         checkinAt = fmt.string(from: Date())
         checkinKind = "時間内"
         rollState = .done
 
-        // 5 秒後に自動で idle に戻す（緑のバー / 完了表示を自然消滅）
+        // 5 秒后自动恢复 idle（done 完成提示自然消失）
         autoDismissDoneTask?.cancel()
         autoDismissDoneTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 5_000_000_000)
             guard !Task.isCancelled else { return }
             await MainActor.run {
                 guard let self else { return }
-                // done のままの時だけ戻す（手動で他の状態に切り替えられてたら触らない）
                 if self.rollState == .done {
                     withAnimation(.easeInOut(duration: 0.4)) {
                         self.rollState = .idle
@@ -123,15 +132,10 @@ final class AppStore: ObservableObject {
         }
     }
 
-    // MARK: - Demo 用：点呼カードを長押しで状態を循環
-    //
-    // idle（平常） → active 180s（点呼開始・残り時間表示）
-    //            → active 10s  （遅刻直前）
-    //            → active 0s   （遅刻判定）
-    //            → done         （時間内にチェックイン完了）
-    //            → idle に戻る
-    //
-    // デモ時は Home の点数カードを長押しするだけで 5 態を見せられる。
+    #if DEMO
+    /// Demo 用：长按点呼卡循环 5 态状态（演示用，production 砍）
+    /// idle → active 180s → active 10s（遅刻直前）→ active 0s（遅刻判定）→ absent → done → idle
+    /// memory project_demo_scaffolds_to_remove_before_v1.md #1
     func cycleDemoRollState() {
         switch rollState {
         case .idle:
@@ -147,12 +151,10 @@ final class AppStore: ObservableObject {
             rollCountdownSec = 0
             showToast("Demo · 遅刻判定")
         case .active:
-            // countdown == 0 → 欠席判定（長時間未チェックイン）
             rollState = .absent
             showToast("Demo · 欠席判定（寮監へ連絡）")
         case .absent:
-            // 欠席 → 時間内扱いで演出（例：寮監が手動で救済）
-            simulateCheckin()
+            recordCheckin()
             showToast("Demo · 時間内にチェックイン")
         case .done:
             autoDismissDoneTask?.cancel()
@@ -163,6 +165,7 @@ final class AppStore: ObservableObject {
             showToast("Demo · 通常状態に戻る")
         }
     }
+    #endif
 
     /// active 中に 1 秒ごと呼ばれる（HomeView の Timer から）
     func tickCountdown() {
@@ -170,20 +173,26 @@ final class AppStore: ObservableObject {
         rollCountdownSec -= 1
     }
 
-    // MARK: - 学習（晚自习）状态机 — 2026-04-30 後續 itsuki 拍板
+    // MARK: - 学習（晚自习）状态机
     //
-    // ⚠️ DEMO-ONLY: amber Card 三态切换机制（system_features §7.3.8）
-    // v1.0 上线前必删，改为后端 event 驱动。
-    // memory project_demo_scaffolds_to_remove_before_v1.md #15
+    // TODO[backend]: 真 production 由后端 cron 5 分前自动开启 upcoming，老师手动切 active / done。
+    // 当前是首次启动 placeholder（idle），等接 GET /study/today/state 拉。
+    // amber Card 三态切换 demo 用 long press 切（仅 #if DEMO 启用）
 
-    /// 学習开始 10 分前 → upcoming（amber Card 显示倒计时）/ 进行中 → active / 当晚已结束 → done
-    @Published var studyState: StudyState = .idle        // 平常打开 = idle (原扣分点显示)。long press amber Card 切到 upcoming 演示学習
+    /// 学習状态（idle / upcoming / active / done）
+    @Published var studyState: StudyState = .idle
 
-    /// 学習迟到倒计时（upcoming 时秒数）— demo init 600s = 10 分
+    /// 学習迟到倒计时（upcoming 时秒数）— 默认 10 分（19:35-19:40 窗口的 spec 值）
     @Published var studyCountdownSec: Int = 600
 
-    /// 当月学習请假次数（> 3 → 弹提醒文案）
-    @Published var studyLeaveCountThisMonth: Int = 3   // demo seed = 3 让 itsuki 提交一次就触发提醒
+    /// 当月学習请假次数（> 3 → 弹提醒文案）— production 初始 0、登录后从后端拉；demo 初始 3 触发提醒
+    @Published var studyLeaveCountThisMonth: Int = {
+        #if DEMO
+        return 3
+        #else
+        return 0
+        #endif
+    }()
 
     /// upcoming 时 1 秒一次 tick（HomeView Timer 同时触发 roll + study）
     func tickStudyCountdown() {
@@ -191,18 +200,20 @@ final class AppStore: ObservableObject {
         studyCountdownSec -= 1
     }
 
-    /// 学習欠席届 提交（system_features §7.3.5）— 提交后 += 1，> 3 触发文案 A
+    /// 学習欠席届 提交（system_features §7.3.5）— 提交后 += 1，> 3 触发提醒
+    /// TODO[backend]: 接 POST /study/leave，response 后再 += 1（避免重复提交）
     func submitStudyLeave(reason: String, range: StudyLeaveRange) {
         studyLeaveCountThisMonth += 1
         if studyLeaveCountThisMonth > 3 {
-            // itsuki 4-30 拍板 文案 A
             showToast("今月、もう \(studyLeaveCountThisMonth) 回お休みされていますね。体調管理、お気をつけて。")
         } else {
             showToast("学習欠席届を提出しました")
         }
     }
 
-    /// long press study card 切换 demo 状态（roll 同模式）
+    #if DEMO
+    /// Demo 用：长按学習卡循环 4 态状态（演示用、production 砍）
+    /// memory project_demo_scaffolds_to_remove_before_v1.md #15
     func cycleDemoStudyState() {
         switch studyState {
         case .idle:     studyState = .upcoming; studyCountdownSec = 600; showToast("Demo · 学習 10 分前 (倒计时 10:00)")
@@ -211,6 +222,7 @@ final class AppStore: ObservableObject {
         case .done:     studyState = .idle; studyTaps = []; showToast("Demo · 学習対象外")
         }
     }
+    #endif
 
     // MARK: - 学習 NFC 3 回タップ签到 (system_features §7.3.3-6) — 2026-04-30 後續
 
@@ -273,8 +285,15 @@ final class AppStore: ObservableObject {
         return next
     }
 
-    /// マイページ「学習履歴」用 — 過去 N 日分の出席 entry 列
-    @Published var studyHistory: [StudyHistoryEntry] = StudyHistoryEntry.demoSeed
+    /// マイページ「学習履歴」用 — production 空、demo 加 fixture seed
+    /// TODO[backend]: 登录后从 GET /study/attendance/mine 拉真数据
+    @Published var studyHistory: [StudyHistoryEntry] = {
+        #if DEMO
+        return StudyHistoryEntry.demoSeed
+        #else
+        return []
+        #endif
+    }()
 
     // MARK: - リクエスト曲 通報・封禁 (system_features §7.11.2) — 2026-05-01 拍板
 
@@ -418,32 +437,31 @@ final class AppStore: ObservableObject {
         loginFailCount = 0
     }
 
-    // MARK: - Push 通知 mock (system_features §7.13 R1 例外)
+    // MARK: - Push 通知 listener (system_features §7.13 R1 例外)
     //
-    // 真后端没接通,iOS push listener 用本地模拟:
-    // demo 用 settings 里点按钮 → simulatePush(...) → 给 pushNotifications 头部 insert 一条
-    // + 弹 toast banner。NotificationsView 显示 pushNotifications + SEED.notifications 合并。
+    // TODO[backend]: 真 production 由 APNs delegate（AppDelegate.didReceiveRemoteNotification）
+    //   → 解析 payload → 调 handleIncomingPush(...) 把通知 insert 到 pushNotifications。
+    // 当前是接入前的 store：APNs 接通前 pushNotifications 空。
 
-    /// demo 期间动态加进来的通知（push 接收的）— SEED.notifications 是静态默认
+    /// 真 push 接收後動的に追加される通知（SEED.notifications は静的の初期 placeholder）
     @Published var pushNotifications: [NotificationItem] = []
 
-    /// 通知中心显示用 — push 在前 + SEED.notifications
+    /// 通知中心显示用 — push 在前 + SEED.notifications fixture
     var allNotifications: [NotificationItem] {
         pushNotifications + SEED.notifications
     }
 
-    /// 未读数（home greetingRow bell badge 用）
+    /// 未読数（home greetingRow bell badge 用）
     var unreadNotificationCount: Int {
         allNotifications.filter { $0.unread }.count
     }
 
-    /// 模拟接收一条 push 通知
+    /// APNs delegate 受信後调 — push 1 条 insert
     /// - Parameters:
     ///   - type: NotificationItem.type 字段（"申請" / "減点" / "学習" / "リクエスト曲" 等）
     ///   - title: 标题
     ///   - body: 正文
-    func simulatePush(type: String, title: String, body: String) {
-        // 生成新 ID（避免和 SEED 冲突）
+    func handleIncomingPush(type: String, title: String, body: String) {
         let nextId = (pushNotifications.map(\.id).max() ?? 999) + 1
         let item = NotificationItem(
             id: nextId,
@@ -457,43 +475,42 @@ final class AppStore: ObservableObject {
         showToast("📣 \(title)")
     }
 
-    // 4 个 demo 触发器（system_features §7.13 R1 例外里列出的事件）
+    #if DEMO
+    // Demo 用 4 个 push 触发器（system_features §7.13 R1 例外列出的事件）
+    // production 砍：APNs 接通后由真 push 触发 handleIncomingPush
 
-    /// 学習欠席届 承認された
     func simulateStudyLeaveApproved() {
-        simulatePush(
+        handleIncomingPush(
             type: "学習",
             title: "学習欠席届が承認されました",
             body: "本日の前半節について、学習担当の先生から承認されました。"
         )
     }
 
-    /// 学習欠席届 不承認
     func simulateStudyLeaveRejected() {
-        simulatePush(
+        handleIncomingPush(
             type: "学習",
             title: "学習欠席届が不承認でした",
             body: "本日の前半節は出席をお願いします。詳細は学習担当の先生にお尋ねください。"
         )
     }
 
-    /// 学習対象 名单加入
     func simulateStudyRosterAdded() {
-        simulatePush(
+        handleIncomingPush(
             type: "学習",
             title: "学習対象になりました",
             body: "今日から晩自習の対象に追加されました。19:40 までに学習室へお越しください。"
         )
     }
 
-    /// 出寮届 修改届 chain 再批通过
     func simulateAmendmentRebatch() {
-        simulatePush(
+        handleIncomingPush(
             type: "申請",
             title: "外泊届（修改届）が承認されました",
             body: "修改届の内容で寮務課長まで承認が進みました。残り 1 名の承認をお待ちください。"
         )
     }
+    #endif
 }
 
 // MARK: - 学習 NFC 出席（system_features §7.3.3-6）

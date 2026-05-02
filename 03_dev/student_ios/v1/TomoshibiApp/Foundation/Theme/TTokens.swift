@@ -85,3 +85,18 @@ extension Color {
         self.init(.sRGB, red: r, green: g, blue: b, opacity: alpha)
     }
 }
+
+// MARK: - 版本号显示常量
+//
+// production 版 = "v1.0.0-rc" / demo 版 = "v1.0.0-demo"
+// 集中管理避免散布，将来真正发布时改一处即可。
+
+enum AppVersionTag {
+    static let full: String = {
+        #if DEMO
+        return "v1.0.0-demo"
+        #else
+        return "v1.0.0-rc"
+        #endif
+    }()
+}
