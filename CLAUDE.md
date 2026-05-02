@@ -24,7 +24,8 @@
 - **项目名**：DMSD（Dormitory Management System Digitalization）— 开发项目 / 仓库代号 / AC 叙事项目
 - **系统/产品名**：**Tomoshibi**（灯火 / ともしび，2026-04-21 拍板）— 面向用户的系统名。AC 面试话术 + 使用场景 → memory `project_naming_tomoshibi.md`
 - 核心：宿舍点呼数字化（NFC 签到 / 自动判定 / 纪律扣分）
-- **技术栈**：iOS（Swift/SwiftUI）+ Android（Kotlin/Java）+ 后端（FastAPI/Python/PostgreSQL）+ 点呼机（Pi 3A+ + Python，I²C PN532 + ST25DV16K）+ NTAG215 NFC 卡 — **详见** `02_design/hardware_design.md §2.1`
+- **技术栈**：iOS（Swift/SwiftUI）+ Android（**Kotlin + Jetpack Compose**）+ 后端（FastAPI/Python/PostgreSQL）+ 点呼机（Pi 3A+ + Python，I²C PN532 + ST25DV16K）+ NTAG215 NFC 卡 — **详见** `02_design/hardware_design.md §2.1`
+- **Android 実装方针**（2026-05-02 拍板）：CC 主导，从 Claude Design 出的 standalone HTML 蓝图**逐屏对译** Compose；不派 sub agent / 不走 Claude Design 二次出工程。独立 repo `Tomoshibi-Android` 在 `~/dev/TomoshibiAndroidApp/`（参照 iOS 模式）。归档 `99_archive/2026-05-02_android_handoff_route_archived/`
 - **防御核心**：动态 NFC 贴纸（ST25DV16K 10 秒 nonce）+ ECDSA 签名 + 老师现场监督 + session 幂等 — **详见** `02_design/hardware_design.md §2.3` + `02_design/flow_design.md §3.1-3.3`
 - **账号规则**：6 桁账号 ID（学年+組+番号）+ 多步注册 + 永久 session + 锁定升级 + 不锁单设备 — **权威源** `03_dev/student_ios/IOS_DESIGN_LOG.md §3` + `02_design/system_features.md §6.1`
 - **上线姿态**（2026-04-19 G2 决策）：**v1.0 直接 iOS + Android + 卡 一次上线**；取消原 Phase 1/2 分阶段 <!-- VERSION_OK -->
