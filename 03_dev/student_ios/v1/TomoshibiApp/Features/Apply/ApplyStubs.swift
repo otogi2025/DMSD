@@ -686,55 +686,106 @@ struct StayForm: View {
 
     // MARK: - submit (POST /api/v1/applications)
     //
-    // F1: kind は ApplyKindMapper で日本語に変換 (stay → 外泊 等)
-    // F2: stay_locations は [{kind, name, address?, phone?}] オブジェクト配列
-    // F3: meals_skip は [{date, meal}, ...] エントリリスト
-    // F4: student_id は JWT から取るので送らない
+    // F1: kind 用 ApplyKindMapper 转日文 (stay → 外泊 等)
+    // F2: stay_locations 是 [{kind, name, address?, phone?}] 对象数组
+    // F3: meals_skip 是 [{date, meal}, ...] entry 列表
+    // F4: student_id 从 JWT 拿、不发送
+    // F7: 实接 ApplicationsAPI.create（按 kind dispatch 到 3 个 typed body）
 
     private func submit() {
-        // F1: iOS 内部 kind → backend 日本語
+        Task { await submitAsync() }
+    }
+
+    private func submitAsync() async {
+        // 共通字段（backend time 要 "HH:mm:ss" 格式、append :00）
         let backendKind = ApplyKindMapper.encode(kind)
+        let leaveDateStr = StayForm.formatYMD(leaveDate)
+        let leaveTimeStr = StayForm.formatHM(leaveTime) + ":00"
+        let returnDateStr = StayForm.formatYMD(returnDate)
+        let returnTimeStr = StayForm.formatHM(returnTime) + ":00"
 
-        var payload: [String: Any] = [
-            "kind": backendKind,
-            "reason": reason,
-            "leave_date": StayForm.formatYMD(leaveDate),
-            "leave_time": StayForm.formatHM(leaveTime),
-            "leave_method": leaveMethod,
-            "return_date": StayForm.formatYMD(returnDate),
-            "return_time": StayForm.formatHM(returnTime),
-            "return_method": returnMethod,
-        ]
+        // F2: stay_locations object 数组（外泊 / 帰国届用、帰省届不带）
+        let stayLocations: [StayLocationBody] = stayPlaces
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+            .map { StayLocationBody(kind: "その他", name: $0, address: nil, phone: nil) }
 
-        // F2: stay_locations をオブジェクト配列に変換
-        if needPlaces {
-            let locations: [[String: String]] = stayPlaces
-                .map { $0.trimmingCharacters(in: .whitespaces) }
-                .filter { !$0.isEmpty }
-                .map { ["kind": "その他", "name": $0] }
-            payload["stay_locations"] = locations
-        }
-
-        // F3: meals_skip を [{date, meal}] リストに展開
+        // F3: meals_skip 范围 → entry 列表
+        let mealsSkip: [MealSkipBody]
         if needSkipMeal && skipEnabled {
-            payload["meals_skip"] = StayForm.expandMealsSkip(
+            mealsSkip = StayForm.expandMealsSkip(
                 from: skipStartDate, startMeal: skipStartMeal,
                 to: skipEndDate, endMeal: skipEndMeal
-            )
+            ).map { dict in
+                MealSkipBody(date: dict["date"] ?? "", meal: dict["meal"] ?? "")
+            }
+        } else {
+            mealsSkip = []
         }
 
-        if needFlight {
-            payload["flight_dep_air"] = departAirport
-            payload["flight_dep_at"]  = StayForm.formatISO(departFlightTime)
-            payload["flight_arr_air"] = arriveAirport
-            payload["flight_arr_at"]  = StayForm.formatISO(arriveFlightTime)
+        do {
+            // 按 kind dispatch 到 3 个 typed Encodable body
+            switch backendKind {
+            case "帰省":
+                let body = KisheiCreateBody(
+                    reason: reason,
+                    leave_date: leaveDateStr,
+                    leave_method: leaveMethod,
+                    leave_time: leaveTimeStr,
+                    return_date: returnDateStr,
+                    return_method: returnMethod,
+                    return_time: returnTimeStr
+                )
+                _ = try await ApplicationsAPI.create(body)
+            case "外泊":
+                let body = GaihakuCreateBody(
+                    reason: reason,
+                    leave_date: leaveDateStr,
+                    leave_method: leaveMethod,
+                    leave_time: leaveTimeStr,
+                    return_date: returnDateStr,
+                    return_method: returnMethod,
+                    return_time: returnTimeStr,
+                    stay_locations: stayLocations,
+                    meals_skip: mealsSkip
+                )
+                _ = try await ApplicationsAPI.create(body)
+            case "帰国":
+                let body = KikokuCreateBody(
+                    reason: reason,
+                    leave_date: leaveDateStr,
+                    leave_method: leaveMethod,
+                    leave_time: leaveTimeStr,
+                    return_date: returnDateStr,
+                    return_method: returnMethod,
+                    return_time: returnTimeStr,
+                    stay_locations: stayLocations,
+                    meals_skip: mealsSkip,
+                    flight_dep_air: departAirport,
+                    flight_dep_at: StayForm.formatISO(departFlightTime),
+                    flight_arr_air: arriveAirport,
+                    flight_arr_at: StayForm.formatISO(arriveFlightTime)
+                )
+                _ = try await ApplicationsAPI.create(body)
+            default:
+                app.showToast("未対応の届です")
+                return
+            }
+            // 提交成功
+            app.showToast("\(type.name)申請を提出しました")
+            router.go(.applyDone(kind: kind))
+        } catch APIError.unprocessable(let msg) {
+            // backend 验证错误（例：出寮日是今日 / chain 役职配置缺失 等）
+            app.showToast(msg)
+        } catch APIError.unauthorized {
+            // token 失效 → 清掉 + 跳登录
+            app.authToken = nil
+            router.replace(.login)
+        } catch APIError.network {
+            app.showToast("通信エラーが発生しました。電波を確認してください")
+        } catch {
+            app.showToast(error.localizedDescription)
         }
-
-        // TODO[F7-connect]: APIClient.shared.post("/api/v1/applications", body: payload) で実接続
-        print("[POST /api/v1/applications] payload=\(payload)")
-
-        app.showToast("\(type.name)申請を提出しました")
-        router.go(.applyDone(kind: kind))
     }
 
     // MARK: - meals_skip 展開ヘルパー
@@ -1088,8 +1139,22 @@ struct StudyAbsenceForm: View {
                         app.showToast("理由を入力してください")
                         return
                     }
-                    app.submitStudyLeave(reason: reason, range: range)
-                    router.go(.applyDone(kind: "studyAbsence"))
+                    Task {
+                        do {
+                            try await app.submitStudyLeave(reason: reason, range: range)
+                            router.go(.applyDone(kind: "studyAbsence"))
+                        } catch APIError.unprocessable(let msg) {
+                            // 同日重复提交 / target_date 范围超过 等
+                            app.showToast(msg)
+                        } catch APIError.unauthorized {
+                            app.authToken = nil
+                            router.replace(.login)
+                        } catch APIError.network {
+                            app.showToast("通信エラーが発生しました。電波を確認してください")
+                        } catch {
+                            app.showToast(error.localizedDescription)
+                        }
+                    }
                 } label: {
                     Text("提出する")
                         .font(.system(size: 15, weight: .semibold))

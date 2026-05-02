@@ -221,15 +221,28 @@ final class AppStore: ObservableObject {
         studyCountdownSec -= 1
     }
 
-    /// 学習欠席届 提交（system_features §7.3.5）— 提交后 += 1，> 3 触发提醒
-    /// TODO[backend]: 接 POST /study/leave，response 后再 += 1（避免重复提交）
-    func submitStudyLeave(reason: String, range: StudyLeaveRange) {
+    /// 学習欠席届 提交（system_features §7.3.5）— 后端通过后 += 1、> 3 触发提醒
+    /// 接 POST /api/v1/study/absence-requests，target_date 默认今日（JST）。
+    /// async throws，调用方负责 catch 错误（重复提交 / 401 等）。
+    func submitStudyLeave(reason: String, range: StudyLeaveRange) async throws {
+        let today = Self.todayJaYMD()
+        // backend 接收成功后才 += 1，避免重复提交把计数推爆
+        _ = try await StudyAPI.submitAbsenceRequest(targetDate: today, reason: reason)
         studyLeaveCountThisMonth += 1
         if studyLeaveCountThisMonth > 3 {
             showToast("今月、もう \(studyLeaveCountThisMonth) 回お休みされていますね。体調管理、お気をつけて。")
         } else {
             showToast("学習欠席届を提出しました")
         }
+    }
+
+    /// JST 今日的 "yyyy-MM-dd" 字符串
+    private static func todayJaYMD() -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
+        return f.string(from: Date())
     }
 
     #if DEMO
