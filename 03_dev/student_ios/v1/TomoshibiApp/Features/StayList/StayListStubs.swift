@@ -384,12 +384,20 @@ enum StayListMock {
 
 struct StayListView: View {
     @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
 
     @State private var filter: ApplicationStatus? = nil   // nil = すべて
+    /// 从 GET /applications/mine 拉取的 backend 数据（最近优先排序）
+    @State private var apps: [ApplicationOut] = []
+    @State private var isLoading: Bool = false
+    @State private var firstLoadDone: Bool = false
+
     private var items: [StayApplication] {
-        let all = StayListMock.all.sorted { $0.leaveDate > $1.leaveDate }
-        guard let f = filter else { return all }
-        return all.filter { $0.status == f }
+        let mapped = apps
+            .map { $0.toStayApplication() }
+            .sorted { $0.leaveDate > $1.leaveDate }
+        guard let f = filter else { return mapped }
+        return mapped.filter { $0.status == f }
     }
 
     private let tabs: [(label: String, value: ApplicationStatus?)] = [
@@ -407,7 +415,12 @@ struct StayListView: View {
                     filterTabs
                         .padding(.bottom, 14)
 
-                    if items.isEmpty {
+                    if isLoading && !firstLoadDone {
+                        // 首次加载、显示 spinner 居中
+                        ProgressView()
+                            .tint(T.primary)
+                            .frame(maxWidth: .infinity, minHeight: 120)
+                    } else if items.isEmpty {
                         EmptyState(
                             icon: "tray",
                             title: "申請はありません",
@@ -431,9 +444,30 @@ struct StayListView: View {
                 .padding(.top, 4)
                 .padding(.bottom, 28)
             }
+            .refreshable { await load() }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl.ignoresSafeArea())
+        .task { await load() }
+    }
+
+    /// GET /api/v1/applications/mine 拉取
+    private func load() async {
+        isLoading = true
+        defer {
+            isLoading = false
+            firstLoadDone = true
+        }
+        do {
+            apps = try await ApplicationsAPI.listMine()
+        } catch APIError.unauthorized {
+            app.authToken = nil
+            router.replace(.login)
+        } catch APIError.network {
+            app.showToast("通信エラーが発生しました")
+        } catch {
+            app.showToast(error.localizedDescription)
+        }
     }
 
     private var filterTabs: some View {
@@ -597,16 +631,23 @@ struct StayDetailView: View {
     @EnvironmentObject var app: AppStore
 
     @State private var tab: DetailTab = .detail
+    /// API 拉到的详情；nil = 加载中
+    @State private var loadedItem: StayApplication? = nil
+    /// API 拉到的改动履历
+    @State private var loadedAuditLog: [AuditLogEntry] = []
+    @State private var isLoading: Bool = false
 
     enum DetailTab: Hashable { case detail, history }
 
+    /// 已加载的 item 或 placeholder（用于 view 渲染前的占位）
     private var item: StayApplication {
-        StayListMock.find(id) ?? StayListMock.all.first ?? StayApplication(
+        loadedItem ?? StayApplication(
             id: id, kind: .stay, status: .pending,
             leaveDate: "—", returnDate: nil,
             summary: "—", destination: nil,
             leaveMethod: nil, returnMethod: nil,
-            chain: [], submittedAt: "—"
+            chain: [], submittedAt: "—",
+            auditLog: loadedAuditLog
         )
     }
 
@@ -618,30 +659,71 @@ struct StayDetailView: View {
                 .padding(.top, 12)
                 .padding(.bottom, 8)
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    if tab == .detail {
-                        headerCard
-                        fieldsCard
-                        chainCard
-                        if let last = item.chain.last(where: { $0.comment != nil }) {
-                            commentCard(last)
+                if isLoading && loadedItem == nil {
+                    ProgressView()
+                        .tint(T.primary)
+                        .frame(maxWidth: .infinity, minHeight: 200)
+                } else {
+                    VStack(alignment: .leading, spacing: 16) {
+                        if tab == .detail {
+                            headerCard
+                            fieldsCard
+                            chainCard
+                            if let last = item.chain.last(where: { $0.comment != nil }) {
+                                commentCard(last)
+                            }
+                            if item.isEditable {
+                                editButton
+                            }
+                        } else {
+                            headerCard
+                            historyCard
                         }
-                        if item.isEditable {
-                            editButton
-                        }
-                    } else {
-                        headerCard
-                        historyCard
+                        Color.clear.frame(height: 12)
                     }
-                    Color.clear.frame(height: 12)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 4)
+                    .padding(.bottom, 28)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 4)
-                .padding(.bottom, 28)
             }
+            .refreshable { await load() }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl.ignoresSafeArea())
+        .task { await load() }
+    }
+
+    /// 拉详情 + 改动履历（并行 2 个请求）
+    private func load() async {
+        guard let uuid = UUID(uuidString: id) else {
+            app.showToast("無効な申請 ID")
+            router.back()
+            return
+        }
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            // 详情先拉（必需）
+            let appOut = try await ApplicationsAPI.detail(id: uuid)
+            var converted = appOut.toStayApplication()
+            // 改动履历可能失败（非阻塞）—— catch 后塞空列表
+            let auditEntries: [AuditLogEntry]
+            if let logs = try? await ApplicationsAPI.audit(id: uuid) {
+                auditEntries = logs.map { $0.toAuditLogEntry() }.sorted { $0.at > $1.at }
+            } else {
+                auditEntries = []
+            }
+            converted.auditLog = auditEntries
+            loadedItem = converted
+            loadedAuditLog = auditEntries
+        } catch APIError.unauthorized {
+            app.authToken = nil
+            router.replace(.login)
+        } catch APIError.network {
+            app.showToast("通信エラーが発生しました")
+        } catch {
+            app.showToast(error.localizedDescription)
+        }
     }
 
     // MARK: - segmented tab
@@ -1010,8 +1092,13 @@ struct StayEditForm: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
+    /// API 拉到的原 item；nil = 加载中
+    @State private var loadedOriginal: StayApplication? = nil
+    @State private var isLoading: Bool = false
+    @State private var isSubmitting: Bool = false
+
     private var original: StayApplication {
-        StayListMock.find(id) ?? StayApplication(
+        loadedOriginal ?? StayApplication(
             id: id, kind: .stay, status: .pending,
             leaveDate: "—", returnDate: nil, summary: "—",
             destination: nil, leaveMethod: nil, returnMethod: nil,
@@ -1043,26 +1130,55 @@ struct StayEditForm: View {
         VStack(spacing: 0) {
             PageHeader(title: "\(original.kind.rawValue)届 修改届", level: 3)
             ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    warningBanner
-                    identitySection
-                    dateSection
-                    methodSection
-                    if needsDestination {
-                        destinationSection
+                if isLoading && loadedOriginal == nil {
+                    ProgressView()
+                        .tint(T.primary)
+                        .frame(maxWidth: .infinity, minHeight: 200)
+                } else {
+                    VStack(alignment: .leading, spacing: 18) {
+                        warningBanner
+                        identitySection
+                        dateSection
+                        methodSection
+                        if needsDestination {
+                            destinationSection
+                        }
+                        amendReasonSection
+                        submitRow
+                        Color.clear.frame(height: 8)
                     }
-                    amendReasonSection
-                    submitRow
-                    Color.clear.frame(height: 8)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 32)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-                .padding(.bottom, 32)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl.ignoresSafeArea())
-        .onAppear { initFields() }
+        .task { await load() }
+    }
+
+    /// GET /api/v1/applications/:id 拉原详情 → 触发 initFields() 预填表单
+    private func load() async {
+        guard let uuid = UUID(uuidString: id) else {
+            app.showToast("無効な申請 ID")
+            router.back()
+            return
+        }
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let appOut = try await ApplicationsAPI.detail(id: uuid)
+            loadedOriginal = appOut.toStayApplication()
+            initFields()
+        } catch APIError.unauthorized {
+            app.authToken = nil
+            router.replace(.login)
+        } catch APIError.network {
+            app.showToast("通信エラーが発生しました")
+        } catch {
+            app.showToast(error.localizedDescription)
+        }
     }
 
     // MARK: - sections
@@ -1261,17 +1377,55 @@ struct StayEditForm: View {
     }
 
     private func submit() {
-        StayListMock.applyAmendment(
-            id: original.id,
-            leaveDate: formatYMD(leaveDate),
-            returnDate: formatYMD(returnDate),
-            leaveMethod: leaveMethod,
-            returnMethod: returnMethod,
-            destination: destination.trimmingCharacters(in: .whitespaces).isEmpty ? nil : destination,
-            amendReason: amendReason
+        Task { await submitAsync() }
+    }
+
+    private func submitAsync() async {
+        guard let uuid = UUID(uuidString: original.id) else {
+            app.showToast("無効な申請 ID")
+            return
+        }
+        // 修改届 body: 仅改了的字段填，其他保持 nil（PUT 是 PATCH 风格）
+        let trimmedDest = destination.trimmingCharacters(in: .whitespaces)
+        let stayLocations: [StayLocationBody]?
+        if trimmedDest.isEmpty {
+            stayLocations = nil
+        } else {
+            stayLocations = [StayLocationBody(kind: "その他", name: trimmedDest, address: nil, phone: nil)]
+        }
+        let body = ApplicationUpdateBody(
+            reason: amendReason,
+            leave_date: formatYMD(leaveDate),
+            leave_method: leaveMethod,
+            leave_time: nil,
+            return_date: formatYMD(returnDate),
+            return_method: returnMethod,
+            return_time: nil,
+            stay_locations: stayLocations,
+            meals_skip: nil,
+            flight_dep_air: nil,
+            flight_dep_at: nil,
+            flight_arr_air: nil,
+            flight_arr_at: nil
         )
-        app.showToast("修改届を提出しました")
-        router.back()
+
+        isSubmitting = true
+        defer { isSubmitting = false }
+        do {
+            _ = try await ApplicationsAPI.update(id: uuid, body: body)
+            app.showToast("修改届を提出しました")
+            router.back()
+        } catch APIError.unprocessable(let msg) {
+            // 例: chain 全 approved 状态时无法修改 / status conflict
+            app.showToast(msg)
+        } catch APIError.unauthorized {
+            app.authToken = nil
+            router.replace(.login)
+        } catch APIError.network {
+            app.showToast("通信エラーが発生しました")
+        } catch {
+            app.showToast(error.localizedDescription)
+        }
     }
 
     private func parseYMD(_ s: String) -> Date? {
@@ -1392,4 +1546,109 @@ struct StayEditForm: View {
     StayEditForm(id: "a2")
         .environmentObject(RouterStore(initial: .stayEdit(id: "a2")))
         .environmentObject(AppStore())
+}
+
+// ============================================================================
+// MARK: - Network → ViewModel converter
+// 把 ApplicationOut（backend wire format）转成 StayApplication（UI view-model）
+// + AuditLogOut → AuditLogEntry 转换 + 日付/时刻格式化
+// ============================================================================
+
+/// JST 时区 "yyyy-MM-dd HH:mm" 格式化（chain decided_at / audit created_at 用）
+private let backendDisplayDateFmt: DateFormatter = {
+    let f = DateFormatter()
+    f.dateFormat = "yyyy-MM-dd HH:mm"
+    f.locale = Locale(identifier: "en_US_POSIX")
+    f.timeZone = TimeZone(identifier: "Asia/Tokyo")
+    return f
+}()
+
+extension ApplicationOut {
+    /// 转成 UI 用的 StayApplication（view-model）
+    func toStayApplication() -> StayApplication {
+        // kind 字符串 → enum（"外泊" → .stay）
+        let kindEnum = ApplicationKind(rawValue: kind) ?? .other
+        let statusEnum = ApplicationStatus.fromBackend(status)
+
+        // chain 转换
+        let steps: [ApprovalStep] = approval_chain.map { stepOut in
+            let role = ApprovalRole(rawValue: stepOut.approver_role) ?? .management
+            let decision: ApprovalDecision
+            switch stepOut.decision {
+            case "approve": decision = .approved
+            case "reject":  decision = .rejected
+            default:        decision = .pending   // nil = 未决
+            }
+            let decidedStr: String? = stepOut.decided_at.map { backendDisplayDateFmt.string(from: $0) }
+            return ApprovalStep(
+                role: role,
+                approverName: nil,           // backend 暂不返 approver name（仅 approver_id）
+                decision: decision,
+                decidedAt: decidedStr,
+                comment: stepOut.comment
+            )
+        }
+
+        // 简要文案（一覧 row 用）— "外泊届 5/3〜5/5 · 友達宅"
+        let summaryText = Self.makeSummary(kind: kindEnum, leaveDate: leave_date, returnDate: return_date, stayLocations: stay_locations)
+
+        // 滞在先（一行目だけ表示用）
+        let firstLocationName: String? = stay_locations?.first?["name"]?.value
+
+        return StayApplication(
+            id: id.uuidString.lowercased(),
+            kind: kindEnum,
+            status: statusEnum,
+            leaveDate: leave_date,
+            returnDate: return_date,
+            summary: summaryText,
+            destination: firstLocationName,
+            leaveMethod: leave_method,
+            returnMethod: return_method,
+            chain: steps,
+            submittedAt: backendDisplayDateFmt.string(from: submitted_at),
+            auditLog: []                     // 详情页另发 GET /audit 拉取
+        )
+    }
+
+    private static func makeSummary(
+        kind: ApplicationKind,
+        leaveDate: String,
+        returnDate: String,
+        stayLocations: [[String: AnyJSON]]?
+    ) -> String {
+        let dateRange = leaveDate == returnDate ? leaveDate : "\(leaveDate) 〜 \(returnDate)"
+        if let first = stayLocations?.first?["name"]?.value, !first.isEmpty {
+            return "\(dateRange) · \(first)"
+        }
+        return dateRange
+    }
+}
+
+extension AuditLogOut {
+    /// 转成 UI 用的 AuditLogEntry
+    func toAuditLogEntry() -> AuditLogEntry {
+        let timeStr = backendDisplayDateFmt.string(from: created_at)
+        let actionLabel = Self.translateAction(action)
+        let actorLabel = actor_type == "student" ? SEED.user.name : "教員"  // 暂用 actor_type 区分
+        // payload 里如果有 reason / comment 等可读字段、塞到 detail
+        let detailText: String? = payload?["reason"]?.value ?? payload?["comment"]?.value
+        return AuditLogEntry(
+            at: timeStr,
+            action: actionLabel,
+            actor: actorLabel,
+            detail: detailText?.isEmpty == false ? detailText : nil
+        )
+    }
+
+    private static func translateAction(_ raw: String) -> String {
+        switch raw {
+        case "application.submit":   return "提出"
+        case "application.amend":    return "修改届を提出"
+        case "application.approve":  return "承認"
+        case "application.reject":   return "差戻"
+        case "application.withdraw": return "取消"
+        default:                     return raw
+        }
+    }
 }
