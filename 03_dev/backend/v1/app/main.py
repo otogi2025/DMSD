@@ -1,22 +1,21 @@
-"""FastAPI app — Tomoshibi Backend v1.0 (P0 範囲).
+"""FastAPI app — Tomoshibi Backend v1.0.
 
 启动:
     cd 03_dev/backend/v1
-    cp .env.example .env  # 編集 (SENDGRID_API_KEY 等)
+    cp .env.example .env
     pip install -r requirements.txt
-    python -m app.main           # or  uvicorn app.main:app --reload
+    uvicorn app.main:app --reload
 
 OpenAPI: http://localhost:8000/docs
 
-P0 範囲 (会话 B 担当, 2026-04-30):
-- POST /api/v1/applications              #2 schema + #6 メール
-- GET  /api/v1/applications/mine
-- GET  /api/v1/applications/{id}         #5 承认状态
-- GET  /api/v1/meals/calc                #7 (JSON debug)
-- GET  /api/v1/meals/export              #7 (Excel)
-- POST /api/v1/notifications/test        SendGrid smoke
-- POST /api/v1/sessions/student
-- POST /api/v1/sessions/teacher
+会话 E 追加 (2026-05-01):
+- GET/POST /api/v1/study/*               学習 #14-#20
+- GET/POST/PATCH /api/v1/rollcall/*      点呼 #16-#20
+- POST /api/v1/teachers/*                教師管理 §3.4
+- GET /applications/pending-for-me       役職承認待ち一覧
+- POST /applications/{id}/approvals      役職承認/拒否 #10-#13
+- PUT /applications/{id}                 修改届
+- GET /applications/{id}/audit           審査 audit log
 """
 from __future__ import annotations
 
@@ -28,7 +27,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import __version__
 from .config import get_settings
 from .database import create_all
-from .routers import applications, auth, meals, notifications
+from .routers import applications, auth, meals, notifications, rollcall, study, teachers
 
 settings = get_settings()
 logging.basicConfig(level=settings.log_level)
@@ -80,6 +79,9 @@ app.include_router(auth.router)
 app.include_router(applications.router)
 app.include_router(meals.router)
 app.include_router(notifications.router)
+app.include_router(study.router)
+app.include_router(rollcall.router)
+app.include_router(teachers.router)
 
 
 if __name__ == "__main__":

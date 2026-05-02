@@ -1,8 +1,12 @@
-"""出寮届 endpoint (#2 schema + #5 GET + #6 メール).
+"""出寮届 endpoint (#2 #5 #6 #10-#13 修改届 audit).
 
-POST /api/v1/applications        — 提出 (帰省 / 外泊 / 帰国 discriminator)
-GET  /api/v1/applications/mine   — 自分の履歴
-GET  /api/v1/applications/{id}   — #5 承认状态查询
+POST /api/v1/applications                        — 提出 (帰省 / 外泊 / 帰国)
+GET  /api/v1/applications/mine                   — 自分の履歴
+GET  /api/v1/applications/pending-for-me         — 役職: 自分が承認待ちの一覧
+GET  /api/v1/applications/{id}                   — #5 承认状态查询
+PUT  /api/v1/applications/{id}                   — 修改届 (pending 中のみ、chain リセット)
+GET  /api/v1/applications/{id}/audit             — 審査 audit ログ
+POST /api/v1/applications/{id}/approvals         — #10 役職承認/拒否
 """
 from __future__ import annotations
 
@@ -243,6 +247,207 @@ def _teacher_can_view(teacher: models.Teacher, student: models.Student) -> bool:
     if teacher.assigned_dorm == student.dorm_unit:
         return True
     return False
+
+
+# ---------------------------------------------------------------
+# GET /applications/pending-for-me — 役職: 自分が承認待ちの一覧 (#10)
+# ---------------------------------------------------------------
+@router.get("/pending-for-me", response_model=list[schemas.ApplicationOut])
+def list_pending_for_me(
+    db: Session = Depends(get_db),
+    teacher: models.Teacher = Depends(get_current_teacher),
+):
+    """当前役职 (teacher.role) が未決の application_approvals を持つ届を返す。"""
+    from sqlalchemy import and_
+
+    stmt = (
+        select(models.Application)
+        .join(
+            models.ApplicationApproval,
+            and_(
+                models.ApplicationApproval.application_id == models.Application.id,
+                models.ApplicationApproval.approver_role == teacher.role,
+                models.ApplicationApproval.decision.is_(None),
+            ),
+        )
+        .where(models.Application.status.in_(["pending", "approved_partial"]))
+        .options(
+            selectinload(models.Application.approvals),
+            selectinload(models.Application.student),
+        )
+        .order_by(models.Application.submitted_at.asc())
+    )
+    # R4 dorm filter
+    if teacher.assigned_dorm is not None and teacher.role not in {
+        "寮務部長", "寮務課長", "国際交流部長", "国際交流課長", "管理係"
+    }:
+        dorm_filter = (1, 2) if teacher.assigned_dorm == 1 else (teacher.assigned_dorm,)
+        stmt = stmt.join(
+            models.Student,
+            models.Student.id == models.Application.student_id,
+        ).where(models.Student.dorm_unit.in_(dorm_filter))
+
+    apps = db.scalars(stmt).all()
+    return [_to_application_out(a) for a in apps]
+
+
+# ---------------------------------------------------------------
+# PUT /applications/{id} — 修改届 (pending 中のみ、chain リセット + 再メール)
+# ---------------------------------------------------------------
+@router.put("/{application_id}", response_model=schemas.ApplicationOut)
+def update_application(
+    application_id: UUID,
+    body: schemas.ApplicationUpdateIn,
+    response: Response,
+    db: Session = Depends(get_db),
+    student: models.Student = Depends(get_current_student),
+):
+    app = db.scalars(
+        select(models.Application)
+        .where(models.Application.id == application_id)
+        .options(selectinload(models.Application.approvals), selectinload(models.Application.student))
+    ).first()
+    if not app:
+        raise HTTPException(404, {"code": "NOT_FOUND", "message": "届が見つかりません"})
+    if app.student_id != student.id:
+        raise HTTPException(403, {"code": "FORBIDDEN", "message": "他人の届は修正できません"})
+    if app.status not in ("pending", "approved_partial"):
+        raise HTTPException(
+            409,
+            {"code": "CANNOT_MODIFY", "message": "承認済 / 拒否済の届は修正できません"},
+        )
+
+    # 内容更新 (None フィールドはスキップ)
+    update_data = body.model_dump(exclude_none=True)
+    if "stay_locations" in update_data:
+        update_data["stay_locations"] = [loc.model_dump() for loc in body.stay_locations]
+    for key, val in update_data.items():
+        setattr(app, key, val)
+
+    if body.leave_date and body.leave_date <= date_type.today():
+        raise HTTPException(422, {"code": "LEAVE_DATE_NOT_FUTURE", "message": "出寮日は明日以降"})
+
+    # chain リセット — 全 approvals 削除 → 再生成
+    for row in app.approvals:
+        db.delete(row)
+    db.flush()
+    approval_chain.build_chain(db, app)
+
+    # 再メール (chain 変わった可能性があるので再送)
+    teachers, to_emails = approval_chain.collect_recipients(db, app)
+    email_svc.send_application_submitted(db, application=app, student=student, teachers=teachers, to_emails=to_emails)
+
+    db.add(
+        models.AuditLog(
+            actor_type="student", actor_id=student.id,
+            action="application.update", target_type="application", target_id=app.id,
+            payload={"updated_fields": list(update_data.keys())},
+        )
+    )
+    db.commit()
+    db.refresh(app)
+
+    if approval_chain.is_provisional(app.kind, student.is_overseas):
+        response.headers["X-Approval-Chain-Provisional"] = "true"
+    return _to_application_out(app)
+
+
+# ---------------------------------------------------------------
+# GET /applications/{id}/audit — 審査 audit ログ
+# ---------------------------------------------------------------
+@router.get("/{application_id}/audit", response_model=list[schemas.AuditLogOut])
+def get_application_audit(
+    application_id: UUID,
+    db: Session = Depends(get_db),
+    authorization: str | None = Header(None),
+):
+    # 学生 or 教師 両対応
+    actor = _resolve_actor(db, authorization)
+
+    app = db.get(models.Application, application_id)
+    if not app:
+        raise HTTPException(404, {"code": "NOT_FOUND", "message": "届が見つかりません"})
+
+    if isinstance(actor, models.Student) and app.student_id != actor.id:
+        raise HTTPException(403, {"code": "FORBIDDEN", "message": "他人の届は閲覧できません"})
+
+    logs = db.scalars(
+        select(models.AuditLog)
+        .where(
+            models.AuditLog.target_type == "application",
+            models.AuditLog.target_id == application_id,
+        )
+        .order_by(models.AuditLog.created_at.asc())
+    ).all()
+    return [schemas.AuditLogOut.model_validate(log) for log in logs]
+
+
+# ---------------------------------------------------------------
+# POST /applications/{id}/approvals — #10 役職承認/拒否
+# ---------------------------------------------------------------
+@router.post("/{application_id}/approvals", response_model=schemas.ApplicationOut)
+def decide_approval(
+    application_id: UUID,
+    body: schemas.ApprovalIn,
+    db: Session = Depends(get_db),
+    teacher: models.Teacher = Depends(get_current_teacher),
+):
+    app = db.scalars(
+        select(models.Application)
+        .where(models.Application.id == application_id)
+        .options(selectinload(models.Application.approvals), selectinload(models.Application.student))
+    ).first()
+    if not app:
+        raise HTTPException(404, {"code": "NOT_FOUND", "message": "届が見つかりません"})
+
+    # 当前役職の pending 行を探す
+    pending_row = next(
+        (r for r in app.approvals if r.approver_role == teacher.role and r.decision is None),
+        None,
+    )
+    if not pending_row:
+        # 既に決定済か、この役職は chain に含まれない
+        already = next(
+            (r for r in app.approvals if r.approver_role == teacher.role and r.decision is not None),
+            None,
+        )
+        if already:
+            raise HTTPException(409, {"code": "APPROVAL_ALREADY_DECIDED", "message": "すでに決定済みです"})
+        raise HTTPException(403, {"code": "APPROVAL_NOT_REQUIRED", "message": "この役職は対象の承認者ではありません"})
+
+    from datetime import timezone as tz
+    pending_row.approver_id = teacher.id
+    pending_row.decision = body.decision
+    pending_row.comment = body.comment
+    pending_row.decided_at = datetime.now(tz.utc)
+
+    # application.status 自動更新
+    _recompute_application_status(app)
+
+    db.add(
+        models.AuditLog(
+            actor_type="teacher", actor_id=teacher.id,
+            action=f"application.{body.decision}",
+            target_type="application", target_id=app.id,
+            payload={"role": teacher.role, "comment": body.comment},
+        )
+    )
+    db.commit()
+    db.refresh(app)
+    return _to_application_out(app)
+
+
+def _recompute_application_status(app: models.Application) -> None:
+    """全 approval 行を見て application.status を更新 (DB flush 前に呼ぶ)。"""
+    decisions = [r.decision for r in app.approvals]
+    if any(d == "reject" for d in decisions):
+        app.status = "rejected"
+    elif all(d == "approve" for d in decisions):
+        app.status = "approved"
+    elif any(d == "approve" for d in decisions):
+        app.status = "approved_partial"
+    else:
+        app.status = "pending"
 
 
 def _to_application_out(app: models.Application) -> schemas.ApplicationOut:

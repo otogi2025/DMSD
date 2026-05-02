@@ -22,6 +22,9 @@ openpyxl>=3.1.5
 # sqlite 内蔵, psycopg は production deploy 時のみ
 psycopg[binary]>=3.2.0   # PostgreSQL 16+ (v1 production)
 
+# migration
+alembic>=1.13.0
+
 # 测试
 pytest>=8.3.0
 pytest-asyncio>=0.24.0

@@ -397,3 +397,260 @@ class AuditLog(Base):
         Index("idx_audit_target", "target_type", "target_id", "created_at"),
         Index("idx_audit_actor", "actor_type", "actor_id", "created_at"),
     )
+
+
+# ---------------------------------------------------------------
+# 学習 (Study self-study session)
+# ---------------------------------------------------------------
+class StudyRoster(Base):
+    """学習対象者名単 — 中学全員自動 + 高校手動追加 (D8 拍板)。"""
+
+    __tablename__ = "study_roster"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id"), nullable=False
+    )
+    academic_term: Mapped[str] = mapped_column(
+        String(16), nullable=False
+    )  # '2026-spring' / '2026-fall'
+    added_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )  # NULL = system (中学全員自動)
+    added_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    removed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True)
+    )  # NULL = 在籍中
+
+    student: Mapped["Student"] = relationship()
+
+    __table_args__ = (
+        UniqueConstraint("student_id", "academic_term", name="uq_roster_term"),
+        Index("idx_roster_term", "academic_term", "removed_at"),
+    )
+
+
+class StudyAbsenceRequest(Base):
+    """学習欠席届 — 学生が当日 19:40 前に提出 → 学習担当が approve/reject。"""
+
+    __tablename__ = "study_absence_requests"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id"), nullable=False
+    )
+    target_date: Mapped[date] = mapped_column(Date, nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    decided_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    comment: Mapped[Optional[str]] = mapped_column(Text)
+
+    student: Mapped["Student"] = relationship()
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending','approved','rejected')", name="ck_sar_status"
+        ),
+        UniqueConstraint("student_id", "target_date", name="uq_sar_date"),
+        Index("idx_sar_date_status", "target_date", "status"),
+    )
+
+
+class StudyCheckin(Base):
+    """学習出席記録 — 学習担当が 1 件ずつ記録 (NFC or 手動)。"""
+
+    __tablename__ = "study_checkins"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id"), nullable=False
+    )
+    target_date: Mapped[date] = mapped_column(Date, nullable=False)
+    checked_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True)
+    )  # NULL = 未签
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="init"
+    )  # init / present / late / absent / exempt
+    recorded_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    overridden_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    override_reason: Mapped[Optional[str]] = mapped_column(Text)
+
+    student: Mapped["Student"] = relationship()
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('init','present','late','absent','exempt')",
+            name="ck_sc_status",
+        ),
+        UniqueConstraint("student_id", "target_date", name="uq_sc_date"),
+        Index("idx_sc_date_status", "target_date", "status"),
+    )
+
+
+# ---------------------------------------------------------------
+# 点呼 (Roll Call)
+# ---------------------------------------------------------------
+class RollCallSession(Base):
+    """点呼セッション — 1 回の点呼 = 1 行 (cron で自動生成 + 教師手動開始)。"""
+
+    __tablename__ = "rollcall_sessions"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    dorm_unit_set: Mapped[list] = mapped_column(
+        JSON, nullable=False
+    )  # [1,2] (男寮) or [4] (女寮)
+    session_type: Mapped[str] = mapped_column(
+        String(16), nullable=False
+    )  # 'morning' | 'evening'
+    schedule_mode: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="split"
+    )
+    day_type: Mapped[str] = mapped_column(
+        String(16), nullable=False
+    )  # 'weekday' | 'weekend_holiday'
+    session_status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="draft"
+    )  # draft / running / ended
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    started_source: Mapped[Optional[str]] = mapped_column(
+        String(16)
+    )  # 'teacher' | 'system'
+    started_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    ended_source: Mapped[Optional[str]] = mapped_column(String(16))
+    ended_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    scheduled_window_start_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    scheduled_on_time_end_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    scheduled_late_end_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    scheduled_auto_end_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    settle_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    events: Mapped[list["RollCallEvent"]] = relationship(
+        back_populates="session", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "session_type IN ('morning','evening')", name="ck_rcs_type"
+        ),
+        CheckConstraint(
+            "schedule_mode IN ('split','merged_normal')", name="ck_rcs_mode"
+        ),
+        CheckConstraint(
+            "day_type IN ('weekday','weekend_holiday')", name="ck_rcs_day_type"
+        ),
+        CheckConstraint(
+            "session_status IN ('draft','running','ended')", name="ck_rcs_status"
+        ),
+    )
+
+
+class RollCallEvent(Base):
+    """点呼イベント — append-only。1 学生 1 セッション 1 行 (幂等制御)。"""
+
+    __tablename__ = "rollcall_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    session_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("rollcall_sessions.id"), nullable=False
+    )
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id"), nullable=False
+    )
+    device_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid)
+    path_type: Mapped[Optional[str]] = mapped_column(
+        String(8)
+    )  # 'A' (NFC カード) | 'B' (iPhone tap) | 'manual'
+    base_status: Mapped[str] = mapped_column(
+        String(24), nullable=False
+    )  # present / late / absent / exempt_range
+    status_source: Mapped[str] = mapped_column(
+        String(24), nullable=False
+    )  # auto_nfc / auto_settle / manual_checkin / teacher_override
+    applied_group: Mapped[Optional[str]] = mapped_column(
+        String(16)
+    )  # 'normal' | 'soccer'
+    checked_in_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    idempotency_key: Mapped[Optional[str]] = mapped_column(
+        Text
+    )  # 路径 B 用 (client が送る UUID)
+    card_uid: Mapped[Optional[str]] = mapped_column(
+        String(32)
+    )  # 路径 A 用 (NFC UID hex)
+    reason: Mapped[Optional[str]] = mapped_column(Text)  # override 時必填
+
+    session: Mapped["RollCallSession"] = relationship(back_populates="events")
+
+    __table_args__ = (
+        CheckConstraint(
+            "base_status IN ('init','present','late','absent','exempt_range')",
+            name="ck_rce_status",
+        ),
+        CheckConstraint(
+            "status_source IN ('auto_nfc','auto_settle','manual_checkin','teacher_override')",
+            name="ck_rce_source",
+        ),
+        Index("idx_rce_session_student", "session_id", "student_id"),
+    )
+
+
+# ---------------------------------------------------------------
+# 教師招待 (Teacher Invitation — §3.4)
+# ---------------------------------------------------------------
+class TeacherInvitation(Base):
+    """旧教師が新教師を招待するためのワンタイムトークン。"""
+
+    __tablename__ = "teacher_invitations"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    token: Mapped[str] = mapped_column(
+        String(64), unique=True, nullable=False
+    )  # URL-safe random 32 bytes
+    invited_by: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("teachers.id"), nullable=False
+    )
+    target_email: Mapped[str] = mapped_column(Text, nullable=False)
+    target_role: Mapped[str] = mapped_column(String(32), nullable=False)
+    target_dorm: Mapped[Optional[int]] = mapped_column(SmallInteger)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )  # 通常 7 日後
+    used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    used_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (Index("idx_tinv_token", "token"),)
