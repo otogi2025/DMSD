@@ -77,8 +77,16 @@ def test_post_gaihaku_overseas_chain_5(client, student_token, seed_data, db_sess
         "stay_locations": [
             {"kind": "ホテル", "name": "東横イン岡山", "address": "岡山市..."}
         ],
-        "meals_skip_from": f"{_tomorrow().isoformat()}T08:00:00+09:00",
-        "meals_skip_to": f"{_day_after(2).isoformat()}T13:00:00+09:00",
+        "meals_skip": [
+            {"date": _tomorrow().isoformat(), "meal": "朝食"},
+            {"date": _tomorrow().isoformat(), "meal": "昼食"},
+            {"date": _tomorrow().isoformat(), "meal": "夕食"},
+            {"date": _day_after(1).isoformat(), "meal": "朝食"},
+            {"date": _day_after(1).isoformat(), "meal": "昼食"},
+            {"date": _day_after(1).isoformat(), "meal": "夕食"},
+            {"date": _day_after(2).isoformat(), "meal": "朝食"},
+            {"date": _day_after(2).isoformat(), "meal": "昼食"},
+        ],
     }
     res = client.post(
         "/api/v1/applications",
@@ -288,9 +296,14 @@ def _make_approved_application(db_session, student, *, leave_d, return_d):
         return_method="JR",
         return_time=time(20, 0),
         stay_locations=[{"kind": "ホテル", "name": "T", "address": "x"}],
-        meals_skip_from=datetime.combine(leave_d, time(0, 0), tzinfo=timezone.utc)
-        + timedelta(hours=-9),  # → 朝 7:00 JST 含む
-        meals_skip_to=datetime.combine(return_d, time(23, 59), tzinfo=timezone.utc),
+        meals_skip=[
+            {"date": leave_d.isoformat(), "meal": "朝食"},
+            {"date": leave_d.isoformat(), "meal": "昼食"},
+            {"date": leave_d.isoformat(), "meal": "夕食"},
+            {"date": return_d.isoformat(), "meal": "朝食"},
+            {"date": return_d.isoformat(), "meal": "昼食"},
+            {"date": return_d.isoformat(), "meal": "夕食"},
+        ],
         status="approved",
     )
     db_session.add(app)

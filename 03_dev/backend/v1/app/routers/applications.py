@@ -69,12 +69,12 @@ def create_application(
     if isinstance(body, schemas.GaihakuCreateIn):
         app_kwargs.update(
             stay_locations=[loc.model_dump() for loc in body.stay_locations],
-            meals_skip=[e.model_dump() for e in body.meals_skip] or None,
+            meals_skip=[e.model_dump(mode="json") for e in body.meals_skip] or None,
         )
     elif isinstance(body, schemas.KikokuCreateIn):
         app_kwargs.update(
             stay_locations=[loc.model_dump() for loc in body.stay_locations],
-            meals_skip=[e.model_dump() for e in body.meals_skip] or None,
+            meals_skip=[e.model_dump(mode="json") for e in body.meals_skip] or None,
             flight_dep_air=body.flight_dep_air,
             flight_dep_at=body.flight_dep_at,
             flight_arr_air=body.flight_arr_air,
@@ -321,7 +321,7 @@ def update_application(
     if "stay_locations" in update_data:
         update_data["stay_locations"] = [loc.model_dump() for loc in body.stay_locations]
     if "meals_skip" in update_data:
-        update_data["meals_skip"] = [e.model_dump() for e in body.meals_skip] or None
+        update_data["meals_skip"] = [e.model_dump(mode="json") for e in body.meals_skip] or None
     for key, val in update_data.items():
         setattr(app, key, val)
 
