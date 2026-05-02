@@ -1397,6 +1397,9 @@ struct LoginView: View {
         #endif
     }()
 
+    /// 登录中（按钮 disable + loading）
+    @State private var isLoading: Bool = false
+
     var body: some View {
         ZStack {
             // JSX: linear-gradient(180deg, #eff2f3 0%, #e4ebec 100%)
@@ -1457,9 +1460,10 @@ struct LoginView: View {
                 .padding(.horizontal, 28)
 
                 // Login button
-                PrimaryButton(title: "ログイン") {
-                    tryLogin()
+                PrimaryButton(title: isLoading ? "ログイン中…" : "ログイン") {
+                    Task { await tryLogin() }
                 }
+                .disabled(isLoading)
                 .padding(.horizontal, 28)
                 .padding(.top, 8)
 
@@ -1526,35 +1530,50 @@ struct LoginView: View {
         .buttonStyle(.plain)
     }
 
-    private func tryLogin() {
-        // TODO[backend]: 真 production 接 POST /sessions（学号 + 密码 → JWT），
-        //   失败 → recordLoginFailure() 走锁定升级。
-        //   当前 production 是 stub「任何输入都通过」。
-        //   demo 版加严格判定方便演示锁定升级。
+    /// 登录尝试（async — 调 AuthAPI.loginStudent）
+    ///
+    /// 流程：
+    ///  - メール mode → backend 还没实装邮箱登录,提示用户切到学号
+    ///  - DEMO 编译模式 + magic creds（acc=="00" / pw=="demo1234"）→ 跳过 API 直接进 home
+    ///  - 其他全走 AuthAPI.loginStudent → 401 走 lockout / 其他 error 走 toast
+    private func tryLogin() async {
+        isLoading = true
+        defer { isLoading = false }
+
+        // メール mode 暂未支持（backend F6 注册流程未实装、邮箱登录后做）
+        if mode == .email {
+            app.showToast("学号でログインしてください")
+            return
+        }
+
+        // DEMO 编译模式: magic creds 跳过 API（用于演示锁定升级 / 离线场景）
         #if DEMO
-        let idOk: Bool
-        switch mode {
-        case .number:
-            idOk = acc == "00" || acc == SEED.user.account
-        case .email:
-            idOk = email.lowercased() == "otogi2025@gmail.com" ||
-                   email.lowercased() == SEED.user.email.lowercased()
-        }
-        let pwOk = (pw == "demo1234" || pw == "00")
-        if idOk && pwOk {
+        let isDemoMagic = (acc == "00") && (pw == "demo1234" || pw == "00")
+        if isDemoMagic {
             app.resetLoginFailures()
             router.replace(.home)
-        } else {
-            app.recordLoginFailure()
-            router.go(.lockout)
-        }
-        #else
-        // production stub: 任何输入都通过（接 backend 后改成 await api.login(...)）
-        if !acc.isEmpty || !email.isEmpty {
-            app.resetLoginFailures()
-            router.replace(.home)
+            return
         }
         #endif
+
+        // 真实 API 调用
+        do {
+            let token = try await AuthAPI.loginStudent(studentNo: acc, password: pw)
+            app.authToken = token.accessToken     // didSet → APIClient.token + Keychain.save
+            app.resetLoginFailures()
+            router.replace(.home)
+        } catch APIError.unauthorized {
+            // 学号 / 密码错 → 走锁定升级
+            app.recordLoginFailure()
+            router.go(.lockout)
+        } catch APIError.unprocessable(let msg) {
+            // 学号格式错（非 6 桁数字）等
+            app.showToast(msg)
+        } catch APIError.network {
+            app.showToast("通信エラーが発生しました。電波を確認してください")
+        } catch {
+            app.showToast(error.localizedDescription)
+        }
     }
 }
 
