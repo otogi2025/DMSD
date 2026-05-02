@@ -13,7 +13,7 @@
 
 ---
 
-**当前版本**: v0.7.0（2026-04-30 晚 close — 三轨 A+B+C 同日完成：38 条 B 标准 baseline + system_features §9 8 条拍板 + 实装包拆分到 BACKEND/iOS/Web LOG + 实物表 evidence 推翻 LINE 文字推测 + 沟通规则 #6 + SOP §8.5 版本路线图）<!-- VERSION_OK -->
+**当前版本**: v0.8.0（2026-05-02 晚 close — 三端代码层全启动：Android Compose bootstrap + 10 屏 / iOS 网络层完整建设 + AppStore 切真后端 / teacher_web v1 TS+Vite 升级 / backend rollcall+study+teachers routers + Alembic 框架 / iOS↔backend 字段对齐 F1-F5+Q1）<!-- VERSION_OK -->
 **版本管理 SOP**: `00_admin/版本管理SOP.md`（CC 改 spec / 02_design / 03_dev 主体后必读 §2 决策树）
 
 **最后更新**: 2026-05-02 by [Mac-主会话] — **iOS 网络层完整建设 + AppStore 切真 API（7 commit）**：itsuki 让 CC 推所有「不需要决策、纯执行」的任务 → Plan 模式设计 7 commit 序列 → 全部跑通。新建 (1) `Foundation/Network/NetworkModels.swift`（6 Decodable struct 跟 backend Pydantic byte-perfect 对齐）(2) `Foundation/Network/Endpoints/{Auth,Applications,ApplicationsCreateBodies,Study}API.swift`（4 module + 3 typed CreateBody）(3) `Foundation/Network/KeychainService.swift`（JWT 持久化、app 重启自动登录）。改造 (4) `APIClient.swift` DetailError 双形态解码（fix 422/5xx 错误信息 fallback 失精度）(5) `ApplicationStatus` enum 加 `approved_partial`（chain 部分通过中间态、跟 backend 对齐）(6) `LoginView.tryLogin` 切 `AuthAPI.loginStudent` + isLoading + 401 走锁定升级 (7) `StayForm.submit` 切 `ApplicationsAPI.create` 按 kind dispatch 到 3 typed body (8) `AppStore.submitStudyLeave` 改 async throws 接 `StudyAPI.submitAbsenceRequest` (9) `StayListView/Detail/Edit` 全切真 API + 加 `ApplicationOut.toStayApplication()` 和 `AuditLogOut.toAuditLogEntry()` converter。**验证**: backend pytest 19 passed / iOS swiftc -typecheck 0 error / 4 warning（既存 deprecation）。**中途纠正**: 注释漂移日语 → itsuki 纠正后全部改中文。**残**: F6 backend 注册 endpoint（itsuki 决策范围）/ 真机联调 / 401 中央化。Plan 文件：`~/.claude/plans/agent-sparkling-bachman.md`。<!-- VERSION_OK -->

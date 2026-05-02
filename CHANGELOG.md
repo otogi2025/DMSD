@@ -1,6 +1,6 @@
 # Changelog
 
-> **最后更新**: 2026-04-30 晚（**v0.7.0 close** — 三轨 A+B+C 同日完成：38 条 B 标准 baseline + system_features §9 8 条拍板 + 实装包拆分到 BACKEND/iOS/Web LOG + ⭐⭐⭐ 实物表 evidence 推翻 LINE 文字推测 + 沟通规则 #6 + SOP §8.5 版本路线图）。早些更新：v0.6.0 close（老师 4-29 LINE 38 条受领 + RollCall_Spec 5 处时序修订 + system_features 中文骨架大重写）；v0.4.0 + v0.5.0 双 minor 闭合；**版本管理 SOP 建立**
+> **最后更新**: 2026-05-02 晚（**v0.8.0 close** — 三端代码层全启动：Android Compose bootstrap + 10 屏 / iOS 网络层完整建设 + AppStore 切真后端 / teacher_web v1 TS+Vite+Zustand 升级 + 5 page / backend rollcall+study+teachers routers + Alembic 框架 / iOS↔backend 字段对齐 F1-F5+Q1）。早些更新：v0.7.0 close（三轨 A+B+C 同日完成 38 条老师反馈 + 实物表 evidence 推翻 LINE 文字推测 + 沟通规则 #6 + SOP §8.5 版本路线图）；v0.6.0 close（老师 4-29 LINE 38 条受领 + RollCall_Spec 5 处时序修订 + system_features 中文骨架大重写）；v0.4.0 + v0.5.0 双 minor 闭合；**版本管理 SOP 建立**
 >
 > 版本号规则：[语义化版本 (SemVer)](https://semver.org/) — 主版本号.次版本号.修订号
 >
@@ -14,6 +14,150 @@
 > 打这些标签的目的：让"讨论了十几种方案才写第一版文档"这件事有可追溯的证据链。
 >
 > **2026-04-20 更新**：10 个 pre-0.1 annotated tag（`v0.0.1` - `v0.0.10`）已追认打在 initial commit `3baa168` 上，每个 tag message 里写了对应版本的核心内容 + 指向 CHANGELOG / raw 的指针。`git tag -l | sort -V` 可以看到完整版本历史。
+
+---
+
+## [0.8.0] - 2026-05-02 晚（三端代码层全启动 — Android bootstrap + iOS 网络层 + teacher_web v1 + backend 全功能 routers + iOS↔backend 字段对齐）
+
+> **为什么 minor bump**（对照版本管理 SOP §2 决策树）：本版本是 v0.7.0「设计 → brief」全闭环之后第一个进入「**brief → 实装代码**」阶段的里程碑。31 commit 累积横跨 5 端：
+> - **#4 03_dev/ 大幅扩展**（强命中）→
+>   - **Android**：从零搭建 Compose 工程（commit `889d65c` Round 1 prompt + `536abce` bootstrap）— `03_dev/student_android/v1/compose-drafts/` 新建 21 个 .kt 文件 + 10 屏 UI（Login/Home/Apply/MyPage/Schedule/Bus/Study/Music/Notifications/NfcScreen 等）+ MainActivity / NavGraph / AppStore / MockData / Theme + ANDROID_DESIGN_LOG.md 新建
+>   - **iOS 网络层**：`Foundation/Network/` 完整建设（commit `a992b4f` `624fea1` `cf5c9fa` `d698148` `b8b2f50` `2c2c34f` `0ffa68f` `0c3ff96` `5c8cf9f` 9 commit）— NetworkModels.swift（6 Codable struct）+ Endpoints/ 4 module + KeychainService（JWT 持久化）+ APIClient 错误解码修正 + AppStore 切真 API（login + applications submit/list/detail/update + study absence-requests）
+>   - **iOS↔backend 字段对齐**（commit `4be8121` + `40f82ee`）— F1-F5+Q1 7 处失配修复（kind 日文映射 / stay_locations 对象数组 / meals_skip 形状 / 砍 student_id / 加 reason 字段 / status 加 returned）+ Alembic migration `b2c3d4e5f6a7`
+>   - **iOS 学生侧完全体**（commit `747a179` `512424d`）— P0×3（Music 入口加 LifeTab / 出寮届修改届完整表单 + audit log 履歴 tab + chain 重置 / 学習 NFC 3 次碰）+ P1×2（マイページ MyInfoEdit 修订 spec §6 / 注册留学生 chip + 锁定升级 30s→1m→5m→30m→1h→永久）+ P2×1（push listener mock 4 trigger）+ ⭐⭐ リクエスト曲投诉系统拍板（5/10/15 自动封禁）→ system_features §7.11.2 落地
+>   - **iOS UI 调整 6 件**（commit `c720065`）— Auth/Home/Apply/MyPage UI 调整 + AppStore + BottomNav + BUILD.md
+>   - **teacher_web v1 启动**（commit `98315f1`）— TS + Vite + Zustand 升级 + 5 page 起手 + 旧 jsx 归档 _legacy/
+>   - **teacher_web demo 接真后端**（commit `bd39760`）— demo_server.py 加 /api/v1/ 代理 + JWT 真实认证 + 学習管理全屏会话（StudyLanding + LiveStudySession + 3-tap NFC + 相位条 + デモコンソール）
+>   - **backend 全功能 routers**（commit `151d863`）— rollcall.py + study.py + teachers.py 新建 + models 扩展 + Alembic 框架建立
+> - **#5 改了 CLAUDE.md 元规则**（命中）→
+>   - 加设计文档双层结构规则（commit `4687611`）
+>   - §对话规则 §7 加强 — 主动诊断 unknown unknowns 话术模板（commit `3891f3c`）
+>
+> **31 commit 跨 v0.7.0 → v0.8.0**（5-01 → 5-02）：详见下方 Added / Changed / Notes 分类。
+>
+> **特殊里程碑**：v0.8.0 是项目第一次「三端 + 后端 + 文档 五条线同时推进」的版本。v0.7.0 把「老师 38 条」消化成 brief，v0.8.0 开始把这些 brief 写成代码。
+
+### Added — 三端代码层全启动
+
+**Android（从零搭建）**：
+- `03_dev/student_android/v1/compose-drafts/` 工程框架（21 个 .kt 文件）
+- 10 屏 Compose UI：Login / Home / Apply / MyPage / Settings / Schedule / Bus / Study / Music / Notifications / NfcScreen / Account / ApplicationDetail / Deduction / Delivery / Feedback / LostFound 等
+- AppStore（全局状态）+ NavGraph + Routes + MockData + 共通组件（BottomTabs / SuzuIcons）
+- ANDROID_DESIGN_LOG.md 新建 + SETUP_INSTRUCTIONS.md
+- 实装方针拍板：CC 主导逐屏对译 Compose（不派 sub agent）
+
+**iOS 网络层**（`03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/`）：
+- `NetworkModels.swift` — StudentBrief / ApprovalStepOut / ApplicationOut / AuditLogOut / StudyAbsenceRequestOut / AnyJSON（跟 backend Pydantic byte-perfect 对齐）
+- `Endpoints/AuthAPI.swift` — loginStudent
+- `Endpoints/ApplicationsAPI.swift` — create / listMine / detail / update / audit
+- `Endpoints/ApplicationsCreateBodies.swift` — KisheiCreateBody / GaihakuCreateBody / KikokuCreateBody / StayLocationBody / MealSkipBody / ApplicationUpdateBody（discriminated union 3 typed body）
+- `Endpoints/StudyAPI.swift` — submitAbsenceRequest
+- `KeychainService.swift` — JWT 持久化 wrapper（save/load/delete、kSecAttrAccessibleAfterFirstUnlock）
+
+**iOS 学生侧完全体**（`Features/`）：
+- 出寮届修改届完整表单 + audit log 履歴 tab + chain 重置流程
+- 学習 NFC 3 次碰 + マイページ 学習履歴
+- マイページ MyInfoEdit 学号/姓名 read-only / 邮箱/电话/房间号可改
+- 注册流程：留学生 chip + 锁定升级 6 段（30s→1m→5m→30m→1h→永久）
+- push listener mock 4 trigger（学習批 / 学習拒 / 名单加入 / 修改届再批）
+- リクエスト曲投诉系统（SongReportSheet 4 理由 + 投诉 button + 投稿封禁 banner）
+
+**backend 全功能 routers**（`03_dev/backend/v1/app/routers/`）：
+- `rollcall.py` — 7 endpoint（today/sessions / sessions/start / end / checkins / board / summary / events PATCH）
+- `study.py` — 8 endpoint（today/attendees / checkins / bulk-finalize / checkins PATCH / absence-requests POST / GET / decision / cancel-today）
+- `teachers.py` — 4 endpoint（invitations / register / list / me）
+- Alembic 框架建立 + migration `b2c3d4e5f6a7`（meals_skip 形状改 + reason 加 + status 加 returned）
+
+**teacher_web v1**（`03_dev/teacher_web/v1/`）：
+- TS + Vite + Zustand 升级（替代旧 React + JSX 单文件 demo 模式）
+- 5 page 起手（spec D 范围）
+- 旧 jsx 归档到 `_legacy/`
+
+**teacher_web demo 接真后端**（`03_dev/teacher_web/demo/`）：
+- demo_server.py 加 `/api/v1/` urllib 反向代理
+- 登录改 JWT 真实认证（POST /sessions/teacher）
+- 学習管理全屏会话（StudyLanding + LiveStudySession + 3-tap NFC + 相位条 + デモコンソール）
+- backend 加 TeacherTokenOut schema + seed.py 补 StudyRoster + 今日 RollCallSession
+
+### Changed — iOS↔backend 字段对齐 F1-F5+Q1
+
+**backend 改动**（commit `4be8121` + `40f82ee`）：
+- `Application.reason` 列追加（F5）
+- `meals_skip_from/to` 削除 → `meals_skip JSON [{date,meal}]` 追加（F3）
+- status CHECK 加 `returned`（Q1）
+- Alembic migration `b2c3d4e5f6a7` 实行 + DB 更新确认
+- `meals.py` range 判定 → entry 直接 lookup 重写
+- `meals_skip JSON serialize` 修复（commit `40f82ee`）
+
+**iOS 改动**（commit `4be8121`）：
+- `APIClient` / `APIError` 新建（F7 基盘）
+- `ApplyKindMapper` 新建（stay↔外泊 等 4 桁日文映射）
+- `StayForm.submit()` 砍 student_id（F4）
+- `stay_locations` 改 [{kind,name}] 对象数组（F2）
+- `meals_skip` 改 [{date,meal}] 列表 + `expandMealsSkip` helper（F3）
+- `AppStore.authToken` 加（APIClient 同期）
+- `ApplicationStatus.cancelled` → `withdrawn` 统一（Q1）
+- `approved_partial` enum case 追加（5-02 commit `d698148`、补漏 backend 6 値）
+
+**iOS 切真 API**（5-02、本会话 commit `b8b2f50` `2c2c34f` `0ffa68f`）：
+- `LoginView.tryLogin` async + AuthAPI.loginStudent 接続 + 401 走锁定升级
+- `StayForm.submit` 按 kind dispatch 到 3 typed body + ApplicationsAPI.create
+- `AppStore.submitStudyLeave` async throws + StudyAPI.submitAbsenceRequest
+- `StayListView/Detail/Edit` 全切真 API + .task { await load() } pattern + .refreshable 下拉刷新
+- 加 ApplicationOut.toStayApplication() converter + AuditLogOut.toAuditLogEntry() converter
+
+**APIClient 错误解码修正**（commit `a992b4f`）：
+- `DetailError.detail: String` → `DetailError.extractMessage(from:)` 双形态解码
+- 修复 `{"detail":{"code","message"}}` ネスト形态被 fallback 失精度的 bug
+
+### Fixed
+
+- iOS 学習欠席届 mock 计数器在 backend 失败时也 +1 → 改成成功后才更新（commit `2c2c34f`）
+- iOS submit() 各错误未分类 → 加 401/422/network/其他 4 类 catch（多 commit）
+- IOS_DESIGN_LOG.md 文件头时间戳 4-22 → 5-02 同步（commit `5c8cf9f`）
+
+### Notes — 元规则升级
+
+**CLAUDE.md 改动**：
+- §设计文档双层结构规则新建（commit `4687611`）— 共用层 / iOS+Web+後端専属层 4 層分層 + 改的順序（共用層先改→専属層引用）+ 反模式拦截
+- §对话规则 §7 加强（commit `3891f3c`）— 主动诊断 unknown unknowns（覆盖技术 / AC / 学习 / 自我管理 4 类、话术「你现在做的是 X、业界标准是 Y、原因是 Z」、强度 B-C、禁用「良好实践」抽象话术）
+
+**memory 更新**：
+- `feedback_proactive_diagnose_unknown_unknowns.md` 新建（详细版 4 类覆盖 / 强度分档 / 正反例 ❌✅ / 反模式 5 条）
+- MEMORY.md ⚡ FOUNDATIONAL RULE 块加索引
+
+**核心 AC 金句**（raw/2026-05-02 §4 ⭐）：「提醒我学习扩展我的思维这个很重要」 — itsuki 在七问澄清中说出，对应自我推荐书「AI と協働姿勢」+ 面试问题 #4「学到了什么」。
+
+**31 commit 归入本版本**：
+- `889d65c` Android Round 1 prompt 落盘
+- `536abce` Android bootstrap Compose 工程框架 + 10 屏
+- `c720065` iOS Auth/Home/Apply/MyPage UI 调整
+- `747a179` iOS 学生侧完全体（P0×3 + P1×2 + P2×1 + 反馈 6 件 + 投诉系统拍板）
+- `512424d` 4-30 後續 决策落地（学習 NFC 化 + 出寮届修改届 + 教师权限）
+- `0aeaae9` 三端对齐审计 dump + 失配清单 F1-F15 + 方案 ABC（阻塞 Q1/Q2）
+- `4687611` CLAUDE.md 加设计文档双层结构规则
+- `54cb4e8` 全 repo 606 文件审查 + 状态分类
+- `151d863` backend rollcall/study/teachers routers + Alembic 框架
+- `98315f1` teacher_web-v1 TS+Vite+Zustand 升级
+- `bd39760` teacher_web-demo 接真实后端 + 学習管理実装
+- `54dd01d` backend F1-F7 + Q1-Q2 字段对齐 handoff 文档
+- `4be8121` iOS↔backend 字段对齐 F1-F5/Q1/F7
+- `3891f3c` CLAUDE.md §对话规则 §7 加强
+- `654a731` 5-02 会话 — iOS↔backend 対齐收尾记录
+- `40f82ee` backend meals_skip JSON serialize 修复
+- `debcb07` 5-02 收尾 — 设备迁移前 raw 追加 + handoff 归档
+- `23a5e1f` Mac mini setup checklist
+- `c844bbd` 5-02 raw 目录补 §5 + §6 链接
+- `a992b4f` iOS NetworkModels + APIClient 错误解码修正（本会话）
+- `624fea1` iOS Endpoints/ 4 module（本会话）
+- `cf5c9fa` iOS KeychainService + AppStore 永続化（本会话）
+- `d698148` iOS ApplicationStatus 加 approved_partial + 注释中文化（本会话）
+- `b8b2f50` iOS LoginView 切 AuthAPI（本会话）
+- `2c2c34f` iOS StayForm + StudyAbsence 切真 API（本会话）
+- `0ffa68f` iOS StayListView/Detail/Edit 切真 API（本会话）
+- `0c3ff96` iOS 网络层会话收尾文档（本会话）
+- `5c8cf9f` IOS_DESIGN_LOG 文件头时间戳同步（本会话）
+- 加上 release commit + 别会话若干微调
 
 ---
 
