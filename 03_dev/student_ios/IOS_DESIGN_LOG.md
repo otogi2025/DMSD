@@ -2,7 +2,7 @@
 
 > **作用**：itsuki 提过的所有 iOS 设计要求 + 自主决定 + 待决清单的完整归档。防遗忘 / 下次会话快速恢复 context / AC 素材 / Claude Design prompt 的 single source of truth。
 > **建立**：2026-04-22 晚 by [Mac-demo-sprint]
-> **最后更新**：2026-04-22 晚（Q/N 全答 + Round 1 Prompt 落盘）
+> **最后更新**：2026-05-02（§11.9 I1/I2 实装状态更新 — KeychainService 新建 + endpoint module 5 个 / commit `cf5c9fa` `624fea1` `a992b4f`。早些更新：2026-04-22 晚 Q/N 全答 + Round 1 Prompt 落盘）
 > **同型档案对照**：`teacher_web/WEB_DESIGN_LOG.md`（老师 Web 的等价档）
 
 ---
