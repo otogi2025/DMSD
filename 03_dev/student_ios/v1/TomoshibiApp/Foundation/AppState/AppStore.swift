@@ -26,6 +26,11 @@ struct ChangeLogEntry: Hashable, Identifiable {
 
 @MainActor
 final class AppStore: ObservableObject {
+    /// JWT アクセストークン — login 成功後にセット、APIClient.shared.token と同期
+    @Published var authToken: String? = nil {
+        didSet { APIClient.shared.token = authToken }
+    }
+
     /// 点呼状态
     @Published var rollState: RollState = .idle
 

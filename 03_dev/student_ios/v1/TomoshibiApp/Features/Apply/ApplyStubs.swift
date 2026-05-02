@@ -45,7 +45,7 @@ private func statusPair(_ status: String) -> (label: String, tone: Pill.Tone) {
     case "approved":  return ("承認済", .ok)
     case "rejected":  return ("差戻", .danger)
     case "returned":  return ("要修正", .danger)
-    case "cancelled": return ("取消済", .neutral)
+    case "withdrawn": return ("取消済", .neutral)
     default:          return (status, .neutral)
     }
 }
@@ -684,60 +684,85 @@ struct StayForm: View {
         }
     }
 
-    // MARK: - submit (mock POST /applications)
+    // MARK: - submit (POST /api/v1/applications)
     //
-    // TODO[backend]: 真 production 接 POST /applications（backend BACKEND_DESIGN_LOG §5.2.1）
-    //   - kind 映射: stay → "外泊" / holiday → "帰省" / returncountry → "帰国"
-    //   - stay_locations 形状: backend 期待 [{kind, name, address?, phone?}]
-    //   - meals_skip 形状: backend 期待 datetime ISO8601
-    //   - student_id 由 JWT auth 推断、前端不再发送
-    //   早上 5-01 audit §3 失配清单 F1-F5 列出全部映射差异。
+    // F1: kind は ApplyKindMapper で日本語に変換 (stay → 外泊 等)
+    // F2: stay_locations は [{kind, name, address?, phone?}] オブジェクト配列
+    // F3: meals_skip は [{date, meal}, ...] エントリリスト
+    // F4: student_id は JWT から取るので送らない
 
     private func submit() {
-        // ── (#1) 学生は自分のみ提出可: payload の student_id = ログイン中アカウント ──
-        // 真実装ではバックエンドが JWT 等で再校验。フロント側もここで明示する。
-        let studentId = SEED.user.account
-        precondition(studentId == meAccount,
-                     "student_id mismatch — 提出者は SEED.user 本人でなければなりません")
+        // F1: iOS 内部 kind → backend 日本語
+        let backendKind = ApplyKindMapper.encode(kind)
 
         var payload: [String: Any] = [
-            "student_id": studentId,
-            "kind": kind,                                       // holiday / stay / returncountry
+            "kind": backendKind,
+            "reason": reason,
             "leave_date": StayForm.formatYMD(leaveDate),
             "leave_time": StayForm.formatHM(leaveTime),
             "leave_method": leaveMethod,
             "return_date": StayForm.formatYMD(returnDate),
             "return_time": StayForm.formatHM(returnTime),
             "return_method": returnMethod,
-            "reason": reason,
         ]
+
+        // F2: stay_locations をオブジェクト配列に変換
         if needPlaces {
-            payload["stay_places"] = stayPlaces.filter {
-                !$0.trimmingCharacters(in: .whitespaces).isEmpty
-            }
-        }
-        if needSkipMeal && skipEnabled {
-            payload["skip_meal_from"] = [
-                "date": StayForm.formatYMD(skipStartDate),
-                "meal": skipStartMeal,
-            ]
-            payload["skip_meal_to"] = [
-                "date": StayForm.formatYMD(skipEndDate),
-                "meal": skipEndMeal,
-            ]
-        }
-        if needFlight {
-            payload["depart_airport"] = departAirport
-            payload["depart_flight_time"] = StayForm.formatHM(departFlightTime)
-            payload["arrive_airport"] = arriveAirport
-            payload["arrive_flight_time"] = StayForm.formatHM(arriveFlightTime)
+            let locations: [[String: String]] = stayPlaces
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+                .map { ["kind": "その他", "name": $0] }
+            payload["stay_locations"] = locations
         }
 
-        // mock POST /applications
-        print("[mock POST /applications] payload=\(payload)")
+        // F3: meals_skip を [{date, meal}] リストに展開
+        if needSkipMeal && skipEnabled {
+            payload["meals_skip"] = StayForm.expandMealsSkip(
+                from: skipStartDate, startMeal: skipStartMeal,
+                to: skipEndDate, endMeal: skipEndMeal
+            )
+        }
+
+        if needFlight {
+            payload["flight_dep_air"] = departAirport
+            payload["flight_dep_at"]  = StayForm.formatISO(departFlightTime)
+            payload["flight_arr_air"] = arriveAirport
+            payload["flight_arr_at"]  = StayForm.formatISO(arriveFlightTime)
+        }
+
+        // TODO[F7-connect]: APIClient.shared.post("/api/v1/applications", body: payload) で実接続
+        print("[POST /api/v1/applications] payload=\(payload)")
 
         app.showToast("\(type.name)申請を提出しました")
         router.go(.applyDone(kind: kind))
+    }
+
+    // MARK: - meals_skip 展開ヘルパー
+    //
+    // (skipStartDate, skipStartMeal) → (skipEndDate, skipEndMeal) の間の全食事エントリを生成
+    static func expandMealsSkip(
+        from startDate: Date, startMeal: String,
+        to endDate: Date, endMeal: String
+    ) -> [[String: String]] {
+        let mealOrder = ["朝食", "昼食", "夕食"]
+        var result: [[String: String]] = []
+        let cal = Calendar.current
+        var current = startDate
+        while current <= endDate {
+            let isFirst = cal.isDate(current, inSameDayAs: startDate)
+            let isLast  = cal.isDate(current, inSameDayAs: endDate)
+            let lo = isFirst ? (mealOrder.firstIndex(of: startMeal) ?? 0) : 0
+            let hi = isLast  ? (mealOrder.firstIndex(of: endMeal) ?? 2) : 2
+            if lo <= hi {
+                let dateStr = formatYMD(current)
+                for i in lo...hi {
+                    result.append(["date": dateStr, "meal": mealOrder[i]])
+                }
+            }
+            guard let next = cal.date(byAdding: .day, value: 1, to: current) else { break }
+            current = next
+        }
+        return result
     }
 
     // MARK: - helpers (parse / format date · 静的)
@@ -771,6 +796,11 @@ struct StayForm: View {
         f.dateFormat = "HH:mm"
         f.locale = Locale(identifier: "en_US_POSIX")
         return f.string(from: d)
+    }
+
+    /// ISO 8601 日時文字列 — backend の flight_dep_at / flight_arr_at に使う
+    static func formatISO(_ d: Date) -> String {
+        ISO8601DateFormatter().string(from: d)
     }
 }
 

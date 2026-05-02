@@ -206,6 +206,7 @@ APPLICATION_STATUSES = (
     "approved",
     "rejected",
     "withdrawn",
+    "returned",   # 退回 — 老師退回學生修改 (spec §7.2.4-5)
 )
 
 
@@ -231,10 +232,12 @@ class Application(Base):
     return_method: Mapped[str] = mapped_column(Text, nullable=False)
     return_time: Mapped[time] = mapped_column(Time, nullable=False)
 
-    # 外泊 / 帰国 only (#38 from/to 明确)
+    # 外泊 / 帰国 only
     stay_locations: Mapped[Optional[list]] = mapped_column(JSON)
-    meals_skip_from: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    meals_skip_to: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    meals_skip: Mapped[Optional[list]] = mapped_column(JSON)  # [{date, meal}] 形式
+
+    # 申請理由 (全 kind · spec §7.2.4-5 修改届で必須)
+    reason: Mapped[Optional[str]] = mapped_column(Text)
 
     # 帰国 only
     flight_dep_air: Mapped[Optional[str]] = mapped_column(Text)
@@ -263,7 +266,7 @@ class Application(Base):
     __table_args__ = (
         CheckConstraint("kind IN ('帰省','外泊','帰国')", name="ck_app_kind"),
         CheckConstraint(
-            "status IN ('pending','approved_partial','approved','rejected','withdrawn')",
+            "status IN ('pending','approved_partial','approved','rejected','withdrawn','returned')",
             name="ck_app_status",
         ),
         Index("idx_app_student", "student_id", "status"),

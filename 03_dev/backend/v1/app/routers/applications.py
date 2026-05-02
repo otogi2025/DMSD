@@ -57,6 +57,7 @@ def create_application(
     app_kwargs = {
         "student_id": student.id,
         "kind": body.kind,
+        "reason": body.reason,
         "leave_date": body.leave_date,
         "leave_method": body.leave_method,
         "leave_time": body.leave_time,
@@ -68,14 +69,12 @@ def create_application(
     if isinstance(body, schemas.GaihakuCreateIn):
         app_kwargs.update(
             stay_locations=[loc.model_dump() for loc in body.stay_locations],
-            meals_skip_from=body.meals_skip_from,
-            meals_skip_to=body.meals_skip_to,
+            meals_skip=[e.model_dump() for e in body.meals_skip] or None,
         )
     elif isinstance(body, schemas.KikokuCreateIn):
         app_kwargs.update(
             stay_locations=[loc.model_dump() for loc in body.stay_locations],
-            meals_skip_from=body.meals_skip_from,
-            meals_skip_to=body.meals_skip_to,
+            meals_skip=[e.model_dump() for e in body.meals_skip] or None,
             flight_dep_air=body.flight_dep_air,
             flight_dep_at=body.flight_dep_at,
             flight_arr_air=body.flight_arr_air,
@@ -321,6 +320,8 @@ def update_application(
     update_data = body.model_dump(exclude_none=True)
     if "stay_locations" in update_data:
         update_data["stay_locations"] = [loc.model_dump() for loc in body.stay_locations]
+    if "meals_skip" in update_data:
+        update_data["meals_skip"] = [e.model_dump() for e in body.meals_skip] or None
     for key, val in update_data.items():
         setattr(app, key, val)
 
@@ -476,6 +477,7 @@ def _to_application_out(app: models.Application) -> schemas.ApplicationOut:
         student_id=app.student_id,
         student=student_brief,
         kind=app.kind,
+        reason=app.reason,
         leave_date=app.leave_date,
         leave_method=app.leave_method,
         leave_time=app.leave_time,
@@ -483,8 +485,7 @@ def _to_application_out(app: models.Application) -> schemas.ApplicationOut:
         return_method=app.return_method,
         return_time=app.return_time,
         stay_locations=app.stay_locations,
-        meals_skip_from=app.meals_skip_from,
-        meals_skip_to=app.meals_skip_to,
+        meals_skip=app.meals_skip,
         flight_dep_air=app.flight_dep_air,
         flight_dep_at=app.flight_dep_at,
         flight_arr_air=app.flight_arr_air,

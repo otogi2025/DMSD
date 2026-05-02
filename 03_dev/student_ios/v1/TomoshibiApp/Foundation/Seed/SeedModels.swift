@@ -81,7 +81,7 @@ struct NotificationItem: Hashable, Identifiable {
 struct ApplicationItem: Hashable, Identifiable {
     let id: String
     let type: String            // stay / holiday / outing / return / repair / parcel / guest / other
-    let status: String          // pending / approved / returned / cancelled / draft / rejected
+    let status: String          // pending / approved / returned / withdrawn / draft / rejected
     let date: String
     let summary: String
 }

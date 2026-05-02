@@ -59,7 +59,7 @@ struct ApprovalStep: Hashable, Identifiable {
 struct StayApplication: Hashable, Identifiable {
     let id: String                  // "a1" 等
     var kind: ApplicationKind       // 外泊 / 帰省 / 帰国 / その他
-    var status: ApplicationStatus   // pending / approved / rejected / returned / cancelled / draft
+    var status: ApplicationStatus   // pending / approved / rejected / returned / withdrawn / draft
     var leaveDate: String           // "2026-05-03"
     var returnDate: String?
     var summary: String             // ApplicationItem.summary 互換
@@ -116,7 +116,7 @@ enum ApplicationKind: String, Hashable {
 }
 
 enum ApplicationStatus: String, Hashable {
-    case draft, pending, approved, rejected, returned, cancelled
+    case draft, pending, approved, rejected, returned, withdrawn
 
     var label: String {
         switch self {
@@ -125,7 +125,7 @@ enum ApplicationStatus: String, Hashable {
         case .approved:  return "承認済"
         case .rejected:  return "差戻"
         case .returned:  return "要修正"
-        case .cancelled: return "取消済"
+        case .withdrawn: return "取消済"
         }
     }
 
@@ -136,7 +136,7 @@ enum ApplicationStatus: String, Hashable {
         case .approved:  return .ok
         case .rejected:  return .danger
         case .returned:  return .danger
-        case .cancelled: return .neutral
+        case .withdrawn: return .neutral
         }
     }
 
@@ -318,7 +318,7 @@ enum StayListMock {
             case .approved:                  return roles.count
             case .rejected, .returned:       return max(roles.count - 1, 1)   // 最後の役职が差戻
             case .pending:                   return roles.count > 2 ? 1 : 0   // 進行中: 先頭だけ承認
-            case .draft, .cancelled:         return 0
+            case .draft, .withdrawn:         return 0
             }
         }()
         // 差戻の場合、最後の承認役职は rejected

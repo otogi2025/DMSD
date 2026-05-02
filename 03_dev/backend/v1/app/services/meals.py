@@ -1,21 +1,15 @@
 """食堂食数计算 + Excel 导出 (#7 / Q7)。
 
-権威: system_features.md §7.7 + #38 (食事不要 from/to 明确)。
+権威: system_features.md §7.7。
 Q7 答え: 「Excel 表格、要包含的数据是哪些学生不需要餐食、什么期间。要可以一键导出 excel。」
 
 ロジック:
-1. 期間 [from, to] 内の各日付 D について、
-2. status='approved' な applications で
-   - meals_skip_from <= D の朝食時刻 <= meals_skip_to → 朝食 skip
-   - 同様に 昼食・夕食 を判定
-3. 出力 = 日別集計 + 学生別詳細 の 2 sheet
+1. status='approved' な applications で meals_skip が非空なものを取得。
+2. meals_skip = [{date, meal}, ...] 形式 — 1 エントリ = 1 食不要。
+3. 指定期間 [range_from, range_to] に含まれるエントリを日別集計。
+4. 出力 = 日別集計 + 学生別詳細 の 2 sheet
 
-食事時間 (固定):
-- 朝食 = 07:00 JST
-- 昼食 = 12:00 JST
-- 夕食 = 18:00 JST
-
-⚠️ 2026-04-30 暫定値: 食堂運営の実時刻は老師に確認後、本ファイルの定数で調整。
+⚠️ 2026-05-02 形式変更: 旧 meals_skip_from/to datetime range → 新 [{date, meal}] リスト。
 """
 from __future__ import annotations
 
@@ -29,11 +23,7 @@ from sqlalchemy.orm import Session
 
 from .. import models
 
-# 食堂 食事時刻 (JST 基準, 暫定)
 JST = timezone(timedelta(hours=9))
-BREAKFAST_AT = time(7, 0)
-LUNCH_AT = time(12, 0)
-DINNER_AT = time(18, 0)
 
 
 @dataclass
@@ -75,10 +65,6 @@ class MealsCalcResult:
 # ---------------------------------------------------------------
 # 計算
 # ---------------------------------------------------------------
-def _meal_dt(d: date, meal_at: time) -> datetime:
-    return datetime.combine(d, meal_at, tzinfo=JST)
-
-
 def _date_range(d_from: date, d_to: date) -> Iterable[date]:
     cur = d_from
     while cur <= d_to:
@@ -89,13 +75,12 @@ def _date_range(d_from: date, d_to: date) -> Iterable[date]:
 def calc_meals(
     db: Session, *, range_from: date, range_to: date
 ) -> MealsCalcResult:
-    """[range_from, range_to] (両端含む) の食事不要数を計算。"""
+    """[range_from, range_to] (両端含む) の食事不要数を計算。
+
+    meals_skip = [{date: '2026-05-01', meal: '朝食'}, ...] 形式を集計。
+    """
     if range_to < range_from:
         raise ValueError("range_to must be >= range_from")
-
-    # 期間と重なる承认済みの届を取る (帰省/外泊/帰国 全部 + meals_skip_from/to が NOT NULL)
-    period_start = _meal_dt(range_from, BREAKFAST_AT) - timedelta(days=1)
-    period_end = _meal_dt(range_to, DINNER_AT) + timedelta(days=1)
 
     stmt = (
         select(models.Application, models.Student)
@@ -103,10 +88,7 @@ def calc_meals(
         .where(
             and_(
                 models.Application.status == "approved",
-                models.Application.meals_skip_from.is_not(None),
-                models.Application.meals_skip_to.is_not(None),
-                models.Application.meals_skip_from <= period_end,
-                models.Application.meals_skip_to >= period_start,
+                models.Application.meals_skip.is_not(None),
             )
         )
     )
@@ -115,52 +97,49 @@ def calc_meals(
     daily_map: dict[date, DailyAggregate] = {
         d: DailyAggregate(target_date=d) for d in _date_range(range_from, range_to)
     }
-    details: list[StudentMealDetail] = []
+    # student_no → {date → StudentMealDetail} で重複を避ける
+    detail_map: dict[tuple, StudentMealDetail] = {}
 
     for app, student in rows:
-        skip_from: datetime = app.meals_skip_from
-        skip_to: datetime = app.meals_skip_to
-        # tz-naive 入って来た場合は JST と解釈
-        if skip_from.tzinfo is None:
-            skip_from = skip_from.replace(tzinfo=JST)
-        if skip_to.tzinfo is None:
-            skip_to = skip_to.replace(tzinfo=JST)
-
-        for d in _date_range(range_from, range_to):
-            b_skip = _is_in_range(_meal_dt(d, BREAKFAST_AT), skip_from, skip_to)
-            l_skip = _is_in_range(_meal_dt(d, LUNCH_AT), skip_from, skip_to)
-            din_skip = _is_in_range(_meal_dt(d, DINNER_AT), skip_from, skip_to)
-            if not (b_skip or l_skip or din_skip):
+        for entry in (app.meals_skip or []):
+            try:
+                entry_date = date.fromisoformat(entry["date"])
+                meal = entry["meal"]
+            except (KeyError, ValueError):
                 continue
-            agg = daily_map[d]
-            agg.breakfast_skip += int(b_skip)
-            agg.lunch_skip += int(l_skip)
-            agg.dinner_skip += int(din_skip)
-            details.append(
-                StudentMealDetail(
+            if entry_date not in daily_map:
+                continue
+
+            agg = daily_map[entry_date]
+            key = (student.student_no, entry_date)
+            if key not in detail_map:
+                detail_map[key] = StudentMealDetail(
                     student_no=student.student_no,
                     student_name=student.name,
                     dorm_unit=student.dorm_unit,
                     room_no=student.room_no,
-                    target_date=d,
-                    breakfast_skip=b_skip,
-                    lunch_skip=l_skip,
-                    dinner_skip=din_skip,
+                    target_date=entry_date,
+                    breakfast_skip=False,
+                    lunch_skip=False,
+                    dinner_skip=False,
                 )
-            )
+            det = detail_map[key]
+            if meal == "朝食":
+                det.breakfast_skip = True
+                agg.breakfast_skip += 1
+            elif meal == "昼食":
+                det.lunch_skip = True
+                agg.lunch_skip += 1
+            elif meal == "夕食":
+                det.dinner_skip = True
+                agg.dinner_skip += 1
 
     return MealsCalcResult(
         range_from=range_from,
         range_to=range_to,
         daily=sorted(daily_map.values(), key=lambda x: x.target_date),
-        details=sorted(
-            details, key=lambda x: (x.target_date, x.student_no)
-        ),
+        details=sorted(detail_map.values(), key=lambda x: (x.target_date, x.student_no)),
     )
-
-
-def _is_in_range(d: datetime, lo: datetime, hi: datetime) -> bool:
-    return lo <= d <= hi
 
 
 # ---------------------------------------------------------------

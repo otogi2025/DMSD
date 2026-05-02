@@ -34,6 +34,13 @@ class StayLocation(BaseModel):
     phone: Optional[str] = Field(None, max_length=32)
 
 
+class MealSkipEntry(BaseModel):
+    """食事不要エントリ — 日付 + 食事種別。spec §7.7 食堂 Excel 対応形式。"""
+
+    date: date
+    meal: Literal["朝食", "昼食", "夕食"]
+
+
 # ---------------------------------------------------------------
 # 認証
 # ---------------------------------------------------------------
@@ -80,6 +87,7 @@ class StudentBrief(BaseModel):
 class ApplicationBase(BaseModel):
     """3 種共通フィールド。"""
 
+    reason: Optional[str] = Field(None, max_length=500)
     leave_date: date
     leave_method: str = Field(..., max_length=200)
     leave_time: time
@@ -104,19 +112,11 @@ class KisheiCreateIn(ApplicationBase):
 
 
 class GaihakuCreateIn(ApplicationBase):
-    """外泊届 (寮以外で泊まる)。+ 滞在先 + 食事不要期間。"""
+    """外泊届 (寮以外で泊まる)。+ 滞在先 + 食事不要リスト。"""
 
     kind: Literal["外泊"] = "外泊"
     stay_locations: list[StayLocation] = Field(..., min_length=1)
-    meals_skip_from: Optional[datetime] = None
-    meals_skip_to: Optional[datetime] = None
-
-    @model_validator(mode="after")
-    def _check_meals(self) -> "GaihakuCreateIn":
-        if self.meals_skip_from and self.meals_skip_to:
-            if self.meals_skip_to <= self.meals_skip_from:
-                raise ValueError("meals_skip_to must be after meals_skip_from")
-        return self
+    meals_skip: list[MealSkipEntry] = Field(default_factory=list)
 
 
 class KikokuCreateIn(ApplicationBase):
@@ -124,8 +124,7 @@ class KikokuCreateIn(ApplicationBase):
 
     kind: Literal["帰国"] = "帰国"
     stay_locations: list[StayLocation] = Field(..., min_length=1)
-    meals_skip_from: Optional[datetime] = None
-    meals_skip_to: Optional[datetime] = None
+    meals_skip: list[MealSkipEntry] = Field(default_factory=list)
     flight_dep_air: str = Field(..., max_length=64)
     flight_dep_at: datetime
     flight_arr_air: str = Field(..., max_length=64)
@@ -135,9 +134,6 @@ class KikokuCreateIn(ApplicationBase):
     def _check_flight(self) -> "KikokuCreateIn":
         if self.flight_arr_at <= self.flight_dep_at:
             raise ValueError("flight_arr_at must be after flight_dep_at")
-        if self.meals_skip_from and self.meals_skip_to:
-            if self.meals_skip_to <= self.meals_skip_from:
-                raise ValueError("meals_skip_to must be after meals_skip_from")
         return self
 
 
@@ -179,8 +175,8 @@ class ApplicationOut(BaseModel):
     return_time: time
 
     stay_locations: Optional[list[dict[str, Any]]] = None
-    meals_skip_from: Optional[datetime] = None
-    meals_skip_to: Optional[datetime] = None
+    meals_skip: Optional[list[dict[str, Any]]] = None
+    reason: Optional[str] = None
 
     flight_dep_air: Optional[str] = None
     flight_dep_at: Optional[datetime] = None
@@ -191,7 +187,7 @@ class ApplicationOut(BaseModel):
 
     submitted_at: datetime
     status: Literal[
-        "pending", "approved_partial", "approved", "rejected", "withdrawn"
+        "pending", "approved_partial", "approved", "rejected", "withdrawn", "returned"
     ]
     withdrawn_at: Optional[datetime] = None
 
@@ -265,6 +261,7 @@ class ApprovalIn(BaseModel):
 class ApplicationUpdateIn(BaseModel):
     """PUT /applications/:id — 学生が承認前に内容修正 (chain リセット)。"""
 
+    reason: Optional[str] = Field(None, max_length=500)
     leave_date: Optional[date] = None
     leave_method: Optional[str] = Field(None, max_length=200)
     leave_time: Optional[time] = None
@@ -272,8 +269,7 @@ class ApplicationUpdateIn(BaseModel):
     return_method: Optional[str] = Field(None, max_length=200)
     return_time: Optional[time] = None
     stay_locations: Optional[list[StayLocation]] = None
-    meals_skip_from: Optional[datetime] = None
-    meals_skip_to: Optional[datetime] = None
+    meals_skip: Optional[list[MealSkipEntry]] = None
     flight_dep_air: Optional[str] = Field(None, max_length=64)
     flight_dep_at: Optional[datetime] = None
     flight_arr_air: Optional[str] = Field(None, max_length=64)
