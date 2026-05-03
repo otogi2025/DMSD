@@ -325,6 +325,23 @@
 
 ## ✅ 最近完成(24-48 小时内)
 
+### 2026-05-03 上午（学生注册码機構 — App Store 公開対策、itsuki 自分で気づいた問題発見）
+
+- **itsuki 自分で発見**：「App Store 上架 = 全人類に配布チャネル開放 = 任意の他人が "宿舎生" として登録できてしまう」という公開リスクをシミュレーション中に自力で発見（誰にも指摘されていない）
+- **itsuki 拍板**：登録 flow 最終 step に「教師発行の 6 桁登録コード」を必須化。教師が後台でボタン押すと生成、5 分有効、再生成で旧コード即無効、同時間帯は 1 個のみ
+- **規格文書 4 件落とし込み**（CLAUDE.md §討論 = 産出 ルール準拠、当場で全部更新）：
+  - `02_design/system_features.md` 共用層：新章節 §7.16「学生注册码（教师生成、App Store 公開対策）」(設計原理 / 8 ルール / 運用シナリオ / 代替案比較 / 機能矩陣 / v1.0 範囲) + §3.4 アカウント運用規則に追加項目 + §7.1 アカウント矩陣に新 2 行
+  - `03_dev/student_ios/IOS_DESIGN_LOG.md` iOS 専属層：§3.9.2 注册 flow を 5 step → 6 step（最終 step 登録コード追加）+ 新 §3.12「登録コード入力」UI 仕様（OTP 風 6 桁 input / haptic / autofill 制御 / Demo 段階取扱）
+  - `03_dev/teacher_web/WEB_DESIGN_LOG.md` Web 専属層：新 §11.9.1「学生登録コードパネル」UI レイアウト + コンポーネント仕様 + Zustand store 設計 + 使用シーン + v1.0 範囲
+  - `03_dev/backend/BACKEND_DESIGN_LOG.md` 後端専属層：新 §4.10 `student_registration_codes` 表 schema（unique partial index で同時 1 個強制）+ §5.1.5 `POST /accounts` API（registration_code 必須化）+ §5.x「教師 admin — 学生登録コード」3 endpoint + §6 error code 表に 5 件追加（INVALID_REGISTRATION_CODE / STUDENT_NO_TAKEN / INVALID_ROOM_FORMAT / EMAIL_TAKEN / RATE_LIMITED）
+- **AC dump**：`05_logs/raw/2026-05-03.md §11`（⭐⭐⭐ 強候補 — 問題発見 + 自己認識 + 問題解決 三点セット、9 sub-section、約 1500 字、面接で深堀されそうな質問への答え + 代替案 4 つの不採用理由つき）
+- **未完成 backlog → v1.0 実装スコープに入れる**：
+  - iOS：注册 flow に Step 6（登録コード OTP UI）追加
+  - Android：iOS 同等の Step 6 を Compose で実装（Tomoshibi-Android repo 側で対応）
+  - Web：`/admin/registration-code` パネル（v1 React で実装、demo R3 には未実装）
+  - Backend：`student_registration_codes` 表 + Alembic migration + 3 endpoint + `POST /accounts` 改修
+- **AC 価値 hook**：「便利さ（App Store 配布）と公開範囲はコインの表裏」という抽象化を獲得 — AC 評委が好む抽象化能力の証拠。詳細は raw §11.2 / §11.4
+
 ### 2026-04-22 晚（iOS 前端设计 Round 1 Prompt 落盘）
 
 - **[Mac-demo-sprint]** **iOS 架构重构拍板**：推翻 [Code-Agent] 2026-04-21 晚写的 4-tab 旧方案（`student_ios/DESIGN_BRIEF.md v1` 已归档）→ 新架构 3 按钮 nav（申し込み / ⭐点呼 action button / マイページ）+ Home omnibus（承载除 2 tab 外所有功能：Community / 扣分 / 快递 / 遗失物 / 点歌 / 通知）+ 中央点呼 sheet flow（iOS 26 Liquid Glass 毛玻璃 + SUNTORY ジハンピ 风格 4 态动画）+ 注册 flow 4-step（氏名 / 生日→自动分寮 / 学生区分 一般 or サッカー部 / 联络先 / 密码 ×2）+ 锁定升级 5 阶段（30 秒 → 1 分 → 5 分 → 30 分 → 1 时 → 永久锁）+ 00 号测试账户 seed "demo 魔法"（注册流程演示 + 实际登入预 seed 00 号 リュウ イヒ · 4 分扣分）+ 持续顶部点呼 bar 全 App（3 态 + 可点反馈 sheet）+ 导航规则（Level 1 Home icon 简笔画 / L2+ ← / 长按 0.4 秒 breadcrumb）

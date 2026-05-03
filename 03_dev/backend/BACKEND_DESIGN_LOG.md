@@ -493,6 +493,52 @@ CREATE INDEX idx_audit_actor ON audit_logs (actor_type, actor_id, created_at);
 -- DB 触发器: 拒绝 UPDATE/DELETE
 ```
 
+### 4.10 `student_registration_codes`（2026-05-03 itsuki 拍板、App Store 公開対策）
+
+**⚠ 権威源は `02_design/system_features.md §7.16`。本節は schema 詳細のみ。経緯 → `05_logs/raw/2026-05-03.md §11`。**
+
+```sql
+CREATE TABLE student_registration_codes (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code            VARCHAR(6) NOT NULL,                      -- 6 桁数字 '000000'-'999999'
+  created_by      UUID NOT NULL REFERENCES teachers(id),
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at      TIMESTAMPTZ NOT NULL,                     -- created_at + 5 分
+  invalidated_at  TIMESTAMPTZ,                              -- 新コード生成で旧を即無効化
+  CONSTRAINT code_format CHECK (code ~ '^[0-9]{6}$')
+);
+
+-- 同時有効コードはシステム全体で 1 個のみ（unique partial index）
+CREATE UNIQUE INDEX uniq_active_code
+  ON student_registration_codes ((1))
+  WHERE invalidated_at IS NULL AND expires_at > now();
+
+-- 検証 query で頻出する条件 (active + 未 expire) 高速化
+CREATE INDEX idx_active_codes
+  ON student_registration_codes (code)
+  WHERE invalidated_at IS NULL;
+```
+
+**生成 logic（`POST /admin/registration-code/refresh`）**:
+1. Tx 開始
+2. `UPDATE student_registration_codes SET invalidated_at = now() WHERE invalidated_at IS NULL` — 既存有効コードを即無効化
+3. 新規 code 生成（6 桁 random、衝突時は `ON CONFLICT` で再生成）
+4. `INSERT INTO student_registration_codes (code, created_by, expires_at) VALUES (?, ?, now() + interval '5 minutes')`
+5. Tx commit
+6. audit_log: `action='registration_code.refresh'`, `actor=teacher_id`, `target=new_code_id`, `payload={old_code_id, new_code}`
+
+**検証 logic（`POST /accounts` 内）**:
+```sql
+SELECT id FROM student_registration_codes
+WHERE code = :input
+  AND invalidated_at IS NULL
+  AND expires_at > now()
+LIMIT 1;
+```
+hit なし → `INVALID_REGISTRATION_CODE` (422)。hit あり → 通過 + audit_log: `action='registration_code.use'`, `actor=null`, `target=code_id`, `payload={student_no}`。
+
+> ⚠️ **コードは「使用」しても無効化しない**（再利用可、集団登録対応 §7.16.6）。expires_at 経過 or 教師再生成で初めて失効。
+
 ---
 
 ## 5. API 列表 — P0
@@ -546,6 +592,90 @@ token 续期 / 退出（学生 + 教师共通）。
 #### 5.1.4 `assigned_dorm` JWT claim
 
 教师 JWT payload 必含 `assigned_dorm`，所有 dorm-scoped API 默认按此 filter（除非教师 role ∈ {寮務部長, 寮務課長, 国際交流部長, 国際交流課長} = 跨寮，可显式传 `?dorm=...`）。
+
+#### 5.1.5 `POST /accounts` — 学生新規登録（2026-05-03 拍板で `registration_code` 必須化）
+
+req:
+```json
+{
+  "name": "リュウイヒ",
+  "name_kana": "リュウイヒ",
+  "birthday": "2006-10-14",
+  "gender": "female",
+  "grade_code": "06",
+  "class_code": "02",
+  "seat_no": "18",
+  "category": "一般寮生",
+  "room_no": "W101",
+  "is_overseas": true,
+  "email": "...",
+  "phone": "...",
+  "password": "...",
+  "registration_code": "483271"     // ⭐ 2026-05-03 追加（§4.10 + system_features §7.16）
+}
+```
+
+処理 flow:
+1. `registration_code` 検証（§4.10 検証 logic）→ fail 時 `INVALID_REGISTRATION_CODE` (422)
+2. `student_no = grade_code || class_code || seat_no` 生成、既存学生と衝突 check（重複時 `STUDENT_NO_TAKEN` 422）
+3. `room_no` regex 校验（§5.0 dorm_unit ↔ prefix 一致性 — `INVALID_ROOM_FORMAT` 422）
+4. Tx で `students` + `accounts` 同時 insert
+5. registration_code 使用 audit_log 記録（§4.10）
+6. 永続 JWT 発行（学生 login 同等 = `expires_in: 86400`）+ session 永久保持（IOS_DESIGN_LOG §3.5）
+
+res 201:
+```json
+{
+  "access_token": "...",
+  "refresh_token": "...",
+  "expires_in": 86400,
+  "student": { "id": "...", "student_no": "060218", "name": "リュウイヒ", ... }
+}
+```
+
+err:
+- `INVALID_REGISTRATION_CODE` (422) — コード不正 / expire / 無効化済
+- `STUDENT_NO_TAKEN` (422) — 学号重複（IOS_DESIGN_LOG §3.9.2 重複チェック失敗）
+- `INVALID_ROOM_FORMAT` (422) — 房间号 prefix が dorm_unit / gender と不整合
+- `EMAIL_TAKEN` (422)
+
+### 5.x 教師 admin — 学生登録コード（2026-05-03 拍板、§4.10 + system_features §7.16）
+
+> アクセス権限 = `teacher` JWT + 「寮務管理」権限（§3.4 教師権限モデル）。他 role は 403。
+
+#### 5.x.1 `GET /admin/registration-code/current`
+
+現在有効なコードを返す。教師 Web パネル mount 時 + 30 秒 polling。
+
+res 200（有効コードあり）:
+```json
+{
+  "code": "483271",
+  "created_at": "2026-04-15T09:32:14+09:00",
+  "expires_at": "2026-04-15T09:37:14+09:00",
+  "created_by": { "id": "...", "name": "田中 寮務課長" }
+}
+```
+
+res 200（有効コードなし — 全 expire / 未生成）:
+```json
+{ "code": null }
+```
+
+#### 5.x.2 `POST /admin/registration-code/refresh`
+
+新規コード生成。既存有効コードは即無効化（§4.10 logic）。
+
+req: `{}`（body 空）
+
+res 201 = `GET /current` と同形式（新コード）
+
+err:
+- `RATE_LIMITED` (429) — 直前 10 秒以内に同教師が呼んだ場合（連打防止 / system_features §7.16.8）
+
+#### 5.x.3 `GET /admin/registration-code/history?limit=50` ⏳ v1.1
+
+過去のコード履歴一覧（教師 Web v1.1 履歴 tab 用）。v1.0 範囲外。
 
 ### 5.2 学生 — 出寮届（#1-#9）
 
@@ -809,6 +939,11 @@ dev/staging 用，触发 `email_send` 验证 provider 联通。
 | `UNREGISTERED_UID` | 422 | UID 有记录但 card/student inactive |
 | `OVERRIDE_TIME_LIMIT` | 403 | RollCall_Spec §11.3 时限超 |
 | `OVERRIDE_REASON_REQUIRED` | 422 | reason 空 |
+| `INVALID_REGISTRATION_CODE` | 422 | 注册コード不正 / expire / 無効化済（§4.10 + system_features §7.16）|
+| `STUDENT_NO_TAKEN` | 422 | 学号重複（§5.1.5）|
+| `INVALID_ROOM_FORMAT` | 422 | 房间号 prefix が dorm_unit / gender と不整合（§5.1.5）|
+| `EMAIL_TAKEN` | 422 | メール重複（§5.1.5）|
+| `RATE_LIMITED` | 429 | 連打 rate limit（§5.x.2 等）|
 
 ---
 

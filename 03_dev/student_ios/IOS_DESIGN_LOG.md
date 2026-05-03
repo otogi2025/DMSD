@@ -2,7 +2,7 @@
 
 > **作用**：itsuki 提过的所有 iOS 设计要求 + 自主决定 + 待决清单的完整归档。防遗忘 / 下次会话快速恢复 context / AC 素材 / Claude Design prompt 的 single source of truth。
 > **建立**：2026-04-22 晚 by [Mac-demo-sprint]
-> **最后更新**：2026-05-02（§11.9 I1/I2 实装状态更新 — KeychainService 新建 + endpoint module 5 个 / commit `cf5c9fa` `624fea1` `a992b4f`。早些更新：2026-04-22 晚 Q/N 全答 + Round 1 Prompt 落盘）
+> **最后更新**：2026-05-03（§3.9.2 注册 flow 5→6 step + 新 §3.12「登録コード入力」UI 仕様 — itsuki 2026-05-03 拍板の App Store 公開対策。早些更新：2026-05-02 §11.9 I1/I2 / 2026-04-22 晚 Round 1）
 > **同型档案对照**：`teacher_web/WEB_DESIGN_LOG.md`（老师 Web 的等价档）
 
 ---
@@ -164,7 +164,7 @@ Claude Design **必须**默认创建 00 号账户，seed 数据：
 
 #### 3.9.2 注册 flow に追加 step
 
-旧 4 step → **新 5 step**:
+旧 4 step → **新 6 step**（2026-05-03 itsuki 拍板で **step 6 登録コード** を最終 step に追加 — App Store 公開対策 §3.12）:
 
 | Step | 字段 |
 |---|---|
@@ -173,6 +173,7 @@ Claude Design **必须**默认创建 00 号账户，seed 数据：
 | 3 学生類別 | 一般寮生 / サッカー部 |
 | 4 房间号 ⭐ 新設 field | 部屋番号 input（例 `M101` / `W203`、validation は §3.10 参照） |
 | 5 連絡先 + パスワード | メール / 電話 / パスワード × 2 |
+| **6 登録コード** ⭐ 新設（2026-05-03） | 教師発行の 6 桁数字コード input（§3.12 / 共用層 §7.16） |
 
 **UI 規則**:
 - Step 2 で学年・組・番号が 3 つとも入ると、下に「あなたの学号: `060218`」を 30pt cobalt で表示（プレビュー）
@@ -245,6 +246,52 @@ Claude Design **必须**默认创建 00 号账户，seed 数据：
 
 ---
 
+### 3.12 登録コード入力（2026-05-03 拍板、App Store 公開対策）
+
+**⚠ 権威源は `02_design/system_features.md §7.16`。ここは iOS 視点の UI 仕様のみ。**
+
+#### 3.12.1 動機
+
+itsuki 2026-05-03 拍板。App Store 上架 = 全人類に配布チャネル開放。登録口にゲートを入れて「物理的に教師に接触できる人」だけが登録できるようにする。経緯詳細は `05_logs/raw/2026-05-03.md §11`。
+
+#### 3.12.2 UI 仕様（iOS 専属）
+
+- **配置**: 注册 flow の **最終 step（step 6）**（パスワード設定 step 5 の次）
+- **タイトル**: 「登録コード」
+- **説明文**: 「教師に発行された 6 桁の数字コードを入力してください」
+- **入力 field**:
+  - 6 桁数字専用 OTP 風 input（1 文字ずつ separated boxes 推奨、Apple の SMS 認証 UI 風）
+  - キーボードは `numberPad`
+  - autofill `oneTimeCode` は **使用しない**（OS が SMS から自動補完するのを防ぐ — このコードは SMS 経由ではないため）
+- **submit ボタン**: 「登録を完了する」
+  - 6 桁全部埋まるまで disable
+- **エラー表示**:
+  - 失敗時 → 入力 field を赤く揺らす（haptic feedback：error）+ 下に「コードが正しくないか、有効期限が切れています。教師に再発行を依頼してください。」
+  - リトライは即可能（rate limit は backend 側で 5 回 / 分など）
+- **戻る**: 戻るボタンで step 5 に戻れる（既入力データは保持）
+
+#### 3.12.3 後段 flow
+
+- submit 成功 → backend が `POST /accounts` を全 step データ + `registration_code` で受信 → コード検証 → DB に学生作成 → 永久 session 発行
+- 成功画面 → §3.13 ⭐「ようこそ、{氏名}さん」+ アカウント番号 060218 表示
+- 失敗（コード不正 / expire）→ field エラー（上記）
+
+#### 3.12.4 ⚠️ Demo 段階の取扱
+
+`05_logs/raw/2026-05-03.md §11` の itsuki 拍板 = v1.0 から実装。Demo 4-28 は既に終わったので **Demo skip 不要**。新入学シーズン（2026-04 想定）= v1.0 範囲。
+
+実装スコープ:
+- Step 6 view（OTP 風 6 桁 input）
+- error state（field 赤揺れ + haptic）
+- backend API integration（`POST /accounts` body に `registration_code` field 追加）
+
+未実装（後送り v1.1+）:
+- Touch ID / Face ID で「最近のコード」を保護して auto-fill — 不要（一度きりなので）
+- QR コード経由でのコード入力（教師 Web で QR 表示 → 学生スキャン）— v1.1 検討
+- 寮単位ごとに別コード（dorm_unit 別）— v1.1 検討
+
+---
+
 ## 4. Home 顶部点呼状态 bar
 
 ### 4.1 三态
@@ -267,21 +314,67 @@ Claude Design **必须**默认创建 00 号账户，seed 数据：
 
 ---
 
-## 5. 个人主页（マイページ）内容
+## 5. 个人主页（マイページ）内容（2026-05-03 itsuki 拍板「方案 B 分层重设计」）
 
-深度 = "真的看点呼记录 + 点数 + 个人相关全部"。
+> **5-03 大改原因**：原 8-grid 把「学習履歴 / 点呼履歴 / 減点明細」全塞 grid 一格小图标，重要信息沒有显眼位置。itsuki 反馈「学習履歴塞最下不显眼 / 点呼明細只显示本月不够 / 整体要扩展」→ 拍板方案 B（参照 Apple Health / Activity 信息架构）。實裝完了 = `MyPageStubs.swift` MyLandingView 全面重写。
 
-- 个人情報（氏名 / 生日 / 性别 / 号码 / 邮箱 / 电话 / 寮分配 / 一般 or サッカー部 — 全 read-only）
-- 点呼履歴 list + 详情（N20 → 砍 Demo 切学生；就是 00 号的履歴）
-- 減点明細 + 12 月推移 chart
-- 処分履歴（罚扫 / 禁足）
-- 体調報告 履歴
-- 申請履歴（跳 申し込み 或独立）
-- 掃除提出 履歴（含评分）
-- 快递领取 履歴
-- 通知設定
-- Tomoshibi について（版本 + AC 署名）
-- ログアウト
+### 5.1 全体構造（上 → 下）
+
+```
+PageHeader「マイページ」
+├─ profileSection（紧凑：avatar 56pt + 氏名 + アカウント番号 + 寮室 Pill 一行）
+├─ ⭐ 学習ステータス Card（学習対象学生のみ表示）
+│    └─ 状态文字（対象外 / 開始まで X:XX / 進行中 / 本日完了 ✅）+「履歴を見る →」
+├─ ⭐ 今月の点呼 Card
+│    └─ 時間内 / 遅刻 / 欠席 三色统计 +「詳細を見る →」
+├─ 減点明細 Card
+│    └─ 大字号点数 + 状态 Pill（良好 / 罰掃 注意 / 禁足）+「詳細を見る →」
+├─ ─── 「履歴」section header
+├─ 履歴 grid（6 件 · 2-col）
+│    ├─ 個人情報 / 処分履歴 / 体調報告履歴
+│    └─ 申請履歴 / 掃除提出履歴 / 荷物受取履歴
+└─ settingsSection
+     └─ 行事予定 / 通知設定 / Tomoshibi について / ログアウト
+```
+
+### 5.2 旧版（4-22 設計）vs 方案 B（5-03 拍板）
+
+| 項目 | 旧版（8-grid） | 方案 B |
+|---|---|---|
+| profile | avatar 64 + name + account + 2 Pill 縦並び | avatar 56 + 紧凑横一列 |
+| 学習履歴 | grid 第 9 格（学習対象のみ追加、最下） | 顶部第 2 ブロック Card 化（最显眼） |
+| 点呼履歴 | grid 第 2 格（emoji + label） | Card 化 + 含本月统计 |
+| 減点明細 | grid 第 3 格（emoji + 数字 badge） | Card 化 + 含点数 + 状态 Pill |
+| 履歴 grid | 8-9 件 | 6 件（去掉点呼 / 減点 / 学習） |
+| settings | 行事予定 + 特別運航便 + 通知設定 + About + ログアウト | 删特別運航便（5-03 搬到 Home busCard） |
+
+### 5.3 重要性优先级
+
+itsuki 拍板「マイページ で核心信息は概覧 + 詳細入口」モデル（参考 Apple Health / Activity）。viewing 順位:
+1. 私は誰（profile）
+2. 学習中? OK?（学習 Card）— 学習対象学生のみ
+3. 点呼大丈夫?（点呼 Card）
+4. 減点ライン大丈夫?（減点 Card）
+5. その他履歴（grid 6 件）
+6. 設定
+
+### 5.4 統計データ算出（v1.0 demo）
+
+- 学習ステータス: `app.studyState`（idle / upcoming / active / done）+ `app.studyCountdownSec`
+- 点呼今月統計: `SEED.rollcall` を state 別 count（時間内 / 遅刻 / 欠席）
+- 減点点数: `SEED.user.points`（5-03 = 4.5）+ 阈値判定（< 4 良好 / 4-7 罰掃 注意 / ≥ 8 禁足）— 阈値は §7.12 + RollCall_Spec.md と同じ
+
+> **v1.1 拡張予定**: 学習履歴 statistics（出席率 / 異常回数）/ 点呼トレンド（先月比較）/ 減点 12 月推移 chart（旧版にあった、Card 内 mini chart で復活）。
+
+### 5.5 実装ファイル
+
+`03_dev/student_ios/v1/TomoshibiApp/Features/MyPage/MyPageStubs.swift` — `MyLandingView`（line 51〜）。
+
+5-03 大改の実装ポイント:
+- `blocks` 6 件に縮小（点呼 / 減点 / 学習 削除）
+- `body` 5 ブロック構造（profile + 状态 Card 群 + 「履歴」header + grid + settings）
+- 新 helper: `studyStatusCard` / `rollcallStatusCard` / `pointsStatusCard` / `landingCardBg` / `landingCardBorder` / `monthRollcallStats` / `statBlock` / `studyStateText` / `formatCountdown`
+- `settingsSection` から「特別運航便」row 削除（Home busCard へ移設）
 
 ---
 
@@ -636,3 +729,92 @@ extension Color {
 ---
 
 **END** — 本档随 iOS 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。
+
+---
+
+## 12. 5-03 工程修復集 + 平台姿态拍板（2026-05-03 追加）
+
+### 12.1 codesign 修復（真機装機ブロック解除）
+
+**症状**: build 成功するが iPhone install 時「The executable is not codesigned」/「No code signature found」で失敗。GUI Signing & Capabilities は正常（LIU YIFEI Team / Apple Development cert / Bundle Identifier OK）。
+
+**原因**: `project.pbxproj` の 3 build configuration（Debug / Demo / Release）に過去のどこかの editing で `CODE_SIGNING_ALLOWED = NO` + `CODE_SIGNING_REQUIRED = NO` がハードコードされていた。GUI 上の signing 設定は装飾、底層 build setting が「サイン禁止」だったため codesign step がスキップされ unsigned `.app` が出力されていた。
+
+**修**: 3 箇所の `CODE_SIGNING_ALLOWED = NO` + `CODE_SIGNING_REQUIRED = NO` を削除（default = YES に戻す）。`project.pbxproj.bak2` バックアップ作成。
+
+**学び（itsuki AC 素材化済 — raw/2026-05-03.md §11）**: GUI と底層 build setting の不整合に注意。Xcode は底層 setting を優先し GUI は読み取り表示のみ。
+
+### 12.2 GlassSheet 底部留白修復
+
+**症状**: 自研 bottom sheet（点呼 / FeedbackSheet / HealthSheet / AbsenceSheet / OtherSheet 全部使用）の home indicator 上方に灰色空白が出る。
+
+**原因**: `GlassSheet` 容器が `.ignoresSafeArea(edges: .bottom)` を持たず、safe area 境界で停止していた。
+
+**修**: 外側 VStack に `.ignoresSafeArea(edges: .bottom)` 追加。内部 `.padding(.bottom, 40)` は残し、ボタンは home indicator 上方 ~6pt に配置（iOS 標準 bottom sheet 視覚規範）。
+
+**影響範囲**: GlassSheet を使う全 sheet が一括修正。
+
+### 12.3 注册 AI 头像位置 + loading state
+
+**位置調整**: 「写真を選択 / AI で生成 / デフォルトを使う」の縦並びで AI 按钮が真ん中に挟まる UX 不格好 → AI 按钮を最下に移動（itsuki 拍板）。
+
+**Loading state（perceived performance 戦略）**: Apple Image Playground の sheet 初回開く時 ML model cold start で ~5 秒間隔がある。Apple は public prewarm API を提供しないため真の高速化不可。代替策として:
+
+- 「AI で生成」tap → ボタン即座に「準備中…」+ ProgressView spinner に切替 + `disabled(true)`
+- 5.5 秒後の DispatchQueue で兜底復位（cold start 最長覆盖）
+- 背景色 70% opacity で視覚 feedback
+
+**実装**: `AuthStubs.swift` `RegisterStep1View` line 587 `@State isLoadingImagePlayground` 追加 + line 690〜 ボタン UI 切替。
+
+### 12.4 行事予定 日历 layout 修復
+
+**症状 1**: タイトル「2,026 年 4 月」に千位分隔符 comma が混入。
+**原因**: SwiftUI `Text("\(Int)")` は iOS 16+ 以降 Locale formatting が自動適用され Int を groupedDecimal に変換する場合がある。
+**修**: `Text(verbatim:)` で localization を完全 bypass。
+
+**症状 2**: 日付 cell の青ドット（イベント有り標記）が日付数字と重なる。
+**原因**: `ZStack(alignment: .bottom)` で数字とドット両方が底部に整列、ドット `.offset(y: -3)` でも数字に重なる。
+**修**: `ZStack`（default center alignment）で数字を中央配置 + ドットを `VStack { Spacer(); HStack {...}.padding(.bottom, 3) }` で底部配置。
+
+**実装**: `ScheduleStubs.swift` line 75 + line 119-138。
+
+### 12.5 特別運航便 入口統一（MyPage → Home）
+
+**症状**: Home busCard tap → 旧 `BusView()`（簡素一覧、filter なし）/ MyPage settings「特別運航便」tap → 新 `BusListView()`（filter 付き）。同じ機能 2 箇所、品質バラ付き。
+
+**修**: Home busCard の `router.go(.homeBus)` を `router.go(.busList)` に変更 + MyPage settings から「特別運航便」row 削除。`system_features.md §7.6.2` 入口位置更新。
+
+**実装**: `HomeStubs.swift` line 875 + `MyPageStubs.swift` line 211〜 + `02_design/system_features.md` §7.6.2。
+
+### 12.6 ⭐ 重大决策: Apple Intelligence on-device 推理路线统一（2026-05-03 itsuki 拍板）
+
+アバター生成 / お知らせ AI 要約 / 翻訳 すべて Apple 平台原生 framework で統一実装。クラウド AI API（ChatGPT / Gemini / Claude API）依存ゼロ。
+
+| 機能 | 採用 framework | 必要 OS | デバイス制約 |
+|---|---|---|---|
+| アバター生成 | Apple Image Playground | iOS 18.2+ | iPhone 15 Pro+ / Apple Intelligence ON |
+| お知らせ AI 要約 | Foundation Models framework | iOS 26+ | 同上 |
+| 翻訳（日 ⇄ 中） | Translation framework | iOS 17.4+ | 言語 pack download 後オフライン |
+
+**根拠 5 軸**:
+1. **クラウド API 依存ゼロ** — 運用コスト 0、API key 管理不要
+2. **学生 privacy 完全保持** — お知らせ本文 / 返信内容が第三者サーバに出ない
+3. **オフライン可動** — 寮内 wi-fi トラブル時も使える
+4. **Apple Intelligence 非対応端末は機能 hide で UX 一致** — 「ボタン無いだけ」、エラーメッセージ無し
+5. **Image Playground と統一理念** — app 全体が Apple 平台原生 AI 能力に統一押注
+
+**AC 叙事**: `raw/2026-05-03.md §14` ⭐⭐⭐ #AC候選。`system_features.md §7.15.12` AC 叙事段に同内容落档。
+
+### 12.7 SourceKit 誤報問題（環境）
+
+**症状**: 編集後に「Cannot find 'T' / 'RouterStore' / 'AppStore' / 'SEED' in scope」が大量に出るが `xcodebuild -sdk iphonesimulator` で BUILD SUCCEEDED。
+
+**原因**: Xcode 26.4.1（release）+ iPhone iOS 26.5（beta）SDK 不整合により SourceKit indexer が module type を解決できない。実際の compile は通る。
+
+**対処**: 真の build 結果のみ信頼。SourceKit の lint 赤叉は無視。⌘B で確認。
+
+**根本解決（後送り）**: Xcode 26.5 beta インストール or iPhone を 26.4 release にダウングレード。当面 Apple Developer から Xcode 26.5 beta を落として upgrade 検討。
+
+---
+
+**END v2** — 5-03 大量改動を反映（§5 重写 + §12 新増）。

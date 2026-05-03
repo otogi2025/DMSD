@@ -9,7 +9,7 @@
 > **下游 LOG**:
 > - `03_dev/student_ios/IOS_DESIGN_LOG.md`(iOS 専属)
 > - `03_dev/teacher_web/WEB_DESIGN_LOG.md`(Web 専属)
-> **最后更新**: 2026-04-30(轨道 B 拍板序列 — §9 8 条 (a)-(h) + Q12 全部 close;落地 §3.3 / §3.4 / §4.2 / §5 / §6 / §7.1 / §7.3 / §7.10 / §7.13 / §8.1 / §8.6 / §9 / §10 改订记录)
+> **最后更新**: 2026-05-03(itsuki 拍板「学生注册码」§7.16 新章節 + §3.4 / §7.1 联动 — App Store 公開対策。早些更新: 2026-05-03 §7.15 老师公告 / 2026-04-30 §9 8 条 + Q12)
 
 ---
 
@@ -181,6 +181,7 @@ DMSD 内 `bin/sync-ios-refs.sh` 一条命令就把:
   - 实装权威源 → `03_dev/teacher_web/WEB_DESIGN_LOG.md`(待补 §X 教师权限 UX)
 - **留学生 flag**: App 注册时学生自己选"是 / 不是"(Q11)→ 数据来源 = 自己申报,不是学校官方名单
 - **教师密码重置**: 学生 → 找宿管 → 宿管在 Web 后台手动重置 / 教师 → 找跟进项目的负责老师(Q10)
+- **学生注册時 = 教師発行の 6 桁登録コード必須**(2026-05-03 itsuki 拍板, App Store 公開対策, **詳細 §7.16**): 学生は登録 flow 最終 step で「寮務管理」権限教師が後台で生成した 6 桁コードを入力しないと登録不可。コードは同時 1 個のみ有効、5 分で expire、教師が再生成すると前コード即失効。背景・代替案比較 → `05_logs/raw/2026-05-03.md §11`
 
 ---
 
@@ -302,7 +303,8 @@ DMSD 内 `bin/sync-ios-refs.sh` 一条命令就把:
 
 | 功能 | 学生 iOS | 老师 Web | 后端 API | 角色 | Demo/V1 |
 |---|---|---|---|---|---|
-| 学生注册(4 step + 学号 + 房间号 + 留学生 flag)| 〇 | — | `POST /accounts` ⏳ | 学生 | (V1) |
+| 学生注册(4 step + 学号 + 房间号 + 留学生 flag + **登録コード §7.16**)| 〇 | — | `POST /accounts` ⏳ | 学生 | (V1) |
+| 学生注册コード生成 / 配布(App Store 公開対策、§7.16)| — | ⏳ `/admin/registration-code` | `POST /admin/registration-code/refresh` + `GET /admin/registration-code/current` ⏳ | 寮務権限教師 | (V1) |
 | 学生登录(学号 + 密码)| ✅ Auth Stub | ✅ login.jsx | `POST /sessions` ⏳ | 学生 | (D) |
 | 教师登录(教师 ID + 密码,各 1 名独立 R3)| — | ⏳ teacher login | `POST /sessions/teacher` ⏳ | 全教师 | (V1) |
 | 密码重置(自助没有,宿管 Web 操作)| 〇 注册画面文案 | ✅ accounts.jsx | `POST /accounts/:id/password-reset` ⏳ | 寮務 | (D) |
@@ -637,7 +639,7 @@ bus_routes
 
 | 功能 | 学生 iOS | 老师 Web | 后端 API | 角色 | Demo/V1 |
 |---|---|---|---|---|---|
-| 巴士一覧 阅览 #8 | 〇 マイページ「バス時刻」| ✅ 阅览 | `GET /bus/routes` ⏳ | 学生 + 役职 | (V1) |
+| 巴士一覧 阅览 #8 | 〇 **ホーム busCard → BusListView**(filter 付き / 2026-05-03 MyPage から移設・重複解消) | ✅ 阅览 | `GET /bus/routes` ⏳ | 学生 + 役职 | (V1) |
 | 巴士 录入・编辑・删除 #11 | — | ✅ BusManagementPage | `POST/PATCH/DELETE /bus/routes` ⏳ | 役职 | (V1) |
 | 出寮届 提交时选巴士(特别便 / 平日便)#8 | 〇 ApplyForm 帰省方法 = bus 时 dropdown | — | apply 上加关联字段 | 学生 | (V1) |
 | 空港送迎特别便 显示(只在 帰国届时)| 〇 帰国届 ApplyForm | ✅ 同上 | `GET /bus/airport` filter | 学生 + 役职 | (V1) |
@@ -814,6 +816,226 @@ bus_routes
 | **匿名建议 投稿** | 🚫 **砍** | 同上 |
 | **学生 → 帖子 通报功能** | 🚫 **砍**(基底功能砍了所以连带)| - |
 | **音乐(リクエスト曲)功能** | ✅ **留**(§7.11)| 轻量、老师反馈没否定、对学生生活感有贡献 |
+
+> **2026-05-03 補足**: 4-29 拍板で砍ったのは「学生発信(掲示板 / 匿名建議)」。今回追加の §7.15 老师公告 = **老师 → 学生**の単方向 Classroom 風通知(学生返信は附帯機能、学生互見)、性質上「社区機能」には属さず、4-29 拍板と矛盾しない。
+
+### 7.15 老师公告(お知らせ)— 2026-05-03 新増
+
+> **背景**: itsuki 2026-05-03 拍板。重要性「点呼の次」(M1 必達)。Classroom 風 — 老师が活动予告 / 时间変更 / 临时连絡を発信、学生が Home 入口で受け取る、学生は返信可。
+
+#### 7.15.1 範囲(scope)
+
+老师発信時に **3 択**(細分なし、itsuki 2026-05-03 拍板):
+
+| scope | 対象 | 用途例 |
+|---|---|---|
+| `all` | 全寮生 | 全体活动 / 行事予定変更 / 点呼时间临时変更 |
+| `male` | 男寮生のみ | 男寮限定活动 / 部屋点検 |
+| `female` | 女寮生のみ | 女寮限定活动 / 衛生用品配布 |
+
+#### 7.15.2 通知 + Badge
+
+- **iOS / Android push** = 必須(R1 邮件例外、§7.13 矩阵更新)
+- App 内 **赤点 badge** = Home 入口 + 一覧 view 内の未読件数
+- Push 文案 = タイトル(先頭 64 文字)
+- 学生がタップ → 詳細 view 開く + read_at 更新
+
+#### 7.15.3 入口配置(Home)
+
+Home 画面 **顶部 2 ブロック目**(挨拶 + 减点 amber Card の直下):
+
+```
+ホーム画面
+├─ 挨拶 + 通知ベル
+├─ 减点 amber Card
+├─ ⭐ お知らせ Card  ← 最新 1 件 + 「未読 N 件」赤点 + 「すべて見る」
+└─ 既存 LifeTab 内容
+```
+
+#### 7.15.4 一覧 view(`/announcements`)
+
+- 時系列 desc(新 → 旧)
+- カード = タイトル / 摘要(本文先頭 80 文字) / 投稿者(老师名) / 投稿日 / 既読 dot / 返信数 badge
+- スコープ filter は不要 — 学生は自分が対象の分だけ自動 filter 済
+
+#### 7.15.5 詳細 view(`/announcements/:id`)
+
+- ヘッダー: タイトル + 投稿者 + 投稿日 + scope chip
+- 本文(v1.0 plain text + 改行 / v1.1 Markdown 軽サポート)
+- 添付(v1.1 — 画像 / PDF)
+- ⭐ **AI 要約**(本文 + 全返信を 1-2 行に圧縮)
+  - **iOS 26 Foundation Models framework**(設備本地推理 / ゼロ網絡 / ゼロコスト)
+  - Apple Intelligence 対応端末のみ表示、非対応端末は要約ボタン非表示で UX 一致
+- ⭐ **翻訳**(日 ⇄ 中)
+  - iOS 17.4+ **Translation framework**(初回時に言語 pack download、以降オフライン)
+  - 返信本文も逐条翻訳可
+- 返信エリア(下記)
+
+#### 7.15.6 返信(reply)
+
+- **itsuki 2026-05-03 拍板**: 学生**全員互見**(option 2 採用)。理由 = Classroom と同等の透明感、学生間で予定確認しやすい、AI 要約と組み合わせて長スレッドも俯瞰可
+- 投稿: 学生 / 老师 ともに可
+- 削除: 自分の返信のみ削除可。老师は全返信に対する削除権
+- moderation: 通報機能(学生 → 老师)— v1.1。v1.0 は老师が手動巡回(投稿規模が予測可能なため)
+- 表示順: 時系列 asc(古い → 新しい、Slack 風)
+
+#### 7.15.7 老师 Web 端(投稿 / 編集 / 削除 / 返信管理)
+
+- **投稿フォーム**: タイトル / 本文(v1.0 plain text editor) / scope select(all / male / female) / 公開ボタン
+- **一覧**: 自分の投稿 + 全員の投稿(参照可)
+- **編集**: タイトル / 本文 / scope いずれも編集可、編集履歴は audit log(v1.1)
+- **削除**: 老师本人 + 寮監 admin が削除可(soft delete)
+- **返信管理**: 各投稿の返信一覧 + 個別削除
+
+#### 7.15.8 データモデル(§8 で詳細追加予定 ⏳)
+
+```
+announcements
+├── id              UUID PK
+├── title           VARCHAR(120)
+├── body            TEXT
+├── scope           ENUM('all','male','female')
+├── author_teacher_id  FK teachers.id
+├── created_at      TIMESTAMP
+├── updated_at      TIMESTAMP
+└── deleted_at      TIMESTAMP NULL  -- soft delete
+
+announcement_reads        -- 既読 tracking
+├── announcement_id  FK
+├── student_account  FK
+└── read_at          TIMESTAMP
+PRIMARY KEY (announcement_id, student_account)
+
+announcement_replies
+├── id              UUID PK
+├── announcement_id FK
+├── author_kind     ENUM('student','teacher')
+├── author_id       VARCHAR (account or teacher_id)
+├── body            TEXT
+├── created_at      TIMESTAMP
+└── deleted_at      TIMESTAMP NULL
+```
+
+#### 7.15.9 API(草案)
+
+| Method | Path | 用途 |
+|---|---|---|
+| `GET`  | `/announcements` | 一覧(scope auto-filter 済) |
+| `GET`  | `/announcements/:id` | 詳細 + 返信 + read_at 自動更新 |
+| `GET`  | `/announcements/unread-count` | Home badge 数取得 |
+| `POST` | `/announcements/:id/replies` | 返信投稿 |
+| `DELETE` | `/announcements/:id/replies/:rid` | 返信削除(自分 or 老师) |
+| `POST` | `/announcements` | 老师専用 — 投稿 |
+| `PATCH` | `/announcements/:id` | 老师専用 — 編集 |
+| `DELETE` | `/announcements/:id` | 老师専用 — 削除(soft) |
+
+#### 7.15.10 §7.13 通知矩阵更新
+
+既存「お知らせ投稿 → 学生 | push + in-app | push」エントリ = 本仕様で具体化。手段 = push **必須**(R1 邮件例外、学習関連と同列)+ in-app red dot badge + scope-aware。
+
+#### 7.15.11 v1.0 実装スコープ + 後送り
+
+| 項目 | v1.0 | 後送り(v1.1+) |
+|---|---|---|
+| 投稿 / 一覧 / 詳細 / 既読 | ✅ | — |
+| 返信(全員互見) | ✅ | — |
+| AI 要約(Foundation Models) | ✅(対応端末のみ) | 非対応端末向けの代替案検討 |
+| 翻訳(日 ⇄ 中) | ✅ | 多言語拡張(越 / 印 / 韓) |
+| Push 通知 | ✅ | scope = male/female 時の push filter 確認 |
+| 添付(画像 / PDF) | — | v1.1 |
+| 通報機能(学生 → 老师) | — | v1.1(投稿規模次第) |
+| 編集履歴 audit log | — | v1.1 |
+| Markdown editor(老师 Web) | — | v1.1(v1.0 は plain text + 改行のみ) |
+
+#### 7.15.12 AC 叙事(2026-05-03 拍板の論点)
+
+> Apple Intelligence on-device 推理路線への統一(Image Playground 頭像 / Foundation Models 要約 / Translation framework)= **クラウド AI API 依存ゼロ + 学生 privacy 完全保持 + 運用コストゼロ + オフライン可動**。AC 面接で「なぜ ChatGPT/Gemini API でなく Apple 平台原生?」に答えられる体系化判断。判断理由のスナップショットは `05_logs/raw/2026-05-03.md` に dump。
+
+---
+
+### 7.16 学生注册码（教师生成、App Store 公開対策）— 2026-05-03 itsuki 拍板
+
+> **背景**: itsuki 2026-05-03 拍板。**App Store 上架 = 全人類に配布チャネルが開く**ことに自分で気づいて入れた防護。AC 叙事の論点 + 経緯詳細は `05_logs/raw/2026-05-03.md §11`。
+
+#### 7.16.1 設計原理
+
+**「ダウンロードは公開、登録はゲート」** に分離する：
+- App **ダウンロード**は誰でも可（App Store の公開性を活かす — 学生が個人 iPhone に正規ルートで入れられる）
+- App **登録**は教師が発行した有効な登録コードを持っている人だけ（= 物理的に教師に接触できる人）
+
+これによって「**App Store 上架 ≠ 登録の全人類開放**」を実現する。
+
+#### 7.16.2 核心ルール（itsuki 2026-05-03 拍板）
+
+1. **登録コードは数字 6 桁**（例 `483271`）
+   - 短く口頭 / LINE / 教室白板で伝達しやすい
+2. **教師が Web 後台「学生登録コード」パネルでボタンを押すと生成**
+   - 「寮務管理」権限を持つ教師のみ生成可（§3.4 教師権限）
+3. **同時有効コードはシステム全体で 1 個のみ**
+   - 教師が新しいコードを生成すると、**前のコードは即座に無効化**
+   - これが itsuki の言う「**実時間更新**」の意味
+4. **有効期限は 5 分**（生成時刻から）
+   - 過ぎたら自動失効（DB 上 `expires_at < now()`）
+5. **コード自体は再利用可**（有効期限内に複数の学生が同じコードで登録できる）
+   - 集団登録（入寮シーズンの新入生説明会など）に対応
+6. **登録 flow の最終 step に組み込む**
+   - 学生 iOS / Android：パスワード設定の次の step で「教師に発行された登録コードを入力してください」screen
+7. **失敗時のメッセージ**
+   - 「コードが正しくないか、有効期限が切れています。教師に再発行を依頼してください。」
+8. **監査**
+   - コード生成 / 使用イベント全て audit log（actor / timestamp / result）
+
+#### 7.16.3 運用シナリオ
+
+| シナリオ | フロー |
+|---|---|
+| **集団登録**（新入生説明会で 30 人）| 教師が説明会開始時に 1 回ボタン押して生成 → 教室白板 / プロジェクターに 6 桁数字を表示 → 5 分以内に全員登録完了 |
+| **個別登録**（新入生 1 人が後日入寮） | 学生が教師にコード発行を依頼 → 教師が後台でボタン押す → LINE / 口頭で伝達 → 学生が 5 分以内に登録 |
+| **誤って共有してしまった**（例：SNS スクショ流出） | 教師が後台で再生成ボタン → 古いコード即無効化 → 流出コードは効かなくなる |
+
+#### 7.16.4 代替案比較（不採用の理由 — AC narrative 用）
+
+| 案 | 不採用の理由 |
+|---|---|
+| 学校公式名簿との突合 | 当校は名簿が紙 + 各教師の Excel 散在。デジタル前提が成立しない |
+| メールアドレスドメイン filter | 学生は個人 gmail / docomo 使用。学校ドメインがない |
+| App Store に出さない（ad-hoc 配布のまま）| Apple Developer Program 99USD/年の利点が消える、配布の利便性も損なう |
+| 学生 1 人に個別コード LINE で送信 | 教師の手間が爆発、集団登録不可 |
+
+→ **「教師が 1 つのコードを生成 → 同時間帯の生徒は全員それで登録」** が最バランス解。
+
+#### 7.16.5 機能矩陣
+
+| 機能 | 学生 iOS / Android | 教師 Web | 後端 API | 角色 | Demo/V1 |
+|---|---|---|---|---|---|
+| 登録コード入力（登録最終 step）| 〇 RegisterStep ⏳ | — | `POST /accounts` 内検証 ⏳ | 学生 | (V1) |
+| 登録コード生成パネル | — | ⏳ `/admin/registration-code` | `POST /admin/registration-code/refresh` ⏳ | 寮務権限教師 | (V1) |
+| 現在の有効コード表示 + カウントダウン | — | ⏳ 同上 | `GET /admin/registration-code/current` ⏳ | 寮務権限教師 | (V1) |
+| コード生成 / 使用 audit log | — | ⏳ 履歴 tab | `GET /admin/registration-code/history` ⏳ | 寮務権限教師 | (V1.1) |
+
+#### 7.16.6 §7.1 アカウント矩陣との関連
+
+§7.1 の「学生注册(4 step + 学号 + 房间号 + 留学生 flag)」エントリに **「+ 注册コード入力」** を追加（実装は §7.16.5 ⏳）。
+
+#### 7.16.7 §3.4 アカウント運用規則との関連
+
+§3.4 末尾に追加項目として **「学生注册時 = 教師発行の 6 桁コード必須（§7.16）」** を明記。
+
+#### 7.16.8 v1.0 実装スコープ + 後送り
+
+| 項目 | v1.0 | 後送り(v1.1+) |
+|---|---|---|
+| コード生成 / 検証（基本機能）| ✅ | — |
+| 教師 Web 生成パネル + カウントダウン | ✅ | — |
+| 学生登録 step 組込 | ✅ | — |
+| audit log（生成 / 使用）| ✅ | — |
+| 履歴 tab（過去コード閲覧）| — | v1.1 |
+| 寮単位ごとに別コード | — | v1.1 検討（dorm_unit 別コードで男寮 / 女寮 / 2 寮を分離） |
+| Rate limit（連打生成防止）| 簡易（10 秒最短間隔）| v1.1 で詳細化 |
+
+#### 7.16.9 ⭐ AC 叙事フック
+
+「App Store 上架 = 配布の利便性」しか見ていなかった元の認識に対して、「上架 = 全人類に配布チャネルを開放」という側面を自分で発見したことが核心。**問題発見 + 自己認識 + 問題解決** の三点セットが 1 つの素材に揃う。詳細は `05_logs/raw/2026-05-03.md §11`（特に §11.2 自己認識 / §11.4 代替案比較）。
 
 ---
 
