@@ -8,6 +8,7 @@ enum Route: Hashable {
     case splash
     case onboarding
     case registerStep1, registerStep2, registerStep3, registerStep4
+    case registerStep5             // 注册码输入（2026-05-04 加，App Store 上架对策）
     case registerDone
     case login
     case lockout
@@ -15,6 +16,10 @@ enum Route: Hashable {
 
     // §1 Home 主屏
     case home
+
+    // §1.3 老师公告（2026-05-04 加，spec system_features.md §7.15）
+    case homeAnnouncements                     // 公告一覧
+    case homeAnnouncementDetail(id: String)    // 公告详情 + 回复
 
     // §1.4 Home 子页 Community
     case homeNotifications
@@ -75,11 +80,14 @@ enum Route: Hashable {
         case .registerStep2: return "点呼区分"
         case .registerStep3: return "連絡先"
         case .registerStep4: return "パスワード"
+        case .registerStep5: return "認証コード"
         case .registerDone: return "完了"
         case .login: return "ログイン"
         case .lockout: return "ロック中"
         case .pwreset: return "パスワードリセット"
         case .home: return "ホーム"
+        case .homeAnnouncements: return "お知らせ"
+        case .homeAnnouncementDetail: return "お知らせ詳細"
         case .homeNotifications: return "通知"
         case .homePackages: return "宅配"
         case .homePackageDetail: return "宅配詳細"
@@ -157,7 +165,8 @@ enum Route: Hashable {
     var hidesBottomNav: Bool {
         switch self {
         case .splash, .onboarding,
-             .registerStep1, .registerStep2, .registerStep3, .registerStep4, .registerDone,
+             .registerStep1, .registerStep2, .registerStep3, .registerStep4, .registerStep5,
+             .registerDone,
              .login, .lockout, .pwreset:
             return true
         default: return false
@@ -168,7 +177,8 @@ enum Route: Hashable {
     var hidesTopBar: Bool {
         switch self {
         case .splash, .onboarding,
-             .registerStep1, .registerStep2, .registerStep3, .registerStep4, .registerDone,
+             .registerStep1, .registerStep2, .registerStep3, .registerStep4, .registerStep5,
+             .registerDone,
              .login, .lockout, .pwreset:
             return true
         default: return false

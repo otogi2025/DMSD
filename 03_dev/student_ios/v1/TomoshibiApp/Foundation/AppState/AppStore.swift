@@ -90,6 +90,107 @@ final class AppStore: ObservableObject {
         )
     }
 
+    // MARK: - 学生新规注册（2026-05-04 加，spec system_features.md §7.16）
+    //
+    // ⚠️ DEMO-ONLY 注意：当前 RegisterStep1-4 各自管 local @State，没有累积到 store。
+    // 本函数用 hardcoded demo 字段 + 学生输入的 6 桁注册码调 backend，验证 wire 通即可。
+    // v1.0 上线前必须改：Step1-4 onNext 时把字段写入 RegistrationDraft，本函数读 draft。
+
+    /// 学生新规注册 — 调 POST /api/v1/accounts，成功后 token 自动写入 authToken
+    /// (didSet 同步给 APIClient + Keychain)。
+    func createAccount(registrationCode: String) async throws -> StudentAccountCreateResponse {
+        let body = StudentAccountCreateBody(
+            // ⚠️ DEMO-ONLY 占位 — v1.0 改为 RegistrationDraft 累积值
+            name: "新入生 太郎",
+            name_kana: "シンニュウセイ タロウ",
+            birthday: nil,
+            gender: "male",
+            grade_code: "07",
+            class_code: "01",
+            seat_no: "05",
+            category: "一般寮生",
+            room_no: "M205",
+            dorm_unit: 2,
+            is_overseas: false,
+            email: nil,
+            phone: nil,
+            password: "demo1234",
+            registration_code: registrationCode
+        )
+        let res = try await AccountsAPI.createAccount(body: body)
+        // didSet 自动同步 APIClient + Keychain
+        self.authToken = res.accessToken
+        return res
+    }
+
+    // MARK: - 老师公告 state（2026-05-04 加，spec §7.15）
+
+    /// 主页 badge 用未读数（每次进入主页 + 收到 push 时刷新）
+    @Published var announcementUnreadCount: Int = 0
+
+    /// 列表 cache — 进入一覧 view 时 reload；详情访问后该 entry 的 isRead 翻 true
+    @Published var announcements: [AnnouncementBrief] = []
+
+    /// 详情 cache — 按 id 缓存，回复发完后 append 到对应 detail
+    @Published var announcementDetails: [String: AnnouncementDetail] = [:]
+
+    /// 拉未读数
+    func loadAnnouncementUnreadCount() async {
+        do {
+            let res = try await AnnouncementsAPI.unreadCount()
+            self.announcementUnreadCount = res.unreadCount
+        } catch {
+            // 拉失败不阻塞主页其他功能 — 静默忽略，下次刷新再试
+        }
+    }
+
+    /// 拉列表（一覧 view 进入时调）
+    func loadAnnouncementList() async throws {
+        let res = try await AnnouncementsAPI.list()
+        self.announcements = res.items
+    }
+
+    /// 拉详情（详情 view 进入时调；自动写已读 → backend 下次 list 返回 isRead=true）
+    func loadAnnouncementDetail(id: String) async throws {
+        let detail = try await AnnouncementsAPI.detail(id: id)
+        self.announcementDetails[id] = detail
+        // 详情 GET 后端会自动 mark read，本地 cache 也同步翻 true
+        if let idx = announcements.firstIndex(where: { $0.id.uuidString == id }) {
+            // brief 是 immutable struct — 整条替换
+            let old = announcements[idx]
+            announcements[idx] = AnnouncementBrief(
+                id: old.id, title: old.title, bodySummary: old.bodySummary,
+                scope: old.scope, authorTeacherId: old.authorTeacherId,
+                authorTeacherName: old.authorTeacherName,
+                createdAt: old.createdAt, updatedAt: old.updatedAt,
+                isRead: true,                       // ← flip 已读
+                replyCount: old.replyCount
+            )
+        }
+        // 同步未读数
+        await loadAnnouncementUnreadCount()
+    }
+
+    /// 发回复（学生用 — 老师 reply 走 teacher_web）
+    func postAnnouncementReply(announcementId: String, body: String) async throws {
+        let reply = try await AnnouncementsAPI.postReply(
+            announcementId: announcementId, body: body
+        )
+        // 同步本地 detail cache
+        if var detail = announcementDetails[announcementId] {
+            // detail.replies 是 let 字段 — 整条替换
+            let updated = AnnouncementDetail(
+                id: detail.id, title: detail.title, body: detail.body,
+                scope: detail.scope, authorTeacherId: detail.authorTeacherId,
+                authorTeacherName: detail.authorTeacherName,
+                createdAt: detail.createdAt, updatedAt: detail.updatedAt,
+                replies: detail.replies + [reply]
+            )
+            announcementDetails[announcementId] = updated
+            _ = detail  // 避免 unused warn
+        }
+    }
+
     // MARK: - Toast 辅助
 
     func showToast(_ text: String) {

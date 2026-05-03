@@ -98,6 +98,124 @@ struct StudyAbsenceRequestOut: Decodable, Hashable, Identifiable {
     let comment: String?
 }
 
+// MARK: - 学生新规注册（POST /accounts，2026-05-04 加）
+
+/// POST /api/v1/accounts 请求 body
+/// 跟 backend StudentAccountCreateIn 对齐（schemas.py）
+struct StudentAccountCreateBody: Encodable {
+    let name: String
+    let name_kana: String?
+    let birthday: String?           // "yyyy-MM-dd"，没填传 nil
+    let gender: String              // "male" or "female"
+    let grade_code: String          // 2 桁
+    let class_code: String          // 2 桁
+    let seat_no: String             // 2 桁
+    let category: String            // "一般寮生" 等
+    let room_no: String             // "M101" / "W205" 等
+    let dorm_unit: Int              // 1 / 2 / 4
+    let is_overseas: Bool
+    let email: String?
+    let phone: String?
+    let password: String
+    let registration_code: String   // 6 桁数字（教师生成、5 分钟有效）
+}
+
+/// POST /api/v1/accounts 响应（成功 201）
+/// 跟 backend StudentAccountCreateOut 对齐
+struct StudentAccountCreateResponse: Decodable {
+    let accessToken: String
+    let tokenType: String           // "bearer"
+    let expiresIn: Int
+    let student: StudentBrief
+
+    enum CodingKeys: String, CodingKey {
+        case accessToken = "access_token"
+        case tokenType = "token_type"
+        case expiresIn = "expires_in"
+        case student
+    }
+}
+
+// MARK: - 老师公告（2026-05-04 加，spec system_features.md §7.15）
+
+/// 列表 view 用 — 本文摘要 + 已读状态 + 回复数
+struct AnnouncementBrief: Decodable, Identifiable, Hashable {
+    let id: UUID
+    let title: String
+    let bodySummary: String
+    let scope: String               // "all" / "male" / "female"
+    let authorTeacherId: UUID
+    let authorTeacherName: String
+    let createdAt: Date
+    let updatedAt: Date
+    let isRead: Bool
+    let replyCount: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id, title, scope
+        case bodySummary = "body_summary"
+        case authorTeacherId = "author_teacher_id"
+        case authorTeacherName = "author_teacher_name"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+        case isRead = "is_read"
+        case replyCount = "reply_count"
+    }
+}
+
+/// GET /announcements 响应
+struct AnnouncementListResponse: Decodable {
+    let items: [AnnouncementBrief]
+}
+
+/// 回复条目
+struct AnnouncementReplyOut: Decodable, Identifiable, Hashable {
+    let id: UUID
+    let authorKind: String          // "student" or "teacher"
+    let authorId: UUID
+    let authorName: String
+    let body: String
+    let createdAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id, body
+        case authorKind = "author_kind"
+        case authorId = "author_id"
+        case authorName = "author_name"
+        case createdAt = "created_at"
+    }
+}
+
+/// 详情 view — 本文全文 + 回复列表
+struct AnnouncementDetail: Decodable, Hashable {
+    let id: UUID
+    let title: String
+    let body: String
+    let scope: String
+    let authorTeacherId: UUID
+    let authorTeacherName: String
+    let createdAt: Date
+    let updatedAt: Date
+    let replies: [AnnouncementReplyOut]
+
+    enum CodingKeys: String, CodingKey {
+        case id, title, body, scope, replies
+        case authorTeacherId = "author_teacher_id"
+        case authorTeacherName = "author_teacher_name"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+/// GET /announcements/unread-count 响应
+struct AnnouncementUnreadCount: Decodable {
+    let unreadCount: Int
+
+    enum CodingKeys: String, CodingKey {
+        case unreadCount = "unread_count"
+    }
+}
+
 // MARK: - 自由 JSON 字段
 
 /// backend 用 `dict[str, Any]` 返的字段用的薄 Codable wrapper。

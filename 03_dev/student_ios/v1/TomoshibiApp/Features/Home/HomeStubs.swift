@@ -2199,3 +2199,381 @@ private struct FlowLayout: Layout {
     }
     .environmentObject(AppStore())
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 老师公告（2026-05-04 加，spec system_features.md §7.15）
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// 视图（v1.0 最小可工作版）：
+//   - AnnouncementListView: GET /announcements 列表（新→旧、scope 已 backend 过滤）
+//   - AnnouncementDetailView: GET /announcements/:id 详情 + 回复 + 发回复
+//
+// 后送（v1.1）：
+//   - HomeView 顶部嵌 AnnouncementCard（最新 1 件 + 红点 N，§7.15.3）
+//   - AI 要約 (Foundation Models, iOS 26)、翻译 (Translation, iOS 17.4+)
+//   - push 通知
+
+// MARK: - 列表 view
+
+struct AnnouncementListView: View {
+    @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
+
+    @State private var isLoading: Bool = false
+    @State private var loadError: String? = nil
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // 顶部 header (返回 + 标题)
+            HStack(spacing: 12) {
+                Button {
+                    router.back()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(T.ink)
+                        .frame(width: 36, height: 36)
+                }
+                Text("お知らせ")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(T.ink)
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+
+            if isLoading {
+                ProgressView().padding(.top, 60)
+                Spacer()
+            } else if let err = loadError {
+                Text(err)
+                    .font(.system(size: 14))
+                    .foregroundStyle(.red)
+                    .padding(.top, 40)
+                    .padding(.horizontal, 24)
+                Spacer()
+            } else if app.announcements.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "bell.slash")
+                        .font(.system(size: 48))
+                        .foregroundStyle(T.inkMute)
+                    Text("お知らせはありません")
+                        .font(.system(size: 14))
+                        .foregroundStyle(T.inkSub)
+                }
+                .padding(.top, 80)
+                Spacer()
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(app.announcements) { ann in
+                            AnnouncementListCard(ann: ann)
+                                .onTapGesture {
+                                    router.go(.homeAnnouncementDetail(id: ann.id.uuidString))
+                                }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4)
+                    .padding(.bottom, 24)
+                }
+            }
+        }
+        .background(T.paper.ignoresSafeArea())
+        .task { await reload() }
+    }
+
+    private func reload() async {
+        isLoading = true
+        loadError = nil
+        do {
+            try await app.loadAnnouncementList()
+        } catch {
+            loadError = "通信エラーが発生しました"
+        }
+        isLoading = false
+    }
+}
+
+/// 列表 1 行 card — 标题 / 摘要 / 老师名 / 时刻 / 已读 dot / 回复数
+private struct AnnouncementListCard: View {
+    let ann: AnnouncementBrief
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            // 已读状态 dot — 未读时蓝色实心
+            Circle()
+                .fill(ann.isRead ? Color.clear : T.primary)
+                .frame(width: 8, height: 8)
+                .padding(.top, 6)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(ann.title)
+                    .font(.system(size: 15, weight: ann.isRead ? .regular : .semibold))
+                    .foregroundStyle(T.ink)
+                    .lineLimit(2)
+
+                Text(ann.bodySummary)
+                    .font(.system(size: 13))
+                    .foregroundStyle(T.inkSub)
+                    .lineLimit(2)
+
+                HStack(spacing: 8) {
+                    Text(ann.authorTeacherName)
+                        .font(.system(size: 11))
+                        .foregroundStyle(T.inkMute)
+                    Text("·")
+                        .font(.system(size: 11))
+                        .foregroundStyle(T.inkMute)
+                    Text(formatRelative(ann.createdAt))
+                        .font(.system(size: 11))
+                        .foregroundStyle(T.inkMute)
+                    if ann.replyCount > 0 {
+                        Spacer()
+                        HStack(spacing: 3) {
+                            Image(systemName: "bubble.left")
+                                .font(.system(size: 10))
+                            Text("\(ann.replyCount)")
+                                .font(.system(size: 11, weight: .medium))
+                        }
+                        .foregroundStyle(T.inkSub)
+                    }
+                }
+                .padding(.top, 2)
+            }
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 14)
+        .background {
+            RoundedRectangle(cornerRadius: 14).fill(T.paper)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 14).stroke(T.hair, lineWidth: 1)
+        }
+    }
+
+    /// "X 分前 / X 時間前 / MM/dd" 简化日期格式（UI 字符串日语保留）
+    private func formatRelative(_ date: Date) -> String {
+        let now = Date()
+        let diff = Int(now.timeIntervalSince(date))
+        if diff < 60 { return "たった今" }
+        if diff < 3600 { return "\(diff / 60) 分前" }
+        if diff < 86400 { return "\(diff / 3600) 時間前" }
+        let f = DateFormatter()
+        f.dateFormat = "MM/dd"
+        return f.string(from: date)
+    }
+}
+
+// MARK: - 详情 view
+
+struct AnnouncementDetailView: View {
+    let id: String
+    @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
+
+    @State private var isLoading: Bool = false
+    @State private var loadError: String? = nil
+    @State private var replyText: String = ""
+    @State private var isPosting: Bool = false
+
+    private var detail: AnnouncementDetail? {
+        app.announcementDetails[id]
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // header
+            HStack(spacing: 12) {
+                Button {
+                    router.back()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(T.ink)
+                        .frame(width: 36, height: 36)
+                }
+                Text("お知らせ詳細")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(T.ink)
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+
+            if isLoading && detail == nil {
+                ProgressView().padding(.top, 60)
+                Spacer()
+            } else if let err = loadError {
+                Text(err)
+                    .font(.system(size: 14))
+                    .foregroundStyle(.red)
+                    .padding(.top, 40)
+                    .padding(.horizontal, 24)
+                Spacer()
+            } else if let d = detail {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        // 标题 + 元信息
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(d.title)
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundStyle(T.ink)
+                            HStack(spacing: 8) {
+                                Text(d.authorTeacherName)
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(T.inkSub)
+                                Text("·").foregroundStyle(T.inkMute)
+                                Text(formatFull(d.createdAt))
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(T.inkMute)
+                            }
+                        }
+
+                        // 正文
+                        Text(d.body)
+                            .font(.system(size: 14))
+                            .foregroundStyle(T.ink)
+                            .lineSpacing(4)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        Divider().padding(.vertical, 4)
+
+                        // 回复列表（旧→新，Slack 风）
+                        Text("返信 (\(d.replies.count))")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(T.inkSub)
+
+                        if d.replies.isEmpty {
+                            Text("まだ返信はありません")
+                                .font(.system(size: 12))
+                                .foregroundStyle(T.inkMute)
+                                .padding(.vertical, 8)
+                        } else {
+                            ForEach(d.replies) { r in
+                                AnnouncementReplyRow(reply: r)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+                }
+
+                // 回复输入框
+                HStack(spacing: 8) {
+                    TextField("返信を入力...", text: $replyText, axis: .vertical)
+                        .lineLimit(1...4)
+                        .font(.system(size: 14))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background {
+                            RoundedRectangle(cornerRadius: 18).fill(T.paper)
+                        }
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 18).stroke(T.hair, lineWidth: 1)
+                        }
+
+                    Button {
+                        sendReply()
+                    } label: {
+                        Image(systemName: isPosting ? "ellipsis" : "paperplane.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 40, height: 40)
+                            .background {
+                                Circle().fill(canSend ? T.primary : T.inkMute)
+                            }
+                    }
+                    .disabled(!canSend || isPosting)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(T.paper)
+            } else {
+                Spacer()
+            }
+        }
+        .background(T.paper.ignoresSafeArea())
+        .task { await loadDetail() }
+    }
+
+    private var canSend: Bool {
+        !replyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func loadDetail() async {
+        isLoading = true
+        loadError = nil
+        do {
+            try await app.loadAnnouncementDetail(id: id)
+        } catch {
+            loadError = "通信エラーが発生しました"
+        }
+        isLoading = false
+    }
+
+    private func sendReply() {
+        let body = replyText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !body.isEmpty, !isPosting else { return }
+        isPosting = true
+        Task {
+            do {
+                try await app.postAnnouncementReply(announcementId: id, body: body)
+                replyText = ""
+            } catch {
+                // 失败时保留输入内容、用户可重试
+            }
+            isPosting = false
+        }
+    }
+
+    private func formatFull(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy/MM/dd HH:mm"
+        return f.string(from: date)
+    }
+}
+
+private struct AnnouncementReplyRow: View {
+    let reply: AnnouncementReplyOut
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Text(reply.authorName)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(reply.authorKind == "teacher" ? T.primary : T.ink)
+                if reply.authorKind == "teacher" {
+                    Text("教員")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background {
+                            Capsule().fill(T.primary)
+                        }
+                }
+                Spacer()
+                Text(formatTime(reply.createdAt))
+                    .font(.system(size: 11))
+                    .foregroundStyle(T.inkMute)
+            }
+            Text(reply.body)
+                .font(.system(size: 13))
+                .foregroundStyle(T.ink)
+                .lineSpacing(3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background {
+            RoundedRectangle(cornerRadius: 10).fill(T.paper.opacity(0.6))
+        }
+    }
+
+    private func formatTime(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return f.string(from: date)
+    }
+}

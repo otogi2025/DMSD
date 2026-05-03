@@ -54,6 +54,7 @@ struct RootView: View {
         case .registerStep2: RegisterStep2View()
         case .registerStep3: RegisterStep3View()
         case .registerStep4: RegisterStep4View()
+        case .registerStep5: RegisterStep5View()
         case .registerDone: RegisterDoneView()
         case .login: LoginView()
         case .lockout: LockoutView()
@@ -61,6 +62,10 @@ struct RootView: View {
 
         // §1 Home 主屏 — Agent B 实装
         case .home: HomeView()
+
+        // §1.3 老师公告（2026-05-04 加，spec §7.15）
+        case .homeAnnouncements: AnnouncementListView()
+        case .homeAnnouncementDetail(let id): AnnouncementDetailView(id: id)
 
         // §1.4 Home 子页 — Agent C 实装
         case .homeNotifications: NotificationsView()

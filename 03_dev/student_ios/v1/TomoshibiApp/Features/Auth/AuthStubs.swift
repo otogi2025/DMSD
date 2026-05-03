@@ -1284,10 +1284,11 @@ struct RegisterStep4View: View {
             }
 
             footerDouble(
-                nextTitle: "アカウント作成完了",
+                nextTitle: "次へ",
                 nextEnabled: canSubmit,
                 onBack: { router.go(.registerStep3) },
-                onNext: { router.replace(.registerDone) }
+                // 2026-05-04 改: Step4 之后跳到 Step5 (注册码输入)，不再直接 replace done
+                onNext: { router.go(.registerStep5) }
             )
         }
         .background(T.paper.ignoresSafeArea())
@@ -1852,6 +1853,160 @@ struct PwResetView: View {
 
 #Preview("PwReset") {
     PwResetView()
+        .environmentObject(RouterStore())
+        .environmentObject(AppStore())
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - §0.6.5 RegisterStep5 認証コード（2026-05-04 加，App Store 上架对策）
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// spec: system_features.md §7.16 + IOS_DESIGN_LOG.md §3.10（spec 已落 5-03）
+//
+// UX:
+//   amber banner: 提醒「教师在后台生成的 6 桁数字、5 分钟有效」
+//   1 个大字 input: 6 桁数字、键盘 .numberPad、字号 28、kerning 8、居中
+//   底部 footerDouble: 戻る + アカウント作成完了 (disabled if !canSubmit || isLoading)
+//   isLoading 时按钮转「送信中…」+ disabled
+//   错误显示: 红色 banner，文案来自 backend (e.g. "コードが正しくないか…")
+
+struct RegisterStep5View: View {
+    @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
+
+    @State private var code: String = ""
+    @State private var isLoading: Bool = false
+    @State private var errorMsg: String? = nil
+
+    /// 6 桁数字才能 submit
+    private var canSubmit: Bool {
+        code.count == 6 && code.allSatisfy { $0.isNumber }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            RegisterHeader(title: "認証コード")
+            RegisterProgress(step: 5)
+
+            ScrollView {
+                VStack(spacing: 20) {
+                    // amber 注意 banner — 解释为什么需要这个码
+                    HStack(alignment: .top, spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(T.warn)
+                                .frame(width: 24, height: 24)
+                            Text("!")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(.white)
+                        }
+                        .frame(width: 24, height: 24)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("ご注意ください")
+                                .font(.system(size: 12.5, weight: .bold))
+                                .foregroundStyle(T.warnDeep)
+                            Text("教員から発行された 6 桁の認証コードを入力してください。コードは発行から 5 分以内のみ有効です。")
+                                .font(.system(size: 12.5))
+                                .foregroundStyle(T.warnDeep)
+                                .lineSpacing(3)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .padding(.vertical, 14)
+                    .padding(.horizontal, 16)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .background {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(T.warnBg)
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(T.warn.opacity(0.25), lineWidth: 1)
+                    }
+
+                    // 6 桁数字 input — 居中大字
+                    VStack(spacing: 8) {
+                        Text("認証コード（6 桁）")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(T.inkSub)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        TextField("000000", text: $code)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.center)
+                            .font(.system(size: 28, weight: .heavy, design: .monospaced))
+                            .kerning(8)
+                            .padding(.vertical, 16)
+                            .background {
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(T.paper)
+                            }
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(T.hair, lineWidth: 1)
+                            }
+                            .onChange(of: code) { _, new in
+                                // 限制只能输入数字 + 最多 6 桁
+                                let filtered = String(new.filter { $0.isNumber }.prefix(6))
+                                if filtered != new { code = filtered }
+                                // 输入有改动 → 清掉旧错误提示
+                                if errorMsg != nil { errorMsg = nil }
+                            }
+                    }
+                    .padding(.top, 4)
+
+                    // 错误显示（backend 422 文案来这里）
+                    if let msg = errorMsg {
+                        Text(msg)
+                            .font(.system(size: 13))
+                            .foregroundStyle(.red)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 14)
+                            .background {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.red.opacity(0.08))
+                            }
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
+            }
+
+            footerDouble(
+                nextTitle: isLoading ? "送信中…" : "アカウント作成完了",
+                nextEnabled: canSubmit && !isLoading,
+                onBack: { router.go(.registerStep4) },
+                onNext: submit
+            )
+        }
+        .background(T.paper.ignoresSafeArea())
+    }
+
+    /// 调 backend POST /accounts、成功 → register done、失败 → 显示错误
+    private func submit() {
+        guard canSubmit, !isLoading else { return }
+        isLoading = true
+        errorMsg = nil
+        Task {
+            do {
+                _ = try await app.createAccount(registrationCode: code)
+                router.replace(.registerDone)
+            } catch APIError.unprocessable(let msg) {
+                // backend 给的文案直接显示给学生（spec §7.16.2 规则 7 已固定）
+                errorMsg = msg
+            } catch {
+                errorMsg = "通信エラーが発生しました。もう一度お試しください。"
+            }
+            isLoading = false
+        }
+    }
+}
+
+#Preview("RegisterStep5") {
+    RegisterStep5View()
         .environmentObject(RouterStore())
         .environmentObject(AppStore())
 }

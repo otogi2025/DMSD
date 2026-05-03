@@ -551,6 +551,8 @@ class StudentAccountCreateOut(BaseModel):
     """201 — JWT（永久 session，和 login 同等）+ 学生 brief。"""
 
     access_token: str
+    # 跟 TokenOut 对齐，方便 iOS 复用同一个 Decodable
+    token_type: Literal["bearer"] = "bearer"
     expires_in: int
     student: StudentBrief
 
