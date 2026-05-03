@@ -113,7 +113,7 @@ iCloud 路径：`iCloud/02_学习与知识/升学/AC/筑波大学 AC入試 準�
 
 - **当前版本** = `CHANGELOG.md` 顶部 + `WIP.md` 头部（双源同步，bump 时一起改）
 - **运行手册** = **`00_admin/版本管理SOP.md`** — 决策树 / bump 5 步 / commit 前缀速查 / 联动 6 处必改
-- **打 tag** = 发布动作，CC **不能自动**，必须 itsuki 明示
+- **打 tag** = CC 主动判断 bump 时机（SOP §10 4 问 hit 就提议）→ itsuki 拍板 patch/minor/major（叙事级判断）→ CC 执行（打 tag + commit CHANGELOG + push 一气呵成）。**AC 叙事文档 itsuki 自己写**（CC 等她来问才辅助，不主动起草）— 详见 §会话结束 §6（2026-05-04 拍板）
 - **触发 SOP 阅读**：commit `feat:`/`fix:` ／ 改 `01_specs/` 主体或 `02_design/system_features.md` ／ itsuki 说 "bump"/"打 tag"/"迭代版本" ／ pre-commit "考虑 bump" 提示
 
 ### 会话结束前一致性检查（CC 必做）
@@ -157,9 +157,14 @@ iOS Swift 実装在独立 repo `otogi2025/Tomoshibi-iOS`（`~/dev/TomoshibiiOSAp
 - 她需要能在 AC 面试时解释每个模块的功能和设计原因
 - CC 写出 itsuki 当时不完全理解的代码时，停下来讲清楚，记 `[分歧]` B 类（见下 AC 记录）
 
-## 会话开始：`00_admin/WIP.md` 必读
+## 会话开始：`00_admin/WIP.md` 必读 + `00_admin/TODO.md` 顶部扫一遍
 
-了解当前进度 / 进行中任务 / 多会话文件边界。`WIP.md` CC 可直写；`progress_overview.md` 只起草等 itsuki 确认。
+**两个文件都读**（2026-05-04 拍板，背景：WIP/TODO 边界整理）：
+
+1. **`00_admin/WIP.md` 全文**（短，~150 行）— 当前版本 / 当下焦点 / 最近 5 次会话做了什么 / 多会话文件占用 / 阻塞项
+2. **`00_admin/TODO.md` 顶部 200 行** — 所有未完成事项的完整 backlog（**真值在 TODO 不在 WIP**）
+
+**WIP vs TODO 铁律**：WIP = 当下书签（短小、5 次会话上限）；TODO = 完整未完成 backlog（真值）。**WIP 绝不复述 TODO 的内容**。会话中新增的 backlog 写到 TODO.md，**不写 WIP**。CC 可直写 WIP / 可加任务和标完成到 TODO；`progress_overview.md` 只起草等 itsuki 确认。
 
 ---
 
@@ -172,6 +177,9 @@ iOS Swift 実装在独立 repo `otogi2025/Tomoshibi-iOS`（`~/dev/TomoshibiiOSAp
 
 2. **没有素材就硬凹**
    每次会话结束 CC 必须 dump 至少 1-2 条 AC 素材到 raw/，**即使当天看起来"没什么大事"也要硬凹**。"硬凹"= 把日常技术工作（修 bug / 跑 build / 解决依赖问题 / 装新工具）也包装成成长叙事 — 把"今天我学会了 X"、"今天我决定 Y 因为 Z"、"今天我意识到 A 比 B 好"这种角度挖出来。原因：AC 评委想看的是"持续在动手"的轨迹，不是惊天动地决策。**只要 commit 不为零，就有 AC 素材可写**。
+
+3. **CC 主动发现的问题 = itsuki 的 AC 素材，必须主动 dump**（2026-05-04 itsuki 强调）
+   CC 看到 itsuki 不知道的问题（技术 / 流程 / AC / 学习方法 / 自我管理）→ **不仅要当场跟她说**（§对话规则 §7），**还要主动 dump 到 raw/** 当成她的 AC 素材。即使是 CC 发现的，过程也算 itsuki 的（她有了"通过工具发现问题"的能力 + 她做了"采纳/拒绝/修改"的判断）。原因：itsuki 是高中生没系统学过自我反思框架，很多解决问题的过程她不会主动记下来；CC 主动发现 + 主动记录 = 帮她攒 AC 素材。原话：「我最主要的还是需要你的辅助，**有时候我不会自己去记录包括我发现问题、解决问题的能力**。**有时候并不是我发现问题，是你发现了问题，但是也算到我的头上**」。
 
 操作手册 `00_admin/CLAUDE_CODE_记录指南.md` 只在需要 dump 格式时才读；itsuki 侧完整章程 `AC入试记录指南_v3.md` 在 iCloud（CC 不读）。
 
@@ -314,13 +322,37 @@ CC 默认只打 `#AC候选`；升级第 2 层（`#AC強候補`）判断权在 it
 
 ---
 
-### 6. git commit（等 itsuki 明示 → 跑）
+### 6. git commit（CC 自己拍板做 / push 等 itsuki 明示 / tag 跑 SOP 流程）
+
+> **2026-05-04 itsuki 拍板 — 协作模型升级**
+
+#### 谁做什么
+
+| 谁做 | 做什么 |
+|---|---|
+| **CC 自动** | commit 本地（不 push）/ raw/ 详细 dump（"全部记录下来"）/ 起草 CHANGELOG 段（事实清单技术性）/ 主动提 bump 时机（SOP §10 4 问 hit 就提）|
+| **itsuki 主导** | push 时机（"推到 X commit 为止"）/ bump 决定（patch/minor/major）/ **AC 叙事整个文档**（自己写，CC 等她来问才辅助，不主动起草）|
+| **CC 执行** | itsuki 点头后 → 打 tag + commit CHANGELOG 文件 + push 一气呵成 |
+
+#### commit 规范（CC 自动跑时遵守）
 
 - commit message 详细：首行 `feat/fix/chore: 简述`，空行后主体分点列 **why + what**
 - 不写 `Co-Authored-By` trailer（memory `feedback_commit_style.md`）
 - 用 HEREDOC 传 message 保中文换行；pre-commit hook 自动跑
-- 不 push（除非 itsuki 明说"push"）
+- **本地 commit 后不 push**（push 等 itsuki 明示「推到 X commit」）
+- **别会话的未提交改动**（`git status` 里别人的 WIP）→ 不打包，留给那个会话或 itsuki 自己处理
+- 涉及凭证 / 密码 / 私密内容 → 先问 itsuki
+- 改了 `CLAUDE.md` / 系统设计 / 规则类文件 → commit 完主动告知"我推了 X 规则上去"
 - commit 跑完后用「**原来 / 问题 / 改成**」三段式中文总结，不讲 git 工具
+
+#### CHANGELOG vs AC 叙事 的关键差别
+
+| 类型 | 内容 | 谁写 |
+|---|---|---|
+| **CHANGELOG** | 事实清单（"v0.9.0 加了 X / 改了 Y / 修了 Z"，时间 + 文件 + commit hash）| **CC 起草** |
+| **AC 叙事** | itsuki 的故事（"为什么做、学到了什么、推翻过什么、面试时怎么讲"）| **itsuki 自己写**，CC 辅助不起草 |
+
+→ 历史 v0.3.0 ~ v0.8.0 的 6 个 `v0.X.Y_AC叙事.md` 都是 CC 起草的，**保持不动**。新规则**从下一次 bump 起生效**。
 
 ---
 
@@ -328,7 +360,7 @@ CC 默认只打 `#AC候选`；升级第 2 层（`#AC強候補`）判断权在 it
 
 提醒做月度回顾（挑 `#AC候选` + 写 `monthly_review/YYYY-MM.md` 到 iCloud）
 
-**不做**：长篇专业名词总结 / 直接写 iCloud AC 目录 / 未授权 `git push` 或 `git tag`。
+**不做**：长篇专业名词总结 / 直接写 iCloud AC 目录 / 未授权 `git push` / 未经 itsuki 拍板版本号就打 `git tag` / 主动起草 `v0.X.Y_AC叙事.md`（itsuki 自己写）。
 
 ---
 
