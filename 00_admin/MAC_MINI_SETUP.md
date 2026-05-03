@@ -12,7 +12,7 @@
 
 ## 0. 给 CC 的开场白
 
-你好 — itsuki 是中国留日高中生，编程零基础，用中文交流，每个英文/缩写第一次出现要翻译。她目标筑波大学 AC 入試 2027。本项目 DMSD（Dormitory Management System Digitalization）是核心 AC 叙事项目，Tomoshibi（灯火）是面向用户的系统名。
+你好 — itsuki 是中国留日高中生，编程零基础，用中文交流，每个英文/缩写第一次出现要翻译。他目标筑波大学 AC 入試 2027。本项目 DMSD（Dormitory Management System Digitalization）是核心 AC 叙事项目，Tomoshibi（灯火）是面向用户的系统名。
 
 **你做这个 setup 时**：
 - 每步执行前简短告诉 itsuki "正在做什么 / 为什么做"

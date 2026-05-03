@@ -6,7 +6,7 @@
 > - 和 `progress_overview.md` 的区别: progress_overview 是稳定的章节目录,TODO 是可以频繁增删的任务池
 > - 完成的任务: 在 checkbox 前打 x,隔段时间(每周或每月)批量移到"已完成归档"
 
-**最后更新**: 2026-04-30
+**最后更新**: 2026-05-04（加 §📋 旧 backlog + 全文件审查 未结余项整合）
 **当前版本**: 见 `CHANGELOG.md` 顶部 · 单源真值，见 `00_admin/文档同步点清单.md`
 
 > **2026-04-17 归档说明**：`executable_dev_checklist.md` 已归档到 `99_archive/2026-04-12_executable_dev_checklist.md`（内容已过期，功能被本 TODO.md 吸收）。
@@ -289,6 +289,128 @@
   - 待 itsuki 确认:当前是 4-step 还是 5-step?哪个权威?
   - 选项 a:确认 5-step 是真值,CLAUDE.md 改回"5-step"具体描述,IOS_DESIGN_LOG 是权威
   - 选项 b:确认 4-step 是真值,IOS_DESIGN_LOG §3.9.2 是过期描述要回滚
+
+---
+
+## 📋 旧审查 backlog + 5-01 全文件审查 未结余项（2026-05-04 收敛 — 单源真值）
+
+> **背景**：4-19 项目审查 87 条 + 5-01 全 repo 文件状态评审 = 两次大盘点。**5-04 itsuki 拍板：以后不再分散文档**，未做事项一律写在本 section。
+>
+> **历史快照（不再单独维护，仅作证据链）**：
+> - `00_admin/2026-04-19_项目审查_backlog.md` — 完整 87 条 + 已闭合证据链
+> - `00_admin/漏洞_剩余清单_2026-04-21.md` — 4-21 中间精简版
+> - `00_admin/项目文件总览.md`（原 `2026-05-01_全文件审查.md` 5-04 改名升级为系统级单源真值）— 606 文件逐个状态 + AC top 10。**新会话首选入口**
+>
+> **图例**：D = 文档一致性 / S = spec 内部漏洞 / A = AC 视角 / T = 技术债 / L = 小细节 / M = meta
+> **标号沿用 backlog 原 ID**（D1-D30 / S1-S20 / A1-A13 / T1-T13 / L1-L11 / M1-M2）方便溯源。
+
+### A. itsuki 自己粘 / 自己改 / 自己拍板（CC 不能代做）
+
+#### A.1 一次性粘贴 11 条历史欠债（30-60 分钟，性价比最高）
+
+把 4-20 起就准备好的 4 份草稿粘到长期记录文件里（CC 永不直写 decision_log / project_evolution / learning_path 正文）：
+
+- [ ] 一次性合并 Batch3 + progress_overview_draft
+  - 把 `00_admin/Batch3_itsuki手笔素材指引.md` 4 段草稿粘到 `05_logs/decision_log.md` / `05_logs/project_evolution.md` / `05_logs/learning_path.md`
+  - 把 `00_admin/progress_overview_draft_2026-04-20.md` 整体替换 `00_admin/progress_overview.md`
+
+闭合：D1（project_evolution 4-13 后停滞 / 遗漏 5 次重大转折）/ D2（decision_log 9 条决策没进）/ D3（learning_path Python Day 2 状态过期 41 天）/ D4（PostgreSQL 选型理由 `(未想好)` 占位符）/ D7（progress §阶段 0.6 4-13 停）/ D8（技术学习时间线缺 4-15/4-17/4-19/4-20 6 条）/ D9（关键决策索引缺 10 条）/ D10（问题解决索引缺 4 条）/ D11（占位符数字 4 vs 5 不一致）/ D12（仓库结构地图含已归档的 executable_dev_checklist）/ D13（progress 和 CLAUDE.md 目录结构不同步）
+
+#### A.2 itsuki 手改正文 5 条（CC 永不直写）
+
+- [ ] **D5** `project_evolution.md` 起点章节有死引用 — 路径 `ac_入試准备/项目起源_真实观察.md` 是 iCloud 迁移前的旧路径
+- [ ] **D6** `project_evolution.md` "现在的状态(4-13)" 记录体系数字全过期（dev_log 写 2 实际 8 / problem_solving 写 1 实际 4 / decision_log 写 5 实际 7+ / raw 写 3 实际 5+）
+- [ ] **D28** `project_evolution.md` 起点章节（2-12 冻结）只说"为什么冻结"，没有第二次转折（4-10 回归日）那种三层分析。AC 视角：起点反而该最完整
+- [ ] **D29** `decision_log.md` 6 处"事后回看（几个月后补填）"占位符全空 — 是 AC #4 自己認識的黄金素材
+- [ ] **D30** `dev_log/2026-04-10_回归日.md` 占位符数字 — Explore 数 5 / TODO 数 4，off-by-one
+
+#### A.3 业务 / 技术拍板 5 条（不定就堵着）
+
+- [ ] **S5（颜色区分）🔴**：`exempt_range`（免点呼）颜色 = 绿色 = 跟 `present`（准时）一样，UI 上无法视觉区分。加 icon / 边框 / 文字 / 叠加符号 哪个？
+- [ ] **S6（追溯申请）🔴**：spec §11.3 改判 >30 天 "走「追溯申请」独立流程（v0.3 设计）" — 但 v0.3 已发布"独立流程"没设计。选 A：v0.4 单独设计 §11.5 / 选 B：spec 改"追溯申请推迟到 v0.5，v0.4 只处理 ≤30 天"
+- [ ] **S8（X 分钟）🟡**：spec §5.3 `auto_end_at = on_time_end + X 分钟`，X 待定（候选 3 / 5 / 10 / 15 / 30）。阻塞结算代码
+- [ ] **S17（overlay 元数据）🟡**：overlay 分两类（纯装饰型 vs 改底色型）目前只在 ENUM §4 + spec §2.2 文字描述。改 ENUM 加 `overlay_type` 字段 还是保持文字够用？v0.7.0 UI 开工前评估
+- [ ] **L8（URL 命名）🟢**：`API_CONVENTIONS.md §8` 已列 3 方案对比，待拍板：A `/api/v1/student/...`（RESTful + 版本 + 角色）/ B `/student/...` + Header / C `/api/v1/...`（角色靠 token）。拍板后连改 spec §5.1 + §2
+
+#### A.4 24 个看不懂的文件 = 删 / 留 拍板（节省约 13 MB）
+
+- [ ] `01_specs/*.pages` 4 个：`API_Contract_v0.1` / `IA_UI_v0.1` / `Overview_of_Features_v0.1` / `rollcall/DMSDv0.1验收脚本` — `.md` 替代品都已建（**T1**）
+- [ ] `01_specs/rollcall/RollCall_Spec_v0.1.pages` 1 个 — 已被 `RollCall_Spec.md` 取代
+- [ ] `99_archive/01_specs_Overview_原稿/` 下 2 个 .docx — 都已被 .md 取代
+- [ ] `99_archive/` 根 5 个 .pages（learning_process / progress_log × 2 / 需要学习 / Folder_Structure_Overview）— 都已被 .md 抢救
+- [ ] `99_archive/` 根 14 个 `.510Z` 早期 GPT 对话 PDF dump — 已整理到 `raw/2025-12_NFC系统早期设计对话.md`（**T11**）
+- [ ] `99_archive/NFC_NFD_鬼影文件/` 5 个副本 — 问题已解决可删 / 保留则 README 补 1 句（**L4**）
+
+#### A.5 v1.0 上线前必做（不能跳）
+
+- [ ] **`06_assets/real_samples/bus_notice_2026-03-22_特別運行便.md` 学生实名脱敏** — GitHub 现在公开 + 含真名
+- [ ] **iOS 3 个空壳 view 决定命运**：`Schedule` / `StayList` / `BusList`（5-01 审查推荐都删，已并入 Home / Apply / Community Bus card）
+- [ ] **`00_admin/AC_志望動機_素材.md` Q1-Q8 itsuki 自己起草**（185 行框架 17 个小节占位 / 内容待填 — AC 5 核心问题 #5 志望動機，repo 内最大空白）
+
+### B. CC 可独立做（每条 < 30 分钟，下次开会话「做 B 类」即可）
+
+- [ ] 改名 `03_dev/student_ios/DESIGN_BRIEF.md` → `_archived_DESIGN_BRIEF_Round1_context.md`（IOS_DESIGN_LOG 已全覆盖）
+- [ ] 改名 `03_dev/student_ios/demo/Round2_Prompt_C3.md` → `_archived_Round2_Prompt_draft.md`（C3 已 resolve）
+- [ ] 删 `99_archive/2026-04-15_old_demo/.DS_Store`（误进 git）
+- [ ] 删 3 个已过期的 admin 文件：
+  - `00_admin/v0.4.0_S系列spec漏洞优先级分析.md`（已被「漏洞_剩余清单」吸收）
+  - `00_admin/T2_iOS归档_dryrun评估.md`（已执行）
+  - `00_admin/跨会话_ios_共享决策.md`（iOS 工程已独立 repo）
+- [ ] backend `03_dev/backend/v1/app/models.py` 13 张表 docstring 各标 P0 / P1 / P2
+- [ ] 更新 `00_admin/文件结构指南.md`（补 v0.6.0 / v0.7.0 / v0.8.0 AC 叙事文件 + 新 raw 日志）
+- [ ] 更新 `99_archive/README.md` 时间戳 + 鬼影文件解决说明
+- [ ] **S18（低价值）**：`DEVICE_REGISTRY §6` 候选位置 `dorm-A-01 / dorm-B-01` 跟 `path_type` A/B 撞字 — 改成 `dorm-1-01 / dorm-2-01`。真部署 4 台时顺手做也行
+- [ ] **后端补漏**：`routers/applications.py` 加 `POST /{id}/approvals`（役职审批 #10-#13）+ `DELETE /{id}`（D3 撤回）+ `services/email.py` 补 retry 3 次循环
+
+### C. AC 提交前长期任务（4 条）
+
+- [ ] **A7** `05_logs/learning_path.md` P0-P2 学习路线图 itsuki 自己用自己的话重写（不是 AI 协助整理 — 教授会问"为什么这样分级"）
+- [ ] **A8** `05_logs/decision_log.md` 每条加"AI 参与 vs itsuki 拍板"标签（教授会问"这是你的想法还是 AI 的"）
+- [ ] **A10** `05_logs/raw/2026-04-17.md` 775 行提炼成 200 行 `dev_log/2026-04-17_spec大审查.md` 成品版（教授不会翻 775 行）
+- [ ] **L5** `01_specs/rollcall/RollCall_Spec.md` 1009 行拆主体 + 附录两份（接近 Markdown 单文件可读上限）
+
+### D. CC 不可写（外部，itsuki 自己改）
+
+- [ ] **M2** iCloud `00_通用指南/版本管理实践指南.md` §5 / §7 / §12 更新 — CC 无 iCloud 写权限。要改：§12 规划表过期（实际 0.2 字典 / 0.3 spec rewrite，跟指南写的不一样）/ §5 补"0.x 阶段 spec 实质变动可触发 minor bump"/ §7 补"版本号前缀式 vs Conventional Commits 何时用哪种"
+
+### E. 接受现状不修（记录在此防再被提）
+
+- ⚪ **L2** CHANGELOG v0.1.1 列 7 个裸 commit hash — rebase / squash 会失效但不 rebase 就 OK
+- ⚪ **L3** commit `8706fed refactor:` 标签语义错（应是 chore/docs）— 改需 rebase 不建议
+- ⚪ **L4** `99_archive/NFC_NFD_鬼影文件/` 日文方引号 + 副本后缀 — 不动，这堆文件本身就是 2026-04-10 跨平台 Unicode bug 的证据
+- ⚪ **L7** ENUM §14 "前后端代码直接拷贝本文件取值" — 面向未来规则，等代码时引用
+- ⚪ **L9** `v0.1_冻结决策.md §5` 实施要求 — 同上面向未来
+- ⚪ **D27** `progress_overview` 和 `learning_path` 大段重复（Python / NFC / Git / SemVer）— 等 Batch3 粘完后看是否还需结构决策
+- ⚪ **T5** GitHub Actions CI — 纯 spec 阶段不需要，v0.6.0+ 写代码后再考虑
+
+### F. 5-04 状态汇总（已闭合 / 已推进）
+
+**5-04 同步打勾到 backlog 4 条**（实际已在大整理 / 后端推进中完成）：
+- ✅ **T2** 旧 iOS Phase 2 throwaway — 4-29 大整理已归档到 `99_archive/2026-04-29_pre_v1.0_cleanup/`
+- ✅ **T7** 数据库 migration — 用 Alembic 取代手写 .sql，最新 `c3d4e5f6a7b8_add_study_absence_period.py`（5-03）
+- ✅ **T12** README + LICENSE — 4-20 都建（T12 与 A1 / T6 重复条目）
+- ✅ **S15** CLAUDE.md §目录结构 — M1 之后已对齐当前事实（`backend / teacher_web / student_ios`）
+- ✅ **D17 / D18**（5-04 关闭）— D17 itsuki 私事不追踪 / D18 已完成归档段定位下降，CHANGELOG / git log 已是事实主线
+
+**5-01 后大幅推进（仅记录状态，无新行动）**：
+- ✅ 后端 routers P0 大批落地 — `rollcall.py` / `study.py` / `accounts.py` / `admin_registration_code.py` / `teachers.py` / `applications.py` / `auth.py` / `meals.py` / `notifications.py` 都已建
+- ✅ teacher_web v1 真改造已启动 — 5-01 时是 demo 100% MD5 镜像，5-02 起 TS+Vite+Zustand 已落地
+- ✅ iOS 三端架构成熟 — Foundation 17 文件冻结 + Auth / Home / Community 3 个 Feature 真实装 + Apply / MyPage Stubs 已存在待 v2
+
+### 数字汇总（2026-05-04）
+
+| 类 | 待办 | 备注 |
+|---|---|---|
+| A.1 一次性粘贴 | 11 条闭合 | itsuki 1 小时清完 |
+| A.2 itsuki 改正文 | 5 条 | 散在 decision_log / project_evolution / dev_log |
+| A.3 业务/技术拍板 | 5 条 | 5×5 分钟 |
+| A.4 不可读文件去留 | 6 类约 24 文件 | 一次拍板 |
+| A.5 v1.0 必做 | 3 条 | 含 AC_志望動機 itsuki 自写 |
+| B CC 独立小事 | 9 条 | 总 < 4 小时 |
+| C AC 长期 | 4 条 | 大改造 |
+| D 外部 | 1 条 | iCloud 指南 |
+| E 接受现状 | 7 条 | 不修 |
+| **真实工作量** | **~25 条 itsuki + 9 条 CC** | itsuki 约 2 小时 + CC 约 4 小时 |
 
 ---
 

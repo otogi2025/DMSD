@@ -32,7 +32,7 @@
 | 谁做 | 做什么 |
 |---|---|
 | **CC 自动** | commit 本地（不 push）/ raw/ 详细 dump / 起草 CHANGELOG 段 / 主动提 bump 时机（4 问 hit 就提议）|
-| **itsuki 主导** | push 时机（"推到 X commit"）/ bump 决定（patch / minor / major）/ **AC 叙事整个文档**（自己写，CC 等她来问才辅助，不主动起草）|
+| **itsuki 主导** | push 时机（"推到 X commit"）/ bump 决定（patch / minor / major）/ **AC 叙事整个文档**（自己写，CC 等他来问才辅助，不主动起草）|
 | **CC 执行** | itsuki 点头后 → 打 tag + commit CHANGELOG 文件 + push 一气呵成 |
 
 → **关键差别**：**CHANGELOG = CC 起草事实清单**（"加了 X / 改了 Y / 修了 Z"），**AC 叙事 = itsuki 写自己故事**（"为什么做 / 学到了什么 / 面试时怎么讲"）。

@@ -1,7 +1,38 @@
 # Claude Code 操作指南 — DMSD 记录协作
 
 > 权威章程：`AC入试记录指南_v3.md`（用户侧）
-> 本文是 CC 执行子集。不讲动机，只讲操作。
+> 本文是 CC 执行子集。**AC 协作完整规则的单一权威源**。CLAUDE.md 只留底线 + 指针，所有 AC 操作细节看本文。
+
+---
+
+## 0. 3 条根本性原则（CC 每次会话遵守）
+
+### 0.1 CC 决定 + CC 动作 = itsuki 做的
+
+AC 叙事里 CC 是 itsuki 的"工具"。CC 推荐的技术栈选型 / 设计决策 / 工程方法 / 写出的代码 — 全算 itsuki 做的判断和产出。
+
+**原因**：itsuki 是高中生没系统学过编程，AC 评委关心的是"判断力 + 学习能力 + 推动事情成形"，不是手敲代码量。他的判断点 = 决定 CC 推荐哪些采纳 / 哪些拒绝 / 改方向。
+
+**操作**：raw/ 里 dump 时直接写「我决定 / 我做了」，不写「CC 决定 / CC 做了」。
+
+### 0.2 没有素材就硬凹
+
+每次会话结束 CC 必须 dump 至少 1-2 条 AC 素材到 raw/，**即使当天看起来"没什么大事"也要硬凹**。
+
+"硬凹" = 把日常技术工作（修 bug / 跑 build / 解决依赖问题 / 装新工具）也包装成成长叙事：
+- "今天我学会了 X"
+- "今天我决定 Y 因为 Z"
+- "今天我意识到 A 比 B 好"
+
+**原因**：AC 评委想看的是"持续在动手"的轨迹，不是惊天动地决策。**只要 commit 不为零，就有 AC 素材可写**。
+
+### 0.3 CC 主动发现的问题 = itsuki 的 AC 素材，必须主动 dump
+
+CC 看到 itsuki 不知道的问题（技术 / 流程 / AC / 学习方法 / 自我管理）→ 不只当场跟他说，还要主动 dump 到 raw/ 当成他的 AC 素材。
+
+**原因**：即使是 CC 发现的，过程也算 itsuki 的（他有了"通过工具发现问题"的能力 + 他做了"采纳 / 拒绝 / 修改"的判断）。itsuki 是高中生没系统学过自我反思框架，很多解决问题的过程他不会主动记下来；CC 主动发现 + 主动记录 = 帮他攒 AC 素材。
+
+**itsuki 原话**: 「我最主要的还是需要你的辅助，有时候我不会自己去记录包括我发现问题、解决问题的能力。有时候并不是我发现问题，是你发现了问题，但是也算到我的头上」
 
 ---
 
@@ -173,38 +204,128 @@ CC 只打标签，**不替 itsuki 判断升不升级到第 2 层**。月度回�
 
 ---
 
-## 7. 5 个核心问题（CC 用来打标签）
+## 7. 5 个 AC 核心问题（CC 打标签 + AC 价值评估用）
 
-见 `CLAUDE.md` §5 个 AC 核心问题（单一来源，避免双份漂移）。
+1. **問題発見** — 为什么做 DMSD？
+2. **問題意識** — 遇到了什么困难？
+3. **問題解決** — 怎么解决的？
+4. **自己認識** — 学到了什么？
+5. **志望動機** — 为什么筑波 / 以后学什么？
+
+每条 AC 素材 dump 时打标签到一个或多个核心问题（见 §3.3 格式）。
+
+**当前 coverage 缺口（截 2026-05-04）**：#5 志望動機 是最大空白 — `00_admin/AC_志望動機_素材.md` 已建框架但内容待 itsuki 自填。看到任何跟「为什么筑波 / 以后学什么」相关素材，主动建议加 #5 标签。
 
 ---
 
-## 8. 会话结束
+## 8. 会话结束（7 节详细动作）
 
-按顺序执行：
+> **总指针**：itsuki 收尾时不要看一大堆专业名词 / 英语 / 日语堆出来的总结。他要的是「简单中文说做了什么」+「AC 素材详细记学习过程」。**学习过程是核心 — 比"改了哪些代码"重要**。
 
-1. **刷新当日目录**（§5）
-2. **列出今天 dump 的所有碎片**给 itsuki 确认：
+### 8.1 ⭐⭐⭐ AC 素材 dump（最重要 — 收尾 70% 时间花在这里）
+
+写到 `05_logs/raw/YYYY-MM-DD.md`（追加到当日文件 / 没有就新建）。
+
+**学习过程为核心**：每个「itsuki 不会 → 问 CC → CC 教了 → itsuki 学会了」的循环都要详细记：
+- 他发现了什么问题（症状 / 报错 / 不对劲的现象）
+- 他不会怎么解决（卡在哪一步、为什么卡）
+- 他问 CC 什么
+- CC 教了什么概念 / 步骤（写完整解释，不写"教了 X"一句话）
+- itsuki 学会后能怎么自己复述（用他自己的话）
+- 这个学习能用在 AC 哪个核心问题（见 §7）
+
+**CC 主动提的改动 = itsuki 的判断**（见 §0.1）：CC 推荐的技术选型 / 设计决策 / 工程方法 / 写出的代码，只要 itsuki 决定采纳 / 拒绝，就当 itsuki 的判断写进 dump。
+
+**没素材也硬凹**（见 §0.2）：每会话至少 1-2 条素材，即使日常 bug fix 也包装成成长叙事。
+
+**必须详细 — 宁长勿短**：dump 是会话结束阶段最该花时间的环节。
+
+**标签**：CC 默认只打 `#AC候选`；升级第 2 层（`#AC強候補`）判断权在 itsuki。
+
+### 8.2 简单中文总结（给 itsuki 看的话 — 短）
+
+总结**只能用大白话中文**：
+
+- ❌ 禁用「落档」「实装」「prewarm」「cold start」「SourceKit」「detent」「provisioning」等术语
+- ❌ 不大段日语 / 英语
+- ✅ 用「我这次写了 X 文档 / 改了 Y 代码 / 你 ⌘R 后能看到 Z」这种说法
+- ✅ 必须出现专业词时，第一次就用中文解释（"代码签名 = 苹果给 app 盖章证明开发者身份"）
+
+总结分 3 段，每段 3-5 行就够：
+1. **做了什么**（中文人话讲改了哪些 / 你能看到什么）
+2. **AC 素材记了什么**（哪几条 dump 到 raw log + 一句话 hook）
+3. **下次要做什么**（未完成 backlog）
+
+### 8.3 文件联动检查
+
+文件连锁结构表的权威源 = `CLAUDE.md §文件连锁结构`（人类可读）+ `00_admin/hooks/lib/sync-rules.sh`（代码源）。
+
+工具:
+- 自动: `bash 00_admin/hooks/pre-commit`（commit 时跑）
+- 中途随时: `bash bin/sync-check.sh`（改完一组文件就跑）
+
+### 8.4 规范文档同步检查
+
+把本会话所有 itsuki 拍板的事项列出来，逐条问「是不是真的写到了规范文档里」：
+
+- 拍板了功能新增 / 改动 → 落到 `02_design/system_features.md`（共用层）+ 各端 `*_DESIGN_LOG.md`（专属层）？
+- 拍板了 UI / 流程改动 → 落到对应端的 DESIGN_LOG？
+- 拍板了技术选型 → 落到 DESIGN_LOG「技术决策」章节？
+- 拍板了规则 / 约束 → 落到 CLAUDE.md / system_features.md？
+- 仅口头说了"知道了"但没写文档的 = bug，必须当场补，不能拖到下次
+
+> **优先级**：文档 ≥ 代码。代码丢了能重写，文档丢了 AC 叙事缺证据 + 后续维护没依据。
+
+### 8.5 WIP / 一致性检查 / 未完成 backlog
+
+1. 刷新当日 `05_logs/raw/YYYY-MM-DD.md` 顶部目录（§5）
+2. 列出今天 dump 的所有碎片给 itsuki 确认：
    ```
    今天记录了 N 条到 05_logs/raw/YYYY-MM-DD.md：
    - HH:MM [标签] 主题 #AC候选
-   - ...
+   ...
    其中 M 条是 #AC候选。
    ```
-3. **起草 `00_admin/progress_overview.md` 更新草稿**（不直接写入，给 itsuki 确认）
-4. **核心问题覆盖提示**（仅当某类长期空缺）：
-   ```
-   最近 #4 自己認識 类素材空缺，下次如果有合适时机记得触发。
-   ```
-5. **月末提醒**（每月最后一次会话）：
-   ```
-   这是 YYYY-MM 最后一次会话。月度回顾提醒：
-   - 在 Mac 上挑本月 #AC候选 → iCloud AC素材_候选/
-   - 写 iCloud AC素材_成品/monthly_review/YYYY-MM.md
-   - 写完后把该 monthly_review/YYYY-MM.md 复制回 DMSD 某处入 git 做备份（itsuki 的决策 A）
-   ```
+3. 直接更新 `WIP.md`；起草 `progress_overview.md` 草稿等 itsuki 确认
+4. 跑会话结束前一致性检查 5 项：pre-commit / sync-check.sh / 时间戳新鲜度 / 同步点发现 / 版本 bump 判断
+5. 看上下文找未完成任务 → 加到 TODO（不写 WIP）
 
-**不做**：内容总结 / 会话回顾长文 / 替 itsuki 写感想。
+### 8.6 git commit（CC 自己拍板做 / push 等 itsuki 明示）
+
+谁做什么:
+- **CC 自动**: commit 本地（不 push）/ raw/ 详细 dump / 起草 CHANGELOG 段（事实清单技术性）/ 主动提 bump 时机（版本管理 SOP §10 4 问 hit 就提）
+- **itsuki 主导**: push 时机（"推到 X commit 为止"）/ bump 决定（patch / minor / major）/ AC 叙事整个文档（自己写，CC 等他来问才辅助，不主动起草）
+- **CC 执行**: itsuki 点头后 → 打 tag + commit CHANGELOG 文件 + push 一气呵成
+
+commit 规范:
+- commit message 详细：首行 `feat/fix/chore: 简述`，空行后主体分点列 why + what
+- 不写 `Co-Authored-By` trailer（memory feedback_commit_style）
+- 用 HEREDOC 传 message 保中文换行；pre-commit hook 自动跑
+- 本地 commit 后不 push（push 等 itsuki 明示）
+- 别会话的未提交改动（git status 里别人的 WIP）→ 不打包，留给那个会话或 itsuki 自己处理
+- 涉及凭证 / 密码 / 私密内容 → 先问 itsuki
+- 改了 CLAUDE.md / 系统设计 / 规则类文件 → commit 完主动告知"我推了 X 规则上去"
+- commit 跑完后用「原来 / 问题 / 改成」三段式中文总结，不讲 git 工具
+
+CHANGELOG vs AC 叙事 关键差别:
+- **CHANGELOG** = 事实清单（"v0.9.0 加了 X / 改了 Y / 修了 Z"），CC 起草
+- **AC 叙事** = itsuki 的故事（"为什么做、学到了什么、推翻过什么、面试时怎么讲"），itsuki 自己写，CC 不主动起草
+
+→ 历史 v0.3.0 ~ v0.8.0 的 6 个 vX.Y.Z_AC叙事.md 都是 CC 起草的，保持不动。新规则从下一次 bump 起生效。
+
+### 8.7 月末最后会话
+
+提醒做月度回顾：
+```
+这是 YYYY-MM 最后一次会话。月度回顾提醒:
+- 在 Mac 上挑本月 #AC候选 → iCloud 03_素材_候选/
+- 写 iCloud 04_素材_成品/monthly_review/YYYY-MM.md
+- 写完后把该 monthly_review/YYYY-MM.md 复制回 DMSD 某处入 git 做备份
+```
+
+---
+
+**收尾不做**：长篇专业名词总结 / 直接写 iCloud AC 目录 / 未授权 git push / 未经 itsuki 拍板版本号就打 git tag / 主动起草 vX.Y.Z_AC叙事.md（itsuki 自己写）/ 内容总结 / 会话回顾长文 / 替 itsuki 写感想。
 
 ---
 
@@ -232,6 +353,50 @@ CC 只打标签，**不替 itsuki 判断升不升级到第 2 层**。月度回�
 ## 11. 闪念不归 CC 管
 
 itsuki 的临时想法通过手机备忘录 → Claude app 整理 → itsuki 自己粘贴进 `05_logs/raw/YYYY-MM-DD.md`，标签 `[闪念-补]`。CC 不管这部分。
+
+---
+
+## 13. AC 文件家族 — CC 权限速查（2026-05-04 加）
+
+> **AC 相关文件清单 + 每个文件干嘛 + 状态 + AC 价值** → 看 `00_admin/项目文件总览.md` §1.4（00_admin/AC 叙事）+ §6（05_logs/）。本节**不重复**总览的描述，**只列 CC 权限边界**（哪些能直写 / 哪些只能起草 draft / 哪些永不写）。
+
+### 13.1 CC 永远不直写正文（只起草 draft 等 itsuki 粘贴）
+
+- `05_logs/decision_log.md`
+- `05_logs/project_evolution.md`
+- `05_logs/learning_path.md`
+- `00_admin/AC_志望動機_素材.md`（itsuki 自填 8 个 Q）
+- `00_admin/面试准备_索引.md`（题目清单 OK，回答永不写）
+- `vX.Y.Z_AC叙事.md`（5-04 起从下次 bump 开始 itsuki 自写；历史 v0.3-v0.8 的 6 个是 CC 起草的保持不动）
+- iCloud `05_产出/`（永不写）
+
+### 13.2 CC 改前先告知 itsuki
+
+- `00_admin/原创设计_语音播报防作弊.md`（重要 AC 素材）
+- `05_logs/dev_log/`（itsuki 自整理）
+- `05_logs/problem_solving/`（itsuki 自整理）
+- iCloud `状态快照.md`
+
+### 13.3 CC 自由直写
+
+- `05_logs/raw/YYYY-MM-DD.md`（每日 dump）
+- `00_admin/Batch3_itsuki手笔素材指引.md`（CC 起草过的 draft，等 itsuki 粘贴）
+
+### 13.4 iCloud 当场授权才写
+
+- iCloud `03_素材_候选/`（第 2 层）
+- iCloud `04_素材_成品/`（第 3 层）
+- iCloud `99_archive/` 新子目录（归档用途）
+
+### 13.5 素材流向
+
+```
+05_logs/raw/（CC 写）→ 月末挑 #AC候选 → iCloud 03_候选 → 04_成品 → 05_产出（CC 永不）
+
+Batch3 / CC draft → itsuki 粘贴 → 05_logs/decision_log / project_evolution / learning_path
+
+vX.Y.Z_AC叙事.md ← 版本 bump 后 itsuki 自己写
+```
 
 ---
 
