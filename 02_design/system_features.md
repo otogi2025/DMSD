@@ -933,19 +933,21 @@ announcement_replies
 
 既存「お知らせ投稿 → 学生 | push + in-app | push」エントリ = 本仕様で具体化。手段 = push **必須**(R1 邮件例外、学習関連と同列)+ in-app red dot badge + scope-aware。
 
-#### 7.15.11 v1.0 実装スコープ + 後送り
+#### 7.15.11 v1.0 实装范围 + 后送
 
-| 項目 | v1.0 | 後送り(v1.1+) |
-|---|---|---|
-| 投稿 / 一覧 / 詳細 / 既読 | ✅ | — |
-| 返信(全員互見) | ✅ | — |
-| AI 要約(Foundation Models) | ✅(対応端末のみ) | 非対応端末向けの代替案検討 |
-| 翻訳(日 ⇄ 中) | ✅ | 多言語拡張(越 / 印 / 韓) |
-| Push 通知 | ✅ | scope = male/female 時の push filter 確認 |
-| 添付(画像 / PDF) | — | v1.1 |
-| 通報機能(学生 → 老师) | — | v1.1(投稿規模次第) |
-| 編集履歴 audit log | — | v1.1 |
-| Markdown editor(老师 Web) | — | v1.1(v1.0 は plain text + 改行のみ) |
+> **2026-05-04 更新**：backend + iOS（最小可工作版）完成（commit `3a6c585` + `3b19bc4`）。Android + 教师 Web 待实装。AI 摘要 / 翻译 / Push 通知放 iOS 端 v1.1 后送（v1.0 是 列表/详情/回复 基本路径）。
+
+| 项目 | backend | iOS | Android | 教师 Web | 后送（v1.1+） |
+|---|---|---|---|---|---|
+| 发公告 / 列表 / 详情 / 已读 | ✅ | ✅ | ⏳ | ⏳ | — |
+| 回复（全员互见）| ✅ | ✅ | ⏳ | ⏳ | — |
+| AI 摘要（Foundation Models）| — | ⏳ v1.1 | — | — | 不支持的机型用什么代替 |
+| 翻译（日 ⇄ 中）| — | ⏳ v1.1 | — | — | 多语言扩展（越南 / 印尼 / 韩） |
+| Push 通知 | — | ⏳ v1.1 | ⏳ v1.1 | — | scope = male/female 时 push 怎么过滤 |
+| 附件（图片 / PDF）| — | — | — | — | v1.1 |
+| 投诉机制（学生 → 老师）| — | — | — | — | v1.1（看公告投稿规模决定）|
+| 编辑历史 audit log | — | — | — | — | v1.1 |
+| Markdown 编辑器（老师 Web）| — | — | — | ⏳ v1.0（先做纯文本）| v1.1 |
 
 #### 7.15.12 AC 叙事(2026-05-03 拍板の論点)
 
@@ -1004,14 +1006,16 @@ announcement_replies
 
 → **「教師が 1 つのコードを生成 → 同時間帯の生徒は全員それで登録」** が最バランス解。
 
-#### 7.16.5 機能矩陣
+#### 7.16.5 功能矩阵
 
-| 機能 | 学生 iOS / Android | 教師 Web | 後端 API | 角色 | Demo/V1 |
-|---|---|---|---|---|---|
-| 登録コード入力（登録最終 step）| 〇 RegisterStep ⏳ | — | `POST /accounts` 内検証 ⏳ | 学生 | (V1) |
-| 登録コード生成パネル | — | ⏳ `/admin/registration-code` | `POST /admin/registration-code/refresh` ⏳ | 寮務権限教師 | (V1) |
-| 現在の有効コード表示 + カウントダウン | — | ⏳ 同上 | `GET /admin/registration-code/current` ⏳ | 寮務権限教師 | (V1) |
-| コード生成 / 使用 audit log | — | ⏳ 履歴 tab | `GET /admin/registration-code/history` ⏳ | 寮務権限教師 | (V1.1) |
+> **2026-05-04 更新**：backend + iOS 完成（commit `3a6c585` + `3b19bc4`）。Android + 教师 Web 待实装。
+
+| 功能 | 学生 iOS | 学生 Android | 教师 Web | 后端 API | 谁能用 | 上线版本 |
+|---|---|---|---|---|---|---|
+| 注册码输入（注册流程最后一步）| ✅ RegisterStep5（hardcoded demo 字段，v1.0 上线前改为 RegistrationDraft 累积）| ⏳ | — | ✅ `POST /accounts` 校验已实装 | 学生 | v1.0 |
+| 注册码生成面板 | — | — | ⏳ `/admin/registration-code` | ✅ `POST /admin/registration-code/refresh` | 寮务管理权限教师 | v1.0 |
+| 当前有效码显示 + 倒计时 | — | — | ⏳ 同上 | ✅ `GET /admin/registration-code/current` | 寮务管理权限教师 | v1.0 |
+| 码生成 / 使用 audit log | — | — | ⏳ 履历 tab | ✅ `GET /admin/registration-code/history`（生成侧；使用侧 v1.1） | 寮务管理权限教师 | v1.0 |
 
 #### 7.16.6 §7.1 アカウント矩陣との関連
 
