@@ -387,6 +387,7 @@ def submit_absence_request(
     record = models.StudyAbsenceRequest(
         student_id=student.id,
         target_date=body.target_date,
+        period=body.period,
         reason=body.reason,
     )
     db.add(record)

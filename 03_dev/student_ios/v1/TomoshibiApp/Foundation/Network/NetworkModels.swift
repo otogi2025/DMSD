@@ -89,6 +89,7 @@ struct StudyAbsenceRequestOut: Decodable, Hashable, Identifiable {
     let id: UUID
     let student_id: UUID
     let target_date: String                 // "2026-05-03"
+    let period: String                      // "first_half" | "second_half" | "full"
     let reason: String
     let submitted_at: Date
     let status: String                      // "pending" | "approved" | "rejected"

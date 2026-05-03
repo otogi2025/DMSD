@@ -222,12 +222,15 @@ final class AppStore: ObservableObject {
     }
 
     /// 学習欠席届 提交（system_features §7.3.5）— 后端通过后 += 1、> 3 触发提醒
-    /// 接 POST /api/v1/study/absence-requests，target_date 默认今日（JST）。
+    /// 接 POST /api/v1/study/absence-requests。target_date は呼び出し側が JST yyyy-MM-dd で指定。
     /// async throws，调用方负责 catch 错误（重复提交 / 401 等）。
-    func submitStudyLeave(reason: String, range: StudyLeaveRange) async throws {
-        let today = Self.todayJaYMD()
+    func submitStudyLeave(targetDate: String, reason: String, range: StudyLeaveRange) async throws {
         // backend 接收成功后才 += 1，避免重复提交把计数推爆
-        _ = try await StudyAPI.submitAbsenceRequest(targetDate: today, reason: reason)
+        _ = try await StudyAPI.submitAbsenceRequest(
+            targetDate: targetDate,
+            period: range.wireValue,
+            reason: reason
+        )
         studyLeaveCountThisMonth += 1
         if studyLeaveCountThisMonth > 3 {
             showToast("今月、もう \(studyLeaveCountThisMonth) 回お休みされていますね。体調管理、お気をつけて。")
@@ -635,6 +638,15 @@ enum StudyLeaveRange: String, CaseIterable {
         case .first:  return "前半節（19:40〜20:40）"
         case .second: return "後半節（20:45〜21:45）"
         case .both:   return "両方"
+        }
+    }
+
+    /// backend wire format: schemas.StudyAbsenceRequestIn.period の値
+    var wireValue: String {
+        switch self {
+        case .first:  return "first_half"
+        case .second: return "second_half"
+        case .both:   return "full"
         }
     }
 }

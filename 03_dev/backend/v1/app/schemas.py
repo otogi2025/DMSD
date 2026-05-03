@@ -353,6 +353,8 @@ class StudyAbsenceRequestIn(BaseModel):
     """POST /study/absence-requests — 学生が当日 19:40 前に提出。"""
 
     target_date: date
+    # 欠席する範囲: 前半節 / 後半節 / 両方
+    period: Literal["first_half", "second_half", "full"]
     reason: str = Field(..., min_length=1, max_length=2000)
 
 
@@ -367,6 +369,7 @@ class StudyAbsenceRequestOut(BaseModel):
     id: UUID
     student_id: UUID
     target_date: date
+    period: Literal["first_half", "second_half", "full"]
     reason: str
     submitted_at: datetime
     status: str

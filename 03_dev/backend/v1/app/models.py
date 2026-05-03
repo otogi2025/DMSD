@@ -445,6 +445,8 @@ class StudyAbsenceRequest(Base):
         Uuid, ForeignKey("students.id"), nullable=False
     )
     target_date: Mapped[date] = mapped_column(Date, nullable=False)
+    # 欠席する範囲: 前半節 (19:40-20:40) / 後半節 (20:45-21:45) / 両方
+    period: Mapped[str] = mapped_column(String(16), nullable=False, default="full")
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     submitted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -462,6 +464,10 @@ class StudyAbsenceRequest(Base):
         CheckConstraint(
             "status IN ('pending','approved','rejected')", name="ck_sar_status"
         ),
+        CheckConstraint(
+            "period IN ('first_half','second_half','full')", name="ck_sar_period"
+        ),
+        # 一日一回（範囲問わず）— 前半 + 後半 を別々に出すなら "full" を出してもらう
         UniqueConstraint("student_id", "target_date", name="uq_sar_date"),
         Index("idx_sar_date_status", "target_date", "status"),
     )

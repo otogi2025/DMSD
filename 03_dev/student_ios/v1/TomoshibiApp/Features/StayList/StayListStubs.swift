@@ -387,17 +387,16 @@ struct StayListView: View {
     @EnvironmentObject var app: AppStore
 
     @State private var filter: ApplicationStatus? = nil   // nil = すべて
-    /// 从 GET /applications/mine 拉取的 backend 数据（最近优先排序）
-    @State private var apps: [ApplicationOut] = []
+    // ⚠️ DEMO-ONLY-SCAFFOLD（2026-05-03）：暂用 StayListMock 替代 GET /applications/mine
+    // v1.0 切回：apps: [ApplicationOut] = [] + items 用 $0.toStayApplication()
+    @State private var apps: [StayApplication] = []
     @State private var isLoading: Bool = false
     @State private var firstLoadDone: Bool = false
 
     private var items: [StayApplication] {
-        let mapped = apps
-            .map { $0.toStayApplication() }
-            .sorted { $0.leaveDate > $1.leaveDate }
-        guard let f = filter else { return mapped }
-        return mapped.filter { $0.status == f }
+        let sorted = apps.sorted { $0.leaveDate > $1.leaveDate }
+        guard let f = filter else { return sorted }
+        return sorted.filter { $0.status == f }
     }
 
     private let tabs: [(label: String, value: ApplicationStatus?)] = [
@@ -451,23 +450,15 @@ struct StayListView: View {
         .task { await load() }
     }
 
-    /// GET /api/v1/applications/mine 拉取
+    /// ⚠️ DEMO-ONLY-SCAFFOLD（2026-05-03）：纯 mock，无后端依赖
+    /// v1.0 切回：try await ApplicationsAPI.listMine() + 4 个 catch 分支
     private func load() async {
         isLoading = true
         defer {
             isLoading = false
             firstLoadDone = true
         }
-        do {
-            apps = try await ApplicationsAPI.listMine()
-        } catch APIError.unauthorized {
-            app.authToken = nil
-            router.replace(.login)
-        } catch APIError.network {
-            app.showToast("通信エラーが発生しました")
-        } catch {
-            app.showToast(error.localizedDescription)
-        }
+        apps = StayListMock.all
     }
 
     private var filterTabs: some View {
@@ -693,36 +684,17 @@ struct StayDetailView: View {
         .task { await load() }
     }
 
-    /// 拉详情 + 改动履历（并行 2 个请求）
+    /// ⚠️ DEMO-ONLY-SCAFFOLD（2026-05-03）：纯 mock，无后端依赖
+    /// v1.0 切回：UUID guard + ApplicationsAPI.detail / .audit 并行 + 4 个 catch 分支
     private func load() async {
-        guard let uuid = UUID(uuidString: id) else {
-            app.showToast("無効な申請 ID")
-            router.back()
-            return
-        }
         isLoading = true
         defer { isLoading = false }
-        do {
-            // 详情先拉（必需）
-            let appOut = try await ApplicationsAPI.detail(id: uuid)
-            var converted = appOut.toStayApplication()
-            // 改动履历可能失败（非阻塞）—— catch 后塞空列表
-            let auditEntries: [AuditLogEntry]
-            if let logs = try? await ApplicationsAPI.audit(id: uuid) {
-                auditEntries = logs.map { $0.toAuditLogEntry() }.sorted { $0.at > $1.at }
-            } else {
-                auditEntries = []
-            }
-            converted.auditLog = auditEntries
-            loadedItem = converted
-            loadedAuditLog = auditEntries
-        } catch APIError.unauthorized {
-            app.authToken = nil
-            router.replace(.login)
-        } catch APIError.network {
-            app.showToast("通信エラーが発生しました")
-        } catch {
-            app.showToast(error.localizedDescription)
+        if let item = StayListMock.find(id) {
+            loadedItem = item
+            loadedAuditLog = item.auditLog
+        } else {
+            app.showToast("申請が見つかりません")
+            router.back()
         }
     }
 
@@ -1158,26 +1130,17 @@ struct StayEditForm: View {
         .task { await load() }
     }
 
-    /// GET /api/v1/applications/:id 拉原详情 → 触发 initFields() 预填表单
+    /// ⚠️ DEMO-ONLY-SCAFFOLD（2026-05-03）：纯 mock，无后端依赖
+    /// v1.0 切回：UUID guard + ApplicationsAPI.detail + 4 个 catch 分支
     private func load() async {
-        guard let uuid = UUID(uuidString: id) else {
-            app.showToast("無効な申請 ID")
-            router.back()
-            return
-        }
         isLoading = true
         defer { isLoading = false }
-        do {
-            let appOut = try await ApplicationsAPI.detail(id: uuid)
-            loadedOriginal = appOut.toStayApplication()
+        if let item = StayListMock.find(id) {
+            loadedOriginal = item
             initFields()
-        } catch APIError.unauthorized {
-            app.authToken = nil
-            router.replace(.login)
-        } catch APIError.network {
-            app.showToast("通信エラーが発生しました")
-        } catch {
-            app.showToast(error.localizedDescription)
+        } else {
+            app.showToast("申請が見つかりません")
+            router.back()
         }
     }
 
@@ -1380,52 +1343,23 @@ struct StayEditForm: View {
         Task { await submitAsync() }
     }
 
+    /// ⚠️ DEMO-ONLY-SCAFFOLD（2026-05-03）：纯 mock，无后端依赖
+    /// v1.0 切回：UUID guard + 构造 ApplicationUpdateBody + ApplicationsAPI.update + 5 个 catch 分支
     private func submitAsync() async {
-        guard let uuid = UUID(uuidString: original.id) else {
-            app.showToast("無効な申請 ID")
-            return
-        }
-        // 修改届 body: 仅改了的字段填，其他保持 nil（PUT 是 PATCH 风格）
         let trimmedDest = destination.trimmingCharacters(in: .whitespaces)
-        let stayLocations: [StayLocationBody]?
-        if trimmedDest.isEmpty {
-            stayLocations = nil
-        } else {
-            stayLocations = [StayLocationBody(kind: "その他", name: trimmedDest, address: nil, phone: nil)]
-        }
-        let body = ApplicationUpdateBody(
-            reason: amendReason,
-            leave_date: formatYMD(leaveDate),
-            leave_method: leaveMethod,
-            leave_time: nil,
-            return_date: formatYMD(returnDate),
-            return_method: returnMethod,
-            return_time: nil,
-            stay_locations: stayLocations,
-            meals_skip: nil,
-            flight_dep_air: nil,
-            flight_dep_at: nil,
-            flight_arr_air: nil,
-            flight_arr_at: nil
-        )
-
         isSubmitting = true
         defer { isSubmitting = false }
-        do {
-            _ = try await ApplicationsAPI.update(id: uuid, body: body)
-            app.showToast("修改届を提出しました")
-            router.back()
-        } catch APIError.unprocessable(let msg) {
-            // 例: chain 全 approved 状态时无法修改 / status conflict
-            app.showToast(msg)
-        } catch APIError.unauthorized {
-            app.authToken = nil
-            router.replace(.login)
-        } catch APIError.network {
-            app.showToast("通信エラーが発生しました")
-        } catch {
-            app.showToast(error.localizedDescription)
-        }
+        StayListMock.applyAmendment(
+            id: original.id,
+            leaveDate: formatYMD(leaveDate),
+            returnDate: formatYMD(returnDate),
+            leaveMethod: leaveMethod,
+            returnMethod: returnMethod,
+            destination: trimmedDest.isEmpty ? nil : trimmedDest,
+            amendReason: amendReason
+        )
+        app.showToast("修改届を提出しました")
+        router.back()
     }
 
     private func parseYMD(_ s: String) -> Date? {

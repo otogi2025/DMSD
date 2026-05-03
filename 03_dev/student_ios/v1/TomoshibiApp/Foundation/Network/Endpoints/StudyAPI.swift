@@ -15,6 +15,7 @@ enum StudyAPI {
     /// POST /api/v1/study/absence-requests 用的请求 body
     struct AbsenceRequestBody: Encodable {
         let target_date: String     // "2026-05-03"
+        let period: String          // "first_half" | "second_half" | "full"
         let reason: String          // 申请理由（必填、1-2000 字）
     }
 
@@ -23,8 +24,8 @@ enum StudyAPI {
     ///   - APIError.unprocessable — 同日重复提交、target_date 范围超过等
     ///   - APIError.unauthorized — 401 → 重新登录
     @MainActor
-    static func submitAbsenceRequest(targetDate: String, reason: String) async throws -> StudyAbsenceRequestOut {
-        let body = AbsenceRequestBody(target_date: targetDate, reason: reason)
+    static func submitAbsenceRequest(targetDate: String, period: String, reason: String) async throws -> StudyAbsenceRequestOut {
+        let body = AbsenceRequestBody(target_date: targetDate, period: period, reason: reason)
         return try await APIClient.shared.post(path: "/api/v1/study/absence-requests", body: body)
     }
 }

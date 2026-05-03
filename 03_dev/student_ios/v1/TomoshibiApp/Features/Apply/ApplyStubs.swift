@@ -1071,15 +1071,46 @@ struct StudyAbsenceForm: View {
 
     @State private var reason: String = ""
     @State private var range: StudyLeaveRange = .first
+    // 欠席する日付。デフォルト = 今日。今後 14 日まで選択可。
+    @State private var targetDate: Date = Date()
+
+    /// 選択可能な日付範囲: 今日〜14 日後
+    private var dateRange: ClosedRange<Date> {
+        let now = Date()
+        let later = now.addingTimeInterval(60 * 60 * 24 * 14)
+        return now...later
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             PageHeader(title: "学習欠席届", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    // §1 範囲 select (3 choices)
+                    // §1 欠席する日付 (DatePicker)
                 VStack(alignment: .leading, spacing: 8) {
-                    SectionLabel(n: "1", label: "欠席する範囲")
+                    SectionLabel(n: "1", label: "欠席する日付")
+                    DatePicker(
+                        "",
+                        selection: $targetDate,
+                        in: dateRange,
+                        displayedComponents: .date
+                    )
+                    .datePickerStyle(.compact)
+                    .labelsHidden()
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous).fill(T.paper)
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(T.hair, lineWidth: 1)
+                    }
+                }
+                .padding(.horizontal, 16)
+
+                    // §2 範囲 select (3 choices)
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionLabel(n: "2", label: "欠席する範囲")
                     VStack(spacing: 8) {
                         ForEach(StudyLeaveRange.allCases, id: \.self) { r in
                             Button { range = r } label: {
@@ -1108,9 +1139,9 @@ struct StudyAbsenceForm: View {
                 }
                 .padding(.horizontal, 16)
 
-                // §2 理由 textarea (必填)
+                // §3 理由 textarea (必填)
                 VStack(alignment: .leading, spacing: 8) {
-                    SectionLabel(n: "2", label: "理由（必須）")
+                    SectionLabel(n: "3", label: "理由（必須）")
                     ZStack(alignment: .topLeading) {
                         if reason.isEmpty {
                             Text("欠席する理由を入力してください")
@@ -1141,7 +1172,11 @@ struct StudyAbsenceForm: View {
                     }
                     Task {
                         do {
-                            try await app.submitStudyLeave(reason: reason, range: range)
+                            try await app.submitStudyLeave(
+                                targetDate: StayForm.formatYMD(targetDate),
+                                reason: reason,
+                                range: range
+                            )
                             router.go(.applyDone(kind: "studyAbsence"))
                         } catch APIError.unprocessable(let msg) {
                             // 同日重复提交 / target_date 范围超过 等
