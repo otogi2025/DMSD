@@ -27,7 +27,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import __version__
 from .config import get_settings
 from .database import create_all
-from .routers import applications, auth, meals, notifications, rollcall, study, teachers
+from .routers import (
+    accounts,
+    admin_registration_code,
+    announcements,
+    applications,
+    auth,
+    meals,
+    notifications,
+    rollcall,
+    study,
+    teachers,
+)
 
 settings = get_settings()
 logging.basicConfig(level=settings.log_level)
@@ -76,6 +87,9 @@ def healthz():
 
 # routers
 app.include_router(auth.router)
+app.include_router(accounts.router)
+app.include_router(admin_registration_code.router)
+app.include_router(announcements.router)
 app.include_router(applications.router)
 app.include_router(meals.router)
 app.include_router(notifications.router)

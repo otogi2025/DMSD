@@ -491,3 +491,145 @@ class TeacherOut(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ---------------------------------------------------------------
+# 学生注册码（Student Registration Code）
+#   权威 spec：system_features §7.16 + BACKEND §4.10 + §5.1.5（2026-05-03 拍板）
+# ---------------------------------------------------------------
+class RegistrationCodeOut(BaseModel):
+    """GET/POST registration-code/* 通用响应。"""
+
+    code: str = Field(..., min_length=6, max_length=6)
+    created_at: datetime
+    expires_at: datetime
+    # 剩余秒数 — 给客户端做倒计时显示用（= max(0, expires_at - now)）
+    expires_in_seconds: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RegistrationCodeHistoryEntry(BaseModel):
+    code: str
+    created_at: datetime
+    expires_at: datetime
+    invalidated_at: Optional[datetime]
+    created_by_teacher_name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RegistrationCodeHistoryOut(BaseModel):
+    items: list[RegistrationCodeHistoryEntry]
+
+
+# ---------------------------------------------------------------
+# 学生新规注册（POST /accounts — spec §5.1.5）
+#   2026-05-03 拍板：必须传 registration_code（App Store 上架对策）
+# ---------------------------------------------------------------
+class StudentAccountCreateIn(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    name_kana: Optional[str] = Field(None, max_length=100)
+    birthday: Optional[date] = None
+    gender: Literal["male", "female"]
+    grade_code: str = Field(..., min_length=2, max_length=2, pattern=r"^\d{2}$")
+    class_code: str = Field(..., min_length=2, max_length=2, pattern=r"^\d{2}$")
+    seat_no: str = Field(..., min_length=2, max_length=2, pattern=r"^\d{2}$")
+    category: str = Field(default="一般寮生", max_length=32)
+    room_no: str = Field(..., min_length=3, max_length=8)
+    # spec §5.0：dorm_unit ↔ room_no 前缀一致（1/2 = M*** male，4 = W*** female）
+    dorm_unit: int = Field(..., ge=1, le=4)
+    is_overseas: bool = False
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = Field(None, max_length=32)
+    password: str = Field(..., min_length=6, max_length=128)
+    # 老师在后台生成的 6 桁码（5 分钟内有效）
+    registration_code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
+class StudentAccountCreateOut(BaseModel):
+    """201 — JWT（永久 session，和 login 同等）+ 学生 brief。"""
+
+    access_token: str
+    expires_in: int
+    student: StudentBrief
+
+
+# ---------------------------------------------------------------
+# 老师公告（Announcement）
+#   权威 spec：system_features §7.15（2026-05-03 itsuki 拍板，2026-05-04 实装）
+#   scope：all = 全员 / male = 男寮 / female = 女寮
+# ---------------------------------------------------------------
+class AnnouncementReplyOut(BaseModel):
+    id: UUID
+    author_kind: Literal["student", "teacher"]
+    author_id: UUID
+    # 用 join 取的发言人名字（回复列表显示需要）
+    author_name: str
+    body: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AnnouncementBrief(BaseModel):
+    """列表 view 用 — 本文 80 字摘要 + 回复数。"""
+
+    id: UUID
+    title: str
+    # 本文头 80 字（服务端切出来，避免前端拿到全文浪费流量）
+    body_summary: str
+    scope: Literal["all", "male", "female"]
+    author_teacher_id: UUID
+    author_teacher_name: str
+    created_at: datetime
+    updated_at: datetime
+    # 当前学生的已读状态
+    is_read: bool
+    reply_count: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AnnouncementListOut(BaseModel):
+    items: list[AnnouncementBrief]
+
+
+class AnnouncementDetailOut(BaseModel):
+    """详情 view — 本文全文 + 回复列表。"""
+
+    id: UUID
+    title: str
+    body: str
+    scope: Literal["all", "male", "female"]
+    author_teacher_id: UUID
+    author_teacher_name: str
+    created_at: datetime
+    updated_at: datetime
+    replies: list[AnnouncementReplyOut]
+
+
+class AnnouncementCreateIn(BaseModel):
+    """老师专用 — 发公告。"""
+
+    title: str = Field(..., min_length=1, max_length=120)
+    body: str = Field(..., min_length=1, max_length=4000)
+    scope: Literal["all", "male", "female"]
+
+
+class AnnouncementUpdateIn(BaseModel):
+    """老师专用 — 编辑（title / body / scope 都可 partial update）。"""
+
+    title: Optional[str] = Field(None, min_length=1, max_length=120)
+    body: Optional[str] = Field(None, min_length=1, max_length=4000)
+    scope: Optional[Literal["all", "male", "female"]] = None
+
+
+class AnnouncementReplyCreateIn(BaseModel):
+    body: str = Field(..., min_length=1, max_length=2000)
+
+
+class AnnouncementUnreadCountOut(BaseModel):
+    """主页 badge 用 — 当前学生 scope 内未读数。"""
+
+    unread_count: int

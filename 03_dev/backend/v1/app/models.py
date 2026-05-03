@@ -663,3 +663,125 @@ class TeacherInvitation(Base):
     )
 
     __table_args__ = (Index("idx_tinv_token", "token"),)
+
+
+# ---------------------------------------------------------------
+# 学生注册码（App Store 上架对策，2026-05-03 itsuki 拍板）
+#   权威 spec：system_features.md §7.16 + BACKEND_DESIGN_LOG §4.10 + §5.1.5
+#   机制：老师在后台生成 6 桁数字 → 学生 5 分钟内拿这个码完成新规注册
+#         同时有效的码全系统只 1 个（生成新码时旧码立刻 invalidate）
+# ---------------------------------------------------------------
+class StudentRegistrationCode(Base):
+    __tablename__ = "student_registration_codes"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    code: Mapped[str] = mapped_column(String(6), nullable=False)
+    created_by: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("teachers.id"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    # = created_at + 5 分钟（应用层算，不放 DB default — TTL 调整只动应用层即可）
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    # 生成新码时把旧 active 行的本字段 set 为 now()；NULL = 仍是候选有效码
+    invalidated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True)
+    )
+
+    __table_args__ = (
+        # SQLite 不支持 regex CHECK，只能用 LENGTH；应用层 '^[0-9]{6}$' 严格校验
+        CheckConstraint("LENGTH(code) = 6", name="ck_src_code_len"),
+        Index("idx_src_code_active", "code", "invalidated_at"),
+    )
+
+
+# ---------------------------------------------------------------
+# 老师公告 — 2026-05-03 itsuki 拍板，2026-05-04 实装
+#   权威 spec：system_features.md §7.15
+#   性质：老师 → 学生 单向 Classroom 风通知（学生回复是附带能力）
+#   scope：all / male / female（学生只看到自己 gender 对应那部分，自动过滤）
+# ---------------------------------------------------------------
+ANNOUNCEMENT_SCOPES = ("all", "male", "female")
+
+
+class Announcement(Base):
+    __tablename__ = "announcements"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    title: Mapped[str] = mapped_column(String(120), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    scope: Mapped[str] = mapped_column(String(8), nullable=False)
+    author_teacher_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("teachers.id"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+    # 软删 — 已删的不出现在学生列表里
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        CheckConstraint(
+            "scope IN ('all','male','female')", name="ck_announcement_scope"
+        ),
+        Index("idx_announcement_created", "created_at"),
+        Index("idx_announcement_scope_active", "scope", "deleted_at"),
+    )
+
+
+class AnnouncementRead(Base):
+    """已读跟踪表（学生 × 公告 = 复合主键）。"""
+
+    __tablename__ = "announcement_reads"
+
+    announcement_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("announcements.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("students.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    read_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class AnnouncementReply(Base):
+    """回复 — 学生和老师都能发，全员互见（§7.15.6 itsuki 拍板）。"""
+
+    __tablename__ = "announcement_replies"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    announcement_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("announcements.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    # 'student' or 'teacher' — 决定 author_id 指向哪张表
+    author_kind: Mapped[str] = mapped_column(String(8), nullable=False)
+    # 学生 students.id 或老师 teachers.id；DB 层不加 FK（要按 author_kind 跨表），应用层保证
+    author_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        CheckConstraint(
+            "author_kind IN ('student','teacher')", name="ck_reply_author_kind"
+        ),
+        Index("idx_reply_announcement", "announcement_id", "created_at"),
+    )
