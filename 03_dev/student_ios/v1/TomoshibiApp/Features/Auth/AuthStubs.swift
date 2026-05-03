@@ -571,6 +571,7 @@ private struct GhostButtonFull: View {
 
 struct RegisterStep1View: View {
     @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
     @State private var name: String = SEED.user.name
     @State private var birth: Date = {
         var c = DateComponents(); c.year = 2006; c.month = 10; c.day = 14
@@ -968,6 +969,17 @@ struct RegisterStep1View: View {
                 SEED.user.room = prefix + room
                 SEED.user.account = computedAccount
                 SEED.user.avatar = name.first.map { String($0) } ?? "リ"
+
+                // 2026-05-04 加: 累积到 RegistrationDraft（Step5 提交时整体送 backend）
+                app.registrationDraft.name = name
+                app.registrationDraft.birthday = birth
+                app.registrationDraft.gender = gender
+                app.registrationDraft.is_overseas = isOverseas
+                app.registrationDraft.grade_code = grade
+                app.registrationDraft.class_code = classSuffix
+                app.registrationDraft.seat_no = seatNoStr
+                app.registrationDraft.room_no_suffix = room
+
                 router.go(.registerStep2)
             }
             .padding(.horizontal, 24)
@@ -1012,7 +1024,17 @@ struct RegisterStep1View: View {
 
 struct RegisterStep2View: View {
     @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
     @State private var cat: String = "regular"
+
+    /// UI 选项 → backend category 字符串
+    /// backend Student.category 没 CHECK 约束，但保持人类可读的日语名（管理员后台看的）
+    private func categoryLabel(_ v: String) -> String {
+        switch v {
+        case "soccer": return "サッカー部"
+        default: return "一般寮生"
+        }
+    }
 
     private struct CatOption {
         let v: String
@@ -1056,7 +1078,11 @@ struct RegisterStep2View: View {
 
             footerDouble(
                 onBack: { router.go(.registerStep1) },
-                onNext: { router.go(.registerStep3) }
+                onNext: {
+                    // 2026-05-04 加: 累积 category 到 draft
+                    app.registrationDraft.category = categoryLabel(cat)
+                    router.go(.registerStep3)
+                }
             )
         }
         .background(T.paper.ignoresSafeArea())
@@ -1148,6 +1174,7 @@ private func footerDouble(
 
 struct RegisterStep3View: View {
     @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
     @State private var email: String = "otogi2025@gmail.com"
     @State private var phone: String = "090-9482-8905"
 
@@ -1181,7 +1208,12 @@ struct RegisterStep3View: View {
 
             footerDouble(
                 onBack: { router.go(.registerStep2) },
-                onNext: { router.go(.registerStep4) }
+                onNext: {
+                    // 2026-05-04 加: 累积 email / phone 到 draft（任意字段，空则传 nil）
+                    app.registrationDraft.email = email.isEmpty ? nil : email
+                    app.registrationDraft.phone = phone.isEmpty ? nil : phone
+                    router.go(.registerStep4)
+                }
             )
         }
         .background(T.paper.ignoresSafeArea())
@@ -1207,6 +1239,7 @@ struct RegisterStep3View: View {
 
 struct RegisterStep4View: View {
     @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
     // ⚠️ DEMO-ONLY-SCAFFOLD（2026-05-03）：密码预填，demo 时直接「次へ」即可
     // v1.0 上线前必删 — 改回空文字列 "" 让用户必填
     @State private var pw: String = "demo1234"
@@ -1288,7 +1321,11 @@ struct RegisterStep4View: View {
                 nextEnabled: canSubmit,
                 onBack: { router.go(.registerStep3) },
                 // 2026-05-04 改: Step4 之后跳到 Step5 (注册码输入)，不再直接 replace done
-                onNext: { router.go(.registerStep5) }
+                onNext: {
+                    // 累积 password 到 draft，Step5 提交时整体送 backend
+                    app.registrationDraft.password = pw
+                    router.go(.registerStep5)
+                }
             )
         }
         .background(T.paper.ignoresSafeArea())
@@ -1320,6 +1357,7 @@ struct RegisterStep4View: View {
 
 struct RegisterDoneView: View {
     @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
     @State private var checkAppear: Bool = false
 
     var body: some View {
@@ -1409,6 +1447,8 @@ struct RegisterDoneView: View {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                 checkAppear = true
             }
+            // 2026-05-04 加: 注册成功后清空 draft（避免下次注册脏数据）
+            app.resetRegistrationDraft()
         }
     }
 }

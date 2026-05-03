@@ -5,6 +5,56 @@ import Foundation
 import Combine
 import SwiftUI
 
+/// 学生注册流程累积器（Step1-5 各自填字段、Step5 提交时整体送 backend）
+///
+/// spec: system_features §7.16 + BACKEND §5.1.5
+/// 字段命名跟 backend `StudentAccountCreateBody` 一对一，方便对照。
+struct RegistrationDraft {
+    // Step1 基本信息
+    var name: String = ""
+    var birthday: Date? = nil
+    var gender: String = "male"            // "male" or "female"
+    var is_overseas: Bool = false
+    var grade_code: String = ""            // 2 桁
+    var class_code: String = ""            // 2 桁
+    var seat_no: String = ""               // 2 桁
+    /// room 输入框只让学生填数字部分（"101" / "205B"），M/W 前缀由 gender 自动加
+    var room_no_suffix: String = ""
+
+    // Step2 点呼区分
+    var category: String = "一般寮生"
+
+    // Step3 联络方式
+    var email: String? = nil
+    var phone: String? = nil
+
+    // Step4 密码
+    var password: String = ""
+
+    /// 拼 M/W 前缀 → 完整 room_no（backend §5.0 编码规则）
+    var computedRoomNo: String {
+        guard !room_no_suffix.isEmpty else { return "M205" }   // demo fallback
+        let prefix = (gender == "male") ? "M" : "W"
+        return prefix + room_no_suffix
+    }
+
+    /// 从 room_no_suffix 第一位 + gender 推 dorm_unit
+    /// 男生 1xx → 1 寮 / 2xx → 2 寮；女生不论房号都 4 寮
+    var computedDormUnit: Int {
+        if gender == "female" { return 4 }
+        if let first = room_no_suffix.first, first == "2" { return 2 }
+        return 1
+    }
+
+    /// 生日 ISO 字符串（"yyyy-MM-dd"），没填则 nil
+    var birthdayString: String? {
+        guard let b = birthday else { return nil }
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: b)
+    }
+}
+
 /// アカウント関連フィールドの変更履歴（MyInfo 編集時に append）
 struct ChangeLogEntry: Hashable, Identifiable {
     let id: UUID
@@ -92,35 +142,44 @@ final class AppStore: ObservableObject {
 
     // MARK: - 学生新规注册（2026-05-04 加，spec system_features.md §7.16）
     //
-    // ⚠️ DEMO-ONLY 注意：当前 RegisterStep1-4 各自管 local @State，没有累积到 store。
-    // 本函数用 hardcoded demo 字段 + 学生输入的 6 桁注册码调 backend，验证 wire 通即可。
-    // v1.0 上线前必须改：Step1-4 onNext 时把字段写入 RegistrationDraft，本函数读 draft。
+    // 注册流程: Step1 基本信息 → Step2 点呼区分 → Step3 联络方式 → Step4 密码 → Step5 注册码
+    //   - 各 Step 在 onNext 时把自己的字段写入 registrationDraft
+    //   - Step5 提交时 createAccount(registrationCode) 用 draft 字段拼 body 调 backend
+    //   - 注册成功 → registerDone view 进入时 resetRegistrationDraft 清空（避免下次注册脏数据）
 
-    /// 学生新规注册 — 调 POST /api/v1/accounts，成功后 token 自动写入 authToken
-    /// (didSet 同步给 APIClient + Keychain)。
+    /// 注册流程累积器 — RegisterStep1-4 各自把 local @State 写入这里
+    @Published var registrationDraft = RegistrationDraft()
+
+    /// 把当前 draft + 注册码 拼成 backend body 调 POST /accounts。
+    /// 成功后 access_token 自动写入 authToken（didSet 同步给 APIClient + Keychain）。
     func createAccount(registrationCode: String) async throws -> StudentAccountCreateResponse {
+        let d = registrationDraft
         let body = StudentAccountCreateBody(
-            // ⚠️ DEMO-ONLY 占位 — v1.0 改为 RegistrationDraft 累积值
-            name: "新入生 太郎",
-            name_kana: "シンニュウセイ タロウ",
-            birthday: nil,
-            gender: "male",
-            grade_code: "07",
-            class_code: "01",
-            seat_no: "05",
-            category: "一般寮生",
-            room_no: "M205",
-            dorm_unit: 2,
-            is_overseas: false,
-            email: nil,
-            phone: nil,
-            password: "demo1234",
+            // 字段都从 draft 取；带 fallback 是因为某些 Step 还可能跳过填（防御编程）
+            name: d.name.isEmpty ? "新入生" : d.name,
+            name_kana: nil,                                    // Step1 没收集 kana，先传 nil
+            birthday: d.birthdayString,                        // 没填 = nil
+            gender: d.gender,
+            grade_code: d.grade_code.isEmpty ? "07" : d.grade_code,
+            class_code: d.class_code.isEmpty ? "01" : d.class_code,
+            seat_no: d.seat_no.isEmpty ? "05" : d.seat_no,
+            category: d.category,
+            room_no: d.computedRoomNo,                         // 拼 M/W 前缀
+            dorm_unit: d.computedDormUnit,                     // 从 room_suffix + gender derive
+            is_overseas: d.is_overseas,
+            email: (d.email?.isEmpty == false) ? d.email : nil,
+            phone: (d.phone?.isEmpty == false) ? d.phone : nil,
+            password: d.password.isEmpty ? "demo1234" : d.password,
             registration_code: registrationCode
         )
         let res = try await AccountsAPI.createAccount(body: body)
-        // didSet 自动同步 APIClient + Keychain
-        self.authToken = res.accessToken
+        self.authToken = res.accessToken                        // didSet 同步 APIClient + Keychain
         return res
+    }
+
+    /// 注册完成后清空 draft（registerDone view 进入时调）
+    func resetRegistrationDraft() {
+        registrationDraft = RegistrationDraft()
     }
 
     // MARK: - 老师公告 state（2026-05-04 加，spec §7.15）
