@@ -37,6 +37,19 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+### 2026-05-04 上午 by [Mac-mini-Opus 4.7]
+
+**主题**：⭐ A+B 文件联动工具建设 — 把 §3 文件关联追踪表代码化 + 加自动检查
+
+- **背景**：itsuki 启动会话提"每次改动/决定立刻同步文档" → 诊断现有机制只能 70-80% 联动 → 拍板 A+B 方案
+- **A · pre-commit 内容检查**：扩展 `00_admin/hooks/pre-commit`，commit 时自动跑联动规则（warn-only 不阻断）
+- **B · `bin/sync-check.sh`**：中途随时手动跑，3 模式（all / --staged / 指定文件），输出"改了 X 但 Y 没改"
+- **规则代码源**：`00_admin/hooks/lib/sync-rules.sh` — 13 条规则覆盖 backend / iOS / spec / hooks / bin / 声明性文件 / 跨 repo
+- **文档同步**：CLAUDE.md §文档一致性规则 + §会话结束 §3 都加 sync-check 引用 / `00_admin/文档同步点清单.md §11` 新章节 / `00_admin/hooks/README.md` 加新检查 + 用法
+- **memory**：写 `feedback_sync_docs_immediately.md`（itsuki 强调立即同步）
+- **未提交**：本会话工具 + 文档改动 + 上次会话残留 backend/iOS 改动（学習欠席 chain）
+- **pending 实装**：老师公告 4 端 / 学生注册码 4 端 / progress_overview.md 刷新
+
 ### 2026-05-03 下午+晚上 by [Mac-mini-Opus 4.7]
 
 **主题**：iOS Tomoshibi 集中改 + 老师公告 spec + MyPage 方案 B + 收尾流程升级
@@ -144,5 +157,6 @@
 
 ## 🕘 本文件自己的更新日志
 
+- **2026-05-04 上午** — 加 2026-05-04 会话条目（A+B 文件联动工具建设）
 - **2026-05-04** — 🔧 **大改 by [Mac-mini-Opus 4.7]**：itsuki 指出 WIP 跟 TODO 重叠 → 拍板方案 A → 砍「🔄 进行中的任务」section（218 行，跟 TODO 重叠）+ 砍「✅ 最近完成」长尾历史（170 行，commit history 已记录）+ 头部「最后更新」长串历史压缩到「最近会话」5 条 → 全文 600 → ~160 行；分工规则写明铁律「未完成的事只写在 TODO」；CC 启动流程加「扫 TODO 顶部 200 行」。备份 `/tmp/WIP_backup_2026-05-04.md`
 - 更早历史 — 见 `git log -- 00_admin/WIP.md`

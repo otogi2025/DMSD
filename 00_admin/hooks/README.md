@@ -2,9 +2,11 @@
 
 ## 是什么
 
-`git commit` 前自动检查"声明性文件"（`CLAUDE.md` / `WIP.md` / `TODO.md` / `progress_overview.md`）**没有硬编码版本号**。
+`git commit` 前自动跑 3 件事（按这个顺序）：
 
-单源真值 = `CHANGELOG.md` 顶部。其他文件用 "当前版本见 CHANGELOG" 指针。
+1. **版本号一致性检查**（阻塞型，2026-04-19 加）— "声明性文件"（`CLAUDE.md` / `WIP.md` / `TODO.md` / `progress_overview.md`）**不能硬编码版本号**。单源真值 = `CHANGELOG.md` 顶部。其他文件用 "当前版本见 CHANGELOG" 指针。
+2. **版本 bump 提醒**（非阻塞，2026-04-29 加）— 改了 `01_specs/` / `02_design/` / `03_dev/*_DESIGN_LOG` 时提醒检查 `00_admin/版本管理SOP.md §2 决策树`。
+3. **文件联动提醒**（非阻塞，2026-05-04 加）— 改了某文件但联动文件没动 → 警告。规则表 = `lib/sync-rules.sh`，对应 `CLAUDE.md §会话结束 §3 文件关联追踪`。**配套**：`bin/sync-check.sh` = 中途随时手动跑（不用等到 commit）。
 
 ## 为什么（2026-04-19 发现）
 
@@ -74,6 +76,22 @@ git commit --no-verify -m "紧急修复"
 
 ### 改豁免语法
 改 `pre-commit` 里的 `grep -v "VERSION_OK"` 行 + 更新本 README "豁免机制"。
+
+### 加新「文件联动规则」
+编辑 `lib/sync-rules.sh` 调一次 `add_rule "<名字>" "<trigger ERE>" "<must 列表>" "<reason>" "must|action"`。规则原则:
+- **must 模式** = 改了 trigger 文件 → must 列表里至少 1 个文件也要改（否则 warn）
+- **action 模式** = 不查 must，仅输出 reason 提示（用于"改完跑某个脚本"这类提醒）
+- 一定要同步更新 `CLAUDE.md §会话结束 §3 文件关联追踪表`（规则源是规则表，但人类查 CLAUDE.md）
+
+## 中途随时查（不用等 commit）
+
+```bash
+bash bin/sync-check.sh             # 检查全部 working tree（包括 untracked）
+bash bin/sync-check.sh --staged    # 只检查已 git add 的（模拟 pre-commit 行为）
+bash bin/sync-check.sh <file1> ... # 指定文件
+```
+
+CC 会话中改完一组文件就跑一次，提早发现联动漏改。仅提示，不阻断。
 
 ## 卸载
 

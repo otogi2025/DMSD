@@ -104,6 +104,7 @@ iCloud 路径：`iCloud/02_学习与知识/升学/AC/筑波大学 AC入試 準�
 | **文件级清单 + 作用 + 权限** | `00_admin/文件结构指南.md` |
 | **iOS+Web+後端 共用功能** | `02_design/system_features.md` |
 | iOS / Web / 後端 専属設計 + v1.0 实装 | `03_dev/{student_ios,teacher_web,backend}/*_DESIGN_LOG.md` |
+| **文件联动规则**（改 X 必查 Y）| `00_admin/hooks/lib/sync-rules.sh`（代码源）+ `CLAUDE.md §会话结束 §3`（人类可读）+ `00_admin/文档同步点清单.md §11`（规则表 + 工具用法）|
 
 ### 声明性文件（pre-commit hook 拦硬编码版本号）
 
@@ -119,9 +120,20 @@ iCloud 路径：`iCloud/02_学习与知识/升学/AC/筑波大学 AC入試 準�
 ### 会话结束前一致性检查（CC 必做）
 
 1. **pre-commit 预演**：跑 `bash 00_admin/hooks/pre-commit`，有 ❌ 提示 itsuki
-2. **时间戳新鲜度**：过去 7 天 commit 改过但文件头"最后更新"没动 → 提示
-3. **同步点发现**：本会话新建声明性文件 → 提示加入 `00_admin/文档同步点清单.md`
-4. **版本 bump 判断**：跑 `00_admin/版本管理SOP.md §10` 30 秒 4 问，命中任一 → 主动询问 itsuki（用 SOP §10 话术）
+2. **文件联动检查**（2026-05-04 加）：跑 `bash bin/sync-check.sh`，有联动漏改 → 当场补；规则源 `00_admin/hooks/lib/sync-rules.sh`
+3. **时间戳新鲜度**：过去 7 天 commit 改过但文件头"最后更新"没动 → 提示
+4. **同步点发现**：本会话新建声明性文件 → 提示加入 `00_admin/文档同步点清单.md`
+5. **版本 bump 判断**：跑 `00_admin/版本管理SOP.md §10` 30 秒 4 问，命中任一 → 主动询问 itsuki（用 SOP §10 话术）
+
+### 文件联动检查（2026-05-04 拍板，A+B 方案）
+
+> **背景**：itsuki 指出 §会话结束 §3 文件关联追踪表只在收尾跑 1 次，中途漏率高。代码化 + 工具化解决。
+
+- **A · pre-commit 自动**：commit 时检查 staged 文件，仅提示不阻断
+- **B · 中途随时查**：CC 改完一组文件就跑 `bash bin/sync-check.sh`，输出"改了 X，但 Y 还没改"
+- **规则代码源**：`00_admin/hooks/lib/sync-rules.sh`（13 条规则，加规则用 `add_rule`）
+- **人类可读表**：本文件 §会话结束 §3 文件关联追踪
+- **完整文档**：`00_admin/文档同步点清单.md §11`
 
 ### 跨 repo 同步（DMSD ↔ Tomoshibi-iOS，2026-04-23 加）
 
@@ -279,7 +291,9 @@ CC 默认只打 `#AC候选`；升级第 2 层（`#AC強候補`）判断权在 it
 
 ---
 
-### 3. 文件关联追踪（每次收尾必查）
+### 3. 文件关联追踪（每次收尾必查 + 中途随时跑工具）
+
+> **2026-05-04 加**：本表已代码化为 `00_admin/hooks/lib/sync-rules.sh`，pre-commit 会自动检查 staged 文件；中途随时跑 `bash bin/sync-check.sh`。表 = 人类可读源；脚本 = 工具用源；**两边等价、加规则两边同步**。
 
 改了某个文件 → 对照下表查"连带必改"文件 → 没改的提示 itsuki / 当场补上：
 

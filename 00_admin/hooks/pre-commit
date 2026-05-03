@@ -102,5 +102,51 @@ if [ -n "$BUMP_TRIGGER" ]; then
     echo ""
 fi
 
+# ============================================================
+# 文件联动检查（2026-05-04 加 — 非阻塞，仅提示）
+#
+# 触发条件: staged 文件命中 00_admin/hooks/lib/sync-rules.sh 中任一规则
+# 目的: 改了 X 但漏改了联动文件 Y → 当场提醒（不等会话结束 §3 文件关联追踪）
+# 对应 CLAUDE.md §会话结束 §3 文件关联追踪表 + §4 规范文档同步检查
+# ============================================================
+
+# 自动用 git rev-parse --show-toplevel 找仓库根，确保 source 路径正确
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+if [ -n "$REPO_ROOT" ] && [ -f "$REPO_ROOT/00_admin/hooks/lib/sync-rules.sh" ]; then
+    # shellcheck source=lib/sync-rules.sh
+    source "$REPO_ROOT/00_admin/hooks/lib/sync-rules.sh"
+
+    # staged 改动 = 已经 git add 的文件（含新增 / 修改 / 改名）
+    # core.quotepath=false: 中文路径不被 quote，规则 grep 才能匹配
+    STAGED_LIST=$(git -c core.quotepath=false diff --cached --name-only)
+
+    if [ -n "$STAGED_LIST" ]; then
+        # 把 staged 文件列表转成数组传入
+        # || true: check_sync_for_files return triggered_count 非 0 时不让 set -e 终止
+        SYNC_OUTPUT=$(check_sync_for_files $STAGED_LIST 2>&1 || true)
+
+        # 新建文件检查（声明性文件登记提醒）
+        STAGED_NEW=$(git -c core.quotepath=false diff --cached --name-status | awk '$1 == "A" {print $2}' || true)
+        if [ -n "$STAGED_NEW" ]; then
+            DECL_OUTPUT=$(check_new_declarative_files "$STAGED_NEW" 2>&1 || true)
+            SYNC_OUTPUT="${SYNC_OUTPUT}${DECL_OUTPUT}"
+        fi
+
+        if [ -n "$SYNC_OUTPUT" ]; then
+            echo ""
+            echo "ℹ️  文件联动提醒（非阻塞，仅提示）"
+            echo "─────────────────────────────────────────────"
+            echo "$SYNC_OUTPUT"
+            echo ""
+            echo "─────────────────────────────────────────────"
+            echo "  → 规则源: 00_admin/hooks/lib/sync-rules.sh"
+            echo "  → 中途随时查: bash bin/sync-check.sh"
+            echo "  → 故意漏 / 不需联动 → 直接 commit 即可（仅提醒）"
+            echo "─────────────────────────────────────────────"
+            echo ""
+        fi
+    fi
+fi
+
 echo "✅ pre-commit 一致性检查通过"
 exit 0
