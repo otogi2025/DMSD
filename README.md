@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="06_assets/icons/tomoshibi_app_icon_256.png" alt="Tomoshibi 灯火" width="160" height="160" />
+</p>
+
 # DMSD → Tomoshibi（灯火）
 
 > **项目名（仓库/开发代号）**：DMSD — Dormitory Management System Digitalization
