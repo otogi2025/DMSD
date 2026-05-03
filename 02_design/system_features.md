@@ -1346,4 +1346,59 @@ posts / songs / suggestions                 -- §7.14 砍掉的 → schema 删�
 
 ---
 
+## ⚠️ v1.0 上线前必删 demo scaffold 清单（2026-05-04 itsuki 拍板集中）
+
+> **为什么放这里**：你正式版上线前一定会读 `system_features.md` 走一遍功能。把所有 demo-only 临时代码集中到本节，一次清理干净，避免上线时漏删 → 变安全漏洞或 demo 数据混入生产。
+>
+> **清理流程**：上线前一周，搜全 repo 的 `DEMO-ONLY-SCAFFOLD` 标记（`grep -rn "DEMO-ONLY" 03_dev/`），对照本清单逐条删除并验证功能仍正常。
+>
+> **新加 demo scaffold 时**：必须 (a) 代码里加 `// ⚠️ DEMO-ONLY-SCAFFOLD（YYYY-MM-DD）：XX，v1.0 上线前必删` 注释 (b) 在本节加一条登记。
+
+### iOS 学生 App（待删）
+
+| # | 文件 | 行号 | demo 内容 | 上线前怎么改 | 风险（不删的话）|
+|---|---|---|---|---|---|
+| 1 | `Features/Auth/AuthStubs.swift` | ~1212-1213 | RegisterStep4 密码预填 `"demo1234"` | `pw = ""` / `pw2 = ""` | 用户拿到默认弱密码 → 安全漏洞 |
+| 2 | `Features/Auth/AuthStubs.swift` | ~1917 | RegisterStep5 注册码预填 `"000000"` | `code = ""` | demo 数据混入生产、用户看到困惑 |
+| 3 | `Features/Auth/AuthStubs.swift` | ~2036-2046 | RegisterStep5 `submit()` 里 `if code == DEMO_MAGIC_CODE` 跳过 backend 直接 done 整段 | 删整个 if 分支（保留下面真 createAccount 调用）| 任何人输 "000000" 都能注册任意学号 → 严重漏洞 |
+| 4 | `Features/Home/HomeStubs.swift` | ~256 | 主页 amber Card 三态切换（学習倒计时演示）| 删长按切换 + 状态 cycle 函数 | UI 暴露 demo 控件、用户困惑 |
+| 5 | `Features/Home/HomeStubs.swift` | ~296 | study content demo（4-30 後續 拍板的 amber Card）| 看 §7.3.8 接真 backend study state | 同上 |
+| 6 | `Features/StayList/StayListStubs.swift` | ~390 / 453 / 687 / 1133 / 1346 | 5 处 mock 数据（StayListMock 替代 GET /applications/mine 等）| 全部改为调真 API：`ApplicationsAPI.listMine` / `detail` / `audit` 等 | 显示假数据、不反映真实申请状态 |
+| 7 | `Foundation/AppState/AppStore.swift` | createAccount fallback | `RegistrationDraft` 里如果某字段空，hardcoded fallback（`"新入生"` / `"07/01/05"` / `"M205"` / `"demo1234"`）| 改为：字段空就 raise validation error 让用户回上一步补 | 注册时填错或漏填 → 假数据进真 DB |
+
+### iOS 学生 App（spec 已承认 demo-only）
+
+- `system_features.md §7.3.8` 主页 amber Card 学習倒计时（client-side timer）— spec 标 "(D 仅)" 已知 v1.0 删
+
+### Backend
+
+- 当前**没有** demo scaffold（routers / models 全 production-ready）。registration_code 系统是真校验，无 magic value bypass。
+- 若以后加 demo bypass（如「测试 token」），同样在本节登记。
+
+### Teacher Web
+
+| # | 文件 | demo 内容 | 上线前怎么改 |
+|---|---|---|---|
+| 1 | `03_dev/teacher_web/v1/demo_server.py` | 整个文件 = 内存模拟后端 + `/api/server-info`（LAN IP 自动检测）+ 银行卡 NFC POST 接口 | 全删；前端改连真 `/api/v1/*`（v1.0 backend）。README.md line 16 已 TODO「真后端连接」|
+| 2 | `03_dev/teacher_web/v1/开发模式跑.command` | 双击启动 demo_server.py | 改为 `npm run dev` 或 production build script |
+| 3 | `03_dev/teacher_web/v1/src/index.html` line ~4895-4931 | demo_server.py /api/server-info 自动检测 LAN IP UI 块（带 IP card）| 删整段 — production 不需要查 LAN IP |
+| 4 | `03_dev/teacher_web/demo/` 整个目录 | 4-28 demo 的 round3 副本 | 整个目录删（已有 v1/ 替代）|
+
+### 其他（环境 / 配置）
+
+- `03_dev/backend/v1/tests/conftest.py` — 测试默认密码 `"test-password-12345"` / JWT secret `"test-secret-32-bytes-aaaaaaaaaa"`（仅 test 环境用、生产 .env 必另设强值）— **不删**，但确认生产 `.env` 不用这些
+- `03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/APIClient.swift` 默认 `DEV_BASE_URL = "http://localhost:8000"` — 上线前确认走环境变量 `TOMOSHIBI_API_URL` 指向生产服务器（已支持 fallback，只需配 Info.plist 或环境变量）
+
+### 全 repo 自动扫描命令（上线前跑一遍）
+
+```bash
+# iOS / 全代码区扫所有 DEMO 标记
+grep -rn "DEMO-ONLY\|DEMO_MAGIC\|DEV_BASE_URL\|TODO.*demo\|fallback.*demo" 03_dev/ \
+  | grep -v "node_modules\|_legacy\|__pycache__\|\.venv\|DerivedData"
+
+# 期望输出：本节登记的所有条目都已删 → grep 结果为空 / 仅剩本清单本身
+```
+
+---
+
 **END** — 改功能时先更新本文,再进实装。
