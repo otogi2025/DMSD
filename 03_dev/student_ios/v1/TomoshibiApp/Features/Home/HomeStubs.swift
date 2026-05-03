@@ -873,7 +873,9 @@ struct LifeTab: View {
     // MARK: Bus card — JSX: 44×44 primary.12 bg / bus icon / 13 inkSub / 22 mono bold time
 
     private var busCard: some View {
-        HomeCard(pad: 14, onTap: { router.go(.homeBus) }) {
+        // 2026-05-03 itsuki: 跳转目标从 .homeBus（旧 BusView 简陋一覧）改为 .busList（带 filter 的 BusListView）
+        // MyPage 入口同时移除，统一从 Home 进
+        HomeCard(pad: 14, onTap: { router.go(.busList) }) {
             HStack(spacing: 12) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)

@@ -16,8 +16,10 @@
 | 日语专业词 | 标注中文意思 |
 | AC 自我推荐书 / 志望理由书内容 | 日语 |
 | 面试模拟 | 日语 |
-| 代码注释 | 中文 |
+| 代码注释 | 中文（**严禁日语漂移** — 见下） |
 | Git commit message | 英文（简短）+ 中文正文可选 |
+
+> **代码注释强制规则（2026-05-03 itsuki 强调）**：代码注释**只用中文**。即使在做日语 UI / 集成 Apple Image Playground 等含大量日语 UI 文本的功能，**注释也必须中文**。UI 字符串（按钮 label / Section title 等）和注释是两回事 — UI 字符串保持日语，注释保持中文。CC 在做日语 UI 时容易整段日语漂移注释，已被多次纠正。详见 memory `feedback_code_comments_chinese_strict.md`。
 
 ## 项目信息
 
@@ -214,21 +216,119 @@ iOS Swift 実装在独立 repo `otogi2025/Tomoshibi-iOS`（`~/dev/TomoshibiiOSAp
 
 itsuki 是主角，CC 辅助。CC 越提醒越少、她越能自己识别 —— 这本身是成长轨迹。
 
-## 会话结束
+## 会话结束（2026-05-03 itsuki 拍板大改）
+
+> **总指针**：itsuki 收尾时**不要看一大堆专业名词 / 英语 / 日语**堆出来的总结。她要的是「简单中文说做了什么」+「AC 素材详细记学习过程」。**学习过程是核心 — 比"改了哪些代码"重要**。
+
+### 1. ⭐⭐⭐ AC 素材 dump（最重要 — 收尾时间应主要花在这里）
+
+写到 `05_logs/raw/YYYY-MM-DD.md`（追加到当日文件 / 没有就新建）。
+
+#### 1.1 学习过程为核心
+
+每个「itsuki 不会 → 问 CC → CC 教了 → itsuki 学会了」的循环都要**详细**记：
+- 她发现了什么问题（症状 / 报错 / 不对劲的现象）
+- 她不会怎么解决（卡在哪一步、为什么卡）
+- 她问 CC 什么
+- CC 教了什么概念 / 步骤（**写完整解释，不写"教了 X"一句话**）
+- itsuki 学会后能怎么自己复述（用她自己的话）
+- 这个学习能用在 AC 哪个核心问题（5 大问题里挑）
+
+#### 1.2 CC 主动提的改动 = itsuki 的判断（拍板规则）
+
+CC 推荐的技术选型 / 设计决策 / 工程方法 / 写出的代码，**只要 itsuki 决定采纳/拒绝**，就当 itsuki 的判断写进 dump。原因：AC 评委关心"判断力 + 学习能力 + 推动事情成形"，不是手敲代码量。dump 时直接写「**我决定 / 我做了**」，不写「CC 决定 / CC 做了」。
+
+#### 1.3 没素材也硬凹
+
+每会话至少 1-2 条素材，即使是日常 bug fix 也要包装成成长叙事：
+- "今天我学会了 X"
+- "今天我决定 Y 因为 Z"
+- "今天我意识到 A 比 B 好"
+
+#### 1.4 必须详细 — 宁长勿短
+
+dump 是会话结束阶段最该花时间的环节。**收尾里 70% 时间留给 dump**。
+
+#### 1.5 标签
+
+CC 默认只打 `#AC候选`；升级第 2 层（`#AC強候補`）判断权在 itsuki。
+
+---
+
+### 2. 简单中文总结（给 itsuki 看的话 — 短）
+
+总结**只能用大白话中文**：
+
+- ❌ 禁用「落档」「实装」「prewarm」「cold start」「SourceKit」「detent」「provisioning」等术语
+- ❌ 不大段日语 / 英语（技术词尤其）
+- ✅ 用「我这次写了 X 文档 / 改了 Y 代码 / 你 ⌘R 后能看到 Z」这种说法
+- ✅ 必须出现专业词时，**第一次就用中文解释**（"代码签名 = 苹果给 app 盖章证明开发者身份"）
+
+总结分 3 段，每段 3-5 行就够：
+1. **做了什么**（中文人话讲改了哪些 / 你能看到什么）
+2. **AC 素材记了什么**（哪几条 dump 到 raw log + 一句话 hook）
+3. **下次要做什么**（未完成 backlog）
+
+---
+
+### 3. 文件关联追踪（每次收尾必查）
+
+改了某个文件 → 对照下表查"连带必改"文件 → 没改的提示 itsuki / 当场补上：
+
+| 改了 | 连带必查 |
+|---|---|
+| iOS Swift view（视觉 / 流程 / 字段）| `03_dev/student_ios/IOS_DESIGN_LOG.md` 对应章节 + `02_design/system_features.md`（≥2 端涉及时）|
+| `02_design/system_features.md` | 各端 `*_DESIGN_LOG.md` 引用是否要更新 |
+| backend `models.py` | `schemas.py` + `routers/*.py` + `alembic/versions/*` + iOS `NetworkModels.swift`（字段对齐）|
+| backend `routers/*.py` | iOS `Endpoints/*API.swift`（端点 / 参数 / 返回类型对齐）|
+| `Route.swift` 加 case | `RootView.swift` switch + 用到的 view 要存在 |
+| `Foundation/` 下 component（Pill / Card / Avatar / GlassSheet）改 props | grep 全 repo 找用到的地方 |
+| `01_specs/rollcall/*` 主体 | 触发 SOP 阅读 + 可能 bump 版本号 |
+| 项目结构 / 文件改名 / 移动 | `00_admin/文件结构指南.md` |
+| 新建声明性文件（CLAUDE.md / WIP / TODO 类）| `00_admin/文档同步点清单.md` |
+| 新建 / 改 hook | `00_admin/hooks/README.md` |
+| iOS Swift 改了 | `bin/sync-ios-refs.sh` 同步 Tomoshibi-iOS repo |
+
+---
+
+### 4. 规范文档同步检查（每次收尾必做）
+
+把本会话**所有 itsuki 拍板的事项**列出来，逐条问「是不是真的写到了规范文档里」：
+
+- 拍板了功能新增 / 改动 → 落到 `02_design/system_features.md`（共用层）+ 各端 `*_DESIGN_LOG.md`（专属层）？
+- 拍板了 UI / 流程改动 → 落到对应端的 DESIGN_LOG？
+- 拍板了技术选型 → 落到 DESIGN_LOG「技术决策」章节？
+- 拍板了规则 / 约束 → 落到 CLAUDE.md / system_features.md？
+- 仅口头说了"知道了"但没写文档的 = **bug**，必须当场补，不能拖到下次
+
+> **优先级**：**文档 ≥ 代码**。代码丢了能重写，文档丢了 AC 叙事缺证据 + 后续维护没依据。
+
+---
+
+### 5. WIP / 一致性检查 / 未完成 backlog（固定动作）
 
 1. 刷新当日 `05_logs/raw/YYYY-MM-DD.md` 顶部目录（操作手册 §8）
-2. 列出今天 dump 了哪些碎片给 itsuki 确认
-3. 直接更新 `WIP.md`；起草 `progress_overview.md` 草稿等 itsuki 确认
-4. 跑 §会话结束前一致性检查 4 项
-5. **git commit 本次会话所有变动**（itsuki 明确要求）：
-   - commit message **必须详细**：首行 `feat/fix/chore: 简述`，空行后主体分点列 **why + what**
-   - **不写 `Co-Authored-By` trailer**（memory `feedback_commit_style.md`）
-   - 用 HEREDOC 传 message 保中文换行；pre-commit hook 自动跑
-   - **不 push**（除非 itsuki 明说"push"）
-   - commit 跑完后给 itsuki **中文人话总结**"实际改了什么 / 覆盖哪些 backlog / 下一步"，不讲 git 工具用法（memory `feedback_change_summary_three_part_format.md`）
-6. 月末最后会话：提醒做月度回顾（挑 `#AC候选` + 写 `monthly_review/YYYY-MM.md` 到 iCloud）
+2. 直接更新 `WIP.md`；起草 `progress_overview.md` 草稿等 itsuki 确认
+3. 跑 §会话结束前一致性检查 4 项
+4. **看上下文找未完成任务 → 加到 WIP backlog**（不要漏 — itsuki 明确强调）
 
-**不做**：长篇会话总结 / 直接写 iCloud AC 目录 / 未授权 `git push` 或 `git tag`。
+---
+
+### 6. git commit（等 itsuki 明示 → 跑）
+
+- commit message 详细：首行 `feat/fix/chore: 简述`，空行后主体分点列 **why + what**
+- 不写 `Co-Authored-By` trailer（memory `feedback_commit_style.md`）
+- 用 HEREDOC 传 message 保中文换行；pre-commit hook 自动跑
+- 不 push（除非 itsuki 明说"push"）
+- commit 跑完后用「**原来 / 问题 / 改成**」三段式中文总结，不讲 git 工具
+
+---
+
+### 7. 月末最后会话
+
+提醒做月度回顾（挑 `#AC候选` + 写 `monthly_review/YYYY-MM.md` 到 iCloud）
+
+**不做**：长篇专业名词总结 / 直接写 iCloud AC 目录 / 未授权 `git push` 或 `git tag`。
 
 ---
 

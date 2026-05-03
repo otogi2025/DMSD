@@ -33,6 +33,7 @@ struct GlassSheet<Content: View>: View {
             }
             .clipShape(UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28, style: .continuous))
         }
+        .ignoresSafeArea(edges: .bottom)
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 }

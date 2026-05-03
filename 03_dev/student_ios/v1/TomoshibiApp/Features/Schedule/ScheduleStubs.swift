@@ -72,7 +72,8 @@ struct ScheduleView: View {
             }
             .disabled(!canGoBack)
             Spacer()
-            Text("\(ym.year) 年 \(ym.month) 月")
+            // verbatim 防止 Locale 把 2026 自动加千位分隔符变 "2,026"
+            Text(verbatim: "\(ym.year) 年 \(ym.month) 月")
                 .font(.system(size: 15, weight: .bold))
                 .foregroundStyle(T.ink)
             Spacer()
@@ -116,7 +117,8 @@ struct ScheduleView: View {
         return Button {
             selectedDay = day
         } label: {
-            ZStack(alignment: .bottom) {
+            // 数字居中 + 蓝点贴底（避免和数字重叠 — itsuki 2026-05-03 反馈）
+            ZStack {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(bg)
                     .overlay {
@@ -125,16 +127,19 @@ struct ScheduleView: View {
                                 .stroke(T.primary, lineWidth: 1.5)
                         }
                     }
-                Text("\(day)")
+                Text(verbatim: "\(day)")
                     .font(.system(size: 13, weight: (isSelected || isToday) ? .heavy : .medium, design: .monospaced))
                     .foregroundStyle(fg)
                 if !evs.isEmpty && !isSelected {
-                    HStack(spacing: 2) {
-                        ForEach(0..<min(evs.count, 3), id: \.self) { _ in
-                            Circle().fill(T.accent).frame(width: 4, height: 4)
+                    VStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        HStack(spacing: 2) {
+                            ForEach(0..<min(evs.count, 3), id: \.self) { _ in
+                                Circle().fill(T.accent).frame(width: 4, height: 4)
+                            }
                         }
+                        .padding(.bottom, 3)
                     }
-                    .offset(y: -3)
                 }
             }
             .aspectRatio(1, contentMode: .fit)

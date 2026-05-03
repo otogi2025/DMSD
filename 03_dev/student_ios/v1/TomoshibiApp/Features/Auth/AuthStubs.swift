@@ -23,6 +23,9 @@
 //   - Liquid Glass 仅 .glassEffect 许可 — Auth 流程不用 glass（bg = T.pearl / paper / gradient）
 
 import SwiftUI
+// Apple Image Playground · 设备本地 AI 插画生成（iOS 18.2+，仅 Apple Intelligence 支持机型）
+// → 用于注册第 1 步的头像 AI 生成功能（RegisterStep1View）
+import ImagePlayground
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MARK: - §0.1 Splash
@@ -575,6 +578,16 @@ struct RegisterStep1View: View {
     }()
     @State private var gender: String = SEED.user.gender == "男" ? "male" : "female"
     @State private var avatar: String = "default"
+
+    // ── Apple Image Playground · AI 头像生成 ─────────────────────────
+    // supportsImagePlayground = 设备支持 Image Playground + Apple Intelligence 已在系统设置里开启
+    // 即 iPhone 15 Pro / 15 Pro Max / iPhone 16 系列 + 用户在「设定」开了 AI 才会是 true
+    // 不支持的机型（iPhone 14 及以前）直接把「AI で生成」按钮隐藏掉，保持 UX 一致
+    @Environment(\.supportsImagePlayground) private var supportsImagePlayground
+    @State private var showImagePlayground: Bool = false
+    // 模型 cold start 5 秒掩饰 — 点击后立刻显示 loading，5.5 秒兜底复位
+    @State private var isLoadingImagePlayground: Bool = false
+    @State private var generatedAvatarURL: URL? = nil
     @State private var isOverseas: Bool = SEED.user.isOverseas    // 留学生 flag (system_features §8.1 / Q11)
     @State private var grade: String = SEED.user.grade
     @State private var classSuffix: String = SEED.user.classSuffix
@@ -636,7 +649,24 @@ struct RegisterStep1View: View {
                     // 1. アバター（最初に選ぶ）
                     Field(label: "アバター") {
                         HStack(alignment: .center, spacing: 14) {
-                            Avatar(letter: avatarLetter, size: 64)
+                            // 有 AI 生成 URL 就显示图片，否则 fallback 到字母 Avatar
+                            if let url = generatedAvatarURL {
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .success(let img):
+                                        img.resizable().scaledToFill()
+                                    default:
+                                        // 加载中 / 失败时显示灰色占位
+                                        T.pearl
+                                    }
+                                }
+                                .frame(width: 64, height: 64)
+                                .clipShape(Circle())
+                                .overlay { Circle().stroke(T.hair, lineWidth: 1) }
+                            } else {
+                                Avatar(letter: avatarLetter, size: 64)
+                            }
+
                             VStack(spacing: 8) {
                                 Button {
                                     // demo — 不接真相册
@@ -659,6 +689,7 @@ struct RegisterStep1View: View {
 
                                 Button {
                                     avatar = "default"
+                                    generatedAvatarURL = nil   // 清掉 AI 生成结果，退回字母 Avatar
                                 } label: {
                                     Text("デフォルトを使う")
                                         .font(.system(size: 13, weight: .semibold))
@@ -671,6 +702,44 @@ struct RegisterStep1View: View {
                                         }
                                 }
                                 .buttonStyle(.plain)
+
+                                // ⭐ AI 生成头像（Apple Image Playground · 设备本地推理，零成本零网络）
+                                // 不支持的机型（iPhone 14 及以前）按钮直接不显示 → UX 一致
+                                if supportsImagePlayground {
+                                    Button {
+                                        // 立刻显示 loading 让用户感知 app 在响应（模型 cold start ~5 秒）
+                                        isLoadingImagePlayground = true
+                                        showImagePlayground = true
+                                        // 兜底复位：5.5 秒后强制结束 loading，覆盖最长 cold start
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 5.5) {
+                                            isLoadingImagePlayground = false
+                                        }
+                                    } label: {
+                                        HStack(spacing: 6) {
+                                            if isLoadingImagePlayground {
+                                                ProgressView()
+                                                    .controlSize(.small)
+                                                    .tint(.white)
+                                                Text("準備中…")
+                                                    .font(.system(size: 13, weight: .semibold))
+                                            } else {
+                                                Image(systemName: "sparkles")
+                                                    .font(.system(size: 12, weight: .semibold))
+                                                Text("AI で生成")
+                                                    .font(.system(size: 13, weight: .semibold))
+                                            }
+                                        }
+                                        .foregroundStyle(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 38)
+                                        .background {
+                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                .fill(isLoadingImagePlayground ? T.accent.opacity(0.7) : T.accent)
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+                                    .disabled(isLoadingImagePlayground)
+                                }
                             }
                         }
                     }
@@ -906,6 +975,18 @@ struct RegisterStep1View: View {
             .padding(.bottom, 32)
         }
         .background(T.paper)
+        // ⭐ Apple Image Playground sheet · 设备本地 AI 生成头像
+        // concept = 给 AI 的提示词；用户的姓名 + 几个固定关键词组装出 prompt
+        // onCompletion 拿到的 url 是 iOS 系统给的临时文件路径（demo 阶段够用，
+        // v1.0 上线时这里要改成把文件上传到后端 R2/S3 + 数据库存远程 URL）
+        .imagePlaygroundSheet(
+            isPresented: $showImagePlayground,
+            concept: "学生 アバター \(name) 笑顔 cute",
+            onCompletion: { url in
+                generatedAvatarURL = url
+                avatar = url.absoluteString
+            }
+        )
     }
 }
 
@@ -1126,21 +1207,10 @@ struct RegisterStep3View: View {
 
 struct RegisterStep4View: View {
     @EnvironmentObject var router: RouterStore
-    // demo 版预填方便演示，production 留空
-    @State private var pw: String = {
-        #if DEMO
-        return "demo1234"
-        #else
-        return ""
-        #endif
-    }()
-    @State private var pw2: String = {
-        #if DEMO
-        return "demo1234"
-        #else
-        return ""
-        #endif
-    }()
+    // ⚠️ DEMO-ONLY-SCAFFOLD（2026-05-03）：密码预填，demo 时直接「次へ」即可
+    // v1.0 上线前必删 — 改回空文字列 "" 让用户必填
+    @State private var pw: String = "demo1234"
+    @State private var pw2: String = "demo1234"
 
     private var mismatch: Bool {
         !pw.isEmpty && !pw2.isEmpty && pw != pw2

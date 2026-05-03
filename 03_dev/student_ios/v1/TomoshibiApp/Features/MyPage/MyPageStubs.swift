@@ -54,52 +54,64 @@ struct MyLandingView: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
-    /// 对等 JSX blocks (8 件 · 2-col grid + 学習履歴 isStudyTarget のみ追加)
+    // 2026-05-03 itsuki 拍板「方案 B 分层重设计」:
+    //   - profile 缩小（avatar 56 + 一行 info + Pill）
+    //   - 学習 / 点呼 / 減点 = Card 化置顶（最重要 → 最显眼）
+    //   - 履歴 grid 缩到 6 件（删点呼 / 減点 / 学習 — 已 Card 化）
+    //   - settings 删特別運航便（已搬到 Home busCard）
+
+    /// 履歴 grid（6 件 · 2-col grid）
     private var blocks: [MyLandingGridBlock] {
-        // JSX badge: points = 4.0 → 我们 SEED 是 4.5 → 动态取 SEED.user.points
-        let pointsBadge = String(format: "%.1f", SEED.user.points)
         let pendingPackages = SEED.packages.filter { $0.status == "待領" }.count
         let packagesBadge = pendingPackages > 0 ? "\(pendingPackages)" : nil
 
-        var arr: [MyLandingGridBlock] = [
+        return [
             .init(key: "info", label: "個人情報", icon: "👤", badge: nil, route: .myInfo),
-            .init(key: "rollcall", label: "点呼履歴", icon: "📋", badge: nil, route: .myRollcall),
-            .init(key: "points", label: "減点明細", icon: "📉", badge: pointsBadge, route: .myPoints),
             .init(key: "discipline", label: "処分履歴", icon: "⚖️", badge: nil, route: .myDiscipline),
             .init(key: "health", label: "体調報告履歴", icon: "🤒", badge: nil, route: .myHealth),
-            // 2026-04-30 会话 C 修正: 「申請履歴」は届の履歴 → .stayList へ
-            // （旧 .apply は申し込み tab root = 新規作成導線、履歴閲覧用ではない）
             .init(key: "apps", label: "申請履歴", icon: "📄", badge: nil, route: .stayList),
             .init(key: "clean", label: "掃除提出履歴", icon: "🧹", badge: nil, route: .myClean),
             .init(key: "packages", label: "荷物受取履歴", icon: "📦", badge: packagesBadge, route: .myPackages),
         ]
-        // 学習履歴 — 学習対象学生のみ表示（system_features §7.3.5「学習対象 / 非対象 区分」）
-        if SEED.user.isStudyTarget {
-            arr.append(.init(key: "study", label: "学習履歴", icon: "📚", badge: nil, route: .myStudy))
-        }
-        return arr
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            // PageHeader(level: 1) 左上 Home icon → router.replace(.home)
             PageHeader(title: "マイページ", level: 1)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    // Profile card
+                    // 1. Profile（紧凑）
                     profileSection
                         .padding(.horizontal, 16)
                         .padding(.top, 6)
-                        .padding(.bottom, 12)
+                        .padding(.bottom, 14)
 
-                    // 2-col grid
+                    // 2. ⭐ 主要状态 Card 群（学習 / 点呼 / 減点）
+                    VStack(spacing: 10) {
+                        if SEED.user.isStudyTarget {
+                            studyStatusCard
+                        }
+                        rollcallStatusCard
+                        pointsStatusCard
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 18)
+
+                    // 3. 履歴 section header
+                    Text("履歴")
+                        .font(.system(size: 11, weight: .heavy))
+                        .kerning(0.6)
+                        .foregroundStyle(T.inkSub)
+                        .padding(.horizontal, 22)
+                        .padding(.bottom, 8)
+
+                    // 4. 履歴 grid（6 件）
                     gridSection
                         .padding(.horizontal, 16)
-                        .padding(.top, 4)
-                        .padding(.bottom, 12)
+                        .padding(.bottom, 16)
 
-                    // Settings list
+                    // 5. Settings list
                     settingsSection
                         .padding(.horizontal, 16)
                         .padding(.top, 4)
@@ -110,40 +122,198 @@ struct MyLandingView: View {
         .background(T.pearl.ignoresSafeArea())
     }
 
-    // MARK: Profile card
+    // MARK: Profile card（紧凑：avatar 56 + 名字 + 账号 + Pill 一行）
 
     private var profileSection: some View {
-        Card(padding: 20) {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .center, spacing: 14) {
-                    Avatar(letter: SEED.user.avatar, size: 64)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(SEED.user.name)
-                            .font(.system(size: 20, weight: .heavy))
-                            .kerning(-0.2)
+        Card(padding: 18) {
+            HStack(alignment: .center, spacing: 14) {
+                Avatar(letter: SEED.user.avatar, size: 56)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(SEED.user.name)
+                        .font(.system(size: 18, weight: .heavy))
+                        .kerning(-0.2)
+                        .foregroundStyle(T.ink)
+                    HStack(spacing: 4) {
+                        Text("アカウント ")
+                            .font(.system(size: 11))
+                            .foregroundStyle(T.inkMute)
+                        Text(SEED.user.account)
+                            .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(T.ink)
-                        HStack(spacing: 4) {
-                            Text("アカウント番号 ")
-                                .font(.system(size: 12))
-                                .foregroundStyle(T.inkMute)
-                            Text(SEED.user.account)
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(T.ink)
-                                .monospaced()
-                        }
-                        .padding(.top, 2)
+                            .monospaced()
                     }
-                    Spacer(minLength: 0)
+                    HStack(spacing: 6) {
+                        Pill(text: "\(SEED.user.dorm) \(SEED.user.room)", tone: .accent)
+                        Pill(text: SEED.user.category, tone: .neutral)
+                    }
+                    .padding(.top, 2)
                 }
-                HStack(spacing: 6) {
-                    Pill(text: "\(SEED.user.dorm) \(SEED.user.room)", tone: .accent)
-                    Pill(text: SEED.user.category, tone: .neutral)
-                }
+                Spacer(minLength: 0)
             }
         }
     }
 
-    // MARK: 2-col grid
+    // MARK: ⭐ 学習ステータス Card
+
+    private var studyStatusCard: some View {
+        Button { router.go(.myStudy) } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(T.primary.opacity(0.10))
+                        .frame(width: 48, height: 48)
+                    Text("📚").font(.system(size: 22))
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("学習ステータス")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(T.inkSub)
+                    Text(studyStateText)
+                        .font(.system(size: 16, weight: .heavy))
+                        .foregroundStyle(T.ink)
+                    Text("履歴を見る →")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(T.primary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(16)
+            .background(landingCardBg)
+            .overlay(landingCardBorder)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var studyStateText: String {
+        switch app.studyState {
+        case .idle:     return "対象外（今日）"
+        case .upcoming: return "開始まで \(formatCountdown(app.studyCountdownSec))"
+        case .active:   return "進行中"
+        case .done:     return "本日完了 ✅"
+        }
+    }
+
+    private func formatCountdown(_ sec: Int) -> String {
+        let m = sec / 60, s = sec % 60
+        return String(format: "%d:%02d", m, s)
+    }
+
+    // MARK: ⭐ 点呼履歴 Card
+
+    private var rollcallStatusCard: some View {
+        let stats = monthRollcallStats()
+        return Button { router.go(.myRollcall) } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(T.okBg)
+                        .frame(width: 48, height: 48)
+                    Text("📋").font(.system(size: 22))
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("今月の点呼")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(T.inkSub)
+                    HStack(spacing: 12) {
+                        statBlock(num: stats.onTime, label: "時間内", color: T.ok)
+                        statBlock(num: stats.late, label: "遅刻", color: T.warn)
+                        statBlock(num: stats.absent, label: "欠席", color: T.danger)
+                    }
+                    Text("詳細を見る →")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(T.primary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(16)
+            .background(landingCardBg)
+            .overlay(landingCardBorder)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func monthRollcallStats() -> (onTime: Int, late: Int, absent: Int) {
+        var onTime = 0, late = 0, absent = 0
+        for r in SEED.rollcall {
+            switch r.state {
+            case "時間内": onTime += 1
+            case "遅刻":   late += 1
+            case "欠席":   absent += 1
+            default: break
+            }
+        }
+        return (onTime, late, absent)
+    }
+
+    private func statBlock(num: Int, label: String, color: Color) -> some View {
+        HStack(spacing: 4) {
+            Text(verbatim: "\(num)")
+                .font(.system(size: 17, weight: .heavy, design: .monospaced))
+                .foregroundStyle(color)
+            Text(label)
+                .font(.system(size: 10.5))
+                .foregroundStyle(T.inkSub)
+        }
+    }
+
+    // MARK: ⭐ 減点明細 Card
+
+    private var pointsStatusCard: some View {
+        let pts = SEED.user.points
+        let level: (numColor: Color, bgColor: Color, label: String, pillTone: Pill.Tone) = {
+            if pts >= 8 { return (T.danger, T.dangerBg, "禁足", .danger) }
+            if pts >= 4 { return (T.warn, T.warnBg, "罰掃 注意", .warn) }
+            return (T.ok, T.okBg, "良好", .ok)
+        }()
+        return Button { router.go(.myPoints) } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(level.bgColor)
+                        .frame(width: 48, height: 48)
+                    Text("📉").font(.system(size: 22))
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("減点明細")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(T.inkSub)
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(String(format: "%.1f", pts))
+                            .font(.system(size: 22, weight: .heavy, design: .monospaced))
+                            .foregroundStyle(level.numColor)
+                        Text("点")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(T.inkSub)
+                        Pill(text: level.label, tone: level.pillTone)
+                    }
+                    Text("詳細を見る →")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(T.primary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(16)
+            .background(landingCardBg)
+            .overlay(landingCardBorder)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: Card 共通背景 + 边框
+
+    private var landingCardBg: some View {
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .fill(T.paper)
+            .shadow(color: T.ink.opacity(0.04), radius: 2, x: 0, y: 1)
+            .shadow(color: T.ink.opacity(0.05), radius: 14, x: 0, y: 4)
+    }
+
+    private var landingCardBorder: some View {
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .stroke(T.hair, lineWidth: 0.5)
+    }
+
+    // MARK: 履歴 2-col grid（6 件）
 
     private var gridSection: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
@@ -166,7 +336,7 @@ struct MyLandingView: View {
                         .foregroundStyle(T.ink)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(minHeight: 88, alignment: .topLeading)
+                .frame(minHeight: 80, alignment: .topLeading)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 14)
                 .background {
@@ -187,10 +357,9 @@ struct MyLandingView: View {
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
                         .background {
-                            Capsule()
-                                .fill(b.key == "points" ? T.warnBg : T.dangerBg)
+                            Capsule().fill(T.dangerBg)
                         }
-                        .foregroundStyle(b.key == "points" ? T.warnDeep : T.danger)
+                        .foregroundStyle(T.danger)
                         .padding(.top, 12)
                         .padding(.trailing, 12)
                 }
@@ -209,10 +378,7 @@ struct MyLandingView: View {
                     router.go(.schedule)
                 }
                 Divider().background(T.hair).padding(.leading, 0)
-                settingsRow(label: "特別運航便", chev: true, danger: false) {
-                    router.go(.busList)
-                }
-                Divider().background(T.hair).padding(.leading, 0)
+                // 特別運航便 入口は 2026-05-03 Home busCard へ移設（itsuki 拍板：重複解消）
                 settingsRow(label: "通知設定", chev: true, danger: false) {
                     router.go(.mySettings)
                 }
