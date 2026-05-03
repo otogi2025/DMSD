@@ -19,24 +19,13 @@
 
 ---
 
-## § 0 — 5 秒速查卡（最关键 5 行 + 协作模型）
+## § 0 — 5 秒速查卡（最关键 5 行）
 
 1. **当前版本** = `CHANGELOG.md` 顶部第一条 `## [vX.Y.Z]`（也同步在 `WIP.md` 头部）
 2. **改 spec 主体 / 字典 / 02_design / 03_dev 大块** → 必读 §2 决策树
 3. **决定 bump** → 跑 §3 五步 + 对照 §4 联动文件清单（必改 6 处）
 4. **commit 前缀对照表** → §5（feat=minor 候选 / fix=patch 候选 / docs+chore=不 bump）
-5. **协作模型**（2026-05-04 itsuki 拍板）→ 见下表
-
-### CC 自动 vs itsuki 主导（bump 流程分工）
-
-| 谁做 | 做什么 |
-|---|---|
-| **CC 自动** | commit 本地（不 push）/ raw/ 详细 dump / 起草 CHANGELOG 段 / 主动提 bump 时机（4 问 hit 就提议）|
-| **itsuki 主导** | push 时机（"推到 X commit"）/ bump 决定（patch / minor / major）/ **AC 叙事整个文档**（自己写，CC 等他来问才辅助，不主动起草）|
-| **CC 执行** | itsuki 点头后 → 打 tag + commit CHANGELOG 文件 + push 一气呵成 |
-
-→ **关键差别**：**CHANGELOG = CC 起草事实清单**（"加了 X / 改了 Y / 修了 Z"），**AC 叙事 = itsuki 写自己故事**（"为什么做 / 学到了什么 / 面试时怎么讲"）。
-→ 历史 v0.3.0 ~ v0.8.0 的 6 个 `v0.X.Y_AC叙事.md` 都是 CC 起草的，**保持不动**。新规则**从下一次 bump 起生效**。
+5. **协作模型**（CC 自动 commit / itsuki 主导 push + bump + AC 叙事 / CC 执行 tag）→ 单源真值在 `00_admin/CLAUDE_CODE_记录指南.md §8.6`
 
 ---
 

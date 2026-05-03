@@ -85,6 +85,17 @@
 - **背景**：itsuki 启动会话提"每次改动/决定立刻同步文档" → 诊断现有机制只能 70-80% 联动 → 拍板 A+B 方案
 - 已合并到上面"2026-05-04"主条目（同会话延续）
 
+### 2026-05-03 晚 by [Mac-mini-Opus 4.7]
+
+**主题**：⭐⭐ 协作模型升级 + WIP/TODO 分工拆开（被同晚治理 commit 采纳 + 收紧）
+
+- 拍板 3 条新规则：WIP/TODO 分工拆开 / commit/push/tag 协作模型 / §⭐ 根本性原则 §3「CC 主动发现 = AC 素材」
+- 落档 commit `66ecfdc`（CLAUDE.md 5 处 / WIP 重写 600→148 行 / SOP §0 / raw/2026-05-04.md §1-§4）
+- 同晚 22:34 治理 commit `1ab265a` 大整顿**采纳了 3 条核心**，整合到新架构（CLAUDE.md 419→120 行 / AC 协作挪到 CLAUDE_CODE_记录指南.md / 性别更正）
+- **唯一冲突已修**：「CC 启动读 WIP+TODO 顶部 200 行」跟治理「只读 WIP, TODO 按需读」相反 → 收尾按治理方向重写 `feedback_wip_todo_split.md` + SOP §0 协作模型指针化到记录指南 §8.6
+- AC dump：raw/2026-05-04.md §1-§4（治理 commit §21:00 + §21:30 共存于同文件，文件名按惯例延续）
+- 残：别会话留 system_features / IOS_DESIGN_LOG / HomeStubs / AppStore.swift modified（按规则不动）
+
 ### 2026-05-03 下午+晚上 by [Mac-mini-Opus 4.7]
 
 **主题**：iOS Tomoshibi 集中改 + 老师公告 spec + MyPage 方案 B + 收尾流程升级
