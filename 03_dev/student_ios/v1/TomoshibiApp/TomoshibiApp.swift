@@ -17,7 +17,9 @@ struct TomoshibiApp: App {
             RootView()
                 .environmentObject(router)
                 .environmentObject(app)
-                .preferredColorScheme(app.isDark ? .dark : nil)
+                // ⚠️ N18（IOS_DESIGN_LOG §6.5）= 暗色模式「做」但未实装。
+                // 暂强制 light，避免系统 dark → SwiftUI 反色 + 黑闪。N18 实装时改回 `.preferredColorScheme(app.isDark ? .dark : nil)`
+                .preferredColorScheme(.light)
         }
     }
 }

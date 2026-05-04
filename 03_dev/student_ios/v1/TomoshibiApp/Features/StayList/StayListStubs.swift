@@ -1261,7 +1261,7 @@ struct StayEditForm: View {
             sectionLabel("宿泊先")
             Card(padding: 14) {
                 VStack(alignment: .leading, spacing: 8) {
-                    TField(text: $destination, placeholder: "例：祖父母宅（岡山市北区表町 1-1-3）")
+                    TField(text: $destination, placeholder: "宿泊先住所")
                     if let d = original.destination, d != destination {
                         originalNote(label: "原値", text: d)
                     }
@@ -1278,7 +1278,7 @@ struct StayEditForm: View {
             }
             TArea(
                 text: $amendReason,
-                placeholder: "例：帰省日が祖母の通院と重なったため、1 日後ろ倒しにしたい。",
+                placeholder: "修改の理由を入力してください",
                 rows: 4
             )
             Text("※ 各役职の先生にこの理由が表示されます。")

@@ -1930,7 +1930,7 @@ struct HealthSheet: View {
                         Text("体温（任意）")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(T.inkSub)
-                        TField(text: $temp, placeholder: "例: 37.2", keyboard: .decimalPad)
+                        TField(text: $temp, placeholder: "体温（℃）", keyboard: .decimalPad)
                     }
 
                     // Field: 補足

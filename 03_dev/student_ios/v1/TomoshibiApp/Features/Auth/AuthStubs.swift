@@ -461,10 +461,10 @@ private struct BackChevronIcon: View {
 // MARK: - Register 共通: Progress bar + Header
 // ═══════════════════════════════════════════════════════════════════════════════
 //
-// JSX: アカウント作成 · step/4 · 4px capsule · linear-gradient 5fbec8 → 1f6b74 · width*25%
+// 注册进度 · 5 步（Step5 = 认证代码，5-04 加 RegisterStep5 时把硬编码 4 改成 5）
 
 private struct RegisterProgress: View {
-    let step: Int  // 1...4
+    let step: Int  // 1...5
 
     var body: some View {
         VStack(spacing: 8) {
@@ -473,7 +473,7 @@ private struct RegisterProgress: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(T.inkSub)
                 Spacer()
-                Text("\(step) / 4")
+                Text("\(step) / 5")
                     .font(.system(size: 12, design: .monospaced))
                     .foregroundStyle(T.inkMute)
             }
@@ -490,7 +490,7 @@ private struct RegisterProgress: View {
                                 startPoint: .leading, endPoint: .trailing
                             )
                         )
-                        .frame(width: g.size.width * CGFloat(step) * 0.25, height: 4)
+                        .frame(width: g.size.width * CGFloat(step) / 5.0, height: 4)
                         .animation(.easeInOut(duration: 0.4), value: step)
                 }
             }

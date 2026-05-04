@@ -471,7 +471,7 @@ struct StayForm: View {
                                             set: { newVal in
                                                 if i < stayPlaces.count { stayPlaces[i] = newVal }
                                             }
-                                        ), placeholder: "例：祖父母宅（岡山市北区表町 1-1-3）")
+                                        ), placeholder: "滞在先住所")
                                         if stayPlaces.count > 1 {
                                             Button {
                                                 if i < stayPlaces.count { stayPlaces.remove(at: i) }
@@ -551,7 +551,7 @@ struct StayForm: View {
                         Card(padding: 14) {
                             VStack(alignment: .leading, spacing: 12) {
                                 Field(label: "出発空港", required: true) {
-                                    TField(text: $departAirport, placeholder: "例：岡山空港（OKJ）")
+                                    TField(text: $departAirport, placeholder: "出発空港名")
                                 }
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text("出発時刻")
@@ -560,7 +560,7 @@ struct StayForm: View {
                                     TimeField(date: $departFlightTime)
                                 }
                                 Field(label: "到着空港", required: true) {
-                                    TField(text: $arriveAirport, placeholder: "例：上海浦東国際空港（PVG）")
+                                    TField(text: $arriveAirport, placeholder: "到着空港名")
                                 }
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text("到着時刻")
@@ -578,9 +578,7 @@ struct StayForm: View {
                     SectionLabel(n: reasonSectionN,
                                  label: isHoliday ? "帰省の理由" : (isReturnCountry ? "帰国の理由" : "外泊の理由"))
                     TArea(text: $reason,
-                          placeholder: isHoliday ? "例：祖父の米寿祝いのため親族で集まるため。"
-                                                 : (isReturnCountry ? "例：家族の都合により一時帰国。"
-                                                                    : "例：友人の結婚式に出席するため。"),
+                          placeholder: "理由を入力してください",
                           rows: 3)
                         .padding(.bottom, 22)
 
@@ -1282,12 +1280,12 @@ struct GenericApplyForm: View {
 
                     if needsDest {
                         Field(label: "行き先", required: true) {
-                            TField(text: $dest, placeholder: "例：新宿・実家など")
+                            TField(text: $dest, placeholder: "行き先を入力")
                         }.padding(.bottom, 14)
                     }
                     if isGuest {
                         Field(label: "来訪者氏名", required: true) {
-                            TField(text: $dest, placeholder: "例：山田 花子")
+                            TField(text: $dest, placeholder: "来訪者氏名を入力")
                         }.padding(.bottom, 14)
                     }
                     if isParcel {

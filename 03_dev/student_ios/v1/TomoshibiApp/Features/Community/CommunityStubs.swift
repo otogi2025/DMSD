@@ -1558,11 +1558,7 @@ struct BusView: View {
                     // グローバル通知 banner
                     if SEED.busNotice.active {
                         HStack(alignment: .top, spacing: 4) {
-                            (
-                                Text("⚠ ")
-                                + Text("臨時公告").fontWeight(.bold)
-                                + Text(" · \(SEED.busNotice.text)")
-                            )
+                            Text("⚠ \(Text("臨時公告").fontWeight(.bold)) · \(SEED.busNotice.text)")
                             .font(.system(size: 12.5))
                             .foregroundStyle(T.warnDeep)
                             .lineSpacing(3)
