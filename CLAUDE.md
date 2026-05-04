@@ -107,7 +107,7 @@ iOS Swift 改了 → bash bin/sync-ios-refs.sh 同步 Tomoshibi-iOS
 2. iCloud `03_素材_候选/` + `04_素材_成品/` 写需 itsuki 当场授权
 3. `05_logs/decision_log.md` / `project_evolution.md` / `learning_path.md` 正文 CC 永不直写，只起草 draft 等 itsuki 粘贴
 4. AC 叙事文档 `vX.Y.Z_AC叙事.md` itsuki 自己写，CC 等他来问才辅助，不主动起草
-5. 叙事归属：raw 阶段写「AI 提了 X，我评估后采纳/拒绝/改造，理由是 Y」，第 3 种「未完全理解就采纳」必须 ⚠️ 明标 — 详见 skill §0.1（月度筛选时再归功 itsuki 判断）
+5. 叙事归属：raw 阶段写「AI 提了 X，我评估后采纳/拒绝/改造，理由是 Y」 — **不写"未完全理解"类自我贬低标记**（2026-05-04 itsuki 拍板：raw 是 git 可见的负面证据）。月度筛选时再归功 itsuki 判断 — 详见 skill §0.1
 
 ## 触发场景（看到任一 → ac-record skill 自动激活）
 
