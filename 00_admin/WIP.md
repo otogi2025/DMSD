@@ -20,7 +20,7 @@
 ---
 
 **当前版本**: v0.8.0 <!-- VERSION_OK -->
-**版本管理 SOP**: `00_admin/版本管理SOP.md`（CC 改 spec / 02_design / 03_dev 主体后必读 §2 决策树）
+**版本 bump 流程**: `.claude/skills/version-bump/SKILL.md`（itsuki 说「迭代/bump/发版本/打 tag」自动触发；CC 有否决权 — 即使 itsuki 说要 bump 但 §2 决策树不命中可以拒绝）
 
 ---
 
@@ -39,21 +39,29 @@
 
 ### 2026-05-04 深夜 by [Mac-元层优化 Opus 4.7]
 
-**主题**：⭐⭐⭐ Claude Code 5 层架构学习 + AC 记录指南升级 v4 + 做成 skill / CC coach 失职反思 + 全工程实践扫描清单
+**主题**：⭐⭐⭐⭐ Claude Code 5 层架构学习 + 2 个 skill 落地（ac-record + version-bump）+ 4 次 itsuki 戳穿 CC 设计盲点 + 全工程实践扫描清单
 
 - **学概念**：CC 5 层架构（CLAUDE.md / Skills / Hooks / Subagents / Plugins）+ MCP / Agent Teams 外挂；连续 4 次戳穿 CC「派多个 subagent 叫 Teams」表述夸大 → CC 校准到 L1/L2/L3 真实分级；CrewAI 简介；第一性原理筛 5 层 → Plugins ❌ Skills 🟡 Hooks 🔴 Subagents 🟠
 - **戳 CC coach 失职**：CC 之前没主动提 Skill / CC Hook 这两个现成方案 → 我手搓了山寨版 CLAUDE.md 触发词机制 + git pre-commit；元认知金句「这种事情没有体验，别人提醒我也不会知道」拍板
 - **memory 升级**：`feedback_proactive_diagnose_unknown_unknowns.md` 加 case study（Skill / CC Hook 失职 + Git 反证）+ 3 层扫描清单（CC 内部能力 / 业界标准工程实践 / AC 学习自管理）
-- **AC 记录指南 v4 → skill**：itsuki 重写 v4 后 CC 审视 5 致命冲突 + 4 重要问题；按 itsuki 拍板：现有 `CLAUDE_CODE_记录指南.md` git rm（不留指针文件）/ 模板降级为推荐字段 / CC 自主决定其余 — 整体迁入 `.claude/skills/ac-record/SKILL.md`（450 行）
-- **CLAUDE.md 同步**：4 处指针改向 skill / 5 硬底线保留 + 第 5 条改为「叙事归属 raw 阶段写"AI 提了 X，我评估后采纳"，未完全理解明标」（冲突 1 折中方案）
-- **TODO 闭合 + 加 unknown unknowns 工程实践体检清单**：5 项 🔴 推荐试（GitHub Actions / Linter / Type checker / FastAPI /docs / .env）+ 4 项 🟠 延后（Issues / Sentry / Docker / structlog）+ 学习路径 5 步顺序
+- **🆕 ac-record skill** — itsuki 重写 v4 → CC 审视 → 整体迁入 `.claude/skills/ac-record/SKILL.md`；旧 `00_admin/CLAUDE_CODE_记录指南.md` git rm；后续 itsuki 4 次戳穿 CC：1) 指针文件多余 2) 未完全理解自我贬低 3) 关键词触发不实用 → CC 改为「**收尾全量扫描**」主流程
+- **🆕 version-bump skill** — `00_admin/版本管理SOP.md` 整体迁入 `.claude/skills/version-bump/SKILL.md`（531 行），归档到 `99_archive/2026-05-04_版本管理SOP_迁入skill/`；加 4 条 itsuki 拍板新铁律：⭐ **CC 否决权**（itsuki 说要 bump CC 也能拒绝）/ ⭐ **版本演变一览必更新**（实战发现 v0.6.0 + v0.8.0 都没更新）/ ⭐ **全量扫描**（不偷懒）/ ⭐ 加「迭代」关键词
+- **CLAUDE.md 同步**：4 处指针改向 ac-record skill / SOP 引用全改向 version-bump skill / 5 硬底线第 5 条改为「raw 写"AI 提了 X，我评估后采纳"」（冲突 1 折中）；第 5 条二改去掉「未完全理解明标」（itsuki 拒绝）
+- **TODO 闭合 + 加 unknown unknowns 工程实践体检清单**：5 项 🔴 推荐试（GitHub Actions / Linter / Type checker / FastAPI /docs / .env）+ 4 项 🟠 延后（Issues / Sentry / Docker / structlog）+ 学习路径 5 步
 
 **新规则上线**：
-- AC 协作权威源换地方 — 从 `00_admin/CLAUDE_CODE_记录指南.md`（已删）→ `.claude/skills/ac-record/SKILL.md`（按需触发不占主上下文）
-- CC 看到 itsuki 手搓机制 → 强制对照扫描清单（CC 内部 / 业界 / AC + 学习），主动提现成方案
-- raw dump 叙事策略：写「AI 提了 X，我评估后采纳/拒绝/改造」+ 第 3 种「未完全理解」⚠️ 明标，月度筛选时再归功
+- AC 协作权威源换地方 — `.claude/skills/ac-record/SKILL.md`（按需触发不占主上下文）
+- 版本 bump 权威源换地方 — `.claude/skills/version-bump/SKILL.md`（CC 有否决权 + 版本演变一览必更新）
+- CC 看到 itsuki 手搓机制 → 强制对照扫描清单，主动提现成方案
+- raw dump 叙事策略：写「AI 提了 X，我评估后采纳/拒绝/改造」（不写"未完全理解"自我贬低标记）
+- ac-record 主要工作模式：itsuki 说"收尾" → CC 全量扫描会话上下文（不依赖关键词命中）
 
-**残**：itsuki 走前授权 CC 自主完成 skill — ✅ 已做完。后续待 itsuki 回来：1) 测试 skill 自动触发是否正常 2) 回来再做 unknown unknowns 体检清单的 🔴 5 项 3) Hook 改造（日语注释拦截 + sync-check on Stop）4) progress_overview 章节里程碑刷新
+**版本演变一览历史欠债**（CC 主动识别，等 itsuki 拍板补不补）：
+- v0.6.0 段（4-29 close）— 没写
+- v0.8.0 段（5-02 close）— 没写
+- → 下次 bump 时 version-bump skill §0.2 铁律会强制补这部分
+
+**残**：itsuki 授权 CC 自主完成 — 2 个 skill ✅ 已做完。后续待 itsuki：1) 测试 ac-record 收尾全量扫描 2) 测试 version-bump 否决权（说"迭代"看 CC 是否会拒绝）3) unknown unknowns 体检清单 🔴 5 项 4) Hook 改造（日语注释拦截 + sync-check on Stop）5) progress_overview 章节里程碑刷新 6) 版本演变一览补 v0.6.0 / v0.8.0 段
 
 ### 2026-05-04 晚 by [Mac-治理 Opus 4.7]
 

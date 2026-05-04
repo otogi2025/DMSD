@@ -21,7 +21,7 @@ iOS 独立 repo: otogi2025/Tomoshibi-iOS，single source 永远 DMSD 侧
 
 ## 目录结构
 
-00_admin/   WIP / TODO / 项目文件总览 / 文档同步点清单 / 版本管理SOP / hooks
+00_admin/   WIP / TODO / 项目文件总览 / 文档同步点清单 / hooks（版本 bump 流程 → `.claude/skills/version-bump/`）
 01_specs/   规格文档 — rollcall/ 字典+主体
 02_design/  设计文档 — hardware / flow / system_features 等
 03_dev/     代码 — backend / teacher_web / student_ios，Swift 实装在独立 repo Tomoshibi-iOS
@@ -42,7 +42,7 @@ Web 専属:  03_dev/teacher_web/WEB_DESIGN_LOG.md
 ## 文档一致性
 
 单源真值表 + pre-commit hook + 跨 repo 同步: 00_admin/文档同步点清单.md
-版本 bump 流程: 00_admin/版本管理SOP.md
+版本 bump 流程: `.claude/skills/version-bump/SKILL.md`（itsuki 说「迭代/bump/发版本/打 tag」自动触发；CC 有否决权）
 中文铁律 — 代码注释 + 内部文档 100% 中文 / UI 字符串保持日语: memory feedback_code_comments_chinese_strict.md
 
 ## 文件连锁结构（改 A 必查 B，改完当场对照）

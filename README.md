@@ -38,7 +38,7 @@ Tomoshibi 用 NFC 卡 + 服务器 + 手机 App + 墙上的专用小设备（点�
 - ✅ 学生 iOS prototype Round 1（73 画面 Phase A+B HTML，3 按钮 nav + Home omnibus + 中央点呼 sheet）
 - ✅ Demo 4-28 sprint 跑通（纯软件，iPhone 碰 NFC → 后端 → iPad 座位变绿 + 日语播报）
 - ✅ 跨会话同步机制 A+B+C（多 AI agent 并行协作的真值同步规则）
-- ✅ 版本管理 SOP 建立（`00_admin/版本管理SOP.md`，解决"9 天没 bump"的迭代问题）
+- ✅ 版本管理 SOP 建立（解决"9 天没 bump"的迭代问题；2026-05-04 升级迁入 `.claude/skills/version-bump/` skill 形态，加 CC 否决权 + 版本演变一览必更新等 4 条新铁律）
 - ✅ 完整版本变更记录（见 `CHANGELOG.md`，v0.0.1 → v0.5.0 共 14 个版本）
 - ⬜ 后端 + 生产代码 —— 还没开始。iOS Swift / Android Kotlin / FastAPI 后端 实装从 v0.6 起步
 
