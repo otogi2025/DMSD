@@ -262,10 +262,7 @@
 >
 > **完整 39 条 finding 清单** → CC 本地 plan 文件 `~/.claude/plans/bug-ac-parallel-pumpkin.md`(含严重度分类+验证方法+不动的边界)
 
-- [ ] **CLAUDE.md vs CLAUDE_CODE_记录指南.md 完全重复 5 核心问题 + 触发清单**
-  - 现状:两文件分别写了 "5 个 AC 核心问题(1-5)" + "触发清单(CC 每次回复前心里过一遍)",**一字不差**
-  - 选项 a:CLAUDE_CODE_记录指南.md 删这两段,改为 "见 CLAUDE.md §5 个 AC 核心问题 / §触发清单" 指针
-  - 选项 b:保留分工(CLAUDE.md 是规则源,记录指南是操作手册,重复但都很短可接受)
+- [x] ~~**CLAUDE.md vs CLAUDE_CODE_记录指南.md 完全重复 5 核心问题 + 触发清单**~~ — 2026-05-04 闭合：彻底重构方案 — `CLAUDE_CODE_记录指南.md` git rm，整体迁入 `.claude/skills/ac-record/SKILL.md`（v4 + 我自主修订 7 项）。CLAUDE.md 只保留 5 条硬底线 + 触发关键词指针。
 
 - [ ] **DESIGN_BRIEF.md vs WEB_DESIGN_LOG.md(`03_dev/teacher_web/` 内)Round 历史 + 颜色 tokens 重复**
   - 现状:DESIGN_BRIEF 是"当前设计快照",WEB_DESIGN_LOG 是"完整设计 log"。但 DESIGN_BRIEF 里的颜色值和 Round 1-3 时间线在 LOG 也写了一遍
@@ -554,6 +551,35 @@
 
 - [ ] **把 AC 叙事内容粘到 Mac 备忘录**
   - 之前从 progress_overview 抽出来的那段
+
+### 🆕 unknown unknowns 工程实践体检清单（2026-05-04 CC 主动诊断 — 等 itsuki 回来再做）
+
+> 背景：5-04 晚 itsuki 戳穿 CC coach 失职后，CC 系统扫描 DMSD 还有哪些业界标准实践他可能没用过。详细 dump 见 `05_logs/raw/2026-05-04.md §X.5`。
+>
+> **判断原则**：每条都要先问"对 DMSD 当前有没有真用得上"，不为了堆技术栈而装。
+
+**🔴 大概率没用 / 应该试**（投产比高，半天内能装上）：
+- [ ] **GitHub Actions（CI/CD）** — 单人也能用，每次 push 自动跑 pytest，挂了立刻邮件通知。3-5 行 yaml。**好处**：每次推代码不会因为漏跑测试爆掉。
+- [ ] **Linter / Formatter** — `ruff` (Python) / `swiftlint` (Swift) / `prettier` (TS/Web) 自动检查代码风格。**好处**：不靠你眼睛 + 团队风格统一。
+- [ ] **Type checker** — `mypy` (Python) 静态查类型错误，bug 在跑代码前就发现。Swift 自带，TypeScript 自带。
+- [ ] **API 文档自动化** — FastAPI 自带 `/docs` 路由（你已经有但可能没意识到 / 没充分用）。打开 `http://localhost:8000/docs` 就是交互式 API 文档，不用手写。
+- [ ] **`.env` + python-dotenv** — 把 DB 密码 / API key 从代码里拿出来，**防止 commit 进 git**。配 `.gitignore` 排除 `.env`。
+
+**🟠 单人项目可以延后但要知道**（v1.0 上线相关时再装）：
+- [ ] **GitHub Issues** — 替代 TODO.md（多人时必须，单人也能用 label 分类）。可以晚点，本 TODO.md 暂时够用。
+- [ ] **Sentry** — 生产环境错误自动收集（v1.0 上线前装），错误来了自动邮件 + 看堆栈。
+- [ ] **Docker** — 部署时保证环境一致（v1.0 部署到 VPS / 教师端 Pi 时会用上），「在我电脑能跑」的反义词。
+- [ ] **结构化日志（structlog）** — 比 `print()` 强，能查询 / 过滤 / JSON 格式存档。
+
+**⚪ 暂时跳过**（DMSD 用不到 / 太重）：
+- Performance profiling / A/B testing / 监控大盘 / Kubernetes 等
+
+**学习路径建议**（如果要做）：
+1. 先 `.env`（30 分钟，风险最高 — 别 commit 密码进 git）
+2. 后 `ruff` + `swiftlint`（1 小时，立刻看到效果）
+3. 后 `mypy`（半天，需要给已有代码加类型 hints）
+4. 后 GitHub Actions（30 分钟 yaml + 把上面 3 个串进去）
+5. v1.0 上线前再做 Sentry + Docker
 
 ---
 

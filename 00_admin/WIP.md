@@ -37,6 +37,24 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+### 2026-05-04 深夜 by [Mac-元层优化 Opus 4.7]
+
+**主题**：⭐⭐⭐ Claude Code 5 层架构学习 + AC 记录指南升级 v4 + 做成 skill / CC coach 失职反思 + 全工程实践扫描清单
+
+- **学概念**：CC 5 层架构（CLAUDE.md / Skills / Hooks / Subagents / Plugins）+ MCP / Agent Teams 外挂；连续 4 次戳穿 CC「派多个 subagent 叫 Teams」表述夸大 → CC 校准到 L1/L2/L3 真实分级；CrewAI 简介；第一性原理筛 5 层 → Plugins ❌ Skills 🟡 Hooks 🔴 Subagents 🟠
+- **戳 CC coach 失职**：CC 之前没主动提 Skill / CC Hook 这两个现成方案 → 我手搓了山寨版 CLAUDE.md 触发词机制 + git pre-commit；元认知金句「这种事情没有体验，别人提醒我也不会知道」拍板
+- **memory 升级**：`feedback_proactive_diagnose_unknown_unknowns.md` 加 case study（Skill / CC Hook 失职 + Git 反证）+ 3 层扫描清单（CC 内部能力 / 业界标准工程实践 / AC 学习自管理）
+- **AC 记录指南 v4 → skill**：itsuki 重写 v4 后 CC 审视 5 致命冲突 + 4 重要问题；按 itsuki 拍板：现有 `CLAUDE_CODE_记录指南.md` git rm（不留指针文件）/ 模板降级为推荐字段 / CC 自主决定其余 — 整体迁入 `.claude/skills/ac-record/SKILL.md`（450 行）
+- **CLAUDE.md 同步**：4 处指针改向 skill / 5 硬底线保留 + 第 5 条改为「叙事归属 raw 阶段写"AI 提了 X，我评估后采纳"，未完全理解明标」（冲突 1 折中方案）
+- **TODO 闭合 + 加 unknown unknowns 工程实践体检清单**：5 项 🔴 推荐试（GitHub Actions / Linter / Type checker / FastAPI /docs / .env）+ 4 项 🟠 延后（Issues / Sentry / Docker / structlog）+ 学习路径 5 步顺序
+
+**新规则上线**：
+- AC 协作权威源换地方 — 从 `00_admin/CLAUDE_CODE_记录指南.md`（已删）→ `.claude/skills/ac-record/SKILL.md`（按需触发不占主上下文）
+- CC 看到 itsuki 手搓机制 → 强制对照扫描清单（CC 内部 / 业界 / AC + 学习），主动提现成方案
+- raw dump 叙事策略：写「AI 提了 X，我评估后采纳/拒绝/改造」+ 第 3 种「未完全理解」⚠️ 明标，月度筛选时再归功
+
+**残**：itsuki 走前授权 CC 自主完成 skill — ✅ 已做完。后续待 itsuki 回来：1) 测试 skill 自动触发是否正常 2) 回来再做 unknown unknowns 体检清单的 🔴 5 项 3) Hook 改造（日语注释拦截 + sync-check on Stop）4) progress_overview 章节里程碑刷新
+
 ### 2026-05-04 晚 by [Mac-治理 Opus 4.7]
 
 **主题**：⭐⭐⭐ DMSD 文档治理大整顿 — CLAUDE.md 71% 瘦身 / 性别身份更正 / 单源真值确立
@@ -96,49 +114,7 @@
 - AC dump：raw/2026-05-04.md §1-§4（治理 commit §21:00 + §21:30 共存于同文件，文件名按惯例延续）
 - 残：别会话留 system_features / IOS_DESIGN_LOG / HomeStubs / AppStore.swift modified（按规则不动）
 
-### 2026-05-03 下午+晚上 by [Mac-mini-Opus 4.7]
-
-**主题**：iOS Tomoshibi 集中改 + 老师公告 spec + MyPage 方案 B + 收尾流程升级
-
-- iOS 修：真机装机签名死锁修复（删 `.pbxproj` 3 处 `CODE_SIGNING_ALLOWED = NO`）/ GlassSheet 底部留白 / AI 头像位置 + loading state（5.5s 兜底覆盖 cold start）/ 行事予定日历 cell layout 重构 + 修「2,026」逗号 / 巴士入口统一 / MyPage 方案 B 大改（学習/点呼/減点 Card 化置顶）
-- 文档：老师公告 §7.15 完整 spec（12 子节、Apple Intelligence on-device 推理路线）/ CLAUDE.md §会话结束 大改 + 4 条 itsuki 新规则 / IOS_DESIGN_LOG §5 重写方案 B + §12 工程修复集 / linter 加 §3.9-3.11
-- AC dump：`raw/2026-05-03.md §12-§19` 详细
-- xcodebuild 全程 BUILD SUCCEEDED
-- **未提交改动**（这次会话开始时 git status 已显示）：backend `models.py` / `routers/study.py` / `schemas.py` / `alembic/versions/c3d4e5f6a7b8_add_study_absence_period.py`（新 migration） / iOS `ApplyStubs.swift` / `StayListStubs.swift` / `AppStore.swift` / `StudyAPI.swift` / `NetworkModels.swift` / `.pbxproj.bak` ×2
-
-### 2026-05-03 上午（3 ラウンド累積）by [Mac-mini-Opus 4.7]
-
-**主题**：Tomoshibi Android 8 项 iOS 对齐 + 2 轮反馈迭代
-
-- 累積 3 commit（`0cb29a0` 主体 / `77bc7d2` 中央按钮 icon+gradient / `1855192` 中央按钮位置+RollCallSheet 重写）13 files +1018 -384，**全部本地未 push**
-- BottomTabs / ApplicationsScreen / ApplyNew / AccountScreen 完全重写 / TopRollBar / LoginScreen demo bypass / Routes
-- emulator click 卡住 workaround：`uiautomator dump` 找按钮真实 bounds
-- **残**：Stage 1 升级（plan `~/.claude/plans/a-ios-app-immutable-peach.md`）/ push 3 commit 待 itsuki 明示
-
-### 2026-05-02 晚 by [Mac-主会话]
-
-**主题**：🎉 v0.8.0 close + push + tag
-
-- commit `41f6191` + tag `v0.8.0` 已推 GitHub
-- 自 v0.7.0 以来 31 commit 全收
-- v0.8.0 主题：三端代码层全启动（Android Compose bootstrap + 10 屏 / iOS 网络层 + AppStore 切真后端 / teacher_web v1 TS+Vite+Zustand / backend rollcall+study+teachers + Alembic / iOS↔backend 字段对齐 F1-F5+Q1）
-- 项目第一次「三端 + 后端 + 文档 五条线同时推进」
-
-### 2026-05-02 夜 by [Mac-mini-Opus 4.7]
-
-**主题**：⭐⭐⭐ Tomoshibi Android 端 0→1 bootstrap + 4 会话并行架构落地
-
-- 一夜从 zero 干到 23 屏 Compose App + 视觉对齐 iOS + push public GitHub（`otogi2025/Tomoshibi-Android`，47 .kt / ~6000 行 Kotlin）
-- CLAUDE.md 加 2 条 AC 叙事根本性原则（CC 决定/动作=itsuki 做的 + 没素材也硬凹）
-- 4 worktree 并行（A/B/C/D contract stub 设计 + 文件白名单）→ 0 conflict merge
-
-### 2026-05-02 by [Mac-主会话]
-
-**主题**：iOS 网络层完整建设 + AppStore 切真 API（7 commit）
-
-- 新建 NetworkModels / 4 Endpoints / KeychainService（JWT 持久化）
-- 改造 APIClient / ApplicationStatus / LoginView / StayForm / AppStore / StayList
-- backend pytest 19 passed / iOS swiftc -typecheck 0 error
+> **2026-05-04 深夜砍掉 5 条老条目** — 5-03 下午+晚上 / 5-03 上午 / 5-02 晚 (v0.8.0 close) / 5-02 夜 (Android bootstrap) / 5-02 (iOS 网络层) — 详细历史看 `git log` + `05_logs/raw/2026-05-0{2,3}.md`
 
 ---
 

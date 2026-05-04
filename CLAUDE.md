@@ -89,9 +89,9 @@ iOS Swift 改了 → bash bin/sync-ios-refs.sh 同步 Tomoshibi-iOS
 
 **WIP vs TODO 铁律**: WIP = 当下书签，最近 5 次会话上限 / TODO = 完整未完成 backlog，真值。WIP 绝不复述 TODO 内容。
 
-## 会话结束: 读 CLAUDE_CODE_记录指南.md 执行收尾
+## 会话结束: 走 ac-record skill
 
-收尾时去读 00_admin/CLAUDE_CODE_记录指南.md，按里面步骤跑：AC 素材 dump / 简单中文总结 / 文件联动检查 / WIP 刷新 / git commit。
+收尾时通过 ac-record skill 跑完整流程（AC 素材 dump / 中文总结 / 文件联动 / WIP 刷新 / git commit）。skill 在 `.claude/skills/ac-record/SKILL.md`，触发关键词命中时自动加载，无需主动读。
 
 ---
 
@@ -99,20 +99,21 @@ iOS Swift 改了 → bash bin/sync-ios-refs.sh 同步 Tomoshibi-iOS
 
 > **DMSD 是 itsuki 的 AC 叙事项目。AC 是他最重要的事**，跟"写代码 / 改文档"同等重要。
 >
-> **完整规则（5 核心问题 / 3 根本原则 / 触发清单 / dump 格式 / 篇幅指引 / 收尾详细动作）→ 全部在 `00_admin/CLAUDE_CODE_记录指南.md`**。CC 在收尾 / 触发场景 / itsuki 说"记一下" 时去读那份指南，按里面执行。
+> **完整规则（3 根本原则 / 5 核心问题 / 5 级素材清单 / 模式 5 挖掘法 / 7 节收尾动作 / AC 文件家族权限速查）→ 全部在 skill `.claude/skills/ac-record/SKILL.md`**。触发关键词命中时 CC 自动加载，按里面执行。
 
-## 默认底线（CC 永远遵守 — 这 5 条不需要翻指南也不能违反）
+## 默认底线（CC 永远遵守 — 这 5 条不依赖 skill 触发，永远在线）
 
 1. iCloud `05_产出/` 永不写 — itsuki 原创志望理由书 / 自我推荐书 / 面试准备
 2. iCloud `03_素材_候选/` + `04_素材_成品/` 写需 itsuki 当场授权
 3. `05_logs/decision_log.md` / `project_evolution.md` / `learning_path.md` 正文 CC 永不直写，只起草 draft 等 itsuki 粘贴
 4. AC 叙事文档 `vX.Y.Z_AC叙事.md` itsuki 自己写，CC 等他来问才辅助，不主动起草
-5. CC 决定 + CC 动作 = itsuki 做的（dump 时写「我决定 / 我做了」，不写「CC 决定 / CC 做了」）
+5. 叙事归属：raw 阶段写「AI 提了 X，我评估后采纳/拒绝/改造，理由是 Y」，第 3 种「未完全理解就采纳」必须 ⚠️ 明标 — 详见 skill §0.1（月度筛选时再归功 itsuki 判断）
 
-## 触发场景（看到任一 → 去读 CLAUDE_CODE_记录指南.md，按里面步骤 dump）
+## 触发场景（看到任一 → ac-record skill 自动激活）
 
 - itsuki 说「启动」/「收尾」/「记一下」/「总结一下」/「留个痕」/「dump 一下」
 - itsuki 做了决策 / 拍板 / 反思 / 学到新东西 / 纠正 CC
+- itsuki 说「以前我...」/「我之前以为...」/「原来这样啊」（模式 5 触发词）
 - 代码或架构改了
 - CC 主动发现的问题（这种也算 itsuki 的 AC 素材，必须 dump）
 - 版本号 bump

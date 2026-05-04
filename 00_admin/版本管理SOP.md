@@ -25,7 +25,7 @@
 2. **改 spec 主体 / 字典 / 02_design / 03_dev 大块** → 必读 §2 决策树
 3. **决定 bump** → 跑 §3 五步 + 对照 §4 联动文件清单（必改 6 处）
 4. **commit 前缀对照表** → §5（feat=minor 候选 / fix=patch 候选 / docs+chore=不 bump）
-5. **协作模型**（CC 自动 commit / itsuki 主导 push + bump + AC 叙事 / CC 执行 tag）→ 单源真值在 `00_admin/CLAUDE_CODE_记录指南.md §8.6`
+5. **协作模型**（CC 自动 commit / itsuki 主导 push + bump + AC 叙事 / CC 执行 tag）→ 单源真值在 `.claude/skills/ac-record/SKILL.md §5.5.7`
 
 ---
 
