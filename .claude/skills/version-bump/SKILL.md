@@ -91,7 +91,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 2. **改 spec 主体 / 字典 / 02_design / 03_dev 大块** → 必读 §2 决策树
 3. **决定 bump** → 跑 §3 五步 + 对照 §4 联动文件清单（**必改 7 处**）
 4. **commit 前缀对照表** → §5
-5. **协作模型**（CC 自动 commit / itsuki 主导 push + bump + AC 叙事 / CC 执行 tag）→ 详见 ac-record skill §5.5.7
+5. **协作模型**（CC 自动 commit / itsuki 主导 push + bump + AC 叙事 / CC 执行 tag）→ 详见 session-wrap skill §5.5.7
 
 ---
 
@@ -171,7 +171,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | 2 | `00_admin/WIP.md` | 头部第一行 `**当前版本**: vX.Y.Z` | CC | 🔴 必 |
 | 3 | `00_admin/版本演变一览.md` | 加新版本一句话 + 详细段（按既有格式） | CC | 🔴 **必（§0.2 铁律）** |
 | 4 | `00_admin/vX.Y.Z_AC叙事.md` | 新建（5-04 起 itsuki 自写；CC 不主动起草，等 itsuki 来问才辅助） | itsuki | 🔴 必（itsuki 侧）|
-| 5 | `05_logs/raw/YYYY-MM-DD.md` | dump 一条 #AC候选 标 "版本号 bump = 重大决策"（按 ac-record skill）| CC | 🔴 必 |
+| 5 | `05_logs/raw/YYYY-MM-DD.md` | dump 一条 #AC候选 标 "版本号 bump = 重大决策"（按 session-wrap skill）| CC | 🔴 必 |
 | 6 | `git tag` | 打 tag（**等 itsuki 明示**）| itsuki / CC 经授权 | 🟠 半必 |
 | 7 | `.claude/skills/project-overview/SKILL.md` | 如果新建了 vX.Y.Z_AC叙事.md → §1.4 加新条目 + 计数 | CC | 🟠 半必（条件触发）|
 

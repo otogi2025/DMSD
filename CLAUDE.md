@@ -61,10 +61,14 @@ iOS Swift 改了 → bash bin/sync-ios-refs.sh 同步 Tomoshibi-iOS
 
 详细联动矩阵 / 反向索引: `.claude/skills/file-linkage/SKILL.md`（itsuki 说"联动检查 / 我改了 X 要查什么"自动触发）
 
-工具:
-- 实时联动检查（Write/Edit 后自动）: PostToolUse hook → `00_admin/hooks/post-edit-sync-check.sh`（含 demo scaffold 字眼检测）
-- 实时 memory 索引检查（Write/Edit memory dir 后自动）: PostToolUse hook → `00_admin/hooks/post-edit-memory-check.sh`
-- commit 时自动: bash 00_admin/hooks/pre-commit
+工具（5 PostToolUse + 1 PreToolUse + git pre-commit）:
+- 实时联动检查 + demo scaffold 字眼检测（Write/Edit 后）: `post-edit-sync-check.sh`
+- memory 索引检查（Write/Edit memory dir 后）: `post-edit-memory-check.sh`
+- 中文铁律 / 日语注释扫描（Write/Edit 代码文件后）: `post-edit-japanese-comment-check.sh`
+- 声明性文件时间戳检查（Write/Edit WIP/TODO/progress 后）: `post-edit-timestamp-check.sh`
+- 版本号硬编码实时拦（Write/Edit 声明性文件后）: `post-edit-version-hardcode-check.sh`
+- 破坏性 Bash 命令拦截（Bash 调用前）: `pre-bash-destructive-block.sh`（rm -rf 非临时 / git reset --hard / git push --force / git branch -D 等）
+- commit 时: bash 00_admin/hooks/pre-commit
 - 中途随时: bash bin/sync-check.sh
 - 规则源: 00_admin/hooks/lib/sync-rules.sh
 
@@ -73,7 +77,7 @@ iOS Swift 改了 → bash bin/sync-ios-refs.sh 同步 Tomoshibi-iOS
 启动读 00_admin/WIP.md — 当前版本 / 当下焦点 / 最近 5 次会话 / 多会话占用 / 阻塞项。
 读完给 itsuki 报告状态等指令，不主动催进度，不主动列 TODO。
 
-git 仓库状态确认（git status / 残留 / 未 push / stash） → **会话结尾时**走 ac-record skill §5.5.9，**不在启动时跑**。
+git 仓库状态确认（git status / 残留 / 未 push / stash） → **会话结尾时**走 session-wrap skill §5.5.9，**不在启动时跑**。
 
 ## 按需读（不主动读，触发场景才读）
 
@@ -95,9 +99,9 @@ git 仓库状态确认（git status / 残留 / 未 push / stash） → **会话�
 
 **WIP vs TODO 铁律**: WIP = 当下书签，最近 5 次会话上限 / TODO = 完整未完成 backlog，真值。WIP 绝不复述 TODO 内容。
 
-## 会话结束: 走 ac-record skill
+## 会话结束: 走 session-wrap skill
 
-收尾时通过 ac-record skill 跑完整流程（AC 素材 dump / 中文总结 / 文件联动 / WIP 刷新 / git commit）。skill 在 `.claude/skills/ac-record/SKILL.md`，触发关键词命中时自动加载，无需主动读。
+收尾时通过 session-wrap skill 跑完整流程（AC 素材 dump / 中文总结 / 文件联动 / WIP 刷新 / git commit）。skill 在 `.claude/skills/session-wrap/SKILL.md`，触发关键词命中时自动加载，无需主动读。
 
 ---
 
@@ -105,7 +109,7 @@ git 仓库状态确认（git status / 残留 / 未 push / stash） → **会话�
 
 > **DMSD 是 itsuki 的 AC 叙事项目。AC 是他最重要的事**，跟"写代码 / 改文档"同等重要。
 >
-> **完整规则（3 根本原则 / 5 核心问题 / 5 级素材清单 / 模式 5 挖掘法 / 7 节收尾动作 / AC 文件家族权限速查）→ 全部在 skill `.claude/skills/ac-record/SKILL.md`**。触发关键词命中时 CC 自动加载，按里面执行。
+> **完整规则（3 根本原则 / 5 核心问题 / 5 级素材清单 / 模式 5 挖掘法 / 7 节收尾动作 / AC 文件家族权限速查）→ 全部在 skill `.claude/skills/session-wrap/SKILL.md`**。触发关键词命中时 CC 自动加载，按里面执行。
 
 ## 默认底线（CC 永远遵守 — 这 5 条不依赖 skill 触发，永远在线）
 
@@ -115,7 +119,7 @@ git 仓库状态确认（git status / 残留 / 未 push / stash） → **会话�
 4. AC 叙事文档 `vX.Y.Z_AC叙事.md` itsuki 自己写，CC 等他来问才辅助，不主动起草
 5. 叙事归属：raw 阶段写「AI 提了 X，我评估后采纳/拒绝/改造，理由是 Y」 — **不写"未完全理解"类自我贬低标记**（2026-05-04 itsuki 拍板：raw 是 git 可见的负面证据）。月度筛选时再归功 itsuki 判断 — 详见 skill §0.1
 
-## 触发场景（看到任一 → ac-record skill 自动激活）
+## 触发场景（看到任一 → session-wrap skill 自动激活）
 
 ⭐ **主触发**（最常用）：itsuki 说「**收尾**」/「**总结一下今天**」/「**整理一下今天**」/「**记一下今天发生的事**」 → CC 立刻跑 skill §5.5.0 **全量扫描算法**（从会话第一条消息扫到最后，找所有候选素材，不只看最后一段）。
 
@@ -133,7 +137,7 @@ git 仓库状态确认（git status / 残留 / 未 push / stash） → **会话�
 
 | skill | 触发关键词 | 干嘛 |
 |---|---|---|
-| ac-record | 收尾 / 整理今天 / 总结今天 / 记一下今天 | AC 素材全量扫描 dump + git 状态收尾确认（§5.5.9）|
+| session-wrap | 收尾 / 整理今天 / 总结今天 / 记一下今天 | AC 素材全量扫描 dump + git 状态收尾确认（§5.5.9）|
 | version-bump | 迭代 / bump / 发版本 / 打 tag / 发版 / release / 推上去 | 版本决策树（CC 有否决权）+ §13 发版动作 SOP |
 | new-feature | 新功能 X / 加 Y / 实装 Z / 做 W | 4 端实装模板（spec→backend→iOS→Android）|
 | spec-sync | 跨端检查 / 字段对齐 / 端对齐 / API 对齐 | backend↔iOS↔Android 字段提取对比 |

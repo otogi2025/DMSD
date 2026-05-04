@@ -1,17 +1,21 @@
 ---
-name: ac-record
-description: DMSD 项目 AC 入试素材 dump + 会话收尾完整流程。⭐ 主要触发 = itsuki 说「收尾」/「总结一下今天」/「整理一下今天」/「记一下今天发生的事」时，CC 全量扫描整个会话上下文 dump 所有候选素材。次要触发 = 关键词命中（拍板/反思/学到/纠正/dump/留痕）或事件（代码改、架构改、版本 bump、CC 主动发现问题）。包含全量扫描算法 / 5 级素材分级 / 思考层数判断 / itsuki 原话不润色 / AC 文件家族权限速查 / 收尾 7 节动作。
-when_to_use: ⭐ 主触发 — itsuki 说「收尾」/「总结今天」/「整理一下今天」/「记一下今天发生的事」/「今天的事 dump 一下」 → CC 主动加载并全量扫描会话上下文。次触发 — 关键词命中（启动/记一下/dump/留痕/拍板/反思/学到/纠正/推翻 / 以前我/之前以为/原来这样啊）或事件（代码改了/架构改了/版本号 bump/CC 主动发现的问题）→ 当下片段立刻 dump 不等收尾。
+name: session-wrap
+description: DMSD 会话收尾完整流程 — AC 素材 dump + 文件联动 + git 状态 + 设计同步 + 跨 repo 同步 + memory 维护 + WIP/TODO 刷新 + commit 起草。⭐ 主触发 = itsuki 说「收尾」/「总结今天」/「整理一下今天」/「记一下今天发生的事」时 CC 全量扫描会话上下文。次触发 = 关键词或事件（拍板/反思/学到/纠正/代码改/版本 bump/CC 主动发现问题）。原 ac-record skill 2026-05-04 改名升级 — 收尾不只是 AC，是项目级总收尾。
+when_to_use: ⭐ 主触发 — itsuki 说「收尾」/「总结今天」/「整理一下今天」/「记一下今天发生的事」/「今天的事 dump 一下」 → CC 主动加载并全量扫描会话上下文执行 8 类收尾动作（AC dump / 文件联动 / git 状态 / 设计同步 / 跨 repo / memory / WIP+TODO / commit 起草）。次触发 — 关键词命中（启动/记一下/dump/留痕/拍板/反思/学到/纠正/推翻 / 以前我/之前以为/原来这样啊）或事件（代码改了/架构改了/版本号 bump/CC 主动发现的问题）→ 当下片段立刻 dump 不等收尾。
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
-# AC 记录 Skill — DMSD 入试素材 dump 完整流程
+# Session Wrap Skill — DMSD 会话收尾完整流程
 
-> **核心理念**：宁多勿少，最后再筛。任何 1% 可能用到的素材都要记录。整理是月度回顾的事，记录阶段不做筛选。
+> **2026-05-04 改名背景**：本 skill 原名 `ac-record`，但 §5.5 已经包含 9 节收尾动作（不只是 AC dump，还有 git / WIP / TODO / commit 起草）。itsuki 反问后拍板：收尾 skill 不只是 AC 相关，还有文件联动 / 设计同步 / memory 维护等。改名 `session-wrap` 反映实际作用。
+>
+> **核心理念**：收尾 = 让下次会话能干净接上 + 当下决定不漏到风里。具体分两层：
+> 1. **AC 素材层**：宁多勿少，最后再筛（任何 1% 可能用到的素材都记录，月度回顾时再筛选）
+> 2. **工程层**：文件联动 / git / 设计同步 / 跨 repo / memory / WIP / TODO 全过一遍
 >
 > **⭐ 主要工作模式（2026-05-04 itsuki 拍板）**：itsuki 说「**收尾**」/「**总结一下今天**」/「**记一下今天发生的事**」 → CC 立刻执行 §5.5.0 全量扫描算法，**从会话第一条消息开始扫到最后**，找出所有候选素材 dump。**不要等关键词，不要只看最后一段**。详见 §0.4。
 >
-> **来源**：基于合格者报告分析（小松潜水无人机 / 间瀬校内 LAN / 匿名 B 未踏→Alice_Maker）+ DMSD 实战提炼，2026-05-04 由 v3 升级到 v4，做成 skill。
+> **来源**：基于合格者报告分析（小松潜水无人机 / 间瀬校内 LAN / 匿名 B 未踏→Alice_Maker）+ DMSD 实战提炼，2026-05-04 由 v3 升级到 v4 做成 skill / 同日改名 session-wrap 扩展工程层。
 
 ---
 
@@ -602,6 +606,61 @@ git status --porcelain | grep -E '\.(bak|bak[0-9]|DS_Store)$|/File\.txt$'
 - **不主动 push** — push 是 itsuki 拍板动作（memory `feedback_commit_push_tag_division.md`）
 - **不主动 discard / 删 untracked** — 可能是别会话的活
 - 仅报告状态 + 列待决项
+
+#### 5.5.10 文件联动检查（2026-05-04 itsuki 拍板加）
+
+跑一遍同步检查脚本，确认这次会话改的文件联动都改了：
+
+```bash
+bash bin/sync-check.sh
+```
+
+如有警告（红色 ⚠️）→ 当场修，不留到下次会话。
+
+**为什么不靠 commit 时 pre-commit 兜底**：会话中途没 commit 的累积改动可能多文件，commit 时全报会蒙。结尾跑一遍提早发现。
+
+#### 5.5.11 设计文档同步检查（2026-05-04 itsuki 拍板加）
+
+按这次会话改了哪一端，检查对应 DESIGN_LOG 章节是否同步更新：
+
+| 这次改了什么 | 必查 DESIGN_LOG |
+|---|---|
+| iOS Swift view / Foundation 组件 | `03_dev/student_ios/IOS_DESIGN_LOG.md` 对应章节 |
+| backend models / schemas / routers | `03_dev/backend/BACKEND_DESIGN_LOG.md` |
+| teacher_web 任意 .vue / .ts | `03_dev/teacher_web/WEB_DESIGN_LOG.md` |
+| ≥2 端共用功能 | `02_design/system_features.md` 章节 |
+
+如果 DESIGN_LOG 对应章节没动 → 报告 itsuki 列差异 + 起草补充段等粘贴。
+
+#### 5.5.12 跨 repo 同步检查（2026-05-04 itsuki 拍板加）
+
+DMSD 是 iOS single source；`Tomoshibi-iOS` 独立 repo 是镜像。
+
+```bash
+# 看这次会话有没有改 iOS .swift 文件
+git diff --name-only HEAD~5 HEAD -- '03_dev/student_ios/v1/**/*.swift' 2>/dev/null
+```
+
+如果改了 → 提醒 itsuki：
+
+```
+🔄 这次改了 N 个 iOS Swift 文件 → bash bin/sync-ios-refs.sh 同步到 Tomoshibi-iOS repo
+```
+
+CC 不主动跑（同步动作可能涉及推 commit 到独立 repo，按 commit/push 分工等 itsuki 拍板）。
+
+#### 5.5.13 Memory 维护扫描（2026-05-04 itsuki 拍板加）
+
+会话中 itsuki 拍板过新规则吗？看这些信号：
+
+- itsuki 说「以后这样」/「下次记得」/「不要再 X」 → feedback memory 候选
+- itsuki 说「现在变成 Y」/「Z 项目状态变了」 → project memory 候选
+- itsuki 透露新的个人信息（出身 / 学校 / 偏好） → user memory 候选
+- itsuki 说「在 X 平台上看 Y」 → reference memory 候选
+
+如有候选 → 走 `memory-write` skill SOP（4 类型判断 / 查重 / frontmatter / MEMORY.md 索引）。
+
+**反模式**：会话中 itsuki 明确说了「以后这样」CC 当时只回「好的」却没 dump 到 memory → 下次会话 CC 不知道这条规则 → itsuki 又得纠正一次。
 
 ---
 

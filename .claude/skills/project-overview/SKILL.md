@@ -125,14 +125,18 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `跨会话_ios_共享决策.md` | ⚠️ | 注明"短期 TODO 用"，已融入 system_features 和独立 iOS repo，**可清理** |
 | `create_local_dev_symlink.sh` | ✅ | VPS 已停用但脚本保留参考 |
 
-### 1.6 00_admin/hooks（5 文件 + 1 库 + README）
+### 1.6 00_admin/hooks（8 hook + 1 库 + README）
 
 | 文件 | 状态 | 备注 |
 |---|---|---|
 | `install.sh` | ✅ | 首次 clone 后跑一次（`git config core.hooksPath`）|
 | `pre-commit` | ✅ | git commit 前 3 件事：版本号一致性 + bump 提醒 + 联动检查 |
-| `post-edit-sync-check.sh` | ✅ | CC PostToolUse hook — Write/Edit 后跑 sync-rules 联动检查 + demo scaffold 字眼检测（2026-05-04 加）|
-| `post-edit-memory-check.sh` | ✅ | CC PostToolUse hook — memory dir 改完提醒补 MEMORY.md 索引（2026-05-04 加）|
+| `post-edit-sync-check.sh` | ✅ | CC PostToolUse — 联动检查 + demo scaffold 字眼检测（2026-05-04 加）|
+| `post-edit-memory-check.sh` | ✅ | CC PostToolUse — memory dir 改完提醒补 MEMORY.md 索引（2026-05-04 加）|
+| `post-edit-japanese-comment-check.sh` | ✅ | CC PostToolUse — 代码注释日语 hiragana/katakana 扫描（中文铁律，2026-05-04 凌晨加）|
+| `post-edit-timestamp-check.sh` | ✅ | CC PostToolUse — 声明性文件「最后更新」时间戳是否同步今天（2026-05-04 凌晨加）|
+| `post-edit-version-hardcode-check.sh` | ✅ | CC PostToolUse — 版本号硬编码实时拦（比 pre-commit 早一步，2026-05-04 凌晨加）|
+| `pre-bash-destructive-block.sh` | ✅ | CC PreToolUse — 拦 rm -rf 非临时 / git reset --hard / git push --force / git branch -D（2026-05-04 凌晨加）|
 | `lib/sync-rules.sh` | ✅ | 13 条联动规则代码化 + demo-scaffold-detect 函数（pre-commit + post-edit-sync 共享）|
 | `README.md` | ✅ | hooks 总说明（git + CC 两类全覆盖）|
 
@@ -140,7 +144,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 | skill | 状态 | 触发 / 用途 |
 |---|---|---|
-| `ac-record/` | ✅ | 「收尾 / 整理今天」AC 素材全量扫描 dump + git 状态收尾确认（§5.5.9）|
+| `session-wrap/` | ✅ | 「收尾 / 整理今天」AC 素材全量扫描 dump + git 状态收尾确认（§5.5.9）|
 | `version-bump/` | ✅ | 「迭代 / bump / 发版本 / 发版」版本决策树（CC 有否决权）+ §13 发版动作 SOP |
 | `file-linkage/` | ✅ | 「联动 / 改 A 要查 B」联动矩阵 13 条 |
 | `project-overview/` | ✅ | 本 skill — 文件总览（itsuki 找文件时调）|
@@ -149,7 +153,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `spec-sync/` | ✅ | 「跨端检查 / 字段对齐」字段提取对比 — 大改后 / v1.0 前用一次（2026-05-04 加）|
 
 > **2026-05-04 调整记录**：原计划 10 skill，itsuki 反问后砍 3：
-> - `session-start` 删（内容并入 `ac-record §5.5.9` 收尾段；启动只读 WIP）
+> - `session-start` 删（内容并入 `session-wrap §5.5.9` 收尾段；启动只读 WIP）
 > - `demo-clean` 删（一次性任务做 skill 频次太低；改成 `lib/sync-rules.sh` demo-scaffold-detect 自动检测 + `system_features.md` 末尾清单）
 > - `release-checklist` 删（合并到 `version-bump §13`；本来就串联，分两个 skill 反而割裂）
 

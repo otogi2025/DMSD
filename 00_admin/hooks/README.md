@@ -12,23 +12,48 @@ DMSD 用了 **2 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后
 2. **版本 bump 提醒**（非阻塞，2026-04-29 加）— 改了 `01_specs/` / `02_design/` / `03_dev/*_DESIGN_LOG` 时提醒检查 version-bump skill `§2 决策树`。
 3. **文件联动提醒**（非阻塞，2026-05-04 加）— 改了某文件但联动文件没动 → 警告。规则表 = `lib/sync-rules.sh`，详细联动矩阵见 `.claude/skills/file-linkage/SKILL.md`。**配套**：`bin/sync-check.sh` = 中途随时手动跑（不用等到 commit）。
 
-### ⭐ CC PostToolUse hook（CC 调 Write/Edit 时立刻触发，2026-05-04 深夜加）
+### ⭐ CC PostToolUse hook（5 条，CC 调 Write/Edit 时立刻并行触发，2026-05-04 深夜加）
 
-**比 git pre-commit 早一步**，CC 在中途没 commit 也能拦联动漏改。同 matcher 下挂 2 条 hook（并行跑）：
+**比 git pre-commit 早一步**，CC 在中途没 commit 也能拦各种漂移。同 matcher 下挂 5 条 hook（并行跑）：
 
 #### A. `post-edit-sync-check.sh` — 文件联动检查 + demo scaffold 检测
-- 配置文件：`.claude/settings.json`（hooks.PostToolUse[matcher="Write|Edit"][0]）
-- 工作流：jq 解析 stdin → 提取 file_path → source `lib/sync-rules.sh` → `check_sync_for_files` → 注入 additionalContext
-- 包含两类检查：
-  - **13 条联动规则**（路径触发，详见 file-linkage skill）
-  - **demo scaffold 字眼检测**（2026-05-04 加）：iOS .swift / backend .py 改动 git diff 新增行如有 `demo|bypass|stub|fake|mock|hack` 字眼 → 提醒加到 `system_features.md` 末尾清单
-- 详细联动规则人类可读版：`.claude/skills/file-linkage/SKILL.md`
+- 13 条联动规则（路径触发，详见 file-linkage skill）
+- **demo scaffold 字眼检测**：iOS .swift / backend .py 改动 git diff 新增行如有 `demo|bypass|stub|fake|mock|hack` 字眼 → 提醒加到 `system_features.md` 末尾清单
 
-#### B. `post-edit-memory-check.sh` — Memory 索引检查（2026-05-04 加）
-- 配置文件：`.claude/settings.json`（hooks.PostToolUse[matcher="Write|Edit"][1]）
-- 触发条件：file_path 在 `/Users/itsuki/.claude/projects/-Users-itsuki-dev-DMSD/memory/` 且不是 `MEMORY.md` 自己
-- 工作流：grep MEMORY.md 看是否引用新文件 → 没有就提醒「补索引」 + 检查 frontmatter 完整性
-- 配套 skill：`.claude/skills/memory-write/SKILL.md`
+#### B. `post-edit-memory-check.sh` — Memory 索引检查
+- 触发条件：file_path 在 memory dir 且不是 MEMORY.md 自己
+- grep MEMORY.md 看是否引用新文件 → 没有就提醒「补索引」 + 检查 frontmatter 完整性
+
+#### C. `post-edit-japanese-comment-check.sh` — 中文铁律 / 日语注释扫描
+- 触发条件：`.swift / .py / .kt / .ts / .tsx / .js / .jsx` 文件改动
+- 提取新增内容（git diff ^+ 行 / untracked 全文）→ 找 `//` / `#` 注释里有 hiragana（U+3040-309F）/ katakana（U+30A0-30FF）字眼 → 提醒
+- 出处：memory `feedback_code_comments_chinese_strict.md`（2026-05-03 itsuki 拍板）
+- false positive 风险：`//` 出现在字符串字面量里（如 URL `https://...`）会误报，看上下文判断
+
+#### D. `post-edit-timestamp-check.sh` — 声明性文件时间戳检查
+- 触发条件：`WIP.md / TODO.md / progress_overview.md / 文档同步点清单.md / CHANGELOG.md` 改动
+- 头部 30 行找 `YYYY-MM-DD` → 跟今天对比 → 不一致提醒「时间戳没更新」
+- 没找到字段 → 提醒「考虑加最后更新字段」
+
+#### E. `post-edit-version-hardcode-check.sh` — 版本号硬编码实时拦
+- 触发条件：`CLAUDE.md / WIP.md / TODO.md / progress_overview.md` 改动
+- 提取新增内容找 `vX.Y.Z` 模式行 + 行末没 `<!-- VERSION_OK -->` 豁免 → 提醒
+- 比 git pre-commit 早一步拦（commit 前发现，不等 commit 才阻塞）
+
+### ⭐ CC PreToolUse hook（1 条，CC 调 Bash 前触发，2026-05-04 加）
+
+#### F. `pre-bash-destructive-block.sh` — 破坏性命令拦截
+- 触发条件：所有 Bash 命令（matcher="Bash"）
+- 拦截清单：
+  - `rm -rf <非临时路径>`（白名单 /tmp / node_modules / DerivedData / dist / build）
+  - `git reset --hard`
+  - `git clean -f`
+  - `git checkout -- ` / `git restore -- `
+  - `git branch -D`
+  - `git push --force` / `-f`
+  - `git push origin :refs`（删 remote ref）
+  - `rm` 涉及 `.git` 目录
+- 命中 → exit 2（block）+ stderr 错误消息让 CC 重新考虑或要求 itsuki 授权
 
 ### 测试方法
 
@@ -38,11 +63,12 @@ DMSD 用了 **2 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后
 # 手动 dry-run 测：
 echo '{"tool_input":{"file_path":"/Users/itsuki/.claude/projects/-Users-itsuki-dev-DMSD/memory/test.md"}}' | bash 00_admin/hooks/post-edit-memory-check.sh
 echo '{"tool_input":{"file_path":"/Users/itsuki/dev/DMSD/03_dev/backend/v1/app/models.py"}}' | bash 00_admin/hooks/post-edit-sync-check.sh
+echo '{"tool_input":{"command":"git reset --hard"}}' | bash 00_admin/hooks/pre-bash-destructive-block.sh; echo "exit=$?"
 ```
 
 ### SessionStart hook（已删，2026-05-04 同日加同日删）
 
-> itsuki 反问后判断启动时 git 状态扫描没价值（CC 自己 `git status` 就行 / itsuki 已知 repo 状态），把这段检查挪到 ac-record skill §5.5.9 收尾段。`session-start-check.sh` 已删 / `.claude/settings.json` SessionStart hook 配置已删。
+> itsuki 反问后判断启动时 git 状态扫描没价值（CC 自己 `git status` 就行 / itsuki 已知 repo 状态），把这段检查挪到 session-wrap skill §5.5.9 收尾段。`session-start-check.sh` 已删 / `.claude/settings.json` SessionStart hook 配置已删。
 
 ## 为什么（2026-04-19 发现）
 
