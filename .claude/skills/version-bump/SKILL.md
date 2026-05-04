@@ -67,7 +67,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 **铁律**：CC 在执行 bump 时，**不能只看本 skill 的 §4 联动清单就 ok**。每次 bump 前必须额外做：
 
 1. **grep 全 repo `<!-- VERSION_OK -->`** — 确认所有"豁免硬编码版本号"的位置都还有效
-2. **检查 `00_admin/项目文件总览.md`** 有没有新增"跟迭代相关"的文件（比如新的 AC 叙事文档、版本相关分析文件）
+2. **检查 `.claude/skills/project-overview/SKILL.md`** 有没有新增"跟迭代相关"的文件（比如新的 AC 叙事文档、版本相关分析文件）
 3. **检查 `00_admin/文档同步点清单.md §1`** — 单源真值规则有没有变
 4. **看自上次 bump 以来 git log** — 有没有新文件写了 `<!-- VERSION_OK -->` 但 §4 清单没收录
 
@@ -163,7 +163,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ## §4 Bump 时联动文件清单（**必改 7 处**）
 
-> ⭐ 比旧 SOP 多一处（第 7 项）— 因为 itsuki 拍板要求"全量扫描"，发现 `00_admin/项目文件总览.md` 也是迭代联动点（新建 AC 叙事文档时要更新总览）。
+> ⭐ 比旧 SOP 多一处（第 7 项）— 因为 itsuki 拍板要求"全量扫描"，发现 `.claude/skills/project-overview/SKILL.md` 也是迭代联动点（新建 AC 叙事文档时要更新总览）。
 
 | # | 文件 | 改什么 | 谁改 | 优先级 |
 |---|---|---|---|---|
@@ -173,7 +173,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | 4 | `00_admin/vX.Y.Z_AC叙事.md` | 新建（5-04 起 itsuki 自写；CC 不主动起草，等 itsuki 来问才辅助） | itsuki | 🔴 必（itsuki 侧）|
 | 5 | `05_logs/raw/YYYY-MM-DD.md` | dump 一条 #AC候选 标 "版本号 bump = 重大决策"（按 ac-record skill）| CC | 🔴 必 |
 | 6 | `git tag` | 打 tag（**等 itsuki 明示**）| itsuki / CC 经授权 | 🟠 半必 |
-| 7 | `00_admin/项目文件总览.md` | 如果新建了 vX.Y.Z_AC叙事.md → §1.4 加新条目 + 计数 | CC | 🟠 半必（条件触发）|
+| 7 | `.claude/skills/project-overview/SKILL.md` | 如果新建了 vX.Y.Z_AC叙事.md → §1.4 加新条目 + 计数 | CC | 🟠 半必（条件触发）|
 
 ### 可选联动（按情况）
 
@@ -191,7 +191,7 @@ grep -rn "VERSION_OK\|<!-- VERSION" /Users/itsuki/dev/DMSD/ --include="*.md" | g
 git log --diff-filter=A --name-only $(git tag --sort=-v:refname | head -1)..HEAD | grep -v 99_archive | grep -v 05_logs/raw
 
 # 3. 检查项目文件总览有没有新增"跟迭代相关"的文件
-grep -i "version\|版本\|bump\|tag" /Users/itsuki/dev/DMSD/00_admin/项目文件总览.md
+grep -i "version\|版本\|bump\|tag" /Users/itsuki/dev/DMSD/.claude/skills/project-overview/SKILL.md
 ```
 
 发现新增联动点 → 当场更新本 §4（不要绕开）。

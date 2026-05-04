@@ -17,7 +17,7 @@ DMSD 是他的核心 AC 叙事项目
 当前版本: 见 CHANGELOG.md 顶部
 GitHub: otogi2025/DMSD public
 iOS 独立 repo: otogi2025/Tomoshibi-iOS，single source 永远 DMSD 侧
-设计 / 防御 / 扣分 / 采购 / 硬件 / 流程 详情: 02_design/ + 01_specs/ + 00_admin/项目文件总览.md
+设计 / 防御 / 扣分 / 采购 / 硬件 / 流程 详情: 02_design/ + 01_specs/ + .claude/skills/project-overview/SKILL.md
 
 ## 目录结构
 
@@ -29,7 +29,7 @@ iOS 独立 repo: otogi2025/Tomoshibi-iOS，single source 永远 DMSD 侧
 05_logs/    开发 log — raw / dev_log / problem_solving / decision_log / learning_path / project_evolution
 06_assets/  07_release/  99_archive/  bin/   参考材料 / 发布物 / 早期归档 / 脚本
 
-完整文件级清单 + 状态 + AC 价值: 00_admin/项目文件总览.md
+完整文件级清单 + 状态 + AC 价值: .claude/skills/project-overview/SKILL.md
 
 ## 设计文档双层
 
@@ -54,12 +54,15 @@ backend routers/*.py → iOS Endpoints/*API.swift（端点 / 参数 / 返回类�
 Route.swift 加 case → RootView.swift switch + 用到的 view 要存在
 Foundation/ component 改 props → grep 全 repo 找用到的地方
 01_specs/rollcall/* 主体改 → 触发 SOP 阅读 + 可能 bump 版本号
-新建 / 删除 / 改名 / 移动文件 → 00_admin/项目文件总览.md 同步更新对应章节
+新建 / 删除 / 改名 / 移动文件 → .claude/skills/project-overview/SKILL.md 同步更新对应章节
 新建声明性文件（CLAUDE.md / WIP / TODO 类） → 00_admin/文档同步点清单.md 加同步点
 新建 / 改 hook → 00_admin/hooks/README.md
 iOS Swift 改了 → bash bin/sync-ios-refs.sh 同步 Tomoshibi-iOS
 
+详细联动矩阵 / 反向索引: `.claude/skills/file-linkage/SKILL.md`（itsuki 说"联动检查 / 我改了 X 要查什么"自动触发）
+
 工具:
+- 实时拦截（CC 调 Write/Edit 后自动）: `.claude/settings.json` PostToolUse hook → `00_admin/hooks/post-edit-sync-check.sh`
 - commit 时自动: bash 00_admin/hooks/pre-commit
 - 中途随时: bash bin/sync-check.sh
 - 规则源: 00_admin/hooks/lib/sync-rules.sh
@@ -71,9 +74,9 @@ iOS Swift 改了 → bash bin/sync-ios-refs.sh 同步 Tomoshibi-iOS
 
 ## 按需读（不主动读，触发场景才读）
 
-**找文件 / 问文件 → 必须去查 00_admin/项目文件总览.md，不用 grep / find / 命令行**
+**找文件 / 问文件 → 必须去查 .claude/skills/project-overview/SKILL.md，不用 grep / find / 命令行**
 
-下面任何一种 itsuki 输入，CC 必须当场打开 00_admin/项目文件总览.md 查答案：
+下面任何一种 itsuki 输入，CC 必须当场打开 .claude/skills/project-overview/SKILL.md 查答案：
 - 「某文件在哪？」
 - 「某文件干嘛用的？」
 - 「项目里有没有 XX 文件？」

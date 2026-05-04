@@ -1,12 +1,26 @@
-# DMSD Git Hooks
+# DMSD Hooks（Git + CC PostToolUse）
 
 ## 是什么
+
+DMSD 用了 **2 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后升级）：
+
+### Git hook（commit 时触发）
 
 `git commit` 前自动跑 3 件事（按这个顺序）：
 
 1. **版本号一致性检查**（阻塞型，2026-04-19 加）— "声明性文件"（`CLAUDE.md` / `WIP.md` / `TODO.md` / `progress_overview.md`）**不能硬编码版本号**。单源真值 = `CHANGELOG.md` 顶部。其他文件用 "当前版本见 CHANGELOG" 指针。
-2. **版本 bump 提醒**（非阻塞，2026-04-29 加）— 改了 `01_specs/` / `02_design/` / `03_dev/*_DESIGN_LOG` 时提醒检查 `00_admin/版本管理SOP.md §2 决策树`。
-3. **文件联动提醒**（非阻塞，2026-05-04 加）— 改了某文件但联动文件没动 → 警告。规则表 = `lib/sync-rules.sh`，对应 `CLAUDE.md §会话结束 §3 文件关联追踪`。**配套**：`bin/sync-check.sh` = 中途随时手动跑（不用等到 commit）。
+2. **版本 bump 提醒**（非阻塞，2026-04-29 加）— 改了 `01_specs/` / `02_design/` / `03_dev/*_DESIGN_LOG` 时提醒检查 version-bump skill `§2 决策树`。
+3. **文件联动提醒**（非阻塞，2026-05-04 加）— 改了某文件但联动文件没动 → 警告。规则表 = `lib/sync-rules.sh`，详细联动矩阵见 `.claude/skills/file-linkage/SKILL.md`。**配套**：`bin/sync-check.sh` = 中途随时手动跑（不用等到 commit）。
+
+### ⭐ CC PostToolUse hook（CC 调 Write/Edit 时立刻触发，2026-05-04 深夜加）
+
+**比 git pre-commit 早一步**，CC 在中途没 commit 也能拦联动漏改。
+
+- 配置文件：`.claude/settings.json`（hooks.PostToolUse[matcher="Write|Edit"]）
+- 触发脚本：`00_admin/hooks/post-edit-sync-check.sh`（本目录）
+- 工作流：CC 调 Write 或 Edit → hook 接收 stdin JSON → 提取 `tool_input.file_path` → 跑 `lib/sync-rules.sh check_sync_for_files` → 警告以 `hookSpecificOutput.additionalContext` 注入 CC 上下文
+- 详细联动规则人类可读版：`.claude/skills/file-linkage/SKILL.md`
+- 测试方法：在 CC 内输入 `/hooks` 查看是否注册成功；改任何文件后看是否有警告
 
 ## 为什么（2026-04-19 发现）
 
