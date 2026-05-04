@@ -62,15 +62,17 @@ iOS Swift 改了 → bash bin/sync-ios-refs.sh 同步 Tomoshibi-iOS
 详细联动矩阵 / 反向索引: `.claude/skills/file-linkage/SKILL.md`（itsuki 说"联动检查 / 我改了 X 要查什么"自动触发）
 
 工具:
-- 实时拦截（CC 调 Write/Edit 后自动）: `.claude/settings.json` PostToolUse hook → `00_admin/hooks/post-edit-sync-check.sh`
+- 实时联动检查（Write/Edit 后自动）: PostToolUse hook → `00_admin/hooks/post-edit-sync-check.sh`
+- 实时 memory 索引检查（Write/Edit memory dir 后自动）: PostToolUse hook → `00_admin/hooks/post-edit-memory-check.sh`
+- 启动扫描（每会话起自动）: SessionStart hook → `00_admin/hooks/session-start-check.sh`
 - commit 时自动: bash 00_admin/hooks/pre-commit
 - 中途随时: bash bin/sync-check.sh
 - 规则源: 00_admin/hooks/lib/sync-rules.sh
 
-## 会话开始: 只读 WIP.md
+## 会话开始: session-start skill
 
-启动读 00_admin/WIP.md — 当前版本 / 当下焦点 / 最近 5 次会话 / 多会话占用 / 阻塞项
-读完给 itsuki 报告状态等指令，不主动催进度
+启动 → `.claude/skills/session-start/SKILL.md` 7 步检查（WIP / git status / 残留 / 未 push / stash / 多会话占用 / 报告模板）。SessionStart hook 已自动注入轻量快照，skill 是详细 SOP。
+铁律：不主动催进度，不主动列 TODO。
 
 ## 按需读（不主动读，触发场景才读）
 
@@ -125,6 +127,21 @@ iOS Swift 改了 → bash bin/sync-ios-refs.sh 同步 Tomoshibi-iOS
 - 版本号 bump
 
 ---
+
+# Skills 触发速查（关键词命中 → CC 自动加载对应 skill）
+
+| skill | 触发关键词 | 干嘛 |
+|---|---|---|
+| session-start | 启动 / 早上好 / 我回来了 / 继续 / 干活 ; 新会话首条 | 7 步状态扫描 + 多会话占用诊断 |
+| ac-record | 收尾 / 整理今天 / 总结今天 / 记一下今天 | AC 素材全量扫描 dump |
+| version-bump | 迭代 / bump / 发版本 / 打 tag | 版本决策树（CC 有否决权）|
+| release-checklist | 发版 / 打 tag / release / 推上去 | 发版动作 SOP（version-bump 后续）|
+| new-feature | 新功能 X / 加 Y / 实装 Z / 做 W | 4 端实装模板（spec→backend→iOS→Android）|
+| demo-clean | v1.0 准备 / 上线前检查 / 删 demo / 发版前 | demo scaffold 清理（v1.0 前必跑）|
+| spec-sync | 跨端检查 / 字段对齐 / 端对齐 / API 对齐 | backend↔iOS↔Android 字段提取对比 |
+| memory-write | 记一下规则 / 以后这样 / memory 加一条 / 不要再... | memory 写入 SOP（4 类型 / 查重 / 索引）|
+| file-linkage | 联动 / 改 A 要查 B / 我改了 X 要查什么 | 联动矩阵（CC 改高联动文件后调）|
+| project-overview | X 文件在哪 / 项目里有 X 类文件吗 / 找文件 | 项目文件总览 |
 
 # 对话规则 / 代码编写原则
 
