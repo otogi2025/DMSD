@@ -563,7 +563,59 @@
     - 哪些应该升级为 skill / hook（已有 ac-record + version-bump 2 个 skill 可参考）
     - 哪些是历史快照可以挪 99_archive？
 
-- [ ] 🔴 **项目文件总览升级为"项目唯一入口" + 文件联动 3 层架构**（2026-05-04 itsuki 拍板，CC 之前判断错被 itsuki 纠正）
+- [ ] 🔴 **项目文件总览 + 文件联动 — 拆成 2 个 skill 架构**（2026-05-04 itsuki 第 6 次纠正 CC 设计盲点）
+
+  **演化历史**：
+  - v1（CC 提）：联动规则放 CLAUDE.md → itsuki 戳穿"token 浪费"
+  - v2（CC 改）：联动 + 总览融合到一个文件 → itsuki 戳穿"每次改文件都读完整文件浪费 token"
+  - **v3（itsuki 拍板）**：拆成 2 个独立 skill，各司其职
+
+  **3 层最终架构**：
+  ```
+  ┌─ Skill: file-linkage ── 短，专一（~50 行联动矩阵）
+  │  触发：CC 改文件后 / itsuki 说「我改了 X 要查什么 / 联动检查」
+  │  物理位置：新建 00_admin/联动矩阵.md（itsuki 直接打开方便）
+  │  SKILL.md 是指针 → Read 联动矩阵.md
+  │
+  ├─ Skill: project-overview ── 长，详细（文件清单+内容概要）
+  │  触发：itsuki 说「X 文件干嘛 / 找文件 / 项目里有什么 X 类文件」
+  │  物理位置：保留 00_admin/项目文件总览.md（itsuki 直接打开方便）
+  │  SKILL.md 是指针 → Read 项目文件总览.md
+  │
+  └─ CC PostToolUse Hook ── 确定性脚本（不进 context）
+     CC 调 Write/Edit 后立刻跑 sync-rules.sh → 报告联动漏改
+  ```
+
+  **「指针 skill」设计**（itsuki 拍板）：
+  - SKILL.md 主体只写「触发条件 + Read XX 文件」指令
+  - 物理内容保留在 00_admin/（itsuki 习惯打开方便）
+  - 优点：物理 single source / itsuki 查询习惯不变 / CC 按需触发
+  - 缺点：CC 多一次 Read 调用（可忽略）
+
+  **子任务**（按依赖顺序）：
+  1. 新建 `00_admin/联动矩阵.md`（从 CLAUDE.md「文件连锁结构」+ `hooks/lib/sync-rules.sh` + `文档同步点清单 §11` 提炼，~50 行）
+  2. 创建 `.claude/skills/file-linkage/SKILL.md`（指针 → 联动矩阵.md）
+  3. 项目文件总览补"大概内容"列（每个文件 1-2 句具体写了什么）
+  4. 创建 `.claude/skills/project-overview/SKILL.md`（指针 → 项目文件总览.md）
+  5. CC PostToolUse hook 落地（settings.json 配 + 复用 sync-rules.sh）— 跟「日语注释拦截 hook」一起做
+  6. CLAUDE.md「文件连锁结构」段瘦到 ~5 行指针「→ file-linkage skill / project-overview skill / hook」
+  7. 文档同步点清单 §11 内容挪走（如重叠）
+  8. 项目文件大整理（散 / 多 / 复杂 / 重复）
+
+  **token 账**：
+  - 现状：CLAUDE.md「文件连锁结构」~15 行 = 占启动开销
+  - v1 方案（CC 错）：CLAUDE.md +80 行 / +2k 永久 token
+  - **v3 方案**：CLAUDE.md -10 行 / 联动矩阵 skill ~50 行按需 / 总览 skill 按需 — 启动开销-200 token，按需加载只加载需要的那块
+
+  - 工作量预估：大（~5-8 小时）
+
+  - **CC 失误演化**（itsuki 连环戳穿 — 全是 AC 素材）：
+    - 第 1 次：CC 提"指针文件"多余
+    - 第 2 次：CC 提"未完全理解"自我贬低
+    - 第 3 次：CC 关键词触发不实用（itsuki 不说那些词）
+    - 第 4 次：CC 联动规则塞 CLAUDE.md（token 浪费）
+    - 第 5 次：CC 总览+联动融合（每次改文件都读全文浪费）
+    - 第 6 次：（如果还有错）—— itsuki 持续做 CC 的 design coach
   - itsuki 要求：「我对项目文件总览的要求就是可以让我就在这一个文件里面就了解整个项目所有的文件都是干嘛的，某个文件是干嘛的，某个文件里面有什么，大概有什么内容，然后某个文件改了之后要跟另外一个文件联动之类的」
   - 升级后必含 4 类信息：
     1. **文件是干嘛的**（已有 — "作用"列）
