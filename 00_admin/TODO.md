@@ -358,6 +358,8 @@
 - [ ] 更新 `99_archive/README.md` 时间戳 + 鬼影文件解决说明
 - [ ] **S18（低价值）**：`DEVICE_REGISTRY §6` 候选位置 `dorm-A-01 / dorm-B-01` 跟 `path_type` A/B 撞字 — 改成 `dorm-1-01 / dorm-2-01`。真部署 4 台时顺手做也行
 - [ ] **后端补漏**：`routers/applications.py` 加 `POST /{id}/approvals`（役职审批 #10-#13）+ `DELETE /{id}`（D3 撤回）+ `services/email.py` 补 retry 3 次循环
+- [ ] **N18 暗色模式实装 待拍板**（5-04 iOS bug 修复发现 — `IOS_DESIGN_LOG.md §6.5` 标 N18 ✅「做」但实际未实装 → `TomoshibiApp.swift:22` 已临时强制 `.preferredColorScheme(.light)` 避免黑闪）。**两选一**：A) 真做 N18 — 全 app token (`T.paper` / `T.ink` / 等) 加 dark variant，规模 ≥ 1 整个会话；B) 降级 N18 → IOS_DESIGN_LOG.md 改成「v1.0 不做（强制 light）/ v2 再做」。**当前阻塞**：itsuki 拍板选 A 或 B。
+- [ ] **5-04 iOS bug 修复联动残留**：（1）pbxproj 备份 `/tmp/pbxproj_backup_before_icon_move` 验证后清理；（2）启动 git status 残留垃圾（`.bak` × 2 / `Root/File.txt`）等 itsuki 拍板删；（3）iOS sync 脚本本机不通（找不到 `~/dev/TomoshibiiOSApp`）— 是否 clone 独立 repo / 或改脚本路径
 
 ### C. AC 提交前长期任务（4 条）
 

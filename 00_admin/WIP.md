@@ -1,5 +1,7 @@
 # 当前工作状态 (Work In Progress)
 
+> **最后更新**: 2026-05-04 晚（iOS 5 bug 修复会话 — Liquid Glass `.icon` 真根因 + 暗夜黑闪 + 5/5 进度 + 删蠢 placeholder + Text 插值）
+
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
 > **职责分工（重要 — 别再重叠）**:
@@ -36,6 +38,28 @@
 ---
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
+
+### 2026-05-04 晚 by [Mac-iOS bug 修复 Opus 4.7]
+
+**主题**：⭐⭐⭐⭐ iOS 5 个 bug 修复（2 个真机生产 bug + 1 次 CC 失职被 itsuki 戳穿 + 删 8 处蠢 placeholder）
+
+- **AppIcon Liquid Glass 修复**（4 层失败重诊）— Xcode 26 build error `actool: None of the input catalogs contained... icon stack named "AppIcon"`。**CC 第一次走错方向回退到传统 .appiconset + v2 PNG 替换**，BUILD SUCCEEDED 假装修好 → itsuki 怒戳穿「我现在图标还是白色背景，你到底更新了没？」→ CC 重新诊断（单独跑 actool 隔离 + WebSearch Apple iOS 26 文档）→ 真根因：**Xcode 26 把 `.icon` 当单一文件 reference 处理，不能塞 `.xcassets/` 里**。修：mv `Assets.xcassets/AppIcon.icon` → `TomoshibiApp/AppIcon.icon` + 手改 pbxproj 4 处加 PBXFileReference / PBXBuildFile / PBXGroup / PBXResourcesBuildPhase
+- **暗夜模式黑闪修复**（itsuki 真机晚上点页面黑一下）— `TomoshibiApp.swift:20` `.preferredColorScheme(app.isDark ? .dark : nil)` 中 `nil` = **跟随系统**，晚上系统切 dark → SwiftUI 喂 dark color scheme → view 硬编码 light token 双重渲染 → 黑闪。修：强制 `.preferredColorScheme(.light)` + 加 inline 注释标 N18 待实装
+- **注册进度 5/4 → 5/5 修复** — `RegisterProgress` 硬编码 totalSteps=4（旧 4 步 JSX 抄来），后加 RegisterStep5 没跟上 → `Text("\(step) / 4")` 改 5，进度条 `* 0.25` → `/ 5.0`
+- **删 8 处蠢 placeholder** — itsuki 怒怼「你写的例子太他妈蠢了」→ ApplyStubs × 6 / StayListStubs × 2 / HomeStubs × 1 全删。剧情化（祖父母宅 / 友人の結婚式 / 祖母の通院）→ 中性提示（住所を入力 / 理由を入力）
+- **CommunityStubs Text + Text deprecation** — iOS 26 推荐字符串插值嵌套 Text
+
+**新规则上线**：
+- memory `feedback_no_dramatic_placeholder.md` — UI placeholder 禁用剧情化例子（demo prototype 抄到生产时必删「例：xxx」）
+- memory `feedback_dont_unilaterally_revert_design.md` — CC 修 build error 不能私自回退 itsuki 主动选的新格式（先诊断根因 / 不通就报告等拍板，不能 fallback 伪装 BUILD SUCCEEDED）
+
+**联动副发现 — IOS_DESIGN_LOG.md §6.5 矛盾**：N18「暗色模式：做 ✅」但实际未实装 → 加 TODO §B 待 itsuki 拍板（A 真做 N18 全 token 改造 / B 降级 N18 → v1.0 不做）
+
+**残**：
+- pbxproj 备份 `/tmp/pbxproj_backup_before_icon_move`（commit 前 git diff 可检视手改 UUID 正确性）
+- iOS sync 脚本本机不通（`~/dev/TomoshibiiOSApp` 不存在）— 是否 clone 独立 repo / 或改脚本路径
+- 真机暗夜黑闪 fix 需要 itsuki 装手机晚上验证（CC 无法验证）
+- 启动 git status 残留垃圾（`.bak` × 2 / `Root/File.txt`）等 itsuki 拍板删
 
 ### 2026-05-04 深夜 by [Mac-元层优化 Opus 4.7]
 

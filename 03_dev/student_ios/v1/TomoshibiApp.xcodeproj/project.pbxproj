@@ -27,6 +27,7 @@
 		86DDCC58FA0CF1176A9BDA4A /* IOSStatusBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10726DB63CDE8E0313B1EB95 /* IOSStatusBar.swift */; };
 		8F964714A4052D7FDE85B3A1 /* GlassBackdrop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35A6E6C6215754A03D910C0D /* GlassBackdrop.swift */; };
 		901E949457B307E054D48669 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F5853681D4FAB97B68321735 /* Assets.xcassets */; };
+		D783F747DC1A4C49801DD043 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 7B6DE10E173E4283B63D9C96 /* AppIcon.icon */; };
 		98028465FA560FC57B88380A /* TomoshibiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 993086C5D62807475E44116A /* TomoshibiApp.swift */; };
 		98B9BA9E2FA701C90063AA05 /* File.txt in Resources */ = {isa = PBXBuildFile; fileRef = 98B9BA9D2FA701C90063AA05 /* File.txt */; };
 		9C6010B8F9D58D4DFDC8A3DB /* ApplicationsCreateBodies.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82468F4C175BC38A6B8D9FB1 /* ApplicationsCreateBodies.swift */; };
@@ -94,6 +95,7 @@
 		EE5E5F209C9022BFB61763C1 /* BreadcrumbOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreadcrumbOverlay.swift; sourceTree = "<group>"; };
 		F2DAAF1321A2D7F362D8DAA1 /* PageHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageHeader.swift; sourceTree = "<group>"; };
 		F5853681D4FAB97B68321735 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		7B6DE10E173E4283B63D9C96 /* AppIcon.icon */ = {isa = PBXFileReference; path = AppIcon.icon; sourceTree = "<group>"; };
 		F940AC0A65775FF17FF2E93E /* APIError.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = APIError.swift; path = Network/APIError.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -232,6 +234,7 @@
 				08F1A9DF117742AAD6C72579 /* Foundation */,
 				223E229399714838C48E1EDF /* Root */,
 				F5853681D4FAB97B68321735 /* Assets.xcassets */,
+				7B6DE10E173E4283B63D9C96 /* AppIcon.icon */,
 				993086C5D62807475E44116A /* TomoshibiApp.swift */,
 			);
 			path = TomoshibiApp;
@@ -390,6 +393,7 @@
 			files = (
 				98B9BA9E2FA701C90063AA05 /* File.txt in Resources */,
 				901E949457B307E054D48669 /* Assets.xcassets in Resources */,
+				D783F747DC1A4C49801DD043 /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
