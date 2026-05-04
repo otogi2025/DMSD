@@ -562,6 +562,47 @@ Step 7: 给 itsuki 列「我从今天对话扫到 N 条素材」清单：
 - 写 iCloud 04_素材_成品/monthly_review/YYYY-MM.md
 ```
 
+#### 5.5.9 git 仓库状态收尾确认（2026-05-04 itsuki 拍板加，从 session-start skill 挪过来）
+
+> **背景**：原本是 session-start skill 的内容（启动时跑），itsuki 拍板挪到结尾 — 启动时 CC 不需要这些信息，但**收尾时**正合适：确认 commit 干净 / 决定要不要 push / 看有没有别会话残留。
+
+收尾时跑这 4 项 git 状态检查（已经做过 5.5.6 commit 的话部分项可以跳过）：
+
+```bash
+# A. 工作树状态
+git status
+
+# B. 未 push commit 数
+git log --oneline origin/main..HEAD
+
+# C. stash 是否挂着活
+git stash list
+
+# D. 残留垃圾文件嫌疑（按需跑）
+git status --porcelain | grep -E '\.(bak|bak[0-9]|DS_Store)$|/File\.txt$'
+```
+
+报告格式：
+
+```
+📋 git 仓库状态收尾报告
+
+- branch: main / 别 branch ⚠️
+- 已修改未 staged: N 个 — [是不是别会话改的？要不要 stage]
+- untracked: N 个 — [残留垃圾列出来 / 正常文件不列]
+- staged 但未 commit: N 个 — [是不是忘 commit 了]
+- 未 push commit: N 条（最新 [hash] [一句话]）— [按 commit/push 协作分工等 itsuki 拍板要不要 push]
+- stash: N 条 — [是不是挂着的活忘了]
+
+→ 疑似遗留 / 需确认：[列污染项]
+→ push 决定：等 itsuki 指令
+```
+
+铁律：
+- **不主动 push** — push 是 itsuki 拍板动作（memory `feedback_commit_push_tag_division.md`）
+- **不主动 discard / 删 untracked** — 可能是别会话的活
+- 仅报告状态 + 列待决项
+
 ---
 
 ## §6 AC 文件家族 — CC 权限速查 ⭐ 关键边界

@@ -390,4 +390,168 @@ git status --short
 
 ---
 
+## §13 发版动作（bump 决定后做什么 — 2026-05-04 从 release-checklist skill 合并进来）
+
+> **背景**：原本独立 `release-checklist` skill，itsuki 拍板合并 — 因为 version-bump（决定要不要发）和发版动作（决定后做什么）天然串联，分两个 skill 反而割裂。
+>
+> **场景串联**：itsuki 说「发版 v0.4.0」 → §0.1 否决权判断 + §2 决策树 → 确认要 bump → §3-§6 改 CHANGELOG / commit → 进入本节做 tag / push / 跨 repo 同步。
+
+### §13.0 主流程（按时序 5 阶段）
+
+```
+T-7 天: 长准备（minor / major bump 才做，patch 跳）
+T-1 天: 最后检查
+T 当天: 发版动作（核心 8 步）
+T+1 天: 发版后监控
+T+N 天: 回滚预案（如出问题）
+```
+
+### §13.1 T-7 天：长准备（minor / major）
+
+- [ ] 跟 itsuki 确认本次发版 scope（哪些 feature / fix 进 / 不进）
+- [ ] 确认 demo 环境（如果有外部演示日期）
+- [ ] **major 版本（v1.0.0 / v2.0.0 等）**：先按 `02_design/system_features.md` 末尾「v1.0 上线前必删 demo scaffold 清单」逐条清理
+- [ ] 写 release notes 草稿（CHANGELOG.md 顶部新建段标 `[Unreleased]`）
+- [ ] 跑全套测试（iOS Xcode + backend pytest）确认基线 green
+
+### §13.2 T-1 天：最后检查
+
+- [ ] git status 工作树干净（无未 commit 改动）
+- [ ] CHANGELOG.md 顶部 `[Unreleased]` 段 → 改成正式版本号 + 日期
+- [ ] 同步点清单 11 项全过：`00_admin/文档同步点清单.md`
+- [ ] WIP.md / TODO.md / progress_overview.md 最近更新对齐
+- [ ] `bash bin/sync-check.sh` → 0 警告
+- [ ] `bash 00_admin/hooks/pre-commit` 手动模拟 → 0 阻塞
+
+### §13.3 T 当天：核心 8 步
+
+#### Step 1: 最终 CHANGELOG
+
+```bash
+# 编辑 CHANGELOG.md 顶部
+# - 把 [Unreleased] 改成 [vX.Y.Z] - YYYY-MM-DD
+# - 检查 Added / Changed / Fixed / Removed 段完整
+
+git add CHANGELOG.md
+git commit -m "chore(release): vX.Y.Z"
+```
+
+#### Step 2: 打 tag
+
+⚠️ **铁律**（memory `feedback_commit_push_tag_division.md`）：tag 是 itsuki 拍板动作，CC **起草命令等指令**，不主动跑。
+
+```bash
+# annotated tag（不要 lightweight tag — 没 metadata）
+git tag -a vX.Y.Z -m "Release vX.Y.Z
+
+主要变化:
+- ...
+- ...
+
+详见 CHANGELOG.md"
+
+# 确认
+git tag --list | tail -3
+git show vX.Y.Z --stat | head -20
+```
+
+#### Step 3: push commit + tag
+
+⚠️ **push 也是 itsuki 拍板动作** — CC 起草命令等指令。
+
+```bash
+git push origin main
+git push origin vX.Y.Z
+```
+
+#### Step 4: 跨 repo 同步（iOS）
+
+DMSD 是 iOS single source；`otogi2025/Tomoshibi-iOS` 是镜像。
+
+```bash
+bash bin/sync-ios-refs.sh
+cd ../Tomoshibi-iOS  # 或对应路径
+git status            # 确认同步进来的改动
+git tag -a vX.Y.Z -m "..." && git push --follow-tags origin main
+cd -
+```
+
+#### Step 5: GitHub Release
+
+```bash
+gh release create vX.Y.Z \
+  --title "vX.Y.Z - <一句话标题>" \
+  --notes "$(awk '/^## \[vX.Y.Z\]/,/^## \[v/{print}' CHANGELOG.md | head -n -1)"
+```
+
+或手动 https://github.com/otogi2025/DMSD/releases/new。
+
+#### Step 6: 文档同步点 final check
+
+跑一遍 `00_admin/文档同步点清单.md` Release Checklist 段。
+
+#### Step 7: WIP / TODO 收尾
+
+- [ ] WIP.md 最近会话条目加「vX.Y.Z 发版完成」
+- [ ] TODO.md 把已发版功能从 backlog 划掉
+- [ ] `00_admin/hooks/pre-commit` 重跑确认 hook 不抓硬编码版本号
+
+#### Step 8: 通知 / 公告（如需要）
+
+minor / major 如有外部用户：
+- iOS 用户：TestFlight 推送 build
+- 演示：通知宿舍管理员
+- AC 素材：dump 到 `05_logs/raw/<date>.md` 标 5 级里程碑
+
+### §13.4 T+1 天：发版后监控
+
+- [ ] crash log（iOS Sentry / 手动收集）
+- [ ] backend 日志报错率
+- [ ] 用户反馈（如有渠道）
+
+如有问题 → 决定 hotfix（patch bump）/ 回滚。
+
+### §13.5 T+N 天：回滚预案
+
+#### 客户端炸（iOS）
+- 快速 hotfix → 走 patch bump 流程（vX.Y.Z+1）
+- 严重时：从 TestFlight 撤掉 build
+
+#### Backend 炸
+- `git revert <commit>` 回退部署
+- alembic downgrade（如果有数据库 schema 变化）
+- 通知客户端用户
+
+#### 完全撤回 release（慎用）
+
+```bash
+# 删 GitHub Release（不删 tag）
+gh release delete vX.Y.Z
+
+# 删 tag（local + remote）— 不可逆，itsuki 必须明确拍板
+git tag -d vX.Y.Z
+git push origin :refs/tags/vX.Y.Z
+```
+
+### §13.6 反模式
+
+| ❌ 反模式 | 正确做法 |
+|---|---|
+| CC 主动 git push | push / tag / 删 tag 全部 itsuki 拍板，CC 起草命令等指令 |
+| tag 用 lightweight（git tag X 没 -a） | annotated tag `git tag -a vX.Y.Z -m "..."` |
+| 跳 CHANGELOG 直接打 tag | 先 CHANGELOG 段成型 → chore(release) commit → 再 tag |
+| 漏跨 repo 同步 | bin/sync-ios-refs.sh + Tomoshibi-iOS 也打同步 tag |
+| 漏 hooks 验证 | T-1 § + T 当天 Step 7 都跑 hook 验证 |
+| major 跳 demo scaffold 清理 | major 版本必先按 system_features.md 末尾清单清理 |
+
+### §13.7 触发关键词
+
+| itsuki 说 | 走到 |
+|---|---|
+| 发版 / 打 tag / release / 推上去 / 发布 v0.X.Y | §13.0 主流程 |
+| 跨 repo 同步 | §13.3 Step 4 |
+| 回滚 / 撤掉 release | §13.5 |
+
+---
+
 **END** — Version Bump Skill

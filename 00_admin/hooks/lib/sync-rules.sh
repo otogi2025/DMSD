@@ -205,7 +205,75 @@ check_sync_for_files() {
     fi
   done
 
+  # ============================================================
+  # demo scaffold 检测（独立检查，不通过 add_rule — 需要内容判断 + git diff）
+  # 2026-05-04 itsuki 拍板加：删 demo-clean skill 后补的自动维护机制
+  # ============================================================
+  local f
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    if _check_demo_scaffold "$f"; then
+      triggered_count=$((triggered_count + 1))
+    fi
+  done <<< "$changed_files"
+
   return $triggered_count
+}
+
+# ============================================================
+# 函数：_check_demo_scaffold
+#   输入：单个文件路径（相对项目根）
+#   行为：iOS .swift / backend .py 文件如果 git diff 新增行包含 demo|bypass|stub|fake|mock|hack
+#         字眼 → 提醒「记得加到 system_features.md 末尾 demo scaffold 清单」
+#   返回：0 = 没触发；1 = 触发了 warning
+# ============================================================
+
+_check_demo_scaffold() {
+  local file="$1"
+
+  # 只对 iOS .swift / backend .py 检查
+  if ! echo "$file" | grep -qE '^03_dev/(student_ios/v1/.+\.swift|backend/v1/app/.+\.py)$'; then
+    return 0
+  fi
+
+  # 必须在 git 仓库
+  if ! git rev-parse --git-dir &>/dev/null; then
+    return 0
+  fi
+
+  # 文件不存在（被删了）→ skip
+  if [ ! -f "$file" ]; then
+    return 0
+  fi
+
+  # 看新增内容是否含 demo 字眼
+  # - tracked 文件：用 git diff HEAD 看新增行（^+ 但不含 ^+++）
+  # - untracked 新文件：直接 grep 整个文件内容（git diff 不显示）
+  local new_demo
+  if git ls-files --error-unmatch -- "$file" &>/dev/null; then
+    # tracked
+    new_demo=$(git diff HEAD -- "$file" 2>/dev/null \
+      | grep '^+' | grep -v '^+++' \
+      | grep -iE '\b(demo|bypass|stub|fake|mock|hack)\b' \
+      | head -3 || true)
+  else
+    # untracked — 整文件视为新增
+    new_demo=$(grep -niE '\b(demo|bypass|stub|fake|mock|hack)\b' "$file" 2>/dev/null \
+      | head -3 || true)
+  fi
+
+  if [ -z "$new_demo" ]; then
+    return 0
+  fi
+
+  echo ""
+  echo "  ⚠️  [demo-scaffold-detect] 新增 demo / bypass / stub / fake / mock 字眼"
+  echo "     原因：$file 新加了 demo 关键词 — 如果是为 v1.0 上线后要删的临时 scaffold，"
+  echo "          记得加到 02_design/system_features.md 末尾「v1.0 上线前必删 demo scaffold 清单」"
+  echo "          否则 v1.0 准备时会漏删 → 生产环境安全漏洞"
+  echo "     新增内容（前 3 行）："
+  echo "$new_demo" | sed 's/^/       /'
+  return 1
 }
 
 # ============================================================

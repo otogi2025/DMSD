@@ -125,32 +125,33 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `跨会话_ios_共享决策.md` | ⚠️ | 注明"短期 TODO 用"，已融入 system_features 和独立 iOS repo，**可清理** |
 | `create_local_dev_symlink.sh` | ✅ | VPS 已停用但脚本保留参考 |
 
-### 1.6 00_admin/hooks（6 文件）
+### 1.6 00_admin/hooks（5 文件 + 1 库 + README）
 
 | 文件 | 状态 | 备注 |
 |---|---|---|
 | `install.sh` | ✅ | 首次 clone 后跑一次（`git config core.hooksPath`）|
 | `pre-commit` | ✅ | git commit 前 3 件事：版本号一致性 + bump 提醒 + 联动检查 |
-| `post-edit-sync-check.sh` | ✅ | CC PostToolUse hook — Write/Edit 后跑 sync-rules 联动检查（2026-05-04 加）|
+| `post-edit-sync-check.sh` | ✅ | CC PostToolUse hook — Write/Edit 后跑 sync-rules 联动检查 + demo scaffold 字眼检测（2026-05-04 加）|
 | `post-edit-memory-check.sh` | ✅ | CC PostToolUse hook — memory dir 改完提醒补 MEMORY.md 索引（2026-05-04 加）|
-| `session-start-check.sh` | ✅ | CC SessionStart hook — 会话起自动跑轻量状态扫描（2026-05-04 加）|
-| `lib/sync-rules.sh` | ✅ | 13 条联动规则代码化（pre-commit + post-edit-sync 共享）|
+| `lib/sync-rules.sh` | ✅ | 13 条联动规则代码化 + demo-scaffold-detect 函数（pre-commit + post-edit-sync 共享）|
 | `README.md` | ✅ | hooks 总说明（git + CC 两类全覆盖）|
 
-### 1.7 .claude/skills（10 skill）
+### 1.7 .claude/skills（7 skill）
 
 | skill | 状态 | 触发 / 用途 |
 |---|---|---|
-| `ac-record/` | ✅ | 「收尾 / 整理今天」AC 素材全量扫描 dump |
-| `version-bump/` | ✅ | 「迭代 / bump / 发版本」版本决策树（CC 有否决权）|
+| `ac-record/` | ✅ | 「收尾 / 整理今天」AC 素材全量扫描 dump + git 状态收尾确认（§5.5.9）|
+| `version-bump/` | ✅ | 「迭代 / bump / 发版本 / 发版」版本决策树（CC 有否决权）+ §13 发版动作 SOP |
 | `file-linkage/` | ✅ | 「联动 / 改 A 要查 B」联动矩阵 13 条 |
 | `project-overview/` | ✅ | 本 skill — 文件总览（itsuki 找文件时调）|
-| `session-start/` | ✅ | 「启动 / 早上好 / 我回来了」7 步状态扫描（2026-05-04 加）|
 | `memory-write/` | ✅ | 「记一下规则 / 以后这样」memory 写入 SOP（2026-05-04 加）|
-| `new-feature/` | ✅ | 「新功能 X / 加 Y」4 端实装模板（2026-05-04 加）|
-| `demo-clean/` | ✅ | 「v1.0 准备 / 删 demo」demo scaffold 清理（2026-05-04 加）|
-| `spec-sync/` | ✅ | 「跨端检查 / 字段对齐」字段提取对比（2026-05-04 加）|
-| `release-checklist/` | ✅ | 「发版 / 打 tag / release」发版动作 SOP（2026-05-04 加）|
+| `new-feature/` | ✅ | 「新功能 X / 加 Y」4 端实装模板 + 字段对齐自检（2026-05-04 加）|
+| `spec-sync/` | ✅ | 「跨端检查 / 字段对齐」字段提取对比 — 大改后 / v1.0 前用一次（2026-05-04 加）|
+
+> **2026-05-04 调整记录**：原计划 10 skill，itsuki 反问后砍 3：
+> - `session-start` 删（内容并入 `ac-record §5.5.9` 收尾段；启动只读 WIP）
+> - `demo-clean` 删（一次性任务做 skill 频次太低；改成 `lib/sync-rules.sh` demo-scaffold-detect 自动检测 + `system_features.md` 末尾清单）
+> - `release-checklist` 删（合并到 `version-bump §13`；本来就串联，分两个 skill 反而割裂）
 
 ---
 

@@ -16,9 +16,12 @@ DMSD 用了 **2 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后
 
 **比 git pre-commit 早一步**，CC 在中途没 commit 也能拦联动漏改。同 matcher 下挂 2 条 hook（并行跑）：
 
-#### A. `post-edit-sync-check.sh` — 文件联动检查
+#### A. `post-edit-sync-check.sh` — 文件联动检查 + demo scaffold 检测
 - 配置文件：`.claude/settings.json`（hooks.PostToolUse[matcher="Write|Edit"][0]）
 - 工作流：jq 解析 stdin → 提取 file_path → source `lib/sync-rules.sh` → `check_sync_for_files` → 注入 additionalContext
+- 包含两类检查：
+  - **13 条联动规则**（路径触发，详见 file-linkage skill）
+  - **demo scaffold 字眼检测**（2026-05-04 加）：iOS .swift / backend .py 改动 git diff 新增行如有 `demo|bypass|stub|fake|mock|hack` 字眼 → 提醒加到 `system_features.md` 末尾清单
 - 详细联动规则人类可读版：`.claude/skills/file-linkage/SKILL.md`
 
 #### B. `post-edit-memory-check.sh` — Memory 索引检查（2026-05-04 加）
@@ -27,24 +30,19 @@ DMSD 用了 **2 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后
 - 工作流：grep MEMORY.md 看是否引用新文件 → 没有就提醒「补索引」 + 检查 frontmatter 完整性
 - 配套 skill：`.claude/skills/memory-write/SKILL.md`
 
-### ⭐ CC SessionStart hook（每次会话起自动跑，2026-05-04 加）
-
-- 配置文件：`.claude/settings.json`（hooks.SessionStart）
-- 触发脚本：`00_admin/hooks/session-start-check.sh`
-- 工作流：jq 解析 stdin（含 source: startup/resume/clear/compact）→ 跑轻量 git 状态扫描（branch / 工作树污染 / 未 push commit / stash / 残留垃圾文件嫌疑）→ 读 WIP.md 顶部 30 行 + CHANGELOG.md 顶部 5 行 → 注入 additionalContext
-- 设计原则：轻量（<1s）/ 不阻塞 / 只在 startup/resume 注入（compact/clear 跳过省 token）
-- 配套 skill：`.claude/skills/session-start/SKILL.md`（详细 7 步 SOP，hook 是开场快照）
-
 ### 测试方法
 
 ```bash
 # 在 CC 内输入 /hooks 查看是否注册成功
 
 # 手动 dry-run 测：
-echo '{"source":"startup"}' | bash 00_admin/hooks/session-start-check.sh
 echo '{"tool_input":{"file_path":"/Users/itsuki/.claude/projects/-Users-itsuki-dev-DMSD/memory/test.md"}}' | bash 00_admin/hooks/post-edit-memory-check.sh
-echo '{"tool_input":{"file_path":"/Users/itsuki/dev/DMSD/03_dev/backend/app/models.py"}}' | bash 00_admin/hooks/post-edit-sync-check.sh
+echo '{"tool_input":{"file_path":"/Users/itsuki/dev/DMSD/03_dev/backend/v1/app/models.py"}}' | bash 00_admin/hooks/post-edit-sync-check.sh
 ```
+
+### SessionStart hook（已删，2026-05-04 同日加同日删）
+
+> itsuki 反问后判断启动时 git 状态扫描没价值（CC 自己 `git status` 就行 / itsuki 已知 repo 状态），把这段检查挪到 ac-record skill §5.5.9 收尾段。`session-start-check.sh` 已删 / `.claude/settings.json` SessionStart hook 配置已删。
 
 ## 为什么（2026-04-19 发现）
 
