@@ -818,3 +818,90 @@ extension Color {
 ---
 
 **END v2** — 5-03 大量改動を反映（§5 重写 + §12 新増）。
+
+---
+
+## 13. 老师公告 iOS 端 完成（2026-05-04 拍板 + 落地）
+
+> spec 共用層 = `02_design/system_features.md §7.15`。本节 = iOS 専属 UI 仕様 + 実装ファイル对応。
+
+### 13.1 itsuki 5-04 拍板
+
+5-03 spec §7.15 で「AI 要約 / 翻訳 = v1.1 後送」だったが、5-04 itsuki の指示で **v1.0 範囲に格上げ**：
+- 主页に公告入口 card が無く「機能あるのに UX 上見えない」状態 → HomeView 入口 card 追加
+- AI 要約 + 中翻 = AC 叙事 §12.6「Apple 平台原生 AI 三件套」の核心、後送ではなく v1.0 で実装してこそ叙事が立つ → 同日落地
+- backend 接続なしでも UX 確認できるよう demo seed 5 件（日本語 / 全寮 + 男寮 mix）+ 数件 reply
+
+### 13.2 HomeView 入口 card（spec §7.15.3）
+
+**位置**: `HomeView` body 内、§2 减点 amber Card と §3 LifeTab の間に新セクション §2.5。
+
+**構成**:
+- 📢 megaphone icon + 未読 N badge（red、N>0 のみ）
+- 「お知らせ」タイトル + 「N 件未読」or「すべて確認済」サブテキスト
+- 最新 1 件 preview（`announcements.first`）= タイトル / 投稿者名 / 相対時刻
+- card 全体タップ → `.homeAnnouncements`（一覧 view）
+
+**実装**: `Features/Home/HomeStubs.swift` `HomeView.announcementsCard` + `announcementRelative()` helper。
+
+### 13.3 詳細 view 内 AI 要約（spec §7.15.5）
+
+**Framework**: `import FoundationModels` (iOS 26+)。
+
+**判定**: `SystemLanguageModel.default.availability == .available` で button 表示。Apple Intelligence 未対応端末は **button 自体を hide**（spec §7.15.5「UX 一致」遵守）。
+
+**Prompt 構成**: `タイトル：... / 本文：... / 返信：- author：body ...` を 1 つの文字列にまとめ、「日本語で 1〜2 行に要約してください」と指示。
+
+**UI**: `actionButtonsRow` に sparkles icon + 「AI 要約」/「要約中…」/ 既生成済 = button disable + summary banner 表示（×ボタンで dismiss 可）。
+
+**実装**: `AnnouncementDetailView.generateSummary()` + `summaryBanner` + state `aiSummary / isSummarizing / summaryError`。
+
+### 13.4 詳細 view 内 一键日中翻訳（spec §7.15.5）
+
+**Framework**: `import Translation` (iOS 17.4+ presentation, iOS 18+ programmatic)。
+
+**動作**:
+- ボタン押下 → `translationConfig` を `Locale.Language("ja") → Locale.Language("zh-Hans")` で設定
+- `.translationTask(translationConfig) { session in ... }` modifier が自動再実行
+- `session.translate(batch:)` でタイトル / 本文 / 全 reply を 1 回の batch で翻訳
+- `clientIdentifier` で振り分け → `translatedTitle / translatedBody / translatedReplies[UUID]` cache
+- `showOriginal = false` で表示切替（cache 命中時は再翻訳せず即時切替）
+- 再押で `showOriginal = true` で原文に戻す（cache は破棄しない）
+
+**UI**: `actionButtonsRow` 内 character.bubble icon + 「中国語に翻訳」⇄「原文に戻す」/「翻訳中…」。
+
+**実装**: `AnnouncementDetailView.startTranslation() + runTranslation(session:)` + state 6 個。`AnnouncementReplyRow` に `overrideBody: String?` 追加して翻訳済本文を注入。
+
+### 13.5 AppStore demo seed（⚠️ DEMO-ONLY）
+
+**目的**: backend 起動なしでも simulator + 真機で完全に UX 確認できる。
+
+**仕組み**:
+- `AppStore.init()` で `seedDemoAnnouncements()` を call → `announcements / announcementUnreadCount / announcementDetails` 3 つに seed 投入
+- `loadAnnouncementList / loadAnnouncementDetail` の catch 句で「seed cache 命中時は throw しない」分岐追加
+- `postAnnouncementReply` も catch で local 偽 reply 生成 → cache append
+- v1.0 上線前に `seedDemoAnnouncements()` 関数本体 + init() 呼び出し + 3 catch 分岐の DEMO 部分すべて削除
+
+**seed 内容**: 5 件（点呼時間変更 / GW 出寮届 / 男寮浴室点検 / リクエスト曲募集 / 学習対象者更新）+ 3 件の reply chain（学生 + 教員）。UUID 固定（`11111111-...` 〜 `55555555-...`）で list ↔ detail 対応。
+
+### 13.6 一覧 view error 表示順序の修正
+
+**改前**: `isLoading → loadError → empty → list` の優先順 → seed cache あっても backend 失敗時 error banner で隠れる。
+
+**改後**: `!announcements.isEmpty → isLoading → loadError → empty` に変更 → seed/cache 優先表示。backend 接続成功時は seed を上書き、失敗時は seed のまま見える。
+
+### 13.7 実装ファイル映射（5-04 落地分）
+
+| 機能 | 主ファイル | 補助 |
+|---|---|---|
+| HomeView 入口 card | `Features/Home/HomeStubs.swift` `HomeView.announcementsCard` | — |
+| AI 要約 | 同上 `AnnouncementDetailView.generateSummary` | `import FoundationModels` |
+| 一键翻訳 | 同上 `runTranslation / startTranslation` | `import Translation`、`AnnouncementReplyRow.overrideBody` |
+| demo seed | `Foundation/AppState/AppStore.swift` `seedDemoAnnouncements()` | `init()` + 3 catch fallback |
+| spec | `02_design/system_features.md §7.15.11` 表更新 | — |
+
+xcodebuild iPhone 17 simulator BUILD SUCCEEDED 確認済（2026-05-04）。
+
+---
+
+**END v2** — 5-04 老师公告 v1.0 完成（§13 新増）。

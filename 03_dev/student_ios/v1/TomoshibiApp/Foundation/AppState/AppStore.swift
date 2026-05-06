@@ -95,6 +95,10 @@ final class AppStore: ObservableObject {
             // 直接赋 _authToken 会跳过 didSet → APIClient 同步不上、所以走 self.authToken
             self.authToken = saved
         }
+        // ⚠️ DEMO-ONLY-SCAFFOLD（2026-05-04）：老师公告 demo seed
+        // 用途：itsuki demo / 没开 backend 时，主页 + 一覧 + 详情都能直接看效果
+        // v1.0 上线前删 seedDemoAnnouncements() 调用 + 函数本体
+        seedDemoAnnouncements()
     }
 
     /// 点呼状态
@@ -204,15 +208,29 @@ final class AppStore: ObservableObject {
     }
 
     /// 拉列表（一覧 view 进入时调）
+    /// demo 模式 fallback：backend 失败时**保留 seed cache**，不抛错
     func loadAnnouncementList() async throws {
-        let res = try await AnnouncementsAPI.list()
-        self.announcements = res.items
+        do {
+            let res = try await AnnouncementsAPI.list()
+            self.announcements = res.items
+        } catch {
+            // ⚠️ DEMO-ONLY-SCAFFOLD：seed 不空时静默忽略错误（保留 demo 数据）
+            // v1.0 上线前删 if 分支、保留 throw
+            if announcements.isEmpty { throw error }
+        }
     }
 
     /// 拉详情（详情 view 进入时调；自动写已读 → backend 下次 list 返回 isRead=true）
+    /// demo 模式 fallback：backend 失败时**保留 seed detail cache** + 本地翻已读
     func loadAnnouncementDetail(id: String) async throws {
-        let detail = try await AnnouncementsAPI.detail(id: id)
-        self.announcementDetails[id] = detail
+        do {
+            let detail = try await AnnouncementsAPI.detail(id: id)
+            self.announcementDetails[id] = detail
+        } catch {
+            // ⚠️ DEMO-ONLY-SCAFFOLD：seed cache 命中时静默忽略
+            // v1.0 上线前删 if 分支
+            if announcementDetails[id] == nil { throw error }
+        }
         // 详情 GET 后端会自动 mark read，本地 cache 也同步翻 true
         if let idx = announcements.firstIndex(where: { $0.id.uuidString == id }) {
             // brief 是 immutable struct — 整条替换
@@ -231,12 +249,28 @@ final class AppStore: ObservableObject {
     }
 
     /// 发回复（学生用 — 老师 reply 走 teacher_web）
+    /// demo 模式 fallback：backend 失败时本地构造一条 reply append 到 cache
     func postAnnouncementReply(announcementId: String, body: String) async throws {
-        let reply = try await AnnouncementsAPI.postReply(
-            announcementId: announcementId, body: body
-        )
+        let reply: AnnouncementReplyOut
+        do {
+            reply = try await AnnouncementsAPI.postReply(
+                announcementId: announcementId, body: body
+            )
+        } catch {
+            // ⚠️ DEMO-ONLY-SCAFFOLD：seed cache 命中时本地伪造 reply
+            // v1.0 上线前删 catch 分支
+            guard announcementDetails[announcementId] != nil else { throw error }
+            reply = AnnouncementReplyOut(
+                id: UUID(),
+                authorKind: "student",
+                authorId: UUID(uuidString: "00000000-0000-0000-0000-000000000099")!,
+                authorName: "リュウ イヒ",
+                body: body,
+                createdAt: Date()
+            )
+        }
         // 同步本地 detail cache
-        if var detail = announcementDetails[announcementId] {
+        if let detail = announcementDetails[announcementId] {
             // detail.replies 是 let 字段 — 整条替换
             let updated = AnnouncementDetail(
                 id: detail.id, title: detail.title, body: detail.body,
@@ -246,8 +280,148 @@ final class AppStore: ObservableObject {
                 replies: detail.replies + [reply]
             )
             announcementDetails[announcementId] = updated
-            _ = detail  // 避免 unused warn
         }
+    }
+
+    // MARK: - 老师公告 demo seed（⚠️ DEMO-ONLY-SCAFFOLD · 2026-05-04）
+    //
+    // 用途：itsuki demo / backend 没开时，主页 + 一覧 + 详情 都直接看到效果
+    // v1.0 上线前删整个函数 + init() 调用
+    //
+    // seed 5 条公告（日语 / 全寮 + 男寮 mix） + 几条 reply
+    // UUID 用固定值方便 list ↔ detail 对照
+    private func seedDemoAnnouncements() {
+        let now = Date()
+        // 老师 author UUID（固定）
+        let yamada = UUID(uuidString: "00000000-0000-0000-0000-0000000000A1")!  // 山田 寮監
+        let sato   = UUID(uuidString: "00000000-0000-0000-0000-0000000000A2")!  // 佐藤 寮務部長
+        let tanaka = UUID(uuidString: "00000000-0000-0000-0000-0000000000A3")!  // 田中 寮監
+        let suzuki = UUID(uuidString: "00000000-0000-0000-0000-0000000000A4")!  // 鈴木 寮監
+        // 学生 author UUID（reply 用）
+        let stuTanaka = UUID(uuidString: "00000000-0000-0000-0000-0000000000B1")!
+        let stuSuzuki = UUID(uuidString: "00000000-0000-0000-0000-0000000000B2")!
+        let stuYamada = UUID(uuidString: "00000000-0000-0000-0000-0000000000B3")!
+
+        // 公告 ID（固定）
+        let id1 = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+        let id2 = UUID(uuidString: "22222222-2222-2222-2222-222222222222")!
+        let id3 = UUID(uuidString: "33333333-3333-3333-3333-333333333333")!
+        let id4 = UUID(uuidString: "44444444-4444-4444-4444-444444444444")!
+        let id5 = UUID(uuidString: "55555555-5555-5555-5555-555555555555")!
+
+        // ───── 公告 1: 点呼時間 臨時変更（all / 未読 / 3 reply）─────
+        let body1 = """
+        明日（5月4日）朝の点呼を 7:30 → 7:45 に変更します。
+        学習中の生徒は通常通り出席してください。
+
+        なお、変更は明日のみで、5日以降は通常時間に戻ります。
+        ご質問がある場合は寮務部までお願いします。
+        """
+        let replies1: [AnnouncementReplyOut] = [
+            .init(id: UUID(), authorKind: "student", authorId: stuTanaka,
+                  authorName: "田中 太郎", body: "了解しました。ありがとうございます。",
+                  createdAt: now.addingTimeInterval(-3000)),
+            .init(id: UUID(), authorKind: "student", authorId: stuSuzuki,
+                  authorName: "鈴木 花子", body: "高校生も同じ時間ですか？",
+                  createdAt: now.addingTimeInterval(-2400)),
+            .init(id: UUID(), authorKind: "teacher", authorId: yamada,
+                  authorName: "山田 寮監", body: "はい、全寮同時刻です。",
+                  createdAt: now.addingTimeInterval(-1800)),
+        ]
+
+        // ───── 公告 2: GW 出寮届（all / 未読 / 2 reply）─────
+        let body2 = """
+        GW 期間（5/3〜5/6）に外泊・帰省を予定する生徒は、本日 18 時までに出寮届を提出してください。
+        提出後、保護者宛にも自動でメール通知が届きます。
+
+        未提出のまま出寮した場合は欠席扱いとなりますのでご注意ください。
+        """
+        let replies2: [AnnouncementReplyOut] = [
+            .init(id: UUID(), authorKind: "student", authorId: stuYamada,
+                  authorName: "山田 健", body: "提出フォームはどこから入りますか？",
+                  createdAt: now.addingTimeInterval(-7200)),
+            .init(id: UUID(), authorKind: "teacher", authorId: sato,
+                  authorName: "佐藤 寮務部長", body: "「申し込み」タブから出寮届を選んでください。",
+                  createdAt: now.addingTimeInterval(-6800)),
+        ]
+
+        // ───── 公告 3: 男寮 浴室点検（male / 未読 / 0 reply）─────
+        let body3 = """
+        来週月曜（5/7）午後 2 時より、男寮 2 階浴室の定期点検を行います。
+        当該時間帯（14:00〜17:00）は使用不可、4 階浴室をご利用ください。
+
+        ご不便をおかけしますがご協力お願いします。
+        """
+
+        // ───── 公告 4: リクエスト曲（all / 既読 / 0 reply）─────
+        let body4 = """
+        今週末（5/10-11）の食堂 BGM のリクエスト曲を募集しています。
+        アプリの「リクエスト曲」から提出してください。締切は金曜 18 時。
+
+        多数の応募お待ちしています！
+        """
+
+        // ───── 公告 5: 学習対象者 入れ替え（all / 既読 / 0 reply）─────
+        let body5 = """
+        5 月の学習対象者（中学全員 + 高校手動名簿）を更新しました。
+        マイページから自分の対象状況を確認してください。
+
+        質問があれば寮務部まで個別にご連絡ください。
+        """
+
+        let demoBriefs: [AnnouncementBrief] = [
+            .init(id: id1, title: "点呼時間 臨時変更のお知らせ",
+                  bodySummary: String(body1.prefix(80)), scope: "all",
+                  authorTeacherId: yamada, authorTeacherName: "山田 寮監",
+                  createdAt: now.addingTimeInterval(-3600), updatedAt: now.addingTimeInterval(-3600),
+                  isRead: false, replyCount: replies1.count),
+            .init(id: id2, title: "GW 期間中の出寮届について",
+                  bodySummary: String(body2.prefix(80)), scope: "all",
+                  authorTeacherId: sato, authorTeacherName: "佐藤 寮務部長",
+                  createdAt: now.addingTimeInterval(-10800), updatedAt: now.addingTimeInterval(-10800),
+                  isRead: false, replyCount: replies2.count),
+            .init(id: id3, title: "男寮 2 階 浴室 定期点検のお知らせ",
+                  bodySummary: String(body3.prefix(80)), scope: "male",
+                  authorTeacherId: tanaka, authorTeacherName: "田中 寮監",
+                  createdAt: now.addingTimeInterval(-86400), updatedAt: now.addingTimeInterval(-86400),
+                  isRead: false, replyCount: 0),
+            .init(id: id4, title: "リクエスト曲 募集中（今週末分）",
+                  bodySummary: String(body4.prefix(80)), scope: "all",
+                  authorTeacherId: suzuki, authorTeacherName: "鈴木 寮監",
+                  createdAt: now.addingTimeInterval(-86400 * 2), updatedAt: now.addingTimeInterval(-86400 * 2),
+                  isRead: true, replyCount: 0),
+            .init(id: id5, title: "学習対象者 5 月分 入れ替え案内",
+                  bodySummary: String(body5.prefix(80)), scope: "all",
+                  authorTeacherId: sato, authorTeacherName: "佐藤 寮務部長",
+                  createdAt: now.addingTimeInterval(-86400 * 4), updatedAt: now.addingTimeInterval(-86400 * 4),
+                  isRead: true, replyCount: 0),
+        ]
+        self.announcements = demoBriefs
+        self.announcementUnreadCount = demoBriefs.filter { !$0.isRead }.count
+
+        // detail cache（id → AnnouncementDetail）
+        self.announcementDetails = [
+            id1.uuidString: .init(id: id1, title: demoBriefs[0].title, body: body1,
+                                  scope: "all", authorTeacherId: yamada, authorTeacherName: "山田 寮監",
+                                  createdAt: demoBriefs[0].createdAt, updatedAt: demoBriefs[0].updatedAt,
+                                  replies: replies1),
+            id2.uuidString: .init(id: id2, title: demoBriefs[1].title, body: body2,
+                                  scope: "all", authorTeacherId: sato, authorTeacherName: "佐藤 寮務部長",
+                                  createdAt: demoBriefs[1].createdAt, updatedAt: demoBriefs[1].updatedAt,
+                                  replies: replies2),
+            id3.uuidString: .init(id: id3, title: demoBriefs[2].title, body: body3,
+                                  scope: "male", authorTeacherId: tanaka, authorTeacherName: "田中 寮監",
+                                  createdAt: demoBriefs[2].createdAt, updatedAt: demoBriefs[2].updatedAt,
+                                  replies: []),
+            id4.uuidString: .init(id: id4, title: demoBriefs[3].title, body: body4,
+                                  scope: "all", authorTeacherId: suzuki, authorTeacherName: "鈴木 寮監",
+                                  createdAt: demoBriefs[3].createdAt, updatedAt: demoBriefs[3].updatedAt,
+                                  replies: []),
+            id5.uuidString: .init(id: id5, title: demoBriefs[4].title, body: body5,
+                                  scope: "all", authorTeacherId: sato, authorTeacherName: "佐藤 寮務部長",
+                                  createdAt: demoBriefs[4].createdAt, updatedAt: demoBriefs[4].updatedAt,
+                                  replies: []),
+        ]
     }
 
     // MARK: - Toast 辅助

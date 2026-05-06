@@ -935,14 +935,17 @@ announcement_replies
 
 #### 7.15.11 v1.0 实装范围 + 后送
 
-> **2026-05-04 更新**：backend + iOS（最小可工作版）完成（commit `3a6c585` + `3b19bc4`）。Android + 教师 Web 待实装。AI 摘要 / 翻译 / Push 通知放 iOS 端 v1.1 后送（v1.0 是 列表/详情/回复 基本路径）。
+> **2026-05-04 更新（其二）**：itsuki 拍板把 AI 摘要 + 一键日中翻译从 v1.1 提到 v1.0（iOS 先行）。同日 iOS 端落地 HomeView 入口卡片（§7.15.3）+ AI 要約按钮（Foundation Models, on-device）+ 一键中翻按钮（Translation framework, batch translate title + body + 全 reply）+ demo seed 5 条日语公告（backend 没开也能看效果）。Android + 教师 Web 仍待实装。
+>
+> **2026-05-04 更新（其一）**：backend + iOS（最小可工作版）完成（commit `3a6c585` + `3b19bc4`）。
 
 | 项目 | backend | iOS | Android | 教师 Web | 后送（v1.1+） |
 |---|---|---|---|---|---|
 | 发公告 / 列表 / 详情 / 已读 | ✅ | ✅ | ⏳ | ⏳ | — |
 | 回复（全员互见）| ✅ | ✅ | ⏳ | ⏳ | — |
-| AI 摘要（Foundation Models）| — | ⏳ v1.1 | — | — | 不支持的机型用什么代替 |
-| 翻译（日 ⇄ 中）| — | ⏳ v1.1 | — | — | 多语言扩展（越南 / 印尼 / 韩） |
+| HomeView 入口 card（最新 1 件 + 未读 N badge）| — | ✅ | ⏳ | — | — |
+| AI 要約（Foundation Models, on-device）| — | ✅ v1.0 | ⏳ v1.1 | — | 不支持的机型按钮隐藏 |
+| 一键日中翻訳（Translation framework, batch）| — | ✅ v1.0 | ⏳ v1.1 | — | 多语言扩展（越南 / 印尼 / 韩） |
 | Push 通知 | — | ⏳ v1.1 | ⏳ v1.1 | — | scope = male/female 时 push 怎么过滤 |
 | 附件（图片 / PDF）| — | — | — | — | v1.1 |
 | 投诉机制（学生 → 老师）| — | — | — | — | v1.1（看公告投稿规模决定）|
