@@ -1,0 +1,2 @@
+- [itsuki 基本信息](user_profile.md) — 中国留日高三 / 筑波 AC 2027 / 编程零基础 / 中文为主，英文术语必翻译
+- [DMSD 项目位置 + 専属 memory](reference_dmsd.md) — DMSD 工作要 cd ~/dev/DMSD 开新 CC 会话，那边有独立 CLAUDE.md 和 28 文件 memory

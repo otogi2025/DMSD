@@ -7,6 +7,8 @@
 > CC 要做的事：按 §1-§7 顺序执行，每完成一步打 ✅ 给 itsuki 看；遇到错误停下来问 itsuki，不要硬冲。
 >
 > **背景**：itsuki 把原 Mac 给别人，换到 Mac mini。原 Mac 上所有未 commit 工作已经 push（commit `debcb07`），Claude memory 28 个文件已备份到 iCloud。本文件让 Mac mini 跟原 Mac 一样能跑。
+>
+> **🆕 2026-05-06 第二次迁移注记**（Mac mini → 新机）：从这次起 Claude memory + settings + scheduled 备份**首选走 git 内快照**（路径 `99_archive/migration_2026-05-06/`，clone 后立即可用，不用等 iCloud 同步）。本文件 §5 的 iCloud 路径降级为 **fallback**。新机走完 §1-§4 后，**直接读 `99_archive/migration_2026-05-06/RESTORE_GUIDE.md` §2 恢复数据**，跳过本文件 §5。
 
 ---
 
@@ -167,7 +169,11 @@ cp "$HOME/Library/Mobile Documents/com~apple~CloudDocs/_claude_memory_backup/glo
 
 ---
 
-## 5. 恢复 Claude memory（28 个文件）
+## 5. 恢复 Claude memory（28 个文件 — iCloud fallback 方案）
+
+> **2026-05-06 起首选不是这条路径**。新机 clone 完 DMSD 后直接读 `99_archive/migration_2026-05-06/RESTORE_GUIDE.md` §2，里面包含 memory + settings + scheduled 一站式恢复。
+>
+> 本 §5 保留作为 **iCloud fallback**：当 git 内快照丢失 / 损坏时使用。
 
 ### 5.1 等 iCloud 同步
 
@@ -367,3 +373,12 @@ sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 ---
 
 **END** — 跑完本文档 → Mac mini 跟原 Mac 一样能开发。
+
+---
+
+## 附录: 历次迁移备份清单
+
+| 备份日期 | 备份位置 | memory 数 | 备注 |
+|---|---|---|---|
+| 2026-05-02 | iCloud `_claude_memory_backup/DMSD-memory-2026-05-02/` | 28 | 原 Mac → Mac mini 第一次迁移 |
+| 2026-05-06 | git `99_archive/migration_2026-05-06/` + iCloud `_claude_memory_backup/DMSD-{memory,sessions}-2026-05-06.zip` | 37 | Mac mini → 新机第二次迁移；首次 git 内快照 |
