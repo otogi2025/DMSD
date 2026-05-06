@@ -15,8 +15,7 @@ DMSD 是他的核心 AC 叙事项目
 技术栈: iOS Swift+SwiftUI / Android Kotlin+Compose / 后端 FastAPI+PostgreSQL / 点呼机 Pi 3A+ + PN532 + ST25DV16K / NFC 卡 NTAG215
 上线姿态: v1.0 一次上线 iOS + Android + 卡，不分阶段 <!-- VERSION_OK -->
 当前版本: 见 CHANGELOG.md 顶部
-GitHub: otogi2025/DMSD public
-iOS 独立 repo: otogi2025/Tomoshibi-iOS，single source 永远 DMSD 侧
+GitHub: otogi2025/DMSD public（单一 repo — 2026-05-06 退役独立 repo 模式，iOS+Android+Web+后端 全在 DMSD 内）
 设计 / 防御 / 扣分 / 采购 / 硬件 / 流程 详情: 02_design/ + 01_specs/ + .claude/skills/project-overview/SKILL.md
 
 ## 目录结构
@@ -24,7 +23,7 @@ iOS 独立 repo: otogi2025/Tomoshibi-iOS，single source 永远 DMSD 侧
 00_admin/   WIP / TODO / 项目文件总览 / 文档同步点清单 / hooks（版本 bump 流程 → `.claude/skills/version-bump/`）
 01_specs/   规格文档 — rollcall/ 字典+主体
 02_design/  设计文档 — hardware / flow / system_features 等
-03_dev/     代码 — backend / teacher_web / student_ios，Swift 实装在独立 repo Tomoshibi-iOS
+03_dev/     代码 — backend / teacher_web / student_ios / student_android
 04_ops/     运维
 05_logs/    开发 log — raw / dev_log / problem_solving / decision_log / learning_path / project_evolution
 06_assets/  07_release/  99_archive/  bin/   参考材料 / 发布物 / 早期归档 / 脚本
@@ -41,7 +40,7 @@ Web 専属:  03_dev/teacher_web/WEB_DESIGN_LOG.md
 
 ## 文档一致性
 
-单源真值表 + pre-commit hook + 跨 repo 同步: 00_admin/文档同步点清单.md
+单源真值表 + pre-commit hook: 00_admin/文档同步点清单.md
 版本 bump 流程: `.claude/skills/version-bump/SKILL.md`（itsuki 说「迭代/bump/发版本/打 tag」自动触发；CC 有否决权）
 中文铁律 — 代码注释 + 内部文档 100% 中文 / UI 字符串保持日语: memory feedback_code_comments_chinese_strict.md
 
@@ -57,7 +56,6 @@ Foundation/ component 改 props → grep 全 repo 找用到的地方
 新建 / 删除 / 改名 / 移动文件 → .claude/skills/project-overview/SKILL.md 同步更新对应章节
 新建声明性文件（CLAUDE.md / WIP / TODO 类） → 00_admin/文档同步点清单.md 加同步点
 新建 / 改 hook → 00_admin/hooks/README.md
-iOS Swift 改了 → bash bin/sync-ios-refs.sh 同步 Tomoshibi-iOS
 
 详细联动矩阵 / 反向索引: `.claude/skills/file-linkage/SKILL.md`（itsuki 说"联动检查 / 我改了 X 要查什么"自动触发）
 

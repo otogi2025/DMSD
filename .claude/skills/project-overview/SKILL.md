@@ -18,7 +18,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 >
 > **和 `00_admin/文件结构指南.md` 关系**：那份偏「顶级目录骨架 + 权限速查」（静态参考，430 行）；本文件偏「每个文件状态 + 价值评估 + AC top 10」（动态总览，~650 行）。两份分工不同，本 skill 是**新会话首选入口**。
 >
-> **最后更新**：2026-05-04 深夜（迁入 skill 形态）
+> **最后更新**：2026-05-06（独立 repo 模式退役 — §0.4 / §5.2 / §5.6 / §6.5 / §8.1 / §9.6 / §10 / §13 多处更新）。早些更新：2026-05-04 深夜（迁入 skill 形态）
 
 ---
 
@@ -62,7 +62,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ### 0.4 跨组横向洞察（详见 §8）
 
-- **demo ↔ v1 复制策略**：backend 选了"重写"（schema 全新）✅；teacher_web 选了"复制不动"⏳；iOS v1 走独立 repo（refs/ 物理拷贝）— 三种姿态都对，但要明文说清楚。
+- **demo ↔ v1 复制策略**（2026-05-06 独立 repo 模式退役后）：backend 选了"重写"（schema 全新）✅；teacher_web 选了"复制不动"⏳；iOS / Android 真代码全部在 DMSD 内（曾经的独立 repo + cloud agent 同步三件套已归档到 `99_archive/2026-05-06_cloud_agent_退役/`）。
 - **三层 DESIGN_LOG 体系生效**：BACKEND / WEB / IOS 三个 DESIGN_LOG 都活跃且与 system_features.md 同步链清晰，是 4-29 大整理后的最大资产。
 - **AC 叙事供应充足**：80+ 条 #AC候选 + 6 个 per-version 叙事（v0.3-0.7）+ 4 个 problem_solving 精品版 + 3 个 03_dev/_DESIGN_LOG 工程化叙事 — 数量上远超 AC 自我推荐书所需。
 
@@ -322,17 +322,13 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `demo/Round2_Prompt_C3.md` | ⚠️ — C3 决策已 resolve，**可改名 `_archived_`** |
 | `demo/Tomoshibi_iOS_PhaseB_v2.html` | 📦 — Phase B 完整原型（锁定不动） |
 
-### 5.2 v1/ 顶层管理（7 文件）
+### 5.2 v1/ 顶层管理（3 文件 — 2026-05-06 退役 cloud agent 模式后精简）
 
 | 文件 | 状态 | 备注 |
 |---|---|---|
-| `.gitignore` / `README.md` / `project.yml`（xcodegen） | ✅ | 常规 |
-| `STATUS.md` | ✅ | 短期 session 快照（每天换） |
-| `SHARED_DECISIONS.md` | ✅ | 6 行指针（指向 DMSD 主） |
-| `SESSION_CHANGELOG.md` | ✅ | 详细历史变动日志 |
-| `REMOTE_AGENT_GUIDE.md` | ✅ | ⭐ Cloud routine agent 执行手册（430 行 spec） |
+| `.gitignore` / `README.md` / `project.yml`（xcodegen）/ `BUILD.md` | ✅ | 常规 |
 
-> **职责重叠隐患**：STATUS（短期 snapshot）vs SESSION_CHANGELOG（详细历史）vs SHARED_DECISIONS（仅指针），文档头注释建议明确区分。
+> **2026-05-06 归档**：STATUS / SHARED_DECISIONS / SESSION_CHANGELOG / REMOTE_AGENT_GUIDE 4 个 cloud agent 元数据文件已 git mv 到 `99_archive/2026-05-06_cloud_agent_退役/`（独立 repo 模式退役 — itsuki 决定不用 cloud agent，保留这 4 文件无意义）。
 
 ### 5.3 v1/TASKS/（3 文件）
 
@@ -357,7 +353,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ### 5.6 v1/Foundation/（17 文件）+ Root/（3 文件）
 
-全部 ✅ frozen — AppState 2 / Components 12 / LiquidGlass 3 / Routing 2 / Seed 2 / Theme 1 + RootView + GlobalOverlays + TomoshibiApp 入口。1861 行专业级代码。**REMOTE_AGENT_GUIDE 明令禁改**。
+全部 ✅ frozen — AppState 2 / Components 12 / LiquidGlass 3 / Routing 2 / Seed 2 / Theme 1 + RootView + GlobalOverlays + TomoshibiApp 入口。1861 行专业级代码。
 
 ---
 
@@ -413,7 +409,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 |---|---|
 | `06_assets/icons/tomoshibi_flame_color.png` + `_mono.png` | ✅ — 4-23 设计 |
 | `06_assets/real_samples/bus_notice_2026-03-22_特別運行便.md` | ⚠️ — 含**学生实名**，v1.0 公开前需脱敏 |
-| `bin/sync-ios-refs.sh` | ✅ — DMSD → Tomoshibi-iOS/refs/ 单向同步 |
+| ~~`bin/sync-ios-refs.sh`~~ | 📦 — 2026-05-06 归档到 `99_archive/2026-05-06_cloud_agent_退役/`（独立 repo 模式退役） |
 
 ---
 
@@ -457,15 +453,16 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ## 8. 综合横向洞察
 
-### 8.1 demo ↔ v1 三种姿态对照
+### 8.1 demo ↔ v1 复制策略对照（2026-05-06 退役独立 repo 模式后）
 
-| 模块 | 策略 | 现状 | 评估 |
-|---|---|---|---|
-| **backend** | "重写 + 参考" | demo 锁定不动；v1 schema 全新（UUID + TIMESTAMPTZ + CHECK 约束）；ws_manager / models 思路参考 | ✅ 正确 |
-| **teacher_web** | "复制起点 + 待改" | demo / v1 100% MD5 相同（4-30 整体复制后未动） | ⏳ 等开工 |
-| **student_ios** | "独立 repo + refs/ 物理拷贝" | DMSD 设计真值 + Tomoshibi-iOS Swift 实装；`bin/sync-ios-refs.sh` 单向同步 | ✅ 正确 |
+| 模块 | 策略 | 现状 |
+|---|---|---|
+| **backend** | "重写 + 参考" | demo 锁定不动；v1 schema 全新（UUID + TIMESTAMPTZ + CHECK 约束）；ws_manager / models 思路参考 ✅ |
+| **teacher_web** | "复制起点 + 待改" | demo / v1 100% MD5 相同（4-30 整体复制后未动）⏳ |
+| **student_ios** | DMSD single source | Swift 在 `03_dev/student_ios/v1/TomoshibiApp/`（16578 行），直接 Xcode 改 ✅ |
+| **student_android** | DMSD single source | Kotlin 在 `03_dev/student_android/v1/`（6945 行 / 2026-05-06 从 Tomoshibi-Android 合并），直接 Android Studio 改 ✅ |
 
-三种都对，但要明文写在 `00_admin/文档同步点清单.md` 里说清楚（避免下个会话困惑）。
+> **2026-05-06 退役独立 repo 模式**：Tomoshibi-iOS（4-23 起 mirror）+ Tomoshibi-Android（5-02 起 single source）合并回 DMSD。理由 = cloud agent 实际未真用 + 维护成本不抵收益 + 给教授看 GitHub 时多 repo 显乱。详见 `99_archive/2026-05-06_cloud_agent_退役/README.md`。
 
 ### 8.2 .pages / .docx / .510Z 不可读文件的命运
 
@@ -561,7 +558,6 @@ repo 里共 **8 个 .pages + 2 个 .docx + 14 个 .510Z = 24 个 CC 不可读文
 | 30 | Agent E dispatch — MyPage v2（Landing + Info + Rollcall + Points + PointsChart + Discipline + Settings 14 view） |
 | 31 | 决定 Schedule / StayList / BusList 3 个 stub 命运（删 / redirect / 保留） |
 | 32 | 澄清 Assets.xcassets SDK 冲突现状 |
-| 33 | 跨会话管理文件（STATUS / SHARED_DECISIONS / SESSION_CHANGELOG / REMOTE_AGENT_GUIDE）头注释明确职责 |
 
 ### 9.7 P2 一月内（脱敏 + 补 AC 素材）
 
@@ -588,7 +584,7 @@ repo 里共 **8 个 .pages + 2 个 .docx + 14 个 .510Z = 24 个 CC 不可读文
 | 6 | `02_design/system_features.md` 357→830 行重写 | #3 #4 | 老师 38 条反馈受领 + 共用真值矩阵建立 |
 | 7 | `00_admin/v0.7.0_AC叙事.md` 三轨 A/B/C 并行 | #3 #4 | 多会话工程实践 + 信息源选择 lesson |
 | 8 | `99_archive/2026-04-15_old_demo/` 9 文件 | #3 | 首个可运行原型（Flask + iPhone Shortcuts + TTS） |
-| 9 | `bin/sync-ios-refs.sh` + 跨 repo 同步规则 | #3 | 多 agent 协作的工程解（source of truth + 单向 sync） |
+| 9 | `99_archive/2026-05-06_cloud_agent_退役/` 完整归档 | #3 #4 | 多 agent 协作的工程解 → 退役迭代（4-23 拍板 → 5-06 退役 13 天周期，约束变化后的方法论再校准）|
 | 10 | `00_admin/版本管理SOP.md` + hooks 三件套 | #4 | 文档治理思维：从漂移发现到机制化解决 |
 
 ---
@@ -643,7 +639,6 @@ repo 里共 **8 个 .pages + 2 个 .docx + 14 个 .510Z = 24 个 CC 不可读文
 | `00_admin/hooks/*` | `00_admin/hooks/README.md` 同步说明（除非改的就是 README 自己）| 新机器 clone 后照旧 README 跑 → 配置错 |
 | `bin/*.sh` 脚本 | (1) `CLAUDE.md` 单源真值速查表  (2) `00_admin/文档同步点清单.md`  (3) `00_admin/hooks/README.md`（任 1）| CC 不知道有这个脚本、用旧办法做事 |
 | 新建 `CLAUDE.md` / `00_admin/*.md` 声明性文件 | (1) `00_admin/文档同步点清单.md` 加入 §1 让 hook 保护它  (2) **本文件**（项目文件总览）加入对应章节 | 新文件没 hook 保护 → 版本号漂移 / 新会话不知道有这个文件 |
-| iOS Swift 任意 .swift 改 | 改完跑 `bash bin/sync-ios-refs.sh` 同步到 Tomoshibi-iOS repo | DMSD 跟独立 repo 漂移 |
 | 新建 / 改名 / 删除文件 | 同步更新**本文件**（项目文件总览）对应章节 + 顶级目录变化时改 `CLAUDE.md §目录结构` | 新会话 / CC 看不到 / 找不到文件 |
 
 ### 13.2 实战案例：注册码长度从 6 位改成 4 位（如果将来要改）

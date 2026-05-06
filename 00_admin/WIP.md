@@ -1,6 +1,6 @@
 # 当前工作状态 (Work In Progress)
 
-> **最后更新**: 2026-05-04 晚（iOS 5 bug 修复会话 — Liquid Glass `.icon` 真根因 + 暗夜黑闪 + 5/5 进度 + 删蠢 placeholder + Text 插值）
+> **最后更新**: 2026-05-06（独立 repo 模式退役 — iOS + Android 全合并回 DMSD + GitHub 双独立 repo 删除 + 4 元数据 + sync 脚本归档 + 5 文档同步更新）
 
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
@@ -38,6 +38,27 @@
 ---
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
+
+### 2026-05-06 by [新Mac-Opus 4.7 1M-主会话]
+
+**主题**：⭐⭐⭐ 独立 repo 模式退役 — iOS / Android 全合并回 DMSD + GitHub 双独立 repo 删除
+
+- **背景**：itsuki 在新 Mac（kurekoduki）拉 Mac mini 5-06 push 的 46 commit + v0.8.0 tag → 看到 CC 报告里「iOS 独立 repo」表述 → 问 CC 实情 → 拍板「全部合回 DMSD，github repo 删了，给教授看不能太难看」 <!-- VERSION_OK -->
+- **iOS 合并**：DMSD 16578 行 vs Tomoshibi-iOS 5347 行（4-23 后没 push），DMSD 已是 single source，无逆同步
+- **Android 合并**：rsync `/tmp/check-android` → `03_dev/student_android/v1/`（85 文件 / 6945 行 Kotlin / 1MB）
+- **归档** `99_archive/2026-05-06_cloud_agent_退役/`：4 元数据（STATUS / SHARED_DECISIONS / SESSION_CHANGELOG / REMOTE_AGENT_GUIDE）+ `sync-ios-refs.sh` + iOS / Android 完整 git log + README
+- **5 声明性文件改**：CLAUDE.md / 文档同步点清单 / file-linkage SKILL / project-overview SKILL（§0.4 / §5.2 / §5.6 / §6.5 / §8.1 / §9.6 / §10 / §13）/ sync-rules.sh
+- **GitHub repo 删**：`otogi2025/Tomoshibi-iOS` + `Tomoshibi-Android`（不可逆，git log 已存档）
+
+**新规则上线**：
+- 独立 repo 模式退役 — iOS+Android+Web+后端 全在 DMSD 单一 repo
+- CC 收到「现状是什么」类问题时，先 grep/find 实地验证再用 SKILL.md 补充（这次 CC 答歪触发的 lesson）
+
+**AC 价值**：⭐⭐⭐ — 「设计在约束下成立 → 约束变化方案跟着变」13 天试错周期（4-23 → 5-06）；项目文件总览 SKILL §8.1 + AC top 10 #9 都重写为「试错 + 退役迭代」叙事。详见 `05_logs/raw/2026-05-06.md`
+
+**hook 实战拦截**：`pre-bash-destructive-block.sh`（5-04 凌晨加）拦了 `rm -rf 03_dev/student_android/v1/round1_handoff/` — CC 改用 rsync 跳过，让 .DS_Store 垃圾留着（git 看不到不影响）
+
+**残**：版本 bump 决策（重大架构调整 → minor bump 候选 v0.9.0 / 走 version-bump skill 决策树）/ round1_handoff/ 里 7 个 .DS_Store 垃圾还在（可手动 Finder 删） <!-- VERSION_OK -->
 
 ### 2026-05-04 晚 by [Mac-iOS bug 修复 Opus 4.7]
 
@@ -135,18 +156,7 @@
 - **背景**：itsuki 启动会话提"每次改动/决定立刻同步文档" → 诊断现有机制只能 70-80% 联动 → 拍板 A+B 方案
 - 已合并到上面"2026-05-04"主条目（同会话延续）
 
-### 2026-05-03 晚 by [Mac-mini-Opus 4.7]
-
-**主题**：⭐⭐ 协作模型升级 + WIP/TODO 分工拆开（被同晚治理 commit 采纳 + 收紧）
-
-- 拍板 3 条新规则：WIP/TODO 分工拆开 / commit/push/tag 协作模型 / §⭐ 根本性原则 §3「CC 主动发现 = AC 素材」
-- 落档 commit `66ecfdc`（CLAUDE.md 5 处 / WIP 重写 600→148 行 / SOP §0 / raw/2026-05-04.md §1-§4）
-- 同晚 22:34 治理 commit `1ab265a` 大整顿**采纳了 3 条核心**，整合到新架构（CLAUDE.md 419→120 行 / AC 协作挪到 CLAUDE_CODE_记录指南.md / 性别更正）
-- **唯一冲突已修**：「CC 启动读 WIP+TODO 顶部 200 行」跟治理「只读 WIP, TODO 按需读」相反 → 收尾按治理方向重写 `feedback_wip_todo_split.md` + SOP §0 协作模型指针化到记录指南 §8.6
-- AC dump：raw/2026-05-04.md §1-§4（治理 commit §21:00 + §21:30 共存于同文件，文件名按惯例延续）
-- 残：别会话留 system_features / IOS_DESIGN_LOG / HomeStubs / AppStore.swift modified（按规则不动）
-
-> **2026-05-04 深夜砍掉 5 条老条目** — 5-03 下午+晚上 / 5-03 上午 / 5-02 晚 (v0.8.0 close) / 5-02 夜 (Android bootstrap) / 5-02 (iOS 网络层) — 详细历史看 `git log` + `05_logs/raw/2026-05-0{2,3}.md`
+> **2026-05-04 深夜砍掉 5 条老条目** + **2026-05-06 砍掉 5-03 晚条目（协作模型升级）** — 详细历史看 `git log` + `05_logs/raw/2026-05-0{2,3,4}.md`
 
 ---
 

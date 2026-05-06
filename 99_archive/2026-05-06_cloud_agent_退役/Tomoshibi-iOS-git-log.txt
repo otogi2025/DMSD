@@ -1,0 +1,121 @@
+commit 58f39e7720dcd40e02435bf8097e427d31d0ad51
+Author:     itsuki <otogi2025@gmail.com>
+AuthorDate: Thu Apr 23 12:40:17 2026 +0900
+Commit:     itsuki <otogi2025@gmail.com>
+CommitDate: Thu Apr 23 12:40:17 2026 +0900
+
+    feat(remote): 加 refs/ + REMOTE_AGENT_GUIDE.md · 云端 routine 部署就绪
+    
+    云端 5 agent 重做 v2 HTML-fidelity 所需全套 context：
+    - refs/Tomoshibi_iOS_PhaseB_v2.html · 视觉 source of truth
+    - refs/phaseB_src/*.js · 7 组件源 + T/SEED
+    - refs/IOS_DESIGN_LOG.md · QA_Round1_PhaseB.md
+    - REMOTE_AGENT_GUIDE.md · Fidelity 铁律 + 6 章 + 5 feature 特定 clue
+    
+    routine 产物分支:
+    - feature/auth-v2 · feature/home-v2 · feature/community-v2
+    - feature/apply-v2 · feature/mypage-v2
+
+ REMOTE_AGENT_GUIDE.md                              | 327 +++++++++++
+ refs/IOS_DESIGN_LOG.md                             | 305 ++++++++++
+ refs/QA_Round1_PhaseB.md                           | 216 +++++++
+ refs/Tomoshibi_iOS_PhaseB_v2.html                  | 197 +++++++
+ ...70__ApplyListPage_ApplyNewPage_ApplyFormPage.js | 565 ++++++++++++++++++
+ ...ficationsPage_PackagesPage_PackageDetailPage.js | 443 ++++++++++++++
+ ...4061ea__HomePage_RollcallSheet_FeedbackSheet.js | 487 ++++++++++++++++
+ ...__RouterProvider_AppProvider_BreadcrumbPopup.js | 645 +++++++++++++++++++++
+ refs/phaseB_src/_template.html                     |   1 +
+ ...__SplashPage_OnboardingPage_RegisterDonePage.js | 447 ++++++++++++++
+ refs/phaseB_src/c281cafa__module.js                | 177 ++++++
+ refs/phaseB_src/e38fcebf__LogoutSheet.js           | 440 ++++++++++++++
+ 12 files changed, 4250 insertions(+)
+
+commit 8bcf856f03d0a175b94b3ea99fc846bf36f99b40
+Author:     itsuki <otogi2025@gmail.com>
+AuthorDate: Thu Apr 23 04:05:32 2026 +0900
+Commit:     itsuki <otogi2025@gmail.com>
+CommitDate: Thu Apr 23 04:05:32 2026 +0900
+
+    feat: Tomoshibi iOS App D1 夜 · Foundation + Auth + Home 完整 · 5347 行 SwiftUI
+    
+    架构：纯 SwiftUI + iOS 26 原生 Liquid Glass (`.glassEffect()` 验证可用) +
+    自研 RouterStore (hash-like stack) + 全局 AppStore + 3 按钮 BottomNav + 长按 breadcrumb
+    
+    Foundation (F agent 本会话完成):
+    - Theme/TTokens · 62 色 + gradient + radius + spacing
+    - Routing/Route.swift · 32 case + isTabRoot/isApplyBranch/isMyBranch/hidesTopBar/hidesBottomNav
+    - Routing/RouterStore.swift · ObservableObject + [Route] stack + go/back/replace/jump
+    - AppState/AppStore.swift · rollState/sheetOpen/breadcrumbOpen/toast/isDark + showToast/openSheet/simulateCheckin
+    - AppState/SheetKind.swift · enum + RollState
+    - Seed/SeedModels.swift · 14 struct (User/Point/Rollcall/Health/Cleaning/Package/Notification/Application/Bus/Event/Lost/Song/Wall/Suggest)
+    - Seed/SEED.swift · 对齐 Web Round 3 (M101 / 男寮 / 4.5 分 / 迟到 5 · 欠席 2) + 全 14 集合 seed
+    - LiquidGlass/GlassCard + GlassSheet + GlassBackdrop · iOS 26 .glassEffect() wrapper
+    - Components/PrimaryButton + GhostButton + Field + TField + TArea + UIAtoms (Pill/Avatar/Card/SectionHeader/TToggle/RadioCard/EmptyState/Skeleton) + Toast + IOSStatusBar
+    - Components/PageHeader · 长按 0.4s breadcrumb + UIImpactFeedbackGenerator(.soft)
+    - Components/TopRollBar · 3 态 (idle/active/done) + symbolEffect(.pulse) + tap 打开 feedback sheet
+    - Components/BottomNav · 3 按钮 (申し込み / ⭐点呼 action / マイページ) + Liquid Glass bg
+    - Components/BreadcrumbOverlay · 多级路径 popup + 各层跳转
+    - Components/Icons/Ic · 23 icons (SF Symbols wrap)
+    - Root/RootView · Route switch + GlobalOverlays ZStack
+    - Root/GlobalOverlays · sheet backdrop + breadcrumb + toast + 持久 TopRollBar + 持久 BottomNav
+    
+    Agent A · Auth (10 页 · 780 行):
+    Splash (fade-in 1.8s) / Onboarding (3 屏 page) / Register Step1-4 + Done (progress bar + amber warn) /
+    Login (2 tab 番号+メール + 00 seed 魔法) / Lockout (30s countdown) / PwReset (info only)
+    
+    Agent B · Home (6 页 · 1174 行):
+    HomeView (扣分 amber card 4.5 点 + 3 inner tab) / RollcallSheet (4 态 money shot · Liquid Glass +
+    pulse animation · 2.8s auto-dismiss) / FeedbackSheet (3 选 1) / HealthSheet (症状 Radio + 体温 + 補足) /
+    AbsenceSheet (理由 required) / OtherSheet (分类 tag + 自由文本)
+    
+    环境:
+    - Xcode 26.4.1 + iOS 26.4 SDK + iPhone 17 Pro Simulator (UDID 22F032EA...)
+    - xcodegen 2.45.4 + project.yml (IPHONEOS_DEPLOYMENT_TARGET 26.0 · Portrait only · Dark mode 支持)
+    - Assets.xcassets 暂 skip (actool SDK 23E252 vs runtime 23E244 不匹配，post-demo 加回)
+    
+    Build: ** BUILD SUCCEEDED ** · App launch PID 54376 ✅
+    
+    D2 继续 (4-23 4am itsuki Claude 额度 reset 后):
+    - Agent C · Community 18 页 (见 TASKS/TASK_C_COMMUNITY.md)
+    - Agent D · Apply 13 页含 StayForm 8 section (见 TASKS/TASK_D_APPLY.md)
+    - Agent E · MyPage 14 页含 MyPointsChart Canvas (见 TASKS/TASK_E_MYPAGE.md)
+    
+    详细状态交接 → STATUS.md
+
+ .gitignore                                         |   40 +
+ STATUS.md                                          |  142 +++
+ TASKS/TASK_C_COMMUNITY.md                          |   80 ++
+ TASKS/TASK_D_APPLY.md                              |  116 ++
+ TASKS/TASK_E_MYPAGE.md                             |  110 ++
+ TomoshibiApp.xcodeproj/project.pbxproj             |  548 +++++++++
+ .../project.xcworkspace/contents.xcworkspacedata   |    7 +
+ TomoshibiApp/Features/Apply/ApplyStubs.swift       |   41 +
+ TomoshibiApp/Features/Auth/AuthStubs.swift         | 1046 ++++++++++++++++
+ .../Features/Community/CommunityStubs.swift        | 1261 ++++++++++++++++++++
+ TomoshibiApp/Features/Home/HomeStubs.swift         | 1174 ++++++++++++++++++
+ TomoshibiApp/Features/MyPage/MyPageStubs.swift     |  122 ++
+ TomoshibiApp/Foundation/AppState/AppStore.swift    |   69 ++
+ TomoshibiApp/Foundation/AppState/SheetKind.swift   |   19 +
+ TomoshibiApp/Foundation/Components/BottomNav.swift |   75 ++
+ .../Foundation/Components/BreadcrumbOverlay.swift  |   91 ++
+ TomoshibiApp/Foundation/Components/Field.swift     |   93 ++
+ .../Foundation/Components/IOSStatusBar.swift       |   23 +
+ TomoshibiApp/Foundation/Components/Icons/Ic.swift  |   48 +
+ .../Foundation/Components/PageHeader.swift         |   54 +
+ .../Foundation/Components/PrimaryButton.swift      |   58 +
+ TomoshibiApp/Foundation/Components/Toast.swift     |   20 +
+ .../Foundation/Components/TopRollBar.swift         |   96 ++
+ TomoshibiApp/Foundation/Components/UIAtoms.swift   |  200 ++++
+ .../Foundation/LiquidGlass/GlassBackdrop.swift     |   24 +
+ .../Foundation/LiquidGlass/GlassCard.swift         |   47 +
+ .../Foundation/LiquidGlass/GlassSheet.swift        |   38 +
+ TomoshibiApp/Foundation/Routing/Route.swift        |  160 +++
+ TomoshibiApp/Foundation/Routing/RouterStore.swift  |   52 +
+ TomoshibiApp/Foundation/Seed/SEED.swift            |  140 +++
+ TomoshibiApp/Foundation/Seed/SeedModels.swift      |  130 ++
+ TomoshibiApp/Foundation/Theme/TTokens.swift        |   87 ++
+ TomoshibiApp/Root/GlobalOverlays.swift             |   64 +
+ TomoshibiApp/Root/RootView.swift                   |   92 ++
+ TomoshibiApp/TomoshibiApp.swift                    |   23 +
+ project.yml                                        |   44 +
+ 36 files changed, 6434 insertions(+)

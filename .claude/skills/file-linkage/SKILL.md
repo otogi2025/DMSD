@@ -79,21 +79,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ---
 
-### Rule 5: ios-hook（action）
-
-**触发**：`03_dev/student_ios/v1/TomoshibiApp/**/*.swift`（任何 iOS Swift 文件）
-
-**必做动作**：
-```bash
-bash bin/sync-ios-refs.sh
-```
-同步到独立 Tomoshibi-iOS repo。
-
-**为什么**：iOS Swift 在 DMSD 主 repo + Tomoshibi-iOS repo 双存（iOS 独立 repo 是 single source 在 DMSD 侧的镜像），改了主 repo 必须 sync。
-
----
-
-### Rule 6: spec-body（action）
+### Rule 5: spec-body（action）
 
 **触发**：`01_specs/**/*.md`
 

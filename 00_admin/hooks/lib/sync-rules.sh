@@ -73,13 +73,6 @@ add_rule \
   "must"
 
 add_rule \
-  "ios-hook" \
-  '^03_dev/student_ios/v1/TomoshibiApp/.+\.swift$' \
-  '' \
-  'iOS Swift 改了 → 改完后跑 bash bin/sync-ios-refs.sh 同步到 Tomoshibi-iOS repo' \
-  "action"
-
-add_rule \
   "spec-body" \
   '^01_specs/.+\.md$' \
   '' \
