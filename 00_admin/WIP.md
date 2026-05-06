@@ -58,7 +58,7 @@
 
 **hook 实战拦截**：`pre-bash-destructive-block.sh`（5-04 凌晨加）拦了 `rm -rf 03_dev/student_android/v1/round1_handoff/` — CC 改用 rsync 跳过，让 .DS_Store 垃圾留着（git 看不到不影响）
 
-**残**：版本 bump 决策（重大架构调整 → minor bump 候选 v0.9.0 / 走 version-bump skill 决策树）/ round1_handoff/ 里 7 个 .DS_Store 垃圾还在（可手动 Finder 删） <!-- VERSION_OK -->
+**残**：~~版本 bump 决策~~ ✅ itsuki 否决「这算个屁的升级，就移动了下结构而已」（raw §7 dump）/ ~~push~~ ✅ commit `1f55643` + `f050c30` 已 push origin main / round1_handoff/ 里 7 个 .DS_Store 垃圾还在（可手动 Finder 删） <!-- VERSION_OK -->
 
 ### 2026-05-04 晚 by [Mac-iOS bug 修复 Opus 4.7]
 
