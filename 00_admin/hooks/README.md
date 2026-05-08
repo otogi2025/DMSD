@@ -17,7 +17,7 @@ DMSD 用了 **2 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后
 **比 git pre-commit 早一步**，CC 在中途没 commit 也能拦各种漂移。同 matcher 下挂 5 条 hook（并行跑）：
 
 #### A. `post-edit-sync-check.sh` — 文件联动检查 + demo scaffold 检测
-- 13 条联动规则（路径触发，详见 file-linkage skill）
+- **18 条联动规则**（路径触发，详见 file-linkage skill）— 2026-05-08 从 12 条扩到 18 条:加 5 端反向「业务代码→自端 DESIGN_LOG」+ 端→共用层（Rule 14-19）+ Rule 3 system-features 必查列表加 ANDROID + ROLLCALL_DEVICE
 - **demo scaffold 字眼检测**：iOS .swift / backend .py 改动 git diff 新增行如有 `demo|bypass|stub|fake|mock|hack` 字眼 → 提醒加到 `system_features.md` 末尾清单
 
 #### B. `post-edit-memory-check.sh` — Memory 索引检查

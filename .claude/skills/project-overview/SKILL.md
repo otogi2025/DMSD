@@ -63,7 +63,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ### 0.4 跨组横向洞察（详见 §8）
 
 - **demo ↔ v1 复制策略**（2026-05-06 独立 repo 模式退役后）：backend 选了"重写"（schema 全新）✅；teacher_web 选了"复制不动"⏳；iOS / Android 真代码全部在 DMSD 内（曾经的独立 repo + cloud agent 同步三件套已归档到 `99_archive/2026-05-06_cloud_agent_退役/`）。
-- **三层 DESIGN_LOG 体系生效**：BACKEND / WEB / IOS 三个 DESIGN_LOG 都活跃且与 system_features.md 同步链清晰，是 4-29 大整理后的最大资产。
+- **五层 DESIGN_LOG 体系生效**：BACKEND / IOS / ANDROID / WEB 四端 DESIGN_LOG 都活跃且与 system_features.md 同步链清晰；2026-05-08 加点呼机 ROLLCALL_DEVICE_DESIGN_LOG 成第 5 个 — 是 4-29 大整理后的最大资产，5-08 收口。
 - **AC 叙事供应充足**：80+ 条 #AC候选 + 6 个 per-version 叙事（v0.3-0.7）+ 4 个 problem_solving 精品版 + 3 个 03_dev/_DESIGN_LOG 工程化叙事 — 数量上远超 AC 自我推荐书所需。
 
 ---
@@ -186,14 +186,13 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `DMSDv0.1验收脚本.pages` | ❓ | 不知是否与 PDF §1.2 完全相同，需 itsuki 决定 |
 | `v0.1_冻结决策.md` | ⚠️ | 4-29 阈值再冻结后 ~10 处文档已修，但本文角色（备份 vs 历史快照）需明确 |
 
-### 2.3 02_design/（4 文件）
+### 2.3 02_design/（3 文件 — 2026-05-08 bus_schedule_real.md 挪到 06_assets/）
 
 | 文件 | 状态 | 备注 |
 |---|---|---|
-| `system_features.md` | ✅ | ⭐ iOS+Web+后端共用真値，4-30 轨道 ABC 同日完成（覆盖老师 38 条） |
-| `hardware_design.md` | ✅ | Pi 3A+ 选型 + 砍 Pi 4B 论证（AC 素材） |
+| `system_features.md` | ✅ | ⭐ 5 端共用真値（iOS / Android / 后端 / teacher_web / 点呼机），4-30 轨道 ABC 同日完成（覆盖老师 38 条） |
+| `hardware_design.md` | ✅ | Pi 3A+ 选型 + 砍 Pi 4B 论证（AC 素材）— 跟 03_dev/rollcall_device/ 软件层互补 |
 | `flow_design.md` | ✅ | 路径 A 卡 / 路径 B iOS / 路径 B Android |
-| `bus_schedule_real.md` | ✅ | 实际巴士时刻表（参考材料），可考虑挪 04_ops/ |
 
 ---
 
@@ -304,7 +303,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ---
 
-## 5. 第 5 组：03_dev/student_ios + LATEST.md（54 文件）
+## 5. 第 5 组：03_dev/student_ios + student_android + rollcall_device + LATEST.md（54 + 56 + 8 文件）
 
 **统计**：✅ 31 / 📦 4 / ⚠️ 6 / ❓/⏳ 13
 **核心发现**：Foundation 层已冻结成熟（17 文件 1861 行）；3 个 Feature 已真实装；Apply / MyPage 待 Agent D/E
@@ -354,6 +353,59 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ### 5.6 v1/Foundation/（17 文件）+ Root/（3 文件）
 
 全部 ✅ frozen — AppState 2 / Components 12 / LiquidGlass 3 / Routing 2 / Seed 2 / Theme 1 + RootView + GlobalOverlays + TomoshibiApp 入口。1861 行专业级代码。
+
+### 5.7 03_dev/student_android/（Android 第 4 端,2026-05-06 合并回 DMSD,~56 文件）
+
+> **背景**：2026-05-02 itsuki 拍板 v1.0 直接 iOS + Android 双端上线,Android 用 Kotlin + Jetpack Compose + Material 3 从 Claude Design 22 屏 standalone HTML 逐屏对译。原独立 repo `Tomoshibi-Android` 5-06 退役合并回 DMSD（详见 §8.1 退役 cloud agent 模式）。
+
+| 文件类 | 数 | 状态 | 备注 |
+|---|---|---|---|
+| `ANDROID_DESIGN_LOG.md` | 1 | ✅ | ⭐ 完整设计权威源 — 2026-05-02 建,22 屏 route registry + Compose 翻译规则 + Phase 计划 |
+| `v1/` Gradle 配置（7 文件）| 7 | ✅ | `build.gradle.kts` × 2 + `settings.gradle.kts` + `gradle.properties` + `libs.versions.toml` + wrapper 配置 |
+| `v1/app/AndroidManifest.xml` + `res/`（8 文件）| 9 | ✅ | manifest + drawable + values × 3 + xml × 2 + mipmap × 2 |
+| `v1/app/.../{TomoshibiApp,MainActivity}.kt` | 2 | ✅ | 应用入口（@HiltAndroidApp / @AndroidEntryPoint）|
+| `v1/app/.../nav/`（Routes + NavGraph）| 2 | ✅ | 22 屏路由声明（对称 iOS Route.swift + RootView.swift）|
+| `v1/app/.../data/`（store + seed + model）| 3 | ✅ | AppStore（CompositionLocal 全局状态）+ MockData seed + Models domain types |
+| `v1/app/.../ui/components/`（5 文件）| 5 | ✅ | TopRollBar / GlobalScaffold / BottomTabs / RollCallSheet / HomeCards |
+| `v1/app/.../ui/theme/`（4 文件）| 4 | ✅ | Color / Theme / Tokens / Type — Material 3 主题层 |
+| `v1/app/.../ui/icons/SuzuIcons.kt` | 1 | ✅ | Tomoshibi 自定义图标 |
+| `v1/app/.../ui/screens/`（22 屏）| 22 | ✅ | splash / welcome / onboarding / login / home / rollcall / applications × 3（list / detail / new）/ mypage × 2 / nfc / deduction / account / community × 7（schedule / bus / delivery / feedback / lostfound / music / study）/ notifications × 2 |
+| `v1/app/src/{androidTest,test}/`（2 文件）| 2 | ✅ | ExampleInstrumentedTest + ExampleUnitTest（脚手架,未真实装）|
+
+**核心发现**：
+- 22 屏目标 ✅ 全部到位（design 蓝图与代码 1:1）
+- 包名 `jp.tomoshibi.android` — Tomoshibi 命名跟 iOS / 后端一致
+- 跟 iOS 的对应：`screens/` ≈ iOS `Features/Stubs.swift`,`components/` ≈ `Foundation/`,`nav/` ≈ `Foundation/Routing/`
+- **真后端接入未做** — 当前是 MockData seed,backend v1 上线后改 fetch API（同 iOS,见 §3.7 backend P0 缺块）
+
+**与 system_features.md / spec 的对齐状态**：
+- ⏳ 未做 spec-sync 跨端字段对齐检查（spec-sync skill 价值在 backend 上线后跑）
+- 22 屏 vs system_features §7 14 子节功能矩阵 — 视觉层覆盖 ✅,业务规则层（扣分阈值 / 时间窗 / 役职链）待 backend 接通后实战验证
+
+### 5.8 03_dev/rollcall_device/（点呼机第 5 端,2026-05-08 建骨架,~8 文件）
+
+> **背景**：2026-05-08 itsuki 拍板「点呼机当第 5 端」(对称 backend / iOS / Android / teacher_web 4 端模式) — 跑在 Raspberry Pi 3A+ 上的 Python 程序,读 NTAG215 学生卡 + 写 ST25DV16K 动态贴纸 + LED 反馈 + 日语播报。物理硬件层在 `02_design/hardware_design.md`,本目录是软件层。
+
+| 文件 | 状态 | 备注 |
+|---|---|---|
+| `README.md` | ✅ 骨架 | 目录说明 + 上下游 + 启动指引 |
+| `ROLLCALL_DEVICE_DESIGN_LOG.md` | ✅ 骨架（11 章纲）| ⭐ 软件设计权威源 — §1 技术栈 / §2 GPIO 接线 / §3 主循环 / §4 模块 / §5 systemd / §8 已知坑 / §10 待 itsuki 拍板 6 个 D1-D6 |
+| `requirements.txt` | ✅ 骨架（注释列依赖待选）| Adafruit-PN532 / smbus2 / gpiozero / httpx 等候选 |
+| `src/main.py` | ⏳ 占位 | 实装时填主循环（IDLE → SUBMITTING → SUCCESS / FAIL → IDLE 状态机）|
+| `src/{nfc,audio,led,api}/__init__.py` | ⏳ 占位 | 4 个空模块包 — 实装时分别写 PN532 / TTS / LED / 后端客户端 |
+| `config/.gitkeep` + `docs/.gitkeep` | ⏳ 占位 | systemd unit / 部署 SOP / 接线图 待写 |
+
+**v1.0 实装顺序建议**（按 ROLLCALL_DEVICE_DESIGN_LOG §10 拍板后）：
+1. itsuki 拍板 D1-D6（NFC 库 / ST25DV 驱动方案 / TTS 方案 / SPI 还是 I2C / WebSocket 还是 HTTP / 设备认证）
+2. Pi 装系统 + SSH + 配件实物到货
+3. 写 nfc/pn532.py（读 NTAG215 卡 UID）
+4. 写 led/led.py（GPIO 状态机）
+5. 写 api/client.py（调 backend POST /checkin）
+6. 串起 main.py 主循环
+7. 写 nfc/st25dv.py（自写 I2C 驱动 — 1-2 周学习成本）
+8. 写 audio/player.py
+9. 写 systemd unit + 开机自启
+10. 部署到真宿舍点呼
 
 ---
 
@@ -409,6 +461,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 |---|---|
 | `06_assets/icons/tomoshibi_flame_color.png` + `_mono.png` | ✅ — 4-23 设计 |
 | `06_assets/real_samples/bus_notice_2026-03-22_特別運行便.md` | ⚠️ — 含**学生实名**，v1.0 公开前需脱敏 |
+| `06_assets/bus_schedule_real.md` | ✅ — 学校班车时刻表真值数据（2026-05-08 从 02_design/ 挪入,因为是数据不是设计）— iOS / teacher_web 做班车视图时的 seed data |
 | ~~`bin/sync-ios-refs.sh`~~ | 📦 — 2026-05-06 归档到 `99_archive/2026-05-06_cloud_agent_退役/`（独立 repo 模式退役） |
 
 ---
@@ -632,7 +685,14 @@ repo 里共 **8 个 .pages + 2 个 .docx + 14 个 .510Z = 24 个 CC 不可读文
 |---|---|---|
 | `backend/v1/app/models.py` ORM 字段 | (1) `schemas.py` Pydantic 校验  (2) `alembic/versions/*.py` migration  (3) `routers/*.py` API 形状  (4) `student_ios/.../NetworkModels.swift` iOS 端字段对齐 | DB 跟代码不一致 / iOS 解析 fail / migration apply 报错 |
 | `backend/v1/app/routers/*.py` API 端点 | iOS `Endpoints/*API.swift`（URL / 参数 / 返回类型对齐）| iOS 调到不存在的端点 / 参数错 → 422 |
-| `02_design/system_features.md`（共用层）| 各端 `*_DESIGN_LOG.md` 引用是否要更新（至少 1 个端通常受影响）| 共用层规则改了，专属层引用过期 → 实装跟设计漂移 |
+| `02_design/system_features.md`（共用层）| **5 端** `*_DESIGN_LOG.md` 引用是否要更新（BACKEND / IOS / ANDROID / WEB / ROLLCALL_DEVICE — 至少 1 个通常受影响）| 共用层规则改了，专属层引用过期 → 实装跟设计漂移 |
+| `02_design/hardware_design.md`（物理层）| `rollcall_device/ROLLCALL_DEVICE_DESIGN_LOG.md`（接线 / GPIO / 模块选型联动）| 软硬层割裂 → 软件按旧硬件接线写 |
+| **iOS Features 业务 .swift（反向）** | `IOS_DESIGN_LOG.md` + 多端涉及时 `system_features.md` | 设计 → 代码漂移（typo / 重构不用同步,改 UI / 流程 / 字段需要）|
+| **Android ui/features 业务 .kt（反向）** | `ANDROID_DESIGN_LOG.md` + 多端涉及时 `system_features.md` | 同上 |
+| **backend routers/services 业务 .py（反向）** | `BACKEND_DESIGN_LOG.md` + 多端涉及时 `system_features.md` | 同上 |
+| **teacher_web 业务 .{ts,tsx,jsx,vue}（反向）** | `WEB_DESIGN_LOG.md` + 多端涉及时 `system_features.md` | 同上 |
+| **rollcall_device/src/*.py（第 5 端反向）** | `ROLLCALL_DEVICE_DESIGN_LOG.md` + 多端涉及时 `system_features.md` | 同上 |
+| **任一端 `*_DESIGN_LOG.md`（反向）** | 多端涉及时 `system_features.md`（共用层真值）| 端→共用反方向漂移 |
 | iOS `Foundation/Routing/Route.swift` 加 case | (1) `Root/RootView.swift` switch 必须补对应分支  (2) 用到的 view 要存在 | 编译失败 |
 | iOS `Foundation/<Pill\|Card\|Avatar\|GlassSheet>*.swift` 组件 props | grep 全 repo 找 caller，逐个对齐新 props | caller 编译失败 |
 | `01_specs/*.md` 主体 | 触发版本管理 SOP §10 4 问 → 可能要 bump 版本号 | 版本号跟实质改动脱节 |
@@ -640,6 +700,8 @@ repo 里共 **8 个 .pages + 2 个 .docx + 14 个 .510Z = 24 个 CC 不可读文
 | `bin/*.sh` 脚本 | (1) `CLAUDE.md` 单源真值速查表  (2) `00_admin/文档同步点清单.md`  (3) `00_admin/hooks/README.md`（任 1）| CC 不知道有这个脚本、用旧办法做事 |
 | 新建 `CLAUDE.md` / `00_admin/*.md` 声明性文件 | (1) `00_admin/文档同步点清单.md` 加入 §1 让 hook 保护它  (2) **本文件**（项目文件总览）加入对应章节 | 新文件没 hook 保护 → 版本号漂移 / 新会话不知道有这个文件 |
 | 新建 / 改名 / 删除文件 | 同步更新**本文件**（项目文件总览）对应章节 + 顶级目录变化时改 `CLAUDE.md §目录结构` | 新会话 / CC 看不到 / 找不到文件 |
+
+> **2026-05-08 加 6 条反向规则**（Rule 14-19）：业务代码 → 自端 *_DESIGN_LOG.md / 共用层 system_features.md。`action` 模式（温和提醒,不强制）— typo / 重命名 / 重构不用同步,改 UI / 流程 / 字段才需要。覆盖 5 端对称（iOS / Android / backend / teacher_web / 点呼机）。规则总数 12 → 18。
 
 ### 13.2 实战案例：注册码长度从 6 位改成 4 位（如果将来要改）
 
@@ -678,4 +740,4 @@ repo 里共 **8 个 .pages + 2 个 .docx + 14 个 .510Z = 24 个 CC 不可读文
 
 ---
 
-**本文最后更新**：2026-05-04（加 §13 文件联动指南，2026-05-04 itsuki 拍板）。早些更新：2026-05-01（首次创建 7 组并行扫描 606 文件合成）
+**本文最后更新**：2026-05-08（§5.7 补 student_android 章节 — 之前 5-06 合并回 DMSD 漏补;§5.8 加点呼机第 5 端骨架;§13.1 加 6 条反向规则 Rule 14-19;§0.4 五层 DESIGN_LOG;§2.3 / §6.5 同步 bus_schedule 挪位置）。早些更新：2026-05-04（加 §13 文件联动指南）/ 2026-05-01（首次创建 7 组并行扫描 606 文件合成）

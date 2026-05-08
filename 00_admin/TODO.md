@@ -6,10 +6,97 @@
 > - 和 `progress_overview.md` 的区别: progress_overview 是稳定的章节目录,TODO 是可以频繁增删的任务池
 > - 完成的任务: 在 checkbox 前打 x,隔段时间(每周或每月)批量移到"已完成归档"
 
-**最后更新**: 2026-05-04（加 §📋 旧 backlog + 全文件审查 未结余项整合）
+**最后更新**: 2026-05-08（加 §🛰️ 点呼机第 5 端 backlog — itsuki 拍板「点呼机当第 5 端」+ 联动机制 18 条规则升级 + 配件型号定型 + ROLLCALL_DEVICE_DESIGN_LOG 骨架建成,本 backlog 跟踪软件层从骨架到部署的完整路径;早些更新:加 §🐛 主项目 v1 backend bug fix — 上架版部署发现的 3 个 alembic / docker-compose 隐藏 bug）
 **当前版本**: 见 `CHANGELOG.md` 顶部 · 单源真值，见 `00_admin/文档同步点清单.md`
 
 > **2026-04-17 归档说明**：`executable_dev_checklist.md` 已归档到 `99_archive/2026-04-12_executable_dev_checklist.md`（内容已过期，功能被本 TODO.md 吸收）。
+
+---
+
+## 🐛 主项目 v1 backend bug fix（2026-05-08 上架版部署时发现）
+
+> **背景**：5-08 把 fork 的 backend（`~/dev/Tomoshibi-AppStore/backend/`）部署到 GCP VPS production Postgres 时，连续踩到 3 个隐藏 bug。**上架版 fork 已修，主项目 v1 同源代码也有同样 bug**。当前不影响 v1 dev（dev 用 SQLite 走的是 buggy 路径但表现正常），但**未来 v1 真要部署到 prod Postgres 会一一踩到**。建议下次有空时单独 commit 修这 3 个 bug，保持 v1 跟 fork 同步。
+
+- [ ] **Bug 1: `alembic/env.py` 不读 env DATABASE_URL** — alembic 默认读 `alembic.ini:89` 硬编码 SQLite URL，env.py 不会自动 fallback 到环境变量。**修法**：env.py 在 `config = context.config` 之后加 4 行
+  ```python
+  if os.environ.get("DATABASE_URL"):
+      config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
+  ```
+  fork 已修：`~/dev/Tomoshibi-AppStore/backend/alembic/env.py`
+- [ ] **Bug 2: `docker-compose.yml` 不传 `APP_ENV`** — v1 当前没 docker-compose.yml（fork 才加的），所以暂时不会踩。**未来 v1 加 docker 部署时**：api service 必须显式传 `APP_ENV: ${APP_ENV:-production}`，否则 `app/config.py:21` 默认 `"dev"` → `app/main.py:70` 跑 `create_all()` 绕过 alembic
+- [ ] **Bug 3: `alembic/versions/b2c3d4e5f6a7_align_application_schema.py` 用 SQLite-only 的 `batch_alter_table(recreate='always')`** — Postgres 部署时强制 DROP + 重建 applications 表，包括 drop applications_pkey，但 application_approvals 外键依赖它 → migration 失败。**修法**：让 upgrade/downgrade 根据 `op.get_bind().dialect.name` 分支（SQLite 保留 batch / Postgres 用普通 op.xxx）。**5-08 fork 修法待 VPS CC 落地后同步，那边方案确定后填**
+
+---
+
+## 🛰️ 点呼机第 5 端 backlog（2026-05-08 itsuki 拍板「点呼机当第 5 端」）
+
+> **背景**：2026-05-08 itsuki 拍板把点呼机当第 5 端,跟 backend / iOS / Android / teacher_web 4 端对称管理。同日完成:配件型号定型(PN532 V3 / LED 模块 / 01Studio 小音响 / Pi 3A+ 透明壳 / 面包板杜邦线)+ `03_dev/rollcall_device/` 骨架建成 + `ROLLCALL_DEVICE_DESIGN_LOG.md` 11 章纲建成 + 联动机制 12→18 条规则升级（5 端反向规则 + 端→共用层）+ `bus_schedule_real.md` 从 02_design 挪到 06_assets。
+>
+> **当前状态**：骨架阶段 ⏳。代码 0 行,等 itsuki 拍板 D1-D6（见 ROLLCALL_DEVICE_DESIGN_LOG §10）+ 配件实物到货后开始实装。
+>
+> **优先级**：P2 — backend v1 上线后再启动（点呼机依赖 backend API）。在此之前可以先买配件 + 装 Pi OS + 学 GPIO 基础。
+
+### 配件采购（itsuki 复核完毕,等下单）
+
+- [ ] 下单 11 件配件（淘宝集中下单,总价约 ¥381）— 详见 `02_design/hardware_design.md §2`
+  - Raspberry Pi 3A+ ¥239 / 5V 2.5A 美规电源 ¥13 / 透明外壳 + 风扇盖 ¥20 + 风扇 ¥4
+  - PN532 V3 红板 ¥26.7 / NTAG215 × 50 ¥31.9
+  - ST25DV16K I2C 模块 × 2 = ¥47
+  - LED 模块 5 色套装 ¥10.9 / 01Studio USB 小音响 ¥29
+  - SYB-170 面包板 ¥1.59 / 杜邦线母对母 40P ¥1.98
+- [ ] 收货后照「配件 vs 角色」对照表逐件清点（见 `hardware_design.md §2`）
+
+### 拍板 6 个软件层决策（D1-D6,详见 ROLLCALL_DEVICE_DESIGN_LOG §10）
+
+- [ ] **D1**：PN532 用什么 Python 库 — `nfcpy`(社区) / `Adafruit-PN532`(轻量) / 二选一
+- [ ] **D2**：ST25DV16K 驱动方案 — (a) 自写底层 I²C 寄存器读写 / (b) port Arduino C++ 库到 Python / (c) 用 C 写 daemon, Python 调 — **真挑战,1-2 周学习成本**
+- [ ] **D3**：日语 TTS 方案 — `pyttsx3` 离线 / Google Cloud TTS 联网 / 预录音频文件
+- [ ] **D4**：PN532 接 Pi 用 SPI 还是 I²C — SPI 稳但占 GPIO 多 / I²C 占 GPIO 少但 Pi 上不稳
+- [ ] **D5**：是否用 WebSocket 接收老师端推送 — HTTP 轮询 / WebSocket
+- [ ] **D6**：设备认证方式 — 设备 ID + 密钥 / JWT
+
+### 实装顺序（D1-D6 拍板后,按这个顺序 1 周一个里程碑）
+
+- [ ] **M1**：Pi 装 Raspberry Pi OS Lite 64-bit + SSH + 静态 IP
+- [ ] **M2**：写 `nfc/pn532.py` — 读 NTAG215 卡 UID（开发期手动测）
+- [ ] **M3**：写 `led/led.py` — GPIO 状态机（蓝/绿/红/白）
+- [ ] **M4**：写 `api/client.py` — POST `/checkin` 调 backend（mock 阶段）
+- [ ] **M5**：串 `main.py` 主循环（IDLE → SUBMITTING → SUCCESS / FAIL → IDLE）
+- [ ] **M6**：写 `nfc/st25dv.py` — 自写 I²C 驱动（D2 拍板后,**真挑战段**,1-2 周）
+- [ ] **M7**：写 `audio/player.py` — 日语播报（D3 拍板后）
+- [ ] **M8**：写 systemd unit + 开机自启 + 故障重启
+- [ ] **M9**：部署到真宿舍点呼一次（M1 demo）
+
+### 物理 + 部署待办
+
+- [ ] 宿舍现场勘察 — 点呼机贴在哪面墙 / 距离 WiFi AP / 电源线长度（见 `hardware_design.md §6`,等 itsuki 问老师）
+- [ ] 部署 SOP 写到 `03_dev/rollcall_device/docs/部署SOP.md`（M9 时一边做一边写,做下次部署的真值）
+- [ ] 跟管理员谈「断网时点呼机怎么办」(故障恢复策略,影响 ROLLCALL_DEVICE_DESIGN_LOG §6)
+
+### 同步 / 联动
+
+- [x] **2026-05-08 完成**：建 `03_dev/rollcall_device/` 骨架（README + DESIGN_LOG + requirements.txt + src/main.py + 4 个空模块包 + config + docs 占位）
+- [x] **2026-05-08 完成**：联动机制 12→18 条规则升级（加 5 端反向 + 端→共用层）+ Rule 3 system-features 加 ANDROID + ROLLCALL_DEVICE
+- [x] **2026-05-08 完成**：CLAUDE.md「设计文档双层」从「3 端」补到「5 端 + 物理硬件层」+「文件连锁结构」加反向规则 6 条 + 目录结构加 rollcall_device
+- [x] **2026-05-08 完成**：file-linkage / project-overview / 同步点清单 / hooks README 全部同步到 18 条规则
+- [x] **2026-05-08 完成**：`02_design/hardware_design.md` §2.2 / §2.4 / §2.5 占位回填 + §0 状态表全 ✅ + §2.3 「Pi 4B」漂移修成 Pi 3A+
+- [x] **2026-05-08 完成**：`02_design/bus_schedule_real.md` 挪到 `06_assets/`（数据,不是设计）
+
+---
+
+## 🛠️ Meta / CC 协作改进（2026-05-07 itsuki 拍板）
+
+- [ ] **做一个「教学类 Skill」** — 暂名 `.claude/skills/teach-as-you-go/SKILL.md`
+  - **背景**：CC 给 itsuki 操作指南时容易直接丢「点这里 / 输这个」，没解释「这是什么 / 为什么必须做 / 为什么这样选不那样选」。itsuki 是零基础学习者，每个操作都是学习机会，不解释 = 偷懒。
+  - **触发场景**：itsuki 第一次接触某个工具 / Apple Developer Portal / Xcode 操作 / 命令行 / 第三方服务（Vultr / Cloudflare / GitHub Pages / SSH 等）→ CC 必须**当下解释**：
+    1. 这是什么（概念）
+    2. 为什么必须做（不做的后果 / 跳过的代价）
+    3. 为什么这样选不那样选（多选项时给对照表）
+    4. 操作背后的工作流程（如「为什么签名要先在网页声明 capability」这种黑盒链路）
+  - **反触发**（不要触发）：itsuki 已经做过 N 次的操作（git commit / Xcode Cmd+B 等）— 不重复啰嗦
+  - **触发实例（2026-05-07 教训）**：上架流程让 itsuki 在 Apple Developer Portal 勾「NFC Tag Reading」时 CC 只丢指令，没解释「Capability 是什么」「为什么不勾其他」「Push Notifications 为什么不勾」。itsuki 当下纠正「我需要你的解释，我需要你教我，我现在边做边学习，你不能偷懒」CC 才补讲。
+  - **写法**：仿照 `.claude/skills/session-wrap/` / `.claude/skills/version-bump/` 结构
+  - **验收**：下次 itsuki 第一次接触 SSH / Caddy / Docker 这类工具时，CC 主动解释（不等 itsuki 催）
 
 ---
 

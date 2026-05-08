@@ -1,6 +1,6 @@
 # 当前工作状态 (Work In Progress)
 
-> **最后更新**: 2026-05-06（独立 repo 模式退役 — iOS + Android 全合并回 DMSD + GitHub 双独立 repo 删除 + 4 元数据 + sync 脚本归档 + 5 文档同步更新）
+> **最后更新**: 2026-05-08（点呼机当第 5 端 + 联动机制 12→18 条规则升级 + 11 配件型号定型 — 5 端对称 + 反向规则覆盖度 + ROLLCALL_DEVICE_DESIGN_LOG 骨架 + project-overview 顺手补 student_android）
 
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
@@ -38,6 +38,29 @@
 ---
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
+
+### 2026-05-08 by [新Mac-Opus 4.7 1M-主会话]
+
+**主题**：⭐⭐⭐ 点呼机当第 5 端 + 联动机制 12→18 条规则升级 + 11 配件型号定型(itsuki 已下单)
+
+- **配件查证**:itsuki 发淘宝 10 张截图,要求**上网查证**不接受 CC 凭直觉判断;CC 用 WebSearch 跑 4 个并行查询验证 Pi 3A+ 接口 / PN532 接 Pi / ST25DV16K I2C / 音频组合,11 件能组装 ✅,识别 3 个真坑(ST25DV16K 没官方 Python 库 1-2 周学习成本 / PN532 在 Pi 上 I2C 不稳推荐 SPI / Pi 3A+ 单 USB 限制)
+- **架构方案讨论**:itsuki 用直觉心智模型挑战 02_design 现状,被 CC 解释「设计文档双层」是 itsuki 自己以前拍板的(CLAUDE.md L33-39);CC 第 1 轮答错说「Android 缺 DESIGN_LOG」被 itsuki 当场质疑,grep 验证后承认错误 + 解释清楚双层模式;**拍板方案 A**(维持现状双层 + 加点呼机)
+- **联动机制升级**:itsuki 主动发现现有 12 条规则只覆盖「设计→代码」+「数据层字段对齐」,**缺反向「代码→设计」5 端对称**;拍板加 6 条新规则 Rule 14-19(action 模式) + Rule 3 system-features 必查列表加 ANDROID + ROLLCALL_DEVICE
+- **8 步全量执行**:点呼机骨架(8 文件)+ sync-rules.sh 12→18 条 + file-linkage SKILL 同步 + CLAUDE.md 双层 3→5 端 + 文档同步点清单 §11 表 + project-overview §5.7(顺手补 student_android)/ §5.8(点呼机)/ §13.1 反向规则 + hooks/README + hardware_design §2.2/§2.4/§2.5 占位回填 + bus_schedule_real.md 挪 06_assets/ + TODO.md 加 §🛰️ 点呼机 backlog
+- **新规则实战触发**:跑 sync-check.sh,Rule 14(ios-business-design)+ Rule 19(design-log-to-system-features)各触发一次,验证反向规则真能用 ✅
+
+**配件型号定型**(itsuki 已淘宝下单,~¥425 RMB):
+- PN532 V3 红板 ¥26.7 / LED 模块套装 ¥10.9 / 01Studio USB 小音响 ¥29 / Pi 3A+ 透明壳 + 风扇盖 + 风扇 ¥24 / SYB-170 面包板 + 杜邦线 ¥3.57(本次新定型 ~¥94)
+- 加上之前 Pi 3A+ ¥239 + ST25DV × 2 ¥47 + 电源 ¥13 + NTAG215 × 50 ¥31.9
+
+**新规则上线**:
+- 联动机制覆盖度从「设计→代码 + 数据字段」扩到「+ 代码→设计 5 端反向 + 端→共用层」
+- 5 端对称结构:backend / iOS / Android / teacher_web / **rollcall_device**(2026-05-08 加)+ 物理硬件层(02_design/hardware_design.md)
+- ROLLCALL_DEVICE_DESIGN_LOG 等 itsuki 拍板 D1-D6(NFC 库 / ST25DV 驱动 / TTS / SPI vs I2C / WebSocket / 设备认证)+ 配件到货后开始实装
+
+**AC 价值**:⭐⭐⭐ — 模式 5(认知改变)× 3 处 + 模式 6(取舍三角)× 2 处 + 模式 4(v1→v2 演化)× 1 处。主线 = itsuki 用 CC 协作把"工程治理"从"有 hook"升级到"有 hook + 覆盖度审计"。详见 `05_logs/raw/2026-05-08.md`
+
+**残**:~~版本 bump 决策~~ ✅ itsuki 否决「暂时不用 bump」/ 配件等到货 / D1-D6 拍板待 itsuki / push 等 itsuki 明示
 
 ### 2026-05-06 by [新Mac-Opus 4.7 1M-主会话]
 
@@ -149,14 +172,7 @@
 
 **残**：Android 注册码 + 公告 4 端实装（独立 repo `~/dev/TomoshibiAndroidApp/`）/ teacher_web 注册码生成面板 + 公告投稿面板 / progress_overview.md 章节刷新 / iOS RegistrationDraft 累积（让 Step1-4 字段真到 backend，目前是 hardcoded demo 字段 + 真注册码）
 
-### 2026-05-04 上午 by [Mac-mini-Opus 4.7]
-
-**主题**：⭐ A+B 文件联动工具建设 — 把 §3 文件关联追踪表代码化 + 加自动检查
-
-- **背景**：itsuki 启动会话提"每次改动/决定立刻同步文档" → 诊断现有机制只能 70-80% 联动 → 拍板 A+B 方案
-- 已合并到上面"2026-05-04"主条目（同会话延续）
-
-> **2026-05-04 深夜砍掉 5 条老条目** + **2026-05-06 砍掉 5-03 晚条目（协作模型升级）** — 详细历史看 `git log` + `05_logs/raw/2026-05-0{2,3,4}.md`
+> **2026-05-04 深夜砍掉 5 条老条目** + **2026-05-06 砍掉 5-03 晚条目（协作模型升级）** + **2026-05-08 砍掉 5-04 上午小条目（已合并到 5-04 主条目）** — 详细历史看 `git log` + `05_logs/raw/2026-05-0{2,3,4}.md`
 
 ---
 

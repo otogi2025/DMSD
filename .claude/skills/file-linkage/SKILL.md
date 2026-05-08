@@ -1,13 +1,13 @@
 ---
 name: file-linkage
-description: DMSD 文件联动矩阵 — 改 A 必查 B 的完整规则表（13 条联动规则 + 反向索引 + 检查命令）。⭐ 触发：CC 改文件后想确认联动 / itsuki 说「联动检查 / 我改了 X 要查什么 / 改 A 要不要改 B」/ 改了任何 backend models / spec / system_features / Route 等"高联动文件"。短小专一（~150 行）— 比 project-overview skill 短，给频繁触发设计。
+description: DMSD 文件联动矩阵 — 改 A 必查 B 的完整规则表（18 条联动规则 + 反向索引 + 检查命令）。⭐ 触发：CC 改文件后想确认联动 / itsuki 说「联动检查 / 我改了 X 要查什么 / 改 A 要不要改 B」/ 改了任何 backend models / spec / system_features / Route 等"高联动文件"。短小专一（~200 行）— 比 project-overview skill 短，给频繁触发设计。
 when_to_use: ⭐ 触发 — 「联动 / 联动检查 / 我改了 X 要查什么 / 改 A 要改 B 吗 / sync-check」/ CC 自己刚改了 backend models / spec 主体 / system_features / Route.swift / iOS Foundation 组件 / hooks 时主动确认。配套 PostToolUse hook 自动跑 sync-rules.sh — hook 是确定性快查，本 skill 是 LLM 可读详细版。
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
 # File Linkage Skill — DMSD 文件联动矩阵
 
-> **核心理念**：DMSD 是高度联动项目（5 端代码 + 多层文档），改 A 文件**必查 B 文件**否则会漂移。本 skill 是「改 A 必查 B」规则的人类可读总表。
+> **核心理念**：DMSD 是高度联动项目（5 端代码 + 多层文档：iOS / Android / 后端 / teacher_web / 点呼机），改 A 文件**必查 B 文件**否则会漂移。本 skill 是「改 A 必查 B」规则的人类可读总表。
 >
 > **配套机制**：
 > - `00_admin/hooks/lib/sync-rules.sh` — 同样规则的代码化版（hook 自动跑）
@@ -28,7 +28,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ---
 
-## §1 联动矩阵（13 条规则）
+## §1 联动矩阵（18 条规则）
 
 ### Rule 1: backend-models（must）
 
@@ -62,9 +62,11 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 **必查联动**（至少改 1 个）：
 - `03_dev/backend/BACKEND_DESIGN_LOG.md`
 - `03_dev/student_ios/IOS_DESIGN_LOG.md`
+- `03_dev/student_android/ANDROID_DESIGN_LOG.md`
 - `03_dev/teacher_web/WEB_DESIGN_LOG.md`
+- `03_dev/rollcall_device/ROLLCALL_DEVICE_DESIGN_LOG.md`
 
-**为什么**：共用层 system_features 改了 → 各端 *_DESIGN_LOG.md 引用通常至少 1 个端会受影响（实装侧要跟着改）。
+**为什么**：共用层 system_features 改了 → 5 端 *_DESIGN_LOG.md 引用通常至少 1 个端会受影响（实装侧要跟着改）。
 
 ---
 
@@ -147,6 +149,60 @@ grep -rn "ComponentName" 03_dev/student_ios/v1/TomoshibiApp/Features/
 
 ---
 
+### Rule 14: ios-business-design（action — 反向规则,2026-05-08 加）
+
+**触发**：`03_dev/student_ios/v1/TomoshibiApp/Features/**/*.swift`（业务代码）
+
+**必做动作**：判断是否同步 `IOS_DESIGN_LOG.md`,多端涉及时 `system_features.md` 也要更新。
+
+**为什么**：业务代码改 = 实装行为变了,设计文档可能漂移。typo / 重命名 / 重构内部不需要同步,改 UI / 流程 / 字段才需要 — `action` 模式温和提醒不强制。
+
+---
+
+### Rule 15: android-business-design（action — 反向规则,2026-05-08 加）
+
+**触发**：`03_dev/student_android/**/(ui|features)/**/*.kt`
+
+**必做动作**：判断是否同步 `ANDROID_DESIGN_LOG.md` + `system_features.md`。
+
+---
+
+### Rule 16: backend-business-design（action — 反向规则,2026-05-08 加）
+
+**触发**：`03_dev/backend/v1/app/(routers|services)/**/*.py`
+
+**必做动作**：判断是否同步 `BACKEND_DESIGN_LOG.md` + `system_features.md`。
+
+**注**：与 Rule 1 / Rule 2 互补 — Rule 1/2 是「字段对齐」（must）,本规则是「设计文档同步」（action）。
+
+---
+
+### Rule 17: web-business-design（action — 反向规则,2026-05-08 加）
+
+**触发**：`03_dev/teacher_web/**/*.{ts,tsx,jsx,vue}`
+
+**必做动作**：判断是否同步 `WEB_DESIGN_LOG.md` + `system_features.md`。
+
+---
+
+### Rule 18: rollcall-device-business-design（action — 第 5 端,2026-05-08 加）
+
+**触发**：`03_dev/rollcall_device/src/**/*.py`
+
+**必做动作**：判断是否同步 `ROLLCALL_DEVICE_DESIGN_LOG.md` + `system_features.md`。
+
+---
+
+### Rule 19: design-log-to-system-features（action — 反向规则,2026-05-08 加）
+
+**触发**：任一端 `*_DESIGN_LOG.md`(BACKEND / IOS / ANDROID / WEB / ROLLCALL_DEVICE)
+
+**必做动作**：多端涉及时,`02_design/system_features.md`（共用层真值）也要更新。
+
+**为什么**：与 Rule 3 反向 — Rule 3 是「共用→各端」,Rule 19 是「各端→共用」。某端 DESIGN_LOG 加新功能描述,如果其他端也涉及,共用层应吸收上去。
+
+---
+
 ## §2 反向索引（按目标文件查谁改了它要联动）
 
 > CC 想知道「改了 schemas.py 是因为什么 trigger?」时反向查。
@@ -158,9 +214,12 @@ grep -rn "ComponentName" 03_dev/student_ios/v1/TomoshibiApp/Features/
 | `routers/*` | Rule 1 (models.py 改) |
 | `NetworkModels.swift` | Rule 1 (models.py 改) |
 | `Endpoints/*API.swift` | Rule 2 (routers 改) |
-| `BACKEND_DESIGN_LOG.md` | Rule 3 (system_features 改) |
-| `IOS_DESIGN_LOG.md` | Rule 3 (system_features 改) |
-| `WEB_DESIGN_LOG.md` | Rule 3 (system_features 改) |
+| `BACKEND_DESIGN_LOG.md` | Rule 3 (system_features 改) + Rule 16 (backend 业务代码改) |
+| `IOS_DESIGN_LOG.md` | Rule 3 (system_features 改) + Rule 14 (iOS Features 改) |
+| `ANDROID_DESIGN_LOG.md` | Rule 3 (system_features 改) + Rule 15 (Android ui/features 改) |
+| `WEB_DESIGN_LOG.md` | Rule 3 (system_features 改) + Rule 17 (teacher_web 业务代码改) |
+| `ROLLCALL_DEVICE_DESIGN_LOG.md` | Rule 3 (system_features 改) + Rule 18 (点呼机 src/ 改) |
+| `system_features.md` | Rule 19 (任一端 *_DESIGN_LOG 改) |
 | `RootView.swift` | Rule 4 (Route.swift 改) |
 | `hooks/README.md` | Rule 8 (hooks/* 改) |
 | `CLAUDE.md` | Rule 9 (bin/*.sh 改) |
@@ -230,3 +289,4 @@ bash bin/sync-check.sh <file_path>
 
 - 2026-05-04 itsuki 拍板：A+B 文件联动工具方案（pre-commit + sync-check.sh + sync-rules.sh）
 - 2026-05-04 深夜 itsuki 拍板：本 skill 形态化 + CC PostToolUse hook 实时拦截
+- 2026-05-08 itsuki 拍板：（1）点呼机当第 5 端建 03_dev/rollcall_device/ + ROLLCALL_DEVICE_DESIGN_LOG.md（2）补 6 条反向规则 Rule 14-19 — 业务代码改时温和提醒同步 *_DESIGN_LOG.md / system_features.md（3）Rule 3 system-features 必查列表加 ANDROID + ROLLCALL_DEVICE。规则总数 12 → 18。

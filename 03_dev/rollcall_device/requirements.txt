@@ -1,0 +1,28 @@
+# Tomoshibi 点呼机 Python 依赖
+# 实装前依赖最终选型见 ROLLCALL_DEVICE_DESIGN_LOG.md §1.1 + §10
+# 占位草稿（待 itsuki 拍板 D1-D6 后定版）
+
+# NFC 读卡（D1 拍板后选 1 个）
+# Adafruit-PN532
+# nfcpy
+
+# I2C 通信（ST25DV nonce 写入 — D2 自写驱动用）
+# smbus2
+
+# GPIO 控制（LED）
+# gpiozero
+
+# HTTP / WebSocket
+# httpx
+# websockets
+
+# 音频 / TTS（D3 拍板后选）
+# pygame  # 预录 wav 播放
+# pyttsx3  # 离线 TTS
+
+# 日志
+# structlog
+
+# 测试
+# pytest
+# pytest-asyncio

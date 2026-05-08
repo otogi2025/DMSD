@@ -61,8 +61,8 @@ add_rule \
 add_rule \
   "system-features" \
   '^02_design/system_features\.md$' \
-  '03_dev/backend/BACKEND_DESIGN_LOG\.md,03_dev/student_ios/IOS_DESIGN_LOG\.md,03_dev/teacher_web/WEB_DESIGN_LOG\.md' \
-  '共用层 system_features 改 → 各端 *_DESIGN_LOG.md 引用是否要更新(至少 1 个端通常会受影响)' \
+  '03_dev/backend/BACKEND_DESIGN_LOG\.md,03_dev/student_ios/IOS_DESIGN_LOG\.md,03_dev/student_android/ANDROID_DESIGN_LOG\.md,03_dev/teacher_web/WEB_DESIGN_LOG\.md,03_dev/rollcall_device/ROLLCALL_DEVICE_DESIGN_LOG\.md' \
+  '共用层 system_features 改 → 5 端 *_DESIGN_LOG.md 引用是否要更新(至少 1 个端通常会受影响)' \
   "must"
 
 add_rule \
@@ -128,6 +128,54 @@ add_rule \
   '^03_dev/student_ios/v1/TomoshibiApp/Foundation/.*GlassSheet.*\.swift$' \
   '' \
   'iOS Foundation GlassSheet 组件 props 可能改了 → grep 全 repo 找用到的地方' \
+  "action"
+
+# ============================================================
+# 反向规则：业务代码 → 自端 *_DESIGN_LOG.md（2026-05-08 加 — 5 端对称 action 提醒）
+# 之前只覆盖「设计→代码」+「数据层字段对齐」，这批补「代码→设计」反方向。
+# action 模式（不是 must）— typo / 重命名 / 重构不一定要改设计；只温和提醒让 itsuki/CC 当场判断。
+# ============================================================
+
+add_rule \
+  "ios-business-design" \
+  '^03_dev/student_ios/v1/TomoshibiApp/Features/.+\.swift$' \
+  '' \
+  'iOS Features 业务代码改 → 判断是否同步 IOS_DESIGN_LOG.md(改 UI / 流程 / 字段需要;typo / 重构不用)，多端涉及时 system_features.md 也要更新' \
+  "action"
+
+add_rule \
+  "android-business-design" \
+  '^03_dev/student_android/.+/(ui|features)/.+\.kt$' \
+  '' \
+  'Android 业务代码改 → 判断是否同步 ANDROID_DESIGN_LOG.md，多端涉及时 system_features.md 也要更新' \
+  "action"
+
+add_rule \
+  "backend-business-design" \
+  '^03_dev/backend/v1/app/(routers|services)/.+\.py$' \
+  '' \
+  '后端业务代码改 → 判断是否同步 BACKEND_DESIGN_LOG.md，多端涉及时 system_features.md 也要更新' \
+  "action"
+
+add_rule \
+  "web-business-design" \
+  '^03_dev/teacher_web/.+\.(ts|tsx|jsx|vue)$' \
+  '' \
+  'teacher_web 业务代码改 → 判断是否同步 WEB_DESIGN_LOG.md，多端涉及时 system_features.md 也要更新' \
+  "action"
+
+add_rule \
+  "rollcall-device-business-design" \
+  '^03_dev/rollcall_device/src/.+\.py$' \
+  '' \
+  '点呼机业务代码改 → 判断是否同步 ROLLCALL_DEVICE_DESIGN_LOG.md，多端涉及时 system_features.md 也要更新' \
+  "action"
+
+add_rule \
+  "design-log-to-system-features" \
+  '^03_dev/.+/(BACKEND|IOS|ANDROID|WEB|ROLLCALL_DEVICE)_DESIGN_LOG\.md$' \
+  '' \
+  '某端 *_DESIGN_LOG 改 → 多端涉及时 system_features.md 也要更新(共用层真值)' \
   "action"
 
 # ============================================================

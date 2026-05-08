@@ -23,7 +23,7 @@ GitHub: otogi2025/DMSD public（单一 repo — 2026-05-06 退役独立 repo 模
 00_admin/   WIP / TODO / 项目文件总览 / 文档同步点清单 / hooks（版本 bump 流程 → `.claude/skills/version-bump/`）
 01_specs/   规格文档 — rollcall/ 字典+主体
 02_design/  设计文档 — hardware / flow / system_features 等
-03_dev/     代码 — backend / teacher_web / student_ios / student_android
+03_dev/     代码 — backend / teacher_web / student_ios / student_android / rollcall_device（点呼机）
 04_ops/     运维
 05_logs/    开发 log — raw / dev_log / problem_solving / decision_log / learning_path / project_evolution
 06_assets/  07_release/  99_archive/  bin/   参考材料 / 发布物 / 早期归档 / 脚本
@@ -33,9 +33,12 @@ GitHub: otogi2025/DMSD public（单一 repo — 2026-05-06 退役独立 repo 模
 ## 设计文档双层
 
 共用层（≥2 端涉及）: 02_design/system_features.md
-iOS 専属:  03_dev/student_ios/IOS_DESIGN_LOG.md
-Web 専属:  03_dev/teacher_web/WEB_DESIGN_LOG.md
-后端 専属: 03_dev/backend/BACKEND_DESIGN_LOG.md
+iOS 専属:     03_dev/student_ios/IOS_DESIGN_LOG.md
+Android 専属: 03_dev/student_android/ANDROID_DESIGN_LOG.md
+Web 専属:     03_dev/teacher_web/WEB_DESIGN_LOG.md
+后端 専属:    03_dev/backend/BACKEND_DESIGN_LOG.md
+点呼机 専属:  03_dev/rollcall_device/ROLLCALL_DEVICE_DESIGN_LOG.md
+物理硬件层:   02_design/hardware_design.md（板子选型 / 模块选型 / BOM — 跟点呼机软件层互补）
 判断标准 / 反模式: memory feedback_design_doc_layers.md
 
 ## 文档一致性
@@ -47,7 +50,13 @@ Web 専属:  03_dev/teacher_web/WEB_DESIGN_LOG.md
 ## 文件连锁结构（改 A 必查 B，改完当场对照）
 
 iOS Swift view 改（视觉 / 流程 / 字段） → 03_dev/student_ios/IOS_DESIGN_LOG.md 对应章节 + 02_design/system_features.md（≥2 端涉及时）
-02_design/system_features.md → 各端 *_DESIGN_LOG.md 引用要更新
+Android UI 改（视觉 / 流程 / 字段） → 03_dev/student_android/ANDROID_DESIGN_LOG.md + 02_design/system_features.md（≥2 端涉及时）
+backend 业务代码改（routers / services） → 03_dev/backend/BACKEND_DESIGN_LOG.md + 02_design/system_features.md（≥2 端涉及时）
+teacher_web 业务代码改 → 03_dev/teacher_web/WEB_DESIGN_LOG.md + 02_design/system_features.md（≥2 端涉及时）
+点呼机 src 业务代码改 → 03_dev/rollcall_device/ROLLCALL_DEVICE_DESIGN_LOG.md + 02_design/system_features.md（≥2 端涉及时）
+任一端 *_DESIGN_LOG.md 改 → 多端涉及时 02_design/system_features.md 也要更新（共用层真值）
+02_design/system_features.md → 5 端 *_DESIGN_LOG.md 引用要更新
+02_design/hardware_design.md → 03_dev/rollcall_device/ROLLCALL_DEVICE_DESIGN_LOG.md（接线 / GPIO / 模块选型联动）
 backend models.py → schemas.py + routers/*.py + alembic/versions/* + iOS NetworkModels.swift（字段对齐）
 backend routers/*.py → iOS Endpoints/*API.swift（端点 / 参数 / 返回类型对齐）
 Route.swift 加 case → RootView.swift switch + 用到的 view 要存在
