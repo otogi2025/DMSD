@@ -269,22 +269,27 @@ def list_pending_for_me(
                 models.ApplicationApproval.decision.is_(None),
             ),
         )
-        .where(models.Application.status.in_(["pending", "approved_partial"]))
+        # 永远 join Student 用于 is_demo 过滤（reviewer 学生提交的申请不应出现在老师面板）
+        .join(
+            models.Student,
+            models.Student.id == models.Application.student_id,
+        )
+        .where(
+            models.Application.status.in_(["pending", "approved_partial"]),
+            models.Student.is_demo.is_(False),
+        )
         .options(
             selectinload(models.Application.approvals),
             selectinload(models.Application.student),
         )
         .order_by(models.Application.submitted_at.asc())
     )
-    # R4 dorm filter
+    # R4 dorm filter（join 已在上面加了，这里只追加 where）
     if teacher.assigned_dorm is not None and teacher.role not in {
         "寮務部長", "寮務課長", "国際交流部長", "国際交流課長", "管理係"
     }:
         dorm_filter = (1, 2) if teacher.assigned_dorm == 1 else (teacher.assigned_dorm,)
-        stmt = stmt.join(
-            models.Student,
-            models.Student.id == models.Application.student_id,
-        ).where(models.Student.dorm_unit.in_(dorm_filter))
+        stmt = stmt.where(models.Student.dorm_unit.in_(dorm_filter))
 
     apps = db.scalars(stmt).all()
     return [_to_application_out(a) for a in apps]

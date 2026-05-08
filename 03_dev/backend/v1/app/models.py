@@ -67,6 +67,9 @@ class Student(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     status: Mapped[str] = mapped_column(Text, nullable=False, default="active")
+    # demo / reviewer 账号标志 — admin 学生列表 / 出席统计默认过滤掉
+    # （审核员 / 老师体验用账号；spec system_features.md §7.20）
+    is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     # relations
     applications: Mapped[list["Application"]] = relationship(back_populates="student")
@@ -83,6 +86,7 @@ class Student(Base):
         CheckConstraint("dorm_unit IN (1, 2, 4)", name="ck_students_dorm_unit"),
         UniqueConstraint("grade_code", "class_code", "seat_no", name="uq_students_no"),
         Index("idx_students_dorm", "dorm_unit", "status"),
+        Index("idx_students_is_demo", "is_demo"),
     )
 
     @property
@@ -690,11 +694,15 @@ class StudentRegistrationCode(Base):
     invalidated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True)
     )
+    # 审核员永久码标志 — refresh 不作废 + 跟普通 5 分钟码并存（spec §7.16 例外条款）
+    # is_reviewer=True 的码长期有效，专给 Apple 审核员 / itsuki 内测用，普通老师不可见
+    is_reviewer: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     __table_args__ = (
         # SQLite 不支持 regex CHECK，只能用 LENGTH；应用层 '^[0-9]{6}$' 严格校验
         CheckConstraint("LENGTH(code) = 6", name="ck_src_code_len"),
         Index("idx_src_code_active", "code", "invalidated_at"),
+        Index("idx_src_is_reviewer", "is_reviewer", "invalidated_at"),
     )
 
 

@@ -39,6 +39,33 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+### 2026-05-08 凌晨 by [新Mac-Opus 4.7 1M-主会话 reviewer_demo重做]
+
+**主题**：⭐⭐⭐⭐⭐ reviewer demo 方案 review 戳穿 5 bug → itsuki 拍板「修干净再提交」→ 完整重做（v1.0.1 全提前 v1.0.0） <!-- VERSION_OK -->
+
+- **23:30 启动**：itsuki 提「做不做老师 iOS 登录」 → CC 反对老师 iOS（用户量不对等 + 已有 teacher_web）→ itsuki 改「老师下载 app + 体验内容 + 永久注册码」
+- **23:45 CC 警告 3 bug**：永久码跟 §7.16 「5 分钟 TTL」铁律冲突 / 上架决策防线被钻洞 / DB 数据污染 → 给 3 替代方案 → itsuki 拍板「demo 账号 + 老师卡在验证码 = 演示注册码门」
+- **23:50 itsuki paste VPS CC 已实装方案**：060199/Reviewer-2026/999999 永久码塞 prod DB → 让主 CC 「检查 bug」
+- **00:00 review 戳穿 5 bug**：(1) `999999` 4 年永久后门（refresh 一刀切作废 + 6 个 9 太规则） (2) admin 默认密码 `ChangeMe-2026-05` 进 git 历史污点 (3) reviewer 凭证一眼是 demo (4) fork seed 偏离主项目 (5) CC 没让 itsuki 拍板具体值
+- **00:15 itsuki 拍板 ⭐⭐⭐**：「**接下来的修复我会全部在这个会话里进行，在修好之前我不会推进别的了**」 → v1.0.1 修理项**全部提前 v1.0.0**，质量优先于发版速度 <!-- VERSION_OK -->
+- **01:00-04:30 完整重做（11 文件 / 42 pass）**：
+  - schema migration `f6a7b8c9d0e1`（students.is_demo + student_registration_codes.is_reviewer + 内置 UPDATE 把 fork 旧 999999 行自动 invalidate）
+  - admin_registration_code.py 3 处改（refresh + current 加 is_reviewer 过滤 + _generate_code 范围 [0,999998] reserved 999999）
+  - rollcall.py + applications.py 加 is_demo 过滤（关键判断：accounts 学号查重 / auth.login **不能** 加过滤，否则 reviewer 不能 login）
+  - seed.py 重写 `APP_ENV=dev|production` 双模式 + admin 密码移到 env
+  - 新 `tests/test_demo_reviewer.py` 5 个 case，**42 passed**（37 原有 + 5 新）
+  - 文档同步：system_features §7.20 新章 + §7.16 例外 / BACKEND_DESIGN_LOG §5.x.4 / IOS_DESIGN_LOG §3.16 / TODO §🐛 ledger
+  - VPS 部署清单 + Reviewer Notes 双语文案（绝不写注册码）写到 `05_logs/raw/2026-05-08_vps_deploy_steps.md`
+
+**新规则上线**：
+- 上架前底线：reviewer 永久码必须有 `is_reviewer=True` schema flag 跟普通 5 分钟 TTL 码并存（spec §7.16 例外条款）
+- memory 加 `feedback_cc_picks_value_must_announce_window.md` — CC 自挑值时必须 explicit 告知 + 给打断窗口
+- 拍板：「修干净再提交」优先于「冲提交后再修」 — itsuki 引入的 engineering 时间盒新铁律
+
+**AC 价值**：⭐⭐⭐⭐⭐ — 模式 2（假设崩→继续→真因，3 层叠加）+ 模式 5（多次：trade-off 语言陷阱 / 修干净拍板 / fork 复发 single source / CC 拍板边界）+ 模式 6（取舍三角 demo 账号方案）+ 多 AI 协作 audit。详见 `05_logs/raw/2026-05-08_reviewer_demo重做.md`
+
+**残**：上架后操作（admin 密码改强密码 + 删 VPS 旧 060199 学生）/ Mac fork 4 部署文件合回主项目（v1.0.1）/ commit + push + VPS 部署待执行 <!-- VERSION_OK -->
+
 ### 2026-05-07 → 2026-05-08 by [Mac-主会话 跨日]
 
 **主题**：⭐⭐⭐⭐⭐ **上线 iOS 到 App Store 冲刺**（v0.8.0 期间，提前 G2 决策） <!-- VERSION_OK -->— backend production 部署 GCP VPS + DNS + GH Pages + Apple Dev Portal/ASC/Xcode Archive 全过，卡 Validate Version empty 待修
@@ -130,74 +157,7 @@
 - 真机暗夜黑闪 fix 需要 itsuki 装手机晚上验证（CC 无法验证）
 - 启动 git status 残留垃圾（`.bak` × 2 / `Root/File.txt`）等 itsuki 拍板删
 
-### 2026-05-04 深夜 by [Mac-元层优化 Opus 4.7]
-
-**主题**：⭐⭐⭐⭐ Claude Code 5 层架构学习 + 2 个 skill 落地（ac-record + version-bump）+ 4 次 itsuki 戳穿 CC 设计盲点 + 全工程实践扫描清单
-
-- **学概念**：CC 5 层架构（CLAUDE.md / Skills / Hooks / Subagents / Plugins）+ MCP / Agent Teams 外挂；连续 4 次戳穿 CC「派多个 subagent 叫 Teams」表述夸大 → CC 校准到 L1/L2/L3 真实分级；CrewAI 简介；第一性原理筛 5 层 → Plugins ❌ Skills 🟡 Hooks 🔴 Subagents 🟠
-- **戳 CC coach 失职**：CC 之前没主动提 Skill / CC Hook 这两个现成方案 → 我手搓了山寨版 CLAUDE.md 触发词机制 + git pre-commit；元认知金句「这种事情没有体验，别人提醒我也不会知道」拍板
-- **memory 升级**：`feedback_proactive_diagnose_unknown_unknowns.md` 加 case study（Skill / CC Hook 失职 + Git 反证）+ 3 层扫描清单（CC 内部能力 / 业界标准工程实践 / AC 学习自管理）
-- **🆕 ac-record skill** — itsuki 重写 v4 → CC 审视 → 整体迁入 `.claude/skills/ac-record/SKILL.md`；旧 `00_admin/CLAUDE_CODE_记录指南.md` git rm；后续 itsuki 4 次戳穿 CC：1) 指针文件多余 2) 未完全理解自我贬低 3) 关键词触发不实用 → CC 改为「**收尾全量扫描**」主流程
-- **🆕 version-bump skill** — `00_admin/版本管理SOP.md` 整体迁入 `.claude/skills/version-bump/SKILL.md`（531 行），归档到 `99_archive/2026-05-04_版本管理SOP_迁入skill/`；加 4 条 itsuki 拍板新铁律：⭐ **CC 否决权**（itsuki 说要 bump CC 也能拒绝）/ ⭐ **版本演变一览必更新**（实战发现 v0.6.0 + v0.8.0 都没更新）/ ⭐ **全量扫描**（不偷懒）/ ⭐ 加「迭代」关键词
-- **CLAUDE.md 同步**：4 处指针改向 ac-record skill / SOP 引用全改向 version-bump skill / 5 硬底线第 5 条改为「raw 写"AI 提了 X，我评估后采纳"」（冲突 1 折中）；第 5 条二改去掉「未完全理解明标」（itsuki 拒绝）
-- **TODO 闭合 + 加 unknown unknowns 工程实践体检清单**：5 项 🔴 推荐试（GitHub Actions / Linter / Type checker / FastAPI /docs / .env）+ 4 项 🟠 延后（Issues / Sentry / Docker / structlog）+ 学习路径 5 步
-
-**新规则上线**：
-- AC 协作权威源换地方 — `.claude/skills/ac-record/SKILL.md`（按需触发不占主上下文）
-- 版本 bump 权威源换地方 — `.claude/skills/version-bump/SKILL.md`（CC 有否决权 + 版本演变一览必更新）
-- CC 看到 itsuki 手搓机制 → 强制对照扫描清单，主动提现成方案
-- raw dump 叙事策略：写「AI 提了 X，我评估后采纳/拒绝/改造」（不写"未完全理解"自我贬低标记）
-- ac-record 主要工作模式：itsuki 说"收尾" → CC 全量扫描会话上下文（不依赖关键词命中）
-
-**版本演变一览历史欠债**（CC 主动识别，等 itsuki 拍板补不补）：
-- v0.6.0 段（4-29 close）— 没写
-- v0.8.0 段（5-02 close）— 没写
-- → 下次 bump 时 version-bump skill §0.2 铁律会强制补这部分
-
-**残**：itsuki 授权 CC 自主完成 — 2 个 skill ✅ 已做完。后续待 itsuki：1) 测试 ac-record 收尾全量扫描 2) 测试 version-bump 否决权（说"迭代"看 CC 是否会拒绝）3) unknown unknowns 体检清单 🔴 5 项 4) Hook 改造（日语注释拦截 + sync-check on Stop）5) progress_overview 章节里程碑刷新 6) 版本演变一览补 v0.6.0 / v0.8.0 段
-
-### 2026-05-04 晚 by [Mac-治理 Opus 4.7]
-
-**主题**：⭐⭐⭐ DMSD 文档治理大整顿 — CLAUDE.md 71% 瘦身 / 性别身份更正 / 单源真值确立
-
-- **CLAUDE.md 419 → 120 行**（瘦身 71%）— AC 协作整块挪到 `00_admin/CLAUDE_CODE_记录指南.md`（升级为 AC 协作单一权威源 §0-§13）；对话规则细节挪 memory 索引指针；删 markdown 表格分隔符 / `**bold**` / 历史注释 / 解释性括号
-- **5-01 全文件审查升级为系统级入口**：`git mv 2026-05-01_全文件审查.md → 项目文件总览.md`，去日期前缀 + 加维护铁律（CC 创建/删除/大改文件作用 → 当场同步更新，不再开新审查报告文件）
-- **CLAUDE_CODE_记录指南.md 升级为 AC 协作单一权威源**：§0 加 3 根本性原则 / §7 完整 5 核心问题（不再指针）/ §8 升级 7 节详细收尾动作 / §13 加 AC 文件家族 CC 权限速查
-- **CLAUDE.md 加规则**：找文件 / 问文件 → 必须翻项目文件总览不用 `grep`/`find`；TODO 必须 itsuki 主动问才读不主动催进度
-- **性别身份更正**：itsuki 是男生不是女生 — sed 批量替换全 DMSD 仓库 markdown（172 处）+ memory 文件夹（102 处）= 274 处「她」→「他」；99_archive/ 历史快照不动；新建 `user_gender_male.md` memory + MEMORY.md 顶部 ⚡警告
-- **`00_admin/文件结构指南.md` 归档**到 `99_archive/2026-05-04_文件结构指南_已被项目文件总览取代/`（已被项目文件总览取代）
-- **TODO.md 538 → 660 行**：旧 backlog（4-19 87 条）+ 全文件审查（5-01 606 文件）所有未结余项展开搬到一个 §（A.1-A.5 + B + C + D + E + F + G）— 5 个分散文件改作历史快照
-- **4-19 backlog 5-04 同步打勾 6 条**：T2 / T7 / T12 / S15 / D17 / D18 — 实际已闭合但忘了打勾
-- **memory 加 4 条**：`feedback_no_cli_jargon.md` / `user_gender_male.md` / MEMORY.md 索引更新
-
-**新规则上线**：
-- 启动只读 WIP（不再读 TODO 顶部 / 项目文件总览）
-- 项目文件总览 = 找文件唯一入口（替代 grep / find / 命令行）
-- 记录指南 = AC 协作唯一权威源（CC 收尾 / 触发场景去读）
-- 不再开新「2026-XX-XX_xxx_审查.md」分散文件，未结余项一律写 TODO
-
-**残**：~~待 itsuki 拍板「她」→「他」批量~~（已 sed 全做）/ ~~文件结构指南归档~~（已做）/ progress_overview.md 章节里程碑刷新（4-17 后没动）/ Batch3 itsuki 自粘 11 条历史欠债
-
-### 2026-05-04 by [Mac-mini-Opus 4.7]
-
-**主题**：⭐⭐⭐ 1 个会话推 4 commit — A+B 工具 + backend 双新功能 + iOS 双新功能 + 注释规则强化
-
-4 commit 一气呵成：
-- `c3be94d` feat(study): 5-03 残留学習欠席 period 字段贯通（backend + iOS）
-- `ce90715` chore(hooks): A+B 文件联动工具（pre-commit 加内容检查 + bin/sync-check.sh 中途查 + sync-rules.sh 13 条规则代码化）
-- `3a6c585` feat(backend): 学生注册码 + 老师公告 backend 完整实装 + CLAUDE.md 加重「代码注释只用中文」铁律（itsuki 第二次强调被骂 → 强化规则 box + memory 加 incident）
-- `3b19bc4` feat(ios): 注册码 RegisterStep5（POST /accounts wire 通）+ 老师公告 列表/详情/回复 view（最小可工作版）
-
-**新工具习惯化**：会话中跑 `bash bin/sync-check.sh` 即可见联动漏改；commit 前 pre-commit 自动跑同样规则。
-
-**iOS 实装策略**：avoid .pbxproj 大改 → 新 enum/view 全 inline 到现有 .swift（AccountsAPI / AnnouncementsAPI → AuthAPI.swift；公告 view → HomeStubs.swift）。v1.0 上线前可拆 file。
-
-**xcodebuild 验证**：iPhone 17 simulator BUILD SUCCEEDED。
-**pytest**：37 passed（含 12 注册码 + 6 公告新测试）。
-
-**残**：Android 注册码 + 公告 4 端实装（独立 repo `~/dev/TomoshibiAndroidApp/`）/ teacher_web 注册码生成面板 + 公告投稿面板 / progress_overview.md 章节刷新 / iOS RegistrationDraft 累积（让 Step1-4 字段真到 backend，目前是 hardcoded demo 字段 + 真注册码）
-
-> **2026-05-04 深夜砍掉 5 条老条目** + **2026-05-06 砍掉 5-03 晚条目（协作模型升级）** + **2026-05-08 砍掉 5-04 上午小条目（已合并到 5-04 主条目）** — 详细历史看 `git log` + `05_logs/raw/2026-05-0{2,3,4}.md`
+> **2026-05-04 深夜砍掉 5 条老条目** + **2026-05-06 砍掉 5-03 晚条目（协作模型升级）** + **2026-05-08 砍掉 5-04 上午小条目（已合并到 5-04 主条目）** + **2026-05-08 凌晨砍掉 5-04 主体 / 5-04 晚治理 / 5-04 深夜元层优化 3 条（让 5-08 reviewer_demo重做 + 5-07→5-08 跨日 + 5-08 点呼机 + 5-06 + 5-04 iOS bug 5 条上限）** — 详细历史看 `git log` + `05_logs/raw/2026-05-0{2,3,4,7,8}.md`
 
 ---
 

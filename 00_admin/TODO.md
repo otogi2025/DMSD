@@ -17,7 +17,7 @@
 
 > **会话状态**：5-07 启动「上线 iOS 到 App Store」目标 → 5-08 完成 backend 部署到 GCP VPS（asia-northeast1）+ DNS（api.tomoshibi.cc）+ GH Pages（privacy / support）+ Apple Developer Portal App ID + ASC App「Tomoshibi · 灯火」+ Xcode 编译。**5-08 21:30 卡在 Validate App** 失败（CFBundleShortVersionString empty）— 已修 fork project.yml 用 MARKETING_VERSION 写法 + 让 itsuki 在 Xcode General tab 直接填 Version 1.0.0 / Build 1，待重新 Archive。
 >
-> **凭证**（Apple Reviewer Notes 用）：admin / ChangeMe-2026-05 + reviewer 学号 060199 / Reviewer-2026 + reviewer 注册码 999999。强密码 POSTGRES_PASSWORD / JWT_SECRET 已写入 VPS .env（不在 git 里）。
+> **凭证**（Apple Reviewer Notes 用，**5-08 修复后版**）：reviewer 学号 `999999` / 密码 `Tomoshibi-Reviewer-2026!`（is_demo=True 学生）+ admin login_id `admin` / 密码 env `ADMIN_INITIAL_PASSWORD`（fallback `ChangeMe-2026-05` 仅 dev 兜底）。`999999` 注册码改为 `is_reviewer=True` 永久标志，但**Reviewer Notes 不写注册码**（防 OCR 泄漏）。强密码 POSTGRES_PASSWORD / JWT_SECRET 在 VPS .env（不在 git 里）。详见 `system_features.md §7.20`。
 
 ### A. 今晚冲提交剩余步骤（itsuki 操作）
 
@@ -33,27 +33,23 @@
 - [ ] Reviewer Notes 双语填（METADATA.md §6 完整复制）
 - [ ] Submit for Review
 
-### B. v1.0.0 上架审核**通过当天立刻**做（防野生用户撞库） <!-- VERSION_OK -->
+### B. v1.0.0 上架审核**通过当天立刻**做 <!-- VERSION_OK -->
 
-- [ ] **立刻改 admin 密码**（默认 `ChangeMe-2026-05` 在 fork seed.py + git 历史可查，等于公开）
-- [ ] **立刻 invalidate 999999 注册码**：
+- [ ] **admin 密码立刻改强密码** — env `ADMIN_INITIAL_PASSWORD` 设强密码 + web 后台改账号密码（1Password 生成）
+- [ ] **删 VPS prod DB 旧 reviewer 学生 060199**（5-08 fork seed 创建的，新 prod seed 用 999999 学号，旧行需手动清理）：
   ```sql
-  UPDATE student_registration_codes SET invalidated_at=NOW() WHERE code='999999';
+  DELETE FROM accounts WHERE student_id IN (SELECT id FROM students WHERE grade_code='06' AND class_code='01' AND seat_no='99');
+  DELETE FROM students WHERE grade_code='06' AND class_code='01' AND seat_no='99';
   ```
-- [ ] 考虑删 reviewer 学生 060199（status='deleted'）— 审核员不再访问后
 
-### C. v1.0.1 / v1.1 修 reviewer demo 5 个设计缺陷（CC 5-08 自我反思） <!-- VERSION_OK -->
+### C. ✅ Reviewer demo 5 个设计缺陷 — 已修复 <!-- VERSION_OK -->
 
-> **背景**：5-08 21:35 itsuki 让另一个 CC 会话 review 我设计的 reviewer demo 方案。我自我反思发现 5 个真问题（不只是 trade-off），责任在 CC 设计而不是 VPS CC 执行。
-
-- [ ] **999999 注册码是生产 DB 后门** — 4 年 TTL 偷偷绕过 system_features.md §7.16「5 分钟 TTL」铁律。野生用户扫到 6 个 9 这种简单数字就能注册占学号。修：schema 加 `is_reviewer: bool` 字段（students + registration_codes），注册码 router 改成 reviewer 码必须 is_reviewer=true 才能匹配
-- [ ] **admin 默认密码 `ChangeMe-2026-05` 进 git 历史** — 永久污点。修：上线后立刻改强密码 + 改 seed.py 不写默认密码（要求首次手动初始化）
-- [ ] **reviewer 凭证一眼看出是 demo**（060199 / "App Reviewer" / 999999）— 反而暴露私域 app 性质，跟 itsuki「不声明私域」策略冲突，4.2.1 reject 风险**反而**增加。修：用更接近真实学生数据的凭证
-- [ ] **fork seed.py 偏离主项目 v1 dev seed** — 双源问题。修：v1 seed.py 改成单一权威源，env 变量切 dev / production seed
-- [ ] **CC 没让 itsuki 拍板具体值** — 直接挑了字符串（999999 / Reviewer-2026 / 060199）。元规则：CC 设计 demo 数据应当当下问 itsuki 拍板具体值
+5-08 21:35 主 CC review 戳穿 5 个 bug → itsuki 拍板「修干净再提交」→ v1.0.1 修理项全部提前在 v1.0.0 修完。详见 §🐛 `Demo seed / 999999 注册码后门 — 已修复` ledger。 <!-- VERSION_OK -->
 
 ### D. 工程债务延后修
 
+- [ ] **Fork backend 4 文件合回主项目**（5-08 拍板，落实 5-06「single source」）：把 `~/dev/Tomoshibi-AppStore/backend/` 的 `Caddyfile` / `Dockerfile` / `docker-compose.yml` / `DEPLOY.md` 移到 `03_dev/backend/v1/`，删整个 fork 目录。VPS 改为 rsync 主项目 v1 → VPS。需要先把 5-08 fork 跟主项目剩余差异合并（看 `diff -r` 输出）
+- [ ] **iOS fork 处置**（`~/dev/Tomoshibi-AppStore/ios/`）— 5-07 SplashView 已同步主项目，但账号删除 UI 没同步（见 §E）。合并完毕后删 fork
 - [ ] 反向 rsync VPS migration patch → Mac fork（VPS CC 在 `b2c3d4e5f6a7_align_application_schema.py` 改成 dialect-aware，Mac fork 还是 buggy 版本，下次 rsync 会回退）：
   ```bash
   rsync -avz \
@@ -83,36 +79,24 @@
 - [ ] **Bug 2: `docker-compose.yml` 不传 `APP_ENV`** — v1 当前没 docker-compose.yml（fork 才加的），所以暂时不会踩。**未来 v1 加 docker 部署时**：api service 必须显式传 `APP_ENV: ${APP_ENV:-production}`，否则 `app/config.py:21` 默认 `"dev"` → `app/main.py:70` 跑 `create_all()` 绕过 alembic
 - [ ] **Bug 3: `alembic/versions/b2c3d4e5f6a7_align_application_schema.py` 用 SQLite-only 的 `batch_alter_table(recreate='always')`** — Postgres 部署时强制 DROP + 重建 applications 表，包括 drop applications_pkey，但 application_approvals 外键依赖它 → migration 失败。**修法**：让 upgrade/downgrade 根据 `op.get_bind().dialect.name` 分支（SQLite 保留 batch / Postgres 用普通 op.xxx）。**5-08 fork 修法待 VPS CC 落地后同步，那边方案确定后填**
 
-### 🚨 Demo seed / 999999 注册码后门 — v1.0.1 必修（2026-05-08 主 CC review 戳穿） <!-- VERSION_OK -->
+### ✅ Demo seed / 999999 注册码后门 — 已修复（2026-05-08 同日重做完毕）
 
-> **背景**：5-08 上架冲刺时 VPS CC 在 `~/dev/Tomoshibi-AppStore/backend/seed.py` 写了 reviewer demo 凭证 + `999999` 永久注册码（`expires_at=2030-01-01`），直接塞 production DB。主 CC review 时识别 5 个问题，VPS CC 自承。**冲提交不阻塞，但下个 patch 必修**。
+> **背景**：5-08 上架冲刺时 fork 直接塞 `999999` 永久码进 prod DB（`expires_at=2030`），主 CC review 戳穿 5 个 bug。itsuki 拍板「修干净再提交」→ 全部 v1.0.1 修理项提前在 v1.0.0 修完。详细 raw → `05_logs/raw/2026-05-08.md`。 <!-- VERSION_OK -->
 
-**5 个问题**（VPS CC 自承 + 主 CC 验证）：
-1. `999999` 是生产 DB 后门 — 6 位太规则、4 年 TTL、绕过 §7.16 「5 分钟 TTL」铁律；老师按一次「码刷新」即作废（router 不知道这是「特殊码」）
-2. admin 默认密码 `ChangeMe-2026-05` 写在 seed.py 源码 → git 历史永久污点
-3. reviewer 凭证太明显（学号 `060199` / 名字 `App Reviewer` / 注册码 `999999`）
-4. fork seed.py 跟主项目 `03_dev/backend/v1/seed.py` 双源 — 违反 5-06「独立 repo 模式退役」拍板
-5. VPS CC 自挑具体值（`Reviewer-2026` / `999999` / `060199`）没让 itsuki 拍板
+**5-08 已完成清单**（commit 待 push）：
+- [x] Schema 加 `students.is_demo` + `student_registration_codes.is_reviewer`（migration `f6a7b8c9d0e1`，含 `UPDATE invalidated_at=NOW() WHERE code='999999'` 把 fork 塞进 VPS prod DB 的旧行作废）
+- [x] `/refresh` 加 `is_reviewer=False` 过滤 — reviewer 码不被作废
+- [x] `/current` 加 `is_reviewer=False` 过滤 — 老师面板不可见（防泄漏）
+- [x] `_generate_code` random 范围 `[0, 999998]` — `999999` reserved
+- [x] Admin 学生列表 3 处加 `is_demo=False` 过滤（rollcall.session_board / rollcall._settle_absent / applications.list_pending_for_me）
+- [x] `seed.py` 双源合并 — `APP_ENV=dev|production` env 切换；Mac fork `~/dev/Tomoshibi-AppStore/backend/` 待删（5-06 single source 拍板落实，见 §G）
+- [x] Reviewer 凭证升级 — 学号 `999999`（grade=99/class=99/seat=99）/ 密码 `Tomoshibi-Reviewer-2026!` / 注册码 `999999` `is_reviewer=True` 永久
+- [x] admin 默认密码移到 env `ADMIN_INITIAL_PASSWORD`（fallback 仅 dev 兜底，prod 必须设 env）
+- [x] 5 个新 pytest case（test_demo_reviewer.py），全套 42 passed
+- [x] system_features §7.20 + §7.16 例外条款 / BACKEND_DESIGN_LOG §5.x.4 / IOS_DESIGN_LOG §3.16 同步
 
-**上架前最后必做**（30 秒，不阻塞 Xcode Archive）：
-- [ ] VPS 上 SQL invalidate `999999`：
-  ```bash
-  docker compose exec -T postgres psql -U tomoshibi -d tomoshibi -c \
-    "UPDATE student_registration_codes SET invalidated_at = NOW() WHERE code = '999999';"
-  ```
-- [ ] Apple Reviewer Notes 当场删「**或可选用注册码 999999 跑 6 步注册流程**」整段 — 只留「直接 login `060199` / `Reviewer-2026`」
-
-**上架审核通过当天**：
-- [ ] admin 密码立刻 web 后台改强密码（1Password 生成）
-
-**下个 patch 修理清单**（指代 v1.0.1）： <!-- VERSION_OK -->
-- [ ] **Schema 改造**：`students` 加 `is_demo BOOLEAN DEFAULT FALSE` + index；`student_registration_codes` 加 `is_reviewer BOOLEAN DEFAULT FALSE`。写新 alembic migration
-- [ ] **refresh router 改造**：`UPDATE … WHERE invalidated_at IS NULL` 改为 `… AND is_reviewer = false`（reviewer 码不被普通 refresh 作废）
-- [ ] **`admin_registration_code.py:36`**：random 范围改 `random.randint(0, 999998)` — `999999` reserved
-- [ ] **Admin 面板查询过滤**：所有 `select(models.Student)` 加 `.where(Student.is_demo == False)` 默认过滤；留 1 个 admin endpoint `?include_demo=true` 给 itsuki debug
-- [ ] **Seed 双源合并**：`~/dev/Tomoshibi-AppStore/backend/seed.py` 整体合回 `03_dev/backend/v1/seed.py`，用 env `APP_ENV=production` / `dev` 切两条路径。删 fork 目录（响应 5-06 拍板）
-- [ ] **Reviewer 凭证升级**：学号 `999999`（grade=99/class=99/seat=99 明显假）/ 密码 `Tomoshibi-Reviewer-2026!` / 注册码 `999999` 用 `is_reviewer=true` 永久标志
-- [ ] **Admin 默认密码**：从 seed.py 源码移到 env `ADMIN_INITIAL_PASSWORD`，git 不再存档明文
+**上架审核通过当天**剩余动作：
+- [ ] admin 密码立刻 web 后台改强密码（1Password 生成 + 不进 git）
 
 ---
 

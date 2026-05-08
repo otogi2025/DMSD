@@ -32,8 +32,10 @@ ADMIN_ROLES = ("寮務部長", "寮務課長", "管理係")
 
 
 def _generate_code() -> str:
-    """生成 6 桁随机数字。理论碰撞概率 1/百万，实际靠应用层 retry 兜底。"""
-    return f"{random.randint(0, 999999):06d}"
+    """生成 6 桁随机数字。理论碰撞概率 1/百万，实际靠应用层 retry 兜底。
+    上限 999998 — '999999' 是审核员永久码 reserved（spec §7.16 例外条款）。
+    """
+    return f"{random.randint(0, 999998):06d}"
 
 
 def _to_out(row: models.StudentRegistrationCode) -> schemas.RegistrationCodeOut:
@@ -69,6 +71,8 @@ def get_current(
         .where(
             models.StudentRegistrationCode.invalidated_at.is_(None),
             models.StudentRegistrationCode.expires_at > now,
+            # 审核员永久码不出现在老师面板（防泄漏：老师看不到 = 没法截图传播）
+            models.StudentRegistrationCode.is_reviewer.is_(False),
         )
         .order_by(models.StudentRegistrationCode.created_at.desc())
         .limit(1)
@@ -98,9 +102,13 @@ def refresh_code(
     now = datetime.now(timezone.utc)
 
     # 1. 把所有现存 active 码作废（§7.16.2 规则 3 — 同时只能 1 个有效）
+    #    审核员永久码（is_reviewer=True）不作废 — spec §7.16 例外条款
     db.execute(
         update(models.StudentRegistrationCode)
-        .where(models.StudentRegistrationCode.invalidated_at.is_(None))
+        .where(
+            models.StudentRegistrationCode.invalidated_at.is_(None),
+            models.StudentRegistrationCode.is_reviewer.is_(False),
+        )
         .values(invalidated_at=now)
     )
 

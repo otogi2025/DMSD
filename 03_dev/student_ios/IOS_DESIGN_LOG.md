@@ -352,6 +352,28 @@ itsuki 2026-05-03 拍板。App Store 上架 = 全人類に配布チャネル開�
 
 ---
 
+### 3.16 Demo 账号双用 + Reviewer 永久码（2026-05-08 itsuki 拍板）
+
+**权威 spec**：`02_design/system_features.md §7.20` + 后端 schema `BACKEND_DESIGN_LOG §5.x.4`。
+
+**iOS 端涉及**（**无 UI 改动 / 无客户端字段改动**）：
+- LoginView：Apple 审核员 / 老师都用同一组凭证直接登录 → 学号 `999999` + 密码 `Tomoshibi-Reviewer-2026!`
+- RegisterStep5：老师可选体验完整 6 步注册流程时输注册码 `999999`（is_reviewer=True 永久有效）— 但仅一次（第二次注册同学号会撞 `STUDENT_NO_TAKEN`）
+
+**iOS 端不需改的原因**：
+- backend `is_demo` / `is_reviewer` 是 server 端 schema，client 完全不感知
+- API 端点 URL / 参数 / 返回类型不变 → `AuthAPI` / `AccountsAPI` / `RegisterStep5` 都不动
+- LoginView 不加「demo 登录」按钮 — 普通学生 login 画面看不到 demo 入口（防引导误用）
+
+**5-08 修复联动**：
+- 5-08 上架冲刺 fork 直接塞 `999999` 永久码进 prod DB 出 5 个 bug（详见 §7.20 末尾历史教训），主 CC review 后重做 — backend schema 加 `is_demo` / `is_reviewer` flag 双层防御。**iOS 不动**，只是 server 行为升级
+
+**Reviewer Notes 文案**（Apple 提交时填）：
+- ✅ 学号 `999999` + 密码 `Tomoshibi-Reviewer-2026!`
+- ❌ 不写 `999999` 注册码（防 OCR 泄漏）
+
+---
+
 ## 4. Home 顶部点呼状态 bar
 
 ### 4.1 三态

@@ -990,6 +990,8 @@ announcement_replies
 8. **監査**
    - コード生成 / 使用イベント全て audit log（actor / timestamp / result）
 
+> **例外条款（2026-05-08 追加）**：審核員永久码（`is_reviewer=True`）跟上述主体规则**并存但独立** — 永久有效 / `/refresh` 不作废 / 老师 `/current` 面板不可见 / `_generate_code` random 范围 reserved 排除。详见 §7.20 「Demo 账号 / 审核员体验」。
+
 #### 7.16.3 運用シナリオ
 
 | シナリオ | フロー |
@@ -1092,6 +1094,64 @@ announcement_replies
 **v1.0 处理**：直接隐藏 Login 画面的「忘记密码」按钮入口（不删 PwResetView 代码）。用户若忘密码 → 通过 support.md 联系 otogi2025@gmail.com → 寮的管理者人工重置。
 
 **v1.1 计划**：实装 backend 邮箱重置流程（Step1 输 email → 收魔法链接 → 重置）+ 解除按钮隐藏。
+
+---
+
+### 7.20 Demo 账号 / 审核员体验（2026-05-08 itsuki 拍板，App Store 上架对策 + 老师体验）
+
+**目的**：(1) Apple 审核员能登录看到 app 主功能（不被注册码门挡住）。(2) 老师下载 app 体验学生视角（不需做老师 iOS 端，老师统一走 teacher_web）。两个用户共用同一个 demo 账号。
+
+**核心机制 — 双层防御**：
+
+| 层 | 字段 | 行为 |
+|---|---|---|
+| 学生层 | `students.is_demo: bool` | True → admin 学生列表 / 出席统计 / 老师待审申请列表自动过滤 |
+| 注册码层 | `student_registration_codes.is_reviewer: bool` | True → 老师 `/current` 面板不可见 + 普通 `/refresh` 不作废 + 永久有效（spec §7.16 例外条款） |
+
+**Production seed 凭证**（`03_dev/backend/v1/seed.py` `APP_ENV=production` 模式）：
+
+| 项 | 值 | 说明 |
+|---|---|---|
+| Reviewer 学号 | `999999` | grade=99/class=99/seat=99 — schema 允许，业务范围（高1-高3 = 04-06）外永不存在 |
+| Reviewer 密码 | `Tomoshibi-Reviewer-2026!` | Apple Reviewer Notes 给 + 老师卡片给 |
+| Reviewer 注册码 | `999999` | `is_reviewer=True` 永久标志，仅做"完整 6 步注册流程"演示用 |
+| Admin 学号 | `admin` (login_id) | 教师 admin |
+| Admin 默认密码 | env `ADMIN_INITIAL_PASSWORD` | 上线必须设 env；fallback `ChangeMe-2026-05` 仅 dev 兜底 |
+
+**两种使用路径**：
+
+1. **直接登录路径**（推荐 — 给 Apple 审核员 / 老师体验）：
+   - login 画面输 `999999` + `Tomoshibi-Reviewer-2026!` → 直接进 home
+   - 跳过 6 步注册 + 完整看 home / 公告 / 申请 / mypage UI
+
+2. **完整注册流程路径**（仅老师演示用）：
+   - 老师从 RegisterStep1 开始随便填 → Step5 输注册码 `999999` → 注册成功
+   - 但因为学号唯一约束，**只有第一次能成**（之后再注册 999999 → STUDENT_NO_TAKEN）
+   - Apple 审核员**不需要**跑这条 — Reviewer Notes 不写注册码
+
+**Reviewer Notes 文案规则**（Apple 提交时）：
+- ✅ 给：`学号 999999 + 密码 Tomoshibi-Reviewer-2026!` 直接登录
+- ❌ 不给：`999999` 注册码（避免 Apple 审核员 OCR 后泄漏到第三方）
+
+**与 §7.16 注册码 5 分钟 TTL 铁律的关系**：
+- §7.16 主体（普通老师生成的码）规则不变 — 5 分钟有效，refresh 立刻作废旧码
+- §7.20 是**例外条款** — 单独一类码 `is_reviewer=True`，跟主体码并存：
+  - 普通 refresh 用 `WHERE is_reviewer = false` 跳过 reviewer 码
+  - `/current` 面板用 `WHERE is_reviewer = false` 隐藏
+  - `_generate_code` random 范围 `[0, 999998]`，`999999` reserved
+- reviewer 码不出现在老师面板 = 防泄漏（老师看不到 = 没法截图传播）
+
+**5-08 历史教训**（AC 叙事用）：
+5-08 上架冲刺时另一个 CC 会话在 fork 用直接塞 `999999` 永久码进 prod DB（`expires_at=2030`），无 schema flag 区分。本主 CC review 戳穿 5 个 bug：(1) 老师按一次 refresh 即作废 (2) random 可能撞 999999 (3) 6 个 9 太好猜 + 永久 = 生产后门 (4) admin 默认密码进 git 历史 (5) fork 偏离主项目权威源。重做后落实本节方案。详见 `05_logs/raw/2026-05-08.md`。
+
+**功能矩阵**：
+
+| 功能 | 学生 iOS | 学生 Android | 教师 Web | 后端 API | 谁能用 | 上线版本 |
+|---|---|---|---|---|---|---|
+| Demo 账号登录（直接） | ✅ login 画面 | ⏳ | — | ✅ `POST /sessions/student` | Apple 审核员 / 老师 | v1.0 |
+| Demo 账号 is_demo 过滤 | — | — | — | ✅ rollcall / applications | — | v1.0 |
+| Reviewer 注册码永久有效 | ✅ RegisterStep5 | ⏳ | — | ✅ POST /accounts | 老师演示用 | v1.0 |
+| Reviewer 注册码不在老师面板 | — | — | ✅ 自动 | ✅ `/current` 过滤 | — | v1.0 |
 
 ---
 

@@ -710,6 +710,43 @@ err:
 
 過去のコード履歴一覧（教師 Web v1.1 履歴 tab 用）。v1.0 範囲外。
 
+#### 5.x.4 Reviewer 永久码例外条款（2026-05-08 itsuki 拍板）
+
+权威 spec: `system_features.md §7.20` + §7.16 例外条款。
+
+**Schema 改动**（migration `f6a7b8c9d0e1_add_demo_reviewer_flags`）：
+- `students.is_demo: bool DEFAULT false` + `idx_students_is_demo` 索引
+- `student_registration_codes.is_reviewer: bool DEFAULT false` + `idx_src_is_reviewer` 复合索引
+
+**`/refresh` 行为变更**：
+- `UPDATE WHERE invalidated_at IS NULL` → `UPDATE WHERE invalidated_at IS NULL AND is_reviewer = false`
+- 即：reviewer 码不被普通 refresh 作废（permission/business 层共存）
+
+**`/current` 行为变更**：
+- `SELECT WHERE invalidated_at IS NULL AND expires_at > now()` → 加 `AND is_reviewer = false`
+- 即：老师面板只看主体码，看不到 reviewer 码 → 防泄漏
+
+**`_generate_code` 范围变更**：
+- `random.randint(0, 999999)` → `random.randint(0, 999998)`
+- 即：`"999999"` reserved 给 reviewer 码，普通 refresh 永不生成此值
+
+**`POST /accounts` 不变**：
+- `_validate_registration_code` 逻辑维持 — 只看 `invalidated_at IS NULL AND expires_at > now()`，不区分 is_reviewer
+- 即：reviewer 码也是合法注册码，可用于 RegisterStep5（仅老师演示用）
+
+**Admin 学生列表过滤**（`is_demo=False` 默认过滤）：
+- `rollcall.session_board` (`GET /rollcall/sessions/:id/board`) — 出席板
+- `rollcall._settle_absent` — 缺席结算
+- `applications.list_pending_for_me` (`GET /applications/pending-for-me`) — 老师待审申请
+- 注：`accounts.create_account` 学号/email 查重 + `auth.login` 不加过滤（必须能登录 + 防重复创建）
+
+**测试覆盖**（`tests/test_demo_reviewer.py`）：
+- `test_reviewer_code_not_invalidated_by_refresh`
+- `test_reviewer_code_can_register_account`
+- `test_reviewer_code_not_visible_in_current`
+- `test_demo_student_excluded_from_session_board`
+- `test_generate_code_never_returns_999999`
+
 ### 5.2 学生 — 出寮届（#1-#9）
 
 #### 5.2.1 `POST /applications` — 提交（#1 #2 #3 #4）

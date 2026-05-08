@@ -203,10 +203,12 @@ def session_board(
     session = _get_session_or_404(db, session_id)
 
     # このセッション対象の学生 (R4: dorm_unit_set で絞る)
+    # is_demo 学生排除 — reviewer / 体验账号不进出席板
     students = db.scalars(
         select(models.Student).where(
             models.Student.dorm_unit.in_(session.dorm_unit_set),
             models.Student.status == "active",
+            models.Student.is_demo.is_(False),
         )
     ).all()
 
@@ -353,10 +355,12 @@ def _get_session_or_404(db: Session, session_id: UUID) -> models.RollCallSession
 
 def _settle_absent(db: Session, session: models.RollCallSession) -> None:
     """セッション終了時 — チェックインなし学生を absent に記録。"""
+    # is_demo 学生排除 — reviewer / 体验账号不算出席率
     students = db.scalars(
         select(models.Student).where(
             models.Student.dorm_unit.in_(session.dorm_unit_set),
             models.Student.status == "active",
+            models.Student.is_demo.is_(False),
         )
     ).all()
 
