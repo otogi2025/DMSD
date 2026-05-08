@@ -292,6 +292,66 @@ itsuki 2026-05-03 拍板。App Store 上架 = 全人類に配布チャネル開�
 
 ---
 
+### 3.13 启动跳转策略（2026-05-07 itsuki 拍板，App Store 上架对策）
+
+**问题**：之前 SplashView 启动 2.2s 后强制跳 onboarding → 已注册老用户每次启动都看 onboarding → 烦。Apple 审核员第一屏看到强制 onboarding + 注册码门进不去 app → reject 风险。
+
+**新逻辑**（SplashView.onAppear）：
+- Keychain 已恢复 token（`app.authToken != nil`）→ 自动登录跳 home
+- 没 token → 跳 login（不再走 onboarding）
+- onboarding 不再强制路径，保留代码为 v1.x 后做引导入口可选
+
+**login 第一屏的好处**：
+- 老用户：Keychain 自动登录无感
+- 新用户：login 底部「新規登録」link 一键跳 RegisterStep1
+- 审核员：用 Reviewer Notes 给的 demo 学号 + 密码直接登录，绕过注册码门
+
+**实装**：
+- `Features/Auth/AuthStubs.swift` SplashView 加 `@EnvironmentObject app: AppStore` + onAppear 内 token 判断
+- LoginView「新規登録」按钮（line 1583）已有，跳 `.registerStep1`，不动
+- onboarding 入口暂无 button（dead code 但不删，v1.x 加引导触发）
+
+**双端同步**：上架版 fork（`~/dev/Tomoshibi-AppStore/ios/`）+ 主项目（`03_dev/student_ios/v1/`）同步改完 2026-05-07
+
+---
+
+### 3.14 账号删除入口（2026-05-07 itsuki 拍板，Apple 5.1.1(v) 强制）
+
+**位置**：`Features/MyPage/MyPageStubs.swift` MySettingsView 末尾「アカウント」section。
+
+**UI**：
+- Section 标题：`アカウント`（小字 inkMute）
+- Card：红色 destructive button「アカウントを削除」+ ProgressView（删除中）
+- 副提示：`削除すると元に戻せません。`
+- 二次确认：SwiftUI alert，destructive button「削除する」/ cancel button「キャンセル」
+- alert message 说明：`削除すると元に戻せません。点呼履歴・申請履歴・プロフィール情報がすべて閲覧できなくなります。`
+
+**调用流**：
+- 用户点「削除する」→ `Task { await performDelete() }` → `AccountsAPI.deleteMyAccount()` 调 `DELETE /api/v1/accounts/me`
+- 成功 → `app.authToken = nil` → didSet 清 Keychain + APIClient.token → RootView 触发 SplashView → 跳 login
+- 失败 → toast 风格 alert 显示 error message
+
+**Backend 接 endpoint**：见 `BACKEND_DESIGN_LOG §5.1.6`
+
+**双端同步**：仅在上架版 fork（`~/dev/Tomoshibi-AppStore/ios/`）实装。**主项目 v1 也要同步加** — 待 itsuki 自己 backport 或下次 CC 会话同步（防主项目 demo 编译失败）。
+
+---
+
+### 3.15 忘记密码按钮 v1.0 隐藏（2026-05-07 itsuki 拍板）
+
+**问题**：LoginView 原有「パスワードを忘れた →」按钮跳 `.pwreset`，但 PwResetView 是 placeholder（无 backend 实装）。Apple 4.0 死按钮 reject 风险。
+
+**处理**：
+- LoginView footer HStack 删掉「パスワードを忘れた」Button block，仅留「新規登録」
+- PwResetView 代码不删（保留为 v1.1 实装基础）
+- 留 `// v1.0 上架版：忘记密码功能未实装 → 入口隐藏，避免 Apple 4.0 死按钮 reject` 注释
+
+**用户路径替代**：忘密码 → 看 support.md → 联系 otogi2025@gmail.com → 寮管理者人工重置
+
+**双端同步**：fork + 主项目 v1 都改完 2026-05-07
+
+---
+
 ## 4. Home 顶部点呼状态 bar
 
 ### 4.1 三态

@@ -1,6 +1,6 @@
 # 当前工作状态 (Work In Progress)
 
-> **最后更新**: 2026-05-08（点呼机当第 5 端 + 联动机制 12→18 条规则升级 + 11 配件型号定型 — 5 端对称 + 反向规则覆盖度 + ROLLCALL_DEVICE_DESIGN_LOG 骨架 + project-overview 顺手补 student_android）
+> **最后更新**: 2026-05-08（**iOS 上架冲刺跨日大会话** — 5-07 启动「上线 App Store」目标 → backend production 部署 GCP VPS + DNS + GH Pages + Apple Dev Portal/ASC + Xcode 编译，卡 Validate Version empty 待修；早些更新:点呼机当第 5 端 + 联动机制 18 条规则升级）
 
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
@@ -38,6 +38,31 @@
 ---
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
+
+### 2026-05-07 → 2026-05-08 by [Mac-主会话 跨日]
+
+**主题**：⭐⭐⭐⭐⭐ **上线 iOS 到 App Store 冲刺**（v0.8.0 期间，提前 G2 决策） <!-- VERSION_OK -->— backend production 部署 GCP VPS + DNS + GH Pages + Apple Dev Portal/ASC/Xcode Archive 全过，卡 Validate Version empty 待修
+
+- **5-07 启动**：itsuki 拍板「公开 App Store + 现在就推」（激进路径，提前 4-19 G2 决策的「v1.0 三端齐发」） <!-- VERSION_OK -->→ CC plan mode 设计完整路径
+- **5-07 4 次反转**：itsuki 反 plan 决策（物理 fork 双份 + fork 放 DMSD 外 + NFC 完整保留 + 不声明私域）→ iOS+backend 全 fork 到 `~/dev/Tomoshibi-AppStore/`（DMSD 外，不污染 git）
+- **5-07 fork 改动**：project.yml 11 处 / APIClient #if DEBUG / PrivacyInfo.xcprivacy / .entitlements（NFC + Push + Time Sensitive）/ 账号删除（Apple 5.1.1(v) iOS+backend 双端）/ SplashView 启动跳转（双端同步主项目）/ backend seed.py / VPS 部署套件（Dockerfile/docker-compose/Caddyfile/DEPLOY.md）/ METADATA.md / privacy_policy.md
+- **5-07 教学失职被纠正**：CC 让 itsuki 勾 NFC 没解释 Capability 是什么 → itsuki 怒怼「我需要你的解释 你不能偷懒」→ TODO 加「教学类 Skill」
+- **5-07 撞名**：Tomoshibi 占了 → `Tomoshibi · 灯火` 救场（Bundle ID 没占继续用 com.itsuki.tomoshibi）
+- **5-07 VPS 启动**：itsuki 选 GCP $300 trial（不 Vultr）+ asia-northeast1-c e2-small Tokyo + SSH 公钥认证（cat 重用现有 key + GCP metadata）
+- **5-08 backend 部署**：VPS CC 找到 3 个隐藏 bug（alembic env.py 不读 DATABASE_URL / docker-compose 不传 APP_ENV → create_all 绕过 alembic / migration 用 SQLite-only batch_alter_table 撞 Postgres 外键）→ Mac fork 同步 4 处修复 + TODO §🐛 v1 backend bug fix
+- **5-08 OOM**：e2-small 2GB OOM kill → swap + worker 4→2
+- **5-08 GH Pages**：CC 用 gh CLI API 启用绕过手动点 → 双 URL HTTP/2 200
+- **5-08 Xcode 链式踩坑**：iOS 26→18 降级 supportsImagePlayground iOS 18.1+ only → 删 → Archive 成功 → Validate CFBundleShortVersionString empty → fork yml 改 MARKETING_VERSION + itsuki Xcode General 直接填 Version/Build
+- **5-08 reviewer demo 5 反思**：itsuki 让另一 CC 会话 review → CC 自我反思（不甩锅 VPS CC，责任在我设计）→ TODO §C 跟踪 5 个真问题
+
+**新规则上线**：
+- iOS+backend 物理 fork 模式（ad hoc 上架冲刺，不污染主项目 git）
+- 教学类 Skill 待做（TODO §🛠️ Meta）
+- 主项目 v1 backend 3 bug + reviewer demo 5 缺陷（TODO §🐛 + §C）
+
+**AC 价值**：⭐⭐⭐⭐⭐ — 模式 5（认知改变）× 多 + 模式 2（假设崩→真因 × 3 alembic）+ 模式 6（取舍 × plan 6 决策）+ CC 自我反思（不甩锅）。详见 `05_logs/raw/2026-05-07.md` + `2026-05-08_ios_上架冲刺.md`
+
+**残**：当前卡 Xcode Validate（Version/Build 修后重 Archive）/ 截图 / ASC 元数据 / Submit / push 等 itsuki 明示 / `06_assets/icons/Tomoshibi icon.icon/{Assets/tomoshibi_flame 2.png, icon.json}` 被删（git status 显示，不知是不是 itsuki 自己手动）等拍板 restore 还是接受 / iOS+backend fork 在 DMSD 外不在 git 范围
 
 ### 2026-05-08 by [新Mac-Opus 4.7 1M-主会话]
 

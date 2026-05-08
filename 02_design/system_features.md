@@ -1046,6 +1046,55 @@ announcement_replies
 
 ---
 
+### 7.17 启动跳转策略（2026-05-07 itsuki 拍板，App Store 上架对策）
+
+**目的**：app 第一屏 = login 不是 onboarding / 不是注册页。已注册用户 Keychain 自动登录跳主页；新用户从 login 底部「新規登録」link 进 RegisterStep1。
+
+**理由**：
+- 老用户每次启动都看 onboarding 烦 → 取消强制路径
+- Apple 审核员第一屏看到注册码门会 reject（无法测试） → login 第一屏让审核员能用 Reviewer Notes 给的 demo 账号直接登录
+- 注册码门保留在 RegisterStep5（防真实非授权学生注册）
+
+**实装位置**：
+- iOS：`Features/Auth/AuthStubs.swift` SplashView.onAppear 加 token 判断（详见 `03_dev/student_ios/IOS_DESIGN_LOG.md §3.13`）
+- 双端同步：上架版 fork（`~/dev/Tomoshibi-AppStore/ios/`）+ 主项目（`03_dev/student_ios/v1/`）
+
+**Android 待落实**：本规则适用全部 student app 端，Android 端 v1.0 实装时按此跳转策略实装（启动 → 检查 token → home / login）。
+
+---
+
+### 7.18 账号删除（2026-05-07 itsuki 拍板，App Store 5.1.1(v) 强制要求）
+
+**Apple 要求**：app 内必须有「账号删除」入口，不能只让用户邮件联系管理员。Guideline 5.1.1(v) 自 2022-06 起强制，未实装会被 reject。
+
+**实装位置**：
+- iOS：MyPage → 設定 → 「アカウントを削除」按钮（红色 destructive 样式）+ 二次确认 alert
+- Backend：`DELETE /api/v1/accounts/me`（详见 `BACKEND_DESIGN_LOG §5.1.6`）
+
+**软删除策略**：
+- 不物理删 students 行（保留历史用于点呼出席审计）
+- `students.status` 从 `'active'` 切到 `'deleted'`
+- 写 AuditLog 记录 `account.delete_self` 事件
+- 删除后 `get_current_student` dep 返回 `ACCOUNT_INACTIVE`，登录 + 所有 API 调用自动拒绝
+
+**保留期**：1 年后物理删除（隐私政策第 5 条）
+
+**Android 待落实**：同样规范，v1.0 实装时跟齐 iOS UX。
+
+---
+
+### 7.19 忘记密码按钮 v1.0 隐藏（2026-05-07 itsuki 拍板）
+
+**背景**：Login 画面原有「パスワードを忘れた →」按钮跳 PwResetView，但 PwResetView 是 placeholder（点了告诉用户「寮監に直接連絡してください」），后端没接密码重置流程。
+
+**风险**：Apple 4.0 reject「死按钮 / 不完整功能」。
+
+**v1.0 处理**：直接隐藏 Login 画面的「忘记密码」按钮入口（不删 PwResetView 代码）。用户若忘密码 → 通过 support.md 联系 otogi2025@gmail.com → 寮的管理者人工重置。
+
+**v1.1 计划**：实装 backend 邮箱重置流程（Step1 输 email → 收魔法链接 → 重置）+ 解除按钮隐藏。
+
+---
+
 ## 8. 数据模型(中心 entity 抜粋)
 
 ### 8.1 Student / Account(保留)

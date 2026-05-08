@@ -639,6 +639,39 @@ err:
 - `INVALID_ROOM_FORMAT` (422) — 房间号 prefix が dorm_unit / gender と不整合
 - `EMAIL_TAKEN` (422)
 
+#### 5.1.6 `DELETE /accounts/me` — 学生账号删除（2026-05-07 拍板，Apple 5.1.1(v) 强制）
+
+**用途**：Apple App Store Review Guideline 5.1.1(v) 自 2022-06 起强制要求 app 内有账号删除入口（不能只让用户邮件联系）。未实装会被审核 reject。详细 spec: `system_features.md §7.18`。
+
+**req**：
+```
+DELETE /api/v1/accounts/me
+Authorization: Bearer <学生 JWT>
+（body 无）
+```
+
+**res**：`204 No Content`（body 无）
+
+**处理流程**：
+1. `Depends(deps.get_current_student)` 验 JWT + 取 student row
+2. `student.status = 'deleted'`（软删除，不物理 DELETE）
+3. 写 `AuditLog`：`actor_type='student'`、`action='account.delete_self'`、`target_id=student.id`、`payload={student_no, name}`
+4. `db.commit()` → 返回 204
+
+**软删除理由**：
+- 物理删除会破坏关联的点呼出席审计、申请历史（`applications.student_id` FK）— 寮务审计要求
+- `students.status='deleted'` 后 `get_current_student` dep 自动返回 `ACCOUNT_INACTIVE` → 后续登录 + 任何 API 调用都被拒绝
+- 物理删除于 1 年后由 cron job 执行（隐私政策第 5 条）
+
+**err**：
+- `INVALID_CREDENTIALS` (401) — token 无效 / 已删除
+- `ACCOUNT_INACTIVE` (403) — 已经是 deleted 状态（重复调用幂等）
+
+**关联文件**：
+- `app/routers/accounts.py:delete_my_account`
+- iOS：`Features/MyPage/MyPageStubs.swift` MySettingsView accountDeletionSection（IOS_DESIGN_LOG §3.14）
+- iOS API client：`Foundation/Network/Endpoints/AuthAPI.swift` `AccountsAPI.deleteMyAccount()`
+
 ### 5.x 教師 admin — 学生登録コード（2026-05-03 拍板、§4.10 + system_features §7.16）
 
 > アクセス権限 = `teacher` JWT + 「寮務管理」権限（§3.4 教師権限モデル）。他 role は 403。

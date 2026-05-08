@@ -41,6 +41,7 @@ import ImagePlayground
 
 struct SplashView: View {
     @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
     @State private var appear: Bool = false
 
     var body: some View {
@@ -90,7 +91,17 @@ struct SplashView: View {
             withAnimation(.easeIn(duration: 0.6)) { appear = true }
             Task {
                 try? await Task.sleep(nanoseconds: 2_200_000_000)
-                await MainActor.run { router.replace(.onboarding) }
+                await MainActor.run {
+                    // 启动跳转逻辑（2026-05-07 itsuki 拍板）：
+                    //   - Keychain 已恢复 token → 自动登录跳 home
+                    //   - 没 token → 跳 login（老用户再登录 / 新用户走 login 里的「新規登録」link）
+                    // onboarding 不再强制路径（每次启动都看一遍太烦）
+                    if app.authToken != nil {
+                        router.replace(.home)
+                    } else {
+                        router.replace(.login)
+                    }
+                }
             }
         }
     }
@@ -1579,6 +1590,7 @@ struct LoginView: View {
                 .padding(.top, 8)
 
                 // Footer links
+                // Footer links（v1.0 上架版：忘记密码功能未实装 → 入口隐藏，避免 Apple 4.0 死按钮 reject）
                 HStack {
                     Button("新規登録") {
                         router.replace(.registerStep1)
@@ -1587,14 +1599,6 @@ struct LoginView: View {
                     .foregroundStyle(T.inkSub)
 
                     Spacer()
-
-                    Button {
-                        router.go(.pwreset)
-                    } label: {
-                        Text("パスワードを忘れた →")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(T.primary)
-                    }
                 }
                 .padding(.horizontal, 28)
                 .padding(.top, 18)
