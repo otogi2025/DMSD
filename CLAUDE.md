@@ -1,5 +1,25 @@
 # DMSD 项目指令（CC 必读）
 
+## ⭐ ac-radar 强制加载（2026-05-10 上线）
+
+每次会话启动时，**先 Read** `~/.claude/skills/ac-radar/SKILL.md`，按那里的「CC 行为约定」（§14）执行。这是为了让 AC 素材捕获不依赖 description 语义匹配（会漏）。
+
+启动时跑一次：
+
+```bash
+python3 ~/.claude/skills/ac-radar/scripts/startup_check.py
+```
+
+脚本输出按原样转告 itsuki，不美化、不解释。
+
+### 跟 session-wrap 的分工（重要）
+
+- **实时阶段**：信号命中 → ac-radar 双写 inbox + DMSD raw 的 `## AC 信号 (HH:MM)` 段（轻量 tag）
+- **收尾阶段**：itsuki 说「收尾」→ ac-radar flush 模式仅补**中央 inbox** + session-wrap 跑 §5.5 全流程（含 §5.5.1 深度 AC dump 到 raw）
+- 完整分工矩阵 → `~/.claude/skills/ac-radar/SKILL.md` §13
+
+**session-wrap 不动** —— 它继续做工程层 + 深度 AC dump，ac-radar 只补「实时短 tag + 跨项目 inbox」。两者并行不互调。
+
 ## 关于 itsuki
 
 中国留学生，日本高中三年级

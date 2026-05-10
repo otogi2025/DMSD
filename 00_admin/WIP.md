@@ -1,6 +1,6 @@
 # 当前工作状态 (Work In Progress)
 
-> **最后更新**: 2026-05-08（**iOS 上架冲刺跨日大会话** — 5-07 启动「上线 App Store」目标 → backend production 部署 GCP VPS + DNS + GH Pages + Apple Dev Portal/ASC + Xcode 编译，卡 Validate Version empty 待修；早些更新:点呼机当第 5 端 + 联动机制 18 条规则升级）
+> **最后更新**: 2026-05-10（ac-radar 全局 AC 素材实时捕获 Skill 上线 + DMSD 钩子 + 砍 5-04 晚条目保 5 条上限）
 
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
@@ -38,6 +38,32 @@
 ---
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
+
+### 2026-05-10 by [Cowork-Opus 4.7-主会话 ac-radar 上线]
+
+**主题**：⭐⭐⭐ 设计并落地全局 `ac-radar` Skill —— 跨 CC 项目的 AC 素材实时捕获层；DMSD/CLAUDE.md 加 ac-radar 钩子；**session-wrap 不动**
+
+- **诉求来源**：itsuki 现有 AC 素材完全靠手动整理 + DMSD session-wrap 收尾扫描，副项目（交易系统等）里 CC 不知道 AC 存在 → 素材会漏。要做一个跨项目的实时雷达
+- **设计迭代 5 轮**：从「16 文件理论完美」→ 「按 YAGNI + progressive disclosure 砍到 5 文件」（itsuki 追问「为什么需要这十几份文件 / 这是 skill 启动后会去读吗」推动）
+- **Skill 名定 `ac-radar`**（雷达隐喻：一直开扫，发现信号就标）+ **inbox 定 `06_radar_inbox/`**（itsuki 选数字编号连贯方案，不要 CC 提的 90_）
+- **核心架构 3 层**：实时打 tag（中央 inbox + DMSD 双写）→ 用户挑（03_素材_候选）→ 用户写（05_产出）。**ac-radar 永远只动最左边**
+- **关键拍板**：「直接让 ac-radar 被收尾这个关键词调用，session-wrap 跑它自己的收尾」 → 两个 Skill 并行不互调
+- **CC 自决不动 session-wrap**（读了 760 行后判断破坏现成体系不值得）→ 改成"实时层 ac-radar + 收尾层 session-wrap §5.5.1"互补分工
+- **5 文件落地**（在 iCloud workspace `_skill_draft_ac-radar/`）：SKILL.md（15 节）/ scripts/ × 3（find_ac_root / startup_check / append_to_scratchpad）/ INSTALL.md
+- **DMSD/CLAUDE.md 加段**：⭐ ac-radar 强制加载 + 跟 session-wrap 的分工说明（让下次会话 CC 必读 ac-radar）
+
+**新规则上线**：
+- AC 素材层从「session-wrap 独家」升级到「ac-radar 实时 + session-wrap 收尾深度」双层互补
+- DMSD raw 文件结构变了 —— 同时含 `## AC 信号 (HH:MM)` 段（ac-radar 写）+ `## HH:MM [类型]` 段（session-wrap §5.5.1 写），互补不冲突
+- **session-wrap 完全不动**（CC 自决保护现有体系）
+
+**AC 价值**：⭐⭐⭐ — 模式 5 × 2（progressive disclosure 机制理解 / 两个 skill 并行不互调的设计直觉）+ 模式 6 × 2（inbox 命名取舍 / ~/.claude/ 保护带来的草稿+cp 路线）。详见 `05_logs/raw/2026-05-10.md`
+
+**残**：
+- itsuki 还没跑 cp 命令装 ac-radar（INSTALL.md §1 给了一行）
+- 全局激活段（~/.claude/CLAUDE.md）还没贴 → 副项目不激活
+- 副项目（交易系统等）的 CLAUDE.md 也建议加 ac-radar 钩子段（按需）
+- 截止日期表 2026-06-15 募集要项公表后要更新 startup_check.py
 
 ### 2026-05-08 凌晨 by [新Mac-Opus 4.7 1M-主会话 reviewer_demo重做]
 
@@ -135,29 +161,7 @@
 
 **残**：~~版本 bump 决策~~ ✅ itsuki 否决「这算个屁的升级，就移动了下结构而已」（raw §7 dump）/ ~~push~~ ✅ commit `1f55643` + `f050c30` 已 push origin main / round1_handoff/ 里 7 个 .DS_Store 垃圾还在（可手动 Finder 删） <!-- VERSION_OK -->
 
-### 2026-05-04 晚 by [Mac-iOS bug 修复 Opus 4.7]
-
-**主题**：⭐⭐⭐⭐ iOS 5 个 bug 修复（2 个真机生产 bug + 1 次 CC 失职被 itsuki 戳穿 + 删 8 处蠢 placeholder）
-
-- **AppIcon Liquid Glass 修复**（4 层失败重诊）— Xcode 26 build error `actool: None of the input catalogs contained... icon stack named "AppIcon"`。**CC 第一次走错方向回退到传统 .appiconset + v2 PNG 替换**，BUILD SUCCEEDED 假装修好 → itsuki 怒戳穿「我现在图标还是白色背景，你到底更新了没？」→ CC 重新诊断（单独跑 actool 隔离 + WebSearch Apple iOS 26 文档）→ 真根因：**Xcode 26 把 `.icon` 当单一文件 reference 处理，不能塞 `.xcassets/` 里**。修：mv `Assets.xcassets/AppIcon.icon` → `TomoshibiApp/AppIcon.icon` + 手改 pbxproj 4 处加 PBXFileReference / PBXBuildFile / PBXGroup / PBXResourcesBuildPhase
-- **暗夜模式黑闪修复**（itsuki 真机晚上点页面黑一下）— `TomoshibiApp.swift:20` `.preferredColorScheme(app.isDark ? .dark : nil)` 中 `nil` = **跟随系统**，晚上系统切 dark → SwiftUI 喂 dark color scheme → view 硬编码 light token 双重渲染 → 黑闪。修：强制 `.preferredColorScheme(.light)` + 加 inline 注释标 N18 待实装
-- **注册进度 5/4 → 5/5 修复** — `RegisterProgress` 硬编码 totalSteps=4（旧 4 步 JSX 抄来），后加 RegisterStep5 没跟上 → `Text("\(step) / 4")` 改 5，进度条 `* 0.25` → `/ 5.0`
-- **删 8 处蠢 placeholder** — itsuki 怒怼「你写的例子太他妈蠢了」→ ApplyStubs × 6 / StayListStubs × 2 / HomeStubs × 1 全删。剧情化（祖父母宅 / 友人の結婚式 / 祖母の通院）→ 中性提示（住所を入力 / 理由を入力）
-- **CommunityStubs Text + Text deprecation** — iOS 26 推荐字符串插值嵌套 Text
-
-**新规则上线**：
-- memory `feedback_no_dramatic_placeholder.md` — UI placeholder 禁用剧情化例子（demo prototype 抄到生产时必删「例：xxx」）
-- memory `feedback_dont_unilaterally_revert_design.md` — CC 修 build error 不能私自回退 itsuki 主动选的新格式（先诊断根因 / 不通就报告等拍板，不能 fallback 伪装 BUILD SUCCEEDED）
-
-**联动副发现 — IOS_DESIGN_LOG.md §6.5 矛盾**：N18「暗色模式：做 ✅」但实际未实装 → 加 TODO §B 待 itsuki 拍板（A 真做 N18 全 token 改造 / B 降级 N18 → v1.0 不做）
-
-**残**：
-- pbxproj 备份 `/tmp/pbxproj_backup_before_icon_move`（commit 前 git diff 可检视手改 UUID 正确性）
-- iOS sync 脚本本机不通（`~/dev/TomoshibiiOSApp` 不存在）— 是否 clone 独立 repo / 或改脚本路径
-- 真机暗夜黑闪 fix 需要 itsuki 装手机晚上验证（CC 无法验证）
-- 启动 git status 残留垃圾（`.bak` × 2 / `Root/File.txt`）等 itsuki 拍板删
-
-> **2026-05-04 深夜砍掉 5 条老条目** + **2026-05-06 砍掉 5-03 晚条目（协作模型升级）** + **2026-05-08 砍掉 5-04 上午小条目（已合并到 5-04 主条目）** + **2026-05-08 凌晨砍掉 5-04 主体 / 5-04 晚治理 / 5-04 深夜元层优化 3 条（让 5-08 reviewer_demo重做 + 5-07→5-08 跨日 + 5-08 点呼机 + 5-06 + 5-04 iOS bug 5 条上限）** — 详细历史看 `git log` + `05_logs/raw/2026-05-0{2,3,4,7,8}.md`
+> **2026-05-04 深夜砍掉 5 条老条目** + **2026-05-06 砍掉 5-03 晚条目（协作模型升级）** + **2026-05-08 砍掉 5-04 上午小条目（已合并到 5-04 主条目）** + **2026-05-08 凌晨砍掉 5-04 主体 / 5-04 晚治理 / 5-04 深夜元层优化 3 条** + **2026-05-10 砍掉 5-04 晚 iOS bug 修复条目（详见 raw/2026-05-04_iOS_bug修复.md，让 5-10 ac-radar 上线 + 5-08 reviewer_demo + 5-07→5-08 跨日 + 5-08 点呼机 + 5-06 5 条上限）** — 详细历史看 `git log` + `05_logs/raw/2026-05-0{2,3,4,7,8}.md`
 
 ---
 
@@ -224,4 +228,5 @@
 
 - **2026-05-04 上午** — 加 2026-05-04 会话条目（A+B 文件联动工具建设）
 - **2026-05-04** — 🔧 **大改 by [Mac-mini-Opus 4.7]**：itsuki 指出 WIP 跟 TODO 重叠 → 拍板方案 A → 砍「🔄 进行中的任务」section（218 行，跟 TODO 重叠）+ 砍「✅ 最近完成」长尾历史（170 行，commit history 已记录）+ 头部「最后更新」长串历史压缩到「最近会话」5 条 → 全文 600 → ~160 行；分工规则写明铁律「未完成的事只写在 TODO」；CC 启动流程加「扫 TODO 顶部 200 行」。备份 `/tmp/WIP_backup_2026-05-04.md`
+- **2026-05-10** — 加 ac-radar 上线条目（共 6 条超 5 条上限）→ 砍 5-04 晚 iOS bug 修复条目（详见 raw/2026-05-04_iOS_bug修复.md）
 - 更早历史 — 见 `git log -- 00_admin/WIP.md`
