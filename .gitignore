@@ -84,6 +84,9 @@ Desktop.ini
 # ── Claude Code 本地设置（含机器路径，不入 repo） ─
 .claude/settings.local.json
 
+# ── Matt Pocock skills `to-prd` 中间产物（PRD 详细文档，进 TODO.md 后即可弃） ─
+.scratch/
+
 # ── 数据库本地文件 ────────────────────────────────
 *.sqlite
 *.sqlite3

@@ -47,6 +47,7 @@ GitHub: otogi2025/DMSD public（单一 repo — 2026-05-06 退役独立 repo 模
 04_ops/     运维
 05_logs/    开发 log — raw / dev_log / problem_solving / decision_log / learning_path / project_evolution
 06_assets/  07_release/  99_archive/  bin/   参考材料 / 发布物 / 早期归档 / 脚本
+docs/agents/  外部 skill 配置（Matt Pocock）— issue-tracker / triage-labels / domain 映射
 
 完整文件级清单 + 状态 + AC 价值: .claude/skills/project-overview/SKILL.md
 
@@ -171,6 +172,24 @@ git 仓库状态确认（git status / 残留 / 未 push / stash） → **会话�
 | memory-write | 记一下规则 / 以后这样 / memory 加一条 / 不要再... | memory 写入 SOP（4 类型 / 查重 / 索引）|
 | file-linkage | 联动 / 改 A 要查 B / 我改了 X 要查什么 | 联动矩阵（CC 改高联动文件后调）|
 | project-overview | X 文件在哪 / 项目里有 X 类文件吗 / 找文件 | 项目文件总览 |
+
+---
+
+## Agent skills（外部 skill 配置入口 — Matt Pocock 套件）
+
+外部 skill（grill-me / tdd / to-prd / to-issues / diagnose / setup-matt-pocock-skills）的 per-repo 配置。详细配置 → `docs/agents/`。
+
+### Issue tracker
+
+DMSD 用 `00_admin/TODO.md` 单文件（不是 GitHub Issues）。详见 `docs/agents/issue-tracker.md`。
+
+### Triage labels
+
+5 个默认 label（`needs-triage` / `needs-info` / `ready-for-agent` / `ready-for-human` / `wontfix`），DMSD 暂未启用，留作模板。详见 `docs/agents/triage-labels.md`。
+
+### Domain docs
+
+Multi-context — 5 端 monorepo + 共用层 + 物理硬件层 + 决策日志（替代 docs/adr/）。`CLAUDE.md` 仍是 single source；`docs/agents/domain.md` 是给 skill 读的快照。
 
 # 对话规则 / 代码编写原则
 
