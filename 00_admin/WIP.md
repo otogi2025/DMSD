@@ -1,6 +1,6 @@
 # 当前工作状态 (Work In Progress)
 
-> **最后更新**: 2026-05-10（ac-radar 全局 AC 素材实时捕获 Skill 上线 + DMSD 钩子 + 砍 5-04 晚条目保 5 条上限）
+> **最后更新**: 2026-05-10 晚（skills 批量装上线 — Matt Pocock 6 + Patina 2 + Anthropic 官方 skill-creator + chrome-devtools-mcp + DMSD 外部 skill 体系建立 docs/agents/ + 砍 5-06 独立 repo 退役条目保 5 条上限）。早些更新: 2026-05-10（ac-radar 全局 AC 素材实时捕获 Skill 上线 + DMSD 钩子）
 
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
@@ -38,6 +38,25 @@
 ---
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
+
+### 2026-05-10 晚 by [新Mac-Opus 4.7-主会话 skills 批量装]
+
+**主题**：⭐⭐ 装 15 个 skill（Matt Pocock 6 + Patina 2 + Anthropic 官方 skill-creator + chrome-devtools-mcp 6 子 skill）+ DMSD 外部 skill 体系建立（docs/agents/ 配置层 + CLAUDE.md ## Agent skills 段 + 文档同步点清单 §13）
+
+- **9 skill 调研**：CC WebSearch + WebFetch 5 次整理 3 个来源 — Matt Pocock npx / Anthropic /plugin / Patina curl。/grill-me / TDD / write-a-prd / prd-to-issues 实际名字 to-prd / to-issues / Browser-use 已激活 / Agent-browser 真名 chrome-devtools-mcp（CC 之前给的名字不准 — 自己承认错误后替换）
+- **`/setup-matt-pocock-skills` 拍板 B（核心架构决策）⭐⭐⭐**：CC 探索 DMSD 现状发现 Matt Pocock 默认布局（GitHub Issues / docs/adr/ / CONTEXT.md / docs/agents/ 字母目录）跟 DMSD 现有体系（00_admin/TODO.md / 05_logs/decision_log.md / 02_design/system_features.md + 5 端 DESIGN_LOG / 00-99 数字目录）完全错位 → 给 3 选项 → itsuki 选 B「让 skill 服从 DMSD 不双轨」
+- **6 处改动落地**：新建 docs/agents/{issue-tracker,triage-labels,domain}.md（prose 映射）+ CLAUDE.md 加 `## Agent skills` 段 + §目录结构 加 docs/agents/ 一行 + 00_admin/文档同步点清单.md 加 §13 + .gitignore 加 .scratch/
+- **superpowers 误装 + 卸载**：itsuki 跑 /plugin 装的是 superpowers（第三方 obra）不是 skill-creator（Anthropic 官方）。CC 主动点 superpowers 跟 Matt Pocock 套件 4 处功能重叠（TDD / debug / brainstorming / 写新 skill） + 关键词撞车风险 → itsuki 拍板留 Matt Pocock 卸 superpowers
+- **CC 帮删 superpowers manifest**：Edit installed_plugins.json（成功）+ rm -rf cache 被 DMSD pre-bash-destructive-block.sh hook 拦（hook 不认 ~/.claude/plugins/cache/ 是临时路径，要 itsuki 明确授权 — 反映 hook 体系在外部目录上正确触发拦截）→ 让 itsuki 自跑 rm 路径
+- **AC 出愿写作 skill**：patina（devswha — AI 写作模式检测中/英/日/韩）= 日语志望理由书核心工具 + patina-max（best-of-N 但要 codex/gemini CLI 才完整发挥）
+
+**新规则上线**：
+- 外部工具进入项目时的**归化原则** — 不让项目迁就工具，让工具服从项目（docs/agents/ 体系实战 — CLAUDE.md 仍 single source / docs/agents/*.md 是给 skill 读的快照）
+- 文档同步点清单 §13 加「外部 skill 配置」同步点
+
+**AC 价值**：⭐⭐ — 模式 5「skill 装哪儿分层架构理解」（通用工具底层 vs per-repo 配置层）+ 模式 6 × 2（设计决策双轨拒绝 + skill 重叠取舍）+ 工程纪律（先装完再统一 commit 拒绝 git add . 一锅端）。详见 `05_logs/raw/2026-05-10_skills批量装.md`（6 条素材深度 dump）+ 中央 inbox 4 条短 tag
+
+**残**：本次 setup 6 处改动 + 5-08 跨日残（.claude/skills/new-feature/SKILL.md / 06_assets/icons 2 个 icon 删）混着 + 6 commit 未 push 等 itsuki 拍板统一 commit 策略 / superpowers cache 5MB 留着无害等 itsuki 自跑 `rm -rf ~/.claude/plugins/cache/claude-plugins-official/superpowers` 清 / 重启 CC 让当前会话残留的 superpowers 14 子 skill 真正下线
 
 ### 2026-05-10 by [Cowork-Opus 4.7-主会话 ac-radar 上线]
 
@@ -140,28 +159,7 @@
 
 **残**:~~版本 bump 决策~~ ✅ itsuki 否决「暂时不用 bump」/ 配件等到货 / D1-D6 拍板待 itsuki / push 等 itsuki 明示
 
-### 2026-05-06 by [新Mac-Opus 4.7 1M-主会话]
-
-**主题**：⭐⭐⭐ 独立 repo 模式退役 — iOS / Android 全合并回 DMSD + GitHub 双独立 repo 删除
-
-- **背景**：itsuki 在新 Mac（kurekoduki）拉 Mac mini 5-06 push 的 46 commit + v0.8.0 tag → 看到 CC 报告里「iOS 独立 repo」表述 → 问 CC 实情 → 拍板「全部合回 DMSD，github repo 删了，给教授看不能太难看」 <!-- VERSION_OK -->
-- **iOS 合并**：DMSD 16578 行 vs Tomoshibi-iOS 5347 行（4-23 后没 push），DMSD 已是 single source，无逆同步
-- **Android 合并**：rsync `/tmp/check-android` → `03_dev/student_android/v1/`（85 文件 / 6945 行 Kotlin / 1MB）
-- **归档** `99_archive/2026-05-06_cloud_agent_退役/`：4 元数据（STATUS / SHARED_DECISIONS / SESSION_CHANGELOG / REMOTE_AGENT_GUIDE）+ `sync-ios-refs.sh` + iOS / Android 完整 git log + README
-- **5 声明性文件改**：CLAUDE.md / 文档同步点清单 / file-linkage SKILL / project-overview SKILL（§0.4 / §5.2 / §5.6 / §6.5 / §8.1 / §9.6 / §10 / §13）/ sync-rules.sh
-- **GitHub repo 删**：`otogi2025/Tomoshibi-iOS` + `Tomoshibi-Android`（不可逆，git log 已存档）
-
-**新规则上线**：
-- 独立 repo 模式退役 — iOS+Android+Web+后端 全在 DMSD 单一 repo
-- CC 收到「现状是什么」类问题时，先 grep/find 实地验证再用 SKILL.md 补充（这次 CC 答歪触发的 lesson）
-
-**AC 价值**：⭐⭐⭐ — 「设计在约束下成立 → 约束变化方案跟着变」13 天试错周期（4-23 → 5-06）；项目文件总览 SKILL §8.1 + AC top 10 #9 都重写为「试错 + 退役迭代」叙事。详见 `05_logs/raw/2026-05-06.md`
-
-**hook 实战拦截**：`pre-bash-destructive-block.sh`（5-04 凌晨加）拦了 `rm -rf 03_dev/student_android/v1/round1_handoff/` — CC 改用 rsync 跳过，让 .DS_Store 垃圾留着（git 看不到不影响）
-
-**残**：~~版本 bump 决策~~ ✅ itsuki 否决「这算个屁的升级，就移动了下结构而已」（raw §7 dump）/ ~~push~~ ✅ commit `1f55643` + `f050c30` 已 push origin main / round1_handoff/ 里 7 个 .DS_Store 垃圾还在（可手动 Finder 删） <!-- VERSION_OK -->
-
-> **2026-05-04 深夜砍掉 5 条老条目** + **2026-05-06 砍掉 5-03 晚条目（协作模型升级）** + **2026-05-08 砍掉 5-04 上午小条目（已合并到 5-04 主条目）** + **2026-05-08 凌晨砍掉 5-04 主体 / 5-04 晚治理 / 5-04 深夜元层优化 3 条** + **2026-05-10 砍掉 5-04 晚 iOS bug 修复条目（详见 raw/2026-05-04_iOS_bug修复.md，让 5-10 ac-radar 上线 + 5-08 reviewer_demo + 5-07→5-08 跨日 + 5-08 点呼机 + 5-06 5 条上限）** — 详细历史看 `git log` + `05_logs/raw/2026-05-0{2,3,4,7,8}.md`
+> **2026-05-04 深夜砍掉 5 条老条目** + **2026-05-06 砍掉 5-03 晚条目（协作模型升级）** + **2026-05-08 砍掉 5-04 上午小条目（已合并到 5-04 主条目）** + **2026-05-08 凌晨砍掉 5-04 主体 / 5-04 晚治理 / 5-04 深夜元层优化 3 条** + **2026-05-10 上午砍掉 5-04 晚 iOS bug 修复条目** + **2026-05-10 晚砍掉 5-06 独立 repo 退役条目（让 5-10 晚 skills 批量装 + 5-10 ac-radar 上线 + 5-08 reviewer_demo + 5-07→5-08 跨日 + 5-08 点呼机 5 条上限）** — 详细历史看 `git log` + `05_logs/raw/2026-05-0{2,3,4,6,7,8}.md`
 
 ---
 
