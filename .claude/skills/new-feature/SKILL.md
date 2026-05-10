@@ -1,19 +1,21 @@
 ---
 name: new-feature
-description: DMSD 新功能 4 端实装模板 — spec → backend → iOS → Android TODO 顺序 / 每端最小必改文件清单 / 字段对齐自检 / 完成后 sync-check。⭐ 解决 CC 永远漏端 / 字段不对齐两大失职。DMSD 是 5 端联动项目（spec / backend / iOS / Android / 文档），新功能必须每端考虑。
+description: DMSD 新功能 5 端实装模板 — spec → backend → iOS → Android → 点呼机 TODO 顺序 / 每端最小必改文件清单 / 字段对齐自检 / 完成后 sync-check。⭐ 解决 CC 永远漏端 / 字段不对齐两大失职。DMSD 是 5 端联动项目（backend / iOS / Android / teacher_web / rollcall_device 点呼机）+ spec + 文档，新功能必须每端考虑。
 when_to_use: ⭐ 触发 — itsuki 说「新功能 X / 加 Y 功能 / 实装 Z / 做 W / 加个 N」/ 当前任务是从零做一个完整 user-facing 功能（不是改 bug / 重构 / 文档调整）。
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
-# New Feature Skill — DMSD 4 端实装模板
+# New Feature Skill — DMSD 5 端实装模板
 
-> **核心理念**：DMSD 一个新功能 = spec + backend + iOS + Android + 文档 5 处都要碰。CC 默认只做 itsuki 直接说的那端，**剩下 4 端一定漏**。本 skill 让 CC 做完一端就主动问下一端，做完 5 端 + 字段对齐自检 + sync-check 才算完事。
+> **核心理念**：DMSD 一个新功能 = spec + backend + iOS + Android + 点呼机 + 文档**多端联动**。CC 默认只做 itsuki 直接说的那端，**剩下端一定漏**。本 skill 让 CC 做完一端就主动问下一端，做完所有涉及端 + 字段对齐自检 + sync-check 才算完事。
+>
+> **2026-05-08 更新**：itsuki 拍板把点呼机当第 5 端，跟 backend / iOS / Android / teacher_web 4 端对称管理。当前点呼机骨架阶段（代码 0 行），D1-D6 决策待拍板 + 配件到货后开始实装 — 新功能涉及点呼机时先记 TODO。
 >
 > **2026-05-04 时点状态**：iOS 在前面跑，backend 还没真上线，Android 还没起。所以实战流程是 **spec → iOS demo → 后续 backend 真上线时补字段对齐**。本 skill 写的是**完整理想流程**，做不到的端记 TODO。
 
 ---
 
-## §0 4 端实装顺序（不可跳序）
+## §0 5 端实装顺序（不可跳序）
 
 ```
 Step 1: spec 段（先写规格，再实装 — 不能反过来）
@@ -29,10 +31,19 @@ Step 3: iOS 段（v1.0 主推 iOS）
 Step 4: Android 段（v1.0 同步上线，但当前 demo 阶段先记 TODO）
   └─ entity + retrofit interface + Compose screen / 或 TODO
 
-Step 5: 字段对齐自检 + sync-check.sh + commit
+Step 5: 点呼机端（rollcall_device — 涉及 NFC 点呼 / LED 状态 / 日语播报时必看）
+  └─ src/{nfc,led,audio,api}/*.py + ROLLCALL_DEVICE_DESIGN_LOG.md / 当前骨架阶段先记 TODO
+
+Step 6: 字段对齐自检 + sync-check.sh + commit
 ```
 
 **例外**：itsuki 明确说「这次只做 spec」/「这次只做 iOS demo」→ 跳后续步骤但**必须报告漏的端 + 加 TODO**。
+
+**端涉及判断**：不是所有功能都涉及全 5 端。判断规则：
+- 学生 App 内功能（申请 / 公告 / 个人页）→ backend + iOS + Android（3 端）
+- 老师 / 舍监后台功能 → backend + teacher_web（暂未在本 skill 详写）
+- 物理点呼相关（卡片 / NFC / 现场播报 / 状态灯）→ backend + rollcall_device（+ iOS/Android 显示）
+- 跨域功能（如「老师推送公告 → 学生收到」）→ 全 5 端
 
 ---
 
@@ -157,7 +168,31 @@ Android 还没实装基础架构。现在的做法：
 
 ---
 
-## §5 Step 5: 字段对齐自检
+## §4.5 Step 5: 点呼机端 rollcall_device（当前骨架阶段：记 TODO）
+
+> **2026-05-08 itsuki 拍板**：点呼机当第 5 端，跟 backend / iOS / Android / teacher_web 对称管理。当前骨架阶段（代码 0 行），D1-D6 决策待拍板 + 11 件配件到货后开始实装。
+
+**新功能涉及点呼机的判断**：功能跟物理 NFC 卡 / LED 状态灯 / 日语语音播报 / 现场点呼相关 → 涉及；纯 App 内功能（申请 / 公告 / 个人页）→ 不涉及。
+
+**当前做法**（骨架阶段）：
+
+1. **`00_admin/TODO.md` §🛰️ 点呼机第 5 端 backlog 加一条**：「rollcall_device 端实装 X 功能（spec 见 system_features §X）」
+2. **`03_dev/rollcall_device/ROLLCALL_DEVICE_DESIGN_LOG.md` 加章节**（设计先行，代码等 D1-D6 + 配件）
+3. 不写点呼机代码（避免在 D1-D6 决策没定 / 硬件没到时写废代码）
+4. 报告 itsuki：「点呼机端记了 TODO + 加了 DESIGN_LOG 章节，等 D1-D6 拍板 + 配件到货后回来做」
+
+未来点呼机实装时（不是当前任务）：
+- `03_dev/rollcall_device/src/nfc/*.py` — NFC 读卡 / 写动态 NFC（PN532 + ST25DV16K）
+- `03_dev/rollcall_device/src/led/*.py` — GPIO 状态灯（蓝/绿/红/白）
+- `03_dev/rollcall_device/src/audio/*.py` — 日语 TTS 播报
+- `03_dev/rollcall_device/src/api/*.py` — POST /checkin 调 backend
+- `03_dev/rollcall_device/src/main.py` — 主循环串起来
+- backend `routers/rollcall.py` 端点对齐
+- iOS / Android 显示点呼结果端对齐
+
+---
+
+## §5 Step 6: 字段对齐自检
 
 > **DMSD 最大 bug 来源**：backend schemas.py 字段名 ≠ iOS NetworkModels.swift 字段名 → 客户端解码失败。
 
@@ -188,7 +223,7 @@ grep -A 10 "struct X" 03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/Netw
 
 ---
 
-## §6 Step 6: 完成后动作
+## §6 Step 7: 完成后动作
 
 ```bash
 # 1. 跑 sync-check 确认联动文件都改了
@@ -202,7 +237,7 @@ git status
 
 # 4. commit（按 Conventional Commits + 中文 + 不加 Co-Authored-By）
 git add <文件们>
-git commit -m "feat(<scope>): X 功能 4 端实装"
+git commit -m "feat(<scope>): X 功能 5 端实装"
 ```
 
 **不主动 push** — 按 commit/push 协作分工 itsuki 拍板。
@@ -213,7 +248,7 @@ git commit -m "feat(<scope>): X 功能 4 端实装"
 
 ### ❌ 反模式 1: 只做 itsuki 字面说的那端
 itsuki 说「iOS 加个签到按钮」→ CC 只改 iOS。后端没 endpoint → iOS 跑起来报 404。
-**正确**：默认 4 端都考虑，每端做或记 TODO，做完报告每端状态。
+**正确**：默认 5 端都考虑（backend / iOS / Android / teacher_web / 点呼机），每端做或记 TODO，做完报告每端状态。
 
 ### ❌ 反模式 2: 字段不对齐自检
 两端各自写完，跑起来 iOS 解码报错才发现 `created_at` vs `createdAt` 漂移。
@@ -244,4 +279,5 @@ backend models.py 改了但没生成 alembic 迁移 → 数据库 schema 跟 ORM
 
 ---
 
-**最后更新**：2026-05-04 itsuki 拍板新建（CC 漏端 / 字段不对齐 → SOP 化）
+**最后更新**：2026-05-09 itsuki 拍板加点呼机为第 5 端（4 端 → 5 端，加 §4.5 / 端涉及判断更新 / commit 例子改 5 端）
+**初版**：2026-05-04 itsuki 拍板新建（CC 漏端 / 字段不对齐 → SOP 化）
