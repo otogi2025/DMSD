@@ -1,6 +1,6 @@
 # 当前工作状态 (Work In Progress)
 
-> **最后更新**: 2026-05-10 晚（skills 批量装上线 — Matt Pocock 6 + Patina 2 + Anthropic 官方 skill-creator + chrome-devtools-mcp + DMSD 外部 skill 体系建立 docs/agents/ + 砍 5-06 独立 repo 退役条目保 5 条上限）。早些更新: 2026-05-10（ac-radar 全局 AC 素材实时捕获 Skill 上线 + DMSD 钩子）
+> **最后更新**: 2026-05-11（术语表 HTML 学习工具建立 — 180+ 词 / 16 段 / 交互式 + 5-11 MD→HTML 混层方案首个落地试水 + 砍 5-08 点呼机条目保 5 条上限）。早些更新: 2026-05-10 晚（skills 批量装上线）/ 2026-05-10（ac-radar 上线）
 
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
@@ -38,6 +38,28 @@
 ---
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
+
+### 2026-05-11 by [新Mac-Opus 4.7 1M-主会话 术语表]
+
+**主题**：⭐⭐⭐ 术语表 HTML 学习工具建立 — 5-11 MD→HTML 混层方案首个落地试水 + itsuki 元认知拍板「英文认得 vs 日语会说」分层 + CC 第 1 版静态字典被推翻重写交互式工具 + CC 漏 project-overview 同步被 itsuki 当场抓
+
+- **元认知拍板**：itsuki 区分**英语 = passive recognition（认得）/ 日语 = active production（说出来）**两个学习目标 — "我又没说我要背读法，我就认得出来就好了。日语的话我必须要说出来。" 避免双语都要"会说"的低效路径
+- **第 1 版被推翻**：CC 默认建静态字典（130 词 / 9 段），itsuki 一句反问"思考最高效让我达成目标的方式" → CC 反思字典 ≠ 学习工具 → 重写交互式版（180+ 词 / 16 段 / JS 渲染 / localStorage 进度 / 5 条认知科学原则）
+- **5 条认知科学原则嵌入工具**：主动回忆 / 间隔重复 / 检索练习 / 交错学习 / 输出>输入 — 顶部展开框 + 测试模式（日语模糊点击揭晓）/ 4 状态标记 / 🎲 随机考我 5 张 / 实时进度面板
+- **3 轮迭代覆盖**：v1 130 词 → v2 加 4 段（项目特有/宿舍日语/流程/概念） → v3 加 3 段 ~55 词（后端文件 21 / iOS 文件 29 / UI 代码常见词 20）— 第 3 轮是 itsuki 说"代码文件夹英语单词没背过别忘了"触发
+- **CC 漏 project-overview 同步被抓**：CLAUDE.md L86 铁律「新建文件 → project-overview/SKILL.md 同步」CC 没主动跑，itsuki 反问 → CC 承认 + 补 3 处编辑 + 自我反思「下次不等你问」
+- **itsuki 验证规则源头**：CC 引用「CLAUDE.md 铁律」时 itsuki 立刻问"是 CLAUDE 还是 skill 要求的" → CC grep 证明真在 L86 → 双层元层验证（执行层 + 规则层）
+- **CC 主动修 ID 撞车 bug**：第 1 版 archive / tag 两个 ID 跨分类撞车会污染 mastery 状态 → 重命名 xcode-archive / nfc-tag / git-tag
+
+**5-11 跨会话联动**：早些会话已在 TODO.md 加 §📄「MD → HTML 改造候选清单」拍板混层方案（CC 协作文件保 MD / 人最终读的文件候选 HTML，不强制双写）— 本次术语表.html 是首个落地试水 + TODO 自带「查 HTML skill」元任务等启动
+
+**新规则上线**：
+- 文件格式分层（CC 协作 vs 人最终读者）— TODO §📄 已建候选清单 + pandoc 临时渲染策略（要看 HTML 让 CC 渲染到 /tmp/ 永不入 git）
+- itsuki 跟 CC 协作的**双层元验证模式** — 不只检查 CC 是否执行规则，还检查 CC 引用的规则真伪
+
+**AC 价值**：⭐⭐⭐ — 模式 5 × 3（英/日认知分层 / 漏同步纠正 / 规则源头验证）+ 模式 2 × 1（CC 第 1 版假设崩→重写）+ 模式 6 × 2（HTML vs MD / 单独背 vs 项目语境化）。详见 `05_logs/raw/2026-05-11.md` 6 条素材深度 dump
+
+**残**：术语表后续 itsuki 用一周后反馈是否真用得起来 / TODO §📄 候选清单 A 元任务（查 HTML skill）+ B 7+ 个候选 HTML 改造文件 / 多 commit 未 push 等 itsuki 拍板统一策略 / 本次 TODO.md modify 是早些会话的 §📄 加段（不是本会话改的，跟本会话 commit 一起带走还是分开等 itsuki 拍板）
 
 ### 2026-05-10 晚 by [新Mac-Opus 4.7-主会话 skills 批量装]
 
@@ -136,30 +158,7 @@
 
 **残**：当前卡 Xcode Validate（Version/Build 修后重 Archive）/ 截图 / ASC 元数据 / Submit / push 等 itsuki 明示 / `06_assets/icons/Tomoshibi icon.icon/{Assets/tomoshibi_flame 2.png, icon.json}` 被删（git status 显示，不知是不是 itsuki 自己手动）等拍板 restore 还是接受 / iOS+backend fork 在 DMSD 外不在 git 范围
 
-### 2026-05-08 by [新Mac-Opus 4.7 1M-主会话]
-
-**主题**：⭐⭐⭐ 点呼机当第 5 端 + 联动机制 12→18 条规则升级 + 11 配件型号定型(itsuki 已下单)
-
-- **配件查证**:itsuki 发淘宝 10 张截图,要求**上网查证**不接受 CC 凭直觉判断;CC 用 WebSearch 跑 4 个并行查询验证 Pi 3A+ 接口 / PN532 接 Pi / ST25DV16K I2C / 音频组合,11 件能组装 ✅,识别 3 个真坑(ST25DV16K 没官方 Python 库 1-2 周学习成本 / PN532 在 Pi 上 I2C 不稳推荐 SPI / Pi 3A+ 单 USB 限制)
-- **架构方案讨论**:itsuki 用直觉心智模型挑战 02_design 现状,被 CC 解释「设计文档双层」是 itsuki 自己以前拍板的(CLAUDE.md L33-39);CC 第 1 轮答错说「Android 缺 DESIGN_LOG」被 itsuki 当场质疑,grep 验证后承认错误 + 解释清楚双层模式;**拍板方案 A**(维持现状双层 + 加点呼机)
-- **联动机制升级**:itsuki 主动发现现有 12 条规则只覆盖「设计→代码」+「数据层字段对齐」,**缺反向「代码→设计」5 端对称**;拍板加 6 条新规则 Rule 14-19(action 模式) + Rule 3 system-features 必查列表加 ANDROID + ROLLCALL_DEVICE
-- **8 步全量执行**:点呼机骨架(8 文件)+ sync-rules.sh 12→18 条 + file-linkage SKILL 同步 + CLAUDE.md 双层 3→5 端 + 文档同步点清单 §11 表 + project-overview §5.7(顺手补 student_android)/ §5.8(点呼机)/ §13.1 反向规则 + hooks/README + hardware_design §2.2/§2.4/§2.5 占位回填 + bus_schedule_real.md 挪 06_assets/ + TODO.md 加 §🛰️ 点呼机 backlog
-- **新规则实战触发**:跑 sync-check.sh,Rule 14(ios-business-design)+ Rule 19(design-log-to-system-features)各触发一次,验证反向规则真能用 ✅
-
-**配件型号定型**(itsuki 已淘宝下单,~¥425 RMB):
-- PN532 V3 红板 ¥26.7 / LED 模块套装 ¥10.9 / 01Studio USB 小音响 ¥29 / Pi 3A+ 透明壳 + 风扇盖 + 风扇 ¥24 / SYB-170 面包板 + 杜邦线 ¥3.57(本次新定型 ~¥94)
-- 加上之前 Pi 3A+ ¥239 + ST25DV × 2 ¥47 + 电源 ¥13 + NTAG215 × 50 ¥31.9
-
-**新规则上线**:
-- 联动机制覆盖度从「设计→代码 + 数据字段」扩到「+ 代码→设计 5 端反向 + 端→共用层」
-- 5 端对称结构:backend / iOS / Android / teacher_web / **rollcall_device**(2026-05-08 加)+ 物理硬件层(02_design/hardware_design.md)
-- ROLLCALL_DEVICE_DESIGN_LOG 等 itsuki 拍板 D1-D6(NFC 库 / ST25DV 驱动 / TTS / SPI vs I2C / WebSocket / 设备认证)+ 配件到货后开始实装
-
-**AC 价值**:⭐⭐⭐ — 模式 5(认知改变)× 3 处 + 模式 6(取舍三角)× 2 处 + 模式 4(v1→v2 演化)× 1 处。主线 = itsuki 用 CC 协作把"工程治理"从"有 hook"升级到"有 hook + 覆盖度审计"。详见 `05_logs/raw/2026-05-08.md`
-
-**残**:~~版本 bump 决策~~ ✅ itsuki 否决「暂时不用 bump」/ 配件等到货 / D1-D6 拍板待 itsuki / push 等 itsuki 明示
-
-> **2026-05-04 深夜砍掉 5 条老条目** + **2026-05-06 砍掉 5-03 晚条目（协作模型升级）** + **2026-05-08 砍掉 5-04 上午小条目（已合并到 5-04 主条目）** + **2026-05-08 凌晨砍掉 5-04 主体 / 5-04 晚治理 / 5-04 深夜元层优化 3 条** + **2026-05-10 上午砍掉 5-04 晚 iOS bug 修复条目** + **2026-05-10 晚砍掉 5-06 独立 repo 退役条目（让 5-10 晚 skills 批量装 + 5-10 ac-radar 上线 + 5-08 reviewer_demo + 5-07→5-08 跨日 + 5-08 点呼机 5 条上限）** — 详细历史看 `git log` + `05_logs/raw/2026-05-0{2,3,4,6,7,8}.md`
+> **2026-05-04 深夜砍掉 5 条老条目** + **2026-05-06 砍掉 5-03 晚条目（协作模型升级）** + **2026-05-08 砍掉 5-04 上午小条目（已合并到 5-04 主条目）** + **2026-05-08 凌晨砍掉 5-04 主体 / 5-04 晚治理 / 5-04 深夜元层优化 3 条** + **2026-05-10 上午砍掉 5-04 晚 iOS bug 修复条目** + **2026-05-10 晚砍掉 5-06 独立 repo 退役条目** + **2026-05-11 砍掉 5-08 点呼机条目（让 5-11 术语表 + 5-10 晚 skills + 5-10 ac-radar + 5-08 reviewer_demo + 5-07→5-08 跨日 5 条上限；详见 `05_logs/raw/2026-05-08.md`）** — 详细历史看 `git log` + `05_logs/raw/2026-05-0{2,3,4,6,7,8}.md`
 
 ---
 

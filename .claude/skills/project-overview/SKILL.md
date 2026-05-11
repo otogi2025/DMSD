@@ -30,7 +30,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 |---|---|---|---|
 | `03_dev/` | 407 | 67% | 代码 + 设计 LOG（teacher_web vendor + 字体占大头） |
 | `99_archive/` | 109 | 18% | 归档物（早期 GPT 对话 / throwaway iOS / demo 4-28） |
-| `00_admin/` | 32 | 5% | 管理文档 / AC 叙事 / hooks |
+| `00_admin/` | 33 | 5% | 管理文档 / AC 叙事 / hooks / 术语表 |
 | `05_logs/` | 32 | 5% | raw / dev_log / problem_solving / meta |
 | `01_specs/` | 13 | 2% | 规格冻结区（含 5 .pages 不可读） |
 | `02_design/` | 4 | 0.7% | 硬件 + 流程 + system_features + 巴士时刻 |
@@ -68,7 +68,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ---
 
-## 1. 第 1 组：根目录 + 00_admin（36 文件）
+## 1. 第 1 组：根目录 + 00_admin（37 文件）
 
 **统计**：✅ 22 / 📦 7 / ⚠️ 3 / ❓ 4
 
@@ -114,7 +114,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `AC_提交_checklist.md` | ⚠️ | 5-10 月 6 个 gate 倒计时 + 月度 review 工作流 |
 | `Batch3_itsuki手笔素材指引.md` | 📦 | 4 个 ready-to-paste draft 等 itsuki 合并（30-45min 工作量） |
 
-### 1.5 00_admin/v0.4.0 spec draft + 其他（6 文件）
+### 1.5 00_admin/v0.4.0 spec draft + 其他（7 文件）
 
 | 文件 | 状态 | 建议 |
 |---|---|---|
@@ -124,6 +124,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `wifi_survey_howto.md` | ✅ | 等 itsuki 实地调研 |
 | `跨会话_ios_共享决策.md` | ⚠️ | 注明"短期 TODO 用"，已融入 system_features 和独立 iOS repo，**可清理** |
 | `create_local_dev_symlink.sh` | ✅ | VPS 已停用但脚本保留参考 |
+| `术语表.html` | ✅ | itsuki AC 面试准备 — 180+ 词术语学习工具（项目实际文件 / 代码 / 文档全扫描）+ 科学学习方法（主动回忆 / 间隔重复 / localStorage 进度）。2026-05-11 建。Safari 双击打开 |
 
 ### 1.6 00_admin/hooks（8 hook + 1 库 + README）
 

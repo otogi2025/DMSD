@@ -6,7 +6,7 @@
 > - 和 `progress_overview.md` 的区别: progress_overview 是稳定的章节目录,TODO 是可以频繁增删的任务池
 > - 完成的任务: 在 checkbox 前打 x,隔段时间(每周或每月)批量移到"已完成归档"
 
-**最后更新**: 2026-05-08（加 §📱 iOS 上架冲刺剩余事项 — 5-07→5-08 上线 iOS 到 App Store 跨日大冲刺,backend production 部署完毕 + Apple Dev Portal/ASC/VPS/DNS/GH Pages 全过,卡在 Xcode Validate Version empty 待修;早些更新:§🛰️ 点呼机第 5 端 backlog + §🐛 主项目 v1 backend bug fix）
+**最后更新**: 2026-05-11（加 §📄 文件格式：MD → HTML 改造候选清单 — itsuki 读 Thariq Shihipar「Why HTML」文章后拍板混层方案，CC 协作文件保 MD / 人最终读的文件候选 HTML；早些更新：2026-05-08 §📱 iOS 上架冲刺 + §🛰️ 点呼机第 5 端 + §🐛 主项目 v1 backend bug fix）
 **当前版本**: 见 `CHANGELOG.md` 顶部 · 单源真值，见 `00_admin/文档同步点清单.md`
 
 > **2026-04-17 归档说明**：`executable_dev_checklist.md` 已归档到 `99_archive/2026-04-12_executable_dev_checklist.md`（内容已过期，功能被本 TODO.md 吸收）。
@@ -169,6 +169,62 @@
   - **触发实例（2026-05-07 教训）**：上架流程让 itsuki 在 Apple Developer Portal 勾「NFC Tag Reading」时 CC 只丢指令，没解释「Capability 是什么」「为什么不勾其他」「Push Notifications 为什么不勾」。itsuki 当下纠正「我需要你的解释，我需要你教我，我现在边做边学习，你不能偷懒」CC 才补讲。
   - **写法**：仿照 `.claude/skills/session-wrap/` / `.claude/skills/version-bump/` 结构
   - **验收**：下次 itsuki 第一次接触 SSH / Caddy / Docker 这类工具时，CC 主动解释（不等 itsuki 催）
+
+---
+
+## 📄 文件格式：MD → HTML 改造候选清单（2026-05-11 拍板分层）
+
+> **背景**：2026-05-11 itsuki 读了 Thariq Shihipar（Anthropic）的「Why HTML」文章 → 讨论后拍板**混层方案**：CC 工具链主导的文件（启动 parse / hook grep / sync 规则 / git diff review）保 MD；**人是最终读者**（教授 / 招生官 / 老师 / 宿舍管理员）的文件候选 HTML。已有 `00_admin/术语表.html`（5-11 首个 HTML 文件）作为试水。
+>
+> **方针 — 不强制双写**：保持 MD 单源真值（DMSD 整套 sync 机制依赖 MD）。itsuki 自己偶尔需要看某个 MD 的 HTML 版时**让 CC 临时 pandoc 渲染**，永不入 git：
+>
+> ```bash
+> pandoc <MD_PATH> -o /tmp/$(basename <MD_PATH> .md).html -s --metadata title="<标题>"
+> open /tmp/$(basename <MD_PATH> .md).html
+> ```
+>
+> **走真改造（纯 HTML 或双写）的门槛**：3 条全满足 — (1) 教授 / 招生官 / 老师是主要读者，**不是** CC 协作内部；(2) HTML 表达力真比 MD 强很多（SVG / 倒计时 / 时间轴 / 交互）；(3) 改频率低（一旦改了能容忍同步成本）。
+
+### A. 元任务（先做这条再考虑下面）
+
+- [ ] **itsuki 查看已有的 HTML skill** — itsuki 说「我有 HTML skill」。先确认这个 skill 干什么 / 跟 Anthropic 官方 `frontend-design` skill 关系 / 是否能直接复用做下面的改造 / 是否需要写新 skill。决定后再启动下面的改造任务。
+
+### B. 候选 HTML 改造文件（按优先级，按需启动，不主动催）
+
+**高优 — AC 出愿强相关**：
+
+- [ ] `00_admin/v0.3.0_AC叙事.md` ~ `v0.8.0_AC叙事.md` 7 个 — 教授 / 招生官读项目演化主线
+- [ ] `00_admin/原创设计_语音播报防作弊.md` — ⭐ AC 最强素材之一，自动贩卖机灵感→代刷观察→工程方案完整链
+- [ ] `00_admin/AC_志望動機_素材.md` — Q1-Q8 留白等 itsuki 自填，HTML 可做填空交互式编辑
+- [ ] `00_admin/AC_提交_checklist.md` — 5-10 月 6 个 gate 倒计时 + 月度 review，HTML 强（倒计时 + 进度条）
+- [ ] `00_admin/面试准备_索引.md` — 6 大类 42+ 题，HTML 可做交互式题库
+- [ ] `05_logs/decision_log.md` — 6 条版本级决策，HTML 强（时间轴 + 决策卡片）
+- [ ] `05_logs/learning_path.md` — 学习路径，HTML 强（知识树）
+- [ ] `05_logs/project_evolution.md` — 4 次重大转折，HTML 强（折线图）
+- [ ] `05_logs/problem_solving/` 4 文件 — 现象→假设→验证→结论结构化展示
+
+**中优 — 设计可视化 / 老师面试展示**：
+
+- [ ] `02_design/hardware_design.md` — Pi 3A+ 选型 + GPIO 接线 + BOM，HTML 强（SVG 接线图 + 模块比较表）
+- [ ] `02_design/flow_design.md` — 路径 A 卡 / 路径 B iOS / Android 流程，HTML 强（SVG 序列图）
+
+**低优 — 对外公开页 / 双向边缘**：
+
+- [ ] `README.md` — GitHub 公开页（GitHub MD 渲染已不错），可选单独做 `index.html` 给招生官
+- [ ] `CHANGELOG.md` — 18 tag 时间轴可视化（CC 仍 parse MD 单源）
+
+### C. 已是 HTML 文件清单
+
+- `00_admin/术语表.html`（2026-05-11 建）— 180+ 词 AC 面试术语学习工具（主动回忆 + 间隔重复 + localStorage 进度）
+
+### D. 反向规则 — 永不 HTML 化（CC 工具链强制 MD）
+
+- `CLAUDE.md` / `WIP.md` / `TODO.md` / `文档同步点清单.md` / `文件结构指南.md` — CC 启动 parse + 维护 grep
+- 5 端 `*_DESIGN_LOG.md` + `system_features.md` + `01_specs/` 字典 — CC sync 主导（hook + sync-rules.sh 依赖 MD grep）
+- `05_logs/raw/` 全部 — git diff review 主导，HTML diff 噪音爆炸（Thariq 自己承认是最大缺点）
+- `00_admin/hooks/` + `.claude/skills/` — 脚本 + skill 定义，跟 HTML 无关
+- `memory/`（`~/.claude/...`）— CC 自己读
+- `99_archive/` — 归档参考，不主动读
 
 ---
 
