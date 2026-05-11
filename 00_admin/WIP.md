@@ -1,6 +1,6 @@
 # 当前工作状态 (Work In Progress)
 
-> **最后更新**: 2026-05-11（术语表 HTML 学习工具建立 — 180+ 词 / 16 段 / 交互式 + 5-11 MD→HTML 混层方案首个落地试水 + 砍 5-08 点呼机条目保 5 条上限）。早些更新: 2026-05-10 晚（skills 批量装上线）/ 2026-05-10（ac-radar 上线）
+> **最后更新**: 2026-05-11 更晚（graphify 上线全套 + 沟通问题大爆发 — 详见 `raw/2026-05-11.md §D + §E`，§E 为给新会话必读的沟通问题诊断）。早些更新: 2026-05-11 晚（§C session-coord skill）/ 2026-05-11（§B HTML/MD 分层方案 + §A 术语表）/ 2026-05-10 晚（skills 批量装）/ 2026-05-10（ac-radar 上线）
 
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
@@ -28,6 +28,16 @@
 
 ## 🎯 当前焦点
 
+> **⭐ 沟通问题大爆发（5-11 晚）— 新会话必读 →** `05_logs/raw/2026-05-11.md §E`
+> itsuki 5-11 晚 3 次怒怼 CC 沟通失职：(1) 句子太密 5 未知数堆一句 / (2) 没把做的事写出来 + 字太省略 + 英文不翻译 / (3) 单方面立 4 习惯不算讨论。
+> Root cause 已诊断（CC 没把"做了什么"写清楚 + 用英文不翻译 + 状态混淆 + 单方面立规矩不讨论）。
+> **解决方案讨论尚未真正发生** — CC 抛了 3 个观察 + 1 个 A/B/C/D 选项，itsuki 没回应直接让收尾。**新会话开场必须读 §E 接上**。
+
+> **⏰ 2026-05-12 截止** — Cloud Design 40 额度。
+> 5-13 凌晨刷新，不用就浪费。
+> 跟 cici 讨论怎么用 → 见 `TODO.md §⏰`。
+> 若明天 itsuki 没主动提：CC 启动读到此条须主动报告。
+
 **当前版本之后的阶段**（版本号见 `CHANGELOG.md` 顶部） — 三端代码层启动完毕，下一步重点：
 1. 老师公告 4 端实装（iOS + Android + Web + Backend）— spec 已落 `system_features.md §7.15`
 2. 学生注册码 v1.0 实装（4 端 spec 已就位 2026-05-03 上午别会话）
@@ -38,6 +48,61 @@
 ---
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
+
+### 2026-05-11 更晚 by [新Mac-Opus 4.7 1M-主会话 graphify]
+
+**主题**：⭐⭐⭐⭐⭐ graphify 知识图谱工具上线全套（装 / 全量跑 / 发现 vendor 污染 + archive 漂移 + .beads 副作用 / 修复 / hook 装 / always-on 配 / **沟通问题大爆发**）
+
+- **graphify v0.7.13 装上线** <!-- VERSION_OK -->：itsuki 给 GitHub URL → 读 README → 反问"API vs 订阅余额"→ CC 查 skill 源码确认走 CC subagent 不接 API → itsuki 拍板"装" + "趁余额重置 18 分钟内全量跑"
+- **DMSD 全量跑**：573 文件 / 240 万字 / 13 chunk subagent 并行 / 6 分钟 → 9729 nodes / 26803 edges / 377 communities
+- **vendor 污染发现**：god nodes 前 10 全是 React/Babel 压缩函数 `As() error() K() i()`（来自 iOS demo + teacher_web demo 的 vendor 目录 + phaseB_src）→ itsuki 反问"你到底在说啥" → CC 重新校准用零基础语言解释 → 写 `.graphifyignore` 排除（**待 `/graphify --update` 重跑才生效，目前图谱还是脏的**）
+- **archive 漂移意外发现**：`99_archive/compose-drafts/HomeScreen.kt` 还在 import 活的 `GlobalScaffold` → itsuki 拍板不修
+- **.beads 副作用抓获**：`graphify hook install` 偷改 git `core.hooksPath` 到 `.beads/hooks/` 覆盖 DMSD 原 `00_admin/hooks/` → 立刻验证 + 修复（copy hook 到主目录 + hooksPath 改回 + `.gitignore` 加 `.beads/`）
+- **`graphify claude install` 装 always-on**：DMSD CLAUDE.md 加 graphify 段 + `.claude/settings.json` 加 PreToolUse hook → CC 以后每次工具调用前提醒读 `GRAPH_REPORT.md`
+- **DMSD Hooks 7 → 10**：加 post-commit / post-checkout（graphify AST 自动重建）+ PreToolUse always-on
+- **⭐⭐⭐⭐⭐ 沟通问题大爆发**：itsuki 3 次怒怼 — (1) "句子太密 5 个未知数堆一句话" (2) "真问题是你没把做的事写出来 + 字太省略 + 英文不翻译" (3) "你他妈跟我讨论方案了吗 / 单方面立 4 习惯不算讨论" → CC 写 feedback memory `feedback_no_dense_jargon_strings.md` 但 itsuki 明确说 **memory 不解决当下问题**。沟通方案**讨论尚未真正发生**（CC 抛了 3 观察 + 1 选项，itsuki 没回应直接让收尾）→ 详见 `raw/2026-05-11.md §E`（给新会话必读）
+
+**新规则上线**：
+- 全局 CLI 工具 `graphify`（`uv tool install graphifyy`）+ DMSD CLAUDE.md graphify always-on 段 + `.claude/settings.json` PreToolUse hook + DMSD Hooks 10 个
+- `.graphifyignore` 配置文件（DMSD 根目录，排 vendor）
+- `.beads/` 漂移注意点（`00_admin/hooks/README.md ⚠️ 段`）
+- 个人能力清单 `~/.claude/我的环境.html` 加 graphify 用法速查 + hook 全套 + .beads 警告
+- feedback memory `feedback_no_dense_jargon_strings.md`（MEMORY.md 索引 line 95 ⭐）
+- **沟通方案讨论中尚未拍板**
+
+**AC 价值**：⭐⭐⭐⭐⭐ — 模式 2 × 2（vendor 污染假设崩 + CC 以为问题是密度真问题是没说清做了啥）/ 模式 5 × 3（工程 ignore 文件普适性 + 第三方工具配置污染防御 + CC 元层翻车）/ 模式 6 × 2（archive 漂移取舍 + memory vs 当下讨论的取舍）/ 工程发现 × 2（vendor 污染 + .beads 副作用）。详见 `raw/2026-05-11.md §D + §E`
+
+**残**：
+- **沟通方案讨论未完** → 新会话继续，必读 `raw/2026-05-11.md §E`
+- vendor 污染配置写了但**还没重跑**：`/graphify --update` 待 itsuki 拍板
+- 本会话所有改动 + 5-11 晚 session-coord 改动一起待 commit
+- WIP/TODO/CLAUDE.md modified 但非本会话改的 — 需要 itsuki 拍板（可能是别的会话）
+
+### 2026-05-11 晚 by [新Mac-Opus 4.7 1M-主会话 session-coord]
+
+**主题**：⭐⭐⭐⭐ session-coord 多 CC 会话协作板 skill 从零到上线 + 真实多会话首测通过 + 顺手能力清单 HTML 化（5-11 MD→HTML 分层方案晚段实战）
+
+- **诉求**：itsuki 直接喊 `/skill-creator:skill-creator` + 明确"多 CC 会话互相协同、互相做不同内容、不冲突" + 强制要求"上网搜，好好搜好好了解，不要偷懒"
+- **2 个并行 agent 研究**：claude-code-guide（官方 Agent Teams + worktree + hooks）+ general-purpose（mclaude 7 层 + claude-squad / Tmux-Orchestrator + Matt Pocock skill 教学）
+- **3 件大事**：Agent Teams 是 AI 自治不适合 itsuki（人是 leader） / mclaude 锁+心跳+handoff 3 件套可借鉴 / 行业共识 worktree 隔离>协商
+- **itsuki 当场否决 CC 越级"5 Q 拍板"做法**：CC 直接抛术语让拍板 → itsuki 怒怼"心跳是什么？worktree 突然蹦出来？锁粒度是新单词？你完全没解释就让我拍" → CC 重写每个术语类比+演示+才让拍
+- **itsuki 拍板"升级为协作板"**：CC 之前偏防冲突（锁+心跳），itsuki "我对 Skill 最大需求是每个 Session 互相知道对方、知道在做什么、互相搭配工作" → skill 抽象层升级（status.md / _board.md / inbox.md 三机制加）
+- **关键设计拍板**：文件级锁 / 30s 心跳 / 3min stale / 装全局多项目共享 / 配置不存在 CC 主动问 init / **不用 Agent Teams**（AI 自治） / **不用 worktree**（高频改共享文件场景不对口） / **不直装 mclaude**（本土化）
+- **9 scripts + SKILL.md + README.md + README.html + DMSD config 模板 落地**（draft 在 `.scratch/`，全局装 `~/.claude/skills/session-coord/`）
+- **bug 修 2 处**：`$SESSION_ID（` / `$TASK（` bash 变量名+中文标点 unbound — 主会话 + 真实开的 CC-2 独立诊断同方案 = **收敛验证**
+- **真实多会话首测通过**：主会话 + CC-2 互看 / inbox 互发 / 三档锁 / stale 释放 全 work
+- **CC 自我反思**：自己以"cleanup"名义 `mv .claude/sessions/` 把 CC-2 状态搬走 = 设计 skill 的人最容易绕过自己 skill（模式 5）
+- **能力清单 HTML 化**：itsuki 主动提"所有 skill / hook / CLAUDE.md 列表做成 HTML" → 补全 `~/.claude/我的环境.md`（13 全局 skills / 5 Plugin / 5 MCP / 7 DMSD skills / 7 DMSD hooks）+ 生成 `~/.claude/我的环境.html`
+- **机制澄清**："CC 是回合制工具不会自动跟别的会话互动" — itsuki 接受根本限制，选"先正常用一段时间再加 hook"渐进路径
+
+**新规则上线**：
+- 全局新 skill `session-coord`（`~/.claude/skills/`）+ DMSD 装配置（`.claude/session-coord.config.json` + `.gitignore` 加 `.claude/sessions/` 和 `graphify-out/`）
+- 个人能力清单 `~/.claude/我的环境.{md,html}` 补全 + 5-11 MD→HTML 分层方案晚段实战
+- CC 行为铁律重申：先教再决策不越级 / 不绕过自己设计的 skill
+
+**AC 价值**：⭐⭐⭐⭐⭐ — 模式 5 × 多（认知层升级 / 收敛验证识别 / 设计者绕过自己 skill 反模式 / itsuki 内化 MD→HTML 分层）+ 模式 6 × 4（不用 Agent Teams / 不用 worktree / 不直装 mclaude / 渐进 hook）+ 主体性 5/5（主动喊 skill + 强制 CC 研究 + 否决越级 + 升级抽象层 + 启 CC-2 真测 + 选渐进）。详见 `05_logs/raw/2026-05-11.md §C` + AC inbox 5 条
+
+**残**：DMSD 11 commits 未 push 等 itsuki 拍板（含今晚改动）/ `graphify-out/` 82M 已加 .gitignore / superpowers plugin 配置仍 enabled 待 disable / session-coord UserPromptSubmit hook 未来某天看自觉度决定 / 副项目 CLAUDE.md 加 session-coord 钩子段（按需）
 
 ### 2026-05-11 by [新Mac-Opus 4.7 1M-主会话 术语表]
 
@@ -59,7 +124,9 @@
 
 **AC 价值**：⭐⭐⭐ — 模式 5 × 3（英/日认知分层 / 漏同步纠正 / 规则源头验证）+ 模式 2 × 1（CC 第 1 版假设崩→重写）+ 模式 6 × 2（HTML vs MD / 单独背 vs 项目语境化）。详见 `05_logs/raw/2026-05-11.md` 6 条素材深度 dump
 
-**残**：术语表后续 itsuki 用一周后反馈是否真用得起来 / TODO §📄 候选清单 A 元任务（查 HTML skill）+ B 7+ 个候选 HTML 改造文件 / 多 commit 未 push 等 itsuki 拍板统一策略 / 本次 TODO.md modify 是早些会话的 §📄 加段（不是本会话改的，跟本会话 commit 一起带走还是分开等 itsuki 拍板）
+**残**：术语表后续 itsuki 用一周后反馈是否真用得起来 / TODO §📄 候选清单 A 元任务（查 HTML skill）+ B 7+ 个候选 HTML 改造文件 / 多 commit 未 push 等 itsuki 拍板统一策略
+
+**§B 早段会话补完（5-11 晚 session-wrap 收尾时记）**：§A raw 17:00 / 18:30 提到的「跨会话拍板混层方案 + TODO §📄 已加」实际就是 §B 本会话本体（不是另一会话）。§B 早段：itsuki 读 Thariq「Why HTML」全文 → CC 拆作者立场（5 用例全是人消费 / 没 DMSD 这种重 MD 协作层）→ itsuki 「就按混层」拍板 → 自己识破双写漂移坑（不等 CC 警告）→ 拍板方案 A「按需 pandoc 临时渲染」→ TODO §📄 落地（A 元任务 + B 13 候选 + C 已有 HTML + D 反向规则）。AC 价值 ⭐⭐⭐ — 模式 5 种子 / 模式 2 假设崩 / 模式 6 取舍 × 2 / 工程纪律「先 review 已有再决定新建」。详见 `raw/2026-05-11.md §B` 5 条 dump（ⓐ-ⓔ）
 
 ### 2026-05-10 晚 by [新Mac-Opus 4.7-主会话 skills 批量装]
 
@@ -133,32 +200,7 @@
 
 **残**：上架后操作（admin 密码改强密码 + 删 VPS 旧 060199 学生）/ Mac fork 4 部署文件合回主项目（v1.0.1）/ commit + push + VPS 部署待执行 <!-- VERSION_OK -->
 
-### 2026-05-07 → 2026-05-08 by [Mac-主会话 跨日]
-
-**主题**：⭐⭐⭐⭐⭐ **上线 iOS 到 App Store 冲刺**（v0.8.0 期间，提前 G2 决策） <!-- VERSION_OK -->— backend production 部署 GCP VPS + DNS + GH Pages + Apple Dev Portal/ASC/Xcode Archive 全过，卡 Validate Version empty 待修
-
-- **5-07 启动**：itsuki 拍板「公开 App Store + 现在就推」（激进路径，提前 4-19 G2 决策的「v1.0 三端齐发」） <!-- VERSION_OK -->→ CC plan mode 设计完整路径
-- **5-07 4 次反转**：itsuki 反 plan 决策（物理 fork 双份 + fork 放 DMSD 外 + NFC 完整保留 + 不声明私域）→ iOS+backend 全 fork 到 `~/dev/Tomoshibi-AppStore/`（DMSD 外，不污染 git）
-- **5-07 fork 改动**：project.yml 11 处 / APIClient #if DEBUG / PrivacyInfo.xcprivacy / .entitlements（NFC + Push + Time Sensitive）/ 账号删除（Apple 5.1.1(v) iOS+backend 双端）/ SplashView 启动跳转（双端同步主项目）/ backend seed.py / VPS 部署套件（Dockerfile/docker-compose/Caddyfile/DEPLOY.md）/ METADATA.md / privacy_policy.md
-- **5-07 教学失职被纠正**：CC 让 itsuki 勾 NFC 没解释 Capability 是什么 → itsuki 怒怼「我需要你的解释 你不能偷懒」→ TODO 加「教学类 Skill」
-- **5-07 撞名**：Tomoshibi 占了 → `Tomoshibi · 灯火` 救场（Bundle ID 没占继续用 com.itsuki.tomoshibi）
-- **5-07 VPS 启动**：itsuki 选 GCP $300 trial（不 Vultr）+ asia-northeast1-c e2-small Tokyo + SSH 公钥认证（cat 重用现有 key + GCP metadata）
-- **5-08 backend 部署**：VPS CC 找到 3 个隐藏 bug（alembic env.py 不读 DATABASE_URL / docker-compose 不传 APP_ENV → create_all 绕过 alembic / migration 用 SQLite-only batch_alter_table 撞 Postgres 外键）→ Mac fork 同步 4 处修复 + TODO §🐛 v1 backend bug fix
-- **5-08 OOM**：e2-small 2GB OOM kill → swap + worker 4→2
-- **5-08 GH Pages**：CC 用 gh CLI API 启用绕过手动点 → 双 URL HTTP/2 200
-- **5-08 Xcode 链式踩坑**：iOS 26→18 降级 supportsImagePlayground iOS 18.1+ only → 删 → Archive 成功 → Validate CFBundleShortVersionString empty → fork yml 改 MARKETING_VERSION + itsuki Xcode General 直接填 Version/Build
-- **5-08 reviewer demo 5 反思**：itsuki 让另一 CC 会话 review → CC 自我反思（不甩锅 VPS CC，责任在我设计）→ TODO §C 跟踪 5 个真问题
-
-**新规则上线**：
-- iOS+backend 物理 fork 模式（ad hoc 上架冲刺，不污染主项目 git）
-- 教学类 Skill 待做（TODO §🛠️ Meta）
-- 主项目 v1 backend 3 bug + reviewer demo 5 缺陷（TODO §🐛 + §C）
-
-**AC 价值**：⭐⭐⭐⭐⭐ — 模式 5（认知改变）× 多 + 模式 2（假设崩→真因 × 3 alembic）+ 模式 6（取舍 × plan 6 决策）+ CC 自我反思（不甩锅）。详见 `05_logs/raw/2026-05-07.md` + `2026-05-08_ios_上架冲刺.md`
-
-**残**：当前卡 Xcode Validate（Version/Build 修后重 Archive）/ 截图 / ASC 元数据 / Submit / push 等 itsuki 明示 / `06_assets/icons/Tomoshibi icon.icon/{Assets/tomoshibi_flame 2.png, icon.json}` 被删（git status 显示，不知是不是 itsuki 自己手动）等拍板 restore 还是接受 / iOS+backend fork 在 DMSD 外不在 git 范围
-
-> **2026-05-04 深夜砍掉 5 条老条目** + **2026-05-06 砍掉 5-03 晚条目（协作模型升级）** + **2026-05-08 砍掉 5-04 上午小条目（已合并到 5-04 主条目）** + **2026-05-08 凌晨砍掉 5-04 主体 / 5-04 晚治理 / 5-04 深夜元层优化 3 条** + **2026-05-10 上午砍掉 5-04 晚 iOS bug 修复条目** + **2026-05-10 晚砍掉 5-06 独立 repo 退役条目** + **2026-05-11 砍掉 5-08 点呼机条目（让 5-11 术语表 + 5-10 晚 skills + 5-10 ac-radar + 5-08 reviewer_demo + 5-07→5-08 跨日 5 条上限；详见 `05_logs/raw/2026-05-08.md`）** — 详细历史看 `git log` + `05_logs/raw/2026-05-0{2,3,4,6,7,8}.md`
+> **2026-05-04 深夜砍 5 条老条目** + **2026-05-06 砍 5-03 晚条目** + **2026-05-08 砍 5-04 上午** + **2026-05-08 凌晨砍 5-04 主体/晚/深夜 3 条** + **2026-05-10 砍 5-04 晚 iOS bug 条目** + **2026-05-10 晚砍 5-06 独立 repo 退役条目** + **2026-05-11 砍 5-08 点呼机条目** + **2026-05-11 晚砍 5-07→5-08 iOS 上架冲刺跨日条目（让 5-11 晚 session-coord + 5-11 术语表 + 5-10 晚 skills + 5-10 ac-radar + 5-08 reviewer_demo 5 条上限；详见 `raw/2026-05-07.md` + `2026-05-08_ios_上架冲刺.md`）** — 详细历史看 `git log` + `05_logs/raw/2026-05-0{2,3,4,6,7,8}.md`
 
 ---
 

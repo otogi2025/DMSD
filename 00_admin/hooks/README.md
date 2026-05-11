@@ -2,7 +2,7 @@
 
 ## 是什么
 
-DMSD 用了 **2 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后升级）：
+DMSD 用了 **3 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后升级 / 2026-05-11 加 graphify post-commit + post-checkout）：
 
 ### Git hook（commit 时触发）
 
@@ -54,6 +54,20 @@ DMSD 用了 **2 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后
   - `git push origin :refs`（删 remote ref）
   - `rm` 涉及 `.git` 目录
 - 命中 → exit 2（block）+ stderr 错误消息让 CC 重新考虑或要求 itsuki 授权
+
+### ⭐ Git post-commit / post-checkout hook（graphify 知识图谱自动重建，2026-05-11 加）
+
+#### G. `post-commit` — graphify AST 增量重建
+- 触发时机：每次 `git commit` 后
+- 干什么：检测改了哪些代码文件（git diff HEAD~1 HEAD）→ 在后台跑 graphify 的 AST 重抽（不调 LLM 不烧 token）→ 更新 `graphify-out/graph.json` + `GRAPH_REPORT.md`
+- 安全性：rebase / merge / cherry-pick 期间会跳过；后台 `nohup` 跑不阻塞 commit
+- doc / image 改了**不自动跑**（要手动 `/graphify --update`）
+
+#### H. `post-checkout` — graphify 切分支后重建
+- 触发时机：每次 `git checkout <branch>` 后
+- 干什么：分支切了 → 文件树可能大变 → 重抽图谱
+
+源代码：`00_admin/hooks/post-commit` / `00_admin/hooks/post-checkout`（graphify CLI 自动生成）。
 
 ### 测试方法
 
@@ -161,8 +175,31 @@ CC 会话中改完一组文件就跑一次，提早发现联动漏改。仅提�
 git config --unset core.hooksPath
 ```
 
+## ⚠️ graphify hook install 漂移注意（2026-05-11 踩坑记）
+
+跑 `graphify hook install` 会**改 git `core.hooksPath`** 到它自己创建的 `.beads/hooks/` 目录，**覆盖 DMSD 原本设的 `00_admin/hooks/`** → DMSD 的 `pre-commit`（版本号 / bump / 联动 3 检查）整个失效。
+
+**修法**：
+
+```bash
+# 1. 把 graphify 的 hook copy 进 DMSD 主 hook 目录
+cp .beads/hooks/post-commit 00_admin/hooks/post-commit
+cp .beads/hooks/post-checkout 00_admin/hooks/post-checkout
+chmod +x 00_admin/hooks/post-commit 00_admin/hooks/post-checkout
+
+# 2. 改回 hooksPath
+git config core.hooksPath 00_admin/hooks
+
+# 3. .beads/ 留着不删（万一 graphify hook uninstall 命令依赖它做 marker），.gitignore 里已加排除
+```
+
+**预防**：任何第三方工具的 install 命令跑完后立刻验证 — `git config --get core.hooksPath` 是不是还指向 `00_admin/hooks`。如果被改了，按上面修。
+
+详细发现 + AC 叙事：`05_logs/raw/2026-05-11.md §D`。
+
 ## 相关文件
 
 - `00_admin/文档同步点清单.md` — 完整同步点清单 + Release Checklist + Onboarding Checklist
 - `00_admin/2026-04-19_项目审查_backlog.md` — 发现本问题的审查报告（D22 / D23 / D25 / L11）
 - `05_logs/raw/2026-04-19.md` — 发现 + 解决的原始记录（AC 素材）
+- `05_logs/raw/2026-05-11.md §D` — graphify 上线 + vendor 污染 + .beads 漂移发现（AC 素材）

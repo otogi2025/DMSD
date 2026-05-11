@@ -13,6 +13,16 @@
 
 ---
 
+## ⏰ 时间敏感 — 即将到期
+
+- [ ] **2026-05-12 截止**：用掉 Cloud Design 40 额度
+  - 5-13 凌晨刷新 — 现在不用就浪费
+  - 跟 cici 讨论怎么用
+  - 决定要做什么
+  - 若明天 itsuki 没主动提：CC 启动读 WIP / TODO 看到此条须主动报告
+
+---
+
 ## 📱 iOS 上架冲刺 — 剩余事项（2026-05-08 状态）
 
 > **会话状态**：5-07 启动「上线 iOS 到 App Store」目标 → 5-08 完成 backend 部署到 GCP VPS（asia-northeast1）+ DNS（api.tomoshibi.cc）+ GH Pages（privacy / support）+ Apple Developer Portal App ID + ASC App「Tomoshibi · 灯火」+ Xcode 编译。**5-08 21:30 卡在 Validate App** 失败（CFBundleShortVersionString empty）— 已修 fork project.yml 用 MARKETING_VERSION 写法 + 让 itsuki 在 Xcode General tab 直接填 Version 1.0.0 / Build 1，待重新 Archive。

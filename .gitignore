@@ -84,6 +84,15 @@ Desktop.ini
 # ── Claude Code 本地设置（含机器路径，不入 repo） ─
 .claude/settings.local.json
 
+# ── session-coord skill 会话状态（心跳 / 锁 / inbox 不进 git） ─
+.claude/sessions/
+
+# ── graphify 知识图谱产物（82M+ 临时文件，不入 repo）─
+graphify-out/
+
+# ── graphify hook install 残留目录（hook 已 copy 到 00_admin/hooks/，详见 hooks/README.md ⚠️ 段）─
+.beads/
+
 # ── Matt Pocock skills `to-prd` 中间产物（PRD 详细文档，进 TODO.md 后即可弃） ─
 .scratch/
 
