@@ -7,7 +7,7 @@
 | 目录 | 用途 | 状态 |
 |---|---|---|
 | `demo/` | 4-28 管理员 demo 用的 FastAPI（FastAPI + SQLAlchemy + SQLite + WebSocket）| ⚠️ **锁定** — demo 已通过老师认可，反复给老师看用，**不再改动** |
-| `v1/` | v1.0 正式版后端（FastAPI / PostgreSQL）| ⏳ **未开始** — v1.0 启动时从 `demo/` 复制需要的部分作为起点 |
+| `v1/` | v1.0 正式版后端（FastAPI / PostgreSQL）| 🔄 **实装中**（2026-05-12 校准）— 8 个 router 已挂载（auth/applications/accounts/admin_registration_code/announcements/study/rollcall/teachers）+ 6 个 alembic migration。部分 P1/P2 待续：NFC 防作弊 card_uid 全栈实装 / WebSocket + Redis / refresh_token rotation / DELETE /accounts/me / 整点 session minute-5 bug |
 
 ## 规则（2026-04-29 itsuki 拍板）
 

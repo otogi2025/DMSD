@@ -19,7 +19,17 @@
 | `GET  /api/v1/meals/export` | #7 食数 Excel 导出 | ✅ |
 | `POST /api/v1/notifications/test` | SendGrid smoke | ✅ |
 
-**未实装**(後続会話): 役职 承认 (#10-#13) / 学習出席 / 点呼 / 巴士 / 行事 / 指導履歴 / 事案 / 食堂他データ / 等。
+**追加实装** (2026-05-12 校准):
+- 役职 承认 (#10-#13) — `applications.py:394-443` ✅
+- 学習出席 — `study.py` 已挂載 + alembic c3d4e5f6a7b8 加 period 字段 ✅
+- 点呼 — `rollcall.py` 已挂載 ⚠️（NFC 防作弊 card_uid 未真接 — 见 SOP Bug B4）
+- 公告 — `announcements.py` ✅
+- 学生注册码 — `admin_registration_code.py` ✅（5 分钟有效，App Store 上架对策）
+- 教师管理 — `teachers.py` ✅
+
+**仍 ⏳**: 巴士 / 行事 / 指導履歴 / 事案 / 食堂他データ / WebSocket + Redis / refresh_token rotation / 整点 session minute-5 bug。
+
+详见 `~/dev/DMSD/05_logs/raw/2026-05-12_问题清单_codex修复SOP.md`（11 区域 codex 整合的 P0 修复清单）。
 
 権威設計文書 → `../BACKEND_DESIGN_LOG.md` (P0 範囲は §2.1)。
 
