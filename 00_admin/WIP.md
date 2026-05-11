@@ -175,60 +175,11 @@
 
 **残**：本次 setup 6 处改动 + 5-08 跨日残（.claude/skills/new-feature/SKILL.md / 06_assets/icons 2 个 icon 删）混着 + 6 commit 未 push 等 itsuki 拍板统一 commit 策略 / superpowers cache 5MB 留着无害等 itsuki 自跑 `rm -rf ~/.claude/plugins/cache/claude-plugins-official/superpowers` 清 / 重启 CC 让当前会话残留的 superpowers 14 子 skill 真正下线
 
-### 2026-05-10 by [Cowork-Opus 4.7-主会话 ac-radar 上线]
-
-**主题**：⭐⭐⭐ 设计并落地全局 `ac-radar` Skill —— 跨 CC 项目的 AC 素材实时捕获层；DMSD/CLAUDE.md 加 ac-radar 钩子；**session-wrap 不动**
-
-- **诉求来源**：itsuki 现有 AC 素材完全靠手动整理 + DMSD session-wrap 收尾扫描，副项目（交易系统等）里 CC 不知道 AC 存在 → 素材会漏。要做一个跨项目的实时雷达
-- **设计迭代 5 轮**：从「16 文件理论完美」→ 「按 YAGNI + progressive disclosure 砍到 5 文件」（itsuki 追问「为什么需要这十几份文件 / 这是 skill 启动后会去读吗」推动）
-- **Skill 名定 `ac-radar`**（雷达隐喻：一直开扫，发现信号就标）+ **inbox 定 `06_radar_inbox/`**（itsuki 选数字编号连贯方案，不要 CC 提的 90_）
-- **核心架构 3 层**：实时打 tag（中央 inbox + DMSD 双写）→ 用户挑（03_素材_候选）→ 用户写（05_产出）。**ac-radar 永远只动最左边**
-- **关键拍板**：「直接让 ac-radar 被收尾这个关键词调用，session-wrap 跑它自己的收尾」 → 两个 Skill 并行不互调
-- **CC 自决不动 session-wrap**（读了 760 行后判断破坏现成体系不值得）→ 改成"实时层 ac-radar + 收尾层 session-wrap §5.5.1"互补分工
-- **5 文件落地**（在 iCloud workspace `_skill_draft_ac-radar/`）：SKILL.md（15 节）/ scripts/ × 3（find_ac_root / startup_check / append_to_scratchpad）/ INSTALL.md
-- **DMSD/CLAUDE.md 加段**：⭐ ac-radar 强制加载 + 跟 session-wrap 的分工说明（让下次会话 CC 必读 ac-radar）
-
-**新规则上线**：
-- AC 素材层从「session-wrap 独家」升级到「ac-radar 实时 + session-wrap 收尾深度」双层互补
-- DMSD raw 文件结构变了 —— 同时含 `## AC 信号 (HH:MM)` 段（ac-radar 写）+ `## HH:MM [类型]` 段（session-wrap §5.5.1 写），互补不冲突
-- **session-wrap 完全不动**（CC 自决保护现有体系）
-
-**AC 价值**：⭐⭐⭐ — 模式 5 × 2（progressive disclosure 机制理解 / 两个 skill 并行不互调的设计直觉）+ 模式 6 × 2（inbox 命名取舍 / ~/.claude/ 保护带来的草稿+cp 路线）。详见 `05_logs/raw/2026-05-10.md`
-
-**残**：
-- itsuki 还没跑 cp 命令装 ac-radar（INSTALL.md §1 给了一行）
-- 全局激活段（~/.claude/CLAUDE.md）还没贴 → 副项目不激活
-- 副项目（交易系统等）的 CLAUDE.md 也建议加 ac-radar 钩子段（按需）
-- 截止日期表 2026-06-15 募集要项公表后要更新 startup_check.py
-
-### 2026-05-08 凌晨 by [新Mac-Opus 4.7 1M-主会话 reviewer_demo重做]
-
-**主题**：⭐⭐⭐⭐⭐ reviewer demo 方案 review 戳穿 5 bug → itsuki 拍板「修干净再提交」→ 完整重做（v1.0.1 全提前 v1.0.0） <!-- VERSION_OK -->
-
-- **23:30 启动**：itsuki 提「做不做老师 iOS 登录」 → CC 反对老师 iOS（用户量不对等 + 已有 teacher_web）→ itsuki 改「老师下载 app + 体验内容 + 永久注册码」
-- **23:45 CC 警告 3 bug**：永久码跟 §7.16 「5 分钟 TTL」铁律冲突 / 上架决策防线被钻洞 / DB 数据污染 → 给 3 替代方案 → itsuki 拍板「demo 账号 + 老师卡在验证码 = 演示注册码门」
-- **23:50 itsuki paste VPS CC 已实装方案**：060199/Reviewer-2026/999999 永久码塞 prod DB → 让主 CC 「检查 bug」
-- **00:00 review 戳穿 5 bug**：(1) `999999` 4 年永久后门（refresh 一刀切作废 + 6 个 9 太规则） (2) admin 默认密码 `ChangeMe-2026-05` 进 git 历史污点 (3) reviewer 凭证一眼是 demo (4) fork seed 偏离主项目 (5) CC 没让 itsuki 拍板具体值
-- **00:15 itsuki 拍板 ⭐⭐⭐**：「**接下来的修复我会全部在这个会话里进行，在修好之前我不会推进别的了**」 → v1.0.1 修理项**全部提前 v1.0.0**，质量优先于发版速度 <!-- VERSION_OK -->
-- **01:00-04:30 完整重做（11 文件 / 42 pass）**：
-  - schema migration `f6a7b8c9d0e1`（students.is_demo + student_registration_codes.is_reviewer + 内置 UPDATE 把 fork 旧 999999 行自动 invalidate）
-  - admin_registration_code.py 3 处改（refresh + current 加 is_reviewer 过滤 + _generate_code 范围 [0,999998] reserved 999999）
-  - rollcall.py + applications.py 加 is_demo 过滤（关键判断：accounts 学号查重 / auth.login **不能** 加过滤，否则 reviewer 不能 login）
-  - seed.py 重写 `APP_ENV=dev|production` 双模式 + admin 密码移到 env
-  - 新 `tests/test_demo_reviewer.py` 5 个 case，**42 passed**（37 原有 + 5 新）
-  - 文档同步：system_features §7.20 新章 + §7.16 例外 / BACKEND_DESIGN_LOG §5.x.4 / IOS_DESIGN_LOG §3.16 / TODO §🐛 ledger
-  - VPS 部署清单 + Reviewer Notes 双语文案（绝不写注册码）写到 `05_logs/raw/2026-05-08_vps_deploy_steps.md`
-
-**新规则上线**：
-- 上架前底线：reviewer 永久码必须有 `is_reviewer=True` schema flag 跟普通 5 分钟 TTL 码并存（spec §7.16 例外条款）
-- memory 加 `feedback_cc_picks_value_must_announce_window.md` — CC 自挑值时必须 explicit 告知 + 给打断窗口
-- 拍板：「修干净再提交」优先于「冲提交后再修」 — itsuki 引入的 engineering 时间盒新铁律
-
-**AC 价值**：⭐⭐⭐⭐⭐ — 模式 2（假设崩→继续→真因，3 层叠加）+ 模式 5（多次：trade-off 语言陷阱 / 修干净拍板 / fork 复发 single source / CC 拍板边界）+ 模式 6（取舍三角 demo 账号方案）+ 多 AI 协作 audit。详见 `05_logs/raw/2026-05-08_reviewer_demo重做.md`
-
-**残**：上架后操作（admin 密码改强密码 + 删 VPS 旧 060199 学生）/ Mac fork 4 部署文件合回主项目（v1.0.1）/ commit + push + VPS 部署待执行 <!-- VERSION_OK -->
-
-> **2026-05-04 深夜砍 5 条老条目** + **2026-05-06 砍 5-03 晚条目** + **2026-05-08 砍 5-04 上午** + **2026-05-08 凌晨砍 5-04 主体/晚/深夜 3 条** + **2026-05-10 砍 5-04 晚 iOS bug 条目** + **2026-05-10 晚砍 5-06 独立 repo 退役条目** + **2026-05-11 砍 5-08 点呼机条目** + **2026-05-11 晚砍 5-07→5-08 iOS 上架冲刺跨日条目（让 5-11 晚 session-coord + 5-11 术语表 + 5-10 晚 skills + 5-10 ac-radar + 5-08 reviewer_demo 5 条上限；详见 `raw/2026-05-07.md` + `2026-05-08_ios_上架冲刺.md`）** — 详细历史看 `git log` + `05_logs/raw/2026-05-0{2,3,4,6,7,8}.md`
+> **2026-05-11 跨 23 点砍 2 条**（让 CC-2 reviewer 后门修复上线 + graphify + session-coord + 术语表 + 5-10 晚 skills 批量装 维持 5 条上限）：
+> - 砍 5-10 ac-radar 上线条目 — 详见 `raw/2026-05-10.md`
+> - 砍 5-08 凌晨 reviewer_demo 重做条目 — 详见 `raw/2026-05-08_reviewer_demo重做.md`（本次 CC-2 会话 §F.7 已 reference 它作为主线前提）
+>
+> 早些砍除：**2026-05-04 深夜砍 5 条** + **5-06 砍 5-03 晚** + **5-08 砍 5-04 上午** + **5-08 凌晨砍 5-04 主体/晚/深夜 3 条** + **5-10 砍 5-04 晚 iOS bug** + **5-10 晚砍 5-06 独立 repo 退役** + **5-11 砍 5-08 点呼机** + **5-11 晚砍 5-07→5-08 iOS 上架冲刺跨日** — 详细历史看 `git log` + `05_logs/raw/2026-05-0{2,3,4,6,7,8}.md`
 
 ---
 
