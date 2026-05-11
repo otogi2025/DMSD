@@ -1,6 +1,6 @@
 # 当前工作状态 (Work In Progress)
 
-> **最后更新**: 2026-05-11 更晚（graphify 上线全套 + 沟通问题大爆发 — 详见 `raw/2026-05-11.md §D + §E`，§E 为给新会话必读的沟通问题诊断）。早些更新: 2026-05-11 晚（§C session-coord skill）/ 2026-05-11（§B HTML/MD 分层方案 + §A 术语表）/ 2026-05-10 晚（skills 批量装）/ 2026-05-10（ac-radar 上线）
+> **最后更新**: 2026-05-11 跨 23 点（CC-2 reviewer 后门修复上线主线收官 — 详见 `raw/2026-05-11_reviewer后门修复上线.md §F.1-F.8`）。早些更新: 2026-05-11 更晚（graphify + 沟通问题大爆发，详见 `raw/2026-05-11.md §D + §E`）/ 2026-05-11 晚（§C session-coord）/ 2026-05-11（§B HTML/MD + §A 术语表）/ 2026-05-10 晚（skills 批量装）
 
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
@@ -28,10 +28,12 @@
 
 ## 🎯 当前焦点
 
-> **⭐ 沟通问题大爆发（5-11 晚）— 新会话必读 →** `05_logs/raw/2026-05-11.md §E`
-> itsuki 5-11 晚 3 次怒怼 CC 沟通失职：(1) 句子太密 5 未知数堆一句 / (2) 没把做的事写出来 + 字太省略 + 英文不翻译 / (3) 单方面立 4 习惯不算讨论。
-> Root cause 已诊断（CC 没把"做了什么"写清楚 + 用英文不翻译 + 状态混淆 + 单方面立规矩不讨论）。
-> **解决方案讨论尚未真正发生** — CC 抛了 3 个观察 + 1 个 A/B/C/D 选项，itsuki 没回应直接让收尾。**新会话开场必须读 §E 接上**。
+> **⭐ 沟通规则 cc-comm-rules 已上线（5-11 晚）— 新会话必读 →** `05_logs/raw/2026-05-11.md §E + §F`
+> 5-11 晚 itsuki 3 次怒怼 CC 沟通失职 → 拍板「Skill 主 + Hook 辅」方案 → 已实装上线。
+> **完整 skill**：`~/.claude/skills/cc-comm-rules/SKILL.md`（5 个规则 + always-on 永远在线）。
+> **配套 3 个 hook**：在 `~/.claude/hooks/`（拦 memory / 怒怼词检测 / 环境清单 diff）。
+> **新会话开场必须**：(1) 读 cc-comm-rules SKILL.md / (2) 按 5 个规则执行 / (3) 看 §F 测试结果。
+> **试用 1-2 周看效果** → 详见 TODO §🛠️ A。
 
 > **⏰ 2026-05-12 截止** — Cloud Design 40 额度。
 > 5-13 凌晨刷新，不用就浪费。
@@ -48,6 +50,31 @@
 ---
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
+
+### 2026-05-11 跨 23 点 by [新Mac-Opus 4.7 1M-CC2 reviewer 后门修复上线]
+
+**主题**：⭐⭐⭐⭐⭐ 5-08「修干净再提交」拍板后 3 天的 reviewer 后门修复主线 5-11 晚收官 — 主项目 push GitHub + Mac→VPS 精细 rsync + alembic upgrade + SQL 重发凭证 + 验证全绿 + session-coord 多会话首测通过
+
+- **会话身份**：session-coord 真实多会话首测中的 CC-2 角色（主会话 Opus47-1M-主 设计的双会话验证），跑通 register / scan / 公告 / 心跳 全链路
+- **session-coord bug 自动收敛**：register.sh L81 + scan.sh L63 中文全角标点 + `set -u` → unbound variable，主会话 + CC-2 独立诊断同方案 = bug 客观存在不是偶发
+- **戳穿 reviewer 后门三层分裂**：itsuki 问「修好了吗」→ git log 查到主项目 commit 852563c 已修 + 11 commit 没 push + Mac fork 缺 migration 文件 + VPS 上跑的可能还是 buggy → itsuki 拍板「让 VPS CC 修」
+- **diff 戳穿"fork = 主项目"假设**：alembic/env.py + b2c3d4e5f6a7 是 VPS / fork 改过主项目没改；f6a7b8c9d0e1 migration 只在主项目；seed.py fork 是 buggy 后门源 / 主项目是双模式修过版 → 设计精细 rsync 避免破坏 VPS 修过的部分
+- **跨机器协作分工**：Mac CC push GitHub + 写 VPS CC 提示词（Step A-F + 5 红线）；VPS CC 跑 Step A-F；itsuki 拍 SQL 红线节点
+- **VPS CC 反向识破 Mac CC 任务描述偏差**：expires_at 2099 vs 2030 / "App Reviewer" vs "Reviewer 2026" — Mac CC 凭印象抄 TODO ledger，VPS CC 直接读主项目 seed.py 拿真值 + 停下问 itsuki = 收敛
+- **VPS CC Step F 全绿**：alembic head=f6a7b8c9d0e1 / 旧 999999 invalidated + is_reviewer=f / 新 999999 reviewer 码 / 旧 060199 标 is_demo / curl 200 / api healthy
+- **itsuki 怒怼"你到底在说什么呀"**：5-11 晚 graphify 会话刚立 `feedback_no_dense_jargon_strings`，当晚 reviewer 修复 CC 又踩 → memory 不解决当下问题，CC 元层翻车
+
+**新规则上线**：
+- 待写 memory：`feedback_cc_reference_source_of_truth_not_summary.md` — CC 给别的 CC 写提示词时必须引用源码 source of truth，不凭印象抄 ledger / 摘要 / WIP
+- WIP §当前焦点 顶部加「⏰ 2026-05-12 截止 Cloud Design 40 额度」紧急条目
+- TODO §⏰ 时间敏感 新 section（Cloud Design 5-13 凌晨刷新）
+
+**AC 价值**：⭐⭐⭐⭐⭐ — 模式 2 × 2（itsuki「修好了」假设崩 + diff 戳穿 fork=主项目 假设）+ 模式 5 × 3（commit-push-deploy 三层分离 / source-of-truth vs 印象 / CC 元层翻车 memory 失效）+ 模式 6 × 2（精细 rsync 取舍 / 跨机器协作分工）+ 主线收官（5-08 拍板 public safety 真正动机 + 时间盒承诺兑现）。详见 `05_logs/raw/2026-05-11_reviewer后门修复上线.md`（§F.1-F.8）
+
+**残**：
+- VPS 端 4 项遗留：env.py + b2c3d4e5f6a7 反向同步回主项目主分支（不是 fork）/ reseed_reviewer.sql 留 VPS 当证据 / app.bak.20260511_123608 备份 1-2 天后删 / Apple Reviewer Notes 用新凭证（注册码原文不写）
+- iOS 上架冲刺 A.1-A.11 步骤等 itsuki 坐到 Xcode 前继续（卡点已修通过 fork project.yml MARKETING_VERSION）
+- 本会话改动等 commit（raw 1 新文件 + WIP/TODO 编辑）
 
 ### 2026-05-11 更晚 by [新Mac-Opus 4.7 1M-主会话 graphify]
 
@@ -68,15 +95,16 @@
 - `.beads/` 漂移注意点（`00_admin/hooks/README.md ⚠️ 段`）
 - 个人能力清单 `~/.claude/我的环境.html` 加 graphify 用法速查 + hook 全套 + .beads 警告
 - feedback memory `feedback_no_dense_jargon_strings.md`（MEMORY.md 索引 line 95 ⭐）
-- **沟通方案讨论中尚未拍板**
+- ✅ **沟通方案 Skill + Hook 混合已落地** — 新 skill `cc-comm-rules`（`~/.claude/skills/`）+ 3 个 hook（`~/.claude/hooks/`）+ `~/.claude/CLAUDE.md` 加强制加载段 + `~/.claude/settings.json` 注册 hook。dry-run 测试 5/5 通过。详见 `raw/2026-05-11.md §F`
 
 **AC 价值**：⭐⭐⭐⭐⭐ — 模式 2 × 2（vendor 污染假设崩 + CC 以为问题是密度真问题是没说清做了啥）/ 模式 5 × 3（工程 ignore 文件普适性 + 第三方工具配置污染防御 + CC 元层翻车）/ 模式 6 × 2（archive 漂移取舍 + memory vs 当下讨论的取舍）/ 工程发现 × 2（vendor 污染 + .beads 副作用）。详见 `raw/2026-05-11.md §D + §E`
 
 **残**：
-- **沟通方案讨论未完** → 新会话继续，必读 `raw/2026-05-11.md §E`
-- vendor 污染配置写了但**还没重跑**：`/graphify --update` 待 itsuki 拍板
-- 本会话所有改动 + 5-11 晚 session-coord 改动一起待 commit
-- WIP/TODO/CLAUDE.md modified 但非本会话改的 — 需要 itsuki 拍板（可能是别的会话）
+- ✅ **沟通方案已落地** → 试用 1-2 周 + 看效果（详见 TODO §🛠️ A）
+- vendor 污染配置写了但**还没重跑**：`/graphify --update` 待 itsuki 拍板（详见 TODO §🛠️ C）
+- `~/.claude/我的环境.html` 还没同步 cc-comm-rules + 3 hook（详见 TODO §🛠️ B）
+- 本会话所有改动（cc-comm-rules + 3 hook + raw §F + TODO §🛠️）一起待 commit
+- 11+ commits 未 push 等 itsuki 拍板（详见 TODO §🛠️ D）
 
 ### 2026-05-11 晚 by [新Mac-Opus 4.7 1M-主会话 session-coord]
 

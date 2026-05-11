@@ -23,6 +23,39 @@
 
 ---
 
+## 🛠️ Skill / Hook / 工具后续（2026-05-11 晚加）
+
+> 今晚装了 cc-comm-rules（CC 沟通规则 skill — 解决 itsuki 反复怒怼 CC 沟通失职）+ 3 个 hook + graphify 全套。下面是装完之后还没做的。
+
+### A. 试用 cc-comm-rules + 收集反馈
+
+- [ ] **试用 cc-comm-rules 1-2 周** — 看 4 个规则真用起来效果如何（详见 `~/.claude/skills/cc-comm-rules/SKILL.md`）
+- [ ] **如果某条规则没解决问题** → 跟 itsuki 讨论调整（不要单方面改）
+- [ ] **如果 hook 误报多** → 调整 `user-prompt-comm-priority.sh` 的怒怼词清单
+
+### B. 同步环境清单 HTML
+
+- [ ] **更新 `~/.claude/我的环境.html`** — 加 cc-comm-rules skill + 3 个新 hook
+  - 加在 §4 全局 Skills 表（cc-comm-rules 那行）
+  - 加在 §3 全局 Hooks 表（从 1 个 PostCompact 扩到 4 个 hook）
+  - 验证方式：下次 CC 会话启动时 `session-start-env-diff.sh` hook 应该不再报 diff（因为 HTML 已同步）
+
+### C. graphify 图谱清洗
+
+- [ ] **重跑 `/graphify --update`** 用 `.graphifyignore` 清掉 vendor（借来的第三方库代码 — React/Babel 等）污染
+  - 现状：图谱 god nodes（最重要的节点）前 10 还是 React 怪函数（`As()` / `error()` / `K()` / `i()`）
+  - 重跑后：会变成真正的 DMSD 核心节点（Route / models / NetworkModels 等）
+  - 验证方式：跑完后打开 `graph.html`（图谱网页文件）看 god nodes 列表，应该没 React 函数了
+  - 烧 token：少量（大部分文件已缓存，只重抽 vendor 排除掉之后的差量）
+
+### D. push 累积 commits
+
+- [ ] **11+ commits 未 push 到 GitHub** — 等 itsuki 拍板说"推一下"才推
+  - 当前 commit 已含：今晚 cc-comm-rules + 3 hook + graphify 全套 + raw §D §E + WIP + TODO 改动
+  - 按 itsuki 全局铁律：CC 不自动 push
+
+---
+
 ## 📱 iOS 上架冲刺 — 剩余事项（2026-05-08 状态）
 
 > **会话状态**：5-07 启动「上线 iOS 到 App Store」目标 → 5-08 完成 backend 部署到 GCP VPS（asia-northeast1）+ DNS（api.tomoshibi.cc）+ GH Pages（privacy / support）+ Apple Developer Portal App ID + ASC App「Tomoshibi · 灯火」+ Xcode 编译。**5-08 21:30 卡在 Validate App** 失败（CFBundleShortVersionString empty）— 已修 fork project.yml 用 MARKETING_VERSION 写法 + 让 itsuki 在 Xcode General tab 直接填 Version 1.0.0 / Build 1，待重新 Archive。
