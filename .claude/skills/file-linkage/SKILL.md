@@ -1,6 +1,6 @@
 ---
 name: file-linkage
-description: DMSD 文件联动矩阵 — 改 A 必查 B 的完整规则表（18 条联动规则 + 反向索引 + 检查命令）。⭐ 触发：CC 改文件后想确认联动 / itsuki 说「联动检查 / 我改了 X 要查什么 / 改 A 要不要改 B」/ 改了任何 backend models / spec / system_features / Route 等"高联动文件"。短小专一（~200 行）— 比 project-overview skill 短，给频繁触发设计。
+description: DMSD 文件联动矩阵 — 改 A 必查 B 的完整规则表（17 条联动规则 + 反向索引 + 检查命令）。⭐ 触发：CC 改文件后想确认联动 / itsuki 说「联动检查 / 我改了 X 要查什么 / 改 A 要不要改 B」/ 改了任何 backend models / spec / system_features / Route 等"高联动文件"。短小专一（~200 行）— 比 project-overview skill 短，给频繁触发设计。
 when_to_use: ⭐ 触发 — 「联动 / 联动检查 / 我改了 X 要查什么 / 改 A 要改 B 吗 / sync-check」/ CC 自己刚改了 backend models / spec 主体 / system_features / Route.swift / iOS Foundation 组件 / hooks 时主动确认。配套 PostToolUse hook 自动跑 sync-rules.sh — hook 是确定性快查，本 skill 是 LLM 可读详细版。
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
