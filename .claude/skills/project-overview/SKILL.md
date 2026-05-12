@@ -147,8 +147,8 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `post-edit-version-hardcode-check.sh` | ✅ | CC PostToolUse — 版本号硬编码实时拦（比 pre-commit 早一步，2026-05-04 凌晨加）|
 | `post-edit-project-overview-check.sh` | ✅ | CC PostToolUse — **project-overview SKILL.md 同步检查**（**2026-05-13 itsuki 怒怼后加** — 改结构相关文件 → 提醒同步 project-overview / 防"加文件没补 / 删文件没去 / 描述漂移"）|
 | `pre-bash-destructive-block.sh` | ✅ warn 模式 | CC PreToolUse — 拦 rm -rf 非临时 / git push --force / git branch -D（2026-05-04 加 / **2026-05-12 改 warn 模式不阻断**）|
-| `lib/sync-rules.sh` | ✅ | **18 条**联动规则代码化（**2026-05-08 从 13→18 加 6 条反向 Rule 14-19**）+ demo-scaffold-detect 函数 + `00_admin/版本管理SOP.md` 引用 **2026-05-13 改 version-bump skill**（commit 859693e）|
-| `README.md` | ✅ | hooks 总说明（git pre-commit + git post-commit/checkout + CC PostToolUse 5 + CC PreToolUse 1 = **3 类**全覆盖）|
+| `lib/sync-rules.sh` | ✅ | **21 条**联动规则代码化（**2026-05-08 从 13→18 加 6 条反向 Rule 14-19；2026-05-13 audit 验证为实际 21 条 add_rule** — 5-08 后又加 3 条 / CLAUDE.md 仍写"17 条"待校准）+ demo-scaffold-detect 函数 + `00_admin/版本管理SOP.md` 引用 **2026-05-13 改 version-bump skill**（commit 859693e）|
+| `README.md` | ✅ | hooks 总说明（git pre-commit + git post-commit/checkout + **CC PostToolUse 6** + CC PreToolUse 1 = **3 类**全覆盖）|
 
 ### 1.7 .claude/skills（7 skill）
 
@@ -279,7 +279,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `models.py` | ⚠️ | 13 张表已建（含 P1/P2 的 RollCallSession / RollCallEvent / StudyCheckin），但**对应 router 缺**；建议在 docstring 标 P0/P1/P2 |
 | `schemas.py` | ✅ | discriminated union 实装 |
 
-### 3.4 backend/v1/app/routers/（5 文件）
+### 3.4 backend/v1/app/routers/（**11 文件 — 2026-05-13 audit 补 6 漏**）
 
 | 文件 | 状态 | 备注 |
 |---|---|---|
@@ -288,6 +288,12 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `applications.py` | ⚠️ | **P0 70%** — 学生提交/邮件/履历/详情 ✅，**缺 #10-#13 役职审批 endpoint** |
 | `meals.py` | ✅ | P0 完整（JSON + Excel openpyxl） |
 | `notifications.py` | ✅ | SendGrid 烟雾测试 |
+| `accounts.py` | ✅ | 5-04 启 — 学生注册（POST /accounts）+ 密码重置 / DELETE /accounts/me 待补（Apple 5.1.1(v)）|
+| `admin_registration_code.py` | ✅ | 5-03 启 — POST /refresh + GET /current + GET /history（注册码门禁）|
+| `announcements.py` | ✅ | 5-03 启 — 老师公告 9 endpoints（list / detail / replies / reads）|
+| `rollcall.py` | ⚠️ | **5-12 04:55 commit 96f86eb 已挂载** — 但 NFC card_uid 防作弊核心未真接（rollcall.py:145-153 暫定，深度审查 P0）|
+| `study.py` | ⚠️ | **5-12 04:55 commit 96f86eb 已挂载** — 学習 NFC 3 tap 状态机 + 欠席届 + 出席统计 |
+| `teachers.py` | ✅ | 教师管理 + 邀请 token（5-03 启）|
 
 ### 3.5 backend/v1/app/services/（4 文件）
 
@@ -297,17 +303,27 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `approval_chain.py` | ⚠️ | 外泊 chain 证据确定 ✅；**帰省 / 帰国 chain 是 PROVISIONAL 暫定值**（待 itsuki 老师见面补 4 张实物表） |
 | `email.py` | ⚠️ | 90% 完整，**缺 retry 3 次循环**（设计要求） |
 
-### 3.6 backend/v1/tests/（3 文件）
+### 3.6 backend/v1/tests/（**5 文件 — 2026-05-13 audit 校准**）
 
-`__init__.py` + `conftest.py` + `test_smoke.py` 都 ✅，17 个 test case 覆盖 P0 关键路径 70%。
+| 文件 | 状态 | 备注 |
+|---|---|---|
+| `__init__.py` + `conftest.py` | ✅ | 标准 fixture |
+| `test_smoke.py` | ✅ | 17 个 test case — P0 关键路径 |
+| `test_announcements.py` | ✅ | 公告 endpoint test（5-03 + 启）|
+| `test_demo_reviewer.py` | ✅ | reviewer demo 账号 test（5-08 拍板）|
+| `test_registration_code.py` | ✅ | 注册码 5-03 启 — 测 /refresh / /current / /history |
 
-### 3.7 v1 P0 缺块清单
+**实际 42 test case** — 覆盖率 35-45%（远低于 BACKEND_DESIGN_LOG §8 要求 70% — 5-12 深度审查 P1 发现）。
+
+### 3.7 v1 P0 缺块清单（**2026-05-13 audit 校准 — #2 #3 已完成**）
 
 需后续 P1 会话补：
 1. `routers/applications.py` 加 `POST /{id}/approvals`（#10-#13 役职审批）+ `DELETE /{id}`（D3 撤回）
-2. 新建 `routers/rollcall.py`（#14-#20 点呼 iPad）
-3. 新建 `routers/study.py`（#16-#20 学习担当）
+2. ~~新建 `routers/rollcall.py`~~ → ✅ **5-12 commit 96f86eb 已挂载**（但 NFC card_uid 防作弊核心未真接 — 见 §3.4 ⚠️ + 深度审查 P0）
+3. ~~新建 `routers/study.py`~~ → ✅ **5-12 commit 96f86eb 已挂载**
 4. `services/email.py` 补 retry 3 次
+5. **`routers/accounts.py` 加 DELETE /accounts/me**（5-13 audit 新发现 — Apple 5.1.1(v) 强制要求 / BACKEND_DESIGN_LOG §5.1.6 已 spec）
+6. **NFC card_uid 全栈实装**（5-13 audit / backend codex full audit 重点）— Student.card_uid 字段 + cards 表 + alembic migration + UNIQUE INDEX + admin_cards.py 路由
 
 ---
 
@@ -803,4 +819,14 @@ repo 里共 **8 个 .pages + 2 个 .docx + 14 个 .510Z = 24 个 CC 不可读文
 
 ---
 
-**本文最后更新**：2026-05-08（§5.7 补 student_android 章节 — 之前 5-06 合并回 DMSD 漏补;§5.8 加点呼机第 5 端骨架;§13.1 加 6 条反向规则 Rule 14-19;§0.4 五层 DESIGN_LOG;§2.3 / §6.5 同步 bus_schedule 挪位置）。早些更新：2026-05-04（加 §13 文件联动指南）/ 2026-05-01（首次创建 7 组并行扫描 606 文件合成）
+**本文最后更新**：2026-05-13 中午（接力 CC 校准 — 顶部 §0 体量数字 + §1.4/§1.5 26 文件 git mv 路径 + §1.6 hooks 8→11 / sync-rules 18→21 / PostToolUse 5→6 + §1.8 非编号目录新章节 + §3.4 backend routers 5→11 补 6 漏 + §3.6 tests 3→5 + §3.7 P0 删 rollcall/study 已建加 accounts/card_uid + §5.1 iOS 改名 + 末尾时间戳。基于 sub agent af04d326 audit 报告 `/tmp/project_overview_audit.md`）。早些更新：2026-05-12 凌晨 CC 自治大整理 / 2026-05-08（§5.7 补 student_android 章节 — 之前 5-06 合并回 DMSD 漏补;§5.8 加点呼机第 5 端骨架;§13.1 加 6 条反向规则 Rule 14-19;§0.4 五层 DESIGN_LOG;§2.3 / §6.5 同步 bus_schedule 挪位置）/ 2026-05-04（加 §13 文件联动指南）/ 2026-05-01（首次创建 7 组并行扫描 606 文件合成）
+
+> **未做完 — 留给下次 CC**（2026-05-13 audit 18 条 Edit 建议）：
+> - §0.1 体量表 7 行数字全过期（606→685 实际）— 要重跑 git ls-files 全统计
+> - §4.3 teacher_web v1 整段失效 — 实际已 Vite + TS 重构进行中（35+ 真改造文件 + _legacy/ 隔离）
+> - §5.5 iOS Feature 行数 8 行全错（StayList 748→1588 翻倍）
+> - §6.2 raw/ 漏 7 个 5-12/5-13 新增（36→41）
+> - §7 99_archive 漏 7+ 新建子目录（migration_2026-05-06 / 2026-05-02_* × 4 / 2026-05-12_深夜大整理 等）
+> - §10 AC top 10 第 10 项 版本管理SOP 路径已迁
+> - §11 itsuki 待决定列表 8 条状态复核（progress_draft / 跨会话 已归档）
+> - 完整清单：`/tmp/project_overview_audit.md`

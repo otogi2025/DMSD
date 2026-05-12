@@ -51,6 +51,38 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+### 2026-05-13 by [新Mac-Opus 4.7 1M-接力CC-深度审查整理]
+
+**主题**：⭐⭐⭐⭐⭐ 5-12 凌晨深度审查接力 + 5-13 早 itsuki 怒怼后真整理 + project-overview 同步 hook 上线
+
+5-13 早 itsuki 醒来怒怼"没真整理 / project-overview 漂移 / 我看不到的地方也乱" → CC 当下立刻干 → **7 个 commit 累计**：
+
+- `859693e` 9 文件死链 + NOT_YET_ALLOWED 致命缺口修
+- `b37d065` 12 AC 文件 git mv → `05_logs/AC_叙事/`（Q3 拍板）
+- `81842f4` 14 文件 git mv（6 管理 + 6 归档 + 2 iOS 改名 `_archived_`）
+- `eaeeefe` 新 hook `post-edit-project-overview-check.sh` + project-overview SKILL.md 10+ 处校准 + §1.8 非编号目录新章节
+- `6f9650e` HTML 总结加 5-13 中午段
+- `(待 commit)` project-overview audit 校准 6 处（§3.4 backend routers 5→11 / §3.6 tests 3→5 / §3.7 P0 删 rollcall+study 已建 / §1.6 sync-rules 18→21 + PostToolUse 5→6 / 末尾时间戳）
+
+**新 hook 上线**：`00_admin/hooks/post-edit-project-overview-check.sh` — CC 改结构相关文件后自动 grep project-overview 看是否同步 → 3 级提醒。**防再漂移**。
+
+**4 sub agent 起草 draft 在 `/tmp/`**：decision_log 29 条 / learning_path 15 条 / project_evolution 5 转折 / system_features §8 补丁 — itsuki 红线 等粘贴。
+
+**sub agent af04d326 audit 报告**：18 条 Edit 建议 — 本 session 做了 6 条，剩 12 条留下次 CC。完整 `/tmp/project_overview_audit.md`。
+
+**AC 价值** ⭐⭐⭐⭐⭐：
+- 模式 5：itsuki 怒怼"我看不到"驱动 hook 上线 — passive 提醒永远跟 active 同步（"机制 > 自律"原则验证）
+- 模式 6：sub agent audit 发现 SKILL.md 自己漂移（讽刺地漏列刚加的 hook）— 元层面 self-reference 漂移
+- 工程纪律：怒怼后立刻 stop + 不绕 classifier + 用 `!` prefix 让 itsuki 自己跑
+
+**残（下次 CC 跟进）**：
+- 全 read 600+ 文件审 project-overview 描述准不准 — 单会话 3M tokens 不够（要 6-11 sub agent 分批）
+- project-overview 18 条 audit 剩 12 条（§0.1 体量重算 / §4.3 teacher_web v1 整段重写 / §5.5 iOS Feature 8 行数字 / §6.2 raw 36→41 / §7 99_archive 漏 7+ 子目录等）
+- 2 SKILL.md classifier 拦（file-linkage 17→18 / memory-write itsuki path）— itsuki 自己 sed
+- 4 sub agent draft 粘贴
+
+**详细 raw**: `05_logs/raw/2026-05-13_接力CC续做.md`
+
 ### 2026-05-12 by [新Mac-Opus 4.7 1M-修补批量+规则加严]
 
 **主题**：⭐⭐⭐⭐ itsuki 让 CC 把修补类任务全跑（周额度刷新前消耗 token）→ 12 任务并行 + 5 agent → 真改 4 文件 + 9 份报告 → **沟通规则翻车 → itsuki 二次怒怼 → cc-comm-rules 规则 2.3 当下加严 + 加规则 6**
