@@ -302,6 +302,63 @@ sed -i.bak 's|/Users/itsuki/|/Users/kurekoduki/|g' .claude/skills/memory-write/S
 # learning_path / project_evolution 同理
 # §8 补丁粘贴到 02_design/system_features.md §8 末尾</code></pre>
 
+<h2>🎯 5-13 中午：itsuki 怒怼后真整理（26 文件 + 同步 hook 上线）</h2>
+
+<p>5-13 早 itsuki 反映"没真整理 / project-overview 漂移 / 描述错"。<strong>4 个 commit 累计</strong> 真做了：</p>
+
+<table>
+<thead><tr><th>Commit</th><th>动作</th></tr></thead>
+<tbody>
+<tr><td><code>b37d065</code></td><td>12 AC 文件 git mv → <code>05_logs/AC_叙事/</code>（Q3 拍板）</td></tr>
+<tr><td><code>81842f4</code></td><td>14 文件 git mv（6 管理文档归位 + 6 老文件归档 + 2 iOS 改名 <code>_archived_</code>）</td></tr>
+<tr><td><code>859693e</code></td><td>9 文件死链 + NOT_YET_ALLOWED 致命缺口修</td></tr>
+<tr><td><code>eaeeefe</code></td><td>新 hook <code>post-edit-project-overview-check.sh</code> + project-overview SKILL.md 10+ 处校准 + §1.8 非编号目录新章节</td></tr>
+</tbody>
+</table>
+
+<h3>🆕 5-13 新建 hook（防再漂移）</h3>
+
+<p><code>00_admin/hooks/post-edit-project-overview-check.sh</code> — CC 改<strong>结构相关文件</strong>（00_admin/01_specs/02_design/5 端 README+DESIGN_LOG/skill/CLAUDE.md 等）时自动 grep project-overview 看是否有引用 → 3 级提醒：</p>
+<ul>
+<li>名 + 路径都在 → 温和提醒"确认描述准确"</li>
+<li>名在 / 路径不在 → 中度提醒"可能改名 / 移位"</li>
+<li>都不在 → <strong>强提醒</strong>"新建文件应该加 project-overview"</li>
+</ul>
+
+<p>已注册到 <code>.claude/settings.json</code> PostToolUse Write|Edit 链。<strong>下次 CC 写文件后自动提醒</strong> — 不需要 itsuki 盯着。</p>
+
+<h3>📋 00_admin/ 现状：27 → 5 文件干净</h3>
+
+<pre><code>WIP.md / TODO.md / progress_overview.md / 文档同步点清单.md / 2026-04-19_项目审查_backlog.md + hooks/</code></pre>
+
+<h3>🔁 主目录非编号目录真相（itsuki 抱怨 docs/ 为啥没编号）</h3>
+
+<ul>
+<li>真进 git 的非编号目录只 3 个：<code>.claude/</code>（CC 配置）/ <code>bin/</code>（脚本）/ <code>docs/</code>（Matt Pocock skill 配置 — <strong>不是你看的</strong>）</li>
+<li>其他 .gitignore 排除 5+ 个：<code>.beads/</code> / <code>.scratch/</code> / <code>graphify-out/</code> / <code>.DS_Store</code> / <code>.venv/</code> — git 看不到 / GitHub 看不到 / 教授看不到</li>
+<li>详见 project-overview SKILL.md §1.8（5-13 新增章节）</li>
+</ul>
+
+<h3>⏳ Sub agent af04d326 项目 audit 跑中（这会话来不及等）</h3>
+
+<p>系统扫 project-overview SKILL.md：§A 加（git 有 / overview 没）/ §B 删（overview 列了 / git 没）/ §C 错描述（10+ 文件 sample 验证）。报告将写到 <code>/tmp/project_overview_audit.md</code>。</p>
+
+<p><strong>下个 CC 跟进流程</strong>：</p>
+<ol>
+<li><code>cat /tmp/project_overview_audit.md</code> 看 audit 报告</li>
+<li>按 §A 加 / §B 删 / §C 改 三类批量 Edit project-overview SKILL.md</li>
+<li>commit 后新 hook 会自动校验</li>
+</ol>
+
+<h3>❌ 全 read 600+ 文件做不到（老实承认）</h3>
+
+<p>itsuki 字面"把所有文件读一遍"= ~3M tokens，sub agent 1M context 装不下，必须 6-11 sub agent 分批 = 1-2M Anthropic 5h 限额 + 多个会话。<strong>这会话来不及做完</strong>。已经做的：</p>
+<ul>
+<li>5-12 凌晨：11 sub agent 全读过项目（focus 健康度 + bug）</li>
+<li>5-13 早：1 sub agent 跑系统 audit（focus project-overview 准确性）跑中</li>
+<li>新 hook：每次改文件自动提醒 → 长期慢慢校准</li>
+</ul>
+
 <div class="footer">
 <strong>本 HTML 由接力 CC 自动生成</strong> / 不准确处以 raw 整合 .md 文件为准 / itsuki 拍板红线（decision_log 等 3 文件正文 CC 不直写）已遵守
 </div>
