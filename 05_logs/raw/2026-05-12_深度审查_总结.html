@@ -108,6 +108,42 @@ AC 叙事核心 3 文件全部冻结：
 itsuki 红线 = CC 不能直写 → CC 起草 draft 到 <code>/tmp/decision_log_补全_draft.md</code> 等粘贴。
 </div>
 
+<h2>🔬 Codex 5 端 Full Audit 精华（second opinion）</h2>
+
+<p>5 端 codex 独立全代码审查（4/5 完成 / iOS 跑中）—— 用最高 thinking 等级 read 全代码，给 second opinion：</p>
+
+<div class="grid">
+  <div class="card"><div class="name">backend codex</div><div class="score red">58</div><div class="meta">7 P0 + 15 P1 + 跨端 5 ❌</div></div>
+  <div class="card"><div class="name">Android codex</div><div class="score red">42</div><div class="meta">NFC 0% + 申请模型 10 vs 3 严重漂</div></div>
+  <div class="card"><div class="name">Web codex</div><div class="score red">34</div><div class="meta">v1 仍 demo + 双击会坏</div></div>
+  <div class="card"><div class="name">Device codex</div><div class="score yellow">64</div><div class="meta">NFC 协议跨端不对齐</div></div>
+  <div class="card"><div class="name">iOS codex</div><div class="score red">42</div><div class="meta">8 P0 上架阻塞 + logout 不清 token</div></div>
+</div>
+
+<h3>🆕 Codex 新发现（sub agent 没找的）</h3>
+
+<ul>
+<li><strong>backend</strong>：<code>seed.py:247,257-262</code> prod 写死 reviewer 密码 + admin fallback 密码 `ChangeMe-2026-05` 进 git + 输出日志（生产后门风险）</li>
+<li><strong>backend</strong>：<code>config.py:29</code> JWT secret 默认值 "change-me-in-production"，<strong>production 启动无 fail-fast</strong>（忘改就上线 = 灾难）</li>
+<li><strong>backend</strong>：点呼 start/end/checkin/override <strong>任意教师可操作</strong>，缺 role+dorm 权限校验</li>
+<li><strong>backend</strong>：审批 <strong>不强制 chain 顺序</strong>（后序角色可先 approve / 跳过前序）</li>
+<li><strong>backend</strong>：注册码用 <code>random</code>（不是 <code>secrets</code>）生成 + 并发 refresh 可多 active 码</li>
+<li><strong>backend</strong>：history endpoint 列出 reviewer 永久码（应过滤 <code>is_reviewer=False</code>）</li>
+<li><strong>Web</strong>：<code>v1/开发模式跑.command</code> 双击启动<strong>必坏</strong> — 调用 <code>demo_server.py</code> 但 v1/demo_server.py 不存在</li>
+<li><strong>Web</strong>：Zustand <code>persist</code> 默认用 localStorage，违 WEB_DESIGN_LOG §11.5 sessionStorage 要求 + logout 只清前端不调 <code>DELETE /sessions/current</code></li>
+<li><strong>Web</strong>：<code>Shell.tsx</code> 菜单静态 4 项，5 角色（寮監/学習担当/役职/寮務）看到一模一样菜单</li>
+<li><strong>Android</strong>：申请模型 <strong>10 类</strong> 字段 <code>dest/from/to/status uppercase</code> vs backend <strong>3 类</strong>（帰省/外泊/帰国）+ snake_case <strong>严重漂移</strong></li>
+<li><strong>Android</strong>：学生模型缺关键字段 — 无 <code>student_id/name_kana/birthday/gender/grade_code/class_code/seat_no/room_no/dorm_unit/is_overseas/status/is_demo</code>（基本缺一半）</li>
+<li><strong>Device</strong>：D1-D6 拍板顺序建议 — <strong>D4 (PN532 SPI/I2C) 应最早</strong>，然后 D1 (PN532 库) → D2 (ST25DV 驱动 最大风险)</li>
+<li>⭐ <strong>Device + backend NFC 协议跨端完全不匹配</strong>（P0 cross-端 critical 新发现）：device 设计写 <code>POST /api/v1/checkin</code> + <code>/api/v1/nonce</code>，backend v1 实际是 <code>POST /api/v1/rollcall/sessions/:id/checkins</code>，schema 也没有 <code>device_id / nonce / signature</code> 字段 — 即使 itsuki 拍 D1-D6，5 端协议层都对不上</li>
+<li><strong>iOS</strong>：登出按钮 (<code>MyPageStubs.swift:1995-1998</code>) <strong>不清 Keychain token</strong>，重启 app 自动回 Home（Apple 5.1.1）</li>
+<li><strong>iOS</strong>：401 错误只 throw 无全局 logout，多数调用点不处理（用户卡死在 logged-out 状态但还能看缓存）</li>
+<li><strong>iOS</strong>：7 个 view 大量按钮只 toast / 本地假成功（Apple 4.0 死按钮 reject 风险）— HomeStubs / CommunityStubs / ApplyStubs 多处</li>
+<li><strong>iOS</strong>：注册字段错误 — <code>AuthStubs.swift:985-992</code> 把"高3/B"写入 grade_code/class_code（应该是 "06"/"02"两位数字）</li>
+<li><strong>iOS</strong>：邮箱登录 tab 是<strong>死功能</strong> — UI 写着邮箱 tab 但永远提示"只能学号登录"</li>
+<li><strong>iOS</strong>：<code>KeychainService.swift:21</code> service 名 <code>jp.tomoshibi.app</code> 跟 Bundle ID <code>com.itsuki.tomoshibi.demo</code> 不一致</li>
+</ul>
+
 <h2>🗂 项目文件整理方案（itsuki 强调的）</h2>
 
 <h3>核心原则</h3>
