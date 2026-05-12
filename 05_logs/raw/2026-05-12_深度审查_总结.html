@@ -144,6 +144,47 @@ itsuki 红线 = CC 不能直写 → CC 起草 draft 到 <code>/tmp/decision_log_
 <li><strong>iOS</strong>：<code>KeychainService.swift:21</code> service 名 <code>jp.tomoshibi.app</code> 跟 Bundle ID <code>com.itsuki.tomoshibi.demo</code> 不一致</li>
 </ul>
 
+<h2>🛡 3 个 Extra Codex 视角（OWASP + 性能 + 字段对齐）</h2>
+
+<p>跑完 5 端 full audit 后，又跑 3 个特殊角度 codex 补审：</p>
+
+<div class="grid">
+  <div class="card"><div class="name">backend OWASP</div><div class="score red">52</div><div class="meta">6 P0 + CVE 漏洞 + JWT 含 PII</div></div>
+  <div class="card"><div class="name">iOS performance</div><div class="score yellow">63</div><div class="meta">Timer 全 view 刷新 + Accessibility 全缺</div></div>
+  <div class="card"><div class="name">Android field detail</div><div class="score red">38</div><div class="meta">Models.kt 是 UI mock 不是 wire model</div></div>
+</div>
+
+<h3>🚨 Backend OWASP 6 个 P0 安全风险</h3>
+<ul>
+<li><strong>A01 横向越权</strong>：点呼 / 学习 / 申请 audit endpoint 任意 active 老师可操作，缺 role + dorm scope 校验</li>
+<li><strong>A01/A08 提权</strong>：<code>学習担当</code> 可发任意 role 邀请 → 低权账号创建高权账号（提权链）</li>
+<li><strong>A04/A07 爆破</strong>：登录 + 注册码 + accounts 无 rate limit / lockout / failed_count 失败递增</li>
+<li><strong>A02/A07</strong>：JWT secret 默认弱值无 prod fail-fast / access token 24h 无 refresh-revoke / <strong>JWT 内含姓名+寮等 PII</strong></li>
+<li><strong>A05</strong>：生产公开 <code>/docs</code> + <code>/redoc</code> + root <code>env</code> 回显</li>
+<li><strong>A06 已知 CVE</strong>：<code>python-jose>=3.3.0</code> 无 lock — 3.3.0 有公开漏洞 <a href="https://nvd.nist.gov/vuln/detail/CVE-2024-29370">CVE-2024-29370</a></li>
+</ul>
+
+<h3>⚡ iOS Performance（无内存泄漏，但架构反模式多）</h3>
+<ul>
+<li><code>AppStore</code> 超大单体 ObservableObject + Timer 每秒触发 → 所有依赖 view 收到刷新信号（核弹级 redraw）</li>
+<li><code>showToast</code> 不可取消 Task 高频堆积 + Sheet 关闭后裸 Task 仍可能回写 state</li>
+<li><code>APIClient</code> 整个 <code>@MainActor</code> → JSON decode 卡主线程</li>
+<li>多处 <code>ForEach(..., id: \.offset)</code> → 动态插入后 SwiftUI identity 不稳 row 状态错位</li>
+<li><code>thisMonthStats</code> O(n²) / <code>DateFormatter</code> 热点反复创建 / <code>.font(.system(size:))</code> 固定 size 违 Dynamic Type</li>
+<li>Accessibility 几乎全缺 <code>.accessibilityLabel</code> — 通知铃 / 返回 / NFC 图标 / 审批链 check/xmark <strong>VoiceOver 读不清</strong></li>
+</ul>
+
+<h3>📐 Android Field Detail（最差 38/100）</h3>
+<ul>
+<li><strong>Android Models.kt 当前是 React mock / AppState 持久化模型，<u>不是 backend wire model</u></strong></li>
+<li>直接接 API 会同时失配：字段名 + 类型 + enum + nullable</li>
+<li>缺关键字段：<code>student_id / grade_code / class_code / seat_no / gender / is_overseas / birthday / status</code> 等基础全缺</li>
+<li>申请模型：Android 10 类（外出/早帰/修繕等）vs backend 3 类（帰省/外泊/帰国）</li>
+<li>点呼模型：Android 4 字段（id/ts/status/method）vs backend 完整 Session+Event 全套</li>
+<li>命名漂移大量：<code>kana→name_kana</code> / <code>studentNo→student_no</code> / <code>room→room_no</code> / <code>dorm→dorm_unit</code></li>
+<li>建议：<strong>新增独立 Android NetworkModels</strong> 用 snake_case <code>@SerialName</code>，<u>不要</u>复用当前 UI model</li>
+</ul>
+
 <h2>🗂 项目文件整理方案（itsuki 强调的）</h2>
 
 <h3>核心原则</h3>
