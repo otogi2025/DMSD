@@ -1,6 +1,6 @@
 # 当前工作状态 (Work In Progress)
 
-> **最后更新**: 2026-05-12（修补类批量 + cc-comm-rules 规则 2.3 加严 + 加规则 6 + destructive bash hook block→warn — 详见 `raw/2026-05-12_修补批量+comm规则加严.md`）。早些更新: 2026-05-11 跨 23 点（CC-2 reviewer 后门修复上线）/ 2026-05-11 更晚（graphify + 沟通大爆发）/ 2026-05-11 晚（session-coord）/ 2026-05-11（术语表 + HTML/MD 拍板）
+> **最后更新**: 2026-05-13（跨夜延续 — 沟通规则 v0.4.0 + v0.4.1 根本方向调整 / session-wrap §7.5 强制自查清单加入 / TODO 补 §🛠️ E + F — 详见 `raw/2026-05-12_修补批量+comm规则加严.md §I`）。早些更新: 2026-05-12（修补类批量 + cc-comm-rules 加严 + destructive bash hook block→warn）/ 2026-05-11 跨 23 点（CC-2 reviewer 后门修复上线）/ 2026-05-11 更晚（graphify + 沟通大爆发）/ 2026-05-11 晚（session-coord）<!-- VERSION_OK -->
 
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
@@ -72,6 +72,13 @@
 - 7 个待 itsuki 拍板的事（详上面 raw §F / 含 Cloud Design 5-13 刷新 / 整理脚本跑不跑 / iOS Rule 1+2 漂移修 / vendor 清 / MEMORY 主体刷 / AC inbox 5-12 补 / file-linkage 标题 18→17）
 - 本会话所有改动等 commit（3 modified + 1 新 raw log + WIP 自己。全局文件 `~/.claude/` 下的不入 DMSD git）
 - 另一会话 untracked 3 文件（深度审查批 1 / 接力进度 / 执行计划）不动，让那条线自己 commit
+
+**5-13 凌晨延续**（跨夜段，3 个关键产出）：
+- 沟通规则文件迭代 v0.3.0 → v0.4.0（根本方向调整：概念强制中文 + 技术事实保留英文，废 v0.1-v0.3 "英文+括号翻译" 方向）→ v0.4.1（修正 DMSD / Tomoshibi 归类为专有名词保留英文）<!-- VERSION_OK -->
+- 加 §7.5「收尾完成强制自查清单」到 session-wrap 文件 — 解决"CC 收尾默默跳过 N/A"系统性问题。8 项逐条核对表强制每次收尾必给（✅ / ⏸ + 显式理由 / ❌ + 解决方案）
+- TODO 加 §🛠️ E + F（沟通规则后续 4 条 + 5-12 收尾残留 6 条）
+- 3 次提交：`b9ae594` raw §I / `9c0398f` TODO §E+F / 本回合 WIP + session-wrap §7.5（待提交）
+- 详见 `raw/2026-05-12_修补批量+comm规则加严.md §I`
 
 ### 2026-05-11 跨 23 点 by [新Mac-Opus 4.7 1M-CC2 reviewer 后门修复上线]
 
