@@ -425,7 +425,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `learning_path.md` | ✅ | 学习哲学 + 已走的路（最后更新 4-13，**4-10 后新学的 NFC/Swift/硬件未追记**） |
 | `project_evolution.md` | ✅ | 4 次重大转折（最后更新 4-13，待补"第五次转折"= demo 完成情况） |
 
-### 6.2 05_logs/raw/（16 文件）
+### 6.2 05_logs/raw/（36 文件，2026-05-12 校准）
 
 | 文件 | AC 候选密度 | 备注 |
 |---|---|---|
@@ -441,6 +441,14 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `2026-04-22.md` + `2026-04-22_iOS前端设计_Round1.md` | ⭐⭐ | 4-tab 推翻 + 73 页清单 + Round 3 解包 |
 | `2026-04-23.md` | ⭐⭐⭐ | 学号 6 桁 + 跨会话同步规则 A+B+C + 巧合收束 |
 | `2026-04-24.md` / `2026-04-29.md` / `2026-04-30.md` | ⏳ | 老师反馈受领 + 三轨 ABC 落地 + 学習 NFC 化 |
+| `2026-05-01.md` / `2026-05-02.md` / `2026-05-03.md` | ⭐⭐ | 5 月初 v0.4-v0.6 推进（公告 4 端 / 注册码 spec） |
+| `2026-05-04.md` + `2026-05-04_iOS_bug修复.md` | ⭐⭐ | WIP/TODO 分工拍板 + iOS bug 修复 |
+| `2026-05-06.md` | ⭐⭐⭐ | **独立 repo 退役** — 5 端全合并回 DMSD monorepo |
+| `2026-05-07.md` | ⭐⭐ | iOS 上架冲刺启动 + 教学 skill 拍板 |
+| `2026-05-08.md` + `2026-05-08_ios_上架冲刺.md` + `2026-05-08_reviewer_demo重做.md` + `2026-05-08_vps_deploy_steps.md` | ⭐⭐⭐ | GCP VPS 部署 + Apple Reviewer demo 5 bug 修干净 + 点呼机第 5 端拍板 |
+| `2026-05-10.md` | ⭐⭐ | 15 skill 批量装 + ac-radar 上线 |
+| `2026-05-11.md` + `2026-05-11_reviewer后门修复上线.md` | ⭐⭐⭐⭐⭐ | 术语表 HTML / session-coord / graphify / **沟通问题大爆发**（cc-comm-rules 立 skill）/ reviewer 后门修复跨机器协作 |
+| `2026-05-11_深夜大整理.md` + `2026-05-12_深夜大整理_总结报告.md` + `_AC价值汇总.md` + `_问题清单_codex修复SOP.md` + `_codex_auto_修复.md` + `_压缩后接力指引.md` | ⭐⭐⭐⭐ | CC 自治模式跨夜大整理（5-11 23:30 → 5-12 04:57）— 38 条 AC 素材 + 11 区域 codex 修复 SOP + 整理脚本 `/tmp/cleanup_2026-05-12.sh` |
 
 ### 6.3 05_logs/dev_log/（9 文件）
 

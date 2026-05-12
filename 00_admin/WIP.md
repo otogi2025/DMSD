@@ -1,6 +1,6 @@
 # 当前工作状态 (Work In Progress)
 
-> **最后更新**: 2026-05-11 跨 23 点（CC-2 reviewer 后门修复上线主线收官 — 详见 `raw/2026-05-11_reviewer后门修复上线.md §F.1-F.8`）。早些更新: 2026-05-11 更晚（graphify + 沟通问题大爆发，详见 `raw/2026-05-11.md §D + §E`）/ 2026-05-11 晚（§C session-coord）/ 2026-05-11（§B HTML/MD + §A 术语表）/ 2026-05-10 晚（skills 批量装）
+> **最后更新**: 2026-05-12（修补类批量 + cc-comm-rules 规则 2.3 加严 + 加规则 6 + destructive bash hook block→warn — 详见 `raw/2026-05-12_修补批量+comm规则加严.md`）。早些更新: 2026-05-11 跨 23 点（CC-2 reviewer 后门修复上线）/ 2026-05-11 更晚（graphify + 沟通大爆发）/ 2026-05-11 晚（session-coord）/ 2026-05-11（术语表 + HTML/MD 拍板）
 
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
@@ -50,6 +50,28 @@
 ---
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
+
+### 2026-05-12 by [新Mac-Opus 4.7 1M-修补批量+规则加严]
+
+**主题**：⭐⭐⭐⭐ itsuki 让 CC 把修补类任务全跑（周额度刷新前消耗 token）→ 12 任务并行 + 5 agent → 真改 4 文件 + 9 份报告 → **沟通规则翻车 → itsuki 二次怒怼 → cc-comm-rules 规则 2.3 当下加严 + 加规则 6**
+
+- **起因**：周额度刷新前 itsuki 让列「消耗 token 不需决策可做完」任务 → CC 列 14 项 6 组 → itsuki 选「修补类全做」
+- **12 任务并行**：5 agent（spec-sync / file-linkage / graphify / CC 自治简报 / HTML skill 调研）+ 主线 7（环境清单 HTML + project-overview SKILL + memory 体检 + commit 0c71d6b 审查 + AC inbox 盘点 + pandoc blocked + 5-11 raw AC 检查）
+- **真改 4 文件**：`~/.claude/我的环境.html` + `.md`（日期 + 5-12 历史段）/ `project-overview/SKILL.md` §6.2 raw 清单 16→36 文件 / destructive bash hook + README
+- **destructive bash hook 改造（block→warn）**：itsuki 拍板「太严，提醒 CC 思考一下，别拦死」→ `exit 2` 改成 `exit 0` + JSON additionalContext / dry-run 测通过 / 文件名保留避免多处联动 / `00_admin/hooks/README.md §F` 同步
+- **沟通规则翻车 + 二次怒怼**：CC 跑报告时大量英文术语没翻（`exit 0` / `stderr` / `dry-run` / `Pydantic schema` / `god nodes` 等）→ itsuki 怒怼"我没看到任何效果" → CC 承认 + 提"下回合开始改" → **itsuki 二次怒怼"不用说首次出现，每次都要"** → CC 当下改 `~/.claude/skills/cc-comm-rules/SKILL.md` §2.3
+- **加规则 6**：itsuki 拍板"我一次输入多任务时 CC 要先总结让我确认" → CC 加规则 6 + 自己应用一次（总结这条要求）+ bump 到 v0.3.0 <!-- VERSION_OK -->
+
+**新规则上线**：
+- `cc-comm-rules` v0.3.0 — 规则 2.3 加严（每次出现都翻译，不是首次）+ 加规则 6（多任务输入先总结） <!-- VERSION_OK -->
+- `pre-bash-destructive-block.sh` warn 模式（block→warn 改造）
+
+**AC 价值** ⭐⭐⭐⭐⭐ — 模式 5 元规则验证 × 3（itsuki 验证 5-11 规则真做到没 / CC 一次怒怼后又踩 memory 反模式 / itsuki 二次怒怼让 CC 当下改 skill 文本不靠 memory）+ 模式 2 假设崩 × 1（"昨天讲过的不用再翻"被推翻）+ 模式 6 取舍 × 1（翻译密度 vs 回复简洁度，选密度）+ **规则演化进化论证据**（v1 5-11 → v2 5-12 加严 → v3 5-12 加规则 6，1 天内 3 次迭代）。详见 `05_logs/raw/2026-05-12_修补批量+comm规则加严.md`
+
+**残**：
+- 7 个待 itsuki 拍板的事（详上面 raw §F / 含 Cloud Design 5-13 刷新 / 整理脚本跑不跑 / iOS Rule 1+2 漂移修 / vendor 清 / MEMORY 主体刷 / AC inbox 5-12 补 / file-linkage 标题 18→17）
+- 本会话所有改动等 commit（3 modified + 1 新 raw log + WIP 自己。全局文件 `~/.claude/` 下的不入 DMSD git）
+- 另一会话 untracked 3 文件（深度审查批 1 / 接力进度 / 执行计划）不动，让那条线自己 commit
 
 ### 2026-05-11 跨 23 点 by [新Mac-Opus 4.7 1M-CC2 reviewer 后门修复上线]
 
@@ -156,24 +178,7 @@
 
 **§B 早段会话补完（5-11 晚 session-wrap 收尾时记）**：§A raw 17:00 / 18:30 提到的「跨会话拍板混层方案 + TODO §📄 已加」实际就是 §B 本会话本体（不是另一会话）。§B 早段：itsuki 读 Thariq「Why HTML」全文 → CC 拆作者立场（5 用例全是人消费 / 没 DMSD 这种重 MD 协作层）→ itsuki 「就按混层」拍板 → 自己识破双写漂移坑（不等 CC 警告）→ 拍板方案 A「按需 pandoc 临时渲染」→ TODO §📄 落地（A 元任务 + B 13 候选 + C 已有 HTML + D 反向规则）。AC 价值 ⭐⭐⭐ — 模式 5 种子 / 模式 2 假设崩 / 模式 6 取舍 × 2 / 工程纪律「先 review 已有再决定新建」。详见 `raw/2026-05-11.md §B` 5 条 dump（ⓐ-ⓔ）
 
-### 2026-05-10 晚 by [新Mac-Opus 4.7-主会话 skills 批量装]
-
-**主题**：⭐⭐ 装 15 个 skill（Matt Pocock 6 + Patina 2 + Anthropic 官方 skill-creator + chrome-devtools-mcp 6 子 skill）+ DMSD 外部 skill 体系建立（docs/agents/ 配置层 + CLAUDE.md ## Agent skills 段 + 文档同步点清单 §13）
-
-- **9 skill 调研**：CC WebSearch + WebFetch 5 次整理 3 个来源 — Matt Pocock npx / Anthropic /plugin / Patina curl。/grill-me / TDD / write-a-prd / prd-to-issues 实际名字 to-prd / to-issues / Browser-use 已激活 / Agent-browser 真名 chrome-devtools-mcp（CC 之前给的名字不准 — 自己承认错误后替换）
-- **`/setup-matt-pocock-skills` 拍板 B（核心架构决策）⭐⭐⭐**：CC 探索 DMSD 现状发现 Matt Pocock 默认布局（GitHub Issues / docs/adr/ / CONTEXT.md / docs/agents/ 字母目录）跟 DMSD 现有体系（00_admin/TODO.md / 05_logs/decision_log.md / 02_design/system_features.md + 5 端 DESIGN_LOG / 00-99 数字目录）完全错位 → 给 3 选项 → itsuki 选 B「让 skill 服从 DMSD 不双轨」
-- **6 处改动落地**：新建 docs/agents/{issue-tracker,triage-labels,domain}.md（prose 映射）+ CLAUDE.md 加 `## Agent skills` 段 + §目录结构 加 docs/agents/ 一行 + 00_admin/文档同步点清单.md 加 §13 + .gitignore 加 .scratch/
-- **superpowers 误装 + 卸载**：itsuki 跑 /plugin 装的是 superpowers（第三方 obra）不是 skill-creator（Anthropic 官方）。CC 主动点 superpowers 跟 Matt Pocock 套件 4 处功能重叠（TDD / debug / brainstorming / 写新 skill） + 关键词撞车风险 → itsuki 拍板留 Matt Pocock 卸 superpowers
-- **CC 帮删 superpowers manifest**：Edit installed_plugins.json（成功）+ rm -rf cache 被 DMSD pre-bash-destructive-block.sh hook 拦（hook 不认 ~/.claude/plugins/cache/ 是临时路径，要 itsuki 明确授权 — 反映 hook 体系在外部目录上正确触发拦截）→ 让 itsuki 自跑 rm 路径
-- **AC 出愿写作 skill**：patina（devswha — AI 写作模式检测中/英/日/韩）= 日语志望理由书核心工具 + patina-max（best-of-N 但要 codex/gemini CLI 才完整发挥）
-
-**新规则上线**：
-- 外部工具进入项目时的**归化原则** — 不让项目迁就工具，让工具服从项目（docs/agents/ 体系实战 — CLAUDE.md 仍 single source / docs/agents/*.md 是给 skill 读的快照）
-- 文档同步点清单 §13 加「外部 skill 配置」同步点
-
-**AC 价值**：⭐⭐ — 模式 5「skill 装哪儿分层架构理解」（通用工具底层 vs per-repo 配置层）+ 模式 6 × 2（设计决策双轨拒绝 + skill 重叠取舍）+ 工程纪律（先装完再统一 commit 拒绝 git add . 一锅端）。详见 `05_logs/raw/2026-05-10_skills批量装.md`（6 条素材深度 dump）+ 中央 inbox 4 条短 tag
-
-**残**：本次 setup 6 处改动 + 5-08 跨日残（.claude/skills/new-feature/SKILL.md / 06_assets/icons 2 个 icon 删）混着 + 6 commit 未 push 等 itsuki 拍板统一 commit 策略 / superpowers cache 5MB 留着无害等 itsuki 自跑 `rm -rf ~/.claude/plugins/cache/claude-plugins-official/superpowers` 清 / 重启 CC 让当前会话残留的 superpowers 14 子 skill 真正下线
+> **2026-05-12 砍 5-10 晚 skills 批量装条目**（让 5-12 修补批量+规则加严 + 5-11 跨 23 点 reviewer 后门修复上线 + 5-11 更晚 graphify + 5-11 晚 session-coord + 5-11 术语表 维持 5 条上限） — 详见 `raw/2026-05-10_skills批量装.md`
 
 > **2026-05-11 跨 23 点砍 2 条**（让 CC-2 reviewer 后门修复上线 + graphify + session-coord + 术语表 + 5-10 晚 skills 批量装 维持 5 条上限）：
 > - 砍 5-10 ac-radar 上线条目 — 详见 `raw/2026-05-10.md`

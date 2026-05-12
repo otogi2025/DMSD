@@ -40,11 +40,11 @@ DMSD 用了 **3 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后
 - 提取新增内容找 `vX.Y.Z` 模式行 + 行末没 `<!-- VERSION_OK -->` 豁免 → 提醒
 - 比 git pre-commit 早一步拦（commit 前发现，不等 commit 才阻塞）
 
-### ⭐ CC PreToolUse hook（1 条，CC 调 Bash 前触发，2026-05-04 加）
+### ⭐ CC PreToolUse hook（1 条，CC 调 Bash 前触发，2026-05-04 加，2026-05-12 改 warn 模式）
 
-#### F. `pre-bash-destructive-block.sh` — 破坏性命令拦截
+#### F. `pre-bash-destructive-block.sh` — 破坏性命令**提醒**（warn 模式，不阻断）
 - 触发条件：所有 Bash 命令（matcher="Bash"）
-- 拦截清单：
+- 警告清单（命中后 CC 看到警告，但命令照跑）：
   - `rm -rf <非临时路径>`（白名单 /tmp / node_modules / DerivedData / dist / build）
   - `git reset --hard`
   - `git clean -f`
@@ -53,7 +53,10 @@ DMSD 用了 **3 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后
   - `git push --force` / `-f`
   - `git push origin :refs`（删 remote ref）
   - `rm` 涉及 `.git` 目录
-- 命中 → exit 2（block）+ stderr 错误消息让 CC 重新考虑或要求 itsuki 授权
+- **2026-05-12 itsuki 拍板**：从 `exit 2`（block 拦死）改为 `exit 0` + JSON `additionalContext` 注入警告。理由：太严 — 临时文件 cleanup / 已授权操作都被拦，CC 必须每次解释，烦。
+- 命中 → exit 0 + JSON additionalContext（"⚠️ 破坏性操作 / 强制反思 / 先跟 itsuki 确认"）→ CC 看到警告但命令不阻断
+- CC 自觉性：看到警告**应该**停下来跟 itsuki 确认，**技术上**可以直接跑（hook 不再 block）
+- 文件名保留 `pre-bash-destructive-block.sh`（避免改名引发 settings.json + README 等多处联动）
 
 ### ⭐ Git post-commit / post-checkout hook（graphify 知识图谱自动重建，2026-05-11 加）
 
