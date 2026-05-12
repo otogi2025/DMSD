@@ -6,7 +6,7 @@
 > - 和 `progress_overview.md` 的区别: progress_overview 是稳定的章节目录,TODO 是可以频繁增删的任务池
 > - 完成的任务: 在 checkbox 前打 x,隔段时间(每周或每月)批量移到"已完成归档"
 
-**最后更新**: 2026-05-11（加 §📄 文件格式：MD → HTML 改造候选清单 — itsuki 读 Thariq Shihipar「Why HTML」文章后拍板混层方案，CC 协作文件保 MD / 人最终读的文件候选 HTML；早些更新：2026-05-08 §📱 iOS 上架冲刺 + §🛰️ 点呼机第 5 端 + §🐛 主项目 v1 backend bug fix）
+**最后更新**: 2026-05-13（加 §🛠️ E 沟通规则文件 v0.4.0 + v0.4.1 后续 + §🛠️ F 5-12 收尾残留待拍板；早些更新：2026-05-11 §📄 文件格式 MD → HTML 改造候选清单；2026-05-08 §📱 iOS 上架冲刺 + §🛰️ 点呼机第 5 端 + §🐛 主项目 v1 backend bug fix） <!-- VERSION_OK -->
 **当前版本**: 见 `CHANGELOG.md` 顶部 · 单源真值，见 `00_admin/文档同步点清单.md`
 
 > **2026-04-17 归档说明**：`executable_dev_checklist.md` 已归档到 `99_archive/2026-04-12_executable_dev_checklist.md`（内容已过期，功能被本 TODO.md 吸收）。
@@ -53,6 +53,32 @@
 - [ ] **11+ commits 未 push 到 GitHub** — 等 itsuki 拍板说"推一下"才推
   - 当前 commit 已含：今晚 cc-comm-rules + 3 hook + graphify 全套 + raw §D §E + WIP + TODO 改动
   - 按 itsuki 全局铁律：CC 不自动 push
+
+### E. 沟通规则文件 v0.4.0 + v0.4.1 后续（2026-05-13 凌晨加） <!-- VERSION_OK -->
+
+> 5-13 凌晨沟通规则文件迭代到 v0.4.1（根本方向调整 + DMSD 归类修正）。下面是升级后还没做的。详见 `05_logs/raw/2026-05-12_修补批量+comm规则加严.md §I`。 <!-- VERSION_OK -->
+
+- [ ] **试用 v0.4.0 切分规则 1-2 周** — 看「概念强制中文 + 技术事实保留英文」真用起来效果如何 <!-- VERSION_OK -->
+- [ ] **如果某类切分有边界争议** → 跟 itsuki 讨论 v0.4.2 调整（不单方面改） <!-- VERSION_OK -->
+- [ ] **跨会话规则传播限制** — Claude Code 当前无技术机制让运行中的会话即时收到沟通规则文件升级
+  - 现状：另一深度审查会话（5-13 同时跑）按旧规则给 itsuki 英语，已踩坑
+  - 应对：要么关掉重开那个会话，要么 itsuki 手动贴 v0.4.1 切分给那个会话 <!-- VERSION_OK -->
+  - 长期：等 Anthropic 官方加「skill 文件改动 → 运行中会话热加载」自动触发协议（目前没有，可能未来加）
+- [ ] **LLM 自觉性失败工程教训写成 feedback memory**（要 itsuki 同意才写，按规则 5）
+  - 路径：`~/.claude/projects/-Users-kurekoduki-dev-DMSD/memory/feedback_llm_self_discipline_unreliable.md`
+  - 内容：v0.1-v0.3 同方向加严失败 3 次后才接受"改方向"的教训
+  - 核心：LLM 自觉性 = 工程不可靠组件；同方向加严 N 次失败 → 应该改方向；机制层切分 > 靠 LLM 判断
+
+### F. 5-12 收尾残留待拍板（2026-05-13 凌晨加）
+
+> 5-12 修补类批量会话末尾留下 7 件待 itsuki 拍板。其中 1 件（AC 中央草稿本 5-12 补）5-12 收尾时已做，其余 6 件待办。其中 3 件（AC 文件迁 / 死链修 / 整理 14 文件）另一会话已在 commit 81842f4 / b37d065 / 859693e 处理，本表只列**未处理**的。
+
+- [ ] **Cloud Design 40 额度 5-13 凌晨已过截止** — §⏰ 段那条 5-12 截止已过期。要么忽略（额度已浪费），要么 5-20 下次刷新前主动用掉
+- [ ] **整理脚本 `/tmp/cleanup_2026-05-12.sh` 跑不跑** — Mac 重启就丢。要么手动拷出来到非 `/tmp/` 路径，要么放弃
+- [ ] **iOS 联动规则 1 + 2 严重漂移修复** — backend `models.py` / routers 5-08 改了但 iOS `schemas` / `NetworkModels` / `Endpoints` 全员停 5-06。下次启动 iOS 会 Decoding 报错。要么手动对齐字段，要么先 backend 上线再补
+- [ ] **graphify 图谱 vendor 污染清** — 跟 §C 段重复（C 段 5-11 已加，未做）
+- [ ] **MEMORY.md 主体刷新** — 多处 stale 行（v0.3.1 应改 v0.8.x / 4-10 旧 TODO 应清理），要 itsuki 同意才改 <!-- VERSION_OK -->
+- [ ] **`.claude/skills/file-linkage/SKILL.md` §1 标题「18 条」漂移** — 描述行已改 17 条但 §1 标题还是 18，itsuki 一行手改。**可能已被 commit 859693e 修过**，待验证
 
 ---
 
