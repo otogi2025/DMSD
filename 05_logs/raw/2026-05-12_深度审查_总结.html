@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DMSD 深度审查总结 — 2026-05-12</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Hiragino Sans GB", "PingFang SC", sans-serif; max-width: 900px; margin: 0 auto; padding: 24px; background: #faf8f3; color: #2a2a2a; line-height: 1.7; }
+  h1 { font-size: 28px; border-bottom: 3px solid #e8a87c; padding-bottom: 12px; margin-bottom: 8px; }
+  h2 { font-size: 22px; margin-top: 36px; color: #c38d5e; border-left: 4px solid #e8a87c; padding-left: 12px; }
+  h3 { font-size: 17px; margin-top: 24px; color: #555; }
+  .tldr { background: #fff8eb; border-left: 5px solid #f5a623; padding: 16px 20px; margin: 16px 0; border-radius: 4px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 16px 0; }
+  .card { background: white; padding: 14px 16px; border-radius: 6px; border: 1px solid #e0d8c4; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .card .name { font-weight: bold; font-size: 15px; }
+  .card .score { font-size: 28px; font-weight: bold; margin-top: 4px; }
+  .red { color: #c0392b; } .yellow { color: #d4831f; } .green { color: #5b8c3e; }
+  .crit { background: #fef5f3; border-left: 4px solid #c0392b; padding: 12px 16px; margin: 10px 0; border-radius: 4px; }
+  .crit .title { font-weight: bold; color: #c0392b; margin-bottom: 4px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 14px; }
+  th, td { border: 1px solid #d0c8b4; padding: 8px 10px; text-align: left; }
+  th { background: #f0e8d4; }
+  ul { padding-left: 22px; }
+  li { margin: 4px 0; }
+  code { background: #f0e8d4; padding: 1px 5px; border-radius: 3px; font-size: 13px; font-family: "SF Mono", monospace; }
+  .meta { color: #888; font-size: 13px; }
+  .nav { background: #fff; padding: 12px 16px; border-radius: 6px; margin: 16px 0; border: 1px solid #e0d8c4; }
+  .ok { color: #5b8c3e; font-weight: bold; }
+  .danger { color: #c0392b; font-weight: bold; }
+  .footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #ddd; color: #888; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<h1>🔍 DMSD 深度审查总结</h1>
+<p class="meta">2026-05-12 早 8:30 / 接力 CC（Opus 4.7 1M）/ 11 个 sub agent + 3-8 个 codex 报告</p>
+
+<div class="tldr">
+<strong>一句话 TL;DR</strong><br>
+项目当前综合健康度 <strong>62/100</strong>。<strong>3 个最严重的事</strong>：NFC 防作弊全栈空（DMSD 核心承诺）/ iOS Register Step5 「000000」绕过没有 #if DEMO 守卫（Apple 直接 reject）/ system_features.md §8 数据模型 12 天没补（5 端代码 LOG 引用悬空）。
+</div>
+
+<h2>📊 11 区域健康度一览</h2>
+
+<div class="grid">
+  <div class="card"><div class="name">backend</div><div class="score red">48</div><div class="meta">12 codex bug 全真 + 16 自发现</div></div>
+  <div class="card"><div class="name">iOS</div><div class="score yellow">62</div><div class="meta">4 上架 CRITICAL + 5 HIGH</div></div>
+  <div class="card"><div class="name">Android</div><div class="score yellow">60</div><div class="meta">NFC 0% + 留学生 bug</div></div>
+  <div class="card"><div class="name">device 点呼机</div><div class="score green">70</div><div class="meta">骨架阶段合理（D1-D6 待拍）</div></div>
+  <div class="card"><div class="name">teacher_web</div><div class="score yellow">65</div><div class="meta">v1 进度 0%（全 _legacy/）</div></div>
+  <div class="card"><div class="name">00_admin</div><div class="score yellow">62</div><div class="meta">6 类文件混乱 + progress 8 天过期</div></div>
+  <div class="card"><div class="name">01_specs</div><div class="score yellow">良好需 cleanup</div><div class="meta">NOT_YET_ALLOWED 致命缺口</div></div>
+  <div class="card"><div class="name">02_design</div><div class="score yellow">70</div><div class="meta">§8 数据模型 12 天没补</div></div>
+  <div class="card"><div class="name">05_logs</div><div class="score yellow">65</div><div class="meta">raw 9/10 / 入口索引 3/10</div></div>
+  <div class="card"><div class="name">99_archive</div><div class="score green">B-</div><div class="meta">归档语义良好</div></div>
+  <div class="card"><div class="name">claude_root</div><div class="score yellow">B</div><div class="meta">7 处死链 + memory-hook 失效</div></div>
+</div>
+
+<h2>🚨 5 个必修的严重问题</h2>
+
+<div class="crit">
+<div class="title">#1 NFC card_uid 全栈断链 ⭐⭐⭐</div>
+DMSD 项目的核心承诺 = "宿舍点呼 NFC 防代刷"。<strong>4 端全空</strong>：
+<ul>
+<li><strong>backend</strong>：Student 表没有 card_uid 字段，<code>rollcall.py:145-153</code> 注释自承 "P1 実装待ち"</li>
+<li><strong>iOS</strong>：注册流程用 magic <code>"000000"</code> 假绕过 backend</li>
+<li><strong>Android</strong>：RollCall 数据类无 card_uid / NFC 屏纯延迟模拟 / AndroidManifest 无 NFC 权限</li>
+<li><strong>device 点呼机</strong>：等 itsuki 拍 D1（PN532 库）才能开始</li>
+</ul>
+<strong>影响</strong>：AC 叙事 "NFC 防代刷" = 空话。<br>
+<strong>修复入口</strong>：itsuki 先拍 D1-D6 6 个决策 → backend 加 cards 表 + alembic migration → iOS / Android 接真 NFC。
+</div>
+
+<div class="crit">
+<div class="title">#2 iOS RegisterStep5「000000」bypass 无 #if DEMO 守卫 ⭐⭐⭐</div>
+<code>AuthStubs.swift:1921+2041-2051</code> — 任何用户输 <code>000000</code> 直接跳成功页（不调 backend）。<strong>没有 #if DEMO 包围 → Release 编入 → Apple 5.1.1 / 5.2.1 直接 reject</strong>。<br>
+另外 4 个上架阻塞同样真实：<code>project.yml</code> 签名 NO / <code>baseURL = "http://localhost:8000"</code> 硬编码 / <code>seedDemoAnnouncements()</code> 无 #if DEMO / Bundle ID 带 .demo 后缀。
+</div>
+
+<div class="crit">
+<div class="title">#3 system_features.md §8 数据模型 12 天没补 ⭐⭐</div>
+§10 改订历史明确承认「§8 下个会话补」从 4-30 至今 12 天没动。<strong>7 张表 / 8 类字段缺失</strong>：
+<ul>
+<li><code>is_demo</code> / <code>is_reviewer</code>（5-08）</li>
+<li><code>student_registration_codes</code> 表（5-03 §7.16）</li>
+<li><code>announcements</code> + <code>reads</code> + <code>replies</code> 3 表（5-03 §7.15）</li>
+<li><code>application_audit_log</code> 修改届表（4-30 §7.2.4）</li>
+<li><code>study_*</code> 表无法承载 NFC 3 tap 状态机（4-30 §7.3 大改）</li>
+</ul>
+<strong>连锁影响</strong>：Android DESIGN_LOG 冻结 10 天 / Web 9 天 — 5 端 LOG 引用悬空。
+</div>
+
+<div class="crit">
+<div class="title">#4 spec NOT_YET_ALLOWED 错误码致命缺口 ⭐⭐</div>
+<code>RollCall_Spec.md</code> 共 3 处引用错误码 <code>NOT_YET_ALLOWED</code>（4-29 窗口固定逻辑用），但 <code>ERROR_CODES.md</code> 完全没定义。spec 引用了不存在的码 → backend 工程师按 spec 实装找不到对应代码。<br>
+<strong>修复</strong>：5 分钟工作量 — ERROR_CODES.md §1.2 加这个码 + HTTP 409 映射。
+</div>
+
+<div class="crit">
+<div class="title">#5 3 入口索引严重欠债 ⭐⭐</div>
+AC 叙事核心 3 文件全部冻结：
+<ul>
+<li><code>decision_log.md</code> 最后 2026-04-15 → <strong>漏 22+ 决策</strong>（cc-comm-rules / graphify / reviewer 后门 / 5-04 协作模型 / 5-08 修干净再提交 ...）</li>
+<li><code>learning_path.md</code> 最后 2026-04-13 → <strong>漏 13+ 学习突破</strong>（NFC / Apple Dev Portal / Compose / 认知科学 5 原则 ...）</li>
+<li><code>project_evolution.md</code> 定格第四次转折 → <strong>缺第五-九次</strong></li>
+</ul>
+itsuki 红线 = CC 不能直写 → CC 起草 draft 到 <code>/tmp/decision_log_补全_draft.md</code> 等粘贴。
+</div>
+
+<h2>🗂 项目文件整理方案（itsuki 强调的）</h2>
+
+<h3>核心原则</h3>
+<ul>
+<li><strong>不删文件</strong> — 移动 / 归档 / 改名</li>
+<li><strong>不批量 git mv</strong>（Claude Code 自动 mode classifier 拦） — 写脚本 itsuki 自己跑</li>
+<li>AC 文件迁 <code>05_logs/AC_叙事/</code>（Q3 拍板）</li>
+<li>00_admin 子目录化（Q2 拍板 cc/+human/+shared/）<strong>单独会话做</strong> — 影响 ~20 处 CLAUDE.md + 10 hook 路径，深夜批量风险高</li>
+</ul>
+
+<h3>各区域具体动作</h3>
+
+<table>
+<thead><tr><th>区域</th><th>怎么整理</th></tr></thead>
+<tbody>
+<tr><td><strong>00_admin（最乱）</strong></td><td>5 个 CC 起草悬空 → 99_archive / 12 个 AC 文件 → 05_logs/AC_叙事/ / 6 个管理参考散到 04_ops / 05_logs / 06_assets / bin</td></tr>
+<tr><td><strong>01_specs（itsuki 说"更散"）</strong></td><td>5 个 .pages 文件名 v0.1 等 T3 一次性 rename / NOT_YET_ALLOWED 加 / 7 处 effective_* 漂移 cleanup / health_flag 2 处替换</td></tr>
+<tr><td><strong>02_design</strong></td><td>system_features §8 数据模型集中补丁 + flow_design Pi 4B → Pi 3A+</td></tr>
+<tr><td><strong>05_logs</strong></td><td>CC 起草 decision_log / learning_path / project_evolution 补全 draft → itsuki 粘贴</td></tr>
+<tr><td><strong>03_dev/teacher_web</strong></td><td>v1/_legacy/ 14 jsx 加 "只读归档" README / v1/src/index.html 删 6 项 demo / accounts.jsx:159 死代码修</td></tr>
+<tr><td><strong>99_archive</strong></td><td>根 README 补 5 月条目 + 删 100% 重复目录 + 补缺失 README</td></tr>
+<tr><td><strong>.claude/ + 根</strong></td><td><code>/Users/itsuki/</code> → <code>/Users/kurekoduki/</code> 批量替换 / fix post-edit-memory-check.sh L39 / 7 处死链</td></tr>
+</tbody>
+</table>
+
+<p><strong>整理脚本</strong>：<code>/tmp/cleanup_2026-05-12.sh</code>（前 CC 写的基础版） + <code>/tmp/cleanup_2026-05-12_v2.sh</code>（本 CC 增量更新，等 5 codex 完整后定稿）</p>
+
+<h2>🛡 安全网</h2>
+
+<p>本次审查所有改动都没动你的代码 / 文档主体，只写了 <code>raw/</code> 下的整合报告 + 进度快照 + 整理脚本。万一不满意：</p>
+
+<pre><code>cd ~/dev/DMSD &amp;&amp; git reset --hard pre-cleanup-2026-05-11</code></pre>
+
+<p>一键回到 5-11 跨夜 commit f494bce 之前。</p>
+
+<h2>📅 接下来要做的事</h2>
+
+<table>
+<thead><tr><th>谁做</th><th>动作</th></tr></thead>
+<tbody>
+<tr><td>itsuki 早起</td><td>读本 HTML / 看 5 个必修问题 / 拍板修哪个先</td></tr>
+<tr><td>itsuki 自己</td><td>跑 <code>bash /tmp/cleanup_2026-05-12.sh</code> 整理文件（review 后跑）</td></tr>
+<tr><td>itsuki 拍板</td><td>D1-D6 点呼机决策 → 解锁 NFC 全栈实装</td></tr>
+<tr><td>CC（下个会话）</td><td>iOS 删 000000 bypass + project.yml + baseURL（codex 跑）</td></tr>
+<tr><td>CC 起草</td><td>decision_log / learning_path / project_evolution 补全 draft → itsuki 粘贴</td></tr>
+<tr><td>cron 自动</td><td>5h 后 13:08 / 13:38 / 14:18 / 16:38 自动续做剩余任务</td></tr>
+</tbody>
+</table>
+
+<h2>📂 关键文件位置（早起要看的）</h2>
+
+<ul>
+<li><strong>本 HTML</strong> — <code>~/dev/DMSD/05_logs/raw/2026-05-12_深度审查_总结.html</code></li>
+<li>批 1 整合（5 端代码） — <code>~/dev/DMSD/05_logs/raw/2026-05-12_深度审查_批1_5端代码整合.md</code></li>
+<li>批 2+3 整合（7 区域文档） — <code>~/dev/DMSD/05_logs/raw/2026-05-12_深度审查_批2批3整合.md</code></li>
+<li>实时进度快照 — <code>~/dev/DMSD/05_logs/raw/2026-05-12_接力CC进度快照.md</code></li>
+<li>问题清单 + codex 修复 SOP — <code>~/dev/DMSD/05_logs/raw/2026-05-12_问题清单_codex修复SOP.md</code></li>
+<li>整理脚本 — <code>/tmp/cleanup_2026-05-12.sh</code>（前 CC 写）+ <code>/tmp/cleanup_2026-05-12_v2.sh</code>（本 CC，等 cron 续做后定稿）</li>
+<li>11 个 sub agent 完整报告 — <code>/tmp/subagent_report_*.md</code>（11 个文件）</li>
+<li>5 个 codex full audit 报告 — <code>/tmp/codex_full_*.md</code>（跑中，5 端）</li>
+</ul>
+
+<h2>💡 AC 叙事金句（5-12 大整理可写的）</h2>
+
+<ul>
+<li><strong>"项目大整理"作为单独会话主题</strong> — CC 自治几小时，撞 classifier 3 次（批量 git mv / codex workspace-write / Edit skill rules） → 工程纪律 vs 自治授权的边界发现</li>
+<li><strong>NFC card_uid 全栈空的承认</strong> — 项目核心承诺 vs 实装落差 — "我承认 v0.8.0 是个 demo 不是上线版"</li>
+<li><strong>00_admin 6 类混乱 + 子目录化拍板</strong> — 文件治理的"先识别 → 再归类 → 后整理"工程节奏</li>
+<li><strong>双引擎审查（Claude sub agent + codex 二意见）</strong> — 11 sub agent + 5 codex 互验，验证 11 codex bug 12/12 真实 + 自发现 16 个新 bug</li>
+<li><strong>cron 兜底 + 撞墙 5h 后自动续做</strong> — "Claude 5h 限额 + 不在场情况下的工程冗余设计"</li>
+</ul>
+
+<div class="footer">
+<strong>本 HTML 由接力 CC 自动生成</strong> / 不准确处以 raw 整合 .md 文件为准 / itsuki 拍板红线（decision_log 等 3 文件正文 CC 不直写）已遵守
+</div>
+
+</body>
+</html>
