@@ -18,9 +18,9 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 >
 > **和 `00_admin/文件结构指南.md` 关系**：那份偏「顶级目录骨架 + 权限速查」（静态参考，430 行）；本文件偏「每个文件状态 + 价值评估 + AC top 10」（动态总览，~650 行）。两份分工不同，本 skill 是**新会话首选入口**。
 >
-> **最后更新**：2026-05-12 凌晨（CC 自治大整理校准 — iOS Foundation 17→29 文件 / 1861→3512 行；AC 叙事 7→8 个含 v0.3.2；DESIGN_LOG 3→5 层加 Android + 点呼机；加最后扫描日期）。早些更新：2026-05-06（独立 repo 模式退役 — §0.4 / §5.2 / §5.6 / §6.5 / §8.1 / §9.6 / §10 / §13 多处更新）；2026-05-04 深夜（迁入 skill 形态）
+> **最后更新**：2026-05-13 早（接力 CC 26 文件大整理校准 — AC 12 文件迁 05_logs/AC_叙事/ §1.4；老文件 6 个归档 99_archive/2026-05-12_深夜大整理/ §1.5；管理文档 6 个散位 §1.5；iOS 2 个改名 _archived_ §5.1；NOT_YET_ALLOWED 错误码补；hooks 5 个 itsuki→kurekoduki + sync-rules 死链修；新增 §1.8 非编号目录说明）。早些更新：2026-05-12 凌晨（CC 自治大整理校准 — iOS Foundation 17→29 文件 / 1861→3512 行；AC 叙事 7→8 个含 v0.3.2；DESIGN_LOG 3→5 层加 Android + 点呼机）；2026-05-06（独立 repo 模式退役）；2026-05-04 深夜（迁入 skill 形态）
 
-**最后扫描真值**：2026-05-12 凌晨 CC 自治模式下用 11 区域 codex 并行扫 + Explore agent 验证。下次大整理时更新本字段。
+**最后扫描真值**：2026-05-13 早 接力 CC 整理后用 Read + Bash 全 repo 真实 ls 验证（含非编号目录 / .gitignore 排除项）。下次大整理时更新本字段。
 
 ---
 
@@ -96,52 +96,59 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `漏洞_剩余清单_2026-04-21.md` | 28 条剩余精简索引 | ✅ |
 | `v0.4.0_S系列spec漏洞优先级分析.md` | 已被"漏洞_剩余清单"吸收 | 📦 可清理 |
 
-### 1.3 00_admin/会话状态（4 文件）
+### 1.3 00_admin/会话状态（3 文件 — 2026-05-13 progress_draft 归档）
 
 | 文件 | 状态 | 备注 |
 |---|---|---|
 | `WIP.md` | ✅ | 多会话协调枢纽 |
 | `TODO.md` | ✅ | 三轨 A/B/C 推进中 |
-| `progress_overview.md` | ⚠️ | 内容停在 4-17，**11 天没合 draft** |
-| `progress_overview_draft_2026-04-20.md` | 📦 | draft 已就绪等审 |
+| `progress_overview.md` | ⚠️ | 5-04 正文已更新到 v0.8 但 5-12 又过期 8 天 |
+| ~~`progress_overview_draft_2026-04-20.md`~~ | 📦 已归档 → `99_archive/2026-05-12_深夜大整理/`（2026-05-13 commit 81842f4 — draft 反向过时：4-20 draft < 5-04 正文） |
 
-### 1.4 00_admin/AC 叙事（12 文件，2026-05-04 更新加 v0.8.0）
+### 1.4 05_logs/AC_叙事/（12 文件 — **2026-05-13 commit b37d065 从 00_admin/ 迁入**，Q3 拍板）
 
-| 文件 | 状态 | 价值 |
+| 文件（现路径 `05_logs/AC_叙事/`） | 状态 | 价值 |
 |---|---|---|
-| `v0.3.0_AC叙事.md` ~ `v0.8.0_AC叙事.md`（7 个） | ✅ | 完整 7 版本素材链。**5-04 起新规则**：itsuki 自己写不主动起草，历史 v0.3-v0.8 的 7 个是 CC 起草保持不动 |
+| `v0.3.0_AC叙事.md` ~ `v0.8.0_AC叙事.md`（8 个含 v0.3.2） | ✅ | 完整 8 版本素材链。**5-04 起新规则**：itsuki 自己写不主动起草，历史 v0.3-v0.8 的 7 个是 CC 起草保持不动 |
 | `面试准备_索引.md` | ✅ | 6 大类 42+ 题清单（题目占位，回答留 iCloud） |
 | `原创设计_语音播报防作弊.md` | ✅ | ⭐ AC 最强素材之一 |
 | `AC_志望動機_素材.md` | ⚠️ | 框架完整 / 内容 0/8 留白等 itsuki 自填 |
 | `AC_提交_checklist.md` | ⚠️ | 5-10 月 6 个 gate 倒计时 + 月度 review 工作流 |
 | `Batch3_itsuki手笔素材指引.md` | 📦 | 4 个 ready-to-paste draft 等 itsuki 合并（30-45min 工作量） |
 
-### 1.5 00_admin/v0.4.0 spec draft + 其他（7 文件）
+### 1.5 00_admin/v0.4.0 spec draft + 管理文档（**2026-05-13 commit 81842f4 全分散到 7 个目的地**）
 
-| 文件 | 状态 | 建议 |
+| 文件 → 新位置 | 状态 | 备注 |
 |---|---|---|
-| `v0.4.0_Device_Contract骨架.md` | 📦 | 已融入 BACKEND_DESIGN_LOG，参考用 |
-| `v0.4.0_S2_S3_字段draft.md` | 📦 | 已融入 FIELD_REGISTRY |
-| `T2_iOS归档_dryrun评估.md` | 📦 | 已执行（旧 iOS 已移 99_archive），可清理 |
-| `wifi_survey_howto.md` | ✅ | 等 itsuki 实地调研 |
-| `跨会话_ios_共享决策.md` | ⚠️ | 注明"短期 TODO 用"，已融入 system_features 和独立 iOS repo，**可清理** |
-| `create_local_dev_symlink.sh` | ✅ | VPS 已停用但脚本保留参考 |
-| `术语表.html` | ✅ | itsuki AC 面试准备 — 180+ 词术语学习工具（项目实际文件 / 代码 / 文档全扫描）+ 科学学习方法（主动回忆 / 间隔重复 / localStorage 进度）。2026-05-11 建。Safari 双击打开 |
+| `v0.4.0_Device_Contract骨架.md` → `99_archive/2026-05-12_深夜大整理/` | 📦 已归档 | 已融入 BACKEND_DESIGN_LOG |
+| `v0.4.0_S2_S3_字段draft.md` → `99_archive/2026-05-12_深夜大整理/` | 📦 已归档 | 已融入 FIELD_REGISTRY |
+| `v0.4.0_S系列spec漏洞优先级分析.md` → `99_archive/2026-05-12_深夜大整理/` | 📦 已归档 | 已被「漏洞_剩余清单」吸收 |
+| `T2_iOS归档_dryrun评估.md` → `99_archive/2026-05-12_深夜大整理/` | 📦 已归档 | 已执行 |
+| `跨会话_ios_共享决策.md` → `99_archive/2026-05-12_深夜大整理/` | 📦 已归档 | 5-06 退役独立 repo 后失效 |
+| `wifi_survey_howto.md` → `04_ops/` | ✅ | 等 itsuki 实地调研 |
+| `MAC_MINI_SETUP.md` → `04_ops/` | ✅ | Mac mini 部署 SOP（previously 漏列）|
+| `漏洞_剩余清单_2026-04-21.md` → `05_logs/` | ✅ | 28 条剩余漏洞索引（previously 在 §1.2）|
+| `版本演变一览.md` → `05_logs/` | ✅ | 18 tag 故事线（previously 在 §1.2）|
+| `术语表.html` → `06_assets/` | ✅ | itsuki AC 面试准备 — 180+ 词术语学习工具 |
+| `create_local_dev_symlink.sh` → `bin/` | ✅ | VPS 已停用但脚本保留参考 |
 
-### 1.6 00_admin/hooks（8 hook + 1 库 + README）
+### 1.6 00_admin/hooks（10 hook + 1 库 + README — **2026-05-13 校准**）
 
 | 文件 | 状态 | 备注 |
 |---|---|---|
 | `install.sh` | ✅ | 首次 clone 后跑一次（`git config core.hooksPath`）|
 | `pre-commit` | ✅ | git commit 前 3 件事：版本号一致性 + bump 提醒 + 联动检查 |
+| `post-commit` | ✅ | git post-commit — graphify AST 增量重建（**2026-05-11 加**）|
+| `post-checkout` | ✅ | git post-checkout — graphify 切分支后重建（**2026-05-11 加**）|
 | `post-edit-sync-check.sh` | ✅ | CC PostToolUse — 联动检查 + demo scaffold 字眼检测（2026-05-04 加）|
-| `post-edit-memory-check.sh` | ✅ | CC PostToolUse — memory dir 改完提醒补 MEMORY.md 索引（2026-05-04 加）|
+| `post-edit-memory-check.sh` | ✅ | CC PostToolUse — memory dir 改完提醒补 MEMORY.md 索引（2026-05-04 加 / **2026-05-13 hardcode 路径 itsuki→kurekoduki 修复 hook 复活**）|
 | `post-edit-japanese-comment-check.sh` | ✅ | CC PostToolUse — 代码注释日语 hiragana/katakana 扫描（中文铁律，2026-05-04 凌晨加）|
 | `post-edit-timestamp-check.sh` | ✅ | CC PostToolUse — 声明性文件「最后更新」时间戳是否同步今天（2026-05-04 凌晨加）|
 | `post-edit-version-hardcode-check.sh` | ✅ | CC PostToolUse — 版本号硬编码实时拦（比 pre-commit 早一步，2026-05-04 凌晨加）|
-| `pre-bash-destructive-block.sh` | ✅ | CC PreToolUse — 拦 rm -rf 非临时 / git reset --hard / git push --force / git branch -D（2026-05-04 凌晨加）|
-| `lib/sync-rules.sh` | ✅ | 13 条联动规则代码化 + demo-scaffold-detect 函数（pre-commit + post-edit-sync 共享）|
-| `README.md` | ✅ | hooks 总说明（git + CC 两类全覆盖）|
+| `post-edit-project-overview-check.sh` | ✅ | CC PostToolUse — **project-overview SKILL.md 同步检查**（**2026-05-13 itsuki 怒怼后加** — 改结构相关文件 → 提醒同步 project-overview / 防"加文件没补 / 删文件没去 / 描述漂移"）|
+| `pre-bash-destructive-block.sh` | ✅ warn 模式 | CC PreToolUse — 拦 rm -rf 非临时 / git push --force / git branch -D（2026-05-04 加 / **2026-05-12 改 warn 模式不阻断**）|
+| `lib/sync-rules.sh` | ✅ | **18 条**联动规则代码化（**2026-05-08 从 13→18 加 6 条反向 Rule 14-19**）+ demo-scaffold-detect 函数 + `00_admin/版本管理SOP.md` 引用 **2026-05-13 改 version-bump skill**（commit 859693e）|
+| `README.md` | ✅ | hooks 总说明（git pre-commit + git post-commit/checkout + CC PostToolUse 5 + CC PreToolUse 1 = **3 类**全覆盖）|
 
 ### 1.7 .claude/skills（7 skill）
 
@@ -159,6 +166,48 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 > - `session-start` 删（内容并入 `session-wrap §5.5.9` 收尾段；启动只读 WIP）
 > - `demo-clean` 删（一次性任务做 skill 频次太低；改成 `lib/sync-rules.sh` demo-scaffold-detect 自动检测 + `system_features.md` 末尾清单）
 > - `release-checklist` 删（合并到 `version-bump §13`；本来就串联，分两个 skill 反而割裂）
+
+---
+
+### 1.8 主目录非编号目录 + 隐藏文件（**2026-05-13 itsuki 反馈后新增**）
+
+> **背景**：itsuki 5-13 反映"docs 没编号为啥在主目录"。本节列清楚所有非编号目录 / 隐藏文件 — 为啥它们不归编号目录 + 哪些进 git / 哪些 .gitignore 排除。
+
+#### 1.8.1 进 git 的非编号目录（3 个）
+
+| 目录 | 文件数 | 为啥不编号 | 备注 |
+|---|---|---|---|
+| `.claude/` | 23 | Claude Code 配置 — 跨项目共享惯例（`.claude/skills/` / `.claude/settings.json` / `.claude/scheduled_tasks.lock`）| `.claude/sessions/` + `.claude/settings.local.json` .gitignore 排除 |
+| `bin/` | 2 | 可执行脚本 — Unix 惯例 | `bin/sync-check.sh`（联动检查工具）+ `bin/create_local_dev_symlink.sh`（5-13 从 00_admin/ 迁入）|
+| `docs/` | 3 | **外部 skill 适配配置 — Matt Pocock 套件读这里**：`docs/agents/{issue-tracker,triage-labels,domain}.md`（详见 `CLAUDE.md §Agent skills`）| ⚠️ **不是 itsuki 看的文档**（DMSD 自己的文档全在编号目录 00-99）— 给外部 skill 读 |
+
+#### 1.8.2 .gitignore 排除的非编号目录（git 看不到 / GitHub 看不到 / 教授看不到）
+
+| 目录 | 用途 | 来源 |
+|---|---|---|
+| `.git/` | git 内部 | 永远 |
+| `.beads/` | graphify hook install 残留（hook 已 copy 到 `00_admin/hooks/`，详见 `hooks/README.md ⚠️` 段）| 2026-05-11 graphify install |
+| `.scratch/` | Matt Pocock `to-prd` 中间产物（PRD 进 TODO.md 后即弃）| Matt Pocock skill |
+| `graphify-out/` | graphify 知识图谱产物（82M+ 临时文件）| 5-11 install graphify |
+| `.swiftpm/` / `.venv/` / `node_modules/` / `__pycache__/` 等 | 语言生态自动建 | 各语言工具链 |
+| `**/.DS_Store` | macOS 元数据 | macOS Finder |
+
+#### 1.8.3 主目录顶层文件（6 项）
+
+| 文件 | 用途 |
+|---|---|
+| `CHANGELOG.md` | 版本号单源真值（教授会看）|
+| `CLAUDE.md` | AI 项目指令权威源（每会话必读）|
+| `README.md` | 项目对外介绍（GitHub public，教授会看）|
+| `LICENSE` | All Rights Reserved + AC 后 4 方向评估 |
+| `.gitignore` | git 忽略规则（含上面所有 .gitignore 排除项）|
+| `.graphifyignore` | graphify 忽略规则（防 vendor 字体污染图谱）|
+
+#### 1.8.4 关键 takeaway（itsuki 关注的）
+
+1. **"我 ls 看到非编号目录乱"真相** = 物理文件存在但大部分 .gitignore 排除（`.beads/ / .scratch/ / graphify-out/ / .DS_Store / .venv/`）→ git 看不到 / GitHub 看不到 / 教授看不到
+2. **真进 git 的非编号目录只有 3 个**：`.claude/`（CC 配置）/ `bin/`（脚本）/ `docs/`（外部 skill 配置）— 都是工具类，按惯例不编号
+3. **docs/ 不是 itsuki 看的** — DMSD 自己的文档全在编号目录（00-99），docs/ 是给 Matt Pocock skill 读的
 
 ---
 
@@ -317,11 +366,11 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 |---|---|
 | `03_dev/LATEST.md` | ✅ — 最新原型位置指针 |
 | `student_ios/README.md` | ✅ — 目录说明 |
-| `student_ios/DESIGN_BRIEF.md` | ⚠️ — **已被 IOS_DESIGN_LOG 全覆盖**，建议改名 `_archived_DESIGN_BRIEF_Round1_context.md` |
+| `student_ios/_archived_DESIGN_BRIEF_Round1_context.md` | 📦 — **2026-05-13 commit 81842f4 已从 DESIGN_BRIEF.md 改名**（IOS_DESIGN_LOG 全覆盖）|
 | `student_ios/IOS_DESIGN_LOG.md` | ✅ — ⭐ §1-11 完整决策权威源 |
 | `demo/.gitignore` | ✅ |
 | `demo/QA_Round1_PhaseB.md` | ✅ — Claude Design Phase B 静态扫描报告 |
-| `demo/Round2_Prompt_C3.md` | ⚠️ — C3 决策已 resolve，**可改名 `_archived_`** |
+| `demo/_archived_Round2_Prompt_draft.md` | 📦 — **2026-05-13 commit 81842f4 已从 Round2_Prompt_C3.md 改名**（C3 已 resolve）|
 | `demo/Tomoshibi_iOS_PhaseB_v2.html` | 📦 — Phase B 完整原型（锁定不动） |
 
 ### 5.2 v1/ 顶层管理（3 文件 — 2026-05-06 退役 cloud agent 模式后精简）
@@ -561,18 +610,21 @@ repo 里共 **8 个 .pages + 2 个 .docx + 14 个 .510Z = 24 个 CC 不可读文
 
 ## 9. 综合行动清单
 
-### 9.1 P0 立即可做（CC 可独立 / 1 小时内）
+### 9.1 P0 立即可做（**2026-05-13 commit b37d065 + 81842f4 + 859693e 大部分已 ✅**）
 
-| # | 任务 | 来源 | 工作量 |
+| # | 任务 | 来源 | 状态 |
 |---|---|---|---|
-| 1 | 删 `跨会话_ios_共享决策.md`（已过期）或加注 `_archived_` 前缀 | §1.5 | 1 min |
-| 2 | 删 `00_admin/v0.4.0_S系列spec漏洞优先级分析.md`（已被吸收）| §1.2 | 1 min |
-| 3 | 改名 `student_ios/DESIGN_BRIEF.md` → `_archived_DESIGN_BRIEF_Round1_context.md`（IOS_DESIGN_LOG 已全覆盖） | §5.1 | 1 min |
-| 4 | 改名 `student_ios/demo/Round2_Prompt_C3.md` → `_archived_Round2_Prompt_draft.md`（C3 已 resolve） | §5.1 | 1 min |
-| 5 | 删 `99_archive/2026-04-15_old_demo/.DS_Store`（误进 git） | §7 | 1 min |
-| 6 | 在 `models.py` 表 docstring 标 P0 / P1 / P2 | §3.3 | 10 min |
-| 7 | 更新 `文件结构指南.md`：补 v0.6.0/v0.7.0 AC 叙事文件 + 新增 raw 日志 + cross-session iOS 决策的归宿 | 跨多组 | 20 min |
-| 8 | 更新 `99_archive/README.md` 时间戳 + 鬼影文件解决说明 | §7.5 | 5 min |
+| 1 | ~~`跨会话_ios_共享决策.md` 归档~~ → `99_archive/2026-05-12_深夜大整理/` | §1.5 | ✅ 5-13 commit 81842f4 |
+| 2 | ~~`v0.4.0_S系列spec漏洞优先级分析.md` 归档~~ | §1.2 | ✅ 5-13 commit 81842f4 |
+| 3 | ~~`DESIGN_BRIEF.md` 改名~~ → `_archived_DESIGN_BRIEF_Round1_context.md` | §5.1 | ✅ 5-13 commit 81842f4 |
+| 4 | ~~`Round2_Prompt_C3.md` 改名~~ → `_archived_Round2_Prompt_draft.md` | §5.1 | ✅ 5-13 commit 81842f4 |
+| 5 | ~~`.DS_Store` 误进 git~~ | §7 | ✅ `.gitignore` 已生效 git 不 track |
+| 6 | 在 `models.py` 表 docstring 标 P0 / P1 / P2 | §3.3 | ⏳ 未做 |
+| 7 | 更新 `文件结构指南.md`：补 v0.6.0/v0.7.0 AC 叙事文件 + 新增 raw 日志 + cross-session iOS 决策的归宿 | 跨多组 | ⏳ 部分（本 skill 已校准，`文件结构指南.md` 待 itsuki 拍板）|
+| 8 | 更新 `99_archive/README.md` 时间戳 + 鬼影文件解决说明 | §7.5 | ⏳ 未做（itsuki 拍板）|
+| 9 | **5-13 新增**：4 sub agent draft 待 itsuki 粘贴 → `decision_log` / `learning_path` / `project_evolution` / `system_features §8` | — | ⏳ /tmp/ 待 itsuki |
+| 10 | **5-13 新增**：classifier 拦 2 个 skill `sed -i.bak 's\|17 条联动\|18 条\|' .claude/skills/file-linkage/SKILL.md` + `sed -i.bak 's\|/Users/itsuki/\|/Users/kurekoduki/\|g' .claude/skills/memory-write/SKILL.md` | — | ⏳ itsuki 自己 sed |
+| 11 | **5-13 新增**：99_archive 100% 重复目录 `2026-05-02_backend_handoff_F1-F7/` vs `2026-05-02_handoff_F1-F7/` itsuki 决定删哪个 | §7 | ⏳ itsuki 拍板 |
 
 ### 9.2 P1 itsuki 决定后批量执行（节省 ~13 MB）
 

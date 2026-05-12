@@ -40,6 +40,22 @@ DMSD 用了 **3 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后
 - 提取新增内容找 `vX.Y.Z` 模式行 + 行末没 `<!-- VERSION_OK -->` 豁免 → 提醒
 - 比 git pre-commit 早一步拦（commit 前发现，不等 commit 才阻塞）
 
+#### F. `post-edit-project-overview-check.sh` — project-overview SKILL.md 同步检查（**2026-05-13 itsuki 怒怼后加**）
+- 触发条件：CC Write / Edit 命中结构相关文件
+  - `00_admin/*.md` / `00_admin/hooks/*`
+  - `01_specs/*.md` / `01_specs/*/*.md`
+  - `02_design/*.md`
+  - `03_dev/*/README.md` / `03_dev/*/*_DESIGN_LOG.md`
+  - `03_dev/backend/v1/app/*.py` / `03_dev/student_ios/v1/.../Root/*.swift` + `Foundation/*.swift`
+  - `03_dev/rollcall_device/src/*.py`
+  - `.claude/skills/*/SKILL.md` / `CLAUDE.md` / `README.md` / `CHANGELOG.md`
+- 跳过：project-overview 自身 / raw log / dev_log / problem_solving / memory / 99_archive / 临时文件 / `.gitignore` 排除目录
+- 检查：grep 文件名 + 路径在 project-overview SKILL.md 里
+  - 名 + 路径都在 → 温和提醒"确认描述准确性"
+  - 名在 / 路径不在 → 提醒"可能改名 / 移位 — 改 project-overview 引用"
+  - 都不在 → **强提醒**"新建文件应该加进 project-overview 对应章节"
+- 出处：itsuki 5-13 怒怼"5-13 整理 26 文件后没同步 project-overview → 找不到文件 / 描述漂移"
+
 ### ⭐ CC PreToolUse hook（1 条，CC 调 Bash 前触发，2026-05-04 加，2026-05-12 改 warn 模式）
 
 #### F. `pre-bash-destructive-block.sh` — 破坏性命令**提醒**（warn 模式，不阻断）
