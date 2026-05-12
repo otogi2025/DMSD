@@ -78,8 +78,8 @@ DMSD 用了 **3 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后
 # 在 CC 内输入 /hooks 查看是否注册成功
 
 # 手动 dry-run 测：
-echo '{"tool_input":{"file_path":"/Users/itsuki/.claude/projects/-Users-itsuki-dev-DMSD/memory/test.md"}}' | bash 00_admin/hooks/post-edit-memory-check.sh
-echo '{"tool_input":{"file_path":"/Users/itsuki/dev/DMSD/03_dev/backend/v1/app/models.py"}}' | bash 00_admin/hooks/post-edit-sync-check.sh
+echo '{"tool_input":{"file_path":"/Users/kurekoduki/.claude/projects/-Users-itsuki-dev-DMSD/memory/test.md"}}' | bash 00_admin/hooks/post-edit-memory-check.sh
+echo '{"tool_input":{"file_path":"/Users/kurekoduki/dev/DMSD/03_dev/backend/v1/app/models.py"}}' | bash 00_admin/hooks/post-edit-sync-check.sh
 echo '{"tool_input":{"command":"git reset --hard"}}' | bash 00_admin/hooks/pre-bash-destructive-block.sh; echo "exit=$?"
 ```
 

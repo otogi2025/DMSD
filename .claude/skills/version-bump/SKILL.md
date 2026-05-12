@@ -185,13 +185,13 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ```bash
 # 1. 找所有"硬编码版本号豁免"位置 → 看有没有过期
-grep -rn "VERSION_OK\|<!-- VERSION" /Users/itsuki/dev/DMSD/ --include="*.md" | grep -v 99_archive
+grep -rn "VERSION_OK\|<!-- VERSION" /Users/kurekoduki/dev/DMSD/ --include="*.md" | grep -v 99_archive
 
 # 2. 看自上次 bump 以来新建的文件（可能是新联动点）
 git log --diff-filter=A --name-only $(git tag --sort=-v:refname | head -1)..HEAD | grep -v 99_archive | grep -v 05_logs/raw
 
 # 3. 检查项目文件总览有没有新增"跟迭代相关"的文件
-grep -i "version\|版本\|bump\|tag" /Users/itsuki/dev/DMSD/.claude/skills/project-overview/SKILL.md
+grep -i "version\|版本\|bump\|tag" /Users/kurekoduki/dev/DMSD/.claude/skills/project-overview/SKILL.md
 ```
 
 发现新增联动点 → 当场更新本 §4（不要绕开）。

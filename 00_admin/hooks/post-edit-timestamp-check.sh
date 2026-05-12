@@ -37,7 +37,7 @@ if [ -z "$FILE_PATH" ]; then
   exit 0
 fi
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-/Users/itsuki/dev/DMSD}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-/Users/kurekoduki/dev/DMSD}"
 RELATIVE_PATH="${FILE_PATH#$PROJECT_DIR/}"
 
 if [[ "$RELATIVE_PATH" == /* ]]; then

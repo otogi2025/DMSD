@@ -7,7 +7,7 @@
 # 工作流：
 # 1. 读 stdin PostToolUse JSON
 # 2. 提取 tool_input.file_path
-# 3. 判断是否在 memory 目录（/Users/itsuki/.claude/projects/-Users-itsuki-dev-DMSD/memory/）
+# 3. 判断是否在 memory 目录（/Users/kurekoduki/.claude/projects/-Users-itsuki-dev-DMSD/memory/）
 # 4. 排除 MEMORY.md 自己（避免改索引时又触发提醒）
 # 5. 检查 MEMORY.md 是否包含新文件名 → 没有就提醒
 # 6. 注入 hookSpecificOutput.additionalContext
@@ -36,7 +36,7 @@ if [ -z "$FILE_PATH" ]; then
 fi
 
 # memory 目录路径
-MEMORY_DIR="/Users/itsuki/.claude/projects/-Users-itsuki-dev-DMSD/memory"
+MEMORY_DIR="/Users/kurekoduki/.claude/projects/-Users-kurekoduki-dev-DMSD/memory"
 MEMORY_INDEX="${MEMORY_DIR}/MEMORY.md"
 
 # 是否在 memory 目录

@@ -40,7 +40,7 @@ if [ -z "$FILE_PATH" ]; then
 fi
 
 # 转成相对项目根的路径（CLAUDE_PROJECT_DIR 由 CC 注入）
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-/Users/itsuki/dev/DMSD}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-/Users/kurekoduki/dev/DMSD}"
 RELATIVE_PATH="${FILE_PATH#$PROJECT_DIR/}"
 
 # 如果还是绝对路径（说明不在项目内）→ skip

@@ -76,14 +76,14 @@ add_rule \
   "spec-body" \
   '^01_specs/.+\.md$' \
   '' \
-  '01_specs/ 主体改 → 触发 00_admin/版本管理SOP.md §10 4 问，可能要 bump 版本号' \
+  '01_specs/ 主体改 → 触发 version-bump skill §10 4 问，可能要 bump 版本号' \
   "action"
 
 add_rule \
   "design-doc" \
   '^02_design/(flow_design|hardware_design|teacher_requirements)\.md$' \
   '' \
-  '主设计文档改 → 触发 00_admin/版本管理SOP.md §2 决策树，Minor 候选' \
+  '主设计文档改 → 触发 version-bump skill §2 决策树，Minor 候选' \
   "action"
 
 # 注: hooks trigger 用简单 [^/]+ 匹配 hooks 目录下所有文件（不细分扩展名，避免 ERE 嵌套捕获组）
