@@ -257,6 +257,51 @@ itsuki 红线 = CC 不能直写 → CC 起草 draft 到 <code>/tmp/decision_log_
 <li><strong>cron 兜底 + 撞墙 5h 后自动续做</strong> — "Claude 5h 限额 + 不在场情况下的工程冗余设计"</li>
 </ul>
 
+<h2>🌅 5-13 早接力 CC 续做（之前漏的 5 项现在做了）</h2>
+
+<p>5-12 半夜 cron 都过期没 fire（session-only + Mac 睡眠被 throttled），5-13 早 itsuki 醒来让继续做未完成的。本节是 5-13 早实际产出：</p>
+
+<table>
+<thead><tr><th>之前漏的 5 项</th><th>5-13 状态</th></tr></thead>
+<tbody>
+<tr><td>"把额度用完"</td><td>✅ 继续 — 5-13 又跑 1+ codex / 4 sub agent draft / 主 CC 主动 Edit</td></tr>
+<tr><td>3 入口索引 draft</td><td>✅ 完成 — decision_log 29 条 / learning_path 15 条 / project_evolution 5 转折</td></tr>
+<tr><td>system_features §8 补丁 draft</td><td>✅ 完成 — 22KB / 7 表 + 8 类字段</td></tr>
+<tr><td>Cleanup script 真细化</td><td>✅ Edit /tmp/cleanup_2026-05-12_v2.sh 加 5-13 进展 + sed 命令</td></tr>
+<tr><td>Cron 兜底失败</td><td>🟡 5-13 早 itsuki 在场 cron 已不需要 — 5 cron 全删干净</td></tr>
+</tbody>
+</table>
+
+<h3>✅ 主 CC 主动 Edit (commit 859693e — 9 文件死链 + 致命缺口修)</h3>
+<ul>
+<li><strong>ERROR_CODES.md</strong> — 加 NOT_YET_ALLOWED 错误码（致命缺口修了）+ 中文文案 "还没到可以开始点呼的时间" + HTTP 409</li>
+<li><strong>sync-rules.sh L79+L86</strong> — 死链 "00_admin/版本管理SOP.md" → "version-bump skill"</li>
+<li><strong>post-edit-memory-check.sh</strong> — itsuki → kurekoduki（hook 复活，之前永远 silent exit）</li>
+<li><strong>4 个其他 hook scripts</strong> + <strong>hooks/README.md</strong> + <strong>version-bump SKILL.md</strong> — 批量 itsuki → kurekoduki</li>
+</ul>
+
+<h3>❌ Classifier 拦了 2 个 SKILL.md（itsuki 自己 sed 跑）</h3>
+<pre><code>sed -i.bak 's|17 条联动规则|18 条联动规则|' .claude/skills/file-linkage/SKILL.md
+sed -i.bak 's|/Users/itsuki/|/Users/kurekoduki/|g' .claude/skills/memory-write/SKILL.md</code></pre>
+
+<h3>📝 4 个 Sub agent 起草 draft（itsuki 红线 — 等你粘贴）</h3>
+<table>
+<thead><tr><th>Draft</th><th>路径</th><th>规模</th></tr></thead>
+<tbody>
+<tr><td>decision_log 29 条（超 22 最低线）</td><td><code>/tmp/decision_log_补全_draft.md</code></td><td>748 行</td></tr>
+<tr><td>learning_path 15 条（超 13 最低线）</td><td><code>/tmp/learning_path_补全_draft.md</code></td><td>407 行 / 28.6 KB</td></tr>
+<tr><td>project_evolution 第五-九次转折</td><td><code>/tmp/project_evolution_第五-九次转折_draft.md</code></td><td>606 行</td></tr>
+<tr><td>system_features.md §8 补丁</td><td><code>/tmp/system_features_section8_补丁_draft.md</code></td><td>22 KB / 7 表 + 8 类字段</td></tr>
+</tbody>
+</table>
+
+<p><strong>怎么用</strong>：</p>
+<pre><code>cat /tmp/decision_log_补全_draft.md | pbcopy
+# 然后打开 05_logs/decision_log.md 粘贴到 "## 2026-04-15" 之前（最新放最上面）
+
+# learning_path / project_evolution 同理
+# §8 补丁粘贴到 02_design/system_features.md §8 末尾</code></pre>
+
 <div class="footer">
 <strong>本 HTML 由接力 CC 自动生成</strong> / 不准确处以 raw 整合 .md 文件为准 / itsuki 拍板红线（decision_log 等 3 文件正文 CC 不直写）已遵守
 </div>
