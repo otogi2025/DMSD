@@ -219,7 +219,7 @@
 <header class="masthead">
   <div class="eyebrow">DMSD · Tomoshibi · 灯火</div>
   <h1 class="title">项目术语学习</h1>
-  <p class="subtitle">itsuki / 筑波大学 情報学群 AC 入試 / 2026-08 出愿 · 180+ 词 · 全部来自 DMSD 项目实际代码 / 文档 / 硬件设计 / 文件名</p>
+  <p class="subtitle">itsuki / 筑波大学 情報学群 AC 入試 / 2026-08 出愿 · 200+ 词 · 全部来自 DMSD 项目实际代码 / 文档 / 硬件设计 / 文件名 / CC 协作</p>
 </header>
 
 <!-- ============ HOW-TO ============ -->
@@ -309,6 +309,7 @@
   <a href="#cat-backend-files">⑭ 后端文件</a>
   <a href="#cat-ios-files">⑮ iOS 文件</a>
   <a href="#cat-ui-terms">⑯ UI / 代码词</a>
+  <a href="#cat-cc-workflow">⑰ CC 协作</a>
 </nav>
 
 <!-- ============ INTRO BOX: WHY NUMBERS ============ -->
@@ -336,7 +337,7 @@
 </div>
 
 <footer>
-  DMSD / Tomoshibi 项目术语学习 · 130+ 词全部来自项目实际代码 / 文档 · <a href="https://github.com/otogi2025/DMSD">github.com/otogi2025/DMSD</a><br>
+  DMSD / Tomoshibi 项目术语学习 · 200+ 词全部来自项目实际代码 / 文档 / CC 协作 · <a href="https://github.com/otogi2025/DMSD">github.com/otogi2025/DMSD</a><br>
   碰到新词随时让 Claude Code 加进来 · 进度保存在浏览器（不上云）· 换浏览器需重新积累
 </footer>
 
@@ -362,6 +363,7 @@ const CATEGORIES = [
   { id:'backend-files', icon:'⑭', title:'后端代码文件名（你会在 03_dev/backend/ 看到的）', note:'实际打开后端代码时看到的文件 / 文件夹名 —— 看不懂会一直卡。' },
   { id:'ios-files',     icon:'⑮', title:'iOS 代码文件名（你会在 03_dev/student_ios/ 看到的）', note:'实际打开 iOS 项目时看到的文件 / 文件夹名 —— 全部来自 DMSD 实际目录结构。' },
   { id:'ui-terms',      icon:'⑯', title:'UI / 代码常见英文词', note:'overlay / toast / stub / breadcrumb 这些 —— 看代码 / 文件名时反复出现，不熟会一直卡。' },
+  { id:'cc-workflow',   icon:'⑰', title:'CC / 工作流协作（Claude Code 协作词）', note:'每天跟 CC 协作反复出现 —— hook / skill / agent / draft / propose 等。v0.5.0 沟通规则后 CC 用啥英语都自由，但 itsuki 可以在这里查到含义。' },
 ];
 
 const TERMS = [
@@ -610,6 +612,31 @@ const TERMS = [
   { id:'extension', cat:'ui-terms', en:'extension', cn:'扩展 / 给已有类型加方法', jpKanji:'エクステンション', jpKana:'', romaji:'ekusutenshon', pri:'lo', exJp:'`extension String` で文字列型に独自の便利メソッドを追加できます。' },
   { id:'fixture', cat:'ui-terms', en:'fixture', cn:'测试夹具 / 测试前准备好的数据', jpKanji:'フィクスチャ / テスト用データ', jpKana:'', romaji:'fikusucha', pri:'lo', exJp:'pytest の fixture でテスト用のデータベースとサンプル学生を準備します。' },
   { id:'mock', cat:'ui-terms', en:'mock', cn:'模拟对象 / 测试时假冒真实依赖', jpKanji:'モック / 模擬', jpKana:'もぎ', romaji:'mokku / mogi', pri:'lo', exJp:'ネットワークが絡むテストでは API クライアントをモックに差し替えて、確定的にテストします。' },
+
+  // ============ CC / WORKFLOW ============
+  { id:'hook', cat:'cc-workflow', en:'hook', cn:'钩子 / 自动触发脚本（特定事件发生时自动跑）', jpKanji:'フック / 自動実行スクリプト', jpKana:'じどう じっこう スクリプト', romaji:'fukku', pri:'hi', exJp:'コミット前にルール違反をチェックする pre-commit フックを使っています。CC が特定の操作をする前後にも自動でフックが走ります。' },
+  { id:'skill', cat:'cc-workflow', en:'skill', cn:'技能 / Claude Code 加载的能力模块（一个 SKILL.md 定义一个）', jpKanji:'スキル / 機能モジュール', jpKana:'きのう モジュール', romaji:'sukiru', pri:'hi', exJp:'`session-wrap` というスキルを呼び出すと、会話を締めくくる定型処理が走ります。' },
+  { id:'agent', cat:'cc-workflow', en:'agent', cn:'代理 / 自主跑任务的 AI（接到任务后自己执行）', jpKanji:'エージェント / 自律実行', jpKana:'じりつ じっこう', romaji:'ējento', pri:'hi', exJp:'探索作業はエージェントに任せて、本体の対話コンテキストを汚さないようにしています。' },
+  { id:'subagent', cat:'cc-workflow', en:'sub agent / subagent', cn:'子代理 / 主 CC 派出去并行干活的小代理', jpKanji:'サブエージェント / 子代理', jpKana:'こ だいり', romaji:'sabu ējento', pri:'hi', exJp:'12 個のタスクを 4 つのサブエージェントに分けて並列で処理しました。' },
+  { id:'propose', cat:'cc-workflow', en:'propose', cn:'提议 / 提方案（沟通规则 3.1：propose 后必须等回应）', jpKanji:'提案する', jpKana:'ていあんする', romaji:'teian suru', pri:'hi', exJp:'CC が提案した後は、itsuki の判断を待ってから次に進む、というルールです。' },
+  { id:'audit', cat:'cc-workflow', en:'audit', cn:'审查 / 系统化检查找漏洞（不是 CC 主动修，是找出来等 itsuki 决定）', jpKanji:'監査 / 点検', jpKana:'かんさ / てんけん', romaji:'kansa', pri:'mid', exJp:'プロジェクト全体の文書を監査して、矛盾点や欠落をリストアップしました。' },
+  { id:'classifier', cat:'cc-workflow', en:'classifier', cn:'分类器 / 触发匹配规则（SKILL.md 里判断何时启动该 skill 的描述）', jpKanji:'分類器 / 起動判定', jpKana:'ぶんるいき / きどう はんてい', romaji:'bunruiki', pri:'lo', exJp:'スキルの description が分類器の役割を果たして、CC が自動で起動を判断します。' },
+  { id:'draft', cat:'cc-workflow', en:'draft', cn:'草稿 / 起草版本（CC 写完后 itsuki 审 → 粘贴或改写）', jpKanji:'下書き / ドラフト', jpKana:'したがき', romaji:'shitagaki / dorafuto', pri:'hi', exJp:'CC は決定ログのドラフトを `/tmp/` に書いて、itsuki の確認を待ちます。' },
+  { id:'inbox', cat:'cc-workflow', en:'inbox', cn:'收件箱 / 待处理素材堆放区（AC 中央 inbox 在 iCloud）', jpKanji:'インボックス / 受信箱', jpKana:'じゅしんばこ', romaji:'inbokkusu', pri:'mid', exJp:'AC レーダーが拾った素材は中央 inbox に蓄積されて、後で itsuki が選別します。' },
+  { id:'flush', cat:'cc-workflow', en:'flush', cn:'清空 / 批量写出（会话结尾 flush AC 信号到 inbox）', jpKanji:'まとめて書き出す', jpKana:'かきだす', romaji:'kakidasu', pri:'mid', exJp:'会話の終わりに、その日の AC 信号をまとめて inbox に書き出します。' },
+  { id:'block-warn', cat:'cc-workflow', en:'block / warn', cn:'拦死 / 警告（hook 退出码：block = 拦截，warn = 提醒不拦）', jpKanji:'遮断 / 警告', jpKana:'しゃだん / けいこく', romaji:'shadan / keikoku', pri:'mid', exJp:'危険なコマンドは block でなく warn にして、CC に「考えてからやれ」と促すだけに変えました。' },
+  { id:'diff', cat:'cc-workflow', en:'diff', cn:'差异 / 两份内容的不同（git diff 是查改动）', jpKanji:'差分', jpKana:'さぶん', romaji:'sabun', pri:'hi', exJp:'`git diff` でコミット前の変更を確認してから commit するのが習慣です。' },
+  { id:'html', cat:'cc-workflow', en:'HTML', cn:'网页文件格式（ハイパーテキスト・マークアップ・ランゲージ — 浏览器读得懂的页面）', jpKanji:'HTML / ウェブページ形式', jpKana:'けいしき', romaji:'eichi-ti-emu-eru', pri:'hi', exJp:'術語表は HTML で書いて、ブラウザでインタラクティブに学習できるようにしました。' },
+  { id:'markdown', cat:'cc-workflow', en:'markdown', cn:'轻量富文本格式 / 用 `#` `*` 等符号写格式的纯文本（.md 后缀）', jpKanji:'マークダウン', jpKana:'', romaji:'mākudaun', pri:'hi', exJp:'WIP や TODO はマークダウンで書いて、Git で差分管理しやすくしています。' },
+  { id:'mtime', cat:'cc-workflow', en:'mtime', cn:'modification time — 文件最后修改时间', jpKanji:'最終更新時刻', jpKana:'さいしゅう こうしんじこく', romaji:'saishū kōshin jikoku', pri:'lo', exJp:'状態スナップショットの mtime が 1 週間以上前だったら、CC が更新を促すルールにしています。' },
+  { id:'scratchpad', cat:'cc-workflow', en:'scratchpad', cn:'草稿本 / 临时记录区（ac-radar 的中央 inbox 文件名前缀就是 `ac_scratchpad_`）', jpKanji:'メモ帳 / 走り書きノート', jpKana:'はしりがき', romaji:'sukuratchipaddo', pri:'lo', exJp:'AC レーダーは日毎の scratchpad ファイルに信号を追記していきます。' },
+  { id:'pattern', cat:'cc-workflow', en:'pattern', cn:'模式 / 匹配规则（hook 用 pattern 判断该不该拦命令）', jpKanji:'パターン / 文字列のマッチ規則', jpKana:'もじれつ', romaji:'patān', pri:'hi', exJp:'破壊的コマンド検出フックには 8 つのパターンが登録されています。' },
+  { id:'matcher', cat:'cc-workflow', en:'matcher', cn:'匹配器 / 触发条件（settings.json 里写哪个工具触发哪个 hook）', jpKanji:'マッチャー / 対象指定', jpKana:'たいしょう してい', romaji:'matchā', pri:'mid', exJp:'`matcher: "Bash"` と書けば、Bash ツールを使う前にフックが走ります。' },
+  { id:'backup', cat:'cc-workflow', en:'backup', cn:'备份 / 留旧版以防回滚', jpKanji:'バックアップ', jpKana:'', romaji:'bakkuappu', pri:'hi', exJp:'破壊的な変更の前には必ず `_archive_` フォルダにバックアップを置いてから進めます。' },
+  { id:'archive', cat:'cc-workflow', en:'archive', cn:'归档 / 保留旧版的文件夹', jpKanji:'アーカイブ / 保管庫', jpKana:'ほかんこ', romaji:'ākaibu', pri:'mid', exJp:'`_archive_2026-05-14/` には、その日に上書き / 削除されたファイルの旧版を保管しています。' },
+  { id:'redirect', cat:'cc-workflow', en:'redirect', cn:'重定向 / 命令输出引到文件（shell 的 `>` 符号 = 覆盖写文件）', jpKanji:'リダイレクト', jpKana:'', romaji:'ridairekuto', pri:'mid', exJp:'`echo "hello" > file.txt` のように `>` を使うと、出力をファイルにリダイレクトします（中身が上書きされます）。' },
+  { id:'timeout', cat:'cc-workflow', en:'timeout', cn:'超时 / 最长等待时间（hook 超过这个时间不响应就 abort）', jpKanji:'タイムアウト / 制限時間', jpKana:'せいげんじかん', romaji:'taimuauto', pri:'mid', exJp:'`timeout: 5` と設定すれば、5 秒以内にフックが終わらなければ自動的に中止されます。' },
+  { id:'async', cat:'cc-workflow', en:'async', cn:'异步 / 不等执行完就继续（async: true = 后台跑不堵 CC）', jpKanji:'非同期 / バックグラウンド実行', jpKana:'ひどうき / じっこう', romaji:'hidōki', pri:'mid', exJp:'重い処理は `async: true` にして、CC のメインの応答を遅らせないようにします。' },
 ];
 
 /* ============ STATE ============ */

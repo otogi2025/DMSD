@@ -1,6 +1,6 @@
 # 当前工作状态 (Work In Progress)
 
-> **最后更新**: 2026-05-13（跨夜延续 — 沟通规则 v0.4.0 + v0.4.1 根本方向调整 / session-wrap §7.5 强制自查清单加入 / TODO 补 §🛠️ E + F — 详见 `raw/2026-05-12_修补批量+comm规则加严.md §I`）。早些更新: 2026-05-12（修补类批量 + cc-comm-rules 加严 + destructive bash hook block→warn）/ 2026-05-11 跨 23 点（CC-2 reviewer 后门修复上线）/ 2026-05-11 更晚（graphify + 沟通大爆发）/ 2026-05-11 晚（session-coord）<!-- VERSION_OK -->
+> **最后更新**: 2026-05-14（沟通规则 v0.5.0 根本方向再调整 — 英语词自由 + 全量归档术语表 / 删 `pre-write-memory-block.sh` hook / destructive bash hook 推全局 / 状态快照 14 天后刷新 / 4 次连续元层翻车 — 详见 `raw/2026-05-14.md`）。早些更新: 2026-05-13（v0.4.0 + v0.4.1 + §7.5 自查清单 + TODO §🛠️ E + F）/ 2026-05-12（修补类批量 + cc-comm-rules 加严 + destructive bash hook block→warn）/ 2026-05-11 跨 23 点（CC-2 reviewer 后门修复上线）/ 2026-05-11 更晚（graphify + 沟通大爆发）<!-- VERSION_OK -->
 
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
@@ -28,17 +28,14 @@
 
 ## 🎯 当前焦点
 
-> **⭐ 沟通规则 cc-comm-rules 已上线（5-11 晚）— 新会话必读 →** `05_logs/raw/2026-05-11.md §E + §F`
-> 5-11 晚 itsuki 3 次怒怼 CC 沟通失职 → 拍板「Skill 主 + Hook 辅」方案 → 已实装上线。
-> **完整 skill**：`~/.claude/skills/cc-comm-rules/SKILL.md`（5 个规则 + always-on 永远在线）。
-> **配套 3 个 hook**：在 `~/.claude/hooks/`（拦 memory / 怒怼词检测 / 环境清单 diff）。
-> **新会话开场必须**：(1) 读 cc-comm-rules SKILL.md / (2) 按 5 个规则执行 / (3) 看 §F 测试结果。
-> **试用 1-2 周看效果** → 详见 TODO §🛠️ A。
+> **⭐⭐⭐ 沟通规则 cc-comm-rules v0.5.0 根本方向再调整（5-14 拍板）** — 新会话必读 → `05_logs/raw/2026-05-14.md` <!-- VERSION_OK -->
+> v0.1-v0.4「约束 CC 输出」思路全部作废。新方向：CC 用英语词自由 + **收尾时全量加到 `06_assets/术语表.html`**（itsuki 当 AC 面试日语学习材料）。<!-- VERSION_OK -->
+> **删的**：`pre-write-memory-block.sh` hook（itsuki 原话「我从来没有说过要拦截持久记忆」）。
+> **新的**：`pre-bash-destructive-block.sh` 推全局 `~/.claude/hooks/`（原 DMSD 项目级保留）— 8 个原 pattern 不变，warn 模式不变，覆盖范围扩到所有项目。
+> **备份**：5-14 改的 3 处旧版存 `~/.claude/_archive_2026-05-14/`（含 README 回滚命令）。
+> **未来 propose**：把 `~/.claude/` 做成 git 仓库（永久解决全局配置无历史问题）— 等 itsuki 拍板。
 
-> **⏰ 2026-05-12 截止** — Cloud Design 40 额度。
-> 5-13 凌晨刷新，不用就浪费。
-> 跟 cici 讨论怎么用 → 见 `TODO.md §⏰`。
-> 若明天 itsuki 没主动提：CC 启动读到此条须主动报告。
+> **⏰ Cloud Design 5-12 额度已过期** — 5-14 检查时已浪费。下次额度重置时间未知。
 
 **当前版本之后的阶段**（版本号见 `CHANGELOG.md` 顶部） — 三端代码层启动完毕，下一步重点：
 1. 老师公告 4 端实装（iOS + Android + Web + Backend）— spec 已落 `system_features.md §7.15`
@@ -50,6 +47,42 @@
 ---
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
+
+### 2026-05-14 by [新Mac-Opus 4.7 1M-沟通规则 v0.5.0 + hook 推全局] <!-- VERSION_OK -->
+
+**主题**：⭐⭐⭐⭐⭐ 沟通规则 v0.5.0 根本方向再调整 — 5 次迭代后换思路（约束 CC 输出 → 系统化归档术语表）+ 4 次连续元层翻车 + 状态快照 14 天后刷新 + destructive bash hook 推全局 <!-- VERSION_OK -->
+
+- **起因**：itsuki 启动问"状态快照是什么" → CC 解释完顺势报告 5-13 残留时又蹦英语单词（sub agent / classifier / audit / git mv / HTML / draft 等）→ itsuki 怒怼"我记得有 skill + hook 就是为了拦你"
+- ⭐⭐⭐⭐⭐ **沟通规则 v0.5.0 根本方向反转**：v0.1-v0.4 都是"约束 CC 当下输出"（执行率低 / CC 漂 / itsuki 还看不懂）→ itsuki 跳出循环拍板换思路 — **不约束 CC 当下，系统化归档到术语表当 AC 学习材料**。同步删 `pre-write-memory-block.sh` hook（itsuki 原话「没说过要拦截持久记忆」）<!-- VERSION_OK -->
+- ⭐⭐⭐⭐⭐ **4 次连续元层翻车**：
+  1. 蹦英语单词（v0.4.1 拍板第二天就漂）<!-- VERSION_OK -->
+  2. 把工作甩回 itsuki（"你审 + 搬段 + 改日期"被怒怼"你他妈自己做"）
+  3. propose A/B/C 复杂术语（"Bash pattern" / "PreToolUse" / "Write 工具" / "old_string"）让 itsuki 拍板 — 被怒怼"我他妈 ABC 三个都没看懂"
+  4. 矫枉过正用甲乙丙 — 违反 DMSD memory `feedback_use_english_letters.md`「只用 A/B/C，禁用甲乙丙」 — 被怒怼"我不是听不懂 ABC 三个字母"
+- ⭐⭐⭐⭐⭐ **毁灭性动作自检 + 备份**：CC 跑了 `rm 单文件` + Write 全文重写 + Edit 改全局 settings.json — 都不在 destructive bash hook 拦截范围（hook 只拦 Bash `rm -rf` 等 8 pattern，不拦 Write/Edit 工具）。`~/.claude/` 不在 git 仓库 → 不可 revert。itsuki 拍板 A：备份 3 处旧版到 `~/.claude/_archive_2026-05-14/`
+- ⭐⭐⭐⭐⭐ **hook 推全局**：itsuki 拍板"最简方案" — 把 DMSD 项目级 `pre-bash-destructive-block.sh` `cp` 到 `~/.claude/hooks/` + 注册到全局 settings.json。8 个原 pattern 不变，warn 模式不变，覆盖范围扩到所有项目。CC 之前 propose 的 A/B/C 全部"加新东西"被推翻
+- ⭐⭐⭐⭐⭐ **状态快照 14 天后刷新**：4-30 → 5-14。CC 直接写 iCloud（按 itsuki 拍板"你直接添加 + 跟我写的区分开"），用 🤖 emoji 标记 CC 起草段。当前焦点段 5 行 + 最近重大变化段 6 个新日期段
+
+**新规则上线**：
+- 沟通规则 `cc-comm-rules` v0.5.0（`~/.claude/skills/`）— 规则 2.3 根本反转 + 规则 3.2 删 hook 配套改软规则 + 规则 5 删翻译自检 <!-- VERSION_OK -->
+- 全局 `pre-bash-destructive-block.sh` hook + 注册（`~/.claude/`）
+- 全局归档目录 `~/.claude/_archive_2026-05-14/`（含 4 文件 + README）
+- 术语表 ⑰ CC / 工作流协作分类（23 个新词条 — 16 主轮 + 7 收尾补漏）
+- 状态快照「最后更新」铁律：CC 改完同时更新顶部日期 + 用 🤖 标记 CC 起草段
+
+**AC 价值** ⭐⭐⭐⭐⭐：
+- **模式 5 元规则演化**：沟通规则 v0.1 → v0.5 五次迭代（4 天）— "约束输出 → 系统化归档" 的思维进化（不打补丁换思路）<!-- VERSION_OK -->
+- **模式 5 元层翻车** × 4：(1) 蹦英语词 (2) 甩工作 (3) 抽象术语 (4) 矫枉过正违反 memory
+- **模式 6 取舍** × 4：约束 vs 归档 / 拦死 vs 提醒 / 备份 vs 接受 vs git init / itsuki 改 vs CC 直接写
+- **模式 2 假设崩** × 2：hook 该拦今天的 `rm` / 改字母系统能解决"没看懂"
+- **主体性 5/5**：itsuki 5 次主动拍板（v0.5.0 / 不准甩工作 / A 备份 / hook 推全局 / 不用甲乙丙）<!-- VERSION_OK -->
+- **学术延伸性**：「约束输出 → 归档」= 系统设计哲学（拒绝越来越复杂的约束机制，改用归档让用户事后查）— AC 面试可挂"工程学方法论 / 软件设计原则"
+
+**残（下次跟进）**：
+- itsuki 未来要不要做 `~/.claude/` git init（永久解决全局配置无历史问题）
+- 3 个怒怼根源仍未拦：`rm 单文件` / Write 重写 / Edit 改全局配置 — 当前 hook 推全局也不拦，等未来 itsuki 主动加 pattern
+- 本会话所有改动 commit（DMSD 仅 `06_assets/术语表.html` 1 文件 modified；全局改动在 `~/.claude/` 不入 git；iCloud 状态快照不入 git）
+- 状态快照里 🤖 起草段 itsuki 后续可挑选重要的搬进正文 / 改写
 
 ### 2026-05-13 by [新Mac-Opus 4.7 1M-接力CC-深度审查整理]
 
