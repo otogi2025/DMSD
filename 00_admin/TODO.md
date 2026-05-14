@@ -6,7 +6,7 @@
 > - 和 `progress_overview.md` 的区别: progress_overview 是稳定的章节目录,TODO 是可以频繁增删的任务池
 > - 完成的任务: 在 checkbox 前打 x,隔段时间(每周或每月)批量移到"已完成归档"
 
-**最后更新**: 2026-05-13（加 §🛠️ E 沟通规则文件 v0.4.0 + v0.4.1 后续 + §🛠️ F 5-12 收尾残留待拍板；早些更新：2026-05-11 §📄 文件格式 MD → HTML 改造候选清单；2026-05-08 §📱 iOS 上架冲刺 + §🛰️ 点呼机第 5 端 + §🐛 主项目 v1 backend bug fix） <!-- VERSION_OK -->
+**最后更新**: 2026-05-14（加 §🛠️ G Tango 立项收尾残留 — DMSD 累积 commit / 术语表别会话残留 / ac-radar inbox / memory 候选 / Tango GitHub push / Tango 6 skill 残留治理；早些更新：2026-05-13 §🛠️ E + F；2026-05-11 §📄；2026-05-08 §📱 + §🛰️ + §🐛） <!-- VERSION_OK -->
 **当前版本**: 见 `CHANGELOG.md` 顶部 · 单源真值，见 `00_admin/文档同步点清单.md`
 
 > **2026-04-17 归档说明**：`executable_dev_checklist.md` 已归档到 `99_archive/2026-04-12_executable_dev_checklist.md`（内容已过期，功能被本 TODO.md 吸收）。
@@ -79,6 +79,15 @@
 - [ ] **graphify 图谱 vendor 污染清** — 跟 §C 段重复（C 段 5-11 已加，未做）
 - [ ] **MEMORY.md 主体刷新** — 多处 stale 行（v0.3.1 应改 v0.8.x / 4-10 旧 TODO 应清理），要 itsuki 同意才改 <!-- VERSION_OK -->
 - [ ] **`.claude/skills/file-linkage/SKILL.md` §1 标题「18 条」漂移** — 描述行已改 17 条但 §1 标题还是 18，itsuki 一行手改。**可能已被 commit 859693e 修过**，待验证
+
+### G. 2026-05-14 晚段 Tango 立项 + 收尾残留（2026-05-14 晚段加）
+
+- [ ] **DMSD 累积 commit 未 push** — 21 条 ahead origin/main（含本次 `97923a5` Tango 立项 raw + 早段 `16dd939` 沟通规则 v0.5.0 + 5-13 接力 + 5-12 修补批量 + 5-11 系列）— 等 itsuki 拍板 push 时机 <!-- VERSION_OK -->
+- [ ] **`06_assets/术语表.html` modified 别会话残留** — 5-14 早段 session #4 CC 加的 7 个 CC 协作词（staging / silent-skip / silent-exit / exit-code / scope / regex / override）没 commit。v0.6.0 撤回 v0.5.0 后这些词的去留 itsuki 拍板：要么补 commit 进 5-14 早段，要么 discard <!-- VERSION_OK -->
+- [ ] **ac-radar 中央 inbox 5-14 未写** — 本次 session-wrap 没并行加载 ac-radar skill。下次 itsuki 收尾时主动调 ac-radar flush 把 5-14 全量素材（早段沟通规则 + 晚段 Tango 立项 + 晚段-2 anti-ai-flavor）补到 iCloud `06_radar_inbox/ac_scratchpad_2026-05-14.md`
+- [ ] **2 个 memory 候选评估** — (a) "vibe coding 不能按手工搓估时" → CC 估时方式根本错（可能 feedback memory）/ (b) "cc-project-template 治理框架首次实战" → 可能 project memory。按 memory-write skill SOP 走（查重 + frontmatter + MEMORY.md 索引）
+- [ ] **Tango GitHub repo + push** — `gh repo create otogi2025/tango --public --source=. --push`（本地 `~/dev/tango/` 已 2 个 commit `addbfde` + `0467ed6` 等推送）
+- [ ] **Tango 6 skill 共 197 处 DMSD 残留** — 9 条 G1-G9 治理 TODO 在 `~/dev/tango/00_admin/TODO.md` 里，边开发 Tango Phase 1 边清
 
 ---
 
