@@ -1,6 +1,6 @@
 # 当前工作状态 (Work In Progress)
 
-> **最后更新**: 2026-05-14（沟通规则 v0.5.0 根本方向再调整 — 英语词自由 + 全量归档术语表 / 删 `pre-write-memory-block.sh` hook / destructive bash hook 推全局 / 状态快照 14 天后刷新 / 4 次连续元层翻车 — 详见 `raw/2026-05-14.md`）。早些更新: 2026-05-13（v0.4.0 + v0.4.1 + §7.5 自查清单 + TODO §🛠️ E + F）/ 2026-05-12（修补类批量 + cc-comm-rules 加严 + destructive bash hook block→warn）/ 2026-05-11 跨 23 点（CC-2 reviewer 后门修复上线）/ 2026-05-11 更晚（graphify + 沟通大爆发）<!-- VERSION_OK -->
+> **最后更新**: 2026-05-14 晚段（**Tango 项目立项** + grill-me 12 题完整设计讨论 + cc-project-template 治理框架首次实战 + 跨项目 bootstrap — 详见 `raw/2026-05-14_Tango立项+bootstrap.md`）。同日早段: 沟通规则 v0.5.0 根本方向再调整 + 4 次连续元层翻车 + hook 推全局（详见 `raw/2026-05-14.md`）。再早: 2026-05-13（v0.4.0 + v0.4.1 + §7.5 自查清单 + TODO §🛠️ E + F）/ 2026-05-12（修补类批量 + cc-comm-rules 加严 + destructive bash hook block→warn）<!-- VERSION_OK -->
 
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
@@ -48,7 +48,32 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
-### 2026-05-14 by [新Mac-Opus 4.7 1M-沟通规则 v0.5.0 + hook 推全局] <!-- VERSION_OK -->
+### 2026-05-14（晚段）by [新Mac-Opus 4.7 1M-Tango立项+bootstrap]
+
+**主题**：⭐⭐⭐⭐⭐ itsuki 提"做记单词网站" → grill-me 12 题完整设计讨论 → cc-project-template 治理框架首次实战 → 跨项目 bootstrap 起 Tango 项目骨架（`~/dev/tango/`）→ stop 等推进
+
+**关键拍板**：Tango = DMSD 派生 AC 项目（"为自己解决英语单词记不住痛点"，跟 DMSD"为他人"双叙事维度并列）/ MVP 先 Web → App 后续 → 上 App Store + 推广（itsuki 推翻 CC 4 次后修正路线）/ 算法 B 路径（SM-2 改造 → 机器学习版 → 神经网络）3 层切分 L1/L2/L3 / 技术栈跟 DMSD 后端同（FastAPI + Jinja2 + SQLite）+ 移动端优先 + 域名暂共享 DMSD 后续独立买
+
+**Tango bootstrap 完成**：cp `cc-project-template` → 替换 5 占位符（13 文件）→ Tango 专属 CLAUDE.md（参考 DMSD）→ 项目宪章 v0.0.0（含 12 题讨论结果 + 15 task）→ git init + 2 commit (`addbfde` + `0467ed6`) → hook 装好 + pre-commit 2 次拦截后修复成功（验证治理跨项目复用）→ TODO 加 9 条 G1-G9 治理 TODO（边开发边清 6 skill 共 197 处 DMSD 残留）<!-- VERSION_OK -->
+
+**itsuki 推翻 CC 4 次**（主体性 5/5）：(1) 时间盒选升级版（不接受极简 MVP）/ (2) 手机用户没 Tab 键（戳穿 CC 桌面端思维）/ (3) vibe coding 不能按手工搓估时（CC 估时根本错）/ (4) 域名独立项目独立买（不绑 DMSD 永久）
+
+**AC 价值** ⭐⭐⭐⭐⭐：
+- **模式 1**：派生痛点识别 → 工程解法
+- **模式 4** × 2：DMSD（v1 核心）→ Tango（v2 派生）双叙事 / cc-project-template 治理 v1.0 → 5-14 首次实战 <!-- VERSION_OK -->
+- **模式 5** × 多：4 次推翻 + 6 次 CC 主动诊断 unknown unknowns（闭门造车反向证据 / App Store 撞车预警 / 分隔符陷阱 / vibe coding 边界 / DMSD 残留治理策略 / 跨项目脏改反模式）+ cc-comm-rules v0.5.0 实战触发 1 次（master vs main "不理解" hook 拦下） <!-- VERSION_OK -->
+- **模式 6** × 多：12 题每题取舍 + 算法 3 层切分 + MVP 范围日语推后等
+- **学术延伸性**：认知科学（Ebbinghaus 遗忘曲线）→ 间隔重复算法（SM-2）→ 机器学习（FSRS）→ 神经网络 → 个人记忆模型 — 完整学习路径跟情報学群直接挂钩
+
+**残（下次跟进）**：
+- Tango GitHub repo `otogi2025/tango` 未建 / 未 push（commit `addbfde` + `0467ed6` 等 itsuki 拍板 push）
+- Tango 切新会话开始 Phase 1（读 Ebbinghaus + Wozniak 论文 + 笔记 → MVP 实装）
+- 6 个 Tango skill 共 197 处 DMSD 残留 → G1-G9 治理 TODO 边开发边清
+- 术语表归档 Tango 新词（grill-me / vibe coding / SM-2 / FSRS / Ebbinghaus / Wozniak / Anki / Quizlet 等大批领域词）推到 Tango Phase 1 实装时按对应类目入（不挤 ⑰ 协作类）
+
+详细 raw：`05_logs/raw/2026-05-14_Tango立项+bootstrap.md`
+
+### 2026-05-14（早段）by [新Mac-Opus 4.7 1M-沟通规则 v0.5.0 + hook 推全局] <!-- VERSION_OK -->
 
 **主题**：⭐⭐⭐⭐⭐ 沟通规则 v0.5.0 根本方向再调整 — 5 次迭代后换思路（约束 CC 输出 → 系统化归档术语表）+ 4 次连续元层翻车 + 状态快照 14 天后刷新 + destructive bash hook 推全局 <!-- VERSION_OK -->
 
