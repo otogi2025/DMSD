@@ -40,13 +40,13 @@
   - 加在 §3 全局 Hooks 表（从 1 个 PostCompact 扩到 4 个 hook）
   - 验证方式：下次 CC 会话启动时 `session-start-env-diff.sh` hook 应该不再报 diff（因为 HTML 已同步）
 
-### C. graphify 图谱清洗
+### C. graphify 图谱清洗 — ❌ 已废（2026-05-14 中午拍板）
 
-- [ ] **重跑 `/graphify --update`** 用 `.graphifyignore` 清掉 vendor（借来的第三方库代码 — React/Babel 等）污染
-  - 现状：图谱 god nodes（最重要的节点）前 10 还是 React 怪函数（`As()` / `error()` / `K()` / `i()`）
-  - 重跑后：会变成真正的 DMSD 核心节点（Route / models / NetworkModels 等）
-  - 验证方式：跑完后打开 `graph.html`（图谱网页文件）看 god nodes 列表，应该没 React 函数了
-  - 烧 token：少量（大部分文件已缓存，只重抽 vendor 排除掉之后的差量）
+- [x] ~~**重跑 `/graphify --update`** 用 `.graphifyignore` 清掉 vendor 污染~~
+  - **5-14 中午 graphify 实测复盘拍板「不卸不用 + 留作 AC 素材」** — CLAUDE.md / WIP / project-overview / file-linkage 4 个现有 skill 已精确解决 DMSD 真实问题（字段对齐 / 改 A 必改 B / 文件功能），graphify 反而冗余
+  - 拍板"不用"了 → 不必清污染
+  - 配置 / hook / 图谱目录 / 全局 CLI 全保留当 AC 素材
+  - 详细 → `05_logs/raw/2026-05-14.md §I`
 
 ### D. push 累积 commits
 
@@ -69,6 +69,17 @@
   - 内容：v0.1-v0.3 同方向加严失败 3 次后才接受"改方向"的教训
   - 核心：LLM 自觉性 = 工程不可靠组件；同方向加严 N 次失败 → 应该改方向；机制层切分 > 靠 LLM 判断
 
+### G. anti-ai-flavor + cc-comm-rules v0.6.0 后续（2026-05-14 晚加） <!-- VERSION_OK -->
+
+> 5-14 晚段-2 会话新建 `anti-ai-flavor` 全局挂钩 + cc-comm-rules 撤回 v0.5.0 到 v0.6.0。下次会话继续优化（itsuki 原话「下次接着继续更新优化」）。<!-- VERSION_OK -->
+
+- [ ] **anti-ai-flavor 8 个测试用例 subagent 对比未跑** — itsuki 选 C 跳过，下次会话真实使用中观察问题。位置：`~/.claude/skills/anti-ai-flavor/evals/evals.json`（8 用例 A-F 各 1 + 综合 1）。要不要跑 + 何时跑 itsuki 拍板
+- [ ] **网络黑话黑名单持续补** — 现一级 7 词（刀 / 硬度 / 锁死 / 兜底 / 收窄 / 稳稳 / 说拧了）+ 二级扩展 5 类。下次见新黑话追加 `~/.claude/skills/anti-ai-flavor/references/jargon-blacklist.md` 末尾
+- [ ] **术语表.html 现有 modified 状态决定** — 5-14 早段 v0.5.0 添词的产物（属于已上线词条）。v0.6.0 后收尾不再自动加词，但已添的 180+ 词条保留作 AC 日语学习材料。这次 modified 要不要 commit itsuki 拍板 <!-- VERSION_OK -->
+- [ ] **`~/.claude/我的环境.html` 重新生成** — 清单美化派生版（5-11 晚生成）。现 md 加了 anti-ai-flavor + cc-comm-rules v0.6.0 标注，html 未同步。要不要重新生成 itsuki 决定 <!-- VERSION_OK -->
+- [ ] **WIP 已 8 条超 "最多 5 条" 上限清理** — 下次清理 5-11 段 4 条老条目（详细历史在 commit log + raw）。或者 itsuki 拍板"放宽到 8 条"也行
+- [ ] **CC 写 anti-ai-flavor 时自己也犯 F+A 类的元层教训写 feedback memory？** — 反讽性证据：写规则时自己也违反规则。是否值得写一条 `feedback_cc_skips_interview_step.md` 提醒"用 skill-creator / skill-with-process-steps 类挂钩时机械逐步走，不跳第一步"。itsuki 拍板
+
 ### F. 5-12 收尾残留待拍板（2026-05-13 凌晨加）
 
 > 5-12 修补类批量会话末尾留下 7 件待 itsuki 拍板。其中 1 件（AC 中央草稿本 5-12 补）5-12 收尾时已做，其余 6 件待办。其中 3 件（AC 文件迁 / 死链修 / 整理 14 文件）另一会话已在 commit 81842f4 / b37d065 / 859693e 处理，本表只列**未处理**的。
@@ -76,7 +87,7 @@
 - [ ] **Cloud Design 40 额度 5-13 凌晨已过截止** — §⏰ 段那条 5-12 截止已过期。要么忽略（额度已浪费），要么 5-20 下次刷新前主动用掉
 - [ ] **整理脚本 `/tmp/cleanup_2026-05-12.sh` 跑不跑** — Mac 重启就丢。要么手动拷出来到非 `/tmp/` 路径，要么放弃
 - [ ] **iOS 联动规则 1 + 2 严重漂移修复** — backend `models.py` / routers 5-08 改了但 iOS `schemas` / `NetworkModels` / `Endpoints` 全员停 5-06。下次启动 iOS 会 Decoding 报错。要么手动对齐字段，要么先 backend 上线再补
-- [ ] **graphify 图谱 vendor 污染清** — 跟 §C 段重复（C 段 5-11 已加，未做）
+- [x] ~~**graphify 图谱 vendor 污染清**~~ — ❌ 已废（2026-05-14 中午拍板「不卸不用」，详见 §C）
 - [ ] **MEMORY.md 主体刷新** — 多处 stale 行（v0.3.1 应改 v0.8.x / 4-10 旧 TODO 应清理），要 itsuki 同意才改 <!-- VERSION_OK -->
 - [ ] **`.claude/skills/file-linkage/SKILL.md` §1 标题「18 条」漂移** — 描述行已改 17 条但 §1 标题还是 18，itsuki 一行手改。**可能已被 commit 859693e 修过**，待验证
 
