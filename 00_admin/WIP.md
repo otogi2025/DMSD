@@ -1,6 +1,6 @@
 # 当前工作状态 (Work In Progress)
 
-> **最后更新**: 2026-05-16 下午 16:30-18:30（跨项目 CC 完整性审计 + 大修 — codex 审计 4 项目 → Tango B 案重写 6 skill / SC26 轻修 / cc-project-template **D 案清成真通用模板**（12 文件改）/ 全局 hook session-wrap-checklist-remind.sh **改读 cwd** + Tango 6 项单 web 版 + 修 macOS bash 3.2 heredoc 中文乱码 bug — 详见 `raw/2026-05-16.md`）。5-16 上午（别会话）：接力 5-14 晚段-2 会话 — 工程边角清理：环境清单 §3+§4+§11 补 dream/anti-ai-flavor-precheck/session-wrap-checklist-remind / WIP 砍 5-11 段 5 条到 5 条上限 / 写 feedback_cc_skips_interview_step.md / 术语表 5-14 早段产物补 commit。5-14 晚段-2: anti-ai-flavor 全局挂钩立项 + cc-comm-rules 同日撤回 v0.5.0 → v0.6.0（`raw/2026-05-14.md §K`）。<!-- VERSION_OK -->
+> **最后更新**: 2026-05-22（A1+A2+B4 修 project-overview §0.1 漂移 957→980 + 加 系统bug专栏.md / codex_audit_prompt.md 引用 / B2 Fix-Bot 4 effective_* 已完成确认 / F1 清 5-14 过期警告标记 — 详见会话 ID 1779447495-6286）。早些 5-21（5-20 凌晨 4 会话审查作战 cron 自动 fire 产出 131 条 findings / 5-21 加系统 bug 专栏 + 第一批修复 8 条：CLAUDE.md 3 处死链 + 路径漂 / flow_design Pi 4B → Pi 3A+ / WIP 03_dev/device → rollcall_device / README 14 个版本数字 / TODO §⏰ + §G 编号清理）。早些 5-19（project-overview 文件介绍大改造 + 9 处漂移对账修复 + 防漂 C 方案落地 — hook 全覆盖 + 启动对账脚本双层保险 / 元层翻车 itsuki「我看不懂了」沟通问题 hook 触发 / 详见 `raw/2026-05-19.md`）。早些 5-16 下午（跨项目 CC 完整性审计 + 大修 — Tango B 案 / SC26 轻修 / cc-project-template D 案清通用 / 全局 hook 改读 cwd / 修 macOS bash 3.2 heredoc 中文乱码 bug）。<!-- VERSION_OK -->
 
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
@@ -39,9 +39,9 @@
 
 > **⏰ Cloud Design 5-12 额度已过期** — 5-14 检查时已浪费。下次额度重置时间未知。
 
-**当前版本之后的阶段**（版本号见 `CHANGELOG.md` 顶部） — 三端代码层启动完毕，下一步重点：
-1. 老师公告 4 端实装（iOS + Android + Web + Backend）— spec 已落 `system_features.md §7.15`
-2. 学生注册码 v1.0 实装（4 端 spec 已就位 2026-05-03 上午别会话）
+**当前版本之后的阶段**（版本号见 `CHANGELOG.md` 顶部） — 5 端代码层启动完毕（iOS + Android + Web + Backend + 点呼机），下一步重点：
+1. 老师公告 4 端实装（iOS + Android + Web + Backend — 不含点呼机）— spec 已落 `system_features.md §7.15`
+2. 学生注册码 v1.0 实装（4 端 spec 已就位 2026-05-03 上午别会话 — 不含点呼机）
 3. 文档欠债：`progress_overview.md` 章节级里程碑刷新（4-17 之后没动）
 
 → 完整 backlog 看 `TODO.md`。
@@ -49,6 +49,114 @@
 ---
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
+
+### 2026-05-22 by [MacBook-Pro-Opus 4.7 / 1779447279-2548-iOS fork 融合]
+
+**主题**：⭐⭐⭐⭐⭐ itsuki 拍板「不冲刺上架先把 v1.0 做完再上架」→ 5-08 上架冲刺的 fork（`~/dev/Tomoshibi-AppStore/`）归档进 `99_archive/2026-05-22_tomoshibi_appstore_fork/` + backport 5 个 iOS 文件到主项目 + xcodebuild 编译验证戳穿「Bot 1 闯祸 30+ 编译错误」是 SourceKit 单文件索引误报 + commit `46f779c` 落地 + 2 次沟通规则触发（「看不懂」+「他妈的不要再停下来」）
+
+**关键拍板**（itsuki 5 次明确决策）：
+- **不冲刺上架** — 路线撤回，先做完 v1.0 全功能再启动上架
+- **A'**（fork 归档 + 反向 patch 修正版）— 不是「全抄 fork」也不是「保留主项目」，而是逐文件归类
+- **原目录归档** — 不只搬到 archive，原 `~/dev/Tomoshibi-AppStore/` 也删
+- **commit 起草后落地** — 用 CC 起草的 message
+- **「除非又重大决策 否则他妈的不要再停下来了」** — 校准 CC 工作节奏（执行模式 vs 讨论模式）
+
+**实际改动**：5 个 iOS 文件 + 1 个 DESIGN_LOG + 新增 1.7 MB 归档目录。详细对照表见 raw。
+
+**AC 价值** ⭐⭐⭐⭐⭐：
+- **模式 5** × 3：路线撤回 / xcodebuild 戳穿误报真相 / 沟通规则实战
+- **模式 2** × 2：itsuki 假设「fork 更新」崩 + CC 假设「全抄 fork」崩 → diff 工具识破
+- **模式 6** × 2：A/B/C 取舍 + 9 个文件归类（备份赢 / 主项目赢 / 部分各赢）
+- **模式 4**：session-coord v0.1.0（5-11）→ 5-22 第 2 次实战发现协议层限制 <!-- VERSION_OK -->
+- **主体性 5/5**：5 次明确拍板，含 1 次路线撤回 + 1 次 CC 节奏校准
+- **学术延伸性**：iOS 工程认知（SourceKit vs xcodebuild）+ App Store 审核条款（5.1.1(v)）+ fork 分裂工程反模式
+
+**残（下次跟进）**：
+- commit `46f779c` 未 push（按全局铁律等 itsuki 明示）
+- project-overview SKILL.md 3 个 Foundation 文件未列（独立任务）
+- 「Bot 1 还可能误删了别的功能」需要复查 — 本次只确认了 MyPage 账号删除被误删
+- system_features.md 「v1.0 上线前必删 demo scaffold 清单」是否要加密码框 `#if DEMO` 条目
+
+详细 raw：`05_logs/raw/2026-05-22_iOS_fork融合.md`
+
+### 2026-05-19 by [新Mac-Opus 4.7 1M-project-overview 系统化改造]
+
+**主题**：⭐⭐⭐⭐⭐ project-overview 文件介绍大改造（itsuki 拍板「一眼看明白」/ 27 段表全改）+ 9 处文件数漂移对账修复 + 防漂 C 方案落地（hook 全覆盖 + 启动对账脚本双层保险）+ 元层翻车 itsuki「我看不懂了」沟通问题 hook 触发
+
+**关键拍板**（itsuki 5 次明确决策）：
+- **B 边读边改**（跳过 CC propose 仪式，直接全改）
+- **全部修**（5 大 + 4 小 = 9 处漂移）
+- **C 方案 + hook 覆盖整个项目**（不是扩白名单 — 是全 DMSD 覆盖）
+- **加 CLAUDE.md**（提一句新机制让新会话知道）
+- **简单介绍**（不要再介绍得我看不懂了 — 沟通问题 hook 触发）
+
+**实际改动**：
+| 文件 | 改动 |
+|---|---|
+| `.claude/skills/project-overview/SKILL.md` | 909→949 行 / 27 段表全部加「一句话作用」列 / 9 处漂移修 / 加 §3.6.5 alembic + §4.3 重写 |
+| `00_admin/hooks/post-edit-project-overview-check.sh` | 重写全覆盖版（删白名单逻辑）|
+| `bin/check_overview_drift.sh` | 新建启动对账脚本（注册 SessionStart）|
+| `.claude/settings.json` | 加 SessionStart hook 注册 |
+| `00_admin/hooks/README.md` | 加 §I SessionStart 段 + §F v2 说明 |
+| `CLAUDE.md` | hooks 工具列表加 2 行新机制（粗体标 5-19）|
+
+**AC 价值** ⭐⭐⭐⭐⭐：
+- **模式 1**（派生痛点）× 2：改造完主动对账 / 修完主动诊断「为啥漂」
+- **模式 2**（假设崩）× 2：CC 以为 hook 白名单够 / 以为「文件名在 = OK」
+- **模式 5**（元认知）× 3：诊断时引用 §7.5.4 反讽自己 / 自指验证机制 / 黑话翻车
+- **模式 6**（取舍）× 2：itsuki 选「覆盖整个项目」比 CC 提议的「扩白名单」更激进 / 选 C 不选单层
+- **主体性 5/5**：5 次明确拍板
+- **学术延伸性**：软件工程「白名单 vs 全覆盖」/ 机制设计反模式（依赖自觉）/ 错误处理哲学（升级到机制层）— AC 面试可挂
+
+**残（下次跟进）**：
+- 对账脚本 bug — `.claude/` 写 9 实际 9，但脚本说「写 23 / 实际 9」（awk 取到了 §1.8.1 的 23 而非 §0.1 的 9）→ 记 TODO 修脚本
+- bin/ 数 3 vs 2 — 因为 `check_overview_drift.sh` 未 commit（commit 后会对上）
+- §10 AC top 10 第 10 项「版本管理SOP」路径已迁但表没改
+- §11 itsuki 待决定列表 8 条状态复核
+- 本会话所有改动未 commit — 等 itsuki 拍板
+
+详细 raw：`05_logs/raw/2026-05-19.md`
+
+### 2026-05-16（下午 16:30-18:30）by [新Mac-Opus 4.7 1M-跨项目优化]
+
+**主题**：⭐⭐⭐⭐⭐ itsuki 主动质疑「3 项目 + 默认目录 CC 是否完整工作」→ 派 codex 审计 → 4 拍板 + 大修 → CC 自检发现 4 问题 → 全部落地 + 修 macOS bash 3.2 heredoc 中文乱码 bug
+
+**关键拍板**（itsuki 5 次明确决策）：
+- **Tango B 案**（保留 6 skill 骨架重写适配单端 web）
+- **SC26 轻修**（删过期 version-bump / new-feature 引用 + 复检残留）
+- **cc-project-template D 案**（清成真通用模板 — 197 处 DMSD 残留全清成占位符 / 通用骨架）
+- **全局 hook session-wrap-checklist-remind.sh 改读 cwd**（DMSD 8 项 / SC26 6 项 / Tango **6 项单 web 版** — 之前硬编码三套混合输出）
+- **修 hook 中文乱码**（之前判断不修 →「也去检查一下」后改主意「现在修」）
+
+**实际改动统计**：
+| 项目 | 文件数 | 谁做的 |
+|---|---|---|
+| Tango | 8 改动 + 1 新建根 CLAUDE.md | codex 6 + 我修 v0.5→v0.6 |
+| SC26 | 2 改动 | codex 改 CLAUDE.md + 我改 hooks/README |
+| cc-project-template | 12 改动 | 我全做（hook 头注释 / PROJECT_DIR 默认值 / MEMORY_DIR 动态算 / pre-commit / README / 起新项目）|
+| 全局 hook | 1 重写（含 v2.1 bug 修） | 我全做 |
+
+**bash 3.2 heredoc bug 根因 + 修法**：
+- 现象：hook 输出 `「��` 乱码（紧贴右全角标点的变量末字节 + 全角字符首字节合并解析）
+- 试 `export LANG=en_US.UTF-8` → 没用（跟 locale 无关）
+- 真因：macOS 默认 bash 3.2 heredoc parser bug
+- 修法：所有「$VAR」改成 [$VAR]（半角方括号）/ 或 「 $VAR 」加空格
+
+**AC 价值** ⭐⭐⭐⭐⭐：
+- **模式 1**（派生痛点）：核心项目 OK ≠ 副项目能跑，主动审一遍不等翻车
+- **模式 2** × 3：codex sandbox 报告字段误判（git status 是真值）/ locale 假设崩 / 紧贴全角标点假设验证 ✅
+- **模式 6** × 4：同会话 4 个相反策略（Tango 保留 vs 模板清通用 — 按上下文判断不一刀切）
+- **debug 元规则**：假设崩 → 换另一个假设，不固执；改 production 前先写最小测试用例
+- **主体性 5/5**：5 次明确拍板，每次都给理由
+- **学术延伸性**：软件工程「通用 vs 专用」「right tool for the job」「DRY 反例」+ debug 方法论 — AC 面试都能挂
+
+**残（下次跟进）**：
+- 4 项目改动**未 commit** — 待 itsuki 审核 + 决定 commit message
+- 全局 hook 不在 git 仓库（`~/.claude/` 没 init）— 永久 propose 把 `~/.claude/` 做成 git 仓库
+- Tango 3 处 skill 引用「DMSD raw 共用」**保留**（A 案 — Tango 立项 3 天没真开发，Phase 2 真开发时再建 Tango 自己 raw）
+- codex 顺手修了 SC26 CLAUDE.md「在日 6 年 → 2 年 9 个月」fact 错（保留）
+
+**详细 raw**：`05_logs/raw/2026-05-16.md`
 
 ### 2026-05-14（晚段-2 20:00-20:37）by [新Mac-Opus 4.7 1M-anti-ai-flavor+cc-comm-rules v0.6.0] <!-- VERSION_OK -->
 
@@ -72,37 +180,18 @@
 - 网络黑话黑名单持续补 — 现在一级 7 词 + 二级扩展，下次见新黑话追加 `references/jargon-blacklist.md`
 - 术语表.html 已 modified（5-14 早段 v0.5.0 添词的产物）— v0.6.0 后不再自动加词，已有词条保留，要不要 commit 这次 modified itsuki 拍板 <!-- VERSION_OK -->
 - `~/.claude/我的环境.html`（清单美化派生版）未重新生成 — itsuki 决定要不要刷
-- WIP 已 8 条超 "最多 5 条" 上限 — 下次清理 5-11 段 4 条老条目（详细历史在 commit log + raw）
+- ~~WIP 已 8 条超 "最多 5 条" 上限~~ ✅ **2026-05-22 已清** — 5-19 收尾砍 5-14 早段沟通规则 v0.5.0 段，当前正好 5 条（5-19 / 5-16 / 5-14 晚段-2 / 5-14 中午 / 5-14 晚段）<!-- VERSION_OK -->
 
 详细 raw：`05_logs/raw/2026-05-14.md` §K（4 段素材 + §L 工程动作清单）
 
 ### 2026-05-14（中午）by [新Mac-Opus 4.7 1M-graphify 实测复盘]
 
-**主题**：⭐⭐⭐⭐⭐ graphify 装 3 天闲置 → itsuki 主动质疑实战价值 → CC 第一轮 propose 卸载漏核心用法被 itsuki 校准 → 实读 GRAPH_REPORT.md → 5 机制对比 → 拍板「不卸不用 + 留作 AC 素材」第 4 选项创造
+**主题**：⭐⭐⭐⭐⭐ graphify 装 3 天闲置 → itsuki 拍板「不卸不用 + 留作 AC 素材」第 4 选项创造。
 
-- **起因**：itsuki 启动后问"之前装的那个能省 token + 文件之间连接 + 总结报告的 skill 是什么" → CC 答 graphify → itsuki 反问"这到底有什么用？我怎么感觉完全没用到？"
-- ⭐⭐⭐⭐⭐ **CC 第一轮 propose 翻车**：CC 列 graphify vs 5 机制对比倾向卸载（propose B 卸 hook 留 CLI），但漏了 GRAPH_REPORT.md 作为「项目结构总结报告省 token」的核心用法 — itsuki 一句话校准戳穿 CC 视野盲点
-- ⭐⭐⭐⭐⭐ **CC 实读真实文件后改口**：CC 实读 1887 行报告，发现报告确实是项目总结（11112 节点 → 465 community），但报告头还是脏的（前 36 个 hub 全是 `Vendor: React/Babel runtime`）+ post-commit hook 只跑 AST 差量不重做 community 聚类 → CC 承认 propose B 方向错（卸 hook 等于把"省 token"机制本身拆了）
-- ⭐⭐⭐⭐⭐ **5 机制对比给清晰结论**：CLAUDE.md / WIP / project-overview / file-linkage 4 个现有机制 = 人写的语义信息（精确 + 按需加载 + 更新成本低）/ graphify = 自动抽的 AST 代码结构（糙 + 每次塞 1887 行反而费 token）→ DMSD 真实问题（字段对齐 / 改 A 必改 B / 文件功能）是语义级，AST 解决不了
-- ⭐⭐⭐⭐⭐ **itsuki 拍板「不卸不用 + 留作 AC 素材」**：CC 给 5 个具体卸载步骤后，itsuki 没选任何动作选项，自创第 4 个叙事选项 — "我不断尝试新工具，不断学习别人，不断迭代，然后实际使用后，发现还不如原本自己搭建的框架好用"
-- ⭐⭐⭐⭐⭐ **跟早段 v0.5.0 同构思维模式**（晚段-2 撤回 v0.5.0 → v0.6.0 是中午之后的事，本次拍板时 v0.5.0 仍生效）：同一天 2 次拍板都用同一元规则 — 「把过程性失败转化为可索引的资产」。早段 = 4 次约束 CC 输出失败后改归档术语表 / 中午 = 工具实验闲置后留作 AC 素材。模式 5 元规则横向迁移（4 小时内 2 次独立应用） <!-- VERSION_OK -->
+- **拍板原文 + 5 机制对比 + AC 价值**：`05_logs/raw/2026-05-14.md §I`（150 行深度 AC dump）
+- **残留任务**：见 TODO §🛠️ C（标已废）
 
-**AC 价值** ⭐⭐⭐⭐⭐：
-- **模式 1**：派生痛点识别 — 看到工具 3 天没用主动质疑（不被动等工具自证）
-- **模式 2** × 2：CC 第一轮 propose 卸载假设崩 / CC 以为 graphify 适合 DMSD 假设崩
-- **模式 5** × 多：工具选型方法论（装前问代价 / 装后问价值）/ CC 视野盲点被 itsuki 戳穿 / CC 实读真实文件后自主改口 / 通用 vs 专用经典取舍 / 元规则横向迁移
-- **模式 6** × 多：卸 vs 留 vs 重跑 → itsuki 跳出框架创造叙事选项 / 通用 vs 专用 / 沉没成本不死扛也不全删
-- **主体性 5/5**：主动质疑 / 校准 CC 视野盲点 / 不被 CC 框架限制 / 创造第 4 选项 / 把失败实验转化为 AC 资产
-- **学术延伸性**：软件工程经典议题 — 沉没成本 / DRY 原则 / right tool for the job / premature abstraction / 通用 vs 专用 — AC 面试可挂"软件设计方法论 / 工具选型"
-
-**残（下次跟进）**：
-- graphify 配置不动（CLAUDE.md 段 / PreToolUse hook / post-commit hook / `graphify-out/` 82MB / 全局 CLI 全保留）
-- TODO §🛠️ C「graphify 图谱清洗」+ §🛠️ F「graphify vendor 污染清」标记为"已废 — 5-14 拍板不用"
-- 术语表新增 14 词（9 个 ⑰ cc-workflow graphify 协作词 + 5 个 ⑬ concept 软件工程概念）
-- 中央 inbox 5 条 AC 信号已 flush
-- 本会话改动 commit（`05_logs/raw/2026-05-14.md` §I 段 + `06_assets/术语表.html` 14 新词 + `00_admin/WIP.md` 本身 + `00_admin/TODO.md` 2 条标废）
-
-**详细 raw**：`05_logs/raw/2026-05-14.md §I`（150 行深度 AC dump）
+> **2026-05-21 注（B-008 修）**：原段落 30+ 行复述决策详情 + 残留 5 条 + AC 价值评分,违反 WIP 铁律「未完成只写在 TODO / 不复述详情」。压缩成 2 行,详情指针到 raw + TODO。
 
 ### 2026-05-14（晚段）by [新Mac-Opus 4.7 1M-Tango立项+bootstrap]
 
@@ -129,75 +218,11 @@
 
 详细 raw：`05_logs/raw/2026-05-14_Tango立项+bootstrap.md`
 
-### 2026-05-14（早段）by [新Mac-Opus 4.7 1M-沟通规则 v0.5.0 + hook 推全局] <!-- VERSION_OK -->
+> **2026-05-19 收尾砍 5-14 早段沟通规则 v0.5.0 段**（让 5-19 project-overview 系统化改造 + 5-16 跨项目优化 + 5-14 晚段-2 anti-ai-flavor + 5-14 中午 graphify + 5-14 晚段 Tango 立项 维持 5 条上限）— 详细历史看 commit log + `raw/2026-05-14.md` <!-- VERSION_OK -->
 
-**主题**：⭐⭐⭐⭐⭐ 沟通规则 v0.5.0 根本方向再调整 — 5 次迭代后换思路（约束 CC 输出 → 系统化归档术语表）+ 4 次连续元层翻车 + 状态快照 14 天后刷新 + destructive bash hook 推全局 <!-- VERSION_OK -->
+> **2026-05-16 下午砍 5-13 接力 audit 段**（让 5-16 跨项目优化 + 5-14 晚段-2 anti-ai-flavor + 5-14 中午 graphify + 5-14 晚段 Tango 立项 + 5-14 早段 沟通规则 v0.5.0 维持 5 条上限）— 详细历史看 commit log + `raw/2026-05-13_接力CC续做.md` <!-- VERSION_OK -->
 
-- **起因**：itsuki 启动问"状态快照是什么" → CC 解释完顺势报告 5-13 残留时又蹦英语单词（sub agent / classifier / audit / git mv / HTML / draft 等）→ itsuki 怒怼"我记得有 skill + hook 就是为了拦你"
-- ⭐⭐⭐⭐⭐ **沟通规则 v0.5.0 根本方向反转**：v0.1-v0.4 都是"约束 CC 当下输出"（执行率低 / CC 漂 / itsuki 还看不懂）→ itsuki 跳出循环拍板换思路 — **不约束 CC 当下，系统化归档到术语表当 AC 学习材料**。同步删 `pre-write-memory-block.sh` hook（itsuki 原话「没说过要拦截持久记忆」）<!-- VERSION_OK -->
-- ⭐⭐⭐⭐⭐ **4 次连续元层翻车**：
-  1. 蹦英语单词（v0.4.1 拍板第二天就漂）<!-- VERSION_OK -->
-  2. 把工作甩回 itsuki（"你审 + 搬段 + 改日期"被怒怼"你他妈自己做"）
-  3. propose A/B/C 复杂术语（"Bash pattern" / "PreToolUse" / "Write 工具" / "old_string"）让 itsuki 拍板 — 被怒怼"我他妈 ABC 三个都没看懂"
-  4. 矫枉过正用甲乙丙 — 违反 DMSD memory `feedback_use_english_letters.md`「只用 A/B/C，禁用甲乙丙」 — 被怒怼"我不是听不懂 ABC 三个字母"
-- ⭐⭐⭐⭐⭐ **毁灭性动作自检 + 备份**：CC 跑了 `rm 单文件` + Write 全文重写 + Edit 改全局 settings.json — 都不在 destructive bash hook 拦截范围（hook 只拦 Bash `rm -rf` 等 8 pattern，不拦 Write/Edit 工具）。`~/.claude/` 不在 git 仓库 → 不可 revert。itsuki 拍板 A：备份 3 处旧版到 `~/.claude/_archive_2026-05-14/`
-- ⭐⭐⭐⭐⭐ **hook 推全局**：itsuki 拍板"最简方案" — 把 DMSD 项目级 `pre-bash-destructive-block.sh` `cp` 到 `~/.claude/hooks/` + 注册到全局 settings.json。8 个原 pattern 不变，warn 模式不变，覆盖范围扩到所有项目。CC 之前 propose 的 A/B/C 全部"加新东西"被推翻
-- ⭐⭐⭐⭐⭐ **状态快照 14 天后刷新**：4-30 → 5-14。CC 直接写 iCloud（按 itsuki 拍板"你直接添加 + 跟我写的区分开"），用 🤖 emoji 标记 CC 起草段。当前焦点段 5 行 + 最近重大变化段 6 个新日期段
-
-**新规则上线**：
-- 沟通规则 `cc-comm-rules` v0.5.0（`~/.claude/skills/`）— 规则 2.3 根本反转 + 规则 3.2 删 hook 配套改软规则 + 规则 5 删翻译自检 <!-- VERSION_OK -->
-- 全局 `pre-bash-destructive-block.sh` hook + 注册（`~/.claude/`）
-- 全局归档目录 `~/.claude/_archive_2026-05-14/`（含 4 文件 + README）
-- 术语表 ⑰ CC / 工作流协作分类（23 个新词条 — 16 主轮 + 7 收尾补漏）
-- 状态快照「最后更新」铁律：CC 改完同时更新顶部日期 + 用 🤖 标记 CC 起草段
-
-**AC 价值** ⭐⭐⭐⭐⭐：
-- **模式 5 元规则演化**：沟通规则 v0.1 → v0.5 五次迭代（4 天）— "约束输出 → 系统化归档" 的思维进化（不打补丁换思路）<!-- VERSION_OK -->
-- **模式 5 元层翻车** × 4：(1) 蹦英语词 (2) 甩工作 (3) 抽象术语 (4) 矫枉过正违反 memory
-- **模式 6 取舍** × 4：约束 vs 归档 / 拦死 vs 提醒 / 备份 vs 接受 vs git init / itsuki 改 vs CC 直接写
-- **模式 2 假设崩** × 2：hook 该拦今天的 `rm` / 改字母系统能解决"没看懂"
-- **主体性 5/5**：itsuki 5 次主动拍板（v0.5.0 / 不准甩工作 / A 备份 / hook 推全局 / 不用甲乙丙）<!-- VERSION_OK -->
-- **学术延伸性**：「约束输出 → 归档」= 系统设计哲学（拒绝越来越复杂的约束机制，改用归档让用户事后查）— AC 面试可挂"工程学方法论 / 软件设计原则"
-
-**残（下次跟进）**：
-- itsuki 未来要不要做 `~/.claude/` git init（永久解决全局配置无历史问题）
-- 3 个怒怼根源仍未拦：`rm 单文件` / Write 重写 / Edit 改全局配置 — 当前 hook 推全局也不拦，等未来 itsuki 主动加 pattern
-- 本会话所有改动 commit（DMSD 仅 `06_assets/术语表.html` 1 文件 modified；全局改动在 `~/.claude/` 不入 git；iCloud 状态快照不入 git）
-- 状态快照里 🤖 起草段 itsuki 后续可挑选重要的搬进正文 / 改写
-
-### 2026-05-13 by [新Mac-Opus 4.7 1M-接力CC-深度审查整理]
-
-**主题**：⭐⭐⭐⭐⭐ 5-12 凌晨深度审查接力 + 5-13 早 itsuki 怒怼后真整理 + project-overview 同步 hook 上线
-
-5-13 早 itsuki 醒来怒怼"没真整理 / project-overview 漂移 / 我看不到的地方也乱" → CC 当下立刻干 → **7 个 commit 累计**：
-
-- `859693e` 9 文件死链 + NOT_YET_ALLOWED 致命缺口修
-- `b37d065` 12 AC 文件 git mv → `05_logs/AC_叙事/`（Q3 拍板）
-- `81842f4` 14 文件 git mv（6 管理 + 6 归档 + 2 iOS 改名 `_archived_`）
-- `eaeeefe` 新 hook `post-edit-project-overview-check.sh` + project-overview SKILL.md 10+ 处校准 + §1.8 非编号目录新章节
-- `6f9650e` HTML 总结加 5-13 中午段
-- `(待 commit)` project-overview audit 校准 6 处（§3.4 backend routers 5→11 / §3.6 tests 3→5 / §3.7 P0 删 rollcall+study 已建 / §1.6 sync-rules 18→21 + PostToolUse 5→6 / 末尾时间戳）
-
-**新 hook 上线**：`00_admin/hooks/post-edit-project-overview-check.sh` — CC 改结构相关文件后自动 grep project-overview 看是否同步 → 3 级提醒。**防再漂移**。
-
-**4 sub agent 起草 draft 在 `/tmp/`**：decision_log 29 条 / learning_path 15 条 / project_evolution 5 转折 / system_features §8 补丁 — itsuki 红线 等粘贴。
-
-**sub agent af04d326 audit 报告**：18 条 Edit 建议 — 本 session 做了 6 条，剩 12 条留下次 CC。完整 `/tmp/project_overview_audit.md`。
-
-**AC 价值** ⭐⭐⭐⭐⭐：
-- 模式 5：itsuki 怒怼"我看不到"驱动 hook 上线 — passive 提醒永远跟 active 同步（"机制 > 自律"原则验证）
-- 模式 6：sub agent audit 发现 SKILL.md 自己漂移（讽刺地漏列刚加的 hook）— 元层面 self-reference 漂移
-- 工程纪律：怒怼后立刻 stop + 不绕 classifier + 用 `!` prefix 让 itsuki 自己跑
-
-**残（下次 CC 跟进）**：
-- 全 read 600+ 文件审 project-overview 描述准不准 — 单会话 3M tokens 不够（要 6-11 sub agent 分批）
-- project-overview 18 条 audit 剩 12 条（§0.1 体量重算 / §4.3 teacher_web v1 整段重写 / §5.5 iOS Feature 8 行数字 / §6.2 raw 36→41 / §7 99_archive 漏 7+ 子目录等）
-- 2 SKILL.md classifier 拦（file-linkage 17→18 / memory-write itsuki path）— itsuki 自己 sed
-- 4 sub agent draft 粘贴
-
-**详细 raw**: `05_logs/raw/2026-05-13_接力CC续做.md`
-
-> **2026-05-16 砍 5 条**（让 5-13 接力 audit + 5-14 早段沟通规则 v0.5.0 + 5-14 中午 graphify 复盘 + 5-14 晚段 Tango 立项 + 5-14 晚段-2 anti-ai-flavor 立项 维持 5 条上限）：砍 5-12 修补批量+规则加严 / 5-11 跨 23 点 CC2 reviewer 后门修复上线 / 5-11 更晚 graphify / 5-11 晚 session-coord / 5-11 术语表 — 详细历史看 commit log + raw <!-- VERSION_OK -->
+> **2026-05-16 上午砍 5 条**（让 5-13 接力 audit + 5-14 早段沟通规则 v0.5.0 + 5-14 中午 graphify 复盘 + 5-14 晚段 Tango 立项 + 5-14 晚段-2 anti-ai-flavor 立项 维持 5 条上限）：砍 5-12 修补批量+规则加严 / 5-11 跨 23 点 CC2 reviewer 后门修复上线 / 5-11 更晚 graphify / 5-11 晚 session-coord / 5-11 术语表 — 详细历史看 commit log + raw <!-- VERSION_OK -->
 
 > **2026-05-12 砍 5-10 晚 skills 批量装条目**（让 5-12 修补批量+规则加严 + 5-11 跨 23 点 reviewer 后门修复上线 + 5-11 更晚 graphify + 5-11 晚 session-coord + 5-11 术语表 维持 5 条上限） — 详见 `raw/2026-05-10_skills批量装.md`
 
@@ -246,7 +271,7 @@
 | `03_dev/backend/` | 后端会话 |
 | `03_dev/student_ios/` | iOS 会话 |
 | `03_dev/teacher_web/` | Web 会话 |
-| `03_dev/device/` | 设备会话（Pi）|
+| `03_dev/rollcall_device/` | 点呼机会话（Pi）|
 | `01_specs/` | 一次只允许一个会话改（规格冻结区）|
 | `00_admin/` | 主会话管理 |
 | `05_logs/raw/` | 各会话写自己今天的，文件名不撞 |
@@ -262,7 +287,7 @@
 3. **防作弊核心**：动态 NFC 贴纸 ST25DV16K（10 秒 nonce）+ ECDSA 签名 + 老师监督 + 语音播报（原创设计 → `05_logs/decision_log.md`）
 4. **版本体系**：0.x.x = 开发中，1.0.0 = 宿舍正式上线
 5. **记录体系**：CC 侧 `00_admin/CLAUDE_CODE_记录指南.md`；总章 `AC入试记录指南_v3.md` 在 iCloud（CC 不读）
-6. **文件地图**：`CLAUDE.md §目录结构` + `00_admin/文件结构指南.md`
+6. **文件地图**：`CLAUDE.md §目录结构` + `.claude/skills/project-overview/SKILL.md`（5-04 起替代已归档的 `00_admin/文件结构指南.md`）
 7. **文档一致性**：声明性文件不写硬编码版本号，见 `CLAUDE.md §文档一致性规则`
 8. **itsuki 偏好**：选项用 A/B/C 不用甲乙丙 / α β γ；决策他拍板；不盲从 AI
 

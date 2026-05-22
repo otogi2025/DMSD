@@ -9,7 +9,7 @@
 > **下游 LOG**:
 > - `03_dev/student_ios/IOS_DESIGN_LOG.md`(iOS 専属)
 > - `03_dev/teacher_web/WEB_DESIGN_LOG.md`(Web 専属)
-> **最后更新**: 2026-05-03(itsuki 拍板「学生注册码」§7.16 新章節 + §3.4 / §7.1 联动 — App Store 公開対策。早些更新: 2026-05-03 §7.15 老师公告 / 2026-04-30 §9 8 条 + Q12)
+> **最后更新**: 2026-05-21 — 加最近改动概要(下面 v0.8 累积清单)。版本流: 2026-05-03 拍板「学生注册码」§7.16 + §3.4 / §7.1 App Store 公開対策 → 2026-05-03 §7.15 老师公告 → 2026-04-30 §9 8 条 + Q12 → 2026-05-08 §1 跨 repo 同步规则全删(C-011 修复 — 5-06 退役独立 repo 已落地到本文档)。最近改动: 注册码 iOS/Android 实装 / 老师公告 4 端实装 / 字段对齐多轮 / 点呼机第 5 端加入。
 
 ---
 
@@ -43,36 +43,31 @@
 
 ### 1.1 为什么有这份文档
 
-**问题**: iOS App / 老师 Web / 后端 API 是别 repo + 别会话实装的。
-- iOS 在 `~/dev/TomoshibiiOSApp/`(独立 repo `otogi2025/Tomoshibi-iOS`,cloud agent 并走)
-- Web 在 `~/dev/DMSD/03_dev/teacher_web/{demo,v1}/`(2026-04-29 demo/v1 分离后)
-- 后端在 `~/dev/DMSD/03_dev/backend/{demo,v1}/`(同上)
+**问题**: iOS App / Android App / 老师 Web / 后端 API / 点呼机软件 是 5 端共存,容易漂移。
 
-→ **共用功能**(账号 / 申请 / 通知 / 出寮届 / 学習 / 点呼 等)在一边改了,另一边没跟上 → 必然漂移。
+**5 端布局**（2026-05-06 起单 repo 同源，退役独立 repo 模式）:
+- iOS 在 `~/dev/DMSD/03_dev/student_ios/v1/`
+- Android 在 `~/dev/DMSD/03_dev/student_android/v1/`
+- Web 在 `~/dev/DMSD/03_dev/teacher_web/v1/`
+- 后端在 `~/dev/DMSD/03_dev/backend/v1/`
+- 点呼机软件在 `~/dev/DMSD/03_dev/rollcall_device/`（2026-05-08 加 — 第 5 端）
+
+→ **共用功能**(账号 / 申请 / 通知 / 出寮届 / 学習 / 点呼 等)在一端改了,其他端没跟上 → 必然漂移。
 
 **解决**: 本文 = 全实装层都参照的 **single source of truth**。改功能时先改这里 → 再到各实装的 LOG 转记。
 
-### 1.2 跨会话同步规则(CC + cloud agent 必读)
+### 1.2 跨端同步规则(2026-05-21 修订 — C-011 修复，5-06 退役独立 repo 落地)
 
 | 改动种类 | 必须动作 |
 |---|---|
-| 改了 iOS 功能 / 设计判断 | (1) 在 `IOS_DESIGN_LOG.md` 时间线记录 (2) **更新本文 §7 矩阵对应行** (3) 必要时跑 `bin/sync-ios-refs.sh` 同步到 Tomoshibi-iOS |
-| 改了 Web 功能 / 设计判断 | (1) 在 `WEB_DESIGN_LOG.md` 时间线记录 (2) **更新本文 §7 矩阵对应行** |
-| 在 Swift 代码改了功能行为 | (1) 在 `Tomoshibi-iOS/STATUS.md` 记录 (2) **通知 itsuki → 触发本文 + IOS_DESIGN_LOG 反向同步** |
-| 加了 / 改了后端 API | (1) **更新本文 §7 矩阵 API 列** (2) 更新 `03_dev/backend/v1/` 内的 README / OpenAPI 草案 |
+| 改了 iOS 功能 / 设计判断 | (1) 在 `03_dev/student_ios/IOS_DESIGN_LOG.md` 时间线记录 (2) **更新本文 §7 矩阵对应行** |
+| 改了 Android 功能 / 设计判断 | (1) 在 `03_dev/student_android/ANDROID_DESIGN_LOG.md` 时间线记录 (2) **更新本文 §7 矩阵对应行** |
+| 改了 Web 功能 / 设计判断 | (1) 在 `03_dev/teacher_web/WEB_DESIGN_LOG.md` 时间线记录 (2) **更新本文 §7 矩阵对应行** |
+| 加了 / 改了后端 API | (1) **更新本文 §7 矩阵 API 列** (2) 更新 `03_dev/backend/BACKEND_DESIGN_LOG.md` + 该 API 对应的 schemas / routers |
+| 改了点呼机软件行为 | (1) 在 `03_dev/rollcall_device/ROLLCALL_DEVICE_DESIGN_LOG.md` 记录 (2) **共用层改动同步本文 §7** |
 | 提了新功能(未实装) | 在本文 §7 加一行标"⏳ 提案中"→ 等 itsuki 拍板 |
 
-### 1.3 sync-ios-refs.sh 的作用
-
-DMSD 是 source of truth。Tomoshibi-iOS 的 `refs/` 是复制品(cloud agent 拿不到 DMSD repo,必须物理复制)。
-
-DMSD 内 `bin/sync-ios-refs.sh` 一条命令就把:
-- `02_design/system_features.md` → `Tomoshibi-iOS/refs/`
-- `03_dev/student_ios/IOS_DESIGN_LOG.md` → 同上
-- `03_dev/student_ios/demo/Tomoshibi_iOS_PhaseB_v2.html` → 同上(2026-04-29 路径变更:`designs/` → `demo/`)
-- `03_dev/student_ios/demo/phaseB_src/` → 同上
-
-复制完之后 itsuki 自己在 Tomoshibi-iOS 那边 `git status` 确认 → 手动 commit / push(不自动 push,安全考虑)。
+> **历史**: 2026-05-06 之前 iOS / Android 分别有独立 GitHub repo（otogi2025/Tomoshibi-iOS、otogi2025/Tomoshibi-Android）+ `bin/sync-ios-refs.sh` 跨 repo 物理复制脚本。2026-05-06 拍板退役独立 repo 模式 — 全部在 DMSD 内单 repo 同源，跨 repo 同步规则废止。详见 `99_archive/2026-05-06_cloud_agent_退役/`。
 
 ---
 
@@ -1470,7 +1465,7 @@ posts / songs / suggestions                 -- §7.14 砍掉的 → schema 删�
 
 | # | 文件 | 行号 | demo 内容 | 上线前怎么改 | 风险（不删的话）|
 |---|---|---|---|---|---|
-| 1 | `Features/Auth/AuthStubs.swift` | ~1212-1213 | RegisterStep4 密码预填 `"demo1234"` | `pw = ""` / `pw2 = ""` | 用户拿到默认弱密码 → 安全漏洞 |
+| 1 | `Features/Auth/AuthStubs.swift` | ~1256-1271 | RegisterStep4 密码 `#if DEMO ... return "demo1234" #else return "" #endif`（2026-05-22 fork 融合改：原硬编码 `"demo1234"` 改成编译开关切换）| 上线前确认 DEMO 编译标志关闭即可；彻底删则移除 `#if DEMO ... #endif` 整段保留 `""` | DEMO 标志误开 → 用户拿到弱密码 |
 | 2 | `Features/Auth/AuthStubs.swift` | ~1917 | RegisterStep5 注册码预填 `"000000"` | `code = ""` | demo 数据混入生产、用户看到困惑 |
 | 3 | `Features/Auth/AuthStubs.swift` | ~2036-2046 | RegisterStep5 `submit()` 里 `if code == DEMO_MAGIC_CODE` 跳过 backend 直接 done 整段 | 删整个 if 分支（保留下面真 createAccount 调用）| 任何人输 "000000" 都能注册任意学号 → 严重漏洞 |
 | 4 | `Features/Home/HomeStubs.swift` | ~256 | 主页 amber Card 三态切换（学習倒计时演示）| 删长按切换 + 状态 cycle 函数 | UI 暴露 demo 控件、用户困惑 |
@@ -1499,7 +1494,7 @@ posts / songs / suggestions                 -- §7.14 砍掉的 → schema 删�
 ### 其他（环境 / 配置）
 
 - `03_dev/backend/v1/tests/conftest.py` — 测试默认密码 `"test-password-12345"` / JWT secret `"test-secret-32-bytes-aaaaaaaaaa"`（仅 test 环境用、生产 .env 必另设强值）— **不删**，但确认生产 `.env` 不用这些
-- `03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/APIClient.swift` 默认 `DEV_BASE_URL = "http://localhost:8000"` — 上线前确认走环境变量 `TOMOSHIBI_API_URL` 指向生产服务器（已支持 fallback，只需配 Info.plist 或环境变量）
+- `03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/APIClient.swift` 服务器地址走 `#if DEBUG/#else` 编译开关切换（2026-05-22 fork 融合从 fork 抄回 — Xcode Run DEBUG 用 `http://localhost:8000` / Archive RELEASE 用 `https://api.tomoshibi.cc`）。环境变量 `TOMOSHIBI_API_URL` 可覆盖默认值（测试用）。上线前不用改代码，确认 Archive 走 Release configuration 即可
 
 ### 全 repo 自动扫描命令（上线前跑一遍）
 
