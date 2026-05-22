@@ -32,9 +32,9 @@ import SwiftUI
 /// MyLanding 顶部 2-col grid block · 对等 JSX blocks map
 private struct MyLandingGridBlock: Identifiable {
     let id = UUID()
-    let key: String // "info" / "rollcall" / ...
+    let key: String           // "info" / "rollcall" / ...
     let label: String
-    let icon: String // emoji
+    let icon: String          // emoji
     let badge: String?
     let route: Route
 }
@@ -186,10 +186,10 @@ struct MyLandingView: View {
 
     private var studyStateText: String {
         switch app.studyState {
-        case .idle: return "対象外（今日）"
+        case .idle:     return "対象外（今日）"
         case .upcoming: return "開始まで \(formatCountdown(app.studyCountdownSec))"
-        case .active: return "進行中"
-        case .done: return "本日完了 ✅"
+        case .active:   return "進行中"
+        case .done:     return "本日完了 ✅"
         }
     }
 
@@ -237,8 +237,8 @@ struct MyLandingView: View {
         for r in SEED.rollcall {
             switch r.state {
             case "時間内": onTime += 1
-            case "遅刻": late += 1
-            case "欠席": absent += 1
+            case "遅刻":   late += 1
+            case "欠席":   absent += 1
             default: break
             }
         }
@@ -572,7 +572,6 @@ struct MyInfoView: View {
 }
 
 // MARK: - MyInfoEditView (L3) — 連絡先・部屋編集
-
 //
 // system_features §6「学生改动履歴」拍板:
 //   - 学生可改: 房间号(数字部) / 邮箱 / 电话 / 密码 / 头像
@@ -590,7 +589,6 @@ struct MyInfoEditView: View {
         }
         return s
     }()
-
     @State private var email: String = SEED.user.email
     @State private var phone: String = SEED.user.phone
 
@@ -734,9 +732,9 @@ struct MyInfoEditView: View {
         let u0 = SEED.user
         let newRoom = roomPrefix + room
 
-        app.appendChange(field: "room", label: "部屋番号", before: u0.room, after: newRoom)
-        app.appendChange(field: "email", label: "メール", before: u0.email, after: email)
-        app.appendChange(field: "phone", label: "電話", before: u0.phone, after: phone)
+        app.appendChange(field: "room",  label: "部屋番号", before: u0.room,  after: newRoom)
+        app.appendChange(field: "email", label: "メール",   before: u0.email, after: email)
+        app.appendChange(field: "phone", label: "電話",     before: u0.phone, after: phone)
 
         SEED.user.room = newRoom
         SEED.user.email = email
@@ -981,15 +979,15 @@ struct MyPointsView: View {
                             .font(.system(size: 12, weight: .bold))
                             .kerning(1.7)
                             .textCase(.uppercase)
-                            .foregroundStyle(Color(hex: 0x5C3410).opacity(0.8))
+                            .foregroundStyle(Color(hex: 0x5c3410).opacity(0.8))
                         HStack(alignment: .lastTextBaseline, spacing: 6) {
                             Text(totalText)
                                 .font(.system(size: 48, weight: .heavy))
                                 .monospaced()
-                                .foregroundStyle(Color(hex: 0x5C3410))
+                                .foregroundStyle(Color(hex: 0x5c3410))
                             Text("点")
                                 .font(.system(size: 14))
-                                .foregroundStyle(Color(hex: 0x5C3410).opacity(0.7))
+                                .foregroundStyle(Color(hex: 0x5c3410).opacity(0.7))
                         }
                     }
                     .padding(.horizontal, 22)
@@ -998,7 +996,7 @@ struct MyPointsView: View {
                     .background {
                         RoundedRectangle(cornerRadius: 20, style: .continuous)
                             .fill(LinearGradient(
-                                colors: [Color(hex: 0xFFEFC2), Color(hex: 0xF4C677)],
+                                colors: [Color(hex: 0xffefc2), Color(hex: 0xf4c677)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ))
@@ -1087,7 +1085,7 @@ struct MyPointsView: View {
                         .frame(height: 8)
                     Capsule()
                         .fill(LinearGradient(
-                            colors: [Color(hex: 0xF4C677), T.warn],
+                            colors: [Color(hex: 0xf4c677), T.warn],
                             startPoint: .leading,
                             endPoint: .trailing
                         ))
@@ -1198,7 +1196,7 @@ struct MyPointsChartView: View {
                 let left: CGFloat = 30
                 let right: CGFloat = size.width
                 let top: CGFloat = 10
-                let bottom: CGFloat = size.height - 20 // 保留 x-label 空间
+                let bottom: CGFloat = size.height - 20      // 保留 x-label 空间
 
                 let innerW = right - left
                 let innerH = bottom - top
@@ -1493,11 +1491,11 @@ struct MySettingsView: View {
     @EnvironmentObject var app: AppStore
 
     // 通知 prefs (demo 用 local state; 不接后端)
-    @State private var prefRoll: Bool = true // 点呼リマインダー
-    @State private var prefApp: Bool = true // 申請結果
-    @State private var prefPkg: Bool = true // 快递到着 (JSX 原文：快递到着)
-    @State private var prefAct: Bool = true // 活動リマインダー
-    @State private var prefPts: Bool = true // 減点警告
+    @State private var prefRoll: Bool = true       // 点呼リマインダー
+    @State private var prefApp: Bool = true        // 申請結果
+    @State private var prefPkg: Bool = true        // 快递到着 (JSX 原文：快递到着)
+    @State private var prefAct: Bool = true        // 活動リマインダー
+    @State private var prefPts: Bool = true        // 減点警告
 
     // App Store 5.1.1(v) 强制要求的账号删除流程
     @State private var showDeleteConfirm: Bool = false
@@ -1507,10 +1505,10 @@ struct MySettingsView: View {
     private var notifRows: [(key: String, label: String, binding: Binding<Bool>)] {
         [
             ("roll", "点呼リマインダー", $prefRoll),
-            ("app", "申請結果", $prefApp),
-            ("pkg", "快递到着", $prefPkg),
-            ("act", "活動リマインダー", $prefAct),
-            ("pts", "減点警告", $prefPts),
+            ("app",  "申請結果",       $prefApp),
+            ("pkg",  "快递到着",       $prefPkg),
+            ("act",  "活動リマインダー", $prefAct),
+            ("pts",  "減点警告",       $prefPts),
         ]
     }
 
@@ -1549,17 +1547,17 @@ struct MySettingsView: View {
                                 get: { app.isDark },
                                 set: { app.isDark = $0 }
                             ))
-                            .labelsHidden()
-                            .toggleStyle(.switch)
-                            .tint(T.primary)
+                                .labelsHidden()
+                                .toggleStyle(.switch)
+                                .tint(T.primary)
                         }
                         .padding(.horizontal, 18)
                         .padding(.vertical, 14)
                     }
 
                     #if DEMO
-                        // Push 通知 demo 触发段（仅 demo 版显示、production 编译时排除）
-                        pushDemoSection
+                    // Push 通知 demo 触发段（仅 demo 版显示、production 编译时排除）
+                    pushDemoSection
                     #endif
 
                     // 账号删除入口（App Store 5.1.1(v) 强制要求）
@@ -1586,7 +1584,7 @@ struct MySettingsView: View {
         }
     }
 
-    /// 账号删除入口 section（设置页末尾、危险操作走红色系）
+    /// 账号删除 section（设置页末尾、危险操作走红色系）
     private var accountDeletionSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("アカウント")
@@ -1626,74 +1624,77 @@ struct MySettingsView: View {
         }
     }
 
-    /// 调用后端 DELETE /api/v1/accounts/me 真删账号，成功后清 token 跳登录
+    @MainActor
     private func performDelete() async {
         deleting = true
         defer { deleting = false }
         do {
             try await AccountsAPI.deleteMyAccount()
-            // 成功 → 清 token 触发 didSet 同步 Keychain + APIClient
+            // 成功 → token 清空，RootView 自动跳回登录画面
             app.authToken = nil
+        } catch let error as APIError {
+            deleteError = error.errorDescription ?? "通信エラー"
         } catch {
-            deleteError = "通信失败 — \(error.localizedDescription)"
+            deleteError = error.localizedDescription
         }
     }
 
     #if DEMO
-        /// Push 通知 demo 触发段 — 4 个事件按钮（学習批 / 学習拒 / 名单加入 / 修改届再批）
-        /// memory project_demo_scaffolds_to_remove_before_v1.md（push trigger 项）
-        private var pushDemoSection: some View {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("⚠️ Push 通知 デモ")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(T.warnDeep)
-                    .kerning(0.6)
-                    .padding(.top, 8)
-                Text("この section は demo 版限定です（production では非表示）。")
-                    .font(.system(size: 10))
-                    .foregroundStyle(T.inkMute)
-                Card(padding: 0) {
-                    VStack(spacing: 0) {
-                        pushDemoRow(label: "学習欠席届 → 承認") {
-                            app.simulateStudyLeaveApproved()
-                        }
-                        Divider().background(T.hair)
-                        pushDemoRow(label: "学習欠席届 → 不承認") {
-                            app.simulateStudyLeaveRejected()
-                        }
-                        Divider().background(T.hair)
-                        pushDemoRow(label: "学習対象に追加された") {
-                            app.simulateStudyRosterAdded()
-                        }
-                        Divider().background(T.hair)
-                        pushDemoRow(label: "外泊届（修改届）が再承認された") {
-                            app.simulateAmendmentRebatch()
-                        }
+    /// Push 通知 demo 触发段 — 4 个事件按钮（学習批 / 学習拒 / 名单加入 / 修改届再批）
+    /// memory project_demo_scaffolds_to_remove_before_v1.md（push trigger 项）
+    private var pushDemoSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("⚠️ Push 通知 デモ")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(T.warnDeep)
+                .kerning(0.6)
+                .padding(.top, 8)
+            Text("この section は demo 版限定です（production では非表示）。")
+                .font(.system(size: 10))
+                .foregroundStyle(T.inkMute)
+            Card(padding: 0) {
+                VStack(spacing: 0) {
+                    pushDemoRow(label: "学習欠席届 → 承認") {
+                        app.simulateStudyLeaveApproved()
+                    }
+                    Divider().background(T.hair)
+                    pushDemoRow(label: "学習欠席届 → 不承認") {
+                        app.simulateStudyLeaveRejected()
+                    }
+                    Divider().background(T.hair)
+                    pushDemoRow(label: "学習対象に追加された") {
+                        app.simulateStudyRosterAdded()
+                    }
+                    Divider().background(T.hair)
+                    pushDemoRow(label: "外泊届（修改届）が再承認された") {
+                        app.simulateAmendmentRebatch()
                     }
                 }
             }
         }
+    }
 
-        private func pushDemoRow(label: String, action: @escaping () -> Void) -> some View {
-            Button(action: action) {
-                HStack {
-                    Image(systemName: "bell.badge.fill")
-                        .font(.system(size: 13))
-                        .foregroundStyle(T.warn)
-                    Text(label)
-                        .font(.system(size: 13))
-                        .foregroundStyle(T.ink)
-                    Spacer()
-                    Text("送信")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(T.primary)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .contentShape(Rectangle())
+    @ViewBuilder
+    private func pushDemoRow(label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Image(systemName: "bell.badge.fill")
+                    .font(.system(size: 13))
+                    .foregroundStyle(T.warn)
+                Text(label)
+                    .font(.system(size: 13))
+                    .foregroundStyle(T.ink)
+                Spacer()
+                Text("送信")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(T.primary)
             }
-            .buttonStyle(.plain)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+    }
     #endif
 }
 
@@ -1865,6 +1866,7 @@ struct MyStudyView: View {
         }
     }
 
+    @ViewBuilder
     private func statBox(label: String, count: Int, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
@@ -1946,7 +1948,7 @@ struct MyStudyView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 30)
                 } else {
-                    ForEach(Array(groupedByDate.enumerated()), id: \.offset) { idx, grp in
+                    ForEach(Array(groupedByDate.enumerated()), id: \.offset) { (idx, grp) in
                         if idx > 0 { Divider().background(T.hair) }
                         dayBlock(date: grp.date, items: grp.items)
                     }
@@ -1983,7 +1985,7 @@ struct MyStudyView: View {
                     .foregroundStyle(T.inkMute)
             }
             VStack(spacing: 0) {
-                ForEach(Array(items.enumerated()), id: \.element.id) { i, e in
+                ForEach(Array(items.enumerated()), id: \.element.id) { (i, e) in
                     HStack(spacing: 12) {
                         Text(e.timeHM)
                             .font(.system(size: 12, weight: .semibold, design: .monospaced))

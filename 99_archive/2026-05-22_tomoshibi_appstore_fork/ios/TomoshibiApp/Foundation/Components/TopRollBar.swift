@@ -1,0 +1,105 @@
+// TopRollBar.swift · 全 App 持续顶部点呼状态 bar
+// 3 态: idle (日常) / active (点呼中倒计时) / done (已签到)
+// ⭐ Foundation · 对等 phaseB_src TopRollBar
+
+import SwiftUI
+
+struct TopRollBar: View {
+    @EnvironmentObject var app: AppStore
+
+    var body: some View {
+        HStack(spacing: 10) {
+            icon
+            VStack(alignment: .leading, spacing: 2) {
+                Text(primaryText)
+                    .font(.system(size: 12, weight: .semibold))
+                Text(secondaryText)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if app.rollState != .done {
+                Ic.chevR().opacity(0.5)
+            }
+        }
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .foregroundStyle(fg)
+        .background {
+            background
+        }
+        .clipShape(Capsule(style: .continuous))
+        .contentShape(Capsule())
+        .onTapGesture {
+            if app.rollState != .done {
+                app.openSheet(.feedback)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var icon: some View {
+        switch app.rollState {
+        case .idle:
+            Image(systemName: "clock")
+                .foregroundStyle(T.primary)
+        case .active:
+            Image(systemName: "dot.circle.fill")
+                .foregroundStyle(T.danger)
+                .symbolEffect(.pulse)
+        case .absent:
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.white)
+        case .done:
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(T.ok)
+        }
+    }
+
+    private var primaryText: String {
+        switch app.rollState {
+        case .idle: return "次の点呼: 21:00"
+        case .active:
+            let m = app.rollCountdownSec / 60
+            let s = app.rollCountdownSec % 60
+            return String(format: "点呼中 · あと %d分%02d秒で遅刻判定", m, s)
+        case .absent:
+            return "欠席判定 · 寮監に直接連絡"
+        case .done:
+            return "チェックイン済 \(app.checkinAt ?? "") · \(app.checkinKind ?? "")"
+        }
+    }
+
+    private var secondaryText: String {
+        switch app.rollState {
+        case .idle: return "タップで体調報告 / 欠席申請"
+        case .active: return "タップで欠席申請 / 体調報告"
+        case .absent: return "寮監室までお越しください"
+        case .done: return "お疲れさまでした"
+        }
+    }
+
+    private var fg: Color {
+        switch app.rollState {
+        case .idle: return T.ink
+        case .active: return T.warnDeep
+        case .absent: return .white
+        case .done: return T.okDeep
+        }
+    }
+
+    @ViewBuilder
+    private var background: some View {
+        switch app.rollState {
+        case .idle:
+            if #available(iOS 26.0, *) {
+                Color.clear.glassEffect(.regular, in: .capsule)
+            } else {
+                T.glassBar
+            }
+        case .active: T.warnBg
+        case .absent: T.danger
+        case .done: T.okBg
+        }
+    }
+}

@@ -8,11 +8,12 @@
 import Foundation
 
 enum AuthAPI {
+
     // MARK: - 学生登录
 
     /// POST /api/v1/sessions/student 用的请求 body
     struct StudentLoginRequest: Encodable {
-        let student_no: String // 6 桁学号 "060218"
+        let student_no: String  // 6 桁学号 "060218"
         let password: String
     }
 
@@ -31,6 +32,7 @@ enum AuthAPI {
 // MARK: - 学生新规注册（POST /accounts，2026-05-04 加，App Store 上架对策）
 
 enum AccountsAPI {
+
     /// 学生新规注册 — 必须传教师生成的 registration_code（6 桁数字、5 分钟有效）。
     /// 成功 201 → 永久 session JWT + 学生 brief。
     ///
@@ -46,7 +48,7 @@ enum AccountsAPI {
         try await APIClient.shared.post(path: "/api/v1/accounts", body: body)
     }
 
-    /// DELETE /api/v1/accounts/me — App Store 5.1.1(v) 强制要求的账号删除接口。
+    /// DELETE /api/v1/accounts/me — App Store 5.1.1(v) 强制要求的账号删除端点。
     /// 成功返 204 No Content。调用方收到后把 authToken = nil 触发登出跳转。
     @MainActor
     static func deleteMyAccount() async throws {
@@ -55,12 +57,12 @@ enum AccountsAPI {
 }
 
 // MARK: - 老师公告 endpoint（2026-05-04 加，spec §7.15）
-
 //
 // 跟 ApplicationsAPI / StudyAPI 一样属于学生面向的功能 endpoint，inline 在本文件
 // 是为了避免给 .pbxproj 加新 file。逻辑上独立 — 用 enum AnnouncementsAPI 命名空间隔离。
 
 enum AnnouncementsAPI {
+
     /// GET /announcements — 列表（按当前学生 scope 自动过滤、新→旧）
     @MainActor
     static func list() async throws -> AnnouncementListResponse {

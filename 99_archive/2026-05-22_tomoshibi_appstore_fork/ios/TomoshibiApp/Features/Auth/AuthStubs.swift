@@ -23,14 +23,12 @@
 //   - Liquid Glass 仅 .glassEffect 许可 — Auth 流程不用 glass（bg = T.pearl / paper / gradient）
 
 import SwiftUI
-
 // Apple Image Playground · 设备本地 AI 插画生成（iOS 18.2+，仅 Apple Intelligence 支持机型）
 // → 用于注册第 1 步的头像 AI 生成功能（RegisterStep1View）
 import ImagePlayground
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MARK: - §0.1 Splash
-
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // JSX 对等:
@@ -50,7 +48,7 @@ struct SplashView: View {
         ZStack {
             // 白/极浅灰 bg（Image #29 效果）
             LinearGradient(
-                colors: [Color.white, Color(hex: 0xF4F7F8)],
+                colors: [Color.white, Color(hex: 0xf4f7f8)],
                 startPoint: .top, endPoint: .bottom
             )
             .ignoresSafeArea()
@@ -94,10 +92,10 @@ struct SplashView: View {
             Task {
                 try? await Task.sleep(nanoseconds: 2_200_000_000)
                 await MainActor.run {
-                    // 启动跳转逻辑（2026-05-07 itsuki 拍板）：
+                    // 启动跳转逻辑：
                     //   - Keychain 已恢复 token → 自动登录跳 home
                     //   - 没 token → 跳 login（老用户再登录 / 新用户走 login 里的「新規登録」link）
-                    // onboarding 不再强制路径（每次启动都看一遍太烦）
+                    // onboarding 不再强制路径（首次想看可从 login 入口手动触发，未做按钮 v1.0 不强求）
                     if app.authToken != nil {
                         router.replace(.home)
                     } else {
@@ -115,7 +113,7 @@ struct SplashView: View {
         .environmentObject(AppStore())
 }
 
-/// 自绘 Tomoshibi 火焰 logo（红橙外焰 + 黄色灯芯 · Image #29 样式）
+// 自绘 Tomoshibi 火焰 logo（红橙外焰 + 黄色灯芯 · Image #29 样式）
 private struct TomoshibiFlameLogo: View {
     var body: some View {
         GeometryReader { geo in
@@ -127,29 +125,29 @@ private struct TomoshibiFlameLogo: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color(hex: 0xFF6A3D), // 橙红 top
-                                Color(hex: 0xE23A1F), // 深红 bottom
+                                Color(hex: 0xff6a3d),  // 橙红 top
+                                Color(hex: 0xe23a1f)   // 深红 bottom
                             ],
                             startPoint: .top, endPoint: .bottom
                         )
                     )
                     .overlay(
                         FlameShape()
-                            .stroke(Color(hex: 0x3A1008), lineWidth: 1.5)
+                            .stroke(Color(hex: 0x3a1008), lineWidth: 1.5)
                     )
 
                 // 黄色灯芯（底部中央圆）
                 Circle()
                     .fill(
                         RadialGradient(
-                            colors: [Color(hex: 0xFFF3A8), Color(hex: 0xFFD24D)],
+                            colors: [Color(hex: 0xfff3a8), Color(hex: 0xffd24d)],
                             center: .center,
                             startRadius: 0,
                             endRadius: w * 0.2
                         )
                     )
                     .overlay(
-                        Circle().stroke(Color(hex: 0x3A1008), lineWidth: 1.2)
+                        Circle().stroke(Color(hex: 0x3a1008), lineWidth: 1.2)
                     )
                     .frame(width: w * 0.32, height: w * 0.32)
                     .offset(y: h * 0.18)
@@ -192,7 +190,6 @@ private struct FlameShape: Shape {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MARK: - §0.2 Onboarding
-
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // JSX 对等:
@@ -225,21 +222,21 @@ struct OnboardingView: View {
             sfSymbol: "wave.3.right.circle.fill",
             title: "タッチで点呼",
             sub: "NFC にかざすだけ",
-            gradStart: 0xE8F4F6, gradEnd: 0xA8DCE2,
+            gradStart: 0xe8f4f6, gradEnd: 0xa8dce2,
             fg: T.primary
         ),
         Slide(
             sfSymbol: "square.and.pencil.circle.fill",
             title: "申請はアプリで",
             sub: "外泊・帰省・タクシー",
-            gradStart: 0xFDF4E1, gradEnd: 0xFFE9B5,
+            gradStart: 0xfdf4e1, gradEnd: 0xffe9b5,
             fg: T.warnDeep
         ),
         Slide(
             sfSymbol: "sparkles",
             title: "寮生活をひとつに",
             sub: "バス・活動・荷物",
-            gradStart: 0xE3F1EA, gradEnd: 0x8BC6A3,
+            gradStart: 0xe3f1ea, gradEnd: 0x8bc6a3,
             fg: T.okDeep
         ),
     ]
@@ -288,6 +285,7 @@ struct OnboardingView: View {
         .background(T.paper.ignoresSafeArea())
     }
 
+    @ViewBuilder
     private func slideView(_ s: Slide) -> some View {
         VStack(spacing: 0) {
             RoundedRectangle(cornerRadius: 36, style: .continuous)
@@ -303,7 +301,7 @@ struct OnboardingView: View {
                         .font(.system(size: 120, weight: .regular))
                         .foregroundStyle(s.fg)
                 }
-                .shadow(color: Color(hex: 0x0F1E22, alpha: 0.10), radius: 30, x: 0, y: 24)
+                .shadow(color: Color(hex: 0x0f1e22, alpha: 0.10), radius: 30, x: 0, y: 24)
                 .padding(.bottom, 44)
 
             Text(s.title)
@@ -331,35 +329,35 @@ struct OnboardingView: View {
 private struct PhoneTapIcon: View {
     var size: CGFloat = 40
     var body: some View {
-        Canvas { ctx, _ in
+        Canvas { ctx, canvasSize in
             let scale = size / 48.0
             // <rect x="16" y="10" width="16" height="28" rx="3"/>
-            let phoneRect = Path(roundedRect: CGRect(x: 16 * scale, y: 10 * scale, width: 16 * scale, height: 28 * scale), cornerRadius: 3 * scale)
-            ctx.stroke(phoneRect, with: .foreground, style: StrokeStyle(lineWidth: 1.8 * scale, lineCap: .round, lineJoin: .round))
+            let phoneRect = Path(roundedRect: CGRect(x: 16*scale, y: 10*scale, width: 16*scale, height: 28*scale), cornerRadius: 3*scale)
+            ctx.stroke(phoneRect, with: .foreground, style: StrokeStyle(lineWidth: 1.8*scale, lineCap: .round, lineJoin: .round))
             // <path d="M22 33h4"/>
             var home = Path()
-            home.move(to: CGPoint(x: 22 * scale, y: 33 * scale))
-            home.addLine(to: CGPoint(x: 26 * scale, y: 33 * scale))
-            ctx.stroke(home, with: .foreground, style: StrokeStyle(lineWidth: 1.8 * scale, lineCap: .round, lineJoin: .round))
+            home.move(to: CGPoint(x: 22*scale, y: 33*scale))
+            home.addLine(to: CGPoint(x: 26*scale, y: 33*scale))
+            ctx.stroke(home, with: .foreground, style: StrokeStyle(lineWidth: 1.8*scale, lineCap: .round, lineJoin: .round))
             // wave arc 1: M35 18c1.8 1.5 3 3.6 3 6s-1.2 4.5-3 6
             var wave1 = Path()
-            wave1.move(to: CGPoint(x: 35 * scale, y: 18 * scale))
+            wave1.move(to: CGPoint(x: 35*scale, y: 18*scale))
             wave1.addCurve(
-                to: CGPoint(x: 35 * scale, y: 30 * scale),
-                control1: CGPoint(x: 36.8 * scale, y: 19.5 * scale),
-                control2: CGPoint(x: 38 * scale, y: 21.6 * scale)
+                to: CGPoint(x: 35*scale, y: 30*scale),
+                control1: CGPoint(x: 36.8*scale, y: 19.5*scale),
+                control2: CGPoint(x: 38*scale, y: 21.6*scale)
             )
-            ctx.stroke(wave1, with: .foreground, style: StrokeStyle(lineWidth: 1.8 * scale, lineCap: .round, lineJoin: .round))
+            ctx.stroke(wave1, with: .foreground, style: StrokeStyle(lineWidth: 1.8*scale, lineCap: .round, lineJoin: .round))
             // wave arc 2: M39 14c3 2.5 5 6 5 10s-2 7.5-5 10  (opacity .8)
             var wave2 = Path()
-            wave2.move(to: CGPoint(x: 39 * scale, y: 14 * scale))
+            wave2.move(to: CGPoint(x: 39*scale, y: 14*scale))
             wave2.addCurve(
-                to: CGPoint(x: 39 * scale, y: 34 * scale),
-                control1: CGPoint(x: 42 * scale, y: 16.5 * scale),
-                control2: CGPoint(x: 44 * scale, y: 20 * scale)
+                to: CGPoint(x: 39*scale, y: 34*scale),
+                control1: CGPoint(x: 42*scale, y: 16.5*scale),
+                control2: CGPoint(x: 44*scale, y: 20*scale)
             )
             ctx.opacity = 0.8
-            ctx.stroke(wave2, with: .foreground, style: StrokeStyle(lineWidth: 1.8 * scale, lineCap: .round, lineJoin: .round))
+            ctx.stroke(wave2, with: .foreground, style: StrokeStyle(lineWidth: 1.8*scale, lineCap: .round, lineJoin: .round))
         }
         .frame(width: size, height: size)
     }
@@ -371,14 +369,14 @@ private struct MailIcon: View {
         Canvas { ctx, _ in
             let scale = size / 24.0
             // <rect x="3" y="5" width="18" height="14" rx="2.4"/>
-            let env = Path(roundedRect: CGRect(x: 3 * scale, y: 5 * scale, width: 18 * scale, height: 14 * scale), cornerRadius: 2.4 * scale)
-            ctx.stroke(env, with: .foreground, style: StrokeStyle(lineWidth: 1.6 * scale, lineCap: .round, lineJoin: .round))
+            let env = Path(roundedRect: CGRect(x: 3*scale, y: 5*scale, width: 18*scale, height: 14*scale), cornerRadius: 2.4*scale)
+            ctx.stroke(env, with: .foreground, style: StrokeStyle(lineWidth: 1.6*scale, lineCap: .round, lineJoin: .round))
             // <path d="m3.6 6.4 8.4 7 8.4-7"/>
             var flap = Path()
-            flap.move(to: CGPoint(x: 3.6 * scale, y: 6.4 * scale))
-            flap.addLine(to: CGPoint(x: 12 * scale, y: 13.4 * scale))
-            flap.addLine(to: CGPoint(x: 20.4 * scale, y: 6.4 * scale))
-            ctx.stroke(flap, with: .foreground, style: StrokeStyle(lineWidth: 1.6 * scale, lineCap: .round, lineJoin: .round))
+            flap.move(to: CGPoint(x: 3.6*scale, y: 6.4*scale))
+            flap.addLine(to: CGPoint(x: 12*scale, y: 13.4*scale))
+            flap.addLine(to: CGPoint(x: 20.4*scale, y: 6.4*scale))
+            ctx.stroke(flap, with: .foreground, style: StrokeStyle(lineWidth: 1.6*scale, lineCap: .round, lineJoin: .round))
         }
         .frame(width: size, height: size)
     }
@@ -390,23 +388,23 @@ private struct CalendarIcon: View {
         Canvas { ctx, _ in
             let scale = size / 24.0
             // <rect x="3.5" y="5" width="17" height="15" rx="2.4"/>
-            let frame = Path(roundedRect: CGRect(x: 3.5 * scale, y: 5 * scale, width: 17 * scale, height: 15 * scale), cornerRadius: 2.4 * scale)
-            ctx.stroke(frame, with: .foreground, style: StrokeStyle(lineWidth: 1.6 * scale, lineCap: .round, lineJoin: .round))
+            let frame = Path(roundedRect: CGRect(x: 3.5*scale, y: 5*scale, width: 17*scale, height: 15*scale), cornerRadius: 2.4*scale)
+            ctx.stroke(frame, with: .foreground, style: StrokeStyle(lineWidth: 1.6*scale, lineCap: .round, lineJoin: .round))
             // M3.5 10h17
             var top = Path()
-            top.move(to: CGPoint(x: 3.5 * scale, y: 10 * scale))
-            top.addLine(to: CGPoint(x: 20.5 * scale, y: 10 * scale))
-            ctx.stroke(top, with: .foreground, style: StrokeStyle(lineWidth: 1.6 * scale, lineCap: .round, lineJoin: .round))
+            top.move(to: CGPoint(x: 3.5*scale, y: 10*scale))
+            top.addLine(to: CGPoint(x: 20.5*scale, y: 10*scale))
+            ctx.stroke(top, with: .foreground, style: StrokeStyle(lineWidth: 1.6*scale, lineCap: .round, lineJoin: .round))
             // M8 3v4
             var peg1 = Path()
-            peg1.move(to: CGPoint(x: 8 * scale, y: 3 * scale))
-            peg1.addLine(to: CGPoint(x: 8 * scale, y: 7 * scale))
-            ctx.stroke(peg1, with: .foreground, style: StrokeStyle(lineWidth: 1.6 * scale, lineCap: .round, lineJoin: .round))
+            peg1.move(to: CGPoint(x: 8*scale, y: 3*scale))
+            peg1.addLine(to: CGPoint(x: 8*scale, y: 7*scale))
+            ctx.stroke(peg1, with: .foreground, style: StrokeStyle(lineWidth: 1.6*scale, lineCap: .round, lineJoin: .round))
             // M16 3v4
             var peg2 = Path()
-            peg2.move(to: CGPoint(x: 16 * scale, y: 3 * scale))
-            peg2.addLine(to: CGPoint(x: 16 * scale, y: 7 * scale))
-            ctx.stroke(peg2, with: .foreground, style: StrokeStyle(lineWidth: 1.6 * scale, lineCap: .round, lineJoin: .round))
+            peg2.move(to: CGPoint(x: 16*scale, y: 3*scale))
+            peg2.addLine(to: CGPoint(x: 16*scale, y: 7*scale))
+            ctx.stroke(peg2, with: .foreground, style: StrokeStyle(lineWidth: 1.6*scale, lineCap: .round, lineJoin: .round))
         }
         .frame(width: size, height: size)
     }
@@ -419,10 +417,10 @@ private struct CheckIcon: View {
             let scale = size / 24.0
             // <path d="m5 12.5 5 5L19 7"/>
             var check = Path()
-            check.move(to: CGPoint(x: 5 * scale, y: 12.5 * scale))
-            check.addLine(to: CGPoint(x: 10 * scale, y: 17.5 * scale))
-            check.addLine(to: CGPoint(x: 19 * scale, y: 7 * scale))
-            ctx.stroke(check, with: .foreground, style: StrokeStyle(lineWidth: 2.4 * scale, lineCap: .round, lineJoin: .round))
+            check.move(to: CGPoint(x: 5*scale, y: 12.5*scale))
+            check.addLine(to: CGPoint(x: 10*scale, y: 17.5*scale))
+            check.addLine(to: CGPoint(x: 19*scale, y: 7*scale))
+            ctx.stroke(check, with: .foreground, style: StrokeStyle(lineWidth: 2.4*scale, lineCap: .round, lineJoin: .round))
         }
         .frame(width: size, height: size)
     }
@@ -434,21 +432,21 @@ private struct LockIcon: View {
         Canvas { ctx, _ in
             let scale = size / 24.0
             // <rect x="5" y="10.5" width="14" height="10" rx="2.4"/>
-            let body = Path(roundedRect: CGRect(x: 5 * scale, y: 10.5 * scale, width: 14 * scale, height: 10 * scale), cornerRadius: 2.4 * scale)
-            ctx.stroke(body, with: .foreground, style: StrokeStyle(lineWidth: 1.6 * scale, lineCap: .round, lineJoin: .round))
+            let body = Path(roundedRect: CGRect(x: 5*scale, y: 10.5*scale, width: 14*scale, height: 10*scale), cornerRadius: 2.4*scale)
+            ctx.stroke(body, with: .foreground, style: StrokeStyle(lineWidth: 1.6*scale, lineCap: .round, lineJoin: .round))
             // <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>
             var shackle = Path()
-            shackle.move(to: CGPoint(x: 8 * scale, y: 10.5 * scale))
-            shackle.addLine(to: CGPoint(x: 8 * scale, y: 8 * scale))
+            shackle.move(to: CGPoint(x: 8*scale, y: 10.5*scale))
+            shackle.addLine(to: CGPoint(x: 8*scale, y: 8*scale))
             shackle.addArc(
-                center: CGPoint(x: 12 * scale, y: 8 * scale),
-                radius: 4 * scale,
+                center: CGPoint(x: 12*scale, y: 8*scale),
+                radius: 4*scale,
                 startAngle: .degrees(180),
                 endAngle: .degrees(0),
                 clockwise: false
             )
-            shackle.addLine(to: CGPoint(x: 16 * scale, y: 10.5 * scale))
-            ctx.stroke(shackle, with: .foreground, style: StrokeStyle(lineWidth: 1.6 * scale, lineCap: .round, lineJoin: .round))
+            shackle.addLine(to: CGPoint(x: 16*scale, y: 10.5*scale))
+            ctx.stroke(shackle, with: .foreground, style: StrokeStyle(lineWidth: 1.6*scale, lineCap: .round, lineJoin: .round))
         }
         .frame(width: size, height: size)
     }
@@ -461,10 +459,10 @@ private struct BackChevronIcon: View {
             let scale = size / 24.0
             // M15 5 8 12l7 7
             var chev = Path()
-            chev.move(to: CGPoint(x: 15 * scale, y: 5 * scale))
-            chev.addLine(to: CGPoint(x: 8 * scale, y: 12 * scale))
-            chev.addLine(to: CGPoint(x: 15 * scale, y: 19 * scale))
-            ctx.stroke(chev, with: .foreground, style: StrokeStyle(lineWidth: 2 * scale, lineCap: .round, lineJoin: .round))
+            chev.move(to: CGPoint(x: 15*scale, y: 5*scale))
+            chev.addLine(to: CGPoint(x: 8*scale, y: 12*scale))
+            chev.addLine(to: CGPoint(x: 15*scale, y: 19*scale))
+            ctx.stroke(chev, with: .foreground, style: StrokeStyle(lineWidth: 2*scale, lineCap: .round, lineJoin: .round))
         }
         .frame(width: size, height: size)
     }
@@ -472,13 +470,12 @@ private struct BackChevronIcon: View {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MARK: - Register 共通: Progress bar + Header
-
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // 注册进度 · 5 步（Step5 = 认证代码，5-04 加 RegisterStep5 时把硬编码 4 改成 5）
 
 private struct RegisterProgress: View {
-    let step: Int // 1...5
+    let step: Int  // 1...5
 
     var body: some View {
         VStack(spacing: 8) {
@@ -516,8 +513,8 @@ private struct RegisterProgress: View {
     }
 }
 
-/// level=2 header (Back arrow + title centered) — 对等 phaseB_src PageHeader level=2
-/// 不复用 Foundation PageHeader 因为那里 title 是 leading，JSX 要求居中 + 自绘 back icon
+// level=2 header (Back arrow + title centered) — 对等 phaseB_src PageHeader level=2
+// 不复用 Foundation PageHeader 因为那里 title 是 leading，JSX 要求居中 + 自绘 back icon
 private struct RegisterHeader: View {
     let title: String
     @EnvironmentObject var router: RouterStore
@@ -574,7 +571,6 @@ private struct GhostButtonFull: View {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MARK: - §0.3 RegisterStep1 基本情報
-
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // JSX:
@@ -592,20 +588,19 @@ struct RegisterStep1View: View {
         var c = DateComponents(); c.year = 2006; c.month = 10; c.day = 14
         return Calendar.current.date(from: c) ?? Date()
     }()
-
     @State private var gender: String = SEED.user.gender == "男" ? "male" : "female"
     @State private var avatar: String = "default"
 
     // ── Apple Image Playground · AI 头像生成 ─────────────────────────
     // 上架版（iOS 18.0 deployment target）暂禁此功能 — \.supportsImagePlayground 是 iOS 18.1+ Environment value
     // v1.x deployment target 升到 18.1+ 时改回 @Environment(\.supportsImagePlayground)
-    // 当前硬编码 false 让「AI 生成」按钮全员隐藏（功能未启用，跟不支持机型 UX 一致）
+    // 当前硬编码 false 让「AI で生成」按钮全员隐藏（功能未启用，跟不支持机型 UX 一致）
     private let supportsImagePlayground = false
     @State private var showImagePlayground: Bool = false
     // 模型 cold start 5 秒掩饰 — 点击后立刻显示 loading，5.5 秒兜底复位
     @State private var isLoadingImagePlayground: Bool = false
     @State private var generatedAvatarURL: URL? = nil
-    @State private var isOverseas: Bool = SEED.user.isOverseas // 留学生 flag (system_features §8.1 / Q11)
+    @State private var isOverseas: Bool = SEED.user.isOverseas    // 留学生 flag (system_features §8.1 / Q11)
     @State private var grade: String = SEED.user.grade
     @State private var classSuffix: String = SEED.user.classSuffix
     @State private var seatNoStr: String = "\(SEED.user.seatNo)"
@@ -631,10 +626,10 @@ struct RegisterStep1View: View {
     }
 
     private var classCode: String {
-        classSuffix == "A" ? "01" : "02" // A組 → 01 / B組 → 02
+        classSuffix == "A" ? "01" : "02"   // A組 → 01 / B組 → 02
     }
 
-    /// 6 桁: 年級(2) + 組(2) + 出席番号(2) · 高3 B 18 → "060218"
+    // 6 桁: 年級(2) + 組(2) + 出席番号(2) · 高3 B 18 → "060218"
     private var computedAccount: String {
         let n = max(0, min(99, Int(seatNoStr) ?? 0))
         return gradeCode + classCode + String(format: "%02d", n)
@@ -670,7 +665,7 @@ struct RegisterStep1View: View {
                             if let url = generatedAvatarURL {
                                 AsyncImage(url: url) { phase in
                                     switch phase {
-                                    case let .success(img):
+                                    case .success(let img):
                                         img.resizable().scaledToFill()
                                     default:
                                         // 加载中 / 失败时显示灰色占位
@@ -706,7 +701,7 @@ struct RegisterStep1View: View {
 
                                 Button {
                                     avatar = "default"
-                                    generatedAvatarURL = nil // 清掉 AI 生成结果，退回字母 Avatar
+                                    generatedAvatarURL = nil   // 清掉 AI 生成结果，退回字母 Avatar
                                 } label: {
                                     Text("デフォルトを使う")
                                         .font(.system(size: 13, weight: .semibold))
@@ -786,7 +781,7 @@ struct RegisterStep1View: View {
                     ) {
                         HStack(spacing: 8) {
                             overseasChip(value: false, label: "一般生")
-                            overseasChip(value: true, label: "留学生")
+                            overseasChip(value: true,  label: "留学生")
                         }
                     }
 
@@ -899,7 +894,7 @@ struct RegisterStep1View: View {
         .background(T.paper.ignoresSafeArea())
     }
 
-    /// Inline radio (row) — JSX Radio row layout 风格化
+    // Inline radio (row) — JSX Radio row layout 风格化
     @ViewBuilder
     private func inlineRadio(value: String, label: String) -> some View {
         let sel = gender == value
@@ -966,6 +961,7 @@ struct RegisterStep1View: View {
         .buttonStyle(.plain)
     }
 
+    @ViewBuilder
     private var footerSingle: some View {
         VStack(spacing: 0) {
             Rectangle()
@@ -1018,7 +1014,6 @@ struct RegisterStep1View: View {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MARK: - §0.4 RegisterStep2 点呼区分
-
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // JSX:
@@ -1135,7 +1130,7 @@ struct RegisterStep2View: View {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .stroke(sel ? T.primary : T.hair, lineWidth: sel ? 1.5 : 1)
             }
-            .shadow(color: sel ? Color(hex: 0x1F6B74, alpha: 0.08) : .clear, radius: 14, x: 0, y: 4)
+            .shadow(color: sel ? Color(hex: 0x1f6b74, alpha: 0.08) : .clear, radius: 14, x: 0, y: 4)
         }
         .buttonStyle(.plain)
     }
@@ -1147,8 +1142,9 @@ struct RegisterStep2View: View {
         .environmentObject(AppStore())
 }
 
-/// 共通 2 按钮 footer (戻る + 次へ) — private 避免污染其他 feature
+// 共通 2 按钮 footer (戻る + 次へ) — private 避免污染其他 feature
 @MainActor
+@ViewBuilder
 private func footerDouble(
     nextTitle: String = "次へ",
     nextEnabled: Bool = true,
@@ -1172,7 +1168,6 @@ private func footerDouble(
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MARK: - §0.5 RegisterStep3 連絡先
-
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // JSX:
@@ -1237,7 +1232,6 @@ struct RegisterStep3View: View {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MARK: - §0.6 RegisterStep4 パスワード設定
-
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // JSX:
@@ -1250,20 +1244,19 @@ struct RegisterStep3View: View {
 struct RegisterStep4View: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
-    /// 上架版（DEMO 标志关）= 空字符串，让用户必填；DEMO build 保留预填方便演示
+    // 上架版（DEMO 标志关）= 空字符串，让用户必填；DEMO build 保留预填方便演示
     @State private var pw: String = {
         #if DEMO
-            return "demo1234"
+        return "demo1234"
         #else
-            return ""
+        return ""
         #endif
     }()
-
     @State private var pw2: String = {
         #if DEMO
-            return "demo1234"
+        return "demo1234"
         #else
-            return ""
+        return ""
         #endif
     }()
 
@@ -1362,7 +1355,6 @@ struct RegisterStep4View: View {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MARK: - §0.7 RegisterDoneView
-
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // JSX:
@@ -1392,12 +1384,12 @@ struct RegisterDoneView: View {
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [Color(hex: 0x8BC6A3), Color(hex: 0x4A9478)],
+                            colors: [Color(hex: 0x8bc6a3), Color(hex: 0x4a9478)],
                             startPoint: .topLeading, endPoint: .bottomTrailing
                         )
                     )
                     .frame(width: 100, height: 100)
-                    .shadow(color: Color(hex: 0x4A9478, alpha: 0.30), radius: 24, x: 0, y: 12)
+                    .shadow(color: Color(hex: 0x4a9478, alpha: 0.30), radius: 24, x: 0, y: 12)
 
                 // Ic.check(28) scale(2.4) ≈ 67pt canvas stroke
                 CheckIcon(size: 28)
@@ -1448,7 +1440,7 @@ struct RegisterDoneView: View {
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(
                         LinearGradient(
-                            colors: [Color(hex: 0xE8F4F6), Color(hex: 0xA8DCE2)],
+                            colors: [Color(hex: 0xe8f4f6), Color(hex: 0xa8dce2)],
                             startPoint: .topLeading, endPoint: .bottomTrailing
                         )
                     )
@@ -1484,7 +1476,6 @@ struct RegisterDoneView: View {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MARK: - §0.8 LoginView
-
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // JSX:
@@ -1509,28 +1500,26 @@ struct LoginView: View {
     enum Mode: Hashable { case number, email }
 
     @State private var mode: Mode = .number
-    /// demo 版预填方便演示，production 全空
+    // demo 版预填方便演示，production 全空
     @State private var acc: String = {
         #if DEMO
-            return "00"
+        return "00"
         #else
-            return ""
+        return ""
         #endif
     }()
-
     @State private var email: String = {
         #if DEMO
-            return "otogi2025@gmail.com"
+        return "otogi2025@gmail.com"
         #else
-            return ""
+        return ""
         #endif
     }()
-
     @State private var pw: String = {
         #if DEMO
-            return "demo1234"
+        return "demo1234"
         #else
-            return ""
+        return ""
         #endif
     }()
 
@@ -1541,7 +1530,7 @@ struct LoginView: View {
         ZStack {
             // JSX: linear-gradient(180deg, #eff2f3 0%, #e4ebec 100%)
             LinearGradient(
-                colors: [T.pearl, Color(hex: 0xE4EBEC)],
+                colors: [T.pearl, Color(hex: 0xe4ebec)],
                 startPoint: .top, endPoint: .bottom
             )
             .ignoresSafeArea()
@@ -1604,7 +1593,6 @@ struct LoginView: View {
                 .padding(.horizontal, 28)
                 .padding(.top, 8)
 
-                // Footer links
                 // Footer links（v1.0 上架版：忘记密码功能未实装 → 入口隐藏，避免 Apple 4.0 死按钮 reject）
                 HStack {
                     Button("新規登録") {
@@ -1630,6 +1618,7 @@ struct LoginView: View {
     }
 
     // JSX: 2-tab segmented control, bg T.pill, padding 3
+    @ViewBuilder
     private var modeTab: some View {
         HStack(spacing: 0) {
             tabBtn(title: "番号で", active: mode == .number) { mode = .number }
@@ -1642,6 +1631,7 @@ struct LoginView: View {
         }
     }
 
+    @ViewBuilder
     private func tabBtn(title: String, active: Bool, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
@@ -1653,7 +1643,7 @@ struct LoginView: View {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(active ? T.paper : .clear)
                 }
-                .shadow(color: active ? Color(hex: 0x0F1E22, alpha: 0.08) : .clear, radius: 6, x: 0, y: 2)
+                .shadow(color: active ? Color(hex: 0x0f1e22, alpha: 0.08) : .clear, radius: 6, x: 0, y: 2)
         }
         .buttonStyle(.plain)
     }
@@ -1676,25 +1666,25 @@ struct LoginView: View {
 
         // DEMO 编译模式: magic creds 跳过 API（用于演示锁定升级 / 离线场景）
         #if DEMO
-            let isDemoMagic = (acc == "00") && (pw == "demo1234" || pw == "00")
-            if isDemoMagic {
-                app.resetLoginFailures()
-                router.replace(.home)
-                return
-            }
+        let isDemoMagic = (acc == "00") && (pw == "demo1234" || pw == "00")
+        if isDemoMagic {
+            app.resetLoginFailures()
+            router.replace(.home)
+            return
+        }
         #endif
 
         // 真实 API 调用
         do {
             let token = try await AuthAPI.loginStudent(studentNo: acc, password: pw)
-            app.authToken = token.accessToken // didSet → APIClient.token + Keychain.save
+            app.authToken = token.accessToken     // didSet → APIClient.token + Keychain.save
             app.resetLoginFailures()
             router.replace(.home)
         } catch APIError.unauthorized {
             // 学号 / 密码错 → 走锁定升级
             app.recordLoginFailure()
             router.go(.lockout)
-        } catch let APIError.unprocessable(msg) {
+        } catch APIError.unprocessable(let msg) {
             // 学号格式错（非 6 桁数字）等
             app.showToast(msg)
         } catch APIError.network {
@@ -1713,7 +1703,6 @@ struct LoginView: View {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MARK: - §0.9 LockoutView
-
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // JSX:
@@ -1730,18 +1719,11 @@ struct LockoutView: View {
     @State private var sec: Int = 0
     @State private var timer: Timer? = nil
 
-    /// 是否永久锁（失败 6 次以上）
-    private var isPermanent: Bool {
-        app.currentLockoutSeconds == nil
-    }
+    // 是否永久锁（失败 6 次以上）
+    private var isPermanent: Bool { app.currentLockoutSeconds == nil }
 
-    private var mm: String {
-        String(format: "%02d", sec / 60)
-    }
-
-    private var ss: String {
-        String(format: "%02d", sec % 60)
-    }
+    private var mm: String { String(format: "%02d", sec / 60) }
+    private var ss: String { String(format: "%02d", sec % 60) }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1848,7 +1830,6 @@ struct LockoutView: View {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MARK: - §0.10 PwResetView
-
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // JSX:
@@ -1925,7 +1906,6 @@ struct PwResetView: View {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MARK: - §0.6.5 RegisterStep5 認証コード（2026-05-04 加，App Store 上架对策）
-
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // spec: system_features.md §7.16 + IOS_DESIGN_LOG.md §3.10（spec 已落 5-03）
@@ -2079,7 +2059,7 @@ struct RegisterStep5View: View {
             do {
                 _ = try await app.createAccount(registrationCode: code)
                 router.replace(.registerDone)
-            } catch let APIError.unprocessable(msg) {
+            } catch APIError.unprocessable(let msg) {
                 // backend 给的文案直接显示给学生（spec §7.16.2 规则 7 已固定）
                 errorMsg = msg
             } catch {

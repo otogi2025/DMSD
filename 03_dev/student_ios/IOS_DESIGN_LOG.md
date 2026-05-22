@@ -2,8 +2,21 @@
 
 > **作用**：itsuki 提过的所有 iOS 设计要求 + 自主决定 + 待决清单的完整归档。防遗忘 / 下次会话快速恢复 context / AC 素材 / Claude Design prompt 的 single source of truth。
 > **建立**：2026-04-22 晚 by [Mac-demo-sprint]
-> **最后更新**：2026-05-03（§3.9.2 注册 flow 5→6 step + 新 §3.12「登録コード入力」UI 仕様 — itsuki 2026-05-03 拍板の App Store 公開対策。早些更新：2026-05-02 §11.9 I1/I2 / 2026-04-22 晚 Round 1）
+> **最后更新**：2026-05-21（§实装进度速查表加 — A-029）。早些更新：2026-05-03（§3.9.2 注册 flow 5→6 step + 新 §3.12「登録コード入力」UI 仕様 — itsuki 2026-05-03 拍板の App Store 公開対策。2026-05-02 §11.9 I1/I2 / 2026-04-22 晚 Round 1）
 > **同型档案对照**：`teacher_web/WEB_DESIGN_LOG.md`（老师 Web 的等价档）
+
+## ⚠️ 实装进度速查表（2026-05-21 A-029 加）
+
+| 层 | 进度 | 说明 |
+|---|---|---|
+| 设计文档（本文） | ✅ ~95% | 989 行设计，主体 v2 已落 + 5-03 注册 flow 更新 |
+| Network/Endpoints | 🟡 部分 | Auth / Applications / Study / Announcements 已加；**RollCall API 缺**（A-024 已修） |
+| Features/Home | 🟡 部分 | Home omnibus 完成；amber Card 三态 long-press demo 待删（A-033 已修） |
+| Features/Auth | 🟡 部分 | 注册 flow 6 step UI 完成；**密码预填 / magic 000000 demo 后门残留**（A-035 主会话保留） |
+| Features/StayList | 🟡 部分 | UI 完成；**5 处 StayListMock 替代真 API**（A-037 已修） |
+| AppStore seed | 🟡 部分 | 公告 demo seed 残留（A-038 已修） |
+| SEED.user | 🟡 部分 | reviewer 060218 硬编码兜底（A-036 已修） |
+| 依赖管理 | ✅ N/A | C-044: iOS 工程无外部 SPM 依赖（xcodeproj 内 XCRemoteSwiftPackageReference 为空），不需要 Package.resolved；全靠系统 Foundation / SwiftUI |
 
 ---
 
@@ -333,7 +346,7 @@ itsuki 2026-05-03 拍板。App Store 上架 = 全人類に配布チャネル開�
 
 **Backend 接 endpoint**：见 `BACKEND_DESIGN_LOG §5.1.6`
 
-**双端同步**：仅在上架版 fork（`~/dev/Tomoshibi-AppStore/ios/`）实装。**主项目 v1 也要同步加** — 待 itsuki 自己 backport 或下次 CC 会话同步（防主项目 demo 编译失败）。
+**双端同步**：2026-05-22 主项目 v1 backport 完成（fork 已归档到 `99_archive/2026-05-22_tomoshibi_appstore_fork/`，主项目变唯一开发线）。改动落在 `MyPageStubs.swift` MySettingsView（state + accountDeletionSection + performDelete）+ `AuthAPI.swift` AccountsAPI.deleteMyAccount()。
 
 ---
 
@@ -580,7 +593,7 @@ itsuki Q5 指示：**像 Web Round 1 一样，Claude Design 先列 3 variations�
 > 2. **专属层（本档全文）**: 本 LOG §1-§9 = iOS 设计决策 + §10 跨档同步 + 本 §11 = 实装层
 > 3. **后端 API 契约**: `03_dev/backend/BACKEND_DESIGN_LOG.md`
 >
-> **跨 repo**: Swift 实装在 `~/dev/TomoshibiiOSApp/`（GitHub `otogi2025/Tomoshibi-iOS`）。本档由 `bin/sync-ios-refs.sh` 物理复制到 `Tomoshibi-iOS/refs/`，cloud agent 通过 refs 读。
+> **单 repo**（2026-05-06 退役独立 repo / 2026-05-21 C-012 清理）: Swift 实装直接在 `03_dev/student_ios/v1/TomoshibiApp/`，跟 backend / Android / Web / 点呼机 全在 DMSD 单 repo 里。原跨 repo 同步规则（`bin/sync-ios-refs.sh` / `Tomoshibi-iOS/refs/`）已废。
 >
 > **决策标记**: ✅ 已定 / 🟡 CC 假设（itsuki 有否决权）/ ⏳ 待拍板（聚集到 §11.9）
 

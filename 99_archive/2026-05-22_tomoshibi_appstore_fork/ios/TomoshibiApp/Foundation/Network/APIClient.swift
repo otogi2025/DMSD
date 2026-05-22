@@ -12,9 +12,10 @@ import Foundation
 
 // 上架版：DEBUG（Xcode Run）→ localhost / RELEASE（Archive 上架）→ VPS 生产
 #if DEBUG
-    private let DEFAULT_BASE_URL = "http://localhost:8000"
+private let DEFAULT_BASE_URL = "http://localhost:8000"
 #else
-    private let DEFAULT_BASE_URL = "https://api.tomoshibi.cc"
+// TODO: 生产域名敲定后在此替换（VPS 部署完成 + DNS 切完之后）
+private let DEFAULT_BASE_URL = "https://api.tomoshibi.cc"
 #endif
 
 // MARK: - レスポンス型
@@ -83,7 +84,7 @@ final class APIClient {
         }
 
         switch http.statusCode {
-        case 200 ... 299:
+        case 200...299:
             do {
                 let decoder = JSONDecoder()
                 decoder.dateDecodingStrategy = .iso8601
@@ -126,7 +127,7 @@ final class APIClient {
 /// backend 的错误响应有 2 种形态，两种都要 decode 来抽取提示信息：
 ///   1. `{"detail": "字符串"}` — FastAPI 自带 validation error
 ///   2. `{"detail": {"code": "...", "message": "..."}}` — 自家 raise HTTPException(detail={...}) 形式
-private enum DetailError {
+private struct DetailError {
     static func extractMessage(from data: Data) -> String? {
         // 先试形态 2（自家形式信息量更大）
         struct Nested: Decodable {
@@ -134,19 +135,16 @@ private enum DetailError {
                 let code: String?
                 let message: String?
             }
-
             let detail: Inner
         }
         if let nested = try? JSONDecoder().decode(Nested.self, from: data),
-           let msg = nested.detail.message, !msg.isEmpty
-        {
+           let msg = nested.detail.message, !msg.isEmpty {
             return msg
         }
         // 退到形态 1（FastAPI 默认的字符串 detail）
         struct Flat: Decodable { let detail: String }
         if let flat = try? JSONDecoder().decode(Flat.self, from: data),
-           !flat.detail.isEmpty
-        {
+           !flat.detail.isEmpty {
             return flat.detail
         }
         return nil

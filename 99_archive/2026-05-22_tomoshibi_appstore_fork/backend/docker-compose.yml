@@ -1,0 +1,58 @@
+# Tomoshibi backend — VPS 部署 compose stack
+# 三服务：fastapi (gunicorn) + postgres + caddy（HTTPS 反代）
+# 用法：
+#   docker compose up -d        # 后台启动全部
+#   docker compose logs -f api  # 看 API 日志
+#   docker compose exec api python -m seed  # 跑生产 seed（首次部署 1 次）
+#   docker compose exec api alembic upgrade head  # 跑 migration
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tomoshibi}
+      POSTGRES_USER: ${POSTGRES_USER:-tomoshibi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tomoshibi}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # 不暴露 5432 到公网，只在内部网络用
+
+  api:
+    build: .
+    restart: always
+    environment:
+      # ⚠️ 必传 APP_ENV=production — 否则 app/config.py 默认 "dev" → app/main.py 跑 create_all() 绕过 alembic
+      APP_ENV: ${APP_ENV:-production}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-tomoshibi}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-tomoshibi}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_EXPIRE_MIN: ${JWT_ACCESS_EXPIRE_MIN:-1440}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://api.tomoshibi.cc}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # 不直接暴露 8000 到公网，让 Caddy 反代
+
+  caddy:
+    image: caddy:2-alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

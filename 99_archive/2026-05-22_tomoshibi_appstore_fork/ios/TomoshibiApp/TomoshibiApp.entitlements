@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- NFC 卡读取（NDEF + TAG 两种格式都支持）-->
+    <key>com.apple.developer.nfc.readersession.formats</key>
+    <array>
+        <string>NDEF</string>
+        <string>TAG</string>
+    </array>
+
+    <!-- Push Notifications：development 值在 Archive for App Store 时由 Xcode 自动切到 production -->
+    <key>aps-environment</key>
+    <string>development</string>
+
+    <!-- Time Sensitive Notifications：允许通知突破勿扰 / 专注模式（点呼遅刻警告等紧急通知用）-->
+    <key>com.apple.developer.usernotifications.time-sensitive</key>
+    <true/>
+</dict>
+</plist>
