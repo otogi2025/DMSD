@@ -8,10 +8,11 @@ PUT  /api/v1/applications/{id}                   — 修改届 (pending 中の�
 GET  /api/v1/applications/{id}/audit             — 審査 audit ログ
 POST /api/v1/applications/{id}/approvals         — #10 役職承認/拒否
 """
+
 from __future__ import annotations
 
 from datetime import date as date_type
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
@@ -107,7 +108,10 @@ def create_application(
             action="application.submit",
             target_type="application",
             target_id=application.id,
-            payload={"kind": application.kind, "notification_log_id": str(notification_log.id)},
+            payload={
+                "kind": application.kind,
+                "notification_log_id": str(notification_log.id),
+            },
         )
     )
 
@@ -141,6 +145,62 @@ def list_mine(
     )
     if status_filter:
         stmt = stmt.where(models.Application.status == status_filter)
+    apps = db.scalars(stmt).all()
+    return [_to_application_out(a) for a in apps]
+
+
+# ---------------------------------------------------------------
+# GET /applications/pending-for-me — 役職: 自分が承認待ちの一覧 (#10)
+#
+# A-013 (2026-05-21): 必须在 /{application_id} 之前注册
+# FastAPI 按注册顺序匹配；静态路径在前 / 动态路径在后，否则 "pending-for-me"
+# 会被当成 UUID 解析 → 422 错误。
+# ---------------------------------------------------------------
+@router.get("/pending-for-me", response_model=list[schemas.ApplicationOut])
+def list_pending_for_me(
+    db: Session = Depends(get_db),
+    teacher: models.Teacher = Depends(get_current_teacher),
+):
+    """当前役职 (teacher.role) が未決の application_approvals を持つ届を返す。"""
+    from sqlalchemy import and_
+
+    stmt = (
+        select(models.Application)
+        .join(
+            models.ApplicationApproval,
+            and_(
+                models.ApplicationApproval.application_id == models.Application.id,
+                models.ApplicationApproval.approver_role == teacher.role,
+                models.ApplicationApproval.decision.is_(None),
+            ),
+        )
+        # 永远 join Student 用于 is_demo 过滤（reviewer 学生提交的申请不应出现在老师面板）
+        .join(
+            models.Student,
+            models.Student.id == models.Application.student_id,
+        )
+        .where(
+            models.Application.status.in_(["pending", "approved_partial"]),
+            models.Student.is_demo.is_(False),
+        )
+        .options(
+            selectinload(models.Application.approvals),
+            selectinload(models.Application.student),
+        )
+        .order_by(models.Application.submitted_at.asc())
+    )
+    # R4 dorm filter（join 已在上面加了，这里只追加 where）
+    if teacher.assigned_dorm is not None and teacher.role not in {
+        "寮務部長",
+        "寮務課長",
+        "国際交流部長",
+        "国際交流課長",
+        "管理係",
+    }:
+        if teacher.assigned_dorm == 1:
+            stmt = stmt.where(models.Student.dorm_unit.in_([1, 2]))
+        else:
+            stmt = stmt.where(models.Student.dorm_unit == teacher.assigned_dorm)
     apps = db.scalars(stmt).all()
     return [_to_application_out(a) for a in apps]
 
@@ -236,7 +296,13 @@ def _resolve_actor(
 
 def _teacher_can_view(teacher: models.Teacher, student: models.Student) -> bool:
     # 跨寮 role
-    if teacher.role in {"寮務部長", "寮務課長", "国際交流部長", "国際交流課長", "管理係"}:
+    if teacher.role in {
+        "寮務部長",
+        "寮務課長",
+        "国際交流部長",
+        "国際交流課長",
+        "管理係",
+    }:
         return True
     # assigned_dorm = 1 → 男寮 (1+2 暗指)
     if teacher.assigned_dorm is None:
@@ -248,51 +314,7 @@ def _teacher_can_view(teacher: models.Teacher, student: models.Student) -> bool:
     return False
 
 
-# ---------------------------------------------------------------
-# GET /applications/pending-for-me — 役職: 自分が承認待ちの一覧 (#10)
-# ---------------------------------------------------------------
-@router.get("/pending-for-me", response_model=list[schemas.ApplicationOut])
-def list_pending_for_me(
-    db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
-):
-    """当前役职 (teacher.role) が未決の application_approvals を持つ届を返す。"""
-    from sqlalchemy import and_
-
-    stmt = (
-        select(models.Application)
-        .join(
-            models.ApplicationApproval,
-            and_(
-                models.ApplicationApproval.application_id == models.Application.id,
-                models.ApplicationApproval.approver_role == teacher.role,
-                models.ApplicationApproval.decision.is_(None),
-            ),
-        )
-        # 永远 join Student 用于 is_demo 过滤（reviewer 学生提交的申请不应出现在老师面板）
-        .join(
-            models.Student,
-            models.Student.id == models.Application.student_id,
-        )
-        .where(
-            models.Application.status.in_(["pending", "approved_partial"]),
-            models.Student.is_demo.is_(False),
-        )
-        .options(
-            selectinload(models.Application.approvals),
-            selectinload(models.Application.student),
-        )
-        .order_by(models.Application.submitted_at.asc())
-    )
-    # R4 dorm filter（join 已在上面加了，这里只追加 where）
-    if teacher.assigned_dorm is not None and teacher.role not in {
-        "寮務部長", "寮務課長", "国際交流部長", "国際交流課長", "管理係"
-    }:
-        dorm_filter = (1, 2) if teacher.assigned_dorm == 1 else (teacher.assigned_dorm,)
-        stmt = stmt.where(models.Student.dorm_unit.in_(dorm_filter))
-
-    apps = db.scalars(stmt).all()
-    return [_to_application_out(a) for a in apps]
+# A-013 (2026-05-21): GET /applications/pending-for-me 已移到 /{application_id} 之前。
 
 
 # ---------------------------------------------------------------
@@ -309,12 +331,17 @@ def update_application(
     app = db.scalars(
         select(models.Application)
         .where(models.Application.id == application_id)
-        .options(selectinload(models.Application.approvals), selectinload(models.Application.student))
+        .options(
+            selectinload(models.Application.approvals),
+            selectinload(models.Application.student),
+        )
     ).first()
     if not app:
         raise HTTPException(404, {"code": "NOT_FOUND", "message": "届が見つかりません"})
     if app.student_id != student.id:
-        raise HTTPException(403, {"code": "FORBIDDEN", "message": "他人の届は修正できません"})
+        raise HTTPException(
+            403, {"code": "FORBIDDEN", "message": "他人の届は修正できません"}
+        )
     if app.status not in ("pending", "approved_partial"):
         raise HTTPException(
             409,
@@ -324,14 +351,20 @@ def update_application(
     # 内容更新 (None フィールドはスキップ)
     update_data = body.model_dump(exclude_none=True)
     if "stay_locations" in update_data:
-        update_data["stay_locations"] = [loc.model_dump() for loc in body.stay_locations]
+        update_data["stay_locations"] = [
+            loc.model_dump() for loc in body.stay_locations
+        ]
     if "meals_skip" in update_data:
-        update_data["meals_skip"] = [e.model_dump(mode="json") for e in body.meals_skip] or None
+        update_data["meals_skip"] = [
+            e.model_dump(mode="json") for e in body.meals_skip
+        ] or None
     for key, val in update_data.items():
         setattr(app, key, val)
 
     if body.leave_date and body.leave_date <= date_type.today():
-        raise HTTPException(422, {"code": "LEAVE_DATE_NOT_FUTURE", "message": "出寮日は明日以降"})
+        raise HTTPException(
+            422, {"code": "LEAVE_DATE_NOT_FUTURE", "message": "出寮日は明日以降"}
+        )
 
     # chain リセット — 全 approvals 削除 → 再生成
     for row in app.approvals:
@@ -341,12 +374,17 @@ def update_application(
 
     # 再メール (chain 変わった可能性があるので再送)
     teachers, to_emails = approval_chain.collect_recipients(db, app)
-    email_svc.send_application_submitted(db, application=app, student=student, teachers=teachers, to_emails=to_emails)
+    email_svc.send_application_submitted(
+        db, application=app, student=student, teachers=teachers, to_emails=to_emails
+    )
 
     db.add(
         models.AuditLog(
-            actor_type="student", actor_id=student.id,
-            action="application.update", target_type="application", target_id=app.id,
+            actor_type="student",
+            actor_id=student.id,
+            action="application.update",
+            target_type="application",
+            target_id=app.id,
             payload={"updated_fields": list(update_data.keys())},
         )
     )
@@ -375,7 +413,9 @@ def get_application_audit(
         raise HTTPException(404, {"code": "NOT_FOUND", "message": "届が見つかりません"})
 
     if isinstance(actor, models.Student) and app.student_id != actor.id:
-        raise HTTPException(403, {"code": "FORBIDDEN", "message": "他人の届は閲覧できません"})
+        raise HTTPException(
+            403, {"code": "FORBIDDEN", "message": "他人の届は閲覧できません"}
+        )
 
     logs = db.scalars(
         select(models.AuditLog)
@@ -401,27 +441,48 @@ def decide_approval(
     app = db.scalars(
         select(models.Application)
         .where(models.Application.id == application_id)
-        .options(selectinload(models.Application.approvals), selectinload(models.Application.student))
+        .options(
+            selectinload(models.Application.approvals),
+            selectinload(models.Application.student),
+        )
     ).first()
     if not app:
         raise HTTPException(404, {"code": "NOT_FOUND", "message": "届が見つかりません"})
 
     # 当前役職の pending 行を探す
     pending_row = next(
-        (r for r in app.approvals if r.approver_role == teacher.role and r.decision is None),
+        (
+            r
+            for r in app.approvals
+            if r.approver_role == teacher.role and r.decision is None
+        ),
         None,
     )
     if not pending_row:
         # 既に決定済か、この役職は chain に含まれない
         already = next(
-            (r for r in app.approvals if r.approver_role == teacher.role and r.decision is not None),
+            (
+                r
+                for r in app.approvals
+                if r.approver_role == teacher.role and r.decision is not None
+            ),
             None,
         )
         if already:
-            raise HTTPException(409, {"code": "APPROVAL_ALREADY_DECIDED", "message": "すでに決定済みです"})
-        raise HTTPException(403, {"code": "APPROVAL_NOT_REQUIRED", "message": "この役職は対象の承認者ではありません"})
+            raise HTTPException(
+                409,
+                {"code": "APPROVAL_ALREADY_DECIDED", "message": "すでに決定済みです"},
+            )
+        raise HTTPException(
+            403,
+            {
+                "code": "APPROVAL_NOT_REQUIRED",
+                "message": "この役職は対象の承認者ではありません",
+            },
+        )
 
     from datetime import timezone as tz
+
     pending_row.approver_id = teacher.id
     pending_row.decision = body.decision
     pending_row.comment = body.comment
@@ -432,9 +493,11 @@ def decide_approval(
 
     db.add(
         models.AuditLog(
-            actor_type="teacher", actor_id=teacher.id,
+            actor_type="teacher",
+            actor_id=teacher.id,
             action=f"application.{body.decision}",
-            target_type="application", target_id=app.id,
+            target_type="application",
+            target_id=app.id,
             payload={"role": teacher.role, "comment": body.comment},
         )
     )

@@ -58,7 +58,7 @@
 > 表示 session 的开始 / 结束事件由谁触发。
 
 - `teacher`（老师手动按按钮）
-- `system`（系统兜底自动触发，如到达 `scheduled_window_start` / `effective_auto_end_at`）
+- `system`（系统兜底自动触发，如到达 `scheduled_window_start_at` / `scheduled_auto_end_at`）
 
 ## 9. day_type（4-17 新增 — 原本只在 spec 主体出现，现写入字典）
 - `weekday`
@@ -82,9 +82,11 @@
 ## 13. path_type（4-17 新增 — 来自 `rollcall_event`）
 
 - `A`（卡路径：卡 → 点呼机 PN532 → 后端）
-- `B`（iPhone 路径：iPhone 读静态标签 → iPhone 自己发后端）
+- `B`（手机路径：iPhone / Android 读静态标签 → 手机自己发后端）
 
-> **扩展性说明（4-22 新增 — S9 修复）**：A/B 是当前（v0.3.x/v0.4.x）的全部取值。未来如果引入 Android HCE 主动上报路径（当前 4-19 G2 决策 Android 也走静态标签 = path_type=B，和 iPhone 一致），**新起独立取值 `C`**，不要扩展 A/B 语义。保持单字母单义。
+> **扩展性说明（2026-05-21 修订 — B-029 修复）**：
+> - **v1.0 范围**（2026-04-19 G2 决策）：A/B 两个取值。Android 实现与 iOS 同型（NDEF 读静态标签 + 本机签名 + 自发后端），共用 `path_type=B`。
+> - **未来扩展**：如果未来引入 Android HCE 主动上报路径（NFC 主动通信，跟 iOS Core NFC 被动读不同），**新起独立取值 `C`**，不扩展 A/B 语义。保持单字母单义。当前 backlog（TODO §🛠️）暂留 `C` 占位不实装。
 
 ## 14. student_status（4-21 新增 — 对应 `RollCall_Spec.md` 附录 C.5）
 

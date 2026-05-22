@@ -35,16 +35,17 @@ v0.1 原版 2026-02-12；后续修订见 CHANGELOG + 本文件顶部。
 - 所有判定一律基于 `server_now (JST)`。
 - 前端只展示倒计时，不参与业务判定。
 
-## 5. scheduled 与 effective 规则
-- 两者都存在时，一律使用 `effective_*_at`。
-- `scheduled_*` 仅用于配置展示与回溯。
+## 5. 时间窗规则（2026-05-21 b1 决策 — 窗口永远固定）
+- 判定 / 结算 / 查表 / 倒计时全部直接用 `scheduled_*_at`。
+- 老师提前按开始按钮只改 `started_at` 显示，不改判定窗口。
+- 原 `effective_*` 字段族已彻底删除（详见 `rollcall/RollCall_Spec.md §5.4 / §7`）。
 
 ## 6. 倒计时公式（唯一）
-- `remaining_seconds = max(0, effective_late_end_at - server_now)`
+- `remaining_seconds = max(0, scheduled_late_end_at - server_now)`
 - 禁止使用 `ended_at` 参与倒计时计算。
 
 ## 7. settle 规则（唯一）
-- `settle_at = min(ended_at, effective_auto_end_at)`
+- `settle_at = min(ended_at, scheduled_auto_end_at)`
 - 结算时将 `init -> absent`
 - 排除：
   - `exempt_range`

@@ -2,7 +2,19 @@
 
 > **作用**：itsuki 提过的所有 Web 设计要求 + Claude Design 产出的所有东西 + [Code-Agent] 补提议的完整归档。防遗忘 / 下次会话快速恢复 context / AC 素材 / 代码 agent 实装时对照 single source of truth。
 > **建立**：2026-04-21 by [Code-Agent]
-> **最后更新**：2026-05-03（新 §11.9.1 学生登録コードパネル — itsuki 2026-05-03 拍板の App Store 公開対策の Web 側 UI 実装仕様。早些更新：2026-04-22 下午 Round 3 产出交付）
+> **最后更新**：2026-05-21（§实装进度速查表加 — A-029）。早些更新：2026-05-03（新 §11.9.1 学生登録コードパネル — itsuki 2026-05-03 拍板の App Store 公開対策の Web 側 UI 実装仕様。2026-04-22 下午 Round 3 产出交付）
+
+## ⚠️ 实装进度速查表（2026-05-21 A-029 加）
+
+| 层 | 进度 | 说明 |
+|---|---|---|
+| 设计文档（本文） | ✅ 100% | 806 行设计 + 5-03 学生登録コードパネル |
+| v1/src/ 真实装 | 🟡 部分 | TypeScript + Vite + Zustand；Auth / Applications / Study / RollCall 5 page 已接 backend |
+| AnnouncementsAPI | ⏳ 0% | **缺老师公告发布页 + API**（A-026 已补 type 但 UI 不在范围） |
+| AppStatus 完整性 | 🟡 部分 | `returned` 状态漏（A-017 已修） |
+| Application 字段对齐 | 🟡 部分 | reason / stay_locations / meals_skip / flight_* / withdrawn_at / bus_route_id 全缺（A-018 已修） |
+| demo/ 归档 | 🟡 待归档 | 14 文件 jsx demo SPA（A-032 已归档） |
+| v1/src/index.html 7774 行旧 demo | 🔴 未修 | A-039 主会话保留（需要先备份 + 验证 vite shell） |
 
 ---
 

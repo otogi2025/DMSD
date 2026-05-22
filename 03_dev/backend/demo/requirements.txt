@@ -1,6 +1,8 @@
-fastapi==0.115.0
-uvicorn[standard]==0.32.0
-sqlalchemy==2.0.36
-pydantic==2.9.2
-python-multipart==0.0.17
-websockets==13.1
+# Tomoshibi Backend demo (4-28 demo)
+# C-042 (2026-05-21): == → >= 统一跟 v1/requirements.txt 风格
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+sqlalchemy>=2.0.36
+pydantic>=2.9.2
+python-multipart>=0.0.17
+websockets>=13.1

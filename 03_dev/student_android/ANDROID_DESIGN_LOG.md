@@ -3,7 +3,18 @@
 > **作用**：Android 端実装方针 / Compose 翻译规则 / 22 屏 route registry / Phase 计划。同 iOS 侧 `student_ios/IOS_DESIGN_LOG.md` 等价档。
 > **建立**：2026-05-02 by [Mac-mini]
 > **路线**：CC 主导，从 Claude Design 出的 standalone HTML 蓝图（22 屏全接通可交互 React App）**逐屏对译** Kotlin + Jetpack Compose。**不**派 sub agent / 不走 Claude Design 二次出工程。
-> **独立 repo**：`Tomoshibi-Android`（GitHub），本地 `~/dev/TomoshibiAndroidApp/`。本文件单源真值，repo 侧只放代码。
+>
+> ⚠️ **单 repo 模式**（2026-05-06 退役独立 repo）：Android 代码直接在 `03_dev/student_android/v1/`，跟 backend / iOS / Web 全在 DMSD 单 repo 里。
+
+## ⚠️ 实装进度速查表（2026-05-21 A-029 加）
+
+| 层 | 进度 | 说明 |
+|---|---|---|
+| 设计文档（本文） | ✅ 100% | 253 行设计，含 22 屏 route registry |
+| Compose UI | 🟡 部分 | 10+ 屏已对译；Auth / Application / RollCall 主 flow 可走 |
+| HTTP client | ⏳ 0% | **无 Retrofit / Ktor / OkHttp** — 全本地 mock（A-016 待主会话拍板）|
+| 字段对齐 backend | ⏳ 0% | `Models.kt` 全 camelCase 跟 backend snake_case 完全脱节（A-016） |
+| amber Card 三态 demo | 🟡 待删 | long-press cycleDemoRollState 残留（A-034 已修） |
 
 ---
 
@@ -239,12 +250,9 @@ P6 接 backend 时换成 Ktor Client + Repository pattern。
 
 ---
 
-## 9. 跨 repo 同步
+## 9. 单 repo 同步
 
-参照 iOS 模式（`bin/sync-ios-refs.sh`），需要新建 `bin/sync-android-refs.sh`：
-- DMSD 侧 single source（本 LOG + system_features.md 共用规则）
-- Tomoshibi-Android repo 侧 `refs/` 目录是物理 copy，**禁止直接编辑**
-- 改 Android 设计 → DMSD 侧先改 → 跑 sync 脚本 → 手动 commit Tomoshibi-Android 侧
+⚠️ **2026-05-06 退役独立 repo** — Android 代码直接在 `03_dev/student_android/v1/`，跟 backend / iOS / Web 全在 DMSD 单 repo 里。原跨 repo 同步规则（`bin/sync-android-refs.sh` / 跨 repo 物理 copy 等）已废 — 2026-05-21 C-012 清理。
 
 **TODO**: 写 `bin/sync-android-refs.sh`（P0 后期或 P1 初期建立）。
 

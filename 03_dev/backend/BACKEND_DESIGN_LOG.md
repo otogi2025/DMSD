@@ -3,6 +3,29 @@
 > **作用**: backend（后端 = 服务器代码）agent 接手 v1.0 实装的入口文件。对称 iOS 的 `IOS_DESIGN_LOG.md` 和 Web 的 `WEB_DESIGN_LOG.md` —— 每个端各一个档案。
 > **建立**: 2026-04-30 by [Mac-轨道C-CC]
 > **范围**: **P0 only**（出寮届 #1-9 / #10-13 + 点呼・学習 iPad #14-20 + 邮件通知 R1）。P1/P2/P3 后续会话续写。
+
+## ⚠️ 实装进度速查表（2026-05-21 A-029 加）
+
+| 层 | 进度 | 说明 |
+|---|---|---|
+| 设计文档（本文） | ✅ 100% | 1134 行设计 + Alembic / 8 router 完整 |
+| Routers | ✅ ~90% | rollcall / study / accounts / admin_registration_code / teachers / applications / auth / meals / notifications / announcements 全实装 |
+| NFC ECDSA / nonce | ⏳ 0% | spec 写了 + ROLLCALL_DEVICE 设计了，**backend 一行未实装**（A-010 主会话保留） |
+| JWT 安全 | 🟡 部分 | HS256 + change-me 默认值（A-001/A-002 主会话保留）；production fail-fast 已加（A-007/A-008） |
+| 失败锁定 | 🟡 部分 | 教师锁已加 3 次 / 30 分（A-006 已修）；学生锁待主会话拍板阈值（A-005） |
+| 路由顺序 | ✅ 已修 | `/pending-for-me` 移到 `/{application_id}` 之前（A-013） |
+| Idempotency | ✅ 已修 | RollCallEvent (session_id, idempotency_key) UniqueConstraint + alembic migration（A-011） |
+| 教师注册 | ✅ 已修 | confirmation_email 必填 + invitation.target_email 严格对比（A-012） |
+| Reviewer 凭证 | ✅ 已修 | 999999 + 密码移 env，fallback 时 warn（A-014） |
+| Tests | 🟡 部分 | 37 case 全 pass；rollcall / study / applications 专用测试缺（C-050 已修） |
+
+### 字段隐私分级（2026-05-21 A-023 加）
+
+某些 backend 字段不应向 client 暴露，避免泄露内部信息。原则：
+- **backend-only**：`is_demo` / `is_reviewer` / `password_hash` / `failed_count` / `locked_until` / 内部 `created_at` audit 等 — 不进任何 client schema
+- **教师 client 可见**：`role` / `assigned_dorm` / `name` 等
+- **学生 client 可见**：自己的 `student_no` / `dorm_unit` / `room_no` / `name`；不可见其他学生信息
+- iOS `StudentBrief` / teacher_web `StudentBrief` 字段集要按本分级裁剪（当前已正确 — `is_demo` 没暴露）
 >
 > **agent 阅读顺序**（两层结构）:
 > 1. **共用层（必读）**: `02_design/system_features.md` —— 角色 / 数据模型 / §7 14 子节功能矩阵 / R1-R4 硬约束 / 38 条要件
@@ -438,7 +461,8 @@ CREATE TABLE rollcall_events (                              -- append-only
   status_source   TEXT NOT NULL CHECK (status_source IN (
     'auto_nfc','auto_settle','manual_checkin','teacher_override'
   )),
-  applied_group   TEXT CHECK (applied_group IN ('normal','soccer')),
+  -- 2026-05-21 (A-022 b1): applied_group 字段已删除
+  -- 窗口永远固定 (RollCall_Spec §5.4)，分组直接走 student 当前 group (§6.4)
   checked_in_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   idempotency_key TEXT,                                     -- 路径 B only
   card_uid        TEXT,                                     -- 路径 A
@@ -451,7 +475,7 @@ CREATE UNIQUE INDEX uq_rce_path_a ON rollcall_events (
 ) WHERE card_uid IS NOT NULL;                               -- RollCall_Spec §10.2 路径 A 幂等
 ```
 
-> **session 创建**（RollCall_Spec 附录 C.5）: 系统 cron 每天按时刻表自动创建（`scheduled_window_start_at - 5min`），覆盖男寮 morning + evening + 女寮 morning + evening = **每天 4 个 session**（schedule_mode = split 时足球部+普通寮生 2 组用同一 session 但 `applied_group` 不同 — 详见 RollCall_Spec §6.4）。
+> **session 创建**（RollCall_Spec 附录 C.5）: 系统 cron 每天按时刻表自动创建（`scheduled_window_start_at - 5min`），覆盖男寮 morning + evening + 女寮 morning + evening = **每天 4 个 session**（schedule_mode = split 时足球部+普通寮生 2 组各自 session — 详见 RollCall_Spec §6.4，分组直接走 student 当前 `student_group`）。
 
 ### 4.8 `notifications` / `notification_log`
 

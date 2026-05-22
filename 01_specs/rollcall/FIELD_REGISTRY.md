@@ -35,14 +35,12 @@
 - `scheduled_on_time_end_at`
 - `scheduled_late_end_at`
 - `scheduled_auto_end_at`
-- `effective_window_start_at`
-- `effective_on_time_end_at`
-- `effective_late_end_at`
-- `effective_auto_end_at`
 - `started_at`
 - `ended_at`
 - `settle_at`
 - `remaining_seconds`
+
+> **2026-05-21 修订（b1 决策）**：原 `effective_window_start_at` / `effective_on_time_end_at` / `effective_late_end_at` / `effective_auto_end_at` 4 字段彻底删除（窗口永远固定，§5.4 / §7 已重写为直接用 `scheduled_*`）。
 
 ### 2.4 点呼状态
 - `base_status`（**4-17 修订** — 原 `background_status` 已废弃）
@@ -50,7 +48,8 @@
 - `status_source`
 - `status_reason`
 - `path_type`（**4-17 新增** — 取值见 ENUM `path_type`）
-- `applied_group`（**4-17 新增** — 取值同 `effective_group`）
+
+> **2026-05-21 修订（b1 决策）**：原 `applied_group` 字段已删除（窗口平移概念废弃 — `effective_group` 不再存在，分组直接走 §6.4 `student_group`，由 `(session_type, day_type, student_group)` 三元组查时间窗表）。
 
 ### 2.5 健康与申请
 - `health_issue`

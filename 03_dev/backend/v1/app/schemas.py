@@ -2,6 +2,7 @@
 
 #2 出寮届 schema 中心。3 種 (帰省 / 外泊 / 帰国) は kind discriminator で逐层累積。
 """
+
 from __future__ import annotations
 
 from datetime import date, datetime, time
@@ -400,13 +401,23 @@ class RollCallSessionOut(BaseModel):
 
 
 class RollCallCheckinIn(BaseModel):
-    """POST /rollcall/sessions/:id/checkins — NFC or 手動点呼。"""
+    """POST /rollcall/sessions/:id/checkins — NFC or 手動点呼。
+
+    2026-05-21 加 path_hint（A-020）：client 显式标路径，backend 校验字段一致性。
+    避免「同时有 card_uid + idempotency_key 时 backend 推断错路径」。
+    """
 
     card_uid: Optional[str] = Field(None, max_length=32)  # 路径 A
     student_id: Optional[UUID] = None  # 路径 B / 手動
     idempotency_key: Optional[str] = Field(None, max_length=64)  # 路径 B
     status_source: str = "auto_nfc"  # auto_nfc / manual_checkin
     ts_local: Optional[datetime] = None
+    # A-020 (2026-05-21): client 显式标路径
+    # - "A" = NFC 卡（必须有 card_uid）
+    # - "B" = iPhone tap（必须有 idempotency_key；v1.1 起追加 nonce + signature）
+    # - "manual" = 老师手动签到（card_uid / idempotency_key 都可缺）
+    # 为兼容旧 client 暂保持 Optional；下一个 minor 版本改 required
+    path_hint: Optional[Literal["A", "B", "manual"]] = None
 
 
 class RollCallEventOut(BaseModel):
@@ -472,12 +483,20 @@ class TeacherInvitationOut(BaseModel):
 
 
 class TeacherRegisterIn(BaseModel):
-    """POST /teachers/register?token=... — 招待トークンで新規登録。"""
+    """POST /teachers/register?token=... — 招待トークンで新規登録。
+
+    2026-05-21 加 confirmation_email（A-012）：
+        - 注册者必须重输 email，跟 invitation.target_email 严格对比
+        - 防止 token 被截图 / 转发 → 任何拿到 token 的人能注册
+    """
 
     token: str
     name: str = Field(..., min_length=1, max_length=100)
     login_id: str = Field(..., min_length=4, max_length=32, pattern=r"^[a-zA-Z0-9_-]+$")
     password: str = Field(..., min_length=6, max_length=128)
+    confirmation_email: str = Field(
+        ..., max_length=200
+    )  # A-012: 跟 invitation.target_email 对比
 
 
 class TeacherOut(BaseModel):

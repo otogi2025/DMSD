@@ -8,30 +8,33 @@ GET  /api/v1/rollcall/sessions/{id}/board         — 全座席現状
 GET  /api/v1/rollcall/sessions/{id}/summary       — 総結中層ページ
 PATCH /api/v1/rollcall/events/{id}                — 教師改判
 """
+
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
-from typing import Any, Optional
+from datetime import date, datetime
+from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import get_current_teacher, require_teacher_roles
+from ..deps import get_current_teacher
 
 router = APIRouter(prefix="/api/v1/rollcall", tags=["rollcall"])
 
 
 def _today_jst() -> date:
     from zoneinfo import ZoneInfo
+
     return datetime.now(ZoneInfo("Asia/Tokyo")).date()
 
 
 def _now_jst() -> datetime:
     from zoneinfo import ZoneInfo
+
     return datetime.now(ZoneInfo("Asia/Tokyo"))
 
 
@@ -46,15 +49,24 @@ def today_sessions(
     today = _today_jst()
     # 今日作成された session を返す (cron がなければ空)
     stmt = select(models.RollCallSession).where(
-        models.RollCallSession.scheduled_window_start_at >= datetime(
-            today.year, today.month, today.day, 0, 0, 0,
+        models.RollCallSession.scheduled_window_start_at
+        >= datetime(
+            today.year,
+            today.month,
+            today.day,
+            0,
+            0,
+            0,
             tzinfo=__import__("zoneinfo").ZoneInfo("Asia/Tokyo"),
         )
     )
     # R4 dorm filter
     sessions = db.scalars(stmt).all()
     if teacher.assigned_dorm is not None and teacher.role not in {
-        "寮務部長", "寮務課長", "国際交流部長", "国際交流課長",
+        "寮務部長",
+        "寮務課長",
+        "国際交流部長",
+        "国際交流課長",
     }:
         dorm_set = [1, 2] if teacher.assigned_dorm == 1 else [teacher.assigned_dorm]
         sessions = [s for s in sessions if any(d in s.dorm_unit_set for d in dorm_set)]
@@ -75,16 +87,22 @@ def start_session(
     now = _now_jst()
 
     if session.session_status == "running":
-        raise HTTPException(409, {"code": "ALREADY_RUNNING", "message": "既に開始済みです"})
+        raise HTTPException(
+            409, {"code": "ALREADY_RUNNING", "message": "既に開始済みです"}
+        )
     if session.session_status == "ended":
-        raise HTTPException(409, {"code": "ALREADY_ENDED", "message": "終了済みのセッションです"})
+        raise HTTPException(
+            409, {"code": "ALREADY_ENDED", "message": "終了済みのセッションです"}
+        )
 
     # -5min 前チェック (RollCall_Spec §5.4)
     window_minus5 = session.scheduled_window_start_at.replace(
         minute=session.scheduled_window_start_at.minute - 5
     )
     if now < window_minus5.replace(minute=max(0, window_minus5.minute)):
-        raise HTTPException(409, {"code": "NOT_YET_ALLOWED", "message": "開始時刻の 5 分前より早いです"})
+        raise HTTPException(
+            409, {"code": "NOT_YET_ALLOWED", "message": "開始時刻の 5 分前より早いです"}
+        )
 
     session.session_status = "running"
     session.started_at = now
@@ -106,7 +124,13 @@ def end_session(
 ):
     session = _get_session_or_404(db, session_id)
     if session.session_status != "running":
-        raise HTTPException(409, {"code": "SESSION_NOT_RUNNING", "message": "実行中のセッションではありません"})
+        raise HTTPException(
+            409,
+            {
+                "code": "SESSION_NOT_RUNNING",
+                "message": "実行中のセッションではありません",
+            },
+        )
 
     now = _now_jst()
     session.session_status = "ended"
@@ -137,10 +161,34 @@ def create_checkin(
 ):
     session = _get_session_or_404(db, session_id)
     if session.session_status != "running":
-        raise HTTPException(409, {"code": "SESSION_NOT_RUNNING", "message": "実行中の点呼セッションがありません"})
+        raise HTTPException(
+            409,
+            {
+                "code": "SESSION_NOT_RUNNING",
+                "message": "実行中の点呼セッションがありません",
+            },
+        )
 
     now = body.ts_local or _now_jst()
     student: Optional[models.Student] = None
+
+    # A-020 (2026-05-21): path_hint 一致性校验（client 显式标路径时挡假数据）
+    if body.path_hint == "A" and not body.card_uid:
+        raise HTTPException(
+            422,
+            {
+                "code": "PATH_HINT_MISMATCH",
+                "message": "path_hint=A 必须有 card_uid",
+            },
+        )
+    if body.path_hint == "B" and not body.idempotency_key:
+        raise HTTPException(
+            422,
+            {
+                "code": "PATH_HINT_MISMATCH",
+                "message": "path_hint=B 必须有 idempotency_key",
+            },
+        )
 
     if body.card_uid:
         # 路径 A: NFC カード UID で学生特定
@@ -149,19 +197,40 @@ def create_checkin(
         if not body.student_id:
             raise HTTPException(
                 422,
-                {"code": "UNKNOWN_CARD", "message": "カード UID に対応する学生が見つかりません (P1 実装待ち)"},
+                {
+                    "code": "UNKNOWN_CARD",
+                    "message": "カード UID に対応する学生が見つかりません (P1 実装待ち)",
+                },
             )
         student = db.get(models.Student, body.student_id)
     elif body.student_id:
         # 路径 B / 手動
         student = db.get(models.Student, body.student_id)
     else:
-        raise HTTPException(422, {"code": "MISSING_IDENTIFIER", "message": "card_uid か student_id が必要"})
+        raise HTTPException(
+            422,
+            {"code": "MISSING_IDENTIFIER", "message": "card_uid か student_id が必要"},
+        )
 
     if not student:
-        raise HTTPException(404, {"code": "NOT_FOUND", "message": "学生が見つかりません"})
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "学生が見つかりません"}
+        )
 
-    # 幂等 check (同 session + 同 student で既存があれば OK で返す)
+    # A-011 (2026-05-21): 幂等 check 改成「先查 idempotency_key 命中」
+    # 1. 如果 client 传了 idempotency_key → 用 (session_id, idempotency_key) 唯一定位
+    # 2. 否则 fallback 到原逻辑（同 session + 同 student + 同 source）
+    if body.idempotency_key:
+        existing = db.scalars(
+            select(models.RollCallEvent).where(
+                models.RollCallEvent.session_id == session_id,
+                models.RollCallEvent.idempotency_key == body.idempotency_key,
+            )
+        ).first()
+        if existing:
+            return schemas.RollCallEventOut.model_validate(existing)
+
+    # fallback: 同 session + 同 student + 同 source（兼容路径 A / manual 无 idempotency_key）
     existing = db.scalars(
         select(models.RollCallEvent).where(
             models.RollCallEvent.session_id == session_id,
@@ -220,11 +289,20 @@ def session_board(
     ).all()
     event_map: dict[UUID, models.RollCallEvent] = {}
     for e in events:
-        if e.student_id not in event_map or e.checked_in_at > event_map[e.student_id].checked_in_at:
+        if (
+            e.student_id not in event_map
+            or e.checked_in_at > event_map[e.student_id].checked_in_at
+        ):
             event_map[e.student_id] = e
 
     entries: list[schemas.RollCallBoardEntryOut] = []
-    summary: dict[str, int] = {"present": 0, "late": 0, "absent": 0, "init": 0, "exempt_range": 0}
+    summary: dict[str, int] = {
+        "present": 0,
+        "late": 0,
+        "absent": 0,
+        "init": 0,
+        "exempt_range": 0,
+    }
     for s in students:
         e = event_map.get(s.id)
         st = e.base_status if e else "init"
@@ -269,7 +347,10 @@ def session_summary(
     # latest per student
     event_map: dict[UUID, models.RollCallEvent] = {}
     for e in events:
-        if e.student_id not in event_map or e.checked_in_at > event_map[e.student_id].checked_in_at:
+        if (
+            e.student_id not in event_map
+            or e.checked_in_at > event_map[e.student_id].checked_in_at
+        ):
             event_map[e.student_id] = e
 
     absent: list[dict] = []
@@ -309,7 +390,9 @@ def patch_event(
 ):
     event = db.get(models.RollCallEvent, event_id)
     if not event:
-        raise HTTPException(404, {"code": "NOT_FOUND", "message": "点呼イベントが見つかりません"})
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "点呼イベントが見つかりません"}
+        )
 
     # append-only: 既存行は変えず新しい override 行を追加
     override_event = models.RollCallEvent(
@@ -349,7 +432,9 @@ def patch_event(
 def _get_session_or_404(db: Session, session_id: UUID) -> models.RollCallSession:
     session = db.get(models.RollCallSession, session_id)
     if not session:
-        raise HTTPException(404, {"code": "NOT_FOUND", "message": "セッションが見つかりません"})
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "セッションが見つかりません"}
+        )
     return session
 
 
@@ -368,7 +453,9 @@ def _settle_absent(db: Session, session: models.RollCallSession) -> None:
         db.scalars(
             select(models.RollCallEvent.student_id).where(
                 models.RollCallEvent.session_id == session.id,
-                models.RollCallEvent.base_status.in_(["present", "late", "exempt_range"]),
+                models.RollCallEvent.base_status.in_(
+                    ["present", "late", "exempt_range"]
+                ),
             )
         ).all()
     )

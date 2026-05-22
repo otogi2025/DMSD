@@ -5,11 +5,11 @@ POST /api/v1/teachers/register            — 招待トークンで新教師登�
 GET  /api/v1/teachers                     — 教師一覧 (寮務部長 以上)
 GET  /api/v1/teachers/me                  — 自分のプロフィール
 """
+
 from __future__ import annotations
 
 import secrets
 from datetime import datetime, timedelta, timezone
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
@@ -93,12 +93,29 @@ def register_teacher(
     if invitation.expires_at < now:
         raise HTTPException(
             410,
-            {"code": "TOKEN_EXPIRED", "message": "招待トークンの有効期限が切れています"},
+            {
+                "code": "TOKEN_EXPIRED",
+                "message": "招待トークンの有効期限が切れています",
+            },
         )
     if invitation.used_at is not None:
         raise HTTPException(
             409,
             {"code": "TOKEN_USED", "message": "この招待トークンは既に使用済みです"},
+        )
+
+    # A-012 (2026-05-21): confirmation_email 必须跟 invitation.target_email 严格对比
+    # 防止 token 被截图 / 转发 → 任何拿到 token 的人能注册
+    if (
+        body.confirmation_email.strip().lower()
+        != invitation.target_email.strip().lower()
+    ):
+        raise HTTPException(
+            403,
+            {
+                "code": "EMAIL_MISMATCH",
+                "message": "確認メールが招待先と一致しません",
+            },
         )
 
     # login_id 重複チェック
@@ -108,7 +125,10 @@ def register_teacher(
     if dup:
         raise HTTPException(
             409,
-            {"code": "DUPLICATE_LOGIN_ID", "message": "この login ID は既に使用されています"},
+            {
+                "code": "DUPLICATE_LOGIN_ID",
+                "message": "この login ID は既に使用されています",
+            },
         )
 
     new_teacher = models.Teacher(

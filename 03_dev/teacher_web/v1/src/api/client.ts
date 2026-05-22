@@ -9,7 +9,7 @@ async function request<T>(
   method: string,
   path: string,
   body?: unknown,
-  token?: string | null
+  token?: string | null,
 ): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -34,19 +34,35 @@ async function request<T>(
 export const api = {
   // Auth
   teacherLogin: (login_id: string, password: string) =>
-    request<{ access_token: string; teacher: import("../store/auth").TeacherProfile }>(
-      "POST", "/sessions/teacher", { login_id, password }
-    ),
+    request<{
+      access_token: string;
+      teacher: import("../store/auth").TeacherProfile;
+    }>("POST", "/sessions/teacher", { login_id, password }),
 
   // Applications
   pendingForMe: (token: string) =>
-    request<Application[]>("GET", "/applications/pending-for-me", undefined, token),
+    request<Application[]>(
+      "GET",
+      "/applications/pending-for-me",
+      undefined,
+      token,
+    ),
 
   getApplication: (id: string, token: string) =>
     request<Application>("GET", `/applications/${id}`, undefined, token),
 
-  decide: (id: string, decision: "approve" | "reject", comment: string | undefined, token: string) =>
-    request<Application>("POST", `/applications/${id}/approvals`, { decision, comment }, token),
+  decide: (
+    id: string,
+    decision: "approve" | "reject",
+    comment: string | undefined,
+    token: string,
+  ) =>
+    request<Application>(
+      "POST",
+      `/applications/${id}/approvals`,
+      { decision, comment },
+      token,
+    ),
 
   getAuditLog: (id: string, token: string) =>
     request<AuditEntry[]>("GET", `/applications/${id}/audit`, undefined, token),
@@ -59,47 +75,82 @@ export const api = {
     request<StudyCheckinOut>("POST", "/study/checkins", { student_id }, token),
 
   studyFinalize: (token: string) =>
-    request<{ finalized_count: number }>("POST", "/study/checkins/bulk-finalize", {}, token),
+    request<{ finalized_count: number }>(
+      "POST",
+      "/study/checkins/bulk-finalize",
+      {},
+      token,
+    ),
 
   absenceRequests: (token: string, target_date?: string) =>
     request<StudyAbsenceRequestOut[]>(
       "GET",
       `/study/absence-requests${target_date ? `?target_date=${target_date}` : ""}`,
       undefined,
-      token
+      token,
     ),
 
   decideAbsence: (
     id: string,
     decision: "approved" | "rejected",
     comment: string | undefined,
-    token: string
+    token: string,
   ) =>
     request<StudyAbsenceRequestOut>(
       "POST",
       `/study/absence-requests/${id}/decision`,
       { decision, comment },
-      token
+      token,
     ),
 
   cancelToday: (token: string) =>
-    request<{ cancelled_count: number }>("POST", "/study/cancel-today", {}, token),
+    request<{ cancelled_count: number }>(
+      "POST",
+      "/study/cancel-today",
+      {},
+      token,
+    ),
 
   // Rollcall
   rollcallTodaySessions: (token: string) =>
-    request<RollCallSessionOut[]>("GET", "/rollcall/today/sessions", undefined, token),
+    request<RollCallSessionOut[]>(
+      "GET",
+      "/rollcall/today/sessions",
+      undefined,
+      token,
+    ),
 
   rollcallStart: (session_id: string, token: string) =>
-    request<RollCallSessionOut>("POST", `/rollcall/sessions/${session_id}/start`, {}, token),
+    request<RollCallSessionOut>(
+      "POST",
+      `/rollcall/sessions/${session_id}/start`,
+      {},
+      token,
+    ),
 
   rollcallEnd: (session_id: string, token: string) =>
-    request<RollCallSessionOut>("POST", `/rollcall/sessions/${session_id}/end`, {}, token),
+    request<RollCallSessionOut>(
+      "POST",
+      `/rollcall/sessions/${session_id}/end`,
+      {},
+      token,
+    ),
 
   rollcallBoard: (session_id: string, token: string) =>
-    request<RollCallBoardOut>("GET", `/rollcall/sessions/${session_id}/board`, undefined, token),
+    request<RollCallBoardOut>(
+      "GET",
+      `/rollcall/sessions/${session_id}/board`,
+      undefined,
+      token,
+    ),
 
   rollcallSummary: (session_id: string, token: string) =>
-    request<RollCallSummaryOut>("GET", `/rollcall/sessions/${session_id}/summary`, undefined, token),
+    request<RollCallSummaryOut>(
+      "GET",
+      `/rollcall/sessions/${session_id}/summary`,
+      undefined,
+      token,
+    ),
 
   // Teachers
   listTeachers: (token: string) =>
@@ -107,11 +158,44 @@ export const api = {
 
   createInvitation: (body: InvitationIn, token: string) =>
     request<InvitationOut>("POST", "/teachers/invitations", body, token),
+
+  // Announcements (A-026, 2026-05-21)
+  // 老师公告管理：列表 / 详情 / 创建 / 删除
+  // 学生 iOS 已对齐 backend AnnouncementBrief/Detail/Reply；teacher_web 现补 API client
+  // UI 发布页 v1.1 实装（参 WEB_DESIGN_LOG 实装进度表）
+  listAnnouncements: (token: string) =>
+    request<{ items: AnnouncementBrief[] }>(
+      "GET",
+      "/announcements",
+      undefined,
+      token,
+    ),
+
+  getAnnouncement: (id: string, token: string) =>
+    request<AnnouncementDetail>(
+      "GET",
+      `/announcements/${id}`,
+      undefined,
+      token,
+    ),
+
+  createAnnouncement: (body: AnnouncementCreateIn, token: string) =>
+    request<AnnouncementDetail>("POST", "/announcements", body, token),
+
+  deleteAnnouncement: (id: string, token: string) =>
+    request<void>("DELETE", `/announcements/${id}`, undefined, token),
 };
 
 // ── 型定義 ──────────────────────────────────────────
 
-export type AppStatus = "pending" | "approved_partial" | "approved" | "rejected" | "withdrawn";
+// A-017 (2026-05-21): backend ApplicationOut.status 含 6 值，"returned" 漏了
+export type AppStatus =
+  | "pending"
+  | "approved_partial"
+  | "approved"
+  | "rejected"
+  | "withdrawn"
+  | "returned";
 
 export interface ApprovalStep {
   approver_role: string;
@@ -130,19 +214,45 @@ export interface StudentBrief {
   room_no: string;
 }
 
+// A-018 (2026-05-21): backend ApplicationOut 全字段映过来
+// reason / stay_locations / meals_skip / flight_* / withdrawn_at / bus_route_id 补齐
+// 跟 iOS NetworkModels.swift:43-73 ApplicationOut 对齐
+export interface StayLocation {
+  date: string;
+  location: string;
+  contact?: string | null;
+}
+
+export interface MealSkip {
+  date: string;
+  meal: "朝食" | "昼食" | "夕食";
+}
+
 export interface Application {
   id: string;
   student_id: string;
   student: StudentBrief | null;
   kind: "帰省" | "外泊" | "帰国";
+  reason: string | null;
   leave_date: string;
   leave_method: string;
   leave_time: string;
   return_date: string;
   return_method: string;
   return_time: string;
+  // 仅外泊 / 帰国
+  stay_locations: StayLocation[] | null;
+  meals_skip: MealSkip[] | null;
+  // 仅帰国
+  flight_dep_air: string | null;
+  flight_dep_at: string | null;
+  flight_arr_air: string | null;
+  flight_arr_at: string | null;
+  // 巴士路线（如有）
+  bus_route_id: string | null;
   submitted_at: string;
   status: AppStatus;
+  withdrawn_at: string | null;
   approval_chain: ApprovalStep[];
 }
 
@@ -171,7 +281,12 @@ export interface StudyTodayOut {
   study_start_at: string;
   expected_attendees: StudyAttendeeOut[];
   exempted_count: { outstay: number; absence_request: number };
-  summary: { expected: number; checked_in: number; late: number; absent: number };
+  summary: {
+    expected: number;
+    checked_in: number;
+    late: number;
+    absent: number;
+  };
 }
 
 export interface StudyCheckinOut {
@@ -254,4 +369,48 @@ export interface InvitationOut {
   target_email: string;
   target_role: string;
   expires_at: string;
+}
+
+// A-026 (2026-05-21): 老师公告类型 — 跟 iOS NetworkModels.swift:142-217 字段集对齐
+
+export type AnnouncementScope = "all" | "male" | "female";
+
+export interface AnnouncementBrief {
+  id: string;
+  title: string;
+  body_summary: string;
+  scope: AnnouncementScope;
+  author_teacher_id: string;
+  author_teacher_name: string;
+  created_at: string;
+  updated_at: string;
+  is_read: boolean;
+  reply_count: number;
+}
+
+export interface AnnouncementReplyOut {
+  id: string;
+  author_kind: "student" | "teacher";
+  author_id: string;
+  author_name: string;
+  body: string;
+  created_at: string;
+}
+
+export interface AnnouncementDetail {
+  id: string;
+  title: string;
+  body: string;
+  scope: AnnouncementScope;
+  author_teacher_id: string;
+  author_teacher_name: string;
+  created_at: string;
+  updated_at: string;
+  replies: AnnouncementReplyOut[];
+}
+
+export interface AnnouncementCreateIn {
+  title: string;
+  body: string;
+  scope: AnnouncementScope;
 }

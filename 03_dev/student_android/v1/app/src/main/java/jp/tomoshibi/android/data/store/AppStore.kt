@@ -23,29 +23,39 @@ import java.time.format.DateTimeFormatter
 // （比拆 30+ keys 简单，性能也够 — v1.0 数据量 < 100KB）
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
-    name = "tomoshibi-app-state-v1"
+    name = "tomoshibi-app-state-v1",
 )
 
 private val APP_STATE_KEY = stringPreferencesKey("app_state_json")
 
-class AppStore(private val context: Context) {
-
-    val state: Flow<AppState> = context.dataStore.data.map { prefs ->
-        val json = prefs[APP_STATE_KEY]
-        if (json == null) MockData.INITIAL_STATE
-        else try {
-            Json.decodeFromString<AppState>(json)
-        } catch (e: Exception) {
-            // schema 漂移时 fallback 默认 — v1.0 不做 migration
-            MockData.INITIAL_STATE
+class AppStore(
+    private val context: Context,
+) {
+    val state: Flow<AppState> =
+        context.dataStore.data.map { prefs ->
+            val json = prefs[APP_STATE_KEY]
+            if (json == null) {
+                MockData.INITIAL_STATE
+            } else {
+                try {
+                    Json.decodeFromString<AppState>(json)
+                } catch (e: Exception) {
+                    // schema 漂移时 fallback 默认 — v1.0 不做 migration
+                    MockData.INITIAL_STATE
+                }
+            }
         }
-    }
 
     suspend fun update(transform: (AppState) -> AppState) {
         context.dataStore.edit { prefs ->
-            val current = prefs[APP_STATE_KEY]?.let {
-                try { Json.decodeFromString<AppState>(it) } catch (e: Exception) { MockData.INITIAL_STATE }
-            } ?: MockData.INITIAL_STATE
+            val current =
+                prefs[APP_STATE_KEY]?.let {
+                    try {
+                        Json.decodeFromString<AppState>(it)
+                    } catch (e: Exception) {
+                        MockData.INITIAL_STATE
+                    }
+                } ?: MockData.INITIAL_STATE
             prefs[APP_STATE_KEY] = Json.encodeToString(transform(current))
         }
     }
@@ -56,37 +66,17 @@ class AppStore(private val context: Context) {
 
     suspend fun snapshot(): AppState = state.first()
 
-    // Demo 切换 — 长按 amber Card 触发 4 态轮换（AC demo 杀器）
-    // IDLE → ACTIVE（倒计时 170s 重置）→ DONE（写当前 HH:mm）→ ABSENT → IDLE（清 checkinAt）
-    suspend fun cycleDemoRollState() {
-        update { current ->
-            when (current.rollState) {
-                RollState.IDLE -> current.copy(
-                    rollState = RollState.ACTIVE,
-                    rollCountdownSec = 170
-                )
-                RollState.ACTIVE -> current.copy(
-                    rollState = RollState.DONE,
-                    checkinAt = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
-                )
-                RollState.DONE -> current.copy(
-                    rollState = RollState.ABSENT
-                )
-                RollState.ABSENT -> current.copy(
-                    rollState = RollState.IDLE,
-                    checkinAt = null,
-                    rollCountdownSec = 170
-                )
-            }
-        }
-    }
+    // A-030 / A-034 (2026-05-21): cycleDemoRollState() 已删
+    // memory project_demo_scaffolds_to_remove_before_v1.md #1, #15
+    // 接 backend event 驱动后 rollState 由 server 推送，不再 demo 循环
 }
 
 // CompositionLocal 让任何 Composable 通过 LocalAppStore.current 拿到 AppStore 实例
 // 在 Activity setContent 顶层 provide
-val LocalAppStore = staticCompositionLocalOf<AppStore> {
-    error("AppStore not provided — wrap your composable in CompositionLocalProvider(LocalAppStore provides ...)")
-}
+val LocalAppStore =
+    staticCompositionLocalOf<AppStore> {
+        error("AppStore not provided — wrap your composable in CompositionLocalProvider(LocalAppStore provides ...)")
+    }
 
 object AppStoreAccess {
     val current: AppStore

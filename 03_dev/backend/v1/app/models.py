@@ -13,6 +13,7 @@ decision IDs (BACKEND_DESIGN_LOG §10):
 - D11 class_teacher_assignment 单独表
 - D12 管理係 加 ENUM
 """
+
 from __future__ import annotations
 
 import uuid
@@ -210,7 +211,7 @@ APPLICATION_STATUSES = (
     "approved",
     "rejected",
     "withdrawn",
-    "returned",   # 退回 — 老師退回學生修改 (spec §7.2.4-5)
+    "returned",  # 退回 — 老師退回學生修改 (spec §7.2.4-5)
 )
 
 
@@ -571,9 +572,7 @@ class RollCallSession(Base):
     )
 
     __table_args__ = (
-        CheckConstraint(
-            "session_type IN ('morning','evening')", name="ck_rcs_type"
-        ),
+        CheckConstraint("session_type IN ('morning','evening')", name="ck_rcs_type"),
         CheckConstraint(
             "schedule_mode IN ('split','merged_normal')", name="ck_rcs_mode"
         ),
@@ -608,9 +607,9 @@ class RollCallEvent(Base):
     status_source: Mapped[str] = mapped_column(
         String(24), nullable=False
     )  # auto_nfc / auto_settle / manual_checkin / teacher_override
-    applied_group: Mapped[Optional[str]] = mapped_column(
-        String(16)
-    )  # 'normal' | 'soccer'
+    # 2026-05-21 (A-022 b1 fix): 原 applied_group 字段已删除
+    # 窗口永远固定 (§5.4)，分组直接走 §6.4 student_group (从 session + 学生当前组推导)
+    # 不再需要在 event 层存「本次判定使用的 group」 — 因为 group 永远等于 student 当前 group
     checked_in_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
@@ -634,6 +633,9 @@ class RollCallEvent(Base):
             name="ck_rce_source",
         ),
         Index("idx_rce_session_student", "session_id", "student_id"),
+        # A-011 (2026-05-21): idempotency_key 同 session 内必须唯一
+        # client 用同一 key 重试 → DB 层挡住 + router 先查 key 命中返已存事件
+        UniqueConstraint("session_id", "idempotency_key", name="uq_rce_idempotency"),
     )
 
 
@@ -691,9 +693,7 @@ class StudentRegistrationCode(Base):
         DateTime(timezone=True), nullable=False
     )
     # 生成新码时把旧 active 行的本字段 set 为 now()；NULL = 仍是候选有效码
-    invalidated_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True)
-    )
+    invalidated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     # 审核员永久码标志 — refresh 不作废 + 跟普通 5 分钟码并存（spec §7.16 例外条款）
     # is_reviewer=True 的码长期有效，专给 Apple 审核员 / itsuki 内测用，普通老师不可见
     is_reviewer: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

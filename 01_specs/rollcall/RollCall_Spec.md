@@ -1,29 +1,33 @@
-# RollCall Spec v0.1（点呼仕様）
+# RollCall Spec（点呼仕様）
 
+> **版本流**：v0.1 (2026-02-12 初版) → v0.2 (2026-04-17 主体改写) → 当前 = spec 主体 + 4-17 决策 + 4-29 38 条增量
 > **v0.1 初版冻结**：2026-02-12（来源 `.pages` 原稿）
 > **v0.2 主体改写**：2026-04-17 晚（双路径并存 / Q1-Q5 决策落地 / 附录 B 漏洞收口）
-> **当前文件状态**：spec 主体已对齐 4-17 决策；`.pages` 原稿仅作历史快照保留
+> **4-29 增量**：38 条老师反馈 / R1-R4 / 8 分阈值 / §5.4 不平移 / §5.6 点呼総結中层页
+> **当前文件状态**：spec 主体已对齐 4-17 决策 + 4-29 增量；`.pages` 原稿仅作历史快照保留
 > **权威来源**：本 `.md` 是唯一真值，与字典四件套（ENUM/FIELD/ERROR_CODES/DEVICE_REGISTRY）相互引用
 > **命名**（2026-04-21 定名）：本 spec 描述的系统对外名为 **Tomoshibi**（灯火 / ともしび）；DMSD 是开发项目/仓库代号。
+> **上线姿态**（2026-04-19 G2 决策）：v1.0 一次性上线 = NFC 卡（路径 A）+ iOS（路径 B）+ Android（路径 C） — 不再分 Phase 1/2 阶段。
 
 ---
 
 ## 1. 概述
 
-Tomoshibi 点呼系统支持 **双路径并存**：
+Tomoshibi 点呼系统支持 **三路径并存**（v1.0 同时上线，2026-04-19 G2 决策）：
 
-| 路径 | 触发方式 | 上线节奏 |
+| 路径 | 触发方式 | 备注 |
 |---|---|---|
-| **路径 A — NFC 卡** | 学生把卡贴到点呼机的 PN532 读头 | **Phase 1**（先上线，不需要学生 App）|
-| **路径 B — iPhone 静态标签** | 学生 iPhone 读点呼机外贴的静态 NFC 标签 | **Phase 2**（追加，与卡共存；Android 方案另议）|
+| **路径 A — NFC 卡** | 学生把卡贴到点呼机的 PN532 读头 | v1.0 上线；无 App 学生默认走此路径 |
+| **路径 B — iOS Universal Link** | 学生 iPhone 读点呼机外贴的静态 NFC 标签 → 触发 iOS App | v1.0 上线 |
+| **路径 C — Android App Link** | 学生 Android 读点呼机外贴的静态 NFC 标签 → 触发 Android App | v1.0 上线（实现与路径 B 同型，`path_type=B` 复用见 ENUM_REGISTRY §13 path_type 注） |
 
-两条路径都遵循同一个业务流程：
+三条路径都遵循同一个业务流程：
 
 1. 老师从管理网站（タブレット）查看座席表，按 **「点呼開始」** 按钮开启点呼场次
-2. 学生在时间窗内通过 **路径 A 或路径 B** 触发签到
+2. 学生在时间窗内通过 **路径 A / B / C 任一** 触发签到
 3. 签到事件由 **服务器** 唯一判定（准时 / 迟到 / 缺席 / 拒绝）
 4. 老师管理网站的对应座位颜色实时变化（灰 / 绿 / 黄 / 红 / 黑），通过 WebSocket 推送
-5. 老师在场监督（**Phase 1 防代签的关键人防补偿**，详见 §9 + 附录 B.1）
+5. 老师在场监督（**永久人防补偿**，详见 §9 + 附录 B.1）
 
 **架构原则（4-15 拍板）**：
 - **thin client / thick server**：点呼机只搬运数据（读 NFC + HTTP 发后端 + 听 WebSocket + 播报 + 亮灯），**业务判断全在后端**
@@ -101,7 +105,7 @@ Tomoshibi 点呼系统支持 **双路径并存**：
 - `overlay_badges`（叠加角标 — 数组，取值见 ENUM `overlay_badge`）
 - `checked_in_at`（签到时间）
 - `server_time`（服务器时间）
-- `applied_group`（本次判定使用的 `effective_group`，详见 §6.4）
+- `student_group`（学生当前所属分组 — `normal` / `soccer`，详见 §6.4）
 - 健康内容（如有）
 - 缺席理由（红色时）
 - 申请审批结果（同意 / 拒绝）
@@ -179,7 +183,7 @@ Tomoshibi 点呼系统支持 **双路径并存**：
 
 > **共同前提**：服务器是唯一判定者；client/iPhone/卡的本地时间均不参与判定；`device_id` 必须先在 `DEVICE_REGISTRY` 注册。
 
-#### 5.1.1 路径 A — NFC 卡（Phase 1 主推）
+#### 5.1.1 路径 A — NFC 卡
 
 ```
 学生卡 ──贴近──> 点呼机 PN532 读头
@@ -200,7 +204,9 @@ Tomoshibi 点呼系统支持 **双路径并存**：
                  └─ 失败 → 错误码 → 点呼机红灯 + 失败声音
 ```
 
-#### 5.1.2 路径 B — iPhone 静态标签（Phase 2 追加，与路径 A 共存）
+#### 5.1.2 路径 B — iOS Universal Link（与路径 A 共存，v1.0 同时上线）
+
+> 路径 C（Android App Link）实现同型，`path_type=B` 复用 — 详见 ENUM_REGISTRY §13 path_type 注。下文流程对 iOS / Android 通用。
 
 ```
 学生 iPhone ──贴近──> 点呼机外贴静态 NFC 标签
@@ -230,14 +236,14 @@ Tomoshibi 点呼系统支持 **双路径并存**：
 - 路径 B 的 device 是 **被动 NFC 标签**，仅供 iPhone 读取拿 device_id；iPhone 自己发后端
 - 同一台树莓派可同时承载 A 卡读头 + B 静态标签 → `device_type = hybrid`（详见 `DEVICE_REGISTRY.md` §3.3）
 
-#### 5.1.3 防代签（Phase 1 关键人防补偿）
+#### 5.1.3 防代签（永久人防补偿）
 
 NFC 卡固有弱点：卡可被转交。技术不能完全防代签 → **必须靠老师在场监督**：
 - 老师站在点呼机旁边，目视学生本人碰卡
 - 听点呼机播报姓名 → 对照人脸（"张三 准时" + 看到张三本人）
-- spec 把这条作为 Phase 1 的 **硬约束** 写入，不是建议（详见附录 B.1）
+- spec 把这条作为 **永久硬约束** 写入（不只是某一阶段的临时补偿），不是建议（详见附录 B.1）
 
-Phase 2 路径 B 通过 device 绑定 + 签名 + 单设备策略缓解（但仍无法 100% 防"借手机"）。
+路径 B / C（iPhone / Android）通过 device 绑定 + 签名 + 单设备策略缓解（但仍无法 100% 防"借手机"），仍需老师在场监督作为兜底。
 
 ### 5.2 开始与结束流程
 
@@ -301,7 +307,7 @@ window_start  →  on_time_end  →  late_end  →  auto_end_at
 
 **自动结束**
 
-到达 `auto_end_at` 时（注：因 §5.4 不平移，`auto_end_at = scheduled auto_end_at` 直接使用，不再有 `effective_*` 概念），老师仍未按结束 → 系统自动结束并结算：
+到达 `scheduled_auto_end_at` 时，老师仍未按结束 → 系统自动结束并结算：
 
 - `ended_at = auto_end_at`
 - `ended_source = system`
@@ -366,17 +372,17 @@ window_start  →  on_time_end  →  late_end  →  auto_end_at
 | `split` | 分组点呼（普通走普通时间窗，足球走足球时间窗） |
 | `merged_normal` | 合并到普通（全员按普通时间窗判定） |
 
-### 6.4 `effective_group`（本场实际用于算时间窗的分组）
+### 6.4 `student_group`（本场实际用于算时间窗的分组）
 
 ```
-若 schedule_mode == merged_normal  →  effective_group = normal
-若 schedule_mode == split          →  effective_group = raw_student_group
-若 effective_group == unknown      →  按 normal 计算
+若 schedule_mode == merged_normal  →  student_group = normal
+若 schedule_mode == split          →  student_group = raw_student_group
+若 raw_student_group == unknown    →  按 normal 计算
 ```
 
 ### 6.5 时间窗查找
 
-- 用三元组 `(session_type, day_type, effective_group)` 查时间窗表
+- 用三元组 `(session_type, day_type, student_group)` 查时间窗表
 - 得到该场的 `window_start` / `on_time_end` / `late_end` / `auto_end_at`
 
 ### 6.6 约束
@@ -393,19 +399,20 @@ window_start  →  on_time_end  →  late_end  →  auto_end_at
 ## 7. 判定逻辑
 
 判定时间 `t` = **服务器收到签到请求的时间**（JST）。
-判定时使用 `effective_*`（已考虑老师提前开始的窗口平移）。
+
+> **2026-05-21 修订（b1 决策）**：§5.4 拍板「窗口永远固定」，原 `effective_*` 概念彻底删除。判定 / 结算 / 查表全部直接用 `scheduled_*`。老师提前按按钮只改 `started_at` 显示，不改判定窗口。
 
 | 判定 | 条件 |
 |------|------|
-| `present`（绿） | `effective_window_start ≤ t ≤ effective_on_time_end` |
-| `late`（黄） | `effective_on_time_end < t ≤ effective_late_end` |
+| `present`（绿） | `scheduled_window_start_at ≤ t ≤ scheduled_on_time_end_at` |
+| `late`（黄） | `scheduled_on_time_end_at < t ≤ scheduled_late_end_at` |
 | `absent`（红） | 到结算时刻仍未签到（见第 8 节） |
 
 ### 边界情况
 
 > 所有错误码定义见 `ERROR_CODES.md`。
 
-- **`t > effective_late_end` 的签到**：返回 `TIMEOUT`，不改变座位结果，最终由结算置为缺席
+- **`t > scheduled_late_end_at` 的签到**：返回 `TIMEOUT`，不改变座位结果，最终由结算置为缺席
 - **`started_at` 之前 / `ended_at` 之后的签到**：返回 `SESSION_NOT_RUNNING`（统一覆盖"还没开始"和"已结束"两种情况）
 - **session 已开始后老师再按"点呼開始"**（系统 `started_source=system` 自动开始后，老师 21:58 才注意并按按钮；或老师双击按钮）：返回 `ALREADY_RUNNING`，不变更 `started_at`（**4-22 修订 — S16 修复**：§5.5 约定此错误码，原 §7 边界列表漏列，现补入。ERROR_CODES 里对应条目已有）
 - **重复签到**（同一 `student_id` 在同一 session 内已签到）：返回 `DUPLICATE_REQUEST`，silently ignore（不变更状态、不重复播报，但记 audit log）
@@ -414,7 +421,7 @@ window_start  →  on_time_end  →  late_end  →  auto_end_at
 - **未注册设备**（路径 B，iPhone 发的 `device_id` 不在 device 表里）：返回 `UNKNOWN_DEVICE`
 - **设备已停用**：返回 `DEVICE_NOT_ACTIVE`
 - **签名校验失败**（路径 B）：返回 `INVALID_SIGNATURE`
-- **配置缺失**（时间窗表无对应 `(session_type, day_type, effective_group)` 组合）：返回 `NO_ROLLCALL_FOR_TODAY`，阻止 session 创建
+- **配置缺失**（时间窗表无对应 `(session_type, day_type, student_group)` 组合）：返回 `NO_ROLLCALL_FOR_TODAY`，阻止 session 创建
 
 ---
 
@@ -423,7 +430,7 @@ window_start  →  on_time_end  →  late_end  →  auto_end_at
 ### 8.1 结算时刻
 
 ```
-settle_at = min(ended_at, effective_auto_end_at)
+settle_at = min(ended_at, scheduled_auto_end_at)
 ```
 
 到达 `settle_at` 时：
@@ -457,13 +464,14 @@ settle_at = min(ended_at, effective_auto_end_at)
 
 | 组件 | 负责 | 不负责 |
 |------|------|--------|
-| **学生 iPhone App**（路径 B / Phase 2）| Core NFC 读静态标签拿 `device_id`；本机 P-256 ECDSA 签名；POST 发后端；展示结果与错误提示 | 颜色判定；最终结算；时间窗判定 |
+| **学生 iOS App**（路径 B）| Core NFC 读静态标签拿 `device_id`；本机 P-256 ECDSA 签名；POST 发后端；展示结果与错误提示 | 颜色判定；最终结算；时间窗判定 |
+| **学生 Android App**（路径 C）| HCE / NDEF 读静态标签拿 `device_id`；本机 P-256 ECDSA 签名；POST 发后端；展示结果与错误提示（实现与路径 B 同型，`path_type=B` 复用） | 颜色判定；最终结算；时间窗判定 |
 | **老师端管理页面**（iPad）| 开始/结束点呼（按按钮触发 session_event）；查看座位颜色与统计；手动改判（reason 必填）；处理「申」审批；Device 注册管理 | 判定逻辑；自动结算逻辑 |
 | **点呼机：路径 A `card_reader`** | 读 NFC 卡 UID；HTTP 发后端；听 WebSocket；播报姓名/状态；亮灯 | 不保存学生身份；不查表；不判定准时/迟到 |
 | **点呼机：路径 B `iphone_tag`**（被动标签）| 把 `device_id` 暴露给 iPhone 读取 | 不通信；不参与流程 |
 | **点呼机：路径 A+B `hybrid`**（同台树莓派）| 同时承载卡读头（A）+ 静态标签（B）；卡通信由 PN532 负责，iPhone 通信不经过点呼机 | 同上 |
 | **服务器** | **唯一判定者**：session 是否 running / 时间窗内 / 准时/迟到 / 缺席<br>**唯一结算者**：到 `settle_at` 把符合条件的座位置为 `absent`<br>**唯一信息源**：老师端实时状态由服务器 WebSocket 推送<br>**Device 守门人**：所有 `device_id` 必须先在 `DEVICE_REGISTRY` 注册并 `device_active=true` | — |
-| **老师本人（人防）** | Phase 1 防代签的关键：站点呼机旁监督；听播报对照人脸；异常时立即手动改判 | （非系统职责，但是 Phase 1 的硬约束）|
+| **老师本人（人防）** | 防代签的关键：站点呼机旁监督；听播报对照人脸；异常时立即手动改判 | （非系统职责，但是 spec 永久硬约束）|
 
 ### 时间基准
 
@@ -496,9 +504,8 @@ settle_at = min(ended_at, effective_auto_end_at)
 | `started_source` | enum | `teacher` / `system`（取值见 ENUM `session_event_source`）|
 | `ended_at` | timestamp | 实际结束时间 |
 | `ended_source` | enum | 同 `started_source` |
-| `scheduled_window_start_at` 等 4 个 | timestamp | 计划时间窗 |
-| `effective_window_start_at` 等 4 个 | timestamp | 老师提前开始后平移过的实际判定区间（必须保存）|
-| `settle_at` | timestamp | `min(ended_at, effective_auto_end_at)` |
+| `scheduled_window_start_at` 等 4 个 | timestamp | 计划时间窗 — 判定 / 结算 / 查表都直接用这 4 个字段（2026-05-21 b1 决策：彻底删 `effective_*` 概念）|
+| `settle_at` | timestamp | `min(ended_at, scheduled_auto_end_at)` |
 
 ### 10.2 `rollcall_event`（签到事件 — append-only）
 
@@ -511,7 +518,6 @@ settle_at = min(ended_at, effective_auto_end_at)
 | `path_type` | enum | `A`（卡）/ `B`（iPhone 静态标签）|
 | `base_status` | enum | 判定结果 |
 | `status_source` | enum | `auto_nfc` / `auto_settle` / `manual_checkin` / `teacher_override` |
-| `applied_group` | enum | 本次判定使用的 `effective_group`（`normal` / `soccer`），用来解释"足球部当天合并点呼为什么按普通时间窗算" |
 | `checked_in_at` | timestamp | 服务器接收时间 = 判定时间 |
 | `idempotency_key` | string | **路径 B**：客户端（iPhone / Android App）生成 UUID，防重提。**路径 A**：不使用此字段（thin client 原则，点呼机不生成 key）；改用 `(card_uid, session_id, ts_secondbucket)` 复合唯一索引做幂等，后端去重（**4-21 修订 — S10 修复**）|
 
@@ -524,7 +530,7 @@ settle_at = min(ended_at, effective_auto_end_at)
 - `base_status` 取值必须来自 `ENUM_REGISTRY` §3
 - `overlay_badges` 数组元素必须来自 `ENUM_REGISTRY` §4
 - 所有错误码必须来自 `ERROR_CODES.md`
-- 判定使用 `effective_*`，结算使用 `effective_auto_end_at`，查表使用 `(session_type, day_type, effective_group)`
+- 判定 / 结算 / 查表全部用 `scheduled_*`（§5.4 永远不平移）；查表三元组 `(session_type, day_type, student_group)`
 
 ---
 
@@ -583,11 +589,11 @@ settle_at = min(ended_at, effective_auto_end_at)
 
 > 这些问题在整理 `.pages` 原稿到 Markdown 的过程中发现，列出来供后续修订参考。
 
-### A.1 Phase 1 与 spec 的脱节
+### A.1 早期 spec 与上线姿态的脱节（历史，已 4-19 G2 + 4-17 v0.2 双重解决）
 
-- 本 spec 假设 **学生用手机 App 触碰点呼机** 签到（即 Phase 2 路径 B）
-- 但 4-12 决定的 **Phase 1** 是 **NFC 卡 + 点呼机直读**，没有手机 App
-- Phase 1 上线时的「签到方式」与 spec 描述不一致 → v0.2 spec 补完时需要解决（参见 WIP 中"补点呼机契约 spec"任务）
+- 早期 spec 假设 **学生用手机 App 触碰点呼机** 签到（即路径 B）
+- 4-12 临时决定先以 **NFC 卡 + 点呼机直读** 走 demo（无手机 App）
+- 后由 4-17 v0.2 主体改写为「双路径并存」 + 4-19 G2 拍板「v1.0 一次性上线三路径（A 卡 / B iOS / C Android）」收口，不再分阶段
 
 ### A.2 早点呼祝休日 — 足球部时间（当前假设：故意如此，待 itsuki 最终确认）
 
@@ -618,13 +624,13 @@ settle_at = min(ended_at, effective_auto_end_at)
 
 ---
 
-**历史记录**（原疑问内容，保留作演化痕迹）：
+**历史记录**（原疑问内容，保留作演化痕迹 — **2026-05-21 b1 决策已彻底删除窗口平移概念**）：
 
-> 当前规则：老师提前按开始钮 → 整个窗口（含准时截止）一起前移。
+> 旧规则（已废弃）：老师提前按开始钮 → 整个窗口（含准时截止）一起前移。
 >
-> 举例：晚点呼平日，scheduled `window_start = 21:57`、`on_time_end = 22:00`。若老师 21:50 按下开始钮：`effective_window_start = 21:50`、`effective_on_time_end = 21:50 + 3min = 21:53` → 学生在 21:54 签到 = LATE（即使原计划 22:00 才迟到）
+> 举例：晚点呼平日，scheduled `window_start = 21:57`、`on_time_end = 22:00`。若老师 21:50 按下开始钮：旧设计下 effective 窗口 = 21:50 ~ 21:53 → 学生在 21:54 签到 = LATE（即使原计划 22:00 才迟到）。
 >
-> 疑问：这是不是老师想要的？建议确认实际场景。
+> 2026-05-21 itsuki 拍板：窗口永远固定，老师提前按按钮只改 `started_at` 显示，不改判定窗口。原 `effective_*` 字段族彻底删除（A-022 fix）。
 
 ### A.5 已修正的日文打字错误
 
@@ -650,7 +656,7 @@ CC 整理时采用 **后段（详细版）**，因为它包含 `INIT` 且与 8.3
 
 第 9 节里写「点呼机（NFC）负责提供 `reader_id` 或 `tag_id` 让手机碰一下触发签到」。
 
-这与 4-15 讨论的 Phase 2 路径 B 设计 **一致**：
+这与 4-15 讨论的路径 B 设计 **一致**：
 - 点呼机外贴静态 NFC 标签（含 `device_id`）
 - 学生 iPhone 读这个标签拿到 `device_id` → 自己用 WiFi/4G 发 `{student_id, device_id, ts, 签名}` 给后端
 
@@ -662,7 +668,7 @@ CC 整理时采用 **后段（详细版）**，因为它包含 `INIT` 且与 8.3
 
 > CC 在整理后做了一轮深度审查，下面是 **业务规则漏洞** / **未定义场景** / **可能的实现问题**。
 > 这些不一定是 bug，但会在实现时变成 bug 或争议点。
-> 按优先级排序——🔴 Phase 1 开工前必须解决；🟡 强烈建议；🟢 后续完善。
+> 按优先级排序——🔴 v1.0 开工前必须解决；🟡 强烈建议；🟢 后续完善。
 
 ---
 
@@ -675,8 +681,8 @@ NFC 卡方案的 **固有弱点**：卡 = 身份。卡可被转交。
 4-15 讨论中提到「老师在场」作为人防（技术防不住就靠人）。但 spec 完全没明确这一约束，也没记录这是已知风险。
 
 **建议**：
-- 在 spec 里明确「**Phase 1 NFC 卡方案的代签风险靠"老师必须在场监督"补偿**」
-- Phase 2 加 iPhone 后能否一定程度缓解（device_id + 学号双绑）需要单独讨论
+- 在 spec 里明确「**路径 A NFC 卡方案的代签风险靠"老师必须在场监督"补偿** — 这是永久硬约束，不限阶段」
+- 路径 B / C 通过 device 绑定 + 签名 + 单设备策略可一定程度缓解（device_id + 学号双绑）但仍需老师在场
 - 长期：考虑加摄像头 / 人脸识别（但成本、隐私问题大）
 
 ---
@@ -690,7 +696,7 @@ WIP 写明部署 **4 台点呼机**，spec 提到「本场来自点位 A 或 B�
 - 一个 session 是 1 台机器一场，还是 4 台同一场？
 - 如果学生先碰 A 再碰 B，怎么处理？
 
-这是 spec 缺失最严重的部分之一。Phase 1 代码开工前必须决定。
+这是 spec 缺失最严重的部分之一。v1.0 代码开工前必须决定。
 
 ---
 
@@ -703,7 +709,7 @@ spec 没说：
 - 返回 `DUPLICATE_CHECKIN` 错误？
 - 更新 `checked_in_at` 为最新时间？
 
-**Phase 1 影响**：用 NFC 卡时学生很容易意外重复碰（手抖、怕没读到再碰一次）。
+**路径 A 影响**：用 NFC 卡时学生很容易意外重复碰（手抖、怕没读到再碰一次）。
 没有明确策略 → 点呼机会反复播报，体验差。
 
 **建议**：定一条「同一 `student_id` 在同一 session 内的重复签到 → silently ignore（不变更状态、不重复播报，但记日志）」。
@@ -712,7 +718,7 @@ spec 没说：
 
 ### 🔴 B.4 未注册卡 / 陌生 UID 的响应未定义
 
-Phase 1 用 NFC 卡时，每张卡的 UID 必须先绑到学生。**未绑定的卡碰一下会怎样？**
+路径 A 用 NFC 卡时，每张卡的 UID 必须先绑到学生。**未绑定的卡碰一下会怎样？**
 
 spec 没写。需要补：
 
@@ -747,13 +753,13 @@ spec 说：到达 `scheduled_window_start` 仍未开始 → 系统自动开始�
 
 第 5.1 节说「先生が点呼開始ボタンを押さないと、チェックインすることができない」。
 
-但 Phase 1 用卡时，学生提前到、碰卡 → 后端返回 `NOT_STARTED`：
+但路径 A 用卡时，学生提前到、碰卡 → 后端返回 `NOT_STARTED`：
 
 - 点呼机灯/声音怎么响应？
 - 学生会不会困惑「我是不是没读到？」反复碰？
 - 是不是需要专门一种「等待中」的灯/声音区分于「失败」？
 
-Phase 2 用 App 时同理。
+路径 B / C 用 App 时同理。
 
 ---
 
@@ -761,12 +767,12 @@ Phase 2 用 App 时同理。
 
 WIP / TODO 已标注。spec 也没定。
 
-Phase 1 点呼机如果断网：
+点呼机如果断网（路径 A）：
 - 拒绝所有签到（最严格，但学生体验差）
 - 缓存到本地，等网恢复后批量上传（友好，但要解决时间戳冲突）
 - 触发降级模式（老师手动签）
 
-需要在 Phase 1 开工前定。
+需要在 v1.0 开工前定。
 
 ---
 
@@ -815,12 +821,12 @@ spec 没说：
 `ABSENCE_REQUEST_PENDING`（申）→ 老师审批 → 同意/拒绝。但：
 
 - 申请由谁发起？（学生 App 提交？口头告诉老师录入？）
-- **Phase 1 没有学生 App —— 申请根本没地方发起**（阻塞项：要定代录入流程或口头报备协议）
+- **无 App 学生（仅持卡）申请根本没地方发起**（阻塞项：要定代录入流程或口头报备协议）
 - 审批截止时间？（如果老师永远不审批，会一直挂在「申」状态？）
 - 学生申请后能否撤回？
 - 审批拒绝后是否通知学生？怎么通知？
 
-> 2026-04-17 升 🟡：Phase 1 无 App 的根本问题要在 v0.2 §8.3 补齐，不能"后续完善"。
+> 2026-04-17 升 🟡：无 App 学生申请根本问题要在 v0.2 §8.3 补齐，不能"后续完善"。
 
 ---
 
@@ -873,7 +879,7 @@ spec 说 `schedule_mode` 必须在 session 开始前设置，老师可以改。
 
 第 9 节提到老师端实时状态由 WebSocket 推送。但消息格式、心跳、重连策略全没定。
 
-Phase 1 点呼机 → 老师端的播报反馈，Phase 2 学生 App → 老师端的颜色更新都需要这条通道。
+点呼机 → 老师端的播报反馈（路径 A），学生 App → 老师端的颜色更新（路径 B / C）都需要这条通道。
 
 技术债，v0.2 spec 补完时一并处理。
 
@@ -887,7 +893,7 @@ Phase 1 点呼机 → 老师端的播报反馈，Phase 2 学生 App → 老师�
 - `(student_id, session_id, client_request_id)` —— 客户端生成 UUID，更标准
 - `(card_uid, session_id, ts_secondbucket)` —— 用读卡时间桶
 
-影响 Phase 1 点呼机和 Phase 2 App 的重试逻辑。
+影响点呼机（路径 A）和 App（路径 B / C）的重试逻辑。
 
 ---
 
@@ -941,7 +947,7 @@ Phase 1 点呼机 → 老师端的播报反馈，Phase 2 学生 App → 老师�
 **session 由系统按时刻表自动创建**：
 - 每天 morning 1 个 + evening 1 个 = 2 个 session
 - 创建时刻：`scheduled_window_start - 5 分钟`（系统兜底，老师可以更早手动开始）
-- 如果时间窗表无对应 `(session_type, day_type, effective_group)` 组合 → 不创建该 session，签到返回 `NO_ROLLCALL_FOR_TODAY`
+- 如果时间窗表无对应 `(session_type, day_type, student_group)` 组合 → 不创建该 session，签到返回 `NO_ROLLCALL_FOR_TODAY`
 
 **学生属于哪些 session**：
 - 默认：全体在寮学生都属于当天的 morning + evening session
@@ -967,7 +973,7 @@ Phase 1 点呼机 → 老师端的播报反馈，Phase 2 学生 App → 老师�
 
 | 项 | 状态 | 落地位置 |
 |---|---|---|
-| A.1 Phase 1 vs spec 脱节 | ✅ | §1 整体改写为双路径并存 |
+| A.1 早期 Phase 1 vs spec 脱节（历史问题） | ✅ | §1 已改为三路径并存（4-19 G2 拍板 v1.0 一次上线，不再分阶段）|
 | A.2 祝休日足球部时间存疑 | 🟡 | 假设"故意如此"，待 itsuki 最终确认 |
 | A.3 X 分钟未定值 | 🔄 | 等 itsuki 拍板（候选 5/10/15/30）|
 | A.4 提前开始平移规则反直觉 | 🔄 | 设计意图待 itsuki 确认 |
@@ -979,7 +985,7 @@ Phase 1 点呼机 → 老师端的播报反馈，Phase 2 学生 App → 老师�
 
 | 项 | 状态 | 落地位置 |
 |---|---|---|
-| B.1 代签 / 替考 | ✅ | §5.1.3 明确"老师在场监督"为 Phase 1 硬约束 + §9 写入"老师本人"为人防组件 |
+| B.1 代签 / 替考 | ✅ | §5.1.3 明确"老师在场监督"为永久硬约束 + §9 写入"老师本人"为人防组件 |
 | B.2 4 台点呼机协调 | ✅ | 附录 C.1-C.3 |
 | B.3 重复签到 | ✅ | §7 边界："silently ignore + DUPLICATE_REQUEST + 记 audit" |
 | B.4 未注册卡 / 陌生 UID | ✅ | §7 边界 + `UNKNOWN_CARD` / `UNREGISTERED_UID` / `UNKNOWN_DEVICE` 错误码 |
@@ -989,7 +995,7 @@ Phase 1 点呼机 → 老师端的播报反馈，Phase 2 学生 App → 老师�
 | B.8 离线策略 | 🔄 | 需要 itsuki 拍板 |
 | B.9 改判扣分 + 修改时间窗 | ✅ | §11.3 + §11.4 |
 | B.10 免学生意外回来碰卡 | 🔄 | 需要 itsuki 拍板 |
-| B.11 申请审批流程细节 + Phase 1 无 App | 🔄 | 需要 itsuki 决定代录入 / 口头报备协议 |
+| B.11 申请审批流程细节 + 无 App 学生（仅持卡者）申请途径 | 🔄 | 需要 itsuki 决定代录入 / 口头报备协议 |
 | B.12 `schedule_mode` 默认值 | ✅ | §10.1 默认 `split` |
 | B.13 节假日表来源 | 🔄 | 建议自动从内閣府 CSV 预填，待 itsuki 拍板 |
 | B.14 `health_flag` 生命周期 | 🔄 | 待 itsuki 拍板 |

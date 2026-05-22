@@ -1,0 +1,20 @@
+# Tomoshibi Backend v1 — pyproject.toml
+#
+# C-049 (2026-05-21): backend v1 加 pytest config，避免跨机时 testpaths 漂
+# C-048 配套 CI 配置见 .github/workflows/test.yml
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+# 显示更详细 traceback；fail-fast 在 CI 用 -x 单独加
+addopts = "-v --tb=short"
+# async test 默认开（部分 endpoint 用 async 实现）
+asyncio_mode = "auto"
+# 把 DeprecationWarning 当 error（早发现升级问题）
+filterwarnings = [
+    "error::DeprecationWarning",
+    "ignore::DeprecationWarning:pydantic.*",
+    "ignore::DeprecationWarning:fastapi.*",
+]
