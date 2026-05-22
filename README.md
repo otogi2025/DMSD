@@ -9,8 +9,8 @@
 >
 > 把我们宿舍的纸质点呼流程数字化。
 >
-> **当前版本**：见 [`CHANGELOG.md`](./CHANGELOG.md)（单源真值）
-> **状态**：规格 + 前端框架已搭建（iOS prototype / Web Round 3），后端 + 生产实装为下阶段
+> **当前版本**：见 [`CHANGELOG.md`](./CHANGELOG.md)（单源真值，v0.8.0 + 之后多次未 bump 推进）
+> **状态**：5 端代码层全启动 — iOS Swift / Android Compose / Teacher Web TS / FastAPI 后端 / 点呼机 Pi 3A+ 骨架，硬件采购 + Pi 上手编程 阶段
 > **作者**：itsuki（伊月）— 零基础起步，边学边做
 
 ---
@@ -25,24 +25,31 @@ Tomoshibi 用 NFC 卡 + 服务器 + 手机 App + 墙上的专用小设备（点�
 
 ## 做到哪了
 
-**截至 2026-04-29**（v0.5.0）：
+**截至 2026-05-21**（v0.8.0 close + 之后多次未 bump 推进）：
 
-- ✅ 规格文档 v0.1 冻结（2026-02-12）
-- ✅ 字典体系（枚举 / 字段 / 错误码 / 设备注册）成型
-- ✅ 硬件架构决策（Raspberry Pi + PN532 NFC + 扬声器）
-- ✅ 双路径架构：NFC 卡 + 手机 App 同时支持，没智能手机的学生不被排除
-- ✅ 反作弊机制：动态 NFC 贴纸（ST25DV16K，每 10 秒刷新一次性 nonce，防 URL 复制）+ 语音播报
-- ✅ 系统正式命名 **Tomoshibi（灯火）**（2026-04-21）
-- ✅ Spec S 系列闭合（v0.4.0，2026-04-22）
-- ✅ 老师 Web prototype Round 3（12 组件 + 学生账号管理 + 座席表 + 改判 + カレンダー + リクエスト曲）
-- ✅ 学生 iOS prototype Round 1（73 画面 Phase A+B HTML，3 按钮 nav + Home omnibus + 中央点呼 sheet）
-- ✅ Demo 4-28 sprint 跑通（纯软件，iPhone 碰 NFC → 后端 → iPad 座位变绿 + 日语播报）
-- ✅ 跨会话同步机制 A+B+C（多 AI agent 并行协作的真值同步规则）
-- ✅ 版本管理 SOP 建立（解决"9 天没 bump"的迭代问题；2026-05-04 升级迁入 `.claude/skills/version-bump/` skill 形态，加 CC 否决权 + 版本演变一览必更新等 4 条新铁律）
-- ✅ 完整版本变更记录（见 `CHANGELOG.md`，v0.0.1 → v0.5.0 共 14 个版本）
-- ⬜ 后端 + 生产代码 —— 还没开始。iOS Swift / Android Kotlin / FastAPI 后端 实装从 v0.6 起步
+**项目近期里程碑**（详见 `CHANGELOG.md` + `00_admin/progress_overview.md`）：
 
-**为什么这个顺序**：我是零基础高一时开始想这个项目，花了大量时间先把"这个系统到底要长什么样"写清楚 → 再用 prototype 把交互跑通 → 最后才上生产实装。我认为这个顺序是对的（下面"AI 协作"一段会再讲一次）。Demo 4-28 是给宿舍管理员看的软件 prototype，反馈是基本同意采纳，接下来进入生产实装阶段。
+- 2026-04-28 — Demo 跑通（iPhone NFC → 后端 → iPad 座位变绿 + 日语播报）
+- 2026-04-29 — **宿舍管理员当面口头同意采纳系统** + GitHub repo 首次 public
+- 2026-04-30 — spec 主体 38 条 R1-R4 + 8 分阈值拍板入 system_features
+- 2026-05-02 — **5 端代码层全启动**（v0.8.0 close）：iOS 网络层 / Android Compose bootstrap / teacher_web v1 TS+Vite / backend rollcall+study+teachers routers / iOS↔backend 字段对齐 F1-F5+Q1
+- 2026-05-08 — **硬件全定稿**：Pi 3A+ + PN532 V3 + ST25DV16K + LED 模块 + 01Studio USB 小音响
+- 2026-05-13 — 文件大整理 + project-overview skill 建立（630+ 文件清单单源真值）
+- 2026-05-19 — project-overview 大改造（9 处漂移修 + §0.1 体量重算 957 文件）+ 防漂 C 方案（hook 全覆盖 + 启动对账）
+- 2026-05-20+ — 131 条 bug findings 4 会话并行修复
+- 2026-05-22 — project-overview §0.1 再校准 957→980（5-21 demo 158 文件归档落地）+ Fix-Bot 4 effective_* 字段彻底删完成 + Codex 第二轮全文件覆盖 audit（39 条 / 24 独立 + 13 复核 + 2 positive）
+
+**5 端代码层实装状态**（截至 5-21）：
+
+- ✅ **规格层**：RollCall_Spec.md（~1000 行）+ 字典三件套（枚举 / 字段 / 错误码 / 设备注册）+ system_features.md 830 行（4-30 大重写）
+- ✅ **后端 FastAPI**：1134 行 BACKEND_DESIGN_LOG + 8 router（auth / rollcall / study / accounts / admin_registration_code / teachers / applications / meals / notifications）+ Alembic migration 框架 + 37 case pytest 全 pass
+- ✅ **iOS Swift/SwiftUI**：Foundation 层 17 文件 1861 行（网络 / Keychain / Route / AppStore）+ 3 个核心 Feature（Auth / Home / Community 5K+ 行）实装中
+- ✅ **Android Kotlin/Compose**：22 屏（Login/Home/Apply/MyPage/Settings/Schedule/Bus/Study/Music/Notifications/NfcScreen 等）+ MainActivity / NavGraph / AppStore / MockData / Theme
+- ✅ **Teacher Web TS+Vite+Zustand**：5 page + demo 接真后端 + 学習管理全屏会话
+- 🔄 **点呼机 Pi 3A+**：硬件全定稿（5-08）+ ROLLCALL_DEVICE_DESIGN_LOG 226 行 + src/main.py 骨架；硬件采购 + Pi 上手编程 未开始
+- ✅ **工程治理**：跨会话同步机制 A+B+C / 版本管理 SOP（迁 `.claude/skills/version-bump/` skill 形态）/ 18 条联动规则 + 11 hook / 7 项目 skill / project-overview 单源真值
+
+**为什么这个顺序**：我是零基础高一时开始想这个项目，花了大量时间先把"这个系统到底要长什么样"写清楚 → 再用 prototype 把交互跑通 → 接 4-28 demo 拿管理员反馈 → 5-02 起 5 端代码层并发推进。我认为这个顺序是对的（下面"AI 协作"一段会再讲一次）。
 
 ---
 
@@ -63,12 +70,12 @@ Tomoshibi 用 NFC 卡 + 服务器 + 手机 App + 墙上的专用小设备（点�
 
 | 部分 | 技术 |
 |---|---|
-| 学生 App | iOS（Swift / SwiftUI）+ Android（Kotlin / Java） |
-| 老师 Web | 待定（iPad 上用浏览器打开的管理界面） |
-| 后端 | FastAPI / Python + PostgreSQL |
-| 点呼机 | Raspberry Pi + PN532 NFC + 扬声器 + Python |
-| NFC 卡 | NTAG215（空白卡批量采购） |
-| 版本 / 协作 | Git + GitHub |
+| 学生 App | iOS（Swift / SwiftUI）+ Android（Kotlin / Compose） |
+| 老师 Web | TypeScript + Vite + Zustand（已实装 5 page，2026-05-02 v0.8 起） |
+| 后端 | FastAPI / Python + PostgreSQL + Alembic |
+| 点呼机 | Raspberry Pi 3A+ + PN532 V3 NFC + 01Studio USB 小音响 + Python |
+| NFC 卡 / 标签 | NTAG215（学生卡）+ ST25DV16K（动态标签，每 10 秒刷新 nonce） |
+| 版本 / 协作 | Git + GitHub + Claude Code |
 
 **上线姿态**（2026-04-19 决定）：v1.0 **一次性**上线三种使用方式（卡 / iPhone / Android），不做"先上卡再上 App"的分阶段。开发内部按 M1→M5 里程碑推进，兜底是"做不完至少 M1+M2 可以 demo"。
 

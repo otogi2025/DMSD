@@ -96,8 +96,8 @@ if [ -n "$BUMP_TRIGGER" ]; then
     echo "─────────────────────────────────────────────"
     echo "本次改动可能触发版本 bump：${BUMP_TRIGGER}"
     echo ""
-    echo "  → 对照 00_admin/版本管理SOP.md §2 决策树判断"
-    echo "  → 单次不 bump 也 OK，但累积 5+ commit 时回看 SOP §10"
+    echo "  → 对照 .claude/skills/version-bump/SKILL.md §2 决策树判断"
+    echo "  → 单次不 bump 也 OK，但累积 5+ commit 时回看 SKILL §10"
     echo "─────────────────────────────────────────────"
     echo ""
 fi

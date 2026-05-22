@@ -60,13 +60,13 @@ Web 専属:     03_dev/teacher_web/WEB_DESIGN_LOG.md
 后端 専属:    03_dev/backend/BACKEND_DESIGN_LOG.md
 点呼机 専属:  03_dev/rollcall_device/ROLLCALL_DEVICE_DESIGN_LOG.md
 物理硬件层:   02_design/hardware_design.md（板子选型 / 模块选型 / BOM — 跟点呼机软件层互补）
-判断标准 / 反模式: memory feedback_design_doc_layers.md
+判断标准 / 反模式: 见本节上方 5 端 + 共用层 + 物理硬件层 划分（原 memory 文件已并入本章 — 2026-05-21 死链修复 B-011）
 
 ## 文档一致性
 
 单源真值表 + pre-commit hook: 00_admin/文档同步点清单.md
 版本 bump 流程: `.claude/skills/version-bump/SKILL.md`（itsuki 说「迭代/bump/发版本/打 tag」自动触发；CC 有否决权）
-中文铁律 — 代码注释 + 内部文档 100% 中文 / UI 字符串保持日语: memory feedback_code_comments_chinese_strict.md
+中文铁律 — 代码注释 + 内部文档 100% 中文 / UI 字符串保持日语（规则在 `00_admin/hooks/post-edit-japanese-comment-check.sh` 里活，2026-05-03 itsuki 拍板 — 2026-05-21 死链修复 B-012/C-002）
 
 ## 文件连锁结构（改 A 必查 B，改完当场对照）
 
@@ -89,15 +89,18 @@ Foundation/ component 改 props → grep 全 repo 找用到的地方
 
 详细联动矩阵 / 反向索引: `.claude/skills/file-linkage/SKILL.md`（itsuki 说"联动检查 / 我改了 X 要查什么"自动触发）
 
-工具（5 PostToolUse + 1 PreToolUse + git pre-commit）:
+工具（7 PostToolUse + 1 PreToolUse + 1 SessionStart + git pre-commit）:
 - 实时联动检查 + demo scaffold 字眼检测（Write/Edit 后）: `post-edit-sync-check.sh`
 - memory 索引检查（Write/Edit memory dir 后）: `post-edit-memory-check.sh`
 - 中文铁律 / 日语注释扫描（Write/Edit 代码文件后）: `post-edit-japanese-comment-check.sh`
 - 声明性文件时间戳检查（Write/Edit WIP/TODO/progress 后）: `post-edit-timestamp-check.sh`
 - 版本号硬编码实时拦（Write/Edit 声明性文件后）: `post-edit-version-hardcode-check.sh`
+- **project-overview 同步检查（Write/Edit 任何 DMSD 文件后 — 2026-05-19 改全项目覆盖）**: `post-edit-project-overview-check.sh`
+- **多语言代码自动格式化（Write/Edit 代码文件后 — 2026-05-19 加）**: `post-edit-format.sh`（`.py`→ruff / `.swift`→swiftformat / `.kt`→ktlint / `.ts/.tsx/.js/.jsx/.vue/.css/.scss/.html/.json`→prettier，工具未装静默 skip）
 - 破坏性 Bash 命令拦截（Bash 调用前）: `pre-bash-destructive-block.sh`（rm -rf 非临时 / git reset --hard / git push --force / git branch -D 等）
+- **project-overview 启动对账（每次会话启动 — 2026-05-19 加）**: `bin/check_overview_drift.sh` — 跑 git ls-files 跟 project-overview §0.1 体量表对比，漂了立刻报
 - commit 时: bash 00_admin/hooks/pre-commit
-- 中途随时: bash bin/sync-check.sh
+- 中途随时: bash bin/sync-check.sh / bash bin/check_overview_drift.sh
 - 规则源: 00_admin/hooks/lib/sync-rules.sh
 
 ## 会话开始: 读 WIP.md
@@ -167,7 +170,7 @@ git 仓库状态确认（git status / 残留 / 未 push / stash） → **会话�
 |---|---|---|
 | session-wrap | 收尾 / 整理今天 / 总结今天 / 记一下今天 | AC 素材全量扫描 dump + git 状态收尾确认（§5.5.9）|
 | version-bump | 迭代 / bump / 发版本 / 打 tag / 发版 / release / 推上去 | 版本决策树（CC 有否决权）+ §13 发版动作 SOP |
-| new-feature | 新功能 X / 加 Y / 实装 Z / 做 W | 4 端实装模板（spec→backend→iOS→Android）|
+| new-feature | 新功能 X / 加 Y / 实装 Z / 做 W | 5 端实装模板（spec→backend→iOS→Android→点呼机）|
 | spec-sync | 跨端检查 / 字段对齐 / 端对齐 / API 对齐 | backend↔iOS↔Android 字段提取对比 |
 | memory-write | 记一下规则 / 以后这样 / memory 加一条 / 不要再... | memory 写入 SOP（4 类型 / 查重 / 索引）|
 | file-linkage | 联动 / 改 A 要查 B / 我改了 X 要查什么 | 联动矩阵（CC 改高联动文件后调）|
@@ -199,7 +202,7 @@ Multi-context — 5 端 monorepo + 共用层 + 物理硬件层 + 决策日志（
 3. 主动告诉他不知道但应该知道的概念或更优做法
 4. 出练习题结合 DMSD 场景 — 点呼 / 扣分 / 签到
 
-详细规则 / feedback 历史: ~/.claude/projects/-Users-itsuki-dev-DMSD/memory/MEMORY.md 索引（feedback_*.md 系列）
+详细规则 / feedback 历史: ~/.claude/projects/-Users-kurekoduki-dev-DMSD/memory/MEMORY.md 索引（feedback_*.md 系列）
 
 ## graphify
 

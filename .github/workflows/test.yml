@@ -1,0 +1,59 @@
+# C-048 (2026-05-21): backend v1 自动跑 pytest
+# v1.0 上线前必跑 — PR / push 触发，37 case 全 pass 才能合
+#
+# 触发：
+#   - push 到 main 且改动了 03_dev/backend/v1/**
+#   - PR 改动了 03_dev/backend/v1/**
+
+name: backend-tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "03_dev/backend/v1/**"
+      - ".github/workflows/test.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "03_dev/backend/v1/**"
+      - ".github/workflows/test.yml"
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: 03_dev/backend/v1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: 03_dev/backend/v1/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run alembic migrations (sanity check)
+        env:
+          DATABASE_URL: sqlite:///./ci_test.db
+          JWT_SECRET: ci-test-secret-32-bytes-aaaaaaaa
+          APP_ENV: dev
+        run: alembic upgrade head
+
+      - name: Run pytest
+        env:
+          DATABASE_URL: sqlite:///./ci_test.db
+          JWT_SECRET: ci-test-secret-32-bytes-aaaaaaaa
+          APP_ENV: dev
+        run: pytest tests/ -v

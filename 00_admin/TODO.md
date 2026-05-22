@@ -6,20 +6,124 @@
 > - 和 `progress_overview.md` 的区别: progress_overview 是稳定的章节目录,TODO 是可以频繁增删的任务池
 > - 完成的任务: 在 checkbox 前打 x,隔段时间(每周或每月)批量移到"已完成归档"
 
-**最后更新**: 2026-05-14（加 §🛠️ G Tango 立项收尾残留 — DMSD 累积 commit / 术语表别会话残留 / ac-radar inbox / memory 候选 / Tango GitHub push / Tango 6 skill 残留治理；早些更新：2026-05-13 §🛠️ E + F；2026-05-11 §📄；2026-05-08 §📱 + §🛰️ + §🐛） <!-- VERSION_OK -->
+**最后更新**: 2026-05-22（§🛰️ 点呼机段配件采购方向反转 — 5-12~16 中国海关查扣 → itsuki 拍板撤回中国海运 → 日本本地买 / 原 11 件淘宝清单 + 2 任务作废 / 加 6 条新待办：重新选型 + 渠道调研 + 预算重估 + 硬件文档更新 + 点呼机设计文档更新 + 拆寄教训）；早些更新：2026-05-21（加 §🐞 系统 Bug 专栏入口 131 条 / 清 §⏰ Cloud Design 5-12 过期项 / 第二个 §G 重命名 §H — B-001/B-002 修复）；2026-05-14 §🛠️ G + H；2026-05-13 §🛠️ E + F；2026-05-11 §📄；2026-05-08 §📱 + §🛰️ + §🐛 <!-- VERSION_OK -->
 **当前版本**: 见 `CHANGELOG.md` 顶部 · 单源真值，见 `00_admin/文档同步点清单.md`
 
 > **2026-04-17 归档说明**：`executable_dev_checklist.md` 已归档到 `99_archive/2026-04-12_executable_dev_checklist.md`（内容已过期，功能被本 TODO.md 吸收）。
 
 ---
 
+## 🐞 系统 Bug 专栏（v1.0 上线前 — 5-20 审查作战产出）
+
+> **131 条 bug 详细管理见**：[`00_admin/系统bug专栏.md`](系统bug专栏.md)
+> - 🔴 阻塞上线：43 条（v1.0 前必修）
+> - 🟡 该修：58 条
+> - 🟢 优化 / 信息：30 条
+>
+> **来源**：3 子代理并行审 15+ 维度（2026-05-19 启动 / 2026-05-20 凌晨 cron 自动 fire / 5-21 itsuki 拍板专栏化管理）
+> **完整 findings**：`05_logs/audit_2026-05-19/session_{A,B,C}_findings.md` + `_master_issues.md`
+>
+> **TOP 5 最紧急**（详见专栏）：
+> 1. 🔴🔴🔴 [A-039] teacher_web 老师密码全员明文（public repo 已暴露）
+> 2. 🔴 [B-013/C-001] CLAUDE.md 路径错位（每次会话受影响 — 一行修）
+> 3. 🔴 [A-010] backend NFC 防代刷一行未实装（v1.0 上线最大隐患）
+> 4. 🔴 [A-001~005] backend auth 5 处漏洞集中爆发
+> 5. 🔴 [C-007~009] README + progress_overview 严重过期
+
+---
+
+## 🆕 v1.0 后新功能候选（2026-05-21 itsuki 提）
+
+> 这一段记 itsuki 想加但**当前不在 v1.0 上线必做范围**的功能。每条带场景 + 设计点 + 完成定义。等设计层评估完再决定 v1.0 加 / 推到 v1.1。
+
+### N-001 — Web「开始点呼」按钮自动状态切换
+
+- **场景**：老师忘按开始点呼
+- **行为**：距固定开始时间还有 3 分钟时，Web 上「开始点呼」按钮自动变「点击查看点呼」（或后端自动开点呼场次让学生能 tap）
+- **设计点**：
+  - 前端定时器轮询「下一个点呼场次开始时间」
+  - 后端可能要加 `auto_started_at` 字段区分手动 / 自动
+  - UI 状态机：未到 → 即将开始（< 3 min）→ 进行中 → 已结束
+- **完成定义**：老师即使忘按，到固定时间点呼也能正常进行 + 老师能事后看进度
+
+### N-002 — 规则外特殊点呼（一次性）
+
+- **场景**：突击点呼 / 特殊日子（运动会前夜 / 紧急集合）
+- **行为**：老师能开启「自选窗口时间 + 自选迟到判定时间」的临时点呼
+- **设计点**：
+  - `rollcall_session` 表加 `is_custom: bool` 字段
+  - `is_custom=true` 时窗口时间走自定义字段（不走每日固定 schedule）
+  - 老师 UI 加「特殊点呼」入口（独立于每日点呼）
+- **完成定义**：老师能临时点一次特殊点呼，学生收到通知 + 能按时刷
+
+---
+
+## 🔧 下次会话接续清单（2026-05-21 — 这次会话 compact 前的状态）
+
+> 本次会话：4 会话审查作战 — Claude 3 子代理后台跑找 131 条 findings + 主会话修 10 条 + Fix-Bot 1/2/3 修 67 条 + Fix-Bot 4 effective_* 删后台跑中。
+
+### 🔥 紧急 — 下次会话立刻看
+
+- [ ] **Bot 1 闯祸 — 30+ iOS 编译错误**（5-21 itsuki 选 1.c「自己看」）
+  - 文件：`03_dev/student_ios/v1/.../HomeStubs.swift` + `AppStore.swift` + `StayListStubs.swift`
+  - 根因：Bot 1 修 demo scaffold（A-033/036/037/038）时把依赖的类一起删了
+  - 选项：(a) itsuki 自己修 / (b) CC 找回被删的类 / (c) revert Bot 1 那几个 iOS 改动
+
+### ⏳ Fix-Bot 4 后台跑中
+
+- [ ] **Fix-Bot 4 effective_* 字段彻底删** — 5-21 itsuki 拍板 (b1) 现在删
+  - 任务 ID：`a7992274892f10ae5`
+  - 范围：5 端代码 + spec + 字典 + alembic 迁移 + 测试
+  - 完成后看：`05_logs/audit_2026-05-19/_fixed_4.md`
+
+### 🤖 Codex 第二轮 audit
+
+- [ ] **itsuki 用 `00_admin/codex_audit_prompt.md` 喂 codex 跑全量审查**
+  - prompt 已写好（含 27 必读文件 + 17 审查维度 + Claude 漏的 4 类重点）
+  - 输出：`05_logs/audit_2026-05-21_codex/session_codex_findings.md`
+- [ ] codex 跑完后跟 Claude 131 条对照（重复 / 独立 / Claude 漏 — 分类）
+
+### 📋 系统 Bug 专栏状态更新
+
+- [ ] **系统bug专栏.md 77 条已修标 ✅** — 主会话 10 + Bot 1 33 + Bot 2 12 + Bot 3 22
+  - 当前文件这些条还是 ⏳ 待修 — 状态字段没更新
+  - 修完时填 commit hash（commit 后）
+
+### 🚧 主会话保留 6 条（架构决策）
+
+- [ ] **A-001~005** backend 鉴权 5 处漏洞集中处理（需要 itsuki 设计层拍板）
+- [ ] **A-010 / A-028** NFC ECDSA 防代刷实装（v1.0 决策性 — 二选一 完整实装 / 砍降级 v1.1）
+- [ ] **A-002** HS256 → RS256 迁移（架构层）
+- [ ] **A-035** iOS Auth magic value "000000" 注册流程后门（怕误删，需要 itsuki 拍板）
+- [ ] **A-039** teacher_web v1/src/index.html 7700 行 demo HTML（需备份 + vite 验证）
+
+### ⚠️ Bot 3 跳过的待决策 5 条
+
+- [ ] **C-035/036** 跨项目 DMSD 残留（Bot 3 判断「合法历史」— itsuki 拍板是否复核）
+- [ ] **C-037** cc-project-template 6 skill 工程量大 — Bot 3 只清 1 个，剩 5 个跳过
+- [ ] **B-018** `feedback_llm_self_discipline_unreliable.md` memory 写（需要 itsuki 同意才写）
+- [ ] **C-031/033** raw 5 月各文件缺「## AC 信号」双写段（等 itsuki 拍板要不要补）
+- [ ] **C-028/C-029** decision_log + project_evolution 4-15 后空白（itsuki 自写铁律 — CC 起草 draft 等粘贴）
+
+### 📁 文件加 project-overview 引用
+
+- [ ] **`00_admin/系统bug专栏.md`** 加进 `project-overview/SKILL.md`（长期治理文件）
+- [ ] **`00_admin/codex_audit_prompt.md`** 加进 `project-overview/SKILL.md`（长期模板文件）
+
+### 💾 commit + push
+
+- [ ] **77 条修 + Fix-Bot 4 effective_* 删 + 5-21 hook 修** 全部未 commit
+- [ ] itsuki 拍板 commit 时机（分多 commit / 一个 commit）+ push 时机
+- [ ] 全局铁律：CC 不自动 commit / push
+
+---
+
 ## ⏰ 时间敏感 — 即将到期
 
-- [ ] **2026-05-12 截止**：用掉 Cloud Design 40 额度
-  - 5-13 凌晨刷新 — 现在不用就浪费
-  - 跟 cici 讨论怎么用
-  - 决定要做什么
-  - 若明天 itsuki 没主动提：CC 启动读 WIP / TODO 看到此条须主动报告
+*（暂无 — 5-21 清理）*
+
+- [x] ~~**2026-05-12 截止**：用掉 Cloud Design 40 额度~~
+  - **2026-05-21 归档**：截止已过期 9 天，额度已浪费（5-13 凌晨刷新）— B-001 修复
 
 ---
 
@@ -71,27 +175,34 @@
 
 ### G. anti-ai-flavor + cc-comm-rules v0.6.0 后续（2026-05-14 晚加） <!-- VERSION_OK -->
 
+> **2026-05-21 注（B-002 修）**：本段 §G（5-14 晚加） + 下方 §F（5-13 凌晨加）顺序倒置,但字母不重复;§H（5-14 晚段 Tango）紧接 §G 编号唯一。原 finding 建议「第二个 G→H」实际看文件已是 H,本次只确认编号唯一。<!-- VERSION_OK -->
+
 > 5-14 晚段-2 会话新建 `anti-ai-flavor` 全局挂钩 + cc-comm-rules 撤回 v0.5.0 到 v0.6.0。下次会话继续优化（itsuki 原话「下次接着继续更新优化」）。<!-- VERSION_OK -->
 
 - [ ] **anti-ai-flavor 8 个测试用例 subagent 对比未跑** — itsuki 选 C 跳过，下次会话真实使用中观察问题。位置：`~/.claude/skills/anti-ai-flavor/evals/evals.json`（8 用例 A-F 各 1 + 综合 1）。要不要跑 + 何时跑 itsuki 拍板
 - [ ] **网络黑话黑名单持续补** — 现一级 7 词（刀 / 硬度 / 锁死 / 兜底 / 收窄 / 稳稳 / 说拧了）+ 二级扩展 5 类。下次见新黑话追加 `~/.claude/skills/anti-ai-flavor/references/jargon-blacklist.md` 末尾
-- [ ] **术语表.html 现有 modified 状态决定** — 5-14 早段 v0.5.0 添词的产物（属于已上线词条）。v0.6.0 后收尾不再自动加词，但已添的 180+ 词条保留作 AC 日语学习材料。这次 modified 要不要 commit itsuki 拍板 <!-- VERSION_OK -->
+- [x] ~~**术语表.html 现有 modified 状态决定**~~ ✅ **2026-05-22 标 ✅** — 5-14 已 commit 进 git（commit `8e35338` docs(wip+todo+raw+vocab): 5-14 晚段-2 anti-ai-flavor 立项 + 5-16 工程边角清理）。当前不是 modified。180+ 词条已上线作 AC 日语学习材料。<!-- VERSION_OK -->
 - [ ] **`~/.claude/我的环境.html` 重新生成** — 清单美化派生版（5-11 晚生成）。现 md 加了 anti-ai-flavor + cc-comm-rules v0.6.0 标注，html 未同步。要不要重新生成 itsuki 决定 <!-- VERSION_OK -->
 - [ ] **WIP 已 8 条超 "最多 5 条" 上限清理** — 下次清理 5-11 段 4 条老条目（详细历史在 commit log + raw）。或者 itsuki 拍板"放宽到 8 条"也行
 - [ ] **CC 写 anti-ai-flavor 时自己也犯 F+A 类的元层教训写 feedback memory？** — 反讽性证据：写规则时自己也违反规则。是否值得写一条 `feedback_cc_skips_interview_step.md` 提醒"用 skill-creator / skill-with-process-steps 类挂钩时机械逐步走，不跳第一步"。itsuki 拍板
 
-### F. 5-12 收尾残留待拍板（2026-05-13 凌晨加）
+### F. 5-12 收尾残留待拍板（2026-05-13 凌晨加 — 2026-05-21 大整理 / B-003 修）
 
-> 5-12 修补类批量会话末尾留下 7 件待 itsuki 拍板。其中 1 件（AC 中央草稿本 5-12 补）5-12 收尾时已做，其余 6 件待办。其中 3 件（AC 文件迁 / 死链修 / 整理 14 文件）另一会话已在 commit 81842f4 / b37d065 / 859693e 处理，本表只列**未处理**的。
+> 5-12 修补类批量会话末尾留下 7 件，5-21 audit 后归档大部分（已废 / 跟 §⏰ 重复 / 已 Bot 修）。
 
-- [ ] **Cloud Design 40 额度 5-13 凌晨已过截止** — §⏰ 段那条 5-12 截止已过期。要么忽略（额度已浪费），要么 5-20 下次刷新前主动用掉
-- [ ] **整理脚本 `/tmp/cleanup_2026-05-12.sh` 跑不跑** — Mac 重启就丢。要么手动拷出来到非 `/tmp/` 路径，要么放弃
-- [ ] **iOS 联动规则 1 + 2 严重漂移修复** — backend `models.py` / routers 5-08 改了但 iOS `schemas` / `NetworkModels` / `Endpoints` 全员停 5-06。下次启动 iOS 会 Decoding 报错。要么手动对齐字段，要么先 backend 上线再补
+**真活（剩 1 条）**：
+- [ ] **iOS 联动规则 1 + 2 严重漂移修复** — backend `models.py` / routers 5-08 改了但 iOS `schemas` / `NetworkModels` / `Endpoints` 全员停 5-06。下次启动 iOS 会 Decoding 报错。要么手动对齐字段，要么先 backend 上线再补。**5-20+ Fix-Bot 1 已在处理（spec-sync 范围）**
+
+**已归档（B-003 修移到 §1061 同义 — 见各自处理点）**：
+- [x] ~~**Cloud Design 40 额度 5-13 凌晨已过截止**~~ — 已在 §⏰ 段处理（B-001）
+- [x] ~~**整理脚本 `/tmp/cleanup_2026-05-12.sh` 跑不跑**~~ — Mac 重启即丢,事实上已废
 - [x] ~~**graphify 图谱 vendor 污染清**~~ — ❌ 已废（2026-05-14 中午拍板「不卸不用」，详见 §C）
-- [ ] **MEMORY.md 主体刷新** — 多处 stale 行（v0.3.1 应改 v0.8.x / 4-10 旧 TODO 应清理），要 itsuki 同意才改 <!-- VERSION_OK -->
-- [ ] **`.claude/skills/file-linkage/SKILL.md` §1 标题「18 条」漂移** — 描述行已改 17 条但 §1 标题还是 18，itsuki 一行手改。**可能已被 commit 859693e 修过**，待验证
+- [x] ~~**MEMORY.md 主体刷新**~~ — 2026-05-21 Fix-Bot 3 已修（B-014/015/016/017）
+- [x] ~~**`.claude/skills/file-linkage/SKILL.md` §1 标题「18 条」漂移**~~ — 已被 commit 859693e 修过
 
-### G. 2026-05-14 晚段 Tango 立项 + 收尾残留（2026-05-14 晚段加）
+### H. 2026-05-14 晚段 Tango 立项 + 收尾残留（2026-05-14 晚段加）
+
+<!-- 5-21 重命名：原 §G（第二个 G）→ §H — B-002 修复（编号唯一化） -->
 
 - [ ] **DMSD 累积 commit 未 push** — 21 条 ahead origin/main（含本次 `97923a5` Tango 立项 raw + 早段 `16dd939` 沟通规则 v0.5.0 + 5-13 接力 + 5-12 修补批量 + 5-11 系列）— 等 itsuki 拍板 push 时机 <!-- VERSION_OK -->
 - [ ] **`06_assets/术语表.html` modified 别会话残留** — 5-14 早段 session #4 CC 加的 7 个 CC 协作词（staging / silent-skip / silent-exit / exit-code / scope / regex / override）没 commit。v0.6.0 撤回 v0.5.0 后这些词的去留 itsuki 拍板：要么补 commit 进 5-14 早段，要么 discard <!-- VERSION_OK -->
@@ -103,6 +214,8 @@
 ---
 
 ## 📱 iOS 上架冲刺 — 剩余事项（2026-05-08 状态）
+
+> **2026-05-21 注（B-006 修）**：本段 + 下方 §🐛 + §🛰️ 都把「✅ 已完成」+「待办」混在同一 list 里 — CC 扫 200 行容易误判已完成项当待办处理。**已完成项已用 `[x] ~~strikethrough~~` 标识 / 待办用 `[ ]`** — 看 checkbox 状态判断。
 
 > **会话状态**：5-07 启动「上线 iOS 到 App Store」目标 → 5-08 完成 backend 部署到 GCP VPS（asia-northeast1）+ DNS（api.tomoshibi.cc）+ GH Pages（privacy / support）+ Apple Developer Portal App ID + ASC App「Tomoshibi · 灯火」+ Xcode 编译。**5-08 21:30 卡在 Validate App** 失败（CFBundleShortVersionString empty）— 已修 fork project.yml 用 MARKETING_VERSION 写法 + 让 itsuki 在 Xcode General tab 直接填 Version 1.0.0 / Build 1，待重新 Archive。
 >
@@ -197,15 +310,20 @@
 >
 > **优先级**：P2 — backend v1 上线后再启动（点呼机依赖 backend API）。在此之前可以先买配件 + 装 Pi OS + 学 GPIO 基础。
 
-### 配件采购（itsuki 复核完毕,等下单）
+### 配件采购（2026-05-22 撤回中国海运渠道 → 日本本地买）
 
-- [ ] 下单 11 件配件（淘宝集中下单,总价约 ¥381）— 详见 `02_design/hardware_design.md §2`
-  - Raspberry Pi 3A+ ¥239 / 5V 2.5A 美规电源 ¥13 / 透明外壳 + 风扇盖 ¥20 + 风扇 ¥4
-  - PN532 V3 红板 ¥26.7 / NTAG215 × 50 ¥31.9
-  - ST25DV16K I2C 模块 × 2 = ¥47
-  - LED 模块 5 色套装 ¥10.9 / 01Studio USB 小音响 ¥29
-  - SYB-170 面包板 ¥1.59 / 杜邦线母对母 40P ¥1.98
-- [ ] 收货后照「配件 vs 角色」对照表逐件清点（见 `hardware_design.md §2`）
+> **2026-05-22 方向反转**：5-12~16 之间原计划那批 11 件配件走中国海运被海关查扣全没（原因：为省运费打成一个包裹，某 1-2 件触发查扣 → 全部连带没收）。itsuki 拍板：被拦的不要了，改日本本地买。理由：(1) 避免再被查扣；(2) 配件坏了维护方便（本地有备件 + 退换货走日本邮政）。
+>
+> 详细 AC 素材见 `05_logs/raw/2026-05-22.md`；决策日志草稿待新能力模块 `decision-log-write` 产出后由 itsuki 粘到 `05_logs/decision_log.md`。
+>
+> 原淘宝清单（¥381 RMB）+「下单」「收货清点」2 条任务作废。
+
+- [ ] **重新选型 6 类硬件（日本本地能买的型号）** — Pi 3A+（或 Pi 4 / 5 升级）/ PN532 V3 红板 / ST25DV16K I²C 模块 × 2 / NTAG215 × 50 / LED 5 色 + 杜邦线 + 面包板 / USB 小音响 + 透明外壳 + 风扇 + 5V 电源
+- [ ] **渠道调研** — Amazon.jp / 秋月電子（akizukidenshi.com）/ スイッチサイエンス（switch-science.com）/ 千石電商 / Yahoo Auction（旧物）/ メルカリ（旧物）
+- [ ] **预算重估** — 日本本地价 vs 原中国海运价 + 海关风险溢价（预计贵 1.5~2 倍但消除海关风险 + 提速到货）
+- [ ] **更新 `02_design/hardware_design.md` §2** — 全部型号 / 价格 / 渠道字段（日本重新选型出结果后改）
+- [ ] **更新 `03_dev/rollcall_device/ROLLCALL_DEVICE_DESIGN_LOG.md §1.2`** — 加 5-12~16 海关事件 + 改日本买（本会话内做）
+- [ ] **拆寄不打包寄**（5-22 教训）— 如果将来还要从中国寄某些件，拆成 2-3 包分批寄，避免再触发「一件查扣全没」
 
 ### 拍板 6 个软件层决策（D1-D6,详见 ROLLCALL_DEVICE_DESIGN_LOG §10）
 
@@ -278,7 +396,9 @@
 
 - [ ] **itsuki 查看已有的 HTML skill** — itsuki 说「我有 HTML skill」。先确认这个 skill 干什么 / 跟 Anthropic 官方 `frontend-design` skill 关系 / 是否能直接复用做下面的改造 / 是否需要写新 skill。决定后再启动下面的改造任务。
 
-### B. 候选 HTML 改造文件（按优先级，按需启动，不主动催）
+### B. 候选 HTML 改造文件（**未启动 — 等 §A 元任务做完再 review**，B-009 修）
+
+> 2026-05-21 注：候选清单 13+ 文件,但 §A 元任务（itsuki 查 HTML skill）未做完前不启动任何改造。低优项不主动催。
 
 **高优 — AC 出愿强相关**：
 
@@ -308,7 +428,7 @@
 
 ### D. 反向规则 — 永不 HTML 化（CC 工具链强制 MD）
 
-- `CLAUDE.md` / `WIP.md` / `TODO.md` / `文档同步点清单.md` / `文件结构指南.md` — CC 启动 parse + 维护 grep
+- `CLAUDE.md` / `WIP.md` / `TODO.md` / `文档同步点清单.md` / `.claude/skills/project-overview/SKILL.md` — CC 启动 parse + 维护 grep
 - 5 端 `*_DESIGN_LOG.md` + `system_features.md` + `01_specs/` 字典 — CC sync 主导（hook + sync-rules.sh 依赖 MD grep）
 - `05_logs/raw/` 全部 — git diff review 主导，HTML diff 噪音爆炸（Thariq 自己承认是最大缺点）
 - `00_admin/hooks/` + `.claude/skills/` — 脚本 + skill 定义，跟 HTML 无关
@@ -378,6 +498,8 @@
 
 ### 📊 设计层覆盖度 baseline（轨道 A 盘点 · 2026-04-30 · ✅ B 标准 itsuki 拍板版）
 
+> ⚠️ **数字 = 设计层 4-30 baseline**（B-010 修 2026-05-21）；实装层进度（5-04 起 backend / iOS / Android 大批落地）看 §F 状态汇总 + `00_admin/progress_overview.md §阶段 6/7`。下方 ✅/⏳/❌/🚫 数字未刷新（5-08 起后端 routers + iOS Foundation + Android 22 屏 实装让 ✅ 实际更多）。
+>
 > ⚠️ **历史**: 4-30 第一版 baseline 用了 CC 自定义的宽松标准（"列入 system_features.md = ✅"）→ ✅ 34/39。**itsuki 4-30 指出"什么时候完成了这些设计? 自作主张"** → 撤销旧版 → 拍板用下面的 **B 标准**重做(本节)。
 >
 > **38 条对照源**: `02_design/system_features.md §7` 14 子节 + `01_specs/rollcall/RollCall_Spec.md §5-§10` + `03_dev/student_ios/IOS_DESIGN_LOG.md` + `03_dev/teacher_web/WEB_DESIGN_LOG.md` + round3 demo 实装
@@ -539,24 +661,15 @@
 
 ---
 
-## 🎯 2026-04-28 管理员 Demo 冲刺（最高优先级）
+## ✅ 2026-04-28 管理员 Demo 冲刺（已通过 — 2026-05-21 归档 / B-004 修）
 
-**Deadline**: 2026-04-28（7 天）
-**权威源**: `99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/`（整个文件夹）
-**总纲**: [`99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/sprint.md`](./demo_4-28/sprint.md)
+**状态**：Demo 通过验证 2026-04-29（管理员当面口头同意采纳）。整段已归档,详细见 `99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/`。
 
-本 TODO 不展开 demo 细节，避免和 sprint plan 重复。demo 相关的所有任务看 sprint.md §3 时间表。
-
-**itsuki 侧 D1 剩余**：
-- [ ] Amazon 日本下单 Pi 3A+ + 配件（明天 4-22 到）
-- [ ] 淘宝下单 ST25DV16K（供货延迟也要买，v1.0 用）
-- [ ] 看 `demo_4-28/scope_tier.md §5` 补 Tier 漏项（如需）
-- [ ] 看 `demo_4-28/demo_script.md` 确认台词风格
-- [ ] 给代码 agent 分配任务（前端 / 后端 / iOS / Pi 4 个模块）
-
-**demo 后（4-29+）**：
-- [ ] 管理员反馈整理到 `05_logs/raw/2026-04-28.md`
-- [ ] 根据反馈决定：推进 v1.0（纳入 v0.5.0 路线）/ 推翻重做 / 局部调整
+- [x] ~~Amazon 日本下单 Pi 3A+ + 配件~~ — 已下单（4-22 到货）
+- [x] ~~淘宝下单 ST25DV16K~~ — 已下单
+- [x] ~~代码 agent 分配任务（前端 / 后端 / iOS / Pi 4 个模块）~~ — 5-02 起 5 端代码层全启动取代 demo agent 分工
+- [x] ~~管理员反馈整理到 `05_logs/raw/2026-04-28.md`~~ — 4-29 raw 已记录管理员同意采纳
+- [x] ~~根据反馈决定路线~~ — 4-29 拍板：推进 v1.0,系统进入实装阶段 → MEMORY.md `Key Dates` 4-29 段
 
 ---
 
@@ -658,8 +771,8 @@
   - `00_admin/T2_iOS归档_dryrun评估.md`（已执行）
   - `00_admin/跨会话_ios_共享决策.md`（iOS 工程已独立 repo）
 - [ ] backend `03_dev/backend/v1/app/models.py` 13 张表 docstring 各标 P0 / P1 / P2
-- [ ] 更新 `00_admin/文件结构指南.md`（补 v0.6.0 / v0.7.0 / v0.8.0 AC 叙事文件 + 新 raw 日志）
 - [ ] 更新 `99_archive/README.md` 时间戳 + 鬼影文件解决说明
+<!-- 2026-05-21 Fix-Bot 3 删: 「更新 00_admin/文件结构指南.md」— 该文件已 5-04 归档,被 `.claude/skills/project-overview/SKILL.md` 取代,无需再补 v0.6/v0.7/v0.8 AC 叙事 (project-overview skill 已覆盖) -->
 - [ ] **S18（低价值）**：`DEVICE_REGISTRY §6` 候选位置 `dorm-A-01 / dorm-B-01` 跟 `path_type` A/B 撞字 — 改成 `dorm-1-01 / dorm-2-01`。真部署 4 台时顺手做也行
 - [ ] **后端补漏**：`routers/applications.py` 加 `POST /{id}/approvals`（役职审批 #10-#13）+ `DELETE /{id}`（D3 撤回）+ `services/email.py` 补 retry 3 次循环
 - [ ] **N18 暗色模式实装 待拍板**（5-04 iOS bug 修复发现 — `IOS_DESIGN_LOG.md §6.5` 标 N18 ✅「做」但实际未实装 → `TomoshibiApp.swift:22` 已临时强制 `.preferredColorScheme(.light)` 避免黑闪）。**两选一**：A) 真做 N18 — 全 app token (`T.paper` / `T.ink` / 等) 加 dark variant，规模 ≥ 1 整个会话；B) 降级 N18 → IOS_DESIGN_LOG.md 改成「v1.0 不做（强制 light）/ v2 再做」。**当前阻塞**：itsuki 拍板选 A 或 B。
@@ -719,27 +832,21 @@
 
 ## 🚨 当前卡住的决策(必须先做,不然项目推不动)
 
-### 硬件架构层
+### 硬件架构层 — 2026-05-21 大整理（B-005 修：6/8 项已拍板 → 归到「已拍板」+ 引用 hardware_design.md）
 
-- [ ] **点呼机"大脑"选型**: Raspberry Pi(A) vs ESP32(B)
-  - A: Python 能复用,上线快,单台 ¥13,500,AC 入試展示"动手能力"
-  - B: C/C++,更便宜(¥3,000-4,000),AC 入試展示"真·嵌入式工程",但要多学一门语言
-  - 当前状态: **4-15 已确认方向 A(Raspberry Pi)**,仅型号待定
-  - 阻塞: 等宿舍网络情况确认
+**✅ 已拍板（迁到归档段）**：
 
-- [ ] **Pi 具体型号**:Zero 2 W(¥100,GPIO 要焊) vs 4B 2GB(¥300,易用)
-  - 阻塞:宿舍网络情况
+- [x] ~~**点呼机"大脑"选型**: Raspberry Pi(A) vs ESP32(B)~~ — 2026-04-15 拍板 A 方向 / 2026-04-21 拍板 Pi 3A+ 具体型号（推翻 4-20 Pi 4B 2GB），详 `02_design/hardware_design.md §2.1`
+- [x] ~~**Pi 具体型号**: Zero 2 W vs 4B 2GB~~ — 2026-04-21 拍板 Pi 3A+，详 `02_design/hardware_design.md §2.1`
+- [x] ~~**PN532 NFC 读头接口**: GPIO vs USB~~ — 2026-05-08 拍板 PN532 V3 模块 + SPI 推荐，详 `02_design/hardware_design.md §2.2`
+- [x] ~~**LED 灯方案**~~ — 2026-05-08 拍板 LED 模块 5 色套装 ¥10.9，详 `02_design/hardware_design.md §2.4.1`
+- [x] ~~**扬声器方案**~~ — 2026-05-08 拍板 01Studio USB 小音响 ¥29，详 `02_design/hardware_design.md §2.4.2`
+- [x] ~~**电源与贴墙方式**~~ — 电源 2026-05-08 拍 5V 2.5A micro-USB，详 `02_design/hardware_design.md §2.6`
 
-- [ ] **PN532 NFC 读头接口**:GPIO 接法 vs USB 接法(和 Pi 型号绑)
+**仍卡住（真活）**：
 
-- [ ] **LED 灯方案**:单灯(红/绿切换)vs 双灯(红+绿)vs RGB,接 GPIO 还是 HAT
-  - 屏幕暂不做,留 v1.0 正式版后考虑
-
-- [ ] **扬声器方案**:USB 小喇叭 / 3.5mm 接口 / HAT
-
-- [ ] **电源与贴墙方式**:USB 电源 + 墙插;双面胶/螺丝/支架
-
-- [ ] **点呼机部署数量**:**4 台**(已定),但位置和通道分配待确认
+- [ ] **点呼机部署数量 4 台 位置和通道分配** — 4 台已定，但**实际部署位置（4 寮哪几个入口）+ 网络通道分配待确认**。等宿舍勘察 + 跟管理员协商
+- [ ] **贴墙安装方式** — 双面胶 / 螺丝 / 支架，等位置勘察才定（电源已定 micro-USB）
 
 - [ ] **卡片形式**
   - A: 空白 NTAG215 + 贴纸打印学号/名字(¥7/张,业余但便宜)
@@ -1000,17 +1107,16 @@
   - `e346dca` 目录结构整理 + 历史内容抢救
   - `43c73ec` 2026-04-12 NFC 方案设计日 dev_log
 
-- [ ] **.pages 文件转 Markdown**(4 个文件)
+- [ ] **.pages 文件转 Markdown**(3 个非 rollcall 文件 — B-007 修)
   - `01_specs/API_Contract_v0.1.pages`
   - `01_specs/IA_UI_v0.1.pages`
   - `01_specs/Overview_of_Features_v0.1.pages`
-  - `01_specs/rollcall/*.pages`
+  - ~~`01_specs/rollcall/*.pages`~~ — 已废,已被 `RollCall_Spec.md` 取代（2026-04-17 v0.2 主体 rewrite）
 
 - [ ] **清理 `01_specs/临时PDF/` 下的"のコピー"副本**(5 个文件)
   - git status 里一直挂着
 
-- [ ] **归档早期 iOS throwaway 代码**
-  - 从 `03_dev/Student/` → `99_archive/`
+- [x] ~~**归档早期 iOS throwaway 代码**~~ — 已 2026-04-29 大整理归档到 `99_archive/2026-04-29_pre_v1.0_cleanup/`（line 714 §T2 已标 ✅，重复条目 B-007 修）
 
 - [x] **给空目录建 README 或 .gitkeep 或删除** ~~2026-04-19 打 x：这些目录根本不在 git 里（git 不 track 空目录），本地 find 也没列出来 → 该 TODO 条目虚，无需处理。backlog D16~~
   - `02_design/`, `04_ops/`, `06_assets/`, `07_release/`

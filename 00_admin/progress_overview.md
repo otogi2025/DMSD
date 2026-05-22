@@ -1,6 +1,6 @@
 # DMSD 项目进度总览
 
-> **最后更新**: 2026-05-04（章节里程碑大刷新 — itsuki 让 CC 改）
+> **最后更新**: 2026-05-22（加 5-21 + 5-22 2 行到「v0.8 之后未 bump 累积推进表」— teacher_web/demo 158 文件归档 / Fix-Bot 4 effective_* 字段彻底删 / project-overview §0.1 957→980 校准 / Codex 第二轮全文件覆盖 audit 39 条 / session-coord 3 会话并行）。早些 5-21（5-20+ 131 条 bug findings 4 会话并行修复 — Fix-Bot 3 改：仓库结构地图重写 / 系统架构图整合 5 端 / 阶段 4 点呼机刷状态 / 阶段 6/7 刷到 v0.8 之后未 bump 推进）
 > **当前版本**: 见 `CHANGELOG.md` 顶部（单源真值，见 `00_admin/文档同步点清单.md §1`）
 > **版本细粒度**: CHANGELOG 已于 2026-04-17 晚重建，pre-0.1 追认 + 2-02 至今每个实质节点一条 patch
 >
@@ -47,29 +47,38 @@
 
 ## 系统架构
 
+> 2026-04-19 G2 决策后,学生手机 App 是 v1.0 第一天就有的端(不是 Phase 2 追加)。下图反映 5 端 monorepo 真实拓扑。
+
 ```
   点呼室入口                          VPS 服务器
 ┌─────────────┐                  ┌──────────────┐
-│ 点呼机 A    │───── WiFi ──────→│              │
-│ (树莓派+NFC)│←── 学生名字 ─────│  FastAPI     │
-│ + 扬声器    │                  │  + PostgreSQL│
+│ 点呼机 A    │───── HTTP ──────→│              │
+│ (Pi 3A+ +   │←── 学生名字 ─────│  FastAPI     │
+│  PN532 V3 + │                  │  + PostgreSQL│
+│  USB 音响)  │                  │  + Alembic   │
 └─────────────┘                  │              │
                                  │              │
 ┌─────────────┐                  │              │
-│ 点呼机 B    │───── WiFi ──────→│              │
-│ (树莓派+NFC)│←── 学生名字 ─────│              │
-│ + 扬声器    │                  └──────┬───────┘
-└─────────────┘                         │ WiFi
+│ 点呼机 B    │───── HTTP ──────→│              │
+│ (Pi 3A+ + … │←── 学生名字 ─────│              │
+└─────────────┘                  │              │
+                                 │              │
+┌─────────────┐                  │              │
+│ 学生 App    │───── HTTP ──────→│              │
+│ (iOS Swift /│←── JWT / data ───│              │
+│  Android    │                  │              │
+│  Compose)   │                  └──────┬───────┘
+└─────────────┘                         │ HTTP
                                         ↓
                                  ┌──────────────┐
-                                 │ 老师 iPad     │
-                                 │ (管理界面)    │
+                                 │ 老师 Web      │
+                                 │ (TS + Vite,   │
+                                 │  iPad 浏览器) │
                                  └──────────────┘
 
-Phase 2 追加:
-┌─────────────────────────────────┐
-│ 学生手机 App (iOS + Android)     │ 直接碰固定 NFC 点签到,或查看自己数据
-└─────────────────────────────────┘
+  NFC 卡 / 标签 (学生持卡 + 入口动态标签):
+  - NTAG215 (学生卡,7B UID)
+  - ST25DV16K (动态标签,每 10 秒刷新 nonce)
 ```
 
 ---
@@ -166,16 +175,22 @@ Phase 2 追加:
 - [ ] PostgreSQL 切换（v1.0 上线前从 SQLite 迁移）
 - [ ] 部署到 VPS（uvicorn + nginx + systemd）
 
-### 阶段 4: 点呼机设备开发 ⬜ 未开始
+### 阶段 4: 点呼机设备开发 🔄 进行中（设计层完成，硬件采购 / Pi 上手编程 未开始）
 
-- [ ] 采购 Raspberry Pi 4B 2GB × 4（已拍板，¥1200 RMB，等管理员采纳后扩容）
-- [ ] 采购动态 NFC 贴纸 ST25DV16K × 4（¥25 × 4 = ¥100 RMB，10 秒 nonce 刷新）
+**已完成（设计层 + 文档层）**：
+- [x] **硬件全定稿**（2026-05-08）：Pi 3A+（推翻 4-20 Pi 4B 2GB 决策）+ PN532 V3 模块 SPI + 01Studio USB 小音响 + LED 模块 5 色套装 + ST25DV16K × 2 + NTAG215 × 50 + 配件
+- [x] **设计文档双层**：`02_design/hardware_design.md`（物理硬件 / BOM / 接线）+ `03_dev/rollcall_device/ROLLCALL_DEVICE_DESIGN_LOG.md`（226 行软件设计 / 6 个 D1-D6 待 itsuki 拍板的决策点）
+- [x] **代码骨架**：`03_dev/rollcall_device/src/main.py` 占位
+- [x] **5 端 new-feature skill 升级**：5-10 把 4 端模板升级到 5 端，加点呼机 step 5
+
+**未开始（实物层 + 实装层）**：
+- [ ] 采购：Pi 3A+ × 3 / PN532 V3 × 3 / ST25DV16K × 2 / NTAG215 × 50 / LED 套装 / USB 小音响 / 外壳 / 杜邦线（详 `hardware_design.md §4`）
 - [ ] Raspberry Pi 系统安装与配置
-- [ ] NFC 读卡 Python 代码（I²C PN532）
-- [ ] ECDSA 签名校验
+- [ ] NFC 读卡 Python 代码（SPI PN532）
+- [ ] ECDSA / 设备认证
 - [ ] HTTP 通信后端 + session 幂等
-- [ ] 语音播报（pyttsx3）
-- [ ] 外壳 + 贴墙安装
+- [ ] 语音播报（pyttsx3 或 TTS）
+- [ ] 外壳 + 贴墙安装（4 寮位置待勘察）
 
 ### 阶段 5: 老师端 Web/iPad 界面 🔄 进行中
 
@@ -190,27 +205,54 @@ Phase 2 追加:
 - [ ] 学生指导履历 / 事案录入（§7.9）
 - [ ] 学生个人数据汇总 view（§7.10）
 
-### 阶段 6: iOS 学生 App 🔄 进行中（v0.8 推进）
+### 阶段 6: iOS 学生 App 🔄 进行中（v0.8 + 之后多次未 bump 推进）
 
+**已完成（v0.8 close 5-02）**：
 - [x] iOS 网络层完整建设（APIClient + KeychainService + Endpoints/ + NetworkModels）
 - [x] AppStore 切真后端（login + applications + study）
 - [x] iOS↔backend 字段对齐（F1-F5 + Q1 7 处失配修复）
+- [x] Foundation 层 17 文件 1861 行（网络 / Keychain / Route / AppStore）
 - [x] 5 大功能屏完整体（Auth / Home / Apply / MyPage / Schedule / StayList / Bus / Study / NfcScan / RollCallSheet）
 - [x] **注册码 RegisterStep5**（POST /accounts wire 通 + RegistrationDraft 累积 Step1-4 真字段）— 2026-05-04 加（v1.0）
 - [x] **老师公告 列表/详情/回复 view**（最小可工作版）— 2026-05-04 加（v1.0）
 - [x] Apple Image Playground 集成（注册时 AI 头像生成，iOS 18.2+）
+
+**v0.8 之后推进（pending bump）**：
+- [x] 2026-05-04 — 文件联动工具（pre-commit + sync-check.sh + 13→18 联动规则）
+- [x] 2026-05-08 — Apply / MyPage v2 等扩展
+- [x] 2026-05-11 — reviewer 后门修复（5-08 VPS CC seed.py 默默挑凭证翻车的教训落地）
 - [ ] AI 摘要（Foundation Models, iOS 26）— v1.1
 - [ ] 翻译（Translation framework, iOS 17.4+）— v1.1
 - [ ] Push 通知（APNs）— v1.1
 
-### 阶段 7: Android 学生 App 🔄 进行中（v0.8 bootstrap）
+### 阶段 7: Android 学生 App 🔄 进行中（v0.8 + 之后多次未 bump 推进）
 
-- [x] Compose 工程框架从零搭建（21 个 .kt + 10 屏 UI）— v0.8
-- [x] 独立 repo `otogi2025/Tomoshibi-Android` public
+**已完成（v0.8 bootstrap 5-02）**：
+- [x] Compose 工程框架从零搭建（21 → 23 个 .kt + 10 → 22 屏 UI）
 - [x] 实装方针拍板：CC 主导逐屏对译 Compose（不派 sub agent）
+- [x] 单 repo 收回 — 2026-05-06 退役独立 repo `otogi2025/Tomoshibi-Android`，全部代码移入 DMSD/03_dev/student_android/v1/
+
+**v0.8 之后推进（pending bump）**：
+- [x] 5-08 → 5-19 — 屏数 10 → 22 持续扩展
 - [ ] 注册码 RegisterStep5 镜像 iOS（v1.0 待实装）
 - [ ] 老师公告 列表/详情/回复 view（v1.0 待实装）
 - [ ] Push 通知（FCM）— v1.1
+
+### v0.8 之后未 bump 的累积推进（5-04 → 5-22）
+
+| 日期 | 关键节点 |
+|---|---|
+| 2026-05-04 | 文件联动工具（pre-commit + sync-check.sh + 18 条规则代码化）+ 中文铁律加重 |
+| 2026-05-08 | 硬件全定稿（PN532 V3 + LED + 喇叭 + 外壳）+ system_features 4-30 大重写 |
+| 2026-05-10 | ac-radar skill 上线（全局 AC 素材实时捕获，跨项目 inbox）|
+| 2026-05-11 | cc-comm-rules skill 立项（沟通规则）+ graphify 测试 + 术语表 HTML + reviewer 后门修复跨机器协作 |
+| 2026-05-13 | 文件大整理（26 文件 rename / archive）+ project-overview skill 建立（630+ 文件清单）|
+| 2026-05-14 | anti-ai-flavor skill 立项 + cc-comm-rules 规则升到 v0.5.0 <!-- VERSION_OK --> |
+| 2026-05-16 | 跨项目大修（SC26 / Tango / cc-project-template）+ AC 合格率评估 |
+| 2026-05-19 | project-overview 大改造（9 处漂移修 + §0.1 重算 957 文件）+ 防漂 C 方案（hook 全覆盖 + 启动对账）+ post-edit-format.sh + check_overview_drift.sh |
+| 2026-05-20+ | 131 条 bug findings 4 会话并行修复（主会话 + Fix-Bot 1/2/3）|
+| 2026-05-21 | teacher_web/demo 整组 158 文件归档到 99_archive/ + Fix-Bot 4 effective_* 字段彻底删（spec 主体 + 字典三件套 + backend models + 新建 alembic 迁移）|
+| 2026-05-22 | project-overview §0.1 再校准 957→980 + 加 系统bug专栏.md / codex_audit_prompt.md 引用 + **Codex 第二轮全文件覆盖 audit**（1003 文件 / 39 条 = 24 独立 + 13 复核 + 2 positive）+ session-coord 跨会话协作板（3 会话并行：主 + 点呼机 + iOS 修复）|
 
 ### 阶段 8: 部署与试运行 ⬜ 未开始
 
@@ -337,32 +379,24 @@ Phase 2 追加:
 
 ## 仓库结构地图
 
-```
-DMSD/
-├── CHANGELOG.md                     版本变更记录
-├── CLAUDE.md                        Claude Code 项目指令
-├── 00_admin/                        项目管理
-│   ├── progress_overview.md         ← 本文件
-│   └── executable_dev_checklist.md
-├── 01_specs/                        规格文档(v0.1 冻结)
-│   ├── API_CONVENTIONS.md
-│   ├── API_Contract_v0.1.pages
-│   ├── IA_UI_v0.1.pages
-│   ├── v0.1完整计划.pdf
-│   └── rollcall/
-│       ├── RollCall_Spec_v0.1.pages
-│       ├── FIELD_REGISTRY.md
-│       ├── ENUM_REGISTRY.md
-│       ├── ERROR_CODES.md
-│       └── v0.1_冻结决策.md
-├── 03_dev/                          代码(待开始)
-│   └── Student/DMSDStudentApp(iOS)/  早期 throwaway 代码,将重写
-├── 05_logs/                      DMSD 开发 log（AC 纯素材已迁 iCloud）
-│   ├── decision_log.md              itsuki 手写决策索引
-│   ├── learning_path.md
-│   ├── project_evolution.md
-│   ├── raw/                         CC 每日 dump（YYYY-MM-DD.md）
-│   ├── dev_log/                     itsuki 自己写的叙述式日志
-│   └── problem_solving/             问题解决记录
-└── 99_archive/                      归档
-```
+> **2026-05-21 重写**：原静态结构图严重过期（4-12 之前结构、列了已归档的 `executable_dev_checklist.md`、列了 throwaway iOS 代码 `Student/DMSDStudentApp(iOS)/`、漏 6+ 顶级目录）。
+>
+> **真值已迁** → `.claude/skills/project-overview/SKILL.md`（630+ 文件清单 + 每个文件作用 + 状态 + AC 价值，957 文件全统计 2026-05-16）。
+>
+> 本文件不再维护静态结构图（防漂）。下表只列顶级目录骨架,详细看上面 skill。
+
+| 顶级目录 | 干嘛 | 文件数（截至 2026-05-16）|
+|---|---|---|
+| 根级 6 文件 | CLAUDE / README / CHANGELOG / LICENSE / .gitignore / .graphifyignore | 6 |
+| `00_admin/` | 项目管理（WIP / TODO / progress_overview / hooks / 文档同步点清单）| 18 |
+| `01_specs/` | 规格文档（rollcall 字典三件套 + 主体）| 13 |
+| `02_design/` | 设计文档（system_features / hardware / flow）| 3 |
+| `03_dev/` | 5 端代码（backend / teacher_web / student_ios / student_android / rollcall_device）| 546 |
+| `04_ops/` | 运维 | 2 |
+| `05_logs/` | 开发 log（raw / dev_log / problem_solving / decision_log / learning_path / project_evolution）| 75 |
+| `06_assets/` | 4 icon + 术语表 + 实样 | 7 |
+| `99_archive/` | 早期归档 | 273 |
+| `.claude/` | CC 配置 + 7 skill | 9+ |
+| `bin/` | 脚本（sync-check / check_overview_drift / create_local_dev_symlink）| 3 |
+| `docs/` | Matt Pocock 外部 skill 适配配置 | 3 |
+| **总计** | | **957** |

@@ -1,6 +1,6 @@
 # 当前工作状态 (Work In Progress)
 
-> **最后更新**: 2026-05-22（A1+A2+B4 修 project-overview §0.1 漂移 957→980 + 加 系统bug专栏.md / codex_audit_prompt.md 引用 / B2 Fix-Bot 4 effective_* 已完成确认 / F1 清 5-14 过期警告标记 — 详见会话 ID 1779447495-6286）。早些 5-21（5-20 凌晨 4 会话审查作战 cron 自动 fire 产出 131 条 findings / 5-21 加系统 bug 专栏 + 第一批修复 8 条：CLAUDE.md 3 处死链 + 路径漂 / flow_design Pi 4B → Pi 3A+ / WIP 03_dev/device → rollcall_device / README 14 个版本数字 / TODO §⏰ + §G 编号清理）。早些 5-19（project-overview 文件介绍大改造 + 9 处漂移对账修复 + 防漂 C 方案落地 — hook 全覆盖 + 启动对账脚本双层保险 / 元层翻车 itsuki「我看不懂了」沟通问题 hook 触发 / 详见 `raw/2026-05-19.md`）。早些 5-16 下午（跨项目 CC 完整性审计 + 大修 — Tango B 案 / SC26 轻修 / cc-project-template D 案清通用 / 全局 hook 改读 cwd / 修 macOS bash 3.2 heredoc 中文乱码 bug）。<!-- VERSION_OK -->
+> **最后更新**: 2026-05-22（**3 会话产出** — ① 早 `1779447495-6286` 修 project-overview §0.1 漂移 957→980 + 加 `系统bug专栏.md` / `codex_audit_prompt.md` 引用 + B2 Fix-Bot 4 `effective_*` 已完成确认 + F1 清 5-14 过期警告标记 / ② 中 `1779447279-2548` iOS fork 融合归档 + 5 文件 backport + commit `46f779c` / ③ 晚 `1779447985-17762` 点呼机推进 → 撞 5-12~16 海关查扣事件 → itsuki 拍板撤回中国海运改日本本地买 + 立项 `session-wrap §5.5.15 decision-draft` 收尾子节 — CC 永不直写 `decision_log.md` 正文只起草草稿 / 改 8 文件）。早些 5-21（5-20 凌晨 4 会话审查作战 cron 自动 fire 产出 131 条 findings / 5-21 加系统 bug 专栏 + 第一批修复 8 条）。早些 5-19（project-overview 文件介绍大改造 + 9 处漂移对账修复 + 防漂 C 方案落地 / 详见 `raw/2026-05-19.md`）。早些 5-16 下午（跨项目 CC 完整性审计 + 大修）。<!-- VERSION_OK -->
 
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
@@ -49,6 +49,50 @@
 ---
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
+
+### 2026-05-22（晚段 20:30-21:30+）by [MacBook-Pro-Opus 4.7 1M / 1779447985-17762-点呼机推进 + decision-draft]
+
+**主题**：⭐⭐⭐⭐⭐ 会话以「点呼机推进」为主题启动 → itsuki 抛 5-12~16 中国海关查扣事件（项目内 raw + decision_log 全 0 命中 — 之前未留痕）→ itsuki 拍板撤回中国海运渠道改日本本地买（理由：避免再查扣 + 本地买配件坏了维护方便）+ 同步立项 `session-wrap §5.5.15 decision-draft` 收尾子节（itsuki 反问「我不是有 ac-radar 了吗」+ 拍板「直接放收尾流程里作子节，不做独立 SKILL.md」）+ CC 失职 2 次（提议写 decision_log 但没主动提更新 `我的环境.html` / 闭门造车设计触发词 itsuki 戳穿「我一个都不会说」）
+
+**关键拍板**（itsuki 7 次明确决策）：
+- **撤回中国海运 → 日本本地买**（双理由：避免查扣 + 长期维护）
+- **decision_log 专门做一 skill — 多方位收集素材**（CC 提议「删」被反向升级）
+- **A 窄做**（决策日志写入助手 — 起草草稿不直写正文）
+- **「我不是有 ac-radar 了吗」**（戳穿 CC 重复造轮子）
+- **「直接放收尾流程里作子节，不做独立 SKILL.md」**（架构重定）
+- **「我一个都不会说」**（戳穿 CC 闭门造车设计触发词）
+- **「如果我不说你会写吗？」**（戳穿 CC 漏更新 `我的环境.html` 全局规则）
+
+**实际改动**（8 文件）：
+| 文件 | 改动 |
+|---|---|
+| `05_logs/raw/2026-05-22.md` | 新建 — 深度抓海关事件 + 方向反转 + 模式 1+2+6 三维度拆解 + 主体性 5/5 评分 |
+| iCloud `06_radar_inbox/ac_scratchpad_2026-05-22.md` | AC 雷达短标签写入（跨项目可见）|
+| `00_admin/TODO.md` | §🛰️ 点呼机段：原 11 件淘宝清单 + 2 任务作废 / 加 6 条新待办（重新选型 + 渠道调研 + 预算重估 + 硬件文档更新 + 点呼机设计文档更新 + 拆寄教训）|
+| `.claude/skills/session-wrap/SKILL.md` | 加 §5.5.15 decision-draft 子节（识别 6 类重大决策 / 草稿格式 / CC 永不直写铁律 / 跟 ac-radar + §5.5.1 AC dump 分工 / 含 5-22 海关事件实测例子）+ §5.5 标题「8 节→16 节」|
+| `~/.claude/我的环境.md` | 顶部时间戳 + DMSD Skills 表 session-wrap 行 + 末尾历史日志 5-22 条目 |
+| `~/.claude/我的环境.html` | 同上 3 处 + 页脚日期 |
+| `02_design/hardware_design.md` | 顶部时间戳 + §0 状态表 §5 行 + §5 整段重写（5.1 标 ❌ + 加 5.1' 新方向 + 5.2「假设崩」表）|
+| `03_dev/rollcall_device/ROLLCALL_DEVICE_DESIGN_LOG.md §1.2` | 加 5-22 banner + 原配件标 🔴 撤回 + 加日本重新选型行 |
+
+**AC 价值** ⭐⭐⭐⭐⭐：
+- **模式 1**（派生痛点 → 工程解法）：省运费 → 单点故障 → 一两件触发查扣 → 全部连带损失 → 反向推「拆寄 + 本地买」方案
+- **模式 2**（假设崩）× 2：4-20 写「ST25DV16K 通用电子元件无出口限制」5-22 真值翻车 / CC 提议「写 decision_log 草稿」被 itsuki 反向升级
+- **模式 5**（元认知）× 3：CC 失职 2 次主动承认 / itsuki 推翻 CC「删」改「升级成能力模块」/ CC 闭门造车设计触发词 itsuki 戳穿
+- **模式 6**（取舍）× 多：长期维护视角 vs 单次成本 / 决策日志做独立 SKILL vs 收尾子节 / 触发词靠 itsuki 喊 vs 收尾自动扫
+- **协作纠错** × 3：itsuki 戳穿 CC 重复造轮子 / CC 闭门造车 / CC 漏更新清单
+- **主体性 5/5**：7 次明确拍板，3 次戳穿 CC，1 次主动标记 AC 素材
+- **学术延伸性**：供应链风险管理 / 单点故障设计 / 鸡蛋别放一个篮子（diversification 原则） — AC 面试挂「系统设计的风险分散」
+
+**残（下次跟进）**：
+- 日本本地硬件重新选型 — 6 类 × 6 渠道（Amazon.jp / 秋月電子 / スイッチサイエンス / 千石電商 / Yahoo Auction / メルカリ）→ 下次会话开始
+- 点呼机 `ROLLCALL_DEVICE_DESIGN_LOG.md §10` D1-D6 待 itsuki 拍板（不依赖硬件实物，可并行）
+- 点呼机 mock 写代码 — 不依赖 Pi 实物
+- 后端 ECDSA 验签实装 — 切别会话推进
+- 本次 decision-draft 子节首次产出的「5-22 海关方向反转」草稿在 SKILL.md §5.5.15 例段，等 itsuki 粘到 `05_logs/decision_log.md` 顶部
+- 多个 project-overview 描述准确性 hook 提醒挂起（8 文件改动产生），收尾时统一过 §0.1 体量表 + 对应章节描述
+
+详细 raw：`05_logs/raw/2026-05-22.md`
 
 ### 2026-05-22 by [MacBook-Pro-Opus 4.7 / 1779447279-2548-iOS fork 融合]
 
@@ -184,41 +228,9 @@
 
 详细 raw：`05_logs/raw/2026-05-14.md` §K（4 段素材 + §L 工程动作清单）
 
-### 2026-05-14（中午）by [新Mac-Opus 4.7 1M-graphify 实测复盘]
+> **2026-05-22 晚收尾砍 5-14 中午 graphify 复盘 + 5-14 晚段 Tango 立项 2 条**（让 5-22 晚 点呼机推进+decision-draft + 5-22 早 iOS fork 融合 + 5-19 project-overview 改造 + 5-16 跨项目优化 + 5-14 晚段-2 anti-ai-flavor 维持 5 条上限）— 详细历史看 commit log + `raw/2026-05-14.md` + `raw/2026-05-14_Tango立项+bootstrap.md` <!-- VERSION_OK -->
 
-**主题**：⭐⭐⭐⭐⭐ graphify 装 3 天闲置 → itsuki 拍板「不卸不用 + 留作 AC 素材」第 4 选项创造。
-
-- **拍板原文 + 5 机制对比 + AC 价值**：`05_logs/raw/2026-05-14.md §I`（150 行深度 AC dump）
-- **残留任务**：见 TODO §🛠️ C（标已废）
-
-> **2026-05-21 注（B-008 修）**：原段落 30+ 行复述决策详情 + 残留 5 条 + AC 价值评分,违反 WIP 铁律「未完成只写在 TODO / 不复述详情」。压缩成 2 行,详情指针到 raw + TODO。
-
-### 2026-05-14（晚段）by [新Mac-Opus 4.7 1M-Tango立项+bootstrap]
-
-**主题**：⭐⭐⭐⭐⭐ itsuki 提"做记单词网站" → grill-me 12 题完整设计讨论 → cc-project-template 治理框架首次实战 → 跨项目 bootstrap 起 Tango 项目骨架（`~/dev/tango/`）→ stop 等推进
-
-**关键拍板**：Tango = DMSD 派生 AC 项目（"为自己解决英语单词记不住痛点"，跟 DMSD"为他人"双叙事维度并列）/ MVP 先 Web → App 后续 → 上 App Store + 推广（itsuki 推翻 CC 4 次后修正路线）/ 算法 B 路径（SM-2 改造 → 机器学习版 → 神经网络）3 层切分 L1/L2/L3 / 技术栈跟 DMSD 后端同（FastAPI + Jinja2 + SQLite）+ 移动端优先 + 域名暂共享 DMSD 后续独立买
-
-**Tango bootstrap 完成**：cp `cc-project-template` → 替换 5 占位符（13 文件）→ Tango 专属 CLAUDE.md（参考 DMSD）→ 项目宪章 v0.0.0（含 12 题讨论结果 + 15 task）→ git init + 2 commit (`addbfde` + `0467ed6`) → hook 装好 + pre-commit 2 次拦截后修复成功（验证治理跨项目复用）→ TODO 加 9 条 G1-G9 治理 TODO（边开发边清 6 skill 共 197 处 DMSD 残留）<!-- VERSION_OK -->
-
-**itsuki 推翻 CC 4 次**（主体性 5/5）：(1) 时间盒选升级版（不接受极简 MVP）/ (2) 手机用户没 Tab 键（戳穿 CC 桌面端思维）/ (3) vibe coding 不能按手工搓估时（CC 估时根本错）/ (4) 域名独立项目独立买（不绑 DMSD 永久）
-
-**AC 价值** ⭐⭐⭐⭐⭐：
-- **模式 1**：派生痛点识别 → 工程解法
-- **模式 4** × 2：DMSD（v1 核心）→ Tango（v2 派生）双叙事 / cc-project-template 治理 v1.0 → 5-14 首次实战 <!-- VERSION_OK -->
-- **模式 5** × 多：4 次推翻 + 6 次 CC 主动诊断 unknown unknowns（闭门造车反向证据 / App Store 撞车预警 / 分隔符陷阱 / vibe coding 边界 / DMSD 残留治理策略 / 跨项目脏改反模式）+ cc-comm-rules v0.5.0 实战触发 1 次（master vs main "不理解" hook 拦下） <!-- VERSION_OK -->
-- **模式 6** × 多：12 题每题取舍 + 算法 3 层切分 + MVP 范围日语推后等
-- **学术延伸性**：认知科学（Ebbinghaus 遗忘曲线）→ 间隔重复算法（SM-2）→ 机器学习（FSRS）→ 神经网络 → 个人记忆模型 — 完整学习路径跟情報学群直接挂钩
-
-**残（下次跟进）**：
-- Tango GitHub repo `otogi2025/tango` 未建 / 未 push（commit `addbfde` + `0467ed6` 等 itsuki 拍板 push）
-- Tango 切新会话开始 Phase 1（读 Ebbinghaus + Wozniak 论文 + 笔记 → MVP 实装）
-- 6 个 Tango skill 共 197 处 DMSD 残留 → G1-G9 治理 TODO 边开发边清
-- 术语表归档 Tango 新词（grill-me / vibe coding / SM-2 / FSRS / Ebbinghaus / Wozniak / Anki / Quizlet 等大批领域词）推到 Tango Phase 1 实装时按对应类目入（不挤 ⑰ 协作类）
-
-详细 raw：`05_logs/raw/2026-05-14_Tango立项+bootstrap.md`
-
-> **2026-05-19 收尾砍 5-14 早段沟通规则 v0.5.0 段**（让 5-19 project-overview 系统化改造 + 5-16 跨项目优化 + 5-14 晚段-2 anti-ai-flavor + 5-14 中午 graphify + 5-14 晚段 Tango 立项 维持 5 条上限）— 详细历史看 commit log + `raw/2026-05-14.md` <!-- VERSION_OK -->
+> **2026-05-19 收尾砍 5-14 早段沟通规则 v0.5.0 段** — 详细历史看 commit log + `raw/2026-05-14.md` <!-- VERSION_OK -->
 
 > **2026-05-16 下午砍 5-13 接力 audit 段**（让 5-16 跨项目优化 + 5-14 晚段-2 anti-ai-flavor + 5-14 中午 graphify + 5-14 晚段 Tango 立项 + 5-14 早段 沟通规则 v0.5.0 维持 5 条上限）— 详细历史看 commit log + `raw/2026-05-13_接力CC续做.md` <!-- VERSION_OK -->
 

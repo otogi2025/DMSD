@@ -1,6 +1,8 @@
 # Changelog
 
-> **最后更新**: 2026-05-02 晚（**v0.8.0 close** — 三端代码层全启动：Android Compose bootstrap + 10 屏 / iOS 网络层完整建设 + AppStore 切真后端 / teacher_web v1 TS+Vite+Zustand 升级 + 5 page / backend rollcall+study+teachers routers + Alembic 框架 / iOS↔backend 字段对齐 F1-F5+Q1）。早些更新：v0.7.0 close（三轨 A+B+C 同日完成 38 条老师反馈 + 实物表 evidence 推翻 LINE 文字推测 + 沟通规则 #6 + SOP §8.5 版本路线图）；v0.6.0 close（老师 4-29 LINE 38 条受领 + RollCall_Spec 5 处时序修订 + system_features 中文骨架大重写）；v0.4.0 + v0.5.0 双 minor 闭合；**版本管理 SOP 建立**
+> **最后更新**: 2026-05-02 晚（**v0.8.0 close** — 5 端代码层全启动（含点呼机骨架）：Android Compose bootstrap + 10 屏 / iOS 网络层完整建设 + AppStore 切真后端 / teacher_web v1 TS+Vite+Zustand 升级 + 5 page / backend rollcall+study+teachers routers + Alembic 框架 / iOS↔backend 字段对齐 F1-F5+Q1）。早些更新：v0.7.0 close（三轨 A+B+C 同日完成 38 条老师反馈 + 实物表 evidence 推翻 LINE 文字推测 + 沟通规则 #6 + SOP §8.5 版本路线图）；v0.6.0 close（老师 4-29 LINE 38 条受领 + RollCall_Spec 5 处时序修订 + system_features 中文骨架大重写）；v0.4.0 + v0.5.0 双 minor 闭合；**版本管理 SOP 建立**
+>
+> **2026-05-19 注**: v0.8 之后累积 15+ commit 实质推进（5-04 文件联动工具 / 5-08 硬件全定稿 / 5-10 ac-radar / 5-11 cc-comm-rules + graphify / 5-13 文件大整理 / 5-14 anti-ai-flavor / 5-16 跨项目大修 / 5-19 project-overview 大改造 + 防漂 C 方案 / 5-20+ 131 条 bug findings 修复），未到 bump 触发线，详见 WIP + progress_overview。
 >
 > 版本号规则：[语义化版本 (SemVer)](https://semver.org/) — 主版本号.次版本号.修订号
 >
@@ -17,7 +19,7 @@
 
 ---
 
-## [0.8.0] - 2026-05-02 晚（三端代码层全启动 — Android bootstrap + iOS 网络层 + teacher_web v1 + backend 全功能 routers + iOS↔backend 字段对齐）
+## [0.8.0] - 2026-05-02 晚（5 端代码层全启动 — Android bootstrap + iOS 网络层 + teacher_web v1 + backend 全功能 routers + iOS↔backend 字段对齐 + 点呼机骨架）
 
 > **为什么 minor bump**（对照版本管理 SOP §2 决策树）：本版本是 v0.7.0「设计 → brief」全闭环之后第一个进入「**brief → 实装代码**」阶段的里程碑。31 commit 累积横跨 5 端：
 > - **#4 03_dev/ 大幅扩展**（强命中）→
@@ -35,7 +37,7 @@
 >
 > **31 commit 跨 v0.7.0 → v0.8.0**（5-01 → 5-02）：详见下方 Added / Changed / Notes 分类。
 >
-> **特殊里程碑**：v0.8.0 是项目第一次「三端 + 后端 + 文档 五条线同时推进」的版本。v0.7.0 把「老师 38 条」消化成 brief，v0.8.0 开始把这些 brief 写成代码。
+> **特殊里程碑**：v0.8.0 是项目第一次「三端 app + 后端 + 文档 五条线同时推进」的版本（5-08 后加点呼机层成 5 端 monorepo）。v0.7.0 把「老师 38 条」消化成 brief，v0.8.0 开始把这些 brief 写成代码。
 
 ### Added — 三端代码层全启动
 

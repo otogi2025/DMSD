@@ -12,7 +12,9 @@ DMSD 用了 **3 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后
 2. **版本 bump 提醒**（非阻塞，2026-04-29 加）— 改了 `01_specs/` / `02_design/` / `03_dev/*_DESIGN_LOG` 时提醒检查 version-bump skill `§2 决策树`。
 3. **文件联动提醒**（非阻塞，2026-05-04 加）— 改了某文件但联动文件没动 → 警告。规则表 = `lib/sync-rules.sh`，详细联动矩阵见 `.claude/skills/file-linkage/SKILL.md`。**配套**：`bin/sync-check.sh` = 中途随时手动跑（不用等到 commit）。
 
-### ⭐ CC PostToolUse hook（5 条，CC 调 Write/Edit 时立刻并行触发，2026-05-04 深夜加）
+### ⭐ CC PostToolUse hook（7 条 A-G，CC 调 Write/Edit 时立刻并行触发，2026-05-04 深夜加 + 5-13 加 F + 5-19 加 G）
+
+> **2026-05-21 调整记录**：字段编号 A-K 重排齐 — PostToolUse 7 条（A-G）+ PreToolUse 1 条（H）+ SessionStart 1 条（I）+ Git hook 2 条（J / K）。原版字母 F / G 重复（pre-bash 跟 post-edit-project-overview 都占 F；post-commit 跟 post-edit-format 都占 G）— 5-21 Fix-Bot 3 重排修。
 
 **比 git pre-commit 早一步**，CC 在中途没 commit 也能拦各种漂移。同 matcher 下挂 5 条 hook（并行跑）：
 
@@ -40,25 +42,33 @@ DMSD 用了 **3 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后
 - 提取新增内容找 `vX.Y.Z` 模式行 + 行末没 `<!-- VERSION_OK -->` 豁免 → 提醒
 - 比 git pre-commit 早一步拦（commit 前发现，不等 commit 才阻塞）
 
-#### F. `post-edit-project-overview-check.sh` — project-overview SKILL.md 同步检查（**2026-05-13 itsuki 怒怼后加**）
-- 触发条件：CC Write / Edit 命中结构相关文件
-  - `00_admin/*.md` / `00_admin/hooks/*`
-  - `01_specs/*.md` / `01_specs/*/*.md`
-  - `02_design/*.md`
-  - `03_dev/*/README.md` / `03_dev/*/*_DESIGN_LOG.md`
-  - `03_dev/backend/v1/app/*.py` / `03_dev/student_ios/v1/.../Root/*.swift` + `Foundation/*.swift`
-  - `03_dev/rollcall_device/src/*.py`
-  - `.claude/skills/*/SKILL.md` / `CLAUDE.md` / `README.md` / `CHANGELOG.md`
-- 跳过：project-overview 自身 / raw log / dev_log / problem_solving / memory / 99_archive / 临时文件 / `.gitignore` 排除目录
+#### F. `post-edit-project-overview-check.sh` — project-overview SKILL.md 同步检查（**5-13 加 / 5-19 改全项目覆盖**）
+- 触发条件：CC Write / Edit 命中 **DMSD 项目内任何文件**（v2 = 全覆盖，不再用白名单）
+- 跳过（最小化）：project-overview 自身（避免循环）/ 临时文件（.lock / .log / .bak / .swp / .tmp / /tmp/*）/ `.gitignore` 排除目录（graphify-out / .beads / .scratch / node_modules / __pycache__ / .venv / DerivedData / .swiftpm）/ macOS IDE 元数据（.DS_Store / xcuserdata）
 - 检查：grep 文件名 + 路径在 project-overview SKILL.md 里
-  - 名 + 路径都在 → 温和提醒"确认描述准确性"
+  - 名 + 路径都在 → 温和提醒"确认描述准确性"（含数字 / 行数 / 文件数是否要更新）
   - 名在 / 路径不在 → 提醒"可能改名 / 移位 — 改 project-overview 引用"
-  - 都不在 → **强提醒**"新建文件应该加进 project-overview 对应章节"
-- 出处：itsuki 5-13 怒怼"5-13 整理 26 文件后没同步 project-overview → 找不到文件 / 描述漂移"
+  - 都不在 → **强提醒**"新建文件 / 整段没列 → 应该加进 project-overview 对应章节"
+- 出处 v1（5-13）：itsuki 怒怼"5-13 整理 26 文件后没同步 project-overview → 找不到文件 / 描述漂移"
+- 出处 v2（5-19）：5-19 对账发现 9 处漂移（§3 backend 35→56 / §5 iOS 54→66 / Android 56→80 等）— v1 白名单漏 routers / services / alembic / Android 真代码 / iOS Features / teacher_web v1 → itsuki 拍板「hook 覆盖整个项目」
+- 配套（B 方案）：启动对账脚本 `bin/check_overview_drift.sh` 注册到 SessionStart hook — 每次会话启动自动跑 git ls-files 对账，比 hook 兜底更可靠
 
-### ⭐ CC PreToolUse hook（1 条，CC 调 Bash 前触发，2026-05-04 加，2026-05-12 改 warn 模式）
+#### G. `post-edit-format.sh` — 多语言代码自动格式化（**2026-05-19 itsuki claude-code-setup 推荐后落地**）
+- 触发条件：CC Write/Edit 命中代码文件
+- 按扩展名分发：
+  - `.py` → `ruff check --fix` + `ruff format`
+  - `.swift` → `swiftformat`
+  - `.kt / .kts` → `ktlint -F`
+  - `.ts / .tsx / .js / .jsx / .vue / .css / .scss / .html / .json` → `prettier --write`
+- 跳过：`node_modules / build / DerivedData / .venv / __pycache__ / 99_archive / .git`
+- 工具未装 → 静默 skip（不报错）
+- 装的工具（2026-05-19 同日装齐）：ruff 0.15.13 / swiftformat 0.61.1 / ktlint 1.8.0 / prettier 3.8.3 + prettier-plugin-tailwindcss
+- 出处：itsuki 5-19 跑 claude-code-setup plugin 推荐器后拍板的 4 件落地之一（同批：context7 MCP / GitHub MCP / security-reviewer subagent / 本 hook）
+- 跟 C 段（japanese-comment-check）并行跑会拖 2-4 秒响应，可接受
 
-#### F. `pre-bash-destructive-block.sh` — 破坏性命令**提醒**（warn 模式，不阻断）
+### ⭐ CC PreToolUse hook（1 条 H，CC 调 Bash 前触发，2026-05-04 加，2026-05-12 改 warn 模式）
+
+#### H. `pre-bash-destructive-block.sh` — 破坏性命令**提醒**（warn 模式，不阻断）
 - 触发条件：所有 Bash 命令（matcher="Bash"）
 - 警告清单（命中后 CC 看到警告，但命令照跑）：
   - `rm -rf <非临时路径>`（白名单 /tmp / node_modules / DerivedData / dist / build）
@@ -74,15 +84,28 @@ DMSD 用了 **3 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后
 - CC 自觉性：看到警告**应该**停下来跟 itsuki 确认，**技术上**可以直接跑（hook 不再 block）
 - 文件名保留 `pre-bash-destructive-block.sh`（避免改名引发 settings.json + README 等多处联动）
 
-### ⭐ Git post-commit / post-checkout hook（graphify 知识图谱自动重建，2026-05-11 加）
+### ⭐ CC SessionStart hook（1 条，CC 启动会话时触发，2026-05-19 加 — C 方案 B 部分）
 
-#### G. `post-commit` — graphify AST 增量重建
+#### I. `bin/check_overview_drift.sh` — project-overview §0.1 体量表对账（**5-19 加**）
+- 触发时机：每次 CC 会话启动
+- 干什么：跑 `git ls-files` 拿顶级目录真实文件数 → 跟 project-overview SKILL.md §0.1 体量表对比 → 差异列出来
+- 输出：
+  - 全对 → `✅ project-overview §0.1 对账：957 文件全部对上 — 没漂`
+  - 有差异 → 列具体哪段对不上 + 修复指引
+- 配置位置：`.claude/settings.json` `hooks.SessionStart` 段
+- 出处：itsuki 5-19 拍板 C 方案 — A（hook 全覆盖 / §F 段）+ B（启动对账 / 本段）双层保险。原因：5-19 对账发现 9 处漂移 → A 拦 CC 当下改，B 拦跨会话 / 外部工具改（codex / 自动化）
+- 跟 §F 区别：§F 是写文件时触发（实时层），本段是会话启动时触发（启动层）— 两层互补
+- 脚本位置 `bin/` 不是 `00_admin/hooks/` — 因为 itsuki 也能手动跑：`bash bin/check_overview_drift.sh`
+
+### ⭐ Git post-commit / post-checkout hook（2 条 J / K，graphify 知识图谱自动重建，2026-05-11 加）
+
+#### J. `post-commit` — graphify AST 增量重建
 - 触发时机：每次 `git commit` 后
 - 干什么：检测改了哪些代码文件（git diff HEAD~1 HEAD）→ 在后台跑 graphify 的 AST 重抽（不调 LLM 不烧 token）→ 更新 `graphify-out/graph.json` + `GRAPH_REPORT.md`
 - 安全性：rebase / merge / cherry-pick 期间会跳过；后台 `nohup` 跑不阻塞 commit
 - doc / image 改了**不自动跑**（要手动 `/graphify --update`）
 
-#### H. `post-checkout` — graphify 切分支后重建
+#### K. `post-checkout` — graphify 切分支后重建
 - 触发时机：每次 `git checkout <branch>` 后
 - 干什么：分支切了 → 文件树可能大变 → 重抽图谱
 
@@ -94,14 +117,24 @@ DMSD 用了 **3 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后
 # 在 CC 内输入 /hooks 查看是否注册成功
 
 # 手动 dry-run 测：
-echo '{"tool_input":{"file_path":"/Users/kurekoduki/.claude/projects/-Users-itsuki-dev-DMSD/memory/test.md"}}' | bash 00_admin/hooks/post-edit-memory-check.sh
+echo '{"tool_input":{"file_path":"/Users/kurekoduki/.claude/projects/-Users-kurekoduki-dev-DMSD/memory/test.md"}}' | bash 00_admin/hooks/post-edit-memory-check.sh
 echo '{"tool_input":{"file_path":"/Users/kurekoduki/dev/DMSD/03_dev/backend/v1/app/models.py"}}' | bash 00_admin/hooks/post-edit-sync-check.sh
 echo '{"tool_input":{"command":"git reset --hard"}}' | bash 00_admin/hooks/pre-bash-destructive-block.sh; echo "exit=$?"
 ```
 
-### SessionStart hook（已删，2026-05-04 同日加同日删）
+### 调整记录
 
+#### 2026-05-04 同日加同日删 — SessionStart hook v1
 > itsuki 反问后判断启动时 git 状态扫描没价值（CC 自己 `git status` 就行 / itsuki 已知 repo 状态），把这段检查挪到 session-wrap skill §5.5.9 收尾段。`session-start-check.sh` 已删 / `.claude/settings.json` SessionStart hook 配置已删。
+
+#### 2026-05-19 加 3 件 — A 部分（hook 全覆盖）+ B 部分（启动对账）+ G 多语言格式化
+> itsuki 跑 `claude-code-setup` plugin 推荐器后拍板的 4 件落地之一（同批：context7 MCP / GitHub MCP / security-reviewer subagent / 本批 hook）。
+> - **§F** `post-edit-project-overview-check.sh` 改全项目覆盖（v1 白名单漏 routers / Android / Features 等）
+> - **§I** `bin/check_overview_drift.sh` SessionStart hook v2 — 不是 git 状态扫描（已废 v1），而是 project-overview §0.1 体量表对账 → 详见 §F / §I
+> - **§G** `post-edit-format.sh` — `.py` ruff / `.swift` swiftformat / `.kt` ktlint / `.ts/.tsx/.js/.jsx/.vue/.css/.scss/.html/.json` prettier，工具未装静默 skip
+
+#### 2026-05-21 字段编号大整理
+> Fix-Bot 3 重排 A-K 字段编号（原版 F/G 字母重复）— PostToolUse 7（A-G）+ PreToolUse 1（H）+ SessionStart 1（I）+ Git 2（J/K）。同时修 `bin/check_overview_drift.sh` awk bug（B-021 — awk 限定到 §0.1 体量表上下文 + 区分 staged/committed）。
 
 ## 为什么（2026-04-19 发现）
 

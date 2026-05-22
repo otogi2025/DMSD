@@ -1,0 +1,1004 @@
+path	tracked	top	ext	kind	bytes	lines	sha256_16	flags
+.claude/session-coord.config.json	tracked	.claude	.json	text	892	25	dfe1a359515f0d3c	demo-mock-todo
+.claude/settings.json	tracked	.claude	.json	text	2788	88	5aff568b83b00732	
+.claude/skills/file-linkage/SKILL.md	tracked	.claude	.md	text	11143	292	833e66c2d83d0f9b	
+.claude/skills/memory-write/SKILL.md	tracked	.claude	.md	text	8956	252	082f47db584b6fc4	demo-mock-todo
+.claude/skills/new-feature/SKILL.md	tracked	.claude	.md	text	11853	283	a3890114fb01f62e	demo-mock-todo
+.claude/skills/project-overview/SKILL.md	tracked	.claude	.md	text	82648	975	3e6821567ab30db7	demo-mock-todo,secret-word
+.claude/skills/session-wrap/SKILL.md	tracked	.claude	.md	text	43237	871	6511bda27df03a4e	demo-mock-todo,secret-word
+.claude/skills/spec-sync/SKILL.md	tracked	.claude	.md	text	8132	242	ffc1a75d957d7f1b	demo-mock-todo
+.claude/skills/version-bump/SKILL.md	tracked	.claude	.md	text	25769	557	d7b5873dc65ce86f	demo-mock-todo
+.gitignore	tracked	.gitignore	[none]	text	2616	102	b41ff245d9e6debc	demo-mock-todo
+.graphifyignore	tracked	.graphifyignore	[none]	text	1355	32	2be2f000cfd91a44	demo-mock-todo
+00_admin/2026-04-19_项目审查_backlog.md	tracked	00_admin	.md	text	63073	514	8c6547fe69cb87d3	demo-mock-todo,secret-word
+00_admin/TODO.md	tracked	00_admin	.md	text	86210	1196	d38b5b7e0cac3d2b	demo-mock-todo,secret-word
+00_admin/WIP.md	tracked	00_admin	.md	text	21638	272	1e4f6406191fd90b	demo-mock-todo
+00_admin/hooks/README.md	tracked	00_admin	.md	text	15796	257	ff1dddadff80fea1	demo-mock-todo,secret-word
+00_admin/hooks/install.sh	tracked	00_admin	.sh	text	1065	36	f17e06c2c52210dd	
+00_admin/hooks/lib/sync-rules.sh	tracked	00_admin	.sh	text	13182	356	d2538c6f1efaebd3	demo-mock-todo
+00_admin/hooks/post-checkout	tracked	00_admin	[none]	text	3105	84	659620f76eb5edb2	
+00_admin/hooks/post-commit	tracked	00_admin	[none]	text	3263	85	2a4f4dc7989b7bdd	
+00_admin/hooks/post-edit-japanese-comment-check.sh	tracked	00_admin	.sh	text	5033	160	f5bd59a45a5d530f	
+00_admin/hooks/post-edit-memory-check.sh	tracked	00_admin	.sh	text	3276	117	688f8041ffe562b5	
+00_admin/hooks/post-edit-project-overview-check.sh	tracked	00_admin	.sh	text	5242	137	5de62c6deda86b9b	demo-mock-todo
+00_admin/hooks/post-edit-sync-check.sh	tracked	00_admin	.sh	text	3105	94	1ff81511217199ca	
+00_admin/hooks/post-edit-timestamp-check.sh	tracked	00_admin	.sh	text	3815	117	63ade65aadd64bf9	demo-mock-todo
+00_admin/hooks/post-edit-version-hardcode-check.sh	tracked	00_admin	.sh	text	3911	127	6d1654ed295aea1d	demo-mock-todo
+00_admin/hooks/pre-bash-destructive-block.sh	tracked	00_admin	.sh	text	5977	147	f61b9a3c3321f2dd	
+00_admin/hooks/pre-commit	tracked	00_admin	[none]	text	6870	152	8dc60d39f53fcf9b	demo-mock-todo
+00_admin/progress_overview.md	tracked	00_admin	.md	text	21811	400	6b1280a6abb01b70	demo-mock-todo,secret-word
+00_admin/文档同步点清单.md	tracked	00_admin	.md	text	22386	392	1e18e5eebb2d18aa	demo-mock-todo,secret-word
+01_specs/API_CONVENTIONS.md	tracked	01_specs	.md	text	11587	256	ed0d1bd4a5cb0083	demo-mock-todo,secret-word
+01_specs/API_Contract_v0.1.pages	tracked	01_specs	.pages	binary	248380		f1244de7cad89509	
+01_specs/IA_UI_v0.1.pages	tracked	01_specs	.pages	binary	195184		91b58b0e00f6843a	
+01_specs/Overview_of_Features_v0.1.pages	tracked	01_specs	.pages	binary	189780		87ae21167f0e56eb	
+01_specs/rollcall/DEVICE_REGISTRY.md	tracked	01_specs	.md	text	6421	112	9dd717cf7c65e9a0	demo-mock-todo
+01_specs/rollcall/DMSDv0.1验收脚本.pages	tracked	01_specs	.pages	binary	245237		4b79e68bb976930b	
+01_specs/rollcall/ENUM_REGISTRY.md	tracked	01_specs	.md	text	4233	114	7fde29a353df7181	demo-mock-todo
+01_specs/rollcall/ERROR_CODES.md	tracked	01_specs	.md	text	3848	75	f0a58bc7563911c9	
+01_specs/rollcall/FIELD_REGISTRY.md	tracked	01_specs	.md	text	5825	111	17f16466f5f69612	
+01_specs/rollcall/RollCall_Spec.md	tracked	01_specs	.md	text	49518	1015	e3b8f04144d7729b	demo-mock-todo
+01_specs/rollcall/RollCall_Spec_v0.1.pages	tracked	01_specs	.pages	binary	449141		0c0ac1c69e215343	
+01_specs/rollcall/v0.1_冻结决策.md	tracked	01_specs	.md	text	3351	65	a22a871e5f5227bf	demo-mock-todo
+01_specs/v0.1完整计划.pdf	tracked	01_specs	.pdf	binary	1584907		672269982411e16a	
+02_design/flow_design.md	tracked	02_design	.md	text	18307	355	acc285e8fb34ae12	demo-mock-todo,secret-word
+02_design/hardware_design.md	tracked	02_design	.md	text	21038	402	8d90538054c07bf2	demo-mock-todo
+02_design/system_features.md	tracked	02_design	.md	text	94470	1511	9879e54e13ad4cab	demo-mock-todo,secret-word
+03_dev/LATEST.md	tracked	03_dev	.md	text	3988	64	e047dd07c8d1b2b3	demo-mock-todo,secret-word
+03_dev/backend/BACKEND_DESIGN_LOG.md	tracked	03_dev	.md	text	52196	1158	b739cb74cff082f1	demo-mock-todo,secret-word
+03_dev/backend/README.md	tracked	03_dev	.md	text	1404	24	0ae4be260acae943	demo-mock-todo,secret-word
+03_dev/backend/demo/.gitignore	tracked	03_dev	[none]	text	57	7	55fffcbe588e4875	
+03_dev/backend/demo/README.md	tracked	03_dev	.md	text	3947	113	2395874e5c3aa0b0	demo-mock-todo,secret-word
+03_dev/backend/demo/database.py	tracked	03_dev	.py	text	957	33	a54e3dccbe652fe6	demo-mock-todo,secret-word
+03_dev/backend/demo/db_schema.sql	tracked	03_dev	.sql	text	1831	51	5b7367a52e4dc168	demo-mock-todo
+03_dev/backend/demo/main.py	tracked	03_dev	.py	text	10411	309	176c161a9f6388b8	demo-mock-todo,secret-word
+03_dev/backend/demo/models.py	tracked	03_dev	.py	text	3327	84	cd3721e8de8b3147	demo-mock-todo
+03_dev/backend/demo/requirements.txt	tracked	03_dev	.txt	text	226	8	cba2aded07b253ec	demo-mock-todo
+03_dev/backend/demo/schemas.py	tracked	03_dev	.py	text	2491	115	cb9d1d753ec14013	demo-mock-todo,secret-word
+03_dev/backend/demo/seed.py	tracked	03_dev	.py	text	964	35	0c2f7fafbd05d462	demo-mock-todo
+03_dev/backend/demo/ws_manager.py	tracked	03_dev	.py	text	1548	46	9e51602fea738167	
+03_dev/backend/v1/.env.example	tracked	03_dev	.example	text	1197	34	1fc8cc6a70bc0cce	demo-mock-todo,secret-word
+03_dev/backend/v1/.gitignore	tracked	03_dev	[none]	text	270	29	2754edd7d279ce5d	
+03_dev/backend/v1/README.md	tracked	03_dev	.md	text	5842	157	a2a68ed1104b656d	demo-mock-todo,secret-word
+03_dev/backend/v1/alembic.ini	tracked	03_dev	.ini	text	5001	149	03fe3d71e371f72d	secret-word
+03_dev/backend/v1/alembic/README	tracked	03_dev	[none]	text	38	1	31595cf53626af9e	
+03_dev/backend/v1/alembic/env.py	tracked	03_dev	.py	text	2239	83	fb7f6fbff8c0f090	
+03_dev/backend/v1/alembic/script.py.mako	tracked	03_dev	.mako	text	704	28	d38920781b4d31ae	
+03_dev/backend/v1/alembic/versions/7a15771bdc7b_add_study_rollcall_teacher_tables.py	tracked	03_dev	.py	text	19397	322	ea210beeab189725	secret-word
+03_dev/backend/v1/alembic/versions/b2c3d4e5f6a7_align_application_schema.py	tracked	03_dev	.py	text	2161	57	a7fcb6a8d88e0675	
+03_dev/backend/v1/alembic/versions/c3d4e5f6a7b8_add_study_absence_period.py	tracked	03_dev	.py	text	1568	41	4c73d7e18c354a3d	
+03_dev/backend/v1/alembic/versions/d4e5f6a7b8c9_add_student_registration_codes.py	tracked	03_dev	.py	text	1865	56	a97c9d15c63cf097	secret-word
+03_dev/backend/v1/alembic/versions/e5f6a7b8c9d0_add_announcements.py	tracked	03_dev	.py	text	3976	123	45315c8a4828215a	
+03_dev/backend/v1/alembic/versions/f6a7b8c9d0e1_add_demo_reviewer_flags.py	tracked	03_dev	.py	text	2233	67	47e66b97869eb2a6	demo-mock-todo,secret-word
+03_dev/backend/v1/app/__init__.py	tracked	03_dev	.py	text	442	13	9a0008ba5652a87d	demo-mock-todo
+03_dev/backend/v1/app/config.py	tracked	03_dev	.py	text	3377	110	6398435fd51c9e73	demo-mock-todo,secret-word
+03_dev/backend/v1/app/database.py	tracked	03_dev	.py	text	1650	51	905cf536c53056c5	
+03_dev/backend/v1/app/deps.py	tracked	03_dev	.py	text	3426	94	9b2dd1d9905c2eb9	secret-word
+03_dev/backend/v1/app/main.py	tracked	03_dev	.py	text	2701	109	3e105a48699ee5ae	secret-word
+03_dev/backend/v1/app/models.py	tracked	03_dev	.py	text	32881	795	87a89e5334bcef07	demo-mock-todo,secret-word
+03_dev/backend/v1/app/routers/__init__.py	tracked	03_dev	.py	text	45	1	cb51aba4efbd8e74	
+03_dev/backend/v1/app/routers/accounts.py	tracked	03_dev	.py	text	6621	192	71d4bc48918763c5	secret-word
+03_dev/backend/v1/app/routers/admin_registration_code.py	tracked	03_dev	.py	text	6564	192	acc13d84d090323b	secret-word
+03_dev/backend/v1/app/routers/announcements.py	tracked	03_dev	.py	text	15817	445	691bf196754816d8	secret-word
+03_dev/backend/v1/app/routers/applications.py	tracked	03_dev	.py	text	20462	566	d80c5114d827d38c	demo-mock-todo,secret-word
+03_dev/backend/v1/app/routers/auth.py	tracked	03_dev	.py	text	5090	142	611a5ff885b7c4f5	secret-word
+03_dev/backend/v1/app/routers/meals.py	tracked	03_dev	.py	text	3032	93	7a58ec3145015409	
+03_dev/backend/v1/app/routers/notifications.py	tracked	03_dev	.py	text	1518	51	e0edf552ca274998	
+03_dev/backend/v1/app/routers/rollcall.py	tracked	03_dev	.py	text	16430	474	3bc9964f55c772a6	demo-mock-todo
+03_dev/backend/v1/app/routers/study.py	tracked	03_dev	.py	text	19084	544	9dfae7c30318942b	
+03_dev/backend/v1/app/routers/teachers.py	tracked	03_dev	.py	text	6168	177	3b180716f5e73b76	secret-word
+03_dev/backend/v1/app/schemas.py	tracked	03_dev	.py	text	20538	656	aa3eefc180d611ce	secret-word
+03_dev/backend/v1/app/security.py	tracked	03_dev	.py	text	2315	81	11b79e1f44350bc0	secret-word
+03_dev/backend/v1/app/services/__init__.py	tracked	03_dev	.py	text	94	1	8256f90a47bbdafd	
+03_dev/backend/v1/app/services/approval_chain.py	tracked	03_dev	.py	text	7543	200	7a95fdf0d137dd4c	
+03_dev/backend/v1/app/services/email.py	tracked	03_dev	.py	text	7114	212	0ae844c6cebde974	secret-word
+03_dev/backend/v1/app/services/meals.py	tracked	03_dev	.py	text	8019	249	7dfb32474748d2f6	
+03_dev/backend/v1/requirements.txt	tracked	03_dev	.txt	text	952	32	499ea0e104318f54	demo-mock-todo,secret-word
+03_dev/backend/v1/seed.py	tracked	03_dev	.py	text	15330	448	dec130c403301c02	demo-mock-todo,secret-word
+03_dev/backend/v1/tests/__init__.py	tracked	03_dev	.py	text	0	0	e3b0c44298fc1c14	
+03_dev/backend/v1/tests/conftest.py	tracked	03_dev	.py	text	4728	156	6220e71dca9a478d	secret-word
+03_dev/backend/v1/tests/test_announcements.py	tracked	03_dev	.py	text	5020	149	c833e3f9f280dbeb	secret-word
+03_dev/backend/v1/tests/test_demo_reviewer.py	tracked	03_dev	.py	text	5878	166	38f614fc9b78939c	demo-mock-todo,secret-word
+03_dev/backend/v1/tests/test_registration_code.py	tracked	03_dev	.py	text	7287	206	2a553888a94522bf	secret-word
+03_dev/backend/v1/tests/test_smoke.py	tracked	03_dev	.py	text	13607	389	ce05469e3d3558ba	secret-word
+03_dev/rollcall_device/README.md	tracked	03_dev	.md	text	2318	50	9022df8b59ead5d2	
+03_dev/rollcall_device/ROLLCALL_DEVICE_DESIGN_LOG.md	tracked	03_dev	.md	text	8115	238	8051ee10f6d8f10e	demo-mock-todo,secret-word
+03_dev/rollcall_device/config/.gitkeep	tracked	03_dev	[none]	text	0	0	e3b0c44298fc1c14	
+03_dev/rollcall_device/docs/.gitkeep	tracked	03_dev	[none]	text	0	0	e3b0c44298fc1c14	
+03_dev/rollcall_device/requirements.txt	tracked	03_dev	.txt	text	528	28	f324fc8f65c3cd75	
+03_dev/rollcall_device/src/api/__init__.py	tracked	03_dev	.py	text	0	0	e3b0c44298fc1c14	
+03_dev/rollcall_device/src/audio/__init__.py	tracked	03_dev	.py	text	0	0	e3b0c44298fc1c14	
+03_dev/rollcall_device/src/led/__init__.py	tracked	03_dev	.py	text	0	0	e3b0c44298fc1c14	
+03_dev/rollcall_device/src/main.py	tracked	03_dev	.py	text	690	16	b5c44aec219e4911	demo-mock-todo
+03_dev/rollcall_device/src/nfc/__init__.py	tracked	03_dev	.py	text	0	0	e3b0c44298fc1c14	
+03_dev/student_android/ANDROID_DESIGN_LOG.md	tracked	03_dev	.md	text	13995	261	c34038f325f3eaed	demo-mock-todo,secret-word
+03_dev/student_android/v1/.gitignore	tracked	03_dev	[none]	text	225	15	703238443066325a	
+03_dev/student_android/v1/app/.gitignore	tracked	03_dev	[none]	text	6	1	5c3174b74edc6f2b	
+03_dev/student_android/v1/app/build.gradle.kts	tracked	03_dev	.kts	text	2021	63	6b381b1dada3368f	
+03_dev/student_android/v1/app/proguard-rules.pro	tracked	03_dev	.pro	text	750	21	56fd960cf225f6ca	
+03_dev/student_android/v1/app/src/androidTest/java/jp/tomoshibi/android/ExampleInstrumentedTest.kt	tracked	03_dev	.kt	text	667	24	d7ce79352e68fda6	
+03_dev/student_android/v1/app/src/main/AndroidManifest.xml	tracked	03_dev	.xml	text	1000	27	bb5295530c32e3c6	
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/MainActivity.kt	tracked	03_dev	.kt	text	1711	42	7e37b73287151b39	demo-mock-todo
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/TomoshibiApp.kt	tracked	03_dev	.kt	text	360	12	ebd62df15448d276	
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/data/model/Models.kt	tracked	03_dev	.kt	text	3633	116	cbc382f6fe50e02d	demo-mock-todo
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/data/seed/MockData.kt	tracked	03_dev	.kt	text	5610	131	c164a2af7ff47d95	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/data/store/AppStore.kt	tracked	03_dev	.kt	text	3009	84	b1f03760fab41134	demo-mock-todo
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/nav/NavGraph.kt	tracked	03_dev	.kt	text	5155	100	f6bf2ee0505072c2	
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/nav/Routes.kt	tracked	03_dev	.kt	text	2370	53	101c6bc98a1ea7ff	
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/components/BottomTabs.kt	tracked	03_dev	.kt	text	6801	184	b85cd339defbb13b	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/components/GlobalScaffold.kt	tracked	03_dev	.kt	text	1940	54	7020178350c7bfb0	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/components/HomeCards.kt	tracked	03_dev	.kt	text	3407	103	e89e362c09089ba8	
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/components/RollCallSheet.kt	tracked	03_dev	.kt	text	8110	204	a1b0c9ad032e4b15	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/components/TopRollBar.kt	tracked	03_dev	.kt	text	7676	200	8fcfd85b90d1ccb4	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/icons/SuzuIcons.kt	tracked	03_dev	.kt	text	3301	61	a3c9a46e7aacf6e3	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/account/AccountScreen.kt	tracked	03_dev	.kt	text	27496	651	1b03f0789fe28ce3	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/applications/ApplicationDetailScreen.kt	tracked	03_dev	.kt	text	12746	284	8f718de65bc4c0c0	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/applications/ApplicationsScreen.kt	tracked	03_dev	.kt	text	14360	315	0aaf528d1f18fdf6	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/applications/ApplyNewScreen.kt	tracked	03_dev	.kt	text	17230	366	10443ace14666cef	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/community/BusScreen.kt	tracked	03_dev	.kt	text	7120	159	a50fc277bc8493f3	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/community/DeliveryScreen.kt	tracked	03_dev	.kt	text	8208	176	43289855e0d9507b	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/community/FeedbackScreen.kt	tracked	03_dev	.kt	text	9332	201	4f7daae1f06680a2	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/community/LostFoundScreen.kt	tracked	03_dev	.kt	text	9707	209	e88b3b15aa553366	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/community/MusicScreen.kt	tracked	03_dev	.kt	text	15672	338	a43d8eec67604084	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/community/ScheduleScreen.kt	tracked	03_dev	.kt	text	7668	159	65a50d5e53922540	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/community/StudyScreen.kt	tracked	03_dev	.kt	text	6593	137	ceaceb3e4c581486	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/deduction/DeductionScreen.kt	tracked	03_dev	.kt	text	8414	161	1933eca72587e3fd	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/home/HomeScreen.kt	tracked	03_dev	.kt	text	10383	282	38d5814a6a9e6b4e	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/login/LoginScreen.kt	tracked	03_dev	.kt	text	8047	192	c7dd4f8e37a0578c	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/mypage/MyPageScreen.kt	tracked	03_dev	.kt	text	12556	255	8266c1b0fffccaca	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/mypage/SettingsScreen.kt	tracked	03_dev	.kt	text	10437	217	3fee42691530917b	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/nfc/NfcScreen.kt	tracked	03_dev	.kt	text	8776	246	96eca02decbf03ac	secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/notifications/NotifDetailScreen.kt	tracked	03_dev	.kt	text	4686	103	524d01df33fe80c6	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/notifications/NotificationsScreen.kt	tracked	03_dev	.kt	text	7703	156	2be75bac6e73f292	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/onboarding/OnboardingScreen.kt	tracked	03_dev	.kt	text	6665	189	f4cbdbfe67ded5e9	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/rollcall/RollCallScreen.kt	tracked	03_dev	.kt	text	5866	115	e4c72e77e41e7329	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/splash/SplashScreen.kt	tracked	03_dev	.kt	text	3427	95	26fd55b784bbb475	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/screens/welcome/WelcomeScreen.kt	tracked	03_dev	.kt	text	4916	130	b68c9e1fad0123f0	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/theme/Color.kt	tracked	03_dev	.kt	text	2813	62	948c1cfd427a9395	secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/theme/Theme.kt	tracked	03_dev	.kt	text	2882	92	2faa6148129dd828	secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/theme/Tokens.kt	tracked	03_dev	.kt	text	4186	133	cb773974ffe69830	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/ui/theme/Type.kt	tracked	03_dev	.kt	text	3895	129	2c1134cf90e7aeb9	demo-mock-todo,secret-word
+03_dev/student_android/v1/app/src/main/res/drawable-hdpi/ic_launcher_foreground.png	tracked	03_dev	.png	binary	6388		053991781ccbf819	
+03_dev/student_android/v1/app/src/main/res/drawable-mdpi/ic_launcher_foreground.png	tracked	03_dev	.png	binary	3416		8043a51e45d77232	
+03_dev/student_android/v1/app/src/main/res/drawable-xhdpi/ic_launcher_foreground.png	tracked	03_dev	.png	binary	10126		31c6d7dd4dceb402	
+03_dev/student_android/v1/app/src/main/res/drawable-xxhdpi/ic_launcher_foreground.png	tracked	03_dev	.png	binary	18788		dd755067b3046727	
+03_dev/student_android/v1/app/src/main/res/drawable-xxxhdpi/ic_launcher_foreground.png	tracked	03_dev	.png	binary	30200		99fc727b771c9c88	
+03_dev/student_android/v1/app/src/main/res/drawable/ic_launcher_background.xml	tracked	03_dev	.xml	text	292	9	3f5b261af272c89c	
+03_dev/student_android/v1/app/src/main/res/mipmap-anydpi/ic_launcher.xml	tracked	03_dev	.xml	text	343	6	88f7653499ef5241	
+03_dev/student_android/v1/app/src/main/res/mipmap-anydpi/ic_launcher_round.xml	tracked	03_dev	.xml	text	343	6	88f7653499ef5241	
+03_dev/student_android/v1/app/src/main/res/mipmap-hdpi/ic_launcher.webp	tracked	03_dev	.webp	binary	1332		f86c01a498fd4d28	
+03_dev/student_android/v1/app/src/main/res/mipmap-hdpi/ic_launcher_round.webp	tracked	03_dev	.webp	binary	1332		f86c01a498fd4d28	
+03_dev/student_android/v1/app/src/main/res/mipmap-mdpi/ic_launcher.webp	tracked	03_dev	.webp	binary	872		e0374c689ef73c55	
+03_dev/student_android/v1/app/src/main/res/mipmap-mdpi/ic_launcher_round.webp	tracked	03_dev	.webp	binary	872		e0374c689ef73c55	
+03_dev/student_android/v1/app/src/main/res/mipmap-xhdpi/ic_launcher.webp	tracked	03_dev	.webp	binary	1836		ef780ff75ea2f9c3	
+03_dev/student_android/v1/app/src/main/res/mipmap-xhdpi/ic_launcher_round.webp	tracked	03_dev	.webp	binary	1836		ef780ff75ea2f9c3	
+03_dev/student_android/v1/app/src/main/res/mipmap-xxhdpi/ic_launcher.webp	tracked	03_dev	.webp	binary	2782		ebe70917b0ac395f	
+03_dev/student_android/v1/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.webp	tracked	03_dev	.webp	binary	2782		ebe70917b0ac395f	
+03_dev/student_android/v1/app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp	tracked	03_dev	.webp	binary	3822		db59bc89ed5d65fc	
+03_dev/student_android/v1/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp	tracked	03_dev	.webp	binary	3822		db59bc89ed5d65fc	
+03_dev/student_android/v1/app/src/main/res/values/colors.xml	tracked	03_dev	.xml	text	378	10	b5626527d503417f	
+03_dev/student_android/v1/app/src/main/res/values/strings.xml	tracked	03_dev	.xml	text	71	3	8061104ca3a6c57f	
+03_dev/student_android/v1/app/src/main/res/values/themes.xml	tracked	03_dev	.xml	text	151	5	5adb1ce6010fd5db	
+03_dev/student_android/v1/app/src/main/res/xml/backup_rules.xml	tracked	03_dev	.xml	text	478	13	6cf1a27e6807b1d2	demo-mock-todo
+03_dev/student_android/v1/app/src/main/res/xml/data_extraction_rules.xml	tracked	03_dev	.xml	text	551	19	cb1fc47ab4a98453	demo-mock-todo
+03_dev/student_android/v1/app/src/test/java/jp/tomoshibi/android/ExampleUnitTest.kt	tracked	03_dev	.kt	text	344	17	4f0d7421aa3f7fc4	
+03_dev/student_android/v1/build.gradle.kts	tracked	03_dev	.kts	text	218	5	be7dbfa1841b18b0	
+03_dev/student_android/v1/gradle.properties	tracked	03_dev	.properties	text	826	15	6ff912b265d6dea5	
+03_dev/student_android/v1/gradle/gradle-daemon-jvm.properties	tracked	03_dev	.properties	text	1138	12	231649d2f8e8dc24	
+03_dev/student_android/v1/gradle/libs.versions.toml	tracked	03_dev	.toml	text	2417	38	f2caeb5b2e3c2ed2	
+03_dev/student_android/v1/gradle/wrapper/gradle-wrapper.jar	tracked	03_dev	.jar	binary	45457		76805e32c009c0cf	
+03_dev/student_android/v1/gradle/wrapper/gradle-wrapper.properties	tracked	03_dev	.properties	text	369	9	d18b3d42c3c740c9	
+03_dev/student_android/v1/gradlew	tracked	03_dev	[none]	text	8728	251	3238afb2aed5cb16	
+03_dev/student_android/v1/gradlew.bat	tracked	03_dev	.bat	text	2937	94	1d297e00bd21de3a	
+03_dev/student_android/v1/settings.gradle.kts	tracked	03_dev	.kts	text	620	26	af1f69684105920d	
+03_dev/student_ios/IOS_DESIGN_LOG.md	tracked	03_dev	.md	text	54365	1002	a391fd73aa2767fe	demo-mock-todo,secret-word
+03_dev/student_ios/README.md	tracked	03_dev	.md	text	1967	42	127160d67b6e6b4b	demo-mock-todo
+03_dev/student_ios/_archived_DESIGN_BRIEF_Round1_context.md	tracked	03_dev	.md	text	6315	168	c891f7b1544f1a1a	demo-mock-todo,secret-word
+03_dev/student_ios/demo/.gitignore	tracked	03_dev	[none]	text	104	5	532ada57a8385770	
+03_dev/student_ios/demo/QA_Round1_PhaseB.md	tracked	03_dev	.md	text	12331	216	18f0f53be3c4f0a6	demo-mock-todo,secret-word
+03_dev/student_ios/demo/Tomoshibi_iOS_PhaseB_v2.html	tracked	03_dev	.html	text	1926755	197	d101929a618a11d4	demo-mock-todo,secret-word
+03_dev/student_ios/demo/_archived_Round2_Prompt_draft.md	tracked	03_dev	.md	text	12223	230	a01129904ce6c66f	demo-mock-todo,secret-word
+03_dev/student_ios/v1/.gitignore	tracked	03_dev	[none]	text	147	7	122ab91194439b97	
+03_dev/student_ios/v1/BUILD.md	tracked	03_dev	.md	text	4316	98	4e02226bde93b986	demo-mock-todo,secret-word
+03_dev/student_ios/v1/README.md	tracked	03_dev	.md	text	1159	39	652ea638dfbb0ea7	demo-mock-todo
+03_dev/student_ios/v1/TASKS/TASK_C_COMMUNITY.md	tracked	03_dev	.md	text	4552	80	a935e05e79b182d2	demo-mock-todo,secret-word
+03_dev/student_ios/v1/TASKS/TASK_D_APPLY.md	tracked	03_dev	.md	text	5321	116	6a3ab3d949f3b633	demo-mock-todo,secret-word
+03_dev/student_ios/v1/TASKS/TASK_E_MYPAGE.md	tracked	03_dev	.md	text	6400	110	a66d12e80796628b	demo-mock-todo,secret-word
+03_dev/student_ios/v1/TomoshibiApp.xcodeproj/project.pbxproj	tracked	03_dev	.pbxproj	text	37153	760	bf6019c12bc43559	demo-mock-todo,secret-word
+03_dev/student_ios/v1/TomoshibiApp.xcodeproj/project.pbxproj.bak	tracked	03_dev	.bak	text	31448	698	18bf805ad0744b7d	demo-mock-todo,secret-word
+03_dev/student_ios/v1/TomoshibiApp.xcodeproj/project.pbxproj.bak2	tracked	03_dev	.bak2	text	36596	758	a4c53abbd8c784d8	demo-mock-todo,secret-word
+03_dev/student_ios/v1/TomoshibiApp.xcodeproj/project.xcworkspace/contents.xcworkspacedata	tracked	03_dev	.xcworkspacedata	text	135	7	7f3b00b5c3fdb452	
+03_dev/student_ios/v1/TomoshibiApp.xcodeproj/xcshareddata/xcschemes/TomoshibiApp.xcscheme	tracked	03_dev	.xcscheme	text	2887	77	ce7a376067c64255	
+03_dev/student_ios/v1/TomoshibiApp.xcodeproj/xcshareddata/xcschemes/TomoshibiAppDemo.xcscheme	tracked	03_dev	.xcscheme	text	2878	77	1601fac9a4bbcc98	demo-mock-todo
+03_dev/student_ios/v1/TomoshibiApp/AppIcon.icon/Assets/tomoshibi_flame 2.png	tracked	03_dev	.png	binary	169261		cbb14f0888879c3d	
+03_dev/student_ios/v1/TomoshibiApp/AppIcon.icon/icon.json	tracked	03_dev	.json	text	915	50	1878ecda678f93a3	
+03_dev/student_ios/v1/TomoshibiApp/Assets.xcassets/Contents.json	tracked	03_dev	.json	text	63	6	0fd49ba3c3585c70	
+03_dev/student_ios/v1/TomoshibiApp/Assets.xcassets/TomoshibiFlame.imageset/Contents.json	tracked	03_dev	.json	text	155	12	cbd6122b57d4261e	
+03_dev/student_ios/v1/TomoshibiApp/Assets.xcassets/TomoshibiFlame.imageset/flame.png	tracked	03_dev	.png	binary	169261		cbb14f0888879c3d	
+03_dev/student_ios/v1/TomoshibiApp/Features/Apply/ApplyStubs.swift	tracked	03_dev	.swift	text	89313	1920	feb8f910acd76f68	demo-mock-todo,secret-word
+03_dev/student_ios/v1/TomoshibiApp/Features/Auth/AuthStubs.swift	tracked	03_dev	.swift	text	90786	2074	49a9ebe1b77b168a	demo-mock-todo,secret-word
+03_dev/student_ios/v1/TomoshibiApp/Features/BusList/BusListStubs.swift	tracked	03_dev	.swift	text	13014	330	f98f7ba894986292	demo-mock-todo
+03_dev/student_ios/v1/TomoshibiApp/Features/Community/CommunityStubs.swift	tracked	03_dev	.swift	text	83227	2025	603257607e29e1de	demo-mock-todo,secret-word
+03_dev/student_ios/v1/TomoshibiApp/Features/Home/HomeStubs.swift	tracked	03_dev	.swift	text	104861	2588	f7eeef072f9f75ff	demo-mock-todo
+03_dev/student_ios/v1/TomoshibiApp/Features/MyPage/MyPageStubs.swift	tracked	03_dev	.swift	text	81900	2016	8c51e42b35092b5a	demo-mock-todo
+03_dev/student_ios/v1/TomoshibiApp/Features/Schedule/ScheduleStubs.swift	tracked	03_dev	.swift	text	12881	343	4f71e43378e90c6c	demo-mock-todo
+03_dev/student_ios/v1/TomoshibiApp/Features/StayList/StayListStubs.swift	tracked	03_dev	.swift	text	60986	1603	490d052a3391fc0f	demo-mock-todo,secret-word
+03_dev/student_ios/v1/TomoshibiApp/Foundation/AppState/AppStore.swift	tracked	03_dev	.swift	text	32787	827	c27122c534c46fb7	demo-mock-todo,secret-word
+03_dev/student_ios/v1/TomoshibiApp/Foundation/AppState/SheetKind.swift	tracked	03_dev	.swift	text	1022	22	15a50c3139e8e8f7	
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Components/BottomNav.swift	tracked	03_dev	.swift	text	6289	151	0883a868e29541a6	
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Components/BreadcrumbOverlay.swift	tracked	03_dev	.swift	text	4342	119	a3d8596d6ce1aae0	
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Components/Field.swift	tracked	03_dev	.swift	text	3255	102	94344a3cb7aeee6b	demo-mock-todo
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Components/IOSStatusBar.swift	tracked	03_dev	.swift	text	741	23	ca6d76864e1f5c8e	
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Components/Icons/Ic.swift	tracked	03_dev	.swift	text	3183	48	9a8364a76e305e11	
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Components/PageHeader.swift	tracked	03_dev	.swift	text	1496	54	697170d101f95c1c	
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Components/PrimaryButton.swift	tracked	03_dev	.swift	text	2765	76	50429b6d6ddfc9b1	
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Components/Toast.swift	tracked	03_dev	.swift	text	587	20	2f20c9e15daf8ea7	
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Components/TopRollBar.swift	tracked	03_dev	.swift	text	3259	105	fffc3ef84d3b75e1	
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Components/UIAtoms.swift	tracked	03_dev	.swift	text	5431	200	49ab49100b90328f	
+03_dev/student_ios/v1/TomoshibiApp/Foundation/LiquidGlass/GlassBackdrop.swift	tracked	03_dev	.swift	text	686	24	e3985e63baa48210	
+03_dev/student_ios/v1/TomoshibiApp/Foundation/LiquidGlass/GlassCard.swift	tracked	03_dev	.swift	text	1470	47	0731685b787aa93d	
+03_dev/student_ios/v1/TomoshibiApp/Foundation/LiquidGlass/GlassSheet.swift	tracked	03_dev	.swift	text	1435	39	c9726603fa57e7fe	
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/APIClient.swift	tracked	03_dev	.swift	text	4829	150	54fac19dd2481394	secret-word
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/APIError.swift	tracked	03_dev	.swift	text	1017	24	222c025c5b21fb60	
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/Endpoints/ApplicationsAPI.swift	tracked	03_dev	.swift	text	2102	49	3aff0c69ae9a87bd	
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/Endpoints/ApplicationsCreateBodies.swift	tracked	03_dev	.swift	text	2943	90	e442401c46aad9b5	
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/Endpoints/AuthAPI.swift	tracked	03_dev	.swift	text	3754	100	791f1c0d84c11ab9	secret-word
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/Endpoints/StudyAPI.swift	tracked	03_dev	.swift	text	1263	31	5392e2b379cb52cb	
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/KeychainService.swift	tracked	03_dev	.swift	text	2741	71	5eb47ad4c30c0bfb	secret-word
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/Mappers/ApplyKindMapper.swift	tracked	03_dev	.swift	text	1169	31	ed9bf857395d2946	
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/NetworkModels.swift	tracked	03_dev	.swift	text	8724	258	fed061470a8a2ed0	demo-mock-todo,secret-word
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Routing/Route.swift	tracked	03_dev	.swift	text	6690	187	4f3fa09bc14c2d29	
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Routing/RouterStore.swift	tracked	03_dev	.swift	text	1497	52	b3809951c9456540	
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Seed/SEED.swift	tracked	03_dev	.swift	text	14822	226	9490a33cde9f4385	demo-mock-todo
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Seed/SeedModels.swift	tracked	03_dev	.swift	text	3946	147	671a223d0771fb14	demo-mock-todo
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Theme/TTokens.swift	tracked	03_dev	.swift	text	3918	102	146441766bb5cee1	demo-mock-todo,secret-word
+03_dev/student_ios/v1/TomoshibiApp/Root/File.txt	tracked	03_dev	.txt	text	36	1	ba0f641f193819f7	
+03_dev/student_ios/v1/TomoshibiApp/Root/GlobalOverlays.swift	tracked	03_dev	.swift	text	1257	43	7d9da6b1b652eefb	
+03_dev/student_ios/v1/TomoshibiApp/Root/RootView.swift	tracked	03_dev	.swift	text	5050	127	22375f9fb474c72d	
+03_dev/student_ios/v1/TomoshibiApp/TomoshibiApp.swift	tracked	03_dev	.swift	text	927	25	732fa998cbdf7c07	demo-mock-todo
+03_dev/student_ios/v1/project.yml	tracked	03_dev	.yml	text	1351	44	0e9a0bc82c992ae4	demo-mock-todo
+03_dev/teacher_web/DESIGN_BRIEF.md	tracked	03_dev	.md	text	7485	115	68f147b0ee1c19cf	demo-mock-todo,secret-word
+03_dev/teacher_web/WEB_DESIGN_LOG.md	tracked	03_dev	.md	text	53282	818	201d8e04751c4735	demo-mock-todo,secret-word
+03_dev/teacher_web/v1/README.md	tracked	03_dev	.md	text	1057	26	ebbbdb648ce7c17d	demo-mock-todo,secret-word
+03_dev/teacher_web/v1/build_single_file.py	tracked	03_dev	.py	text	2370	66	366f7aa60e48a4b8	demo-mock-todo
+03_dev/teacher_web/v1/index.html	tracked	03_dev	.html	text	390	13	a110b8e7d873b90d	
+03_dev/teacher_web/v1/package-lock.json	tracked	03_dev	.json	text	94082	2817	a3daf1a4cc6a766c	demo-mock-todo,secret-word
+03_dev/teacher_web/v1/package.json	tracked	03_dev	.json	text	598	27	dc58a7be1b212fd0	
+03_dev/teacher_web/v1/postcss.config.js	tracked	03_dev	.js	text	81	6	e32657baf631d7c5	
+03_dev/teacher_web/v1/rebuild.command	tracked	03_dev	.command	text	1469	46	da954ec3b67133a7	
+03_dev/teacher_web/v1/src/App.tsx	tracked	03_dev	.tsx	text	849	26	1fe72e55f4fe198f	
+03_dev/teacher_web/v1/src/_assets/0233f5ed-e031-4008-a255-de8563c7626d.woff2	tracked	03_dev	.woff2	binary	72004		07adf55c46fa7a01	
+03_dev/teacher_web/v1/src/_assets/04aabdc9-66a2-4207-8fc8-c4ddfcb3e947.woff2	tracked	03_dev	.woff2	binary	18932		ddda8e872a2f6bee	
+03_dev/teacher_web/v1/src/_assets/09fd83a3-46c2-4d63-909e-8d16613df997.woff2	tracked	03_dev	.woff2	binary	17660		6248c217bc1b11da	
+03_dev/teacher_web/v1/src/_assets/0a13fa91-a336-4112-aae0-b6706e009834.woff2	tracked	03_dev	.woff2	binary	16960		52c485c4f8a76fc5	
+03_dev/teacher_web/v1/src/_assets/0c78f298-b652-4e60-a440-3d8fc32dbb85.woff2	tracked	03_dev	.woff2	binary	17536		577652490154b4d2	
+03_dev/teacher_web/v1/src/_assets/0dc49250-9592-42cf-8c19-4b356a802387.woff2	tracked	03_dev	.woff2	binary	21076		22011c294639023f	
+03_dev/teacher_web/v1/src/_assets/12475cf4-b0e8-4a8e-923a-a2ac137adb08.woff2	tracked	03_dev	.woff2	binary	75904		f4a8f6ffb8cb75f4	
+03_dev/teacher_web/v1/src/_assets/1410e59f-e7bd-4358-9b13-c6d4b1aef0bb.woff2	tracked	03_dev	.woff2	binary	19892		ab8f92f3cfe7b907	
+03_dev/teacher_web/v1/src/_assets/1621b8b3-0122-45a9-850f-29ef65a2f53e.woff2	tracked	03_dev	.woff2	binary	71892		883b47a911c21e70	
+03_dev/teacher_web/v1/src/_assets/1851e03f-cdbe-428d-9e4b-8ad12cbdbb29.woff2	tracked	03_dev	.woff2	binary	19488		45833acd5cbd3bd4	
+03_dev/teacher_web/v1/src/_assets/1a557462-e7e2-4af9-8f8b-68c24ff7a6cc.woff2	tracked	03_dev	.woff2	binary	75124		9965e37d7267fb34	
+03_dev/teacher_web/v1/src/_assets/1e91e47d-15a5-4cbe-a7d3-370be29aa59b.woff2	tracked	03_dev	.woff2	binary	9076		fbcc4f4c310befbb	
+03_dev/teacher_web/v1/src/_assets/2136c3c9-217e-48c2-b090-5e752cb2bf66.woff2	tracked	03_dev	.woff2	binary	87064		0ada37a159f87168	
+03_dev/teacher_web/v1/src/_assets/215be89f-4182-40e5-96f8-7a4fc15d5bf2.woff2	tracked	03_dev	.woff2	binary	18364		e45891f027c1b2f0	
+03_dev/teacher_web/v1/src/_assets/21738422-5486-4fd5-b897-f94b59cf94b2.woff2	tracked	03_dev	.woff2	binary	17380		4a34610b1a5a1f71	
+03_dev/teacher_web/v1/src/_assets/22de7d48-6a86-4acd-88f7-f32b1030300b.woff2	tracked	03_dev	.woff2	binary	21856		9b5fd8adab5e6821	
+03_dev/teacher_web/v1/src/_assets/231b3e40-b83e-4d46-981c-e65b4410e4ef.woff2	tracked	03_dev	.woff2	binary	8892		4995a9a43ac659ec	
+03_dev/teacher_web/v1/src/_assets/233006b4-6d6e-4e91-8a65-38763666bdcd.woff2	tracked	03_dev	.woff2	binary	24996		12851771bc78b6a5	
+03_dev/teacher_web/v1/src/_assets/23c93777-d0a3-4275-9262-58c0453119b0.woff2	tracked	03_dev	.woff2	binary	74108		cdf22557ff175db1	
+03_dev/teacher_web/v1/src/_assets/23d33ca7-959e-4807-8f15-84918de75c03.woff2	tracked	03_dev	.woff2	binary	19864		2a3dfbbdd15260d3	
+03_dev/teacher_web/v1/src/_assets/28ccc08e-9687-4f33-afa7-e54bf1b971e4.woff2	tracked	03_dev	.woff2	binary	14432		0584bfef2f2841b5	
+03_dev/teacher_web/v1/src/_assets/28f6a1bf-cea9-4da3-81e8-a2d45f20dd8d.woff2	tracked	03_dev	.woff2	binary	64036		0265b0e099627ced	
+03_dev/teacher_web/v1/src/_assets/290c1cc7-1b86-42ee-8d03-1baee8e24aa1.woff2	tracked	03_dev	.woff2	binary	8196		cce76c6ebaa9b721	
+03_dev/teacher_web/v1/src/_assets/2e248f0d-3f00-4f76-8fa0-20dcb6adabe5.woff2	tracked	03_dev	.woff2	binary	19308		09398d6edbe3b71d	
+03_dev/teacher_web/v1/src/_assets/2fbd970a-cd2f-4d92-bef6-c302503977d9.woff2	tracked	03_dev	.woff2	binary	69956		479731b43857febf	
+03_dev/teacher_web/v1/src/_assets/2fd95782-d741-40a5-843b-86300f11c905.woff2	tracked	03_dev	.woff2	binary	72736		b7d0e99329977ae7	
+03_dev/teacher_web/v1/src/_assets/34bbb644-51f7-4237-88b0-a5ec16c8c464.woff2	tracked	03_dev	.woff2	binary	15212		4cc2b8a75822447a	
+03_dev/teacher_web/v1/src/_assets/36bb9503-fb4b-4e62-ac65-5b8f70136402.woff2	tracked	03_dev	.woff2	binary	31208		a1e5dfbb0b87af47	
+03_dev/teacher_web/v1/src/_assets/38d262d2-2c2a-40be-b77f-61eba18f8245.woff2	tracked	03_dev	.woff2	binary	17008		5a2ee8f1a2440b7e	
+03_dev/teacher_web/v1/src/_assets/39dd8eaf-b4b5-4e51-b3ca-eee16b15043d.woff2	tracked	03_dev	.woff2	binary	15828		e8611a7c8b5e875f	
+03_dev/teacher_web/v1/src/_assets/3a875e26-938c-426c-b332-028f7aab8330.woff2	tracked	03_dev	.woff2	binary	18116		96c506fe80a422cb	
+03_dev/teacher_web/v1/src/_assets/3da33209-422a-4ba0-9376-0eda8baae31d.woff2	tracked	03_dev	.woff2	binary	18128		7830a03a3a6ee043	
+03_dev/teacher_web/v1/src/_assets/3f971812-662e-4d38-97ab-84dcef5e310d.woff2	tracked	03_dev	.woff2	binary	32320		39bdd28fd3e1c015	
+03_dev/teacher_web/v1/src/_assets/40e95a8d-5934-4622-bc0a-b67389c22830.woff2	tracked	03_dev	.woff2	binary	16652		4107ffe99639fefd	
+03_dev/teacher_web/v1/src/_assets/43156ec1-ca3c-4bbf-857c-1b6884a811fc.woff2	tracked	03_dev	.woff2	binary	17760		4d9dfa4137d4c8db	
+03_dev/teacher_web/v1/src/_assets/436e6a9a-cc9e-4446-ba63-ff8a2dbd5d94.woff2	tracked	03_dev	.woff2	binary	64064		60ab7e72fc42c9b7	
+03_dev/teacher_web/v1/src/_assets/43fd8f08-5224-4dd6-af54-d89f4cc6e6dd.woff2	tracked	03_dev	.woff2	binary	11596		9c38cb2d0d2d93c1	
+03_dev/teacher_web/v1/src/_assets/46cad20e-73e9-46d3-a3c7-0d86229fdb44.woff2	tracked	03_dev	.woff2	binary	70748		62054505e947a60b	
+03_dev/teacher_web/v1/src/_assets/46f3c554-42f5-4b2f-a7f0-e3f42a718052.woff2	tracked	03_dev	.woff2	binary	82844		c4b37749cc634be8	
+03_dev/teacher_web/v1/src/_assets/48360863-26d6-4db5-91fa-a2868bfff9bd.woff2	tracked	03_dev	.woff2	binary	79324		93cce0bd622a1515	
+03_dev/teacher_web/v1/src/_assets/492aa524-fc62-43d9-8d51-59978af7e68b.woff2	tracked	03_dev	.woff2	binary	20464		730299e1d1128721	
+03_dev/teacher_web/v1/src/_assets/497d725d-2d5b-436f-b6cf-d5f3265f117f.woff2	tracked	03_dev	.woff2	binary	31340		2c32b9b3ee358c11	
+03_dev/teacher_web/v1/src/_assets/4af0fd5b-8f01-4cc3-92db-2e55a77f2be7.woff2	tracked	03_dev	.woff2	binary	62528		b2c4637b068a04e9	
+03_dev/teacher_web/v1/src/_assets/4bb66490-3595-48d3-b49d-80071a3a96f4.woff2	tracked	03_dev	.woff2	binary	42460		a1a62c92b9408a85	
+03_dev/teacher_web/v1/src/_assets/4c21901a-c88e-4ab3-a563-666835c5fb81.woff2	tracked	03_dev	.woff2	binary	21328		c104ad4e5bd20bcc	
+03_dev/teacher_web/v1/src/_assets/4c48cf1c-c4a9-430a-8c18-8064719258fe.woff2	tracked	03_dev	.woff2	binary	74792		ed6c854cec12aa8a	
+03_dev/teacher_web/v1/src/_assets/4caa8c59-ebff-465b-a984-ee8dbb8b549a.woff2	tracked	03_dev	.woff2	binary	17568		6d1d2ca06df92347	
+03_dev/teacher_web/v1/src/_assets/4f222a0a-d4a9-46b7-9d2e-5c9af8a2a017.woff2	tracked	03_dev	.woff2	binary	18564		19a8b66ec1835e2b	
+03_dev/teacher_web/v1/src/_assets/50424950-eae5-4f17-9b86-a74a6e799f36.woff2	tracked	03_dev	.woff2	binary	90092		8bcc8df3be8d70b7	
+03_dev/teacher_web/v1/src/_assets/509247c0-f564-4f56-a2d6-7122e4bc786c.woff2	tracked	03_dev	.woff2	binary	18272		35a21be02c7edd1f	
+03_dev/teacher_web/v1/src/_assets/51c06b85-af1c-40bc-99c9-286aefa01ba8.woff2	tracked	03_dev	.woff2	binary	18936		b77cd1069e6d8b3d	
+03_dev/teacher_web/v1/src/_assets/522e7fca-91eb-4245-9053-379ad05a84aa.woff2	tracked	03_dev	.woff2	binary	18044		2fe09555df58c49a	
+03_dev/teacher_web/v1/src/_assets/5552a7cd-9bf5-462b-aa50-f8b41c969dfc.woff2	tracked	03_dev	.woff2	binary	18216		3201134f3c10e225	
+03_dev/teacher_web/v1/src/_assets/58080a0a-cb54-4a7c-8886-c8703cd07fc9.woff2	tracked	03_dev	.woff2	binary	73552		1527a9a058b4d441	
+03_dev/teacher_web/v1/src/_assets/58fd6169-a1fb-42d7-b7fe-291e1e02c2c7.woff2	tracked	03_dev	.woff2	binary	19936		43e8da0997e5be38	
+03_dev/teacher_web/v1/src/_assets/5b0e2ef8-2690-414f-a2aa-e253bea4a5f9.woff2	tracked	03_dev	.woff2	binary	10004		329f76640a6cf233	
+03_dev/teacher_web/v1/src/_assets/5e2d718d-dad8-4bfc-8bb5-fddce7826025.woff2	tracked	03_dev	.woff2	binary	22452		0cd424f7617e3235	
+03_dev/teacher_web/v1/src/_assets/63942b11-ac0b-4e24-a575-8009fd7338be.woff2	tracked	03_dev	.woff2	binary	20132		7ef8e7cd54172c53	
+03_dev/teacher_web/v1/src/_assets/66376597-dccd-453b-ad5d-e1d0e3ed342e.woff2	tracked	03_dev	.woff2	binary	19708		f567e68cc9845ae1	
+03_dev/teacher_web/v1/src/_assets/66b8f411-3caa-445c-808a-766a7036f1ec.woff2	tracked	03_dev	.woff2	binary	20068		1232f033a96f01f3	
+03_dev/teacher_web/v1/src/_assets/67063a0f-1acf-42ab-bdbb-200bdf82777c.woff2	tracked	03_dev	.woff2	binary	23504		f3c2629284dcf5d5	
+03_dev/teacher_web/v1/src/_assets/6747e95a-bc98-4133-8c08-9af4744bed99.woff2	tracked	03_dev	.woff2	binary	80492		78a3386626f720ff	
+03_dev/teacher_web/v1/src/_assets/6c9376b5-8a45-41b2-b2c7-ca2d4c7f196b.woff2	tracked	03_dev	.woff2	binary	18876		6552c14300510dc3	
+03_dev/teacher_web/v1/src/_assets/6e13f16c-f928-472e-83a3-80402850366c.woff2	tracked	03_dev	.woff2	binary	86388		09accf2b8b619a65	
+03_dev/teacher_web/v1/src/_assets/6e8a0269-6576-475c-9567-8a5f488d2a83.woff2	tracked	03_dev	.woff2	binary	84976		30957c1aac7ecbaa	
+03_dev/teacher_web/v1/src/_assets/6f24eca1-31ef-4ac7-b619-8a98c0a34ddf.woff2	tracked	03_dev	.woff2	binary	17484		493e7a0d168df9db	
+03_dev/teacher_web/v1/src/_assets/6f6248a4-ad94-4e43-a46d-74a3033b2b1e.woff2	tracked	03_dev	.woff2	binary	18228		3f6cea8e9074ffe8	
+03_dev/teacher_web/v1/src/_assets/74b86859-b9ab-4aa3-a711-3e4594382353.woff2	tracked	03_dev	.woff2	binary	25356		61a1033368209fac	
+03_dev/teacher_web/v1/src/_assets/77389890-da40-4df7-8827-0d4ea9dc5ced.woff2	tracked	03_dev	.woff2	binary	66620		f664cf52ddfef8f7	
+03_dev/teacher_web/v1/src/_assets/7750fda3-0b46-4d95-bf89-d0918842e9f9.woff2	tracked	03_dev	.woff2	binary	69928		6c090b5e40ed397c	
+03_dev/teacher_web/v1/src/_assets/79e3abab-4407-4a6b-b293-b56d67d00371.woff2	tracked	03_dev	.woff2	binary	16924		b4e9ac00dc67aa9e	
+03_dev/teacher_web/v1/src/_assets/7bd21881-ad14-4198-8d91-19fcebb8e885.woff2	tracked	03_dev	.woff2	binary	1664		9343de2ca5d9549f	
+03_dev/teacher_web/v1/src/_assets/7c2d03bd-c90c-430f-81fe-ae789b821659.woff2	tracked	03_dev	.woff2	binary	76044		d8688f88f4350a20	
+03_dev/teacher_web/v1/src/_assets/7cb909cb-9503-4a50-910c-107c8b5e1504.woff2	tracked	03_dev	.woff2	binary	57852		2473dfc4824ba87f	
+03_dev/teacher_web/v1/src/_assets/80a26538-80ae-47c9-999c-4f1ed536f090.woff2	tracked	03_dev	.woff2	binary	79944		aa6d740d800a2507	
+03_dev/teacher_web/v1/src/_assets/8434dd3b-ca5a-448e-b724-0d21b416492c.woff2	tracked	03_dev	.woff2	binary	20296		8ce3d2f17a485ecd	
+03_dev/teacher_web/v1/src/_assets/8660236f-3161-472f-9728-b10597ef5899.woff2	tracked	03_dev	.woff2	binary	67744		3781c2935f9d0466	
+03_dev/teacher_web/v1/src/_assets/88e60d9d-f62e-4e43-9885-5f707393ab05.woff2	tracked	03_dev	.woff2	binary	43280		31e40ea346c178f0	
+03_dev/teacher_web/v1/src/_assets/8a66dd78-a4a9-405a-983c-be93d2dc22af.woff2	tracked	03_dev	.woff2	binary	11760		d18084f06dc67c68	
+03_dev/teacher_web/v1/src/_assets/8b034b37-a6d0-44de-a1b8-23c75102b797.woff2	tracked	03_dev	.woff2	binary	79028		7bd4a29610b3c4ec	
+03_dev/teacher_web/v1/src/_assets/8d0df124-e025-443e-a2dd-aeb13e3270c4.woff2	tracked	03_dev	.woff2	binary	75556		d889e382cbe671e4	
+03_dev/teacher_web/v1/src/_assets/8e04f0e0-29ea-4595-835b-9b00da60263e.woff2	tracked	03_dev	.woff2	binary	67972		df4861e37e80b983	
+03_dev/teacher_web/v1/src/_assets/8ff9d687-58f0-4f35-9ea5-8850a6791cfd.woff2	tracked	03_dev	.woff2	binary	14832		db6a34e665518821	
+03_dev/teacher_web/v1/src/_assets/94da99bd-b0a8-4939-93f4-e0e023d86ff4.woff2	tracked	03_dev	.woff2	binary	37536		3b562e0a832472b6	
+03_dev/teacher_web/v1/src/_assets/967e2eb1-7556-4f91-a9aa-5bc40287f84a.woff2	tracked	03_dev	.woff2	binary	61616		31b4b37caae54085	
+03_dev/teacher_web/v1/src/_assets/98b138ad-bf5b-42d4-a93b-bedceb173759.woff2	tracked	03_dev	.woff2	binary	19272		cf64be33397a5f9d	
+03_dev/teacher_web/v1/src/_assets/9a65e2b3-ce53-420f-bc29-e35f5b824df4.woff2	tracked	03_dev	.woff2	binary	17500		bc3ba6bfebf4245f	
+03_dev/teacher_web/v1/src/_assets/9cebf955-b9e6-47fc-8604-e9a707038109.woff2	tracked	03_dev	.woff2	binary	38676		ce8a02edb5b11115	
+03_dev/teacher_web/v1/src/_assets/9d55b51a-4e3f-4168-92e7-f19bec719aed.woff2	tracked	03_dev	.woff2	binary	77164		e80ff1cfae2e3171	
+03_dev/teacher_web/v1/src/_assets/9ebc366d-a539-426c-8d7b-3b5f190a4447.woff2	tracked	03_dev	.woff2	binary	17092		60d63fe753af231e	
+03_dev/teacher_web/v1/src/_assets/9f7f4a74-5d7e-4b3e-9c28-f1ad39286802.woff2	tracked	03_dev	.woff2	binary	75552		eb1cd120a71abdb6	
+03_dev/teacher_web/v1/src/_assets/a13614ca-cdbe-4302-bfdd-c7850e1c0f9e.woff2	tracked	03_dev	.woff2	binary	19692		49cae3342ddb4411	
+03_dev/teacher_web/v1/src/_assets/a206eb09-8da5-435e-90c1-c38cf28519bb.woff2	tracked	03_dev	.woff2	binary	66952		245cf141f4e28461	
+03_dev/teacher_web/v1/src/_assets/a3743edd-6db3-4508-add4-2673141c127a.woff2	tracked	03_dev	.woff2	binary	5872		d44eb1936043a560	
+03_dev/teacher_web/v1/src/_assets/a3b01417-3ccd-4e1e-89fd-eeb3c31a13c9.woff2	tracked	03_dev	.woff2	binary	71968		31c7691bf2903f58	
+03_dev/teacher_web/v1/src/_assets/a40a6934-e7aa-4754-9a4d-7c8603eeab44.woff2	tracked	03_dev	.woff2	binary	18904		737f856a0f10cb7e	
+03_dev/teacher_web/v1/src/_assets/a5535870-d9a4-4c04-8f98-9e760839c369.woff2	tracked	03_dev	.woff2	binary	57316		180d65570cfab493	
+03_dev/teacher_web/v1/src/_assets/a7070eab-5434-4a03-bf0b-c7338bdd58b4.woff2	tracked	03_dev	.woff2	binary	18232		a0fa15c36ff33c6b	
+03_dev/teacher_web/v1/src/_assets/a83945a7-155a-4cdd-a93a-ba5141be2602.woff2	tracked	03_dev	.woff2	binary	19748		4c2088231e18e5d8	
+03_dev/teacher_web/v1/src/_assets/a8d25c8a-525f-4843-bf6a-04ad607c33d3.woff2	tracked	03_dev	.woff2	binary	6800		49c3da6c9a2b279b	
+03_dev/teacher_web/v1/src/_assets/b1a01c16-b41c-4fe2-9a7a-32408288db2f.woff2	tracked	03_dev	.woff2	binary	17916		d74d718ded5f2a41	
+03_dev/teacher_web/v1/src/_assets/b1f6b318-41d8-4453-9b34-81218f574fd3.woff2	tracked	03_dev	.woff2	binary	70020		0f12582a308dbb01	
+03_dev/teacher_web/v1/src/_assets/b478d65c-c638-4ab6-ae68-d6ad60f5a82e.woff2	tracked	03_dev	.woff2	binary	69116		374feb97150f0e92	
+03_dev/teacher_web/v1/src/_assets/b7b10881-72ce-47df-b9a6-2b45496ef84e.woff2	tracked	03_dev	.woff2	binary	69036		74a5c4ac9c8aa002	
+03_dev/teacher_web/v1/src/_assets/b7c6d3d9-01f0-4352-b9c1-8f9a2ec05cf7.woff2	tracked	03_dev	.woff2	binary	82788		f3854119c3e07ffd	
+03_dev/teacher_web/v1/src/_assets/b9756557-50e3-4c3f-93fb-4474713d8334.woff2	tracked	03_dev	.woff2	binary	18516		7d84b0d8fda90d1b	
+03_dev/teacher_web/v1/src/_assets/bea5370a-c87a-40d2-b3ea-8528a0ae3240.woff2	tracked	03_dev	.woff2	binary	75864		4f1f3bc27c1bf734	
+03_dev/teacher_web/v1/src/_assets/c0f7e5f5-31eb-4d43-b828-69531c7c73a2.woff2	tracked	03_dev	.woff2	binary	80532		6a93f93d73565bf2	
+03_dev/teacher_web/v1/src/_assets/c123385b-dcd4-4acd-828e-f3204ca63cc8.woff2	tracked	03_dev	.woff2	binary	18696		2aea5bde31156672	
+03_dev/teacher_web/v1/src/_assets/c1b03891-882e-47d8-8b6c-63fc98b55e63.woff2	tracked	03_dev	.woff2	binary	82856		d8cad43f5c7f04d1	
+03_dev/teacher_web/v1/src/_assets/c3896cbe-9ca1-4bf2-b148-1f986e3e1ade.woff2	tracked	03_dev	.woff2	binary	75304		62c2c375243091ed	
+03_dev/teacher_web/v1/src/_assets/c3a0b495-7e80-4290-9223-4a933153ea43.woff2	tracked	03_dev	.woff2	binary	61260		9ed73f80bc66fa55	
+03_dev/teacher_web/v1/src/_assets/c7196780-5f1c-456f-898c-1c0908736dd2.woff2	tracked	03_dev	.woff2	binary	65176		00d80cd1e731c1bf	
+03_dev/teacher_web/v1/src/_assets/c7ef40a7-ab84-419c-9e0d-27cfe16b05f6.woff2	tracked	03_dev	.woff2	binary	18252		9613000c3e555b29	
+03_dev/teacher_web/v1/src/_assets/cfb9af3e-1ed1-4647-a6a8-b2de6449583f.woff2	tracked	03_dev	.woff2	binary	15732		6790be25a9db8a73	
+03_dev/teacher_web/v1/src/_assets/cfd7798c-eaea-4f69-b81f-5b1daa5201b1.woff2	tracked	03_dev	.woff2	binary	60520		ac66aa1fafb83033	
+03_dev/teacher_web/v1/src/_assets/d03c606f-ea2e-494c-95fc-972d3d7c437c.woff2	tracked	03_dev	.woff2	binary	10744		cf70659d5a341cad	
+03_dev/teacher_web/v1/src/_assets/d12d76a9-1d99-42ce-b662-d06c2cfd38c1.woff2	tracked	03_dev	.woff2	binary	86840		387fafc0e9e524c1	
+03_dev/teacher_web/v1/src/_assets/d26f1e3b-8b3d-4574-8a3b-83876d54b997.woff2	tracked	03_dev	.woff2	binary	18936		0979aa4dac23a53c	
+03_dev/teacher_web/v1/src/_assets/d5e04cac-5786-49a9-aa49-1fc6bf31737a.woff2	tracked	03_dev	.woff2	binary	77736		434772cd14ba5f33	
+03_dev/teacher_web/v1/src/_assets/dd25229b-4856-4826-843e-9c141aeef0af.woff2	tracked	03_dev	.woff2	binary	18744		e6b53d042dfed4cd	
+03_dev/teacher_web/v1/src/_assets/dfd0dbfd-9d79-40ec-8325-0804a8b4d257.woff2	tracked	03_dev	.woff2	binary	15856		6f067e59d47eaa74	
+03_dev/teacher_web/v1/src/_assets/ed850ee3-5f26-4243-9ea5-f84b1a40118b.woff2	tracked	03_dev	.woff2	binary	16092		49da1cdb9543b767	
+03_dev/teacher_web/v1/src/_assets/eda1a257-c5d3-4a8a-be4b-51534fc90ebc.woff2	tracked	03_dev	.woff2	binary	73340		75cdad5e539f3b49	
+03_dev/teacher_web/v1/src/_assets/eebbe24a-1ff3-444b-805c-09bfe64140ba.woff2	tracked	03_dev	.woff2	binary	72044		0b75ffe0fd69a350	
+03_dev/teacher_web/v1/src/_assets/ef10d320-79f6-469e-ac16-0aaa745d6049.woff2	tracked	03_dev	.woff2	binary	16624		12481a1e87d4454b	
+03_dev/teacher_web/v1/src/_assets/f26f031a-0f77-4a9b-bdff-50e4351945bc.woff2	tracked	03_dev	.woff2	binary	16432		4e3a41a6c68b0688	
+03_dev/teacher_web/v1/src/_assets/f2e3afc2-08da-4340-b912-f301f7bb6e6f.woff2	tracked	03_dev	.woff2	binary	80324		8884f74212733dce	
+03_dev/teacher_web/v1/src/_assets/f6a80215-a923-4806-8e46-9f53c71df566.woff2	tracked	03_dev	.woff2	binary	64832		f47dee586d6958b7	
+03_dev/teacher_web/v1/src/_assets/f7d1fe45-5d2b-4757-aff8-887f1785afe5.woff2	tracked	03_dev	.woff2	binary	17236		422d87e1fefdaf90	
+03_dev/teacher_web/v1/src/api/client.ts	tracked	03_dev	.ts	text	10262	416	df7086ce8ef01ab2	secret-word
+03_dev/teacher_web/v1/src/assets/tomoshibi-icon.png	tracked	03_dev	.png	binary	169261		cbb14f0888879c3d	
+03_dev/teacher_web/v1/src/components/Shell.tsx	tracked	03_dev	.tsx	text	2520	75	f41c44a1abd7ace4	
+03_dev/teacher_web/v1/src/components/_legacy/accounts.jsx	tracked	03_dev	.jsx	text	23380	296	3cf04fb1f370673f	demo-mock-todo,secret-word
+03_dev/teacher_web/v1/src/components/_legacy/app.jsx	tracked	03_dev	.jsx	text	9045	182	0dd51c14acd6cd25	demo-mock-todo
+03_dev/teacher_web/v1/src/components/_legacy/applications.jsx	tracked	03_dev	.jsx	text	15153	280	0fb37d93db88a5a6	demo-mock-todo
+03_dev/teacher_web/v1/src/components/_legacy/discipline.jsx	tracked	03_dev	.jsx	text	8428	130	c13d7c7ad17be221	demo-mock-todo
+03_dev/teacher_web/v1/src/components/_legacy/front-desk.jsx	tracked	03_dev	.jsx	text	18354	278	9731b9b09e9e63dd	demo-mock-todo
+03_dev/teacher_web/v1/src/components/_legacy/live-roll-call.jsx	tracked	03_dev	.jsx	text	16359	293	43470cd82a04143b	demo-mock-todo
+03_dev/teacher_web/v1/src/components/_legacy/login.jsx	tracked	03_dev	.jsx	text	5039	102	518051a22a960176	demo-mock-todo,secret-word
+03_dev/teacher_web/v1/src/components/_legacy/outstay-detail-modal.jsx	tracked	03_dev	.jsx	text	10522	167	07541fa8f6f7ac3c	
+03_dev/teacher_web/v1/src/components/_legacy/override-modal.jsx	tracked	03_dev	.jsx	text	7813	98	577acffe06f2a6c5	demo-mock-todo
+03_dev/teacher_web/v1/src/components/_legacy/pages-records-search-etc.jsx	tracked	03_dev	.jsx	text	70891	944	558bd232a88a8494	demo-mock-todo
+03_dev/teacher_web/v1/src/components/_legacy/roll-call-landing.jsx	tracked	03_dev	.jsx	text	15414	268	b53c335c8de5a777	demo-mock-todo
+03_dev/teacher_web/v1/src/components/_legacy/select-teacher.jsx	tracked	03_dev	.jsx	text	11847	190	ed432e65afdbfee3	demo-mock-todo
+03_dev/teacher_web/v1/src/components/_legacy/shell.jsx	tracked	03_dev	.jsx	text	10927	183	af3307d119dc47ca	demo-mock-todo
+03_dev/teacher_web/v1/src/components/_legacy/theme.jsx	tracked	03_dev	.jsx	text	6234	84	bedece89c5f02164	demo-mock-todo,secret-word
+03_dev/teacher_web/v1/src/index.css	tracked	03_dev	.css	text	1560	51	7d2eb0ba8b918303	
+03_dev/teacher_web/v1/src/index.html	tracked	03_dev	.html	text	669857	7775	5bab253eb1198c6f	demo-mock-todo,secret-word
+03_dev/teacher_web/v1/src/main.tsx	tracked	03_dev	.tsx	text	236	10	6d64ef738d4185c2	
+03_dev/teacher_web/v1/src/pages/Applications.tsx	tracked	03_dev	.tsx	text	8359	240	99063c81f5b8cc3d	demo-mock-todo,secret-word
+03_dev/teacher_web/v1/src/pages/Login.tsx	tracked	03_dev	.tsx	text	2783	85	c1888349b25acafa	demo-mock-todo,secret-word
+03_dev/teacher_web/v1/src/pages/RollCall.tsx	tracked	03_dev	.tsx	text	7702	205	63f5e09d5e3f0f8f	secret-word
+03_dev/teacher_web/v1/src/pages/Study.tsx	tracked	03_dev	.tsx	text	11089	297	9716862d9f814fe9	demo-mock-todo,secret-word
+03_dev/teacher_web/v1/src/pages/Teachers.tsx	tracked	03_dev	.tsx	text	6852	181	02dc4c45f822714a	secret-word
+03_dev/teacher_web/v1/src/store/auth.ts	tracked	03_dev	.ts	text	797	34	c2fc91bd49d9c075	secret-word
+03_dev/teacher_web/v1/src/vendor/babel.min.js	tracked	03_dev	.js	text	3137752	4	2623a9e22809915c	demo-mock-todo,secret-word
+03_dev/teacher_web/v1/src/vendor/react-dom.development.js	tracked	03_dev	.js	text	1080227	29924	f9044a5e9c39db8b	demo-mock-todo,secret-word
+03_dev/teacher_web/v1/src/vendor/react.development.js	tracked	03_dev	.js	text	109931	3343	28348fef6cb0ed8b	demo-mock-todo,secret-word
+03_dev/teacher_web/v1/tailwind.config.js	tracked	03_dev	.js	text	645	29	455b08f03eacffbd	
+03_dev/teacher_web/v1/tomoshibi	tracked	03_dev	[none]	text	6902	208	5ffff49252888e73	demo-mock-todo
+03_dev/teacher_web/v1/tsconfig.json	tracked	03_dev	.json	text	511	20	7c343cac9322ad19	
+03_dev/teacher_web/v1/tsconfig.tsbuildinfo	tracked	03_dev	.tsbuildinfo	text	267	1	328c39b9bc745fb9	
+03_dev/teacher_web/v1/vite.config.ts	tracked	03_dev	.ts	text	283	15	3159235373d77081	
+03_dev/teacher_web/v1/开发模式跑.command	tracked	03_dev	.command	text	728	24	1a0d3c597bc9461a	demo-mock-todo
+03_dev/teacher_web/v1/打包单文件.command	tracked	03_dev	.command	text	368	11	a77e4cae17ebefd3	demo-mock-todo
+04_ops/MAC_MINI_SETUP.md	tracked	04_ops	.md	text	11993	384	18e078e25cc6886c	demo-mock-todo,secret-word
+04_ops/wifi_survey_howto.md	tracked	04_ops	.md	text	9899	264	aa58cba7aa66c7c6	demo-mock-todo
+05_logs/AC_叙事/AC_志望動機_素材.md	tracked	05_logs	.md	text	7798	185	157953e8374af0e1	
+05_logs/AC_叙事/AC_提交_checklist.md	tracked	05_logs	.md	text	6288	163	4110aef5d6ce1ebe	demo-mock-todo
+05_logs/AC_叙事/Batch3_itsuki手笔素材指引.md	tracked	05_logs	.md	text	26151	461	6b3b2bd9fc33b4fe	demo-mock-todo
+05_logs/AC_叙事/v0.3.0_AC叙事.md	tracked	05_logs	.md	text	11512	204	6708d5aac22a592c	demo-mock-todo
+05_logs/AC_叙事/v0.3.2_AC叙事.md	tracked	05_logs	.md	text	11116	191	35f281ef18e2b87e	demo-mock-todo
+05_logs/AC_叙事/v0.4.0_AC叙事.md	tracked	05_logs	.md	text	11239	214	8d8432ebc183e85e	demo-mock-todo
+05_logs/AC_叙事/v0.5.0_AC叙事.md	tracked	05_logs	.md	text	15796	296	67186bf3c440a289	demo-mock-todo
+05_logs/AC_叙事/v0.6.0_AC叙事.md	tracked	05_logs	.md	text	11548	214	5de172f3dde6786b	demo-mock-todo,secret-word
+05_logs/AC_叙事/v0.7.0_AC叙事.md	tracked	05_logs	.md	text	17240	310	6687df048cf75a9d	demo-mock-todo
+05_logs/AC_叙事/v0.8.0_AC叙事.md	tracked	05_logs	.md	text	13795	252	a873323bf32931e5	demo-mock-todo,secret-word
+05_logs/AC_叙事/原创设计_语音播报防作弊.md	tracked	05_logs	.md	text	8113	136	efddc021e3341d77	
+05_logs/AC_叙事/面试准备_索引.md	tracked	05_logs	.md	text	8699	203	d46a9353340e702e	demo-mock-todo
+05_logs/decision_log.md	tracked	05_logs	.md	text	7862	164	91d634067f3d1976	secret-word
+05_logs/dev_log/2026-02-02_目录结构和命名规划.md	tracked	05_logs	.md	text	1186	31	886e8028067b0d9d	
+05_logs/dev_log/2026-02-03_点呼规格大纲完成.md	tracked	05_logs	.md	text	1639	35	5c99314ed49f02e8	
+05_logs/dev_log/2026-02-04_全体計画の改善.md	tracked	05_logs	.md	text	519	13	a85e5b846024608e	
+05_logs/dev_log/2026-02-08_学生分类和点呼合并.md	tracked	05_logs	.md	text	1675	40	693db14b08dfb8b5	
+05_logs/dev_log/2026-04-10_session_summary.md	tracked	05_logs	.md	text	7570	151	8bfa6161638e85fe	
+05_logs/dev_log/2026-04-10_回归日.md	tracked	05_logs	.md	text	41058	700	bdaf3c7fe298a3d5	demo-mock-todo
+05_logs/dev_log/2026-04-10_空白期反思_索引.md	tracked	05_logs	.md	text	2223	45	f7e6e19bc0969ac9	
+05_logs/dev_log/2026-04-12_NFC方案设计日.md	tracked	05_logs	.md	text	12014	217	afc04568a56449f7	
+05_logs/dev_log/2026-04-15_[NFC][MULTI]_硬件重开与Phase2架构.md	tracked	05_logs	.md	text	6076	112	d39a843607239dde	secret-word
+05_logs/learning_path.md	tracked	05_logs	.md	text	12756	300	32fbacf14273d053	secret-word
+05_logs/problem_solving/2026-04-10_NFC_NFD_git_pull_failure.md	tracked	05_logs	.md	text	4880	70	96ff9d37255b95fc	
+05_logs/problem_solving/2026-04-15_AI过度配置诊断.md	tracked	05_logs	.md	text	6455	157	eabe2864277b97a9	
+05_logs/problem_solving/2026-04-15_iOS限制下的UID统一模型重构.md	tracked	05_logs	.md	text	6932	142	f9704c5ea4dbdaa7	demo-mock-todo,secret-word
+05_logs/problem_solving/2026-04-15_spec_gap_发现.md	tracked	05_logs	.md	text	5915	154	f1a259307438e90f	demo-mock-todo
+05_logs/project_evolution.md	tracked	05_logs	.md	text	7328	182	1279d0b5af14021a	secret-word
+05_logs/raw/2025-12_NFC系统早期设计对话.md	tracked	05_logs	.md	text	138955	3141	66f7ac3b53a45840	demo-mock-todo,secret-word
+05_logs/raw/2026-04-12_NFC架构讨论.md	tracked	05_logs	.md	text	4526	110	3647e735d3808107	
+05_logs/raw/2026-04-13_版本管理和AC工作流.md	tracked	05_logs	.md	text	3220	100	e5b2c48873589c75	secret-word
+05_logs/raw/2026-04-15_NFC硬件+Phase2架构讨论.md	tracked	05_logs	.md	text	6894	177	902242e7a450ad16	secret-word
+05_logs/raw/2026-04-17.md	tracked	05_logs	.md	text	44050	774	24aba834abee0391	demo-mock-todo,secret-word
+05_logs/raw/2026-04-19.md	tracked	05_logs	.md	text	40644	737	2d589c93a4f9e2c3	demo-mock-todo,secret-word
+05_logs/raw/2026-04-20.md	tracked	05_logs	.md	text	55990	1008	20972fc1a1afd6e6	demo-mock-todo,secret-word
+05_logs/raw/2026-04-20_v0.3.1发布执行.md	tracked	05_logs	.md	text	24531	413	91c9a6a875d04097	demo-mock-todo
+05_logs/raw/2026-04-21.md	tracked	05_logs	.md	text	49101	798	a12f44e4c723b1d8	demo-mock-todo,secret-word
+05_logs/raw/2026-04-22.md	tracked	05_logs	.md	text	30197	432	443efcc90ddaebe2	demo-mock-todo
+05_logs/raw/2026-04-22_iOS前端设计_Round1.md	tracked	05_logs	.md	text	25236	356	024d3b1c72685a54	demo-mock-todo,secret-word
+05_logs/raw/2026-04-23.md	tracked	05_logs	.md	text	14486	206	c3ecde8dacdab032	demo-mock-todo
+05_logs/raw/2026-04-24.md	tracked	05_logs	.md	text	9865	165	4e94437d294cdd76	demo-mock-todo
+05_logs/raw/2026-04-29.md	tracked	05_logs	.md	text	36708	717	10bb02b55880a5b6	demo-mock-todo
+05_logs/raw/2026-04-30.md	tracked	05_logs	.md	text	51381	916	a3b2095d29326270	demo-mock-todo
+05_logs/raw/2026-05-01.md	tracked	05_logs	.md	text	19289	335	e7dc467aa9f33155	demo-mock-todo,secret-word
+05_logs/raw/2026-05-02.md	tracked	05_logs	.md	text	35442	564	253bf7f6adc153d7	demo-mock-todo,secret-word
+05_logs/raw/2026-05-03.md	tracked	05_logs	.md	text	65942	972	8cd65d868aeb8049	demo-mock-todo,secret-word
+05_logs/raw/2026-05-04.md	tracked	05_logs	.md	text	121561	1950	b222d10d6599f08a	demo-mock-todo,secret-word
+05_logs/raw/2026-05-04_iOS_bug修复.md	tracked	05_logs	.md	text	17700	354	5e907001af67f166	demo-mock-todo,secret-word
+05_logs/raw/2026-05-06.md	tracked	05_logs	.md	text	12412	194	bc6c58b2c71037c4	demo-mock-todo,secret-word
+05_logs/raw/2026-05-07.md	tracked	05_logs	.md	text	11735	242	f6a49171297ea41f	demo-mock-todo
+05_logs/raw/2026-05-08.md	tracked	05_logs	.md	text	14657	321	9f8319b1fbfd41aa	demo-mock-todo
+05_logs/raw/2026-05-08_ios_上架冲刺.md	tracked	05_logs	.md	text	12649	261	9b5492a48219cc0c	demo-mock-todo,secret-word
+05_logs/raw/2026-05-08_reviewer_demo重做.md	tracked	05_logs	.md	text	22844	390	fb3f00a97c064244	demo-mock-todo,secret-word
+05_logs/raw/2026-05-08_vps_deploy_steps.md	tracked	05_logs	.md	text	6230	187	4c5ca6745c729374	demo-mock-todo,secret-word
+05_logs/raw/2026-05-10.md	tracked	05_logs	.md	text	40477	734	ddbd9b885ed8aca8	demo-mock-todo,secret-word
+05_logs/raw/2026-05-11.md	tracked	05_logs	.md	text	70747	1133	082bf662aff1d0c5	demo-mock-todo,secret-word
+05_logs/raw/2026-05-11_reviewer后门修复上线.md	tracked	05_logs	.md	text	23685	419	77bf13ceb5ab439b	demo-mock-todo,secret-word
+05_logs/raw/2026-05-11_深夜大整理.md	tracked	05_logs	.md	text	10599	225	9a9ce48f82933584	demo-mock-todo,secret-word
+05_logs/raw/2026-05-12_codex_auto_修复.md	tracked	05_logs	.md	text	3156	77	9177d8dbd226549f	secret-word
+05_logs/raw/2026-05-12_修补批量+comm规则加严.md	tracked	05_logs	.md	text	17445	276	02e06408a8773bae	demo-mock-todo,secret-word
+05_logs/raw/2026-05-12_压缩后接力指引.md	tracked	05_logs	.md	text	15867	493	646c18b17e3070c7	demo-mock-todo,secret-word
+05_logs/raw/2026-05-12_接力CC进度快照.md	tracked	05_logs	.md	text	8686	169	4f9ebc2b2f3ad3cd	demo-mock-todo,secret-word
+05_logs/raw/2026-05-12_深夜大整理_AC价值汇总.md	tracked	05_logs	.md	text	16749	275	4bbeb0594bf7c8be	demo-mock-todo,secret-word
+05_logs/raw/2026-05-12_深夜大整理_总结报告.md	tracked	05_logs	.md	text	15916	351	886e182a4de49f09	demo-mock-todo,secret-word
+05_logs/raw/2026-05-12_深度审查_总结.html	tracked	05_logs	.html	text	27441	367	5a64ca20f15201ca	demo-mock-todo,secret-word
+05_logs/raw/2026-05-12_深度审查_执行计划.md	tracked	05_logs	.md	text	7278	207	6887643b75401e32	demo-mock-todo,secret-word
+05_logs/raw/2026-05-12_深度审查_批1_5端代码整合.md	tracked	05_logs	.md	text	16996	276	00a7a97fa1f8cfc9	demo-mock-todo,secret-word
+05_logs/raw/2026-05-12_深度审查_批2批3整合.md	tracked	05_logs	.md	text	18871	322	925df4d3c56aad1c	demo-mock-todo,secret-word
+05_logs/raw/2026-05-12_问题清单_codex修复SOP.md	tracked	05_logs	.md	text	12564	406	0ce04803e3bc2cc6	demo-mock-todo,secret-word
+05_logs/raw/2026-05-13_接力CC续做.md	tracked	05_logs	.md	text	7957	155	8b7010f5f534b9a4	demo-mock-todo,secret-word
+05_logs/raw/2026-05-14.md	tracked	05_logs	.md	text	34699	518	2bdaabdb3b5efb4b	demo-mock-todo,secret-word
+05_logs/raw/2026-05-14_Tango立项+bootstrap.md	tracked	05_logs	.md	text	16597	370	b88a83542b642fd7	demo-mock-todo
+05_logs/raw/README.md	tracked	05_logs	.md	text	2889	65	c360fc2574713895	
+05_logs/漏洞_剩余清单_2026-04-21.md	tracked	05_logs	.md	text	16823	221	b9bec9390911b0b1	demo-mock-todo
+05_logs/版本演变一览.md	tracked	05_logs	.md	text	38298	507	e392fa2936696477	demo-mock-todo,secret-word
+06_assets/bus_schedule_real.md	tracked	06_assets	.md	text	5933	160	4a06f7068c33ed74	demo-mock-todo
+06_assets/icons/tomoshibi_app_icon_256.png	tracked	06_assets	.png	binary	21791		3bcb42986a44eb2f	
+06_assets/icons/tomoshibi_app_icon_v2.png	tracked	06_assets	.png	binary	169261		cbb14f0888879c3d	
+06_assets/icons/tomoshibi_flame.png	tracked	06_assets	.png	binary	169261		cbb14f0888879c3d	
+06_assets/icons/tomoshibi_flame_color.psd	tracked	06_assets	.psd	binary	847005		7ca03f731e9a6773	
+06_assets/real_samples/bus_notice_2026-03-22_特別運行便.md	tracked	06_assets	.md	text	9389	186	9b6ad61051af6777	
+06_assets/术语表.html	tracked	06_assets	.html	text	118340	952	aaf2c380c223d138	demo-mock-todo,secret-word
+99_archive/01_specs_Overview_原稿/宿舍管理系统电子化总览.docx	tracked	99_archive	.docx	binary	46005		31c4388a97828cf9	
+99_archive/01_specs_Overview_原稿/数据库字段字典.docx	tracked	99_archive	.docx	binary	69021		12a119539a605495	
+99_archive/2025-12_早期GPT对话/payload.json	tracked	99_archive	.json	text	11609	1	d9b81a64e027c622	secret-word
+99_archive/2025-12_早期GPT对话/prompt.txt	tracked	99_archive	.txt	text	11343	196	547f065dab9053ec	secret-word
+99_archive/2025-12_早期GPT对话/resp.json	tracked	99_archive	.json	text	28595	74	8020ad2cc519d78f	secret-word
+99_archive/2026-03-08_Folder_Structure_Overview.pages	tracked	99_archive	.pages	binary	188870		3314dc3a7f1cef69	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp.xcodeproj/project.pbxproj	tracked	99_archive	.pbxproj	text	20643	575	9ede33f3b42b64aa	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp.xcodeproj/project.xcworkspace/contents.xcworkspacedata	tracked	99_archive	.xcworkspacedata	text	135	7	7f3b00b5c3fdb452	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Assets.xcassets/AccentColor.colorset/Contents.json	tracked	99_archive	.json	text	123	11	9af65086fa30b492	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Assets.xcassets/AppIcon.appiconset/Contents.json	tracked	99_archive	.json	text	607	35	d776cfae1b33325f	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Assets.xcassets/Contents.json	tracked	99_archive	.json	text	63	6	0fd49ba3c3585c70	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/ContentView.swift	tracked	99_archive	.swift	text	227	18	e00745aff84c9003	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Core/Error/APIErrorMessageMap.swift	tracked	99_archive	.swift	text	1451	45	0c9b62a99def9e8a	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Core/Networking/APIEnvelope.swift	tracked	99_archive	.swift	text	235	13	cc5504a8e42b362c	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Core/Networking/MockJSONLoader.swift	tracked	99_archive	.swift	text	524	17	189bc96ed1a56e91	demo-mock-todo
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Core/Scanning/NFCScanService.swift	tracked	99_archive	.swift	text	3286	103	647bee5ef147589e	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/DMSDStudentAppApp.swift	tracked	99_archive	.swift	text	241	17	e51e3a5205becde8	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Features/AppShell/StudentAppShellView.swift	tracked	99_archive	.swift	text	8417	258	74699a09a7ada215	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Features/Application/ApplicationCenterView.swift	tracked	99_archive	.swift	text	477	20	8a861c8310277ad7	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Features/Common/ScreenState.swift	tracked	99_archive	.swift	text	123	8	f0031c569ffbe3f2	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Features/Common/StateContainerView.swift	tracked	99_archive	.swift	text	1169	36	c8ea3003bbb8563e	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Features/Discipline/DisciplineCenterView.swift	tracked	99_archive	.swift	text	602	24	8b29a7ef3079bc25	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Features/Discipline/DisciplineLedgerView.swift	tracked	99_archive	.swift	text	851	31	afc0e7363e0455cb	demo-mock-todo
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Features/Discipline/DisciplineSummaryView.swift	tracked	99_archive	.swift	text	827	35	681adbbbdae1e34a	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Features/Profile/MyPageView.swift	tracked	99_archive	.swift	text	452	20	15949f4dd1b6af1a	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Features/RollCall/RollCallCenterView.swift	tracked	99_archive	.swift	text	631	24	cf73459c60916962	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Features/RollCall/RollCallHistoryDetailView.swift	tracked	99_archive	.swift	text	1073	41	ef232bac8c4c541f	demo-mock-todo
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Features/RollCall/RollCallHistoryHomeView.swift	tracked	99_archive	.swift	text	12396	368	2f2d3e46434b7b61	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Features/RollCall/RollCallHistoryMonthView.swift	tracked	99_archive	.swift	text	2242	68	5ef4d2c72b99d7f7	demo-mock-todo
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Features/RollCall/RollCallHistoryStore.swift	tracked	99_archive	.swift	text	4637	159	064fa77c463044ac	demo-mock-todo
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Features/RollCall/RollCallHomeView.swift	tracked	99_archive	.swift	text	2403	73	c1df1db7c6c3aa00	demo-mock-todo
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Features/RollCall/RollCallScanSheetView.swift	tracked	99_archive	.swift	text	5921	172	13a0042bc01b9683	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Features/Settings/SettingsCenterView.swift	tracked	99_archive	.swift	text	753	28	11e666133594a8eb	demo-mock-todo
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Mocks/v1/README.md	tracked	99_archive	.md	text	209	6	caf5e4e29dfe470f	demo-mock-todo
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Mocks/v1/history_month.json	tracked	99_archive	.json	text	423	15	09690fdb6a89e434	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Mocks/v1/history_overview.json	tracked	99_archive	.json	text	1375	33	c771e8c2eb167b4b	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Mocks/v1/student_home.json	tracked	99_archive	.json	text	542	17	0e957d588654ea5d	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentApp/Models/V1/APIContractV1Models.swift	tracked	99_archive	.swift	text	1419	63	fe1926ba98090dc5	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentAppTests/DMSDStudentAppTests.swift	tracked	99_archive	.swift	text	1245	36	1d3d0bf68eb0c560	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentAppUITests/DMSDStudentAppUITests.swift	tracked	99_archive	.swift	text	1322	41	1cf5876704c96b07	
+99_archive/2026-03-08_throwaway_ios_swift/DMSDStudentApp_iOS/DMSDStudentAppUITests/DMSDStudentAppUITestsLaunchTests.swift	tracked	99_archive	.swift	text	835	33	9e172e570a05aa4b	
+99_archive/2026-04-12_executable_dev_checklist_v0.1.md	tracked	99_archive	.md	text	6459	211	944e6678d1fcdc75	secret-word
+99_archive/2026-04-15_old_demo/README.md	tracked	99_archive	.md	text	4742	84	197420ef7ac30186	demo-mock-todo
+99_archive/2026-04-15_old_demo/backend/app.py	tracked	99_archive	.py	text	2514	80	63edc27b712a1843	demo-mock-todo
+99_archive/2026-04-15_old_demo/backend/requirements.txt	tracked	99_archive	.txt	text	27	2	088efdc7eb44bfc3	
+99_archive/2026-04-15_old_demo/backend/students.json	tracked	99_archive	.json	text	1614	26	e3853a0ade5c586a	
+99_archive/2026-04-15_old_demo/frontend/index.html	tracked	99_archive	.html	text	2139	57	181e4e0a799fa9ff	
+99_archive/2026-04-15_old_demo/frontend/script.js	tracked	99_archive	.js	text	7985	240	a0288cd8ba9aac92	demo-mock-todo
+99_archive/2026-04-15_old_demo/frontend/style.css	tracked	99_archive	.css	text	7808	310	e8d05b27ab3f2e47	
+99_archive/2026-04-15_old_demo/iphone_shortcuts_guide.md	tracked	99_archive	.md	text	4203	104	78ec39f9733898aa	demo-mock-todo
+99_archive/2026-04-15_old_demo/run.sh	tracked	99_archive	.sh	text	1361	41	e0eda3ed3b2cf92b	
+99_archive/2026-04-29_pre_v1.0_cleanup/Tomoshibi_iOS_PhaseB_v1_2026-04-22.html	tracked	99_archive	.html	text	1927299	197	30faab4d2b7ffc90	demo-mock-todo,secret-word
+99_archive/2026-04-29_pre_v1.0_cleanup/_archived_v1_DESIGN_BRIEF_2026-04-21.md	tracked	99_archive	.md	text	7554	161	c92f0cfd7fde5dbb	demo-mock-todo
+99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/README.md	tracked	99_archive	.md	text	2920	36	90cfd6eab025c489	demo-mock-todo
+99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/ST25DV_fallback.md	tracked	99_archive	.md	text	9849	195	60c624e58519aac7	demo-mock-todo
+99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/demo_script.md	tracked	99_archive	.md	text	16714	331	783d0a16db59ae0d	demo-mock-todo
+99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/for_code_agent.md	tracked	99_archive	.md	text	11872	235	788a4f3744dfbab3	demo-mock-todo
+99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/questions_for_admin.md	tracked	99_archive	.md	text	13531	352	ab92ef590b5b5a08	demo-mock-todo
+99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/questions_for_requirements.md	tracked	99_archive	.md	text	11261	181	653ee4fb102ed616	demo-mock-todo
+99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/scope_tier.md	tracked	99_archive	.md	text	21067	412	96709da174c2ceed	demo-mock-todo,secret-word
+99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/sprint.md	tracked	99_archive	.md	text	12849	213	99cd6ff1f3e5f14b	demo-mock-todo
+99_archive/2026-04-29_pre_v1.0_cleanup/student_ios_handoff_for_code_agent_DEPRECATED.md	tracked	99_archive	.md	text	12571	287	0a399cc1ba05a503	demo-mock-todo
+99_archive/2026-04-29_pre_v1.0_cleanup/student_ios_round1_handoff/README.md	tracked	99_archive	.md	text	2729	41	62458c61322beff7	demo-mock-todo
+99_archive/2026-04-29_pre_v1.0_cleanup/student_ios_round1_handoff/Round1_Prompt.md	tracked	99_archive	.md	text	38250	878	75c1e9689f1fe78a	demo-mock-todo,secret-word
+99_archive/2026-04-29_pre_v1.0_cleanup/student_ios_round1_handoff/references/01_tomoshibi_logo.png	tracked	99_archive	.png	binary	465119		c90467be192dd7cc	
+99_archive/2026-04-29_pre_v1.0_cleanup/student_ios_round1_handoff/references/02_bottom_nav_sketch.png	tracked	99_archive	.png	binary	135059		13971b717e7bf737	
+99_archive/2026-04-29_pre_v1.0_cleanup/student_ios_round1_handoff/references/03_scan_sheet_ref_a.png	tracked	99_archive	.png	binary	364731		2805386389df870b	
+99_archive/2026-04-29_pre_v1.0_cleanup/student_ios_round1_handoff/references/04_scan_sheet_ref_b.png	tracked	99_archive	.png	binary	371459		302cec69fe38d9bf	
+99_archive/2026-04-29_pre_v1.0_cleanup/teacher_requirements_v0.5.0_draft.md	tracked	99_archive	.md	text	24830	379	03d7eec232e97e06	demo-mock-todo,secret-word
+99_archive/2026-04-29_pre_v1.0_cleanup/teacher_web_handoff_round2/README.md	tracked	99_archive	.md	text	2014	25	f78c5210b3a788d4	demo-mock-todo
+99_archive/2026-04-29_pre_v1.0_cleanup/teacher_web_handoff_round2/chat1.md	tracked	99_archive	.md	text	6892	193	35c9a75e2a98f040	demo-mock-todo,secret-word
+99_archive/2026-04-29_pre_v1.0_cleanup/teacher_web_handoff_round2/design-system-round1.html	tracked	99_archive	.html	text	8563	172	362a4fdcefd649c1	
+99_archive/2026-04-29_pre_v1.0_cleanup/teacher_web_handoff_round2/uploads/スクリーンショット 2026-04-21 19.42.31.png	tracked	99_archive	.png	binary	265210		1681c25aad09df17	
+99_archive/2026-04-29_pre_v1.0_cleanup/teacher_web_index_round2.html	tracked	99_archive	.html	text	7236	169	b23686ad0a1ad36d	demo-mock-todo
+99_archive/2026-04-29_pre_v1.0_cleanup/teacher_web_round2/live.jsx	tracked	99_archive	.jsx	text	8983	185	221fe1c248893f4a	demo-mock-todo
+99_archive/2026-04-29_pre_v1.0_cleanup/teacher_web_round2/login.jsx	tracked	99_archive	.jsx	text	3813	81	36c7826d19be47c8	demo-mock-todo,secret-word
+99_archive/2026-04-29_pre_v1.0_cleanup/teacher_web_round2/override-modal.jsx	tracked	99_archive	.jsx	text	7128	112	29782ec5ef0ea1cc	demo-mock-todo
+99_archive/2026-04-29_pre_v1.0_cleanup/teacher_web_round2/roll-call-landing.jsx	tracked	99_archive	.jsx	text	5903	99	81764cc99e81de8c	
+99_archive/2026-04-29_pre_v1.0_cleanup/teacher_web_round2/shell.jsx	tracked	99_archive	.jsx	text	5431	108	4508d17edf427209	
+99_archive/2026-04-29_pre_v1.0_cleanup/teacher_web_round2/theme.jsx	tracked	99_archive	.jsx	text	1933	62	c79c804037224923	demo-mock-todo,secret-word
+99_archive/2026-04-29_pre_v1.0_cleanup/teacher_web_round3_handoff/01_tomoshibi_icon.png	tracked	99_archive	.png	binary	465119		c90467be192dd7cc	
+99_archive/2026-04-29_pre_v1.0_cleanup/teacher_web_round3_handoff/02_gaihaku_form_reference.jpeg	tracked	99_archive	.jpeg	binary	346823		74b43f73f55d24f7	
+99_archive/2026-04-29_pre_v1.0_cleanup/teacher_web_round3_handoff/03_current_header_before.png	tracked	99_archive	.png	binary	11747		6344fcb506349b0d	
+99_archive/2026-04-29_pre_v1.0_cleanup/teacher_web_round3_handoff/README.md	tracked	99_archive	.md	text	2254	34	3a6b89455b02be63	
+99_archive/2026-04-29_pre_v1.0_cleanup/teacher_web_round3_handoff/Round3_Prompt.md	tracked	99_archive	.md	text	24773	474	3d6dd35054e0878a	demo-mock-todo,secret-word
+99_archive/2026-05-02_android_handoff_route_archived/README.md	tracked	99_archive	.md	text	2572	41	95b6a3b01b954b8b	demo-mock-todo,secret-word
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/Design_Tokens.md	tracked	99_archive	.md	text	4966	142	823ee37e5a187b18	secret-word
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/README.md	tracked	99_archive	.md	text	6477	125	cfd6ce737d2553bf	demo-mock-todo,secret-word
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/Round1_Prompt.md	tracked	99_archive	.md	text	14872	255	775562c92c2d7194	demo-mock-todo,secret-word
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_Inventory.md	tracked	99_archive	.md	text	10771	269	065e3b0a70c0cca5	demo-mock-todo,secret-word
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/AppStore.swift	tracked	99_archive	.swift	text	23172	606	0c20974b6545aa2d	demo-mock-todo
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/Components/BottomNav.swift	tracked	99_archive	.swift	text	6289	151	0883a868e29541a6	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/Components/BreadcrumbOverlay.swift	tracked	99_archive	.swift	text	4342	119	a3d8596d6ce1aae0	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/Components/Field.swift	tracked	99_archive	.swift	text	3255	102	94344a3cb7aeee6b	demo-mock-todo
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/Components/IOSStatusBar.swift	tracked	99_archive	.swift	text	741	23	ca6d76864e1f5c8e	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/Components/Icons/Ic.swift	tracked	99_archive	.swift	text	3183	48	9a8364a76e305e11	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/Components/PageHeader.swift	tracked	99_archive	.swift	text	1496	54	697170d101f95c1c	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/Components/PrimaryButton.swift	tracked	99_archive	.swift	text	2765	76	50429b6d6ddfc9b1	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/Components/Toast.swift	tracked	99_archive	.swift	text	587	20	2f20c9e15daf8ea7	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/Components/TopRollBar.swift	tracked	99_archive	.swift	text	3259	105	fffc3ef84d3b75e1	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/Components/UIAtoms.swift	tracked	99_archive	.swift	text	5431	200	49ab49100b90328f	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/Features/Apply/ApplyStubs.swift	tracked	99_archive	.swift	text	84143	1792	c31e439dbfda66c8	demo-mock-todo,secret-word
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/Features/Auth/AuthStubs.swift	tracked	99_archive	.swift	text	74052	1768	a98f85015ccf1490	demo-mock-todo,secret-word
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/Features/BusList/BusListStubs.swift	tracked	99_archive	.swift	text	13014	330	f98f7ba894986292	demo-mock-todo
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/Features/Community/CommunityStubs.swift	tracked	99_archive	.swift	text	83366	2029	c050dd45a6a54845	demo-mock-todo,secret-word
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/Features/Home/HomeStubs.swift	tracked	99_archive	.swift	text	90869	2199	5f395bb6e55100e3	demo-mock-todo
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/Features/MyPage/MyPageStubs.swift	tracked	99_archive	.swift	text	75732	1850	a5a88d974913fa88	demo-mock-todo
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/Features/Schedule/ScheduleStubs.swift	tracked	99_archive	.swift	text	12561	338	abfb88c0c3aa4ac2	demo-mock-todo
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/Features/StayList/StayListStubs.swift	tracked	99_archive	.swift	text	52387	1384	79c1be054e3dc5a0	demo-mock-todo
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/GlobalOverlays.swift	tracked	99_archive	.swift	text	1257	43	7d9da6b1b652eefb	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/RootView.swift	tracked	99_archive	.swift	text	4803	122	dd70f744600c1ed3	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/Route.swift	tracked	99_archive	.swift	text	6143	177	619d1bd959df0359	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/RouterStore.swift	tracked	99_archive	.swift	text	1497	52	b3809951c9456540	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/SEED.swift	tracked	99_archive	.swift	text	14822	226	9490a33cde9f4385	demo-mock-todo
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/SeedModels.swift	tracked	99_archive	.swift	text	3946	147	85a441090f25cc08	demo-mock-todo
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/SheetKind.swift	tracked	99_archive	.swift	text	1022	22	15a50c3139e8e8f7	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/TTokens.swift	tracked	99_archive	.swift	text	3918	102	146441766bb5cee1	demo-mock-todo,secret-word
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/iOS_source_pack/TomoshibiApp.swift	tracked	99_archive	.swift	text	696	23	b180e70f5b116d9c	demo-mock-todo
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/spec_excerpts/IOS_DESIGN_LOG.md	tracked	99_archive	.md	text	30710	638	858a36b295c8234b	demo-mock-todo,secret-word
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/spec_excerpts/system_features.md	tracked	99_archive	.md	text	68793	1123	bf546845b92090b0	demo-mock-todo,secret-word
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.53.39.png	tracked	99_archive	.png	binary	1436338		8d3ae0f5ff16f2d0	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.53.42.png	tracked	99_archive	.png	binary	1421422		e3c4b8adad96a04d	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.53.57.png	tracked	99_archive	.png	binary	1514696		7f0f1747b35d2f1b	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.54.03.png	tracked	99_archive	.png	binary	567854		45ac88b4b9ba7f9d	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.54.11.png	tracked	99_archive	.png	binary	574108		596c50b7831e9f32	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.54.14.png	tracked	99_archive	.png	binary	571278		5e3ca336eef21822	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.54.17.png	tracked	99_archive	.png	binary	411542		5d3fe72c2db1a29b	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.54.18.png	tracked	99_archive	.png	binary	207231		a481ec7e8c8a6f3f	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.54.56.png	tracked	99_archive	.png	binary	1375615		41c39e13f7a9ec6c	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.54.58.png	tracked	99_archive	.png	binary	1806359		c750910305d2a64a	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.55.01.png	tracked	99_archive	.png	binary	1628119		4853df0eecbc35a5	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.55.04.png	tracked	99_archive	.png	binary	1063610		39803c5bc14a2647	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.55.06.png	tracked	99_archive	.png	binary	809748		43bb14cc35ba021e	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.55.09.png	tracked	99_archive	.png	binary	872040		b957f73f99b89860	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.55.10.png	tracked	99_archive	.png	binary	1042368		fedc3200b7f7bb49	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.55.13.png	tracked	99_archive	.png	binary	791594		582e767c92ae8be7	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.55.17.png	tracked	99_archive	.png	binary	713047		1149cbd121a74e1e	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.55.19.png	tracked	99_archive	.png	binary	785504		1ec63fbe9e3b4a39	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.55.22.png	tracked	99_archive	.png	binary	758061		e926ea9524a15c7c	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.55.32.png	tracked	99_archive	.png	binary	1097974		616b3a6b0a43600f	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.55.41.png	tracked	99_archive	.png	binary	655423		add9be93815dc26c	
+99_archive/2026-05-02_android_handoff_route_archived/round1_handoff/截图/Simulator Screenshot - iPhone 17 Pro - 2026-05-01 at 21.55.44.png	tracked	99_archive	.png	binary	703268		e62d779f55150343	
+99_archive/2026-05-02_backend_handoff_F1-F7/handoff_F1-F7_Q1-Q2.md	tracked	99_archive	.md	text	15630	327	cce01704adde4ddb	demo-mock-todo,secret-word
+99_archive/2026-05-02_compose_drafts_archived/README.md	tracked	99_archive	.md	text	1547	24	cb4357a0f4bae114	
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/SETUP_INSTRUCTIONS.md	tracked	99_archive	.md	text	6016	160	3061448466117e6c	demo-mock-todo
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/MainActivity.kt	tracked	99_archive	.kt	text	1408	36	63f10ea872d71902	demo-mock-todo
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/TomoshibiApp.kt	tracked	99_archive	.kt	text	360	12	ebd62df15448d276	
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/data/model/Models.kt	tracked	99_archive	.kt	text	2551	86	cb1f399d109e31d6	
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/data/seed/MockData.kt	tracked	99_archive	.kt	text	4541	109	9c49018b33de6910	demo-mock-todo,secret-word
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/data/store/AppStore.kt	tracked	99_archive	.kt	text	2428	66	ae68dd0921d34b33	demo-mock-todo
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/nav/NavGraph.kt	tracked	99_archive	.kt	text	4825	89	2cd94a559d66bd56	
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/nav/Routes.kt	tracked	99_archive	.kt	text	1945	47	eacb66addd5c9a07	
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/components/BottomTabs.kt	tracked	99_archive	.kt	text	4488	108	54e3e89409e8d384	secret-word
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/icons/SuzuIcons.kt	tracked	99_archive	.kt	text	3188	60	ba4fd34bbc164d4c	demo-mock-todo,secret-word
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/account/AccountScreen.kt	tracked	99_archive	.kt	text	10027	227	4464f59b47b9064f	demo-mock-todo,secret-word
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/applications/ApplicationDetailScreen.kt	tracked	99_archive	.kt	text	588	16	a074081d7ad2be9f	demo-mock-todo
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/applications/ApplicationsScreen.kt	tracked	99_archive	.kt	text	7120	160	016a8cc0ee0c444e	demo-mock-todo,secret-word
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/applications/ApplyNewScreen.kt	tracked	99_archive	.kt	text	558	16	447e76c877d268ca	demo-mock-todo
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/community/BusScreen.kt	tracked	99_archive	.kt	text	545	16	573b177c53c8dcc5	demo-mock-todo
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/community/DeliveryScreen.kt	tracked	99_archive	.kt	text	555	16	c0e51a5feef427a9	demo-mock-todo
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/community/FeedbackScreen.kt	tracked	99_archive	.kt	text	555	16	4b616db8a4fe52ea	demo-mock-todo
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/community/LostFoundScreen.kt	tracked	99_archive	.kt	text	557	16	512564880b3ee3db	demo-mock-todo
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/community/MusicScreen.kt	tracked	99_archive	.kt	text	549	16	d19f2c9b18136868	demo-mock-todo
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/community/ScheduleScreen.kt	tracked	99_archive	.kt	text	555	16	0bb173c58170f06b	demo-mock-todo
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/community/StudyScreen.kt	tracked	99_archive	.kt	text	549	16	6f4275ee01347ddd	demo-mock-todo
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/deduction/DeductionScreen.kt	tracked	99_archive	.kt	text	557	16	f79efaf86542b93f	demo-mock-todo
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/home/HomeScreen.kt	tracked	99_archive	.kt	text	8215	187	8ccc93ece2494740	demo-mock-todo,secret-word
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/login/LoginScreen.kt	tracked	99_archive	.kt	text	7625	182	032eb0ac9e0293a5	demo-mock-todo,secret-word
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/mypage/MyPageScreen.kt	tracked	99_archive	.kt	text	8323	188	63be1ad8dea851fa	demo-mock-todo,secret-word
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/mypage/SettingsScreen.kt	tracked	99_archive	.kt	text	552	16	c9e5291f6d28f228	demo-mock-todo
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/nfc/NfcScreen.kt	tracked	99_archive	.kt	text	8090	225	574758615c5b6f4c	secret-word
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/notifications/NotifDetailScreen.kt	tracked	99_archive	.kt	text	577	16	8916e6a5a83b8972	demo-mock-todo
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/notifications/NotificationsScreen.kt	tracked	99_archive	.kt	text	5138	111	122bb57a1c0a5099	demo-mock-todo,secret-word
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/onboarding/OnboardingScreen.kt	tracked	99_archive	.kt	text	5360	129	e4aaeafc81e63224	secret-word
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/rollcall/RollCallScreen.kt	tracked	99_archive	.kt	text	554	16	4c8553c07af1c492	demo-mock-todo
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/splash/SplashScreen.kt	tracked	99_archive	.kt	text	3293	92	58869136dfbbe3f9	demo-mock-todo,secret-word
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/screens/welcome/WelcomeScreen.kt	tracked	99_archive	.kt	text	3015	76	7b892f5852fc27b4	demo-mock-todo,secret-word
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/theme/Color.kt	tracked	99_archive	.kt	text	2813	62	948c1cfd427a9395	secret-word
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/theme/Theme.kt	tracked	99_archive	.kt	text	2882	92	2faa6148129dd828	secret-word
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/theme/Tokens.kt	tracked	99_archive	.kt	text	3951	130	1ccee290d59033f7	demo-mock-todo,secret-word
+99_archive/2026-05-02_compose_drafts_archived/compose-drafts/app/src/main/java/jp/tomoshibi/android/ui/theme/Type.kt	tracked	99_archive	.kt	text	3895	129	2c1134cf90e7aeb9	demo-mock-todo,secret-word
+99_archive/2026-05-02_handoff_F1-F7/handoff_F1-F7_Q1-Q2.md	tracked	99_archive	.md	text	15630	327	cce01704adde4ddb	demo-mock-todo,secret-word
+99_archive/2026-05-03_old_icons_pre_v2/tomoshibi_flame_color.png	tracked	99_archive	.png	binary	337921		228d899b572753c9	
+99_archive/2026-05-03_old_icons_pre_v2/tomoshibi_flame_mono.png	tracked	99_archive	.png	binary	295704		7c9f33de2d7e1e5c	
+99_archive/2026-05-04_文件结构指南_已被项目文件总览取代/文件结构指南.md	tracked	99_archive	.md	text	27904	430	f990c4cd11a77c6e	demo-mock-todo,secret-word
+99_archive/2026-05-04_版本管理SOP_迁入skill/README.md	tracked	99_archive	.md	text	1873	42	73a1f9b3a6493245	secret-word
+99_archive/2026-05-04_版本管理SOP_迁入skill/版本管理SOP.md	tracked	99_archive	.md	text	16186	341	96a52e9803140b18	demo-mock-todo
+99_archive/2026-05-06_cloud_agent_退役/README.md	tracked	99_archive	.md	text	4006	59	6f8d172732dfcd17	
+99_archive/2026-05-06_cloud_agent_退役/REMOTE_AGENT_GUIDE.md	tracked	99_archive	.md	text	14350	329	a2ff2a7da2e713e2	demo-mock-todo,secret-word
+99_archive/2026-05-06_cloud_agent_退役/SESSION_CHANGELOG.md	tracked	99_archive	.md	text	8914	155	a0934e5c5ede6358	demo-mock-todo
+99_archive/2026-05-06_cloud_agent_退役/SHARED_DECISIONS.md	tracked	99_archive	.md	text	729	22	5785f46cdf15a701	
+99_archive/2026-05-06_cloud_agent_退役/STATUS.md	tracked	99_archive	.md	text	6402	142	554cb367b8472f55	demo-mock-todo,secret-word
+99_archive/2026-05-06_cloud_agent_退役/Tomoshibi-Android-git-log.txt	tracked	99_archive	.txt	text	32520	566	b8503387ad9cc474	demo-mock-todo,secret-word
+99_archive/2026-05-06_cloud_agent_退役/Tomoshibi-iOS-git-log.txt	tracked	99_archive	.txt	text	7352	121	bd546f33b170f187	demo-mock-todo,secret-word
+99_archive/2026-05-06_cloud_agent_退役/sync-ios-refs.sh	tracked	99_archive	.sh	text	1838	55	82911421b8e54886	demo-mock-todo
+99_archive/2026-05-12_深夜大整理/T2_iOS归档_dryrun评估.md	tracked	99_archive	.md	text	11109	310	7179ca177b5178c8	demo-mock-todo,secret-word
+99_archive/2026-05-12_深夜大整理/progress_overview_draft_2026-04-20.md	tracked	99_archive	.md	text	19744	366	d3495f1aef89a9f3	demo-mock-todo
+99_archive/2026-05-12_深夜大整理/v0.4.0_Device_Contract骨架.md	tracked	99_archive	.md	text	10175	210	a0ffb596c4622ebf	demo-mock-todo,secret-word
+99_archive/2026-05-12_深夜大整理/v0.4.0_S2_S3_字段draft.md	tracked	99_archive	.md	text	8221	154	19f054f90188de38	
+99_archive/2026-05-12_深夜大整理/v0.4.0_S系列spec漏洞优先级分析.md	tracked	99_archive	.md	text	11288	231	bb2dfc4b9ac8d508	
+99_archive/2026-05-12_深夜大整理/跨会话_ios_共享决策.md	tracked	99_archive	.md	text	6590	161	9e9d7f3ef0f8ec98	demo-mock-todo
+99_archive/2026-05-21_teacher_web_demo_archived/demo/NFC_DEMO_SETUP.md	tracked	99_archive	.md	text	6690	153	921ab1396ebf58ef	demo-mock-todo
+99_archive/2026-05-21_teacher_web_demo_archived/demo/Tomoshibi_v3_single.html	tracked	99_archive	.html	text	33807306	41052	9093538863e67800	demo-mock-todo,secret-word
+99_archive/2026-05-21_teacher_web_demo_archived/demo/build_single_file.py	tracked	99_archive	.py	text	2370	66	366f7aa60e48a4b8	demo-mock-todo
+99_archive/2026-05-21_teacher_web_demo_archived/demo/demo_server.py	tracked	99_archive	.py	text	7993	225	2ff38c2e2dc78cc3	demo-mock-todo
+99_archive/2026-05-21_teacher_web_demo_archived/demo/rebuild.command	tracked	99_archive	.command	text	1469	46	da954ec3b67133a7	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/0233f5ed-e031-4008-a255-de8563c7626d.woff2	tracked	99_archive	.woff2	binary	72004		07adf55c46fa7a01	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/04aabdc9-66a2-4207-8fc8-c4ddfcb3e947.woff2	tracked	99_archive	.woff2	binary	18932		ddda8e872a2f6bee	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/09fd83a3-46c2-4d63-909e-8d16613df997.woff2	tracked	99_archive	.woff2	binary	17660		6248c217bc1b11da	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/0a13fa91-a336-4112-aae0-b6706e009834.woff2	tracked	99_archive	.woff2	binary	16960		52c485c4f8a76fc5	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/0c78f298-b652-4e60-a440-3d8fc32dbb85.woff2	tracked	99_archive	.woff2	binary	17536		577652490154b4d2	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/0dc49250-9592-42cf-8c19-4b356a802387.woff2	tracked	99_archive	.woff2	binary	21076		22011c294639023f	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/12475cf4-b0e8-4a8e-923a-a2ac137adb08.woff2	tracked	99_archive	.woff2	binary	75904		f4a8f6ffb8cb75f4	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/1410e59f-e7bd-4358-9b13-c6d4b1aef0bb.woff2	tracked	99_archive	.woff2	binary	19892		ab8f92f3cfe7b907	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/1621b8b3-0122-45a9-850f-29ef65a2f53e.woff2	tracked	99_archive	.woff2	binary	71892		883b47a911c21e70	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/1851e03f-cdbe-428d-9e4b-8ad12cbdbb29.woff2	tracked	99_archive	.woff2	binary	19488		45833acd5cbd3bd4	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/1a557462-e7e2-4af9-8f8b-68c24ff7a6cc.woff2	tracked	99_archive	.woff2	binary	75124		9965e37d7267fb34	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/1e91e47d-15a5-4cbe-a7d3-370be29aa59b.woff2	tracked	99_archive	.woff2	binary	9076		fbcc4f4c310befbb	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/2136c3c9-217e-48c2-b090-5e752cb2bf66.woff2	tracked	99_archive	.woff2	binary	87064		0ada37a159f87168	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/215be89f-4182-40e5-96f8-7a4fc15d5bf2.woff2	tracked	99_archive	.woff2	binary	18364		e45891f027c1b2f0	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/21738422-5486-4fd5-b897-f94b59cf94b2.woff2	tracked	99_archive	.woff2	binary	17380		4a34610b1a5a1f71	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/22de7d48-6a86-4acd-88f7-f32b1030300b.woff2	tracked	99_archive	.woff2	binary	21856		9b5fd8adab5e6821	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/231b3e40-b83e-4d46-981c-e65b4410e4ef.woff2	tracked	99_archive	.woff2	binary	8892		4995a9a43ac659ec	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/233006b4-6d6e-4e91-8a65-38763666bdcd.woff2	tracked	99_archive	.woff2	binary	24996		12851771bc78b6a5	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/23c93777-d0a3-4275-9262-58c0453119b0.woff2	tracked	99_archive	.woff2	binary	74108		cdf22557ff175db1	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/23d33ca7-959e-4807-8f15-84918de75c03.woff2	tracked	99_archive	.woff2	binary	19864		2a3dfbbdd15260d3	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/28ccc08e-9687-4f33-afa7-e54bf1b971e4.woff2	tracked	99_archive	.woff2	binary	14432		0584bfef2f2841b5	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/28f6a1bf-cea9-4da3-81e8-a2d45f20dd8d.woff2	tracked	99_archive	.woff2	binary	64036		0265b0e099627ced	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/290c1cc7-1b86-42ee-8d03-1baee8e24aa1.woff2	tracked	99_archive	.woff2	binary	8196		cce76c6ebaa9b721	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/2e248f0d-3f00-4f76-8fa0-20dcb6adabe5.woff2	tracked	99_archive	.woff2	binary	19308		09398d6edbe3b71d	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/2fbd970a-cd2f-4d92-bef6-c302503977d9.woff2	tracked	99_archive	.woff2	binary	69956		479731b43857febf	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/2fd95782-d741-40a5-843b-86300f11c905.woff2	tracked	99_archive	.woff2	binary	72736		b7d0e99329977ae7	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/34bbb644-51f7-4237-88b0-a5ec16c8c464.woff2	tracked	99_archive	.woff2	binary	15212		4cc2b8a75822447a	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/36bb9503-fb4b-4e62-ac65-5b8f70136402.woff2	tracked	99_archive	.woff2	binary	31208		a1e5dfbb0b87af47	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/38d262d2-2c2a-40be-b77f-61eba18f8245.woff2	tracked	99_archive	.woff2	binary	17008		5a2ee8f1a2440b7e	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/39dd8eaf-b4b5-4e51-b3ca-eee16b15043d.woff2	tracked	99_archive	.woff2	binary	15828		e8611a7c8b5e875f	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/3a875e26-938c-426c-b332-028f7aab8330.woff2	tracked	99_archive	.woff2	binary	18116		96c506fe80a422cb	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/3da33209-422a-4ba0-9376-0eda8baae31d.woff2	tracked	99_archive	.woff2	binary	18128		7830a03a3a6ee043	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/3f971812-662e-4d38-97ab-84dcef5e310d.woff2	tracked	99_archive	.woff2	binary	32320		39bdd28fd3e1c015	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/40e95a8d-5934-4622-bc0a-b67389c22830.woff2	tracked	99_archive	.woff2	binary	16652		4107ffe99639fefd	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/43156ec1-ca3c-4bbf-857c-1b6884a811fc.woff2	tracked	99_archive	.woff2	binary	17760		4d9dfa4137d4c8db	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/436e6a9a-cc9e-4446-ba63-ff8a2dbd5d94.woff2	tracked	99_archive	.woff2	binary	64064		60ab7e72fc42c9b7	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/43fd8f08-5224-4dd6-af54-d89f4cc6e6dd.woff2	tracked	99_archive	.woff2	binary	11596		9c38cb2d0d2d93c1	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/46cad20e-73e9-46d3-a3c7-0d86229fdb44.woff2	tracked	99_archive	.woff2	binary	70748		62054505e947a60b	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/46f3c554-42f5-4b2f-a7f0-e3f42a718052.woff2	tracked	99_archive	.woff2	binary	82844		c4b37749cc634be8	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/48360863-26d6-4db5-91fa-a2868bfff9bd.woff2	tracked	99_archive	.woff2	binary	79324		93cce0bd622a1515	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/492aa524-fc62-43d9-8d51-59978af7e68b.woff2	tracked	99_archive	.woff2	binary	20464		730299e1d1128721	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/497d725d-2d5b-436f-b6cf-d5f3265f117f.woff2	tracked	99_archive	.woff2	binary	31340		2c32b9b3ee358c11	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/4af0fd5b-8f01-4cc3-92db-2e55a77f2be7.woff2	tracked	99_archive	.woff2	binary	62528		b2c4637b068a04e9	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/4bb66490-3595-48d3-b49d-80071a3a96f4.woff2	tracked	99_archive	.woff2	binary	42460		a1a62c92b9408a85	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/4c21901a-c88e-4ab3-a563-666835c5fb81.woff2	tracked	99_archive	.woff2	binary	21328		c104ad4e5bd20bcc	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/4c48cf1c-c4a9-430a-8c18-8064719258fe.woff2	tracked	99_archive	.woff2	binary	74792		ed6c854cec12aa8a	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/4caa8c59-ebff-465b-a984-ee8dbb8b549a.woff2	tracked	99_archive	.woff2	binary	17568		6d1d2ca06df92347	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/4f222a0a-d4a9-46b7-9d2e-5c9af8a2a017.woff2	tracked	99_archive	.woff2	binary	18564		19a8b66ec1835e2b	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/50424950-eae5-4f17-9b86-a74a6e799f36.woff2	tracked	99_archive	.woff2	binary	90092		8bcc8df3be8d70b7	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/509247c0-f564-4f56-a2d6-7122e4bc786c.woff2	tracked	99_archive	.woff2	binary	18272		35a21be02c7edd1f	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/51c06b85-af1c-40bc-99c9-286aefa01ba8.woff2	tracked	99_archive	.woff2	binary	18936		b77cd1069e6d8b3d	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/522e7fca-91eb-4245-9053-379ad05a84aa.woff2	tracked	99_archive	.woff2	binary	18044		2fe09555df58c49a	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/5552a7cd-9bf5-462b-aa50-f8b41c969dfc.woff2	tracked	99_archive	.woff2	binary	18216		3201134f3c10e225	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/58080a0a-cb54-4a7c-8886-c8703cd07fc9.woff2	tracked	99_archive	.woff2	binary	73552		1527a9a058b4d441	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/58fd6169-a1fb-42d7-b7fe-291e1e02c2c7.woff2	tracked	99_archive	.woff2	binary	19936		43e8da0997e5be38	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/5b0e2ef8-2690-414f-a2aa-e253bea4a5f9.woff2	tracked	99_archive	.woff2	binary	10004		329f76640a6cf233	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/5e2d718d-dad8-4bfc-8bb5-fddce7826025.woff2	tracked	99_archive	.woff2	binary	22452		0cd424f7617e3235	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/63942b11-ac0b-4e24-a575-8009fd7338be.woff2	tracked	99_archive	.woff2	binary	20132		7ef8e7cd54172c53	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/66376597-dccd-453b-ad5d-e1d0e3ed342e.woff2	tracked	99_archive	.woff2	binary	19708		f567e68cc9845ae1	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/66b8f411-3caa-445c-808a-766a7036f1ec.woff2	tracked	99_archive	.woff2	binary	20068		1232f033a96f01f3	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/67063a0f-1acf-42ab-bdbb-200bdf82777c.woff2	tracked	99_archive	.woff2	binary	23504		f3c2629284dcf5d5	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/6747e95a-bc98-4133-8c08-9af4744bed99.woff2	tracked	99_archive	.woff2	binary	80492		78a3386626f720ff	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/6c9376b5-8a45-41b2-b2c7-ca2d4c7f196b.woff2	tracked	99_archive	.woff2	binary	18876		6552c14300510dc3	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/6e13f16c-f928-472e-83a3-80402850366c.woff2	tracked	99_archive	.woff2	binary	86388		09accf2b8b619a65	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/6e8a0269-6576-475c-9567-8a5f488d2a83.woff2	tracked	99_archive	.woff2	binary	84976		30957c1aac7ecbaa	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/6f24eca1-31ef-4ac7-b619-8a98c0a34ddf.woff2	tracked	99_archive	.woff2	binary	17484		493e7a0d168df9db	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/6f6248a4-ad94-4e43-a46d-74a3033b2b1e.woff2	tracked	99_archive	.woff2	binary	18228		3f6cea8e9074ffe8	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/74b86859-b9ab-4aa3-a711-3e4594382353.woff2	tracked	99_archive	.woff2	binary	25356		61a1033368209fac	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/77389890-da40-4df7-8827-0d4ea9dc5ced.woff2	tracked	99_archive	.woff2	binary	66620		f664cf52ddfef8f7	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/7750fda3-0b46-4d95-bf89-d0918842e9f9.woff2	tracked	99_archive	.woff2	binary	69928		6c090b5e40ed397c	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/79e3abab-4407-4a6b-b293-b56d67d00371.woff2	tracked	99_archive	.woff2	binary	16924		b4e9ac00dc67aa9e	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/7bd21881-ad14-4198-8d91-19fcebb8e885.woff2	tracked	99_archive	.woff2	binary	1664		9343de2ca5d9549f	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/7c2d03bd-c90c-430f-81fe-ae789b821659.woff2	tracked	99_archive	.woff2	binary	76044		d8688f88f4350a20	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/7cb909cb-9503-4a50-910c-107c8b5e1504.woff2	tracked	99_archive	.woff2	binary	57852		2473dfc4824ba87f	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/80a26538-80ae-47c9-999c-4f1ed536f090.woff2	tracked	99_archive	.woff2	binary	79944		aa6d740d800a2507	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/8434dd3b-ca5a-448e-b724-0d21b416492c.woff2	tracked	99_archive	.woff2	binary	20296		8ce3d2f17a485ecd	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/8660236f-3161-472f-9728-b10597ef5899.woff2	tracked	99_archive	.woff2	binary	67744		3781c2935f9d0466	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/88e60d9d-f62e-4e43-9885-5f707393ab05.woff2	tracked	99_archive	.woff2	binary	43280		31e40ea346c178f0	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/8a66dd78-a4a9-405a-983c-be93d2dc22af.woff2	tracked	99_archive	.woff2	binary	11760		d18084f06dc67c68	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/8b034b37-a6d0-44de-a1b8-23c75102b797.woff2	tracked	99_archive	.woff2	binary	79028		7bd4a29610b3c4ec	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/8d0df124-e025-443e-a2dd-aeb13e3270c4.woff2	tracked	99_archive	.woff2	binary	75556		d889e382cbe671e4	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/8e04f0e0-29ea-4595-835b-9b00da60263e.woff2	tracked	99_archive	.woff2	binary	67972		df4861e37e80b983	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/8ff9d687-58f0-4f35-9ea5-8850a6791cfd.woff2	tracked	99_archive	.woff2	binary	14832		db6a34e665518821	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/94da99bd-b0a8-4939-93f4-e0e023d86ff4.woff2	tracked	99_archive	.woff2	binary	37536		3b562e0a832472b6	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/967e2eb1-7556-4f91-a9aa-5bc40287f84a.woff2	tracked	99_archive	.woff2	binary	61616		31b4b37caae54085	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/98b138ad-bf5b-42d4-a93b-bedceb173759.woff2	tracked	99_archive	.woff2	binary	19272		cf64be33397a5f9d	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/9a65e2b3-ce53-420f-bc29-e35f5b824df4.woff2	tracked	99_archive	.woff2	binary	17500		bc3ba6bfebf4245f	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/9cebf955-b9e6-47fc-8604-e9a707038109.woff2	tracked	99_archive	.woff2	binary	38676		ce8a02edb5b11115	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/9d55b51a-4e3f-4168-92e7-f19bec719aed.woff2	tracked	99_archive	.woff2	binary	77164		e80ff1cfae2e3171	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/9ebc366d-a539-426c-8d7b-3b5f190a4447.woff2	tracked	99_archive	.woff2	binary	17092		60d63fe753af231e	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/9f7f4a74-5d7e-4b3e-9c28-f1ad39286802.woff2	tracked	99_archive	.woff2	binary	75552		eb1cd120a71abdb6	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/a13614ca-cdbe-4302-bfdd-c7850e1c0f9e.woff2	tracked	99_archive	.woff2	binary	19692		49cae3342ddb4411	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/a206eb09-8da5-435e-90c1-c38cf28519bb.woff2	tracked	99_archive	.woff2	binary	66952		245cf141f4e28461	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/a3743edd-6db3-4508-add4-2673141c127a.woff2	tracked	99_archive	.woff2	binary	5872		d44eb1936043a560	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/a3b01417-3ccd-4e1e-89fd-eeb3c31a13c9.woff2	tracked	99_archive	.woff2	binary	71968		31c7691bf2903f58	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/a40a6934-e7aa-4754-9a4d-7c8603eeab44.woff2	tracked	99_archive	.woff2	binary	18904		737f856a0f10cb7e	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/a5535870-d9a4-4c04-8f98-9e760839c369.woff2	tracked	99_archive	.woff2	binary	57316		180d65570cfab493	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/a7070eab-5434-4a03-bf0b-c7338bdd58b4.woff2	tracked	99_archive	.woff2	binary	18232		a0fa15c36ff33c6b	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/a83945a7-155a-4cdd-a93a-ba5141be2602.woff2	tracked	99_archive	.woff2	binary	19748		4c2088231e18e5d8	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/a8d25c8a-525f-4843-bf6a-04ad607c33d3.woff2	tracked	99_archive	.woff2	binary	6800		49c3da6c9a2b279b	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/b1a01c16-b41c-4fe2-9a7a-32408288db2f.woff2	tracked	99_archive	.woff2	binary	17916		d74d718ded5f2a41	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/b1f6b318-41d8-4453-9b34-81218f574fd3.woff2	tracked	99_archive	.woff2	binary	70020		0f12582a308dbb01	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/b478d65c-c638-4ab6-ae68-d6ad60f5a82e.woff2	tracked	99_archive	.woff2	binary	69116		374feb97150f0e92	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/b7b10881-72ce-47df-b9a6-2b45496ef84e.woff2	tracked	99_archive	.woff2	binary	69036		74a5c4ac9c8aa002	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/b7c6d3d9-01f0-4352-b9c1-8f9a2ec05cf7.woff2	tracked	99_archive	.woff2	binary	82788		f3854119c3e07ffd	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/b9756557-50e3-4c3f-93fb-4474713d8334.woff2	tracked	99_archive	.woff2	binary	18516		7d84b0d8fda90d1b	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/bea5370a-c87a-40d2-b3ea-8528a0ae3240.woff2	tracked	99_archive	.woff2	binary	75864		4f1f3bc27c1bf734	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/c0f7e5f5-31eb-4d43-b828-69531c7c73a2.woff2	tracked	99_archive	.woff2	binary	80532		6a93f93d73565bf2	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/c123385b-dcd4-4acd-828e-f3204ca63cc8.woff2	tracked	99_archive	.woff2	binary	18696		2aea5bde31156672	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/c1b03891-882e-47d8-8b6c-63fc98b55e63.woff2	tracked	99_archive	.woff2	binary	82856		d8cad43f5c7f04d1	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/c3896cbe-9ca1-4bf2-b148-1f986e3e1ade.woff2	tracked	99_archive	.woff2	binary	75304		62c2c375243091ed	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/c3a0b495-7e80-4290-9223-4a933153ea43.woff2	tracked	99_archive	.woff2	binary	61260		9ed73f80bc66fa55	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/c7196780-5f1c-456f-898c-1c0908736dd2.woff2	tracked	99_archive	.woff2	binary	65176		00d80cd1e731c1bf	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/c7ef40a7-ab84-419c-9e0d-27cfe16b05f6.woff2	tracked	99_archive	.woff2	binary	18252		9613000c3e555b29	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/cfb9af3e-1ed1-4647-a6a8-b2de6449583f.woff2	tracked	99_archive	.woff2	binary	15732		6790be25a9db8a73	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/cfd7798c-eaea-4f69-b81f-5b1daa5201b1.woff2	tracked	99_archive	.woff2	binary	60520		ac66aa1fafb83033	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/d03c606f-ea2e-494c-95fc-972d3d7c437c.woff2	tracked	99_archive	.woff2	binary	10744		cf70659d5a341cad	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/d12d76a9-1d99-42ce-b662-d06c2cfd38c1.woff2	tracked	99_archive	.woff2	binary	86840		387fafc0e9e524c1	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/d26f1e3b-8b3d-4574-8a3b-83876d54b997.woff2	tracked	99_archive	.woff2	binary	18936		0979aa4dac23a53c	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/d5e04cac-5786-49a9-aa49-1fc6bf31737a.woff2	tracked	99_archive	.woff2	binary	77736		434772cd14ba5f33	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/dd25229b-4856-4826-843e-9c141aeef0af.woff2	tracked	99_archive	.woff2	binary	18744		e6b53d042dfed4cd	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/dfd0dbfd-9d79-40ec-8325-0804a8b4d257.woff2	tracked	99_archive	.woff2	binary	15856		6f067e59d47eaa74	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/ed850ee3-5f26-4243-9ea5-f84b1a40118b.woff2	tracked	99_archive	.woff2	binary	16092		49da1cdb9543b767	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/eda1a257-c5d3-4a8a-be4b-51534fc90ebc.woff2	tracked	99_archive	.woff2	binary	73340		75cdad5e539f3b49	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/eebbe24a-1ff3-444b-805c-09bfe64140ba.woff2	tracked	99_archive	.woff2	binary	72044		0b75ffe0fd69a350	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/ef10d320-79f6-469e-ac16-0aaa745d6049.woff2	tracked	99_archive	.woff2	binary	16624		12481a1e87d4454b	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/f26f031a-0f77-4a9b-bdff-50e4351945bc.woff2	tracked	99_archive	.woff2	binary	16432		4e3a41a6c68b0688	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/f2e3afc2-08da-4340-b912-f301f7bb6e6f.woff2	tracked	99_archive	.woff2	binary	80324		8884f74212733dce	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/f6a80215-a923-4806-8e46-9f53c71df566.woff2	tracked	99_archive	.woff2	binary	64832		f47dee586d6958b7	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/_assets/f7d1fe45-5d2b-4757-aff8-887f1785afe5.woff2	tracked	99_archive	.woff2	binary	17236		422d87e1fefdaf90	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/assets/tomoshibi-icon.png	tracked	99_archive	.png	binary	169261		cbb14f0888879c3d	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/components/accounts.jsx	tracked	99_archive	.jsx	text	23380	296	3cf04fb1f370673f	demo-mock-todo,secret-word
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/components/app.jsx	tracked	99_archive	.jsx	text	9045	182	0dd51c14acd6cd25	demo-mock-todo
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/components/applications.jsx	tracked	99_archive	.jsx	text	15153	280	0fb37d93db88a5a6	demo-mock-todo
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/components/discipline.jsx	tracked	99_archive	.jsx	text	8428	130	c13d7c7ad17be221	demo-mock-todo
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/components/front-desk.jsx	tracked	99_archive	.jsx	text	18354	278	9731b9b09e9e63dd	demo-mock-todo
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/components/live-roll-call.jsx	tracked	99_archive	.jsx	text	16359	293	43470cd82a04143b	demo-mock-todo
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/components/login.jsx	tracked	99_archive	.jsx	text	5039	102	518051a22a960176	demo-mock-todo,secret-word
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/components/outstay-detail-modal.jsx	tracked	99_archive	.jsx	text	10522	167	07541fa8f6f7ac3c	
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/components/override-modal.jsx	tracked	99_archive	.jsx	text	7813	98	577acffe06f2a6c5	demo-mock-todo
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/components/pages-records-search-etc.jsx	tracked	99_archive	.jsx	text	70891	944	558bd232a88a8494	demo-mock-todo
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/components/roll-call-landing.jsx	tracked	99_archive	.jsx	text	15414	268	b53c335c8de5a777	demo-mock-todo
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/components/select-teacher.jsx	tracked	99_archive	.jsx	text	11847	190	ed432e65afdbfee3	demo-mock-todo
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/components/shell.jsx	tracked	99_archive	.jsx	text	10927	183	af3307d119dc47ca	demo-mock-todo
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/components/theme.jsx	tracked	99_archive	.jsx	text	6234	84	bedece89c5f02164	demo-mock-todo,secret-word
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/index.html	tracked	99_archive	.html	text	700077	8299	1327e957ffcb66a5	demo-mock-todo,secret-word
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/vendor/babel.min.js	tracked	99_archive	.js	text	3137752	4	2623a9e22809915c	demo-mock-todo,secret-word
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/vendor/react-dom.development.js	tracked	99_archive	.js	text	1080227	29924	f9044a5e9c39db8b	demo-mock-todo,secret-word
+99_archive/2026-05-21_teacher_web_demo_archived/demo/src/vendor/react.development.js	tracked	99_archive	.js	text	109931	3343	28348fef6cb0ed8b	demo-mock-todo,secret-word
+99_archive/2026-05-21_teacher_web_demo_archived/demo/tomoshibi	tracked	99_archive	[none]	text	6902	208	5ffff49252888e73	demo-mock-todo
+99_archive/2026-05-21_teacher_web_demo_archived/demo/开发模式跑.command	tracked	99_archive	.command	text	728	24	1a0d3c597bc9461a	demo-mock-todo
+99_archive/2026-05-21_teacher_web_demo_archived/demo/打包单文件.command	tracked	99_archive	.command	text	368	11	a77e4cae17ebefd3	demo-mock-todo
+99_archive/NFC_NFD_鬼影文件/「API_CONVENTIONS_v1.0.md」のコピー	tracked	99_archive	.md」のコピー	text	1446	47	543cb6ae3f7376b2	demo-mock-todo,secret-word
+99_archive/NFC_NFD_鬼影文件/「API_Contract_v1.0.pages」のコピー	tracked	99_archive	.pages」のコピー	binary	248380		f1244de7cad89509	
+99_archive/NFC_NFD_鬼影文件/「IA_UI_v1.0.pages」のコピー	tracked	99_archive	.pages」のコピー	binary	195184		91b58b0e00f6843a	
+99_archive/NFC_NFD_鬼影文件/「Overview of Features to Be Implemented in Version1.0.pages」のコピー	tracked	99_archive	.pages」のコピー	binary	189780		87ae21167f0e56eb	
+99_archive/NFC_NFD_鬼影文件/「v1.0完整计划.pdf」のコピー.pdf	tracked	99_archive	.pdf	binary	1584907		672269982411e16a	
+99_archive/README.md	tracked	99_archive	.md	text	3955	70	da58725e6a1e5899	demo-mock-todo
+99_archive/learning_process_原始.pages	tracked	99_archive	.pages	binary	221627		25f519d6d5eb0c62	
+99_archive/migration_2026-05-06/RESTORE_GUIDE.md	tracked	99_archive	.md	text	10532	264	7b3d8aabb2f354f4	demo-mock-todo,secret-word
+99_archive/migration_2026-05-06/claude-scheduled/claude-quota-reset-0400/SKILL.md	tracked	99_archive	.md	text	270	6	8ebf8e1c947a008d	
+99_archive/migration_2026-05-06/claude-scheduled/claude-quota-reset-1002/SKILL.md	tracked	99_archive	.md	text	247	6	744fef1de00e4ea9	
+99_archive/migration_2026-05-06/claude-scheduled/claude-quota-reset-1402/SKILL.md	tracked	99_archive	.md	text	245	6	5a3289f9a0f088e5	
+99_archive/migration_2026-05-06/claude-scheduled/claude-quota-reset-1902/SKILL.md	tracked	99_archive	.md	text	245	6	827bd18772b06bf7	
+99_archive/migration_2026-05-06/claude-settings/settings.json	tracked	99_archive	.json	text	207	11	ea96dbd7a26543b1	
+99_archive/migration_2026-05-06/claude-settings/settings.local.json	tracked	99_archive	.json	text	219	11	dfe6e7f87ee6a8c2	
+99_archive/migration_2026-05-06/dmsd-claude-memory/MEMORY.md	tracked	99_archive	.md	text	11166	104	985323eb30e953b1	demo-mock-todo
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_audit_means_find_not_fix.md	tracked	99_archive	.md	text	2464	29	1d35b511b8271b75	
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_audit_read_content_not_just_titles.md	tracked	99_archive	.md	text	3768	46	9425dfa374d79d54	demo-mock-todo
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_be_a_coach_not_executor.md	tracked	99_archive	.md	text	8190	151	5fe742da8dd64073	
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_cc_role_requirements_not_code.md	tracked	99_archive	.md	text	3622	70	8680e4194c41cdfe	demo-mock-todo
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_change_summary_three_part_format.md	tracked	99_archive	.md	text	3556	52	d6da47ec6167cbce	demo-mock-todo
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_code_comments_chinese_strict.md	tracked	99_archive	.md	text	4925	60	4155b4528caccb63	demo-mock-todo,secret-word
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_commit_push_tag_division.md	tracked	99_archive	.md	text	3774	58	3448ef13cf1cf96d	
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_commit_style.md	tracked	99_archive	.md	text	1637	15	11efb75eb333493f	
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_default_chinese_response.md	tracked	99_archive	.md	text	2702	24	eab4004139146d82	demo-mock-todo
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_dev_log_discipline.md	tracked	99_archive	.md	text	1373	15	50b691f715e285b4	demo-mock-todo
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_discuss_means_produce.md	tracked	99_archive	.md	text	2067	27	28244799e1cc416e	
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_dont_over_structure.md	tracked	99_archive	.md	text	3676	67	7571019eda4cd9f3	
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_dont_re_raise_rejected_topics.md	tracked	99_archive	.md	text	1857	20	3bc1c3b6d5b3b24f	demo-mock-todo
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_dont_unilaterally_revert_design.md	tracked	99_archive	.md	text	2507	22	8b35e3e72a9ae22c	
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_explain_terms_to_itsuki.md	tracked	99_archive	.md	text	5113	88	456c94a48d2d146d	demo-mock-todo
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_find_5_holes_after_any_proposal.md	tracked	99_archive	.md	text	3686	47	68f16c761e8454fa	
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_ios_early_code.md	tracked	99_archive	.md	text	1124	15	09edde729fe26e94	
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_issues_belong_in_todo.md	tracked	99_archive	.md	text	1212	19	43d43d58b5fecb7f	demo-mock-todo
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_iteration_evidence_git_trackable.md	tracked	99_archive	.md	text	3305	38	d90b1ad497ac1d62	
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_no_cli_jargon.md	tracked	99_archive	.md	text	1922	31	ccf83bbfa710a75b	
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_no_dramatic_placeholder.md	tracked	99_archive	.md	text	2369	24	f7a6797d662f7c4f	demo-mock-todo
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_overruled_rule_means_update_rule.md	tracked	99_archive	.md	text	2766	35	613691e5b832ebd5	
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_proactive_diagnose_unknown_unknowns.md	tracked	99_archive	.md	text	7787	116	6defef282cf5f8d2	demo-mock-todo,secret-word
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_proactive_record_problem_solving.md	tracked	99_archive	.md	text	2919	41	be84eff54a5039c6	demo-mock-todo
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_repo_vs_personal_notes.md	tracked	99_archive	.md	text	3841	74	0772bf258b27e7e7	
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_scope_strictly_as_told.md	tracked	99_archive	.md	text	2319	28	7d3b4a3aa786a4b6	
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_sync_docs_immediately.md	tracked	99_archive	.md	text	1535	19	e440bcc9cf0b60e0	demo-mock-todo
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_timestamp_forensics_mtime_plus_json.md	tracked	99_archive	.md	text	3134	46	cbe5b088c2b9bd4a	
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_use_english_letters.md	tracked	99_archive	.md	text	1148	19	10e98aec6101acf3	
+99_archive/migration_2026-05-06/dmsd-claude-memory/feedback_wip_todo_split.md	tracked	99_archive	.md	text	3601	61	0496c6278c754105	demo-mock-todo
+99_archive/migration_2026-05-06/dmsd-claude-memory/physical_environment.md	tracked	99_archive	.md	text	1081	29	3937c4c6510f1439	
+99_archive/migration_2026-05-06/dmsd-claude-memory/project_demo_scaffolds_to_remove_before_v1.md	tracked	99_archive	.md	text	6006	68	699833c290642c56	demo-mock-todo,secret-word
+99_archive/migration_2026-05-06/dmsd-claude-memory/project_frontends_headed_to_production.md	tracked	99_archive	.md	text	1611	18	bc8fadddd04a5f28	demo-mock-todo
+99_archive/migration_2026-05-06/dmsd-claude-memory/project_naming_tomoshibi.md	tracked	99_archive	.md	text	1890	33	0f6d90897327ba53	
+99_archive/migration_2026-05-06/dmsd-claude-memory/project_structure.md	tracked	99_archive	.md	text	3552	84	60d863f5a7e11970	demo-mock-todo,secret-word
+99_archive/migration_2026-05-06/dmsd-claude-memory/user_gender_male.md	tracked	99_archive	.md	text	1651	41	42b7b8c9e9b64259	demo-mock-todo
+99_archive/migration_2026-05-06/global-claude-memory/MEMORY.md	tracked	99_archive	.md	text	294	2	239370163a097e71	
+99_archive/migration_2026-05-06/global-claude-memory/reference_dmsd.md	tracked	99_archive	.md	text	1336	21	2a129fdaa9818465	
+99_archive/migration_2026-05-06/global-claude-memory/user_profile.md	tracked	99_archive	.md	text	1698	19	754b5e9e38ea89d8	
+99_archive/migration_2026-05-06/itsuki_自己读的恢复指南.md	tracked	99_archive	.md	text	4792	138	2353f1f9a5148b6b	demo-mock-todo
+99_archive/progress_log_原始.pages	tracked	99_archive	.pages	binary	200196		a497fc3104c44592	
+99_archive/progress_log_备份版.pages	tracked	99_archive	.pages	binary	205860		ebbacbd3fde4e2c5	
+99_archive/ファイル - 2026-02-17T00:18:58 (1).510Z	tracked	99_archive	.510z	binary	234869		d756e85e26cdf3fe	
+99_archive/ファイル - 2026-02-17T00:18:58 (10).510Z	tracked	99_archive	.510z	binary	1756806		2c6631cd03b2c06e	
+99_archive/ファイル - 2026-02-17T00:18:58 (11).510Z	tracked	99_archive	.510z	binary	1765828		728e5cff424fb5eb	
+99_archive/ファイル - 2026-02-17T00:18:58 (12).510Z	tracked	99_archive	.510z	binary	1765972		e25afb35634e4370	
+99_archive/ファイル - 2026-02-17T00:18:58 (13).510Z	tracked	99_archive	.510z	binary	555932		f7fd22cc3a4b659a	
+99_archive/ファイル - 2026-02-17T00:18:58 (2).510Z	tracked	99_archive	.510z	binary	193188		6ce26111a9d5db50	
+99_archive/ファイル - 2026-02-17T00:18:58 (3).510Z	tracked	99_archive	.510z	binary	489616		e82817dc53a79c07	
+99_archive/ファイル - 2026-02-17T00:18:58 (4).510Z	tracked	99_archive	.510z	binary	515860		c62224c0eecae519	
+99_archive/ファイル - 2026-02-17T00:18:58 (5).510Z	tracked	99_archive	.510z	binary	638276		e7cae9eb7f0c5086	
+99_archive/ファイル - 2026-02-17T00:18:58 (6).510Z	tracked	99_archive	.510z	binary	1034189		fa70893e4bac72c3	
+99_archive/ファイル - 2026-02-17T00:18:58 (7).510Z	tracked	99_archive	.510z	binary	1098661		6306006f412ea1d8	
+99_archive/ファイル - 2026-02-17T00:18:58 (8).510Z	tracked	99_archive	.510z	binary	1387383		60b81d81158123a2	
+99_archive/ファイル - 2026-02-17T00:18:58 (9).510Z	tracked	99_archive	.510z	binary	1448636		a202b340191f1319	
+99_archive/ファイル - 2026-02-17T00:18:58.510Z	tracked	99_archive	.510z	binary	489616		c29b0655f96b88a2	
+99_archive/需要学习的内容_原始.pages	tracked	99_archive	.pages	binary	209425		b62f8473bd99dc77	
+CHANGELOG.md	tracked	CHANGELOG.md	.md	text	60630	869	2889f2bb1a38eee1	demo-mock-todo,secret-word
+CLAUDE.md	tracked	CLAUDE.md	.md	text	13831	215	9334f7098df360ac	demo-mock-todo
+LICENSE	tracked	LICENSE	[none]	text	1013	31	92ee06a601aa437f	
+README.md	tracked	README.md	.md	text	6820	108	893007ea198d483e	demo-mock-todo,secret-word
+bin/create_local_dev_symlink.sh	tracked	bin	.sh	text	2477	50	79850de73bc47beb	
+bin/sync-check.sh	tracked	bin	.sh	text	4973	145	4aeb2a9afacd0bb8	
+docs/agents/domain.md	tracked	docs	.md	text	2081	48	d60822873e8e1b6b	
+docs/agents/issue-tracker.md	tracked	docs	.md	text	1303	26	51b4c5984918444d	demo-mock-todo
+docs/agents/triage-labels.md	tracked	docs	.md	text	1276	19	88264145dcdd70ec	demo-mock-todo
+.claude/agents/security-reviewer.md	untracked	.claude	.md	text	9246	216	c329abd46e10c5ae	demo-mock-todo,secret-word
+.github/workflows/test.yml	untracked	.github	.yml	text	1454	59	3a53132afa09eefe	secret-word
+00_admin/codex_audit_prompt.md	untracked	00_admin	.md	text	12763	247	7203dca2f9866f91	demo-mock-todo,secret-word
+00_admin/hooks/post-edit-format.sh	untracked	00_admin	.sh	text	2818	93	29c45013f484ca30	
+00_admin/系统bug专栏.md	untracked	00_admin	.md	text	41376	811	d26d09b7f7364892	demo-mock-todo,secret-word
+03_dev/backend/v1/alembic/versions/a8b9c0d1e2f3_add_rce_idempotency_unique.py	untracked	03_dev	.py	text	1117	36	40bd057ea670cdaa	
+03_dev/backend/v1/alembic/versions/b9c0d1e2f3a4_remove_applied_group.py	untracked	03_dev	.py	text	1647	47	acb6ffc1e8440906	
+03_dev/backend/v1/pyproject.toml	untracked	03_dev	.toml	text	695	20	8328eda2e3f94e1c	
+03_dev/backend/v1/tests/test_applications.py	untracked	03_dev	.py	text	6362	178	5b8741da91d90cd3	secret-word
+03_dev/backend/v1/tests/test_rollcall.py	untracked	03_dev	.py	text	8480	225	87ced035e3df4dba	demo-mock-todo,secret-word
+03_dev/backend/v1/tests/test_study.py	untracked	03_dev	.py	text	5022	144	84d4249aee9eba05	secret-word
+03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/Endpoints/RollCallAPI.swift	untracked	03_dev	.swift	text	2345	53	d9944d1fe621609f	
+05_logs/audit_2026-05-19/_fixed_1.md	untracked	05_logs	.md	text	9410	91	126efea76fc6ba9e	demo-mock-todo,secret-word
+05_logs/audit_2026-05-19/_fixed_2.md	untracked	05_logs	.md	text	11486	179	024674396b2e0dbe	demo-mock-todo
+05_logs/audit_2026-05-19/_fixed_3.md	untracked	05_logs	.md	text	8407	136	4b4d8835a36e5f03	demo-mock-todo
+05_logs/audit_2026-05-19/_fixed_4.md	untracked	05_logs	.md	text	8441	133	afbe39869f3c535f	
+05_logs/audit_2026-05-19/_master_issues.md	untracked	05_logs	.md	text	8762	156	8c6427ea7a00ed48	demo-mock-todo,secret-word
+05_logs/audit_2026-05-19/_session_prompts/A.md	untracked	05_logs	.md	text	6224	169	ee4a1694e65627d4	demo-mock-todo,secret-word
+05_logs/audit_2026-05-19/_session_prompts/B.md	untracked	05_logs	.md	text	4734	135	7d3eeceba898d690	demo-mock-todo
+05_logs/audit_2026-05-19/_session_prompts/C.md	untracked	05_logs	.md	text	5461	162	e7441a2cb947e6a9	demo-mock-todo
+05_logs/audit_2026-05-19/_session_prompts/MASTER.md	untracked	05_logs	.md	text	2502	56	5f74890a73cf9d86	demo-mock-todo
+05_logs/audit_2026-05-19/_session_prompts/_README.md	untracked	05_logs	.md	text	1814	60	1cba10b749ba8252	
+05_logs/audit_2026-05-19/session_A_findings.md	untracked	05_logs	.md	text	32934	344	818b815c71f00ba4	demo-mock-todo,secret-word
+05_logs/audit_2026-05-19/session_B_findings.md	untracked	05_logs	.md	text	34681	423	183a361eb4049cbd	demo-mock-todo,secret-word
+05_logs/audit_2026-05-19/session_C_findings.md	untracked	05_logs	.md	text	36802	523	4d73e5799fa60dc0	demo-mock-todo,secret-word
+05_logs/audit_2026-05-21_codex/session_codex_findings.md	untracked	05_logs	.md	text	20348	220	d2393706bb1925ae	demo-mock-todo,secret-word
+05_logs/raw/2026-05-16.md	untracked	05_logs	.md	text	8990	196	583e069bc2e4c6bb	
+05_logs/raw/2026-05-16_AC合格率评估+官网验证.md	untracked	05_logs	.md	text	17771	310	5c750c23c6498897	demo-mock-todo
+05_logs/raw/2026-05-19.md	untracked	05_logs	.md	text	11272	236	5051daddf4b30fac	demo-mock-todo
+05_logs/raw/2026-05-21.md	untracked	05_logs	.md	text	10430	174	e810b74e9573f464	demo-mock-todo,secret-word
+99_archive/2026-05-21_pre_fix/DEVICE_REGISTRY.md	untracked	99_archive	.md	text	6156	111	e614548daab0ce15	demo-mock-todo
+99_archive/2026-05-21_pre_fix/ENUM_REGISTRY.md	untracked	99_archive	.md	text	4032	112	9273a3db24de21f1	
+99_archive/2026-05-21_pre_fix/MEMORY.md.bak	untracked	99_archive	.bak	text	10295	99	2b903c0e08cb2cbb	demo-mock-todo
+99_archive/2026-05-21_pre_fix/RollCall_Spec.md	untracked	99_archive	.md	text	48103	1009	9c0a10baae4403ed	demo-mock-todo
+99_archive/2026-05-21_pre_fix/check_overview_drift.sh.bak	untracked	99_archive	.bak	text	3736	126	e712e27fe3ddafc1	
+99_archive/2026-05-21_pre_fix/effective_removal/7a15771bdc7b.py.bak	untracked	99_archive	.bak	text	19397	322	ea210beeab189725	secret-word
+99_archive/2026-05-21_pre_fix/effective_removal/API_CONVENTIONS.md.bak	untracked	99_archive	.bak	text	11405	255	998d3a81b7d8d2f0	demo-mock-todo,secret-word
+99_archive/2026-05-21_pre_fix/effective_removal/BACKEND_DESIGN_LOG.md.bak	untracked	99_archive	.bak	text	52095	1157	4e3c27842763b7fe	demo-mock-todo,secret-word
+99_archive/2026-05-21_pre_fix/effective_removal/ENUM_REGISTRY.md.bak	untracked	99_archive	.bak	text	4230	114	79ed912c5235510e	demo-mock-todo
+99_archive/2026-05-21_pre_fix/effective_removal/FIELD_REGISTRY.md.bak	untracked	99_archive	.bak	text	5495	112	901b172a6da7c8cb	
+99_archive/2026-05-21_pre_fix/effective_removal/RollCall_Spec.md.bak	untracked	99_archive	.bak	text	49836	1017	5770f7d3404f6d63	demo-mock-todo
+99_archive/2026-05-21_pre_fix/effective_removal/models.py.bak	untracked	99_archive	.bak	text	32692	795	cf5fc521fe200202	demo-mock-todo,secret-word
+99_archive/2026-05-21_pre_fix/hardware_design.md	untracked	99_archive	.md	text	19814	396	c669815700f6c6ae	demo-mock-todo
+99_archive/2026-05-21_pre_fix/system_features.md	untracked	99_archive	.md	text	94125	1516	817af37037d84280	demo-mock-todo,secret-word
+99_archive/2026-05-21_teacher_web_demo_archived/README.md	untracked	99_archive	.md	text	982	23	ca5b7ceb8871fb7b	demo-mock-todo
+bin/check_overview_drift.sh	untracked	bin	.sh	text	7277	183	d0f2fd32fc46b204	

@@ -1,18 +1,19 @@
 #!/usr/bin/env bash
-# DMSD CC PostToolUse hook — project-overview 同步检查
+# DMSD CC PostToolUse hook — project-overview 同步检查（全项目覆盖版）
 #
 # 配置位置：.claude/settings.json hooks.PostToolUse[matcher="Write|Edit"]
-# 触发时机：CC 写 / 改文件后
+# 触发时机：CC 写 / 改任何 DMSD 项目内文件后
 #
-# 目的: 防止 project-overview SKILL.md 跟实际文件树漂移
-# itsuki 2026-05-13 怒怼后立 — 历史漂移：5-13 整理 26 文件后没同步 project-overview，
-#   itsuki "我看不到的地方也会出现文件乱"。
+# 目的：防 project-overview SKILL.md 跟实际文件树漂移
 #
-# 工作流:
+# itsuki 2026-05-19 拍板 v2 — 改成全项目覆盖
+#   v1（5-13 加 / 白名单触发）漏覆盖 routers / services / alembic / Android 真代码 / iOS Features 等
+#   → 5-19 对账发现 9 处漂移 → itsuki 拍板「hook 覆盖整个项目」
+#
+# 工作流：
 # 1. 提取 file_path
-# 2. skip：改的是 project-overview / raw log / memory / 归档 (内容不影响结构)
-# 3. 是重要结构变动文件 (00_admin/*.md / 01_specs/*.md / 02_design/*.md / hook / 5 端 README) → 触发检查
-# 4. grep project-overview SKILL.md 看是否有引用 → 没有就 warn 提醒加 / 改
+# 2. 只 skip 必要项：project-overview 自身 / 临时文件 / .gitignore 排除目录
+# 3. 其他全部触发 — grep project-overview 看有没有引用 → 没有就 warn 提醒
 
 set -e
 trap 'exit 0' ERR
@@ -38,66 +39,31 @@ if [[ "$RELATIVE_PATH" == /* ]]; then
 fi
 
 # ============================================================
-# 排除 skip 名单（内容文件不影响项目结构）
+# 必要的 skip 名单（最小化 — 只 skip 真不需要检查的）
 # ============================================================
 
 case "$RELATIVE_PATH" in
-  # 改 project-overview 自身 — 避免循环
+  # 改 project-overview 自身 — 避免循环触发
   .claude/skills/project-overview/*) exit 0 ;;
 
-  # 内容文件（raw log / dev_log / problem_solving / decision_log / learning_path / project_evolution）
-  05_logs/raw/*|05_logs/dev_log/*|05_logs/problem_solving/*) exit 0 ;;
-  05_logs/decision_log.md|05_logs/learning_path.md|05_logs/project_evolution.md) exit 0 ;;
-
-  # memory 系统（CC 自动 memory）
-  *.claude/projects/*/memory/*) exit 0 ;;
-
-  # 归档区不影响活动结构
-  99_archive/*) exit 0 ;;
-
-  # 临时文件
-  *.lock|*.log|*.bak|*.swp) exit 0 ;;
+  # 临时文件 / 备份 / 锁文件
+  *.lock|*.log|*.bak|*.bak2|*.swp|*.tmp) exit 0 ;;
   /tmp/*) exit 0 ;;
 
-  # graphify / .beads / .scratch — .gitignore 排除
+  # .gitignore 排除的目录（git 看不见，project-overview 也不会列）
   graphify-out/*|.beads/*|.scratch/*) exit 0 ;;
+  node_modules/*|*/node_modules/*) exit 0 ;;
+  __pycache__/*|*/__pycache__/*) exit 0 ;;
+  .venv/*|*/.venv/*) exit 0 ;;
+  DerivedData/*|*/DerivedData/*) exit 0 ;;
+  *.swiftpm/*|*/.swiftpm/*) exit 0 ;;
+
+  # macOS / IDE 元数据
+  *.DS_Store|*/xcuserdata/*) exit 0 ;;
 esac
 
 # ============================================================
-# 触发白名单（结构相关文件改动 / 新建时检查）
-# ============================================================
-
-TRIGGERED=""
-case "$RELATIVE_PATH" in
-  # 00_admin 顶层 .md（不含已 skip 的）
-  00_admin/*.md) TRIGGERED="00_admin" ;;
-  00_admin/hooks/*) TRIGGERED="hooks" ;;
-
-  # 01_specs 主体 + 字典
-  01_specs/*.md|01_specs/*/*.md) TRIGGERED="01_specs" ;;
-
-  # 02_design 主体
-  02_design/*.md) TRIGGERED="02_design" ;;
-
-  # 5 端 README + DESIGN_LOG
-  03_dev/*/README.md|03_dev/*/*_DESIGN_LOG.md) TRIGGERED="design_log" ;;
-
-  # 5 端实装层文件（v1/ 主入口 / 配置）— 重要新建检查
-  03_dev/backend/v1/app/*.py) TRIGGERED="backend_app" ;;
-  03_dev/student_ios/v1/TomoshibiApp/Root/*.swift) TRIGGERED="ios_root" ;;
-  03_dev/student_ios/v1/TomoshibiApp/Foundation/*.swift) TRIGGERED="ios_foundation" ;;
-  03_dev/rollcall_device/src/*.py) TRIGGERED="device" ;;
-
-  # skill / 根目录顶层 .md
-  .claude/skills/*/SKILL.md) TRIGGERED="skill" ;;
-  CLAUDE.md|README.md|CHANGELOG.md) TRIGGERED="root" ;;
-
-  # 其他 — skip
-  *) exit 0 ;;
-esac
-
-# ============================================================
-# 检查 project-overview 是否引用了这文件
+# 全项目其他文件 — 一律检查
 # ============================================================
 
 OVERVIEW="$PROJECT_DIR/.claude/skills/project-overview/SKILL.md"
@@ -113,7 +79,6 @@ HAS_PATH=0
 if grep -q "$FILENAME" "$OVERVIEW" 2>/dev/null; then
   HAS_NAME=1
 fi
-# 也查路径片段（catch 重命名了文件名但旧路径还在的情况）
 if grep -q "$RELATIVE_PATH" "$OVERVIEW" 2>/dev/null; then
   HAS_PATH=1
 fi
@@ -123,43 +88,47 @@ fi
 # ============================================================
 
 if [ "$HAS_NAME" = "1" ] && [ "$HAS_PATH" = "1" ]; then
-  # 文件名 + 路径都在 — 大概率 OK，但还是温和提醒可能描述漂移
+  # 文件名 + 路径都在 — 结构 OK，但描述可能漂
   WARNING="📋 project-overview 提醒（${RELATIVE_PATH}）
 
 ✅ 文件名 + 路径都已在 project-overview 引用 — 结构层面 OK。
 
 ⚠️ 但请确认本次改动是否影响**描述准确性**：
-- 文件作用 / 状态 / AC 价值 描述是否还准
+- 文件作用 / 状态 描述是否还准
 - 行数 / 文件数等数字是否要更新
 
 → 若改了文件**实质内容**（不只是 typo），考虑同步 \`.claude/skills/project-overview/SKILL.md\` 对应章节描述"
 elif [ "$HAS_PATH" = "1" ]; then
-  # 路径在但名字对不上（罕见）
+  # 路径在但名字对不上（罕见 — 通常 grep 文件名也会命中路径里的文件名片段）
   exit 0
 elif [ "$HAS_NAME" = "1" ]; then
-  # 文件名在但路径不在 — 可能改名 / 移位
-  WARNING="📋 project-overview 漂移检测（${RELATIVE_PATH}）
+  # 文件名在 — 算 OK（project-overview 用短引用是常态）
+  # 2026-05-21 修复（B-021 同源 bug）：原版要求完整路径 + 文件名都在才 OK
+  # → 误报严重（每次改 TODO.md / WIP.md / flow_design.md 等都报「路径漂」，
+  #   project-overview 用短引用 `TODO.md` 而不是完整路径 `00_admin/TODO.md` 是常态）
+  # → 改成：文件名在 = OK，提醒描述准确性即可
+  WARNING="📋 project-overview 提醒（${RELATIVE_PATH}）
 
-⚠️ 文件名 \`${FILENAME}\` 在 project-overview 里有引用，但**完整路径 \`${RELATIVE_PATH}\` 没找到** — 可能：
+✅ 文件名 \`${FILENAME}\` 在 project-overview 有引用 — 结构层面 OK（用短引用是常态）。
 
-1. 文件改名了 → project-overview 引用的旧路径已失效
-2. 文件移位了 → project-overview 引用的旧路径要更新
+⚠️ 但请确认本次改动是否影响**描述准确性**：
+- 文件作用 / 状态 描述是否还准
+- 行数 / 文件数等数字是否要更新
 
-→ 修复：Edit \`.claude/skills/project-overview/SKILL.md\` 找到 \`${FILENAME}\` 引用 → 改成新路径"
+→ 若改了**实质内容**（不只是 typo），考虑同步 \`.claude/skills/project-overview/SKILL.md\` 对应章节描述"
 else
-  # 完全没引用 — 新建文件
+  # 完全没引用 — 新建文件 / 整段没列
   WARNING="📋 project-overview 同步检查（${RELATIVE_PATH}）
 
 ⚠️ 这个文件**没在 project-overview SKILL.md 里找到任何引用** — 可能是：
 
 1. **新建文件** → 应该加进 project-overview 对应章节
-2. 改名了 → project-overview 引用的旧名 + 旧路径都已失效
+2. **新建子目录里的文件** → 整个子目录可能 project-overview 没列过（例如 5-19 校准前 backend/v1/alembic/ 9 文件完全没列）
+3. **改名了** → 旧引用全失效
 
-触发分类：${TRIGGERED}
+→ 修复：Edit \`.claude/skills/project-overview/SKILL.md\` 对应章节加新 entry（含文件名 / 一句话作用 / 状态）
 
-→ 修复：Edit \`.claude/skills/project-overview/SKILL.md\` 对应章节加新 entry（含文件名 / 状态 / 作用 / AC 价值）
-
-→ 出处：itsuki 2026-05-13 立的铁律 — '改文件就看 project-overview 同步'"
+→ 出处：itsuki 2026-05-13 立规则 / 5-19 改成全项目覆盖（防 hook 视野外目录漂移）"
 fi
 
 jq -n --arg ctx "$WARNING" \
