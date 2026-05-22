@@ -26,13 +26,13 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ## 0. 摘要
 
-### 0.1 体量（2026-05-22 git ls-files + untracked 全统计 — committed 957 + 未 commit 23 = 实际 980）
+### 0.1 体量（2026-05-22 git ls-files + untracked 全统计 — committed 1121 + 未 commit 2 = 实际 1123）
 
 | 顶级目录 | 文件数 | 占比 | 主要内容 |
 |---|---|---|---|
-| `99_archive/` | 431 | 44% | 归档物（**5-21 加 teacher_web/demo 整组 158 文件归档** + 早期 GPT 对话 / throwaway iOS / demo 4-28 / 5-12 深夜大整理 / cloud agent 退役 / 5-02 handoff × 4 等）|
+| `99_archive/` | 554 | 49% | 归档物（**5-22 加 2026-05-21_pre_fix（spec/字典/models .bak 备份）+ 2026-05-22_tomoshibi_appstore_fork（iOS 上架 fork 1.7MB 归档）**+ 5-21 teacher_web/demo 整组 158 文件归档 + 早期 GPT 对话 / throwaway iOS / demo 4-28 / 5-12 深夜大整理 / cloud agent 退役 / 5-02 handoff × 4 等）|
 | `03_dev/` | 395 | 40% | 代码 + 设计 LOG（backend / iOS Foundation / Android Compose / teacher_web v1 Vite+TS / 点呼机骨架）— **5-21 teacher_web/demo 158 文件已挪到 `99_archive/`** |
-| `05_logs/` | 82 | 8.4% | raw 48 / AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-{19,21,22}/（5-22 校准 75→82）|
+| `05_logs/` | 102 | 9.1% | raw 48+5（5-16/19/21/22/22-iOS）/ AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）（5-22 校准 75→102）|
 | `00_admin/` | 21 | 2.1% | 7 顶级 md + hooks 子目录 — **5-21 加 `系统bug专栏.md` + `codex_audit_prompt.md`**（详见 §1.2）|
 | `01_specs/` | 13 | 1.3% | 规格冻结区（含 5 .pages 不可读）|
 | `.claude/` | 11 | 1.1% | 7 skill + 1 agent + 2 配置（settings / session-coord.config）— **5-19 加 `.claude/agents/security-reviewer.md`**（详见 §1.7.5）|
@@ -43,7 +43,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `bin/` | 3 | 0.3% | sync-check + create_local_dev_symlink + check_overview_drift（5-19 加）|
 | `04_ops/` | 2 | 0.2% | MAC_MINI_SETUP + wifi_survey_howto |
 | `.github/` | 1 | 0.1% | **5-21 加** workflows/test.yml — GitHub Actions CI 自动跑测试的工作流定义 |
-| **总计** | **980** | 100% | |
+| **总计** | **1123** | 100% | |
 
 > **5-16 → 5-22 重大变动**：5-21 teacher_web/demo 整组 158 文件从 `03_dev/teacher_web/demo/` 挪到 `99_archive/2026-05-21_teacher_web_demo_archived/` —— 所以 `03_dev/` 从 546 降到 395，`99_archive/` 从 273 升到 431。同期加 `.github/workflows/test.yml`（CI）+ `00_admin/系统bug专栏.md` + `00_admin/codex_audit_prompt.md` + `.claude/agents/security-reviewer.md`。
 >
