@@ -42,8 +42,8 @@ C. 改动驱动（git diff 看 backend models 改了啥，只对比改动相关�
 默认走 **C 改动驱动** — 跑这个：
 
 ```bash
-git log -1 --name-only -- 03_dev/backend/app/models.py 03_dev/backend/app/schemas.py
-git diff HEAD~1 -- 03_dev/backend/app/models.py 03_dev/backend/app/schemas.py
+git log -1 --name-only -- 03_dev/backend/v1/app/models.py 03_dev/backend/v1/app/schemas.py
+git diff HEAD~1 -- 03_dev/backend/v1/app/models.py 03_dev/backend/v1/app/schemas.py
 ```
 
 提取出本次改动涉及的 model 名（`class Student`、`class CheckIn` 等）。
@@ -56,7 +56,7 @@ git diff HEAD~1 -- 03_dev/backend/app/models.py 03_dev/backend/app/schemas.py
 
 ```bash
 # 提取 class X 段
-awk '/^class Student/,/^class [A-Z]/' 03_dev/backend/app/models.py
+awk '/^class Student/,/^class [A-Z]/' 03_dev/backend/v1/app/models.py
 ```
 
 或更精确的提取（如果安装了 ast 工具）：
@@ -64,7 +64,7 @@ awk '/^class Student/,/^class [A-Z]/' 03_dev/backend/app/models.py
 ```bash
 python3 -c "
 import ast, sys
-tree = ast.parse(open('03_dev/backend/app/models.py').read())
+tree = ast.parse(open('03_dev/backend/v1/app/models.py').read())
 for node in ast.walk(tree):
     if isinstance(node, ast.ClassDef) and node.name == 'Student':
         for item in node.body:
@@ -84,7 +84,7 @@ created_at: datetime
 ### 2.2 Pydantic schemas
 
 ```bash
-awk '/^class Student/,/^class [A-Z]/' 03_dev/backend/app/schemas.py
+awk '/^class Student/,/^class [A-Z]/' 03_dev/backend/v1/app/schemas.py
 ```
 
 注意：schemas 通常分 Request / Response / Base，要全提取。

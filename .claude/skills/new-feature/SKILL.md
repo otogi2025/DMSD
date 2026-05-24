@@ -81,11 +81,11 @@ Step 6: 字段对齐自检 + sync-check.sh + commit
 ### 2.1 最小必改文件清单
 
 ```
-03_dev/backend/app/models.py            ← SQLAlchemy ORM 表结构
-03_dev/backend/app/schemas.py           ← Pydantic 请求/响应 schema
-03_dev/backend/app/routers/<feature>.py ← API 路由
+03_dev/backend/v1/app/models.py            ← SQLAlchemy ORM 表结构
+03_dev/backend/v1/app/schemas.py           ← Pydantic 请求/响应 schema
+03_dev/backend/v1/app/routers/<feature>.py ← API 路由
 03_dev/backend/alembic/versions/*.py    ← 数据库迁移（必生成新版本）
-03_dev/backend/app/main.py              ← 注册新 router（如果是新文件）
+03_dev/backend/v1/app/main.py              ← 注册新 router（如果是新文件）
 03_dev/backend/BACKEND_DESIGN_LOG.md    ← 端专属设计（如果有）
 ```
 
@@ -200,7 +200,7 @@ Android 还没实装基础架构。现在的做法：
 
 ```bash
 # 看 backend X 功能的字段
-grep -A 10 "class X" 03_dev/backend/app/schemas.py
+grep -A 10 "class X" 03_dev/backend/v1/app/schemas.py
 
 # 看 iOS X 功能的字段
 grep -A 10 "struct X" 03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/NetworkModels.swift

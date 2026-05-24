@@ -6,8 +6,11 @@
     "CLAUDE.md",
     "00_admin/progress_overview.md",
     "CHANGELOG.md",
-    "01_specs/rollcall/RollCall_Spec_v0.1.md",
-    "01_specs/rollcall/dictionary_v0.1_v0.2_v0.3.md"
+    "01_specs/rollcall/RollCall_Spec.md",
+    "01_specs/rollcall/FIELD_REGISTRY.md",
+    "01_specs/rollcall/ENUM_REGISTRY.md",
+    "01_specs/rollcall/DEVICE_REGISTRY.md",
+    "01_specs/rollcall/ERROR_CODES.md"
   ],
 
   "advisory_lock": [
