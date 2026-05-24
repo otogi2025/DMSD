@@ -1941,16 +1941,12 @@ struct RegisterStep5View: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
-    // ⚠️ DEMO-ONLY-SCAFFOLD（2026-05-04）：默认填 "000000"（demo magic value）
-    //    submit() 检测到 "000000" 直接 router.replace(.registerDone)，不调 backend，
-    //    让 itsuki 在 backend 没开 / 没真注册码时也能进 App。
-    //    v1.0 上线前必删 — 改回 "" + 删 submit() 里的 demo bypass 分支。
-    @State private var code: String = "000000"
+    // A-035 (2026-05-24): demo magic value "000000" 后门已删
+    // 之前默认填 "000000"，submit() 检测到该值直接跳到 registerDone 不调 backend
+    // 现在 code 必须 6 桁数字 + 走真 backend POST /accounts
+    @State private var code: String = ""
     @State private var isLoading: Bool = false
     @State private var errorMsg: String? = nil
-
-    /// demo bypass 用的 magic value（v1.0 上线前删）
-    private static let DEMO_MAGIC_CODE = "000000"
 
     /// 6 桁数字才能 submit
     private var canSubmit: Bool {
@@ -2060,18 +2056,8 @@ struct RegisterStep5View: View {
     }
 
     /// 调 backend POST /accounts、成功 → register done、失败 → 显示错误
-    /// ⚠️ DEMO bypass：code == DEMO_MAGIC_CODE 时跳过 backend 直接 done（v1.0 删）
     private func submit() {
         guard canSubmit, !isLoading else { return }
-
-        // ⚠️ DEMO-ONLY-SCAFFOLD：magic value 跳过 backend 直接 done
-        // 用途：itsuki demo 时（地铁 / 教室 / 没开 backend 时）能进自己的 App
-        // v1.0 上线前必删整个 if 分支
-        if code == Self.DEMO_MAGIC_CODE {
-            app.resetRegistrationDraft()
-            router.replace(.registerDone)
-            return
-        }
 
         isLoading = true
         errorMsg = nil
