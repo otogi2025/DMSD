@@ -61,7 +61,7 @@ v0.1 原版 2026-02-12；后续修订见 CHANGELOG + 本文件顶部。
 
 spec v0.3 里出现两种 URL 前缀风格：
 - `/student/*` / `/teacher/*`（本文件 §2 旧写法，按角色分隔）
-- `/api/v1/checkin`（RollCall_Spec §5.1 / §5.1.2 / Device_Contract 骨架 §3.1，按版本 + 资源分隔）
+- `/api/v1/rollcall/sessions/{session_id}/checkins`（RollCall_Spec §5.1 / §5.1.2 / Device_Contract 骨架 §3.1，按版本 + 资源分隔 — **2026-05-22 修 FC-017：旧 /api/v1/checkin 已废，统一到真实实装路径**）
 
 **两种不兼容**：一个 endpoint 只能归其中一类。**L8 漏洞未闭合** —— 需要 itsuki 拍板统一。
 
