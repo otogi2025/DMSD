@@ -189,8 +189,8 @@ Tomoshibi 点呼系统支持 **三路径并存**（v1.0 同时上线，2026-04-1
 学生卡 ──贴近──> 点呼机 PN532 读头
                  │
                  ├─ 1. 读到卡 UID
-                 ├─ 2. POST /api/v1/checkin
-                 │     {device_id, uid, ts_local}     ← 仅搬运，无判定
+                 ├─ 2. POST /api/v1/rollcall/sessions/{session_id}/checkins
+                 │     {device_id, uid, ts_local}     ← 仅搬运，无判定（2026-05-22 修 FC-017：旧 /api/v1/checkin 已废）
                  ▼
               后端
                  │
@@ -217,8 +217,8 @@ Tomoshibi 点呼系统支持 **三路径并存**（v1.0 同时上线，2026-04-1
                        │
                        ├─ 2. App 取一次性 nonce（预取池或在线获取）
                        ├─ 3. 用本机私钥 ECDSA 签名 (session_id || device_id || nonce || ...)
-                       ├─ 4. POST /api/v1/checkin (WiFi/4G 自己发，不经过点呼机)
-                       │     {student_id, device_id, ts_local, signature, nonce, idempotency_key}
+                       ├─ 4. POST /api/v1/rollcall/sessions/{session_id}/checkins (WiFi/4G 自己发，不经过点呼机)
+                       │     {student_id, device_id, ts_local, signature, nonce, idempotency_key}（2026-05-22 修 FC-017：旧 /api/v1/checkin 已废）
                        ▼
                     后端
                        │
