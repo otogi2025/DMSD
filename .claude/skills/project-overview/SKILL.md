@@ -26,7 +26,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ## 0. 摘要
 
-### 0.1 体量（2026-05-22 git ls-files + untracked 全统计 — committed 1121 + 未 commit 2 = 实际 1123）
+### 0.1 体量（2026-05-22 git ls-files + untracked 全统计 — committed 1121 + 未 commit 1 = 实际 1122）
 
 | 顶级目录 | 文件数 | 占比 | 主要内容 |
 |---|---|---|---|
@@ -35,7 +35,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `05_logs/` | 102 | 9.1% | raw 48+5（5-16/19/21/22/22-iOS）/ AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）（5-22 校准 75→102）|
 | `00_admin/` | 21 | 2.1% | 7 顶级 md + hooks 子目录 — **5-21 加 `系统bug专栏.md` + `codex_audit_prompt.md`**（详见 §1.2）|
 | `01_specs/` | 13 | 1.3% | 规格冻结区（含 5 .pages 不可读）|
-| `.claude/` | 11 | 1.1% | 7 skill + 1 agent + 2 配置（settings / session-coord.config）— **5-19 加 `.claude/agents/security-reviewer.md`**（详见 §1.7.5）|
+| `.claude/` | 10 | 0.9% | 7 skill + 1 agent + 2 配置（settings / session-coord.config）— **5-19 加 `.claude/agents/security-reviewer.md`**（详见 §1.7.5）|
 | `06_assets/` | 7 | 0.7% | 4 icon + 术语表.html + bus_schedule + bus_notice 真实样本 |
 | 根目录 | 6 | 0.6% | CLAUDE / README / CHANGELOG / LICENSE / .gitignore / .graphifyignore |
 | `02_design/` | 3 | 0.3% | system_features + hardware + flow（bus_schedule 5-08 挪到 06_assets/）|
@@ -169,7 +169,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 | skill | 一句话作用 | 触发关键词 | 状态 |
 |---|---|---|---|
-| `session-wrap/` | 会话收尾流程 — AC 素材全量扫描 + 中文总结 + 文件联动 + WIP 刷新 + git commit | 收尾 / 整理今天 / 总结今天 | ✅ |
+| `session-wrap/` | 会话收尾流程 — §5.5 共 16 节子流程（全量扫描 / AC dump / 中文总结 / 文件联动 / WIP+TODO 刷新 / git commit / git 状态确认 / 跨 repo / memory 维护 / daily-archive iCloud 备份 §5.5.14 / decision-draft 决策日志草稿起草 §5.5.15）| 收尾 / 整理今天 / 总结今天 | ✅ |
 | `version-bump/` | 版本号决策树（CC 有否决权）+ 发版动作 SOP（git tag / CHANGELOG / push） | 迭代 / bump / 发版本 / 发版 | ✅ |
 | `file-linkage/` | 文件联动矩阵 — 改 A 必查 B（19 条规则） | 联动 / 改 A 要查 B | ✅ |
 | `project-overview/` | 项目所有文件清单 — 每个文件干啥 + 状态（本 skill） | X 文件在哪 / X 文件干嘛 / 找文件 | ✅ |
@@ -181,6 +181,13 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 > - `session-start` 删（内容并入 `session-wrap §5.5.9` 收尾段；启动只读 WIP）
 > - `demo-clean` 删（一次性任务做 skill 频次太低；改成 `lib/sync-rules.sh` demo-scaffold-detect 自动检测 + `system_features.md` 末尾清单）
 > - `release-checklist` 删（合并到 `version-bump §13`；本来就串联，分两个 skill 反而割裂）
+
+### 1.7.4 .claude/ 配置文件（2 个 — **2026-05-22 补漏列**）
+
+| 文件 | 一句话作用 | 状态 |
+|---|---|---|
+| `settings.json` | Claude Code DMSD 项目级配置 — 注册 hooks（SessionStart 跑 check_overview_drift / PostToolUse 跑 sync-check + format / UserPromptSubmit 跑 anti-ai-flavor 提醒 / 等）| ✅ |
+| `session-coord.config.json` | session-coord skill 协作板配置 — 列哪些文件 strict_lock（CLAUDE.md / progress_overview / CHANGELOG / spec 主体 + 字典 4 件）/ advisory_lock（WIP / TODO / 5 DESIGN_LOG / system_features / 文档同步点清单）。**2026-05-22 修 FC-003**：原锁清单引用已废文件名 `RollCall_Spec_v0.1.md` + `dictionary_v0.1_v0.2_v0.3.md`，改成 `RollCall_Spec.md` + 4 个字典文件真名 | ✅ |
 
 ### 1.7.5 .claude/agents（1 subagent — **2026-05-19 新建**）
 
@@ -450,7 +457,7 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
-| `03_dev/LATEST.md` | iOS 最新可跑原型在哪的指针文件 | ✅ | 给新会话定位用 |
+| `03_dev/LATEST.md` | **2026-05-22 重写**：5 端 HTML プロトタイプ时代历史归档索引（Codex FC-037 修 — 原是「最新 HTML 速查」含明文密码 + 指向已归档 demo）| ✅ | 历史追溯用 / 不能按其路径启 demo |
 | `student_ios/README.md` | iOS 目录总说明 | ✅ | 新会话先看 |
 | `student_ios/_archived_DESIGN_BRIEF_Round1_context.md` | iOS Round 1 时给设计师的需求简报（已归档） | 📦 | 5-13 commit 81842f4 改名 / IOS_DESIGN_LOG 全覆盖 |
 | `student_ios/IOS_DESIGN_LOG.md` | ⭐ iOS 设计决策权威源（§1-11 共 11 章拍板理由） | ✅ | 改 iOS 业务代码前必查 |
@@ -559,7 +566,7 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
-| `decision_log.md` | 项目级重大决策记录（每条 = 决策 + 理由 + 事后回看） | ✅ | 6 条已记 / 最后 4-20 / "事后回看"占位待补 |
+| `decision_log.md` | 项目级重大决策记录（每条 = 决策 + 理由 + 事后回看） | ✅ | 7 条已记 / 最后 5-22（撤回中国海运改日本本地买）/ "事后回看"占位待补 |
 | `learning_path.md` | itsuki 学习哲学 + 已走的路 — AC 自我推荐书素材 | ✅ | 最后 4-13 / 4-10 后新学的 NFC / Swift / 硬件未追记 |
 | `project_evolution.md` | 项目重大转折记录（每次 = 转折点 + 起因 + 影响） | ✅ | 4 次已记 / 最后 4-13 / 待补"第 5 次转折" = demo 完成情况 |
 

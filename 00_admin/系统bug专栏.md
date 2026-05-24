@@ -190,11 +190,11 @@
 - 决策: 2026-05-21 创建 / 高置信（B + C 独立报）/ **一行修，先做**
 
 ### [B-021] 🔴 bin/check_overview_drift.sh awk bug
-- 位置: `bin/check_overview_drift.sh:46-54` | 维度 9 | ⏳ 待修
+- 位置: `bin/check_overview_drift.sh:46-54` | 维度 9 | ✅ 已修
 - 修法: awk 正则限定到「§0.1 体量表」上下文（用 `in_overview_table=1` flag）+ 区分 staged / committed
-- 验证: 跑脚本 .claude/ 应报「写 9 / 实际 9」；commit `check_overview_drift.sh` 后 bin/ 报「写 3 / 实际 3」
-- commit: —
-- 决策: 2026-05-21 创建 / 5-19 拍板核心机制自带 bug / 待拍板
+- 验证: 跑脚本 .claude/ 应报「写 11 / 实际 11」；本会话多次跑 `bash bin/check_overview_drift.sh` 均「✅ 没漂」
+- commit: 5-21 主会话已 commit（脚本顶部注释 + line 36-48 staged/committed + line 58-94 in_table flag）
+- 决策: 2026-05-21 创建 / 5-19 拍板核心机制自带 bug / **2026-05-22 复核已修，本会话标 ✅**
 
 ### [B-027] 🔴 spec 主体 Phase 1/Phase 2 模型过期（4-19 G2 已取消）
 - 位置: `01_specs/rollcall/RollCall_Spec.md:17-18, 233-240, 460-466, 586-590` | 维度 6 | ⏳ 待修

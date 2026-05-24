@@ -1477,6 +1477,8 @@ posts / songs / suggestions                 -- §7.14 砍掉的 → schema 删�
 
 - `system_features.md §7.3.8` 主页 amber Card 学習倒计时（client-side timer）— spec 标 "(D 仅)" 已知 v1.0 删
 
+> **2026-05-22 sync-check 复检记录**：`bin/sync-check.sh` 触发 `[demo-scaffold-detect]` × 3（`HomeStubs.swift` / `StayListStubs.swift` / `AppStore.swift` 新加 demo 关键词字眼）— **复检结论：3 处全部已在上方 #4 / #5 / #6 / #7 登记**。5-22 早段 iOS fork 融合会话改这 3 文件时新加的字眼属于「已登记 demo 的局部调整」+「demo 已删的历史标记注释」，不构成新增 demo scaffold。下次 sync-check 触发同样 3 文件时无需再补登。
+
 ### Backend
 
 - 当前**没有** demo scaffold（routers / models 全 production-ready）。registration_code 系统是真校验，无 magic value bypass。
