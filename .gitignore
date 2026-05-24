@@ -100,3 +100,17 @@ graphify-out/
 *.sqlite
 *.sqlite3
 *.db
+
+# ── 秘密 / 证书（2026-05-22 加 — Codex FC-035） ────
+*.pem
+*.key
+*.p12
+*.mobileprovision
+secrets/
+
+# ── Claude Code worktree（git submodule 残留，不入 git） ─
+.claude/worktrees/
+.claude/scheduled_tasks.lock
+
+# ── TypeScript 增量编译产物 ─────────────────────────
+*.tsbuildinfo

@@ -107,7 +107,12 @@ echo "  改动文件列表:"
 echo "$CHANGED_FILES" | sed 's/^/    /'
 
 # 跑联动规则
+# 2026-05-22 修 FC-033：临时把 IFS 设成换行符（让 shell 按行拆参数，
+# 不按空格拆），保护带空格的路径
+SC_OLD_IFS=$IFS
+IFS=$'\n'
 SYNC_OUTPUT=$(check_sync_for_files $CHANGED_FILES 2>&1)
+IFS=$SC_OLD_IFS
 
 # 跑新建声明性文件检查
 DECL_OUTPUT=""

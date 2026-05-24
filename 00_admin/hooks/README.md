@@ -29,7 +29,7 @@ DMSD 用了 **3 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后
 #### C. `post-edit-japanese-comment-check.sh` — 中文铁律 / 日语注释扫描
 - 触发条件：`.swift / .py / .kt / .ts / .tsx / .js / .jsx` 文件改动
 - 提取新增内容（git diff ^+ 行 / untracked 全文）→ 找 `//` / `#` 注释里有 hiragana（U+3040-309F）/ katakana（U+30A0-30FF）字眼 → 提醒
-- 出处：memory `feedback_code_comments_chinese_strict.md`（2026-05-03 itsuki 拍板）
+- 出处：`CLAUDE.md §文档一致性` 中文铁律段（2026-05-03 itsuki 拍板）— **2026-05-22 修死链**：原引用 memory `feedback_code_comments_chinese_strict.md` 不存在，事实在 CLAUDE.md 里
 - false positive 风险：`//` 出现在字符串字面量里（如 URL `https://...`）会误报，看上下文判断
 
 #### D. `post-edit-timestamp-check.sh` — 声明性文件时间戳检查
@@ -135,6 +135,9 @@ echo '{"tool_input":{"command":"git reset --hard"}}' | bash 00_admin/hooks/pre-b
 
 #### 2026-05-21 字段编号大整理
 > Fix-Bot 3 重排 A-K 字段编号（原版 F/G 字母重复）— PostToolUse 7（A-G）+ PreToolUse 1（H）+ SessionStart 1（I）+ Git 2（J/K）。同时修 `bin/check_overview_drift.sh` awk bug（B-021 — awk 限定到 §0.1 体量表上下文 + 区分 staged/committed）。
+
+#### 2026-05-22 联动脚本空格路径处理（FC-033）
+> Codex 第二轮 audit 发现 `pre-commit:126` + `sync-check.sh:110` 把 `$STAGED_LIST` / `$CHANGED_FILES` 直接展开给 `check_sync_for_files`，shell 按 IFS（默认含空格）拆参数 → 带空格的路径（如 `tomoshibi_flame 2.png` 截图，仓库里 39 个）会被错拆。修法：调用前临时把 `IFS=$'\n'` 强制只按换行拆，调用后恢复原 IFS。两处都加 `SC_OLD_IFS` 保存恢复。
 
 ## 为什么（2026-04-19 发现）
 

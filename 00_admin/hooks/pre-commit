@@ -122,8 +122,13 @@ if [ -n "$REPO_ROOT" ] && [ -f "$REPO_ROOT/00_admin/hooks/lib/sync-rules.sh" ]; 
 
     if [ -n "$STAGED_LIST" ]; then
         # 把 staged 文件列表转成数组传入
+        # 2026-05-22 修 FC-033：临时把 IFS 设成换行符（让 shell 只按行拆参数，
+        # 不按空格拆），保护带空格的路径（如 `tomoshibi_flame 2.png`）
         # || true: check_sync_for_files return triggered_count 非 0 时不让 set -e 终止
+        SC_OLD_IFS=$IFS
+        IFS=$'\n'
         SYNC_OUTPUT=$(check_sync_for_files $STAGED_LIST 2>&1 || true)
+        IFS=$SC_OLD_IFS
 
         # 新建文件检查（声明性文件登记提醒）
         STAGED_NEW=$(git -c core.quotepath=false diff --cached --name-status | awk '$1 == "A" {print $2}' || true)
