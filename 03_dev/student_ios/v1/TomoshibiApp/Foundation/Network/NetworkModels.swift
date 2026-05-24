@@ -27,9 +27,9 @@ struct StudentBrief: Decodable, Hashable {
 
 /// 承认 chain 的 1 步（每个役职的决定状态）
 struct ApprovalStepOut: Decodable, Hashable {
-    let approver_role: String              // "担任" / "寮務課長" / "管理係" / 等
-    let decision: String?                   // "approve" | "reject" | nil（未决）
-    let decided_at: Date?                   // ISO 8601 datetime（未决时 nil）
+    let approver_role: String // "担任" / "寮務課長" / "管理係" / 等
+    let decision: String? // "approve" | "reject" | nil（未决）
+    let decided_at: Date? // ISO 8601 datetime（未决时 nil）
     let comment: String?
     let approver_id: UUID?
 }
@@ -45,13 +45,13 @@ struct ApplicationOut: Decodable, Hashable, Identifiable {
     let student_id: UUID
     let student: StudentBrief?
 
-    let kind: String                        // "帰省" | "外泊" | "帰国"
+    let kind: String // "帰省" | "外泊" | "帰国"
     let reason: String?
 
     // 日期、时刻：backend 用 date / time 类型 → 保 String
-    let leave_date: String                  // "2026-05-03"
+    let leave_date: String // "2026-05-03"
     let leave_method: String
-    let leave_time: String                  // "19:40:00"
+    let leave_time: String // "19:40:00"
     let return_date: String
     let return_method: String
     let return_time: String
@@ -67,7 +67,7 @@ struct ApplicationOut: Decodable, Hashable, Identifiable {
     let flight_arr_at: Date?
 
     let submitted_at: Date
-    let status: String                      // "pending" | "approved_partial" | "approved" | "rejected" | "withdrawn" | "returned"
+    let status: String // "pending" | "approved_partial" | "approved" | "rejected" | "withdrawn" | "returned"
     let withdrawn_at: Date?
     let approval_chain: [ApprovalStepOut]
 }
@@ -75,9 +75,9 @@ struct ApplicationOut: Decodable, Hashable, Identifiable {
 /// 改动履历 entry（GET /applications/:id/audit）
 struct AuditLogOut: Decodable, Hashable, Identifiable {
     let id: UUID
-    let actor_type: String                  // "student" | "teacher"
+    let actor_type: String // "student" | "teacher"
     let actor_id: UUID?
-    let action: String                      // "application.submit" | "application.approve" | "application.amend" 等
+    let action: String // "application.submit" | "application.approve" | "application.amend" 等
     let payload: [String: AnyJSON]?
     let created_at: Date
 }
@@ -88,11 +88,11 @@ struct AuditLogOut: Decodable, Hashable, Identifiable {
 struct StudyAbsenceRequestOut: Decodable, Hashable, Identifiable {
     let id: UUID
     let student_id: UUID
-    let target_date: String                 // "2026-05-03"
-    let period: String                      // "first_half" | "second_half" | "full"
+    let target_date: String // "2026-05-03"
+    let period: String // "first_half" | "second_half" | "full"
     let reason: String
     let submitted_at: Date
-    let status: String                      // "pending" | "approved" | "rejected"
+    let status: String // "pending" | "approved" | "rejected"
     let decided_by: UUID?
     let decided_at: Date?
     let comment: String?
@@ -102,29 +102,51 @@ struct StudyAbsenceRequestOut: Decodable, Hashable, Identifiable {
 
 /// POST /api/v1/accounts 请求 body
 /// 跟 backend StudentAccountCreateIn 对齐（schemas.py）
+///
+/// A-019 (2026-05-21): 字段 max length 镜像 backend，避免 422 才发现
+/// 参考 backend schemas.StudentAccountCreateIn：name 100 / name_kana 100 / email 200 / phone 32 / room_no 16
 struct StudentAccountCreateBody: Encodable {
     let name: String
     let name_kana: String?
-    let birthday: String?           // "yyyy-MM-dd"，没填传 nil
-    let gender: String              // "male" or "female"
-    let grade_code: String          // 2 桁
-    let class_code: String          // 2 桁
-    let seat_no: String             // 2 桁
-    let category: String            // "一般寮生" 等
-    let room_no: String             // "M101" / "W205" 等
-    let dorm_unit: Int              // 1 / 2 / 4
+    let birthday: String? // "yyyy-MM-dd"，没填传 nil
+    let gender: String // "male" or "female"
+    let grade_code: String // 2 桁
+    let class_code: String // 2 桁
+    let seat_no: String // 2 桁
+    let category: String // "一般寮生" 等
+    let room_no: String // "M101" / "W205" 等
+    let dorm_unit: Int // 1 / 2 / 4
     let is_overseas: Bool
     let email: String?
     let phone: String?
     let password: String
-    let registration_code: String   // 6 桁数字（教师生成、5 分钟有效）
+    let registration_code: String // 6 桁数字（教师生成、5 分钟有效）
+
+    /// A-019: 客户端 form 校验。返回 nil = OK，否则返回错误信息（日语 UI 显示用）
+    func validate() -> String? {
+        if name.count > 100 { return "氏名は 100 文字以内で入力してください" }
+        if let nameKana = name_kana, nameKana.count > 100 {
+            return "氏名カナは 100 文字以内で入力してください"
+        }
+        if let em = email, em.count > 200 {
+            return "メールアドレスは 200 文字以内で入力してください"
+        }
+        if let ph = phone, ph.count > 32 {
+            return "電話番号は 32 文字以内で入力してください"
+        }
+        if room_no.count > 16 { return "部屋番号は 16 文字以内で入力してください" }
+        if password.count < 6 || password.count > 128 {
+            return "パスワードは 6〜128 文字で入力してください"
+        }
+        return nil
+    }
 }
 
 /// POST /api/v1/accounts 响应（成功 201）
 /// 跟 backend StudentAccountCreateOut 对齐
 struct StudentAccountCreateResponse: Decodable {
     let accessToken: String
-    let tokenType: String           // "bearer"
+    let tokenType: String // "bearer"
     let expiresIn: Int
     let student: StudentBrief
 
@@ -143,7 +165,7 @@ struct AnnouncementBrief: Decodable, Identifiable, Hashable {
     let id: UUID
     let title: String
     let bodySummary: String
-    let scope: String               // "all" / "male" / "female"
+    let scope: String // "all" / "male" / "female"
     let authorTeacherId: UUID
     let authorTeacherName: String
     let createdAt: Date
@@ -171,7 +193,7 @@ struct AnnouncementListResponse: Decodable {
 /// 回复条目
 struct AnnouncementReplyOut: Decodable, Identifiable, Hashable {
     let id: UUID
-    let authorKind: String          // "student" or "teacher"
+    let authorKind: String // "student" or "teacher"
     let authorId: UUID
     let authorName: String
     let body: String

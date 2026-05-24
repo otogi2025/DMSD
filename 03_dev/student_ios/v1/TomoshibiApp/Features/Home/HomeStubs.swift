@@ -15,6 +15,7 @@ import SwiftUI
 
 // ───────────────────────────────────────────────────────────
 // MARK: - 私有扩展：hex string → Color（Lost 用）
+
 // ───────────────────────────────────────────────────────────
 
 private extension Color {
@@ -29,35 +30,25 @@ private extension Color {
 
 // ───────────────────────────────────────────────────────────
 // MARK: - DemoCardCycleGesture · amber Card 长按循环 demo 状态
+
 // ───────────────────────────────────────────────────────────
 //
-// production 版（默认）= no-op（不加任何 gesture）
-// demo 版（DEMO flag）= 长按 0.6 秒循环点呼 / 学習状态
+// A-030 / A-033 (2026-05-21): cycleDemoRollState long-press 已删
 // memory project_demo_scaffolds_to_remove_before_v1.md #1, #15
+// 留空 modifier 保留调用点不报错 — 等接 backend event 驱动后整段删
 
 private struct DemoCardCycleGesture: ViewModifier {
     let app: AppStore
 
     func body(content: Content) -> some View {
-        #if DEMO
-        content.simultaneousGesture(
-            LongPressGesture(minimumDuration: 0.6).onEnded { _ in
-                if SEED.user.isStudyTarget && app.studyState != .idle {
-                    app.cycleDemoStudyState()
-                } else {
-                    app.cycleDemoRollState()
-                }
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            }
-        )
-        #else
+        // production = no-op；demo long-press cycle 已删（A-030 / A-033）
         content
-        #endif
     }
 }
 
 // ───────────────────────────────────────────────────────────
 // MARK: - 私有原子：HomeCard（JSX Card pad=14 · shadow · radius 18）
+
 // ───────────────────────────────────────────────────────────
 
 /// JSX Card 对等：white bg + radius 18 + shadow + 0.5pt hair border
@@ -93,6 +84,7 @@ private struct HomeCard<Content: View>: View {
 
 // ───────────────────────────────────────────────────────────
 // MARK: - 私有原子：NotifPill（JSX Pill tone）
+
 // ───────────────────────────────────────────────────────────
 
 /// JSX Pill 5 tone 直译（Foundation Pill 缺"accent"调色，本地重绘）
@@ -114,25 +106,27 @@ private struct NotifPill: View {
     private var fg: Color {
         switch tone {
         case .neutral: return T.pillFg
-        case .warn:    return T.warnDeep
-        case .ok:      return T.okDeep
-        case .danger:  return T.danger
-        case .accent:  return T.primary
+        case .warn: return T.warnDeep
+        case .ok: return T.okDeep
+        case .danger: return T.danger
+        case .accent: return T.primary
         }
     }
+
     private var bg: Color {
         switch tone {
         case .neutral: return T.pill
-        case .warn:    return T.warnBg
-        case .ok:      return T.okBg
-        case .danger:  return T.dangerBg
-        case .accent:  return Color(hex: 0xe8f4f6)
+        case .warn: return T.warnBg
+        case .ok: return T.okBg
+        case .danger: return T.dangerBg
+        case .accent: return Color(hex: 0xE8F4F6)
         }
     }
 }
 
 // ───────────────────────────────────────────────────────────
 // MARK: - HomeView · greeting + 扣分 card + 3 segmented tab
+
 // ───────────────────────────────────────────────────────────
 
 struct HomeView: View {
@@ -142,9 +136,11 @@ struct HomeView: View {
     // segmented + Tab 已砍 — itsuki 4-30: 通知去右上角，功能集中到一个页面（unread 留给右上角铃铛 badge）
 
     /// 未读数 — 用 AppStore.allNotifications（包含 push mock）
-    private var unread: Int { app.unreadNotificationCount }
+    private var unread: Int {
+        app.unreadNotificationCount
+    }
 
-    // 1 秒ごとに active 中の倒计时を進める Timer
+    /// 1 秒ごとに active 中の倒计时を進める Timer
     private let countdownTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -162,7 +158,7 @@ struct HomeView: View {
                     .padding(.top, 12).padding(.bottom, 6)
                     .onReceive(countdownTimer) { _ in
                         app.tickCountdown()
-                        app.tickStudyCountdown()  // 4-30 學習 demo
+                        app.tickStudyCountdown() // 4-30 學習 demo
                     }
 
                 // §3 LifeTab 内容直显（segmented + コミュニティ + 通知 tab 砍掉，通知用右上角按钮看）
@@ -225,6 +221,7 @@ struct HomeView: View {
     }
 
     // MARK: 扣分 Card（amber · JSX #5c3410 ink）
+
     //
     // idle 時：今月の減点を大表示（4.5点 + progress bar + 遅刻/欠席 counts）
     // active/late/done 時：点呼ヒーロー表示に切替（大きな 点呼中 · 2:50 / 遅刻 / 時間内 + 欠席申請 / 体調報告 ボタン）
@@ -232,12 +229,12 @@ struct HomeView: View {
 
     private var pointsCard: some View {
         // JSX ink：#5c3410（深褐）
-        let deepBrown = Color(hex: 0x5c3410)
+        let deepBrown = Color(hex: 0x5C3410)
         return ZStack {
             // JSX: radius 22 / padding 20 22 / amber gradient
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(cardGradient)
-                .shadow(color: Color(hex: 0xd4a547).opacity(0.24), radius: 20, x: 0, y: 6)
+                .shadow(color: Color(hex: 0xD4A547).opacity(0.24), radius: 20, x: 0, y: 6)
 
             // JSX: radial-gradient 装饰圆斑 top-right
             Circle()
@@ -276,24 +273,25 @@ struct HomeView: View {
         if app.rollState == .absent {
             return LinearGradient(
                 stops: [
-                    .init(color: Color(hex: 0xffd6d0), location: 0.0),
-                    .init(color: Color(hex: 0xef6a58), location: 0.55),
-                    .init(color: Color(hex: 0xc83b29), location: 1.0),
+                    .init(color: Color(hex: 0xFFD6D0), location: 0.0),
+                    .init(color: Color(hex: 0xEF6A58), location: 0.55),
+                    .init(color: Color(hex: 0xC83B29), location: 1.0),
                 ],
                 startPoint: .topLeading, endPoint: .bottomTrailing
             )
         }
         return LinearGradient(
             stops: [
-                .init(color: Color(hex: 0xffefc2), location: 0.0),
-                .init(color: Color(hex: 0xf4c677), location: 0.55),
-                .init(color: Color(hex: 0xd99f3e), location: 1.0),
+                .init(color: Color(hex: 0xFFEFC2), location: 0.0),
+                .init(color: Color(hex: 0xF4C677), location: 0.55),
+                .init(color: Color(hex: 0xD99F3E), location: 1.0),
             ],
             startPoint: .topLeading, endPoint: .bottomTrailing
         )
     }
 
     // MARK: study content (4-30 後續 拍板 — ⚠️ DEMO-ONLY · v1.0 删)
+
     //
     // 学習対象学生 + studyState upcoming/active 时 amber Card 显示这套:
     // - 学習迟到倒计时（mm:ss）
@@ -373,13 +371,13 @@ struct HomeView: View {
     private func studyTapsProgress(deepBrown: Color) -> some View {
         let taps = app.studyTaps
         let items: [(StudyTap, String, String)] = [
-            (.start, "開始",  "19:40"),
-            (.mid,   "中場",  "20:45"),
-            (.end,   "終了",  "21:45"),
+            (.start, "開始", "19:40"),
+            (.mid, "中場", "20:45"),
+            (.end, "終了", "21:45"),
         ]
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 0) {
-                ForEach(Array(items.enumerated()), id: \.offset) { (i, item) in
+                ForEach(Array(items.enumerated()), id: \.offset) { i, item in
                     let (tap, label, time) = item
                     let done = taps.contains(tap)
                     VStack(spacing: 6) {
@@ -484,7 +482,6 @@ struct HomeView: View {
 
     // MARK: idle content（今月の減点 hero）
 
-    @ViewBuilder
     private func idleContent(deepBrown: Color) -> some View {
         Button { router.go(.myPoints) } label: {
             VStack(alignment: .leading, spacing: 0) {
@@ -656,7 +653,7 @@ struct HomeView: View {
                 caption: "\(app.checkinAt ?? "21:02")",
                 big: "時間内",
                 sub: "今回の点呼は完了しました",
-                bigColor: Color(hex: 0x2c6048),
+                bigColor: Color(hex: 0x2C6048),
                 captionColor: deepBrown.opacity(0.7),
                 subColor: deepBrown.opacity(0.8)
             )
@@ -665,7 +662,6 @@ struct HomeView: View {
         }
     }
 
-    @ViewBuilder
     private func heroBlock(
         caption: String,
         big: String,
@@ -693,7 +689,6 @@ struct HomeView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    @ViewBuilder
     private func rollActionButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 6) {
@@ -702,7 +697,7 @@ struct HomeView: View {
                 Text(label)
                     .font(.system(size: 13.5, weight: .semibold))
             }
-            .foregroundStyle(Color(hex: 0x5c3410))
+            .foregroundStyle(Color(hex: 0x5C3410))
             .frame(maxWidth: .infinity)
             .frame(height: 40)
             .background(
@@ -734,7 +729,7 @@ struct HomeView: View {
                     RoundedRectangle(cornerRadius: 4, style: .continuous)
                         .fill(
                             LinearGradient(
-                                colors: [Color(hex: 0xd99f3e), Color(hex: 0xb07a28)],
+                                colors: [Color(hex: 0xD99F3E), Color(hex: 0xB07A28)],
                                 startPoint: .leading, endPoint: .trailing
                             )
                         )
@@ -768,6 +763,7 @@ struct HomeView: View {
     }
 
     // MARK: 点呼状态 pill 文字/颜色（amber card 右上）
+
     // 老师点开始点呼前 = 来月より清掃対象（普通 warn 提示）
     // 点呼中 = 残り XX:XX で遅刻判定（warn orange）
     // 遅刻（倒计时归零未签到）= 遅刻（danger red）
@@ -794,24 +790,25 @@ struct HomeView: View {
     private func pointsPillFg(deepBrown: Color) -> Color {
         switch app.rollState {
         case .idle: return deepBrown
-        case .active: return app.rollCountdownSec <= 0 ? .white : Color(hex: 0x7a4a0e)
+        case .active: return app.rollCountdownSec <= 0 ? .white : Color(hex: 0x7A4A0E)
         case .absent: return .white
-        case .done: return Color(hex: 0x2c6048)
+        case .done: return Color(hex: 0x2C6048)
         }
     }
 
     private var pointsPillBg: Color {
         switch app.rollState {
         case .idle: return Color.white.opacity(0.45)
-        case .active: return app.rollCountdownSec <= 0 ? T.danger : Color(hex: 0xfdf4e1)
+        case .active: return app.rollCountdownSec <= 0 ? T.danger : Color(hex: 0xFDF4E1)
         case .absent: return T.danger
-        case .done: return Color(hex: 0xe3f1ea)
+        case .done: return Color(hex: 0xE3F1EA)
         }
     }
 }
 
 // ───────────────────────────────────────────────────────────
 // MARK: - LifeTab · bus / package / events / lost / suggest
+
 // ───────────────────────────────────────────────────────────
 
 struct LifeTab: View {
@@ -819,8 +816,8 @@ struct LifeTab: View {
 
     /// 次回運行バス情報（busSchedule を見て「今日」or「直近未来日」の最初の便を返す）
     private struct UpcomingBus {
-        let date: String        // "2026-04-29"
-        let weekday: String     // "水"
+        let date: String // "2026-04-29"
+        let weekday: String // "水"
         let line: BusLine
         let isToday: Bool
     }
@@ -846,18 +843,22 @@ struct LifeTab: View {
 
         // 今日の便（時刻が今より後のもの）
         if let day = SEED.busSchedule.first(where: { $0.date == today }),
-           let line = day.lines.first(where: { $0.time > nowHM }) {
+           let line = day.lines.first(where: { $0.time > nowHM })
+        {
             return UpcomingBus(date: day.date, weekday: day.weekday, line: line, isToday: true)
         }
         // 未来日の最初の便
         if let day = SEED.busSchedule.first(where: { $0.date > today }),
-           let line = day.lines.first {
+           let line = day.lines.first
+        {
             return UpcomingBus(date: day.date, weekday: day.weekday, line: line, isToday: false)
         }
         return nil
     }
 
-    private var pendingPkg: Int { SEED.packages.filter { $0.status == "待領" }.count }
+    private var pendingPkg: Int {
+        SEED.packages.filter { $0.status == "待領" }.count
+    }
 
     var body: some View {
         VStack(spacing: 10) {
@@ -879,7 +880,7 @@ struct LifeTab: View {
             HStack(spacing: 12) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(T.primary.opacity(0.07))      // JSX ${T.primary}12 = ~7% alpha
+                        .fill(T.primary.opacity(0.07)) // JSX ${T.primary}12 = ~7% alpha
                         .frame(width: 44, height: 44)
                     Ic.bus(22).foregroundStyle(T.primary)
                 }
@@ -972,7 +973,7 @@ struct LifeTab: View {
                     HStack(spacing: 10) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(T.accent.opacity(0.13))        // JSX ${T.accent}22 = ~13% alpha
+                                .fill(T.accent.opacity(0.13)) // JSX ${T.accent}22 = ~13% alpha
                                 .frame(width: 32, height: 32)
                             Ic.calendar(18).foregroundStyle(T.primary)
                         }
@@ -1008,6 +1009,7 @@ struct LifeTab: View {
     }
 
     // MARK: Music — リクエスト曲（CommunityTab 砍后 #37 入口在这里恢复）
+
     //
     // 老師 38 条 #37「音楽機能は残す」→ 紫グラデの 44 アイコン + 件数 + トップ 1 曲のプレビュー
     // top song = SEED.songs[0]（up 順で sort 済み seed）
@@ -1020,7 +1022,7 @@ struct LifeTab: View {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(
                             LinearGradient(
-                                colors: [Color(hex: 0xa78bfa), Color(hex: 0x7c3aed)],
+                                colors: [Color(hex: 0xA78BFA), Color(hex: 0x7C3AED)],
                                 startPoint: .topLeading, endPoint: .bottomTrailing
                             )
                         )
@@ -1078,7 +1080,7 @@ struct LifeTab: View {
         let c = Color(hexString: item.color) ?? T.inkFaint
         ZStack(alignment: .bottomLeading) {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(c.opacity(0.13))                      // JSX color+'22' ≈ 13%
+                .fill(c.opacity(0.13)) // JSX color+'22' ≈ 13%
                 .aspectRatio(1, contentMode: .fit)
                 .overlay(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -1129,9 +1131,9 @@ struct LifeTab: View {
     }
 }
 
-
 // ───────────────────────────────────────────────────────────
 // MARK: - RollcallSheet · 4 态 state machine (⭐ money shot)
+
 // ───────────────────────────────────────────────────────────
 
 /// State: idle（準備・pulse）→ scanning（0.5s spinner）→ success（2s auto close）/ fail（retry）
@@ -1149,10 +1151,10 @@ struct RollcallSheet: View {
         GlassSheet(onClose: { cancel() }) {
             ZStack {
                 switch step {
-                case .idle:     idleView
+                case .idle: idleView
                 case .scanning: scanningView
-                case .success:  successView
-                case .fail:     failView
+                case .success: successView
+                case .fail: failView
                 }
             }
             .animation(.easeOut(duration: 0.22), value: step)
@@ -1248,7 +1250,7 @@ struct RollcallSheet: View {
             Button { simulate() } label: {
                 Text("NFC をかざす")
                     .font(.system(size: 16, weight: .bold))
-                    .kerning(0.64)           // 0.04em × 16
+                    .kerning(0.64) // 0.04em × 16
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 54)
@@ -1326,12 +1328,12 @@ struct RollcallSheet: View {
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [Color(hex: 0x8bc6a3), Color(hex: 0x4a9478)],
+                            colors: [Color(hex: 0x8BC6A3), Color(hex: 0x4A9478)],
                             startPoint: .topLeading, endPoint: .bottomTrailing
                         )
                     )
                     .frame(width: 96, height: 96)
-                    .shadow(color: Color(hex: 0x4a9478).opacity(0.3), radius: 16, x: 0, y: 12)
+                    .shadow(color: Color(hex: 0x4A9478).opacity(0.3), radius: 16, x: 0, y: 12)
                 Image(systemName: "checkmark")
                     .font(.system(size: 44, weight: .heavy))
                     .foregroundStyle(.white)
@@ -1380,7 +1382,7 @@ struct RollcallSheet: View {
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [Color(hex: 0xe88a80), Color(hex: 0xc44848)],
+                            colors: [Color(hex: 0xE88A80), Color(hex: 0xC44848)],
                             startPoint: .topLeading, endPoint: .bottomTrailing
                         )
                     )
@@ -1451,6 +1453,7 @@ struct RollcallSheet: View {
 
 // ───────────────────────────────────────────────────────────
 // MARK: - StudyCheckinSheet · 学習 NFC 3 回タップ签到 (system_features §7.3.3)
+
 // ───────────────────────────────────────────────────────────
 
 /// State: idle → scanning（0.5s）→ success（2s auto close）/ fail（retry）
@@ -1465,32 +1468,34 @@ struct StudyCheckinSheet: View {
     @State private var rotating: Bool = false
     @State private var recordedTap: StudyTap? = nil
 
-    private var nextTap: StudyTap? { app.nextStudyTap }
+    private var nextTap: StudyTap? {
+        app.nextStudyTap
+    }
 
     private var stepLabel: String {
         switch nextTap {
         case .start: return "学習開始のタップ"
-        case .mid:   return "中場のタップ"
-        case .end:   return "学習終了のタップ"
-        case .none:  return "本日完了"
+        case .mid: return "中場のタップ"
+        case .end: return "学習終了のタップ"
+        case .none: return "本日完了"
         }
     }
 
     private var stepNumber: Int {
         switch nextTap {
         case .start: return 1
-        case .mid:   return 2
-        case .end:   return 3
-        case .none:  return 3
+        case .mid: return 2
+        case .end: return 3
+        case .none: return 3
         }
     }
 
     private var stepTimeWindow: String {
         switch nextTap {
         case .start: return "19:35〜19:40"
-        case .mid:   return "20:40〜20:50"
-        case .end:   return "21:40〜21:50"
-        case .none:  return "—"
+        case .mid: return "20:40〜20:50"
+        case .end: return "21:40〜21:50"
+        case .none: return "—"
         }
     }
 
@@ -1498,10 +1503,10 @@ struct StudyCheckinSheet: View {
         GlassSheet(onClose: { cancel() }) {
             ZStack {
                 switch step {
-                case .idle:     idleView
+                case .idle: idleView
                 case .scanning: scanningView
-                case .success:  successView
-                case .fail:     failView
+                case .success: successView
+                case .fail: failView
                 }
             }
             .animation(.easeOut(duration: 0.22), value: step)
@@ -1655,12 +1660,12 @@ struct StudyCheckinSheet: View {
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [Color(hex: 0x8bc6a3), Color(hex: 0x4a9478)],
+                            colors: [Color(hex: 0x8BC6A3), Color(hex: 0x4A9478)],
                             startPoint: .topLeading, endPoint: .bottomTrailing
                         )
                     )
                     .frame(width: 96, height: 96)
-                    .shadow(color: Color(hex: 0x4a9478).opacity(0.3), radius: 16, x: 0, y: 12)
+                    .shadow(color: Color(hex: 0x4A9478).opacity(0.3), radius: 16, x: 0, y: 12)
                 Image(systemName: "checkmark")
                     .font(.system(size: 44, weight: .heavy))
                     .foregroundStyle(.white)
@@ -1692,9 +1697,9 @@ struct StudyCheckinSheet: View {
     private var successTitle: String {
         switch recordedTap {
         case .start: return "開始タップ完了"
-        case .mid:   return "中場タップ完了"
-        case .end:   return "終了タップ完了"
-        case .none:  return "完了"
+        case .mid: return "中場タップ完了"
+        case .end: return "終了タップ完了"
+        case .none: return "完了"
         }
     }
 
@@ -1703,9 +1708,9 @@ struct StudyCheckinSheet: View {
         let after = app.nextStudyTap
         switch after {
         case .start: return ("学習開始", "19:35〜19:40")
-        case .mid:   return ("中場", "20:40〜20:50")
-        case .end:   return ("学習終了", "21:40〜21:50")
-        case .none:  return nil
+        case .mid: return ("中場", "20:40〜20:50")
+        case .end: return ("学習終了", "21:40〜21:50")
+        case .none: return nil
         }
     }
 
@@ -1715,7 +1720,7 @@ struct StudyCheckinSheet: View {
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [Color(hex: 0xe88a80), Color(hex: 0xc44848)],
+                            colors: [Color(hex: 0xE88A80), Color(hex: 0xC44848)],
                             startPoint: .topLeading, endPoint: .bottomTrailing
                         )
                     )
@@ -1797,14 +1802,15 @@ private extension StudyTap {
     var label: String {
         switch self {
         case .start: return "学習開始"
-        case .mid:   return "中場"
-        case .end:   return "学習終了"
+        case .mid: return "中場"
+        case .end: return "学習終了"
         }
     }
 }
 
 // ───────────────────────────────────────────────────────────
 // MARK: - FeedbackSheet · 3 選 1
+
 // ───────────────────────────────────────────────────────────
 
 struct FeedbackSheet: View {
@@ -1819,7 +1825,7 @@ struct FeedbackSheet: View {
     }
 
     private let items: [Item] = [
-        .init(id: "health",  icon: "🤒",
+        .init(id: "health", icon: "🤒",
               label: "体調問題を報告",
               detail: "発熱・頭痛・その他の症状を先生に通知",
               kind: .health),
@@ -1827,7 +1833,7 @@ struct FeedbackSheet: View {
               label: "今回欠席の申請",
               detail: "今回の点呼を欠席したい理由を申請",
               kind: .absence),
-        .init(id: "other",   icon: "💬",
+        .init(id: "other", icon: "💬",
               label: "その他の問題",
               detail: "遅刻理由・外出中・NFC 不具合など",
               kind: .other),
@@ -1888,6 +1894,7 @@ struct FeedbackSheet: View {
 
 // ───────────────────────────────────────────────────────────
 // MARK: - HealthSheet · 症状 + 体温 + 补足
+
 // ───────────────────────────────────────────────────────────
 
 struct HealthSheet: View {
@@ -1897,7 +1904,7 @@ struct HealthSheet: View {
     @State private var temp: String = ""
     @State private var note: String = ""
 
-    // JSX options
+    /// JSX options
     private let symptoms = ["発熱", "頭痛", "腹痛", "吐き気", "風邪症状", "その他"]
 
     var body: some View {
@@ -1957,7 +1964,6 @@ struct HealthSheet: View {
     }
 
     /// JSX Radio option chip · selected: primary outline + pill tint
-    @ViewBuilder
     private func radioChip(title: String, selected: Bool, onTap: @escaping () -> Void) -> some View {
         Button(action: onTap) {
             Text(title)
@@ -1979,6 +1985,7 @@ struct HealthSheet: View {
 
 // ───────────────────────────────────────────────────────────
 // MARK: - AbsenceSheet · reason textarea
+
 // ───────────────────────────────────────────────────────────
 
 struct AbsenceSheet: View {
@@ -2023,6 +2030,7 @@ struct AbsenceSheet: View {
 
 // ───────────────────────────────────────────────────────────
 // MARK: - OtherSheet · 分類 + 内容
+
 // ───────────────────────────────────────────────────────────
 
 struct OtherSheet: View {
@@ -2079,7 +2087,6 @@ struct OtherSheet: View {
         }
     }
 
-    @ViewBuilder
     private func radioChip(title: String, selected: Bool, onTap: @escaping () -> Void) -> some View {
         Button(action: onTap) {
             Text(title)
@@ -2101,13 +2108,14 @@ struct OtherSheet: View {
 
 // ───────────────────────────────────────────────────────────
 // MARK: - FlowLayout · 横流 / 换行（SwiftUI 原生 Layout）
+
 // ───────────────────────────────────────────────────────────
 
 /// JSX Radio layout='row' 自动换行对等（flexWrap:wrap / gap:8）
 private struct FlowLayout: Layout {
     var spacing: CGFloat = 8
 
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache _: inout ()) -> CGSize {
         let maxW = proposal.width ?? .infinity
         var x: CGFloat = 0, y: CGFloat = 0, rowH: CGFloat = 0, totalW: CGFloat = 0
         for sv in subviews {
@@ -2123,7 +2131,7 @@ private struct FlowLayout: Layout {
         return CGSize(width: totalW, height: y + rowH)
     }
 
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CGRect, proposal _: ProposedViewSize, subviews: Subviews, cache _: inout ()) {
         let maxW = bounds.width
         var x: CGFloat = bounds.minX, y: CGFloat = bounds.minY, rowH: CGFloat = 0
         for sv in subviews {
@@ -2141,6 +2149,7 @@ private struct FlowLayout: Layout {
 
 // ───────────────────────────────────────────────────────────
 // MARK: - Previews
+
 // ───────────────────────────────────────────────────────────
 
 #Preview("HomeView") {
@@ -2158,7 +2167,6 @@ private struct FlowLayout: Layout {
     .environmentObject(RouterStore(initial: .home))
     .environmentObject(AppStore())
 }
-
 
 #Preview("RollcallSheet") {
     ZStack {
@@ -2202,6 +2210,7 @@ private struct FlowLayout: Layout {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MARK: - 老师公告（2026-05-04 加，spec system_features.md §7.15）
+
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // 视图（v1.0 最小可工作版）：
@@ -2462,7 +2471,7 @@ struct AnnouncementDetailView: View {
                 // 回复输入框
                 HStack(spacing: 8) {
                     TextField("返信を入力...", text: $replyText, axis: .vertical)
-                        .lineLimit(1...4)
+                        .lineLimit(1 ... 4)
                         .font(.system(size: 14))
                         .padding(.horizontal, 12)
                         .padding(.vertical, 10)

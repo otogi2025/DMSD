@@ -15,14 +15,16 @@ import SwiftUI
 // MARK: - 役职 / 決定 / chain entry モデル
 
 enum ApprovalRole: String, CaseIterable, Hashable {
-    case homeroom       = "担任"
-    case dormHead       = "寮務部長"
-    case dormChief      = "寮務課長"
-    case intlHead       = "国際交流部長"
-    case intlChief      = "国際交流課長"
-    case management     = "管理係"
+    case homeroom = "担任"
+    case dormHead = "寮務部長"
+    case dormChief = "寮務課長"
+    case intlHead = "国際交流部長"
+    case intlChief = "国際交流課長"
+    case management = "管理係"
 
-    var label: String { rawValue }
+    var label: String {
+        rawValue
+    }
 }
 
 enum ApprovalDecision: String, Hashable {
@@ -30,7 +32,7 @@ enum ApprovalDecision: String, Hashable {
 
     var label: String {
         switch self {
-        case .pending:  return "審査中"
+        case .pending: return "審査中"
         case .approved: return "承認"
         case .rejected: return "差戻"
         }
@@ -38,7 +40,7 @@ enum ApprovalDecision: String, Hashable {
 
     var tone: Pill.Tone {
         switch self {
-        case .pending:  return .warn
+        case .pending: return .warn
         case .approved: return .ok
         case .rejected: return .danger
         }
@@ -47,28 +49,30 @@ enum ApprovalDecision: String, Hashable {
 
 struct ApprovalStep: Hashable, Identifiable {
     let role: ApprovalRole
-    let approverName: String?       // nil = 老师未指定 / 役职名のみ表示
+    let approverName: String? // nil = 老师未指定 / 役职名のみ表示
     let decision: ApprovalDecision
-    let decidedAt: String?          // "2026-04-21 11:02"
+    let decidedAt: String? // "2026-04-21 11:02"
     let comment: String?
 
-    var id: String { role.rawValue }
+    var id: String {
+        role.rawValue
+    }
 }
 
 /// アプリ内で扱う出寮届の詳細（GET /applications/:id 返り値の iOS 模型）
 struct StayApplication: Hashable, Identifiable {
-    let id: String                  // "a1" 等
-    var kind: ApplicationKind       // 外泊 / 帰省 / 帰国 / その他
-    var status: ApplicationStatus   // pending / approved / rejected / returned / withdrawn / draft
-    var leaveDate: String           // "2026-05-03"
+    let id: String // "a1" 等
+    var kind: ApplicationKind // 外泊 / 帰省 / 帰国 / その他
+    var status: ApplicationStatus // pending / approved / rejected / returned / withdrawn / draft
+    var leaveDate: String // "2026-05-03"
     var returnDate: String?
-    var summary: String             // ApplicationItem.summary 互換
+    var summary: String // ApplicationItem.summary 互換
     var destination: String?
     var leaveMethod: String?
     var returnMethod: String?
     var chain: [ApprovalStep]
-    let submittedAt: String         // "2026-04-20 10:24"
-    var auditLog: [AuditLogEntry] = []   // 操作履歴（提出 / 修改届 / 差戻 / 承認）
+    let submittedAt: String // "2026-04-20 10:24"
+    var auditLog: [AuditLogEntry] = [] // 操作履歴（提出 / 修改届 / 差戻 / 承認）
 
     /// 修改届 可提交：仅 pending / approved_partial / returned 状态可
     /// system_features §7.2.4 「pending / partiallyApproved / returned で編集可」
@@ -85,13 +89,13 @@ struct StayApplication: Hashable, Identifiable {
 
 struct AuditLogEntry: Hashable, Identifiable {
     let id: UUID
-    let at: String          // "2026-05-01 14:32"
-    let action: String      // "提出" / "修改届を提出" / "差戻" / "承認" 等
-    let actor: String       // 役职名 + 担当者名 / 申請者本人
-    let detail: String?     // 修改届時の amendReason / 差戻理由 等
+    let at: String // "2026-05-01 14:32"
+    let action: String // "提出" / "修改届を提出" / "差戻" / "承認" 等
+    let actor: String // 役职名 + 担当者名 / 申請者本人
+    let detail: String? // 修改届時の amendReason / 差戻理由 等
 
     init(at: String, action: String, actor: String, detail: String? = nil) {
-        self.id = UUID()
+        id = UUID()
         self.at = at
         self.action = action
         self.actor = actor
@@ -100,48 +104,48 @@ struct AuditLogEntry: Hashable, Identifiable {
 }
 
 enum ApplicationKind: String, Hashable {
-    case stay     = "外泊"
-    case holiday  = "帰省"
+    case stay = "外泊"
+    case holiday = "帰省"
     case `return` = "帰国"
-    case other    = "その他"
+    case other = "その他"
 
     /// SEED.applications.type ("stay" / "holiday" / "return" / ...) からマップ
     static func fromSeedType(_ t: String) -> ApplicationKind {
         switch t {
-        case "stay":    return .stay
+        case "stay": return .stay
         case "holiday": return .holiday
-        case "return":  return .return
-        default:        return .other
+        case "return": return .return
+        default: return .other
         }
     }
 }
 
 enum ApplicationStatus: String, Hashable {
     case draft, pending
-    case approved_partial    // chain 部分通过的中间态（backend 6 个值之一）
+    case approved_partial // chain 部分通过的中间态（backend 6 个值之一）
     case approved, rejected, returned, withdrawn
 
     var label: String {
         switch self {
-        case .draft:             return "下書き"
-        case .pending:           return "審査中"
-        case .approved_partial:  return "一部承認"
-        case .approved:          return "承認済"
-        case .rejected:          return "差戻"
-        case .returned:          return "要修正"
-        case .withdrawn:         return "取消済"
+        case .draft: return "下書き"
+        case .pending: return "審査中"
+        case .approved_partial: return "一部承認"
+        case .approved: return "承認済"
+        case .rejected: return "差戻"
+        case .returned: return "要修正"
+        case .withdrawn: return "取消済"
         }
     }
 
     var tone: Pill.Tone {
         switch self {
-        case .draft:             return .neutral
-        case .pending:           return .warn
-        case .approved_partial:  return .warn      // amber 色、介于 approved 和 pending 之间
-        case .approved:          return .ok
-        case .rejected:          return .danger
-        case .returned:          return .danger
-        case .withdrawn:         return .neutral
+        case .draft: return .neutral
+        case .pending: return .warn
+        case .approved_partial: return .warn // amber 色、介于 approved 和 pending 之间
+        case .approved: return .ok
+        case .rejected: return .danger
+        case .returned: return .danger
+        case .withdrawn: return .neutral
         }
     }
 
@@ -178,10 +182,10 @@ enum ApprovalChainBuilder {
 
     static func chain(for kind: ApplicationKind, isOverseas: Bool) -> [ApprovalRole] {
         switch kind {
-        case .stay:     return stayChain(isOverseas: isOverseas)
-        case .holiday:  return holidayChain(isOverseas: isOverseas)
-        case .return:   return holidayChain(isOverseas: isOverseas)
-        case .other:    return []
+        case .stay: return stayChain(isOverseas: isOverseas)
+        case .holiday: return holidayChain(isOverseas: isOverseas)
+        case .return: return holidayChain(isOverseas: isOverseas)
+        case .other: return []
         }
     }
 }
@@ -196,7 +200,7 @@ enum StayListMock {
     /// 修改届 mock store（lazy init から initial seed を構築）
     /// `@MainActor` で囲い込んでいるので nonisolated unsafe は不要。view は全て MainActor で動く。
     /// API 接続時は `URLSession + async/await`（IOS_DESIGN_LOG §11.9 I2）に置換。
-    private static var _store: [StayApplication]? = nil
+    private static var _store: [StayApplication]?
 
     static var all: [StayApplication] {
         if _store == nil { _store = buildInitial() }
@@ -307,7 +311,7 @@ enum StayListMock {
         return f.string(from: Date())
     }
 
-    // chain の各 step に decision / decided_at を割り当てる（status から逆算）
+    /// chain の各 step に decision / decided_at を割り当てる（status から逆算）
     private static func makeSteps(
         for roles: [ApprovalRole],
         applicationStatus status: ApplicationStatus,
@@ -315,27 +319,27 @@ enum StayListMock {
     ) -> [ApprovalStep] {
         guard !roles.isEmpty else { return [] }
         let names: [ApprovalRole: String] = [
-            .homeroom:   "松本 先生",
-            .dormHead:   "高野 先生",
-            .dormChief:  "新股 先生",
-            .intlHead:   "難波 先生",
-            .intlChief:  "小林 先生",
+            .homeroom: "松本 先生",
+            .dormHead: "高野 先生",
+            .dormChief: "新股 先生",
+            .intlHead: "難波 先生",
+            .intlChief: "小林 先生",
             .management: "田中 先生",
         ]
         // 按 status 判断已承认的役职数
         let approvedCount: Int = {
             switch status {
-            case .approved:                  return roles.count
-            case .approved_partial:          return max(roles.count - 1, 1)   // 部分承认: 最后一个还未决
-            case .rejected, .returned:       return max(roles.count - 1, 1)   // 最后一个差戻
-            case .pending:                   return roles.count > 2 ? 1 : 0   // 进行中: 仅头部承认
-            case .draft, .withdrawn:         return 0
+            case .approved: return roles.count
+            case .approved_partial: return max(roles.count - 1, 1) // 部分承认: 最后一个还未决
+            case .rejected, .returned: return max(roles.count - 1, 1) // 最后一个差戻
+            case .pending: return roles.count > 2 ? 1 : 0 // 进行中: 仅头部承认
+            case .draft, .withdrawn: return 0
             }
         }()
         // 差戻の場合、最後の承認役职は rejected
         let rejectedIndex: Int? = (status == .rejected) ? approvedCount : nil
 
-        return roles.enumerated().map { (idx, role) in
+        return roles.enumerated().map { idx, role in
             let decision: ApprovalDecision
             let decidedAt: String?
             let comment: String?
@@ -380,18 +384,19 @@ enum StayListMock {
 
 // ============================================================================
 // MARK: - StayListView · 申請履歴 一覧（マイページ → 申請履歴）
+
 // ============================================================================
 
 struct StayListView: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
-    @State private var filter: ApplicationStatus? = nil   // nil = すべて
-    // ⚠️ DEMO-ONLY-SCAFFOLD（2026-05-03）：暂用 StayListMock 替代 GET /applications/mine
-    // v1.0 切回：apps: [ApplicationOut] = [] + items 用 $0.toStayApplication()
+    @State private var filter: ApplicationStatus? = nil // nil = すべて
+    // A-037 (2026-05-21): 切回 ApplicationsAPI.listMine() — StayListMock 仅作未登录态兜底
     @State private var apps: [StayApplication] = []
     @State private var isLoading: Bool = false
     @State private var firstLoadDone: Bool = false
+    @State private var loadError: String? = nil
 
     private var items: [StayApplication] {
         let sorted = apps.sorted { $0.leaveDate > $1.leaveDate }
@@ -450,21 +455,34 @@ struct StayListView: View {
         .task { await load() }
     }
 
-    /// ⚠️ DEMO-ONLY-SCAFFOLD（2026-05-03）：纯 mock，无后端依赖
-    /// v1.0 切回：try await ApplicationsAPI.listMine() + 4 个 catch 分支
+    /// A-037 (2026-05-21): 切回 ApplicationsAPI.listMine()
+    /// 未登录态（401 / 无 token）回退到 StayListMock；登录后真数据
     private func load() async {
         isLoading = true
+        loadError = nil
         defer {
             isLoading = false
             firstLoadDone = true
         }
-        apps = StayListMock.all
+        // 未登录态用 mock 兜底（开发时无 backend / Apple reviewer 没真账号也能看效果）
+        guard app.isAuthenticated else {
+            apps = StayListMock.all
+            return
+        }
+        do {
+            let raw = try await ApplicationsAPI.listMine()
+            apps = raw.map { $0.toStayApplication() }
+        } catch {
+            // 出错降级到 mock，避免空 view 影响调试
+            loadError = "申請一覧の取得に失敗しました"
+            apps = StayListMock.all
+        }
     }
 
     private var filterTabs: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
-                ForEach(Array(tabs.enumerated()), id: \.offset) { (_, tab) in
+                ForEach(Array(tabs.enumerated()), id: \.offset) { _, tab in
                     let selected = filter == tab.value
                     Button { filter = tab.value } label: {
                         Text(tab.label)
@@ -543,7 +561,7 @@ private struct StayRow: View {
 
     private var chainDots: some View {
         HStack(spacing: 6) {
-            ForEach(Array(item.chain.enumerated()), id: \.offset) { (i, step) in
+            ForEach(Array(item.chain.enumerated()), id: \.offset) { i, step in
                 HStack(spacing: 4) {
                     chainDot(step.decision)
                     Text(step.role.label)
@@ -561,7 +579,6 @@ private struct StayRow: View {
         }
     }
 
-    @ViewBuilder
     private func chainDot(_ d: ApprovalDecision) -> some View {
         ZStack {
             Circle().fill(dotFill(d)).frame(width: 12, height: 12)
@@ -584,36 +601,39 @@ private struct StayRow: View {
         switch d {
         case .approved: return T.ok
         case .rejected: return T.danger
-        case .pending:  return T.inkFaint
+        case .pending: return T.inkFaint
         }
     }
+
     private func roleBg(_ d: ApprovalDecision) -> Color {
         switch d {
         case .approved: return T.okBg
         case .rejected: return T.dangerBg
-        case .pending:  return T.hairSoft
+        case .pending: return T.hairSoft
         }
     }
+
     private func roleFg(_ d: ApprovalDecision) -> Color {
         switch d {
         case .approved: return T.okDeep
         case .rejected: return T.danger
-        case .pending:  return T.inkSub
+        case .pending: return T.inkSub
         }
     }
 
     private func kindIcon(_ k: ApplicationKind) -> String {
         switch k {
-        case .stay:    return "house"
+        case .stay: return "house"
         case .holiday: return "house.lodge"
-        case .return:  return "airplane"
-        case .other:   return "doc.text"
+        case .return: return "airplane"
+        case .other: return "doc.text"
         }
     }
 }
 
 // ============================================================================
 // MARK: - StayDetailView · 申請詳細 + 承認 chain 縦 timeline
+
 // ============================================================================
 
 struct StayDetailView: View {
@@ -770,7 +790,7 @@ struct StayDetailView: View {
                         .font(.system(size: 12))
                         .foregroundStyle(T.inkMute)
                 } else {
-                    ForEach(Array(item.auditLog.enumerated()), id: \.element.id) { (i, e) in
+                    ForEach(Array(item.auditLog.enumerated()), id: \.element.id) { i, e in
                         auditRow(entry: e, isFirst: i == 0, isLast: i == item.auditLog.count - 1)
                     }
                 }
@@ -778,8 +798,7 @@ struct StayDetailView: View {
         }
     }
 
-    @ViewBuilder
-    private func auditRow(entry: AuditLogEntry, isFirst: Bool, isLast: Bool) -> some View {
+    private func auditRow(entry: AuditLogEntry, isFirst _: Bool, isLast: Bool) -> some View {
         HStack(alignment: .top, spacing: 12) {
             VStack(spacing: 0) {
                 Circle()
@@ -956,10 +975,10 @@ struct StayDetailView: View {
 
     private func kindIcon(_ k: ApplicationKind) -> String {
         switch k {
-        case .stay:    return "house"
+        case .stay: return "house"
         case .holiday: return "house.lodge"
-        case .return:  return "airplane"
-        case .other:   return "doc.text"
+        case .return: return "airplane"
+        case .other: return "doc.text"
         }
     }
 }
@@ -971,7 +990,7 @@ private struct ChainTimelineView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(chain.enumerated()), id: \.offset) { (i, step) in
+            ForEach(Array(chain.enumerated()), id: \.offset) { i, step in
                 HStack(alignment: .top, spacing: 14) {
                     rail(step: step, isLast: i == chain.count - 1, prevDone: i > 0 && chain[i - 1].decision == .approved)
                     body(step: step, isLast: i == chain.count - 1)
@@ -981,8 +1000,7 @@ private struct ChainTimelineView: View {
         }
     }
 
-    @ViewBuilder
-    private func rail(step: ApprovalStep, isLast: Bool, prevDone: Bool) -> some View {
+    private func rail(step: ApprovalStep, isLast: Bool, prevDone _: Bool) -> some View {
         VStack(spacing: 0) {
             ZStack {
                 Circle()
@@ -1012,7 +1030,6 @@ private struct ChainTimelineView: View {
         .frame(width: 26)
     }
 
-    @ViewBuilder
     private func body(step: ApprovalStep, isLast: Bool) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
@@ -1045,13 +1062,14 @@ private struct ChainTimelineView: View {
         switch d {
         case .approved: return T.ok
         case .rejected: return T.danger
-        case .pending:  return T.inkFaint
+        case .pending: return T.inkFaint
         }
     }
 }
 
 // ============================================================================
 // MARK: - StayEditForm · 出寮届 修改届（system_features §7.2.4-5）
+
 //
 // 提出条件: original.isEditable == true（status ∈ {pending, returned}）
 // 提出後: chain 全員 reset to pending + auditLog append + status = pending
@@ -1079,8 +1097,8 @@ struct StayEditForm: View {
     }
 
     // ── 編集対象 (init で original から prefill) ──────────────────────────
-    @State private var leaveDate: Date = Date()
-    @State private var returnDate: Date = Date()
+    @State private var leaveDate: Date = .init()
+    @State private var returnDate: Date = .init()
     @State private var leaveMethod: String = "JR"
     @State private var returnMethod: String = "JR"
     @State private var destination: String = ""
@@ -1383,7 +1401,6 @@ struct StayEditForm: View {
         return f.string(from: d)
     }
 
-    @ViewBuilder
     private func sectionLabel(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 13, weight: .bold))
@@ -1391,7 +1408,6 @@ struct StayEditForm: View {
             .kerning(0.5)
     }
 
-    @ViewBuilder
     private func idRow(_ k: String, _ v: String, isFirst: Bool = false) -> some View {
         VStack(spacing: 0) {
             if !isFirst { Divider().background(T.hair) }
@@ -1409,7 +1425,6 @@ struct StayEditForm: View {
         }
     }
 
-    @ViewBuilder
     private func chipRow(options: [String], selected: Binding<String>) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
@@ -1433,7 +1448,6 @@ struct StayEditForm: View {
         }
     }
 
-    @ViewBuilder
     private func originalNote(label: String, text: String) -> some View {
         HStack(spacing: 6) {
             Text(label)
@@ -1484,6 +1498,7 @@ struct StayEditForm: View {
 
 // ============================================================================
 // MARK: - Network → ViewModel converter
+
 // 把 ApplicationOut（backend wire format）转成 StayApplication（UI view-model）
 // + AuditLogOut → AuditLogEntry 转换 + 日付/时刻格式化
 // ============================================================================
@@ -1510,13 +1525,13 @@ extension ApplicationOut {
             let decision: ApprovalDecision
             switch stepOut.decision {
             case "approve": decision = .approved
-            case "reject":  decision = .rejected
-            default:        decision = .pending   // nil = 未决
+            case "reject": decision = .rejected
+            default: decision = .pending // nil = 未决
             }
             let decidedStr: String? = stepOut.decided_at.map { backendDisplayDateFmt.string(from: $0) }
             return ApprovalStep(
                 role: role,
-                approverName: nil,           // backend 暂不返 approver name（仅 approver_id）
+                approverName: nil, // backend 暂不返 approver name（仅 approver_id）
                 decision: decision,
                 decidedAt: decidedStr,
                 comment: stepOut.comment
@@ -1541,12 +1556,12 @@ extension ApplicationOut {
             returnMethod: return_method,
             chain: steps,
             submittedAt: backendDisplayDateFmt.string(from: submitted_at),
-            auditLog: []                     // 详情页另发 GET /audit 拉取
+            auditLog: [] // 详情页另发 GET /audit 拉取
         )
     }
 
     private static func makeSummary(
-        kind: ApplicationKind,
+        kind _: ApplicationKind,
         leaveDate: String,
         returnDate: String,
         stayLocations: [[String: AnyJSON]]?
@@ -1564,7 +1579,7 @@ extension AuditLogOut {
     func toAuditLogEntry() -> AuditLogEntry {
         let timeStr = backendDisplayDateFmt.string(from: created_at)
         let actionLabel = Self.translateAction(action)
-        let actorLabel = actor_type == "student" ? SEED.user.name : "教員"  // 暂用 actor_type 区分
+        let actorLabel = actor_type == "student" ? SEED.user.name : "教員" // 暂用 actor_type 区分
         // payload 里如果有 reason / comment 等可读字段、塞到 detail
         let detailText: String? = payload?["reason"]?.value ?? payload?["comment"]?.value
         return AuditLogEntry(
@@ -1577,12 +1592,12 @@ extension AuditLogOut {
 
     private static func translateAction(_ raw: String) -> String {
         switch raw {
-        case "application.submit":   return "提出"
-        case "application.amend":    return "修改届を提出"
-        case "application.approve":  return "承認"
-        case "application.reject":   return "差戻"
+        case "application.submit": return "提出"
+        case "application.amend": return "修改届を提出"
+        case "application.approve": return "承認"
+        case "application.reject": return "差戻"
         case "application.withdraw": return "取消"
-        default:                     return raw
+        default: return raw
         }
     }
 }

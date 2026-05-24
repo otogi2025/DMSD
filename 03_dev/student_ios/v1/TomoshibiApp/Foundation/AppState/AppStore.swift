@@ -1,8 +1,8 @@
 // AppStore.swift
 // ⭐ Foundation · 全局 app state（对等 phaseB_src AppProvider）
 
-import Foundation
 import Combine
+import Foundation
 import SwiftUI
 
 /// 学生注册流程累积器（Step1-5 各自填字段、Step5 提交时整体送 backend）
@@ -13,27 +13,27 @@ struct RegistrationDraft {
     // Step1 基本信息
     var name: String = ""
     var birthday: Date? = nil
-    var gender: String = "male"            // "male" or "female"
+    var gender: String = "male" // "male" or "female"
     var is_overseas: Bool = false
-    var grade_code: String = ""            // 2 桁
-    var class_code: String = ""            // 2 桁
-    var seat_no: String = ""               // 2 桁
+    var grade_code: String = "" // 2 桁
+    var class_code: String = "" // 2 桁
+    var seat_no: String = "" // 2 桁
     /// room 输入框只让学生填数字部分（"101" / "205B"），M/W 前缀由 gender 自动加
     var room_no_suffix: String = ""
 
-    // Step2 点呼区分
+    /// Step2 点呼区分
     var category: String = "一般寮生"
 
     // Step3 联络方式
     var email: String? = nil
     var phone: String? = nil
 
-    // Step4 密码
+    /// Step4 密码
     var password: String = ""
 
     /// 拼 M/W 前缀 → 完整 room_no（backend §5.0 编码规则）
     var computedRoomNo: String {
-        guard !room_no_suffix.isEmpty else { return "M205" }   // demo fallback
+        guard !room_no_suffix.isEmpty else { return "M205" } // demo fallback
         let prefix = (gender == "male") ? "M" : "W"
         return prefix + room_no_suffix
     }
@@ -58,15 +58,15 @@ struct RegistrationDraft {
 /// アカウント関連フィールドの変更履歴（MyInfo 編集時に append）
 struct ChangeLogEntry: Hashable, Identifiable {
     let id: UUID
-    let at: Date          // 変更時刻
-    let field: String     // 例: "grade" / "room"
-    let label: String     // 日本語表示: "学年" / "部屋番号"
+    let at: Date // 変更時刻
+    let field: String // 例: "grade" / "room"
+    let label: String // 日本語表示: "学年" / "部屋番号"
     let before: String
     let after: String
 
     init(field: String, label: String, before: String, after: String) {
-        self.id = UUID()
-        self.at = Date()
+        id = UUID()
+        at = Date()
         self.field = field
         self.label = label
         self.before = before
@@ -89,16 +89,21 @@ final class AppStore: ObservableObject {
         }
     }
 
+    /// A-036 (2026-05-21): 登录 gate
+    /// 用 token 是否存在判断（token 失效会在 401 时清空触发重新登录）
+    /// view 应该用此 gate 决定是否回退到 SEED.user 占位（登录前）或显示「— 」（登录后未拉到数据）
+    var isAuthenticated: Bool {
+        authToken != nil
+    }
+
     /// app 启动时从 Keychain 恢复 token（实现自动登录）
     init() {
         if let saved = KeychainService.load() {
             // 直接赋 _authToken 会跳过 didSet → APIClient 同步不上、所以走 self.authToken
-            self.authToken = saved
+            authToken = saved
         }
-        // ⚠️ DEMO-ONLY-SCAFFOLD（2026-05-04）：老师公告 demo seed
-        // 用途：itsuki demo / 没开 backend 时，主页 + 一覧 + 详情都能直接看效果
-        // v1.0 上线前删 seedDemoAnnouncements() 调用 + 函数本体
-        seedDemoAnnouncements()
+        // A-038 (2026-05-21): seedDemoAnnouncements() 调用已删
+        // 公告 demo seed 整段函数已删；公告全走 backend AnnouncementsAPI
     }
 
     /// 点呼状态
@@ -129,9 +134,9 @@ final class AppStore: ObservableObject {
     /// production 版初始空、登录后从后端拉；demo 版有进级 placeholder seed。
     @Published var changeLog: [ChangeLogEntry] = {
         #if DEMO
-        return [ChangeLogEntry(field: "grade", label: "学年", before: "高2", after: "高3")]
+            return [ChangeLogEntry(field: "grade", label: "学年", before: "高2", after: "高3")]
         #else
-        return []
+            return []
         #endif
     }()
 
@@ -145,6 +150,7 @@ final class AppStore: ObservableObject {
     }
 
     // MARK: - 学生新规注册（2026-05-04 加，spec system_features.md §7.16）
+
     //
     // 注册流程: Step1 基本信息 → Step2 点呼区分 → Step3 联络方式 → Step4 密码 → Step5 注册码
     //   - 各 Step 在 onNext 时把自己的字段写入 registrationDraft
@@ -161,15 +167,15 @@ final class AppStore: ObservableObject {
         let body = StudentAccountCreateBody(
             // 字段都从 draft 取；带 fallback 是因为某些 Step 还可能跳过填（防御编程）
             name: d.name.isEmpty ? "新入生" : d.name,
-            name_kana: nil,                                    // Step1 没收集 kana，先传 nil
-            birthday: d.birthdayString,                        // 没填 = nil
+            name_kana: nil, // Step1 没收集 kana，先传 nil
+            birthday: d.birthdayString, // 没填 = nil
             gender: d.gender,
             grade_code: d.grade_code.isEmpty ? "07" : d.grade_code,
             class_code: d.class_code.isEmpty ? "01" : d.class_code,
             seat_no: d.seat_no.isEmpty ? "05" : d.seat_no,
             category: d.category,
-            room_no: d.computedRoomNo,                         // 拼 M/W 前缀
-            dorm_unit: d.computedDormUnit,                     // 从 room_suffix + gender derive
+            room_no: d.computedRoomNo, // 拼 M/W 前缀
+            dorm_unit: d.computedDormUnit, // 从 room_suffix + gender derive
             is_overseas: d.is_overseas,
             email: (d.email?.isEmpty == false) ? d.email : nil,
             phone: (d.phone?.isEmpty == false) ? d.phone : nil,
@@ -177,7 +183,7 @@ final class AppStore: ObservableObject {
             registration_code: registrationCode
         )
         let res = try await AccountsAPI.createAccount(body: body)
-        self.authToken = res.accessToken                        // didSet 同步 APIClient + Keychain
+        authToken = res.accessToken // didSet 同步 APIClient + Keychain
         return res
     }
 
@@ -201,7 +207,7 @@ final class AppStore: ObservableObject {
     func loadAnnouncementUnreadCount() async {
         do {
             let res = try await AnnouncementsAPI.unreadCount()
-            self.announcementUnreadCount = res.unreadCount
+            announcementUnreadCount = res.unreadCount
         } catch {
             // 拉失败不阻塞主页其他功能 — 静默忽略，下次刷新再试
         }
@@ -212,7 +218,7 @@ final class AppStore: ObservableObject {
     func loadAnnouncementList() async throws {
         do {
             let res = try await AnnouncementsAPI.list()
-            self.announcements = res.items
+            announcements = res.items
         } catch {
             // ⚠️ DEMO-ONLY-SCAFFOLD：seed 不空时静默忽略错误（保留 demo 数据）
             // v1.0 上线前删 if 分支、保留 throw
@@ -225,7 +231,7 @@ final class AppStore: ObservableObject {
     func loadAnnouncementDetail(id: String) async throws {
         do {
             let detail = try await AnnouncementsAPI.detail(id: id)
-            self.announcementDetails[id] = detail
+            announcementDetails[id] = detail
         } catch {
             // ⚠️ DEMO-ONLY-SCAFFOLD：seed cache 命中时静默忽略
             // v1.0 上线前删 if 分支
@@ -240,7 +246,7 @@ final class AppStore: ObservableObject {
                 scope: old.scope, authorTeacherId: old.authorTeacherId,
                 authorTeacherName: old.authorTeacherName,
                 createdAt: old.createdAt, updatedAt: old.updatedAt,
-                isRead: true,                       // ← flip 已读
+                isRead: true, // ← flip 已读
                 replyCount: old.replyCount
             )
         }
@@ -283,146 +289,8 @@ final class AppStore: ObservableObject {
         }
     }
 
-    // MARK: - 老师公告 demo seed（⚠️ DEMO-ONLY-SCAFFOLD · 2026-05-04）
-    //
-    // 用途：itsuki demo / backend 没开时，主页 + 一覧 + 详情 都直接看到效果
-    // v1.0 上线前删整个函数 + init() 调用
-    //
-    // seed 5 条公告（日语 / 全寮 + 男寮 mix） + 几条 reply
-    // UUID 用固定值方便 list ↔ detail 对照
-    private func seedDemoAnnouncements() {
-        let now = Date()
-        // 老师 author UUID（固定）
-        let yamada = UUID(uuidString: "00000000-0000-0000-0000-0000000000A1")!  // 山田 寮監
-        let sato   = UUID(uuidString: "00000000-0000-0000-0000-0000000000A2")!  // 佐藤 寮務部長
-        let tanaka = UUID(uuidString: "00000000-0000-0000-0000-0000000000A3")!  // 田中 寮監
-        let suzuki = UUID(uuidString: "00000000-0000-0000-0000-0000000000A4")!  // 鈴木 寮監
-        // 学生 author UUID（reply 用）
-        let stuTanaka = UUID(uuidString: "00000000-0000-0000-0000-0000000000B1")!
-        let stuSuzuki = UUID(uuidString: "00000000-0000-0000-0000-0000000000B2")!
-        let stuYamada = UUID(uuidString: "00000000-0000-0000-0000-0000000000B3")!
-
-        // 公告 ID（固定）
-        let id1 = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
-        let id2 = UUID(uuidString: "22222222-2222-2222-2222-222222222222")!
-        let id3 = UUID(uuidString: "33333333-3333-3333-3333-333333333333")!
-        let id4 = UUID(uuidString: "44444444-4444-4444-4444-444444444444")!
-        let id5 = UUID(uuidString: "55555555-5555-5555-5555-555555555555")!
-
-        // ───── 公告 1: 点呼時間 臨時変更（all / 未読 / 3 reply）─────
-        let body1 = """
-        明日（5月4日）朝の点呼を 7:30 → 7:45 に変更します。
-        学習中の生徒は通常通り出席してください。
-
-        なお、変更は明日のみで、5日以降は通常時間に戻ります。
-        ご質問がある場合は寮務部までお願いします。
-        """
-        let replies1: [AnnouncementReplyOut] = [
-            .init(id: UUID(), authorKind: "student", authorId: stuTanaka,
-                  authorName: "田中 太郎", body: "了解しました。ありがとうございます。",
-                  createdAt: now.addingTimeInterval(-3000)),
-            .init(id: UUID(), authorKind: "student", authorId: stuSuzuki,
-                  authorName: "鈴木 花子", body: "高校生も同じ時間ですか？",
-                  createdAt: now.addingTimeInterval(-2400)),
-            .init(id: UUID(), authorKind: "teacher", authorId: yamada,
-                  authorName: "山田 寮監", body: "はい、全寮同時刻です。",
-                  createdAt: now.addingTimeInterval(-1800)),
-        ]
-
-        // ───── 公告 2: GW 出寮届（all / 未読 / 2 reply）─────
-        let body2 = """
-        GW 期間（5/3〜5/6）に外泊・帰省を予定する生徒は、本日 18 時までに出寮届を提出してください。
-        提出後、保護者宛にも自動でメール通知が届きます。
-
-        未提出のまま出寮した場合は欠席扱いとなりますのでご注意ください。
-        """
-        let replies2: [AnnouncementReplyOut] = [
-            .init(id: UUID(), authorKind: "student", authorId: stuYamada,
-                  authorName: "山田 健", body: "提出フォームはどこから入りますか？",
-                  createdAt: now.addingTimeInterval(-7200)),
-            .init(id: UUID(), authorKind: "teacher", authorId: sato,
-                  authorName: "佐藤 寮務部長", body: "「申し込み」タブから出寮届を選んでください。",
-                  createdAt: now.addingTimeInterval(-6800)),
-        ]
-
-        // ───── 公告 3: 男寮 浴室点検（male / 未読 / 0 reply）─────
-        let body3 = """
-        来週月曜（5/7）午後 2 時より、男寮 2 階浴室の定期点検を行います。
-        当該時間帯（14:00〜17:00）は使用不可、4 階浴室をご利用ください。
-
-        ご不便をおかけしますがご協力お願いします。
-        """
-
-        // ───── 公告 4: リクエスト曲（all / 既読 / 0 reply）─────
-        let body4 = """
-        今週末（5/10-11）の食堂 BGM のリクエスト曲を募集しています。
-        アプリの「リクエスト曲」から提出してください。締切は金曜 18 時。
-
-        多数の応募お待ちしています！
-        """
-
-        // ───── 公告 5: 学習対象者 入れ替え（all / 既読 / 0 reply）─────
-        let body5 = """
-        5 月の学習対象者（中学全員 + 高校手動名簿）を更新しました。
-        マイページから自分の対象状況を確認してください。
-
-        質問があれば寮務部まで個別にご連絡ください。
-        """
-
-        let demoBriefs: [AnnouncementBrief] = [
-            .init(id: id1, title: "点呼時間 臨時変更のお知らせ",
-                  bodySummary: String(body1.prefix(80)), scope: "all",
-                  authorTeacherId: yamada, authorTeacherName: "山田 寮監",
-                  createdAt: now.addingTimeInterval(-3600), updatedAt: now.addingTimeInterval(-3600),
-                  isRead: false, replyCount: replies1.count),
-            .init(id: id2, title: "GW 期間中の出寮届について",
-                  bodySummary: String(body2.prefix(80)), scope: "all",
-                  authorTeacherId: sato, authorTeacherName: "佐藤 寮務部長",
-                  createdAt: now.addingTimeInterval(-10800), updatedAt: now.addingTimeInterval(-10800),
-                  isRead: false, replyCount: replies2.count),
-            .init(id: id3, title: "男寮 2 階 浴室 定期点検のお知らせ",
-                  bodySummary: String(body3.prefix(80)), scope: "male",
-                  authorTeacherId: tanaka, authorTeacherName: "田中 寮監",
-                  createdAt: now.addingTimeInterval(-86400), updatedAt: now.addingTimeInterval(-86400),
-                  isRead: false, replyCount: 0),
-            .init(id: id4, title: "リクエスト曲 募集中（今週末分）",
-                  bodySummary: String(body4.prefix(80)), scope: "all",
-                  authorTeacherId: suzuki, authorTeacherName: "鈴木 寮監",
-                  createdAt: now.addingTimeInterval(-86400 * 2), updatedAt: now.addingTimeInterval(-86400 * 2),
-                  isRead: true, replyCount: 0),
-            .init(id: id5, title: "学習対象者 5 月分 入れ替え案内",
-                  bodySummary: String(body5.prefix(80)), scope: "all",
-                  authorTeacherId: sato, authorTeacherName: "佐藤 寮務部長",
-                  createdAt: now.addingTimeInterval(-86400 * 4), updatedAt: now.addingTimeInterval(-86400 * 4),
-                  isRead: true, replyCount: 0),
-        ]
-        self.announcements = demoBriefs
-        self.announcementUnreadCount = demoBriefs.filter { !$0.isRead }.count
-
-        // detail cache（id → AnnouncementDetail）
-        self.announcementDetails = [
-            id1.uuidString: .init(id: id1, title: demoBriefs[0].title, body: body1,
-                                  scope: "all", authorTeacherId: yamada, authorTeacherName: "山田 寮監",
-                                  createdAt: demoBriefs[0].createdAt, updatedAt: demoBriefs[0].updatedAt,
-                                  replies: replies1),
-            id2.uuidString: .init(id: id2, title: demoBriefs[1].title, body: body2,
-                                  scope: "all", authorTeacherId: sato, authorTeacherName: "佐藤 寮務部長",
-                                  createdAt: demoBriefs[1].createdAt, updatedAt: demoBriefs[1].updatedAt,
-                                  replies: replies2),
-            id3.uuidString: .init(id: id3, title: demoBriefs[2].title, body: body3,
-                                  scope: "male", authorTeacherId: tanaka, authorTeacherName: "田中 寮監",
-                                  createdAt: demoBriefs[2].createdAt, updatedAt: demoBriefs[2].updatedAt,
-                                  replies: []),
-            id4.uuidString: .init(id: id4, title: demoBriefs[3].title, body: body4,
-                                  scope: "all", authorTeacherId: suzuki, authorTeacherName: "鈴木 寮監",
-                                  createdAt: demoBriefs[3].createdAt, updatedAt: demoBriefs[3].updatedAt,
-                                  replies: []),
-            id5.uuidString: .init(id: id5, title: demoBriefs[4].title, body: body5,
-                                  scope: "all", authorTeacherId: sato, authorTeacherName: "佐藤 寮務部長",
-                                  createdAt: demoBriefs[4].createdAt, updatedAt: demoBriefs[4].updatedAt,
-                                  replies: []),
-        ]
-    }
+    // A-038 (2026-05-21): seedDemoAnnouncements() 整段函数已删（141 行 demo seed）
+    // 公告全走 backend AnnouncementsAPI；本地不再 mock
 
     // MARK: - Toast 辅助
 
@@ -451,6 +319,7 @@ final class AppStore: ObservableObject {
     }
 
     // MARK: - 点呼 NFC 签到记录
+
     //
     // TODO[backend]: 真 production 流程 = NFC sheet "NFC をかざす" tap
     //   → core NFC delegate 拿到 tag UID → POST /checkins (uid, session_id, ts)
@@ -487,40 +356,9 @@ final class AppStore: ObservableObject {
         }
     }
 
-    #if DEMO
-    /// Demo 用：长按点呼卡循环 5 态状态（演示用，production 砍）
-    /// idle → active 180s → active 10s（遅刻直前）→ active 0s（遅刻判定）→ absent → done → idle
-    /// memory project_demo_scaffolds_to_remove_before_v1.md #1
-    func cycleDemoRollState() {
-        switch rollState {
-        case .idle:
-            rollState = .active
-            rollCountdownSec = 180
-            checkinAt = nil
-            checkinKind = nil
-            showToast("Demo · 点呼開始（残り 3:00）")
-        case .active where rollCountdownSec > 15:
-            rollCountdownSec = 10
-            showToast("Demo · 遅刻直前（残り 0:10）")
-        case .active where rollCountdownSec > 0:
-            rollCountdownSec = 0
-            showToast("Demo · 遅刻判定")
-        case .active:
-            rollState = .absent
-            showToast("Demo · 欠席判定（寮監へ連絡）")
-        case .absent:
-            recordCheckin()
-            showToast("Demo · 時間内にチェックイン")
-        case .done:
-            autoDismissDoneTask?.cancel()
-            rollState = .idle
-            rollCountdownSec = 180
-            checkinAt = nil
-            checkinKind = nil
-            showToast("Demo · 通常状態に戻る")
-        }
-    }
-    #endif
+    // A-030 / A-033 (2026-05-21): cycleDemoRollState() 已删
+    // memory project_demo_scaffolds_to_remove_before_v1.md #1, #15
+    // 接 backend event 驱动后 rollState 由 server 推送，不再 demo 循环
 
     /// active 中に 1 秒ごと呼ばれる（HomeView の Timer から）
     func tickCountdown() {
@@ -529,6 +367,7 @@ final class AppStore: ObservableObject {
     }
 
     // MARK: - 学習（晚自习）状态机
+
     //
     // TODO[backend]: 真 production 由后端 cron 5 分前自动开启 upcoming，老师手动切 active / done。
     // 当前是首次启动 placeholder（idle），等接 GET /study/today/state 拉。
@@ -543,9 +382,9 @@ final class AppStore: ObservableObject {
     /// 当月学習请假次数（> 3 → 弹提醒文案）— production 初始 0、登录后从后端拉；demo 初始 3 触发提醒
     @Published var studyLeaveCountThisMonth: Int = {
         #if DEMO
-        return 3
+            return 3
         #else
-        return 0
+            return 0
         #endif
     }()
 
@@ -583,16 +422,16 @@ final class AppStore: ObservableObject {
     }
 
     #if DEMO
-    /// Demo 用：长按学習卡循环 4 态状态（演示用、production 砍）
-    /// memory project_demo_scaffolds_to_remove_before_v1.md #15
-    func cycleDemoStudyState() {
-        switch studyState {
-        case .idle:     studyState = .upcoming; studyCountdownSec = 600; showToast("Demo · 学習 10 分前 (倒计时 10:00)")
-        case .upcoming: studyState = .active; studyTaps = []; showToast("Demo · 学習進行中（NFC で 3 回タップ）")
-        case .active:   studyState = .done; showToast("Demo · 学習終了")
-        case .done:     studyState = .idle; studyTaps = []; showToast("Demo · 学習対象外")
+        /// Demo 用：长按学習卡循环 4 态状态（演示用、production 砍）
+        /// memory project_demo_scaffolds_to_remove_before_v1.md #15
+        func cycleDemoStudyState() {
+            switch studyState {
+            case .idle: studyState = .upcoming; studyCountdownSec = 600; showToast("Demo · 学習 10 分前 (倒计时 10:00)")
+            case .upcoming: studyState = .active; studyTaps = []; showToast("Demo · 学習進行中（NFC で 3 回タップ）")
+            case .active: studyState = .done; showToast("Demo · 学習終了")
+            case .done: studyState = .idle; studyTaps = []; showToast("Demo · 学習対象外")
+            }
         }
-    }
     #endif
 
     // MARK: - 学習 NFC 3 回タップ签到 (system_features §7.3.3-6) — 2026-04-30 後續
@@ -626,8 +465,8 @@ final class AppStore: ObservableObject {
     /// 何回目の tap を期待しているか（next tap）— UI で次のステップを案内
     var nextStudyTap: StudyTap? {
         if !studyTaps.contains(.start) { return .start }
-        if !studyTaps.contains(.mid)   { return .mid }
-        if !studyTaps.contains(.end)   { return .end }
+        if !studyTaps.contains(.mid) { return .mid }
+        if !studyTaps.contains(.end) { return .end }
         return nil
     }
 
@@ -641,8 +480,8 @@ final class AppStore: ObservableObject {
         let label: String = {
             switch next {
             case .start: return "学習開始"
-            case .mid:   return "中場確認"
-            case .end:   return "学習終了"
+            case .mid: return "中場確認"
+            case .end: return "学習終了"
             }
         }()
         let entry = StudyHistoryEntry(
@@ -660,9 +499,9 @@ final class AppStore: ObservableObject {
     /// TODO[backend]: 登录后从 GET /study/attendance/mine 拉真数据
     @Published var studyHistory: [StudyHistoryEntry] = {
         #if DEMO
-        return StudyHistoryEntry.demoSeed
+            return StudyHistoryEntry.demoSeed
         #else
-        return []
+            return []
         #endif
     }()
 
@@ -683,7 +522,7 @@ final class AppStore: ObservableObject {
     /// 投稿可能か — banLevel + banUntil 判定
     var canPostSong: Bool {
         if songBanLevel == 0 { return true }
-        if songBanLevel >= 3 { return false }   // 永久禁止
+        if songBanLevel >= 3 { return false } // 永久禁止
         guard let until = songBanUntil else { return true }
         return Date() >= until
     }
@@ -703,7 +542,7 @@ final class AppStore: ObservableObject {
 
     /// 通報を 1 件記録（demo: 全件自分宛にカウントして自動封禁を体感できるようにする）
     /// 実装時は backend が songId → 投稿者 をルックアップして本人にだけ加算する。
-    func reportSong(songId: Int, reason: SongReportReason, freeText: String?) {
+    func reportSong(songId: Int, reason _: SongReportReason, freeText _: String?) {
         songReportCounts[songId, default: 0] += 1
         // demo: 投稿者の本人累計にも加算（実 prod は songs.posted_by_id を見る）
         myReportTotal += 1
@@ -754,6 +593,7 @@ final class AppStore: ObservableObject {
     }
 
     // MARK: - ログインロック升级 (CLAUDE.md §App 账号规则 + 4-22 拍板の 5 段階)
+
     //
     // 失敗回数 → ロック期間: 1=30秒 / 2=1分 / 3=5分 / 4=30分 / 5=1時間 / 6+=永久
     // 永久ロックは寮監に連絡して解除。次回ログイン成功で counter リセット。
@@ -771,17 +611,17 @@ final class AppStore: ObservableObject {
         if idx < Self.lockoutDurations.count {
             return Self.lockoutDurations[idx]
         }
-        return nil   // 永久
+        return nil // 永久
     }
 
     /// 現在のロック段階の表示文字列
     var currentLockoutLabel: String {
         switch loginFailCount {
-        case 1:  return "30 秒"
-        case 2:  return "1 分"
-        case 3:  return "5 分"
-        case 4:  return "30 分"
-        case 5:  return "1 時間"
+        case 1: return "30 秒"
+        case 2: return "1 分"
+        case 3: return "5 分"
+        case 4: return "30 分"
+        case 5: return "1 時間"
         default: return "永久"
         }
     }
@@ -809,6 +649,7 @@ final class AppStore: ObservableObject {
     }
 
     // MARK: - Push 通知 listener (system_features §7.13 R1 例外)
+
     //
     // TODO[backend]: 真 production 由 APNs delegate（AppDelegate.didReceiveRemoteNotification）
     //   → 解析 payload → 调 handleIncomingPush(...) 把通知 insert 到 pushNotifications。
@@ -847,77 +688,77 @@ final class AppStore: ObservableObject {
     }
 
     #if DEMO
-    // Demo 用 4 个 push 触发器（system_features §7.13 R1 例外列出的事件）
-    // production 砍：APNs 接通后由真 push 触发 handleIncomingPush
+        // Demo 用 4 个 push 触发器（system_features §7.13 R1 例外列出的事件）
+        // production 砍：APNs 接通后由真 push 触发 handleIncomingPush
 
-    func simulateStudyLeaveApproved() {
-        handleIncomingPush(
-            type: "学習",
-            title: "学習欠席届が承認されました",
-            body: "本日の前半節について、学習担当の先生から承認されました。"
-        )
-    }
+        func simulateStudyLeaveApproved() {
+            handleIncomingPush(
+                type: "学習",
+                title: "学習欠席届が承認されました",
+                body: "本日の前半節について、学習担当の先生から承認されました。"
+            )
+        }
 
-    func simulateStudyLeaveRejected() {
-        handleIncomingPush(
-            type: "学習",
-            title: "学習欠席届が不承認でした",
-            body: "本日の前半節は出席をお願いします。詳細は学習担当の先生にお尋ねください。"
-        )
-    }
+        func simulateStudyLeaveRejected() {
+            handleIncomingPush(
+                type: "学習",
+                title: "学習欠席届が不承認でした",
+                body: "本日の前半節は出席をお願いします。詳細は学習担当の先生にお尋ねください。"
+            )
+        }
 
-    func simulateStudyRosterAdded() {
-        handleIncomingPush(
-            type: "学習",
-            title: "学習対象になりました",
-            body: "今日から晩自習の対象に追加されました。19:40 までに学習室へお越しください。"
-        )
-    }
+        func simulateStudyRosterAdded() {
+            handleIncomingPush(
+                type: "学習",
+                title: "学習対象になりました",
+                body: "今日から晩自習の対象に追加されました。19:40 までに学習室へお越しください。"
+            )
+        }
 
-    func simulateAmendmentRebatch() {
-        handleIncomingPush(
-            type: "申請",
-            title: "外泊届（修改届）が承認されました",
-            body: "修改届の内容で寮務課長まで承認が進みました。残り 1 名の承認をお待ちください。"
-        )
-    }
+        func simulateAmendmentRebatch() {
+            handleIncomingPush(
+                type: "申請",
+                title: "外泊届（修改届）が承認されました",
+                body: "修改届の内容で寮務課長まで承認が進みました。残り 1 名の承認をお待ちください。"
+            )
+        }
     #endif
 }
 
 // MARK: - 学習 NFC 出席（system_features §7.3.3-6）
 
 enum StudyTap: String, Hashable, CaseIterable {
-    case start      // 19:35 ～ 19:40 学習開始
-    case mid        // 20:45 ± 中場
-    case end        // 21:45 学習終了
+    case start // 19:35 ～ 19:40 学習開始
+    case mid // 20:45 ± 中場
+    case end // 21:45 学習終了
 }
 
 /// 出席状態（amber Card / マイページ で表示）
 enum StudyAttendance: String {
-    case idle           // 学習時間外
-    case none           // active だが 0 tap
-    case progressing    // 1 tap 済（通常進行中）
-    case green          // 全 3 tap 済 = 時間内
-    case yellow         // 遅刻
-    case red            // 缺席
-    case abnormal       // 不一致 = ⚠️ 異常 老師手動判
-    case excused        // 欠席承認済
+    case idle // 学習時間外
+    case none // active だが 0 tap
+    case progressing // 1 tap 済（通常進行中）
+    case green // 全 3 tap 済 = 時間内
+    case yellow // 遅刻
+    case red // 缺席
+    case abnormal // 不一致 = ⚠️ 異常 老師手動判
+    case excused // 欠席承認済
 }
 
 // MARK: - 通報理由 (system_features §7.11.2)
 
 enum SongReportReason: String, CaseIterable, Hashable {
-    case noisy      // うるさい
-    case taste      // 曲調が好みでない / 不快
-    case lyrics     // 歌詞が不適切
-    case other      // その他（自由記入）
+    case noisy // うるさい
+    case taste // 曲調が好みでない / 不快
+    case lyrics // 歌詞が不適切
+    case other // その他（自由記入）
 
     var label: String {
         switch self {
-        case .noisy:  return "うるさい"
-        case .taste:  return "曲調が好みでない / 不快"
+        case .noisy: return "うるさい"
+        case .taste: return "曲調が好みでない / 不快"
         case .lyrics: return "歌詞が不適切"
-        case .other:  return "その他"
+        case .other: return "その他"
         }
     }
 }
@@ -925,14 +766,14 @@ enum SongReportReason: String, CaseIterable, Hashable {
 /// マイページ 学習履歴 entry
 struct StudyHistoryEntry: Hashable, Identifiable {
     let id: UUID
-    let date: String        // "2026-04-30"
+    let date: String // "2026-04-30"
     let tapKind: StudyTap
-    let tapLabel: String    // "学習開始" / "中場確認" / "学習終了"
-    let timeHM: String      // "19:38"
+    let tapLabel: String // "学習開始" / "中場確認" / "学習終了"
+    let timeHM: String // "19:38"
     let note: String?
 
     init(date: String, tapKind: StudyTap, tapLabel: String, timeHM: String, note: String?) {
-        self.id = UUID()
+        id = UUID()
         self.date = date
         self.tapKind = tapKind
         self.tapLabel = tapLabel
@@ -943,11 +784,11 @@ struct StudyHistoryEntry: Hashable, Identifiable {
     /// マイページ 学習履歴 demo seed
     static var demoSeed: [StudyHistoryEntry] {
         [
-            .init(date: "2026-04-29", tapKind: .end,   tapLabel: "学習終了", timeHM: "21:46", note: nil),
-            .init(date: "2026-04-29", tapKind: .mid,   tapLabel: "中場確認", timeHM: "20:46", note: nil),
+            .init(date: "2026-04-29", tapKind: .end, tapLabel: "学習終了", timeHM: "21:46", note: nil),
+            .init(date: "2026-04-29", tapKind: .mid, tapLabel: "中場確認", timeHM: "20:46", note: nil),
             .init(date: "2026-04-29", tapKind: .start, tapLabel: "学習開始", timeHM: "19:37", note: nil),
-            .init(date: "2026-04-28", tapKind: .end,   tapLabel: "学習終了", timeHM: "21:45", note: nil),
-            .init(date: "2026-04-28", tapKind: .mid,   tapLabel: "中場確認", timeHM: "20:46", note: nil),
+            .init(date: "2026-04-28", tapKind: .end, tapLabel: "学習終了", timeHM: "21:45", note: nil),
+            .init(date: "2026-04-28", tapKind: .mid, tapLabel: "中場確認", timeHM: "20:46", note: nil),
             .init(date: "2026-04-28", tapKind: .start, tapLabel: "学習開始", timeHM: "19:42", note: "1 分遅刻"),
         ]
     }
@@ -956,31 +797,31 @@ struct StudyHistoryEntry: Hashable, Identifiable {
 // MARK: - 学習状态 + 请假范围 (4-30 後續 拍板)
 
 enum StudyState: String {
-    case idle       // 平常 (非学習时段)
-    case upcoming   // 学習开始 10 分前 → amber Card 显示倒计时
-    case active     // 学習进行中
-    case done       // 当晚学習已结束
+    case idle // 平常 (非学習时段)
+    case upcoming // 学習开始 10 分前 → amber Card 显示倒计时
+    case active // 学習进行中
+    case done // 当晚学習已结束
 }
 
 enum StudyLeaveRange: String, CaseIterable {
-    case first      // 前半節 19:40-20:40
-    case second     // 後半節 20:45-21:45
-    case both       // 両方
+    case first // 前半節 19:40-20:40
+    case second // 後半節 20:45-21:45
+    case both // 両方
 
     var label: String {
         switch self {
-        case .first:  return "前半節（19:40〜20:40）"
+        case .first: return "前半節（19:40〜20:40）"
         case .second: return "後半節（20:45〜21:45）"
-        case .both:   return "両方"
+        case .both: return "両方"
         }
     }
 
     /// backend wire format: schemas.StudyAbsenceRequestIn.period の値
     var wireValue: String {
         switch self {
-        case .first:  return "first_half"
+        case .first: return "first_half"
         case .second: return "second_half"
-        case .both:   return "full"
+        case .both: return "full"
         }
     }
 }
