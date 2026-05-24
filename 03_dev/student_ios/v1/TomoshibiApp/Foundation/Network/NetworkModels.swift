@@ -66,6 +66,10 @@ struct ApplicationOut: Decodable, Hashable, Identifiable {
     let flight_arr_air: String?
     let flight_arr_at: Date?
 
+    /// FC-020 (2026-05-24): backend schemas.py:187 ApplicationOut.bus_route_id 一直在，iOS 漏接
+    /// 不显示也要保留以免 backend 发出时 decode 整段 fail
+    let bus_route_id: UUID?
+
     let submitted_at: Date
     let status: String // "pending" | "approved_partial" | "approved" | "rejected" | "withdrawn" | "returned"
     let withdrawn_at: Date?
@@ -104,7 +108,8 @@ struct StudyAbsenceRequestOut: Decodable, Hashable, Identifiable {
 /// 跟 backend StudentAccountCreateIn 对齐（schemas.py）
 ///
 /// A-019 (2026-05-21): 字段 max length 镜像 backend，避免 422 才发现
-/// 参考 backend schemas.StudentAccountCreateIn：name 100 / name_kana 100 / email 200 / phone 32 / room_no 16
+/// FC-021 (2026-05-24): room_no 从 16 改 8 — backend schemas.py:558 是 max_length=8
+/// 参考 backend schemas.StudentAccountCreateIn：name 100 / name_kana 100 / email 200 / phone 32 / room_no 8
 struct StudentAccountCreateBody: Encodable {
     let name: String
     let name_kana: String?
@@ -134,7 +139,7 @@ struct StudentAccountCreateBody: Encodable {
         if let ph = phone, ph.count > 32 {
             return "電話番号は 32 文字以内で入力してください"
         }
-        if room_no.count > 16 { return "部屋番号は 16 文字以内で入力してください" }
+        if room_no.count > 8 { return "部屋番号は 8 文字以内で入力してください" }
         if password.count < 6 || password.count > 128 {
             return "パスワードは 6〜128 文字で入力してください"
         }
