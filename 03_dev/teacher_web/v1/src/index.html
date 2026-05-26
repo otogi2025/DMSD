@@ -11714,7 +11714,14 @@
     <script type="text/babel" data-source="components/roll-call-landing.jsx">
       // Roll-call landing + 7-day trend chart + session picker (4 types).
 
-      function RollCallLanding({ teacher, onStart, lastEnded, onNav, trend }) {
+      function RollCallLanding({
+        teacher,
+        onStart,
+        lastEnded,
+        onNav,
+        trend,
+        onShowSummary,
+      }) {
         const T = window.RYO;
         const [name, setName] = React.useState("晩点呼 · 普通寮生");
         const students =
@@ -11748,6 +11755,48 @@
               対象 {students.length} 名 · {window.dormLabel(teacher.dorm)} ·
               舎監 {teacher.name} 先生
             </div>
+
+            {/* Task #13 spec §5.6: 先ほど終了した点呼の総結を再閲覧する入口 */}
+            {lastEnded && onShowSummary && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  background: T.cobaltSoft,
+                  border: `1px solid ${T.infoBorder}`,
+                  borderRadius: 12,
+                  padding: "12px 18px",
+                  marginBottom: 18,
+                  fontSize: 13,
+                }}
+              >
+                <div style={{ color: T.cobaltDeep }}>
+                  <span style={{ fontWeight: 700 }}>先ほどの点呼:</span>{" "}
+                  {lastEnded.sessionName || lastEnded.name} · {lastEnded.start}{" "}
+                  → {lastEnded.end} · 出席率{" "}
+                  <span style={{ fontFamily: T.mono, fontWeight: 700 }}>
+                    {lastEnded.rate}
+                  </span>
+                </div>
+                <button
+                  onClick={onShowSummary}
+                  style={{
+                    padding: "7px 16px",
+                    background: T.cobalt,
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    fontFamily: "inherit",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  総結を見る →
+                </button>
+              </div>
+            )}
 
             {/* Start card */}
             <div
