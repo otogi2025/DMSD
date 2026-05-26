@@ -163,6 +163,21 @@
     refreshRegistrationCode: (token) =>
       request("POST", "/admin/registration-code/refresh", {}, token),
 
+    // 扣分 / 規律処分（spec §7.5 + 5-27 backend commit ac0bd90 新增）
+    // DisciplinePage 接 backend 用。月排名 + 手动加 + 撤销 3 个核心端点。
+    // 权限：寮監 / 寮務 / 学習担当 / 管理係 (一般教师 + 国際交流系 403)
+    getDisciplineRanking: (token, month) =>
+      request(
+        "GET",
+        `/discipline/ranking?month=${encodeURIComponent(month)}`,
+        undefined,
+        token,
+      ),
+    createManualDemerit: (body, token) =>
+      request("POST", "/discipline/manual", body, token),
+    revokeDemerit: (event_id, body, token) =>
+      request("POST", `/discipline/${event_id}/revoke`, body, token),
+
     // 401 全局拦截注册（§11.5 W3 拍板）
     // App() 在 mount 时调 setOnUnauthorized(() => logout()) 注册回调。
     // 任意 API 调用收到 401 时 client.js 自动调这个 callback。
