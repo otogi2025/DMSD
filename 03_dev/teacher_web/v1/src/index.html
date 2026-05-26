@@ -17066,9 +17066,31 @@
     <script type="text/babel" data-source="components/front-desk.jsx">
       // Front Desk page — 宅配通知 + 忘れ物（2026-04-24 追加、コミュニティから拆分）
 
-      function FrontDeskPage({ teacher }) {
+      function FrontDeskPage({ teacher, authToken }) {
         const T = window.RYO;
         const [tab, setTab] = React.useState("delivery");
+        // 5-27 backend commit 1526fee — listFrontDesk 接 backend
+        const [backendItems, setBackendItems] = React.useState(null);
+        React.useEffect(() => {
+          if (!authToken) return;
+          let cancelled = false;
+          window.tomoshibiApi
+            .listFrontDesk(authToken)
+            .then((items) => {
+              if (!cancelled) setBackendItems(items);
+            })
+            .catch((e) => {
+              if (cancelled) return;
+              console.warn(
+                "[FrontDeskPage] listFrontDesk 失败 → mock fallback",
+                e,
+              );
+              setBackendItems(null);
+            });
+          return () => {
+            cancelled = true;
+          };
+        }, [authToken]);
         const [deliveries, setDeliveries] = React.useState(
           window.FRONT_DELIVERIES,
         );
@@ -18925,8 +18947,32 @@
       }
 
       // Skeleton pages
-      function CleaningPage() {
+      function CleaningPage({ authToken }) {
         const T = window.RYO;
+        // 5-27 backend commit 1526fee — listCleaning 接 backend
+        const [backendItems, setBackendItems] = React.useState(null);
+        React.useEffect(() => {
+          if (!authToken) return;
+          const today = new Date();
+          const isoDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+          let cancelled = false;
+          window.tomoshibiApi
+            .listCleaning(authToken, isoDate)
+            .then((items) => {
+              if (!cancelled) setBackendItems(items);
+            })
+            .catch((e) => {
+              if (cancelled) return;
+              console.warn(
+                "[CleaningPage] listCleaning 失败 → mock fallback",
+                e,
+              );
+              setBackendItems(null);
+            });
+          return () => {
+            cancelled = true;
+          };
+        }, [authToken]);
         return (
           <div style={{ padding: "28px 32px" }}>
             <h1 style={{ fontSize: 24, fontWeight: 700 }}>
@@ -23799,7 +23845,7 @@
             body = <window.NotificationsPage teacher={teacher} onNav={nav} />;
             break;
           case "cleaning":
-            body = <window.CleaningPage />;
+            body = <window.CleaningPage authToken={authToken} />;
             break;
           case "info":
             body = <window.InfoPage teacher={teacher} />;
@@ -23808,7 +23854,9 @@
             body = <window.CommunityPage teacher={teacher} />;
             break;
           case "front-desk":
-            body = <window.FrontDeskPage teacher={teacher} />;
+            body = (
+              <window.FrontDeskPage teacher={teacher} authToken={authToken} />
+            );
             break;
           case "accounts":
             body = <window.AccountsPage teacher={teacher} />;
