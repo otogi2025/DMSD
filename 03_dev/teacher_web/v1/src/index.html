@@ -21598,6 +21598,70 @@
           };
         }, [authToken]);
 
+        // Task #6 第 5 步: backend session 進行中は WebSocket /ws/teacher に接続して
+        // checkin / outstay_new 等の事件をリアルタイム受信、students state を更新。
+        // demo 模式 (sessionId=null) の場合は WS 接続しない。
+        React.useEffect(() => {
+          if (!session || !session.sessionId || !authToken) return;
+          let ws;
+          try {
+            ws = window.tomoshibiApi.openTeacherWS(authToken, (event) => {
+              // event.type: 'checkin' | 'outstay_new' | 'override' | ...
+              if (event.type === "checkin" && event.student_id) {
+                setStudents((list) =>
+                  list.map((s) =>
+                    s.key === event.student_id
+                      ? {
+                          ...s,
+                          status: event.status === "late" ? "late" : "ok",
+                          checkinAt:
+                            event.checked_at ||
+                            new Date().toTimeString().slice(0, 8),
+                        }
+                      : s,
+                  ),
+                );
+              } else if (event.type === "outstay_new" && event.student_id) {
+                setStudents((list) =>
+                  list.map((s) =>
+                    s.key === event.student_id
+                      ? {
+                          ...s,
+                          pending: {
+                            reason: event.reason || "外泊申請",
+                            submittedAt:
+                              event.submitted_at ||
+                              new Date().toTimeString().slice(0, 5),
+                          },
+                        }
+                      : s,
+                  ),
+                );
+              } else if (event.type === "override" && event.student_id) {
+                setStudents((list) =>
+                  list.map((s) =>
+                    s.key === event.student_id
+                      ? {
+                          ...s,
+                          status: event.status || s.status,
+                          override: {
+                            reason: event.reason || "",
+                            by: event.by || "別端末",
+                          },
+                        }
+                      : s,
+                  ),
+                );
+              }
+            });
+          } catch (err) {
+            console.warn("[App] WebSocket 接続失敗", err);
+          }
+          return () => {
+            if (ws && ws.readyState === WebSocket.OPEN) ws.close();
+          };
+        }, [session, authToken]);
+
         // FC-024 修復後: backend 認証成功 → token + profile を受け取って保存
         const loginOk = (token, profile) => {
           setAuthToken(token);
