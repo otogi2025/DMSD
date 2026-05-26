@@ -849,3 +849,110 @@ class DemeritEvent(Base):
         Index("idx_demerit_student_month", "student_id", "month"),
         Index("idx_demerit_month_active", "month", "revoked_at"),
     )
+
+
+# ---------------------------------------------------------------
+# 清扫安排 — spec §7.10 清扫审查
+# ---------------------------------------------------------------
+# CC 5-27 凌晨替 itsuki 默认决策（起床后可推翻）:
+# - area ENUM 8 类（用日文字符串作为 UI 显示值）— itsuki 起床后看实际宿舍区域清单可改
+# - status ENUM: assigned 已分配 / done 学生扫完上报 / passed 老师审通过 /
+#   failed 审不通过（自动加 DemeritEvent）/ skipped 取消跳过
+# - failed → 自动加 DemeritEvent.source_type='cleaning_failed' points=2.5
+#   （业务逻辑由 router 层触发）
+class CleaningAssignment(Base):
+    """清扫安排单。CleaningPage / 警告列表 用。"""
+
+    __tablename__ = "cleaning_assignment"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id"), nullable=False, index=True
+    )
+    area: Mapped[str] = mapped_column(String(32), nullable=False)
+    # 计划执行日 (YYYY-MM-DD)
+    scheduled_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="assigned")
+
+    assigned_by_teacher_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    assigned_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    # 学生上报扫完时刻
+    done_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
+    # 老师审核
+    inspected_by_teacher_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    inspected_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    # 不通过时填写
+    failure_reason: Mapped[Optional[str]] = mapped_column(Text)
+    # 不通过时自动加的 DemeritEvent.id（关联，方便撤销时一并撤回扣分）
+    demerit_event_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("demerit_event.id")
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "area IN ('浴室','廊下','トイレ','共用キッチン','階段','玄関','ロビー','その他')",
+            name="ck_cleaning_area",
+        ),
+        CheckConstraint(
+            "status IN ('assigned','done','passed','failed','skipped')",
+            name="ck_cleaning_status",
+        ),
+        Index("idx_cleaning_student_date", "student_id", "scheduled_date"),
+    )
+
+
+# ---------------------------------------------------------------
+# 宅配 / 失物招领 — spec §7.12 前台业务
+# ---------------------------------------------------------------
+# CC 5-27 凌晨替 itsuki 默认决策:
+# - kind ENUM: delivery 宅配 / lost_and_found 失物招领
+# - status ENUM: pending 登记待处理 / notified 已通知学生 / picked_up 已被取走 /
+#   expired 已过期 / discarded 已废弃
+# - delivery 默认 expires_in_days = 7（1 周）/ lost_and_found 默认 30 天
+# - 取走确认 = 老师手动标 picked_up（学生 NFC 取走是 v1.1+ 议题）
+class FrontDeskItem(Base):
+    """宅配通知 + 失物招领登记的共通 model。"""
+
+    __tablename__ = "front_desk_item"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    # 宅配时是收件人学生 / 失物时是捡到人（学生或 NULL）
+    student_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("students.id")
+    )
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    # 失物发现位置 / 宅配保管位置
+    location: Mapped[Optional[str]] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+
+    created_by_teacher_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("teachers.id"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    notified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    picked_up_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "kind IN ('delivery','lost_and_found')", name="ck_front_desk_kind"
+        ),
+        CheckConstraint(
+            "status IN ('pending','notified','picked_up','expired','discarded')",
+            name="ck_front_desk_status",
+        ),
+        Index("idx_front_desk_status_expires", "status", "expires_at"),
+    )

@@ -178,6 +178,34 @@
     revokeDemerit: (event_id, body, token) =>
       request("POST", `/discipline/${event_id}/revoke`, body, token),
 
+    // 清扫安排（spec §7.10 + 5-27 backend 新增）
+    // CleaningPage 接 backend。失败自动加 DemeritEvent (source_type='cleaning_failed')。
+    // 权限：寮監 / 寮務 / 管理係
+    listCleaning: (token, scheduledDate) =>
+      request(
+        "GET",
+        `/cleaning?scheduled_date=${encodeURIComponent(scheduledDate)}`,
+        undefined,
+        token,
+      ),
+    createCleaning: (body, token) => request("POST", "/cleaning", body, token),
+    inspectCleaning: (id, body, token) =>
+      request("POST", `/cleaning/${id}/inspect`, body, token),
+
+    // 前台业务（spec §7.12 宅配 + 失物 + 5-27 backend 新增）
+    // FrontDeskPage 接 backend。delivery 默认 7 天过期 / lost_and_found 30 天。
+    // 权限：寮監 / 寮務 / 管理係
+    listFrontDesk: (token, kind) => {
+      const q = kind ? `?kind=${encodeURIComponent(kind)}` : "";
+      return request("GET", `/front-desk${q}`, undefined, token);
+    },
+    createFrontDesk: (body, token) =>
+      request("POST", "/front-desk", body, token),
+    notifyFrontDesk: (id, token) =>
+      request("POST", `/front-desk/${id}/notify`, {}, token),
+    pickupFrontDesk: (id, token) =>
+      request("POST", `/front-desk/${id}/picked-up`, {}, token),
+
     // 401 全局拦截注册（§11.5 W3 拍板）
     // App() 在 mount 时调 setOnUnauthorized(() => logout()) 注册回调。
     // 任意 API 调用收到 401 时 client.js 自动调这个 callback。

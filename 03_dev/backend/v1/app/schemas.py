@@ -719,3 +719,69 @@ class DemeritRevokeIn(BaseModel):
     """撤销扣分输入。"""
 
     revoke_reason: str = Field(..., min_length=1, max_length=2000)
+
+
+# ---------------------------------------------------------------
+# 清扫安排（spec §7.10）— 5-27 凌晨新增
+# ---------------------------------------------------------------
+class CleaningAssignmentOut(BaseModel):
+    id: UUID
+    student_id: UUID
+    area: str
+    scheduled_date: date
+    status: Literal["assigned", "done", "passed", "failed", "skipped"]
+    assigned_by_teacher_id: Optional[UUID]
+    assigned_at: datetime
+    done_at: Optional[datetime]
+    inspected_by_teacher_id: Optional[UUID]
+    inspected_at: Optional[datetime]
+    failure_reason: Optional[str]
+    demerit_event_id: Optional[UUID]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CleaningAssignmentCreateIn(BaseModel):
+    """老师分配清扫输入。"""
+
+    student_id: UUID
+    area: Literal[
+        "浴室", "廊下", "トイレ", "共用キッチン", "階段", "玄関", "ロビー", "その他"
+    ]
+    scheduled_date: date
+
+
+class CleaningInspectIn(BaseModel):
+    """老师审核输入 — passed / failed + 不通过原因。"""
+
+    result: Literal["passed", "failed"]
+    failure_reason: Optional[str] = Field(None, max_length=2000)
+
+
+# ---------------------------------------------------------------
+# 前台业务（spec §7.12 宅配 + 失物招领）— 5-27 凌晨新增
+# ---------------------------------------------------------------
+class FrontDeskItemOut(BaseModel):
+    id: UUID
+    kind: Literal["delivery", "lost_and_found"]
+    student_id: Optional[UUID]
+    description: str
+    location: Optional[str]
+    status: Literal["pending", "notified", "picked_up", "expired", "discarded"]
+    created_by_teacher_id: UUID
+    created_at: datetime
+    notified_at: Optional[datetime]
+    picked_up_at: Optional[datetime]
+    expires_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FrontDeskItemCreateIn(BaseModel):
+    """老师登记新条目输入。"""
+
+    kind: Literal["delivery", "lost_and_found"]
+    student_id: Optional[UUID] = None
+    description: str = Field(..., min_length=1, max_length=2000)
+    location: Optional[str] = Field(None, max_length=200)
+    # 默认 expires_in_days: delivery=7 / lost_and_found=30（router 层应用）

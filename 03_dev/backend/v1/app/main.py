@@ -34,6 +34,9 @@ from .routers import (
     announcements,
     applications,
     auth,
+    cleaning,
+    discipline,
+    front_desk,
     meals,
     notifications,
     rollcall,
@@ -98,6 +101,8 @@ app.include_router(study.router)
 app.include_router(rollcall.router)
 app.include_router(teachers.router)
 app.include_router(discipline.router)
+app.include_router(cleaning.router)
+app.include_router(front_desk.router)
 
 
 if __name__ == "__main__":
