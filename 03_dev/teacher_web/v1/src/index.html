@@ -21495,6 +21495,9 @@
         // FC-024 修復後: backend 認証で受け取った JWT + teacher profile を保存
         const [authToken, setAuthToken] = React.useState(null);
         const [authProfile, setAuthProfile] = React.useState(null);
+        // Task #6 真接口对接: backend が返した本日の点呼 session 一覧（null = 未 fetch / [] = backend 不可達 / [...] = 取得済）
+        const [todaySessions, setTodaySessions] = React.useState(null);
+        const [backendReachable, setBackendReachable] = React.useState(null); // null / true / false
         const [page, setPage] = React.useState("roll-call");
         const [pageParams, setPageParams] = React.useState(null);
         const [searchQuery, setSearchQuery] = React.useState("");
@@ -21564,6 +21567,37 @@
           }
         }, [toast]);
 
+        // Task #6 真接口对接: authToken が来たら backend rollcallTodaySessions を fetch
+        // (window.tomoshibiApi.rollcallTodaySessions(token) → RollCallSessionOut[])。
+        // backend 不可達 (fetch 失敗 / 5xx) なら backendReachable=false → UI で警告表示。
+        React.useEffect(() => {
+          if (!authToken) {
+            setTodaySessions(null);
+            setBackendReachable(null);
+            return;
+          }
+          let cancelled = false;
+          window.tomoshibiApi
+            .rollcallTodaySessions(authToken)
+            .then((sessions) => {
+              if (cancelled) return;
+              setTodaySessions(sessions);
+              setBackendReachable(true);
+            })
+            .catch((err) => {
+              if (cancelled) return;
+              console.warn(
+                "[App] rollcallTodaySessions 失敗 → demo seed fallback",
+                err,
+              );
+              setTodaySessions([]);
+              setBackendReachable(false);
+            });
+          return () => {
+            cancelled = true;
+          };
+        }, [authToken]);
+
         // FC-024 修復後: backend 認証成功 → token + profile を受け取って保存
         const loginOk = (token, profile) => {
           setAuthToken(token);
@@ -21589,9 +21623,77 @@
           setSession(null);
         };
 
-        const startSession = (name) => {
+        // Task #6 真接口对接: rollcallStart + rollcallBoard を呼び backend で session 起動。
+        // backend 不可達 / session が見つからない場合は window.seedStudents の demo fallback へ。
+        // backend RollCallBoardEntry → 内部 student shape へ変換:
+        //   {student_id, student_no, name, room_no, base_status, checked_in_at}
+        //   → {key, id, room, name, dorm, status, checkinAt, health, pending, override, exemptReason}
+        const _boardEntryToStudent = (e, dormHint) => ({
+          key: e.student_id,
+          id: e.student_no,
+          room: e.room_no,
+          name: e.name,
+          dorm: dormHint,
+          // backend base_status は init/present/late/absent/exempt_range → 内部 status へ map
+          status:
+            e.base_status === "present"
+              ? "ok"
+              : e.base_status === "exempt_range"
+                ? "exempt"
+                : e.base_status === "init"
+                  ? "unknown"
+                  : e.base_status, // late / absent はそのまま
+          checkinAt: e.checked_in_at,
+          health: null,
+          pending: null,
+          override: null,
+          exemptReason: null,
+        });
+
+        const startSession = async (name) => {
+          // backend session を name から判別: 「晩」→ evening / 「朝」→ morning
+          const wantType = name.includes("晩")
+            ? "evening"
+            : name.includes("朝")
+              ? "morning"
+              : null;
+          const sess =
+            backendReachable &&
+            wantType &&
+            (todaySessions || []).find((s) => s.session_type === wantType);
+
+          if (sess && authToken) {
+            try {
+              await window.tomoshibiApi.rollcallStart(sess.id, authToken);
+              const board = await window.tomoshibiApi.rollcallBoard(
+                sess.id,
+                authToken,
+              );
+              const students = (board.entries || []).map((e) =>
+                _boardEntryToStudent(e, teacher.dorm),
+              );
+              setStudents(students);
+              setSession({ name, sessionId: sess.id, startedAt: Date.now() });
+              setLiveMode(true);
+              setToast({
+                type: "ok",
+                msg: `backend session 起動: ${board.entries.length} 名`,
+              });
+              return;
+            } catch (err) {
+              console.warn(
+                "[App] rollcallStart/Board 失敗 → demo seed fallback",
+                err,
+              );
+              setToast({
+                type: "warn",
+                msg: "backend session 起動失敗 → demo モードで継続",
+              });
+            }
+          }
+
+          // Demo fallback: backend が無いか session 見つからなければ seed
           const seeded = window.seedStudents(teacher.dorm);
-          // demo: add a few interesting states (roster が短い場合は安全に skip)
           if (seeded[0])
             seeded[0].pending = {
               reason:
@@ -21599,13 +21701,13 @@
               submittedAt: "19:22",
             };
           if (seeded[2]) seeded[2].health = "発熱 38.1°C、保健室で休養中";
-          const exemptIdx = Math.min(seeded.length - 1, 3); // 最後付近の枠を免除に
+          const exemptIdx = Math.min(seeded.length - 1, 3);
           if (seeded[exemptIdx] && exemptIdx !== 0 && exemptIdx !== 2) {
             seeded[exemptIdx].status = "exempt";
             seeded[exemptIdx].exemptReason = "外宿 04-19〜04-22";
           }
           setStudents(seeded);
-          setSession({ name, startedAt: Date.now() });
+          setSession({ name, sessionId: null, startedAt: Date.now() });
           setLiveMode(true);
         };
         const endSession = () => {
