@@ -23288,11 +23288,30 @@
           }
           setRoute("select-teacher");
         };
+        // §11.1 P0 角色重定向: 登录后按 authProfile.role 跳对应主页
+        // 役职 (寮務部長/寮務課長/管理係/国際交流部長/国際交流課長) → applications
+        // 学習担当 → study
+        // 寮監 (デフォルト) → roll-call
+        // backend TeacherOut.role 文字列を spec §3.4 教师权限模型と一致させる前提。
+        const _roleHomePage = (role) => {
+          if (!role) return "roll-call";
+          if (
+            role === "寮務部長" ||
+            role === "寮務課長" ||
+            role === "管理係" ||
+            role === "国際交流部長" ||
+            role === "国際交流課長"
+          )
+            return "applications";
+          if (role === "学習担当") return "study";
+          return "roll-call"; // 寮監 + デフォルト
+        };
         const pickTeacher = (t) => {
           setTeacher(t);
           setLastTeacherId(t.id);
           setRoute("app");
-          setPage("roll-call");
+          const home = _roleHomePage(authProfile && authProfile.role);
+          setPage(home);
           setToast({
             type: "ok",
             msg: `${t.name} 先生でサインインしました · ${window.dormLabel(t.dorm)} 担当`,
