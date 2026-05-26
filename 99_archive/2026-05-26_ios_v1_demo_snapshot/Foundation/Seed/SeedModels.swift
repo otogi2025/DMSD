@@ -1,0 +1,147 @@
+// SeedModels.swift · 14 数据结构 · 对等 phaseB_src c281cafa SEED
+
+import Foundation
+
+struct User: Hashable {
+    var account: String         // 年级码(2) + 出席番号(2) · 高3 18号 → "0618"
+    var name: String
+    var nameKana: String
+    var birth: String
+    var age: Int
+    var gender: String
+    var dorm: String
+    var room: String
+    var category: String
+    var email: String
+    var phone: String
+    var avatar: String
+    var points: Double
+    var lateCount: Int
+    var absentCount: Int
+    var grade: String = "高3"
+    var classSuffix: String = "B"
+    var seatNo: Int = 18
+    /// 学習対象学生 flag (system_features §7.3 — 中学全员 / 高中考试不合格者). demo seed = true 让所有学習 UI 可见
+    var isStudyTarget: Bool = true
+    /// 留学生 flag (system_features §8.1 / Q11 — 自己申报). リュウ イヒ = 留学生 (chain は 5 役职)
+    var isOverseas: Bool = true
+}
+
+struct PointRecord: Hashable, Identifiable {
+    var id: String { "\(date):\(session):\(kind)" }
+    let date: String
+    let session: String         // 朝点呼 / 晩点呼
+    let kind: String            // 遅刻 / 欠席
+    let val: Double
+}
+
+struct RollcallEntry: Hashable, Identifiable {
+    var id: String { "\(date):\(session)" }
+    let date: String
+    let session: String
+    let state: String           // 時間内 / 遅刻 / 欠席
+    let method: String          // NFC / ―
+}
+
+struct HealthRecord: Hashable, Identifiable {
+    var id: String { date }
+    let date: String
+    let sym: String
+    let temp: Double?
+    let note: String
+}
+
+struct CleaningRecord: Hashable, Identifiable {
+    var id: String { "\(date):\(range)" }
+    let date: String
+    let range: String
+    let status: String          // 通過 / 退回
+    let score: Int?
+    let rejected: Bool
+    let comment: String?
+}
+
+struct PackageItem: Hashable, Identifiable {
+    let id: Int
+    let date: String
+    let from: String
+    let status: String          // 待領 / 領済
+    let tracking: String?
+}
+
+struct NotificationItem: Hashable, Identifiable {
+    let id: Int
+    let type: String            // 宅配 / 申請 / 減点 / 活動 / リクエスト曲
+    let title: String
+    let time: String
+    let body: String
+    let unread: Bool
+}
+
+struct ApplicationItem: Hashable, Identifiable {
+    let id: String
+    let type: String            // stay / holiday / outing / return / repair / parcel / guest / other
+    let status: String          // pending / approved / returned / withdrawn / draft / rejected
+    let date: String
+    let summary: String
+}
+
+struct BusLine: Hashable, Identifiable {
+    var id: String { time + route }
+    let time: String
+    let route: String
+    let seats: String
+    let next: Bool
+}
+
+/// バス時刻表 · 日別グループ（bus_schedule_real.md 対応）
+struct BusDaySchedule: Hashable, Identifiable {
+    var id: String { date }
+    let date: String        // "2026-04-29"
+    let weekday: String     // "水"
+    let label: String       // "GW外泊・帰省・買い物"
+    let notice: String?     // 特別運行便 note / null
+    let lines: [BusLine]
+}
+
+struct EventItem: Hashable, Identifiable {
+    var id: String { date + title }
+    let date: String
+    let time: String
+    let title: String
+    let place: String
+    let desc: String
+}
+
+struct LostItem: Hashable, Identifiable {
+    let id: Int
+    let title: String
+    let place: String
+    let date: String
+    let color: String           // hex
+}
+
+struct SongItem: Hashable, Identifiable {
+    let id: Int
+    let title: String
+    let artist: String
+    let by: String
+    let up: Int
+    let down: Int
+}
+
+struct WallPost: Hashable, Identifiable {
+    let id: Int
+    let author: String
+    let time: String
+    let text: String
+    let likes: Int
+    let comments: Int
+}
+
+struct SuggestItem: Hashable, Identifiable {
+    let id: Int
+    let q: String
+    let a: String
+    let date: String
+}

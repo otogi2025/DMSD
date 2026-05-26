@@ -32,9 +32,8 @@ struct RegistrationDraft {
     var password: String = ""
 
     /// 拼 M/W 前缀 → 完整 room_no（backend §5.0 编码规则）
-    /// suffix 空 = 上层 UI 漏了校验，返回空字符串让 backend 拒绝（room_no 是必填字段）
     var computedRoomNo: String {
-        guard !room_no_suffix.isEmpty else { return "" }
+        guard !room_no_suffix.isEmpty else { return "M205" } // demo fallback
         let prefix = (gender == "male") ? "M" : "W"
         return prefix + room_no_suffix
     }
@@ -163,24 +162,24 @@ final class AppStore: ObservableObject {
 
     /// 把当前 draft + 注册码 拼成 backend body 调 POST /accounts。
     /// 成功后 access_token 自动写入 authToken（didSet 同步给 APIClient + Keychain）。
-    /// 字段空值由上层 Step 校验拦截 — 这里不做 demo fallback，空值直接传给 backend 让 422 拒绝
     func createAccount(registrationCode: String) async throws -> StudentAccountCreateResponse {
         let d = registrationDraft
         let body = StudentAccountCreateBody(
-            name: d.name,
+            // 字段都从 draft 取；带 fallback 是因为某些 Step 还可能跳过填（防御编程）
+            name: d.name.isEmpty ? "新入生" : d.name,
             name_kana: nil, // Step1 没收集 kana，先传 nil
             birthday: d.birthdayString, // 没填 = nil
             gender: d.gender,
-            grade_code: d.grade_code,
-            class_code: d.class_code,
-            seat_no: d.seat_no,
+            grade_code: d.grade_code.isEmpty ? "07" : d.grade_code,
+            class_code: d.class_code.isEmpty ? "01" : d.class_code,
+            seat_no: d.seat_no.isEmpty ? "05" : d.seat_no,
             category: d.category,
             room_no: d.computedRoomNo, // 拼 M/W 前缀
             dorm_unit: d.computedDormUnit, // 从 room_suffix + gender derive
             is_overseas: d.is_overseas,
             email: (d.email?.isEmpty == false) ? d.email : nil,
             phone: (d.phone?.isEmpty == false) ? d.phone : nil,
-            password: d.password,
+            password: d.password.isEmpty ? "demo1234" : d.password,
             registration_code: registrationCode
         )
         let res = try await AccountsAPI.createAccount(body: body)
@@ -215,15 +214,29 @@ final class AppStore: ObservableObject {
     }
 
     /// 拉列表（一覧 view 进入时调）
+    /// demo 模式 fallback：backend 失败时**保留 seed cache**，不抛错
     func loadAnnouncementList() async throws {
-        let res = try await AnnouncementsAPI.list()
-        announcements = res.items
+        do {
+            let res = try await AnnouncementsAPI.list()
+            announcements = res.items
+        } catch {
+            // ⚠️ DEMO-ONLY-SCAFFOLD：seed 不空时静默忽略错误（保留 demo 数据）
+            // v1.0 上线前删 if 分支、保留 throw
+            if announcements.isEmpty { throw error }
+        }
     }
 
     /// 拉详情（详情 view 进入时调；自动写已读 → backend 下次 list 返回 isRead=true）
+    /// demo 模式 fallback：backend 失败时**保留 seed detail cache** + 本地翻已读
     func loadAnnouncementDetail(id: String) async throws {
-        let detail = try await AnnouncementsAPI.detail(id: id)
-        announcementDetails[id] = detail
+        do {
+            let detail = try await AnnouncementsAPI.detail(id: id)
+            announcementDetails[id] = detail
+        } catch {
+            // ⚠️ DEMO-ONLY-SCAFFOLD：seed cache 命中时静默忽略
+            // v1.0 上线前删 if 分支
+            if announcementDetails[id] == nil { throw error }
+        }
         // 详情 GET 后端会自动 mark read，本地 cache 也同步翻 true
         if let idx = announcements.firstIndex(where: { $0.id.uuidString == id }) {
             // brief 是 immutable struct — 整条替换
@@ -242,10 +255,26 @@ final class AppStore: ObservableObject {
     }
 
     /// 发回复（学生用 — 老师 reply 走 teacher_web）
+    /// demo 模式 fallback：backend 失败时本地构造一条 reply append 到 cache
     func postAnnouncementReply(announcementId: String, body: String) async throws {
-        let reply = try await AnnouncementsAPI.postReply(
-            announcementId: announcementId, body: body
-        )
+        let reply: AnnouncementReplyOut
+        do {
+            reply = try await AnnouncementsAPI.postReply(
+                announcementId: announcementId, body: body
+            )
+        } catch {
+            // ⚠️ DEMO-ONLY-SCAFFOLD：seed cache 命中时本地伪造 reply
+            // v1.0 上线前删 catch 分支
+            guard announcementDetails[announcementId] != nil else { throw error }
+            reply = AnnouncementReplyOut(
+                id: UUID(),
+                authorKind: "student",
+                authorId: UUID(uuidString: "00000000-0000-0000-0000-000000000099")!,
+                authorName: "リュウ イヒ",
+                body: body,
+                createdAt: Date()
+            )
+        }
         // 同步本地 detail cache
         if let detail = announcementDetails[announcementId] {
             // detail.replies 是 let 字段 — 整条替换

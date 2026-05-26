@@ -56,6 +56,17 @@
   - 老师 UI 加「特殊点呼」入口（独立于每日点呼）
 - **完成定义**：老师能临时点一次特殊点呼，学生收到通知 + 能按时刷
 
+### N-003 — 老师 Web `/discipline` 加「被锁定学生通知」card（2026-05-26 从 iOS §9.3 转过来）
+
+- **来源**：原 `03_dev/student_ios/IOS_DESIGN_LOG.md §9.3` 跨文档同步条 — 标 ⏳ 未做，5-26 复查归类为 Web 端工作（iOS 侧不动），从 iOS §9 转到 Web TODO
+- **场景**：学生因连续误操作 / 密码错误被系统锁定 → 老师在 `/discipline` 页面看不到，无法主动联系学生 / 解锁
+- **行为**：`/discipline` 页面加一个 card 列出「当前被锁定的学生」（番号 / 氏名 / 锁定时间 / 锁定原因 / 锁定升级阶段 1-6），点击进详情走「アカウント解除」流程（已有，在 `accounts.jsx` 详情 modal 里）
+- **设计点**：
+  - 后端要有「列出当前被锁定学生」endpoint（可能复用现有 `accounts.jsx` 用的 status 字段过滤 `status=locked`）
+  - card 位置：`/discipline` 页面顶部 banner 区，跟「今日违规清单」card 并列
+  - 锁定升级阶段（IOS_DESIGN_LOG §3.5 §3.6 6 阶段定义）要在 card 上显示
+- **完成定义**：老师打开 `/discipline` 一眼看到「现在有几个学生被锁了 / 分别是谁 / 锁多久了」+ 一键跳到解锁流程
+
 ---
 
 ## 🔧 下次会话接续清单（2026-05-21 — 这次会话 compact 前的状态）
@@ -234,7 +245,7 @@
 > 5-12 修补类批量会话末尾留下 7 件，5-21 audit 后归档大部分（已废 / 跟 §⏰ 重复 / 已 Bot 修）。
 
 **真活（剩 1 条）**：
-- [ ] **iOS 联动规则 1 + 2 严重漂移修复** — backend `models.py` / routers 5-08 改了但 iOS `schemas` / `NetworkModels` / `Endpoints` 全员停 5-06。下次启动 iOS 会 Decoding 报错。要么手动对齐字段，要么先 backend 上线再补。**5-20+ Fix-Bot 1 已在处理（spec-sync 范围）**
+- [x] ~~**iOS 联动规则 1 + 2 严重漂移修复**~~ ✅ **2026-05-26 验证全对齐**。条目描述过时 — 5-08 后 backend 只有 2 commit 改 schemas/models (`3f65331` Fix-Bot 4 effective_* / `852563c` 999999 注册码后门)。5-21 Fix-Bot 1 已加 `path_hint` 字段。5-22 iOS 会话 `46f779c` backport 完成。5-24 FC-020 加 `bus_route_id` / FC-021 改 `room_no` max 8。5-26 全量比对 iOS NetworkModels / Endpoints vs backend schemas.py — 所有 学生 iOS 用到的 12 个 schema 字段全一致。
 
 **已归档（B-003 修移到 §1061 同义 — 见各自处理点）**：
 - [x] ~~**Cloud Design 40 额度 5-13 凌晨已过截止**~~ — 已在 §⏰ 段处理（B-001）
@@ -759,12 +770,11 @@
   - 选项 b:决定不补了 → 直接归档 Batch3 到 99_archive/
   - 选项 c:暂搁置 → Batch3 继续放着等以后
 
-- [ ] **CLAUDE.md 4-step vs IOS_DESIGN_LOG 5-step 矛盾(同时存在)**
-  - 现状:CLAUDE.md 之前写"App 内 4-step 注册流程",IOS_DESIGN_LOG.md §3.9.2 升级到"新 5 step"加学年/組/番号 step
-  - 当前已规避:CLAUDE.md 改成"多步注册"避免硬编码,但**真值未确认**
-  - 待 itsuki 确认:当前是 4-step 还是 5-step?哪个权威?
-  - 选项 a:确认 5-step 是真值,CLAUDE.md 改回"5-step"具体描述,IOS_DESIGN_LOG 是权威
-  - 选项 b:确认 4-step 是真值,IOS_DESIGN_LOG §3.9.2 是过期描述要回滚
+- [x] ~~**CLAUDE.md 4-step vs IOS_DESIGN_LOG 5-step 矛盾(同时存在)**~~ ✅ **2026-05-26 闭合 — 选 a（5 步是真值）**
+  - **真值证据（iOS 代码）**：`03_dev/student_ios/v1/TomoshibiApp/Features/Auth/AuthStubs.swift` line 478 注释「注册进度 · 5 步（Step5 = 认证代码，5-04 加 RegisterStep5 时把硬编码 4 改成 5）」+ 5 个 `RegisterStepN.swift` view 完整存在 + `Foundation/Routing/Route.swift` line 79-84 定义 `registerStep1`~`registerStep5` + `registerDone`
+  - **矛盾已自动消失**：2026-05-26 commit `d608846` CLAUDE.md 重写到 QTS 模式时砍掉所有注册流程具体描述段，grep「4-step / 5-step / 多步注册 / 注册.*步」全空
+  - **不需要回滚 IOS_DESIGN_LOG §3.9.2**：跟代码一致
+  - **不需要回写 CLAUDE.md「5-step」描述**：QTS 模式后 CLAUDE.md 不放这种实装细节，由 IOS_DESIGN_LOG §3.9 单独权威
 
 ---
 
@@ -825,8 +835,8 @@
 
 ### B. CC 可独立做（每条 < 30 分钟，下次开会话「做 B 类」即可）
 
-- [ ] 改名 `03_dev/student_ios/DESIGN_BRIEF.md` → `_archived_DESIGN_BRIEF_Round1_context.md`（IOS_DESIGN_LOG 已全覆盖）
-- [ ] 改名 `03_dev/student_ios/demo/Round2_Prompt_C3.md` → `_archived_Round2_Prompt_draft.md`（C3 已 resolve）
+- [x] ~~改名 `03_dev/student_ios/DESIGN_BRIEF.md` → `_archived_DESIGN_BRIEF_Round1_context.md`（IOS_DESIGN_LOG 已全覆盖）~~ ✅ **2026-05-26 闭合** — 2026-05-13 commit `81842f4`「整理 14 文件 — 管理文档归位 + 老文件归档 + iOS 改名」已完成，归档文件存在 `03_dev/student_ios/_archived_DESIGN_BRIEF_Round1_context.md`
+- [x] ~~改名 `03_dev/student_ios/demo/Round2_Prompt_C3.md` → `_archived_Round2_Prompt_draft.md`（C3 已 resolve）~~ ✅ **2026-05-26 闭合** — 同上 commit `81842f4` 已完成，归档文件存在 `03_dev/student_ios/demo/_archived_Round2_Prompt_draft.md`
 - [ ] 删 `99_archive/2026-04-15_old_demo/.DS_Store`（误进 git）
 - [ ] 删 3 个已过期的 admin 文件：
   - `00_admin/v0.4.0_S系列spec漏洞优先级分析.md`（已被「漏洞_剩余清单」吸收）
@@ -838,7 +848,10 @@
 - [ ] **S18（低价值）**：`DEVICE_REGISTRY §6` 候选位置 `dorm-A-01 / dorm-B-01` 跟 `path_type` A/B 撞字 — 改成 `dorm-1-01 / dorm-2-01`。真部署 4 台时顺手做也行
 - [ ] **后端补漏**：`routers/applications.py` 加 `POST /{id}/approvals`（役职审批 #10-#13）+ `DELETE /{id}`（D3 撤回）+ `services/email.py` 补 retry 3 次循环
 - [x] ~~**N18 暗色模式实装 待拍板**~~ ✅ 2026-05-25 itsuki 拍板 B：v1.0 不做 / v2 再做。`IOS_DESIGN_LOG.md §6.5` + §8.2 N18 行已更新。`TomoshibiApp.swift:22 .preferredColorScheme(.light)` 保留作 v1.0 强制 light 防黑闪。
-- [ ] **5-04 iOS bug 修复联动残留**：（1）pbxproj 备份 `/tmp/pbxproj_backup_before_icon_move` 验证后清理；（2）启动 git status 残留垃圾（`.bak` × 2 / `Root/File.txt`）等 itsuki 拍板删；（3）iOS sync 脚本本机不通（找不到 `~/dev/TomoshibiiOSApp`）— 是否 clone 独立 repo / 或改脚本路径
+- [ ] **5-04 iOS bug 修复联动残留**：
+  - [x] ~~（1）pbxproj 备份 `/tmp/pbxproj_backup_before_icon_move` 验证后清理~~ ✅ **2026-05-26 闭合** — macOS 重启自动清空 `/tmp`，文件已不存在
+  - [ ] （2）启动 git status 残留垃圾（`.bak` × 2 / `Root/File.txt`）等 itsuki 拍板删
+  - [x] ~~（3）iOS sync 脚本本机不通（找不到 `~/dev/TomoshibiiOSApp`）— 是否 clone 独立 repo / 或改脚本路径~~ ✅ **2026-05-26 闭合** — 2026-05-06 退役独立 repo 模式，`sync-ios-refs.sh` 已归档到 `99_archive/2026-05-06_cloud_agent_退役/`，独立 repo 目录 `~/dev/TomoshibiiOSApp` 不再需要
 
 ### C. AC 提交前长期任务（4 条）
 
@@ -994,16 +1007,20 @@
 
 ## 🔴 高优先级(开发相关)
 
-- [ ] **v1.0 产品化前：清理 Tomoshibi iOS / Web 的 demo-only 代码**（2026-04-24 itsuki 提出）
+- [ ] **v1.0 产品化前：清理 Tomoshibi iOS / Web 的 demo-only 代码**（2026-04-24 itsuki 提出 / 2026-05-26 itsuki 拍板做法 B「主推进只走干净 iOS app + 备份一份单独 demo」）
   - 背景：4-28 演示用的 iOS + Web 两个前端，itsuki 决定演示通过后直接拿去产品化（不重写）
   - 但为了演示方便加了 **客户端自造状态** 的 demo 捷径，正式上线前必须删干净，否则变成安全漏洞（学生能自己伪造点呼状态）
-  - 已知清单：
-    - iOS：`Features/Home/HomeStubs.swift` 点数卡 `LongPressGesture` → `app.cycleDemoRollState()`
-    - iOS：`Foundation/AppState/AppStore.swift` 的 `cycleDemoRollState()` + `tickCountdown()` + `simulateCheckin()` 前端自走倒计时逻辑
-    - iOS：SEED.user 硬编码 リュウ イヒ / 060218 / 男寮 M101 / 4.5 点 → 生产版走登录拉后端
-    - iOS：AppStore.changeLog 里的 "高2→高3" seed
-    - iOS：各种 `"Demo · ..."` 前缀的 toast 文案
-    - Web（teacher_web/round3）：同类 demo seed / mock state（需 grep 清单）
+  - iOS 进度（2026-05-26 推进）：
+    - [x] ~~`Features/Home/HomeStubs.swift` 点数卡 LongPressGesture~~ ✅ 5-21（A-030 / A-033）
+    - [x] ~~`AppStore.swift` `cycleDemoRollState()` + `simulateCheckin()`~~ ✅ 5-21（A-030 / A-033）。`tickCountdown()` 不算 demo（active 状态合法倒计时逻辑，生产版仍需要），保留。
+    - [x] ~~A-035 注册流程 "000000" 万能验证码后门~~ ✅ 5-24 (`84e2490`)
+    - [x] ~~A-038 `seedDemoAnnouncements()` 141 行公告假数据池~~ ✅ 5-21
+    - [x] ~~`AppStore.swift` 5 处裸 fallback / DEMO-ONLY-SCAFFOLD~~ ✅ 5-26：`computedRoomNo` "M205" / `createAccount` 7 字段 `.isEmpty ? "新入生"/"07"/"01"/"05"/"demo1234"` / 公告 list / detail / reply 3 处 catch 分支删
+    - [x] ~~AppStore.changeLog "高2→高3" seed~~ ✅ 5-26 验证已在 `#if DEMO` 包内（line 136-140），按做法 B 保留
+    - [x] ~~各种 `"Demo · ..."` 前缀 toast 文案~~ ✅ 5-26 验证 4 处全在 `#if DEMO` 包内（line 395-406 `cycleDemoStudyState()`），按做法 B 保留
+    - [ ] **SEED.user 硬编码 + 全 226 行假数据池整文件包 `#if DEMO`** — 5-26 评估：SEED 被 132 处代码引用（9 个 Stubs 文件 + AppStore），直接包会编译报错。要先把每个界面改成「真接后端拉数据 + loading / empty / error 状态」。**延期到 backend 真上线后做**（数周级架构重构）
+    - [x] ~~5-26 demo 快照备份~~ ✅ `99_archive/2026-05-26_ios_v1_demo_snapshot/`（含 README 说明用途 + 41 swift 文件 / 1.1M）
+  - Web（teacher_web/round3）：同类 demo seed / mock state（需 grep 清单 — iOS 推进时未处理）
   - 权威备忘：`memory/project_demo_scaffolds_to_remove_before_v1.md`
   - 执行时机：v1.0 spec 冻结前，或接真后端那一刻（两者取早）
 

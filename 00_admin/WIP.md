@@ -50,6 +50,36 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+### 2026-05-26 晚段-3 by [MacBook-Pro-Opus 4.7 1M / iOS demo 后门清理（做法 B）+ 字段对齐零漂移]
+
+**主题**：⭐⭐⭐⭐⭐ itsuki 拍板「推进 iOS — A demo 后门 + B 字段对齐 一起做 / 先备份 demo 快照 / 主推进只走干净 app」→ CC 提议 A/B/C 三种 demo 删除策略 → itsuki 选 B「保留 `#if DEMO` 包好的代码」→ 落地 5 处裸 demo fallback 删 + 全量字段比对零漂移 + anti-ai-flavor inbox.md 首次实战触发（CC 翻车「Task # / SEED.user / 做法 B」内部代号）
+
+**关键拍板**（itsuki 5 次明确决策）：A+B 一起做 + 备份策略 + 做法 B（B 选 vs A 全删 vs C 不做）+ 「说人话 + 翻车 + skill 迭代」3 触发词连击 + 收尾 commit 自决权
+
+**实际改动**（5 文件 + 1 全局 + raw 5-26 阶段 10）：
+| 文件 | 改动 |
+|---|---|
+| `AppStore.swift` | 5 处裸 demo fallback 删（computedRoomNo M205 / createAccount 7 字段 / 公告 3 处 catch 分支构造伪数据）|
+| `99_archive/2026-05-26_ios_v1_demo_snapshot/` | 新建 — iOS 主项目完整复制 41 swift + README / 1.1M |
+| `TODO.md` | 关 line 248 漂移条目 + 重写 line 1010 demo-only 清单 iOS 进度 6/6 + SEED 延期理由 |
+| `project-overview SKILL.md §0.1` | 99_archive 552→594 / 总计 1127→1169（anticipate 未 commit 42）|
+| `~/.claude/skills/anti-ai-flavor/inbox.md` | 翻车 #001（首次实战）— 5 字段分析 CC 用内部代号沟通失职 |
+| `raw/2026-05-26.md §阶段 10` | 完整 dump |
+| 中枢 `项目档案/DMSD.md` | 现状一句话补 5-26 三段进度 + 更新日志加晚段条目 |
+
+**AC 价值** ⭐⭐⭐⭐⭐：
+- **模式 2（假设崩）** × 3：CC 假设「字段严重漂移」崩（零漂移）/ 假设「SEED 改后端拉是必做」崩（132 处引用 + 数周架构重构）/ 假设「itsuki 跟 CC 同步内部代号」崩
+- **模式 5（自指失败）** ⭐⭐⭐ — CC 在讲反 AI 味的回复里大量用术语裸露，讨论问题时表演了问题本身
+- **模式 6（取舍）** × 4：A/B/C demo 策略 / SEED 整文件包 vs 不包 / commit 范围 / Task 完成范围解读
+- **模式 7（机制完备性）** — anti-ai-flavor inbox 首次实战跑通（5-25 立项 → 5-26 真触发）
+- **学术延伸**：条件编译（`#if DEMO`）vs 依赖注入 vs 独立 fork vs feature flag 4 种 demo 策略对比 / iOS 演示型架构 → 生产化 = 数周架构重构（technical debt 案例）
+
+**残（下次跟进）**：
+- SEED.swift 整文件包 `#if DEMO` 延期到 backend 上线后做
+- working tree 累积大堆改动（teacher_web vite 作废 + IOS_DESIGN_LOG / decision_log / CLAUDE.md 等 itsuki / 别会话改的）— CC 不擅自 commit，只 commit 本次清楚做的工作
+
+详细 raw：`05_logs/raw/2026-05-26.md §阶段 10`
+
 ### 2026-05-26 晚段-2 by [MacBook-Pro-Opus 4.7 1M / 启动 SOP 集中化 + DMSD CLAUDE.md 247→190 重写]
 
 **主题**：⭐⭐⭐⭐⭐ 4 件大事 — (1) `pre-bash-destructive-block` hook 行为约定立项（CC 看到 WARN 自己停下想，没必要不走 / 有必要继续 / 灾难级才问 itsuki）(2) 沟通铁律「不主动用英语名词」全局 + 6 项目 CLAUDE.md 落地（除非项目代码 / 文档 / 文件名真出现过否则一律中文）(3) 启动 SOP 集中化 — `dmsd-startup` skill 立项（§2 5 件必做事 + §4 按需触发段）+ 全局 `session-start-coord-check.sh` 在 DMSD 项目下静默退出 (4) DMSD CLAUDE.md 247→190 行重写到 QTS 模式（A 砍 120 + B 搬 35 + D 补 70 — Skills 继承段 / Hooks 继承段 / 全项目中枢联动 / 沟通规则简版 / Git）+ CLAUDE.md 文档观转变（时间戳冗余禁止）
