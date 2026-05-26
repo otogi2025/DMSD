@@ -100,7 +100,48 @@ python3 ~/.claude/skills/ac-radar/scripts/startup_check.py
 | 读 `progress_overview.md` / `CHANGELOG.md` | 它们是给教授 / 全部读者看的，CC 启动不需要 | 版本 bump 时由 [[version-bump]] skill 处理 |
 | 检测装的工具 vs 环境清单 | 全局挂钩 `~/.claude/hooks/session-start-env-diff.sh` 在管 | 挂钩自动跑，CC 看到输出再反应 |
 
-## 4. 跟其他 skill / 挂钩边界
+## 4. 按需触发的事（itsuki 输入命中哪些场景 → CC 做什么）
+
+启动后不主动做，但 itsuki 输入命中这些场景时 CC 必须立刻反应：
+
+### 4.1 找文件 / 问文件 → 必须查 `.claude/skills/project-overview/SKILL.md`
+
+不用 grep / find / 命令行。总览里写好了所有文件干嘛用 + 状态，直接翻总览拿答案。
+
+itsuki 任一种输入触发：
+
+- 「某文件在哪？」
+- 「某文件干嘛用的？」
+- 「项目里有没有 XX 文件？」
+- 「XX 类的文件都在哪个目录？」
+- 「这个目录下有什么？」
+- 「找文件」/「列文件」/「整理某类文件」
+
+### 4.2 TODO 待办 → 必须 itsuki 主动问才读 `00_admin/TODO.md`
+
+只在 itsuki 主动问下面这类问题时才读：
+
+- 「还有什么没做？」
+- 「下一步该做什么？」
+- 「TODO 还剩什么？」
+
+**不主动催进度，不主动列待办给 itsuki 看**。
+
+### 4.3 WIP vs TODO 铁律
+
+- **WIP** = 当下书签，最近 5 次会话上限
+- **TODO** = 完整未完成 backlog，真值
+- **WIP 绝不复述 TODO 内容**
+
+### 4.4 文件联动 → 走 `.claude/skills/file-linkage/SKILL.md`
+
+CC 改完高联动文件（backend models.py / spec 主体 / system_features.md / Route.swift 等）后自动加载 file-linkage skill 查反向索引，确认下游文件都同步了。
+
+完整 17 条联动规则 + 反向索引 + 检查命令 → `.claude/skills/file-linkage/SKILL.md`。
+
+---
+
+## 5. 跟其他 skill / 挂钩边界
 
 | 谁 | 干嘛 | 跟本 skill 的关系 |
 |---|---|---|
@@ -111,7 +152,7 @@ python3 ~/.claude/skills/ac-radar/scripts/startup_check.py
 | `~/.claude/skills/session-coord/SKILL.md` | 多会话协同板的完整 SOP | **本 skill Step 1 调用它的 register/scan 脚本** — session-coord 自己的其他 SOP（写 inbox / 释放占用 / handoff）按它自己的触发走 |
 | `.claude/skills/session-wrap/SKILL.md` | 会话收尾 SOP | **互补** — 启动用本 skill，收尾用 session-wrap |
 
-## 5. CC 行为约定（always-on）
+## 6. CC 行为约定（always-on）
 
 加载本 skill 后：
 

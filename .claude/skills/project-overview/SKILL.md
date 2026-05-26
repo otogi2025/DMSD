@@ -169,7 +169,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 | skill | 一句话作用 | 触发关键词 | 状态 |
 |---|---|---|---|
-| `dmsd-startup/` | 会话启动 SOP — 5 件必做事（多会话协同注册 / project-overview 漂移检测 / ac-radar startup_check / 读 WIP / 报告状态） | always-on（每次会话启动 CC 主动 Read） | ✅ **2026-05-26 加** |
+| `dmsd-startup/` | 会话启动 SOP — §2 5 件必做事（多会话协同注册 / project-overview 漂移检测 / ac-radar startup_check / 读 WIP / 报告状态）+ §4 按需触发的事（找文件查 project-overview / TODO 主动问才读 / WIP vs TODO 铁律 / 文件联动走 file-linkage） | always-on（每次会话启动 CC 主动 Read） | ✅ **2026-05-26 加** |
 | `session-wrap/` | 会话收尾流程 — §5.5 共 16 节子流程（全量扫描 / AC dump / 中文总结 / 文件联动 / WIP+TODO 刷新 / git commit / git 状态确认 / 跨 repo / memory 维护 / daily-archive iCloud 备份 §5.5.14 / decision-draft 决策日志草稿起草 §5.5.15）| 收尾 / 整理今天 / 总结今天 | ✅ |
 | `version-bump/` | 版本号决策树（CC 有否决权）+ 发版动作 SOP（git tag / CHANGELOG / push） | 迭代 / bump / 发版本 / 发版 | ✅ |
 | `file-linkage/` | 文件联动矩阵 — 改 A 必查 B（19 条规则） | 联动 / 改 A 要查 B | ✅ |
