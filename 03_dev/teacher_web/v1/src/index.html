@@ -22089,7 +22089,43 @@
               <window.OutstayDetailModal
                 app={outstayTarget}
                 onClose={() => setOutstayTarget(null)}
-                onAction={(a) => {
+                onAction={async (a) => {
+                  // Task #6 第 7 步: backend decide() を呼ぶ (app._backend が有る = backend
+                  // から adapt されたデータ / 無い = window.OUTSTAY_APPS demo データ)。
+                  // a='approved'/'rejected' → backend 'approve'/'reject' へ map。
+                  // a='pending' (保留) は backend decide には無いので skip (UI のみ閉じる)。
+                  const backendApp = outstayTarget._backend;
+                  if (
+                    backendApp &&
+                    authToken &&
+                    (a === "approved" || a === "rejected")
+                  ) {
+                    const decision = a === "approved" ? "approve" : "reject";
+                    try {
+                      await window.tomoshibiApi.decide(
+                        backendApp.id,
+                        decision,
+                        undefined,
+                        authToken,
+                      );
+                      // 成功時 pending list を refetch (該当 application が消える)
+                      try {
+                        const refreshed =
+                          await window.tomoshibiApi.pendingForMe(authToken);
+                        setBackendApplications(refreshed);
+                      } catch (_) {
+                        // refetch 失敗は無視 (UI は次回開いた時に直る)
+                      }
+                    } catch (err) {
+                      console.warn("[App] decide 失敗", err);
+                      setToast({
+                        type: "warn",
+                        msg: `backend 承認 / 却下失敗 (${err.status || "network"}) · 画面は閉じます`,
+                      });
+                      setOutstayTarget(null);
+                      return;
+                    }
+                  }
                   setOutstayTarget(null);
                   setToast({
                     type: "ok",
