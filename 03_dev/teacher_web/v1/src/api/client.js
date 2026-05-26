@@ -144,16 +144,30 @@
     createInvitation: (body, token) =>
       request("POST", "/teachers/invitations", body, token),
 
-    // ── Announcements (FC-027 工程注记: backend 端权限契约
-    //   get_current_student vs get_current_teacher 待 Task #6 一起补) ──
+    // ── Announcements (FC-027 修复完成 — get_current_principal 学生+老师双路) ──
     listAnnouncements: (token) =>
       request("GET", "/announcements", undefined, token),
     getAnnouncement: (id, token) =>
       request("GET", `/announcements/${id}`, undefined, token),
     createAnnouncement: (body, token) =>
       request("POST", "/announcements", body, token),
+    updateAnnouncement: (id, body, token) =>
+      request("PATCH", `/announcements/${id}`, body, token),
     deleteAnnouncement: (id, token) =>
       request("DELETE", `/announcements/${id}`, undefined, token),
+    // 主页 badge — 学生 only（老师不需要未读概念）
+    getAnnouncementUnreadCount: (token) =>
+      request("GET", "/announcements/unread-count", undefined, token),
+    // 回复 — 学生 + 老师都能调（按 JWT 自动判 author_kind）
+    postAnnouncementReply: (announcementId, body, token) =>
+      request("POST", `/announcements/${announcementId}/replies`, body, token),
+    deleteAnnouncementReply: (announcementId, replyId, token) =>
+      request(
+        "DELETE",
+        `/announcements/${announcementId}/replies/${replyId}`,
+        undefined,
+        token,
+      ),
 
     // 学生登録码 admin 接口（§7.16 + WEB_DESIGN_LOG §11.9.1）
     // 仅寮務部長 / 寮務課長 / 管理係 三类角色返 200，其他教师 403。
@@ -165,7 +179,7 @@
 
     // 扣分 / 規律処分（spec §7.5 + 5-27 backend commit ac0bd90 新增）
     // DisciplinePage 接 backend 用。月排名 + 手动加 + 撤销 3 个核心端点。
-    // 权限：寮監 / 寮務 / 学習担当 / 管理係 (一般教师 + 国際交流系 403)
+    // 权限：寮監 / 寮務部長 / 寮務課長 / 管理係 4 类（学習担当除外，那扣分由 study 自动触发）
     getDisciplineRanking: (token, month) =>
       request(
         "GET",
