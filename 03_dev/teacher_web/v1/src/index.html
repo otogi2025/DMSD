@@ -16552,20 +16552,66 @@
     <script type="text/babel" data-source="components/discipline.jsx">
       // /discipline — rules card + rankings + cleaning/ban lists + warnings + future-alert preview.
 
-      function DisciplinePage({ teacher, onNav }) {
+      function DisciplinePage({ teacher, onNav, authToken }) {
         const T = window.RYO;
         const dorm = teacher.dorm;
         const roster = dorm === "men" ? window.ROSTER_MEN : window.ROSTER_WOMEN;
 
-        // Mock demerit data per student (index 0 = リュウ イヒ in 男子寮 — 清掃罰則ライン超え)
-        const data = roster
-          .map(([room, id, name], i) => {
-            const late = [5, 1, 2, 0, 3, 0, 1, 6, 0, 2, 1, 0][i % 12];
-            const absent = [2, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0][i % 12];
-            const total = late * 0.5 + absent * 1.0;
-            return { room, id, name, late, absent, total };
-          })
-          .sort((a, b) => b.total - a.total);
+        // Task #11 P0: backend getDisciplineRanking fetch — 5-27 backend commit ac0bd90
+        const today = new Date();
+        const month = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+        const [backendRanking, setBackendRanking] = React.useState(null);
+        const [loadingBackend, setLoadingBackend] = React.useState(false);
+
+        React.useEffect(() => {
+          if (!authToken) return;
+          let cancelled = false;
+          setLoadingBackend(true);
+          window.tomoshibiApi
+            .getDisciplineRanking(authToken, month)
+            .then((r) => {
+              if (cancelled) return;
+              setBackendRanking(r);
+            })
+            .catch((e) => {
+              if (cancelled) return;
+              console.warn(
+                "[DisciplinePage] getDisciplineRanking 失败 → mock fallback",
+                e,
+              );
+              setBackendRanking(null);
+            })
+            .finally(() => {
+              if (!cancelled) setLoadingBackend(false);
+            });
+          return () => {
+            cancelled = true;
+          };
+        }, [authToken, month]);
+
+        // 数据源: backend 优先 / mock fallback
+        let data;
+        if (backendRanking && backendRanking.entries) {
+          data = backendRanking.entries.map((e) => ({
+            room: e.room_no,
+            id: e.student_no,
+            name: e.name,
+            late: 0, // backend ranking 只返聚合 total_points, late/absent 拆分未来扩展
+            absent: 0,
+            total: e.total_points,
+            _backend: true,
+          }));
+        } else {
+          // Mock demerit data per student (backend 未到时 fallback — DEMO 模式可见)
+          data = roster
+            .map(([room, id, name], i) => {
+              const late = [5, 1, 2, 0, 3, 0, 1, 6, 0, 2, 1, 0][i % 12];
+              const absent = [2, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0][i % 12];
+              const total = late * 0.5 + absent * 1.0;
+              return { room, id, name, late, absent, total };
+            })
+            .sort((a, b) => b.total - a.total);
+        }
 
         const cleaningList = data.filter((d) => d.total >= 4);
         const banList = data.filter((d) => d.total >= 8);
@@ -23705,7 +23751,13 @@
             );
             break;
           case "discipline":
-            body = <window.DisciplinePage teacher={teacher} onNav={nav} />;
+            body = (
+              <window.DisciplinePage
+                teacher={teacher}
+                onNav={nav}
+                authToken={authToken}
+              />
+            );
             break;
           case "records":
             body = (
