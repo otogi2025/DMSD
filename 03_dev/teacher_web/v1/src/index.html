@@ -14613,15 +14613,18 @@
       // backendApplications=null/[] なら従来通り假数据 fallback。
       // backend Application shape は kind/leave_date/leave_time/student/status を含むので
       // 既存 UI の {applicant, room, dorm, depart, return_, city, state, ...} 形へ adapt。
-      function _adaptBackendOutstay(apps) {
+      // Task #16 (5-27): 帰国 / 帰省 / 外泊 3 kind 全部 adapt。backend Application.kind は
+      // 「外泊」「帰国」「帰省」3 値 (NetworkModels.swift + schemas.py 一致)。
+      // taxi は backend kind に無いので Skeleton 占位のまま (システム外、Round 4 議題)。
+      function _adaptBackendAppsByKind(apps, kind) {
         if (!Array.isArray(apps)) return null;
-        const outstay = apps.filter((a) => a.kind === "外泊");
-        if (outstay.length === 0) return null;
-        return outstay.map((a) => ({
+        const filtered = apps.filter((a) => a.kind === kind);
+        if (filtered.length === 0) return null;
+        return filtered.map((a) => ({
           id: a.id,
           applicant: a.student ? a.student.name : "(unknown)",
           room: a.student ? a.student.room_no : "",
-          dorm: a.student && a.student.dorm_unit ? "men" : "women", // TODO: dorm_unit → men/women 真マッピング (backend に gender が無い場合の暫定)
+          dorm: a.student && a.student.dorm_unit ? "men" : "women",
           depart: `${a.leave_date} ${a.leave_time}`,
           return_: `${a.return_date} ${a.return_time}`,
           city:
@@ -14641,9 +14644,13 @@
                   : a.status === "returned"
                     ? "question"
                     : a.status,
-          // 元 backend データを保持 (DetailModal で参照する可能性)
           _backend: a,
         }));
+      }
+
+      // 後方互換 alias (旧 _adaptBackendOutstay 呼び出しがあった場合のため)
+      function _adaptBackendOutstay(apps) {
+        return _adaptBackendAppsByKind(apps, "外泊");
       }
 
       function ApplicationsPage({ onOpen, backendApplications }) {
@@ -14651,17 +14658,36 @@
         const [tab, setTab] = React.useState("outstay");
         const [sub, setSub] = React.useState("pending");
 
-        // backendApplications が有効なら adapt して使う / 無効なら window.OUTSTAY_APPS
-        const adapted = _adaptBackendOutstay(backendApplications);
-        const outstayApps = adapted || window.OUTSTAY_APPS || [];
+        // Task #16: 3 kind 全部 backend → UI shape へ adapt
+        const adaptedOutstay = _adaptBackendAppsByKind(
+          backendApplications,
+          "外泊",
+        );
+        const adaptedReturn = _adaptBackendAppsByKind(
+          backendApplications,
+          "帰国",
+        );
+        const adaptedHome = _adaptBackendAppsByKind(
+          backendApplications,
+          "帰省",
+        );
+        const outstayApps = adaptedOutstay || window.OUTSTAY_APPS || [];
+        const returnApps = adaptedReturn || [];
+        const homeApps = adaptedHome || [];
         const outstayPending = outstayApps.filter(
+          (a) => a.state === "pending",
+        ).length;
+        const returnPending = returnApps.filter(
+          (a) => a.state === "pending",
+        ).length;
+        const homePending = homeApps.filter(
           (a) => a.state === "pending",
         ).length;
         const tabs = [
           { k: "outstay", label: "外泊", badge: outstayPending },
-          { k: "return", label: "帰国", badge: 1 },
-          { k: "home", label: "帰省", badge: 0 },
-          { k: "taxi", label: "タクシー", badge: 1 },
+          { k: "return", label: "帰国", badge: returnPending },
+          { k: "home", label: "帰省", badge: homePending },
+          { k: "taxi", label: "タクシー", badge: 0 },
         ];
 
         return (
@@ -14736,18 +14762,36 @@
               ))}
             </div>
 
+            {/* 外泊期限規則は外泊届だけに適用 — 帰国/帰省はルール異なるので表示しない */}
             {tab === "outstay" && <OutstayRuleBanner />}
 
-            {tab === "outstay" ? (
+            {/* Task #16: 外泊 / 帰国 / 帰省 3 tab は OutstayList 共用 (UI shape 同じ)。
+                taxi tab だけ Skeleton (backend kind に無い、システム外 Round 4 議題)。*/}
+            {tab === "outstay" && (
               <OutstayList
                 sub={sub}
                 setSub={setSub}
                 onOpen={onOpen}
                 apps={outstayApps}
               />
-            ) : (
-              <SkeletonTabBody tab={tabs.find((t) => t.k === tab).label} />
             )}
+            {tab === "return" && (
+              <OutstayList
+                sub={sub}
+                setSub={setSub}
+                onOpen={onOpen}
+                apps={returnApps}
+              />
+            )}
+            {tab === "home" && (
+              <OutstayList
+                sub={sub}
+                setSub={setSub}
+                onOpen={onOpen}
+                apps={homeApps}
+              />
+            )}
+            {tab === "taxi" && <SkeletonTabBody tab="タクシー" />}
           </div>
         );
       }
@@ -14825,10 +14869,9 @@
 
       function OutstayList({ sub, setSub, onOpen, apps: appsProp }) {
         const T = window.RYO;
-        // Task #6 第 6 步: apps prop が来たら使う (ApplicationsPage が backend Application
-        // を adapt して渡す) / 無ければ window.OUTSTAY_APPS 假数据
-        const apps =
-          appsProp && appsProp.length > 0 ? appsProp : window.OUTSTAY_APPS;
+        // Task #6 第 6 步 + Task #16: apps prop が array なら必ず使う (空配列でも空状態を
+        // 表示 — Round 3 帰国/帰省 tab で重要)。undefined のみ window.OUTSTAY_APPS fallback。
+        const apps = Array.isArray(appsProp) ? appsProp : window.OUTSTAY_APPS;
         const subs = ["pending", "approved", "rejected", "question", "all"];
         const subLabels = {
           pending: "審査待ち",
