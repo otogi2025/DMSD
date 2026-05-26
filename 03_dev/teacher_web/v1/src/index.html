@@ -19089,11 +19089,48 @@
         );
       }
 
-      function InfoPage({ teacher }) {
+      function InfoPage({ teacher, authToken }) {
         const T = window.RYO;
         const [tab, setTab] = React.useState("notice");
         const [posts, setPosts] = React.useState(window.NOTICE_POSTS);
         const [composing, setComposing] = React.useState(false);
+
+        // FC-027 修复后: 老师 token 能调 listAnnouncements 拿真公告
+        // backend 返 AnnouncementBrief shape — UI shape (date/title/body/author/scope) adapt
+        React.useEffect(() => {
+          if (!authToken) return;
+          let cancelled = false;
+          window.tomoshibiApi
+            .listAnnouncements(authToken)
+            .then((data) => {
+              if (cancelled) return;
+              const items = (data && data.items) || [];
+              if (items.length > 0) {
+                const adapted = items.map((a) => {
+                  const d = new Date(a.created_at);
+                  return {
+                    date: `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
+                    title: a.title,
+                    body: a.body_summary,
+                    author: a.author_teacher_name,
+                    scope: a.scope,
+                    _id: a.id,
+                    _backend: true,
+                  };
+                });
+                setPosts(adapted);
+              }
+            })
+            .catch((e) => {
+              console.warn(
+                "[InfoPage] listAnnouncements 失败 → window.NOTICE_POSTS fallback",
+                e,
+              );
+            });
+          return () => {
+            cancelled = true;
+          };
+        }, [authToken]);
 
         const handlePost = (title, body) => {
           const now = new Date();
@@ -23848,7 +23885,7 @@
             body = <window.CleaningPage authToken={authToken} />;
             break;
           case "info":
-            body = <window.InfoPage teacher={teacher} />;
+            body = <window.InfoPage teacher={teacher} authToken={authToken} />;
             break;
           case "community":
             body = <window.CommunityPage teacher={teacher} />;
