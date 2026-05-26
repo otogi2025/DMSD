@@ -937,29 +937,33 @@
 - commit: —（5-24 收尾时统一 commit）
 - 决策: 2026-05-22 codex 创建 / **2026-05-24 修复 by 本会话 CC**（选 iOS 跟 backend 对齐，理由：backend 是字段真值源）
 
-#### [Codex-FC-025] 🟡 Web StayLocation 字段形状跟后端不一致
+#### [Codex-FC-025] 🟡 Web StayLocation 字段形状跟后端不一致 — ✅ N/A
 - 位置: `03_dev/teacher_web/v1/src/api/client.ts:220` + `backend/schemas.py:29`
 - 描述: Web `{date, location, contact}` / 后端 `{kind, name, address, phone}` → 外泊 / 帰国住宿地跨端解释错误
 - 修法: 以 `FIELD_REGISTRY.md` + 后端 schema 为真值，统一 Web 类型 + 渲染
-- 决策: 2026-05-22 codex 创建
+- 决策: 2026-05-22 codex 创建 / **2026-05-26 itsuki TODO §🛠️ §L 标 N/A**（Vite 整体废弃）
+- 工程注记: `api/client.ts` 文件本身**仍在主线没归档**（README §设计权威「保留 — 未来 Ryō 接真后端时复用」）。Task #6 真接口对接时把 client.ts 接进 standalone HTML 仍会踩坑 → 届时本条要重开
 
-#### [Codex-FC-026] 🟡 Web 学習请假响应缺 period
+#### [Codex-FC-026] 🟡 Web 学習请假响应缺 period — ✅ N/A
 - 位置: `03_dev/teacher_web/v1/src/api/client.ts:299` + `backend/schemas.py:369`
 - 描述: Web StudyAbsenceRequestOut 没 period；后端返回 `period: first_half | second_half | full`
 - 修法: Web 类型补 period + 页面显示同步补「前半 / 后半 / 全程」
-- 决策: 2026-05-22 codex 创建
+- 决策: 2026-05-22 codex 创建 / **2026-05-26 itsuki TODO §🛠️ §L 标 N/A**（Vite 整体废弃）
+- 工程注记: 同 FC-025 — `client.ts` 没归档，Task #6 真接口对接时本条要重开
 
-#### [Codex-FC-027] 🟡 老师公告 client 跟后端权限不一致 + 无页面使用
+#### [Codex-FC-027] 🟡 老师公告 client 跟后端权限不一致 + 无页面使用 — ✅ N/A
 - 位置: `03_dev/teacher_web/v1/src/api/client.ts:162` + `backend/routers/announcements.py:105,193`
 - 描述: Web client 加了公告列表 / 详情 / 创建 / 删除。后端列表 / 详情依赖 `get_current_student`（老师 token 不能用）；ripgrep 也只发现 client 定义没页面调
 - 修法: 二选一 — 后端补 teacher list/detail endpoint，或 Web 只保留能用的 create/delete + 补页面前先写权限契约
-- 决策: 2026-05-22 codex 创建
+- 决策: 2026-05-22 codex 创建 / **2026-05-26 itsuki TODO §🛠️ §L 标 N/A**（Vite 整体废弃）
+- 工程注记: backend 端权限契约问题（`get_current_student` vs `get_current_teacher`）跟 Vite 无关，Task #6 真接口对接时本条要重开 + 顺便把老师公告页接进 standalone HTML
 
-#### [Codex-FC-028] 🟡 老师邀请码权限前后端角色不一致
+#### [Codex-FC-028] 🟡 老师邀请码权限前后端角色不一致 — ✅ N/A
 - 位置: `03_dev/teacher_web/v1/src/pages/Teachers.tsx:26` + `backend/routers/teachers.py:28`
 - 描述: Web 允许 寮務部長 / 寮務課長 / 寮監 发邀请码；后端还允许 学習担当 → 同老师后端允许前端不显示按钮
 - 修法: 可发邀请码角色抽成共享文档真值 → 同步前后端
-- 决策: 2026-05-22 codex 创建
+- 决策: 2026-05-22 codex 创建 / **2026-05-26 itsuki TODO §🛠️ §L 标 N/A**（Vite 整体废弃）
+- 工程注记: `pages/Teachers.tsx` 已归档到 `99_archive/2026-05-26_teacher_web_vite实装作废/pages/Teachers.tsx`，本条 Web 侧确实 N/A。但 `backend/routers/teachers.py:28` 角色清单跟未来 Ryō standalone HTML 实装的邀请码 UI 仍要对齐 → Task #6 真接口对接时同步补
 
 #### [Codex-FC-029] 🟡 Teacher Web 没 test 脚本
 - 位置: `03_dev/teacher_web/v1/package.json:6`
