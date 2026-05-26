@@ -5,6 +5,7 @@
 - 教師 (sub = teachers.id)
 を Student / Teacher ORM オブジェクトで返す。
 """
+
 from typing import Annotated
 from uuid import UUID
 
@@ -77,10 +78,58 @@ def get_current_teacher(
     return teacher
 
 
+def get_current_principal(
+    authorization: Annotated[str | None, Header()] = None,
+    db: Session = Depends(get_db),
+) -> models.Student | models.Teacher:
+    """学生 token 或老师 token 任一都接受。FC-027 公告 list / detail 用 —
+    老师也要看公告（决定要不要发新的）+ 学生看自己 scope 内公告。
+    返回 Student 或 Teacher ORM 对象，调用方用 isinstance 区分。
+    """
+    token = _parse_bearer(authorization)
+    try:
+        payload = security.decode_token(token)
+    except security.JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "INVALID_CREDENTIALS", "message": "トークンが無効です"},
+        )
+    role = payload.get("role", "")
+    sub = payload.get("sub")
+    if role == "student":
+        student = db.get(models.Student, UUID(sub))
+        if not student or student.status != "active":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "ACCOUNT_INACTIVE",
+                    "message": "アカウントが利用不可です",
+                },
+            )
+        return student
+    if role.startswith("teacher:"):
+        teacher = db.get(models.Teacher, UUID(sub))
+        if not teacher or teacher.status != "active":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "ACCOUNT_INACTIVE",
+                    "message": "アカウントが利用不可です",
+                },
+            )
+        return teacher
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail={"code": "FORBIDDEN", "message": "不明な token role"},
+    )
+
+
 def require_teacher_roles(*allowed: str):
     """`require_teacher_roles('寮務部長', '寮務課長')` 形式で使う。"""
 
-    def _checker(teacher: models.Teacher = Depends(get_current_teacher)) -> models.Teacher:
+    def _checker(
+        teacher: models.Teacher = Depends(get_current_teacher),
+    ) -> models.Teacher:
         if teacher.role not in allowed:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

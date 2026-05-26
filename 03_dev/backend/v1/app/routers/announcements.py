@@ -18,6 +18,7 @@ API（§7.15.9）：
 注：本文件 raise 的 detail.message 字段是给学生用户看的 UI 文案，按 spec 用日语；
 注释一律中文。
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -30,7 +31,11 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas, security
 from ..database import get_db
-from ..deps import _parse_bearer, get_current_student, get_current_teacher
+from ..deps import (
+    _parse_bearer,
+    get_current_student,
+    get_current_teacher,
+)
 
 router = APIRouter(prefix="/api/v1/announcements", tags=["announcements"])
 
@@ -51,9 +56,7 @@ def _summarize(body: str) -> str:
     return cleaned[:SUMMARY_LENGTH] + "…"
 
 
-def _resolve_reply_author_name(
-    reply: models.AnnouncementReply, db: Session
-) -> str:
+def _resolve_reply_author_name(reply: models.AnnouncementReply, db: Session) -> str:
     """按 author_kind 取学生 or 老师的名字（回复列表显示用）。"""
     if reply.author_kind == "teacher":
         teacher = db.get(models.Teacher, reply.author_id)
@@ -104,32 +107,49 @@ def _resolve_actor(
 
 @router.get("", response_model=schemas.AnnouncementListOut)
 def list_announcements(
-    student: models.Student = Depends(get_current_student),
+    principal: models.Student | models.Teacher = Depends(get_current_principal),
     db: Session = Depends(get_db),
 ):
-    """列表（按 scope 自动过滤 + 已读状态 + 回复数）。新→旧。"""
-    scopes = _scopes_for_student(student)
-    rows = db.execute(
-        select(models.Announcement, models.Teacher.name)
-        .join(
-            models.Teacher,
-            models.Announcement.author_teacher_id == models.Teacher.id,
-        )
-        .where(
-            models.Announcement.deleted_at.is_(None),
-            models.Announcement.scope.in_(scopes),
-        )
-        .order_by(models.Announcement.created_at.desc())
-    ).all()
+    """列表 (FC-027 修复: 学生 + 老师都能调)。
 
-    # 当前学生已读的公告 id 集合
-    read_ids = set(
-        db.scalars(
-            select(models.AnnouncementRead.announcement_id).where(
-                models.AnnouncementRead.student_id == student.id
+    学生: scope 自动过滤 (按 gender) + 已读状态 + 回复数。
+    老师: 全部公告 (不过滤 scope, 让老师能看到所有 scope 的内容) + is_read=False。
+    """
+    is_teacher = isinstance(principal, models.Teacher)
+    if is_teacher:
+        # 老师看全部公告 (准备发新的或巡查)
+        rows = db.execute(
+            select(models.Announcement, models.Teacher.name)
+            .join(
+                models.Teacher,
+                models.Announcement.author_teacher_id == models.Teacher.id,
             )
+            .where(models.Announcement.deleted_at.is_(None))
+            .order_by(models.Announcement.created_at.desc())
         ).all()
-    )
+        read_ids: set = set()
+    else:
+        # 学生按 scope (gender) 过滤
+        scopes = _scopes_for_student(principal)
+        rows = db.execute(
+            select(models.Announcement, models.Teacher.name)
+            .join(
+                models.Teacher,
+                models.Announcement.author_teacher_id == models.Teacher.id,
+            )
+            .where(
+                models.Announcement.deleted_at.is_(None),
+                models.Announcement.scope.in_(scopes),
+            )
+            .order_by(models.Announcement.created_at.desc())
+        ).all()
+        read_ids = set(
+            db.scalars(
+                select(models.AnnouncementRead.announcement_id).where(
+                    models.AnnouncementRead.student_id == principal.id
+                )
+            ).all()
+        )
 
     # 每个公告的回复数（announcement_id → count）
     reply_counts_raw = db.execute(
@@ -165,7 +185,7 @@ def get_unread_count(
     student: models.Student = Depends(get_current_student),
     db: Session = Depends(get_db),
 ):
-    """主页 badge 用 — 当前学生 scope 内未读公告数。"""
+    """主页 badge 用 — 当前学生 scope 内未读公告数 (学生 only — 老师没有未读概念)。"""
     scopes = _scopes_for_student(student)
     total = db.scalar(
         select(sa_func.count(models.Announcement.id)).where(
@@ -193,18 +213,23 @@ def get_unread_count(
 @router.get("/{announcement_id}", response_model=schemas.AnnouncementDetailOut)
 def get_announcement_detail(
     announcement_id: UUID,
-    student: models.Student = Depends(get_current_student),
+    principal: models.Student | models.Teacher = Depends(get_current_principal),
     db: Session = Depends(get_db),
 ):
-    """详情 view — 自动写已读 + 回复列表（旧→新，Slack 风，§7.15.6）。"""
+    """详情 view (FC-027 修复: 学生 + 老师都能调).
+
+    学生: scope 过滤 + 自动写 AnnouncementRead 已读.
+    老师: 不过滤 scope (能看全部) + 不写已读 (AnnouncementRead 只学生表)。
+    """
+    is_teacher = isinstance(principal, models.Teacher)
     ann = db.get(models.Announcement, announcement_id)
     if not ann or ann.deleted_at is not None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "NOT_FOUND", "message": "公告が見つかりません"},
         )
-    # scope filter — 不是自己 scope 的公告 → 403
-    if ann.scope not in _scopes_for_student(student):
+    # scope 过滤只对学生生效
+    if not is_teacher and ann.scope not in _scopes_for_student(principal):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"code": "FORBIDDEN", "message": "この公告は閲覧対象外です"},
@@ -214,16 +239,17 @@ def get_announcement_detail(
     author = db.get(models.Teacher, ann.author_teacher_id)
     author_name = author.name if author else "(削除済教師)"
 
-    # 写已读（已经读过则跳过 — upsert 语义）
-    existing_read = db.get(models.AnnouncementRead, (ann.id, student.id))
-    if existing_read is None:
-        db.add(
-            models.AnnouncementRead(
-                announcement_id=ann.id,
-                student_id=student.id,
+    # 写已读只对学生 (AnnouncementRead 表只有 student_id 字段)
+    if not is_teacher:
+        existing_read = db.get(models.AnnouncementRead, (ann.id, principal.id))
+        if existing_read is None:
+            db.add(
+                models.AnnouncementRead(
+                    announcement_id=ann.id,
+                    student_id=principal.id,
+                )
             )
-        )
-        db.commit()
+            db.commit()
 
     # 回复列表（旧→新，§7.15.6 Slack 风）
     reply_rows = db.scalars(
@@ -349,7 +375,9 @@ def delete_reply(
 # ---------------------------------------------------------------
 
 
-@router.post("", response_model=schemas.AnnouncementBrief, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=schemas.AnnouncementBrief, status_code=status.HTTP_201_CREATED
+)
 def post_announcement(
     body: schemas.AnnouncementCreateIn,
     teacher: models.Teacher = Depends(get_current_teacher),
