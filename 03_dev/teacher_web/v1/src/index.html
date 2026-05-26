@@ -11186,21 +11186,15 @@
         onSwitchTeacher,
         onSearch,
         onResumeLive,
+        backendReachable, // Task #6 真接口对接: null 未知 / true 接通 / false 不可達
       }) {
         const T = window.RYO;
-        const [wsOk, setWsOk] = React.useState(true);
+        // Task #6 (5-27): WS demo 模拟を削除、backendReachable 真状态で indicator を切替。
+        // backendReachable は App() の rollcallTodaySessions fetch 結果由来 (authToken 変化時更新)。
+        const wsOk = backendReachable !== false; // null/true → green / false → red
         const [q, setQ] = React.useState("");
         const [focused, setFocused] = React.useState(false);
         const [nowLabel, setNowLabel] = React.useState(() => formatNowJa());
-
-        // Demo: simulate WS blip every 20s
-        React.useEffect(() => {
-          const id = setInterval(
-            () => setWsOk((x) => (Math.random() > 0.05 ? true : x)),
-            8000,
-          );
-          return () => clearInterval(id);
-        }, []);
         // Live clock for topbar
         React.useEffect(() => {
           const id = setInterval(() => setNowLabel(formatNowJa()), 30000);
@@ -11611,7 +11605,13 @@
                   </button>
                 )}
                 <div
-                  title={wsOk ? "サーバーに接続中" : "切断 · 再接続中"}
+                  title={
+                    backendReachable === false
+                      ? "backend 接続不可 — DEMO seed で動作中"
+                      : backendReachable === true
+                        ? "backend 接続中 — 真値で動作中"
+                        : "backend 接続未確認 (ログイン直後など)"
+                  }
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -11630,7 +11630,11 @@
                     }}
                   />
                   <span style={{ fontFamily: T.mono }}>
-                    {wsOk ? "ONLINE" : "RECONN"}
+                    {backendReachable === false
+                      ? "DEMO"
+                      : backendReachable === true
+                        ? "LIVE"
+                        : "..."}
                   </span>
                 </div>
                 <div
@@ -23714,6 +23718,7 @@
               onNav={nav}
               sessionActive={session && !liveMode}
               onLogout={logout}
+              backendReachable={backendReachable}
               onSwitchTeacher={() => {
                 setRoute("select-teacher");
                 setTeacher(null);
