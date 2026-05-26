@@ -24,6 +24,73 @@
 
 ## 决策记录(倒序)
 
+## 2026-05-26 — 指令文档不写时间戳 / 历史标记 + DMSD CLAUDE.md 247→190 行重写到 QTS 模式
+
+**之前的决策**(隐性 / 长期): CC 在 CLAUDE.md / SKILL.md / 文档同步点等指令文档里习惯加「2026-05-XX 拍板 / 上线 / 新加 / B-XXX 死链修复」类时间戳 / 历史标记 — 以为是「可追溯 + 有上下文」，itsuki 反复看到反感累积
+**新的决策**:
+1. **铁律立项**：指令文档（CLAUDE.md / SKILL.md / `.claude/agents/*.md` / `docs/agents/*.md`）正文不写时间戳 / 历史标记 — 历史归 git log / `05_logs/decision_log.md` / raw / CHANGELOG
+2. **写到 memory**：新建 `~/.claude/projects/-Users-kurekoduki-dev-DMSD/memory/feedback_no_timestamps_in_instruction_docs.md`（跨会话坚持）
+3. **DMSD CLAUDE.md 重写**：247→190 行（A 砍 120 行历史/复制版段 + B 搬 35 行到 dmsd-startup §4 + D 补 70 行参考 QTS 模式 — Skills 继承段 / Hooks 继承段 / 全项目中枢联动 / 沟通规则简版 / Git 段）
+4. WIP 顶部「最后更新」+「最近会话」段时间戳是例外（协调用，本来就是日志性质）
+**为什么改**:
+1. itsuki 5-26 列 DMSD CLAUDE.md 内容时看到「🆕 5-26 新加（5 行）」标记，反应：「像这种 xxx 新加，**完全没必要写到 claude.md 里啊，只是浪费时间**」
+2. 设计哲学（itsuki 隐性长期，5-26 第一次明示）：指令文档 ≠ 日志 — 指令文档是当下指引（长期可读 / 不被历史污染），历史归专门的日志文件
+3. QTS CLAUDE.md（itsuki 自己整理的）给 DMSD 缺的良好模式：Skills 继承段 / Hooks 继承段 / 全项目中枢联动段（结构清晰 / 不混历史）
+4. CC 长期翻车（写时间戳 = 潜意识把指令当日志用） — 累积 → itsuki 正式拍板立铁律
+**这个改动影响了什么**:
+- DMSD CLAUDE.md 247→190 行（砍 57 行 + 加 QTS 模式新段）
+- DMSD CLAUDE.md 增加 Skills 继承段 + Hooks 继承段 + 全项目中枢联动段 + 沟通规则简版 + Git 段
+- 6 个项目 CLAUDE.md 顶部加沟通铁律段「不主动用英语名词」
+- dmsd-startup SKILL.md §4 新增「按需触发的事」段（搬 CLAUDE.md L132-150 原内容）
+- project-overview SKILL.md §1.7 dmsd-startup 描述加「+ §4 按需触发的事」
+- memory 新增 `feedback_no_timestamps_in_instruction_docs.md`
+- 未来所有 CLAUDE.md / SKILL.md 改动都按此铁律 — 不加时间戳尾巴 / 历史段 / bug 编号
+**相关**: `05_logs/raw/2026-05-26_dmsd-startup+CLAUDE.md大改.md` 阶段 6-9
+**事后回看**(几个月后补填):
+
+---
+
+## 2026-05-26 — 启动 SOP 集中化 — dmsd-startup skill 立项 + 全局 coord-check 退役（DMSD 项目下静默）
+
+**之前的决策**(2026-05-25 + 早些): DMSD 启动逻辑散在 3 处 — 全局 `~/.claude/hooks/session-start-coord-check.sh`（多会话协同检测） + 全局 `~/.claude/hooks/session-start-env-diff.sh`（环境清单对账）+ DMSD `bin/check_overview_drift.sh`（project-overview 漂移检测，SessionStart hook）+ DMSD `CLAUDE.md` 第 106-111 行「会话开始: 读 WIP.md」段
+**新的决策**:
+1. DMSD 新建 `~/dev/DMSD/.claude/skills/dmsd-startup/SKILL.md` — §2 5 件启动必做事（多会话协同注册 / project-overview 漂移检测 / ac-radar startup_check / 读 WIP / 报告状态）+ §4 按需触发的事（找文件 / TODO / WIP-TODO 铁律 / 文件联动）
+2. 全局 `session-start-coord-check.sh` 在 DMSD 项目下 `exit 0` 静默退出 — 由 dmsd-startup §2 Step 1 接管
+3. 全局 `session-start-env-diff.sh` 不动 — 留全局自动跑（覆盖所有项目）
+4. 每个项目以后独立做自己的启动 skill（QTS / tango / SC26 等先不做，按需后续）
+**为什么改**:
+1. itsuki 反问「这不应该做成 skill 吗？sesion start env diff 和 start coor 不都是应该集合到启动 skill 里吗？」— CC 第一方案「挂钩不动 + skill 抽段」被推翻，itsuki 想要的不是「挂钩 + skill 互补」是「全集中到一个 skill」
+2. 散在 3 处 = 容易漏，集中到 skill = 一站式入口 + CC 启动后读一次拿到完整 SOP
+3. 设计哲学：单一职责 + 单一入口 over 多层冗余 + 互补
+4. env-diff 留全局是因为它是「跨项目通用对账」（全局工具差异），不属于「项目特定启动逻辑」 — 职责本来就在全局层
+**这个改动影响了什么**:
+- DMSD `.claude/skills/` 多 1 个 skill（7→8）
+- DMSD CLAUDE.md 顶部加「⭐⭐⭐ dmsd-startup 强制加载」段（5 行核心 + 简化的会话开始段）
+- `~/.claude/hooks/session-start-coord-check.sh` DMSD 项目下静默退出
+- 未来其他 5 项目（QTS / tango / SC26 / practice / cc-project-template）都要做自己的启动 skill
+- 长期：每项目启动 skill 内容会因项目差异而不同（DMSD 有 5 端联动 / QTS 有 DECISIONS.md / tango 单端 web 等）
+**相关**: `05_logs/raw/2026-05-26_dmsd-startup+CLAUDE.md大改.md` 阶段 4-5
+**事后回看**(几个月后补填):
+
+---
+
+## 2026-05-26 — destructive-bash 行为约定立项（CC 看到 WARN 自己停下想，不阻断不批准）
+
+**之前的决策**(2026-05-12): `pre-bash-destructive-block.sh` 从 exit 2 阻断改成 warn 模式（注入 ⚠️ destructive-bash-WARN 文字提醒，不阻断命令）
+**新的决策**: 在全局 `~/.claude/CLAUDE.md` 加 CC 行为约定段。CC 看到 WARN 后：(1) 自己停下来想一遍这命令真有必要吗 (2) 没必要 → 不跑 + 跟 itsuki 说一句「本来要跑 X 反思后跳过」(3) 有必要 → 直接跑不专门征求同意 (4) 灾难级（rm -rf 到 repo / rm .git / git push --force 到 main）即使有必要也要先确认
+**为什么改**:
+1. 5-12 改成 warn 后 itsuki 感觉「hook 没在工作」— warn 模式靠 CC 自觉，CC 看到警告但下意识继续跑命令 → 从外部看就是「命令照跑 / hook 等于没」
+2. CC 提 A 全阻断 / B 加规则 / C 灾难级分档 + 可恢复级 warn 三方案 — itsuki 选 B 简化版「不要分档，不要征求同意，只要让 CC 多一次反思窗口」
+3. 这不是技术决策是设计哲学 — 工具不必非「拦」或「批」，可以是「提醒反思」第三态
+**这个改动影响了什么**:
+- 全局 `~/.claude/CLAUDE.md` 加 `## destructive-bash-WARN 看到之后怎么办` 段（5 行行为约定）
+- `pre-bash-destructive-block.sh` 脚本本体不变（已经是 warn 模式 + 8 个 pattern）
+- 沟通规则隐性立铁律 — 工具警告不是用来阻断 CC，是用来给 CC 反思空间
+**相关**: `05_logs/raw/2026-05-26_dmsd-startup+CLAUDE.md大改.md` 阶段 1
+**事后回看**(几个月后补填):
+
+---
+
 ## 2026-05-22 — 撤回中国海运渠道，改日本本地买点呼机配件
 
 **之前的决策**(2026-05-08): 11 件配件淘宝集中下单 ¥381 RMB 海运到日本（含 Pi 3A+ / PN532 V3 红板 / ST25DV16K × 2 / NTAG215 × 50 / LED 5 色套装 / USB 小音响 / 面包板 / 杜邦线 / 电源 / 透明壳 + 风扇）

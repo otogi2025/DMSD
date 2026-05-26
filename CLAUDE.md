@@ -88,7 +88,7 @@ git 状态确认（git status / 残留 / 未 push / stash）→ **会话结尾�
 
 1. iCloud `05_产出/` 永不写 — itsuki 原创志望理由书 / 自我推荐书 / 面试准备
 2. iCloud `03_素材_候选/` + `04_素材_成品/` 写需 itsuki 当场授权
-3. `05_logs/decision_log.md` / `project_evolution.md` / `learning_path.md` 正文 CC 永不直写，只起草 draft 等 itsuki 粘贴
+3. `05_logs/decision_log.md` / `project_evolution.md` / `learning_path.md` **CC 直接 Edit 写**（记录类，不让 itsuki 做粘贴手活 — 详见 memory `feedback_no_handoff_work_back_to_itsuki.md`）；AC 叙事文档 + iCloud 仍归 itsuki
 4. AC 叙事文档 `vX.Y.Z_AC叙事.md` itsuki 自己写，CC 等他来问才辅助，不主动起草
 5. 叙事归属：raw 阶段写「AI 提了 X，我评估后采纳/拒绝/改造，理由是 Y」 — **不写"未完全理解"类自我贬低标记**
 
