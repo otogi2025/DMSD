@@ -18077,11 +18077,34 @@
     >
       // /records, /search, /notifications, /cleaning, /info, /community pages.
 
-      function RecordsPage({ teacher, params, onNav }) {
+      function RecordsPage({ teacher, params, onNav, authToken }) {
         const T = window.RYO;
         const date = (params && params.date) || "2026-04-21";
         const roster =
           teacher.dorm === "men" ? window.ROSTER_MEN : window.ROSTER_WOMEN;
+
+        // 5-27 backend commit c0a22d1 — 拉过去 7 天点呼 session 历史
+        const [backendHistory, setBackendHistory] = React.useState(null);
+        React.useEffect(() => {
+          if (!authToken) return;
+          let cancelled = false;
+          window.tomoshibiApi
+            .rollcallSessionsHistory(authToken)
+            .then((rows) => {
+              if (!cancelled) setBackendHistory(rows);
+            })
+            .catch((e) => {
+              if (cancelled) return;
+              console.warn(
+                "[RecordsPage] rollcallSessionsHistory 失败 → mock fallback",
+                e,
+              );
+              setBackendHistory(null);
+            });
+          return () => {
+            cancelled = true;
+          };
+        }, [authToken]);
         const statuses = [
           "ok",
           "ok",
@@ -23765,6 +23788,7 @@
                 teacher={teacher}
                 params={pageParams}
                 onNav={nav}
+                authToken={authToken}
               />
             );
             break;
