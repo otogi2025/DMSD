@@ -9,21 +9,20 @@ GET  /api/v1/study/absence-requests             — 欠席届一覧 (学習担�
 POST /api/v1/study/absence-requests/{id}/decision — 承認/拒否
 POST /api/v1/study/cancel-today                 — 今日学習中止 (学習担当のみ)
 """
+
 from __future__ import annotations
 
-import uuid
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import and_, select
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
 from ..deps import get_current_student, get_current_teacher, require_teacher_roles
-from ..services import email as email_svc
 
 router = APIRouter(prefix="/api/v1/study", tags=["study"])
 
@@ -34,22 +33,32 @@ STUDY_START_MINUTE = 40
 ABSENCE_DEADLINE_HOUR = 19
 ABSENCE_DEADLINE_MINUTE = 40
 
+# spec §7.5 + propose §1.2 学習欠席自动扣分点数（finalize 时 add DemeritEvent）
+STUDY_ABSENT_POINTS = 1.5
+
 
 def _today_jst() -> date:
     from zoneinfo import ZoneInfo
+
     return datetime.now(ZoneInfo("Asia/Tokyo")).date()
 
 
 def _now_jst() -> datetime:
     from zoneinfo import ZoneInfo
+
     return datetime.now(ZoneInfo("Asia/Tokyo"))
 
 
 def _study_start_dt(target: date) -> datetime:
     from zoneinfo import ZoneInfo
+
     return datetime(
-        target.year, target.month, target.day,
-        STUDY_START_HOUR, STUDY_START_MINUTE, 0,
+        target.year,
+        target.month,
+        target.day,
+        STUDY_START_HOUR,
+        STUDY_START_MINUTE,
+        0,
         tzinfo=ZoneInfo("Asia/Tokyo"),
     )
 
@@ -68,12 +77,9 @@ def today_attendees(
 
     # 当日有効な study_roster
     term = _academic_term(today)
-    roster_stmt = (
-        select(models.StudyRoster)
-        .where(
-            models.StudyRoster.academic_term == term,
-            models.StudyRoster.removed_at.is_(None),
-        )
+    roster_stmt = select(models.StudyRoster).where(
+        models.StudyRoster.academic_term == term,
+        models.StudyRoster.removed_at.is_(None),
     )
     roster_rows = db.scalars(roster_stmt).all()
     student_ids = [r.student_id for r in roster_rows]
@@ -129,7 +135,10 @@ def today_attendees(
     # R4 dorm filter
     dorm_filter: tuple[int, ...]
     if teacher.assigned_dorm is None or teacher.role in {
-        "寮務部長", "寮務課長", "国際交流部長", "国際交流課長",
+        "寮務部長",
+        "寮務課長",
+        "国際交流部長",
+        "国際交流課長",
     }:
         dorm_filter = (1, 2, 4)
     elif teacher.assigned_dorm == 1:
@@ -149,10 +158,14 @@ def today_attendees(
             outstay_cnt += 1
             attendees.append(
                 schemas.StudyAttendeeOut(
-                    student_id=sid, student_no=s.student_no, name=s.name,
-                    room_no=s.room_no, dorm_unit=s.dorm_unit,
+                    student_id=sid,
+                    student_no=s.student_no,
+                    name=s.name,
+                    room_no=s.room_no,
+                    dorm_unit=s.dorm_unit,
                     expected_status="exempted_outstay",
-                    exemption_reason="出寮届承認済", checkin=None,
+                    exemption_reason="出寮届承認済",
+                    checkin=None,
                 )
             )
             continue
@@ -160,10 +173,14 @@ def today_attendees(
             absence_cnt += 1
             attendees.append(
                 schemas.StudyAttendeeOut(
-                    student_id=sid, student_no=s.student_no, name=s.name,
-                    room_no=s.room_no, dorm_unit=s.dorm_unit,
+                    student_id=sid,
+                    student_no=s.student_no,
+                    name=s.name,
+                    room_no=s.room_no,
+                    dorm_unit=s.dorm_unit,
                     expected_status="exempted_absence",
-                    exemption_reason="学習欠席届承認済", checkin=None,
+                    exemption_reason="学習欠席届承認済",
+                    checkin=None,
                 )
             )
             continue
@@ -175,18 +192,39 @@ def today_attendees(
 
         attendees.append(
             schemas.StudyAttendeeOut(
-                student_id=sid, student_no=s.student_no, name=s.name,
-                room_no=s.room_no, dorm_unit=s.dorm_unit,
-                expected_status="expected", checkin=checkin_dict,
+                student_id=sid,
+                student_no=s.student_no,
+                name=s.name,
+                room_no=s.room_no,
+                dorm_unit=s.dorm_unit,
+                expected_status="expected",
+                checkin=checkin_dict,
             )
         )
 
     # 五十音 sort
     attendees.sort(key=lambda a: a.name)
 
-    present = sum(1 for a in attendees if a.checkin and a.checkin["status"] in ("present", "late") and a.expected_status == "expected")
-    late = sum(1 for a in attendees if a.checkin and a.checkin["status"] == "late" and a.expected_status == "expected")
-    absent = sum(1 for a in attendees if a.expected_status == "expected" and (not a.checkin or a.checkin["status"] == "absent"))
+    present = sum(
+        1
+        for a in attendees
+        if a.checkin
+        and a.checkin["status"] in ("present", "late")
+        and a.expected_status == "expected"
+    )
+    late = sum(
+        1
+        for a in attendees
+        if a.checkin
+        and a.checkin["status"] == "late"
+        and a.expected_status == "expected"
+    )
+    absent = sum(
+        1
+        for a in attendees
+        if a.expected_status == "expected"
+        and (not a.checkin or a.checkin["status"] == "absent")
+    )
 
     return schemas.StudyTodayOut(
         target_date=today,
@@ -217,7 +255,9 @@ def create_checkin(
 
     student = db.get(models.Student, body.student_id)
     if not student:
-        raise HTTPException(404, {"code": "NOT_FOUND", "message": "学生が見つかりません"})
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "学生が見つかりません"}
+        )
 
     # 既存レコード確認 (upsert 相当)
     existing = db.scalars(
@@ -231,7 +271,9 @@ def create_checkin(
 
     if existing:
         if existing.status not in ("init", "absent"):
-            raise HTTPException(409, {"code": "ALREADY_CHECKED_IN", "message": "既に出席記録済みです"})
+            raise HTTPException(
+                409, {"code": "ALREADY_CHECKED_IN", "message": "既に出席記録済みです"}
+            )
         existing.checked_at = checked_at
         existing.status = determined_status
         existing.recorded_by = teacher.id
@@ -297,9 +339,7 @@ def bulk_finalize(
     existing_map = {
         c.student_id: c
         for c in db.scalars(
-            select(models.StudyCheckin).where(
-                models.StudyCheckin.target_date == today
-            )
+            select(models.StudyCheckin).where(models.StudyCheckin.target_date == today)
         ).all()
     }
 
@@ -310,14 +350,35 @@ def bulk_finalize(
         c = existing_map.get(sid)
         if c is None:
             # 新規 absent 行
-            db.add(models.StudyCheckin(
-                student_id=sid, target_date=today, status="absent", recorded_by=teacher.id
-            ))
+            db.add(
+                models.StudyCheckin(
+                    student_id=sid,
+                    target_date=today,
+                    status="absent",
+                    recorded_by=teacher.id,
+                )
+            )
             to_absent.append(sid)
         elif c.status == "init":
             c.status = "absent"
             c.recorded_by = teacher.id
             to_absent.append(sid)
+
+    # spec §7.5 学習欠席自动扣 1.5 点（propose §1.2 默认值）
+    # finalize 老师 = created_by（不是 None — 老师按了「学習終了」是手动触发）
+    month = today.strftime("%Y-%m")
+    for sid in to_absent:
+        db.add(
+            models.DemeritEvent(
+                student_id=sid,
+                source_type="study_absent",
+                source_event_id=None,
+                points=STUDY_ABSENT_POINTS,
+                reason=f"学習欠席（{today.isoformat()}）",
+                month=month,
+                created_by_teacher_id=teacher.id,
+            )
+        )
 
     db.commit()
 
@@ -339,7 +400,9 @@ def patch_checkin(
 ):
     record = db.get(models.StudyCheckin, checkin_id)
     if not record:
-        raise HTTPException(404, {"code": "NOT_FOUND", "message": "記録が見つかりません"})
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "記録が見つかりません"}
+        )
     record.status = body.status
     record.overridden_by = teacher.id
     record.override_reason = body.override_reason
@@ -368,7 +431,10 @@ def submit_absence_request(
         if now.time() >= deadline:
             raise HTTPException(
                 422,
-                {"code": "LATE_SUBMISSION", "message": "学習欠席届の締切 (19:40) を過ぎています"},
+                {
+                    "code": "LATE_SUBMISSION",
+                    "message": "学習欠席届の締切 (19:40) を過ぎています",
+                },
             )
 
     # 重複チェック
@@ -381,7 +447,10 @@ def submit_absence_request(
     if existing:
         raise HTTPException(
             409,
-            {"code": "DUPLICATE_REQUEST", "message": "この日の欠席届は既に提出済みです"},
+            {
+                "code": "DUPLICATE_REQUEST",
+                "message": "この日の欠席届は既に提出済みです",
+            },
         )
 
     record = models.StudyAbsenceRequest(
@@ -491,11 +560,15 @@ def cancel_today(
             c.overridden_by = teacher.id
             c.override_reason = "今日学習中止"
         else:
-            db.add(models.StudyCheckin(
-                student_id=sid, target_date=today,
-                status="exempt", recorded_by=teacher.id,
-                override_reason="今日学習中止",
-            ))
+            db.add(
+                models.StudyCheckin(
+                    student_id=sid,
+                    target_date=today,
+                    status="exempt",
+                    recorded_by=teacher.id,
+                    override_reason="今日学習中止",
+                )
+            )
 
     db.commit()
     return {"cancelled_count": len(roster_ids), "target_date": str(today)}

@@ -26,6 +26,14 @@ from ..deps import get_current_teacher
 
 router = APIRouter(prefix="/api/v1/rollcall", tags=["rollcall"])
 
+# spec §7.5 + propose §1.2 自动扣分点数
+# late 1 点 / absent 2 点（与改判联动 _OVERRIDE_DEMERIT_MAP 中 present→late=+0.5 /
+# present→absent=+1.0 的差额对齐 — 整数 vs 差额是两套机制：
+# - 这里 = 学生本来就 late/absent 的初始扣分
+# - 改判联动 = 老师改判时新增 / 减少的差额）
+ROLLCALL_LATE_POINTS = 1.0
+ROLLCALL_ABSENT_POINTS = 2.0
+
 
 def _today_jst() -> date:
     from zoneinfo import ZoneInfo
@@ -307,6 +315,22 @@ def create_checkin(
         card_uid=body.card_uid,
     )
     db.add(event)
+
+    # spec §7.5 自动扣分 — late 即扣 1 点
+    # 老师之后改判 late → present 走 _OVERRIDE_DEMERIT_MAP 自动 revoke
+    if base_status == "late":
+        db.add(
+            models.DemeritEvent(
+                student_id=student.id,
+                source_type="rollcall_late",
+                source_event_id=session.id,
+                points=ROLLCALL_LATE_POINTS,
+                reason=f"点呼遅刻（{session.session_type}）",
+                month=session.scheduled_window_start_at.strftime("%Y-%m"),
+                created_by_teacher_id=None,
+            )
+        )
+
     db.commit()
     db.refresh(event)
     return schemas.RollCallEventOut.model_validate(event)
@@ -598,6 +622,7 @@ def _settle_absent(db: Session, session: models.RollCallSession) -> None:
         ).all()
     )
 
+    month = session.scheduled_window_start_at.strftime("%Y-%m")
     for s in students:
         if s.id not in checked_ids:
             db.add(
@@ -608,5 +633,17 @@ def _settle_absent(db: Session, session: models.RollCallSession) -> None:
                     base_status="absent",
                     status_source="auto_settle",
                     checked_in_at=_now_jst(),
+                )
+            )
+            # spec §7.5 缺席自动扣 2 点；改判 absent → present 走 _OVERRIDE_DEMERIT_MAP 自动 revoke
+            db.add(
+                models.DemeritEvent(
+                    student_id=s.id,
+                    source_type="rollcall_absent",
+                    source_event_id=session.id,
+                    points=ROLLCALL_ABSENT_POINTS,
+                    reason=f"点呼欠席（{session.session_type}）",
+                    month=month,
+                    created_by_teacher_id=None,
                 )
             )
