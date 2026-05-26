@@ -34,9 +34,10 @@ router = APIRouter(prefix="/api/v1/discipline", tags=["discipline"])
 CLEANING_THRESHOLD = 4.0
 CURFEW_THRESHOLD = 8.0
 
-# 谁能手动加扣分 + 撤销 — propose 寮監 / 寮務 / 学習担当 / 管理係 共 5 类
-# (一般教师 + 国際交流系 不行)
-_ADMIN_ROLES = {"寮監", "寮務部長", "寮務課長", "学習担当", "管理係"}
+# 手动加扣分 / 撤销权限 — 跟 cleaning / front_desk 对齐 4 类
+# 寮監 + 寮務部長 + 寮務課長 + 管理係
+# （学習担当的扣分由 study.py 自动加，不走手动；一般教师 + 国際交流系 不行）
+_ADMIN_ROLES = {"寮監", "寮務部長", "寮務課長", "管理係"}
 
 
 @router.get("/ranking", response_model=schemas.DemeritRankingOut)
@@ -68,17 +69,11 @@ def get_ranking(
     points_by_student: dict[UUID, float] = {r.student_id: r.total_points for r in rows}
 
     # 拉全员学生（即使本月 0 点也要列出）
-    student_stmt = select(models.Student)
-    # R4 寮过滤
-    if teacher.assigned_dorm is not None and teacher.role not in {
-        "寮務部長",
-        "寮務課長",
-        "国際交流部長",
-        "国際交流課長",
-    }:
-        student_stmt = student_stmt.where(
-            models.Student.dorm_unit == teacher.assigned_dorm
-        )
+    student_stmt = select(models.Student).where(models.Student.is_demo.is_(False))
+    # R4 寮过滤（男寮 1→[1,2] / 女寮 4→[4] / 跨寮 → None 看全部）
+    dorm_units = dorm_units_for_teacher(teacher)
+    if dorm_units is not None:
+        student_stmt = student_stmt.where(models.Student.dorm_unit.in_(dorm_units))
     all_students = db.scalars(student_stmt).all()
 
     entries: list[schemas.DemeritRankingEntryOut] = []
@@ -129,7 +124,7 @@ def create_manual_demerit(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={
                 "code": "FORBIDDEN_ROLE",
-                "message": "手动加扣分需要寮監 / 寮務 / 学習担当 / 管理係 权限",
+                "message": "手动加扣分需要寮監 / 寮務 / 管理係 权限",
             },
         )
     # 校验学生存在
@@ -168,7 +163,7 @@ def revoke_demerit(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={
                 "code": "FORBIDDEN_ROLE",
-                "message": "撤销扣分需要寮監 / 寮務 / 学習担当 / 管理係 权限",
+                "message": "撤销扣分需要寮監 / 寮務 / 管理係 权限",
             },
         )
     event = db.get(models.DemeritEvent, event_id)
