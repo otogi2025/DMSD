@@ -43,54 +43,78 @@ teacher_web/
 **已归档（2026-05-26 Vite 实装版废弃）**：`99_archive/2026-05-26_teacher_web_vite实装作废/`
 - App.tsx / main.tsx / Shell.tsx / pages/ / store/ / vite_root_index.html / package.json + lock / vite.config.ts / tailwind.config.js / postcss.config.js / tsconfig*
 
-## 3. Round 2 已实装范围
+## 3. 已实装范围（UI 完成度 ~90%）
 
-| 页面 | 文件 | 状态 |
+权威源 `v1/src/index.html`（standalone HTML，inline 16 个组件源），JSX 源在 `v1/src/components/_legacy/`（14 个 `.jsx`）。
+
+| 区域 | 文件（_legacy/）| UI 状态 | 真接口 |
+|---|---|---|---|
+| `/login` 共用密码登录 | `login.jsx` LoginScreen | ✅ 5-26 含 3 失败 30s 锁定逻辑 + submitting state | ✅ FC-024 修复后 POST `${API_BASE}/sessions/teacher` 真后端认证 |
+| `/login/select-teacher` 选当值老师 | `select-teacher.jsx` | ✅ 含编辑模式（删 + 加老师 + 男女寮分类）| ⏳ 当前从 `window.TEACHERS` 假数据读 |
+| Shell（左 nav + topbar）| `shell.jsx` | ✅ 含全局搜索 + WS 指示器 + logout + 切换老师 + 恢复 Live | — |
+| `/roll-call` 点呼着陆 | `roll-call-landing.jsx` | ✅ 含 7 天趋势图 + 4 session 类型 + NFC 快速 URL 卡 | ⏳ |
+| `/roll-call/live` 实时座席 | `live-roll-call.jsx` | ✅ 含 late 5 色 + 预测条 + demo console + 12 学生 grid + 健康 🏥 overlay + 请假 ❔ overlay | ⏳ |
+| 手動調整 modal | `override-modal.jsx` | ✅ 含 pending leave / health report / 调整履歴扩展 | ⏳ |
+| `/applications` 申请中心 | `applications.jsx` + `outstay-detail-modal.jsx` | ✅ 外泊完整（list + rule banner + detail modal + 5 sub-tab + 期限计算 + isLateSubmission）/ ⏳ 帰国 / 帰省 / タクシー 3 个 SkeletonTab 占位 | ⏳ |
+| `/discipline` 扣分排名 | `discipline.jsx` | ✅ 含 RulePill + 排名 + 罚扫 + 禁足 + 警告リスト + future-alert preview | ⏳ |
+| `/records` `/search` `/notifications` | `pages-records-search-etc.jsx` | ✅ 签到历史按日筛 + 按学生/日期搜索 + 通知聚合 | ⏳ |
+| `/cleaning` 清掃 | inline CleaningPage | ✅ | ⏳ |
+| `/info` 寮内通知 + 行事 | inline InfoPage + EventCalendar + EventComposeModal + ComposeNoticeModal | ✅ | ⏳ |
+| `/community` 寮掲示板 + リクエスト曲 | inline CommunityPage | ✅ 含 hashColor / pin / resolve / 匿名建議 | ⏳ 老师公告 client（client.ts）尚未接入 |
+| `/front-desk` 宅配 + 忘れ物 | `front-desk.jsx` | ✅ 含 4 数字卡 + DeliveryRow + NotifCard | ⏳ |
+| `/accounts` 账号管理 | `accounts.jsx` + AccountDetailModal | ✅ 含详情 modal + 密码重置 + 解锁 + activity mock | ⏳ |
+| バス時刻 | inline BusSchedulePanel + BusPostCard + BusEventBlock + BusPostComposeModal | ✅ | ⏳ |
+
+**5-26 大调整后已解决项**：
+- ✅ late 黄色 + 迟到阈值已加（`theme.jsx` `late: '#b8871f'` + `window.LATE_THRESHOLD_SEC = 180`）→ 原 §5「Spec 对齐项」作废
+- ✅ FC-024 明文密码 `12345678` 已删（commit `b0bed26`）→ LoginScreen 改 fetch backend 真认证
+
+## 4. 未实装范围（v1.0 上线前剩余）
+
+**UI 维度真实剩余 — 3 个 SkeletonTab**（applications.jsx 内）：
+
+- `/applications/return` 帰国 申请 — 当前 SkeletonTabBody，待补 List + Detail + 承認（仿 OutstayList 模式）
+- `/applications/home` 帰省 同上
+- `/applications/taxi` タクシー 同上
+
+加 itsuki TODO §🛠️ §L「未来设计层 polish 候选方向」4 条（可选，不阻塞上线）。
+
+**真后端接入维度全部待做**（除 Login 5-26 修 FC-024 时已接）：
+
+- 学生 list / state — 当前用 `window.ROSTER_MEN/WOMEN/ALL/ACCOUNTS` 假数据
+- 点呼 session — 当前用 React state 不持久化
+- 外泊申请 list / 承認 — 当前用 `window.OUTSTAY_APPS` 假数据
+- 扣分 / 申请 / 公告 / 宅配 / 账号 等 page 全部待接 `api/client.ts` 已定义的 26 个端点
+
+## 5. v1.0 上线关卡清单（实时状态）
+
+| 关卡 | 状态 | 备注 |
 |---|---|---|
-| `/login` | `round2/login.jsx` | ✅ UI 完成（teacher/1234 硬编码验证） |
-| `/roll-call` 点呼ダッシュボード | `round2/roll-call-landing.jsx` | ✅ UI 完成（session 选择 + 开始钮 + 4 统计卡 + 最近 session list） |
-| `/roll-call/live` 实时座席表 | `round2/live.jsx` | ✅ UI 完成（24 人 6 列 grid，学生姓名大字 24-28px，部屋 11px，学号 10px mono；4 状态；叠加 badge） |
-| 手動調整 modal | `round2/override-modal.jsx` | ✅ UI 完成（4 单选 + 原因必填 + 欠席届同時承認 checkbox） |
-| Shell（左 nav + 7 大类菜单） | `round2/shell.jsx` | ✅ UI 完成 |
+| FC-024 删 index.html 明文密码 `12345678` | ✅ 5-26 commit `b0bed26` | LoginScreen 改 fetch `${API_BASE}/sessions/teacher` 真后端，删 demo 提示行 |
+| Spec late 黄色 + 迟到阈值 | ✅ theme.jsx 已加 | `LATE_THRESHOLD_SEC = 180`（3 分钟）|
+| FC-025/026/027/028 字段对齐 + 权限契约 | ✅ N/A（itsuki 5-26 TODO §🛠️ §L 拍板）| client.ts 没归档 → Task #6 真接口对接时重新审视 |
+| 真接口对接（Login 外）| ⏳ 待做 | 工程量大 — 16 个 page 接 backend；分阶段，先 LiveRollCall + Applications 主线 |
+| 3 个 SkeletonTab 补完 | ⏳ 待做 | 帰国 / 帰省 / タクシー — 仿 OutstayList 模式 |
+| demo_server.py 补回 NFC 实时点呼 | ⏳ 待做（itsuki TODO §🛠️ §L 第 1 条）| 3 个端点 50 行 — demo 用不是 v1.0 上线必需 |
 
-**状态枚举（theme.jsx 里已定）**：`ok / absent / exempt / unknown`，**当前没有 late 黄色**（和 spec §4.1 五色表冲突 — 见 §5 追记）。
+## 6. 真接口对接路线（D3-D6 — Login 已 D0）
 
-## 4. 未实装范围（Round 3 计划）
+D0 = Login 真后端认证（5-26 FC-024 修复时落地，commit `b0bed26`）。
 
-Tier 1 剩 7 页（Claude Design 尚未做）：
-- `/applications/outstay` 外泊列表 + 详情 + 承認
-- `/applications/return-home` 帰国同上
-- `/discipline` 全员月排名 + 罚扫 / 禁足 / 警告リスト
-- `/records` 签到历史按日筛
-- `/search` 按学生 / 按日期聚合
-- 健康上报 flow（学生 iOS 提交 → Web 座席 🏥 overlay）
-- 请假 flow（学生 iOS 提交 → Web 座席 ? overlay → 一键承認）
+D3-D6 路线（端点引用 backend FastAPI `app/main.py` + `routers/`）：
 
-Tier 2 skeleton 15 项（一个统一 `<SkeletonPage>` 组件复用）：
-清掃審査 / 帰県申請 / タクシー予約 / バス時刻 / 行事カレンダー / 匿名建議 / 忘れ物 / 寮掲示板 / リクエスト曲 / 宅配通知 / 長期免除 / 清掃評分・抵扣 / 連続超標預警 / CSV・PDF 出力按钮 / 通知中心（聚合 4 数字）
+1. **D3**：`window.seedStudents()` → `fetch('/api/v1/rollcall/sessions/{id}/board')` + `useEffect`；WebSocket `new WebSocket('/ws/teacher')` 收 `checkin / outstay_new / ...` 事件 `setStudents`；点呼開始 → `POST /api/v1/rollcall/sessions/{id}/start`；終了 → `POST /api/v1/rollcall/sessions/{id}/end`
+2. **D4**：override modal 保存 → 当前 backend 没有 `PATCH /api/v1/checkins/{id}/override` 单独端点（待补 / 或走 manual checkin 接口）
+3. **D5**：3 个 SkeletonTab 补完（帰国 / 帰省 / タクシー — 仿 OutstayList 模式）
+4. **D6**：客户端 events 内嵌 axios 风格 helper / 内联 `api/client.ts` 到 standalone
 
-## 5. ⚠️ Spec 对齐项（Round 3 前 itsuki 决策一次）
+接入方案：不改 `_legacy/*.jsx` 设计源结构，只把数据源从 `window.ROSTER`/`window.OUTSTAY_APPS` 等常量 → `api/client.ts` 已定义的 fetch 调用。所有 UI 保持 pixel fidelity（handoff README 明确要求 "match visual output"）。
 
-Round 2 原型里 `theme.jsx` 的状态只有 4 色（`ok / absent / exempt / unknown`，**无 late**），注释 `// seat statuses (no late)`。但 2026-04-21 晚 itsuki 纠正："黄色是迟到，等到了具体时间还没签到的人，就自动变成黄色"，并指明 `01_specs/rollcall/RollCall_Spec.md §4.1 §5.3` 里有权威规则（绿/黄/红/灰/蓝 + overlay 黑）。
+`api/client.ts`（416 行）已定义 26 个 endpoint 接口（auth / applications / study / rollcall / teachers / announcements）— 内联到 standalone HTML 时需要：
 
-**影响**：`theme.jsx` 需要加 `late` token（黄色系）+ `late` status；`live.jsx` 需渲染第 5 色；session 开始后达到迟到阈值（默认 3 分钟 = `on_time_end - window_start`）时前端自动把"未签到的 unknown"渲染成 late 黄。
-
-**Round 3 开工前要做**：
-- [ ] itsuki 下次丢给 Claude Design 一条消息让它加 late 状态 + 迟到阈值逻辑（或代码 agent 直接在 `round2/theme.jsx` + `round2/live.jsx` patch）
-- [ ] 迟到具体时间做成 `discipline_config.late_threshold_seconds`（默认 180），demo 彩排可临时改小
-
-## 6. 下一步（code agent 侧实装路线）
-
-这份设计当前是静态 prototype（seed 假数据在 `theme.jsx ROSTER` + `index.html seed()` 函数里）。变成**真前端**需要：
-
-1. **D3**（4-23）：把 `seed()` 函数改成 `fetch('/api/students')` + `useEffect` 初始化
-2. **D3**：接入 WebSocket（`new WebSocket('/ws/teacher')`），收 `checkin / outstay_new / ...` 事件后 `setStudents` 更新
-3. **D3**：点"点呼を開始" 改成 `POST /api/roll-call/start`；"終了" 改成 `POST /api/roll-call/end` + 后端补 absent
-4. **D4**：override modal 的保存改成 `PATCH /api/checkins/{id}/override`
-5. **D5**：Tier 1 剩余 7 页按 Claude Design Round 3 产出补
-6. **D6**：Tier 2 skeleton 15 项一次性生成
-
-接入方案：**不改设计师的 JSX 源码结构**，只把数据源从 ROSTER 常量 → API response。所有 UI 保持 pixel fidelity（handoff `README.md` 明确要求 "match visual output"）。
+(a) 删 TS 类型导出（standalone 不编译）
+(b) 改 `import("../store/auth").TeacherProfile` 死链（auth.ts 已归档到 99_archive）— 改成 inline type / 或 `window.TeacherProfile`
+(c) 暴露到 `window.tomoshibiApi` namespace
 
 ## 7. Demo Day 兜底
 

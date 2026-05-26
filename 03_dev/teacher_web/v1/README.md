@@ -32,22 +32,26 @@ itsuki 看完效果后**整体不喜欢**，当场 `git checkout 03_dev/teacher_
 
 完整 polish 内容跟未来如果再想试都看 commit 历史 + 5-26 raw log。
 
-## 当前状态
+## 当前状态（UI ~90% / 真接口 0%）
 
-- ✅ **设计权威**：`src/index.html` + `src/_legacy/*.jsx`（设计即代码）
-- ✅ **5 个 Round 2 页面已实装**：Login / RollCall Landing / Live Seat Grid / Override Modal / Shell
-- ✅ **`src/api/client.ts` 保留**（后端真接口对接代码 — 未来 Ryō 接真后端时复用）
-- ⏳ **Tier 1 剩 7 页未做**：外泊申请 / 归国 / 扣分排名 / 签到历史 / 搜索 / 健康上报 / 请假流程
-- ⏳ **Tier 2 skeleton 15 项未做**：清扫审査 / 帰県申請 / タクシー予約 / ...
-- ⚠️ **demo_server.py 不存在**：原本支持 iPhone 快捷指令 → 服务器 → 浏览器实时点呼。当前用 Python 内建 http.server 只做静态，NFC 实时点呼 demo 功能暂时失效
+- ✅ **设计权威**：`src/index.html` + `src/components/_legacy/*.jsx`（14 个 jsx 设计即代码）
+- ✅ **16 个 page / modal 已 UI 实装**（不只 5 个 Round 2）：Login / SelectTeacher / Shell / RollCallLanding / LiveRollCall / OverrideModal / ApplicationsPage + OutstayDetailModal / DisciplinePage / RecordsPage / SearchPage / NotificationsPage / CleaningPage / InfoPage（含 EventCalendar / BusSchedule） / CommunityPage / FrontDeskPage / AccountsPage
+- ✅ **late 黄色 + 迟到阈值已加**（5-26 之前别会话 — `theme.jsx` `late: '#b8871f'` + `LATE_THRESHOLD_SEC = 180`）
+- ✅ **FC-024 明文密码已删**（5-26 commit `b0bed26`）— LoginScreen 改 fetch `${API_BASE}/sessions/teacher` 真后端认证
+- ✅ **`src/api/client.ts` 保留**（416 行，已定义 26 个 endpoint 接口 — 未来 Ryō 接真后端时复用）
+- ⏳ **3 个 SkeletonTab 占位未补**：applications.jsx 内的 帰国 / 帰省 / タクシー（仿 OutstayList 模式补 List + Detail + 承認）
+- ⏳ **真接口对接全部待做**（除 Login）：16 个 page 仍用 `window.ROSTER` / `window.OUTSTAY_APPS` 等假数据；详细路线见 `../DESIGN_BRIEF.md §6`
+- ⚠️ **demo_server.py 不存在**：原本支持 iPhone 快捷指令 → 服务器 → 浏览器实时点呼。当前 `./tomoshibi start` 跑 `python3 -m http.server` 只做静态，NFC 实时点呼 demo 功能暂时失效。itsuki TODO §🛠️ §L 第 1 条已列为待办
 
 ## 已知问题
 
 详见 `00_admin/系统bug专栏.md §🤖 Codex 段`：
-- [FC-024] 🔴 `src/index.html` 仍有明文密码 `12345678`（v1.0 上线前必删）
-- [FC-025] 🟡 `StayLocation` 字段形状跟后端不一致
-- [FC-026] 🟡 `StudyAbsenceRequestOut` 缺 `period` 字段
-- [FC-027] 🟡 老师公告 client 跟后端权限不一致 + 无页面使用
+
+- [FC-024] 🔴 ✅ **已修**（5-26 commit `b0bed26`）— 删 `window.SHARED_PASSWORD = '12345678'` + LoginScreen 改 backend 真认证
+- [FC-025] 🟡 ✅ **N/A**（itsuki 5-26 TODO §🛠️ §L 拍板 — Vite 整体废弃；client.ts 没归档 → Task 真接口对接时重新审视）
+- [FC-026] 🟡 ✅ N/A（同上）
+- [FC-027] 🟡 ✅ N/A（同上 + backend 端 `get_current_student` vs `get_current_teacher` 权限契约待 Task 真接口对接时一起补）
+- [FC-028] 🟡 ✅ N/A（同上 — Web 侧 `pages/Teachers.tsx` 已归档；但 backend `routers/teachers.py:28` 角色清单仍要跟未来 Ryō 邀请码 UI 对齐）
 
 ## 历史
 
