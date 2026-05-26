@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import get_current_teacher
+from ..deps import dorm_units_for_teacher, get_current_teacher
 
 router = APIRouter(prefix="/api/v1/cleaning", tags=["cleaning"])
 
@@ -47,19 +47,13 @@ def list_cleaning(
         .order_by(models.CleaningAssignment.area)
     )
     rows = db.scalars(stmt).all()
-    # R4 寮过滤通过学生关联
-    if teacher.assigned_dorm is not None and teacher.role not in {
-        "寮務部長",
-        "寮務課長",
-        "国際交流部長",
-        "国際交流課長",
-    }:
+    # R4 寮过滤（男寮 1→[1,2] / 女寮 4→[4] / 跨寮 → None 看全部）
+    dorm_units = dorm_units_for_teacher(teacher)
+    if dorm_units is not None:
         student_ids = {
             s.id
             for s in db.scalars(
-                select(models.Student).where(
-                    models.Student.dorm_unit == teacher.assigned_dorm
-                )
+                select(models.Student).where(models.Student.dorm_unit.in_(dorm_units))
             ).all()
         }
         rows = [r for r in rows if r.student_id in student_ids]
