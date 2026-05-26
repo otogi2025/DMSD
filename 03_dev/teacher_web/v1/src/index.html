@@ -22282,13 +22282,29 @@
       function App() {
         const T = window.RYO;
         // route: 'login' | 'select-teacher' | 'app'
-        const [route, setRoute] = React.useState("login");
+        // Task #15 §11.5 W5: JWT を sessionStorage に保存 — F5 後復元 / Safari 関閉時自動 clear
+        // sessionStorage 用「tomoshibi_auth」キーで {token, profile} JSON を保管。
+        const _restoredAuth = (() => {
+          try {
+            const raw = sessionStorage.getItem("tomoshibi_auth");
+            return raw ? JSON.parse(raw) : null;
+          } catch (e) {
+            return null;
+          }
+        })();
+        const [route, setRoute] = React.useState(
+          _restoredAuth && _restoredAuth.token ? "select-teacher" : "login",
+        );
         const [teachers, setTeachers] = React.useState(window.TEACHERS);
         const [teacher, setTeacher] = React.useState(null);
         const [lastTeacherId, setLastTeacherId] = React.useState(null);
         // FC-024 修復後: backend 認証で受け取った JWT + teacher profile を保存
-        const [authToken, setAuthToken] = React.useState(null);
-        const [authProfile, setAuthProfile] = React.useState(null);
+        const [authToken, setAuthToken] = React.useState(
+          _restoredAuth ? _restoredAuth.token || null : null,
+        );
+        const [authProfile, setAuthProfile] = React.useState(
+          _restoredAuth ? _restoredAuth.profile || null : null,
+        );
         // Task #6 真接口对接: backend が返した本日の点呼 session 一覧（null = 未 fetch / [] = backend 不可達 / [...] = 取得済）
         const [todaySessions, setTodaySessions] = React.useState(null);
         const [backendReachable, setBackendReachable] = React.useState(null); // null / true / false
@@ -22490,10 +22506,19 @@
           };
         }, [session, authToken]);
 
-        // FC-024 修復後: backend 認証成功 → token + profile を受け取って保存
+        // FC-024 + Task #15: backend 認証成功 → state 更新 + sessionStorage 永続化 (F5 復元)
         const loginOk = (token, profile) => {
           setAuthToken(token);
           setAuthProfile(profile);
+          try {
+            sessionStorage.setItem(
+              "tomoshibi_auth",
+              JSON.stringify({ token, profile }),
+            );
+          } catch (e) {
+            // private mode 等で失敗しても login は続行 (state には残る)
+            console.warn("[App] sessionStorage write 失敗", e);
+          }
           setRoute("select-teacher");
         };
         const pickTeacher = (t) => {
@@ -22506,7 +22531,27 @@
             msg: `${t.name} 先生でサインインしました · ${window.dormLabel(t.dorm)} 担当`,
           });
         };
-        const logout = () => {
+        // Task #15 W5 拍板: backend revoke + frontend clear 両方
+        // backend 失敗しても frontend は必ず clear (UI ロック防止)
+        const logout = async () => {
+          if (authToken) {
+            try {
+              await fetch(`${window.API_BASE}/sessions/current`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${authToken}` },
+              });
+            } catch (e) {
+              console.warn(
+                "[App] backend logout 失敗 (frontend clear 続行)",
+                e,
+              );
+            }
+          }
+          try {
+            sessionStorage.removeItem("tomoshibi_auth");
+          } catch (e) {
+            /* sessionStorage 失敗は無視 */
+          }
           setRoute("login");
           setTeacher(null);
           setAuthToken(null);
