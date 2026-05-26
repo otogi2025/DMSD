@@ -23034,6 +23034,9 @@
         // Task #6 第 6 步: 申請 pending list (backend Application[]) - 担当教師宛て未承認
         const [backendApplications, setBackendApplications] =
           React.useState(null);
+        // Task #10 (5-27): backend listTeachers から取得した教師一覧 (SelectTeacherScreen 用)
+        // null = 未取得 / [] = backend 不可達 → window.TEACHERS fallback / [...] = 真值
+        const [backendTeachers, setBackendTeachers] = React.useState(null);
         const [page, setPage] = React.useState("roll-call");
         const [pageParams, setPageParams] = React.useState(null);
         const [searchQuery, setSearchQuery] = React.useState("");
@@ -23130,6 +23133,43 @@
               );
               setTodaySessions([]);
               setBackendReachable(false);
+            });
+          return () => {
+            cancelled = true;
+          };
+        }, [authToken]);
+
+        // Task #10 (5-27): authToken が来たら backend listTeachers を fetch
+        // backend TeacherOut {id, login_id, name, role, assigned_dorm, ...} を
+        // UI 用 {id, name, dorm, initial, lastLoginMins} へ adapt。
+        // assigned_dorm: 1 (一寮) → men, 2 (二寮) → women (spec の dorm_unit 命名と一致、
+        // dorm_unit 数値からの map 暫定。複数寮対応は v1.1)。
+        React.useEffect(() => {
+          if (!authToken) {
+            setBackendTeachers(null);
+            return;
+          }
+          let cancelled = false;
+          window.tomoshibiApi
+            .listTeachers(authToken)
+            .then((rows) => {
+              if (cancelled) return;
+              const adapted = (rows || []).map((t) => ({
+                id: t.id,
+                name: t.name,
+                dorm: t.assigned_dorm === 2 ? "women" : "men",
+                initial: (t.name || "?").charAt(0),
+                lastLoginMins: null, // backend にこのフィールド無し、UI fallback
+              }));
+              setBackendTeachers(adapted);
+            })
+            .catch((err) => {
+              if (cancelled) return;
+              console.warn(
+                "[App] listTeachers 失敗 → window.TEACHERS fallback",
+                err,
+              );
+              setBackendTeachers([]);
             });
           return () => {
             cancelled = true;
@@ -23528,10 +23568,16 @@
           );
         }
         if (route === "select-teacher") {
+          // Task #10: backend listTeachers 取得済み (且 0 件以上) なら使う、
+          // 取得失敗 / 未取得なら window.TEACHERS fallback (demo 動作維持)
+          const teachersForUi =
+            backendTeachers && backendTeachers.length > 0
+              ? backendTeachers
+              : teachers;
           return (
             <>
               <window.SelectTeacherScreen
-                teachers={teachers}
+                teachers={teachersForUi}
                 lastTeacherId={lastTeacherId}
                 onPick={pickTeacher}
                 onDeleteTeacher={onTeacherDelete}
