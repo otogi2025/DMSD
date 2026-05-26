@@ -6,7 +6,7 @@
 > - 和 `progress_overview.md` 的区别: progress_overview 是稳定的章节目录,TODO 是可以频繁增删的任务池
 > - 完成的任务: 在 checkbox 前打 x,隔段时间(每周或每月)批量移到"已完成归档"
 
-**最后更新**: 2026-05-25 晚段（§🛠️ J 加 2 条新待办 — 触发词「翻车」首次实战测试 + inbox 累到 3-5 条后写「整理 inbox」SOP；起因：anti-ai-flavor skill 加第 3 触发词「翻车」单字 + 新建 `~/.claude/skills/anti-ai-flavor/inbox.md` — itsuki 收尾中途立项自我迭代机制）；早些更新：2026-05-25（5-25 drift 修 + session-coord 三层保险会话加 §📊 project-overview 历史欠债 2 条 + §🐚 shell 工具链 quirk 1 条 + §🛠️ J 首次创建 6 条）；2026-05-24 5-22 修漏洞会话补 §🎯 D1-D5 + §📁 / §💾 标 ✅ + 加未 push 37 commit；5-22 §🛰️ 点呼机段配件采购方向反转 — 5-12~16 中国海关查扣 → itsuki 拍板撤回中国海运 → 日本本地买 / 原 11 件淘宝清单 + 2 任务作废 / 加 6 条新待办；2026-05-21 加 §🐞 系统 Bug 专栏入口 131 条 / 清 §⏰ Cloud Design 5-12 过期项；2026-05-14 §🛠️ G + H；2026-05-13 §🛠️ E + F；2026-05-11 §📄；2026-05-08 §📱 + §🛰️ + §🐛<!-- VERSION_OK -->
+**最后更新**: 2026-05-26 晚段-2（§🛠️ 加 §K 新段「启动 SOP 集中化 + CLAUDE.md 重写残留」5 条 — 全局环境清单同步 / ~/.claude/ git repo propose 强化 / 其他 5 项目启动 skill / sync-check bin-script 警告 / WIP 加本会话条目；起因：dmsd-startup skill 立项 + DMSD CLAUDE.md 247→190 行重写到 QTS 模式 + 6 项目 CLAUDE.md 加沟通铁律「不主动用英语名词」+ destructive-bash 行为约定 + CLAUDE.md 文档观转变（时间戳冗余禁止））。早些 5-25 晚段（§🛠️ J 加 2 条新待办 — 触发词「翻车」首次实战测试 + inbox 累到 3-5 条后写「整理 inbox」SOP；起因：anti-ai-flavor skill 加第 3 触发词「翻车」单字 + 新建 `~/.claude/skills/anti-ai-flavor/inbox.md` — itsuki 收尾中途立项自我迭代机制）；早些更新：2026-05-25（5-25 drift 修 + session-coord 三层保险会话加 §📊 project-overview 历史欠债 2 条 + §🐚 shell 工具链 quirk 1 条 + §🛠️ J 首次创建 6 条）；2026-05-24 5-22 修漏洞会话补 §🎯 D1-D5 + §📁 / §💾 标 ✅ + 加未 push 37 commit；5-22 §🛰️ 点呼机段配件采购方向反转 — 5-12~16 中国海关查扣 → itsuki 拍板撤回中国海运 → 日本本地买 / 原 11 件淘宝清单 + 2 任务作废 / 加 6 条新待办；2026-05-21 加 §🐞 系统 Bug 专栏入口 131 条 / 清 §⏰ Cloud Design 5-12 过期项；2026-05-14 §🛠️ G + H；2026-05-13 §🛠️ E + F；2026-05-11 §📄；2026-05-08 §📱 + §🛰️ + §🐛<!-- VERSION_OK -->
 **当前版本**: 见 `CHANGELOG.md` 顶部 · 单源真值，见 `00_admin/文档同步点清单.md`
 
 > **2026-04-17 归档说明**：`executable_dev_checklist.md` 已归档到 `99_archive/2026-04-12_executable_dev_checklist.md`（内容已过期，功能被本 TODO.md 吸收）。
@@ -266,6 +266,14 @@
 - [ ] **触发词「翻车」首次实战测试**（**5-25 晚段第三轮升级新加**）— 5-25 拍板「翻车」单字触发 → CC 把上一条回复按 5 字段（原文 / 6 类归类 / 违反铁律 / 根因 / 修正版）写到 `~/.claude/skills/anti-ai-flavor/inbox.md` 末尾。等下次 CC 翻车 itsuki 喊一声看机制能不能跑通
 - [ ] **inbox 累到 3-5 条后写「整理 inbox」SOP**（**5-25 晚段第三轮升级新加**）— 批量合并到 `references/翻车案例库.md` 的流程还没定。需要的字段：合并触发词 / 重新编号规则（案例库已有 #1-#20）/ 合并完移到「已整理归档」区不直接删 / 合并时 CC 是否要主动重写修正版
 - [ ] **anti-ai-flavor 场景模板 5-8 补齐** — `HOW_TO_TALK.md` 现在只定了场景 1-4（做完事 / 卡住 / 简单 yes-no / 复杂解释），场景 5（发现新东西要解释）/ 6（2-3 种做法让拍板）/ 7（主动提醒踩坑）/ 8（反驳 itsuki）还是占位 — 下次会话继续走
+
+### K. 启动 SOP 集中化 + CLAUDE.md 重写残留（2026-05-26 晚段-2 加）
+
+- [ ] **全局环境清单 `~/.claude/我的环境.md` + `.html` 同步本会话新建 / 改动** — 本会话新建 `~/dev/DMSD/.claude/skills/dmsd-startup/SKILL.md`（DMSD 项目专属 skill）+ 改 `~/.claude/hooks/session-start-coord-check.sh`（DMSD 项目下静默退出）+ 改 `~/.claude/CLAUDE.md`（加沟通铁律段 + destructive-bash 行为约定段）— 收尾 §7.5 项 11 触发但本会话没补做（等下次会话 / 或本次最后补）
+- [ ] **~/.claude/ 做成 git 仓库 propose**（**5-14 立的 / 5-26 再次强化**）— 本会话改了 `~/.claude/CLAUDE.md` + `~/.claude/hooks/session-start-coord-check.sh` 都没法 git 备份。永久解决全局配置无历史问题。需要 itsuki 拍板初始化策略（git init / .gitignore 哪些 / hook 自动 commit 还是手动）
+- [ ] **其他 5 项目（QTS / tango / SC26 / practice / cc-project-template）独立启动 skill 都没做** — itsuki 5-26 拍板「先只做 DMSD 完整版」，其他项目按需后续做。开新项目工作时 propose 加项目级启动 skill
+- [ ] **sync-check 警告 `bin/check_overview_drift.sh` 联动文件未改** — 别会话改了脚本本体但 CLAUDE.md / 文档同步点清单 / hooks README 没提到。本会话不动（不是本会话改的）。要拍板：(a) 别会话补 (b) CC 下次会话主动补 (c) 改 sync-rules.sh 让 bin/check_overview_drift.sh 自动豁免
+- [ ] **WIP.md「最近会话」段加本会话条目** — 本次会话主题（启动 SOP 集中化 + CLAUDE.md 大改）跟晚段「iOS Bot 1 复查 + 全项目中枢注册」是 5-26 不同会话不同主题，应该单独加一条到「最近会话」段（最多 5 条上限）
 
 ## 📱 iOS 上架冲刺 — 剩余事项（2026-05-08 状态）
 

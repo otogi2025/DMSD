@@ -601,6 +601,8 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 | `2026-05-16.md` | 5-16 跨项目完整性审计 + 4 项目大修（Tango B 案 / SC26 轻修 / cc-project-template D 案清通用 / 全局 hook 改读 cwd / 修 macOS bash 3.2 heredoc 中文乱码 bug） | ⭐⭐⭐⭐⭐ |
 | `2026-05-16_AC合格率评估+官网验证.md` | 5-16 AC 入试合格率评估 + 筑波大学官网信息核对 | ⭐⭐⭐ |
 | `2026-05-19.md` | 5-19 project-overview 文件介绍大改造 + 9 处漂移对账修复 + 防漂 C 方案落地（hook 全覆盖 + 启动对账脚本）+ 元层翻车 itsuki「我看不懂了」 | ⭐⭐⭐⭐⭐ |
+| `2026-05-26.md` | 5-26 早段：iOS Bot 1 误删功能复查（全量 diff fork vs 主项目 v1 证实没遗留误删 + 撤暗夜模式 v2 + 3 上架配置归位）+ memory 加铁律「TODO 关条目不要问」+ 晚段：全项目中枢机制立项 + DMSD 注册档案 | ⭐⭐⭐⭐ |
+| `2026-05-26_dmsd-startup+CLAUDE.md大改.md` | 5-26 晚段-2：启动 SOP 集中化（dmsd-startup skill 立项 — 5 件启动必做事 + §4 按需触发段）+ DMSD CLAUDE.md 247→190 行重写（QTS 模式 — Skills 继承 / Hooks 继承 / 全项目中枢联动）+ 沟通铁律「不主动用英语名词」立项全局 + 6 项目 CLAUDE.md 落地 + destructive-bash 行为约定（自己停下想 / 没必要不走 / 灾难级才问）+ CLAUDE.md 文档观转变（时间戳冗余禁止）| ⭐⭐⭐⭐⭐ |
 
 ### 6.3 05_logs/dev_log/（9 文件）
 

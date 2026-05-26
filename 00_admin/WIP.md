@@ -50,6 +50,49 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+### 2026-05-26 晚段-2 by [MacBook-Pro-Opus 4.7 1M / 启动 SOP 集中化 + DMSD CLAUDE.md 247→190 重写]
+
+**主题**：⭐⭐⭐⭐⭐ 4 件大事 — (1) `pre-bash-destructive-block` hook 行为约定立项（CC 看到 WARN 自己停下想，没必要不走 / 有必要继续 / 灾难级才问 itsuki）(2) 沟通铁律「不主动用英语名词」全局 + 6 项目 CLAUDE.md 落地（除非项目代码 / 文档 / 文件名真出现过否则一律中文）(3) 启动 SOP 集中化 — `dmsd-startup` skill 立项（§2 5 件必做事 + §4 按需触发段）+ 全局 `session-start-coord-check.sh` 在 DMSD 项目下静默退出 (4) DMSD CLAUDE.md 247→190 行重写到 QTS 模式（A 砍 120 + B 搬 35 + D 补 70 — Skills 继承段 / Hooks 继承段 / 全项目中枢联动 / 沟通规则简版 / Git）+ CLAUDE.md 文档观转变（时间戳冗余禁止）
+
+**关键拍板**（itsuki 6 次明确决策）：
+- destructive-bash 行为约定：「不用停下来，只要自己停下来好好思考一遍有没有必要，然后没必要就不走，有必要就接着做」
+- 沟通铁律：「除非这个词在项目代码 / 文档 / 文件名里真出现过，否则一律用中文」
+- 启动 skill 集中化：「这不应该做成 skill 吗？sesion start env diff 和 start coor 不都是应该集合到启动 skill 里吗？」→「每项目独立启动 skill / env-diff 留全局 / coord-check 融进项目 skill」
+- 时间戳冗余禁止：「像这种 xxx 新加，完全没必要写到 claude.md 里啊，只是浪费时间」
+- CLAUDE.md 重写到 QTS 模式：「全部按照你的想法做。做之前记得先 git 一次备份」
+- auto mode 拦截 `~/.claude/CLAUDE.md` 修改 → itsuki 切手动模式 + 「跑」短指令
+
+**实际改动**（DMSD 7 + 全局 2 + 6 项目 CLAUDE.md + 新主题 raw = 16 文件 / 2 commit）：
+| 文件 | 改动 | commit |
+|---|---|---|
+| `~/.claude/CLAUDE.md` | 加沟通铁律段 + destructive-bash 行为约定段 | ⚠️ 全局非 git repo 无备份 |
+| `~/.claude/hooks/session-start-coord-check.sh` | DMSD 项目下 `exit 0` 静默退出 | ⚠️ 同上 |
+| `~/dev/DMSD/.claude/skills/dmsd-startup/SKILL.md` | 新建（200+ 行）— §2 5 件 + §3 不做 + §4 按需触发 + §5/§6 边界与行为约定 | `d1fc8b3` + `d608846` |
+| `~/dev/DMSD/CLAUDE.md` | 第 1 次加 2 段 → 第 2 次重写 247→190 QTS 模式 | `d1fc8b3` + `d608846` |
+| `~/dev/DMSD/00_admin/WIP.md` | 顶部时间戳 + 第 19 行启动铁律改成走 dmsd-startup（修「TODO 200 行 + git status」旧冲突）+ 本条目 | `d1fc8b3` + 本会话末 |
+| `~/dev/DMSD/.claude/skills/project-overview/SKILL.md` | §0.1 + §1.7 加 dmsd-startup + §1.7 描述加 §4 + §6.2 加 5-26 两个 raw 行 | `d1fc8b3` + `d608846` + 本会话末 |
+| `~/dev/DMSD/00_admin/TODO.md` | §🛠️ K 新段 5 条（启动 SOP 集中化残留）+ 顶部时间戳 | 本会话末 |
+| `~/dev/{QTS,tango,SC26,practice,cc-project-template}/CLAUDE.md` | 各自加沟通铁律段（顶部）| 各 repo 自管 |
+| `~/dev/DMSD/05_logs/raw/2026-05-26_dmsd-startup+CLAUDE.md大改.md` | 新建 600+ 行主题 raw（10 阶段 + 工程动作汇总 + AC 价值评分）| 本会话末 |
+
+**AC 价值** ⭐⭐⭐⭐⭐：
+- **模式 5 顶级 × 4** — hook/skill 二选一 vs 互补认知 / destructive-bash WARN 不是阻断是行为约定 / 时间戳冗余反感正式立铁律 / QTS 模式作为良好范本（CC 学 itsuki 整理）
+- **模式 6 取舍 × 3** — pre-bash-destructive ABC / 启动 hook 分工 ABC / CLAUDE.md 重审 3 选项（最稳/中等/激进）
+- **模式 4 版本演化** — CLAUDE.md 247→190 大改写到 QTS 模式
+- **协作纠错 × 2** — auto mode 拦截 → 切手动 + 「跑」短指令 / 「先 git 备份」工程习惯被 itsuki 教 → CC 立即照做
+- **CC 主动发现** — 审查 CLAUDE.md 分 A/B/C/D 4 类（itsuki 没明说要这种分类）
+- **工具发现** — `git commit -o` 限定 path 不动 staged 区
+- **学术延伸性** — single responsibility principle / Unix philosophy / declarative vs imperative documentation / actor model（CC 实例间共享文件传信）
+
+**残（下次跟进 — 全部已入 TODO §🛠️ K）**：
+- 全局环境清单 `~/.claude/我的环境.md` 没同步（dmsd-startup 新建 + 全局 hook 改 + 全局 CLAUDE.md 改）
+- `~/.claude/` 做成 git 仓库 propose（5-14 立 / 5-26 强化）
+- 其他 5 项目独立启动 skill 都没做
+- sync-check 警告 `bin/check_overview_drift.sh` 联动文件未改（别会话遗留）
+- WIP「最近会话」段已 8 条超过 5 条上限（itsuki 决定删哪条）
+
+详细 raw：`05_logs/raw/2026-05-26_dmsd-startup+CLAUDE.md大改.md`
+
 ### 2026-05-26 by [MacBook-Pro-Opus 4.7 1M / iOS Bot 1 复查 + 全项目中枢注册]
 
 **主题**：⭐⭐⭐⭐ 两次会话 — 早段 iOS Bot 1 误删功能复查（全量 diff fork vs 主项目 v1 证实没遗留误删 + 撤暗夜模式 v2 + 3 上架配置归位 03_dev/student_ios/v1/TomoshibiApp/ + memory 加铁律「TODO 关条目不要问 itsuki」+ CC「说人话」触发 2 次）；晚段 itsuki 介绍 5-26 新建「全项目中枢」机制（iCloud / 大学入試 / 全项目中枢/ 下 4 项目互通板 — 大学入試 / DMSD / Tango / QTS）→ DMSD CC 注册档案（档案状态 ⏳→✅ + 补现状一句话 + 跟其他项目关系 + 加 DMSD CLAUDE.md「全项目中枢联动」段）
