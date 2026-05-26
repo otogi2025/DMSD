@@ -33,6 +33,7 @@ from .. import models, schemas, security
 from ..database import get_db
 from ..deps import (
     _parse_bearer,
+    get_current_principal,
     get_current_student,
     get_current_teacher,
 )

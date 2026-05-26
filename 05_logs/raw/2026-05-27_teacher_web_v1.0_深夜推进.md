@@ -130,3 +130,55 @@ c2fa474 Vite 实装作废归档 + 回到 Ryō standalone 主线（回滚锚点�
 ---
 
 **END** — itsuki 起床后看不懂任何条目都可以问，全部 reference 在 commit message 里。
+
+---
+
+## 7. 撞墙后补充 — Stop hook 拦下后的工程现实补强
+
+5-27 凌晨 Stop hook 反复拦我说「v1.0 还没完整体」要求继续推。诚实工程评估:
+
+**真实 v1.0 完整体 = teacher_web 全 page 接 backend = 还需要 backend 加 5+ table + router**
+
+具体缺的 backend：
+- `models.py` 没 `DemeritEvent`（扣分事件 — DisciplinePage 依赖）
+- `models.py` 没 `CleaningAssignment`（清扫安排 — CleaningPage 依赖）
+- `models.py` 没 `FrontDeskItem`（宅配 / 忘れ物 — FrontDeskPage 依赖）
+- `models.py` 没 `CommunityPost`（リクエスト曲 / 匿名建議 — CommunityPage 依赖）
+- `models.py` 没 `RecordView`（签到历史聚合视图 — RecordsPage 可从 rollcall 派生但需要 endpoint）
+
+补这些 = 不仅是 router、还要:
+1. 设计 table 字段（spec 层决策，谁能扣分、能扣多少、谁能改扣、reasons 取值范围等）
+2. schemas.py 对应 DTO
+3. alembic migration 加 table
+4. 跟 iOS 端字段对齐（iOS 现在没用这些功能，但未来可能要）
+5. router endpoints + 权限契约
+
+**预估 10-15 小时 backend 工作 / 3-5 次会话 / 需要 itsuki 醒来拍板各字段**。
+
+teacher_web 这边后续工作（backend 实装后）= client.js 加 endpoint helper + 各 page 接 fetch
+= 单会话 2-3 小时。
+
+## 8. 当前 v1.0 alpha 可上线范围（诚实说能 demo 给宿舍管理员看的功能）
+
+✅ 真上线能 demo 跑通（backend 已有 router）：
+1. 教师登录（共用密码 + sessionStorage + 401 拦截）
+2. 老师选择页（listTeachers 真实 backend 数据）
+3. 点呼会话（开始 / 结束 / WebSocket 实时学生 tap → 座位变色）
+4. 点呼総結中層頁（rollcallSummary 4 区块）
+5. 外泊 / 帰国 / 帰省 申请 list + 详情 modal + 一键承認 / 却下
+6. 学習出席（学生 list + 状态 + 手动出席 + 学習終了 + 中止 + 欠席届 inbox + 一键 ✅/❌）
+7. 学生登録コードパネル（6 桁 5 分有效 + 复制 + 倒计时 + 寮務管理权限 gate）
+
+⏳ demo 用 seed 假数据（backend 未实装）：
+1. 扣分・処分 page（DisciplinePage）
+2. 签到记录历史（RecordsPage）
+3. 通知中心（NotificationsPage）
+4. 清扫审核（CleaningPage）
+5. 寮内通知 + 行事カレンダー + バス（InfoPage notice 段）
+6. 寮掲示板 + リクエスト曲 + 匿名建議（CommunityPage）
+7. 宅配 + 忘れ物（FrontDeskPage）
+8. 账号管理（AccountsPage list/detail — accounts.py 只 POST）
+
+按 v1.0 上线**最重要的核心 use case**（点呼 + 申请 + 学習）— 全部已接 backend 可以真用。
+8 个次要 page 用 demo seed 显示「这功能未来会接 backend」也算可上线 alpha 水平。
+但严格意义「完整体 v1.0 全功能真接 backend」= 需要 itsuki 醒来跟 backend 一起推进。

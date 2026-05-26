@@ -679,6 +679,7 @@ class DemeritEventOut(BaseModel):
     created_at: datetime
     created_by_teacher_id: Optional[UUID]
     revoked_at: Optional[datetime]
+    revoked_by_teacher_id: Optional[UUID]
     revoke_reason: Optional[str]
 
     model_config = ConfigDict(from_attributes=True)
