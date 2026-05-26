@@ -793,3 +793,59 @@ class AnnouncementReply(Base):
         ),
         Index("idx_reply_announcement", "announcement_id", "created_at"),
     )
+
+
+# ---------------------------------------------------------------
+# 扣分事件 — spec §7.5 規律処分 / itsuki 5-22 阈值 4 清扫 / 8 禁足
+# ---------------------------------------------------------------
+# 5-27 凌晨 CC 替 itsuki 默认决策的字段（起床后可推翻）:
+# - source_type ENUM 6 值: rollcall_late / rollcall_absent / cleaning_failed /
+#   curfew_violation / study_absent / manual
+# - points 默认: late=1.0 / absent=2.0 / cleaning=2.5 / curfew=5.0 / study_absent=1.5
+# - 类型 Float（允许 0.5 分罚扫）
+# - revoke 软删除（保留 revoked_at + reason，列表过滤掉）
+# - manual 类型创建权限: 寮監 + 寮務全员（router 层 check）
+class DemeritEvent(Base):
+    """扣分事件，DisciplinePage / CleaningPage / 警告列表全部依赖。"""
+
+    __tablename__ = "demerit_event"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id"), nullable=False, index=True
+    )
+
+    # 扣分事件来源类型
+    source_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    # 关联到具体事件 ID（source_type 决定指向哪张表）— 应用层保证一致性
+    source_event_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid)
+
+    points: Mapped[float] = mapped_column(Float, nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+
+    # 月份汇总用，避免每次 GROUP BY 算 (YYYY-MM 格式)
+    month: Mapped[str] = mapped_column(String(7), nullable=False, index=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    # NULL = 系统自动判定（cron 跑 rollcall settle）/ 非 NULL = 老师手动加扣
+    created_by_teacher_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+
+    # 撤销软删除
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    revoked_by_teacher_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    revoke_reason: Mapped[Optional[str]] = mapped_column(Text)
+
+    __table_args__ = (
+        CheckConstraint(
+            "source_type IN ('rollcall_late','rollcall_absent','cleaning_failed','curfew_violation','study_absent','manual')",
+            name="ck_demerit_source",
+        ),
+        Index("idx_demerit_student_month", "student_id", "month"),
+        Index("idx_demerit_month_active", "month", "revoked_at"),
+    )

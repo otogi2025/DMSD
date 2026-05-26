@@ -17,6 +17,7 @@ OpenAPI: http://localhost:8000/docs
 - PUT /applications/{id}                 修改届
 - GET /applications/{id}/audit           審査 audit log
 """
+
 from __future__ import annotations
 
 import logging
@@ -96,6 +97,7 @@ app.include_router(notifications.router)
 app.include_router(study.router)
 app.include_router(rollcall.router)
 app.include_router(teachers.router)
+app.include_router(discipline.router)
 
 
 if __name__ == "__main__":

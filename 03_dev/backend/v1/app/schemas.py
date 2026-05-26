@@ -654,3 +654,68 @@ class AnnouncementUnreadCountOut(BaseModel):
     """主页 badge 用 — 当前学生 scope 内未读数。"""
 
     unread_count: int
+
+
+# ---------------------------------------------------------------
+# 扣分（spec §7.5 規律処分）— 5-27 凌晨新增
+# ---------------------------------------------------------------
+class DemeritEventOut(BaseModel):
+    """单条扣分事件输出。"""
+
+    id: UUID
+    student_id: UUID
+    source_type: Literal[
+        "rollcall_late",
+        "rollcall_absent",
+        "cleaning_failed",
+        "curfew_violation",
+        "study_absent",
+        "manual",
+    ]
+    source_event_id: Optional[UUID]
+    points: float
+    reason: str
+    month: str
+    created_at: datetime
+    created_by_teacher_id: Optional[UUID]
+    revoked_at: Optional[datetime]
+    revoke_reason: Optional[str]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DemeritRankingEntryOut(BaseModel):
+    """月排名一条 — 学生 + 累计扣分。"""
+
+    student_id: UUID
+    student_no: str
+    name: str
+    room_no: str
+    dorm_unit: int
+    total_points: float
+    # 阈值标记 — itsuki 5-22 拍板 4 清扫 / 8 禁足
+    is_cleaning_threshold: bool  # total_points >= 4
+    is_curfew_threshold: bool  # total_points >= 8
+
+
+class DemeritRankingOut(BaseModel):
+    """月排名响应 — top N + 阈值学生列表。"""
+
+    month: str
+    entries: list[DemeritRankingEntryOut]
+    cleaning_threshold_count: int  # >= 4 点的学生数
+    curfew_threshold_count: int  # >= 8 点的学生数
+
+
+class DemeritManualIn(BaseModel):
+    """手动加扣分输入（寮監权限）。"""
+
+    student_id: UUID
+    points: float = Field(..., gt=0, le=100)
+    reason: str = Field(..., min_length=1, max_length=2000)
+
+
+class DemeritRevokeIn(BaseModel):
+    """撤销扣分输入。"""
+
+    revoke_reason: str = Field(..., min_length=1, max_length=2000)
