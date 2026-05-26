@@ -10259,25 +10259,20 @@
         const locked = now < lockUntil;
         const lockLeft = Math.max(0, Math.ceil((lockUntil - now) / 1000));
 
-        // FC-024 修復後: backend POST {API_BASE}/sessions/teacher で真実認証。
-        // 401 → 失敗カウント、ネットワーク失敗 → 「サーバーに接続できません」表示。
+        // FC-024 修復後: window.tomoshibiApi.teacherLogin で backend 真実認証。
+        // err.status 401 → 失敗カウント、err.status undefined (ネットワーク失敗) → 「サーバーに接続できません」表示。
         const [submitting, setSubmitting] = React.useState(false);
         const submit = async (e) => {
           e.preventDefault();
           if (locked || submitting) return;
           setSubmitting(true);
           try {
-            const res = await fetch(`${window.API_BASE}/sessions/teacher`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ login_id: u.trim(), password: p }),
-            });
-            if (res.ok) {
-              const data = await res.json();
-              setFails(0);
-              setErr("");
-              onLogin(data.access_token, data.teacher);
-            } else if (res.status === 401) {
+            const data = await window.tomoshibiApi.teacherLogin(u.trim(), p);
+            setFails(0);
+            setErr("");
+            onLogin(data.access_token, data.teacher);
+          } catch (err) {
+            if (err && err.status === 401) {
               const n = fails + 1;
               setFails(n);
               if (n >= 3) {
@@ -10288,13 +10283,13 @@
                 setErr(`パスワードが違います (残り ${3 - n} 回)`);
               }
               setP("");
+            } else if (err && err.status) {
+              setErr(`サーバーエラー (${err.status})`);
             } else {
-              setErr(`サーバーエラー (${res.status})`);
+              setErr(
+                "サーバーに接続できません。backend が起動しているか確認してください。",
+              );
             }
-          } catch (netErr) {
-            setErr(
-              "サーバーに接続できません。backend が起動しているか確認してください。",
-            );
           } finally {
             setSubmitting(false);
           }
