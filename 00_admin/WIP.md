@@ -1,6 +1,6 @@
 # 当前工作状态 (Work In Progress)
 
-> **最后更新**: 2026-05-26（晚 — 全项目中枢机制立项 + DMSD 注册档案 + DMSD CLAUDE.md 加「全项目中枢联动」段；同时合并早段 iOS Bot 1 复查 + 暗夜模式 v2 + 3 上架配置归位 + memory 加铁律「TODO 关条目不要问」入「最近会话」。早段头：启动 SOP 集中化 — 新建 `.claude/skills/dmsd-startup/SKILL.md`（5 件启动必做事）+ 全局 `~/.claude/hooks/session-start-coord-check.sh` 在 DMSD 项目下静默退出 + DMSD CLAUDE.md「会话开始」段简化引用新 skill + 6 项目 CLAUDE.md 加「不主动用英语名词」规则段 + project-overview SKILL.md §0.1 + §1.7 同步 + 本文件「会话开始」铁律改成走 dmsd-startup skill）。5-25 晚段（追加：第三轮升级 — anti-ai-flavor 加第 3 触发词「**翻车**」单字 + 新建 `inbox.md` — itsuki 收尾中途立项自我迭代机制：发现新翻车点 → CC 按 5 字段「原文 / 6 类归类 / 违反铁律 / 根因 / 修正版」记 inbox，未来批量整理合并到 `references/翻车案例库.md`；改 5 文件：新建 `inbox.md` + SKILL.md 加 §7.5 + CLAUDE.md 触发词 2→3 + hook 提醒 + `我的环境.md` + `.html`）。早些（同晚段）：anti-ai-flavor HOW_TO_TALK.md 立项 + 跨 3 项目 session-wrap 加项 11/8 — itsuki 给 16 个翻车原句证据 → 4 根本问题 + 9 类细分 → 5 条总结铁律 → 方案 B 落地：SKILL.md 反面自检 + HOW_TO_TALK.md 正面教学互补 + 2 触发词「说人话」/「单词白名单」+ DMSD/SC26/Tango session-wrap 收尾清单同步加「全局环境清单同步」项 — 全局 6 文件 + DMSD 1 文件 + 2 memory + SC26 1 文件 + Tango 1 文件。早些 5-25（drift 脚本 bug 修 + 全局 `session-coord` 三层保险落地 — DMSD 2 文件 + 全局 4 文件 / 全局 Hooks 4→5；同时补登 5-24 iOS bug 批量修复会话遗漏的收尾）。早些 5-22（**3 会话产出** — ① 早 project-overview §0.1 漂移 957→980 / ② 中 iOS fork 融合归档 commit `46f779c` / ③ 晚 点呼机推进 + 撞海关查扣事件 + 立项 `session-wrap §5.5.15 decision-draft`）。早些 5-21（5-20 凌晨 4 会话审查作战 cron 自动 fire 产出 131 条 findings / 5-21 加系统 bug 专栏 + 第一批修复 8 条）。早些 5-19（project-overview 大改造 + 防漂 C 方案）。<!-- VERSION_OK -->
+> **最后更新**: 2026-05-26（晚段-4 — teacher_web Vite + TypeScript 实装版整体废弃 + Ryō polish 试做被回滚 + 修破工具脚本 demo_server.py 死链改 python http.server + 文档同步 WEB_DESIGN_LOG §12 + DESIGN_BRIEF + v1/README + 物理清 node_modules 81MB + dist + decision_log 加 2 条；起因：itsuki 启动「推进 teacher web」+ 看到 Vite 实装版怒怼「这他妈根本不是我的 web」拍板「垃圾归档用 B」+ frontend-design skill polish 试做整体不喜欢一句「回滚」全退。早些晚段-3 — iOS demo 后门清理（做法 B）+ 字段对齐零漂移 commit `7521bf8`。早些晚段-2 — 全项目中枢机制立项 + DMSD 注册档案 + DMSD CLAUDE.md 加「全项目中枢联动」段；同时合并早段 iOS Bot 1 复查 + 暗夜模式 v2 + 3 上架配置归位 + memory 加铁律「TODO 关条目不要问」入「最近会话」。早段头：启动 SOP 集中化 — 新建 `.claude/skills/dmsd-startup/SKILL.md`（5 件启动必做事）+ 全局 `~/.claude/hooks/session-start-coord-check.sh` 在 DMSD 项目下静默退出 + DMSD CLAUDE.md「会话开始」段简化引用新 skill + 6 项目 CLAUDE.md 加「不主动用英语名词」规则段 + project-overview SKILL.md §0.1 + §1.7 同步 + 本文件「会话开始」铁律改成走 dmsd-startup skill）。5-25 晚段（追加：第三轮升级 — anti-ai-flavor 加第 3 触发词「**翻车**」单字 + 新建 `inbox.md` — itsuki 收尾中途立项自我迭代机制：发现新翻车点 → CC 按 5 字段「原文 / 6 类归类 / 违反铁律 / 根因 / 修正版」记 inbox，未来批量整理合并到 `references/翻车案例库.md`；改 5 文件：新建 `inbox.md` + SKILL.md 加 §7.5 + CLAUDE.md 触发词 2→3 + hook 提醒 + `我的环境.md` + `.html`）。早些（同晚段）：anti-ai-flavor HOW_TO_TALK.md 立项 + 跨 3 项目 session-wrap 加项 11/8 — itsuki 给 16 个翻车原句证据 → 4 根本问题 + 9 类细分 → 5 条总结铁律 → 方案 B 落地：SKILL.md 反面自检 + HOW_TO_TALK.md 正面教学互补 + 2 触发词「说人话」/「单词白名单」+ DMSD/SC26/Tango session-wrap 收尾清单同步加「全局环境清单同步」项 — 全局 6 文件 + DMSD 1 文件 + 2 memory + SC26 1 文件 + Tango 1 文件。早些 5-25（drift 脚本 bug 修 + 全局 `session-coord` 三层保险落地 — DMSD 2 文件 + 全局 4 文件 / 全局 Hooks 4→5；同时补登 5-24 iOS bug 批量修复会话遗漏的收尾）。早些 5-22（**3 会话产出** — ① 早 project-overview §0.1 漂移 957→980 / ② 中 iOS fork 融合归档 commit `46f779c` / ③ 晚 点呼机推进 + 撞海关查扣事件 + 立项 `session-wrap §5.5.15 decision-draft`）。早些 5-21（5-20 凌晨 4 会话审查作战 cron 自动 fire 产出 131 条 findings / 5-21 加系统 bug 专栏 + 第一批修复 8 条）。早些 5-19（project-overview 大改造 + 防漂 C 方案）。<!-- VERSION_OK -->
 
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
@@ -49,6 +49,43 @@
 ---
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
+
+### 2026-05-26 晚段-4 by [MacBook-Pro-Opus 4.7 1M / teacher_web Vite 废弃 + Ryō polish 回滚]
+
+**主题**：⭐⭐⭐⭐⭐ itsuki 启动「推进 teacher web 开发 + 问有没有前端 skill」→ CC 报告 frontend-design skill → itsuki 选「调 skill 优化设计」→ CC 起 Vite dev server → itsuki 看到屏幕怒怼「这他妈根本不是我的 web 啊」→ CC 调查发现 v1/ 两套并存（5-02 Vite + TS 实装版 + 4-21 Ryō standalone 老 demo）→ itsuki 拍板「Vite 实装版垃圾归档，用 B」→ CC 归档 13 文件 + 物理删 node_modules 81MB + dist + 修破工具脚本（demo_server.py 死链 → python http.server）→ CC 跑 frontend-design skill 给 Ryō polish（米白和纸 / 朱色 sharp accent / 明朝体 Shippori Mincho B1 / 和纸 SVG 噪点 / shadow 加深 / 4 处关键 UI 用新 token）→ itsuki 看完整体不喜欢一句「回滚」→ git checkout index.html 全退 + 同步改 README / DESIGN_BRIEF 写「polish 试过被回滚」事实记录
+
+**关键拍板**（itsuki 7 次明确决策）：
+- 调 frontend-design skill 优化设计
+- 「先告诉我我现在怎么看 teacher web」 + 「一般开发者怎么变改边做」（学习需求 — 三窗口工作流 + HMR 教学）
+- **「Vite 实装版就是个垃圾，给我归档，用 B」**（推翻 5-02 立项决定 — 5 端代码层 v0.8 里 teacher_web 这一端从 v0.8 回退到 v0.3 阶段）
+- **「看你」**（协作授权颗粒度 — 工程层 CC 自定）
+- 「之前的垃圾 web 不要再污染我的项目文件了，归档」（工程洁癖 — 不只 gitignore，物理删）
+- 「试一下，全改完后我看看效果」（接受 polish 试做）
+- **「回滚」**（主观品味驱动拒绝 AI 设计建议）
+
+**实际改动**（DMSD 5 改 + 1 删 + 13 归档 + 1 新 raw + 2 新 decision + 1 新 WEB_DESIGN_LOG §12 = 23+ 文件）：
+| 类别 | 文件 |
+|---|---|
+| 归档 Vite 实装 13 文件 → `99_archive/2026-05-26_teacher_web_vite实装作废/` | App.tsx / main.tsx / pages/×5 / Shell.tsx / store/auth.ts / vite_root_index.html / package.json / lock / vite.config.ts / tailwind.config.js / postcss.config.js / tsconfig.json / tsconfig.tsbuildinfo |
+| 物理删 | node_modules（81MB）+ dist |
+| 改 | `v1/src/index.html`（polish → 回滚）/ `v1/开发模式跑.command`（修死链）/ `v1/tomoshibi` CLI（同上）/ `v1/README.md`（重写）/ `teacher_web/DESIGN_BRIEF.md`（删 round2/ 段 + 加 _legacy/ 位置） |
+| 新建 | `05_logs/raw/2026-05-26_teacher_web_vite废弃+polish回滚.md`（深度 AC 素材） |
+| 改 | `05_logs/decision_log.md`（加 2 条 — Vite 废弃 + polish 回滚）/ `WEB_DESIGN_LOG.md`（§实装进度速查表大改 + 加 §12 新段） |
+
+**AC 价值** ⭐⭐⭐⭐⭐：
+- **模式 3 失败→吸取教训 顶级** — 5-02 立项 Vite 实装 → 5-26 推翻整体废弃。约 1 个月间隔 + 5 端 v0.8 启动里 1 端整体作废 = 罕见大事件
+- **模式 5 顶级 × 2** — 前端开发流程学习（不知 HMR / 三窗口工作流 → CC 教 → 现在懂跨端反馈速度差异）+ 文档诚实记录哲学
+- **模式 6 取舍 × 多** — A/B/C/D 范围选项 / polish 8 处改动 vs 回滚 / 归档范围 5 类决策 / 物理删 vs 留
+- **协作纠错 × 3** — CC 没核对启动了哪套被怒怼 / CC 假设 round2/ 存在 → 调查塌缩真相 / CC polish 试做 → itsuki 拒绝（最大）
+- **主体性 ⭐⭐⭐⭐⭐**：7 次明确拍板 + 推翻自己 5-02 立项 + 拒绝 AI 设计建议
+- **学术延伸性**：Sunk cost fallacy 反例 / 用户体验驱动 vs 技术先进性 / 设计审美主观性 + 可回滚工程方法 / 跨技术栈反馈循环长度对比 / 协作信任设计（提前承诺降低试验门槛）/ 文档诚实记录历史 / AC 面试可挂「跟 AI 协作时何时采纳何时拒绝」
+
+**残（下次跟进，已入 TODO §🛠️ L）**：
+- `demo_server.py` 写一份 — 恢复 NFC iPhone 快捷指令实时点呼 demo
+- 系统bug专栏 FC-025/26/27/28 全部 N/A（Vite 字段对齐已 N/A — Vite 整体废了）
+- 未来设计层 polish 候选方向（单页改造 / 字体单独换 / 找 itsuki 喜欢的参照系）
+
+详细 raw：`05_logs/raw/2026-05-26_teacher_web_vite废弃+polish回滚.md`
 
 ### 2026-05-26 晚段-3 by [MacBook-Pro-Opus 4.7 1M / iOS demo 后门清理（做法 B）+ 字段对齐零漂移]
 

@@ -24,6 +24,54 @@
 
 ## 决策记录(倒序)
 
+## 2026-05-26 — teacher_web Vite + TypeScript 实装版整体废弃，回归 Ryō standalone 主线
+
+**之前的决策**(2026-05-02): 5 端代码层 v0.8 启动时立项 teacher_web Vite + TypeScript + Zustand + React 18 实装版 — 入口 `App.tsx` + 4 标签页（Applications / Study / RollCall / Teachers）+ Shell 导航壳 + `api/client.ts` 6 大模块对接 backend。共用 design system（Ryō / Cobalt / Noto Sans JP）从 4-21 Round 2 demo 继承。
+**新的决策**:
+1. **Vite 实装版整体废弃** — 13 个文件 `git mv` 归档到 `99_archive/2026-05-26_teacher_web_vite实装作废/`（App.tsx / main.tsx / Shell.tsx / pages/ × 5 / store/ / vite_root_index.html / Vite 构建配置 × 7）
+2. **回归 Ryō standalone 主线** — `v1/src/index.html`（7774 行 standalone HTML，4-21 Claude Design Round 2 产出）成为唯一权威源
+3. **保留 `api/client.ts`** — 后端真接口对接代码留着等未来 Ryō 接真后端时复用
+4. **保留 `_legacy/*.jsx`** — 14 个 JSX 组件源（命名误导，实际是 Ryō 主源，不是 legacy）
+5. **退 Vite 改 Python 内建静态服务器** — `开发模式跑.command` + `tomoshibi` CLI 都改用 `python3 -m http.server 8787`
+6. **物理删 `node_modules`（81 MB）+ `dist`** — gitignored 但占磁盘
+**为什么改**:
+1. itsuki 5-26 启动 Vite dev server 看到屏幕后第一反应「这他妈根本不是我的 web 啊」— 他心里的「teacher_web」 = 4-21 Ryō prototype（深色蓝调 + 24 学生座席表 + 实时点呼仪表盘），但 Vite 实装版是 5-02 起做的另一套（4 标签页登录后台）
+2. itsuki 拍板原话「Vite 实装版就是个垃圾，给我归档，用 B」— B = Ryō prototype
+3. 不为 1 个月 Vite 实装工作感情用事（sunk cost fallacy 反例） — 用户体验驱动 > 技术先进性
+4. Ryō standalone 是 itsuki 当初真正认可 + 实际给宿舍管理员看过的版本（2026-04-28 demo 4-28 sprint）— 而 Vite 实装版从来没演示过
+**这个改动影响了什么**:
+- 5 端代码层 v0.8 共同启动里 teacher_web 这一端从 v0.8 状态**回退到 v0.3 阶段**（Ryō standalone prototype）
+- `00_admin/系统bug专栏.md` FC-025/26/27/28（Vite 字段对齐相关 4 条）全部 N/A，因为 Vite 整体废了
+- `00_admin/TODO.md` 多处 Vite 引用要更新（line 106 A-039 / line 883 ✅ S15 / line 1023 mock state）
+- `03_dev/teacher_web/WEB_DESIGN_LOG.md` 加本次会话条目（5-02→5-26 演化 + 当前权威源调整）
+- `03_dev/teacher_web/DESIGN_BRIEF.md` 重写 §1+§2（删 round2/ 段 / 加 _legacy/ 实际位置）
+- `03_dev/teacher_web/v1/README.md` 重写（加「怎么打开」+ 技术栈段）
+- NFC iPhone 快捷指令实时点呼 demo 失效（脚本一直引用不存在的 `demo_server.py`，本次会话改用静态服务器后实时点呼断了，要恢复需要写 `demo_server.py`，独立任务）
+- 老师 Web 离 v1.0 实装真前端距离重新拉大 — Ryō 是 mock 数据 prototype，要接真后端要重做 fetch 层
+**相关**: `05_logs/raw/2026-05-26_teacher_web_vite废弃+polish回滚.md`（深度 AC 素材 + 模式 3/5 顶级 + 主体性 ⭐⭐⭐⭐⭐）
+**事后回看**(几个月后补填):
+
+---
+
+## 2026-05-26 — Ryō 设计 polish 尝试做完被 itsuki 整体回滚
+
+**之前的决策**(2026-04-21): 4-21 Claude Design Round 2 拍板 Variation C 「涼 (Ryō)」 — 近黑 `#14171f` + コバルト `#2b4d8c` accent + Noto Sans JP + 圆角 8-12px + 极薄 shadow，近 monoxer / modern SaaS but 克制。itsuki 当晚原话「就按这个版本来」。
+**新的决策**: 设计层面**仍回 4-21 原 Ryō**，本次 polish 全部回滚。
+**为什么改**:
+1. itsuki 选了 A（Ryō 框架内 polish）→ CC 跑 frontend-design skill 提了「Quiet Luxury Japanese Editorial（克制日式编辑感）」方向 — 米白和纸 `#f3efe8` + 朱色 sharp accent `#c43d2d` + 明朝体 display Shippori Mincho B1 + SVG 噪点纹理 + shadow 加深 + logo / 主按钮 / Stat 数字 4 处用新 token
+2. itsuki 看完浏览器效果后整体不喜欢 — 主观品味驱动判断，没说具体哪里不行
+3. 一句话「回滚」→ `git checkout 03_dev/teacher_web/v1/src/index.html` 全部退回
+**这个改动影响了什么**:
+- `v1/src/index.html` 退回 4-21 原版（冷灰白 + Cobalt + Noto Sans JP）
+- `v1/README.md` 和 `teacher_web/DESIGN_BRIEF.md` 里的「polish 完成」段同步改成「试过被回滚」事实记录（不抹历史）
+- AC 素材层面是金贵证据 — itsuki 拒绝 AI 设计建议 = 直接证据「不是被 AI 牵着走」
+- 工程方法层面验证 CC「all-in-one-file + 提前承诺可回滚」设计 — 让 itsuki 敢试 + 不喜欢一行退回
+- 未来再试 polish 候选方向：单页改造 / 字体单独换 / 找 itsuki 喜欢的具体参照系 web
+**相关**: `05_logs/raw/2026-05-26_teacher_web_vite废弃+polish回滚.md`（模式 5 / 6 / 协作纠错 ⭐ 顶级素材）
+**事后回看**(几个月后补填):
+
+---
+
 ## 2026-05-26 — 指令文档不写时间戳 / 历史标记 + DMSD CLAUDE.md 247→190 行重写到 QTS 模式
 
 **之前的决策**(隐性 / 长期): CC 在 CLAUDE.md / SKILL.md / 文档同步点等指令文档里习惯加「2026-05-XX 拍板 / 上线 / 新加 / B-XXX 死链修复」类时间戳 / 历史标记 — 以为是「可追溯 + 有上下文」，itsuki 反复看到反感累积

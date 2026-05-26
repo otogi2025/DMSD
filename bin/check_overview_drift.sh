@@ -43,7 +43,7 @@ REAL_DIRS_ALL=$(
   {
     git ls-files
     git status --porcelain | awk '$1 ~ /^(\?\?|A)/ {print $2}'
-  } | sort -u | awk -F/ 'NF==1 {print "ROOT"} NF>1 {print $1}' | sort | uniq -c | awk '{print $2"="$1}'
+  } | awk -F/ 'NF==1 {print "ROOT"} NF>1 {print $1}' | sort | uniq -c | awk '{print $2"="$1}'
 )
 UNCOMMITTED_COUNT=$(git status --porcelain | awk '$1 ~ /^(\?\?|A)/' | wc -l | tr -d ' ')
 

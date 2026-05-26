@@ -6,7 +6,7 @@
 > - 和 `progress_overview.md` 的区别: progress_overview 是稳定的章节目录,TODO 是可以频繁增删的任务池
 > - 完成的任务: 在 checkbox 前打 x,隔段时间(每周或每月)批量移到"已完成归档"
 
-**最后更新**: 2026-05-26 晚段-2（§🛠️ 加 §K 新段「启动 SOP 集中化 + CLAUDE.md 重写残留」5 条 — 全局环境清单同步 / ~/.claude/ git repo propose 强化 / 其他 5 项目启动 skill / sync-check bin-script 警告 / WIP 加本会话条目；起因：dmsd-startup skill 立项 + DMSD CLAUDE.md 247→190 行重写到 QTS 模式 + 6 项目 CLAUDE.md 加沟通铁律「不主动用英语名词」+ destructive-bash 行为约定 + CLAUDE.md 文档观转变（时间戳冗余禁止））。早些 5-25 晚段（§🛠️ J 加 2 条新待办 — 触发词「翻车」首次实战测试 + inbox 累到 3-5 条后写「整理 inbox」SOP；起因：anti-ai-flavor skill 加第 3 触发词「翻车」单字 + 新建 `~/.claude/skills/anti-ai-flavor/inbox.md` — itsuki 收尾中途立项自我迭代机制）；早些更新：2026-05-25（5-25 drift 修 + session-coord 三层保险会话加 §📊 project-overview 历史欠债 2 条 + §🐚 shell 工具链 quirk 1 条 + §🛠️ J 首次创建 6 条）；2026-05-24 5-22 修漏洞会话补 §🎯 D1-D5 + §📁 / §💾 标 ✅ + 加未 push 37 commit；5-22 §🛰️ 点呼机段配件采购方向反转 — 5-12~16 中国海关查扣 → itsuki 拍板撤回中国海运 → 日本本地买 / 原 11 件淘宝清单 + 2 任务作废 / 加 6 条新待办；2026-05-21 加 §🐞 系统 Bug 专栏入口 131 条 / 清 §⏰ Cloud Design 5-12 过期项；2026-05-14 §🛠️ G + H；2026-05-13 §🛠️ E + F；2026-05-11 §📄；2026-05-08 §📱 + §🛰️ + §🐛<!-- VERSION_OK -->
+**最后更新**: 2026-05-26 晚段-4（§🛠️ 加 §L 新段「teacher_web Vite 废弃 + Ryō polish 回滚残留」5 条 — 写 demo_server.py 恢复 NFC 实时点呼 / 系统bug专栏 FC-025/26/27/28 标 N/A / 未来 polish 候选方向 4 个 / WEB_DESIGN_LOG §7+§10 复核 / DESIGN_BRIEF §3-§8 复核；同时改 §🚧 主会话保留 6 条 A-039（vite 验证 N/A → Ryō standalone 直接验证）+ 改 line 888 ✅ S15 标反转（Vite 实装废弃）+ §K「WIP 加本会话条目」标 ✅ 完成；起因：itsuki 启动 teacher_web 推进 + 看到 Vite 实装版怒怼「不是我的 web」拍板「垃圾归档用 B」+ frontend-design polish 试做后整体不喜欢一句「回滚」全退）。早些 5-26 晚段-2（§🛠️ 加 §K 新段「启动 SOP 集中化 + CLAUDE.md 重写残留」5 条 — 全局环境清单同步 / ~/.claude/ git repo propose 强化 / 其他 5 项目启动 skill / sync-check bin-script 警告 / WIP 加本会话条目；起因：dmsd-startup skill 立项 + DMSD CLAUDE.md 247→190 行重写到 QTS 模式 + 6 项目 CLAUDE.md 加沟通铁律「不主动用英语名词」+ destructive-bash 行为约定 + CLAUDE.md 文档观转变（时间戳冗余禁止））。早些 5-25 晚段（§🛠️ J 加 2 条新待办 — 触发词「翻车」首次实战测试 + inbox 累到 3-5 条后写「整理 inbox」SOP；起因：anti-ai-flavor skill 加第 3 触发词「翻车」单字 + 新建 `~/.claude/skills/anti-ai-flavor/inbox.md` — itsuki 收尾中途立项自我迭代机制）；早些更新：2026-05-25（5-25 drift 修 + session-coord 三层保险会话加 §📊 project-overview 历史欠债 2 条 + §🐚 shell 工具链 quirk 1 条 + §🛠️ J 首次创建 6 条）；2026-05-24 5-22 修漏洞会话补 §🎯 D1-D5 + §📁 / §💾 标 ✅ + 加未 push 37 commit；5-22 §🛰️ 点呼机段配件采购方向反转 — 5-12~16 中国海关查扣 → itsuki 拍板撤回中国海运 → 日本本地买 / 原 11 件淘宝清单 + 2 任务作废 / 加 6 条新待办；2026-05-21 加 §🐞 系统 Bug 专栏入口 131 条 / 清 §⏰ Cloud Design 5-12 过期项；2026-05-14 §🛠️ G + H；2026-05-13 §🛠️ E + F；2026-05-11 §📄；2026-05-08 §📱 + §🛰️ + §🐛<!-- VERSION_OK -->
 **当前版本**: 见 `CHANGELOG.md` 顶部 · 单源真值，见 `00_admin/文档同步点清单.md`
 
 > **2026-04-17 归档说明**：`executable_dev_checklist.md` 已归档到 `99_archive/2026-04-12_executable_dev_checklist.md`（内容已过期，功能被本 TODO.md 吸收）。
@@ -103,7 +103,7 @@
 - [ ] **A-010 / A-028** NFC ECDSA 防代刷实装（v1.0 决策性 — 二选一 完整实装 / 砍降级 v1.1）
 - [ ] **A-002** HS256 → RS256 迁移（架构层）
 - [ ] **A-035** iOS Auth magic value "000000" 注册流程后门（怕误删，需要 itsuki 拍板）
-- [ ] **A-039** teacher_web v1/src/index.html 7700 行 demo HTML（需备份 + vite 验证）
+- [ ] **A-039** teacher_web v1/src/index.html 7774 行 standalone HTML — 含明文密码 `12345678` v1.0 上线前必删（**5-26 修订**：vite 整体废弃，「vite 验证」N/A；现在改成 Ryō standalone 直接验证 — 改完密码用 `./tomoshibi start` 浏览器 reload 看）
 
 ### ⚠️ Bot 3 跳过的待决策 5 条
 
@@ -284,7 +284,19 @@
 - [ ] **~/.claude/ 做成 git 仓库 propose**（**5-14 立的 / 5-26 再次强化**）— 本会话改了 `~/.claude/CLAUDE.md` + `~/.claude/hooks/session-start-coord-check.sh` 都没法 git 备份。永久解决全局配置无历史问题。需要 itsuki 拍板初始化策略（git init / .gitignore 哪些 / hook 自动 commit 还是手动）
 - [ ] **其他 5 项目（QTS / tango / SC26 / practice / cc-project-template）独立启动 skill 都没做** — itsuki 5-26 拍板「先只做 DMSD 完整版」，其他项目按需后续做。开新项目工作时 propose 加项目级启动 skill
 - [ ] **sync-check 警告 `bin/check_overview_drift.sh` 联动文件未改** — 别会话改了脚本本体但 CLAUDE.md / 文档同步点清单 / hooks README 没提到。本会话不动（不是本会话改的）。要拍板：(a) 别会话补 (b) CC 下次会话主动补 (c) 改 sync-rules.sh 让 bin/check_overview_drift.sh 自动豁免
-- [ ] **WIP.md「最近会话」段加本会话条目** — 本次会话主题（启动 SOP 集中化 + CLAUDE.md 大改）跟晚段「iOS Bot 1 复查 + 全项目中枢注册」是 5-26 不同会话不同主题，应该单独加一条到「最近会话」段（最多 5 条上限）
+- [x] ~~**WIP.md「最近会话」段加本会话条目** — 本次会话主题（启动 SOP 集中化 + CLAUDE.md 大改）跟晚段「iOS Bot 1 复查 + 全项目中枢注册」是 5-26 不同会话不同主题，应该单独加一条到「最近会话」段（最多 5 条上限）~~ ✅ 2026-05-26 晚段-2 收尾完成（commit `771ef59`）
+
+### L. teacher_web Vite 废弃 + Ryō polish 回滚残留（2026-05-26 晚段-4 加）
+
+- [ ] **写 `v1/demo_server.py`** — 恢复 NFC iPhone 快捷指令实时点呼 demo 功能。提供 3 个端点：GET `/api/server-info`（返回 LAN IP + port，给浏览器 auto-detect）/ POST `/checkin?no=XX`（接 iPhone 快捷指令，存 event with seq）/ GET `/events/latest`（浏览器 1 秒 poll，返回最新 event）。当前 `./tomoshibi start` 跑的是 `python3 -m http.server` 只做静态，NFC 实时点呼断了。预估工作量 50 行 Python（aiohttp 或 stdlib http.server 都行）
+- [ ] **系统bug专栏 FC-025/26/27/28 标 N/A** — `00_admin/系统bug专栏.md` 里 4 条 Codex 第二轮 audit 发现的字段对齐 / 权限 / package 问题，全部是针对 Vite + TS 实装版的。Vite 整体废了 → 这 4 条 N/A 不再有效。要去专栏改成「✅ N/A — 5-26 Vite 整体废弃」
+- [ ] **未来设计层 polish 候选方向**（如果再起意优化 Ryō）— 4 个候选：
+  - (a) 单页大改造（B 改成具体一页换风格，不动整体）
+  - (b) 字体单独换不动颜色（risk 最低）
+  - (c) 找 itsuki 喜欢的具体参照系 web（让他先指）
+  - (d) 跟 itsuki 一起看几个真实日本教育系统 UI（不同风格）后再选方向
+- [ ] **WEB_DESIGN_LOG §7 参考资料索引 / §10 下次会话 quick-start 复核** — 本次新加 §12 段后，§7 参考资料 / §10 quick-start 可能跟 Vite 废弃事实有出入，下次启动 teacher_web 工作时复查这两节
+- [ ] **DESIGN_BRIEF.md §3-§8 复核** — 本次只改了 §1+§2 顶部，§3+ 描述「Round 2 已实装」/「Round 3 计划」/「Spec 对齐项」可能跟 Vite 废弃 + Ryō standalone 主线事实有出入，下次 teacher_web 工作前复查
 
 ## 📱 iOS 上架冲刺 — 剩余事项（2026-05-08 状态）
 
@@ -885,7 +897,7 @@
 
 **5-01 后大幅推进（仅记录状态，无新行动）**：
 - ✅ 后端 routers P0 大批落地 — `rollcall.py` / `study.py` / `accounts.py` / `admin_registration_code.py` / `teachers.py` / `applications.py` / `auth.py` / `meals.py` / `notifications.py` 都已建
-- ✅ teacher_web v1 真改造已启动 — 5-01 时是 demo 100% MD5 镜像，5-02 起 TS+Vite+Zustand 已落地
+- ✅ ~~teacher_web v1 真改造已启动 — 5-01 时是 demo 100% MD5 镜像，5-02 起 TS+Vite+Zustand 已落地~~ **5-26 反转**：Vite + TS + Zustand 实装版整体废弃归档到 `99_archive/2026-05-26_teacher_web_vite实装作废/`，回归 Ryō standalone 主线（itsuki 拍板「Vite 实装版垃圾归档，用 B」— 详见 decision_log 顶部 + raw `2026-05-26_teacher_web_vite废弃+polish回滚.md`）
 - ✅ iOS 三端架构成熟 — Foundation 17 文件冻结 + Auth / Home / Community 3 个 Feature 真实装 + Apply / MyPage Stubs 已存在待 v2
 
 ### 数字汇总（2026-05-04）

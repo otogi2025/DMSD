@@ -568,10 +568,10 @@ itsuki Q5 指示：**像 Web Round 1 一样，Claude Design 先列 3 variations�
 
 | # | 改动 | 目标 | 状态 |
 |---|---|---|---|
-| 9.1 | `§账号规则` "面签激活" → "即激活" + 新增锁定升级策略 | `CLAUDE.md`（主指令档）| ⏳ 本会话结束前 commit |
+| 9.1 | `§账号规则` "面签激活" → "即激活" + 新增锁定升级策略 | `CLAUDE.md`（主指令档）| ✅ **2026-05-26 自动消除** — commit `d608846` CLAUDE.md 重写到 QTS 模式时整段被砍，不再含「面签激活/即激活/账号规则」字样 |
 | 9.2 | 老师 Web 加"学生账号管理 / 密码重置"页 | `teacher_web/round3/src/components/accounts.jsx` | **✅ 2026-04-22 晚 [Code-Agent] 直接在 Round 3 里加完** — 番号/氏名/部屋/邮箱/电话/最终登录/状态 列表 + 详情 modal（プロフィール 编辑 + 密码重置 + ロック解除 + アクティビティ 时间线）。Shell 左 nav 加「学生アカウント管理」入口。seed 24 人（00 = リュウ イヒ，01-23 真实学生） |
-| 9.3 | 老师 Web `/discipline` 加"被锁定学生通知"card | 同上 | ⏳ 同（未做）|
-| 9.4 | `sprint.md` / `scope_tier.md` 纳入"iOS App 注册 flow + 锁定策略" | `demo_4-28/sprint.md` + `scope_tier.md` | ⏳ 本会话结束前评估 |
+| 9.3 | 老师 Web `/discipline` 加"被锁定学生通知"card | 同上 | 🔄 **2026-05-26 转 Web 端 TODO** — 见 `00_admin/TODO.md` §🆕 v1.0 后新功能候选 N-003。归属从 iOS 设计日志 §9 移到 Web 端 backlog（这条本来就是 Web 活，iOS 侧不动） |
+| 9.4 | `sprint.md` / `scope_tier.md` 纳入"iOS App 注册 flow + 锁定策略" | `demo_4-28/sprint.md` + `scope_tier.md` | ✅ **2026-04-29 自动消除** — commit `d590159` demo_4-28 整段归档到 `99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/`，sprint.md / scope_tier.md 已不在活跃区，无需再同步 |
 
 ---
 

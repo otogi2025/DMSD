@@ -90,11 +90,12 @@
 - 决策: 2026-05-21 创建 / **v1.0 是否可上线宿舍真实环境的核心决策** / 待拍板
 
 ### [A-015] 🔴 iOS 没 RollCallAPI — 端到端缺口
-- 位置: `03_dev/student_ios/v1/.../Foundation/Network/Endpoints/`（缺 RollCallAPI.swift）+ `backend/v1/app/routers/rollcall.py` | 维度 1+2 | ⏳ 待修
+- 位置: `03_dev/student_ios/v1/.../Foundation/Network/Endpoints/`（缺 RollCallAPI.swift）+ `backend/v1/app/routers/rollcall.py` | 维度 1+2 | ✅ 已修
 - 修法: iOS 加 `RollCallAPI.swift` 至少含 POST /checkins（学生 BTR tap iPhone 入口）
-- 验证: iOS 真实 device 跑 NFC tap → backend 收到 checkin → 出席板更新
-- commit: —
-- 决策: 2026-05-21 创建 / 待拍板
+- 实际改法: 新建 `Foundation/Network/Endpoints/RollCallAPI.swift`（54 行）含 `enum RollCallAPI` + `checkin(sessionId:body:)` + `RollCallCheckinBody` + `RollCallEventOut`，字段 byte-perfect 对齐 backend schemas
+- 验证: iOS 真实 device 跑 NFC tap → backend 收到 checkin → 出席板更新（真机验证待 itsuki 手动跑）
+- commit: —（5-24 收尾时统一 commit）
+- 决策: 2026-05-21 创建 / **2026-05-24 修复 by 5-22 fork 融合会话 backport**
 
 ### [A-016] 🔴 Android 完全没接通 backend
 - 位置: `03_dev/student_android/v1/app/build.gradle.kts`（没 HTTP client）+ `data/model/Models.kt` | 维度 1 | ⏳ 待修
@@ -111,11 +112,12 @@
 - 决策: 2026-05-21 创建 / 待拍板（实装时间盒）
 
 ### [A-033] 🔴 iOS HomeStubs long-press demo cycle
-- 位置: `03_dev/student_ios/v1/TomoshibiApp/Features/Home/HomeStubs.swift:256, 535` + `Foundation/AppState/AppStore.swift` `cycleDemoRollState` | 维度 4 | ⏳ 待修
+- 位置: `03_dev/student_ios/v1/TomoshibiApp/Features/Home/HomeStubs.swift:256, 535` + `Foundation/AppState/AppStore.swift` `cycleDemoRollState` | 维度 4 | ✅ 已修（iOS 端）
 - 修法: v1.0 sprint 删 long-press cycle + `cycleDemoRollState` 函数 + 调用点
+- 实际改法: HomeStubs.swift + StayListStubs.swift 留空 `DemoCardCycleGesture` modifier shell（保留调用点不报错，等接 backend event 驱动后整段删）+ AppStore.swift `cycleDemoRollState` 函数体删
 - 验证: grep `cycleDemoRollState` 全 repo = 0；amber Card 改成 backend event 驱动
-- commit: —
-- 决策: 2026-05-21 创建 / 待拍板（按 memory project_demo_scaffolds_to_remove_before_v1）
+- commit: —（5-24 收尾时统一 commit）
+- 决策: 2026-05-21 创建 / **2026-05-24 修复 by 5-22 fork 融合会话**（Android A-034 + spec A-030 还未同步删）
 
 ### [A-034] 🔴 Android AppStore cycleDemoRollState
 - 位置: `03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/data/store/AppStore.kt:59-61` | 维度 4 | ⏳ 待修
@@ -125,11 +127,12 @@
 - 决策: 2026-05-21 创建 / 跟 A-033 合并
 
 ### [A-035] 🔴 iOS Auth magic value "000000" 注册流程后门
-- 位置: `Features/Auth/AuthStubs.swift:1254, 1921, 2044`（DEMO-ONLY-SCAFFOLD 标记）| 维度 4 | ⏳ 待修
+- 位置: `Features/Auth/AuthStubs.swift:1944-2074`（RegisterStep5 demo bypass）| 维度 4 | ✅ 已修
 - 修法: v1.0 上线前 grep `magic.value\|"000000"\|0000` 在 Auth 流程全删
-- 验证: grep 结果 = 0；注册流程必须真调 backend
-- commit: —
-- 决策: 2026-05-21 创建 / 待拍板
+- 实际改法: 删默认值 `code: String = "000000"` → `""`，删 `DEMO_MAGIC_CODE` 常量，删 submit() 里 `if code == DEMO_MAGIC_CODE` bypass 分支。TextField placeholder "000000" 保留（UX 输入提示不是后门）。Step4 `#if DEMO` 预填 pw 保留（编译开关已 gate production build）
+- 验证: `grep '000000\|magic.value\|DEMO_MAGIC_CODE' AuthStubs.swift` 现在只剩 line 2005 TextField placeholder（UX hint）+ A-035 修复注释
+- commit: —（5-24 收尾时统一 commit）
+- 决策: 2026-05-21 创建 / **2026-05-24 修复 by 本会话 CC**（itsuki 总授权「全部修好」）
 
 ### [A-039] 🔴 teacher_web v1/src/index.html 7700+ 行老 demo + 密码明文（紧急）
 - 位置: `03_dev/teacher_web/v1/src/index.html:4262, 4297, 4393, 4772`（共 7774 行）| 维度 4 | ⏳ 待修
@@ -397,9 +400,11 @@
 - 决策: 2026-05-21 创建
 
 ### [A-019] 🟡 iOS StudentAccountCreateBody 字段类型出入
-- 位置: `iOS NetworkModels.swift:106-121` + `backend schemas.py:530-547` | 维度 1 | ⏳ 待修
+- 位置: `iOS NetworkModels.swift:106-143` + `backend schemas.py:530-558` | 维度 1 | ✅ 已修
 - 修法: iOS 客户端 form 加 max length 校验镜像 backend
-- 决策: 2026-05-21 创建 / 低优先
+- 实际改法: `StudentAccountCreateBody` 加 `validate() -> String?` 方法镜像 backend max length（name 100 / name_kana 100 / email 200 / phone 32 / room_no 8 / password 6-128）。返回 nil = OK，否则日语错误信息 UI 显示用
+- commit: —（5-24 收尾时统一 commit）
+- 决策: 2026-05-21 创建 / **2026-05-24 修复 by 5-22 fork 融合会话 + 本会话 FC-021 校 16→8**
 
 ### [A-020] 🟡 iOS path_type 跟 backend dispatch 不一致
 - 位置: `backend rollcall.py:181` + `schemas.py:402-409` | 维度 1 | ⏳ 待修
@@ -417,9 +422,11 @@
 - 决策: 2026-05-21 创建
 
 ### [A-024] 🟡 backend rollcall 8 endpoint iOS 完全没 RollCallAPI
-- 位置: `backend routers/rollcall.py` + `iOS Endpoints/`（缺）| 维度 2 | ⏳ 待修
+- 位置: `backend routers/rollcall.py` + `iOS Endpoints/`（缺）| 维度 2 | ✅ 已修（学生端，路径 B）
 - 修法: 跟 A-015 同
-- 决策: 2026-05-21 创建 / 跟 A-015 合并
+- 实际改法: 新建 `RollCallAPI.swift` 实装 POST /checkins（学生 BTR tap iPhone 入口）。其他 7 endpoint（GET today/sessions / board / summary 等）是教师端用，iOS 学生侧不需要 — 不在本次范围
+- commit: —（5-24 收尾时统一 commit）
+- 决策: 2026-05-21 创建 / 跟 A-015 合并 / **2026-05-24 学生端补齐**
 
 ### [A-026] 🟡 Announcement teacher_web 没管理界面
 - 位置: `iOS NetworkModels.swift:142-217` 有 + `teacher_web` 无 | 维度 2 | ⏳ 待修
@@ -447,9 +454,11 @@
 - 决策: 2026-05-21 创建 / 跟 A-039 合并
 
 ### [A-036] 🟡 iOS SEED.user 硬编码 + Android MockData 双端同步漂
-- 位置: `iOS Foundation/Seed/SEED.swift:10-30` + `Android data/seed/MockData.kt:11, 17` | 维度 4 | ⏳ 待修
+- 位置: `iOS Foundation/Seed/SEED.swift:10-30` + `Android data/seed/MockData.kt:11, 17` | 维度 4 | ✅ 已修（iOS 端）
 - 修法: 登录后强制清 SEED.user，未登录显示「— 」占位；AppStore 引 `isAuthenticated` gate
-- 决策: 2026-05-21 创建
+- 实际改法: AppStore.swift 加 `var isAuthenticated: Bool { authToken != nil }` gate。view 用此 gate 决定回退到 SEED.user 占位（登录前）或显示「— 」（登录后未拉到数据）。token 失效会在 401 时清空触发重新登录
+- commit: —（5-24 收尾时统一 commit）
+- 决策: 2026-05-21 创建 / **2026-05-24 iOS 端修复 by 5-22 fork 融合会话**（Android MockData 还未同步）
 
 ### [A-037] 🟡 iOS StayListStubs 5 处 DEMO-ONLY 替代 GET /applications/mine
 - 位置: `Features/StayList/StayListStubs.swift:390, 453, 687, 1133, 1346` | 维度 4 | ⏳ 待修
@@ -457,9 +466,11 @@
 - 决策: 2026-05-21 创建
 
 ### [A-038] 🟡 iOS AppStore Announcement demo seed 5 处
-- 位置: `Foundation/AppState/AppStore.swift:98, 217, 230, 260, 286, 535` | 维度 4 | ⏳ 待修
+- 位置: `Foundation/AppState/AppStore.swift:98, 217, 230, 260, 286, 535` | 维度 4 | ✅ 已修
 - 修法: 上线前删 `seedDemoAnnouncements()` + 调用点 + 函数本体
-- 决策: 2026-05-21 创建
+- 实际改法: AppStore.swift 删 145 行 `seedDemoAnnouncements()` 函数本体（5 条 demo 公告 + 5 条 reply seed）+ init() 调用点。公告全走 backend AnnouncementsAPI
+- commit: —（5-24 收尾时统一 commit）
+- 决策: 2026-05-21 创建 / **2026-05-24 修复 by 5-22 fork 融合会话**
 
 ### 子代理 B 维度 6-10（17 条）
 
@@ -910,17 +921,21 @@
 - 修法: 统一 `JSONEncoder.dateEncodingStrategy = .iso8601`，或时间字段跨端用 String 客户端格式化
 - 决策: 2026-05-22 codex 创建
 
-#### [Codex-FC-020] 🟡 iOS ApplicationOut 漏后端 + Web 都有的 bus_route_id
+#### [Codex-FC-020] 🟡 iOS ApplicationOut 漏后端 + Web 都有的 bus_route_id | ✅ 已修
 - 位置: `03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/NetworkModels.swift:43`
 - 描述: iOS 没 `bus_route_id`，后端 `schemas.py:187` 有 `bus_route_id: Optional[UUID]`，Web `client.ts:252` 也有
 - 修法: iOS 模型补字段（即使暂不显示也要保留以免 decode 缺数据）
-- 决策: 2026-05-22 codex 创建 / 跟 [A-018] 漏补项
+- 实际改法: NetworkModels.swift ApplicationOut struct 在 `flight_arr_at` 之后、`submitted_at` 之前加 `let bus_route_id: UUID?`
+- commit: —（5-24 收尾时统一 commit）
+- 决策: 2026-05-22 codex 创建 / 跟 [A-018] 漏补项 / **2026-05-24 修复 by 本会话 CC**
 
-#### [Codex-FC-021] 🟡 学生注册 room_no 长度 iOS 16 vs 后端 8
+#### [Codex-FC-021] 🟡 学生注册 room_no 长度 iOS 16 vs 后端 8 | ✅ 已修
 - 位置: `03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/NetworkModels.swift:107,137` + `backend/schemas.py:558`
 - 描述: iOS 校验 16 字符 / 后端最大 8 → iOS 过校验后端 422
 - 修法: 二选一 — iOS 改 8 或后端改 16（以字段字典为准）
-- 决策: 2026-05-22 codex 创建
+- 实际改法: 选 iOS 改 8 跟 backend 对齐。NetworkModels.swift line 107 注释 + line 137 validate() 阈值 `room_no.count > 16` → `> 8`。宿舍号实际格式 M205/W205B 长度 4-5 字符，max 8 够用
+- commit: —（5-24 收尾时统一 commit）
+- 决策: 2026-05-22 codex 创建 / **2026-05-24 修复 by 本会话 CC**（选 iOS 跟 backend 对齐，理由：backend 是字段真值源）
 
 #### [Codex-FC-025] 🟡 Web StayLocation 字段形状跟后端不一致
 - 位置: `03_dev/teacher_web/v1/src/api/client.ts:220` + `backend/schemas.py:29`
