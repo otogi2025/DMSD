@@ -1,6 +1,7 @@
 """点呼 endpoint (#16-#20 点呼 部分).
 
 GET  /api/v1/rollcall/today/sessions              — 当日セッション一覧
+GET  /api/v1/rollcall/sessions?from=&to=          — 履歴 (RecordsPage 用)
 POST /api/v1/rollcall/sessions/{id}/start         — 手動開始
 POST /api/v1/rollcall/sessions/{id}/end           — 手動終了
 POST /api/v1/rollcall/sessions/{id}/checkins      — NFC/手動チェックイン
@@ -62,6 +63,57 @@ def today_sessions(
     )
     # R4 dorm filter
     sessions = db.scalars(stmt).all()
+    if teacher.assigned_dorm is not None and teacher.role not in {
+        "寮務部長",
+        "寮務課長",
+        "国際交流部長",
+        "国際交流課長",
+    }:
+        dorm_set = [1, 2] if teacher.assigned_dorm == 1 else [teacher.assigned_dorm]
+        sessions = [s for s in sessions if any(d in s.dorm_unit_set for d in dorm_set)]
+
+    return [schemas.RollCallSessionOut.model_validate(s) for s in sessions]
+
+
+# ---------------------------------------------------------------
+# GET /rollcall/sessions?from=&to=  — 历史列表 (教师 Web RecordsPage 用)
+# 5-27 新增：从已有 RollCallSession model 派生 SELECT 查询，不需要新 schema。
+# 日期范围 from / to 是 YYYY-MM-DD，不指定时默认查过去 7 天（含今天）。
+# R4 寮过滤跟 today_sessions 同样逻辑：役职 4 人跨寮全件，其他按 assigned_dorm。
+# ---------------------------------------------------------------
+@router.get("/sessions", response_model=list[schemas.RollCallSessionOut])
+def list_sessions_history(
+    from_: Optional[date] = None,
+    to: Optional[date] = None,
+    db: Session = Depends(get_db),
+    teacher: models.Teacher = Depends(get_current_teacher),
+):
+    from zoneinfo import ZoneInfo
+
+    jst = ZoneInfo("Asia/Tokyo")
+    today = _today_jst()
+    # 默认：过去 7 天（含今天）
+    if to is None:
+        to = today
+    if from_ is None:
+        from datetime import timedelta
+
+        from_ = to - timedelta(days=7)
+
+    from_dt = datetime(from_.year, from_.month, from_.day, 0, 0, 0, tzinfo=jst)
+    to_dt = datetime(to.year, to.month, to.day, 23, 59, 59, tzinfo=jst)
+
+    stmt = (
+        select(models.RollCallSession)
+        .where(
+            models.RollCallSession.scheduled_window_start_at >= from_dt,
+            models.RollCallSession.scheduled_window_start_at <= to_dt,
+        )
+        .order_by(models.RollCallSession.scheduled_window_start_at.desc())
+    )
+    sessions = db.scalars(stmt).all()
+
+    # R4 寮过滤 — 役职（跨寮 4 人）看全件，其他只看 assigned_dorm
     if teacher.assigned_dorm is not None and teacher.role not in {
         "寮務部長",
         "寮務課長",
