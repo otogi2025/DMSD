@@ -501,7 +501,7 @@ itsuki Q5 指示：**像 Web Round 1 一样，Claude Design 先列 3 variations�
 ### 6.5 横屏 / 暗色模式
 
 - 横屏：**不支持**，纯 portrait（N19 ✅）
-- 暗色模式：**做**（N18 ✅ — iOS App Store 加分 + AC 评审加分 + iOS 26 Liquid Glass 在暗色下效果好）
+- 暗色模式：**v1.0 不做 / v2 再做**（N18 — 2026-05-25 itsuki 拍板。v1.0 用 `TomoshibiApp.swift:22 .preferredColorScheme(.light)` 强制 light 避免黑闪；v2 真做时全 app token `T.paper` / `T.ink` 等加 dark variant）
 
 ---
 
@@ -556,7 +556,7 @@ itsuki Q5 指示：**像 Web Round 1 一样，Claude Design 先列 3 variations�
 | N15 | 快递未领 badge | 红点 + 数字 |
 | N16 | 宿舍墙身份 | **实名** |
 | N17 | 点歌 source | Apple Music link paste |
-| N18 | 暗色模式 | 做 |
+| N18 | 暗色模式 | v1.0 不做 / v2 再做（2026-05-25 推翻） |
 | N19 | 横屏 | 不支持 |
 | N20 | Demo 切学生 | 砍（注册 flow 取代）|
 

@@ -6,7 +6,7 @@
 > - 和 `progress_overview.md` 的区别: progress_overview 是稳定的章节目录,TODO 是可以频繁增删的任务池
 > - 完成的任务: 在 checkbox 前打 x,隔段时间(每周或每月)批量移到"已完成归档"
 
-**最后更新**: 2026-05-22（§🛰️ 点呼机段配件采购方向反转 — 5-12~16 中国海关查扣 → itsuki 拍板撤回中国海运 → 日本本地买 / 原 11 件淘宝清单 + 2 任务作废 / 加 6 条新待办：重新选型 + 渠道调研 + 预算重估 + 硬件文档更新 + 点呼机设计文档更新 + 拆寄教训）；早些更新：2026-05-21（加 §🐞 系统 Bug 专栏入口 131 条 / 清 §⏰ Cloud Design 5-12 过期项 / 第二个 §G 重命名 §H — B-001/B-002 修复）；2026-05-14 §🛠️ G + H；2026-05-13 §🛠️ E + F；2026-05-11 §📄；2026-05-08 §📱 + §🛰️ + §🐛 <!-- VERSION_OK -->
+**最后更新**: 2026-05-25 晚段（§🛠️ J 加 2 条新待办 — 触发词「翻车」首次实战测试 + inbox 累到 3-5 条后写「整理 inbox」SOP；起因：anti-ai-flavor skill 加第 3 触发词「翻车」单字 + 新建 `~/.claude/skills/anti-ai-flavor/inbox.md` — itsuki 收尾中途立项自我迭代机制）；早些更新：2026-05-25（5-25 drift 修 + session-coord 三层保险会话加 §📊 project-overview 历史欠债 2 条 + §🐚 shell 工具链 quirk 1 条 + §🛠️ J 首次创建 6 条）；2026-05-24 5-22 修漏洞会话补 §🎯 D1-D5 + §📁 / §💾 标 ✅ + 加未 push 37 commit；5-22 §🛰️ 点呼机段配件采购方向反转 — 5-12~16 中国海关查扣 → itsuki 拍板撤回中国海运 → 日本本地买 / 原 11 件淘宝清单 + 2 任务作废 / 加 6 条新待办；2026-05-21 加 §🐞 系统 Bug 专栏入口 131 条 / 清 §⏰ Cloud Design 5-12 过期项；2026-05-14 §🛠️ G + H；2026-05-13 §🛠️ E + F；2026-05-11 §📄；2026-05-08 §📱 + §🛰️ + §🐛<!-- VERSION_OK -->
 **当前版本**: 见 `CHANGELOG.md` 顶部 · 单源真值，见 `00_admin/文档同步点清单.md`
 
 > **2026-04-17 归档说明**：`executable_dev_checklist.md` 已归档到 `99_archive/2026-04-12_executable_dev_checklist.md`（内容已过期，功能被本 TODO.md 吸收）。
@@ -64,10 +64,7 @@
 
 ### 🔥 紧急 — 下次会话立刻看
 
-- [ ] **Bot 1 闯祸 — 30+ iOS 编译错误**（5-21 itsuki 选 1.c「自己看」）
-  - 文件：`03_dev/student_ios/v1/.../HomeStubs.swift` + `AppStore.swift` + `StayListStubs.swift`
-  - 根因：Bot 1 修 demo scaffold（A-033/036/037/038）时把依赖的类一起删了
-  - 选项：(a) itsuki 自己修 / (b) CC 找回被删的类 / (c) revert Bot 1 那几个 iOS 改动
+- [x] ~~**Bot 1 闯祸 — 30+ iOS 编译错误**~~ ✅ 2026-05-22 验证是 SourceKit（编辑器单文件检查器）误报 — 真实 `xcodebuild` 编译全过。详见 `raw/2026-05-22_iOS_fork融合.md` §21:45
 
 ### ⏳ Fix-Bot 4 后台跑中
 
@@ -107,14 +104,50 @@
 
 ### 📁 文件加 project-overview 引用
 
-- [ ] **`00_admin/系统bug专栏.md`** 加进 `project-overview/SKILL.md`（长期治理文件）
-- [ ] **`00_admin/codex_audit_prompt.md`** 加进 `project-overview/SKILL.md`（长期模板文件）
+- [x] ~~**`00_admin/系统bug专栏.md`** 加进 `project-overview/SKILL.md`~~ ✅ 2026-05-22 完成（§1.2 已加 + 含 Codex 段说明）
+- [x] ~~**`00_admin/codex_audit_prompt.md`** 加进 `project-overview/SKILL.md`~~ ✅ 2026-05-22 完成（§1.2 已加）
+
+### 📊 project-overview 历史欠债（2026-05-25 加）
+
+- [ ] **§6.2 raw 标题数漂**：§0.1 体量表写 raw 50+5（含 5-24/5-25），但 §6.2 章节标题还停在「48 文件」+ 描述写「5-16 ~ 5-21 4 个新增 raw 未 commit」— 至少 4 个 raw 没列进章节本体（5-22 / 5-22-iOS / 5-24 / 5-25）。下次 project-overview 大整理时校准 §6.2 标题 + 描述
+
+### 🐚 shell 工具链 quirk（2026-05-25 加）
+
+- [ ] **`git ls-files` 中文文件名 NFC/NFD 怪行为**：本会话调查 drift 漂移时发现 `git ls-files | wc -l` = 1122 / `sort -u` 后 1120 / `sort | uniq -c` 显示 6 个 path count 2 / `grep -c "^<path>$"` 显示该 path 只 1 次 — git index 实际每个 path 只 1 份（`git ls-files --stage` 验证），是 shell `uniq` 在中文文件名 Unicode normalization（NFC/NFD）上的怪行为，不是 git 真重复。**当前不动 git 状态**（避免改坏仓库 + 不是真问题），记备查。如果以后想根因，可以查 git 仓库的 NFC/NFD 设置 + macOS HFS+ filename encoding 历史。本会话已修脚本侧口径（删 `sort -u` 统一成 `sort | uniq -c`）规避脚本误报
 
 ### 💾 commit + push
 
-- [ ] **77 条修 + Fix-Bot 4 effective_* 删 + 5-21 hook 修** 全部未 commit
-- [ ] itsuki 拍板 commit 时机（分多 commit / 一个 commit）+ push 时机
+- [x] ~~**77 条修 + Fix-Bot 4 effective_* 删 + 5-21 hook 修** 全部未 commit~~ ✅ 2026-05-22 完成（5 commit 落地：`8e584b9` / `29fc7e6` / `3f65331` / `7120c53` + 多个修漏洞会话 + iOS 会话 + 点呼机会话 commit）
+- [x] ~~itsuki 拍板 commit 时机~~ ✅ 5-22 拍板「全都做」commit 一波
+- [ ] **当前累积未 push commit：37 个**（origin/main ahead 37）— 全局铁律：CC 不自动 push，**等 itsuki 说「推一下」**
 - [ ] 全局铁律：CC 不自动 commit / push
+
+### 🎯 5-22 修漏洞会话留 — 等 itsuki 拍板 5 大决策（2026-05-22 加）
+
+> 本会话「继续修项目漏洞」做了 12 件文档 / 工程治理修。剩 5 件大决策必须 itsuki 拍板才能推：
+
+#### D1. spec 改了要不要 bump 版本号
+- `RollCall_Spec.md` + `API_CONVENTIONS.md` 改了 FC-017（旧 `/api/v1/checkin` → `/api/v1/rollcall/sessions/{session_id}/checkins`），按 `version-bump skill §10 4 问` 算实质改动
+- 选项：(a) bump v0.8.1 / (b) 攒一波别的改动再 bump v0.9.0 / (c) 跟下次 backend FC-* 修一起 bump <!-- VERSION_OK -->
+
+#### D2. C3 `system_features.md` 引用废 repo `Tomoshibi-iOS`（[C-011]）
+- `02_design/system_features.md:47,59,61,67,70,75` 6 处引用 `~/dev/TomoshibiiOSApp/`（5-06 已退役独立 repo 模式）
+- 留下次会话单做（system_features 别会话频繁改避免冲突）
+
+#### D3. D 段 `cc-project-template` 跨项目 DMSD 残留（[C-037] / [FC-036]）
+- `~/dev/cc-project-template/.claude/skills/` 6 skill 共 45+ 处 DMSD / Tomoshibi / itsuki / 筑波 AC 内容
+- 工作量：30-60 分钟跨项目修，需先 `cd ~/dev/cc-project-template/`
+- 选项：(a) 5-22 接着做 / (b) 排进下次专项会话 / (c) Tango 真用模板时再修
+
+#### D4. Codex 段大决策（之前留的 4 个）— 影响 v1.0 上线范围
+- **[FC-010]** App Store 要求的账号删除 → 进 v1.0 还是 v1.0.1？<!-- VERSION_OK -->
+- **[FC-016]** NFC ECDSA + nonce → v1.0 (a) 完整实装 / (b) 砍降级 v1.1 <!-- VERSION_OK -->
+- **[FC-005~015]** backend 代码层修法（pytest 收集失败 / `timedelta` 缺导入 / 学生 checkin endpoint 权限 / `minute-5` 整点崩溃）→ 等 backend 会话还是 itsuki 自修
+- **[FC-011 续]** `config.py` 的 `_FORBIDDEN_JWT_SECRETS` 集合扩展（防止 `.env.example` 长字符串复制后绕过）— 算 backend 代码层
+
+#### ~~D5. Bot 1 iOS 烂摊子复盘~~ ✅ 2026-05-25 复查完
+- 5-22 iOS 会话已修主体（`46f779c` backport + `84e2490` 删 magic value "000000" + `f2a6730` 字段对齐 + `6aaa928` demo scaffold 删）
+- ✅ **2026-05-25 Bot 1 复查会话**：全量 diff 备份 fork vs 主项目 v1（两边各 42 个 Swift 文件 / 9 差异文件 / 3 fork 独有上架文件）— **没遗留误删的真功能**。4 处删除全在 `project_demo_scaffolds_to_remove_before_v1.md` 清单内 Bot 1 删对了（A-030/033/037/038）；剩下都是 swiftformat 格式整理 / 5-22 后主项目新加（A-019/036 + FC-020 + RollCallAPI）。详见 `raw/2026-05-25.md`
 
 ---
 
@@ -186,6 +219,16 @@
 - [ ] **WIP 已 8 条超 "最多 5 条" 上限清理** — 下次清理 5-11 段 4 条老条目（详细历史在 commit log + raw）。或者 itsuki 拍板"放宽到 8 条"也行
 - [ ] **CC 写 anti-ai-flavor 时自己也犯 F+A 类的元层教训写 feedback memory？** — 反讽性证据：写规则时自己也违反规则。是否值得写一条 `feedback_cc_skips_interview_step.md` 提醒"用 skill-creator / skill-with-process-steps 类挂钩时机械逐步走，不跳第一步"。itsuki 拍板
 
+### I. session-wrap §7.5.7 TODO 双向刷新规则（2026-05-24 加）
+
+> **背景**：5-22 修漏洞会话收尾时 CC 把「留 itsuki 拍板 5 大决策」只写收尾报告里没 Edit TODO 落地。itsuki 5-24 怒怼「他妈的这些你记录到 todo 里面了没 / 要我的收尾 skill 每次都能把剩下没做完的放到 todo 里面，然后把做完的从 todo 里面去掉。要能做到这样，帮我改好」→ 拍板细化 §7.5.1 项 7 = 强制规则。
+
+- [x] ~~**改 session-wrap skill §7.5.1 项 7**~~ ✅ **2026-05-24 完成** — 项 7 改成「双向刷新强制规则」+ 加 §7.5.7 详细机械 5 步（A 列任务 / B grep TODO / C 标 ✅ / D 加新条目 / E 报告引用真实行号）
+- [x] ~~**§7.5.7.4 出处段写本次怒怼背景**~~ ✅ **2026-05-24 完成** — 直接引 itsuki 原话作为 skill 历史证据
+- [ ] **试用 §7.5.7 1-2 周** — 下次会话收尾跑 §7.5.1 项 7 时按机械 5 步走，看是否真不再「报告写了就算」/ 「漏洞条目都在 系统bug专栏」类回避
+- [ ] **如果反模式仍出现** → 加 hook 强制兜底（PostToolUse 监测「收尾」关键词 + 报告里是否真有「TODO.md:行号」引用 → 没有就报警），不再靠 LLM 自觉
+- [ ] **跨项目同步** — SC26 / Tango 收尾 skill 是否也加 §7.5.7（如果它们有 TODO 类文件）— itsuki 拍板
+
 ### F. 5-12 收尾残留待拍板（2026-05-13 凌晨加 — 2026-05-21 大整理 / B-003 修）
 
 > 5-12 修补类批量会话末尾留下 7 件，5-21 audit 后归档大部分（已废 / 跟 §⏰ 重复 / 已 Bot 修）。
@@ -212,6 +255,17 @@
 - [ ] **Tango 6 skill 共 197 处 DMSD 残留** — 9 条 G1-G9 治理 TODO 在 `~/dev/tango/00_admin/TODO.md` 里，边开发 Tango Phase 1 边清
 
 ---
+
+### J. anti-ai-flavor HOW_TO_TALK + 跨项目 session-wrap 同步残留（2026-05-25 晚段加）
+
+- [ ] **SC26 `session-wrap/SKILL.md` §7.5.5 line 720 旧漂移修** — 写"6 项核对表"实际 8 项（5-16 加 project-overview 项时漏改 / 5-25 又加项 8 没顺手修）
+- [ ] **Tango `session-wrap/SKILL.md` 未来装 §7.5 强制清单段** — 5-14 立项漏装。当前项 8 嵌在 §5.5 里作为临时方案。装好后把项 1-8 迁移过去
+- [ ] **CC 自治进化机制 propose** — itsuki 5-25 提「不同项目的 cc 可以自己进化自己的收尾 skill」 — 现在是人工跨项目同步（DMSD → SC26 → Tango），未来要每个项目 CC 自己根据项目特点判断该加什么项。要 propose 架构方案：可能用 skill 模板 + 跨项目 diff 机制
+- [ ] **触发词「单词白名单」首次触发后建 `~/.claude/skills/anti-ai-flavor/whitelist.md`** — 5-25 拍板设计，文件未建（等 itsuki 第一次说「单词白名单」时 CC 建）
+- [ ] **触发词「说人话」首次实战测试** — 5-25 拍板「说人话」=「重写上一条」，未真用过
+- [ ] **触发词「翻车」首次实战测试**（**5-25 晚段第三轮升级新加**）— 5-25 拍板「翻车」单字触发 → CC 把上一条回复按 5 字段（原文 / 6 类归类 / 违反铁律 / 根因 / 修正版）写到 `~/.claude/skills/anti-ai-flavor/inbox.md` 末尾。等下次 CC 翻车 itsuki 喊一声看机制能不能跑通
+- [ ] **inbox 累到 3-5 条后写「整理 inbox」SOP**（**5-25 晚段第三轮升级新加**）— 批量合并到 `references/翻车案例库.md` 的流程还没定。需要的字段：合并触发词 / 重新编号规则（案例库已有 #1-#20）/ 合并完移到「已整理归档」区不直接删 / 合并时 CC 是否要主动重写修正版
+- [ ] **anti-ai-flavor 场景模板 5-8 补齐** — `HOW_TO_TALK.md` 现在只定了场景 1-4（做完事 / 卡住 / 简单 yes-no / 复杂解释），场景 5（发现新东西要解释）/ 6（2-3 种做法让拍板）/ 7（主动提醒踩坑）/ 8（反驳 itsuki）还是占位 — 下次会话继续走
 
 ## 📱 iOS 上架冲刺 — 剩余事项（2026-05-08 状态）
 
@@ -758,7 +812,7 @@
 #### A.5 v1.0 上线前必做（不能跳）
 
 - [ ] **`06_assets/real_samples/bus_notice_2026-03-22_特別運行便.md` 学生实名脱敏** — GitHub 现在公开 + 含真名
-- [ ] **iOS 3 个空壳 view 决定命运**：`Schedule` / `StayList` / `BusList`（5-01 审查推荐都删，已并入 Home / Apply / Community Bus card）
+- [x] ~~**iOS 3 个空壳 view 决定命运**：`Schedule` / `StayList` / `BusList`~~ ✅ 2026-05-25 Bot 1 复查会话验证：3 个 view 都不是空壳，全在用。`ScheduleView` 是行事予定月历（`SEED.events`）/ `BusListView` 是寮生特别便一覧（HomeStubs `.busList` 跳转目标）/ `StayListView` 5-21 A-037 改成调真后端 `ApplicationsAPI.listMine()`。TODO 原描述「已并入 Home / Apply / Community Bus card」过期。
 - [ ] **`00_admin/AC_志望動機_素材.md` Q1-Q8 itsuki 自己起草**（185 行框架 17 个小节占位 / 内容待填 — AC 5 核心问题 #5 志望動機，repo 内最大空白）
 
 ### B. CC 可独立做（每条 < 30 分钟，下次开会话「做 B 类」即可）
@@ -775,7 +829,7 @@
 <!-- 2026-05-21 Fix-Bot 3 删: 「更新 00_admin/文件结构指南.md」— 该文件已 5-04 归档,被 `.claude/skills/project-overview/SKILL.md` 取代,无需再补 v0.6/v0.7/v0.8 AC 叙事 (project-overview skill 已覆盖) -->
 - [ ] **S18（低价值）**：`DEVICE_REGISTRY §6` 候选位置 `dorm-A-01 / dorm-B-01` 跟 `path_type` A/B 撞字 — 改成 `dorm-1-01 / dorm-2-01`。真部署 4 台时顺手做也行
 - [ ] **后端补漏**：`routers/applications.py` 加 `POST /{id}/approvals`（役职审批 #10-#13）+ `DELETE /{id}`（D3 撤回）+ `services/email.py` 补 retry 3 次循环
-- [ ] **N18 暗色模式实装 待拍板**（5-04 iOS bug 修复发现 — `IOS_DESIGN_LOG.md §6.5` 标 N18 ✅「做」但实际未实装 → `TomoshibiApp.swift:22` 已临时强制 `.preferredColorScheme(.light)` 避免黑闪）。**两选一**：A) 真做 N18 — 全 app token (`T.paper` / `T.ink` / 等) 加 dark variant，规模 ≥ 1 整个会话；B) 降级 N18 → IOS_DESIGN_LOG.md 改成「v1.0 不做（强制 light）/ v2 再做」。**当前阻塞**：itsuki 拍板选 A 或 B。
+- [x] ~~**N18 暗色模式实装 待拍板**~~ ✅ 2026-05-25 itsuki 拍板 B：v1.0 不做 / v2 再做。`IOS_DESIGN_LOG.md §6.5` + §8.2 N18 行已更新。`TomoshibiApp.swift:22 .preferredColorScheme(.light)` 保留作 v1.0 强制 light 防黑闪。
 - [ ] **5-04 iOS bug 修复联动残留**：（1）pbxproj 备份 `/tmp/pbxproj_backup_before_icon_move` 验证后清理；（2）启动 git status 残留垃圾（`.bak` × 2 / `Root/File.txt`）等 itsuki 拍板删；（3）iOS sync 脚本本机不通（找不到 `~/dev/TomoshibiiOSApp`）— 是否 clone 独立 repo / 或改脚本路径
 
 ### C. AC 提交前长期任务（4 条）

@@ -1,6 +1,6 @@
 # 当前工作状态 (Work In Progress)
 
-> **最后更新**: 2026-05-26（启动 SOP 集中化 — 新建 `.claude/skills/dmsd-startup/SKILL.md`（5 件启动必做事）+ 全局 `~/.claude/hooks/session-start-coord-check.sh` 在 DMSD 项目下静默退出 + DMSD CLAUDE.md「会话开始」段简化引用新 skill + 6 项目 CLAUDE.md 加「不主动用英语名词」规则段 + project-overview SKILL.md §0.1 + §1.7 同步 + 本文件「会话开始」铁律改成走 dmsd-startup skill）。5-25 晚段（追加：第三轮升级 — anti-ai-flavor 加第 3 触发词「**翻车**」单字 + 新建 `inbox.md` — itsuki 收尾中途立项自我迭代机制：发现新翻车点 → CC 按 5 字段「原文 / 6 类归类 / 违反铁律 / 根因 / 修正版」记 inbox，未来批量整理合并到 `references/翻车案例库.md`；改 5 文件：新建 `inbox.md` + SKILL.md 加 §7.5 + CLAUDE.md 触发词 2→3 + hook 提醒 + `我的环境.md` + `.html`）。早些（同晚段）：anti-ai-flavor HOW_TO_TALK.md 立项 + 跨 3 项目 session-wrap 加项 11/8 — itsuki 给 16 个翻车原句证据 → 4 根本问题 + 9 类细分 → 5 条总结铁律 → 方案 B 落地：SKILL.md 反面自检 + HOW_TO_TALK.md 正面教学互补 + 2 触发词「说人话」/「单词白名单」+ DMSD/SC26/Tango session-wrap 收尾清单同步加「全局环境清单同步」项 — 全局 6 文件 + DMSD 1 文件 + 2 memory + SC26 1 文件 + Tango 1 文件。早些 5-25（drift 脚本 bug 修 + 全局 `session-coord` 三层保险落地 — DMSD 2 文件 + 全局 4 文件 / 全局 Hooks 4→5；同时补登 5-24 iOS bug 批量修复会话遗漏的收尾）。早些 5-22（**3 会话产出** — ① 早 project-overview §0.1 漂移 957→980 / ② 中 iOS fork 融合归档 commit `46f779c` / ③ 晚 点呼机推进 + 撞海关查扣事件 + 立项 `session-wrap §5.5.15 decision-draft`）。早些 5-21（5-20 凌晨 4 会话审查作战 cron 自动 fire 产出 131 条 findings / 5-21 加系统 bug 专栏 + 第一批修复 8 条）。早些 5-19（project-overview 大改造 + 防漂 C 方案）。<!-- VERSION_OK -->
+> **最后更新**: 2026-05-26（晚 — 全项目中枢机制立项 + DMSD 注册档案 + DMSD CLAUDE.md 加「全项目中枢联动」段；同时合并早段 iOS Bot 1 复查 + 暗夜模式 v2 + 3 上架配置归位 + memory 加铁律「TODO 关条目不要问」入「最近会话」。早段头：启动 SOP 集中化 — 新建 `.claude/skills/dmsd-startup/SKILL.md`（5 件启动必做事）+ 全局 `~/.claude/hooks/session-start-coord-check.sh` 在 DMSD 项目下静默退出 + DMSD CLAUDE.md「会话开始」段简化引用新 skill + 6 项目 CLAUDE.md 加「不主动用英语名词」规则段 + project-overview SKILL.md §0.1 + §1.7 同步 + 本文件「会话开始」铁律改成走 dmsd-startup skill）。5-25 晚段（追加：第三轮升级 — anti-ai-flavor 加第 3 触发词「**翻车**」单字 + 新建 `inbox.md` — itsuki 收尾中途立项自我迭代机制：发现新翻车点 → CC 按 5 字段「原文 / 6 类归类 / 违反铁律 / 根因 / 修正版」记 inbox，未来批量整理合并到 `references/翻车案例库.md`；改 5 文件：新建 `inbox.md` + SKILL.md 加 §7.5 + CLAUDE.md 触发词 2→3 + hook 提醒 + `我的环境.md` + `.html`）。早些（同晚段）：anti-ai-flavor HOW_TO_TALK.md 立项 + 跨 3 项目 session-wrap 加项 11/8 — itsuki 给 16 个翻车原句证据 → 4 根本问题 + 9 类细分 → 5 条总结铁律 → 方案 B 落地：SKILL.md 反面自检 + HOW_TO_TALK.md 正面教学互补 + 2 触发词「说人话」/「单词白名单」+ DMSD/SC26/Tango session-wrap 收尾清单同步加「全局环境清单同步」项 — 全局 6 文件 + DMSD 1 文件 + 2 memory + SC26 1 文件 + Tango 1 文件。早些 5-25（drift 脚本 bug 修 + 全局 `session-coord` 三层保险落地 — DMSD 2 文件 + 全局 4 文件 / 全局 Hooks 4→5；同时补登 5-24 iOS bug 批量修复会话遗漏的收尾）。早些 5-22（**3 会话产出** — ① 早 project-overview §0.1 漂移 957→980 / ② 中 iOS fork 融合归档 commit `46f779c` / ③ 晚 点呼机推进 + 撞海关查扣事件 + 立项 `session-wrap §5.5.15 decision-draft`）。早些 5-21（5-20 凌晨 4 会话审查作战 cron 自动 fire 产出 131 条 findings / 5-21 加系统 bug 专栏 + 第一批修复 8 条）。早些 5-19（project-overview 大改造 + 防漂 C 方案）。<!-- VERSION_OK -->
 
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
@@ -49,6 +49,46 @@
 ---
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
+
+### 2026-05-26 by [MacBook-Pro-Opus 4.7 1M / iOS Bot 1 复查 + 全项目中枢注册]
+
+**主题**：⭐⭐⭐⭐ 两次会话 — 早段 iOS Bot 1 误删功能复查（全量 diff fork vs 主项目 v1 证实没遗留误删 + 撤暗夜模式 v2 + 3 上架配置归位 03_dev/student_ios/v1/TomoshibiApp/ + memory 加铁律「TODO 关条目不要问 itsuki」+ CC「说人话」触发 2 次）；晚段 itsuki 介绍 5-26 新建「全项目中枢」机制（iCloud / 大学入試 / 全项目中枢/ 下 4 项目互通板 — 大学入試 / DMSD / Tango / QTS）→ DMSD CC 注册档案（档案状态 ⏳→✅ + 补现状一句话 + 跟其他项目关系 + 加 DMSD CLAUDE.md「全项目中枢联动」段）
+
+**关键拍板**（itsuki 7+ 次明确决策）：
+- 早段：推 iOS / 选 A Bot 1 复查 / **「TODO 关条目不要问，做完就该 CC 自己删」**（怒怼立铁律入 memory）/ 3 上架配置文件归位到 iOS 主目录 / 暗夜模式撤回 v2 再做 / A+B 立项后撤回（看工作量评估）
+- 晚段：4 步注册任务（读中枢 CLAUDE.md / 改 项目档案/DMSD.md / 扫 信箱/DMSD_inbox.md / 改 DMSD CLAUDE.md 加联动段）
+
+**实际改动**（DMSD 8 + 全局 1 memory + iCloud 中枢 1 + 本 raw 新增段 = 11）：
+| 文件 | 改动 |
+|---|---|
+| `05_logs/raw/2026-05-26.md` | 新建（早段 8 阶段 + 工程动作汇总）+ 追加阶段 9（全项目中枢注册）|
+| `00_admin/TODO.md` | 关 4 条（Bot 1 编译 / §D5 复查 / N18 / 3 空壳屏）|
+| `03_dev/student_ios/IOS_DESIGN_LOG.md` | §6.5 + §8.2 N18「做」→「v2 再做」|
+| `03_dev/student_ios/v1/TomoshibiApp/{AppIcon-1024.png, PrivacyInfo.xcprivacy, TomoshibiApp.entitlements}` | git mv 从 99_archive 归位 |
+| `CLAUDE.md` | 末尾加「全项目中枢联动 (2026-05-26 起)」段 |
+| `.claude/skills/project-overview/SKILL.md` | §0.1 体量 1124→1127 + 03_dev 396→399 + 99_archive 555→552 + 05_logs 104→105 |
+| memory `feedback_no_handoff_work_back_to_itsuki.md` | 加 5-26 案例 + 新铁律「TODO 关条目不要问」|
+| iCloud 中枢 `项目档案/DMSD.md` | 注册 ⏳→✅ + 补现状一句话 / 跟其他项目关系 / 基础信息漏字段 / 删注册任务段 |
+
+**AC 价值** ⭐⭐⭐⭐⭐：
+- **模式 5 顶级**（早段 TODO 怒怼）— 同根反复犯（feedback memory 5-14「不要甩工作回 itsuki」5-26 再翻车） → 升级新具体场景铁律
+- **模式 4 机制扩展**（晚段中枢）— 从「项目内多会话协同（session-coord）」升级到「跨项目协同（全项目中枢）」
+- **模式 5 元认知**（早段 Bot 1）— 5-22 担心遗留误删 → 5-26 主动复查证实
+- **模式 6 取舍** × 多 — A+B 立项→看工作量撤回 / 3 文件归属判断 / 中枢挂大学入試 vs ~/dev/ / git mv 保留 blame
+- **模式 2 假设崩** — CC diff HomeStubs `EmptyView` 一瞬错读 → 完整读上下文修正
+- **协作纠错** × 3 — TODO 不要问 / 说人话 × 2（anti-ai-flavor 实战机制跑通）
+- **学术延伸性**：分布式系统「actor model」类比（CC = 独立 actor / 共享文件 mailbox 传信）/ 多 agent 协同设计
+
+**残（下次跟进）**：
+- 老师公告 A+B（Android + 教师 Web）+ 学生注册码 C+D 留下次
+- WIP §当前焦点 #1+#2 描述要改准（标明剩 Android + Web 不含 iOS — iOS + backend 已装）
+- 中枢机制首次实战 — Tango / QTS 还要各自跑注册流程
+- 中枢「信箱」未来跨项目留言试用 — 没用过不知道有没有 CC 忘看 inbox 的失败模式
+- DMSD CLAUDE.md「中枢联动」段是否要补 hook（启动强制读 inbox）— 等观察几次实战
+- 本次 + 5-24 + 5-25 累积改动未 commit — 等 itsuki 拍板 commit 顺序
+- AC 中央 inbox `~/Library/.../02_ac_workspace/06_radar_inbox/` 路径不存在 — ac-radar inbox 实际路径要查
+
+详细 raw：`05_logs/raw/2026-05-26.md`（10 阶段 + 工程动作汇总 + 阶段 9 追加段）
 
 ### 2026-05-25 晚段 by [MacBook-Pro-Opus 4.7 1M / anti-ai-flavor HOW_TO_TALK 立项 + 跨 3 项目 session-wrap 同步]
 
