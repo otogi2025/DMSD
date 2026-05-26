@@ -10037,6 +10037,9 @@
       // LoginScreen は POST {API_BASE}/sessions/teacher で backend 真実認証へ。
       // 開発時 standalone HTML 単跑時は backend を別途起動し API_BASE を絶対 URL に変更すること。
       window.API_BASE = "/api/v1";
+      // DEMO 模式開关: URL ?demo=1 → DemoConsole/NFC sim 表示。生产 (no flag) → DEMO scaffold 隐藏。
+      // §7.3.8 + memory project_demo_scaffolds_to_remove_before_v1: v1.0 上线必删 — URL gate で安全保留。
+      window.DEMO_MODE = new URLSearchParams(location.search).has("demo");
       window.APP_VERSION = "v0.1.0-demo";
 
       // ⭐ Teachers (initial)
@@ -12927,7 +12930,10 @@
                 zIndex: 10,
               }}
             >
-              {showConsole && (
+              {/* DEMO-ONLY scaffold (§7.3.8 + project_demo_scaffolds_to_remove_before_v1):
+                  URL ?demo=1 时显示、生产モード (デフォルト) では非表示。
+                  itsuki memory 「v1.0 上线前必删」を、URL param gate で安全に保留。 */}
+              {window.DEMO_MODE && showConsole && (
                 <DemoConsole
                   students={students}
                   onSim={simCheckin}
@@ -12939,12 +12945,14 @@
                 <LegendPanel onClose={() => setShowLegend(false)} />
               )}
               <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  onClick={() => setShowConsole(!showConsole)}
-                  style={fabBtn(T, showConsole)}
-                >
-                  🔧 デモコンソール
-                </button>
+                {window.DEMO_MODE && (
+                  <button
+                    onClick={() => setShowConsole(!showConsole)}
+                    style={fabBtn(T, showConsole)}
+                  >
+                    🔧 デモコンソール
+                  </button>
+                )}
                 <button
                   onClick={() => setShowLegend(!showLegend)}
                   style={fabBtn(T, showLegend)}
