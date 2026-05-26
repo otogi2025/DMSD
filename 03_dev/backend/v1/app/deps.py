@@ -4,9 +4,11 @@
 - 学生 (sub = students.id)
 - 教師 (sub = teachers.id)
 を Student / Teacher ORM オブジェクトで返す。
+
+R4 寮過滤 helper — `dorm_units_for_teacher(teacher)` 是全 router 共用的过滤工具。
 """
 
-from typing import Annotated
+from typing import Annotated, Optional
 from uuid import UUID
 
 from fastapi import Depends, Header, HTTPException, status
@@ -14,6 +16,26 @@ from sqlalchemy.orm import Session
 
 from . import models, security
 from .database import get_db
+
+# R4 — 跨寮 4 类教师能看全件
+CROSS_DORM_ROLES = frozenset({"寮務部長", "寮務課長", "国際交流部長", "国際交流課長"})
+
+
+def dorm_units_for_teacher(teacher: models.Teacher) -> Optional[list[int]]:
+    """R4 寮过滤 — 返回该教师能看到的 dorm_unit 列表。
+
+    - 跨寮 4 类（寮務部長 / 寮務課長 / 国際交流部長 / 国際交流課長）→ None（看全部）
+    - 男寮老师（assigned_dorm=1）→ [1, 2]（spec: 男生 dorm_unit IN (1, 2)）
+    - 女寮老师（assigned_dorm=4）→ [4]
+    - assigned_dorm IS NULL（跨寮预设）→ None
+    """
+    if teacher.role in CROSS_DORM_ROLES:
+        return None
+    if teacher.assigned_dorm is None:
+        return None
+    if teacher.assigned_dorm == 1:
+        return [1, 2]
+    return [teacher.assigned_dorm]
 
 
 def _parse_bearer(auth_header: str | None) -> str:
