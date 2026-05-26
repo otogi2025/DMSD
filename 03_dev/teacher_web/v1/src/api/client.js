@@ -137,6 +137,14 @@
       request("POST", "/announcements", body, token),
     deleteAnnouncement: (id, token) =>
       request("DELETE", `/announcements/${id}`, undefined, token),
+
+    // 学生登録码 admin 接口（§7.16 + WEB_DESIGN_LOG §11.9.1）
+    // 仅寮務部長 / 寮務課長 / 管理係 三类角色返 200，其他教师 403。
+    // 返回结构：{code, created_at, expires_at, expires_in_seconds}
+    getRegistrationCodeCurrent: (token) =>
+      request("GET", "/admin/registration-code/current", undefined, token),
+    refreshRegistrationCode: (token) =>
+      request("POST", "/admin/registration-code/refresh", {}, token),
   };
 
   // ── WebSocket helper (D3 路线: /ws/teacher 收 checkin / outstay_new 事件) ──
