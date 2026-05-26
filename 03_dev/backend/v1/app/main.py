@@ -42,6 +42,7 @@ from .routers import (
     rollcall,
     study,
     teachers,
+    ws,
 )
 
 settings = get_settings()
@@ -103,6 +104,7 @@ app.include_router(teachers.router)
 app.include_router(discipline.router)
 app.include_router(cleaning.router)
 app.include_router(front_desk.router)
+app.include_router(ws.router)
 
 
 if __name__ == "__main__":

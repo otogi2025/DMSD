@@ -20,7 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from .. import models, schemas
+from .. import models, schemas, ws_manager as _ws
 from ..database import get_db
 from ..deps import get_current_teacher
 
@@ -333,6 +333,20 @@ def create_checkin(
 
     db.commit()
     db.refresh(event)
+
+    # WS broadcast — 老师端 LiveRollCall 实时更新座席
+    _ws.manager.broadcast_sync(
+        {
+            "type": "checkin",
+            "session_id": str(session_id),
+            "student_id": str(student.id),
+            "status": base_status,
+            "checked_at": now.isoformat(),
+            "name": student.name,
+            "room_no": student.room_no,
+        }
+    )
+
     return schemas.RollCallEventOut.model_validate(event)
 
 
@@ -585,6 +599,19 @@ def patch_event(
 
     db.commit()
     db.refresh(override_event)
+
+    # WS broadcast — 老师端 LiveRollCall 收 override 实时刷新座席颜色
+    _ws.manager.broadcast_sync(
+        {
+            "type": "override",
+            "session_id": str(event.session_id),
+            "student_id": str(event.student_id),
+            "status": new_status,
+            "from_status": old_status,
+            "override_reason": body.reason,
+        }
+    )
+
     return schemas.RollCallEventOut.model_validate(override_event)
 
 

@@ -20,7 +20,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from .. import models, schemas
+from .. import models, schemas, ws_manager as _ws
 from ..database import get_db
 from ..deps import get_current_student, get_current_teacher
 from ..services import approval_chain, email as email_svc
@@ -117,6 +117,19 @@ def create_application(
 
     db.commit()
     db.refresh(application)
+
+    # WS broadcast — 老师端 ApplicationsPage 实时 pending 计数 + toast
+    _ws.manager.broadcast_sync(
+        {
+            "type": "outstay_new",
+            "application_id": str(application.id),
+            "student_id": str(student.id),
+            "kind": application.kind,
+            "leave_date": application.leave_date.isoformat(),
+            "return_date": application.return_date.isoformat(),
+            "student_name": student.name,
+        }
+    )
 
     # evidence pending な chain は header に警告
     if approval_chain.is_provisional(application.kind, student.is_overseas):
