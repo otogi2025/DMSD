@@ -431,7 +431,82 @@ def session_summary(
 
 
 # ---------------------------------------------------------------
-# PATCH /rollcall/events/{id} — 教師改判 (RollCall_Spec §11)
+# spec §11.4 改判扣分联动表
+#   key = (from_status, to_status)
+#   value = (delta_points, source_type)
+#   正 delta = 加扣分（新建 DemeritEvent 行）
+#   负 delta = 撤销之前自动扣（找之前 session+student 的自动 event revoke）
+#   delta=0 = 不联动
+# ---------------------------------------------------------------
+_OVERRIDE_DEMERIT_MAP: dict[tuple[str, str], tuple[float, str | None]] = {
+    ("present", "late"): (0.5, "rollcall_late"),
+    ("present", "absent"): (1.0, "rollcall_absent"),
+    ("late", "present"): (-0.5, None),
+    ("late", "absent"): (0.5, "rollcall_absent"),
+    ("absent", "present"): (-1.0, None),
+    ("absent", "late"): (-0.5, None),
+    ("exempt_range", "present"): (0.0, None),
+    ("exempt_range", "late"): (0.5, "rollcall_late"),
+    ("exempt_range", "absent"): (1.0, "rollcall_absent"),
+    ("present", "exempt_range"): (0.0, None),
+    ("late", "exempt_range"): (-0.5, None),
+    ("absent", "exempt_range"): (-1.0, None),
+}
+
+
+def _apply_override_demerit(
+    db: Session,
+    student_id: UUID,
+    session: models.RollCallSession,
+    from_status: str,
+    to_status: str,
+    teacher_id: UUID,
+) -> None:
+    """spec §11.4 改判扣分联动 — 正 delta 加扣 / 负 delta 撤销之前自动扣分。"""
+    from datetime import datetime as _dt
+    from datetime import timezone as _tz
+
+    info = _OVERRIDE_DEMERIT_MAP.get((from_status, to_status))
+    if not info:
+        return
+    delta, source_type = info
+    if delta == 0.0:
+        return
+
+    month = session.scheduled_window_start_at.strftime("%Y-%m")
+    now_utc = _dt.now(_tz.utc)
+    if delta > 0:
+        db.add(
+            models.DemeritEvent(
+                student_id=student_id,
+                source_type=source_type or "manual",
+                source_event_id=session.id,
+                points=delta,
+                reason=f"教師改判: {from_status} → {to_status}（spec §11.4 自動）",
+                month=month,
+                created_by_teacher_id=teacher_id,
+            )
+        )
+    else:
+        # 负 delta — 撤销之前 session+student 的自动扣分 event
+        prev = db.scalars(
+            select(models.DemeritEvent).where(
+                models.DemeritEvent.student_id == student_id,
+                models.DemeritEvent.source_event_id == session.id,
+                models.DemeritEvent.revoked_at.is_(None),
+                models.DemeritEvent.source_type.in_(
+                    ["rollcall_late", "rollcall_absent"]
+                ),
+            )
+        ).all()
+        for ev in prev:
+            ev.revoked_at = now_utc
+            ev.revoked_by_teacher_id = teacher_id
+            ev.revoke_reason = f"教師改判 {from_status} → {to_status} 自動撤销"
+
+
+# ---------------------------------------------------------------
+# PATCH /rollcall/events/{id} — 教師改判 (RollCall_Spec §11 + §11.4)
 # ---------------------------------------------------------------
 @router.patch("/events/{event_id}", response_model=schemas.RollCallEventOut)
 def patch_event(
@@ -446,12 +521,15 @@ def patch_event(
             404, {"code": "NOT_FOUND", "message": "点呼イベントが見つかりません"}
         )
 
+    old_status = event.base_status
+    new_status = body.to_status
+
     # append-only: 既存行は変えず新しい override 行を追加
     override_event = models.RollCallEvent(
         session_id=event.session_id,
         student_id=event.student_id,
         path_type="manual",
-        base_status=body.to_status,
+        base_status=new_status,
         status_source="teacher_override",
         checked_in_at=_now_jst(),
         reason=body.reason,
@@ -466,13 +544,21 @@ def patch_event(
             target_type="rollcall_event",
             target_id=event_id,
             payload={
-                "from": event.base_status,
-                "to": body.to_status,
+                "from": old_status,
+                "to": new_status,
                 "reason": body.reason,
                 "evidence": body.evidence,
             },
         )
     )
+
+    # spec §11.4 改判扣分联动
+    session = db.get(models.RollCallSession, event.session_id)
+    if session is not None and old_status != new_status:
+        _apply_override_demerit(
+            db, event.student_id, session, old_status, new_status, teacher.id
+        )
+
     db.commit()
     db.refresh(override_event)
     return schemas.RollCallEventOut.model_validate(override_event)
