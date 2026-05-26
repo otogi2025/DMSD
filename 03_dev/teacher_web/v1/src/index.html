@@ -13863,12 +13863,53 @@
         return `${y}-${m}-${day}（${jaDow}） ${hh}:${mm}`;
       }
 
-      function ApplicationsPage({ onOpen }) {
+      // Task #6 第 6 步: backendApplications prop が来たら backend pendingForMe の
+      // Application[] を window.OUTSTAY_APPS の代わりに使う (kind='外泊' のみ filter)。
+      // backendApplications=null/[] なら従来通り假数据 fallback。
+      // backend Application shape は kind/leave_date/leave_time/student/status を含むので
+      // 既存 UI の {applicant, room, dorm, depart, return_, city, state, ...} 形へ adapt。
+      function _adaptBackendOutstay(apps) {
+        if (!Array.isArray(apps)) return null;
+        const outstay = apps.filter((a) => a.kind === "外泊");
+        if (outstay.length === 0) return null;
+        return outstay.map((a) => ({
+          id: a.id,
+          applicant: a.student ? a.student.name : "(unknown)",
+          room: a.student ? a.student.room_no : "",
+          dorm: a.student && a.student.dorm_unit ? "men" : "women", // TODO: dorm_unit → men/women 真マッピング (backend に gender が無い場合の暫定)
+          depart: `${a.leave_date} ${a.leave_time}`,
+          return_: `${a.return_date} ${a.return_time}`,
+          city:
+            (a.stay_locations &&
+              a.stay_locations[0] &&
+              a.stay_locations[0].name) ||
+            a.reason ||
+            "",
+          submitted: a.submitted_at,
+          state:
+            a.status === "pending"
+              ? "pending"
+              : a.status === "approved" || a.status === "approved_partial"
+                ? "approved"
+                : a.status === "rejected"
+                  ? "rejected"
+                  : a.status === "returned"
+                    ? "question"
+                    : a.status,
+          // 元 backend データを保持 (DetailModal で参照する可能性)
+          _backend: a,
+        }));
+      }
+
+      function ApplicationsPage({ onOpen, backendApplications }) {
         const T = window.RYO;
         const [tab, setTab] = React.useState("outstay");
         const [sub, setSub] = React.useState("pending");
 
-        const outstayPending = (window.OUTSTAY_APPS || []).filter(
+        // backendApplications が有効なら adapt して使う / 無効なら window.OUTSTAY_APPS
+        const adapted = _adaptBackendOutstay(backendApplications);
+        const outstayApps = adapted || window.OUTSTAY_APPS || [];
+        const outstayPending = outstayApps.filter(
           (a) => a.state === "pending",
         ).length;
         const tabs = [
@@ -13953,7 +13994,12 @@
             {tab === "outstay" && <OutstayRuleBanner />}
 
             {tab === "outstay" ? (
-              <OutstayList sub={sub} setSub={setSub} onOpen={onOpen} />
+              <OutstayList
+                sub={sub}
+                setSub={setSub}
+                onOpen={onOpen}
+                apps={outstayApps}
+              />
             ) : (
               <SkeletonTabBody tab={tabs.find((t) => t.k === tab).label} />
             )}
@@ -14032,9 +14078,12 @@
         );
       }
 
-      function OutstayList({ sub, setSub, onOpen }) {
+      function OutstayList({ sub, setSub, onOpen, apps: appsProp }) {
         const T = window.RYO;
-        const apps = window.OUTSTAY_APPS;
+        // Task #6 第 6 步: apps prop が来たら使う (ApplicationsPage が backend Application
+        // を adapt して渡す) / 無ければ window.OUTSTAY_APPS 假数据
+        const apps =
+          appsProp && appsProp.length > 0 ? appsProp : window.OUTSTAY_APPS;
         const subs = ["pending", "approved", "rejected", "question", "all"];
         const subLabels = {
           pending: "審査待ち",
@@ -21498,6 +21547,9 @@
         // Task #6 真接口对接: backend が返した本日の点呼 session 一覧（null = 未 fetch / [] = backend 不可達 / [...] = 取得済）
         const [todaySessions, setTodaySessions] = React.useState(null);
         const [backendReachable, setBackendReachable] = React.useState(null); // null / true / false
+        // Task #6 第 6 步: 申請 pending list (backend Application[]) - 担当教師宛て未承認
+        const [backendApplications, setBackendApplications] =
+          React.useState(null);
         const [page, setPage] = React.useState("roll-call");
         const [pageParams, setPageParams] = React.useState(null);
         const [searchQuery, setSearchQuery] = React.useState("");
@@ -21592,6 +21644,35 @@
               );
               setTodaySessions([]);
               setBackendReachable(false);
+            });
+          return () => {
+            cancelled = true;
+          };
+        }, [authToken]);
+
+        // Task #6 第 6 步: authToken が来たら申請 pending list を fetch
+        // (window.tomoshibiApi.pendingForMe(token) → Application[])。
+        // ApplicationsPage / OutstayList / DetailModal で window.OUTSTAY_APPS の代わりに
+        // 使う (backend 不可達なら従来通り假数据)。
+        React.useEffect(() => {
+          if (!authToken) {
+            setBackendApplications(null);
+            return;
+          }
+          let cancelled = false;
+          window.tomoshibiApi
+            .pendingForMe(authToken)
+            .then((apps) => {
+              if (cancelled) return;
+              setBackendApplications(apps);
+            })
+            .catch((err) => {
+              if (cancelled) return;
+              console.warn(
+                "[App] pendingForMe 失敗 → window.OUTSTAY_APPS fallback",
+                err,
+              );
+              setBackendApplications([]);
             });
           return () => {
             cancelled = true;
@@ -21934,7 +22015,12 @@
             );
             break;
           case "applications":
-            body = <window.ApplicationsPage onOpen={setOutstayTarget} />;
+            body = (
+              <window.ApplicationsPage
+                onOpen={setOutstayTarget}
+                backendApplications={backendApplications}
+              />
+            );
             break;
           case "discipline":
             body = <window.DisciplinePage teacher={teacher} onNav={nav} />;
