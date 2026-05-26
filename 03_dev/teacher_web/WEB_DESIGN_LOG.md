@@ -393,15 +393,15 @@ round3/
 
 ## 7. 参考资料索引
 
+> **2026-05-27 更新**：原 round2/ + round3/ + handoff/ + round3_handoff/ 4 个子目录全部塌缩归档（详见 §12 Vite 废弃 + DESIGN_BRIEF §2 文件清单）。原资源路径已迁到归档目录或塌缩到 `v1/src/_legacy/` + `v1/src/assets/`。
+
 | 资源 | 路径 | 备注 |
 |---|---|---|
-| Round 2 源码 | `03_dev/teacher_web/round2/*.jsx` | Claude Design 产出 |
-| Round 2 offline bundle | `03_dev/teacher_web/standalone-offline-backup.html` | 8.4MB，demo 网断兜底 |
-| Round 2 chat | `03_dev/teacher_web/handoff/chat1.md` | itsuki ↔ Claude Design 对话，AC ⭐ |
-| Round 3 prompt | `03_dev/teacher_web/round3_handoff/Round3_Prompt.md` | 待贴 Claude Design |
-| Round 3 图 1 火焰 logo | `round3_handoff/01_tomoshibi_icon.png` | 新 icon |
-| Round 3 图 2 外泊表 | `round3_handoff/02_gaihaku_form_reference.jpeg` | 实表数字化参考 |
-| Round 3 图 3 改前 header | `round3_handoff/03_current_header_before.png` | "改之前什么样" 给 Claude Design 看 |
+| 当前权威源（standalone） | `v1/src/index.html` | 7700+ 行 inline 全部 CSS/JS/字体 |
+| JSX 组件源（14 个） | `v1/src/_legacy/*.jsx` | 原 round2/ + round3/ 塌缩后命名（误导但已实际是 Ryō 主源） |
+| 后端对接代码 | `v1/src/api/client.ts` | 416 行 26 endpoint — 保留未用，未来 Ryō 接真后端复用 |
+| 火焰 logo | `v1/src/assets/tomoshibi-icon.png` | 原 round3_handoff/01_tomoshibi_icon.png |
+| Claude Design 历史对话 | 已归档到 `99_archive/2026-04-29_pre_v1.0_cleanup/` 或 `99_archive/2026-05-21_teacher_web_demo_archived/` | itsuki ↔ Claude Design Round 1-3 完整迭代 — AC ⭐ |
 | Spec 色表权威 | `01_specs/rollcall/RollCall_Spec.md §4.1` | 5 色 + overlay 黑 |
 | Spec 时间窗 | `01_specs/rollcall/RollCall_Spec.md §5.3` | `window_start / on_time_end / late_end / auto_end_at` |
 | Spec 老师时刻表 | `01_specs/rollcall/RollCall_Spec.md §4.2` | 朝/晚点呼 平日/祝休日 ×普通寮生/部活 |
@@ -478,19 +478,22 @@ round3/
 
 ## 10. 下次会话 quick-start
 
+> **2026-05-27 重写**：Round 2/3 时代结束。当前权威源 = `v1/src/index.html` standalone。Vite + TS 实装版 5-26 整体废弃归档（详见 §12）。
+
 **代码 agent / 未来自己回来继续工作**，优先读这 3 个档：
 
-1. **本文件（WEB_DESIGN_LOG.md）** — 设计决策全归档
-2. `DESIGN_BRIEF.md` — 当前实装状态 + Round 3 还没做的 list
-3. `round3_handoff/Round3_Prompt.md` — Claude Design 的 Round 3 输入
+1. **本文件（WEB_DESIGN_LOG.md）** — 设计决策全归档 + §12 5-26 Vite 废弃 + polish 回滚事实记录
+2. `DESIGN_BRIEF.md` — 当前实装状态 + 真接口对接路线 D0-D6 + v1.0 关卡清单
+3. `v1/README.md` — 怎么打开 / CLI 用法
 
-**Round 3 已交付（2026-04-22）→ 下一步**：
-- Demo 直接跑：`open round3/Tomoshibi_Prototype_v3.html`（单文件，离线可跑）
-- 要改代码：编辑 `round3/src/components/*.jsx` → `open round3/src/index.html`
-- 要接后端（FastAPI + WebSocket）：`app.jsx` 里 seed 数据替换成 `fetch('/api/...')` + `new WebSocket('ws://...')`
-- Round 2 的 `round2/` 子目录 + 根目录 `index.html` 已过时，**不要再改**；作为历史引用保留
+**当前推进方式**：
+- 看效果：双击 `v1/开发模式跑.command`（起 python http.server 8787 + 自动开浏览器）/ 或 `cd v1 && ./tomoshibi start`
+- 改 UI：编辑 `v1/src/index.html`（standalone HTML，所有 CSS/JS inline）— 改完浏览器 Cmd+R 刷新
+- 改 JSX 源后内联：`v1/rebuild.command`（把 `_legacy/*.jsx` 重新内联到 `index.html`）
+- 打包单文件 demo：`v1/打包单文件.command`（用 `build_single_file.py` 打包成可携带单 HTML）
+- 接真后端：参考 `v1/src/api/client.ts` 已定义的 26 个 endpoint — 内联到 standalone 时需要删 TS 类型导出 + 暴露到 `window.tomoshibiApi` namespace（详见 DESIGN_BRIEF §6）
 
-跳过 `DESIGN_BRIEF.md §附录` 和 `handoff/chat1.md` 除非需要 Round 1-2 历史 context。
+历史归档：原 `round2/` / `round3/` / `handoff/` / `round3_handoff/` 4 个子目录已迁到 `99_archive/2026-05-21_teacher_web_demo_archived/`；Vite + TS 实装版迁到 `99_archive/2026-05-26_teacher_web_vite实装作废/`。Round 1-3 历史对话作 AC 素材保留。
 
 ---
 

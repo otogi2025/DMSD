@@ -6,7 +6,7 @@
 > - 和 `progress_overview.md` 的区别: progress_overview 是稳定的章节目录,TODO 是可以频繁增删的任务池
 > - 完成的任务: 在 checkbox 前打 x,隔段时间(每周或每月)批量移到"已完成归档"
 
-**最后更新**: 2026-05-26 晚段-4（§🛠️ 加 §L 新段「teacher_web Vite 废弃 + Ryō polish 回滚残留」5 条 — 写 demo_server.py 恢复 NFC 实时点呼 / 系统bug专栏 FC-025/26/27/28 标 N/A / 未来 polish 候选方向 4 个 / WEB_DESIGN_LOG §7+§10 复核 / DESIGN_BRIEF §3-§8 复核；同时改 §🚧 主会话保留 6 条 A-039（vite 验证 N/A → Ryō standalone 直接验证）+ 改 line 888 ✅ S15 标反转（Vite 实装废弃）+ §K「WIP 加本会话条目」标 ✅ 完成；起因：itsuki 启动 teacher_web 推进 + 看到 Vite 实装版怒怼「不是我的 web」拍板「垃圾归档用 B」+ frontend-design polish 试做后整体不喜欢一句「回滚」全退）。早些 5-26 晚段-2（§🛠️ 加 §K 新段「启动 SOP 集中化 + CLAUDE.md 重写残留」5 条 — 全局环境清单同步 / ~/.claude/ git repo propose 强化 / 其他 5 项目启动 skill / sync-check bin-script 警告 / WIP 加本会话条目；起因：dmsd-startup skill 立项 + DMSD CLAUDE.md 247→190 行重写到 QTS 模式 + 6 项目 CLAUDE.md 加沟通铁律「不主动用英语名词」+ destructive-bash 行为约定 + CLAUDE.md 文档观转变（时间戳冗余禁止））。早些 5-25 晚段（§🛠️ J 加 2 条新待办 — 触发词「翻车」首次实战测试 + inbox 累到 3-5 条后写「整理 inbox」SOP；起因：anti-ai-flavor skill 加第 3 触发词「翻车」单字 + 新建 `~/.claude/skills/anti-ai-flavor/inbox.md` — itsuki 收尾中途立项自我迭代机制）；早些更新：2026-05-25（5-25 drift 修 + session-coord 三层保险会话加 §📊 project-overview 历史欠债 2 条 + §🐚 shell 工具链 quirk 1 条 + §🛠️ J 首次创建 6 条）；2026-05-24 5-22 修漏洞会话补 §🎯 D1-D5 + §📁 / §💾 标 ✅ + 加未 push 37 commit；5-22 §🛰️ 点呼机段配件采购方向反转 — 5-12~16 中国海关查扣 → itsuki 拍板撤回中国海运 → 日本本地买 / 原 11 件淘宝清单 + 2 任务作废 / 加 6 条新待办；2026-05-21 加 §🐞 系统 Bug 专栏入口 131 条 / 清 §⏰ Cloud Design 5-12 过期项；2026-05-14 §🛠️ G + H；2026-05-13 §🛠️ E + F；2026-05-11 §📄；2026-05-08 §📱 + §🛰️ + §🐛<!-- VERSION_OK -->
+**最后更新**: 2026-05-27（深夜 — 14 件 TODO 小活批量清：6 件本来就闭合 TODO 没刷状态 / 7 件真做 / 2 件挂起等拍板。详见 WIP.md 顶部「最后更新」概要）。早些 2026-05-26 晚段-4（§🛠️ 加 §L 新段「teacher_web Vite 废弃 + Ryō polish 回滚残留」5 条 — 写 demo_server.py 恢复 NFC 实时点呼 / 系统bug专栏 FC-025/26/27/28 标 N/A / 未来 polish 候选方向 4 个 / WEB_DESIGN_LOG §7+§10 复核 / DESIGN_BRIEF §3-§8 复核；同时改 §🚧 主会话保留 6 条 A-039（vite 验证 N/A → Ryō standalone 直接验证）+ 改 line 888 ✅ S15 标反转（Vite 实装废弃）+ §K「WIP 加本会话条目」标 ✅ 完成；起因：itsuki 启动 teacher_web 推进 + 看到 Vite 实装版怒怼「不是我的 web」拍板「垃圾归档用 B」+ frontend-design polish 试做后整体不喜欢一句「回滚」全退）。早些 5-26 晚段-2（§🛠️ 加 §K 新段「启动 SOP 集中化 + CLAUDE.md 重写残留」5 条 — 全局环境清单同步 / ~/.claude/ git repo propose 强化 / 其他 5 项目启动 skill / sync-check bin-script 警告 / WIP 加本会话条目；起因：dmsd-startup skill 立项 + DMSD CLAUDE.md 247→190 行重写到 QTS 模式 + 6 项目 CLAUDE.md 加沟通铁律「不主动用英语名词」+ destructive-bash 行为约定 + CLAUDE.md 文档观转变（时间戳冗余禁止））。早些 5-25 晚段（§🛠️ J 加 2 条新待办 — 触发词「翻车」首次实战测试 + inbox 累到 3-5 条后写「整理 inbox」SOP；起因：anti-ai-flavor skill 加第 3 触发词「翻车」单字 + 新建 `~/.claude/skills/anti-ai-flavor/inbox.md` — itsuki 收尾中途立项自我迭代机制）；早些更新：2026-05-25（5-25 drift 修 + session-coord 三层保险会话加 §📊 project-overview 历史欠债 2 条 + §🐚 shell 工具链 quirk 1 条 + §🛠️ J 首次创建 6 条）；2026-05-24 5-22 修漏洞会话补 §🎯 D1-D5 + §📁 / §💾 标 ✅ + 加未 push 37 commit；5-22 §🛰️ 点呼机段配件采购方向反转 — 5-12~16 中国海关查扣 → itsuki 拍板撤回中国海运 → 日本本地买 / 原 11 件淘宝清单 + 2 任务作废 / 加 6 条新待办；2026-05-21 加 §🐞 系统 Bug 专栏入口 131 条 / 清 §⏰ Cloud Design 5-12 过期项；2026-05-14 §🛠️ G + H；2026-05-13 §🛠️ E + F；2026-05-11 §📄；2026-05-08 §📱 + §🛰️ + §🐛<!-- VERSION_OK -->
 **当前版本**: 见 `CHANGELOG.md` 顶部 · 单源真值，见 `00_admin/文档同步点清单.md`
 
 > **2026-04-17 归档说明**：`executable_dev_checklist.md` 已归档到 `99_archive/2026-04-12_executable_dev_checklist.md`（内容已过期，功能被本 TODO.md 吸收）。
@@ -289,14 +289,14 @@
 ### L. teacher_web Vite 废弃 + Ryō polish 回滚残留（2026-05-26 晚段-4 加）
 
 - [ ] **写 `v1/demo_server.py`** — 恢复 NFC iPhone 快捷指令实时点呼 demo 功能。提供 3 个端点：GET `/api/server-info`（返回 LAN IP + port，给浏览器 auto-detect）/ POST `/checkin?no=XX`（接 iPhone 快捷指令，存 event with seq）/ GET `/events/latest`（浏览器 1 秒 poll，返回最新 event）。当前 `./tomoshibi start` 跑的是 `python3 -m http.server` 只做静态，NFC 实时点呼断了。预估工作量 50 行 Python（aiohttp 或 stdlib http.server 都行）
-- [ ] **系统bug专栏 FC-025/26/27/28 标 N/A** — `00_admin/系统bug专栏.md` 里 4 条 Codex 第二轮 audit 发现的字段对齐 / 权限 / package 问题，全部是针对 Vite + TS 实装版的。Vite 整体废了 → 这 4 条 N/A 不再有效。要去专栏改成「✅ N/A — 5-26 Vite 整体废弃」
+- [x] ~~**系统bug专栏 FC-025/26/27/28 标 N/A** — `00_admin/系统bug专栏.md` 里 4 条 Codex 第二轮 audit 发现的字段对齐 / 权限 / package 问题，全部是针对 Vite + TS 实装版的。Vite 整体废了 → 这 4 条 N/A 不再有效~~ ✅ **2026-05-27 闭合** — 专栏 line 940/947/954/961 4 条 FC-025/26/27/28 全部已标「✅ N/A」（注「`client.ts` 没归档，Task #6 真接口对接时本条要重开」）
 - [ ] **未来设计层 polish 候选方向**（如果再起意优化 Ryō）— 4 个候选：
   - (a) 单页大改造（B 改成具体一页换风格，不动整体）
   - (b) 字体单独换不动颜色（risk 最低）
   - (c) 找 itsuki 喜欢的具体参照系 web（让他先指）
   - (d) 跟 itsuki 一起看几个真实日本教育系统 UI（不同风格）后再选方向
-- [ ] **WEB_DESIGN_LOG §7 参考资料索引 / §10 下次会话 quick-start 复核** — 本次新加 §12 段后，§7 参考资料 / §10 quick-start 可能跟 Vite 废弃事实有出入，下次启动 teacher_web 工作时复查这两节
-- [ ] **DESIGN_BRIEF.md §3-§8 复核** — 本次只改了 §1+§2 顶部，§3+ 描述「Round 2 已实装」/「Round 3 计划」/「Spec 对齐项」可能跟 Vite 废弃 + Ryō standalone 主线事实有出入，下次 teacher_web 工作前复查
+- [x] ~~**WEB_DESIGN_LOG §7 参考资料索引 / §10 下次会话 quick-start 复核**~~ ✅ **2026-05-27 闭合** — §7 改成指向 `v1/src/_legacy/` + `v1/src/api/client.ts` + 历史归档目录 / §10 重写 quick-start 反映 Vite 废弃 + standalone 主线 + 加 `v1/开发模式跑.command` + `./tomoshibi start` + rebuild.command 当前路径
+- [x] ~~**DESIGN_BRIEF.md §3-§8 复核**~~ ✅ **2026-05-27 闭合** — DESIGN_BRIEF 文件顶部时间戳「2026-05-26 大调整」+ §3 实装范围 / §4 未实装 / §5 关卡清单 / §6 真接口对接路线 D0-D6 全部已反映 5-26 后事实（5-26 当天写）
 
 ## 📱 iOS 上架冲刺 — 剩余事项（2026-05-08 状态）
 
@@ -849,15 +849,15 @@
 
 - [x] ~~改名 `03_dev/student_ios/DESIGN_BRIEF.md` → `_archived_DESIGN_BRIEF_Round1_context.md`（IOS_DESIGN_LOG 已全覆盖）~~ ✅ **2026-05-26 闭合** — 2026-05-13 commit `81842f4`「整理 14 文件 — 管理文档归位 + 老文件归档 + iOS 改名」已完成，归档文件存在 `03_dev/student_ios/_archived_DESIGN_BRIEF_Round1_context.md`
 - [x] ~~改名 `03_dev/student_ios/demo/Round2_Prompt_C3.md` → `_archived_Round2_Prompt_draft.md`（C3 已 resolve）~~ ✅ **2026-05-26 闭合** — 同上 commit `81842f4` 已完成，归档文件存在 `03_dev/student_ios/demo/_archived_Round2_Prompt_draft.md`
-- [ ] 删 `99_archive/2026-04-15_old_demo/.DS_Store`（误进 git）
-- [ ] 删 3 个已过期的 admin 文件：
+- [x] ~~删 `99_archive/2026-04-15_old_demo/.DS_Store`（误进 git）~~ ✅ **2026-05-27 删**（不在 git track 范围 — 物理 rm 即可）
+- [x] ~~删 3 个已过期的 admin 文件：~~ ✅ **2026-05-27 闭合** — 3 文件均已被挪到 `99_archive/2026-05-12_深夜大整理/`（commit history 可查）：
   - `00_admin/v0.4.0_S系列spec漏洞优先级分析.md`（已被「漏洞_剩余清单」吸收）
   - `00_admin/T2_iOS归档_dryrun评估.md`（已执行）
   - `00_admin/跨会话_ios_共享决策.md`（iOS 工程已独立 repo）
-- [ ] backend `03_dev/backend/v1/app/models.py` 13 张表 docstring 各标 P0 / P1 / P2
-- [ ] 更新 `99_archive/README.md` 时间戳 + 鬼影文件解决说明
+- [ ] backend `03_dev/backend/v1/app/models.py` 13 张表 docstring 各标 P0 / P1 / P2 — **2026-05-27 复核**：当前表数已从 13 → 21（5-22 加 demerit/cleaning/front_desk + 5-03 加 announcement/announcement_reads/announcement_replies/student_registration_codes + 5-08 加 teacher_invitations），P0/P1/P2 分级标准也没拍板 → 挂起等 itsuki 决定分级口径再做
+- [x] ~~更新 `99_archive/README.md` 时间戳 + 鬼影文件解决说明~~ ✅ **2026-05-27 闭合** — 时间戳改到 2026-05-27，加 14 个新子目录说明 + 鬼影文件已 4-10 解决证据链
 <!-- 2026-05-21 Fix-Bot 3 删: 「更新 00_admin/文件结构指南.md」— 该文件已 5-04 归档,被 `.claude/skills/project-overview/SKILL.md` 取代,无需再补 v0.6/v0.7/v0.8 AC 叙事 (project-overview skill 已覆盖) -->
-- [ ] **S18（低价值）**：`DEVICE_REGISTRY §6` 候选位置 `dorm-A-01 / dorm-B-01` 跟 `path_type` A/B 撞字 — 改成 `dorm-1-01 / dorm-2-01`。真部署 4 台时顺手做也行
+- [x] ~~**S18（低价值）**：`DEVICE_REGISTRY §6` 候选位置 `dorm-A-01 / dorm-B-01` 跟 `path_type` A/B 撞字 — 改成 `dorm-1-01 / dorm-2-01`。真部署 4 台时顺手做也行~~ ✅ **2026-05-27 闭合** — `DEVICE_REGISTRY.md §6` 已是 `dorm-1-01 / dorm-2-01 / dorm-4-01`，2026-05-21 B-031 commit 已落地（line 90 有「**2026-05-21 修订（B-031 修复）**：候选码改为按寮号编号」证据）
 - [ ] **后端补漏**：`routers/applications.py` 加 `POST /{id}/approvals`（役职审批 #10-#13）+ `DELETE /{id}`（D3 撤回）+ `services/email.py` 补 retry 3 次循环
 - [x] ~~**N18 暗色模式实装 待拍板**~~ ✅ 2026-05-25 itsuki 拍板 B：v1.0 不做 / v2 再做。`IOS_DESIGN_LOG.md §6.5` + §8.2 N18 行已更新。`TomoshibiApp.swift:22 .preferredColorScheme(.light)` 保留作 v1.0 强制 light 防黑闪。
 - [ ] **5-04 iOS bug 修复联动残留**：

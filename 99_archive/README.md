@@ -3,7 +3,7 @@
 > 不再活跃、但有 AC 叙事价值 / 历史证据价值、不舍得删的旧文件。
 > 每项都注明"来源 / 是什么 / 为什么归档 / 有没有被转译到活跃区"。
 >
-> 最后更新：2026-04-17 晚
+> 最后更新：2026-05-27（4-17 以来累计 14 个新子目录归档：5-02 系列 × 4 / 5-03 icons / 5-04 文件结构指南 + 版本管理SOP / 5-06 cloud agent + migration / 5-12 深夜大整理 / 5-21 teacher_web demo / 5-21_pre_fix / 5-22 tomoshibi appstore fork / 5-26 teacher_web vite + ios v1 demo snapshot — 详细清单见 project-overview SKILL.md §7.2）。NFC_NFD 鬼影文件问题已 2026-04-10 解决（详见 `05_logs/problem_solving/2026-04-10_NFC_NFD_git_pull_failure.md`），该子目录作为跨平台 Unicode bug 的证据底稿保留。
 
 ---
 
