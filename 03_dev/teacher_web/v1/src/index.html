@@ -10040,7 +10040,7 @@
       // DEMO 模式開关: URL ?demo=1 → DemoConsole/NFC sim 表示。生产 (no flag) → DEMO scaffold 隐藏。
       // §7.3.8 + memory project_demo_scaffolds_to_remove_before_v1: v1.0 上线必删 — URL gate で安全保留。
       window.DEMO_MODE = new URLSearchParams(location.search).has("demo");
-      window.APP_VERSION = "v0.1.0-demo";
+      window.APP_VERSION = window.DEMO_MODE ? "v0.1.0-demo" : "v1.0.0-alpha";
 
       // ⭐ Teachers (initial)
       window.TEACHERS = [
@@ -10456,9 +10456,11 @@
                   }}
                 >
                   <div>次の画面で「本日の担当者」を選択します。</div>
-                  <div style={{ fontFamily: T.mono, marginTop: 4 }}>
-                    backend POST {window.API_BASE}/sessions/teacher で認証
-                  </div>
+                  {window.DEMO_MODE && (
+                    <div style={{ fontFamily: T.mono, marginTop: 4 }}>
+                      DEMO: backend POST {window.API_BASE}/sessions/teacher
+                    </div>
+                  )}
                 </div>
               </form>
 
