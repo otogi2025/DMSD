@@ -1,6 +1,6 @@
 # 当前工作状态 (Work In Progress)
 
-> **最后更新**: 2026-05-22（**3 会话产出** — ① 早 `1779447495-6286` 修 project-overview §0.1 漂移 957→980 + 加 `系统bug专栏.md` / `codex_audit_prompt.md` 引用 + B2 Fix-Bot 4 `effective_*` 已完成确认 + F1 清 5-14 过期警告标记 / ② 中 `1779447279-2548` iOS fork 融合归档 + 5 文件 backport + commit `46f779c` / ③ 晚 `1779447985-17762` 点呼机推进 → 撞 5-12~16 海关查扣事件 → itsuki 拍板撤回中国海运改日本本地买 + 立项 `session-wrap §5.5.15 decision-draft` 收尾子节 — CC 永不直写 `decision_log.md` 正文只起草草稿 / 改 8 文件）。早些 5-21（5-20 凌晨 4 会话审查作战 cron 自动 fire 产出 131 条 findings / 5-21 加系统 bug 专栏 + 第一批修复 8 条）。早些 5-19（project-overview 文件介绍大改造 + 9 处漂移对账修复 + 防漂 C 方案落地 / 详见 `raw/2026-05-19.md`）。早些 5-16 下午（跨项目 CC 完整性审计 + 大修）。<!-- VERSION_OK -->
+> **最后更新**: 2026-05-26（启动 SOP 集中化 — 新建 `.claude/skills/dmsd-startup/SKILL.md`（5 件启动必做事）+ 全局 `~/.claude/hooks/session-start-coord-check.sh` 在 DMSD 项目下静默退出 + DMSD CLAUDE.md「会话开始」段简化引用新 skill + 6 项目 CLAUDE.md 加「不主动用英语名词」规则段 + project-overview SKILL.md §0.1 + §1.7 同步 + 本文件「会话开始」铁律改成走 dmsd-startup skill）。5-25 晚段（追加：第三轮升级 — anti-ai-flavor 加第 3 触发词「**翻车**」单字 + 新建 `inbox.md` — itsuki 收尾中途立项自我迭代机制：发现新翻车点 → CC 按 5 字段「原文 / 6 类归类 / 违反铁律 / 根因 / 修正版」记 inbox，未来批量整理合并到 `references/翻车案例库.md`；改 5 文件：新建 `inbox.md` + SKILL.md 加 §7.5 + CLAUDE.md 触发词 2→3 + hook 提醒 + `我的环境.md` + `.html`）。早些（同晚段）：anti-ai-flavor HOW_TO_TALK.md 立项 + 跨 3 项目 session-wrap 加项 11/8 — itsuki 给 16 个翻车原句证据 → 4 根本问题 + 9 类细分 → 5 条总结铁律 → 方案 B 落地：SKILL.md 反面自检 + HOW_TO_TALK.md 正面教学互补 + 2 触发词「说人话」/「单词白名单」+ DMSD/SC26/Tango session-wrap 收尾清单同步加「全局环境清单同步」项 — 全局 6 文件 + DMSD 1 文件 + 2 memory + SC26 1 文件 + Tango 1 文件。早些 5-25（drift 脚本 bug 修 + 全局 `session-coord` 三层保险落地 — DMSD 2 文件 + 全局 4 文件 / 全局 Hooks 4→5；同时补登 5-24 iOS bug 批量修复会话遗漏的收尾）。早些 5-22（**3 会话产出** — ① 早 project-overview §0.1 漂移 957→980 / ② 中 iOS fork 融合归档 commit `46f779c` / ③ 晚 点呼机推进 + 撞海关查扣事件 + 立项 `session-wrap §5.5.15 decision-draft`）。早些 5-21（5-20 凌晨 4 会话审查作战 cron 自动 fire 产出 131 条 findings / 5-21 加系统 bug 专栏 + 第一批修复 8 条）。早些 5-19（project-overview 大改造 + 防漂 C 方案）。<!-- VERSION_OK -->
 
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
@@ -16,7 +16,7 @@
 >
 > **铁律**：未完成的事**只写在 TODO.md**。本文件**绝不**复述 TODO 的内容。
 >
-> - **会话开始**: CC 读本文件全文 + `TODO.md` 顶部 200 行 + `git status`
+> - **会话开始**: CC 走 `.claude/skills/dmsd-startup/SKILL.md` §2 — 5 件必做事（多会话协同注册 / project-overview 漂移检测 / ac-radar startup_check / 读 WIP / 报告状态）。**TODO + git status 启动不主动跑**（TODO 等 itsuki 主动问，git status 留收尾 §5.5.9）
 > - **会话结束**: CC 更新「最近会话」+「多会话占用」；新增的 backlog **写到 TODO.md** 不写这里
 
 ---
@@ -49,6 +49,102 @@
 ---
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
+
+### 2026-05-25 晚段 by [MacBook-Pro-Opus 4.7 1M / anti-ai-flavor HOW_TO_TALK 立项 + 跨 3 项目 session-wrap 同步]
+
+**主题**：⭐⭐⭐⭐⭐ itsuki 启动「这个会话我们来讨论 claude 不说人话的问题」→ 一口气扔 16 个翻车原句证据 → CC 抽出 4 根本问题 + 9 类细分 → 当场 CC 又翻车 4 次 → 5 条总结铁律拍板 → 看别的 AI 复盘材料抽出第 5 根本问题「抽象规则要变具体模板」→ 方案 B 落地（HOW_TO_TALK.md 跟 SKILL.md 反面自检互补）→ hook 升级注入正面 6 问 → DMSD/SC26/Tango 三个项目 session-wrap 收尾清单同步加项 11/8/8「全局环境清单同步」
+
+**关键拍板**（itsuki 11 次）：风格 1 故事化 默认 / 风格 D 直问 简单 yes/no / 5 条总结铁律 / 2 触发词「说人话」+「单词白名单」/ 方案 A 一键重写 + 方案 C 6 类清单搬全局 / 不加方案 B 自动追加自检行 / 不加"每段问懂了吗" / 方案 B 独立文件不独立 skill / hook 加 HOW_TO_TALK 指针 + 6 问 / 应用到全局 = SC26+Tango 同步加 / 加到收尾 skill 不靠 PostToolUse hook
+
+**实际改动**（10+ 文件）：详见 `05_logs/raw/2026-05-25.md` 晚段 §阶段 6 清单
+
+**AC 价值** ⭐⭐⭐⭐⭐：
+- **模式 5 顶级 × 5** — CC 当场翻车 4 次 + 写"规则要变模板"时自己又用抽象代号（讨论问题时表演了问题本身 — 自指失败 self-referential failure）
+- **模式 6 取舍** — A/B/C 方案对比 itsuki 戳穿 A 让现有 skill 鸡肋 → 改推 B（SOLID 单一职责）
+- **模式 7 机制完备性** — 跨 3 项目同步加同样项（一致性原则）
+- **方法论级转折** — 「抽象规则」→「具体模板」架构观转变
+- **协作教学** — itsuki 扮演"老师改作业"，给精心修改版 vs CC 原版对比驱动方法论提取
+
+**追加：第三轮升级**（同晚段稍后，收尾过程中 itsuki 抛新需求）：
+- 起因：itsuki「我需要我的说人话 skill 可以不断迭代更新 — 发现新问题 → CC 记到 skill 文件 + 做分析」
+- 拍板 3 决定：触发词 =「**翻车**」单字 / 先扔 `inbox.md`（推荐）/ 5 字段全填（原文 / 6 类归类 / 违反铁律 / 根因 / 修正版）
+- 改 5 文件：① 新建 `~/.claude/skills/anti-ai-flavor/inbox.md` ② SKILL.md 加 §7.5「3 个动作触发词」段 ③ CLAUDE.md 触发词 2→3 ④ hook 提醒 2→3 ⑤ `~/.claude/我的环境.md` + `.html` 同步
+- 「翻车」单字触发细则：itsuki 单独说「翻车」二字才触发，长句里出现「翻车」当普通词处理
+- AC 价值：元层立项（让 skill 能自我迭代，比单纯加规则高一层）+ propose 流程示例（CC 没自作主张设计触发词，用 AskUserQuestion 问 3 决定，候选都用 itsuki 嘴里出过的话）
+
+**残（下次跟进）**：
+- SC26 §7.5.5 line 720 旧漂移（5-16 留下来的「6 项」实际 8 项）
+- Tango 未来装 §7.5 强制清单段
+- CC 自治进化机制 propose（itsuki 提了未拍板）
+- 触发词「单词白名单」首次触发后 CC 建 `whitelist.md`
+- 触发词「说人话」首次实战测试 — 还没真的用过
+- 触发词「翻车」首次实战测试 — 等下次 CC 翻车 itsuki 喊一声看机制能不能跑通
+- inbox 累到 3-5 条后写「整理 inbox」SOP（批量合并到案例库的流程）
+- DMSD + SC26 + Tango 全部改动未 commit
+
+详细 raw：`05_logs/raw/2026-05-25.md`（晚段 §阶段 1-7 + 7 条 AC 候选段 + 第三轮升级追加段）
+
+### 2026-05-25 早段 by [MacBook-Pro-Opus 4.7 1M / drift 修 + session-coord 三层保险]
+
+**主题**：⭐⭐⭐⭐ itsuki 启动 → CC 报告 drift hook 3 个目录漂 → itsuki 说「修好」→ CC 调查发现根因是脚本 bug 不是数据漂（`git ls-files` 中文文件名怪行为 + 脚本 `sort -u` vs `sort | uniq -c` 口径打架）→ 修 2 文件 → itsuki 抛新话题「session-coord 启动不主动加载，要全局生效」→ CC 诊断缺 A+B 层保险（对比 ac-radar / cc-comm-rules 已有三层）→ 补 4 个全局文件 → 收尾时被 hook 戳穿 `~/.claude/我的环境.html` 漏同步 → 现场补回
+
+**关键拍板**（itsuki 6 次明确决策）：
+- **「修好」drift**（执行式拍板 — CC 自己定怎么修）
+- **「顺手修了」git ls-files 重复 path**（itsuki 期待治根，CC 调查后发现不是 git 真重复改主意只修脚本侧）
+- **「不管 DMSD 还是别的项目，启动都注册 session-coord」**（全局适用，不做项目专用）
+- **「skill description 语义触发不可靠 → 需要 A+B+C 三层」**（机制完备性原则）
+- **「html 漏同步要补」**（detective control 硬拦截 — session-wrap §7.5 env-diff 提醒触发）
+- **「收尾」**（启动 8 项流程）
+
+**实际改动**（DMSD 2 + 全局 4 = 6 文件 + 1 新 raw）：
+| 文件 | 改动 |
+|---|---|
+| `bin/check_overview_drift.sh` | 删一处 `sort -u` 统一口径修脚本 bug |
+| `.claude/skills/project-overview/SKILL.md §0.1` | 时间戳 5-24→5-25 / 总计 1122→1124 / `05_logs/` 102→104 / raw 列表 +5-24+5-25 |
+| `~/.claude/hooks/session-start-coord-check.sh` | **新建** — SessionStart hook 检测项目协作板状态 |
+| `~/.claude/settings.json` | SessionStart 数组 +1 注册（10s timeout）|
+| `~/.claude/CLAUDE.md` | 加 `## session-coord 强制加载` 段（参考 ac-radar / cc-comm-rules 写法）|
+| `~/.claude/我的环境.md` + `.html` | hook 表 +1 行 / 末尾 5-25 历史日志条目 / 页脚日期 5-22→5-25 |
+| `05_logs/raw/2026-05-25.md` | **新建** raw — 5 候选 AC 素材段 |
+| `00_admin/TODO.md` | +2 段（§📊 project-overview 历史欠债 + §🐚 shell 工具链 quirk）|
+
+**AC 价值** ⭐⭐⭐⭐⭐：
+- **模式 1**（派生痛点）：CC 改完主动跑脚本验证「✅ 没漂」不假设改完就对
+- **模式 2**（假设崩）× 2：CC 假设「git index 真重复」崩（grep -c 验证只 1 份）/ 脚本作者假设「ls-files 不会重复」崩
+- **模式 5**（元认知）× 2：CC 没字面执行「修好」直接改数字，主动调查根因 / CC 同会话内自己漏 html 同步被 hook 戳穿（机制证明自己价值）
+- **模式 6**（取舍）× 3：修脚本 vs 改数字 vs git rm --cached / A 单层 vs A+B+C 三层 / 项目专用 vs 全局适用
+- **模式 7**（机制完备性）⭐：itsuki 类比 ac-radar / cc-comm-rules 三层保险结构诊断 session-coord 缺 A+B 层 — 不是「ad hoc 加 hook」是「按已建立的机制范式补全」
+- **协作纠错** × 1：itsuki 隐性期待「顺手修 git 状态」CC 调查后改主意只修脚本（announce + 给打断窗口）
+- **主体性 6/6**：6 次明确拍板都给理由
+- **学术延伸性**：「root cause vs symptom」/「Unicode 规范化 NFC/NFD」/「shell 工具链跨平台 quirk」/「机制完备性原则」/「detective control 比 preventive control 更可靠」— AC 面试可挂「跟 AI 协作的工具链设计」
+
+**残（下次跟进）**：
+- 本会话全部改动 + 昨晚 5-24 遗留改动**未 commit** — 等 itsuki 拍板 commit 顺序（建议 3 个 commit：5-24 iOS bug 修 / 5-25 drift 修 / 5-25 全局 session-coord 三层保险 ~/.claude/ 不在 DMSD git）
+- §6.2 raw 章节标题「48 文件」历史漂（已记 TODO §📊）
+- 全局 `~/.claude/` 改动不在 git 仓库 — itsuki 之前提过「~/.claude/ 做成 git 仓库」永久 propose 还没拍板
+
+详细 raw：`05_logs/raw/2026-05-25.md`
+
+### 2026-05-24 by [MacBook-Pro-Opus 4.7 1M / iOS bug 批量修复 — 补登 5-25]
+
+**主题**：⭐⭐⭐⭐ itsuki 启动「修复 iOS 代码问题」→ working tree 既有 6 条 iOS bug 修复 + 新修 3 条（A-035 RegisterStep5 万能密码后门删 / FC-020 ApplicationOut 补 bus_route_id / FC-021 room_no 长度 iOS 16 vs backend 8）= 9 条 iOS bug 落地。**会话当晚未跑收尾** — 5 改 + 1 新建 raw 全挂 working tree 未 commit，本次 5-25 收尾补登条目。
+
+**关键拍板**（itsuki 5 次）：
+- **「不用我决定的，全部都修好」** — 协作授权颗粒度拍板（CC 工程层 + memory 规则托底的事不要甩回 itsuki 决定）
+- **「他妈的，到底是什么东西啊？」** — 沟通失职诊断（CC 报错术语裸露）
+- **「不要再停下来」** — 工作节奏拍板（执行模式 vs 讨论模式）
+- xcodebuild destination 误报 exit 0 → CC 自查发现 iOS 26.5 模拟器未装 → 报告 itsuki + 切 destination
+- SourceKit 10 个 diagnostic 是误报 → 信任 xcodebuild 真编译结果
+
+**AC 价值** ⭐⭐⭐⭐：
+- **模式 5** × 3：协作边界 / SourceKit vs xcodebuild 信任源 / 沟通失职反讽（CC 帮 itsuki 修代码 bug 同时自己报错术语裸露）
+- **模式 1**：A-035 magic value 后门删 — 派生痛点（demo scaffold 留到生产 = 安全漏洞）
+- **模式 2** × 2：room_no 长度跨端不一致 / xcodebuild destination 配置假设崩
+- **主体性 5/5**：每次拍板都给具体边界
+
+**残**：commit 留给 5-25 一起处理（详见 5-25 条目 §残）
+
+详细 raw：`05_logs/raw/2026-05-24.md`
 
 ### 2026-05-22（晚段 20:30-21:30+）by [MacBook-Pro-Opus 4.7 1M / 1779447985-17762-点呼机推进 + decision-draft]
 
@@ -161,72 +257,9 @@
 
 详细 raw：`05_logs/raw/2026-05-19.md`
 
-### 2026-05-16（下午 16:30-18:30）by [新Mac-Opus 4.7 1M-跨项目优化]
-
-**主题**：⭐⭐⭐⭐⭐ itsuki 主动质疑「3 项目 + 默认目录 CC 是否完整工作」→ 派 codex 审计 → 4 拍板 + 大修 → CC 自检发现 4 问题 → 全部落地 + 修 macOS bash 3.2 heredoc 中文乱码 bug
-
-**关键拍板**（itsuki 5 次明确决策）：
-- **Tango B 案**（保留 6 skill 骨架重写适配单端 web）
-- **SC26 轻修**（删过期 version-bump / new-feature 引用 + 复检残留）
-- **cc-project-template D 案**（清成真通用模板 — 197 处 DMSD 残留全清成占位符 / 通用骨架）
-- **全局 hook session-wrap-checklist-remind.sh 改读 cwd**（DMSD 8 项 / SC26 6 项 / Tango **6 项单 web 版** — 之前硬编码三套混合输出）
-- **修 hook 中文乱码**（之前判断不修 →「也去检查一下」后改主意「现在修」）
-
-**实际改动统计**：
-| 项目 | 文件数 | 谁做的 |
-|---|---|---|
-| Tango | 8 改动 + 1 新建根 CLAUDE.md | codex 6 + 我修 v0.5→v0.6 |
-| SC26 | 2 改动 | codex 改 CLAUDE.md + 我改 hooks/README |
-| cc-project-template | 12 改动 | 我全做（hook 头注释 / PROJECT_DIR 默认值 / MEMORY_DIR 动态算 / pre-commit / README / 起新项目）|
-| 全局 hook | 1 重写（含 v2.1 bug 修） | 我全做 |
-
-**bash 3.2 heredoc bug 根因 + 修法**：
-- 现象：hook 输出 `「��` 乱码（紧贴右全角标点的变量末字节 + 全角字符首字节合并解析）
-- 试 `export LANG=en_US.UTF-8` → 没用（跟 locale 无关）
-- 真因：macOS 默认 bash 3.2 heredoc parser bug
-- 修法：所有「$VAR」改成 [$VAR]（半角方括号）/ 或 「 $VAR 」加空格
-
-**AC 价值** ⭐⭐⭐⭐⭐：
-- **模式 1**（派生痛点）：核心项目 OK ≠ 副项目能跑，主动审一遍不等翻车
-- **模式 2** × 3：codex sandbox 报告字段误判（git status 是真值）/ locale 假设崩 / 紧贴全角标点假设验证 ✅
-- **模式 6** × 4：同会话 4 个相反策略（Tango 保留 vs 模板清通用 — 按上下文判断不一刀切）
-- **debug 元规则**：假设崩 → 换另一个假设，不固执；改 production 前先写最小测试用例
-- **主体性 5/5**：5 次明确拍板，每次都给理由
-- **学术延伸性**：软件工程「通用 vs 专用」「right tool for the job」「DRY 反例」+ debug 方法论 — AC 面试都能挂
-
-**残（下次跟进）**：
-- 4 项目改动**未 commit** — 待 itsuki 审核 + 决定 commit message
-- 全局 hook 不在 git 仓库（`~/.claude/` 没 init）— 永久 propose 把 `~/.claude/` 做成 git 仓库
-- Tango 3 处 skill 引用「DMSD raw 共用」**保留**（A 案 — Tango 立项 3 天没真开发，Phase 2 真开发时再建 Tango 自己 raw）
-- codex 顺手修了 SC26 CLAUDE.md「在日 6 年 → 2 年 9 个月」fact 错（保留）
-
-**详细 raw**：`05_logs/raw/2026-05-16.md`
-
-### 2026-05-14（晚段-2 20:00-20:37）by [新Mac-Opus 4.7 1M-anti-ai-flavor+cc-comm-rules v0.6.0] <!-- VERSION_OK -->
-
-**主题**：⭐⭐⭐⭐⭐ 新建 `anti-ai-flavor` 全局挂钩（CC 说话别像 AI、像真人聊天）+ cc-comm-rules **同日撤回 v0.5.0「英文自由用」→ v0.6.0**（回归 v0.4.1 + 加 §2.3.1「术语后必带效果描述」）<!-- VERSION_OK -->
-
-**关键拍板**：
-- itsuki 给三层权重证据（亲身经历 6 例 > 网络黑话词单 > Opus 4.7 5 维分析），CC 拆出 6 类痛点 A-F 按反感程度排序（A 缺上下文 / B 复杂条件句 / C 网络黑话 / D 术语裸露 / E 字面化执行 / F 传统客套腔）
-- itsuki 当场识别 CC 跳 skill-creator interview 第一步 → 怒怼 "我们还没开始讨论呢？你怎么帮我写 skill？" → CC 承认 + 退回 + 主动问 2 个核心问题
-- v0.5.0 同日内推翻 — 早段拍板「英文自由用」当晚就发现 D 类痛点（must 模式 / action 模式 / modified / 残 / 误判拒答 看不懂）→ 撤回回归 v0.4.1 + 加 §2.3.1 新规则。术语表 180+ 词条**不删**（作为 AC 日语学习材料价值还在）<!-- VERSION_OK -->
-- 触发模式 hybrid — SKILL.md 主体短（always-on 自检）+ 详细 patterns / 黑名单按需读
-- itsuki 选 C — 不跑 8 个 subagent 测试直接落地，下次会话观察
-
-**AC 价值** ⭐⭐⭐⭐⭐：
-- **模式 5 高分例** — 同日内（12 小时内）对自己拍板的 v0.5.0 做出推翻 + 给出具体翻车证据 + 推翻精度（保留思路里对的部分，只撤回真错的）<!-- VERSION_OK -->
-- **协作纠错** — itsuki 当场识别 CC 跳 interview，不等做完才回头
-- **证据分层判断力** — 三层权重排序证据（亲身经历 > 网络列举 > 网络分析）= 元方法论
-- **元层翻车** — CC 写 anti-ai-flavor 时自己也犯 F 类（强迫执行）+ A 类（缺上下文），反讽性证据比成功案例更说明问题
-
-**残（下次跟进）**：
-- anti-ai-flavor 8 个测试用例 subagent 对比未跑（itsuki 选 C 跳过，下次会话真实使用中观察问题）
-- 网络黑话黑名单持续补 — 现在一级 7 词 + 二级扩展，下次见新黑话追加 `references/jargon-blacklist.md`
-- 术语表.html 已 modified（5-14 早段 v0.5.0 添词的产物）— v0.6.0 后不再自动加词，已有词条保留，要不要 commit 这次 modified itsuki 拍板 <!-- VERSION_OK -->
-- `~/.claude/我的环境.html`（清单美化派生版）未重新生成 — itsuki 决定要不要刷
-- ~~WIP 已 8 条超 "最多 5 条" 上限~~ ✅ **2026-05-22 已清** — 5-19 收尾砍 5-14 早段沟通规则 v0.5.0 段，当前正好 5 条（5-19 / 5-16 / 5-14 晚段-2 / 5-14 中午 / 5-14 晚段）<!-- VERSION_OK -->
-
-详细 raw：`05_logs/raw/2026-05-14.md` §K（4 段素材 + §L 工程动作清单）
+> **2026-05-25 收尾砍 2 条**（让 5-25 drift+session-coord + 5-24 iOS bug 补登 + 5-22 晚 点呼机+decision-draft + 5-22 早 iOS fork + 5-19 project-overview 改造 维持 5 条上限）：
+> - 砍 5-16 跨项目优化（codex 审 + cc-project-template 通用化 + bash 3.2 heredoc bug 修）— 详见 `raw/2026-05-16.md`
+> - 砍 5-14 晚段-2 anti-ai-flavor 立项 + cc-comm-rules v0.6.0 撤回 — 详见 `raw/2026-05-14.md` §K<!-- VERSION_OK -->
 
 > **2026-05-22 晚收尾砍 5-14 中午 graphify 复盘 + 5-14 晚段 Tango 立项 2 条**（让 5-22 晚 点呼机推进+decision-draft + 5-22 早 iOS fork 融合 + 5-19 project-overview 改造 + 5-16 跨项目优化 + 5-14 晚段-2 anti-ai-flavor 维持 5 条上限）— 详细历史看 commit log + `raw/2026-05-14.md` + `raw/2026-05-14_Tango立项+bootstrap.md` <!-- VERSION_OK -->
 

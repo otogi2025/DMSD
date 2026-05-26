@@ -1,5 +1,19 @@
 # DMSD 项目指令（CC 必读）
 
+## ⚠️ 沟通铁律 — 不主动用英语名词（2026-05-26 拍板，全局规则）
+
+除非这个词在项目代码 / 文档 / 文件名里真出现过，否则一律用中文。比如别说「凭证 credential」「兜底 fallback」「联动 sync」，直接说中文。
+
+完整规则在 `~/.claude/CLAUDE.md`。
+
+## ⭐⭐⭐ dmsd-startup 强制加载（2026-05-26 上线 — 集中启动逻辑）
+
+每次会话启动时，**第一件事**先 Read `.claude/skills/dmsd-startup/SKILL.md`，按 §2 顺序跑 5 件启动必做事（多会话协同注册 / project-overview 漂移检测 / ac-radar startup_check / 读 WIP / 报告状态）。
+
+不依赖关键词触发 — 每次新会话第一个回合 CC 必须主动加载本 skill。
+
+历史：以前启动逻辑散在 CLAUDE.md「会话开始」段 + 全局 `session-start-coord-check.sh` 挂钩 + DMSD `bin/check_overview_drift.sh` 调用，2026-05-26 itsuki 拍板集中到一个 skill。配套：全局 coord-check 挂钩在 DMSD 项目下静默退出，本 CLAUDE.md「会话开始」段简化成「走 dmsd-startup skill」。
+
 ## ⭐ ac-radar 强制加载（2026-05-10 上线）
 
 每次会话启动时，**先 Read** `~/.claude/skills/ac-radar/SKILL.md`，按那里的「CC 行为约定」（§14）执行。这是为了让 AC 素材捕获不依赖 description 语义匹配（会漏）。
@@ -103,10 +117,15 @@ Foundation/ component 改 props → grep 全 repo 找用到的地方
 - 中途随时: bash bin/sync-check.sh / bash bin/check_overview_drift.sh
 - 规则源: 00_admin/hooks/lib/sync-rules.sh
 
-## 会话开始: 读 WIP.md
+## 会话开始: 走 dmsd-startup skill
 
-启动读 00_admin/WIP.md — 当前版本 / 当下焦点 / 最近 5 次会话 / 多会话占用 / 阻塞项。
-读完给 itsuki 报告状态等指令，不主动催进度，不主动列 TODO。
+启动 SOP 完整版在 `.claude/skills/dmsd-startup/SKILL.md`，按 §2 顺序跑 5 件事：
+
+1. 多会话协同注册（register + scan）
+2. project-overview 漂移检测（`bin/check_overview_drift.sh`）
+3. ac-radar startup_check
+4. 读 WIP（拿当前版本 / 焦点 / 最近 5 次会话 / 多会话占用 / 阻塞项）
+5. 报告状态等指令 — 不主动催进度，不主动列 TODO
 
 git 仓库状态确认（git status / 残留 / 未 push / stash） → **会话结尾时**走 session-wrap skill §5.5.9，**不在启动时跑**。
 
@@ -213,3 +232,16 @@ Rules:
 - IF graphify-out/wiki/index.md EXISTS, navigate it instead of reading raw files
 - For cross-module "how does X relate to Y" questions, prefer `graphify query "<question>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"` over grep — these traverse the graph's EXTRACTED + INFERRED edges instead of scanning files
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+
+## 全项目中枢联动 (2026-05-26 起)
+
+中枢位置: `/Users/kurekoduki/Library/Mobile Documents/com~apple~CloudDocs/02_学习与知识/升学/大学入試/全项目中枢/`
+
+itsuki 名下 4 个项目 (大学入試 / DMSD / Tango / QTS) 互通的中央协同板。CC 实例之间不能直接调用，通过中枢里的文件传信。
+
+- **会话启动时**: 来中枢读 `信箱/DMSD_inbox.md`，有新留言报告 itsuki
+- **会话收尾时**: 来中枢更新 `项目档案/DMSD.md` 的「现状一句话」+「最后更新日期」
+- **想留言给别项目**: 写到 `信箱/<对方>_inbox.md` (对方 = 大学入試 / Tango / QTS)
+- **想知道别项目在干嘛**: 读 `项目档案/<对方>.md` 或 `_中央板.md`
+
+完整机制说明 → 中枢 `CLAUDE.md`

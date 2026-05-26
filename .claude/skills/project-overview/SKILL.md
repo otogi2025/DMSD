@@ -26,24 +26,24 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ## 0. 摘要
 
-### 0.1 体量（2026-05-22 git ls-files + untracked 全统计 — committed 1121 + 未 commit 1 = 实际 1122）
+### 0.1 体量（2026-05-26 git ls-files 全统计 — 1127）
 
 | 顶级目录 | 文件数 | 占比 | 主要内容 |
 |---|---|---|---|
-| `99_archive/` | 554 | 49% | 归档物（**5-22 加 2026-05-21_pre_fix（spec/字典/models .bak 备份）+ 2026-05-22_tomoshibi_appstore_fork（iOS 上架 fork 1.7MB 归档）**+ 5-21 teacher_web/demo 整组 158 文件归档 + 早期 GPT 对话 / throwaway iOS / demo 4-28 / 5-12 深夜大整理 / cloud agent 退役 / 5-02 handoff × 4 等）|
-| `03_dev/` | 395 | 40% | 代码 + 设计 LOG（backend / iOS Foundation / Android Compose / teacher_web v1 Vite+TS / 点呼机骨架）— **5-21 teacher_web/demo 158 文件已挪到 `99_archive/`** |
-| `05_logs/` | 102 | 9.1% | raw 48+5（5-16/19/21/22/22-iOS）/ AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）（5-22 校准 75→102）|
+| `99_archive/` | 552 | 49% | 归档物（**5-26 移出 3 个 iOS 上架配置到 `03_dev/student_ios/v1/TomoshibiApp/`** + 5-22 加 2026-05-21_pre_fix + 2026-05-22_tomoshibi_appstore_fork 残余（5-26 减 3 上架配置后） + 5-21 teacher_web/demo 整组 158 文件归档 + 早期 GPT 对话 / throwaway iOS / demo 4-28 / 5-12 深夜大整理 / cloud agent 退役 / 5-02 handoff × 4 等）|
+| `03_dev/` | 399 | 35% | 代码 + 设计 LOG（**5-26 加 3 个 iOS 上架配置归位 `student_ios/v1/TomoshibiApp/{AppIcon-1024.png, PrivacyInfo.xcprivacy, TomoshibiApp.entitlements}`** + 5-24 加 `RollCallAPI.swift` iOS 点呼接口入口）（backend / iOS Foundation / Android Compose / teacher_web v1 Vite+TS / 点呼机骨架）— **5-21 teacher_web/demo 158 文件已挪到 `99_archive/`** |
+| `05_logs/` | 105 | 9.3% | raw 50+6（5-16/19/21/22/22-iOS/24/25/26）/ AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）（5-22 校准 75→102 / 5-25 +5-24.md+5-25.md=104 / 5-26 +5-26.md=105）|
 | `00_admin/` | 21 | 2.1% | 7 顶级 md + hooks 子目录 — **5-21 加 `系统bug专栏.md` + `codex_audit_prompt.md`**（详见 §1.2）|
 | `01_specs/` | 13 | 1.3% | 规格冻结区（含 5 .pages 不可读）|
-| `.claude/` | 10 | 0.9% | 7 skill + 1 agent + 2 配置（settings / session-coord.config）— **5-19 加 `.claude/agents/security-reviewer.md`**（详见 §1.7.5）|
-| `06_assets/` | 7 | 0.7% | 4 icon + 术语表.html + bus_schedule + bus_notice 真实样本 |
+| `.claude/` | 11 | 1.0% | 8 skill + 1 agent + 2 配置（settings / session-coord.config）— **5-26 加 `dmsd-startup/SKILL.md`**（启动 SOP 集中）/ 5-19 加 `.claude/agents/security-reviewer.md`（详见 §1.7.5）|
+| `06_assets/` | 8 | 0.8% | 4 icon + 术语表.html + 学习内容清单.html + bus_schedule + bus_notice 真实样本 |
 | 根目录 | 6 | 0.6% | CLAUDE / README / CHANGELOG / LICENSE / .gitignore / .graphifyignore |
 | `02_design/` | 3 | 0.3% | system_features + hardware + flow（bus_schedule 5-08 挪到 06_assets/）|
 | `docs/` | 3 | 0.3% | Matt Pocock 套件 per-repo 配置（agents/{issue-tracker,triage-labels,domain}.md）|
 | `bin/` | 3 | 0.3% | sync-check + create_local_dev_symlink + check_overview_drift（5-19 加）|
 | `04_ops/` | 2 | 0.2% | MAC_MINI_SETUP + wifi_survey_howto |
 | `.github/` | 1 | 0.1% | **5-21 加** workflows/test.yml — GitHub Actions CI 自动跑测试的工作流定义 |
-| **总计** | **1123** | 100% | |
+| **总计** | **1127** | 100% | |
 
 > **5-16 → 5-22 重大变动**：5-21 teacher_web/demo 整组 158 文件从 `03_dev/teacher_web/demo/` 挪到 `99_archive/2026-05-21_teacher_web_demo_archived/` —— 所以 `03_dev/` 从 546 降到 395，`99_archive/` 从 273 升到 431。同期加 `.github/workflows/test.yml`（CI）+ `00_admin/系统bug专栏.md` + `00_admin/codex_audit_prompt.md` + `.claude/agents/security-reviewer.md`。
 >
@@ -165,10 +165,11 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `lib/sync-rules.sh` | 19 条文件联动规则的代码版 — pre-commit + sync-check.sh 都调它 | ✅ | 5-16 重 grep `^add_rule` 验证 = 19 条真实数 |
 | `README.md` | hooks 目录总说明（3 类 hook 全覆盖：git pre-commit + git post-commit/checkout + CC PostToolUse 6 + CC PreToolUse 1） | ✅ | 改 hook 必同步 |
 
-### 1.7 .claude/skills（7 skill）
+### 1.7 .claude/skills（8 skill）
 
 | skill | 一句话作用 | 触发关键词 | 状态 |
 |---|---|---|---|
+| `dmsd-startup/` | 会话启动 SOP — 5 件必做事（多会话协同注册 / project-overview 漂移检测 / ac-radar startup_check / 读 WIP / 报告状态） | always-on（每次会话启动 CC 主动 Read） | ✅ **2026-05-26 加** |
 | `session-wrap/` | 会话收尾流程 — §5.5 共 16 节子流程（全量扫描 / AC dump / 中文总结 / 文件联动 / WIP+TODO 刷新 / git commit / git 状态确认 / 跨 repo / memory 维护 / daily-archive iCloud 备份 §5.5.14 / decision-draft 决策日志草稿起草 §5.5.15）| 收尾 / 整理今天 / 总结今天 | ✅ |
 | `version-bump/` | 版本号决策树（CC 有否决权）+ 发版动作 SOP（git tag / CHANGELOG / push） | 迭代 / bump / 发版本 / 发版 | ✅ |
 | `file-linkage/` | 文件联动矩阵 — 改 A 必查 B（19 条规则） | 联动 / 改 A 要查 B | ✅ |
@@ -178,7 +179,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `spec-sync/` | 跨端字段对齐检查 — backend ↔ iOS ↔ Android 字段提取对比 | 跨端检查 / 字段对齐 | ✅ |
 
 > **2026-05-04 调整记录**：原计划 10 skill，itsuki 反问后砍 3：
-> - `session-start` 删（内容并入 `session-wrap §5.5.9` 收尾段；启动只读 WIP）
+> - ~~`session-start` 删（内容并入 `session-wrap §5.5.9` 收尾段；启动只读 WIP）~~ — **2026-05-26 恢复**，改名 `dmsd-startup/`，集中启动逻辑（原全局 `session-start-coord-check.sh` 挂钩 + `bin/check_overview_drift.sh` 调用 + CLAUDE.md「会话开始」段）
 > - `demo-clean` 删（一次性任务做 skill 频次太低；改成 `lib/sync-rules.sh` demo-scaffold-detect 自动检测 + `system_features.md` 末尾清单）
 > - `release-checklist` 删（合并到 `version-bump §13`；本来就串联，分两个 skill 反而割裂）
 
@@ -617,10 +618,11 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 
 全部 ✅ — 4-10 NFC/NFD git pull 失败 / 4-15 AI 过度配置诊断 / 4-15 iOS 限制下双路径重构 / 4-15 spec gap 发现。**全集中 4-10/4-15**，4-15 后无新增。
 
-### 6.5 06_assets/（7 文件 — 2026-05-16 校准，原 4 → 7）+ bin/（3 文件 — 2026-05-19 加 check_overview_drift.sh）
+### 6.5 06_assets/（8 文件 — 2026-05-25 加学习内容清单.html，原 7 → 8）+ bin/（3 文件 — 2026-05-19 加 check_overview_drift.sh）
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
+| `06_assets/学习内容清单.html` | itsuki 反向工程自己项目 5 端 + 编程基础 + AC 入試 直接相关知识 — 9 章学习内容清单（不是计划），跟 iCloud `02_分析与调研/AC入試制度総覧_2027.html` 配套 | ✅ | 5-25 起草 v0.1.0 |
 | `06_assets/术语表.html` | 180+ 英语词条的可交互学习页面（17 段分类含 ⑰ CC 协作）— itsuki AC 面试日语准备材料 | ✅ | 5-11 加 / 5-13 从 `00_admin/` 迁入 / 5-14 早段加 ⑰ 23 词 |
 | `06_assets/icons/tomoshibi_flame_color.psd` | Tomoshibi 火苗 logo 的 Photoshop 设计源文件 | ✅ | 4-23 |
 | `06_assets/icons/tomoshibi_flame.png` | Tomoshibi 火苗 logo 的 PNG 渲染版 | ✅ | 4-23 |
