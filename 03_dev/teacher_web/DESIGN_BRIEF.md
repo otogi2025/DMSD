@@ -2,8 +2,9 @@
 
 > **系统名**：**Tomoshibi**（灯火，2026-04-21 定名）。UI 里的品牌字符串一律 `Tomoshibi`，不用 DMSD。
 > **建立**：2026-04-21 by [Code-Agent]（原为 Claude Design 任务书 v1）
-> **2026-04-21 晚更新**：Round 2 Claude Design 产出已落盘本目录，itsuki 拍板"就按这个版本来"。本文从"任务书"转型为"实装状态追踪"。
-> **权威源**：`index.html` + `round2/*.jsx`（设计 = 代码）
+> **2026-04-21 晚更新**：Round 2 Claude Design 产出已落盘本目录，itsuki 拍板"就按这个版本来"。
+> **2026-05-26 大调整**：Vite + TypeScript 实装版（5-02 立项）废弃归档到 `99_archive/2026-05-26_teacher_web_vite实装作废/`。回到 Ryō standalone 主线。当天跑过一次 `frontend-design` skill polish（米白和纸 / 朱色 / 明朝体）但 itsuki 不喜欢已回滚 — 设计层面回到 4-21 Round 2 原版。
+> **权威源**：`v1/src/index.html`（7700+ 行 standalone）+ `v1/src/_legacy/*.jsx`（14 个 JSX 组件源 — 原 round2/ 文件全部塌缩到这里）
 
 ---
 
@@ -11,29 +12,36 @@
 
 Claude Design（claude.ai/design）产出的 Round 2 原型已 handoff + 落盘。itsuki 2026-04-21 晚在 Claude Design 里点了 "Save as standalone HTML: DMSD Round 2 Prototype.html" → 生成 handoff bundle（6.3MB gzip → 9.1MB tar）→ [Code-Agent] 通过 Anthropic 设计分享链接 fetch + 解压 + 导入本目录。
 
-**设计方向敲定**：Variation C "涼 (Ryō)" — 近黑 `#14171f` + コバルト `#2b4d8c` accent + Noto Sans JP + 稍圆 8-12px + 极薄 shadow，近 monoxer / modern SaaS but 克制。完整 tokens 见 `round2/theme.jsx`。
+**当前设计方向**：Variation C "涼 (Ryō)" — 近黑 `#14171f` + コバルト `#2b4d8c` accent + Noto Sans JP + 稍圆 8-12px + 极薄 shadow，近 monoxer / modern SaaS but 克制。完整 tokens 见 `v1/src/index.html` 里 inline 的 `window.RYO` 对象（line ~4235） + `v1/src/_legacy/theme.jsx`（源副本）。
 
-## 2. 本目录文件清单
+**2026-05-26 polish 尝试** — 当天跑过 `frontend-design` skill 提了「Quiet Luxury Japanese Editorial」方向（米白和纸 + 朱色 + 明朝体 + 纹理），itsuki 看完不喜欢已回滚。Polish 内容跟方向论证看 commit 历史 + 5-26 raw log。
+
+## 2. 本目录文件清单（2026-05-26 后）
 
 ```
 teacher_web/
-├── index.html                       # 主入口（原 "DMSD Round 2 Prototype.html"，引用外部 jsx + CDN）
-├── standalone-offline-backup.html   # 8.4MB 完整内嵌版（demo day 兜底：若 CDN/WiFi 断也能跑）
-├── round2/
-│   ├── theme.jsx                    # Ryo 色 token + 24 学生 ROSTER 种子数据
-│   ├── login.jsx                    # ログイン画面
-│   ├── shell.jsx                    # 左 nav + topbar（7 大类菜单已写）
-│   ├── roll-call-landing.jsx        # 点呼ダッシュボード（截图里那页）
-│   ├── live.jsx                     # フルスクリーン実时座席表（点呼中，主役=学生姓名大字）
-│   └── override-modal.jsx           # 手動調整 modal
-├── handoff/                         # Claude Design handoff 原档（AC 素材）
-│   ├── README.md                    # Claude Design 给 coding agent 的指引
-│   ├── chat1.md                     # itsuki ↔ Claude Design 完整对话（AC 叙事素材 ⭐）
-│   ├── design-system-round1.html    # Round 1 3 variations 比较页
-│   └── uploads/                     # itsuki 上传给 Claude Design 的截图
-├── designs/                         # Round 3+ 产出时往这里丢
-└── DESIGN_BRIEF.md                  # 本文件
+├── DESIGN_BRIEF.md                  # 本文件
+├── WEB_DESIGN_LOG.md                # Web 専属设计 log
+└── v1/                              # 实装目录（standalone HTML + Ryō polish）
+    ├── 开发模式跑.command            # 双击 → 起 python http.server 8787 + 自动开浏览器
+    ├── tomoshibi                    # CLI（./tomoshibi start | stop | status | rebuild | pack）
+    ├── 打包单文件.command            # 双击 → 用 build_single_file.py 打包成 demo 携带单文件
+    ├── build_single_file.py         # 把 src/index.html + 所有 assets/vendor inline 成单文件
+    ├── rebuild.command              # 双击 → 把 _legacy/*.jsx 重新内联到 index.html
+    ├── README.md                    # v1 实装说明 + 怎么打开
+    └── src/
+        ├── index.html               # ⭐ Ryō standalone 主入口（7700+ 行，自带所有 CSS/JS）
+        ├── index.css                # 极简 CSS（大部分样式 inline 在 React 组件里）
+        ├── _legacy/                 # ⭐ 14 个 JSX 组件源（theme/login/shell/live-roll-call/override-modal/applications/discipline/accounts/front-desk/outstay-detail-modal/roll-call-landing/select-teacher/app/pages-records-search-etc）
+        ├── _assets/                 # Noto Sans JP + JetBrains Mono 字体 woff2 本地副本
+        ├── assets/                  # tomoshibi-icon.png
+        ├── vendor/                  # React 18 + Babel 本地副本（standalone 用）
+        └── api/
+            └── client.ts            # 后端真接口对接代码（保留 — 未来 Ryō 接真后端复用）
 ```
+
+**已归档（2026-05-26 Vite 实装版废弃）**：`99_archive/2026-05-26_teacher_web_vite实装作废/`
+- App.tsx / main.tsx / Shell.tsx / pages/ / store/ / vite_root_index.html / package.json + lock / vite.config.ts / tailwind.config.js / postcss.config.js / tsconfig*
 
 ## 3. Round 2 已实装范围
 

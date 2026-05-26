@@ -2,19 +2,22 @@
 
 > **作用**：itsuki 提过的所有 Web 设计要求 + Claude Design 产出的所有东西 + [Code-Agent] 补提议的完整归档。防遗忘 / 下次会话快速恢复 context / AC 素材 / 代码 agent 实装时对照 single source of truth。
 > **建立**：2026-04-21 by [Code-Agent]
-> **最后更新**：2026-05-21（§实装进度速查表加 — A-029）。早些更新：2026-05-03（新 §11.9.1 学生登録コードパネル — itsuki 2026-05-03 拍板の App Store 公開対策の Web 側 UI 実装仕様。2026-04-22 下午 Round 3 产出交付）
+> **最后更新**：2026-05-26（§实装进度速查表大改 + 新 §13 段「2026-05-26 Vite 实装版整体废弃 + Ryō polish 试做被回滚」）。早些：2026-05-21 §实装进度速查表加 A-029 / 2026-05-03 §11.9.1 学生登録コードパネル / 2026-04-22 下午 Round 3 产出交付。
 
-## ⚠️ 实装进度速查表（2026-05-21 A-029 加）
+## ⚠️ 实装进度速查表（2026-05-26 改 — Vite 整体废弃后重写）
 
 | 层 | 进度 | 说明 |
 |---|---|---|
 | 设计文档（本文） | ✅ 100% | 806 行设计 + 5-03 学生登録コードパネル |
-| v1/src/ 真实装 | 🟡 部分 | TypeScript + Vite + Zustand；Auth / Applications / Study / RollCall 5 page 已接 backend |
+| **当前权威源** | ✅ | **`v1/src/index.html` 7774 行 standalone HTML**（4-21 Round 2 + 4-22 Round 3 产出）+ `v1/src/_legacy/*.jsx` 14 JSX 源 |
+| **v1/src/ Vite + TS 实装** | ❌ 5-26 整体废弃 | 归档到 `99_archive/2026-05-26_teacher_web_vite实装作废/`（App.tsx / pages × 5 / store / Shell / package.json / vite.config.ts 等 13 文件）。废弃理由：itsuki 5-26 看到 Vite 实装版「这他妈根本不是我的 web」拍板「垃圾归档」 |
+| `api/client.ts` 后端对接 | 🟡 保留未用 | 6 大模块（auth / applications / announcements / teachers / students / rollcall）— 未来 Ryō standalone 接真后端时复用 |
+| Ryō standalone NFC 实时点呼 | ❌ 失效 | 5-26 退 `demo_server.py`（一直死链）改用 `python3 -m http.server` → POST `/checkin` + GET `/events/latest` 端点失效。要恢复需写 `demo_server.py`（独立任务） |
 | AnnouncementsAPI | ⏳ 0% | **缺老师公告发布页 + API**（A-026 已补 type 但 UI 不在范围） |
 | AppStatus 完整性 | 🟡 部分 | `returned` 状态漏（A-017 已修） |
 | Application 字段对齐 | 🟡 部分 | reason / stay_locations / meals_skip / flight_* / withdrawn_at / bus_route_id 全缺（A-018 已修） |
 | demo/ 归档 | 🟡 待归档 | 14 文件 jsx demo SPA（A-032 已归档） |
-| v1/src/index.html 7774 行旧 demo | 🔴 未修 | A-039 主会话保留（需要先备份 + 验证 vite shell） |
+| v1/src/index.html 7774 行旧 demo | 🔴 未修 | A-039 明文密码 `12345678` v1.0 上线前必删 |
 
 ---
 
@@ -812,6 +815,85 @@ interface RegistrationCodeStore {
 - 通知中心
 - print 専用 stylesheet / PDF export
 - CSV 一括出力
+
+---
+
+## 12. 2026-05-26 Vite 实装版整体废弃 + Ryō polish 试做被回滚
+
+### 12.1 背景
+
+5-02 起 v0.8 立项的 Vite + TypeScript + Zustand + React 18 实装版（`v1/src/App.tsx` + 4 标签页 + `Shell.tsx` + `store/` + `api/client.ts`）做到 5-26 约 3-4 周后，itsuki 主动启动会话「推进 teacher web 开发」+ CC 起 Vite dev server → itsuki 看到屏幕第一反应「这他妈根本不是我的 web 啊」→ 拍板「Vite 实装版垃圾归档，用 B（Ryō）」。
+
+**根因**：5-02 起做的 Vite 实装版是「老师后台 4 标签页」结构（Applications / Study / RollCall / Teachers），跟 itsuki 心里的「Ryō 24 学生座席表 + 实时点呼仪表盘」完全不是同一套东西。两套并存在 `v1/` 1 个月，itsuki 没真打开过 Vite 版 → 直到 5-26 启动 dev server 看到才意识到。
+
+### 12.2 归档动作
+
+13 个 Vite 文件 `git mv` 到 `99_archive/2026-05-26_teacher_web_vite实装作废/`：
+
+| 类别 | 文件 |
+|---|---|
+| React 实装 | `App.tsx` / `main.tsx` / `components/Shell.tsx` / `pages/Applications.tsx` / `pages/Login.tsx` / `pages/RollCall.tsx` / `pages/Study.tsx` / `pages/Teachers.tsx` / `store/auth.ts` |
+| Vite 根入口 | `index.html`（→ 归档为 `vite_root_index.html`） |
+| 构建配置 | `package.json` / `package-lock.json` / `vite.config.ts` / `tailwind.config.js` / `postcss.config.js` / `tsconfig.json` / `tsconfig.tsbuildinfo` |
+
+物理删（`.gitignore` 忽略）：`node_modules/`（81 MB）+ `dist/`。
+
+**保留**：`api/client.ts`（后端对接代码，未来 Ryō 接真后端复用） + `_legacy/*.jsx` 14 个 JSX 源 + `vendor/` + `_assets/` + `assets/` + `index.css` + `index.html`（Ryō standalone 主体）。
+
+### 12.3 服务器换装
+
+`v1/开发模式跑.command` + `v1/tomoshibi` CLI 都引用不存在的 `demo_server.py`（一直死链）。本次会话改用 `python3 -m http.server 8787 -d src`（Python 内建静态服务器）。
+
+**副作用** — `demo_server.py` 原本提供：
+- POST `/checkin?no=XX` — iPhone 快捷指令 → 服务器 → 浏览器实时点呼
+- GET `/events/latest` — 浏览器 1 秒 poll
+- GET `/api/server-info` — 自动 LAN IP
+
+退到 Python 内建静态服务器后这 3 个端点失效，**NFC 实时点呼 demo 功能失效**。要恢复需要补写 `demo_server.py`（独立任务，TODO 已加）。
+
+### 12.4 Ryō polish 试做 + 回滚
+
+CC 在 itsuki 选 A（Ryō 框架内 polish）后跑 frontend-design skill，提了「Quiet Luxury Japanese Editorial（克制日式编辑感）」方向：
+
+| 改动 | 改的是 |
+|---|---|
+| 纸面色 `#f4f5f7` → `#f3efe8`（米白和纸） | body 背景 + RYO.paper token |
+| 加 `vermillion #c43d2d`（朱赤色 sharp accent） | RYO 新 token |
+| 加 display 字体 Shippori Mincho B1（日式明朝） | RYO 新 token + Google Fonts CDN |
+| 升级 shadow 0.04 → 0.07 + 模糊变大 | RYO.shadow1/2/Modal |
+| 加 SVG 噪点 + 朱+钴双角微渐变 | body::before 伪元素 |
+| 主按钮「点呼を開始」换朱色 | inline style |
+| logo「Tomoshibi」用 display 字体（登录页 + Shell） | inline style |
+| Stat 数字 mono → display + 38px + tabular-nums | inline style |
+
+**itsuki 看完整体不喜欢** → 一句话「回滚」→ `git checkout 03_dev/teacher_web/v1/src/index.html` 全部退回 4-21 原版。
+
+**CC 工程设计 — 提前承诺「可回滚」**：CC polish 前主动跟 itsuki 说「全部改动在 `index.html` 一个文件里，`git checkout` 一行退回」。这个安全网让 itsuki 敢试。
+
+### 12.5 当前权威源（5-26 后）
+
+| 层 | 文件 |
+|---|---|
+| Ryō standalone 主体 | `v1/src/index.html`（7774 行，含所有 CSS / JS / 字体 inline） |
+| JSX 组件源（如要重新 inline） | `v1/src/_legacy/*.jsx` 14 个（命名误导，实际是 Ryō 主源） |
+| 后端对接代码（保留未用） | `v1/src/api/client.ts`（auth / applications / announcements / teachers / students / rollcall 6 模块） |
+| 字体本地副本 | `v1/src/_assets/` Noto Sans JP + JetBrains Mono woff2 |
+| React + Babel 本地副本 | `v1/src/vendor/`（standalone HTML 浏览器端编译 JSX 用） |
+
+### 12.6 怎么打开看效果（itsuki 下次想看）
+
+**方式 A 双击**：Finder 找 `v1/开发模式跑.command` 双击 → 自动起 8787 端口 + 自动开浏览器
+
+**方式 B CLI**：`cd ~/dev/DMSD/03_dev/teacher_web/v1 && ./tomoshibi start`（+ `stop` / `status` / `help`）
+
+**改完 HTML 想看效果**：浏览器手动刷新 Cmd+R（standalone HTML 没 HMR）
+
+### 12.7 未来设计层 polish 候选方向（如果再起意）
+
+- 单页大改造（B 改成具体一页换风格，不动整体）
+- 字体单独换不动颜色（risk 最低）
+- 找 itsuki 喜欢的具体参照系 web（比 CC 凭 skill 推风格更可靠）
+- 跟 itsuki 一起看几个真实日本教育系统 UI（不同风格）后再选方向
 
 ---
 
