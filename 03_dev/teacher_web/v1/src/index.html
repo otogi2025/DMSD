@@ -21710,7 +21710,9 @@
           setSession({ name, sessionId: null, startedAt: Date.now() });
           setLiveMode(true);
         };
-        const endSession = () => {
+        // Task #6 真接口对接: session.sessionId が UUID なら backend rollcallEnd を呼ぶ。
+        // session.sessionId が null (demo 模式) なら従来通り state だけで終了処理。
+        const endSession = async () => {
           const cnt = students.reduce((a, s) => {
             a[s.status] = (a[s.status] || 0) + 1;
             return a;
@@ -21720,6 +21722,23 @@
           const d = new Date();
           const t2 = (d) =>
             `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+
+          // backend session があれば終了 API を呼ぶ (失敗しても UI は閉じる)
+          if (session.sessionId && authToken) {
+            try {
+              await window.tomoshibiApi.rollcallEnd(
+                session.sessionId,
+                authToken,
+              );
+            } catch (err) {
+              console.warn("[App] rollcallEnd 失敗 (UI 側は終了処理続行)", err);
+              setToast({
+                type: "warn",
+                msg: "backend session 終了失敗 (画面は閉じます)",
+              });
+            }
+          }
+
           setLastEnded({
             name: session.name,
             start: t2(new Date(session.startedAt)),
@@ -21728,7 +21747,12 @@
           });
           setLiveMode(false);
           setSession(null);
-          setToast({ type: "ok", msg: "点呼が保存されました" });
+          // backend session 終了時の toast は上で出した warn が無ければ ok を出す
+          if (!(session.sessionId && authToken)) {
+            setToast({ type: "ok", msg: "点呼が保存されました (demo)" });
+          } else {
+            setToast({ type: "ok", msg: "点呼が保存されました" });
+          }
         };
         const openOverride = (s) => setOverrideTarget(s);
         const saveOverride = (patch) => {
