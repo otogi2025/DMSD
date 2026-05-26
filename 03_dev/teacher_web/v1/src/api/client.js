@@ -45,10 +45,18 @@
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: res.statusText }));
       const wrapped = { status: res.status };
-      // backend envelope: {error: {...}} | {detail: '...'} | raw
+      // 后端响应统一信封: {error: {...}} | {detail: '...'} | raw
       const inner = err && (err.error || err.detail || err);
       if (inner && typeof inner === "object") Object.assign(wrapped, inner);
       else wrapped.message = inner;
+      // 401 全局拦截 (§11.5 W3 拍板)：通知 App 强制 logout
+      if (res.status === 401 && typeof api._onUnauthorized === "function") {
+        try {
+          api._onUnauthorized();
+        } catch (_) {
+          /* 钩子内部错误不要影响 throw */
+        }
+      }
       throw wrapped;
     }
     if (res.status === 204) return undefined;
@@ -145,6 +153,14 @@
       request("GET", "/admin/registration-code/current", undefined, token),
     refreshRegistrationCode: (token) =>
       request("POST", "/admin/registration-code/refresh", {}, token),
+
+    // 401 全局拦截注册（§11.5 W3 拍板）
+    // App() 在 mount 时调 setOnUnauthorized(() => logout()) 注册回调。
+    // 任意 API 调用收到 401 时 client.js 自动调这个 callback。
+    _onUnauthorized: null,
+    setOnUnauthorized(cb) {
+      this._onUnauthorized = cb;
+    },
   };
 
   // ── WebSocket helper (D3 路线: /ws/teacher 收 checkin / outstay_new 事件) ──

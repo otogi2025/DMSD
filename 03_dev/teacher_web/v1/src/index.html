@@ -23143,6 +23143,29 @@
           };
         }, [authToken]);
 
+        // §11.5 W3: 401 全局拦截 — 任意 API 收 401 时强制 logout
+        // client.js request() 内部 401 时调本 callback。logout 用 inline 不依赖闭包 logout。
+        React.useEffect(() => {
+          window.tomoshibiApi.setOnUnauthorized(() => {
+            try {
+              sessionStorage.removeItem("tomoshibi_auth");
+            } catch (e) {
+              /* sessionStorage 失败無視 */
+            }
+            setRoute("login");
+            setTeacher(null);
+            setAuthToken(null);
+            setAuthProfile(null);
+            setLiveMode(false);
+            setSession(null);
+            setToast({
+              type: "warn",
+              msg: "セッションが切れました。再度ログインしてください。",
+            });
+          });
+          return () => window.tomoshibiApi.setOnUnauthorized(null);
+        }, []);
+
         // Task #10 (5-27): authToken が来たら backend listTeachers を fetch
         // backend TeacherOut {id, login_id, name, role, assigned_dorm, ...} を
         // UI 用 {id, name, dorm, initial, lastLoginMins} へ adapt。
