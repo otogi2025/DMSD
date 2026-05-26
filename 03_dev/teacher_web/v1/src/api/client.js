@@ -129,6 +129,15 @@
         undefined,
         token,
       ),
+    // 5-27 新增：历史列表 — 教师 Web RecordsPage 用
+    // 参数 from / to 是 YYYY-MM-DD 字符串，不传时 backend 默认过去 7 天
+    rollcallSessionsHistory: (token, from, to) => {
+      const q = [];
+      if (from) q.push(`from=${encodeURIComponent(from)}`);
+      if (to) q.push(`to=${encodeURIComponent(to)}`);
+      const qs = q.length ? `?${q.join("&")}` : "";
+      return request("GET", `/rollcall/sessions${qs}`, undefined, token);
+    },
 
     // ── Teachers ──
     listTeachers: (token) => request("GET", "/teachers/", undefined, token),
