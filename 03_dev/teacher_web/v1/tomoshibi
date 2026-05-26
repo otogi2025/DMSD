@@ -102,10 +102,10 @@ cmd_start() {
   dim "終了: Ctrl+C · ウィンドウを閉じる"
   echo
 
-  # 2026-05-26: 退 demo_server.py（文件不存在），改 Python 内建静态服务器
-  # NFC 実時間ポーリング機能は失効中（要恢复需写 demo_server.py）
-  cd src
-  exec python3 -m http.server $PORT
+  # 跑 demo_server.py — 提供静态文件 serve + 3 个 NFC 实时点呼端点
+  # (GET /api/server-info / POST /checkin?no=XX / GET /events/latest)
+  # demo_server.py 自己 chdir 到 src/，不需要外部 cd
+  exec python3 demo_server.py
 }
 
 cmd_stop() {
