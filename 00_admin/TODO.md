@@ -343,6 +343,16 @@
 - [ ] **翻车案例库 v1.1 状态核对** — inbox.md 注释说「#001-#007 整体合并到 references/翻车案例库.md #21-#27」，但本会话 CC 没读案例库本身核对。下次会话核对案例库 v1.1 是否真有 #21-#27 + 跟 inbox 5 字段对得上
 - [ ] **anti-ai-flavor 5 铁律没升 8 类** — anti-ai-flavor hook 自检 6 类→8 类升级了，但 5 铁律（起因 / 改哪+这是啥 / 改的内容 / 每对象 / 下一步）描述没动。是不是该加 6+7 铁律对应 G+H 自指失败 + 编造数据？等下次会话或 itsuki 拍板
 
+### Q. 整理 inbox 第一次实战 + 6 类升 8 类残留（2026-05-27 晚段-2 加）
+
+> **背景**：5-27 晚段-2 itsuki「启动」后 4 件小事自决 → CC 翻车 5 词全裸（`untracked` / `working tree` / `commit` / `repo` / `propose`）→ inbox #006 → itsuki「整理 inbox」第一次实战触发 → 合并 inbox #001-#007 到 `~/.claude/skills/anti-ai-flavor/references/翻车案例库.md` v1.1 #21-#27 + 加根本问题 5「自指失败」+ 类 J/K + 触发词 2→4 → itsuki「升级」→ 6 类升 8 类全链路 7 文件联动改 → drift 修第二轮（H 类铁律当场实战验证）→ 1194 ✅。详见 raw `2026-05-27_整理inbox+8类升级.md`（commit `6fa42ad` 已入库）。
+
+- [ ] **daily-archive 跟 ac-radar 目录树不统一** — daily-archive 脚本 cp 路径写 `升学/AC/筑波大学.../03_素材_候选/`，ac-radar 写的 inbox 在 `升学/大学入試/筑波大学.../06_radar_inbox/`。同项目两套目录树会不会未来 itsuki 整理素材时找不到？等下次拍板要不要统一
+- [ ] **anti-ai-flavor inbox.md 「已整理归档」7 条物理保留** — 5-27 整理时 7 条用 HTML 注释包住放在「已收集案例」段下面（按案例库「不直接删万一合并出错可恢复」铁律）。下次整理时按案例库 §九「整理 inbox」SOP 把它们再往下挪到「已整理归档」段下面 + 附新整理日期注释（机制可行性等下次整理验证）
+- [ ] **G+H 新模式 memory 同步** — 本会话 anti-ai-flavor 主体加了 G「自指失败」+ H「编造数据」两个新类，但 memory `feedback_anti_ai_flavor_翻车案例.md` 索引段还没更新指向案例库 v1.1。下次会话或 memory-write skill 触发时同步
+- [ ] **`~/.claude/` 全局目录不在 git 跟踪** — 本会话改了 5 处 `~/.claude/` 文件（SKILL.md / hook / CLAUDE.md / HOW_TO_TALK.md / 案例库 / inbox / 我的环境.html）全没 git 历史。5-14 / 5-26 / 5-27 已立 propose「把 `~/.claude/` 做成 git 仓库」三次未拍板，等 itsuki 决定
+- [ ] **WIP「最近会话」累积 9 条远超 5 上限** — 本会话加完 9 条，§P 段说「9 条已超」上次没砍。等 itsuki 拍板砍哪 4 条（候选：5-26 / 5-26 晚段-2 / 5-26 晚段-3 / 5-27 早段-3 中老的几条）
+
 ## 🚀 teacher_web v1.0「直接上线」backlog（2026-05-27 审查产出 — 优先级最高）
 
 > **背景**：5-27 晚段-2 itsuki 让 CC 对 teacher_web 做审查 — 目标「让网站达到可以直接上线的水平」。CC 扫了 `WEB_DESIGN_LOG.md` / `DESIGN_BRIEF.md` / `system_features.md` / `v1/src/` 实际目录后**诚实结论**：**目前没到「直接上线」水平**。UI 90% ✅ + Login 真接 backend 1/16 ✅ + 其他 15 个 page 全部假数据 ⏳。本段集中列「要达到直接上线还差什么」。
