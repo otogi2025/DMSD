@@ -50,6 +50,39 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+### 2026-05-27 晚段-2 by [MacBook-Pro-Opus 4.7 1M / 整理 inbox 第一次实战 + anti-ai-flavor 6 类升 8 类]
+
+**主题**：⭐⭐⭐⭐⭐ itsuki「启动」→ CC 跑 dmsd-startup 5 件事 → 4 件小事自决（drift 修 / scan.sh 命令补 SESSION_ID / 环境清单 hook 同步 / DMSD CLAUDE.md 加新沟通铁律「不要默认认识英语单词」）→ CC 翻车 5 词全裸（untracked/working tree/commit/repo/propose）itsuki 怒怼「你还是给我用英语单词了啊」→ 写 inbox #006 → itsuki「整理 inbox」第一次实战触发（5-25 立 inbox 机制后第一次批量整理）→ 合并 inbox #001-#007 到案例库 v1.1 #21-#27 + 加根本问题 5「自指失败」+ 类 J/K + 触发词 2→4 → itsuki「升级」→ 6 类升 8 类全链路 7 文件联动改（SKILL.md / hook / 全局 CLAUDE.md / DMSD CLAUDE.md / HOW_TO_TALK.md / 案例库 / inbox）→ itsuki「project-overview 漂移修好了更新状态」→ CC 当场翻 H 类「编造数据」车（漏算 03_dev -1 按记忆假设只 2 目录涉及）→ 补改后 drift ✅ 1194 → itsuki「做」commit → 别会话已 commit `a8c4837` + `26dc4ca` 全吞 → itsuki「收尾」+「继续不要再停」
+
+**关键拍板**（itsuki 6 次）：
+- 「报错原因修一下 + 全做」（4 件小事自决授权）
+- 「commit 你自己看着做」（commit 颗粒度自决）
+- 「整理 inbox」（5-25 立的批量整理触发词第一次实战）
+- 「升级」（6 类升 8 类全链路 — CC 提的 J/K 升级到主体的提议被采纳）
+- 「project-overview 漂移 你修好了的话记得更新状态」（drift 闭环验证 + 状态字段更新要求）
+- 「继续啊，不要再停了」（收尾别太碎，加速）
+
+**实际改动**（DMSD 3 + 全局 5 + iCloud 中枢 1 + DMSD raw 新 + 筑波 inbox 信号 7 + iCloud 会话总结新 = 12 文件）：
+| 类别 | 文件 |
+|---|---|
+| DMSD repo | `.claude/skills/dmsd-startup/SKILL.md`（scan.sh 命令补 SESSION_ID）/ `.claude/skills/project-overview/SKILL.md`（§0.1 1189→1194 两轮 + 加 raw 主题词）/ `CLAUDE.md`（沟通铁律加新句 + 3 处 6→8 联动）|
+| 全局 改 | `anti-ai-flavor/SKILL.md` v0.3.0（加 G+H 整段 + §4 6→8 + 边界 + 版本）<!-- VERSION_OK --> / `anti-ai-flavor-precheck.sh`（注入 6→8 + 6 问→8 问）/ `~/.claude/CLAUDE.md` 5 处 / `HOW_TO_TALK.md` / `references/翻车案例库.md` v1.0→v1.1（§一 #21-#27 + §三 根本问题 5 + §四 J+K + §九 触发词 2→4）<!-- VERSION_OK --> / `inbox.md`（#006 + 整理后清空 + 归档 + 7 条物理保留）/ `~/.claude/我的环境.html`（§3 Hooks 5→6 + 加 hook 行 + skill 段 6→8） |
+| iCloud 中枢 改 | `项目档案/DMSD.md`（现状一句话 + 更新日志加本会话） |
+| DMSD raw 新 | `05_logs/raw/2026-05-27_整理inbox+8类升级.md`（6 阶段 + 工程动作 + AC 价值） |
+| 筑波 inbox 改 | `06_radar_inbox/ac_scratchpad_2026-05-27.md` 加信号 7 |
+| iCloud 会话总结 新 | `03_素材_候选/会话总结/2026-05-27_MacBook-Pro_430f9ad0_总结.md`（详细日记式 7 阶段）|
+
+**AC 价值** ⭐⭐⭐⭐⭐：模式 4 主体性升级链（5-25 立 inbox → 5-27 整理实战 → 抽 G+H → 升 SKILL.md 6→8 → 全链路 7 处改） + 模式 5 自指失败顶级 × 2 实战验证（CC 立完铁律下一秒翻车两次都被当场抓 — 阶段 2 + 阶段 5） + 模式 2 假设崩（跨目录 git mv source -1） + 模式 6 取舍（inbox 整理策略） + 模式 7 机制完备性（5-16 三层保险 + 5-25 inbox 自我迭代 + 5-27 早段-3 中枢档案铁律 + 5-21 daily-archive 4 层全跑通）
+
+**残（下次跟进）**：
+- daily-archive 脚本 cp 路径树「升学/AC/筑波大学.../03_素材_候选/」跟 ac-radar 写的「升学/大学入試/筑波大学.../06_radar_inbox/」**不同** — 同项目两套目录树，要不要统一？记 TODO
+- anti-ai-flavor inbox.md 「已整理归档」7 条物理保留 — 下次整理时按案例库 §九「整理 inbox」SOP 把它们再往下挪
+- G+H 新模式要不要更新 memory `feedback_anti_ai_flavor_翻车案例.md` 指向案例库 v1.1
+- 5 处 `~/.claude/` 改动不在 git 跟踪 — 「~/.claude/ 做成 git 仓库」propose 5-14 / 5-26 立未拍板
+- WIP「最近会话」累积 9 条远超 5 上限 — 等下次大砍
+
+详细 raw：`05_logs/raw/2026-05-27_整理inbox+8类升级.md`
+
 ### 2026-05-27 晚段-1 by [MacBook-Pro-Opus 4.7 1M / anti-ai-flavor 双层防御立项]
 
 **主题**：⭐⭐⭐⭐⭐ itsuki 启动「推进 iOS app」→ CC 报告状态翻车 3 处（`deadline` / `clarify` / `diff` 英语裸露 + 病句 + 编造数据 9/3 出愿截止）→ itsuki 怒怼追问根因「为什么 CC 总是会自己莫名其妙用英语」→ CC 摊牌 3 层根因 + Claude Code hook 体系无 PostResponse 类硬约束 → **itsuki 主动提反方案**「立 hook 强制扫 + 白名单，命中就拦着」（独立提出 detective control 思路，没有任何工程 / 安全模式术语储备）→ CC 给 A/B/C 三方案 → itsuki 拍板 A+B + 白名单 6 类 + 4 模糊地带词「全收」→ 工程实装 3 新文件 + 2 改文件全在 `~/.claude/` 全局目录（iOS 原主题一行没碰）
