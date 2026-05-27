@@ -1,6 +1,6 @@
 # 当前工作状态 (Work In Progress)
 
-> **最后更新**: 2026-05-27（深夜-3 — iOS 全自主审查 + 修 + 收尾会话：itsuki 启动「审查这个 iOS APP 看有什么问题，然后去做去修」+「做完后就直接收尾，不要给我留问题，也不要停下来问我，所有的问题加到 todo 里面」→ CC 5 维度过完 41 文件 / 修 1 处（`MyPageStubs.swift:1404` `c.score!` force unwrap 改 `map ?? _`）/ 2 处架构性问题写 TODO §D（`StayListStubs.swift:475` catch 降级 mock 假数据 / `MyPageStubs.swift:1637` 暴露 `localizedDescription`）/ 所有 demo 后门 + A-XXX bug 标记 + NFC UI + 其他 catch 全部确认 ✅。早些深夜-2 — 跨天会话「2026-05-25 晚段-2 / AC 学习内容清单 v0.1.0 起草」收尾：5-25 晚 itsuki 抛元认知反思「5 端开发但一门语言都没掌握 + 文件认不全」+ 主动要求扩充「专业知识 + 项目底层运转逻辑」→ CC 起草 `06_assets/学习内容清单.html` v0.1.0 9 章（工程层改动被 5-26 晚段-4 别会话 commit `3d945a7` 顺手带走）+ 列 4 章扩充大纲（第 9-12 章）等拍板 → itsuki 直接说「收尾」未实装 → 加 TODO §🛠️ §M 6 条悬挂任务 + raw `2026-05-25_AC学习清单起草.md` 4 段深度 AC 素材；模式 5 顶级 × 2。早些 2026-05-27 深夜 — itsuki 让 CC 清 TODO 里「不需要决策 + CC 自己能做 + 不重要」的小活清单 14 件<!-- VERSION_OK --> + project-overview drift 修：6 件本来就闭合 TODO 没刷状态（T1 3 文件已归档 / T2 .DS_Store 删 / T3 临时PDF 目录已不存在 / T7 DESIGN_BRIEF 5-26 已重写 / T8 DEVICE_REGISTRY §6 已是 dorm-1/2 / T9 FC-025-028 已标 ✅ N/A）+ 7 件真做（T4 99_archive README 时间戳 / T6 WEB_DESIGN_LOG §7+§10 路径过时项 / T11 project-overview §6.2 raw 48→55 / T12 SC26 session-wrap §7.5.5「6 项」→「8 项」/ T13 全局环境清单 DMSD Skills 7→8 加 dmsd-startup / T14 WIP 最近会话 10→5 砍 5 条 / T15 §0.1 体量表全刷新 1181→1189）+ 2 件挂起待 itsuki 拍板（T5 backend 表数 13→21 + P0/P1/P2 分级标准 / T10 系统bug专栏 77 条状态字段工作量大）；起因：itsuki 启动「列 TODO 里不重要 CC 自己能做的小活」+ 说「做完后直接收尾，想 commit 就 commit」。早些 2026-05-26（晚段-4 — teacher_web Vite + TypeScript 实装版整体废弃 + Ryō polish 试做被回滚 + 修破工具脚本 demo_server.py 死链改 python http.server + 文档同步 WEB_DESIGN_LOG §12 + DESIGN_BRIEF + v1/README + 物理清 node_modules 81MB + dist + decision_log 加 2 条；起因：itsuki 启动「推进 teacher web」+ 看到 Vite 实装版怒怼「这他妈根本不是我的 web」拍板「垃圾归档用 B」+ frontend-design skill polish 试做整体不喜欢一句「回滚」全退。早些晚段-3 — iOS demo 后门清理（做法 B）+ 字段对齐零漂移 commit `7521bf8`。早些晚段-2 — 全项目中枢机制立项 + DMSD 注册档案 + DMSD CLAUDE.md 加「全项目中枢联动」段；同时合并早段 iOS Bot 1 复查 + 暗夜模式 v2 + 3 上架配置归位 + memory 加铁律「TODO 关条目不要问」入「最近会话」。早段头：启动 SOP 集中化 — 新建 `.claude/skills/dmsd-startup/SKILL.md`（5 件启动必做事）+ 全局 `~/.claude/hooks/session-start-coord-check.sh` 在 DMSD 项目下静默退出 + DMSD CLAUDE.md「会话开始」段简化引用新 skill + 6 项目 CLAUDE.md 加「不主动用英语名词」规则段 + project-overview SKILL.md §0.1 + §1.7 同步 + 本文件「会话开始」铁律改成走 dmsd-startup skill）。5-25 晚段（追加：第三轮升级 — anti-ai-flavor 加第 3 触发词「**翻车**」单字 + 新建 `inbox.md` — itsuki 收尾中途立项自我迭代机制：发现新翻车点 → CC 按 5 字段「原文 / 6 类归类 / 违反铁律 / 根因 / 修正版」记 inbox，未来批量整理合并到 `references/翻车案例库.md`；改 5 文件：新建 `inbox.md` + SKILL.md 加 §7.5 + CLAUDE.md 触发词 2→3 + hook 提醒 + `我的环境.md` + `.html`）。早些（同晚段）：anti-ai-flavor HOW_TO_TALK.md 立项 + 跨 3 项目 session-wrap 加项 11/8 — itsuki 给 16 个翻车原句证据 → 4 根本问题 + 9 类细分 → 5 条总结铁律 → 方案 B 落地：SKILL.md 反面自检 + HOW_TO_TALK.md 正面教学互补 + 2 触发词「说人话」/「单词白名单」+ DMSD/SC26/Tango session-wrap 收尾清单同步加「全局环境清单同步」项 — 全局 6 文件 + DMSD 1 文件 + 2 memory + SC26 1 文件 + Tango 1 文件。早些 5-25（drift 脚本 bug 修 + 全局 `session-coord` 三层保险落地 — DMSD 2 文件 + 全局 4 文件 / 全局 Hooks 4→5；同时补登 5-24 iOS bug 批量修复会话遗漏的收尾）。早些 5-22（**3 会话产出** — ① 早 project-overview §0.1 漂移 957→980 / ② 中 iOS fork 融合归档 commit `46f779c` / ③ 晚 点呼机推进 + 撞海关查扣事件 + 立项 `session-wrap §5.5.15 decision-draft`）。早些 5-21（5-20 凌晨 4 会话审查作战 cron 自动 fire 产出 131 条 findings / 5-21 加系统 bug 专栏 + 第一批修复 8 条）。早些 5-19（project-overview 大改造 + 防漂 C 方案）。<!-- VERSION_OK -->
+> **最后更新**: 2026-05-27（早段 — teacher_web v1.0 凌晨深夜推进收尾会话 + 醒后 backend 自审 9 处修复：itsuki 启动「审查我做的事到底做好了没」+「不要停下来问 / 不需要决策的直接修 / 决策的加 TODO」→ CC 自查 5 维度：alembic migration ✅ / 13 router 注册 ✅ / 61 endpoint 真 import 通过 ✅ / Student.is_demo 字段已加 ✅ / client.js 32 helper 跟 backend 路径 100% 对齐 ✅ / 5 处 index.html 日语注释中文化（中文铁律）/ 全部 9 处真 bug 已在凌晨别会话修完。早些深夜-3 — iOS 全自主审查 + 修 + 收尾会话：itsuki 启动「审查这个 iOS APP 看有什么问题，然后去做去修」+「做完后就直接收尾，不要给我留问题，也不要停下来问我，所有的问题加到 todo 里面」→ CC 5 维度过完 41 文件 / 修 1 处（`MyPageStubs.swift:1404` `c.score!` force unwrap 改 `map ?? _`）/ 2 处架构性问题写 TODO §D（`StayListStubs.swift:475` catch 降级 mock 假数据 / `MyPageStubs.swift:1637` 暴露 `localizedDescription`）/ 所有 demo 后门 + A-XXX bug 标记 + NFC UI + 其他 catch 全部确认 ✅。早些深夜-2 — 跨天会话「2026-05-25 晚段-2 / AC 学习内容清单 v0.1.0 起草」收尾：5-25 晚 itsuki 抛元认知反思「5 端开发但一门语言都没掌握 + 文件认不全」+ 主动要求扩充「专业知识 + 项目底层运转逻辑」→ CC 起草 `06_assets/学习内容清单.html` v0.1.0 9 章（工程层改动被 5-26 晚段-4 别会话 commit `3d945a7` 顺手带走）+ 列 4 章扩充大纲（第 9-12 章）等拍板 → itsuki 直接说「收尾」未实装 → 加 TODO §🛠️ §M 6 条悬挂任务 + raw `2026-05-25_AC学习清单起草.md` 4 段深度 AC 素材；模式 5 顶级 × 2。早些 2026-05-27 深夜 — itsuki 让 CC 清 TODO 里「不需要决策 + CC 自己能做 + 不重要」的小活清单 14 件<!-- VERSION_OK --> + project-overview drift 修：6 件本来就闭合 TODO 没刷状态（T1 3 文件已归档 / T2 .DS_Store 删 / T3 临时PDF 目录已不存在 / T7 DESIGN_BRIEF 5-26 已重写 / T8 DEVICE_REGISTRY §6 已是 dorm-1/2 / T9 FC-025-028 已标 ✅ N/A）+ 7 件真做（T4 99_archive README 时间戳 / T6 WEB_DESIGN_LOG §7+§10 路径过时项 / T11 project-overview §6.2 raw 48→55 / T12 SC26 session-wrap §7.5.5「6 项」→「8 项」/ T13 全局环境清单 DMSD Skills 7→8 加 dmsd-startup / T14 WIP 最近会话 10→5 砍 5 条 / T15 §0.1 体量表全刷新 1181→1189）+ 2 件挂起待 itsuki 拍板（T5 backend 表数 13→21 + P0/P1/P2 分级标准 / T10 系统bug专栏 77 条状态字段工作量大）；起因：itsuki 启动「列 TODO 里不重要 CC 自己能做的小活」+ 说「做完后直接收尾，想 commit 就 commit」。早些 2026-05-26（晚段-4 — teacher_web Vite + TypeScript 实装版整体废弃 + Ryō polish 试做被回滚 + 修破工具脚本 demo_server.py 死链改 python http.server + 文档同步 WEB_DESIGN_LOG §12 + DESIGN_BRIEF + v1/README + 物理清 node_modules 81MB + dist + decision_log 加 2 条；起因：itsuki 启动「推进 teacher web」+ 看到 Vite 实装版怒怼「这他妈根本不是我的 web」拍板「垃圾归档用 B」+ frontend-design skill polish 试做整体不喜欢一句「回滚」全退。早些晚段-3 — iOS demo 后门清理（做法 B）+ 字段对齐零漂移 commit `7521bf8`。早些晚段-2 — 全项目中枢机制立项 + DMSD 注册档案 + DMSD CLAUDE.md 加「全项目中枢联动」段；同时合并早段 iOS Bot 1 复查 + 暗夜模式 v2 + 3 上架配置归位 + memory 加铁律「TODO 关条目不要问」入「最近会话」。早段头：启动 SOP 集中化 — 新建 `.claude/skills/dmsd-startup/SKILL.md`（5 件启动必做事）+ 全局 `~/.claude/hooks/session-start-coord-check.sh` 在 DMSD 项目下静默退出 + DMSD CLAUDE.md「会话开始」段简化引用新 skill + 6 项目 CLAUDE.md 加「不主动用英语名词」规则段 + project-overview SKILL.md §0.1 + §1.7 同步 + 本文件「会话开始」铁律改成走 dmsd-startup skill）。5-25 晚段（追加：第三轮升级 — anti-ai-flavor 加第 3 触发词「**翻车**」单字 + 新建 `inbox.md` — itsuki 收尾中途立项自我迭代机制：发现新翻车点 → CC 按 5 字段「原文 / 6 类归类 / 违反铁律 / 根因 / 修正版」记 inbox，未来批量整理合并到 `references/翻车案例库.md`；改 5 文件：新建 `inbox.md` + SKILL.md 加 §7.5 + CLAUDE.md 触发词 2→3 + hook 提醒 + `我的环境.md` + `.html`）。早些（同晚段）：anti-ai-flavor HOW_TO_TALK.md 立项 + 跨 3 项目 session-wrap 加项 11/8 — itsuki 给 16 个翻车原句证据 → 4 根本问题 + 9 类细分 → 5 条总结铁律 → 方案 B 落地：SKILL.md 反面自检 + HOW_TO_TALK.md 正面教学互补 + 2 触发词「说人话」/「单词白名单」+ DMSD/SC26/Tango session-wrap 收尾清单同步加「全局环境清单同步」项 — 全局 6 文件 + DMSD 1 文件 + 2 memory + SC26 1 文件 + Tango 1 文件。早些 5-25（drift 脚本 bug 修 + 全局 `session-coord` 三层保险落地 — DMSD 2 文件 + 全局 4 文件 / 全局 Hooks 4→5；同时补登 5-24 iOS bug 批量修复会话遗漏的收尾）。早些 5-22（**3 会话产出** — ① 早 project-overview §0.1 漂移 957→980 / ② 中 iOS fork 融合归档 commit `46f779c` / ③ 晚 点呼机推进 + 撞海关查扣事件 + 立项 `session-wrap §5.5.15 decision-draft`）。早些 5-21（5-20 凌晨 4 会话审查作战 cron 自动 fire 产出 131 条 findings / 5-21 加系统 bug 专栏 + 第一批修复 8 条）。早些 5-19（project-overview 大改造 + 防漂 C 方案）。<!-- VERSION_OK -->
 
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
@@ -49,6 +49,123 @@
 ---
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
+
+### 2026-05-27 早段-3 by [MacBook-Pro-Opus 4.7 1M / 中枢档案污染排查 + 修 + 立铁律 + 立 hook]
+
+**主题**：⭐⭐⭐⭐⭐ itsuki 启动后查 WIP / 跑启动 SOP → 看到别会话写中枢 `项目档案/DMSD.md` 末尾「更新日志」段混入「模式 5 顶级 / AC 价值 ⭐⭐⭐⭐⭐」等 AC 评分 → 当场质疑「ac 素材给我写到哪去了 / 我不知道在我发现这个问题之前还有多少失误 / 帮我排查 / 让他们呆在该呆的地方 / 修好 skill 和 hook」→ CC 排查 3 中枢档案污染（DMSD.md / Tango.md / QTS.md）+ 1 个漏写（5-27 三段会话 AC 素材没进筑波 `06_radar_inbox/`）+ 立 3 层防御（中枢 CLAUDE.md 加铁律 / session-wrap SKILL.md §5.5.1.A 加去向表 + 强制双写 / 新建全局 PostToolUse hook 扫 AC 关键词）+ 翻车 4 处记 anti-ai-flavor inbox.md #002-#005
+
+**关键拍板**（itsuki 3 次明确决策 + 协作模式 1 次纠正）：
+- **「修 / 排查 / 让他们呆在该呆的地方 / 修好 skill 和 hook」**（最强自治授权 — 包括立 hook 这种长期防御层）
+- **「修完后直接收尾」**（协作授权颗粒度顶级 — 跟 5-27 早段-2 / 凌晨 `/goal` 一脉相承）
+- **「以下都是问题... 这句话就是个病句 / 这句话也看不懂 / 记得更新说人话 skill 的素材」**（沟通纠正 — 当场指出 4 处 CC 翻车并要求记 inbox）
+
+**实际改动**（DMSD 1 改 + iCloud 中枢 4 改 / 新建 + 全局 3 新建 / 改 + raw 1 已有 = 9 文件）：
+| 类别 | 文件 | 改动 |
+|---|---|---|
+| DMSD 改 | `.claude/skills/session-wrap/SKILL.md` | §5.5.1 加 4 个子节 — 5.5.1.A AC 素材去向表 / 5.5.1.B 强制双写铁律 / 5.5.1.C 学习过程为核心 / 5.5.1.D 反模式 |
+| iCloud 中枢 改 | `项目档案/DMSD.md` | 砍 line 19 现状一句话 / line 50 更新日志 / line 51 更新日志 里的 AC 模式分析 + 评分 |
+| iCloud 中枢 改 | `项目档案/Tango.md` | 砍「模式 4 v1→v2 演进 AC 证据」「AC 出愿研究方法证据」「AC 研究方法素材」3 处 |
+| iCloud 中枢 改 | `项目档案/QTS.md` | 砍 line 8-16 itsuki 拍板段 / line 41-50 关联度评估 + AC 价值点 + 风险 2 大段 |
+| iCloud 中枢 改 | `CLAUDE.md` | 末尾加「中枢档案铁律」段 — 只写工程事实 / AC 分析归别处 / AC 内容种类对照表 / 反模式 |
+| iCloud 新建 | `06_radar_inbox/ac_scratchpad_2026-05-27.md` | 补 5-27 三段会话 + 早段-3 AC 信号 5 条（之前漏写） |
+| 全局 新建 | `~/.claude/hooks/post-edit-zhongshu-ac-pollution-check.sh` | PostToolUse hook — 扫中枢 项目档案/*.md 写入时是否含 AC 评分关键词，warn 模式不阻断 |
+| 全局 改 | `~/.claude/settings.json` | 注册 PostToolUse Write\|Edit matcher 调上面 hook |
+| 全局 改 | `~/.claude/skills/anti-ai-flavor/inbox.md` | 加翻车 #002-#005 — 4 条本会话翻车（PostToolUse 术语 / AC 素材去向矩阵病句 / 强制调 ac-radar flush 病句 / 引用注脚装腔）|
+
+**AC 价值** ⭐⭐⭐⭐⭐：
+- **模式 5 自指失败 顶级** — CC 在写「AC 信号扫描器」给筑波 AC 用的中央 inbox 时，自己漏写中央 inbox；CC 在维护「跨项目协同板」时，把 AC 素材污染了协同板。讨论问题时表演了问题本身。
+- **模式 7 机制完备性** — 立 3 层防御（铁律 / 双写规则 / hook 扫描），不是 ad hoc 修一次而是「按已建立的机制范式补全」（参考 ac-radar / cc-comm-rules / session-coord 三层保险模式）。
+- **模式 6 取舍** — 哪些「AC tag」算污染哪些算注脚 — decision_log 末尾「相关：raw」算注脚不算污染（边界判断 — false positive 3 处）。
+- **协作纠错 × 4** — itsuki 当场质疑（污染）+ 让 CC 自查（还有多少失误）+ 让 CC 立规则防再犯（修 skill / hook）+ 沟通纠正（4 处病句立刻指出）。
+- **学术延伸**：documentation hygiene / separation of concerns / detective control vs preventive control（hook 是检测控制，铁律是预防控制）/ AI alignment 协作层。AC 面试可挂「文档系统设计 + 协同 AI 时的清洁度维护」。
+
+**残（下次跟进 — 全部已入 TODO §🛠️ §O）**：
+- anti-ai-flavor inbox 累计 5 条，到 itsuki 之前定的「3-5 条后写整理 inbox SOP」阈值 → 下次会话或 itsuki 主动喊「整理 inbox」时合并到 `references/翻车案例库.md`
+- 中枢 3 档案铁律落地 — 各项目 CLAUDE.md（Tango / QTS / 父项目 大学入試 CLAUDE.md）要不要加指针让各项目 CC 知道这条铁律
+- 全局 `~/.claude/` 不在 git → settings.json + hook 新建无历史记录（5-14 + 5-26 已立 propose「~/.claude/ 做成 git 仓库」未拍板）
+
+详细 raw：本会话主题以「修工具 + 立规则」为主，AC 素材直接进 `06_radar_inbox/ac_scratchpad_2026-05-27.md`，DMSD raw 不另写
+
+### 2026-05-27 早段-2 by [MacBook-Pro-Opus 4.7 1M / 全项目审查 + Vite 决策漂移 6 处修]
+
+**主题**：⭐⭐⭐⭐⭐ itsuki 启动「全项目审查 — 每个文件 / 文件关联 / 关联 skill / 内容审查 / project-overview 检查全跑一遍」+ 强调「主目录无编号文件分析 / 各文件夹莫名其妙的文件 / 不要偷懒 / 扫整个项目所有文件 / 收尾不要给我留问题 / 所有问题加 TODO / 我可以直接关闭会话」→ CC 一次过扫 1189 文件 + grep 决策关键词 + 比对 SKILL.md §0.1 + 读关键文件 → 直接修 6 处 Vite 决策漂移 + 物理清 7 个 .DS_Store + git mv `student_ios/_archived_DESIGN_BRIEF_Round1_context.md` → 99_archive + TODO §🛠️ §N 加 8 条 backlog
+
+**关键拍板**（itsuki 3 次明确决策 + 协作模式 3 次校准）：
+- **「做完直接收尾 + 不要停下来问我」**（协作授权颗粒度顶级 — CC 工程层 + memory 规则托底的全部自决，跟 5-14「不要把 CC 该做的事甩回 itsuki」+ 5-26「TODO 关条目不要问」一脉相承）
+- **「v1.0 上线目标可能是旧的，比如网站决策文档」**（举例驱动 — itsuki 不知道具体哪里，让 CC 全扫找出来）
+- **「不要偷懒 / 扫整个项目所有文件 / 各种问题 / 我要强调非常多遍」**（强度强调 — CC 必须全量执行非 sample 抽查）
+
+**实际改动**（DMSD 8 文件改 + 1 git mv + 1 新 raw + 7 .DS_Store 物理删 = 17 件）：
+| 类别 | 文件 |
+|---|---|
+| 改（4 处「当前状态」漂移修） | `README.md` × 2 行（48 + 74）/ `03_dev/LATEST.md` 行 13 / `00_admin/progress_overview.md` 行 75 ASCII 图 |
+| 改（其他漂移修） | `03_dev/teacher_web/WEB_DESIGN_LOG.md` §11.9 W1 行 ✅ → ❌ + `03_dev/teacher_web/v1/src/api/client.ts` 行 3 注释 |
+| 改（同步） | `00_admin/TODO.md` 加 §🛠️ §N 8 条 + 时间戳 / `.claude/skills/project-overview/SKILL.md` §0.1 raw 57→58 + §6.2 加 2 条新 raw entry |
+| git mv | `99_archive/2026-04-22_ios_round1_design_brief/DESIGN_BRIEF_Round1_context.md` ← `student_ios/_archived_DESIGN_BRIEF_Round1_context.md` |
+| 物理删 | 7 个 .DS_Store（主目录 + 7 子目录） |
+| 新建 | `05_logs/raw/2026-05-27_全项目审查.md`（9 段 + AC 价值 + 工程动作汇总） |
+
+**核心结论**（给下次 CC 启动看）：
+- **主目录 6 个无编号文件**（CLAUDE.md / README.md / CHANGELOG.md / LICENSE / .gitignore / .graphifyignore）全部符合开源项目约定 — itsuki 担心的「主目录无编号文件可能不该在那」**结论是没问题**
+- **真问题在 teacher_web Vite 决策漂移** — 5-26 已废弃但 4 处「当前状态」描述还写 TS+Vite+Zustand（已全修）
+- **`progress_overview.md` 4-17 后没动 + v0.8 之后累积 28+ commit 未 bump** → 入 TODO §N 第 6 + 7 条
+
+**残（下次跟进 — 全部已入 TODO §🛠️ §N）**：99_archive 散件归档 / 01_specs 4 个 .pages 归档 / 4-19 backlog 物理归档 / 跑 `graphify update .` / `backend/demo/` 处置 / progress_overview 大改 / 是否 bump v0.9 / 「决策状态扫描 hook」长期 propose
+
+**AC 价值** ⭐⭐⭐⭐⭐：
+- **模式 5 顶级** — itsuki 三度「不要偷懒 / 扫所有文件 / 不要给我留问题」 → CC 协作模式升级（全量扫 + 自决修 + 修不了塞 TODO）
+- **模式 2 假设崩** — itsuki 担心主目录无编号文件 → 调查发现全部符合约定，真问题在 Vite 决策漂移
+- **模式 7 机制完备性** — 文档同步机制当前只覆盖「文件存在 / 版本号 / 体量」3 类，「决策状态描述」类没机制 → TODO §N 第 8 条立项扫描 hook propose
+- **模式 6 取舍** — 自决修 vs 塞 TODO 边界（工程动作 + 文档校准类自决 / 命名 + 归档结构 + bump + 长期 propose 类塞 TODO）
+
+详细 raw：`05_logs/raw/2026-05-27_全项目审查.md`
+
+### 2026-05-27 凌晨~早段 by [MacBook-Pro-Opus 4.7 1M / teacher_web v1.0 深夜推进 + 醒后 backend 审查 9 处修复]
+
+**主题**：⭐⭐⭐⭐⭐ 跨 6+ 小时拼接会话 — 5-26 23:30 itsuki 启动「teacher_web 实现目标 + 进度简报」→ 设 `/goal` v1.0 完整体 → 5-27 00:00 拍板「不 push 57 commit 到 GitHub / 继续到撞墙」「严格按 4 份规划文档对齐 / 不要偷懒」「GOAL 模式一直做 / 不再做决策 / 我去睡了」 → CC 单边推进凌晨 31 commit（5 个 P0 必做 + 13/16 page 真接 backend + alembic c1d2e3f4 + WebSocket /ws/teacher + spec §11.4 改判扣分 + spec §7.5 自动扣分）→ 5-27 早 itsuki 醒后「审查到底有没有做好 / 不需要决策的直接修 / 决策的加 TODO 跳过 / 收尾后直接关会话」→ CC 自查 5 维度全过 + 5 处日语注释中文化收尾。**93 commit ahead of origin / 全部 9 处真 bug 已修完 / alembic head = c1d2e3f4 / 61 endpoint 真 import 通过**
+
+**关键拍板**（itsuki 6 次）：
+- 「不 push 57 commit / 继续到撞墙」（放弃 cloud agent 接力机制）
+- 「严格按 4 份规划文档对齐」（system_features / RollCall_Spec / DESIGN_BRIEF / WEB_DESIGN_LOG）
+- 「GOAL 模式一直做 / 我去睡了 / 不再做决策」（替默认决策最强授权）
+- 「卡 bug 收尾就好别停了」（v1.0 production 验收超单会话边界）
+- 醒后「审查到底好没好 / 不需要决策的直接修 / 决策的加 TODO 跳过」（self-audit + 自主修复授权）
+- 「不要给我留问题 / 不要停下来问 / 收尾后直接关会话」（最终收尾授权）
+
+**实际改动**（93 commit ahead / 凌晨 31 commit + 醒后审查 8 commit + 中文铁律收尾 5 处）：
+| 类别 | 文件 |
+|---|---|
+| backend 新 model | `models.py` 加 `DemeritEvent` / `CleaningAssignment` / `FrontDeskItem` 3 张表 + Float import + `Student.is_demo` 字段 |
+| backend 新 router | `routers/discipline.py` + `cleaning.py` + `front_desk.py` 各 3-4 endpoint + `main.py` 注册 |
+| backend FC-027 | `announcements.py` list/detail 用 `get_current_principal` 同时接受 student/teacher token |
+| backend R4 helper | `deps.py` 加 `get_current_principal` + `dorm_units_for_teacher`（CROSS_DORM_ROLES 4 类 → None / 男寮 → [1,2] / 女寮 → [4]）|
+| backend 自动扣分 | `rollcall.py` settle late=1.0 / absent=2.0 自动加 `DemeritEvent` + `study.py` absent=1.5 自动加 |
+| backend 改判扣分 | `rollcall.py` PATCH /events/{id} 实装 spec §11.4 12 类 transition + `_OVERRIDE_DEMERIT_MAP` + `_apply_override_demerit` |
+| backend WebSocket | 新建 `ws_manager.py` + `routers/ws.py` + main 注册 + 4 处 broadcast（rollcall checkin / override / applications create）|
+| backend alembic | 新建 `c1d2e3f4_add_demerit_cleaning_frontdesk.py` migration（含 CHECK / FK / index）|
+| teacher_web 新组件 | `src/index.html` 加 RollCallSummary（spec §5.6 4 区块）+ RegistrationCodePanel（§11.9.1）+ StudyAttendancePage（§7.3 + iOS 对齐）|
+| teacher_web App() 改造 | authToken + sessionStorage 还原 + 401 全局拦截 + WebSocket /ws/teacher + 役职別 home 重定向 + 13 page 接 backend |
+| teacher_web client.js | 内联 `client.ts → client.js` 35 个 endpoint helper + setOnUnauthorized + openTeacherWS 工厂 |
+| teacher_web FC-024 | 删 `window.SHARED_PASSWORD = '12345678'` 明文密码 + LoginScreen 改 backend 真实认证 + DEMO_MODE URL gate（`?demo=1`）+ APP_VERSION 动态 |
+| 中文铁律收尾 | `src/index.html` 5 处日语注释中文化（FC-024 / DEMO scaffold / LoginScreen err msg / WS demo / Task #13 RollCallSummary docstring）|
+| 文档同步 | `BACKEND_DESIGN_LOG.md` 加 5-27 9 处修复入档 / `系统bug专栏.md` FC-025/26/27/28 标 N/A / `WEB_DESIGN_LOG.md` + `DESIGN_BRIEF.md` + `v1/README.md` 同步真实状态 / 新建 `01_specs/teacher_web_v1.0_backend_models_propose.md` 229 行 |
+| raw | 新建 `05_logs/raw/2026-05-27_teacher_web_v1.0_深夜推进.md` 200+ 行 9 章（含 §9 审查作战）|
+
+**AC 价值** ⭐⭐⭐⭐⭐：
+- **模式 4 主体性最强级** — itsuki 设 `/goal` + 「我去睡了 / 不再做决策」 = CC 单边推进 6+ 小时 31 commit 替默认决策（前所未有的授权颗粒度）
+- **模式 5 元认知** — 5-27 早 itsuki 「审查到底有没有做好」 = 主动质疑 CC 工作质量（不盲信）→ CC 自查 9 处真 bug 落地
+- **模式 6 取舍** — 「严格按 4 份规划文档对齐 / 不要偷懒」 vs CC 偷懒倾向（不读完 spec 直接写代码）
+- **协作纠错 × 3** — 「不 push 到 GitHub」「不模糊界限」「不要给我留问题」3 次明确边界
+- **学术延伸**：「自主代理边界」 + 「production 验收硬约束 vs 单会话工程量」 + 「self-audit 是协作信任的核心」 + AC 面试可挂「跟 AI 协作时何时给最大授权 + 何时严格审查」
+
+**残（已加 TODO）**：
+- production DB 跑 `alembic upgrade head` 应用 c1d2e3f4（开发环境已 upgrade ✅）
+- 3 个 page 等 backend P2 endpoint：NotificationsPage / AccountsPage / CommunityPage
+- backend P2 工作待 itsuki 字段决策：CommunityPost + Notice 字段（匿名 author_id / Notice vs Announcement 合并）
+- 93 commit 未 push origin/main — itsuki 拍板「不 push」执行中
+- `01_specs/teacher_web_v1.0_backend_models_propose.md` 229 行 propose 等 itsuki review
+
+详细 raw：`05_logs/raw/2026-05-27_teacher_web_v1.0_深夜推进.md`（9 章 + 审查作战段）
 
 ### 2026-05-26 晚段-4 by [MacBook-Pro-Opus 4.7 1M / teacher_web Vite 废弃 + Ryō polish 回滚]
 

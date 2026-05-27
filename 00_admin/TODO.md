@@ -321,6 +321,17 @@
 - [ ] **`progress_overview.md` 4-17 后大改**（章节级里程碑刷新到 5-27 当下 — 阶段 3-7 状态 / v0.4-v0.8 + 5-27 凌晨 + 早段累积推进 / 加 v0.8 之后 28+ commit 累积表）— 列入文档欠债 WIP 当前焦点 #3
 - [ ] **v0.8 之后累积 28+ commit 未 bump，5-27 干完是否 bump v0.9**（走 version-bump skill 决策树 — CC 有否决权但 itsuki 启动「迭代 / bump / 发版本 / 打 tag」才进入流程）
 - [ ] **加「决策状态扫描 hook」长期 propose**（识别「Vite + TS」/「Phase 1 / Phase 2」/「demo 阶段」等敏感关键词，跟 decision_log 实际状态对比 — 防本次发现的「Vite 5-26 已废，但 4 处当前状态描述没刷」类漂移再发生）
+- [ ] **WIP「最近会话」砍老条目维持 5 条上限**（本次审查发现实际有 14 条会话条目 — 别会话累积加新条目时没砍最老 / itsuki 决定砍 line 244+ 9 条还是保留全历史）
+
+### O. 中枢档案污染修 + 双写铁律 + hook 残留（2026-05-27 早段-3 加）
+
+> **背景**：5-27 早段-3 itsuki 发现别会话写中枢 `项目档案/DMSD.md` 末尾「更新日志」混入 AC 模式分析（「模式 5 顶级 / AC 价值 ⭐⭐⭐⭐⭐」）→ CC 排查 3 档案污染（DMSD.md / Tango.md / QTS.md）+ 1 个漏写（5-27 三段会话 AC 素材没进 06_radar_inbox）+ 立 3 层防御（中枢 CLAUDE.md 铁律 / session-wrap SKILL.md §5.5.1.A 去向表 + 强制双写 / 全局 PostToolUse hook 扫 AC 关键词）。详细见 WIP 早段-3 段。
+
+- [ ] **anti-ai-flavor inbox 累计 5 条 — 到 itsuki 之前定的「3-5 条后写整理 inbox SOP」阈值**（已经命中阈值上限 — 下次会话或 itsuki 主动喊「整理 inbox」时合并 #001-#005 到 `~/.claude/skills/anti-ai-flavor/references/翻车案例库.md`，写「整理 SOP」流程文档）
+- [ ] **中枢档案铁律落地 — 各项目 CLAUDE.md 加指针让各项目 CC 知道这条规则**（Tango / QTS / 大学入試父项目 CLAUDE.md 三个项目 CC 启动时还不知道有这条铁律 → 加一段「中枢档案铁律 — 参考 全项目中枢/CLAUDE.md §中枢档案铁律」指针。DMSD CLAUDE.md 已在 §「全项目中枢联动」段引用 — 验证是否要补具体铁律内容还是只给指针）
+- [ ] **全局 `~/.claude/` 不在 git → settings.json + hook 新建无历史记录** — 5-14 + 5-26 已立 propose「~/.claude/ 做成 git 仓库」，本次会话新建 1 hook + 改 settings.json 又一次案例 → 等 itsuki 拍板
+- [ ] **hook 长期 false positive 监控** — `post-edit-zhongshu-ac-pollution-check.sh` 关键词清单 `模式 [0-9]+ 顶级|AC 价值[^点]|⭐⭐⭐|关联度评估` 可能误伤元描述（本次会话已遇 1 次 — QTS.md 写「关联度评估全砍」被 hook 命中误判，已改措辞规避）→ 累 3-5 次 false positive 后看是否要扩展白名单 / 路径排除
+- [ ] **WIP「最近会话」9 条超 5 条上限**（本会话加早段-3 → 9 条；§N 第 9 条已立 backlog 砍 5-25 晚段-2 / 5-25 晚段 / 5-26 / 5-26 晚段-2 / 5-26 晚段-3 中老的 4 条；本会话 CC 没擅自砍 — itsuki 决定砍哪 4 条）
 
 ## 🚀 teacher_web v1.0「直接上线」backlog（2026-05-27 审查产出 — 优先级最高）
 
@@ -341,21 +352,21 @@
 
 #### B-1 优先级 P0（核心 use case — 没接 = 等于没上线）
 
-- [ ] **`/login/select-teacher` SelectTeacher** — 假 `window.TEACHERS` → 调 `client.js listTeachers()` → 接 `GET /api/v1/teachers`
-- [ ] **`/roll-call/live` LiveRollCall 接 backend** — (1) 学生 list `window.ROSTER` → `client.js rollcallSessionBoard(id)` → `GET /api/v1/rollcall/sessions/{id}/board` (2) 点呼開始 → `POST /rollcall/sessions/{id}/start` (3) 点呼終了 → `POST /rollcall/sessions/{id}/end` (4) WebSocket 实时 → `openTeacherWS()` → `WSS /api/v1/ws/teacher`（5-27 backend 已实装）→ 收 `{type:"checkin"/"override"/"outstay_new"}` event setStudents
-- [ ] **`/roll-call` landing 7 天趋势图 + 4 session 类型** — 假 mock → backend `GET /rollcall/sessions/history`（5-26 commit c0a22d1 实装）
-- [ ] **`/applications` 申请センター list + 承認** — `window.OUTSTAY_APPS` → `client.js listApplications()` + `approveApplication(id)` → `GET /applications` + `POST /applications/{id}/approvals`
-- [ ] **`outstay-detail-modal.jsx` 申请详情** — `client.js getApplication(id)` → `GET /applications/{id}`
+- [x] ~~**`/login/select-teacher` SelectTeacher**~~ ✅ 2026-05-27 凌晨闭合 — commit `9234882` 接 `client.js listTeachers()`
+- [x] ~~**`/roll-call/live` LiveRollCall 接 backend**~~ ✅ 2026-05-27 凌晨闭合 — commit `248c899`（startSession 接 board）/ `9e3b527`（endSession 接 backend）/ `e70315c`（WebSocket 实时事件接入 onMessage 处理）
+- [x] ~~**`/roll-call` landing 7 天趋势图 + 4 session 类型**~~ ✅ 2026-05-27 凌晨闭合 — commit `35873c2` RecordsPage + landing 共用 `rollcallSessionsHistory` helper
+- [x] ~~**`/applications` 申请センター list + 承認**~~ ✅ 2026-05-27 凌晨闭合 — commit `fc9c4a5` ApplicationsPage 接 `pendingForMe`
+- [x] ~~**`outstay-detail-modal.jsx` 申请详情**~~ ✅ 2026-05-27 凌晨闭合 — commit `2a3650a` OutstayDetailModal `onAction` 接 backend `decide`
 
 #### B-2 优先级 P1（次要核心 — 接 backend 已就绪）
 
-- [ ] **`/discipline` 扣分排名** — 假 demerit → `client.js listDemeritEvents()` → `GET /discipline/events`（5-27 backend 实装）
-- [ ] **`/cleaning` 清掃** — 假数据 → `client.js listCleaningAssignments()` → `GET /cleaning/assignments`（5-27 backend 实装）
-- [ ] **`/front-desk` 宅配 + 忘れ物** — 假数据 → `client.js listFrontDeskItems()` → `GET /front-desk/items`（5-27 backend 实装）
-- [ ] **`override-modal.jsx` 手动调整** — `PATCH /api/v1/rollcall/events/{id}`（5-27 实装 spec §11.4 改判扣分联动，frontend 调用时会自动触发 backend 扣分逻辑）
-- [ ] **学生登録コードパネル** — 假数据 → `client.js refreshRegistrationCode()` / `getCurrentCode()` → `GET /admin/registration-code/current` + `POST /refresh`（5-03 backend 已实装）
-- [ ] **`/records` 签到历史** — 假数据 → 接 backend rollcall history endpoint
-- [ ] **shell topbar 全局搜索** — `window.ROSTER_ALL` → `client.js searchStudents(q)` → 接 backend 搜索（accounts endpoint 范围）
+- [x] ~~**`/discipline` 扣分排名**~~ ✅ 2026-05-27 凌晨闭合 — commit `bd3dc25` 接 `getDisciplineRanking` + commit `0c5da45` client.js 加 3 helper
+- [x] ~~**`/cleaning` 清掃**~~ ✅ 2026-05-27 凌晨闭合 — commit `8e7aa5c` CleaningPage 接 `listCleaning`
+- [x] ~~**`/front-desk` 宅配 + 忘れ物**~~ ✅ 2026-05-27 凌晨闭合 — commit `8e7aa5c` FrontDeskPage 接 `listFrontDesk`
+- [ ] **`override-modal.jsx` 手动调整** — `PATCH /api/v1/rollcall/events/{id}`（5-27 backend 实装 spec §11.4 改判扣分联动 commit `69e840b`，frontend override-modal 未接 client.js — 改完会自动触发 backend 扣分逻辑）
+- [x] ~~**学生登録コードパネル**~~ ✅ 2026-05-27 凌晨闭合 — commit `ab6653d` Task #14 RegistrationCodePanel + §11.9.1 6 桁 mono + 倒计时 + 寮務 gate
+- [x] ~~**`/records` 签到历史**~~ ✅ 2026-05-27 凌晨闭合 — 同 `/roll-call` landing commit `35873c2`
+- [ ] **shell topbar 全局搜索** — `window.ROSTER_ALL` → `client.js searchStudents(q)` → 接 backend 搜索（backend `GET /accounts` list endpoint 暂未实装，归 §🚀-B-3 P2 范围）
 
 #### B-3 优先级 P2（backend 未实装 — 强做 = 假接通 = 不诚实）
 
@@ -369,9 +380,9 @@
 
 ### 🚀-C 缺失 UI（3 个 SkeletonTab + 老师公告发布页）
 
-- [ ] **`/applications/return` 帰国 申请页** — 当前 SkeletonTabBody，仿 OutstayList 模式补 List + Detail + 承認 UI
-- [ ] **`/applications/home` 帰省 申请页** — 同上
-- [ ] **`/applications/taxi` タクシー 申请页** — 同上
+- [x] ~~**`/applications/return` 帰国 申请页**~~ ✅ 2026-05-27 凌晨闭合 — commit `1243de9` Task #16 3 SkeletonTab UI 補完
+- [x] ~~**`/applications/home` 帰省 申请页**~~ ✅ 同上
+- [x] ~~**`/applications/taxi` タクシー 申请页**~~ ✅ 同上
 - [ ] **老师公告**「发布页 UI」** — backend 5 端点全有（5-27 client.js 也补 4 helper），但 frontend 没**发布编辑器** UI（A-026 已补 type 但 UI 不在范围）
 
 ### 🚀-D 协议 / 体验细节
@@ -393,6 +404,23 @@
 | **总结评估** | 🟡 alpha（demo 给管理员看可以）| 🔴 离「学生 / 老师真用」还差 15 个 page 真接 backend |
 
 → 估工作量：B-1 / B-2 加起来 12 个 page 真接 backend ≈ 1 个 page 平均 1-2 小时（HTML inline 写 fetch 调用 + 替换 `window.*` 假数据）= 12-24 小时；B-3 + C + D 跳过或 v1.1 做 = 0 小时（不做）；上线最快路径 = **12-24 小时纯接入工作 + 测试 1-2 小时**。
+
+### 🚀-F 5-27 早段醒后审查 backlog（真留待办 — itsuki 起床看）
+
+> **背景**：5-27 早段 itsuki 启动「审查我做的事到底做好了没」+「不需要决策的直接修 / 决策的加 TODO 跳过 / 收尾后直接关会话」→ CC 自查 5 维度全过（alembic ✅ / 13 router 注册 ✅ / 61 endpoint import 通过 ✅ / Student.is_demo 字段已加 ✅ / client.js 32 helper 跟 backend 路径 100% 对齐 ✅）+ 5 处日语注释中文化收尾。下面是醒后审查后剩余的真待办（itsuki 决策范畴 / production 推进需要的 step）。
+
+- [ ] **production DB 跑 `alembic upgrade head` 应用 c1d2e3f4** — 开发环境已 upgrade ✅（5-27 凌晨验证），但 itsuki 真上线前要在 production 环境跑同样命令（3 张新表 demerit_event / cleaning_assignment / front_desk_item）
+- [ ] **`override-modal.jsx` 手动调整接 backend `PATCH /events/{id}`** — backend §11.4 改判扣分联动已实装（5-27 commit `69e840b`），frontend override-modal 还在用假 onAction，需补一个 client.js call（约 1 小时）
+- [ ] **shell topbar 全局搜索 — 等 backend GET /accounts list endpoint 实装**（P2 范围 / 待 itsuki 决定字段）
+- [ ] **backend P2 工作 — CommunityPost + Notice 字段决策**：
+  - CommunityPost 匿名 author_id 字段怎么处理（NULL / 哈希 / 单独表）
+  - Notice vs Announcement 是合并成一个 model 还是分开（spec §7.13 vs §7.15）
+  - 没决策不能继续 frontend NotificationsPage / CommunityPage / InfoPage 真接 backend
+- [ ] **93 commit 未 push origin/main** — itsuki 5-26 23:55 拍板「不 push 到 GitHub / 继续到撞墙」执行中，等 itsuki 拍板何时 push（建议 v1.0 alpha 验证完一次 push）
+- [ ] **review `01_specs/teacher_web_v1.0_backend_models_propose.md` 229 行 propose 文档** — 5-27 凌晨 CC 替默认决策的字段方案（DemeritEvent source_type 6 类 / CleaningAssignment area 8 类日文 / FrontDeskItem kind 2 类 / 阈值 4 + 8 hardcode）— itsuki 看完决定推翻 CC 默认或追加
+- [ ] **`/notifications` + `/community` + `/info` + `/accounts` 4 page 等 backend P2 endpoint 实装后再接** — 这 4 个 page 当前显示「未来接 backend」假数据状态符合「假接通 = 不诚实」原则
+- [ ] **WebSocket 重连机制 + 「再接続中」banner**（spec §11.8）— backend `/ws/teacher` 已实装 5-27 commit `436f316`，frontend `client.js openTeacherWS` 只 `console.error` 没 UI banner — 1-2 小时工作量
+- [ ] **spec §11.3 改判时限矩阵**（7 天 / 30 天 / 月结后只读）— backend PATCH /events/{id} 没校验 / frontend 没限制 UI — 等 itsuki 起床拍板字段定义
 
 ## 📱 iOS 上架冲刺 — 剩余事项（2026-05-08 状态）
 
