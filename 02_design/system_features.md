@@ -410,6 +410,29 @@
 | Audit log 学生侧表示 | 〇 StayDetailView 履歴 tab | — | `GET /applications/:id/audit` ⏳ | 学生 | (V1) |
 | Audit log 老师侧(chain 内のみ) | — | ✅ 申請承認画面 履歴 tab | 同上 + role check | chain 役职 | (V1) |
 
+#### 7.2.6 承认 chain UI 显示规则（5 端通用 — 2026-05-28 itsuki 拍板）
+
+> **历史**：原方案是「役职名 chip 链」— 每个节点显示役职名（担任 / 国際交流部長 / 寮務課長 等），节点之间用细横线连接。**问题**：留学生 5 役职 chip 横向排列文字太密 + 视觉太乱（参考 iOS 申請履歴一覧截图）。
+
+**新规则**（iOS + 老师 Web + Android 全部按此实装）：
+
+| 元素 | 规则 |
+|---|---|
+| 节点 | 小圆点（直径 12pt 建议）— 不显示役职名 |
+| 节点状态 | approved → 绿色实心 + ✓ / pending → 灰色空心 / rejected → 红色实心 + ✕ |
+| 横线 | 节点下方一条横线 — 底层灰色，上层绿色覆盖已通过部分 |
+| 进度公式 | `approvedCount / total` —— 例：5 役职、approved 2 个 → 绿色横线覆盖 40% |
+| **顺序无关** | 无论 approve 时间顺序如何，进度只**往右**填 — 不按时间倒序，按 chain 顺序填 |
+| 任一 rejected | 整条进度横线变红色（不混色） |
+| Tap 节点 | 跳详细页 / 显示该役职名 + 决定时间 + 评语（hover 或 tap 都可） |
+
+**实装位置**：
+- iOS：`03_dev/student_ios/v1/TomoshibiApp/Features/StayList/StayListStubs.swift chainDots` ✅ 2026-05-28 落地
+- 老师 Web：⏳ 待实装
+- Android：⏳ 待实装
+
+**理由**：节点风格更直观传达「已通过 N 个 / 总共 N 个」+ 不被役职名长度差异污染视觉（「担任」2 字 vs 「国際交流部長」7 字 chip 宽度悬殊）。详细 tap 弹出役职名即可，列表卡片不需要 inline 显示。
+
 ### 7.3 学習(晚自习) — 中学全员 / 高中手动名单(Q2 Q3 答 + 2026-04-30 (f) 拍板)
 
 > **设计原则**:

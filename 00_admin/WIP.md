@@ -52,6 +52,47 @@
 
 > ⚠️ **2026-05-28 早 8:30 收尾时**：本段已超 5 条上限（当前 7 条 + 本会话 1 = 8 条）— 砍哪 3 条留 itsuki 拍板。建议砍最老的（5-26 晚段-4 / 5-27 凌晨~早段 / 5-27 早段-2）
 
+### 2026-05-27 晚段-4 / 跨夜 5-28 凌晨 by [MacBook-Pro-Opus 4.7 1M / iOS 登录注册大改 + AC 素材分级机制 + 申请履歴进度条]
+
+**主题**：⭐⭐⭐⭐⭐ itsuki 启动后报告 iOS 登录页 5 处 UI 问题 + 担心非 demo 模式注册会真写他个人信息到后端 → CC 改 6 处 + 派 codex 5.5 高档位审查 → codex 报 3 个真问题（gender / grade-classSuffix / birth 默认值数据污染）→ **itsuki 主动延伸顶级 AC 素材**：「正常代码里怎么会默认帮忙选好了性别和年龄」+「平均年龄选中位数 = 人性化设计」+「AC 素材主动提报权重更高，分级储存免得被淹没」→ CC 建 `_priority_itsuki主动提报/` 子目录 + memory 加铁律 + 修 4 处代码（中位数 picker 默认 2011-01-01 / canNext 加性别学年组别检查 / classCode 空映射改 00 / gender 默认空）→ 申请履歴 chip 链改进度横线 + 无名节点（同步 IOS_DESIGN_LOG + system_features §7.2.6 新章）→ 修 pbxproj 4 处加 APIErrorPresenter 文件注册（别会话遗留）→ 教 Edit Scheme 走到 Build Configuration
+
+**关键拍板**（itsuki 11+ 次）：
+- 「demo 模式需要预填」+「移动进 demo 模式不就好了？」（推翻 CC 第一版改法）
+- 「你用 codex 5.5 xhigh 审查」（主动调度第三方代理审查）
+- 「这些问题都是 ac 素材哈」（主动识别 AC 价值）
+- 「正常代码里怎么会默认帮忙选好了性别和年龄」（原则铁律）
+- **「平均年龄选中位数 = 人性化设计」**（顶级延伸，模式 5 ⭐⭐⭐⭐⭐）
+- **「主动提报权重 > CC 自查，建分级机制」**（顶级元元层，模式 7 ⭐⭐⭐⭐⭐）
+- 「役职名 chip 太丑改进度横线 + 节点」+「无论同意顺序都是往右变化」（设计推翻）
+- 「同步改 5 端设计文档」（机制完备性）
+
+**实际改动**（DMSD 6 文件 + iCloud AC inbox 3 文件 + memory 2 文件 = 11 文件）：
+| 类别 | 文件 |
+|---|---|
+| iOS 改 | `AuthStubs.swift` 11 处（DEMO 包预填 10 + UI 文案 / 行为 / 热区 5 + canNext 加 3 字段必填）/ `StayListStubs.swift` chainDots 重写（chip 链 → 进度横线 + 节点）|
+| iOS 项目结构 | `project.pbxproj` 4 处加 APIErrorPresenter 文件注册（别会话遗留 bug）+ `project.pbxproj.bak3` 备份留 |
+| 设计同步 | `IOS_DESIGN_LOG.md §11.9 I11` 补 2026-05-28 进度条样式拍板段 + `system_features.md §7.2.6` 新章「承认 chain UI 显示规则（5 端通用）」|
+| iCloud AC inbox | 新建 `_priority_itsuki主动提报/` 子目录 + `README.md` 分级规则 + `2026-05-27_ios注册默认值人性化设计.md` 第一条主动提报素材 + `ac_scratchpad_2026-05-27.md` 加信号 9 |
+| DMSD raw | `05_logs/raw/2026-05-27_ios登录注册大改+审批链进度条.md` 8 节详细叙事 |
+| memory | 新加 `feedback_ac_priority_tier_itsuki_initiated.md` + `MEMORY.md` 索引 |
+| project-overview | §0.1 总计 1197 → 1198 + 05_logs 113 → 114 + §6.2 raw 61 → 62 |
+
+**AC 价值** ⭐⭐⭐⭐⭐：
+- **模式 5 顶级 × 2** — 「中位数默认 = 人性化设计」+「AC 素材分级机制」两条都是 itsuki 主动延伸出来的，不是 CC 教的
+- **模式 6 取舍 × 2** — A/B/C 三层默认值选择（偷懒 / 强制必选 / 中位数）+ chip 链 vs 进度条 + 节点
+- **模式 7 机制完备性** — 物理隔离 priority 子目录防被低权重素材淹没
+- **协作三层模型** — Claude（工程层）+ codex（数据正确性层）+ itsuki（用户体验+设计哲学层）三方分工
+- **学术延伸**：HCI Defaults theory / Median-of-population default / Type-driven UX design / Information architecture / AI 协作伦理
+
+**残（下次跟进）**：
+- itsuki 还没跑通 Edit Scheme → Build Configuration → Demo（卡在第 2 步操作教学，CC 重写后等 itsuki 试）
+- SourceKit 报 SplashView 段 cannot find type — 索引坏，需重启 Xcode + Clean Build Folder
+- 申请履歴新 UI 视觉验证 — 等 itsuki 跑通 demo 模式后看效果
+- 老师 Web / Android 端审批链 UI 实装（system_features §7.2.6 标 ⏳）
+- 工作树 ?? 3 个 untracked：`APIErrorPresenter.swift`（别会话新建）/ `PROJECT_GUIDE.md`（itsuki 自己加）/ `project.pbxproj.bak3` 备份 — 看 itsuki 决定哪些 stage
+
+详细 raw：`05_logs/raw/2026-05-27_ios登录注册大改+审批链进度条.md`
+
 ### 2026-05-28 凌晨 by [MacBook-Pro-Opus 4.7 1M / iOS catch 修 + StayDetail 切真 API + codex 审查全装]
 
 **主题**：⭐⭐⭐⭐⭐ itsuki 启动「推进 iOS 全做」→ CC 扫现状区分真活 vs 已完成（注册码 iOS ✅ / 公告 iOS ✅ 无活）→ 修 TODO §D 2 处 catch + 切回 5-03 漂移的 StayDetail 真 API → itsuki「调用 codex 审查」→ codex 第一次卡住 + itsuki「还没好——」→ CC 诊断 + 重试简化版 → codex 3/5 报告 → CC 识破误判（`$0` 闭包简写被 codex 误读为 `/bin/zsh`）→ itsuki「全都做」→ 实装 6 项（新建 helper + 401 清 token + audit 容错 + 拆 guard + MyPage helper + 文档同步）+ TODO §D + §E 两条 iOS fork 过期项闭合（5-22 归档时实际已同步主项目，悬挂 6 天）

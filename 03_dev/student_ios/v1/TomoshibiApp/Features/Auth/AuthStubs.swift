@@ -826,8 +826,12 @@ struct RegisterStep1View: View {
                     }
 
                     // 2. 氏名
-                    Field(label: "氏名", required: true) {
-                        TField(text: $name, placeholder: "リュウ イヒ")
+                    Field(
+                        label: "氏名",
+                        hint: "日本人は漢字、留学生はカタカナで入力してください",
+                        required: true
+                    ) {
+                        TField(text: $name, placeholder: "")
                     }
 
                     // 3. 性別
@@ -842,10 +846,9 @@ struct RegisterStep1View: View {
                         }
                     }
 
-                    // 3.5 留学生 flag (system_features §8.1 / Q11 — 出寮届 chain が 3 vs 5 役职 で変わるため必須)
+                    // 3.5 留学生标志 (system_features §8.1 / Q11 — 出寮届审批链 3 vs 5 役职 因此必须)
                     Field(
                         label: "学生区分",
-                        hint: "留学生は出寮届の承認に国際交流の先生方も加わります",
                         required: true
                     ) {
                         HStack(spacing: 8) {
@@ -909,21 +912,13 @@ struct RegisterStep1View: View {
                     }
 
                     // 7. 出席番号
-                    Field(
-                        label: "出席番号",
-                        hint: "学年 + 組 + 番号でアカウント番号が自動生成されます（例：高3 B組 18番 → 060218）",
-                        required: true
-                    ) {
-                        TField(text: $seatNoStr, placeholder: "18", keyboard: .numberPad)
+                    Field(label: "出席番号", required: true) {
+                        TField(text: $seatNoStr, placeholder: "", keyboard: .numberPad)
                     }
 
                     // 8. 部屋番号
-                    Field(
-                        label: "部屋番号",
-                        hint: "例：101 / 12B · 男寮 M / 女寮 W は性別から自動付与",
-                        required: true
-                    ) {
-                        TField(text: $room, placeholder: "101")
+                    Field(label: "部屋番号", required: true) {
+                        TField(text: $room, placeholder: "")
                     }
                     .onChange(of: room) { _, newVal in
                         // 英数字のみ、最大 4 桁
