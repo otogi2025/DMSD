@@ -587,13 +587,31 @@ private struct GhostButtonFull: View {
 struct RegisterStep1View: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
-    @State private var name: String = SEED.user.name
-    @State private var birth: Date = {
-        var c = DateComponents(); c.year = 2006; c.month = 10; c.day = 14
-        return Calendar.current.date(from: c) ?? Date()
+    @State private var name: String = {
+        #if DEMO
+            return SEED.user.name
+        #else
+            return ""
+        #endif
     }()
 
-    @State private var gender: String = SEED.user.gender == "男" ? "male" : "female"
+    @State private var birth: Date = {
+        #if DEMO
+            var c = DateComponents(); c.year = 2006; c.month = 10; c.day = 14
+            return Calendar.current.date(from: c) ?? Date()
+        #else
+            return Date()
+        #endif
+    }()
+
+    @State private var gender: String = {
+        #if DEMO
+            return SEED.user.gender == "男" ? "male" : "female"
+        #else
+            return "male"
+        #endif
+    }()
+
     @State private var avatar: String = "default"
 
     // ── Apple Image Playground · AI 头像生成 ─────────────────────────
@@ -605,15 +623,47 @@ struct RegisterStep1View: View {
     // 模型 cold start 5 秒掩饰 — 点击后立刻显示 loading，5.5 秒兜底复位
     @State private var isLoadingImagePlayground: Bool = false
     @State private var generatedAvatarURL: URL? = nil
-    @State private var isOverseas: Bool = SEED.user.isOverseas // 留学生 flag (system_features §8.1 / Q11)
-    @State private var grade: String = SEED.user.grade
-    @State private var classSuffix: String = SEED.user.classSuffix
-    @State private var seatNoStr: String = "\(SEED.user.seatNo)"
+    @State private var isOverseas: Bool = {
+        #if DEMO
+            return SEED.user.isOverseas // 留学生 flag (system_features §8.1 / Q11)
+        #else
+            return false
+        #endif
+    }()
+
+    @State private var grade: String = {
+        #if DEMO
+            return SEED.user.grade
+        #else
+            return ""
+        #endif
+    }()
+
+    @State private var classSuffix: String = {
+        #if DEMO
+            return SEED.user.classSuffix
+        #else
+            return ""
+        #endif
+    }()
+
+    @State private var seatNoStr: String = {
+        #if DEMO
+            return "\(SEED.user.seatNo)"
+        #else
+            return ""
+        #endif
+    }()
+
     @State private var room: String = {
-        // SEED は "M101" / "W12B" 形式 → 先頭の M/W を除去（残りは数字+英字可）
-        var s = SEED.user.room
-        if let first = s.first, first == "M" || first == "W" { s.removeFirst() }
-        return s
+        #if DEMO
+            // SEED 是 "M101" / "W12B" 形式 → 去掉首字符 M/W（剩下数字+英字可）
+            var s = SEED.user.room
+            if let first = s.first, first == "M" || first == "W" { s.removeFirst() }
+            return s
+        #else
+            return ""
+        #endif
     }()
 
     private let grades = ["中1", "中2", "中3", "高1", "高2", "高3"]
@@ -1184,8 +1234,21 @@ private func footerDouble(
 struct RegisterStep3View: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
-    @State private var email: String = "otogi2025@gmail.com"
-    @State private var phone: String = "090-9482-8905"
+    @State private var email: String = {
+        #if DEMO
+            return "otogi2025@gmail.com"
+        #else
+            return ""
+        #endif
+    }()
+
+    @State private var phone: String = {
+        #if DEMO
+            return "090-9482-8905"
+        #else
+            return ""
+        #endif
+    }()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1574,7 +1637,7 @@ struct LoginView: View {
                         Field(label: "アカウント番号") {
                             TField(
                                 text: $acc,
-                                placeholder: "00",
+                                placeholder: "",
                                 keyboard: .numberPad
                             )
                             .font(.system(size: 20, design: .monospaced))
@@ -1584,7 +1647,7 @@ struct LoginView: View {
                         Field(label: "メールアドレス") {
                             TField(
                                 text: $email,
-                                placeholder: "example@email.com",
+                                placeholder: "",
                                 keyboard: .emailAddress
                             )
                         }
@@ -1608,7 +1671,7 @@ struct LoginView: View {
                 // Footer links（v1.0 上架版：忘记密码功能未实装 → 入口隐藏，避免 Apple 4.0 死按钮 reject）
                 HStack {
                     Button("新規登録") {
-                        router.replace(.registerStep1)
+                        router.go(.registerStep1)
                     }
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(T.inkSub)
@@ -1619,12 +1682,6 @@ struct LoginView: View {
                 .padding(.top, 18)
 
                 Spacer()
-
-                Text("Tomoshibi \(AppVersionTag.full) · 2026 AC 入試プロジェクト")
-                    .font(.system(size: 10.5, design: .monospaced))
-                    .foregroundStyle(T.inkMute)
-                    .kerning(0.4)
-                    .padding(.bottom, 32)
             }
         }
     }
@@ -1632,8 +1689,8 @@ struct LoginView: View {
     // JSX: 2-tab segmented control, bg T.pill, padding 3
     private var modeTab: some View {
         HStack(spacing: 0) {
-            tabBtn(title: "番号で", active: mode == .number) { mode = .number }
-            tabBtn(title: "メールで", active: mode == .email) { mode = .email }
+            tabBtn(title: "番号", active: mode == .number) { mode = .number }
+            tabBtn(title: "メール", active: mode == .email) { mode = .email }
         }
         .padding(3)
         .background {
@@ -1654,6 +1711,7 @@ struct LoginView: View {
                         .fill(active ? T.paper : .clear)
                 }
                 .shadow(color: active ? Color(hex: 0x0F1E22, alpha: 0.08) : .clear, radius: 6, x: 0, y: 2)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
