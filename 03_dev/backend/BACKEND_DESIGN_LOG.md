@@ -609,6 +609,17 @@ req:
 
 res 200 = 学生类似 + `teacher: { ..., role: '寮務部長', assigned_dorm: null }`
 
+#### 5.1.2b 教师账户管理 endpoints（2026-05-27 实名账户登录方式拍板に伴う追加）
+
+| URL | 認証 | 用途 |
+|---|---|---|
+| `GET /teachers/public` | **無認証** | 登录页第 1 屏列表 — 只返 `id + name + assigned_dorm + last_login_at`（不暴露 login_id / email / role / status，防爬虫枚举攻击）|
+| `GET /teachers` | 寮務部長 / 寮務課長 / 寮監 | 既存（dump 全字段、登录後の教师管理页用）|
+| `POST /teachers` | 寮務部長 / 寮務課長 / 寮監 / 学習担当 | 直接创建教师（v1.0 简化：name + login_id + email + password + role + assigned_dorm。同时存在邀请码流程 `POST /teachers/invitations` + `POST /teachers/register`，v1.0 web 不实装 UI、v1.1 候补）|
+| `DELETE /teachers/{id}` | 同上 | 删除教师（自分自身は削除不可 — 400 `CANNOT_DELETE_SELF`）|
+
+关連: §3.4「前台不允许自助注册任何教师账号 / 必须先用已存在的教师账号登录 → 加 / 删」拍板，UX 設計は `03_dev/teacher_web/WEB_DESIGN_LOG.md §5.1' / 5.3'`。
+
 #### 5.1.3 `POST /sessions/refresh` / `DELETE /sessions/current`
 
 token 续期 / 退出（学生 + 教师共通）。

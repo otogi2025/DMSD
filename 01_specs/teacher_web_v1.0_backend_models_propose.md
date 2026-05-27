@@ -146,13 +146,15 @@ class FrontDeskItem(Base):
 ## 4. CommunityPost + CommunityComment + community.py (P2)
 
 ### 4.1 spec 来源
-- spec §7.13 寮掲示板 + リクエスト曲 + 匿名建議
+- spec §7.13 寮掲示板 + リクエスト曲
+
+> **2026-05-27 itsuki 拍板**：匿名建議功能砍（system_features §7.14 4-29 已拍板砍社区/匿名建议整体）。本节字段提案的 `anonymous_suggestion` board_type / `anonymous` author_type 同步删除 — backend 实装时 board_type 只剩 `notice_board / song_request`。
 
 ### 4.2 字段提案 (粗)
 ```python
 class CommunityPost(Base):
-    id, board_type (notice_board/song_request/anonymous_suggestion),
-    author_type (student/teacher/anonymous), author_id,
+    id, board_type (notice_board/song_request),
+    author_type (student/teacher), author_id,
     title, body, status (active/pinned/resolved/deleted), 
     created_at, pinned_at, resolved_at, resolved_by_teacher_id
 
@@ -161,7 +163,6 @@ class CommunityComment(Base):
 ```
 
 ### 4.3 待 itsuki 拍板
-- 匿名建議的真实 author_id 是否 backend 保留（防滥用） vs 完全匿名（连 backend 也不知道）
 - リクエスト曲 朝/晩 字段（5-23 §8.5.4 (b) pending）
 - 老师 pin 权限范围
 

@@ -52,8 +52,9 @@ teacher_web/
 
 | 区域 | 文件（_legacy/）| UI 状态 | 真接口 |
 |---|---|---|---|
-| `/login` 共用密码登录 | `login.jsx` LoginScreen | ✅ 5-26 含 3 失败 30s 锁定逻辑 + submitting state | ✅ FC-024 修复后 POST `${API_BASE}/sessions/teacher` 真后端认证 |
-| `/login/select-teacher` 选当值老师 | `select-teacher.jsx` | ✅ 含编辑模式（删 + 加老师 + 男女寮分类）| ⏳ 当前从 `window.TEACHERS` 假数据读 |
+| `/login` 第 1 屏 = 老师卡片列表（男寮 / 女寮 2 列） | inline LoginTeacherList | ⏳ 5-27 重写中（从原 `select-teacher.jsx` 砍掉编辑模式 + 搬作登录第 1 屏） | ⏳ 接 `GET /api/v1/teachers/public`（无认证、只返 `id+name+dorm+last_login_mins`） |
+| `/login` 第 2 屏 = 选中老师后输密码 | inline LoginPasswordPrompt | ⏳ 5-27 重写中（替代旧 `login.jsx` 共用密码版） | ⏳ 接 `POST /api/v1/sessions/teacher` 用该老师 `login_id` + 输入密码 |
+| `/teachers-admin` 教师账号管理（仅「寮務管理」権限） | inline TeachersAdminPage | ⏳ 5-27 新建 — 替代旧「登录前编辑模式」（违反 §3.4） | ⏳ 接 `GET / POST / DELETE /api/v1/teachers` |
 | Shell（左 nav + topbar）| `shell.jsx` | ✅ 含全局搜索 + WS 指示器 + logout + 切换老师 + 恢复 Live | — |
 | `/roll-call` 点呼着陆 | `roll-call-landing.jsx` | ✅ 含 7 天趋势图 + 4 session 类型 + NFC 快速 URL 卡 | ⏳ |
 | `/roll-call/live` 实时座席 | `live-roll-call.jsx` | ✅ 含 late 5 色 + 预测条 + demo console + 12 学生 grid + 健康 🏥 overlay + 请假 ❔ overlay | ⏳ |
@@ -63,7 +64,7 @@ teacher_web/
 | `/records` `/search` `/notifications` | `pages-records-search-etc.jsx` | ✅ 签到历史按日筛 + 按学生/日期搜索 + 通知聚合 | ⏳ |
 | `/cleaning` 清掃 | inline CleaningPage | ✅ | ⏳ |
 | `/info` 寮内通知 + 行事 | inline InfoPage + EventCalendar + EventComposeModal + ComposeNoticeModal | ✅ | ⏳ |
-| `/community` 寮掲示板 + リクエスト曲 | inline CommunityPage | ✅ 含 hashColor / pin / resolve / 匿名建議 | ⏳ 老师公告 client（client.ts）尚未接入 |
+| `/community` 寮掲示板 + リクエスト曲 + 忘れ物 + 宅配 | inline CommunityPage | ✅ 含 hashColor / pin / resolve（**5-27 砍「匿名建議」tab + 3 条假数据** — system_features §7.14 4-29 已拍板砍） | ⏳ 老师公告 client（client.ts）尚未接入 |
 | `/front-desk` 宅配 + 忘れ物 | `front-desk.jsx` | ✅ 含 4 数字卡 + DeliveryRow + NotifCard | ⏳ |
 | `/accounts` 账号管理 | `accounts.jsx` + AccountDetailModal | ✅ 含详情 modal + 密码重置 + 解锁 + activity mock | ⏳ |
 | バス時刻 | inline BusSchedulePanel + BusPostCard + BusEventBlock + BusPostComposeModal | ✅ | ⏳ |
