@@ -50,6 +50,43 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+### 2026-05-27 晚段-1 by [MacBook-Pro-Opus 4.7 1M / anti-ai-flavor 双层防御立项]
+
+**主题**：⭐⭐⭐⭐⭐ itsuki 启动「推进 iOS app」→ CC 报告状态翻车 3 处（`deadline` / `clarify` / `diff` 英语裸露 + 病句 + 编造数据 9/3 出愿截止）→ itsuki 怒怼追问根因「为什么 CC 总是会自己莫名其妙用英语」→ CC 摊牌 3 层根因 + Claude Code hook 体系无 PostResponse 类硬约束 → **itsuki 主动提反方案**「立 hook 强制扫 + 白名单，命中就拦着」（独立提出 detective control 思路，没有任何工程 / 安全模式术语储备）→ CC 给 A/B/C 三方案 → itsuki 拍板 A+B + 白名单 6 类 + 4 模糊地带词「全收」→ 工程实装 3 新文件 + 2 改文件全在 `~/.claude/` 全局目录（iOS 原主题一行没碰）
+
+**关键拍板**（itsuki 4 次明确决策 + 沟通纠正 4 次）：
+- 「为什么 cc 总是会自己莫名其妙用英语 / 排查原因」（追问根因，不要表面修补）
+- **「立 hook 强制扫 + 白名单 — 只有白名单里的英文允许出现 / 你觉得如何？」**（**itsuki 主动提方向** — 不是 CC 推荐）
+- **「A+B」**（听完 CC 摊牌技术约束后接受 + 选近似方案）
+- **「Claude / CC / hook / skill / commit / bug 这些都放进去」**（白名单模糊地带全收 — 最大化减少误报噪音的直觉判断）
+
+**实际改动**（全局 7 + DMSD 4 + iCloud 1 = 12 件）：
+| 类别 | 文件 | 改动 |
+|---|---|---|
+| 全局 新建 | `~/.claude/skills/anti-ai-flavor/whitelist.md` | 53 词白名单 7 类 + 怎么加词 SOP |
+| 全局 新建 | `~/.claude/hooks/stop-scan-english-words.sh` + `.py` | Stop hook Bash 入口 + 真扫描脚本（读 transcript JSONL 找最后 assistant msg → 正则扫英文词 → 去白名单 → 命中追加 inbox） |
+| 全局 改 | `~/.claude/hooks/anti-ai-flavor-precheck.sh` | 末尾加白名单注入段。同期 itsuki 自己改了 6 类 → 8 类（加 G 自指失败 + H 编造数据）+ 6 问 → 8 问 |
+| 全局 改 | `~/.claude/settings.json` | 注册 Stop hook 到 `Stop` 钩位（10s timeout） |
+| 全局 改 | `~/.claude/我的环境.html` | §3 全局 Hooks 6 → 8 |
+| 全局 改 | `~/.claude/skills/anti-ai-flavor/inbox.md` | 加 #007 翻车（5 字段 — 3 处叠加 deadline / clarify / diff） |
+| 全局 改 | `~/.claude/skills/anti-ai-flavor/SKILL.md` + `~/.claude/CLAUDE.md` | itsuki 自己改 — 8 类升级 + 触发词 2→3 |
+| DMSD 新建 | `05_logs/raw/2026-05-27_anti-ai-flavor双层防御立项.md` | 完整素材 dump |
+| DMSD 改 | `.claude/skills/project-overview/SKILL.md` | §0.1 体量表 1192→1193 + 05_logs 111→112 + raw 描述 / §6.2 raw 57→60（顺手修历史漂移） |
+| DMSD 改 | `00_admin/TODO.md` | §🛠️ 加 §P 新段 5 条 + 顶部「最后更新」追加 |
+| DMSD 新建 | memory `feedback_mechanism_over_self_discipline.md` | 沟通问题 itsuki 偏好工程化解法不接受 CC 自律承诺 |
+| iCloud 改 | `06_radar_inbox/ac_scratchpad_2026-05-27.md` | 信号 6 双写（双写铁律落地）+ 总结段 5→6 信号 |
+
+**AC 价值** ⭐⭐⭐⭐⭐：
+- **模式 4 主体性最强级** — itsuki **自己提的方向**（独立提出 detective control 比 preventive control 强）+ 摊牌技术约束后立刻接受 + 拍板 A+B + 白名单全收。前所未有的「itsuki 提方案 CC 接受技术约束」颗粒度
+- **模式 5 自指失败连锁** ⭐⭐⭐⭐⭐ — CC 在排查「为什么用英语」时又翻车 3 处。讨论沟通问题时表演了沟通问题本身
+- **模式 7 机制完备性** ⭐⭐⭐⭐ — 三层保险范式之上新加第 4 层 detective control（事后检测）— 之前 3 层全是 preventive control（预防）
+- **模式 6 取舍** — A/B/C 三方案 + 摊牌 PostResponse hook 不存在 + 白名单边界词「全收」
+- **跨学科延伸 ⭐⭐⭐⭐**：preventive vs detective control（医疗 / 工程安全 / 网络安全 / 软件可靠性工程）/ 训练惯性 vs 用户偏好的协同进化 / hook 体系的钩位设计
+
+**残（已入 TODO §🛠️ §P 5 条）**：iOS 推进延后 / 环境清单 md↔html 同步 / Stop hook 首次实战观察 / 翻车案例库 v1.1 核对 / 5 铁律没升 8 类
+
+详细 raw：`05_logs/raw/2026-05-27_anti-ai-flavor双层防御立项.md`
+
 ### 2026-05-27 早段-3 by [MacBook-Pro-Opus 4.7 1M / 中枢档案污染排查 + 修 + 立铁律 + 立 hook]
 
 **主题**：⭐⭐⭐⭐⭐ itsuki 启动后查 WIP / 跑启动 SOP → 看到别会话写中枢 `项目档案/DMSD.md` 末尾「更新日志」段混入「模式 5 顶级 / AC 价值 ⭐⭐⭐⭐⭐」等 AC 评分 → 当场质疑「ac 素材给我写到哪去了 / 我不知道在我发现这个问题之前还有多少失误 / 帮我排查 / 让他们呆在该呆的地方 / 修好 skill 和 hook」→ CC 排查 3 中枢档案污染（DMSD.md / Tango.md / QTS.md）+ 1 个漏写（5-27 三段会话 AC 素材没进筑波 `06_radar_inbox/`）+ 立 3 层防御（中枢 CLAUDE.md 加铁律 / session-wrap SKILL.md §5.5.1.A 加去向表 + 强制双写 / 新建全局 PostToolUse hook 扫 AC 关键词）+ 翻车 4 处记 anti-ai-flavor inbox.md #002-#005

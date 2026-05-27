@@ -6,7 +6,7 @@
 > - 和 `progress_overview.md` 的区别: progress_overview 是稳定的章节目录,TODO 是可以频繁增删的任务池
 > - 完成的任务: 在 checkbox 前打 x,隔段时间(每周或每月)批量移到"已完成归档"
 
-**最后更新**: 2026-05-27（早段 — 全项目审查会话加 §🛠️ §N 新段 8 条「全项目审查 backlog」+ 直接修 6 处 Vite 决策漂移 + 物理清 7 个 .DS_Store + git mv `student_ios/_archived_DESIGN_BRIEF_Round1_context.md` 到 99_archive；起因：itsuki 启动「全项目审查 — 每个文件 / 文件关联 / 关联 skill / 内容审查 / project-overview 检查全跑」强调「不要偷懒 + 扫整个项目所有文件 + 不要给我留问题 + 所有问题加 TODO 里」）。早些 5-27 深夜（14 件 TODO 小活批量清：6 件本来就闭合 TODO 没刷状态 / 7 件真做 / 2 件挂起等拍板。详见 WIP.md 顶部「最后更新」概要）。早些 2026-05-26 晚段-4（§🛠️ 加 §L 新段「teacher_web Vite 废弃 + Ryō polish 回滚残留」5 条 — 写 demo_server.py 恢复 NFC 实时点呼 / 系统bug专栏 FC-025/26/27/28 标 N/A / 未来 polish 候选方向 4 个 / WEB_DESIGN_LOG §7+§10 复核 / DESIGN_BRIEF §3-§8 复核；同时改 §🚧 主会话保留 6 条 A-039（vite 验证 N/A → Ryō standalone 直接验证）+ 改 line 888 ✅ S15 标反转（Vite 实装废弃）+ §K「WIP 加本会话条目」标 ✅ 完成；起因：itsuki 启动 teacher_web 推进 + 看到 Vite 实装版怒怼「不是我的 web」拍板「垃圾归档用 B」+ frontend-design polish 试做后整体不喜欢一句「回滚」全退）。早些 5-26 晚段-2（§🛠️ 加 §K 新段「启动 SOP 集中化 + CLAUDE.md 重写残留」5 条 — 全局环境清单同步 / ~/.claude/ git repo propose 强化 / 其他 5 项目启动 skill / sync-check bin-script 警告 / WIP 加本会话条目；起因：dmsd-startup skill 立项 + DMSD CLAUDE.md 247→190 行重写到 QTS 模式 + 6 项目 CLAUDE.md 加沟通铁律「不主动用英语名词」+ destructive-bash 行为约定 + CLAUDE.md 文档观转变（时间戳冗余禁止））。早些 5-25 晚段（§🛠️ J 加 2 条新待办 — 触发词「翻车」首次实战测试 + inbox 累到 3-5 条后写「整理 inbox」SOP；起因：anti-ai-flavor skill 加第 3 触发词「翻车」单字 + 新建 `~/.claude/skills/anti-ai-flavor/inbox.md` — itsuki 收尾中途立项自我迭代机制）；早些更新：2026-05-25（5-25 drift 修 + session-coord 三层保险会话加 §📊 project-overview 历史欠债 2 条 + §🐚 shell 工具链 quirk 1 条 + §🛠️ J 首次创建 6 条）；2026-05-24 5-22 修漏洞会话补 §🎯 D1-D5 + §📁 / §💾 标 ✅ + 加未 push 37 commit；5-22 §🛰️ 点呼机段配件采购方向反转 — 5-12~16 中国海关查扣 → itsuki 拍板撤回中国海运 → 日本本地买 / 原 11 件淘宝清单 + 2 任务作废 / 加 6 条新待办；2026-05-21 加 §🐞 系统 Bug 专栏入口 131 条 / 清 §⏰ Cloud Design 5-12 过期项；2026-05-14 §🛠️ G + H；2026-05-13 §🛠️ E + F；2026-05-11 §📄；2026-05-08 §📱 + §🛰️ + §🐛<!-- VERSION_OK -->
+**最后更新**: 2026-05-27（晚段-1 — anti-ai-flavor 双层防御立项会话加 §🛠️ §P 新段 5 条 — iOS 推进延后 / 环境清单 md↔html 同步 / Stop hook 首次实战观察 / 翻车案例库 v1.1 核对 / 5 铁律没升 8 类。起因：itsuki 启动 iOS → CC 报告状态翻车 3 处 → itsuki 主动提「立 hook 强制扫 + 白名单」方向 → 工程实装 3 新文件 + 2 改文件全在 ~/.claude/ 全局目录）。早些 5-27 早段（全项目审查会话加 §🛠️ §N 新段 8 条「全项目审查 backlog」+ 直接修 6 处 Vite 决策漂移 + 物理清 7 个 .DS_Store + git mv `student_ios/_archived_DESIGN_BRIEF_Round1_context.md` 到 99_archive；起因：itsuki 启动「全项目审查 — 每个文件 / 文件关联 / 关联 skill / 内容审查 / project-overview 检查全跑」强调「不要偷懒 + 扫整个项目所有文件 + 不要给我留问题 + 所有问题加 TODO 里」）。早些 5-27 深夜（14 件 TODO 小活批量清：6 件本来就闭合 TODO 没刷状态 / 7 件真做 / 2 件挂起等拍板。详见 WIP.md 顶部「最后更新」概要）。早些 2026-05-26 晚段-4（§🛠️ 加 §L 新段「teacher_web Vite 废弃 + Ryō polish 回滚残留」5 条 — 写 demo_server.py 恢复 NFC 实时点呼 / 系统bug专栏 FC-025/26/27/28 标 N/A / 未来 polish 候选方向 4 个 / WEB_DESIGN_LOG §7+§10 复核 / DESIGN_BRIEF §3-§8 复核；同时改 §🚧 主会话保留 6 条 A-039（vite 验证 N/A → Ryō standalone 直接验证）+ 改 line 888 ✅ S15 标反转（Vite 实装废弃）+ §K「WIP 加本会话条目」标 ✅ 完成；起因：itsuki 启动 teacher_web 推进 + 看到 Vite 实装版怒怼「不是我的 web」拍板「垃圾归档用 B」+ frontend-design polish 试做后整体不喜欢一句「回滚」全退）。早些 5-26 晚段-2（§🛠️ 加 §K 新段「启动 SOP 集中化 + CLAUDE.md 重写残留」5 条 — 全局环境清单同步 / ~/.claude/ git repo propose 强化 / 其他 5 项目启动 skill / sync-check bin-script 警告 / WIP 加本会话条目；起因：dmsd-startup skill 立项 + DMSD CLAUDE.md 247→190 行重写到 QTS 模式 + 6 项目 CLAUDE.md 加沟通铁律「不主动用英语名词」+ destructive-bash 行为约定 + CLAUDE.md 文档观转变（时间戳冗余禁止））。早些 5-25 晚段（§🛠️ J 加 2 条新待办 — 触发词「翻车」首次实战测试 + inbox 累到 3-5 条后写「整理 inbox」SOP；起因：anti-ai-flavor skill 加第 3 触发词「翻车」单字 + 新建 `~/.claude/skills/anti-ai-flavor/inbox.md` — itsuki 收尾中途立项自我迭代机制）；早些更新：2026-05-25（5-25 drift 修 + session-coord 三层保险会话加 §📊 project-overview 历史欠债 2 条 + §🐚 shell 工具链 quirk 1 条 + §🛠️ J 首次创建 6 条）；2026-05-24 5-22 修漏洞会话补 §🎯 D1-D5 + §📁 / §💾 标 ✅ + 加未 push 37 commit；5-22 §🛰️ 点呼机段配件采购方向反转 — 5-12~16 中国海关查扣 → itsuki 拍板撤回中国海运 → 日本本地买 / 原 11 件淘宝清单 + 2 任务作废 / 加 6 条新待办；2026-05-21 加 §🐞 系统 Bug 专栏入口 131 条 / 清 §⏰ Cloud Design 5-12 过期项；2026-05-14 §🛠️ G + H；2026-05-13 §🛠️ E + F；2026-05-11 §📄；2026-05-08 §📱 + §🛰️ + §🐛<!-- VERSION_OK -->
 **当前版本**: 见 `CHANGELOG.md` 顶部 · 单源真值，见 `00_admin/文档同步点清单.md`
 
 > **2026-04-17 归档说明**：`executable_dev_checklist.md` 已归档到 `99_archive/2026-04-12_executable_dev_checklist.md`（内容已过期，功能被本 TODO.md 吸收）。
@@ -333,6 +333,16 @@
 - [ ] **hook 长期 false positive 监控** — `post-edit-zhongshu-ac-pollution-check.sh` 关键词清单 `模式 [0-9]+ 顶级|AC 价值[^点]|⭐⭐⭐|关联度评估` 可能误伤元描述（本次会话已遇 1 次 — QTS.md 写「关联度评估全砍」被 hook 命中误判，已改措辞规避）→ 累 3-5 次 false positive 后看是否要扩展白名单 / 路径排除
 - [ ] **WIP「最近会话」9 条超 5 条上限**（本会话加早段-3 → 9 条；§N 第 9 条已立 backlog 砍 5-25 晚段-2 / 5-25 晚段 / 5-26 / 5-26 晚段-2 / 5-26 晚段-3 中老的 4 条；本会话 CC 没擅自砍 — itsuki 决定砍哪 4 条）
 
+### P. anti-ai-flavor 双层防御立项残留（2026-05-27 晚段加）
+
+> **背景**：5-27 晚段 itsuki 启动 iOS 推进 → CC 报告状态翻车 3 处（`deadline` / `clarify` / `diff` 英语裸露 + 病句 + 编造数据）→ itsuki 怒怼追问根因「为什么 CC 总是会自己莫名其妙用英语」→ CC 摊牌 3 层根因 + Claude Code hook 体系无 PostResponse 类硬约束 → itsuki **主动提**「立 hook 强制扫 + 白名单」方向（独立提出 detective control 思路）→ CC 给 A/B/C 三方案 → itsuki 拍板 A+B → 工程实装 3 新文件 + 2 改文件（53 词白名单 + Stop hook 事后扫 + UserPromptSubmit 白名单注入）。详见 raw `2026-05-27_anti-ai-flavor双层防御立项.md`。
+
+- [ ] **iOS app 推进延后** — 本会话原主题被沟通基础设施修复完全占用，iOS 一行没碰。下次会话或现在切回 iOS（可选方向：TODO §D 2 处工程债务 catch 降级 / 老师公告 iOS 端实装 / 学生注册码 iOS 端实装）
+- [ ] **环境清单 `.md` vs `.html` 漂移** — `~/.claude/我的环境.md` 2026-05-27 08:22 之后没动，`.html` 19:50 + 本会话晚段都改了。两者 sync 一道（itsuki 决定要不要现在做还是下次）
+- [ ] **Stop hook 首次实战观察** — 本会话收尾结束后 Stop hook 首次跑，观察：① 误报多不多（`anti-ai-flavor-precheck.sh` 这种 hook 文件名是不是该加白名单第 6 类）② inbox 自动追加格式是否清晰 ③ 跑超时（10s timeout）会不会成问题
+- [ ] **翻车案例库 v1.1 状态核对** — inbox.md 注释说「#001-#007 整体合并到 references/翻车案例库.md #21-#27」，但本会话 CC 没读案例库本身核对。下次会话核对案例库 v1.1 是否真有 #21-#27 + 跟 inbox 5 字段对得上
+- [ ] **anti-ai-flavor 5 铁律没升 8 类** — anti-ai-flavor hook 自检 6 类→8 类升级了，但 5 铁律（起因 / 改哪+这是啥 / 改的内容 / 每对象 / 下一步）描述没动。是不是该加 6+7 铁律对应 G+H 自指失败 + 编造数据？等下次会话或 itsuki 拍板
+
 ## 🚀 teacher_web v1.0「直接上线」backlog（2026-05-27 审查产出 — 优先级最高）
 
 > **背景**：5-27 晚段-2 itsuki 让 CC 对 teacher_web 做审查 — 目标「让网站达到可以直接上线的水平」。CC 扫了 `WEB_DESIGN_LOG.md` / `DESIGN_BRIEF.md` / `system_features.md` / `v1/src/` 实际目录后**诚实结论**：**目前没到「直接上线」水平**。UI 90% ✅ + Login 真接 backend 1/16 ✅ + 其他 15 个 page 全部假数据 ⏳。本段集中列「要达到直接上线还差什么」。
@@ -460,7 +470,7 @@
 ### D. 工程债务延后修
 
 - [ ] **Fork backend 4 文件合回主项目**（5-08 拍板，落实 5-06「single source」）：把 `~/dev/Tomoshibi-AppStore/backend/` 的 `Caddyfile` / `Dockerfile` / `docker-compose.yml` / `DEPLOY.md` 移到 `03_dev/backend/v1/`，删整个 fork 目录。VPS 改为 rsync 主项目 v1 → VPS。需要先把 5-08 fork 跟主项目剩余差异合并（看 `diff -r` 输出）
-- [ ] **iOS fork 处置**（`~/dev/Tomoshibi-AppStore/ios/`）— 5-07 SplashView 已同步主项目，但账号删除 UI 没同步（见 §E）。合并完毕后删 fork
+- [x] ~~**iOS fork 处置**（`~/dev/Tomoshibi-AppStore/ios/`）~~ ✅ 2026-05-27 闭合 — 5-22 已整体归档到 `99_archive/2026-05-22_tomoshibi_appstore_fork/`，原路径删除。diff 归档 vs 主项目：fork 独有文件 0 个，所有改动（含账号删除 UI）已同步主项目
 - [ ] 反向 rsync VPS migration patch → Mac fork（VPS CC 在 `b2c3d4e5f6a7_align_application_schema.py` 改成 dialect-aware，Mac fork 还是 buggy 版本，下次 rsync 会回退）：
   ```bash
   rsync -avz \
@@ -474,7 +484,7 @@
 
 ### E. 跨端同步遗留（不阻塞今晚）
 
-- [ ] iOS 端账号删除（账号删除 UI + DELETE /accounts/me）已在 fork 实装 — 主项目 v1 同样改未做（5-07 SplashView 改动已同步主项目，但账号删除 UI 没同步主项目）
+- [x] ~~iOS 端账号删除（账号删除 UI + DELETE /accounts/me）~~ ✅ 2026-05-27 闭合 — 主项目 `AuthAPI.swift:52 AccountsAPI.deleteMyAccount()` + `MyPageStubs.swift:1632` 界面 + 调用全装好。5-22 归档 fork 时已同步完成
 - [ ] 主项目 v1 alembic/env.py 加 DATABASE_URL env override（已在 §🐛 v1 backend bug fix 跟踪）
 
 ---
