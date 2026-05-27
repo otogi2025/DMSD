@@ -10310,7 +10310,7 @@
               const n = fails + 1;
               setFails(n);
               if (n >= 3) {
-                setErr("3 回失敗しました。30 秒間ロックされます。");
+                setErr("3 回失敗しました。30 分間ロックされます。");
                 setFails(0);
               } else {
                 setErr(`パスワードが違います (残り ${3 - n} 回)`);
@@ -10318,7 +10318,7 @@
               setPassword("");
             } else if (err2 && err2.status === 423) {
               setErr(
-                "アカウントロック中。30 秒ほど待ってから再度お試しください。",
+                "アカウントロック中。30 分ほど待ってから再度お試しください。",
               );
             } else if (err2 && err2.status) {
               setErr(`サーバーエラー (${err2.status})`);
@@ -11493,6 +11493,7 @@
         onResumeLive,
         backendReachable, // Task #6 真接口对接: null 未知 / true 接通 / false 不可達
         wsStatus, // 5-27 spec §11.8: WebSocket 状态 null / connecting / connected / disconnected / failed
+        currentRole, // 5-27 codex 审查 #11: backend authProfile.role — 教师管理 nav 按角色 hide
       }) {
         const T = window.RYO;
         // Task #6 (5-27): 删 WS demo 模拟，按 backendReachable 真实状态切 indicator。
@@ -11518,6 +11519,10 @@
           return () => window.removeEventListener("keydown", h);
         }, []);
 
+        // 5-27 codex 审查 #11: 教师管理 nav 按 currentRole 过滤（与 backend teachers.py TEACHER_ADMIN_ROLES 对齐）
+        const TEACHER_ADMIN_ROLES_FRONT = ["寮務部長", "寮務課長", "寮監"];
+        const canManageTeachers =
+          currentRole && TEACHER_ADMIN_ROLES_FRONT.includes(currentRole);
         const NAV = [
           ["roll-call", "点呼"],
           ["notifications", "通知", 7],
@@ -11531,7 +11536,9 @@
           ["front-desk", "フロント業務"],
           ["accounts", "学生アカウント管理"],
           ["admin-registration-code", "学生登録コード"],
-          ["teachers-admin", "教員アカウント管理"],
+          ...(canManageTeachers
+            ? [["teachers-admin", "教員アカウント管理"]]
+            : []),
         ];
 
         const pageLabel =
@@ -24435,12 +24442,14 @@
             .listTeachers(authToken)
             .then((rows) => {
               if (cancelled) return;
+              // 5-27 codex 审查 #12 修：backend assigned_dorm 4=女寮 / 1+2=男寮（一寮+二寮）/ null=跨寮
+              // 之前误写 `=== 2 ? women : men` 把男二寮老师映射到女寮列
               const adapted = (rows || []).map((t) => ({
                 id: t.id,
                 name: t.name,
-                dorm: t.assigned_dorm === 2 ? "women" : "men",
+                dorm: t.assigned_dorm === 4 ? "women" : "men",
                 initial: (t.name || "?").charAt(0),
-                lastLoginMins: null, // backend にこのフィールド無し、UI fallback
+                lastLoginMins: null, // backend 本字段未提供，UI 显示 fallback
               }));
               setBackendTeachers(adapted);
             })
@@ -25091,6 +25100,7 @@
               onLogout={logout}
               backendReachable={backendReachable}
               wsStatus={wsStatus}
+              currentRole={authProfile && authProfile.role}
               onSwitchTeacher={() => {
                 // 5-27 拍板：切替＝ログアウト相当（实名账户 = 必須再認証）。
                 // sessionStorage 不清 — lastTeacherId 保留可让 LoginScreen 卡片高亮「前回」

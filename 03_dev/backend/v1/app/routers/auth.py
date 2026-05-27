@@ -11,7 +11,7 @@ P0 範囲では POST /applications / GET /applications/:id 等が
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select

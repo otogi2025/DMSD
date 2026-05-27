@@ -207,7 +207,7 @@ round3/
 | 项 | 决策 | 出处 |
 |---|---|---|
 | 第 1 屏 = 直接列老师卡片 | 不再先输共用密码 — 进 web 就调 `GET /api/v1/teachers/public`（无认证、只返 `id + name + dorm + last_login_mins`，不返 `login_id / role / email`）| itsuki 2026-05-27 |
-| 第 2 屏 = 选中老师后输密码 | 点卡片 → 显示「{name} 先生」+ 密码 input + 登录按钮（POST `/api/v1/sessions/teacher` 用该老师后端持有的 `login_id` + 输入密码）| 同上 |
+| 第 2 屏 = 选中老师后输密码 | 点卡片 → 显示「{name} 先生」+ 密码 input + 登录按钮（POST `/api/v1/sessions/teacher` 用屏 1 拿到的 `teacher_id` UUID + 输入密码 — 不暴露 `login_id` 给前端，防爬虫枚举攻击）| 同上 |
 | 共用账号 `tomoshibi` + 共用密码 | **废除** — backend `Teacher.login_id` 字段保留（用于后端识别个人），但前端登录 UX **完全无视该字段**（用户感知层面 = 选名字 + 输密码） | 同上 |
 | 失败处理 | 同老师密码 3 次失败 → backend `Teacher.locked_until` 锁 30 秒（已实装、不动）| 现有 |
 | 登录后跳转 | 直接进 Shell 主界面（不再有「选今日担当者」中间页 — §5.2' 砍）| itsuki 2026-05-27 |
@@ -346,7 +346,7 @@ round3/
 | /notifications | 半真（Q7 A）4 数字 card + 最近通知 feed | 3/2/1/4 |
 | /cleaning | 单页 | 扫除审核 3 条 |
 | /info | 3 tabs：お知らせ / 行事 / バス | 各 3 条 |
-| /community | 5 tabs：掲示板 / リクエスト曲 / 忘れ物 / 匿名建議 / 宅配 | 各 3-5 条 |
+| /community | 4 tabs：掲示板 / リクエスト曲 / 忘れ物 / 宅配（5-27 砍「匿名建議」§7.14）| 各 3-5 条 |
 
 ### 5.15 全局 UX
 
@@ -455,7 +455,7 @@ round3/
 - **通報機能は保留**（itsuki 2026-04-23 拍板）
 - **リクエスト曲**: ラベル「館内 BGM」→「寮内 BGM」修正 + **排序を古い順に変更**（現状時刻降順 → 古い順）+ 朝/晩 chip filter（iOS 側で字段追加後に有効化、字段追加は itsuki 拍板待ち）
 - **宅配通知 + 忘れ物 を CommunityPage から撤去** → 移設先は itsuki 拍板待ち（案 1: 新 nav「フロント業務」 / 案 2: 既存「通知」ページ内 tab）
-  - 残り 3 tab: 掲示板 / リクエスト曲 / 匿名建議
+  - 残り 2 tab: 掲示板 / リクエスト曲（5-27「匿名建議」も砍 §7.14）
   - Shell nav に新規項目追加（案 1 採用時）or 既存 InfoPage に tab 追加（案 2 採用時）
 
 ---

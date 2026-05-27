@@ -165,7 +165,7 @@
 - **登录切换**: 寮管室 iPad 等共用设备上,寮監轮班 = 上一个人退出 → 下一个人登录
 - **Web 登录 UX**(2026-05-27 拍板 — 学生 iOS 流程**无关**,与共用密码方案決別):
   - 第 1 屏 = **老师卡片列表**(男寮 / 女寮 2 列、`GET /api/v1/teachers/public` 无认证可见、只暴露 `id + name + dorm + last_login_mins`、不暴露 `login_id / role / email`)
-  - 点选老师卡片 → 第 2 屏 = 只显示「{name} 先生」+ 密码 input + 登录按钮(POST `/api/v1/sessions/teacher` 用该老师 `login_id` + 输入的密码)
+  - 点选老师卡片 → 第 2 屏 = 只显示「{name} 先生」+ 密码 input + 登录按钮(POST `/api/v1/sessions/teacher` 用该老师 `teacher_id` UUID + 输入的密码 — `login_id` 形式保留作 backward-compat 不暴露给前端)
   - 共用账号(`tomoshibi` 占位)+ 共用密码方案 = **废除**(`03_dev/teacher_web/WEB_DESIGN_LOG.md §5.1 / 5.2` 旧版方案已被本拍板替换)
   - 失败处理: 同一老师密码 3 次失败 → backend `Teacher.locked_until` 锁 30 秒(現有実装)
 - **教师账号管理**(2026-04-30 + 2026-04-30 後續 拍板, 全教师通用):

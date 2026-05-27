@@ -24,8 +24,14 @@ router = APIRouter(prefix="/api/v1/teachers", tags=["teachers"])
 
 INVITATION_EXPIRE_DAYS = 7
 
-# 招待発行できる役職 (寮務部長 / 寮務課長 / 寮監 — §3.4)
+# 邀请码（invitation）流程允许的角色 — 包含「学習担当」（§3.4 拍板，可发邀请给学生）
 INVITE_ALLOWED_ROLES = {"寮務部長", "寮務課長", "寮監", "学習担当"}
+
+# 教师账户管理（POST / DELETE）权限 — 只允许寮務管理 3 角色，不包含「学習担当」
+# 理由：「学習担当」只负责学习出席 + 点歌请求管理，不涉及人事
+# 5-27 codex 审查 #2 防权限提升 — 原方案误把「学習担当」放进 INVITE_ALLOWED_ROLES
+# 让该角色能直接创建/删除老师 = 越权
+TEACHER_ADMIN_ROLES = {"寮務部長", "寮務課長", "寮監"}
 
 
 # ---------------------------------------------------------------
@@ -194,21 +200,23 @@ def list_teachers_public(db: Session = Depends(get_db)):
 
 
 # ---------------------------------------------------------------
-# POST /teachers — 已登录教师 + 寮務管理権限 → 直接创建新教师（v1.0 简化版）
+# POST /teachers — 已登录教师 + 寮务管理权限 → 直接创建新教师（v1.0 简化版）
 # §3.4「前台不允许自助注册任何教师账号 / 必须先用现有教师账号登录 → 加 / 删」
+# 5-27 codex 审查 #2: 权限只给 TEACHER_ADMIN_ROLES 不给学習担当（防越权）
+# 5-27 codex 审查 #5: 唯一性预查 + IntegrityError 双重保护防并发 race
 # ---------------------------------------------------------------
 @router.post("/", response_model=schemas.TeacherOut, status_code=201)
 def create_teacher(
     body: schemas.TeacherCreateIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(require_teacher_roles(*INVITE_ALLOWED_ROLES)),
+    teacher: models.Teacher = Depends(require_teacher_roles(*TEACHER_ADMIN_ROLES)),
 ):
     if body.role not in models.TEACHER_ROLES:
         raise HTTPException(
             422,
             {"code": "INVALID_ROLE", "message": f"無効な役職: {body.role}"},
         )
-    # 唯一性検査 — login_id / email
+    # 唯一性预检 — login_id / email（不能完全防 race，仅给友好错误）
     existing = db.scalars(
         select(models.Teacher).where(
             (models.Teacher.login_id == body.login_id)
@@ -231,20 +239,33 @@ def create_teacher(
         status="active",
     )
     db.add(new_teacher)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # 并发 race — 预检通过但 commit 时 unique constraint 撞车
+        db.rollback()
+        raise HTTPException(
+            409,
+            {
+                "code": "DUPLICATE",
+                "message": "login_id または email が既に存在（並行作成と衝突）",
+            },
+        )
     db.refresh(new_teacher)
     return schemas.TeacherOut.model_validate(new_teacher)
 
 
 # ---------------------------------------------------------------
-# DELETE /teachers/{teacher_id} — 已登录教师 + 寮務管理権限 → 删除教师
-# 自己删自己防止（最后一个账号没人能登录）
+# DELETE /teachers/{teacher_id} — 已登录教师 + 寮务管理权限 → 删除教师
+# 自己删自己拦截（防最后一个账号没人能登录）
+# 5-27 codex 审查 #2: 权限只给 TEACHER_ADMIN_ROLES（不给学習担当）
+# 5-27 codex 审查 #3: 删最后一个寮务管理角色拦截（防系统 lockout 没人能管理教师）
 # ---------------------------------------------------------------
 @router.delete("/{teacher_id}", status_code=204)
 def delete_teacher(
     teacher_id: str,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(require_teacher_roles(*INVITE_ALLOWED_ROLES)),
+    teacher: models.Teacher = Depends(require_teacher_roles(*TEACHER_ADMIN_ROLES)),
 ):
     if str(teacher.id) == teacher_id:
         raise HTTPException(
@@ -256,6 +277,25 @@ def delete_teacher(
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "教師が見つかりません"}
         )
+
+    # 删最后一个寮务管理角色拦截 — 防系统 lockout
+    if target.role in TEACHER_ADMIN_ROLES:
+        remaining = db.scalar(
+            select(func.count(models.Teacher.id)).where(
+                models.Teacher.role.in_(TEACHER_ADMIN_ROLES),
+                models.Teacher.status == "active",
+                models.Teacher.id != target.id,
+            )
+        )
+        if not remaining or remaining < 1:
+            raise HTTPException(
+                400,
+                {
+                    "code": "LAST_ADMIN",
+                    "message": "最後の寮務管理権限教師は削除できません（システムロックアウト防止）",
+                },
+            )
+
     db.delete(target)
     db.commit()
     return None

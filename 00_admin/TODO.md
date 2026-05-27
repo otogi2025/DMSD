@@ -442,6 +442,16 @@
 - [ ] **WebSocket 重连机制 + 「再接続中」banner**（spec §11.8）— backend `/ws/teacher` 已实装 5-27 commit `436f316`，frontend `client.js openTeacherWS` 只 `console.error` 没 UI banner — 1-2 小时工作量
 - [ ] **spec §11.3 改判时限矩阵**（7 天 / 30 天 / 月结后只读）— backend PATCH /events/{id} 没校验 / frontend 没限制 UI — 等 itsuki 起床拍板字段定义
 
+### 🚀-G 5-27 实名账户登录 — codex 5.5 xhigh 审查剩余项（P0 + 关键 P1/P2 已在 commit 中修，下面是仍未处理的）
+
+> **背景**：5-27 itsuki 拍板「教师登录改实名账户 + 加教师管理页」+「砍匿名建議」+「做完让 codex 5.5 xhigh 审查」。3 commit 落地（`b9f237c` backend + `b444aad` frontend + `1904b18` 设计档案），codex 审查出 3 🔴 + 7 🟡 + 3 🟢。**🔴 全修 + 关键 🟡 + 🟢 #11 #12 #13 已修**，下面是剩余 itsuki 决策 / 工作量大的项。
+
+- [ ] **codex 审查 #4：`GET /api/v1/teachers/public` 暴露 `last_login_at`** — 让无认证爬虫能枚举账户活跃状态。UX 用途 = LoginScreen 卡片显示「N 分前にログイン」给老师辨认上次是谁用。trade-off：保留（UX 友好）vs 砍（安全更严）。itsuki 决策
+- [ ] **codex 审查 #6：`DELETE /api/v1/teachers/{id}` hard delete 不考虑外键引用** — `models.py:315-316 / 655-667 / 726-727` 多张表外键引用 `teachers.id`（指导履历 / 公告作者 / 学生注册码生成人）。生产环境删时会报 constraint error 或留 orphan 记录。建议改 soft delete `status="deleted"` + 所有 list query 加 `WHERE status='active'` filter
+- [ ] **codex 审查 #7：`TeacherCreateIn` 字段校验弱** — `email` 用 `str` 不是 `EmailStr` / `login_id` 没格式校验（半角英数限制？）。当前依赖 backend DB UNIQUE constraint 拦重复，但格式错误（"abc 全角" / "test@invalid"）只在 DB 层报错。建议 schemas.py 加 `EmailStr` + `login_id: str = Field(pattern=r"^[a-z0-9_]+$")`
+- [ ] **codex 审查 #10：`client.js` error 包装统一化** — 当前 `request()` 抛扁平化错误（`{status, body}`），但前端模态框（TeachersAdminCreateModal 等）读 `e.body.detail.message` — backend 返 `{detail: {code, message}}` 才匹配。HTTPException 直接 raise 时 FastAPI 自动套 `{detail: ...}` ✅，但有些路径返 flat string `detail: "msg"` 时前端拿不到 — 需统一 backend 错误格式 + 改 client.js 错误抽取 logic
+- [ ] **codex 审查 #13 已处理但残留可能**：扫 `WEB_DESIGN_LOG.md` 历史 round notes 里其他匿名建議 / community 相关旧描述（5-27 修了 349 + 458 两行 + tab 描述行，其他历史段如 §1-§4 Round notes 没动）— 等 v1.1 整理 WEB_DESIGN_LOG 历史段时一并清
+
 ## 📱 iOS 上架冲刺 — 剩余事项（2026-05-08 状态）
 
 > **2026-05-21 注（B-006 修）**：本段 + 下方 §🐛 + §🛰️ 都把「✅ 已完成」+「待办」混在同一 list 里 — CC 扫 200 行容易误判已完成项当待办处理。**已完成项已用 `[x] ~~strikethrough~~` 标识 / 待办用 `[ ]`** — 看 checkbox 状态判断。
