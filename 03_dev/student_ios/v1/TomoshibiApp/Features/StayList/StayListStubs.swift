@@ -472,10 +472,13 @@ struct StayListView: View {
         do {
             let raw = try await ApplicationsAPI.listMine()
             apps = raw.map { $0.toStayApplication() }
-        } catch {
-            // 出错降级到 mock，避免空 view 影响调试
-            loadError = "申請一覧の取得に失敗しました"
+        } catch APIError.unauthorized {
+            // 401 = 未登录态：用 mock 兜底（跟 line 468 同意图）
             apps = StayListMock.all
+        } catch {
+            // 真错误：显示提示 + 空 view，不降级假数据（A-037 修复 2026-05-27）
+            loadError = "申請一覧の取得に失敗しました"
+            apps = []
         }
     }
 
@@ -704,16 +707,52 @@ struct StayDetailView: View {
         .task { await load() }
     }
 
-    /// ⚠️ DEMO-ONLY-SCAFFOLD（2026-05-03）：纯 mock，无后端依赖
-    /// v1.0 切回：UUID guard + ApplicationsAPI.detail / .audit 并行 + 4 个 catch 分支
+    /// 详情加载（2026-05-27 切回真 API — 原 5-03 DEMO-ONLY-SCAFFOLD 落地完成）
+    /// 未登录 / 非 UUID（mock id 如 "a1"）→ mock 兜底
+    /// UUID → ApplicationsAPI.detail + .audit 并行 + 4 个 catch 分支
     private func load() async {
         isLoading = true
         defer { isLoading = false }
-        if let item = StayListMock.find(id) {
+
+        // 未登录态 / mock id（非 UUID）→ 走 mock（开发 / Apple reviewer 未登录态也能看效果）
+        guard app.isAuthenticated, let uuid = UUID(uuidString: id) else {
+            if let item = StayListMock.find(id) {
+                loadedItem = item
+                loadedAuditLog = item.auditLog
+            } else {
+                app.showToast("申請が見つかりません")
+                router.back()
+            }
+            return
+        }
+
+        do {
+            // detail + audit 并行（节省往返）
+            async let detailTask = ApplicationsAPI.detail(id: uuid)
+            async let auditTask = ApplicationsAPI.audit(id: uuid)
+            let (detailOut, auditOut) = try await (detailTask, auditTask)
+            var item = detailOut.toStayApplication()
+            let entries = auditOut.map { $0.toAuditLogEntry() }
+            item.auditLog = entries
             loadedItem = item
-            loadedAuditLog = item.auditLog
-        } else {
-            app.showToast("申請が見つかりません")
+            loadedAuditLog = entries
+        } catch APIError.unauthorized {
+            // 401 → mock 兜底（跟 listMine 同模式）
+            if let item = StayListMock.find(id) {
+                loadedItem = item
+                loadedAuditLog = item.auditLog
+            } else {
+                app.showToast("ログインが必要です")
+                router.back()
+            }
+        } catch APIError.network {
+            app.showToast("通信エラーが発生しました。電波を確認してください")
+            router.back()
+        } catch let APIError.server(code, _) {
+            app.showToast("サーバーエラー（コード: \(code)）")
+            router.back()
+        } catch {
+            app.showToast("申請詳細の取得に失敗しました")
             router.back()
         }
     }
