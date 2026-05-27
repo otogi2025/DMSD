@@ -11192,6 +11192,7 @@
         onSearch,
         onResumeLive,
         backendReachable, // Task #6 真接口对接: null 未知 / true 接通 / false 不可達
+        wsStatus, // 5-27 spec §11.8: WebSocket 状态 null / connecting / connected / disconnected / failed
       }) {
         const T = window.RYO;
         // Task #6 (5-27): 删 WS demo 模拟，按 backendReachable 真实状态切 indicator。
@@ -11663,6 +11664,39 @@
                   ログアウト
                 </button>
               </header>
+              {/* 5-27 spec §11.8: WebSocket 再接続中 / 切断 banner */}
+              {wsStatus && wsStatus !== "connected" && (
+                <div
+                  style={{
+                    padding: "8px 18px",
+                    background:
+                      wsStatus === "failed" ? T.dangerSoft : T.warnSoft,
+                    borderBottom: `1px solid ${wsStatus === "failed" ? T.danger : T.warnBorder}`,
+                    color: wsStatus === "failed" ? T.danger : T.warn,
+                    fontSize: 12,
+                    fontFamily: T.mono,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      background: wsStatus === "failed" ? T.danger : T.warn,
+                      animation:
+                        wsStatus === "failed" ? "none" : "pulse 1.2s infinite",
+                    }}
+                  />
+                  {wsStatus === "connecting" && "リアルタイム接続中..."}
+                  {wsStatus === "disconnected" &&
+                    "リアルタイム再接続中... 操作は続行できます"}
+                  {wsStatus === "failed" &&
+                    "リアルタイム接続失敗 — 画面の自動更新が停止しています。ページを再読み込みしてください"}
+                </div>
+              )}
               <div style={{ flex: 1, overflow: "auto", position: "relative" }}>
                 {children}
                 <div
@@ -19132,20 +19166,38 @@
           };
         }, [authToken]);
 
-        const handlePost = (title, body) => {
-          const now = new Date();
-          const date = `${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-          setPosts([
-            {
-              date,
-              title,
-              body,
-              author: (teacher && teacher.name) || "新股 先生",
-              pinned: false,
-            },
-            ...posts,
-          ]);
+        // 5-27 真接 backend POST /api/v1/announcements（spec §7.15 老师公告 4 端实装）
+        // ComposeNoticeModal 改成传 {title, body, scope} 对象（scope: "all"|"male"|"female"）
+        // 失败抛 → modal 内部显示错误，不关闭 modal 让老师 retry
+        const handlePost = async (input) => {
+          if (!authToken) throw new Error("未登录");
+          const created = await window.tomoshibiApi.createAnnouncement(
+            { title: input.title, body: input.body, scope: input.scope },
+            authToken,
+          );
+          // refetch 列表 — 拿 author_teacher_name + created_at 的服务器值，比本地构造更准
+          try {
+            const data = await window.tomoshibiApi.listAnnouncements(authToken);
+            const items = (data && data.items) || [];
+            const adapted = items.map((a) => {
+              const d = new Date(a.created_at);
+              return {
+                date: `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
+                title: a.title,
+                body: a.body_summary,
+                author: a.author_teacher_name,
+                scope: a.scope,
+                _id: a.id,
+                _backend: true,
+              };
+            });
+            setPosts(adapted);
+          } catch (e) {
+            // refetch 失败不影响 — 老师能看到自己刚发的 modal 已关
+            console.warn("[InfoPage] 投稿後 refetch 失败", e);
+          }
           setComposing(false);
+          return created;
         };
 
         return (
@@ -20258,6 +20310,28 @@
         const T = window.RYO;
         const [title, setTitle] = React.useState("");
         const [body, setBody] = React.useState("");
+        // 5-27: 配送 scope — backend AnnouncementCreateIn.scope: "all" | "male" | "female"
+        const [scope, setScope] = React.useState("all");
+        const [submitting, setSubmitting] = React.useState(false);
+        const [errorMsg, setErrorMsg] = React.useState("");
+        const handleSubmit = async () => {
+          if (!title.trim() || submitting) return;
+          setSubmitting(true);
+          setErrorMsg("");
+          try {
+            await onSubmit({
+              title: title.trim(),
+              body: body.trim(),
+              scope,
+            });
+          } catch (e) {
+            setErrorMsg(
+              (e && e.body && e.body.detail && e.body.detail.message) ||
+                "公告发送失败 — backend 接続不可 / 权限不足，请稍候再試",
+            );
+            setSubmitting(false);
+          }
+        };
         return (
           <div
             onClick={onClose}
@@ -20373,8 +20447,62 @@
                     }}
                   />
                 </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: T.ink3,
+                      fontWeight: 600,
+                      letterSpacing: 1,
+                      marginBottom: 6,
+                    }}
+                  >
+                    配送対象（scope）
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {[
+                      { k: "all", label: "全寮生" },
+                      { k: "male", label: "男寮のみ" },
+                      { k: "female", label: "女寮のみ" },
+                    ].map((o) => (
+                      <button
+                        key={o.k}
+                        onClick={() => setScope(o.k)}
+                        style={{
+                          flex: 1,
+                          padding: "8px 12px",
+                          background: scope === o.k ? T.cobalt : T.surface,
+                          color: scope === o.k ? "#fff" : T.ink2,
+                          border: `1px solid ${scope === o.k ? T.cobalt : T.lineStrong}`,
+                          borderRadius: 8,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          fontFamily: "inherit",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {errorMsg && (
+                  <div
+                    style={{
+                      padding: "8px 12px",
+                      background: T.dangerSoft,
+                      color: T.danger,
+                      border: `1px solid ${T.danger}`,
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                  >
+                    {errorMsg}
+                  </div>
+                )}
                 <div style={{ fontSize: 11, color: T.ink3 }}>
-                  投稿後、学生の iOS App に push 通知が送信されます。
+                  投稿後、対象寮生の iOS / Android App に push
+                  通知が送信されます。
                 </div>
               </div>
               <div
@@ -20389,6 +20517,7 @@
               >
                 <button
                   onClick={onClose}
+                  disabled={submitting}
                   style={{
                     padding: "8px 16px",
                     background: T.surface,
@@ -20398,29 +20527,28 @@
                     fontFamily: "inherit",
                     fontSize: 13,
                     fontWeight: 600,
-                    cursor: "pointer",
+                    cursor: submitting ? "not-allowed" : "pointer",
                   }}
                 >
                   キャンセル
                 </button>
                 <button
-                  onClick={() =>
-                    title.trim() && onSubmit(title.trim(), body.trim())
-                  }
-                  disabled={!title.trim()}
+                  onClick={handleSubmit}
+                  disabled={!title.trim() || submitting}
                   style={{
                     padding: "8px 16px",
-                    background: title.trim() ? T.cobalt : T.line,
+                    background: !title.trim() || submitting ? T.line : T.cobalt,
                     color: "#fff",
                     border: "none",
                     borderRadius: 8,
                     fontFamily: "inherit",
                     fontSize: 13,
                     fontWeight: 700,
-                    cursor: title.trim() ? "pointer" : "not-allowed",
+                    cursor:
+                      !title.trim() || submitting ? "not-allowed" : "pointer",
                   }}
                 >
-                  投稿
+                  {submitting ? "送信中..." : "投稿"}
                 </button>
               </div>
             </div>
@@ -23197,6 +23325,9 @@
         // Task #6 真接口对接: backend が返した本日の点呼 session 一覧（null = 未 fetch / [] = backend 不可達 / [...] = 取得済）
         const [todaySessions, setTodaySessions] = React.useState(null);
         const [backendReachable, setBackendReachable] = React.useState(null); // null / true / false
+        // 5-27 spec §11.8: WebSocket 连接状态 — connecting / connected / disconnected / failed
+        // 非点呼会话进行中时为 null（不显示 banner）
+        const [wsStatus, setWsStatus] = React.useState(null);
         // Task #6 第 6 步: 申請 pending list (backend Application[]) - 担当教師宛て未承認
         const [backendApplications, setBackendApplications] =
           React.useState(null);
@@ -23394,67 +23525,83 @@
           };
         }, [authToken]);
 
-        // Task #6 第 5 步: backend 点呼会话进行中时连 WebSocket /ws/teacher
-        // 实时收 checkin / outstay_new 事件，更新 students state。
-        // demo 模式 (sessionId=null) 不建立 WS 连接。
+        // Task #6 第 5 步 + 5-27 spec §11.8: backend 点呼会话进行中时连 WebSocket /ws/teacher
+        // 实时收 checkin / outstay_new / override 事件，更新 students state。
+        // 5-27 改造：用新 openTeacherWS（指数退避重连 + onStatus 回调）+ wsStatus state 驱动 banner
+        // demo 模式 (sessionId=null) 不建立 WS 连接，wsStatus 保持 null
         React.useEffect(() => {
-          if (!session || !session.sessionId || !authToken) return;
-          let ws;
+          if (!session || !session.sessionId || !authToken) {
+            setWsStatus(null);
+            return;
+          }
+          // backend 实时 override broadcast 的 status 是 backend 字段值
+          // present / late / absent / exempt_range — 映射回 frontend ok / late / absent / exempt
+          const _backendStatusToFront = (s) =>
+            s === "present" ? "ok" : s === "exempt_range" ? "exempt" : s; // late / absent 原样
+          let handle;
           try {
-            ws = window.tomoshibiApi.openTeacherWS(authToken, (event) => {
-              // event.type: 'checkin' | 'outstay_new' | 'override' | ...
-              if (event.type === "checkin" && event.student_id) {
-                setStudents((list) =>
-                  list.map((s) =>
-                    s.key === event.student_id
-                      ? {
-                          ...s,
-                          status: event.status === "late" ? "late" : "ok",
-                          checkinAt:
-                            event.checked_at ||
-                            new Date().toTimeString().slice(0, 8),
-                        }
-                      : s,
-                  ),
-                );
-              } else if (event.type === "outstay_new" && event.student_id) {
-                setStudents((list) =>
-                  list.map((s) =>
-                    s.key === event.student_id
-                      ? {
-                          ...s,
-                          pending: {
-                            reason: event.reason || "外泊申請",
-                            submittedAt:
-                              event.submitted_at ||
-                              new Date().toTimeString().slice(0, 5),
-                          },
-                        }
-                      : s,
-                  ),
-                );
-              } else if (event.type === "override" && event.student_id) {
-                setStudents((list) =>
-                  list.map((s) =>
-                    s.key === event.student_id
-                      ? {
-                          ...s,
-                          status: event.status || s.status,
-                          override: {
-                            reason: event.reason || "",
-                            by: event.by || "別端末",
-                          },
-                        }
-                      : s,
-                  ),
-                );
-              }
-            });
+            handle = window.tomoshibiApi.openTeacherWS(
+              authToken,
+              (event) => {
+                // event.type: 'checkin' | 'outstay_new' | 'override' | ...
+                if (event.type === "checkin" && event.student_id) {
+                  setStudents((list) =>
+                    list.map((s) =>
+                      s.key === event.student_id
+                        ? {
+                            ...s,
+                            status: event.status === "late" ? "late" : "ok",
+                            checkinAt:
+                              event.checked_at ||
+                              new Date().toTimeString().slice(0, 8),
+                          }
+                        : s,
+                    ),
+                  );
+                } else if (event.type === "outstay_new" && event.student_id) {
+                  setStudents((list) =>
+                    list.map((s) =>
+                      s.key === event.student_id
+                        ? {
+                            ...s,
+                            pending: {
+                              reason: event.reason || "外泊申請",
+                              submittedAt:
+                                event.submitted_at ||
+                                new Date().toTimeString().slice(0, 5),
+                            },
+                          }
+                        : s,
+                    ),
+                  );
+                } else if (event.type === "override" && event.student_id) {
+                  setStudents((list) =>
+                    list.map((s) =>
+                      s.key === event.student_id
+                        ? {
+                            ...s,
+                            status:
+                              _backendStatusToFront(event.status) || s.status,
+                            override: {
+                              reason:
+                                event.override_reason || event.reason || "",
+                              by: event.by || "別端末",
+                            },
+                          }
+                        : s,
+                    ),
+                  );
+                }
+              },
+              (status) => setWsStatus(status),
+            );
           } catch (err) {
             console.warn("[App] WebSocket 连接失败", err);
+            setWsStatus("failed");
           }
           return () => {
-            if (ws && ws.readyState === WebSocket.OPEN) ws.close();
+            if (handle && typeof handle.close === "function") handle.close();
+            setWsStatus(null);
           };
         }, [session, authToken]);
 
@@ -23542,7 +23689,7 @@
           room: e.room_no,
           name: e.name,
           dorm: dormHint,
-          // backend base_status は init/present/late/absent/exempt_range → 内部 status へ map
+          // backend base_status: init/present/late/absent/exempt_range → 内部 status 映射
           status:
             e.base_status === "present"
               ? "ok"
@@ -23550,8 +23697,11 @@
                 ? "exempt"
                 : e.base_status === "init"
                   ? "unknown"
-                  : e.base_status, // late / absent はそのまま
+                  : e.base_status, // late / absent 原样保留
           checkinAt: e.checked_in_at,
+          // 5-27: 该学生最新 RollCallEvent.id — OverrideModal 调 PATCH /events/{id} 用
+          // init 状态学生没 event = null（OverrideModal 收到 null 走 demo 路径）
+          lastEventId: e.last_event_id || null,
           health: null,
           pending: null,
           override: null,
@@ -23715,7 +23865,45 @@
           }
         };
         const openOverride = (s) => setOverrideTarget(s);
-        const saveOverride = (patch) => {
+        // 5-27: 真接 backend PATCH /api/v1/rollcall/events/{event_id}
+        // backend 收到后自动跑 spec §11.4 改判扣分联动 + WebSocket broadcast {type:"override"}
+        // 状态映射：frontend ok/late/absent/exempt → backend present/late/absent/exempt_range
+        // overrideTarget.lastEventId 为 null（init 状态学生）或 demo 模式时走旧本地 state 路径
+        const _frontStatusToBackend = (s) =>
+          s === "ok" ? "present" : s === "exempt" ? "exempt_range" : s; // late / absent 原样
+        const saveOverride = async (patch) => {
+          const target = overrideTarget;
+          // 真接 backend：有 lastEventId + authToken + sessionId 时调 PATCH
+          if (
+            target &&
+            target.lastEventId &&
+            authToken &&
+            session &&
+            session.sessionId
+          ) {
+            try {
+              await window.tomoshibiApi.patchRollcallEvent(
+                target.lastEventId,
+                {
+                  to_status: _frontStatusToBackend(patch.status),
+                  reason: patch.reason,
+                },
+                authToken,
+              );
+              setToast({
+                type: "ok",
+                msg: `${target.name} の状態を ${patch.status} に変更`,
+              });
+              // 注：backend 异步 WebSocket broadcast 也会回推 setStudents，这里乐观更新保证 UI 即时反映
+            } catch (err) {
+              console.warn("[App] patchRollcallEvent 失败 → 仅本地更新", err);
+              setToast({
+                type: "warn",
+                msg: "backend 改判保存失败 → 表示のみ更新",
+              });
+            }
+          }
+          // 本地 state 同步（成功 / 失败 / demo 模式都更新一次，保证 UI 反应）
           setStudents((list) =>
             list.map((s) =>
               s.key === overrideTarget.key
@@ -23932,6 +24120,7 @@
               sessionActive={session && !liveMode}
               onLogout={logout}
               backendReachable={backendReachable}
+              wsStatus={wsStatus}
               onSwitchTeacher={() => {
                 setRoute("select-teacher");
                 setTeacher(null);

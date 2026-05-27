@@ -138,6 +138,11 @@
       const qs = q.length ? `?${q.join("&")}` : "";
       return request("GET", `/rollcall/sessions${qs}`, undefined, token);
     },
+    // 5-27 新增：教师改判单条 event — OverrideModal 调
+    // body = { to_status: "present"|"late"|"absent"|"exempt_range", reason: str, evidence?: str }
+    // backend 收到后自动跑 spec §11.4 改判扣分联动 + WebSocket broadcast {type:"override"}
+    patchRollcallEvent: (event_id, body, token) =>
+      request("PATCH", `/rollcall/events/${event_id}`, body, token),
 
     // ── Teachers ──
     listTeachers: (token) => request("GET", "/teachers/", undefined, token),
@@ -230,10 +235,20 @@
   };
 
   // ── WebSocket helper (D3 路线: /ws/teacher 收 checkin / outstay_new 事件) ──
-  // 用法: const ws = window.tomoshibiApi.openTeacherWS(token, (event) => { ... });
-  api.openTeacherWS = (token, onMessage) => {
+  // 用法: const handle = window.tomoshibiApi.openTeacherWS(token, onMessage, onStatus?)
+  //       handle.close()         — 关闭并停止重连
+  //       handle.getStatus()     — 当前状态字符串
+  //
+  // onStatus 回调参数: "connecting" / "connected" / "disconnected" / "failed"
+  //   - connecting   = 首次建立或重连中
+  //   - connected    = 握手成功
+  //   - disconnected = 服务器断开 / 网络断 → 自动重连中
+  //   - failed       = 重连超过 max 次（默认 8 次）放弃
+  //
+  // 重连策略（spec §11.8）— 指数退避：1s / 2s / 4s / 8s / 16s / 30s（封顶）/ 30s / 30s
+  // close() 显式调用后不再重连
+  api.openTeacherWS = (token, onMessage, onStatus) => {
     const base = window.API_BASE || "/api/v1";
-    // base 形如 'http://host:port/api/v1' or '/api/v1'
     let wsUrl;
     if (base.startsWith("http")) {
       wsUrl = base.replace(/^http/, "ws").replace(/\/api\/v1$/, "/ws/teacher");
@@ -241,18 +256,93 @@
       const proto = location.protocol === "https:" ? "wss:" : "ws:";
       wsUrl = `${proto}//${location.host}/ws/teacher`;
     }
-    const ws = new WebSocket(`${wsUrl}?token=${encodeURIComponent(token)}`);
-    ws.addEventListener("message", (ev) => {
-      try {
-        onMessage(JSON.parse(ev.data));
-      } catch (e) {
-        console.error("[tomoshibiApi WS] parse error", e, ev.data);
+    const fullUrl = `${wsUrl}?token=${encodeURIComponent(token)}`;
+
+    const MAX_ATTEMPTS = 8;
+    const BACKOFF_MS = [1000, 2000, 4000, 8000, 16000, 30000, 30000, 30000];
+
+    let ws = null;
+    let closedByUser = false;
+    let attempt = 0;
+    let retryTimer = null;
+    let currentStatus = "connecting";
+
+    const setStatus = (s) => {
+      currentStatus = s;
+      if (typeof onStatus === "function") {
+        try {
+          onStatus(s);
+        } catch (e) {
+          console.error("[tomoshibiApi WS] onStatus callback error", e);
+        }
       }
-    });
-    ws.addEventListener("error", (e) => {
-      console.error("[tomoshibiApi WS] error", e);
-    });
-    return ws;
+    };
+
+    const connect = () => {
+      if (closedByUser) return;
+      setStatus(attempt === 0 ? "connecting" : "connecting");
+      try {
+        ws = new WebSocket(fullUrl);
+      } catch (e) {
+        console.error("[tomoshibiApi WS] new WebSocket throw", e);
+        scheduleReconnect();
+        return;
+      }
+      ws.addEventListener("open", () => {
+        attempt = 0;
+        setStatus("connected");
+      });
+      ws.addEventListener("message", (ev) => {
+        try {
+          onMessage(JSON.parse(ev.data));
+        } catch (e) {
+          console.error("[tomoshibiApi WS] parse error", e, ev.data);
+        }
+      });
+      ws.addEventListener("error", (e) => {
+        console.warn("[tomoshibiApi WS] error", e);
+        // error 后通常会触发 close，重连交给 close handler
+      });
+      ws.addEventListener("close", (ev) => {
+        if (closedByUser) return;
+        console.warn(
+          `[tomoshibiApi WS] closed code=${ev.code} reason=${ev.reason} → reconnect`,
+        );
+        setStatus("disconnected");
+        scheduleReconnect();
+      });
+    };
+
+    const scheduleReconnect = () => {
+      if (closedByUser) return;
+      if (attempt >= MAX_ATTEMPTS) {
+        setStatus("failed");
+        console.error(
+          `[tomoshibiApi WS] reconnect 放弃（已尝试 ${MAX_ATTEMPTS} 次）`,
+        );
+        return;
+      }
+      const delay = BACKOFF_MS[Math.min(attempt, BACKOFF_MS.length - 1)];
+      attempt += 1;
+      console.warn(`[tomoshibiApi WS] ${delay}ms 后第 ${attempt} 次重连...`);
+      retryTimer = setTimeout(connect, delay);
+    };
+
+    connect();
+
+    return {
+      close: () => {
+        closedByUser = true;
+        if (retryTimer) clearTimeout(retryTimer);
+        if (ws && ws.readyState !== WebSocket.CLOSED) ws.close();
+        setStatus("disconnected");
+      },
+      getStatus: () => currentStatus,
+      // 兼容旧代码 — ws.close() / ws.readyState 直接用
+      get readyState() {
+        return ws ? ws.readyState : WebSocket.CLOSED;
+      },
+    };
   };
 
   window.tomoshibiApi = api;

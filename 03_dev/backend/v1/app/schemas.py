@@ -438,6 +438,9 @@ class RollCallBoardEntryOut(BaseModel):
     room_no: str
     base_status: str  # init / present / late / absent / exempt_range
     checked_in_at: Optional[datetime]
+    # 该学生在本场次最新一条 RollCallEvent 的 id — frontend OverrideModal
+    # 调 PATCH /events/{id} 改判时用。init 状态学生没 event = None
+    last_event_id: Optional[UUID] = None
 
 
 class RollCallBoardOut(BaseModel):

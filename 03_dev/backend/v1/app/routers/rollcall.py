@@ -405,6 +405,7 @@ def session_board(
                 room_no=s.room_no,
                 base_status=st,
                 checked_in_at=e.checked_in_at if e else None,
+                last_event_id=e.id if e else None,
             )
         )
 
