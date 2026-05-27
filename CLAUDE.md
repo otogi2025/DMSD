@@ -105,7 +105,7 @@ git 状态确认（git status / 残留 / 未 push / stash）→ **会话结尾�
 | skill | 干嘛 |
 |---|---|
 | **ac-radar** | 实时 AC 入试素材捕获（写中央 inbox + DMSD raw 段）|
-| **anti-ai-flavor** | 反 AI 味（每次回复前 6 类自检 + 5 铁律）|
+| **anti-ai-flavor** | 反 AI 味（每次回复前 8 类自检 + 5 铁律 — 5-27 从 6 类升 8 类加 G 自指失败 + H 编造数据）|
 | **cc-comm-rules** | 跟 itsuki 沟通的强制规则 |
 | **session-coord** | 多终端会话协作板（防文件冲突）|
 | **patina / patina-max** | 去 AI 味重写（AC 叙事文档慎用 patina-max — 违反默认底线第 4 条）|
@@ -132,7 +132,7 @@ git 状态确认（git status / 残留 / 未 push / stash）→ **会话结尾�
 
 ### 全局自动继承（`~/.claude/hooks/`，注册在 `~/.claude/settings.json`）
 
-- `anti-ai-flavor-precheck.sh` — UserPromptSubmit 注入 6 类反面提醒
+- `anti-ai-flavor-precheck.sh` — UserPromptSubmit 注入 8 类反面提醒（5-27 升级）
 - `pre-bash-destructive-block.sh` — 拦 `rm -rf` / `git reset --hard` / `git push --force` 类危险命令（warn 模式，不阻断）
 - `session-start-env-diff.sh` — SessionStart 对账实际装的工具 vs `~/.claude/我的环境.html`
 - `session-start-coord-check.sh` — SessionStart 多终端协作板提醒（**DMSD 项目下静默退出**，由 dmsd-startup §2 接管）
@@ -172,7 +172,7 @@ itsuki 名下 4 个项目（大学入試 / DMSD / Tango / QTS）互通的中央�
 - 英文 / 日语 / 缩写第一次出现必翻译 + 一句解释
 - 不假设任何先验知识
 - 教练身份 — 解释「为什么」「是什么」，不只是「怎么做」
-- anti-ai-flavor 6 类自检 + 5 铁律（起因 / 改哪+这是啥 / 改的内容 / 每对象解释 / 下一步推荐）
+- anti-ai-flavor 8 类自检（A 术语裸露 / B 缺上下文 / C 复杂条件句 / D 网络黑话 / E 字面化执行 / F 客套腔 / G 自指失败 / H 编造数据）+ 5 铁律（起因 / 改哪+这是啥 / 改的内容 / 每对象解释 / 下一步推荐）
 - 主动诊断 — 看到 itsuki 做法低效就当场点出，给具体原因
 - 提选项用 A/B/C，不用甲乙丙
 - 触发词「说人话」= 重写上一条 / 「单词白名单」= 列英文词让 itsuki 选 / 「翻车」= 记 inbox 做 5 字段分析
