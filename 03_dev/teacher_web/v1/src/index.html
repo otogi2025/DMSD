@@ -10033,12 +10033,12 @@
       window.TIMEOUT_MS = 30 * 60 * 1000; // 30 min — auto return to /login/select-teacher
       window.TIMEOUT_WARN_MS = 25 * 60 * 1000; // 25 min — show "あと 5 分" toast
       window.LATE_THRESHOLD_SEC = 180; // 3 min — late auto transition
-      // FC-024 修復: window.SHARED_PASSWORD = '12345678' ハードコード削除（v1.0 上線前必修）
-      // LoginScreen は POST {API_BASE}/sessions/teacher で backend 真実認証へ。
-      // 開発時 standalone HTML 単跑時は backend を別途起動し API_BASE を絶対 URL に変更すること。
+      // FC-024 修复: 删 window.SHARED_PASSWORD = '12345678' 明文密码（v1.0 上线前必修）
+      // LoginScreen 改 POST {API_BASE}/sessions/teacher 走 backend 真实认证。
+      // 开发时 standalone HTML 单跑要单独起 backend 并把 API_BASE 改成绝对 URL。
       window.API_BASE = "/api/v1";
       // DEMO 模式開关: URL ?demo=1 → DemoConsole/NFC sim 表示。生产 (no flag) → DEMO scaffold 隐藏。
-      // §7.3.8 + memory project_demo_scaffolds_to_remove_before_v1: v1.0 上线必删 — URL gate で安全保留。
+      // §7.3.8 + memory project_demo_scaffolds_to_remove_before_v1: v1.0 上线必删 — URL gate 安全保留。
       window.DEMO_MODE = new URLSearchParams(location.search).has("demo");
       window.APP_VERSION = window.DEMO_MODE ? "v0.1.0-demo" : "v1.0.0-alpha";
 
@@ -10262,8 +10262,8 @@
         const locked = now < lockUntil;
         const lockLeft = Math.max(0, Math.ceil((lockUntil - now) / 1000));
 
-        // FC-024 修復後: window.tomoshibiApi.teacherLogin で backend 真実認証。
-        // err.status 401 → 失敗カウント、err.status undefined (ネットワーク失敗) → 「サーバーに接続できません」表示。
+        // FC-024 修复后: 通过 window.tomoshibiApi.teacherLogin 走 backend 真实认证。
+        // err.status 401 → 计失败次数 / err.status undefined（网络故障）→ 显示「サーバーに接続できません」UI 文案。
         const [submitting, setSubmitting] = React.useState(false);
         const submit = async (e) => {
           e.preventDefault();
@@ -11194,8 +11194,8 @@
         backendReachable, // Task #6 真接口对接: null 未知 / true 接通 / false 不可達
       }) {
         const T = window.RYO;
-        // Task #6 (5-27): WS demo 模拟を削除、backendReachable 真状态で indicator を切替。
-        // backendReachable は App() の rollcallTodaySessions fetch 結果由来 (authToken 変化時更新)。
+        // Task #6 (5-27): 删 WS demo 模拟，按 backendReachable 真实状态切 indicator。
+        // backendReachable 来自 App() 的 rollcallTodaySessions fetch 结果（authToken 变化时更新）。
         const wsOk = backendReachable !== false; // null/true → green / false → red
         const [q, setQ] = React.useState("");
         const [focused, setFocused] = React.useState(false);
@@ -11770,7 +11770,7 @@
               舎監 {teacher.name} 先生
             </div>
 
-            {/* Task #13 spec §5.6: 先ほど終了した点呼の総結を再閲覧する入口 */}
+            {/* Task #13 spec §5.6: 重新查看刚结束的点呼总结入口 */}
             {lastEnded && onShowSummary && (
               <div
                 style={{
@@ -13886,10 +13886,10 @@
     </script>
     <script type="text/babel" data-source="components/roll-call-summary.jsx">
       // Task #13 — 「点呼総結」中層頁 (spec §5.6 + WEB_DESIGN_LOG §11.1 P0)
-      // backend GET /rollcall/sessions/:id/summary が返した 4 区块を表示:
+      // 显示 backend GET /rollcall/sessions/:id/summary 返回的 4 区块:
       //   absent / late / health_issue / exempted_outstay
-      // 「回主页」按钮で /roll-call landing に戻る。RollCallLanding の lastEnded card にも
-      // 「看本场結果」入口あり (再閲覧用)。
+      // 「回主页」按钮回 /roll-call landing。RollCallLanding 的 lastEnded card 也有
+      // 「看本场結果」入口（再次查看用）。
 
       function RollCallSummary({ summary, lastEnded, onBack }) {
         const T = window.RYO;
@@ -14118,7 +14118,7 @@
       type="text/babel"
       data-source="components/registration-code-panel.jsx"
     >
-      // Task #14 学生登録コードパネル
+      // Task #14 学生登录码（学生登録コード）面板
       // 来源：WEB_DESIGN_LOG §11.9.1 + system_features.md §7.16 (5-03 itsuki 拍板)
       // 目的：App Store 公开后通过 6 位有效期 5 分钟的码做学生注册 gate
       // 权限：仅寮務部長 / 寮務課長 / 管理係 三个角色可访问（其他教师 403）
@@ -14289,7 +14289,7 @@
               App Store 公開後の登録ゲート
             </div>
 
-            {/* 現在のコード block */}
+            {/* 当前注册码 block */}
             <div
               style={{
                 background: T.surface,
@@ -14454,7 +14454,7 @@
               </div>
             )}
 
-            {/* 使い方 block */}
+            {/* 用法说明 block */}
             <div
               style={{
                 background: T.surface,
@@ -23394,9 +23394,9 @@
           };
         }, [authToken]);
 
-        // Task #6 第 5 步: backend session 進行中は WebSocket /ws/teacher に接続して
-        // checkin / outstay_new 等の事件をリアルタイム受信、students state を更新。
-        // demo 模式 (sessionId=null) の場合は WS 接続しない。
+        // Task #6 第 5 步: backend 点呼会话进行中时连 WebSocket /ws/teacher
+        // 实时收 checkin / outstay_new 事件，更新 students state。
+        // demo 模式 (sessionId=null) 不建立 WS 连接。
         React.useEffect(() => {
           if (!session || !session.sessionId || !authToken) return;
           let ws;
@@ -23451,7 +23451,7 @@
               }
             });
           } catch (err) {
-            console.warn("[App] WebSocket 接続失敗", err);
+            console.warn("[App] WebSocket 连接失败", err);
           }
           return () => {
             if (ws && ws.readyState === WebSocket.OPEN) ws.close();
