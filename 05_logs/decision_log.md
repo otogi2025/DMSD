@@ -24,6 +24,69 @@
 
 ## 决策记录(倒序)
 
+## 2026-05-27 — teacher_web 老师登录方式：共用密码 → 实名账户（列表 → 选名字 → 输密码）
+
+**之前的决策**（demo 期遗留，与 4-30 §3.4 拍板矛盾）: web 实装 = 共用账户「tomoshibi」+ 共用密码 + 登录后 SelectTeacherScreen 中间页选「今日担当者」。所有老师共享 1 个密码。但 backend `Teacher` model 4-30 之前就已经是「每老师独立 login_id / password_hash / failed_count / locked_until」结构 — web 端 UX 简化造成的实装漂移。
+
+**新的决策**: 实名账户登录方式。LoginScreen 2 屏合一：
+1. 屏 1 = 调 `GET /teachers/public`（无认证、只返 id+name+assigned_dorm+last_login_at）列男寮/女寮老师卡片
+2. 屏 2 = 选中老师后输该老师密码 → POST `/sessions/teacher` 用 `teacher_id` (UUID) + password
+3. 砍 SelectTeacherScreen 中间页（实名账户登录后身份已确定）
+4. 新建 TeachersAdminPage（Shell nav 加「教員アカウント管理」入口，仅寮务管理 3 角色可见），支持创建（name + login_id + email + 初始 password + role + 担当寮）+ 删除（自删拦截 + 最后一个寮务管理角色拦截 LAST_ADMIN）
+
+**为什么改**:
+1. 修违反 §3.4 已拍板（4-30）的漏洞 — 「役职・寮監・寮務部教师 = 每人单独账号密码 R3」+「前台不允许自助注册任何教师账号 / 必须先用已存在的教师账号登录 → 后台加 / 删」。demo 期共用密码方案直接违反这两条
+2. 实物事实优先 — 真实学校就是每老师 1 个账号 1 个密码。「新宿管来了就加，离职就删」是学校实际人事流程。共用密码 ≠ 学校真实
+3. itsuki 拍板「老师登录跟学生登录没关系」— 不要从 iOS 学生流程对齐复用。老师 vs 学生是 2 个独立的设计空间（用户群 / 验证方式 / 登录入口 / 设备共用度都不同）
+4. 安全性 — 共用密码 = 单点泄漏全员失守 / 共用账号没 audit log（不知道哪个老师操作的）。实名账户 = 个人责任 + 操作可追溯
+
+**这个改动影响了什么**:
+- backend `teachers.py` 加 3 个接口（GET /public 无认证 / POST 创建 / DELETE 删除）+ 引入 `TEACHER_ADMIN_ROLES = {寮務部長, 寮務課長, 寮監}`（不含学習担当）
+- backend `auth.py` POST /sessions/teacher 支持 `teacher_id` (UUID) 或 `login_id` 登录（前者新增、后者 backward-compat）
+- backend `schemas.py` 加 `TeacherPublicOut` / `TeacherCreateIn` + 改 `TeacherLoginIn`
+- frontend `index.html` LoginScreen 完整重写 + 砍 SelectTeacherScreen 中间页 + 新建 TeachersAdminPage + Shell nav 按角色过滤
+- frontend `client.js` 加 3 个 helper（listTeachersPublic / createTeacher / deleteTeacher）+ teacherLogin 改 body 形式
+- 5 个设计档案同步：`system_features §3.4` 加 Web 登录 UX 段 / `BACKEND_DESIGN_LOG §5.1.2b` 加 4 接口表 / `WEB_DESIGN_LOG §5.1 / 5.2 / 5.3` 旧版标废除 + 加 §5.1' / 5.2' / 5.3' 新版 / `DESIGN_BRIEF` /login 行拆 2 + 加 /teachers-admin 行 / `propose §4` 砍 anonymous_suggestion / anonymous（连带「砍匿名建議」决策）
+- 安全设计：CC 主动选「GET /teachers/public 只返 id (UUID) 不返 login_id」防爬虫枚举攻击 — codex 后期肯定
+- 旧 select-teacher route 砍 + auto-logout 30 分钟超时改回 login（不是 select-teacher）+ Shell 「切替」按钮 = logout
+
+**相关**:
+- `05_logs/raw/2026-05-27_老师实名账户登录.md`（7 节详细叙事 + AC 模式 1+2+5+6 顶级素材）
+- `system_features.md §3.4`（4-30 拍板的原则、5-27 加 Web 登录 UX 段）
+- commit `b9f237c`（backend）+ `b444aad`（frontend）+ `1904b18`（设计档案）+ `aba0659`（codex 审查修）
+- codex 5.5 xhigh 审查发现 3 🔴 阻塞 bug（timedelta import 缺 / 「学習担当」越权 / 没拦最后一个 admin）— 全修，剩余 4 项 itsuki 决策 / 大工程进 TODO §🚀-G
+
+**事后回看**(几个月后补填):
+
+---
+
+## 2026-05-27 — 砍 /community 页「匿名建議」tab + 3 条假数据 + propose 字段方案残留
+
+**之前的决策**(2026-04-29): system_features §7.14 itsuki 拍板砍「学生掲示板 + 社区功能整体 + 匿名建議 + 学生→帖子通报」4 项，留「リクエスト曲」。
+
+**新的决策**: 5-27 itsuki 一句「匿名功能要删了」+ 选「A 砍匿名建議 tab 保留其他」→ 清理 web + propose 残留：
+- `index.html` `/community` tabs 数组砍 `["anon", "匿名建議", ...]`
+- `index.html` PostCard 组件 `isAnon` 逻辑全删
+- `index.html` 3 条 anon 假帖子（C030/C031/C032）删
+- `01_specs/teacher_web_v1.0_backend_models_propose.md §4` CommunityPost board_type 砍 `anonymous_suggestion` / author_type 砍 `anonymous` / §4.3 砍「匿名 author_id 怎么处理」决策项
+
+**为什么改**:
+1. 4-29 拍板砍后，web 代码 + CC 5-27 凌晨写的 propose 草案都有残留 — CC 没去查 spec 已经拍板砍了什么。itsuki 5-27 一句话指出残留
+2. 实质 = 修「CC 凌晨没查 spec 就提议字段方案」的漂移，不是新决策
+
+**这个改动影响了什么**:
+- web `/community` 页从 5 tabs（掲示板 / リクエスト曲 / 忘れ物 / 匿名建議 / 宅配）变 4 tabs
+- propose 文档 §4 字段方案精简
+
+**相关**:
+- `02_design/system_features.md §7.14`（2026-04-29 原拍板）
+- `05_logs/raw/2026-05-27_老师实名账户登录.md` 第 2 节
+- commit `b444aad`（web 砍）+ `1904b18`（propose 文档清）
+
+**事后回看**(几个月后补填):
+
+---
+
 ## 2026-05-26 — teacher_web Vite + TypeScript 实装版整体废弃，回归 Ryō standalone 主线
 
 **之前的决策**(2026-05-02): 5 端代码层 v0.8 启动时立项 teacher_web Vite + TypeScript + Zustand + React 18 实装版 — 入口 `App.tsx` + 4 标签页（Applications / Study / RollCall / Teachers）+ Shell 导航壳 + `api/client.ts` 6 大模块对接 backend。共用 design system（Ryō / Cobalt / Noto Sans JP）从 4-21 Round 2 demo 继承。

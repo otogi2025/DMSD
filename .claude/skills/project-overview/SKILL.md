@@ -26,24 +26,24 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ## 0. 摘要
 
-### 0.1 体量（2026-05-27 晚 git ls-files 全统计 — 1194，含 2 未 commit raw）
+### 0.1 体量（2026-05-27 晚 git ls-files + 未 commit 文件统计 — 1197）
 
 | 顶级目录 | 文件数 | 占比 | 主要内容 |
 |---|---|---|---|
 | `99_archive/` | 620 | 52% | 归档物（5-26 晚段-4 加 `2026-05-26_teacher_web_vite实装作废/` 13 文件 = App.tsx + main.tsx + Shell.tsx + pages × 5 + store/auth.ts + vite_root_index.html + package.json + lock + vite.config.ts + tailwind.config.js + postcss.config.js + tsconfig × 2 — itsuki 拍板 Vite + TS 实装版整体废弃 + 5-26 晚加 `2026-05-26_ios_v1_demo_snapshot/` 42 文件（iOS demo 后门删除前快照） + 5-26 早 3 个 iOS 上架配置归位 + 5-22 加 2026-05-21_pre_fix + 2026-05-22_tomoshibi_appstore_fork 残余 + 5-21 teacher_web/demo 整组 158 文件归档 + 早期 GPT 对话 / throwaway iOS / demo 4-28 / 5-12 深夜大整理 / cloud agent 退役 / 5-02 handoff × 4 等）|
-| `03_dev/` | 389 | 33% | 代码 + 设计 LOG（5-27 早段-2 git mv `student_ios/_archived_DESIGN_BRIEF_Round1_context.md` → 99_archive/2026-04-22_ios_round1_design_brief/ 减 1 文件 + 5-26 晚段-4 删除 Vite 实装 13 文件 → 全归档 → teacher_web 从 v0.8 阶段回退到 v0.3 Ryō standalone 主线 + 5-26 加 3 个 iOS 上架配置归位 + 5-24 加 RollCallAPI.swift）（backend / iOS Foundation / Android Compose / teacher_web v1 Ryō standalone（原 Vite+TS 实装版已废）/ 点呼机骨架）|
+| `03_dev/` | 391 | 33% | 代码 + 设计 LOG（含未 commit iOS `APIErrorPresenter.swift` + `project.pbxproj.bak3_before_apierrorpresenter_register` 2 文件；5-27 早段-2 git mv `student_ios/_archived_DESIGN_BRIEF_Round1_context.md` → 99_archive/2026-04-22_ios_round1_design_brief/；5-26 晚段-4 删除 Vite 实装 13 文件 → 全归档 → teacher_web 回到 Ryō standalone 主线）|
 | `05_logs/` | 113 | 9.5% | raw 61（5-16/19/21/22/22-iOS/24/25/25-AC学习清单/26/26-dmsd-startup/26-vite废弃+polish回滚/27-teacher_web_v1.0_深夜推进/27-ios审查/27-全项目审查/27-anti-ai-flavor双层防御立项/27-整理inbox+8类升级）/ AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）|
 | `00_admin/` | 21 | 1.8% | 7 顶级 md + hooks 子目录 — 5-21 加 `系统bug专栏.md` + `codex_audit_prompt.md`（详见 §1.2）|
 | `01_specs/` | 14 | 1.2% | 规格冻结区（含 5 .pages 不可读）|
 | `.claude/` | 11 | 1.0% | 8 skill + 1 agent + 2 配置（settings / session-coord.config）— **5-26 加 `dmsd-startup/SKILL.md`**（启动 SOP 集中）/ 5-19 加 `.claude/agents/security-reviewer.md`（详见 §1.7.5）|
 | `06_assets/` | 8 | 0.8% | 4 icon + 术语表.html + 学习内容清单.html + bus_schedule + bus_notice 真实样本 |
-| 根目录 | 6 | 0.6% | CLAUDE / README / CHANGELOG / LICENSE / .gitignore / .graphifyignore |
+| 根目录 | 7 | 0.6% | CLAUDE / README / PROJECT_GUIDE / CHANGELOG / LICENSE / .gitignore / .graphifyignore |
 | `02_design/` | 3 | 0.3% | system_features + hardware + flow（bus_schedule 5-08 挪到 06_assets/）|
 | `docs/` | 3 | 0.3% | Matt Pocock 套件 per-repo 配置（agents/{issue-tracker,triage-labels,domain}.md）|
 | `bin/` | 3 | 0.3% | sync-check + create_local_dev_symlink + check_overview_drift（5-19 加）|
 | `04_ops/` | 2 | 0.2% | MAC_MINI_SETUP + wifi_survey_howto |
 | `.github/` | 1 | 0.1% | **5-21 加** workflows/test.yml — GitHub Actions CI 自动跑测试的工作流定义 |
-| **总计** | **1194** | 100% | |
+| **总计** | **1197** | 100% | |
 
 > **5-16 → 5-22 重大变动**：5-21 teacher_web/demo 整组 158 文件从 `03_dev/teacher_web/demo/` 挪到 `99_archive/2026-05-21_teacher_web_demo_archived/` —— 所以 `03_dev/` 从 546 降到 395，`99_archive/` 从 273 升到 431。同期加 `.github/workflows/test.yml`（CI）+ `00_admin/系统bug专栏.md` + `00_admin/codex_audit_prompt.md` + `.claude/agents/security-reviewer.md`。
 >
@@ -62,29 +62,29 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ### 0.3 五条关键发现
 
-1. **`teacher_web/demo/` 和 `teacher_web/v1/` 100% 完全相同**（13 个 jsx + 全部 vendor + 字体的 MD5 全部匹配）。v1 是 4-30 从 demo 整体复制后**没有任何改动**。预期之内（v1.0 启动起点），但启动改动时要小心 git 分叉。
+1. **第一次了解项目的入口已拆层**：`README.md` 负责 GitHub 门面；`PROJECT_GUIDE.md` 负责新人导览；本 skill 负责文件级地图。
 
-2. **5 个 .pages 原稿** + **2 个 .docx** 都已经被对应的 .md 取代，但原稿没清理。CC 永远读不出内容，留着只占空间。
+2. **teacher_web 当前主线已明确**：5-26 废弃 Vite + TypeScript 实装版，当前权威源是 `03_dev/teacher_web/v1/src/index.html` standalone HTML（Ryō 风格）+ `src/api/client.js`。
 
-3. **`progress_overview.md` 和 draft 错位 11 天没合并**（4-20 起草、5-1 仍未合）— 教授看 GitHub 时"做到哪了"的信息陈旧。
+3. **后端 v1 已从 P0 骨架推进到 v1.0 功能补齐阶段**：13 router 注册，61 endpoint 可 import；discipline / cleaning / front_desk / WebSocket 已在 5-27 推进。
 
-4. **后端 v1 P0 已完成 70%**（出寮届 / 食堂 Excel / SendGrid / 认证全跑通），但**点呼 / 学习 / 役职审批**三块路由完全缺，需后续 P1 会话补。
+4. **iOS / Android / teacher_web / backend / 点呼机 5 端代码层都已启动**，但成熟度不同：backend 和 iOS 更靠前，Android 真后端接入与测试、点呼机真机模块仍待续。
 
-5. **iOS Foundation 层已冻结成熟**（17 文件 1861 行），3 个核心 Feature（Auth/Home/Community 共 5K+ 行）已真实装；Apply / MyPage v2 待 Agent D/E。**整体结构远比 4-28 demo 完成度高**。
+5. **历史归档和当前主线必须分开读**：`99_archive/`、`05_logs/raw/`、`.pages` / `.docx` / `.510Z` 多数不是新人入口；找当前状态优先看 `WIP.md` + `progress_overview.md`。
 
 ### 0.4 跨组横向洞察（详见 §8）
 
-- **demo ↔ v1 复制策略**（2026-05-06 独立 repo 模式退役后）：backend 选了"重写"（schema 全新）✅；teacher_web 选了"复制不动"⏳；iOS / Android 真代码全部在 DMSD 内（曾经的独立 repo + cloud agent 同步三件套已归档到 `99_archive/2026-05-06_cloud_agent_退役/`）。
+- **demo ↔ v1 复制策略**（2026-05-06 独立 repo 模式退役后）：backend 选了"重写"（schema 全新）✅；teacher_web 经过 Vite 试做后 5-26 回到 Ryō standalone HTML 主线；iOS / Android 真代码全部在 DMSD 内（曾经的独立 repo + cloud agent 同步三件套已归档到 `99_archive/2026-05-06_cloud_agent_退役/`）。
 - **五层 DESIGN_LOG 体系生效**：BACKEND / IOS / ANDROID / WEB 四端 DESIGN_LOG 都活跃且与 system_features.md 同步链清晰；2026-05-08 加点呼机 ROLLCALL_DEVICE_DESIGN_LOG 成第 5 个 — 是 4-29 大整理后的最大资产，5-08 收口。
 - **AC 叙事供应充足**：80+ 条 #AC候选 + 6 个 per-version 叙事（v0.3-0.7）+ 4 个 problem_solving 精品版 + 3 个 03_dev/_DESIGN_LOG 工程化叙事 — 数量上远超 AC 自我推荐书所需。
 
 ---
 
-## 1. 第 1 组：根目录 + 00_admin（27 文件 — 2026-05-22 校准 37→27，废弃归档项从计数剔除）
+## 1. 第 1 组：根目录 + 00_admin（28 文件 — 2026-05-27 加 PROJECT_GUIDE.md，新人导览入口）
 
 **统计**：✅ 22 / 📦 7 / ⚠️ 3 / ❓ 4
 
-### 1.1 根目录（5 文件）
+### 1.1 根目录（6 文件）
 
 | 文件 | 作用 | 状态 | 备注 |
 |---|---|---|---|
@@ -92,6 +92,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `CLAUDE.md` | AI 项目指令权威源（每会话必读） | ✅ | 4-30 沟通规则 #6 升级 |
 | `CHANGELOG.md` | 18 tag 全程 + 版本号单源真值 | ✅ | 教授会看 |
 | `README.md` | 项目对外介绍（4-30 名字 Tomoshibi 定名） | ✅ | 4-29 起 GitHub public |
+| `PROJECT_GUIDE.md` | 第一次了解项目的人用的新手导览 — 项目是什么 / 5 端结构 / 当前状态 / 推荐阅读顺序 | ✅ | 2026-05-27 加，README 指向它 |
 | `LICENSE` | All Rights Reserved + AC 后 4 方向评估 | ✅ | 不常改 |
 
 ### 1.2 00_admin/AI 协作 + 项目治理（2026-05-22 校准 — 7 顶级 md + hooks 子目录，5-21 加 2 个长期治理文件）
@@ -238,13 +239,14 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `.swiftpm/` / `.venv/` / `node_modules/` / `__pycache__/` 等 | 语言生态自动建 | 各语言工具链 |
 | `**/.DS_Store` | macOS 元数据 | macOS Finder |
 
-#### 1.8.3 主目录顶层文件（6 项）
+#### 1.8.3 主目录顶层文件（7 项）
 
 | 文件 | 用途 |
 |---|---|
 | `CHANGELOG.md` | 版本号单源真值（教授会看）|
 | `CLAUDE.md` | AI 项目指令权威源（每会话必读）|
 | `README.md` | 项目对外介绍（GitHub public，教授会看）|
+| `PROJECT_GUIDE.md` | 新人导览入口（第一次了解项目先读这里）|
 | `LICENSE` | All Rights Reserved + AC 后 4 方向评估 |
 | `.gitignore` | git 忽略规则（含上面所有 .gitignore 排除项）|
 | `.graphifyignore` | graphify 忽略规则（防 vendor 字体污染图谱）|
@@ -398,10 +400,10 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 
 ---
 
-## 4. 第 4 组：03_dev/teacher_web（175 文件 — 2026-05-22 校准 333→175，**demo/ 158 文件 5-21 已挪到 `99_archive/2026-05-21_teacher_web_demo_archived/`**）
+## 4. 第 4 组：03_dev/teacher_web（161 文件 — 2026-05-27 校准，当前主线 = Ryō standalone HTML）
 
-**统计**：顶级 2（DESIGN_BRIEF + WEB_DESIGN_LOG）+ demo 157 + v1 174 = 333
-**核心发现 5-19 校准**：v1 已不是「100% 与 demo 相同」 — v1 真重构中（Vite + TS 配置文件 + src 多 26 文件），原表 §4.3 描述失效。详见 §4.3
+**统计**：顶级 2（DESIGN_BRIEF + WEB_DESIGN_LOG）+ v1 159。
+**核心状态**：5-26 itsuki 拍板废弃 Vite + TypeScript 实装版（归档到 `99_archive/2026-05-26_teacher_web_vite实装作废/`），teacher_web 当前权威主线回到 `v1/src/index.html` standalone HTML（Ryō 风格）+ `src/api/client.js` backend helper。
 
 ### 4.1 顶层（2 文件）
 
@@ -410,50 +412,38 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `DESIGN_BRIEF.md` | teacher_web 给设计师的需求简报 + 实装跟踪 | ✅ | Round 2/3 handoff |
 | `WEB_DESIGN_LOG.md` | ⭐ teacher_web 设计决策权威源（18 项时间线 + Tomoshibi 命名 + Ryo 涼配色方案） | ✅ | 改 teacher_web 业务代码前必查 |
 
-### 4.2 demo/（159 文件 = 8 根 + 15 src + 134 vendor / 字体 / icon + 2 同名子）
+### 4.2 demo/（已归档）
 
-| 文件类 | 一句话作用 | 状态 | 备注 |
-|---|---|---|---|
-| `Tomoshibi_v3_single.html`（32MB 单文件）| demo day U 盘带去现场放映用的离线单 HTML | 📦 | v1 不需要 → 可删 |
-| `build_single_file.py` / `rebuild.command` / `打包单文件.command` | 把多文件 demo 打包成单 HTML 的脚本链 | 📦 | v1 改 server-render 后过期 → 可删 |
-| `demo_server.py` | demo 用的假后端（mock 3 个 endpoint：/checkin / /events/latest / /api/server-info） | 📦 | v1 改用真 FastAPI / 架构思路保留参考 |
-| `tomoshibi`（无后缀 CLI）| 7 子命令的 bash 命令行工具（demo 时启动 / 重启等） | 📦 | 质量高 / v1 架构改了过期 |
-| `开发模式跑.command` | demo 一键启动脚本（双击跑） | 📦 | v1 不需要 |
-| `NFC_DEMO_SETUP.md` | demo day 现场怎么用 iPhone Shortcuts 模拟 NFC 的说明书 | 📦 | AC 素材 |
-| `src/index.html` | demo 前端主入口（HTML + 字体 CSS + 内联 jsx + React/Babel CDN 加载） | ✅ | demo 跑起来从这个文件开始 |
-| `src/components/*.jsx`（14 文件）| 13 个真 React 组件 + theme（主题）+ accounts（账号 mock） | ✅ | 理解 teacher_web 架构的核心 |
-| `src/{vendor,_assets,assets}/`（134 文件）| 第三方库 + 字体 + icon — React + Babel + Noto Sans JP / JetBrains Mono 130 woff2 + 1 icon = 9.9MB | 📦 | vendor 不动 |
+5-21 teacher_web demo 整组 158 文件已挪到 `99_archive/2026-05-21_teacher_web_demo_archived/`。当前 `03_dev/teacher_web/` 下不再保留 `demo/` 主线目录。
 
-### 4.3 v1/（174 文件 — 2026-05-19 校准 155→174，Vite + TypeScript 重构进行中）
+### 4.3 v1/（159 文件 — standalone HTML 主线）
 
-> **5-19 重大更新**：原表写「v1 = demo 整体复制后未改动」**已失效**。v1 实际在重构 — 加了 14 个 Vite + TypeScript 配置文件 + src/ 多 26 文件。具体 v1 跟 demo 差异需要 deep read 才能列清楚（标记为 ⏳ 等下次大整理）。
+> **5-27 校准**：当前不是 Vite + TypeScript 主线。Vite 实装版已整体归档；`v1/` 保留 standalone HTML 运行链 + vendor 字体/React/Babel 资源 + `_legacy` 旧组件参考。
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
-| `README.md` | v1 启动前要满足的条件清单 | ⚠️ | 4-29 写 / v1.0 开工前要 review |
-| `package.json` + `package-lock.json` | Node.js 依赖清单 + 锁定版本（npm install 用） | ✅ | Vite + TS 重构后加 |
-| `vite.config.ts` | Vite 构建工具配置（dev server 端口 / build 输出等） | ✅ | Vite = 现代前端构建工具，替代 demo 的 CDN 加载 |
-| `tsconfig.json` + `tsconfig.tsbuildinfo` | TypeScript 配置 + 增量编译缓存 | ✅ | TS = TypeScript（带类型的 JS） |
-| `tailwind.config.js` + `postcss.config.js` | Tailwind CSS 框架 + PostCSS 配置 | ✅ | Tailwind 工具类样式 |
-| `index.html` | Vite 项目入口 HTML | ✅ | 跟 demo 的 src/index.html 不同 — 这是项目根 |
-| `tomoshibi` + `开发模式跑.command` + `build_single_file.py` + `rebuild.command` | 从 demo 复制的脚本（v1 重构后可能过期） | 📦 | v1 开发流程改 Vite 后可清理 |
-| `src/`（160 文件） | v1 真代码 + vendor — demo src 是 134 文件，v1 多 26 文件 | ⏳ | 具体多了啥需要 deep read |
+| `README.md` | v1 启动说明（当前已按 standalone 主线修过） | ✅ | 新会话看 teacher_web 先读 |
+| `src/index.html` | 老师 Web 当前主入口 — Ryō 风格 24 学生座席表 + 实时点呼仪表盘 + 多页面逻辑 | ✅ | 当前权威主线 |
+| `src/index.css` | standalone HTML 配套样式 | ✅ | 与 `src/index.html` 同步 |
+| `src/api/client.js` | 5-27 接后端的 JavaScript helper（rollcall / discipline / cleaning / front_desk / announcements 等） | ✅ | 浏览器直接用 |
+| `src/api/client.ts` | TypeScript 版 client 残留参考 | ⚠️ | 当前运行主线用 `client.js` |
+| `src/components/_legacy/*.jsx`（14 文件）| 旧 React 组件参考（accounts / app / roll-call / shell 等） | 📦 | 只读参考，不是当前入口 |
+| `src/vendor/` + `src/_assets/` + `src/assets/` | React/Babel vendor + 字体 + icon 资源 | ✅ | standalone HTML 依赖 |
+| `tomoshibi` + `开发模式跑.command` + `demo_server.py` | 本地启动 / 静态服务辅助脚本 | ✅ | 5-26 修过 demo_server 死链 |
+| `build_single_file.py` + `rebuild.command` + `打包单文件.command` | 单文件打包链 | ⚠️ | 上线前需确认是否仍保留 |
 
-**v1.0 启动建议清单**（按顺序）：
-1. 删 demo 复用的 build/single-file 脚本（v1 不用）
-2. 改 `theme.jsx`：删 ACCOUNTS / TEACHERS / ROSTER seed 改 fetch API
-3. 改 `shell.jsx`：5 角色不同菜单（NAV 数组 role-based filter）
-4. 改 `login.jsx`：删 teacher/1234 硬编码改真认证
-5. 改 `live-roll-call.jsx`：/events/latest poll 换 WebSocket
-6. 改 `app.jsx`：state 初始化改 fetch API
-7. 补充 Tier 1 剩余页面（外泊 / 帰省 / 帰国 / records / search / 健康申报 / 请假流程）
+**当前 v1.0 推进重点**：
+1. 保持 standalone HTML 主线，不再回到已归档的 Vite + TypeScript 实装版
+2. 继续把页面接到 FastAPI 后端 helper
+3. 按 5 角色权限和真实业务规则补齐页面状态
+4. 上线前清理 demo-only scaffold 和过期脚本
 
 ---
 
 ## 5. 第 5 组：03_dev/student_ios + student_android + rollcall_device + LATEST.md（67 + 80 + 10 + 1 文件 — 2026-05-22 校准 ios 66→67）
 
 **统计**：✅ 31 / 📦 4 / ⚠️ 6 / ❓/⏳ 13
-**核心发现**：Foundation 层已冻结成熟（17 文件 1861 行）；3 个 Feature 已真实装；Apply / MyPage 待 Agent D/E
+**核心发现**：iOS SwiftUI 项目已在 `03_dev/student_ios/v1/` 主线推进，Foundation / Network / Features 结构成型；5-27 自主审查修过 1 处 force unwrap，另有少量架构性问题入 TODO。
 
 ### 5.1 顶层 + demo（8 文件）
 
@@ -572,7 +562,7 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 | `learning_path.md` | itsuki 学习哲学 + 已走的路 — AC 自我推荐书素材 | ✅ | 最后 4-13 / 4-10 后新学的 NFC / Swift / 硬件未追记 |
 | `project_evolution.md` | 项目重大转折记录（每次 = 转折点 + 起因 + 影响） | ✅ | 4 次已记 / 最后 4-13 / 待补"第 5 次转折" = demo 完成情况 |
 
-### 6.2 05_logs/raw/（60 文件 — 5-22~5-27 新增 12：5-22 iOS fork + 5-22 海关 + 5-24 iOS bug + 5-25 drift + session-coord + 5-25 AC 学习清单起草 + 5-26 中枢 + 5-26 dmsd-startup + 5-26 vite 废弃 + 5-27 teacher_web 深夜推进 + 5-27 iOS 审查 + 5-27 全项目审查 + 5-27 anti-ai-flavor 双层防御立项）
+### 6.2 05_logs/raw/（61 文件 — 5-22~5-27 新增 13：5-22 iOS fork + 5-22 海关 + 5-24 iOS bug + 5-25 drift + session-coord + 5-25 AC 学习清单起草 + 5-26 中枢 + 5-26 dmsd-startup + 5-26 vite 废弃 + 5-27 teacher_web 深夜推进 + 5-27 iOS 审查 + 5-27 全项目审查 + 5-27 anti-ai-flavor 双层防御立项 + 5-27 老师实名账户登录）
 
 | 文件 | 这天发生了啥 | AC 候选密度 |
 |---|---|---|
