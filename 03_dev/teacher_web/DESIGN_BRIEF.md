@@ -4,7 +4,7 @@
 > **建立**：2026-04-21 by [Code-Agent]（原为 Claude Design 任务书 v1）
 > **2026-04-21 晚更新**：Round 2 Claude Design 产出已落盘本目录，itsuki 拍板"就按这个版本来"。
 > **2026-05-26 大调整**：Vite + TypeScript 实装版（5-02 立项）废弃归档到 `99_archive/2026-05-26_teacher_web_vite实装作废/`。回到 Ryō standalone 主线。当天跑过一次 `frontend-design` skill polish（米白和纸 / 朱色 / 明朝体）但 itsuki 不喜欢已回滚 — 设计层面回到 4-21 Round 2 原版。
-> **权威源**：`v1/src/index.html`（7700+ 行 standalone）+ `v1/src/_legacy/*.jsx`（14 个 JSX 组件源 — 原 round2/ 文件全部塌缩到这里）
+> **权威源**：`v1/src/index.html`（**24041 行** standalone — 5-27 校准，原文档写 7700+ 已严重过时）+ `v1/src/components/_legacy/*.jsx`（14 个 JSX 组件源 — accounts / app / applications / discipline / front-desk / live-roll-call / login / outstay-detail-modal / override-modal / pages-records-search-etc / roll-call-landing / select-teacher / shell / theme — 原文档写 `v1/src/_legacy/` 路径错，实际是 `components/_legacy/`）
 
 ---
 
@@ -16,28 +16,31 @@ Claude Design（claude.ai/design）产出的 Round 2 原型已 handoff + 落盘�
 
 **2026-05-26 polish 尝试** — 当天跑过 `frontend-design` skill 提了「Quiet Luxury Japanese Editorial」方向（米白和纸 + 朱色 + 明朝体 + 纹理），itsuki 看完不喜欢已回滚。Polish 内容跟方向论证看 commit 历史 + 5-26 raw log。
 
-## 2. 本目录文件清单（2026-05-26 后）
+## 2. 本目录文件清单（2026-05-27 校准 — 修 5-26 后多处 drift）
 
 ```
 teacher_web/
 ├── DESIGN_BRIEF.md                  # 本文件
 ├── WEB_DESIGN_LOG.md                # Web 専属设计 log
 └── v1/                              # 实装目录（standalone HTML + Ryō polish）
-    ├── 开发模式跑.command            # 双击 → 起 python http.server 8787 + 自动开浏览器
-    ├── tomoshibi                    # CLI（./tomoshibi start | stop | status | rebuild | pack）
+    ├── 开发模式跑.command            # 双击 → 起 `python3 -m http.server 8787` + 自动开浏览器（demo_server.py 端点失效）
+    ├── tomoshibi                    # CLI（./tomoshibi start | stop | status | rebuild | pack）— start 走 `python3 demo_server.py`（demo_server.py 端点正常）⚠️ 跟 `开发模式跑.command` 不一致
+    ├── demo_server.py               # ⭐ 5-27 校准发现真存在 142 行（之前文档写「死链」错）— 3 端点 /api/server-info + POST /checkin + GET /events/latest（iPhone 快捷指令 NFC demo 用）
     ├── 打包单文件.command            # 双击 → 用 build_single_file.py 打包成 demo 携带单文件
     ├── build_single_file.py         # 把 src/index.html + 所有 assets/vendor inline 成单文件
-    ├── rebuild.command              # 双击 → 把 _legacy/*.jsx 重新内联到 index.html
+    ├── rebuild.command              # 双击 → 把 components/_legacy/*.jsx 重新内联到 index.html
     ├── README.md                    # v1 实装说明 + 怎么打开
     └── src/
-        ├── index.html               # ⭐ Ryō standalone 主入口（7700+ 行，自带所有 CSS/JS）
+        ├── index.html               # ⭐ Ryō standalone 主入口（**24041 行** — 5-27 校准）
         ├── index.css                # 极简 CSS（大部分样式 inline 在 React 组件里）
-        ├── _legacy/                 # ⭐ 14 个 JSX 组件源（theme/login/shell/live-roll-call/override-modal/applications/discipline/accounts/front-desk/outstay-detail-modal/roll-call-landing/select-teacher/app/pages-records-search-etc）
+        ├── components/
+        │   └── _legacy/             # ⭐ 14 个 JSX 组件源（accounts / app / applications / discipline / front-desk / live-roll-call / login / outstay-detail-modal / override-modal / pages-records-search-etc / roll-call-landing / select-teacher / shell / theme）— 5-27 校准发现实际位置是 `components/_legacy/`，原文档写 `_legacy/` 错
         ├── _assets/                 # Noto Sans JP + JetBrains Mono 字体 woff2 本地副本
         ├── assets/                  # tomoshibi-icon.png
         ├── vendor/                  # React 18 + Babel 本地副本（standalone 用）
         └── api/
-            └── client.ts            # 后端真接口对接代码（保留 — 未来 Ryō 接真后端复用）
+            ├── client.js            # ⭐ 5-04 后多次扩 — rollcall / discipline / cleaning / front-desk / announcements 5 类 helper（5-27 补 4 个 announcement helper）
+            └── client.ts            # 416 行 TS 类型版（5-26 Vite 归档前留下，保留未用）
 ```
 
 **已归档（2026-05-26 Vite 实装版废弃）**：`99_archive/2026-05-26_teacher_web_vite实装作废/`

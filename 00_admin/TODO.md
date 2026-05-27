@@ -6,7 +6,7 @@
 > - 和 `progress_overview.md` 的区别: progress_overview 是稳定的章节目录,TODO 是可以频繁增删的任务池
 > - 完成的任务: 在 checkbox 前打 x,隔段时间(每周或每月)批量移到"已完成归档"
 
-**最后更新**: 2026-05-27（深夜 — 14 件 TODO 小活批量清：6 件本来就闭合 TODO 没刷状态 / 7 件真做 / 2 件挂起等拍板。详见 WIP.md 顶部「最后更新」概要）。早些 2026-05-26 晚段-4（§🛠️ 加 §L 新段「teacher_web Vite 废弃 + Ryō polish 回滚残留」5 条 — 写 demo_server.py 恢复 NFC 实时点呼 / 系统bug专栏 FC-025/26/27/28 标 N/A / 未来 polish 候选方向 4 个 / WEB_DESIGN_LOG §7+§10 复核 / DESIGN_BRIEF §3-§8 复核；同时改 §🚧 主会话保留 6 条 A-039（vite 验证 N/A → Ryō standalone 直接验证）+ 改 line 888 ✅ S15 标反转（Vite 实装废弃）+ §K「WIP 加本会话条目」标 ✅ 完成；起因：itsuki 启动 teacher_web 推进 + 看到 Vite 实装版怒怼「不是我的 web」拍板「垃圾归档用 B」+ frontend-design polish 试做后整体不喜欢一句「回滚」全退）。早些 5-26 晚段-2（§🛠️ 加 §K 新段「启动 SOP 集中化 + CLAUDE.md 重写残留」5 条 — 全局环境清单同步 / ~/.claude/ git repo propose 强化 / 其他 5 项目启动 skill / sync-check bin-script 警告 / WIP 加本会话条目；起因：dmsd-startup skill 立项 + DMSD CLAUDE.md 247→190 行重写到 QTS 模式 + 6 项目 CLAUDE.md 加沟通铁律「不主动用英语名词」+ destructive-bash 行为约定 + CLAUDE.md 文档观转变（时间戳冗余禁止））。早些 5-25 晚段（§🛠️ J 加 2 条新待办 — 触发词「翻车」首次实战测试 + inbox 累到 3-5 条后写「整理 inbox」SOP；起因：anti-ai-flavor skill 加第 3 触发词「翻车」单字 + 新建 `~/.claude/skills/anti-ai-flavor/inbox.md` — itsuki 收尾中途立项自我迭代机制）；早些更新：2026-05-25（5-25 drift 修 + session-coord 三层保险会话加 §📊 project-overview 历史欠债 2 条 + §🐚 shell 工具链 quirk 1 条 + §🛠️ J 首次创建 6 条）；2026-05-24 5-22 修漏洞会话补 §🎯 D1-D5 + §📁 / §💾 标 ✅ + 加未 push 37 commit；5-22 §🛰️ 点呼机段配件采购方向反转 — 5-12~16 中国海关查扣 → itsuki 拍板撤回中国海运 → 日本本地买 / 原 11 件淘宝清单 + 2 任务作废 / 加 6 条新待办；2026-05-21 加 §🐞 系统 Bug 专栏入口 131 条 / 清 §⏰ Cloud Design 5-12 过期项；2026-05-14 §🛠️ G + H；2026-05-13 §🛠️ E + F；2026-05-11 §📄；2026-05-08 §📱 + §🛰️ + §🐛<!-- VERSION_OK -->
+**最后更新**: 2026-05-27（早段 — 全项目审查会话加 §🛠️ §N 新段 8 条「全项目审查 backlog」+ 直接修 6 处 Vite 决策漂移 + 物理清 7 个 .DS_Store + git mv `student_ios/_archived_DESIGN_BRIEF_Round1_context.md` 到 99_archive；起因：itsuki 启动「全项目审查 — 每个文件 / 文件关联 / 关联 skill / 内容审查 / project-overview 检查全跑」强调「不要偷懒 + 扫整个项目所有文件 + 不要给我留问题 + 所有问题加 TODO 里」）。早些 5-27 深夜（14 件 TODO 小活批量清：6 件本来就闭合 TODO 没刷状态 / 7 件真做 / 2 件挂起等拍板。详见 WIP.md 顶部「最后更新」概要）。早些 2026-05-26 晚段-4（§🛠️ 加 §L 新段「teacher_web Vite 废弃 + Ryō polish 回滚残留」5 条 — 写 demo_server.py 恢复 NFC 实时点呼 / 系统bug专栏 FC-025/26/27/28 标 N/A / 未来 polish 候选方向 4 个 / WEB_DESIGN_LOG §7+§10 复核 / DESIGN_BRIEF §3-§8 复核；同时改 §🚧 主会话保留 6 条 A-039（vite 验证 N/A → Ryō standalone 直接验证）+ 改 line 888 ✅ S15 标反转（Vite 实装废弃）+ §K「WIP 加本会话条目」标 ✅ 完成；起因：itsuki 启动 teacher_web 推进 + 看到 Vite 实装版怒怼「不是我的 web」拍板「垃圾归档用 B」+ frontend-design polish 试做后整体不喜欢一句「回滚」全退）。早些 5-26 晚段-2（§🛠️ 加 §K 新段「启动 SOP 集中化 + CLAUDE.md 重写残留」5 条 — 全局环境清单同步 / ~/.claude/ git repo propose 强化 / 其他 5 项目启动 skill / sync-check bin-script 警告 / WIP 加本会话条目；起因：dmsd-startup skill 立项 + DMSD CLAUDE.md 247→190 行重写到 QTS 模式 + 6 项目 CLAUDE.md 加沟通铁律「不主动用英语名词」+ destructive-bash 行为约定 + CLAUDE.md 文档观转变（时间戳冗余禁止））。早些 5-25 晚段（§🛠️ J 加 2 条新待办 — 触发词「翻车」首次实战测试 + inbox 累到 3-5 条后写「整理 inbox」SOP；起因：anti-ai-flavor skill 加第 3 触发词「翻车」单字 + 新建 `~/.claude/skills/anti-ai-flavor/inbox.md` — itsuki 收尾中途立项自我迭代机制）；早些更新：2026-05-25（5-25 drift 修 + session-coord 三层保险会话加 §📊 project-overview 历史欠债 2 条 + §🐚 shell 工具链 quirk 1 条 + §🛠️ J 首次创建 6 条）；2026-05-24 5-22 修漏洞会话补 §🎯 D1-D5 + §📁 / §💾 标 ✅ + 加未 push 37 commit；5-22 §🛰️ 点呼机段配件采购方向反转 — 5-12~16 中国海关查扣 → itsuki 拍板撤回中国海运 → 日本本地买 / 原 11 件淘宝清单 + 2 任务作废 / 加 6 条新待办；2026-05-21 加 §🐞 系统 Bug 专栏入口 131 条 / 清 §⏰ Cloud Design 5-12 过期项；2026-05-14 §🛠️ G + H；2026-05-13 §🛠️ E + F；2026-05-11 §📄；2026-05-08 §📱 + §🛰️ + §🐛<!-- VERSION_OK -->
 **当前版本**: 见 `CHANGELOG.md` 顶部 · 单源真值，见 `00_admin/文档同步点清单.md`
 
 > **2026-04-17 归档说明**：`executable_dev_checklist.md` 已归档到 `99_archive/2026-04-12_executable_dev_checklist.md`（内容已过期，功能被本 TODO.md 吸收）。
@@ -308,6 +308,91 @@
 - [ ] **实装第 12 章 — 软件工程** — 7 节（版本控制理论 / 测试 TDD / 设计模式 / 重构 / CI-CD / 可观测性 / 文档驱动开发）/ 约 15+ 条目
 - [ ] **HTML 整体调整** — 9 章 → 13 章，原第 9 章「推荐学习顺序」往后挪到第 13 章 + 阶段 A/B/C 加入新 4 章的优先级 + 排序
 - [ ] **等 itsuki 拍板** — 上面 4 章是否全要 / 哪几节砍 / 顺序调整（信息安全章是否前置到第 9 章因为跟 DMSD 防作弊直接相关）/ 还要加什么新方向（AI / ML / IoT 等 itsuki 可能想要）
+
+### N. 全项目审查残留（2026-05-27 早段加 — itsuki「全项目审查 + 不要偷懒」会话产出）
+
+> **背景**：5-27 早段 itsuki 启动「全项目审查 — 每个文件 / 文件关联 / 关联 skill / 内容审查 / project-overview 检查全跑一遍 + 主目录无编号文件分析 + 各文件夹莫名其妙的文件 + 不要偷懒 + 扫整个项目所有文件 + 不要给我留问题 / 所有问题加 TODO」。CC 一次过扫 1189 文件 + grep 决策关键词 + 比对 SKILL.md §0.1 + 读关键文件 → 直接修 6 处 Vite 决策漂移 + 物理清 7 个 .DS_Store + git mv `student_ios/_archived_DESIGN_BRIEF_Round1_context.md` → 99_archive。详细审查报告 `05_logs/raw/2026-05-27_全项目审查.md`。本段记 CC 修不了的 8 条 backlog。
+
+- [ ] **99_archive/ 顶层 21 个散件归档**（命名 + 子目录结构 itsuki 拍板）— 14 个 `ファイル - 2026-02-17T00:18:58 (1-13).510Z`（Google Drive 早期残件）+ 5 个 .pages 历史原稿（`需要学习的内容_原始.pages` / `learning_process_原始.pages` / `progress_log_原始.pages` / `progress_log_备份版.pages` / `2026-03-08_Folder_Structure_Overview.pages`）+ `2026-04-12_executable_dev_checklist_v0.1.md` 早期 checklist → 建议塞进 `99_archive/2026-02-17_早期文件残件/` 子目录（命名 / 是否分两个子目录 itsuki 决定）
+- [ ] **01_specs/ 4 个 .pages 历史归档**（CC 读不了，要 itsuki Mac 上 Pages.app 操作）— `API_Contract_v0.1.pages` / `IA_UI_v0.1.pages` / `Overview_of_Features_v0.1.pages` / `RollCall_Spec_v0.1.pages` / `rollcall/DMSDv0.1验收脚本.pages`（共 5 个，都已被 .md 取代）→ 建议归档到 `99_archive/2026-02-12_v0.1_spec_pages原稿/`
+- [ ] **`00_admin/2026-04-19_项目审查_backlog.md` 物理归档**（已大量 close，project-overview SKILL.md §1.2 已标 📦 但物理位置还在 00_admin/）→ git mv 到 `99_archive/2026-04-19_项目审查_backlog/`
+- [ ] **跑 `graphify update .` 刷知识图谱**（5-26 vite 废弃 + 物理删 node_modules 81MB 后没刷 → `graphify-out/GRAPH_REPORT.md` Community Hubs 段 vendor React/Babel runtime 重复出现 36 次，因为索引基于 5-26 之前快照）
+- [ ] **`backend/demo/` 目录处置**（5-21 后 backend demo 阶段结束，是否归档 / 删 / 留 — itsuki 拍板）
+- [ ] **`progress_overview.md` 4-17 后大改**（章节级里程碑刷新到 5-27 当下 — 阶段 3-7 状态 / v0.4-v0.8 + 5-27 凌晨 + 早段累积推进 / 加 v0.8 之后 28+ commit 累积表）— 列入文档欠债 WIP 当前焦点 #3
+- [ ] **v0.8 之后累积 28+ commit 未 bump，5-27 干完是否 bump v0.9**（走 version-bump skill 决策树 — CC 有否决权但 itsuki 启动「迭代 / bump / 发版本 / 打 tag」才进入流程）
+- [ ] **加「决策状态扫描 hook」长期 propose**（识别「Vite + TS」/「Phase 1 / Phase 2」/「demo 阶段」等敏感关键词，跟 decision_log 实际状态对比 — 防本次发现的「Vite 5-26 已废，但 4 处当前状态描述没刷」类漂移再发生）
+
+## 🚀 teacher_web v1.0「直接上线」backlog（2026-05-27 审查产出 — 优先级最高）
+
+> **背景**：5-27 晚段-2 itsuki 让 CC 对 teacher_web 做审查 — 目标「让网站达到可以直接上线的水平」。CC 扫了 `WEB_DESIGN_LOG.md` / `DESIGN_BRIEF.md` / `system_features.md` / `v1/src/` 实际目录后**诚实结论**：**目前没到「直接上线」水平**。UI 90% ✅ + Login 真接 backend 1/16 ✅ + 其他 15 个 page 全部假数据 ⏳。本段集中列「要达到直接上线还差什么」。
+>
+> **5-27 backend 状态**：5-27 醒后会话 CC 大批修 backend（8 commits / 9 处 bug + 实装 spec §11.4 改判扣分联动 + spec §7.5 自动扣分 + WebSocket + alembic c1d2e3f4 3 张表 + 8 个新 P0/P1 endpoint）→ **backend 接入就绪，只剩 frontend 调用**。详见 `05_logs/raw/2026-05-27_teacher_web_v1.0_深夜推进.md §9`。
+
+### 🚀-A 5-27 审查已修 drift（CC 自己做掉，不需要决策 — 已闭合）
+
+- [x] ~~**`WEB_DESIGN_LOG.md` §1 速查表 4 处 drift 校准**~~ ✅ 2026-05-27 闭合 — (1) `index.html` 7774 → **24041 行**（5-26 polish + 之后多次推进累积）/ (2) `_legacy/*.jsx` 路径错 → 实际 `components/_legacy/*.jsx`（14 个 jsx 名单全列）/ (3) `demo_server.py` 「死链 / 失效」描述错 → 实际文件真存在 142 行 + `tomoshibi` CLI 调它正常 / (4) A-039 明文密码 🔴 未修 → 实际 5-26 commit `b0bed26` 已删 ✅
+- [x] ~~**`DESIGN_BRIEF.md` §1 + §2 文件清单 drift 校准**~~ ✅ 2026-05-27 闭合 — `index.html` 行数刷 / `components/_legacy/` 路径修 / `demo_server.py` 加进文件清单 / `client.js` + `client.ts` 两个都列出
+- [x] ~~**`BACKEND_DESIGN_LOG.md` §12 改订履历加 5-27 实装行**~~ ✅ 2026-05-27 闭合 — 9 处实装入档（spec §11.4 改判扣分 / WebSocket / 自动扣分 / R4 helper / 3 张新表 / 权限收窄等）
+- [x] ~~**`project-overview/SKILL.md` §3.3 backend/v1/app/ 核心加 `ws_manager.py`**~~ ✅ 2026-05-27 闭合 — 9 → 10 文件 + `deps.py` 加 R4 helper 注记 + `models.py` 表数 13 → 21+
+
+### 🚀-B 真后端对接 — 15 个 page（最大阻塞 — 直接上线必做）
+
+> 当前只有 Login（`/login` LoginScreen `b0bed26` 5-26 已接 `POST /api/v1/sessions/teacher`）真接 backend。其他 15 个 page 全部读 `window.ROSTER_MEN/WOMEN/ACCOUNTS/OUTSTAY_APPS` 等假数据。**backend 已就绪**（5-27 实装完），frontend 接入只剩调用。
+
+#### B-1 优先级 P0（核心 use case — 没接 = 等于没上线）
+
+- [ ] **`/login/select-teacher` SelectTeacher** — 假 `window.TEACHERS` → 调 `client.js listTeachers()` → 接 `GET /api/v1/teachers`
+- [ ] **`/roll-call/live` LiveRollCall 接 backend** — (1) 学生 list `window.ROSTER` → `client.js rollcallSessionBoard(id)` → `GET /api/v1/rollcall/sessions/{id}/board` (2) 点呼開始 → `POST /rollcall/sessions/{id}/start` (3) 点呼終了 → `POST /rollcall/sessions/{id}/end` (4) WebSocket 实时 → `openTeacherWS()` → `WSS /api/v1/ws/teacher`（5-27 backend 已实装）→ 收 `{type:"checkin"/"override"/"outstay_new"}` event setStudents
+- [ ] **`/roll-call` landing 7 天趋势图 + 4 session 类型** — 假 mock → backend `GET /rollcall/sessions/history`（5-26 commit c0a22d1 实装）
+- [ ] **`/applications` 申请センター list + 承認** — `window.OUTSTAY_APPS` → `client.js listApplications()` + `approveApplication(id)` → `GET /applications` + `POST /applications/{id}/approvals`
+- [ ] **`outstay-detail-modal.jsx` 申请详情** — `client.js getApplication(id)` → `GET /applications/{id}`
+
+#### B-2 优先级 P1（次要核心 — 接 backend 已就绪）
+
+- [ ] **`/discipline` 扣分排名** — 假 demerit → `client.js listDemeritEvents()` → `GET /discipline/events`（5-27 backend 实装）
+- [ ] **`/cleaning` 清掃** — 假数据 → `client.js listCleaningAssignments()` → `GET /cleaning/assignments`（5-27 backend 实装）
+- [ ] **`/front-desk` 宅配 + 忘れ物** — 假数据 → `client.js listFrontDeskItems()` → `GET /front-desk/items`（5-27 backend 实装）
+- [ ] **`override-modal.jsx` 手动调整** — `PATCH /api/v1/rollcall/events/{id}`（5-27 实装 spec §11.4 改判扣分联动，frontend 调用时会自动触发 backend 扣分逻辑）
+- [ ] **学生登録コードパネル** — 假数据 → `client.js refreshRegistrationCode()` / `getCurrentCode()` → `GET /admin/registration-code/current` + `POST /refresh`（5-03 backend 已实装）
+- [ ] **`/records` 签到历史** — 假数据 → 接 backend rollcall history endpoint
+- [ ] **shell topbar 全局搜索** — `window.ROSTER_ALL` → `client.js searchStudents(q)` → 接 backend 搜索（accounts endpoint 范围）
+
+#### B-3 优先级 P2（backend 未实装 — 强做 = 假接通 = 不诚实）
+
+> itsuki 5-27 拍板「假接通 = 不诚实」— 这些 backend P2 endpoint 没实装前 frontend **不强做**。等 backend 这部分实装到 v1.1 / v1.2。
+
+- [ ] **`/notifications` 通知聚合** — backend P2 endpoint 未实装，frontend 保持假数据状态显示「未来接 backend」
+- [ ] **`/community` 寮掲示板 + リクエスト曲 + 匿名建議** — backend P2 endpoint 未实装
+- [ ] **`/info` 寮内通知 + 行事カレンダー** — backend P2 endpoint 未实装（部分老师公告走 announcements 已有，但 InfoPage UI 不止公告）
+- [ ] **`/accounts` 学生账号管理 list** — backend `GET /accounts` list 未实装（POST /accounts 注册有了，但 list 没了）
+- [ ] **バス時刻** — backend P3 endpoint 未实装
+
+### 🚀-C 缺失 UI（3 个 SkeletonTab + 老师公告发布页）
+
+- [ ] **`/applications/return` 帰国 申请页** — 当前 SkeletonTabBody，仿 OutstayList 模式补 List + Detail + 承認 UI
+- [ ] **`/applications/home` 帰省 申请页** — 同上
+- [ ] **`/applications/taxi` タクシー 申请页** — 同上
+- [ ] **老师公告**「发布页 UI」** — backend 5 端点全有（5-27 client.js 也补 4 helper），但 frontend 没**发布编辑器** UI（A-026 已补 type 但 UI 不在范围）
+
+### 🚀-D 协议 / 体验细节
+
+- [ ] **WebSocket 重连机制 + 「再接続中」banner** — spec §11.8 要求 frontend 断线自动重连 + 状态指示器，当前 `client.js openTeacherWS` 只 `console.error`，UI 没 banner
+- [ ] **`demo_server.py` 双入口不一致修正** — `开发模式跑.command` 调 `python3 -m http.server`（NFC demo 端点失效）vs `tomoshibi` CLI 调 `python3 demo_server.py`（端点正常）→ 选一统一行为。建议都走 `demo_server.py`（demo 用功能完整 + 性能足够）
+- [ ] **spec §11.3 改判时限矩阵** — PATCH /events/{id} 没校验 7 天 / 30 天 / 月结后只读 — 5-27 backend 没实装 / frontend 没限制 UI
+
+### 🚀-E 直接上线 = 还差什么（一句话总结 — 给 itsuki 起床看）
+
+| 维度 | 现状 | 缺什么 |
+|---|---|---|
+| UI 完成度 | 90% ✅ | 3 个 SkeletonTab + 老师公告发布页 UI |
+| 真后端对接 | 1/16（Login）✅ | 15 个 page 调 client.js（backend 已就绪）|
+| WebSocket 实时 | backend 实装 ✅ / frontend 接入 ⏳ | LiveRollCall 接 `openTeacherWS()` + 重连 banner |
+| spec 一致性 | §11.4 改判扣分 ✅ / §7.5 自动扣分 ✅ | §11.3 时限矩阵（backend + frontend 都没做）|
+| 启动脚本 | 双入口行为不一致 ⏳ | 统一到 `demo_server.py` |
+| Demo 兜底 | NFC 实时 demo 失效（启动脚本不调 demo_server.py）⏳ | 修启动脚本（30 秒事）|
+| **总结评估** | 🟡 alpha（demo 给管理员看可以）| 🔴 离「学生 / 老师真用」还差 15 个 page 真接 backend |
+
+→ 估工作量：B-1 / B-2 加起来 12 个 page 真接 backend ≈ 1 个 page 平均 1-2 小时（HTML inline 写 fetch 调用 + 替换 `window.*` 假数据）= 12-24 小时；B-3 + C + D 跳过或 v1.1 做 = 0 小时（不做）；上线最快路径 = **12-24 小时纯接入工作 + 测试 1-2 小时**。
 
 ## 📱 iOS 上架冲刺 — 剩余事项（2026-05-08 状态）
 

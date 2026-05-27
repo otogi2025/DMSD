@@ -4,20 +4,24 @@
 > **建立**：2026-04-21 by [Code-Agent]
 > **最后更新**：2026-05-26（§实装进度速查表大改 + 新 §13 段「2026-05-26 Vite 实装版整体废弃 + Ryō polish 试做被回滚」）。早些：2026-05-21 §实装进度速查表加 A-029 / 2026-05-03 §11.9.1 学生登録コードパネル / 2026-04-22 下午 Round 3 产出交付。
 
-## ⚠️ 实装进度速查表（2026-05-26 改 — Vite 整体废弃后重写）
+## ⚠️ 实装进度速查表（2026-05-27 改 — 修 5-26 后多处 drift）
+
+> 5-27 醒后会话 itsuki 让 CC 审查「能不能直接上线」时发现本表多处 drift（行数 3 倍漂移 / 路径错 / demo_server.py「死链」状态描述错 / 明文密码状态未刷新）→ 全面校准。
 
 | 层 | 进度 | 说明 |
 |---|---|---|
 | 设计文档（本文） | ✅ 100% | 806 行设计 + 5-03 学生登録コードパネル |
-| **当前权威源** | ✅ | **`v1/src/index.html` 7774 行 standalone HTML**（4-21 Round 2 + 4-22 Round 3 产出）+ `v1/src/_legacy/*.jsx` 14 JSX 源 |
+| **当前权威源** | ✅ | **`v1/src/index.html` 24041 行 standalone HTML**（4-21 Round 2 + 4-22 Round 3 + 之后多次 polish 推进累积）+ `v1/src/components/_legacy/*.jsx` 14 JSX 源（accounts / app / applications / discipline / front-desk / live-roll-call / login / outstay-detail-modal / override-modal / pages-records-search-etc / roll-call-landing / select-teacher / shell / theme） |
 | **v1/src/ Vite + TS 实装** | ❌ 5-26 整体废弃 | 归档到 `99_archive/2026-05-26_teacher_web_vite实装作废/`（App.tsx / pages × 5 / store / Shell / package.json / vite.config.ts 等 13 文件）。废弃理由：itsuki 5-26 看到 Vite 实装版「这他妈根本不是我的 web」拍板「垃圾归档」 |
-| `api/client.ts` 后端对接 | 🟡 保留未用 | 6 大模块（auth / applications / announcements / teachers / students / rollcall）— 未来 Ryō standalone 接真后端时复用 |
-| Ryō standalone NFC 实时点呼 | ❌ 失效 | 5-26 退 `demo_server.py`（一直死链）改用 `python3 -m http.server` → POST `/checkin` + GET `/events/latest` 端点失效。要恢复需写 `demo_server.py`（独立任务） |
-| AnnouncementsAPI | ⏳ 0% | **缺老师公告发布页 + API**（A-026 已补 type 但 UI 不在范围） |
+| `api/client.js` + `api/client.ts` | 🟡 保留未用（除 Login） | `client.js`（5-04 后多次扩，含 rollcall / discipline / cleaning / front-desk / announcements 5 类 helper 含 5-27 补的 4 个 announcement helper）+ `client.ts`（416 行 TS 类型版，5-26 归档迁移前留下）— 实装时只有 Login 已真接 backend，其他 15 个 page 全部 `window.*` 假数据 |
+| Ryō standalone NFC 实时点呼 demo | 🟡 双入口不一致 | `demo_server.py` 文件**真存在 142 行**（3 端点 /api/server-info / POST /checkin / GET /events/latest）；但启动脚本 `开发模式跑.command` 调 `python3 -m http.server`（demo 端点失效）vs `tomoshibi` CLI 调 `python3 demo_server.py`（demo 端点正常）— **双击 vs CLI 行为不一致** — 需统一到一个入口 |
+| AnnouncementsAPI | 🟢 backend 5 端点已实装 + client.js 已暴露 | 5-27 backend 5 endpoint 全注册（list / unread-count / detail / replies / replies/{id}）+ client.js 5-27 补 4 helper（updateAnnouncement / getAnnouncementUnreadCount / postAnnouncementReply / deleteAnnouncementReply）— 缺老师公告**发布页 UI**（A-026 已补 type 但 UI 不在范围）|
 | AppStatus 完整性 | 🟡 部分 | `returned` 状态漏（A-017 已修） |
 | Application 字段对齐 | 🟡 部分 | reason / stay_locations / meals_skip / flight_* / withdrawn_at / bus_route_id 全缺（A-018 已修） |
-| demo/ 归档 | 🟡 待归档 | 14 文件 jsx demo SPA（A-032 已归档） |
-| v1/src/index.html 7774 行旧 demo | 🔴 未修 | A-039 明文密码 `12345678` v1.0 上线前必删 |
+| demo/ 归档 | ✅ 已归档 | 14 文件 jsx demo SPA（A-032 已归档） |
+| v1/src/index.html A-039 明文密码 `12345678` | ✅ **5-26 commit `b0bed26` 已删** | LoginScreen 改 fetch `${API_BASE}/sessions/teacher` 真后端 + 删 demo 提示行 — 5-26 已闭合（DESIGN_BRIEF §5 已记） |
+| **5-27 backend 接入准备状态** | ✅ backend 就绪（frontend 等接入） | 5-27 backend 大批修：spec §11.4 改判扣分联动 + spec §7.5 自动扣分（rollcall late 1.0 / absent 2.0 / study_absent 1.5）+ WebSocket `/api/v1/ws/teacher` 实装（broadcast checkin / override / outstay_new 事件）+ alembic c1d2e3f4 加 demerit/cleaning/front_desk 3 张表 + R4 寮过滤 helper + 8 个新 P0/P1 endpoint（discipline 3 + cleaning 3 + front-desk 3 — 含 2 个 list）。frontend 接入只剩**调用** |
+| **直接上线整体评估** | 🔴 **未达成** | UI 90% ✅ / Login 真接 backend 1/16 ✅ / 其他 15 个 page 全部假数据 ⏳ / 3 个 SkeletonTab（帰国 / 帰省 / タクシー）⏳ / WebSocket 重连 banner（spec §11.8）⏳ / demo_server.py 双入口不一致 ⏳ — 详见 TODO §🚀 §N teacher_web 直接上线 backlog |
 
 ---
 
@@ -693,7 +697,7 @@ iPad ★ 路由 **必須**:
 
 | ID | 決策 | 状态 |
 |---|---|---|
-| **W1** | demo R3 → v1 升级 TS+Zustand+Vite | ✅ **升级**（产品级 + 类型安全 + AC 叙事） |
+| **W1** | ~~demo R3 → v1 升级 TS+Zustand+Vite~~ | ❌ **5-26 整体废弃** — Vite 实装版做到 5-26 被 itsuki 拍板「不是我的 web」归档（详见 §12），回到 Ryō standalone 主线 |
 | **W2** | i18n（英 / 中） | ✅ **否**（教师全部日本人） |
 | **W3** | login 同路 vs 分两路 | ✅ **分两路**（`/login/student` + `/login/teacher`） |
 | **W4** | 役职 dorm filter 範囲 | ✅ **跨寮役职 = 全件 / 寮監・学習担当 = 自寮のみ** |

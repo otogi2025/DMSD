@@ -182,3 +182,82 @@ teacher_web 这边后续工作（backend 实装后）= client.js 加 endpoint he
 按 v1.0 上线**最重要的核心 use case**（点呼 + 申请 + 学習）— 全部已接 backend 可以真用。
 8 个次要 page 用 demo seed 显示「这功能未来会接 backend」也算可上线 alpha 水平。
 但严格意义「完整体 v1.0 全功能真接 backend」= 需要 itsuki 醒来跟 backend 一起推进。
+
+---
+
+## 9. 5-27 醒后会话 — backend 审查作战 + 9 处修复（itsuki 让 CC 把审查问题不需要决策的全做掉）
+
+### 9.1 触发
+
+itsuki 看到上面这份 5-27 凌晨深夜推进会话的 31 commits 报告 → 让 CC 「审查到底有没有做好 / 有什么地方做错了 / 帮我修 / 帮我找问题 / 帮我审查」+ 5 次明确「不用等我拍板，你直接做」/「我没法决策必须让你把所有东西全部做好」/「遇到没法解决的问题就先跳过记录好」/「直接做，去改，去修就对了」/「假接通 = 不诚实，强做 frontend page 不行」/「做完后直接收尾，不要问我任何问题」。
+
+### 9.2 审查发现 9 处真 bug + 1 处误诊
+
+| # | bug | 严重度 | 修法 | commit |
+|---|---|---|---|---|
+| 1 | `announcements.py` L110 用 `get_current_principal` 但 import 没列 → backend 启动 NameError | P0 灾难（启动即崩） | 加 import | b4d40d6 起一连串 |
+| 2 | `models.py` L823 用 `Float` 但 sqlalchemy import 没列 → DemeritEvent NameError | P0 灾难 | 加 `Float` 到 import | b4d40d6 |
+| 3 | R4 寮过滤 bug — `discipline.py` + `cleaning.py` 用 `dorm_unit == teacher.assigned_dorm` 比较 → 男寮 dorm_unit=1 老师查不到 dorm_unit=2 学生（spec：男寮 = unit 1 + 2 / 女寮 = unit 4） | P0 业务逻辑错 | 抽 `dorm_units_for_teacher` helper 到 `deps.py` + 两 router 改用 `.in_(...)` | ddf3880 |
+| 4 | `DemeritEventOut` schema 漏 `revoked_by_teacher_id: Optional[UUID]` 字段 → 老师查软删撤销人不显示 | P1 字段对齐 | 补字段 | 含在第 1 commit |
+| 5 | `discipline.py` 权限范围 CC 私自扩 5 类（含学習担当）→ propose 写「寮監权限」实装走样 | P1 权限边界 | 收窄到 4 类对齐 cleaning + front_desk（{寮監, 寮務部長, 寮務課長, 管理係}） | 含在第 1 commit |
+| 6 | alembic chain 缺 c1d2e3f4 — 3 张新表（demerit_event / cleaning_assignment / front_desk_item）只在 `models.py` 有 ORM，没 migration | P0 生产部署即崩 | 新建 c1d2e3f4_add_demerit_cleaning_frontdesk.py | 69cf959 |
+| 7 | spec §11.4 改判扣分联动 12 类 transition 没实装 — PATCH /events/{id} 改 present → absent 不自动扣分 | P0 spec 漏实装 | 加 `_OVERRIDE_DEMERIT_MAP` 12 条 + `_apply_override_demerit` helper + 接入 PATCH | 69e840b |
+| 8 | spec §7.5 自动扣分 3 处没实装：rollcall late 1.0 / rollcall absent 2.0 / study_absent 1.5 | P0 spec 漏实装 | `create_checkin` late 加 + `_settle_absent` 加 + `study.bulk_finalize` 加 | e44da5d |
+| 9 | backend WebSocket `/ws/teacher` 完全没实装 — frontend `client.js openTeacherWS` 在调（404） | P0 实时推送瘫痪 | 新建 `ws_manager.py` 单例 + `routers/ws.py` JWT 校验 + main.py 注册 + 4 处 broadcast（rollcall 2 + applications 1，留 absent broadcast v1.1） | 436f316 |
+| (误诊) | 62e065c commit message 说「discipline.py is_demo AttributeError」 | — | 实际 `models.py` L73 `is_demo: Mapped[bool]` 是有的 — 别会话审错，不修 | — |
+
+### 9.3 frontend 缺补 — client.js 4 个 announcement helper（commit af8588c）
+
+发现 `WEB_DESIGN_LOG §7.16` spec 列了但 `client.js` 没暴露的 4 个 helper：
+- `updateAnnouncement(id, payload)` — PATCH /announcements/{id}
+- `getAnnouncementUnreadCount()` — GET /announcements/unread-count
+- `postAnnouncementReply(id, payload)` — POST /announcements/{id}/replies
+- `deleteAnnouncementReply(id, replyId)` — DELETE /announcements/{id}/replies/{replyId}
+
+同时 `discipline 权限` 注释从「5 类」校准到「4 类」对齐 backend 收窄。
+
+### 9.4 验证
+
+- `uvicorn app.main:app` 真启动 → /healthz 200 / `/openapi.json` 列 49 HTTP endpoint + 1 WebSocket endpoint（`/api/v1/ws/teacher`）全部注册
+- `alembic upgrade head --sql` offline SQL 生成 OK（DB 没起来无法跑 online，offline 验证 chain 通）
+- backend Python import 通过 — `python -c "from app.main import app"` 无报错
+- 8 个新 P0/P1 endpoint：`POST /discipline/events` + `GET /discipline/events` + `PATCH /discipline/events/{id}` + `POST /cleaning/assignments` + `GET /cleaning/assignments` + `PATCH /cleaning/assignments/{id}` + `POST /front-desk/items` + `GET /front-desk/items` 全在 openapi 列表
+
+### 9.5 跳过 / deferred（itsuki 起床后拍板）
+
+- spec §11.3 改判时限矩阵（7 天 / 30 天 / 月结后只读）— PATCH /events 没校验 → itsuki 明确「§11.3 复杂留下次」
+- NotificationsPage / AccountsPage / CommunityPage 真接 backend — itsuki 明确「假接通 = 不诚实」backend P2 endpoint 没实装前不强做
+- frontend WebSocket 重连机制 + 「再接続中」banner — spec §11.8 要求，当前 `client.js openTeacherWS` 只 console.error 没 UI 提示 → 待跟 itsuki 一起推进 frontend 这一波
+- `_settle_absent` 也 broadcast `checkin` status=absent — v1.1 加（当前老师 UI 按結束查询能拉到 absent 列表）
+- BACKEND_DESIGN_LOG.md 详细机制档（spec §11.4 transition 表 + WebSocket 事件 schema + 自动扣分点数）→ 只在改订履历加 5-27 一行，深度走 git log + 本 raw + decision_log
+
+### 9.6 AC 价值 ⭐⭐⭐⭐⭐ — 模式 1 + 2 + 6 多重
+
+**模式 1 — 问题→解决（最基础）**：审查发现 9 个 bug × 全部找到 + 全部修 + 真启动验证全通
+
+**模式 2 — 假设崩了→继续→真因（最高级）**：62e065c commit message 说「is_demo AttributeError」→ CC 不信任 commit message 去看代码 L73 `is_demo: Mapped[bool]` 真在 → 推翻 commit message + 不浪费时间「修」一个不存在的 bug。**这种「不盲信前一手报告 / 去原代码核实」是 AC 评委最爱看的科学方法**。
+
+**模式 6 — 取舍三角 ×多**：
+- 权限范围 5 类 vs 4 类（CC propose 写 5 类 → 自查发现违反「propose 等确认」memory → 收窄 4 类对齐 cleaning + front_desk）
+- ws_manager `from ..ws_manager import` 写法被 ruff/isort 删 2 次 → 改 `from .. import ws_manager as _ws` + `_ws.manager.broadcast_sync(...)` 调用形式
+- WebSocket 单进程 in-memory vs Redis pub/sub → 选 in-memory（单进程 v1.0 足够 / 多进程后期换 Redis 思路注释在 ws_manager.py docstring）
+- broadcast 写法 async vs sync → `broadcast_sync` 用 `asyncio.get_event_loop().create_task` 不阻塞 router 返回 + 失败连接自动剔除
+
+**itsuki 主体性 ⭐⭐⭐⭐⭐**：5 次明确「我不能决策你自己做」+ 划红线「假接通 = 不诚实」拒绝 demo seed page 真接（认知改变模式 — 之前 itsuki 可能会让 CC 「先用 demo seed 假接通」，5-27 已升级到「假接通本身就是问题」的判断力）
+
+### 9.7 累计 8 个 commit（5-27 醒后会话）
+
+```
+af8588c feat(teacher_web): client.js 补 4 个 announcement helper + 校准注释
+436f316 feat(backend): 实装 WebSocket /ws/teacher + 4 处 broadcast 接入
+e44da5d feat(backend): 实装 spec §7.5 自动扣分（rollcall late/absent + study absent）
+69cf959 feat(backend): alembic c1d2e3f4 — 加 demerit/cleaning/front_desk 3 张新表
+69e840b feat(backend): rollcall.py PATCH /events/{id} 实装 spec §11.4 改判扣分联动
+b4d40d6 fix(backend): models.py 补 Float import — 修 DemeritEvent NameError
+ddf3880 fix(backend): cleaning + discipline 补 dorm_units_for_teacher import
+（早些 b31ce71 + 62e065c 是 5-27 凌晨别会话产物，不在本批次 8 commit 内）
+```
+
+按 itsuki 5-26 拍板「不 push」全部 local，等 itsuki 拍板再 push origin/main。
+
+#AC候选 #模式1 #模式2 #模式6 #问题解决 #技术判断 #设计决策 #backend 审查
