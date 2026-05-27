@@ -44,6 +44,7 @@
 		E363F1F7E2C186333C36782E /* Field.swift in Sources */ = {isa = PBXBuildFile; fileRef = D734F5CB9CBD861BD4D82C41 /* Field.swift */; };
 		E4AB919291B8E27C9C51FCA0 /* CommunityStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F52CBEB752D76838E1AA05 /* CommunityStubs.swift */; };
 		E9154BCDF75DB581F5E69D71 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D05A55E214E8CDA0265A09 /* APIClient.swift */; };
+		AC2188E6673E4A1E8567DE96 /* APIErrorPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94F434359A574DD1A999B77D /* APIErrorPresenter.swift */; };
 		F2032E9BF093EAA2F43FEDD8 /* PageHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2DAAF1321A2D7F362D8DAA1 /* PageHeader.swift */; };
 		F55F4FC9A7444F2E2004E521 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 889D1EB8DA1127DE3F18DDA2 /* GlassCard.swift */; };
 		F67686555C566AF6C807A839 /* GlobalOverlays.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3890FA991AB039C6830E6710 /* GlobalOverlays.swift */; };
@@ -97,6 +98,7 @@
 		F2DAAF1321A2D7F362D8DAA1 /* PageHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageHeader.swift; sourceTree = "<group>"; };
 		F5853681D4FAB97B68321735 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F940AC0A65775FF17FF2E93E /* APIError.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = APIError.swift; path = Network/APIError.swift; sourceTree = "<group>"; };
+		94F434359A574DD1A999B77D /* APIErrorPresenter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = APIErrorPresenter.swift; path = Network/APIErrorPresenter.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -188,6 +190,7 @@
 				DF51AA52A5194B1C5D7D389C /* NetworkModels.swift */,
 				F940AC0A65775FF17FF2E93E /* APIError.swift */,
 				B2D05A55E214E8CDA0265A09 /* APIClient.swift */,
+				94F434359A574DD1A999B77D /* APIErrorPresenter.swift */,
 				BCDAD0B01A2AADD023F87358 /* KeychainService.swift */,
 				A98A2FA2E583A7E163AD42DA /* Endpoints */,
 				8FCECCC0D4ADBC0E3D66E3FF /* Mappers */,
@@ -438,6 +441,7 @@
 				F78ED72F17EA51ADFAB3023C /* NetworkModels.swift in Sources */,
 				2E6B616B13B78C6F8B6A5B85 /* APIError.swift in Sources */,
 				E9154BCDF75DB581F5E69D71 /* APIClient.swift in Sources */,
+				AC2188E6673E4A1E8567DE96 /* APIErrorPresenter.swift in Sources */,
 				A91E315FD90EE095FD63D28A /* KeychainService.swift in Sources */,
 				37F8ABE50682337060E571B7 /* ApplicationsAPI.swift in Sources */,
 				AC3916B5FEF9088982F909C8 /* AuthAPI.swift in Sources */,

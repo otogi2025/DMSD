@@ -50,6 +50,47 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+> ⚠️ **2026-05-28 早 8:30 收尾时**：本段已超 5 条上限（当前 7 条 + 本会话 1 = 8 条）— 砍哪 3 条留 itsuki 拍板。建议砍最老的（5-26 晚段-4 / 5-27 凌晨~早段 / 5-27 早段-2）
+
+### 2026-05-28 凌晨 by [MacBook-Pro-Opus 4.7 1M / iOS catch 修 + StayDetail 切真 API + codex 审查全装]
+
+**主题**：⭐⭐⭐⭐⭐ itsuki 启动「推进 iOS 全做」→ CC 扫现状区分真活 vs 已完成（注册码 iOS ✅ / 公告 iOS ✅ 无活）→ 修 TODO §D 2 处 catch + 切回 5-03 漂移的 StayDetail 真 API → itsuki「调用 codex 审查」→ codex 第一次卡住 + itsuki「还没好——」→ CC 诊断 + 重试简化版 → codex 3/5 报告 → CC 识破误判（`$0` 闭包简写被 codex 误读为 `/bin/zsh`）→ itsuki「全都做」→ 实装 6 项（新建 helper + 401 清 token + audit 容错 + 拆 guard + MyPage helper + 文档同步）+ TODO §D + §E 两条 iOS fork 过期项闭合（5-22 归档时实际已同步主项目，悬挂 6 天）
+
+**关键拍板**（itsuki 4 次 + 协作纠错 1 次）：
+- **「今晚全做」** — 4 个候选方向全做的强授权
+- **「他妈的 graphify 是什么？」** — 协作纠错顶级（CC 用了未解释术语违反「不要默认认识英语单词」铁律 + 全局 CLAUDE.md 5-27 加的 8 类自检第 1 类「术语裸露」+ 第 2 类「缺上下文」）
+- **「调用 codex 审查一边」** — 多 AI 协作触发
+- **「A」** — codex 卡住后选「重开简化版」（3 选项 A/B/C）
+- **「全都做」** — 接受 codex 真建议 5 项（剔除 1 个误判后）
+
+**实际改动**（DMSD 6 件 + 工具产物 2 件）：
+| 类别 | 文件 |
+|---|---|
+| 新建 | `03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/APIErrorPresenter.swift`（39 行 — `APIError` 6 case 转日语提示统一 helper）|
+| 改 iOS | `Features/StayList/StayListStubs.swift` — `loadList` 401 改清 `app.authToken = nil` 触发跳登录页 + `StayDetailView.load()` 拆 guard（未登录 vs 非 UUID 分开 toast）+ `audit` 单独 try 容错 + 4 catch 走 helper |
+| 改 iOS | `Features/MyPage/MyPageStubs.swift` — 删账号 catch 9 行 switch → 1 行 helper 调用 |
+| 改 文档 | `IOS_DESIGN_LOG.md` — §速查表 5 项 🟡 → ✅ + §11.9 I11 → ✅ + 最后更新日改 |
+| 改 TODO | `00_admin/TODO.md` — §D 463 + §E 477 两条 iOS fork 过期项闭合（5-22 已归档实际同步完成，悬挂 6 天）|
+| 新建 raw | `05_logs/raw/2026-05-28_ios_codex审查会话.md` — 8 段详细 dump + 工程汇总 + AC 价值 ⭐⭐⭐⭐⭐ |
+| 新建 inbox | iCloud `06_radar_inbox/ac_scratchpad_2026-05-28.md` — 4 信号顶级评分 |
+| 重建 | `graphify-out/graph.json` + `GRAPH_REPORT.md` — 17487 节点 / 35753 边 / 677 文件 |
+| 工具产物（未 commit） | `project.pbxproj`（hook 自动注册 helper +4 行）+ `.bak3_before_apierrorpresenter_register` 备份（不 commit）|
+
+**AC 价值** ⭐⭐⭐⭐⭐：
+- **模式 2 假设崩 顶级 × 2** — codex 一定成功（卡住假设崩）+ CC 不能 verify codex 输出（CC 验证发现误判假设崩）→ 都没放弃 → 重试 + 验证 + 落地
+- **模式 4 v1→v2 演化 顶级** — 错误处理 4 步演化（原始降级 mock → 切回真 API → codex 审查发现风险 → 抽 helper + 401 清 token + audit 容错）
+- **模式 5 认知改变 顶级** — itsuki「graphify 是什么」+「见过 ≠ 知道意思」元认知（hook 提示过 ≠ itsuki 认识）
+- **模式 6 取舍 × 多** — codex 卡住 3 选项 / 401 mock 取舍 / audit 致命非致命 / helper 抽象边界
+- **协作纠错** × 1 顶级 — itsuki 当场质疑 CC 沟通失职
+- **方法论级别** — AI 协作真实形态（不盲信 / fallback / 验证 / 提示词精简）+ 信息边界诚实（CC 主动加注「没真验证 backend，只看了 iOS 注释」）
+
+**残（下次跟进）**：
+- iOS 真没活了 — 学習出席 / rollcall NFC 真接等 backend / Xcode Archive 上架冲刺等 itsuki 操作
+- WIP 8 条超上限 — 等 itsuki 拍板砍 3 条
+- working tree 别会话遗留改动（hardware_design / system_features / Auth / README / PROJECT_GUIDE / 5-27 别会话 raw / pbxproj scheme）— 等别会话自己 commit
+
+详细 raw：`05_logs/raw/2026-05-28_ios_codex审查会话.md`
+
 ### 2026-05-27 晚段-3 / 跨夜到 5-28 凌晨 by [MacBook-Pro-Opus 4.7 1M / 老师实名账户登录改造 + 砍匿名建議 + codex 5.5 xhigh 审查]
 
 - **起因**：itsuki 看到 web 登录页 `localhost:8000` JSON 截图（误以为是 web）→ CC 解释双服务器分离（8000 backend / 8787 frontend）→ itsuki 跟着开浏览器看到 LoginScreen 501 错误 → CC 诊断 API_BASE 相对路径 + 跨域问题 → itsuki 顺势拍板老师登录从「共用密码」改成「实名账户：列表→选名字→输密码」+ 加教师创建/删除管理页 + 砍残留匿名建議 +「老师登录跟学生登录没关系」纠正 CC 默认对齐 iOS 路径 +「做完后让 codex 审查 5.5 xhigh」

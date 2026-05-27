@@ -783,6 +783,7 @@ extension Color {
 
 > **2026-04-30 進捗**：I1-I10 全部拍板。**残**：I11（実物表対応の動的 chain 表示）。
 > **2026-05-27 進捗**：I11 ✅ — `ApprovalChainBuilder.chain(for: kind, isOverseas:)`（`StayListStubs.swift:164-191`）已实装外泊届 3/5 行 + 帰省/帰国 暫定同外泊。帰省/帰国 实物表 evidence 到达后只需调 `holidayChain` 即可。
+> **2026-05-28 进度条样式拍板**：itsuki 推翻原「役职名 chip 链」UI，改成**进度横线 + 无名节点**样式 — `StayListStubs.swift chainDots`。规则：(1) 节点不显示役职名，只用圆点状态色（绿 = approved / 灰 = pending / 红 X = rejected）(2) 节点下方一条横线，approved 数量决定绿色填充比例（公式 `approvedCount / total`）(3) **无论 approve 顺序如何，进度只往右推进**（不按时间倒序，按 chain 顺序填进度）(4) 任一节点 rejected → 进度条变红色。理由 = 役职名密集显示太乱（5 役职留学生 chip 占满宽度），节点风格更直观传达「已通过 N 个 / 总共 N 个」。详细联动 → `02_design/system_features.md §7.2.6`。
 
 | ID | 決策 | 状态 |
 |---|---|---|

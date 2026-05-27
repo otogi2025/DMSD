@@ -1632,19 +1632,12 @@ struct MySettingsView: View {
             try await AccountsAPI.deleteMyAccount()
             // 成功 → 清 token 触发 didSet 同步 Keychain + APIClient
             app.authToken = nil
-        } catch let error as APIError {
-            switch error {
-            case .unauthorized:
-                deleteError = "ログインが必要です。再度ログインしてください。"
-            case .network:
-                deleteError = "通信エラーが発生しました。電波を確認してください。"
-            case let .server(code, _):
-                deleteError = "サーバーエラーが発生しました（コード: \(code)）。時間をおいて再度お試しください。"
-            default:
-                deleteError = "アカウント削除に失敗しました。時間をおいて再度お試しください。"
-            }
         } catch {
-            deleteError = "アカウント削除に失敗しました。時間をおいて再度お試しください。"
+            // 2026-05-27 codex 审查后改：catch 走 helper 统一文案（含 .unprocessable 真 message）
+            deleteError = APIErrorPresenter.userMessage(
+                for: error,
+                fallback: "アカウント削除に失敗しました。時間をおいて再度お試しください。"
+            )
         }
     }
 

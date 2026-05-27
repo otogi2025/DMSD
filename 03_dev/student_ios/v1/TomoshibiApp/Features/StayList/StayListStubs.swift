@@ -473,11 +473,16 @@ struct StayListView: View {
             let raw = try await ApplicationsAPI.listMine()
             apps = raw.map { $0.toStayApplication() }
         } catch APIError.unauthorized {
-            // 401 = 未登录态：用 mock 兜底（跟 line 468 同意图）
-            apps = StayListMock.all
+            // 401 = token 失效：清 authToken 触发 didSet 自动跳登录页
+            // 不再显示 mock 假数据（避免用户以为登录还有效 — 2026-05-27 codex 审查后改）
+            app.authToken = nil
+            apps = []
         } catch {
-            // 真错误：显示提示 + 空 view，不降级假数据（A-037 修复 2026-05-27）
-            loadError = "申請一覧の取得に失敗しました"
+            // 其他错误：用 helper 给日语友好提示 + 空列表（不降级假数据）
+            loadError = APIErrorPresenter.userMessage(
+                for: error,
+                fallback: "申請一覧の取得に失敗しました"
+            )
             apps = []
         }
     }
@@ -562,24 +567,42 @@ private struct StayRow: View {
         }
     }
 
+    /// 进度横线 + 节点样式（2026-05-28 itsuki 拍板把役职名 chip 链改成无名节点）
+    /// 进度比例 = approvedCount / total（无论 approve 顺序，往右推进）
+    /// 任一 rejected → 进度条变红色
     private var chainDots: some View {
-        HStack(spacing: 6) {
-            ForEach(Array(item.chain.enumerated()), id: \.offset) { i, step in
-                HStack(spacing: 4) {
-                    chainDot(step.decision)
-                    Text(step.role.label)
-                        .font(.system(size: 10.5, weight: .semibold))
-                        .foregroundStyle(roleFg(step.decision))
+        let total = item.chain.count
+        let approvedCount = item.chain.filter { $0.decision == .approved }.count
+        let hasRejected = item.chain.contains { $0.decision == .rejected }
+        let progressFrac: CGFloat = total > 0 ? CGFloat(approvedCount) / CGFloat(total) : 0
+        let dotSize: CGFloat = 12
+
+        return ZStack {
+            // 横线层（底灰 + 上层进度）
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(T.hair)
+                        .frame(height: 2)
+                    Capsule()
+                        .fill(hasRejected ? T.danger : T.ok)
+                        .frame(width: geo.size.width * progressFrac, height: 2)
                 }
-                .padding(.horizontal, 7).padding(.vertical, 3)
-                .background {
-                    Capsule().fill(roleBg(step.decision))
-                }
-                if i < item.chain.count - 1 {
-                    Rectangle().fill(T.hair).frame(width: 8, height: 0.5)
+            }
+            .frame(height: 2)
+            .padding(.horizontal, dotSize / 2)
+
+            // 节点层（HStack Spacer 等距分布）
+            HStack(spacing: 0) {
+                ForEach(Array(item.chain.enumerated()), id: \.offset) { i, _ in
+                    chainDot(item.chain[i].decision)
+                    if i < total - 1 {
+                        Spacer(minLength: 0)
+                    }
                 }
             }
         }
+        .frame(height: dotSize)
     }
 
     private func chainDot(_ d: ApprovalDecision) -> some View {
@@ -707,37 +730,17 @@ struct StayDetailView: View {
         .task { await load() }
     }
 
-    /// 详情加载（2026-05-27 切回真 API — 原 5-03 DEMO-ONLY-SCAFFOLD 落地完成）
-    /// 未登录 / 非 UUID（mock id 如 "a1"）→ mock 兜底
-    /// UUID → ApplicationsAPI.detail + .audit 并行 + 4 个 catch 分支
+    /// 详情加载（2026-05-27 codex 审查后改 — 拆 guard + 401 清 token + audit 失败容错 + helper）
+    /// 1. 未登录 → 走 mock（Apple reviewer / 开发态看 UI）
+    /// 2. 非 UUID id（mock id 如 "a1"）→ 走 mock，找不到就 toast 区分「无效 ID」
+    /// 3. UUID → detail + audit 并行（audit 失败不致命）
+    /// 4. catch 401 清 token 触发跳登录；其他 catch 走 helper 统一文案
     private func load() async {
         isLoading = true
         defer { isLoading = false }
 
-        // 未登录态 / mock id（非 UUID）→ 走 mock（开发 / Apple reviewer 未登录态也能看效果）
-        guard app.isAuthenticated, let uuid = UUID(uuidString: id) else {
-            if let item = StayListMock.find(id) {
-                loadedItem = item
-                loadedAuditLog = item.auditLog
-            } else {
-                app.showToast("申請が見つかりません")
-                router.back()
-            }
-            return
-        }
-
-        do {
-            // detail + audit 并行（节省往返）
-            async let detailTask = ApplicationsAPI.detail(id: uuid)
-            async let auditTask = ApplicationsAPI.audit(id: uuid)
-            let (detailOut, auditOut) = try await (detailTask, auditTask)
-            var item = detailOut.toStayApplication()
-            let entries = auditOut.map { $0.toAuditLogEntry() }
-            item.auditLog = entries
-            loadedItem = item
-            loadedAuditLog = entries
-        } catch APIError.unauthorized {
-            // 401 → mock 兜底（跟 listMine 同模式）
+        // 未登录态：用 mock（reviewer / 开发态看 UI）
+        guard app.isAuthenticated else {
             if let item = StayListMock.find(id) {
                 loadedItem = item
                 loadedAuditLog = item.auditLog
@@ -745,14 +748,52 @@ struct StayDetailView: View {
                 app.showToast("ログインが必要です")
                 router.back()
             }
-        } catch APIError.network {
-            app.showToast("通信エラーが発生しました。電波を確認してください")
-            router.back()
-        } catch let APIError.server(code, _) {
-            app.showToast("サーバーエラー（コード: \(code)）")
+            return
+        }
+
+        // 已登录但 id 不是 UUID 格式：理论上 backend 不会返这样的 id，
+        // 出现 = 调用方传错（如硬编码 mock id 跳详情）。show 明确提示而不是静默 back
+        guard let uuid = UUID(uuidString: id) else {
+            if let item = StayListMock.find(id) {
+                // 开发态：mock id 真存在就显示
+                loadedItem = item
+                loadedAuditLog = item.auditLog
+            } else {
+                app.showToast("無効な申請 ID です")
+                router.back()
+            }
+            return
+        }
+
+        do {
+            // detail 失败 = 致命（没详情无法显示），audit 失败 = 非致命（履历空就行）
+            let detailOut = try await ApplicationsAPI.detail(id: uuid)
+            var item = detailOut.toStayApplication()
+
+            // audit 单独 try？，失败时空履历不影响 detail 显示
+            let entries: [AuditLogEntry]
+            do {
+                let auditOut = try await ApplicationsAPI.audit(id: uuid)
+                entries = auditOut.map { $0.toAuditLogEntry() }
+            } catch {
+                // audit 拉取失败不致命，记 log 用空履历
+                print("[StayDetailView] audit 取得失败: \(error)")
+                entries = []
+            }
+
+            item.auditLog = entries
+            loadedItem = item
+            loadedAuditLog = entries
+        } catch APIError.unauthorized {
+            // 401 = token 失效：清 authToken 触发 didSet 跳登录页（不显示 mock 假数据）
+            app.authToken = nil
             router.back()
         } catch {
-            app.showToast("申請詳細の取得に失敗しました")
+            // 其他错误：helper 统一文案
+            app.showToast(APIErrorPresenter.userMessage(
+                for: error,
+                fallback: "申請詳細の取得に失敗しました"
+            ))
             router.back()
         }
     }
