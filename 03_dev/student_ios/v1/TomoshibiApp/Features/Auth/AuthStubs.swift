@@ -600,7 +600,11 @@ struct RegisterStep1View: View {
             var c = DateComponents(); c.year = 2006; c.month = 10; c.day = 14
             return Calendar.current.date(from: c) ?? Date()
         #else
-            return Date()
+            // 非 DEMO 默认值 = 在校生年龄中位数（初一到高三平均 15 岁）→ 2011-01-01
+            // 任意年级学生只需双向滚 2-4 年就到自己生日（vs Date() 要滚 12-18 年）
+            // itsuki 2026-05-27 主动提报「人性化设计」拍板 — 群体中位数默认
+            var c = DateComponents(); c.year = 2011; c.month = 1; c.day = 1
+            return Calendar.current.date(from: c) ?? Date()
         #endif
     }()
 
@@ -608,7 +612,7 @@ struct RegisterStep1View: View {
         #if DEMO
             return SEED.user.gender == "男" ? "male" : "female"
         #else
-            return "male"
+            return "" // 必选 — 不预设性别，防女学生被错误归男寮
         #endif
     }()
 
@@ -681,7 +685,12 @@ struct RegisterStep1View: View {
     }
 
     private var classCode: String {
-        classSuffix == "A" ? "01" : "02" // A組 → 01 / B組 → 02
+        // A組 → 01 / B組 → 02 / 未选 → 00（防 canNext 兜底失效时也不写假数据）
+        switch classSuffix {
+        case "A": return "01"
+        case "B": return "02"
+        default: return "00"
+        }
     }
 
     /// 6 桁: 年級(2) + 組(2) + 出席番号(2) · 高3 B 18 → "060218"
@@ -691,7 +700,12 @@ struct RegisterStep1View: View {
     }
 
     private var canNext: Bool {
+        // 必填检查 — 8 字段全部必选/必填才放行下一步
+        // 防止用户跳过性别 / 学年 / 组别 / 出席番号 / 部屋番号导致提交假数据到 backend
         !name.trimmingCharacters(in: .whitespaces).isEmpty
+            && (gender == "male" || gender == "female")
+            && !grade.isEmpty
+            && !classSuffix.isEmpty
             && (Int(seatNoStr) ?? 0) > 0
             && !room.trimmingCharacters(in: .whitespaces).isEmpty
     }
