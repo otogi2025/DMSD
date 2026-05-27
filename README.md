@@ -45,7 +45,7 @@ Tomoshibi 用 NFC 卡 + 服务器 + 手机 App + 墙上的专用小设备（点�
 - ✅ **后端 FastAPI**：1134 行 BACKEND_DESIGN_LOG + 8 router（auth / rollcall / study / accounts / admin_registration_code / teachers / applications / meals / notifications）+ Alembic migration 框架 + 37 case pytest 全 pass
 - ✅ **iOS Swift/SwiftUI**：Foundation 层 17 文件 1861 行（网络 / Keychain / Route / AppStore）+ 3 个核心 Feature（Auth / Home / Community 5K+ 行）实装中
 - ✅ **Android Kotlin/Compose**：22 屏（Login/Home/Apply/MyPage/Settings/Schedule/Bus/Study/Music/Notifications/NfcScreen 等）+ MainActivity / NavGraph / AppStore / MockData / Theme
-- ✅ **Teacher Web TS+Vite+Zustand**：5 page + demo 接真后端 + 学習管理全屏会话
+- 🟡 **Teacher Web HTML standalone（Ryō 风格）**：5-02 起 TS+Vite+Zustand 实装版做到 5-26 被 itsuki 拍板「整体废弃」并归档（不是他心里那套 Ryō 24 学生座席表 + 实时点呼仪表盘），现在权威源 = `v1/src/index.html` standalone，5-27 凌晨 28+ commit 接 backend client.js helper（rollcall sessions history / discipline / cleaning / front_desk / announcements）
 - 🔄 **点呼机 Pi 3A+**：硬件全定稿（5-08）+ ROLLCALL_DEVICE_DESIGN_LOG 226 行 + src/main.py 骨架；硬件采购 + Pi 上手编程 未开始
 - ✅ **工程治理**：跨会话同步机制 A+B+C / 版本管理 SOP（迁 `.claude/skills/version-bump/` skill 形态）/ 18 条联动规则 + 11 hook / 7 项目 skill / project-overview 单源真值
 
@@ -71,7 +71,7 @@ Tomoshibi 用 NFC 卡 + 服务器 + 手机 App + 墙上的专用小设备（点�
 | 部分 | 技术 |
 |---|---|
 | 学生 App | iOS（Swift / SwiftUI）+ Android（Kotlin / Compose） |
-| 老师 Web | TypeScript + Vite + Zustand（已实装 5 page，2026-05-02 v0.8 起） |
+| 老师 Web | HTML standalone（Ryō 风格 / 单 HTML / client.js fetch）— 5-26 起 v0.8 阶段立项的 TS+Vite+Zustand 实装版整体废弃（归档到 `99_archive/2026-05-26_teacher_web_vite实装作废/`），回到 4-21 Ryō standalone 主线 |
 | 后端 | FastAPI / Python + PostgreSQL + Alembic |
 | 点呼机 | Raspberry Pi 3A+ + PN532 V3 NFC + 01Studio USB 小音响 + Python |
 | NFC 卡 / 标签 | NTAG215（学生卡）+ ST25DV16K（动态标签，每 10 秒刷新 nonce） |

@@ -1,6 +1,6 @@
 # DMSD 项目进度总览
 
-> **最后更新**: 2026-05-22（加 5-21 + 5-22 2 行到「v0.8 之后未 bump 累积推进表」— teacher_web/demo 158 文件归档 / Fix-Bot 4 effective_* 字段彻底删 / project-overview §0.1 957→980 校准 / Codex 第二轮全文件覆盖 audit 39 条 / session-coord 3 会话并行）。早些 5-21（5-20+ 131 条 bug findings 4 会话并行修复 — Fix-Bot 3 改：仓库结构地图重写 / 系统架构图整合 5 端 / 阶段 4 点呼机刷状态 / 阶段 6/7 刷到 v0.8 之后未 bump 推进）
+> **最后更新**: 2026-05-27（全项目审查会话发现 teacher_web Vite 决策漂移 — 行 75 ASCII 图 (TS + Vite, → (HTML stand, Ryō 风格,) 修正：itsuki 5-26 拍板 v0.8 立项的 Vite + TS 实装版整体废弃，回到 4-21 Ryō standalone HTML 单文件主线 + 5-27 凌晨接 backend client.js helper）。早些 5-22（加 5-21 + 5-22 2 行到「v0.8 之后未 bump 累积推进表」— teacher_web/demo 158 文件归档 / Fix-Bot 4 effective_* 字段彻底删 / project-overview §0.1 957→980 校准 / Codex 第二轮全文件覆盖 audit 39 条 / session-coord 3 会话并行）。早些 5-21（5-20+ 131 条 bug findings 4 会话并行修复 — Fix-Bot 3 改：仓库结构地图重写 / 系统架构图整合 5 端 / 阶段 4 点呼机刷状态 / 阶段 6/7 刷到 v0.8 之后未 bump 推进）
 > **当前版本**: 见 `CHANGELOG.md` 顶部（单源真值，见 `00_admin/文档同步点清单.md §1`）
 > **版本细粒度**: CHANGELOG 已于 2026-04-17 晚重建，pre-0.1 追认 + 2-02 至今每个实质节点一条 patch
 >
@@ -72,9 +72,12 @@
                                         ↓
                                  ┌──────────────┐
                                  │ 老师 Web      │
-                                 │ (TS + Vite,   │
+                                 │ (HTML stand,  │
+                                 │  Ryō 风格,    │
                                  │  iPad 浏览器) │
                                  └──────────────┘
+
+注: 老师 Web 2026-05-02 立项 TS+Vite+Zustand，2026-05-26 itsuki 拍板整体废弃（不是他心里的 Ryō 24 学生座席表 + 实时点呼仪表盘），回到 4-21 Ryō standalone 单 HTML 主线。Vite 实装版 13 文件归档到 `99_archive/2026-05-26_teacher_web_vite实装作废/`。
 
   NFC 卡 / 标签 (学生持卡 + 入口动态标签):
   - NTAG215 (学生卡,7B UID)

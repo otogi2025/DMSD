@@ -1,6 +1,6 @@
 /**
  * Tomoshibi Teacher Web — API client.
- * Base URL = /api/v1 (Vite proxy → localhost:8000)
+ * Base URL = /api/v1（同源相对路径 — Ryō standalone HTML 通过 ./tomoshibi start 静态服务跑 + 后端独立跑在 8000 端口，开发时浏览器同 host）
  */
 
 const BASE = "/api/v1";

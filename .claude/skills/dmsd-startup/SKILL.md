@@ -20,15 +20,19 @@ description: DMSD 会话启动 SOP — CC 每次开新会话必读必做的 5 �
 
 ### Step 1 — 多会话协同注册
 
-跑：
+跑（分两步，不能并行 — scan.sh 要 register.sh 输出的 SESSION_ID）：
+
 ```bash
+# 第 1 步：注册 — 输出会含一行 `SESSION_ID=<id>`，先拿到 id
 bash ~/.claude/skills/session-coord/scripts/register.sh $(hostname -s) "<本会话主题，CC 自己拟一句>"
-bash ~/.claude/skills/session-coord/scripts/scan.sh
+
+# 第 2 步：scan 把上一步拿到的 id 当参数传入
+bash ~/.claude/skills/session-coord/scripts/scan.sh <SESSION_ID>
 ```
 
 干嘛：
 - `register.sh` — 把本会话登记到 `~/dev/DMSD/.claude/sessions/_board.md` 协作板，让别的同时开的 CC 会话知道你存在
-- `scan.sh` — 扫别的会话在干嘛 + 自己 inbox 有没有新留言
+- `scan.sh` — 扫别的会话在干嘛 + 自己 inbox 有没有新留言（必须传 session_id，否则脚本会报错退出）
 
 期待输出：协作板内容 + 自己 inbox（如果有内容）
 

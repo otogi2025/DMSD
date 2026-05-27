@@ -10,7 +10,7 @@
 
 | 端 | 当前位置 | demo 归档位置 |
 |---|---|---|
-| 老师 Web | `03_dev/teacher_web/v1/`（Vite + TypeScript + Zustand）| `99_archive/2026-05-21_teacher_web_demo_archived/`（5-21 整组归档 158 文件）|
+| 老师 Web | `03_dev/teacher_web/v1/src/index.html`（Ryō standalone HTML，5-26 起 Vite + TS 实装版整体废弃 + 5-27 凌晨接 backend client.js helper）| 5-21 demo 158 文件 → `99_archive/2026-05-21_teacher_web_demo_archived/`；5-26 Vite 实装 13 文件 → `99_archive/2026-05-26_teacher_web_vite实装作废/`|
 | 学生 iOS | `03_dev/student_ios/v1/`（Swift + SwiftUI 真代码）| `03_dev/student_ios/demo/` 仍在原位（HTML プロトタイプ）|
 | iOS App Store fork | — | `99_archive/2026-05-22_tomoshibi_appstore_fork/`（5-08 上架冲刺 fork，5-22 backport 后归档）|
 

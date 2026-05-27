@@ -26,13 +26,13 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ## 0. 摘要
 
-### 0.1 体量（2026-05-27 git ls-files 全统计 — 1189）
+### 0.1 体量（2026-05-27 git ls-files 全统计 — 1193，含 2 未 commit）
 
 | 顶级目录 | 文件数 | 占比 | 主要内容 |
 |---|---|---|---|
-| `99_archive/` | 619 | 52% | 归档物（5-26 晚段-4 加 `2026-05-26_teacher_web_vite实装作废/` 13 文件 = App.tsx + main.tsx + Shell.tsx + pages × 5 + store/auth.ts + vite_root_index.html + package.json + lock + vite.config.ts + tailwind.config.js + postcss.config.js + tsconfig × 2 — itsuki 拍板 Vite + TS 实装版整体废弃 + 5-26 晚加 `2026-05-26_ios_v1_demo_snapshot/` 42 文件（iOS demo 后门删除前快照） + 5-26 早 3 个 iOS 上架配置归位 + 5-22 加 2026-05-21_pre_fix + 2026-05-22_tomoshibi_appstore_fork 残余 + 5-21 teacher_web/demo 整组 158 文件归档 + 早期 GPT 对话 / throwaway iOS / demo 4-28 / 5-12 深夜大整理 / cloud agent 退役 / 5-02 handoff × 4 等）|
+| `99_archive/` | 620 | 52% | 归档物（5-26 晚段-4 加 `2026-05-26_teacher_web_vite实装作废/` 13 文件 = App.tsx + main.tsx + Shell.tsx + pages × 5 + store/auth.ts + vite_root_index.html + package.json + lock + vite.config.ts + tailwind.config.js + postcss.config.js + tsconfig × 2 — itsuki 拍板 Vite + TS 实装版整体废弃 + 5-26 晚加 `2026-05-26_ios_v1_demo_snapshot/` 42 文件（iOS demo 后门删除前快照） + 5-26 早 3 个 iOS 上架配置归位 + 5-22 加 2026-05-21_pre_fix + 2026-05-22_tomoshibi_appstore_fork 残余 + 5-21 teacher_web/demo 整组 158 文件归档 + 早期 GPT 对话 / throwaway iOS / demo 4-28 / 5-12 深夜大整理 / cloud agent 退役 / 5-02 handoff × 4 等）|
 | `03_dev/` | 390 | 33% | 代码 + 设计 LOG（5-26 晚段-4 删除 Vite 实装 13 文件 → 全归档 → teacher_web 从 v0.8 阶段回退到 v0.3 Ryō standalone 主线 + 5-26 加 3 个 iOS 上架配置归位 + 5-24 加 RollCallAPI.swift）（backend / iOS Foundation / Android Compose / teacher_web v1 Ryō standalone（原 Vite+TS 实装版已废）/ 点呼机骨架）|
-| `05_logs/` | 110 | 9.2% | raw 57（5-16/19/21/22/22-iOS/24/25/25-AC学习清单/26/26-dmsd-startup/26-vite废弃+polish回滚/27-teacher_web_v1.0_深夜推进/27-ios审查）/ AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）|
+| `05_logs/` | 111 | 9.3% | raw 58（5-16/19/21/22/22-iOS/24/25/25-AC学习清单/26/26-dmsd-startup/26-vite废弃+polish回滚/27-teacher_web_v1.0_深夜推进/27-ios审查/27-全项目审查）/ AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）|
 | `00_admin/` | 21 | 1.8% | 7 顶级 md + hooks 子目录 — 5-21 加 `系统bug专栏.md` + `codex_audit_prompt.md`（详见 §1.2）|
 | `01_specs/` | 14 | 1.2% | 规格冻结区（含 5 .pages 不可读）|
 | `.claude/` | 11 | 1.0% | 8 skill + 1 agent + 2 配置（settings / session-coord.config）— **5-26 加 `dmsd-startup/SKILL.md`**（启动 SOP 集中）/ 5-19 加 `.claude/agents/security-reviewer.md`（详见 §1.7.5）|
@@ -43,7 +43,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `bin/` | 3 | 0.3% | sync-check + create_local_dev_symlink + check_overview_drift（5-19 加）|
 | `04_ops/` | 2 | 0.2% | MAC_MINI_SETUP + wifi_survey_howto |
 | `.github/` | 1 | 0.1% | **5-21 加** workflows/test.yml — GitHub Actions CI 自动跑测试的工作流定义 |
-| **总计** | **1189** | 100% | |
+| **总计** | **1193** | 100% | |
 
 > **5-16 → 5-22 重大变动**：5-21 teacher_web/demo 整组 158 文件从 `03_dev/teacher_web/demo/` 挪到 `99_archive/2026-05-21_teacher_web_demo_archived/` —— 所以 `03_dev/` 从 546 降到 395，`99_archive/` 从 273 升到 431。同期加 `.github/workflows/test.yml`（CI）+ `00_admin/系统bug专栏.md` + `00_admin/codex_audit_prompt.md` + `.claude/agents/security-reviewer.md`。
 >
@@ -605,6 +605,8 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 | `2026-05-26.md` | 5-26 早段：iOS Bot 1 误删功能复查（全量 diff fork vs 主项目 v1 证实没遗留误删 + 撤暗夜模式 v2 + 3 上架配置归位）+ memory 加铁律「TODO 关条目不要问」+ 晚段：全项目中枢机制立项 + DMSD 注册档案 | ⭐⭐⭐⭐ |
 | `2026-05-26_dmsd-startup+CLAUDE.md大改.md` | 5-26 晚段-2：启动 SOP 集中化（dmsd-startup skill 立项 — 5 件启动必做事 + §4 按需触发段）+ DMSD CLAUDE.md 247→190 行重写（QTS 模式 — Skills 继承 / Hooks 继承 / 全项目中枢联动）+ 沟通铁律「不主动用英语名词」立项全局 + 6 项目 CLAUDE.md 落地 + destructive-bash 行为约定（自己停下想 / 没必要不走 / 灾难级才问）+ CLAUDE.md 文档观转变（时间戳冗余禁止）| ⭐⭐⭐⭐⭐ |
 | `2026-05-27_ios_审查会话.md` | 5-27 深夜-3：iOS 全自主审查 + 修 + 收尾会话 — 5 维度过完 41 文件（demo 后门残留 / A-XXX bug 标记 / catch 错误处理 / Force unwrap / NFC 实装），发现 1 处可修（`MyPageStubs.swift:1404` `c.score!` 改 `map ?? _`）+ 2 处架构性延期（`StayListStubs.swift:475` catch 降级 mock 假数据 / `MyPageStubs.swift:1637` 暴露 `localizedDescription`）写 TODO §D | ⭐⭐ |
+| `2026-05-27_teacher_web_v1.0_深夜推进.md` | 5-27 凌晨：itsuki 设 `/goal v1.0 完整体上线` 后 CC 自主推 22 commit — teacher_web client.js 接 backend 4 个 page（DisciplinePage / RecordsPage / CleaningPage / FrontDeskPage） + announcements 实装 + LoginScreen 文案 cleanup + backend `discipline.py` / `cleaning.py` / `front_desk.py` 新建 model + router + alembic c1d2e3f4 3 张表 + propose 文档 `01_specs/teacher_web_v1.0_backend_models_propose.md` 等 itsuki 起床拍板 | ⭐⭐⭐⭐ |
+| `2026-05-27_全项目审查.md` | 5-27 早段：itsuki 启动「全项目审查 + 不要偷懒」会话 — CC 一次过扫 1189 文件 + grep 决策关键词 + 比对 SKILL.md §0.1 → 直接修 6 处 Vite 决策漂移（README × 2 / LATEST / progress_overview / WEB_DESIGN_LOG / client.ts）+ 物理清 7 个 .DS_Store + git mv `_archived_DESIGN_BRIEF` → 99_archive + TODO §🛠️ §N 加 8 条 backlog（99_archive 散件归档 / .pages 历史归档 / graphify 刷 / backend/demo 处置 / progress_overview 大改 / v0.9 bump 决策 / 决策状态扫描 hook propose） | ⭐⭐⭐⭐⭐ |
 
 ### 6.3 05_logs/dev_log/（9 文件）
 
