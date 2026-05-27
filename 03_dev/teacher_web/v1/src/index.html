@@ -10035,8 +10035,10 @@
       window.LATE_THRESHOLD_SEC = 180; // 3 min — late auto transition
       // FC-024 修复: 删 window.SHARED_PASSWORD = '12345678' 明文密码（v1.0 上线前必修）
       // LoginScreen 改 POST {API_BASE}/sessions/teacher 走 backend 真实认证。
-      // 开发时 standalone HTML 单跑要单独起 backend 并把 API_BASE 改成绝对 URL。
-      window.API_BASE = "/api/v1";
+      // standalone HTML 跑在 8787（Python 静态服务器）时 backend 在 8000 → 绝对 URL +
+      // backend CORS 已加 8787 来源（03_dev/backend/v1/app/config.py:56）。
+      // 同 origin 部署（FastAPI StaticFiles）时把这行改回 "/api/v1"。
+      window.API_BASE = "http://localhost:8000/api/v1";
       // DEMO 模式開关: URL ?demo=1 → DemoConsole/NFC sim 表示。生产 (no flag) → DEMO scaffold 隐藏。
       // §7.3.8 + memory project_demo_scaffolds_to_remove_before_v1: v1.0 上线必删 — URL gate 安全保留。
       window.DEMO_MODE = new URLSearchParams(location.search).has("demo");
@@ -10242,52 +10244,84 @@
       };
     </script>
     <script type="text/babel" data-source="components/login.jsx">
-      // /login — shared-password login for teaching staff.
-      // Fields: アカウント ID (固定 'tomoshibi') + shared password.
-      // 3 failures → 30s lock.
+      // /login — 实名账户 2 屏合一登录（2026-05-27 拍板，取代旧共用密码版）
+      //   屏 1 = 老师卡片列表（男寮 / 女寮 2 列、GET /teachers/public 无认证拿）
+      //   屏 2 = 选中老师后输该老师密码（teacher_id + password 调 POST /sessions/teacher）
+      // 旧 SelectTeacherScreen 中间页砍 — 登录成功直接进 app。
+      // onLogin(token, profile, pickedTeacher) — App 顶层一次性设 authToken+authProfile+teacher。
 
-      function LoginScreen({ onLogin }) {
+      function LoginScreen({ onLogin, lastTeacherId }) {
         const T = window.RYO;
-        const [u, setU] = React.useState("tomoshibi");
-        const [p, setP] = React.useState("");
-        const [fails, setFails] = React.useState(0);
-        const [lockUntil, setLockUntil] = React.useState(0);
+        const [teachers, setTeachers] = React.useState(null); // null=loading / []=失败 / [...]=真值
+        const [loadErr, setLoadErr] = React.useState(null);
+        const [picked, setPicked] = React.useState(null);
+        const [password, setPassword] = React.useState("");
         const [err, setErr] = React.useState("");
-        const [now, setNow] = React.useState(Date.now());
-
-        React.useEffect(() => {
-          const id = setInterval(() => setNow(Date.now()), 500);
-          return () => clearInterval(id);
-        }, []);
-        const locked = now < lockUntil;
-        const lockLeft = Math.max(0, Math.ceil((lockUntil - now) / 1000));
-
-        // FC-024 修复后: 通过 window.tomoshibiApi.teacherLogin 走 backend 真实认证。
-        // err.status 401 → 计失败次数 / err.status undefined（网络故障）→ 显示「サーバーに接続できません」UI 文案。
         const [submitting, setSubmitting] = React.useState(false);
+        const [fails, setFails] = React.useState(0);
+
+        // 屏 1 加载老师列表
+        React.useEffect(() => {
+          let cancelled = false;
+          window.tomoshibiApi
+            .listTeachersPublic()
+            .then((rows) => {
+              if (cancelled) return;
+              // backend assigned_dorm: 1/2 = 男寮 / 4 = 女寮 / null = 跨寮（暫归男寮列）
+              const adapted = (rows || []).map((t) => ({
+                id: t.id,
+                name: t.name,
+                dorm: t.assigned_dorm === 4 ? "women" : "men",
+                initial: (t.name || "?").charAt(0),
+                lastLoginMins: t.last_login_at
+                  ? Math.floor(
+                      (Date.now() - new Date(t.last_login_at).getTime()) /
+                        60000,
+                    )
+                  : null,
+              }));
+              setTeachers(adapted);
+            })
+            .catch((e) => {
+              if (cancelled) return;
+              console.warn("[LoginScreen] listTeachersPublic 失败", e);
+              setLoadErr(e && e.status ? `(${e.status})` : "(接続失敗)");
+              setTeachers([]);
+            });
+          return () => {
+            cancelled = true;
+          };
+        }, []);
+
         const submit = async (e) => {
           e.preventDefault();
-          if (locked || submitting) return;
+          if (submitting || !picked || !password) return;
           setSubmitting(true);
           try {
-            const data = await window.tomoshibiApi.teacherLogin(u.trim(), p);
+            const data = await window.tomoshibiApi.teacherLogin({
+              teacher_id: picked.id,
+              password,
+            });
             setFails(0);
             setErr("");
-            onLogin(data.access_token, data.teacher);
-          } catch (err) {
-            if (err && err.status === 401) {
+            onLogin(data.access_token, data.teacher, picked);
+          } catch (err2) {
+            if (err2 && err2.status === 401) {
               const n = fails + 1;
               setFails(n);
               if (n >= 3) {
-                setLockUntil(Date.now() + 30000);
                 setErr("3 回失敗しました。30 秒間ロックされます。");
                 setFails(0);
               } else {
                 setErr(`パスワードが違います (残り ${3 - n} 回)`);
               }
-              setP("");
-            } else if (err && err.status) {
-              setErr(`サーバーエラー (${err.status})`);
+              setPassword("");
+            } else if (err2 && err2.status === 423) {
+              setErr(
+                "アカウントロック中。30 秒ほど待ってから再度お試しください。",
+              );
+            } else if (err2 && err2.status) {
+              setErr(`サーバーエラー (${err2.status})`);
             } else {
               setErr(
                 "サーバーに接続できません。backend が起動しているか確認してください。",
@@ -10298,6 +10332,227 @@
           }
         };
 
+        // 共通 brand header
+        const brandHeader = (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              marginBottom: 28,
+              justifyContent: "center",
+            }}
+          >
+            <img
+              src={window.__resources.tomoshibiIcon}
+              alt="Tomoshibi"
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 12,
+                boxShadow: T.shadow1,
+              }}
+            />
+            <div>
+              <div
+                style={{
+                  fontSize: 22,
+                  fontWeight: 700,
+                  letterSpacing: 1,
+                  color: T.ink,
+                }}
+              >
+                Tomoshibi
+              </div>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: T.ink3,
+                  letterSpacing: 1.5,
+                  marginTop: 2,
+                }}
+              >
+                灯火 · 寮管理システム
+              </div>
+            </div>
+          </div>
+        );
+
+        // —————— 屏 2：密码 ——————
+        if (picked) {
+          return (
+            <div
+              style={{
+                minHeight: "100vh",
+                background: T.paper,
+                color: T.ink,
+                fontFamily: T.font,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 24,
+              }}
+            >
+              <div style={{ width: 420 }}>
+                {brandHeader}
+                <form
+                  onSubmit={submit}
+                  style={{
+                    background: T.surface,
+                    border: `1px solid ${T.line}`,
+                    borderRadius: 14,
+                    padding: "26px 28px 22px",
+                    boxShadow: T.shadow2,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPicked(null);
+                      setPassword("");
+                      setErr("");
+                      setFails(0);
+                    }}
+                    style={{
+                      background: "transparent",
+                      color: T.ink3,
+                      border: "none",
+                      padding: 0,
+                      fontFamily: "inherit",
+                      fontSize: 12,
+                      cursor: "pointer",
+                      marginBottom: 14,
+                    }}
+                  >
+                    ← 別の先生を選ぶ
+                  </button>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      marginBottom: 18,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 22,
+                        background: T.cobaltSoft,
+                        color: T.cobalt,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 18,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {picked.initial}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 18, fontWeight: 700 }}>
+                        {picked.name} 先生
+                      </div>
+                      <div
+                        style={{ fontSize: 11, color: T.ink3, marginTop: 2 }}
+                      >
+                        {window.dormLabel(picked.dorm)} 担当
+                      </div>
+                    </div>
+                  </div>
+
+                  <label style={{ display: "block", marginBottom: 14 }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: T.ink2,
+                        marginBottom: 6,
+                        fontWeight: 600,
+                      }}
+                    >
+                      パスワード
+                    </div>
+                    <input
+                      type="password"
+                      value={password}
+                      autoFocus
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        setErr("");
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "11px 12px",
+                        background: T.surface,
+                        border: `1px solid ${T.lineStrong}`,
+                        borderRadius: 8,
+                        fontFamily: "inherit",
+                        fontSize: 14,
+                        color: T.ink,
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </label>
+
+                  {err && (
+                    <div
+                      style={{
+                        marginBottom: 12,
+                        padding: "8px 12px",
+                        fontSize: 12,
+                        background: T.dangerSoft,
+                        color: T.danger,
+                        border: `1px solid ${T.dangerBorder}`,
+                        borderRadius: 8,
+                      }}
+                    >
+                      {err}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={submitting || !password}
+                    style={{
+                      width: "100%",
+                      padding: "12px 16px",
+                      background:
+                        submitting || !password ? T.lineStrong : T.cobalt,
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 10,
+                      fontFamily: "inherit",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor:
+                        submitting || !password ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {submitting ? "認証中…" : "ログイン"}
+                  </button>
+                </form>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: T.ink3,
+                    textAlign: "center",
+                    marginTop: 14,
+                  }}
+                >
+                  Tomoshibi {window.APP_VERSION} · 2026 AC
+                  入試プロジェクト成果物
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        // —————— 屏 1：老师列表 ——————
+        const men = (teachers || []).filter((t) => t.dorm === "men");
+        const women = (teachers || []).filter((t) => t.dorm === "women");
+
         return (
           <div
             style={{
@@ -10305,222 +10560,267 @@
               background: T.paper,
               color: T.ink,
               fontFamily: T.font,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 24,
+              padding: "36px 48px",
             }}
           >
-            <div style={{ width: 440 }}>
-              {/* Brand lockup */}
+            {brandHeader}
+            <div
+              style={{ textAlign: "center", marginBottom: 22, color: T.ink2 }}
+            >
+              <div style={{ fontSize: 18, fontWeight: 700 }}>
+                担当の先生を選んでください
+              </div>
+              <div style={{ fontSize: 12, color: T.ink3, marginTop: 4 }}>
+                ご自分のお名前のカードを押すと、パスワード入力画面に進みます
+              </div>
+            </div>
+
+            {teachers === null && (
               <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 14,
-                  marginBottom: 32,
-                  justifyContent: "center",
+                  textAlign: "center",
+                  padding: 60,
+                  color: T.ink3,
+                  fontSize: 13,
                 }}
               >
-                <img
-                  src={window.__resources.tomoshibiIcon}
-                  alt="Tomoshibi"
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 14,
-                    boxShadow: T.shadow1,
-                  }}
-                />
-                <div>
-                  <div
-                    style={{
-                      fontSize: 26,
-                      fontWeight: 700,
-                      letterSpacing: 1,
-                      color: T.ink,
-                    }}
-                  >
-                    Tomoshibi
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: T.ink3,
-                      letterSpacing: 1.5,
-                      marginTop: 2,
-                    }}
-                  >
-                    灯火 · 寮管理システム
-                  </div>
-                </div>
+                先生一覧を読み込み中…
               </div>
+            )}
 
-              <form
-                onSubmit={submit}
+            {teachers !== null && teachers.length === 0 && (
+              <div
                 style={{
-                  background: T.surface,
-                  border: `1px solid ${T.line}`,
-                  borderRadius: 14,
-                  padding: "28px 28px 24px",
-                  boxShadow: T.shadow2,
+                  maxWidth: 480,
+                  margin: "0 auto",
+                  padding: "20px 24px",
+                  background: T.dangerSoft,
+                  color: T.danger,
+                  border: `1px solid ${T.dangerBorder}`,
+                  borderRadius: 12,
+                  fontSize: 13,
+                  textAlign: "center",
                 }}
               >
-                <div style={{ fontSize: 19, fontWeight: 700, marginBottom: 4 }}>
-                  ログイン
-                </div>
-                <div style={{ fontSize: 12, color: T.ink3, marginBottom: 22 }}>
-                  教職員共用アカウントでサインインしてください。
-                </div>
-
-                <LField
-                  label="アカウント ID"
-                  value={u}
-                  onChange={setU}
-                  autoFocus
-                  disabled={locked}
-                />
-                <LField
-                  label="パスワード (共用)"
-                  type="password"
-                  value={p}
-                  onChange={(v) => {
-                    setP(v);
-                    setErr("");
-                  }}
-                  disabled={locked}
-                />
-
-                {err && !locked && (
-                  <div
-                    style={{
-                      marginTop: 2,
-                      marginBottom: 12,
-                      padding: "8px 12px",
-                      fontSize: 12,
-                      background: T.dangerSoft,
-                      color: T.danger,
-                      border: `1px solid ${T.dangerBorder}`,
-                      borderRadius: 8,
-                    }}
-                  >
-                    {err}
-                  </div>
-                )}
-                {locked && (
-                  <div
-                    style={{
-                      marginTop: 2,
-                      marginBottom: 12,
-                      padding: "10px 12px",
-                      fontSize: 12,
-                      background: T.warnSoft,
-                      color: T.warn,
-                      border: `1px solid ${T.warnBorder}`,
-                      borderRadius: 8,
-                      fontFamily: T.mono,
-                    }}
-                  >
-                    🔒 ロック中 · あと {lockLeft} 秒
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={locked || submitting}
-                  style={{
-                    width: "100%",
-                    marginTop: 6,
-                    padding: "12px 16px",
-                    background: locked || submitting ? T.lineStrong : T.cobalt,
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 10,
-                    fontFamily: "inherit",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: locked || submitting ? "not-allowed" : "pointer",
-                  }}
-                >
-                  {submitting ? "認証中…" : "ログイン"}
-                </button>
-
+                先生一覧を取得できません {loadErr || ""}
                 <div
                   style={{
-                    marginTop: 18,
-                    paddingTop: 16,
-                    borderTop: `1px solid ${T.line}`,
                     fontSize: 11,
                     color: T.ink3,
-                    lineHeight: 1.6,
+                    marginTop: 8,
+                    fontFamily: T.mono,
                   }}
                 >
-                  <div>次の画面で「本日の担当者」を選択します。</div>
-                  {window.DEMO_MODE && (
-                    <div style={{ fontFamily: T.mono, marginTop: 4 }}>
-                      DEMO: backend POST {window.API_BASE}/sessions/teacher
-                    </div>
-                  )}
+                  backend が起動しているか確認してください ({window.API_BASE})
                 </div>
-              </form>
+              </div>
+            )}
 
+            {teachers !== null && teachers.length > 0 && (
               <div
                 style={{
-                  fontSize: 11,
-                  color: T.ink3,
-                  textAlign: "center",
-                  marginTop: 14,
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 28,
+                  maxWidth: 980,
+                  margin: "0 auto",
                 }}
               >
-                Tomoshibi {window.APP_VERSION} · 2026 AC 入試プロジェクト成果物
+                <LoginDormColumn
+                  label="男性寮"
+                  icon="M"
+                  accent={T.maleAccent}
+                  soft={T.maleSoft}
+                  teachers={men}
+                  lastTeacherId={lastTeacherId}
+                  onPick={setPicked}
+                />
+                <LoginDormColumn
+                  label="女性寮"
+                  icon="F"
+                  accent={T.femaleAccent}
+                  soft={T.femaleSoft}
+                  teachers={women}
+                  lastTeacherId={lastTeacherId}
+                  onPick={setPicked}
+                />
               </div>
+            )}
+
+            <div
+              style={{
+                fontSize: 11,
+                color: T.ink3,
+                textAlign: "center",
+                marginTop: 36,
+              }}
+            >
+              Tomoshibi {window.APP_VERSION} · 2026 AC 入試プロジェクト成果物
             </div>
           </div>
         );
       }
 
-      function LField({
+      function LoginDormColumn({
         label,
-        value,
-        onChange,
-        type = "text",
-        autoFocus,
-        disabled,
+        icon,
+        accent,
+        soft,
+        teachers,
+        lastTeacherId,
+        onPick,
       }) {
         const T = window.RYO;
         return (
-          <label style={{ display: "block", marginBottom: 14 }}>
+          <div>
             <div
               style={{
-                fontSize: 11,
-                color: T.ink2,
-                marginBottom: 6,
-                fontWeight: 600,
-                letterSpacing: 0.5,
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 14,
               }}
             >
-              {label}
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  background: soft,
+                  color: accent,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  fontFamily: T.mono,
+                  border: `1px solid ${accent}33`,
+                }}
+              >
+                {icon}
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: 1 }}>
+                {label}
+              </div>
+              <div style={{ fontSize: 11, color: T.ink3, fontFamily: T.mono }}>
+                {teachers.length} 名
+              </div>
             </div>
-            <input
-              type={type}
-              value={value}
-              autoFocus={autoFocus}
-              disabled={disabled}
-              onChange={(e) => onChange(e.target.value)}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {teachers.map((t) => (
+                <LoginTeacherCard
+                  key={t.id}
+                  t={t}
+                  isLast={t.id === lastTeacherId}
+                  onPick={onPick}
+                />
+              ))}
+              {teachers.length === 0 && (
+                <div
+                  style={{
+                    padding: "16px 18px",
+                    color: T.ink3,
+                    fontSize: 12,
+                    border: `1px dashed ${T.lineStrong}`,
+                    borderRadius: 12,
+                    textAlign: "center",
+                  }}
+                >
+                  この寮の担当先生は登録されていません
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      function LoginTeacherCard({ t, isLast, onPick }) {
+        const T = window.RYO;
+        const loginText =
+          t.lastLoginMins == null
+            ? "初回ログイン"
+            : t.lastLoginMins < 60
+              ? `${t.lastLoginMins} 分前にログイン`
+              : t.lastLoginMins < 60 * 24
+                ? `${Math.floor(t.lastLoginMins / 60)} 時間前にログイン`
+                : "本日未ログイン";
+        return (
+          <button
+            type="button"
+            onClick={() => onPick(t)}
+            style={{
+              width: "100%",
+              padding: "14px 18px",
+              background: T.surface,
+              border: isLast ? `2px solid ${T.cobalt}` : `1px solid ${T.line}`,
+              borderRadius: 14,
+              boxShadow: T.shadow1,
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              textAlign: "left",
+              transition: "all .12s",
+              minHeight: 88,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = T.shadow2;
+              e.currentTarget.style.transform = "translateY(-1px)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = T.shadow1;
+              e.currentTarget.style.transform = "translateY(0)";
+            }}
+          >
+            <div
               style={{
-                width: "100%",
-                padding: "11px 12px",
-                background: disabled ? T.surfaceAlt : T.surface,
-                border: `1px solid ${T.lineStrong}`,
-                borderRadius: 8,
-                fontFamily: "inherit",
-                fontSize: 14,
-                color: T.ink,
-                outline: "none",
-                boxSizing: "border-box",
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                background: T.cobaltSoft,
+                color: T.cobalt,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 18,
+                fontWeight: 700,
+                flexShrink: 0,
               }}
-            />
-          </label>
+            >
+              {(t.name || "?").charAt(0)}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: T.ink }}>
+                {t.name} 先生
+              </div>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: T.ink3,
+                  marginTop: 4,
+                  fontFamily: T.mono,
+                }}
+              >
+                {loginText}
+              </div>
+            </div>
+            {isLast && (
+              <div
+                style={{
+                  fontSize: 10,
+                  color: T.cobalt,
+                  fontWeight: 700,
+                  padding: "3px 8px",
+                  background: T.cobaltSoft,
+                  borderRadius: 999,
+                  flexShrink: 0,
+                }}
+              >
+                前回
+              </div>
+            )}
+          </button>
         );
       }
 
@@ -11231,6 +11531,7 @@
           ["front-desk", "フロント業務"],
           ["accounts", "学生アカウント管理"],
           ["admin-registration-code", "学生登録コード"],
+          ["teachers-admin", "教員アカウント管理"],
         ];
 
         const pageLabel =
@@ -11247,6 +11548,7 @@
             "front-desk": "フロント業務",
             accounts: "学生アカウント管理",
             "admin-registration-code": "学生登録コード",
+            "teachers-admin": "教員アカウント管理",
             summary: "点呼総結",
             search: "検索結果",
           }[active] || "";
@@ -14610,6 +14912,673 @@
       }
 
       window.RegistrationCodePanel = RegistrationCodePanel;
+    </script>
+    <script type="text/babel" data-source="components/teachers-admin-page.jsx">
+      // /teachers-admin — 教員アカウント管理（2026-05-27 拍板）
+      // §3.4「前台不允许自助注册任何教师账号 / 必须先用现有教师账号登录 → 加 / 删」
+      // 接 backend: GET /teachers (list) / POST /teachers (创建) / DELETE /teachers/{id}
+      // 权限: backend 限「寮務部長 / 寮務課長 / 寮監 / 学習担当」(/teachers.py INVITE_ALLOWED_ROLES)
+      //       前端不提前判 — 让 backend 返 403 时显示错误（避免角色 string 双写漂移）
+
+      function TeachersAdminPage({ authToken, currentTeacherId }) {
+        const T = window.RYO;
+        const [list, setList] = React.useState(null); // null=loading / [] / [...]
+        const [loadErr, setLoadErr] = React.useState(null);
+        const [showCreateModal, setShowCreateModal] = React.useState(false);
+        const [confirmDelete, setConfirmDelete] = React.useState(null);
+        const [toast, setToast] = React.useState(null);
+
+        const refresh = React.useCallback(() => {
+          setList(null);
+          setLoadErr(null);
+          window.tomoshibiApi
+            .listTeachers(authToken)
+            .then((rows) => setList(rows || []))
+            .catch((e) => {
+              console.warn("[TeachersAdmin] listTeachers 失败", e);
+              setLoadErr(
+                e && e.status === 403
+                  ? "閲覧権限がありません（寮務部長 / 寮務課長 / 寮監）"
+                  : `読み込み失敗 ${e && e.status ? `(${e.status})` : ""}`,
+              );
+              setList([]);
+            });
+        }, [authToken]);
+
+        React.useEffect(() => {
+          if (authToken) refresh();
+        }, [authToken, refresh]);
+
+        React.useEffect(() => {
+          if (toast) {
+            const id = setTimeout(() => setToast(null), 4000);
+            return () => clearTimeout(id);
+          }
+        }, [toast]);
+
+        const handleCreate = async (body) => {
+          try {
+            await window.tomoshibiApi.createTeacher(body, authToken);
+            setToast({
+              type: "ok",
+              msg: `${body.name} 先生を追加しました`,
+            });
+            setShowCreateModal(false);
+            refresh();
+            return { ok: true };
+          } catch (e) {
+            console.warn("[TeachersAdmin] createTeacher 失败", e);
+            const msg =
+              e && e.body && e.body.detail && e.body.detail.message
+                ? e.body.detail.message
+                : `追加に失敗しました (${e && e.status ? e.status : "?"})`;
+            return { ok: false, error: msg };
+          }
+        };
+
+        const handleDelete = async (t) => {
+          try {
+            await window.tomoshibiApi.deleteTeacher(t.id, authToken);
+            setToast({ type: "ok", msg: `${t.name} 先生を削除しました` });
+            setConfirmDelete(null);
+            refresh();
+          } catch (e) {
+            console.warn("[TeachersAdmin] deleteTeacher 失败", e);
+            const msg =
+              e && e.body && e.body.detail && e.body.detail.message
+                ? e.body.detail.message
+                : `削除に失敗しました (${e && e.status ? e.status : "?"})`;
+            setToast({ type: "warn", msg });
+            setConfirmDelete(null);
+          }
+        };
+
+        return (
+          <div style={{ padding: "8px 4px 32px" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-end",
+                gap: 16,
+                marginBottom: 18,
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 20, fontWeight: 700 }}>
+                  教員アカウント管理
+                </div>
+                <div style={{ fontSize: 12, color: T.ink3, marginTop: 4 }}>
+                  新しい宿監が来た時に追加・退任時に削除します（§3.4）
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(true)}
+                style={{
+                  padding: "10px 18px",
+                  background: T.cobalt,
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 10,
+                  fontFamily: "inherit",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                + 新規教員を追加
+              </button>
+            </div>
+
+            {list === null && (
+              <div
+                style={{
+                  padding: 40,
+                  textAlign: "center",
+                  color: T.ink3,
+                  fontSize: 13,
+                }}
+              >
+                教員一覧を読み込み中…
+              </div>
+            )}
+            {list !== null && loadErr && (
+              <div
+                style={{
+                  padding: "16px 18px",
+                  background: T.dangerSoft,
+                  color: T.danger,
+                  border: `1px solid ${T.dangerBorder}`,
+                  borderRadius: 10,
+                  fontSize: 13,
+                }}
+              >
+                {loadErr}
+              </div>
+            )}
+            {list !== null && !loadErr && (
+              <div
+                style={{
+                  background: T.surface,
+                  border: `1px solid ${T.line}`,
+                  borderRadius: 12,
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "minmax(120px, 1fr) minmax(120px, 1fr) minmax(160px, 1.4fr) minmax(120px, 1fr) minmax(80px, 0.6fr) 100px",
+                    gap: 12,
+                    padding: "12px 18px",
+                    background: T.surfaceAlt,
+                    borderBottom: `1px solid ${T.line}`,
+                    fontSize: 11,
+                    color: T.ink3,
+                    fontWeight: 600,
+                  }}
+                >
+                  <div>氏名</div>
+                  <div>ログイン ID</div>
+                  <div>メール</div>
+                  <div>役職</div>
+                  <div>担当寮</div>
+                  <div style={{ textAlign: "right" }}>操作</div>
+                </div>
+                {list.length === 0 && (
+                  <div
+                    style={{
+                      padding: 40,
+                      textAlign: "center",
+                      color: T.ink3,
+                      fontSize: 13,
+                    }}
+                  >
+                    登録された教員がいません
+                  </div>
+                )}
+                {list.map((t) => {
+                  const dormLabel =
+                    t.assigned_dorm == null
+                      ? "—"
+                      : t.assigned_dorm === 4
+                        ? "女寮"
+                        : "男寮";
+                  const isSelf = t.id === currentTeacherId;
+                  return (
+                    <div
+                      key={t.id}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "minmax(120px, 1fr) minmax(120px, 1fr) minmax(160px, 1.4fr) minmax(120px, 1fr) minmax(80px, 0.6fr) 100px",
+                        gap: 12,
+                        padding: "12px 18px",
+                        borderBottom: `1px solid ${T.line}`,
+                        fontSize: 13,
+                        alignItems: "center",
+                      }}
+                    >
+                      <div style={{ fontWeight: 600 }}>
+                        {t.name}
+                        {isSelf && (
+                          <span
+                            style={{
+                              marginLeft: 6,
+                              fontSize: 10,
+                              color: T.cobalt,
+                              padding: "2px 6px",
+                              background: T.cobaltSoft,
+                              borderRadius: 999,
+                            }}
+                          >
+                            自分
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontFamily: T.mono, color: T.ink2 }}>
+                        {t.login_id}
+                      </div>
+                      <div
+                        style={{
+                          color: T.ink2,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {t.email}
+                      </div>
+                      <div style={{ color: T.ink2 }}>{t.role}</div>
+                      <div style={{ color: T.ink2 }}>{dormLabel}</div>
+                      <div style={{ textAlign: "right" }}>
+                        <button
+                          type="button"
+                          disabled={isSelf}
+                          onClick={() => !isSelf && setConfirmDelete(t)}
+                          title={isSelf ? "自分自身は削除できません" : ""}
+                          style={{
+                            padding: "6px 12px",
+                            background: isSelf ? T.surfaceAlt : T.dangerSoft,
+                            color: isSelf ? T.ink3 : T.danger,
+                            border: `1px solid ${isSelf ? T.line : T.dangerBorder}`,
+                            borderRadius: 8,
+                            fontFamily: "inherit",
+                            fontSize: 12,
+                            cursor: isSelf ? "not-allowed" : "pointer",
+                          }}
+                        >
+                          削除
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {showCreateModal && (
+              <TeachersAdminCreateModal
+                onCancel={() => setShowCreateModal(false)}
+                onSubmit={handleCreate}
+              />
+            )}
+            {confirmDelete && (
+              <TeachersAdminConfirmDelete
+                teacher={confirmDelete}
+                onCancel={() => setConfirmDelete(null)}
+                onConfirm={() => handleDelete(confirmDelete)}
+              />
+            )}
+            {toast && (
+              <div
+                style={{
+                  position: "fixed",
+                  bottom: 24,
+                  right: 24,
+                  padding: "12px 18px",
+                  background:
+                    toast.type === "ok" ? T.successSoft : T.dangerSoft,
+                  color: toast.type === "ok" ? T.success : T.danger,
+                  border: `1px solid ${toast.type === "ok" ? T.successBorder : T.dangerBorder}`,
+                  borderRadius: 10,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  boxShadow: T.shadow2,
+                  zIndex: 1000,
+                }}
+              >
+                {toast.msg}
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      function TeachersAdminCreateModal({ onCancel, onSubmit }) {
+        const T = window.RYO;
+        const [name, setName] = React.useState("");
+        const [loginId, setLoginId] = React.useState("");
+        const [email, setEmail] = React.useState("");
+        const [password, setPassword] = React.useState("");
+        const [role, setRole] = React.useState("寮監");
+        const [assignedDorm, setAssignedDorm] = React.useState("");
+        const [submitting, setSubmitting] = React.useState(false);
+        const [err, setErr] = React.useState("");
+
+        const ROLES = [
+          "寮務部長",
+          "寮務課長",
+          "国際交流部長",
+          "国際交流課長",
+          "管理係",
+          "寮監",
+          "学習担当",
+          "寮務一般教师",
+        ];
+
+        const submit = async (e) => {
+          e.preventDefault();
+          if (submitting) return;
+          if (
+            !name.trim() ||
+            !loginId.trim() ||
+            !email.trim() ||
+            !password ||
+            password.length < 8
+          ) {
+            setErr("全項目を入力してください（パスワードは 8 文字以上）");
+            return;
+          }
+          setSubmitting(true);
+          setErr("");
+          const result = await onSubmit({
+            login_id: loginId.trim(),
+            name: name.trim(),
+            email: email.trim(),
+            password,
+            role,
+            assigned_dorm: assignedDorm === "" ? null : Number(assignedDorm),
+          });
+          setSubmitting(false);
+          if (!result.ok) setErr(result.error);
+        };
+
+        return (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0,0,0,.4)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+              padding: 24,
+            }}
+            onClick={onCancel}
+          >
+            <form
+              onSubmit={submit}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: T.surface,
+                borderRadius: 14,
+                padding: "26px 28px",
+                width: 460,
+                maxHeight: "90vh",
+                overflowY: "auto",
+                boxShadow: T.shadow2,
+              }}
+            >
+              <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>
+                新規教員を追加
+              </div>
+              <div style={{ fontSize: 12, color: T.ink3, marginBottom: 18 }}>
+                追加後、新しい先生はログイン画面で自分のカードを選びパスワードを入力できます
+              </div>
+
+              <AdminField
+                label="氏名"
+                value={name}
+                onChange={setName}
+                autoFocus
+              />
+              <AdminField
+                label="ログイン ID（半角英数）"
+                value={loginId}
+                onChange={setLoginId}
+              />
+              <AdminField
+                label="メールアドレス"
+                value={email}
+                onChange={setEmail}
+                type="email"
+              />
+              <AdminField
+                label="初期パスワード（8 文字以上）"
+                value={password}
+                onChange={setPassword}
+                type="password"
+              />
+
+              <label style={{ display: "block", marginBottom: 14 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: T.ink2,
+                    marginBottom: 6,
+                    fontWeight: 600,
+                  }}
+                >
+                  役職
+                </div>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    border: `1px solid ${T.lineStrong}`,
+                    borderRadius: 8,
+                    fontFamily: "inherit",
+                    fontSize: 14,
+                    background: T.surface,
+                    color: T.ink,
+                  }}
+                >
+                  {ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label style={{ display: "block", marginBottom: 14 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: T.ink2,
+                    marginBottom: 6,
+                    fontWeight: 600,
+                  }}
+                >
+                  担当寮
+                </div>
+                <select
+                  value={assignedDorm}
+                  onChange={(e) => setAssignedDorm(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    border: `1px solid ${T.lineStrong}`,
+                    borderRadius: 8,
+                    fontFamily: "inherit",
+                    fontSize: 14,
+                    background: T.surface,
+                    color: T.ink,
+                  }}
+                >
+                  <option value="">跨寮（指定なし）</option>
+                  <option value="1">男一寮</option>
+                  <option value="2">男二寮</option>
+                  <option value="4">女寮</option>
+                </select>
+              </label>
+
+              {err && (
+                <div
+                  style={{
+                    marginBottom: 12,
+                    padding: "8px 12px",
+                    fontSize: 12,
+                    background: T.dangerSoft,
+                    color: T.danger,
+                    border: `1px solid ${T.dangerBorder}`,
+                    borderRadius: 8,
+                  }}
+                >
+                  {err}
+                </div>
+              )}
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  justifyContent: "flex-end",
+                  marginTop: 6,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  style={{
+                    padding: "10px 18px",
+                    background: "transparent",
+                    color: T.ink2,
+                    border: `1px solid ${T.lineStrong}`,
+                    borderRadius: 8,
+                    fontFamily: "inherit",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  style={{
+                    padding: "10px 18px",
+                    background: submitting ? T.lineStrong : T.cobalt,
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    fontFamily: "inherit",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: submitting ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {submitting ? "追加中…" : "追加"}
+                </button>
+              </div>
+            </form>
+          </div>
+        );
+      }
+
+      function TeachersAdminConfirmDelete({ teacher, onCancel, onConfirm }) {
+        const T = window.RYO;
+        return (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0,0,0,.4)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+              padding: 24,
+            }}
+            onClick={onCancel}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: T.surface,
+                borderRadius: 14,
+                padding: "24px 28px",
+                width: 420,
+                boxShadow: T.shadow2,
+              }}
+            >
+              <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 6 }}>
+                {teacher.name} 先生のアカウントを削除しますか？
+              </div>
+              <div style={{ fontSize: 12, color: T.ink3, marginBottom: 20 }}>
+                削除すると{teacher.name}
+                先生はログインできなくなります。これまでの点呼・申請履歴は残ります。
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  justifyContent: "flex-end",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  style={{
+                    padding: "10px 18px",
+                    background: "transparent",
+                    color: T.ink2,
+                    border: `1px solid ${T.lineStrong}`,
+                    borderRadius: 8,
+                    fontFamily: "inherit",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="button"
+                  onClick={onConfirm}
+                  style={{
+                    padding: "10px 18px",
+                    background: T.danger,
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    fontFamily: "inherit",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  削除する
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      function AdminField({
+        label,
+        value,
+        onChange,
+        type = "text",
+        autoFocus,
+      }) {
+        const T = window.RYO;
+        return (
+          <label style={{ display: "block", marginBottom: 14 }}>
+            <div
+              style={{
+                fontSize: 11,
+                color: T.ink2,
+                marginBottom: 6,
+                fontWeight: 600,
+              }}
+            >
+              {label}
+            </div>
+            <input
+              type={type}
+              value={value}
+              autoFocus={autoFocus}
+              onChange={(e) => onChange(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                border: `1px solid ${T.lineStrong}`,
+                borderRadius: 8,
+                fontFamily: "inherit",
+                fontSize: 14,
+                background: T.surface,
+                color: T.ink,
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+          </label>
+        );
+      }
+
+      window.TeachersAdminPage = TeachersAdminPage;
     </script>
     <script
       type="text/babel"
@@ -20671,7 +21640,7 @@
         const tabs = [
           ["board", "掲示板", "学生からの一般投稿"],
           ["song", "リクエスト曲", "寮内 BGM リクエスト · 提出順に再生"],
-          ["anon", "匿名建議", "匿名で寮運営への意見"],
+          // 5-27 itsuki 拍板砍「匿名建議」(原 anon tab) — system_features §7.14 4-29 已拍板砍社区/匿名建议整体
         ];
 
         return (
@@ -21039,10 +22008,10 @@
         queueNo,
       }) {
         const T = window.RYO;
-        const isAnon = post.cat === "anon";
+        // 5-27 砍 anon tab — cat 已无 "anon" 值，isAnon 逻辑全删
         const isSong = post.cat === "song";
         const avatarColor = hashColor(post.author || "A", T);
-        const initial = isAnon ? "？" : (post.author || "").charAt(0) || "・";
+        const initial = (post.author || "").charAt(0) || "・";
         const slotLabel =
           isSong && post.timeSlot === "morning"
             ? "朝 ☀"
@@ -21131,8 +22100,8 @@
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>
-                  {isAnon ? "匿名" : post.author}
-                  {post.room && !isAnon && (
+                  {post.author}
+                  {post.room && (
                     <span
                       style={{
                         color: T.ink3,
@@ -21609,39 +22578,7 @@
           flagCount: 0,
         },
 
-        {
-          id: "C030",
-          cat: "anon",
-          author: "匿名",
-          date: "04-22",
-          time: "03:20",
-          body: "自販機にミネラルウォーターをもう少し増やしてほしいです。よく売り切れてます。",
-          likes: 15,
-          comments: 8,
-          flagCount: 0,
-        },
-        {
-          id: "C031",
-          cat: "anon",
-          author: "匿名",
-          date: "04-20",
-          time: "23:50",
-          body: "食堂のメニュー、もう少し多様化してほしいです。外国人留学生向けの選択肢が少ない。",
-          likes: 22,
-          comments: 12,
-          flagCount: 0,
-        },
-        {
-          id: "C032",
-          cat: "anon",
-          author: "匿名",
-          date: "04-18",
-          time: "14:00",
-          body: "Wi-Fi の速度を改善してほしい。",
-          likes: 9,
-          comments: 3,
-          flagCount: 0,
-        },
+        // 5-27 砍 anon 类假数据（C030/C031/C032）— system_features §7.14 4-29 拍板砍匿名建議
       ];
 
       // 行事カレンダー seed — iOS 側と同型データ。date は YYYY-MM-DD。
@@ -23309,12 +24246,27 @@
             return null;
           }
         })();
+        // 5-27 拍板：实名账户登录后直接进 app（旧 select-teacher 中间页砍）。
+        // 从 backend TeacherOut.profile 派生 UI 用 teacher 字段 — assigned_dorm: 4=女寮 / 其他=男寮。
+        const _restoredTeacher =
+          _restoredAuth && _restoredAuth.profile
+            ? {
+                id: _restoredAuth.profile.id,
+                name: _restoredAuth.profile.name,
+                dorm:
+                  _restoredAuth.profile.assigned_dorm === 4 ? "women" : "men",
+                initial: (_restoredAuth.profile.name || "?").charAt(0),
+                lastLoginMins: null,
+              }
+            : null;
         const [route, setRoute] = React.useState(
-          _restoredAuth && _restoredAuth.token ? "select-teacher" : "login",
+          _restoredAuth && _restoredAuth.token ? "app" : "login",
         );
         const [teachers, setTeachers] = React.useState(window.TEACHERS);
-        const [teacher, setTeacher] = React.useState(null);
-        const [lastTeacherId, setLastTeacherId] = React.useState(null);
+        const [teacher, setTeacher] = React.useState(_restoredTeacher);
+        const [lastTeacherId, setLastTeacherId] = React.useState(
+          _restoredTeacher ? _restoredTeacher.id : null,
+        );
         // FC-024 修復後: backend 認証で受け取った JWT + teacher profile を保存
         const [authToken, setAuthToken] = React.useState(
           _restoredAuth ? _restoredAuth.token || null : null,
@@ -23380,18 +24332,27 @@
           const id = setInterval(() => {
             const idle = Date.now() - lastActivity.current;
             if (idle > window.TIMEOUT_MS) {
-              setRoute("select-teacher");
+              // 5-27 拍板：超时返回 login 第 1 屏（旧 select-teacher 中间页砍）
+              // sessionStorage 不清 — lastTeacherId 保留可让卡片高亮「前回」
+              setRoute("login");
               setTeacher(null);
+              setAuthToken(null);
+              setAuthProfile(null);
               setLiveMode(false);
+              try {
+                sessionStorage.removeItem("tomoshibi_auth");
+              } catch (e) {
+                /* sessionStorage 失敗は無視 */
+              }
               setToast({
                 type: "warn",
-                msg: "操作がないため担当者選択に戻りました",
+                msg: "操作がないため再ログイン画面に戻りました",
               });
             } else if (!warned && idle > window.TIMEOUT_WARN_MS) {
               warned = true;
               setToast({
                 type: "warn",
-                msg: "あと 5 分で担当者選択に戻ります",
+                msg: "あと 5 分でログイン画面に戻ります",
               });
             }
           }, 5000);
@@ -23606,7 +24567,10 @@
         }, [session, authToken]);
 
         // FC-024 + Task #15: backend 認証成功 → state 更新 + sessionStorage 永続化 (F5 復元)
-        const loginOk = (token, profile) => {
+        // 5-27 拍板：实名账户登录 — LoginScreen 内一次性拿 token + profile + pickedTeacher
+        // pickedTeacher = LoginScreen 屏 1 选中的卡片 {id, name, dorm, initial} （从 GET /teachers/public 派生）
+        // 直接进 app，跳过旧 select-teacher 中间页。
+        const loginOk = (token, profile, pickedTeacher) => {
           setAuthToken(token);
           setAuthProfile(profile);
           try {
@@ -23618,7 +24582,19 @@
             // private mode 等で失敗しても login は続行 (state には残る)
             console.warn("[App] sessionStorage write 失敗", e);
           }
-          setRoute("select-teacher");
+          if (pickedTeacher) {
+            setTeacher(pickedTeacher);
+            setLastTeacherId(pickedTeacher.id);
+          }
+          const home = _roleHomePage(profile && profile.role);
+          setPage(home);
+          setRoute("app");
+          if (pickedTeacher) {
+            setToast({
+              type: "ok",
+              msg: `${pickedTeacher.name} 先生でサインインしました · ${window.dormLabel(pickedTeacher.dorm)} 担当`,
+            });
+          }
         };
         // §11.1 P0 角色重定向: 登录后按 authProfile.role 跳对应主页
         // 役职 (寮務部長/寮務課長/管理係/国際交流部長/国際交流課長) → applications
@@ -23958,32 +24934,17 @@
         if (route === "login") {
           return (
             <>
-              <window.LoginScreen onLogin={loginOk} />
-              <ToastSlot toast={toast} />
-            </>
-          );
-        }
-        if (route === "select-teacher") {
-          // Task #10: backend listTeachers 取得済み (且 0 件以上) なら使う、
-          // 取得失敗 / 未取得なら window.TEACHERS fallback (demo 動作維持)
-          const teachersForUi =
-            backendTeachers && backendTeachers.length > 0
-              ? backendTeachers
-              : teachers;
-          return (
-            <>
-              <window.SelectTeacherScreen
-                teachers={teachersForUi}
+              <window.LoginScreen
+                onLogin={loginOk}
                 lastTeacherId={lastTeacherId}
-                onPick={pickTeacher}
-                onDeleteTeacher={onTeacherDelete}
-                onAddTeacher={onTeacherAdd}
-                onLogout={logout}
               />
               <ToastSlot toast={toast} />
             </>
           );
         }
+        // 5-27 拍板：旧 route === "select-teacher" 中间页砍 —
+        // LoginScreen 内部已合并「列表 + 密码」2 屏，登录成功直接进 app。
+        // window.SelectTeacherScreen 组件保留（10531 行附近）作为 v1.1 候补 — 暂不使用。
         // app
         if (liveMode && session) {
           return (
@@ -24090,6 +25051,15 @@
             // Task #14: 学生登録コードパネル (§11.9.1)
             body = <window.RegistrationCodePanel authToken={authToken} />;
             break;
+          case "teachers-admin":
+            // 5-27 拍板: 教員アカウント管理 (§3.4「前台不允许自助注册 / 现教师后台加删」)
+            body = (
+              <window.TeachersAdminPage
+                authToken={authToken}
+                currentTeacherId={authProfile && authProfile.id}
+              />
+            );
+            break;
           case "study":
             // Task #17: 学習出席页 (§11.1 P0 + §7.3)
             body = (
@@ -24122,9 +25092,9 @@
               backendReachable={backendReachable}
               wsStatus={wsStatus}
               onSwitchTeacher={() => {
-                setRoute("select-teacher");
-                setTeacher(null);
-                setLiveMode(false);
+                // 5-27 拍板：切替＝ログアウト相当（实名账户 = 必須再認証）。
+                // sessionStorage 不清 — lastTeacherId 保留可让 LoginScreen 卡片高亮「前回」
+                logout();
               }}
               onSearch={search}
               onResumeLive={() => session && setLiveMode(true)}

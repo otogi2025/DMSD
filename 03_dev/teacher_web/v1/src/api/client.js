@@ -65,8 +65,10 @@
 
   const api = {
     // ── Auth ──
-    teacherLogin: (login_id, password) =>
-      request("POST", "/sessions/teacher", { login_id, password }),
+    // 5-27 拍板：实名账户登录方式 — 优先用 teacher_id (UUID) 登录（避免 login_id 暴露给爬虫）。
+    // login_id 形式保留作 backward-compat（CLI / 旧测试 / fallback）。
+    // 用法：teacherLogin({teacher_id, password}) 或 teacherLogin({login_id, password})。
+    teacherLogin: (body) => request("POST", "/sessions/teacher", body),
 
     // ── Applications ──
     pendingForMe: (token) =>
@@ -145,9 +147,17 @@
       request("PATCH", `/rollcall/events/${event_id}`, body, token),
 
     // ── Teachers ──
+    // 5-27 新增：登录页第 1 屏用 — 无认证、最小字段（id+name+assigned_dorm+last_login_at）
+    listTeachersPublic: () => request("GET", "/teachers/public", undefined),
     listTeachers: (token) => request("GET", "/teachers/", undefined, token),
     createInvitation: (body, token) =>
       request("POST", "/teachers/invitations", body, token),
+    // 5-27 新增：教师管理页 — 直接创建（v1.0 简化版、跳过邀请码流程）
+    // body = { login_id, name, email, password, role, assigned_dorm? }
+    createTeacher: (body, token) => request("POST", "/teachers/", body, token),
+    // 5-27 新增：教师管理页 — 删除（自己删自己时 backend 返 400 CANNOT_DELETE_SELF）
+    deleteTeacher: (teacher_id, token) =>
+      request("DELETE", `/teachers/${teacher_id}`, undefined, token),
 
     // ── Announcements (FC-027 修复完成 — get_current_principal 学生+老师双路) ──
     listAnnouncements: (token) =>
