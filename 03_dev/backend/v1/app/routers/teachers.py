@@ -175,3 +175,87 @@ def list_teachers(
 @router.get("/me", response_model=schemas.TeacherOut)
 def me(teacher: models.Teacher = Depends(get_current_teacher)):
     return schemas.TeacherOut.model_validate(teacher)
+
+
+# ---------------------------------------------------------------
+# GET /teachers/public — 登录页第 1 屏用（无认证、最小字段）
+# 2026-05-27 itsuki 拍板：实名账户登录方式，前端进 web 就能看到老师卡片列表。
+# 只返 id+name+assigned_dorm+last_login_at — 不返 login_id/email/role/status。
+# ---------------------------------------------------------------
+@router.get("/public", response_model=list[schemas.TeacherPublicOut])
+def list_teachers_public(db: Session = Depends(get_db)):
+    stmt = (
+        select(models.Teacher)
+        .where(models.Teacher.status == "active")
+        .order_by(models.Teacher.name)
+    )
+    teachers = db.scalars(stmt).all()
+    return [schemas.TeacherPublicOut.model_validate(t) for t in teachers]
+
+
+# ---------------------------------------------------------------
+# POST /teachers — 已登录教师 + 寮務管理権限 → 直接创建新教师（v1.0 简化版）
+# §3.4「前台不允许自助注册任何教师账号 / 必须先用现有教师账号登录 → 加 / 删」
+# ---------------------------------------------------------------
+@router.post("/", response_model=schemas.TeacherOut, status_code=201)
+def create_teacher(
+    body: schemas.TeacherCreateIn,
+    db: Session = Depends(get_db),
+    teacher: models.Teacher = Depends(require_teacher_roles(*INVITE_ALLOWED_ROLES)),
+):
+    if body.role not in models.TEACHER_ROLES:
+        raise HTTPException(
+            422,
+            {"code": "INVALID_ROLE", "message": f"無効な役職: {body.role}"},
+        )
+    # 唯一性検査 — login_id / email
+    existing = db.scalars(
+        select(models.Teacher).where(
+            (models.Teacher.login_id == body.login_id)
+            | (models.Teacher.email == body.email)
+        )
+    ).first()
+    if existing:
+        raise HTTPException(
+            409,
+            {"code": "DUPLICATE", "message": "login_id または email が既に存在"},
+        )
+
+    new_teacher = models.Teacher(
+        login_id=body.login_id,
+        name=body.name,
+        email=body.email,
+        password_hash=hash_password(body.password),
+        role=body.role,
+        assigned_dorm=body.assigned_dorm,
+        status="active",
+    )
+    db.add(new_teacher)
+    db.commit()
+    db.refresh(new_teacher)
+    return schemas.TeacherOut.model_validate(new_teacher)
+
+
+# ---------------------------------------------------------------
+# DELETE /teachers/{teacher_id} — 已登录教师 + 寮務管理権限 → 删除教师
+# 自己删自己防止（最后一个账号没人能登录）
+# ---------------------------------------------------------------
+@router.delete("/{teacher_id}", status_code=204)
+def delete_teacher(
+    teacher_id: str,
+    db: Session = Depends(get_db),
+    teacher: models.Teacher = Depends(require_teacher_roles(*INVITE_ALLOWED_ROLES)),
+):
+    if str(teacher.id) == teacher_id:
+        raise HTTPException(
+            400,
+            {"code": "CANNOT_DELETE_SELF", "message": "自分自身は削除できません"},
+        )
+    target = db.get(models.Teacher, teacher_id)
+    if not target:
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "教師が見つかりません"}
+        )
+    db.delete(target)
+    db.commit()
+    return None

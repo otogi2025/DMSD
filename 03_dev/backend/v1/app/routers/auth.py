@@ -82,9 +82,21 @@ def login_student(body: schemas.StudentLoginIn, db: Session = Depends(get_db)):
 
 @router.post("/teacher", response_model=schemas.TeacherTokenOut)
 def login_teacher(body: schemas.TeacherLoginIn, db: Session = Depends(get_db)):
-    teacher = db.scalars(
-        select(models.Teacher).where(models.Teacher.login_id == body.login_id)
-    ).first()
+    # 5-27 拍板：支持 teacher_id (UUID) 或 login_id，至少一个
+    if not body.teacher_id and not body.login_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "MISSING_IDENTIFIER",
+                "message": "teacher_id or login_id is required",
+            },
+        )
+    if body.teacher_id:
+        teacher = db.get(models.Teacher, body.teacher_id)
+    else:
+        teacher = db.scalars(
+            select(models.Teacher).where(models.Teacher.login_id == body.login_id)
+        ).first()
 
     now = datetime.now(timezone.utc)
 

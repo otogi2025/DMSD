@@ -51,7 +51,13 @@ class StudentLoginIn(BaseModel):
 
 
 class TeacherLoginIn(BaseModel):
-    login_id: str = Field(..., max_length=32)
+    """老师登录：login_id 或 teacher_id 至少传一个。
+    2026-05-27 拍板「实名账户登录」方式：前端从 GET /teachers/public 拿 UUID（id）后用 teacher_id 登录，
+    避免把 login_id 列表暴露给无认证爬虫（防止枚举攻击 + 针对性爆破）。
+    原 login_id + password 形式保留作 backward-compat（CLI / 旧测试）。"""
+
+    login_id: Optional[str] = Field(default=None, max_length=32)
+    teacher_id: Optional[UUID] = None
     password: str = Field(..., min_length=6, max_length=128)
 
 
@@ -513,6 +519,31 @@ class TeacherOut(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class TeacherPublicOut(BaseModel):
+    """GET /teachers/public — 登录页第 1 屏用，无认证可见。
+    只暴露 id + name + assigned_dorm + last_login_at — 不暴露 login_id / email / role / status / failed_count（防爬虫枚举）。
+    last_login_at 由前端转「N 分前 / 本日未 / 初回」显示。"""
+
+    id: UUID
+    name: str
+    assigned_dorm: Optional[int]
+    last_login_at: Optional[datetime]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TeacherCreateIn(BaseModel):
+    """POST /teachers — 已登录教师 + 寮務管理权限 → 直接创建新教师（v1.0 简化版，跳过邀请码流程）。
+    邀请码流程（POST /teachers/invitations + /register）保留 backend 但 v1.0 web 不实装 UI。"""
+
+    login_id: str = Field(..., min_length=1, max_length=32)
+    name: str = Field(..., min_length=1)
+    email: str = Field(..., min_length=3)
+    password: str = Field(..., min_length=8)
+    role: str
+    assigned_dorm: Optional[int] = None
 
 
 # ---------------------------------------------------------------

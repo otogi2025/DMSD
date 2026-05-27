@@ -52,8 +52,10 @@ class Settings(BaseSettings):
     email_from: str = "noreply@tomoshibi.example.jp"
     email_from_name: str = "Tomoshibi 通知"
 
-    # CORS
-    cors_origins: str = "http://localhost:5173,http://localhost:3000"
+    # CORS — 5173 = Vite dev / 3000 = React dev / 8787 = teacher_web standalone HTML 静态服务器
+    cors_origins: str = (
+        "http://localhost:5173,http://localhost:3000,http://localhost:8787"
+    )
 
     # ログ
     log_level: str = "INFO"
