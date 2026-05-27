@@ -27,7 +27,6 @@
 		86DDCC58FA0CF1176A9BDA4A /* IOSStatusBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10726DB63CDE8E0313B1EB95 /* IOSStatusBar.swift */; };
 		8F964714A4052D7FDE85B3A1 /* GlassBackdrop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35A6E6C6215754A03D910C0D /* GlassBackdrop.swift */; };
 		901E949457B307E054D48669 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F5853681D4FAB97B68321735 /* Assets.xcassets */; };
-		D783F747DC1A4C49801DD043 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 7B6DE10E173E4283B63D9C96 /* AppIcon.icon */; };
 		98028465FA560FC57B88380A /* TomoshibiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 993086C5D62807475E44116A /* TomoshibiApp.swift */; };
 		98B9BA9E2FA701C90063AA05 /* File.txt in Resources */ = {isa = PBXBuildFile; fileRef = 98B9BA9D2FA701C90063AA05 /* File.txt */; };
 		9C6010B8F9D58D4DFDC8A3DB /* ApplicationsCreateBodies.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82468F4C175BC38A6B8D9FB1 /* ApplicationsCreateBodies.swift */; };
@@ -40,6 +39,7 @@
 		B61FB76EA851BC80A2FBBE39 /* Route.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C054666A54A77C6971A7BD /* Route.swift */; };
 		B97F2CD7088F960531EFF66B /* Ic.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF988C23F66A4E622622302F /* Ic.swift */; };
 		CB5C431AB69BF972FFB160CB /* HomeStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89293A7DB55301A3F1DDE5EE /* HomeStubs.swift */; };
+		D783F747DC1A4C49801DD043 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 7B6DE10E173E4283B63D9C96 /* AppIcon.icon */; };
 		D802FA046E6B50B968F5826F /* MyPageStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E749CA72863EC4E0022C7B6 /* MyPageStubs.swift */; };
 		E363F1F7E2C186333C36782E /* Field.swift in Sources */ = {isa = PBXBuildFile; fileRef = D734F5CB9CBD861BD4D82C41 /* Field.swift */; };
 		E4AB919291B8E27C9C51FCA0 /* CommunityStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F52CBEB752D76838E1AA05 /* CommunityStubs.swift */; };
@@ -71,6 +71,7 @@
 		5802FFC4938B6F524F6703C5 /* TomoshibiApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TomoshibiApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		78A335C429D824BDF6D1C380 /* ApplyKindMapper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ApplyKindMapper.swift; path = Network/Mappers/ApplyKindMapper.swift; sourceTree = "<group>"; };
 		7AFBB7C7CB1B14AF649FFB7D /* GlassSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassSheet.swift; sourceTree = "<group>"; };
+		7B6DE10E173E4283B63D9C96 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		7E749CA72863EC4E0022C7B6 /* MyPageStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyPageStubs.swift; sourceTree = "<group>"; };
 		82468F4C175BC38A6B8D9FB1 /* ApplicationsCreateBodies.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ApplicationsCreateBodies.swift; path = Network/Endpoints/ApplicationsCreateBodies.swift; sourceTree = "<group>"; };
 		889D1EB8DA1127DE3F18DDA2 /* GlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassCard.swift; sourceTree = "<group>"; };
@@ -95,7 +96,6 @@
 		EE5E5F209C9022BFB61763C1 /* BreadcrumbOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreadcrumbOverlay.swift; sourceTree = "<group>"; };
 		F2DAAF1321A2D7F362D8DAA1 /* PageHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageHeader.swift; sourceTree = "<group>"; };
 		F5853681D4FAB97B68321735 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		7B6DE10E173E4283B63D9C96 /* AppIcon.icon */ = {isa = PBXFileReference; path = AppIcon.icon; sourceTree = "<group>"; };
 		F940AC0A65775FF17FF2E93E /* APIError.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = APIError.swift; path = Network/APIError.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -360,7 +360,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2600;
+				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					A91187321EBED0A24FCED0C1 = {
 						ProvisioningStyle = Automatic;
@@ -455,7 +455,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = DCQ2KT5ZA9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Tomoshibi Demo";
@@ -483,7 +482,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = DCQ2KT5ZA9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Tomoshibi;
@@ -542,10 +540,11 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = DCQ2KT5ZA9;
 				ENABLE_MODULE_VERIFIER = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -559,6 +558,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_STRICT_CONCURRENCY = minimal;
@@ -603,10 +603,11 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = DCQ2KT5ZA9;
 				ENABLE_MODULE_VERIFIER = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -627,6 +628,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG DEMO";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_STRICT_CONCURRENCY = minimal;
@@ -671,10 +673,11 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = DCQ2KT5ZA9;
 				ENABLE_MODULE_VERIFIER = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -695,6 +698,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_STRICT_CONCURRENCY = minimal;
@@ -708,7 +712,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = DCQ2KT5ZA9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Tomoshibi;
@@ -742,7 +745,7 @@
 				E87E601C28BF1F60FF3ABB0C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
+			defaultConfigurationName = Demo;
 		};
 		E558AE893037B1418936CAF5 /* Build configuration list for PBXProject "TomoshibiApp" */ = {
 			isa = XCConfigurationList;
@@ -752,7 +755,7 @@
 				23B0233E24CE7CA1862A9E02 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
+			defaultConfigurationName = Demo;
 		};
 /* End XCConfigurationList section */
 	};
