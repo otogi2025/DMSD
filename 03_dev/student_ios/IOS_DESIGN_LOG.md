@@ -2,20 +2,20 @@
 
 > **作用**：itsuki 提过的所有 iOS 设计要求 + 自主决定 + 待决清单的完整归档。防遗忘 / 下次会话快速恢复 context / AC 素材 / Claude Design prompt 的 single source of truth。
 > **建立**：2026-04-22 晚 by [Mac-demo-sprint]
-> **最后更新**：2026-05-21（§实装进度速查表加 — A-029）。早些更新：2026-05-03（§3.9.2 注册 flow 5→6 step + 新 §3.12「登録コード入力」UI 仕様 — itsuki 2026-05-03 拍板の App Store 公開対策。2026-05-02 §11.9 I1/I2 / 2026-04-22 晚 Round 1）
+> **最后更新**：2026-05-27（§实装进度速查表 5 个 🟡 全 ✅ — 5-27 深夜审查 + 早段 catch 修 + StayDetail 切真 API 全落地）。早些更新：2026-05-21 A-029 / 2026-05-03（§3.9.2 注册 flow 5→6 step + §3.12「登録コード入力」）/ 2026-05-02 §11.9 I1/I2 / 2026-04-22 晚 Round 1
 > **同型档案对照**：`teacher_web/WEB_DESIGN_LOG.md`（老师 Web 的等价档）
 
-## ⚠️ 实装进度速查表（2026-05-21 A-029 加）
+## ⚠️ 实装进度速查表（2026-05-27 全 ✅ 化）
 
 | 层 | 进度 | 说明 |
 |---|---|---|
 | 设计文档（本文） | ✅ ~95% | 989 行设计，主体 v2 已落 + 5-03 注册 flow 更新 |
-| Network/Endpoints | 🟡 部分 | Auth / Applications / Study / Announcements 已加；**RollCall API 缺**（A-024 已修） |
-| Features/Home | 🟡 部分 | Home omnibus 完成；amber Card 三态 long-press demo 待删（A-033 已修） |
-| Features/Auth | 🟡 部分 | 注册 flow 6 step UI 完成；**密码预填 / magic 000000 demo 后门残留**（A-035 主会话保留） |
-| Features/StayList | 🟡 部分 | UI 完成；**5 处 StayListMock 替代真 API**（A-037 已修） |
-| AppStore seed | 🟡 部分 | 公告 demo seed 残留（A-038 已修） |
-| SEED.user | 🟡 部分 | reviewer 060218 硬编码兜底（A-036 已修） |
+| Network/Endpoints | ✅ | Auth / Applications / Study / Announcements / RollCall 全加（A-024 已修） |
+| Features/Home | ✅ | Home omnibus 完成；amber Card 三态 long-press demo 包 `#if DEMO`（A-033 5-26 做法 B 落地） |
+| Features/Auth | ✅ | 注册 flow 6 step UI 完成；密码预填 / 000000 后门全包 `#if DEMO`（A-035 已修） |
+| Features/StayList | ✅ | UI 完成；listMine + detail/audit 切真 API + unauthorized → mock 兜底（A-037 5-21 + 5-27 切回完成） |
+| AppStore seed | ✅ | 公告 demo seed 全包 `#if DEMO`（A-038 已修） |
+| SEED.user | ✅ | reviewer 060218 包 `#if DEMO`（A-036 已修） |
 | 依赖管理 | ✅ N/A | C-044: iOS 工程无外部 SPM 依赖（xcodeproj 内 XCRemoteSwiftPackageReference 为空），不需要 Package.resolved；全靠系统 Foundation / SwiftUI |
 
 ---
@@ -781,7 +781,8 @@ extension Color {
 
 ### 11.9 ⏳ 待 itsuki 拍板（P0 阻塞）
 
-> **2026-04-30 進捗**：I1-I10 全部拍板。**残**：I11（実物表対応の動的 chain 表示 — 設計の一部、本 §11.6 に inline 落とす作業のみ）。
+> **2026-04-30 進捗**：I1-I10 全部拍板。**残**：I11（実物表対応の動的 chain 表示）。
+> **2026-05-27 進捗**：I11 ✅ — `ApprovalChainBuilder.chain(for: kind, isOverseas:)`（`StayListStubs.swift:164-191`）已实装外泊届 3/5 行 + 帰省/帰国 暫定同外泊。帰省/帰国 实物表 evidence 到达后只需调 `holidayChain` 即可。
 
 | ID | 決策 | 状态 |
 |---|---|---|
@@ -795,7 +796,7 @@ extension Color {
 | **I8** | demo scaffold 削除タイミング | ✅ **API 接続後即** + `#if DEBUG` で preview/snapshot 用 temporary 保留 |
 | **I9** | 学号 6 桁 入力 UX | ✅ **3 picker**（本档 §3.9.2 既決） |
 | **I10** | iOS 26 Min 制約 | ✅ **iOS 26 only** 既決 |
-| **I11** | **ApplicationDetailView 承认 chain 显示**（実物表対照、2026-04-30 D4 から）| ⏳ UI 動的切替（`student.is_overseas` + `application.kind`）。**外泊届の場合**: 一般 = 3 行（担任 / 寮務課長 / 管理係）/ 留学生 = 5 行（+ 国際交流部長 / 寮務部長）。**帰省 / 帰国届** chain は実物表 evidence 待ち。「国際交流課長」役职は存在するが外泊届チェーンには出現しない（他届で関与する可能性）|
+| **I11** | **ApplicationDetailView 承认 chain 显示**（実物表対照、2026-04-30 D4 から）| ✅ 2026-05-27 完成 — `ApprovalChainBuilder.chain(for: kind, isOverseas:)` 実装。**外泊届**: 一般 = 3 行（担任 / 寮務課長 / 管理係）/ 留学生 = 5 行（+ 国際交流部長 / 寮務部長）。**帰省 / 帰国届** chain は暫定で外泊と同一（実物表 evidence 待ち、helper `holidayChain` で差し替え可）。「国際交流課長」役职は存在するが外泊届チェーンには出現しない（他届で関与する可能性）|
 
 ### 11.10 P1 / P2 / P3
 
