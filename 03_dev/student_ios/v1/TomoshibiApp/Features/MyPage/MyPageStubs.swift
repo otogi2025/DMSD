@@ -1400,9 +1400,7 @@ struct MyCleanView: View {
                                     }
                                     Spacer()
                                     Pill(
-                                        text: c.score != nil
-                                            ? "\(c.status) · \(c.score!)点"
-                                            : c.status,
+                                        text: c.score.map { "\(c.status) · \($0)点" } ?? c.status,
                                         tone: c.status == "通過" ? .ok : .danger
                                     )
                                 }

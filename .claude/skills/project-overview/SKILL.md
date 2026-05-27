@@ -32,7 +32,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 |---|---|---|---|
 | `99_archive/` | 619 | 52% | 归档物（5-26 晚段-4 加 `2026-05-26_teacher_web_vite实装作废/` 13 文件 = App.tsx + main.tsx + Shell.tsx + pages × 5 + store/auth.ts + vite_root_index.html + package.json + lock + vite.config.ts + tailwind.config.js + postcss.config.js + tsconfig × 2 — itsuki 拍板 Vite + TS 实装版整体废弃 + 5-26 晚加 `2026-05-26_ios_v1_demo_snapshot/` 42 文件（iOS demo 后门删除前快照） + 5-26 早 3 个 iOS 上架配置归位 + 5-22 加 2026-05-21_pre_fix + 2026-05-22_tomoshibi_appstore_fork 残余 + 5-21 teacher_web/demo 整组 158 文件归档 + 早期 GPT 对话 / throwaway iOS / demo 4-28 / 5-12 深夜大整理 / cloud agent 退役 / 5-02 handoff × 4 等）|
 | `03_dev/` | 390 | 33% | 代码 + 设计 LOG（5-26 晚段-4 删除 Vite 实装 13 文件 → 全归档 → teacher_web 从 v0.8 阶段回退到 v0.3 Ryō standalone 主线 + 5-26 加 3 个 iOS 上架配置归位 + 5-24 加 RollCallAPI.swift）（backend / iOS Foundation / Android Compose / teacher_web v1 Ryō standalone（原 Vite+TS 实装版已废）/ 点呼机骨架）|
-| `05_logs/` | 109 | 9.1% | raw 56（5-16/19/21/22/22-iOS/24/25/25-AC学习清单/26/26-dmsd-startup/26-vite废弃+polish回滚/27-teacher_web_v1.0_深夜推进）/ AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）|
+| `05_logs/` | 110 | 9.2% | raw 57（5-16/19/21/22/22-iOS/24/25/25-AC学习清单/26/26-dmsd-startup/26-vite废弃+polish回滚/27-teacher_web_v1.0_深夜推进/27-ios审查）/ AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）|
 | `00_admin/` | 21 | 1.8% | 7 顶级 md + hooks 子目录 — 5-21 加 `系统bug专栏.md` + `codex_audit_prompt.md`（详见 §1.2）|
 | `01_specs/` | 14 | 1.2% | 规格冻结区（含 5 .pages 不可读）|
 | `.claude/` | 11 | 1.0% | 8 skill + 1 agent + 2 配置（settings / session-coord.config）— **5-26 加 `dmsd-startup/SKILL.md`**（启动 SOP 集中）/ 5-19 加 `.claude/agents/security-reviewer.md`（详见 §1.7.5）|
@@ -317,18 +317,19 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `seed.py` | 数据库初始化脚本 — 灌种子数据（教师 8 角色 + 班主任 + 学生 2 人含留学生）| ✅ | 空库启动后跑一次 |
 | `.gitignore` | git 忽略规则（保护 .env 密钥不进 git / 排除 venv 虚拟环境） | ✅ | 防泄漏关键文件 |
 
-### 3.3 backend/v1/app/ 核心（9 文件）
+### 3.3 backend/v1/app/ 核心（10 文件 — 2026-05-27 加 ws_manager.py）
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
 | `__init__.py` | Python 包声明（让 app/ 成 Python 包） | ✅ | 范式标准 |
 | `database.py` | 数据库连接 + session 管理（SQLAlchemy 引擎初始化） | ✅ | 范式标准 |
-| `deps.py` | FastAPI 依赖注入（当前用户 / DB session 等公共依赖） | ✅ | 范式标准 |
+| `deps.py` | FastAPI 依赖注入（含 5-27 加的 `dorm_units_for_teacher` R4 helper — 男寮 = unit 1+2 / 女寮 = unit 4 / 跨寮 4 类 = None） | ✅ | 范式标准 |
 | `security.py` | JWT 令牌生成 + 密码哈希 + 认证中间件 | ✅ | 范式标准 |
 | `main.py` | FastAPI 应用入口 — 注册路由 + 中间件 + 启动 hook | ✅ | uvicorn 启动这个 |
 | `config.py` | 配置加载（读 .env → Pydantic Settings） | ✅ | 范式标准 |
-| `models.py` | 数据库 13 张表的 ORM 定义（含 P1/P2 的 RollCallSession / RollCallEvent / StudyCheckin） | ⚠️ | 对应 router 缺 / 建议在 docstring 标 P0/P1/P2 优先级 |
+| `models.py` | 数据库 21+ 张表的 ORM 定义（含 5-27 加的 DemeritEvent / CleaningAssignment / FrontDeskItem 等 P1/P2 表） | ⚠️ | 对应 router 部分缺 / 建议在 docstring 标 P0/P1/P2 优先级 |
 | `schemas.py` | API 请求/响应的 Pydantic 数据校验定义（含 discriminated union — 按字段值分流校验）| ✅ | iOS / Android 字段对齐参考 |
+| `ws_manager.py` | **2026-05-27 加** — WebSocket 老师端连接管理单例（TeacherConnectionManager / asyncio.Lock / broadcast_sync 同步触发） | ✅ | 单进程 in-memory v1.0 / 多进程后期换 Redis pub/sub |
 
 ### 3.4 backend/v1/app/routers/（**11 文件 — 2026-05-13 audit 补 6 漏**）
 
@@ -571,7 +572,7 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 | `learning_path.md` | itsuki 学习哲学 + 已走的路 — AC 自我推荐书素材 | ✅ | 最后 4-13 / 4-10 后新学的 NFC / Swift / 硬件未追记 |
 | `project_evolution.md` | 项目重大转折记录（每次 = 转折点 + 起因 + 影响） | ✅ | 4 次已记 / 最后 4-13 / 待补"第 5 次转折" = demo 完成情况 |
 
-### 6.2 05_logs/raw/（56 文件 — 5-22~5-27 新增 8：5-22 iOS fork + 5-22 海关 + 5-24 iOS bug + 5-25 drift + session-coord + 5-25 AC 学习清单起草 + 5-26 中枢 + 5-26 dmsd-startup + 5-26 vite 废弃 + 5-27 teacher_web 深夜推进）
+### 6.2 05_logs/raw/（57 文件 — 5-22~5-27 新增 9：5-22 iOS fork + 5-22 海关 + 5-24 iOS bug + 5-25 drift + session-coord + 5-25 AC 学习清单起草 + 5-26 中枢 + 5-26 dmsd-startup + 5-26 vite 废弃 + 5-27 teacher_web 深夜推进 + 5-27 iOS 审查）
 
 | 文件 | 这天发生了啥 | AC 候选密度 |
 |---|---|---|
@@ -603,6 +604,7 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 | `2026-05-19.md` | 5-19 project-overview 文件介绍大改造 + 9 处漂移对账修复 + 防漂 C 方案落地（hook 全覆盖 + 启动对账脚本）+ 元层翻车 itsuki「我看不懂了」 | ⭐⭐⭐⭐⭐ |
 | `2026-05-26.md` | 5-26 早段：iOS Bot 1 误删功能复查（全量 diff fork vs 主项目 v1 证实没遗留误删 + 撤暗夜模式 v2 + 3 上架配置归位）+ memory 加铁律「TODO 关条目不要问」+ 晚段：全项目中枢机制立项 + DMSD 注册档案 | ⭐⭐⭐⭐ |
 | `2026-05-26_dmsd-startup+CLAUDE.md大改.md` | 5-26 晚段-2：启动 SOP 集中化（dmsd-startup skill 立项 — 5 件启动必做事 + §4 按需触发段）+ DMSD CLAUDE.md 247→190 行重写（QTS 模式 — Skills 继承 / Hooks 继承 / 全项目中枢联动）+ 沟通铁律「不主动用英语名词」立项全局 + 6 项目 CLAUDE.md 落地 + destructive-bash 行为约定（自己停下想 / 没必要不走 / 灾难级才问）+ CLAUDE.md 文档观转变（时间戳冗余禁止）| ⭐⭐⭐⭐⭐ |
+| `2026-05-27_ios_审查会话.md` | 5-27 深夜-3：iOS 全自主审查 + 修 + 收尾会话 — 5 维度过完 41 文件（demo 后门残留 / A-XXX bug 标记 / catch 错误处理 / Force unwrap / NFC 实装），发现 1 处可修（`MyPageStubs.swift:1404` `c.score!` 改 `map ?? _`）+ 2 处架构性延期（`StayListStubs.swift:475` catch 降级 mock 假数据 / `MyPageStubs.swift:1637` 暴露 `localizedDescription`）写 TODO §D | ⭐⭐ |
 
 ### 6.3 05_logs/dev_log/（9 文件）
 

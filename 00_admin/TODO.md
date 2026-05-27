@@ -356,6 +356,8 @@
   ```
 - [ ] UptimeRobot 配 https://api.tomoshibi.cc/healthz 5 分钟监控（Apple 审核期 24-72h 必须 100% 在线，挂 5 分钟以上 reject 风险）
 - [ ] 主项目 v1 backend `app/main.py:70` 加 production guard 防 create_all（跟 §🐛 v1 backend bug fix #2 配套，防止未来 v1 部署 prod 又踩坑）
+- [ ] **iOS `StayListStubs.swift:475` catch 降级到 mock 假数据问题** — 当前 `ApplicationsAPI.listMine()` 失败时降级到 `StayListMock.all`（注释说「避免空 view 影响调试」），但 v1.0 上线后用户看到假数据。修法：catch 改区分 `APIError.unauthorized` → 用 mock（未登录态兜底，符合 line 458 A-037 注释意图）/ 其他错误 → 显示错误提示 + 空 view 不降级。**审查发现于 2026-05-27 深夜 iOS 审查会话**
+- [ ] **iOS `MyPageStubs.swift:1637` catch 暴露 `error.localizedDescription` 给用户** — `deleteError = "通信失败 — \(error.localizedDescription)"` 会把 Swift / URLSession 的英文技术错误（如 "The data couldn't be read..."）直接给学生看。修法：catch 改区分 `APIError.network` / `.server` / 其他 → 显示日语友好提示。**审查发现于 2026-05-27 深夜 iOS 审查会话**
 
 ### E. 跨端同步遗留（不阻塞今晚）
 
