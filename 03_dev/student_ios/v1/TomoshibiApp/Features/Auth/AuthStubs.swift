@@ -635,11 +635,16 @@ struct RegisterStep1View: View {
         #endif
     }()
 
-    // 学年 / 组 / 出席番号 / 房间番号 — demo 也默认空，方便演示账号番号随输入实时变化
+    // 学年 / 组 / 出席番号 — demo 也默认空（这 3 个影响账号番号预览，留空方便演示随输入实时变化）
     @State private var grade: String = ""
     @State private var classSuffix: String = ""
     @State private var seatNoStr: String = ""
-    @State private var room: String = ""
+    // 房间号：demo 预填 A5（itsuki 2026-05-28 指定），生产版留空
+    #if DEMO
+        @State private var room: String = "A5"
+    #else
+        @State private var room: String = ""
+    #endif
 
     private let grades = ["中1", "中2", "中3", "高1", "高2", "高3"]
 
@@ -1012,7 +1017,8 @@ struct RegisterStep1View: View {
                 SEED.user.classSuffix = classSuffix
                 SEED.user.seatNo = Int(seatNoStr) ?? 18
                 let prefix = (gender == "male") ? "M" : "W"
-                SEED.user.room = prefix + room
+                // room 已含字母前缀（如 "A5" / "M101"）就直接用，避免 "MA5" 双前缀
+                SEED.user.room = (room.first?.isLetter == true) ? room : prefix + room
                 SEED.user.account = computedAccount
                 SEED.user.avatar = name.first.map { String($0) } ?? "リ"
 
