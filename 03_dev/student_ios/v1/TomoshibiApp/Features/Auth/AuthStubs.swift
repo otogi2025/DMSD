@@ -635,40 +635,11 @@ struct RegisterStep1View: View {
         #endif
     }()
 
-    @State private var grade: String = {
-        #if DEMO
-            return SEED.user.grade
-        #else
-            return ""
-        #endif
-    }()
-
-    @State private var classSuffix: String = {
-        #if DEMO
-            return SEED.user.classSuffix
-        #else
-            return ""
-        #endif
-    }()
-
-    @State private var seatNoStr: String = {
-        #if DEMO
-            return "\(SEED.user.seatNo)"
-        #else
-            return ""
-        #endif
-    }()
-
-    @State private var room: String = {
-        #if DEMO
-            // SEED 是 "M101" / "W12B" 形式 → 去掉首字符 M/W（剩下数字+英字可）
-            var s = SEED.user.room
-            if let first = s.first, first == "M" || first == "W" { s.removeFirst() }
-            return s
-        #else
-            return ""
-        #endif
-    }()
+    // 学年 / 组 / 出席番号 / 房间番号 — demo 也默认空，方便演示账号番号随输入实时变化
+    @State private var grade: String = ""
+    @State private var classSuffix: String = ""
+    @State private var seatNoStr: String = ""
+    @State private var room: String = ""
 
     private let grades = ["中1", "中2", "中3", "高1", "高2", "高3"]
 
@@ -707,6 +678,7 @@ struct RegisterStep1View: View {
             && !grade.isEmpty
             && !classSuffix.isEmpty
             && (Int(seatNoStr) ?? 0) > 0
+            && (Int(seatNoStr) ?? 0) <= 99 // backend seat_no 是 2 位数字码，>99 会被 ^\d{2}$ 校验打回
             && !room.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
@@ -1049,9 +1021,10 @@ struct RegisterStep1View: View {
                 app.registrationDraft.birthday = birth
                 app.registrationDraft.gender = gender
                 app.registrationDraft.is_overseas = isOverseas
-                app.registrationDraft.grade_code = grade
-                app.registrationDraft.class_code = classSuffix
-                app.registrationDraft.seat_no = seatNoStr
+                // backend schemas.py §588-590 三字段都是 ^\d{2}$（2 位数字码），不能送中文 "高3" / 字母 "B" / 1 位出席号
+                app.registrationDraft.grade_code = gradeCode
+                app.registrationDraft.class_code = classCode
+                app.registrationDraft.seat_no = String(format: "%02d", Int(seatNoStr) ?? 0)
                 app.registrationDraft.room_no_suffix = room
 
                 router.go(.registerStep2)
