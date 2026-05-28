@@ -229,6 +229,13 @@ round3/
 | 旧「登录前编辑模式」（floating FAB + 卡片右上 X + AddCard） | **砍** — 违反 §3.4「前台不允许自助注册任何教师账号」|
 | 邀请码流程（`POST /teachers/invitations` + `/teachers/register`）| 保留 backend 接口、但 v1.0 web 不实装 UI（v1.1 候补 — 「新教师远程注册」场景才需要邀请码；v1.0 用「现场添加」简化版即可）|
 
+#### 5-28 实机 bug 修复（commit `01d0654`）
+
+| bug | 根因 | 修法 |
+|---|---|---|
+| 登录页显示 9 个老师账号 | `seed.py` `DEV_TEACHERS` 原有 9 个假数据老师 → 备份 + 重建数据库 + 只保留「新股」1 个 | `seed.py:70-78` `DEV_TEACHERS` 砍到 1 个；旧 DB 备份 `.bak` + 重跑 seed |
+| 屏 2 返回按钮「消失」/ 点不中 | 按钮样式 `fontSize:12 + padding:0 + color:T.ink3 + background:transparent` → 点击区域只有约 12px 高、颜色极浅，itsuki 看不见也点不中 | 改为 `background:T.cobaltSoft + color:T.cobalt + borderRadius:6 + padding:"8px 12px"` — 按钮变成淡蓝背景可见控件 |
+
 ### 5.4 切替 / 自动退出（itsuki 给了详细权衡表）
 
 | 项 | 决策 | 细节 |
