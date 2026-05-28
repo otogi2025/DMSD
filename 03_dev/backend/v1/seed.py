@@ -69,67 +69,11 @@ DEV_STUDENTS = [
 
 DEV_TEACHERS = [
     dict(
-        login_id="ryomu_buchou",
-        name="寮務 太郎 (寮務部長)",
-        email="ryomu.buchou@example.jp",
+        login_id="shingu",
+        name="新股",
+        email="shingu@example.jp",
         role="寮務部長",
         assigned_dorm=None,
-    ),
-    dict(
-        login_id="ryomu_kachou",
-        name="寮務 次郎 (寮務課長)",
-        email="ryomu.kachou@example.jp",
-        role="寮務課長",
-        assigned_dorm=None,
-    ),
-    dict(
-        login_id="kokukou_buchou",
-        name="国際 三郎 (国際交流部長)",
-        email="kokusai.buchou@example.jp",
-        role="国際交流部長",
-        assigned_dorm=None,
-    ),
-    dict(
-        login_id="kokukou_kachou",
-        name="国際 四郎 (国際交流課長)",
-        email="kokusai.kachou@example.jp",
-        role="国際交流課長",
-        assigned_dorm=None,
-    ),
-    dict(
-        login_id="kanri",
-        name="管理 五郎 (管理係)",
-        email="kanri@example.jp",
-        role="管理係",
-        assigned_dorm=None,
-    ),
-    dict(
-        login_id="ryokan_m",
-        name="寮監 六郎 (男寮)",
-        email="ryokan.m@example.jp",
-        role="寮監",
-        assigned_dorm=1,
-    ),
-    dict(
-        login_id="gakushuu",
-        name="学習 七郎",
-        email="gakushuu@example.jp",
-        role="学習担当",
-        assigned_dorm=None,
-    ),
-    dict(
-        login_id="tannin_high3a",
-        name="担任 八郎 (高3A)",
-        email="tannin.high3a@example.jp",
-        role="寮務一般教师",
-        assigned_dorm=1,
-    ),
-    dict(
-        login_id="tannin_high3b",
-        name="担任 九郎 (高3B)",
-        email="tannin.high3b@example.jp",
-        role="寮務一般教师",
-        assigned_dorm=1,
     ),
 ]
 
@@ -176,10 +120,7 @@ def seed_dev(db) -> None:
     db.commit()
 
     # 担任绑定
-    homeroom_pairs = [
-        ("tannin_high3a", "06", "01"),
-        ("tannin_high3b", "06", "02"),
-    ]
+    homeroom_pairs = []
     for login_id, grade, klass in homeroom_pairs:
         teacher = db.scalars(
             select(models.Teacher).where(models.Teacher.login_id == login_id)
@@ -267,7 +208,7 @@ def seed_dev(db) -> None:
     log.info("=" * 60)
     log.info("dev seed 完成")
     log.info("学生 login: 060218 (留学生 リュウ) / 060103 (一般 田中)")
-    log.info("教师 login: ryomu_buchou / ryomu_kachou / ...")
+    log.info("教师 login: shingu (新股)")
     log.info("password (全员共通): %s", DEV_PASSWORD)
     log.info("=" * 60)
 
