@@ -52,6 +52,10 @@
 
 > ⚠️ **2026-05-28 早 8:30 收尾时**：本段已超 5 条上限（当前 7 条 + 本会话 1 = 8 条）— 砍哪 3 条留 itsuki 拍板。建议砍最老的（5-26 晚段-4 / 5-27 凌晨~早段 / 5-27 早段-2）
 
+### 2026-05-28 简报 + 注册页 demo 默认空 + 数字码 bug 修 + IOS_DESIGN_LOG 部分中文化 by [MacBook-Pro-Opus 4.7 1M]
+
+**主题**：compact 续接。简报启动检查 → 注册页学年/组/出席号/房间号 4 字段 demo 也默认空（itsuki 要演示账号番号随输入实时变化）→ codex 审查发现数字码真 bug（iOS 送中文「高3」但后端 `schemas.py` 要 `^\d{2}$` 数字码，真实学生注册必被打回）→ 修（含出席号 ≤99 上限 + 提交转 gradeCode/classCode/补零 seat_no）→ IOS_DESIGN_LOG §1/§3/§5 日语→中文（界面字符串保留）+ §11 技术区约 180 行加 TODO §S → commit `0ccd19d`。drift 修（05_logs 114→116）被别会话 `f4a882f` 顺手 commit。AC：不盲信 codex 误报（核实 SeedModels.swift 证伪第 4 点）+ itsuki 理解码 vs 显示分离 + UX 演示设计。
+
 ### 2026-05-27 晚段-4 / 跨夜 5-28 凌晨 by [MacBook-Pro-Opus 4.7 1M / iOS 登录注册大改 + AC 素材分级机制 + 申请履歴进度条]
 
 **主题**：⭐⭐⭐⭐⭐ itsuki 启动后报告 iOS 登录页 5 处 UI 问题 + 担心非 demo 模式注册会真写他个人信息到后端 → CC 改 6 处 + 派 codex 5.5 高档位审查 → codex 报 3 个真问题（gender / grade-classSuffix / birth 默认值数据污染）→ **itsuki 主动延伸顶级 AC 素材**：「正常代码里怎么会默认帮忙选好了性别和年龄」+「平均年龄选中位数 = 人性化设计」+「AC 素材主动提报权重更高，分级储存免得被淹没」→ CC 建 `_priority_itsuki主动提报/` 子目录 + memory 加铁律 + 修 4 处代码（中位数 picker 默认 2011-01-01 / canNext 加性别学年组别检查 / classCode 空映射改 00 / gender 默认空）→ 申请履歴 chip 链改进度横线 + 无名节点（同步 IOS_DESIGN_LOG + system_features §7.2.6 新章）→ 修 pbxproj 4 处加 APIErrorPresenter 文件注册（别会话遗留）→ 教 Edit Scheme 走到 Build Configuration
