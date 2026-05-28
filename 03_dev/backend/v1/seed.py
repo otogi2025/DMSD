@@ -1,7 +1,7 @@
 """seed — 双模式数据投入（dev dummy / production minimal）。
 
 通过环境变量 APP_ENV 切换：
-    APP_ENV=dev (default) → dev dummy seed（dummy 学生 2 + 教师 9 + 点呼 session 2 + 学习名簿）
+    APP_ENV=dev (default) → dev dummy seed（dummy 学生 2 + 教师 1 + 点呼 session 2 + 学习名簿）
     APP_ENV=production    → production seed（admin 教师 1 + reviewer 学生 1 + reviewer 注册码 1）
 
 production seed 5-08 拍板规则（详见 system_features.md §7.20 + §7.16 例外条款）：
@@ -172,7 +172,9 @@ def seed_dev(db) -> None:
 
     # 点呼 session
     JST = timezone(timedelta(hours=9))
-    today_jst = date.today()
+    today_jst = datetime.now(
+        ZoneInfo("Asia/Tokyo")
+    ).date()  # 机器时区无关，始终取日本日期
 
     def make_session(session_type: str, h: int, m: int) -> None:
         window_start = datetime(
