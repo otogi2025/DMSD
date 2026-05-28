@@ -371,27 +371,31 @@
 
 > **背景**：itsuki 5-28 提供宿舍真实纸质申请表「届け類.pdf」(朝日塾中等教育学校 寮)9 种扫描件。CC + codex 双读核对一致, 6 个待拍板点 itsuki 全拍板, 已落 `02_design/system_features.md` §7.2(出寮届補完)/ §7.3.5(学習在线申请)/ §7.21(4 种全新申請)/ §8(数据模型)。itsuki 拍板「都进 v1.0」。iOS 侧映射已写 `IOS_DESIGN_LOG.md` §14。以下是 5 端实装 backlog。
 
-**后端 backend（先做 — 其他端依赖）**：
-- [ ] `applications` 表加字段：contact_phone / companion / dest_cities / receipt_submitted / is_long_vacation / meal_note（§8.2 補完）
-- [ ] `approver_role` ENUM 加「校長」（帰国届最终许可、§7.2.2）
-- [ ] 帰国届 chain 生成逻辑：担任 → 国際交流部長 → 寮務課長 → 寮務部長 → 管理係 → **校長**（留学生・長期休暇 様式3-1、抬头校長）
-- [ ] 帰省 chain：担任・副担 → 寮務課長 → 寮務部長 → 管理係（4 人、不分日本人 / 留学生）
-- [ ] 外泊日本人 chain 改 4 人（含寮務部長、修旧 3 人记录）
-- [ ] 新表 `study_online_requests`（在线学习申请、类型 A、§8.3）
-- [ ] 新表 §8.7 4 张：dorm_event_proposals / dorm_schedule_changes / fridge_purchase_requests / item_possession_requests
-- [ ] Alembic 迁移脚本（新字段 + 新表 + ENUM 加校長）
-- [ ] 各表 router + schema + API
+**后端 backend** — ✅ **2026-05-28 全部完成**（commit `c6ccee0`，codex gpt-5.5 xhigh 实装 + CC 审查：70 测试通过 + 干净空库迁移全链路验证）：
+- [x] ~~`applications` 表加 6 字段：contact_phone / companion / dest_cities / receipt_submitted / is_long_vacation / meal_note（§8.2 補完）~~ ✅
+- [x] ~~`approver_role` + `teachers.role` ENUM 加「校長」（帰国届最终许可、§7.2.2；itsuki 5-28 拍板 A「实物有校长就要校长」）~~ ✅
+- [x] ~~帰国届 chain：担任 → 国際交流部長 → 寮務課長 → 寮務部長 → 管理係 → **校長**（様式3-1）~~ ✅ `approval_chain.py`
+- [x] ~~帰省 chain 4 人不分日本人 / 留学生 + 外泊日本人 4 人含寮務部長（修旧 3 人）~~ ✅
+- [x] ~~新表 `study_online_requests`（在线学习申请、类型 A、§8.3）~~ ✅
+- [x] ~~新表 §8.7 4 张：dorm_event_proposals / dorm_schedule_changes / fridge_purchase_requests / item_possession_requests~~ ✅
+- [x] ~~Alembic 迁移 `d2e3f4a5b6c7`（新字段 + 5 新表 + ENUM 加校長）~~ ✅
+- [x] ~~各表 router + schema + API（新路由 `study_online.py` + `dorm_life.py` + main.py 注册）~~ ✅
+- [ ] **待向老师确认（非阻塞）**：日本人帰国 / 通常时帰国是否有别的实物表（目前只有留学生・長期休暇 様式3-1）→ `approval_chain.py` 里 `("帰国", False)` 仍是暂定值
 
-**学生端 iOS（§14 已记映射）+ Android**：
+**⬅ 学生端 iPhone iOS — 下一步立刻做（itsuki 2026-05-28 拍板「iPhone 要做好、待会做」）**（§14 已记映射）：
 - [ ] 出寮届 ApplyForm 扩展：帰省 is_long_vacation 选择 + 新字段 + 食事日本人 / 留学生分支 + 命名班车（西口便等）
 - [ ] 帰国届 ApplyForm（飛行機字段 + 校長 chain 显示）
 - [ ] 学習在线申请 view（类型 A：期间 + 周时间表月~金 + 契约书凭证 + 3 天前提交）
 - [ ] 行事企画 ApplyForm + 列表
 - [ ] 冷蔵庫購入 view（A:47L 1万 / B:85L 2万 二选一）
 - [ ] 物品所持 ApplyForm
-- [ ] 日課変更：iOS / Android 学生端**不做**（责任者 / 老师提交、归 Web）
+- [ ] 日課変更：iOS 学生端**不做**（责任者 / 老师提交、归 Web）
+- [ ] 各申請界面接 backend 新接口（学生提交走 `POST /api/v1/study/online-requests` + `/api/v1/dorm-life/*`；出寮届新字段走已扩展的 `POST /applications`）
 
-**老师 Web teacher_web**：
+**Android — 暂不走（itsuki 5-28 拍板待 iPhone 后再说）**：
+- [ ] 参考 iOS §14 + iPhone 实装完成版镜像实装（出寮届扩展 / 帰国届 / 学習在线 / 行事企画 / 冷蔵庫 / 物品所持）
+
+**老师 Web teacher_web — 暂不走（itsuki 5-28 拍板待 iPhone 后再说）**：
 - [ ] 各申請的审批 / 处理界面（含 4 种新表单）
 - [ ] 学習欠席届**一人审查**界面（学習担当 / 晚自习监督老师、§7.3.5 拍板、不做多角色链）
 - [ ] 冷蔵庫購入采购流程（注文担当 / 請求担当 / 本人签收）
