@@ -1,0 +1,913 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>点呼机：目的 · 原理 · 采购清单 · 组装（首台演示机）</title>
+    <style>
+      :root {
+        --bg: #f7f8fa;
+        --card: #fff;
+        --line: #e3e6ea;
+        --ink: #1f2933;
+        --sub: #5b6672;
+        --akizuki: #c8102e;
+        --ss: #1a73e8;
+        --amazon: #ff9900;
+        --offline: #0a8f5b;
+        --warn: #d93025;
+        --warnbg: #fdecea;
+        --ok: #0a8f5b;
+        --pend: #b06a00;
+        --pendbg: #fff4e0;
+        --link: #1558d6;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, "Hiragino Sans", "PingFang SC", sans-serif;
+        line-height: 1.75;
+        padding: 24px 16px 80px;
+      }
+      .wrap {
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 25px;
+        margin: 0 0 4px;
+      }
+      .meta {
+        color: var(--sub);
+        font-size: 13px;
+        margin-bottom: 8px;
+      }
+      nav {
+        font-size: 13px;
+        background: #eef2f7;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin: 14px 0 26px;
+      }
+      nav a {
+        color: var(--link);
+        text-decoration: none;
+        margin-right: 14px;
+        white-space: nowrap;
+      }
+      nav a:hover {
+        text-decoration: underline;
+      }
+      h2 {
+        font-size: 20px;
+        margin: 38px 0 12px;
+        padding-bottom: 6px;
+        border-bottom: 2px solid var(--line);
+      }
+      h3 {
+        font-size: 16px;
+        margin: 20px 0 8px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 16px 18px;
+        margin-bottom: 16px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+        margin: 6px 0;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        background: #f0f2f5;
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--sub);
+      }
+      td.num,
+      th.num {
+        text-align: right;
+        white-space: nowrap;
+      }
+      a.buy {
+        color: var(--link);
+        text-decoration: none;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      a.buy:hover {
+        text-decoration: underline;
+      }
+      .tag {
+        display: inline-block;
+        font-size: 12px;
+        padding: 1px 8px;
+        border-radius: 10px;
+        font-weight: 600;
+        color: #fff;
+      }
+      .t-aki {
+        background: var(--akizuki);
+      }
+      .t-ss {
+        background: var(--ss);
+      }
+      .t-amz {
+        background: var(--amazon);
+      }
+      .t-off {
+        background: var(--offline);
+      }
+      .pill {
+        display: inline-block;
+        font-size: 12px;
+        padding: 1px 7px;
+        border-radius: 8px;
+        font-weight: 600;
+      }
+      .p-ok {
+        background: #e6f4ea;
+        color: var(--ok);
+      }
+      .p-pend {
+        background: var(--pendbg);
+        color: var(--pend);
+      }
+      .p-del {
+        background: #fdecea;
+        color: var(--warn);
+      }
+      .alert {
+        border-left: 4px solid var(--warn);
+        background: var(--warnbg);
+        padding: 12px 16px;
+        border-radius: 6px;
+        margin: 10px 0;
+      }
+      .alert b {
+        color: var(--warn);
+      }
+      .info {
+        border-left: 4px solid var(--ss);
+        background: #eef4fd;
+        padding: 12px 16px;
+        border-radius: 6px;
+        margin: 10px 0;
+      }
+      .total {
+        font-size: 18px;
+        font-weight: 700;
+      }
+      .del {
+        color: var(--warn);
+        text-decoration: line-through;
+      }
+      code {
+        background: #eef0f3;
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+      ul,
+      ol {
+        margin: 6px 0;
+        padding-left: 22px;
+      }
+      li {
+        margin: 4px 0;
+      }
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      @media (max-width: 680px) {
+        .grid2 {
+          grid-template-columns: 1fr;
+        }
+      }
+      .small {
+        font-size: 13px;
+        color: var(--sub);
+      }
+      .wire {
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 13px;
+      }
+      details {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        margin: 10px 0;
+        padding: 0 16px;
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+        padding: 14px 0;
+        font-size: 15px;
+      }
+      details[open] summary {
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 12px;
+      }
+      .shot {
+        margin: 14px 0;
+      }
+      .shot img {
+        max-width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        display: block;
+      }
+      .shot .cap {
+        font-size: 13px;
+        color: var(--sub);
+        margin-top: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>点呼机：目的 · 原理 · 采购 · 组装</h1>
+      <div class="meta">
+        首台演示机（方案 A）｜整理日
+        2026-05-28｜价格含税｜下单前每个商品页最后看一眼实时库存
+      </div>
+      <nav>
+        <a href="#goal">① 最终目的与效果</a>
+        <a href="#how">② 机器组成与原理</a>
+        <a href="#alert">③ 下单前必看</a>
+        <a href="#buy">④ 采购清单（带链接）</a>
+        <a href="#wire">⑤ 接线速查</a>
+        <a href="#shots">⑥ 采购页截图（折叠）</a>
+      </nav>
+
+      <!-- ============ ① 目的 ============ -->
+      <h2 id="goal">① 最终要达到的目的与效果</h2>
+      <div class="card">
+        <h3>这台机器要解决什么</h3>
+        <p>
+          宿舍每晚点呼（查学生有没有按时回宿舍）原来靠舍监挨个房间敲门、纸上打钩，慢、易漏、没法防代答。点呼机把这件事数字化：
+        </p>
+        <ul>
+          <li>
+            <b>学生端</b
+            >：晚上回宿舍，把学生卡贴一下读卡器，或用手机碰一下贴纸，1
+            秒完成签到。
+          </li>
+          <li>
+            <b>老师端</b>：电脑/手机上实时看到谁回了、谁还没回，迟到 /
+            缺席自动判定、自动扣纪律分，不用手记。
+          </li>
+          <li>
+            <b>防代刷</b
+            >：卡有唯一编号（防随便复制）；手机碰的网址带一次性验证码（用过即失效，防截图转发替别人签到）。
+          </li>
+          <li>
+            <b>现场反馈</b>：签到成功亮绿灯 +
+            喇叭播日语姓名（「○○さん、お帰りなさい」=「○○同学，欢迎回来」），失败亮红灯。
+          </li>
+        </ul>
+
+        <h3>对我（itsuki）来说还有一层目的：学习</h3>
+        <p>
+          这台机器不只是买来用，更是<b>买来亲手组装、搞懂原理</b>的学习材料：
+        </p>
+        <ul>
+          <li>第一次拿烙铁焊接（焊排针）—— 零电子经验跨出第一步</li>
+          <li>搞懂主板那排针脚（GPIO）怎么接模块</li>
+          <li>搞懂两种芯片间通信方式 SPI 和 I²C 的区别</li>
+          <li>搞懂 NFC（近场通信，手机/卡贴近就能读）怎么工作</li>
+          <li>这些动手过程本身就是升学（AC 入試）要讲的素材</li>
+        </ul>
+      </div>
+
+      <!-- ============ ② 原理 ============ -->
+      <h2 id="how">② 机器由什么组成、怎么工作</h2>
+      <div class="card">
+        <h3>大脑：Raspberry Pi 3 Model A+</h3>
+        <p>
+          一块巴掌大的小电脑（树莓派），跑 Python 程序。它板边有一排 40
+          根金属针叫 <b>GPIO</b>（通用输入输出脚），用来接各种模块。
+        </p>
+
+        <h3>两条签到路径</h3>
+        <p><b>路径 A — 刷学生卡：</b></p>
+        <div class="wire">
+          学生卡（NTAG215）→ 读卡器（PN532）读出卡号 → 主板 Python → 网络发后端
+          → 后端判定签到 → 推送老师端
+        </div>
+        <p><b>路径 B — 手机碰贴纸：</b></p>
+        <div class="wire">
+          主板每隔几秒改写贴纸（ST25DV）里的网址（带一次性验证码）→
+          学生手机碰一下 → 打开签到网页 → 后端校验验证码
+        </div>
+
+        <h3>5 个模块各干什么</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>模块</th>
+              <th>是什么 / 干什么</th>
+              <th>怎么接主板</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>PN532 读卡器</td>
+              <td>读学生卡的唯一编号</td>
+              <td><b>SPI</b>（一种高速 4 线通信总线）</td>
+            </tr>
+            <tr>
+              <td>ST25DV 贴纸</td>
+              <td>能被主板改写、又能被手机读的特殊 NFC 标签</td>
+              <td><b>I²C</b>（一种 2 线通信总线）</td>
+            </tr>
+            <tr>
+              <td>LED 灯 ×4</td>
+              <td>绿成功 / 红失败 / 蓝待机 / 白启动</td>
+              <td>数字脚，每个串 1 个电阻</td>
+            </tr>
+            <tr>
+              <td>风扇</td>
+              <td>主板长时间跑会热，吹散热（<b>必须 5V</b>）</td>
+              <td>接 5V 供电针</td>
+            </tr>
+            <tr>
+              <td>喇叭</td>
+              <td>播日语姓名</td>
+              <td>插 USB 口</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>软件怎么转</h3>
+        <p>
+          主程序是个循环（状态机）：<code
+            >待机 → 读到卡/手机碰 → 提交后端 → 成功亮绿/失败亮红 →
+            回到待机</code
+          >。
+        </p>
+        <p class="small">
+          为什么 PN532 走 SPI 不走 I²C：ST25DV 已经占了 I²C
+          这条线，两个挤一条容易出问题；PN532 在树莓派上走 SPI 最稳（两个外部 AI
+          审查都确认）。
+        </p>
+      </div>
+
+      <!-- ============ ③ 提醒 ============ -->
+      <h2 id="alert">③ 下单前必看（我核对链接后发现的问题）</h2>
+
+      <div class="alert">
+        <b>① 风扇链接是 12V 的，但树莓派只有 5V！</b><br />
+        你给的风扇链接（<a
+          class="buy"
+          href="https://www.amazon.co.jp/dp/B0DYV31FJZ"
+          target="_blank"
+          >B0DYV31FJZ</a
+        >）抓出来是「JYUDAUFU 30×10mm <b>DC 12V</b> 风扇 4 个装」。12V
+        风扇接树莓派 5V 转不动甚至不转。上次就说好换 5V 的——<b
+          >这个别买，重新找 5V 30mm 风扇</b
+        >。
+      </div>
+
+      <div class="alert">
+        <b>② 喇叭对不上。</b>截图里是 HONKYOB ¥1,980，但你给的链接（<a
+          class="buy"
+          href="https://www.amazon.co.jp/dp/B0G64JFMNR"
+          target="_blank"
+          >B0G64JFMNR</a
+        >）抓出来是「Apqfw HM5002」另一款。两个都是 USB
+        小喇叭功能差不多，<b>你确认到底买哪个</b>，别两个都下。
+      </div>
+
+      <div class="alert">
+        <b>③ 重复花钱：Qwiic 免焊线 ¥3,090 不用买。</b>你愿意焊接，ST25DV
+        焊排针即可（板底有 6 个焊孔已确认）。排针套装 ¥749 留着焊 PN532 + ST25DV
+        都用它。你给的链接清单里已经没有 Qwiic 了，对的，<b
+          >购物车里如果还有就删掉，省 3,090</b
+        >。
+      </div>
+
+      <div class="info">
+        <b>④ 小问题（不致命）：</b><br />
+        · <b>蓝色 LED 漏了链接</b>——你给的秋月 8 个链接里没有蓝色
+        LED（截图有），补一下
+        <a
+          class="buy"
+          href="https://akizukidenshi.com/catalog/g/g101321/"
+          target="_blank"
+          >秋月 101321</a
+        ><br />
+        · <b>杜邦线买了两种</b>：母-母 15cm（103475）+ 母-母 20cm
+        连排（115868），都是母对母、功能重叠，留一种就够（都便宜，都留也行）<br />
+        · <b>PN532 链接抓不到</b>（<a
+          class="buy"
+          href="https://www.amazon.co.jp/dp/B0C7Q1PX3R"
+          target="_blank"
+          >B0C7Q1PX3R</a
+        >
+        服务器报错），按排除法应该是 PN532 ¥1,190，下单前你点进去核对<br />
+        · 45 孔小面包板可不买（有 400 孔了）<br />
+        · Mac 没 SD 卡槽的话补个 microSD 读卡器
+      </div>
+
+      <!-- ============ ④ 采购清单 ============ -->
+      <h2 id="buy">④ 采购清单（点链接直接买）</h2>
+      <p class="small">
+        <span class="tag t-aki">秋月</span> 满 6,000 免送料 / 翌日发 /
+        秋葉原有店头 <span class="tag t-ss">SS</span> 平日 14 时前当日发 /
+        送料约 400 <span class="tag t-amz">Amazon</span> Prime 翌日 / 自营免送料
+        <span class="tag t-off">线下</span> 秋葉原店头可拿
+      </p>
+
+      <h3><span class="tag t-aki">秋月</span> 秋月電子</h3>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>商品</th>
+              <th class="num">单价</th>
+              <th class="num">数量</th>
+              <th class="num">小计</th>
+              <th>链接</th>
+              <th>状态</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Raspberry Pi 3 Model A+（主板）</td>
+              <td class="num">5,580</td>
+              <td class="num">1</td>
+              <td class="num">5,580</td>
+              <td>
+                <a
+                  class="buy"
+                  href="https://akizukidenshi.com/catalog/g/g114878/"
+                  target="_blank"
+                  >114878</a
+                >
+              </td>
+              <td>
+                <span class="pill p-ok">✓</span>
+                <span class="tag t-off">线下</span>
+              </td>
+            </tr>
+            <tr>
+              <td>AC 适配器 5V3A microUSB（供电）</td>
+              <td class="num">1,100</td>
+              <td class="num">1</td>
+              <td class="num">1,100</td>
+              <td>
+                <a
+                  class="buy"
+                  href="https://akizukidenshi.com/catalog/g/g112001/"
+                  target="_blank"
+                  >112001</a
+                >
+              </td>
+              <td>
+                <span class="pill p-ok">✓</span>
+                <span class="tag t-off">线下</span>
+              </td>
+            </tr>
+            <tr>
+              <td>红色 LED 5mm（失败灯）</td>
+              <td class="num">10</td>
+              <td class="num">1</td>
+              <td class="num">10</td>
+              <td>
+                <a
+                  class="buy"
+                  href="https://akizukidenshi.com/catalog/g/g112605/"
+                  target="_blank"
+                  >112605</a
+                >
+              </td>
+              <td><span class="pill p-ok">✓</span></td>
+            </tr>
+            <tr>
+              <td>绿色 LED 5mm OSPG5111A（成功灯，最重要）</td>
+              <td class="num">20</td>
+              <td class="num">1</td>
+              <td class="num">20</td>
+              <td>
+                <a
+                  class="buy"
+                  href="https://akizukidenshi.com/catalog/g/g112117/"
+                  target="_blank"
+                  >112117</a
+                >
+              </td>
+              <td><span class="pill p-ok">✓ 已确认</span></td>
+            </tr>
+            <tr>
+              <td>白色 LED 5mm（启动灯）10 个入</td>
+              <td class="num">250</td>
+              <td class="num">1包</td>
+              <td class="num">250</td>
+              <td>
+                <a
+                  class="buy"
+                  href="https://akizukidenshi.com/catalog/g/g104764/"
+                  target="_blank"
+                  >104764</a
+                >
+              </td>
+              <td><span class="pill p-ok">✓</span></td>
+            </tr>
+            <tr>
+              <td>蓝色 LED 5mm（待机灯）10 个入</td>
+              <td class="num">180</td>
+              <td class="num">1包</td>
+              <td class="num">180</td>
+              <td>
+                <a
+                  class="buy"
+                  href="https://akizukidenshi.com/catalog/g/g101321/"
+                  target="_blank"
+                  >101321</a
+                >
+              </td>
+              <td><span class="pill p-pend">漏了链接，补上</span></td>
+            </tr>
+            <tr>
+              <td>220Ω 电阻 1/4W（限流保护 LED）100 本入</td>
+              <td class="num">150</td>
+              <td class="num">1袋</td>
+              <td class="num">150</td>
+              <td>
+                <a
+                  class="buy"
+                  href="https://akizukidenshi.com/catalog/g/g125221/"
+                  target="_blank"
+                  >125221</a
+                >
+              </td>
+              <td>
+                <span class="pill p-ok">✓ 现货</span>
+                <span class="tag t-off">线下40袋</span>
+              </td>
+            </tr>
+            <tr>
+              <td>杜邦线 母-母 15cm 10 本入</td>
+              <td class="num">480</td>
+              <td class="num">1包</td>
+              <td class="num">480</td>
+              <td>
+                <a
+                  class="buy"
+                  href="https://akizukidenshi.com/catalog/g/g103475/"
+                  target="_blank"
+                  >103475</a
+                >
+              </td>
+              <td><span class="pill p-ok">✓</span></td>
+            </tr>
+            <tr>
+              <td>杜邦线 母-母 20cm 40P 连排</td>
+              <td class="num">200</td>
+              <td class="num">1本</td>
+              <td class="num">200</td>
+              <td>
+                <a
+                  class="buy"
+                  href="https://akizukidenshi.com/catalog/g/g115868/"
+                  target="_blank"
+                  >115868</a
+                >
+              </td>
+              <td><span class="pill p-pend">和上一行重复</span></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td><b>秋月小计</b></td>
+              <td></td>
+              <td></td>
+              <td class="num"><b>≈ 7,970</b></td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <h3><span class="tag t-ss">SS</span> Switch Science</h3>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>商品</th>
+              <th class="num">单价</th>
+              <th class="num">数量</th>
+              <th class="num">小计</th>
+              <th>链接</th>
+              <th>状态</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>ST25DV16K I2C RFID 模块（手机碰的贴纸）</td>
+              <td class="num">968</td>
+              <td class="num">4 或 5</td>
+              <td class="num">3,872 / 4,840</td>
+              <td>
+                <a
+                  class="buy"
+                  href="https://www.switch-science.com/products/7903"
+                  target="_blank"
+                  >7903</a
+                >
+              </td>
+              <td><span class="pill p-pend">数量待定 / 库存 8</span></td>
+            </tr>
+            <tr>
+              <td>送料</td>
+              <td class="num">~400</td>
+              <td class="num">—</td>
+              <td class="num">400</td>
+              <td>—</td>
+              <td></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td><b>SS 小计</b>（按 4 个）</td>
+              <td></td>
+              <td></td>
+              <td class="num"><b>≈ 4,272</b></td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <h3><span class="tag t-amz">Amazon</span> Amazon Japan</h3>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>商品</th>
+              <th class="num">单价</th>
+              <th class="num">数量</th>
+              <th class="num">小计</th>
+              <th>链接</th>
+              <th>状态</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>PN532 V3 NFC 套件（读学生卡）</td>
+              <td class="num">1,190</td>
+              <td class="num">1</td>
+              <td class="num">1,190</td>
+              <td>
+                <a
+                  class="buy"
+                  href="https://www.amazon.co.jp/dp/B0C7Q1PX3R"
+                  target="_blank"
+                  >B0C7Q1PX3R</a
+                >
+              </td>
+              <td><span class="pill p-pend">链接抓不到，自己核对</span></td>
+            </tr>
+            <tr>
+              <td>NTAG215 白卡 10 张（学生卡）</td>
+              <td class="num">920</td>
+              <td class="num">1套</td>
+              <td class="num">920</td>
+              <td>
+                <a
+                  class="buy"
+                  href="https://www.amazon.co.jp/dp/B08WRV4NHM"
+                  target="_blank"
+                  >B08WRV4NHM</a
+                >
+              </td>
+              <td><span class="pill p-ok">✓ 已确认</span></td>
+            </tr>
+            <tr>
+              <td>USB 迷你喇叭（日语播报）</td>
+              <td class="num">1,980</td>
+              <td class="num">1</td>
+              <td class="num">1,980</td>
+              <td>
+                <a
+                  class="buy"
+                  href="https://www.amazon.co.jp/dp/B0G64JFMNR"
+                  target="_blank"
+                  >B0G64JFMNR</a
+                >
+              </td>
+              <td>
+                <span class="pill p-pend"
+                  >链接是 Apqfw，截图是 HONKYOB，选一个</span
+                >
+              </td>
+            </tr>
+            <tr>
+              <td>2.54mm 公母排针套装 60 个（焊 PN532+ST25DV）</td>
+              <td class="num">749</td>
+              <td class="num">1</td>
+              <td class="num">749</td>
+              <td>
+                <a
+                  class="buy"
+                  href="https://www.amazon.co.jp/dp/B0C13N6T48"
+                  target="_blank"
+                  >B0C13N6T48</a
+                >
+              </td>
+              <td><span class="pill p-ok">✓ 已确认</span></td>
+            </tr>
+            <tr>
+              <td>Samcos 400 孔面包板 + 跳线 2 个装</td>
+              <td class="num">730</td>
+              <td class="num">1</td>
+              <td class="num">730</td>
+              <td>
+                <a
+                  class="buy"
+                  href="https://www.amazon.co.jp/dp/B0C3TNP1RG"
+                  target="_blank"
+                  >B0C3TNP1RG</a
+                >
+              </td>
+              <td><span class="pill p-ok">✓ 已确认</span></td>
+            </tr>
+            <tr>
+              <td class="del">5V 30mm 风扇</td>
+              <td class="num">—</td>
+              <td class="num">1</td>
+              <td class="num">—</td>
+              <td><span class="del">B0DYV31FJZ</span></td>
+              <td><span class="pill p-del">链接是 12V！重找 5V</span></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td><b>Amazon 小计</b>（不含待定喇叭/风扇）</td>
+              <td></td>
+              <td></td>
+              <td class="num"><b>≈ 5,569</b></td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="card">
+        <span class="total">合计 ≈ 17,800 円</span>
+        <span class="small"
+          >（秋月 7,970 ＋ SS 4,272 ＋ Amazon 5,569，已删 Qwiic 省
+          3,090；不含待定的风扇 / 读卡器；ST25DV 按 4 个算）</span
+        >
+      </div>
+
+      <!-- ============ ⑤ 接线 ============ -->
+      <h2 id="wire">⑤ 接线速查（详见 点呼机接线说明.md）</h2>
+      <div class="grid2">
+        <div class="card">
+          <h3>PN532 → 主板（SPI）</h3>
+          <div class="wire">
+            SCK&nbsp;&nbsp;→ pin23 / GPIO11<br />
+            MISO →&nbsp;pin21 / GPIO9<br />
+            MOSI →&nbsp;pin19 / GPIO10<br />
+            SS&nbsp;&nbsp;&nbsp;→ pin24 / GPIO8<br />
+            VCC&nbsp;&nbsp;→ 3.3V 或 5V（看模块标）<br />
+            GND&nbsp;&nbsp;→ pin6（接地）
+          </div>
+          <p class="small">红板先用拨码/跳线切到 SPI 模式</p>
+        </div>
+        <div class="card">
+          <h3>ST25DV → 主板（I²C，焊排针版）</h3>
+          <div class="wire">
+            SDA&nbsp;→ pin3 / GPIO2<br />
+            SCL&nbsp;→ pin5 / GPIO3<br />
+            VIN&nbsp;→ 3.3V<br />
+            GND&nbsp;→ pin9（接地）
+          </div>
+          <p class="small">板底 6 个焊孔焊排针，再用母-母杜邦线接</p>
+        </div>
+        <div class="card">
+          <h3>LED ×4（每个串 220Ω 电阻）</h3>
+          <div class="wire">
+            蓝 待机&nbsp;&nbsp;→ pin15 / GPIO22<br />
+            绿 成功&nbsp;&nbsp;→ pin13 / GPIO27<br />
+            红 失败&nbsp;&nbsp;→ pin11 / GPIO17<br />
+            白 启动&nbsp;&nbsp;→ pin16 / GPIO23
+          </div>
+          <p class="small">长腿→电阻→GPIO；短腿→接地</p>
+        </div>
+        <div class="card">
+          <h3>风扇 / 喇叭</h3>
+          <div class="wire">
+            风扇正极 → 5V（pin2/pin4）<br />
+            风扇负极 → 接地<br />
+            喇叭 → USB 口
+          </div>
+          <p class="small">
+            ⚠️ 风扇绝不接 GPIO 信号针（会烧主板）；风扇必须 5V
+          </p>
+        </div>
+      </div>
+
+      <div class="info" style="margin-top: 18px">
+        <b>接线 7 条避坑</b>：① 接线前先拔电源　② 物理针号 ≠ 代码里的 GPIO
+        编号　③ 所有模块接地连一起　④ 先单独测每个模块别一次全接　⑤
+        到货按板子上印的脚名接　⑥ LED 必串电阻　⑦ 风扇只接 5V
+      </div>
+
+      <!-- ============ ⑥ 截图 ============ -->
+      <h2 id="shots">⑥ 采购页截图</h2>
+      <details>
+        <summary>点开看 16 张采购页原图（默认折叠 — 图比较占地方）</summary>
+        <div class="shot">
+          <img src="采购截图/01.png" alt="采购截图01" />
+          <div class="cap">01</div>
+        </div>
+        <div class="shot">
+          <img src="采购截图/02.png" alt="采购截图02" />
+          <div class="cap">02</div>
+        </div>
+        <div class="shot">
+          <img src="采购截图/03.png" alt="采购截图03" />
+          <div class="cap">03</div>
+        </div>
+        <div class="shot">
+          <img src="采购截图/04.png" alt="采购截图04" />
+          <div class="cap">04</div>
+        </div>
+        <div class="shot">
+          <img src="采购截图/05.png" alt="采购截图05" />
+          <div class="cap">05</div>
+        </div>
+        <div class="shot">
+          <img src="采购截图/06.png" alt="采购截图06" />
+          <div class="cap">06</div>
+        </div>
+        <div class="shot">
+          <img src="采购截图/07.png" alt="采购截图07" />
+          <div class="cap">07</div>
+        </div>
+        <div class="shot">
+          <img src="采购截图/08.png" alt="采购截图08" />
+          <div class="cap">08</div>
+        </div>
+        <div class="shot">
+          <img src="采购截图/09.png" alt="采购截图09" />
+          <div class="cap">09</div>
+        </div>
+        <div class="shot">
+          <img src="采购截图/10.png" alt="采购截图10" />
+          <div class="cap">10</div>
+        </div>
+        <div class="shot">
+          <img src="采购截图/11.png" alt="采购截图11" />
+          <div class="cap">11</div>
+        </div>
+        <div class="shot">
+          <img src="采购截图/12.png" alt="采购截图12" />
+          <div class="cap">12</div>
+        </div>
+        <div class="shot">
+          <img src="采购截图/13.png" alt="采购截图13" />
+          <div class="cap">13</div>
+        </div>
+        <div class="shot">
+          <img src="采购截图/14.png" alt="采购截图14" />
+          <div class="cap">14</div>
+        </div>
+        <div class="shot">
+          <img src="采购截图/15.png" alt="采购截图15" />
+          <div class="cap">15</div>
+        </div>
+        <div class="shot">
+          <img src="采购截图/16.png" alt="采购截图16" />
+          <div class="cap">16</div>
+        </div>
+      </details>
+
+      <p class="small" style="margin-top: 30px; color: #9aa3ad">
+        注：方案改成「焊排针」后，<code>点呼机接线说明.md</code> §3
+        里写的还是「Qwiic 免焊」，待同步更新成焊排针版。
+      </p>
+    </div>
+  </body>
+</html>
