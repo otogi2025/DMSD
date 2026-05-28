@@ -523,7 +523,7 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 - ⏳ 未做 spec-sync 跨端字段对齐检查（spec-sync skill 价值在 backend 上线后跑）
 - 22 屏 vs system_features §7 14 子节功能矩阵 — 视觉层覆盖 ✅,业务规则层（扣分阈值 / 时间窗 / 役职链）待 backend 接通后实战验证
 
-### 5.8 03_dev/rollcall_device/（点呼机第 5 端,2026-05-08 建骨架,10 文件）
+### 5.8 03_dev/rollcall_device/（点呼机第 5 端,2026-05-08 建骨架,11 文件）
 
 > **背景**：2026-05-08 itsuki 拍板「点呼机当第 5 端」(对称 backend / iOS / Android / teacher_web 4 端模式) — 跑在 Raspberry Pi 3A+ 上的 Python 程序,读 NTAG215 学生卡 + 写 ST25DV16K 动态贴纸 + LED 反馈 + 日语播报。物理硬件层在 `02_design/hardware_design.md`,本目录是软件层。
 
@@ -535,6 +535,7 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 | `src/main.py` | 点呼机主循环入口（IDLE → SUBMITTING → SUCCESS / FAIL → IDLE 状态机） | ⏳ 占位 | 实装时填 |
 | `src/{nfc,audio,led,api}/__init__.py` | 4 个空模块包占位（NFC 读卡 / TTS 语音 / LED 灯 / 后端 HTTP 客户端） | ⏳ 占位 | 实装时分别写 PN532 / TTS / LED / 后端调用 |
 | `config/.gitkeep` + `docs/.gitkeep` | 占位文件让空目录能进 git（systemd unit / 部署手册 / 接线图 待写） | ⏳ 占位 | git 不 track 空目录的解决方案 |
+| `点呼机接线说明.md` | 各模块接 Pi 3A+ 的接线方法（PN532 走 SPI / ST25DV 走 I²C / LED GPIO / 风扇 5V / 喇叭 USB + 7 条零基础避坑） | ⏳ 待到货实测 | 2026-05-28 硬件采购会话建 / 配 `02_design/hardware_design.md` |
 
 **v1.0 实装顺序建议**（按 ROLLCALL_DEVICE_DESIGN_LOG §10 拍板后）：
 1. itsuki 拍板 D1-D6（NFC 库 / ST25DV 驱动方案 / TTS 方案 / SPI 还是 I2C / WebSocket 还是 HTTP / 设备认证）
