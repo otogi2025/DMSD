@@ -353,6 +353,14 @@
 - [ ] **`~/.claude/` 全局目录不在 git 跟踪** — 本会话改了 5 处 `~/.claude/` 文件（SKILL.md / hook / CLAUDE.md / HOW_TO_TALK.md / 案例库 / inbox / 我的环境.html）全没 git 历史。5-14 / 5-26 / 5-27 已立 propose「把 `~/.claude/` 做成 git 仓库」三次未拍板，等 itsuki 决定
 - [ ] **WIP「最近会话」累积 9 条远超 5 上限** — 本会话加完 9 条，§P 段说「9 条已超」上次没砍。等 itsuki 拍板砍哪 4 条（候选：5-26 / 5-26 晚段-2 / 5-26 晚段-3 / 5-27 早段-3 中老的几条）
 
+### R. 点呼机构造 + 工作原理学习（2026-05-27 硬件采购会话加）
+
+> **背景**：5-27 itsuki 推进点呼机配件采购时，Codex「ST25DV 116 天磨穿」警告 → itsuki 重算发现 Codex 假设「7×24 每 10 秒刷」不符合真实点呼时间窗 → 抓出设计文档 §2.3 漏写时间窗限定。itsuki 意识到自己对点呼机各部件怎么协作、ST25DV 怎么工作还没吃透 → 立学习任务。
+
+- [ ] **系统学一遍点呼机构造 + 工作原理** — 包括但不限于：① 6 个部件各干嘛（Pi 主板 / PN532 读卡器 / ST25DV 动态贴纸 / LED 状态灯 / 风扇 / USB 喇叭）② 路径 A（NFC 卡刷卡）+ 路径 B（手机碰贴纸）端到端数据流 ③ ST25DV 工作原理（EEPROM 擦写寿命 / I²C 写入 / NDEF / nonce 刷新 / Mailbox 模式）④ thin client 原则下点呼机和后端各管什么。学习材料起点：`02_design/hardware_design.md` + `03_dev/rollcall_device/ROLLCALL_DEVICE_DESIGN_LOG.md` + `02_design/flow_design.md`。AC 价值：硬件理解是面试可挂的工程深度
+- [ ] **`hardware_design.md` §2.3 回填 nonce 刷新时间窗限定** — 当前 §2.3 写无条件「每 10 秒刷」漏了「只在点呼时间窗内执行」→ 这是 Codex 116 天误报的根源。等 itsuki 拍板刷新策略后回填（限定时间窗 = 寿命 7-22 年 / 全天候 = 116 天磨穿）
+- [ ] **NTAG424 DNA 正式部署替代 NTAG215** — 路径 A 学生卡演示用 NTAG215（UID 可克隆），正式部署 4 台时换 NTAG424 DNA（AES-128 + SUN 防克隆）。新增预算约 2-4 万日元（100+ 张 × 200-400 日元）。等部署阶段做
+
 ## 🚀 teacher_web v1.0「直接上线」backlog（2026-05-27 审查产出 — 优先级最高）
 
 > **背景**：5-27 晚段-2 itsuki 让 CC 对 teacher_web 做审查 — 目标「让网站达到可以直接上线的水平」。CC 扫了 `WEB_DESIGN_LOG.md` / `DESIGN_BRIEF.md` / `system_features.md` / `v1/src/` 实际目录后**诚实结论**：**目前没到「直接上线」水平**。UI 90% ✅ + Login 真接 backend 1/16 ✅ + 其他 15 个 page 全部假数据 ⏳。本段集中列「要达到直接上线还差什么」。
@@ -408,7 +416,7 @@
 ### 🚀-D 协议 / 体验细节
 
 - [ ] **WebSocket 重连机制 + 「再接続中」banner** — spec §11.8 要求 frontend 断线自动重连 + 状态指示器，当前 `client.js openTeacherWS` 只 `console.error`，UI 没 banner
-- [ ] **`demo_server.py` 双入口不一致修正** — `开发模式跑.command` 调 `python3 -m http.server`（NFC demo 端点失效）vs `tomoshibi` CLI 调 `python3 demo_server.py`（端点正常）→ 选一统一行为。建议都走 `demo_server.py`（demo 用功能完整 + 性能足够）
+- [ ] **启动入口梳理（2026-05-28 部分变更）** — 原 `开发模式跑.command`（调 `python3 -m http.server`）已归档到 `99_archive/2026-05-28_开发模式跑_被启动全套脚本替代/`。现在两个入口用途不同：双击 = 项目根 `启动老师网站.command`（起后端 8000 + 前端 8787，**正式登录用**）/ CLI = `tomoshibi` → `python3 demo_server.py`（**NFC 实时点呼演示用**）。如要统一 NFC 演示行为再定
 - [ ] **spec §11.3 改判时限矩阵** — PATCH /events/{id} 没校验 7 天 / 30 天 / 月结后只读 — 5-27 backend 没实装 / frontend 没限制 UI
 
 ### 🚀-E 直接上线 = 还差什么（一句话总结 — 给 itsuki 起床看）

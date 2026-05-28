@@ -4,16 +4,19 @@
 
 ## 怎么打开看效果（下次想看就这么做）
 
-**方式 A — 双击启动**：Finder 找到 `v1/开发模式跑.command` 双击 → 自动起 Python 服务器（8787 端口）+ 自动开浏览器到 `http://localhost:8787/`
+**方式 A — 双击启动（推荐）**：Finder 找到项目根 `~/dev/DMSD/启动老师网站.command` 双击 → 同时起后端（8000 端口）+ 前端（8787 端口）+ 自动开浏览器到 `http://localhost:8787/`
 
-**方式 B — 命令行 CLI**：
+> 2026-05-28 起改用这个「全套」脚本。原 `v1/开发模式跑.command` 只起前端、不起后端，已归档到 `99_archive/2026-05-28_开发模式跑_被启动全套脚本替代/`。原因：5-27 老师登录改成实名账户（密码存后端数据库），只起前端会卡在登录界面。
+
+**方式 B — 命令行 CLI（仅 NFC 实时点呼演示用）**：
 ```bash
 cd ~/dev/DMSD/03_dev/teacher_web/v1
-./tomoshibi start      # 启动
+./tomoshibi start      # 起前端 + demo_server.py（NFC 演示端点）
 ./tomoshibi stop       # 停止
 ./tomoshibi status     # 看跑没跑
 ./tomoshibi help       # 看全部命令
 ```
+> ⚠️ tomoshibi 只起前端、不起后端 — 走正式登录还是用方式 A。
 
 **改了 HTML 想看效果**：浏览器手动刷新（Cmd+R）。没有 HMR（热重载，秒刷）— 这是 standalone HTML 项目的限制。
 

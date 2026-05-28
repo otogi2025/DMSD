@@ -23,7 +23,7 @@ teacher_web/
 ├── DESIGN_BRIEF.md                  # 本文件
 ├── WEB_DESIGN_LOG.md                # Web 専属设计 log
 └── v1/                              # 实装目录（standalone HTML + Ryō polish）
-    ├── 开发模式跑.command            # 双击 → 起 `python3 -m http.server 8787` + 自动开浏览器（demo_server.py 端点失效）
+    │   （开发模式跑.command 已于 2026-05-28 归档到 99_archive/ — 只起前端不起后端，被项目根 启动老师网站.command 替代）
     ├── tomoshibi                    # CLI（./tomoshibi start | stop | status | rebuild | pack）— start 走 `python3 demo_server.py`（demo_server.py 端点正常）⚠️ 跟 `开发模式跑.command` 不一致
     ├── demo_server.py               # ⭐ 5-27 校准发现真存在 142 行（之前文档写「死链」错）— 3 端点 /api/server-info + POST /checkin + GET /events/latest（iPhone 快捷指令 NFC demo 用）
     ├── 打包单文件.command            # 双击 → 用 build_single_file.py 打包成 demo 携带单文件
