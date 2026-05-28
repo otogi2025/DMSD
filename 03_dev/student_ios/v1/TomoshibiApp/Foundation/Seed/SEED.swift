@@ -1,20 +1,20 @@
 // SEED.swift · 全量 demo 数据
 // ⚠️ 对齐 Web Round 3 最新口径 (itsuki 2026-04-22 决策):
-//   - M101 / 男寮 / 4.5 分 (迟到 5 · 欠席 2)
+//   - 房间号 A5 / 男寮 / 4.5 分 (迟到 5 · 欠席 2) — itsuki 2026-05-28 指定 demo 房间号默认 A5
 //   - リュウ イヒ / 2006-10-14 / 19 岁
 
 import Foundation
 
 enum SEED {
-    nonisolated(unsafe) static var user: User = User(
-        account: "060218",        // 06(高3) + 02(B組) + 18(出席番号) → "060218"
+    nonisolated(unsafe) static var user: User = .init(
+        account: "060218", // 06(高3) + 02(B組) + 18(出席番号) → "060218"
         name: "リュウ イヒ",
         nameKana: "りゅう いひ",
         birth: "2006-10-14",
         age: 19,
         gender: "女",
         dorm: "男寮",
-        room: "M101",
+        room: "A5", // demo 房间号 (itsuki 2026-05-28 指定默认 A5)
         category: "一般寮生",
         email: "otogi2025@gmail.com",
         phone: "090-0000-0000",
@@ -38,7 +38,7 @@ enum SEED {
     ]
 
     static let rollcall: [RollcallEntry] = {
-        let days = ["2026-04-21","2026-04-20","2026-04-19","2026-04-18","2026-04-17","2026-04-16","2026-04-15","2026-04-14","2026-04-13","2026-04-12","2026-04-11","2026-04-10","2026-04-09","2026-04-08","2026-04-07","2026-04-06","2026-04-05"]
+        let days = ["2026-04-21", "2026-04-20", "2026-04-19", "2026-04-18", "2026-04-17", "2026-04-16", "2026-04-15", "2026-04-14", "2026-04-13", "2026-04-12", "2026-04-11", "2026-04-10", "2026-04-09", "2026-04-08", "2026-04-07", "2026-04-06", "2026-04-05"]
         let specials: [String: String] = [
             "2026-04-21:朝": "遅刻",
             "2026-04-20:晩": "欠席",
@@ -93,13 +93,13 @@ enum SEED {
         .init(id: "a5", type: "return", status: "approved", date: "2026-04-08", summary: "晩点呼 早帰"),
     ]
 
-    // 実スクールバス時刻表（2026-04-29 水 GW外泊・帰省等 特別運行便パターン）
-    // 詳細は DMSD/02_design/bus_schedule_real.md 参照
+    /// 実スクールバス時刻表（2026-04-29 水 GW外泊・帰省等 特別運行便パターン）
+    /// 詳細は DMSD/02_design/bus_schedule_real.md 参照
     static let buses: [BusLine] = [
         .init(time: "07:30", route: "高校棟 → 岡山駅西口", seats: "空きあり", next: true),
-        .init(time: "10:10", route: "高校棟 → 金川駅",     seats: "空きあり", next: false),
-        .init(time: "15:33", route: "金川駅 → 寮",         seats: "残 3",    next: false),
-        .init(time: "17:02", route: "金川駅 → 寮",         seats: "残 5",    next: false),
+        .init(time: "10:10", route: "高校棟 → 金川駅", seats: "空きあり", next: false),
+        .init(time: "15:33", route: "金川駅 → 寮", seats: "残 3", next: false),
+        .init(time: "17:02", route: "金川駅 → 寮", seats: "残 5", next: false),
     ]
 
     static let busNotice: (active: Bool, text: String) = (
@@ -107,7 +107,7 @@ enum SEED {
         "4/29(水) GW外泊・帰省・買い物 特別運行便 · 乗車名簿に事前チェック"
     )
 
-    // 完整巴士日程（DMSD/02_design/bus_schedule_real.md 対応 · 日別グループ）
+    /// 完整巴士日程（DMSD/02_design/bus_schedule_real.md 対応 · 日別グループ）
     static let busSchedule: [BusDaySchedule] = [
         .init(
             date: "2026-04-29", weekday: "水",
@@ -172,7 +172,7 @@ enum SEED {
         ),
     ]
 
-    // 活動・行事（カレンダー表示用）· bus_schedule_real.md の行事日も連動
+    /// 活動・行事（カレンダー表示用）· bus_schedule_real.md の行事日も連動
     static let events: [EventItem] = [
         .init(date: "2026-04-05", time: "08:30", title: "留4アクティビティ", place: "岡山城・後楽園", desc: "お花見弁当・岡山城見学・後楽園散策・さくらカーニバル。参加希望者は高野まで。"),
         .init(date: "2026-04-07", time: "15:33", title: "帰寮日", place: "金川駅・岡山駅西口", desc: "15:33 金川駅発 / 18:45 岡山駅西口発（寮行き）"),

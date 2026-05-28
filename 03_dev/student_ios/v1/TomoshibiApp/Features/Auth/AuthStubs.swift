@@ -1981,10 +1981,15 @@ struct RegisterStep5View: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
-    // A-035 (2026-05-24): demo magic value "000000" 后门已删
-    // 之前默认填 "000000"，submit() 检测到该值直接跳到 registerDone 不调 backend
-    // 现在 code 必须 6 桁数字 + 走真 backend POST /accounts
-    @State private var code: String = ""
+    // A-035 (2026-05-24 → 2026-05-28 解决)：demo magic value "000000" 后门
+    // 之前的问题：后门写在所有 build 里 = 生产安全漏洞，所以 5-24 删了。
+    // 5-28 重新引入但只在 DEMO build（演示版独立编译开关），生产版不含此分支 → 不再是漏洞。
+    // 演示版：认证码预填 "000000" + submit 跳过 backend 直接进完成页（itsuki 5-28 要求「直接进入界面」）
+    #if DEMO
+        @State private var code: String = "000000"
+    #else
+        @State private var code: String = ""
+    #endif
     @State private var isLoading: Bool = false
     @State private var errorMsg: String? = nil
 
@@ -2098,6 +2103,12 @@ struct RegisterStep5View: View {
     /// 调 backend POST /accounts、成功 → register done、失败 → 显示错误
     private func submit() {
         guard canSubmit, !isLoading else { return }
+
+        #if DEMO
+            // 演示版：跳过 backend，直接进注册完成页（生产版无此分支，不是后门漏洞）
+            router.replace(.registerDone)
+            return
+        #endif
 
         isLoading = true
         errorMsg = nil

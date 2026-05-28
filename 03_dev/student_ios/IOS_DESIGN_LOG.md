@@ -1040,11 +1040,35 @@ xcodebuild iPhone 17 simulator BUILD SUCCEEDED 確認済（2026-05-04）。
 | 端 | 状态 |
 |---|---|
 | 共用业务规则 | ✅ system_features.md §7.2 / §7.3.5 / §7.21 / §8 已写 |
-| iOS 具体 view / 字段 | ✅ 本节(§14)记映射, 实装等 v1.0 范围拍板 |
+| iOS 具体 view / 字段 | ✅ **实装完成（2026-05-28，见 §14.6）** |
 | Android | ⏳ 待 Android 会话同步 ANDROID_DESIGN_LOG |
 | 老师 Web(审批 / 处理) | ⏳ 待 Web 会话同步 WEB_DESIGN_LOG |
-| 后端(model / API) | ⏳ 待后端会话同步 BACKEND_DESIGN_LOG + 建表 |
+| 后端(model / API) | ✅ 实装完成（2026-05-28，commit c6ccee0，见 BACKEND_DESIGN_LOG §12）|
+
+### 14.6 iOS 实装完成（2026-05-28 — codex gpt-5.5 xhigh 干活 + CC 审查 + 独立 xcodebuild 验证）
+
+实装详细叙事见 `05_logs/raw/2026-05-28_申請实物表数字化.md` 阶段 7。本节只记 iOS 工程层结果。
+
+**改的文件**：
+- `ApplyStubs.swift` — 出寮届 StayForm 扩展（contact_phone / companion / dest_cities / is_long_vacation 通常時vs長期休暇 / 命名班车 / 食事日本人vs留学生分支）+ APPLY_TYPES 加 4 新类型 + dispatcher 分派
+- `ApplicationsCreateBodies.swift` / `NetworkModels.swift` — 出寮届请求体 + ApplicationOut 补 6 字段 + 4 种新申请响应模型
+- `StayListStubs.swift` — `ApprovalRole` 枚举加「校長」case（修帰国届审批链显示 bug）
+- `StudyAPI.swift` — 加在线学习 submit/list API
+
+**新建的文件**：
+- `Features/Apply/StudyOnlineForm.swift` — 在线学习申请表单 + 我的列表（周时间表月~金动态时间段 + 3 天前限制）
+- `Features/Apply/DormLifeForms.swift` — 行事企画 / 冷蔵庫購入 / 物品所持 三表单 + 各自列表
+- `Features/Apply/ApplyFormSupport.swift` — 新表单共用的日期 / 时间 / section 辅助
+- `Foundation/Network/Endpoints/DormLifeAPI.swift` — 行事企画 / 冷蔵庫 / 物品所持 接口包装
+
+**路由**：`Route.swift` + `RootView.swift` 加 4 个列表路由（dormEventList / studyOnlineList / fridgeList / itemList）。
+
+**工程配置**：`project.yml` 重写 — 加 Debug/Release/Demo 三配置 + 演示版独立 bundle id + DEMO 编译开关 + 两个 scheme（修 codex 跑 xcodegen 擦掉 Demo 配置的回归）。
+
+**验证**：正式版 + 演示版都 `xcodebuild` 编译通过。逐屏运行点查未做（工具限制）。
+
+**没做**：日課変更（设计上 iOS 学生端不做，归老师 Web）。
 
 ---
 
-**END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14 新増）。
+**END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）。

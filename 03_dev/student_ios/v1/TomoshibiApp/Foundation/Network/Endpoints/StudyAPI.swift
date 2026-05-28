@@ -19,6 +19,15 @@ enum StudyAPI {
         let reason: String          // 申请理由（必填、1-2000 字）
     }
 
+    /// POST /api/v1/study/online-requests 用的请求 body
+    struct OnlineRequestBody: Encodable {
+        let reason: String
+        let period_from: String
+        let period_to: String
+        let weekly_schedule: [String: [[String: String]]]
+        let contract_ref: String?
+    }
+
     /// 学習欠席届提交
     /// - Throws:
     ///   - APIError.unprocessable — 同日重复提交、target_date 范围超过等
@@ -27,5 +36,17 @@ enum StudyAPI {
     static func submitAbsenceRequest(targetDate: String, period: String, reason: String) async throws -> StudyAbsenceRequestOut {
         let body = AbsenceRequestBody(target_date: targetDate, period: period, reason: reason)
         return try await APIClient.shared.post(path: "/api/v1/study/absence-requests", body: body)
+    }
+
+    /// 学習オンライン申請 提交
+    @MainActor
+    static func submitOnlineRequest(body: OnlineRequestBody) async throws -> StudyOnlineRequestOut {
+        return try await APIClient.shared.post(path: "/api/v1/study/online-requests", body: body)
+    }
+
+    /// 学習オンライン申請 我的列表
+    @MainActor
+    static func listMyOnlineRequests() async throws -> [StudyOnlineRequestOut] {
+        return try await APIClient.shared.get(path: "/api/v1/study/online-requests/mine")
     }
 }

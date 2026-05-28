@@ -30,6 +30,10 @@ private let APPLY_TYPES: [ApplyTypeMeta] = [
     .init(k: "guest",         name: "来訪者",   icon: "person.2",                     desc: "家族・友人の来訪"),
     .init(k: "other",         name: "その他",   icon: "ellipsis.bubble",              desc: "上記以外のご依頼"),
     .init(k: "studyAbsence",  name: "学習欠席", icon: "book.closed",                  desc: "晚自习の欠席届（前半・後半・両方）"),
+    .init(k: "studyOnline",   name: "オンライン学習", icon: "laptopcomputer",          desc: "自室でのオンライン学習"),
+    .init(k: "event",         name: "行事企画", icon: "sparkles",                     desc: "寮内イベントの企画申請"),
+    .init(k: "fridge",        name: "冷蔵庫購入", icon: "snowflake",                  desc: "指定冷蔵庫の購入届"),
+    .init(k: "item",          name: "物品所持", icon: "shippingbox",                  desc: "持込物品の許可願"),
 ]
 
 private func applyType(_ k: String) -> ApplyTypeMeta {
@@ -284,6 +288,14 @@ struct ApplyFormDispatcher: View {
             StayForm(kind: kind)
         } else if kind == "studyAbsence" {
             StudyAbsenceForm()
+        } else if kind == "studyOnline" {
+            StudyOnlineForm()
+        } else if kind == "event" {
+            DormEventProposalForm()
+        } else if kind == "fridge" {
+            FridgePurchaseForm()
+        } else if kind == "item" {
+            ItemPossessionForm()
         } else {
             GenericApplyForm(kind: kind)
         }
@@ -318,6 +330,14 @@ struct StayForm: View {
     private var meDorm: String { "\(SEED.user.dorm) \(SEED.user.room)" }
     private var mePhone: String { SEED.user.phone }
     private var meCategory: String { SEED.user.category }   // 一般寮生 / 留学生
+    private var meIsOverseas: Bool { SEED.user.isOverseas }
+
+    // ── 实物表補完字段（2026-05-28）──────────────────────────────────────
+    @State private var contactPhone: String = SEED.user.phone
+    @State private var isLongVacation: Bool = false
+    @State private var companion: String = ""
+    @State private var destCities: String = ""
+    @State private var mealNote: String = ""
 
     // ── §7.2 共通字段 (帰省/外泊/帰国 三種類すべて) ─────────────────────────
     @State private var leaveDate: Date = StayForm.tomorrow
@@ -345,7 +365,11 @@ struct StayForm: View {
     @State private var reason: String = ""
 
     // 移動方法選択肢 — 帰省方法 / 帰寮方法
-    private let TRANSPORTS = ["JR", "バス", "自家用車", "タクシー", "教員送迎", "飛行機", "その他"]
+    private let TRANSPORTS = [
+        "JR", "バス", "西口1便", "西口2便", "金川1便", "金川2便",
+        "西口登校便", "金川登校便", "自家用車", "タクシー", "教員送迎", "飛行機", "その他",
+    ]
+    private let HOLIDAY_FORM_TYPES = ["通常時用", "長期休暇用"]
     private let MEALS = ["朝食", "昼食", "夕食"]
 
     // ── kind 判定 helper ─────────────────────────────────────────────────
@@ -408,8 +432,30 @@ struct StayForm: View {
                         .foregroundStyle(T.inkMute)
                         .padding(.bottom, 18)
 
-                    // ── §2 出寮 ────────────────────────────────────────────
-                    SectionLabel(n: "2", label: "出寮（寮を出る）")
+                    // ── §2 実物表補完: 連絡先 + 帰省届区分 ────────────────
+                    SectionLabel(n: "2", label: "連絡先・届の区分")
+                    Card(padding: 14) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Field(label: "本人連絡先（携帯電話）") {
+                                TField(text: $contactPhone, placeholder: "090-0000-0000", keyboard: .phonePad)
+                            }
+                            if isHoliday {
+                                Field(label: "帰省届の区分") {
+                                    ChipGroup(
+                                        options: HOLIDAY_FORM_TYPES,
+                                        value: Binding(
+                                            get: { isLongVacation ? "長期休暇用" : "通常時用" },
+                                            set: { isLongVacation = ($0 == "長期休暇用") }
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    .padding(.bottom, 18)
+
+                    // ── §3 出寮 ────────────────────────────────────────────
+                    SectionLabel(n: "3", label: "出寮（寮を出る）")
                     Card(padding: 14) {
                         VStack(alignment: .leading, spacing: 12) {
                             // 出寮日 — DatePicker minDate = tomorrow (#3)
@@ -436,8 +482,8 @@ struct StayForm: View {
                     }
                     .padding(.bottom, 18)
 
-                    // ── §3 帰寮 ────────────────────────────────────────────
-                    SectionLabel(n: "3", label: "帰寮（寮に戻る）")
+                    // ── §4 帰寮 ────────────────────────────────────────────
+                    SectionLabel(n: "4", label: "帰寮（寮に戻る）")
                     Card(padding: 14) {
                         VStack(alignment: .leading, spacing: 12) {
                             VStack(alignment: .leading, spacing: 6) {
@@ -459,11 +505,21 @@ struct StayForm: View {
                     }
                     .padding(.bottom, 18)
 
-                    // ── §4 外泊地点（外泊 / 帰国 のみ · 動的表示 #4）──────────
+                    // ── §5 外泊地点（外泊 / 帰国 のみ · 動的表示 #4）──────────
                     if needPlaces {
-                        SectionLabel(n: "4", label: "外泊地点")
+                        SectionLabel(n: "5", label: "同行者・行先・外泊地点")
                         Card(padding: 14) {
-                            VStack(alignment: .leading, spacing: 10) {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Field(label: "同行者") {
+                                    TField(text: $companion, placeholder: "同行者がいる場合は入力")
+                                }
+                                Field(label: "行先（都市名）") {
+                                    TField(text: $destCities, placeholder: "例：東京 / 大阪 / ソウル")
+                                }
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text("滞在先")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(T.inkSub)
                                 ForEach(stayPlaces.indices, id: \.self) { i in
                                     HStack(spacing: 8) {
                                         TField(text: Binding(
@@ -499,44 +555,60 @@ struct StayForm: View {
                                 Text("※ 複数の地点に滞在する場合はすべて入力してください")
                                     .font(.system(size: 10.5))
                                     .foregroundStyle(T.inkMute)
+                                }
                             }
                         }
                         .padding(.bottom, 18)
                     }
 
-                    // ── §5 食事不要期間（外泊 / 帰国 のみ）─────────────────
+                    // ── §6 食事不要期間（外泊 / 帰国 のみ）─────────────────
                     if needSkipMeal {
-                        SectionLabel(n: "5", label: "寮食堂 食事不要期間")
+                        SectionLabel(n: "6", label: "寮食堂 食事申告")
                         Card(padding: 14) {
                             VStack(alignment: .leading, spacing: 14) {
-                                Toggle(isOn: $skipEnabled) {
-                                    Text("食事不要期間を申告する")
+                                if meIsOverseas {
+                                    Toggle(isOn: $skipEnabled) {
+                                        Text("食事不要期間を申告する")
+                                            .font(.system(size: 13, weight: .semibold))
+                                            .foregroundStyle(T.ink)
+                                    }
+                                    .tint(T.primary)
+
+                                    if skipEnabled {
+                                        Divider().background(T.hair)
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            Text("不要 開始")
+                                                .font(.system(size: 11.5, weight: .semibold))
+                                                .foregroundStyle(T.inkSub)
+                                            HStack(spacing: 8) {
+                                                DateField(date: $skipStartDate, minDate: leaveDate)
+                                                ChipGroup(options: MEALS, value: $skipStartMeal)
+                                            }
+                                        }
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            Text("不要 終了")
+                                                .font(.system(size: 11.5, weight: .semibold))
+                                                .foregroundStyle(T.inkSub)
+                                            HStack(spacing: 8) {
+                                                DateField(date: $skipEndDate, minDate: skipStartDate)
+                                                ChipGroup(options: MEALS, value: $skipEndMeal)
+                                            }
+                                        }
+                                        Text("※ 上記期間（開始の食事から終了の食事まで）の寮食堂を不要とします")
+                                            .font(.system(size: 10.5))
+                                            .foregroundStyle(T.inkMute)
+                                    }
+
+                                    Field(label: "食事備考") {
+                                        TArea(text: $mealNote,
+                                              placeholder: "例：8月10日朝食まで必要、8月20日夕食から必要",
+                                              rows: 3)
+                                    }
+                                } else {
+                                    Text("食事は食事入力表でご記入ください")
                                         .font(.system(size: 13, weight: .semibold))
                                         .foregroundStyle(T.ink)
-                                }
-                                .tint(T.primary)
-
-                                if skipEnabled {
-                                    Divider().background(T.hair)
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Text("不要 開始")
-                                            .font(.system(size: 11.5, weight: .semibold))
-                                            .foregroundStyle(T.inkSub)
-                                        HStack(spacing: 8) {
-                                            DateField(date: $skipStartDate, minDate: leaveDate)
-                                            ChipGroup(options: MEALS, value: $skipStartMeal)
-                                        }
-                                    }
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Text("不要 終了")
-                                            .font(.system(size: 11.5, weight: .semibold))
-                                            .foregroundStyle(T.inkSub)
-                                        HStack(spacing: 8) {
-                                            DateField(date: $skipEndDate, minDate: skipStartDate)
-                                            ChipGroup(options: MEALS, value: $skipEndMeal)
-                                        }
-                                    }
-                                    Text("※ 上記期間（開始の食事から終了の食事まで）の寮食堂を不要とします")
+                                    Text("※ 日本人生徒の食事変更は学校指定の食事入力表で扱います。")
                                         .font(.system(size: 10.5))
                                         .foregroundStyle(T.inkMute)
                                 }
@@ -545,9 +617,9 @@ struct StayForm: View {
                         .padding(.bottom, 18)
                     }
 
-                    // ── §6 飛行機（帰国 のみ）─────────────────────────────
+                    // ── §7 飛行機（帰国 のみ）─────────────────────────────
                     if needFlight {
-                        SectionLabel(n: "6", label: "飛行機")
+                        SectionLabel(n: "7", label: "飛行機")
                         Card(padding: 14) {
                             VStack(alignment: .leading, spacing: 12) {
                                 Field(label: "出発空港", required: true) {
@@ -573,8 +645,8 @@ struct StayForm: View {
                         .padding(.bottom, 18)
                     }
 
-                    // ── §7 理由 (全種類共通) ─────────────────────────────────
-                    let reasonSectionN = needFlight ? "7" : (needSkipMeal ? "6" : "4")
+                    // ── §8 理由 (全種類共通) ─────────────────────────────────
+                    let reasonSectionN = needFlight ? "8" : (needSkipMeal ? "7" : "5")
                     SectionLabel(n: reasonSectionN,
                                  label: isHoliday ? "帰省の理由" : (isReturnCountry ? "帰国の理由" : "外泊の理由"))
                     TArea(text: $reason,
@@ -701,6 +773,10 @@ struct StayForm: View {
         let leaveTimeStr = StayForm.formatHM(leaveTime) + ":00"
         let returnDateStr = StayForm.formatYMD(returnDate)
         let returnTimeStr = StayForm.formatHM(returnTime) + ":00"
+        let contactPhoneValue = StayForm.nilIfBlank(contactPhone)
+        let mealNoteValue = meIsOverseas ? StayForm.nilIfBlank(mealNote) : nil
+        let companionValue = StayForm.nilIfBlank(companion)
+        let destCitiesValue = StayForm.nilIfBlank(destCities)
 
         // F2: stay_locations object 数组（外泊 / 帰国届用、帰省届不带）
         let stayLocations: [StayLocationBody] = stayPlaces
@@ -710,7 +786,7 @@ struct StayForm: View {
 
         // F3: meals_skip 范围 → entry 列表
         let mealsSkip: [MealSkipBody]
-        if needSkipMeal && skipEnabled {
+        if needSkipMeal && meIsOverseas && skipEnabled {
             mealsSkip = StayForm.expandMealsSkip(
                 from: skipStartDate, startMeal: skipStartMeal,
                 to: skipEndDate, endMeal: skipEndMeal
@@ -727,6 +803,9 @@ struct StayForm: View {
             case "帰省":
                 let body = KisheiCreateBody(
                     reason: reason,
+                    contact_phone: contactPhoneValue,
+                    meal_note: mealNoteValue,
+                    is_long_vacation: isLongVacation,
                     leave_date: leaveDateStr,
                     leave_method: leaveMethod,
                     leave_time: leaveTimeStr,
@@ -738,6 +817,10 @@ struct StayForm: View {
             case "外泊":
                 let body = GaihakuCreateBody(
                     reason: reason,
+                    contact_phone: contactPhoneValue,
+                    meal_note: mealNoteValue,
+                    companion: companionValue,
+                    dest_cities: destCitiesValue,
                     leave_date: leaveDateStr,
                     leave_method: leaveMethod,
                     leave_time: leaveTimeStr,
@@ -751,6 +834,10 @@ struct StayForm: View {
             case "帰国":
                 let body = KikokuCreateBody(
                     reason: reason,
+                    contact_phone: contactPhoneValue,
+                    meal_note: mealNoteValue,
+                    companion: companionValue,
+                    dest_cities: destCitiesValue,
                     leave_date: leaveDateStr,
                     leave_method: leaveMethod,
                     leave_time: leaveTimeStr,
@@ -850,6 +937,12 @@ struct StayForm: View {
     /// ISO 8601 日時文字列 — backend の flight_dep_at / flight_arr_at に使う
     static func formatISO(_ d: Date) -> String {
         ISO8601DateFormatter().string(from: d)
+    }
+
+    /// 空白だけの入力は backend へ送らない
+    static func nilIfBlank(_ s: String) -> String? {
+        let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 

@@ -47,6 +47,10 @@ enum Route: Hashable {
     case applyPreview(kind: String)
     case applyDone(kind: String)
     case applyDetail(id: String)
+    case dormEventList
+    case studyOnlineList
+    case fridgeList
+    case itemList
 
     // §3 マイページ
     case my
@@ -111,6 +115,10 @@ enum Route: Hashable {
         case .applyPreview: return "確認"
         case .applyDone: return "完了"
         case .applyDetail: return "詳細"
+        case .dormEventList: return "行事企画一覧"
+        case .studyOnlineList: return "オンライン学習申請一覧"
+        case .fridgeList: return "冷蔵庫購入届一覧"
+        case .itemList: return "物品所持許可願一覧"
         case .my: return "マイページ"
         case .myInfo: return "個人情報"
         case .myInfoEdit: return "個人情報編集"
@@ -144,7 +152,8 @@ enum Route: Hashable {
     /// 属于 apply tab 子树（BottomNav 高亮用）
     var isApplyBranch: Bool {
         switch self {
-        case .apply, .applyNew, .applyForm, .applyPreview, .applyDone, .applyDetail:
+        case .apply, .applyNew, .applyForm, .applyPreview, .applyDone, .applyDetail,
+             .dormEventList, .studyOnlineList, .fridgeList, .itemList:
             return true
         default: return false
         }

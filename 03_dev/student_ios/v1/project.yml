@@ -7,6 +7,14 @@ options:
   createIntermediateGroups: true
   groupSortPosition: top
 
+# 三套编译配置：Debug / Release = 正式版（production）；Demo = 演示版（带 DEMO 编译开关）
+# 写进 project.yml 后 xcodegen 重新生成工程也不会丢
+# （历史教训：Demo 配置原来只手动配在 Xcode 里、没进 project.yml，xcodegen generate 一跑就被擦掉）
+configs:
+  Debug: debug
+  Release: release
+  Demo: debug
+
 settings:
   base:
     SWIFT_VERSION: "6.0"
@@ -30,7 +38,7 @@ targets:
           - Assets.xcassets.empty
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.itsuki.tomoshibi.demo
+        PRODUCT_BUNDLE_IDENTIFIER: com.itsuki.tomoshibi      # 正式版 bundle id
         PRODUCT_NAME: TomoshibiApp
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: "YES"
         INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
@@ -42,3 +50,26 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: "YES"
         GENERATE_INFOPLIST_FILE: "YES"
         ENABLE_PREVIEWS: "YES"
+      configs:
+        Demo:
+          # 演示版：独立 bundle id（跟正式版不冲突、模拟器上可同时装两个）
+          # + DEMO 编译开关（打开 magic 登录 00/demo1234 + 各页面预填演示数据）
+          PRODUCT_BUNDLE_IDENTIFIER: com.itsuki.tomoshibi.demo
+          INFOPLIST_KEY_CFBundleDisplayName: Tomoshibi Demo
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG DEMO"
+
+schemes:
+  TomoshibiApp:                # 正式版 scheme
+    build:
+      targets:
+        TomoshibiApp: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+  TomoshibiAppDemo:            # 演示版 scheme（顶部 scheme 切换器选这个 = 演示版）
+    build:
+      targets:
+        TomoshibiApp: all
+    run:
+      config: Demo

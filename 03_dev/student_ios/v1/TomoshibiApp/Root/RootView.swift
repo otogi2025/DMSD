@@ -93,6 +93,10 @@ struct RootView: View {
         case .applyPreview(let kind): ApplyPreviewView(kind: kind)
         case .applyDone(let kind): ApplyDoneView(kind: kind)
         case .applyDetail(let id): ApplyDetailView(id: id)
+        case .dormEventList: DormEventProposalListView()
+        case .studyOnlineList: StudyOnlineRequestListView()
+        case .fridgeList: FridgePurchaseListView()
+        case .itemList: ItemPossessionListView()
 
         // §3 マイページ — Agent E 实装
         case .my: MyLandingView()

@@ -21,6 +21,7 @@ enum ApprovalRole: String, CaseIterable, Hashable {
     case intlHead = "国際交流部長"
     case intlChief = "国際交流課長"
     case management = "管理係"
+    case principal = "校長"
 
     var label: String {
         rawValue

@@ -382,15 +382,24 @@
 - [x] ~~各表 router + schema + API（新路由 `study_online.py` + `dorm_life.py` + main.py 注册）~~ ✅
 - [ ] **待向老师确认（非阻塞）**：日本人帰国 / 通常时帰国是否有别的实物表（目前只有留学生・長期休暇 様式3-1）→ `approval_chain.py` 里 `("帰国", False)` 仍是暂定值
 
-**⬅ 学生端 iPhone iOS — 下一步立刻做（itsuki 2026-05-28 拍板「iPhone 要做好、待会做」）**（§14 已记映射）：
-- [ ] 出寮届 ApplyForm 扩展：帰省 is_long_vacation 选择 + 新字段 + 食事日本人 / 留学生分支 + 命名班车（西口便等）
-- [ ] 帰国届 ApplyForm（飛行機字段 + 校長 chain 显示）
-- [ ] 学習在线申请 view（类型 A：期间 + 周时间表月~金 + 契约书凭证 + 3 天前提交）
-- [ ] 行事企画 ApplyForm + 列表
-- [ ] 冷蔵庫購入 view（A:47L 1万 / B:85L 2万 二选一）
-- [ ] 物品所持 ApplyForm
-- [ ] 日課変更：iOS 学生端**不做**（责任者 / 老师提交、归 Web）
-- [ ] 各申請界面接 backend 新接口（学生提交走 `POST /api/v1/study/online-requests` + `/api/v1/dorm-life/*`；出寮届新字段走已扩展的 `POST /applications`）
+**✅ 学生端 iPhone iOS — 实装完成（2026-05-28，codex gpt-5.5 xhigh 干活 + CC 审查 + 独立 xcodebuild 验证全过）**（§14 映射）：
+- [x] ~~出寮届 ApplyForm 扩展：帰省 is_long_vacation 选择 + 新字段 + 食事日本人 / 留学生分支 + 命名班车（西口便等）~~ ✅
+- [x] ~~帰国届 ApplyForm（飛行機字段 + 校長 chain 显示）~~ ✅ 含修复 `ApprovalRole` 枚举缺「校長」bug（之前会错显示成「管理係」）
+- [x] ~~学習在线申请 view（类型 A：期间 + 周时间表月~金 + 契约书凭证 + 3 天前提交）~~ ✅ 新建 `StudyOnlineForm.swift`
+- [x] ~~行事企画 ApplyForm + 列表~~ ✅ 新建 `DormLifeForms.swift`
+- [x] ~~冷蔵庫購入 view（A:47L 1万 / B:85L 2万 二选一）~~ ✅
+- [x] ~~物品所持 ApplyForm~~ ✅
+- [x] ~~各申請界面接 backend 新接口~~ ✅ 新建 `StudyOnlineAPI`(在 StudyAPI.swift) + `DormLifeAPI.swift`
+- [x] ~~在线学习 / 冷蔵庫 / 物品所持「我的提交列表」~~ ✅ 第二轮补（行事企画第一轮已做）
+- [ ] 日課変更：iOS 学生端**不做**（责任者 / 老师提交、归 Web）— 设计如此，不是漏
+- [ ] **iOS 6 新界面逐屏运行点查** — CC 只验证了编译通过 + app 启动不崩，没逐屏点（macOS 没装模拟器自动点击工具 + 后端没起）。**itsuki 用演示版手动走一遍确认能填能提交**
+
+**演示版（demo build）修复 — 2026-05-28 同会话（codex 跑 xcodegen 引入的回归 + itsuki 演示需求）**：
+- [x] ~~Demo 编译配置回归修复~~ ✅ codex 第一轮 `xcodegen generate` 擦掉了手动配的 Demo 配置 → 写进 `project.yml`（Debug/Release/Demo + DEMO 开关 + 两个 scheme），永久 regen-safe
+- [x] ~~demo 和正式版区分~~ ✅ 独立 bundle id（`com.itsuki.tomoshibi` / `.demo`）+ 显示名（Tomoshibi / Tomoshibi Demo），可同时装
+- [x] ~~demo 房间号默认 A5~~ ✅ `SEED.user.room`
+- [x] ~~demo 注册第五步认证码预填 + 直接进~~ ✅ `#if DEMO` 包（只演示版有，正式版无 → 顺带解决 A-035「000000 后门是生产漏洞」）
+- [ ] **A-035 可关闭**（§🚧 A-035）：「000000 注册后门」担忧已解决 — 现在 bypass 只在 `#if DEMO`、生产版不含。下次清 A-035 时确认关闭
 
 **Android — 暂不走（itsuki 5-28 拍板待 iPhone 后再说）**：
 - [ ] 参考 iOS §14 + iPhone 实装完成版镜像实装（出寮届扩展 / 帰国届 / 学習在线 / 行事企画 / 冷蔵庫 / 物品所持）

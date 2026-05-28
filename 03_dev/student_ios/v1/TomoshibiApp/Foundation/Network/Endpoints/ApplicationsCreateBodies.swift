@@ -29,6 +29,9 @@ struct MealSkipBody: Encodable {
 struct KisheiCreateBody: Encodable {
     let kind: String = "帰省"        // discriminated union 的判定字段
     let reason: String?
+    let contact_phone: String?
+    let meal_note: String?
+    let is_long_vacation: Bool
     let leave_date: String          // "2026-05-03"
     let leave_method: String
     let leave_time: String          // "19:40:00" — backend 是 time 类型
@@ -42,6 +45,10 @@ struct KisheiCreateBody: Encodable {
 struct GaihakuCreateBody: Encodable {
     let kind: String = "外泊"
     let reason: String?
+    let contact_phone: String?
+    let meal_note: String?
+    let companion: String?
+    let dest_cities: String?
     let leave_date: String
     let leave_method: String
     let leave_time: String
@@ -57,6 +64,10 @@ struct GaihakuCreateBody: Encodable {
 struct KikokuCreateBody: Encodable {
     let kind: String = "帰国"
     let reason: String?
+    let contact_phone: String?
+    let meal_note: String?
+    let companion: String?
+    let dest_cities: String?
     let leave_date: String
     let leave_method: String
     let leave_time: String
@@ -75,6 +86,11 @@ struct KikokuCreateBody: Encodable {
 
 struct ApplicationUpdateBody: Encodable {
     var reason: String?
+    var contact_phone: String?
+    var meal_note: String?
+    var companion: String?
+    var dest_cities: String?
+    var is_long_vacation: Bool?
     var leave_date: String?
     var leave_method: String?
     var leave_time: String?

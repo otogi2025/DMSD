@@ -47,6 +47,12 @@ struct ApplicationOut: Decodable, Hashable, Identifiable {
 
     let kind: String // "帰省" | "外泊" | "帰国"
     let reason: String?
+    let contact_phone: String?
+    let meal_note: String?
+    let companion: String?
+    let dest_cities: String?
+    let receipt_submitted: Bool?
+    let is_long_vacation: Bool?
 
     // 日期、时刻：backend 用 date / time 类型 → 保 String
     let leave_date: String // "2026-05-03"
@@ -95,6 +101,76 @@ struct StudyAbsenceRequestOut: Decodable, Hashable, Identifiable {
     let target_date: String // "2026-05-03"
     let period: String // "first_half" | "second_half" | "full"
     let reason: String
+    let submitted_at: Date
+    let status: String // "pending" | "approved" | "rejected"
+    let decided_by: UUID?
+    let decided_at: Date?
+    let comment: String?
+}
+
+/// 学習オンライン申請（POST /study/online-requests 响应）
+struct StudyOnlineRequestOut: Decodable, Hashable, Identifiable {
+    let id: UUID
+    let student_id: UUID
+    let reason: String
+    let period_from: String
+    let period_to: String
+    let weekly_schedule: [String: [[String: String]]]
+    let contract_ref: String?
+    let submitted_at: Date
+    let status: String // "pending" | "approved" | "rejected" | "revoked"
+    let decided_by: UUID?
+    let decided_at: Date?
+    let comment: String?
+}
+
+// MARK: - 宿舍生活类申請
+
+/// 寮生行事企画申請書（POST /dorm-life/event-proposals 响应）
+struct DormEventProposalOut: Decodable, Hashable, Identifiable {
+    let id: UUID
+    let proposer_id: UUID
+    let team_name: String?
+    let title: String
+    let held_at: Date
+    let place: String
+    let expected_count: Int
+    let target: String
+    let purpose: String
+    let content: String
+    let risk_solution: String
+    let expected_cost: String
+    let note: String?
+    let submitted_at: Date
+    let result: String // "pending" | "approved" | "approved_conditional" | "resubmit" | "rejected"
+    let decided_by: UUID?
+    let decided_at: Date?
+    let comment: String?
+}
+
+/// 冷蔵庫購入届（POST /dorm-life/fridge-purchases 响应）
+struct FridgePurchaseRequestOut: Decodable, Hashable, Identifiable {
+    let id: UUID
+    let student_id: UUID
+    let contact_phone: String
+    let contact_wechat: String?
+    let product: String // "A" | "B"
+    let submitted_at: Date
+    let delivered_sign: String?
+    let status: String // "pending" | "ordered" | "delivered" | "rejected"
+    let decided_by: UUID?
+    let decided_at: Date?
+    let comment: String?
+}
+
+/// 物品所持許可願（POST /dorm-life/item-possessions 响应）
+struct ItemPossessionRequestOut: Decodable, Hashable, Identifiable {
+    let id: UUID
+    let student_id: UUID
+    let room_no: String
+    let item: String
+    let reason: String
+    let guardian_name: String
     let submitted_at: Date
     let status: String // "pending" | "approved" | "rejected"
     let decided_by: UUID?
