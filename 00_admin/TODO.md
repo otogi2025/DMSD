@@ -367,6 +367,45 @@
 
 - [ ] **`IOS_DESIGN_LOG.md` §11 技术实装层日语 → 中文** — 涉及 §11.1 P0 范围表 / §11.2 技术栈表 / §11.4 全局约束（通知 / オフライン / セキュリティ / アクセシビリティ 等子标题 + 内容）/ §11.5 状态管理代码块注释 / §11.6 功能别 API 映射表 / §11.7 共通组件 / §11.8 测试配信 / §11.9 待决清单。原则：纯说明叙述 + Swift 代码注释改中文，界面错误文案（「アカウントが無効です」等学生真看到的）保留日语。约 180 行，判断细碎，留整块时间做
 
+### T. 宿舍申請实物表 v1.0 实装（2026-05-28 加 — itsuki 提供「届け類.pdf」9 种实物表）
+
+> **背景**：itsuki 5-28 提供宿舍真实纸质申请表「届け類.pdf」(朝日塾中等教育学校 寮)9 种扫描件。CC + codex 双读核对一致, 6 个待拍板点 itsuki 全拍板, 已落 `02_design/system_features.md` §7.2(出寮届補完)/ §7.3.5(学習在线申请)/ §7.21(4 种全新申請)/ §8(数据模型)。itsuki 拍板「都进 v1.0」。iOS 侧映射已写 `IOS_DESIGN_LOG.md` §14。以下是 5 端实装 backlog。
+
+**后端 backend（先做 — 其他端依赖）**：
+- [ ] `applications` 表加字段：contact_phone / companion / dest_cities / receipt_submitted / is_long_vacation / meal_note（§8.2 補完）
+- [ ] `approver_role` ENUM 加「校長」（帰国届最终许可、§7.2.2）
+- [ ] 帰国届 chain 生成逻辑：担任 → 国際交流部長 → 寮務課長 → 寮務部長 → 管理係 → **校長**（留学生・長期休暇 様式3-1、抬头校長）
+- [ ] 帰省 chain：担任・副担 → 寮務課長 → 寮務部長 → 管理係（4 人、不分日本人 / 留学生）
+- [ ] 外泊日本人 chain 改 4 人（含寮務部長、修旧 3 人记录）
+- [ ] 新表 `study_online_requests`（在线学习申请、类型 A、§8.3）
+- [ ] 新表 §8.7 4 张：dorm_event_proposals / dorm_schedule_changes / fridge_purchase_requests / item_possession_requests
+- [ ] Alembic 迁移脚本（新字段 + 新表 + ENUM 加校長）
+- [ ] 各表 router + schema + API
+
+**学生端 iOS（§14 已记映射）+ Android**：
+- [ ] 出寮届 ApplyForm 扩展：帰省 is_long_vacation 选择 + 新字段 + 食事日本人 / 留学生分支 + 命名班车（西口便等）
+- [ ] 帰国届 ApplyForm（飛行機字段 + 校長 chain 显示）
+- [ ] 学習在线申请 view（类型 A：期间 + 周时间表月~金 + 契约书凭证 + 3 天前提交）
+- [ ] 行事企画 ApplyForm + 列表
+- [ ] 冷蔵庫購入 view（A:47L 1万 / B:85L 2万 二选一）
+- [ ] 物品所持 ApplyForm
+- [ ] 日課変更：iOS / Android 学生端**不做**（责任者 / 老师提交、归 Web）
+
+**老师 Web teacher_web**：
+- [ ] 各申請的审批 / 处理界面（含 4 种新表单）
+- [ ] 学習欠席届**一人审查**界面（学習担当 / 晚自习监督老师、§7.3.5 拍板、不做多角色链）
+- [ ] 冷蔵庫購入采购流程（注文担当 / 請求担当 / 本人签收）
+- [ ] 日課変更审批（国際交流部長 + 寮担当）
+
+**设计文档同步**：
+- [ ] BACKEND_DESIGN_LOG 同步申請实物補完
+- [ ] ANDROID_DESIGN_LOG 同步（参考 iOS §14）
+- [ ] WEB_DESIGN_LOG 同步老师审批 / 处理
+- [x] ~~IOS_DESIGN_LOG §14~~ ✅ 2026-05-28 已写
+
+**待向老师确认（非阻塞）**：
+- [ ] 日本人帰国 / 通常时帰国是否有别的实物表（目前只有留学生・長期休暇 様式3-1）
+
 ## 🚀 teacher_web v1.0「直接上线」backlog（2026-05-27 审查产出 — 优先级最高）
 
 > **背景**：5-27 晚段-2 itsuki 让 CC 对 teacher_web 做审查 — 目标「让网站达到可以直接上线的水平」。CC 扫了 `WEB_DESIGN_LOG.md` / `DESIGN_BRIEF.md` / `system_features.md` / `v1/src/` 实际目录后**诚实结论**：**目前没到「直接上线」水平**。UI 90% ✅ + Login 真接 backend 1/16 ✅ + 其他 15 个 page 全部假数据 ⏳。本段集中列「要达到直接上线还差什么」。
