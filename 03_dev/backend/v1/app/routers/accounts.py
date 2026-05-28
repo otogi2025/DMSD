@@ -34,7 +34,7 @@ def _validate_room_dorm_match(room_no: str, dorm_unit: int, gender: str) -> None
     expected_gender = "male" if dorm_unit in (1, 2) else "female"
     if prefix != expected_prefix or gender != expected_gender:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             detail={
                 "code": "INVALID_ROOM_FORMAT",
                 "message": (
@@ -62,7 +62,7 @@ def _validate_registration_code(
     ).first()
     if not row:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             detail={
                 "code": "INVALID_REGISTRATION_CODE",
                 # spec §7.16.2 规则 7 固定文案（给学生看）
@@ -110,7 +110,7 @@ def create_account(
     ).first()
     if existing_student:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             detail={
                 "code": "STUDENT_NO_TAKEN",
                 "message": (
@@ -127,7 +127,7 @@ def create_account(
         ).first()
         if existing_email:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=422,
                 detail={
                     "code": "EMAIL_TAKEN",
                     "message": f"email {body.email} は既に使われています",

@@ -21,6 +21,7 @@ OpenAPI: http://localhost:8000/docs
 from __future__ import annotations
 
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,17 +37,28 @@ from .routers import (
     auth,
     cleaning,
     discipline,
+    dorm_life,
     front_desk,
     meals,
     notifications,
     rollcall,
     study,
+    study_online,
     teachers,
     ws,
 )
 
 settings = get_settings()
 logging.basicConfig(level=settings.log_level)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # dev 环境自动建表；production 仍然必须由 Alembic 管理 schema。
+    if settings.app_env == "dev":
+        create_all()
+    yield
+
 
 app = FastAPI(
     title="Tomoshibi Backend v1",
@@ -58,6 +70,7 @@ app = FastAPI(
     version=__version__,
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -67,13 +80,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-def _on_startup() -> None:
-    # dev 環境のみ自動 create_all。production は Alembic 必須
-    if settings.app_env == "dev":
-        create_all()
 
 
 @app.get("/")
@@ -99,6 +105,8 @@ app.include_router(applications.router)
 app.include_router(meals.router)
 app.include_router(notifications.router)
 app.include_router(study.router)
+app.include_router(study_online.router)
+app.include_router(dorm_life.router)
 app.include_router(rollcall.router)
 app.include_router(teachers.router)
 app.include_router(discipline.router)

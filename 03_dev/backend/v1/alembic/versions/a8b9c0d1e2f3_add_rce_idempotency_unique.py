@@ -25,12 +25,13 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     # 同 session + 同 idempotency_key 必须唯一
     # 注：NULL idempotency_key（路径 A / manual）不参与唯一性约束（SQL 标准行为）
-    op.create_unique_constraint(
-        "uq_rce_idempotency",
-        "rollcall_events",
-        ["session_id", "idempotency_key"],
-    )
+    with op.batch_alter_table("rollcall_events", recreate="always") as batch_op:
+        batch_op.create_unique_constraint(
+            "uq_rce_idempotency",
+            ["session_id", "idempotency_key"],
+        )
 
 
 def downgrade() -> None:
-    op.drop_constraint("uq_rce_idempotency", "rollcall_events", type_="unique")
+    with op.batch_alter_table("rollcall_events", recreate="always") as batch_op:
+        batch_op.drop_constraint("uq_rce_idempotency", type_="unique")

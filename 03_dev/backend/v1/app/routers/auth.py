@@ -85,7 +85,7 @@ def login_teacher(body: schemas.TeacherLoginIn, db: Session = Depends(get_db)):
     # 5-27 拍板：支持 teacher_id (UUID) 或 login_id，至少一个
     if not body.teacher_id and not body.login_id:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             detail={
                 "code": "MISSING_IDENTIFIER",
                 "message": "teacher_id or login_id is required",

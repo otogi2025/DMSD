@@ -47,6 +47,16 @@ def _now_jst() -> datetime:
     return datetime.now(ZoneInfo("Asia/Tokyo"))
 
 
+def _as_jst_aware(value: datetime) -> datetime:
+    """SQLite 读回 timezone=True 时可能丢 tzinfo，比较前统一补成 JST。"""
+    from zoneinfo import ZoneInfo
+
+    jst = ZoneInfo("Asia/Tokyo")
+    if value.tzinfo is None:
+        return value.replace(tzinfo=jst)
+    return value.astimezone(jst)
+
+
 # ---------------------------------------------------------------
 # GET /rollcall/today/sessions
 # ---------------------------------------------------------------
@@ -302,7 +312,8 @@ def create_checkin(
         return schemas.RollCallEventOut.model_validate(existing)
 
     # 時刻判定 (present / late)
-    base_status = "present" if now <= session.scheduled_on_time_end_at else "late"
+    scheduled_on_time_end = _as_jst_aware(session.scheduled_on_time_end_at)
+    base_status = "present" if now <= scheduled_on_time_end else "late"
 
     event = models.RollCallEvent(
         session_id=session_id,

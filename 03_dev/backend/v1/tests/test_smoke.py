@@ -104,7 +104,7 @@ def test_post_gaihaku_overseas_chain_5(client, student_token, seed_data, db_sess
 
 
 def test_post_kisei_provisional_header(client, student_token, seed_data):
-    """帰省 = evidence pending → header 立つ。"""
+    """帰省 = 5-28 实物表确认 → 不再返回 provisional header。"""
     body = {
         "kind": "帰省",
         "leave_date": _tomorrow().isoformat(),
@@ -120,7 +120,7 @@ def test_post_kisei_provisional_header(client, student_token, seed_data):
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 201, res.text
-    assert res.headers.get("X-Approval-Chain-Provisional") == "true"
+    assert res.headers.get("X-Approval-Chain-Provisional") != "true"
 
 
 def test_post_application_leave_date_today_rejected(client, student_token, seed_data):
@@ -204,7 +204,7 @@ def test_get_application_status(client, student_token, seed_data):
     data = get.json()
     assert data["id"] == app_id
     assert data["status"] == "pending"
-    # 留学生 + 帰省 → 暫定 4 行 chain (担任 + 寮務課長 + 寮務部長 + 管理係)
+    # 留学生 + 帰省 → 5-28 实物表确认的 4 行 chain
     roles = [c["approver_role"] for c in data["approval_chain"]]
     assert roles == ["担任", "寮務課長", "寮務部長", "管理係"], roles
 
@@ -261,7 +261,7 @@ def test_chain_gaihaku_general():
     from app.services import approval_chain as ac
 
     roles = ac.get_chain_roles("外泊", is_overseas=False)
-    assert roles == ("担任", "寮務課長", "管理係")
+    assert roles == ("担任", "寮務課長", "寮務部長", "管理係")
 
 
 def test_chain_gaihaku_overseas():
@@ -271,11 +271,13 @@ def test_chain_gaihaku_overseas():
     assert roles == ("担任", "国際交流部長", "寮務課長", "寮務部長", "管理係")
 
 
-def test_chain_kisei_provisional():
+def test_chain_provisional_only_kikoku_general():
     from app.services import approval_chain as ac
 
-    assert ac.is_provisional("帰省", False)
-    assert ac.is_provisional("帰国", True)
+    assert not ac.is_provisional("帰省", False)
+    assert not ac.is_provisional("帰省", True)
+    assert ac.is_provisional("帰国", False)
+    assert not ac.is_provisional("帰国", True)
     assert not ac.is_provisional("外泊", False)
 
 

@@ -101,6 +101,7 @@ class Student(Base):
 # ---------------------------------------------------------------
 # D12 拍板: 管理係 単独 ENUM 値で追加 (実物表必有審批人)
 TEACHER_ROLES = (
+    "校長",
     "寮務部長",
     "寮務課長",
     "国際交流部長",
@@ -133,7 +134,7 @@ class Teacher(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "role IN ('寮務部長','寮務課長','国際交流部長','国際交流課長',"
+            "role IN ('校長','寮務部長','寮務課長','国際交流部長','国際交流課長',"
             "'管理係','寮監','学習担当','寮務一般教师')",
             name="ck_teachers_role",
         ),
@@ -237,13 +238,23 @@ class Application(Base):
     return_date: Mapped[date] = mapped_column(Date, nullable=False)
     return_method: Mapped[str] = mapped_column(Text, nullable=False)
     return_time: Mapped[time] = mapped_column(Time, nullable=False)
+    contact_phone: Mapped[Optional[str]] = mapped_column(Text)
+    meal_note: Mapped[Optional[str]] = mapped_column(Text)
 
     # 外泊 / 帰国 only
     stay_locations: Mapped[Optional[list]] = mapped_column(JSON)
     meals_skip: Mapped[Optional[list]] = mapped_column(JSON)  # [{date, meal}] 形式
+    companion: Mapped[Optional[str]] = mapped_column(Text)
+    dest_cities: Mapped[Optional[str]] = mapped_column(Text)
+    receipt_submitted: Mapped[bool] = mapped_column(
+        Boolean, nullable=True, default=False
+    )
 
     # 申請理由 (全 kind · spec §7.2.4-5 修改届で必須)
     reason: Mapped[Optional[str]] = mapped_column(Text)
+    is_long_vacation: Mapped[bool] = mapped_column(
+        Boolean, nullable=True, default=False
+    )
 
     # 帰国 only
     flight_dep_air: Mapped[Optional[str]] = mapped_column(Text)
@@ -285,6 +296,7 @@ class Application(Base):
 # ---------------------------------------------------------------
 APPROVER_ROLES = (
     "担任",
+    "校長",
     "寮務部長",
     "寮務課長",
     "国際交流部長",
@@ -326,7 +338,7 @@ class ApplicationApproval(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "approver_role IN ('担任','寮務部長','寮務課長','国際交流部長','国際交流課長','管理係')",
+            "approver_role IN ('担任','校長','寮務部長','寮務課長','国際交流部長','国際交流課長','管理係')",
             name="ck_approval_role",
         ),
         CheckConstraint(
@@ -479,6 +491,42 @@ class StudyAbsenceRequest(Base):
     )
 
 
+class StudyOnlineRequest(Base):
+    """在线学习申请 — 学生申请在自室参加校外在线课程。"""
+
+    __tablename__ = "study_online_requests"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id"), nullable=False
+    )
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    period_from: Mapped[date] = mapped_column(Date, nullable=False)
+    period_to: Mapped[date] = mapped_column(Date, nullable=False)
+    weekly_schedule: Mapped[dict] = mapped_column(JSON, nullable=False)
+    contract_ref: Mapped[Optional[str]] = mapped_column(Text)
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    decided_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    comment: Mapped[Optional[str]] = mapped_column(Text)
+
+    student: Mapped["Student"] = relationship()
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending','approved','rejected','revoked')",
+            name="ck_sor_status",
+        ),
+        Index("idx_sor_student_status", "student_id", "status"),
+        Index("idx_sor_submitted", "submitted_at"),
+    )
+
+
 class StudyCheckin(Base):
     """学習出席記録 — 学習担当が 1 件ずつ記録 (NFC or 手動)。"""
 
@@ -512,6 +560,159 @@ class StudyCheckin(Base):
         ),
         UniqueConstraint("student_id", "target_date", name="uq_sc_date"),
         Index("idx_sc_date_status", "target_date", "status"),
+    )
+
+
+# ---------------------------------------------------------------
+# 宿舍生活类申请
+# ---------------------------------------------------------------
+class DormEventProposal(Base):
+    """寮生行事企画申請 — 学生或学生团体提交活动企划。"""
+
+    __tablename__ = "dorm_event_proposals"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    proposer_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id"), nullable=False
+    )
+    team_name: Mapped[Optional[str]] = mapped_column(Text)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    held_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    place: Mapped[str] = mapped_column(Text, nullable=False)
+    expected_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    target: Mapped[str] = mapped_column(Text, nullable=False)
+    purpose: Mapped[str] = mapped_column(Text, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    risk_solution: Mapped[str] = mapped_column(Text, nullable=False)
+    expected_cost: Mapped[str] = mapped_column(Text, nullable=False)
+    note: Mapped[Optional[str]] = mapped_column(Text)
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    result: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
+    decided_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    comment: Mapped[Optional[str]] = mapped_column(Text)
+
+    proposer: Mapped["Student"] = relationship()
+
+    __table_args__ = (
+        CheckConstraint(
+            "result IN ('pending','approved','approved_conditional','resubmit','rejected')",
+            name="ck_dep_result",
+        ),
+        Index("idx_dep_proposer_result", "proposer_id", "result"),
+        Index("idx_dep_result_submitted", "result", "submitted_at"),
+    )
+
+
+class DormScheduleChange(Base):
+    """寮日課変更願 — 老师或责任者提交团体作息变更。"""
+
+    __tablename__ = "dorm_schedule_changes"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    requester_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("teachers.id"), nullable=False
+    )
+    class_or_club: Mapped[str] = mapped_column(Text, nullable=False)
+    period_from: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    period_to: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    student_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    change_content: Mapped[str] = mapped_column(Text, nullable=False)
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    decided_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    comment: Mapped[Optional[str]] = mapped_column(Text)
+
+    requester: Mapped["Teacher"] = relationship(foreign_keys=[requester_id])
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending','approved','rejected')", name="ck_dsc_status"
+        ),
+        Index("idx_dsc_requester_status", "requester_id", "status"),
+        Index("idx_dsc_status_submitted", "status", "submitted_at"),
+    )
+
+
+class FridgePurchaseRequest(Base):
+    """冷蔵庫購入届 — 学校指定冷蔵庫の購入申請。"""
+
+    __tablename__ = "fridge_purchase_requests"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id"), nullable=False
+    )
+    contact_phone: Mapped[str] = mapped_column(Text, nullable=False)
+    contact_wechat: Mapped[Optional[str]] = mapped_column(Text)
+    product: Mapped[str] = mapped_column(String(1), nullable=False)
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    delivered_sign: Mapped[Optional[str]] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    decided_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    comment: Mapped[Optional[str]] = mapped_column(Text)
+
+    student: Mapped["Student"] = relationship()
+
+    __table_args__ = (
+        CheckConstraint("product IN ('A','B')", name="ck_fpr_product"),
+        CheckConstraint(
+            "status IN ('pending','ordered','delivered','rejected')",
+            name="ck_fpr_status",
+        ),
+        Index("idx_fpr_student_status", "student_id", "status"),
+        Index("idx_fpr_status_submitted", "status", "submitted_at"),
+    )
+
+
+class ItemPossessionRequest(Base):
+    """物品所持許可願 — 宿舍内持有物品的许可申请。"""
+
+    __tablename__ = "item_possession_requests"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id"), nullable=False
+    )
+    room_no: Mapped[str] = mapped_column(String(16), nullable=False)
+    item: Mapped[str] = mapped_column(Text, nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    guardian_name: Mapped[str] = mapped_column(Text, nullable=False)
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    decided_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    comment: Mapped[Optional[str]] = mapped_column(Text)
+
+    student: Mapped["Student"] = relationship()
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending','approved','rejected')", name="ck_ipr_status"
+        ),
+        Index("idx_ipr_student_status", "student_id", "status"),
+        Index("idx_ipr_status_submitted", "status", "submitted_at"),
     )
 
 

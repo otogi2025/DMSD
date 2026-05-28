@@ -44,7 +44,7 @@ def calc(
     _check_role(teacher)
     if to < from_:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             detail={"code": "INVALID_RANGE", "message": "to は from 以後にしてください"},
         )
     result = meals_svc.calc_meals(db, range_from=from_, range_to=to)
@@ -74,7 +74,7 @@ def export(
     _check_role(teacher)
     if to < from_:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             detail={"code": "INVALID_RANGE", "message": "to は from 以後にしてください"},
         )
     result = meals_svc.calc_meals(db, range_from=from_, range_to=to)

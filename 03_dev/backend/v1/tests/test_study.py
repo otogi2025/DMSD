@@ -16,7 +16,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
@@ -26,9 +26,11 @@ from app import models
 @pytest.fixture
 def study_roster(db_session, seed_data):
     """060218 学生加学習名簿（晩学習対象者）。"""
-    roster = models.StudyAttendanceRoster(
+    today = date.today()
+    season = "spring" if today.month <= 8 else "fall"
+    roster = models.StudyRoster(
         student_id=seed_data["student"].id,
-        academic_term="2026-Spring",
+        academic_term=f"{today.year}-{season}",
     )
     db_session.add(roster)
     db_session.commit()
@@ -64,7 +66,7 @@ class TestAbsenceRequest:
         res = client.post(
             "/api/v1/study/absence-requests",
             json={
-                "target_date": str(date.today()),
+                "target_date": str(date.today() + timedelta(days=1)),
                 "period": "full",
                 "reason": "体調不良のため",
             },
@@ -81,7 +83,7 @@ class TestAbsenceRequest:
         res_create = client.post(
             "/api/v1/study/absence-requests",
             json={
-                "target_date": str(date.today()),
+                "target_date": str(date.today() + timedelta(days=1)),
                 "period": "full",
                 "reason": "体調不良のため",
             },

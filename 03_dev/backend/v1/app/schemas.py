@@ -101,6 +101,8 @@ class ApplicationBase(BaseModel):
     return_date: date
     return_method: str = Field(..., max_length=200)
     return_time: time
+    contact_phone: Optional[str] = Field(None, max_length=64)
+    meal_note: Optional[str] = Field(None, max_length=2000)
 
     @model_validator(mode="after")
     def _check_dates(self) -> "ApplicationBase":
@@ -116,6 +118,7 @@ class KisheiCreateIn(ApplicationBase):
     """帰省届 (一時的に実家に帰る)。最も簡素。"""
 
     kind: Literal["帰省"] = "帰省"
+    is_long_vacation: bool = False
 
 
 class GaihakuCreateIn(ApplicationBase):
@@ -124,6 +127,8 @@ class GaihakuCreateIn(ApplicationBase):
     kind: Literal["外泊"] = "外泊"
     stay_locations: list[StayLocation] = Field(..., min_length=1)
     meals_skip: list[MealSkipEntry] = Field(default_factory=list)
+    companion: Optional[str] = Field(None, max_length=500)
+    dest_cities: Optional[str] = Field(None, max_length=500)
 
 
 class KikokuCreateIn(ApplicationBase):
@@ -132,6 +137,8 @@ class KikokuCreateIn(ApplicationBase):
     kind: Literal["帰国"] = "帰国"
     stay_locations: list[StayLocation] = Field(..., min_length=1)
     meals_skip: list[MealSkipEntry] = Field(default_factory=list)
+    companion: Optional[str] = Field(None, max_length=500)
+    dest_cities: Optional[str] = Field(None, max_length=500)
     flight_dep_air: str = Field(..., max_length=64)
     flight_dep_at: datetime
     flight_arr_air: str = Field(..., max_length=64)
@@ -180,10 +187,16 @@ class ApplicationOut(BaseModel):
     return_date: date
     return_method: str
     return_time: time
+    contact_phone: Optional[str] = None
+    meal_note: Optional[str] = None
 
     stay_locations: Optional[list[dict[str, Any]]] = None
     meals_skip: Optional[list[dict[str, Any]]] = None
+    companion: Optional[str] = None
+    dest_cities: Optional[str] = None
+    receipt_submitted: bool = False
     reason: Optional[str] = None
+    is_long_vacation: bool = False
 
     flight_dep_air: Optional[str] = None
     flight_dep_at: Optional[datetime] = None
@@ -275,6 +288,11 @@ class ApplicationUpdateIn(BaseModel):
     return_date: Optional[date] = None
     return_method: Optional[str] = Field(None, max_length=200)
     return_time: Optional[time] = None
+    contact_phone: Optional[str] = Field(None, max_length=64)
+    companion: Optional[str] = Field(None, max_length=500)
+    dest_cities: Optional[str] = Field(None, max_length=500)
+    meal_note: Optional[str] = Field(None, max_length=2000)
+    is_long_vacation: Optional[bool] = None
     stay_locations: Optional[list[StayLocation]] = None
     meals_skip: Optional[list[MealSkipEntry]] = None
     flight_dep_air: Optional[str] = Field(None, max_length=64)
@@ -380,6 +398,192 @@ class StudyAbsenceRequestOut(BaseModel):
     reason: str
     submitted_at: datetime
     status: str
+    decided_by: Optional[UUID]
+    decided_at: Optional[datetime]
+    comment: Optional[str]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StudyOnlineRequestIn(BaseModel):
+    """学生提交在线学习申请。"""
+
+    reason: str = Field(..., min_length=1, max_length=2000)
+    period_from: date
+    period_to: date
+    weekly_schedule: dict[str, list[dict[str, str]]]
+    contract_ref: Optional[str] = Field(None, max_length=2000)
+
+    @model_validator(mode="after")
+    def _check_period(self) -> "StudyOnlineRequestIn":
+        if self.period_to < self.period_from:
+            raise ValueError("period_to must be on or after period_from")
+        return self
+
+
+class StudyOnlineDecisionIn(BaseModel):
+    """老师对在线学习申请做单人审批。"""
+
+    decision: Literal["approved", "rejected", "revoked"]
+    comment: Optional[str] = Field(None, max_length=1000)
+
+
+class StudyOnlineRequestOut(BaseModel):
+    id: UUID
+    student_id: UUID
+    reason: str
+    period_from: date
+    period_to: date
+    weekly_schedule: dict[str, Any]
+    contract_ref: Optional[str]
+    submitted_at: datetime
+    status: Literal["pending", "approved", "rejected", "revoked"]
+    decided_by: Optional[UUID]
+    decided_at: Optional[datetime]
+    comment: Optional[str]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DormEventProposalCreateIn(BaseModel):
+    """学生提交寮生行事企画申請。"""
+
+    team_name: Optional[str] = Field(None, max_length=200)
+    title: str = Field(..., min_length=1, max_length=200)
+    held_at: datetime
+    place: str = Field(..., min_length=1, max_length=500)
+    expected_count: int = Field(..., ge=0)
+    target: str = Field(..., min_length=1, max_length=500)
+    purpose: str = Field(..., min_length=1, max_length=2000)
+    content: str = Field(..., min_length=1, max_length=4000)
+    risk_solution: str = Field(..., min_length=1, max_length=4000)
+    expected_cost: str = Field(..., min_length=1, max_length=1000)
+    note: Optional[str] = Field(None, max_length=2000)
+
+
+class DormEventProposalDecisionIn(BaseModel):
+    decision: Literal["approved", "approved_conditional", "resubmit", "rejected"]
+    comment: Optional[str] = Field(None, max_length=1000)
+
+
+class DormEventProposalOut(BaseModel):
+    id: UUID
+    proposer_id: UUID
+    team_name: Optional[str]
+    title: str
+    held_at: datetime
+    place: str
+    expected_count: int
+    target: str
+    purpose: str
+    content: str
+    risk_solution: str
+    expected_cost: str
+    note: Optional[str]
+    submitted_at: datetime
+    result: Literal[
+        "pending", "approved", "approved_conditional", "resubmit", "rejected"
+    ]
+    decided_by: Optional[UUID]
+    decided_at: Optional[datetime]
+    comment: Optional[str]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DormScheduleChangeCreateIn(BaseModel):
+    """老师提交寮日課変更願。"""
+
+    class_or_club: str = Field(..., min_length=1, max_length=500)
+    period_from: datetime
+    period_to: datetime
+    student_count: int = Field(..., ge=1)
+    reason: str = Field(..., min_length=1, max_length=2000)
+    change_content: str = Field(..., min_length=1, max_length=4000)
+
+    @model_validator(mode="after")
+    def _check_period(self) -> "DormScheduleChangeCreateIn":
+        if self.period_to <= self.period_from:
+            raise ValueError("period_to must be after period_from")
+        return self
+
+
+class DormScheduleChangeDecisionIn(BaseModel):
+    decision: Literal["approved", "rejected"]
+    comment: Optional[str] = Field(None, max_length=1000)
+
+
+class DormScheduleChangeOut(BaseModel):
+    id: UUID
+    requester_id: UUID
+    class_or_club: str
+    period_from: datetime
+    period_to: datetime
+    student_count: int
+    reason: str
+    change_content: str
+    submitted_at: datetime
+    status: Literal["pending", "approved", "rejected"]
+    decided_by: Optional[UUID]
+    decided_at: Optional[datetime]
+    comment: Optional[str]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FridgePurchaseRequestCreateIn(BaseModel):
+    """学生提交冷蔵庫購入届。"""
+
+    contact_phone: str = Field(..., min_length=1, max_length=64)
+    contact_wechat: Optional[str] = Field(None, max_length=128)
+    product: Literal["A", "B"]
+
+
+class FridgePurchaseDecisionIn(BaseModel):
+    decision: Literal["ordered", "delivered", "rejected"]
+    delivered_sign: Optional[str] = Field(None, max_length=200)
+    comment: Optional[str] = Field(None, max_length=1000)
+
+
+class FridgePurchaseRequestOut(BaseModel):
+    id: UUID
+    student_id: UUID
+    contact_phone: str
+    contact_wechat: Optional[str]
+    product: Literal["A", "B"]
+    submitted_at: datetime
+    delivered_sign: Optional[str]
+    status: Literal["pending", "ordered", "delivered", "rejected"]
+    decided_by: Optional[UUID]
+    decided_at: Optional[datetime]
+    comment: Optional[str]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ItemPossessionRequestCreateIn(BaseModel):
+    """学生提交物品所持許可願。"""
+
+    room_no: str = Field(..., min_length=1, max_length=16)
+    item: str = Field(..., min_length=1, max_length=1000)
+    reason: str = Field(..., min_length=1, max_length=2000)
+    guardian_name: str = Field(..., min_length=1, max_length=200)
+
+
+class ItemPossessionDecisionIn(BaseModel):
+    decision: Literal["approved", "rejected"]
+    comment: Optional[str] = Field(None, max_length=1000)
+
+
+class ItemPossessionRequestOut(BaseModel):
+    id: UUID
+    student_id: UUID
+    room_no: str
+    item: str
+    reason: str
+    guardian_name: str
+    submitted_at: datetime
+    status: Literal["pending", "approved", "rejected"]
     decided_by: Optional[UUID]
     decided_at: Optional[datetime]
     comment: Optional[str]

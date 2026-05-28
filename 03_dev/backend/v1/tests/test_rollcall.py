@@ -16,7 +16,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -26,12 +27,11 @@ from app import models
 @pytest.fixture
 def rollcall_session(db_session, seed_data):
     """建一个 running 状态的点呼 session（dorm_unit=1，含 060218 学生）。"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(ZoneInfo("Asia/Tokyo"))
     session = models.RollCallSession(
-        target_date=now.date(),
         dorm_unit_set=[1, 2],
         session_type="evening",
-        day_type="平日",
+        day_type="weekday",
         session_status="running",
         started_at=now,
         scheduled_window_start_at=now - timedelta(minutes=5),

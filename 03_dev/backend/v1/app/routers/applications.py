@@ -45,7 +45,7 @@ def create_application(
     # (#3) 出寮日 = 明天起 — 教师当日代録は P1 範囲外、本 endpoint は学生のみ
     if body.leave_date <= date_type.today():
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             detail={
                 "code": "LEAVE_DATE_NOT_FUTURE",
                 "message": "出寮日は明日以降を指定してください",
@@ -65,17 +65,25 @@ def create_application(
         "return_date": body.return_date,
         "return_method": body.return_method,
         "return_time": body.return_time,
+        "contact_phone": body.contact_phone,
+        "meal_note": body.meal_note,
         "status": "pending",
     }
-    if isinstance(body, schemas.GaihakuCreateIn):
+    if isinstance(body, schemas.KisheiCreateIn):
+        app_kwargs.update(is_long_vacation=body.is_long_vacation)
+    elif isinstance(body, schemas.GaihakuCreateIn):
         app_kwargs.update(
             stay_locations=[loc.model_dump() for loc in body.stay_locations],
             meals_skip=[e.model_dump(mode="json") for e in body.meals_skip] or None,
+            companion=body.companion,
+            dest_cities=body.dest_cities,
         )
     elif isinstance(body, schemas.KikokuCreateIn):
         app_kwargs.update(
             stay_locations=[loc.model_dump() for loc in body.stay_locations],
             meals_skip=[e.model_dump(mode="json") for e in body.meals_skip] or None,
+            companion=body.companion,
+            dest_cities=body.dest_cities,
             flight_dep_air=body.flight_dep_air,
             flight_dep_at=body.flight_dep_at,
             flight_arr_air=body.flight_arr_air,
@@ -204,6 +212,7 @@ def list_pending_for_me(
     )
     # R4 dorm filter（join 已在上面加了，这里只追加 where）
     if teacher.assigned_dorm is not None and teacher.role not in {
+        "校長",
         "寮務部長",
         "寮務課長",
         "国際交流部長",
@@ -310,6 +319,7 @@ def _resolve_actor(
 def _teacher_can_view(teacher: models.Teacher, student: models.Student) -> bool:
     # 跨寮 role
     if teacher.role in {
+        "校長",
         "寮務部長",
         "寮務課長",
         "国際交流部長",
@@ -565,13 +575,19 @@ def _to_application_out(app: models.Application) -> schemas.ApplicationOut:
         return_date=app.return_date,
         return_method=app.return_method,
         return_time=app.return_time,
+        contact_phone=app.contact_phone,
+        meal_note=app.meal_note,
         stay_locations=app.stay_locations,
         meals_skip=app.meals_skip,
+        companion=app.companion,
+        dest_cities=app.dest_cities,
+        receipt_submitted=bool(app.receipt_submitted),
         flight_dep_air=app.flight_dep_air,
         flight_dep_at=app.flight_dep_at,
         flight_arr_air=app.flight_arr_air,
         flight_arr_at=app.flight_arr_at,
         bus_route_id=app.bus_route_id,
+        is_long_vacation=bool(app.is_long_vacation),
         submitted_at=app.submitted_at,
         status=app.status,
         withdrawn_at=app.withdrawn_at,
