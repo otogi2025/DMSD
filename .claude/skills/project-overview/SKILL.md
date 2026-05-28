@@ -26,13 +26,13 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ## 0. 摘要
 
-### 0.1 体量（2026-05-28 git ls-files + 未 commit 文件统计 — 1200 = committed 1198 + 未 commit 2）
+### 0.1 体量（2026-05-28 git ls-files + 未 commit 文件统计 — 1201 = committed 1198 + 未 commit 3）
 
 | 顶级目录 | 文件数 | 占比 | 主要内容 |
 |---|---|---|---|
 | `99_archive/` | 620 | 52% | 归档物（5-26 晚段-4 加 `2026-05-26_teacher_web_vite实装作废/` 13 文件 = App.tsx + main.tsx + Shell.tsx + pages × 5 + store/auth.ts + vite_root_index.html + package.json + lock + vite.config.ts + tailwind.config.js + postcss.config.js + tsconfig × 2 — itsuki 拍板 Vite + TS 实装版整体废弃 + 5-26 晚加 `2026-05-26_ios_v1_demo_snapshot/` 42 文件（iOS demo 后门删除前快照） + 5-26 早 3 个 iOS 上架配置归位 + 5-22 加 2026-05-21_pre_fix + 2026-05-22_tomoshibi_appstore_fork 残余 + 5-21 teacher_web/demo 整组 158 文件归档 + 早期 GPT 对话 / throwaway iOS / demo 4-28 / 5-12 深夜大整理 / cloud agent 退役 / 5-02 handoff × 4 等）|
 | `03_dev/` | 391 | 33% | 代码 + 设计 LOG（含未 commit iOS `APIErrorPresenter.swift` + `project.pbxproj.bak3_before_apierrorpresenter_register` 2 文件；5-27 早段-2 git mv `student_ios/_archived_DESIGN_BRIEF_Round1_context.md` → 99_archive/2026-04-22_ios_round1_design_brief/；5-26 晚段-4 删除 Vite 实装 13 文件 → 全归档 → teacher_web 回到 Ryō standalone 主线）|
-| `05_logs/` | 117 | 9.8% | raw 66（5-16/19/21/22/22-iOS/24/25/25-AC学习清单/26/26-dmsd-startup/26-vite废弃+polish回滚/27-teacher_web_v1.0_深夜推进/27-ios审查/27-全项目审查/27-anti-ai-flavor双层防御立项/27-整理inbox+8类升级/27-老师实名账户登录/27-ios登录注册大改+审批链进度条/28-ios_codex审查/28-注册页demo空+数字码+设计文档中文化）/ AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）|
+| `05_logs/` | 118 | 9.8% | raw 67（5-16/19/21/22/22-iOS/24/25/25-AC学习清单/26/26-dmsd-startup/26-vite废弃+polish回滚/27-teacher_web_v1.0_深夜推进/27-ios审查/27-全项目审查/27-anti-ai-flavor双层防御立项/27-整理inbox+8类升级/27-老师实名账户登录/27-ios登录注册大改+审批链进度条/28-ios_codex审查/28-注册页demo空+数字码+设计文档中文化/28-web登录页修复）/ AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）|
 | `00_admin/` | 21 | 1.8% | 7 顶级 md + hooks 子目录 — 5-21 加 `系统bug专栏.md` + `codex_audit_prompt.md`（详见 §1.2）|
 | `01_specs/` | 14 | 1.2% | 规格冻结区（含 5 .pages 不可读）|
 | `.claude/` | 11 | 1.0% | 8 skill + 1 agent + 2 配置（settings / session-coord.config）— **5-26 加 `dmsd-startup/SKILL.md`**（启动 SOP 集中）/ 5-19 加 `.claude/agents/security-reviewer.md`（详见 §1.7.5）|
@@ -563,7 +563,7 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 | `learning_path.md` | itsuki 学习哲学 + 已走的路 — AC 自我推荐书素材 | ✅ | 最后 4-13 / 4-10 后新学的 NFC / Swift / 硬件未追记 |
 | `project_evolution.md` | 项目重大转折记录（每次 = 转折点 + 起因 + 影响） | ✅ | 4 次已记 / 最后 4-13 / 待补"第 5 次转折" = demo 完成情况 |
 
-### 6.2 05_logs/raw/（66 文件 — 含 README — 5-22~5-28 新增 18：5-22 iOS fork + 5-22 海关 + 5-24 iOS bug + 5-25 drift + session-coord + 5-25 AC 学习清单起草 + 5-26 中枢 + 5-26 dmsd-startup + 5-26 vite 废弃 + 5-27 teacher_web 深夜推进 + 5-27 iOS 审查 + 5-27 全项目审查 + 5-27 anti-ai-flavor 双层防御立项 + 5-27 整理 inbox+8 类升级 + 5-27 老师实名账户登录 + 5-27 iOS 登录注册大改+审批链进度条 + 5-28 iOS codex 审查 + 5-28 注册页 demo 空+数字码+设计文档中文化）
+### 6.2 05_logs/raw/（67 文件 — 含 README — 5-22~5-28 新增 19：5-22 iOS fork + 5-22 海关 + 5-24 iOS bug + 5-25 drift + session-coord + 5-25 AC 学习清单起草 + 5-26 中枢 + 5-26 dmsd-startup + 5-26 vite 废弃 + 5-27 teacher_web 深夜推进 + 5-27 iOS 审查 + 5-27 全项目审查 + 5-27 anti-ai-flavor 双层防御立项 + 5-27 整理 inbox+8 类升级 + 5-27 老师实名账户登录 + 5-27 iOS 登录注册大改+审批链进度条 + 5-28 iOS codex 审查 + 5-28 注册页 demo 空+数字码+设计文档中文化 + 5-28 web登录页修复）
 
 | 文件 | 这天发生了啥 | AC 候选密度 |
 |---|---|---|
@@ -598,6 +598,7 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 | `2026-05-27_ios_审查会话.md` | 5-27 深夜-3：iOS 全自主审查 + 修 + 收尾会话 — 5 维度过完 41 文件（demo 后门残留 / A-XXX bug 标记 / catch 错误处理 / Force unwrap / NFC 实装），发现 1 处可修（`MyPageStubs.swift:1404` `c.score!` 改 `map ?? _`）+ 2 处架构性延期（`StayListStubs.swift:475` catch 降级 mock 假数据 / `MyPageStubs.swift:1637` 暴露 `localizedDescription`）写 TODO §D | ⭐⭐ |
 | `2026-05-27_teacher_web_v1.0_深夜推进.md` | 5-27 凌晨：itsuki 设 `/goal v1.0 完整体上线` 后 CC 自主推 22 commit — teacher_web client.js 接 backend 4 个 page（DisciplinePage / RecordsPage / CleaningPage / FrontDeskPage） + announcements 实装 + LoginScreen 文案 cleanup + backend `discipline.py` / `cleaning.py` / `front_desk.py` 新建 model + router + alembic c1d2e3f4 3 张表 + propose 文档 `01_specs/teacher_web_v1.0_backend_models_propose.md` 等 itsuki 起床拍板 | ⭐⭐⭐⭐ |
 | `2026-05-27_全项目审查.md` | 5-27 早段：itsuki 启动「全项目审查 + 不要偷懒」会话 — CC 一次过扫 1189 文件 + grep 决策关键词 + 比对 SKILL.md §0.1 → 直接修 6 处 Vite 决策漂移（README × 2 / LATEST / progress_overview / WEB_DESIGN_LOG / client.ts）+ 物理清 7 个 .DS_Store + git mv `_archived_DESIGN_BRIEF` → 99_archive + TODO §🛠️ §N 加 8 条 backlog（99_archive 散件归档 / .pages 历史归档 / graphify 刷 / backend/demo 处置 / progress_overview 大改 / v0.9 bump 决策 / 决策状态扫描 hook propose） | ⭐⭐⭐⭐⭐ |
+| `2026-05-28_web登录页修复.md` | 5-28：itsuki 第一次实机打开实名账户登录页报 2 个 bug — ①9 个账号「密码不知道」→ 查出 seed.py 明文常量 DEV_PASSWORD="123456"（模式 5 认知改变：数据层 vs 代码层分离）→ 砍到 1 个账号「新股」重建 dev 库；②返回按钮「失灵」→ 截图里 401 错误反推 React 活着（逻辑 OK）→ 真因 fontSize:12+灰色+padding:0 点击区域极小 → 改蓝色背景可见按钮（模式 2 假设崩了继续追查） | ⭐⭐⭐⭐ |
 
 ### 6.3 05_logs/dev_log/（9 文件）
 
