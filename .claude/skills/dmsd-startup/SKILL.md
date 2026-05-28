@@ -1,22 +1,24 @@
 ---
 name: dmsd-startup
-description: DMSD 会话启动 SOP — CC 每次开新会话必读必做的 5 件事（多会话协同注册 / project-overview 漂移检测 / 读 WIP / 不主动读 TODO / 报告状态等指令）。集中管理启动逻辑，替代原来散落在 CLAUDE.md「会话开始」段 + 全局 session-start-coord-check 挂钩里的指令。**always-on — 不依赖关键词，每次会话启动 CC 必须主动 Read 本 skill 并按 §2 顺序执行**。
+description: DMSD 会话启动 SOP — CC 每次开新会话必读必做的 4 件事（多会话协同注册 / ac-radar 启动检查 / 读 WIP / 不主动读 TODO / 报告状态等指令）。集中管理启动逻辑，替代原来散落在 CLAUDE.md「会话开始」段 + 全局 session-start-coord-check 挂钩里的指令。**always-on — 不依赖关键词，每次会话启动 CC 必须主动 Read 本 skill 并按 §2 顺序执行**。
 ---
 
 # dmsd-startup
 
-> 🔴🔴🔴 **CC 每次开新会话必做 — 加载本 skill 后按 §2 顺序跑 5 件事，跑完报告 itsuki**
+> 🔴🔴🔴 **CC 每次开新会话必做 — 加载本 skill 后按 §2 顺序跑 4 件事，跑完逐项打勾报告 itsuki**
 
 ## 1. 为什么写这个 skill
 
 之前 DMSD 启动逻辑散在 3 处：
 - 全局挂钩 `~/.claude/hooks/session-start-coord-check.sh`（多会话协同检测）
-- DMSD 项目挂钩 `bin/check_overview_drift.sh`（project-overview 漂移检测）
+- ac-radar 启动检查
 - DMSD `CLAUDE.md` 第 106 行「会话开始: 读 WIP.md」段
 
 散 = 容易漏。itsuki 2026-05-26 拍板集中到一个 skill，挂钩里跟项目相关的部分搬过来，全局挂钩里只跟 DMSD 重复的部分在 DMSD 项目下静默退出。
 
-## 2. 启动必做 5 件事（按顺序）
+> **2026-05-28 itsuki 拍板**：project-overview 漂移检测从启动移除 —— 启动不再检测，唯一检测 / 修复点放到收尾（[[session-wrap]] §7.5.1 项 8）。配套停掉 `settings.json` 里的 `check_overview_drift.sh` 启动挂钩。
+
+## 2. 启动必做 4 件事（按顺序）
 
 ### Step 1 — 多会话协同注册
 
@@ -40,22 +42,7 @@ bash ~/.claude/skills/session-coord/scripts/scan.sh <SESSION_ID>
 
 完整说明 → `~/.claude/skills/session-coord/SKILL.md`
 
-### Step 2 — project-overview 漂移检测
-
-跑：
-```bash
-bash ~/dev/DMSD/bin/check_overview_drift.sh
-```
-
-干嘛：跑 `git ls-files` 数实际文件数，跟 `.claude/skills/project-overview/SKILL.md` §0.1 体量表对比，文件数对不上 = 漂移
-
-期待输出：
-- 没漂 — 脚本静默 / 输出「无漂移」
-- 漂了 — 列出哪些目录写了 N 实际 M
-
-向 itsuki 报告：原样转告脚本输出，不美化不解释。提一句「→ 漂了 = Edit `.claude/skills/project-overview/SKILL.md` §0.1 体量表 + 对应章节」让 itsuki 决定要不要现在修
-
-### Step 3 — ac-radar 启动检查
+### Step 2 — ac-radar 启动检查
 
 跑：
 ```bash
@@ -68,7 +55,7 @@ python3 ~/.claude/skills/ac-radar/scripts/startup_check.py
 
 向 itsuki 报告：原样转告，不美化不解释
 
-### Step 4 — 读 WIP.md
+### Step 3 — 读 WIP.md
 
 读：`~/dev/DMSD/00_admin/WIP.md`（全文）
 
@@ -81,19 +68,21 @@ python3 ~/.claude/skills/ac-radar/scripts/startup_check.py
 
 注意：WIP 顶部「会话开始: CC 读 ... + TODO.md 顶部 200 行 + git status」是旧版指令（跟 CLAUDE.md 新指令冲突）。按本 skill 做 — TODO 不主动读，git status 留到收尾。
 
-### Step 5 — 报告状态等指令
+### Step 4 — 逐项打勾报告 + 等指令
 
-汇报格式（写给 itsuki 看）：
+跑完 Step 1-3 后，**逐项打勾**汇报（itsuki 一眼看到每件事都做了）：
 
 ```
-1. 多会话协同：[活跃会话 N 个 / inbox 新消息 X 条]
-2. project-overview 漂移：[无漂 / 漂了：A 目录 写 X / 实际 Y]
-3. AC 雷达：[原样转告脚本输出]
-4. WIP 当前焦点：[一句话总结]
-5. 等你指令 — 不主动催进度，不主动列 TODO
+启动完成核对：
+✅ Step 1 多会话协同 —— 活跃会话 N 个 / inbox 新消息 X 条
+✅ Step 2 AC 雷达 —— [脚本原样输出]
+✅ Step 3 WIP —— 当前 vX.Y.Z / 焦点：[一句话]
+✅ Step 4 报告完毕，等你指令
 ```
 
-报完等 itsuki 说做什么。
+铁律：
+- 每步必须标 ✅（做了）或 ❌（出错 + 错信息），不允许默默跳过
+- 报完等 itsuki 说做什么 — 不主动催进度，不主动列 TODO
 
 ## 3. 不做的事（明确边界）
 
@@ -151,7 +140,7 @@ CC 改完高联动文件（backend models.py / spec 主体 / system_features.md 
 |---|---|---|
 | 全局挂钩 `session-start-env-diff.sh` | 对账实际装的工具 vs 环境清单 HTML | **互补** — 挂钩自动跑，本 skill 不重复，CC 看到挂钩输出再反应 |
 | 全局挂钩 `session-start-coord-check.sh` | 多会话协同检测 | **替代** — 挂钩在 DMSD 项目下静默退出（避免重复），本 skill Step 1 接管 |
-| DMSD 项目挂钩 `bin/check_overview_drift.sh` | project-overview 漂移检测 | **本 skill Step 2 主动调用脚本** — 脚本本身保留可单独用 |
+| DMSD 项目挂钩 `bin/check_overview_drift.sh` | project-overview 漂移检测 | **2026-05-28 起不在启动跑** — 移到收尾（[[session-wrap]] §7.5.1 项 8）。启动挂钩已从 `settings.json` 停掉，脚本本身保留可单独用 / 收尾调用 |
 | `~/.claude/skills/ac-radar/SKILL.md` | AC 入试素材实时捕获 | **本 skill Step 3 跑它的 startup_check.py** — ac-radar 自己的运行时（信号命中 / 收尾 flush）不受本 skill 影响 |
 | `~/.claude/skills/session-coord/SKILL.md` | 多会话协同板的完整 SOP | **本 skill Step 1 调用它的 register/scan 脚本** — session-coord 自己的其他 SOP（写 inbox / 释放占用 / handoff）按它自己的触发走 |
 | `.claude/skills/session-wrap/SKILL.md` | 会话收尾 SOP | **互补** — 启动用本 skill，收尾用 session-wrap |
@@ -160,11 +149,12 @@ CC 改完高联动文件（backend models.py / spec 主体 / system_features.md 
 
 加载本 skill 后：
 
-1. **每次新会话第一个回合** — 按 §2 顺序跑 5 件事
+1. **每次新会话第一个回合** — 按 §2 顺序跑 4 件事
 2. **不依赖关键词触发** — 不等 itsuki 说「启动」才做
 3. **跑出错** — 报告 itsuki 哪步出错 + 错信息，不擅自跳过
 4. **不主动声明自己在用本 skill** — itsuki 看汇报内容就行，不用「我现在在跑 dmsd-startup skill」这种客套
 
 ## 版本
 
+- v0.2.0 / 2026-05-28 / itsuki 拍板 3 改：① project-overview 漂移检测从启动移除（移到收尾 [[session-wrap]] §7.5.1 项 8）+ 停 `settings.json` 启动挂钩；② 启动从 5 件事砍到 4 件事；③ Step 4 报告改逐项打勾格式（每步标 ✅ / ❌）
 - v0.1.0 / 2026-05-26 / 初版 — itsuki 拍板集中启动逻辑，从 CLAUDE.md 第 106-111 行 +  全局 `session-start-coord-check.sh` 挂钩 + DMSD `bin/check_overview_drift.sh` 调用 抽出来。配套：全局 coord-check 挂钩改成 DMSD 下静默，DMSD CLAUDE.md 会话开始段简化成「启动走 dmsd-startup skill」
