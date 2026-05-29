@@ -26,14 +26,14 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ## 0. 摘要
 
-### 0.1 体量（2026-05-28 git ls-files + 未 commit 文件统计 — 1201 = committed 1198 + 未 commit 3）
+### 0.1 体量（2026-05-29 校准 — committed 1200，本次会话 +2：`00_admin/项目心智模型.md` + `05_logs/raw/2026-05-29_项目心智模型机制.md`；另有 TODO/hooks/dependabot 等未 commit 改动非本会话所做，未逐个对账）
 
 | 顶级目录 | 文件数 | 占比 | 主要内容 |
 |---|---|---|---|
 | `99_archive/` | 620 | 52% | 归档物（5-26 晚段-4 加 `2026-05-26_teacher_web_vite实装作废/` 13 文件 = App.tsx + main.tsx + Shell.tsx + pages × 5 + store/auth.ts + vite_root_index.html + package.json + lock + vite.config.ts + tailwind.config.js + postcss.config.js + tsconfig × 2 — itsuki 拍板 Vite + TS 实装版整体废弃 + 5-26 晚加 `2026-05-26_ios_v1_demo_snapshot/` 42 文件（iOS demo 后门删除前快照） + 5-26 早 3 个 iOS 上架配置归位 + 5-22 加 2026-05-21_pre_fix + 2026-05-22_tomoshibi_appstore_fork 残余 + 5-21 teacher_web/demo 整组 158 文件归档 + 早期 GPT 对话 / throwaway iOS / demo 4-28 / 5-12 深夜大整理 / cloud agent 退役 / 5-02 handoff × 4 等）|
 | `03_dev/` | 391 | 33% | 代码 + 设计 LOG（含未 commit iOS `APIErrorPresenter.swift` + `project.pbxproj.bak3_before_apierrorpresenter_register` 2 文件；5-27 早段-2 git mv `student_ios/_archived_DESIGN_BRIEF_Round1_context.md` → 99_archive/2026-04-22_ios_round1_design_brief/；5-26 晚段-4 删除 Vite 实装 13 文件 → 全归档 → teacher_web 回到 Ryō standalone 主线）|
-| `05_logs/` | 118 | 9.8% | raw 67（5-16/19/21/22/22-iOS/24/25/25-AC学习清单/26/26-dmsd-startup/26-vite废弃+polish回滚/27-teacher_web_v1.0_深夜推进/27-ios审查/27-全项目审查/27-anti-ai-flavor双层防御立项/27-整理inbox+8类升级/27-老师实名账户登录/27-ios登录注册大改+审批链进度条/28-ios_codex审查/28-注册页demo空+数字码+设计文档中文化/28-web登录页修复）/ AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）|
-| `00_admin/` | 21 | 1.8% | 7 顶级 md + hooks 子目录 — 5-21 加 `系统bug专栏.md` + `codex_audit_prompt.md`（详见 §1.2）|
+| `05_logs/` | 119 | 9.8% | raw 68（5-16/19/21/22/22-iOS/24/25/25-AC学习清单/26/26-dmsd-startup/26-vite废弃+polish回滚/27-teacher_web_v1.0_深夜推进/27-ios审查/27-全项目审查/27-anti-ai-flavor双层防御立项/27-整理inbox+8类升级/27-老师实名账户登录/27-ios登录注册大改+审批链进度条/28-ios_codex审查/28-注册页demo空+数字码+设计文档中文化/28-web登录页修复）/ AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）|
+| `00_admin/` | 22 | 1.8% | 8 顶级 md（5-29 加 项目心智模型.md）+ hooks 子目录 — 5-21 加 `系统bug专栏.md` + `codex_audit_prompt.md`（详见 §1.2）|
 | `01_specs/` | 14 | 1.2% | 规格冻结区（含 5 .pages 不可读）|
 | `.claude/` | 11 | 1.0% | 8 skill + 1 agent + 2 配置（settings / session-coord.config）— **5-26 加 `dmsd-startup/SKILL.md`**（启动 SOP 集中）/ 5-19 加 `.claude/agents/security-reviewer.md`（详见 §1.7.5）|
 | `06_assets/` | 8 | 0.8% | 4 icon + 术语表.html + 学习内容清单.html + bus_schedule + bus_notice 真实样本 |
@@ -42,8 +42,8 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `docs/` | 3 | 0.3% | Matt Pocock 套件 per-repo 配置（agents/{issue-tracker,triage-labels,domain}.md）|
 | `bin/` | 3 | 0.3% | sync-check + create_local_dev_symlink + check_overview_drift（5-19 加）|
 | `04_ops/` | 2 | 0.2% | MAC_MINI_SETUP + wifi_survey_howto |
-| `.github/` | 1 | 0.1% | **5-21 加** workflows/test.yml — GitHub Actions CI 自动跑测试的工作流定义 |
-| **总计** | **1198** | 100% | |
+| `.github/` | 2 | 0.1% | workflows/test.yml（GitHub Actions CI 自动跑测试）+ dependabot.yml（依赖漏洞自动监控 — pip/gradle/actions 每周一）|
+| **总计** | **1200** | 100% | |
 
 > **5-16 → 5-22 重大变动**：5-21 teacher_web/demo 整组 158 文件从 `03_dev/teacher_web/demo/` 挪到 `99_archive/2026-05-21_teacher_web_demo_archived/` —— 所以 `03_dev/` 从 546 降到 395，`99_archive/` 从 273 升到 431。同期加 `.github/workflows/test.yml`（CI）+ `00_admin/系统bug专栏.md` + `00_admin/codex_audit_prompt.md` + `.claude/agents/security-reviewer.md`。
 >
@@ -80,7 +80,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ---
 
-## 1. 第 1 组：根目录 + 00_admin（29 文件 — 2026-05-27 加 PROJECT_GUIDE.md，新人导览入口）
+## 1. 第 1 组：根目录 + 00_admin（30 文件 — 2026-05-29 加 项目心智模型.md / 2026-05-27 加 PROJECT_GUIDE.md，新人导览入口）
 
 **统计**：✅ 22 / 📦 7 / ⚠️ 3 / ❓ 4
 
@@ -112,10 +112,11 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 **实际剩余在 `00_admin/` 顶级**（2026-05-22 ls 真实）：`文档同步点清单.md` + `2026-04-19_项目审查_backlog.md` + `progress_overview.md`（§1.3）+ `WIP.md` + `TODO.md` + `系统bug专栏.md` + `codex_audit_prompt.md` + `hooks/`（§1.6）= 7 md + 1 子目录。
 
-### 1.3 00_admin/会话状态（3 文件 — 2026-05-13 progress_draft 归档）
+### 1.3 00_admin/会话状态（4 文件 — 2026-05-29 加 项目心智模型 / 2026-05-13 progress_draft 归档）
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
+| `项目心智模型.md` | **2026-05-29 加** AI 开局必读骨架 — 系统怎么跑通 + 5 端各自现状 + 绑住 5 端的契约 + 核心不变量 + 当前未决问题 | ✅ | 由 dmsd-startup §2 Step 3 开局自动读 / session-wrap §7.5.1 项 12 收尾更新。不是文件清单（project-overview）/ 不是教授进度页（progress_overview）/ 不是新人导览（PROJECT_GUIDE）|
 | `WIP.md` | 当下书签 — 记最近 5 次会话做了啥 / 当前焦点 / 多会话占用 / 阻塞项。CC 每次新会话必读全文 | ✅ | 短期记忆，跟 TODO 不重叠 |
 | `TODO.md` | 所有未完成事项的完整清单（真值）— 按 A 工程 / B 文档 / C AC 素材 三轨分类 | ✅ | 长期 backlog（待办池），CC 新会话扫顶部 200 行 |
 | `progress_overview.md` | 项目长期章节目录 — 教授看 GitHub 时「项目做到哪了」的对外页面 | ⚠️ | 5-04 正文更新到 v0.8，5-12 后又过期 8 天 |
@@ -552,7 +553,7 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 
 ---
 
-## 6. 第 6 组：05_logs + 06_assets + bin（91 文件 — 2026-05-22 校准 36→91，05_logs/raw 持续增长）
+## 6. 第 6 组：05_logs + 06_assets + bin（92 文件 — 2026-05-29 加 raw/2026-05-29 / 2026-05-22 校准 36→91，05_logs/raw 持续增长）
 
 **统计**：✅ 24 / 📦 2 / ⚠️ 10
 **核心发现**：raw 04-12 ~ 04-30 高频产出（13 份）；80+ 条 #AC候选；4 篇 problem_solving 全集中于 4-10/4-15
@@ -565,7 +566,7 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 | `learning_path.md` | itsuki 学习哲学 + 已走的路 — AC 自我推荐书素材 | ✅ | 最后 4-13 / 4-10 后新学的 NFC / Swift / 硬件未追记 |
 | `project_evolution.md` | 项目重大转折记录（每次 = 转折点 + 起因 + 影响） | ✅ | 4 次已记 / 最后 4-13 / 待补"第 5 次转折" = demo 完成情况 |
 
-### 6.2 05_logs/raw/（67 文件 — 含 README — 5-22~5-28 新增 19：5-22 iOS fork + 5-22 海关 + 5-24 iOS bug + 5-25 drift + session-coord + 5-25 AC 学习清单起草 + 5-26 中枢 + 5-26 dmsd-startup + 5-26 vite 废弃 + 5-27 teacher_web 深夜推进 + 5-27 iOS 审查 + 5-27 全项目审查 + 5-27 anti-ai-flavor 双层防御立项 + 5-27 整理 inbox+8 类升级 + 5-27 老师实名账户登录 + 5-27 iOS 登录注册大改+审批链进度条 + 5-28 iOS codex 审查 + 5-28 注册页 demo 空+数字码+设计文档中文化 + 5-28 web登录页修复）
+### 6.2 05_logs/raw/（68 文件 — 含 README — 5-22~5-28 新增 19：5-22 iOS fork + 5-22 海关 + 5-24 iOS bug + 5-25 drift + session-coord + 5-25 AC 学习清单起草 + 5-26 中枢 + 5-26 dmsd-startup + 5-26 vite 废弃 + 5-27 teacher_web 深夜推进 + 5-27 iOS 审查 + 5-27 全项目审查 + 5-27 anti-ai-flavor 双层防御立项 + 5-27 整理 inbox+8 类升级 + 5-27 老师实名账户登录 + 5-27 iOS 登录注册大改+审批链进度条 + 5-28 iOS codex 审查 + 5-28 注册页 demo 空+数字码+设计文档中文化 + 5-28 web登录页修复）
 
 | 文件 | 这天发生了啥 | AC 候选密度 |
 |---|---|---|

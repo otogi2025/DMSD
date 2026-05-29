@@ -55,11 +55,14 @@ python3 ~/.claude/skills/ac-radar/scripts/startup_check.py
 
 向 itsuki 报告：原样转告，不美化不解释
 
-### Step 3 — 读 WIP.md
+### Step 3 — 读 项目心智模型.md + WIP.md
 
-读：`~/dev/DMSD/00_admin/WIP.md`（全文）
+读两份（都全文，都短）：
 
-拿到信息：
+1. **`~/dev/DMSD/00_admin/项目心智模型.md`** —— 系统怎么跑通 + 5 端各自现状 + 绑住 5 端的契约 + 核心不变量 + 当前未决问题。**这是让 AI 开局脑子里就有项目全貌的骨架，每次必读**（专治「开新会话改前端却不知道后端写到哪」）。
+2. **`~/dev/DMSD/00_admin/WIP.md`**（全文）
+
+从 WIP 拿到信息：
 - 当前版本号（顶部「**当前版本**: vX.Y.Z」）
 - 当下焦点（§ 🎯 当前焦点）
 - 最近 5 次会话（§ 最近会话）
@@ -76,7 +79,7 @@ python3 ~/.claude/skills/ac-radar/scripts/startup_check.py
 启动完成核对：
 ✅ Step 1 多会话协同 —— 活跃会话 N 个 / inbox 新消息 X 条
 ✅ Step 2 AC 雷达 —— [脚本原样输出]
-✅ Step 3 WIP —— 当前 vX.Y.Z / 焦点：[一句话]
+✅ Step 3 心智模型 + WIP —— 系统骨架已读 / 当前 vX.Y.Z / 焦点：[一句话]
 ✅ Step 4 报告完毕，等你指令
 ```
 
@@ -156,5 +159,6 @@ CC 改完高联动文件（backend models.py / spec 主体 / system_features.md 
 
 ## 版本
 
+- v0.3.0 / 2026-05-29 / Step 3 从「读 WIP」扩成「读 项目心智模型.md + WIP」—— 配合新建 `00_admin/项目心智模型.md`（AI 开局必读骨架：系统怎么跑 + 5 端现状 + 契约 + 不变量 + 未决问题），解决「开新会话 AI 不知道别的端写到哪」。收尾侧更新由 [[session-wrap]] §7.5.1 项 12 负责。
 - v0.2.0 / 2026-05-28 / itsuki 拍板 3 改：① project-overview 漂移检测从启动移除（移到收尾 [[session-wrap]] §7.5.1 项 8）+ 停 `settings.json` 启动挂钩；② 启动从 5 件事砍到 4 件事；③ Step 4 报告改逐项打勾格式（每步标 ✅ / ❌）
 - v0.1.0 / 2026-05-26 / 初版 — itsuki 拍板集中启动逻辑，从 CLAUDE.md 第 106-111 行 +  全局 `session-start-coord-check.sh` 挂钩 + DMSD `bin/check_overview_drift.sh` 调用 抽出来。配套：全局 coord-check 挂钩改成 DMSD 下静默，DMSD CLAUDE.md 会话开始段简化成「启动走 dmsd-startup skill」
