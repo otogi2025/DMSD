@@ -6,11 +6,12 @@ DMSD 用了 **3 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后
 
 ### Git hook（commit 时触发）
 
-`git commit` 前自动跑 3 件事（按这个顺序）：
+`git commit` 前自动跑 4 件事（按这个顺序）：
 
 1. **版本号一致性检查**（阻塞型，2026-04-19 加）— "声明性文件"（`CLAUDE.md` / `WIP.md` / `TODO.md` / `progress_overview.md`）**不能硬编码版本号**。单源真值 = `CHANGELOG.md` 顶部。其他文件用 "当前版本见 CHANGELOG" 指针。
 2. **版本 bump 提醒**（非阻塞，2026-04-29 加）— 改了 `01_specs/` / `02_design/` / `03_dev/*_DESIGN_LOG` 时提醒检查 version-bump skill `§2 决策树`。
 3. **文件联动提醒**（非阻塞，2026-05-04 加）— 改了某文件但联动文件没动 → 警告。规则表 = `lib/sync-rules.sh`，详细联动矩阵见 `.claude/skills/file-linkage/SKILL.md`。**配套**：`bin/sync-check.sh` = 中途随时手动跑（不用等到 commit）。
+4. **密钥泄露扫描**（阻塞型）— 公开仓库防护：扫本次 git add 的新增行，发现写死进源码的真实密钥（SendGrid / AWS / Google / Slack 格式 + 私钥块）就拦下提交。`.gitignore` 已挡 `.env` / `.db` / `.key` 文件，本检查补"密钥被直接写死进源码"这种手滑。误报绕过：该行末尾加 `# pragma: allowlist secret`。
 
 ### ⭐ CC PostToolUse hook（7 条 A-G，CC 调 Write/Edit 时立刻并行触发，2026-05-04 深夜加 + 5-13 加 F + 5-19 加 G）
 

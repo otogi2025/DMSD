@@ -1,0 +1,58 @@
+# DMSD 依赖安全自动监控 — Dependabot 配置
+#
+# Dependabot 是 GitHub 自带的机器人：盯着下面列出的依赖，
+# 哪个第三方库曝出安全漏洞 / 有新版本，就自动发起一次升级改动让你审。
+#
+# 背景：仓库公开 + 后端有登录密码相关代码（python-jose 等），
+#   之前是手动追漏洞编号（CVE-2024-33663 / CVE-2024-33664），现在交给机器人。
+#
+# 监控范围（每端依赖清单所在目录）：
+#   - 后端 Python        03_dev/backend/v1/requirements.txt
+#   - 点呼机 Python      03_dev/rollcall_device/requirements.txt
+#   - 安卓 Gradle        03_dev/student_android/v1
+#   - GitHub Actions 工作流自身
+# 暂不含：
+#   - iOS：依赖写在 project.yml 由 xcodegen 生成，无独立 Package.swift，Dependabot 暂认不了
+#   - 网页端：纯 HTML 单文件，无依赖清单
+#
+# 频率定为每周一，避免每天刷一堆升级改动淹没你。
+
+version: 2
+updates:
+  # 后端 Python 依赖
+  - package-ecosystem: "pip"
+    directory: "/03_dev/backend/v1"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      # 把小版本 / 补丁升级打包成一条，减少噪音；大版本单独开
+      backend-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # 点呼机 Python 依赖
+  - package-ecosystem: "pip"
+    directory: "/03_dev/rollcall_device"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+
+  # 安卓 Gradle 依赖
+  - package-ecosystem: "gradle"
+    directory: "/03_dev/student_android/v1"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+
+  # GitHub Actions 工作流用到的 action 版本
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3

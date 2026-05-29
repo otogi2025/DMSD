@@ -153,5 +153,54 @@ if [ -n "$REPO_ROOT" ] && [ -f "$REPO_ROOT/00_admin/hooks/lib/sync-rules.sh" ]; 
     fi
 fi
 
+# ============================================================
+# 密钥泄露扫描（阻塞 — 公开仓库防护）
+#
+# 目的：仓库公开，防止把写死在代码里的真实密钥（发邮件通行证 /
+#   登录密钥 / 私钥）提交上去。
+#   .gitignore 已挡 .env / .db / .key 文件；本检查补的是
+#   "密钥被直接写死进某个源码文件" 这种手滑。
+#
+# 只扫本次 git add 的新增行，只匹配高置信度的厂商密钥格式
+# （SendGrid / AWS / Google / Slack）+ 私钥块，避免误伤普通代码。
+# 注意：只认这几种已知格式，不是万能；GitHub 自带的密钥扫描是第二道。
+#
+# 误报绕过：该行末尾加  # pragma: allowlist secret
+# 紧急绕过：git commit --no-verify
+# ============================================================
+
+SECRET_SCAN_FILES=$(git diff --cached --name-only --diff-filter=ACM \
+    | grep -vE '\.example$|^00_admin/hooks/' || true)
+
+SECRET_PATTERN='SG\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|xox[baprs]-[0-9A-Za-z-]{10,}'
+
+SECRET_HITS=""
+for f in $SECRET_SCAN_FILES; do
+    [ -f "$f" ] || continue
+    HIT=$(git diff --cached -U0 -- "$f" \
+        | grep -E '^\+' | grep -vE '^\+\+\+' \
+        | grep -vE 'pragma: allowlist secret' \
+        | grep -E "$SECRET_PATTERN" || true)
+    if [ -n "$HIT" ]; then
+        SECRET_HITS="${SECRET_HITS}
+  $f:
+$(echo "$HIT" | sed 's/^+/    /')"
+    fi
+done
+
+if [ -n "$SECRET_HITS" ]; then
+    echo ""
+    echo "🔴 检测到疑似密钥被写进代码（公开仓库，已阻止提交）："
+    echo "$SECRET_HITS"
+    echo ""
+    echo "─────────────────────────────────────────────"
+    echo "怎么办："
+    echo "  1. 把密钥从代码里删掉，改从 .env 读（.env 已被 .gitignore 挡，不会提交）"
+    echo "  2. 确实误报（示例 / 占位符）→ 该行末尾加：# pragma: allowlist secret"
+    echo "  3. 紧急绕过（不推荐）：git commit --no-verify"
+    echo "─────────────────────────────────────────────"
+    exit 1
+fi
+
 echo "✅ pre-commit 一致性检查通过"
 exit 0
