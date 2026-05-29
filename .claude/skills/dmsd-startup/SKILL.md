@@ -20,27 +20,25 @@ description: DMSD 会话启动 SOP — CC 每次开新会话必读必做的 4 �
 
 ## 2. 启动必做 4 件事（按顺序）
 
-### Step 1 — 多会话协同注册
+### Step 1 — 多会话协同（读 + 报告）
 
-跑（分两步，不能并行 — scan.sh 要 register.sh 输出的 SESSION_ID）：
+注册 / 刷心跳 / 记当前任务 由 `session-coord-auto.sh` hook 自动维护（开窗时 + itsuki 每次发话时后台做，零对话 token）。**CC 不用再手动注册**，只跑一次 scan 读取 + 报告：
 
 ```bash
-# 第 1 步：注册 — 输出会含一行 `SESSION_ID=<id>`，先拿到 id
-bash ~/.claude/skills/session-coord/scripts/register.sh $(hostname -s) "<本会话主题，CC 自己拟一句>"
-
-# 第 2 步：scan 把上一步拿到的 id 当参数传入
-bash ~/.claude/skills/session-coord/scripts/scan.sh <SESSION_ID>
+bash ~/.claude/skills/session-coord/scripts/scan.sh "$CLAUDE_CODE_SESSION_ID"
 ```
 
 干嘛：
-- `register.sh` — 把本会话登记到 `~/dev/DMSD/.claude/sessions/_board.md` 协作板，让别的同时开的 CC 会话知道你存在
-- `scan.sh` — 扫别的会话在干嘛 + 自己 inbox 有没有新留言（必须传 session_id，否则脚本会报错退出）
+- `$CLAUDE_CODE_SESSION_ID` — Claude 给本窗口发的会话编号（环境变量），跟 hook 建的状态目录同名，对得上号
+- `scan.sh` — 扫别的窗口在干嘛 + 自己 inbox（信箱）有没有新留言 + 顺手清理超 1 小时的死窗口目录
 
-期待输出：协作板内容 + 自己 inbox（如果有内容）
+期待输出：活跃窗口清单 + 自己 inbox（如果有内容）
 
 向 itsuki 报告：活跃会话清单 + 自己 inbox 新消息（没消息说一句没消息）
 
-完整说明 → `~/.claude/skills/session-coord/SKILL.md`
+> 万一 hook 没生效（比如刚改完配置还没重开窗口），scan 照常工作，只是少标「👈 我」那行，不影响报告别的窗口。
+
+完整说明 → `~/.claude/skills/session-coord/SKILL.md` §三（hook 自动 vs CC 手动分工）
 
 ### Step 2 — ac-radar 启动检查
 
