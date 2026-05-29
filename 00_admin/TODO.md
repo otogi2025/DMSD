@@ -187,6 +187,14 @@
 
 ## 🛠️ Skill / Hook / 工具后续（2026-05-11 晚加）
 
+### iCloud AC 素材分散在两个根目录（2026-05-30 加，等 itsuki 拍板）
+- 现象: `02_学习与知识/升学/` 下有两个不同目录（inode 不同，**不是别名是两个真目录**）：`AC/` 和 `大学入試/`，下面各有一份 `筑波大学 AC入試 準備/`
+- 分散情况: AC inbox（`06_radar_inbox/`）写在 `大学入試/` 下；jsonl 原文 + 会话总结（daily-archive 脚本写）写在 `AC/` 下
+- 影响: ① AC 素材分两处，itsuki 后期整理要看两个地方 ② `session-wrap` SKILL.md §5.5.1.B 写 inbox 路径用 `大学入試/`，但 `daily-archive-cp.sh` 脚本用 `AC/` — 两套配置不一致，将来容易写串
+- 选项: (a) 统一到 `AC/`（脚本在用的活跃根）改 session-wrap 路径 (b) 统一到 `大学入試/` 改脚本 (c) 确认其中一个是废弃残留直接删
+- 决策: 2026-05-30 创建 / 待 itsuki 拍板
+- 出处: `raw/2026-05-29_session-coord自动化.md` 收尾时发现
+
 > 今晚装了 cc-comm-rules（CC 沟通规则 skill — 解决 itsuki 反复怒怼 CC 沟通失职）+ 3 个 hook + graphify 全套。下面是装完之后还没做的。
 
 ### A. 试用 cc-comm-rules + 收集反馈
