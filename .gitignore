@@ -100,6 +100,8 @@ graphify-out/
 *.sqlite
 *.sqlite3
 *.db
+*.db.bak
+*.bak
 
 # ── 秘密 / 证书（2026-05-22 加 — Codex FC-035） ────
 *.pem

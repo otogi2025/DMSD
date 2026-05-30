@@ -388,6 +388,15 @@ def update_application(
         raise HTTPException(
             422, {"code": "LEAVE_DATE_NOT_FUTURE", "message": "出寮日は明日以降"}
         )
+    # 帰寮日不能早于出寮日（修改届即使只传一个日期，也用合并后的值校验 — 与 create 时 _check_dates 对齐）
+    if app.return_date and app.leave_date and app.return_date < app.leave_date:
+        raise HTTPException(
+            422,
+            {
+                "code": "RETURN_BEFORE_LEAVE",
+                "message": "帰寮日は出寮日以降にしてください",
+            },
+        )
 
     # chain リセット — 全 approvals 削除 → 再生成
     for row in app.approvals:

@@ -3,9 +3,11 @@
 //
 // 为什么用 Keychain 不用 UserDefaults：
 //   - JWT token 是机密、UserDefaults 是明文 plist、设备越狱后能直接读
-//   - Keychain 是苹果系统加密的安全存储区、即使 backup 也加密
-//   - kSecAttrAccessibleAfterFirstUnlock = 设备首次解锁后可访问
+//   - Keychain 是苹果系统加密的安全存储区
+//   - kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly = 设备首次解锁后可访问
 //     （锁屏后 background 也能用、但不解锁就不能读）
+//     ThisDeviceOnly = 不进 iCloud/iTunes 备份、不随备份迁移到别的设备
+//     （防代刷场景：登录态不该被带到另一台设备）
 //
 // 怎么用：
 //   KeychainService.save(token: "eyJ...")    // 登录成功后
@@ -38,7 +40,7 @@ enum KeychainService {
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
             kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
         ]
         SecItemAdd(addQuery as CFDictionary, nil)
     }

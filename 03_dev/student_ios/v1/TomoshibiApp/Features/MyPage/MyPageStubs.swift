@@ -2069,6 +2069,7 @@ struct LogoutSheet: View {
 
                 VStack(spacing: 10) {
                     PrimaryButton(title: "ログアウト", destructive: true) {
+                        app.authToken = nil // didSet 清 Keychain + APIClient token — 真登出（原来只跳转没清令牌）
                         app.closeSheet()
                         router.replace(.login)
                     }

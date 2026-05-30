@@ -401,12 +401,12 @@ round3/
 
 ## 7. 参考资料索引
 
-> **2026-05-27 更新**：原 round2/ + round3/ + handoff/ + round3_handoff/ 4 个子目录全部塌缩归档（详见 §12 Vite 废弃 + DESIGN_BRIEF §2 文件清单）。原资源路径已迁到归档目录或塌缩到 `v1/src/_legacy/` + `v1/src/assets/`。
+> **2026-05-27 更新**：原 round2/ + round3/ + handoff/ + round3_handoff/ 4 个子目录全部塌缩归档（详见 §12 Vite 废弃 + DESIGN_BRIEF §2 文件清单）。原资源路径已迁到归档目录或塌缩到 `v1/src/components/_legacy/` + `v1/src/assets/`。
 
 | 资源 | 路径 | 备注 |
 |---|---|---|
 | 当前权威源（standalone） | `v1/src/index.html` | 7700+ 行 inline 全部 CSS/JS/字体 |
-| JSX 组件源（14 个） | `v1/src/_legacy/*.jsx` | 原 round2/ + round3/ 塌缩后命名（误导但已实际是 Ryō 主源） |
+| JSX 组件源（14 个） | `v1/src/components/_legacy/*.jsx` | 原 round2/ + round3/ 塌缩后命名（误导但已实际是 Ryō 主源） |
 | 后端对接代码 | `v1/src/api/client.ts` | 416 行 26 endpoint — 保留未用，未来 Ryō 接真后端复用 |
 | 火焰 logo | `v1/src/assets/tomoshibi-icon.png` | 原 round3_handoff/01_tomoshibi_icon.png |
 | Claude Design 历史对话 | 已归档到 `99_archive/2026-04-29_pre_v1.0_cleanup/` 或 `99_archive/2026-05-21_teacher_web_demo_archived/` | itsuki ↔ Claude Design Round 1-3 完整迭代 — AC ⭐ |
@@ -886,7 +886,7 @@ CC 在 itsuki 选 A（Ryō 框架内 polish）后跑 frontend-design skill，提
 | 层 | 文件 |
 |---|---|
 | Ryō standalone 主体 | `v1/src/index.html`（7774 行，含所有 CSS / JS / 字体 inline） |
-| JSX 组件源（如要重新 inline） | `v1/src/_legacy/*.jsx` 14 个（命名误导，实际是 Ryō 主源） |
+| JSX 组件源（如要重新 inline） | `v1/src/components/_legacy/*.jsx` 14 个（命名误导，实际是 Ryō 主源） |
 | 后端对接代码（保留未用） | `v1/src/api/client.ts`（auth / applications / announcements / teachers / students / rollcall 6 模块） |
 | 字体本地副本 | `v1/src/_assets/` Noto Sans JP + JetBrains Mono woff2 |
 | React + Babel 本地副本 | `v1/src/vendor/`（standalone HTML 浏览器端编译 JSX 用） |
