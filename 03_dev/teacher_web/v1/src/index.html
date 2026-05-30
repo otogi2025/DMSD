@@ -16358,7 +16358,7 @@
         return _adaptBackendAppsByKind(apps, "外泊");
       }
 
-      function ApplicationsPage({ onOpen, backendApplications }) {
+      function ApplicationsPage({ onOpen, backendApplications, authToken }) {
         const T = window.RYO;
         const [tab, setTab] = React.useState("outstay");
         const [sub, setSub] = React.useState("pending");
@@ -16376,7 +16376,7 @@
           backendApplications,
           "帰省",
         );
-        const outstayApps = adaptedOutstay || window.OUTSTAY_APPS || [];
+        const outstayApps = adaptedOutstay || [];
         const returnApps = adaptedReturn || [];
         const homeApps = adaptedHome || [];
         const outstayPending = outstayApps.filter(
@@ -16574,9 +16574,8 @@
 
       function OutstayList({ sub, setSub, onOpen, apps: appsProp }) {
         const T = window.RYO;
-        // Task #6 第 6 步 + Task #16: apps prop が array なら必ず使う (空配列でも空状態を
-        // 表示 — Round 3 帰国/帰省 tab で重要)。undefined のみ window.OUTSTAY_APPS fallback。
-        const apps = Array.isArray(appsProp) ? appsProp : window.OUTSTAY_APPS;
+        // Task #6 第 6 步 + Task #16: apps prop が array なら必ず使う (空配列でも空状態を表示)。
+        const apps = Array.isArray(appsProp) ? appsProp : [];
         const subs = ["pending", "approved", "rejected", "question", "all"];
         const subLabels = {
           pending: "審査待ち",
@@ -16618,21 +16617,6 @@
                 </button>
               ))}
               <div style={{ flex: 1 }} />
-              <button
-                onClick={() => alert("Demo 版未対応")}
-                style={{
-                  padding: "6px 12px",
-                  background: "transparent",
-                  color: T.ink3,
-                  border: `1px solid ${T.lineStrong}`,
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 12,
-                  cursor: "pointer",
-                }}
-              >
-                CSV 出力
-              </button>
             </div>
 
             <div
@@ -17020,9 +17004,48 @@
     <script type="text/babel" data-source="components/outstay-detail-modal.jsx">
       // Outstay application detail modal — digitised from 02_gaihaku_form_reference.jpeg.
 
-      function OutstayDetailModal({ app, onClose, onAction }) {
+      // OutstayDetailModal — app prop は _adaptBackendAppsByKind で作った UI shape。
+      // _backend フィールドに元の pendingForMe Application が入っている。
+      // 開くと同時に getApplication(id) で完全な ApplicationOut を fetch し、
+      // getAuditLog(id) で審計ログも取得する。
+      function OutstayDetailModal({ app, onClose, onAction, authToken }) {
         const T = window.RYO;
         const [confirm, setConfirm] = React.useState(null);
+        // backend から取った完全な ApplicationOut
+        const [detail, setDetail] = React.useState(null);
+        const [auditLog, setAuditLog] = React.useState([]);
+        const [loadingDetail, setLoadingDetail] = React.useState(false);
+        const [detailError, setDetailError] = React.useState(null);
+
+        // 開くたびに完全 detail + 審計ログを取得
+        React.useEffect(() => {
+          const backendApp = app && app._backend;
+          if (!backendApp || !authToken) return;
+          let cancelled = false;
+          setLoadingDetail(true);
+          setDetailError(null);
+          Promise.all([
+            window.tomoshibiApi.getApplication(backendApp.id, authToken),
+            window.tomoshibiApi
+              .getAuditLog(backendApp.id, authToken)
+              .catch(() => []),
+          ])
+            .then(([det, log]) => {
+              if (cancelled) return;
+              setDetail(det);
+              setAuditLog(Array.isArray(log) ? log : []);
+            })
+            .catch((e) => {
+              if (cancelled) return;
+              setDetailError(e.message || "詳細取得に失敗しました");
+            })
+            .finally(() => {
+              if (!cancelled) setLoadingDetail(false);
+            });
+          return () => {
+            cancelled = true;
+          };
+        }, [app, authToken]);
 
         const Section = ({ title, children }) => (
           <div style={{ marginBottom: 18 }}>
@@ -17046,7 +17069,7 @@
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "140px 1fr",
+              gridTemplateColumns: "160px 1fr",
               gap: 10,
               fontSize: 13,
               padding: "5px 0",
@@ -17056,10 +17079,31 @@
             <div
               style={{ color: T.ink, fontFamily: mono ? T.mono : "inherit" }}
             >
-              {children}
+              {children || "—"}
             </div>
           </div>
         );
+
+        // ApplicationOut の approval_chain を表示するヘルパー
+        const chainDecisionLabel = (d) => {
+          if (!d) return [T.ink3, T.surfaceAlt, T.line, "未審査"];
+          if (d === "approve") return [T.ok, T.okSoft, T.okBorder, "✓ 承認"];
+          if (d === "reject")
+            return [T.danger, T.dangerSoft, T.dangerBorder, "✗ 却下"];
+          return [T.ink3, T.surfaceAlt, T.line, d];
+        };
+
+        // applicant 名：detail があれば detail.student.name、なければ app.applicant (adapt 済)
+        const applicantName =
+          (detail && detail.student && detail.student.name) || app.applicant;
+        const kindLabel =
+          (detail && detail.kind) || (app._backend && app._backend.kind) || "";
+        const titleLabel =
+          kindLabel === "帰国"
+            ? "帰国届"
+            : kindLabel === "帰省"
+              ? "帰省届"
+              : "外泊許可願";
 
         return (
           <div
@@ -17079,7 +17123,7 @@
             <div
               onClick={(e) => e.stopPropagation()}
               style={{
-                width: 820,
+                width: 860,
                 maxHeight: "94vh",
                 overflow: "auto",
                 background: T.surface,
@@ -17088,6 +17132,7 @@
                 color: T.ink,
               }}
             >
+              {/* ヘッダー */}
               <div
                 style={{
                   padding: "22px 28px 18px",
@@ -17105,7 +17150,7 @@
                       fontWeight: 700,
                     }}
                   >
-                    申請 &gt; 外泊 &gt; {app.applicant} の申請
+                    申請 &gt; {kindLabel} &gt; {applicantName} の申請
                   </div>
                   <div style={{ flex: 1 }} />
                   <window.StateBadge s={app.state} />
@@ -17125,96 +17170,146 @@
                       letterSpacing: -0.3,
                     }}
                   >
-                    外泊許可願
+                    {titleLabel}
                   </div>
                   <div
                     style={{ fontSize: 12, fontFamily: T.mono, color: T.ink3 }}
                   >
-                    {app.id} · 提出 {app.submitted}
+                    {app._backend && String(app._backend.id).slice(0, 8)}… ·
+                    提出 {app.submitted}
                   </div>
                 </div>
               </div>
 
+              {/* ボディ */}
               <div style={{ padding: "22px 28px" }}>
-                <Section title="申請者本人">
-                  <F label="氏名">{app.applicant}</F>
-                  <F label="学年・組">{app.grade}</F>
-                  <F label="部屋">
-                    {app.room} · {window.dormLabel(app.dorm)}
-                  </F>
-                  <F label="本人連絡先" mono>
-                    {app.phone}
-                  </F>
-                </Section>
-
-                <Section title="同行者">
-                  <F label="氏名">{app.companion.name}</F>
-                  <F label="連絡先" mono>
-                    {app.companion.phone}
-                  </F>
-                </Section>
-
-                <Section title="外泊日時">
-                  <F label="出発予定日時" mono>
-                    {app.depart}
-                  </F>
-                  <F label="帰舎予定日時" mono>
-                    {app.return_}
-                  </F>
-                </Section>
-
-                <DeadlineSection app={app} />
-
-                <Section title="移動手段">
-                  <F label="行き">
-                    {app.methodGo}
-                    {app.flightNo && ` (${app.flightNo})`}
-                  </F>
-                  <F label="帰り">{app.methodBack}</F>
-                  {app.specialTransport.on && (
-                    <F label="寮生特別運行">
-                      該当 · {app.specialTransport.from} 〜{" "}
-                      {app.specialTransport.to}
-                    </F>
-                  )}
-                </Section>
-
-                <Section title="宿泊先">
-                  <F label="分類">{app.lodging.type}</F>
-                  <F label="名称">{app.lodging.name}</F>
-                  <F label="住所">{app.lodging.address}</F>
-                  <F label="行先都市">{app.lodging.city}</F>
-                </Section>
-
-                <Section title="食事">
-                  <F label="朝 / 昼 / 夕" mono>
-                    {app.meals.breakfast} / {app.meals.lunch} /{" "}
-                    {app.meals.dinner}
-                  </F>
-                  <F label="自分で記入可">
-                    {app.meals.selfInput ? "✓ 許可（食数の自由記入可）" : "—"}
-                  </F>
-                </Section>
-
-                <Section title="外泊の理由">
+                {loadingDetail && (
+                  <div style={{ padding: 24, color: T.ink3, fontSize: 13 }}>
+                    詳細を読み込み中…
+                  </div>
+                )}
+                {detailError && (
                   <div
                     style={{
-                      background: T.surfaceAlt,
-                      border: `1px solid ${T.line}`,
+                      padding: "10px 14px",
+                      background: "#fff0f0",
+                      border: "1px solid #f5c6cb",
                       borderRadius: 8,
-                      padding: "10px 12px",
+                      color: T.danger,
                       fontSize: 13,
-                      lineHeight: 1.7,
+                      marginBottom: 16,
                     }}
                   >
-                    {app.reason}
+                    {detailError}
                   </div>
+                )}
+
+                {/* 申請者本人 */}
+                <Section title="申請者本人">
+                  <F label="氏名">{applicantName}</F>
+                  {detail && detail.student && (
+                    <>
+                      <F label="部屋番号" mono>
+                        {detail.student.room_no}
+                      </F>
+                      <F label="担当寮">{detail.student.dorm_unit || "—"}</F>
+                    </>
+                  )}
+                  <F label="本人連絡先" mono>
+                    {(detail && detail.contact_phone) || "—"}
+                  </F>
+                  <F label="同行者">{(detail && detail.companion) || "—"}</F>
                 </Section>
 
-                {app.note && (
-                  <Section title="備考">
+                {/* 日時・移動 */}
+                <Section title="日時・移動手段">
+                  <F label="出発日" mono>
+                    {detail ? String(detail.leave_date) : app.depart}
+                  </F>
+                  <F label="出発時刻" mono>
+                    {detail ? String(detail.leave_time) : "—"}
+                  </F>
+                  <F label="出発方法">{detail ? detail.leave_method : "—"}</F>
+                  <F label="帰舎予定日" mono>
+                    {detail ? String(detail.return_date) : app.return_}
+                  </F>
+                  <F label="帰舎予定時刻" mono>
+                    {detail ? String(detail.return_time) : "—"}
+                  </F>
+                  <F label="帰舎方法">{detail ? detail.return_method : "—"}</F>
+                </Section>
+
+                {/* 帰国便情報（kind=帰国 のみ） */}
+                {detail && detail.kind === "帰国" && (
+                  <Section title="帰国便情報">
+                    <F label="出発空港" mono>
+                      {detail.flight_dep_air}
+                    </F>
+                    <F label="出発日時" mono>
+                      {detail.flight_dep_at
+                        ? new Date(detail.flight_dep_at).toLocaleString("ja-JP")
+                        : "—"}
+                    </F>
+                    <F label="到着空港" mono>
+                      {detail.flight_arr_air}
+                    </F>
+                    <F label="到着日時" mono>
+                      {detail.flight_arr_at
+                        ? new Date(detail.flight_arr_at).toLocaleString("ja-JP")
+                        : "—"}
+                    </F>
+                  </Section>
+                )}
+
+                {/* 宿泊先 */}
+                {detail &&
+                  detail.stay_locations &&
+                  detail.stay_locations.length > 0 && (
+                    <Section title="宿泊先">
+                      {detail.stay_locations.map((loc, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            marginBottom:
+                              i < detail.stay_locations.length - 1 ? 10 : 0,
+                          }}
+                        >
+                          {detail.stay_locations.length > 1 && (
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: T.ink3,
+                                fontWeight: 600,
+                                marginBottom: 4,
+                              }}
+                            >
+                              {i + 1} カ所目
+                            </div>
+                          )}
+                          <F label="名称">{loc.name || "—"}</F>
+                          <F label="住所">{loc.address || "—"}</F>
+                          <F label="電話" mono>
+                            {loc.phone || "—"}
+                          </F>
+                        </div>
+                      ))}
+                    </Section>
+                  )}
+
+                {/* 行先都市 / 理由 */}
+                <Section title="行先・理由">
+                  <F label="行先都市">
+                    {(detail && detail.dest_cities) || app.city || "—"}
+                  </F>
+                  <F label="長期休暇区分">
+                    {detail && detail.is_long_vacation
+                      ? "長期休暇"
+                      : "通常外出"}
+                  </F>
+                  {detail && detail.reason && (
                     <div
                       style={{
+                        marginTop: 6,
                         background: T.surfaceAlt,
                         border: `1px solid ${T.line}`,
                         borderRadius: 8,
@@ -17223,92 +17318,186 @@
                         lineHeight: 1.7,
                       }}
                     >
-                      {app.note}
+                      {detail.reason}
                     </div>
-                  </Section>
-                )}
-
-                <Section title="保護者許可">
-                  <F label="確認">
-                    {app.parentOk.confirmed ? "✓ 確認済" : "未確認"}
-                  </F>
-                  <F label="保護者電話" mono>
-                    {app.parentOk.phone}
-                  </F>
+                  )}
                 </Section>
 
-                <Section title="承認ワークフロー">
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(4, 1fr)",
-                      gap: 8,
-                    }}
-                  >
-                    {app.approvals.map((a, i) => {
-                      const map = {
-                        pending: [T.ink3, T.surfaceAlt, T.line, "—"],
-                        approved: [T.ok, T.okSoft, T.okBorder, "✓ 承認済"],
-                        rejected: [
-                          T.danger,
-                          T.dangerSoft,
-                          T.dangerBorder,
-                          "✗ 却下",
-                        ],
-                        question: [
-                          T.warn,
-                          T.warnSoft,
-                          T.warnBorder,
-                          "? 質問あり",
-                        ],
-                      }[a.state];
-                      return (
+                {/* 食事スキップ */}
+                {detail &&
+                  detail.meals_skip &&
+                  detail.meals_skip.length > 0 && (
+                    <Section title="食事スキップ">
+                      {detail.meals_skip.map((m, i) => (
+                        <F key={i} label={String(m.date || i)} mono>
+                          {[
+                            m.breakfast && "朝",
+                            m.lunch && "昼",
+                            m.dinner && "夕",
+                          ]
+                            .filter(Boolean)
+                            .join(" / ") || "—"}
+                        </F>
+                      ))}
+                      {detail.meal_note && (
+                        <F label="食事備考">{detail.meal_note}</F>
+                      )}
+                    </Section>
+                  )}
+
+                {/* 提出期限（外泊のみ計算できる） */}
+                {kindLabel === "外泊" && <DeadlineSection app={app} />}
+
+                {/* 承認チェーン (approval_chain) */}
+                {detail &&
+                  detail.approval_chain &&
+                  detail.approval_chain.length > 0 && (
+                    <Section title="承認チェーン">
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 8,
+                        }}
+                      >
+                        {detail.approval_chain.map((step, i) => {
+                          const [col, bg, bd, lbl] = chainDecisionLabel(
+                            step.decision,
+                          );
+                          return (
+                            <div
+                              key={i}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                padding: "10px 14px",
+                                background: bg,
+                                border: `1px solid ${bd}`,
+                                borderRadius: 8,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: 22,
+                                  height: 22,
+                                  borderRadius: 11,
+                                  background: col,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontSize: 11,
+                                  color: "#fff",
+                                  fontWeight: 700,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {i + 1}
+                              </span>
+                              <div style={{ flex: 1 }}>
+                                <div
+                                  style={{
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    color: T.ink,
+                                  }}
+                                >
+                                  {step.approver_role}
+                                </div>
+                                {step.decided_at && (
+                                  <div
+                                    style={{
+                                      fontSize: 11,
+                                      color: T.ink3,
+                                      fontFamily: T.mono,
+                                    }}
+                                  >
+                                    {new Date(step.decided_at).toLocaleString(
+                                      "ja-JP",
+                                    )}
+                                  </div>
+                                )}
+                                {step.comment && (
+                                  <div
+                                    style={{
+                                      fontSize: 12,
+                                      color: T.ink2,
+                                      marginTop: 3,
+                                      fontStyle: "italic",
+                                    }}
+                                  >
+                                    「{step.comment}」
+                                  </div>
+                                )}
+                              </div>
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  color: col,
+                                  padding: "2px 8px",
+                                  borderRadius: 4,
+                                  border: `1px solid ${bd}`,
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {lbl}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </Section>
+                  )}
+
+                {/* 審計ログ */}
+                {auditLog.length > 0 && (
+                  <Section title="審計ログ">
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 4,
+                      }}
+                    >
+                      {auditLog.map((entry, i) => (
                         <div
                           key={i}
                           style={{
-                            padding: "10px 12px",
-                            background: map[1],
-                            border: `1px solid ${map[2]}`,
-                            borderRadius: 8,
-                            textAlign: "center",
+                            display: "flex",
+                            gap: 12,
+                            fontSize: 12,
+                            padding: "7px 10px",
+                            background: T.surfaceAlt,
+                            borderRadius: 6,
                           }}
                         >
-                          <div
+                          <span
                             style={{
-                              fontSize: 10,
+                              fontFamily: T.mono,
                               color: T.ink3,
-                              fontWeight: 600,
-                              letterSpacing: 1,
+                              minWidth: 130,
                             }}
                           >
-                            {a.role}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: 13,
-                              fontWeight: 600,
-                              marginTop: 2,
-                            }}
-                          >
-                            {a.name}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: 11,
-                              color: map[0],
-                              fontWeight: 700,
-                              marginTop: 4,
-                            }}
-                          >
-                            {map[3]}
-                          </div>
+                            {entry.happened_at
+                              ? new Date(entry.happened_at).toLocaleString(
+                                  "ja-JP",
+                                )
+                              : "—"}
+                          </span>
+                          <span style={{ color: T.ink2 }}>
+                            {entry.action ||
+                              entry.event ||
+                              JSON.stringify(entry)}
+                          </span>
                         </div>
-                      );
-                    })}
-                  </div>
-                </Section>
+                      ))}
+                    </div>
+                  </Section>
+                )}
               </div>
 
+              {/* フッター — 操作ボタン */}
               <div
                 style={{
                   padding: "14px 28px",
@@ -17398,7 +17587,7 @@
 
             {confirm && (
               <window.ConfirmModal
-                title={`${app.applicant} の外泊申請を${confirm.label}しますか？`}
+                title={`${applicantName} の${kindLabel}申請を${confirm.label}しますか？`}
                 desc="承認・却下・保留いずれの場合も、学生には iOS App に push 通知が送信されます。"
                 danger={confirm.action === "rejected"}
                 confirmLabel={confirm.label}
@@ -17566,18 +17755,23 @@
       function DisciplinePage({ teacher, onNav, authToken }) {
         const T = window.RYO;
         const dorm = teacher.dorm;
-        const roster = dorm === "men" ? window.ROSTER_MEN : window.ROSTER_WOMEN;
 
-        // Task #11 P0: backend getDisciplineRanking fetch — 5-27 backend commit ac0bd90
         const today = new Date();
         const month = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
         const [backendRanking, setBackendRanking] = React.useState(null);
         const [loadingBackend, setLoadingBackend] = React.useState(false);
+        const [fetchError, setFetchError] = React.useState(null);
+        // 手动加扣分 modal 状态
+        const [manualTarget, setManualTarget] = React.useState(null); // {student_id, name}
+        // 最近手动加扣分记录（用于即时撤销）
+        const [lastEvent, setLastEvent] = React.useState(null); // DemeritEventOut
+        const [lastEventMsg, setLastEventMsg] = React.useState(null);
 
-        React.useEffect(() => {
+        const loadRanking = React.useCallback(() => {
           if (!authToken) return;
           let cancelled = false;
           setLoadingBackend(true);
+          setFetchError(null);
           window.tomoshibiApi
             .getDisciplineRanking(authToken, month)
             .then((r) => {
@@ -17586,10 +17780,8 @@
             })
             .catch((e) => {
               if (cancelled) return;
-              console.warn(
-                "[DisciplinePage] getDisciplineRanking 失败 → mock fallback",
-                e,
-              );
+              console.warn("[DisciplinePage] getDisciplineRanking 失败", e);
+              setFetchError(e.message || "データ取得に失敗しました");
               setBackendRanking(null);
             })
             .finally(() => {
@@ -17600,33 +17792,67 @@
           };
         }, [authToken, month]);
 
-        // 数据源: backend 优先 / mock fallback
-        let data;
+        React.useEffect(() => {
+          return loadRanking();
+        }, [loadRanking]);
+
+        // 手动加扣分
+        const handleManualSubmit = (studentId, points, reason) => {
+          window.tomoshibiApi
+            .createManualDemerit(
+              { student_id: studentId, points, reason },
+              authToken,
+            )
+            .then((ev) => {
+              setLastEvent(ev);
+              setLastEventMsg(
+                `${manualTarget.name} に ${points} 点を追加しました`,
+              );
+              setManualTarget(null);
+              loadRanking();
+            })
+            .catch((e) => {
+              alert("手動加算失敗: " + (e.message || JSON.stringify(e)));
+            });
+        };
+
+        // 撤销最近一条手动扣分
+        const handleRevoke = (ev) => {
+          const reason = prompt("撤销理由を入力してください（必須）");
+          if (!reason || !reason.trim()) return;
+          window.tomoshibiApi
+            .revokeDemerit(ev.id, { revoke_reason: reason.trim() }, authToken)
+            .then(() => {
+              setLastEvent(null);
+              setLastEventMsg(null);
+              loadRanking();
+            })
+            .catch((e) => {
+              alert("撤消失敗: " + (e.message || JSON.stringify(e)));
+            });
+        };
+
+        // データ整形
+        let data = [];
         if (backendRanking && backendRanking.entries) {
           data = backendRanking.entries.map((e) => ({
             room: e.room_no,
             id: e.student_no,
+            student_id: e.student_id,
             name: e.name,
-            late: 0, // backend ranking 只返聚合 total_points, late/absent 拆分未来扩展
+            late: 0,
             absent: 0,
             total: e.total_points,
-            _backend: true,
+            is_cleaning_threshold: e.is_cleaning_threshold,
+            is_curfew_threshold: e.is_curfew_threshold,
           }));
-        } else {
-          // Mock demerit data per student (backend 未到时 fallback — DEMO 模式可见)
-          data = roster
-            .map(([room, id, name], i) => {
-              const late = [5, 1, 2, 0, 3, 0, 1, 6, 0, 2, 1, 0][i % 12];
-              const absent = [2, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0][i % 12];
-              const total = late * 0.5 + absent * 1.0;
-              return { room, id, name, late, absent, total };
-            })
-            .sort((a, b) => b.total - a.total);
         }
 
-        const cleaningList = data.filter((d) => d.total >= 4);
-        const banList = data.filter((d) => d.total >= 8);
-        const warnList = data.filter((d) => d.total >= 3 && d.total < 4);
+        const cleaningList = data.filter((d) => d.is_cleaning_threshold);
+        const banList = data.filter((d) => d.is_curfew_threshold);
+        const warnList = data.filter(
+          (d) => d.total >= 3 && !d.is_cleaning_threshold,
+        );
 
         return (
           <div style={{ padding: "28px 32px 48px" }}>
@@ -17651,8 +17877,93 @@
               規律・処分
             </h1>
             <div style={{ color: T.ink2, fontSize: 13, marginBottom: 22 }}>
-              {window.dormLabel(dorm)} · 2026 年 4 月
+              {window.dormLabel(dorm)} · {month.replace("-", " 年 ")} 月
             </div>
+
+            {/* エラーバナー */}
+            {fetchError && (
+              <div
+                style={{
+                  padding: "10px 16px",
+                  background: "#fff0f0",
+                  border: "1px solid #f5c6cb",
+                  borderRadius: 8,
+                  color: T.danger,
+                  fontSize: 13,
+                  marginBottom: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                <span style={{ flex: 1 }}>{fetchError}</span>
+                <button
+                  onClick={loadRanking}
+                  style={{
+                    padding: "4px 12px",
+                    background: "transparent",
+                    color: T.danger,
+                    border: "1px solid #f5c6cb",
+                    borderRadius: 6,
+                    fontFamily: "inherit",
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  再試行
+                </button>
+              </div>
+            )}
+
+            {/* 手動加算後 即時撤销 バナー */}
+            {lastEventMsg && lastEvent && (
+              <div
+                style={{
+                  padding: "10px 16px",
+                  background: "#f0fff4",
+                  border: "1px solid #b7ebc8",
+                  borderRadius: 8,
+                  color: T.ok,
+                  fontSize: 13,
+                  marginBottom: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                <span style={{ flex: 1 }}>{lastEventMsg}</span>
+                <button
+                  onClick={() => handleRevoke(lastEvent)}
+                  style={{
+                    padding: "4px 12px",
+                    background: "transparent",
+                    color: T.danger,
+                    border: `1px solid ${T.dangerBorder}`,
+                    borderRadius: 6,
+                    fontFamily: "inherit",
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  撤消
+                </button>
+                <button
+                  onClick={() => {
+                    setLastEvent(null);
+                    setLastEventMsg(null);
+                  }}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    fontSize: 16,
+                    color: T.ink3,
+                    cursor: "pointer",
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            )}
 
             {/* Rules card */}
             <div
@@ -17677,20 +17988,6 @@
                   現在の減点ルール（運用前、先生と調整可）
                 </div>
                 <div style={{ flex: 1 }} />
-                <button
-                  style={{
-                    padding: "5px 12px",
-                    background: "transparent",
-                    color: T.ink3,
-                    border: `1px solid ${T.lineStrong}`,
-                    borderRadius: 6,
-                    fontFamily: "inherit",
-                    fontSize: 11,
-                    cursor: "pointer",
-                  }}
-                >
-                  値を変更 (管理者のみ)
-                </button>
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <RulePill label="遅刻" value="0.5 点" color={T.late} />
@@ -17709,128 +18006,156 @@
             </div>
 
             <SectionH n="1" title="今月全員ランキング" />
-            <div
-              style={{
-                background: T.surface,
-                border: `1px solid ${T.line}`,
-                borderRadius: 12,
-                overflow: "hidden",
-                boxShadow: T.shadow1,
-                marginBottom: 24,
-              }}
-            >
+            {loadingBackend ? (
+              <div style={{ padding: 24, color: T.ink3, fontSize: 13 }}>
+                読み込み中…
+              </div>
+            ) : fetchError && !backendRanking ? (
+              <div style={{ padding: 24, color: T.ink3, fontSize: 13 }}>
+                まだデータがありません
+              </div>
+            ) : (
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "60px 1fr 90px 90px 90px 90px 120px 130px",
-                  background: T.surfaceAlt,
-                  fontSize: 11,
-                  color: T.ink2,
-                  fontWeight: 600,
-                  letterSpacing: 1,
-                  borderBottom: `1px solid ${T.line}`,
+                  background: T.surface,
+                  border: `1px solid ${T.line}`,
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  boxShadow: T.shadow1,
+                  marginBottom: 24,
                 }}
               >
-                {[
-                  "順位",
-                  "学生",
-                  "部屋",
-                  "減点合計",
-                  "遅刻回数",
-                  "欠席回数",
-                  "清掃まで残り",
-                  "外出禁止まで残り",
-                ].map((h) => (
-                  <div key={h} style={{ padding: "10px 12px" }}>
-                    {h}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "50px 1fr 90px 90px 120px 130px 130px",
+                    background: T.surfaceAlt,
+                    fontSize: 11,
+                    color: T.ink2,
+                    fontWeight: 600,
+                    letterSpacing: 1,
+                    borderBottom: `1px solid ${T.line}`,
+                  }}
+                >
+                  {[
+                    "順位",
+                    "学生",
+                    "部屋",
+                    "減点合計",
+                    "清掃まで残り",
+                    "外出禁止まで残り",
+                    "操作",
+                  ].map((h) => (
+                    <div key={h} style={{ padding: "10px 12px" }}>
+                      {h}
+                    </div>
+                  ))}
+                </div>
+                {data.length === 0 && (
+                  <div
+                    style={{
+                      padding: "16px 16px",
+                      color: T.ink3,
+                      fontSize: 13,
+                    }}
+                  >
+                    まだデータがありません
+                  </div>
+                )}
+                {data.map((d, i) => (
+                  <div
+                    key={d.id}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns:
+                        "50px 1fr 90px 90px 120px 130px 130px",
+                      borderTop: i > 0 ? `1px solid ${T.line}` : "none",
+                      fontSize: 12.5,
+                      alignItems: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: "9px 12px",
+                        fontFamily: T.mono,
+                        color: i < 3 ? T.danger : T.ink3,
+                        fontWeight: 700,
+                      }}
+                    >
+                      #{i + 1}
+                    </div>
+                    <div style={{ padding: "9px 12px", fontWeight: 600 }}>
+                      {d.name}
+                    </div>
+                    <div
+                      style={{
+                        padding: "9px 12px",
+                        fontFamily: T.mono,
+                        color: T.ink3,
+                      }}
+                    >
+                      {d.room}
+                    </div>
+                    <div
+                      style={{
+                        padding: "9px 12px",
+                        fontFamily: T.mono,
+                        fontWeight: 700,
+                        color:
+                          d.total >= 4
+                            ? T.danger
+                            : d.total >= 3
+                              ? T.warn
+                              : T.ink,
+                      }}
+                    >
+                      {d.total.toFixed(1)}
+                    </div>
+                    <div
+                      style={{
+                        padding: "9px 12px",
+                        fontFamily: T.mono,
+                        color: T.ink3,
+                      }}
+                    >
+                      {Math.max(0, 4 - d.total).toFixed(1)} 点
+                    </div>
+                    <div
+                      style={{
+                        padding: "9px 12px",
+                        fontFamily: T.mono,
+                        color: T.ink3,
+                      }}
+                    >
+                      {Math.max(0, 8 - d.total).toFixed(1)} 点
+                    </div>
+                    <div style={{ padding: "6px 12px" }}>
+                      <button
+                        onClick={() =>
+                          setManualTarget({
+                            student_id: d.student_id,
+                            name: d.name,
+                          })
+                        }
+                        style={{
+                          padding: "4px 10px",
+                          background: "transparent",
+                          color: T.cobalt,
+                          border: `1px solid ${T.cobalt}`,
+                          borderRadius: 5,
+                          fontFamily: "inherit",
+                          fontSize: 11,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                        }}
+                      >
+                        手動加算
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
-              {data.map((d, i) => (
-                <div
-                  key={d.id}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "60px 1fr 90px 90px 90px 90px 120px 130px",
-                    borderTop: i > 0 ? `1px solid ${T.line}` : "none",
-                    fontSize: 12.5,
-                    alignItems: "center",
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: "9px 12px",
-                      fontFamily: T.mono,
-                      color: i < 3 ? T.danger : T.ink3,
-                      fontWeight: 700,
-                    }}
-                  >
-                    #{i + 1}
-                  </div>
-                  <div style={{ padding: "9px 12px", fontWeight: 600 }}>
-                    {d.name}
-                  </div>
-                  <div
-                    style={{
-                      padding: "9px 12px",
-                      fontFamily: T.mono,
-                      color: T.ink3,
-                    }}
-                  >
-                    {d.room}
-                  </div>
-                  <div
-                    style={{
-                      padding: "9px 12px",
-                      fontFamily: T.mono,
-                      fontWeight: 700,
-                      color:
-                        d.total >= 4 ? T.danger : d.total >= 3 ? T.warn : T.ink,
-                    }}
-                  >
-                    {d.total.toFixed(1)}
-                  </div>
-                  <div
-                    style={{
-                      padding: "9px 12px",
-                      fontFamily: T.mono,
-                      color: T.late,
-                    }}
-                  >
-                    {d.late}
-                  </div>
-                  <div
-                    style={{
-                      padding: "9px 12px",
-                      fontFamily: T.mono,
-                      color: T.danger,
-                    }}
-                  >
-                    {d.absent}
-                  </div>
-                  <div
-                    style={{
-                      padding: "9px 12px",
-                      fontFamily: T.mono,
-                      color: T.ink3,
-                    }}
-                  >
-                    {Math.max(0, 4 - d.total).toFixed(1)} 点
-                  </div>
-                  <div
-                    style={{
-                      padding: "9px 12px",
-                      fontFamily: T.mono,
-                      color: T.ink3,
-                    }}
-                  >
-                    {Math.max(0, 8 - d.total).toFixed(1)} 点
-                  </div>
-                </div>
-              ))}
-            </div>
+            )}
 
             <SectionH
               n="2"
@@ -17909,32 +18234,69 @@
                   fontSize: 12,
                   color: T.ink3,
                   lineHeight: 1.7,
-                  marginBottom: 10,
                 }}
               >
-                将来、後端サーバーに常駐スクリプトを設置し、特定学生の遅刻・欠席が一定数に達した時点で自動的に寮監へアラート短評を生成する予定です。現
-                demo 版では手動確認のみ。
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {data.slice(0, 2).map((d, i) => (
-                  <div
-                    key={d.id}
-                    style={{
-                      padding: "8px 12px",
-                      background: T.surfaceAlt,
-                      border: `1px solid ${T.line}`,
-                      borderRadius: 6,
-                      fontSize: 12,
-                      color: T.ink3,
-                    }}
-                  >
-                    {d.name} · 今月遅刻 {d.late} 回 ·{" "}
-                    {i === 0 ? "要面談" : "継続観察"}
-                  </div>
-                ))}
+                将来、後端サーバーに常駐スクリプトを設置し、特定学生の遅刻・欠席が一定数に達した時点で自動的に寮監へアラート短評を生成する予定です。現在は手動確認のみ。
               </div>
             </div>
+
+            {/* 手動加算 modal */}
+            {manualTarget && (
+              <ManualDemeritModal
+                T={T}
+                target={manualTarget}
+                onClose={() => setManualTarget(null)}
+                onSubmit={handleManualSubmit}
+              />
+            )}
           </div>
+        );
+      }
+
+      function ManualDemeritModal({ T, target, onClose, onSubmit }) {
+        const [points, setPoints] = React.useState("1");
+        const [reason, setReason] = React.useState("");
+        const [submitting, setSubmitting] = React.useState(false);
+        const disabled =
+          !reason.trim() || parseFloat(points) <= 0 || submitting;
+        const handleSubmit = () => {
+          if (disabled) return;
+          setSubmitting(true);
+          Promise.resolve(
+            onSubmit(target.student_id, parseFloat(points), reason.trim()),
+          ).finally(() => setSubmitting(false));
+        };
+        return (
+          <window.ModalShell
+            T={T}
+            title={`手動加算 — ${target.name}`}
+            onClose={onClose}
+          >
+            <window.ModalField T={T} label="減点数">
+              <input
+                type="number"
+                min="0.5"
+                step="0.5"
+                value={points}
+                onChange={(e) => setPoints(e.target.value)}
+                style={window.modalInputStyle(T)}
+              />
+            </window.ModalField>
+            <window.ModalField T={T} label="理由（必須）">
+              <input
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="例: 消灯後廊下で騒いでいた"
+                style={window.modalInputStyle(T)}
+              />
+            </window.ModalField>
+            <window.ModalFooter
+              T={T}
+              onClose={onClose}
+              onSubmit={handleSubmit}
+              disabled={disabled}
+            />
+          </window.ModalShell>
         );
       }
 
@@ -18080,120 +18442,109 @@
       function FrontDeskPage({ teacher, authToken }) {
         const T = window.RYO;
         const [tab, setTab] = React.useState("delivery");
-        // 5-27 backend commit 1526fee — listFrontDesk 接 backend
-        const [backendItems, setBackendItems] = React.useState(null);
-        React.useEffect(() => {
+        const [items, setItems] = React.useState([]);
+        const [loading, setLoading] = React.useState(false);
+        const [fetchError, setFetchError] = React.useState(null);
+        const [filter, setFilter] = React.useState("all");
+        const [composing, setComposing] = React.useState(false);
+
+        const loadItems = React.useCallback(() => {
           if (!authToken) return;
           let cancelled = false;
+          setLoading(true);
+          setFetchError(null);
           window.tomoshibiApi
             .listFrontDesk(authToken)
-            .then((items) => {
-              if (!cancelled) setBackendItems(items);
+            .then((data) => {
+              if (!cancelled) setItems(Array.isArray(data) ? data : []);
             })
             .catch((e) => {
               if (cancelled) return;
-              console.warn(
-                "[FrontDeskPage] listFrontDesk 失败 → mock fallback",
-                e,
-              );
-              setBackendItems(null);
+              console.warn("[FrontDeskPage] listFrontDesk 失败", e);
+              setFetchError(e.message || "データ取得に失敗しました");
+            })
+            .finally(() => {
+              if (!cancelled) setLoading(false);
             });
           return () => {
             cancelled = true;
           };
         }, [authToken]);
-        const [deliveries, setDeliveries] = React.useState(
-          window.FRONT_DELIVERIES,
-        );
-        const [lostItems, setLostItems] = React.useState(
-          window.FRONT_LOST_ITEMS,
-        );
-        const [filter, setFilter] = React.useState("all");
-        const [composing, setComposing] = React.useState(false);
 
-        const markPicked = (id) =>
-          setDeliveries(
-            deliveries.map((d) =>
-              d.id === id ? { ...d, picked: true, pickedAt: formatNow() } : d,
-            ),
-          );
-        const deleteDelivery = (id) => {
-          if (confirm("この宅配通知を削除しますか？"))
-            setDeliveries(deliveries.filter((d) => d.id !== id));
-        };
-        const addDelivery = (data) => {
-          setDeliveries([
-            {
-              ...data,
-              id: "D" + Date.now(),
-              date: todayShort(),
-              time: nowHHMM(),
-              picked: false,
-            },
-            ...deliveries,
-          ]);
-          setComposing(false);
+        React.useEffect(() => {
+          return loadItems();
+        }, [loadItems]);
+
+        // backend status → 表示用 boolean
+        // delivery: pending/notified = 未受取、picked_up = 受取済
+        // lost_and_found: pending/notified = open、picked_up = returned
+        const deliveries = items.filter((i) => i.kind === "delivery");
+        const lostItems = items.filter((i) => i.kind === "lost_and_found");
+
+        const handleNotify = (id) => {
+          window.tomoshibiApi
+            .notifyFrontDesk(id, authToken)
+            .then(() => loadItems())
+            .catch((e) =>
+              alert("通知処理失敗: " + (e.message || JSON.stringify(e))),
+            );
         };
 
-        const returnLost = (id) =>
-          setLostItems(
-            lostItems.map((l) =>
-              l.id === id
-                ? { ...l, status: "returned", returnedAt: formatNow() }
-                : l,
-            ),
-          );
-        const archiveLost = (id) =>
-          setLostItems(
-            lostItems.map((l) =>
-              l.id === id ? { ...l, status: "archived" } : l,
-            ),
-          );
-        const addLost = (data) => {
-          setLostItems([
-            {
-              ...data,
-              id: "L" + Date.now(),
-              date: todayShort(),
-              status: "open",
-            },
-            ...lostItems,
-          ]);
-          setComposing(false);
+        const handlePickup = (id) => {
+          window.tomoshibiApi
+            .pickupFrontDesk(id, authToken)
+            .then(() => loadItems())
+            .catch((e) =>
+              alert("受取処理失敗: " + (e.message || JSON.stringify(e))),
+            );
+        };
+
+        const addItem = (body) => {
+          window.tomoshibiApi
+            .createFrontDesk(body, authToken)
+            .then(() => {
+              setComposing(false);
+              loadItems();
+            })
+            .catch((e) =>
+              alert("登録失敗: " + (e.message || JSON.stringify(e))),
+            );
         };
 
         const delFiltered = deliveries.filter((d) =>
           filter === "all"
             ? true
             : filter === "unpicked"
-              ? !d.picked
-              : d.picked,
+              ? d.status !== "picked_up"
+              : d.status === "picked_up",
         );
         const lostFiltered = lostItems.filter((l) =>
           filter === "all"
             ? true
             : filter === "open"
-              ? l.status === "open"
-              : filter === "returned"
-                ? l.status === "returned"
-                : l.status === "archived",
+              ? l.status !== "picked_up"
+              : l.status === "picked_up",
         );
 
+        const todayIso = new Date().toISOString().slice(0, 10);
         const stats =
           tab === "delivery"
             ? {
                 total: deliveries.length,
-                unpicked: deliveries.filter((d) => !d.picked).length,
-                today: deliveries.filter((d) => d.date === todayShort()).length,
-                picked: deliveries.filter((d) => d.picked).length,
+                unpicked: deliveries.filter((d) => d.status !== "picked_up")
+                  .length,
+                today: deliveries.filter((d) =>
+                  (d.created_at || "").startsWith(todayIso),
+                ).length,
+                picked: deliveries.filter((d) => d.status === "picked_up")
+                  .length,
               }
             : {
                 total: lostItems.length,
-                open: lostItems.filter((l) => l.status === "open").length,
-                returned: lostItems.filter((l) => l.status === "returned")
+                open: lostItems.filter((l) => l.status !== "picked_up").length,
+                returned: lostItems.filter((l) => l.status === "picked_up")
                   .length,
-                archived: lostItems.filter((l) => l.status === "archived")
-                  .length,
+                archived: 0,
               };
 
         return (
@@ -18245,6 +18596,41 @@
               寮監前台受付の代行記録 —
               宅配便の到着通知と、館内で見つかった忘れ物の管理。
             </div>
+
+            {/* エラーバナー */}
+            {fetchError && (
+              <div
+                style={{
+                  padding: "10px 16px",
+                  background: "#fff0f0",
+                  border: "1px solid #f5c6cb",
+                  borderRadius: 8,
+                  color: T.danger,
+                  fontSize: 13,
+                  marginBottom: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                <span style={{ flex: 1 }}>{fetchError}</span>
+                <button
+                  onClick={loadItems}
+                  style={{
+                    padding: "4px 12px",
+                    background: "transparent",
+                    color: T.danger,
+                    border: "1px solid #f5c6cb",
+                    borderRadius: 6,
+                    fontFamily: "inherit",
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  再試行
+                </button>
+              </div>
+            )}
 
             {/* stats */}
             <div
@@ -18390,7 +18776,6 @@
                     ["all", "全て"],
                     ["open", "未返却"],
                     ["returned", "返却済"],
-                    ["archived", "保管庫"],
                   ].map(([k, l]) => (
                     <button
                       key={k}
@@ -18402,47 +18787,60 @@
                   ))}
             </div>
 
-            {/* list */}
-            {tab === "delivery" ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {delFiltered.length === 0 && <EmptyRow T={T} />}
-                {delFiltered.map((d) => (
-                  <DeliveryRow
-                    key={d.id}
-                    d={d}
-                    T={T}
-                    onPick={markPicked}
-                    onDelete={deleteDelivery}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {lostFiltered.length === 0 && <EmptyRow T={T} />}
-                {lostFiltered.map((l) => (
-                  <LostItemRow
-                    key={l.id}
-                    l={l}
-                    T={T}
-                    onReturn={returnLost}
-                    onArchive={archiveLost}
-                  />
-                ))}
+            {/* loading */}
+            {loading && (
+              <div style={{ padding: 24, color: T.ink3, fontSize: 13 }}>
+                読み込み中…
               </div>
             )}
+
+            {/* list */}
+            {!loading &&
+              (tab === "delivery" ? (
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 8 }}
+                >
+                  {delFiltered.length === 0 && <EmptyRow T={T} />}
+                  {delFiltered.map((d) => (
+                    <DeliveryRow
+                      key={d.id}
+                      d={d}
+                      T={T}
+                      onNotify={handleNotify}
+                      onPickup={handlePickup}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 8 }}
+                >
+                  {lostFiltered.length === 0 && <EmptyRow T={T} />}
+                  {lostFiltered.map((l) => (
+                    <LostItemRow
+                      key={l.id}
+                      l={l}
+                      T={T}
+                      onPickup={handlePickup}
+                    />
+                  ))}
+                </div>
+              ))}
 
             {composing && tab === "delivery" && (
               <DeliveryComposeModal
                 T={T}
                 onClose={() => setComposing(false)}
-                onSubmit={addDelivery}
+                onSubmit={(body) => addItem({ ...body, kind: "delivery" })}
               />
             )}
             {composing && tab === "lost" && (
               <LostItemComposeModal
                 T={T}
                 onClose={() => setComposing(false)}
-                onSubmit={addLost}
+                onSubmit={(body) =>
+                  addItem({ ...body, kind: "lost_and_found" })
+                }
               />
             )}
           </div>
@@ -18488,7 +18886,17 @@
         );
       }
 
-      function DeliveryRow({ d, T, onPick, onDelete }) {
+      // DeliveryRow — backend FrontDeskItemOut 対応版
+      // d.status: "pending" | "notified" | "picked_up"
+      // d.description: 説明文（配送業者・件数等を文字列で入れる）
+      // d.location: 部屋番号等
+      // d.created_at: ISO 文字列
+      function DeliveryRow({ d, T, onNotify, onPickup }) {
+        const isPicked = d.status === "picked_up";
+        const isNotified = d.status === "notified";
+        const dateStr = d.created_at
+          ? d.created_at.slice(5, 16).replace("T", " ")
+          : "—";
         return (
           <div
             style={{
@@ -18497,7 +18905,7 @@
               gap: 14,
               padding: "12px 16px",
               background: T.surface,
-              border: `1px solid ${d.picked ? T.line : T.warnBorder}`,
+              border: `1px solid ${isPicked ? T.line : T.warnBorder}`,
               borderRadius: 10,
             }}
           >
@@ -18507,16 +18915,20 @@
                 fontWeight: 700,
                 padding: "3px 8px",
                 borderRadius: 4,
-                background: d.picked ? T.okSoft : T.warnSoft,
-                color: d.picked ? T.ok : T.warn,
-                border: `1px solid ${d.picked ? T.okBorder : T.warnBorder}`,
+                background: isPicked
+                  ? T.okSoft
+                  : isNotified
+                    ? "#fffbe6"
+                    : T.warnSoft,
+                color: isPicked ? T.ok : isNotified ? "#b58c00" : T.warn,
+                border: `1px solid ${isPicked ? T.okBorder : T.warnBorder}`,
                 letterSpacing: 0.5,
                 whiteSpace: "nowrap",
                 minWidth: 68,
                 textAlign: "center",
               }}
             >
-              {d.picked ? "受取済" : "未受取"}
+              {isPicked ? "受取済" : isNotified ? "通知済" : "未受取"}
             </span>
             <span
               style={{
@@ -18526,10 +18938,7 @@
                 minWidth: 95,
               }}
             >
-              {d.date} {d.time}
-            </span>
-            <span style={{ fontSize: 13, fontWeight: 600, minWidth: 120 }}>
-              {d.student}
+              {dateStr}
             </span>
             <span
               style={{
@@ -18539,38 +18948,42 @@
                 minWidth: 50,
               }}
             >
-              {d.room}
+              {d.location || "—"}
             </span>
             <span style={{ fontSize: 12, color: T.ink2, flex: 1 }}>
-              {d.carrier} · {d.count} 件{d.memo && ` · ${d.memo}`}
+              {d.description}
             </span>
-            {d.picked && d.pickedAt && (
+            {isPicked && d.picked_up_at && (
               <span style={{ fontSize: 11, color: T.ink3, fontFamily: T.mono }}>
-                {d.pickedAt} 受取
+                {d.picked_up_at.slice(5, 16).replace("T", " ")} 受取
               </span>
             )}
-            {!d.picked && (
-              <button onClick={() => onPick(d.id)} style={actionBtn(T, "ok")}>
+            {!isPicked && !isNotified && (
+              <button
+                onClick={() => onNotify(d.id)}
+                style={actionBtn(T, "ghost")}
+              >
+                通知済に
+              </button>
+            )}
+            {!isPicked && (
+              <button onClick={() => onPickup(d.id)} style={actionBtn(T, "ok")}>
                 受取済に
               </button>
             )}
-            <button
-              onClick={() => onDelete(d.id)}
-              style={actionBtn(T, "danger")}
-            >
-              削除
-            </button>
           </div>
         );
       }
 
-      function LostItemRow({ l, T, onReturn, onArchive }) {
-        const statusMap = {
-          open: [T.warn, T.warnSoft, T.warnBorder, "未返却"],
-          returned: [T.ok, T.okSoft, T.okBorder, "返却済"],
-          archived: [T.ink3, T.surfaceAlt, T.line, "保管庫"],
-        };
-        const [col, bg, bd, lbl] = statusMap[l.status];
+      // LostItemRow — backend FrontDeskItemOut 対応版
+      // status: "pending"|"notified" → 未返却 / "picked_up" → 返却済
+      function LostItemRow({ l, T, onPickup }) {
+        const isReturned = l.status === "picked_up";
+        const col = isReturned ? T.ok : T.warn;
+        const bg = isReturned ? T.okSoft : T.warnSoft;
+        const bd = isReturned ? T.okBorder : T.warnBorder;
+        const lbl = isReturned ? "返却済" : "未返却";
+        const dateStr = l.created_at ? l.created_at.slice(5, 10) : "—";
         return (
           <div
             style={{
@@ -18608,116 +19021,52 @@
                 minWidth: 55,
               }}
             >
-              {l.date}
+              {dateStr}
             </span>
-            <span style={{ fontSize: 13, fontWeight: 600, minWidth: 150 }}>
-              {l.title}
-            </span>
-            <span style={{ fontSize: 12, color: T.ink3, minWidth: 100 }}>
-              発見場所: {l.foundAt}
-            </span>
-            <span style={{ fontSize: 12, color: T.ink2, flex: 1 }}>
-              {l.memo}
-            </span>
-            {l.status === "returned" && l.returnedAt && (
-              <span style={{ fontSize: 11, color: T.ink3, fontFamily: T.mono }}>
-                {l.returnedAt} 返却
+            {l.location && (
+              <span style={{ fontSize: 12, color: T.ink3, minWidth: 100 }}>
+                発見場所: {l.location}
               </span>
             )}
-            {l.status === "open" && (
-              <>
-                <button
-                  onClick={() => onReturn(l.id)}
-                  style={actionBtn(T, "ok")}
-                >
-                  返却済に
-                </button>
-                <button
-                  onClick={() => onArchive(l.id)}
-                  style={actionBtn(T, "ghost")}
-                >
-                  保管庫へ
-                </button>
-              </>
+            <span style={{ fontSize: 12, color: T.ink2, flex: 1 }}>
+              {l.description}
+            </span>
+            {isReturned && l.picked_up_at && (
+              <span style={{ fontSize: 11, color: T.ink3, fontFamily: T.mono }}>
+                {l.picked_up_at.slice(5, 16).replace("T", " ")} 返却
+              </span>
+            )}
+            {!isReturned && (
+              <button onClick={() => onPickup(l.id)} style={actionBtn(T, "ok")}>
+                返却済に
+              </button>
             )}
           </div>
         );
       }
 
+      // DeliveryComposeModal — backend FrontDeskItemCreateIn 対応版
+      // 送信: { kind:"delivery", description, location }
+      // student_id は任意（v1 では名前文字列を description に含める運用）
       function DeliveryComposeModal({ T, onClose, onSubmit }) {
-        const [student, setStudent] = React.useState("");
-        const [room, setRoom] = React.useState("");
-        const [carrier, setCarrier] = React.useState("ヤマト運輸");
-        const [count, setCount] = React.useState("1");
-        const [memo, setMemo] = React.useState("");
-        const studentOptions = window.ROSTER_ALL || [];
-
-        const handleStudentChange = (name) => {
-          setStudent(name);
-          const match = studentOptions.find(([, , n]) => n === name);
-          if (match) setRoom(match[0]);
-        };
-
+        const [description, setDescription] = React.useState("");
+        const [location, setLocation] = React.useState("");
+        const disabled = !description.trim();
         return (
           <ModalShell T={T} title="宅配通知を追加" onClose={onClose}>
-            <Field T={T} label="受取人">
+            <Field T={T} label="内容（受取人・配送業者・件数等）">
               <input
-                list="roster-list"
-                value={student}
-                onChange={(e) => handleStudentChange(e.target.value)}
-                placeholder="学生名を入力または選択"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="例: 田中 隼人 M101 ヤマト運輸 1件"
                 style={inputStyle(T)}
               />
-              <datalist id="roster-list">
-                {studentOptions.map(([r, id, n]) => (
-                  <option key={id} value={n}>
-                    {r}号室
-                  </option>
-                ))}
-              </datalist>
             </Field>
-            <Field T={T} label="部屋番号">
+            <Field T={T} label="部屋番号・場所">
               <input
-                value={room}
-                onChange={(e) => setRoom(e.target.value)}
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
                 placeholder="M101 / W113 等"
-                style={inputStyle(T)}
-              />
-            </Field>
-            <Field T={T} label="配送業者">
-              <select
-                value={carrier}
-                onChange={(e) => setCarrier(e.target.value)}
-                style={inputStyle(T)}
-              >
-                {[
-                  "ヤマト運輸",
-                  "佐川急便",
-                  "日本郵便",
-                  "Amazon",
-                  "福山通運",
-                  "その他",
-                ].map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field T={T} label="件数">
-              <input
-                type="number"
-                min="1"
-                value={count}
-                onChange={(e) => setCount(e.target.value)}
-                style={inputStyle(T)}
-              />
-            </Field>
-            <Field T={T} label="備考">
-              <input
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
-                placeholder="例：冷蔵必要 / 大型"
                 style={inputStyle(T)}
               />
             </Field>
@@ -18725,68 +19074,53 @@
               T={T}
               onClose={onClose}
               onSubmit={() =>
-                student.trim() &&
+                !disabled &&
                 onSubmit({
-                  student: student.trim(),
-                  room: room.trim() || "—",
-                  carrier,
-                  count: parseInt(count, 10) || 1,
-                  memo: memo.trim(),
+                  description: description.trim(),
+                  location: location.trim() || null,
                 })
               }
-              disabled={!student.trim()}
+              disabled={disabled}
             />
           </ModalShell>
         );
       }
 
+      // LostItemComposeModal — backend FrontDeskItemCreateIn 対応版
+      // 送信: { kind:"lost_and_found", description, location }
       function LostItemComposeModal({ T, onClose, onSubmit }) {
-        const [title, setTitle] = React.useState("");
-        const [foundAt, setFoundAt] = React.useState("");
-        const [memo, setMemo] = React.useState("");
+        const [description, setDescription] = React.useState("");
+        const [location, setLocation] = React.useState("");
+        const disabled = !description.trim();
         return (
           <ModalShell T={T} title="忘れ物を登録" onClose={onClose}>
-            <Field T={T} label="物品名">
+            <Field T={T} label="物品名・特徴">
               <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="例：黒の折り畳み傘"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="例：ピンクの水筒（サーモス）"
                 style={inputStyle(T)}
               />
             </Field>
             <Field T={T} label="発見場所">
               <input
-                value={foundAt}
-                onChange={(e) => setFoundAt(e.target.value)}
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
                 placeholder="玄関 / 食堂 / 風呂場 / ロビー 等"
                 style={inputStyle(T)}
-              />
-            </Field>
-            <Field T={T} label="特徴・備考">
-              <textarea
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
-                rows={3}
-                placeholder="色・サイズ・拾った人等"
-                style={{
-                  ...inputStyle(T),
-                  resize: "vertical",
-                  lineHeight: 1.5,
-                }}
               />
             </Field>
             <ModalFooter
               T={T}
               onClose={onClose}
               onSubmit={() =>
-                title.trim() &&
+                !disabled &&
                 onSubmit({
-                  title: title.trim(),
-                  foundAt: foundAt.trim() || "—",
-                  memo: memo.trim(),
+                  description: description.trim(),
+                  location: location.trim() || null,
                 })
               }
-              disabled={!title.trim()}
+              disabled={disabled}
             />
           </ModalShell>
         );
@@ -19957,225 +20291,599 @@
         );
       }
 
-      // Skeleton pages
+      // 清掃確認ページ — backend CleaningAssignmentOut を渲染
+      // CleaningAssignmentCreateIn: { student_id, area, scheduled_date }
+      // CleaningInspectIn: { result:"passed"|"failed", failure_reason? }
       function CleaningPage({ authToken }) {
         const T = window.RYO;
-        // 5-27 backend commit 1526fee — listCleaning 接 backend
-        const [backendItems, setBackendItems] = React.useState(null);
-        React.useEffect(() => {
+        const today = new Date();
+        const isoDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+        const [items, setItems] = React.useState([]);
+        const [loading, setLoading] = React.useState(false);
+        const [fetchError, setFetchError] = React.useState(null);
+        const [composing, setComposing] = React.useState(false);
+        // 却下 modal: { id, area }
+        const [rejectTarget, setRejectTarget] = React.useState(null);
+
+        const loadItems = React.useCallback(() => {
           if (!authToken) return;
-          const today = new Date();
-          const isoDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
           let cancelled = false;
+          setLoading(true);
+          setFetchError(null);
           window.tomoshibiApi
             .listCleaning(authToken, isoDate)
-            .then((items) => {
-              if (!cancelled) setBackendItems(items);
+            .then((data) => {
+              if (!cancelled) setItems(Array.isArray(data) ? data : []);
             })
             .catch((e) => {
               if (cancelled) return;
-              console.warn(
-                "[CleaningPage] listCleaning 失败 → mock fallback",
-                e,
-              );
-              setBackendItems(null);
+              console.warn("[CleaningPage] listCleaning 失败", e);
+              setFetchError(e.message || "データ取得に失敗しました");
+            })
+            .finally(() => {
+              if (!cancelled) setLoading(false);
             });
           return () => {
             cancelled = true;
           };
-        }, [authToken]);
+        }, [authToken, isoDate]);
+
+        React.useEffect(() => {
+          return loadItems();
+        }, [loadItems]);
+
+        const handleInspect = (id, result, failure_reason) => {
+          const body = { result };
+          if (result === "failed" && failure_reason)
+            body.failure_reason = failure_reason;
+          window.tomoshibiApi
+            .inspectCleaning(id, body, authToken)
+            .then(() => {
+              setRejectTarget(null);
+              loadItems();
+            })
+            .catch((e) =>
+              alert("審査失敗: " + (e.message || JSON.stringify(e))),
+            );
+        };
+
+        const handleCreate = (body) => {
+          window.tomoshibiApi
+            .createCleaning(body, authToken)
+            .then(() => {
+              setComposing(false);
+              loadItems();
+            })
+            .catch((e) =>
+              alert("登録失敗: " + (e.message || JSON.stringify(e))),
+            );
+        };
+
+        const statusColors = {
+          assigned: [T.warn, T.warnSoft, T.warnBorder, "未審査"],
+          done: [T.cobalt, "#e8f0ff", "#b3c9f7", "完了報告済"],
+          passed: [T.ok, T.okSoft, T.okBorder, "承認済"],
+          failed: [T.danger, "#fff0f0", "#f5c6cb", "却下"],
+          skipped: [T.ink3, T.surfaceAlt, T.line, "スキップ"],
+        };
+
         return (
-          <div style={{ padding: "28px 32px" }}>
-            <h1 style={{ fontSize: 24, fontWeight: 700 }}>
-              清掃確認{" "}
-              <span
+          <div style={{ padding: "28px 32px 48px" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                marginBottom: 6,
+              }}
+            >
+              <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>
+                清掃確認
+              </h1>
+              <button
+                onClick={() => setComposing(true)}
                 style={{
-                  fontSize: 11,
+                  marginLeft: "auto",
+                  padding: "8px 16px",
+                  background: T.cobalt,
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  fontFamily: "inherit",
+                  fontSize: 13,
                   fontWeight: 700,
-                  color: T.warn,
-                  background: T.warnSoft,
-                  padding: "2px 8px",
-                  borderRadius: 4,
-                  letterSpacing: 1,
-                  marginLeft: 8,
-                  verticalAlign: 3,
+                  cursor: "pointer",
                 }}
               >
-                開発中
-              </span>
-            </h1>
-            <div
-              style={{
-                color: T.ink3,
-                fontSize: 13,
-                marginTop: 4,
-                marginBottom: 20,
-              }}
-            >
-              学生清掃写真の審査
+                ＋ 清掃を割り当て
+              </button>
             </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: 14,
-              }}
-            >
-              {[
-                ["リシンさん", "W113", "04-21"],
-                ["ソンキゼン", "W114", "04-20"],
-                ["ゴキンウ", "W115", "04-20"],
-              ].map(([n, r, d], i) => (
-                <div
-                  key={i}
+            <div style={{ color: T.ink3, fontSize: 13, marginBottom: 20 }}>
+              {isoDate} の清掃割り当て一覧
+            </div>
+
+            {/* エラーバナー */}
+            {fetchError && (
+              <div
+                style={{
+                  padding: "10px 16px",
+                  background: "#fff0f0",
+                  border: "1px solid #f5c6cb",
+                  borderRadius: 8,
+                  color: T.danger,
+                  fontSize: 13,
+                  marginBottom: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                <span style={{ flex: 1 }}>{fetchError}</span>
+                <button
+                  onClick={loadItems}
                   style={{
-                    background: T.surface,
-                    border: `1px solid ${T.line}`,
-                    borderRadius: 12,
-                    padding: 12,
-                    boxShadow: T.shadow1,
+                    padding: "4px 12px",
+                    background: "transparent",
+                    color: T.danger,
+                    border: "1px solid #f5c6cb",
+                    borderRadius: 6,
+                    fontFamily: "inherit",
+                    fontSize: 12,
+                    cursor: "pointer",
                   }}
                 >
-                  <div
-                    style={{
-                      height: 140,
-                      background: T.surfaceAlt,
-                      border: `1px dashed ${T.lineStrong}`,
-                      borderRadius: 8,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: T.ink3,
-                      fontSize: 12,
-                    }}
-                  >
-                    写真プレビュー
-                  </div>
-                  <div style={{ marginTop: 10, fontSize: 14, fontWeight: 600 }}>
-                    {n}
-                  </div>
-                  <div
-                    style={{ fontSize: 11, color: T.ink3, fontFamily: T.mono }}
-                  >
-                    {r} · {d}
-                  </div>
-                  <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-                    <button
+                  再試行
+                </button>
+              </div>
+            )}
+
+            {loading && (
+              <div style={{ padding: 24, color: T.ink3, fontSize: 13 }}>
+                読み込み中…
+              </div>
+            )}
+
+            {!loading && !fetchError && items.length === 0 && (
+              <div
+                style={{
+                  padding: 36,
+                  textAlign: "center",
+                  color: T.ink3,
+                  fontSize: 13,
+                  background: T.surface,
+                  border: `1px dashed ${T.lineStrong}`,
+                  borderRadius: 10,
+                }}
+              >
+                まだデータがありません
+              </div>
+            )}
+
+            {!loading && items.length > 0 && (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: 14,
+                }}
+              >
+                {items.map((item) => {
+                  const [col, bg, bd, lbl] =
+                    statusColors[item.status] || statusColors.assigned;
+                  const canInspect =
+                    item.status === "assigned" || item.status === "done";
+                  return (
+                    <div
+                      key={item.id}
                       style={{
-                        flex: 1,
-                        padding: "7px",
-                        background: T.cobalt,
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: 6,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        fontFamily: "inherit",
+                        background: T.surface,
+                        border: `1px solid ${T.line}`,
+                        borderRadius: 12,
+                        padding: 14,
+                        boxShadow: T.shadow1,
                       }}
                     >
-                      承認
-                    </button>
-                    <button
-                      style={{
-                        flex: 1,
-                        padding: "7px",
-                        background: "transparent",
-                        color: T.danger,
-                        border: `1px solid ${T.dangerBorder}`,
-                        borderRadius: 6,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      却下
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          marginBottom: 10,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            padding: "2px 8px",
+                            borderRadius: 4,
+                            background: bg,
+                            color: col,
+                            border: `1px solid ${bd}`,
+                            letterSpacing: 0.5,
+                          }}
+                        >
+                          {lbl}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: T.cobaltDeep,
+                            marginLeft: "auto",
+                          }}
+                        >
+                          {item.area}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: T.ink3,
+                          fontFamily: T.mono,
+                          marginBottom: 4,
+                        }}
+                      >
+                        学生 ID: {String(item.student_id).slice(0, 8)}…
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: T.ink3,
+                          fontFamily: T.mono,
+                          marginBottom: 10,
+                        }}
+                      >
+                        担当日: {item.scheduled_date}
+                      </div>
+                      {item.failure_reason && (
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: T.danger,
+                            marginBottom: 8,
+                          }}
+                        >
+                          却下理由: {item.failure_reason}
+                        </div>
+                      )}
+                      {canInspect && (
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button
+                            onClick={() => handleInspect(item.id, "passed")}
+                            style={{
+                              flex: 1,
+                              padding: "7px",
+                              background: T.cobalt,
+                              color: "#fff",
+                              border: "none",
+                              borderRadius: 6,
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              fontFamily: "inherit",
+                            }}
+                          >
+                            承認
+                          </button>
+                          <button
+                            onClick={() => setRejectTarget(item)}
+                            style={{
+                              flex: 1,
+                              padding: "7px",
+                              background: "transparent",
+                              color: T.danger,
+                              border: `1px solid ${T.dangerBorder}`,
+                              borderRadius: 6,
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              fontFamily: "inherit",
+                            }}
+                          >
+                            却下
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* 清掃割り当て modal */}
+            {composing && (
+              <CleaningCreateModal
+                T={T}
+                isoDate={isoDate}
+                onClose={() => setComposing(false)}
+                onSubmit={handleCreate}
+              />
+            )}
+
+            {/* 却下理由入力 modal */}
+            {rejectTarget && (
+              <CleaningRejectModal
+                T={T}
+                item={rejectTarget}
+                onClose={() => setRejectTarget(null)}
+                onSubmit={(reason) =>
+                  handleInspect(rejectTarget.id, "failed", reason)
+                }
+              />
+            )}
           </div>
+        );
+      }
+
+      // 清掃割り当て作成 modal
+      // body → { student_id, area, scheduled_date }
+      const CLEANING_AREAS = [
+        "浴室",
+        "廊下",
+        "トイレ",
+        "共用キッチン",
+        "階段",
+        "玄関",
+        "ロビー",
+        "その他",
+      ];
+
+      function CleaningCreateModal({ T, isoDate, onClose, onSubmit }) {
+        const MS = window.ModalShell;
+        const MField = window.ModalField;
+        const MFooter = window.ModalFooter;
+        const iStyle = window.modalInputStyle;
+        const [studentId, setStudentId] = React.useState("");
+        const [area, setArea] = React.useState(CLEANING_AREAS[0]);
+        const [date, setDate] = React.useState(isoDate);
+        const disabled = !studentId.trim();
+        return (
+          <MS T={T} title="清掃を割り当て" onClose={onClose}>
+            <MField T={T} label="学生 ID（UUID）">
+              <input
+                value={studentId}
+                onChange={(e) => setStudentId(e.target.value)}
+                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                style={iStyle(T)}
+              />
+            </MField>
+            <MField T={T} label="担当エリア">
+              <select
+                value={area}
+                onChange={(e) => setArea(e.target.value)}
+                style={iStyle(T)}
+              >
+                {CLEANING_AREAS.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+              </select>
+            </MField>
+            <MField T={T} label="担当日">
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                style={iStyle(T)}
+              />
+            </MField>
+            <MFooter
+              T={T}
+              onClose={onClose}
+              onSubmit={() =>
+                !disabled &&
+                onSubmit({
+                  student_id: studentId.trim(),
+                  area,
+                  scheduled_date: date,
+                })
+              }
+              disabled={disabled}
+            />
+          </MS>
+        );
+      }
+
+      // 却下理由入力 modal
+      function CleaningRejectModal({ T, item, onClose, onSubmit }) {
+        const MS = window.ModalShell;
+        const MField = window.ModalField;
+        const MFooter = window.ModalFooter;
+        const iStyle = window.modalInputStyle;
+        const [reason, setReason] = React.useState("");
+        const disabled = !reason.trim();
+        return (
+          <MS T={T} title={`却下 — ${item.area}`} onClose={onClose}>
+            <MField T={T} label="却下理由（必須）">
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                rows={3}
+                placeholder="例: 清掃が不十分でした"
+                style={{
+                  ...iStyle(T),
+                  resize: "vertical",
+                  lineHeight: 1.5,
+                }}
+              />
+            </MField>
+            <MFooter
+              T={T}
+              onClose={onClose}
+              onSubmit={() => !disabled && onSubmit(reason.trim())}
+              disabled={disabled}
+            />
+          </MS>
         );
       }
 
       function InfoPage({ teacher, authToken }) {
         const T = window.RYO;
         const [tab, setTab] = React.useState("notice");
-        const [posts, setPosts] = React.useState(window.NOTICE_POSTS);
+        // 真データのみ — 初期値は空配列（NOTICE_POSTS 假数据を初期値にしない）
+        const [posts, setPosts] = React.useState([]);
+        const [loading, setLoading] = React.useState(false);
+        const [fetchError, setFetchError] = React.useState(null);
         const [composing, setComposing] = React.useState(false);
+        // 詳細展開中の公告 id (null = 全部閉じ)
+        const [openId, setOpenId] = React.useState(null);
+        // 詳細キャッシュ: { [id]: AnnouncementDetailOut }
+        const [detailCache, setDetailCache] = React.useState({});
+        // 返信入力: { [id]: string }
+        const [replyInput, setReplyInput] = React.useState({});
+        // 編集対象: null | { id, title, body, scope }
+        const [editTarget, setEditTarget] = React.useState(null);
 
-        // FC-027 修复后: 老师 token 能调 listAnnouncements 拿真公告
-        // backend 返 AnnouncementBrief shape — UI shape (date/title/body/author/scope) adapt
-        React.useEffect(() => {
+        // ── 一覧 adapt ──
+        const adaptList = (data) => {
+          const items = (data && data.items) || [];
+          return items.map((a) => {
+            const d = new Date(a.created_at);
+            return {
+              date: `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
+              title: a.title,
+              body: a.body_summary,
+              author: a.author_teacher_name,
+              author_id: a.author_teacher_id,
+              scope: a.scope,
+              reply_count: a.reply_count || 0,
+              _id: a.id,
+            };
+          });
+        };
+
+        // ── 一覧 fetch ──
+        const loadList = React.useCallback(() => {
           if (!authToken) return;
           let cancelled = false;
+          setLoading(true);
+          setFetchError(null);
           window.tomoshibiApi
             .listAnnouncements(authToken)
             .then((data) => {
               if (cancelled) return;
-              const items = (data && data.items) || [];
-              if (items.length > 0) {
-                const adapted = items.map((a) => {
-                  const d = new Date(a.created_at);
-                  return {
-                    date: `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
-                    title: a.title,
-                    body: a.body_summary,
-                    author: a.author_teacher_name,
-                    scope: a.scope,
-                    _id: a.id,
-                    _backend: true,
-                  };
-                });
-                setPosts(adapted);
-              }
+              setPosts(adaptList(data));
             })
             .catch((e) => {
-              console.warn(
-                "[InfoPage] listAnnouncements 失败 → window.NOTICE_POSTS fallback",
-                e,
-              );
+              if (cancelled) return;
+              console.warn("[InfoPage] listAnnouncements 失败", e);
+              setFetchError(e.message || "データ取得に失敗しました");
+            })
+            .finally(() => {
+              if (!cancelled) setLoading(false);
             });
           return () => {
             cancelled = true;
           };
         }, [authToken]);
 
-        // 5-27 真接 backend POST /api/v1/announcements（spec §7.15 老师公告 4 端实装）
-        // ComposeNoticeModal 改成传 {title, body, scope} 对象（scope: "all"|"male"|"female"）
-        // 失败抛 → modal 内部显示错误，不关闭 modal 让老师 retry
+        React.useEffect(() => {
+          return loadList();
+        }, [loadList]);
+
+        // ── 詳細 fetch (展開時) ──
+        const openDetail = (id) => {
+          setOpenId((prev) => (prev === id ? null : id));
+          if (!detailCache[id] && authToken) {
+            window.tomoshibiApi
+              .getAnnouncement(id, authToken)
+              .then((det) => setDetailCache((c) => ({ ...c, [id]: det })))
+              .catch((e) => console.warn("[InfoPage] getAnnouncement 失败", e));
+          }
+        };
+
+        // ── 新規投稿 ──
         const handlePost = async (input) => {
           if (!authToken) throw new Error("未登录");
-          const created = await window.tomoshibiApi.createAnnouncement(
+          await window.tomoshibiApi.createAnnouncement(
             { title: input.title, body: input.body, scope: input.scope },
             authToken,
           );
-          // refetch 列表 — 拿 author_teacher_name + created_at 的服务器值，比本地构造更准
-          try {
-            const data = await window.tomoshibiApi.listAnnouncements(authToken);
-            const items = (data && data.items) || [];
-            const adapted = items.map((a) => {
-              const d = new Date(a.created_at);
-              return {
-                date: `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
-                title: a.title,
-                body: a.body_summary,
-                author: a.author_teacher_name,
-                scope: a.scope,
-                _id: a.id,
-                _backend: true,
-              };
-            });
-            setPosts(adapted);
-          } catch (e) {
-            // refetch 失败不影响 — 老师能看到自己刚发的 modal 已关
-            console.warn("[InfoPage] 投稿後 refetch 失败", e);
-          }
+          const data = await window.tomoshibiApi.listAnnouncements(authToken);
+          setPosts(adaptList(data));
           setComposing(false);
-          return created;
         };
+
+        // ── 編集保存 ──
+        const handleUpdate = async (id, input) => {
+          if (!authToken) return;
+          await window.tomoshibiApi.updateAnnouncement(
+            id,
+            {
+              title: input.title,
+              body: input.body,
+              scope: input.scope,
+            },
+            authToken,
+          );
+          // 詳細キャッシュ削除 + 一覧再取得
+          setDetailCache((c) => {
+            const n = { ...c };
+            delete n[id];
+            return n;
+          });
+          setEditTarget(null);
+          loadList();
+        };
+
+        // ── 削除 ──
+        const handleDelete = async (id) => {
+          if (!authToken) return;
+          if (!confirm("この公告を削除しますか？")) return;
+          try {
+            await window.tomoshibiApi.deleteAnnouncement(id, authToken);
+            setPosts((prev) => prev.filter((p) => p._id !== id));
+            if (openId === id) setOpenId(null);
+          } catch (e) {
+            alert("削除失敗: " + (e.message || JSON.stringify(e)));
+          }
+        };
+
+        // ── 返信投稿 ──
+        const handleReply = async (announcementId) => {
+          const body = (replyInput[announcementId] || "").trim();
+          if (!body || !authToken) return;
+          try {
+            await window.tomoshibiApi.postAnnouncementReply(
+              announcementId,
+              { body },
+              authToken,
+            );
+            setReplyInput((r) => ({ ...r, [announcementId]: "" }));
+            // 詳細キャッシュ更新
+            const det = await window.tomoshibiApi.getAnnouncement(
+              announcementId,
+              authToken,
+            );
+            setDetailCache((c) => ({ ...c, [announcementId]: det }));
+          } catch (e) {
+            alert("返信失敗: " + (e.message || JSON.stringify(e)));
+          }
+        };
+
+        // ── 返信削除 ──
+        const handleDeleteReply = async (announcementId, replyId) => {
+          if (!authToken) return;
+          try {
+            await window.tomoshibiApi.deleteAnnouncementReply(
+              announcementId,
+              replyId,
+              authToken,
+            );
+            const det = await window.tomoshibiApi.getAnnouncement(
+              announcementId,
+              authToken,
+            );
+            setDetailCache((c) => ({ ...c, [announcementId]: det }));
+          } catch (e) {
+            alert("返信削除失敗: " + (e.message || JSON.stringify(e)));
+          }
+        };
+
+        const scopeLabel = { all: "全寮生", male: "男寮", female: "女寮" };
 
         return (
           <div style={{ padding: "28px 32px" }}>
@@ -20245,70 +20953,370 @@
                 </button>
               ))}
             </div>
+
             {tab === "notice" && (
               <div>
-                {posts.map((p, i) => (
+                {/* エラーバナー */}
+                {fetchError && (
                   <div
-                    key={i}
                     style={{
-                      padding: "14px 16px",
-                      background: T.surface,
-                      border: `1px solid ${p.pinned ? T.cobalt : T.line}`,
-                      borderRadius: 10,
-                      marginBottom: 10,
+                      padding: "10px 16px",
+                      background: "#fff0f0",
+                      border: "1px solid #f5c6cb",
+                      borderRadius: 8,
+                      color: T.danger,
                       fontSize: 13,
+                      marginBottom: 16,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
                     }}
                   >
-                    <div
+                    <span style={{ flex: 1 }}>{fetchError}</span>
+                    <button
+                      onClick={loadList}
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        marginBottom: 6,
+                        padding: "4px 12px",
+                        background: "transparent",
+                        color: T.danger,
+                        border: "1px solid #f5c6cb",
+                        borderRadius: 6,
+                        fontFamily: "inherit",
+                        fontSize: 12,
+                        cursor: "pointer",
                       }}
                     >
-                      {p.pinned && (
-                        <span
+                      再試行
+                    </button>
+                  </div>
+                )}
+                {loading && (
+                  <div style={{ padding: 24, color: T.ink3, fontSize: 13 }}>
+                    読み込み中…
+                  </div>
+                )}
+                {!loading && !fetchError && posts.length === 0 && (
+                  <div
+                    style={{
+                      padding: 36,
+                      textAlign: "center",
+                      color: T.ink3,
+                      fontSize: 13,
+                      background: T.surface,
+                      border: `1px dashed ${T.lineStrong}`,
+                      borderRadius: 10,
+                    }}
+                  >
+                    まだデータがありません
+                  </div>
+                )}
+
+                {posts.map((p) => {
+                  const isOpen = openId === p._id;
+                  const det = detailCache[p._id];
+                  return (
+                    <div
+                      key={p._id}
+                      style={{
+                        background: T.surface,
+                        border: `1px solid ${T.line}`,
+                        borderRadius: 10,
+                        marginBottom: 10,
+                        fontSize: 13,
+                        overflow: "hidden",
+                      }}
+                    >
+                      {/* カードヘッダー — クリックで展開 */}
+                      <div
+                        onClick={() => openDetail(p._id)}
+                        style={{ padding: "14px 16px", cursor: "pointer" }}
+                      >
+                        <div
                           style={{
-                            fontSize: 10,
-                            color: "#fff",
-                            background: T.cobalt,
-                            padding: "2px 6px",
-                            borderRadius: 4,
-                            fontWeight: 700,
-                            letterSpacing: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            marginBottom: 6,
                           }}
                         >
-                          PIN
-                        </span>
-                      )}
-                      <span
-                        style={{
-                          fontFamily: T.mono,
-                          color: T.ink3,
-                          fontSize: 11,
-                        }}
-                      >
-                        {p.date}
-                      </span>
-                      <span style={{ color: T.ink3, fontSize: 11 }}>
-                        · {p.author}
-                      </span>
-                    </div>
-                    <div
-                      style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}
-                    >
-                      {p.title}
-                    </div>
-                    {p.body && (
-                      <div
-                        style={{ color: T.ink2, fontSize: 12, lineHeight: 1.6 }}
-                      >
-                        {p.body}
+                          <span
+                            style={{
+                              fontFamily: T.mono,
+                              color: T.ink3,
+                              fontSize: 11,
+                            }}
+                          >
+                            {p.date}
+                          </span>
+                          <span style={{ color: T.ink3, fontSize: 11 }}>
+                            · {p.author}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: "1px 6px",
+                              borderRadius: 4,
+                              background: T.cobaltSoft,
+                              color: T.cobaltDeep,
+                              border: `1px solid ${T.infoBorder}`,
+                            }}
+                          >
+                            {scopeLabel[p.scope] || p.scope}
+                          </span>
+                          {p.reply_count > 0 && (
+                            <span style={{ fontSize: 11, color: T.ink3 }}>
+                              💬 {p.reply_count}
+                            </span>
+                          )}
+                          <div style={{ flex: 1 }} />
+                          {/* 編集ボタン（自分が投稿者の場合のみ — authProfile id チェックは省略し常時表示） */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const d = detailCache[p._id];
+                              setEditTarget({
+                                id: p._id,
+                                title: p.title,
+                                body: d ? d.body : p.body || "",
+                                scope: p.scope,
+                              });
+                            }}
+                            style={{
+                              padding: "3px 8px",
+                              background: T.surface,
+                              color: T.ink2,
+                              border: `1px solid ${T.lineStrong}`,
+                              borderRadius: 5,
+                              fontFamily: "inherit",
+                              fontSize: 11,
+                              cursor: "pointer",
+                            }}
+                          >
+                            編集
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(p._id);
+                            }}
+                            style={{
+                              padding: "3px 8px",
+                              background: T.surface,
+                              color: T.danger,
+                              border: `1px solid ${T.dangerBorder}`,
+                              borderRadius: 5,
+                              fontFamily: "inherit",
+                              fontSize: 11,
+                              cursor: "pointer",
+                            }}
+                          >
+                            削除
+                          </button>
+                          <span style={{ fontSize: 12, color: T.ink3 }}>
+                            {isOpen ? "▲" : "▼"}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            fontSize: 14,
+                            marginBottom: 4,
+                          }}
+                        >
+                          {p.title}
+                        </div>
+                        {p.body && (
+                          <div
+                            style={{
+                              color: T.ink2,
+                              fontSize: 12,
+                              lineHeight: 1.6,
+                            }}
+                          >
+                            {p.body}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ))}
+
+                      {/* 展開時: 全文 + 返信 */}
+                      {isOpen && (
+                        <div
+                          style={{
+                            padding: "0 16px 16px",
+                            borderTop: `1px solid ${T.line}`,
+                            background: T.surfaceAlt,
+                          }}
+                        >
+                          {det ? (
+                            <>
+                              {det.body && det.body !== p.body && (
+                                <div
+                                  style={{
+                                    margin: "12px 0",
+                                    padding: "10px 12px",
+                                    background: T.surface,
+                                    border: `1px solid ${T.line}`,
+                                    borderRadius: 8,
+                                    fontSize: 13,
+                                    lineHeight: 1.7,
+                                    whiteSpace: "pre-wrap",
+                                  }}
+                                >
+                                  {det.body}
+                                </div>
+                              )}
+                              {/* 返信一覧 */}
+                              <div style={{ marginTop: 12 }}>
+                                <div
+                                  style={{
+                                    fontSize: 11,
+                                    color: T.ink3,
+                                    fontWeight: 600,
+                                    letterSpacing: 1,
+                                    marginBottom: 8,
+                                  }}
+                                >
+                                  返信 {det.replies ? det.replies.length : 0} 件
+                                </div>
+                                {det.replies &&
+                                  det.replies.map((r) => (
+                                    <div
+                                      key={r.id}
+                                      style={{
+                                        display: "flex",
+                                        gap: 10,
+                                        alignItems: "flex-start",
+                                        padding: "8px 10px",
+                                        background: T.surface,
+                                        border: `1px solid ${T.line}`,
+                                        borderRadius: 7,
+                                        marginBottom: 6,
+                                        fontSize: 12,
+                                      }}
+                                    >
+                                      <div style={{ flex: 1 }}>
+                                        <span
+                                          style={{
+                                            fontWeight: 700,
+                                            color: T.cobaltDeep,
+                                          }}
+                                        >
+                                          {r.author_name}
+                                        </span>
+                                        <span
+                                          style={{
+                                            color: T.ink3,
+                                            marginLeft: 8,
+                                            fontFamily: T.mono,
+                                            fontSize: 11,
+                                          }}
+                                        >
+                                          {new Date(
+                                            r.created_at,
+                                          ).toLocaleString("ja-JP")}
+                                        </span>
+                                        <div
+                                          style={{
+                                            marginTop: 4,
+                                            color: T.ink2,
+                                            lineHeight: 1.6,
+                                          }}
+                                        >
+                                          {r.body}
+                                        </div>
+                                      </div>
+                                      <button
+                                        onClick={() =>
+                                          handleDeleteReply(p._id, r.id)
+                                        }
+                                        style={{
+                                          padding: "2px 7px",
+                                          background: "transparent",
+                                          color: T.danger,
+                                          border: `1px solid ${T.dangerBorder}`,
+                                          borderRadius: 4,
+                                          fontFamily: "inherit",
+                                          fontSize: 11,
+                                          cursor: "pointer",
+                                          flexShrink: 0,
+                                        }}
+                                      >
+                                        削除
+                                      </button>
+                                    </div>
+                                  ))}
+                              </div>
+                              {/* 返信入力 */}
+                              <div
+                                style={{
+                                  display: "flex",
+                                  gap: 8,
+                                  marginTop: 10,
+                                }}
+                              >
+                                <input
+                                  value={replyInput[p._id] || ""}
+                                  onChange={(e) =>
+                                    setReplyInput((r) => ({
+                                      ...r,
+                                      [p._id]: e.target.value,
+                                    }))
+                                  }
+                                  onKeyDown={(e) =>
+                                    e.key === "Enter" &&
+                                    !e.shiftKey &&
+                                    handleReply(p._id)
+                                  }
+                                  placeholder="返信を入力… (Enter で送信)"
+                                  style={{
+                                    flex: 1,
+                                    padding: "8px 10px",
+                                    border: `1px solid ${T.lineStrong}`,
+                                    borderRadius: 7,
+                                    fontSize: 12,
+                                    fontFamily: "inherit",
+                                  }}
+                                />
+                                <button
+                                  onClick={() => handleReply(p._id)}
+                                  disabled={!(replyInput[p._id] || "").trim()}
+                                  style={{
+                                    padding: "8px 14px",
+                                    background: (replyInput[p._id] || "").trim()
+                                      ? T.cobalt
+                                      : T.line,
+                                    color: "#fff",
+                                    border: "none",
+                                    borderRadius: 7,
+                                    fontFamily: "inherit",
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    cursor: (replyInput[p._id] || "").trim()
+                                      ? "pointer"
+                                      : "not-allowed",
+                                  }}
+                                >
+                                  送信
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            <div
+                              style={{
+                                padding: "12px 0",
+                                color: T.ink3,
+                                fontSize: 12,
+                              }}
+                            >
+                              読み込み中…
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
             {tab === "event" && (
@@ -20324,6 +21332,251 @@
                 onSubmit={handlePost}
               />
             )}
+            {/* 編集 modal — ComposeNoticeModal を初期値付きで流用 */}
+            {editTarget && (
+              <EditNoticeModal
+                initial={editTarget}
+                onClose={() => setEditTarget(null)}
+                onSubmit={(input) => handleUpdate(editTarget.id, input)}
+              />
+            )}
+          </div>
+        );
+      }
+
+      // 公告編集 modal — ComposeNoticeModal と同構造、初期値あり版
+      function EditNoticeModal({ initial, onClose, onSubmit }) {
+        const T = window.RYO;
+        const [title, setTitle] = React.useState(initial.title || "");
+        const [body, setBody] = React.useState(initial.body || "");
+        const [scope, setScope] = React.useState(initial.scope || "all");
+        const [submitting, setSubmitting] = React.useState(false);
+        const [errorMsg, setErrorMsg] = React.useState("");
+        const handleSubmit = async () => {
+          if (!title.trim() || submitting) return;
+          setSubmitting(true);
+          setErrorMsg("");
+          try {
+            await onSubmit({ title: title.trim(), body: body.trim(), scope });
+          } catch (e) {
+            setErrorMsg((e && e.message) || "保存に失敗しました");
+            setSubmitting(false);
+          }
+        };
+        return (
+          <div
+            onClick={onClose}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(20,23,31,0.55)",
+              zIndex: 90,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 20,
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: T.surface,
+                borderRadius: 14,
+                width: 540,
+                maxWidth: "100%",
+                boxShadow: T.shadowModal,
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  padding: "16px 20px",
+                  borderBottom: `1px solid ${T.line}`,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <div style={{ fontSize: 15, fontWeight: 700 }}>
+                  お知らせを編集
+                </div>
+                <button
+                  onClick={onClose}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    fontSize: 20,
+                    color: T.ink3,
+                    cursor: "pointer",
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+              <div
+                style={{
+                  padding: 20,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 14,
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: T.ink3,
+                      fontWeight: 600,
+                      letterSpacing: 1,
+                      marginBottom: 6,
+                    }}
+                  >
+                    タイトル
+                  </div>
+                  <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      border: `1px solid ${T.lineStrong}`,
+                      borderRadius: 8,
+                      fontSize: 14,
+                      fontFamily: "inherit",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: T.ink3,
+                      fontWeight: 600,
+                      letterSpacing: 1,
+                      marginBottom: 6,
+                    }}
+                  >
+                    本文
+                  </div>
+                  <textarea
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    rows={6}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      border: `1px solid ${T.lineStrong}`,
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontFamily: "inherit",
+                      boxSizing: "border-box",
+                      resize: "vertical",
+                      lineHeight: 1.6,
+                    }}
+                  />
+                </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: T.ink3,
+                      fontWeight: 600,
+                      letterSpacing: 1,
+                      marginBottom: 6,
+                    }}
+                  >
+                    配送対象（scope）
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {[
+                      { k: "all", label: "全寮生" },
+                      { k: "male", label: "男寮のみ" },
+                      { k: "female", label: "女寮のみ" },
+                    ].map((o) => (
+                      <button
+                        key={o.k}
+                        onClick={() => setScope(o.k)}
+                        style={{
+                          flex: 1,
+                          padding: "8px 12px",
+                          background: scope === o.k ? T.cobalt : T.surface,
+                          color: scope === o.k ? "#fff" : T.ink2,
+                          border: `1px solid ${scope === o.k ? T.cobalt : T.lineStrong}`,
+                          borderRadius: 8,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          fontFamily: "inherit",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {errorMsg && (
+                  <div
+                    style={{
+                      padding: "8px 12px",
+                      background: T.dangerSoft,
+                      color: T.danger,
+                      border: `1px solid ${T.danger}`,
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                  >
+                    {errorMsg}
+                  </div>
+                )}
+              </div>
+              <div
+                style={{
+                  padding: "12px 20px",
+                  background: T.surfaceAlt,
+                  borderTop: `1px solid ${T.line}`,
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: 8,
+                }}
+              >
+                <button
+                  onClick={onClose}
+                  disabled={submitting}
+                  style={{
+                    padding: "8px 16px",
+                    background: T.surface,
+                    color: T.ink2,
+                    border: `1px solid ${T.lineStrong}`,
+                    borderRadius: 8,
+                    fontFamily: "inherit",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={!title.trim() || submitting}
+                  style={{
+                    padding: "8px 16px",
+                    background: !title.trim() || submitting ? T.line : T.cobalt,
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    fontFamily: "inherit",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor:
+                      !title.trim() || submitting ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {submitting ? "保存中..." : "保存"}
+                </button>
+              </div>
+            </div>
           </div>
         );
       }
@@ -25012,6 +26265,7 @@
               <window.ApplicationsPage
                 onOpen={setOutstayTarget}
                 backendApplications={backendApplications}
+                authToken={authToken}
               />
             );
             break;
@@ -25115,6 +26369,7 @@
             {outstayTarget && (
               <window.OutstayDetailModal
                 app={outstayTarget}
+                authToken={authToken}
                 onClose={() => setOutstayTarget(null)}
                 onAction={async (a) => {
                   // Task #6 第 7 步: backend decide() を呼ぶ (app._backend が有る = backend

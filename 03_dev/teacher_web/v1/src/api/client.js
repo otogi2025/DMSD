@@ -261,10 +261,12 @@
     const base = window.API_BASE || "/api/v1";
     let wsUrl;
     if (base.startsWith("http")) {
-      wsUrl = base.replace(/^http/, "ws").replace(/\/api\/v1$/, "/ws/teacher");
+      // 绝对地址：http(s):// → ws(s)://，保留 /api/v1 前缀后接 /ws/teacher → /api/v1/ws/teacher
+      wsUrl = base.replace(/^http/, "ws") + "/ws/teacher";
     } else {
+      // 相对地址：当前页面 host + base(/api/v1) + /ws/teacher
       const proto = location.protocol === "https:" ? "wss:" : "ws:";
-      wsUrl = `${proto}//${location.host}/ws/teacher`;
+      wsUrl = `${proto}//${location.host}${base}/ws/teacher`;
     }
     const fullUrl = `${wsUrl}?token=${encodeURIComponent(token)}`;
 

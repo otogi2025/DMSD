@@ -12,7 +12,7 @@ PATCH /api/v1/rollcall/events/{id}                — 教師改判
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Optional
 from uuid import UUID
 
@@ -65,19 +65,16 @@ def today_sessions(
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(get_current_teacher),
 ):
+    from zoneinfo import ZoneInfo
+
     today = _today_jst()
-    # 今日作成された session を返す (cron がなければ空)
+    jst = ZoneInfo("Asia/Tokyo")
+    # 当日 0:00:00 JST 起、次日 0:00:00 JST 止（不含）— 无上界会把未来 session 也返回
+    day_start = datetime(today.year, today.month, today.day, 0, 0, 0, tzinfo=jst)
+    day_end = day_start + timedelta(days=1)
     stmt = select(models.RollCallSession).where(
-        models.RollCallSession.scheduled_window_start_at
-        >= datetime(
-            today.year,
-            today.month,
-            today.day,
-            0,
-            0,
-            0,
-            tzinfo=__import__("zoneinfo").ZoneInfo("Asia/Tokyo"),
-        )
+        models.RollCallSession.scheduled_window_start_at >= day_start,
+        models.RollCallSession.scheduled_window_start_at < day_end,
     )
     # R4 dorm filter
     sessions = db.scalars(stmt).all()
@@ -165,11 +162,11 @@ def start_session(
             409, {"code": "ALREADY_ENDED", "message": "終了済みのセッションです"}
         )
 
-    # -5min 前チェック (RollCall_Spec §5.4)
-    window_minus5 = session.scheduled_window_start_at.replace(
-        minute=session.scheduled_window_start_at.minute - 5
+    # -5min 前检查 (RollCall_Spec §5.4) — 用 timedelta 算，正确处理跨小时边界
+    window_minus5 = _as_jst_aware(session.scheduled_window_start_at) - timedelta(
+        minutes=5
     )
-    if now < window_minus5.replace(minute=max(0, window_minus5.minute)):
+    if now < window_minus5:
         raise HTTPException(
             409, {"code": "NOT_YET_ALLOWED", "message": "開始時刻の 5 分前より早いです"}
         )
@@ -661,9 +658,37 @@ def _settle_absent(db: Session, session: models.RollCallSession) -> None:
         ).all()
     )
 
+    # BL-3 修复：结算前查出当天有批准外宿/出寮届的学生，跳过不扣分
+    # 参照 study.py:96-105 的 outstay_ids 写法保持口径一致
+    session_date = _as_jst_aware(session.scheduled_window_start_at).date()
+    student_ids = [s.id for s in students]
+    outstay_ids = set(
+        db.scalars(
+            select(models.Application.student_id).where(
+                models.Application.student_id.in_(student_ids),
+                models.Application.status == "approved",
+                models.Application.leave_date <= session_date,
+                models.Application.return_date >= session_date,
+            )
+        ).all()
+    )
+
     month = session.scheduled_window_start_at.strftime("%Y-%m")
     for s in students:
         if s.id not in checked_ids:
+            # BL-3：外宿/出寮届承认期间的学生打 exempt_range，不算缺席不扣分
+            if s.id in outstay_ids:
+                db.add(
+                    models.RollCallEvent(
+                        session_id=session.id,
+                        student_id=s.id,
+                        path_type="manual",
+                        base_status="exempt_range",
+                        status_source="auto_settle",
+                        checked_in_at=_now_jst(),
+                    )
+                )
+                continue
             db.add(
                 models.RollCallEvent(
                     session_id=session.id,

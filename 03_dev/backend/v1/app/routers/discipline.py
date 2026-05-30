@@ -18,6 +18,9 @@ DisciplinePage 接 backend 的核心 endpoint。
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
+_JST = ZoneInfo("Asia/Tokyo")
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -26,7 +29,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import get_current_teacher
+from ..deps import dorm_units_for_teacher, get_current_teacher
 
 router = APIRouter(prefix="/api/v1/discipline", tags=["discipline"])
 
@@ -118,7 +121,7 @@ def create_manual_demerit(
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(get_current_teacher),
 ):
-    """手动加扣分（寮監 / 寮務 / 学習担当 / 管理係 权限）。"""
+    """手动加扣分（寮監 / 寮務部長 / 寮務課長 / 管理係 权限）。"""
     if teacher.role not in _ADMIN_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -134,7 +137,8 @@ def create_manual_demerit(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "STUDENT_NOT_FOUND", "message": "学生不存在"},
         )
-    now = datetime.now(timezone.utc)
+    # BL-6 修复：月份归属用 JST，防跨月凌晨归错月（与 rollcall/study 保持一致）
+    now = datetime.now(_JST)
     event = models.DemeritEvent(
         student_id=body.student_id,
         source_type="manual",
