@@ -1291,3 +1291,147 @@ class IncidentRecordOut(ORMModel):
 
 class IncidentRecordListOut(BaseModel):
     items: list[IncidentRecordOut]
+
+
+# ---------------------------------------------------------------
+# 学生个人档案聚合页（spec §7.10 #32）— 2026-05-30 实装
+#   端点：GET /api/v1/students/{id}/profile
+#   角色：寮務系老师（含指导履历块）/ 学生本人（指导履历返空，C 案）
+# ---------------------------------------------------------------
+class StudentProfileBasic(BaseModel):
+    """学生基本信息块。"""
+
+    id: UUID
+    student_no: str
+    name: str
+    name_kana: Optional[str]
+    grade_code: str
+    class_code: str
+    seat_no: str
+    gender: str
+    room_no: str
+    dorm_unit: int
+    is_overseas: bool
+    email: Optional[str]
+    phone: Optional[str]
+    avatar_url: Optional[str]
+    status: str
+    registered_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProfileApplicationEntry(BaseModel):
+    """出寮届履历 — 列表 entry。"""
+
+    id: UUID
+    kind: Literal["帰省", "外泊", "帰国"]
+    leave_date: date
+    return_date: date
+    status: str
+    submitted_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProfileStudyCheckinEntry(BaseModel):
+    """学習出席記録 — 列表 entry。"""
+
+    id: UUID
+    target_date: date
+    status: str  # init / present / late / absent / exempt
+    checked_at: Optional[datetime]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProfileRollCallEntry(BaseModel):
+    """点呼记录 — 列表 entry。"""
+
+    id: UUID
+    session_id: UUID
+    base_status: str  # present / late / absent / exempt_range
+    status_source: str
+    checked_in_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProfileGuidanceEntry(BaseModel):
+    """指導履歴 — 列表 entry（寮務系老师可见，学生本人返空）。"""
+
+    id: UUID
+    category: Optional[str]
+    guidance_date: date
+    confidential: bool
+    content: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProfileDemeritEntry(BaseModel):
+    """扣分记录 — 列表 entry（仅未撤销）。"""
+
+    id: UUID
+    source_type: str
+    points: float
+    reason: str
+    month: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StudentProfileOut(BaseModel):
+    """GET /students/{id}/profile 聚合响应。"""
+
+    student: StudentProfileBasic
+    applications: list[ProfileApplicationEntry]
+    study_checkins: list[ProfileStudyCheckinEntry]
+    rollcall_events: list[ProfileRollCallEntry]
+    # 寮務系老师 → 有数据；学生本人 → 空列表（C 案 §7.10）
+    guidance_records: list[ProfileGuidanceEntry]
+    demerit_events: list[ProfileDemeritEntry]
+
+
+# ---------------------------------------------------------------
+# 学号一括进级（spec §4.2）— 2026-05-30 实装
+#   端点：POST /api/v1/students/bulk-promote
+#   角色：寮務部長 / 寮務課長 / 管理係
+# ---------------------------------------------------------------
+class BulkPromoteIn(BaseModel):
+    """一括进级输入。
+
+    dry_run=True（默认）→ 只预览，不写 DB
+    dry_run=False → 真改
+    target_grade_codes → 指定年级进级（空/None = 全员）
+    """
+
+    dry_run: bool = True
+    # 可选：只进级指定年级（如 ["04","05"] 只升高1高2，高3自动变 graduated）
+    # None / 空列表 = 全员 active 学生
+    target_grade_codes: Optional[list[str]] = None
+
+
+class BulkPromoteEntry(BaseModel):
+    """一括进级预览/结果 — 单条学生变更记录。"""
+
+    student_id: UUID
+    student_no: str
+    name: str
+    old_grade_code: str
+    new_grade_code: str
+    action: Literal["promote", "graduate"]
+    old_status: str
+    new_status: str
+
+
+class BulkPromoteOut(BaseModel):
+    """POST /students/bulk-promote 响应。"""
+
+    dry_run: bool
+    promote_count: int  # grade_code +1 的学生数
+    graduate_count: int  # 高 3 → graduated 的学生数
+    total_affected: int
+    entries: list[BulkPromoteEntry]

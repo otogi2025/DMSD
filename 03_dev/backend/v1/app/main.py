@@ -47,6 +47,8 @@ from .routers import (
     meals,
     notifications,
     rollcall,
+    student_profile,
+    student_promote,
     study,
     study_online,
     teachers,
@@ -151,6 +153,8 @@ app.include_router(events.router)
 app.include_router(bus_routes.router)
 app.include_router(guidance.router)
 app.include_router(incidents.router)
+app.include_router(student_profile.router)
+app.include_router(student_promote.router)
 app.include_router(ws.router)
 
 
