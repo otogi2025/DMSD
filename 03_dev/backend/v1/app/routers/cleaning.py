@@ -25,6 +25,22 @@ from .. import models, schemas
 from ..database import get_db
 from ..deps import dorm_units_for_teacher, get_current_teacher
 
+
+def _assert_student_in_dorm(teacher: models.Teacher, student: models.Student) -> None:
+    """R4 寮边界写操作校验 — 学生 dorm_unit 不在老师管辖范围 → 403。"""
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None and student.dorm_unit not in allowed:
+        from fastapi import HTTPException, status
+
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "FORBIDDEN_DORM",
+                "message": "担当外の寮の学生への操作はできません",
+            },
+        )
+
+
 router = APIRouter(prefix="/api/v1/cleaning", tags=["cleaning"])
 
 # 清扫审查 / 分配权限 — 寮監 / 寮務 / 管理係
@@ -81,6 +97,8 @@ def create_cleaning(
             status_code=404,
             detail={"code": "STUDENT_NOT_FOUND", "message": "学生不存在"},
         )
+    # R4 寮边界：寮監等寮 scoped 角色不能给管辖外寮学生派清扫
+    _assert_student_in_dorm(teacher, student)
     row = models.CleaningAssignment(
         student_id=body.student_id,
         area=body.area,
@@ -116,6 +134,10 @@ def inspect_cleaning(
             status_code=404,
             detail={"code": "CLEANING_NOT_FOUND", "message": "清扫安排不存在"},
         )
+    # R4 寮边界：审核前确认学生属本老师管辖寮
+    student = db.get(models.Student, row.student_id)
+    if student:
+        _assert_student_in_dorm(teacher, student)
     if row.status in {"passed", "failed", "skipped"}:
         raise HTTPException(
             status_code=409,

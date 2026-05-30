@@ -22,7 +22,23 @@ from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas, ws_manager as _ws
 from ..database import get_db
-from ..deps import get_current_teacher
+from ..deps import dorm_units_for_teacher, get_current_teacher
+
+
+def _assert_student_in_dorm(teacher: models.Teacher, student: models.Student) -> None:
+    """R4 寮边界写操作校验 — 学生 dorm_unit 不在老师管辖范围 → 403。"""
+    from fastapi import HTTPException
+
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None and student.dorm_unit not in allowed:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "FORBIDDEN_DORM",
+                "message": "担当外の寮の学生への操作はできません",
+            },
+        )
+
 
 router = APIRouter(prefix="/api/v1/rollcall", tags=["rollcall"])
 
@@ -283,6 +299,9 @@ def create_checkin(
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "学生が見つかりません"}
         )
+
+    # R4 寮边界：寮監等寮 scoped 角色不能给管辖外寮学生签到
+    _assert_student_in_dorm(teacher, student)
 
     # A-011 (2026-05-21): 幂等 check 改成「先查 idempotency_key 命中」
     # 1. 如果 client 传了 idempotency_key → 用 (session_id, idempotency_key) 唯一定位
@@ -567,6 +586,11 @@ def patch_event(
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "点呼イベントが見つかりません"}
         )
+
+    # R4 寮边界：改判前确认该学生属本老师管辖寮
+    student = db.get(models.Student, event.student_id)
+    if student:
+        _assert_student_in_dorm(teacher, student)
 
     old_status = event.base_status
     new_status = body.to_status

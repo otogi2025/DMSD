@@ -25,7 +25,21 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import get_current_teacher
+from ..deps import dorm_units_for_teacher, get_current_teacher
+
+
+def _assert_student_in_dorm(teacher: models.Teacher, student: models.Student) -> None:
+    """R4 寮边界写操作校验 — 学生 dorm_unit 不在老师管辖范围 → 403。"""
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None and student.dorm_unit not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "FORBIDDEN_DORM",
+                "message": "担当外の寮の学生への操作はできません",
+            },
+        )
+
 
 router = APIRouter(prefix="/api/v1/front-desk", tags=["front-desk"])
 
@@ -80,6 +94,8 @@ def create_item(
                 status_code=404,
                 detail={"code": "STUDENT_NOT_FOUND", "message": "学生不存在"},
             )
+        # R4 寮边界：有关联学生时校验属本老师管辖寮
+        _assert_student_in_dorm(teacher, student)
     days = (
         DELIVERY_EXPIRES_DAYS
         if body.kind == "delivery"
@@ -122,6 +138,11 @@ def notify_item(
             status_code=404,
             detail={"code": "ITEM_NOT_FOUND", "message": "条目不存在"},
         )
+    # R4 寮边界：条目关联学生时校验属本老师管辖寮
+    if row.student_id:
+        student = db.get(models.Student, row.student_id)
+        if student:
+            _assert_student_in_dorm(teacher, student)
     if row.status != "pending":
         raise HTTPException(
             status_code=409,
@@ -158,6 +179,11 @@ def mark_picked_up(
             status_code=404,
             detail={"code": "ITEM_NOT_FOUND", "message": "条目不存在"},
         )
+    # R4 寮边界：条目关联学生时校验属本老师管辖寮
+    if row.student_id:
+        student = db.get(models.Student, row.student_id)
+        if student:
+            _assert_student_in_dorm(teacher, student)
     if row.status not in {"pending", "notified"}:
         raise HTTPException(
             status_code=409,

@@ -253,3 +253,147 @@ def test_b10_dorm_unit_valid_values(client, teacher_token, seed_data):
     code = _make_reg_code(client, teacher_token)
     res = _register(client, code, overrides={"dorm_unit": 1})
     assert res.status_code == 201, res.text
+
+
+# ─────────────────────────────────────────
+# B8 — R4 寮边界 (寮監对管辖外寮学生操作 → 403)
+# ─────────────────────────────────────────
+
+
+def _make_ryokan_token(client, db_session) -> str:
+    """女寮担当の寮監 token を作って返す。seed_data の学生は dorm_unit=1 (男寮)。"""
+    from app import models, security
+
+    pw = security.hash_password("test-password-12345")
+    t = models.Teacher(
+        login_id="ryokan_test",
+        name="女寮監テスト",
+        email="ryokan@test.jp",
+        password_hash=pw,
+        role="寮監",
+        assigned_dorm=4,  # 女寮
+    )
+    db_session.add(t)
+    db_session.commit()
+
+    res = client.post(
+        "/api/v1/sessions/teacher",
+        json={"login_id": "ryokan_test", "password": "test-password-12345"},
+    )
+    assert res.status_code == 200, res.text
+    return res.json()["access_token"]
+
+
+def test_b8_cleaning_create_cross_dorm_403(client, db_session, seed_data):
+    """女寮監が男寮学生 (dorm_unit=1) に清扫分配 → 403。"""
+    from datetime import date
+
+    ryokan_token = _make_ryokan_token(client, db_session)
+    student_id = str(seed_data["student"].id)  # dorm_unit=1
+
+    res = client.post(
+        "/api/v1/cleaning",
+        json={
+            "student_id": student_id,
+            "area": "廊下",
+            "scheduled_date": date.today().isoformat(),
+        },
+        headers={"Authorization": f"Bearer {ryokan_token}"},
+    )
+    assert res.status_code == 403, res.text
+    assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+
+
+def test_b8_cleaning_create_same_dorm_ok(client, db_session, seed_data):
+    """男寮監 (assigned_dorm=1) が男寮学生に清扫分配 → 201。"""
+    from datetime import date
+
+    from app import models, security
+
+    pw = security.hash_password("test-password-12345")
+    t = models.Teacher(
+        login_id="otokan_test",
+        name="男寮監テスト",
+        email="otokan@test.jp",
+        password_hash=pw,
+        role="寮監",
+        assigned_dorm=1,  # 男寮
+    )
+    db_session.add(t)
+    db_session.commit()
+
+    res_login = client.post(
+        "/api/v1/sessions/teacher",
+        json={"login_id": "otokan_test", "password": "test-password-12345"},
+    )
+    assert res_login.status_code == 200, res_login.text
+    token = res_login.json()["access_token"]
+
+    student_id = str(seed_data["student"].id)  # dorm_unit=1
+    res = client.post(
+        "/api/v1/cleaning",
+        json={
+            "student_id": student_id,
+            "area": "廊下",
+            "scheduled_date": date.today().isoformat(),
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 201, res.text
+
+
+def test_b8_front_desk_create_cross_dorm_403(client, db_session, seed_data):
+    """女寮監が男寮学生 (dorm_unit=1) に宅配登记 → 403。"""
+    ryokan_token = _make_ryokan_token(client, db_session)
+    student_id = str(seed_data["student"].id)
+
+    res = client.post(
+        "/api/v1/front-desk",
+        json={
+            "kind": "delivery",
+            "student_id": student_id,
+            "description": "テスト荷物",
+        },
+        headers={"Authorization": f"Bearer {ryokan_token}"},
+    )
+    assert res.status_code == 403, res.text
+    assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+
+
+def test_b8_rollcall_checkin_cross_dorm_403(client, db_session, seed_data):
+    """女寮監が男寮学生 (dorm_unit=1) に点呼签到 → 403。"""
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    from app import models
+
+    ryokan_token = _make_ryokan_token(client, db_session)
+
+    # 创建男寮 dorm_unit=[1,2] 的 running session
+    now = datetime.now(ZoneInfo("Asia/Tokyo"))
+    session = models.RollCallSession(
+        dorm_unit_set=[1, 2],
+        session_type="evening",
+        day_type="weekday",
+        session_status="running",
+        started_at=now,
+        scheduled_window_start_at=now - timedelta(minutes=5),
+        scheduled_on_time_end_at=now + timedelta(minutes=10),
+        scheduled_late_end_at=now + timedelta(minutes=20),
+        scheduled_auto_end_at=now + timedelta(minutes=30),
+    )
+    db_session.add(session)
+    db_session.commit()
+    db_session.refresh(session)
+
+    res = client.post(
+        f"/api/v1/rollcall/sessions/{session.id}/checkins",
+        json={
+            "student_id": str(seed_data["student"].id),
+            "status_source": "manual_checkin",
+            "path_hint": "manual",
+        },
+        headers={"Authorization": f"Bearer {ryokan_token}"},
+    )
+    assert res.status_code == 403, res.text
+    assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
