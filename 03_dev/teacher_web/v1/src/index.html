@@ -10105,140 +10105,6 @@
       //            email, phone, registeredAt, lastLoginAt, locked, failedLoginCount
       // 番号 6 桁 = 学年(2) + 組(2) + 番号(2)。学年: 中1=01〜高3=06、組: A=01 / B=02、番号: 01-99。
       // 全員 高3（学年 06）、リュウ イヒ = 高3 B 18号 = 060218（itsuki 本人, demo seed · iOS と一致）。
-      window.DEMO_SEED_NO = "060218";
-      window.ACCOUNTS = [
-        {
-          no: "060218",
-          sid: "S001",
-          name: "リュウ イヒ",
-          birthday: "2006-10-14",
-          gender: "male",
-          category: "一般寮生",
-          room: "M101",
-          dorm: "men",
-          email: "ryu.ihi@tomoshibi.local",
-          phone: "090-0000-0000",
-          registeredAt: "2026-02-10",
-          lastLoginAt: "2026-04-22 18:05",
-          locked: false,
-          failedLoginCount: 0,
-        },
-        {
-          no: "060103",
-          sid: "S103",
-          name: "田中 隼人",
-          birthday: "2008-01-15",
-          gender: "male",
-          category: "サッカー部",
-          room: "M104",
-          dorm: "men",
-          email: "tanaka.hayato@tomoshibi.local",
-          phone: "090-2345-6789",
-          registeredAt: "2026-03-07",
-          lastLoginAt: "2026-04-21 20:10",
-          locked: false,
-          failedLoginCount: 0,
-        },
-        {
-          no: "060112",
-          sid: "S113",
-          name: "ゴテンウ",
-          birthday: "2007-04-18",
-          gender: "male",
-          category: "一般寮生",
-          room: "M114",
-          dorm: "men",
-          email: "go.tenu@tomoshibi.local",
-          phone: "090-3333-4444",
-          registeredAt: "2026-04-10",
-          lastLoginAt: "2026-04-23 19:30",
-          locked: false,
-          failedLoginCount: 0,
-        },
-        {
-          no: "060225",
-          sid: "S114",
-          name: "ヨウシエン",
-          birthday: "2008-08-25",
-          gender: "male",
-          category: "一般寮生",
-          room: "M115",
-          dorm: "men",
-          email: "you.shien@tomoshibi.local",
-          phone: "090-5555-6666",
-          registeredAt: "2026-04-10",
-          lastLoginAt: "2026-04-23 20:15",
-          locked: false,
-          failedLoginCount: 0,
-        },
-        {
-          no: "060108",
-          sid: "S013",
-          name: "リシンさん",
-          birthday: "2006-11-30",
-          gender: "female",
-          category: "一般寮生",
-          room: "W113",
-          dorm: "women",
-          email: "ri.shinsan@tomoshibi.local",
-          phone: "080-3333-4445",
-          registeredAt: "2026-04-10",
-          lastLoginAt: "2026-04-23 19:00",
-          locked: false,
-          failedLoginCount: 0,
-        },
-        {
-          no: "060214",
-          sid: "S014",
-          name: "ソンキゼン",
-          birthday: "2009-02-07",
-          gender: "female",
-          category: "一般寮生",
-          room: "W114",
-          dorm: "women",
-          email: "son.kizen@tomoshibi.local",
-          phone: "080-5555-6667",
-          registeredAt: "2026-04-10",
-          lastLoginAt: "2026-04-23 18:40",
-          locked: false,
-          failedLoginCount: 0,
-        },
-        {
-          no: "060121",
-          sid: "S015",
-          name: "ゴキンウ",
-          birthday: "2007-06-13",
-          gender: "female",
-          category: "一般寮生",
-          room: "W115",
-          dorm: "women",
-          email: "go.kinu@tomoshibi.local",
-          phone: "080-7777-8889",
-          registeredAt: "2026-04-10",
-          lastLoginAt: "2026-04-23 21:05",
-          locked: false,
-          failedLoginCount: 0,
-        },
-      ];
-
-      // Helpers
-      window.dormLabel = (d) => (d === "men" ? "男性寮" : "女性寮");
-      window.seedStudents = (dorm) => {
-        const src = dorm === "men" ? window.ROSTER_MEN : window.ROSTER_WOMEN;
-        return src.map(([room, id, name]) => ({
-          key: id,
-          id,
-          room,
-          name,
-          dorm,
-          status: "unknown",
-          checkinAt: null,
-          health: null,
-          pending: null,
-          override: null,
-          exemptReason: null,
-        }));
-      };
     </script>
     <script type="text/babel" data-source="components/login.jsx">
       // /login — 实名账户 2 屏合一登录（2026-05-27 拍板，取代旧共用密码版）
@@ -22713,7 +22579,7 @@
       function CommunityPage({ teacher }) {
         const T = window.RYO;
         const [tab, setTab] = React.useState("board");
-        const [posts, setPosts] = React.useState(window.COMMUNITY_POSTS);
+        const [posts, setPosts] = React.useState([]); // A6/codex: 掲示板 无后端，去假数据空状态
         const [filter, setFilter] = React.useState("all");
         const [slotFilter, setSlotFilter] = React.useState("all"); // song tab 専用: all / morning / evening
 
@@ -26180,6 +26046,13 @@
             return;
           }
           const ids = parseStudentIds(fStudentIds);
+          // A7/codex: 提交前校验 UUID 格式，非法明确提示而不是 send 给后端吃 422
+          const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          const badId = ids.find((id) => !uuidRe.test(id));
+          if (badId) {
+            setFError(`関係学生IDの形式が不正です（UUID形式が必要）: ${badId}`);
+            return;
+          }
           setFSubmitting(true);
           setFError(null);
 
@@ -27393,7 +27266,6 @@
         };
 
         // Task #6 真接口对接: rollcallStart + rollcallBoard を呼び backend で session 起動。
-        // backend 不可達 / session が見つからない場合は window.seedStudents の demo fallback へ。
         // backend RollCallBoardEntry → 内部 student shape へ変換:
         //   {student_id, student_no, name, room_no, base_status, checked_in_at}
         //   → {key, id, room, name, dorm, status, checkinAt, health, pending, override, exemptReason}
