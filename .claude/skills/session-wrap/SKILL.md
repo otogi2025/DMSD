@@ -1097,6 +1097,18 @@ itsuki 说「收尾」后，**不希望再看到任何「要不要我做 X / 你
 
 机制依据：memory `feedback_no_handoff_work_back_to_itsuki` + `feedback_overruled_rule_means_update_rule` + `feedback_mechanism_over_self_discipline`。
 
+### §7.6.7 收尾唯一红线 = 不 push，其余全部 CC 自主直接做（2026-05-30 itsuki 二次拍板）
+
+itsuki 2026-05-30 再次怒怼：收尾时 CC 还在反问「要不要 dump AC / 要不要记 memory / 这个文档 /goal 会读吗」。把红线划死：
+
+**收尾时 CC 唯一不能自作主张的只有一件事：`git push`。** 除 push 外，全部自主直接做、不问：
+
+- commit（本地）/ 改任何文件 / raw 落地 / memory 写入 / TODO 刷新 / 文档修正 / 改 skill / 改 hook —— 一律直接做掉
+- **不要因为「怕改错 / 怕被别的会话覆盖 / 怕 itsuki 不想要」而反问或跳过** — itsuki 原话「**后期再改再修都无所谓**」，先做了再说
+- 收尾报告里**一个「要不要我…」的问号都不该有**（除非是 §7.6.2「❌ 不能关」里必须 itsuki 拍板的大决策 —— 那也是陈述「要你做 X」，不是「要不要我做 X」）
+
+反模式（itsuki 2026-05-30 第二次明确）：「要不要我 dump / 要不要记 memory / 这文档 /goal 会读吗 → 那我自己重做」这种**先抛问题再自己答**的来回 = 浪费 itsuki 一次回复，等于没收尾。直接做完，最后只留一句可否关闭。
+
 ---
 
 ## §7.7 收尾执行纪律 — 防工具调用解析失败（2026-05-28 itsuki 拍板加）
