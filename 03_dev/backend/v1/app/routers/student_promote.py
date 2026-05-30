@@ -61,10 +61,12 @@ def bulk_promote(
     4. dry_run=True → 只返回预览列表，不写 DB
     5. dry_run=False → 真改 + 写 audit_logs
     """
-    # 1. 查询 active 真实学生
+    # 1. 查询 active 真实学生（只取 grade_code 合法的 '01'~'06'，跳过脏数据防 500）
+    _VALID_GRADES = ["01", "02", "03", "04", "05", "06"]
     stmt = select(models.Student).where(
         models.Student.status == "active",
         models.Student.is_demo.is_(False),
+        models.Student.grade_code.in_(_VALID_GRADES),
     )
 
     # 2. 可选年级过滤

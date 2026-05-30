@@ -1359,7 +1359,8 @@ class DeviceToken(Base):
     __table_args__ = (
         CheckConstraint("platform IN ('ios','android')", name="ck_dt_platform"),
         Index("idx_dt_student_active", "student_id", "revoked_at"),
-        Index("idx_dt_token", "token"),
+        # token 全局唯一（同一 token 换 student_id 前必须先 revoke）
+        UniqueConstraint("token", name="uq_dt_token"),
     )
 
 

@@ -17,9 +17,9 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas
 from ..database import get_db
@@ -108,10 +108,11 @@ def create_guidance(
 )
 def list_guidance(
     student_id: UUID,
+    limit: int = Query(50, le=200),
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(get_current_teacher),
 ):
-    """老师查某学生全部指导记录（未软删的）。"""
+    """老师查某学生全部指导记录（未软删的）。limit 默认 50，最大 200。"""
     _require_guidance_role(teacher)
     _get_student_or_404(student_id, db)
 
@@ -122,6 +123,7 @@ def list_guidance(
             models.GuidanceRecord.deleted_at.is_(None),
         )
         .order_by(models.GuidanceRecord.guidance_date.desc())
+        .limit(limit)
     ).all()
     return schemas.GuidanceRecordListOut(
         items=[schemas.GuidanceRecordOut.model_validate(r) for r in rows]
@@ -166,9 +168,22 @@ def create_disclosure_request(
         reason=body.reason,
     )
     db.add(row)
+    db.flush()
+    db.add(
+        models.AuditLog(
+            actor_type="student",
+            actor_id=student.id,
+            action="guidance.disclosure.request",
+            target_type="guidance_disclosure_requests",
+            target_id=row.id,
+            payload={"student_id": str(student_id)},
+        )
+    )
     db.commit()
     db.refresh(row)
-    return schemas.GuidanceDisclosureRequestOut.model_validate(row)
+    # 手动加载 student relation 以满足 from_row 要求
+    _ = row.student
+    return schemas.GuidanceDisclosureRequestOut.from_row(row)
 
 
 # -----------------------------------------------------------------------
@@ -179,19 +194,25 @@ def create_disclosure_request(
     response_model=schemas.GuidanceDisclosureListOut,
 )
 def list_disclosure_requests(
+    include_revoked: bool = False,
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(get_current_teacher),
 ):
-    """老师查全部开示申请列表（按申请时间倒序）。"""
+    """老师查开示申请列表（按申请时间倒序）。
+    默认过滤 revoked_at IS NULL（未撤销），include_revoked=true 可看全部。
+    """
     _require_guidance_role(teacher)
 
-    rows = db.scalars(
-        select(models.GuidanceDisclosureRequest).order_by(
-            models.GuidanceDisclosureRequest.requested_at.desc()
-        )
-    ).all()
+    stmt = (
+        select(models.GuidanceDisclosureRequest)
+        .options(selectinload(models.GuidanceDisclosureRequest.student))
+        .order_by(models.GuidanceDisclosureRequest.requested_at.desc())
+    )
+    if not include_revoked:
+        stmt = stmt.where(models.GuidanceDisclosureRequest.revoked_at.is_(None))
+    rows = db.scalars(stmt).all()
     return schemas.GuidanceDisclosureListOut(
-        items=[schemas.GuidanceDisclosureRequestOut.model_validate(r) for r in rows]
+        items=[schemas.GuidanceDisclosureRequestOut.from_row(r) for r in rows]
     )
 
 
@@ -208,7 +229,11 @@ def decide_disclosure(
     """老师决定开示：全部开示 / 部分开示 / 拒绝。"""
     _require_guidance_role(teacher)
 
-    row = db.get(models.GuidanceDisclosureRequest, request_id)
+    row = db.scalar(
+        select(models.GuidanceDisclosureRequest)
+        .where(models.GuidanceDisclosureRequest.id == request_id)
+        .options(selectinload(models.GuidanceDisclosureRequest.student))
+    )
     if not row:
         raise HTTPException(
             status_code=404,
@@ -240,4 +265,5 @@ def decide_disclosure(
     )
     db.commit()
     db.refresh(row)
-    return schemas.GuidanceDisclosureRequestOut.model_validate(row)
+    _ = row.student  # 确保 relation 仍在 session 内
+    return schemas.GuidanceDisclosureRequestOut.from_row(row)

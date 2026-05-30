@@ -1176,7 +1176,6 @@ class BusRouteListOut(BaseModel):
     """GET /bus/routes 列表包装。"""
 
     items: list[BusRouteOut]
-    message: str = "アカウントのロックを解除しました。"
 
 
 # ---------------------------------------------------------------
@@ -1241,6 +1240,7 @@ class GuidanceDisclosureDecisionIn(BaseModel):
 class GuidanceDisclosureRequestOut(ORMModel):
     id: UUID
     student_id: UUID
+    student_no: str  # join Student 取学号（前端 DisclosureRequestsPage 显示用）
     reason: Optional[str]
     requested_at: datetime
     status: Literal["pending", "approved_full", "approved_partial", "rejected"]
@@ -1250,6 +1250,13 @@ class GuidanceDisclosureRequestOut(ORMModel):
     visible_from: Optional[date]
     visible_until: Optional[date]
     revoked_at: Optional[datetime]
+
+    @classmethod
+    def from_row(cls, row: object) -> "GuidanceDisclosureRequestOut":
+        """从 ORM row 构建，取 row.student.student_no。"""
+        data = {c: getattr(row, c) for c in cls.model_fields if c != "student_no"}
+        data["student_no"] = row.student.student_no  # type: ignore[union-attr]
+        return cls(**data)
 
 
 class GuidanceDisclosureListOut(BaseModel):
@@ -1411,7 +1418,9 @@ class BulkPromoteIn(BaseModel):
     dry_run: bool = True
     # 可选：只进级指定年级（如 ["04","05"] 只升高1高2，高3自动变 graduated）
     # None / 空列表 = 全员 active 学生
-    target_grade_codes: Optional[list[str]] = None
+    target_grade_codes: Optional[list[Annotated[str, Field(pattern=r"^0[1-6]$")]]] = (
+        None
+    )
 
 
 class BulkPromoteEntry(BaseModel):

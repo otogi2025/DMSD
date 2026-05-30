@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import get_current_teacher
+from ..deps import get_current_principal, get_current_teacher
 
 router = APIRouter(prefix="/api/v1/events", tags=["events"])
 
@@ -29,9 +29,6 @@ _EDIT_ROLES = {"寮務部長", "寮務課長", "管理係"}
 
 # 合法 category 值
 _VALID_CATEGORIES = {"学校行事", "寮行事", "外部", "その他"}
-
-# visible_to 合法值
-_VALID_VISIBLE_TO = {"all", "dorm_only", "men", "women"}
 
 
 def _require_edit_role(teacher: models.Teacher) -> None:
@@ -50,9 +47,9 @@ def list_events(
     from_date: date | None = None,
     to_date: date | None = None,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    _principal: models.Student | models.Teacher = Depends(get_current_principal),
 ):
-    """列行事予定 — 按日期范围过滤（from_date / to_date 均可选）。"""
+    """列行事予定 — 按日期范围过滤（from_date / to_date 均可选）。学生+老师均可看。"""
     stmt = select(models.DormEvent).order_by(models.DormEvent.event_date)
     if from_date:
         stmt = stmt.where(models.DormEvent.event_date >= from_date)

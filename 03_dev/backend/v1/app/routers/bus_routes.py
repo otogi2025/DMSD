@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import get_current_teacher
+from ..deps import get_current_principal, get_current_teacher
 
 router = APIRouter(prefix="/api/v1/bus/routes", tags=["bus"])
 
@@ -48,9 +48,9 @@ def list_bus_routes(
     kind: str | None = None,
     include_deprecated: bool = False,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    _principal: models.Student | models.Teacher = Depends(get_current_principal),
 ):
-    """列巴士便 — kind 可选过滤（daily_commute / dorm_special）。
+    """列巴士便 — kind 可选过滤（daily_commute / dorm_special）。学生+老师均可看。
     默认只返回有效便（deprecated=False）。
     """
     stmt = select(models.BusRoute).order_by(models.BusRoute.schedule_at)
@@ -76,9 +76,9 @@ def list_bus_routes(
 def get_bus_route(
     route_id: UUID,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    _principal: models.Student | models.Teacher = Depends(get_current_principal),
 ):
-    """取单条巴士便详情。"""
+    """取单条巴士便详情。学生+老师均可看。"""
     row = db.get(models.BusRoute, route_id)
     if not row:
         raise HTTPException(
@@ -135,7 +135,10 @@ def patch_bus_route(
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(get_current_teacher),
 ):
-    """役职老师编辑巴士便（部分更新）。"""
+    """役职老师编辑巴士便（部分更新）。
+    A9 审查结论：deprecated 软删可逆 — spec §7.6 无不可逆条款，
+    DELETE 只是标 deprecated=True，PATCH 允许役职老师改回 deprecated=False（恢复便）。
+    """
     _require_edit_role(teacher)
     row = db.get(models.BusRoute, route_id)
     if not row:
