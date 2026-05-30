@@ -353,7 +353,7 @@ class ApplicationApproval(Base):
 # 通知ログ (#6 R1)
 # ---------------------------------------------------------------
 NOTIFICATION_CHANNELS = ("email", "push", "in_app")
-NOTIFICATION_STATUSES = ("pending", "sent", "failed", "retrying")
+NOTIFICATION_STATUSES = ("pending", "sent", "failed", "retrying", "skipped_no_provider")
 
 
 class NotificationLog(Base):
@@ -381,7 +381,8 @@ class NotificationLog(Base):
             "channel IN ('email','push','in_app')", name="ck_notif_channel"
         ),
         CheckConstraint(
-            "status IN ('pending','sent','failed','retrying')", name="ck_notif_status"
+            "status IN ('pending','sent','failed','retrying','skipped_no_provider')",
+            name="ck_notif_status",
         ),
         CheckConstraint(
             "target_type IN ('student','teacher','role')", name="ck_notif_target_type"
@@ -1325,6 +1326,40 @@ class GuidanceDisclosureRequest(Base):
         ),
         Index("idx_gdr_student_status", "student_id", "status"),
         Index("idx_gdr_status_requested", "status", "requested_at"),
+    )
+
+
+# ---------------------------------------------------------------
+# 设备推送令牌 — spec §7.13
+# ---------------------------------------------------------------
+class DeviceToken(Base):
+    """学生设备的 APNs / FCM 推送令牌。
+
+    同一学生可以有多个设备（手机 + iPad 等）。
+    token 全局唯一（同一个 token 换了 student_id 应该先 revoke 再重新注册，但 DB 层只做 unique index）。
+    """
+
+    __tablename__ = "device_tokens"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id", ondelete="CASCADE"), nullable=False
+    )
+    # 'ios' = APNs device token / 'android' = FCM registration token
+    platform: Mapped[str] = mapped_column(String(8), nullable=False)
+    token: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    # App 每次启动时更新，用来判断 token 是否还活跃
+    last_seen_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    # 软删 — revoked_at 非 NULL 表示已失效（App 卸载、用户注销等）
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        CheckConstraint("platform IN ('ios','android')", name="ck_dt_platform"),
+        Index("idx_dt_student_active", "student_id", "revoked_at"),
+        Index("idx_dt_token", "token"),
     )
 
 

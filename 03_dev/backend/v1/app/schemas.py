@@ -1435,3 +1435,24 @@ class BulkPromoteOut(BaseModel):
     graduate_count: int  # 高 3 → graduated 的学生数
     total_affected: int
     entries: list[BulkPromoteEntry]
+
+
+# ---------------------------------------------------------------
+# 推送令牌 — spec §7.13
+# ---------------------------------------------------------------
+class DeviceTokenRegisterIn(BaseModel):
+    """POST /api/v1/notifications/device-token 请求体。"""
+
+    platform: Literal["ios", "android"]
+    token: str = Field(..., min_length=10, max_length=512)
+
+
+class DeviceTokenRegisterOut(BaseModel):
+    """POST /api/v1/notifications/device-token 响应。"""
+
+    id: UUID
+    student_id: UUID
+    platform: str
+    created: bool  # True = 新建, False = 幂等更新（已有 token 更新 last_seen_at）
+
+    model_config = ConfigDict(from_attributes=True)
