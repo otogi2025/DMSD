@@ -10035,14 +10035,11 @@
       window.LATE_THRESHOLD_SEC = 180; // 3 min — late auto transition
       // FC-024 修复: 删 window.SHARED_PASSWORD = '12345678' 明文密码（v1.0 上线前必修）
       // LoginScreen 改 POST {API_BASE}/sessions/teacher 走 backend 真实认证。
-      // standalone HTML 跑在 8787（Python 静态服务器）时 backend 在 8000 → 绝对 URL +
-      // backend CORS 已加 8787 来源（03_dev/backend/v1/app/config.py:56）。
-      // 同 origin 部署（FastAPI StaticFiles）时把这行改回 "/api/v1"。
-      window.API_BASE = "http://localhost:8000/api/v1";
-      // DEMO 模式開关: URL ?demo=1 → DemoConsole/NFC sim 表示。生产 (no flag) → DEMO scaffold 隐藏。
-      // §7.3.8 + memory project_demo_scaffolds_to_remove_before_v1: v1.0 上线必删 — URL gate 安全保留。
-      window.DEMO_MODE = new URLSearchParams(location.search).has("demo");
-      window.APP_VERSION = window.DEMO_MODE ? "v0.1.0-demo" : "v1.0.0-alpha";
+      // 生产：网页由 FastAPI StaticFiles 同 origin 提供 → 相对 /api/v1 直接生效。
+      // 开发 standalone 单跑（python http.server 8787，backend 在 8000）时手动改成
+      // "http://localhost:8000/api/v1" 并确认 backend CORS 已加 8787 来源（config.py:56）。
+      window.API_BASE = "/api/v1";
+      window.APP_VERSION = "v1.0.0-alpha";
 
       // ⭐ Teachers (initial)
       window.TEACHERS = [
@@ -12431,516 +12428,13 @@
                   </div>
                 ))}
             </div>
-
-            {/* ⭐ 手机デモ用・iOS ショートカット貼り付け URL */}
-            <ShortcutsDemoCard />
           </div>
         );
       }
 
-      function ShortcutsDemoCard() {
-        const T = window.RYO;
-        const LS_KEY = "tomoshibi.demo.host";
-        const [host, setHost] = React.useState(
-          () => localStorage.getItem(LS_KEY) || "192.168.1.100:8080",
-        );
-        const [auto, setAuto] = React.useState(false); // true = サーバーが自動検出した IP
-        const [no, setNo] = React.useState(
-          window.DEMO_SEED_NO || (window.ACCOUNTS || [{}])[0].no || "",
-        );
-        const [copied, setCopied] = React.useState(false);
-
-        // demo_server.py の /api/server-info から LAN IP を自動取得（失敗時は手動入力にフォールバック）
-        React.useEffect(() => {
-          fetch("/api/server-info", { cache: "no-store" })
-            .then((r) => (r.ok ? r.json() : null))
-            .then((info) => {
-              if (info && info.primary && info.port) {
-                setHost(`${info.primary}:${info.port}`);
-                setAuto(true);
-              }
-            })
-            .catch(() => {});
-        }, []);
-
-        React.useEffect(() => {
-          if (!auto) localStorage.setItem(LS_KEY, host);
-        }, [host, auto]);
-
-        const accounts = window.ACCOUNTS || [];
-        const url = `http://${host}/checkin?no=${no}`;
-
-        const copy = async () => {
-          try {
-            await navigator.clipboard.writeText(url);
-          } catch (e) {
-            const ta = document.createElement("textarea");
-            ta.value = url;
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand("copy");
-            document.body.removeChild(ta);
-          }
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1800);
-        };
-
-        return (
-          <div
-            style={{
-              marginTop: 20,
-              background: T.surface,
-              border: `1px solid ${T.line}`,
-              borderRadius: 10,
-              padding: "8px 12px",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              flexWrap: "wrap",
-            }}
-          >
-            <span style={{ fontSize: 11, color: T.ink3, fontWeight: 600 }}>
-              📱 ショートカット URL
-            </span>
-            {auto ? (
-              <span
-                title="demo_server.py から自動検出"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                  padding: "5px 10px",
-                  background: T.okSoft,
-                  color: T.ok,
-                  border: `1px solid ${T.okBorder}`,
-                  borderRadius: 6,
-                  fontFamily: T.mono,
-                  fontSize: 11,
-                  fontWeight: 600,
-                }}
-              >
-                <span
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: 3,
-                    background: T.ok,
-                  }}
-                />
-                {host}
-              </span>
-            ) : (
-              <input
-                value={host}
-                onChange={(e) => setHost(e.target.value)}
-                placeholder="192.168.1.100:8080"
-                style={{
-                  width: 160,
-                  padding: "5px 8px",
-                  background: T.surfaceAlt,
-                  color: T.ink,
-                  border: `1px solid ${T.lineStrong}`,
-                  borderRadius: 6,
-                  fontFamily: T.mono,
-                  fontSize: 11,
-                  outline: "none",
-                }}
-              />
-            )}
-            <select
-              value={no}
-              onChange={(e) => setNo(e.target.value)}
-              style={{
-                padding: "5px 8px",
-                background: T.surface,
-                border: `1px solid ${T.lineStrong}`,
-                borderRadius: 6,
-                fontFamily: "inherit",
-                fontSize: 11,
-                color: T.ink,
-                outline: "none",
-              }}
-            >
-              {accounts.map((a) => (
-                <option key={a.no} value={a.no}>
-                  {a.no} · {a.name}
-                </option>
-              ))}
-            </select>
-            <div
-              style={{
-                flex: 1,
-                minWidth: 200,
-                padding: "5px 10px",
-                background: T.surfaceAlt,
-                color: T.ink,
-                border: `1px solid ${T.line}`,
-                borderRadius: 6,
-                fontFamily: T.mono,
-                fontSize: 11,
-                whiteSpace: "nowrap",
-                overflow: "auto",
-                userSelect: "all",
-              }}
-            >
-              {url}
-            </div>
-            <button
-              onClick={copy}
-              style={{
-                padding: "5px 14px",
-                background: copied ? T.ok : T.cobalt,
-                color: "#fff",
-                border: "none",
-                borderRadius: 6,
-                fontFamily: "inherit",
-                fontSize: 11,
-                fontWeight: 600,
-                cursor: "pointer",
-                minWidth: 64,
-              }}
-            >
-              {copied ? "✓" : "コピー"}
-            </button>
-          </div>
-        );
-      }
-
-      function Stat({ label, value, suffix, color, note, onClick }) {
-        const T = window.RYO;
-        return (
-          <button
-            onClick={onClick}
-            style={{
-              background: T.surface,
-              border: `1px solid ${T.line}`,
-              borderRadius: 12,
-              padding: "14px 16px",
-              boxShadow: T.shadow1,
-              textAlign: "left",
-              fontFamily: "inherit",
-              cursor: onClick ? "pointer" : "default",
-            }}
-          >
-            <div
-              style={{
-                fontSize: 11,
-                color: T.ink3,
-                letterSpacing: 1.2,
-                fontWeight: 600,
-                textTransform: "uppercase",
-              }}
-            >
-              {label}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "baseline",
-                gap: 6,
-                marginTop: 6,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 30,
-                  fontWeight: 700,
-                  color: color || T.ink,
-                  fontFamily: T.mono,
-                }}
-              >
-                {value}
-              </span>
-              {suffix && (
-                <span
-                  style={{ fontSize: 13, color: T.ink3, fontFamily: T.mono }}
-                >
-                  {suffix}
-                </span>
-              )}
-            </div>
-            {note && (
-              <div style={{ fontSize: 11, color: T.ink3, marginTop: 4 }}>
-                {note}
-              </div>
-            )}
-          </button>
-        );
-      }
-
-      function TrendChart({ trend, onBarClick }) {
-        const T = window.RYO;
-        const max = Math.max(3, ...trend.map((d) => d.late + d.absent));
-        const [hover, setHover] = React.useState(null);
-        return (
-          <div
-            style={{
-              background: T.surface,
-              border: `1px solid ${T.line}`,
-              borderRadius: 12,
-              padding: "18px 22px",
-              boxShadow: T.shadow1,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "baseline",
-                gap: 10,
-                marginBottom: 14,
-              }}
-            >
-              <div style={{ fontSize: 14, fontWeight: 700 }}>
-                最近 7 日 遅刻・欠席トレンド
-              </div>
-              <div style={{ fontSize: 11, color: T.ink3 }}>
-                バーをクリックで該当日の記録へ
-              </div>
-              <div style={{ flex: 1 }} />
-              <Legend c={T.late} label="遅刻" />
-              <Legend c={T.danger} label="欠席" />
-            </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: `repeat(${trend.length}, 1fr)`,
-                gap: 10,
-                alignItems: "end",
-                height: 140,
-                position: "relative",
-              }}
-            >
-              {trend.map((d, i) => {
-                const total = d.late + d.absent;
-                const h = total === 0 ? 6 : (total / max) * 120;
-                const lateH = total === 0 ? 0 : (d.late / max) * 120;
-                const absH = total === 0 ? 0 : (d.absent / max) * 120;
-                return (
-                  <button
-                    key={i}
-                    onMouseEnter={() => setHover(i)}
-                    onMouseLeave={() => setHover(null)}
-                    onClick={() => onBarClick(d.date)}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "flex-end",
-                      padding: 0,
-                      fontFamily: "inherit",
-                      position: "relative",
-                      height: "100%",
-                    }}
-                  >
-                    {hover === i && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          bottom: h + 10,
-                          background: T.ink,
-                          color: "#fff",
-                          fontSize: 11,
-                          padding: "5px 9px",
-                          borderRadius: 6,
-                          whiteSpace: "nowrap",
-                          fontFamily: T.mono,
-                          zIndex: 2,
-                        }}
-                      >
-                        {d.date} · 遅刻 {d.late} / 欠席 {d.absent}
-                      </div>
-                    )}
-                    <div
-                      style={{
-                        width: "72%",
-                        maxWidth: 40,
-                        display: "flex",
-                        flexDirection: "column",
-                      }}
-                    >
-                      {d.absent > 0 && (
-                        <div
-                          style={{
-                            height: absH,
-                            background: T.danger,
-                            borderTopLeftRadius: 3,
-                            borderTopRightRadius: 3,
-                          }}
-                        />
-                      )}
-                      {d.late > 0 && (
-                        <div
-                          style={{
-                            height: lateH,
-                            background: T.late,
-                            borderTopLeftRadius: d.absent === 0 ? 3 : 0,
-                            borderTopRightRadius: d.absent === 0 ? 3 : 0,
-                          }}
-                        />
-                      )}
-                      {total === 0 && (
-                        <div
-                          style={{
-                            height: 4,
-                            background: T.line,
-                            borderRadius: 2,
-                          }}
-                        />
-                      )}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 10,
-                        color: T.ink3,
-                        marginTop: 6,
-                        fontFamily: T.mono,
-                      }}
-                    >
-                      {d.date.slice(5)}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        );
-      }
-
-      function Legend({ c, label }) {
-        const T = window.RYO;
-        return (
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              fontSize: 11,
-              color: T.ink2,
-            }}
-          >
-            <span
-              style={{ width: 10, height: 10, background: c, borderRadius: 2 }}
-            />
-            {label}
-          </span>
-        );
-      }
-
-      function NfcQuickUrlCard() {
-        const T = window.RYO;
-        const [info, setInfo] = React.useState(null);
-        const [no, setNo] = React.useState(
-          window.DEMO_SEED_NO || (window.ACCOUNTS || [{}])[0].no || "",
-        );
-        const [copied, setCopied] = React.useState(false);
-
-        React.useEffect(() => {
-          fetch("/api/server-info", { cache: "no-store" })
-            .then((r) => (r.ok ? r.json() : null))
-            .then(setInfo)
-            .catch(() => setInfo(null));
-        }, []);
-
-        const fullUrl = info
-          ? `http://${info.primary}:${info.port}/checkin?no=${no}`
-          : "";
-
-        const copy = async () => {
-          if (!fullUrl) return;
-          try {
-            await navigator.clipboard.writeText(fullUrl);
-          } catch (e) {
-            const ta = document.createElement("textarea");
-            ta.value = fullUrl;
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand("copy");
-            document.body.removeChild(ta);
-          }
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        };
-
-        if (!info) return null;
-
-        return (
-          <div
-            style={{
-              background: T.surface,
-              border: `1px solid ${T.line}`,
-              borderRadius: 10,
-              padding: "10px 14px",
-              marginBottom: 20,
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-            }}
-          >
-            <select
-              value={no}
-              onChange={(e) => setNo(e.target.value)}
-              style={{
-                padding: "6px 10px",
-                background: T.surface,
-                border: `1px solid ${T.lineStrong}`,
-                borderRadius: 6,
-                fontFamily: "inherit",
-                fontSize: 12,
-                color: T.ink,
-                outline: "none",
-                minWidth: 190,
-              }}
-            >
-              {(window.ACCOUNTS || []).map((a) => (
-                <option key={a.no} value={a.no}>
-                  番号 {a.no} · {a.name}
-                </option>
-              ))}
-            </select>
-            <div
-              style={{
-                flex: 1,
-                padding: "6px 10px",
-                background: T.surfaceAlt,
-                color: T.ink,
-                border: `1px solid ${T.line}`,
-                borderRadius: 6,
-                fontFamily: T.mono,
-                fontSize: 12,
-                whiteSpace: "nowrap",
-                overflow: "auto",
-                userSelect: "all",
-              }}
-            >
-              {fullUrl}
-            </div>
-            <button
-              onClick={copy}
-              style={{
-                padding: "6px 14px",
-                background: copied ? T.ok : T.cobalt,
-                color: "#fff",
-                border: "none",
-                borderRadius: 6,
-                fontFamily: "inherit",
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: "pointer",
-                minWidth: 72,
-              }}
-            >
-              {copied ? "✓" : "コピー"}
-            </button>
-          </div>
-        );
-      }
 
       window.RollCallLanding = RollCallLanding;
       window.NfcQuickUrlCard = NfcQuickUrlCard;
-      window.ShortcutsDemoCard = ShortcutsDemoCard;
     </script>
     <script type="text/babel" data-source="components/live-roll-call.jsx">
       // Live roll-call with late state + forecast bar + demo console + 12-student grid.
@@ -12986,90 +12480,6 @@
           }
         }, [elapsed >= window.LATE_THRESHOLD_SEC]); // eslint-disable-line
 
-        // ⭐ NFC/iPhone Shortcut 点呼受信（/events/latest を 1 秒ごとに poll）
-        // itsuki のデモ構成（2026-04-22 拍板）：
-        //   iPhone 快捷指令 → POST /checkin?no=XX → 本 effect が検知 → 座席変色 + 日本語読み上げ
-        React.useEffect(() => {
-          let initialSeq = null;
-          let mounted = true;
-          const speak = (name) => {
-            if (!window.speechSynthesis) return;
-            try {
-              window.speechSynthesis.cancel();
-              const u = new SpeechSynthesisUtterance(name);
-              u.lang = "ja-JP";
-              u.rate = 0.95;
-              u.pitch = 1.0;
-              u.volume = 1.0;
-              window.speechSynthesis.speak(u);
-            } catch (e) {
-              /* silent */
-            }
-          };
-          const poll = async () => {
-            if (!mounted) return;
-            try {
-              const r = await fetch("/events/latest", { cache: "no-store" });
-              if (!r.ok) return;
-              const ev = await r.json();
-              if (!ev || typeof ev.seq !== "number") return;
-              if (initialSeq === null) {
-                initialSeq = ev.seq;
-                lastBroadcastRef.current = ev.seq;
-                return;
-              }
-              if (ev.seq === lastBroadcastRef.current) return;
-              lastBroadcastRef.current = ev.seq;
-
-              const acct = (window.ACCOUNTS || []).find((a) => a.no === ev.no);
-              if (!acct) {
-                console.warn("[NFC] 不明な番号:", ev.no);
-                setNfcStatus("error");
-                setTimeout(() => {
-                  if (mounted) setNfcStatus("idle");
-                }, 2500);
-                return;
-              }
-
-              // 担当寮と違う学生 → 警告しつつ無視
-              setStudents((list) => {
-                const s = list.find((x) => x.id === acct.sid);
-                if (!s) {
-                  console.warn("[NFC] この session にない学生:", acct.name);
-                  return list;
-                }
-                const d = new Date();
-                const t = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
-                const isLate =
-                  (Date.now() - startedAt) / 1000 >= window.LATE_THRESHOLD_SEC;
-                speak(acct.name);
-                setNfcStatus("ok");
-                setLastSeq(ev.seq);
-                setTimeout(() => {
-                  if (mounted) setNfcStatus("idle");
-                }, 3000);
-                return list.map((x) =>
-                  x.id === acct.sid
-                    ? {
-                        ...x,
-                        status: isLate ? "late" : "ok",
-                        checkinAt: t,
-                        nfcHighlight: Date.now(),
-                      }
-                    : x,
-                );
-              });
-            } catch (e) {
-              /* server off / file:// mode → silent */
-            }
-          };
-          const id = setInterval(poll, 1000);
-          poll();
-          return () => {
-            mounted = false;
-            clearInterval(id);
-          };
-        }, [setStudents, startedAt]);
 
         const cnt = students.reduce((a, s) => {
           a[s.status] = (a[s.status] || 0) + 1;
@@ -13279,26 +12689,10 @@
               {/* DEMO-ONLY scaffold (§7.3.8 + project_demo_scaffolds_to_remove_before_v1):
                   URL ?demo=1 时显示、生产モード (デフォルト) では非表示。
                   itsuki memory 「v1.0 上线前必删」を、URL param gate で安全に保留。 */}
-              {window.DEMO_MODE && showConsole && (
-                <DemoConsole
-                  students={students}
-                  onSim={simCheckin}
-                  onClose={() => setShowConsole(false)}
-                  onReset={onReset}
-                />
-              )}
               {showLegend && (
                 <LegendPanel onClose={() => setShowLegend(false)} />
               )}
               <div style={{ display: "flex", gap: 8 }}>
-                {window.DEMO_MODE && (
-                  <button
-                    onClick={() => setShowConsole(!showConsole)}
-                    style={fabBtn(T, showConsole)}
-                  >
-                    🔧 デモコンソール
-                  </button>
-                )}
                 <button
                   onClick={() => setShowLegend(!showLegend)}
                   style={fabBtn(T, showLegend)}
@@ -13687,101 +13081,6 @@
         );
       }
 
-      function DemoConsole({ students, onSim, onClose, onReset }) {
-        const T = window.RYO;
-        return (
-          <div
-            style={{
-              width: 420,
-              background: T.surface,
-              border: `1px solid ${T.line}`,
-              borderRadius: 12,
-              boxShadow: T.shadow2,
-              padding: 16,
-            }}
-          >
-            <div
-              style={{ display: "flex", alignItems: "center", marginBottom: 8 }}
-            >
-              <div style={{ fontSize: 12, fontWeight: 700, flex: 1 }}>
-                デモコンソール
-              </div>
-              <button
-                onClick={onReset}
-                style={{
-                  border: `1px solid ${T.lineStrong}`,
-                  background: "transparent",
-                  color: T.ink3,
-                  cursor: "pointer",
-                  fontSize: 11,
-                  padding: "3px 8px",
-                  borderRadius: 6,
-                  marginRight: 6,
-                }}
-              >
-                全リセット
-              </button>
-              <button
-                onClick={onClose}
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  color: T.ink3,
-                  cursor: "pointer",
-                  fontSize: 14,
-                }}
-              >
-                ×
-              </button>
-            </div>
-            <div
-              style={{
-                fontSize: 11,
-                color: T.ink3,
-                marginBottom: 10,
-                lineHeight: 1.5,
-              }}
-            >
-              NFC 読み取りに失敗した場合、以下のボタンでシミュレーション可能。
-            </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2, 1fr)",
-                gap: 5,
-                maxHeight: 280,
-                overflowY: "auto",
-              }}
-            >
-              {students.map((s) => (
-                <button
-                  key={s.key}
-                  onClick={() => onSim(s)}
-                  disabled={s.status === "ok" || s.status === "late"}
-                  style={{
-                    padding: "6px 8px",
-                    background: "transparent",
-                    border: `1px dashed ${T.lineStrong}`,
-                    borderRadius: 6,
-                    fontFamily: T.mono,
-                    fontSize: 10,
-                    color: T.ink2,
-                    cursor: "pointer",
-                    textAlign: "left",
-                    opacity: s.status === "ok" || s.status === "late" ? 0.4 : 1,
-                  }}
-                >
-                  {s.id} シミュレーション
-                  <br />
-                  <span style={{ color: T.ink3, fontFamily: window.RYO.font }}>
-                    {s.name}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      }
 
       window.LiveRollCall = LiveRollCall;
     </script>
@@ -25825,8 +25124,21 @@
               (event) => {
                 // event.type: 'checkin' | 'outstay_new' | 'override' | ...
                 if (event.type === "checkin" && event.student_id) {
-                  setStudents((list) =>
-                    list.map((s) =>
+                  setStudents((list) => {
+                    // 生産：WebSocket 経由の checkin で日本語名読み上げ（旧 demo poll から移植）
+                    const hit = list.find((s) => s.key === event.student_id);
+                    if (hit && hit.name && window.speechSynthesis) {
+                      try {
+                        window.speechSynthesis.cancel();
+                        const u = new SpeechSynthesisUtterance(hit.name);
+                        u.lang = "ja-JP";
+                        u.rate = 0.95;
+                        window.speechSynthesis.speak(u);
+                      } catch (e) {
+                        /* 読み上げ失敗は無視 */
+                      }
+                    }
+                    return list.map((s) =>
                       s.key === event.student_id
                         ? {
                             ...s,
@@ -25836,8 +25148,8 @@
                               new Date().toTimeString().slice(0, 8),
                           }
                         : s,
-                    ),
-                  );
+                    );
+                  });
                 } else if (event.type === "outstay_new" && event.student_id) {
                   setStudents((list) =>
                     list.map((s) =>
