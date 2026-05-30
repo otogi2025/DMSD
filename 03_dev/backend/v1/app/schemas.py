@@ -794,8 +794,9 @@ class StudentAccountCreateIn(BaseModel):
     seat_no: str = Field(..., min_length=2, max_length=2, pattern=r"^\d{2}$")
     category: str = Field(default="一般寮生", max_length=32)
     room_no: str = Field(..., min_length=3, max_length=8)
-    # spec §5.0：dorm_unit ↔ room_no 前缀一致（1/2 = M*** male，4 = W*** female）
-    dorm_unit: int = Field(..., ge=1, le=4)
+    # spec §5.0：寮号只有 1/2（男寮）、4（女寮）— 没有 3，与 models.py CHECK 约束对齐
+    # B10：原来 ge=1, le=4 允许 3，DB CHECK 只接受 1/2/4，改为 Literal 精确限定
+    dorm_unit: Literal[1, 2, 4]
     is_overseas: bool = False
     email: Optional[EmailStr] = None
     phone: Optional[str] = Field(None, max_length=32)
@@ -803,13 +804,7 @@ class StudentAccountCreateIn(BaseModel):
     # 老师在后台生成的 6 桁码（5 分钟内有效）
     registration_code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
 
-    @field_validator("dorm_unit")
-    @classmethod
-    def _check_dorm_unit(cls, v: int) -> int:
-        # spec §5.0：寮号只有 1/2（男寮）、4（女寮）— 没有 3，与 models.py CHECK 约束对齐
-        if v not in (1, 2, 4):
-            raise ValueError("dorm_unit 必须是 1 / 2（男寮）或 4（女寮）")
-        return v
+    # B10：validator 已删 — Literal[1,2,4] 本身就拦 3，无需额外校验器
 
 
 class StudentAccountCreateOut(BaseModel):

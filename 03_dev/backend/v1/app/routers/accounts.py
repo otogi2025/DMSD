@@ -9,6 +9,7 @@
 注：本文件下面 raise 的 detail.message 字段是给学生用户看的 UI 文案，
 按 spec §7.16.2 规则 7 固定为日语；这与「注释一律中文」规则不冲突。
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -20,6 +21,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas, security
 from ..config import get_settings
 from ..database import get_db
+from ..deps import get_current_student
 
 router = APIRouter(prefix="/api/v1/accounts", tags=["accounts"])
 
@@ -80,9 +82,7 @@ def _validate_registration_code(
     response_model=schemas.StudentAccountCreateOut,
     status_code=status.HTTP_201_CREATED,
 )
-def create_account(
-    body: schemas.StudentAccountCreateIn, db: Session = Depends(get_db)
-):
+def create_account(body: schemas.StudentAccountCreateIn, db: Session = Depends(get_db)):
     """学生新规注册 — 必须传 registration_code。
 
     §5.1.5 处理流程：
@@ -170,6 +170,11 @@ def create_account(
             payload={"student_no": student.student_no},
         )
     )
+
+    # B7 存疑：不改。spec §7.16.2 规则 5 明确「注册码本身可重用
+    # （有效期内多个学生可用同一码注册）」— 集团登记场景，设计是有意的多人共用 5 分钟窗口。
+    # invalidated_at 只在 /refresh 生成新码时由 admin_registration_code.py 设置，
+    # 注册成功本身不作废码，行为正确。
     db.commit()
     db.refresh(student)
 
@@ -190,3 +195,48 @@ def create_account(
         expires_in=settings.jwt_access_expire_min * 60,
         student=schemas.StudentBrief.model_validate(student),
     )
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_account_me(
+    student: models.Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
+    """B2 — 学生自己删除账号（App Store 审核规则 5.1.1(v) 强制要求）。
+
+    设计选择：软删除（保留历史记录完整性）
+    - Student.status → 'deleted'（点呼历史 / 申请历史不物理删，保留审计用）
+    - Account 行保留但 password_hash 清空（防止继续登录）
+    - 写 AuditLog 留痕
+
+    Account.student_id 有 ondelete='CASCADE'，
+    但物理删 Student 会连锁删 Account + 所有申请历史 — 违反审计完整性，
+    所以选软删而非 db.delete()。
+    """
+    now = datetime.now(timezone.utc)
+
+    # 软删 Student — 用 'paused' 状态（已在 ck_students_status CHECK 枚举里）
+    # 'deleted' 不在 CHECK 枚举，物理删除会破坏点呼/申请历史审计完整性，
+    # 所以用 paused 表示"账号已停用/自删"，保留所有历史行
+    student.status = "paused"
+
+    # Account：清密码哈希防止继续登录，保留行本身（历史审计用）
+    account = db.scalars(
+        select(models.Account).where(models.Account.student_id == student.id)
+    ).first()
+    if account:
+        account.password_hash = ""  # 清空哈希，bcrypt 永远无法匹配
+
+    # 审计日志
+    db.add(
+        models.AuditLog(
+            actor_type="student",
+            actor_id=student.id,
+            action="account.delete_self",
+            target_type="student",
+            target_id=student.id,
+            payload={"student_no": student.student_no, "deleted_at": now.isoformat()},
+        )
+    )
+    db.commit()
+    return  # 204 No Content

@@ -7,6 +7,10 @@ P0 範囲では POST /applications / GET /applications/:id 等が
     - 教师端权限高（改判 / 发邀请码 / 解 NFC 绑定），蛮力破解危害大
     - 3 次失败 → 锁 30 分钟（学生端阈值待主会话拍板 A-005）
     - 用 teachers.failed_count + teachers.locked_until 字段（已存在）
+
+2026-05-30 加：
+    - DELETE /sessions/current — B1 无状态登出（JWT 客户端丢弃即可）
+    - 学生 login 失败计数 + 锁定 — B6（照抄教师逻辑，用 accounts 表字段）
 """
 
 from __future__ import annotations
@@ -20,12 +24,17 @@ from sqlalchemy.orm import Session
 from .. import models, schemas, security
 from ..config import get_settings
 from ..database import get_db
+from ..deps import get_current_student  # B1 登出端点用
 
 router = APIRouter(prefix="/api/v1/sessions", tags=["auth"])
 
-# 教师 login 锁定阈值（2026-05-21 A-006）
+# 教师 login 锁定阈值（A-006）
 TEACHER_LOCK_THRESHOLD = 3  # 3 次失败立锁
 TEACHER_LOCK_DURATION_MIN = 30  # 锁 30 分钟
+
+# B6：学生 login 锁定阈值（与教师对齐，5 次 → 锁 15 分钟）
+STUDENT_LOCK_THRESHOLD = 5
+STUDENT_LOCK_DURATION_MIN = 15
 
 
 @router.post("/student", response_model=schemas.TokenOut)
@@ -39,21 +48,60 @@ def login_student(body: schemas.StudentLoginIn, db: Session = Depends(get_db)):
             models.Student.seat_no == seat,
         )
     ).first()
-    if not student:
+
+    # 先取 account（后面锁定逻辑需要），找不到学生也走到 401
+    account = None
+    if student:
+        account = db.scalars(
+            select(models.Account).where(models.Account.student_id == student.id)
+        ).first()
+
+    now = datetime.now(timezone.utc)
+    # SQLite 返回 naive datetime，PostgreSQL 生产返回 aware datetime。
+    # 统一去掉时区信息后比较，避免 TypeError。
+    now_naive = now.replace(tzinfo=None)
+
+    def _is_locked(dt) -> bool:
+        """判断 locked_until 是否还在未来（naive/aware 两种情况都兼容）。"""
+        if dt is None:
+            return False
+        compare = dt.replace(tzinfo=None) if dt.tzinfo else dt
+        return compare > now_naive
+
+    def _remaining_min(dt) -> int:
+        compare = dt.replace(tzinfo=None) if dt.tzinfo else dt
+        return int((compare - now_naive).total_seconds() / 60) + 1
+
+    # B6：检查账号是否被锁
+    if account and _is_locked(account.locked_until):
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "INVALID_CREDENTIALS", "message": "学号 or 密码が違います"},
+            status_code=status.HTTP_423_LOCKED,
+            detail={
+                "code": "ACCOUNT_LOCKED",
+                "message": f"アカウントロック中（残り約 {_remaining_min(account.locked_until)} 分）",
+            },
         )
-    account = db.scalars(
-        select(models.Account).where(models.Account.student_id == student.id)
-    ).first()
-    if not account or not security.verify_password(
-        body.password, account.password_hash
+
+    # 密码校验失败 → 失败计数 + 触发锁
+    if (
+        not student
+        or not account
+        or not security.verify_password(body.password, account.password_hash)
     ):
+        if account:
+            account.failed_count = (account.failed_count or 0) + 1
+            if account.failed_count >= STUDENT_LOCK_THRESHOLD:
+                # 写 naive datetime — SQLite 兼容；PG 本番 DateTime(timezone=True) 也能存
+                account.locked_until = now_naive + timedelta(
+                    minutes=STUDENT_LOCK_DURATION_MIN
+                )
+                account.lock_level = (account.lock_level or 0) + 1
+            db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "INVALID_CREDENTIALS", "message": "学号 or 密码が違います"},
         )
+
     if student.status != "active":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -70,9 +118,11 @@ def login_student(body: schemas.StudentLoginIn, db: Session = Depends(get_db)):
             "name": student.name,
         },
     )
-    account.last_login_at = datetime.now(timezone.utc)
+    # 登录成功 → 清失败计数 + 清锁
+    account.last_login_at = now
     account.failed_count = 0
     account.lock_level = 0
+    account.locked_until = None
     db.commit()
     return schemas.TokenOut(
         access_token=token,
@@ -152,3 +202,21 @@ def login_teacher(body: schemas.TeacherLoginIn, db: Session = Depends(get_db)):
         expires_in=settings.jwt_access_expire_min * 60,
         teacher=schemas.TeacherOut.model_validate(teacher),
     )
+
+
+@router.delete("/current", status_code=status.HTTP_204_NO_CONTENT)
+def logout(
+    _student: models.Student = Depends(get_current_student),
+):
+    """B1 — 学生登出。
+
+    系统用无状态 JWT，服务端不存 token。
+    客户端收到 204 后把本地 token 丢弃即可完成登出。
+
+    真正的服务端吊销（防 token 被盗后仍可用）需 v1.1 加 jti 黑名单表，
+    本版本不实现，符合 v1.0 安全基线。
+
+    注：仅支持学生 token。教师登出由 teacher_web 管理，走同一端点时
+    改用 get_current_principal 即可；v1.0 老师 SPA 靠前端清 localStorage。
+    """
+    return  # 204 No Content
