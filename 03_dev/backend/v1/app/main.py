@@ -36,9 +36,11 @@ from .routers import (
     announcements,
     applications,
     auth,
+    bus_routes,
     cleaning,
     discipline,
     dorm_life,
+    events,
     front_desk,
     meals,
     notifications,
@@ -143,6 +145,8 @@ app.include_router(teachers.router)
 app.include_router(discipline.router)
 app.include_router(cleaning.router)
 app.include_router(front_desk.router)
+app.include_router(events.router)
+app.include_router(bus_routes.router)
 app.include_router(ws.router)
 
 

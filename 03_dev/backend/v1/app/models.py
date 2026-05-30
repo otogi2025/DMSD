@@ -1158,3 +1158,99 @@ class FrontDeskItem(Base):
         ),
         Index("idx_front_desk_status_expires", "status", "expires_at"),
     )
+
+
+# ---------------------------------------------------------------
+# 行事予定 (spec §7.5)
+# ---------------------------------------------------------------
+class DormEvent(Base):
+    """学校・宿舍行事日历。老师录入，学生可见。
+
+    spec §7.5 — GET /events?from=&to= (学生+役职) / POST/PATCH/DELETE (役职)
+    """
+
+    __tablename__ = "dorm_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    category: Mapped[str] = mapped_column(
+        String(32), nullable=False
+    )  # 学校行事 / 寮行事 / 外部 等
+    event_date: Mapped[date] = mapped_column(
+        Date, nullable=False
+    )  # 主日期（日历定位用）
+    start_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True)
+    )  # 开始时刻（NULL=全天）
+    end_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True)
+    )  # 结束时刻（NULL=全天）
+    description: Mapped[Optional[str]] = mapped_column(Text)  # 说明备注
+    created_by_teacher_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("teachers.id"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        CheckConstraint(
+            "category IN ('学校行事','寮行事','外部','その他')",
+            name="ck_dorm_events_category",
+        ),
+        Index("idx_dorm_events_date", "event_date"),
+    )
+
+
+# ---------------------------------------------------------------
+# 巴士时刻表 (spec §7.6)
+# ---------------------------------------------------------------
+class BusRoute(Base):
+    """学校巴士 / 宿舍特殊巴士时刻表。老师录入，学生可见。
+
+    spec §7.6 — GET /bus/routes (学生+役职) / POST/PATCH/DELETE (役职)
+    kind: daily_commute=平日通学便 / dorm_special=寮特殊便
+    """
+
+    __tablename__ = "bus_routes"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    kind: Mapped[str] = mapped_column(
+        String(32), nullable=False
+    )  # daily_commute / dorm_special
+    name: Mapped[str] = mapped_column(Text, nullable=False)  # "朝便 6:50 寮 → 駅" 等
+    direction: Mapped[str] = mapped_column(
+        Text, nullable=False
+    )  # 寮→駅 / 駅→寮 / 寮→空港 等
+    schedule_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )  # 出发时刻
+    arrival_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True)
+    )  # 到达时刻（空港便等）
+    visible_to: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="all"
+    )  # all / dorm_only / men / women
+    note: Mapped[Optional[str]] = mapped_column(Text)  # 备注
+    deprecated: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_by_teacher_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("teachers.id"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        CheckConstraint(
+            "kind IN ('daily_commute','dorm_special')",
+            name="ck_bus_routes_kind",
+        ),
+        CheckConstraint(
+            "visible_to IN ('all','dorm_only','men','women')",
+            name="ck_bus_routes_visible_to",
+        ),
+        Index("idx_bus_routes_kind_deprecated", "kind", "deprecated"),
+        Index("idx_bus_routes_schedule_at", "schedule_at"),
+    )

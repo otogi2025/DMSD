@@ -1077,4 +1077,103 @@ class UnlockOut(BaseModel):
     """POST /accounts/{student_id}/unlock 响应。"""
 
     student_id: UUID
+
+
+# ---------------------------------------------------------------
+# 行事予定 (spec §7.5)
+# ---------------------------------------------------------------
+class DormEventCreateIn(BaseModel):
+    """POST /events — 老师新建行事预定。"""
+
+    title: str = Field(..., max_length=200)
+    category: str = Field(..., description="学校行事 / 寮行事 / 外部 / その他")
+    event_date: date
+    start_at: Optional[datetime] = None
+    end_at: Optional[datetime] = None
+    description: Optional[str] = Field(None, max_length=2000)
+
+
+class DormEventPatchIn(BaseModel):
+    """PATCH /events/{id} — 部分更新。"""
+
+    title: Optional[str] = Field(None, max_length=200)
+    category: Optional[str] = None
+    event_date: Optional[date] = None
+    start_at: Optional[datetime] = None
+    end_at: Optional[datetime] = None
+    description: Optional[str] = Field(None, max_length=2000)
+
+
+class DormEventOut(ORMModel):
+    """行事预定响应体。"""
+
+    id: UUID
+    title: str
+    category: str
+    event_date: date
+    start_at: Optional[datetime]
+    end_at: Optional[datetime]
+    description: Optional[str]
+    created_by_teacher_id: UUID
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+
+class DormEventListOut(BaseModel):
+    """GET /events 列表包装。"""
+
+    items: list[DormEventOut]
+
+
+# ---------------------------------------------------------------
+# 巴士时刻表 (spec §7.6)
+# ---------------------------------------------------------------
+class BusRouteCreateIn(BaseModel):
+    """POST /bus/routes — 老师新建巴士便。"""
+
+    kind: str = Field(
+        ..., description="daily_commute=平日通学便 / dorm_special=寮特殊便"
+    )
+    name: str = Field(..., max_length=200)
+    direction: str = Field(..., max_length=200)
+    schedule_at: datetime
+    arrival_at: Optional[datetime] = None
+    visible_to: str = Field(default="all", description="all / dorm_only / men / women")
+    note: Optional[str] = Field(None, max_length=2000)
+
+
+class BusRoutePatchIn(BaseModel):
+    """PATCH /bus/routes/{id} — 部分更新。"""
+
+    kind: Optional[str] = None
+    name: Optional[str] = Field(None, max_length=200)
+    direction: Optional[str] = Field(None, max_length=200)
+    schedule_at: Optional[datetime] = None
+    arrival_at: Optional[datetime] = None
+    visible_to: Optional[str] = None
+    note: Optional[str] = Field(None, max_length=2000)
+    deprecated: Optional[bool] = None
+
+
+class BusRouteOut(ORMModel):
+    """巴士便响应体。"""
+
+    id: UUID
+    kind: str
+    name: str
+    direction: str
+    schedule_at: datetime
+    arrival_at: Optional[datetime]
+    visible_to: str
+    note: Optional[str]
+    deprecated: bool
+    created_by_teacher_id: UUID
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+
+class BusRouteListOut(BaseModel):
+    """GET /bus/routes 列表包装。"""
+
+    items: list[BusRouteOut]
     message: str = "アカウントのロックを解除しました。"
