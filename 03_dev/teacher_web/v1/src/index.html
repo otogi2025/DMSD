@@ -11521,6 +11521,16 @@
         const TEACHER_ADMIN_ROLES_FRONT = ["寮務部長", "寮務課長", "寮監"];
         const canManageTeachers =
           currentRole && TEACHER_ADMIN_ROLES_FRONT.includes(currentRole);
+        // 5-30: 事案録入 + 指導履歴 — 寮務系角色可见（与 backend incidents.py _INCIDENT_ROLES 对齐）
+        const GUIDANCE_ROLES_FRONT = [
+          "寮務部長",
+          "寮務課長",
+          "寮監",
+          "寮務一般教师",
+          "管理係",
+        ];
+        const canGuidance =
+          currentRole && GUIDANCE_ROLES_FRONT.includes(currentRole);
         const NAV = [
           ["roll-call", "点呼"],
           ["notifications", "通知", 7],
@@ -11534,6 +11544,7 @@
           ["front-desk", "フロント業務"],
           ["accounts", "学生アカウント管理"],
           ["admin-registration-code", "学生登録コード"],
+          ...(canGuidance ? [["incidents", "事案録入"]] : []),
           ...(canManageTeachers
             ? [["teachers-admin", "教員アカウント管理"]]
             : []),
@@ -11554,6 +11565,7 @@
             accounts: "学生アカウント管理",
             "admin-registration-code": "学生登録コード",
             "teachers-admin": "教員アカウント管理",
+            incidents: "事案録入",
             summary: "点呼総結",
             search: "検索結果",
           }[active] || "";
@@ -12432,7 +12444,6 @@
         );
       }
 
-
       window.RollCallLanding = RollCallLanding;
       window.NfcQuickUrlCard = NfcQuickUrlCard;
     </script>
@@ -12479,7 +12490,6 @@
             );
           }
         }, [elapsed >= window.LATE_THRESHOLD_SEC]); // eslint-disable-line
-
 
         const cnt = students.reduce((a, s) => {
           a[s.status] = (a[s.status] || 0) + 1;
@@ -13080,7 +13090,6 @@
           </div>
         );
       }
-
 
       window.LiveRollCall = LiveRollCall;
     </script>
@@ -20641,12 +20650,11 @@
               </div>
             )}
             {tab === "event" && (
-              <EventCalendar
-                events={window.CALENDAR_EVENTS || []}
-                teacher={teacher}
-              />
+              <EventCalendar teacher={teacher} authToken={authToken} />
             )}
-            {tab === "bus" && <BusSchedulePanel teacher={teacher} />}
+            {tab === "bus" && (
+              <BusSchedulePanel teacher={teacher} authToken={authToken} />
+            )}
             {composing && (
               <ComposeNoticeModal
                 onClose={() => setComposing(false)}
@@ -20902,10 +20910,14 @@
         );
       }
 
-      // バス時刻表 管理 — 2026-04-24 新規。実運用サンプル = 06_assets/real_samples/bus_notice_2026-03-22_特別運行便.md
-      // 行事カレンダー（iOS と同型レイアウト：月グリッド + 選択日イベントリスト）
-      function EventCalendar({ events, teacher }) {
+      // 行事カレンダー — 真后端数据版（5-30 改造）
+      // 后端字段: id / title / category / event_date / start_at? / end_at? / description?
+      // 权限：寮務部長 / 寮務課長 / 管理係 才显示增删改按钮
+      function EventCalendar({ teacher, authToken }) {
         const T = window.RYO;
+        const EDIT_ROLES = ["寮務部長", "寮務課長", "管理係"];
+        const canEdit = EDIT_ROLES.includes(teacher && teacher.role);
+
         const today = new Date();
         const fmt = (d) =>
           `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -20915,7 +20927,48 @@
         );
         const [selected, setSelected] = React.useState(todayKey);
         const [composing, setComposing] = React.useState(false);
-        const [list, setList] = React.useState(events);
+        // 编辑目标：null | 行事对象
+        const [editTarget, setEditTarget] = React.useState(null);
+        // 从后端拉取的行事列表
+        const [list, setList] = React.useState([]);
+        const [loadingEvt, setLoadingEvt] = React.useState(false);
+        const [evtError, setEvtError] = React.useState(null);
+
+        // 后端字段 → UI 内部格式适配
+        // event_date: "YYYY-MM-DD", start_at: ISO datetime | null
+        const adapt = (item) => ({
+          _id: item.id,
+          date: item.event_date,
+          time: item.start_at
+            ? item.start_at.slice(11, 16) // "HH:MM"
+            : null,
+          title: item.title,
+          category: item.category,
+          description: item.description || "",
+          start_at: item.start_at,
+          end_at: item.end_at,
+        });
+
+        // 拉取当前月前后各1个月范围的行事（保证翻月不闪）
+        const loadEvents = React.useCallback(() => {
+          if (!authToken) return;
+          const y = cursor.getFullYear();
+          const m = cursor.getMonth();
+          const from = `${y}-${String(m + 1).padStart(2, "0")}-01`;
+          const lastDay = new Date(y, m + 1, 0).getDate();
+          const to = `${y}-${String(m + 1).padStart(2, "0")}-${lastDay}`;
+          setLoadingEvt(true);
+          setEvtError(null);
+          window.tomoshibiApi
+            .listEvents(authToken, from, to)
+            .then((data) => setList((data.items || []).map(adapt)))
+            .catch((e) => setEvtError(e.message || "行事の取得に失敗しました"))
+            .finally(() => setLoadingEvt(false));
+        }, [authToken, cursor]);
+
+        React.useEffect(() => {
+          loadEvents();
+        }, [loadEvents]);
 
         const y = cursor.getFullYear();
         const m = cursor.getMonth();
@@ -20942,10 +20995,33 @@
         const dowLabels = ["日", "月", "火", "水", "木", "金", "土"];
         const navMonth = (delta) => setCursor(new Date(y, m + delta, 1));
 
-        const addEvent = (e) => {
-          setList([...list, e].sort((a, b) => a.date.localeCompare(b.date)));
+        // 新增：提交到后端后刷新列表
+        const handleCreate = async (formData) => {
+          if (!authToken) return;
+          await window.tomoshibiApi.createEvent(formData, authToken);
           setComposing(false);
-          setSelected(e.date);
+          setSelected(formData.event_date);
+          loadEvents();
+        };
+
+        // 编辑：提交到后端后刷新
+        const handleUpdate = async (id, formData) => {
+          if (!authToken) return;
+          await window.tomoshibiApi.updateEvent(id, formData, authToken);
+          setEditTarget(null);
+          loadEvents();
+        };
+
+        // 删除：后端物理删除
+        const handleDelete = async (id) => {
+          if (!authToken) return;
+          if (!confirm("この行事を削除しますか？")) return;
+          try {
+            await window.tomoshibiApi.deleteEvent(id, authToken);
+            loadEvents();
+          } catch (e) {
+            alert("削除失敗: " + (e.message || JSON.stringify(e)));
+          }
         };
 
         return (
@@ -21106,6 +21182,45 @@
             </div>
 
             <div>
+              {/* 加载/错误状态 */}
+              {loadingEvt && (
+                <div style={{ padding: 16, color: T.ink3, fontSize: 13 }}>
+                  読み込み中…
+                </div>
+              )}
+              {evtError && (
+                <div
+                  style={{
+                    padding: "8px 12px",
+                    background: "#fff0f0",
+                    border: "1px solid #f5c6cb",
+                    borderRadius: 8,
+                    color: T.danger,
+                    fontSize: 12,
+                    marginBottom: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <span style={{ flex: 1 }}>{evtError}</span>
+                  <button
+                    onClick={loadEvents}
+                    style={{
+                      padding: "3px 10px",
+                      background: "transparent",
+                      color: T.danger,
+                      border: "1px solid #f5c6cb",
+                      borderRadius: 6,
+                      fontFamily: "inherit",
+                      fontSize: 11,
+                      cursor: "pointer",
+                    }}
+                  >
+                    再試行
+                  </button>
+                </div>
+              )}
               <div
                 style={{
                   display: "flex",
@@ -21131,24 +21246,26 @@
                 >
                   {selEvents.length} 件
                 </span>
-                <button
-                  onClick={() => setComposing(true)}
-                  style={{
-                    padding: "5px 12px",
-                    background: T.cobalt,
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 6,
-                    fontFamily: "inherit",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  ＋ 追加
-                </button>
+                {canEdit && (
+                  <button
+                    onClick={() => setComposing(true)}
+                    style={{
+                      padding: "5px 12px",
+                      background: T.cobalt,
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 6,
+                      fontFamily: "inherit",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    ＋ 追加
+                  </button>
+                )}
               </div>
-              {selEvents.length === 0 ? (
+              {selEvents.length === 0 && !loadingEvt ? (
                 <div
                   style={{
                     padding: 36,
@@ -21166,13 +21283,10 @@
                 <div
                   style={{ display: "flex", flexDirection: "column", gap: 8 }}
                 >
-                  {selEvents.map((e, i) => (
+                  {selEvents.map((e) => (
                     <div
-                      key={i}
+                      key={e._id}
                       style={{
-                        display: "grid",
-                        gridTemplateColumns: "70px 1fr",
-                        gap: 12,
                         padding: "12px 14px",
                         background: T.surface,
                         border: `1px solid ${T.line}`,
@@ -21182,33 +21296,88 @@
                     >
                       <div
                         style={{
-                          fontFamily: T.mono,
-                          color: T.cobaltDeep,
-                          fontWeight: 700,
-                          fontSize: 14,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
                         }}
                       >
-                        {e.time || "終日"}
-                      </div>
-                      <div>
-                        <div
+                        <span
                           style={{
-                            fontSize: 14,
+                            fontFamily: T.mono,
+                            color: T.cobaltDeep,
                             fontWeight: 700,
-                            color: T.ink,
+                            fontSize: 14,
+                            minWidth: 52,
                           }}
                         >
-                          {e.title}
-                        </div>
-                        {e.location && (
+                          {e.time || "終日"}
+                        </span>
+                        <div style={{ flex: 1 }}>
                           <div
                             style={{
-                              fontSize: 12,
+                              fontSize: 14,
+                              fontWeight: 700,
+                              color: T.ink,
+                            }}
+                          >
+                            {e.title}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 11,
                               color: T.ink3,
                               marginTop: 2,
                             }}
                           >
-                            📍 {e.location}
+                            {e.category}
+                          </div>
+                          {e.description && (
+                            <div
+                              style={{
+                                fontSize: 12,
+                                color: T.ink2,
+                                marginTop: 4,
+                                whiteSpace: "pre-wrap",
+                              }}
+                            >
+                              {e.description}
+                            </div>
+                          )}
+                        </div>
+                        {canEdit && (
+                          <div style={{ display: "flex", gap: 4 }}>
+                            <button
+                              onClick={() => setEditTarget(e)}
+                              style={{
+                                padding: "3px 9px",
+                                background: T.surface,
+                                color: T.ink2,
+                                border: `1px solid ${T.lineStrong}`,
+                                borderRadius: 6,
+                                fontFamily: "inherit",
+                                fontSize: 11,
+                                fontWeight: 600,
+                                cursor: "pointer",
+                              }}
+                            >
+                              編集
+                            </button>
+                            <button
+                              onClick={() => handleDelete(e._id)}
+                              style={{
+                                padding: "3px 9px",
+                                background: T.surface,
+                                color: T.danger,
+                                border: `1px solid ${T.dangerBorder}`,
+                                borderRadius: 6,
+                                fontFamily: "inherit",
+                                fontSize: 11,
+                                fontWeight: 600,
+                                cursor: "pointer",
+                              }}
+                            >
+                              削除
+                            </button>
                           </div>
                         )}
                       </div>
@@ -21222,37 +21391,85 @@
               <EventComposeModal
                 initialDate={selected}
                 onClose={() => setComposing(false)}
-                onSubmit={addEvent}
+                onSubmit={handleCreate}
+              />
+            )}
+            {editTarget && (
+              <EventComposeModal
+                initialDate={editTarget.date}
+                initial={editTarget}
+                onClose={() => setEditTarget(null)}
+                onSubmit={(fd) => handleUpdate(editTarget._id, fd)}
               />
             )}
           </div>
         );
       }
 
-      function EventComposeModal({ initialDate, onClose, onSubmit }) {
+      // 行事追加/編集 modal — 后端字段版（5-30 改造）
+      // onSubmit 收到 { title, category, event_date, start_at?, end_at?, description? }
+      function EventComposeModal({ initialDate, initial, onClose, onSubmit }) {
         const T = window.RYO;
-        const [date, setDate] = React.useState(initialDate);
-        const [time, setTime] = React.useState("");
-        const [title, setTitle] = React.useState("");
-        const [location, setLocation] = React.useState("");
         const Shell = window.ModalShell;
         const Field = window.ModalField;
         const Footer = window.ModalFooter;
         const inputStyle = window.modalInputStyle(T);
+        const isEdit = !!initial;
 
-        const submit = () => {
-          if (!title.trim() || !date) return;
-          onSubmit({
-            date,
-            time: time || null,
-            title: title.trim(),
-            location: location.trim() || "—",
-          });
-        };
+        // start_at/end_at 是 ISO datetime，UI 分拆为日期 + 时刻
+        const toDateStr = (iso) => (iso ? iso.slice(0, 10) : "");
+        const toTimeStr = (iso) => (iso ? iso.slice(11, 16) : "");
+
+        const [date, setDate] = React.useState(
+          initial ? initial.date : initialDate,
+        );
+        const [time, setTime] = React.useState(
+          initial ? toTimeStr(initial.start_at) : "",
+        );
+        const [endTime, setEndTime] = React.useState(
+          initial ? toTimeStr(initial.end_at) : "",
+        );
+        const [title, setTitle] = React.useState(initial ? initial.title : "");
+        const [category, setCategory] = React.useState(
+          initial ? initial.category : "学校行事",
+        );
+        const [description, setDescription] = React.useState(
+          initial ? initial.description : "",
+        );
+        const [submitting, setSubmitting] = React.useState(false);
+        const [errMsg, setErrMsg] = React.useState("");
+
+        // 把 YYYY-MM-DD + HH:MM 拼成 ISO datetime（带 T，后端接受）
+        const toIso = (dateStr, timeStr) =>
+          dateStr && timeStr ? `${dateStr}T${timeStr}:00` : null;
+
         const valid = title.trim() && date;
 
+        const submit = async () => {
+          if (!valid || submitting) return;
+          setSubmitting(true);
+          setErrMsg("");
+          try {
+            await onSubmit({
+              title: title.trim(),
+              category,
+              event_date: date,
+              start_at: toIso(date, time),
+              end_at: toIso(date, endTime),
+              description: description.trim() || null,
+            });
+          } catch (e) {
+            setErrMsg(e.message || "保存に失敗しました");
+            setSubmitting(false);
+          }
+        };
+
         return (
-          <Shell T={T} title="行事を追加" onClose={onClose}>
+          <Shell
+            T={T}
+            title={isEdit ? "行事を編集" : "行事を追加"}
+            onClose={onClose}
+          >
             <Field T={T} label="日付 *">
               <input
                 type="date"
@@ -21261,13 +21478,18 @@
                 style={inputStyle}
               />
             </Field>
-            <Field T={T} label="時刻（任意 · 空欄なら終日）">
-              <input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
+            <Field T={T} label="カテゴリー *">
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
                 style={inputStyle}
-              />
+              >
+                {["学校行事", "寮行事", "外部", "その他"].map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Field T={T} label="タイトル *">
               <input
@@ -21277,61 +21499,253 @@
                 style={inputStyle}
               />
             </Field>
-            <Field T={T} label="場所">
-              <input
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="例：グラウンド"
-                style={inputStyle}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 10,
+              }}
+            >
+              <Field T={T} label="開始時刻（任意）">
+                <input
+                  type="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  style={inputStyle}
+                />
+              </Field>
+              <Field T={T} label="終了時刻（任意）">
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  style={inputStyle}
+                />
+              </Field>
+            </div>
+            <Field T={T} label="詳細（任意）">
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                placeholder="例：グラウンド集合、雨天は体育館"
+                style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
               />
             </Field>
+            {errMsg && (
+              <div
+                style={{
+                  padding: "8px 12px",
+                  background: T.dangerSoft,
+                  color: T.danger,
+                  border: `1px solid ${T.dangerBorder}`,
+                  borderRadius: 8,
+                  fontSize: 12,
+                }}
+              >
+                {errMsg}
+              </div>
+            )}
             <Footer
               T={T}
               onClose={onClose}
               onSubmit={submit}
-              disabled={!valid}
+              disabled={!valid || submitting}
             />
           </Shell>
         );
       }
 
-      function BusSchedulePanel({ teacher }) {
+      // 巴士时刻表面板 — 真后端数据版（5-30 改造）
+      // 后端字段: id / kind / name / direction / schedule_at / arrival_at? / visible_to / note? / deprecated
+      // 权限：寮務部長 / 寮務課長 / 管理係 才显示增删改
+      function BusSchedulePanel({ teacher, authToken }) {
         const T = window.RYO;
-        const [posts, setPosts] = React.useState(window.BUS_POSTS);
-        const [openPost, setOpenPost] = React.useState(
-          () => (window.BUS_POSTS[0] || {}).id || null,
-        );
-        const [editing, setEditing] = React.useState(null); // null | 'new' | postId | { postId, eventIdx } | { postId, eventIdx, itemIdx }
+        const EDIT_ROLES = ["寮務部長", "寮務課長", "管理係"];
+        const canEdit = EDIT_ROLES.includes(teacher && teacher.role);
 
-        const togglePost = (id) => setOpenPost(openPost === id ? null : id);
-        const deletePost = (id) => {
-          if (confirm("この告知を削除しますか？"))
-            setPosts(posts.filter((p) => p.id !== id));
+        const [routes, setRoutes] = React.useState([]);
+        const [loading, setLoading] = React.useState(false);
+        const [loadError, setLoadError] = React.useState(null);
+        const [composing, setComposing] = React.useState(false); // null | 'new' | route对象
+        const [kindFilter, setKindFilter] = React.useState("all"); // all / daily_commute / dorm_special
+
+        // visible_to 显示标签
+        const visibleLabel = {
+          all: "全員",
+          dorm_only: "寮生のみ",
+          men: "男寮",
+          women: "女寮",
         };
-        const togglePin = (id) =>
-          setPosts(
-            posts.map((p) => (p.id === id ? { ...p, pinned: !p.pinned } : p)),
-          );
-        const savePost = (data) => {
-          if (editing === "new") {
-            setPosts([
-              { ...data, id: "BP" + Date.now(), events: [], pinned: false },
-              ...posts,
-            ]);
-          } else {
-            setPosts(
-              posts.map((p) => (p.id === editing ? { ...p, ...data } : p)),
-            );
+
+        const kindLabel = {
+          daily_commute: "平日通学便",
+          dorm_special: "寮特殊便",
+        };
+
+        const loadRoutes = React.useCallback(() => {
+          if (!authToken) return;
+          setLoading(true);
+          setLoadError(null);
+          window.tomoshibiApi
+            .listBusRoutes(authToken)
+            .then((data) => setRoutes(data.items || []))
+            .catch((e) =>
+              setLoadError(e.message || "バス便の取得に失敗しました"),
+            )
+            .finally(() => setLoading(false));
+        }, [authToken]);
+
+        React.useEffect(() => {
+          loadRoutes();
+        }, [loadRoutes]);
+
+        // 按 kind 过滤
+        const filtered =
+          kindFilter === "all"
+            ? routes
+            : routes.filter((r) => r.kind === kindFilter);
+
+        // 按 kind 分组
+        const commute = filtered.filter((r) => r.kind === "daily_commute");
+        const special = filtered.filter((r) => r.kind === "dorm_special");
+
+        // 软停用（DELETE → deprecated=true）
+        const handleDeprecate = async (id) => {
+          if (!confirm("このバス便を停用しますか？（非表示になります）"))
+            return;
+          try {
+            await window.tomoshibiApi.deleteBusRoute(id, authToken);
+            loadRoutes();
+          } catch (e) {
+            alert("停用失敗: " + (e.message || JSON.stringify(e)));
           }
-          setEditing(null);
         };
 
-        const sorted = [...posts].sort(
-          (a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0),
+        const handleCreate = async (formData) => {
+          await window.tomoshibiApi.createBusRoute(formData, authToken);
+          setComposing(false);
+          loadRoutes();
+        };
+
+        const handleUpdate = async (id, formData) => {
+          await window.tomoshibiApi.updateBusRoute(id, formData, authToken);
+          setComposing(false);
+          loadRoutes();
+        };
+
+        // 时刻格式化：ISO → HH:MM
+        const fmtTime = (iso) => (iso ? iso.slice(11, 16) : "—");
+
+        const RouteRow = ({ r }) => (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "56px 1fr auto auto",
+              alignItems: "center",
+              gap: 10,
+              padding: "10px 14px",
+              background: T.surface,
+              border: `1px solid ${T.line}`,
+              borderRadius: 8,
+              marginBottom: 6,
+            }}
+          >
+            <span
+              style={{
+                fontFamily: T.mono,
+                color: T.cobaltDeep,
+                fontWeight: 700,
+                fontSize: 14,
+              }}
+            >
+              {fmtTime(r.schedule_at)}
+            </span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>
+                {r.name}
+              </div>
+              <div style={{ fontSize: 11, color: T.ink3, marginTop: 2 }}>
+                {r.direction}
+                {r.arrival_at ? ` → ${fmtTime(r.arrival_at)} 着` : ""}
+                {" · "}
+                {visibleLabel[r.visible_to] || r.visible_to}
+              </div>
+              {r.note && (
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: T.ink2,
+                    marginTop: 3,
+                    fontStyle: "italic",
+                  }}
+                >
+                  {r.note}
+                </div>
+              )}
+            </div>
+            {canEdit && (
+              <>
+                <button
+                  onClick={() => setComposing(r)}
+                  style={{
+                    padding: "3px 9px",
+                    background: T.surface,
+                    color: T.ink2,
+                    border: `1px solid ${T.lineStrong}`,
+                    borderRadius: 6,
+                    fontFamily: "inherit",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  編集
+                </button>
+                <button
+                  onClick={() => handleDeprecate(r.id)}
+                  style={{
+                    padding: "3px 9px",
+                    background: T.surface,
+                    color: T.danger,
+                    border: `1px solid ${T.dangerBorder}`,
+                    borderRadius: 6,
+                    fontFamily: "inherit",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  停用
+                </button>
+              </>
+            )}
+          </div>
         );
+
+        const Section = ({ title, items }) =>
+          items.length === 0 ? null : (
+            <div style={{ marginBottom: 20 }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: T.ink3,
+                  letterSpacing: 1,
+                  marginBottom: 8,
+                }}
+              >
+                {title}
+              </div>
+              {items.map((r) => (
+                <RouteRow key={r.id} r={r} />
+              ))}
+            </div>
+          );
 
         return (
           <div>
+            {/* ヘッダー */}
             <div
               style={{
                 display: "flex",
@@ -21339,46 +21753,99 @@
                 justifyContent: "space-between",
                 marginBottom: 14,
                 gap: 10,
+                flexWrap: "wrap",
               }}
             >
-              <div style={{ fontSize: 12, color: T.ink3 }}>
-                特別運行便・定期便の告知管理。各告知 → 日付ごとの行事 → 時刻行の
-                3 階層。
+              {/* kind フィルター */}
+              <div style={{ display: "flex", gap: 6 }}>
+                {[
+                  ["all", "すべて"],
+                  ["daily_commute", "平日通学便"],
+                  ["dorm_special", "寮特殊便"],
+                ].map(([k, l]) => (
+                  <button
+                    key={k}
+                    onClick={() => setKindFilter(k)}
+                    style={{
+                      padding: "5px 12px",
+                      background: kindFilter === k ? T.cobaltSoft : T.surface,
+                      color: kindFilter === k ? T.cobaltDeep : T.ink3,
+                      border: `1px solid ${kindFilter === k ? T.cobalt : T.lineStrong}`,
+                      borderRadius: 999,
+                      fontFamily: "inherit",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {l}
+                  </button>
+                ))}
               </div>
-              <button
-                onClick={() => setEditing("new")}
-                style={{
-                  padding: "7px 14px",
-                  background: T.cobalt,
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  boxShadow: T.shadow1,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                ＋ 新規告知
-              </button>
+              {canEdit && (
+                <button
+                  onClick={() => setComposing("new")}
+                  style={{
+                    padding: "7px 14px",
+                    background: T.cobalt,
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    fontFamily: "inherit",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    boxShadow: T.shadow1,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  ＋ バス便を追加
+                </button>
+              )}
             </div>
 
-            {sorted.map((post) => (
-              <BusPostCard
-                key={post.id}
-                post={post}
-                T={T}
-                open={openPost === post.id}
-                onToggle={() => togglePost(post.id)}
-                onEditPost={() => setEditing(post.id)}
-                onDeletePost={() => deletePost(post.id)}
-                onPin={() => togglePin(post.id)}
-              />
-            ))}
+            {/* エラー / ローディング */}
+            {loading && (
+              <div style={{ padding: 24, color: T.ink3, fontSize: 13 }}>
+                読み込み中…
+              </div>
+            )}
+            {loadError && (
+              <div
+                style={{
+                  padding: "8px 12px",
+                  background: "#fff0f0",
+                  border: "1px solid #f5c6cb",
+                  borderRadius: 8,
+                  color: T.danger,
+                  fontSize: 12,
+                  marginBottom: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <span style={{ flex: 1 }}>{loadError}</span>
+                <button
+                  onClick={loadRoutes}
+                  style={{
+                    padding: "3px 10px",
+                    background: "transparent",
+                    color: T.danger,
+                    border: "1px solid #f5c6cb",
+                    borderRadius: 6,
+                    fontFamily: "inherit",
+                    fontSize: 11,
+                    cursor: "pointer",
+                  }}
+                >
+                  再試行
+                </button>
+              </div>
+            )}
 
-            {sorted.length === 0 && (
+            {/* リスト */}
+            {!loading && !loadError && filtered.length === 0 && (
               <div
                 style={{
                   padding: 36,
@@ -21390,21 +21857,214 @@
                   borderRadius: 10,
                 }}
               >
-                告知はまだありません。「＋ 新規告知」から追加してください。
+                バス便はまだ登録されていません
               </div>
             )}
+            <Section title="平日通学便" items={commute} />
+            <Section title="寮特殊便" items={special} />
 
-            {editing && (
-              <BusPostComposeModal
+            {/* 追加/編集 modal */}
+            {composing && (
+              <BusRouteModal
                 T={T}
-                initial={
-                  editing === "new" ? null : posts.find((p) => p.id === editing)
+                initial={composing === "new" ? null : composing}
+                onClose={() => setComposing(false)}
+                onSubmit={
+                  composing === "new"
+                    ? handleCreate
+                    : (fd) => handleUpdate(composing.id, fd)
                 }
-                onClose={() => setEditing(null)}
-                onSubmit={savePost}
               />
             )}
           </div>
+        );
+      }
+
+      // 巴士便 追加/編集 modal
+      function BusRouteModal({ T, initial, onClose, onSubmit }) {
+        const Shell = window.ModalShell;
+        const Field = window.ModalField;
+        const Footer = window.ModalFooter;
+        const inputStyle = window.modalInputStyle(T);
+        const isEdit = !!initial;
+
+        const toDateStr = (iso) => (iso ? iso.slice(0, 10) : "");
+        const toTimeStr = (iso) => (iso ? iso.slice(11, 16) : "");
+
+        const [kind, setKind] = React.useState(
+          initial ? initial.kind : "daily_commute",
+        );
+        const [name, setName] = React.useState(initial ? initial.name : "");
+        const [direction, setDirection] = React.useState(
+          initial ? initial.direction : "",
+        );
+        // schedule_at / arrival_at は ISO datetime。UI では日付 + 時刻に分割
+        const [schedDate, setSchedDate] = React.useState(
+          initial ? toDateStr(initial.schedule_at) : "",
+        );
+        const [schedTime, setSchedTime] = React.useState(
+          initial ? toTimeStr(initial.schedule_at) : "",
+        );
+        const [arrDate, setArrDate] = React.useState(
+          initial ? toDateStr(initial.arrival_at) : "",
+        );
+        const [arrTime, setArrTime] = React.useState(
+          initial ? toTimeStr(initial.arrival_at) : "",
+        );
+        const [visibleTo, setVisibleTo] = React.useState(
+          initial ? initial.visible_to : "all",
+        );
+        const [note, setNote] = React.useState(
+          initial ? initial.note || "" : "",
+        );
+        const [submitting, setSubmitting] = React.useState(false);
+        const [errMsg, setErrMsg] = React.useState("");
+
+        const toIso = (d, t) => (d && t ? `${d}T${t}:00` : null);
+        const valid = name.trim() && direction.trim() && schedDate && schedTime;
+
+        const submit = async () => {
+          if (!valid || submitting) return;
+          setSubmitting(true);
+          setErrMsg("");
+          try {
+            await onSubmit({
+              kind,
+              name: name.trim(),
+              direction: direction.trim(),
+              schedule_at: toIso(schedDate, schedTime),
+              arrival_at: toIso(arrDate, arrTime),
+              visible_to: visibleTo,
+              note: note.trim() || null,
+            });
+          } catch (e) {
+            setErrMsg(e.message || "保存に失敗しました");
+            setSubmitting(false);
+          }
+        };
+
+        return (
+          <Shell
+            T={T}
+            title={isEdit ? "バス便を編集" : "バス便を追加"}
+            onClose={onClose}
+          >
+            <Field T={T} label="種別 *">
+              <select
+                value={kind}
+                onChange={(e) => setKind(e.target.value)}
+                style={inputStyle}
+              >
+                <option value="daily_commute">平日通学便</option>
+                <option value="dorm_special">寮特殊便</option>
+              </select>
+            </Field>
+            <Field T={T} label="便名 *">
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="例：登校便"
+                style={inputStyle}
+              />
+            </Field>
+            <Field T={T} label="方向（区間）*">
+              <input
+                value={direction}
+                onChange={(e) => setDirection(e.target.value)}
+                placeholder="例：岡山駅西口 → 高校棟"
+                style={inputStyle}
+              />
+            </Field>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 10,
+              }}
+            >
+              <Field T={T} label="出発日 *">
+                <input
+                  type="date"
+                  value={schedDate}
+                  onChange={(e) => setSchedDate(e.target.value)}
+                  style={inputStyle}
+                />
+              </Field>
+              <Field T={T} label="出発時刻 *">
+                <input
+                  type="time"
+                  value={schedTime}
+                  onChange={(e) => setSchedTime(e.target.value)}
+                  style={inputStyle}
+                />
+              </Field>
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 10,
+              }}
+            >
+              <Field T={T} label="到着日（任意）">
+                <input
+                  type="date"
+                  value={arrDate}
+                  onChange={(e) => setArrDate(e.target.value)}
+                  style={inputStyle}
+                />
+              </Field>
+              <Field T={T} label="到着時刻（任意）">
+                <input
+                  type="time"
+                  value={arrTime}
+                  onChange={(e) => setArrTime(e.target.value)}
+                  style={inputStyle}
+                />
+              </Field>
+            </div>
+            <Field T={T} label="対象">
+              <select
+                value={visibleTo}
+                onChange={(e) => setVisibleTo(e.target.value)}
+                style={inputStyle}
+              >
+                <option value="all">全員</option>
+                <option value="dorm_only">寮生のみ</option>
+                <option value="men">男寮</option>
+                <option value="women">女寮</option>
+              </select>
+            </Field>
+            <Field T={T} label="備考（任意）">
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={2}
+                placeholder="例：部活対応 / 雨天中止"
+                style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
+              />
+            </Field>
+            {errMsg && (
+              <div
+                style={{
+                  padding: "8px 12px",
+                  background: T.dangerSoft,
+                  color: T.danger,
+                  border: `1px solid ${T.dangerBorder}`,
+                  borderRadius: 8,
+                  fontSize: 12,
+                }}
+              >
+                {errMsg}
+              </div>
+            )}
+            <Footer
+              T={T}
+              onClose={onClose}
+              onSubmit={submit}
+              disabled={!valid || submitting}
+            />
+          </Shell>
         );
       }
 
@@ -23163,409 +23823,6 @@
         // 5-27 砍 anon 类假数据（C030/C031/C032）— system_features §7.14 4-29 拍板砍匿名建議
       ];
 
-      // 行事カレンダー seed — iOS 側と同型データ。date は YYYY-MM-DD。
-      window.CALENDAR_EVENTS = [
-        {
-          date: "2026-04-23",
-          time: "18:00",
-          title: "新入生歓迎会",
-          location: "食堂",
-        },
-        {
-          date: "2026-04-25",
-          time: "14:00",
-          title: "避難訓練",
-          location: "グラウンド",
-        },
-        {
-          date: "2026-04-28",
-          time: "09:00",
-          title: "デモ日",
-          location: "寮玄関",
-        },
-        { date: "2026-05-03", time: null, title: "GW 始め", location: "—" },
-        {
-          date: "2026-05-13",
-          time: "08:30",
-          title: "春期中間試験 開始",
-          location: "高校棟",
-        },
-        {
-          date: "2026-05-17",
-          time: "15:00",
-          title: "春期中間試験 終了",
-          location: "高校棟",
-        },
-      ];
-
-      // バス告知 seed — 2026-03-22 特別運行便（実公告ベース、詳細は 06_assets/real_samples/bus_notice_2026-03-22_特別運行便.md）
-      window.BUS_POSTS = [
-        {
-          id: "BP001",
-          category: "特別運行便",
-          title: "特別運行便に関するお知らせ",
-          posted_on: "2026-03-22",
-          posted_by: "国際交流部・技師",
-          effective_from: "2026-04-01",
-          effective_until: null,
-          pinned: true,
-          body: "学校休業日等に、寮生やボランティア等に取り組む通学生は、特別運航便(無料スクールバス)に乗車して構いません。寮生は乗車名簿に事前にチェックをつけて下さい。バス乗車時は、挨拶等の礼儀作法に気をつけてください。\n\n＊集中して学習やスポーツに取り組む時間と自由なオフタイムのメリハリをつけ、節約しながら休日は思いっ切りリフレッシュしてほしいので、特別運航便を案内しますが、技師(運転士)から悪い報告を受けた場合は該当者の乗車を一定期間拒否することがあり得ます。\n\n＊乗車簿を寮監が確認後、多すぎる場合は乗車便調整を行う場合があります。\n\n＊長期間の帰省・一時帰国等のタイミングは、情勢変化によって変更があり得ます。",
-          events: [
-            {
-              date: "2026-04-05",
-              name: "留4アクティビティ",
-              audience:
-                "4月生及び4月生をサポートする意志・日本語力・英語力を有する者のみ乗車・参加 → 参加希望者は高野まで",
-              items: [
-                {
-                  time: "08:30",
-                  action: "お花見弁当受取り",
-                  location: "食堂",
-                  memo: "女子寮・渡邊へ（15 食 +α）",
-                },
-                {
-                  time: "08:50",
-                  action: "朝点呼",
-                  location: "",
-                  memo: "渡邊・ジェニファー",
-                },
-                {
-                  time: "09:10",
-                  action: "日本語プレイスメントテスト",
-                  location: "",
-                  memo: "",
-                },
-                {
-                  time: "10:10",
-                  action: "英語プレイスメントテスト",
-                  location: "",
-                  memo: "",
-                },
-                {
-                  time: "11:25",
-                  action: "留4スクバ乗車",
-                  location: "",
-                  memo: "",
-                },
-                {
-                  time: "12:15",
-                  action: "RSK 山陽放送局前下車・徒歩移動",
-                  location: "RSK",
-                  memo: "県立図書館紹介",
-                },
-                {
-                  time: "12:30",
-                  action: "岡山城芝生広場で昼食・見学",
-                  location: "岡山城",
-                  memo: "",
-                },
-                {
-                  time: "14:00",
-                  action: "記念撮影",
-                  location: "岡山城",
-                  memo: "",
-                },
-                {
-                  time: "14:15",
-                  action: "後楽園散策",
-                  location: "後楽園",
-                  memo: "",
-                },
-                {
-                  time: "15:00",
-                  action: "さくらカーニバル 自由散策",
-                  location: "河川敷",
-                  memo: "各自現金持参",
-                },
-                {
-                  time: "16:00",
-                  action: "後楽園入口集合",
-                  location: "後楽園",
-                  memo: "",
-                },
-                {
-                  time: "16:15",
-                  action: "丸善岡山シンフォニーホール見学",
-                  location: "",
-                  memo: "日本語・各科目コーナー中心",
-                },
-                { time: "16:45", action: "出口集合", location: "", memo: "" },
-                {
-                  time: "17:00",
-                  action: "RSK 山陽放送局前乗車",
-                  location: "RSK",
-                  memo: "バスは駐車不可、必ず待つ",
-                },
-                { time: "17:45", action: "帰寮", location: "", memo: "" },
-              ],
-            },
-            {
-              date: "2026-04-07",
-              name: "帰寮日",
-              audience: "",
-              items: [
-                {
-                  time: "15:33",
-                  action: "金川駅発（寮行き）",
-                  location: "金川駅",
-                  memo: "",
-                },
-                {
-                  time: "18:45",
-                  action: "岡山駅西口発（寮行き）",
-                  location: "岡山駅西口",
-                  memo: "",
-                },
-              ],
-            },
-            {
-              date: "2026-04-11",
-              name: "みつ元気プロジェクト・買い物等",
-              audience: "",
-              items: [
-                { time: "08:30", action: "西口発", location: "西口", memo: "" },
-                {
-                  time: "09:20",
-                  action: "高校棟バス乗り場発（御津公民館行き）",
-                  location: "高校棟",
-                  memo: "",
-                },
-                {
-                  time: "09:45",
-                  action: "御津公民館着 → 戦略会議",
-                  location: "御津公民館",
-                  memo: "",
-                },
-                {
-                  time: "10:10",
-                  action: "高校棟バス乗り場発（金川駅行き）",
-                  location: "高校棟",
-                  memo: "",
-                },
-                {
-                  time: "12:00",
-                  action: "御津公民館発",
-                  location: "御津公民館",
-                  memo: "",
-                },
-                {
-                  time: "12:20",
-                  action: "高校棟バス乗り場発（西口行き）",
-                  location: "高校棟",
-                  memo: "",
-                },
-                { time: "13:00", action: "西口着", location: "西口", memo: "" },
-                {
-                  time: "15:33",
-                  action: "金川駅発（寮行き）",
-                  location: "金川駅",
-                  memo: "",
-                },
-                {
-                  time: "17:02",
-                  action: "金川駅発（寮行き）",
-                  location: "金川駅",
-                  memo: "",
-                },
-              ],
-            },
-            {
-              date: "2026-04-29",
-              name: "GW 外泊・帰省等、買い物等",
-              audience: "",
-              items: [
-                {
-                  time: "07:30",
-                  action: "高校棟バス乗り場発（岡山駅西口行き）",
-                  location: "高校棟",
-                  memo: "",
-                },
-                {
-                  time: "10:10",
-                  action: "高校棟バス乗り場発（金川駅行き）",
-                  location: "高校棟",
-                  memo: "",
-                },
-                {
-                  time: "15:33",
-                  action: "金川駅発（寮行き）",
-                  location: "金川駅",
-                  memo: "",
-                },
-                {
-                  time: "17:02",
-                  action: "金川駅発（寮行き）",
-                  location: "金川駅",
-                  memo: "",
-                },
-              ],
-            },
-            {
-              date: "2026-05-06",
-              name: "GW 後帰寮日、買い物等",
-              audience: "",
-              items: [
-                {
-                  time: "09:20",
-                  action: "高校棟バス乗り場発（金川駅行き）",
-                  location: "高校棟",
-                  memo: "",
-                },
-                {
-                  time: "10:10",
-                  action: "高校棟バス乗り場発（金川駅行き）",
-                  location: "高校棟",
-                  memo: "",
-                },
-                {
-                  time: "15:33",
-                  action: "金川駅発（寮行き）",
-                  location: "金川駅",
-                  memo: "",
-                },
-                {
-                  time: "18:45",
-                  action: "岡山駅西口発（寮行き）",
-                  location: "岡山駅西口",
-                  memo: "",
-                },
-              ],
-            },
-            {
-              date: "2026-05-23",
-              name: "音楽と青空市（岡山市立御津公民館）",
-              audience: "基本ボランティア用、時間帯等注意",
-              items: [
-                {
-                  time: "07:30",
-                  action: "岡山駅西口発",
-                  location: "岡山駅西口",
-                  memo: "",
-                },
-                {
-                  time: "08:15",
-                  action: "高校棟発",
-                  location: "高校棟",
-                  memo: "",
-                },
-                {
-                  time: "08:35",
-                  action: "御津公民館着",
-                  location: "御津公民館",
-                  memo: "",
-                },
-                {
-                  time: "16:00",
-                  action: "御津公民館発",
-                  location: "御津公民館",
-                  memo: "",
-                },
-                {
-                  time: "16:20",
-                  action: "高校棟発",
-                  location: "高校棟",
-                  memo: "",
-                },
-                {
-                  time: "17:00",
-                  action: "岡山駅西口着",
-                  location: "岡山駅西口",
-                  memo: "",
-                },
-              ],
-            },
-            {
-              date: "2026-05-31",
-              name: "英検第 1 回一次試験・買い物等",
-              audience: "英検時程に合わせて時程調整予定",
-              items: [
-                {
-                  time: "06:40",
-                  action: "高校棟バス乗り場発（金川駅行き）",
-                  location: "高校棟",
-                  memo: "級受験者＋買い物等希望者",
-                },
-                {
-                  time: "09:20",
-                  action: "高校棟バス乗り場発（金川駅行き）",
-                  location: "高校棟",
-                  memo: "買い物等希望者",
-                },
-                {
-                  time: "11:00",
-                  action: "高校棟バス乗り場発（金川駅行き）",
-                  location: "高校棟",
-                  memo: "英検級受験者＋買い物等希望者",
-                },
-                {
-                  time: "15:33",
-                  action: "金川駅発（寮行き）",
-                  location: "金川駅",
-                  memo: "買い物等希望者",
-                },
-                {
-                  time: "17:31",
-                  action: "金川駅発（寮行き）",
-                  location: "金川駅",
-                  memo: "英検級受験者＋買い物等希望者",
-                },
-              ],
-            },
-          ],
-        },
-        {
-          id: "BP002",
-          category: "定期便",
-          title: "平日 通学定期便",
-          posted_on: "2026-04-01",
-          posted_by: "寮務課",
-          effective_from: "2026-04-01",
-          effective_until: null,
-          pinned: false,
-          body: "平日（月〜金）の定期スクールバス運行時刻。長期休業期間は運休。",
-          events: [
-            {
-              date: "平日",
-              name: "登校便",
-              audience: "全寮生",
-              items: [
-                {
-                  time: "07:30",
-                  action: "岡山駅西口 → 高校棟",
-                  location: "岡山駅西口",
-                  memo: "毎日 1 便",
-                },
-              ],
-            },
-            {
-              date: "平日",
-              name: "下校便",
-              audience: "全寮生",
-              items: [
-                {
-                  time: "17:00",
-                  action: "高校棟発 → 寮",
-                  location: "高校棟",
-                  memo: "",
-                },
-                {
-                  time: "18:30",
-                  action: "高校棟発 → 寮",
-                  location: "高校棟",
-                  memo: "部活動対応",
-                },
-                {
-                  time: "21:00",
-                  action: "高校棟発 → 寮",
-                  location: "高校棟",
-                  memo: "自習室閉館後",
-                },
-              ],
-            },
-          ],
-        },
-      ];
-
       window.RecordsPage = RecordsPage;
       window.SearchPage = SearchPage;
       window.NotificationsPage = NotificationsPage;
@@ -23591,6 +23848,8 @@
         const [toast, setToast] = React.useState(null);
         // 密码重置后把临时密码存这里，展示一次性 modal 后清空
         const [tempPwModal, setTempPwModal] = React.useState(null); // {name, student_no, pw}
+        // 5-30: 个人档案聚合弹窗 — {id, name} | null
+        const [profileTarget, setProfileTarget] = React.useState(null);
 
         // 後端からリスト取得 — query / dormFilter が変わるたびに再取得
         const fetchAccounts = React.useCallback(() => {
@@ -24045,13 +24304,50 @@
                     </div>
                     <div
                       style={{
-                        padding: "10px 12px",
-                        color: T.cobalt,
-                        fontSize: 12,
-                        fontWeight: 700,
+                        padding: "6px 8px",
+                        display: "flex",
+                        gap: 4,
+                        alignItems: "center",
                       }}
                     >
-                      詳細 →
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDetailTarget(a);
+                        }}
+                        style={{
+                          padding: "4px 9px",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          background: "transparent",
+                          color: T.cobalt,
+                          border: `1px solid ${T.cobalt}`,
+                          borderRadius: 6,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        詳細
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setProfileTarget({ id: a.id, name: a.name });
+                        }}
+                        style={{
+                          padding: "4px 9px",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          background: "transparent",
+                          color: T.ink2,
+                          border: `1px solid ${T.lineStrong}`,
+                          borderRadius: 6,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        档案
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -24076,6 +24372,16 @@
                 onSave={handleSave}
                 onPasswordReset={handlePasswordReset}
                 onUnlock={handleUnlock}
+              />
+            )}
+
+            {/* 5-30: 个人档案聚合弹窗 */}
+            {profileTarget && (
+              <window.StudentProfileModal
+                studentId={profileTarget.id}
+                studentName={profileTarget.name}
+                authToken={authToken}
+                onClose={() => setProfileTarget(null)}
               />
             )}
 
@@ -24843,6 +25149,1338 @@
         // newest first
         return base.sort((x, y) => y.when.localeCompare(x.when)).slice(0, 10);
       }
+
+      window.AccountsPage = AccountsPage;
+
+      // ─────────────────────────────────────────────────────────────────
+      // StudentProfileModal — 学生个人档案聚合弹窗（spec §7.10 #32）
+      // 从 AccountsPage 的学生行点「档案」按钮触发。
+      // 分 6 个 tab：基本 / 出寮届 / 学習 / 点呼 / 指導 / 扣分。
+      // ─────────────────────────────────────────────────────────────────
+      function StudentProfileModal({
+        studentId,
+        studentName,
+        authToken,
+        onClose,
+      }) {
+        const T = window.RYO;
+        const [data, setData] = React.useState(null);
+        const [loading, setLoading] = React.useState(true);
+        const [error, setError] = React.useState(null);
+        const [tab, setTab] = React.useState("basic");
+        // 指導 tab — 录入表单开关
+        const [showGuidanceForm, setShowGuidanceForm] = React.useState(false);
+        const [gContent, setGContent] = React.useState("");
+        const [gCategory, setGCategory] = React.useState("");
+        const [gDate, setGDate] = React.useState(
+          new Date().toISOString().slice(0, 10),
+        );
+        const [gConfidential, setGConfidential] = React.useState(true);
+        const [gSubmitting, setGSubmitting] = React.useState(false);
+        const [gError, setGError] = React.useState(null);
+        const [toast, setToast] = React.useState(null);
+
+        React.useEffect(() => {
+          if (!authToken || !studentId) return;
+          setLoading(true);
+          setError(null);
+          window.tomoshibiApi
+            .getStudentProfile(studentId, authToken)
+            .then((d) => {
+              setData(d);
+              setLoading(false);
+            })
+            .catch((e) => {
+              setError(e.message || "档案取得失敗");
+              setLoading(false);
+            });
+        }, [studentId, authToken]);
+
+        React.useEffect(() => {
+          if (toast) {
+            const id = setTimeout(() => setToast(null), 3500);
+            return () => clearTimeout(id);
+          }
+        }, [toast]);
+
+        const submitGuidance = () => {
+          if (!gContent.trim()) {
+            setGError("内容を入力してください");
+            return;
+          }
+          setGSubmitting(true);
+          setGError(null);
+          window.tomoshibiApi
+            .createGuidance(
+              studentId,
+              {
+                student_id: studentId,
+                content: gContent.trim(),
+                category: gCategory.trim() || null,
+                guidance_date: gDate,
+                confidential: gConfidential,
+              },
+              authToken,
+            )
+            .then((rec) => {
+              // 把新记录追加到 data.guidance_records 头部
+              setData((prev) => ({
+                ...prev,
+                guidance_records: [rec, ...(prev.guidance_records || [])],
+              }));
+              setGContent("");
+              setGCategory("");
+              setGDate(new Date().toISOString().slice(0, 10));
+              setGConfidential(true);
+              setShowGuidanceForm(false);
+              setGSubmitting(false);
+              setToast({ type: "ok", msg: "指導記録を登録しました" });
+            })
+            .catch((e) => {
+              setGError(e.message || "登録失敗");
+              setGSubmitting(false);
+            });
+        };
+
+        const TABS = [
+          ["basic", "基本情報"],
+          ["applications", "出寮届"],
+          ["study", "学習出席"],
+          ["rollcall", "点呼"],
+          ["guidance", "指導履歴"],
+          ["demerit", "扣分"],
+        ];
+
+        const s = data && data.student;
+
+        return (
+          <div
+            onClick={onClose}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(20,23,31,.52)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 300,
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: 740,
+                maxHeight: "88vh",
+                background: T.surface,
+                borderRadius: 16,
+                boxShadow: T.shadowModal,
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+              }}
+            >
+              {/* ヘッダ */}
+              <div
+                style={{
+                  padding: "20px 24px 0",
+                  borderBottom: `1px solid ${T.line}`,
+                  flexShrink: 0,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 14,
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: T.ink3,
+                        letterSpacing: 2,
+                        fontWeight: 600,
+                      }}
+                    >
+                      学生個人档案
+                    </div>
+                    <div
+                      style={{ fontSize: 20, fontWeight: 700, marginTop: 2 }}
+                    >
+                      {studentName}
+                      {s && (
+                        <span
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 500,
+                            color: T.ink3,
+                            marginLeft: 10,
+                            fontFamily: T.mono,
+                          }}
+                        >
+                          {s.student_no}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={onClose}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      fontSize: 22,
+                      cursor: "pointer",
+                      color: T.ink3,
+                      lineHeight: 1,
+                      padding: "0 4px",
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+                {/* tab bar */}
+                <div style={{ display: "flex", gap: 2 }}>
+                  {TABS.map(([id, label]) => (
+                    <button
+                      key={id}
+                      onClick={() => setTab(id)}
+                      style={{
+                        padding: "8px 14px",
+                        fontSize: 12.5,
+                        fontWeight: tab === id ? 700 : 500,
+                        color: tab === id ? T.cobaltDeep : T.ink3,
+                        background: "transparent",
+                        border: "none",
+                        borderBottom:
+                          tab === id
+                            ? `2px solid ${T.cobalt}`
+                            : "2px solid transparent",
+                        fontFamily: "inherit",
+                        cursor: "pointer",
+                        marginBottom: -1,
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* コンテンツ */}
+              <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
+                {loading && (
+                  <div
+                    style={{ textAlign: "center", color: T.ink3, padding: 40 }}
+                  >
+                    読み込み中…
+                  </div>
+                )}
+                {error && (
+                  <div
+                    style={{
+                      padding: "10px 14px",
+                      background: T.dangerSoft,
+                      border: `1px solid ${T.dangerBorder}`,
+                      borderRadius: 8,
+                      color: T.danger,
+                      fontSize: 13,
+                    }}
+                  >
+                    ⚠️ {error}
+                  </div>
+                )}
+                {!loading && !error && data && (
+                  <>
+                    {/* 基本情報 tab */}
+                    {tab === "basic" && (
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: "10px 24px",
+                        }}
+                      >
+                        {[
+                          ["学籍番号", s.student_no],
+                          ["氏名", s.name],
+                          ["ふりがな", s.name_kana || "—"],
+                          ["性別", s.gender === "male" ? "男" : "女"],
+                          ["学年", s.grade_code],
+                          ["組", s.class_code],
+                          ["出席番号", s.seat_no],
+                          ["部屋番号", s.room_no],
+                          ["寮", `${s.dorm_unit}寮`],
+                          ["留学生", s.is_overseas ? "はい" : "いいえ"],
+                          ["メール", s.email || "—"],
+                          ["電話", s.phone || "—"],
+                          ["状態", s.status],
+                          [
+                            "登録日時",
+                            s.registered_at
+                              ? s.registered_at.slice(0, 10)
+                              : "—",
+                          ],
+                        ].map(([k, v]) => (
+                          <div key={k}>
+                            <div
+                              style={{
+                                fontSize: 10,
+                                color: T.ink3,
+                                fontWeight: 600,
+                                marginBottom: 2,
+                              }}
+                            >
+                              {k}
+                            </div>
+                            <div style={{ fontSize: 13.5, fontWeight: 500 }}>
+                              {v}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 出寮届 tab */}
+                    {tab === "applications" && (
+                      <ProfileList
+                        items={data.applications}
+                        emptyMsg="出寮届の記録がありません"
+                        cols={["種別", "外出日", "帰寮日", "状態", "申請日"]}
+                        render={(a) => [
+                          a.kind,
+                          a.leave_date,
+                          a.return_date,
+                          a.status,
+                          a.submitted_at ? a.submitted_at.slice(0, 10) : "—",
+                        ]}
+                      />
+                    )}
+
+                    {/* 学習出席 tab */}
+                    {tab === "study" && (
+                      <ProfileList
+                        items={data.study_checkins}
+                        emptyMsg="学習出席の記録がありません"
+                        cols={["対象日", "状態", "チェックイン"]}
+                        render={(sc) => [
+                          sc.target_date,
+                          sc.status,
+                          sc.checked_at
+                            ? sc.checked_at.slice(0, 16).replace("T", " ")
+                            : "—",
+                        ]}
+                      />
+                    )}
+
+                    {/* 点呼 tab */}
+                    {tab === "rollcall" && (
+                      <ProfileList
+                        items={data.rollcall_events}
+                        emptyMsg="点呼の記録がありません"
+                        cols={["状態", "判定ソース", "チェックイン日時"]}
+                        render={(r) => [
+                          r.base_status,
+                          r.status_source,
+                          r.checked_in_at
+                            ? r.checked_in_at.slice(0, 16).replace("T", " ")
+                            : "—",
+                        ]}
+                      />
+                    )}
+
+                    {/* 指導履歴 tab */}
+                    {tab === "guidance" && (
+                      <div>
+                        {data.guidance_records.length === 0 &&
+                          !showGuidanceForm && (
+                            <div
+                              style={{
+                                color: T.ink3,
+                                fontSize: 13,
+                                marginBottom: 16,
+                              }}
+                            >
+                              指導履歴がありません（または権限なし）
+                            </div>
+                          )}
+                        {data.guidance_records.length > 0 && (
+                          <div style={{ marginBottom: 16 }}>
+                            {data.guidance_records.map((gr) => (
+                              <div
+                                key={gr.id}
+                                style={{
+                                  padding: "12px 14px",
+                                  marginBottom: 8,
+                                  background: T.surfaceAlt,
+                                  borderRadius: 8,
+                                  border: `1px solid ${T.line}`,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    marginBottom: 6,
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      fontSize: 12,
+                                      fontWeight: 700,
+                                      color: T.ink2,
+                                    }}
+                                  >
+                                    {gr.guidance_date}
+                                    {gr.category && (
+                                      <span
+                                        style={{
+                                          marginLeft: 8,
+                                          padding: "1px 6px",
+                                          background: T.cobaltSoft,
+                                          color: T.cobaltDeep,
+                                          borderRadius: 4,
+                                          fontSize: 11,
+                                        }}
+                                      >
+                                        {gr.category}
+                                      </span>
+                                    )}
+                                  </span>
+                                  {gr.confidential && (
+                                    <span
+                                      style={{
+                                        fontSize: 10,
+                                        color: T.warn,
+                                        fontWeight: 700,
+                                      }}
+                                    >
+                                      🔒 機密
+                                    </span>
+                                  )}
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: 13,
+                                    lineHeight: 1.6,
+                                    whiteSpace: "pre-wrap",
+                                  }}
+                                >
+                                  {gr.content}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {/* 录入表单 */}
+                        {showGuidanceForm ? (
+                          <div
+                            style={{
+                              padding: "16px",
+                              background: T.surfaceAlt,
+                              borderRadius: 10,
+                              border: `1px solid ${T.line}`,
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: 13,
+                                fontWeight: 700,
+                                marginBottom: 12,
+                              }}
+                            >
+                              指導記録を録入
+                            </div>
+                            <div
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns: "1fr 1fr",
+                                gap: 10,
+                                marginBottom: 10,
+                              }}
+                            >
+                              <div>
+                                <div
+                                  style={{
+                                    fontSize: 11,
+                                    color: T.ink3,
+                                    marginBottom: 4,
+                                  }}
+                                >
+                                  指導日
+                                </div>
+                                <input
+                                  type="date"
+                                  value={gDate}
+                                  onChange={(e) => setGDate(e.target.value)}
+                                  style={{
+                                    width: "100%",
+                                    padding: "8px 10px",
+                                    border: `1px solid ${T.lineStrong}`,
+                                    borderRadius: 7,
+                                    fontFamily: "inherit",
+                                    fontSize: 13,
+                                    background: T.surface,
+                                    boxSizing: "border-box",
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <div
+                                  style={{
+                                    fontSize: 11,
+                                    color: T.ink3,
+                                    marginBottom: 4,
+                                  }}
+                                >
+                                  カテゴリ（任意）
+                                </div>
+                                <input
+                                  value={gCategory}
+                                  onChange={(e) => setGCategory(e.target.value)}
+                                  placeholder="例：生活態度、門限違反"
+                                  style={{
+                                    width: "100%",
+                                    padding: "8px 10px",
+                                    border: `1px solid ${T.lineStrong}`,
+                                    borderRadius: 7,
+                                    fontFamily: "inherit",
+                                    fontSize: 13,
+                                    background: T.surface,
+                                    boxSizing: "border-box",
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <div style={{ marginBottom: 10 }}>
+                              <div
+                                style={{
+                                  fontSize: 11,
+                                  color: T.ink3,
+                                  marginBottom: 4,
+                                }}
+                              >
+                                内容
+                              </div>
+                              <textarea
+                                value={gContent}
+                                onChange={(e) => setGContent(e.target.value)}
+                                rows={4}
+                                placeholder="指導内容を記入してください（最大 4000 文字）"
+                                style={{
+                                  width: "100%",
+                                  padding: "8px 10px",
+                                  border: `1px solid ${T.lineStrong}`,
+                                  borderRadius: 7,
+                                  fontFamily: "inherit",
+                                  fontSize: 13,
+                                  background: T.surface,
+                                  resize: "vertical",
+                                  boxSizing: "border-box",
+                                }}
+                              />
+                            </div>
+                            <label
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 6,
+                                fontSize: 12.5,
+                                cursor: "pointer",
+                                marginBottom: 12,
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={gConfidential}
+                                onChange={(e) =>
+                                  setGConfidential(e.target.checked)
+                                }
+                              />
+                              機密フラグ（学生本人に非表示）
+                            </label>
+                            {gError && (
+                              <div
+                                style={{
+                                  color: T.danger,
+                                  fontSize: 12,
+                                  marginBottom: 8,
+                                }}
+                              >
+                                ⚠️ {gError}
+                              </div>
+                            )}
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <button
+                                onClick={submitGuidance}
+                                disabled={gSubmitting}
+                                style={{
+                                  padding: "9px 20px",
+                                  background: T.cobalt,
+                                  color: "#fff",
+                                  border: "none",
+                                  borderRadius: 8,
+                                  fontFamily: "inherit",
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  cursor: gSubmitting
+                                    ? "not-allowed"
+                                    : "pointer",
+                                  opacity: gSubmitting ? 0.7 : 1,
+                                }}
+                              >
+                                {gSubmitting ? "登録中…" : "登録"}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowGuidanceForm(false);
+                                  setGError(null);
+                                }}
+                                style={{
+                                  padding: "9px 18px",
+                                  background: "transparent",
+                                  color: T.ink,
+                                  border: `1px solid ${T.lineStrong}`,
+                                  borderRadius: 8,
+                                  fontFamily: "inherit",
+                                  fontSize: 13,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                キャンセル
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setShowGuidanceForm(true)}
+                            style={{
+                              padding: "9px 18px",
+                              background: T.cobalt,
+                              color: "#fff",
+                              border: "none",
+                              borderRadius: 8,
+                              fontFamily: "inherit",
+                              fontSize: 13,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                            }}
+                          >
+                            ＋ 指導記録を録入
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* 扣分 tab */}
+                    {tab === "demerit" && (
+                      <ProfileList
+                        items={data.demerit_events}
+                        emptyMsg="扣分の記録がありません"
+                        cols={["種別", "ポイント", "理由", "月", "登録日"]}
+                        render={(d) => [
+                          d.source_type,
+                          d.points,
+                          d.reason,
+                          d.month,
+                          d.created_at ? d.created_at.slice(0, 10) : "—",
+                        ]}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* toast */}
+              {toast && (
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: 20,
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    padding: "10px 20px",
+                    background: toast.type === "ok" ? T.ok : T.danger,
+                    color: "#fff",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    pointerEvents: "none",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {toast.msg}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      // ProfileList — profile modal 内の汎用テーブル
+      function ProfileList({ items, emptyMsg, cols, render }) {
+        const T = window.RYO;
+        if (!items || items.length === 0) {
+          return (
+            <div style={{ color: T.ink3, fontSize: 13, padding: "20px 0" }}>
+              {emptyMsg}
+            </div>
+          );
+        }
+        return (
+          <div
+            style={{
+              background: T.surface,
+              border: `1px solid ${T.line}`,
+              borderRadius: 10,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: `repeat(${cols.length}, 1fr)`,
+                background: T.surfaceAlt,
+                fontSize: 11,
+                color: T.ink2,
+                fontWeight: 600,
+                letterSpacing: 1,
+                borderBottom: `1px solid ${T.line}`,
+              }}
+            >
+              {cols.map((c) => (
+                <div key={c} style={{ padding: "8px 12px" }}>
+                  {c}
+                </div>
+              ))}
+            </div>
+            {items.map((item, i) => (
+              <div
+                key={item.id || i}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: `repeat(${cols.length}, 1fr)`,
+                  borderTop: i > 0 ? `1px solid ${T.line}` : "none",
+                  fontSize: 12.5,
+                }}
+              >
+                {render(item).map((v, j) => (
+                  <div key={j} style={{ padding: "8px 12px", color: T.ink }}>
+                    {v == null ? "—" : String(v)}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      window.StudentProfileModal = StudentProfileModal;
+
+      // ─────────────────────────────────────────────────────────────────
+      // IncidentsPage — 事案録入ページ（spec §7.9 #33）
+      // 左側 nav から「事案録入」で遷移（寮務系権限 canGuidance = true の場合のみ表示）。
+      // 機能：一覧 + 録入 + 編集 + 軟削除。
+      // ─────────────────────────────────────────────────────────────────
+      function IncidentsPage({ authToken }) {
+        const T = window.RYO;
+        const [incidents, setIncidents] = React.useState([]);
+        const [loading, setLoading] = React.useState(true);
+        const [loadError, setLoadError] = React.useState(null);
+        const [showForm, setShowForm] = React.useState(false); // 新規録入フォーム表示
+        const [editTarget, setEditTarget] = React.useState(null); // 編集対象 incident
+        const [toast, setToast] = React.useState(null);
+        const [confirmDelete, setConfirmDelete] = React.useState(null); // 軟削除確認対象
+
+        // フォームフィールド（新規 / 編集 兼用）
+        const [fTitle, setFTitle] = React.useState("");
+        const [fBody, setFBody] = React.useState("");
+        const [fDate, setFDate] = React.useState(
+          new Date().toISOString().slice(0, 10),
+        );
+        const [fStudentIds, setFStudentIds] = React.useState(""); // カンマ区切り UUID 入力
+        const [fSubmitting, setFSubmitting] = React.useState(false);
+        const [fError, setFError] = React.useState(null);
+
+        const fetchIncidents = React.useCallback(() => {
+          if (!authToken) return;
+          setLoading(true);
+          setLoadError(null);
+          window.tomoshibiApi
+            .listIncidents(authToken)
+            .then((res) => {
+              setIncidents(res.items || []);
+              setLoading(false);
+            })
+            .catch((e) => {
+              setLoadError(e.message || "事案リストの取得に失敗しました");
+              setLoading(false);
+            });
+        }, [authToken]);
+
+        React.useEffect(() => {
+          fetchIncidents();
+        }, [fetchIncidents]);
+
+        React.useEffect(() => {
+          if (toast) {
+            const id = setTimeout(() => setToast(null), 3500);
+            return () => clearTimeout(id);
+          }
+        }, [toast]);
+
+        const openNew = () => {
+          setEditTarget(null);
+          setFTitle("");
+          setFBody("");
+          setFDate(new Date().toISOString().slice(0, 10));
+          setFStudentIds("");
+          setFError(null);
+          setShowForm(true);
+        };
+
+        const openEdit = (inc) => {
+          setEditTarget(inc);
+          setFTitle(inc.title);
+          setFBody(inc.body);
+          setFDate(inc.incident_date);
+          setFStudentIds((inc.involved_student_ids || []).join(", "));
+          setFError(null);
+          setShowForm(true);
+        };
+
+        const closeForm = () => {
+          setShowForm(false);
+          setEditTarget(null);
+          setFError(null);
+        };
+
+        const parseStudentIds = (raw) =>
+          raw
+            .split(/[,\s]+/)
+            .map((s) => s.trim())
+            .filter(Boolean);
+
+        const submitForm = () => {
+          if (!fTitle.trim()) {
+            setFError("タイトルを入力してください");
+            return;
+          }
+          if (!fBody.trim()) {
+            setFError("内容を入力してください");
+            return;
+          }
+          const ids = parseStudentIds(fStudentIds);
+          setFSubmitting(true);
+          setFError(null);
+
+          const payload = {
+            title: fTitle.trim(),
+            body: fBody.trim(),
+            involved_student_ids: ids,
+            incident_date: fDate,
+          };
+
+          const call = editTarget
+            ? window.tomoshibiApi.updateIncident(
+                editTarget.id,
+                payload,
+                authToken,
+              )
+            : window.tomoshibiApi.createIncident(payload, authToken);
+
+          call
+            .then((saved) => {
+              if (editTarget) {
+                setIncidents((list) =>
+                  list.map((inc) => (inc.id === saved.id ? saved : inc)),
+                );
+                setToast({ type: "ok", msg: "事案を更新しました" });
+              } else {
+                setIncidents((list) => [saved, ...list]);
+                setToast({ type: "ok", msg: "事案を登録しました" });
+              }
+              closeForm();
+              setFSubmitting(false);
+            })
+            .catch((e) => {
+              setFError(e.message || "登録失敗");
+              setFSubmitting(false);
+            });
+        };
+
+        const softDelete = (inc) => {
+          window.tomoshibiApi
+            .deleteIncident(inc.id, authToken)
+            .then(() => {
+              setIncidents((list) => list.filter((i) => i.id !== inc.id));
+              setToast({ type: "ok", msg: `「${inc.title}」を削除しました` });
+              setConfirmDelete(null);
+            })
+            .catch((e) => {
+              setToast({ type: "err", msg: e.message || "削除失敗" });
+              setConfirmDelete(null);
+            });
+        };
+
+        return (
+          <div style={{ padding: "28px 32px 48px" }}>
+            <div
+              style={{
+                fontSize: 11,
+                color: T.ink3,
+                letterSpacing: 2,
+                fontWeight: 600,
+              }}
+            >
+              寮務管理
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                margin: "4px 0 20px",
+              }}
+            >
+              <h1
+                style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.3 }}
+              >
+                事案録入
+              </h1>
+              <button
+                onClick={openNew}
+                style={{
+                  padding: "9px 18px",
+                  background: T.cobalt,
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  fontFamily: "inherit",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                ＋ 新規録入
+              </button>
+            </div>
+
+            {loadError && (
+              <div
+                style={{
+                  padding: "10px 14px",
+                  background: T.dangerSoft,
+                  border: `1px solid ${T.dangerBorder}`,
+                  borderRadius: 8,
+                  color: T.danger,
+                  fontSize: 13,
+                  marginBottom: 16,
+                }}
+              >
+                ⚠️ {loadError}
+              </div>
+            )}
+
+            {/* 一覧テーブル */}
+            <div
+              style={{
+                background: T.surface,
+                border: `1px solid ${T.line}`,
+                borderRadius: 12,
+                overflow: "hidden",
+                boxShadow: T.shadow1,
+              }}
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "120px 1fr 120px 100px 80px",
+                  background: T.surfaceAlt,
+                  fontSize: 11,
+                  color: T.ink2,
+                  fontWeight: 600,
+                  letterSpacing: 1,
+                  borderBottom: `1px solid ${T.line}`,
+                }}
+              >
+                {[
+                  "日付",
+                  "タイトル / 概要",
+                  "登録日時",
+                  "関係学生数",
+                  "操作",
+                ].map((h) => (
+                  <div key={h} style={{ padding: "10px 12px" }}>
+                    {h}
+                  </div>
+                ))}
+              </div>
+              {loading && (
+                <div
+                  style={{
+                    padding: 40,
+                    textAlign: "center",
+                    color: T.ink3,
+                    fontSize: 13,
+                  }}
+                >
+                  読み込み中…
+                </div>
+              )}
+              {!loading && incidents.length === 0 && (
+                <div
+                  style={{
+                    padding: 40,
+                    textAlign: "center",
+                    color: T.ink3,
+                    fontSize: 13,
+                  }}
+                >
+                  事案の記録がありません
+                </div>
+              )}
+              {!loading &&
+                incidents.map((inc, i) => (
+                  <div
+                    key={inc.id}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "120px 1fr 120px 100px 80px",
+                      borderTop: i > 0 ? `1px solid ${T.line}` : "none",
+                      fontSize: 12.5,
+                      alignItems: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: "10px 12px",
+                        fontFamily: T.mono,
+                        color: T.ink3,
+                        fontSize: 12,
+                      }}
+                    >
+                      {inc.incident_date}
+                    </div>
+                    <div style={{ padding: "10px 12px" }}>
+                      <div style={{ fontWeight: 600, marginBottom: 2 }}>
+                        {inc.title}
+                      </div>
+                      <div
+                        style={{
+                          color: T.ink3,
+                          fontSize: 11.5,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          maxWidth: 340,
+                        }}
+                      >
+                        {inc.body}
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        padding: "10px 12px",
+                        fontSize: 11,
+                        fontFamily: T.mono,
+                        color: T.ink3,
+                      }}
+                    >
+                      {inc.created_at ? inc.created_at.slice(0, 10) : "—"}
+                    </div>
+                    <div
+                      style={{
+                        padding: "10px 12px",
+                        fontSize: 12,
+                        color: T.ink3,
+                      }}
+                    >
+                      {(inc.involved_student_ids || []).length} 名
+                    </div>
+                    <div
+                      style={{
+                        padding: "10px 8px",
+                        display: "flex",
+                        gap: 4,
+                      }}
+                    >
+                      <button
+                        onClick={() => openEdit(inc)}
+                        style={{
+                          padding: "4px 10px",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          background: "transparent",
+                          color: T.cobalt,
+                          border: `1px solid ${T.cobalt}`,
+                          borderRadius: 6,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        編集
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete(inc)}
+                        style={{
+                          padding: "4px 10px",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          background: "transparent",
+                          color: T.danger,
+                          border: `1px solid ${T.dangerBorder}`,
+                          borderRadius: 6,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        削除
+                      </button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+
+            {/* 録入 / 編集フォーム modal */}
+            {showForm && (
+              <div
+                onClick={closeForm}
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  background: "rgba(20,23,31,.52)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  zIndex: 300,
+                }}
+              >
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    width: 600,
+                    maxHeight: "88vh",
+                    background: T.surface,
+                    borderRadius: 14,
+                    boxShadow: T.shadowModal,
+                    overflow: "auto",
+                    padding: "24px 28px",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 17,
+                      fontWeight: 700,
+                      marginBottom: 18,
+                    }}
+                  >
+                    {editTarget ? "事案を編集" : "事案を録入"}
+                  </div>
+                  <div style={{ marginBottom: 14 }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: T.ink3,
+                        marginBottom: 4,
+                      }}
+                    >
+                      タイトル
+                    </div>
+                    <input
+                      value={fTitle}
+                      onChange={(e) => setFTitle(e.target.value)}
+                      placeholder="事案のタイトル（最大 200 文字）"
+                      style={{
+                        width: "100%",
+                        padding: "9px 12px",
+                        border: `1px solid ${T.lineStrong}`,
+                        borderRadius: 8,
+                        fontFamily: "inherit",
+                        fontSize: 13,
+                        background: T.surface,
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: 14 }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: T.ink3,
+                        marginBottom: 4,
+                      }}
+                    >
+                      事発日
+                    </div>
+                    <input
+                      type="date"
+                      value={fDate}
+                      onChange={(e) => setFDate(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "9px 12px",
+                        border: `1px solid ${T.lineStrong}`,
+                        borderRadius: 8,
+                        fontFamily: "inherit",
+                        fontSize: 13,
+                        background: T.surface,
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: 14 }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: T.ink3,
+                        marginBottom: 4,
+                      }}
+                    >
+                      内容
+                    </div>
+                    <textarea
+                      value={fBody}
+                      onChange={(e) => setFBody(e.target.value)}
+                      rows={6}
+                      placeholder="事案の詳細内容を記入（最大 100000 文字）"
+                      style={{
+                        width: "100%",
+                        padding: "9px 12px",
+                        border: `1px solid ${T.lineStrong}`,
+                        borderRadius: 8,
+                        fontFamily: "inherit",
+                        fontSize: 13,
+                        background: T.surface,
+                        resize: "vertical",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: 18 }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: T.ink3,
+                        marginBottom: 4,
+                      }}
+                    >
+                      関係学生 UUID（カンマ区切り、任意）
+                    </div>
+                    <input
+                      value={fStudentIds}
+                      onChange={(e) => setFStudentIds(e.target.value)}
+                      placeholder="例: uuid-1, uuid-2"
+                      style={{
+                        width: "100%",
+                        padding: "9px 12px",
+                        border: `1px solid ${T.lineStrong}`,
+                        borderRadius: 8,
+                        fontFamily: T.mono,
+                        fontSize: 12,
+                        background: T.surface,
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <div style={{ fontSize: 11, color: T.ink3, marginTop: 4 }}>
+                      ※ 学生 ID は学生アカウント管理ページで確認できます
+                    </div>
+                  </div>
+                  {fError && (
+                    <div
+                      style={{
+                        color: T.danger,
+                        fontSize: 12,
+                        marginBottom: 12,
+                      }}
+                    >
+                      ⚠️ {fError}
+                    </div>
+                  )}
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 8,
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    <button
+                      onClick={closeForm}
+                      style={{
+                        padding: "9px 18px",
+                        background: "transparent",
+                        color: T.ink,
+                        border: `1px solid ${T.lineStrong}`,
+                        borderRadius: 8,
+                        fontFamily: "inherit",
+                        fontSize: 13,
+                        cursor: "pointer",
+                      }}
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      onClick={submitForm}
+                      disabled={fSubmitting}
+                      style={{
+                        padding: "9px 22px",
+                        background: T.cobalt,
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 8,
+                        fontFamily: "inherit",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        cursor: fSubmitting ? "not-allowed" : "pointer",
+                        opacity: fSubmitting ? 0.7 : 1,
+                      }}
+                    >
+                      {fSubmitting ? "保存中…" : editTarget ? "更新" : "登録"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 軟削除確認 modal */}
+            {confirmDelete && (
+              <ConfirmModal
+                title="事案を削除"
+                desc={`「${confirmDelete.title}」を削除します。この操作は取り消せません（論理削除）。`}
+                danger
+                confirmLabel="削除"
+                onCancel={() => setConfirmDelete(null)}
+                onConfirm={() => softDelete(confirmDelete)}
+              />
+            )}
+
+            {/* toast */}
+            {toast && (
+              <div
+                style={{
+                  position: "fixed",
+                  bottom: 28,
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  padding: "10px 20px",
+                  background: toast.type === "ok" ? T.ok : T.danger,
+                  color: "#fff",
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  zIndex: 999,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {toast.msg}
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      window.IncidentsPage = IncidentsPage;
 
       window.AccountsPage = AccountsPage;
     </script>
@@ -25708,6 +27346,10 @@
                 authToken={authToken}
               />
             );
+            break;
+          case "incidents":
+            // 5-30: 事案録入ページ (spec §7.9 #33) — 寮務系権限のみ nav に表示
+            body = <window.IncidentsPage authToken={authToken} />;
             break;
           default:
             body = (

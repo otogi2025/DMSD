@@ -232,6 +232,40 @@
     unlockStudentAccount: (studentId, token) =>
       request("POST", `/accounts/${studentId}/unlock`, undefined, token),
 
+    // ── 行事予定（spec §7.5 + 5-30 新增）──
+    // from_date / to_date 均为 YYYY-MM-DD 字符串，可省略
+    listEvents: (token, from_date, to_date) => {
+      const q = [];
+      if (from_date) q.push(`from_date=${encodeURIComponent(from_date)}`);
+      if (to_date) q.push(`to_date=${encodeURIComponent(to_date)}`);
+      const qs = q.length ? `?${q.join("&")}` : "";
+      return request("GET", `/events${qs}`, undefined, token);
+    },
+    // body = { title, category, event_date, start_at?, end_at?, description? }
+    createEvent: (body, token) => request("POST", "/events", body, token),
+    // body 为部分字段（title / category / event_date / start_at / end_at / description 任意组合）
+    updateEvent: (id, body, token) =>
+      request("PATCH", `/events/${id}`, body, token),
+    // 物理删除（后端 events 是真删除，不同于巴士的软停用）
+    deleteEvent: (id, token) =>
+      request("DELETE", `/events/${id}`, undefined, token),
+
+    // ── 巴士时刻表（spec §7.6 + 5-30 新增）──
+    // kind = "daily_commute"（平日通学便）| "dorm_special"（寮特殊便），省略返回全部有效便
+    listBusRoutes: (token, kind) => {
+      const qs = kind ? `?kind=${encodeURIComponent(kind)}` : "";
+      return request("GET", `/bus/routes${qs}`, undefined, token);
+    },
+    // body = { kind, name, direction, schedule_at, arrival_at?, visible_to?, note? }
+    createBusRoute: (body, token) =>
+      request("POST", "/bus/routes", body, token),
+    // body 为部分字段（kind / name / direction / schedule_at / arrival_at / visible_to / note / deprecated 任意组合）
+    updateBusRoute: (id, body, token) =>
+      request("PATCH", `/bus/routes/${id}`, body, token),
+    // 软停用：后端把 deprecated=true，不物理删除
+    deleteBusRoute: (id, token) =>
+      request("DELETE", `/bus/routes/${id}`, undefined, token),
+
     // 清扫安排（spec §7.10 + 5-27 backend 新增）
     // CleaningPage 接 backend。失败自动加 DemeritEvent (source_type='cleaning_failed')。
     // 权限：寮監 / 寮務 / 管理係
@@ -259,6 +293,54 @@
       request("POST", `/front-desk/${id}/notify`, {}, token),
     pickupFrontDesk: (id, token) =>
       request("POST", `/front-desk/${id}/picked-up`, {}, token),
+
+    // ── 学生个人档案聚合（spec §7.10 #32 — 5-30 新增）──
+    // GET /api/v1/students/{id}/profile → {student, applications, study_checkins, rollcall_events, guidance_records, demerit_events}
+    // limit 可省略（后端默认 20）
+    getStudentProfile: (studentId, token, limit) => {
+      const qs = limit ? `?limit=${encodeURIComponent(limit)}` : "";
+      return request(
+        "GET",
+        `/students/${studentId}/profile${qs}`,
+        undefined,
+        token,
+      );
+    },
+
+    // ── 指導履歴（spec §7.9 — 5-30 新増）──
+    // POST → 老师录入指导记录 body={student_id, content, category?, guidance_date, confidential}
+    createGuidance: (studentId, body, token) =>
+      request("POST", `/students/${studentId}/guidance`, body, token),
+    // GET → 查某学生全部指导记录（items[]）
+    listGuidance: (studentId, token) =>
+      request("GET", `/students/${studentId}/guidance`, undefined, token),
+    // GET → 老师查全部开示申请列表（items[]）
+    listDisclosureRequests: (token) =>
+      request("GET", "/guidance/disclosure-requests", undefined, token),
+    // POST → 老师决定开示 body={decision, decision_note?, visible_from?, visible_until?}
+    // decision: "approved_full" | "approved_partial" | "rejected"
+    decideDisclosure: (requestId, body, token) =>
+      request(
+        "POST",
+        `/guidance/disclosure-requests/${requestId}/decision`,
+        body,
+        token,
+      ),
+
+    // ── 事案録入（spec §7.9 #33 — 5-30 新増）──
+    // GET → 列表（items[]）
+    listIncidents: (token) => request("GET", "/incidents", undefined, token),
+    // POST → 录入 body={title, body, involved_student_ids[], incident_date}
+    createIncident: (body, token) => request("POST", "/incidents", body, token),
+    // GET → 详情
+    getIncident: (id, token) =>
+      request("GET", `/incidents/${id}`, undefined, token),
+    // PATCH → 部分编辑 body={title?, body?, involved_student_ids?, incident_date?}
+    updateIncident: (id, body, token) =>
+      request("PATCH", `/incidents/${id}`, body, token),
+    // DELETE → 软删（204 no content）
+    deleteIncident: (id, token) =>
+      request("DELETE", `/incidents/${id}`, undefined, token),
 
     // 401 全局拦截注册（§11.5 W3 拍板）
     // App() 在 mount 时调 setOnUnauthorized(() => logout()) 注册回调。
