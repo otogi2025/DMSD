@@ -42,6 +42,8 @@ from .routers import (
     dorm_life,
     events,
     front_desk,
+    guidance,
+    incidents,
     meals,
     notifications,
     rollcall,
@@ -147,6 +149,8 @@ app.include_router(cleaning.router)
 app.include_router(front_desk.router)
 app.include_router(events.router)
 app.include_router(bus_routes.router)
+app.include_router(guidance.router)
+app.include_router(incidents.router)
 app.include_router(ws.router)
 
 

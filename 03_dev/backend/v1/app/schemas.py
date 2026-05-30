@@ -1177,3 +1177,117 @@ class BusRouteListOut(BaseModel):
 
     items: list[BusRouteOut]
     message: str = "アカウントのロックを解除しました。"
+
+
+# ---------------------------------------------------------------
+# 指導履歴（spec §7.9/§7.10）
+# ---------------------------------------------------------------
+class GuidanceRecordCreateIn(BaseModel):
+    """老师录入指导记录。"""
+
+    student_id: UUID
+    content: str = Field(..., min_length=1, max_length=4000)
+    category: Optional[str] = Field(None, max_length=100)
+    guidance_date: date
+    confidential: bool = True
+
+
+class GuidanceRecordOut(ORMModel):
+    id: UUID
+    student_id: UUID
+    teacher_id: UUID
+    content: str
+    category: Optional[str]
+    guidance_date: date
+    confidential: bool
+    created_at: datetime
+    deleted_at: Optional[datetime]
+
+
+class GuidanceRecordListOut(BaseModel):
+    items: list[GuidanceRecordOut]
+
+
+class GuidanceDisclosureRequestIn(BaseModel):
+    """学生提交开示申请（查看自己的指导履历）。"""
+
+    reason: Optional[str] = Field(None, max_length=2000)
+
+
+class GuidanceDisclosureDecisionIn(BaseModel):
+    """老师决定开示申请。"""
+
+    decision: Literal["approved_full", "approved_partial", "rejected"]
+    decision_note: Optional[str] = Field(None, max_length=2000)
+    # 部分开示时必填
+    visible_from: Optional[date] = None
+    visible_until: Optional[date] = None
+
+    @model_validator(mode="after")
+    def _check_partial(self) -> "GuidanceDisclosureDecisionIn":
+        if self.decision == "approved_partial" and (
+            self.visible_from is None or self.visible_until is None
+        ):
+            raise ValueError("部分开示时 visible_from / visible_until 必填")
+        if (
+            self.visible_from is not None
+            and self.visible_until is not None
+            and self.visible_until < self.visible_from
+        ):
+            raise ValueError("visible_until 不能早于 visible_from")
+        return self
+
+
+class GuidanceDisclosureRequestOut(ORMModel):
+    id: UUID
+    student_id: UUID
+    reason: Optional[str]
+    requested_at: datetime
+    status: Literal["pending", "approved_full", "approved_partial", "rejected"]
+    decided_by: Optional[UUID]
+    decided_at: Optional[datetime]
+    decision_note: Optional[str]
+    visible_from: Optional[date]
+    visible_until: Optional[date]
+    revoked_at: Optional[datetime]
+
+
+class GuidanceDisclosureListOut(BaseModel):
+    items: list[GuidanceDisclosureRequestOut]
+
+
+# ---------------------------------------------------------------
+# 事案録入（spec §7.9 #33）
+# ---------------------------------------------------------------
+class IncidentRecordCreateIn(BaseModel):
+    """老师录入事案。"""
+
+    title: str = Field(..., min_length=1, max_length=200)
+    body: str = Field(..., min_length=1, max_length=100000)
+    involved_student_ids: list[UUID] = Field(default_factory=list)
+    incident_date: date
+
+
+class IncidentRecordPatchIn(BaseModel):
+    """老师编辑事案（部分更新）。"""
+
+    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    body: Optional[str] = Field(None, min_length=1, max_length=100000)
+    involved_student_ids: Optional[list[UUID]] = None
+    incident_date: Optional[date] = None
+
+
+class IncidentRecordOut(ORMModel):
+    id: UUID
+    title: str
+    body: str
+    involved_student_ids: list[Any]
+    recorded_by: UUID
+    incident_date: date
+    created_at: datetime
+    updated_at: Optional[datetime]
+    deleted_at: Optional[datetime]
+
+
+class IncidentRecordListOut(BaseModel):
+    items: list[IncidentRecordOut]

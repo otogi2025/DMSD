@@ -1254,3 +1254,109 @@ class BusRoute(Base):
         Index("idx_bus_routes_kind_deprecated", "kind", "deprecated"),
         Index("idx_bus_routes_schedule_at", "schedule_at"),
     )
+
+
+# ---------------------------------------------------------------
+# 指導履歴（学生指导记录）— spec §7.9/§7.10
+# ---------------------------------------------------------------
+class GuidanceRecord(Base):
+    """学生指导记录 — 老师录入，学生默认看不到（C 案，§7.10）。"""
+
+    __tablename__ = "guidance_records"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id"), nullable=False
+    )
+    teacher_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("teachers.id"), nullable=False
+    )
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    # 类别：生活态度 / 点呼态度 / 同寮纠纷 / 学习 / 其他
+    category: Mapped[Optional[str]] = mapped_column(Text)
+    # 默认 confidential — 学生申请开示才能看到（§7.10 C 案）
+    confidential: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    guidance_date: Mapped[date] = mapped_column(Date, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
+    student: Mapped["Student"] = relationship(foreign_keys=[student_id])
+    teacher: Mapped["Teacher"] = relationship(foreign_keys=[teacher_id])
+
+    __table_args__ = (
+        Index("idx_gr_student", "student_id", "deleted_at"),
+        Index("idx_gr_teacher", "teacher_id", "guidance_date"),
+    )
+
+
+class GuidanceDisclosureRequest(Base):
+    """指导履历 开示申请 — 学生发起，老师决定（§7.10 C 案）。"""
+
+    __tablename__ = "guidance_disclosure_requests"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id"), nullable=False
+    )
+    reason: Mapped[Optional[str]] = mapped_column(Text)
+    requested_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="pending")
+    decided_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    decision_note: Mapped[Optional[str]] = mapped_column(Text)
+    # 部分开示时的开示范围（全部开示时两字段均 NULL）
+    visible_from: Mapped[Optional[date]] = mapped_column(Date)
+    visible_until: Mapped[Optional[date]] = mapped_column(Date)
+    # 老师事后撤销开示（误开示对策）
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
+    student: Mapped["Student"] = relationship(foreign_keys=[student_id])
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending','approved_full','approved_partial','rejected')",
+            name="ck_gdr_status",
+        ),
+        Index("idx_gdr_student_status", "student_id", "status"),
+        Index("idx_gdr_status_requested", "status", "requested_at"),
+    )
+
+
+# ---------------------------------------------------------------
+# 事案録入（事件/事案记录）— spec §7.9 #33
+# ---------------------------------------------------------------
+class IncidentRecord(Base):
+    """事案录入 — 老师录入，富文本内容，可涉及多名学生。"""
+
+    __tablename__ = "incident_records"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    # 正文：富文本（前端 rich text，后端存 HTML 字符串）
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    # 涉及学生 ID 列表（JSON 数组）— 支持 tap 跳转到学生数据页 #33
+    involved_student_ids: Mapped[list] = mapped_column(
+        JSON, nullable=False, default=list
+    )
+    recorded_by: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("teachers.id"), nullable=False
+    )
+    incident_date: Mapped[date] = mapped_column(Date, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
+    recorder: Mapped["Teacher"] = relationship(foreign_keys=[recorded_by])
+
+    __table_args__ = (
+        Index("idx_ir_recorded_by", "recorded_by", "incident_date"),
+        Index("idx_ir_date_active", "incident_date", "deleted_at"),
+    )
