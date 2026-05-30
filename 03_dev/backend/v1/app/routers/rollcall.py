@@ -361,7 +361,7 @@ def create_checkin(
     db.commit()
     db.refresh(event)
 
-    # WS broadcast — 老师端 LiveRollCall 实时更新座席
+    # WS broadcast — 只推给管辖该学生所在寮的老师连接
     _ws.manager.broadcast_sync(
         {
             "type": "checkin",
@@ -371,7 +371,8 @@ def create_checkin(
             "checked_at": now.isoformat(),
             "name": student.name,
             "room_no": student.room_no,
-        }
+        },
+        dorm_unit=student.dorm_unit,
     )
 
     return schemas.RollCallEventOut.model_validate(event)
@@ -633,7 +634,7 @@ def patch_event(
     db.commit()
     db.refresh(override_event)
 
-    # WS broadcast — 老师端 LiveRollCall 收 override 实时刷新座席颜色
+    # WS broadcast — 只推给管辖该学生所在寮的老师连接
     _ws.manager.broadcast_sync(
         {
             "type": "override",
@@ -642,7 +643,8 @@ def patch_event(
             "status": new_status,
             "from_status": old_status,
             "override_reason": body.reason,
-        }
+        },
+        dorm_unit=student.dorm_unit if student else None,
     )
 
     return schemas.RollCallEventOut.model_validate(override_event)

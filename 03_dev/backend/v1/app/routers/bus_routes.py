@@ -176,6 +176,27 @@ def patch_bus_route(
         if val is not None:
             setattr(row, field, val)
     row.updated_at = datetime.now(timezone.utc)
+    db.add(
+        models.AuditLog(
+            actor_type="teacher",
+            actor_id=teacher.id,
+            action="bus_route.patch",
+            target_type="bus_routes",
+            target_id=route_id,
+            payload={
+                k: getattr(body, k)
+                for k in (
+                    "kind",
+                    "name",
+                    "direction",
+                    "visible_to",
+                    "note",
+                    "deprecated",
+                )
+                if getattr(body, k) is not None
+            },
+        )
+    )
     db.commit()
     db.refresh(row)
     return schemas.BusRouteOut.model_validate(row)

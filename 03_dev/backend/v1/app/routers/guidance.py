@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import get_current_student, get_current_teacher
+from ..deps import dorm_units_for_teacher, get_current_student, get_current_teacher
 
 router = APIRouter(prefix="/api/v1", tags=["guidance"])
 
@@ -114,7 +114,19 @@ def list_guidance(
 ):
     """老师查某学生全部指导记录（未软删的）。limit 默认 50，最大 200。"""
     _require_guidance_role(teacher)
-    _get_student_or_404(student_id, db)
+    student = _get_student_or_404(student_id, db)
+
+    # R4 寮边界：跨寮角色（dorm_units_for_teacher 返回 None）可查全部；
+    # 其他老师只能查自己管辖寮的学生
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None and student.dorm_unit not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "FORBIDDEN_DORM",
+                "message": "担当外の寮の学生の指導履歴は閲覧できません",
+            },
+        )
 
     rows = db.scalars(
         select(models.GuidanceRecord)
@@ -200,6 +212,7 @@ def list_disclosure_requests(
 ):
     """老师查开示申请列表（按申请时间倒序）。
     默认过滤 revoked_at IS NULL（未撤销），include_revoked=true 可看全部。
+    R4 寮过滤：跨寮角色看全部；其他老师只看自己管辖寮的学生的申请。
     """
     _require_guidance_role(teacher)
 
@@ -210,6 +223,15 @@ def list_disclosure_requests(
     )
     if not include_revoked:
         stmt = stmt.where(models.GuidanceDisclosureRequest.revoked_at.is_(None))
+
+    # R4 寮边界过滤
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None:
+        stmt = stmt.join(
+            models.Student,
+            models.GuidanceDisclosureRequest.student_id == models.Student.id,
+        ).where(models.Student.dorm_unit.in_(allowed))
+
     rows = db.scalars(stmt).all()
     return schemas.GuidanceDisclosureListOut(
         items=[schemas.GuidanceDisclosureRequestOut.from_row(r) for r in rows]

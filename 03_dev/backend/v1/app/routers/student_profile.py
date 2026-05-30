@@ -16,15 +16,15 @@
 
 # 注意：不加 `from __future__ import annotations`，避免 ruff 以为 Header 未使用而删 import
 
-from typing import Annotated, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import models, schemas, security
+from .. import models, schemas
 from ..database import get_db
+from ..deps import get_current_principal
 
 router = APIRouter(prefix="/api/v1", tags=["student / profile"])
 
@@ -55,8 +55,8 @@ def _get_student_or_404(student_id: UUID, db: Session) -> models.Student:
 def get_student_profile(
     student_id: UUID,
     limit: int = Query(20, ge=1, le=100, description="各子块返回最多条数"),
-    authorization: Annotated[Optional[str], Header()] = None,
     db: Session = Depends(get_db),
+    principal: models.Student | models.Teacher = Depends(get_current_principal),
 ) -> schemas.StudentProfileOut:
     """学生个人档案聚合页 (#32)。
 
@@ -64,56 +64,14 @@ def get_student_profile(
     - 寮務系老师: 可看全部，含指导履历
     - 学生本人: 只能看自己，指导履历返空（C 案）
     - 其他老师: 403
-
-    实现: 用 Authorization header 拿到 token，判断是老师还是学生，再做权限分流。
     """
-    # ---- 鉴权：解析 Authorization: Bearer <token> ----
-    actor_teacher: Optional[models.Teacher] = None
-    actor_student: Optional[models.Student] = None
+    actor_teacher: models.Teacher | None = None
+    actor_student: models.Student | None = None
 
-    if not authorization or not authorization.lower().startswith("bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "INVALID_CREDENTIALS", "message": "ログインが必要です"},
-        )
-
-    token = authorization.split(" ", 1)[1]
-    try:
-        payload = security.decode_token(token)
-    except security.JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "INVALID_CREDENTIALS", "message": "トークンが無効です"},
-        )
-
-    role = payload.get("role", "")
-    sub = payload.get("sub")
-
-    if role.startswith("teacher:"):
-        actor_teacher = db.get(models.Teacher, UUID(sub))
-        if not actor_teacher or actor_teacher.status != "active":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={
-                    "code": "ACCOUNT_INACTIVE",
-                    "message": "アカウントが利用不可です",
-                },
-            )
-    elif role == "student":
-        actor_student = db.get(models.Student, UUID(sub))
-        if not actor_student or actor_student.status != "active":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={
-                    "code": "ACCOUNT_INACTIVE",
-                    "message": "アカウントが利用不可です",
-                },
-            )
+    if isinstance(principal, models.Teacher):
+        actor_teacher = principal
     else:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={"code": "FORBIDDEN", "message": "不明な token role"},
-        )
+        actor_student = principal
 
     # ---- 老师鉴权：只有寮務系才能查 ----
     if actor_teacher is not None:

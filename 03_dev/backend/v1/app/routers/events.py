@@ -146,5 +146,15 @@ def delete_event(
             status_code=404,
             detail={"code": "EVENT_NOT_FOUND", "message": "行事予定が見つかりません"},
         )
+    db.add(
+        models.AuditLog(
+            actor_type="teacher",
+            actor_id=teacher.id,
+            action="event.delete",
+            target_type="dorm_events",
+            target_id=event_id,
+            payload={"title": row.title, "event_date": str(row.event_date)},
+        )
+    )
     db.delete(row)
     db.commit()
