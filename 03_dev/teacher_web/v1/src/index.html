@@ -11492,6 +11492,7 @@
         backendReachable, // Task #6 真接口对接: null 未知 / true 接通 / false 不可達
         wsStatus, // 5-27 spec §11.8: WebSocket 状态 null / connecting / connected / disconnected / failed
         currentRole, // 5-27 codex 审查 #11: backend authProfile.role — 教师管理 nav 按角色 hide
+        authToken, // 全局搜索学生建议用
       }) {
         const T = window.RYO;
         // Task #6 (5-27): 删 WS demo 模拟，按 backendReachable 真实状态切 indicator。
@@ -11574,17 +11575,38 @@
 
         const normalize = (s) => (s || "").replace(/\s+/g, "").toLowerCase();
         const qn = normalize(q);
-        const studentSuggestions =
-          q.length > 0
-            ? (window.ROSTER_ALL || [])
-                .map(([room, id, name, dorm]) => ({
-                  label: name,
-                  meta: `${room}号室 · ${id}`,
-                  kind: "student",
-                  hay: normalize(`${name}${room}${id}`),
-                }))
-                .filter((s) => s.hay.includes(qn))
-            : [];
+        // 真后端学生检索建议（替代假名单 window.ROSTER_ALL）
+        const [backendSuggestions, setBackendSuggestions] = React.useState([]);
+        React.useEffect(() => {
+          if (q.length === 0 || !authToken) {
+            setBackendSuggestions([]);
+            return;
+          }
+          let cancelled = false;
+          const timer = setTimeout(() => {
+            window.tomoshibiApi
+              .listStudents({ q }, authToken)
+              .then((res) => {
+                if (cancelled) return;
+                const items = res.items || [];
+                setBackendSuggestions(
+                  items.map((s) => ({
+                    label: s.name,
+                    meta: `${s.room_no}号室 · ${s.student_no}`,
+                    kind: "student",
+                  })),
+                );
+              })
+              .catch(() => {
+                if (!cancelled) setBackendSuggestions([]);
+              });
+          }, 200); // 200ms 防抖，避免每键一次请求
+          return () => {
+            cancelled = true;
+            clearTimeout(timer);
+          };
+        }, [q, authToken]);
+        const studentSuggestions = backendSuggestions;
         const extraSuggestions =
           q.length > 0
             ? [
@@ -12090,11 +12112,27 @@
         onNav,
         trend,
         onShowSummary,
+        authToken,
       }) {
         const T = window.RYO;
         const [name, setName] = React.useState("晩点呼 · 普通寮生");
-        const students =
-          teacher.dorm === "men" ? window.ROSTER_MEN : window.ROSTER_WOMEN;
+        // 从后端取该寮学生人数（替代假名单 window.ROSTER_MEN/WOMEN）
+        const [studentCount, setStudentCount] = React.useState(null);
+        React.useEffect(() => {
+          if (!authToken) return;
+          let cancelled = false;
+          window.tomoshibiApi
+            .listStudents({ dorm_unit: teacher.dorm }, authToken)
+            .then((res) => {
+              if (!cancelled) setStudentCount((res.items || []).length);
+            })
+            .catch(() => {
+              if (!cancelled) setStudentCount(null);
+            });
+          return () => {
+            cancelled = true;
+          };
+        }, [teacher.dorm, authToken]);
         const today = new Date();
         const todayLabel = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}（${["日", "月", "火", "水", "木", "金", "土"][today.getDay()]}）`;
 
@@ -12121,7 +12159,7 @@
               <span style={{ fontSize: 12, color: T.ink3 }}>{todayLabel}</span>
             </div>
             <div style={{ color: T.ink2, fontSize: 13, marginBottom: 22 }}>
-              対象 {students.length} 名 · {window.dormLabel(teacher.dorm)} ·
+              対象 {studentCount ?? "—"} 名 · {window.dormLabel(teacher.dorm)} ·
               舎監 {teacher.name} 先生
             </div>
 
@@ -18757,8 +18795,6 @@
       function RecordsPage({ teacher, params, onNav, authToken }) {
         const T = window.RYO;
         const date = (params && params.date) || "2026-04-21";
-        const roster =
-          teacher.dorm === "men" ? window.ROSTER_MEN : window.ROSTER_WOMEN;
 
         // 5-27 backend commit c0a22d1 — 拉过去 7 天点呼 session 历史
         const [backendHistory, setBackendHistory] = React.useState(null);
@@ -18772,71 +18808,13 @@
             })
             .catch((e) => {
               if (cancelled) return;
-              console.warn(
-                "[RecordsPage] rollcallSessionsHistory 失败 → mock fallback",
-                e,
-              );
+              console.warn("[RecordsPage] rollcallSessionsHistory 失败", e);
               setBackendHistory(null);
             });
           return () => {
             cancelled = true;
           };
         }, [authToken]);
-        const statuses = [
-          "ok",
-          "ok",
-          "ok",
-          "late",
-          "ok",
-          "absent",
-          "ok",
-          "ok",
-          "exempt",
-          "ok",
-          "ok",
-          "ok",
-        ];
-        const methods = [
-          "NFC卡",
-          "NFC卡",
-          "スマホ",
-          "手動",
-          "NFC卡",
-          "—",
-          "NFC卡",
-          "NFC卡",
-          "—",
-          "NFC卡",
-          "NFC卡",
-          "スマホ",
-        ];
-        const times = [
-          "19:30",
-          "19:31",
-          "19:31",
-          "19:34",
-          "19:32",
-          "—",
-          "19:33",
-          "19:31",
-          "—",
-          "19:32",
-          "19:30",
-          "19:31",
-        ];
-        const rows = roster.map(([room, id, name], i) => {
-          const k = i % statuses.length;
-          return {
-            room,
-            id,
-            name,
-            session: "晩点呼 · 普通寮生",
-            time: times[k],
-            status: statuses[k],
-            method: methods[k],
-            overrider: k === 3 ? `${teacher.name} 先生` : "—",
-          };
-        });
 
         return (
           <div style={{ padding: "28px 32px 48px" }}>
@@ -18938,100 +18916,107 @@
               </button>
             </div>
 
-            <div
-              style={{
-                background: T.surface,
-                border: `1px solid ${T.line}`,
-                borderRadius: 12,
-                overflow: "hidden",
-                boxShadow: T.shadow1,
-              }}
-            >
+            {/* 点呼 session 历史列表 — 来自后端 rollcallSessionsHistory */}
+            {backendHistory === null ? (
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 90px 190px 110px 100px 100px 140px",
-                  background: T.surfaceAlt,
-                  fontSize: 11,
-                  color: T.ink2,
-                  fontWeight: 600,
-                  letterSpacing: 1,
-                  borderBottom: `1px solid ${T.line}`,
+                  padding: "32px 0",
+                  textAlign: "center",
+                  color: T.ink3,
+                  fontSize: 13,
+                  background: T.surface,
+                  border: `1px solid ${T.line}`,
+                  borderRadius: 12,
                 }}
               >
-                {[
-                  "学生",
-                  "部屋",
-                  "セッション",
-                  "チェックイン",
-                  "状態",
-                  "方式",
-                  "手動調整者",
-                ].map((h) => (
-                  <div key={h} style={{ padding: "10px 12px" }}>
-                    {h}
+                {authToken ? "点呼記録を読み込み中..." : "ログインしてください"}
+              </div>
+            ) : backendHistory.length === 0 ? (
+              <div
+                style={{
+                  padding: "32px 0",
+                  textAlign: "center",
+                  color: T.ink3,
+                  fontSize: 13,
+                  background: T.surface,
+                  border: `1px solid ${T.line}`,
+                  borderRadius: 12,
+                }}
+              >
+                点呼記録がありません
+              </div>
+            ) : (
+              <div
+                style={{
+                  background: T.surface,
+                  border: `1px solid ${T.line}`,
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  boxShadow: T.shadow1,
+                }}
+              >
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 160px 120px 100px 100px",
+                    background: T.surfaceAlt,
+                    fontSize: 11,
+                    color: T.ink2,
+                    fontWeight: 600,
+                    letterSpacing: 1,
+                    borderBottom: `1px solid ${T.line}`,
+                  }}
+                >
+                  {["セッション名", "日時", "出席", "遅刻", "欠席"].map((h) => (
+                    <div key={h} style={{ padding: "10px 12px" }}>
+                      {h}
+                    </div>
+                  ))}
+                </div>
+                {backendHistory.map((s, i) => (
+                  <div
+                    key={s.id || i}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 160px 120px 100px 100px",
+                      borderTop: i > 0 ? `1px solid ${T.line}` : "none",
+                      fontSize: 12.5,
+                      alignItems: "center",
+                    }}
+                  >
+                    <div style={{ padding: "9px 12px", fontWeight: 600 }}>
+                      {s.name || s.session_type || "—"}
+                    </div>
+                    <div
+                      style={{
+                        padding: "9px 12px",
+                        fontFamily: T.mono,
+                        color: T.ink2,
+                        fontSize: 12,
+                      }}
+                    >
+                      {s.started_at
+                        ? new Date(s.started_at).toLocaleString("ja-JP", {
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "—"}
+                    </div>
+                    <div style={{ padding: "9px 12px", color: T.ok }}>
+                      {s.present_count ?? "—"}
+                    </div>
+                    <div style={{ padding: "9px 12px", color: T.late }}>
+                      {s.late_count ?? "—"}
+                    </div>
+                    <div style={{ padding: "9px 12px", color: T.danger }}>
+                      {s.absent_count ?? "—"}
+                    </div>
                   </div>
                 ))}
               </div>
-              {rows.map((r, i) => (
-                <div
-                  key={r.id}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "1fr 90px 190px 110px 100px 100px 140px",
-                    borderTop: i > 0 ? `1px solid ${T.line}` : "none",
-                    fontSize: 12.5,
-                    alignItems: "center",
-                  }}
-                >
-                  <div style={{ padding: "9px 12px", fontWeight: 600 }}>
-                    {r.name}
-                  </div>
-                  <div
-                    style={{
-                      padding: "9px 12px",
-                      fontFamily: T.mono,
-                      color: T.ink3,
-                    }}
-                  >
-                    {r.room}
-                  </div>
-                  <div style={{ padding: "9px 12px" }}>{r.session}</div>
-                  <div
-                    style={{
-                      padding: "9px 12px",
-                      fontFamily: T.mono,
-                      color: T.ink2,
-                    }}
-                  >
-                    {r.time}
-                  </div>
-                  <div style={{ padding: "9px 12px" }}>
-                    <window.RecStatusBadge s={r.status} />
-                  </div>
-                  <div
-                    style={{
-                      padding: "9px 12px",
-                      fontFamily: T.mono,
-                      fontSize: 11,
-                      color: T.ink3,
-                    }}
-                  >
-                    {r.method}
-                  </div>
-                  <div
-                    style={{
-                      padding: "9px 12px",
-                      fontSize: 11,
-                      color: r.overrider === "—" ? T.ink3 : T.cobaltDeep,
-                    }}
-                  >
-                    {r.overrider}
-                  </div>
-                </div>
-              ))}
-            </div>
+            )}
           </div>
         );
       }
@@ -19449,14 +19434,6 @@
 
       function NotificationsPage({ teacher, onNav }) {
         const T = window.RYO;
-        const roster =
-          teacher && teacher.dorm === "men"
-            ? window.ROSTER_MEN
-            : window.ROSTER_WOMEN;
-        const pick = (i) => (roster[i % roster.length] || roster[0])[2];
-        const sample1 = pick(0);
-        const sample2 = pick(3);
-        const sample3 = pick(1);
         return (
           <div style={{ padding: "28px 32px 48px" }}>
             <div
@@ -19488,25 +19465,25 @@
               }}
             >
               <NotifCard
-                n="3"
+                n="—"
                 label="審査待ち申請"
                 color={T.cobalt}
                 onClick={() => onNav("applications")}
               />
               <NotifCard
-                n="2"
+                n="—"
                 label="清掃審査"
                 color={T.warn}
                 onClick={() => onNav("cleaning")}
               />
               <NotifCard
-                n="1"
+                n="—"
                 label="通報"
                 color={T.danger}
                 onClick={() => onNav("community")}
               />
               <NotifCard
-                n="4"
+                n="—"
                 label="警告リスト"
                 color={T.warn}
                 onClick={() => onNav("discipline")}
@@ -19523,58 +19500,19 @@
             >
               最近の通知
             </div>
+            {/* 通知機能は本期未実装 — 準備中プレースホルダー */}
             <div
               style={{
                 background: T.surface,
-                border: `1px solid ${T.line}`,
+                border: `1px dashed ${T.lineStrong}`,
                 borderRadius: 12,
-                overflow: "hidden",
-                boxShadow: T.shadow1,
+                padding: "32px 0",
+                textAlign: "center",
+                color: T.ink3,
+                fontSize: 13,
               }}
             >
-              {[
-                ["19:22", `${sample1} さんが外泊申請を提出しました`, T.cobalt],
-                ["19:20", "清掃写真 2 件 審査待ち", T.warn],
-                [
-                  "18:45",
-                  `${sample2} さんの遅刻が今月 5 回に達しました`,
-                  T.warn,
-                ],
-                [
-                  "14:10",
-                  `${sample3} さんの外泊申請が担任により承認されました`,
-                  T.ok,
-                ],
-                ["08:30", "朝点呼 完了 (12/12 時間内)", T.ok],
-              ].map(([t, msg, c], i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    gap: 12,
-                    padding: "12px 16px",
-                    borderTop: i > 0 ? `1px solid ${T.line}` : "none",
-                    fontSize: 13,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 8,
-                      height: 8,
-                      background: c,
-                      borderRadius: 4,
-                      marginTop: 6,
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span style={{ flex: 1 }}>{msg}</span>
-                  <span
-                    style={{ fontFamily: T.mono, fontSize: 11, color: T.ink3 }}
-                  >
-                    {t}
-                  </span>
-                </div>
-              ))}
+              通知機能は準備中です
             </div>
           </div>
         );
@@ -27515,23 +27453,11 @@
             }
           }
 
-          // Demo fallback: backend が無いか session 見つからなければ seed
-          const seeded = window.seedStudents(teacher.dorm);
-          if (seeded[0])
-            seeded[0].pending = {
-              reason:
-                "岡山市内で家族と合流、夕食後帰舎予定 · 03-15 承認後再申請",
-              submittedAt: "19:22",
-            };
-          if (seeded[2]) seeded[2].health = "発熱 38.1°C、保健室で休養中";
-          const exemptIdx = Math.min(seeded.length - 1, 3);
-          if (seeded[exemptIdx] && exemptIdx !== 0 && exemptIdx !== 2) {
-            seeded[exemptIdx].status = "exempt";
-            seeded[exemptIdx].exemptReason = "外宿 04-19〜04-22";
-          }
-          setStudents(seeded);
-          setSession({ name, sessionId: null, startedAt: Date.now() });
-          setLiveMode(true);
+          // 后端不可达 / session 未找到 — 显示错误，不用假数据填充
+          setToast({
+            type: "error",
+            msg: "点呼を開始できません。後端に接続できないか、今日のセッションが見つかりません。",
+          });
         };
         // Task #6 真接口对接: session.sessionId が UUID なら backend rollcallEnd を呼ぶ。
         // session.sessionId が null (demo 模式) なら従来通り state だけで終了処理。
@@ -27695,9 +27621,32 @@
           setOverrideTarget(null);
           setToast({ type: "ok", msg: "調整が反映されました" });
         };
-        const resetLive = () => {
-          setStudents(window.seedStudents(teacher.dorm));
-          setToast({ type: "warn", msg: "セッションをリセットしました" });
+        const resetLive = async () => {
+          // 从后端重新拉 board，不再用假数据
+          if (session && session.sessionId && authToken) {
+            try {
+              const board = await window.tomoshibiApi.rollcallBoard(
+                session.sessionId,
+                authToken,
+              );
+              const fresh = (board.entries || []).map((e) =>
+                _boardEntryToStudent(e, teacher.dorm),
+              );
+              setStudents(fresh);
+              setToast({ type: "warn", msg: "セッションをリセットしました" });
+            } catch (err) {
+              console.warn("[App] resetLive board 再取得失敗", err);
+              setToast({
+                type: "error",
+                msg: "リセット失敗: 後端からデータを取得できませんでした",
+              });
+            }
+          } else {
+            setToast({
+              type: "error",
+              msg: "リセット失敗: 有効なセッションがありません",
+            });
+          }
         };
 
         const nav = (id, params) => {
@@ -27770,6 +27719,7 @@
                 lastEnded={lastEnded}
                 onNav={nav}
                 trend={trend}
+                authToken={authToken}
                 onShowSummary={
                   lastSummary ? () => setPage("summary") : undefined
                 }
@@ -27883,6 +27833,7 @@
                 lastEnded={lastEnded}
                 onNav={nav}
                 trend={trend}
+                authToken={authToken}
               />
             );
         }
@@ -27898,6 +27849,7 @@
               backendReachable={backendReachable}
               wsStatus={wsStatus}
               currentRole={authProfile && authProfile.role}
+              authToken={authToken}
               onSwitchTeacher={() => {
                 // 5-27 拍板：切替＝ログアウト相当（实名账户 = 必須再認証）。
                 // sessionStorage 不清 — lastTeacherId 保留可让 LoginScreen 卡片高亮「前回」
