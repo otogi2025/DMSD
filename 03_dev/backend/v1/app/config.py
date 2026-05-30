@@ -90,10 +90,23 @@ def _validate_production_settings(s: "Settings") -> None:
             "请用 `openssl rand -hex 32` 生成强密钥。"
         )
 
-    # A-007: CORS production 不允许通配符
+    # A-007: CORS production 不允许通配符，也不允许 localhost（生产漏配会开放本地跨域）
     if "*" in s.cors_origin_list:
         raise RuntimeError(
             "Production 环境 CORS_ORIGINS 不能含通配符 '*'。"
+            "请显式列出 teacher_web / student app 的真实域名 origin。"
+        )
+    _local_origins = [
+        o for o in s.cors_origin_list if "localhost" in o or "127.0.0.1" in o
+    ]
+    if _local_origins:
+        raise RuntimeError(
+            f"Production 环境 CORS_ORIGINS 不能含 localhost / 127.0.0.1（检测到：{_local_origins}）。"
+            "请将 CORS_ORIGINS 设为真实的 teacher_web 域名，如 https://tomoshibi.example.jp。"
+        )
+    if not s.cors_origin_list:
+        raise RuntimeError(
+            "Production 环境 CORS_ORIGINS 不能为空。"
             "请显式列出 teacher_web / student app 的 origin。"
         )
 

@@ -21,6 +21,7 @@ OpenAPI: http://localhost:8000/docs
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -158,6 +159,26 @@ app.include_router(incidents.router)
 app.include_router(student_profile.router)
 app.include_router(student_promote.router)
 app.include_router(ws.router)
+
+# B5: 老师网页静态文件服务（同 origin 部署）
+# TEACHER_WEB_DIR 为空时跳过（dev 下用 vite/standalone 单跑，不需要后端 serve）
+# 设了才挂，挂在所有 API 路由之后，确保 /api/v1 和 /healthz 不被 catch-all 吞掉
+_teacher_web_dir = os.environ.get("TEACHER_WEB_DIR", "")
+if _teacher_web_dir and os.path.isdir(_teacher_web_dir):
+    app.mount(
+        "/teacher",
+        StaticFiles(directory=_teacher_web_dir, html=True),
+        name="teacher_web",
+    )
+    logger.info(
+        "[STARTUP] TEACHER_WEB_DIR=%s → /teacher 静态文件服务已挂载", _teacher_web_dir
+    )
+else:
+    if _teacher_web_dir:
+        logger.warning(
+            "[STARTUP] TEACHER_WEB_DIR=%s 目录不存在，跳过静态文件挂载。",
+            _teacher_web_dir,
+        )
 
 
 if __name__ == "__main__":
