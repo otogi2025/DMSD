@@ -12122,7 +12122,10 @@
           if (!authToken) return;
           let cancelled = false;
           window.tomoshibiApi
-            .listStudents({ dorm_unit: teacher.dorm }, authToken)
+            .listStudents(
+              teacher.assigned_dorm ? { dorm_unit: teacher.assigned_dorm } : {},
+              authToken,
+            )
             .then((res) => {
               if (!cancelled) setStudentCount((res.items || []).length);
             })
@@ -26969,6 +26972,9 @@
                   _restoredAuth.profile.assigned_dorm === 4 ? "women" : "men",
                 initial: (_restoredAuth.profile.name || "?").charAt(0),
                 lastLoginMins: null,
+                // A1 修复: 把 role + assigned_dorm 带进 teacher，否则权限按钮(一括进级/行事/巴士增删改)永不显示
+                role: _restoredAuth.profile.role,
+                assigned_dorm: _restoredAuth.profile.assigned_dorm,
               }
             : null;
         const [route, setRoute] = React.useState(
@@ -27310,7 +27316,12 @@
             console.warn("[App] sessionStorage write 失敗", e);
           }
           if (pickedTeacher) {
-            setTeacher(pickedTeacher);
+            // A1 修复: 把 profile 的 role + assigned_dorm 合进 teacher（pickedTeacher 卡片只有 id/name/dorm/initial）
+            setTeacher({
+              ...pickedTeacher,
+              role: profile && profile.role,
+              assigned_dorm: profile && profile.assigned_dorm,
+            });
             setLastTeacherId(pickedTeacher.id);
           }
           const home = _roleHomePage(profile && profile.role);
