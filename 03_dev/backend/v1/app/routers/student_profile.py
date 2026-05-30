@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import get_current_principal
+from ..deps import dorm_units_for_teacher, get_current_principal
 
 router = APIRouter(prefix="/api/v1", tags=["student / profile"])
 
@@ -73,7 +73,7 @@ def get_student_profile(
     else:
         actor_student = principal
 
-    # ---- 老师鉴权：只有寮務系才能查 ----
+    # ---- 老师鉴权：只有寮務系才能查，且受寮边界限制 ----
     if actor_teacher is not None:
         if actor_teacher.role not in _GUIDANCE_ROLES:
             raise HTTPException(
@@ -81,6 +81,17 @@ def get_student_profile(
                 detail={
                     "code": "FORBIDDEN_ROLE",
                     "message": "学生个人档案需要寮務系老师权限",
+                },
+            )
+        # R4 寮边界：先取学生信息才能比对 dorm_unit
+        _student_for_check = _get_student_or_404(student_id, db)
+        allowed = dorm_units_for_teacher(actor_teacher)
+        if allowed is not None and _student_for_check.dorm_unit not in allowed:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "FORBIDDEN_DORM",
+                    "message": "担当寮外の学生プロフィールは閲覧できません",
                 },
             )
 

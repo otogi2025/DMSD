@@ -65,13 +65,13 @@ def test_b1_logout_no_token_401(client):
     assert res.status_code == 401, res.text
 
 
-def test_b1_logout_teacher_token_403(client, teacher_token, seed_data):
-    """教师 token 打学生端点 → 403（端点只接受 student role）。"""
+def test_b1_logout_teacher_token_204(client, teacher_token, seed_data):
+    """#3 修复：教师 token 调登出端点 → 204（get_current_principal 接受老师+学生）。"""
     res = client.delete(
         "/api/v1/sessions/current",
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
-    assert res.status_code == 403, res.text
+    assert res.status_code == 204, res.text
 
 
 # ─────────────────────────────────────────

@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas, security
 from ..config import get_settings
 from ..database import get_db
-from ..deps import get_current_student  # B1 登出端点用
+from ..deps import get_current_principal  # B1 登出端点用（老师 + 学生都能调）
 
 router = APIRouter(prefix="/api/v1/sessions", tags=["auth"])
 
@@ -206,17 +206,14 @@ def login_teacher(body: schemas.TeacherLoginIn, db: Session = Depends(get_db)):
 
 @router.delete("/current", status_code=status.HTTP_204_NO_CONTENT)
 def logout(
-    _student: models.Student = Depends(get_current_student),
+    _principal: models.Student | models.Teacher = Depends(get_current_principal),
 ):
-    """B1 — 学生登出。
+    """B1 — 登出（学生 + 老师都可调）。
 
     系统用无状态 JWT，服务端不存 token。
     客户端收到 204 后把本地 token 丢弃即可完成登出。
 
     真正的服务端吊销（防 token 被盗后仍可用）需 v1.1 加 jti 黑名单表，
     本版本不实现，符合 v1.0 安全基线。
-
-    注：仅支持学生 token。教师登出由 teacher_web 管理，走同一端点时
-    改用 get_current_principal 即可；v1.0 老师 SPA 靠前端清 localStorage。
     """
     return  # 204 No Content

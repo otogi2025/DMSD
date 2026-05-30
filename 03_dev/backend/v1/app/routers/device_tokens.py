@@ -49,24 +49,23 @@ def register_device_token(
     ).first()
 
     if existing:
-        if existing.student_id == student.id:
-            # 同一学生的同一 token — 幂等更新 last_seen_at 即可
-            existing.last_seen_at = now
-            db.commit()
-            db.refresh(existing)
-            return schemas.DeviceTokenRegisterOut(
-                id=existing.id,
-                student_id=existing.student_id,
-                platform=existing.platform,
-                created=False,
-            )
-        else:
-            # token 属于其他学生 — 先撤销旧行，再走下方插新行流程
-            # 直接改 student_id 会把 A 的推送发给 B
-            existing.revoked_at = now
-            # 不 commit，让撤销和新插入在同一事务提交
+        # upsert 复用行：不管 token 原属谁，直接把这行改成当前学生
+        # 这样既不会撞唯一约束，推送也会发给新学生（语义正确）
+        created = existing.student_id != student.id  # 归属转移视为"新建"
+        existing.student_id = student.id
+        existing.platform = body.platform
+        existing.last_seen_at = now
+        existing.revoked_at = None  # 如果之前被 revoke，复活
+        db.commit()
+        db.refresh(existing)
+        return schemas.DeviceTokenRegisterOut(
+            id=existing.id,
+            student_id=existing.student_id,
+            platform=existing.platform,
+            created=created,
+        )
 
-    # 新 token → 插入
+    # token 全新 → 插入新行
     dt = models.DeviceToken(
         id=uuid.uuid4(),
         student_id=student.id,

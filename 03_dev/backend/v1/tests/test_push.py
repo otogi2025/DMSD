@@ -169,3 +169,73 @@ def test_send_push_no_devices(db_session):
         body="本文",
     )
     assert logs == []
+
+
+# ---------------------------------------------------------------
+# 6. #1 blocker — token 归属转移不撞唯一约束
+# ---------------------------------------------------------------
+def test_device_token_ownership_transfer(client, _engine):
+    """同一 token 从学生 A 转给学生 B，upsert 复用行，不撞 UniqueConstraint。"""
+    from sqlalchemy.orm import sessionmaker
+
+    Session = sessionmaker(bind=_engine)
+    TOKEN = "shared-device-token-transfer-test"
+
+    # 创建两个学生
+    with Session() as s:
+        student_a = models.Student(
+            grade_code="09",
+            class_code="01",
+            seat_no="01",
+            name="学生A",
+            gender="male",
+            room_no="M901",
+            dorm_unit=1,
+            is_overseas=False,
+        )
+        student_b = models.Student(
+            grade_code="09",
+            class_code="01",
+            seat_no="02",
+            name="学生B",
+            gender="male",
+            room_no="M902",
+            dorm_unit=1,
+            is_overseas=False,
+        )
+        s.add_all([student_a, student_b])
+        s.flush()
+        s.add(
+            models.Account(
+                student_id=student_a.id, password_hash=security.hash_password("pass_a")
+            )
+        )
+        s.add(
+            models.Account(
+                student_id=student_b.id, password_hash=security.hash_password("pass_b")
+            )
+        )
+        s.commit()
+        jwt_a = security.create_access_token(student_a.id, "student")
+        jwt_b = security.create_access_token(student_b.id, "student")
+        sid_b = student_b.id
+
+    # 学生 A 注册 token
+    r1 = client.post(
+        "/api/v1/notifications/device-token",
+        json={"platform": "ios", "token": TOKEN},
+        headers={"Authorization": f"Bearer {jwt_a}"},
+    )
+    assert r1.status_code == 200, r1.text
+    assert r1.json()["created"] is True
+
+    # 学生 B 用同一 token 注册 — 应该成功而不是 409/500
+    r2 = client.post(
+        "/api/v1/notifications/device-token",
+        json={"platform": "ios", "token": TOKEN},
+        headers={"Authorization": f"Bearer {jwt_b}"},
+    )
+    assert r2.status_code == 200, r2.text
+    body = r2.json()
+    # 归属已转移给 B
+    assert str(body["student_id"]) == str(sid_b)

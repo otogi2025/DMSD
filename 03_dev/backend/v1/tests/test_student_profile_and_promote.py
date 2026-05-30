@@ -209,6 +209,31 @@ class TestStudentProfile:
         res = client.get(f"/api/v1/students/{sid}/profile")
         assert res.status_code == 401
 
+    def test_cross_dorm_forbidden(self, client, db_session, profile_seed):
+        """#2 寮边界：女寮老师（assigned_dorm=4）查男寮学生（dorm_unit=1）→ 403。"""
+        pw = security.hash_password("test-password-12345")
+        # 女寮担当寮監（assigned_dorm=4）
+        joshi_kanri = models.Teacher(
+            login_id="joshi_kanri_test",
+            name="女寮先生",
+            email="joshi@test.jp",
+            password_hash=pw,
+            role="寮監",
+            assigned_dorm=4,  # 女寮 = 4
+        )
+        db_session.add(joshi_kanri)
+        db_session.commit()
+
+        tok = _tok(client, "joshi_kanri_test")
+        # profile_seed 的学生 dorm_unit=1（男寮），跨寮应该 403
+        sid = str(profile_seed["student"].id)
+        res = client.get(
+            f"/api/v1/students/{sid}/profile",
+            headers={"Authorization": f"Bearer {tok}"},
+        )
+        assert res.status_code == 403
+        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+
 
 # -----------------------------------------------------------------------
 # 一括進級 tests
