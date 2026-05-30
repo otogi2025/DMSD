@@ -31,6 +31,7 @@ from .config import get_settings
 from .database import create_all
 from .routers import (
     accounts,
+    admin_accounts,
     admin_registration_code,
     announcements,
     applications,
@@ -99,6 +100,7 @@ def healthz():
 # routers
 app.include_router(auth.router)
 app.include_router(accounts.router)
+app.include_router(admin_accounts.router)
 app.include_router(admin_registration_code.router)
 app.include_router(announcements.router)
 app.include_router(applications.router)

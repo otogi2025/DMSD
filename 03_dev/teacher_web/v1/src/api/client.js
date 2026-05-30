@@ -207,6 +207,31 @@
     revokeDemerit: (event_id, body, token) =>
       request("POST", `/discipline/${event_id}/revoke`, body, token),
 
+    // ── Accounts（学生账号管理 §7.1 — 5-30 新增）──
+    // 老师网页「账号管理页」/「搜索页」用。仅寮務部長 / 寮務課長 / 管理係三类角色。
+    // params 可含 q（学号 or 姓名模糊）/ dorm_unit（整数）/ status（active 等）。
+    listStudents: (params, token) => {
+      const q = [];
+      if (params && params.q) q.push(`q=${encodeURIComponent(params.q)}`);
+      if (params && params.dorm_unit != null)
+        q.push(`dorm_unit=${encodeURIComponent(params.dorm_unit)}`);
+      if (params && params.status)
+        q.push(`status=${encodeURIComponent(params.status)}`);
+      const qs = q.length ? `?${q.join("&")}` : "";
+      return request("GET", `/students${qs}`, undefined, token);
+    },
+    // 重置密码 — 返回 {student_id, temporary_password, message}。临时密码仅此次响应。
+    resetStudentPassword: (studentId, token) =>
+      request(
+        "POST",
+        `/accounts/${studentId}/password-reset`,
+        undefined,
+        token,
+      ),
+    // 解锁被锁账号 — 返回 {student_id, message}。
+    unlockStudentAccount: (studentId, token) =>
+      request("POST", `/accounts/${studentId}/unlock`, undefined, token),
+
     // 清扫安排（spec §7.10 + 5-27 backend 新增）
     // CleaningPage 接 backend。失败自动加 DemeritEvent (source_type='cleaning_failed')。
     // 权限：寮監 / 寮務 / 管理係

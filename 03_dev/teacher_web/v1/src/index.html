@@ -19750,33 +19750,35 @@
         );
       };
 
-      function SearchPage({ teacher, query }) {
+      function SearchPage({ teacher, query, authToken }) {
         const T = window.RYO;
         const [tab, setTab] = React.useState("student");
         const [q, setQ] = React.useState(query || "");
-        const normalize = (s) => (s || "").replace(/\s+/g, "").toLowerCase();
-        const qn = normalize(q);
-        // 担当寮優先で検索、見つからなければ全体からも探す
-        const ownRoster =
-          teacher.dorm === "men" ? window.ROSTER_MEN : window.ROSTER_WOMEN;
-        const ownMatch = qn
-          ? ownRoster.find(([room, id, name]) =>
-              normalize(`${name}${room}${id}`).includes(qn),
-            )
-          : null;
-        const allMatch =
-          !ownMatch && qn
-            ? (window.ROSTER_ALL || []).find(([room, id, name]) =>
-                normalize(`${name}${room}${id}`).includes(qn),
-              )
-            : null;
-        const match = ownMatch || allMatch;
-        const matchDorm = ownMatch
-          ? teacher.dorm
-          : allMatch
-            ? allMatch[3]
-            : teacher.dorm;
-        const crossDorm = allMatch && !ownMatch;
+        // 後端検索結果 — null=未検索 / []=0件 / [...]
+        const [results, setResults] = React.useState(null);
+        const [searching, setSearching] = React.useState(false);
+        const [searchError, setSearchError] = React.useState(null);
+
+        // q が変わるたびに後端検索（空欄なら検索しない）
+        React.useEffect(() => {
+          if (!q.trim()) {
+            setResults(null);
+            return;
+          }
+          if (!authToken) return;
+          setSearching(true);
+          setSearchError(null);
+          window.tomoshibiApi
+            .listStudents({ q: q.trim() }, authToken)
+            .then((res) => {
+              setResults(res.items || []);
+              setSearching(false);
+            })
+            .catch((e) => {
+              setSearchError(e.message || "検索に失敗しました");
+              setSearching(false);
+            });
+        }, [q, authToken]);
 
         return (
           <div style={{ padding: "28px 32px 48px" }}>
@@ -19842,7 +19844,7 @@
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
-                  placeholder="氏名・部屋・学籍番号で検索（スペース無視）"
+                  placeholder="氏名・学籍番号で検索（後端検索）"
                   style={{
                     width: "100%",
                     padding: "11px 14px",
@@ -19856,37 +19858,57 @@
                     marginBottom: 20,
                   }}
                 />
-                {crossDorm && (
+                {searchError && (
                   <div
                     style={{
                       padding: "10px 14px",
-                      background: T.warnSoft,
-                      border: `1px solid ${T.warnBorder}`,
+                      background: T.dangerSoft,
+                      border: `1px solid ${T.dangerBorder}`,
                       borderRadius: 8,
                       fontSize: 12,
-                      color: T.warn,
+                      color: T.danger,
                       marginBottom: 14,
                     }}
                   >
-                    担当外の寮の学生が見つかりました ·{" "}
-                    {window.dormLabel(matchDorm)}（閲覧のみ）
+                    ⚠️ {searchError}
                   </div>
                 )}
-                {match ? (
-                  <StudentDossier
-                    room={match[0]}
-                    id={match[1]}
-                    name={match[2]}
-                    dorm={matchDorm}
-                  />
-                ) : (
-                  <EmptyState
-                    msg={
-                      q
-                        ? `「${q}」に一致する学生はいません`
-                        : "学生名・部屋番号・学籍番号を入力してください"
-                    }
-                  />
+                {searching && (
+                  <div
+                    style={{
+                      padding: 24,
+                      textAlign: "center",
+                      color: T.ink3,
+                      fontSize: 13,
+                    }}
+                  >
+                    検索中…
+                  </div>
+                )}
+                {!searching && results && results.length > 0 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 10,
+                    }}
+                  >
+                    {results.map((s) => (
+                      <StudentDossier
+                        key={s.id}
+                        room={s.room_no}
+                        id={s.student_no}
+                        name={s.name}
+                        dorm={String(s.dorm_unit)}
+                      />
+                    ))}
+                  </div>
+                )}
+                {!searching && results !== null && results.length === 0 && (
+                  <EmptyState msg={`「${q}」に一致する学生はいません`} />
+                )}
+                {!searching && results === null && (
+                  <EmptyState msg="氏名・学籍番号を入力してください" />
                 )}
               </>
             ) : (
@@ -24257,66 +24279,121 @@
       // iOS App 内ではパスワード変更不可 (iOS DESIGN §3.7) のため、本画面が唯一の自改え経路
       // 番号 00 = リュウ イヒ (demo seed)、01 以降 = 真実登録
 
-      function AccountsPage({ teacher }) {
+      function AccountsPage({ teacher, authToken }) {
         const T = window.RYO;
-        const [accounts, setAccounts] = React.useState(window.ACCOUNTS);
+        // accounts は後端から取得した StudentAccountListItem[] を保持する。
+        // loading=true の間はスケルトン表示、error 時はエラーバナー表示。
+        const [accounts, setAccounts] = React.useState([]);
+        const [loading, setLoading] = React.useState(true);
+        const [loadError, setLoadError] = React.useState(null);
         const [query, setQuery] = React.useState("");
-        const [dormFilter, setDormFilter] = React.useState("all"); // all / men / women / locked
+        const [dormFilter, setDormFilter] = React.useState("all"); // all / 1 / 2 / 4 / locked
         const [detailTarget, setDetailTarget] = React.useState(null);
         const [toast, setToast] = React.useState(null);
+        // 密码重置后把临时密码存这里，展示一次性 modal 后清空
+        const [tempPwModal, setTempPwModal] = React.useState(null); // {name, student_no, pw}
 
-        const normalize = (s) => (s || "").replace(/\s+/g, "").toLowerCase();
-        const qn = normalize(query);
+        // 後端からリスト取得 — query / dormFilter が変わるたびに再取得
+        const fetchAccounts = React.useCallback(() => {
+          if (!authToken) return;
+          setLoading(true);
+          setLoadError(null);
+          const params = {};
+          if (query) params.q = query;
+          // dormFilter が数字文字列 ("1"/"2"/"4") なら dorm_unit として渡す
+          if (dormFilter === "locked") {
+            params.status = "locked";
+          } else if (dormFilter !== "all") {
+            params.dorm_unit = Number(dormFilter);
+          }
+          window.tomoshibiApi
+            .listStudents(params, authToken)
+            .then((res) => {
+              setAccounts(res.items || []);
+              setLoading(false);
+            })
+            .catch((e) => {
+              setLoadError(e.message || "学生リストの取得に失敗しました");
+              setLoading(false);
+            });
+        }, [authToken, query, dormFilter]);
 
-        let visible = accounts.filter((a) => {
-          if (dormFilter === "men" && a.dorm !== "men") return false;
-          if (dormFilter === "women" && a.dorm !== "women") return false;
-          if (dormFilter === "locked" && !a.locked) return false;
-          if (!qn) return true;
-          return normalize(
-            `${a.no}${a.name}${a.sid}${a.email}${a.phone}${a.room}`,
-          ).includes(qn);
-        });
-        visible = [...visible].sort((a, b) => a.no.localeCompare(b.no));
+        React.useEffect(() => {
+          fetchAccounts();
+        }, [fetchAccounts]);
+
+        // フィルタ: locked だけ追加でフロント側絞り込み（後端 status=locked と二重になるが安全）
+        let visible = accounts;
+        if (dormFilter === "locked")
+          visible = accounts.filter((a) => a.is_locked);
+        // 後端検索済みなのでフロント側の追加テキスト絞り込みは不要
 
         const stats = {
           total: accounts.length,
-          men: accounts.filter((a) => a.dorm === "men").length,
-          women: accounts.filter((a) => a.dorm === "women").length,
-          locked: accounts.filter((a) => a.locked).length,
-          thisMonthNew: accounts.filter((a) => a.registeredAt >= "2026-04-01")
-            .length,
+          locked: accounts.filter((a) => a.is_locked).length,
         };
 
         const handleSave = (patch) => {
+          // 編集可能項目（room_no 等）の保存は現在 backend 未実装 — フロント state のみ更新
           setAccounts((list) =>
-            list.map((a) => (a.no === patch.no ? { ...a, ...patch } : a)),
+            list.map((a) => (a.id === patch.id ? { ...a, ...patch } : a)),
           );
           setToast({
             type: "ok",
-            msg: `番号 ${patch.no} ${patch.name} のアカウントを更新しました`,
+            msg: `${patch.name} のアカウントを更新しました`,
           });
           setDetailTarget(null);
         };
-        const handlePasswordReset = (no) => {
-          const tempPw = Math.random().toString(36).slice(2, 10);
-          setAccounts((list) =>
-            list.map((a) =>
-              a.no === no ? { ...a, failedLoginCount: 0, locked: false } : a,
-            ),
-          );
-          setToast({
-            type: "ok",
-            msg: `番号 ${no} · 新しい仮パスワード「${tempPw}」を発行しました（本人に直接伝えてください）`,
-          });
+
+        // 密码重置 — 后端返回 temporary_password，只在前端内存显示一次
+        const handlePasswordReset = (account) => {
+          window.tomoshibiApi
+            .resetStudentPassword(account.id, authToken)
+            .then((res) => {
+              // 解锁后刷新该行 is_locked 状态
+              setAccounts((list) =>
+                list.map((a) =>
+                  a.id === account.id ? { ...a, is_locked: false } : a,
+                ),
+              );
+              // 临时密码只存内存，弹一次性 modal 给老师看
+              setTempPwModal({
+                name: account.name,
+                student_no: account.student_no,
+                pw: res.temporary_password,
+              });
+              setDetailTarget(null);
+            })
+            .catch((e) => {
+              setToast({
+                type: "err",
+                msg: `パスワードリセット失敗: ${e.message || "エラー"}`,
+              });
+            });
         };
-        const handleUnlock = (no) => {
-          setAccounts((list) =>
-            list.map((a) =>
-              a.no === no ? { ...a, locked: false, failedLoginCount: 0 } : a,
-            ),
-          );
-          setToast({ type: "ok", msg: `番号 ${no} のロックを解除しました` });
+
+        // 解锁 — 成功后刷新该行 is_locked 状态
+        const handleUnlock = (account) => {
+          window.tomoshibiApi
+            .unlockStudentAccount(account.id, authToken)
+            .then(() => {
+              setAccounts((list) =>
+                list.map((a) =>
+                  a.id === account.id ? { ...a, is_locked: false } : a,
+                ),
+              );
+              setToast({
+                type: "ok",
+                msg: `${account.name} のロックを解除しました`,
+              });
+              setDetailTarget(null);
+            })
+            .catch((e) => {
+              setToast({
+                type: "err",
+                msg: `ロック解除失敗: ${e.message || "エラー"}`,
+              });
+            });
         };
 
         React.useEffect(() => {
@@ -24326,7 +24403,6 @@
           }
         }, [toast]);
 
-        const DEMO_NO = window.DEMO_SEED_NO; // 060218 = リュウ イヒ
         const nextNoHint = "06????"; // 番号 6 桁: 学年(2)+組(2)+番号(2)。iOS 登録時に学生本人入力
 
         return (
@@ -24360,7 +24436,7 @@
                 <button
                   onClick={() =>
                     alert(
-                      `新規登録は iOS App から本人入力（番号 = 学年 2 桁 + 組 2 桁 + 番号 2 桁、例：高 3 B 18 = 060218）。demo 版で老師側追加未対応`,
+                      `新規登録は iOS App から本人入力（番号 = 学年 2 桁 + 組 2 桁 + 番号 2 桁、例：高 3 B 18 = 060218）。老師側追加未対応`,
                     )
                   }
                   style={{
@@ -24378,7 +24454,7 @@
                   ＋ 新規追加（iOS から）
                 </button>
                 <button
-                  onClick={() => alert("CSV 出力 · Demo 版未対応")}
+                  onClick={() => alert("CSV 出力 · 未対応")}
                   style={{
                     padding: "8px 14px",
                     background: "transparent",
@@ -24395,29 +24471,40 @@
               </div>
             </div>
 
+            {/* エラーバナー — 後端取得失敗時 */}
+            {loadError && (
+              <div
+                style={{
+                  padding: "10px 14px",
+                  background: T.dangerSoft,
+                  border: `1px solid ${T.dangerBorder}`,
+                  borderRadius: 8,
+                  color: T.danger,
+                  fontSize: 13,
+                  marginBottom: 16,
+                }}
+              >
+                ⚠️ {loadError}
+              </div>
+            )}
+
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
+                gridTemplateColumns: "repeat(3, 1fr)",
                 gap: 12,
                 marginBottom: 20,
               }}
             >
               <AcctStat
                 label="総アカウント"
-                value={stats.total}
-                note={`男性寮 ${stats.men} · 女性寮 ${stats.women}`}
+                value={loading ? "…" : stats.total}
+                note="後端から取得"
                 color={T.ink}
               />
               <AcctStat
-                label="今月新規"
-                value={stats.thisMonthNew}
-                note={stats.thisMonthNew > 0 ? "2026-04" : "無し"}
-                color={T.cobalt}
-              />
-              <AcctStat
                 label="ロック中"
-                value={stats.locked}
+                value={loading ? "…" : stats.locked}
                 note={stats.locked > 0 ? "要対応" : "異常無し"}
                 color={stats.locked > 0 ? T.danger : T.ok}
                 onClick={
@@ -24445,7 +24532,7 @@
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="番号・氏名・学籍番号・メール・部屋で検索（スペース無視）"
+                placeholder="番号・氏名で検索（後端検索）"
                 style={{
                   flex: 1,
                   minWidth: 280,
@@ -24471,8 +24558,9 @@
               >
                 {[
                   ["all", "全員"],
-                  ["men", "男性寮"],
-                  ["women", "女性寮"],
+                  ["1", "1寮"],
+                  ["2", "2寮"],
+                  ["4", "4寮"],
                   ["locked", "ロック中"],
                 ].map(([k, l]) => (
                   <button
@@ -24509,7 +24597,7 @@
                 style={{
                   display: "grid",
                   gridTemplateColumns:
-                    "130px 160px 90px 90px 1fr 140px 130px 110px 90px",
+                    "110px 160px 80px 60px 80px 130px 110px 90px",
                   background: T.surfaceAlt,
                   fontSize: 11,
                   color: T.ink2,
@@ -24519,12 +24607,11 @@
                 }}
               >
                 {[
-                  "番号",
+                  "学籍番号",
                   "氏名",
                   "部屋",
-                  "担当寮",
-                  "メールアドレス",
-                  "電話番号",
+                  "寮",
+                  "性別",
                   "最終ログイン",
                   "状態",
                   "",
@@ -24534,158 +24621,142 @@
                   </div>
                 ))}
               </div>
-              {visible.map((a, i) => (
+              {loading && (
                 <div
-                  key={a.no}
-                  onClick={() => setDetailTarget(a)}
                   style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "130px 160px 90px 90px 1fr 140px 130px 110px 90px",
-                    borderTop: i > 0 ? `1px solid ${T.line}` : "none",
-                    fontSize: 12.5,
-                    alignItems: "center",
-                    cursor: "pointer",
-                    transition: "background .1s",
+                    padding: 40,
+                    textAlign: "center",
+                    color: T.ink3,
+                    fontSize: 13,
                   }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = T.surfaceAlt)
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = "transparent")
-                  }
                 >
-                  <div
-                    style={{
-                      padding: "10px 12px",
-                      fontFamily: T.mono,
-                      fontWeight: 700,
-                      color: a.no === DEMO_NO ? T.cobalt : T.ink2,
-                    }}
-                  >
-                    {a.no}
-                    {a.no === DEMO_NO && (
-                      <span
-                        style={{
-                          fontSize: 9,
-                          marginLeft: 6,
-                          padding: "1px 5px",
-                          background: T.cobaltSoft,
-                          color: T.cobaltDeep,
-                          borderRadius: 3,
-                          letterSpacing: 1,
-                        }}
-                      >
-                        DEMO
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ padding: "10px 12px", fontWeight: 600 }}>
-                    {a.name}
-                  </div>
-                  <div
-                    style={{
-                      padding: "10px 12px",
-                      fontFamily: T.mono,
-                      color: T.ink3,
-                    }}
-                  >
-                    {a.room}
-                  </div>
-                  <div style={{ padding: "10px 12px" }}>
-                    <window.DormBadge dorm={a.dorm} />
-                  </div>
-                  <div
-                    style={{
-                      padding: "10px 12px",
-                      fontFamily: T.mono,
-                      fontSize: 11,
-                      color: T.ink2,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {a.email}
-                  </div>
-                  <div
-                    style={{
-                      padding: "10px 12px",
-                      fontFamily: T.mono,
-                      fontSize: 11,
-                      color: T.ink3,
-                    }}
-                  >
-                    {a.phone}
-                  </div>
-                  <div
-                    style={{
-                      padding: "10px 12px",
-                      fontFamily: T.mono,
-                      fontSize: 11,
-                      color: T.ink3,
-                    }}
-                  >
-                    {a.lastLoginAt.slice(5)}
-                  </div>
-                  <div style={{ padding: "10px 12px" }}>
-                    {a.locked ? (
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          padding: "2px 8px",
-                          borderRadius: 4,
-                          background: T.dangerSoft,
-                          color: T.danger,
-                          border: `1px solid ${T.dangerBorder}`,
-                        }}
-                      >
-                        🔒 ロック
-                      </span>
-                    ) : a.failedLoginCount > 0 ? (
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          padding: "2px 8px",
-                          borderRadius: 4,
-                          background: T.warnSoft,
-                          color: T.warn,
-                          border: `1px solid ${T.warnBorder}`,
-                        }}
-                      >
-                        失敗 {a.failedLoginCount}
-                      </span>
-                    ) : (
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          padding: "2px 8px",
-                          borderRadius: 4,
-                          background: T.okSoft,
-                          color: T.ok,
-                          border: `1px solid ${T.okBorder}`,
-                        }}
-                      >
-                        正常
-                      </span>
-                    )}
-                  </div>
-                  <div
-                    style={{
-                      padding: "10px 12px",
-                      color: T.cobalt,
-                      fontSize: 12,
-                      fontWeight: 700,
-                    }}
-                  >
-                    詳細 →
-                  </div>
+                  読み込み中…
                 </div>
-              ))}
-              {visible.length === 0 && (
+              )}
+              {!loading &&
+                visible.map((a, i) => (
+                  <div
+                    key={a.id}
+                    onClick={() => setDetailTarget(a)}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns:
+                        "110px 160px 80px 60px 80px 130px 110px 90px",
+                      borderTop: i > 0 ? `1px solid ${T.line}` : "none",
+                      fontSize: 12.5,
+                      alignItems: "center",
+                      cursor: "pointer",
+                      transition: "background .1s",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = T.surfaceAlt)
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "transparent")
+                    }
+                  >
+                    <div
+                      style={{
+                        padding: "10px 12px",
+                        fontFamily: T.mono,
+                        fontWeight: 700,
+                        color: T.ink2,
+                      }}
+                    >
+                      {a.student_no}
+                    </div>
+                    <div style={{ padding: "10px 12px", fontWeight: 600 }}>
+                      {a.name}
+                    </div>
+                    <div
+                      style={{
+                        padding: "10px 12px",
+                        fontFamily: T.mono,
+                        color: T.ink3,
+                      }}
+                    >
+                      {a.room_no}
+                    </div>
+                    <div
+                      style={{
+                        padding: "10px 12px",
+                        fontFamily: T.mono,
+                        color: T.ink3,
+                      }}
+                    >
+                      {a.dorm_unit}寮
+                    </div>
+                    <div style={{ padding: "10px 12px", color: T.ink3 }}>
+                      {a.gender === "male" ? "男" : "女"}
+                    </div>
+                    <div
+                      style={{
+                        padding: "10px 12px",
+                        fontFamily: T.mono,
+                        fontSize: 11,
+                        color: T.ink3,
+                      }}
+                    >
+                      {a.last_login_at ? a.last_login_at.slice(5, 16) : "—"}
+                    </div>
+                    <div style={{ padding: "10px 12px" }}>
+                      {a.is_locked ? (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: "2px 8px",
+                            borderRadius: 4,
+                            background: T.dangerSoft,
+                            color: T.danger,
+                            border: `1px solid ${T.dangerBorder}`,
+                          }}
+                        >
+                          🔒 ロック
+                        </span>
+                      ) : a.status === "active" ? (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: "2px 8px",
+                            borderRadius: 4,
+                            background: T.okSoft,
+                            color: T.ok,
+                            border: `1px solid ${T.okBorder}`,
+                          }}
+                        >
+                          正常
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: "2px 8px",
+                            borderRadius: 4,
+                            background: T.warnSoft,
+                            color: T.warn,
+                            border: `1px solid ${T.warnBorder}`,
+                          }}
+                        >
+                          {a.status}
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      style={{
+                        padding: "10px 12px",
+                        color: T.cobalt,
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      詳細 →
+                    </div>
+                  </div>
+                ))}
+              {!loading && visible.length === 0 && (
                 <div
                   style={{
                     padding: 40,
@@ -24708,6 +24779,124 @@
                 onUnlock={handleUnlock}
               />
             )}
+
+            {/* 臨時パスワード一回限り表示 modal — 閉じたら消える */}
+            {tempPwModal && (
+              <div
+                onClick={() => setTempPwModal(null)}
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  background: "rgba(20,23,31,.55)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  zIndex: 200,
+                  fontFamily: T.font,
+                }}
+              >
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    width: 420,
+                    background: T.surface,
+                    borderRadius: 14,
+                    boxShadow: T.shadowModal,
+                    padding: "28px 28px 20px",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 700,
+                      marginBottom: 6,
+                    }}
+                  >
+                    🔑 仮パスワード発行
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: T.ink2,
+                      marginBottom: 16,
+                      lineHeight: 1.7,
+                    }}
+                  >
+                    {tempPwModal.name}（{tempPwModal.student_no}）
+                    <br />
+                    以下の仮パスワードを本人に直接伝えてください。
+                    <br />
+                    <b>この画面を閉じると二度と表示されません。</b>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      background: T.surfaceAlt,
+                      border: `1px solid ${T.lineStrong}`,
+                      borderRadius: 8,
+                      padding: "10px 14px",
+                      marginBottom: 20,
+                    }}
+                  >
+                    <code
+                      style={{
+                        flex: 1,
+                        fontFamily: T.mono,
+                        fontSize: 18,
+                        fontWeight: 700,
+                        letterSpacing: 2,
+                        color: T.ink,
+                      }}
+                    >
+                      {tempPwModal.pw}
+                    </code>
+                    <button
+                      onClick={() =>
+                        navigator.clipboard
+                          .writeText(tempPwModal.pw)
+                          .then(() =>
+                            setToast({ type: "ok", msg: "コピーしました" }),
+                          )
+                      }
+                      style={{
+                        padding: "5px 12px",
+                        background: T.cobalt,
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 6,
+                        fontFamily: "inherit",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      コピー
+                    </button>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                    <button
+                      onClick={() => setTempPwModal(null)}
+                      style={{
+                        padding: "8px 20px",
+                        background: T.cobalt,
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 8,
+                        fontFamily: "inherit",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      確認・閉じる
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {toast && (
               <div
                 style={{
@@ -24715,9 +24904,9 @@
                   bottom: 24,
                   left: "50%",
                   transform: "translateX(-50%)",
-                  background: toast.type === "ok" ? T.okSoft : T.warnSoft,
-                  color: toast.type === "ok" ? T.ok : T.warn,
-                  border: `1px solid ${toast.type === "ok" ? T.okBorder : T.warnBorder}`,
+                  background: toast.type === "ok" ? T.okSoft : T.dangerSoft,
+                  color: toast.type === "ok" ? T.ok : T.danger,
+                  border: `1px solid ${toast.type === "ok" ? T.okBorder : T.dangerBorder}`,
                   padding: "10px 18px",
                   borderRadius: 999,
                   fontSize: 13,
@@ -24782,26 +24971,14 @@
       }) {
         const T = window.RYO;
         const [tab, setTab] = React.useState("profile");
-        const [email, setEmail] = React.useState(account.email);
-        const [phone, setPhone] = React.useState(account.phone);
-        const [room, setRoom] = React.useState(account.room);
-        const dirty =
-          email !== account.email ||
-          phone !== account.phone ||
-          room !== account.room;
+        // 後端の StudentAccountListItem には email / phone がないため空文字で初期化
+        const [room, setRoom] = React.useState(account.room_no || "");
+        const dirty = room !== (account.room_no || "");
 
         const genderLabel =
           { male: "男性", female: "女性" }[account.gender] || "—";
-        const ageYears = (() => {
-          const b = new Date(account.birthday);
-          const now = new Date("2026-04-22");
-          let age = now.getFullYear() - b.getFullYear();
-          if (now < new Date(now.getFullYear(), b.getMonth(), b.getDate()))
-            age--;
-          return age;
-        })();
 
-        // mock activity
+        // アクティビティ履歴 — 後端 API 未実装につきモック
         const activities = buildActivityMock(account);
 
         return (
@@ -24870,24 +25047,9 @@
                         fontWeight: 700,
                       }}
                     >
-                      番号 {account.no}
+                      学籍番号 {account.student_no}
                     </span>
-                    {account.no === "00" && (
-                      <span
-                        style={{
-                          fontSize: 10,
-                          padding: "2px 8px",
-                          background: T.cobalt,
-                          color: "#fff",
-                          borderRadius: 4,
-                          fontWeight: 700,
-                          letterSpacing: 1,
-                        }}
-                      >
-                        DEMO SEED
-                      </span>
-                    )}
-                    {account.locked && (
+                    {account.is_locked && (
                       <span
                         style={{
                           fontSize: 10,
@@ -24914,8 +25076,8 @@
                     {account.name}
                   </div>
                   <div style={{ fontSize: 12, color: T.ink3, marginTop: 2 }}>
-                    学籍番号 {account.sid} · {account.room} ·{" "}
-                    {window.dormLabel(account.dorm)} · {account.category}
+                    部屋 {account.room_no} · {account.dorm_unit}寮 ·{" "}
+                    {genderLabel}
                   </div>
                 </div>
                 <button
@@ -24991,23 +25153,22 @@
                       marginBottom: 24,
                     }}
                   >
-                    <Field label="番号" mono>
-                      {account.no}
-                    </Field>
                     <Field label="学籍番号" mono>
-                      {account.sid}
+                      {account.student_no}
                     </Field>
                     <Field label="氏名">{account.name}</Field>
-                    <Field label="生年月日 · 年齢" mono>
-                      {account.birthday} · {ageYears} 歳
-                    </Field>
                     <Field label="性別">{genderLabel}</Field>
-                    <Field label="学生類別">{account.category}</Field>
-                    <Field label="担当寮">
-                      {window.dormLabel(account.dorm)}
+                    <Field label="部屋番号" mono>
+                      {account.room_no}
                     </Field>
-                    <Field label="登録日" mono>
-                      {account.registeredAt}
+                    <Field label="寮棟">{account.dorm_unit}寮</Field>
+                    <Field label="ステータス" mono>
+                      {account.status}
+                    </Field>
+                    <Field label="最終ログイン" mono>
+                      {account.last_login_at
+                        ? account.last_login_at.slice(0, 16)
+                        : "未ログイン"}
                     </Field>
                   </div>
 
@@ -25039,18 +25200,6 @@
                       mono
                     />
                     <div />
-                    <EditField
-                      label="メールアドレス"
-                      value={email}
-                      onChange={setEmail}
-                      type="email"
-                    />
-                    <EditField
-                      label="電話番号"
-                      value={phone}
-                      onChange={setPhone}
-                      mono
-                    />
                   </div>
 
                   <div
@@ -25086,10 +25235,10 @@
                       onClick={() => {
                         if (
                           confirm(
-                            `番号 ${account.no} ${account.name} のパスワードを初期化し、仮パスワードを発行しますか？`,
+                            `${account.name}（${account.student_no}）のパスワードを初期化し、仮パスワードを発行しますか？`,
                           )
                         )
-                          onPasswordReset(account.no);
+                          onPasswordReset(account);
                       }}
                       style={{
                         padding: "9px 18px",
@@ -25105,15 +25254,15 @@
                     >
                       🔑 パスワード初期化・仮発行
                     </button>
-                    {account.locked && (
+                    {account.is_locked && (
                       <button
                         onClick={() => {
                           if (
                             confirm(
-                              `番号 ${account.no} のロックを解除しますか？`,
+                              `${account.name}（${account.student_no}）のロックを解除しますか？`,
                             )
                           )
-                            onUnlock(account.no);
+                            onUnlock(account);
                         }}
                         style={{
                           padding: "9px 18px",
@@ -25132,9 +25281,7 @@
                     )}
                     <button
                       onClick={() =>
-                        alert(
-                          "アカウント無効化 · Demo 版未対応（卒業・退寮時に使用）",
-                        )
+                        alert("アカウント無効化 · 未対応（卒業・退寮時に使用）")
                       }
                       style={{
                         padding: "9px 18px",
@@ -25150,25 +25297,6 @@
                       アカウント無効化
                     </button>
                   </div>
-
-                  {account.failedLoginCount > 0 && (
-                    <div
-                      style={{
-                        marginTop: 14,
-                        padding: "10px 14px",
-                        background: T.surfaceAlt,
-                        border: `1px solid ${T.line}`,
-                        borderRadius: 8,
-                        fontSize: 12,
-                        color: T.ink2,
-                      }}
-                    >
-                      <b>ログイン失敗: {account.failedLoginCount} 回</b> · 3
-                      回で 30
-                      秒ロック、以降解除後に再失敗すると自動でロック時間がエスカレート（1
-                      分 → 5 分 → 30 分 → 1 時間 → 永久）
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -25295,11 +25423,9 @@
                     disabled={!dirty}
                     onClick={() =>
                       onSave({
-                        no: account.no,
+                        id: account.id,
                         name: account.name,
-                        email,
-                        phone,
-                        room,
+                        room_no: room,
                       })
                     }
                     style={{
@@ -25388,8 +25514,9 @@
       }
 
       function buildActivityMock(a) {
-        // 各番号ごとに少し違うアクティビティを mock（seed dependent）
+        // アクティビティ履歴は後端 API 未実装 — 後端の last_login_at だけ使い、残りはモック表示。
         const T = window.RYO;
+        const loginWhen = a.last_login_at ? a.last_login_at.slice(5, 16) : "—";
         const base = [
           {
             icon: "✓",
@@ -25402,89 +25529,18 @@
             icon: "📋",
             color: T.cobalt,
             title: "ログイン",
-            body: "iOS App · iPhone 17 Pro",
-            when: a.lastLoginAt.slice(5),
+            body: "iOS App",
+            when: loginWhen,
           },
         ];
-        if (a.failedLoginCount > 0)
-          base.push({
-            icon: "⚠",
-            color: T.warn,
-            title: `ログイン失敗 ${a.failedLoginCount} 回`,
-            body: "パスワード誤入力 · 自動ロック前の警告",
-            when: "04-22 17:50",
-          });
-        if (a.locked)
+        if (a.is_locked)
           base.push({
             icon: "🔒",
             color: T.danger,
-            title: "アカウントロック",
-            body: "ログイン失敗 3 回 · 30 秒ロック → エスカレート",
-            when: "04-22 18:00",
+            title: "アカウントロック中",
+            body: "ログイン失敗によるロック",
+            when: loginWhen,
           });
-        if (a.sid === "S001") {
-          // リュウ イヒ = demo seed (高3 B 18 = 060218)
-          base.push(
-            {
-              icon: "✗",
-              color: T.danger,
-              title: "欠席",
-              body: "晩点呼 · 未チェックイン · 減点 1.0",
-              when: "04-20 19:35",
-            },
-            {
-              icon: "⏰",
-              color: T.late,
-              title: "遅刻",
-              body: "晩点呼 · 19:34 チェックイン · 減点 0.5",
-              when: "04-12 19:34",
-            },
-            {
-              icon: "✗",
-              color: T.danger,
-              title: "欠席",
-              body: "晩点呼 · 未チェックイン · 減点 1.0",
-              when: "04-15 19:38",
-            },
-            {
-              icon: "✗",
-              color: T.danger,
-              title: "欠席",
-              body: "晩点呼 · 未チェックイン · 減点 1.0",
-              when: "04-08 19:40",
-            },
-            {
-              icon: "⏰",
-              color: T.late,
-              title: "遅刻",
-              body: "晩点呼 · 19:35 チェックイン · 減点 0.5",
-              when: "04-05 19:35",
-            },
-            {
-              icon: "📝",
-              color: T.cobalt,
-              title: "外泊申請 提出",
-              body: "岡山市内 · 2026-04-22 09:15 出発 · 審査待ち",
-              when: "04-21 14:22",
-            },
-            {
-              icon: "🎵",
-              color: T.info,
-              title: "コミュニティ投稿",
-              body: "リクエスト曲「春日和 / Aimer」",
-              when: "04-22 07:30",
-            },
-          );
-        } else if (a.sid === "S103") {
-          // 田中 隼人
-          base.push({
-            icon: "📝",
-            color: T.cobalt,
-            title: "外泊申請 提出",
-            body: "岡山市内 · 2026-04-25 〜 04-27",
-            when: "04-21 09:10",
-          });
-        }
         // newest first
         return base.sort((x, y) => y.when.localeCompare(x.when)).slice(0, 10);
       }
@@ -26289,7 +26345,13 @@
             );
             break;
           case "search":
-            body = <window.SearchPage teacher={teacher} query={searchQuery} />;
+            body = (
+              <window.SearchPage
+                teacher={teacher}
+                query={searchQuery}
+                authToken={authToken}
+              />
+            );
             break;
           case "notifications":
             body = <window.NotificationsPage teacher={teacher} onNav={nav} />;
@@ -26309,7 +26371,9 @@
             );
             break;
           case "accounts":
-            body = <window.AccountsPage teacher={teacher} />;
+            body = (
+              <window.AccountsPage teacher={teacher} authToken={authToken} />
+            );
             break;
           case "admin-registration-code":
             // Task #14: 学生登録コードパネル (§11.9.1)

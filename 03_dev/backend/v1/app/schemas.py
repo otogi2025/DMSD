@@ -803,6 +803,14 @@ class StudentAccountCreateIn(BaseModel):
     # 老师在后台生成的 6 桁码（5 分钟内有效）
     registration_code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
 
+    @field_validator("dorm_unit")
+    @classmethod
+    def _check_dorm_unit(cls, v: int) -> int:
+        # spec §5.0：寮号只有 1/2（男寮）、4（女寮）— 没有 3，与 models.py CHECK 约束对齐
+        if v not in (1, 2, 4):
+            raise ValueError("dorm_unit 必须是 1 / 2（男寮）或 4（女寮）")
+        return v
+
 
 class StudentAccountCreateOut(BaseModel):
     """201 — JWT（永久 session，和 login 同等）+ 学生 brief。"""
@@ -1024,3 +1032,49 @@ class FrontDeskItemCreateIn(BaseModel):
     description: str = Field(..., min_length=1, max_length=2000)
     location: Optional[str] = Field(None, max_length=200)
     # 默认 expires_in_days: delivery=7 / lost_and_found=30（router 层应用）
+
+
+# ---------------------------------------------------------------
+# 学生账号管理（admin 端，spec §7.1）— 2026-05-30 实装
+#   权威 spec：system_features.md §7.1
+#   角色 gate：寮務部長 / 寮務課長 / 管理係（同注册码 ADMIN_ROLES）
+# ---------------------------------------------------------------
+class StudentAccountListItem(BaseModel):
+    """GET /students 列表 — 每个学生一条。"""
+
+    id: UUID
+    student_no: str
+    name: str
+    room_no: str
+    dorm_unit: int
+    gender: Literal["male", "female"]
+    status: str
+    # Account.locked_until > now() = 被锁定（locked_until IS NULL 或 <= now = 未锁）
+    is_locked: bool
+    # Account.last_login_at（Account 表有该字段则返回）
+    last_login_at: Optional[datetime]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StudentAccountListOut(BaseModel):
+    """GET /students 整体响应。"""
+
+    total: int
+    items: list[StudentAccountListItem]
+
+
+class PasswordResetOut(BaseModel):
+    """POST /accounts/{student_id}/password-reset 响应 — 临时密码明文（仅此一次）。"""
+
+    student_id: UUID
+    # 临时密码明文 — 仅此次响应返回，不存 DB 不记日志
+    temporary_password: str
+    message: str = "パスワードをリセットしました。学生に仮パスワードをお伝えください。"
+
+
+class UnlockOut(BaseModel):
+    """POST /accounts/{student_id}/unlock 响应。"""
+
+    student_id: UUID
+    message: str = "アカウントのロックを解除しました。"
