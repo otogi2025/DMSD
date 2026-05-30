@@ -11545,6 +11545,7 @@
           ["accounts", "学生アカウント管理"],
           ["admin-registration-code", "学生登録コード"],
           ...(canGuidance ? [["incidents", "事案録入"]] : []),
+          ...(canGuidance ? [["disclosure-requests", "開示申請"]] : []),
           ...(canManageTeachers
             ? [["teachers-admin", "教員アカウント管理"]]
             : []),
@@ -11566,6 +11567,7 @@
             "admin-registration-code": "学生登録コード",
             "teachers-admin": "教員アカウント管理",
             incidents: "事案録入",
+            "disclosure-requests": "開示申請",
             summary: "点呼総結",
             search: "検索結果",
           }[active] || "";
@@ -23850,6 +23852,49 @@
         const [tempPwModal, setTempPwModal] = React.useState(null); // {name, student_no, pw}
         // 5-30: 个人档案聚合弹窗 — {id, name} | null
         const [profileTarget, setProfileTarget] = React.useState(null);
+        // 5-30: 一括進級 modal — null=关闭 / "preview"=预览中 / "confirm"=执行中
+        const [promoteModal, setPromoteModal] = React.useState(null); // null | {phase, preview}
+        const [promoteLoading, setPromoteLoading] = React.useState(false);
+        const [promoteError, setPromoteError] = React.useState(null);
+
+        // 权限：仅寮務部長 / 寮務課長 / 管理係 可操作进级
+        const PROMOTE_ROLES = ["寮務部長", "寮務課長", "管理係"];
+        const canPromote =
+          teacher && teacher.role && PROMOTE_ROLES.includes(teacher.role);
+
+        // 一括進級：先 dry_run=true 预览，确认后 dry_run=false 真执行
+        const handlePromotePreview = () => {
+          setPromoteError(null);
+          setPromoteLoading(true);
+          window.tomoshibiApi
+            .promoteStudents({ dry_run: true }, authToken)
+            .then((res) => {
+              setPromoteModal({ phase: "preview", preview: res });
+              setPromoteLoading(false);
+            })
+            .catch((e) => {
+              setPromoteError(e.message || "プレビュー取得失敗");
+              setPromoteLoading(false);
+            });
+        };
+
+        const handlePromoteConfirm = () => {
+          if (!promoteModal || !promoteModal.preview) return;
+          setPromoteError(null);
+          setPromoteLoading(true);
+          window.tomoshibiApi
+            .promoteStudents({ dry_run: false }, authToken)
+            .then(() => {
+              setPromoteModal(null);
+              setPromoteLoading(false);
+              setToast({ type: "ok", msg: "一括進級が完了しました" });
+              fetchAccounts();
+            })
+            .catch((e) => {
+              setPromoteError(e.message || "進級実行失敗");
+              setPromoteLoading(false);
+            });
+        };
 
         // 後端からリスト取得 — query / dormFilter が変わるたびに再取得
         const fetchAccounts = React.useCallback(() => {
@@ -23991,6 +24036,26 @@
                 学生アカウント管理
               </h1>
               <div style={{ display: "flex", gap: 8 }}>
+                {canPromote && (
+                  <button
+                    onClick={handlePromotePreview}
+                    disabled={promoteLoading}
+                    style={{
+                      padding: "8px 14px",
+                      background: T.amber || "#f59e0b",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 8,
+                      fontFamily: "inherit",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: promoteLoading ? "not-allowed" : "pointer",
+                      opacity: promoteLoading ? 0.6 : 1,
+                    }}
+                  >
+                    {promoteLoading ? "読み込み中…" : "一括進級"}
+                  </button>
+                )}
                 <button
                   onClick={() =>
                     alert(
@@ -24028,6 +24093,208 @@
                 </button>
               </div>
             </div>
+
+            {/* 一括進級 modal — dry_run=true 预览 → 确认 → dry_run=false 执行 */}
+            {promoteModal && promoteModal.phase === "preview" && (
+              <div
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  background: "rgba(0,0,0,0.45)",
+                  zIndex: 1000,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <div
+                  style={{
+                    background: T.surface,
+                    borderRadius: 12,
+                    padding: "28px 32px",
+                    width: 540,
+                    maxWidth: "90vw",
+                    maxHeight: "80vh",
+                    overflowY: "auto",
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+                  }}
+                >
+                  <h2
+                    style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}
+                  >
+                    一括進級 — プレビュー
+                  </h2>
+                  <p style={{ fontSize: 13, color: T.ink3, marginBottom: 16 }}>
+                    以下の変更が行われます。確認してから「実行」してください。
+                  </p>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(3,1fr)",
+                      gap: 8,
+                      marginBottom: 16,
+                    }}
+                  >
+                    {[
+                      ["進級", promoteModal.preview.promote_count, T.cobalt],
+                      ["卒業", promoteModal.preview.graduate_count, T.ok],
+                      ["合計", promoteModal.preview.total_affected, T.ink],
+                    ].map(([label, val, color]) => (
+                      <div
+                        key={label}
+                        style={{
+                          background: T.surfaceAlt || T.bgStrong,
+                          borderRadius: 8,
+                          padding: "10px 14px",
+                          textAlign: "center",
+                        }}
+                      >
+                        <div style={{ fontSize: 11, color: T.ink3 }}>
+                          {label}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 22,
+                            fontWeight: 700,
+                            color,
+                          }}
+                        >
+                          {val}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div
+                    style={{
+                      maxHeight: 240,
+                      overflowY: "auto",
+                      border: `1px solid ${T.lineStrong}`,
+                      borderRadius: 8,
+                      marginBottom: 16,
+                    }}
+                  >
+                    <table
+                      style={{
+                        width: "100%",
+                        fontSize: 12,
+                        borderCollapse: "collapse",
+                      }}
+                    >
+                      <thead>
+                        <tr
+                          style={{
+                            background: T.bgStrong,
+                            position: "sticky",
+                            top: 0,
+                          }}
+                        >
+                          {["学番", "氏名", "変更", "ステータス"].map((h) => (
+                            <th
+                              key={h}
+                              style={{
+                                padding: "6px 10px",
+                                textAlign: "left",
+                                fontWeight: 600,
+                                color: T.ink3,
+                              }}
+                            >
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {promoteModal.preview.entries.map((e) => (
+                          <tr
+                            key={e.student_id}
+                            style={{
+                              borderTop: `1px solid ${T.line}`,
+                            }}
+                          >
+                            <td style={{ padding: "5px 10px", color: T.ink3 }}>
+                              {e.student_no}
+                            </td>
+                            <td style={{ padding: "5px 10px" }}>{e.name}</td>
+                            <td
+                              style={{
+                                padding: "5px 10px",
+                                color:
+                                  e.action === "graduate" ? T.ok : T.cobalt,
+                                fontWeight: 600,
+                              }}
+                            >
+                              {e.action === "graduate"
+                                ? `${e.old_grade_code} → 卒業`
+                                : `${e.old_grade_code} → ${e.new_grade_code}`}
+                            </td>
+                            <td style={{ padding: "5px 10px", color: T.ink3 }}>
+                              {e.new_status}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {promoteError && (
+                    <div
+                      style={{
+                        padding: "8px 12px",
+                        background: T.dangerSoft,
+                        color: T.danger,
+                        borderRadius: 6,
+                        fontSize: 13,
+                        marginBottom: 12,
+                      }}
+                    >
+                      ⚠️ {promoteError}
+                    </div>
+                  )}
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 8,
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    <button
+                      onClick={() => {
+                        setPromoteModal(null);
+                        setPromoteError(null);
+                      }}
+                      style={{
+                        padding: "8px 18px",
+                        background: "transparent",
+                        border: `1px solid ${T.lineStrong}`,
+                        borderRadius: 8,
+                        fontFamily: "inherit",
+                        fontSize: 13,
+                        cursor: "pointer",
+                      }}
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      onClick={handlePromoteConfirm}
+                      disabled={promoteLoading}
+                      style={{
+                        padding: "8px 18px",
+                        background: T.danger,
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 8,
+                        fontFamily: "inherit",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        cursor: promoteLoading ? "not-allowed" : "pointer",
+                        opacity: promoteLoading ? 0.6 : 1,
+                      }}
+                    >
+                      {promoteLoading ? "実行中…" : "実行（元に戻せません）"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* エラーバナー — 後端取得失敗時 */}
             {loadError && (
@@ -26482,6 +26749,259 @@
 
       window.IncidentsPage = IncidentsPage;
 
+      // ── 開示申請審査ページ（spec §7.10 — 5-30 新増）──
+      // 权限：寮務系（canGuidance 同 incidents — 寮務部長/課長/寮監/一般/管理係）
+      // 端点：GET /guidance/disclosure-requests + POST /guidance/disclosure-requests/{id}/decision
+      function DisclosureRequestsPage({ authToken }) {
+        const T = window.RYO;
+        const [items, setItems] = React.useState([]);
+        const [loading, setLoading] = React.useState(true);
+        const [loadError, setLoadError] = React.useState(null);
+        const [deciding, setDeciding] = React.useState({}); // {[id]: true} 防重复提交
+        const [toast, setToast] = React.useState(null);
+
+        const fetchList = React.useCallback(() => {
+          if (!authToken) return;
+          setLoading(true);
+          setLoadError(null);
+          window.tomoshibiApi
+            .listDisclosureRequests(authToken)
+            .then((res) => {
+              setItems(res.items || []);
+              setLoading(false);
+            })
+            .catch((e) => {
+              setLoadError(e.message || "申請一覧の取得に失敗しました");
+              setLoading(false);
+            });
+        }, [authToken]);
+
+        React.useEffect(() => {
+          fetchList();
+        }, [fetchList]);
+
+        React.useEffect(() => {
+          if (toast) {
+            const id = setTimeout(() => setToast(null), 4000);
+            return () => clearTimeout(id);
+          }
+        }, [toast]);
+
+        // decision: "approved_full" | "approved_partial" | "rejected"
+        const handleDecide = (item, decision) => {
+          if (deciding[item.id]) return;
+          setDeciding((d) => ({ ...d, [item.id]: true }));
+          const body = { decision };
+          window.tomoshibiApi
+            .decideDisclosure(item.id, body, authToken)
+            .then(() => {
+              setDeciding((d) => ({ ...d, [item.id]: false }));
+              const labels = {
+                approved_full: "全部開示",
+                approved_partial: "部分開示",
+                rejected: "拒否",
+              };
+              setToast({
+                type: decision === "rejected" ? "err" : "ok",
+                msg: `${item.student_no} の申請を「${labels[decision]}」しました`,
+              });
+              fetchList();
+            })
+            .catch((e) => {
+              setDeciding((d) => ({ ...d, [item.id]: false }));
+              setToast({ type: "err", msg: e.message || "決定に失敗しました" });
+            });
+        };
+
+        const statusLabel = {
+          pending: "待処理",
+          approved_full: "全部開示済",
+          approved_partial: "部分開示済",
+          rejected: "拒否済",
+        };
+        const statusColor = (s) =>
+          s === "pending"
+            ? T.amber || "#f59e0b"
+            : s === "rejected"
+              ? T.danger
+              : T.ok;
+
+        return (
+          <div style={{ padding: "28px 32px 48px" }}>
+            <div
+              style={{
+                fontSize: 11,
+                color: T.ink3,
+                letterSpacing: 2,
+                fontWeight: 600,
+              }}
+            >
+              指導履歴
+            </div>
+            <h1
+              style={{
+                fontSize: 24,
+                fontWeight: 700,
+                letterSpacing: -0.3,
+                margin: "4px 0 20px",
+              }}
+            >
+              開示申請審査
+            </h1>
+
+            {/* トースト */}
+            {toast && (
+              <div
+                style={{
+                  padding: "10px 14px",
+                  background: toast.type === "ok" ? T.okSoft : T.dangerSoft,
+                  border: `1px solid ${toast.type === "ok" ? T.okBorder : T.dangerBorder}`,
+                  borderRadius: 8,
+                  color: toast.type === "ok" ? T.ok : T.danger,
+                  fontSize: 13,
+                  marginBottom: 16,
+                }}
+              >
+                {toast.type === "ok" ? "✓" : "⚠️"} {toast.msg}
+              </div>
+            )}
+
+            {/* エラーバナー */}
+            {loadError && (
+              <div
+                style={{
+                  padding: "10px 14px",
+                  background: T.dangerSoft,
+                  border: `1px solid ${T.dangerBorder}`,
+                  borderRadius: 8,
+                  color: T.danger,
+                  fontSize: 13,
+                  marginBottom: 16,
+                }}
+              >
+                ⚠️ {loadError}
+              </div>
+            )}
+
+            {loading && (
+              <div style={{ color: T.ink3, fontSize: 14 }}>読み込み中…</div>
+            )}
+
+            {!loading && !loadError && items.length === 0 && (
+              <div
+                style={{
+                  padding: "40px 0",
+                  textAlign: "center",
+                  color: T.ink3,
+                  fontSize: 14,
+                }}
+              >
+                開示申請はありません
+              </div>
+            )}
+
+            {!loading && items.length > 0 && (
+              <div
+                style={{
+                  border: `1px solid ${T.lineStrong}`,
+                  borderRadius: 10,
+                  overflow: "hidden",
+                }}
+              >
+                {items.map((item, i) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      padding: "14px 18px",
+                      borderTop: i === 0 ? "none" : `1px solid ${T.line}`,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 14,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {/* 状态徽章 */}
+                    <span
+                      style={{
+                        padding: "2px 8px",
+                        borderRadius: 999,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        background: statusColor(item.status) + "22",
+                        color: statusColor(item.status),
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {statusLabel[item.status] || item.status}
+                    </span>
+
+                    {/* 学生情報 */}
+                    <div style={{ flex: 1, minWidth: 120 }}>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>
+                        {item.student_no}
+                      </div>
+                      <div style={{ fontSize: 12, color: T.ink3 }}>
+                        申請:{" "}
+                        {item.requested_at
+                          ? item.requested_at.slice(0, 10)
+                          : "—"}
+                        {item.reason && (
+                          <span style={{ marginLeft: 8 }}>
+                            理由: {item.reason}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 決定ボタン — pending のみ表示 */}
+                    {item.status === "pending" && (
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {[
+                          ["approved_full", "全部開示", T.ok],
+                          ["approved_partial", "部分開示", T.cobalt],
+                          ["rejected", "拒否", T.danger],
+                        ].map(([val, label, color]) => (
+                          <button
+                            key={val}
+                            disabled={!!deciding[item.id]}
+                            onClick={() => handleDecide(item, val)}
+                            style={{
+                              padding: "6px 12px",
+                              background: color,
+                              color: "#fff",
+                              border: "none",
+                              borderRadius: 7,
+                              fontFamily: "inherit",
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: deciding[item.id]
+                                ? "not-allowed"
+                                : "pointer",
+                              opacity: deciding[item.id] ? 0.5 : 1,
+                            }}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 決定済み — 決定メモ表示 */}
+                    {item.status !== "pending" && item.decision_note && (
+                      <div style={{ fontSize: 12, color: T.ink3 }}>
+                        メモ: {item.decision_note}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      window.DisclosureRequestsPage = DisclosureRequestsPage;
+
       window.AccountsPage = AccountsPage;
     </script>
     <script type="text/babel" data-source="components/app.jsx">
@@ -27350,6 +27870,10 @@
           case "incidents":
             // 5-30: 事案録入ページ (spec §7.9 #33) — 寮務系権限のみ nav に表示
             body = <window.IncidentsPage authToken={authToken} />;
+            break;
+          case "disclosure-requests":
+            // 5-30: 開示申請審査ページ (spec §7.10) — 寮務系権限のみ nav に表示
+            body = <window.DisclosureRequestsPage authToken={authToken} />;
             break;
           default:
             body = (

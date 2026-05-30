@@ -342,6 +342,13 @@
     deleteIncident: (id, token) =>
       request("DELETE", `/incidents/${id}`, undefined, token),
 
+    // ── 学号一括进级（spec §4.2 — 5-30 新増）──
+    // POST body={dry_run: bool, target_grade_codes?: string[]}
+    // 响应: {dry_run, promote_count, graduate_count, total_affected, entries[]}
+    // entries[]: {student_id, student_no, name, old_grade_code, new_grade_code, action, old_status, new_status}
+    promoteStudents: (body, token) =>
+      request("POST", "/students/bulk-promote", body, token),
+
     // 401 全局拦截注册（§11.5 W3 拍板）
     // App() 在 mount 时调 setOnUnauthorized(() => logout()) 注册回调。
     // 任意 API 调用收到 401 时 client.js 自动调这个 callback。
