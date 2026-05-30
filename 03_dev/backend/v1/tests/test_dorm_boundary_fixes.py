@@ -291,3 +291,249 @@ class TestStudentProfileAuth:
         student_id = str(cross_dorm_setup["student"].id)
         r = client.get(f"/api/v1/students/{student_id}/profile")
         assert r.status_code == 401, r.text
+
+
+# ─────────────────────────────────────────────────────────────
+# codex 第四轮：新增寮边界 403 测试（study / rollcall / discipline / study_online）
+# ─────────────────────────────────────────────────────────────
+
+
+@pytest.fixture
+def ryokan_teacher(db_session, seed_data):
+    """女寮专职寮監（assigned_dorm=4、role=寮監）— 用于跨寮 403 场景。"""
+    from app import security
+
+    pw = security.hash_password("test-password-12345")
+    t = models.Teacher(
+        login_id="joshi_ryokan",
+        name="女寮寮監",
+        email="ryokan_joshi@test.jp",
+        password_hash=pw,
+        role="寮監",
+        assigned_dorm=4,  # 女寮
+    )
+    db_session.add(t)
+    db_session.commit()
+    return t
+
+
+@pytest.fixture
+def ryokan_token(client, ryokan_teacher):
+    """女寮寮監的登录令牌。"""
+    res = client.post(
+        "/api/v1/sessions/teacher",
+        json={"login_id": "joshi_ryokan", "password": "test-password-12345"},
+    )
+    assert res.status_code == 200, res.text
+    return res.json()["access_token"]
+
+
+class TestStudyDormBoundary:
+    """study.py 寮边界补齐 — 女寮寮監操作男寮学生 → 403。"""
+
+    def test_create_checkin_wrong_dorm_403(
+        self, client, ryokan_token, seed_data, db_session
+    ):
+        """女寮寮監给男寮学生（dorm_unit=1）登出席记录 → 403 FORBIDDEN_DORM。"""
+        student_id = str(seed_data["student"].id)  # dorm_unit=1（男寮）
+        res = client.post(
+            "/api/v1/study/checkins",
+            json={"student_id": student_id},
+            headers={"Authorization": f"Bearer {ryokan_token}"},
+        )
+        assert res.status_code == 403, res.text
+        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+
+    def test_patch_checkin_wrong_dorm_403(
+        self, client, ryokan_token, seed_data, db_session
+    ):
+        """女寮寮監修改男寮学生的出席记录 → 403 FORBIDDEN_DORM。"""
+        from datetime import date
+
+        # 直接在 DB 建 checkin 行（StudyCheckinOut 没有 id 字段，不能从 API 取）
+        checkin = models.StudyCheckin(
+            student_id=seed_data["student"].id,
+            target_date=date.today(),
+            status="init",
+        )
+        db_session.add(checkin)
+        db_session.commit()
+        db_session.refresh(checkin)
+
+        # 女寮寮監来改 → 403
+        patch_res = client.patch(
+            f"/api/v1/study/checkins/{checkin.id}",
+            json={"status": "absent", "override_reason": "テスト"},
+            headers={"Authorization": f"Bearer {ryokan_token}"},
+        )
+        assert patch_res.status_code == 403, patch_res.text
+        assert patch_res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+
+    def test_create_checkin_own_dorm_ok(self, client, seed_data, db_session):
+        """男寮寮監（assigned_dorm=1）给男寮学生（dorm_unit=1）登出席 → 正常。"""
+        from app import security
+
+        pw = security.hash_password("test-password-12345")
+        otoko_ryokan = models.Teacher(
+            login_id="otoko_ryokan",
+            name="男寮寮監",
+            email="ryokan_otoko@test.jp",
+            password_hash=pw,
+            role="寮監",
+            assigned_dorm=1,  # 男寮
+        )
+        db_session.add(otoko_ryokan)
+        db_session.commit()
+
+        res = client.post(
+            "/api/v1/sessions/teacher",
+            json={"login_id": "otoko_ryokan", "password": "test-password-12345"},
+        )
+        token = res.json()["access_token"]
+
+        student_id = str(seed_data["student"].id)  # dorm_unit=1（男寮）
+        r = client.post(
+            "/api/v1/study/checkins",
+            json={"student_id": student_id},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        # 201 = 新建 / 409 = 已存在 — 都不是 403
+        assert r.status_code != 403, r.text
+
+
+class TestRollcallSessionDormBoundary:
+    """rollcall.py start/end session 寮边界 — 女寮寮監操作男寮 session → 403。"""
+
+    @pytest.fixture
+    def male_dorm_session(self, db_session):
+        """男寮点呼 session（dorm_unit_set=[1,2]，draft 状态 — CHECK 约束允许 draft/running/ended）。"""
+        from datetime import datetime, timedelta
+        from zoneinfo import ZoneInfo
+
+        now = datetime.now(ZoneInfo("Asia/Tokyo"))
+        session = models.RollCallSession(
+            dorm_unit_set=[1, 2],
+            session_type="evening",
+            day_type="weekday",
+            session_status="draft",
+            scheduled_window_start_at=now - timedelta(minutes=10),
+            scheduled_on_time_end_at=now + timedelta(minutes=10),
+            scheduled_late_end_at=now + timedelta(minutes=20),
+            scheduled_auto_end_at=now + timedelta(minutes=30),
+        )
+        db_session.add(session)
+        db_session.commit()
+        db_session.refresh(session)
+        return session
+
+    @pytest.fixture
+    def running_male_dorm_session(self, db_session):
+        """男寮点呼 session（running 状态），用于测 end_session。"""
+        from datetime import datetime, timedelta
+        from zoneinfo import ZoneInfo
+
+        now = datetime.now(ZoneInfo("Asia/Tokyo"))
+        session = models.RollCallSession(
+            dorm_unit_set=[1, 2],
+            session_type="evening",
+            day_type="weekday",
+            session_status="running",
+            started_at=now,
+            scheduled_window_start_at=now - timedelta(minutes=5),
+            scheduled_on_time_end_at=now + timedelta(minutes=10),
+            scheduled_late_end_at=now + timedelta(minutes=20),
+            scheduled_auto_end_at=now + timedelta(minutes=30),
+        )
+        db_session.add(session)
+        db_session.commit()
+        db_session.refresh(session)
+        return session
+
+    def test_start_session_wrong_dorm_403(
+        self, client, ryokan_token, male_dorm_session
+    ):
+        """女寮寮監开男寮 session → 403 FORBIDDEN_DORM。"""
+        res = client.post(
+            f"/api/v1/rollcall/sessions/{male_dorm_session.id}/start",
+            headers={"Authorization": f"Bearer {ryokan_token}"},
+        )
+        assert res.status_code == 403, res.text
+        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+
+    def test_end_session_wrong_dorm_403(
+        self, client, ryokan_token, running_male_dorm_session
+    ):
+        """女寮寮監结束男寮 running session → 403 FORBIDDEN_DORM。"""
+        res = client.post(
+            f"/api/v1/rollcall/sessions/{running_male_dorm_session.id}/end",
+            headers={"Authorization": f"Bearer {ryokan_token}"},
+        )
+        assert res.status_code == 403, res.text
+        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+
+
+class TestDisciplineDormBoundary:
+    """discipline.py 手动加扣分 / 撤销 寮边界 — 女寮寮監操作男寮学生 → 403。"""
+
+    def test_create_manual_demerit_wrong_dorm_403(
+        self, client, ryokan_token, seed_data
+    ):
+        """女寮寮監给男寮学生手动加扣分 → 403 FORBIDDEN_DORM。"""
+        student_id = str(seed_data["student"].id)  # dorm_unit=1（男寮）
+        res = client.post(
+            "/api/v1/discipline/manual",
+            json={
+                "student_id": student_id,
+                "points": 1.0,
+                "reason": "テスト用手動扣分",
+            },
+            headers={"Authorization": f"Bearer {ryokan_token}"},
+        )
+        assert res.status_code == 403, res.text
+        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+
+    def test_revoke_demerit_wrong_dorm_403(
+        self, client, ryokan_token, seed_data, db_session
+    ):
+        """女寮寮監撤销男寮学生的扣分记录 → 403 FORBIDDEN_DORM。"""
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+
+        # 先直接往 DB 插一条扣分事件（不经 API，避免老师权限绕过）
+        event = models.DemeritEvent(
+            student_id=seed_data["student"].id,
+            source_type="manual",
+            points=1.0,
+            reason="テスト",
+            month=datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m"),
+        )
+        db_session.add(event)
+        db_session.commit()
+        db_session.refresh(event)
+
+        res = client.post(
+            f"/api/v1/discipline/{event.id}/revoke",
+            json={"revoke_reason": "テスト撤销"},
+            headers={"Authorization": f"Bearer {ryokan_token}"},
+        )
+        assert res.status_code == 403, res.text
+        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+
+    def test_cross_dorm_role_can_add_demerit(self, client, seed_data):
+        """跨寮役职（寮務課長）给任意学生手动加扣分 → 正常（不受寮限）。"""
+        res = client.post(
+            "/api/v1/sessions/teacher",
+            json={"login_id": "ryomu_kachou", "password": "test-password-12345"},
+        )
+        token = res.json()["access_token"]
+        student_id = str(seed_data["student"].id)
+        r = client.post(
+            "/api/v1/discipline/manual",
+            json={
+                "student_id": student_id,
+                "points": 0.5,
+                "reason": "跨寮役职测试",
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert r.status_code == 201, r.text

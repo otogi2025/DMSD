@@ -116,6 +116,19 @@ def decide_online_request(
     if not record:
         raise HTTPException(404, {"code": "NOT_FOUND", "message": "届が見つかりません"})
 
+    # R4 寮边界：寮監是 dorm-scoped 角色，只能审批本寮学生的在线申请
+    student = db.get(models.Student, record.student_id)
+    if student:
+        allowed = dorm_units_for_teacher(teacher)
+        if allowed is not None and student.dorm_unit not in allowed:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "code": "FORBIDDEN_DORM",
+                    "message": "担当外の寮の学生への操作はできません",
+                },
+            )
+
     if body.decision == "revoked":
         if record.status != "approved":
             raise HTTPException(

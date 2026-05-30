@@ -40,6 +40,27 @@ def _assert_student_in_dorm(teacher: models.Teacher, student: models.Student) ->
         )
 
 
+def _assert_session_in_dorm(
+    teacher: models.Teacher, session: models.RollCallSession
+) -> None:
+    """R4 寮边界 — session 的 dorm_unit_set 与老师管辖寮无交集 → 403。
+
+    跨寮角色（helper 返 None）不受限。
+    """
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is None:
+        return
+    # session.dorm_unit_set 是 list[int]；只要有任一寮在管辖范围内即可操作
+    if not any(d in allowed for d in session.dorm_unit_set):
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "FORBIDDEN_DORM",
+                "message": "担当外の寮のセッションへの操作はできません",
+            },
+        )
+
+
 router = APIRouter(prefix="/api/v1/rollcall", tags=["rollcall"])
 
 # spec §7.5 + propose §1.2 自动扣分点数
@@ -178,6 +199,9 @@ def start_session(
             409, {"code": "ALREADY_ENDED", "message": "終了済みのセッションです"}
         )
 
+    # R4 寮边界：session 的 dorm_unit_set 与老师管辖寮必须有交集
+    _assert_session_in_dorm(teacher, session)
+
     # -5min 前检查 (RollCall_Spec §5.4) — 用 timedelta 算，正确处理跨小时边界
     window_minus5 = _as_jst_aware(session.scheduled_window_start_at) - timedelta(
         minutes=5
@@ -214,6 +238,9 @@ def end_session(
                 "message": "実行中のセッションではありません",
             },
         )
+
+    # R4 寮边界：session 的 dorm_unit_set 与老师管辖寮必须有交集
+    _assert_session_in_dorm(teacher, session)
 
     now = _now_jst()
     session.session_status = "ended"

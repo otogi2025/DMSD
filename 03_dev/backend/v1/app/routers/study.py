@@ -22,7 +22,28 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import get_current_student, get_current_teacher, require_teacher_roles
+from ..deps import (
+    dorm_units_for_teacher,
+    get_current_student,
+    get_current_teacher,
+    require_teacher_roles,
+)
+
+
+def _assert_student_in_dorm(teacher: models.Teacher, student: models.Student) -> None:
+    """R4 寮边界写操作校验 — 学生 dorm_unit 不在老师管辖范围 → 403。"""
+    from fastapi import HTTPException
+
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None and student.dorm_unit not in allowed:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "FORBIDDEN_DORM",
+                "message": "担当外の寮の学生への操作はできません",
+            },
+        )
+
 
 router = APIRouter(prefix="/api/v1/study", tags=["study"])
 
@@ -259,6 +280,9 @@ def create_checkin(
             404, {"code": "NOT_FOUND", "message": "学生が見つかりません"}
         )
 
+    # R4 寮边界：寮監等 dorm-scoped 角色不能给管辖外学生写出席记录
+    _assert_student_in_dorm(teacher, student)
+
     # 既存レコード確認 (upsert 相当)
     existing = db.scalars(
         select(models.StudyCheckin).where(
@@ -307,7 +331,8 @@ def bulk_finalize(
     today = body.target_date or _today_jst()
     term = _academic_term(today)
 
-    roster_ids = set(
+    # R4 寮边界：先拉全 roster，再按老师管辖寮过滤（跨寮角色 None → 不过滤）
+    all_roster_ids = set(
         db.scalars(
             select(models.StudyRoster.student_id).where(
                 models.StudyRoster.academic_term == term,
@@ -315,6 +340,20 @@ def bulk_finalize(
             )
         ).all()
     )
+    dorm_units = dorm_units_for_teacher(teacher)
+    if dorm_units is not None:
+        # 只保留该老师管辖寮的学生
+        in_scope = set(
+            db.scalars(
+                select(models.Student.id).where(
+                    models.Student.id.in_(all_roster_ids),
+                    models.Student.dorm_unit.in_(dorm_units),
+                )
+            ).all()
+        )
+        roster_ids = all_roster_ids & in_scope
+    else:
+        roster_ids = all_roster_ids
 
     # 承認済欠席届 → finalize 対象外
     exempt_ids = set(
@@ -403,6 +442,10 @@ def patch_checkin(
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "記録が見つかりません"}
         )
+    # R4 寮边界：通过 checkin 记录找到对应学生，校验老师管辖范围
+    student = db.get(models.Student, record.student_id)
+    if student:
+        _assert_student_in_dorm(teacher, student)
     record.status = body.status
     record.overridden_by = teacher.id
     record.override_reason = body.override_reason

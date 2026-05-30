@@ -137,6 +137,16 @@ def create_manual_demerit(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "STUDENT_NOT_FOUND", "message": "学生不存在"},
         )
+    # R4 寮边界：寮監是 dorm-scoped 角色，管辖外学生不能手动加扣分
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None and student.dorm_unit not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "FORBIDDEN_DORM",
+                "message": "担当外の寮の学生への操作はできません",
+            },
+        )
     # BL-6 修复：月份归属用 JST，防跨月凌晨归错月（与 rollcall/study 保持一致）
     now = datetime.now(_JST)
     event = models.DemeritEvent(
@@ -176,6 +186,18 @@ def revoke_demerit(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "EVENT_NOT_FOUND", "message": "扣分事件不存在"},
         )
+    # R4 寮边界：通过扣分事件找对应学生，寮監只能撤销本寮学生的扣分
+    student = db.get(models.Student, event.student_id)
+    if student:
+        allowed = dorm_units_for_teacher(teacher)
+        if allowed is not None and student.dorm_unit not in allowed:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "FORBIDDEN_DORM",
+                    "message": "担当外の寮の学生への操作はできません",
+                },
+            )
     if event.revoked_at is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
