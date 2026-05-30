@@ -4,12 +4,13 @@
     APP_ENV=dev (default) → dev dummy seed（dummy 学生 2 + 教师 1 + 点呼 session 2 + 学习名簿）
     APP_ENV=production    → production seed（admin 教师 1 + reviewer 学生 1 + reviewer 注册码 1）
 
-production seed 5-08 拍板规则（详见 system_features.md §7.20 + §7.16 例外条款）：
-    - admin 默认密码从 env ADMIN_INITIAL_PASSWORD 读（fallback "ChangeMe-2026-05" 仅 dev 兜底）
+production seed 拍板规则（详见 system_features.md §7.20 + §7.16 例外条款）：
+    - admin 密码必须通过 env ADMIN_INITIAL_PASSWORD 设置（缺失则拒绝执行）
     - reviewer 学号 999999（grade=99/class=99/seat=99，schema 允许，业务不存在）
-    - reviewer 密码 "Tomoshibi-Reviewer-2026!"（强度足够 + 品牌前缀）
+    - reviewer 密码必须通过 env REVIEWER_PASSWORD 设置（缺失则拒绝执行）
     - reviewer 学生 is_demo=True → admin 学生列表 / 出席统计自动过滤
-    - reviewer 注册码 "999999" + is_reviewer=True → 老师面板不可见 + refresh 不作废 + 永久有效
+    - reviewer 注册码必须通过 env REVIEWER_REGISTRATION_CODE 设置（缺失则拒绝执行）
+    - is_reviewer=True → 老师面板不可见 + refresh 不作废 + 永久有效
 
 执行：
     cd 03_dev/backend/v1
@@ -22,6 +23,7 @@ from __future__ import annotations
 import logging
 import os
 from datetime import date, datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 
@@ -244,44 +246,39 @@ PROD_REVIEWER_STUDENT = dict(
     email="reviewer@tomoshibi.cc",
     is_demo=True,  # 关键标志 — admin 学生列表 / 出席统计自动过滤
 )
-# A-014 (2026-05-21): reviewer 凭证从环境变量读，避免 public repo 暴露后门
-# - production env 必须设置 REVIEWER_PASSWORD + REVIEWER_REGISTRATION_CODE
-# - fallback 默认值仅 dev 兜底，上线 seed 时会 warn
-PROD_REVIEWER_PASSWORD = os.environ.get(
-    "REVIEWER_PASSWORD", "Tomoshibi-Reviewer-2026!"
-)  # Apple Reviewer Notes 给（上线前必设 env）
-
-# 审核员永久注册码 — spec §7.16 例外条款
-# is_reviewer=True → 老师面板不可见 + refresh 不作废 + 永久有效
-PROD_REVIEWER_REGISTRATION_CODE = os.environ.get(
-    "REVIEWER_REGISTRATION_CODE", "999999"
-)  # 上线前必设 env
 
 
 def seed_prod(db) -> None:
-    """production minimal 数据 — VPS Postgres 部署用。"""
-    # A-014 (2026-05-21): reviewer 凭证 fallback warn
-    if PROD_REVIEWER_PASSWORD == "Tomoshibi-Reviewer-2026!":
-        log.warning(
-            "⚠️ REVIEWER_PASSWORD env 未设，使用 fallback 默认密码。"
-            "上线前必须设 env 变量 + Apple Reviewer Notes 写新密码。"
-        )
-    if PROD_REVIEWER_REGISTRATION_CODE == "999999":
-        log.warning(
-            "⚠️ REVIEWER_REGISTRATION_CODE env 未设，使用 fallback 默认码 999999（public repo 已知）。"
-            "上线前必须设 env 变量为新随机 6 位数字。"
-        )
+    """production minimal 数据 — VPS Postgres 部署用。
 
-    # admin 默认密码从 env 读（fallback 仅 dev 兜底；上线必须设 env）
-    admin_password = os.environ.get("ADMIN_INITIAL_PASSWORD", "ChangeMe-2026-05")
-    if admin_password == "ChangeMe-2026-05":
-        log.warning(
-            "⚠️ ADMIN_INITIAL_PASSWORD env 未设，使用 fallback 默认密码。"
-            "上线前必须设 env 变量 + 上线后立刻 web 后台改强密码。"
+    production 模式下三个凭证 env 变量必须全部显式设置，任一缺失直接 raise 拒绝执行：
+        ADMIN_INITIAL_PASSWORD      — admin 教师初始密码
+        REVIEWER_PASSWORD           — Apple 审核员账号密码
+        REVIEWER_REGISTRATION_CODE  — 审核员永久注册码（is_reviewer=True）
+    """
+    # SEC-4: production 凭证 fail-fast 校验 — 三个 env 任一缺失就拒绝执行，不允许 fallback 默认值
+    _missing = []
+    admin_password = os.environ.get("ADMIN_INITIAL_PASSWORD")
+    if not admin_password:
+        _missing.append("ADMIN_INITIAL_PASSWORD")
+
+    reviewer_password = os.environ.get("REVIEWER_PASSWORD")
+    if not reviewer_password:
+        _missing.append("REVIEWER_PASSWORD")
+
+    reviewer_registration_code = os.environ.get("REVIEWER_REGISTRATION_CODE")
+    if not reviewer_registration_code:
+        _missing.append("REVIEWER_REGISTRATION_CODE")
+
+    if _missing:
+        raise RuntimeError(
+            "Production seed 拒绝执行：以下环境变量未设置 → "
+            + ", ".join(_missing)
+            + "。请在服务器 .env 或部署脚本里显式设置这些变量后再运行 seed。"
         )
 
     admin_pw_hash = security.hash_password(admin_password)
-    reviewer_pw_hash = security.hash_password(PROD_REVIEWER_PASSWORD)
+    reviewer_pw_hash = security.hash_password(reviewer_password)
 
     # 1. admin 教师
     existing_admin = db.scalars(
@@ -326,7 +323,7 @@ def seed_prod(db) -> None:
     ).first()
     existing_code = db.scalars(
         select(models.StudentRegistrationCode).where(
-            models.StudentRegistrationCode.code == PROD_REVIEWER_REGISTRATION_CODE,
+            models.StudentRegistrationCode.code == reviewer_registration_code,
             models.StudentRegistrationCode.is_reviewer.is_(True),
             models.StudentRegistrationCode.invalidated_at.is_(None),
         )
@@ -339,7 +336,7 @@ def seed_prod(db) -> None:
         far_future = datetime(2099, 1, 1, tzinfo=timezone.utc)
         db.add(
             models.StudentRegistrationCode(
-                code=PROD_REVIEWER_REGISTRATION_CODE,
+                code=reviewer_registration_code,
                 created_by=admin.id,
                 expires_at=far_future,
                 is_reviewer=True,
@@ -347,7 +344,7 @@ def seed_prod(db) -> None:
         )
         log.info(
             "加 reviewer 注册码 code=%s is_reviewer=True",
-            PROD_REVIEWER_REGISTRATION_CODE,
+            reviewer_registration_code,
         )
 
     db.commit()
@@ -355,15 +352,12 @@ def seed_prod(db) -> None:
     log.info("=" * 60)
     log.info("production seed 完成（最小必要数据）")
     log.info(
-        "admin login: %s / 密码: %s",
+        "admin login: %s / 密码来自: env ADMIN_INITIAL_PASSWORD",
         PROD_ADMIN_TEACHER["login_id"],
-        "(env ADMIN_INITIAL_PASSWORD)"
-        if admin_password != "ChangeMe-2026-05"
-        else "ChangeMe-2026-05 ⚠️ fallback",
     )
-    log.info("reviewer 学号: 999999 / 密码: %s", PROD_REVIEWER_PASSWORD)
+    log.info("reviewer 学号: 999999 / 密码来自: env REVIEWER_PASSWORD")
     log.info(
-        "reviewer 注册码: %s (is_reviewer=True 永久)", PROD_REVIEWER_REGISTRATION_CODE
+        "reviewer 注册码来自: env REVIEWER_REGISTRATION_CODE (is_reviewer=True 永久)"
     )
     log.info("=" * 60)
 

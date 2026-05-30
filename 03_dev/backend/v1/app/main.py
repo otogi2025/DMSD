@@ -51,10 +51,39 @@ from .routers import (
 
 settings = get_settings()
 logging.basicConfig(level=settings.log_level)
+logger = logging.getLogger("tomoshibi.startup")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # RUN-1: 启动时明显打印当前 APP_ENV，让 ops 一眼确认模式
+    logger.info("=" * 60)
+    logger.info(
+        "[STARTUP] APP_ENV=%s — %s",
+        settings.app_env,
+        "开发模式（dev）"
+        if settings.app_env == "dev"
+        else "Staging 模式"
+        if settings.app_env == "staging"
+        else "生产模式（production）",
+    )
+    logger.info(
+        "[STARTUP] DATABASE_URL prefix: %s", settings.database_url.split("://")[0]
+    )
+    logger.info("=" * 60)
+
+    # RUN-1: 生产特征（PostgreSQL）但 APP_ENV 不是 production → 大声 WARNING，疑似误配
+    _is_postgres = settings.database_url.startswith(
+        "postgresql"
+    ) or settings.database_url.startswith("postgres")
+    if _is_postgres and settings.app_env != "production":
+        logger.warning(
+            "⚠️  [STARTUP] 疑似生产数据库（PostgreSQL）但 APP_ENV=%s（非 production）！"
+            " 这会导致跳过生产校验、使用 create_all() 而非 Alembic 迁移。"
+            " 请检查 .env 的 APP_ENV 是否漏设为 production。",
+            settings.app_env,
+        )
+
     # dev 环境自动建表；production 仍然必须由 Alembic 管理 schema。
     if settings.app_env == "dev":
         create_all()
