@@ -399,3 +399,73 @@ class TestIncidentRecords:
             headers={"Authorization": f"Bearer {ryomu_token}"},
         )
         assert res.status_code == 404
+
+
+# -----------------------------------------------------------------------
+# #2 major — guidance 写操作寮边界测试
+# -----------------------------------------------------------------------
+class TestGuidanceDormBoundary:
+    """create_guidance / decide_disclosure 对跨寮老师应返回 403。
+
+    场景：学生在 dorm_unit=1（男寮），女寮老师（assigned_dorm=4）无权操作。
+    """
+
+    @pytest.fixture
+    def joshi_token(self, client, seed_data, db_session):
+        """女寮担当・寮務一般教师 — dorm_unit=4 管辖，学生 dorm_unit=1 → 跨寮。"""
+        from app import models, security
+
+        t = models.Teacher(
+            login_id="joshi_tannin",
+            name="女寮太郎",
+            email="jt@test.jp",
+            password_hash=security.hash_password("test-password-12345"),
+            role="寮務一般教师",
+            assigned_dorm=4,  # 女寮 → dorm_units_for_teacher 返回 [4]
+        )
+        db_session.add(t)
+        db_session.commit()
+        res = client.post(
+            "/api/v1/sessions/teacher",
+            json={"login_id": "joshi_tannin", "password": "test-password-12345"},
+        )
+        assert res.status_code == 200, res.text
+        return res.json()["access_token"]
+
+    def test_create_guidance_cross_dorm_403(self, client, seed_data, joshi_token):
+        """女寮老师对男寮学生录入指导记录 → 403 FORBIDDEN_DORM。"""
+        sid = _student_id(seed_data)  # 学生 dorm_unit=1
+        res = client.post(
+            f"/api/v1/students/{sid}/guidance",
+            headers={"Authorization": f"Bearer {joshi_token}"},
+            json={
+                "student_id": sid,
+                "content": "跨寮録入テスト",
+                "guidance_date": "2026-05-30",
+            },
+        )
+        assert res.status_code == 403, res.text
+        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+
+    def test_decide_disclosure_cross_dorm_403(
+        self, client, seed_data, student_token, joshi_token
+    ):
+        """女寮老师审批男寮学生的开示申请 → 403 FORBIDDEN_DORM。"""
+        sid = _student_id(seed_data)
+        # 学生先提交开示申请
+        r = client.post(
+            f"/api/v1/students/{sid}/guidance/disclosure-request",
+            headers={"Authorization": f"Bearer {student_token}"},
+            json={},
+        )
+        assert r.status_code == 201, r.text
+        req_id = r.json()["id"]
+
+        # 女寮老师尝试审批 → 跨寮，应 403
+        res = client.post(
+            f"/api/v1/guidance/disclosure-requests/{req_id}/decision",
+            headers={"Authorization": f"Bearer {joshi_token}"},
+            json={"decision": "approved_full"},
+        )
+        assert res.status_code == 403, res.text
+        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"

@@ -74,7 +74,18 @@ def create_guidance(
 ):
     """老师录入学生指导记录。"""
     _require_guidance_role(teacher)
-    _get_student_or_404(student_id, db)
+    student = _get_student_or_404(student_id, db)
+
+    # R4 寮边界：跨寮角色（返回 None）可写全部；其他老师只能写自己管辖寮的学生
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None and student.dorm_unit not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "FORBIDDEN_DORM",
+                "message": "担当外の寮の学生の指導記録は録入できません",
+            },
+        )
 
     row = models.GuidanceRecord(
         student_id=student_id,
@@ -265,6 +276,18 @@ def decide_disclosure(
         raise HTTPException(
             status_code=409,
             detail={"code": "ALREADY_DECIDED", "message": "该申请已有决定"},
+        )
+
+    # R4 寮边界：从申请行拿 student_id，查该学生所属寮
+    disclosure_student = _get_student_or_404(row.student_id, db)
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None and disclosure_student.dorm_unit not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "FORBIDDEN_DORM",
+                "message": "担当外の寮の学生の開示申請は審査できません",
+            },
         )
 
     now = datetime.now(timezone.utc)

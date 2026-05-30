@@ -41,10 +41,11 @@ def register_device_token(
     now = datetime.now(timezone.utc)
 
     # 幂等检查：同一 token（不管是不是同一学生，token 全局唯一）
+    # 注意：不加 revoked_at IS NULL — 已撤销的 token 也要查到，走"复活旧行"路径，
+    # 避免撞 UniqueConstraint("token") 导致 500
     existing = db.scalars(
         select(models.DeviceToken).where(
             models.DeviceToken.token == body.token,
-            models.DeviceToken.revoked_at.is_(None),
         )
     ).first()
 

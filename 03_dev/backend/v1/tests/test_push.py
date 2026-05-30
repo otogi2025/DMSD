@@ -239,3 +239,40 @@ def test_device_token_ownership_transfer(client, _engine):
     body = r2.json()
     # 归属已转移给 B
     assert str(body["student_id"]) == str(sid_b)
+
+
+# ---------------------------------------------------------------
+# 7. #1 blocker — 撤销过的 token 重新注册不报 500（复活旧行）
+# ---------------------------------------------------------------
+def test_revoked_token_reregister_200(client, _engine):
+    """学生的 token 被 revoke 后再次注册，应返回 200 而非约束错误 500。"""
+    import uuid
+    from datetime import datetime, timezone
+    from sqlalchemy.orm import sessionmaker
+
+    Session = sessionmaker(bind=_engine)
+    TOKEN = "revoked-token-reregister-test-001"
+
+    with Session() as s:
+        student, jwt = _make_student(s)
+        # 直接在 DB 插一条已 revoke 的 token 行
+        dt = models.DeviceToken(
+            id=uuid.uuid4(),
+            student_id=student.id,
+            platform="ios",
+            token=TOKEN,
+            revoked_at=datetime.now(timezone.utc),  # 已撤销
+        )
+        s.add(dt)
+        s.commit()
+
+    # 重新注册同一 token — 修复前会撞 UniqueConstraint → 500，修复后应 200
+    res = client.post(
+        "/api/v1/notifications/device-token",
+        json={"platform": "ios", "token": TOKEN},
+        headers={"Authorization": f"Bearer {jwt}"},
+    )
+    assert res.status_code == 200, res.text
+    body = res.json()
+    # revoked_at 已被清空（复活），platform 正确
+    assert body["platform"] == "ios"
