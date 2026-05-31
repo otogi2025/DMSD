@@ -89,9 +89,11 @@ class TeacherConnectionManager:
             targets = list(self._conns)
         dead: list[_TeacherConn] = []
         for c in targets:
-            # 寮过滤：dorm_unit 不为 None 时，只推给匹配寮或跨寮管理员
+            # 寮过滤：男寮老师(assigned_dorm=1)收 dorm_unit 1+2、女寮(4)收 4、跨寮(None)收全部
+            # 与 deps.dorm_units_for_teacher 映射一致（原精确比较 != 会漏推 dorm_unit=2 给男寮老师）
             if dorm_unit is not None and c.assigned_dorm is not None:
-                if c.assigned_dorm != dorm_unit:
+                allowed = (1, 2) if c.assigned_dorm == 1 else (c.assigned_dorm,)
+                if dorm_unit not in allowed:
                     continue
             try:
                 await c.websocket.send_json(event)
