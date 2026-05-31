@@ -196,8 +196,14 @@ class TestUpdateApplication:
         assert res.status_code == 201, res.text
         return res.json()["id"]
 
-    def test_update_records_amend_reason_in_audit(self, client, student_token):
+    def test_update_records_amend_reason_in_audit(
+        self, client, student_token, db_session
+    ):
         """修改理由 amend_reason → 写进 audit payload，不覆盖申请本身的 reason。"""
+        from uuid import UUID
+
+        from app import models
+
         app_id = self._create_pending(client, student_token)
         res = client.put(
             f"/api/v1/applications/{app_id}",
@@ -217,6 +223,11 @@ class TestUpdateApplication:
             (e.get("payload") or {}).get("amend_reason") == "帰寮方法を変更します"
             for e in update_entries
         ), update_entries
+        # amend_reason 不能覆盖申请本身的 reason（_kisei_body 设的 "帰省"）；真改的字段要写入
+        db_session.expire_all()
+        row = db_session.get(models.Application, UUID(app_id))
+        assert row.reason == "帰省", f"reason 被 amend_reason 覆盖了: {row.reason}"
+        assert row.return_method == "バス", row.return_method
 
     def test_update_resets_status_to_pending(self, client, student_token, db_session):
         """approved_partial 的届改完 → status 重置回 pending（链已全删重建）。"""
@@ -237,6 +248,17 @@ class TestUpdateApplication:
         )
         assert res.status_code == 200, res.text
         assert res.json()["status"] == "pending", res.text
+        # 审批链已全删重建：所有 approval 行都是未决（decision=None）
+        db_session.expire_all()
+        approvals = (
+            db_session.query(models.ApplicationApproval)
+            .filter_by(application_id=UUID(app_id))
+            .all()
+        )
+        assert approvals, "审批链为空（应重建）"
+        assert all(a.decision is None for a in approvals), [
+            a.decision for a in approvals
+        ]
 
     def test_update_returned_application_allowed(
         self, client, student_token, db_session
@@ -258,3 +280,50 @@ class TestUpdateApplication:
         )
         assert res.status_code == 200, res.text
         assert res.json()["status"] == "pending", res.text
+
+    def test_update_noop_rejected(self, client, student_token):
+        """没有真实字段变化（只填 amend_reason）→ 422 NO_CHANGES，不重置审批链。"""
+        app_id = self._create_pending(client, student_token)
+        res = client.put(
+            f"/api/v1/applications/{app_id}",
+            json={"amend_reason": "理由だけ書いた"},
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 422, res.text
+        assert res.json()["detail"]["code"] == "NO_CHANGES", res.text
+
+    def test_audit_teacher_outside_dorm_forbidden(
+        self, client, student_token, seed_data, db_session
+    ):
+        """非担当寮老师读 audit → 403（payload 含 amend_reason，不能任意老师读任意申请履历）。"""
+        from app import models, security
+
+        app_id = self._create_pending(client, student_token)
+        # 造一个「女寮(unit4)担当、非跨寮 role」老师，对男寮(unit1)的 seed 学生应 403
+        other = models.Teacher(
+            login_id="onna_tannin",
+            name="女寮担任",
+            email="ot@test.jp",
+            password_hash=security.hash_password("test-password-12345"),
+            role="寮務一般教師",
+            assigned_dorm=4,
+        )
+        db_session.add(other)
+        db_session.commit()
+        token = security.create_access_token(other.id, f"teacher:{other.role}")
+        res = client.get(
+            f"/api/v1/applications/{app_id}/audit",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert res.status_code == 403, res.text
+
+    def test_audit_cross_dorm_teacher_allowed(
+        self, client, student_token, teacher_token
+    ):
+        """跨寮 role 老师（寮務課長）读 audit → 200（确认范围检查没把正常老师也挡掉）。"""
+        app_id = self._create_pending(client, student_token)
+        res = client.get(
+            f"/api/v1/applications/{app_id}/audit",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 200, res.text

@@ -376,8 +376,9 @@ def update_application(
 
     # 内容更新 (None フィールドはスキップ)
     update_data = body.model_dump(exclude_none=True)
-    # amend_reason 是「修改理由」、app 表没这列 — 先取出来只写进 audit，别 setattr 到 app 上。
-    amend_reason = update_data.pop("amend_reason", None)
+    # amend_reason 是「修改理由」、app 表没这列 — 取出来只写进 audit。
+    # codex: 空白 strip 后算没填，防纯换行 / 纯空格绕过「修改理由必填」。
+    amend_reason = (update_data.pop("amend_reason", None) or "").strip() or None
     if "stay_locations" in update_data:
         update_data["stay_locations"] = [
             loc.model_dump() for loc in body.stay_locations
@@ -386,10 +387,19 @@ def update_application(
         update_data["meals_skip"] = [
             e.model_dump(mode="json") for e in body.meals_skip
         ] or None
-    for key, val in update_data.items():
+
+    # codex(IX-004): 只保留真改了的业务字段。空 body / 只填 amend_reason / 传与现值相同的字段
+    # 都不该重置审批链 + 重发邮件（否则已部分承認的届能被反复无实质重置 — 滥用面）。
+    changed = {k: v for k, v in update_data.items() if getattr(app, k) != v}
+    if not changed:
+        raise HTTPException(
+            422, {"code": "NO_CHANGES", "message": "変更内容がありません"}
+        )
+    for key, val in changed.items():
         setattr(app, key, val)
 
-    if body.leave_date and body.leave_date <= datetime.now(_JST).date():
+    # 出寮日校验：只校验真改了的出寮日（没改的旧届出寮日可能已过、不该被误拒）。
+    if "leave_date" in changed and changed["leave_date"] <= datetime.now(_JST).date():
         raise HTTPException(
             422, {"code": "LEAVE_DATE_NOT_FUTURE", "message": "出寮日は明日以降"}
         )
@@ -426,7 +436,7 @@ def update_application(
             target_type="application",
             target_id=app.id,
             payload={
-                "updated_fields": list(update_data.keys()),
+                "updated_fields": list(changed.keys()),
                 # 有填修改理由就记进 audit，老师端 / 学生履历能看到「为什么改」。
                 **({"amend_reason": amend_reason} if amend_reason else {}),
             },
@@ -456,10 +466,18 @@ def get_application_audit(
     if not app:
         raise HTTPException(404, {"code": "NOT_FOUND", "message": "届が見つかりません"})
 
-    if isinstance(actor, models.Student) and app.student_id != actor.id:
-        raise HTTPException(
-            403, {"code": "FORBIDDEN", "message": "他人の届は閲覧できません"}
-        )
+    # codex(IX-004): audit payload 现含 amend_reason — 权限要跟 GET /{id} 详情端点一致。
+    # 学生 → 只能看自己；老师 → 只能看担当寮范围内（不能任意老师读任意申请履历）。
+    if isinstance(actor, models.Student):
+        if app.student_id != actor.id:
+            raise HTTPException(
+                403, {"code": "FORBIDDEN", "message": "他人の届は閲覧できません"}
+            )
+    elif isinstance(actor, models.Teacher):
+        if not _teacher_can_view(actor, app.student):
+            raise HTTPException(
+                403, {"code": "FORBIDDEN_DORM", "message": "担当外の寮の届です"}
+            )
 
     logs = db.scalars(
         select(models.AuditLog)

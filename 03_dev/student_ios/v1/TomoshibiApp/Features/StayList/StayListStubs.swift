@@ -1205,7 +1205,7 @@ struct StayEditForm: View {
     }
 
     private var canSubmit: Bool {
-        !amendReason.trimmingCharacters(in: .whitespaces).isEmpty
+        !amendReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && returnDate >= leaveDate
     }
 
@@ -1514,7 +1514,7 @@ struct StayEditForm: View {
         // 生产：只把用户真改过的字段塞进 ApplicationUpdateBody（其余 nil 不发，后端只更新非 nil）。
         var body = ApplicationUpdateBody()
         // codex(IX-004): 修改理由必发 — 后端写进 audit（canSubmit 已保证非空，这里再防一道空白）。
-        let trimmedReason = amendReason.trimmingCharacters(in: .whitespaces)
+        let trimmedReason = amendReason.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmedReason.isEmpty { body.amend_reason = trimmedReason }
         // codex(IX-004): 日期 / 方法只发改过的。无条件发 leave_date 会触发后端「出寮日>今日」校验、
         // 误拒已过出寮日但只改帰寮日 / 方法 / 理由的旧届（尤其 returned 退回的届）。基准 = initFields 加载时的值。
