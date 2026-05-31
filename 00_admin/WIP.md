@@ -54,7 +54,11 @@
 
 **🔴 本会话进度全在 `05_logs/ios接后端_进度与handoff.md`（压缩防丢信息文件 — 新会话 / 压缩后先读它）。**
 
-**主题**：itsuki「继续做 iOS app 推进」→ 深挖发现 app ~85% 完成 → 多 agent + codex 交叉验证审出 37 bug（IX-001~037，全清单 `05_logs/audit_2026-05-29_ios交叉验证.md`）→ itsuki 拍板「全都修好」+「每阶段做完派 codex `gpt-5.5` xhigh 审一遍」+「优先级 CC 自己定别停下问」。已提交：`60a2b3b`（A 类 28 + B 类删账号 / 申请假编号 / 申请列表接后端）/ `e2a0355`（codex 审修 5 条，含 codex 逮到我 IX-014 房间号修复的回归 MM101）/ `9728f51`（日语注释 hook 放行 `「」`引用 UI 文字）/ `40d9d59`（IX-004 修改届接后端）。**后端在本地跑 `localhost:8000` 能真验证**（学生 `060218`/`123456`）。**待办**：codex 阶段2(IX-004) 审查结果 `/tmp/codex_stage2_out.txt` + B 类剩余 IX-008 用户资料(要后端加 `/me`)/IX-009 通知/IX-034 请假计数/IX-007 详情 otherDetailBody。AC：多 AI 交叉验证 + codex 逮到我自己的回归 + 我当场纠错（模式 2+5）。
+**主题**：iOS B 类「演示假数据→真后端」。itsuki「全都修好」+「每阶段派 codex gpt-5.5 xhigh 审」+「别停下问自己决定」。**两大块完成**：
+- ✅ **IX-004 修改届接后端 — 5 轮 Codex 对抗复审收敛关闭**（`5a8be64`→`0ee5546`→`5b97b45`+文档`a49daf9`）。每轮真挑出问题（阶段3 含越权+滥用2个我没看出的），每条核实再修，测试 1→18 个。后端 pytest 201 / iOS 双 scheme 绿。
+- ✅ **IX-008 当前用户接 /me**（`464d42f` /me + `04e5887` category + `b4dea6f` iOS currentUser/displayUser + `97d0180` 登出残留修复）。73 处假用户 → 登录拉 `/me` 真实化（currentUser+displayUser+SEED.user安全网）。后端 209 / iOS 双绿。**Codex 额度被并发会话耗尽（晚11:57重置）→ 我自己自审 + 逮到登出残留 bug 修了**，独立审查待补。
+- **待办**（详见 TODO §🔧 + `05_logs/ios接后端_进度与handoff.md`）：IX-008 Codex 补审 / IX-008b 扣分统计接入(真人现显0) / 老师退回(returned)动作未实装 / is_study_target 后端字段。
+- AC：多 AI 对抗复审当质量门 + 额度耗尽自己顶上 + 重构前调研拆阶段（模式 2+5+6）。raw `2026-05-31_ios接后端_IX004收敛+IX008用户资料.md`。
 
 ### 2026-05-29 session-coord 协作板改 hook 自动维护 by [MacBook-Pro-Opus 4.8 1M]
 

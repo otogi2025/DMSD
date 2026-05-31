@@ -1085,4 +1085,23 @@ xcodebuild iPhone 17 simulator BUILD SUCCEEDED 確認済（2026-05-04）。
 
 ---
 
-**END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）; 5-31 修改届接后端（§14.7）。
+### 14.8 当前用户接 /me — IX-008（2026-05-31）
+
+73 处写死的演示假用户 `SEED.user` → 登录拉真实用户。详细决策见 `05_logs/decision_log.md` 2026-05-31 条 + raw `2026-05-31_ios接后端_IX004收敛+IX008用户资料.md` §3。
+
+**改的文件**：
+- `AppStore.swift` — `currentUser` + `displayUser = currentUser ?? SEED.user` + `loadMe()`（拉 `/me` → `mapMeToUser` → 设 currentUser **并写回 SEED.user 当安全网**覆盖没法用 app 的站点）；登录 + 启动调 loadMe；登出 didSet 清 currentUser + SEED.user 复位 `demoUserSeed`（防真实用户残留）。
+- `AuthAPI.swift` — `StudentMeOut` + `StudentsAPI.me()`。
+- `SEED.swift` — 加 `demoUserSeed` 不可变副本（登出复位用）。
+- `HomeStubs.swift` — 7 处 `SEED.user` → `app.displayUser`。
+- `MyPageStubs.swift` — 学習卡片去隐藏门控（常显）+ `MyStudyView` 非学習対象显「学習対象外です」。
+
+**自挑的值**（itsuki 拍板）：统计字段（points/迟到/欠席）真人先 0（4.5 是 demo）；isStudyTarget 默认 false（老师后台手动设的才是）；UI 入口可见、点进去显「不需要晚自习」。
+
+**残留**：IX-008b 扣分统计接入 / 老师退回(returned)动作 / is_study_target 后端字段（见 TODO §🔧）。Codex 独立审查待额度恢复补。
+
+**验证**：生产 + 演示双 scheme BUILD SUCCEEDED；后端 209 passed（含 4 个 /me 测试）。
+
+---
+
+**END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）; 5-31 修改届接后端（§14.7）+ 当前用户接 /me（§14.8）。

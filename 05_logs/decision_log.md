@@ -24,6 +24,22 @@
 
 ## 决策记录(倒序)
 
+## 2026-05-31 — IX-008 iOS 当前用户接后端：currentUser + displayUser + SEED.user 安全网（不逐改 73 处）
+
+**之前的决策**: iOS 各页 73 处直接读写死的演示假用户 `SEED.user`（リュウ イヒ / A5 / 4.5分）。
+**新的决策**: AppStore 加 `currentUser`（登录拉 `GET /students/me` 填）+ 计算属性 `displayUser = currentUser ?? SEED.user`；loadMe 同时把真实用户**写回全局 SEED.user 当安全网**，覆盖 ~60 处没法用 app 的站点（@State 默认值 / mock / 静态 helper）；登出复位 demoUserSeed 防残留。只把高可见站点（HomeStubs）转 displayUser。
+**为什么改 / 选这个**:
+1. 调研发现 `User` 结构混了身份+统计+flag 三类，`/me`（StudentProfileBasic）只给身份 → 「73 处一把换 displayUser」不成立（@State 默认值用不了 app、统计字段 /me 没有）。
+2. 纯全局突变（只改 SEED.user）有 app 重启时序 + 不响应式刷新问题；纯 displayUser 要逐改 73 处且 @State/mock 改不了。→ 取中间：displayUser（响应式，高可见处）+ SEED.user 安全网（长尾兜底）。
+3. 符合代码里已写的 `isAuthenticated` 门控设计意图（登录后真实 / 否则占位）。
+**这个改动影响了什么**:
+- 统计字段（points/迟到/欠席）/me 给不了 → 真人先显 0（itsuki：4.5 是 demo 数据），扣分接入 = IX-008b
+- isStudyTarget 默认 false（itsuki：老师后台手动设的才是学習対象）+ UI 入口不隐藏 + 详情页显「学習対象外です」
+- 后端 StudentProfileBasic 加 category（/me 给 iOS）+ 新 GET /students/me
+- 残留风险：SEED.user 全局突变 = demo-scaffold 式做法，语义略混；登出已复位。IX-008 的 Codex 独立审查因额度耗尽待补
+**相关**: `05_logs/raw/2026-05-31_ios接后端_IX004收敛+IX008用户资料.md` §3（设计决策 + 模式6）
+**事后回看**(几个月后补填):
+
 ## 2026-05-27 — teacher_web 老师登录方式：共用密码 → 实名账户（列表 → 选名字 → 输密码）
 
 **之前的决策**（demo 期遗留，与 4-30 §3.4 拍板矛盾）: web 实装 = 共用账户「tomoshibi」+ 共用密码 + 登录后 SelectTeacherScreen 中间页选「今日担当者」。所有老师共享 1 个密码。但 backend `Teacher` model 4-30 之前就已经是「每老师独立 login_id / password_hash / failed_count / locked_until」结构 — web 端 UX 简化造成的实装漂移。
