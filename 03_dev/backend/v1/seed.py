@@ -225,7 +225,8 @@ def seed_dev(db) -> None:
 PROD_ADMIN_TEACHER = dict(
     login_id="admin",
     name="管理者",
-    email="demo@example.com",
+    # admin 邮箱用环境变量（生产部署设 ADMIN_EMAIL=真邮箱，不入仓库）；默认占位，不暴露隐私也不跟学生 demo 邮箱撞
+    email=os.environ.get("ADMIN_EMAIL", "admin@tomoshibi.example"),
     role="寮務部長",
     assigned_dorm=None,
 )
