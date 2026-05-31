@@ -225,7 +225,7 @@ def seed_dev(db) -> None:
 PROD_ADMIN_TEACHER = dict(
     login_id="admin",
     name="管理者",
-    email="otogi2025@gmail.com",
+    email="demo@example.com",
     role="寮務部長",
     assigned_dorm=None,
 )

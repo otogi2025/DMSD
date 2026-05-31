@@ -1217,16 +1217,16 @@ private func footerDouble(
 //
 // JSX:
 //   メールアドレス (required, hint: 認証メールは送信されません。将来のパスワードリセット時の確認用です)
-//     default: otogi2025@gmail.com
+//     default: demo@example.com
 //   電話番号 (required, hint: 寮監があなたに連絡する場合に使います)
-//     default: 090-9482-8905
+//     default: 090-0000-0000
 
 struct RegisterStep3View: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
     @State private var email: String = {
         #if DEMO
-            return "otogi2025@gmail.com"
+            return "demo@example.com"
         #else
             return ""
         #endif
@@ -1234,7 +1234,7 @@ struct RegisterStep3View: View {
 
     @State private var phone: String = {
         #if DEMO
-            return "090-9482-8905"
+            return "090-0000-0000"
         #else
             return ""
         #endif
@@ -1549,12 +1549,12 @@ struct RegisterDoneView: View {
 //   mode tab 2 segments: 番号で / メールで  (active: T.paper bg + T.primary fg + shadow)
 //     container: T.pill (primary08) bg, radius 12, padding 3
 //   番号: アカウント番号 Input numeric (fontSize:20, mono, letterSpacing 0.1em), default "00"
-//   メール: メールアドレス Input type=email, default "otogi2025@gmail.com"
+//   メール: メールアドレス Input type=email, default "demo@example.com"
 //   パスワード: secure, default "demo1234"
 //   ログイン btn
 //   row: 新規登録 (T.inkSub) ←→ パスワードを忘れた → (T.primary)
 //   footer mono: Tomoshibi v0.1.0-demo · 2026 AC 入試プロジェクト
-//   magic seed: acc==='00' | email==='otogi2025@gmail.com'  → router.replace(.home)
+//   magic seed: acc==='00' | email==='demo@example.com'  → router.replace(.home)
 //   else → router.go(.lockout)  (assignment override, JSX Modal hint)
 
 struct LoginView: View {
@@ -1575,7 +1575,7 @@ struct LoginView: View {
 
     @State private var email: String = {
         #if DEMO
-            return "otogi2025@gmail.com"
+            return "demo@example.com"
         #else
             return ""
         #endif

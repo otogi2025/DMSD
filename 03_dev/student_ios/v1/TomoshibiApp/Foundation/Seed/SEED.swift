@@ -16,7 +16,7 @@ enum SEED {
         dorm: "男寮",
         room: "A5", // demo 房间号 (itsuki 2026-05-28 指定默认 A5)
         category: "一般寮生",
-        email: "otogi2025@gmail.com",
+        email: "demo@example.com",
         phone: "090-0000-0000",
         avatar: "リ",
         points: 4.5,

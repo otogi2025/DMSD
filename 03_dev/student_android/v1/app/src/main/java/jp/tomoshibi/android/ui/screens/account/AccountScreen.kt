@@ -51,8 +51,8 @@ private data class FormData(
     val seatNo: String = "18",
     val roomDigit: String = "101",                  // 不含 M/W 前缀（前缀靠 gender 自动算）
     val cat: String = "regular",                    // regular / soccer
-    val email: String = "otogi2025@gmail.com",
-    val phone: String = "090-9482-8905",
+    val email: String = "demo@example.com",
+    val phone: String = "090-0000-0000",
     val pw: String = "demo1234",
     val pw2: String = "demo1234"
 )

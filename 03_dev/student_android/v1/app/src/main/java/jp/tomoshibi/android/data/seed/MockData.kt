@@ -10,14 +10,14 @@ object MockData {
     val DEFAULT_USER = User(
         name = "リュウイヒ",
         kana = "りゅういひ",
-        email = "otogi2025@gmail.com",
+        email = "demo@example.com",
         dorm = "男寮",
         room = "M101",
         avatar = "リ",
         studentNo = "060218",
         gradeClass = "高3B組 18番",
         category = "一般寮生",
-        phone = "090-9482-8905"
+        phone = "090-0000-0000"
     )
 
     val DEFAULT_APPLICATIONS = listOf(

@@ -17,7 +17,7 @@ data class User(
     val studentNo: String = "060218",
     val gradeClass: String = "高3B組 18番",
     val category: String = "一般寮生",   // 一般寮生 / 留学生 / サッカー部
-    val phone: String = "090-9482-8905"
+    val phone: String = "090-0000-0000"
 )
 
 enum class ApplicationStatus { PENDING, APPROVED, RETURNED, REJECTED }
