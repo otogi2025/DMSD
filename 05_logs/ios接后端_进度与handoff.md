@@ -42,8 +42,17 @@ iOS 学生端 app 把「演示假数据（SEED / StayListMock）」接成「真�
 
 ## 4. 进行中 / 待办（压缩后接着干）
 
-### 4.1 立刻要做（压缩后第一件事）
-- **读 Codex 阶段2（IX-004）审查结果**：后台任务 `bq4miqzsp`，输出 `/tmp/codex_stage2_out.txt`。过 findings、修真问题、再提交。
+### 4.1 Codex 阶段2(IX-004) 审查 — 已回，2 条已修（提交 `6cca9fc`），剩 5 条待处理（原文 `/tmp/codex_stage2_out.txt`）
+
+**✅ 已修（`6cca9fc`）**：🔴 destination 写错字段（加载从 `stay_locations.first.name` 读、原提交写 `dest_cities` = 覆盖错位置 → 改发 `stay_locations` + 改了才发）；🟠 `isSubmitting` 没拦连点（加 `guard !isSubmitting`）。
+
+**⏳ 待处理（压缩后接着修，按重要度）**：
+- 🔴 **amendReason 修改理由丢失**（上线前必修）：UI 强制填、提示「先生会看到」，但提交没发后端、audit 也不记，用户必填信息被静默丢。修：后端 `ApplicationUpdateIn`(schemas.py) 加 `amend_reason` 字段（或 audit payload）+ `update_application`(applications.py) 写进 audit + iOS `StayEditForm.submitAsync` 发送 + `StayDetailView` 履历显示。
+- 🔴 **后端改完没重置 `status=pending`**：`update_application`(applications.py ~403-430) 重建 approval chain（全员 pending）后没把 `app.status` 设回 `pending` → `approved_partial` 申请改完「链全 pending 但状态仍一部承認」不一致。修：chain 重建块加 `app.status = "pending"`。⚠️ 后端有并发会话在改，动前先 `git status` 确认 applications.py 没人占。
+- 🟠 **日期/方法字段无条件发 → 误拒**：`submitAsync` 现在 leave_date/leave_method/return_date/return_method 四个无条件发。`leave_date` 一发后端就校验「出寮日>今日」，只想改帰寮日/方法的旧申请会被 422 误拒。修：跟 `original` 比对、只发真改了的字段（destination 已这么做，日期/方法照做）。
+- 🟠 **returned 能编辑但后端拒**：iOS 给 `returned`(要修正)显「修改届」入口，但后端 PUT 只允许 pending/approved_partial → 提交必 409。returned 语义=「退回让你改」应能改 → 后端 applications.py:370 允许列表加 `returned`（产品决策、倾向允许）。
+- 🟡 audit 文案：后端记 `application.update`，iOS mapper 只翻 `application.amend` → 履历显原始英文。iOS mapper 加 `application.update`（StayListStubs ~1749）。
+- 💡 `ApplicationUpdateBody` 用 nil 表示「不发」= 无法表达「清空成 null」。将来字段允许清空要定协议。
 
 ### 4.2 B 类剩余（按此顺序接着接）
 - **IX-007 详情页 `ApplyDetailView`**：stay/holiday/return/returncountry 走 `StayDetailView`（已接后端 ✅）；但 `otherDetailBody`（修繕/来訪/代理受取等）那支仍读 `SEED` + 编造步骤时间，未接。
