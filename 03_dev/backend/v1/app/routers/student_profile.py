@@ -187,6 +187,7 @@ def get_student_profile(
             class_code=student.class_code,
             seat_no=student.seat_no,
             gender=student.gender,
+            category=student.category,
             room_no=student.room_no,
             dorm_unit=student.dorm_unit,
             is_overseas=student.is_overseas,

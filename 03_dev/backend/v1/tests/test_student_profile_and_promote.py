@@ -426,6 +426,7 @@ class TestStudentMe:
         assert data["room_no"] == "M101"
         assert data["dorm_unit"] == 1
         assert data["is_overseas"] is True
+        assert data["category"] == "一般寮生"  # Student model 默认值
 
     def test_me_rejects_teacher(self, client, teacher_token, seed_data):
         """老师 token → 403（/students/me 只认学生 token）。"""

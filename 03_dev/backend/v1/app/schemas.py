@@ -1313,6 +1313,7 @@ class StudentProfileBasic(BaseModel):
     class_code: str
     seat_no: str
     gender: str
+    category: str  # 寮生类别（一般寮生 等）— iOS 当前用户显示用
     room_no: str
     dorm_unit: int
     is_overseas: bool
