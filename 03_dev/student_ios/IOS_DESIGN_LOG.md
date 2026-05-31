@@ -1071,4 +1071,18 @@ xcodebuild iPhone 17 simulator BUILD SUCCEEDED 確認済（2026-05-04）。
 
 ---
 
-**END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）。
+### 14.7 修改届（StayEditForm）接真后端 — IX-004 + 多轮 Codex 收敛（2026-05-31）
+
+「B 类：演示假数据 → 真后端」推进的一环。改届表单原来只调 `StayListMock.applyAmendment` 纯本地 mock，现在接 `PUT /applications/:id`。详细叙事见 `05_logs/ios接后端_进度与handoff.md`。
+
+**改的文件**：
+- `Features/StayList/StayListStubs.swift` — `StayEditForm.load`（已登录→`ApplicationsAPI.detail` 拉真申请预填）+ `submitAsync`（已登录→`ApplicationUpdateBody` 调 PUT）。**修改理由 `amendReason` 发后端新字段 `amend_reason`**（之前 UI 强制填但提交丢、后端看不到）。**日期 / 方法只发真改过的字段**（无条件发出寮日会触发后端「出寮日>今日」校验、误拒只改帰寮的旧届）。audit mapper 加 `application.update` 文案 + 履历显示 amend_reason。修改理由去空白用 `.whitespacesAndNewlines`（防纯换行绕过必填）。演示 / 未登录态仍走 mock。
+- `Foundation/Network/Endpoints/ApplicationsCreateBodies.swift` — `ApplicationUpdateBody` 加 `amend_reason` 字段（snake_case 直接对齐后端，nil 不发）。
+
+**后端配套**（详见 BACKEND_DESIGN_LOG §12 / 2026-05-31 行）：加 `amend_reason` 字段写 audit、改届后 status 重置 pending、`returned` 可编辑、no-op 守卫、audit 老师范围检查。
+
+**验证**：生产 + 演示双 scheme `xcodebuild` BUILD SUCCEEDED；后端 pytest 201 passed；5 轮 Codex 5.5 xhigh 审查（每轮挑出真问题→核实→修→复审到收敛）。
+
+---
+
+**END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）; 5-31 修改届接后端（§14.7）。

@@ -46,19 +46,36 @@ iOS 学生端 app 把「演示假数据（SEED / StayListMock）」接成「真�
 
 **✅ 已修（`6cca9fc`）**：🔴 destination 写错字段（加载从 `stay_locations.first.name` 读、原提交写 `dest_cities` = 覆盖错位置 → 改发 `stay_locations` + 改了才发）；🟠 `isSubmitting` 没拦连点（加 `guard !isSubmitting`）。
 
-**⏳ 待处理（压缩后接着修，按重要度）**：
-- 🔴 **amendReason 修改理由丢失**（上线前必修）：UI 强制填、提示「先生会看到」，但提交没发后端、audit 也不记，用户必填信息被静默丢。修：后端 `ApplicationUpdateIn`(schemas.py) 加 `amend_reason` 字段（或 audit payload）+ `update_application`(applications.py) 写进 audit + iOS `StayEditForm.submitAsync` 发送 + `StayDetailView` 履历显示。
-- 🔴 **后端改完没重置 `status=pending`**：`update_application`(applications.py ~403-430) 重建 approval chain（全员 pending）后没把 `app.status` 设回 `pending` → `approved_partial` 申请改完「链全 pending 但状态仍一部承認」不一致。修：chain 重建块加 `app.status = "pending"`。⚠️ 后端有并发会话在改，动前先 `git status` 确认 applications.py 没人占。
-- 🟠 **日期/方法字段无条件发 → 误拒**：`submitAsync` 现在 leave_date/leave_method/return_date/return_method 四个无条件发。`leave_date` 一发后端就校验「出寮日>今日」，只想改帰寮日/方法的旧申请会被 422 误拒。修：跟 `original` 比对、只发真改了的字段（destination 已这么做，日期/方法照做）。
-- 🟠 **returned 能编辑但后端拒**：iOS 给 `returned`(要修正)显「修改届」入口，但后端 PUT 只允许 pending/approved_partial → 提交必 409。returned 语义=「退回让你改」应能改 → 后端 applications.py:370 允许列表加 `returned`（产品决策、倾向允许）。
-- 🟡 audit 文案：后端记 `application.update`，iOS mapper 只翻 `application.amend` → 履历显原始英文。iOS mapper 加 `application.update`（StayListStubs ~1749）。
-- 💡 `ApplicationUpdateBody` 用 nil 表示「不发」= 无法表达「清空成 null」。将来字段允许清空要定协议。
+**✅ 全部已修（提交 `5a8be64`，后端 pytest 196 passed + 新增 3 针对性测试 + iOS 双 scheme BUILD SUCCEEDED）**：
+- 🔴 **amend_reason 修改理由丢失** → 后端 `schemas.py` ApplicationUpdateIn 加 `amend_reason` 字段、`applications.py` update_application 把它 pop 出来写进 audit payload（不覆盖申请 reason）、iOS `submitAsync` 发送、audit mapper `detailText` 优先显示 amend_reason 让履历看得到。
+- 🔴 **后端改完没重置 `status=pending`** → `applications.py` 链重建块后加 `app.status = "pending"`。新测试 `test_update_resets_status_to_pending` 验证 approved_partial 改完回 pending。
+- 🟠 **日期/方法无条件发 → 误拒** → `submitAsync` 改成跟 initFields 基准值比对、只发真改过的（leave_date != original.leaveDate 才发 等）。
+- 🟠 **returned 能编辑但后端拒** → `applications.py:370` 允许列表加 `returned`。新测试 `test_update_returned_application_allowed` 验证不 409 + 回 pending。
+- 🟡 audit 文案 → iOS mapper `translateAction` 加 `application.update` → "修改届を提出"。
+- 💡 `ApplicationUpdateBody` nil=不发、无法表达「清空成 null」→ 仍是将来字段允许清空时要定的协议（本次未做，记着）。
+
+> **Codex 阶段3 审查**（审 `5a8be64`）已回 → 又修 3 条真问题（提交 `0ee5546`，后端 pytest 199 + iOS 双绿）：
+> - 🟠 无实质修改也重置审批链（空 body / 只填理由 / 传相同值）→ 改成只有真改了业务字段才重置链 + 重发邮件，否则 422 `NO_CHANGES`；出寮日校验也只校验真改了的。
+> - 🟠 `GET /{id}/audit` 老师越权（任何老师读任意申请履历，payload 现含 amend_reason）→ 照抄详情端点 `_teacher_can_view` 按担当寮范围限制。
+> - 🟡 amend_reason 纯空白绕过 → 后端 strip 规整、iOS 改 `.whitespacesAndNewlines`。
+> - 测试从 3 个加到 6 个（加 no-op 422 / audit 越权 403 / 跨寮老师可读 200 + reason 不覆盖 / 链全 pending 断言）。
+>
+> **独立缺口（非本次 bug，记着）**：`returned`（老师退回）状态目前**没有真实业务路径产出** —— 老师审批端点 `decide_approval` 的 `_recompute_application_status` 只产出 rejected/approved/approved_partial/pending，没实装「老师退回让学生改」动作（spec §7.2.4-5 要求）。我加的「returned 可编辑」前向兼容、保留。**要做完整闭环需后端 + teacher_web 加「差戻 / 退回」决策**（独立功能，归 TODO）。
+>
+> **Codex 阶段4 收敛复审**（审 `0ee5546`）已回 → 🔴 无、又修 2 条（提交 `5b97b45`，pytest 201）：
+> - 🟠 `changed` 比较 flight 等 datetime 字段：请求带时区、SQLite 读回丢时区 → 同一时刻误判成改了仍重置链。加 `_norm` 统一成 JST aware 再比（复用 rollcall `_as_jst_aware` 同款）。
+> - 🟡 改了字段但没填修改理由 → 后端 422 `AMEND_REASON_REQUIRED`（iOS 已强制、后端兜底）。
+> - 测试加到 18 个（+ 没填理由 422 / 传相同值 no-op 且已承认行不被清）。
+>
+> **Codex 阶段5 收敛确认**（审 `5b97b45`）：已派（gpt-5.5 xhigh，后台），等它说「收敛」→ IX-004 修改届整块关闭、开 IX-008。
+>
+> **测试基建偶发隐患**（记着、非本次 bug）：`tests/conftest.py` 用单个文件型 SQLite + 每测试清表，多连接并发偶尔清表失败、级联崩一批（全量有时假报 60+ errors，单文件重跑就过）。根治要换「每测试事务回滚」隔离。
 
 ### 4.2 B 类剩余（按此顺序接着接）
 - **IX-007 详情页 `ApplyDetailView`**：stay/holiday/return/returncountry 走 `StayDetailView`（已接后端 ✅）；但 `otherDetailBody`（修繕/来訪/代理受取等）那支仍读 `SEED` + 编造步骤时间，未接。
 - **IX-009 通知**：`AppStore.allNotifications` 拼 `SEED.notifications`（生产泄漏）。`AnnouncementsAPI`（公告）+ `front_desk`（包裹）后端已有，聚合做真通知源。
 - **IX-034 请假计数**：`AppStore` 请假次数只在内存累加、不按月清零。后端 `study.py` 有 `/absence-requests`，可数当月。
-- **IX-008 用户资料（最大一块，要先动后端）**：25 处 `SEED.user`（Home/MyPage/Apply/DormLifeForms）显示假用户。**后端缺口**：登录只返回 `TokenOut`（无用户信息）、无学生 `/me` 接口（`student_profile.py` 只有 `GET /students/{id}/profile` 需 id；老师端有 `GET /me` 可仿）。需：① 后端加 `GET /students/me`（仿老师端，从令牌取学生）；② iOS `AppStore` 存 `currentUser`；③ 25 处 `SEED.user` 改读 `currentUser`（演示 `#if DEMO` 留 SEED）。登录令牌 JWT 里已带 student id + name + dorm_unit + is_overseas（可临时用）。
+- **IX-008 用户资料（最大一块，要先动后端）**：**实测 73 处** `SEED.user`（不是之前估的 25）散在 **7 文件**：`HomeStubs / MyPageStubs / ApplyStubs / DormLifeForms / AuthStubs / StayListStubs / AppStore`。**后端缺口**：登录只返回 `TokenOut`（无用户信息）、无学生 `/me` 接口（`student_profile.py` 只有 `GET /students/{id}/profile` 需 id）。**模板已确认**：老师端 `teachers.py:182` 有 `GET /teachers/me`（`get_current_teacher` 依赖取令牌 → `TeacherOut`），照仿。需：① 后端加 `GET /students/me`（仿老师端 + 新 `StudentMeOut` schema）；② iOS `AppStore` 存 `currentUser` + 登录/启动时拉一次；③ 73 处 `SEED.user` 改读 `currentUser`（演示 `#if DEMO` 留 SEED）。第 ③ 步 73 处适合 **workflow 并行铺**（按 7 文件分代理）。登录令牌 JWT 已带 student id + name + dorm_unit + is_overseas。
 - **Codex 阶段1 第4条（低）**：`APIClient.decodeISO8601Date` 只解析带时区的 ISO8601，后端若返回无时区日期会解码失败。**待真后端有日期数据时验证**（公告列表对测试学生为空、当时没法证实）；真无时区就加无时区 fallback formatter。
 
 ### 4.3 复验
