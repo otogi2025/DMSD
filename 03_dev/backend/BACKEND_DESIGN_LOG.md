@@ -272,7 +272,7 @@ CREATE TABLE teachers (
   password_hash   TEXT NOT NULL,
   role            TEXT NOT NULL CHECK (role IN (
     '寮務部長','寮務課長','国際交流部長','国際交流課長','管理係',
-    '寮監','学習担当','寮務一般教师'
+    '寮監','学習担当','寮務一般教師'
   )),
   -- 注: 4-30 D12 → 加「管理係」单独 role（实物表必有审批人）
   -- 注: 4-30 itsuki 補正 → 「国際交流課長」役职は存在する（外泊届表に印欄が無いだけ、帰国届等 他届で関与する可能性）→ ENUM 保留
@@ -344,7 +344,7 @@ CREATE INDEX idx_app_status_date ON applications (status, leave_date);
 ```
 
 > **`#3 出寮日 = 明天起` 的 CHECK 约束**: PostgreSQL 不允许在 CHECK 里用 `CURRENT_DATE`（非 immutable），实际应做成 trigger or 应用层校验。CC 假设 = **应用层校验 + DB 留 trigger 兜底**。code agent 实装时必加 trigger BEFORE INSERT。
-> **教師当日録入豁免（#30）**: 教師から POST 时可传 `bypass_future_check=true`（仅 `寮務一般教师` 以上 role 接受），跳过 leave_date >= tomorrow 校验。
+> **教師当日録入豁免（#30）**: 教師から POST 时可传 `bypass_future_check=true`（仅 `寮務一般教師` 以上 role 接受），跳过 leave_date >= tomorrow 校验。
 
 ### 4.5 `application_approvals` (✅ 已定 §8.2)
 
@@ -879,7 +879,7 @@ req:
 
 ### 5.4 学習 — iPad ★ (#14-#20 学習 部分)
 
-**前提**: 当前教师 role ∈ {寮監, 学習担当, 寮務一般教师}。
+**前提**: 当前教师 role ∈ {寮監, 学習担当, 寮務一般教師}。
 
 #### 5.4.1 `GET /study/today/attendees` — 一本道入口（#14）
 
@@ -999,7 +999,7 @@ req: `{ "to_status": "late", "reason": "...", "evidence": "..." }`
 - `application_submitted` (target = role の email list)
 - `application_decided` (target = student.email — 可選、デフォルト送らない)
 - `study_absence_submitted`
-- `student_no_changed` (target = 寮務一般教师 email list)
+- `student_no_changed` (target = 寮務一般教師 email list)
 
 > **⏳ §10-D1**: 邮件 provider 选型 (SendGrid / AWS SES / SMTP relay)。CC 推荐 = **SendGrid**（无服务器、JP IP、free tier 100/day 足够 demo）。
 
