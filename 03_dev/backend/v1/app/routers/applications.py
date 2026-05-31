@@ -11,8 +11,8 @@ POST /api/v1/applications/{id}/approvals         — #10 役職承認/拒否
 
 from __future__ import annotations
 
-from datetime import date as date_type
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import Optional
 from uuid import UUID
 
@@ -24,6 +24,8 @@ from .. import models, schemas, ws_manager as _ws
 from ..database import get_db
 from ..deps import get_current_student, get_current_teacher
 from ..services import approval_chain, email as email_svc
+
+_JST = ZoneInfo("Asia/Tokyo")
 
 router = APIRouter(prefix="/api/v1/applications", tags=["applications"])
 
@@ -43,7 +45,7 @@ def create_application(
     student: models.Student = Depends(get_current_student),
 ):
     # (#3) 出寮日 = 明天起 — 教师当日代録は P1 範囲外、本 endpoint は学生のみ
-    if body.leave_date <= date_type.today():
+    if body.leave_date <= datetime.now(_JST).date():
         raise HTTPException(
             status_code=422,
             detail={
@@ -384,7 +386,7 @@ def update_application(
     for key, val in update_data.items():
         setattr(app, key, val)
 
-    if body.leave_date and body.leave_date <= date_type.today():
+    if body.leave_date and body.leave_date <= datetime.now(_JST).date():
         raise HTTPException(
             422, {"code": "LEAVE_DATE_NOT_FUTURE", "message": "出寮日は明日以降"}
         )

@@ -657,4 +657,5 @@ def _notify_absence_submitted(
             db.add(log)
             db.flush()
     except Exception:
-        pass
+        # 通知失败不阻断业务（设计如此），但记日志留排查线索 — 否则学習担当不知道有学生提交了欠席届
+        logging.getLogger(__name__).exception("学習欠席届の通知記録に失敗")

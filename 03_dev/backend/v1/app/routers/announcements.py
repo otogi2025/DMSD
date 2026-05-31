@@ -87,7 +87,11 @@ def _resolve_actor(
         raise raise_unauth
 
     role = payload.get("role", "")
-    actor_id = UUID(payload["sub"])
+    # sub 缺失 / 非法 UUID 不能抛未捕获异常变成 500 — 返回友好 401
+    try:
+        actor_id = UUID(payload["sub"])
+    except (KeyError, ValueError, TypeError):
+        raise raise_unauth
     if role == "student":
         actor = db.get(models.Student, actor_id)
         if not actor or actor.status != "active":

@@ -54,6 +54,17 @@ def get_ranking(
     R4 寮过滤：跨寮役职 (寮務部長 / 寮務課長 / 国際交流部長 / 国際交流課長) 看全员，
     其他教师按 assigned_dorm 过滤。
     """
+    # month 格式校验 — 错误格式不能静默返回空榜单（否则老师会误以为本月没人扣分）
+    try:
+        datetime.strptime(month, "%Y-%m")
+    except ValueError:
+        raise HTTPException(
+            422,
+            {
+                "code": "INVALID_MONTH",
+                "message": "month は YYYY-MM 形式で指定してください",
+            },
+        )
     # 聚合每个学生本月扣分（排除 revoked）
     stmt = (
         select(
