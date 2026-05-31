@@ -403,3 +403,44 @@ class TestBulkPromote:
             json={"dry_run": True},
         )
         assert res.status_code == 403
+
+
+class TestStudentMe:
+    """GET /students/me — 当前登录学生基本信息（IX-008，替换 iOS SEED.user 假数据）。"""
+
+    def test_me_requires_auth(self, client):
+        """未带 token → 401。"""
+        res = client.get("/api/v1/students/me")
+        assert res.status_code == 401
+
+    def test_me_returns_self(self, client, student_token, seed_data):
+        """学生 token → 200，返回自己的基本信息（conftest seed 的留学生 リュウ 060218）。"""
+        res = client.get(
+            "/api/v1/students/me",
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 200, res.text
+        data = res.json()
+        assert data["student_no"] == "060218", data
+        assert data["name"] == "リュウ イヒ"
+        assert data["room_no"] == "M101"
+        assert data["dorm_unit"] == 1
+        assert data["is_overseas"] is True
+
+    def test_me_rejects_teacher(self, client, teacher_token, seed_data):
+        """老师 token → 403（/students/me 只认学生 token）。"""
+        res = client.get(
+            "/api/v1/students/me",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 403, res.text
+
+    def test_me_not_shadowed_by_profile_route(self, client, student_token, seed_data):
+        """关键：'me' 不被 /students/{id}/profile 当 UUID 解析（返回 basic、不是 422）。"""
+        res = client.get(
+            "/api/v1/students/me",
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 200, res.text
+        # basic 响应（无 applications/study_checkins 等聚合块），区别于 /profile
+        assert "applications" not in res.json()

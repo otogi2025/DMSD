@@ -24,7 +24,11 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import dorm_units_for_teacher, get_current_principal
+from ..deps import (
+    dorm_units_for_teacher,
+    get_current_principal,
+    get_current_student,
+)
 
 router = APIRouter(prefix="/api/v1", tags=["student / profile"])
 
@@ -46,6 +50,16 @@ def _get_student_or_404(student_id: UUID, db: Session) -> models.Student:
             detail={"code": "STUDENT_NOT_FOUND", "message": "学生が見つかりません"},
         )
     return student
+
+
+# IX-008: 登录学生看自己的基本信息（iOS 各页显示当前用户用 — 替换演示假数据 SEED.user）。
+# 路由放在 /students/{student_id}/profile 之前 — "me" 是单段、不会被当 UUID 解析（A-013 教训）。
+@router.get("/students/me", response_model=schemas.StudentProfileBasic)
+def get_my_basic_profile(
+    student: models.Student = Depends(get_current_student),
+) -> schemas.StudentProfileBasic:
+    """GET /students/me — 当前登录学生的基本信息（仿老师端 /teachers/me）。"""
+    return schemas.StudentProfileBasic.model_validate(student)
 
 
 @router.get(
