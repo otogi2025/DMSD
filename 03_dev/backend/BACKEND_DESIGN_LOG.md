@@ -18,6 +18,9 @@
 | 教师注册 | ✅ 已修 | confirmation_email 必填 + invitation.target_email 严格对比（A-012） |
 | Reviewer 凭证 | ✅ 已修 | 999999 + 密码移 env，fallback 时 warn（A-014） |
 | Tests | 🟡 部分 | 37 case 全 pass；rollcall / study / applications 专用测试缺（C-050 已修） |
+| 扣分值 / 改判重算 | ✅ 已修 | 迟到/缺席 0.5/1.0（system_features §862 冻结值，旧 1.0/2.0 是 drift）；改判 `_apply_override_demerit` 改「按当前状态重算」修多步改判少扣 bug（itsuki 5-31 + Codex 5.5 审）|
+| 注册码 TTL / 关闭 | ✅ 已修 | 自动失效 5→30 分 + 新增 `POST /admin/registration-code/close` 手动关闭（itsuki 5-31；「一次性」需求拒绝）|
+| 密码下限 | ✅ 已修 | 设密码处（老师注册 / 学生建号）6→8 位；登录处不卡长度（保护错误密码锁定测试）（itsuki 5-31）|
 
 ### 字段隐私分级（2026-05-21 A-023 加）
 

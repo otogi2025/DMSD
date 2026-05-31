@@ -10048,11 +10048,11 @@
       // 2026-04-22 itsuki 決定：男子寮へ移動（demo で男寮担任視点で自分が見える）
       // 2026-04-24 itsuki 削減：男寮 リュウ/田中 隼人/ゴテンウ/ヨウシエン、女寮 リシンさん/ソンキゼン/ゴキンウ のみ残す
 
-      // ⭐ Accounts — iOS 設計 §3.2 と整合。番号 00 = リュウ イヒ（demo seed 本体、itsuki 本人）、01-23 = 他の寮生
+      // ⭐ Accounts — iOS 設計 §3.2 と整合。番号 00 = リュウ イヒ（demo seed 本体、架空サンプル）、01-23 = 他の寮生
       // フィールド: no, sid（学籍番号）, name, birthday, gender, category, room, dorm,
       //            email, phone, registeredAt, lastLoginAt, locked, failedLoginCount
       // 番号 6 桁 = 学年(2) + 組(2) + 番号(2)。学年: 中1=01〜高3=06、組: A=01 / B=02、番号: 01-99。
-      // 全員 高3（学年 06）、リュウ イヒ = 高3 B 18号 = 060218（itsuki 本人, demo seed · iOS と一致）。
+      // 全員 高3（学年 06）、リュウ イヒ = 高3 B 18号 = 060218（demo seed · iOS と一致；架空のサンプルデータ、実在の学籍番号ではない）。
     </script>
     <script type="text/babel" data-source="components/login.jsx">
       // /login — 实名账户 2 屏合一登录（2026-05-27 拍板，取代旧共用密码版）
@@ -23260,7 +23260,6 @@
 
       // Seed data: notice posts + community posts
 
-
       window.RecordsPage = RecordsPage;
       window.SearchPage = SearchPage;
       window.NotificationsPage = NotificationsPage;
@@ -25676,7 +25675,8 @@
           }
           const ids = parseStudentIds(fStudentIds);
           // A7/codex: 提交前校验 UUID 格式，非法明确提示而不是 send 给后端吃 422
-          const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          const uuidRe =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
           const badId = ids.find((id) => !uuidRe.test(id));
           if (badId) {
             setFError(`関係学生IDの形式が不正です（UUID形式が必要）: ${badId}`);
