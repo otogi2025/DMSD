@@ -30,6 +30,7 @@ DMSD 用了 **3 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后
 #### C. `post-edit-japanese-comment-check.sh` — 中文铁律 / 日语注释扫描
 - 触发条件：`.swift / .py / .kt / .ts / .tsx / .js / .jsx` 文件改动
 - 提取新增内容（git diff ^+ 行 / untracked 全文）→ 找 `//` / `#` 注释里有 hiragana（U+3040-309F）/ katakana（U+30A0-30FF）字眼 → 提醒
+- **2026-05-31 itsuki 放行 `「...」`**：注释里用 `「...」`角括号引用真实 UI 文字（按钮 / 页面 / 错误提示）的日语不再算违规——检测前用 perl 把 `「...」` 段剥掉，只查角括号外的日语。裸写日语注释仍拦。
 - 出处：`CLAUDE.md §文档一致性` 中文铁律段（2026-05-03 itsuki 拍板）— **2026-05-22 修死链**：原引用 memory `feedback_code_comments_chinese_strict.md` 不存在，事实在 CLAUDE.md 里
 - false positive 风险：`//` 出现在字符串字面量里（如 URL `https://...`）会误报，看上下文判断
 

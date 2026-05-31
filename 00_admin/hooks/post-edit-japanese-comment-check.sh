@@ -15,6 +15,7 @@
 #    - .py：行内 `#` 后面有日语
 # 5. 日语判定：包含 hiragana（U+3040-309F）或 katakana（U+30A0-30FF）
 #    - 不算日语：纯汉字（中日共用）+ ASCII + 标点
+#    - 不算违规：「...」角括号里的日语（引用真实 UI 文字 — itsuki 2026-05-31 放行，检测前剥掉）
 # 6. 命中 → hookSpecificOutput.additionalContext 注入提醒
 #
 # 中文铁律来源：memory feedback_code_comments_chinese_strict.md
@@ -115,8 +116,12 @@ while IFS= read -r line; do
       comment_part=$(echo "$line" | sed 's|.*#||')
     fi
 
-    # 检测日语 hiragana / katakana
-    if echo "$comment_part" | grep -qE "$JAPANESE_RANGE"; then
+    # itsuki 2026-05-31 拍板：注释里 「...」角括号引的日语 = 引用真实 UI 文字（按钮 / 页面 / 错误提示），放行。
+    # 检测前先用 perl 把 「...」 段删掉（\x{300C}=「 \x{300D}=」），只查角括号外面有没有日语。
+    comment_check=$(echo "$comment_part" | perl -CSD -pe 's/\x{300C}[^\x{300D}]*\x{300D}//g' 2>/dev/null || echo "$comment_part")
+
+    # 检测日语 hiragana / katakana（角括号外的才算违规）
+    if echo "$comment_check" | grep -qE "$JAPANESE_RANGE"; then
       # 截断长度 80 显示
       preview=$(echo "$line" | cut -c1-80)
       VIOLATIONS="${VIOLATIONS}     [新行 ${LINE_NUM}] ${preview}
@@ -141,9 +146,9 @@ ${VIOLATIONS}
 
 📜 中文铁律：代码注释 + 内部文档 100% 中文 / UI 字符串保持日语。
 出处：memory feedback_code_comments_chinese_strict.md（2026-05-03 itsuki 拍板）
-例外：UI 内容字符串（如 \"今日の出席\"）保持日语 ✅，但 // 注释里写日语 ❌。
+例外：① UI 内容字符串（如 \"今日の出席\"）保持日语 ✅；② 注释里 「...」角括号引用真实 UI 文字的日语 ✅（itsuki 2026-05-31）；裸写日语注释 ❌。
 
-→ 修复：把日语注释改成中文。
+→ 修复：把裸写的日语注释改成中文；要引用 UI 文字就用 「...」角括号包起来。
 
 ⚠️ false positive 可能：如果 // 出现在字符串字面量里（比如 URL: \"https://...\"），grep 可能误报，看上下文判断。"
 
