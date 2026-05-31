@@ -15,25 +15,25 @@ import SwiftUI
 private struct ApplyTypeMeta {
     let k: String
     let name: String
-    let icon: String         // SF Symbol name
+    let icon: String // SF Symbol name
     let desc: String
 }
 
 private let APPLY_TYPES: [ApplyTypeMeta] = [
-    .init(k: "outing",        name: "外出",     icon: "calendar",                     desc: "当日帰寮の外出"),
-    .init(k: "stay",          name: "外泊",     icon: "house",                        desc: "寮外での宿泊"),
-    .init(k: "holiday",       name: "帰省",     icon: "house.lodge",                  desc: "実家帰省・長期休暇"),
-    .init(k: "returncountry", name: "帰国",     icon: "airplane",                     desc: "一時帰国（航空機利用）"),
-    .init(k: "return",        name: "早帰",     icon: "calendar.badge.clock",         desc: "門限前の早帰・遅帰"),
-    .init(k: "repair",        name: "修繕",     icon: "wrench.and.screwdriver",       desc: "部屋・設備の修繕依頼"),
-    .init(k: "parcel",        name: "代理受取", icon: "shippingbox",                  desc: "不在時の荷物代理受取"),
-    .init(k: "guest",         name: "来訪者",   icon: "person.2",                     desc: "家族・友人の来訪"),
-    .init(k: "other",         name: "その他",   icon: "ellipsis.bubble",              desc: "上記以外のご依頼"),
-    .init(k: "studyAbsence",  name: "学習欠席", icon: "book.closed",                  desc: "晚自习の欠席届（前半・後半・両方）"),
-    .init(k: "studyOnline",   name: "オンライン学習", icon: "laptopcomputer",          desc: "自室でのオンライン学習"),
-    .init(k: "event",         name: "行事企画", icon: "sparkles",                     desc: "寮内イベントの企画申請"),
-    .init(k: "fridge",        name: "冷蔵庫購入", icon: "snowflake",                  desc: "指定冷蔵庫の購入届"),
-    .init(k: "item",          name: "物品所持", icon: "shippingbox",                  desc: "持込物品の許可願"),
+    .init(k: "outing", name: "外出", icon: "calendar", desc: "当日帰寮の外出"),
+    .init(k: "stay", name: "外泊", icon: "house", desc: "寮外での宿泊"),
+    .init(k: "holiday", name: "帰省", icon: "house.lodge", desc: "実家帰省・長期休暇"),
+    .init(k: "returncountry", name: "帰国", icon: "airplane", desc: "一時帰国（航空機利用）"),
+    .init(k: "return", name: "早帰", icon: "calendar.badge.clock", desc: "門限前の早帰・遅帰"),
+    .init(k: "repair", name: "修繕", icon: "wrench.and.screwdriver", desc: "部屋・設備の修繕依頼"),
+    .init(k: "parcel", name: "代理受取", icon: "shippingbox", desc: "不在時の荷物代理受取"),
+    .init(k: "guest", name: "来訪者", icon: "person.2", desc: "家族・友人の来訪"),
+    .init(k: "other", name: "その他", icon: "ellipsis.bubble", desc: "上記以外のご依頼"),
+    .init(k: "studyAbsence", name: "学習欠席", icon: "book.closed", desc: "晚自习の欠席届（前半・後半・両方）"),
+    .init(k: "studyOnline", name: "オンライン学習", icon: "laptopcomputer", desc: "自室でのオンライン学習"),
+    .init(k: "event", name: "行事企画", icon: "sparkles", desc: "寮内イベントの企画申請"),
+    .init(k: "fridge", name: "冷蔵庫購入", icon: "snowflake", desc: "指定冷蔵庫の購入届"),
+    .init(k: "item", name: "物品所持", icon: "shippingbox", desc: "持込物品の許可願"),
 ]
 
 private func applyType(_ k: String) -> ApplyTypeMeta {
@@ -44,13 +44,13 @@ private func applyType(_ k: String) -> ApplyTypeMeta {
 
 private func statusPair(_ status: String) -> (label: String, tone: Pill.Tone) {
     switch status {
-    case "draft":     return ("下書き", .neutral)
-    case "pending":   return ("審査中", .warn)
-    case "approved":  return ("承認済", .ok)
-    case "rejected":  return ("差戻", .danger)
-    case "returned":  return ("要修正", .danger)
+    case "draft": return ("下書き", .neutral)
+    case "pending": return ("審査中", .warn)
+    case "approved": return ("承認済", .ok)
+    case "rejected": return ("差戻", .danger)
+    case "returned": return ("要修正", .danger)
     case "withdrawn": return ("取消済", .neutral)
-    default:          return (status, .neutral)
+    default: return (status, .neutral)
     }
 }
 
@@ -62,6 +62,11 @@ struct ApplyListView: View {
     @EnvironmentObject var router: RouterStore
     @State private var tab: String = "all"
 
+    // IX-007: 列表数据源。原来直接读 SEED 假数据；现在演示读种子、生产调 GET /applications/mine。
+    @State private var items: [ApplicationItem] = []
+    @State private var loading: Bool = true
+    @State private var loadError: String? = nil
+
     private let tabs: [(String, String)] = [
         ("all", "すべて"),
         ("pending", "審査中"),
@@ -70,7 +75,37 @@ struct ApplyListView: View {
     ]
 
     private var filtered: [ApplicationItem] {
-        SEED.applications.filter { tab == "all" ? true : $0.status == tab }
+        items.filter { tab == "all" ? true : $0.status == tab }
+    }
+
+    /// 后端 ApplicationOut → 列表用 ApplicationItem（两个模型字段不同，做一层转换）
+    private func mapToItem(_ o: ApplicationOut) -> ApplicationItem {
+        ApplicationItem(
+            id: o.id.uuidString,
+            type: ApplyKindMapper.decode(o.kind),
+            status: o.status,
+            date: o.leave_date,
+            summary: "\(o.kind)・\(o.leave_date)〜\(o.return_date)"
+        )
+    }
+
+    /// 拉列表数据：演示读 SEED，生产调 GET /applications/mine
+    private func load() async {
+        loading = true
+        loadError = nil
+        #if DEMO
+            items = SEED.applications
+        #else
+            do {
+                let out = try await ApplicationsAPI.listMine()
+                items = out.map(mapToItem)
+            } catch {
+                loadError = APIErrorPresenter.userMessage(
+                    for: error, fallback: "申請一覧の取得に失敗しました"
+                )
+            }
+        #endif
+        loading = false
     }
 
     var body: some View {
@@ -82,7 +117,7 @@ struct ApplyListView: View {
                         // Tabs (pill row)
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 6) {
-                                ForEach(tabs, id: \.0) { (k, l) in
+                                ForEach(tabs, id: \.0) { k, l in
                                     Button { tab = k } label: {
                                         Text(l)
                                             .font(.system(size: 12.5, weight: .semibold))
@@ -98,7 +133,26 @@ struct ApplyListView: View {
                             .padding(.bottom, 14)
                         }
 
-                        if filtered.isEmpty {
+                        if loading {
+                            // IX-007: 拉后端数据时显示加载中
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                                .padding(40)
+                        } else if let loadError {
+                            // IX-007: 后端取数据失败时显示错误 + 重试，不再静默给假数据
+                            VStack(spacing: 10) {
+                                Text("⚠️").font(.system(size: 40))
+                                Text(loadError)
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(T.inkSub)
+                                    .multilineTextAlignment(.center)
+                                Button("再読み込み") { Task { await load() } }
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(T.primary)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(40)
+                        } else if filtered.isEmpty {
                             VStack(spacing: 10) {
                                 Text("📋").font(.system(size: 40))
                                 Text("申請はありません")
@@ -144,6 +198,7 @@ struct ApplyListView: View {
             .padding(.trailing, 18)
             .padding(.bottom, 96)
         }
+        .task { await load() } // IX-007: 进页面就拉申请列表
     }
 }
 
@@ -322,15 +377,36 @@ struct StayForm: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
-    // ── 申請者本人 · SEED.user 直接読取 (#1 学生只能提交自己的) ────────────────
-    private var meAccount: String { SEED.user.account }     // 6 桁学号 = student_id
-    private var meName: String { SEED.user.name }
-    private var meClass: String { "\(SEED.user.grade)\(SEED.user.classSuffix)組" }
-    private var meNo: String { "\(SEED.user.seatNo)番" }
-    private var meDorm: String { "\(SEED.user.dorm) \(SEED.user.room)" }
-    private var mePhone: String { SEED.user.phone }
-    private var meCategory: String { SEED.user.category }   // 一般寮生 / 留学生
-    private var meIsOverseas: Bool { SEED.user.isOverseas }
+    /// ── 申請者本人 · SEED.user 直接読取 (#1 学生只能提交自己的) ────────────────
+    private var meAccount: String {
+        SEED.user.account
+    } // 6 桁学号 = student_id
+    private var meName: String {
+        SEED.user.name
+    }
+
+    private var meClass: String {
+        "\(SEED.user.grade)\(SEED.user.classSuffix)組"
+    }
+
+    private var meNo: String {
+        "\(SEED.user.seatNo)番"
+    }
+
+    private var meDorm: String {
+        "\(SEED.user.dorm) \(SEED.user.room)"
+    }
+
+    private var mePhone: String {
+        SEED.user.phone
+    }
+
+    private var meCategory: String {
+        SEED.user.category
+    } // 一般寮生 / 留学生
+    private var meIsOverseas: Bool {
+        SEED.user.isOverseas
+    }
 
     // ── 实物表補完字段（2026-05-28）──────────────────────────────────────
     @State private var contactPhone: String = SEED.user.phone
@@ -348,12 +424,14 @@ struct StayForm: View {
     @State private var returnMethod: String = "JR"
 
     // ── 外泊 / 帰国 only ─────────────────────────────────────────────────
-    @State private var stayPlaces: [String] = [""]                          // 外泊地点(可多个)
+    // 滞在先 1 件 = 稳定 id + 地址。用 id 当列表项身份（不用数组下标），
+    // 删中间一行时输入框内容 / 焦点不会串到别行（IX-032）。
+    @State private var stayPlaces: [StayPlaceItem] = [StayPlaceItem()] // 外泊地点(可多个)
     @State private var skipStartDate: Date = StayForm.tomorrow
-    @State private var skipStartMeal: String = "夕食"                        // 朝食 / 昼食 / 夕食
+    @State private var skipStartMeal: String = "夕食" // 朝食 / 昼食 / 夕食
     @State private var skipEndDate: Date = StayForm.tomorrow
     @State private var skipEndMeal: String = "朝食"
-    @State private var skipEnabled: Bool = true                              // 食事不要期間 を申告するか
+    @State private var skipEnabled: Bool = true // 食事不要期間 を申告するか
 
     // ── 帰国 only ────────────────────────────────────────────────────────
     @State private var departAirport: String = ""
@@ -361,10 +439,10 @@ struct StayForm: View {
     @State private var arriveAirport: String = ""
     @State private var arriveFlightTime: Date = StayForm.parseHM("14:00") ?? Date()
 
-    // ── 共通: 理由 ────────────────────────────────────────────────────────
+    /// ── 共通: 理由 ────────────────────────────────────────────────────────
     @State private var reason: String = ""
 
-    // 移動方法選択肢 — 帰省方法 / 帰寮方法
+    /// 移動方法選択肢 — 帰省方法 / 帰寮方法
     private let TRANSPORTS = [
         "JR", "バス", "西口1便", "西口2便", "金川1便", "金川2便",
         "西口登校便", "金川登校便", "自家用車", "タクシー", "教員送迎", "飛行機", "その他",
@@ -372,21 +450,45 @@ struct StayForm: View {
     private let HOLIDAY_FORM_TYPES = ["通常時用", "長期休暇用"]
     private let MEALS = ["朝食", "昼食", "夕食"]
 
-    // ── kind 判定 helper ─────────────────────────────────────────────────
-    private var isHoliday: Bool { kind == "holiday" }
-    private var isStay: Bool { kind == "stay" }
-    private var isReturnCountry: Bool { kind == "returncountry" }
-    private var needPlaces: Bool { isStay || isReturnCountry }              // §4 外泊地点
-    private var needSkipMeal: Bool { isStay || isReturnCountry }            // §5 食事不要期間
-    private var needFlight: Bool { isReturnCountry }                        // §6 飛行機
-    private var type: ApplyTypeMeta { applyType(kind) }
+    /// ── kind 判定 helper ─────────────────────────────────────────────────
+    private var isHoliday: Bool {
+        kind == "holiday"
+    }
+
+    private var isStay: Bool {
+        kind == "stay"
+    }
+
+    private var isReturnCountry: Bool {
+        kind == "returncountry"
+    }
+
+    private var needPlaces: Bool {
+        isStay || isReturnCountry
+    } // §4 外泊地点
+    private var needSkipMeal: Bool {
+        isStay || isReturnCountry
+    } // §5 食事不要期間
+    private var needFlight: Bool {
+        isReturnCountry
+    } // §6 飛行機
+    private var type: ApplyTypeMeta {
+        applyType(kind)
+    }
 
     // 提出可否: 必須項目が埋まっているか
     private var canSubmit: Bool {
         if reason.isEmpty { return false }
-        if returnDate < leaveDate { return false }                          // 帰寮日は出寮日以降
+        // IX-018: 把离校 / 返校都按「日期 + 时刻」合成成完整时间再比较。
+        // 同一天 20:00 离校 → 08:00 返校 这种时刻倒挂也能拦下来。
+        if StayForm.combine(date: returnDate, time: returnTime)
+            <= StayForm.combine(date: leaveDate, time: leaveTime)
+        {
+            return false
+        }
         if needPlaces {
-            if stayPlaces.allSatisfy({ $0.trimmingCharacters(in: .whitespaces).isEmpty }) {
+            // stayPlaces 是 StayPlaceItem 数组。address 全为空就当作没填。
+            if stayPlaces.allSatisfy({ $0.address.trimmingCharacters(in: .whitespaces).isEmpty }) {
                 return false
             }
         }
@@ -520,41 +622,39 @@ struct StayForm: View {
                                     Text("滞在先")
                                         .font(.system(size: 12, weight: .semibold))
                                         .foregroundStyle(T.inkSub)
-                                ForEach(stayPlaces.indices, id: \.self) { i in
-                                    HStack(spacing: 8) {
-                                        TField(text: Binding(
-                                            get: { i < stayPlaces.count ? stayPlaces[i] : "" },
-                                            set: { newVal in
-                                                if i < stayPlaces.count { stayPlaces[i] = newVal }
+                                    // IX-032: 用 $stayPlaces 按稳定 id 列举每一行。
+                                    // 删中间一行时输入框内容 / 焦点不会串到别行。
+                                    ForEach($stayPlaces) { $place in
+                                        HStack(spacing: 8) {
+                                            TField(text: $place.address, placeholder: "滞在先住所")
+                                            if stayPlaces.count > 1 {
+                                                Button {
+                                                    // 按 id 删除（不用数组下标，用身份删）
+                                                    stayPlaces.removeAll { $0.id == place.id }
+                                                } label: {
+                                                    Image(systemName: "minus.circle.fill")
+                                                        .font(.system(size: 22))
+                                                        .foregroundStyle(T.danger)
+                                                }
+                                                .buttonStyle(.plain)
                                             }
-                                        ), placeholder: "滞在先住所")
-                                        if stayPlaces.count > 1 {
-                                            Button {
-                                                if i < stayPlaces.count { stayPlaces.remove(at: i) }
-                                            } label: {
-                                                Image(systemName: "minus.circle.fill")
-                                                    .font(.system(size: 22))
-                                                    .foregroundStyle(T.danger)
-                                            }
-                                            .buttonStyle(.plain)
                                         }
                                     }
-                                }
-                                Button {
-                                    stayPlaces.append("")
-                                } label: {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "plus.circle")
-                                            .font(.system(size: 14, weight: .semibold))
-                                        Text("地点を追加")
-                                            .font(.system(size: 13, weight: .semibold))
+                                    Button {
+                                        stayPlaces.append(StayPlaceItem())
+                                    } label: {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "plus.circle")
+                                                .font(.system(size: 14, weight: .semibold))
+                                            Text("地点を追加")
+                                                .font(.system(size: 13, weight: .semibold))
+                                        }
+                                        .foregroundStyle(T.primary)
                                     }
-                                    .foregroundStyle(T.primary)
-                                }
-                                .buttonStyle(.plain)
-                                Text("※ 複数の地点に滞在する場合はすべて入力してください")
-                                    .font(.system(size: 10.5))
-                                    .foregroundStyle(T.inkMute)
+                                    .buttonStyle(.plain)
+                                    Text("※ 複数の地点に滞在する場合はすべて入力してください")
+                                        .font(.system(size: 10.5))
+                                        .foregroundStyle(T.inkMute)
                                 }
                             }
                         }
@@ -755,6 +855,7 @@ struct StayForm: View {
     }
 
     // MARK: - submit (POST /api/v1/applications)
+
     //
     // F1: kind 用 ApplyKindMapper 转日文 (stay → 外泊 等)
     // F2: stay_locations 是 [{kind, name, address?, phone?}] 对象数组
@@ -779,19 +880,28 @@ struct StayForm: View {
         let destCitiesValue = StayForm.nilIfBlank(destCities)
 
         // F2: stay_locations object 数组（外泊 / 帰国届用、帰省届不带）
+        // IX-010: UI 输入框标的是「滞在先住所」（地址），所以写进 address 字段。
+        // backend 的 name 是必填，把地址也填进 name 不让它空。
         let stayLocations: [StayLocationBody] = stayPlaces
-            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .map { $0.address.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
-            .map { StayLocationBody(kind: "その他", name: $0, address: nil, phone: nil) }
+            .map { StayLocationBody(kind: "その他", name: $0, address: $0, phone: nil) }
 
         // F3: meals_skip 范围 → entry 列表
         let mealsSkip: [MealSkipBody]
-        if needSkipMeal && meIsOverseas && skipEnabled {
+        if needSkipMeal, meIsOverseas, skipEnabled {
             mealsSkip = StayForm.expandMealsSkip(
                 from: skipStartDate, startMeal: skipStartMeal,
                 to: skipEndDate, endMeal: skipEndMeal
             ).map { dict in
                 MealSkipBody(date: dict["date"] ?? "", meal: dict["meal"] ?? "")
+            }
+            // IX-013: 起「夕食」终「朝食」放同一天，展开出来是空数组。
+            // 开关还开着却发空数组 = 用户以为申报了免餐、其实什么都没申报。
+            // 这里拦下来，让用户改餐次顺序。
+            if mealsSkip.isEmpty {
+                app.showToast("食事不要期間が空です。開始・終了の食事の順序をご確認ください")
+                return
             }
         } else {
             mealsSkip = []
@@ -847,9 +957,12 @@ struct StayForm: View {
                     stay_locations: stayLocations,
                     meals_skip: mealsSkip,
                     flight_dep_air: departAirport,
-                    flight_dep_at: StayForm.formatISO(departFlightTime),
+                    // IX-005: TimeField 只有时刻，底层日期停在 2000-01-01。
+                    // 出发跟出寮日合成、到着跟帰寮日合成，凑成完整 datetime，
+                    // 用带 +09:00 的 ISO 字符串发出去（bare ISO8601 会变成 UTC 的 Z，跟 backend 期望不符）。
+                    flight_dep_at: StayForm.formatISOWithTokyo(date: leaveDate, time: departFlightTime),
                     flight_arr_air: arriveAirport,
-                    flight_arr_at: StayForm.formatISO(arriveFlightTime)
+                    flight_arr_at: StayForm.formatISOWithTokyo(date: returnDate, time: arriveFlightTime)
                 )
                 _ = try await ApplicationsAPI.create(body)
             default:
@@ -859,7 +972,7 @@ struct StayForm: View {
             // 提交成功
             app.showToast("\(type.name)申請を提出しました")
             router.go(.applyDone(kind: kind))
-        } catch APIError.unprocessable(let msg) {
+        } catch let APIError.unprocessable(msg) {
             // backend 验证错误（例：出寮日是今日 / chain 役职配置缺失 等）
             app.showToast(msg)
         } catch APIError.unauthorized {
@@ -874,8 +987,9 @@ struct StayForm: View {
     }
 
     // MARK: - meals_skip 展開ヘルパー
-    //
-    // (skipStartDate, skipStartMeal) → (skipEndDate, skipEndMeal) の間の全食事エントリを生成
+
+    ///
+    /// (skipStartDate, skipStartMeal) → (skipEndDate, skipEndMeal) の間の全食事エントリを生成
     static func expandMealsSkip(
         from startDate: Date, startMeal: String,
         to endDate: Date, endMeal: String
@@ -886,12 +1000,12 @@ struct StayForm: View {
         var current = startDate
         while current <= endDate {
             let isFirst = cal.isDate(current, inSameDayAs: startDate)
-            let isLast  = cal.isDate(current, inSameDayAs: endDate)
+            let isLast = cal.isDate(current, inSameDayAs: endDate)
             let lo = isFirst ? (mealOrder.firstIndex(of: startMeal) ?? 0) : 0
-            let hi = isLast  ? (mealOrder.firstIndex(of: endMeal) ?? 2) : 2
+            let hi = isLast ? (mealOrder.firstIndex(of: endMeal) ?? 2) : 2
             if lo <= hi {
                 let dateStr = formatYMD(current)
-                for i in lo...hi {
+                for i in lo ... hi {
                     result.append(["date": dateStr, "meal": mealOrder[i]])
                 }
             }
@@ -909,24 +1023,28 @@ struct StayForm: View {
         let today0 = cal.startOfDay(for: Date())
         return cal.date(byAdding: .day, value: 1, to: today0) ?? today0
     }
+
     static func parseYMD(_ s: String) -> Date? {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         f.locale = Locale(identifier: "en_US_POSIX")
         return f.date(from: s)
     }
+
     static func parseHM(_ s: String) -> Date? {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
         f.locale = Locale(identifier: "en_US_POSIX")
         return f.date(from: s)
     }
+
     static func formatYMD(_ d: Date) -> String {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         f.locale = Locale(identifier: "en_US_POSIX")
         return f.string(from: d)
     }
+
     static func formatHM(_ d: Date) -> String {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
@@ -934,9 +1052,31 @@ struct StayForm: View {
         return f.string(from: d)
     }
 
-    /// ISO 8601 日時文字列 — backend の flight_dep_at / flight_arr_at に使う
-    static func formatISO(_ d: Date) -> String {
-        ISO8601DateFormatter().string(from: d)
+    /// 把一个日期的年月日 + 一个时刻的时分合成成一个 Date。
+    /// TimeField 只带时刻、底层日期是 2000-01-01，所以要跟对应的日期组合起来用。
+    static func combine(date: Date, time: Date) -> Date {
+        let cal = Calendar.current
+        let d = cal.dateComponents([.year, .month, .day], from: date)
+        let t = cal.dateComponents([.hour, .minute], from: time)
+        var c = DateComponents()
+        c.year = d.year
+        c.month = d.month
+        c.day = d.day
+        c.hour = t.hour
+        c.minute = t.minute
+        c.second = 0
+        return cal.date(from: c) ?? date
+    }
+
+    /// 把日期 + 时刻合成后输出带 +09:00 的 ISO 8601 字符串。
+    /// backend 的 flight_dep_at / flight_arr_at 期望 "2026-05-03T18:00:00+09:00" 这种格式。
+    /// bare ISO8601DateFormatter 会输出 UTC（末尾带 Z），所以这里显式指定日本时间偏移。
+    static func formatISOWithTokyo(date: Date, time: Date) -> String {
+        let combined = combine(date: date, time: time)
+        let f = ISO8601DateFormatter()
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
+        f.formatOptions = [.withInternetDateTime] // 保留 +09:00 偏移
+        return f.string(from: combined)
     }
 
     /// 空白だけの入力は backend へ送らない
@@ -944,6 +1084,13 @@ struct StayForm: View {
         let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
     }
+}
+
+/// 滞在先一条 —— 带稳定 id，给 ForEach 当列表项身份用（IX-032）。
+/// 输入框只有地址，所以只有 address 一个字段。
+struct StayPlaceItem: Identifiable, Hashable {
+    let id = UUID()
+    var address: String = ""
 }
 
 #Preview("StayForm · 外泊") {
@@ -1043,7 +1190,7 @@ private struct FlowLayout: Layout {
     var hSpacing: CGFloat = 6
     var vSpacing: CGFloat = 6
 
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) -> CGSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache _: inout Void) -> CGSize {
         let maxWidth = proposal.width ?? .infinity
         var x: CGFloat = 0
         var y: CGFloat = 0
@@ -1061,14 +1208,14 @@ private struct FlowLayout: Layout {
         return CGSize(width: maxWidth.isFinite ? maxWidth : x, height: y + rowHeight)
     }
 
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) {
+    func placeSubviews(in bounds: CGRect, proposal _: ProposedViewSize, subviews: Subviews, cache _: inout Void) {
         let maxWidth = bounds.width
         var x: CGFloat = bounds.minX
         var y: CGFloat = bounds.minY
         var rowHeight: CGFloat = 0
         for sub in subviews {
             let size = sub.sizeThatFits(.unspecified)
-            if x - bounds.minX + size.width > maxWidth && x > bounds.minX {
+            if x - bounds.minX + size.width > maxWidth, x > bounds.minX {
                 y += rowHeight + vSpacing
                 x = bounds.minX
                 rowHeight = 0
@@ -1082,7 +1229,7 @@ private struct FlowLayout: Layout {
 
 private struct DateField: View {
     @Binding var date: Date
-    var minDate: Date? = nil          // 老師反饋 #3: 出寮日 = 明日以降 → minDate = StayForm.tomorrow
+    var minDate: Date? = nil // 老師反饋 #3: 出寮日 = 明日以降 → minDate = StayForm.tomorrow
     var body: some View {
         Group {
             if let min = minDate {
@@ -1093,7 +1240,7 @@ private struct DateField: View {
         }
         .labelsHidden()
         .datePickerStyle(.compact)
-        .environment(\.locale, Locale(identifier: "ja_JP"))   // itsuki 反馈: 月份要日语/数字 (西暦 2026年4月)
+        .environment(\.locale, Locale(identifier: "ja_JP")) // itsuki 反馈: 月份要日语/数字 (西暦 2026年4月)
         .frame(maxWidth: .infinity, minHeight: 42)
         .padding(.horizontal, 8)
         .background {
@@ -1111,7 +1258,7 @@ private struct TimeField: View {
         DatePicker("", selection: $date, displayedComponents: .hourAndMinute)
             .labelsHidden()
             .datePickerStyle(.compact)
-            .environment(\.locale, Locale(identifier: "ja_JP"))   // itsuki 反馈: 月份/时刻要日语
+            .environment(\.locale, Locale(identifier: "ja_JP")) // itsuki 反馈: 月份/时刻要日语
             .frame(maxWidth: .infinity, minHeight: 42)
             .padding(.horizontal, 8)
             .background {
@@ -1162,14 +1309,14 @@ struct StudyAbsenceForm: View {
 
     @State private var reason: String = ""
     @State private var range: StudyLeaveRange = .first
-    // 欠席する日付。デフォルト = 今日。今後 14 日まで選択可。
-    @State private var targetDate: Date = Date()
+    /// 欠席する日付。デフォルト = 今日。今後 14 日まで選択可。
+    @State private var targetDate: Date = .init()
 
     /// 選択可能な日付範囲: 今日〜14 日後
     private var dateRange: ClosedRange<Date> {
         let now = Date()
         let later = now.addingTimeInterval(60 * 60 * 24 * 14)
-        return now...later
+        return now ... later
     }
 
     var body: some View {
@@ -1178,122 +1325,122 @@ struct StudyAbsenceForm: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     // §1 欠席する日付 (DatePicker)
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionLabel(n: "1", label: "欠席する日付")
-                    DatePicker(
-                        "",
-                        selection: $targetDate,
-                        in: dateRange,
-                        displayedComponents: .date
-                    )
-                    .datePickerStyle(.compact)
-                    .labelsHidden()
-                    .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous).fill(T.paper)
+                    VStack(alignment: .leading, spacing: 8) {
+                        SectionLabel(n: "1", label: "欠席する日付")
+                        DatePicker(
+                            "",
+                            selection: $targetDate,
+                            in: dateRange,
+                            displayedComponents: .date
+                        )
+                        .datePickerStyle(.compact)
+                        .labelsHidden()
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous).fill(T.paper)
+                        }
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(T.hair, lineWidth: 1)
+                        }
                     }
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(T.hair, lineWidth: 1)
-                    }
-                }
-                .padding(.horizontal, 16)
+                    .padding(.horizontal, 16)
 
                     // §2 範囲 select (3 choices)
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionLabel(n: "2", label: "欠席する範囲")
-                    VStack(spacing: 8) {
-                        ForEach(StudyLeaveRange.allCases, id: \.self) { r in
-                            Button { range = r } label: {
-                                HStack(spacing: 12) {
-                                    Image(systemName: range == r ? "checkmark.circle.fill" : "circle")
-                                        .font(.system(size: 22))
-                                        .foregroundStyle(range == r ? T.primary : T.inkMute)
-                                    Text(r.label)
-                                        .font(.system(size: 14, weight: range == r ? .semibold : .regular))
-                                        .foregroundStyle(T.ink)
-                                    Spacer()
+                    VStack(alignment: .leading, spacing: 8) {
+                        SectionLabel(n: "2", label: "欠席する範囲")
+                        VStack(spacing: 8) {
+                            ForEach(StudyLeaveRange.allCases, id: \.self) { r in
+                                Button { range = r } label: {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: range == r ? "checkmark.circle.fill" : "circle")
+                                            .font(.system(size: 22))
+                                            .foregroundStyle(range == r ? T.primary : T.inkMute)
+                                        Text(r.label)
+                                            .font(.system(size: 14, weight: range == r ? .semibold : .regular))
+                                            .foregroundStyle(T.ink)
+                                        Spacer()
+                                    }
+                                    .padding(12)
+                                    .background {
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .fill(range == r ? T.primary.opacity(0.06) : T.paper)
+                                    }
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .stroke(range == r ? T.primary : T.hair, lineWidth: 1)
+                                    }
                                 }
-                                .padding(12)
-                                .background {
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(range == r ? T.primary.opacity(0.06) : T.paper)
-                                }
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .stroke(range == r ? T.primary : T.hair, lineWidth: 1)
-                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
                         }
                     }
-                }
-                .padding(.horizontal, 16)
+                    .padding(.horizontal, 16)
 
-                // §3 理由 textarea (必填)
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionLabel(n: "3", label: "理由（必須）")
-                    ZStack(alignment: .topLeading) {
-                        if reason.isEmpty {
-                            Text("欠席する理由を入力してください")
+                    // §3 理由 textarea (必填)
+                    VStack(alignment: .leading, spacing: 8) {
+                        SectionLabel(n: "3", label: "理由（必須）")
+                        ZStack(alignment: .topLeading) {
+                            if reason.isEmpty {
+                                Text("欠席する理由を入力してください")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(T.inkMute)
+                                    .padding(12)
+                            }
+                            TextEditor(text: $reason)
                                 .font(.system(size: 14))
-                                .foregroundStyle(T.inkMute)
-                                .padding(12)
+                                .padding(8)
+                                .frame(minHeight: 120)
+                                .scrollContentBackground(.hidden)
                         }
-                        TextEditor(text: $reason)
-                            .font(.system(size: 14))
-                            .padding(8)
-                            .frame(minHeight: 120)
-                            .scrollContentBackground(.hidden)
+                        .background {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous).fill(T.paper)
+                        }
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(T.hair, lineWidth: 1)
+                        }
                     }
-                    .background {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous).fill(T.paper)
-                    }
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(T.hair, lineWidth: 1)
-                    }
-                }
-                .padding(.horizontal, 16)
+                    .padding(.horizontal, 16)
 
-                // §3 提出 button
-                Button {
-                    guard !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                        app.showToast("理由を入力してください")
-                        return
-                    }
-                    Task {
-                        do {
-                            try await app.submitStudyLeave(
-                                targetDate: StayForm.formatYMD(targetDate),
-                                reason: reason,
-                                range: range
-                            )
-                            router.go(.applyDone(kind: "studyAbsence"))
-                        } catch APIError.unprocessable(let msg) {
-                            // 同日重复提交 / target_date 范围超过 等
-                            app.showToast(msg)
-                        } catch APIError.unauthorized {
-                            app.authToken = nil
-                            router.replace(.login)
-                        } catch APIError.network {
-                            app.showToast("通信エラーが発生しました。電波を確認してください")
-                        } catch {
-                            app.showToast(error.localizedDescription)
+                    // §3 提出 button
+                    Button {
+                        guard !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                            app.showToast("理由を入力してください")
+                            return
                         }
+                        Task {
+                            do {
+                                try await app.submitStudyLeave(
+                                    targetDate: StayForm.formatYMD(targetDate),
+                                    reason: reason,
+                                    range: range
+                                )
+                                router.go(.applyDone(kind: "studyAbsence"))
+                            } catch let APIError.unprocessable(msg) {
+                                // 同日重复提交 / target_date 范围超过 等
+                                app.showToast(msg)
+                            } catch APIError.unauthorized {
+                                app.authToken = nil
+                                router.replace(.login)
+                            } catch APIError.network {
+                                app.showToast("通信エラーが発生しました。電波を確認してください")
+                            } catch {
+                                app.showToast(error.localizedDescription)
+                            }
+                        }
+                    } label: {
+                        Text("提出する")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity, minHeight: 48)
+                            .background(Capsule().fill(T.primary))
                     }
-                } label: {
-                    Text("提出する")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity, minHeight: 48)
-                        .background(Capsule().fill(T.primary))
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 32)
                 }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 32)
-            }
-            .padding(.top, 16)
+                .padding(.top, 16)
             }
         }
         .background(T.pearl.ignoresSafeArea())
@@ -1324,15 +1471,41 @@ struct GenericApplyForm: View {
     @State private var repairPlace: String = "自室"
     @State private var guardian: Bool = false
 
-    private var type: ApplyTypeMeta { applyType(kind) }
-    private var needsDest: Bool { ["outing", "stay", "holiday"].contains(kind) }
-    private var needsEnd: Bool { ["stay", "holiday"].contains(kind) }
-    private var needsGuardian: Bool { ["stay", "holiday"].contains(kind) }
-    private var needsTransport: Bool { ["outing", "stay", "holiday"].contains(kind) }
-    private var isRepair: Bool { kind == "repair" }
-    private var isParcel: Bool { kind == "parcel" }
-    private var isGuest: Bool { kind == "guest" }
-    private var isReturn: Bool { kind == "return" }
+    private var type: ApplyTypeMeta {
+        applyType(kind)
+    }
+
+    private var needsDest: Bool {
+        ["outing", "stay", "holiday"].contains(kind)
+    }
+
+    private var needsEnd: Bool {
+        ["stay", "holiday"].contains(kind)
+    }
+
+    private var needsGuardian: Bool {
+        ["stay", "holiday"].contains(kind)
+    }
+
+    private var needsTransport: Bool {
+        ["outing", "stay", "holiday"].contains(kind)
+    }
+
+    private var isRepair: Bool {
+        kind == "repair"
+    }
+
+    private var isParcel: Bool {
+        kind == "parcel"
+    }
+
+    private var isGuest: Bool {
+        kind == "guest"
+    }
+
+    private var isReturn: Bool {
+        kind == "return"
+    }
 
     private var canSubmit: Bool {
         !reason.isEmpty && (isRepair || isParcel || true)
@@ -1415,10 +1588,10 @@ struct GenericApplyForm: View {
                     if isRepair {
                         Field(label: "場所", required: true) {
                             VStack(spacing: 8) {
-                                RadioCard(selection: $repairPlace, value: "自室",         title: "自室")
+                                RadioCard(selection: $repairPlace, value: "自室", title: "自室")
                                 RadioCard(selection: $repairPlace, value: "共用スペース", title: "共用スペース")
-                                RadioCard(selection: $repairPlace, value: "水回り",       title: "水回り")
-                                RadioCard(selection: $repairPlace, value: "その他",       title: "その他")
+                                RadioCard(selection: $repairPlace, value: "水回り", title: "水回り")
+                                RadioCard(selection: $repairPlace, value: "その他", title: "その他")
                             }
                         }.padding(.bottom, 14)
 
@@ -1553,7 +1726,9 @@ struct ApplyPreviewView: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
-    private var type: ApplyTypeMeta { applyType(kind) }
+    private var type: ApplyTypeMeta {
+        applyType(kind)
+    }
 
     private var rows: [(String, String)] {
         var base: [(String, String)] = [
@@ -1562,13 +1737,13 @@ struct ApplyPreviewView: View {
             ("申請者", "12号 · Nishimura Aoi"),
         ]
         switch kind {
-        case "outing":  base += [("行き先", "新宿"), ("日付", "2026-04-25"), ("帰寮予定", "18:00")]
-        case "stay":    base += [("行き先", "実家"), ("期間", "2026-04-25 〜 04-26"), ("保証人", "同意済")]
+        case "outing": base += [("行き先", "新宿"), ("日付", "2026-04-25"), ("帰寮予定", "18:00")]
+        case "stay": base += [("行き先", "実家"), ("期間", "2026-04-25 〜 04-26"), ("保証人", "同意済")]
         case "holiday": base += [("行き先", "実家 福岡"), ("期間", "2026-04-28 〜 05-05"), ("保証人", "同意済")]
-        case "repair":  base += [("場所", "自室"), ("依頼日", "2026-04-22")]
-        case "parcel":  base += [("荷物", "Amazon 小包 1 件"), ("配達予定", "2026-04-23")]
-        case "guest":   base += [("来訪者", "山田 花子"), ("来訪日", "2026-04-25")]
-        case "return":  base += [("日付", "2026-04-25"), ("帰寮時刻", "17:30")]
+        case "repair": base += [("場所", "自室"), ("依頼日", "2026-04-22")]
+        case "parcel": base += [("荷物", "Amazon 小包 1 件"), ("配達予定", "2026-04-23")]
+        case "guest": base += [("来訪者", "山田 花子"), ("来訪日", "2026-04-25")]
+        case "return": base += [("日付", "2026-04-25"), ("帰寮時刻", "17:30")]
         default: break
         }
         base.append(("理由", "（入力された理由が表示されます）"))
@@ -1595,7 +1770,7 @@ struct ApplyPreviewView: View {
 
                     Card(padding: 0) {
                         VStack(spacing: 0) {
-                            ForEach(Array(rows.enumerated()), id: \.offset) { (i, pair) in
+                            ForEach(Array(rows.enumerated()), id: \.offset) { i, pair in
                                 HStack(alignment: .top, spacing: 0) {
                                     Text(pair.0)
                                         .font(.system(size: 12.5))
@@ -1669,7 +1844,9 @@ struct ApplyDoneView: View {
     let kind: String
     @EnvironmentObject var router: RouterStore
 
-    private var type: ApplyTypeMeta { applyType(kind) }
+    private var type: ApplyTypeMeta {
+        applyType(kind)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1703,14 +1880,9 @@ struct ApplyDoneView: View {
                     .padding(.bottom, 28)
 
                 // Info card
+                // IX-006: 原来这里显示写死的假申请号「A-240422-07」。后端 ApplicationOut 只有
+                // UUID、没有人类可读的申请号，所以去掉这行假数据，只留预想审查时间。
                 VStack(spacing: 4) {
-                    HStack {
-                        Text("申請 ID").font(.system(size: 12)).foregroundStyle(T.inkSub)
-                        Spacer()
-                        Text("A-240422-07")
-                            .font(.system(size: 12, weight: .bold, design: .monospaced))
-                            .foregroundStyle(T.ink)
-                    }
                     HStack {
                         Text("予想審査時間").font(.system(size: 12)).foregroundStyle(T.inkSub)
                         Spacer()
@@ -1726,26 +1898,11 @@ struct ApplyDoneView: View {
                 }
                 .padding(.bottom, 28)
 
-                HStack(spacing: 10) {
-                    Button {
-                        router.go(.applyDetail(id: "A-240422-07"))
-                    } label: {
-                        Text("詳細を見る")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(T.ink)
-                            .frame(maxWidth: .infinity, minHeight: 52)
-                            .background {
-                                RoundedRectangle(cornerRadius: 16, style: .continuous).fill(T.paper)
-                            }
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(T.hair, lineWidth: 1.5)
-                            }
-                    }
-                    .buttonStyle(.plain)
-
-                    PrimaryButton(title: "一覧へ") {
-                        router.replace(.apply)
-                    }
+                // IX-006: 原来左边还有个「詳細を見る」按钮跳 .applyDetail(id: "A-240422-07") 假 id，
+                // 而且详情页现在还读 SEED 假数据、传真 id 也查不到。先去掉这个按钮，
+                // 只留「一覧へ」跳申请列表，用户在列表里看自己真实的申请（列表接后端见 IX-007）。
+                PrimaryButton(title: "一覧へ") {
+                    router.replace(.apply)
                 }
             }
             .padding(.horizontal, 28)
@@ -1795,7 +1952,7 @@ struct ApplyDetailView: View {
         return [
             .init(k: "submit", label: "提出", done: true, active: false, time: submitTime, label2: nil),
             .init(k: "review", label: "審査", done: reviewDone, active: reviewActive, time: reviewTime, label2: nil),
-            .init(k: "final",  label: "完了", done: finalDone, active: false, time: nil, label2: finalLabel2),
+            .init(k: "final", label: "完了", done: finalDone, active: false, time: nil, label2: finalLabel2),
         ]
     }
 
@@ -1946,7 +2103,7 @@ private struct WorkflowStepsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(steps.enumerated()), id: \.offset) { (i, s) in
+            ForEach(Array(steps.enumerated()), id: \.offset) { i, s in
                 HStack(alignment: .top, spacing: 14) {
                     // rail with circle + line
                     VStack(spacing: 0) {

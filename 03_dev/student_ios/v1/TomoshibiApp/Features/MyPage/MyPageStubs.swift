@@ -29,6 +29,29 @@ import SwiftUI
 
 // MARK: - Helpers
 
+/// 月份过滤工具 · 点呼记录 date 形如 "2026-04-21"，按 "yyyy-MM" 前缀归月
+private enum MyPageMonthUtil {
+    /// 系统当前年月，输出形如 "2026-04"（用于按当月过滤记录）
+    static func currentMonthPrefix() -> String {
+        let comps = Calendar.current.dateComponents([.year, .month], from: Date())
+        return String(format: "%04d-%02d", comps.year ?? 0, comps.month ?? 0)
+    }
+
+    /// "4月" / "3月" / "2月" 这类筛选标签 → 该年月前缀 "yyyy-MM"
+    /// 演示版基准年固定 2026；生产版用系统当前年（同年内不同月份切换）
+    static func prefix(forJapaneseMonthLabel label: String) -> String? {
+        // 去掉末尾「月」取数字部分
+        let digits = label.filter { $0.isNumber }
+        guard let month = Int(digits), (1 ... 12).contains(month) else { return nil }
+        #if DEMO
+            let year = 2026
+        #else
+            let year = Calendar.current.component(.year, from: Date())
+        #endif
+        return String(format: "%04d-%02d", year, month)
+    }
+}
+
 /// MyLanding 顶部 2-col grid block · 对等 JSX blocks map
 private struct MyLandingGridBlock: Identifiable {
     let id = UUID()
@@ -234,7 +257,16 @@ struct MyLandingView: View {
 
     private func monthRollcallStats() -> (onTime: Int, late: Int, absent: Int) {
         var onTime = 0, late = 0, absent = 0
-        for r in SEED.rollcall {
+        // IX-025: 标题写「今月」就只统计当月记录，否则接后端多月数据后会偏大。
+        // r.date 形如 "2026-04-21"，取前 7 位 "2026-04" 当月份键来过滤。
+        #if DEMO
+            // 演示版：种子数据全是 2026-04，固定按 4 月口径统计，保持原演示效果
+            let monthPrefix = "2026-04"
+        #else
+            // 生产版：按系统当前年月过滤
+            let monthPrefix = MyPageMonthUtil.currentMonthPrefix()
+        #endif
+        for r in SEED.rollcall where r.date.hasPrefix(monthPrefix) {
             switch r.state {
             case "時間内": onTime += 1
             case "遅刻": late += 1
@@ -762,10 +794,15 @@ struct MyRollcallView: View {
     private let monthOptions: [String] = ["4月", "3月", "2月"]
 
     /// 按 date group (preserve original order from SEED)
+    /// IX-020: 先按选中月份过滤记录日期再分组，否则点了「4月/3月/2月」按钮列表纹丝不动。
     private var grouped: [(date: String, items: [RollcallEntry])] {
+        // selectedMonth 形如 "4月" → 解析成 "yyyy-MM" 前缀，按 r.date 前缀过滤
+        let monthPrefix = MyPageMonthUtil.prefix(forJapaneseMonthLabel: selectedMonth)
         var seen: [String] = []
         var map: [String: [RollcallEntry]] = [:]
         for r in SEED.rollcall {
+            // 解析失败（理论不会发生）时退回不过滤，保证至少显示全部
+            if let p = monthPrefix, !r.date.hasPrefix(p) { continue }
             if map[r.date] == nil {
                 seen.append(r.date)
                 map[r.date] = []
@@ -817,7 +854,7 @@ struct MyRollcallView: View {
                                             Divider().background(T.hair)
                                         }
                                         Button {
-                                            router.go(.myRollcallDetail)
+                                            router.go(.myRollcallDetail(entryId: r.id))
                                         } label: {
                                             rollcallRow(r)
                                         }
@@ -875,14 +912,64 @@ struct MyRollcallView: View {
 // MARK: - 4. MyRollcallDetailView (L2)
 
 struct MyRollcallDetailView: View {
-    private let kvPairs: [(String, String)] = [
-        ("状態", "遅刻 0.5 点"),
-        ("方式", "NFC"),
-        ("開始時刻", "07:00:00"),
-        ("締切時刻", "07:10:00"),
-        ("チェックイン", "07:12:34"),
-        ("遅れ", "+2分34秒"),
-    ]
+    // IX-012: 详情页原来用写死常量（永远显示 "2026-04-12 朝点呼 / 遅刻 0.5 点"），
+    // 连「欠席」记录点进来也显示「遅刻 0.5 点」。改成按被点那行记录渲染。
+    //
+    // 路由层已补：Route.myRollcallDetail(entryId:) 带关联值，列表点击传 r.id，
+    // RootView 按 id 从 SEED.rollcall 查记录传进来；entry 为 nil 时退回第一条做 fallback。
+    let entry: RollcallEntry?
+
+    init(entry: RollcallEntry? = nil) {
+        self.entry = entry
+    }
+
+    /// 实际渲染用的记录：没传就退回种子里第一条记录，至少不再凭空写死
+    private var record: RollcallEntry {
+        entry ?? SEED.rollcall.first
+            ?? RollcallEntry(date: "—", session: "—", state: "時間内", method: "―")
+    }
+
+    /// 标题行 "2026-04-21 朝点呼"
+    private var titleText: String {
+        "\(record.date) \(record.session)"
+    }
+
+    /// 点呼场次 ID：由日期 + 朝/晚场次派生，朝场→AM / 晚场→PM，形如 RC-20260421-AM
+    private var sessionID: String {
+        let datePart = record.date.filter { $0.isNumber }
+        let suffix = record.session.hasPrefix("朝") ? "AM" : "PM"
+        return "RC-\(datePart)-\(suffix)"
+    }
+
+    /// 状態行文字：迟到/缺席带扣分点数，时间内不带点数
+    private var stateText: String {
+        switch record.state {
+        case "遅刻": return "遅刻 0.5 点"
+        case "欠席": return "欠席 1.0 点"
+        default: return "時間内"
+        }
+    }
+
+    /// 键值明细：只有迟到才有「打卡时刻 / 迟到时长」两行，缺席和时间内不显示迟到专属行
+    private var kvPairs: [(String, String)] {
+        var pairs: [(String, String)] = [
+            ("状態", stateText),
+            ("方式", record.method),
+        ]
+        if record.session.hasPrefix("朝") {
+            pairs.append(("開始時刻", "07:00:00"))
+            pairs.append(("締切時刻", "07:10:00"))
+        } else {
+            pairs.append(("開始時刻", "21:00:00"))
+            pairs.append(("締切時刻", "21:10:00"))
+        }
+        // 打卡时刻 / 迟到时长 仅在迟到（state == "遅刻"）时有意义：缺席没打卡、时间内不迟到
+        if record.state == "遅刻" {
+            pairs.append(("チェックイン", "07:12:34"))
+            pairs.append(("遅れ", "+2分34秒"))
+        }
+        return pairs
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -891,12 +978,12 @@ struct MyRollcallDetailView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Card(padding: 18) {
                         VStack(alignment: .leading, spacing: 0) {
-                            Text("2026-04-12 朝点呼")
+                            Text(titleText)
                                 .font(.system(size: 16, weight: .bold))
                                 .monospaced()
                                 .foregroundStyle(T.primary)
                                 .padding(.bottom, 2)
-                            Text("セッション ID: RC-20260412-AM")
+                            Text("セッション ID: \(sessionID)")
                                 .font(.system(size: 12))
                                 .foregroundStyle(T.inkMute)
                                 .padding(.bottom, 14)
@@ -943,7 +1030,7 @@ struct MyRollcallDetailView: View {
 
 #Preview("MyRollcallDetail") {
     MyRollcallDetailView()
-        .environmentObject(RouterStore(initial: .myRollcallDetail))
+        .environmentObject(RouterStore(initial: .myRollcallDetail(entryId: nil)))
         .environmentObject(AppStore())
 }
 
@@ -1489,6 +1576,7 @@ struct MyPackagesView: View {
 
 struct MySettingsView: View {
     @EnvironmentObject var app: AppStore
+    @EnvironmentObject var router: RouterStore // IX-002: 删账号成功后跳登录页用
 
     // 通知 prefs (demo 用 local state; 不接后端)
     @State private var prefRoll: Bool = true // 点呼リマインダー
@@ -1630,8 +1718,10 @@ struct MySettingsView: View {
         defer { deleting = false }
         do {
             try await AccountsAPI.deleteMyAccount()
-            // 成功 → 清 token 触发 didSet 同步 Keychain + APIClient
+            // 成功 → 清 token 触发 didSet 同步 Keychain + APIClient，再跳回登录页（IX-002）。
+            // 账号已删，若停在设置页会显示已失效数据；照 LogoutSheet 的登出写法跳 .login。
             app.authToken = nil
+            router.replace(.login)
         } catch {
             // 2026-05-27 codex 审查后改：catch 走 helper 统一文案（含 .unprocessable 真 message）
             deleteError = APIErrorPresenter.userMessage(
@@ -1961,12 +2051,21 @@ struct MyStudyView: View {
     private func dayBlock(date: String, items: [StudyHistoryEntry]) -> some View {
         let kinds = Set(items.map { $0.tapKind })
         let complete = kinds.count == 3
+        // IX-033: 日块原来只看打卡数=3 就贴绿色「時間内」，跟汇总卡（3 次齐 + 备注含「遅刻」算迟到）口径不一致。
+        // 这里也判断当天是否有打卡备注含「遅刻」，三齐但迟到 → 黄色「遅刻」，三齐且无迟到 → 绿色「時間内」。
+        let hasLate = items.contains { $0.note?.contains("遅刻") == true }
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Text(date)
                     .font(.system(size: 12, weight: .semibold, design: .monospaced))
                     .foregroundStyle(T.inkSub)
-                if complete {
+                if complete && hasLate {
+                    Text("遅刻")
+                        .font(.system(size: 10.5, weight: .bold))
+                        .foregroundStyle(T.warnDeep)
+                        .padding(.horizontal, 7).padding(.vertical, 2)
+                        .background { Capsule().fill(T.warnBg) }
+                } else if complete {
                     Text("時間内")
                         .font(.system(size: 10.5, weight: .bold))
                         .foregroundStyle(T.okDeep)

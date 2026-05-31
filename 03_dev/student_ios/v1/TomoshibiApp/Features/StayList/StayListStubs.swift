@@ -402,7 +402,19 @@ struct StayListView: View {
     private var items: [StayApplication] {
         let sorted = apps.sorted { $0.leaveDate > $1.leaveDate }
         guard let f = filter else { return sorted }
-        return sorted.filter { $0.status == f }
+        // IX-019: 标签按状态组匹配，不再精确相等。
+        // 「差戻」标签同时收 .rejected（差戻）和 .returned（要修正）—— 被退回要修正的申请才不会消失。
+        // 「承認済」标签同时收 .approved（承認済）和 .approved_partial（一部承認）。
+        return sorted.filter { statuses(for: f).contains($0.status) }
+    }
+
+    /// IX-019: 把选中的标签代表状态展开成它该匹配的状态集合。
+    private func statuses(for tab: ApplicationStatus) -> Set<ApplicationStatus> {
+        switch tab {
+        case .rejected: return [.rejected, .returned]
+        case .approved: return [.approved, .approved_partial]
+        default: return [tab]
+        }
     }
 
     private let tabs: [(label: String, value: ApplicationStatus?)] = [

@@ -134,7 +134,9 @@ enum SEED {
         .init(
             date: "2026-05-16", weekday: "土",
             label: "みつ元気プロジェクト・買い物",
-            notice: nil,
+            // IX-023: 这条是特别运行班车（4-11 同款事件也注明了特别运行），原 notice 写死空值
+            // 会被 BusList 按「有无 notice」错判成通学便，补上 notice 修正分类（仅演示数据）
+            notice: "特別運行便",
             lines: [
                 .init(time: "08:30", route: "西口発", seats: "空きあり", next: false),
                 .init(time: "09:20", route: "高校棟 → 御津公民館", seats: "空きあり", next: false),

@@ -22,20 +22,20 @@ import SwiftUI
 // MARK: - データ模型
 
 enum BusKind: String, Hashable {
-    case dailyCommute = "daily_commute"     // 平日通学便
-    case dormSpecial  = "dorm_special"      // 寮特別運航便
+    case dailyCommute = "daily_commute" // 平日通学便
+    case dormSpecial = "dorm_special" // 寮特別運航便
 
     var label: String {
         switch self {
         case .dailyCommute: return "通学便"
-        case .dormSpecial:  return "特別便"
+        case .dormSpecial: return "特別便"
         }
     }
 
     var tone: Pill.Tone {
         switch self {
         case .dailyCommute: return .neutral
-        case .dormSpecial:  return .accent
+        case .dormSpecial: return .accent
         }
     }
 }
@@ -47,17 +47,17 @@ enum BusVisibility: String, Hashable {
 struct SpecialBusRoute: Hashable, Identifiable {
     let id: String
     let kind: BusKind
-    let name: String                // 表示用 短い名前 "GW外泊 朝便"
-    let direction: String           // "高校棟 → 岡山駅西口"
-    let date: String                // "2026-04-29"
-    let weekday: String             // "水"
-    let scheduleAt: String          // "07:30"
-    let arrivalAt: String?          // "08:25" / nil
+    let name: String // 表示用 短い名前 "GW外泊 朝便"
+    let direction: String // "高校棟 → 岡山駅西口"
+    let date: String // "2026-04-29"
+    let weekday: String // "水"
+    let scheduleAt: String // "07:30"
+    let arrivalAt: String? // "08:25" / nil
     let visibleTo: BusVisibility
-    let isAirport: Bool             // 空港送迎便（帰国届で重要）
-    let purpose: String?            // "GW外泊・帰省・買い物" — 用途タグ
-    let seatsLabel: String          // "空きあり" / "残 3" 等
-    let isNext: Bool                // 直近の便ハイライト
+    let isAirport: Bool // 空港送迎便（帰国届で重要）
+    let purpose: String? // "GW外泊・帰省・買い物" — 用途タグ
+    let seatsLabel: String // "空きあり" / "残 3" 等
+    let isNext: Bool // 直近の便ハイライト
     let deprecated: Bool
 }
 
@@ -70,7 +70,8 @@ enum BusListMock {
         var routes: [SpecialBusRoute] = []
         for sched in SEED.busSchedule {
             for (i, line) in sched.lines.enumerated() {
-                let isAirport = line.route.contains("空港") || line.route.contains("岡山駅")
+                // 岡山駅（冈山站）是电车站不是机场，只在路线名含「空港」（机场）时才判定为机场送迎便
+                let isAirport = line.route.contains("空港")
                 let kind: BusKind = sched.notice != nil ? .dormSpecial : .dailyCommute
                 routes.append(SpecialBusRoute(
                     id: "\(sched.date)-\(i)",
@@ -102,10 +103,11 @@ enum BusListMock {
 
 // ============================================================================
 // MARK: - BusListView · 特別運航便 一覧
+
 // ============================================================================
 
 struct BusListView: View {
-    @State private var kindFilter: BusKind? = nil   // nil = すべて
+    @State private var kindFilter: BusKind? = nil // nil = すべて
     @State private var airportOnly: Bool = false
 
     private let tabs: [(label: String, value: BusKind?)] = [
@@ -175,7 +177,6 @@ struct BusListView: View {
 
     // MARK: 上部 banner（帰国届 ヒント）
 
-    @ViewBuilder
     private var headerNotice: some View {
         HStack(alignment: .top, spacing: 8) {
             Text("✈")
@@ -203,7 +204,7 @@ struct BusListView: View {
         VStack(alignment: .leading, spacing: 10) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
-                    ForEach(Array(tabs.enumerated()), id: \.offset) { (_, tab) in
+                    ForEach(Array(tabs.enumerated()), id: \.offset) { _, tab in
                         let selected = kindFilter == tab.value
                         Button { kindFilter = tab.value } label: {
                             Text(tab.label)
@@ -258,7 +259,7 @@ struct BusListView: View {
             .background(T.primary.opacity(0.05))
 
             VStack(spacing: 0) {
-                ForEach(Array(g.items.enumerated()), id: \.offset) { (i, route) in
+                ForEach(Array(g.items.enumerated()), id: \.offset) { i, route in
                     busRow(route)
                     if i < g.items.count - 1 {
                         Rectangle().fill(T.hair).frame(height: 0.5)

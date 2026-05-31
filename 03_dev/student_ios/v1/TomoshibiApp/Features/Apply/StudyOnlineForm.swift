@@ -188,15 +188,17 @@ struct StudyOnlineForm: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, 4)
             } else {
-                ForEach(slots.indices, id: \.self) { index in
+                // IX-032: 用每个时段 OnlineScheduleSlot.id 当列表项身份。
+                // 之前 id: \.self 用数组下标当身份，删中间一行时输入框内容 / 焦点会串到别行。
+                ForEach(slots) { slot in
                     HStack(spacing: 8) {
-                        ApplyTimeField(date: slotStartBinding(day: day, index: index))
+                        ApplyTimeField(date: slotStartBinding(day: day, id: slot.id))
                         Text("〜")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(T.inkSub)
-                        ApplyTimeField(date: slotEndBinding(day: day, index: index))
+                        ApplyTimeField(date: slotEndBinding(day: day, id: slot.id))
                         Button {
-                            removeSlot(day: day, index: index)
+                            removeSlot(day: day, id: slot.id)
                         } label: {
                             Image(systemName: "minus.circle.fill")
                                 .font(.system(size: 22))
@@ -221,34 +223,34 @@ struct StudyOnlineForm: View {
         schedule[day] = slots
     }
 
-    private func removeSlot(day: String, index: Int) {
+    // IX-032: 删除 / 更新 / 绑定全部按 id 定位，不再用数组下标，避免删中间行后串行。
+    private func removeSlot(day: String, id: UUID) {
         var slots = schedule[day] ?? []
-        guard slots.indices.contains(index) else { return }
-        slots.remove(at: index)
+        slots.removeAll { $0.id == id }
         schedule[day] = slots
     }
 
-    private func updateSlot(day: String, index: Int, update: (inout OnlineScheduleSlot) -> Void) {
+    private func updateSlot(day: String, id: UUID, update: (inout OnlineScheduleSlot) -> Void) {
         var slots = schedule[day] ?? []
-        guard slots.indices.contains(index) else { return }
+        guard let index = slots.firstIndex(where: { $0.id == id }) else { return }
         update(&slots[index])
         schedule[day] = slots
     }
 
-    private func slotStartBinding(day: String, index: Int) -> Binding<Date> {
+    private func slotStartBinding(day: String, id: UUID) -> Binding<Date> {
         Binding(
-            get: { (schedule[day] ?? [])[safe: index]?.start ?? ApplyFormDate.parseHM("19:40") },
+            get: { (schedule[day] ?? []).first { $0.id == id }?.start ?? ApplyFormDate.parseHM("19:40") },
             set: { newValue in
-                updateSlot(day: day, index: index) { $0.start = newValue }
+                updateSlot(day: day, id: id) { $0.start = newValue }
             }
         )
     }
 
-    private func slotEndBinding(day: String, index: Int) -> Binding<Date> {
+    private func slotEndBinding(day: String, id: UUID) -> Binding<Date> {
         Binding(
-            get: { (schedule[day] ?? [])[safe: index]?.end ?? ApplyFormDate.parseHM("21:00") },
+            get: { (schedule[day] ?? []).first { $0.id == id }?.end ?? ApplyFormDate.parseHM("21:00") },
             set: { newValue in
-                updateSlot(day: day, index: index) { $0.end = newValue }
+                updateSlot(day: day, id: id) { $0.end = newValue }
             }
         )
     }

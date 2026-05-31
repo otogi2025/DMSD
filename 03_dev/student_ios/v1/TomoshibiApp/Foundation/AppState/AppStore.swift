@@ -52,6 +52,10 @@ struct RegistrationDraft {
         guard let b = birthday else { return nil }
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
+        // IX-015: 锁定公历 + 固定 locale，否则用户把 iPhone 系统日历设成「和暦（日本年号）」时
+        // 年份会被格式化成年号纪年（令和7年 → 0007），把生日写错。参照 todayJaYMD() 的写法。
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.calendar = Calendar(identifier: .gregorian)
         return f.string(from: b)
     }
 }
@@ -97,11 +101,34 @@ final class AppStore: ObservableObject {
         authToken != nil
     }
 
+    /// IX-036: 令牌过期时刻（UserDefaults key）。
+    /// 有效期本身不是机密（机密的是令牌正文，仍存 Keychain），所以过期时刻放 UserDefaults。
+    private static let tokenExpiryKey = "authTokenExpiresAt"
+
+    /// IX-036: 存令牌 + 有效期。登录 / 注册成功后调，把 expires_in（秒）换算成绝对过期时刻存下，
+    /// 启动时 init() 能据此判断是否已过期。
+    func setAuthToken(_ token: String, expiresIn: Int) {
+        let expiresAt = Date().addingTimeInterval(TimeInterval(expiresIn))
+        UserDefaults.standard.set(expiresAt.timeIntervalSince1970, forKey: Self.tokenExpiryKey)
+        authToken = token // didSet 同步 APIClient + Keychain
+    }
+
     /// app 启动时从 Keychain 恢复 token（实现自动登录）
     init() {
         if let saved = KeychainService.load() {
-            // 直接赋 _authToken 会跳过 didSet → APIClient 同步不上、所以走 self.authToken
-            authToken = saved
+            // IX-036: 之前只判断「有没有令牌」就当已登录，登录响应解码了 expires_in 却从不使用，
+            // 令牌过期后启动仍进主页，直到某请求 401 才被踢，中间所有请求全部加载失败。
+            // 现在启动时若已过期就删令牌（authToken=nil → didSet 删 Keychain）+ 清过期时刻，走登录页。
+            let expiryTs = UserDefaults.standard.object(forKey: Self.tokenExpiryKey) as? Double
+            if let ts = expiryTs, Date().timeIntervalSince1970 >= ts {
+                // 已过期 → 不恢复，删令牌 + 过期记录
+                KeychainService.delete()
+                UserDefaults.standard.removeObject(forKey: Self.tokenExpiryKey)
+            } else {
+                // 未过期（或没存过期时刻的旧令牌 → 保守恢复，由后续 401 兜底）
+                // 直接赋 _authToken 会跳过 didSet → APIClient 同步不上、所以走 self.authToken
+                authToken = saved
+            }
         }
         // A-038 (2026-05-21): seedDemoAnnouncements() 调用已删
         // 公告 demo seed 整段函数已删；公告全走 backend AnnouncementsAPI
@@ -183,8 +210,14 @@ final class AppStore: ObservableObject {
             password: d.password,
             registration_code: registrationCode
         )
+        // IX-026: 发请求前先跑客户端校验（max length / 密码长度）。校验不过抛错、不发请求，
+        // 避免白发一趟必被 backend 422 拒绝的请求。validate() 返回 nil = OK，否则返回日语错误信息。
+        if let validationError = body.validate() {
+            throw APIError.unprocessable(validationError)
+        }
         let res = try await AccountsAPI.createAccount(body: body)
-        authToken = res.accessToken // didSet 同步 APIClient + Keychain
+        // IX-036: 存令牌时一并存有效期，启动时能判断是否过期
+        setAuthToken(res.accessToken, expiresIn: res.expiresIn)
         return res
     }
 

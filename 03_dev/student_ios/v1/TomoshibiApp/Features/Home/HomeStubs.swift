@@ -1146,6 +1146,8 @@ struct RollcallSheet: View {
     @State private var pulseOn: Bool = false
     @State private var successZoomIn: Bool = false
     @State private var rotating: Bool = false
+    // IX-024: 把点呼成功后的延时任务存成可取消的 Task，弹窗消失时取消，关弹窗前确认展示的还是点呼弹窗
+    @State private var scanTask: Task<Void, Never>? = nil
 
     var body: some View {
         GlassSheet(onClose: { cancel() }) {
@@ -1167,6 +1169,9 @@ struct RollcallSheet: View {
             pulseOn = false
             successZoomIn = false
             rotating = false
+            // IX-024: 弹窗消失时取消未跑完的延时任务，避免它在用户新开别的弹窗后误关
+            scanTask?.cancel()
+            scanTask = nil
         }
     }
 
@@ -1429,14 +1434,20 @@ struct RollcallSheet: View {
 
     private func simulate() {
         withAnimation(.easeOut(duration: 0.22)) { step = .scanning }
-        Task {
+        // IX-024: 把延时任务存进 scanTask，弹窗消失时 onDisappear 会 cancel 它
+        scanTask = Task {
             try? await Task.sleep(nanoseconds: 500_000_000)
             await MainActor.run {
+                // IX-024: 记录前确认任务没被取消、且当前展示的还是点呼弹窗
+                guard !Task.isCancelled, app.sheetOpen == .rollcall else { return }
                 app.recordCheckin()
                 withAnimation(.easeOut(duration: 0.22)) { step = .success }
             }
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             await MainActor.run {
+                // IX-024: 自动关弹窗前确认展示的仍是点呼弹窗，
+                // 否则用户在这 2 秒内新开了别的弹窗（如体调报告），不能误把它关掉
+                guard !Task.isCancelled, app.sheetOpen == .rollcall else { return }
                 let at = app.checkinAt ?? "21:02"
                 app.closeSheet()
                 app.showToast("チェックイン完了 · \(at)")
@@ -1446,6 +1457,9 @@ struct RollcallSheet: View {
     }
 
     private func cancel() {
+        // IX-024: 用户主动取消时也取消未跑完的延时任务
+        scanTask?.cancel()
+        scanTask = nil
         app.closeSheet()
         step = .idle
     }
@@ -1467,6 +1481,8 @@ struct StudyCheckinSheet: View {
     @State private var pulseOn: Bool = false
     @State private var rotating: Bool = false
     @State private var recordedTap: StudyTap? = nil
+    // IX-011: 把扫描后的延时任务存成可取消的 Task，弹窗消失时取消，防止已关掉的打卡仍写进出席记录
+    @State private var scanTask: Task<Void, Never>? = nil
 
     private var nextTap: StudyTap? {
         app.nextStudyTap
@@ -1518,6 +1534,9 @@ struct StudyCheckinSheet: View {
         .onDisappear {
             pulseOn = false
             rotating = false
+            // IX-011: 弹窗消失（含用户点背景关闭）时取消未跑完的延时任务，避免已取消的打卡仍写入出席记录
+            scanTask?.cancel()
+            scanTask = nil
         }
     }
 
@@ -1765,14 +1784,20 @@ struct StudyCheckinSheet: View {
 
     private func simulate() {
         withAnimation(.easeOut(duration: 0.22)) { step = .scanning }
-        Task {
+        // IX-011: 把延时任务存进 scanTask，弹窗消失时 onDisappear 会 cancel 它
+        scanTask = Task {
             try? await Task.sleep(nanoseconds: 500_000_000)
             await MainActor.run {
+                // IX-011: 跑 recordStudyTap 前先确认任务没被取消、且当前展示的还是本签到弹窗，
+                // 否则用户在这 0.5 秒内点背景关掉了弹窗，已取消的打卡不应被写进出席记录
+                guard !Task.isCancelled, app.sheetOpen == .studyCheckin else { return }
                 recordedTap = app.recordStudyTap()
                 withAnimation(.easeOut(duration: 0.22)) { step = .success }
             }
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             await MainActor.run {
+                // IX-011: 自动关弹窗前同样确认没被取消、且展示的仍是本弹窗，避免误关用户新开的别的弹窗
+                guard !Task.isCancelled, app.sheetOpen == .studyCheckin else { return }
                 let label = recordedTap?.label ?? "—"
                 app.closeSheet()
                 if app.nextStudyTap == nil {
@@ -1786,6 +1811,9 @@ struct StudyCheckinSheet: View {
     }
 
     private func cancel() {
+        // IX-011: 用户主动取消时也取消未跑完的延时任务
+        scanTask?.cancel()
+        scanTask = nil
         app.closeSheet()
         step = .idle
     }

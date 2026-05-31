@@ -204,10 +204,30 @@ struct StudentAccountCreateBody: Encodable {
     let registration_code: String // 6 桁数字（教师生成、5 分钟有效）
 
     /// A-019: 客户端 form 校验。返回 nil = OK，否则返回错误信息（日语 UI 显示用）
+    /// IX-026: 原来只校验字段上限，漏了下限 — 补必填非空 / 长度下限 / 固定格式，对齐 backend
+    /// schemas.StudentAccountCreateIn 约束（name min 1 / room_no min 3 / grade·class·seat 各 2 位数字 /
+    /// registration_code 6 位数字 / gender·dorm_unit 枚举）。
     func validate() -> String? {
+        // 氏名：backend min_length=1，先校非空再校上限
+        if name.isEmpty { return "氏名を入力してください" }
         if name.count > 100 { return "氏名は 100 文字以内で入力してください" }
         if let nameKana = name_kana, nameKana.count > 100 {
             return "氏名カナは 100 文字以内で入力してください"
+        }
+        // 性别：backend Literal["male", "female"]
+        if gender != "male", gender != "female" {
+            return "性別を選択してください"
+        }
+        // 学年 / 班级 / 座位：backend 各 ^\d{2}$（恰好 2 位数字）
+        if !Self.isTwoDigits(grade_code) { return "学年は 2 桁の数字で入力してください" }
+        if !Self.isTwoDigits(class_code) { return "クラスは 2 桁の数字で入力してください" }
+        if !Self.isTwoDigits(seat_no) { return "座席番号は 2 桁の数字で入力してください" }
+        // 部屋番号：backend min_length=3, max_length=8
+        if room_no.count < 3 { return "部屋番号は 3 文字以上で入力してください" }
+        if room_no.count > 8 { return "部屋番号は 8 文字以内で入力してください" }
+        // 寮号：backend Literal[1, 2, 4]（男寮 1/2、女寮 4，没有 3）
+        if dorm_unit != 1, dorm_unit != 2, dorm_unit != 4 {
+            return "寮号が不正です"
         }
         if let em = email, em.count > 200 {
             return "メールアドレスは 200 文字以内で入力してください"
@@ -215,11 +235,20 @@ struct StudentAccountCreateBody: Encodable {
         if let ph = phone, ph.count > 32 {
             return "電話番号は 32 文字以内で入力してください"
         }
-        if room_no.count > 8 { return "部屋番号は 8 文字以内で入力してください" }
         if password.count < 6 || password.count > 128 {
             return "パスワードは 6〜128 文字で入力してください"
         }
+        // 注册码：backend ^\d{6}$（恰好 6 位数字）
+        if registration_code.count != 6 || !registration_code.allSatisfy(\.isNumber) {
+            return "登録コードは 6 桁の数字で入力してください"
+        }
         return nil
+    }
+
+    /// 恰好 2 位数字判定（grade_code / class_code / seat_no 用）
+    /// 对齐 backend pattern `^\d{2}$`
+    private static func isTwoDigits(_ s: String) -> Bool {
+        s.count == 2 && s.allSatisfy(\.isNumber)
     }
 }
 

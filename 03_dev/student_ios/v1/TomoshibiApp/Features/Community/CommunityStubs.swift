@@ -13,9 +13,9 @@ private func colorFromHex(_ hex: String) -> Color {
     var v: UInt64 = 0
     Scanner(string: h).scanHexInt64(&v)
     return Color(
-        red: Double((v >> 16) & 0xff) / 255,
-        green: Double((v >> 8) & 0xff) / 255,
-        blue: Double(v & 0xff) / 255
+        red: Double((v >> 16) & 0xFF) / 255,
+        green: Double((v >> 8) & 0xFF) / 255,
+        blue: Double(v & 0xFF) / 255
     )
 }
 
@@ -96,7 +96,7 @@ private struct HeaderPlusButton: View {
 struct NotificationsView: View {
     @EnvironmentObject var app: AppStore
     @State private var filter: String = "すべて"
-    // 4-30 加「学習」(R1 例外的 push 通知种类)
+    /// 4-30 加「学習」(R1 例外的 push 通知种类)
     private let filters = ["すべて", "申請", "減点", "学習", "宅配", "活動", "リクエスト曲"]
 
     private var filtered: [NotificationItem] {
@@ -175,7 +175,7 @@ struct NotificationsView: View {
         }
     }
 
-    // 对等 JSX: n.type==='減点'?'warn':n.type==='申請'?'ok':'accent'
+    /// 对等 JSX: n.type==='減点'?'warn':n.type==='申請'?'ok':'accent'
     private func toneFor(_ type: String) -> Pill.Tone {
         switch type {
         case "減点": return .warn
@@ -200,8 +200,14 @@ struct PackagesView: View {
 
     enum PkgTab: Hashable { case wait, done }
 
-    private var waitCount: Int { SEED.packages.filter { $0.status == "待領" }.count }
-    private var doneCount: Int { SEED.packages.filter { $0.status == "領済" }.count }
+    private var waitCount: Int {
+        SEED.packages.filter { $0.status == "待領" }.count
+    }
+
+    private var doneCount: Int {
+        SEED.packages.filter { $0.status == "領済" }.count
+    }
+
     private var list: [PackageItem] {
         SEED.packages.filter { tab == .wait ? $0.status == "待領" : $0.status == "領済" }
     }
@@ -288,9 +294,11 @@ struct PackageDetailView: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
-    private var item: PackageItem? { SEED.packages.first(where: { $0.id == id }) }
+    private var item: PackageItem? {
+        SEED.packages.first(where: { $0.id == id })
+    }
 
-    // JSX 写死 4 行 meta · 用 package item 填充可用字段
+    /// JSX 写死 4 行 meta · 用 package item 填充可用字段
     private func rows(_ p: PackageItem) -> [(String, String)] {
         [
             ("配送業者", p.from),
@@ -369,6 +377,19 @@ struct LostView: View {
     @EnvironmentObject var router: RouterStore
     @State private var search: String = ""
 
+    /// IX-030 修复：原来列表无条件显示 SEED.lost 全部、不理会搜索框。
+    /// 这里按搜索词过滤：标题 / 拾得场所 / 日期任一命中即保留，大小写不敏感。
+    /// 搜索词为空时返回全部。
+    private var filteredLost: [LostItem] {
+        let q = search.trimmingCharacters(in: .whitespacesAndNewlines)
+        if q.isEmpty { return SEED.lost }
+        return SEED.lost.filter {
+            $0.title.localizedCaseInsensitiveContains(q)
+                || $0.place.localizedCaseInsensitiveContains(q)
+                || $0.date.localizedCaseInsensitiveContains(q)
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // 遺失物は寮監のみ投稿可能 → 学生側は右上 + ボタンなし（閲覧専用）
@@ -420,7 +441,8 @@ struct LostView: View {
                         GridItem(.flexible(), spacing: 10),
                     ]
                     LazyVGrid(columns: cols, spacing: 10) {
-                        ForEach(SEED.lost) { l in
+                        // IX-030 修复：数据源改用按搜索词过滤后的 filteredLost（原来直接铺 SEED.lost）
+                        ForEach(filteredLost) { l in
                             lostCell(l)
                         }
                     }
@@ -440,8 +462,8 @@ struct LostView: View {
                 ZStack {
                     LinearGradient(
                         colors: [
-                            colorFromHex(l.color).opacity(2.0/3.0), // aa ≈ 0.67
-                            colorFromHex(l.color).opacity(0.27),    // 44 ≈ 0.27
+                            colorFromHex(l.color).opacity(2.0 / 3.0), // aa ≈ 0.67
+                            colorFromHex(l.color).opacity(0.27), // 44 ≈ 0.27
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -572,7 +594,9 @@ struct LostDetailView: View {
     let id: Int
     @EnvironmentObject var app: AppStore
 
-    private var item: LostItem? { SEED.lost.first(where: { $0.id == id }) }
+    private var item: LostItem? {
+        SEED.lost.first(where: { $0.id == id })
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -584,7 +608,7 @@ struct LostDetailView: View {
                         ZStack {
                             LinearGradient(
                                 colors: [
-                                    colorFromHex(l.color).opacity(2.0/3.0),
+                                    colorFromHex(l.color).opacity(2.0 / 3.0),
                                     colorFromHex(l.color).opacity(0.27),
                                 ],
                                 startPoint: .topLeading,
@@ -637,6 +661,7 @@ struct LostDetailView: View {
 }
 
 // MARK: - §7 MusicView · リクエスト曲（system_features §7.11 — 2026-05-01 拍板）
+
 //
 // 変更点:
 // - 並び順: 投稿順（新→旧 = id 降順）。賛/反対は廃止。
@@ -812,7 +837,13 @@ struct MusicNewView: View {
                     }
                     .padding(.bottom, 18)
 
-                    PrimaryButton(title: "投稿する", enabled: app.canPostSong) {
+                    // IX-021 修复：曲名 / 艺术家 两个字段标了必填（红星号），
+                    // 投稿按钮要在两者都非空时才可点（原来只看封禁状态 canPostSong）。
+                    // trimmingCharacters 去掉首尾空白，防止只输空格也算非空。
+                    let canSubmitSong = app.canPostSong
+                        && !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        && !artist.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    PrimaryButton(title: "投稿する", enabled: canSubmitSong) {
                         app.showToast("投稿しました")
                         Task {
                             try? await Task.sleep(nanoseconds: 500_000_000)
@@ -869,8 +900,10 @@ struct MusicDetailView: View {
     let id: Int
     @EnvironmentObject var app: AppStore
 
-    // JSX 原文 hard-coded Lilac · 我们用 id 找回 SEED song，fallback Lilac
-    private var song: SongItem { SEED.songs.first(where: { $0.id == id }) ?? SEED.songs[0] }
+    /// JSX 原文 hard-coded Lilac · 我们用 id 找回 SEED song，fallback Lilac
+    private var song: SongItem {
+        SEED.songs.first(where: { $0.id == id }) ?? SEED.songs[0]
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1078,7 +1111,12 @@ struct WallNewView: View {
                     }
                     .padding(.bottom, 18)
 
-                    PrimaryButton(title: "投稿") {
+                    // IX-029 修复：内容字段标了必填（红星号），但原来按钮没传可点条件、
+                    // 默认可点，空内容也能投。这里加「内容非空」才可点（去掉首尾空白再判断）。
+                    PrimaryButton(
+                        title: "投稿",
+                        enabled: !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ) {
                         app.showToast("投稿しました")
                         Task {
                             try? await Task.sleep(nanoseconds: 500_000_000)
@@ -1106,11 +1144,20 @@ struct WallNewView: View {
 
 struct WallDetailView: View {
     let id: Int
+    // IX-031 修复：评论发送按钮要弹提示，需要拿到 AppStore（提供 showToast）
+    @EnvironmentObject var app: AppStore
     @State private var comment: String = ""
 
-    private var post: WallPost? { SEED.wall.first(where: { $0.id == id }) }
+    /// IX-031 修复：评论输入去掉首尾空白后是否非空 — 决定发送按钮能否点
+    private var canSendComment: Bool {
+        !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
-    // JSX hard-coded 2 comments（fidelity）
+    private var post: WallPost? {
+        SEED.wall.first(where: { $0.id == id })
+    }
+
+    /// JSX hard-coded 2 comments（fidelity）
     private let comments: [(a: String, t: String, w: String)] = [
         (a: "12号", t: "お疲れ様！", w: "3時間前"),
         (a: "05号", t: "飾り付け可愛かった✨", w: "2時間前"),
@@ -1203,17 +1250,25 @@ struct WallDetailView: View {
                     // comment input row · marginTop 14 · gap 8
                     HStack(spacing: 8) {
                         TField(text: $comment, placeholder: "コメントを書く...")
-                        Button {} label: {
+                        // IX-031 修复：原来 action 是空的 {}，点了没反应。
+                        // 现在加：非空校验 + 弹提示 + 发送后清空输入框。
+                        // 评论后端还没接，按钮在内容为空时置灰不可点（disabled + 浅色背景）。
+                        Button {
+                            guard canSendComment else { return }
+                            app.showToast("コメントを送信しました")
+                            comment = ""
+                        } label: {
                             Text("→")
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundStyle(.white)
                                 .frame(width: 48, height: 48)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .fill(T.primary)
+                                        .fill(canSendComment ? T.primary : T.inkFaint)
                                 )
                         }
                         .buttonStyle(.plain)
+                        .disabled(!canSendComment)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -1236,17 +1291,31 @@ struct WallDetailView: View {
 
 struct EventsView: View {
     @EnvironmentObject var router: RouterStore
-    @State private var selectedMonth: Int = 4      // 4 月 / 5 月 トグル
-    @State private var selectedDay: Int = 23       // 初期選択日（demo: 今日 2026-04-23）
+    @State private var selectedMonth: Int = 4 // 4 月 / 5 月 トグル
+    @State private var selectedDay: Int = 23 // 初期選択日（demo: 今日 2026-04-23）
 
     private let todayMonth = 4
     private let todayDay = 23
     private let year = 2026
 
-    // 2026-04-01 = 水曜日（weekday index 3 · 0=日）
-    // 2026-05-01 = 金曜日（weekday index 5）
-    private var firstWeekdayOfMonth: Int { selectedMonth == 4 ? 3 : 5 }
-    private var daysInMonth: Int { selectedMonth == 4 ? 30 : 31 }
+    /// 2026-04-01 = 水曜日（weekday index 3 · 0=日）
+    /// 2026-05-01 = 金曜日（weekday index 5）
+    private var firstWeekdayOfMonth: Int {
+        selectedMonth == 4 ? 3 : 5
+    }
+
+    private var daysInMonth: Int {
+        selectedMonth == 4 ? 30 : 31
+    }
+
+    /// IX-022 修复：换月后把已选日 clamp 到当月实际天数。
+    /// 原来换月按钮只改 selectedMonth，不动 selectedDay —— 5 月选 31 日切回 4 月（只有 30 天）
+    /// 会显示不存在的「4月31日」。先改月，再 min(selectedDay, daysInMonth)：
+    /// 此时 daysInMonth 已按新月份计算（依赖 selectedMonth），所以 clamp 用的是新月份的天数。
+    private func switchMonth(to month: Int) {
+        selectedMonth = month
+        selectedDay = min(selectedDay, daysInMonth)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1272,7 +1341,7 @@ struct EventsView: View {
             VStack(alignment: .leading, spacing: 14) {
                 // 月切替 header
                 HStack {
-                    Button { selectedMonth = max(4, selectedMonth - 1) } label: {
+                    Button { switchMonth(to: max(4, selectedMonth - 1)) } label: {
                         Ic.chevR(16).foregroundStyle(selectedMonth > 4 ? T.ink : T.inkMute)
                             .rotationEffect(.degrees(180))
                             .frame(width: 32, height: 32)
@@ -1284,7 +1353,7 @@ struct EventsView: View {
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(T.ink)
                     Spacer()
-                    Button { selectedMonth = min(5, selectedMonth + 1) } label: {
+                    Button { switchMonth(to: min(5, selectedMonth + 1)) } label: {
                         Ic.chevR(16).foregroundStyle(selectedMonth < 5 ? T.ink : T.inkMute)
                             .frame(width: 32, height: 32)
                             .contentShape(Rectangle())
@@ -1302,11 +1371,11 @@ struct EventsView: View {
                             .padding(.vertical, 6)
                     }
                     // 前の月の空白
-                    ForEach(0..<firstWeekdayOfMonth, id: \.self) { _ in
+                    ForEach(0 ..< firstWeekdayOfMonth, id: \.self) { _ in
                         Color.clear.aspectRatio(1, contentMode: .fit)
                     }
                     // 当月の日
-                    ForEach(1...daysInMonth, id: \.self) { day in
+                    ForEach(1 ... daysInMonth, id: \.self) { day in
                         dayCell(day)
                     }
                 }
@@ -1448,7 +1517,7 @@ struct EventDetailView: View {
     let id: Int
     @EnvironmentObject var app: AppStore
 
-    // id 是 list index（Events 用 idx 作 id）· fallback 0
+    /// id 是 list index（Events 用 idx 作 id）· fallback 0
     private var event: EventItem {
         (id >= 0 && id < SEED.events.count) ? SEED.events[id] : SEED.events[0]
     }
@@ -1477,7 +1546,7 @@ struct EventDetailView: View {
                     .background(
                         RoundedRectangle(cornerRadius: 20, style: .continuous)
                             .fill(LinearGradient(
-                                colors: [Color(hex: 0xe8f4f6), Color(hex: 0xa8dce2)],
+                                colors: [Color(hex: 0xE8F4F6), Color(hex: 0xA8DCE2)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ))
@@ -1524,6 +1593,7 @@ struct EventDetailView: View {
         let parts = s.split(separator: "-")
         return parts.count >= 2 ? String(parts[1]) : ""
     }
+
     private func dayPart(_ s: String) -> String {
         let parts = s.split(separator: "-")
         return parts.count >= 3 ? String(parts[2]) : ""
@@ -1559,10 +1629,10 @@ struct BusView: View {
                     if SEED.busNotice.active {
                         HStack(alignment: .top, spacing: 4) {
                             Text("⚠ \(Text("臨時公告").fontWeight(.bold)) · \(SEED.busNotice.text)")
-                            .font(.system(size: 12.5))
-                            .foregroundStyle(T.warnDeep)
-                            .lineSpacing(3)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                                .font(.system(size: 12.5))
+                                .foregroundStyle(T.warnDeep)
+                                .lineSpacing(3)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 12)
@@ -1871,6 +1941,7 @@ struct SuggestFeedView: View {
 
 // ───────────────────────────────────────────────────────────
 // MARK: - SongReportSheet · リクエスト曲 通報 (system_features §7.11.2)
+
 // ───────────────────────────────────────────────────────────
 //
 // 4 理由 + その他自由記入。提出時に AppStore.reportSong(...) を叩いて自動封禁判定を回す。

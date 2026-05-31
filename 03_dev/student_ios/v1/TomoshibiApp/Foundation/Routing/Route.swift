@@ -8,18 +8,18 @@ enum Route: Hashable {
     case splash
     case onboarding
     case registerStep1, registerStep2, registerStep3, registerStep4
-    case registerStep5             // 注册码输入（2026-05-04 加，App Store 上架对策）
+    case registerStep5 // 注册码输入（2026-05-04 加，App Store 上架对策）
     case registerDone
     case login
     case lockout
     case pwreset
 
-    // §1 Home 主屏
+    /// §1 Home 主屏
     case home
 
     // §1.3 老师公告（2026-05-04 加，spec system_features.md §7.15）
-    case homeAnnouncements                     // 公告一覧
-    case homeAnnouncementDetail(id: String)    // 公告详情 + 回复
+    case homeAnnouncements // 公告一覧
+    case homeAnnouncementDetail(id: String) // 公告详情 + 回复
 
     // §1.4 Home 子页 Community
     case homeNotifications
@@ -57,7 +57,7 @@ enum Route: Hashable {
     case myInfo
     case myInfoEdit
     case myRollcall
-    case myRollcallDetail
+    case myRollcallDetail(entryId: String?) // IX-012: 带被点那行记录的 id，详情页据此渲染
     case myPoints
     case myPointsChart
     case myDiscipline
@@ -66,14 +66,14 @@ enum Route: Hashable {
     case myPackages
     case mySettings
     case myAbout
-    case myStudy                     // 学習出席履歴 (system_features §7.3.10) — isStudyTarget のみ
+    case myStudy // 学習出席履歴 (system_features §7.3.10) — isStudyTarget のみ
 
     // §4 V1 リファレンス系（老師 38 条 #5 / #8 / #9）
-    case stayList                    // #5 申請履歴 一覧（GET /applications/mine）
-    case stayDetail(id: String)      // #5 申請詳細 + 承認 chain（GET /applications/:id）
-    case stayEdit(id: String)        // 出寮届 修改届 (system_features §7.2.4-5)
-    case schedule                    // #9 行事予定 月历（GET /events）
-    case busList                     // #8 寮生特別運航便 一覧（GET /buses）
+    case stayList // #5 申請履歴 一覧（GET /applications/mine）
+    case stayDetail(id: String) // #5 申請詳細 + 承認 chain（GET /applications/:id）
+    case stayEdit(id: String) // 出寮届 修改届 (system_features §7.2.4-5)
+    case schedule // #9 行事予定 月历（GET /events）
+    case busList // #8 寮生特別運航便 一覧（GET /buses）
 
     /// Breadcrumb 显示名（日本語）
     var displayName: String {

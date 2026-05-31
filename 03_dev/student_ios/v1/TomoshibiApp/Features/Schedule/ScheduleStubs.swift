@@ -23,9 +23,9 @@ struct ScheduleView: View {
     private var monthRange: ClosedRange<YearMonth> {
         let all = SEED.events.compactMap { YearMonth(from: $0.date) }
         guard let lo = all.min(), let hi = all.max() else {
-            return YearMonth(year: 2026, month: 4)...YearMonth(year: 2026, month: 5)
+            return YearMonth(year: 2026, month: 4) ... YearMonth(year: 2026, month: 5)
         }
-        return lo...hi
+        return lo ... hi
     }
 
     var body: some View {
@@ -98,11 +98,11 @@ struct ScheduleView: View {
                     .padding(.vertical, 6)
             }
             // 月初前の空白
-            ForEach(0..<ym.firstWeekdayIndex, id: \.self) { _ in
+            ForEach(0 ..< ym.firstWeekdayIndex, id: \.self) { _ in
                 Color.clear.aspectRatio(1, contentMode: .fit)
             }
             // 当月の日
-            ForEach(1...ym.daysInMonth, id: \.self) { day in
+            ForEach(1 ... ym.daysInMonth, id: \.self) { day in
                 dayCell(day)
             }
         }
@@ -134,7 +134,7 @@ struct ScheduleView: View {
                     VStack(spacing: 0) {
                         Spacer(minLength: 0)
                         HStack(spacing: 2) {
-                            ForEach(0..<min(evs.count, 3), id: \.self) { _ in
+                            ForEach(0 ..< min(evs.count, 3), id: \.self) { _ in
                                 Circle().fill(T.accent).frame(width: 4, height: 4)
                             }
                         }
@@ -231,8 +231,13 @@ struct ScheduleView: View {
 
     // MARK: ナビゲーション補助
 
-    private var canGoBack: Bool { ym > monthRange.lowerBound }
-    private var canGoForward: Bool { ym < monthRange.upperBound }
+    private var canGoBack: Bool {
+        ym > monthRange.lowerBound
+    }
+
+    private var canGoForward: Bool {
+        ym < monthRange.upperBound
+    }
 
     private func stepMonth(_ delta: Int) {
         let next = ym.advanced(by: delta)
@@ -259,18 +264,32 @@ struct ScheduleView: View {
         switch d {
         case "日": return T.danger
         case "土": return T.primary
-        default:   return T.inkMute
+        default: return T.inkMute
         }
     }
 
-    // MARK: 「今日」「初期月」の決定（demo: 2026-04-23 既存 EventsView と同じ基準）
+    // MARK: 「今日」「初期月」的决定
 
-    private static let today = (year: 2026, month: 4, day: 23)
+    /// 「今日」判定的基准日。演示版固定在 2026-04-23（跟既存 EventsView 同基准），
+    /// 生产版取东京时区的实际今日（过了这天也不会张贴死在 4/23）
+    private static var today: (year: Int, month: Int, day: Int) {
+        #if DEMO
+            return (year: 2026, month: 4, day: 23)
+        #else
+            var cal = Calendar(identifier: .gregorian)
+            cal.timeZone = TimeZone(identifier: "Asia/Tokyo") ?? .current
+            let c = cal.dateComponents([.year, .month, .day], from: Date())
+            return (year: c.year ?? 2026, month: c.month ?? 4, day: c.day ?? 23)
+        #endif
+    }
 
     private static func initialYearMonth() -> YearMonth {
         YearMonth(year: today.year, month: today.month)
     }
-    private static func initialDay() -> Int { today.day }
+
+    private static func initialDay() -> Int {
+        today.day
+    }
 }
 
 // MARK: - YearMonth (year-month + 日数 + 月初曜日 計算)

@@ -42,7 +42,16 @@ enum KeychainService {
             kSecValueData as String: data,
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
         ]
-        SecItemAdd(addQuery as CFDictionary, nil)
+        // SecItemAdd 的返回状态码以前被丢弃 → 写失败时静默返回，
+        // app 重启读不到 token、自动登录失效且无从定位（IX-037）。
+        // 现在检查状态码：非 errSecSuccess 就打日志，DEBUG 下直接断言暴露。
+        let status = SecItemAdd(addQuery as CFDictionary, nil)
+        if status != errSecSuccess {
+            print("KeychainService.save 失败：OSStatus=\(status)")
+            #if DEBUG
+                assertionFailure("Keychain token 保存失败 OSStatus=\(status)")
+            #endif
+        }
     }
 
     /// token 读取（不存在时 nil）

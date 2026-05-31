@@ -84,9 +84,18 @@ final class APIClient {
 
         switch http.statusCode {
         case 200 ... 299:
+            // 204 No Content（成功但无 body）或 body 为空时，不走 JSON 解码，直接当成功
+            // backend 部分 DELETE 接口返回 204，空 body 解码会失败 → 防止误报失败
+            if http.statusCode == 204 || data.isEmpty {
+                if let empty = EmptyResponse() as? Res {
+                    return empty
+                }
+                // 期望非 EmptyResponse 类型却收到空 body 时才报错
+                throw APIError.decode(EmptyBodyError())
+            }
             do {
                 let decoder = JSONDecoder()
-                decoder.dateDecodingStrategy = .iso8601
+                decoder.dateDecodingStrategy = .custom(decodeISO8601Date)
                 return try decoder.decode(Res.self, from: data)
             } catch {
                 throw APIError.decode(error)
@@ -119,6 +128,38 @@ final class APIClient {
     func delete(path: String) async throws {
         let _: EmptyResponse = try await request(method: "DELETE", path: path, body: nil as String?)
     }
+}
+
+// MARK: - 日期解码
+
+/// 兼容「带小数秒」和「不带小数秒」两种后端返回的 ISO8601 时间解码（IX-003）。
+///
+/// 后端时间默认带微秒（小数秒），系统自带的 .iso8601 不解析小数秒会整段解码失败。
+/// 先用支持小数秒的 formatter 试，失败再退回不带小数秒的，两种都不行才抛错。
+///
+/// formatter 在函数内临时创建（不放全局 / 静态）：ISO8601DateFormatter 非 Sendable，
+/// 放全局会触发 Swift 6 并发安全报错；解码不在高频热路径，每次新建开销可忽略。
+/// 顶层函数天然不绑主线程，可直接传给 .custom 的 @Sendable 闭包参数。
+private func decodeISO8601Date(_ decoder: Decoder) throws -> Date {
+    let container = try decoder.singleValueContainer()
+    let raw = try container.decode(String.self)
+
+    let withFractional = ISO8601DateFormatter()
+    withFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    if let date = withFractional.date(from: raw) {
+        return date
+    }
+
+    let noFractional = ISO8601DateFormatter()
+    noFractional.formatOptions = [.withInternetDateTime]
+    if let date = noFractional.date(from: raw) {
+        return date
+    }
+
+    throw DecodingError.dataCorruptedError(
+        in: container,
+        debugDescription: "ISO8601 时间格式无法解析: \(raw)"
+    )
 }
 
 // MARK: - Helper types
@@ -154,3 +195,6 @@ private enum DetailError {
 }
 
 private struct EmptyResponse: Decodable {}
+
+/// 期望有 body 的接口却收到空 body / 204 时抛这个，区别于普通解码失败
+private struct EmptyBodyError: Error {}

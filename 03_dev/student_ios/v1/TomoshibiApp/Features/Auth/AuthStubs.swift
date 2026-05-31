@@ -1031,7 +1031,9 @@ struct RegisterStep1View: View {
                 app.registrationDraft.grade_code = gradeCode
                 app.registrationDraft.class_code = classCode
                 app.registrationDraft.seat_no = String(format: "%02d", Int(seatNoStr) ?? 0)
-                app.registrationDraft.room_no_suffix = room
+                // 发后端这条套用同样的双前缀防护：room 首位已是字母（如 "A5"）就直接用，
+                // 首位是数字（如 "101"）才加楼栋前缀，避免 "MA5" 脏数据
+                app.registrationDraft.room_no_suffix = (room.first?.isLetter == true) ? room : prefix + room
 
                 router.go(.registerStep2)
             }
@@ -1267,6 +1269,8 @@ struct RegisterStep3View: View {
             }
 
             footerDouble(
+                // 邮箱 / 电话 两个字段都标 required（必填），空值不应能进下一步
+                nextEnabled: !email.isEmpty && !phone.isEmpty,
                 onBack: { router.go(.registerStep2) },
                 onNext: {
                     // 2026-05-04 加: 累积 email / phone 到 draft（任意字段，空则传 nil）
@@ -1733,7 +1737,9 @@ struct LoginView: View {
         // 真实 API 调用
         do {
             let token = try await AuthAPI.loginStudent(studentNo: acc, password: pw)
-            app.authToken = token.accessToken // didSet → APIClient.token + Keychain.save
+            // IX-036: 走 setAuthToken 一并存过期时刻（原来直接赋 authToken 会跳过过期记录，
+            // 登录得到的令牌启动时就判不了过期）。didSet 仍同步 APIClient.token + Keychain.save。
+            app.setAuthToken(token.accessToken, expiresIn: token.expiresIn)
             app.resetLoginFailures()
             router.replace(.home)
         } catch APIError.unauthorized {

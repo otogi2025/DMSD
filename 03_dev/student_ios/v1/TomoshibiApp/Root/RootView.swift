@@ -59,51 +59,46 @@ struct RootView: View {
         case .login: LoginView()
         case .lockout: LockoutView()
         case .pwreset: PwResetView()
-
         // §1 Home 主屏 — Agent B 实装
         case .home: HomeView()
-
         // §1.3 老师公告（2026-05-04 加，spec §7.15）
         case .homeAnnouncements: AnnouncementListView()
-        case .homeAnnouncementDetail(let id): AnnouncementDetailView(id: id)
-
+        case let .homeAnnouncementDetail(id): AnnouncementDetailView(id: id)
         // §1.4 Home 子页 — Agent C 实装
         case .homeNotifications: NotificationsView()
         case .homePackages: PackagesView()
-        case .homePackageDetail(let id): PackageDetailView(id: id)
+        case let .homePackageDetail(id): PackageDetailView(id: id)
         case .homeLost: LostView()
         case .homeLostNew: LostNewView()
-        case .homeLostDetail(let id): LostDetailView(id: id)
+        case let .homeLostDetail(id): LostDetailView(id: id)
         case .homeMusic: MusicView()
         case .homeMusicNew: MusicNewView()
-        case .homeMusicDetail(let id): MusicDetailView(id: id)
+        case let .homeMusicDetail(id): MusicDetailView(id: id)
         case .homeWall: WallView()
         case .homeWallNew: WallNewView()
-        case .homeWallDetail(let id): WallDetailView(id: id)
+        case let .homeWallDetail(id): WallDetailView(id: id)
         case .homeEvents: EventsView()
-        case .homeEventDetail(let id): EventDetailView(id: id)
+        case let .homeEventDetail(id): EventDetailView(id: id)
         case .homeBus: BusView()
         case .homeSuggest: SuggestView()
         case .homeSuggestFeed: SuggestFeedView()
-
         // §2 申し込み — Agent D 实装
         case .apply: ApplyListView()
         case .applyNew: ApplyNewView()
-        case .applyForm(let kind): ApplyFormDispatcher(kind: kind)
-        case .applyPreview(let kind): ApplyPreviewView(kind: kind)
-        case .applyDone(let kind): ApplyDoneView(kind: kind)
-        case .applyDetail(let id): ApplyDetailView(id: id)
+        case let .applyForm(kind): ApplyFormDispatcher(kind: kind)
+        case let .applyPreview(kind): ApplyPreviewView(kind: kind)
+        case let .applyDone(kind): ApplyDoneView(kind: kind)
+        case let .applyDetail(id): ApplyDetailView(id: id)
         case .dormEventList: DormEventProposalListView()
         case .studyOnlineList: StudyOnlineRequestListView()
         case .fridgeList: FridgePurchaseListView()
         case .itemList: ItemPossessionListView()
-
         // §3 マイページ — Agent E 实装
         case .my: MyLandingView()
         case .myInfo: MyInfoView()
         case .myInfoEdit: MyInfoEditView()
         case .myRollcall: MyRollcallView()
-        case .myRollcallDetail: MyRollcallDetailView()
+        case let .myRollcallDetail(entryId): MyRollcallDetailView(entry: SEED.rollcall.first { $0.id == entryId })
         case .myPoints: MyPointsView()
         case .myPointsChart: MyPointsChartView()
         case .myDiscipline: MyDisciplineView()
@@ -113,11 +108,10 @@ struct RootView: View {
         case .mySettings: MySettingsView()
         case .myAbout: MyAboutView()
         case .myStudy: MyStudyView()
-
         // §4 V1 リファレンス系 — 老師 38 条 #5 / #8 / #9（会话 C 实装）
         case .stayList: StayListView()
-        case .stayDetail(let id): StayDetailView(id: id)
-        case .stayEdit(let id): StayEditForm(id: id)
+        case let .stayDetail(id): StayDetailView(id: id)
+        case let .stayEdit(id): StayEditForm(id: id)
         case .schedule: ScheduleView()
         case .busList: BusListView()
         }
