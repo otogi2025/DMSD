@@ -114,15 +114,37 @@ class TestAbsenceRequest:
 class TestCheckin:
     """POST /study/checkins"""
 
-    def test_student_checkin_self(self, client, student_token, seed_data, study_roster):
-        """学生自己 checkin（不传 student_id）。"""
+    def test_student_self_checkin_forbidden(
+        self, client, student_token, seed_data, study_roster
+    ):
+        """晚自习签到是 teacher-only（老师操作端）— 学生 token 自助调用 → 403 FORBIDDEN。
+
+        migtest-06: 旧测试名「学生自己 checkin」却只断言 < 500；该端点 Depends(get_current_teacher)，
+        学生本就得 403，弱断言把这层边界整个盖住。这里锁死「学生不能自助签到」的真实行为。
+        若将来要支持学生自助晚自习签到，是另开端点 / 放宽鉴权的设计变更（目前老师操作，需 itsuki 决策）。
+        """
         res = client.post(
             "/api/v1/study/checkins",
             json={"student_id": str(seed_data["student"].id)},
             headers={"Authorization": f"Bearer {student_token}"},
         )
-        # 业务规则可能 200 / 201 / 422（不在学習开始时间）— 验证至少不 500
-        assert res.status_code < 500
+        assert res.status_code == 403, res.text
+        assert res.json()["detail"]["code"] == "FORBIDDEN", res.text
+
+    def test_teacher_checkin_reachable(
+        self, client, teacher_token, seed_data, study_roster
+    ):
+        """老师给学生记晚自习签到 → 端点可达、返回结构化结果（200/201 成功 或 422 不在时间窗）。
+
+        migtest-06: 用真正有权限的 teacher token 走一遍 function，明确排除 401/403/404（鉴权 / 路由回归）。
+        present/late 的确定性断言需控制时间窗，属另一条 backlog。
+        """
+        res = client.post(
+            "/api/v1/study/checkins",
+            json={"student_id": str(seed_data["student"].id)},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code in (200, 201, 422), res.text
 
 
 class TestCancelToday:

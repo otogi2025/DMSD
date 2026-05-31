@@ -1,10 +1,13 @@
-"""pytest fixtures — テスト用 SQLite (in-memory) で完全分離。"""
+"""pytest fixtures — 专用文件 SQLite 测试库（./test_tomoshibi.db），与真实库 tomoshibi_dev.db 隔离。"""
+
 from __future__ import annotations
 
 import os
 
-# テスト時は in-memory SQLite + JWT secret 固定 + SendGrid 無効
-os.environ.setdefault("DATABASE_URL", "sqlite:///./test_tomoshibi.db")
+# 测试环境固定：专用文件测试库 + 固定 JWT secret + 关掉 SendGrid。
+# migtest-02: DATABASE_URL 用直接赋值【不能用 setdefault】—— 否则外部已 export 的 DATABASE_URL
+# 或 .env 指向真实库时，下面 _engine 的 drop_all / _truncate_tables 会清空真实库（数据破坏风险）。
+os.environ["DATABASE_URL"] = "sqlite:///./test_tomoshibi.db"
 os.environ.setdefault("JWT_SECRET", "test-secret-32-bytes-aaaaaaaaaa")
 os.environ.setdefault("SENDGRID_API_KEY", "")
 os.environ.setdefault("APP_ENV", "dev")
@@ -24,6 +27,10 @@ from app.main import app
 def _engine():
     # テスト用 engine (session scope, スキーマだけ用意)
     settings = get_settings()
+    # migtest-02 安全闸：连的库地址必须含 "test"，否则拒绝建表 / drop_all（双保险，防误清真库）
+    assert "test" in settings.database_url, (
+        f"测试库地址必须含 'test' 才允许 drop_all / create_all，实际为 {settings.database_url}"
+    )
     eng = create_engine(
         settings.database_url, connect_args={"check_same_thread": False}
     )

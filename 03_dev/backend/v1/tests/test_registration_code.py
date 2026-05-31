@@ -4,6 +4,7 @@
 - /admin/registration-code/{current,refresh,history} 权限 + 行为
 - POST /accounts: 注册码验证 / 学号重复 / room_no↔dorm_unit 一致性 / 成功路径
 """
+
 from __future__ import annotations
 
 
@@ -74,8 +75,8 @@ def test_refresh_invalidates_previous(client, teacher_token):
         "/api/v1/admin/registration-code/refresh",
         headers={"Authorization": f"Bearer {teacher_token}"},
     ).json()
-    # 两次 random 偶发碰撞理论可能（1/百万），允许相等 — 此 assert 是文档型
-    assert first["code"] != second["code"] or True
+    # 两次 refresh 必产出不同 code（新 code 生成）。理论 1/百万 碰撞概率可忽略。
+    assert first["code"] != second["code"]
 
     history = client.get(
         "/api/v1/admin/registration-code/history",
@@ -187,9 +188,7 @@ def test_create_account_code_reusable_within_ttl(client, seed_data, teacher_toke
     assert res2.status_code == 201, res2.text
 
 
-def test_create_account_after_refresh_old_code_fails(
-    client, seed_data, teacher_token
-):
+def test_create_account_after_refresh_old_code_fails(client, seed_data, teacher_token):
     """refresh 之后旧 code 立刻失效 → 用旧 code 注册 → 422。"""
     old_code = client.post(
         "/api/v1/admin/registration-code/refresh",

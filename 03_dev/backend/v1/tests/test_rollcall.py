@@ -166,18 +166,38 @@ class TestBoard:
     """GET /rollcall/sessions/:id/board"""
 
     def test_board_excludes_demo_students(
-        self, client, teacher_token, rollcall_session
+        self, client, teacher_token, seed_data, rollcall_session, db_session
     ):
-        """A-040 verify: is_demo=True 学生不进出席板。"""
+        """A-040 verify: is_demo=True 学生不进出席板。
+
+        migtest-07: 真造一个 demo 学生验过滤 —— 旧版在无 demo 数据下断言恒真（假覆盖）。
+        """
+        # 造 demo 学生（dorm_unit=1 落在本 session 寮范围；座位 99 避开 seed 的 06/02/18）
+        demo = models.Student(
+            grade_code="06",
+            class_code="02",
+            seat_no="99",
+            name="デモ太郎",
+            gender="male",
+            room_no="M199",
+            dorm_unit=1,
+            is_overseas=False,
+            email="demo@test.jp",
+            is_demo=True,
+        )
+        db_session.add(demo)
+        db_session.commit()
+
         res = client.get(
             f"/api/v1/rollcall/sessions/{rollcall_session.id}/board",
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 200
-        data = res.json()
-        assert "entries" in data
-        # 没 demo 学生 — seed_data 创建的 060218 不是 demo
-        assert all(e.get("student_no") != "999999" for e in data["entries"])
+        nos = {e.get("student_no") for e in res.json()["entries"]}
+        # demo 学生（060299）必须被过滤掉
+        assert demo.student_no not in nos, f"demo 学生未被过滤: {nos}"
+        # 非 demo 的 seed 学生（060218）必须在板上 — 证明板非空、过滤没误杀正常学生
+        assert seed_data["student"].student_no in nos, f"seed 学生不在板上: {nos}"
 
 
 class TestNoEffectiveWindowShift:
