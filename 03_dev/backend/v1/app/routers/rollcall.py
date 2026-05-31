@@ -18,6 +18,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas, ws_manager as _ws
@@ -279,7 +280,18 @@ def create_checkin(
             },
         )
 
-    now = body.ts_local or _now_jst()
+    # rollcall-12: 不再无条件信任客户端 ts_local — 仅在 server now 的容忍窗口内采纳，
+    # 超窗（未来时间 / 远古时间）回退 server time，防伪造 present/late 绕过迟到扣分
+    server_now = _now_jst()
+    now = server_now
+    if body.ts_local is not None:
+        ts = _as_jst_aware(body.ts_local)
+        if (
+            server_now - timedelta(minutes=10)
+            <= ts
+            <= server_now + timedelta(minutes=2)
+        ):
+            now = ts
     student: Optional[models.Student] = None
 
     # A-020 (2026-05-21): path_hint 一致性校验（client 显式标路径时挡假数据）
@@ -385,7 +397,22 @@ def create_checkin(
             )
         )
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # rollcall-05: 路径 B 并发重复提交撞 uq_rce_idempotency 唯一约束
+        # → 回滚后用 idempotency_key 重查，返回已存事件（幂等而非 500）
+        db.rollback()
+        if body.idempotency_key:
+            existing = db.scalars(
+                select(models.RollCallEvent).where(
+                    models.RollCallEvent.session_id == session_id,
+                    models.RollCallEvent.idempotency_key == body.idempotency_key,
+                )
+            ).first()
+            if existing:
+                return schemas.RollCallEventOut.model_validate(existing)
+        raise
     db.refresh(event)
 
     # WS broadcast — 只推给管辖该学生所在寮的老师连接
@@ -615,6 +642,17 @@ def patch_event(
             404, {"code": "NOT_FOUND", "message": "点呼イベントが見つかりません"}
         )
 
+    # 终态约束：已结束(ended)的场次禁止改判（spec §11 结束后冻结）
+    session = db.get(models.RollCallSession, event.session_id)
+    if session is not None and session.session_status == "ended":
+        raise HTTPException(
+            409,
+            {
+                "code": "SESSION_ENDED",
+                "message": "終了済みのセッションは改判できません",
+            },
+        )
+
     # R4 寮边界：改判前确认该学生属本老师管辖寮
     student = db.get(models.Student, event.student_id)
     if student:
@@ -623,7 +661,17 @@ def patch_event(
     old_status = event.base_status
     new_status = body.to_status
 
-    # append-only: 既存行は変えず新しい override 行を追加
+    # no-op 守卫：同状态改判不允许（防误操作 / 重复 PATCH 刷扣分）
+    if old_status == new_status:
+        raise HTTPException(
+            409,
+            {
+                "code": "NO_OP_OVERRIDE",
+                "message": "現在と同じ状態への改判はできません",
+            },
+        )
+
+    # append-only：不改既存行，追加一条新的 override 行
     override_event = models.RollCallEvent(
         session_id=event.session_id,
         student_id=event.student_id,
@@ -651,9 +699,8 @@ def patch_event(
         )
     )
 
-    # spec §11.4 改判扣分联动
-    session = db.get(models.RollCallSession, event.session_id)
-    if session is not None and old_status != new_status:
+    # spec §11.4 改判扣分联动（session 已在函数顶部取出；old_status != new_status 已由 no-op 守卫保证）
+    if session is not None:
         _apply_override_demerit(
             db, event.student_id, session, old_status, new_status, teacher.id
         )

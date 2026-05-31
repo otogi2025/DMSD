@@ -13,7 +13,7 @@ POST /api/v1/study/cancel-today                 — 今日学習中止 (学習�
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from typing import Optional
 from uuid import UUID
 
@@ -271,8 +271,25 @@ def create_checkin(
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(get_current_teacher),
 ):
+    from zoneinfo import ZoneInfo
+
     today = _today_jst()
-    checked_at = body.checked_at or _now_jst()
+    # rollcall-12: 不再无条件信任客户端 checked_at — 仅在 server now 容忍窗口内采纳，
+    # 超窗回退 server time，防把迟到的晚自习签到伪造成 present
+    server_now = _now_jst()
+    checked_at = server_now
+    if body.checked_at is not None:
+        ca = (
+            body.checked_at
+            if body.checked_at.tzinfo
+            else body.checked_at.replace(tzinfo=ZoneInfo("Asia/Tokyo"))
+        )
+        if (
+            server_now - timedelta(minutes=10)
+            <= ca
+            <= server_now + timedelta(minutes=2)
+        ):
+            checked_at = ca
     study_start = _study_start_dt(today)
 
     student = db.get(models.Student, body.student_id)

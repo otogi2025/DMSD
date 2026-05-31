@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import secrets
 from datetime import datetime, timedelta, timezone
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
@@ -264,11 +265,11 @@ def create_teacher(
 # ---------------------------------------------------------------
 @router.delete("/{teacher_id}", status_code=204)
 def delete_teacher(
-    teacher_id: str,
+    teacher_id: UUID,
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(require_teacher_roles(*TEACHER_ADMIN_ROLES)),
 ):
-    if str(teacher.id) == teacher_id:
+    if teacher.id == teacher_id:
         raise HTTPException(
             400,
             {"code": "CANNOT_DELETE_SELF", "message": "自分自身は削除できません"},

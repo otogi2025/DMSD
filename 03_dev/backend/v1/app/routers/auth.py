@@ -36,6 +36,13 @@ TEACHER_LOCK_DURATION_MIN = 30  # 锁 30 分钟
 STUDENT_LOCK_THRESHOLD = 5
 STUDENT_LOCK_DURATION_MIN = 15
 
+# auth-account-09：时序侧信道加固。
+# 账号（学号/教师）不存在时，原本会短路跳过 bcrypt 校验导致响应明显更快，
+# 可被用来枚举哪些账号已注册。这里预算一个固定 dummy hash，账号缺失时也
+# 跑一次 verify_password，让 bcrypt 耗时在「存在」与「不存在」两种情况下一致。
+# 模块加载时算一次，不影响每次请求性能。
+_DUMMY_PASSWORD_HASH = security.hash_password("dummy-password-for-timing-equalization")
+
 
 @router.post("/student", response_model=schemas.TokenOut)
 def login_student(body: schemas.StudentLoginIn, db: Session = Depends(get_db)):
@@ -83,11 +90,10 @@ def login_student(body: schemas.StudentLoginIn, db: Session = Depends(get_db)):
         )
 
     # 密码校验失败 → 失败计数 + 触发锁
-    if (
-        not student
-        or not account
-        or not security.verify_password(body.password, account.password_hash)
-    ):
+    # auth-account-09：无论账号是否存在都跑一次 bcrypt，等化响应耗时，防账号枚举。
+    password_hash = account.password_hash if account else _DUMMY_PASSWORD_HASH
+    password_ok = security.verify_password(body.password, password_hash)
+    if not student or not account or not password_ok:
         if account:
             account.failed_count = (account.failed_count or 0) + 1
             if account.failed_count >= STUDENT_LOCK_THRESHOLD:
@@ -162,9 +168,10 @@ def login_teacher(body: schemas.TeacherLoginIn, db: Session = Depends(get_db)):
         )
 
     # 密码校验失败 → 失败计数 + 触发锁
-    if not teacher or not security.verify_password(
-        body.password, teacher.password_hash
-    ):
+    # auth-account-09：无论账号是否存在都跑一次 bcrypt，等化响应耗时，防账号枚举。
+    password_hash = teacher.password_hash if teacher else _DUMMY_PASSWORD_HASH
+    password_ok = security.verify_password(body.password, password_hash)
+    if not teacher or not password_ok:
         if teacher:
             teacher.failed_count = (teacher.failed_count or 0) + 1
             if teacher.failed_count >= TEACHER_LOCK_THRESHOLD:

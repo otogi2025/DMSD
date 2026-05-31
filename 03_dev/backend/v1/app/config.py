@@ -43,7 +43,8 @@ class Settings(BaseSettings):
 
     # JWT
     jwt_secret: str = "change-me-in-production"
-    jwt_algorithm: str = "HS256"
+    # 算法硬锁为安全 HMAC 清单 — 防 .env 误配成 none / 非对称算法导致弱签名或密钥混淆
+    jwt_algorithm: Literal["HS256", "HS384", "HS512"] = "HS256"
     jwt_access_expire_min: int = 1440  # 24h
     jwt_refresh_expire_min: int = 43200  # 30d
 

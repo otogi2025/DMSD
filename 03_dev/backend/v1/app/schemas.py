@@ -744,7 +744,7 @@ class TeacherCreateIn(BaseModel):
     """POST /teachers — 已登录教师 + 寮務管理权限 → 直接创建新教师（v1.0 简化版，跳过邀请码流程）。
     邀请码流程（POST /teachers/invitations + /register）保留 backend 但 v1.0 web 不实装 UI。"""
 
-    login_id: str = Field(..., min_length=1, max_length=32)
+    login_id: str = Field(..., min_length=4, max_length=32, pattern=r"^[a-zA-Z0-9_-]+$")
     name: str = Field(..., min_length=1)
     email: EmailStr
     password: str = Field(..., min_length=8)

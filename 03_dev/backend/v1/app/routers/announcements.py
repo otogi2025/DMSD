@@ -246,7 +246,10 @@ def get_announcement_detail(
 
     # 写已读只对学生 (AnnouncementRead 表只有 student_id 字段)
     if not is_teacher:
-        existing_read = db.get(models.AnnouncementRead, (ann.id, principal.id))
+        existing_read = db.get(
+            models.AnnouncementRead,
+            {"announcement_id": ann.id, "student_id": principal.id},
+        )
         if existing_read is None:
             db.add(
                 models.AnnouncementRead(
@@ -265,12 +268,44 @@ def get_announcement_detail(
         )
         .order_by(models.AnnouncementReply.created_at.asc())
     ).all()
+    # 作者名批量解析（避免按回复逐条 db.get 的 N+1）：
+    # 先按 author_kind 把 author_id 分组，各做一次 IN 查询建 id→name 字典。
+    teacher_ids = {r.author_id for r in reply_rows if r.author_kind == "teacher"}
+    student_ids = {r.author_id for r in reply_rows if r.author_kind != "teacher"}
+    teacher_names = (
+        dict(
+            db.execute(
+                select(models.Teacher.id, models.Teacher.name).where(
+                    models.Teacher.id.in_(teacher_ids)
+                )
+            ).all()
+        )
+        if teacher_ids
+        else {}
+    )
+    student_names = (
+        dict(
+            db.execute(
+                select(models.Student.id, models.Student.name).where(
+                    models.Student.id.in_(student_ids)
+                )
+            ).all()
+        )
+        if student_ids
+        else {}
+    )
+
+    def _reply_author_name(r: models.AnnouncementReply) -> str:
+        if r.author_kind == "teacher":
+            return teacher_names.get(r.author_id, "(削除済教師)")
+        return student_names.get(r.author_id, "(削除済学生)")
+
     replies = [
         schemas.AnnouncementReplyOut(
             id=r.id,
             author_kind=r.author_kind,
             author_id=r.author_id,
-            author_name=_resolve_reply_author_name(r, db),
+            author_name=_reply_author_name(r),
             body=r.body,
             created_at=r.created_at,
         )

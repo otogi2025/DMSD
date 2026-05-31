@@ -116,7 +116,9 @@ def decide_event_proposal(
 ):
     record = db.get(models.DormEventProposal, proposal_id)
     if not record:
-        raise HTTPException(404, {"code": "NOT_FOUND", "message": "申請が見つかりません"})
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "申請が見つかりません"}
+        )
     _ensure_pending(record.result)
     record.result = body.decision
     record.decided_by = teacher.id
@@ -147,7 +149,9 @@ def create_schedule_change(
     return schemas.DormScheduleChangeOut.model_validate(record)
 
 
-@router.get("/schedule-changes/mine", response_model=list[schemas.DormScheduleChangeOut])
+@router.get(
+    "/schedule-changes/mine", response_model=list[schemas.DormScheduleChangeOut]
+)
 def list_my_schedule_changes(
     status_filter: str | None = Query(None, alias="status"),
     db: Session = Depends(get_db),
@@ -193,7 +197,9 @@ def decide_schedule_change(
 ):
     record = db.get(models.DormScheduleChange, change_id)
     if not record:
-        raise HTTPException(404, {"code": "NOT_FOUND", "message": "申請が見つかりません"})
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "申請が見つかりません"}
+        )
     _ensure_pending(record.status)
     record.status = body.decision
     record.decided_by = teacher.id
@@ -273,18 +279,25 @@ def decide_fridge_purchase(
 ):
     record = db.get(models.FridgePurchaseRequest, request_id)
     if not record:
-        raise HTTPException(404, {"code": "NOT_FOUND", "message": "申請が見つかりません"})
-    if record.status == "rejected" or (
-        record.status == "delivered" and body.decision != "delivered"
-    ):
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "申請が見つかりません"}
+        )
+    # 冷蔵庫購入届合法状态流转白名单：pending→ordered/rejected、ordered→delivered
+    # 白名单外（ordered→rejected、已 delivered/rejected 再次决定、同状态重复覆盖等）一律拒绝
+    _allowed_fridge_transitions: dict[str, set[str]] = {
+        "pending": {"ordered", "rejected"},
+        "ordered": {"delivered"},
+    }
+    if body.decision not in _allowed_fridge_transitions.get(record.status, set()):
+        # pending 想直接跳 delivered 的情况用专用提示引导
+        if record.status == "pending" and body.decision == "delivered":
+            raise HTTPException(
+                409,
+                {"code": "CANNOT_DELIVER", "message": "注文済みの申請だけ引き渡せます"},
+            )
         raise HTTPException(
             409,
             {"code": "APPROVAL_ALREADY_DECIDED", "message": "既に決定済みです"},
-        )
-    if record.status == "pending" and body.decision == "delivered":
-        raise HTTPException(
-            409,
-            {"code": "CANNOT_DELIVER", "message": "注文済みの申請だけ引き渡せます"},
         )
     record.status = body.decision
     if body.delivered_sign is not None:
@@ -336,9 +349,7 @@ def list_my_item_possessions(
     return [schemas.ItemPossessionRequestOut.model_validate(row) for row in rows]
 
 
-@router.get(
-    "/item-possessions", response_model=list[schemas.ItemPossessionRequestOut]
-)
+@router.get("/item-possessions", response_model=list[schemas.ItemPossessionRequestOut])
 def list_item_possessions(
     status_filter: str | None = Query("pending", alias="status"),
     db: Session = Depends(get_db),
@@ -366,7 +377,9 @@ def decide_item_possession(
 ):
     record = db.get(models.ItemPossessionRequest, request_id)
     if not record:
-        raise HTTPException(404, {"code": "NOT_FOUND", "message": "申請が見つかりません"})
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "申請が見つかりません"}
+        )
     _ensure_pending(record.status)
     record.status = body.decision
     record.decided_by = teacher.id
