@@ -50,6 +50,12 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+### 2026-05-31 iOS 学生端 B 类「演示假数据→真后端」接线（多阶段 + codex 每阶段审）by [Opus 4.8 1M]
+
+**🔴 本会话进度全在 `05_logs/ios接后端_进度与handoff.md`（压缩防丢信息文件 — 新会话 / 压缩后先读它）。**
+
+**主题**：itsuki「继续做 iOS app 推进」→ 深挖发现 app ~85% 完成 → 多 agent + codex 交叉验证审出 37 bug（IX-001~037，全清单 `05_logs/audit_2026-05-29_ios交叉验证.md`）→ itsuki 拍板「全都修好」+「每阶段做完派 codex `gpt-5.5` xhigh 审一遍」+「优先级 CC 自己定别停下问」。已提交：`60a2b3b`（A 类 28 + B 类删账号 / 申请假编号 / 申请列表接后端）/ `e2a0355`（codex 审修 5 条，含 codex 逮到我 IX-014 房间号修复的回归 MM101）/ `9728f51`（日语注释 hook 放行 `「」`引用 UI 文字）/ `40d9d59`（IX-004 修改届接后端）。**后端在本地跑 `localhost:8000` 能真验证**（学生 `060218`/`123456`）。**待办**：codex 阶段2(IX-004) 审查结果 `/tmp/codex_stage2_out.txt` + B 类剩余 IX-008 用户资料(要后端加 `/me`)/IX-009 通知/IX-034 请假计数/IX-007 详情 otherDetailBody。AC：多 AI 交叉验证 + codex 逮到我自己的回归 + 我当场纠错（模式 2+5）。
+
 ### 2026-05-29 session-coord 协作板改 hook 自动维护 by [MacBook-Pro-Opus 4.8 1M]
 
 **主题**：itsuki 自己发现多窗口协作板（session-coord）缺陷「注册完不更新 / 别窗口不知道在干嘛 / 怕费 token」→ 要求「先帮我了解再优化」。CC 读全部脚本确认 3 条全对 → 诊断真因「靠 CC 每回合自觉跑脚本，CC 不自觉=摆设」→ 撞 itsuki 旧铁律「机制兜底优于自律」。方案：改 hook 后台自动维护。新建 `~/.claude/hooks/session-coord-auto.sh` + `lib/session_coord_auto.py`（挂 SessionStart+UserPromptSubmit）：开窗自动注册 + 每次发话刷心跳 + 把 itsuki 那句话存「当前任务」，零对话 token；改 register.sh（认 `CLAUDE_CODE_SESSION_ID` + 幂等）/ scan.sh（死窗口瘦身 + 自动清理超 1h）。配套同步 6 文档。已验证 hook 建目录/记任务/scan 对号/瘦身（假数据模拟），**真实触发待 itsuki 重开窗口确认**。全局 9 文件不在 repo 无法 commit，DMSD 内仅 dmsd-startup/SKILL.md + raw commit（`f424f7e`）。AC：模式 2+5+6。raw：`05_logs/raw/2026-05-29_session-coord自动化.md`
