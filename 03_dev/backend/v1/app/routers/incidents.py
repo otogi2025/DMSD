@@ -7,7 +7,7 @@
 - PATCH  /api/v1/incidents/{id}      — 老师编辑事案
 - DELETE /api/v1/incidents/{id}      — 老师软删事案
 
-角色 gate: 寮務系老师（寮務部長/寮務課長/寮監/寮務一般教师/管理係）
+角色 gate: 寮務系老师（寮務部長/寮務課長/寮監/寮務一般教師/管理係）
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ _INCIDENT_ROLES = {
     "寮務部長",
     "寮務課長",
     "寮監",
-    "寮務一般教师",
+    "寮務一般教師",
     "管理係",
 }
 

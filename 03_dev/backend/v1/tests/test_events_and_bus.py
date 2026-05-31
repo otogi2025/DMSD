@@ -26,7 +26,7 @@ def edit_token(client, seed_data):
 
 @pytest.fixture
 def readonly_token(client, seed_data):
-    """寮務一般教师 token — 只有读权限（无增删改）。"""
+    """寮務一般教師 token — 只有读权限（无增删改）。"""
     res = client.post(
         "/api/v1/sessions/teacher",
         json={"login_id": "tannin", "password": "test-password-12345"},

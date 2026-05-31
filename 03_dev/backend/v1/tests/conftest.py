@@ -105,7 +105,7 @@ def seed_data(db_session):
         ("kokukou_buchou", "国際三郎", "kb@test.jp", "国際交流部長", None),
         ("kokukou_kachou", "国際四郎", "kk@test.jp", "国際交流課長", None),
         ("kanri", "管理五郎", "kn@test.jp", "管理係", None),
-        ("tannin", "担任太郎", "tn@test.jp", "寮務一般教师", 1),
+        ("tannin", "担任太郎", "tn@test.jp", "寮務一般教師", 1),
     ]
     teachers: dict[str, models.Teacher] = {}
     for login_id, name, email, role, dorm in teachers_data:

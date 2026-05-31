@@ -94,7 +94,7 @@ def upgrade() -> None:
     sa.Column('last_login_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('status', sa.Text(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
-    sa.CheckConstraint("role IN ('寮務部長','寮務課長','国際交流部長','国際交流課長','管理係','寮監','学習担当','寮務一般教师')", name='ck_teachers_role'),
+    sa.CheckConstraint("role IN ('寮務部長','寮務課長','国際交流部長','国際交流課長','管理係','寮監','学習担当','寮務一般教師')", name='ck_teachers_role'),
     sa.CheckConstraint("status IN ('active','disabled')", name='ck_teachers_status'),
     sa.CheckConstraint('assigned_dorm IS NULL OR assigned_dorm IN (1, 2, 4)', name='ck_teachers_dorm'),
     sa.PrimaryKeyConstraint('id'),

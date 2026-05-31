@@ -362,7 +362,7 @@ def test_meals_role_forbidden(client, seed_data, db_session):
     """寮監 (= role 外) は食堂データ見れない。"""
     res = client.post(
         "/api/v1/sessions/teacher",
-        json={"login_id": "tannin", "password": "test-password-12345"},  # tannin = 寮務一般教师, 認可 OK
+        json={"login_id": "tannin", "password": "test-password-12345"},  # tannin = 寮務一般教師, 認可 OK
     )
     assert res.status_code == 200
     # 一般教师は OK

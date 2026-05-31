@@ -80,19 +80,19 @@ class TestWsBroadcastDormFilter:
 def cross_dorm_setup(db_session, seed_data):
     """
     seed_data 里已有男寮学生（dorm_unit=1），
-    再创建一个女寮专职老师（assigned_dorm=4、寮務一般教师）用于越权测试。
+    再创建一个女寮专职老师（assigned_dorm=4、寮務一般教師）用于越权测试。
     """
     from app import security
 
     pw = security.hash_password("test-password-12345")
 
-    # 女寮专职老师（寮務一般教师 = 有指导履历权限，但管辖范围是女寮）
+    # 女寮专职老师（寮務一般教師 = 有指导履历权限，但管辖范围是女寮）
     joshi_teacher = models.Teacher(
         login_id="joshi_tannin",
         name="女寮先生",
         email="joshi@test.jp",
         password_hash=pw,
-        role="寮務一般教师",
+        role="寮務一般教師",
         assigned_dorm=4,  # 女寮
     )
     db_session.add(joshi_teacher)
@@ -135,7 +135,7 @@ class TestGuidanceDormBoundary:
 
     def test_list_guidance_own_dorm_ok(self, client, cross_dorm_setup, seed_data):
         """男寮老师（tannin、assigned_dorm=1）能查看男寮学生的指导履历。"""
-        # tannin 是 seed_data 里的男寮老师（寮務一般教师、assigned_dorm=1）
+        # tannin 是 seed_data 里的男寮老师（寮務一般教師、assigned_dorm=1）
         res = client.post(
             "/api/v1/sessions/teacher",
             json={"login_id": "tannin", "password": "test-password-12345"},

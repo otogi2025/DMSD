@@ -20,7 +20,7 @@ router = APIRouter(prefix="/api/v1/meals", tags=["meals"])
 
 
 # 食堂データを見て良い役职 (寮務 + 管理係)
-_ALLOWED_ROLES = {"寮務部長", "寮務課長", "管理係", "寮務一般教师"}
+_ALLOWED_ROLES = {"寮務部長", "寮務課長", "管理係", "寮務一般教師"}
 
 
 def _check_role(teacher: models.Teacher) -> None:

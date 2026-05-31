@@ -109,7 +109,7 @@ TEACHER_ROLES = (
     "管理係",
     "寮監",
     "学習担当",
-    "寮務一般教师",
+    "寮務一般教師",
 )
 
 
@@ -135,7 +135,7 @@ class Teacher(Base):
     __table_args__ = (
         CheckConstraint(
             "role IN ('校長','寮務部長','寮務課長','国際交流部長','国際交流課長',"
-            "'管理係','寮監','学習担当','寮務一般教师')",
+            "'管理係','寮監','学習担当','寮務一般教師')",
             name="ck_teachers_role",
         ),
         CheckConstraint(

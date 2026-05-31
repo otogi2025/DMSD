@@ -29,7 +29,7 @@ def ryomu_token(client, seed_data):
 
 @pytest.fixture
 def tannin_token(client, seed_data):
-    """寮務一般教师 token — 也有指导履历 + 事案权限（同属寮務系）。"""
+    """寮務一般教師 token — 也有指导履历 + 事案权限（同属寮務系）。"""
     res = client.post(
         "/api/v1/sessions/teacher",
         json={"login_id": "tannin", "password": "test-password-12345"},
@@ -412,7 +412,7 @@ class TestGuidanceDormBoundary:
 
     @pytest.fixture
     def joshi_token(self, client, seed_data, db_session):
-        """女寮担当・寮務一般教师 — dorm_unit=4 管辖，学生 dorm_unit=1 → 跨寮。"""
+        """女寮担当・寮務一般教師 — dorm_unit=4 管辖，学生 dorm_unit=1 → 跨寮。"""
         from app import models, security
 
         t = models.Teacher(
@@ -420,7 +420,7 @@ class TestGuidanceDormBoundary:
             name="女寮太郎",
             email="jt@test.jp",
             password_hash=security.hash_password("test-password-12345"),
-            role="寮務一般教师",
+            role="寮務一般教師",
             assigned_dorm=4,  # 女寮 → dorm_units_for_teacher 返回 [4]
         )
         db_session.add(t)
