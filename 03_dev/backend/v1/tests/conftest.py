@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import os
 
-# 测试环境固定：专用文件测试库 + 固定 JWT secret + 关掉 SendGrid。
-# migtest-02: DATABASE_URL 用直接赋值【不能用 setdefault】—— 否则外部已 export 的 DATABASE_URL
-# 或 .env 指向真实库时，下面 _engine 的 drop_all / _truncate_tables 会清空真实库（数据破坏风险）。
-os.environ["DATABASE_URL"] = "sqlite:///./test_tomoshibi.db"
+# 测试环境：默认专用文件测试库 + 固定 JWT secret + 关掉 SendGrid。
+# migtest-02: 用 setdefault 保留 CI / 开发者经 env 指定测试库的能力（CI 用 ci_test.db）；
+# 真正的「防清空真实库」防护交给下面 _engine 的测试库名安全闸，不在这里硬覆盖 env。
+os.environ.setdefault("DATABASE_URL", "sqlite:///./test_tomoshibi.db")
 os.environ.setdefault("JWT_SECRET", "test-secret-32-bytes-aaaaaaaaaa")
 os.environ.setdefault("SENDGRID_API_KEY", "")
 os.environ.setdefault("APP_ENV", "dev")
@@ -25,12 +25,18 @@ from app.main import app
 
 @pytest.fixture(scope="session")
 def _engine():
-    # テスト用 engine (session scope, スキーマだけ用意)
+    # 测试用 engine（会话级，只建 schema）
     settings = get_settings()
-    # migtest-02 安全闸：连的库地址必须含 "test"，否则拒绝建表 / drop_all（双保险，防误清真库）
-    assert "test" in settings.database_url, (
-        f"测试库地址必须含 'test' 才允许 drop_all / create_all，实际为 {settings.database_url}"
-    )
+    # migtest-02 安全闸：拒绝在非测试库上 drop_all / create_all（防清空真实库 tomoshibi_dev.db）。
+    # 用 RuntimeError —— assert 在 python -O 下会被跳过；按库文件名 basename 判断，
+    # 只放行内存库（:memory:）或文件名含 "test" 的库（test_tomoshibi.db / ci_test.db 都过）。
+    _db_url = settings.database_url
+    _db_name = _db_url.rsplit("/", 1)[-1].lower()
+    if ":memory:" not in _db_url and "test" not in _db_name:
+        raise RuntimeError(
+            f"拒绝在非测试库上跑测试（防 drop_all 清空真库）：{_db_url}。"
+            "测试库文件名需含 'test'，或用内存库 :memory:。"
+        )
     eng = create_engine(
         settings.database_url, connect_args={"check_same_thread": False}
     )

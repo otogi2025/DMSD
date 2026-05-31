@@ -131,20 +131,24 @@ class TestCheckin:
         assert res.status_code == 403, res.text
         assert res.json()["detail"]["code"] == "FORBIDDEN", res.text
 
-    def test_teacher_checkin_reachable(
+    def test_teacher_checkin_records(
         self, client, teacher_token, seed_data, study_roster
     ):
-        """老师给学生记晚自习签到 → 端点可达、返回结构化结果（200/201 成功 或 422 不在时间窗）。
+        """老师给学生记晚自习签到 → 201，返回记录含该学生 + present/late 状态。
 
-        migtest-06: 用真正有权限的 teacher token 走一遍 function，明确排除 401/403/404（鉴权 / 路由回归）。
-        present/late 的确定性断言需控制时间窗，属另一条 backlog。
+        migtest-06: 合法 teacher+student 首次签到恒 201（时间窗只决定 present/late、不报 422；
+        404=学生不存在 / 403=寮边界 / 409=重复签到 才是别的码）。收紧到 201 + 断字段 ——
+        否则 422 会放过请求体 schema 回归。
         """
         res = client.post(
             "/api/v1/study/checkins",
             json={"student_id": str(seed_data["student"].id)},
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
-        assert res.status_code in (200, 201, 422), res.text
+        assert res.status_code == 201, res.text
+        data = res.json()
+        assert data["student_id"] == str(seed_data["student"].id)
+        assert data["status"] in ("present", "late")
 
 
 class TestCancelToday:
