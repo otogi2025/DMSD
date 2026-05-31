@@ -744,7 +744,7 @@ class TeacherCreateIn(BaseModel):
 
     login_id: str = Field(..., min_length=1, max_length=32)
     name: str = Field(..., min_length=1)
-    email: str = Field(..., min_length=3)
+    email: EmailStr
     password: str = Field(..., min_length=8)
     role: str
     assigned_dorm: Optional[int] = None
