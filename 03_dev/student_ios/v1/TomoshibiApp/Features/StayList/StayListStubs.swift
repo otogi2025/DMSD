@@ -1241,16 +1241,48 @@ struct StayEditForm: View {
         .task { await load() }
     }
 
-    /// ⚠️ DEMO-ONLY-SCAFFOLD（2026-05-03）：纯 mock，无后端依赖
-    /// v1.0 切回：UUID guard + ApplicationsAPI.detail + 4 个 catch 分支
+    /// IX-004: 修改届预填加载。原来只 StayListMock.find 纯 mock（注释写「v1.0 切回」但没做）。
+    /// 现在照搬 StayDetailView 的写法：未登录 / 非 UUID → mock；已登录 → ApplicationsAPI.detail 拉真申请预填。
     private func load() async {
         isLoading = true
         defer { isLoading = false }
-        if let item = StayListMock.find(id) {
-            loadedOriginal = item
+
+        // 未登录态（reviewer / 开发态看 UI）→ mock
+        guard app.isAuthenticated else {
+            if let item = StayListMock.find(id) {
+                loadedOriginal = item
+                initFields()
+            } else {
+                app.showToast("ログインが必要です")
+                router.back()
+            }
+            return
+        }
+
+        // 非 UUID id（如硬编码 mock id 跳进来）→ mock 兜底
+        guard let uuid = UUID(uuidString: id) else {
+            if let item = StayListMock.find(id) {
+                loadedOriginal = item
+                initFields()
+            } else {
+                app.showToast("無効な申請 ID です")
+                router.back()
+            }
+            return
+        }
+
+        do {
+            let detailOut = try await ApplicationsAPI.detail(id: uuid)
+            loadedOriginal = detailOut.toStayApplication()
             initFields()
-        } else {
-            app.showToast("申請が見つかりません")
+        } catch APIError.unauthorized {
+            // 401 = 令牌失效：清 authToken（didSet 删 Keychain）+ 退回，不显示假数据
+            app.authToken = nil
+            router.back()
+        } catch {
+            app.showToast(APIErrorPresenter.userMessage(
+                for: error, fallback: "申請の取得に失敗しました"
+            ))
             router.back()
         }
     }
@@ -1454,23 +1486,54 @@ struct StayEditForm: View {
         Task { await submitAsync() }
     }
 
-    /// ⚠️ DEMO-ONLY-SCAFFOLD（2026-05-03）：纯 mock，无后端依赖
-    /// v1.0 切回：UUID guard + 构造 ApplicationUpdateBody + ApplicationsAPI.update + 5 个 catch 分支
+    /// IX-004: 修改届提交。原来只调 StayListMock.applyAmendment 纯 mock（注释写「v1.0 切回」但没做）。
+    /// 现在：未登录 / 非 UUID → mock；已登录 → 构造 ApplicationUpdateBody 调 PUT /applications/:id。
+    /// amendReason（修改理由）后端 ApplicationUpdateBody 没对应字段、不发送（后端自动记审计 + 重置承认流程）。
     private func submitAsync() async {
         let trimmedDest = destination.trimmingCharacters(in: .whitespaces)
         isSubmitting = true
         defer { isSubmitting = false }
-        StayListMock.applyAmendment(
-            id: original.id,
-            leaveDate: formatYMD(leaveDate),
-            returnDate: formatYMD(returnDate),
-            leaveMethod: leaveMethod,
-            returnMethod: returnMethod,
-            destination: trimmedDest.isEmpty ? nil : trimmedDest,
-            amendReason: amendReason
-        )
-        app.showToast("修改届を提出しました")
-        router.back()
+
+        // 未登录态 / 非 UUID id（reviewer / 开发态）→ mock
+        guard app.isAuthenticated, let uuid = UUID(uuidString: original.id) else {
+            StayListMock.applyAmendment(
+                id: original.id,
+                leaveDate: formatYMD(leaveDate),
+                returnDate: formatYMD(returnDate),
+                leaveMethod: leaveMethod,
+                returnMethod: returnMethod,
+                destination: trimmedDest.isEmpty ? nil : trimmedDest,
+                amendReason: amendReason
+            )
+            app.showToast("修改届を提出しました")
+            router.back()
+            return
+        }
+
+        // 生产：只把改过的字段塞进 ApplicationUpdateBody（其余 nil 不发，后端只更新非 nil）
+        var body = ApplicationUpdateBody()
+        body.leave_date = formatYMD(leaveDate)
+        body.leave_method = leaveMethod
+        body.return_date = formatYMD(returnDate)
+        body.return_method = returnMethod
+        if needsDestination {
+            body.dest_cities = trimmedDest.isEmpty ? nil : trimmedDest
+        }
+
+        do {
+            _ = try await ApplicationsAPI.update(id: uuid, body: body)
+            app.showToast("修改届を提出しました")
+            router.back()
+        } catch APIError.unauthorized {
+            app.authToken = nil
+            router.replace(.login)
+        } catch let APIError.unprocessable(msg) {
+            app.showToast(msg)
+        } catch let APIError.server(_, msg) {
+            app.showToast(msg.isEmpty ? "修正に失敗しました" : msg)
+        } catch {
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "修正に失敗しました"))
+        }
     }
 
     private func parseYMD(_ s: String) -> Date? {
