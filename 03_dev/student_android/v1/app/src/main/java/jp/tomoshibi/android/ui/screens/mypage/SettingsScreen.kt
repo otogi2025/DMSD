@@ -48,11 +48,11 @@ fun SettingsScreen(navController: NavHostController) {
             // 顶部 ← + 設定
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 24.dp, bottom = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
                     modifier = Modifier.size(36.dp).clip(CircleShape).clickable { navController.popBackStack() },
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     Text("←", color = tokens.ink, style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.SemiBold))
                 }
@@ -61,9 +61,13 @@ fun SettingsScreen(navController: NavHostController) {
             }
 
             Column(
-                modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
                 // 表示
                 SectionHeader("表示")
@@ -76,28 +80,39 @@ fun SettingsScreen(navController: NavHostController) {
                             scope.launch {
                                 store.update { it.copy(themeMode = if (v) ThemeMode.DARK else ThemeMode.LIGHT) }
                             }
-                        }
+                        },
                     )
                     Divider(color = tokens.hair, thickness = 0.5.dp)
                     Column(modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp)) {
-                        Text("文字サイズ", color = tokens.ink,
-                            style = TextStyle(fontSize = 14.5.sp, fontWeight = FontWeight.Medium))
-                        Text("読みやすさを調整", color = tokens.inkMute,
-                            style = TextStyle(fontSize = 11.sp))
+                        Text(
+                            "文字サイズ",
+                            color = tokens.ink,
+                            style = TextStyle(fontSize = 14.5.sp, fontWeight = FontWeight.Medium),
+                        )
+                        Text(
+                            "読みやすさを調整",
+                            color = tokens.inkMute,
+                            style = TextStyle(fontSize = 11.sp),
+                        )
                         Spacer(Modifier.height(10.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf(0.9f to "小", 1.0f to "中", 1.15f to "大").forEach { (scale, label) ->
                                 val active = kotlin.math.abs(state.fontScale - scale) < 0.05f
                                 Box(
-                                    modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
-                                        .background(if (active) tokens.ink else tokens.pill)
-                                        .clickable { scope.launch { store.update { it.copy(fontScale = scale) } } }
-                                        .padding(vertical = 10.dp),
-                                    contentAlignment = Alignment.Center
+                                    modifier =
+                                        Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(if (active) tokens.ink else tokens.pill)
+                                            .clickable { scope.launch { store.update { it.copy(fontScale = scale) } } }
+                                            .padding(vertical = 10.dp),
+                                    contentAlignment = Alignment.Center,
                                 ) {
-                                    Text(label,
+                                    Text(
+                                        label,
                                         color = if (active) tokens.pearl else tokens.ink,
-                                        style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold))
+                                        style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold),
+                                    )
                                 }
                             }
                         }
@@ -117,15 +132,24 @@ fun SettingsScreen(navController: NavHostController) {
                 Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(tokens.paper)) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("バージョン", color = tokens.ink,
-                                style = TextStyle(fontSize = 14.5.sp, fontWeight = FontWeight.Medium))
+                            Text(
+                                "バージョン",
+                                color = tokens.ink,
+                                style = TextStyle(fontSize = 14.5.sp, fontWeight = FontWeight.Medium),
+                            )
                         }
-                        Text("1.0.0", color = tokens.inkMute,
-                            style = TextStyle(fontSize = 13.sp,
-                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace))
+                        Text(
+                            jp.tomoshibi.android.BuildConfig.VERSION_NAME,
+                            color = tokens.inkMute,
+                            style =
+                                TextStyle(
+                                    fontSize = 13.sp,
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                ),
+                        )
                     }
                     Divider(color = tokens.hair, thickness = 0.5.dp)
                     NavRow("プライバシーポリシー") { /* TODO web link */ }
@@ -135,13 +159,20 @@ fun SettingsScreen(navController: NavHostController) {
 
                 // データ初期化（red）
                 Box(
-                    modifier = Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(14.dp))
-                        .border(1.5.dp, tokens.danger.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
-                        .clickable { showResetDialog = true },
-                    contentAlignment = Alignment.Center
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .border(1.5.dp, tokens.danger.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
+                            .clickable { showResetDialog = true },
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Text("データを初期化", color = tokens.danger,
-                        style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold))
+                    Text(
+                        "データを初期化",
+                        color = tokens.danger,
+                        style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                    )
                 }
 
                 Spacer(Modifier.height(20.dp))
@@ -166,7 +197,7 @@ fun SettingsScreen(navController: NavHostController) {
             },
             title = { Text("データを初期化しますか？") },
             text = { Text("すべての保存データが削除されます。この操作は取り消せません。") },
-            containerColor = tokens.paper
+            containerColor = tokens.paper,
         )
     }
 }
@@ -174,17 +205,25 @@ fun SettingsScreen(navController: NavHostController) {
 @Composable
 private fun SectionHeader(text: String) {
     val t = SuzuT.current
-    Text(text, color = t.inkSub,
+    Text(
+        text,
+        color = t.inkSub,
         modifier = Modifier.padding(horizontal = 4.dp),
-        style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp))
+        style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp),
+    )
 }
 
 @Composable
-private fun SwitchRow(label: String, sub: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+private fun SwitchRow(
+    label: String,
+    sub: String,
+    checked: Boolean,
+    onChange: (Boolean) -> Unit,
+) {
     val t = SuzuT.current
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(label, color = t.ink, style = TextStyle(fontSize = 14.5.sp, fontWeight = FontWeight.Medium))
@@ -193,25 +232,33 @@ private fun SwitchRow(label: String, sub: String, checked: Boolean, onChange: (B
         Switch(
             checked = checked,
             onCheckedChange = onChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = t.ok,
-                uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = t.hair
-            )
+            colors =
+                SwitchDefaults.colors(
+                    checkedThumbColor = Color.White,
+                    checkedTrackColor = t.ok,
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = t.hair,
+                ),
         )
     }
 }
 
 @Composable
-private fun NavRow(label: String, onClick: () -> Unit) {
+private fun NavRow(
+    label: String,
+    onClick: () -> Unit,
+) {
     val t = SuzuT.current
     Row(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 18.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, color = t.ink, modifier = Modifier.weight(1f),
-            style = TextStyle(fontSize = 14.5.sp, fontWeight = FontWeight.Medium))
+        Text(
+            label,
+            color = t.ink,
+            modifier = Modifier.weight(1f),
+            style = TextStyle(fontSize = 14.5.sp, fontWeight = FontWeight.Medium),
+        )
         Text("›", color = t.inkMute, style = TextStyle(fontSize = 18.sp))
     }
 }

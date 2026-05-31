@@ -41,6 +41,8 @@ class AppStore(
                     Json.decodeFromString<AppState>(json)
                 } catch (e: Exception) {
                     // schema 漂移时 fallback 默认 — v1.0 不做 migration
+                    // 记日志：异常被吞会导致老用户升级后本地数据无声丢失，至少留排查线索
+                    android.util.Log.e("AppStore", "AppState 解析失败，回落 MockData（本地数据可能丢失）", e)
                     MockData.INITIAL_STATE
                 }
             }
@@ -53,6 +55,7 @@ class AppStore(
                     try {
                         Json.decodeFromString<AppState>(it)
                     } catch (e: Exception) {
+                        android.util.Log.e("AppStore", "update 时 AppState 解析失败，回落 MockData", e)
                         MockData.INITIAL_STATE
                     }
                 } ?: MockData.INITIAL_STATE
