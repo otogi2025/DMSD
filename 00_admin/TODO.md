@@ -44,6 +44,7 @@
 
 > **🆕 2026-05-30 第二轮全项目审查**（多代理 workflow + Codex 复核 + 3 补审 → 175 条，完整见 `05_logs/audit_2026-05-30/findings.md`）：
 > - ✅ 已修 11 处（iOS 安全 2 + 后端崩溃/校验/越权 + 文档死链；本会话 commit `6cc5c07` + 并行 /goal 会话 `d9e65f1`）
+> - ✅ **2026-05-31 续修**：角色名用字 + 三端隐私清理 + Android 4 小 bug + 后端 4 小 bug + 实时广播架构(rollcall-06/applchain-12) + Codex 反馈批，每阶段派 Codex 5.5 xhigh 审。**完整已修清单 + 剩余分层(大工程/能直接改/需决策) + 决策项见 `05_logs/audit_2026-05-30/修复进度交接.md`**
 > - 🔴 **未修大工程 backlog**（v1.0 上线，几天–几周实装，非「修 bug」能解决）：
 >   1. NFC 防代刷全栈（card_uid↔学生绑定 + 10秒 nonce + ECDSA 签名 + 点呼机 src 实装）— 后端 + iOS + Android + 点呼机**全空**
 >   2. Android 整个无网络层 → 接后端要从零写
