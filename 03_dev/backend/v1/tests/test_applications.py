@@ -327,3 +327,45 @@ class TestUpdateApplication:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 200, res.text
+
+    def test_update_missing_amend_reason_rejected(self, client, student_token):
+        """真改了字段但没填修改理由 → 422 AMEND_REASON_REQUIRED（后端兜底必填）。"""
+        app_id = self._create_pending(client, student_token)
+        res = client.put(
+            f"/api/v1/applications/{app_id}",
+            json={"return_method": "バス"},  # 改了字段、但没 amend_reason
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 422, res.text
+        assert res.json()["detail"]["code"] == "AMEND_REASON_REQUIRED", res.text
+
+    def test_update_same_field_value_noop(self, client, student_token, db_session):
+        """传与现值相同的业务字段（+理由）→ 422 NO_CHANGES，已承认的审批行不被清。"""
+        from uuid import UUID
+
+        from app import models
+
+        app_id = self._create_pending(client, student_token)
+        uuid = UUID(app_id)
+        # 给一个审批行打上「已承认」，验证 no-op 不会把链删掉重建
+        appr = (
+            db_session.query(models.ApplicationApproval)
+            .filter_by(application_id=uuid)
+            .first()
+        )
+        appr.decision = "approve"
+        db_session.commit()
+        appr_id = appr.id
+
+        # return_method 传与 _kisei_body 相同的 "新幹線" = 没真改
+        res = client.put(
+            f"/api/v1/applications/{app_id}",
+            json={"amend_reason": "理由", "return_method": "新幹線"},
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 422, res.text
+        assert res.json()["detail"]["code"] == "NO_CHANGES", res.text
+        # 同一审批行还在、decision 仍是 approve（没被删除重建）
+        db_session.expire_all()
+        appr2 = db_session.get(models.ApplicationApproval, appr_id)
+        assert appr2 is not None and appr2.decision == "approve", appr2

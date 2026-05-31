@@ -390,10 +390,25 @@ def update_application(
 
     # codex(IX-004): 只保留真改了的业务字段。空 body / 只填 amend_reason / 传与现值相同的字段
     # 都不该重置审批链 + 重发邮件（否则已部分承認的届能被反复无实质重置 — 滥用面）。
-    changed = {k: v for k, v in update_data.items() if getattr(app, k) != v}
+    def _norm(v):
+        # SQLite 读回 timezone=True 可能丢 tzinfo，datetime 比较前统一成 JST aware
+        # （与 rollcall.py _as_jst_aware 同款），否则 flight 时间同一时刻会被误判成改了。
+        if isinstance(v, datetime):
+            return v.replace(tzinfo=_JST) if v.tzinfo is None else v.astimezone(_JST)
+        return v
+
+    changed = {
+        k: v for k, v in update_data.items() if _norm(getattr(app, k)) != _norm(v)
+    }
     if not changed:
         raise HTTPException(
             422, {"code": "NO_CHANGES", "message": "変更内容がありません"}
+        )
+    # codex: 真改了业务字段就必须有修改理由（iOS 已强制必填、后端再兜一道）。
+    if amend_reason is None:
+        raise HTTPException(
+            422,
+            {"code": "AMEND_REASON_REQUIRED", "message": "修正理由を入力してください"},
         )
     for key, val in changed.items():
         setattr(app, key, val)
