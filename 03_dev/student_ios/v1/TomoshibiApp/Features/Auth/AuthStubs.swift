@@ -1740,6 +1740,7 @@ struct LoginView: View {
             // IX-036: 走 setAuthToken 一并存过期时刻（原来直接赋 authToken 会跳过过期记录，
             // 登录得到的令牌启动时就判不了过期）。didSet 仍同步 APIClient.token + Keychain.save。
             app.setAuthToken(token.accessToken, expiresIn: token.expiresIn)
+            await app.loadMe() // IX-008: 登录后拉当前用户，主页直接显真实数据（不闪一下演示假数据）
             app.resetLoginFailures()
             router.replace(.home)
         } catch APIError.unauthorized {

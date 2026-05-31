@@ -103,3 +103,36 @@ enum AnnouncementsAPI {
         )
     }
 }
+
+// MARK: - 当前登录学生（GET /students/me，IX-008，替换 SEED.user 假数据）
+
+/// GET /students/me 响应 — 后端 StudentProfileBasic（学生基本信息）。
+/// 只含身份字段；统计（扣分/迟到/欠席）+ 学習対象 flag 不在这接口。
+struct StudentMeOut: Decodable {
+    let id: String
+    let student_no: String
+    let name: String
+    let name_kana: String?
+    let grade_code: String
+    let class_code: String
+    let seat_no: String
+    let gender: String
+    let category: String
+    let room_no: String
+    let dorm_unit: Int
+    let is_overseas: Bool
+    let email: String?
+    let phone: String?
+    let avatar_url: String?
+    let status: String
+    // registered_at 解码时忽略（Decodable 默认跳过多余字段）
+}
+
+enum StudentsAPI {
+    /// GET /students/me — 当前登录学生的基本信息。
+    /// 仿 teachers/me；后端从令牌取学生，无需传 id。
+    @MainActor
+    static func me() async throws -> StudentMeOut {
+        try await APIClient.shared.get(path: "/api/v1/students/me")
+    }
+}

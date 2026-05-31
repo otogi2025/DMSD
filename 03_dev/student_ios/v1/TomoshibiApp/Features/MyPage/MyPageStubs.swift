@@ -112,9 +112,9 @@ struct MyLandingView: View {
 
                     // 2. ⭐ 主要状态 Card 群（学習 / 点呼 / 減点）
                     VStack(spacing: 10) {
-                        if SEED.user.isStudyTarget {
-                            studyStatusCard
-                        }
+                        // IX-008: 学習卡片入口始终显示（itsuki：UI 还是可以看得到），
+                        // 非学習対象点进去由学習详情页显「不需要晚自习」，不在这隐藏。
+                        studyStatusCard
                         rollcallStatusCard
                         pointsStatusCard
                     }
@@ -1916,19 +1916,44 @@ struct MyStudyView: View {
     var body: some View {
         VStack(spacing: 0) {
             PageHeader(title: "学習履歴", level: 2)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    summaryCard
-                    leaveStatsCard
-                    historyCard
-                    helpInfoBox
+            // IX-008: 非学習対象（老师后台未指定）→ 点进来显「不需要晚自习」，不显履历
+            // （itsuki：UI 入口可见、点进去显示他不需要晚自习）。
+            if app.displayUser.isStudyTarget {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 14) {
+                        summaryCard
+                        leaveStatsCard
+                        historyCard
+                        helpInfoBox
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 4)
+                    .padding(.bottom, 24)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 4)
-                .padding(.bottom, 24)
+            } else {
+                notStudyTargetNotice
             }
         }
         .background(T.pearl.ignoresSafeArea())
+    }
+
+    /// 非晚自习对象学生点进「学習履歴」时看到的提示页。
+    private var notStudyTargetNotice: some View {
+        VStack(spacing: 14) {
+            Spacer()
+            Text("📚").font(.system(size: 44))
+            Text("学習対象外です")
+                .font(.system(size: 17, weight: .heavy))
+                .foregroundStyle(T.ink)
+            Text("あなたは現在、晩学習（夜間学習）の対象ではありません。\n学習担当の先生が対象に指定すると、ここに出席状況が表示されます。")
+                .font(.system(size: 13))
+                .foregroundStyle(T.inkSub)
+                .multilineTextAlignment(.center)
+                .lineSpacing(4)
+                .padding(.horizontal, 32)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: 月度 summary

@@ -104,6 +104,16 @@ final class AppStore: ObservableObject {
         authToken != nil
     }
 
+    /// IX-008: 当前登录学生的真实信息（登录后从 GET /students/me 拉）。
+    /// nil = 未登录 / 演示 / 还没拉到 → displayUser 回退 SEED.user 假占位。
+    @Published var currentUser: User? = nil
+
+    /// IX-008: 各页显示当前用户统一走这个 —— 登录拉到真实数据就用真的，否则 SEED.user 占位。
+    /// 替换原来直接读 SEED.user（演示假数据泄漏到生产）。
+    var displayUser: User {
+        currentUser ?? SEED.user
+    }
+
     /// IX-036: 令牌过期时刻（UserDefaults key）。
     /// 有效期本身不是机密（机密的是令牌正文，仍存 Keychain），所以过期时刻放 UserDefaults。
     private static let tokenExpiryKey = "authTokenExpiresAt"
@@ -114,6 +124,76 @@ final class AppStore: ObservableObject {
         let expiresAt = Date().addingTimeInterval(TimeInterval(expiresIn))
         UserDefaults.standard.set(expiresAt.timeIntervalSince1970, forKey: Self.tokenExpiryKey)
         authToken = token // didSet 同步 APIClient + Keychain
+    }
+
+    /// IX-008: 拉当前登录学生信息（GET /students/me）填到 currentUser。
+    /// 登录成功后 + app 启动恢复令牌后调。拉不到就保持 nil（displayUser 回退 SEED 占位），不打断流程。
+    @MainActor
+    func loadMe() async {
+        guard isAuthenticated else { return }
+        do {
+            let me = try await StudentsAPI.me()
+            let mapped = Self.mapMeToUser(me)
+            currentUser = mapped
+            // 安全网：同时写回 SEED.user，覆盖那些没法用 app.displayUser 的站点
+            // （@State 默认值 / 纯 mock 数据 / 静态 helper）。演示态 loadMe 被 isAuthenticated 挡住、不会执行。
+            SEED.user = mapped
+        } catch {
+            // 拉不到（网络 / 401）→ 保持 currentUser = nil，displayUser 回退占位，不报错打断登录
+        }
+    }
+
+    /// 后端 /me 响应（StudentMeOut）映射成 iOS User。/me 只给身份字段：
+    /// - 统计（points / lateCount / absentCount）后端这接口没有 → 真实用户先 0（IX-008b 接扣分接口再填）
+    /// - isStudyTarget（学習対象）/me 没这 flag → 默认 false（只有老师后台设的才是；
+    ///   UI 入口仍显示、点进去由各页据此显「不需要晚自习」）
+    private static func mapMeToUser(_ me: StudentMeOut) -> User {
+        // 内联三元 / 可选解包先拆成局部变量 — 否则 20 参数的 User(...) 字面量类型检查会超时
+        let genderLabel = me.gender == "female" ? "女" : "男"
+        let dormLabel = me.dorm_unit == 4 ? "女寮" : "男寮"
+        let avatarChar = String(me.name.prefix(1)) // 头像占位 = 姓名首字
+        let seat = Int(me.seat_no) ?? 0
+        return User(
+            account: me.student_no,
+            name: me.name,
+            nameKana: me.name_kana ?? "",
+            birth: "", // /me 不含生日；SEED.user.birth 无站点读取，留空
+            age: 0,
+            gender: genderLabel,
+            dorm: dormLabel,
+            room: me.room_no,
+            category: me.category,
+            email: me.email ?? "",
+            phone: me.phone ?? "",
+            avatar: avatarChar,
+            points: 0,
+            lateCount: 0,
+            absentCount: 0,
+            grade: gradeLabel(me.grade_code),
+            classSuffix: classLabel(me.class_code),
+            seatNo: seat,
+            isStudyTarget: false,
+            isOverseas: me.is_overseas
+        )
+    }
+
+    /// 年级码 → 标签（中高一貫 6 年制：01→中1 … 06→高3）。
+    private static func gradeLabel(_ code: String) -> String {
+        switch code {
+        case "01": return "中1"
+        case "02": return "中2"
+        case "03": return "中3"
+        case "04": return "高1"
+        case "05": return "高2"
+        case "06": return "高3"
+        default: return code
+        }
+    }
+
+    /// 班级码 → 字母（01→A / 02→B / …）。
+    private static func classLabel(_ code: String) -> String {
+        guard let n = Int(code), n >= 1, n <= 26 else { return code }
+        return String(UnicodeScalar(64 + n)!) // 65 = "A"
     }
 
     /// app 启动时从 Keychain 恢复 token（实现自动登录）
@@ -132,6 +212,10 @@ final class AppStore: ObservableObject {
                 // 直接赋 _authToken 会跳过 didSet → APIClient 同步不上、所以走 self.authToken
                 authToken = saved
             }
+        }
+        // IX-008: 启动若已恢复有效令牌，拉当前学生信息填 currentUser（各页显真实数据，非演示假数据）
+        if isAuthenticated {
+            Task { await loadMe() }
         }
         // A-038 (2026-05-21): seedDemoAnnouncements() 调用已删
         // 公告 demo seed 整段函数已删；公告全走 backend AnnouncementsAPI

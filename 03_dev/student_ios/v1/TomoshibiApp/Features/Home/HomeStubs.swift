@@ -176,7 +176,7 @@ struct HomeView: View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 // JSX: fontSize 20 / 700 / letterSpacing 0.01em
-                Text("おかえり、\(SEED.user.name) さん")
+                Text("おかえり、\(app.displayUser.name) さん")
                     .font(.system(size: 20, weight: .bold))
                     .kerning(0.2)
                     .foregroundStyle(T.ink)
@@ -252,7 +252,7 @@ struct HomeView: View {
             Group {
                 // ⚠️ DEMO-ONLY 三态切换 (system_features §7.3.8 — v1.0 删)
                 // 学習対象学生 + studyState in upcoming/active → study mode 优先
-                if SEED.user.isStudyTarget && (app.studyState == .upcoming || app.studyState == .active) {
+                if app.displayUser.isStudyTarget && (app.studyState == .upcoming || app.studyState == .active) {
                     studyContent(deepBrown: deepBrown)
                 } else if app.rollState == .idle {
                     idleContent(deepBrown: deepBrown)
@@ -502,7 +502,7 @@ struct HomeView: View {
                 .padding(.bottom, 6)
 
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(String(format: "%.1f", SEED.user.points))
+                    Text(String(format: "%.1f", app.displayUser.points))
                         .font(.system(size: 56, weight: .heavy, design: .monospaced))
                         .kerning(-1.12)
                         .foregroundStyle(deepBrown)
@@ -517,10 +517,10 @@ struct HomeView: View {
                 HStack {
                     HStack(spacing: 0) {
                         Text("遅刻 ")
-                        Text("\(SEED.user.lateCount)")
+                        Text("\(app.displayUser.lateCount)")
                             .font(.system(size: 12, weight: .bold, design: .monospaced))
                         Text(" 回 · 欠席 ")
-                        Text("\(SEED.user.absentCount)")
+                        Text("\(app.displayUser.absentCount)")
                             .font(.system(size: 12, weight: .bold, design: .monospaced))
                         Text(" 回")
                     }
@@ -559,7 +559,7 @@ struct HomeView: View {
                         .kerning(1.98)
                         .textCase(.uppercase)
                         .foregroundStyle(labelColor)
-                    Text(String(format: "%.1f 点", SEED.user.points))
+                    Text(String(format: "%.1f 点", app.displayUser.points))
                         .font(.system(size: 13, weight: .bold, design: .monospaced))
                         .foregroundStyle(valueColor)
                     Spacer()
@@ -719,7 +719,7 @@ struct HomeView: View {
                 let w = geo.size.width
                 // 当前 4.5 点，但 JSX 固定画 50%（4/8）— 严格按 JSX 固定 50%
                 // 为避免硬编码失真，用 points/8 上限 1
-                let pct = min(SEED.user.points / 8.0, 1.0)
+                let pct = min(app.displayUser.points / 8.0, 1.0)
 
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4, style: .continuous)
