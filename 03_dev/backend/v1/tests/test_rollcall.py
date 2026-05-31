@@ -223,3 +223,122 @@ class TestNoEffectiveWindowShift:
         assert scheduled_cols.issubset(cols), (
             f"scheduled_*_at 4 字段是判定基准，必须保留: 缺 {scheduled_cols - cols}"
         )
+
+
+class TestPatchEvent:
+    """PATCH /rollcall/events/{id} — 教师改判。
+
+    Codex 5.5 审查补回归（此端点此前 0 覆盖）：
+    - rollcall-07 终态门：ended 场次禁止改判
+    - rollcall-07 no-op 门 + 防重复刷扣分：old_status 取「当前最新状态」，
+      重复 PATCH 同一旧 event 到同状态会被挡（旧实现用被 PATCH 行的 base_status，挡不住）
+    - 授权顺序：寮边界检查必须在终态探测之前（管辖外老师得 403，不泄露场次状态）
+    """
+
+    def _checkin(self, client, token, session_id, student_id):
+        res = client.post(
+            f"/api/v1/rollcall/sessions/{session_id}/checkins",
+            json={
+                "student_id": student_id,
+                "status_source": "manual_checkin",
+                "path_hint": "manual",
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert res.status_code == 201, res.text
+        return res.json()["id"]
+
+    def test_override_present_to_late(
+        self, client, teacher_token, seed_data, rollcall_session
+    ):
+        """改判 present→late 创建 override 行并返回 late。"""
+        student_id = str(seed_data["student"].id)
+        event_id = self._checkin(client, teacher_token, rollcall_session.id, student_id)
+        res = client.patch(
+            f"/api/v1/rollcall/events/{event_id}",
+            json={"to_status": "late", "reason": "遅刻"},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 200, res.text
+        assert res.json()["base_status"] == "late"
+
+    def test_repeat_patch_same_status_blocked(
+        self, client, teacher_token, seed_data, rollcall_session
+    ):
+        """重复 PATCH 同一旧 event 到同状态 → 第二次 409 NO_OP_OVERRIDE（防累积刷扣分）。
+
+        旧实现 old_status=被 PATCH 行的 base_status（恒为 present）→ 第二次仍 present→late 不算 no-op
+        → 会再建 override + 再扣分。修复后 old_status 取最新状态（已是 late）→ 第二次被挡。
+        """
+        student_id = str(seed_data["student"].id)
+        event_id = self._checkin(client, teacher_token, rollcall_session.id, student_id)
+        res1 = client.patch(
+            f"/api/v1/rollcall/events/{event_id}",
+            json={"to_status": "late", "reason": "遅刻"},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res1.status_code == 200, res1.text
+        # 再 PATCH 同一个旧 event_id 还是 →late：当前最新已是 late → no-op
+        res2 = client.patch(
+            f"/api/v1/rollcall/events/{event_id}",
+            json={"to_status": "late", "reason": "遅刻2"},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res2.status_code == 409, res2.text
+        assert res2.json()["detail"]["code"] == "NO_OP_OVERRIDE"
+
+    def test_patch_ended_session_blocked(
+        self, client, teacher_token, seed_data, rollcall_session, db_session
+    ):
+        """终态门：session ended 后改判 → 409 SESSION_ENDED。"""
+        student_id = str(seed_data["student"].id)
+        event_id = self._checkin(client, teacher_token, rollcall_session.id, student_id)
+        sess = db_session.get(models.RollCallSession, rollcall_session.id)
+        sess.session_status = "ended"
+        db_session.commit()
+        res = client.patch(
+            f"/api/v1/rollcall/events/{event_id}",
+            json={"to_status": "late", "reason": "遅刻"},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 409, res.text
+        assert res.json()["detail"]["code"] == "SESSION_ENDED"
+
+    def test_dorm_check_before_ended_probe(
+        self, client, teacher_token, seed_data, rollcall_session, db_session
+    ):
+        """授权顺序：管辖外老师改已结束场次 → 403 FORBIDDEN_DORM（不能拿到 409 探测状态）。"""
+        from app import security
+
+        student_id = str(seed_data["student"].id)  # 学生 dorm_unit=1
+        event_id = self._checkin(client, teacher_token, rollcall_session.id, student_id)
+
+        # 建一个只管 4 栋（女寮）的老师 — 与学生（1 栋）不同寮
+        t4 = models.Teacher(
+            login_id="ryomu4",
+            name="女寮太郎",
+            email="r4@test.jp",
+            password_hash=security.hash_password("test-password-12345"),
+            role="寮務一般教師",
+            assigned_dorm=4,
+        )
+        db_session.add(t4)
+        # 同时把 session 标 ended（验证 dorm 检查在终态门之前）
+        sess = db_session.get(models.RollCallSession, rollcall_session.id)
+        sess.session_status = "ended"
+        db_session.commit()
+
+        login = client.post(
+            "/api/v1/sessions/teacher",
+            json={"login_id": "ryomu4", "password": "test-password-12345"},
+        )
+        assert login.status_code == 200, login.text
+        token4 = login.json()["access_token"]
+
+        res = client.patch(
+            f"/api/v1/rollcall/events/{event_id}",
+            json={"to_status": "late", "reason": "遅刻"},
+            headers={"Authorization": f"Bearer {token4}"},
+        )
+        assert res.status_code == 403, res.text
+        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"

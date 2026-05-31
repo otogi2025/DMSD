@@ -642,6 +642,12 @@ def patch_event(
             404, {"code": "NOT_FOUND", "message": "点呼イベントが見つかりません"}
         )
 
+    # R4 寮边界：改判前先确认该学生属本老师管辖寮 —— 必须在任何状态探测（终态门）之前，
+    # 否则管辖外老师能靠 409 SESSION_ENDED vs 403 FORBIDDEN_DORM 的差别探测场次状态（Codex 5.5 审查发现）
+    student = db.get(models.Student, event.student_id)
+    if student:
+        _assert_student_in_dorm(teacher, student)
+
     # 终态约束：已结束(ended)的场次禁止改判（spec §11 结束后冻结）
     session = db.get(models.RollCallSession, event.session_id)
     if session is not None and session.session_status == "ended":
@@ -653,15 +659,22 @@ def patch_event(
             },
         )
 
-    # R4 寮边界：改判前确认该学生属本老师管辖寮
-    student = db.get(models.Student, event.student_id)
-    if student:
-        _assert_student_in_dorm(teacher, student)
-
-    old_status = event.base_status
+    # 改判起点用该学生在本场次的「当前最新状态」，不是被 PATCH 那条 event 的 base_status。
+    # event 是 append-only，旧行 base_status 永不变，直接用它会让重复 PATCH 同一条旧 event
+    # 反复累积扣分、no-op 门也挡不住（Codex 5.5 审查发现）。
+    # 口径与 board/summary 的 latest-per-student 一致：取 checked_in_at 最大那条。
+    latest_event = db.scalars(
+        select(models.RollCallEvent)
+        .where(
+            models.RollCallEvent.session_id == event.session_id,
+            models.RollCallEvent.student_id == event.student_id,
+        )
+        .order_by(models.RollCallEvent.checked_in_at.desc())
+    ).first()
+    old_status = latest_event.base_status if latest_event else event.base_status
     new_status = body.to_status
 
-    # no-op 守卫：同状态改判不允许（防误操作 / 重复 PATCH 刷扣分）
+    # no-op 守卫：与当前最新状态相同的改判不允许（防误操作 / 重复 PATCH 刷扣分）
     if old_status == new_status:
         raise HTTPException(
             409,
