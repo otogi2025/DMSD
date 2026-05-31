@@ -12,6 +12,7 @@ POST /api/v1/study/cancel-today                 — 今日学習中止 (学習�
 
 from __future__ import annotations
 
+import logging
 from datetime import date, datetime, time
 from typing import Optional
 from uuid import UUID

@@ -40,6 +40,13 @@ class TeacherConnectionManager:
     def __init__(self) -> None:
         self._conns: list[_TeacherConn] = []
         self._lock = asyncio.Lock()
+        # 主 event loop 引用 — lifespan 启动时 set_loop() 注入。
+        # broadcast_sync（被 sync router 在 threadpool 线程调用）靠它把协程提交回主 loop，
+        # 否则 sync 线程内 get_event_loop 拿不到主 loop → 事件静默丢失（rollcall-06）
+        self._loop: asyncio.AbstractEventLoop | None = None
+
+    def set_loop(self, loop: asyncio.AbstractEventLoop) -> None:
+        self._loop = loop
 
     async def connect(
         self,
@@ -101,17 +108,20 @@ class TeacherConnectionManager:
         """同步 router (def, 不是 async def) 触发广播用。
 
         dorm_unit 同 broadcast() — 事件涉及学生所在的 dorm_unit。
-        把事件丢到 event loop 里 schedule，不阻塞 router 返回。
+        把协程提交回主 event loop（run_coroutine_threadsafe），不阻塞 router 返回。
+        失败绝不向 router 抛异常 — 广播是副作用，不能拖垮已提交的业务（applchain-12）。
         """
+        loop = self._loop
+        if loop is None or not loop.is_running():
+            # 没注册主 loop（测试 / 命令行）— 静默跳过
+            logger.debug("WS broadcast_sync skipped: no running loop registered")
+            return
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                loop.create_task(self.broadcast(event, dorm_unit=dorm_unit))
-            else:
-                loop.run_until_complete(self.broadcast(event, dorm_unit=dorm_unit))
-        except RuntimeError:
-            # 没 event loop（测试 / 命令行）— 静默跳过
-            logger.debug("WS broadcast_sync skipped: no running loop")
+            asyncio.run_coroutine_threadsafe(
+                self.broadcast(event, dorm_unit=dorm_unit), loop
+            )
+        except Exception:
+            logger.warning("WS broadcast_sync failed (event dropped)", exc_info=True)
 
 
 # 全局单例

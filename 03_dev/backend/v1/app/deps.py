@@ -18,7 +18,9 @@ from . import models, security
 from .database import get_db
 
 # R4 — 跨寮角色能看全件
-CROSS_DORM_ROLES = frozenset({"校長", "寮務部長", "寮務課長", "国際交流部長", "国際交流課長"})
+CROSS_DORM_ROLES = frozenset(
+    {"校長", "寮務部長", "寮務課長", "国際交流部長", "国際交流課長"}
+)
 
 
 def dorm_units_for_teacher(teacher: models.Teacher) -> Optional[list[int]]:
@@ -118,8 +120,16 @@ def get_current_principal(
         )
     role = payload.get("role", "")
     sub = payload.get("sub")
+    # sub 缺失 / 非法 UUID 不能抛未捕获异常变成 500 — 统一解析后返回 401
+    try:
+        actor_uuid = UUID(sub)
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "INVALID_CREDENTIALS", "message": "トークンが無効です"},
+        )
     if role == "student":
-        student = db.get(models.Student, UUID(sub))
+        student = db.get(models.Student, actor_uuid)
         if not student or student.status != "active":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -130,7 +140,7 @@ def get_current_principal(
             )
         return student
     if role.startswith("teacher:"):
-        teacher = db.get(models.Teacher, UUID(sub))
+        teacher = db.get(models.Teacher, actor_uuid)
         if not teacher or teacher.status != "active":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

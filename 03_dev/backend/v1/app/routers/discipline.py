@@ -57,6 +57,10 @@ def get_ranking(
     # month 格式校验 — 错误格式不能静默返回空榜单（否则老师会误以为本月没人扣分）
     try:
         datetime.strptime(month, "%Y-%m")
+        if (
+            len(month) != 7
+        ):  # strptime 会放过 "2026-1"，但 DB 存 "2026-01" 查不到 → 仍误导
+            raise ValueError
     except ValueError:
         raise HTTPException(
             422,

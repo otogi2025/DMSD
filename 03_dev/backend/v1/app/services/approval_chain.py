@@ -10,7 +10,8 @@
 """
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 from typing import Iterable
 
 from sqlalchemy import and_, or_, select
@@ -76,7 +77,7 @@ def resolve_homeroom_teacher(
 ) -> models.Teacher | None:
     """学生 X の担任 (現役 = effective_to IS NULL) を返す。"""
     if on_date is None:
-        on_date = date.today()
+        on_date = datetime.now(ZoneInfo("Asia/Tokyo")).date()
     academic_year = on_date.year if on_date.month >= 4 else on_date.year - 1
 
     stmt = (

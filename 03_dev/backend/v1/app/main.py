@@ -96,6 +96,11 @@ async def lifespan(app: FastAPI):
     # dev 环境自动建表；production 仍然必须由 Alembic 管理 schema。
     if settings.app_env == "dev":
         create_all()
+
+    # WS 广播需要主 event loop 引用 — sync router 在 threadpool 线程靠它把协程提交回主 loop（rollcall-06）
+    from .ws_manager import manager as _ws_manager
+
+    _ws_manager.set_loop(asyncio.get_running_loop())
     yield
 
 
