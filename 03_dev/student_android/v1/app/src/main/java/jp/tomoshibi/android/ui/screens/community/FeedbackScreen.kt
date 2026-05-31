@@ -202,12 +202,17 @@ fun FeedbackScreen(navController: NavHostController) {
                         .clip(RoundedCornerShape(99.dp))
                         .then(submitBg)
                         .clickable(enabled = canSubmit) {
+                            // 先快照当前值再启协程 — 协程异步执行，下面会立即清空 category/mood/text，
+                            // 不快照的话协程可能读到被清空后的空值（Codex 5.5 审查指出的竞态）
+                            val snapCategory = category ?: ""
+                            val snapMood = mood ?: ""
+                            val snapText = text
                             scope.launch {
                                 val payload =
                                     buildJsonObject {
-                                        put("category", category ?: "")
-                                        put("mood", mood ?: "")
-                                        put("text", text)
+                                        put("category", snapCategory)
+                                        put("mood", snapMood)
+                                        put("text", snapText)
                                     }.toString()
                                 store.update { s -> s.copy(feedback = s.feedback + payload) }
                             }
