@@ -176,3 +176,85 @@ class TestAudit:
         # 至少有 submit action
         actions = [e.get("action", "") for e in entries]
         assert any("submit" in a for a in actions), actions
+
+
+class TestUpdateApplication:
+    """PUT /applications/{id} — 学生修改届（IX-004 / codex 阶段2 收口）
+
+    覆盖修复后的新行为：
+    - amend_reason 修改理由写进 audit payload（老师 / 学生履历看得到「为什么改」）
+    - 改完审批链全删重建 → status 必须回 pending（不残留 approved_partial / returned）
+    - returned(老师退回让学生改)状态可编辑、不再 409
+    """
+
+    def _create_pending(self, client, token) -> str:
+        res = client.post(
+            "/api/v1/applications",
+            json=_kisei_body(),
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert res.status_code == 201, res.text
+        return res.json()["id"]
+
+    def test_update_records_amend_reason_in_audit(self, client, student_token):
+        """修改理由 amend_reason → 写进 audit payload，不覆盖申请本身的 reason。"""
+        app_id = self._create_pending(client, student_token)
+        res = client.put(
+            f"/api/v1/applications/{app_id}",
+            json={"amend_reason": "帰寮方法を変更します", "return_method": "バス"},
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 200, res.text
+
+        res_audit = client.get(
+            f"/api/v1/applications/{app_id}/audit",
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        entries = res_audit.json()
+        update_entries = [e for e in entries if e.get("action") == "application.update"]
+        assert update_entries, f"没有 application.update 记录: {entries}"
+        assert any(
+            (e.get("payload") or {}).get("amend_reason") == "帰寮方法を変更します"
+            for e in update_entries
+        ), update_entries
+
+    def test_update_resets_status_to_pending(self, client, student_token, db_session):
+        """approved_partial 的届改完 → status 重置回 pending（链已全删重建）。"""
+        from uuid import UUID
+
+        from app import models
+
+        app_id = self._create_pending(client, student_token)
+        # 直接改库模拟「已部分承認」状态
+        row = db_session.get(models.Application, UUID(app_id))
+        row.status = "approved_partial"
+        db_session.commit()
+
+        res = client.put(
+            f"/api/v1/applications/{app_id}",
+            json={"amend_reason": "修正", "return_method": "バス"},
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 200, res.text
+        assert res.json()["status"] == "pending", res.text
+
+    def test_update_returned_application_allowed(
+        self, client, student_token, db_session
+    ):
+        """returned(老师退回)状态可编辑、改完回 pending，不再 409。"""
+        from uuid import UUID
+
+        from app import models
+
+        app_id = self._create_pending(client, student_token)
+        row = db_session.get(models.Application, UUID(app_id))
+        row.status = "returned"
+        db_session.commit()
+
+        res = client.put(
+            f"/api/v1/applications/{app_id}",
+            json={"amend_reason": "先生の指摘を修正しました", "return_method": "バス"},
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 200, res.text
+        assert res.json()["status"] == "pending", res.text

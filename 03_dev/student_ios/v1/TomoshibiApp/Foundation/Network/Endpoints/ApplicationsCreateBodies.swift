@@ -88,6 +88,8 @@ struct ApplicationUpdateBody: Encodable {
     // IX-004: 全字段给 = nil 默认值，修改届只改了几个字段就只传那几个（其余 nil 不发，
     // 后端 model_dump(exclude_none=True) 只更新非 nil 的）。
     var reason: String? = nil
+    // codex(IX-004): 修改届的「修改理由」— 后端只写进 audit 给老师 / 履历看，不覆盖 reason（申请理由本身）。
+    var amend_reason: String? = nil
     var contact_phone: String? = nil
     var meal_note: String? = nil
     var companion: String? = nil

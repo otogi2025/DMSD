@@ -367,7 +367,8 @@ def update_application(
         raise HTTPException(
             403, {"code": "FORBIDDEN", "message": "他人の届は修正できません"}
         )
-    if app.status not in ("pending", "approved_partial"):
+    # returned(退回)= 老师退回让学生改，理应可编辑（spec §7.2.4-5）；改完下方会把 status 重置回 pending。
+    if app.status not in ("pending", "approved_partial", "returned"):
         raise HTTPException(
             409,
             {"code": "CANNOT_MODIFY", "message": "承認済 / 拒否済の届は修正できません"},
@@ -375,6 +376,8 @@ def update_application(
 
     # 内容更新 (None フィールドはスキップ)
     update_data = body.model_dump(exclude_none=True)
+    # amend_reason 是「修改理由」、app 表没这列 — 先取出来只写进 audit，别 setattr 到 app 上。
+    amend_reason = update_data.pop("amend_reason", None)
     if "stay_locations" in update_data:
         update_data["stay_locations"] = [
             loc.model_dump() for loc in body.stay_locations
@@ -405,6 +408,9 @@ def update_application(
         db.delete(row)
     db.flush()
     approval_chain.build_chain(db, app)
+    # codex(IX-004): 链全删重建后状态必须回 pending。否则 approved_partial / returned 的届改完
+    # 「审批链全员 pending、但 status 仍是一部承認 / 退回」状态与链不一致，列表和详情会显示错状态。
+    app.status = "pending"
 
     # 再メール (chain 変わった可能性があるので再送)
     teachers, to_emails = approval_chain.collect_recipients(db, app)
@@ -419,7 +425,11 @@ def update_application(
             action="application.update",
             target_type="application",
             target_id=app.id,
-            payload={"updated_fields": list(update_data.keys())},
+            payload={
+                "updated_fields": list(update_data.keys()),
+                # 有填修改理由就记进 audit，老师端 / 学生履历能看到「为什么改」。
+                **({"amend_reason": amend_reason} if amend_reason else {}),
+            },
         )
     )
     db.commit()

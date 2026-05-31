@@ -282,6 +282,8 @@ class ApplicationUpdateIn(BaseModel):
     """PUT /applications/:id — 学生が承認前に内容修正 (chain リセット)。"""
 
     reason: Optional[str] = Field(None, max_length=500)
+    # 修改理由 — 学生改届时填、只写进 audit 给老师看，不覆盖申请本身的 reason（申请理由）。
+    amend_reason: Optional[str] = Field(None, max_length=500)
     leave_date: Optional[date] = None
     leave_method: Optional[str] = Field(None, max_length=200)
     leave_time: Optional[time] = None

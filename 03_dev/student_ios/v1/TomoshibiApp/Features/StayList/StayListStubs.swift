@@ -1488,7 +1488,7 @@ struct StayEditForm: View {
 
     /// IX-004: 修改届提交。原来只调 StayListMock.applyAmendment 纯 mock（注释写「v1.0 切回」但没做）。
     /// 现在：未登录 / 非 UUID → mock；已登录 → 构造 ApplicationUpdateBody 调 PUT /applications/:id。
-    /// amendReason（修改理由）后端 ApplicationUpdateBody 没对应字段、不发送（后端自动记审计 + 重置承认流程）。
+    /// codex 阶段2 收口：amendReason 发后端 amend_reason（记 audit 给老师 / 履历看）；日期 / 方法只发真改过的（防误拒旧届）。
     private func submitAsync() async {
         guard !isSubmitting else { return } // codex: 防连点并发发多个 PUT（后端每次都重置承认流程 + 发邮件）
         let trimmedDest = destination.trimmingCharacters(in: .whitespaces)
@@ -1511,12 +1511,19 @@ struct StayEditForm: View {
             return
         }
 
-        // 生产：把字段塞进 ApplicationUpdateBody（其余 nil 不发，后端只更新非 nil）
+        // 生产：只把用户真改过的字段塞进 ApplicationUpdateBody（其余 nil 不发，后端只更新非 nil）。
         var body = ApplicationUpdateBody()
-        body.leave_date = formatYMD(leaveDate)
-        body.leave_method = leaveMethod
-        body.return_date = formatYMD(returnDate)
-        body.return_method = returnMethod
+        // codex(IX-004): 修改理由必发 — 后端写进 audit（canSubmit 已保证非空，这里再防一道空白）。
+        let trimmedReason = amendReason.trimmingCharacters(in: .whitespaces)
+        if !trimmedReason.isEmpty { body.amend_reason = trimmedReason }
+        // codex(IX-004): 日期 / 方法只发改过的。无条件发 leave_date 会触发后端「出寮日>今日」校验、
+        // 误拒已过出寮日但只改帰寮日 / 方法 / 理由的旧届（尤其 returned 退回的届）。基准 = initFields 加载时的值。
+        let newLeaveYMD = formatYMD(leaveDate)
+        if newLeaveYMD != original.leaveDate { body.leave_date = newLeaveYMD }
+        let newReturnYMD = formatYMD(returnDate)
+        if newReturnYMD != (original.returnDate ?? original.leaveDate) { body.return_date = newReturnYMD }
+        if leaveMethod != (original.leaveMethod ?? "JR") { body.leave_method = leaveMethod }
+        if returnMethod != (original.returnMethod ?? "JR") { body.return_method = returnMethod }
         // codex: destination 加载时是从 stay_locations.first.name 读的（不是 dest_cities 行先都市名）。
         // 原来写进 dest_cities = 覆盖错字段、真正的滞在先住所反而不改。改成发 stay_locations、且改了才发。
         if needsDestination, trimmedDest != (original.destination ?? "") {
@@ -1742,7 +1749,9 @@ extension AuditLogOut {
         let actionLabel = Self.translateAction(action)
         let actorLabel = actor_type == "student" ? SEED.user.name : "教員" // 暂用 actor_type 区分
         // payload 里如果有 reason / comment 等可读字段、塞到 detail
-        let detailText: String? = payload?["reason"]?.value ?? payload?["comment"]?.value
+        // codex(IX-004): 修改届的 amend_reason 优先显示，让履历看得到「为什么改」。
+        let detailText: String? = payload?["amend_reason"]?.value
+            ?? payload?["reason"]?.value ?? payload?["comment"]?.value
         return AuditLogEntry(
             at: timeStr,
             action: actionLabel,
@@ -1754,7 +1763,7 @@ extension AuditLogOut {
     private static func translateAction(_ raw: String) -> String {
         switch raw {
         case "application.submit": return "提出"
-        case "application.amend": return "修改届を提出"
+        case "application.amend", "application.update": return "修改届を提出"
         case "application.approve": return "承認"
         case "application.reject": return "差戻"
         case "application.withdraw": return "取消"
