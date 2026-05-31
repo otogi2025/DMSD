@@ -35,6 +35,9 @@ struct RegistrationDraft {
     /// suffix 空 = 上层 UI 漏了校验，返回空字符串让 backend 拒绝（room_no 是必填字段）
     var computedRoomNo: String {
         guard !room_no_suffix.isEmpty else { return "" }
+        // IX-014: 房号首位已是字母（如 "A5"）= 已含楼栋标识，不再加 M/W 前缀（否则变 "MA5"）；
+        // 数字房号（如 "101"）才加 M/W 前缀 → "M101"。前缀只在这一处加，避免双前缀。
+        if room_no_suffix.first?.isLetter == true { return room_no_suffix }
         let prefix = (gender == "male") ? "M" : "W"
         return prefix + room_no_suffix
     }

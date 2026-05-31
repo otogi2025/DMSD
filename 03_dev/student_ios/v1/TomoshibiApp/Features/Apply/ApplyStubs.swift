@@ -47,6 +47,7 @@ private func statusPair(_ status: String) -> (label: String, tone: Pill.Tone) {
     case "draft": return ("下書き", .neutral)
     case "pending": return ("審査中", .warn)
     case "approved": return ("承認済", .ok)
+    case "approved_partial": return ("一部承認", .ok) // codex: 原来落 default 显示原始英文
     case "rejected": return ("差戻", .danger)
     case "returned": return ("要修正", .danger)
     case "withdrawn": return ("取消済", .neutral)
@@ -60,12 +61,14 @@ private func statusPair(_ status: String) -> (label: String, tone: Pill.Tone) {
 
 struct ApplyListView: View {
     @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore // codex: 401 时清登录态跳登录页用
     @State private var tab: String = "all"
 
     // IX-007: 列表数据源。原来直接读 SEED 假数据；现在演示读种子、生产调 GET /applications/mine。
     @State private var items: [ApplicationItem] = []
     @State private var loading: Bool = true
     @State private var loadError: String? = nil
+    @State private var hasLoaded: Bool = false // codex: 防切 tab / 重入时重复拉
 
     private let tabs: [(String, String)] = [
         ("all", "すべて"),
@@ -75,7 +78,17 @@ struct ApplyListView: View {
     ]
 
     private var filtered: [ApplicationItem] {
-        items.filter { tab == "all" ? true : $0.status == tab }
+        items.filter { matchesTab($0.status) }
+    }
+
+    /// codex:「承認済」tab 要同时收 approved 和 approved_partial（一部承認），
+    /// 否则部分通过的申请哪个 tab 都不显示、只在「全部」tab 露面
+    private func matchesTab(_ status: String) -> Bool {
+        switch tab {
+        case "all": return true
+        case "approved": return status == "approved" || status == "approved_partial"
+        default: return status == tab
+        }
     }
 
     /// 后端 ApplicationOut → 列表用 ApplicationItem（两个模型字段不同，做一层转换）
@@ -95,10 +108,17 @@ struct ApplyListView: View {
         loadError = nil
         #if DEMO
             items = SEED.applications
+            hasLoaded = true
         #else
             do {
                 let out = try await ApplicationsAPI.listMine()
                 items = out.map(mapToItem)
+                hasLoaded = true
+            } catch APIError.unauthorized {
+                // codex: 令牌过期/失效 → 清登录态走登录页（跟 StayListView 一致），
+                // 不要卡在「请重新登录」错误页里、人还停在已登录的壳里
+                app.authToken = nil
+                router.replace(.login)
             } catch {
                 loadError = APIErrorPresenter.userMessage(
                     for: error, fallback: "申請一覧の取得に失敗しました"
@@ -198,7 +218,7 @@ struct ApplyListView: View {
             .padding(.trailing, 18)
             .padding(.bottom, 96)
         }
-        .task { await load() } // IX-007: 进页面就拉申请列表
+        .task { if !hasLoaded { await load() } } // IX-007: 进页面拉申请列表（codex: hasLoaded 防重复拉）
     }
 }
 

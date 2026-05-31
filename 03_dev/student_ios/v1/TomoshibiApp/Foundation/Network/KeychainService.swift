@@ -26,26 +26,34 @@ enum KeychainService {
     static func save(token: String) {
         guard let data = token.data(using: .utf8) else { return }
 
-        // 先删既存（idempotent — 重复 save 也 OK）
-        let delQuery: [String: Any] = [
+        // 匹配用的 query（class + service + account 唯一定位这条）
+        let baseQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
         ]
-        SecItemDelete(delQuery as CFDictionary)
-
-        // 加新 item
-        let addQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
+        // 要写入 / 更新的内容
+        let attributes: [String: Any] = [
             kSecValueData as String: data,
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
         ]
-        // SecItemAdd 的返回状态码以前被丢弃 → 写失败时静默返回，
+
+        // codex: 原来先 SecItemDelete 再 SecItemAdd，万一 Add 失败、旧 token 已被删，
+        // 持久化里就没 token 了、但内存 authToken 还显示已登录，自动登录直接坏掉。
+        // 改成先 SecItemUpdate（旧值在成功覆盖前不动），只有这条还不存在才 Add。
+        let updateStatus = SecItemUpdate(baseQuery as CFDictionary, attributes as CFDictionary)
+        let status: OSStatus
+        if updateStatus == errSecItemNotFound {
+            var addQuery = baseQuery
+            attributes.forEach { addQuery[$0.key] = $0.value }
+            status = SecItemAdd(addQuery as CFDictionary, nil)
+        } else {
+            status = updateStatus
+        }
+
+        // SecItemAdd/Update 的返回状态码以前被丢弃 → 写失败时静默返回，
         // app 重启读不到 token、自动登录失效且无从定位（IX-037）。
         // 现在检查状态码：非 errSecSuccess 就打日志，DEBUG 下直接断言暴露。
-        let status = SecItemAdd(addQuery as CFDictionary, nil)
         if status != errSecSuccess {
             print("KeychainService.save 失败：OSStatus=\(status)")
             #if DEBUG

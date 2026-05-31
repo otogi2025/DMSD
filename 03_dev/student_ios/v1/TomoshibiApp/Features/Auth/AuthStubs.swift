@@ -1031,9 +1031,9 @@ struct RegisterStep1View: View {
                 app.registrationDraft.grade_code = gradeCode
                 app.registrationDraft.class_code = classCode
                 app.registrationDraft.seat_no = String(format: "%02d", Int(seatNoStr) ?? 0)
-                // 发后端这条套用同样的双前缀防护：room 首位已是字母（如 "A5"）就直接用，
-                // 首位是数字（如 "101"）才加楼栋前缀，避免 "MA5" 脏数据
-                app.registrationDraft.room_no_suffix = (room.first?.isLetter == true) ? room : prefix + room
+                // IX-014 修正：room_no_suffix 存裸房号（不加前缀）。前缀只在 AppStore.computedRoomNo
+                // 一处加 —— 这里再加会让发后端的 computedRoomNo 二次加前缀变 "MM101"（codex 逮到的回归）。
+                app.registrationDraft.room_no_suffix = room
 
                 router.go(.registerStep2)
             }
