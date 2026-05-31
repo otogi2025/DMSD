@@ -6,7 +6,9 @@
 import Foundation
 
 enum SEED {
-    nonisolated(unsafe) static var user: User = .init(
+    /// 演示默认用户的不可变副本 — 登出 / 令牌失效时 SEED.user 复位用（IX-008：
+    /// 生产态 loadMe 会把真实用户写回 SEED.user 当安全网，登出必须复位防真实用户数据残留）。
+    static let demoUserSeed = User(
         account: "060218", // 06(高3) + 02(B組) + 18(出席番号) → "060218"
         name: "リュウ イヒ",
         nameKana: "りゅう いひ",
@@ -26,6 +28,8 @@ enum SEED {
         classSuffix: "B",
         seatNo: 18
     )
+
+    nonisolated(unsafe) static var user: User = demoUserSeed
 
     static let points: [PointRecord] = [
         .init(date: "2026-04-05", session: "朝点呼", kind: "遅刻", val: 0.5),

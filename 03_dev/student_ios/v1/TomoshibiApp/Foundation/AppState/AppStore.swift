@@ -93,6 +93,10 @@ final class AppStore: ObservableObject {
                 KeychainService.save(token: t)
             } else {
                 KeychainService.delete()
+                // IX-008: 登出 / 令牌失效 → 清当前用户 + SEED.user 复位演示默认，
+                // 防上一个真实用户的姓名 / 房号等残留到登录页 / 下一个人。
+                currentUser = nil
+                SEED.user = SEED.demoUserSeed
             }
         }
     }
