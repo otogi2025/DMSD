@@ -6,6 +6,7 @@
 
 2026-05-03 itsuki 拍板背景：App Store 上架对策。完整经过 → 05_logs/raw/2026-05-03.md §11。
 """
+
 from __future__ import annotations
 
 import random
@@ -24,8 +25,10 @@ router = APIRouter(
     tags=["admin / registration-code"],
 )
 
-# §7.16.2-4: 5 分钟有效（在应用层算 expires_at，不依赖 DB default）
-REGISTRATION_CODE_TTL_MINUTES = 5
+# §7.16.2-4: 注册码有效期（应用层算 expires_at，不依赖 DB default）。
+# 30 分钟自动失效（itsuki 2026-05-31 拍板：老师生成后写黑板 / 口头告知，30 分钟够全班输入；
+# 老师也可点「关闭」手动提前作废 —— 见下面 close 端点）。
+REGISTRATION_CODE_TTL_MINUTES = 30
 
 # §3.4 教师权限「寮务管理」对应的 role（spec 未细分，先取 3 个最相关）
 ADMIN_ROLES = ("寮務部長", "寮務課長", "管理係")
@@ -154,6 +157,49 @@ def refresh_code(
     db.commit()
     db.refresh(row)
     return _to_out(row)
+
+
+@router.post("/close", status_code=status.HTTP_204_NO_CONTENT)
+def close_code(
+    teacher: models.Teacher = Depends(require_teacher_roles(*ADMIN_ROLES)),
+    db: Session = Depends(get_db),
+):
+    """老师手动关闭当前注册码 —— 立即作废、不生成新码（itsuki 2026-05-31：点「关闭」即无效）。
+
+    把现存 active 非审核员码标 invalidated_at；审核员永久码不动。
+    没有 active 码时也安全返回（幂等）。
+    """
+    now = datetime.now(timezone.utc)
+    # 取当前 active 码（refresh 保证同时最多 1 个）做 audit target
+    active = db.scalars(
+        select(models.StudentRegistrationCode)
+        .where(
+            models.StudentRegistrationCode.invalidated_at.is_(None),
+            models.StudentRegistrationCode.is_reviewer.is_(False),
+        )
+        .order_by(models.StudentRegistrationCode.created_at.desc())
+        .limit(1)
+    ).first()
+    db.execute(
+        update(models.StudentRegistrationCode)
+        .where(
+            models.StudentRegistrationCode.invalidated_at.is_(None),
+            models.StudentRegistrationCode.is_reviewer.is_(False),
+        )
+        .values(invalidated_at=now)
+    )
+    if active is not None:
+        db.add(
+            models.AuditLog(
+                actor_type="teacher",
+                actor_id=teacher.id,
+                action="registration_code.close",
+                target_type="student_registration_code",
+                target_id=active.id,
+                payload={"code": active.code},
+            )
+        )
+    db.commit()
 
 
 @router.get("/history", response_model=schemas.RegistrationCodeHistoryOut)

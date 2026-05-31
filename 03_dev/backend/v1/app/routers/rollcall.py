@@ -64,13 +64,11 @@ def _assert_session_in_dorm(
 
 router = APIRouter(prefix="/api/v1/rollcall", tags=["rollcall"])
 
-# spec §7.5 + propose §1.2 自动扣分点数
-# late 1 点 / absent 2 点（与改判联动 _OVERRIDE_DEMERIT_MAP 中 present→late=+0.5 /
-# present→absent=+1.0 的差额对齐 — 整数 vs 差额是两套机制：
-# - 这里 = 学生本来就 late/absent 的初始扣分
-# - 改判联动 = 老师改判时新增 / 减少的差额）
-ROLLCALL_LATE_POINTS = 1.0
-ROLLCALL_ABSENT_POINTS = 2.0
+# spec §7.5 自动扣分点数 — system_features.md §862 冻结决策（2026-04-30）：迟到 0.5 / 缺席 1.0。
+# 初始判定与老师改判用同一组值，一个学生迟到永远是 0.5 分、缺席 1.0 分。
+# （旧值 late=1.0 / absent=2.0 是违反冻结规格的 drift，2026-05-31 itsuki 指出后改回。）
+ROLLCALL_LATE_POINTS = 0.5
+ROLLCALL_ABSENT_POINTS = 1.0
 
 
 def _today_jst() -> date:
@@ -382,8 +380,8 @@ def create_checkin(
     )
     db.add(event)
 
-    # spec §7.5 自动扣分 — late 即扣 1 点
-    # 老师之后改判 late → present 走 _OVERRIDE_DEMERIT_MAP 自动 revoke
+    # spec §7.5 自动扣分 — late 即扣 0.5 点（§862 冻结值）
+    # 老师之后改判走 _apply_override_demerit 按当前状态重算
     if base_status == "late":
         db.add(
             models.DemeritEvent(
@@ -552,26 +550,13 @@ def session_summary(
 
 
 # ---------------------------------------------------------------
-# spec §11.4 改判扣分联动表
-#   key = (from_status, to_status)
-#   value = (delta_points, source_type)
-#   正 delta = 加扣分（新建 DemeritEvent 行）
-#   负 delta = 撤销之前自动扣（找之前 session+student 的自动 event revoke）
-#   delta=0 = 不联动
+# spec §11.4 改判扣分联动 + spec §7.5/§862 各状态自动扣分点数
+#   迟到 0.5 / 缺席 1.0 / present 与 exempt_range = 0（冻结决策 2026-04-30）
+#   改判一律「重算到当前状态对应的分」，不做 delta 增减 —— 多步改判才不会算错。
 # ---------------------------------------------------------------
-_OVERRIDE_DEMERIT_MAP: dict[tuple[str, str], tuple[float, str | None]] = {
-    ("present", "late"): (0.5, "rollcall_late"),
-    ("present", "absent"): (1.0, "rollcall_absent"),
-    ("late", "present"): (-0.5, None),
-    ("late", "absent"): (0.5, "rollcall_absent"),
-    ("absent", "present"): (-1.0, None),
-    ("absent", "late"): (-0.5, None),
-    ("exempt_range", "present"): (0.0, None),
-    ("exempt_range", "late"): (0.5, "rollcall_late"),
-    ("exempt_range", "absent"): (1.0, "rollcall_absent"),
-    ("present", "exempt_range"): (0.0, None),
-    ("late", "exempt_range"): (-0.5, None),
-    ("absent", "exempt_range"): (-1.0, None),
+_STATUS_DEMERIT: dict[str, tuple[float, str]] = {
+    "late": (ROLLCALL_LATE_POINTS, "rollcall_late"),
+    "absent": (ROLLCALL_ABSENT_POINTS, "rollcall_absent"),
 }
 
 
@@ -583,47 +568,50 @@ def _apply_override_demerit(
     to_status: str,
     teacher_id: UUID,
 ) -> None:
-    """spec §11.4 改判扣分联动 — 正 delta 加扣 / 负 delta 撤销之前自动扣分。"""
+    """改判扣分联动 — 把该生本场自动扣分「重算到当前状态对应的分」。
+
+    做法：先撤掉本场该生所有未撤销的自动扣分（rollcall_late / rollcall_absent），
+    再按 to_status 重记一条（present / exempt_range 不扣分）。
+    老师反复改判（如 present→absent→late）也不会累积或算错 ——
+    最终扣分永远等于当前状态该扣的分（迟到 0.5 / 缺席 1.0）。
+    （旧实现按 delta 增减、负 delta 把整条旧扣分全撤，多步改判会算错 ——
+    Codex 5.5 审查发现 + 2026-05-31 itsuki 确认按当前状态重算。）
+    """
     from datetime import datetime as _dt
     from datetime import timezone as _tz
 
-    info = _OVERRIDE_DEMERIT_MAP.get((from_status, to_status))
-    if not info:
-        return
-    delta, source_type = info
-    if delta == 0.0:
-        return
-
-    month = session.scheduled_window_start_at.strftime("%Y-%m")
     now_utc = _dt.now(_tz.utc)
-    if delta > 0:
+    month = session.scheduled_window_start_at.strftime("%Y-%m")
+
+    # 1. 撤掉本场该生所有未撤销的自动扣分
+    prev = db.scalars(
+        select(models.DemeritEvent).where(
+            models.DemeritEvent.student_id == student_id,
+            models.DemeritEvent.source_event_id == session.id,
+            models.DemeritEvent.revoked_at.is_(None),
+            models.DemeritEvent.source_type.in_(["rollcall_late", "rollcall_absent"]),
+        )
+    ).all()
+    for ev in prev:
+        ev.revoked_at = now_utc
+        ev.revoked_by_teacher_id = teacher_id
+        ev.revoke_reason = f"教師改判 {from_status} → {to_status} 重算"
+
+    # 2. 按当前状态重记一条（present / exempt_range 不在表里 = 不扣分）
+    info = _STATUS_DEMERIT.get(to_status)
+    if info is not None:
+        points, source_type = info
         db.add(
             models.DemeritEvent(
                 student_id=student_id,
-                source_type=source_type or "manual",
+                source_type=source_type,
                 source_event_id=session.id,
-                points=delta,
-                reason=f"教師改判: {from_status} → {to_status}（spec §11.4 自動）",
+                points=points,
+                reason=f"教師改判 → {to_status}（spec §11.4 重算）",
                 month=month,
                 created_by_teacher_id=teacher_id,
             )
         )
-    else:
-        # 负 delta — 撤销之前 session+student 的自动扣分 event
-        prev = db.scalars(
-            select(models.DemeritEvent).where(
-                models.DemeritEvent.student_id == student_id,
-                models.DemeritEvent.source_event_id == session.id,
-                models.DemeritEvent.revoked_at.is_(None),
-                models.DemeritEvent.source_type.in_(
-                    ["rollcall_late", "rollcall_absent"]
-                ),
-            )
-        ).all()
-        for ev in prev:
-            ev.revoked_at = now_utc
-            ev.revoked_by_teacher_id = teacher_id
-            ev.revoke_reason = f"教師改判 {from_status} → {to_status} 自動撤销"
 
 
 # ---------------------------------------------------------------
@@ -812,7 +800,7 @@ def _settle_absent(db: Session, session: models.RollCallSession) -> None:
                     checked_in_at=_now_jst(),
                 )
             )
-            # spec §7.5 缺席自动扣 2 点；改判 absent → present 走 _OVERRIDE_DEMERIT_MAP 自动 revoke
+            # spec §7.5 缺席自动扣 1 点（§862 冻结值）；改判走 _apply_override_demerit 按当前状态重算
             db.add(
                 models.DemeritEvent(
                     student_id=s.id,

@@ -362,3 +362,44 @@ class TestPatchEvent:
         )
         assert res.status_code == 403, res.text
         assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+
+    def test_multistep_override_recomputes_demerit(
+        self, client, teacher_token, seed_data, rollcall_session, db_session
+    ):
+        """改判扣分按当前状态重算：present→absent→late 后只剩 0.5 分（迟到），不累积也不全撤。
+
+        旧实现负 delta 把整条扣分全撤，absent→late 会变 0 分（少扣）——本测试锁死修复。
+        分值依 spec §862 冻结：迟到 0.5 / 缺席 1.0。
+        """
+        student_id = str(seed_data["student"].id)
+        event_id = self._checkin(client, teacher_token, rollcall_session.id, student_id)
+
+        # present → absent（扣 1.0）
+        r1 = client.patch(
+            f"/api/v1/rollcall/events/{event_id}",
+            json={"to_status": "absent", "reason": "欠席"},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert r1.status_code == 200, r1.text
+
+        # absent → late（应把那条 1.0 撤掉、重记 0.5）
+        r2 = client.patch(
+            f"/api/v1/rollcall/events/{event_id}",
+            json={"to_status": "late", "reason": "遅刻"},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert r2.status_code == 200, r2.text
+
+        db_session.expire_all()
+        active = (
+            db_session.query(models.DemeritEvent)
+            .filter(
+                models.DemeritEvent.student_id == seed_data["student"].id,
+                models.DemeritEvent.source_event_id == rollcall_session.id,
+                models.DemeritEvent.revoked_at.is_(None),
+            )
+            .all()
+        )
+        assert len(active) == 1, f"应只剩 1 条有效扣分，实际 {len(active)} 条"
+        assert active[0].source_type == "rollcall_late"
+        assert active[0].points == 0.5, f"迟到应扣 0.5，实际 {active[0].points}"

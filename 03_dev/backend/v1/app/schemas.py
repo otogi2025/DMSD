@@ -708,7 +708,7 @@ class TeacherRegisterIn(BaseModel):
     token: str
     name: str = Field(..., min_length=1, max_length=100)
     login_id: str = Field(..., min_length=4, max_length=32, pattern=r"^[a-zA-Z0-9_-]+$")
-    password: str = Field(..., min_length=6, max_length=128)
+    password: str = Field(..., min_length=8, max_length=128)
     confirmation_email: str = Field(
         ..., max_length=200
     )  # A-012: 跟 invitation.target_email 对比
@@ -802,8 +802,8 @@ class StudentAccountCreateIn(BaseModel):
     is_overseas: bool = False
     email: Optional[EmailStr] = None
     phone: Optional[str] = Field(None, max_length=32)
-    password: str = Field(..., min_length=6, max_length=128)
-    # 老师在后台生成的 6 桁码（5 分钟内有效）
+    password: str = Field(..., min_length=8, max_length=128)
+    # 老师在后台生成的 6 桁码（默认 30 分钟内有效）
     registration_code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
 
     # B10：validator 已删 — Literal[1,2,4] 本身就拦 3，无需额外校验器

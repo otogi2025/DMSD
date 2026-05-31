@@ -38,7 +38,7 @@ def test_refresh_returns_6_digit_code(client, teacher_token):
     assert len(data["code"]) == 6
     assert data["code"].isdigit()
     assert data["expires_in_seconds"] > 0
-    assert data["expires_in_seconds"] <= 5 * 60
+    assert data["expires_in_seconds"] <= 30 * 60  # itsuki 2026-05-31: 30 分钟有效
 
 
 def test_current_returns_active_code(client, teacher_token):
@@ -53,6 +53,41 @@ def test_current_returns_active_code(client, teacher_token):
     )
     assert current_res.status_code == 200
     assert current_res.json()["code"] == refresh_res.json()["code"]
+
+
+def test_close_invalidates_current(client, teacher_token):
+    """老师点「关闭」→ 当前码立即失效、/current 返回 null（itsuki 2026-05-31 手动关闭）。"""
+    client.post(
+        "/api/v1/admin/registration-code/refresh",
+        headers={"Authorization": f"Bearer {teacher_token}"},
+    )
+    before = client.get(
+        "/api/v1/admin/registration-code/current",
+        headers={"Authorization": f"Bearer {teacher_token}"},
+    )
+    assert before.status_code == 200 and before.json() is not None
+
+    close = client.post(
+        "/api/v1/admin/registration-code/close",
+        headers={"Authorization": f"Bearer {teacher_token}"},
+    )
+    assert close.status_code == 204, close.text
+
+    after = client.get(
+        "/api/v1/admin/registration-code/current",
+        headers={"Authorization": f"Bearer {teacher_token}"},
+    )
+    assert after.status_code == 200
+    assert after.json() is None
+
+
+def test_close_requires_admin_role(client, student_token):
+    """学生 token 不能关闭注册码 → 403。"""
+    res = client.post(
+        "/api/v1/admin/registration-code/close",
+        headers={"Authorization": f"Bearer {student_token}"},
+    )
+    assert res.status_code == 403
 
 
 def test_current_null_when_no_active(client, teacher_token):
