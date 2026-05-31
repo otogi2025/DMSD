@@ -1490,6 +1490,7 @@ struct StayEditForm: View {
     /// 现在：未登录 / 非 UUID → mock；已登录 → 构造 ApplicationUpdateBody 调 PUT /applications/:id。
     /// amendReason（修改理由）后端 ApplicationUpdateBody 没对应字段、不发送（后端自动记审计 + 重置承认流程）。
     private func submitAsync() async {
+        guard !isSubmitting else { return } // codex: 防连点并发发多个 PUT（后端每次都重置承认流程 + 发邮件）
         let trimmedDest = destination.trimmingCharacters(in: .whitespaces)
         isSubmitting = true
         defer { isSubmitting = false }
@@ -1510,14 +1511,18 @@ struct StayEditForm: View {
             return
         }
 
-        // 生产：只把改过的字段塞进 ApplicationUpdateBody（其余 nil 不发，后端只更新非 nil）
+        // 生产：把字段塞进 ApplicationUpdateBody（其余 nil 不发，后端只更新非 nil）
         var body = ApplicationUpdateBody()
         body.leave_date = formatYMD(leaveDate)
         body.leave_method = leaveMethod
         body.return_date = formatYMD(returnDate)
         body.return_method = returnMethod
-        if needsDestination {
-            body.dest_cities = trimmedDest.isEmpty ? nil : trimmedDest
+        // codex: destination 加载时是从 stay_locations.first.name 读的（不是 dest_cities 行先都市名）。
+        // 原来写进 dest_cities = 覆盖错字段、真正的滞在先住所反而不改。改成发 stay_locations、且改了才发。
+        if needsDestination, trimmedDest != (original.destination ?? "") {
+            body.stay_locations = trimmedDest.isEmpty
+                ? []
+                : [StayLocationBody(kind: "その他", name: trimmedDest, address: trimmedDest, phone: nil)]
         }
 
         do {
