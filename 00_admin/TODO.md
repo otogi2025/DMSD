@@ -42,18 +42,46 @@
 > 4. 🔴 [A-001~005] backend auth 5 处漏洞集中爆发
 > 5. 🔴 [C-007~009] README + progress_overview 严重过期
 
-> **🆕 2026-05-30 第二轮全项目审查**（多代理 workflow + Codex 复核 + 3 补审 → 175 条，完整见 `05_logs/audit_2026-05-30/findings.md`）：
+> **🆕 2026-05-30 第二轮全项目审查**（多代理 workflow + Codex 复核 + 3 补审 → 175 条）：
 > - ✅ 已修 11 处（iOS 安全 2 + 后端崩溃/校验/越权 + 文档死链；本会话 commit `6cc5c07` + 并行 /goal 会话 `d9e65f1`）
-> - ✅ **2026-05-31 续修**：角色名用字 + 三端隐私清理 + Android 4 小 bug + 后端 4 小 bug + 实时广播架构(rollcall-06/applchain-12) + Codex 反馈批，每阶段派 Codex 5.5 xhigh 审。**完整已修清单 + 剩余分层(大工程/能直接改/需决策) + 决策项见 `05_logs/audit_2026-05-30/修复进度交接.md`**
+> - ✅ **2026-05-31 续修**：角色名用字 + 三端隐私清理 + Android 4 小 bug + 后端 4 小 bug + 实时广播架构(rollcall-06/applchain-12) + Codex 反馈批，每阶段派 Codex 5.5 xhigh 审。
+> - ✅ **2026-06-02 itsuki 决策批 + Codex 双轮终审收敛**：扣分值 0.5/1.0 + 改判按当前状态重算 / 密码后端 8 位 / 注册码 30 分自动失效+手动关闭（拒绝「一次性」）/ 晚自习 3→2 次签到 / tier 月累计≥4 罚扫 ≥8 禁足 / demo 假学号注释改架空サンプル。后端 commit `ef1c910`+`6142ef0`、iOS+Android `a3eceda`。
+> - ⏳ **iOS 晚自习 2 次签到收尾 gap（本会话已改在磁盘、未提交）**：`MyPageStubs.swift` 3 处 `count==3`→`StudyTap.allCases.count` + `AppStore.swift` `studyAttendance` 的 `.done` 分支提前判异常。**跟并发会话 ix-008b 接线挤同文件、未从我这边 commit**（怕卷走对方半成品）→ 等那窗口提交 ix-008b 时一并带上，之后 `xcodebuild` 验证一次。
 > - 🔴 **未修大工程 backlog**（v1.0 上线，几天–几周实装，非「修 bug」能解决）：
 >   1. NFC 防代刷全栈（card_uid↔学生绑定 + 10秒 nonce + ECDSA 签名 + 点呼机 src 实装）— 后端 + iOS + Android + 点呼机**全空**
 >   2. Android 整个无网络层 → 接后端要从零写
 >   3. iOS 点呼 / 6 类申请接后端（RollCallAPI 死代码 + ApplyPreview 假提交，只弹 toast 不发后端）
 >   4. 删账号 `DELETE /accounts/me`（苹果强制 + iOS 已调用；/goal `admin_accounts.py` 可能在做账号管理）
 >   5. 后端写接口寮越权校验（/goal 正逐个修：discipline / dorm_unit 已修，rollcall/cleaning/front_desk/applications/study 待确认）
->   6. 学生登录失败锁定 + 注册码一次性（auth-account-03/04）
+>   6. 学生登录失败锁定（auth-account-03）— 注册码「一次性」(auth-account-04) itsuki 06-02 拍板**拒绝**、改 30 分+手动关闭已实装，本条只剩登录锁定
 >   7. spec 冻结区文档过期（DEVICE_REGISTRY 旧型号 RPi 4B / ENUM 缺 manual / RollCall_Spec 路径 C / ERROR_CODES 状态码）— 规格冻结区需 itsuki 解冻后改
 >   8. progress_overview 严重过期（VPS 架构图 / GitHub 写成私有 / 独立 repo 残留 — 跟 §16 上面 C-007~009 同源）
+
+#### 🔢 版本号 bump（itsuki 06-02 批准、待并发会话安静后做）
+
+- [ ] 走 `.claude/skills/version-bump` SOP。本批改了 backend / spec / iOS / Android / 设计日志 → **minor 候选**。现在另一窗口在写 ix-008b + 硬件文档，`CHANGELOG.md` / `WIP.md` / `README.md` 会撞，等它停手再做。
+
+#### 🟡 2026-05-30 审查「能直接改、还没排到」的小 bug（可 xcodebuild / pytest 验证 — 从已删 handoff 并入 2026-06-02）
+
+> 原 `05_logs/audit_2026-05-30/` 三个文件（findings.md 175 条 / 修复进度交接.md / itsuki决策批_自审清单.md）已并入本段并删除，完整 175 条原文可从 git 历史取回。下面只列还没做的。
+
+- [ ] **iOS 小 bug**（能编译验证、安全）：ios-community-04（死字段 up/down）/06（数组下标当 id）/07（fallback 首条）/08（日历写死 4-5 月）/09（写死假内容）/11（认领无核验）/12（死方法）；ios-home-05（日期写死 4/22）/07（时间写死 21:02）/08（联系人写死）/10（公告回复静默失败）；iosmypage-07（月度未过滤）/08（详情假数据）/09（总分写死）/11（中文「快递」）/12（删号后视图栈）；ios-auth-09（splash 只验 token 存在）；ios-staylist-05（audit 静默吞）/06（mock chain 造假）/07（actor_type 粗暴）；ios-schedule-04（firstIndex??0）
+- [ ] **老师网页**：teacherweb-05（client.ts 死代码删）、teacherweb-09（WebSocket 令牌走 URL 不安全 — 需后端鉴权配合，中等）
+- [ ] **后端要 migration（改 DB 约束，中等）**：models-entry-05/06/07/08/10/11/12/13（外键 / CHECK 约束 / server_default / append-only 防改 / Float 阈值）；rollcall-05 残余（点呼手动/NFC 无幂等键并发双写 → 需 PostgreSQL 部分唯一索引 `(session_id, student_id) WHERE idempotency_key IS NULL`）
+- [ ] **迁移与测试**：migtest-01（测试不跑 alembic）/04（审批链没测）/05（永真断言）/06/07（断言恒真）/08/09/10
+- [ ] **文档**：sysfeat-05（category 用 ENUM 还是 Text）/06（时间窗硬编码）/10（旧时刻 19:30）
+- [ ] **Codex 补测试建议**：broadcast_sync + run_coroutine_threadsafe 新路径补回归测试 / `POST /teachers` valid+invalid email API 测试 + teacher_web 前端兼容 422 detail list / WebSocket dorm_unit=2 广播过滤补回归测试
+
+#### 🔵 2026-05-30 审查「需 itsuki 拍板」（部分本批已决，剩下面这些 — 从已删 handoff 并入）
+
+- [ ] **体調報告履歴 + 掃除提出履歴**两屏 Android 没实装（androidrest-05，入口跳首页）→ v1.0 要不要做？不做就删入口。（itsuki 06-02 倾向暂不做）
+- [ ] **注册密码下限 Android 端对齐**：后端已改 8 位，Android 界面/代码（android-base-07 / androidrest-07）待对齐成 8 位
+- [ ] **git 历史**里旧邮箱/手机号要不要重写清除（BFG / filter-repo）？建议不做：提交身份邮箱本就公开、当前源码已清、代价大
+- 已决（不用做）：リュウイヒ + 学号 060218 保留当本地 demo + 注释已改「架空サンプル」/ 注册码 30 分+手动关闭（拒绝一次性、6 桁熵 itsuki 接受）/ sysfeat-02/04/09/11（flow_design 签到模型 / URL 域名 / 注册码限流 / audit log v1.1）暂不做
+
+#### ⚪ 2026-05-30 审查「未核实」（下次补核实再判 — 从已删 handoff 并入）
+
+- [ ] **iosmypage-01~12 + ios-schedule 全部** — 第一次核实 workflow 这两单元子代理没返回，状态未知，下次要补核实再分类
 
 ---
 
