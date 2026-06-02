@@ -63,6 +63,17 @@ iOS 学生端 app 把「演示假数据（SEED / StayListMock）」接成「真�
 - 🟡 登出只清 SEED.user，没清 changeLog/announcements 等用户绑定 @Published → 抽 `resetUserState()`（跨账号隐私残留）
 - 审查全文：Codex `/tmp/ix008_codex_out.txt`、Claude workflow 结果在 task `wsl80p7iw` 输出
 
+### 4.0b 🔧 IX-008b 扣分统计 — 后端完成、iOS 接线待（2026-06-02）
+
+**起因**：iOS `displayUser` 的 points/lateCount/absentCount（扣分/迟到/欠席）真人现显 0（`/me` 没这些字段）。
+
+**已做（后端，commit `0f84be9`）**：新 `GET /api/v1/discipline/me/summary`（学生鉴权）= 当前学生**当月**扣分汇总 `{month, total_points, late_count, absent_count}`。与 `/ranking` 同口径（当月 + 排除已撤销）；`total_points`=当月全来源之和、`late/absent` 只数点呼 `rollcall_late`/`rollcall_absent`。**扣分按当月算**（照系统已有约定 — ranking 就是按月聚合 + 阈值按月判，不是新拍板）。+4 测试。后端 217 passed。
+
+**待做（iOS，等 iOS 文件腾出再接）**：
+- `AuthAPI.swift` 加 `DisciplineAPI.mySummary()`（GET /discipline/me/summary）+ `MyDisciplineSummaryOut` Decodable
+- `AppStore.loadMe` 拉到基本资料后再拉一次 summary，把 points/lateCount/absentCount 填进 currentUser（现在 mapMeToUser 填 0）
+- 注意：iOS User.points 是 Double、后端 total_points 是 float，对得上
+
 ### 4.1 Codex 阶段2(IX-004) 审查 — 已回，2 条已修（提交 `6cca9fc`），剩 5 条待处理（原文 `/tmp/codex_stage2_out.txt`）
 
 **✅ 已修（`6cca9fc`）**：🔴 destination 写错字段（加载从 `stay_locations.first.name` 读、原提交写 `dest_cities` = 覆盖错位置 → 改发 `stay_locations` + 改了才发）；🟠 `isSubmitting` 没拦连点（加 `guard !isSubmitting`）。
