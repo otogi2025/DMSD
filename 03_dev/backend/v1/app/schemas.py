@@ -965,6 +965,18 @@ class MyDisciplineSummaryOut(BaseModel):
     absent_count: int
 
 
+class MyAbsenceSummaryOut(BaseModel):
+    """当前登录学生的当月学習欠席届次数（iOS 当前用户统计用，IX-034）。
+
+    口径：按 target_date（请假针对日）落在 JST 当月计数，数全部状态
+    （pending / approved / rejected）—— 与 iOS 现有「提交即 +1」行为一致。
+    学習欠席届无撤销机制（status 仅三态、无 withdrawn），故不排除任何状态。
+    """
+
+    month: str
+    count: int
+
+
 class DemeritManualIn(BaseModel):
     """手动加扣分输入（寮監权限）。"""
 

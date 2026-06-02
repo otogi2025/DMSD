@@ -111,6 +111,76 @@ class TestAbsenceRequest:
         assert isinstance(res.json(), list)
 
 
+class TestMyAbsenceSummary:
+    """GET /study/absence-requests/me/summary — 当前学生当月请假次数（IX-034）。"""
+
+    def test_requires_auth(self, client):
+        """未带 token → 401。"""
+        res = client.get("/api/v1/study/absence-requests/me/summary")
+        assert res.status_code == 401
+
+    def test_rejects_teacher(self, client, teacher_token):
+        """教师 token → 403（学生专用端点）。"""
+        res = client.get(
+            "/api/v1/study/absence-requests/me/summary",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 403
+
+    def test_counts_current_month_only_all_statuses(
+        self, client, db_session, seed_data, student_token
+    ):
+        """只数当月（按 target_date）+ 全状态都算（含 rejected）+ 跨月排除。"""
+        student = seed_data["student"]
+        today = date.today()
+        # 当月 2 条（不同日避开唯一约束）：1 条 pending 默认 + 1 条 rejected → 都该计入
+        db_session.add(
+            models.StudyAbsenceRequest(
+                student_id=student.id,
+                target_date=date(today.year, today.month, 1),
+                period="full",
+                reason="当月1",
+            )
+        )
+        db_session.add(
+            models.StudyAbsenceRequest(
+                student_id=student.id,
+                target_date=date(today.year, today.month, 2),
+                period="full",
+                reason="当月2(被拒)",
+                status="rejected",
+            )
+        )
+        # 上个月 1 条 + 下个月 1 条 → 都不应计入
+        db_session.add(
+            models.StudyAbsenceRequest(
+                student_id=student.id,
+                target_date=today - timedelta(days=40),
+                period="full",
+                reason="上月",
+                status="approved",
+            )
+        )
+        db_session.add(
+            models.StudyAbsenceRequest(
+                student_id=student.id,
+                target_date=today + timedelta(days=40),
+                period="full",
+                reason="下月",
+            )
+        )
+        db_session.commit()
+
+        res = client.get(
+            "/api/v1/study/absence-requests/me/summary",
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 200, res.text
+        data = res.json()
+        assert data["count"] == 2
+        assert data["month"] == today.strftime("%Y-%m")
+
+
 class TestCheckin:
     """POST /study/checkins"""
 

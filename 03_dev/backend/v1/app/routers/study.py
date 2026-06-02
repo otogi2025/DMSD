@@ -553,6 +553,41 @@ def list_absence_requests(
 
 
 # ---------------------------------------------------------------
+# GET /study/absence-requests/me/summary — 当前学生当月请假次数 (学生, IX-034)
+# ---------------------------------------------------------------
+@router.get(
+    "/absence-requests/me/summary",
+    response_model=schemas.MyAbsenceSummaryOut,
+)
+def get_my_absence_summary(
+    db: Session = Depends(get_db),
+    student: models.Student = Depends(get_current_student),
+):
+    """当前登录学生的当月学習欠席届次数（iOS 当前用户统计，IX-034）。
+
+    口径：按 target_date（请假针对的日期）落在 JST 当月计数，数全部状态
+    （pending / approved / rejected）—— 与 iOS 现有「提交即 +1」行为一致。
+    学習欠席届无撤销机制（唯一约束保证每天每人最多一条），故不排除任何状态。
+    """
+    now = _now_jst()
+    month = now.strftime("%Y-%m")
+    first = date(now.year, now.month, 1)
+    nxt = (
+        date(now.year + 1, 1, 1)
+        if now.month == 12
+        else date(now.year, now.month + 1, 1)
+    )
+    rows = db.scalars(
+        select(models.StudyAbsenceRequest).where(
+            models.StudyAbsenceRequest.student_id == student.id,
+            models.StudyAbsenceRequest.target_date >= first,
+            models.StudyAbsenceRequest.target_date < nxt,
+        )
+    ).all()
+    return schemas.MyAbsenceSummaryOut(month=month, count=len(rows))
+
+
+# ---------------------------------------------------------------
 # POST /study/absence-requests/{id}/decision — 学習担当が承認/拒否
 # ---------------------------------------------------------------
 @router.post(

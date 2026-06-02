@@ -11,12 +11,11 @@
 import Foundation
 
 enum StudyAPI {
-
     /// POST /api/v1/study/absence-requests 用的请求 body
     struct AbsenceRequestBody: Encodable {
-        let target_date: String     // "2026-05-03"
-        let period: String          // "first_half" | "second_half" | "full"
-        let reason: String          // 申请理由（必填、1-2000 字）
+        let target_date: String // "2026-05-03"
+        let period: String // "first_half" | "second_half" | "full"
+        let reason: String // 申请理由（必填、1-2000 字）
     }
 
     /// POST /api/v1/study/online-requests 用的请求 body
@@ -48,5 +47,19 @@ enum StudyAPI {
     @MainActor
     static func listMyOnlineRequests() async throws -> [StudyOnlineRequestOut] {
         return try await APIClient.shared.get(path: "/api/v1/study/online-requests/mine")
+    }
+
+    /// GET /api/v1/study/absence-requests/me/summary 响应 — 当前学生当月请假次数。
+    /// 与后端 MyAbsenceSummaryOut 对齐（IX-034）。
+    struct MyAbsenceSummaryOut: Decodable {
+        let month: String
+        let count: Int
+    }
+
+    /// 当月学習欠席届次数 — 当前登录学生（按 target_date 落当月计数，IX-034）。
+    /// 登录 / 启动恢复令牌后调，把 studyLeaveCountThisMonth 从纯内存累加换成真实当月数。
+    @MainActor
+    static func myAbsenceSummary() async throws -> MyAbsenceSummaryOut {
+        return try await APIClient.shared.get(path: "/api/v1/study/absence-requests/me/summary")
     }
 }

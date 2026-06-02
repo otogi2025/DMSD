@@ -161,9 +161,13 @@ final class AppStore: ObservableObject {
                     mapped.lateCount = summary.late_count
                     mapped.absentCount = summary.absent_count
                 }
-                // summary 也有 await，写回前再确认登录态。
+                // IX-034: 再拉当月学習欠席届次数（按月真实数，替代纯内存累加 —
+                //   重启 / 跨月不再丢失）。拉不到 nil 保持原值，不打断登录。
+                let absenceCount = (try? await StudyAPI.myAbsenceSummary())?.count
+                // summary / absence 都有 await，写回前再确认登录态。
                 guard isAuthenticated else { return }
                 currentUser = mapped
+                if let absenceCount { studyLeaveCountThisMonth = absenceCount }
                 // 安全网：同时写回 SEED.user，覆盖那些没法用 app.displayUser 的站点
                 // （@State 默认值 / 纯 mock 数据 / 静态 helper）。
                 SEED.user = mapped
