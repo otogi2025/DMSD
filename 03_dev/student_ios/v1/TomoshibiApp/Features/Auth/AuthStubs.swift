@@ -1008,19 +1008,23 @@ struct RegisterStep1View: View {
                 .fill(T.hair)
                 .frame(height: 0.5)
             PrimaryButton(title: "次へ", enabled: canNext) {
-                // 保存 to SEED.user（demo 用）
-                SEED.user.name = name
-                SEED.user.gender = gender == "male" ? "男" : "女"
-                SEED.user.dorm = gender == "male" ? "男寮" : "女寮"
-                SEED.user.isOverseas = isOverseas
-                SEED.user.grade = grade
-                SEED.user.classSuffix = classSuffix
-                SEED.user.seatNo = Int(seatNoStr) ?? 18
-                let prefix = (gender == "male") ? "M" : "W"
-                // room 已含字母前缀（如 "A5" / "M101"）就直接用，避免 "MA5" 双前缀
-                SEED.user.room = (room.first?.isLetter == true) ? room : prefix + room
-                SEED.user.account = computedAccount
-                SEED.user.avatar = name.first.map { String($0) } ?? "リ"
+                #if DEMO
+                    // 仅演示构建：即时把表单写进全局假人 SEED.user 供后续页面预览。
+                    // 生产构建不写 —— 注册数据只走下面的 registrationDraft → createAccount → loadMe，
+                    // 否则真名配演示残留的 4.5 点 / 假邮箱电话会变「混血」资料（codex + Claude 双审逮到）。
+                    SEED.user.name = name
+                    SEED.user.gender = gender == "male" ? "男" : "女"
+                    SEED.user.dorm = gender == "male" ? "男寮" : "女寮"
+                    SEED.user.isOverseas = isOverseas
+                    SEED.user.grade = grade
+                    SEED.user.classSuffix = classSuffix
+                    SEED.user.seatNo = Int(seatNoStr) ?? 18
+                    let prefix = (gender == "male") ? "M" : "W"
+                    // room 已含字母前缀（如 "A5" / "M101"）就直接用，避免 "MA5" 双前缀
+                    SEED.user.room = (room.first?.isLetter == true) ? room : prefix + room
+                    SEED.user.account = computedAccount
+                    SEED.user.avatar = name.first.map { String($0) } ?? "リ"
+                #endif
 
                 // 2026-05-04 加: 累积到 RegistrationDraft（Step5 提交时整体送 backend）
                 app.registrationDraft.name = name

@@ -615,16 +615,12 @@ struct MyInfoEditView: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
-    @State private var room: String = {
-        var s = SEED.user.room
-        if let first = s.first, first == "M" || first == "A" || first == "W" {
-            s.removeFirst()
-        }
-        return s
-    }()
-
-    @State private var email: String = SEED.user.email
-    @State private var phone: String = SEED.user.phone
+    // IX-008: 不再用 @State 默认值在 view init 时抓全局假人 SEED.user
+    // （loadMe 晚到 / 切账号都不刷新 → 把演示假房号/邮箱预填进编辑框、存下去当成自己的）。
+    // 改在 .onAppear 从 app.displayUser（当前登录用户）填。
+    @State private var room: String = ""
+    @State private var email: String = ""
+    @State private var phone: String = ""
 
     private var canSave: Bool {
         !room.trimmingCharacters(in: .whitespaces).isEmpty
@@ -635,9 +631,9 @@ struct MyInfoEditView: View {
     /// 性別 → prefix（M = 男寮 1 寮 / W = 女寮 4 寮 / A = 男寮 2 寮）
     /// 注: A 寮の判別は元 room の prefix を継承（性別だけでは決まらない）
     private var roomPrefix: String {
-        let original = SEED.user.room
+        let original = app.displayUser.room
         if let first = original.first, first == "A" { return "A" }
-        return SEED.user.gender == "男" ? "M" : "W"
+        return app.displayUser.gender == "男" ? "M" : "W"
     }
 
     var body: some View {
@@ -695,6 +691,20 @@ struct MyInfoEditView: View {
             .background(T.paper)
         }
         .background(T.paper.ignoresSafeArea())
+        .onAppear { loadCurrentInfo() }
+    }
+
+    /// IX-008: 进页面时从当前登录用户（app.displayUser）填预填值。
+    /// 不在 @State 默认值里抓 —— 那样 view init 一次性捕获，loadMe 晚到 / 切账号都不刷新。
+    private func loadCurrentInfo() {
+        let u = app.displayUser
+        var s = u.room
+        if let first = s.first, first == "M" || first == "A" || first == "W" {
+            s.removeFirst()
+        }
+        room = s
+        email = u.email
+        phone = u.phone
     }
 
     /// read-only 表示（学号 / 姓名 — 老师専改字段）
@@ -712,7 +722,7 @@ struct MyInfoEditView: View {
                             .font(.system(size: 13))
                             .foregroundStyle(T.inkSub)
                             .frame(width: 90, alignment: .leading)
-                        Text(SEED.user.account)
+                        Text(app.displayUser.account)
                             .font(.system(size: 14, weight: .semibold, design: .monospaced))
                             .foregroundStyle(T.ink)
                         Spacer()
@@ -727,7 +737,7 @@ struct MyInfoEditView: View {
                             .font(.system(size: 13))
                             .foregroundStyle(T.inkSub)
                             .frame(width: 90, alignment: .leading)
-                        Text(SEED.user.name)
+                        Text(app.displayUser.name)
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(T.ink)
                         Spacer()
@@ -763,13 +773,20 @@ struct MyInfoEditView: View {
     }
 
     private func saveAndLog() {
-        let u0 = SEED.user
+        let u0 = app.displayUser
         let newRoom = roomPrefix + room
 
         app.appendChange(field: "room", label: "部屋番号", before: u0.room, after: newRoom)
         app.appendChange(field: "email", label: "メール", before: u0.email, after: email)
         app.appendChange(field: "phone", label: "電話", before: u0.phone, after: phone)
 
+        // IX-008: 更新当前用户（已迁移到 displayUser 的站点响应式刷新）+ 安全网 SEED.user（未迁移站点仍读它）
+        if var u = app.currentUser {
+            u.room = newRoom
+            u.email = email
+            u.phone = phone
+            app.currentUser = u
+        }
         SEED.user.room = newRoom
         SEED.user.email = email
         SEED.user.phone = phone

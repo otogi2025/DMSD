@@ -397,3 +397,26 @@ def test_b8_rollcall_checkin_cross_dorm_403(client, db_session, seed_data):
     )
     assert res.status_code == 403, res.text
     assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+
+
+# ─────────────────────────────────────────
+# IX-008 — get_current_student 畸形 token 防 500（deps.py try/except）
+# ─────────────────────────────────────────
+
+
+def test_ix008_me_malformed_sub_returns_401(client):
+    """学生 token 但 sub 非合法 UUID → 401（不是 500）。
+
+    deps.get_current_student 之前直接 UUID(payload["sub"])，畸形 sub 会抛
+    未捕获异常变 500；仿 get_current_principal 包 try/except 后统一返 401。
+    codex + Claude 双审同时指出这处依赖一致性缺口。
+    """
+    from app.security import create_access_token
+
+    token = create_access_token("not-a-uuid", "student")
+    res = client.get(
+        "/api/v1/students/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 401, res.text
+    assert res.json()["detail"]["code"] == "INVALID_CREDENTIALS"

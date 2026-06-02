@@ -134,17 +134,31 @@ final class AppStore: ObservableObject {
     /// 登录成功后 + app 启动恢复令牌后调。拉不到就保持 nil（displayUser 回退 SEED 占位），不打断流程。
     @MainActor
     func loadMe() async {
-        guard isAuthenticated else { return }
-        do {
-            let me = try await StudentsAPI.me()
-            let mapped = Self.mapMeToUser(me)
-            currentUser = mapped
-            // 安全网：同时写回 SEED.user，覆盖那些没法用 app.displayUser 的站点
-            // （@State 默认值 / 纯 mock 数据 / 静态 helper）。演示态 loadMe 被 isAuthenticated 挡住、不会执行。
-            SEED.user = mapped
-        } catch {
-            // 拉不到（网络 / 401）→ 保持 currentUser = nil，displayUser 回退占位，不报错打断登录
-        }
+        #if DEMO
+            // 演示构建永不拉真后端 —— 始终用 SEED 假数据讲叙事。
+            // 兑现「演示态不执行 loadMe」的承诺（之前只靠 isAuthenticated 挡，没真隔离构建）。
+            return
+        #else
+            guard isAuthenticated else { return }
+            do {
+                let me = try await StudentsAPI.me()
+                // await 之后再确认登录态没变 —— 防 await 期间用户已登出，结果写回复活已登出用户的数据。
+                guard isAuthenticated else { return }
+                let mapped = Self.mapMeToUser(me)
+                currentUser = mapped
+                // 安全网：同时写回 SEED.user，覆盖那些没法用 app.displayUser 的站点
+                // （@State 默认值 / 纯 mock 数据 / 静态 helper）。
+                SEED.user = mapped
+            } catch APIError.unauthorized {
+                // 令牌过期 / 失效（401）→ 清令牌强制重登（didSet 会清 currentUser + 复位 SEED.user），
+                // 不再默默回退到演示假人身份。
+                authToken = nil
+            } catch {
+                // 网络 / 解码失败 → 保持 currentUser = nil，displayUser 回退占位，不打断登录。
+                // 打日志区分（后端字段改名导致的解码失败，开发期能据此发现）。
+                print("[loadMe] /students/me 拉取失败：\(error)")
+            }
+        #endif
     }
 
     /// 后端 /me 响应（StudentMeOut）映射成 iOS User。/me 只给身份字段：
@@ -309,6 +323,9 @@ final class AppStore: ObservableObject {
         let res = try await AccountsAPI.createAccount(body: body)
         // IX-036: 存令牌时一并存有效期，启动时能判断是否过期
         setAuthToken(res.accessToken, expiresIn: res.expiresIn)
+        // IX-008: 注册成功也拉 /me，跟登录路径对齐 —— 否则新注册真实学生首屏显演示假人
+        // （「リュウ イヒ」/ 4.5 点）直到冷启动才恢复。
+        await loadMe()
         return res
     }
 

@@ -66,7 +66,15 @@ def get_current_student(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"code": "FORBIDDEN", "message": "学生 token が必要です"},
         )
-    student = db.get(models.Student, UUID(payload["sub"]))
+    # sub 缺失 / 非法 UUID 不能抛未捕获异常变成 500 — 仿 get_current_principal 统一返回 401
+    try:
+        student_uuid = UUID(payload.get("sub"))
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "INVALID_CREDENTIALS", "message": "トークンが無効です"},
+        )
+    student = db.get(models.Student, student_uuid)
     if not student or student.status != "active":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -93,7 +101,15 @@ def get_current_teacher(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"code": "FORBIDDEN", "message": "教師 token が必要です"},
         )
-    teacher = db.get(models.Teacher, UUID(payload["sub"]))
+    # sub 缺失 / 非法 UUID 不能抛未捕获异常变成 500 — 仿 get_current_principal 统一返回 401
+    try:
+        teacher_uuid = UUID(payload.get("sub"))
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "INVALID_CREDENTIALS", "message": "トークンが無効です"},
+        )
+    teacher = db.get(models.Teacher, teacher_uuid)
     if not teacher or teacher.status != "active":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

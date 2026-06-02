@@ -170,25 +170,22 @@ def close_code(
     没有 active 码时也安全返回（幂等）。
     """
     now = datetime.now(timezone.utc)
-    # 取当前 active 码（refresh 保证同时最多 1 个）做 audit target
+    # 只关「生效中（未过期）」的码 —— 与 /current 同口径（invalidated IS NULL + expires_at > now）。
+    # 过期码 /current 本就返回 null → close 应 no-op、不记 audit（Codex 5.5 P3）。
+    # refresh 保证同时最多 1 个生效码，直接改 SELECT 出来的这一行；不用 bulk update().where(expires_at > now)，
+    # 否则 ORM 在 Python 端 evaluate 该 where 会撞 naive(SQLite 读回) / aware(now) datetime 比较 → TypeError。
     active = db.scalars(
         select(models.StudentRegistrationCode)
         .where(
             models.StudentRegistrationCode.invalidated_at.is_(None),
+            models.StudentRegistrationCode.expires_at > now,
             models.StudentRegistrationCode.is_reviewer.is_(False),
         )
         .order_by(models.StudentRegistrationCode.created_at.desc())
         .limit(1)
     ).first()
-    db.execute(
-        update(models.StudentRegistrationCode)
-        .where(
-            models.StudentRegistrationCode.invalidated_at.is_(None),
-            models.StudentRegistrationCode.is_reviewer.is_(False),
-        )
-        .values(invalidated_at=now)
-    )
     if active is not None:
+        active.invalidated_at = now
         db.add(
             models.AuditLog(
                 actor_type="teacher",
