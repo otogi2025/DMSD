@@ -1129,10 +1129,18 @@ xcodebuild iPhone 17 simulator BUILD SUCCEEDED 確認済（2026-05-04）。
 - 演示构建 `#if DEMO` 天然不拉（loadMe 顶部 return），保持初始 3。
 - 口径：按 target_date 算当月 / 数全部状态 / 不加硬上限（IX-034 严格只修计数）。
 
-**⚠️ Codex 5.5 xhigh 审出 4 点待修**（过夜 GOAL 第一件事修，见交接 §7.1）：① `submitStudyLeave` 跨月提交仍 +1（应只当月才 +1）；② `loadMe` 竞态 guard 只查 isAuthenticated 没确认同一令牌（应捕获 tokenAtStart 比对）；③ 测试用 date.today() 时区边界 flaky；④ `ApplyStubs.formatYMD` 没固定 Asia/Tokyo。
+**✅ Codex 6 轮对抗复审收敛关闭**（过夜 GOAL，commit `7a9922c`→`7fecd21`→`508c9b1`→`2dff6b7`→`6c58799`→`30032ea`，pass6 终判「IX-034 收敛可关闭」）：① `submitStudyLeave` 只当月 +1 + 提交后拉 canonical 当月数收敛；② `loadMe` 捕获 `tokenAtStart` 每 await 后比对令牌（含 401 分支）；③ 测试 monkeypatch `study._now_jst` 固定日期去 flaky + 加 12 月跨年边界；④ `formatYMD`/`parseYMD`（StayForm 新建 + StayList 编辑两对）+ 编辑页 DatePicker 时区环境全固定 JST；⑤ 加 `absenceCountRevision` 代次守卫挡旧 summary 覆盖；⑥ 提交/canonical 两个 await 后都抛 `CancellationError` 让调用方静默中止（登出/切用户不导航完成页、不写别人状态）。
 
-**验证**：iOS 双 scheme BUILD SUCCEEDED；后端 220 passed。
+**验证**：iOS 双 scheme BUILD SUCCEEDED；后端 221 passed。
+
+### 14.11 IX-009 通知不泄漏假数据（2026-06-02，commit `7e4a180`→`2dff6b7`→`6c58799`，Codex pass5 收敛）
+
+`AppStore.allNotifications` 原 = `pushNotifications + SEED.notifications`（5 条假通知生产泄漏）。改：`SEED.notifications` 声明圈 `#if DEMO`（不进生产二进制）；生产 `allNotifications` = push + `announcementNotifications`（真公告映射成通知卡、未読=公告未読驱动铃铛 badge）；`unreadNotificationCount` 生产用 `push 未読 + announcementUnreadCount`（不依赖懒加载列表），`loadMe` 登录/启动拉公告未読数；公告 4 方法（list/unreadCount/detail/postReply）全加 token-at-entry 守卫防串号；`NotificationsView .task` 进入拉真公告。审批结果/包裹通知聚合 + 通知 id 下标身份 + 时间排序推迟（交接 §7.3）。
+
+### 14.12 IX-007 申请详情页生产不读 SEED（2026-06-02，commit `457077f`，Option A）
+
+`ApplyDetailView.body` 原靠 SEED 的 `item.type` 路由、生产里 `item` 总 fallback 到 `SEED.applications[0]`（恰好 stay 型）才碰巧走对。改 `#if DEMO` 分构建：生产显式只 `StayDetailView(id)`（后端只支持出寮届系 帰省/外泊/帰国），演示保留 SEED 路由 + otherDetailBody（修繕/来訪/代理受取）讲叙事。Option B（真做这几类申请功能）推迟。
 
 ---
 
-**END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）; 5-31 修改届接后端（§14.7）+ 当前用户接 /me（§14.8）; 6-02 IX-008 二审修复 + IX-008b 扣分统计（§14.9）+ IX-034 请假计数按月（§14.10）。
+**END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）; 5-31 修改届接后端（§14.7）+ 当前用户接 /me（§14.8）; 6-02 IX-008 二审修复 + IX-008b 扣分统计（§14.9）+ IX-034 请假计数按月（§14.10）+ IX-009 通知（§14.11）+ IX-007 详情页（§14.12）。
