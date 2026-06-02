@@ -323,7 +323,7 @@ struct HomeView: View {
             .padding(.bottom, 6)
 
             if isActive {
-                // active = NFC 3 回タップの進捗 + 「NFC で签到」入口（system_features §7.3.3）
+                // active = NFC 2 次签到进度 + 「NFC で签到」入口（system_features §7.3.3）
                 studyTapsProgress(deepBrown: deepBrown)
                     .padding(.bottom, 14)
                 studyActionButtons(deepBrown: deepBrown)
@@ -366,13 +366,12 @@ struct HomeView: View {
         }
     }
 
-    /// 学習 NFC 3 回タップの進捗 dot row（active のみ表示）
+    /// 学习 NFC 2 次签到进度 dot row（仅 active 显示）
     @ViewBuilder
     private func studyTapsProgress(deepBrown: Color) -> some View {
         let taps = app.studyTaps
         let items: [(StudyTap, String, String)] = [
             (.start, "開始", "19:40"),
-            (.mid, "中場", "20:45"),
             (.end, "終了", "21:45"),
         ]
         VStack(alignment: .leading, spacing: 8) {
@@ -417,7 +416,7 @@ struct HomeView: View {
         }
     }
 
-    /// active 時のアクション row — 「NFC で签到」+「請假」 (next tap が無い時は「全 3 回完了」表示)
+    /// active 时的操作 row — 「NFC で签到」+「請假」（无下一 tap 时显示「全 2 回完了」）
     @ViewBuilder
     private func studyActionButtons(deepBrown: Color) -> some View {
         if let _ = app.nextStudyTap {
@@ -463,7 +462,7 @@ struct HomeView: View {
                 .buttonStyle(.plain)
             }
         } else {
-            // 全 3 回完了
+            // 两次都完成
             HStack(spacing: 8) {
                 Image(systemName: "checkmark.seal.fill")
                     .font(.system(size: 16, weight: .semibold))
@@ -1466,7 +1465,7 @@ struct RollcallSheet: View {
 }
 
 // ───────────────────────────────────────────────────────────
-// MARK: - StudyCheckinSheet · 学習 NFC 3 回タップ签到 (system_features §7.3.3)
+// MARK: - StudyCheckinSheet · 学习 NFC 2 次签到 (system_features §7.3.3)
 
 // ───────────────────────────────────────────────────────────
 
@@ -1491,7 +1490,6 @@ struct StudyCheckinSheet: View {
     private var stepLabel: String {
         switch nextTap {
         case .start: return "学習開始のタップ"
-        case .mid: return "中場のタップ"
         case .end: return "学習終了のタップ"
         case .none: return "本日完了"
         }
@@ -1500,16 +1498,14 @@ struct StudyCheckinSheet: View {
     private var stepNumber: Int {
         switch nextTap {
         case .start: return 1
-        case .mid: return 2
-        case .end: return 3
-        case .none: return 3
+        case .end: return 2
+        case .none: return 2
         }
     }
 
     private var stepTimeWindow: String {
         switch nextTap {
         case .start: return "19:35〜19:40"
-        case .mid: return "20:40〜20:50"
         case .end: return "21:40〜21:50"
         case .none: return "—"
         }
@@ -1544,7 +1540,7 @@ struct StudyCheckinSheet: View {
 
     private var idleView: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("\(stepNumber) / 3 回目")
+            Text("\(stepNumber) / 2 回目")
                 .font(.system(size: 11, weight: .heavy))
                 .kerning(1.8)
                 .textCase(.uppercase)
@@ -1716,7 +1712,6 @@ struct StudyCheckinSheet: View {
     private var successTitle: String {
         switch recordedTap {
         case .start: return "開始タップ完了"
-        case .mid: return "中場タップ完了"
         case .end: return "終了タップ完了"
         case .none: return "完了"
         }
@@ -1727,7 +1722,6 @@ struct StudyCheckinSheet: View {
         let after = app.nextStudyTap
         switch after {
         case .start: return ("学習開始", "19:35〜19:40")
-        case .mid: return ("中場", "20:40〜20:50")
         case .end: return ("学習終了", "21:40〜21:50")
         case .none: return nil
         }
@@ -1801,7 +1795,7 @@ struct StudyCheckinSheet: View {
                 let label = recordedTap?.label ?? "—"
                 app.closeSheet()
                 if app.nextStudyTap == nil {
-                    app.showToast("学習出席完了 · 全 3 回 タップ済み")
+                    app.showToast("学習出席完了 · 全 2 回 タップ済み")
                 } else {
                     app.showToast("\(label) 完了")
                 }
@@ -1830,7 +1824,6 @@ private extension StudyTap {
     var label: String {
         switch self {
         case .start: return "学習開始"
-        case .mid: return "中場"
         case .end: return "学習終了"
         }
     }

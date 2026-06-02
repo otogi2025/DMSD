@@ -16,8 +16,8 @@ data class User(
     // iOS 060218 编码 = 学年(06) + 組(02) + 番号(18)
     val studentNo: String = "060218",
     val gradeClass: String = "高3B組 18番",
-    val category: String = "一般寮生",   // 一般寮生 / 留学生 / サッカー部
-    val phone: String = "090-0000-0000"
+    val category: String = "一般寮生", // 一般寮生 / 留学生 / サッカー部
+    val phone: String = "090-0000-0000",
 )
 
 enum class ApplicationStatus { PENDING, APPROVED, RETURNED, REJECTED }
@@ -25,21 +25,21 @@ enum class ApplicationStatus { PENDING, APPROVED, RETURNED, REJECTED }
 @Serializable
 data class Application(
     val id: String,
-    val kind: String,           // 外泊 / 外出 / 帰省 / 帰国 / 早帰 / 修繕 / 代理受取 / 来訪者 / その他 / 学習
+    val kind: String, // 外泊 / 外出 / 帰省 / 帰国 / 早帰 / 修繕 / 代理受取 / 来訪者 / その他 / 学習
     val dest: String,
-    val from: String,           // ISO date string
+    val from: String, // ISO date string
     val to: String,
     val status: ApplicationStatus,
     val reason: String,
-    val createdAt: String
+    val createdAt: String,
 )
 
 @Serializable
 data class RollCall(
     val id: String,
-    val ts: Long,               // unix millis
-    val status: String,         // ok / late / miss
-    val method: String          // nfc / manual
+    val ts: Long, // unix millis
+    val status: String, // ok / late / miss
+    val method: String, // nfc / manual
 )
 
 @Serializable
@@ -48,17 +48,17 @@ data class Deduction(
     val date: String,
     val points: Double,
     val reason: String,
-    val tier: Int               // 4 (罚扫) or 8 (禁足)
+    val tier: Int, // 处罚档（§862 月累计）：0=无 / 4=罚扫(月累计≥4) / 8=禁足(月累计≥8)
 )
 
 @Serializable
 data class Notification(
     val id: String,
-    val tag: String,            // 点呼 / 申請 / お知らせ / 宅配 / 減点 / 活動 / リクエスト
+    val tag: String, // 点呼 / 申請 / お知らせ / 宅配 / 減点 / 活動 / リクエスト
     val title: String,
     val body: String,
-    val ts: String,             // 显示用文本（"今日 18:30"）
-    val read: Boolean = false
+    val ts: String, // 显示用文本（"今日 18:30"）
+    val read: Boolean = false,
 )
 
 @Serializable
@@ -66,21 +66,21 @@ data class MusicRequest(
     val id: String,
     val title: String,
     val artist: String,
-    val votes: Int = 0
+    val votes: Int = 0,
 )
 
 @Serializable
 data class LostItem(
     val id: String,
     val label: String,
-    val colorHex: String        // 用 hex string 序列化 — Compose 侧 Color(0xFF + 后 6 位) parse
+    val colorHex: String, // 用 hex string 序列化 — Compose 侧 Color(0xFF + 后 6 位) parse
 )
 
 @Serializable
 data class EventItem(
-    val date: String,           // "04-05"
+    val date: String, // "04-05"
     val title: String,
-    val time: String            // "08:30"
+    val time: String, // "08:30"
 )
 
 enum class ThemeMode { LIGHT, DARK }
@@ -109,8 +109,8 @@ data class AppState(
     val rollCalls: List<RollCall> = emptyList(),
     val deductions: List<Deduction> = emptyList(),
     val notifications: List<Notification> = emptyList(),
-    val musicVotes: Map<String, String> = emptyMap(),       // id -> 'up'
+    val musicVotes: Map<String, String> = emptyMap(), // id -> 'up'
     val musicRequests: List<MusicRequest> = emptyList(),
     val lostFoundClaims: Map<String, Boolean> = emptyMap(),
-    val feedback: List<String> = emptyList()                // 简化为 JSON string 列表
+    val feedback: List<String> = emptyList(), // 简化为 JSON string 列表
 )

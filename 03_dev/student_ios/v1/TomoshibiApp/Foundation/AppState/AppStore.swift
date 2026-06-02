@@ -522,45 +522,40 @@ final class AppStore: ObservableObject {
         func cycleDemoStudyState() {
             switch studyState {
             case .idle: studyState = .upcoming; studyCountdownSec = 600; showToast("Demo · 学習 10 分前 (倒计时 10:00)")
-            case .upcoming: studyState = .active; studyTaps = []; showToast("Demo · 学習進行中（NFC で 3 回タップ）")
+            case .upcoming: studyState = .active; studyTaps = []; showToast("Demo · 学習進行中（NFC で 2 回タップ）")
             case .active: studyState = .done; showToast("Demo · 学習終了")
             case .done: studyState = .idle; studyTaps = []; showToast("Demo · 学習対象外")
             }
         }
     #endif
 
-    // MARK: - 学習 NFC 3 回タップ签到 (system_features §7.3.3-6) — 2026-04-30 後續
+    // MARK: - 学习 NFC 2 次签到 (system_features §7.3.3-6) — 2026-04-30 / 5-31 中场废止
 
-    /// 学習出席で達成した tap の集合（3 種類: start / mid / end）
+    /// 学习出席已达成的 tap 集合（2 种类: start / end）
     @Published var studyTaps: Set<StudyTap> = []
 
     /// 現在の学習出席状態（studyTaps + studyState から導出）
     var studyAttendance: StudyAttendance {
-        // start / mid / end 集合に応じて state を判定（§7.3.6 異常テーブル）
+        // 按 start / end 两个 tap 集合判定状态（§7.3.6 异常表，删中场后）
         let s = studyTaps.contains(.start)
-        let m = studyTaps.contains(.mid)
         let e = studyTaps.contains(.end)
-        // 学習未開始 → idle
+        // 学习未开始 → idle
         if studyState == .idle || studyState == .upcoming { return .idle }
-        // 全 3 回 tap → 緑（時間内）
-        if s && m && e { return .green }
-        // 1 + 3 だけ / 2 + 3 だけ / 1 + 2 だけ → ⚠️ 異常
-        if (s && !m && e) || (!s && m && e) || (s && m && !e) { return .abnormal }
-        // 1 だけ → まだ進行中（途中の通常）
-        if s && !m && !e { return .progressing }
-        // 2 + 3 のみ（開始未碰）→ 遅刻 + 異常（§7.3.6 4 行目に近い）
-        if !s && m && !e { return .progressing }
-        if !s && !m && e { return .abnormal }
-        // 何もしてない / done なのに何もない → 缺席 (§7.3.6 1 行目)
-        if studyState == .done && !s && !m && !e { return .red }
-        // active で何もしてない = 進行中だがまだ tap 0
+        // 两次都碰到 → 绿（时间内）
+        if s && e { return .green }
+        // 没碰开始却碰了结束 → 不一致 = 异常
+        if !s && e { return .abnormal }
+        // 只碰了开始 → 进行中
+        if s && !e { return .progressing }
+        // 已结束(done)却一次没碰 → 缺席（§7.3.6 第 1 行）
+        if studyState == .done && !s && !e { return .red }
+        // 进行中但一次没碰 = tap 0
         return .none
     }
 
     /// 何回目の tap を期待しているか（next tap）— UI で次のステップを案内
     var nextStudyTap: StudyTap? {
         if !studyTaps.contains(.start) { return .start }
-        if !studyTaps.contains(.mid) { return .mid }
         if !studyTaps.contains(.end) { return .end }
         return nil
     }
@@ -575,7 +570,6 @@ final class AppStore: ObservableObject {
         let label: String = {
             switch next {
             case .start: return "学習開始"
-            case .mid: return "中場確認"
             case .end: return "学習終了"
             }
         }()
@@ -824,8 +818,7 @@ final class AppStore: ObservableObject {
 
 enum StudyTap: String, Hashable, CaseIterable {
     case start // 19:35 ～ 19:40 学習開始
-    case mid // 20:45 ± 中場
-    case end // 21:45 学習終了
+    case end // 21:45 学习结束（itsuki 2026-05-31：废除中场 tap，简化成开始 / 结束 2 次）
 }
 
 /// 出席状態（amber Card / マイページ で表示）
@@ -833,7 +826,7 @@ enum StudyAttendance: String {
     case idle // 学習時間外
     case none // active だが 0 tap
     case progressing // 1 tap 済（通常進行中）
-    case green // 全 3 tap 済 = 時間内
+    case green // 两次 tap 完成 = 时间内
     case yellow // 遅刻
     case red // 缺席
     case abnormal // 不一致 = ⚠️ 異常 老師手動判
@@ -863,7 +856,7 @@ struct StudyHistoryEntry: Hashable, Identifiable {
     let id: UUID
     let date: String // "2026-04-30"
     let tapKind: StudyTap
-    let tapLabel: String // "学習開始" / "中場確認" / "学習終了"
+    let tapLabel: String // 例："学習開始" / "学習終了"
     let timeHM: String // "19:38"
     let note: String?
 
@@ -880,10 +873,8 @@ struct StudyHistoryEntry: Hashable, Identifiable {
     static var demoSeed: [StudyHistoryEntry] {
         [
             .init(date: "2026-04-29", tapKind: .end, tapLabel: "学習終了", timeHM: "21:46", note: nil),
-            .init(date: "2026-04-29", tapKind: .mid, tapLabel: "中場確認", timeHM: "20:46", note: nil),
             .init(date: "2026-04-29", tapKind: .start, tapLabel: "学習開始", timeHM: "19:37", note: nil),
             .init(date: "2026-04-28", tapKind: .end, tapLabel: "学習終了", timeHM: "21:45", note: nil),
-            .init(date: "2026-04-28", tapKind: .mid, tapLabel: "中場確認", timeHM: "20:46", note: nil),
             .init(date: "2026-04-28", tapKind: .start, tapLabel: "学習開始", timeHM: "19:42", note: "1 分遅刻"),
         ]
     }

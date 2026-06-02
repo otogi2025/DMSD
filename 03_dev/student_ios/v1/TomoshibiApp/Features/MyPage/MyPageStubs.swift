@@ -2142,10 +2142,10 @@ struct MyStudyView: View {
 
     private var helpInfoBox: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("ℹ 学習出席は NFC を 1 日 3 回タップ")
+            Text("ℹ 学習出席は NFC を 1 日 2 回タップ")
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(T.primaryDk)
-            Text("学習開始 (19:40) ／ 中場 (20:45) ／ 学習終了 (21:45)。3 回揃わない場合は異常扱いとなり、学習担当の先生が手動で判定します。")
+            Text("学習開始 (19:40) ／ 学習終了 (21:45)。2 回揃わない場合は異常扱いとなり、学習担当の先生が手動で判定します。")
                 .font(.system(size: 11.5))
                 .foregroundStyle(T.primaryDk.opacity(0.85))
                 .lineSpacing(3)
