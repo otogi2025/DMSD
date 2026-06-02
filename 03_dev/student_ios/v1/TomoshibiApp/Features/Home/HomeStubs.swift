@@ -129,6 +129,15 @@ private struct NotifPill: View {
 
 // ───────────────────────────────────────────────────────────
 
+/// 首页问候日期：JST 今天「yyyy 年 M 月 d 日（曜日）」（ios-home-05：原写死 2026/4/22 演示残留）。
+private func homeGreetingDateLabel() -> String {
+    let f = DateFormatter()
+    f.locale = Locale(identifier: "ja_JP")
+    f.timeZone = TimeZone(identifier: "Asia/Tokyo")
+    f.dateFormat = "yyyy 年 M 月 d 日（E）"
+    return f.string(from: Date())
+}
+
 struct HomeView: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
@@ -181,7 +190,7 @@ struct HomeView: View {
                     .kerning(0.2)
                     .foregroundStyle(T.ink)
                 // JSX: fontSize 12 / inkMute / marginTop 3
-                Text("2026 年 4 月 22 日（火）")
+                Text(homeGreetingDateLabel()) // ios-home-05：原写死「2026 年 4 月 22 日（火）」→ JST 今天
                     .font(.system(size: 12))
                     .foregroundStyle(T.inkMute)
             }
@@ -2551,7 +2560,8 @@ struct AnnouncementDetailView: View {
                 try await app.postAnnouncementReply(announcementId: id, body: body)
                 replyText = ""
             } catch {
-                // 失败时保留输入内容、用户可重试
+                // 失败时保留输入内容、用户可重试；提示用户没发出去（ios-home-10：原静默吞、用户以为发成功）
+                app.showToast("送信に失敗しました。もう一度お試しください")
             }
             isPosting = false
         }

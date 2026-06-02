@@ -1546,7 +1546,7 @@ struct MyPackagesView: View {
     @EnvironmentObject var router: RouterStore
     var body: some View {
         VStack(spacing: 0) {
-            PageHeader(title: "快递領取履歴", level: 2)
+            PageHeader(title: "荷物受取履歴", level: 2) // iosmypage-11：原中文「快递領取履歴」→ 日语
             ScrollView {
                 VStack(spacing: 10) {
                     ForEach(SEED.packages) { p in
@@ -1611,7 +1611,7 @@ struct MySettingsView: View {
         [
             ("roll", "点呼リマインダー", $prefRoll),
             ("app", "申請結果", $prefApp),
-            ("pkg", "快递到着", $prefPkg),
+            ("pkg", "荷物到着", $prefPkg), // iosmypage-11：原中文「快递到着」→ 日语
             ("act", "活動リマインダー", $prefAct),
             ("pts", "減点警告", $prefPts),
         ]

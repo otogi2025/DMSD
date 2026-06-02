@@ -789,9 +789,10 @@ struct StayDetailView: View {
                 let auditOut = try await ApplicationsAPI.audit(id: uuid)
                 entries = auditOut.map { $0.toAuditLogEntry() }
             } catch {
-                // audit 拉取失败不致命，记 log 用空履历
+                // audit 拉取失败不致命（详情仍显示），但提示用户「没拉到 ≠ 没有履历」（ios-staylist-05：原只 print 静默）
                 print("[StayDetailView] audit 取得失败: \(error)")
                 entries = []
+                app.showToast("操作履歴の取得に失敗しました")
             }
 
             item.auditLog = entries
