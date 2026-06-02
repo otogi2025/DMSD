@@ -1295,7 +1295,7 @@ students                                    -- 学生本体(不变 PK)
 ├── name_kana       TEXT
 ├── birthday        DATE
 ├── gender          ENUM('male','female')
-├── category        ENUM('一般寮生','サッカー部')
+├── category        TEXT                   -- 自由文字列(DB はENUM制約なし; 値例 '一般寮生'/'サッカー部')(sysfeat-05)
 ├── room_no         VARCHAR(8)              -- 'M101' / 'W203' 等
 ├── dorm_unit       SMALLINT                -- 1 / 2 / 4 (R4 / Q1)
 ├── is_overseas     BOOLEAN DEFAULT FALSE   -- 留学生 flag (Q11、自己申报)
