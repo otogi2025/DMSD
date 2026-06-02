@@ -405,7 +405,10 @@ final class AppStore: ObservableObject {
 
     /// 拉详情（详情 view 进入时调；自动写已读 → backend 下次 list 返回 isRead=true）
     func loadAnnouncementDetail(id: String) async throws {
+        let tokenAtStart = authToken
         let detail = try await AnnouncementsAPI.detail(id: id)
+        // IX-009：登出 / 切用户后不写回旧用户的公告详情 / 已读状态（防详情缓存 + 列表已读串号）。
+        guard authToken == tokenAtStart else { return }
         announcementDetails[id] = detail
         // 详情 GET 后端会自动 mark read，本地 cache 也同步翻 true
         if let idx = announcements.firstIndex(where: { $0.id.uuidString == id }) {
@@ -426,9 +429,12 @@ final class AppStore: ObservableObject {
 
     /// 发回复（学生用 — 老师 reply 走 teacher_web）
     func postAnnouncementReply(announcementId: String, body: String) async throws {
+        let tokenAtStart = authToken
         let reply = try await AnnouncementsAPI.postReply(
             announcementId: announcementId, body: body
         )
+        // IX-009：登出 / 切用户后不写回旧用户的回复缓存。
+        guard authToken == tokenAtStart else { return }
         // 同步本地 detail cache
         if let detail = announcementDetails[announcementId] {
             // detail.replies 是 let 字段 — 整条替换
@@ -583,6 +589,9 @@ final class AppStore: ObservableObject {
                 studyLeaveCountThisMonth = fresh
             }
         }
+        // IX-034 修复②(补)：canonical await 后再确认还是同一个登录 —— 提交在途登出/切用户时
+        // 不把完成提示 / 完成页写到登出态或下一个人；抛 CancellationError 让调用方静默中止导航。
+        guard authToken == tokenAtStart else { throw CancellationError() }
         if isThisMonth, studyLeaveCountThisMonth > 3 {
             showToast("今月、もう \(studyLeaveCountThisMonth) 回お休みされていますね。体調管理、お気をつけて。")
         } else {

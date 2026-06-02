@@ -1446,6 +1446,8 @@ struct StudyAbsenceForm: View {
                                 router.replace(.login)
                             } catch APIError.network {
                                 app.showToast("通信エラーが発生しました。電波を確認してください")
+                            } catch is CancellationError {
+                                // IX-034：提交在途登出 / 切用户 → 静默中止，不导航完成页、不弹错误
                             } catch {
                                 app.showToast(error.localizedDescription)
                             }
