@@ -179,6 +179,9 @@ final class AppStore: ObservableObject {
                 // 安全网：同时写回 SEED.user，覆盖那些没法用 app.displayUser 的站点
                 // （@State 默认值 / 纯 mock 数据 / 静态 helper）。
                 SEED.user = mapped
+                // IX-009：登录 / 启动即拉公告未読数，让 Home 铃铛 badge 首屏就准
+                // （announcements 列表是懒加载、首屏可能空；这里只拉轻量 count）。
+                await loadAnnouncementUnreadCount()
             } catch APIError.unauthorized {
                 // 令牌过期 / 失效（401）→ 清令牌强制重登（didSet 会清 currentUser + 复位 SEED.user），
                 // 不再默默回退到演示假人身份。
@@ -380,8 +383,11 @@ final class AppStore: ObservableObject {
 
     /// 拉未读数
     func loadAnnouncementUnreadCount() async {
+        let tokenAtStart = authToken
         do {
             let res = try await AnnouncementsAPI.unreadCount()
+            // IX-009：登出 / 切用户后不写回旧用户的未読数（防 badge 串号）。
+            guard authToken == tokenAtStart else { return }
             announcementUnreadCount = res.unreadCount
         } catch {
             // 拉失败不阻塞主页其他功能 — 静默忽略，下次刷新再试
@@ -390,7 +396,10 @@ final class AppStore: ObservableObject {
 
     /// 拉列表（一覧 view 进入时调）
     func loadAnnouncementList() async throws {
+        let tokenAtStart = authToken
         let res = try await AnnouncementsAPI.list()
+        // IX-009：登出 / 切用户后不写回旧用户的公告列表（防上一个人的公告残留到下一个人）。
+        guard authToken == tokenAtStart else { return }
         announcements = res.items
     }
 
@@ -547,12 +556,16 @@ final class AppStore: ObservableObject {
     /// 接 POST /api/v1/study/absence-requests。target_date は呼び出し側が JST yyyy-MM-dd で指定。
     /// async throws，调用方负责 catch 错误（重复提交 / 401 等）。
     func submitStudyLeave(targetDate: String, reason: String, range: StudyLeaveRange) async throws {
+        // IX-034 修复②(补)：进入即捕获令牌 —— 提交在途若登出/切到别的用户，
+        // 接口成功返回后不再把 +1 / toast 写到登出态或下一个人身上。
+        let tokenAtStart = authToken
         // backend 接收成功后才 += 1，避免重复提交把计数推爆
         _ = try await StudyAPI.submitAbsenceRequest(
             targetDate: targetDate,
             period: range.wireValue,
             reason: reason
         )
+        guard authToken == tokenAtStart else { return }
         // IX-034 修复①：只有 targetDate 属于 JST 当月才 +1 本月计数。
         // 表单能选今天～+14 天、可能跨到下月（5 月底提交 6 月的）——
         // 那种后端按 target_date 归到下月、不计入本月，iOS 也不能本月 +1，
@@ -563,10 +576,9 @@ final class AppStore: ObservableObject {
             absenceCountRevision += 1 // 标记本地已变更，挡在途旧 loadMe summary 覆盖（IX-034 修复③补）
             // 再拉后端 canonical 当月数收敛（含历史次数）—— 防启动恢复时 local 还是 0、
             // 只 +1 显示偏低（被代次守卫拦下的旧 summary 不会再自己收敛）。token + 代次双守卫写回。
-            let tokenAtSubmit = authToken
             let revAfterSubmit = absenceCountRevision
             if let fresh = (try? await StudyAPI.myAbsenceSummary())?.count,
-               authToken == tokenAtSubmit, absenceCountRevision == revAfterSubmit
+               authToken == tokenAtStart, absenceCountRevision == revAfterSubmit
             {
                 studyLeaveCountThisMonth = fresh
             }
@@ -870,7 +882,14 @@ final class AppStore: ObservableObject {
 
     /// 未読数（home greetingRow bell badge 用）
     var unreadNotificationCount: Int {
-        allNotifications.filter { $0.unread }.count
+        #if DEMO
+            return allNotifications.filter { $0.unread }.count
+        #else
+            // 生产：announcements 列表是懒加载的（只在通知/公告页 .task 拉），首屏 Home 可能为空 →
+            // badge 改用后端真实未読数 announcementUnreadCount（loadMe 登录/启动即拉）+ push 未読，
+            // 不依赖 announcements 列表是否已加载（IX-009 修复）。
+            return pushNotifications.filter { $0.unread }.count + announcementUnreadCount
+        #endif
     }
 
     /// APNs delegate 受信後调 — push 1 条 insert
