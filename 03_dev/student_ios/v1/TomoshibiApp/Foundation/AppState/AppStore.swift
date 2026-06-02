@@ -571,7 +571,8 @@ final class AppStore: ObservableObject {
             period: range.wireValue,
             reason: reason
         )
-        guard authToken == tokenAtStart else { return }
+        // 提交在途登出/切用户：抛 CancellationError 让调用方静默中止（不导航完成页、不弹错）。
+        guard authToken == tokenAtStart else { throw CancellationError() }
         // IX-034 修复①：只有 targetDate 属于 JST 当月才 +1 本月计数。
         // 表单能选今天～+14 天、可能跨到下月（5 月底提交 6 月的）——
         // 那种后端按 target_date 归到下月、不计入本月，iOS 也不能本月 +1，
