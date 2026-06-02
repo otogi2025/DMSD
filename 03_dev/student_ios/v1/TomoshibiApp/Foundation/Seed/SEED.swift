@@ -81,13 +81,18 @@ enum SEED {
         .init(id: 4, date: "2026-04-05", from: "郵便局", status: "領済", tracking: nil),
     ]
 
-    static let notifications: [NotificationItem] = [
-        .init(id: 1, type: "宅配", title: "Amazon 荷物到着", time: "今日 14:20", body: "寮管理員室で受取り", unread: true),
-        .init(id: 2, type: "申請", title: "外泊申請が承認されました", time: "昨日 16:30", body: "田中先生が承認しました", unread: true),
-        .init(id: 3, type: "減点", title: "遅刻警告", time: "昨日 9:00", body: "今月の遅刻が 5 回に到達", unread: false),
-        .init(id: 4, type: "活動", title: "明日 18:00 新入生歓迎会", time: "昨日", body: "食堂集合", unread: true),
-        .init(id: 5, type: "リクエスト曲", title: "あなたの投稿曲が採用されました", time: "2 日前", body: "Lemon / 米津玄師", unread: false),
-    ]
+    // IX-009：演示假通知 fixture —— 圈进 #if DEMO，生产构建物理上没有这段，
+    //   防 5 条假通知（Amazon 荷物 / 「田中先生が承認」/ 遅刻警告 等）泄漏到上线 app。
+    //   生产通知源 = 真公告（AppStore.announcementNotifications）+ 真 push。
+    #if DEMO
+        static let notifications: [NotificationItem] = [
+            .init(id: 1, type: "宅配", title: "Amazon 荷物到着", time: "今日 14:20", body: "寮管理員室で受取り", unread: true),
+            .init(id: 2, type: "申請", title: "外泊申請が承認されました", time: "昨日 16:30", body: "田中先生が承認しました", unread: true),
+            .init(id: 3, type: "減点", title: "遅刻警告", time: "昨日 9:00", body: "今月の遅刻が 5 回に到達", unread: false),
+            .init(id: 4, type: "活動", title: "明日 18:00 新入生歓迎会", time: "昨日", body: "食堂集合", unread: true),
+            .init(id: 5, type: "リクエスト曲", title: "あなたの投稿曲が採用されました", time: "2 日前", body: "Lemon / 米津玄師", unread: false),
+        ]
+    #endif
 
     static let applications: [ApplicationItem] = [
         .init(id: "a1", type: "stay", status: "pending", date: "2026-04-20", summary: "東京 · 2 泊 3 日"),

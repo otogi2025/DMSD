@@ -814,9 +814,49 @@ final class AppStore: ObservableObject {
     /// 真 push 接收後動的に追加される通知（SEED.notifications は静的の初期 placeholder）
     @Published var pushNotifications: [NotificationItem] = []
 
-    /// 通知中心显示用 — push 在前 + SEED.notifications fixture
+    /// 通知中心显示用。
+    /// - 演示构建：push（接通前空）+ SEED.notifications fixture，撑住演示叙事。
+    /// - 生产构建：push + 真公告映射（announcementNotifications），不再泄漏 SEED 假通知（IX-009）。
+    ///   审批结果 / 包裹通知聚合见 handoff §7.3（待拍板：申请列表未在 AppStore 缓存 + 后端无已读态）。
     var allNotifications: [NotificationItem] {
-        pushNotifications + SEED.notifications
+        #if DEMO
+            return pushNotifications + SEED.notifications
+        #else
+            return pushNotifications + announcementNotifications
+        #endif
+    }
+
+    /// IX-009：把真公告缓存（AnnouncementsAPI 拉来的 announcements）映射成通知卡。
+    /// - type「お知らせ」：通知中心「すべて」标签下显示；未読 = 公告未読 → 驱动铃铛 badge。
+    /// - id 用负数（按列表序）—— push 的 id 是正数（≥1000），两者绝不相撞。
+    private var announcementNotifications: [NotificationItem] {
+        announcements.enumerated().map { idx, a in
+            NotificationItem(
+                id: -(idx + 1),
+                type: "お知らせ",
+                title: a.title,
+                time: Self.notifTimeLabel(a.createdAt),
+                body: a.bodySummary,
+                unread: !a.isRead
+            )
+        }
+    }
+
+    /// 通知卡时刻显示：JST「M/d HH:mm」。
+    private static func notifTimeLabel(_ d: Date) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ja_JP")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
+        f.dateFormat = "M/d HH:mm"
+        return f.string(from: d)
+    }
+
+    /// 进入通知中心时刷新通知来源。生产拉真公告列表 + 未読数；演示构建不动（用 SEED）。
+    func refreshNotificationSources() async {
+        #if !DEMO
+            try? await loadAnnouncementList()
+            await loadAnnouncementUnreadCount()
+        #endif
     }
 
     /// 未読数（home greetingRow bell badge 用）

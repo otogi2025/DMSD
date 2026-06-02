@@ -138,6 +138,8 @@ struct NotificationsView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl.ignoresSafeArea())
+        // IX-009：进入通知中心时拉真公告（生产构建的通知源）；演示构建此调用是空操作。
+        .task { await app.refreshNotificationSources() }
     }
 
     private func notifCard(_ n: NotificationItem) -> some View {
