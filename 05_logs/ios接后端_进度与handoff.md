@@ -110,7 +110,15 @@ iOS 学生端 app 把「演示假数据（SEED / StayListMock）」接成「真�
 - **IX-007 详情页 `ApplyDetailView`**：stay/holiday/return/returncountry 走 `StayDetailView`（已接后端 ✅）；但 `otherDetailBody`（修繕/来訪/代理受取等）那支仍读 `SEED` + 编造步骤时间，未接。
 - **IX-009 通知**：`AppStore.allNotifications` 拼 `SEED.notifications`（生产泄漏）。`AnnouncementsAPI`（公告）+ `front_desk`（包裹）后端已有，聚合做真通知源。
 - **IX-034 请假计数**：`AppStore` 请假次数只在内存累加、不按月清零。后端 `study.py` 有 `/absence-requests`，可数当月。
-- **IX-008 用户资料（最大一块，要先动后端）**：**实测 73 处** `SEED.user`（不是之前估的 25）散在 **7 文件**：`HomeStubs / MyPageStubs / ApplyStubs / DormLifeForms / AuthStubs / StayListStubs / AppStore`。**后端缺口**：登录只返回 `TokenOut`（无用户信息）、无学生 `/me` 接口（`student_profile.py` 只有 `GET /students/{id}/profile` 需 id）。**模板已确认**：老师端 `teachers.py:182` 有 `GET /teachers/me`（`get_current_teacher` 依赖取令牌 → `TeacherOut`），照仿。需：① 后端加 `GET /students/me`（仿老师端 + 新 `StudentMeOut` schema）；② iOS `AppStore` 存 `currentUser` + 登录/启动时拉一次；③ 73 处 `SEED.user` 改读 `currentUser`（演示 `#if DEMO` 留 SEED）。第 ③ 步 73 处适合 **workflow 并行铺**（按 7 文件分代理）。登录令牌 JWT 已带 student id + name + dorm_unit + is_overseas。
+- ✅✅ **IX-008 用户资料 — 全部完成**（身份 §4.0/§14.8 + 二审 5 修复 §4.0 + 扣分统计 IX-008b §4.0b + Batch 2 站点迁移）。详见 §4.0 / §4.0b。**低危残留**：3 个表单 `@State` 预填（StayForm contactPhone `ApplyStubs.swift:432` / FridgePurchaseForm contactPhone `DormLifeForms.swift:294` / ItemPossessionForm roomNo `DormLifeForms.swift:513`）—— 登录路径已真实、仅冷启动 sub 秒窗口旧；要彻底干净给 3 表单加 `.onAppear { 从 app.displayUser 填 }`（同 `MyInfoEditView.loadCurrentInfo` 做法）。MyPointsView 减点图表（router-only 视图）靠安全网 SEED.user。
+
+### 4.2bis 还没接的（IX-008 外 — 下次主推这些）
+- **IX-007 详情页 `ApplyDetailView` 的 `otherDetailBody`**（修繕/来訪/代理受取等）仍读 `SEED` + 编造步骤时间，未接后端。
+- **IX-009 通知**：`AppStore.allNotifications` 拼 `SEED.notifications`（生产泄漏假数据）。后端 `AnnouncementsAPI`（公告）+ `front_desk`（包裹）已有，聚合成真通知源。
+- **IX-034 请假计数**：`AppStore` 请假次数只在内存累加、不按月清零。后端 `study.py` 有 `/absence-requests`，可数当月。
+- **Codex 阶段1 第4条（低）**：`APIClient.decodeISO8601Date` 只解析带时区 ISO8601，后端若返无时区日期会解码失败 —— 待真后端有日期数据时验证，真无时区就加 fallback formatter。
+- **老师「退回(returned)」动作**（接续 #3）：后端 `_recompute_application_status` 产不出 `returned`，spec §7.2.4-5 的「差戻」没实装。**要 itsuki 先拍板设计**（后端 + teacher_web）。
+- **学習対象 is_study_target 后端字段**（接续 #4）：跟并发会话的「晚自习 UI / tier」决策缠在一起，暂不动。
 - **Codex 阶段1 第4条（低）**：`APIClient.decodeISO8601Date` 只解析带时区的 ISO8601，后端若返回无时区日期会解码失败。**待真后端有日期数据时验证**（公告列表对测试学生为空、当时没法证实）；真无时区就加无时区 fallback formatter。
 
 ### 4.3 复验
