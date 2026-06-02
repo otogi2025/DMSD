@@ -1981,11 +1981,20 @@ struct ApplyDetailView: View {
     var body: some View {
         // 4-30 後續: 出寮届系（stay/holiday/returncountry/return）→ 显示 chain timeline (StayDetailView)
         // 老师 #5 要求：申请人能看到 chain 上每个役职是否已许可
-        if ["stay", "holiday", "return", "returncountry"].contains(item.type) {
+        #if DEMO
+            // 演示：SEED 含修繕/来訪/代理受取等「出寮届以外」类型，按 SEED 的 type 路由
+            // （otherDetailBody 读 SEED + 编造步骤时间，仅讲叙事用）。
+            if ["stay", "holiday", "return", "returncountry"].contains(item.type) {
+                StayDetailView(id: id)
+            } else {
+                otherDetailBody
+            }
+        #else
+            // 生产（IX-007 Option A）：后端只支持出寮届系（帰省/外泊/帰国），全部走真后端 StayDetailView(id)。
+            // 修繕/来訪/代理受取 后端零实装、生产不存在这类申请；显式直连真后端，
+            // 不再依赖「item 落到 SEED.applications[0] 恰好是 stay 型」的巧合、也不会退回 SEED 显假人。
             StayDetailView(id: id)
-        } else {
-            otherDetailBody
-        }
+        #endif
     }
 
     /// 出寮届以外（修繕 / 来訪 / 代理受取 等）的 demo 3 步 workflow
