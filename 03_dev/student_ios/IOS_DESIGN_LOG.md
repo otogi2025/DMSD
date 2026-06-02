@@ -1120,6 +1120,19 @@ xcodebuild iPhone 17 simulator BUILD SUCCEEDED 確認済（2026-05-04）。
 
 **验证**：iOS 双 scheme BUILD SUCCEEDED；后端 217 passed。
 
+### 14.10 IX-034 请假计数按月接后端（2026-06-02，commit `e0c150c`）
+
+学生端「本月学習欠席届（晚自习请假）次数」原来只在 `AppStore.studyLeaveCountThisMonth`（@Published 内存变量）累加 —— app 重启丢、跨月不清零 = 数字错。接成后端按月真实计数：
+
+- `StudyAPI.swift` 加 `MyAbsenceSummaryOut` Decodable + `myAbsenceSummary()`（GET `/study/absence-requests/me/summary`）。
+- `AppStore.loadMe` 拉到 /me + 扣分汇总后再拉请假当月数，写回 `studyLeaveCountThisMonth`（写回前 `guard isAuthenticated` 防登出竞态）。登录 / 注册 / 启动恢复令牌三条路径都会拉真实当月数。
+- 演示构建 `#if DEMO` 天然不拉（loadMe 顶部 return），保持初始 3。
+- 口径：按 target_date 算当月 / 数全部状态 / 不加硬上限（IX-034 严格只修计数）。
+
+**⚠️ Codex 5.5 xhigh 审出 4 点待修**（过夜 GOAL 第一件事修，见交接 §7.1）：① `submitStudyLeave` 跨月提交仍 +1（应只当月才 +1）；② `loadMe` 竞态 guard 只查 isAuthenticated 没确认同一令牌（应捕获 tokenAtStart 比对）；③ 测试用 date.today() 时区边界 flaky；④ `ApplyStubs.formatYMD` 没固定 Asia/Tokyo。
+
+**验证**：iOS 双 scheme BUILD SUCCEEDED；后端 220 passed。
+
 ---
 
-**END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）; 5-31 修改届接后端（§14.7）+ 当前用户接 /me（§14.8）; 6-02 IX-008 二审修复 + IX-008b 扣分统计（§14.9）。
+**END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）; 5-31 修改届接后端（§14.7）+ 当前用户接 /me（§14.8）; 6-02 IX-008 二审修复 + IX-008b 扣分统计（§14.9）+ IX-034 请假计数按月（§14.10）。

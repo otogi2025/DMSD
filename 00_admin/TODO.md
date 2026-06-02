@@ -142,6 +142,9 @@
 > - [x] ~~**IX-008 Codex 独立审查待补**~~ ✅ 2026-06-02 完成 — Codex 5.5 xhigh + Claude 4 维对抗审查双路独立跑、结论一致（🔴0 / 🟠3 / 🟡2）。修 5 处：注册补 loadMe / loadMe 健壮性(401清令牌+登出竞态+#if DEMO) / 注册第一步加 #if DEMO 守卫 / MyInfoEdit 预填迁 displayUser / deps.py 畸形 sub 返 401。后端 214 / iOS 双绿。**代码撞并发 git add -A 卷进 commit `6142ef0`**（消息对不上号但代码完整）。详见 handoff §4.0。
 > - [x] ~~**IX-008 Batch 2 — 剩余身份站点迁 displayUser**~~ ✅ 2026-06-02（`d21a2b8`）— MyPage/Apply/StayList 身份展示站点迁 `app.displayUser` + 登出 `#if !DEMO` 清 changeLog/announcements 等。**残留低危**：3 表单 @State 预填（contactPhone/roomNo，登录路径已真实、仅冷启动窗口旧）+ MyPointsView 图表（router-only 靠安全网）→ 彻底干净需给 3 表单加 `.onAppear` 从 displayUser 填。详见 handoff §4.0 Batch 2。
 > - [x] ~~**IX-008b 扣分统计接入**~~ ✅ 2026-06-02 全做完 — 后端 `GET /discipline/me/summary`（`0f84be9`）+ iOS `DisciplineAPI.mySummary` + loadMe 填 currentUser 统计（`d21a2b8`）。真人现显真实当月扣分/迟到/欠席（按当月算）。详见 handoff §4.0b。
+> - [x] ~~**IX-034 请假计数按月接入**~~ ✅ 2026-06-02 代码提交 `e0c150c` — 后端 `GET /study/absence-requests/me/summary`（当月 target_date 全状态计数）+ iOS loadMe 拉真实当月数替代内存累加 + 3 测试。后端 220 / iOS 双绿。**Codex 5.5 xhigh 审出 4 点待修**（跨月仍 +1 / loadMe 令牌竞态 / 测试时区 / formatYMD）→ 过夜 GOAL 第一件事修。详见 handoff §7.1。
+> - [ ] **IX-009 通知 + IX-007 详情页**（B 类接后端剩余）→ 过夜 GOAL 自动推。IX-009 聚合公告+审批（包裹要后端新建 `GET /front-desk/mine` 跳过）；IX-007 走 Option A 降级 DEMO（其它类后端零实装）。详见 handoff §4.2bis + §7。
+> - 🌙 **2026-06-02 过夜无人值守 GOAL 运行中**（itsuki 睡觉）：修能自动修的 bug + 接后端，遇要决策的跳过记 handoff §7.3。运行规则 + 修完/待决策清单见 handoff §7。
 > - [ ] **老师「退回(returned)」动作未实装** — 后端 `decide_approval` 的 `_recompute_application_status` 只产 rejected/approved/approved_partial/pending，**产不出 `returned`**（spec §7.2.4-5 要的「老师退回让学生改」没做）。我已让修改届允许编辑 returned（前向兼容），但要真闭环需后端+teacher_web 加「差戻」决策。
 > - [ ] **学習対象 is_study_target 后端字段** — IX-008 iOS isStudyTarget 默认 false（老师后台手动设的才是）。但 `/me` 没返这 flag，将来老师能在后台设时 `/me` 要带上（StudentProfileBasic 加 is_study_target）。
 > - 详细进度：`05_logs/ios接后端_进度与handoff.md`
