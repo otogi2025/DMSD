@@ -111,7 +111,8 @@
 ## 🔧 下次会话接续清单（2026-05-21 — 这次会话 compact 前的状态）
 
 > **2026-05-31 iOS 接后端会话留**（IX-004 修改届 ✅ 关闭 / IX-008 当前用户 ✅ 身份接完）：
-> - [ ] **IX-008 Codex 独立审查待补** — IX-008（commit `464d42f`/`04e5887`/`b4dea6f`/`97d0180`）做完时 Codex 额度被并发会话耗尽（晚 11:57 重置）。我自己自审 + 逮到登出残留 bug 修了，但缺独立对抗审查。额度恢复后补派 Codex 5.5 xhigh 审 IX-008，或 itsuki 跑 /code-review。
+> - [x] ~~**IX-008 Codex 独立审查待补**~~ ✅ 2026-06-02 完成 — Codex 5.5 xhigh + Claude 4 维对抗审查双路独立跑、结论一致（🔴0 / 🟠3 / 🟡2）。修 5 处：注册补 loadMe / loadMe 健壮性(401清令牌+登出竞态+#if DEMO) / 注册第一步加 #if DEMO 守卫 / MyInfoEdit 预填迁 displayUser / deps.py 畸形 sub 返 401。后端 214 / iOS 双绿。**代码撞并发 git add -A 卷进 commit `6142ef0`**（消息对不上号但代码完整）。详见 handoff §4.0。
+> - [ ] **IX-008 Batch 2 — 剩余身份站点迁 displayUser**（本次审查发现）：MyPage profileSection/减点卡/summaryCard、StayList ID 卡、Apply me*、DormLifeForms @State 仍直读全局假人 SEED.user → 统一迁 `app.displayUser` 废掉安全网；登出抽 `resetUserState()` 清 changeLog/announcements 等用户绑定 @Published（跨账号隐私残留）。
 > - [ ] **IX-008b 扣分统计接入** — iOS `displayUser` 的 points/lateCount/absentCount（扣分/迟到/欠席）现在真人显 **0**（`/me` 没这些字段，mapMeToUser 填 0）。要接后端扣分接口（discipline/profile）才显真实统计。涉及 iOS ~10 处 SEED.user.points 站点。
 > - [ ] **老师「退回(returned)」动作未实装** — 后端 `decide_approval` 的 `_recompute_application_status` 只产 rejected/approved/approved_partial/pending，**产不出 `returned`**（spec §7.2.4-5 要的「老师退回让学生改」没做）。我已让修改届允许编辑 returned（前向兼容），但要真闭环需后端+teacher_web 加「差戻」决策。
 > - [ ] **学習対象 is_study_target 后端字段** — IX-008 iOS isStudyTarget 默认 false（老师后台手动设的才是）。但 `/me` 没返这 flag，将来老师能在后台设时 `/me` 要带上（StudentProfileBasic 加 is_study_target）。

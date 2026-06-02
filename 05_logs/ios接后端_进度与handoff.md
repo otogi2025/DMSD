@@ -42,6 +42,27 @@ iOS 学生端 app 把「演示假数据（SEED / StayListMock）」接成「真�
 
 ## 4. 进行中 / 待办（压缩后接着干）
 
+### 4.0 ✅ IX-008 第二阶段审查 + 修复（2026-06-02 完成）
+
+**起因**：IX-008 当前用户接后端当时 Codex 额度耗尽、欠一轮独立审查（接续清单第 1 条）。6-02 额度恢复后补做 —— **Codex 5.5 xhigh + Claude 4 维对抗审查双路独立跑、结论高度一致**（两边都各自核实真实代码、都把「性别映射」当误报否决，跟我自查对上）。
+
+**审查结论**：🔴 严重 0，但有 3 中 + 2 轻真问题（安全网写回全局假人 SEED.user 的捷径有漏洞）。逐条核实真实代码后修 5 处：
+
+- **A 注册后没拉 /me** → `createAccount` 补 `await loadMe()`（否则新注册真实学生首屏显演示假人到冷启动）
+- **B loadMe 健壮性** → await 后复查登录态防登出竞态 + 401 清令牌强制重登 + 失败打日志，不再默默回退演示假身份；演示构建 `#if DEMO` 直接 return
+- **C 注册第一步写 SEED.user 加 #if DEMO 守卫** → 生产注册只走真实数据通道，防真名配演示残留 4.5 点 + 假联系方式的混血资料
+- **D MyInfoEditView 预填** → 改 `.onAppear` 从 `app.displayUser` 填（不在 @State 默认值抓全局假人）+ readonlyHeader/roomPrefix/saveAndLog 同步迁 displayUser
+- **F deps.py** → `get_current_student`/`get_current_teacher` 补 try/except（畸形 sub 令牌返 401 不再 500，仿 `get_current_principal`）+ 新增针对性测试
+
+**验证**：后端 214 passed / iOS 双 scheme BUILD SUCCEEDED。
+
+**⚠️ 代码落点异常**：提交时撞并发会话 `git add -A`，我暂存的 5 文件被卷进对方 commit **`6142ef0`**（消息是「注册码 /close」对不上号，但代码完整无损、已固化）。不改历史（并发下重写危险）。
+
+**剩余（Batch 2 — 这次审查发现但本阶段未做，下次接）**：
+- 🟡 其余身份展示站点仍直读 SEED.user（MyPage profileSection 头像/姓名/账号/寮房 153-170、减点卡 294、summaryCard 学習対象 1970、StayList ID 卡 1324-1329、Apply me* 402-428、DormLifeForms @State 294/513）→ 统一迁 `app.displayUser`，废掉「写回全局 SEED.user」安全网
+- 🟡 登出只清 SEED.user，没清 changeLog/announcements 等用户绑定 @Published → 抽 `resetUserState()`（跨账号隐私残留）
+- 审查全文：Codex `/tmp/ix008_codex_out.txt`、Claude workflow 结果在 task `wsl80p7iw` 输出
+
 ### 4.1 Codex 阶段2(IX-004) 审查 — 已回，2 条已修（提交 `6cca9fc`），剩 5 条待处理（原文 `/tmp/codex_stage2_out.txt`）
 
 **✅ 已修（`6cca9fc`）**：🔴 destination 写错字段（加载从 `stay_locations.first.name` 读、原提交写 `dest_cities` = 覆盖错位置 → 改发 `stay_locations` + 改了才发）；🟠 `isSubmitting` 没拦连点（加 `guard !isSubmitting`）。
