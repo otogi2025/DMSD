@@ -157,24 +157,33 @@ iOS 学生端 app 把「演示假数据（SEED / StayListMock）」接成「真�
 
 ### 7.2 ✅ 今晚修完的（带 commit 哈希）
 
-**IX-034 请假计数按月 — ✅ 关闭（5 commit + 4 轮 Codex 对抗复审收敛）**
+**IX-034 请假计数按月 — ✅✅ 关闭（7 commit + 6 轮 Codex 对抗复审，pass6 终判「IX-034 收敛可关闭」）**
 - `e0c150c` 主体（端点 `GET /absence-requests/me/summary` + iOS loadMe 拉真实当月数 + 3 测试）
 - `7a9922c` 修 Codex 第 1 轮 4 点：① submitStudyLeave 只在 targetDate 属 JST 当月才 +1（跨月提交不再误加本月）② loadMe 捕获 tokenAtStart 每 await 后比对令牌 ③ test_study monkeypatch `study._now_jst` 固定日期去 flaky + 新增 12 月跨年边界测试 ④ ApplyStubs `formatYMD`/`parseYMD` 成对固定 Asia/Tokyo
 - `7fecd21` 修 Codex 第 2 轮 3 点：① loadMe 的 catch 401 也比对令牌（A 旧请求迟到的 401 不误清 B 令牌）② StayList 编辑流程自有的 `parseYMD`/`formatYMD` 也固定 JST（上轮只改了 StayForm 新建那对、漏了编辑那对）③ 加 `absenceCountRevision` 代次守卫（在途旧 loadMe summary 不再覆盖刚提交请假的乐观 +1）
 - `508c9b1` 修 Codex 第 2 轮 2 点：① submitStudyLeave 乐观 +1 后再拉 canonical 当月数收敛（token+代次双守卫）防启动 local=0 只 +1 偏低 ② StayList 编辑页两个 DatePicker 加 JST 时区环境 + formatYMDJa 固定 JST
 - `2dff6b7` 修 Codex 第 3 轮 1 点：submitStudyLeave 进入即捕获 tokenAtStart、提交 await 后 guard，防提交在途登出/切用户写错状态（同 commit 含 IX-009 收敛）
-- Codex 第 4 轮收敛确认：`/tmp/conv4_out.txt`（提交时在跑，结论下次会话补；收敛则 IX-034 彻底关闭）
+- `6c58799` 修 Codex 第 4 轮 1 点：submitStudyLeave canonical await 后 + toast 前抛 CancellationError、调用方静默捕获（防第二个 await 期间登出把完成提示写别人 UI）
+- `30032ea` 修 Codex 第 5 轮 1 点：submitStudyLeave 第一道 guard（submit await 后）也抛 CancellationError（async throws 里普通 return = 调用方视为成功仍导航完成页）
+- **Codex pass6 终判「IX-034 收敛可关闭」**：所有跨 await 状态写入 + 完成页导航点全被令牌守卫覆盖
 - 验证：后端 221 passed / iOS 双 scheme BUILD SUCCEEDED
 - 待补：IOS_DESIGN_LOG §14.10 一行；`StudyOnlineForm.swift` 的 `ApplyFormDate.formatYMD`（オンライン自習表单 period_from/to）同款没固定 JST 的隐患（另一 helper / 另一表单，记着）
 
-**IX-009 通知不泄漏假数据 — ✅ 生产聚合真公告（2 commit + Codex 收敛）**
+**IX-009 通知不泄漏假数据 — ✅✅ 关闭（3 commit，Codex pass5 终判「IX-009 收敛可关闭」）**
 - `7e4a180` SEED.notifications 声明圈进 `#if DEMO`（5 条假通知物理上不进生产二进制）+ `allNotifications` 分构建（演示用 SEED fixture / 生产 = push + `announcementNotifications` 真公告映射、未読=公告未読驱动铃铛 badge）+ 新增 `announcementNotifications`/`notifTimeLabel`(JST)/`refreshNotificationSources` + `NotificationsView .task` 进入拉真公告
 - `2dff6b7` 修 Codex 2 个 🟠：① badge 首屏不准 → 生产 `unreadNotificationCount` 用 `push 未読 + announcementUnreadCount`，loadMe 登录/启动即拉公告未読数 ② `loadAnnouncementList`/`loadAnnouncementUnreadCount` 加令牌守卫，登出/切用户不写回旧用户公告
+- `6c58799` 补全公告 4 方法令牌守卫：`loadAnnouncementDetail` / `postAnnouncementReply` 也加 token-at-entry 守卫（详情缓存 / 列表已读 / 回复缓存不串号）
 - 推迟（§7.3）：审批结果 / 包裹通知聚合 + 通知 id 下标身份 + push/公告时间排序
 
 **IX-007 申请详情页生产不读 SEED — ✅（Option A）**
 - `457077f` `ApplyDetailView.body` 分构建：生产显式只 `StayDetailView(id)`（后端只支持出寮届系），演示保留 SEED 路由讲叙事。修掉「item 落 SEED.applications[0] 巧合 + otherDetailBody 读 SEED」的脆弱/潜伏泄漏。iOS 双绿。
 - Option B（真做修繕/来訪/代理受取功能）→ 推迟（§7.3）
+
+**5-30 审查 🟡 批（Stage 4）— 部分做完，多数推迟**
+- ✅ `13f5a01` iOS 4 个安全生产 bug：ios-home-05（首页日期写死 4/22→JST 今天 `homeGreetingDateLabel`）/ ios-home-10（公告回复失败静默→toast）/ iosmypage-11（「快递」→「荷物」）/ ios-staylist-05（audit 拉失败静默→toast）。iosmypage-12（删号跳登录）查证已被 IX-002 修。
+- ✅ `797d16f` 文档 sysfeat-05（category ENUM→TEXT 对齐后端现实）/ sysfeat-06（flow_design 时间窗加注是 session 动态非 hardcode）。sysfeat-10（19:30→19:40）查证已对齐。
+- ✅ migtest-05/06/07/10 查证前序会话已修（代码注释直接引用 migtest-ID，只是 TODO 复选框没勾）。
+- ⏸ 后端 migration 批 + 其余 demo 耦合/潜伏 iOS bug → §7.3。
 
 ### 7.3 ⏸️ 待 itsuki 决策清单（跳过的，醒来一次性看）
 - **IX-007 其它类申请（修繕/来訪/代理受取）v1.0 上不上线**：后端零实装。今晚已按 Option A 做完（生产不读 SEED、`457077f`）。**Option B = 真做这功能**（后端建表 + 5 端联动）仍待你拍板上不上线；不做的话生产就是「这几类申请提交不了 / 不存在」，需求侧确认。
@@ -185,5 +194,17 @@ iOS 学生端 app 把「演示假数据（SEED / StayListMock）」接成「真�
   - **审批结果当通知**：申请列表（`/applications/mine`）没在 AppStore 缓存（各视图按需拉），且后端对「你的申请被批了」无已读/未读状态，且 `/applications/mine` 返回全部历史（把每条历史审批当常驻通知卡语义不对）—— 要做需先给 AppStore 加申请缓存 + 定通知语义（哪些状态算 / 已读态本地存还是后端加 / 去重），属产品决策。
   - **包裹通知**：要后端新建 `GET /front-desk/mine`（学生端查自己包裹）。后端零实装。
   - 通知中心的 type 过滤标签里「申請」「宅配」标签生产暂时为空（诚实 — 还没真数据源），公告走「すべて」标签显示。
-- **老师「退回(returned)」动作** / **学習対象 is_study_target 后端字段** / **5-30 审查 🔵 段** / **spec 冻结区文档** / **版本号 bump**：全跳过。
+- **5-30 审查后端 migration 批（全推迟 — 改 DB 约束有风险 / 多 PostgreSQL 专属 SQLite 测不了 / 多 schema 设计决策，过夜不盲改 schema）**：
+  - rollcall-05（点呼幂等并发双写 → 要 PG 部分唯一索引 `(session_id, student_id) WHERE idempotency_key IS NULL`，SQLite 测试库验不了）
+  - models-entry-06（RollCallEvent.base_status CHECK 含 'init' 但从不写入 → 收紧 CHECK = migration）
+  - models-entry-08（Application.receipt_submitted/is_long_vacation nullable=True+default=False 三态混乱 → nullable=False 需 backfill + 查无代码依赖 null）
+  - models-entry-10（StudentRegistrationCode 缺「同时只一个有效码」DB 保证 → PG 部分唯一索引）
+  - models-entry-12（扣分用 Float → 4/8 分阈值边界可能误判；实测典型分值是 2 的幂分数 float 精确、换 Numeric 要定精度）
+  - models-entry-05（AnnouncementReply.author_id 跨表无外键 → 是多态引用、加单一 FK 不成立，架构题）
+  - models-entry-07（AuditLog append-only 无 ORM/DB 强制 → 要 PG 触发器或 SQLAlchemy event 阻止 UPDATE/DELETE，机制选型）
+  - models-entry-11（create_all 只 dev 调、staging 启动即失败 → ops，staging 还没起）/ models-entry-13（Student.is_demo 靠每处查询主动过滤 → 要审计所有列表/统计端点，策略题）
+  - migtest-08（历史迁移硬编码 999999 痕迹 → 不改历史迁移）/ migtest-09（applications.bus_route_id 悬空外键 = 半成品巴士功能）/ migtest-01（测试不跑 alembic = 测试基建改、有破坏全套风险）/ migtest-04（审批链补测 = 新写测试、量大）
+- **5-30 审查其余 iOS bug（demo 耦合 / 潜伏 / 要接后端，留 TODO §🟡）**：ios-community-04/06/07/08/09/11/12（掲示板 SEED 耦合演示数据 + 数组下标当 id 潜伏，且掲示板上不上线本身待定）/ ios-home-07（兜底 21:02 罕触发）/08（联系人写死田中先生内線101 — 该从后端/配置来、产品题）/ iosmypage-07/08/09（月度统计/详情/总分 SEED 假数据 — 接后端 territory）/ ios-schedule-04（firstIndex??0 潜伏，events 接后端才暴露）/ ios-staylist-06（mock chain 未登录预览）/07（actor_type 粗暴 — 接后端真履历）/ ios-auth-09（splash 只验 token 存在）。多数是「功能上不上线 + 接没接后端」决策，不是无脑安全修。
+- **Stage 5 ⚪ 未核实（iosmypage-01~12 + ios-schedule）**：5-30 workflow 子代理没返回；本次抽查 iosmypage-07/08/09/11/12 已分类（11/12 处理、07/08/09 接后端推迟），其余下次补核实。
+- **老师「退回(returned)」动作** / **学習対象 is_study_target 后端字段** / **5-30 审查 🔵 段** / **spec 冻结区文档** / **版本号 bump** / **系统bug专栏 131 条 🟡 段（安全硬化/spec 文档/大工程，多要拍板）**：全跳过。
 - （后续每跳过一条往这里加）
