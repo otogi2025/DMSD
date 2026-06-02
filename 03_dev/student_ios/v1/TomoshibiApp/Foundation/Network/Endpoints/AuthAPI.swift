@@ -136,3 +136,22 @@ enum StudentsAPI {
         try await APIClient.shared.get(path: "/api/v1/students/me")
     }
 }
+
+// MARK: - 当月扣分汇总（GET /discipline/me/summary，IX-008b）
+
+/// GET /discipline/me/summary 响应 — 当前学生当月扣分统计。
+/// 与后端 MyDisciplineSummaryOut 对齐：当月总扣分 + 点呼迟到 / 欠席次数。
+struct MyDisciplineSummaryOut: Decodable {
+    let month: String
+    let total_points: Double
+    let late_count: Int
+    let absent_count: Int
+}
+
+enum DisciplineAPI {
+    /// GET /discipline/me/summary — 当前登录学生当月扣分汇总（总分 / 迟到 / 欠席）。
+    @MainActor
+    static func mySummary() async throws -> MyDisciplineSummaryOut {
+        try await APIClient.shared.get(path: "/api/v1/discipline/me/summary")
+    }
+}

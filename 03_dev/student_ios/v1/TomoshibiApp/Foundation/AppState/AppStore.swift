@@ -97,6 +97,16 @@ final class AppStore: ObservableObject {
                 // 防上一个真实用户的姓名 / 房号等残留到登录页 / 下一个人。
                 currentUser = nil
                 SEED.user = SEED.demoUserSeed
+                #if !DEMO
+                    // IX-008 Batch 2: 生产构建登出，把所有跟当前用户绑定的状态一并清空 ——
+                    // 防 A 登出、B 在同一进程登录（AppStore 单例不重建）看到 A 的编辑历史 / 公告缓存残留。
+                    changeLog = []
+                    studyHistory = []
+                    announcements = []
+                    announcementDetails = [:]
+                    announcementUnreadCount = 0
+                    studyLeaveCountThisMonth = 0
+                #endif
             }
         }
     }
@@ -144,7 +154,15 @@ final class AppStore: ObservableObject {
                 let me = try await StudentsAPI.me()
                 // await 之后再确认登录态没变 —— 防 await 期间用户已登出，结果写回复活已登出用户的数据。
                 guard isAuthenticated else { return }
-                let mapped = Self.mapMeToUser(me)
+                var mapped = Self.mapMeToUser(me)
+                // IX-008b: 再拉当月扣分汇总填统计（拉不到保持 0，不打断登录）。
+                if let summary = try? await DisciplineAPI.mySummary() {
+                    mapped.points = summary.total_points
+                    mapped.lateCount = summary.late_count
+                    mapped.absentCount = summary.absent_count
+                }
+                // summary 也有 await，写回前再确认登录态。
+                guard isAuthenticated else { return }
                 currentUser = mapped
                 // 安全网：同时写回 SEED.user，覆盖那些没法用 app.displayUser 的站点
                 // （@State 默认值 / 纯 mock 数据 / 静态 helper）。
@@ -162,7 +180,7 @@ final class AppStore: ObservableObject {
     }
 
     /// 后端 /me 响应（StudentMeOut）映射成 iOS User。/me 只给身份字段：
-    /// - 统计（points / lateCount / absentCount）后端这接口没有 → 真实用户先 0（IX-008b 接扣分接口再填）
+    /// - 统计（points / lateCount / absentCount）/me 没有 → 这里先填 0，loadMe 再拉 DisciplineAPI.mySummary 覆盖（IX-008b）
     /// - isStudyTarget（学習対象）/me 没这 flag → 默认 false（只有老师后台设的才是；
     ///   UI 入口仍显示、点进去由各页据此显「不需要晚自习」）
     private static func mapMeToUser(_ me: StudentMeOut) -> User {
@@ -562,10 +580,15 @@ final class AppStore: ObservableObject {
         if s && e { return .green }
         // 没碰开始却碰了结束 → 不一致 = 异常
         if !s && e { return .abnormal }
-        // 只碰了开始 → 进行中
+        // 已结束(done)：时段已过、不可能再「进行中」
+        if studyState == .done {
+            // 碰了开始没碰结束 → 异常（两次没齐、需老师手动判，§7.3.6）
+            if s && !e { return .abnormal }
+            // 一次没碰（!s && !e）→ 缺席（§7.3.6 第 1 行）
+            return .red
+        }
+        // 进行中(active)且只碰了开始 → 进行中
         if s && !e { return .progressing }
-        // 已结束(done)却一次没碰 → 缺席（§7.3.6 第 1 行）
-        if studyState == .done && !s && !e { return .red }
         // 进行中但一次没碰 = tap 0
         return .none
     }

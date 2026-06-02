@@ -1321,12 +1321,12 @@ struct StayEditForm: View {
             sectionLabel("申請者本人（変更不可）")
             Card(padding: 0) {
                 VStack(spacing: 0) {
-                    idRow("学号", SEED.user.account, isFirst: true)
-                    idRow("氏名", SEED.user.name)
-                    idRow("学年・組", "\(SEED.user.grade) \(SEED.user.classSuffix)組 \(SEED.user.seatNo)番")
-                    idRow("寮・部屋", "\(SEED.user.dorm) \(SEED.user.room)")
-                    idRow("区分", SEED.user.category)
-                    idRow("携帯電話", SEED.user.phone)
+                    idRow("学号", app.displayUser.account, isFirst: true)
+                    idRow("氏名", app.displayUser.name)
+                    idRow("学年・組", "\(app.displayUser.grade) \(app.displayUser.classSuffix)組 \(app.displayUser.seatNo)番")
+                    idRow("寮・部屋", "\(app.displayUser.dorm) \(app.displayUser.room)")
+                    idRow("区分", app.displayUser.category)
+                    idRow("携帯電話", app.displayUser.phone)
                 }
             }
             Text("※ 身份情報の変更は寮監にご連絡ください。修改届では変更できません。")

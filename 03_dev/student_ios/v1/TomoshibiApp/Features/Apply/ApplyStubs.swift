@@ -397,35 +397,35 @@ struct StayForm: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
-    /// ── 申請者本人 · SEED.user 直接読取 (#1 学生只能提交自己的) ────────────────
+    /// ── 申請者本人 · app.displayUser 読取（IX-008：登录拉真人，演示/未登录回退 SEED 占位）────
     private var meAccount: String {
-        SEED.user.account
+        app.displayUser.account
     } // 6 桁学号 = student_id
     private var meName: String {
-        SEED.user.name
+        app.displayUser.name
     }
 
     private var meClass: String {
-        "\(SEED.user.grade)\(SEED.user.classSuffix)組"
+        "\(app.displayUser.grade)\(app.displayUser.classSuffix)組"
     }
 
     private var meNo: String {
-        "\(SEED.user.seatNo)番"
+        "\(app.displayUser.seatNo)番"
     }
 
     private var meDorm: String {
-        "\(SEED.user.dorm) \(SEED.user.room)"
+        "\(app.displayUser.dorm) \(app.displayUser.room)"
     }
 
     private var mePhone: String {
-        SEED.user.phone
+        app.displayUser.phone
     }
 
     private var meCategory: String {
-        SEED.user.category
+        app.displayUser.category
     } // 一般寮生 / 留学生
     private var meIsOverseas: Bool {
-        SEED.user.isOverseas
+        app.displayUser.isOverseas
     }
 
     // ── 实物表補完字段（2026-05-28）──────────────────────────────────────

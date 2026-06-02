@@ -150,9 +150,9 @@ struct MyLandingView: View {
     private var profileSection: some View {
         Card(padding: 18) {
             HStack(alignment: .center, spacing: 14) {
-                Avatar(letter: SEED.user.avatar, size: 56)
+                Avatar(letter: app.displayUser.avatar, size: 56)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(SEED.user.name)
+                    Text(app.displayUser.name)
                         .font(.system(size: 18, weight: .heavy))
                         .kerning(-0.2)
                         .foregroundStyle(T.ink)
@@ -160,14 +160,14 @@ struct MyLandingView: View {
                         Text("アカウント ")
                             .font(.system(size: 11))
                             .foregroundStyle(T.inkMute)
-                        Text(SEED.user.account)
+                        Text(app.displayUser.account)
                             .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(T.ink)
                             .monospaced()
                     }
                     HStack(spacing: 6) {
-                        Pill(text: "\(SEED.user.dorm) \(SEED.user.room)", tone: .accent)
-                        Pill(text: SEED.user.category, tone: .neutral)
+                        Pill(text: "\(app.displayUser.dorm) \(app.displayUser.room)", tone: .accent)
+                        Pill(text: app.displayUser.category, tone: .neutral)
                     }
                     .padding(.top, 2)
                 }
@@ -291,7 +291,7 @@ struct MyLandingView: View {
     // MARK: ⭐ 減点明細 Card
 
     private var pointsStatusCard: some View {
-        let pts = SEED.user.points
+        let pts = app.displayUser.points
         let level: (numColor: Color, bgColor: Color, label: String, pillTone: Pill.Tone) = {
             if pts >= 8 { return (T.danger, T.dangerBg, "禁足", .danger) }
             if pts >= 4 { return (T.warn, T.warnBg, "罰掃 注意", .warn) }
@@ -459,7 +459,7 @@ struct MyInfoView: View {
     @EnvironmentObject var app: AppStore
 
     private var rows: [(String, String)] {
-        let u = SEED.user
+        let u = app.displayUser
         return [
             ("氏名", u.name),
             ("フリガナ", u.nameKana),
@@ -1904,13 +1904,13 @@ struct MyStudyView: View {
     /// 当月（demo: 全件）の出席状況サマリ
     private var thisMonthStats: (present: Int, late: Int, abnormal: Int, absentExcused: Int) {
         let entries = app.studyHistory
-        // 日別 group → 各日 3 tap 揃ってる = present 1 / 1-2 tap = abnormal / 0 = absent
+        // 按日期分组 → 当天 tap 种类齐全(= StudyTap 全部 2 种) = present / 缺一种 = abnormal / 0 = absent
         let dates = Set(entries.map { $0.date })
         var present = 0, late = 0, abnormal = 0
         for d in dates {
             let dayEntries = entries.filter { $0.date == d }
             let tapKinds = Set(dayEntries.map { $0.tapKind })
-            if tapKinds.count == 3 {
+            if tapKinds.count == StudyTap.allCases.count {
                 let lateNote = dayEntries.contains { $0.note?.contains("遅刻") == true }
                 if lateNote { late += 1 } else { present += 1 }
             } else if tapKinds.count > 0 {
@@ -1984,7 +1984,7 @@ struct MyStudyView: View {
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(T.inkSub).kerning(1.2)
                     Spacer()
-                    Text(SEED.user.isStudyTarget ? "対象" : "対象外")
+                    Text(app.displayUser.isStudyTarget ? "対象" : "対象外")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(T.primary)
                         .padding(.horizontal, 8).padding(.vertical, 2)
@@ -2092,9 +2092,9 @@ struct MyStudyView: View {
     @ViewBuilder
     private func dayBlock(date: String, items: [StudyHistoryEntry]) -> some View {
         let kinds = Set(items.map { $0.tapKind })
-        let complete = kinds.count == 3
-        // IX-033: 日块原来只看打卡数=3 就贴绿色「時間内」，跟汇总卡（3 次齐 + 备注含「遅刻」算迟到）口径不一致。
-        // 这里也判断当天是否有打卡备注含「遅刻」，三齐但迟到 → 黄色「遅刻」，三齐且无迟到 → 绿色「時間内」。
+        let complete = kinds.count == StudyTap.allCases.count
+        // IX-033: 日块原来只看打卡数齐全就贴绿色「時間内」，跟汇总卡（齐全 + 备注含「遅刻」算迟到）口径不一致。
+        // 这里也判断当天是否有打卡备注含「遅刻」，齐全但迟到 → 黄色「遅刻」，齐全且无迟到 → 绿色「時間内」。
         let hasLate = items.contains { $0.note?.contains("遅刻") == true }
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
@@ -2121,7 +2121,7 @@ struct MyStudyView: View {
                         .background { Capsule().fill(T.dangerBg) }
                 }
                 Spacer()
-                Text("\(items.count) / 3")
+                Text("\(items.count) / \(StudyTap.allCases.count)")
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(T.inkMute)
             }
