@@ -72,6 +72,8 @@
 - [ ] **文档**：sysfeat-05（category 用 ENUM 还是 Text）/06（时间窗硬编码）/10（旧时刻 19:30）
 - [ ] **Codex 补测试建议**：broadcast_sync + run_coroutine_threadsafe 新路径补回归测试 / `POST /teachers` valid+invalid email API 测试 + teacher_web 前端兼容 422 detail list / WebSocket dorm_unit=2 广播过滤补回归测试
 
+> **2026-06-02 过夜 GOAL 进度**：✅ iOS 安全批 4 个已修（ios-home-05 首页日期 / ios-home-10 公告回复失败 toast / iosmypage-11 快递→荷物 / ios-staylist-05 audit 失败 toast，commit `13f5a01`；iosmypage-12 早被 IX-002 修）。✅ 文档 sysfeat-05/06 已修（`797d16f`），sysfeat-10 查证已对齐。✅ migtest-05/06/07/10 查证前序会话已修（代码注释引用 migtest-ID）。⏸ **后端 migration 批（models-entry-05~13 + rollcall-05）+ 其余 demo 耦合/潜伏 iOS bug 全推迟** —— schema 改约束有风险 / 多 PG 专属 SQLite 测不了 / 多要拍板（接后端 + 功能上不上线），理由逐条见 `05_logs/ios接后端_进度与handoff.md` §7.3。
+
 #### 🔵 2026-05-30 审查「需 itsuki 拍板」（部分本批已决，剩下面这些 — 从已删 handoff 并入）
 
 - [ ] **体調報告履歴 + 掃除提出履歴**两屏 Android 没实装（androidrest-05，入口跳首页）→ v1.0 要不要做？不做就删入口。（itsuki 06-02 倾向暂不做）
