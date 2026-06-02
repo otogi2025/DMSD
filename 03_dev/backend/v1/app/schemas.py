@@ -951,6 +951,20 @@ class DemeritRankingOut(BaseModel):
     curfew_threshold_count: int  # >= 8 点的学生数
 
 
+class MyDisciplineSummaryOut(BaseModel):
+    """当前登录学生的当月扣分汇总（iOS 当前用户统计用，IX-008b）。
+
+    与 /ranking 同口径：只算当月（month == 当月 YYYY-MM）+ 排除已撤销。
+    late_count / absent_count 只数点呼的遅刻 / 欠席（rollcall_late / rollcall_absent），
+    不含扫除 / 门禁 / 晚自习等其它扣分来源。total_points 仍是当月全部来源之和。
+    """
+
+    month: str
+    total_points: float
+    late_count: int
+    absent_count: int
+
+
 class DemeritManualIn(BaseModel):
     """手动加扣分输入（寮監权限）。"""
 

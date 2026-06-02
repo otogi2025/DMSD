@@ -29,7 +29,11 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import dorm_units_for_teacher, get_current_teacher
+from ..deps import (
+    dorm_units_for_teacher,
+    get_current_student,
+    get_current_teacher,
+)
 
 router = APIRouter(prefix="/api/v1/discipline", tags=["discipline"])
 
@@ -127,6 +131,37 @@ def get_ranking(
         entries=entries,
         cleaning_threshold_count=cleaning_n,
         curfew_threshold_count=curfew_n,
+    )
+
+
+@router.get("/me/summary", response_model=schemas.MyDisciplineSummaryOut)
+def get_my_discipline_summary(
+    student: models.Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
+    """当前登录学生的当月扣分汇总（iOS 当前用户统计，IX-008b）。
+
+    与 /ranking 同口径：当月（month == 当月 YYYY-MM）+ 排除已撤销。
+    late/absent 只数点呼遅刻/欠席（rollcall_late/rollcall_absent）；
+    total_points 是当月全部来源之和（跟排行榜 / 阈值判定一致）。
+    """
+    now = datetime.now(_JST)
+    month = now.strftime("%Y-%m")
+    events = db.scalars(
+        select(models.DemeritEvent).where(
+            models.DemeritEvent.student_id == student.id,
+            models.DemeritEvent.month == month,
+            models.DemeritEvent.revoked_at.is_(None),
+        )
+    ).all()
+    total_points = sum(e.points for e in events)
+    late_count = sum(1 for e in events if e.source_type == "rollcall_late")
+    absent_count = sum(1 for e in events if e.source_type == "rollcall_absent")
+    return schemas.MyDisciplineSummaryOut(
+        month=month,
+        total_points=total_points,
+        late_count=late_count,
+        absent_count=absent_count,
     )
 
 

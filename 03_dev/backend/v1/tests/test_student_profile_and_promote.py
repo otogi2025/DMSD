@@ -445,3 +445,95 @@ class TestStudentMe:
         assert res.status_code == 200, res.text
         # basic 响应（无 applications/study_checkins 等聚合块），区别于 /profile
         assert "applications" not in res.json()
+
+
+class TestMyDisciplineSummary:
+    """GET /discipline/me/summary — 当前学生当月扣分汇总（IX-008b，iOS 当前用户统计）。"""
+
+    def test_requires_auth(self, client):
+        """未带 token → 401。"""
+        res = client.get("/api/v1/discipline/me/summary")
+        assert res.status_code == 401
+
+    def test_rejects_teacher(self, client, teacher_token, seed_data):
+        """老师 token → 403（只认学生 token）。"""
+        res = client.get(
+            "/api/v1/discipline/me/summary",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 403, res.text
+
+    def test_current_month_only_and_counts(
+        self, client, student_token, seed_data, db_session
+    ):
+        """只算当月 + 排除已撤销；late/absent 只数点呼遅刻/欠席。"""
+        from datetime import datetime, timezone
+        from zoneinfo import ZoneInfo
+
+        from app import models
+
+        student = seed_data["student"]
+        this_month = datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m")
+
+        # 当月：2 遅刻(0.5) + 1 欠席(2.0) + 1 手动(1.0) = 4.0 点 / late 2 / absent 1
+        for _ in range(2):
+            db_session.add(
+                models.DemeritEvent(
+                    student_id=student.id,
+                    source_type="rollcall_late",
+                    points=0.5,
+                    reason="遅刻",
+                    month=this_month,
+                )
+            )
+        db_session.add(
+            models.DemeritEvent(
+                student_id=student.id,
+                source_type="rollcall_absent",
+                points=2.0,
+                reason="欠席",
+                month=this_month,
+            )
+        )
+        db_session.add(
+            models.DemeritEvent(
+                student_id=student.id,
+                source_type="manual",
+                points=1.0,
+                reason="手动",
+                month=this_month,
+            )
+        )
+        # 过去月份的扣分不该算进当月汇总
+        db_session.add(
+            models.DemeritEvent(
+                student_id=student.id,
+                source_type="rollcall_late",
+                points=0.5,
+                reason="先月遅刻",
+                month="2020-01",
+            )
+        )
+        # 已撤销的不该算
+        db_session.add(
+            models.DemeritEvent(
+                student_id=student.id,
+                source_type="rollcall_absent",
+                points=2.0,
+                reason="撤回済",
+                month=this_month,
+                revoked_at=datetime.now(timezone.utc),
+            )
+        )
+        db_session.commit()
+
+        res = client.get(
+            "/api/v1/discipline/me/summary",
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 200, res.text
+        data = res.json()
+        assert data["month"] == this_month, data
+        assert data["total_points"] == 4.0, data
+        assert data["late_count"] == 2, data
+        assert data["absent_count"] == 1, data
