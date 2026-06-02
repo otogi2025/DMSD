@@ -157,21 +157,31 @@ iOS 学生端 app 把「演示假数据（SEED / StayListMock）」接成「真�
 
 ### 7.2 ✅ 今晚修完的（带 commit 哈希）
 
-**IX-034 请假计数按月 — ✅ 关闭（5 commit + 2~3 轮 Codex 对抗复审）**
+**IX-034 请假计数按月 — ✅ 关闭（5 commit + 4 轮 Codex 对抗复审收敛）**
 - `e0c150c` 主体（端点 `GET /absence-requests/me/summary` + iOS loadMe 拉真实当月数 + 3 测试）
 - `7a9922c` 修 Codex 第 1 轮 4 点：① submitStudyLeave 只在 targetDate 属 JST 当月才 +1（跨月提交不再误加本月）② loadMe 捕获 tokenAtStart 每 await 后比对令牌 ③ test_study monkeypatch `study._now_jst` 固定日期去 flaky + 新增 12 月跨年边界测试 ④ ApplyStubs `formatYMD`/`parseYMD` 成对固定 Asia/Tokyo
 - `7fecd21` 修 Codex 第 2 轮 3 点：① loadMe 的 catch 401 也比对令牌（A 旧请求迟到的 401 不误清 B 令牌）② StayList 编辑流程自有的 `parseYMD`/`formatYMD` 也固定 JST（上轮只改了 StayForm 新建那对、漏了编辑那对）③ 加 `absenceCountRevision` 代次守卫（在途旧 loadMe summary 不再覆盖刚提交请假的乐观 +1）
-- Codex 第 3 轮收敛确认：`/tmp/ix034_pass2_out.txt`（本阶段提交时还在跑，结论下次会话补；若它再挑出真问题继续修）
+- `508c9b1` 修 Codex 第 2 轮 2 点：① submitStudyLeave 乐观 +1 后再拉 canonical 当月数收敛（token+代次双守卫）防启动 local=0 只 +1 偏低 ② StayList 编辑页两个 DatePicker 加 JST 时区环境 + formatYMDJa 固定 JST
+- `2dff6b7` 修 Codex 第 3 轮 1 点：submitStudyLeave 进入即捕获 tokenAtStart、提交 await 后 guard，防提交在途登出/切用户写错状态（同 commit 含 IX-009 收敛）
+- Codex 第 4 轮收敛确认：`/tmp/conv4_out.txt`（提交时在跑，结论下次会话补；收敛则 IX-034 彻底关闭）
 - 验证：后端 221 passed / iOS 双 scheme BUILD SUCCEEDED
-- 待补：IOS_DESIGN_LOG §14.10 一行「IX-034 4+3 点修复」；`StudyOnlineForm.swift` 的 `ApplyFormDate.formatYMD`（オンライン自習表单 period_from/to）同款没固定 JST 的隐患（另一 helper / 另一表单，记着）
+- 待补：IOS_DESIGN_LOG §14.10 一行；`StudyOnlineForm.swift` 的 `ApplyFormDate.formatYMD`（オンライン自習表单 period_from/to）同款没固定 JST 的隐患（另一 helper / 另一表单，记着）
 
-**IX-009 通知不泄漏假数据 — ✅ 生产聚合真公告**
-- `7e4a180` SEED.notifications 声明圈进 `#if DEMO`（5 条假通知物理上不进生产二进制）+ `allNotifications` 分构建（演示用 SEED fixture / 生产 = push + `announcementNotifications` 真公告映射、未読=公告未読驱动铃铛 badge）+ 新增 `announcementNotifications`/`notifTimeLabel`(JST)/`refreshNotificationSources` + `NotificationsView .task` 进入拉真公告。iOS 双 scheme BUILD SUCCEEDED。
-- 审批结果 / 包裹通知聚合 → 推迟（见 §7.3）
+**IX-009 通知不泄漏假数据 — ✅ 生产聚合真公告（2 commit + Codex 收敛）**
+- `7e4a180` SEED.notifications 声明圈进 `#if DEMO`（5 条假通知物理上不进生产二进制）+ `allNotifications` 分构建（演示用 SEED fixture / 生产 = push + `announcementNotifications` 真公告映射、未読=公告未読驱动铃铛 badge）+ 新增 `announcementNotifications`/`notifTimeLabel`(JST)/`refreshNotificationSources` + `NotificationsView .task` 进入拉真公告
+- `2dff6b7` 修 Codex 2 个 🟠：① badge 首屏不准 → 生产 `unreadNotificationCount` 用 `push 未読 + announcementUnreadCount`，loadMe 登录/启动即拉公告未読数 ② `loadAnnouncementList`/`loadAnnouncementUnreadCount` 加令牌守卫，登出/切用户不写回旧用户公告
+- 推迟（§7.3）：审批结果 / 包裹通知聚合 + 通知 id 下标身份 + push/公告时间排序
+
+**IX-007 申请详情页生产不读 SEED — ✅（Option A）**
+- `457077f` `ApplyDetailView.body` 分构建：生产显式只 `StayDetailView(id)`（后端只支持出寮届系），演示保留 SEED 路由讲叙事。修掉「item 落 SEED.applications[0] 巧合 + otherDetailBody 读 SEED」的脆弱/潜伏泄漏。iOS 双绿。
+- Option B（真做修繕/来訪/代理受取功能）→ 推迟（§7.3）
 
 ### 7.3 ⏸️ 待 itsuki 决策清单（跳过的，醒来一次性看）
-- **IX-007 其它类申请（修繕/来訪/代理受取）v1.0 上不上线**：后端零实装。上=新功能(Option B 5端联动)、不上=otherDetailBody 降级 DEMO-only(Option A)。今晚按 A 做（最小诚实改动），若你要 B 再说。
-- **IX-009 审批结果 + 包裹通知聚合**（今晚只接了真公告，这两个源推迟）：
+- **IX-007 其它类申请（修繕/来訪/代理受取）v1.0 上不上线**：后端零实装。今晚已按 Option A 做完（生产不读 SEED、`457077f`）。**Option B = 真做这功能**（后端建表 + 5 端联动）仍待你拍板上不上线；不做的话生产就是「这几类申请提交不了 / 不存在」，需求侧确认。
+- **IX-009 通知 — 已接公告，3 项推迟**：
+  - **通知卡 id 用 `-(idx+1)` 下标身份**：公告插入/重排时同一公告会换 id、SwiftUI 卡片身份跳（轻微视觉）。彻底修要把 `NotificationItem.id` 从 Int 改成 String（`announcement-<uuid>` / `push-N` / `seed-N`）—— touch push id 生成 + SEED + 整个通知子系统，单列。
+  - **push + 公告按来源拼接、非时间全局排序**：真 push 接通后旧 push 会永远压在新公告上方。要给 NotificationItem 加 createdAt + sourceKind 统一时间倒序（push 未持久前影响有限）。
+  - **审批结果 + 包裹通知聚合**（今晚只接了真公告，这两个源推迟）：
   - **审批结果当通知**：申请列表（`/applications/mine`）没在 AppStore 缓存（各视图按需拉），且后端对「你的申请被批了」无已读/未读状态，且 `/applications/mine` 返回全部历史（把每条历史审批当常驻通知卡语义不对）—— 要做需先给 AppStore 加申请缓存 + 定通知语义（哪些状态算 / 已读态本地存还是后端加 / 去重），属产品决策。
   - **包裹通知**：要后端新建 `GET /front-desk/mine`（学生端查自己包裹）。后端零实装。
   - 通知中心的 type 过滤标签里「申請」「宅配」标签生产暂时为空（诚实 — 还没真数据源），公告走「すべて」标签显示。
