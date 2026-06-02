@@ -56,3 +56,16 @@
 - **IOS_DESIGN_LOG.md:199**「itsuki 本人」错注释：iOS 会话territory，避让未改。
 - **晚自习 2 次签到 iOS/Android UI**：并发会话territory，待做。
 - **Codex 终审**：额度恢复后补一轮。
+
+---
+
+## 7. itsuki「都坐好」批（iOS 晚自习 2 次签到 + tier 月累计 + 注释，commit a3eceda）
+
+| 审查点 | 自审结论 |
+|---|---|
+| iOS 晚自习 3→2 删 .mid 后能编译 | ✅ **xcodebuild BUILD SUCCEEDED**。StudyTap 枚举删 .mid + 6 个 switch（stepLabel/stepNumber/timeWindow/successTitle/nextTapAfterRecord/短标签 extension）去 .mid 分支 + stepNumber end 3→2 + 进度点去中场 + demoSeed 删 2 条 mid。 |
+| iOS 出席状态判定逻辑 | ✅ start+end→绿 / 只 start→进行中 / 只 end→异常 / done 且 0 tap→缺席。覆盖全。 |
+| iOS UI 文本 3→2 | ✅ 「/ 2 回目」「全 2 回 タップ済み」「1 日 2 回タップ」+ MyPage 说明删中场。 |
+| Android tier 重算 | ✅ 按 §862 月累计：本月 0.5→...→4.5，前 5 条 <4 = 0、第 6-7 条 ≥4 = 4。tier 当前 Android UI **未被读取**（grep 0 处使用），纯 mock 数据改为自洽。⚠️ 本机无 SDK 不能 gradle 编译，未真编译验证（风险低：只改 Int 字面量 + 注释、无结构改动）。 |
+| Android 晚自习 2 次 UI | ✅ 无需改 —— Android **未实装**晚自习签到 UI（grep 0 命中 study-tap；ScheduleScreen 的「中間試験」是期中考、无关）。 |
+| 注释错改对 | ✅ IOS_DESIGN_LOG「リュウ イヒ（itsuki 本人）」→「demo seed 本体、架空サンプル」。 |
