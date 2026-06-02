@@ -559,8 +559,17 @@ final class AppStore: ObservableObject {
         // 否则跟 loadMe 重拉的后端当月数对不上。targetDate 是 JST yyyy-MM-dd（formatYMD 已固定 JST）。
         let isThisMonth = targetDate.prefix(7) == Self.todayJaYMD().prefix(7)
         if isThisMonth {
-            studyLeaveCountThisMonth += 1
+            studyLeaveCountThisMonth += 1 // 乐观 +1，即时反馈
             absenceCountRevision += 1 // 标记本地已变更，挡在途旧 loadMe summary 覆盖（IX-034 修复③补）
+            // 再拉后端 canonical 当月数收敛（含历史次数）—— 防启动恢复时 local 还是 0、
+            // 只 +1 显示偏低（被代次守卫拦下的旧 summary 不会再自己收敛）。token + 代次双守卫写回。
+            let tokenAtSubmit = authToken
+            let revAfterSubmit = absenceCountRevision
+            if let fresh = (try? await StudyAPI.myAbsenceSummary())?.count,
+               authToken == tokenAtSubmit, absenceCountRevision == revAfterSubmit
+            {
+                studyLeaveCountThisMonth = fresh
+            }
         }
         if isThisMonth, studyLeaveCountThisMonth > 3 {
             showToast("今月、もう \(studyLeaveCountThisMonth) 回お休みされていますね。体調管理、お気をつけて。")

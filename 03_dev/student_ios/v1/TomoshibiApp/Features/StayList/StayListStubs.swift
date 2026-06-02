@@ -1348,6 +1348,7 @@ struct StayEditForm: View {
                             .labelsHidden()
                             .datePickerStyle(.compact)
                             .environment(\.locale, Locale(identifier: "ja_JP"))
+                            .environment(\.timeZone, TimeZone(identifier: "Asia/Tokyo") ?? .current) // IX-034 修复④(补)：选日按 JST，跟提交格式一致
                         if let orig = parseYMD(original.leaveDate) {
                             originalNote(label: "原値", text: formatYMDJa(orig))
                         }
@@ -1361,6 +1362,7 @@ struct StayEditForm: View {
                             .labelsHidden()
                             .datePickerStyle(.compact)
                             .environment(\.locale, Locale(identifier: "ja_JP"))
+                            .environment(\.timeZone, TimeZone(identifier: "Asia/Tokyo") ?? .current) // IX-034 修复④(补)：选日按 JST，跟提交格式一致
                         if let r = original.returnDate, let orig = parseYMD(r) {
                             originalNote(label: "原値", text: formatYMDJa(orig))
                         }
@@ -1568,6 +1570,7 @@ struct StayEditForm: View {
         let f = DateFormatter()
         f.dateFormat = "yyyy 年 M 月 d 日"
         f.locale = Locale(identifier: "ja_JP")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo") // IX-034 修复④(补)：原値显示按 JST，跟 parseYMD/提交一致
         return f.string(from: d)
     }
 
