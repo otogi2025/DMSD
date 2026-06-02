@@ -1552,6 +1552,7 @@ struct StayEditForm: View {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo") // IX-034 修复④(补)：编辑流程也固定 JST，跟 formatYMD 配对
         return f.date(from: s)
     }
 
@@ -1559,6 +1560,7 @@ struct StayEditForm: View {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo") // IX-034 修复④(补)：编辑提交的出寮日/帰寮日固定 JST，非 JST 设备不偏天
         return f.string(from: d)
     }
 

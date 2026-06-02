@@ -166,17 +166,25 @@ final class AppStore: ObservableObject {
                 }
                 // IX-034: 再拉当月学習欠席届次数（按月真实数，替代纯内存累加 —
                 //   重启 / 跨月不再丢失）。拉不到 nil 保持原值，不打断登录。
+                let absenceRevAtStart = absenceCountRevision
                 let absenceCount = (try? await StudyAPI.myAbsenceSummary())?.count
                 // summary / absence 都有 await，写回前再确认还是同一个令牌。
                 guard authToken == tokenAtStart else { return }
                 currentUser = mapped
-                if let absenceCount { studyLeaveCountThisMonth = absenceCount }
+                // IX-034 修复③(补)：代次没变才写回 —— summary 在途时若用户提交了请假
+                // （+1 并自增代次），旧 summary 数不得覆盖刚更新的本地数。
+                if let absenceCount, absenceCountRevision == absenceRevAtStart {
+                    studyLeaveCountThisMonth = absenceCount
+                }
                 // 安全网：同时写回 SEED.user，覆盖那些没法用 app.displayUser 的站点
                 // （@State 默认值 / 纯 mock 数据 / 静态 helper）。
                 SEED.user = mapped
             } catch APIError.unauthorized {
                 // 令牌过期 / 失效（401）→ 清令牌强制重登（didSet 会清 currentUser + 复位 SEED.user），
                 // 不再默默回退到演示假人身份。
+                // IX-034 修复②(补)：401 也比对令牌 —— A 的旧 /me 在 A 登出、B 登录后才返 401，
+                // 不能误清掉 B 的令牌。
+                guard authToken == tokenAtStart else { return }
                 authToken = nil
             } catch {
                 // 网络 / 解码失败 → 保持 currentUser = nil，displayUser 回退占位，不打断登录。
@@ -525,6 +533,10 @@ final class AppStore: ObservableObject {
         #endif
     }()
 
+    /// IX-034 修复③(补)：本月请假数的本地写回代次。submitStudyLeave 成功后自增，
+    /// loadMe 写回前比对 —— 在途的旧 summary 不得覆盖刚提交后更新的本地数。
+    private var absenceCountRevision = 0
+
     /// upcoming 时 1 秒一次 tick（HomeView Timer 同时触发 roll + study）
     func tickStudyCountdown() {
         guard studyState == .upcoming, studyCountdownSec > 0 else { return }
@@ -548,6 +560,7 @@ final class AppStore: ObservableObject {
         let isThisMonth = targetDate.prefix(7) == Self.todayJaYMD().prefix(7)
         if isThisMonth {
             studyLeaveCountThisMonth += 1
+            absenceCountRevision += 1 // 标记本地已变更，挡在途旧 loadMe summary 覆盖（IX-034 修复③补）
         }
         if isThisMonth, studyLeaveCountThisMonth > 3 {
             showToast("今月、もう \(studyLeaveCountThisMonth) 回お休みされていますね。体調管理、お気をつけて。")
