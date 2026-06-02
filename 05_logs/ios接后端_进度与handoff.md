@@ -58,9 +58,10 @@ iOS 学生端 app 把「演示假数据（SEED / StayListMock）」接成「真�
 
 **⚠️ 代码落点异常**：提交时撞并发会话 `git add -A`，我暂存的 5 文件被卷进对方 commit **`6142ef0`**（消息是「注册码 /close」对不上号，但代码完整无损、已固化）。不改历史（并发下重写危险）。
 
-**剩余（Batch 2 — 这次审查发现但本阶段未做，下次接）**：
-- 🟡 其余身份展示站点仍直读 SEED.user（MyPage profileSection 头像/姓名/账号/寮房 153-170、减点卡 294、summaryCard 学習対象 1970、StayList ID 卡 1324-1329、Apply me* 402-428、DormLifeForms @State 294/513）→ 统一迁 `app.displayUser`，废掉「写回全局 SEED.user」安全网
-- 🟡 登出只清 SEED.user，没清 changeLog/announcements 等用户绑定 @Published → 抽 `resetUserState()`（跨账号隐私残留）
+**Batch 2 — ✅ 2026-06-02 完成（commit `d21a2b8`）**：
+- ✅ 身份展示站点迁 `app.displayUser`：MyPage（profileSection 头像/姓名/账号/寮房/区分 + 减点卡 + MyInfoView rows + summaryCard 学習対象）、Apply（StayForm 申請者本人 8 处）、StayList（identitySection ID 卡 6 行）。安全网 SEED.user 保留（覆盖 router-only 视图 / mock / @State）。
+- ✅ 登出清残留：authToken 登出分支生产构建（`#if !DEMO`）清 changeLog/studyHistory/announcements*/studyLeaveCountThisMonth。
+- **残留（低危，未做）**：3 个表单 `@State` 预填（StayForm contactPhone / DormLifeForms FridgePurchase contactPhone 294 / ItemPossession roomNo 513）—— 登录路径上 SEED.user 已真实、仅冷启动 sub 秒窗口旧，便利预填用户可改；MyPointsView 图表内部（router-only 视图）靠安全网。要彻底干净需给这 3 表单加 `.onAppear` 从 displayUser 填（同 MyInfoEditView 做法）。
 - 审查全文：Codex `/tmp/ix008_codex_out.txt`、Claude workflow 结果在 task `wsl80p7iw` 输出
 
 ### 4.0b 🔧 IX-008b 扣分统计 — 后端完成、iOS 接线待（2026-06-02）
@@ -69,10 +70,10 @@ iOS 学生端 app 把「演示假数据（SEED / StayListMock）」接成「真�
 
 **已做（后端，commit `0f84be9`）**：新 `GET /api/v1/discipline/me/summary`（学生鉴权）= 当前学生**当月**扣分汇总 `{month, total_points, late_count, absent_count}`。与 `/ranking` 同口径（当月 + 排除已撤销）；`total_points`=当月全来源之和、`late/absent` 只数点呼 `rollcall_late`/`rollcall_absent`。**扣分按当月算**（照系统已有约定 — ranking 就是按月聚合 + 阈值按月判，不是新拍板）。+4 测试。后端 217 passed。
 
-**待做（iOS，等 iOS 文件腾出再接）**：
-- `AuthAPI.swift` 加 `DisciplineAPI.mySummary()`（GET /discipline/me/summary）+ `MyDisciplineSummaryOut` Decodable
-- `AppStore.loadMe` 拉到基本资料后再拉一次 summary，把 points/lateCount/absentCount 填进 currentUser（现在 mapMeToUser 填 0）
-- 注意：iOS User.points 是 Double、后端 total_points 是 float，对得上
+**iOS 接线 — ✅ 2026-06-02 完成（commit `d21a2b8`）**：
+- `AuthAPI.swift` 加 `DisciplineAPI.mySummary()` + `MyDisciplineSummaryOut` Decodable
+- `AppStore.loadMe` 拉到 /me 后再拉 summary，填 currentUser 的 points/lateCount/absentCount（真人现显真实当月统计，不再全 0）
+- iOS 双 scheme BUILD SUCCEEDED。**IX-008b 全做完（后端 + iOS）。**
 
 ### 4.1 Codex 阶段2(IX-004) 审查 — 已回，2 条已修（提交 `6cca9fc`），剩 5 条待处理（原文 `/tmp/codex_stage2_out.txt`）
 

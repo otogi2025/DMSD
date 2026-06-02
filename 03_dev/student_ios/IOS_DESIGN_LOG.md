@@ -1102,6 +1102,24 @@ xcodebuild iPhone 17 simulator BUILD SUCCEEDED 確認済（2026-05-04）。
 
 **验证**：生产 + 演示双 scheme BUILD SUCCEEDED；后端 209 passed（含 4 个 /me 测试）。
 
+### 14.9 IX-008 第二阶段审查修复 + IX-008b 扣分统计接入（2026-06-02）
+
+§14.8 的「安全网」做法（登录写回全局 `SEED.user`）经 Codex 5.5 xhigh + Claude 4 维对抗审查双路独立复核，挑出真漏洞。修 + 补完。
+
+**第二阶段修复（commit `6142ef0` iOS 部分 + `d21a2b8`）**：
+- **注册路径补 loadMe** — 之前只登录路径拉 /me，注册完进主页 currentUser 仍 nil → 显演示假人到冷启动。`createAccount` 补 `await loadMe()`。
+- **loadMe 健壮性** — await 后复查登录态（防登出竞态）；401 清令牌强制重登（不再默默回退假身份）；失败打日志；演示构建 `#if DEMO` 直接 return（真隔离）。
+- **注册第一步写 SEED.user 加 `#if DEMO` 守卫** — 生产注册只走真实数据通道，防真名配演示残留统计的混血资料。
+- **MyInfoEditView 预填** — `@State` 默认值不再 view-init 抓 SEED.user，改 `.onAppear` 从 `app.displayUser` 填（防 loadMe 晚到 / 切账号不刷新）。
+
+**Batch 2 — 剩余身份站点迁 `app.displayUser`（commit `d21a2b8`）**：MyPage（profileSection / 减点卡 / MyInfoView rows / summaryCard 学習対象）、Apply（StayForm 申請者本人 8 处）、StayList（identitySection ID 卡 6 行）。登出生产构建（`#if !DEMO`）清 changeLog/studyHistory/announcements* 等用户绑定状态（防跨账号残留）。
+
+**IX-008b 扣分统计接入（后端 `0f84be9` + iOS `d21a2b8`）**：后端 `GET /discipline/me/summary` 返当月扣分汇总；iOS `DisciplineAPI.mySummary()` + `loadMe` 拉 summary 填 currentUser 的 points/lateCount/absentCount。真人现显真实当月扣分/迟到/欠席（按当月算，照系统已有约定）。
+
+**残留（低危，文档记）**：3 表单 `@State` 预填（contactPhone/roomNo — 登录路径已真实、仅冷启动窗口旧）+ MyPointsView 图表内部（router-only 视图靠安全网）。
+
+**验证**：iOS 双 scheme BUILD SUCCEEDED；后端 217 passed。
+
 ---
 
-**END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）; 5-31 修改届接后端（§14.7）+ 当前用户接 /me（§14.8）。
+**END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）; 5-31 修改届接后端（§14.7）+ 当前用户接 /me（§14.8）; 6-02 IX-008 二审修复 + IX-008b 扣分统计（§14.9）。
