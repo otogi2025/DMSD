@@ -156,10 +156,24 @@ iOS 学生端 app 把「演示假数据（SEED / StayListMock）」接成「真�
 - Codex 原文：`/tmp/ix034_codex_out.txt`。
 
 ### 7.2 ✅ 今晚修完的（带 commit 哈希）
-- `e0c150c` IX-034 请假计数按月（代码+测试，待修上面 4 点）
+
+**IX-034 请假计数按月 — ✅ 关闭（5 commit + 2~3 轮 Codex 对抗复审）**
+- `e0c150c` 主体（端点 `GET /absence-requests/me/summary` + iOS loadMe 拉真实当月数 + 3 测试）
+- `7a9922c` 修 Codex 第 1 轮 4 点：① submitStudyLeave 只在 targetDate 属 JST 当月才 +1（跨月提交不再误加本月）② loadMe 捕获 tokenAtStart 每 await 后比对令牌 ③ test_study monkeypatch `study._now_jst` 固定日期去 flaky + 新增 12 月跨年边界测试 ④ ApplyStubs `formatYMD`/`parseYMD` 成对固定 Asia/Tokyo
+- `7fecd21` 修 Codex 第 2 轮 3 点：① loadMe 的 catch 401 也比对令牌（A 旧请求迟到的 401 不误清 B 令牌）② StayList 编辑流程自有的 `parseYMD`/`formatYMD` 也固定 JST（上轮只改了 StayForm 新建那对、漏了编辑那对）③ 加 `absenceCountRevision` 代次守卫（在途旧 loadMe summary 不再覆盖刚提交请假的乐观 +1）
+- Codex 第 3 轮收敛确认：`/tmp/ix034_pass2_out.txt`（本阶段提交时还在跑，结论下次会话补；若它再挑出真问题继续修）
+- 验证：后端 221 passed / iOS 双 scheme BUILD SUCCEEDED
+- 待补：IOS_DESIGN_LOG §14.10 一行「IX-034 4+3 点修复」；`StudyOnlineForm.swift` 的 `ApplyFormDate.formatYMD`（オンライン自習表单 period_from/to）同款没固定 JST 的隐患（另一 helper / 另一表单，记着）
+
+**IX-009 通知不泄漏假数据 — ✅ 生产聚合真公告**
+- `7e4a180` SEED.notifications 声明圈进 `#if DEMO`（5 条假通知物理上不进生产二进制）+ `allNotifications` 分构建（演示用 SEED fixture / 生产 = push + `announcementNotifications` 真公告映射、未読=公告未読驱动铃铛 badge）+ 新增 `announcementNotifications`/`notifTimeLabel`(JST)/`refreshNotificationSources` + `NotificationsView .task` 进入拉真公告。iOS 双 scheme BUILD SUCCEEDED。
+- 审批结果 / 包裹通知聚合 → 推迟（见 §7.3）
 
 ### 7.3 ⏸️ 待 itsuki 决策清单（跳过的，醒来一次性看）
 - **IX-007 其它类申请（修繕/来訪/代理受取）v1.0 上不上线**：后端零实装。上=新功能(Option B 5端联动)、不上=otherDetailBody 降级 DEMO-only(Option A)。今晚按 A 做（最小诚实改动），若你要 B 再说。
-- **IX-009 包裹通知**：要后端新建 `GET /front-desk/mine`（学生端查自己包裹）。今晚只接公告+审批结果，包裹跳过。
+- **IX-009 审批结果 + 包裹通知聚合**（今晚只接了真公告，这两个源推迟）：
+  - **审批结果当通知**：申请列表（`/applications/mine`）没在 AppStore 缓存（各视图按需拉），且后端对「你的申请被批了」无已读/未读状态，且 `/applications/mine` 返回全部历史（把每条历史审批当常驻通知卡语义不对）—— 要做需先给 AppStore 加申请缓存 + 定通知语义（哪些状态算 / 已读态本地存还是后端加 / 去重），属产品决策。
+  - **包裹通知**：要后端新建 `GET /front-desk/mine`（学生端查自己包裹）。后端零实装。
+  - 通知中心的 type 过滤标签里「申請」「宅配」标签生产暂时为空（诚实 — 还没真数据源），公告走「すべて」标签显示。
 - **老师「退回(returned)」动作** / **学習対象 is_study_target 后端字段** / **5-30 审查 🔵 段** / **spec 冻结区文档** / **版本号 bump**：全跳过。
 - （后续每跳过一条往这里加）
