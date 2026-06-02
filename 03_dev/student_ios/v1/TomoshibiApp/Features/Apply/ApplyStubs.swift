@@ -1048,6 +1048,7 @@ struct StayForm: View {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo") // IX-034 修复④：固定 JST，跟 formatYMD 配对、保证日期串往返恒等
         return f.date(from: s)
     }
 
@@ -1062,6 +1063,7 @@ struct StayForm: View {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo") // IX-034 修复④：固定 JST，否则非 JST 设备 target_date / 出寮日口径偏一天
         return f.string(from: d)
     }
 

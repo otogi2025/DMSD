@@ -149,11 +149,14 @@ final class AppStore: ObservableObject {
             // 兑现「演示态不执行 loadMe」的承诺（之前只靠 isAuthenticated 挡，没真隔离构建）。
             return
         #else
-            guard isAuthenticated else { return }
+            // IX-034 修复②：捕获进入时的令牌，每次 await 后 / 写回前都比对同一个令牌。
+            // 只查 isAuthenticated 不够 —— A 登出后 B 立刻登录，isAuthenticated 仍为真，
+            // A 的旧 loadMe 结果会被写进 B。比对令牌本身才能挡住这种竞态。
+            guard let tokenAtStart = authToken else { return }
             do {
                 let me = try await StudentsAPI.me()
-                // await 之后再确认登录态没变 —— 防 await 期间用户已登出，结果写回复活已登出用户的数据。
-                guard isAuthenticated else { return }
+                // await 之后确认还是同一个登录令牌 —— 防 await 期间已登出 / 换了人。
+                guard authToken == tokenAtStart else { return }
                 var mapped = Self.mapMeToUser(me)
                 // IX-008b: 再拉当月扣分汇总填统计（拉不到保持 0，不打断登录）。
                 if let summary = try? await DisciplineAPI.mySummary() {
@@ -164,8 +167,8 @@ final class AppStore: ObservableObject {
                 // IX-034: 再拉当月学習欠席届次数（按月真实数，替代纯内存累加 —
                 //   重启 / 跨月不再丢失）。拉不到 nil 保持原值，不打断登录。
                 let absenceCount = (try? await StudyAPI.myAbsenceSummary())?.count
-                // summary / absence 都有 await，写回前再确认登录态。
-                guard isAuthenticated else { return }
+                // summary / absence 都有 await，写回前再确认还是同一个令牌。
+                guard authToken == tokenAtStart else { return }
                 currentUser = mapped
                 if let absenceCount { studyLeaveCountThisMonth = absenceCount }
                 // 安全网：同时写回 SEED.user，覆盖那些没法用 app.displayUser 的站点
@@ -538,8 +541,15 @@ final class AppStore: ObservableObject {
             period: range.wireValue,
             reason: reason
         )
-        studyLeaveCountThisMonth += 1
-        if studyLeaveCountThisMonth > 3 {
+        // IX-034 修复①：只有 targetDate 属于 JST 当月才 +1 本月计数。
+        // 表单能选今天～+14 天、可能跨到下月（5 月底提交 6 月的）——
+        // 那种后端按 target_date 归到下月、不计入本月，iOS 也不能本月 +1，
+        // 否则跟 loadMe 重拉的后端当月数对不上。targetDate 是 JST yyyy-MM-dd（formatYMD 已固定 JST）。
+        let isThisMonth = targetDate.prefix(7) == Self.todayJaYMD().prefix(7)
+        if isThisMonth {
+            studyLeaveCountThisMonth += 1
+        }
+        if isThisMonth, studyLeaveCountThisMonth > 3 {
             showToast("今月、もう \(studyLeaveCountThisMonth) 回お休みされていますね。体調管理、お気をつけて。")
         } else {
             showToast("学習欠席届を提出しました")

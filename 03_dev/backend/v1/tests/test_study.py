@@ -16,11 +16,13 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 
 from app import models
+from app.routers import study
 
 
 @pytest.fixture
@@ -128,16 +130,24 @@ class TestMyAbsenceSummary:
         assert res.status_code == 403
 
     def test_counts_current_month_only_all_statuses(
-        self, client, db_session, seed_data, student_token
+        self, client, db_session, seed_data, student_token, monkeypatch
     ):
-        """只数当月（按 target_date）+ 全状态都算（含 rejected）+ 跨月排除。"""
+        """只数当月（按 target_date）+ 全状态都算（含 rejected）+ 跨月排除。
+
+        固定 _now_jst 到月中（2026-06-15 JST），避免依赖本机时区 / 运行日期 ——
+        端点用 _now_jst() 算当月、测试若用 date.today() 在非 JST 机器月末边界会 flaky。
+        """
         student = seed_data["student"]
-        today = date.today()
-        # 当月 2 条（不同日避开唯一约束）：1 条 pending 默认 + 1 条 rejected → 都该计入
+        monkeypatch.setattr(
+            study,
+            "_now_jst",
+            lambda: datetime(2026, 6, 15, 12, 0, tzinfo=ZoneInfo("Asia/Tokyo")),
+        )
+        # 当月（6 月）首尾各 1 条：1 条 pending 默认 + 1 条 rejected → 都该计入
         db_session.add(
             models.StudyAbsenceRequest(
                 student_id=student.id,
-                target_date=date(today.year, today.month, 1),
+                target_date=date(2026, 6, 1),
                 period="full",
                 reason="当月1",
             )
@@ -145,28 +155,28 @@ class TestMyAbsenceSummary:
         db_session.add(
             models.StudyAbsenceRequest(
                 student_id=student.id,
-                target_date=date(today.year, today.month, 2),
+                target_date=date(2026, 6, 30),
                 period="full",
                 reason="当月2(被拒)",
                 status="rejected",
             )
         )
-        # 上个月 1 条 + 下个月 1 条 → 都不应计入
+        # 上个月最后一天 + 下个月第一天 → 边界外、都不应计入
         db_session.add(
             models.StudyAbsenceRequest(
                 student_id=student.id,
-                target_date=today - timedelta(days=40),
+                target_date=date(2026, 5, 31),
                 period="full",
-                reason="上月",
+                reason="上月末",
                 status="approved",
             )
         )
         db_session.add(
             models.StudyAbsenceRequest(
                 student_id=student.id,
-                target_date=today + timedelta(days=40),
+                target_date=date(2026, 7, 1),
                 period="full",
-                reason="下月",
+                reason="下月初",
             )
         )
         db_session.commit()
@@ -178,7 +188,68 @@ class TestMyAbsenceSummary:
         assert res.status_code == 200, res.text
         data = res.json()
         assert data["count"] == 2
-        assert data["month"] == today.strftime("%Y-%m")
+        assert data["month"] == "2026-06"
+
+    def test_counts_handles_year_end_boundary(
+        self, client, db_session, seed_data, student_token, monkeypatch
+    ):
+        """12 月跨年边界：当月 = 12 月、next 月须算成翌年 1/1，排除 11 月 / 翌 1 月。
+
+        固定 _now_jst 到 2026-12-31 23:50 JST —— 触发端点 now.month == 12 →
+        date(year+1, 1, 1) 那条跨年分支，且压在月末/年末最深的边界上。
+        """
+        student = seed_data["student"]
+        monkeypatch.setattr(
+            study,
+            "_now_jst",
+            lambda: datetime(2026, 12, 31, 23, 50, tzinfo=ZoneInfo("Asia/Tokyo")),
+        )
+        # 当月（12 月）首尾各 1 条 → 都计入
+        db_session.add(
+            models.StudyAbsenceRequest(
+                student_id=student.id,
+                target_date=date(2026, 12, 1),
+                period="full",
+                reason="12月初",
+            )
+        )
+        db_session.add(
+            models.StudyAbsenceRequest(
+                student_id=student.id,
+                target_date=date(2026, 12, 31),
+                period="full",
+                reason="12月末(被拒)",
+                status="rejected",
+            )
+        )
+        # 上月（11 月末）+ 翌年（1 月初）→ 都不计入
+        db_session.add(
+            models.StudyAbsenceRequest(
+                student_id=student.id,
+                target_date=date(2026, 11, 30),
+                period="full",
+                reason="11月末",
+                status="approved",
+            )
+        )
+        db_session.add(
+            models.StudyAbsenceRequest(
+                student_id=student.id,
+                target_date=date(2027, 1, 1),
+                period="full",
+                reason="翌1月初",
+            )
+        )
+        db_session.commit()
+
+        res = client.get(
+            "/api/v1/study/absence-requests/me/summary",
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 200, res.text
+        data = res.json()
+        assert data["count"] == 2
+        assert data["month"] == "2026-12"
 
 
 class TestCheckin:
