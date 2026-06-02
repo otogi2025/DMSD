@@ -133,3 +133,33 @@ iOS 学生端 app 把「演示假数据（SEED / StayListMock）」接成「真�
 - **并发会话在改后端**（`announcements.py` / `discipline.py` / `study.py` 一直在变）。我只碰 iOS。提交前 `git status` 确认、精确 `git add` 我自己的文件、绝不 `git add -A`。
 - iOS 改动会触发一堆 PostToolUse hook 提醒（project-overview 同步 / 联动 / 日语注释 / demo-scaffold）——多数非阻塞，按需处理。
 - B 类只能编译验证 + itsuki 手动跑模拟器验证；真机端到端联调需后端在线（现已在线）。
+
+---
+
+## 7. 2026-06-02 过夜自动修复 GOAL（itsuki 睡觉 · 无人值守）
+
+### 7.0 运行模式（itsuki 拍板）
+- **绝不问 itsuki**。遇到必须他拍板的 → 跳过 + 记 §7.3 待决策清单 → 继续做下一件能做的。
+- 每阶段做完更新本文件（防上下文被自动摘要后丢状态）。
+- 灾难级不可逆操作（删库 / `git reset --hard` / `git push --force` / 任何 push）一律跳过留给 itsuki。本地 commit 可以。
+- 每阶段：Codex 5.5 xhigh 审 → 逐条核实真实代码再修 → 双端编译 / pytest 验证 → 精确 `git add <文件>` commit（不 `-A`、不 push）。
+
+### 7.1 ✅ IX-034 请假计数按月 — 代码已提交 `e0c150c`（待修 Codex 4 点）
+**已做**：后端 `GET /api/v1/study/absence-requests/me/summary`（当月 target_date 全状态计数，schemas `MyAbsenceSummaryOut`）+ iOS `StudyAPI.myAbsenceSummary()` + `loadMe` 拉真实当月数 + 3 测试。后端 220 passed / iOS 双 scheme BUILD SUCCEEDED。
+**口径决定（itsuki 自定）**：按 target_date 算当月 / 数全部状态（含 rejected，匹配「提交即 +1」）/ 不加硬上限。
+**Codex 审出 4 点待修（下一步先做这个）**：
+1. 🟠 `submitStudyLeave`（AppStore.swift:541）成功后无条件 `+=1`，但表单能选今天到 +14 天、可能跨到下月 → 5 月底提交 6 月的，iOS 把「本月」+1 但后端不计入。改：只有 targetDate 属于 JST 当月才 +1。
+2. 🟠 `loadMe`（AppStore.swift:152/166）竞态 guard 只查 `isAuthenticated`、没确认同一令牌 → A 登出 B 立刻登录时旧任务可能把 A 数据写进 B。改：进 loadMe 捕获 `let tokenAtStart = authToken`，每次 await 后 / 写回前 `guard authToken == tokenAtStart`。
+3. 🟡 `test_study.py` 用 `date.today()` 而端点用 `_now_jst()` → 非 JST 机器月末边界 flaky；缺 12 月跨年 + 精确边界。改：monkeypatch `study._now_jst` 固定到 2026-12-31 23:xx JST 补边界断言。
+4. 🟡 `ApplyStubs.swift:1061 formatYMD` 没固定 Asia/Tokyo、用设备默认时区 → target_date 口径可能偏。改：给 DateFormatter 指定 JST（注意是共用 helper，影响多个表单，确认范围）。
+- 💡（不修）：study.py:580 `len(rows)` 可换 `select(func.count())`，但要加 func import、收益低，跳过。
+- Codex 原文：`/tmp/ix034_codex_out.txt`。
+
+### 7.2 ✅ 今晚修完的（带 commit 哈希）
+- `e0c150c` IX-034 请假计数按月（代码+测试，待修上面 4 点）
+
+### 7.3 ⏸️ 待 itsuki 决策清单（跳过的，醒来一次性看）
+- **IX-007 其它类申请（修繕/来訪/代理受取）v1.0 上不上线**：后端零实装。上=新功能(Option B 5端联动)、不上=otherDetailBody 降级 DEMO-only(Option A)。今晚按 A 做（最小诚实改动），若你要 B 再说。
+- **IX-009 包裹通知**：要后端新建 `GET /front-desk/mine`（学生端查自己包裹）。今晚只接公告+审批结果，包裹跳过。
+- **老师「退回(returned)」动作** / **学習対象 is_study_target 后端字段** / **5-30 审查 🔵 段** / **spec 冻结区文档** / **版本号 bump**：全跳过。
+- （后续每跳过一条往这里加）
