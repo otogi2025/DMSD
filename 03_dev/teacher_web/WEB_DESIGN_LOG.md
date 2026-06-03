@@ -906,6 +906,15 @@ CC 在 itsuki 选 A（Ryō 框架内 polish）后跑 frontend-design skill，提
 - 找 itsuki 喜欢的具体参照系 web（比 CC 凭 skill 推风格更可靠）
 - 跟 itsuki 一起看几个真实日本教育系统 UI（不同风格）后再选方向
 
+## 13. 出租车预约「タクシー予約」tab 实装 — 2026-06-03
+
+itsuki 拍板出租车预约功能，老师端要「能看到 + 主页防漏看提醒」。`ApplicationsPage` 早预留的「タクシー」tab（原 `SkeletonTabBody` 占位）实装成真列表：
+
+- tab body 改用已验证的 `OutstayList` 组件，数据 = 三种出寮届 adapted apps 合并后筛 `_backend.taxi_reservation_time` 非空
+- tab badge = 有出租车预约的 pending 数（红点提醒、防老师漏看）
+- 申请详情「日時・移動手段」section 加「タクシー予約」字段（`detail.taxi_reservation_time`，无则「予約なし」）
+- 数据直接来自后端 `ApplicationOut.taxi_reservation_time`，`client.js` 透传不用改。`check_jsx` 16 块 0 错误
+
 ---
 
 **END** — 本档随 Web 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。

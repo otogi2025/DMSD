@@ -71,6 +71,7 @@ struct StayApplication: Hashable, Identifiable {
     var destination: String?
     var leaveMethod: String?
     var returnMethod: String?
+    var taxiReservationTime: String? = nil // 出租车预约时刻 "HH:MM:SS"，nil = 不预约（itsuki 2026-06-03）
     var chain: [ApprovalStep]
     let submittedAt: String // "2026-04-20 10:24"
     var auditLog: [AuditLogEntry] = [] // 操作履歴（提出 / 修改届 / 差戻 / 承認）
@@ -296,7 +297,7 @@ enum StayListMock {
                 returnDate: addDays(item.date, days: 2),
                 summary: item.summary,
                 destination: extractDestination(item.summary),
-                leaveMethod: "JR + バス",
+                leaveMethod: "JR",
                 returnMethod: "JR",
                 chain: steps,
                 submittedAt: "\(item.date) 10:24",
@@ -568,9 +569,6 @@ private struct StayRow: View {
                             .foregroundStyle(T.inkMute)
                     }
                     Spacer()
-                    Text("ID: \(item.id)")
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(T.inkMute)
                 }
                 .padding(.top, 4)
                 .overlay(alignment: .top) {
@@ -960,9 +958,6 @@ struct StayDetailView: View {
                         Text("\(item.kind.rawValue)届")
                             .font(.system(size: 16, weight: .heavy))
                             .foregroundStyle(T.ink)
-                        Text(item.id)
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundStyle(T.inkMute)
                     }
                     Spacer()
                     Pill(text: item.status.label, tone: item.status.tone)
@@ -987,6 +982,9 @@ struct StayDetailView: View {
                 }
                 if let m = item.returnMethod {
                     divider; fieldRow(label: "帰寮方法", value: m)
+                }
+                if let t = item.taxiReservationTime {
+                    divider; fieldRow(label: "タクシー予約", value: t)
                 }
                 if let d = item.destination {
                     divider; fieldRow(label: "宿泊先", value: d)
@@ -1199,7 +1197,15 @@ struct StayEditForm: View {
     @State private var amendReason: String = ""
     @State private var didInit: Bool = false
 
-    private let TRANSPORTS = ["JR", "バス", "自家用車", "タクシー", "教員送迎", "飛行機", "その他"]
+    /// 出寮方法（去程）/ 帰寮方法（回程）— 跟新建表单 StayForm 的 LEAVE / RETURN_TRANSPORTS 保持一致（itsuki 2026-06-03：出寮帰寮拆两串 + 删「飛行機」走单独段 +「教員送迎」→「教員」+ 加「寮生特別運行」）
+    private let LEAVE_TRANSPORTS = [
+        "西口1便", "西口2便", "金川1便", "金川2便", "寮生特別運行",
+        "JR", "自家用車", "タクシー", "教員", "その他",
+    ]
+    private let RETURN_TRANSPORTS = [
+        "西口登校便", "金川登校便", "寮生特別運行",
+        "JR", "自家用車", "タクシー", "教員", "その他",
+    ]
 
     private var needsDestination: Bool {
         original.kind == .stay || original.kind == .return
@@ -1382,7 +1388,7 @@ struct StayEditForm: View {
                         Text("出寮方法")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(T.inkSub)
-                        chipRow(options: TRANSPORTS, selected: $leaveMethod)
+                        chipRow(options: LEAVE_TRANSPORTS, selected: $leaveMethod)
                         if let m = original.leaveMethod, m != leaveMethod {
                             originalNote(label: "原値", text: m)
                         }
@@ -1392,7 +1398,7 @@ struct StayEditForm: View {
                         Text("帰寮方法")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(T.inkSub)
-                        chipRow(options: TRANSPORTS, selected: $returnMethod)
+                        chipRow(options: RETURN_TRANSPORTS, selected: $returnMethod)
                         if let m = original.returnMethod, m != returnMethod {
                             originalNote(label: "原値", text: m)
                         }
@@ -1659,14 +1665,14 @@ struct StayEditForm: View {
 }
 
 #Preview("StayDetail · returned（差戻）") {
-    StayDetailView(id: "a2")
-        .environmentObject(RouterStore(initial: .stayDetail(id: "a2")))
+    StayDetailView(id: "a1")
+        .environmentObject(RouterStore(initial: .stayDetail(id: "a1")))
         .environmentObject(AppStore())
 }
 
 #Preview("StayEdit · 修改届") {
-    StayEditForm(id: "a2")
-        .environmentObject(RouterStore(initial: .stayEdit(id: "a2")))
+    StayEditForm(id: "a1")
+        .environmentObject(RouterStore(initial: .stayEdit(id: "a1")))
         .environmentObject(AppStore())
 }
 
@@ -1728,6 +1734,7 @@ extension ApplicationOut {
             destination: firstLocationName,
             leaveMethod: leave_method,
             returnMethod: return_method,
+            taxiReservationTime: taxi_reservation_time,
             chain: steps,
             submittedAt: backendDisplayDateFmt.string(from: submitted_at),
             auditLog: [] // 详情页另发 GET /audit 拉取

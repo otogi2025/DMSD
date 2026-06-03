@@ -69,6 +69,7 @@ def create_application(
         "return_time": body.return_time,
         "contact_phone": body.contact_phone,
         "meal_note": body.meal_note,
+        "taxi_reservation_time": body.taxi_reservation_time,
         "status": "pending",
     }
     if isinstance(body, schemas.KisheiCreateIn):
@@ -631,6 +632,7 @@ def _to_application_out(app: models.Application) -> schemas.ApplicationOut:
         return_time=app.return_time,
         contact_phone=app.contact_phone,
         meal_note=app.meal_note,
+        taxi_reservation_time=app.taxi_reservation_time,
         stay_locations=app.stay_locations,
         meals_skip=app.meals_skip,
         companion=app.companion,

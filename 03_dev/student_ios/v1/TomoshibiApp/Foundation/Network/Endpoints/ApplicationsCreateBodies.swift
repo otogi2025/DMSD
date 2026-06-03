@@ -38,6 +38,7 @@ struct KisheiCreateBody: Encodable {
     let return_date: String
     let return_method: String
     let return_time: String
+    let taxi_reservation_time: String? // 出租车预约时刻 "HH:MM:SS"，nil = 不预约
 }
 
 // MARK: - 外泊届（带滞在先 + 食事跳过）
@@ -57,6 +58,7 @@ struct GaihakuCreateBody: Encodable {
     let return_time: String
     let stay_locations: [StayLocationBody] // 至少 1 件（backend 校验）
     let meals_skip: [MealSkipBody] // 0 件以上
+    let taxi_reservation_time: String? // 出租车预约时刻 "HH:MM:SS"，nil = 不预约
 }
 
 // MARK: - 帰国届（外泊 + 飞机情报）
@@ -80,6 +82,7 @@ struct KikokuCreateBody: Encodable {
     let flight_dep_at: String // ISO 8601 datetime "2026-05-03T18:00:00+09:00"
     let flight_arr_air: String
     let flight_arr_at: String
+    let taxi_reservation_time: String? // 出租车预约时刻 "HH:MM:SS"，nil = 不预约
 }
 
 // MARK: - 修改届（PUT /applications/:id 用、全字段 Optional）
@@ -107,4 +110,6 @@ struct ApplicationUpdateBody: Encodable {
     var flight_dep_at: String? = nil
     var flight_arr_air: String? = nil
     var flight_arr_at: String? = nil
+    // 注：出租车预约暂为 create-only（新建时填），修改届不改 taxi（StayEditForm 无 UI）。
+    // 将来支持改 / 取消需三态语义（未设置=不改 / 字符串=改 / null=取消），见 TODO N-004。
 }

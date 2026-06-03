@@ -67,6 +67,28 @@ class TestCreateApplication:
         )
         assert res.status_code == 422
 
+    def test_create_with_taxi_reservation(self, client, student_token):
+        """带出租车预约时刻提出「帰省届」→ 201 + taxi_reservation_time 回显。"""
+        body = _kisei_body()
+        body["taxi_reservation_time"] = "18:30:00"
+        res = client.post(
+            "/api/v1/applications",
+            json=body,
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 201, res.text
+        assert res.json()["taxi_reservation_time"] == "18:30:00"
+
+    def test_create_without_taxi_defaults_null(self, client, student_token):
+        """不带出租车预约 → taxi_reservation_time 为 null。"""
+        res = client.post(
+            "/api/v1/applications",
+            json=_kisei_body(),
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 201, res.text
+        assert res.json()["taxi_reservation_time"] is None
+
 
 class TestListMine:
     """GET /applications/mine"""

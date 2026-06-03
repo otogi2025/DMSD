@@ -61,6 +61,7 @@ struct ApplicationOut: Decodable, Hashable, Identifiable {
     let return_date: String
     let return_method: String
     let return_time: String
+    let taxi_reservation_time: String? // 出租车预约时刻 "HH:MM:SS"，nil = 不预约（itsuki 2026-06-03）
 
     // 仅外泊 / 帰国
     let stay_locations: [[String: AnyJSON]]?

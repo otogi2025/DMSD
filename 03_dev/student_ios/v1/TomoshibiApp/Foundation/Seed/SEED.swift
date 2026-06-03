@@ -75,31 +75,29 @@ enum SEED {
     ]
 
     static let packages: [PackageItem] = [
-        .init(id: 1, date: "2026-04-22", from: "Amazon", status: "待領", tracking: "JP12345"),
+        .init(id: 1, date: "2026-04-22", from: "宅配便", status: "待領", tracking: "JP12345"),
         .init(id: 2, date: "2026-04-18", from: "佐川", status: "領済", tracking: nil),
         .init(id: 3, date: "2026-04-10", from: "ヤマト", status: "領済", tracking: nil),
         .init(id: 4, date: "2026-04-05", from: "郵便局", status: "領済", tracking: nil),
     ]
 
     // IX-009：演示假通知 fixture —— 圈进 #if DEMO，生产构建物理上没有这段，
-    //   防 5 条假通知（Amazon 荷物 / 「田中先生が承認」/ 遅刻警告 等）泄漏到上线 app。
+    //   防 5 条假通知（荷物到着 / 誕生日会 / 遅刻警告 等）泄漏到上线 app。
     //   生产通知源 = 真公告（AppStore.announcementNotifications）+ 真 push。
     #if DEMO
         static let notifications: [NotificationItem] = [
-            .init(id: 1, type: "宅配", title: "Amazon 荷物到着", time: "今日 14:20", body: "寮管理員室で受取り", unread: true),
-            .init(id: 2, type: "申請", title: "外泊申請が承認されました", time: "昨日 16:30", body: "田中先生が承認しました", unread: true),
+            .init(id: 1, type: "宅配", title: "荷物到着", time: "今日 14:20", body: "寮管室前で受取り", unread: true),
+            .init(id: 2, type: "申請", title: "外泊申請が承認されました", time: "昨日 16:30", body: "承認されました", unread: true),
             .init(id: 3, type: "減点", title: "遅刻警告", time: "昨日 9:00", body: "今月の遅刻が 5 回に到達", unread: false),
-            .init(id: 4, type: "活動", title: "明日 18:00 新入生歓迎会", time: "昨日", body: "食堂集合", unread: true),
+            .init(id: 4, type: "活動", title: "明日 18:00 誕生日会", time: "昨日", body: "カフェテリア集合", unread: true),
             .init(id: 5, type: "リクエスト曲", title: "あなたの投稿曲が採用されました", time: "2 日前", body: "Lemon / 米津玄師", unread: false),
         ]
     #endif
 
     static let applications: [ApplicationItem] = [
         .init(id: "a1", type: "stay", status: "pending", date: "2026-04-20", summary: "東京 · 2 泊 3 日"),
-        .init(id: "a2", type: "other", status: "returned", date: "2026-04-05", summary: "共用エリア掃除"),
         .init(id: "a3", type: "holiday", status: "approved", date: "2026-04-15", summary: "茨城 · 帰省"),
         .init(id: "a4", type: "outing", status: "approved", date: "2026-04-02", summary: "駅前 · タクシー予約"),
-        .init(id: "a5", type: "return", status: "approved", date: "2026-04-08", summary: "晩点呼 早帰"),
     ]
 
     /// 実スクールバス時刻表（2026-04-29 水 GW外泊・帰省等 特別運行便パターン）
@@ -191,7 +189,7 @@ enum SEED {
         .init(date: "2026-04-09", time: "09:00", title: "入学式", place: "本校", desc: "家庭学習日 2①②③"),
         .init(date: "2026-04-10", time: "09:00", title: "春期課題考査", place: "本校", desc: "1〜③ + 新入生オリエンテーション"),
         .init(date: "2026-04-11", time: "08:30", title: "みつ元気プロジェクト", place: "御津公民館", desc: "戦略会議 9:45〜。特別運行便あり。"),
-        .init(date: "2026-04-23", time: "18:00", title: "新入生歓迎会", place: "食堂", desc: "夕食後、軽食と自己紹介タイム"),
+        .init(date: "2026-04-23", time: "18:00", title: "誕生日会", place: "カフェテリア", desc: "夕食後、軽食と自己紹介タイム"),
         .init(date: "2026-04-25", time: "10:00", title: "避難訓練", place: "寮ロビー集合", desc: "全員参加必須"),
         .init(date: "2026-04-26", time: "14:00", title: "茶道部体験", place: "和室", desc: "初心者歓迎"),
         .init(date: "2026-04-29", time: "07:30", title: "GW外泊・帰省・買い物", place: "特別運行便", desc: "7:30 高校棟→岡山駅西口 / 10:10 高校棟→金川駅 / 15:33,17:02 金川駅→寮"),

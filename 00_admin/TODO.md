@@ -13,6 +13,17 @@
 
 ---
 
+## 🎓 AC 升学素材整理 + 升学文件夹结构完善（🔴 高优先 — 2026-06-03 itsuki 拍板加）
+
+> itsuki 要做两件事：① 把已堆的 AC 入试素材整理一遍 ② 把 iCloud 升学文件夹结构理顺。
+> 当前素材分布：ac-radar skill `SKILL.md` §二「四级流水线」是规则；实际文件在 iCloud `.../升学/.../筑波大学 AC入試 準備/06_radar_inbox/` 下（普通区 `ac_scratchpad_*.md` 一堆 + 高权重区 `_priority_itsuki主动提报/` 现有 4 个 md：5-27 注册默认值 / 6-03 点呼机硬件 / 6-03 Codex 增量 / 6-03 iOS 动画黑屏）。
+
+- [ ] **统一两个真目录** — `iCloud/.../升学/` 下有两个真目录（不是别名）：`AC/` 和 `大学入試/`，各有一份 `筑波大学 AC入試 準備/`。AC 收集箱（`06_radar_inbox/`）写在 `大学入試/` 下，会话存档（daily-archive 脚本）写在 `AC/` 下，两套配置不一致、将来容易写串。三选一：(a) 统一到 `AC/` 改 session-wrap 路径 (b) 统一到 `大学入試/` 改脚本 (c) 确认一个是废弃残留直接删。**（吸收下方「🛠️ Skill/Hook 工具后续」段原第 2 子段 + §🏁 收尾里 daily-archive 目录树不统一两条待拍板 backlog）**
+- [ ] **整理收集箱积压** — 普通区从 5-10 到 6-03 攒了十几个 `ac_scratchpad_*.md`，还没往右搬到 `03_素材_候选/`。itsuki 择期挑哪些值得留。
+- [ ] **完善文件夹结构** — 四级流水线（`06_radar_inbox/` → `03_素材_候选/` → `04_素材_成品/` → `05_产出/`）是否够用、要不要再细分类、高权重区 `_priority_itsuki主动提报/` 怎么跟普通区长期共存 —— itsuki 定方向，CC 执行。
+
+---
+
 ## 🌐 teacher_web v1.0 收敛后 follow-up（2026-05-31 加）
 
 > teacher_web + 后端经 codex 5 轮复审收敛 0 blocker/major（后端 193 测试）。详见 `05_logs/teacher_web_v1.0_W8审查findings.md` + raw `2026-05-31_teacher_web_v1.0全实装+codex5轮收敛.md`。剩这些非阻塞 follow-up：
@@ -136,6 +147,24 @@
   - card 位置：`/discipline` 页面顶部 banner 区，跟「今日违规清单」card 并列
   - 锁定升级阶段（IOS_DESIGN_LOG §3.5 §3.6 6 阶段定义）要在 card 上显示
 - **完成定义**：老师打开 `/discipline` 一眼看到「现在有几个学生被锁了 / 分别是谁 / 锁多久了」+ 一键跳到解锁流程
+
+### N-004 — 出租车预约（タクシー予約）4 端实装（2026-06-03 itsuki 提）
+
+> **✅ 2026-06-03 大部分实装 + codex 5.5 xhigh 审查通过**：后端（`applications.taxi_reservation_time` + migration `a7b8c9d0e1f2` + 223 测试绿含 2 taxi）/ iOS（`StayForm` 外泊·帰省·帰国 提交 + 详情显示 + 外出 UI 桩，双 scheme BUILD SUCCEEDED）/ 老师网页（「タクシー」tab 实装 + 详情字段 + badge 防漏看，check_jsx 0 错）三端**前后端对齐完成**。codex 审出 1 阻塞（migration 编号撞既有 events，已换 `a7b8c9d0e1f2` + `alembic heads` 验证单 head）+ 3 建议（帰国教师详情误显行先都市 / 修改届 taxi 名义 / tab sub 共享）**全部已修**。
+> **剩待办**：① Android ⏳（Compose 骨架未接后端，待接后端时一起做，详见 `ANDROID_DESIGN_LOG.md §10`）；② **修改届改/取消 taxi**：现 create-only（新建填、改不了），改/取消需三态语义「未设置=不改 / 字符串=改 / null=取消」+ `StayEditForm` 加 taxi UI（codex 6-03 指出）。下面是原始设计记录。
+
+- **场景**：学生外出 / 外泊要坐出租车去车站等地，希望在手机上直接预约，老师能提前知道并安排车
+- **行为**：
+  - 学生 iOS / Android：在「外出」申请 + 「外泊」出寮届表单里能勾选「预约出租车」，填**想坐车的时间**（只填时间，跟申请本身的日期 / 回寮时刻无关）
+  - 老师 teacher_web：后台能看到所有出租车预约（谁 / 几点 / 去哪）
+  - 防老师漏看：老师**主页**醒目显示待处理的出租车预约（思路同 N-003 锁定学生 card）
+- **设计点**：
+  - 后端要决定怎么存：① applications 表加字段（如 `taxi_reserved: bool` + `taxi_time: time`）还是 ② 单独建一张出租车预约表。**注意现状**：外出（outing）走 `GenericApplyForm`，现在是纯演示桩**根本没接后端**（后端 `schemas.py` 的申请类型 `Literal["帰省","外泊","帰国"]` 只认三种过夜外出，不认当日外出）；外泊（stay）走 `StayForm` 已接后端。所以这功能落地前，外出本身要先接后端
+  - 跨「外出 + 外泊」两种申请类型都要支持
+  - 老师主页加一个出租车预约提醒 card
+  - 通知（可选）：预约成功 / 老师确认后通知学生，跟通知子系统整合
+  - 关联：外出申请的「出行方式（交通手段，UI 上是「電車 / バス / 車 / 徒歩 / その他」）」itsuki 6-03 确认**保留**；出租车预约是独立于出行方式的附加功能
+- **完成定义**：学生在外出 / 外泊申请里能预约出租车并选时间 → 老师后台 + 主页都看得到 → 4 端（iOS / Android / teacher_web / 后端）字段对齐
 
 ---
 
@@ -261,7 +290,14 @@
 - [ ] **D2 Rule 6 design-doc 死路径** — trigger 引用的 `02_design/teacher_requirements.md` 已不存在（ls 确认）。不影响另两个文件匹配，但死引用留着误导。修法: trigger 删 `|teacher_requirements`，SKILL.md Rule 7 同步改。2026-06-03 创建 / 最简单的一个。
 - [ ] **D3 must 必查清单路径无锚定** — 各 must 规则第 3 参数里的 pattern 普遍没 `^...$`，`grep -qE` 理论上会误匹配含同名片段的别的路径。实际 pattern 都挺具体、概率低。修法: 逐条加锚定 + 回归测试（工作量稍大）。2026-06-03 创建 / 低优先。
 
+### iOS 申请详情 2 个预先存在小隐患（2026-06-03 codex 审查发现）
+> 6-03 演示数据 + 出寮届表单改动后派 codex GPT-5.5 xhigh 审查揪出，不是本次改出来的、属可选没修，记这等处理。
+
+- [ ] **ApplyDetailView 未知 id fallback 到 `SEED.applications[0]`**（`ApplyStubs.swift:1995`）— 详情查找找不到 id 时退回第一条假数据，未知 / 旧 id 会被第一条掩盖（显示成别人的申请），且未来 SEED 为空会数组越界。修法: 改成 optional「找不到」分支显示空状态。演示阶段 SEED 有 3 条不崩、低优先。
+- [ ] **StayDetailView 移动方式 label 总是「帰省方法」**（`StayListStubs.swift:980`）— 外泊 / 帰国时也显示「帰省方法」语义不准。修法: 按 kind 显示「帰省方法」/「出寮方法」。纯文案、可选。
+
 ### iCloud AC 素材分散在两个根目录（2026-05-30 加，等 itsuki 拍板）
+> ⬆️ 2026-06-03 升级为高优先 — 已并入顶部「🎓 AC 升学素材整理 + 升学文件夹结构完善」段统一处理。本条保留详细背景。
 - 现象: `02_学习与知识/升学/` 下有两个不同目录（inode 不同，**不是别名是两个真目录**）：`AC/` 和 `大学入試/`，下面各有一份 `筑波大学 AC入試 準備/`
 - 分散情况: AC inbox（`06_radar_inbox/`）写在 `大学入試/` 下；jsonl 原文 + 会话总结（daily-archive 脚本写）写在 `AC/` 下
 - 影响: ① AC 素材分两处，itsuki 后期整理要看两个地方 ② `session-wrap` SKILL.md §5.5.1.B 写 inbox 路径用 `大学入試/`，但 `daily-archive-cp.sh` 脚本用 `AC/` — 两套配置不一致，将来容易写串

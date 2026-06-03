@@ -103,6 +103,8 @@ class ApplicationBase(BaseModel):
     return_time: time
     contact_phone: Optional[str] = Field(None, max_length=64)
     meal_note: Optional[str] = Field(None, max_length=2000)
+    # 出租车预约「タクシー予約」时刻（itsuki 2026-06-03）— null = 不预约
+    taxi_reservation_time: Optional[time] = None
 
     @model_validator(mode="after")
     def _check_dates(self) -> "ApplicationBase":
@@ -202,6 +204,7 @@ class ApplicationOut(BaseModel):
     flight_dep_at: Optional[datetime] = None
     flight_arr_air: Optional[str] = None
     flight_arr_at: Optional[datetime] = None
+    taxi_reservation_time: Optional[time] = None
 
     bus_route_id: Optional[UUID] = None
 
@@ -294,6 +297,7 @@ class ApplicationUpdateIn(BaseModel):
     companion: Optional[str] = Field(None, max_length=500)
     dest_cities: Optional[str] = Field(None, max_length=500)
     meal_note: Optional[str] = Field(None, max_length=2000)
+    # 出租车预约暂为 create-only：修改届不改 taxi（取消需三态语义，见 TODO N-004）
     is_long_vacation: Optional[bool] = None
     stay_locations: Optional[list[StayLocation]] = None
     meals_skip: Optional[list[MealSkipEntry]] = None

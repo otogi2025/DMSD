@@ -24,11 +24,9 @@ private let APPLY_TYPES: [ApplyTypeMeta] = [
     .init(k: "stay", name: "外泊", icon: "house", desc: "寮外での宿泊"),
     .init(k: "holiday", name: "帰省", icon: "house.lodge", desc: "実家帰省・長期休暇"),
     .init(k: "returncountry", name: "帰国", icon: "airplane", desc: "一時帰国（航空機利用）"),
-    .init(k: "return", name: "早帰", icon: "calendar.badge.clock", desc: "門限前の早帰・遅帰"),
     .init(k: "repair", name: "修繕", icon: "wrench.and.screwdriver", desc: "部屋・設備の修繕依頼"),
     .init(k: "parcel", name: "代理受取", icon: "shippingbox", desc: "不在時の荷物代理受取"),
     .init(k: "guest", name: "来訪者", icon: "person.2", desc: "家族・友人の来訪"),
-    .init(k: "other", name: "その他", icon: "ellipsis.bubble", desc: "上記以外のご依頼"),
     .init(k: "studyAbsence", name: "学習欠席", icon: "book.closed", desc: "晚自习の欠席届（前半・後半・両方）"),
     .init(k: "studyOnline", name: "オンライン学習", icon: "laptopcomputer", desc: "自室でのオンライン学習"),
     .init(k: "event", name: "行事企画", icon: "sparkles", desc: "寮内イベントの企画申請"),
@@ -260,9 +258,6 @@ private struct ApplicationRow: View {
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundStyle(T.inkMute)
                     Spacer()
-                    Text("ID: \(item.id)")
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(T.inkMute)
                 }
                 .padding(.top, 8)
                 .overlay(alignment: .top) {
@@ -463,10 +458,19 @@ struct StayForm: View {
     /// ── 共通: 理由 ────────────────────────────────────────────────────────
     @State private var reason: String = ""
 
-    /// 移動方法選択肢 — 帰省方法 / 帰寮方法
-    private let TRANSPORTS = [
-        "JR", "バス", "西口1便", "西口2便", "金川1便", "金川2便",
-        "西口登校便", "金川登校便", "自家用車", "タクシー", "教員送迎", "飛行機", "その他",
+    /// ── 出租车预约「タクシー予約」（itsuki 2026-06-03）— 开关 + 想坐车的时刻 ──
+    @State private var taxiReserved: Bool = false
+    @State private var taxiTime: Date = StayForm.parseHM("18:00") ?? Date()
+
+    /// 出寮方法（去程·离开宿舍去车站 / 机场）。不含飞机 —— 帰国坐飞机的信息在「飛行機」段单独填（航班时刻 ≠ 出寮时刻）
+    private let LEAVE_TRANSPORTS = [
+        "西口1便", "西口2便", "金川1便", "金川2便", "寮生特別運行",
+        "JR", "自家用車", "タクシー", "教員", "その他",
+    ]
+    /// 帰寮方法（回程·回宿舍 / 登校）。不含飞机 —— 同上，飞机走「飛行機」段
+    private let RETURN_TRANSPORTS = [
+        "西口登校便", "金川登校便", "寮生特別運行",
+        "JR", "自家用車", "タクシー", "教員", "その他",
     ]
     private let HOLIDAY_FORM_TYPES = ["通常時用", "長期休暇用"]
     private let MEALS = ["朝食", "昼食", "夕食"]
@@ -578,7 +582,7 @@ struct StayForm: View {
                     .padding(.bottom, 18)
 
                     // ── §3 出寮 ────────────────────────────────────────────
-                    SectionLabel(n: "3", label: "出寮（寮を出る）")
+                    SectionLabel(n: "3", label: "出寮")
                     Card(padding: 14) {
                         VStack(alignment: .leading, spacing: 12) {
                             // 出寮日 — DatePicker minDate = tomorrow (#3)
@@ -599,14 +603,14 @@ struct StayForm: View {
                                 Text(isHoliday ? "帰省方法" : "出寮方法")
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(T.inkSub)
-                                ChipGroup(options: TRANSPORTS, value: $leaveMethod)
+                                ChipGroup(options: LEAVE_TRANSPORTS, value: $leaveMethod)
                             }
                         }
                     }
                     .padding(.bottom, 18)
 
                     // ── §4 帰寮 ────────────────────────────────────────────
-                    SectionLabel(n: "4", label: "帰寮（寮に戻る）")
+                    SectionLabel(n: "4", label: "帰寮")
                     Card(padding: 14) {
                         VStack(alignment: .leading, spacing: 12) {
                             VStack(alignment: .leading, spacing: 6) {
@@ -622,7 +626,29 @@ struct StayForm: View {
                                 Text("帰寮方法")
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(T.inkSub)
-                                ChipGroup(options: TRANSPORTS, value: $returnMethod)
+                                ChipGroup(options: RETURN_TRANSPORTS, value: $returnMethod)
+                            }
+                        }
+                    }
+                    .padding(.bottom, 18)
+
+                    // ── 出租车预约「タクシー予約」section · 全出寮届共通 · itsuki 2026-06-03 ────
+                    SectionLabel(n: "T", label: "タクシー予約")
+                    Card(padding: 14) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Toggle(isOn: $taxiReserved) {
+                                Text("タクシーを予約する")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(T.ink)
+                            }
+                            .tint(T.primary)
+                            if taxiReserved {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("希望時刻")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(T.inkSub)
+                                    TimeField(date: $taxiTime)
+                                }
                             }
                         }
                     }
@@ -636,18 +662,21 @@ struct StayForm: View {
                                 Field(label: "同行者") {
                                     TField(text: $companion, placeholder: "同行者がいる場合は入力")
                                 }
-                                Field(label: "行先（都市名）") {
-                                    TField(text: $destCities, placeholder: "例：東京 / 大阪 / ソウル")
+                                // 帰国 时隐藏「行先（都市名）」—— 只填下面的「宿泊先」住所（itsuki 2026-06-03）
+                                if !isReturnCountry {
+                                    Field(label: "行先（都市名）") {
+                                        TField(text: $destCities, placeholder: "例：東京 / 大阪 / ソウル")
+                                    }
                                 }
                                 VStack(alignment: .leading, spacing: 10) {
-                                    Text("滞在先")
+                                    Text("宿泊先")
                                         .font(.system(size: 12, weight: .semibold))
                                         .foregroundStyle(T.inkSub)
                                     // IX-032: 用 $stayPlaces 按稳定 id 列举每一行。
                                     // 删中间一行时输入框内容 / 焦点不会串到别行。
                                     ForEach($stayPlaces) { $place in
                                         HStack(spacing: 8) {
-                                            TField(text: $place.address, placeholder: "滞在先住所")
+                                            TField(text: $place.address, placeholder: "宿泊先住所")
                                             if stayPlaces.count > 1 {
                                                 Button {
                                                     // 按 id 删除（不用数组下标，用身份删）
@@ -914,6 +943,8 @@ struct StayForm: View {
         let mealNoteValue = meIsOverseas ? StayForm.nilIfBlank(mealNote) : nil
         let companionValue = StayForm.nilIfBlank(companion)
         let destCitiesValue = StayForm.nilIfBlank(destCities)
+        // 出租车预约：开关开 → "HH:MM:SS"；关 → nil（不预约）
+        let taxiTimeValue: String? = taxiReserved ? StayForm.formatHM(taxiTime) + ":00" : nil
 
         // F2: stay_locations object 数组（外泊 / 帰国届用、帰省届不带）
         // IX-010: UI 输入框标的是「滞在先住所」（地址），所以写进 address 字段。
@@ -957,7 +988,8 @@ struct StayForm: View {
                     leave_time: leaveTimeStr,
                     return_date: returnDateStr,
                     return_method: returnMethod,
-                    return_time: returnTimeStr
+                    return_time: returnTimeStr,
+                    taxi_reservation_time: taxiTimeValue
                 )
                 _ = try await ApplicationsAPI.create(body)
             case "外泊":
@@ -974,7 +1006,8 @@ struct StayForm: View {
                     return_method: returnMethod,
                     return_time: returnTimeStr,
                     stay_locations: stayLocations,
-                    meals_skip: mealsSkip
+                    meals_skip: mealsSkip,
+                    taxi_reservation_time: taxiTimeValue
                 )
                 _ = try await ApplicationsAPI.create(body)
             case "帰国":
@@ -998,7 +1031,8 @@ struct StayForm: View {
                     // 用带 +09:00 的 ISO 字符串发出去（bare ISO8601 会变成 UTC 的 Z，跟 backend 期望不符）。
                     flight_dep_at: StayForm.formatISOWithTokyo(date: leaveDate, time: departFlightTime),
                     flight_arr_air: arriveAirport,
-                    flight_arr_at: StayForm.formatISOWithTokyo(date: returnDate, time: arriveFlightTime)
+                    flight_arr_at: StayForm.formatISOWithTokyo(date: returnDate, time: arriveFlightTime),
+                    taxi_reservation_time: taxiTimeValue
                 )
                 _ = try await ApplicationsAPI.create(body)
             default:
@@ -1505,7 +1539,11 @@ struct GenericApplyForm: View {
     @State private var date: Date = StayForm.parseYMD("2026-04-25") ?? Date()
     @State private var endDate: Date = StayForm.parseYMD("2026-04-26") ?? Date()
     @State private var time: Date = StayForm.parseHM("18:00") ?? Date()
-    @State private var contact: String = "090-1234-5678"
+    @State private var contact: String = ""
+    @State private var didPrefillContact: Bool = false
+    // 出租车预约「タクシー予約」（itsuki 2026-06-03）— 外出也能预约；外出表单是纯演示桩未接后端，仅 UI 展示
+    @State private var taxiReserved: Bool = false
+    @State private var taxiTime: Date = StayForm.parseHM("18:00") ?? Date()
     @State private var emergency: String = ""
     @State private var transport: String = "電車"
     @State private var repairPlace: String = "自室"
@@ -1547,8 +1585,14 @@ struct GenericApplyForm: View {
         kind == "return"
     }
 
+    private var isOuting: Bool {
+        kind == "outing"
+    }
+
     private var canSubmit: Bool {
-        !reason.isEmpty && (isRepair || isParcel || true)
+        guard !reason.isEmpty else { return false }
+        if needsDest && dest.trimmingCharacters(in: .whitespaces).isEmpty { return false } // 外出: 去的地方「行き先」必填（trim 防只填空格）
+        return true
     }
 
     var body: some View {
@@ -1600,7 +1644,7 @@ struct GenericApplyForm: View {
                         }.padding(.bottom, 14)
                     }
 
-                    if !isRepair && !isParcel {
+                    if !isRepair && !isParcel && !isOuting {
                         Field(label: isReturn ? "日付" : (needsEnd ? "開始日" : "日付"), required: true) {
                             DateField(date: $date)
                         }
@@ -1612,7 +1656,7 @@ struct GenericApplyForm: View {
                         }
                         .padding(.bottom, 14)
                     }
-                    if !needsEnd && !isRepair && !isParcel {
+                    if !needsEnd && !isRepair && !isParcel && !isOuting {
                         Field(label: "帰寮予定時刻", required: true) {
                             TimeField(date: $time)
                         }
@@ -1622,6 +1666,22 @@ struct GenericApplyForm: View {
                     if needsTransport {
                         Field(label: "交通手段") {
                             ChipGroup(options: ["電車", "バス", "車", "徒歩", "その他"], value: $transport)
+                        }.padding(.bottom, 14)
+                    }
+
+                    if isOuting {
+                        Field(label: "タクシー予約") {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Toggle(isOn: $taxiReserved) {
+                                    Text("タクシーを予約する")
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(T.ink)
+                                }
+                                .tint(T.primary)
+                                if taxiReserved {
+                                    TimeField(date: $taxiTime)
+                                }
+                            }
                         }.padding(.bottom, 14)
                     }
 
@@ -1742,6 +1802,21 @@ struct GenericApplyForm: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl)
+        .onAppear { prefillContact() }
+        .onChange(of: app.currentUser?.account) { _, _ in prefillContact() } // 自动登录冷启动：真实用户晚到时补填一次
+    }
+
+    /// 预填本人联系电话：照搬 StayForm.prefillContact —— 生产只在拿到真实 currentUser 后填（冷启动假人 SEED.user 不写入），演示构建直接用 SEED 占位。didPrefillContact 守卫防重复覆盖，学生可手动改。
+    private func prefillContact() {
+        guard !didPrefillContact else { return }
+        #if DEMO
+            contact = app.displayUser.phone
+            didPrefillContact = true
+        #else
+            guard app.currentUser != nil else { return }
+            contact = app.displayUser.phone
+            didPrefillContact = true
+        #endif
     }
 }
 
@@ -1777,11 +1852,11 @@ struct ApplyPreviewView: View {
             ("申請者", "12号 · Nishimura Aoi"),
         ]
         switch kind {
-        case "outing": base += [("行き先", "新宿"), ("日付", "2026-04-25"), ("帰寮予定", "18:00")]
+        case "outing": base += [("行き先", "新宿")]
         case "stay": base += [("行き先", "実家"), ("期間", "2026-04-25 〜 04-26"), ("保証人", "同意済")]
         case "holiday": base += [("行き先", "実家 福岡"), ("期間", "2026-04-28 〜 05-05"), ("保証人", "同意済")]
         case "repair": base += [("場所", "自室"), ("依頼日", "2026-04-22")]
-        case "parcel": base += [("荷物", "Amazon 小包 1 件"), ("配達予定", "2026-04-23")]
+        case "parcel": base += [("荷物", "小包 1 件"), ("配達予定", "2026-04-23")]
         case "guest": base += [("来訪者", "山田 花子"), ("来訪日", "2026-04-25")]
         case "return": base += [("日付", "2026-04-25"), ("帰寮時刻", "17:30")]
         default: break
@@ -2040,9 +2115,6 @@ struct ApplyDetailView: View {
                                     Text("\(t.name)申請")
                                         .font(.system(size: 16, weight: .heavy))
                                         .foregroundStyle(T.ink)
-                                    Text(a.id)
-                                        .font(.system(size: 11, design: .monospaced))
-                                        .foregroundStyle(T.inkMute)
                                 }
                                 Spacer()
                                 Pill(text: sp.label, tone: sp.tone)

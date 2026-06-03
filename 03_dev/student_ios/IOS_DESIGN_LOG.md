@@ -1166,6 +1166,40 @@ IX-008 Batch 2 收尾的低危残留（handoff §4.2/§7.1）一并清掉：
 
 > **⚠️ 同类未处理项（待 itsuki 决策）**：`system_features.md §891` 同样写「匿名建議 投稿 🚫 砍」，但 iOS `SuggestView`（§16）+ `SuggestItem` + `SEED.suggestions` 还在 —— 跟寮ウォール一模一样的「文档砍了代码没删」。本次 itsuki 只点名删宿舍墙，匿名建議待他拍板是否一并删。
 
+### 14.15 演示数据修正 + 出寮届表单对齐实物表 + 页面切换黑屏修复（2026-06-03，itsuki 逐屏审）
+
+itsuki 实机逐屏看演示版，揪出一批演示假数据矛盾 + 表单跟真实纸质表不符 + 页面切换闪黑，逐条修：
+
+**演示假数据（`SEED.swift` / 各 Stubs）**：
+- 删 2 条矛盾申请假数据：`a5`「早帰」（点进去因 `return` 类型误走 `StayDetailView` 显示成帰国届、宿泊先栏塞「晩点呼」）+ `a2`「その他·共用エリア掃除」（宿舍现实无此申请）
+- 删 4 处界面 ID 显示（申请列表卡片 `ApplyStubs` + StayList 卡片 + `StayDetailView` headerCard + `otherDetailBody`）—— 内部 `id` 字段保留（路由 / 详情查找用），仅去掉给用户看的「ID: a1」假编号
+- 通知 / 主页 / 行事予定 / 包裹确认页去 Amazon 品牌 +「新入生歓迎会 / 食堂」→「誕生日会 / カフェテリア」+ 外泊承认去「田中先生」具名
+
+**出寮届表单对齐实物表（`StayForm`，对照 様式3-1 帰国許可願 + 様式3-2 外泊許可願）**：
+- §3「出寮（寮を出る）」/ §4「帰寮（寮に戻る）」删多余括号 →「出寮」「帰寮」
+- 「滞在先」→「宿泊先」（実物外泊許可願用「宿泊先」；与 `system_features.md §7.2.1` 一致，原 iOS 漂移）
+- 交通方法从单一共用列表拆成 **出寮 / 帰寮两串不同选项**（実物去程 / 回程班次不同）：出寮 =「西口1/2便·金川1/2便」、帰寮 =「西口 / 金川登校便」，共通「寮生特別運行 / JR / 自家用車 / タクシー / 教員 / その他」。删原漂移的「バス + 出寮混入登校便」
+- 「教員送迎」→「教員」（実物無「送迎」）
+- 「飛行機」从交通 chip 移除 → 帰国坐飞机走 §7 飛行機专属段单独填（航班时刻 ≠ 出寮时刻）；加「寮生特別運行」
+
+**页面切换黑屏（`RootView.swift`）**：去掉 content 的 `.transition(.opacity)` + `.animation(value: router.current)`。opacity 转场中间帧双页半透明露出底层 `systemBackground`（深色 = 黑）→ 视觉「闪黑」。改瞬时硬切；底部导航胶囊 morph 动画独立、不受影响。
+
+**外出申请（`GenericApplyForm`，纯演示桩未接后端）**：删日期 / 帰寮時刻（按提交时刻算）+ 联系方式预填 `displayUser.phone` 可改 + 行き先设真必填；交通手段（出行方式）保留。
+
+联动：`system_features.md §7.2.1` 移动方式段已同步（出寮帰寮选项不同 + 教員 + 飞机单独填）。后端 `leave_method` / `return_method` 为自由文本（`Text` / `str`），本次**无需改**。验证：演示 scheme `BUILD SUCCEEDED`（codex 审查待跑）。
+
+> **✅ itsuki 2026-06-03 拍板**：① 早帰（`return`）/ その他（`other`）申请类型**删掉**（`APPLY_TYPES` 移除两 entry，新建网格不再显示）；② 外泊**不填飞机**（维持现状，飞机段仅帰国）；③ 帰国**隐藏「行先（都市名）」**（`StayForm §5` 行先字段加 `if !isReturnCountry`，帰国只填「宿泊先」住所）。三项已实装，双 scheme `BUILD SUCCEEDED`。
+
+### 14.16 出租车预约「タクシー予約」功能 — 4 端（2026-06-03，itsuki 拍板）
+
+学生外出 / 外泊要坐出租车去车站，希望手机直接预约、老师提前知道并安排车。后端字段 `applications.taxi_reservation_time`（`Time` / nullable，null = 不预约 / 有值 = 想坐车时刻）三种出寮届 + 外出共通。iOS 侧：
+
+- `ApplicationsCreateBodies.swift` 4 个 body（Kishei / Gaihaku / Kikoku / Update）加 `taxi_reservation_time`
+- `StayForm`：加 `taxiReserved` 开关 + `taxiTime` 时刻 state + §4 帰寮后「タクシー予約」section（`Toggle` + `TimeField`，全出寮届共通）+ 提交时三 body 带 `taxi_reservation_time`（开关关 = nil）
+- `NetworkModels.ApplicationOut` + `StayApplication` + `toStayApplication()` 加字段 → `StayDetailView.fieldsCard` 详情显示「タクシー予約」行
+- 外出（`GenericApplyForm`，纯桩未接后端）加 `if isOuting` 出租车 UI 占位
+- 验证：演示 + 正式双 scheme `BUILD SUCCEEDED`；后端 221 测试绿、老师网页「タクシー」tab 实装（check_jsx 0 错）。Android 待接后端时做（详见 `ANDROID_DESIGN_LOG.md §10` + TODO N-004）
+
 ---
 
-**END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）; 5-31 修改届接后端（§14.7）+ 当前用户接 /me（§14.8）; 6-02 IX-008 二审修复 + IX-008b 扣分统计（§14.9）+ IX-034 请假计数按月（§14.10）+ IX-009 通知（§14.11）+ IX-007 详情页（§14.12）+ 6-03 低风险残留清理（表单预填迁 displayUser + 在线自习日期 JST）（§14.13）+ 删除寮ウォール（学生掲示板，落实 4-29 拍板）（§14.14）。
+**END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）; 5-31 修改届接后端（§14.7）+ 当前用户接 /me（§14.8）; 6-02 IX-008 二审修复 + IX-008b 扣分统计（§14.9）+ IX-034 请假计数按月（§14.10）+ IX-009 通知（§14.11）+ IX-007 详情页（§14.12）+ 6-03 低风险残留清理（表单预填迁 displayUser + 在线自习日期 JST）（§14.13）+ 删除寮ウォール（学生掲示板，落实 4-29 拍板）（§14.14）+ 演示数据修正 + 出寮届表单对齐实物表 + 页面切换黑屏修复（§14.15）+ 早帰/その他类型删除 + 帰国隐藏行先都市名 + 出租车预约 4 端（§14.16）。

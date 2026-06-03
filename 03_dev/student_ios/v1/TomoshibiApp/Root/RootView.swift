@@ -15,7 +15,6 @@ struct RootView: View {
 
             // 当前 route 对应 View · safeAreaInset 让 ScrollView 自动避让 TopRollBar / BottomNav
             content(for: router.current)
-                .transition(.opacity)
                 .safeAreaInset(edge: .top, spacing: 0) {
                     // TopRollBar 只在 active/ done显示，idle 不显示
                     if !router.current.hidesTopBar && app.rollState != .idle {
@@ -41,7 +40,6 @@ struct RootView: View {
             // 全局 overlays: sheet / breadcrumb / toast
             GlobalOverlays()
         }
-        .animation(.easeInOut(duration: 0.2), value: router.current)
     }
 
     @ViewBuilder

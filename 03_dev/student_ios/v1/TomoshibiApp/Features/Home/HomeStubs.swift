@@ -962,7 +962,7 @@ struct LifeTab: View {
                     Text("宅配便 · \(pendingPkg) 件未受取")
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(T.ink)
-                    Text("Amazon · 本日到着")
+                    Text("本日到着")
                         .font(.system(size: 12))
                         .foregroundStyle(T.inkSub)
                 }

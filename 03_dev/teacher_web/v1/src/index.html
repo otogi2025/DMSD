@@ -9984,6 +9984,10 @@
       // Tomoshibi (灯火) Round 3 theme — extends Ryo tokens from Round 2.
       // Adds: late state, timing constants, 12M/12F roster, shared app constants.
 
+      // 寮ラベル変換: dorm 字段（"men"/"women"，由 backend assigned_dorm 4→women/其他→men 派生）
+      // → 日语显示名。原定义在 7de2503「删假数据」commit 误删，10 处调用全留着 → 白屏。补回。
+      window.dormLabel = (d) => (d === "men" ? "男性寮" : "女性寮");
+
       window.RYO = {
         paper: "#f4f5f7",
         surface: "#ffffff",
@@ -10039,7 +10043,7 @@
       // 开发 standalone 单跑（python http.server 8787，backend 在 8000）时手动改成
       // "http://localhost:8000/api/v1" 并确认 backend CORS 已加 8787 来源（config.py:56）。
       window.API_BASE = "/api/v1";
-      window.APP_VERSION = "v1.0.0-alpha";
+      window.APP_VERSION = "v0.12.0";
 
       // ⭐ Teachers (initial)
 
@@ -12302,7 +12306,6 @@
       }
 
       window.RollCallLanding = RollCallLanding;
-      window.NfcQuickUrlCard = NfcQuickUrlCard;
     </script>
     <script type="text/babel" data-source="components/live-roll-call.jsx">
       // Live roll-call with late state + forecast bar + demo console + 12-student grid.
@@ -15553,11 +15556,18 @@
         const homePending = homeApps.filter(
           (a) => a.state === "pending",
         ).length;
+        // タクシー予約のある申請（kind 横断・_backend.taxi_reservation_time 非空）— itsuki 2026-06-03 防漏看
+        const taxiApps = [...outstayApps, ...returnApps, ...homeApps].filter(
+          (a) => a._backend && a._backend.taxi_reservation_time,
+        );
+        const taxiPending = taxiApps.filter(
+          (a) => a.state === "pending",
+        ).length;
         const tabs = [
           { k: "outstay", label: "外泊", badge: outstayPending },
           { k: "return", label: "帰国", badge: returnPending },
           { k: "home", label: "帰省", badge: homePending },
-          { k: "taxi", label: "タクシー", badge: 0 },
+          { k: "taxi", label: "タクシー", badge: taxiPending },
         ];
 
         return (
@@ -15594,7 +15604,10 @@
               {tabs.map((t) => (
                 <button
                   key={t.k}
-                  onClick={() => setTab(t.k)}
+                  onClick={() => {
+                    setTab(t.k);
+                    setSub("pending");
+                  }}
                   style={{
                     padding: "10px 18px",
                     background: "transparent",
@@ -15661,7 +15674,14 @@
                 apps={homeApps}
               />
             )}
-            {tab === "taxi" && <SkeletonTabBody tab="タクシー" />}
+            {tab === "taxi" && (
+              <OutstayList
+                sub={sub}
+                setSub={setSub}
+                onOpen={onOpen}
+                apps={taxiApps}
+              />
+            )}
           </div>
         );
       }
@@ -16269,6 +16289,11 @@
                     {detail ? String(detail.return_time) : "—"}
                   </F>
                   <F label="帰舎方法">{detail ? detail.return_method : "—"}</F>
+                  <F label="タクシー予約">
+                    {detail && detail.taxi_reservation_time
+                      ? String(detail.taxi_reservation_time)
+                      : "予約なし"}
+                  </F>
                 </Section>
 
                 {/* 帰国便情報（kind=帰国 のみ） */}
@@ -16330,9 +16355,11 @@
 
                 {/* 行先都市 / 理由 */}
                 <Section title="行先・理由">
-                  <F label="行先都市">
-                    {(detail && detail.dest_cities) || app.city || "—"}
-                  </F>
+                  {!(detail && detail.kind === "帰国") && (
+                    <F label="行先都市">
+                      {(detail && detail.dest_cities) || "—"}
+                    </F>
+                  )}
                   <F label="長期休暇区分">
                     {detail && detail.is_long_vacation
                       ? "長期休暇"

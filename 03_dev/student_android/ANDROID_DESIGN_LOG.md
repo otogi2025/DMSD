@@ -256,6 +256,14 @@ P6 接 backend 时换成 Ktor Client + Repository pattern。
 
 **TODO**: 写 `bin/sync-android-refs.sh`（P0 后期或 P1 初期建立）。
 
+## 10. 出租车预约「タクシー予約」— 待 Android 接后端时实装（2026-06-03）
+
+itsuki 2026-06-03 拍板出租车预约功能（4 端）。iOS / 老师网页 / 后端已实装（后端 `applications.taxi_reservation_time`）。
+
+**Android 本次未做**，理由：Android 现在是 Compose 骨架、申请表单（`ApplyNewScreen.kt`）未接后端、本地无法 gradle 编译验证 → 加 `Switch` UI 占位有 import 风险又测不了，价值低于风险。
+
+**待办**：Android 接后端时，`ApplyNewScreen.kt` 出寮届表单加「タクシー予約」开关 + 时刻选择（出寮 / 帰寮 / 行先 字段附近），提交带 `taxi_reservation_time`、详情页显示，跟 iOS `StayForm` 对齐。详见 `00_admin/TODO.md` N-004。
+
 ---
 
 **END** — 本档随实装进展持续更新。

@@ -50,6 +50,15 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+### 2026-06-03 演示版逐屏打磨 + 出租车预约 4 端功能 by [Opus 4.8 1M]
+
+- 起因：itsuki 实机逐屏看 iOS 演示版揪问题（假数据自相矛盾 / 表单不符真实纸质表 / 页面切换黑屏），逐条改；后授权全自主做完出租车功能 + codex 审 + 收尾，期间不打断。
+- 演示打磨：通知 / 主页去 Amazon + 活动改誕生日会 / カフェテリア + 删早帰 / その他申请类型 + 删 4 处界面假 ID + 删 2 条矛盾假数据（早帰点进去显示成帰国届）+ 页面切换黑屏修复（`RootView` 去 opacity transition）。
+- 出寮届表单对齐两张真实纸质表（様式3-1 帰国 / 様式3-2 外泊）：交通方法拆出寮 / 帰寮两串不同选项 + 删飞机（走帰国飞机段单独填）+「教員送迎」→「教員」+ 加寮生特別運行 + 滞在先→宿泊先 + 帰国隐藏「行先（都市名）」。
+- **出租车预约 4 端新功能**：后端 `applications.taxi_reservation_time`（Time/nullable）+ migration `a7b8c9d0e1f2` + iOS `StayForm` 提交+详情+外出 UI 桩 + 老师网页预留的「タクシー」tab 实装（badge 防漏看）。Android 记 TODO（骨架未接后端、无法 gradle 验证）。前后端对齐。
+- codex 5.5 xhigh 审查：1 阻塞（migration 编号撞既有 events，换 `a7b8c9d0e1f2` + `alembic heads` 验证）+ 3 建议（帰国教师详情误显行先都市 / 修改届 taxi 名义改 create-only / tab sub 共享）全修。验证：后端 223 测试 / iOS 双 scheme BUILD SUCCEEDED / check_jsx 0 错。
+- AC：模式 2（codex 审出真 bug→CC 独立核实→修 + CC 自己编译 exit code 陷阱自纠）+ 5（真实凭证驱动表单设计）+ 6（判断后端不用改 / Android 取舍）。raw `2026-06-03_演示打磨+出租车功能.md`。
+
 ### 2026-06-03 文件联动系统盲点补全 + codex 审查 by [Opus 4.8 1M]
 
 - 起因：补一条点呼机架构链联动规则（6-02 漂移事故的漏）后，itsuki 让「优化所有文件互联 + 找别的有问题的文件」→ CC 否决「1256 文件全连 = 噪音淹没信号 / 告警疲劳」，改精准补真实盲点。

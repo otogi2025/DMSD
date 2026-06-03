@@ -241,6 +241,9 @@ class Application(Base):
     contact_phone: Mapped[Optional[str]] = mapped_column(Text)
     meal_note: Mapped[Optional[str]] = mapped_column(Text)
 
+    # 出租车预约「タクシー予約」时刻（itsuki 2026-06-03）— 学生希望坐出租车出寮 / 帰寮时填想坐车的时刻；null = 不预约
+    taxi_reservation_time: Mapped[Optional[time]] = mapped_column(Time, nullable=True)
+
     # 外泊 / 帰国 only
     stay_locations: Mapped[Optional[list]] = mapped_column(JSON)
     meals_skip: Mapped[Optional[list]] = mapped_column(JSON)  # [{date, meal}] 形式
