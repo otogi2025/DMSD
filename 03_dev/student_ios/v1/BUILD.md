@@ -82,7 +82,7 @@ strings build-prod/Build/Products/Debug-iphonesimulator/TomoshibiApp.app/Tomoshi
 | `Features/Home/HomeStubs.swift` | `DemoCardCycleGesture` modifier（amber Card 长按循环 5 态状态） |
 | `Features/MyPage/MyPageStubs.swift` | `pushDemoSection` + `pushDemoRow`（MySettings 底部「⚠️ Push 通知 デモ」section） |
 | `Features/Auth/AuthStubs.swift` | LoginView default `acc / email / pw` 预填 / RegisterStep4 default `pw / pw2` 预填 / `tryLogin()` 严格判定（demo magic `00 / demo1234`） |
-| `Foundation/Theme/TTokens.swift` | `AppVersionTag.full`（demo = `v1.0.0-demo` / production = `v1.0.0-rc`） |
+| `Foundation/Theme/TTokens.swift` | `AppVersionTag.full`（demo = `v0.12.0-demo` / production = `v0.12.0`） |
 
 ## 待接 backend 的 stub 标记
 
