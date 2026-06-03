@@ -1,6 +1,6 @@
 ---
 name: file-linkage
-description: DMSD 文件联动矩阵 — 改 A 必查 B 的完整规则表（17 条联动规则 + 反向索引 + 检查命令）。⭐ 触发：CC 改文件后想确认联动 / itsuki 说「联动检查 / 我改了 X 要查什么 / 改 A 要不要改 B」/ 改了任何 backend models / spec / system_features / Route 等"高联动文件"。短小专一（~200 行）— 比 project-overview skill 短，给频繁触发设计。
+description: DMSD 文件联动矩阵 — 改 A 必查 B 的完整规则表（23 条联动规则 + 反向索引 + 检查命令）。⭐ 触发：CC 改文件后想确认联动 / itsuki 说「联动检查 / 我改了 X 要查什么 / 改 A 要不要改 B」/ 改了任何 backend models / spec / system_features / Route 等"高联动文件"。短小专一（~200 行）— 比 project-overview skill 短，给频繁触发设计。
 when_to_use: ⭐ 触发 — 「联动 / 联动检查 / 我改了 X 要查什么 / 改 A 要改 B 吗 / sync-check」/ CC 自己刚改了 backend models / spec 主体 / system_features / Route.swift / iOS Foundation 组件 / hooks 时主动确认。配套 PostToolUse hook 自动跑 sync-rules.sh — hook 是确定性快查，本 skill 是 LLM 可读详细版。
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
@@ -28,7 +28,9 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ---
 
-## §1 联动矩阵（18 条规则）
+## §1 联动矩阵（23 条规则）
+
+> **编号说明**（消除困惑）：规则按历史顺序编号、有跳号 —— 没有 Rule 6（早期删过留的空号）,Rule 10-13 是一个条目涵盖 4 条 ios-foundation 组件规则。所以下面编号最高到 **Rule 24**,但实际 `add_rule` 共 **23 条**（以 `sync-rules.sh` 实际条数为准,别被最大编号误导）。
 
 ### Rule 1: backend-models（must）
 
@@ -39,8 +41,11 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 - `03_dev/backend/v1/alembic/versions/*.py` — 数据库 migration
 - `03_dev/backend/v1/app/routers/*.py` — API 路由实现
 - `03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/NetworkModels.swift` — iOS 字段对齐
+- `03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/data/model/Models.kt` — Android 字段对齐（2026-06-03 补 — 原来只提醒 iOS，漏了 Android 同性质文件）
 
-**为什么**：ORM model 是数据真值。schema 定义 API 输入输出形状，migration 让数据库跟上 model，routers 用 schema 暴露 API，iOS 客户端要 decode 同样字段 — 任一漂移就崩。
+**为什么**：ORM model 是数据真值。schema 定义 API 输入输出形状，migration 让数据库跟上 model，routers 用 schema 暴露 API，iOS / Android 两个客户端都要 decode 同样字段 — 任一漂移就崩。Android 现在还是假数据没接后端，但趁早挂联动，免得接后端时才发现字段早已各漂各的。
+
+> ⚠️ **must 是「或」语义**（§0：必查清单里至少改 1 个就放行）。所以改了 `models.py` 只改 Android、不改 iOS / schema / migration 也会通过 — 规则只是「提醒核对下游」,不保证每个都改到。iOS + Android 字段要各自核对,别只动一端就当过关（codex 2026-06-03 审查提醒）。
 
 ---
 
@@ -177,11 +182,16 @@ grep -rn "ComponentName" 03_dev/student_ios/v1/TomoshibiApp/Features/
 
 ---
 
-### Rule 17: web-business-design（action — 反向规则,2026-05-08 加）
+### Rule 17: web-business-design（action — 反向规则,2026-05-08 加 / 2026-06-03 两次修 trigger）
 
-**触发**：`03_dev/teacher_web/**/*.{ts,tsx,jsx,vue}`
+**触发**（精确平铺这三类活代码）：
+- `03_dev/teacher_web/v1/src/index.html`
+- `03_dev/teacher_web/v1/src/index.css`
+- `03_dev/teacher_web/v1/src/api/*.js`
 
 **必做动作**：判断是否同步 `WEB_DESIGN_LOG.md` + `system_features.md`。
+
+**为什么这样写 trigger**：老师网页早从 Vite + TypeScript 方案废弃,回到单文件 `index.html` + `index.css` + `api/client.js`（不编译 TS）。① 第一次修（解决旧 trigger 只认 `.ts` 认不出活代码 `.js`/`.html`、反而盯着废弃的 `client.ts`）。② 第二次修（codex 审查发现：第一次改宽成 `src/**/*.{js,html,...}` 会误报 `vendor/`(react/babel 第三方库) 的 `.js`、又漏了 `index.css`）→ 收窄成精确平铺这三类,刻意排除 `vendor/` / `_assets/`(字体) / `assets/`(图标) / 废弃的 `client.ts`。
 
 ---
 
@@ -203,6 +213,66 @@ grep -rn "ComponentName" 03_dev/student_ios/v1/TomoshibiApp/Features/
 
 ---
 
+### Rule 20: rollcall-arch-chain（action — 点呼机架构链,2026-06-03 加）
+
+**触发**（下面 4 个文件任一改）：
+- `02_design/hardware_design.md` — 点呼机硬件选型
+- `02_design/flow_design.md` — 签到流程图 + 攻防分析
+- `03_dev/rollcall_device/ROLLCALL_DEVICE_DESIGN_LOG.md` — 点呼机软件设计
+- `00_admin/项目心智模型.md` — AI 开局必读骨架
+
+**必做动作**：核对其余三个是否漂移 — 这 4 个文件是同一条「点呼机怎么读写 NFC」的链,改一个其余常跟着改。
+
+**为什么**：2026-06-02 改 `hardware_design.md` 把手机从「读 NFC 贴纸」反转成「写 NFC 贴纸」,但旧联动系统没提醒去改另外三个 → `flow_design.md` 还画着旧的 nonce 每 10 秒刷新流程、`ROLLCALL_DEVICE_DESIGN_LOG.md` 和 `项目心智模型.md` 留了旧架构,互相矛盾。补这条 action 规则把整条链锁在一起。用 action（每次触发都无条件提醒）而非 must,因为 must 是「这 4 个至少改 1 个就放行」,正好会漏掉「只改 1 个、其余该跟没跟」的情形。
+
+---
+
+### Rule 21: backend-routers-web（action — 2026-06-03 加）
+
+**触发**：`03_dev/backend/v1/app/routers/*.py`（后端 API 路由）
+
+**必做动作**：核对老师网页 `03_dev/teacher_web/v1/src/api/client.js`（约 65 处直连后端接口路径）是否要跟改。
+
+**为什么**：Rule 2 backend-routers（must）已提醒查 iOS Endpoints,但老师网页 `client.js` 同样直连后端路由,过去无任何规则覆盖（后端接口一改网页可能整片崩没人知道）。单独用 action 而不并进 Rule 2 的 must —— iOS 和 web 是两个独立客户端,后端路由改了两个都可能要改,而 must 是「列表里至少改 1 个就放行」,会被 iOS 的改动满足、漏掉 web。
+
+---
+
+### Rule 22: spec-dict-chain（action — spec 字典链,2026-06-03 加）
+
+**触发**（下面 5 个文件任一改）：
+- `01_specs/rollcall/FIELD_REGISTRY.md` — 字段字典（唯一命名）
+- `01_specs/rollcall/ENUM_REGISTRY.md` — 枚举字典（唯一取值）
+- `01_specs/rollcall/ERROR_CODES.md` — 错误码字典
+- `01_specs/rollcall/DEVICE_REGISTRY.md` — 设备字典
+- `01_specs/rollcall/RollCall_Spec.md` — 点呼规格主体
+
+**必做动作**：核对其余几个是否漂移 + 后端 `schemas.py`/`models.py` 实装的字段枚举是否要跟改。
+
+**为什么**：跟点呼机架构链同性质的真实链。主体 `RollCall_Spec.md` §8 自声明「与字典四件套相互引用」,正文多处显式引用字典为权威（如 `base_status` 取值必须来自 ENUM_REGISTRY）。改字典一个字段名 / 枚举值,主体引用和后端实装都可能对不上。action 模式（同点呼机链理由：must 会漏「只改字典、主体和后端没跟」）。
+
+---
+
+### Rule 23: version-number-chain（action — 版本号链,2026-06-03 加）
+
+**触发**：`CHANGELOG.md`（仓库根）/ `00_admin/WIP.md`
+
+**必做动作**：核对两处版本号是否同步。
+
+**为什么**：`文档同步点清单.md §1` 定义版本号单一真值 = `CHANGELOG.md`,二级源 = `WIP.md` 头部「当前版本」。过去靠 `post-edit-version-hardcode-check.sh`（拦硬编码版本号的 hook）+ version-bump skill 人肉流程管,联动系统本身对「改一处提醒核对另一处」零覆盖,补这条 action 补齐。
+
+---
+
+### Rule 24: sync-rules-self（must — 联动系统自身同步,2026-06-03 加）
+
+**触发**：`00_admin/hooks/lib/sync-rules.sh`（联动规则真值代码）
+
+**必查联动**：
+- `.claude/skills/file-linkage/SKILL.md`（本文件 — 给人读的规则表）
+
+**为什么**：规则代码和本文件必须同步（hook 按代码跑、人按本表查,两边漂了联动系统就半失效）。讽刺的是过去没规则保护这层：`sync-rules.sh` 在 `hooks/lib/` 子目录下,而 Rule 8「hooks」trigger 是 `^00_admin/hooks/[^/]+$` 只匹配 hooks/ 一层、够不到 `lib/` 里的它。codex 2026-06-03 审查揪出,补这条 must 强制同步。
+
+---
+
 ## §2 反向索引（按目标文件查谁改了它要联动）
 
 > CC 想知道「改了 schemas.py 是因为什么 trigger?」时反向查。
@@ -213,17 +283,26 @@ grep -rn "ComponentName" 03_dev/student_ios/v1/TomoshibiApp/Features/
 | `alembic/versions/*` | Rule 1 (models.py 改) |
 | `routers/*` | Rule 1 (models.py 改) |
 | `NetworkModels.swift` | Rule 1 (models.py 改) |
+| `Models.kt`（Android 数据模型） | Rule 1 (models.py 改) |
 | `Endpoints/*API.swift` | Rule 2 (routers 改) |
+| `teacher_web src/api/client.js` | Rule 21 (后端 routers 改) |
 | `BACKEND_DESIGN_LOG.md` | Rule 3 (system_features 改) + Rule 16 (backend 业务代码改) |
 | `IOS_DESIGN_LOG.md` | Rule 3 (system_features 改) + Rule 14 (iOS Features 改) |
 | `ANDROID_DESIGN_LOG.md` | Rule 3 (system_features 改) + Rule 15 (Android ui/features 改) |
 | `WEB_DESIGN_LOG.md` | Rule 3 (system_features 改) + Rule 17 (teacher_web 业务代码改) |
-| `ROLLCALL_DEVICE_DESIGN_LOG.md` | Rule 3 (system_features 改) + Rule 18 (点呼机 src/ 改) |
+| `ROLLCALL_DEVICE_DESIGN_LOG.md` | Rule 3 (system_features 改) + Rule 18 (点呼机 src/ 改) + Rule 20 (点呼机架构链任一改) |
+| `hardware_design.md` | Rule 20 (点呼机架构链任一改) |
+| `flow_design.md` | Rule 20 (点呼机架构链任一改) |
+| `项目心智模型.md` | Rule 20 (点呼机架构链任一改) |
+| `01_specs/rollcall 字典四件套 + RollCall_Spec.md` | Rule 22 (spec 字典链任一改) |
+| `CHANGELOG.md` | Rule 23 (WIP.md 版本号改) |
+| `WIP.md`（版本号部分） | Rule 23 (CHANGELOG.md 改) |
 | `system_features.md` | Rule 19 (任一端 *_DESIGN_LOG 改) |
 | `RootView.swift` | Rule 4 (Route.swift 改) |
 | `hooks/README.md` | Rule 8 (hooks/* 改) |
 | `CLAUDE.md` | Rule 9 (bin/*.sh 改) |
 | `文档同步点清单.md` | Rule 9 (bin/*.sh 改) |
+| `file-linkage/SKILL.md`（本表） | Rule 24 (sync-rules.sh 改) |
 
 ---
 
@@ -290,3 +369,6 @@ bash bin/sync-check.sh <file_path>
 - 2026-05-04 itsuki 拍板：A+B 文件联动工具方案（pre-commit + sync-check.sh + sync-rules.sh）
 - 2026-05-04 深夜 itsuki 拍板：本 skill 形态化 + CC PostToolUse hook 实时拦截
 - 2026-05-08 itsuki 拍板：（1）点呼机当第 5 端建 03_dev/rollcall_device/ + ROLLCALL_DEVICE_DESIGN_LOG.md（2）补 6 条反向规则 Rule 14-19 — 业务代码改时温和提醒同步 *_DESIGN_LOG.md / system_features.md（3）Rule 3 system-features 必查列表加 ANDROID + ROLLCALL_DEVICE。规则总数 12 → 18。
+- 2026-06-03 补漏：6-02 改 hardware_design.md 把手机「读 NFC 贴纸」反转成「写 NFC 贴纸」,旧联动系统漏提醒 → flow_design.md / ROLLCALL_DEVICE_DESIGN_LOG.md / 项目心智模型.md 留旧架构互相矛盾。补 Rule 20 rollcall-arch-chain（action）把这 4 个文件锁成同一条链 + 首次把 项目心智模型.md（5-29 新建时漏挂联动）纳入。规则总数 18 → 19。
+- 2026-06-03（同日续）：itsuki「让所有文件互相联动 + 找别的有问题的文件」→ CC 论证「1256 文件全连 = 提醒太多反而没人看」否决全连,改派子代理系统审查联动盲点,独立验证(揪出子代理 2 处数字/范围不准:iOS Endpoints 数、字典是四件套不是三件套)后补 4 类真盲点,改 2 条 + 新增 3 条规则：① 修 Rule 17 trigger（teacher_web 活代码 index.html/client.js 过去零联动保护,规则盯着废弃的 .ts）+ 新增 Rule 21（后端路由改提醒查 client.js 的 65 处接口调用）② Rule 1 加 Android Models.kt（原只提醒 iOS 漏 Android 字段对齐）③ 新增 Rule 22 spec 字典链 ④ 新增 Rule 23 版本号链 CHANGELOG↔WIP。规则总数 19 → 22。盲点 5（iOS Endpoints 对接缺口,非规则 bug）/ 6（Android trigger 路径偏窄,影响小）暂不补。
+- 2026-06-03（codex 审查后修）：派 codex GPT-5.5 xhigh 只读复审上面 22 条。codex 7 项发现,CC 独立核验(逮到 codex 建议的 vendor 排除写法 `(?!...)` 负向先行在 ERE 里不支持、照抄会坏)后分三档处理 ——【修】① Rule 17 trigger 第一版改宽会误报 vendor 第三方库 + 漏 index.css → 收窄成精确平铺 `index.html`/`index.css`/`api/*.js` ② Rule 1 文案「两端都要」改成说清 must 是「或」语义 ③ §1 加编号说明(消除 22/23 困惑)；【补】④ 新增 Rule 24 sync-rules-self(must) — codex 揪出联动系统自身盲点:规则代码 sync-rules.sh 在 hooks/lib/ 下、Rule 8 hooks 够不到,改了规则人读版无提醒；【报告暂不修】_check_demo_scaffold 返回值反转(真 bug 但牵涉退出码语义) / Rule 6 design-doc 引用的 teacher_requirements.md 已不存在(死路径) / must 列表路径无 `^…$` 锚定。规则总数 22 → 23。

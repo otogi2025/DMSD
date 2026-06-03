@@ -47,8 +47,8 @@ add_rule() {
 add_rule \
   "backend-models" \
   '^03_dev/backend/v1/app/models\.py$' \
-  '03_dev/backend/v1/app/schemas\.py,03_dev/backend/v1/alembic/versions/.+\.py,03_dev/backend/v1/app/routers/.+\.py,03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/NetworkModels\.swift' \
-  '后端 ORM model 改了 → 必须连带更新: schemas.py(Pydantic) / alembic migration / routers / iOS NetworkModels.swift（字段对齐）' \
+  '03_dev/backend/v1/app/schemas\.py,03_dev/backend/v1/alembic/versions/.+\.py,03_dev/backend/v1/app/routers/.+\.py,03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/NetworkModels\.swift,03_dev/student_android/v1/app/src/main/java/jp/tomoshibi/android/data/model/Models\.kt' \
+  '后端 ORM model 改了 → 核对下游是否跟上: schemas.py(Pydantic) / alembic migration / routers / iOS NetworkModels.swift / Android Models.kt。注:这是「至少改 1 个就放行」的或语义,不保证每个都改 — iOS + Android 两端字段要各自核对,别只改一端就当过了' \
   "must"
 
 add_rule \
@@ -159,9 +159,9 @@ add_rule \
 
 add_rule \
   "web-business-design" \
-  '^03_dev/teacher_web/.+\.(ts|tsx|jsx|vue)$' \
+  '^03_dev/teacher_web/v1/src/index\.html$|^03_dev/teacher_web/v1/src/index\.css$|^03_dev/teacher_web/v1/src/api/.+\.js$' \
   '' \
-  'teacher_web 业务代码改 → 判断是否同步 WEB_DESIGN_LOG.md，多端涉及时 system_features.md 也要更新' \
+  'teacher_web 业务代码改 → 判断是否同步 WEB_DESIGN_LOG.md，多端涉及时 system_features.md 也要更新。活代码 = index.html + index.css + api/*.js（单文件 React，不编译 TS）。trigger 精确平铺这三类，刻意不含 vendor/(react/babel 第三方库) / _assets/(字体) / assets/(图标) / 废弃的 client.ts，避免它们误报' \
   "action"
 
 add_rule \
@@ -177,6 +177,78 @@ add_rule \
   '' \
   '某端 *_DESIGN_LOG 改 → 多端涉及时 system_features.md 也要更新(共用层真值)' \
   "action"
+
+# ============================================================
+# 点呼机架构链（2026-06-03 加 — 补 6-02 漂移事故的漏）
+# 4 个文件是同一条「点呼机怎么读写 NFC」的链，改一个其余常跟着改。
+# 用 action 模式（每次触发都无条件提醒）而不是 must — must 是「这些文件至少改 1
+# 个就闭嘴」，正好会漏掉 6-02 那种「只改了 hardware_design 一个、其余三个没动」的情形。
+# trigger 用 4 个完整路径加 | 平铺、每段自带 ^...$、无括号分组（避免 ERE 嵌套捕获组）。
+# ============================================================
+
+add_rule \
+  "rollcall-arch-chain" \
+  '^02_design/hardware_design\.md$|^02_design/flow_design\.md$|^03_dev/rollcall_device/ROLLCALL_DEVICE_DESIGN_LOG\.md$|^00_admin/项目心智模型\.md$' \
+  '' \
+  '点呼机架构链改一个 → 核对其余三个是否漂移：hardware_design.md(硬件选型) / flow_design.md(签到流程) / ROLLCALL_DEVICE_DESIGN_LOG.md(点呼机软件) / 项目心智模型.md(项目骨架) 是同一条链，改一个其余常跟着改（6-02 手机读→写反转就因缺这条链漏改了后三个）' \
+  "action"
+
+# ============================================================
+# 后端路由 → 老师网页接口对接（2026-06-03 加 — 补 web 客户端裸奔的漏）
+# backend-routers(Rule 2,must) 已管 iOS Endpoints，但 teacher_web 的 client.js
+# 同样直连后端路由，过去无任何规则覆盖。单独用 action（不并入 Rule 2 的 must），
+# 因为 iOS 和 web 是两个独立客户端、后端路由改了两个都可能要改，
+# 而 must 是「列表里至少改 1 个就放行」会被 iOS 的改动满足、漏掉 web。
+# ============================================================
+
+add_rule \
+  "backend-routers-web" \
+  '^03_dev/backend/v1/app/routers/.+\.py$' \
+  '' \
+  '后端 API 路由改 → 老师网页 03_dev/teacher_web/v1/src/api/client.js（约 65 处直连后端接口路径）核对是否要跟改。注：与 backend-routers(must 管 iOS Endpoints) 互补，本条单独 action 提醒 web 端' \
+  "action"
+
+# ============================================================
+# spec 字典链（2026-06-03 加 — 跟点呼机架构链同性质的真实链）
+# RollCall_Spec.md §8 自声明「与字典四件套相互引用」，主体正文多处显式
+# 引用字典为权威；后端 schemas.py/models.py 又实装了这些字段/枚举。
+# action 模式（同点呼机链理由：must 会漏「只改字典、主体和后端没跟」）。
+# ============================================================
+
+add_rule \
+  "spec-dict-chain" \
+  '^01_specs/rollcall/FIELD_REGISTRY\.md$|^01_specs/rollcall/ENUM_REGISTRY\.md$|^01_specs/rollcall/ERROR_CODES\.md$|^01_specs/rollcall/DEVICE_REGISTRY\.md$|^01_specs/rollcall/RollCall_Spec\.md$' \
+  '' \
+  'spec 字典四件套(FIELD_REGISTRY 字段 / ENUM_REGISTRY 枚举 / ERROR_CODES 错误码 / DEVICE_REGISTRY 设备)与主体 RollCall_Spec.md 相互引用(主体 §8 声明)，后端 schemas.py/models.py 实装了这些字段枚举 → 改一个核对其余是否漂移' \
+  "action"
+
+# ============================================================
+# 版本号链（2026-06-03 加 — 文档同步点清单 §1 双源同步的联动化）
+# 版本号单一真值 = CHANGELOG.md（仓库根），二级源 = WIP.md 头部「当前版本」。
+# 过去靠 post-edit-version-hardcode-check.sh 拦硬编码 + version-bump skill 人肉流程，
+# 联动系统本身对「改一处提醒核对另一处」零覆盖，补 action 提醒。
+# ============================================================
+
+add_rule \
+  "version-number-chain" \
+  '^CHANGELOG\.md$|^00_admin/WIP\.md$' \
+  '' \
+  '版本号单源 CHANGELOG.md + 二级源 WIP.md 头部「当前版本」(文档同步点清单 §1 双源同步) → 改一处核对另一处是否同步' \
+  "action"
+
+# ============================================================
+# 联动系统自身的同步（2026-06-03 加 — codex 审查揪出的盲点）
+# 规则代码 sync-rules.sh 与人读版 file-linkage/SKILL.md 必须同步,
+# 但 sync-rules.sh 在 hooks/lib/ 下,Rule 8「hooks」只匹配 hooks/ 一层、捕获不到它,
+# 导致「改了规则代码、人读版没跟」过去无任何提醒。用 must 强制同步。
+# ============================================================
+
+add_rule \
+  "sync-rules-self" \
+  '^00_admin/hooks/lib/sync-rules\.sh$' \
+  '.claude/skills/file-linkage/SKILL\.md' \
+  '联动规则代码 sync-rules.sh 改了 → 给人读的 .claude/skills/file-linkage/SKILL.md 必须同步(两边漂了联动系统就半失效:hook 按代码跑、人按表查,对不上)' \
+  "must"
 
 # ============================================================
 # 函数：check_sync_for_files
