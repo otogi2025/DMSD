@@ -3,7 +3,9 @@
 > **作用**：点呼机（roll call device,跑在 Raspberry Pi 3A+ 上的 Python 程序）端的设计权威源。对称 iOS 的 `IOS_DESIGN_LOG.md` / Web 的 `WEB_DESIGN_LOG.md` / 后端的 `BACKEND_DESIGN_LOG.md` —— 5 端各一个档案。
 >
 > **建立**：2026-05-08（骨架）
-> **范围**：v1.0 P0 — 读卡签到 / 动态贴纸 nonce 写入 / LED 反馈 / 日语播报 / 调后端
+> **范围**：v1.0 P0 — 读卡签到（路径 A）/ 读手机写进 ST25DV 邮箱的身份数据（路径 B）/ LED 反馈 / 日语播报（后端预生成 wav 下发）/ 调后端（WebSocket + HTTP）
+>
+> ⚠️ **2026-06-03 架构反转**（itsuki 6-02 拍板，对齐 `hardware_design.md §2.3` + `flow_design.md §3`）：手机从「读 ST25DV」改「写 ST25DV」，点呼机从「每 10 秒写 nonce」改「被动读手机写进邮箱的数据」。连带改动散落在 §1.1 / §3 / §6 / §10，本轮已追平。本文属「点呼机架构链」（hardware_design / flow_design / 本文 / 项目心智模型），改一个必核对其余三个。
 >
 > ⚠️ **实装进度速查表（2026-05-21 A-027 / A-029 加）**
 >
@@ -12,7 +14,7 @@
 > | 设计文档（本文） | ✅ 100% | 226 行设计，含主循环 / 模块 / GPIO 草案 |
 > | 硬件采购 | ⏳ 0% | 5-08 选型定稿，未下单 |
 > | `src/` 代码 | ⏳ 0% | `main.py` 是 9 行 placeholder；`nfc/` / `api/` / `led/` / `audio/` 全空 `__init__.py` |
-> | 端到端跑通 | ⏳ 0% | 依赖 Pi 实物 + backend ECDSA 验签实装（A-010） |
+> | 端到端跑通 | ⏳ 0% | 依赖 Pi 实物 + 点呼机↔后端传输安全（ECDSA 验签降级 v1.1 可选，见 flow_design §5） |
 >
 > **agent 阅读顺序**（两层结构）：
 > 1. **共用层（必读）**：`02_design/system_features.md` —— 角色 / 数据模型 / R1-R4 硬约束
@@ -45,10 +47,10 @@
 | 语言 | **Python 3.11+** | itsuki 学习路径 + Pi OS 默认 |
 | OS | **Raspberry Pi OS (Bookworm,64-bit)** | 🟡 CC 推荐（官方默认 + 最新 Debian base）|
 | NFC 读卡（PN532） | `nfcpy` 或 `Adafruit-PN532` 库 | ⏳ §10-D1 待 itsuki 决定 |
-| ST25DV 写 nonce | `smbus2` Python 库 + 自写底层 I2C | ⏳ §10-D2（无现成 Python 库,要 port 或自写）|
-| HTTP 调后端 | `httpx`（async）| 🟡 CC 推荐 |
-| WebSocket | `websockets` 库 | 🟡 CC 推荐 |
-| TTS（日语播报） | `pyttsx3` 或预录音频 + `pygame.mixer` | ⏳ §10-D3 待拍板 |
+| ST25DV 读 Mailbox 邮箱 | `smbus2` Python 库 + 自写底层 I2C | ⏳ §10-D2（无现成库；2026-06-03 反转：从「写 nonce」改「读手机写进来的邮箱数据」）|
+| HTTP 调后端 | `httpx`（async）| ✅ 已定 — 常规请求：上报签到 / 下载音频 wav / 历史查询 |
+| WebSocket | `websockets` 库 | ✅ 已定 — 后端推指令：判定结果 / 播放 / 亮灯 / 删音频；**必写断线自动重连（见 §6）** |
+| 日语播报 | ~~本地合成 TTS~~ → **后端预生成 wav 下发**，点呼机只用 `aplay` 播放 | ✅ 已定（§10-D3 拍板 c — 512MB 跑不动本地合成）|
 | LED 控制 | `gpiozero` | 🟡 CC 推荐（最简）|
 | 日志 | `structlog` JSON 格式 | 🟡 CC 推荐 |
 | 进程守护 | `systemd` unit | 🟡 CC 推荐（Pi OS 标配）|
@@ -81,7 +83,7 @@ GPIO 分配（已对齐 `hardware_design.md §2.4.1`）：
 | 模块 | 接 Pi 引脚 | 协议 |
 |---|---|---|
 | **PN532 NFC 读卡** | SPI(GPIO 8/9/10/11)| SPI 模式（I2C 在 Pi 上不稳,推荐 SPI 见 §10-D4）|
-| **ST25DV16K 动态贴纸** | I2C(GPIO 2/3) | I2C 默认总线,Pi 写 nonce |
+| **ST25DV16K（手机写入邮箱）** | I2C(GPIO 2/3) + GPO 中断引脚(GPIO 待定) | I2C 读 Mailbox 邮箱 + GPO 中断监听（旧「Pi 写 nonce」已废）|
 | **LED 红** | GPIO 17 | 数字输出 |
 | **LED 绿** | GPIO 27 | 数字输出 |
 | **LED 蓝** | GPIO 22 | 数字输出 |
@@ -99,49 +101,64 @@ GPIO 分配（已对齐 `hardware_design.md §2.4.1`）：
 
 ```
 main.py:
-  init: GPIO + NFC + Audio + API client + LED 状态机
-  state = IDLE  # 待机
+  init: GPIO + PN532(SPI 读卡) + ST25DV(I2C，开 Mailbox 邮箱 + GPO 中断)
+        + Audio + API(WebSocket + HTTP) + LED 状态机
+  queue = 线程安全队列
 
-  while True:
-    if state == IDLE:
-      # 蓝灯常亮（待机）
-      uid = nfc.read_card(timeout=1s)  # 非阻塞,1s 超时
+  # ── 线程 A：硬件采集（只管读，读到丢队列，立刻释放芯片）──
+  def thread_A():
+    while True:
+      uid = pn532.read_card(timeout=0.5s)          # 路径 A：实体卡
       if uid:
-        state = SUBMITTING
-        led.flash_blue()  # 处理中
+        queue.put({type:"card", uid, swipe_time: ntp_now()})
+      if st25dv.gpo_triggered():                   # 路径 B：手机写进邮箱（GPO 门铃）
+        data = st25dv.read_mailbox()
+        st25dv.clear_mailbox()                     # 立刻清空，不挡下一个学生（~165ms）
+        queue.put({type:"phone", data, swipe_time: ntp_now()})
 
-    elif state == SUBMITTING:
-      result = api.submit_checkin(uid, device_id, timestamp)
+  # ── 线程 B：网络 + 反馈（处理队列，不阻塞采集）──
+  def thread_B():
+    while True:
+      item = queue.get()
+      led.flash_blue()                             # 处理中
+      try:
+        result = api.post_checkin(item)            # HTTP 上报，带点呼机盖的 swipe_time
+      except NetworkError:                         # 断网降级（见 §6）
+        offline_log.append(item)
+        led.green(); play_wav(local_name(item)); continue
       if result.ok:
-        state = SUCCESS
+        led.green()
+        play_wav(f"{result.student_id}.wav")       # 播后端下发的全名 wav，新声音掐断老声音
       else:
-        state = FAIL
+        led.red(); play_wav("error.wav")
 
-    elif state == SUCCESS:
-      led.green()
-      audio.play(jp_tts(f"{name}さん、お帰りなさい"))
-      sleep(2s)
-      state = IDLE
-
-    elif state == FAIL:
-      led.red()
-      audio.play(jp_tts(error_msg))
-      sleep(2s)
-      state = IDLE
-
-  # 后台线程：每 10s 写一次新 nonce 到 ST25DV
-  nonce_writer_thread.start()
+  # ── WebSocket 长连接：后端主动推指令（判定 / 播放 / 亮灯 / 删音频）──
+  #     必带断线自动重连（见 §6）；旧的「每 10s 写 nonce 线程」已删
+  start(thread_A); start(thread_B); start(ws_listener)
 ```
 
 ### 3.2 模块职责
 
 | 模块 | 职责 | 文件 |
 |---|---|---|
-| `src/main.py` | 入口 + 主循环 + 状态机 + 信号处理 | `main.py` |
-| `src/nfc/` | PN532 SPI 封装 + ST25DV I2C nonce 写入 | `pn532.py` / `st25dv.py` |
-| `src/audio/` | 日语 TTS / 播报队列（避免并发播放冲突）| `tts.py` / `player.py` |
+| `src/main.py` | 入口 + 双线程（采集 / 网络反馈）+ 队列 + 信号处理 | `main.py` |
+| `src/nfc/` | PN532 SPI 读卡 + ST25DV I2C 读 Mailbox 邮箱 + GPO 中断监听 | `pn532.py` / `st25dv.py` |
+| `src/audio/` | 播放后端下发的 wav（`aplay`）+ 播报队列（新声音掐断老声音）| `player.py` |
 | `src/led/` | LED GPIO 封装 + 状态机映射 | `led.py` |
-| `src/api/` | 后端 HTTP / WebSocket 客户端 + 重试 | `client.py` |
+| `src/api/` | WebSocket（收后端指令 + 断线自动重连）+ HTTP（上报签到 / 下载 wav）+ 离线缓冲 | `client.py` |
+
+### 3.3 点呼机↔后端通讯设计（2026-06-03 itsuki 拍板 D5）
+
+两种通讯各司其职：
+
+| 通道 | 干什么 | 为什么用它 |
+|---|---|---|
+| **WebSocket**（长连接）| 后端**主动推**给点呼机：判定结果 / 「播 `10023.wav`」/ 亮绿灯 / 删某学生音频 | 后端判定后要立刻命令点呼机亮灯放音，长连接零延迟 |
+| **HTTP**（一问一答）| 点呼机**主动发**：上报签到 / 下载音频 wav / 历史查询 | 不要求极致实时，开发最快最稳 |
+
+**断线自动重连（必做，不能省）**：宿舍 Wi-Fi 会闪断。WebSocket 长连接一旦断了又没重连逻辑，点呼机就再也收不到后端指令 = 机器变哑巴。所以 `src/api/client.py` 必须写一套断线自动重连（断开 → 退避重试 → 连上后补订阅）。闪断期间的签到走**离线降级**（见 §6）。
+
+**音频文件生命周期**（后端管，点呼机只存只播）：学号当文件名（如 `10023.wav`）→ 新生注册时后端生成 + HTTP 下发到点呼机本地 → 点呼时后端 WebSocket 发 `{action:"play", file:"10023.wav"}` → 学生毕业后端发 `{action:"delete", file:"10023.wav"}` 远程删 → SD 卡坏了用「同步全部语音」一键重灌。
 
 ---
 
@@ -195,8 +212,20 @@ WantedBy=multi-user.target
 
 ## 6. 错误处理 / 故障恢复
 
-⏳ 待 itsuki 跟管理员确认现场可恢复策略后写
-（断网、卡读不出、后端 5xx、声音失败、LED 烧 等场景）
+### 6.1 点呼机↔后端断网 → 离线降级 ✅（2026-06-03 itsuki 拍板）
+
+宿舍 Wi-Fi 闪断时，不能让学生堵在门口。降级策略：
+
+1. WebSocket 断开 → `src/api/client.py` 启动断线自动重连（退避重试）。
+2. 重连期间学生照样签到：点呼机比对**本地缓存的学生名单**（SD 卡里），学号 / 卡 UID 存在就**直接放绿灯 + 播报**，先让学生通过。
+3. 这些签到先写**本地离线日志**（带点呼机盖的 swipe_time 时间戳）。
+4. 网络恢复 → 把离线日志**批量补传**后端，后端按 swipe_time 补判定。
+
+> 核心：点呼队伍物理上绝不被网络问题堵住。判定可以晚一点（补传后算），但人先过。
+
+### 6.2 其他故障（待 itsuki 跟管理员确认现场策略后细化）
+
+⏳ 卡 / 邮箱读不出、后端 5xx、声音失败、LED 烧 等场景。
 
 ---
 
@@ -229,9 +258,9 @@ WantedBy=multi-user.target
 |---|---|---|---|
 | D1 | PN532 用什么 Python 库 | (a) `nfcpy`(社区)/ (b) `Adafruit-PN532`(更轻)| 🟡 (b) 更简单 |
 | D2 | ST25DV16K 驱动怎么解决 | (a) 自写 I2C / (b) port Arduino C++ 到 Python / (c) 干脆用 C 写一个 daemon Python 调 | 🟡 (a) 学习价值最高 |
-| D3 | 日语 TTS 用什么 | (a) `pyttsx3` 离线 / (b) Google Cloud TTS 联网 / (c) 预录音频文件 | 🟡 (c) 最稳（无网无延迟）|
+| D3 | 日语播报怎么出声 | ~~(a) pyttsx3 本地 / (b) 云 TTS / (c) 预录~~ → **拍板：后端预生成 wav 下发，点呼机 `aplay` 播放** | ✅ 已定（6-03 — 512MB 跑不动本地 TTS；学号当文件名如 `10023.wav`）|
 | D4 | PN532 接 Pi 用 SPI 还是 I2C | (a) SPI 稳 / (b) I2C 占 GPIO 少但 Pi 上不稳 | 🟡 (a) SPI |
-| D5 | 是否用 WebSocket 接收老师端推送 | (a) HTTP 轮询 / (b) WebSocket | 🟡 (b) 但 v1 P0 可先 HTTP |
+| D5 | 点呼机↔后端用 HTTP 还是 WebSocket | ~~二选一~~ → **拍板：两个都用，各司其职** | ✅ 已定（6-03）— WebSocket 推指令 + HTTP 常规请求；**断线自动重连必写 → §6** |
 | D6 | 设备认证方式 | (a) 设备 ID + 密钥 / (b) JWT | 🟡 (a) 简单 |
 
 ---
