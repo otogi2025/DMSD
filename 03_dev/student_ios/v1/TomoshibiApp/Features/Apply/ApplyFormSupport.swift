@@ -86,6 +86,7 @@ enum ApplyFormDate {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo") // 固定 JST：否则非 JST 设备 period_from/to 口径偏一天（跟 ApplyStubs.formatYMD / StayList 编辑页一致）
         return f.string(from: d)
     }
 

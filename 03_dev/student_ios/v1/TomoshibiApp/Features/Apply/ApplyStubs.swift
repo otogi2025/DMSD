@@ -429,7 +429,8 @@ struct StayForm: View {
     }
 
     // ── 实物表補完字段（2026-05-28）──────────────────────────────────────
-    @State private var contactPhone: String = SEED.user.phone
+    @State private var contactPhone: String = "" // 预填移到 .onAppear 从 app.displayUser 拿（@State 默认值 view init 时抓全局假人 SEED.user，loadMe 晚到 / 切账号不刷新）
+    @State private var didPrefillContact = false
     @State private var isLongVacation: Bool = false
     @State private var companion: String = ""
     @State private var destCities: String = ""
@@ -822,6 +823,11 @@ struct StayForm: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl)
+        .onAppear {
+            guard !didPrefillContact else { return }
+            didPrefillContact = true
+            contactPhone = app.displayUser.phone // 登录用户真实电话；演示构建 displayUser=SEED.user 行为不变
+        }
     }
 
     // MARK: - subviews

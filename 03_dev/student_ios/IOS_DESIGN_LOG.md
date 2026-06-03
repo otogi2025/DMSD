@@ -1141,6 +1141,16 @@ xcodebuild iPhone 17 simulator BUILD SUCCEEDED 確認済（2026-05-04）。
 
 `ApplyDetailView.body` 原靠 SEED 的 `item.type` 路由、生产里 `item` 总 fallback 到 `SEED.applications[0]`（恰好 stay 型）才碰巧走对。改 `#if DEMO` 分构建：生产显式只 `StayDetailView(id)`（后端只支持出寮届系 帰省/外泊/帰国），演示保留 SEED 路由 + otherDetailBody（修繕/来訪/代理受取）讲叙事。Option B（真做这几类申请功能）推迟。
 
+### 14.13 低风险残留清理 — 表单预填迁 displayUser + 在线自习日期固定 JST（2026-06-03）
+
+IX-008 Batch 2 收尾的低危残留（handoff §4.2/§7.1）一并清掉：
+
+1. **3 个表单的 `@State` 预填不再抓全局假人 SEED.user** —— `StayForm.contactPhone`（ApplyStubs）/ `FridgePurchaseForm.contactPhone` / `ItemPossessionForm.roomNo`（DormLifeForms）原 `@State` 默认值直接读 `SEED.user.phone` / `.room`，view init 时一次性捕获、loadMe 晚到 / 切账号都不刷新（冷启动 sub 秒窗口会拿到旧假数据）。改成 `@State` 默认空 + `.onAppear` 带 `didPrefill` 守卫从 `app.displayUser` 填一次（同 `MyInfoEditView.loadCurrentInfo` 做法）。演示构建 `displayUser = SEED.user`，行为不变。
+
+2. **在线自习表单（StudyOnlineForm）日期固定 JST** —— `ApplyFormDate.formatYMD` 漏了 `timeZone`（对比同文件 `displayDateTime` 有），非 JST 设备上 period_from/to 提交口径偏一天；两个 `ApplyDateField`（开始日 / 終了日）也补 `.environment(\.timeZone, JST)`，让选日跟提交口径一致（跟 `ApplyStubs.formatYMD` / StayList 编辑页 IX-034 修复④ 同款）。
+
+验证：生产 + 演示双 scheme `BUILD SUCCEEDED`。
+
 ---
 
-**END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）; 5-31 修改届接后端（§14.7）+ 当前用户接 /me（§14.8）; 6-02 IX-008 二审修复 + IX-008b 扣分统计（§14.9）+ IX-034 请假计数按月（§14.10）+ IX-009 通知（§14.11）+ IX-007 详情页（§14.12）。
+**END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）; 5-31 修改届接后端（§14.7）+ 当前用户接 /me（§14.8）; 6-02 IX-008 二审修复 + IX-008b 扣分统计（§14.9）+ IX-034 请假计数按月（§14.10）+ IX-009 通知（§14.11）+ IX-007 详情页（§14.12）+ 6-03 低风险残留清理（表单预填迁 displayUser + 在线自习日期 JST）（§14.13）。

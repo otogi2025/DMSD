@@ -291,7 +291,8 @@ struct FridgePurchaseForm: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
-    @State private var contactPhone: String = SEED.user.phone
+    @State private var contactPhone: String = "" // 预填移到 .onAppear（同 StayForm / MyInfoEditView：@State 默认值会抓全局假人 SEED.user）
+    @State private var didPrefillContact = false
     @State private var contactWechat: String = ""
     @State private var product: String = "A"
 
@@ -360,6 +361,11 @@ struct FridgePurchaseForm: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl)
+        .onAppear {
+            guard !didPrefillContact else { return }
+            didPrefillContact = true
+            contactPhone = app.displayUser.phone // 登录用户真实电话；演示构建 displayUser=SEED.user 行为不变
+        }
     }
 
     private var listButton: some View {
@@ -510,7 +516,8 @@ struct ItemPossessionForm: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
-    @State private var roomNo: String = SEED.user.room
+    @State private var roomNo: String = "" // 预填移到 .onAppear（同上：@State 默认值抓全局假人 SEED.user.room）
+    @State private var didPrefillRoom = false
     @State private var item: String = ""
     @State private var reason: String = ""
     @State private var guardianName: String = ""
@@ -570,6 +577,11 @@ struct ItemPossessionForm: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl)
+        .onAppear {
+            guard !didPrefillRoom else { return }
+            didPrefillRoom = true
+            roomNo = app.displayUser.room // 登录用户真实房号（完整带寮 prefix）；演示构建 displayUser=SEED.user 行为不变
+        }
     }
 
     private var listButton: some View {

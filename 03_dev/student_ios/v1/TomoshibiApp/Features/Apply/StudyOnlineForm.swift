@@ -63,9 +63,11 @@ struct StudyOnlineForm: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Field(label: "開始日", hint: "オンライン学習開始の 3 日前までに提出してください", required: true) {
                                 ApplyDateField(date: $periodFrom, minDate: ApplyFormDate.threeDaysLater)
+                                    .environment(\.timeZone, TimeZone(identifier: "Asia/Tokyo") ?? .current) // 选日按 JST，跟 formatYMD 提交口径一致（非 JST 设备不偏天）
                             }
                             Field(label: "終了日", required: true) {
                                 ApplyDateField(date: $periodTo, minDate: periodFrom)
+                                    .environment(\.timeZone, TimeZone(identifier: "Asia/Tokyo") ?? .current) // 选日按 JST，跟 formatYMD 提交口径一致
                             }
                         }
                     }
