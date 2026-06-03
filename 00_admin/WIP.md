@@ -50,6 +50,13 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+### 2026-06-03 版本号回溯规范化 — 236 commit 补 6 个版本标签 + 三端版本号统一 by [Opus 4.8 1M]
+
+- ✅ **回溯补 6 个版本标签 v0.8.1~v0.12.0**（时间对齐各段末端 commit）+ CHANGELOG 6 条目 + WIP 当前版本 v0.8.0→v0.12.0（commit `48e7c97`）。判断：每段有真新功能=次版本号 / 纯修复或开发工具链=修订号。<!-- VERSION_OK -->
+- ✅ **三端客户端版本号统一 0.12.0**（commit `e91e768`）：iOS project.yml + TTokens（rc/demo）+ Android versionName + 老师网页 APP_VERSION 全部统一。<!-- VERSION_OK -->
+- 🔧 **index.html / README 版本号改动留工作树**（跟并行会话改动叠着，等 itsuki 整理文件一起 commit + push）。本会话发现另一窗口在并行改 iOS/点呼机/file-linkage。
+- AC：模式 5（itsuki 学 SemVer 主/次/修订号规则 + commit 数≠版本号 + 否决 v10.0/重写历史）+ 不盲信 AI（itsuki「修了很多 bug 先确认」逼 CC 用数据验证定性）。详见 raw `2026-06-03_版本号回溯规范化.md`。<!-- VERSION_OK -->
+
 ### 2026-06-02 iOS B 类接后端续 — IX-034 请假计数 + 过夜无人值守 GOAL 设计 by [Opus 4.8 1M]
 
 **🔴 进度 + 过夜 GOAL 运行规则在 `05_logs/ios接后端_进度与handoff.md` §7（新会话 / 压缩后先读）。**

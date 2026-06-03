@@ -59,7 +59,7 @@
 
 #### 🔢 版本号 bump（itsuki 06-02 批准、待并发会话安静后做）
 
-- [ ] 走 `.claude/skills/version-bump` SOP。本批改了 backend / spec / iOS / Android / 设计日志 → **minor 候选**。现在另一窗口在写 ix-008b + 硬件文档，`CHANGELOG.md` / `WIP.md` / `README.md` 会撞，等它停手再做。
+- [x] ~~走 `.claude/skills/version-bump` SOP~~ ✅ 2026-06-03 做了核心（commit `48e7c97` + `e91e768`）：回溯补 6 个标签 v0.8.1~v0.12.0（按 SemVer：每段有真新功能=次版本号 / 纯修复或工具链=修订号）+ CHANGELOG 6 条目 + WIP 当前版本→最新 + 三端客户端版本号统一。**没等并发会话停手** — 它改的是 iOS/点呼机/file-linkage，跟 CHANGELOG/WIP/客户端版本号文件不重叠，没撞。剩 `README.md` / `index.html` 版本号改动跟并发会话叠在工作树，待整理一起 commit + push。<!-- VERSION_OK -->
 
 #### 🟡 2026-05-30 审查「能直接改、还没排到」的小 bug（可 xcodebuild / pytest 验证 — 从已删 handoff 并入 2026-06-02）
 
