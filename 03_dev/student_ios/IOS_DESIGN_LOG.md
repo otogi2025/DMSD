@@ -1151,6 +1151,8 @@ IX-008 Batch 2 收尾的低危残留（handoff §4.2/§7.1）一并清掉：
 
 验证：生产 + 演示双 scheme `BUILD SUCCEEDED`。
 
+> **Codex 5.5 xhigh 审查加固（2026-06-03，2 中风险已修）**：① `ApplyFormDate.threeDaysLater` 改用 JST 固定日历 `tokyoCalendar`（原 `Calendar.current` 走设备时区，非 JST 设备「最早可选日 = 今天+3」偏一天）+ StudyOnlineForm 两个 `ApplyDateField` 注入 `.environment(\.calendar)` JST。② 3 表单预填加 `.onChange(of: app.currentUser?.account)` 补填 —— 自动登录冷启动 `loadMe` 晚到时，`.onAppear` 生产构建不写假人（`guard app.currentUser != nil`），等真实用户到达再填一次，避免 `didPrefill` 守卫把演示假数据锁死。Codex 终判：删除 Wall 0 问题 / 0 blocker。再次双 scheme `BUILD SUCCEEDED`。
+
 ### 14.14 删除寮ウォール（学生掲示板）— 落实 4-29 拍板（2026-06-03）
 
 `system_features.md §889` 早在 2026-04-29 就拍板「学生掲示板 🚫 砍」（社区功能不在核心价值 = 点呼/出寮届/学習/扣分），但 iOS 代码里的**寮ウォール**（`WallView` = 宿舍墙 = 学生互相发帖的墙）从没真删 —— 文档砍了、代码漂了 1 个多月，itsuki 反复要求未落实。本次删干净：

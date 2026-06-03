@@ -64,10 +64,12 @@ struct StudyOnlineForm: View {
                             Field(label: "開始日", hint: "オンライン学習開始の 3 日前までに提出してください", required: true) {
                                 ApplyDateField(date: $periodFrom, minDate: ApplyFormDate.threeDaysLater)
                                     .environment(\.timeZone, TimeZone(identifier: "Asia/Tokyo") ?? .current) // 选日按 JST，跟 formatYMD 提交口径一致（非 JST 设备不偏天）
+                                    .environment(\.calendar, ApplyFormDate.tokyoCalendar) // minDate/初值也按 JST 日历算（Codex 6-03）
                             }
                             Field(label: "終了日", required: true) {
                                 ApplyDateField(date: $periodTo, minDate: periodFrom)
                                     .environment(\.timeZone, TimeZone(identifier: "Asia/Tokyo") ?? .current) // 选日按 JST，跟 formatYMD 提交口径一致
+                                    .environment(\.calendar, ApplyFormDate.tokyoCalendar) // minDate/初值也按 JST 日历算（Codex 6-03）
                             }
                         }
                     }

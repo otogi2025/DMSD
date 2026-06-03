@@ -69,8 +69,15 @@ struct ApplyTimeField: View {
 }
 
 enum ApplyFormDate {
+    /// JST 固定日历 —— 让「今天 / N 天后」按日本时间算，不随设备时区漂（跟 formatYMD 固定 JST 配套，Codex 6-03 审出）
+    static var tokyoCalendar: Calendar {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "Asia/Tokyo") ?? .current
+        return c
+    }
+
     static var threeDaysLater: Date {
-        let cal = Calendar.current
+        let cal = tokyoCalendar
         let today0 = cal.startOfDay(for: Date())
         return cal.date(byAdding: .day, value: 3, to: today0) ?? today0
     }

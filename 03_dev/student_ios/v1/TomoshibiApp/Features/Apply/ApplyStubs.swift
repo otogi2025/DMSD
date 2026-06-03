@@ -823,11 +823,21 @@ struct StayForm: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl)
-        .onAppear {
-            guard !didPrefillContact else { return }
+        .onAppear { prefillContact() }
+        .onChange(of: app.currentUser?.account) { _, _ in prefillContact() } // 自动登录冷启动：真实用户晚到时补填一次（Codex 6-03）
+    }
+
+    /// 预填本人联系电话：生产只在拿到真实 currentUser 后填（冷启动假人 SEED.user 不写入字段）；演示构建直接用 SEED 占位。didPrefill 守卫防重复覆盖。
+    private func prefillContact() {
+        guard !didPrefillContact else { return }
+        #if DEMO
+            contactPhone = app.displayUser.phone
             didPrefillContact = true
-            contactPhone = app.displayUser.phone // 登录用户真实电话；演示构建 displayUser=SEED.user 行为不变
-        }
+        #else
+            guard app.currentUser != nil else { return }
+            contactPhone = app.displayUser.phone
+            didPrefillContact = true
+        #endif
     }
 
     // MARK: - subviews
