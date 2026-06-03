@@ -1,6 +1,6 @@
 # Changelog
 
-> **最后更新**: 2026-05-02 晚（**v0.8.0 close** — 5 端代码层全启动（含点呼机骨架）：Android Compose bootstrap + 10 屏 / iOS 网络层完整建设 + AppStore 切真后端 / teacher_web v1 TS+Vite+Zustand 升级 + 5 page / backend rollcall+study+teachers routers + Alembic 框架 / iOS↔backend 字段对齐 F1-F5+Q1）。早些更新：v0.7.0 close（三轨 A+B+C 同日完成 38 条老师反馈 + 实物表 evidence 推翻 LINE 文字推测 + 沟通规则 #6 + SOP §8.5 版本路线图）；v0.6.0 close（老师 4-29 LINE 38 条受领 + RollCall_Spec 5 处时序修订 + system_features 中文骨架大重写）；v0.4.0 + v0.5.0 双 minor 闭合；**版本管理 SOP 建立**
+> **最后更新**: 2026-06-03（**v0.8.1 ~ v0.12.0 回溯补标** — 5-11 ~ 6-02 一个多月连续施工的 236 commit 一次性按语义化版本（SemVer）规范回溯补 6 个版本标签 + CHANGELOG 条目，**当前版本 v0.12.0**；详见下方各版本段顶部「回溯补标说明」banner）。早些更新：2026-05-02 晚（**v0.8.0 close** — 5 端代码层全启动（含点呼机骨架）：Android Compose bootstrap + 10 屏 / iOS 网络层完整建设 + AppStore 切真后端 / teacher_web v1 TS+Vite+Zustand 升级 + 5 page / backend rollcall+study+teachers routers + Alembic 框架 / iOS↔backend 字段对齐 F1-F5+Q1）。早些更新：v0.7.0 close（三轨 A+B+C 同日完成 38 条老师反馈 + 实物表 evidence 推翻 LINE 文字推测 + 沟通规则 #6 + SOP §8.5 版本路线图）；v0.6.0 close（老师 4-29 LINE 38 条受领 + RollCall_Spec 5 处时序修订 + system_features 中文骨架大重写）；v0.4.0 + v0.5.0 双 minor 闭合；**版本管理 SOP 建立**
 >
 > **2026-05-19 注**: v0.8 之后累积 15+ commit 实质推进（5-04 文件联动工具 / 5-08 硬件全定稿 / 5-10 ac-radar / 5-11 cc-comm-rules + graphify / 5-13 文件大整理 / 5-14 anti-ai-flavor / 5-16 跨项目大修 / 5-19 project-overview 大改造 + 防漂 C 方案 / 5-20+ 131 条 bug findings 修复），未到 bump 触发线，详见 WIP + progress_overview。
 >
@@ -16,6 +16,127 @@
 > 打这些标签的目的：让"讨论了十几种方案才写第一版文档"这件事有可追溯的证据链。
 >
 > **2026-04-20 更新**：10 个 pre-0.1 annotated tag（`v0.0.1` - `v0.0.10`）已追认打在 initial commit `3baa168` 上，每个 tag message 里写了对应版本的核心内容 + 指向 CHANGELOG / raw 的指针。`git tag -l | sort -V` 可以看到完整版本历史。
+
+---
+
+> **【2026-06-03 回溯补标说明 · v0.8.1 ~ v0.12.0】** 以下 6 个版本是 5-11 ~ 6-02 一个多月连续施工、当时未及时 bump，于 2026-06-03 一次性按语义化版本（SemVer）规范回溯补打的标签 + 补写的条目。**未改任何代码、未动任何已有 commit、未重写历史** —— 只在各段末端 commit 上打 annotated tag（标签时间对齐对应 commit）。判断依据：**每段含真新功能即次版本号（minor），纯修复 / 开发工具链即修订号（patch）**。终点 v0.12.0，守住「v1.0 = 宿舍正式上线」的承诺。
+
+## [0.12.0] - 2026-06-02（iOS 全面接真后端 IX 系列 + findings 收敛）
+
+> **为什么次版本号**：8 个 feat 是 iOS 多个功能从假数据切到真后端 + itsuki 5-31 决策批新业务规则。虽同时修 30 个 bug（Codex 多轮复审收敛打磨），但「有真新功能」即触发 minor，修 bug 多不降级。对应 commit 段 5-31 ~ 6-02（73 commit），末端 `70f91b0`。
+
+### Added（新功能）
+- iOS 当前用户接真后端 IX-008：后端 `GET /students/me` + iOS 登录拉 /me 替换 SEED 假数据
+- iOS 当月扣分汇总 IX-008b：后端 `GET /discipline/me/summary` + iOS 接线
+- iOS 学習欠席当月计数 IX-034：后端 `GET /absence-requests/me/summary` + iOS StudyAPI
+- iOS IX-004 修改届 / IX-009 通知 / IX-007 申请详情页 接真后端
+- 晚自习 2 次签到 + 纪律 tier 月累计（iOS + Android）
+- itsuki 5-31 决策批：扣分值 / 重算规则 + 密码 8 位 + 注册码 30 分钟有效 + 手动关闭
+
+### Fixed（30 条，节选）
+- PII 隐私清理：三端硬编码真实邮箱 / 手机号清除 + admin 邮箱改环境变量
+- 「寮務一般教師」角色名全链路 25 处统一（简体 → 日语）
+- Android 小 bug 批：静默吞异常 / 版本号 / 邮箱正则 / JSON 注入
+- IX 系列 Codex 多轮收敛：令牌竞态 / 跨月计数 / 时区边界 / 改判扣分回退
+- 后端 pytest 从 193 增至 220 全过
+
+### Notes
+- iOS 防代刷「三缺口」分析被 itsuki「手机不联网」架构常识推翻（ST25DV 改写架构待重设计）
+
+---
+
+## [0.11.0] - 2026-05-30（teacher_web v1.0 完整施工 — 6 大模块）
+
+> **为什么次版本号**：8 个 feat 是老师网页 6 大模块从零建（每个含后端建表 + 迁移 + 接口 + 网页 UI）。对应 commit 段 5-29 ~ 5-30（30 commit，12 fix 是同期收敛），末端 `9f3e336`。
+
+### Added（新功能）
+- 学生账号管理（后端 + 网页，W5）
+- 6 大模块：行事予定 / 巴士时刻表 / 指導履歴 / 事案录入 / 学生个人档案聚合 / 学号一括进级
+- push 推送通知后端骨架
+- 网页前端 FE1-FE4：上述模块 UI + ROSTER 假名单全重接真后端
+
+### Changed
+- W6 删 demo 脚手架 + 生产 API 配置 + seed 密钥 fail-fast + 启动环境守卫
+
+### Fixed
+- W8 修复批 + Codex 4 轮复审收敛（含寮边界 R4 系统性补齐 / StaticFiles import blocker）
+- 全项目审查 175 条 findings 落地
+
+### Notes
+- 新建项目心智模型 skill（AI 开局必读骨架）+ session-coord 自动化 + Dependabot
+
+---
+
+## [0.10.0] - 2026-05-28（宿舍申请表全链路 + iOS 申請界面 + 点呼机硬件定稿）
+
+> **为什么次版本号**：2 个 feat 但都是大块新功能——申请表后端全链路 + iOS 6 个申請界面同时落地。对应 commit 段 5-28（20 commit），末端 `afaec36`。
+
+### Added（新功能）
+- 后端宿舍申请表 5-28 规范实装：出寮届補完 + 校長审批链 + 5 张新表（study_online / dorm_event / schedule / fridge / item）+ alembic d2e3f4a5b6c7
+- iOS 6 个申請界面：在线学习 / 行事企画 / 冷蔵庫 / 物品所持 等 + 校長链修 + demo / 正式版分离
+
+### Changed
+- 点呼机日本本地选型回填 hardware_design + 采购清单 HTML + 接线文档
+- web 登录账号砍到 1 个（新股 / 寮務部長）+ seed 教师数 9 → 1
+
+### Notes
+- ST25DV「116 天磨穿」被 itsuki 常识推翻（点呼非全天刷，伪问题留痕）
+
+---
+
+## [0.9.0] - 2026-05-27（teacher_web 老师网页 v1.0 真接口全实装）
+
+> **为什么次版本号**：38 个 feat 压倒性新功能——老师网页从「纯 UI / 0 真接口」做到「全接后端」。对应 commit 段 5-26 ~ 5-27（75 commit），末端 `aba0659`。
+
+### Added（新功能）
+- 老师网页 Task #6 点呼全流程接后端（start / end / board / WebSocket 实时事件）
+- 申请审批 / 学習出席页 /study / 公告 / 学生登録码面板 / 役职別 home 重定向
+- 实名账户登录改造（取代共用密码）+ 教师创建 / 删除管理页
+- 后端：DemeritEvent / Cleaning / FrontDesk model + router + alembic c1d2e3f4 三张新表
+- 后端：WebSocket /ws/teacher 4 处 broadcast + 自动扣分（spec §7.5）+ 改判扣分联动（§11.4）
+
+### Changed
+- JWT 改 sessionStorage + 401 全局拦截自动 logout + LIVE/DEMO 状态指示器
+
+### Fixed
+- FC-024 删 index.html 明文密码 12345678，接真实认证
+- codex 5.5 xhigh 审查修 3 个阻塞（timedelta import / 越权 / 最后一个 admin lockout）
+
+### Notes
+- 新建 dmsd-startup skill + 重写 DMSD CLAUDE.md（247 → 190 行）
+
+---
+
+## [0.8.2] - 2026-05-24（iOS 上架版融合 + 安全审查修复）
+
+> **为什么修订号**：3 个 feat 是 iOS 上架准备性质（融合上架 fork + 网络层基建 + 删后门），无面向用户的产品大功能。对应 commit 段 5-22 ~ 5-24（15 commit），末端 `6a1b4aa`。
+
+### Added
+- iOS App Store 上架版 fork backport 回主项目 v1
+- 新建 RollCallAPI 网络层 + swiftformat 整理
+
+### Fixed
+- 删 demo scaffold 与 magic value "000000" 注册后门（A-024 / 030 / 033 / 035 / 038）
+- NetworkModels 字段对齐 backend（FC-020 / 021）+ spec 死链修复（FC-017）
+- Fix-Bot effective_* 多端同步 + Codex 第二轮 audit 修 5 处 FC-*
+
+---
+
+## [0.8.1] - 2026-05-16（开发支撑体系 + 沟通规则 + 文档治理）
+
+> **为什么修订号**：5 个 feat 全是开发工具链 / 协作机制（不是 Tomoshibi 产品功能），产品 5 端代码未动。对应 commit 段 5-11 ~ 5-16（23 commit），末端 `8e35338`。
+
+### Added
+- graphify 知识图谱全套上线
+- cc-comm-rules 沟通规则 skill + 3 hook
+- anti-ai-flavor 反 AI 味 skill 立项
+- project-overview 同步 hook + session-wrap 收尾自查清单
+
+### Changed
+- destructive bash hook 从 block 改 warn（不阻断，只提醒）
+
+### Fixed
+- 5-12 深度审查发现的 spec 死链 + 致命缺口修复
 
 ---
 
