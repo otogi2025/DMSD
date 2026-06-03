@@ -1,7 +1,7 @@
 // CommunityStubs.swift · Community feature · v2 HTML-fidelity rewrite
-// Agent C v2 · 18 struct · 对等 JSX 源 33f0266b__NotificationsPage_PackagesPage_PackageDetailPage.js
+// Agent C v2 · 15 struct（宿舍墙 WallView 3 struct 已删，见 IOS_DESIGN_LOG §14.14）· 对等 JSX 源 33f0266b__NotificationsPage_PackagesPage_PackageDetailPage.js
 // Fidelity 铁律：JSX 原文直抄、数值对照 style、Icon 全 Foundation Ic、颜色 T tokens / colorFromHex()
-// v2 HTML 修正：快递 → 宅配 · 宿舍墙 → 寮ウォール · 点歌 → リクエスト曲（C1 中文残留已修）
+// v2 HTML 修正：UI 文字与界面日语对齐（快递/点歌等）+ C1 中文残留已修
 
 import SwiftUI
 
@@ -74,7 +74,7 @@ private struct SegTabs<Value: Hashable>: View {
     }
 }
 
-/// 右上 "+" icon 按钮（Lost / Music / Wall 顶部）
+/// 右上 "+" icon 按钮（Lost / Music 顶部）
 /// 对等 JSX: `width:36, height:36, borderRadius:10, background:T.primary`
 private struct HeaderPlusButton: View {
     let action: () -> Void
