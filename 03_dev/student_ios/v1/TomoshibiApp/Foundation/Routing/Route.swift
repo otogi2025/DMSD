@@ -31,9 +31,6 @@ enum Route: Hashable {
     case homeMusic
     case homeMusicNew
     case homeMusicDetail(id: Int)
-    case homeWall
-    case homeWallNew
-    case homeWallDetail(id: Int)
     case homeEvents
     case homeEventDetail(id: Int)
     case homeBus
@@ -101,9 +98,6 @@ enum Route: Hashable {
         case .homeMusic: return "リクエスト曲"
         case .homeMusicNew: return "投稿"
         case .homeMusicDetail: return "詳細"
-        case .homeWall: return "寮ウォール"
-        case .homeWallNew: return "投稿"
-        case .homeWallDetail: return "詳細"
         case .homeEvents: return "活動"
         case .homeEventDetail: return "詳細"
         case .homeBus: return "バス時刻"

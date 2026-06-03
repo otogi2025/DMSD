@@ -58,7 +58,7 @@
 Home 包含 **除了 申し込み 和 マイページ 之外的所有功能**：
 - 顶部点呼状态 bar（持久 + 可点 → 反馈 sheet）
 - 扣分点数三色
-- Community 全量（宿舍墙 / 点歌 / 遗失物 / 活动 / 巴士 / 建议）
+- Community 全量（~~宿舍墙~~(2026-06-03 削除) / 点歌 / 遗失物 / 活动 / 巴士 / 建议）
 - 快递 / 通知
 - **Home 分 section + 内部 tab** 防止下滑过长（Q3 ✅）
 
@@ -515,7 +515,7 @@ itsuki Q5 指示：**像 Web Round 1 一样，Claude Design 先列 3 variations�
 |---|---|---|
 | §0 认证 / 启动 | Splash + Onboarding + 注册 4 step + 登录 + 锁定 + 密码重置说明 | 10 |
 | §1 Home 主屏 | 主屏 + 10 卡片（分 section / tab）+ 顶部 bar + 3 选 1 sheet + 中央按钮 4 态 | 8 |
-| §1.4 Home 子页 | 通知 / 快递 / 遗失物 / 点歌 / 宿舍墙 / 活动 / 巴士 / 匿名建议 | 18 |
+| §1.4 Home 子页 | 通知 / 快递 / 遗失物 / 点歌 / ~~宿舍墙~~(2026-06-03 削除) / 活动 / 巴士 / 匿名建议 | 18→15 |
 | §2 申し込み | Landing + 7 类申请 form + 详情 + 免点呼查询 + 历史 | 13 |
 | §3 マイページ | Landing + 个人情報 + 8 类历史 + 设置 + 关于 + ログアウト | 14 |
 | §4 跨页组件 | TabBar + home icon + back + 持久 bar + 举报 + 空状态 + 错误 + loading + DEMO badge + confirm | 10 |
@@ -556,7 +556,7 @@ itsuki Q5 指示：**像 Web Round 1 一样，Claude Design 先列 3 variations�
 | N13 | "其他问题" form | 自由文本 + 类型 tag |
 | N14 | Home 全寮统计 | 不显示 |
 | N15 | 快递未领 badge | 红点 + 数字 |
-| N16 | 宿舍墙身份 | **实名** |
+| N16 | ~~宿舍墙身份~~（2026-06-03 削除，落实 4-29 拍板） | ~~实名~~ |
 | N17 | 点歌 source | Apple Music link paste |
 | N18 | 暗色模式 | v1.0 不做 / v2 再做（2026-05-25 推翻） |
 | N19 | 横屏 | 不支持 |
@@ -1151,6 +1151,19 @@ IX-008 Batch 2 收尾的低危残留（handoff §4.2/§7.1）一并清掉：
 
 验证：生产 + 演示双 scheme `BUILD SUCCEEDED`。
 
+### 14.14 删除寮ウォール（学生掲示板）— 落实 4-29 拍板（2026-06-03）
+
+`system_features.md §889` 早在 2026-04-29 就拍板「学生掲示板 🚫 砍」（社区功能不在核心价值 = 点呼/出寮届/学習/扣分），但 iOS 代码里的**寮ウォール**（`WallView` = 宿舍墙 = 学生互相发帖的墙）从没真删 —— 文档砍了、代码漂了 1 个多月，itsuki 反复要求未落实。本次删干净：
+
+- `CommunityStubs.swift` 删 `WallView` / `WallNewView` / `WallDetailView` 3 个 struct + 各自 `#Preview`（§10–§12，约 295 行）
+- `Route.swift` 删 `homeWall` / `homeWallNew` / `homeWallDetail` 3 个 case + 标题映射
+- `RootView.swift` 删 3 行路由映射
+- `SEED.swift` 删 `wall` 假数据（5 条假帖）+ `SeedModels.swift` 删 `WallPost` 类型
+
+后端无 wall 表 / Android 无 Wall 屏 → 五端仅 iOS 一处。生产 + 演示双 scheme `BUILD SUCCEEDED`，全工程 0 残留。
+
+> **⚠️ 同类未处理项（待 itsuki 决策）**：`system_features.md §891` 同样写「匿名建議 投稿 🚫 砍」，但 iOS `SuggestView`（§16）+ `SuggestItem` + `SEED.suggestions` 还在 —— 跟寮ウォール一模一样的「文档砍了代码没删」。本次 itsuki 只点名删宿舍墙，匿名建議待他拍板是否一并删。
+
 ---
 
-**END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）; 5-31 修改届接后端（§14.7）+ 当前用户接 /me（§14.8）; 6-02 IX-008 二审修复 + IX-008b 扣分统计（§14.9）+ IX-034 请假计数按月（§14.10）+ IX-009 通知（§14.11）+ IX-007 详情页（§14.12）+ 6-03 低风险残留清理（表单预填迁 displayUser + 在线自习日期 JST）（§14.13）。
+**END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）; 5-31 修改届接后端（§14.7）+ 当前用户接 /me（§14.8）; 6-02 IX-008 二审修复 + IX-008b 扣分统计（§14.9）+ IX-034 请假计数按月（§14.10）+ IX-009 通知（§14.11）+ IX-007 详情页（§14.12）+ 6-03 低风险残留清理（表单预填迁 displayUser + 在线自习日期 JST）（§14.13）+ 删除寮ウォール（学生掲示板，落实 4-29 拍板）（§14.14）。

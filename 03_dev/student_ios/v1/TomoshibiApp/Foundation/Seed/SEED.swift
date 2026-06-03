@@ -14,7 +14,7 @@ enum SEED {
         nameKana: "りゅう いひ",
         birth: "2006-10-14",
         age: 19,
-        gender: "女",
+        gender: "男", // iosmypage-06：原「女」跟男寮 + 后端 seed(060218 gender=male) 矛盾 → 对齐成男
         dorm: "男寮",
         room: "A5", // demo 房间号 (itsuki 2026-05-28 指定默认 A5)
         category: "一般寮生",
@@ -219,14 +219,6 @@ enum SEED {
         .init(id: 6, title: "マリーゴールド", artist: "あいみょん", by: "03号", up: 8, down: 1),
         .init(id: 7, title: "群青", artist: "YOASOBI", by: "11号", up: 6, down: 0),
         .init(id: 8, title: "ミックスナッツ", artist: "Official髭男dism", by: "09号", up: 4, down: 1),
-    ]
-
-    static let wall: [WallPost] = [
-        .init(id: 1, author: "05号", time: "1時間前", text: "食堂のカレー美味しかった〜", likes: 12, comments: 3),
-        .init(id: 2, author: "08号", time: "3時間前", text: "明日のバス、時間変更に注意!", likes: 5, comments: 1),
-        .init(id: 3, author: "11号", time: "6時間前", text: "自習室の Wi-Fi 遅い気がする", likes: 8, comments: 6),
-        .init(id: 4, author: "03号", time: "昨日", text: "部屋の電球が切れました。交換お願いします", likes: 2, comments: 4),
-        .init(id: 5, author: "14号", time: "2 日前", text: "茶道部の体験会参加しました、楽しかった!", likes: 15, comments: 2),
     ]
 
     static let suggestions: [SuggestItem] = [
