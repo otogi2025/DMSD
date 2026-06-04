@@ -25571,21 +25571,55 @@
                       />
                     )}
 
-                    {/* 点呼 tab */}
-                    {tab === "rollcall" && (
-                      <ProfileList
-                        items={data.rollcall_events}
-                        emptyMsg="点呼の記録がありません"
-                        cols={["状態", "判定ソース", "チェックイン日時"]}
-                        render={(r) => [
+                    {/* 点呼 tab — 杭田 2026-06-04 五-5: 朝点呼 / 夜点呼 分两块显示 */}
+                    {tab === "rollcall" &&
+                      (() => {
+                        const rcCols = [
+                          "状態",
+                          "判定ソース",
+                          "チェックイン日時",
+                        ];
+                        const rcRender = (r) => [
                           r.base_status,
                           r.status_source,
                           r.checked_in_at
                             ? r.checked_in_at.slice(0, 16).replace("T", " ")
                             : "—",
-                        ]}
-                      />
-                    )}
+                        ];
+                        const all = data.rollcall_events || [];
+                        const morning = all.filter(
+                          (r) => r.session_type === "morning",
+                        );
+                        const evening = all.filter(
+                          (r) => r.session_type === "evening",
+                        );
+                        const subhead = {
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: T.ink2,
+                          margin: "4px 0 8px",
+                        };
+                        return (
+                          <div>
+                            <div style={subhead}>朝点呼</div>
+                            <ProfileList
+                              items={morning}
+                              emptyMsg="朝点呼の記録がありません"
+                              cols={rcCols}
+                              render={rcRender}
+                            />
+                            <div style={{ ...subhead, marginTop: 18 }}>
+                              夜点呼
+                            </div>
+                            <ProfileList
+                              items={evening}
+                              emptyMsg="夜点呼の記録がありません"
+                              cols={rcCols}
+                              render={rcRender}
+                            />
+                          </div>
+                        );
+                      })()}
 
                     {/* 指導履歴 tab */}
                     {tab === "guidance" && (

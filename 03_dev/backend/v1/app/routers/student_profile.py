@@ -141,9 +141,14 @@ def get_student_profile(
         .limit(limit)
     ).all()
 
-    # 3. 点呼记录（rollcall_events 表）
-    rollcall_events = db.scalars(
-        select(models.RollCallEvent)
+    # 3. 点呼记录（rollcall_events 表）— join session 取 session_type（朝/夜）
+    #    杭田 2026-06-04 五-5：个人档案点呼履历要朝点呼/夜点呼分开，故带上 session_type
+    rollcall_rows = db.execute(
+        select(models.RollCallEvent, models.RollCallSession.session_type)
+        .join(
+            models.RollCallSession,
+            models.RollCallSession.id == models.RollCallEvent.session_id,
+        )
         .where(models.RollCallEvent.student_id == student_id)
         .order_by(models.RollCallEvent.checked_in_at.desc())
         .limit(limit)
@@ -230,11 +235,12 @@ def get_student_profile(
             schemas.ProfileRollCallEntry(
                 id=rce.id,
                 session_id=rce.session_id,
+                session_type=session_type,
                 base_status=rce.base_status,
                 status_source=rce.status_source,
                 checked_in_at=rce.checked_in_at,
             )
-            for rce in rollcall_events
+            for rce, session_type in rollcall_rows
         ],
         guidance_records=[
             schemas.ProfileGuidanceEntry(

@@ -234,6 +234,45 @@ class TestStudentProfile:
         assert res.status_code == 403
         assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
 
+    def test_rollcall_entries_carry_session_type(
+        self, client, db_session, profile_seed
+    ):
+        """杭田 2026-06-04 五-5: 点呼履历每条带 session_type（morning/evening），能分朝/夜。"""
+        from datetime import datetime, timezone
+
+        student = profile_seed["student"]
+        now = datetime(2026, 5, 10, 7, 0, tzinfo=timezone.utc)
+        sess = models.RollCallSession(
+            dorm_unit_set=[1, 2],
+            session_type="morning",
+            day_type="weekday",
+            scheduled_window_start_at=now,
+            scheduled_on_time_end_at=now,
+            scheduled_late_end_at=now,
+            scheduled_auto_end_at=now,
+        )
+        db_session.add(sess)
+        db_session.flush()
+        ev = models.RollCallEvent(
+            session_id=sess.id,
+            student_id=student.id,
+            base_status="present",
+            status_source="auto_nfc",
+            checked_in_at=now,
+        )
+        db_session.add(ev)
+        db_session.commit()
+
+        tok = _tok(client, "ryomu_test")
+        res = client.get(
+            f"/api/v1/students/{student.id}/profile",
+            headers={"Authorization": f"Bearer {tok}"},
+        )
+        assert res.status_code == 200, res.text
+        rc = res.json()["rollcall_events"]
+        assert len(rc) == 1, rc
+        assert rc[0]["session_type"] == "morning", rc[0]
+
 
 # -----------------------------------------------------------------------
 # 一括進級 tests

@@ -1436,6 +1436,7 @@ class ProfileRollCallEntry(BaseModel):
 
     id: UUID
     session_id: UUID
+    session_type: str  # morning / evening — 杭田 2026-06-04 五-5 要朝/夜分开
     base_status: str  # present / late / absent / exempt_range
     status_source: str
     checked_in_at: datetime
