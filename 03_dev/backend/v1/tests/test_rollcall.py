@@ -199,6 +199,45 @@ class TestBoard:
         # 非 demo 的 seed 学生（060218）必须在板上 — 证明板非空、过滤没误杀正常学生
         assert seed_data["student"].student_no in nos, f"seed 学生不在板上: {nos}"
 
+    def test_board_premarks_approved_outstay(
+        self, client, teacher_token, seed_data, rollcall_session, db_session
+    ):
+        """杭田 2026-06-04 三-3/5: 有 approved 出寮願覆盖今天的学生，live 板预标 exempt_range。
+
+        无点呼 event 也要显示成「外泊免除」，让寮監一眼看到不用管，不必等结算。
+        """
+        from datetime import date, datetime, time, timedelta, timezone
+
+        sid = seed_data["student"].id
+        today = date.today()
+        app = models.Application(
+            student_id=sid,
+            kind="帰省",
+            leave_date=today - timedelta(days=1),
+            leave_method="新幹線",
+            leave_time=time(19, 0),
+            return_date=today + timedelta(days=1),
+            return_method="新幹線",
+            return_time=time(20, 0),
+            status="approved",
+            submitted_at=datetime.now(timezone.utc),
+        )
+        db_session.add(app)
+        db_session.commit()
+
+        res = client.get(
+            f"/api/v1/rollcall/sessions/{rollcall_session.id}/board",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 200, res.text
+        entries = res.json()["entries"]
+        mine = next(
+            (e for e in entries if e["student_no"] == seed_data["student"].student_no),
+            None,
+        )
+        assert mine is not None, entries
+        assert mine["base_status"] == "exempt_range", mine
+
 
 class TestNoEffectiveWindowShift:
     """A-022 b1 regression — 窗口永远固定 (effective_* 已删).

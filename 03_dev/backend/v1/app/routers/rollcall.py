@@ -465,6 +465,21 @@ def session_board(
         ):
             event_map[e.student_id] = e
 
+    # 杭田 2026-06-04 三-3/5: 出寮願（承認済 + 期间内）的学生在 live 板上先标 exempt_range，
+    # 让寮監一眼看到「今天有出寮願、不用管」，不必等点呼結束自动结算才显示。
+    # 出寮願口径与 _settle_absent 的 outstay_ids 保持一致。
+    session_date = _as_jst_aware(session.scheduled_window_start_at).date()
+    outstay_ids = set(
+        db.scalars(
+            select(models.Application.student_id).where(
+                models.Application.student_id.in_([s.id for s in students]),
+                models.Application.status == "approved",
+                models.Application.leave_date <= session_date,
+                models.Application.return_date >= session_date,
+            )
+        ).all()
+    )
+
     entries: list[schemas.RollCallBoardEntryOut] = []
     summary: dict[str, int] = {
         "present": 0,
@@ -475,7 +490,12 @@ def session_board(
     }
     for s in students:
         e = event_map.get(s.id)
-        st = e.base_status if e else "init"
+        if e:
+            st = e.base_status
+        elif s.id in outstay_ids:
+            st = "exempt_range"  # 有 approved 出寮願、还没点呼 event → 先标免除
+        else:
+            st = "init"
         summary[st] = summary.get(st, 0) + 1
         entries.append(
             schemas.RollCallBoardEntryOut(
