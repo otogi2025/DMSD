@@ -150,6 +150,140 @@ def create_application(
 
 
 # ---------------------------------------------------------------
+# POST /applications/by-teacher — 杭田 2026-06-04 五-3: 老师代学生当日补录
+# ---------------------------------------------------------------
+_DAIROKU_ROLES = {"寮務部長", "寮務課長", "寮監", "寮務一般教師", "管理係"}
+
+
+@router.post(
+    "/by-teacher",
+    response_model=schemas.ApplicationOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_application_by_teacher(
+    body: schemas.ApplicationCreateIn,
+    student_id: UUID = Query(...),
+    db: Session = Depends(get_db),
+    teacher: models.Teacher = Depends(get_current_teacher),
+):
+    """老师代学生补录出寮届（杭田五-3「教師用は当日入力も可」）。
+
+    与学生自助提交 POST /applications 的区别：
+    ① 鉴权用老师（限寮務系角色）；② student_id 由老师指定（受 R4 寮边界）；
+    ③ 允许当日（leave_date >= 今天，仅禁过去日；学生侧必须明天以后）。
+    其余（审批链 / 提交邮件通知 / WebSocket 推送）与学生提交完全一致。
+    """
+    if teacher.role not in _DAIROKU_ROLES:
+        raise HTTPException(
+            403, {"code": "FORBIDDEN_ROLE", "message": "代録権限がありません"}
+        )
+
+    student = db.get(models.Student, student_id)
+    if not student:
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "学生が見つかりません"}
+        )
+
+    # R4 寮边界：老师只能给管辖寮的学生代録
+    if not _teacher_can_view(teacher, student):
+        raise HTTPException(
+            403, {"code": "FORBIDDEN_DORM", "message": "担当外の寮の学生です"}
+        )
+
+    # 老师代録放宽到「当日も可」，但仍禁过去日
+    if body.leave_date < datetime.now(_JST).date():
+        raise HTTPException(
+            422,
+            {
+                "code": "LEAVE_DATE_PAST",
+                "message": "出寮日は本日以降を指定してください",
+            },
+        )
+
+    app_kwargs = {
+        "student_id": student.id,
+        "kind": body.kind,
+        "reason": body.reason,
+        "leave_date": body.leave_date,
+        "leave_method": body.leave_method,
+        "leave_time": body.leave_time,
+        "return_date": body.return_date,
+        "return_method": body.return_method,
+        "return_time": body.return_time,
+        "contact_phone": body.contact_phone,
+        "meal_note": body.meal_note,
+        "taxi_reservation_time": body.taxi_reservation_time,
+        "status": "pending",
+    }
+    if isinstance(body, schemas.KisheiCreateIn):
+        app_kwargs.update(is_long_vacation=body.is_long_vacation)
+    elif isinstance(body, schemas.GaihakuCreateIn):
+        app_kwargs.update(
+            stay_locations=[loc.model_dump() for loc in body.stay_locations],
+            meals_skip=[e.model_dump(mode="json") for e in body.meals_skip] or None,
+            companion=body.companion,
+            dest_cities=body.dest_cities,
+        )
+    elif isinstance(body, schemas.KikokuCreateIn):
+        app_kwargs.update(
+            stay_locations=[loc.model_dump() for loc in body.stay_locations],
+            meals_skip=[e.model_dump(mode="json") for e in body.meals_skip] or None,
+            companion=body.companion,
+            dest_cities=body.dest_cities,
+            flight_dep_air=body.flight_dep_air,
+            flight_dep_at=body.flight_dep_at,
+            flight_arr_air=body.flight_arr_air,
+            flight_arr_at=body.flight_arr_at,
+        )
+
+    application = models.Application(**app_kwargs)
+    application.student = student
+    db.add(application)
+    db.flush()
+
+    approval_chain.build_chain(db, application)
+    teachers, to_emails = approval_chain.collect_recipients(db, application)
+    notification_log = email_svc.send_application_submitted(
+        db,
+        application=application,
+        student=student,
+        teachers=teachers,
+        to_emails=to_emails,
+    )
+
+    db.add(
+        models.AuditLog(
+            actor_type="teacher",
+            actor_id=teacher.id,
+            action="application.submit_by_teacher",
+            target_type="application",
+            target_id=application.id,
+            payload={
+                "kind": application.kind,
+                "student_id": str(student.id),
+                "notification_log_id": str(notification_log.id),
+            },
+        )
+    )
+    db.commit()
+    db.refresh(application)
+
+    _ws.manager.broadcast_sync(
+        {
+            "type": "outstay_new",
+            "application_id": str(application.id),
+            "student_id": str(student.id),
+            "kind": application.kind,
+            "leave_date": application.leave_date.isoformat(),
+            "return_date": application.return_date.isoformat(),
+            "student_name": student.name,
+        }
+    )
+
+    return _to_application_out(application)
+
+
+# ---------------------------------------------------------------
 # GET /applications/mine — 学生 自分の履歴
 # ---------------------------------------------------------------
 @router.get("/mine", response_model=list[schemas.ApplicationOut])

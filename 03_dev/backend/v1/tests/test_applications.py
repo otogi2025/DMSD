@@ -607,3 +607,82 @@ class TestActiveLeaves:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code in (401, 403), res.text
+
+
+class TestApplicationByTeacher:
+    """杭田 2026-06-04 五-3: 老师代学生补录 POST /applications/by-teacher（当日可、限寮務系）。"""
+
+    def _today_body(self, *, leave_delta=0):
+        from datetime import date, timedelta
+
+        leave = date.today() + timedelta(days=leave_delta)
+        ret = leave + timedelta(days=2)
+        return {
+            "kind": "帰省",
+            "leave_date": leave.isoformat(),
+            "leave_method": "新幹線",
+            "leave_time": "19:00:00",
+            "return_date": ret.isoformat(),
+            "return_method": "新幹線",
+            "return_time": "20:00:00",
+            "reason": "代録テスト",
+        }
+
+    def test_teacher_dairoku_today_success(self, client, teacher_token, seed_data):
+        """寮務課長代録 当日出寮届 → 201 pending（学生侧禁当日、老师侧放宽）。"""
+        sid = str(seed_data["student"].id)
+        res = client.post(
+            f"/api/v1/applications/by-teacher?student_id={sid}",
+            json=self._today_body(leave_delta=0),
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 201, res.text
+        assert res.json()["status"] == "pending"
+        assert res.json()["student_id"] == sid
+
+    def test_teacher_dairoku_past_rejected(self, client, teacher_token, seed_data):
+        """过去日仍禁（只放宽到当日）→ 422。"""
+        sid = str(seed_data["student"].id)
+        res = client.post(
+            f"/api/v1/applications/by-teacher?student_id={sid}",
+            json=self._today_body(leave_delta=-1),
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 422, res.text
+        assert res.json()["detail"]["code"] == "LEAVE_DATE_PAST"
+
+    def test_non_dairoku_role_forbidden(self, client, seed_data):
+        """非寮務系角色（国際交流部長）不能代録 → 403。"""
+        from app import security
+
+        kokukou = seed_data["teachers"]["kokukou_buchou"]
+        token = security.create_access_token(kokukou.id, f"teacher:{kokukou.role}")
+        sid = str(seed_data["student"].id)
+        res = client.post(
+            f"/api/v1/applications/by-teacher?student_id={sid}",
+            json=self._today_body(),
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert res.status_code == 403, res.text
+        assert res.json()["detail"]["code"] == "FORBIDDEN_ROLE"
+
+    def test_student_token_rejected(self, client, student_token, seed_data):
+        """学生 token 不能用代録端点。"""
+        sid = str(seed_data["student"].id)
+        res = client.post(
+            f"/api/v1/applications/by-teacher?student_id={sid}",
+            json=self._today_body(),
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code in (401, 403), res.text
+
+    def test_nonexistent_student_404(self, client, teacher_token):
+        """代録不存在的学生 → 404。"""
+        import uuid as _uuid
+
+        res = client.post(
+            f"/api/v1/applications/by-teacher?student_id={_uuid.uuid4()}",
+            json=self._today_body(),
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 404, res.text
