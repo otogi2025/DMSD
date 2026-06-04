@@ -41,6 +41,7 @@
 		9D19C569089A3E9876D257CF /* UIAtoms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34F1E4B79C3FBE44EA30BC5A /* UIAtoms.swift */; };
 		9D5C7625BD899998AEA129C5 /* ScheduleStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 442041B74BB2BF0DA65D37EE /* ScheduleStubs.swift */; };
 		9F98E4CC9626DDB3E7C20C57 /* PrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A126A1C40F8EB5EEE3352EB1 /* PrimaryButton.swift */; };
+		9FB22C6E5D1309D2C48F336E /* EventsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE8464C86A7E2262CDCEA498 /* EventsAPI.swift */; };
 		AB4D2651D244A811A15C2976 /* DormLifeForms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8931D8D354707BEEA3881238 /* DormLifeForms.swift */; };
 		B1E6FCA177F7821D3694AE43 /* DormLifeAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFDFE87D987EF1A14F86E420 /* DormLifeAPI.swift */; };
 		B44CB0467883974CE94C820A /* TopRollBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F5108D87904D498A8215B0 /* TopRollBar.swift */; };
@@ -105,6 +106,7 @@
 		A51F55689BD2BD070068D34D /* BusListStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BusListStubs.swift; sourceTree = "<group>"; };
 		A652D7FC37C1A6417822DCAA /* Toast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Toast.swift; sourceTree = "<group>"; };
 		AA7AF5C9B2CC81DAB8E4646C /* 11634884981319087675 */ = {isa = PBXFileReference; path = 11634884981319087675; sourceTree = "<group>"; };
+		AE8464C86A7E2262CDCEA498 /* EventsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsAPI.swift; sourceTree = "<group>"; };
 		AF988C23F66A4E622622302F /* Ic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ic.swift; sourceTree = "<group>"; };
 		AFDFE87D987EF1A14F86E420 /* DormLifeAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DormLifeAPI.swift; sourceTree = "<group>"; };
 		B2FD432EFB4459068B330D99 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
@@ -134,6 +136,7 @@
 				957056CB9FD91DC0E2D033C9 /* AuthAPI.swift */,
 				8771AACE31B06D1D9DAF7044 /* BusAPI.swift */,
 				AFDFE87D987EF1A14F86E420 /* DormLifeAPI.swift */,
+				AE8464C86A7E2262CDCEA498 /* EventsAPI.swift */,
 				B6BED925E6CDEDFF9B146D29 /* RollCallAPI.swift */,
 				DD89B96B9E1EC056A73411B6 /* StudyAPI.swift */,
 			);
@@ -486,6 +489,7 @@
 				DA74DBACDF5EF9838F3C3074 /* ContractFilePicker.swift in Sources */,
 				B1E6FCA177F7821D3694AE43 /* DormLifeAPI.swift in Sources */,
 				AB4D2651D244A811A15C2976 /* DormLifeForms.swift in Sources */,
+				9FB22C6E5D1309D2C48F336E /* EventsAPI.swift in Sources */,
 				E363F1F7E2C186333C36782E /* Field.swift in Sources */,
 				8F964714A4052D7FDE85B3A1 /* GlassBackdrop.swift in Sources */,
 				F55F4FC9A7444F2E2004E521 /* GlassCard.swift in Sources */,

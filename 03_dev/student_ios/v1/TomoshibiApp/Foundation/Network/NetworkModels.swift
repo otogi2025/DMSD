@@ -208,6 +208,33 @@ struct BusRouteListOut: Decodable {
     let items: [BusRouteOut]
 }
 
+// MARK: - 行事预定（日历「行事予定」页）
+
+/// 行事预定响应体（GET /api/v1/events 列表里的单条）。spec §7.5。
+/// category 是后端枚举值，取值之一：「学校行事」「寮行事」「外部」「その他」。
+///
+/// 注意 event_date 解码成 String 不是 Date：后端这个字段是纯日期 "2026-04-23"（无时分、无时区），
+/// 而全局 JSONDecoder 用 ISO8601 解 Date（要带完整时分时区），裸日期会整段解码失败。
+/// 跟 StudyAbsenceRequestOut.target_date 同理处理。
+/// start_at / end_at 是带时分时区的完整时刻（可空），照常解成 Date?。
+struct EventOut: Decodable, Hashable, Identifiable {
+    let id: UUID
+    let title: String
+    let category: String
+    let event_date: String // "2026-04-23"（纯日期，无时分）
+    let start_at: Date? // 开始时刻（带时分时区，可空）
+    let end_at: Date? // 结束时刻（可空）
+    let description: String?
+    let created_by_teacher_id: UUID
+    let created_at: Date
+    let updated_at: Date?
+}
+
+/// GET /api/v1/events 列表包装
+struct EventListOut: Decodable {
+    let items: [EventOut]
+}
+
 // MARK: - 学生新规注册（POST /accounts，2026-05-04 加）
 
 /// POST /api/v1/accounts 请求 body

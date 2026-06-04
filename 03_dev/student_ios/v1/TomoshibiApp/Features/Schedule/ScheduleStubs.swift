@@ -1,18 +1,25 @@
-// ScheduleStubs.swift · 行事予定 月历
+// ScheduleStubs.swift · 行事预定 月历（日历「行事予定」页）
 // ⭐ 会话 C · 老師 38 条 #9「行事予定の表示（参考用）」+ Q9「現有日历不够要加强」
 //
-// API 対応（B 未到位 → SEED.events 使用）:
-//   GET /events?from=&to=    → ScheduleView          (system_features §7.5)
+// API 对接（杭田 2026-06-04 需求「一・行事予定表示」）:
+//   GET /api/v1/events?from_date=&to_date=   → ScheduleView   (system_features §7.5)
+//   后端 routers/events.py 已实装，学生 + 老师都可看。
 //
-// 既存の demo 用 EventsView（CommunityStubs.swift）との違い:
-//   - demo EventsView: 4 月 / 5 月 のみハードコード
-//   - 本 ScheduleView: SEED.events から自動的に月レンジを算出 → 任意月にスクロール
-//   - イベント詳細は既存 EventDetailView を再利用（router.go(.homeEventDetail(id:))）
+// 三态加载（仿 BusListView.load，见同工程 BusListStubs.swift）:
+//   - 未登录       → 回退 SEED.events（开发态 / Apple 审核员没真账号也能看效果）
+//   - 已登录       → 拉真后端，把 EventOut 映射成 UI 用的 EventItem
+//   - 已登录但失败  → 不喂假数据（清空 + 报错）；401 清登录态
+//
+// 跟既存 demo 用的 EventsView（CommunityStubs.swift）的区别:
+//   - demo EventsView: 只硬编码了 4 月 / 5 月
+//   - 本 ScheduleView: 从数据源（真后端或 SEED 兜底）自动算出月份范围 → 可滚到任意月
+//   - 详情页 EventDetailView 按 SEED 下标取数 → 只在「用 SEED 兜底」时才跳详情（见 onTapEvent）
 
 import SwiftUI
 
 struct ScheduleView: View {
     @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore // 判断登录态：已登录拉真后端 / 未登录回退 SEED
 
     /// 表示中の月（YearMonth）
     @State private var ym: YearMonth = ScheduleView.initialYearMonth()
@@ -20,12 +27,23 @@ struct ScheduleView: View {
     /// 選択された日（同じ月の中で nil 不可になったら 1）
     @State private var selectedDay: Int = ScheduleView.initialDay()
 
+    /// 数据源：未登录 = SEED.events 兜底；已登录 = 后端 GET /api/v1/events 映射结果。
+    @State private var events: [EventItem] = []
+    @State private var isLoading: Bool = false
+    @State private var loadError: String? = nil // 已登录拉取失败时的报错（不喂假数据，见 load）
+    /// true = 当前数据源是 SEED 兜底（未登录）。决定点击行事行能否跳 SEED 下标制的详情页。
+    @State private var usingMock: Bool = false
+
     private var monthRange: ClosedRange<YearMonth> {
-        let all = SEED.events.compactMap { YearMonth(from: $0.date) }
+        let all = events.compactMap { YearMonth(from: $0.date) }
         guard let lo = all.min(), let hi = all.max() else {
-            return YearMonth(year: 2026, month: 4) ... YearMonth(year: 2026, month: 5)
+            // 还没数据（加载中 / 空）时给个含「今天」的安全范围，月份切换按钮不会全灰
+            let now = ScheduleView.initialYearMonth()
+            return now ... now
         }
-        return lo ... hi
+        // 确保「今天」所在月一定在范围内（即使该月无行事，也能停在今天那一页）
+        let now = ScheduleView.initialYearMonth()
+        return min(lo, now) ... max(hi, now)
     }
 
     var body: some View {
@@ -33,8 +51,22 @@ struct ScheduleView: View {
             PageHeader(title: "行事予定", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    calendarCard
-                    selectedDaySection
+                    if isLoading && events.isEmpty {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 40)
+                    } else if let err = loadError, events.isEmpty {
+                        EmptyState(
+                            icon: "calendar",
+                            title: "読み込みに失敗しました",
+                            message: err
+                        )
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 20)
+                    } else {
+                        calendarCard
+                        selectedDaySection
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
@@ -43,6 +75,53 @@ struct ScheduleView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl.ignoresSafeArea())
+        .task { await load() }
+    }
+
+    // MARK: 数据加载（已登录拉真后端 / 未登录或失败回退 SEED）
+
+    /// 未登录 → 回退 SEED.events（开发无 backend / Apple 审核员没真账号也能看日历效果）。
+    /// 已登录 → GET /api/v1/events 真数据，映射成 EventItem。
+    /// 已登录但拉取失败 → 不喂假行事（避免学生照着假日期跑活动 / 误事）：
+    ///   401（token 失效）清登录态 + 提示重登；其它错误显示报错 + 空列表。
+    /// 一次取够范围（去年初到明年底），月份切换不再二次请求。
+    private func load() async {
+        isLoading = true
+        defer { isLoading = false }
+        guard app.isAuthenticated else {
+            events = SEED.events
+            usingMock = true
+            return
+        }
+        loadError = nil
+        let (from, to) = ScheduleView.fetchRange()
+        do {
+            let raw = try await EventsAPI.listEvents(fromDate: from, toDate: to)
+            events = EventMapper.map(raw)
+            usingMock = false
+        } catch APIError.unauthorized {
+            // token 失效：清登录态（令牌已死）+ 明确提示重登。
+            // 不留空列表让用户误以为「没有行事」，也不退回 SEED 假数据。
+            app.authToken = nil
+            loadError = "セッションの有効期限が切れました。再度ログインしてください。"
+            events = []
+            usingMock = false
+        } catch {
+            loadError = APIErrorPresenter.userMessage(
+                for: error,
+                fallback: "行事予定の取得に失敗しました"
+            )
+            events = []
+            usingMock = false
+        }
+    }
+
+    /// 点击某行事 → 跳详情页。
+    /// 详情页 EventDetailView 是按 SEED.events 的下标取数的（历史 demo 实现），
+    /// 所以只有「用 SEED 兜底」时跳转才安全；拉了真后端时下标对不上 → 不跳（行内已显示完整信息）。
+    private func onTapEvent(_ e: EventItem) {
+        guard usingMock, let idx = SEED.events.firstIndex(where: { $0.id == e.id }) else { return }
+        router.go(.homeEventDetail(id: idx))
     }
 
     // MARK: 月切替 + 日グリッド
@@ -189,8 +268,7 @@ struct ScheduleView: View {
                 }
             } else {
                 ForEach(evs, id: \.id) { e in
-                    let idx = SEED.events.firstIndex(where: { $0.id == e.id }) ?? 0
-                    Button { router.go(.homeEventDetail(id: idx)) } label: {
+                    Button { onTapEvent(e) } label: {
                         eventRow(e)
                     }
                     .buttonStyle(.plain)
@@ -247,7 +325,7 @@ struct ScheduleView: View {
     }
 
     private var eventsInMonth: Int {
-        SEED.events.filter { isInMonth($0.date) }.count
+        events.filter { isInMonth($0.date) }.count
     }
 
     private func isInMonth(_ s: String) -> Bool {
@@ -257,7 +335,7 @@ struct ScheduleView: View {
 
     private func eventsForDay(_ day: Int) -> [EventItem] {
         let dateStr = String(format: "%d-%02d-%02d", ym.year, ym.month, day)
-        return SEED.events.filter { $0.date == dateStr }
+        return events.filter { $0.date == dateStr }
     }
 
     private func weekdayColor(_ d: String) -> Color {
@@ -289,6 +367,39 @@ struct ScheduleView: View {
 
     private static func initialDay() -> Int {
         today.day
+    }
+
+    /// 一次取够的日期范围：今年 1 月 1 日 到 明年 12 月 31 日。
+    /// 覆盖整个学年 + 跨年，月份切换不必二次请求后端。返回 ("yyyy-MM-dd", "yyyy-MM-dd")。
+    private static func fetchRange() -> (from: String, to: String) {
+        let y = today.year
+        return (from: String(format: "%d-01-01", y - 1), to: String(format: "%d-12-31", y + 1))
+    }
+}
+
+// MARK: - EventMapper（后端 EventOut → UI 用 EventItem 映射）
+
+enum EventMapper {
+    /// 把后端行事预定映射成日历 UI 用的 EventItem。
+    /// - date：直接用后端的纯日期字符串 event_date（"2026-04-23"）。
+    /// - time：有 start_at 就按日本时区格式成 "HH:mm"，没有就空字符串（日历行不显示时刻）。
+    /// - place：后端 EventOut 没有「场所」字段，统一留空（详情页里也不会画场所行）。
+    /// - desc：用后端 description，空则空串。
+    static func map(_ outs: [EventOut]) -> [EventItem] {
+        let timeFmt = DateFormatter()
+        timeFmt.locale = Locale(identifier: "en_US_POSIX")
+        timeFmt.timeZone = TimeZone(identifier: "Asia/Tokyo") ?? .current
+        timeFmt.dateFormat = "HH:mm"
+
+        return outs.map { o in
+            EventItem(
+                date: o.event_date,
+                time: o.start_at.map { timeFmt.string(from: $0) } ?? "",
+                title: o.title,
+                place: "",
+                desc: o.description ?? ""
+            )
+        }
     }
 }
 
