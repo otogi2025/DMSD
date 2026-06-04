@@ -11,7 +11,7 @@ POST /api/v1/applications/{id}/approvals         — #10 役職承認/拒否
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 from typing import Optional
 from uuid import UUID
@@ -214,6 +214,62 @@ def list_pending_for_me(
         .order_by(models.Application.submitted_at.asc())
     )
     # R4 dorm filter（join 已在上面加了，这里只追加 where）
+    if teacher.assigned_dorm is not None and teacher.role not in {
+        "校長",
+        "寮務部長",
+        "寮務課長",
+        "国際交流部長",
+        "国際交流課長",
+        "管理係",
+    }:
+        if teacher.assigned_dorm == 1:
+            stmt = stmt.where(models.Student.dorm_unit.in_([1, 2]))
+        else:
+            stmt = stmt.where(models.Student.dorm_unit == teacher.assigned_dorm)
+    apps = db.scalars(stmt).all()
+    return [_to_application_out(a) for a in apps]
+
+
+# ---------------------------------------------------------------
+# GET /applications/active — 杭田 2026-06-04 四: 事務室 PC 出寮者一覧
+# 静态路径 → 必须在动态 /{id} 之前注册，否则 "active" 被当 UUID 解析。
+# ---------------------------------------------------------------
+@router.get("/active", response_model=list[schemas.ApplicationOut])
+def list_active_leaves(
+    on_date: Optional[date] = Query(None, alias="date"),
+    db: Session = Depends(get_db),
+    teacher: models.Teacher = Depends(get_current_teacher),
+):
+    """事務室 PC 用「現在出寮中の学生一覧」（只读汇总）。
+
+    指定日（默认 = 本日 JST）出寮中 = status='approved' 且
+    leave_date <= 指定日 <= return_date 的届。approved_partial（部分通过）
+    还没获准、不计入。按 R4 寮边界过滤，前端再分 1,2寮 / 4寮 两块显示
+    （没有编辑接口 = 防误删）。
+    """
+    target = on_date or datetime.now(_JST).date()
+    stmt = (
+        select(models.Application)
+        .join(
+            models.Student,
+            models.Student.id == models.Application.student_id,
+        )
+        .where(
+            models.Application.status == "approved",
+            models.Application.leave_date <= target,
+            models.Application.return_date >= target,
+            models.Student.is_demo.is_(False),
+        )
+        .options(
+            selectinload(models.Application.approvals),
+            selectinload(models.Application.student),
+        )
+        .order_by(
+            models.Student.dorm_unit.asc(),
+            models.Application.leave_date.asc(),
+        )
+    )
+    # R4 寮边界过滤（跟 pending-for-me 同一套逻辑）
     if teacher.assigned_dorm is not None and teacher.role not in {
         "校長",
         "寮務部長",

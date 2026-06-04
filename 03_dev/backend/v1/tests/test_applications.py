@@ -502,3 +502,108 @@ class TestApprovalNotifiesStudent:
         assert len(logs) == 1, "全承認時に通知 1 行"
         assert logs[0].payload.get("result") == "approved"
         assert logs[0].target_email == "ryu@test.jp"
+
+
+class TestActiveLeaves:
+    """杭田 2026-06-04 四: GET /applications/active 出寮者一覧。
+
+    只返 status='approved' 且 leave_date <= 指定日 <= return_date 的届；
+    approved_partial / pending 不算；按 R4 寮边界过滤；纯只读无编辑接口。
+    """
+
+    def _approved_active(
+        self, client, student_token, db_session, *, leave_delta=-1, return_delta=1
+    ) -> str:
+        """造一条 approved 且当天在出寮期间内的届（直接改库绕过「出寮日必须未来」校验）。"""
+        from datetime import date, timedelta
+        from uuid import UUID
+
+        from app import models
+
+        res = client.post(
+            "/api/v1/applications",
+            json=_kisei_body(),
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 201, res.text
+        app_id = res.json()["id"]
+        row = db_session.get(models.Application, UUID(app_id))
+        row.status = "approved"
+        row.leave_date = date.today() + timedelta(days=leave_delta)
+        row.return_date = date.today() + timedelta(days=return_delta)
+        db_session.commit()
+        return app_id
+
+    def test_active_lists_approved_in_range(
+        self, client, student_token, teacher_token, db_session
+    ):
+        """approved + 今天在出寮期间内 → 出现在一覧。"""
+        app_id = self._approved_active(client, student_token, db_session)
+        res = client.get(
+            "/api/v1/applications/active",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 200, res.text
+        assert app_id in [a["id"] for a in res.json()]
+
+    def test_active_excludes_pending(
+        self, client, student_token, teacher_token, db_session
+    ):
+        """pending（未审批）不出现在一覧。"""
+        res0 = client.post(
+            "/api/v1/applications",
+            json=_kisei_body(),
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        pid = res0.json()["id"]
+        res = client.get(
+            "/api/v1/applications/active",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 200, res.text
+        assert pid not in [a["id"] for a in res.json()]
+
+    def test_active_excludes_out_of_range(
+        self, client, student_token, teacher_token, db_session
+    ):
+        """approved 但出寮日在未来（还没出寮）→ 不出现。"""
+        app_id = self._approved_active(
+            client, student_token, db_session, leave_delta=5, return_delta=8
+        )
+        res = client.get(
+            "/api/v1/applications/active",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 200, res.text
+        assert app_id not in [a["id"] for a in res.json()]
+
+    def test_active_dorm_boundary(self, client, student_token, db_session):
+        """dorm4 担任老师看不到 dorm1 学生的出寮（R4 边界）。"""
+        from app import models, security
+
+        app_id = self._approved_active(client, student_token, db_session)
+        other = models.Teacher(
+            login_id="onna_t2",
+            name="女寮担任2",
+            email="ot2@test.jp",
+            password_hash=security.hash_password("test-password-12345"),
+            role="寮務一般教師",
+            assigned_dorm=4,
+        )
+        db_session.add(other)
+        db_session.commit()
+        token = security.create_access_token(other.id, f"teacher:{other.role}")
+        res = client.get(
+            "/api/v1/applications/active",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert res.status_code == 200, res.text
+        assert app_id not in [a["id"] for a in res.json()]
+
+    def test_active_requires_teacher(self, client, student_token):
+        """学生 token 不能看出寮者一覧。"""
+        res = client.get(
+            "/api/v1/applications/active",
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code in (401, 403), res.text
