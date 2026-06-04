@@ -15,7 +15,7 @@
  *
  * Endpoint 全集 26 个（按 backend FastAPI routers 分类）：
  *   Auth         — teacherLogin
- *   Applications — pendingForMe / getApplication / decide / getAuditLog
+ *   Applications — pendingForMe / getApplication / decide / getAuditLog / activeLeaves
  *   Study        — studyTodayAttendees / studyCheckin / studyFinalize /
  *                  absenceRequests / decideAbsence / cancelToday
  *   Rollcall     — rollcallTodaySessions / rollcallStart / rollcallEnd /
@@ -84,6 +84,16 @@
       ),
     getAuditLog: (id, token) =>
       request("GET", `/applications/${id}/audit`, undefined, token),
+    // 2026-06-04 杭田需求「四、出寮者一覧」— 拉当天在出寮期间内、已承认的届。
+    // date 可省略（默认今天）；返回 ApplicationOut 数组（已按老师寮边界过滤）。
+    activeLeaves: (token, date) =>
+      request(
+        "GET",
+        "/applications/active" +
+          (date ? "?date=" + encodeURIComponent(date) : ""),
+        undefined,
+        token,
+      ),
 
     // ── Study ──
     studyTodayAttendees: (token) =>
