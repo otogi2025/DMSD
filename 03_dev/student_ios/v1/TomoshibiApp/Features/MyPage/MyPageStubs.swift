@@ -57,18 +57,9 @@ private struct MyLandingGridBlock: Identifiable {
     let id = UUID()
     let key: String // "info" / "rollcall" / ...
     let label: String
-    let icon: String // emoji
+    let icon: String // SF Symbol 名（苹果系统线条图标）
     let badge: String?
     let route: Route
-}
-
-/// Emoji icon wrapper · 24pt
-private struct EmojiIcon: View {
-    let emoji: String
-    var size: CGFloat = 24
-    var body: some View {
-        Text(emoji).font(.system(size: size))
-    }
 }
 
 // MARK: - 1. MyLandingView (L1)
@@ -89,12 +80,12 @@ struct MyLandingView: View {
         let packagesBadge = pendingPackages > 0 ? "\(pendingPackages)" : nil
 
         return [
-            .init(key: "info", label: "個人情報", icon: "👤", badge: nil, route: .myInfo),
-            .init(key: "discipline", label: "処分履歴", icon: "⚖️", badge: nil, route: .myDiscipline),
-            .init(key: "health", label: "体調報告履歴", icon: "🤒", badge: nil, route: .myHealth),
-            .init(key: "apps", label: "申請履歴", icon: "📄", badge: nil, route: .stayList),
-            .init(key: "clean", label: "掃除提出履歴", icon: "🧹", badge: nil, route: .myClean),
-            .init(key: "packages", label: "荷物受取履歴", icon: "📦", badge: packagesBadge, route: .myPackages),
+            .init(key: "info", label: "個人情報", icon: "person.text.rectangle", badge: nil, route: .myInfo),
+            .init(key: "discipline", label: "処分履歴", icon: "exclamationmark.triangle", badge: nil, route: .myDiscipline),
+            .init(key: "health", label: "体調報告履歴", icon: "cross.case", badge: nil, route: .myHealth),
+            .init(key: "apps", label: "申請履歴", icon: "doc.text", badge: nil, route: .stayList),
+            .init(key: "clean", label: "掃除提出履歴", icon: "sparkles", badge: nil, route: .myClean),
+            .init(key: "packages", label: "荷物受取履歴", icon: "shippingbox", badge: packagesBadge, route: .myPackages),
         ]
     }
 
@@ -108,6 +99,11 @@ struct MyLandingView: View {
                     profileSection
                         .padding(.horizontal, 16)
                         .padding(.top, 6)
+                        .padding(.bottom, 14)
+
+                    // ⭐ 「行事予定」日程卡 — 顶部显眼（itsuki 2026-06-04：原埋在底部设置里太小）
+                    scheduleCard
+                        .padding(.horizontal, 16)
                         .padding(.bottom, 14)
 
                     // 2. ⭐ 主要状态 Card 群（学習 / 点呼 / 減点）
@@ -174,6 +170,114 @@ struct MyLandingView: View {
                 Spacer(minLength: 0)
             }
         }
+    }
+
+    // MARK: ⭐ 「行事予定」日程卡
+
+    /// 「今日」基准（跟 ScheduleView 一致：演示版固定 2026-04-23 / 生产版取东京时区今日）
+    private static var todayStr: String {
+        #if DEMO
+            return "2026-04-23"
+        #else
+            var cal = Calendar(identifier: .gregorian)
+            cal.timeZone = TimeZone(identifier: "Asia/Tokyo") ?? .current
+            let c = cal.dateComponents([.year, .month, .day], from: Date())
+            return String(format: "%04d-%02d-%02d", c.year ?? 2026, c.month ?? 4, c.day ?? 23)
+        #endif
+    }
+
+    /// 今日（含）之后最近的活动，最多 3 条
+    private var upcomingEvents: [EventItem] {
+        Array(
+            SEED.events
+                .filter { $0.date >= MyLandingView.todayStr }
+                .sorted { $0.date < $1.date }
+                .prefix(3)
+        )
+    }
+
+    /// "2026-04-25" 拆成（月: "4月", 日: "25"）；非法日期返回空串而非「0月0」
+    private func monthDay(_ date: String) -> (m: String, d: String) {
+        let p = date.split(separator: "-")
+        guard p.count >= 3, let mon = Int(p[1]), let day = Int(p[2]) else { return ("", "") }
+        return ("\(mon)月", "\(day)")
+    }
+
+    private var scheduleCard: some View {
+        Button { router.go(.schedule) } label: {
+            VStack(alignment: .leading, spacing: 0) {
+                // 头部：日历图标 + 标题 +「すべて見る」入口
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(T.primary.opacity(0.10))
+                            .frame(width: 40, height: 40)
+                        Ic.calendar(20).foregroundStyle(T.primary)
+                    }
+                    Text("行事予定")
+                        .font(.system(size: 15, weight: .heavy))
+                        .foregroundStyle(T.ink)
+                    Spacer(minLength: 0)
+                    Text("すべて見る")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(T.primary)
+                    Ic.chevR(12).foregroundStyle(T.primary)
+                }
+
+                if upcomingEvents.isEmpty {
+                    Text("当面の予定はありません")
+                        .font(.system(size: 12))
+                        .foregroundStyle(T.inkMute)
+                        .padding(.top, 12)
+                } else {
+                    // 近期活动列表（最多 3 条），条目之间用细分隔线
+                    VStack(spacing: 0) {
+                        ForEach(Array(upcomingEvents.enumerated()), id: \.element.id) { i, e in
+                            if i > 0 {
+                                Rectangle().fill(T.hair).frame(height: 0.5)
+                            }
+                            scheduleRow(e)
+                        }
+                    }
+                    .padding(.top, 10)
+                }
+            }
+            .padding(16)
+            .background(landingCardBg)
+            .overlay(landingCardBorder)
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// 单条活动：左边月/日块 + 竖线 + 标题与场所
+    private func scheduleRow(_ e: EventItem) -> some View {
+        let md = monthDay(e.date)
+        return HStack(spacing: 12) {
+            VStack(spacing: 0) {
+                Text(md.m)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(T.primary)
+                Text(md.d)
+                    .font(.system(size: 18, weight: .heavy, design: .rounded))
+                    .foregroundStyle(T.ink)
+            }
+            .frame(width: 40)
+            Rectangle().fill(T.hair).frame(width: 1, height: 32)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(e.title)
+                    .font(.system(size: 13.5, weight: .bold))
+                    .foregroundStyle(T.ink)
+                    .lineLimit(1)
+                if !e.place.isEmpty {
+                    Text(e.place)
+                        .font(.system(size: 11))
+                        .foregroundStyle(T.inkSub)
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 9)
     }
 
     // MARK: ⭐ 学習ステータス Card
@@ -361,7 +465,14 @@ struct MyLandingView: View {
         } label: {
             ZStack(alignment: .topTrailing) {
                 VStack(alignment: .leading, spacing: 0) {
-                    EmojiIcon(emoji: b.icon, size: 24)
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 11, style: .continuous)
+                            .fill(T.primary.opacity(0.10))
+                            .frame(width: 38, height: 38)
+                        Image(systemName: b.icon)
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(T.primary)
+                    }
                     Spacer(minLength: 0)
                     Text(b.label)
                         .font(.system(size: 13.5, weight: .bold))
@@ -405,12 +516,8 @@ struct MyLandingView: View {
     private var settingsSection: some View {
         Card(padding: 0) {
             VStack(spacing: 0) {
-                // 2026-04-30 会话 C 追加: V1 リファレンス系（老師 38 条 #8 / #9）
-                settingsRow(label: "行事予定", chev: true, danger: false) {
-                    router.go(.schedule)
-                }
-                Divider().background(T.hair).padding(.leading, 0)
-                // 特別運航便 入口は 2026-05-03 Home busCard へ移設（itsuki 拍板：重複解消）
+                // 「行事予定」入口 2026-06-04 搬到本页顶部日程卡（itsuki 拍板：埋在这里太小）
+                // 「特別運航便」入口 2026-05-03 搬到 Home busCard（itsuki 拍板：去重复）
                 settingsRow(label: "通知設定", chev: true, danger: false) {
                     router.go(.mySettings)
                 }

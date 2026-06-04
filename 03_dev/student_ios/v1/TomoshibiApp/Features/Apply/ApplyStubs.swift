@@ -2067,11 +2067,27 @@ struct ApplyDetailView: View {
         let active: Bool
         let time: String?
         let label2: String?
+        var activeNote: String? = nil // 进行中那一步显示的副标题（如审查中说明 / 确认中说明）
     }
 
     fileprivate var steps: [StepMeta] {
         let a = item
         let submitTime = a.date + " 10:24"
+        // 外出申請（outing）= 一名老师确认即可，没有「審査」步骤 — itsuki 2026-06-04 拍板。
+        // 确认老师的名字本应从登录的老师账号自动记录（后端实装待做），
+        // 演示版先用代表性的「松本 先生」展示。
+        if a.type == "outing" {
+            let confirmed = a.status == "approved"
+            let confirmTime: String? = confirmed ? a.date + " 11:02" : nil
+            return [
+                .init(k: "submit", label: "提出", done: true, active: false, time: submitTime, label2: nil),
+                .init(k: "confirm",
+                      label: confirmed ? "確認" : "先生の確認待ち",
+                      done: confirmed, active: !confirmed, time: confirmTime,
+                      label2: confirmed ? "松本 先生" : nil,
+                      activeNote: "担当の先生が確認します"),
+            ]
+        }
         let reviewDone = a.status == "approved" || a.status == "rejected"
         let reviewActive = a.status == "pending"
         let reviewTime: String? = reviewActive ? nil : a.date + " 11:02"
@@ -2079,7 +2095,7 @@ struct ApplyDetailView: View {
         let finalLabel2 = a.status == "rejected" ? "差戻" : "承認"
         return [
             .init(k: "submit", label: "提出", done: true, active: false, time: submitTime, label2: nil),
-            .init(k: "review", label: "審査", done: reviewDone, active: reviewActive, time: reviewTime, label2: nil),
+            .init(k: "review", label: "審査", done: reviewDone, active: reviewActive, time: reviewTime, label2: nil, activeNote: "担当者：松本 先生 · 審査中"),
             .init(k: "final", label: "完了", done: finalDone, active: false, time: nil, label2: finalLabel2),
         ]
     }
@@ -2274,8 +2290,8 @@ private struct WorkflowStepsView: View {
                                 .font(.system(size: 11, design: .monospaced))
                                 .foregroundStyle(T.inkMute)
                         }
-                        if s.active {
-                            Text("担当者：松本 先生 · 審査中")
+                        if s.active, let note = s.activeNote {
+                            Text(note)
                                 .font(.system(size: 12))
                                 .foregroundStyle(T.warnDeep)
                                 .padding(.top, 2)

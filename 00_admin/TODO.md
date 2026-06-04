@@ -67,6 +67,7 @@
 
 - [ ] **后端建外出（outing）申请 + 确认字段** — 现 `applications` 种类 CHECK 只允许出寮届三种（帰省/外泊/帰国），外出根本不在后端。要加 `outing` 类型 + `confirmed_by_teacher_id`（外键→teachers）+ `confirmed_at`，加 migration。
 - [ ] **确认接口 `PATCH /applications/:id/confirm`** — 老师点确认 → 从登录老师令牌取 teacher_id 自动记录确认者（**不信任客户端传 teacher_id**）。学生侧详情显示确认老师姓名（演示版现写死「松本 先生」）。
+- [ ] **接后端时收紧 iOS 外出进度状态机（codex 2026-06-04 审查提）** — 现 `ApplyStubs.swift` 外出 2 步用 `active: !(status=="approved")`，演示版只有 approved 一条不触发；接后端后 `draft/rejected/returned/withdrawn` 会全被误显示成「先生の確認待ち」。接后端时改成按 status 分支（`pending` 才 active / `approved` 才 done / 撤回·差戻给各自终态文案）。
 - [ ] **老师网页加外出「確認」按钮** — 调上面的确认接口（单按钮，不是多级审批 UI）。
 
 ## 🐞 系统 Bug 专栏（v1.0 上线前 — 5-20 审查作战产出）
