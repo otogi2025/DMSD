@@ -22,6 +22,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -796,7 +797,17 @@ def add_to_roster(
         )
         db.add(record)
 
-    db.flush()
+    # 并发双保护：两个请求同时把同一 (student_id, term) 加进名簿时，都查到「无既存行」
+    # 双双走 INSERT，第二个 flush 撞 uq_roster_term 唯一约束。捕获后回滚 + 干净返 409，
+    # 不让它冒泡成 500（与 teachers.py 的唯一性预查 + IntegrityError 双保护一致）。
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            409,
+            {"code": "ALREADY_IN_ROSTER", "message": "既に名簿に登録済みです"},
+        )
 
     db.add(
         models.AuditLog(
