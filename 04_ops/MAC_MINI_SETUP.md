@@ -299,7 +299,7 @@ open ~/dev/DMSD/03_dev/student_ios/v1/TomoshibiApp.xcodeproj
 | iOS demo | Xcode Run TomoshibiAppDemo | Simulator 启动 + 看到 Login |
 | iOS production | Xcode Run TomoshibiApp | 同上 |
 | teacher_web | `npm run dev` | http://localhost:5173 打得开 |
-| iCloud AC 目录 | `ls "~/Library/Mobile Documents/com~apple~CloudDocs/02_学习与知识/升学/AC/"` | 看到 AC 目录 |
+| iCloud AC 目录 | `ls "~/Library/Mobile Documents/com~apple~CloudDocs/02_学习与知识/升学/大学入試/筑波大学 AC入試 準備/"` | 看到筑波 AC 素材目录 |
 
 ---
 
