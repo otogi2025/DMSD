@@ -10,10 +10,12 @@
 		01A670CB8B7B467739C7EA58 /* Toast.swift in Sources */ = {isa = PBXBuildFile; fileRef = A652D7FC37C1A6417822DCAA /* Toast.swift */; };
 		0D70EF6043AAE7D57114C6D2 /* AuthStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198EF6A8C6E10AE3DBF4B316 /* AuthStubs.swift */; };
 		11FF2BD4AC27376886104D2C /* ApplicationsCreateBodies.swift in Sources */ = {isa = PBXBuildFile; fileRef = 350CA686A2E4CE6284AA20D8 /* ApplicationsCreateBodies.swift */; };
+		12937C81977BB20921592E09 /* CACHEDIR.TAG in Resources */ = {isa = PBXBuildFile; fileRef = BA2858BE1F7C0F629E01ED97 /* CACHEDIR.TAG */; };
 		12D13D4914611D5D0DB127B8 /* BottomNav.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1692CD80AD61B3BFA74FE01D /* BottomNav.swift */; };
 		14CA30DFEF2523D29C1F9732 /* GlassSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AFBB7C7CB1B14AF649FFB7D /* GlassSheet.swift */; };
 		262922121023D44B3A752345 /* BusListStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = A51F55689BD2BD070068D34D /* BusListStubs.swift */; };
 		2B6C0691DF7E81796FBFF7B8 /* BreadcrumbOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE5E5F209C9022BFB61763C1 /* BreadcrumbOverlay.swift */; };
+		32687849989CCFB7709FF663 /* BusAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8771AACE31B06D1D9DAF7044 /* BusAPI.swift */; };
 		35A90981AB6BE0724887614C /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = B2FD432EFB4459068B330D99 /* AppIcon.icon */; };
 		37152F10D001AABE5A28885B /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D72F930FE0F27798C5EA8ABD /* RootView.swift */; };
 		3C37F26FA83CA7D697E12260 /* TTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCAE320FB742688FEDA8AD6A /* TTokens.swift */; };
@@ -47,6 +49,7 @@
 		CB5C431AB69BF972FFB160CB /* HomeStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89293A7DB55301A3F1DDE5EE /* HomeStubs.swift */; };
 		CF76384DA126CF63F99BE13E /* StudyAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD89B96B9E1EC056A73411B6 /* StudyAPI.swift */; };
 		D802FA046E6B50B968F5826F /* MyPageStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E749CA72863EC4E0022C7B6 /* MyPageStubs.swift */; };
+		DA74DBACDF5EF9838F3C3074 /* ContractFilePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CBDB568ECB28D9A0A03BAD7 /* ContractFilePicker.swift */; };
 		DC10F180648C72B3AFE7FC7A /* ApplyKindMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9F9195E1F96E80AEAC17364 /* ApplyKindMapper.swift */; };
 		E363F1F7E2C186333C36782E /* Field.swift in Sources */ = {isa = PBXBuildFile; fileRef = D734F5CB9CBD861BD4D82C41 /* Field.swift */; };
 		E4AB919291B8E27C9C51FCA0 /* CommunityStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F52CBEB752D76838E1AA05 /* CommunityStubs.swift */; };
@@ -69,6 +72,7 @@
 		1692CD80AD61B3BFA74FE01D /* BottomNav.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomNav.swift; sourceTree = "<group>"; };
 		17B7B19307005D8E2D07B44D /* StayListStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StayListStubs.swift; sourceTree = "<group>"; };
 		198EF6A8C6E10AE3DBF4B316 /* AuthStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStubs.swift; sourceTree = "<group>"; };
+		19E9B8643079E37AE47A07A4 /* .gitignore */ = {isa = PBXFileReference; path = .gitignore; sourceTree = "<group>"; };
 		284355530CF272CA953BF511 /* SEED.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SEED.swift; sourceTree = "<group>"; };
 		28E8541F23E43B67EBF8C833 /* StudyOnlineForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyOnlineForm.swift; sourceTree = "<group>"; };
 		335F10F844F1671107B5A65A /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
@@ -77,6 +81,7 @@
 		35A6E6C6215754A03D910C0D /* GlassBackdrop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassBackdrop.swift; sourceTree = "<group>"; };
 		3890FA991AB039C6830E6710 /* GlobalOverlays.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalOverlays.swift; sourceTree = "<group>"; };
 		3BFEC1BD19A61E61CD73B258 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		3CBDB568ECB28D9A0A03BAD7 /* ContractFilePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractFilePicker.swift; sourceTree = "<group>"; };
 		42E4AC21AB2A9B05C9FDAD19 /* NetworkModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkModels.swift; sourceTree = "<group>"; };
 		442041B74BB2BF0DA65D37EE /* ScheduleStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleStubs.swift; sourceTree = "<group>"; };
 		45EEA8DBC6162B90B9119E85 /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
@@ -84,8 +89,10 @@
 		4A1DA47ECA99A6BC826597E0 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		56739ED2BA471039822C2E43 /* APIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIError.swift; sourceTree = "<group>"; };
 		5802FFC4938B6F524F6703C5 /* TomoshibiApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = TomoshibiApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		71453E806B7A27446A7B2BE3 /* 12865348558069377973 */ = {isa = PBXFileReference; path = 12865348558069377973; sourceTree = "<group>"; };
 		7AFBB7C7CB1B14AF649FFB7D /* GlassSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassSheet.swift; sourceTree = "<group>"; };
 		7E749CA72863EC4E0022C7B6 /* MyPageStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyPageStubs.swift; sourceTree = "<group>"; };
+		8771AACE31B06D1D9DAF7044 /* BusAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BusAPI.swift; sourceTree = "<group>"; };
 		889D1EB8DA1127DE3F18DDA2 /* GlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassCard.swift; sourceTree = "<group>"; };
 		89293A7DB55301A3F1DDE5EE /* HomeStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeStubs.swift; sourceTree = "<group>"; };
 		8931D8D354707BEEA3881238 /* DormLifeForms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DormLifeForms.swift; sourceTree = "<group>"; };
@@ -97,11 +104,13 @@
 		A126A1C40F8EB5EEE3352EB1 /* PrimaryButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrimaryButton.swift; sourceTree = "<group>"; };
 		A51F55689BD2BD070068D34D /* BusListStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BusListStubs.swift; sourceTree = "<group>"; };
 		A652D7FC37C1A6417822DCAA /* Toast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Toast.swift; sourceTree = "<group>"; };
+		AA7AF5C9B2CC81DAB8E4646C /* 11634884981319087675 */ = {isa = PBXFileReference; path = 11634884981319087675; sourceTree = "<group>"; };
 		AF988C23F66A4E622622302F /* Ic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ic.swift; sourceTree = "<group>"; };
 		AFDFE87D987EF1A14F86E420 /* DormLifeAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DormLifeAPI.swift; sourceTree = "<group>"; };
 		B2FD432EFB4459068B330D99 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		B522E5E1E9C32585E0C4AF54 /* SheetKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SheetKind.swift; sourceTree = "<group>"; };
 		B6BED925E6CDEDFF9B146D29 /* RollCallAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RollCallAPI.swift; sourceTree = "<group>"; };
+		BA2858BE1F7C0F629E01ED97 /* CACHEDIR.TAG */ = {isa = PBXFileReference; path = CACHEDIR.TAG; sourceTree = "<group>"; };
 		C4ADECD57FEC5CA168619042 /* SeedModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeedModels.swift; sourceTree = "<group>"; };
 		D12E5F5519B6567648A2C5E0 /* RouterStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouterStore.swift; sourceTree = "<group>"; };
 		D72F930FE0F27798C5EA8ABD /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
@@ -123,6 +132,7 @@
 				4871E294F8315859BF244132 /* ApplicationsAPI.swift */,
 				350CA686A2E4CE6284AA20D8 /* ApplicationsCreateBodies.swift */,
 				957056CB9FD91DC0E2D033C9 /* AuthAPI.swift */,
+				8771AACE31B06D1D9DAF7044 /* BusAPI.swift */,
 				AFDFE87D987EF1A14F86E420 /* DormLifeAPI.swift */,
 				B6BED925E6CDEDFF9B146D29 /* RollCallAPI.swift */,
 				DD89B96B9E1EC056A73411B6 /* StudyAPI.swift */,
@@ -183,6 +193,15 @@
 				D72F930FE0F27798C5EA8ABD /* RootView.swift */,
 			);
 			path = Root;
+			sourceTree = "<group>";
+		};
+		2662A353229B79F0173BDDDB /* 0.15.13 */ = {
+			isa = PBXGroup;
+			children = (
+				AA7AF5C9B2CC81DAB8E4646C /* 11634884981319087675 */,
+				71453E806B7A27446A7B2BE3 /* 12865348558069377973 */,
+			);
+			path = 0.15.13;
 			sourceTree = "<group>";
 		};
 		2CE5CBA17D464ABF9A63CC0D /* Network */ = {
@@ -264,6 +283,7 @@
 		9C2CA1F91680EB7292479047 /* TomoshibiApp */ = {
 			isa = PBXGroup;
 			children = (
+				EF0849B88A1204197E91FDE9 /* .ruff_cache */,
 				16A401D72828F09F8347CEEF /* Features */,
 				08F1A9DF117742AAD6C72579 /* Foundation */,
 				223E229399714838C48E1EDF /* Root */,
@@ -292,6 +312,7 @@
 				F527AD5E97BA571CFB100658 /* Icons */,
 				1692CD80AD61B3BFA74FE01D /* BottomNav.swift */,
 				EE5E5F209C9022BFB61763C1 /* BreadcrumbOverlay.swift */,
+				3CBDB568ECB28D9A0A03BAD7 /* ContractFilePicker.swift */,
 				D734F5CB9CBD861BD4D82C41 /* Field.swift */,
 				10726DB63CDE8E0313B1EB95 /* IOSStatusBar.swift */,
 				F2DAAF1321A2D7F362D8DAA1 /* PageHeader.swift */,
@@ -350,6 +371,16 @@
 				C4ADECD57FEC5CA168619042 /* SeedModels.swift */,
 			);
 			path = Seed;
+			sourceTree = "<group>";
+		};
+		EF0849B88A1204197E91FDE9 /* .ruff_cache */ = {
+			isa = PBXGroup;
+			children = (
+				2662A353229B79F0173BDDDB /* 0.15.13 */,
+				19E9B8643079E37AE47A07A4 /* .gitignore */,
+				BA2858BE1F7C0F629E01ED97 /* CACHEDIR.TAG */,
+			);
+			path = .ruff_cache;
 			sourceTree = "<group>";
 		};
 		F527AD5E97BA571CFB100658 /* Icons */ = {
@@ -423,6 +454,7 @@
 				EC8A7E8BFD3BA33F5F75B73D /* AppIcon-1024.png in Resources */,
 				35A90981AB6BE0724887614C /* AppIcon.icon in Resources */,
 				901E949457B307E054D48669 /* Assets.xcassets in Resources */,
+				12937C81977BB20921592E09 /* CACHEDIR.TAG in Resources */,
 				F219B220C2399C43BE47C185 /* File.txt in Resources */,
 				8E5969F2E87A241C9B18B7FB /* PrivacyInfo.xcprivacy in Resources */,
 			);
@@ -448,8 +480,10 @@
 				0D70EF6043AAE7D57114C6D2 /* AuthStubs.swift in Sources */,
 				12D13D4914611D5D0DB127B8 /* BottomNav.swift in Sources */,
 				2B6C0691DF7E81796FBFF7B8 /* BreadcrumbOverlay.swift in Sources */,
+				32687849989CCFB7709FF663 /* BusAPI.swift in Sources */,
 				262922121023D44B3A752345 /* BusListStubs.swift in Sources */,
 				E4AB919291B8E27C9C51FCA0 /* CommunityStubs.swift in Sources */,
+				DA74DBACDF5EF9838F3C3074 /* ContractFilePicker.swift in Sources */,
 				B1E6FCA177F7821D3694AE43 /* DormLifeAPI.swift in Sources */,
 				AB4D2651D244A811A15C2976 /* DormLifeForms.swift in Sources */,
 				E363F1F7E2C186333C36782E /* Field.swift in Sources */,
@@ -565,8 +599,9 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Tomoshibi;
-				INFOPLIST_KEY_CFBundleShortVersionString = 0.1.0;
+				INFOPLIST_KEY_CFBundleShortVersionString = 0.12.0;
 				INFOPLIST_KEY_CFBundleVersion = 1;
+				INFOPLIST_KEY_NSCameraUsageDescription = "オンライン学習の契約書を撮影するためにカメラを使用します";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
@@ -655,8 +690,9 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Tomoshibi Demo";
-				INFOPLIST_KEY_CFBundleShortVersionString = 0.1.0;
+				INFOPLIST_KEY_CFBundleShortVersionString = 0.12.0;
 				INFOPLIST_KEY_CFBundleVersion = 1;
+				INFOPLIST_KEY_NSCameraUsageDescription = "オンライン学習の契約書を撮影するためにカメラを使用します";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
@@ -753,8 +789,9 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Tomoshibi;
-				INFOPLIST_KEY_CFBundleShortVersionString = 0.1.0;
+				INFOPLIST_KEY_CFBundleShortVersionString = 0.12.0;
 				INFOPLIST_KEY_CFBundleVersion = 1;
+				INFOPLIST_KEY_NSCameraUsageDescription = "オンライン学習の契約書を撮影するためにカメラを使用します";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;

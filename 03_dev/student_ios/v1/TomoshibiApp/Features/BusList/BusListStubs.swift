@@ -101,14 +101,78 @@ enum BusListMock {
     }
 }
 
+// MARK: - 后端 BusRouteOut → SpecialBusRoute 映射
+
+enum BusRouteMapper {
+    /// 把后端巴士便（含完整日期时间）映射成 UI 用的 SpecialBusRoute（拆成日期 / 时分 / 曜日）。
+    /// 时刻一律按日本时区（JST）显示。isNext = 排序后第一个「出发时刻 ≥ 现在」的便（高亮「次便」）。
+    static func map(_ outs: [BusRouteOut]) -> [SpecialBusRoute] {
+        let jst = TimeZone(identifier: "Asia/Tokyo") ?? .current
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = jst
+
+        let dateFmt = DateFormatter()
+        dateFmt.locale = Locale(identifier: "en_US_POSIX")
+        dateFmt.timeZone = jst
+        dateFmt.dateFormat = "yyyy-MM-dd"
+
+        let timeFmt = DateFormatter()
+        timeFmt.locale = Locale(identifier: "en_US_POSIX")
+        timeFmt.timeZone = jst
+        timeFmt.dateFormat = "HH:mm"
+
+        // 周日=1 … 周六=7（Calendar 的 .weekday 约定），减 1 当下标取日语单字曜日
+        let weekdayChars = ["日", "月", "火", "水", "木", "金", "土"]
+
+        // isNext（「次便」高亮）改由 BusListView.nextVisibleId 按当前筛选结果实时算，
+        // 这里只排序、不定 isNext —— 否则切到「特別便 / 空港のみ」筛选后标记会错位（codex 审查 LOW）。
+        let sorted = outs.sorted { $0.schedule_at < $1.schedule_at }
+
+        return sorted.map { o in
+            let weekdayIndex = cal.component(.weekday, from: o.schedule_at) - 1
+            let weekday = weekdayChars.indices.contains(weekdayIndex) ? weekdayChars[weekdayIndex] : ""
+            let isAirport = o.direction.contains("空港") || o.name.contains("空港")
+            return SpecialBusRoute(
+                id: o.id.uuidString,
+                kind: BusKind(rawValue: o.kind) ?? .dailyCommute,
+                name: o.name,
+                direction: o.direction,
+                date: dateFmt.string(from: o.schedule_at),
+                weekday: weekday,
+                scheduleAt: timeFmt.string(from: o.schedule_at),
+                arrivalAt: o.arrival_at.map { timeFmt.string(from: $0) },
+                visibleTo: mapVisibility(o.visible_to),
+                isAirport: isAirport,
+                purpose: o.note,
+                seatsLabel: "",
+                isNext: false, // 实时由 nextVisibleId 决定，见 busRow
+                deprecated: o.deprecated
+            )
+        }
+    }
+
+    private static func mapVisibility(_ raw: String) -> BusVisibility {
+        switch raw {
+        case "dorm_only": return .dormOnly
+        case "men": return .men
+        case "women": return .women
+        default: return .all
+        }
+    }
+}
+
 // ============================================================================
 // MARK: - BusListView · 特別運航便 一覧
 
 // ============================================================================
 
 struct BusListView: View {
+    @EnvironmentObject var app: AppStore // 判断登录态：已登录拉真后端 / 未登录回退假数据
     @State private var kindFilter: BusKind? = nil // nil = すべて
     @State private var airportOnly: Bool = false
+    @State private var routes: [SpecialBusRoute] = [] // 数据源：后端 GET /api/v1/bus/routes 或 mock 兜底
+    @State private var isLoading: Bool = false
+    @State private var loadError: String? = nil // 已登录拉取失败时的报错（不喂假数据，见 load）
 
     private let tabs: [(label: String, value: BusKind?)] = [
         ("すべて", nil),
@@ -117,7 +181,7 @@ struct BusListView: View {
     ]
 
     private var filtered: [SpecialBusRoute] {
-        var arr = BusListMock.all
+        var arr = routes
         if let k = kindFilter {
             arr = arr.filter { $0.kind == k }
         }
@@ -140,6 +204,18 @@ struct BusListView: View {
         }
     }
 
+    /// 当前筛选结果里「下一班」（第一个出发时刻 ≥ 现在）的 id —— 按筛选后的可见列表实时算。
+    /// 日期 / 时刻都是零填充字符串（"yyyy-MM-dd" + "HH:mm"），拼起来按字符串比较 == 时间先后。
+    private var nextVisibleId: String? {
+        let jst = TimeZone(identifier: "Asia/Tokyo") ?? .current
+        let fmt = DateFormatter()
+        fmt.locale = Locale(identifier: "en_US_POSIX")
+        fmt.timeZone = jst
+        fmt.dateFormat = "yyyy-MM-dd HH:mm"
+        let nowStr = fmt.string(from: Date())
+        return filtered.first { nowStr <= "\($0.date) \($0.scheduleAt)" }?.id
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             PageHeader(title: "特別運航便", level: 2)
@@ -147,7 +223,18 @@ struct BusListView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     headerNotice
                     filters
-                    if grouped.isEmpty {
+                    if isLoading && routes.isEmpty {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 40)
+                    } else if let err = loadError, routes.isEmpty {
+                        EmptyState(
+                            icon: "bus",
+                            title: "読み込みに失敗しました",
+                            message: err
+                        )
+                        .frame(maxWidth: .infinity)
+                    } else if grouped.isEmpty {
                         EmptyState(
                             icon: "bus",
                             title: "該当する便はありません",
@@ -155,8 +242,9 @@ struct BusListView: View {
                         )
                         .frame(maxWidth: .infinity)
                     } else {
+                        let nextId = nextVisibleId
                         ForEach(grouped, id: \.date) { group in
-                            daySection(group)
+                            daySection(group, nextId: nextId)
                         }
                     }
                     Text("※ 通常日のスクールバスは別途ご確認ください。特別便は乗車名簿への事前チェックが必要です。")
@@ -173,6 +261,40 @@ struct BusListView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl.ignoresSafeArea())
+        .task { await load() }
+    }
+
+    // MARK: 数据加载（已登录拉真后端 / 未登录或失败回退 mock）
+
+    /// 未登录 → 回退 BusListMock（开发无 backend / Apple reviewer 没真账号也能看效果）。
+    /// 已登录 → GET /api/v1/bus/routes 真数据，按时刻映射成 SpecialBusRoute。
+    /// 已登录但拉取失败 → 不喂假时刻表（学生靠这个赶车，假时间会害人误车 — codex 审查 MEDIUM）：
+    ///   401（token 失效）清登录态（didSet 自动跳登录）；其它错误显示报错 + 空列表。
+    private func load() async {
+        isLoading = true
+        defer { isLoading = false }
+        guard app.isAuthenticated else {
+            routes = BusListMock.all
+            return
+        }
+        loadError = nil
+        do {
+            let raw = try await BusAPI.listRoutes()
+            routes = BusRouteMapper.map(raw)
+        } catch APIError.unauthorized {
+            // token 失效：清登录态（令牌已死）+ 明确提示重登。
+            // 不留空列表让用户误以为「没有班次」（codex 复审 MEDIUM）。
+            // 跟 StayList 等列表页一致 —— 不在子页强行跳登录（全 App 无中途 401 跳转模式）。
+            app.authToken = nil
+            loadError = "セッションの有効期限が切れました。再度ログインしてください。"
+            routes = []
+        } catch {
+            loadError = APIErrorPresenter.userMessage(
+                for: error,
+                fallback: "時刻表の取得に失敗しました"
+            )
+            routes = []
+        }
     }
 
     // MARK: 上部 banner（帰国届 ヒント）
@@ -236,7 +358,7 @@ struct BusListView: View {
 
     // MARK: 日別 section
 
-    private func daySection(_ g: (date: String, weekday: String, purpose: String?, items: [SpecialBusRoute])) -> some View {
+    private func daySection(_ g: (date: String, weekday: String, purpose: String?, items: [SpecialBusRoute]), nextId: String?) -> some View {
         VStack(spacing: 0) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(monthDayLabel(g.date))
@@ -260,7 +382,7 @@ struct BusListView: View {
 
             VStack(spacing: 0) {
                 ForEach(Array(g.items.enumerated()), id: \.offset) { i, route in
-                    busRow(route)
+                    busRow(route, isNext: route.id == nextId)
                     if i < g.items.count - 1 {
                         Rectangle().fill(T.hair).frame(height: 0.5)
                             .padding(.leading, 58)
@@ -279,15 +401,15 @@ struct BusListView: View {
 
     // MARK: bus row
 
-    private func busRow(_ r: SpecialBusRoute) -> some View {
+    private func busRow(_ r: SpecialBusRoute, isNext: Bool) -> some View {
         HStack(spacing: 12) {
             ZStack {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(r.isNext ? T.primary : T.primary.opacity(0.08))
+                    .fill(isNext ? T.primary : T.primary.opacity(0.08))
                     .frame(width: 36, height: 36)
                 Image(systemName: r.isAirport ? "airplane" : "bus")
                     .font(.system(size: 16))
-                    .foregroundStyle(r.isNext ? .white : T.primary)
+                    .foregroundStyle(isNext ? .white : T.primary)
             }
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
@@ -306,7 +428,7 @@ struct BusListView: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 3) {
-                if r.isNext {
+                if isNext {
                     Pill(text: "次便", tone: .accent)
                 }
                 Text(r.seatsLabel)

@@ -209,6 +209,137 @@ def seed_dev(db) -> None:
     make_session("evening", 22, 0)
     db.commit()
 
+    # 巴士便（spec §7.6）— 寮生特別運行（dorm_special）+ 平日通学便（daily_commute）。
+    # 全挂到役职老师 shingu（寮務部長）名下，作为 created_by_teacher_id。
+    # iOS BusListView / 老师网页 都靠 GET /api/v1/bus/routes 读这批数据。
+    shingu = db.scalars(
+        select(models.Teacher).where(models.Teacher.login_id == "shingu")
+    ).first()
+    if shingu:
+        # (kind, name, direction, 月, 日, 出发时, 出发分, 到达时, 到达分(无则 None), visible_to, note)
+        bus_rows = [
+            # ── 寮生特別運行便：外宿 / 回家 / 购物 / 回国机场接送 ──
+            (
+                "dorm_special",
+                "外泊・帰省 朝便",
+                "高校棟 → 岡山駅西口",
+                6,
+                13,
+                7,
+                30,
+                8,
+                25,
+                "dorm_only",
+                "6/13 外泊・帰省者向け特別運行便。",
+            ),
+            (
+                "dorm_special",
+                "外泊・帰省 金川便",
+                "高校棟 → 金川駅",
+                6,
+                13,
+                10,
+                10,
+                10,
+                35,
+                "dorm_only",
+                "6/13 買い物・帰省者向け。",
+            ),
+            (
+                "dorm_special",
+                "帰寮 夕便",
+                "金川駅 → 寮",
+                6,
+                15,
+                17,
+                31,
+                17,
+                55,
+                "dorm_only",
+                "6/15 帰寮日。乗車名簿への事前チェック必要。",
+            ),
+            (
+                "dorm_special",
+                "空港送迎便（帰国）",
+                "寮 → 岡山空港",
+                6,
+                20,
+                9,
+                0,
+                9,
+                50,
+                "dorm_only",
+                "帰国届提出者向け。空港送迎便。",
+            ),
+            # ── 平日上下学班车 ──
+            (
+                "daily_commute",
+                "西口登校便",
+                "岡山駅西口 → 高校棟",
+                6,
+                8,
+                7,
+                0,
+                7,
+                45,
+                "all",
+                None,
+            ),
+            (
+                "daily_commute",
+                "金川登校便",
+                "金川駅 → 高校棟",
+                6,
+                8,
+                7,
+                10,
+                7,
+                40,
+                "all",
+                None,
+            ),
+            (
+                "daily_commute",
+                "西口下校便",
+                "高校棟 → 岡山駅西口",
+                6,
+                8,
+                18,
+                45,
+                19,
+                30,
+                "all",
+                None,
+            ),
+        ]
+        for kind, name, direction, mo, d, sh, sm, ah, am, vis, note in bus_rows:
+            schedule_at = datetime(2026, mo, d, sh, sm, tzinfo=JST)
+            arrival_at = (
+                datetime(2026, mo, d, ah, am, tzinfo=JST) if ah is not None else None
+            )
+            existing = db.scalars(
+                select(models.BusRoute).where(
+                    models.BusRoute.name == name,
+                    models.BusRoute.schedule_at == schedule_at,
+                )
+            ).first()
+            if existing:
+                continue
+            db.add(
+                models.BusRoute(
+                    kind=kind,
+                    name=name,
+                    direction=direction,
+                    schedule_at=schedule_at,
+                    arrival_at=arrival_at,
+                    visible_to=vis,
+                    note=note,
+                    created_by_teacher_id=shingu.id,
+                )
+            )
+            log.info("加巴士便: %s %s", name, schedule_at)
+        db.commit()
+
     log.info("=" * 60)
     log.info("dev seed 完成")
     log.info("学生 login: 060218 (留学生 リュウ) / 060103 (一般 田中)")

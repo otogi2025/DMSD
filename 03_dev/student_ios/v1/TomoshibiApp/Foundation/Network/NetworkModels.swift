@@ -118,6 +118,11 @@ struct StudyOnlineRequestOut: Decodable, Hashable, Identifiable {
     let period_to: String
     let weekly_schedule: [String: [[String: String]]]
     let contract_ref: String?
+    // 契約書文件信息（合同照片 / PDF）— 非 nil 表示已上传。
+    // 不含服务器物理路径（安全）；看内容调 GET /study/online-requests/{id}/contract。
+    let contract_file_name: String?
+    let contract_mime: String?
+    let contract_size: Int?
     let submitted_at: Date
     let status: String // "pending" | "approved" | "rejected" | "revoked"
     let decided_by: UUID?
@@ -177,6 +182,30 @@ struct ItemPossessionRequestOut: Decodable, Hashable, Identifiable {
     let decided_by: UUID?
     let decided_at: Date?
     let comment: String?
+}
+
+// MARK: - 巴士便（寮生特別運行 / 平日上下学班车）
+
+/// 巴士便响应体（GET /api/v1/bus/routes 列表里的单条）。spec §7.6。
+/// kind: "daily_commute"=平日上下学班车 / "dorm_special"=寮生特別運行
+struct BusRouteOut: Decodable, Hashable, Identifiable {
+    let id: UUID
+    let kind: String
+    let name: String
+    let direction: String
+    let schedule_at: Date // 出发时刻（完整日期时间，前端拆成日期 + 时分显示）
+    let arrival_at: Date? // 到达时刻（空港便等才有）
+    let visible_to: String // "all" | "dorm_only" | "men" | "women"
+    let note: String?
+    let deprecated: Bool
+    let created_by_teacher_id: UUID
+    let created_at: Date
+    let updated_at: Date?
+}
+
+/// GET /api/v1/bus/routes 列表包装
+struct BusRouteListOut: Decodable {
+    let items: [BusRouteOut]
 }
 
 // MARK: - 学生新规注册（POST /accounts，2026-05-04 加）

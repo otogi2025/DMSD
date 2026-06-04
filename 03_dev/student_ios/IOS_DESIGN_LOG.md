@@ -1232,6 +1232,17 @@ itsuki 实机测：账号密码空着点登录，弹的是「通信エラーが�
 - 顺手（codex 审 §14.17 出租车改交互时挑出）：`StayForm` 加 `private static let TAXI_METHOD = "タクシー"`，原来散在数组定义 / UI 条件 / 提交逻辑三处的字面量「タクシー」全引用这个常量，防将来改文案漏改某处静默失效。`RETURN_TRANSPORTS`（帰寮）里的「タクシー」不参与出租车预约判断，故意不改
 - 验证：正式版 `TomoshibiApp` + 演示版 `TomoshibiAppDemo` 双 scheme `BUILD SUCCEEDED`；codex gpt-5.5 xhigh 复审 0 未解决问题
 
+### 14.17 オンライン学習 契約書（合同）文件上传 — 2026-06-04（itsuki 要求）
+
+itsuki：「オンライン学習要可以上传图片，上传合同」+「选择上传时有弹窗选照片或文件，很多 iOS app 都带这个」。生产版（非 demo）。
+- 新 `Foundation/Components/ContractFilePicker.swift`：点「契約書を添付」从屏幕底部弹 `confirmationDialog` 三选项「写真を撮る／アルバムから選ぶ／ファイルを選ぶ」。拍照用 `UIImagePickerController` 桥 UIKit（SwiftUI 无原生相机）/ 相册 `photosPicker` / 选文件 `fileImporter`（PDF + 图片）
+- 图片统一转 JPEG（`UIGraphicsImageRenderer` 缩放最长边 2400 + 质量 0.8）—— iPhone 拍照默认 HEIC，老师网页浏览器显示 HEIC 兼容差；PDF 原样
+- `APIClient` 抽出 `decodeResponse` 共用 + 加手搓 multipart `upload<Res>` 方法；`StudyAPI.uploadOnlineContract`
+- `StudyOnlineForm` 第 3 部分加文件选择 + 補足説明；submit 改两步（先建申请拿 id，再传文件；第二步失败提示但不回退申请）
+- codex 5.5 xhigh 审出并修：multipart 文件名去 CR/LF/引号防 header 破坏 / 提交按钮加 `isSubmitting` 防连点重复申请 / 相机用 `isSourceTypeAvailable(.camera)` 不可用时不显示拍照项防崩
+- 验证：双 scheme `generic/platform=iOS Simulator` `BUILD SUCCEEDED`
+- ⚠️ 未做（记 TODO）：第二步上传失败后列表无补传入口 / 学生看不到自己已传的合同预览 / 契約書是否强制（现「任意」）待 itsuki 拍板
+
 ---
 
 **END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）; 5-31 修改届接后端（§14.7）+ 当前用户接 /me（§14.8）; 6-02 IX-008 二审修复 + IX-008b 扣分统计（§14.9）+ IX-034 请假计数按月（§14.10）+ IX-009 通知（§14.11）+ IX-007 详情页（§14.12）+ 6-03 低风险残留清理（表单预填迁 displayUser + 在线自习日期 JST）（§14.13）+ 删除寮ウォール（学生掲示板，落实 4-29 拍板）（§14.14）+ 演示数据修正 + 出寮届表单对齐实物表 + 页面切换黑屏修复（§14.15）+ 早帰/その他类型删除 + 帰国隐藏行先都市名 + 出租车预约 4 端（§14.16）。
