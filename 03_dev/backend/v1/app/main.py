@@ -50,6 +50,7 @@ from .routers import (
     incidents,
     meals,
     notifications,
+    outings,
     rollcall,
     student_profile,
     student_promote,
@@ -148,6 +149,7 @@ app.include_router(admin_accounts.router)
 app.include_router(admin_registration_code.router)
 app.include_router(announcements.router)
 app.include_router(applications.router)
+app.include_router(outings.router)
 app.include_router(meals.router)
 app.include_router(notifications.router)
 app.include_router(device_tokens.router)

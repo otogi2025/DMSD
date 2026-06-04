@@ -220,6 +220,53 @@ class ApplicationOut(BaseModel):
 
 
 # ---------------------------------------------------------------
+# 外出申请 — 单一老师确认（itsuki 2026-06-04 拍板; 见 system_features §7.2.7）
+# ---------------------------------------------------------------
+class OutingCreateIn(BaseModel):
+    """POST /outings — 学生提出外出申请（当天回寮）。"""
+
+    outing_date: date
+    destination: Optional[str] = Field(None, max_length=200)  # 去向
+    leave_time: Optional[time] = None  # 外出时刻
+    return_time: Optional[time] = None  # 回寮预定时刻（同一天）
+    taxi_reservation_time: Optional[time] = None  # 出租车预约时刻; null=不预约
+    reason: Optional[str] = Field(None, max_length=500)
+
+    @model_validator(mode="after")
+    def _check_times(self) -> "OutingCreateIn":
+        # 当天回寮：两个时刻都填时，回寮时刻不能早于外出时刻
+        if (
+            self.leave_time is not None
+            and self.return_time is not None
+            and self.return_time < self.leave_time
+        ):
+            raise ValueError("return_time must be on or after leave_time")
+        return self
+
+
+class OutingOut(BaseModel):
+    """外出申请查询返回。confirmed_by_name = 确认老师的姓名（学生侧显示「確認 · ○○ 先生」）。"""
+
+    id: UUID
+    student_id: UUID
+    student: Optional[StudentBrief] = None
+    outing_date: date
+    destination: Optional[str] = None
+    leave_time: Optional[time] = None
+    return_time: Optional[time] = None
+    taxi_reservation_time: Optional[time] = None
+    reason: Optional[str] = None
+    status: Literal["pending", "approved", "withdrawn"]
+    submitted_at: datetime
+    withdrawn_at: Optional[datetime] = None
+    confirmed_by_teacher_id: Optional[UUID] = None
+    confirmed_by_name: Optional[str] = None
+    confirmed_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ---------------------------------------------------------------
 # 通知 (#6 SendGrid テスト)
 # ---------------------------------------------------------------
 class NotificationTestIn(BaseModel):
@@ -1025,9 +1072,7 @@ class CleaningAssignmentCreateIn(BaseModel):
     """老师分配清扫输入。"""
 
     student_id: UUID
-    area: Literal[
-        "浴室", "廊下", "トイレ", "共用キッチン", "階段", "玄関", "ロビー", "その他"
-    ]
+    area: Literal["浴室", "廊下", "トイレ", "共用キッチン", "階段", "玄関", "その他"]
     scheduled_date: date
 
 

@@ -479,14 +479,16 @@
 - 学生在「申請詳細」看到确认结果时，显示**确认老师的姓名**（例：「確認 · 松本 先生」）。
 - 按账号区分 — 不同老师确认，记录和显示的姓名不同。
 
-**数据模型影响（⏳ 后端待实装）**:
-- 现状：后端 `applications` 表的种类 CHECK 约束只允许出寮届三种（帰省 / 外泊 / 帰国），**外出（outing）后端尚未建表**。外出目前只存在于 iOS 演示版（`ApplyStubs.swift` otherDetailBody）。
-- 待做：`applications` 种类加 `outing` + 确认字段 `confirmed_by_teacher_id`（外键 → teachers）/ `confirmed_at`（时间戳）；确认接口 `PATCH /applications/:id/confirm`（从登录老师令牌取 teacher_id，**不信任客户端传入**）。
+**数据模型（✅ 2026-06-04 后端实装）**:
+- 决策：外出**单独建一张 `outings` 表**，不塞进 `applications`。原因：`applications` 是为出寮届设计的，回寮日期/方式/时刻都必填还绑 7 级审批链，外出（当天回、单人确认）硬塞会污染并削弱出寮届模型的字段约束（itsuki 2026-06-04 拍板选「单独建表」）。
+- `outings` 表字段：`student_id` / `outing_date`（外出当天，单日期）/ `destination`（去向）/ `leave_time` / `return_time`（同日回寮）/ `taxi_reservation_time` / `reason` / `status`（pending / approved / withdrawn）/ `submitted_at` / `withdrawn_at` / `confirmed_by_teacher_id`（外键 → teachers）/ `confirmed_at`。
+- 确认接口 `PATCH /api/v1/outings/{id}/confirm`：确认者 teacher_id **从登录老师令牌取，不信任客户端传入**（请求体不含 teacher_id）；按 R4 寮边界校验老师能不能确认该学生。
 
 **实装位置**:
 - iOS 演示版：`ApplyStubs.swift` `steps`（外出走 2 步 + 显示确认老师名）✅ 2026-06-04 落地
-- 后端：⏳ 待实装（建表 + 确认接口 + 自动记录确认者）
-- 老师网页：⏳ 待实装（老师点「確認」按钮 → 调确认接口）
+- 后端：✅ 2026-06-04 实装 — `models.py` Outing 表 + `schemas.py` OutingCreateIn/OutingOut + 迁移 `e1f2a3b4c5d6` + 路由 `outings.py`（提出 / 自己列表 / 待确认列表 / 详情 / 确认 / 撤回 6 接口）+ 14 个测试。详见 `BACKEND_DESIGN_LOG.md`。
+- iOS 生产版接后端：⏳ 待做（现外出客户端只有演示版，要新接 `/api/v1/outings` 系列接口）
+- 老师网页：⏳ 待实装（老师点「確認」按钮 → 调 `PATCH /outings/{id}/confirm`）
 
 ### 7.3 学習(晚自习) — 中学全员 / 高中手动名单(Q2 Q3 答 + 2026-04-30 (f) 拍板)
 

@@ -353,6 +353,60 @@ class ApplicationApproval(Base):
 
 
 # ---------------------------------------------------------------
+# 外出申请（当天回寮的短时间外出）— 单一老师确认（itsuki 2026-06-04 拍板）
+# ---------------------------------------------------------------
+class Outing(Base):
+    """外出申请 — 当天回寮的短时间外出（车站前 / 买东西 等）。
+
+    跟出寮届（Application 模型）的区别：不过夜 / 没有多级审查 /
+    只要一名老师点「確認」。确认的老师从确认时的登录令牌自动记录到
+    confirmed_by_teacher_id，不信任客户端传入的值。
+    见 system_features §7.2.7 + IOS_DESIGN_LOG §14.20。
+    """
+
+    __tablename__ = "outings"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id"), nullable=False
+    )
+
+    # 外出当天（当天回寮所以只有 1 个日期；跟出寮届的 leave/return 两个日期不同）
+    outing_date: Mapped[date] = mapped_column(Date, nullable=False)
+    destination: Mapped[Optional[str]] = mapped_column(Text)  # 去向
+    leave_time: Mapped[Optional[time]] = mapped_column(Time)  # 外出时刻
+    return_time: Mapped[Optional[time]] = mapped_column(Time)  # 回寮预定时刻（同一天）
+    # 出租车预约时刻；null = 不预约
+    taxi_reservation_time: Mapped[Optional[time]] = mapped_column(Time)
+    reason: Mapped[Optional[str]] = mapped_column(Text)
+
+    # 状态：pending（等待老师确认）/ approved（已确认）/ withdrawn（学生取消）
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    withdrawn_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
+    # 确认（单一老师）— 确认的老师从登录令牌记录，不信任客户端传入
+    confirmed_by_teacher_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    confirmed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
+    # 关系（不设 back_populates — 不改 Student / Teacher 那边）
+    student: Mapped["Student"] = relationship()
+    confirmed_by: Mapped[Optional["Teacher"]] = relationship()
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending','approved','withdrawn')", name="ck_outing_status"
+        ),
+        Index("idx_outing_student", "student_id", "status"),
+        Index("idx_outing_status_date", "status", "outing_date"),
+    )
+
+
+# ---------------------------------------------------------------
 # 通知ログ (#6 R1)
 # ---------------------------------------------------------------
 NOTIFICATION_CHANNELS = ("email", "push", "in_app")
@@ -1113,7 +1167,7 @@ class CleaningAssignment(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "area IN ('浴室','廊下','トイレ','共用キッチン','階段','玄関','ロビー','その他')",
+            "area IN ('浴室','廊下','トイレ','共用キッチン','階段','玄関','その他')",
             name="ck_cleaning_area",
         ),
         CheckConstraint(
