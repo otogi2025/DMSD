@@ -180,6 +180,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `memory-write/` | 写 memory 文件的 SOP（4 类型 / 查重 / 索引同步） | 记一下规则 / 以后这样 / memory 加一条 | ✅ |
 | `new-feature/` | 加新功能时 4 端实装模板（spec → backend → iOS → Android）+ 字段对齐自检 | 新功能 X / 加 Y / 实装 Z | ✅ |
 | `spec-sync/` | 跨端字段对齐检查 — backend ↔ iOS ↔ Android 字段提取对比 | 跨端检查 / 字段对齐 | ✅ |
+| `codex-review/` | codex 审查循环编排 — 派 codex（gpt-5.5 xhigh）只读审本会话改动 → CC 逐条裁决 + 修 → 复审 → 跑到收敛（须带「codex」字样触发）| codex 审查 / 派 codex 审 / codex 挑刺 / codex 找 bug | ✅ **2026-06-04 加** |
 
 > **2026-05-04 调整记录**：原计划 10 skill，itsuki 反问后砍 3：
 > - ~~`session-start` 删（内容并入 `session-wrap §5.5.9` 收尾段；启动只读 WIP）~~ — **2026-05-26 恢复**，改名 `dmsd-startup/`，集中启动逻辑（原全局 `session-start-coord-check.sh` 挂钩 + `bin/check_overview_drift.sh` 调用 + CLAUDE.md「会话开始」段）

@@ -127,6 +127,7 @@ git 状态确认（git status / 残留 / 未 push / stash）→ **会话结尾�
 | **file-linkage** | 联动 / 改 A 要查 B / 我改了 X 要查什么 | 文件联动矩阵（17 条规则 + 反向索引）|
 | **project-overview** | X 文件在哪 / 项目里有 X 类文件吗 / 找文件 | 项目所有文件清单 + 状态 + AC 价值 |
 | **memory-write** | 记一下规则 / 以后这样 / memory 加一条 | memory 写入 SOP（4 类型 / 查重 / 索引）|
+| **codex-review** | codex 审查 / 派 codex 审 / codex 挑刺 / codex 找 bug / 让 codex 审一下（**须带「codex」字样**）| 派 codex（gpt-5.5 xhigh）只读审本会话改动 → CC 逐条裁决 + 修 → 复审 → 跑到收敛 |
 
 ## Hooks 继承
 
