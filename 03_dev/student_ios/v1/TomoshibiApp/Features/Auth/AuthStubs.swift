@@ -1552,14 +1552,14 @@ struct RegisterDoneView: View {
 //                    "灯火 · ログイン"  fontSize:12, T.inkMute, letterSpacing 0.08em
 //   mode tab 2 segments: 番号で / メールで  (active: T.paper bg + T.primary fg + shadow)
 //     container: T.pill (primary08) bg, radius 12, padding 3
-//   番号: アカウント番号 Input numeric (fontSize:20, mono, letterSpacing 0.1em), default "00"
+//   番号: アカウント番号 Input numeric (fontSize:20, mono, letterSpacing 0.1em), default "060217"
 //   メール: メールアドレス Input type=email, default "demo@example.com"
-//   パスワード: secure, default "demo1234"
+//   パスワード: secure, default "12345678"
 //   ログイン btn
 //   row: 新規登録 (T.inkSub) ←→ パスワードを忘れた → (T.primary)
 //   footer mono: Tomoshibi v0.1.0-demo · 2026 AC 入試プロジェクト
-//   magic seed: acc==='00' | email==='demo@example.com'  → router.replace(.home)
-//   else → router.go(.lockout)  (assignment override, JSX Modal hint)
+//   magic seed（仅 DEMO 编译 + 番号 mode）: acc=="060217" && pw=="12345678" → router.replace(.home)
+//   （「メール」mode 暂不支持登录，只提示切学号；真账号走 AuthAPI / 401 → lockout）
 
 struct LoginView: View {
     @EnvironmentObject var router: RouterStore
@@ -1571,7 +1571,7 @@ struct LoginView: View {
     /// demo 版预填方便演示，production 全空
     @State private var acc: String = {
         #if DEMO
-            return "00"
+            return "060217"
         #else
             return ""
         #endif
@@ -1587,7 +1587,7 @@ struct LoginView: View {
 
     @State private var pw: String = {
         #if DEMO
-            return "demo1234"
+            return "12345678"
         #else
             return ""
         #endif
@@ -1716,7 +1716,7 @@ struct LoginView: View {
     ///
     /// 流程：
     ///  - メール mode → backend 还没实装邮箱登录,提示用户切到学号
-    ///  - DEMO 编译模式 + magic creds（acc=="00" / pw=="demo1234"）→ 跳过 API 直接进 home
+    ///  - DEMO 编译模式 + magic creds（acc=="060217" / pw=="12345678"）→ 跳过 API 直接进 home
     ///  - 其他全走 AuthAPI.loginStudent → 401 走 lockout / 其他 error 走 toast
     private func tryLogin() async {
         isLoading = true
@@ -1728,9 +1728,20 @@ struct LoginView: View {
             return
         }
 
+        // 账号去首尾空格：学号是 6 桁数字、空格永远非法，复制粘贴常带空格 / 换行 → 统一 trim 后再用
+        // 密码不 trim：用户故意打的空格也算密码内容，原样发后端（后端只校验长度 6–128，schemas.py）
+        let trimmedAcc = acc.trimmingCharacters(in: .whitespaces)
+
+        // 空字段检查：账号 / 密码任一空着就当场拦下，别拿空值去请求后端
+        // （原来空着也直发请求，失败落到「通信エラー」提示，跟「没填」对不上、误导用户 — itsuki 2026-06-04）
+        if trimmedAcc.isEmpty || pw.trimmingCharacters(in: .whitespaces).isEmpty {
+            app.showToast("アカウント番号とパスワードを入力してください")
+            return
+        }
+
         // DEMO 编译模式: magic creds 跳过 API（用于演示锁定升级 / 离线场景）
         #if DEMO
-            let isDemoMagic = (acc == "00") && (pw == "demo1234" || pw == "00")
+            let isDemoMagic = (trimmedAcc == "060217") && (pw == "12345678")
             if isDemoMagic {
                 app.resetLoginFailures()
                 router.replace(.home)
@@ -1740,7 +1751,7 @@ struct LoginView: View {
 
         // 真实 API 调用
         do {
-            let token = try await AuthAPI.loginStudent(studentNo: acc, password: pw)
+            let token = try await AuthAPI.loginStudent(studentNo: trimmedAcc, password: pw)
             // IX-036: 走 setAuthToken 一并存过期时刻（原来直接赋 authToken 会跳过过期记录，
             // 登录得到的令牌启动时就判不了过期）。didSet 仍同步 APIClient.token + Keychain.save。
             app.setAuthToken(token.accessToken, expiresIn: token.expiresIn)

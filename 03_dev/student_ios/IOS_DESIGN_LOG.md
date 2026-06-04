@@ -515,7 +515,7 @@ itsuki Q5 指示：**像 Web Round 1 一样，Claude Design 先列 3 variations�
 |---|---|---|
 | §0 认证 / 启动 | Splash + Onboarding + 注册 4 step + 登录 + 锁定 + 密码重置说明 | 10 |
 | §1 Home 主屏 | 主屏 + 10 卡片（分 section / tab）+ 顶部 bar + 3 选 1 sheet + 中央按钮 4 态 | 8 |
-| §1.4 Home 子页 | 通知 / 快递 / 遗失物 / 点歌 / ~~宿舍墙~~(2026-06-03 削除) / 活动 / 巴士 / 匿名建议 | 18→15 |
+| §1.4 Home 子页 | 通知 / 快递 / 遗失物 / 点歌 / ~~宿舍墙~~(2026-06-03 削除) / 活动 / 巴士 / ~~匿名建议~~(2026-06-04 削除) | 18→13 |
 | §2 申し込み | Landing + 7 类申请 form + 详情 + 免点呼查询 + 历史 | 13 |
 | §3 マイページ | Landing + 个人情報 + 8 类历史 + 设置 + 关于 + ログアウト | 14 |
 | §4 跨页组件 | TabBar + home icon + back + 持久 bar + 举报 + 空状态 + 错误 + loading + DEMO badge + confirm | 10 |
@@ -1164,7 +1164,7 @@ IX-008 Batch 2 收尾的低危残留（handoff §4.2/§7.1）一并清掉：
 
 后端无 wall 表 / Android 无 Wall 屏 → 五端仅 iOS 一处。生产 + 演示双 scheme `BUILD SUCCEEDED`，全工程 0 残留。
 
-> **⚠️ 同类未处理项（待 itsuki 决策）**：`system_features.md §891` 同样写「匿名建議 投稿 🚫 砍」，但 iOS `SuggestView`（§16）+ `SuggestItem` + `SEED.suggestions` 还在 —— 跟寮ウォール一模一样的「文档砍了代码没删」。本次 itsuki 只点名删宿舍墙，匿名建議待他拍板是否一并删。
+> **✅ 同类项已处理（2026-06-04）**：匿名建議 4-29 就拍板砍了（`system_features.md §891`「匿名建議 投稿 🚫 砍」），但代码一直漂着 —— 跟寮ウォール一样「文档砍了代码没删」。本次 itsuki 拍板一并删：iOS 删 `SuggestView`（§16）+ `SuggestFeedView`（§17）+ `SuggestItem` 类型 + `SEED.suggestions` 假数据 + 路由（`homeSuggest` / `homeSuggestFeed`）+ 首页入口卡片；Android 删 `FeedbackScreen` 整屏 + 路由（`Route.Feedback`）+ `AppState.feedback` 字段；teacher_web 匿名建議 tab 5-27 已删。五端 0 残留。
 
 ### 14.15 演示数据修正 + 出寮届表单对齐实物表 + 页面切换黑屏修复（2026-06-03，itsuki 逐屏审）
 
@@ -1199,6 +1199,38 @@ itsuki 实机逐屏看演示版，揪出一批演示假数据矛盾 + 表单跟�
 - `NetworkModels.ApplicationOut` + `StayApplication` + `toStayApplication()` 加字段 → `StayDetailView.fieldsCard` 详情显示「タクシー予約」行
 - 外出（`GenericApplyForm`，纯桩未接后端）加 `if isOuting` 出租车 UI 占位
 - 验证：演示 + 正式双 scheme `BUILD SUCCEEDED`；后端 221 测试绿、老师网页「タクシー」tab 实装（check_jsx 0 错）。Android 待接后端时做（详见 `ANDROID_DESIGN_LOG.md §10` + TODO N-004）
+
+### 14.17 出租车预约 UI 改交互 — 出寮方法连动（2026-06-04，itsuki 拍板）
+
+§14.16 的独立「タクシー予約」开关框（在 §4 帰寮下面，要先开 `Toggle` 才出时刻）交互被推翻。itsuki 要的是：出寮方法选了「タクシー」就当场在 §3 出寮卡片里露出时刻选择器，不用再去下面单独找一个开关。只管出寮（帰寮方法即使选タクシー也不出预约时刻 —— 后端 `taxi_reservation_time` 只有一个字段，不为帰寮加第二个）。`StayForm` 改动（`ApplyStubs.swift`）：
+
+- 删 §4 帰寮后那整个「タクシー予約」section（`SectionLabel(n: "T")` + `Toggle` + 条件 `TimeField`）
+- 删没用了的 `taxiReserved` 开关 state，保留 `taxiTime`
+- §3 出寮卡片：出寮方法 `ChipGroup` 下面加 `if leaveMethod == "タクシー" { TimeField }`，标题「タクシー希望時刻」
+- 提交逻辑 `taxiTimeValue`：来源从 `taxiReserved` 改成 `leaveMethod == "タクシー"`（三 body 提交点不变）
+- 验证：`xcodebuild` 编 `ApplyStubs.swift` 零 error（整体 build 另有 `BusAPI.swift` 未登记进工程的无关报错，是并行会话遗留，待处理）
+- 注：下面「外出」表单（`GenericApplyForm` / §14.16 第 4 条的占位）仍是旧的独立开关式，纯桩未接后端，本次不动
+
+### 14.18 申请表单加「寮生特別運行の時刻表」快捷按钮 + 时刻表页接真后端（2026-06-04，itsuki 拍板）
+
+学生在出寮届选移动方式时，想当场看「寮生特別運行」（学校给寮生开的特别巴士）几点发车，不用退出去别处找。出寮方法 / 帰寮方法两组选项里都能选「寮生特別運行」，所以两处下方各加一个按钮跳时刻表。itsuki 要求前后端一起改（不只是 iOS 跳转）。改动：
+
+- `ApplyStubs.swift`（`StayApplyView`，三种出寮届共用）：加 `busTimetableButton`（🚌 + 文字 + `chevron.right`，点了 `router.go(.busList)`），放在出寮方法 + 帰寮方法两个 `ChipGroup` 下面各一个
+- `BusListStubs.swift`（`BusListView` 特別運航便一覧）：原来全用 `BusListMock`（假数据），现改成 `.task` 拉真后端 —— 已登录调 `BusAPI.listRoutes()` / 未登录 / 失败回退 mock（巴士时刻是公开参考信息无隐私，兜底假数据无安全风险）。加 `BusRouteMapper`：把后端 `schedule_at`（完整日期时间）按日本时区拆成日期 / 时分 / 曜日，并标出「次便」（第一个未过的便）
+- `Endpoints/BusAPI.swift`（新建）：`listRoutes(kind:)` 调 `GET /api/v1/bus/routes`，解包后端 `{items:[...]}`
+- `NetworkModels.swift`：加 `BusRouteOut` + `BusRouteListOut` 解码模型，字段对齐后端 `schemas.BusRouteOut`
+- 后端 `seed.py`：dev 种子加 7 条巴士便（4 条寮生特別運行 + 3 条平日上下学班车），挂 `shingu`（寮務部長）名下 —— 后端接口 `/api/v1/bus/routes` 早已实装 + 测试，但之前 dev 种子没数据，iOS 拉过去会空
+- 验证：`xcodegen` 重生成工程收录 `BusAPI.swift` → `xcodebuild`（iPhone 17 Debug）`BUILD SUCCEEDED`；后端 `test_events_and_bus.py` 20 测试绿；dev 种子真跑 7 条巴士便正确入库
+
+### 14.19 登录空字段校验 + 账号去空格（2026-06-04，itsuki 逐屏审 + codex 复审）
+
+itsuki 实机测：账号密码空着点登录，弹的是「通信エラーが発生しました。電波を確認してください」（通信错误请检查信号）—— 因为 `tryLogin()`（`AuthStubs.swift`）没做空字段校验，直接拿空值请求后端、失败落到 network 分支的提示，跟「用户没填」对不上、误导人。改动：
+
+- `LoginView.tryLogin()`：メール mode 提前返回之后、`#if DEMO` magic 判断之前，加空字段校验 —— 账号或密码（去首尾空格后）任一为空 → `app.showToast("アカウント番号とパスワードを入力してください")` + return，不再发请求
+- 账号去空格：加 `let trimmedAcc = acc.trimmingCharacters(in: .whitespaces)`，空检查 / DEMO magic 判断 / 真实 `AuthAPI.loginStudent` 三处统一用 `trimmedAcc`（学号是 6 桁数字、空格永远非法，复制粘贴常带空格）
+- **密码不 trim**：原样发后端。codex 建议账号密码都 trim，CC 评估后只 trim 账号 —— 密码可能含用户故意输入的空格、后端 `schemas.py` 只校验长度 6–128 不 strip，砍密码空格反而可能砍掉真实密码。codex 复审同意此取舍
+- 顺手（codex 审 §14.17 出租车改交互时挑出）：`StayForm` 加 `private static let TAXI_METHOD = "タクシー"`，原来散在数组定义 / UI 条件 / 提交逻辑三处的字面量「タクシー」全引用这个常量，防将来改文案漏改某处静默失效。`RETURN_TRANSPORTS`（帰寮）里的「タクシー」不参与出租车预约判断，故意不改
+- 验证：正式版 `TomoshibiApp` + 演示版 `TomoshibiAppDemo` 双 scheme `BUILD SUCCEEDED`；codex gpt-5.5 xhigh 复审 0 未解决问题
 
 ---
 

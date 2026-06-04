@@ -458,14 +458,17 @@ struct StayForm: View {
     /// ── 共通: 理由 ────────────────────────────────────────────────────────
     @State private var reason: String = ""
 
-    /// ── 出租车预约「タクシー予約」（itsuki 2026-06-03）— 开关 + 想坐车的时刻 ──
-    @State private var taxiReserved: Bool = false
+    /// ── 出租车预约「タクシー予約」— 出寮方法选了「タクシー」时想坐车的时刻（itsuki 2026-06-04：废止独立开关，改成出寮方法连动）──
     @State private var taxiTime: Date = StayForm.parseHM("18:00") ?? Date()
+
+    /// 出租车这个移动方式的字面量 —— 出寮方法选了它才出预约时刻选择器。
+    /// 抽成常量：下面 LEAVE_TRANSPORTS 数组 + UI 条件 + 提交逻辑三处都引这一个，改文案只改这里、不会漏改某处静默失效
+    private static let TAXI_METHOD = "タクシー"
 
     /// 出寮方法（去程·离开宿舍去车站 / 机场）。不含飞机 —— 帰国坐飞机的信息在「飛行機」段单独填（航班时刻 ≠ 出寮时刻）
     private let LEAVE_TRANSPORTS = [
         "西口1便", "西口2便", "金川1便", "金川2便", "寮生特別運行",
-        "JR", "自家用車", "タクシー", "教員", "その他",
+        "JR", "自家用車", StayForm.TAXI_METHOD, "教員", "その他",
     ]
     /// 帰寮方法（回程·回宿舍 / 登校）。不含飞机 —— 同上，飞机走「飛行機」段
     private let RETURN_TRANSPORTS = [
@@ -521,6 +524,26 @@ struct StayForm: View {
             if departAirport.isEmpty || arriveAirport.isEmpty { return false }
         }
         return true
+    }
+
+    /// 「寮生特別運行の時刻表を見る」按钮 — 出寮方法 / 帰寮方法 下方各放一个，
+    /// 因为这两组移动方式里都能选「寮生特別運行」。点了跳到特別運航便一覧（BusListView）。
+    private var busTimetableButton: some View {
+        Button {
+            router.go(.busList)
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "bus")
+                    .font(.system(size: 12, weight: .semibold))
+                Text("寮生特別運行の時刻表を見る")
+                    .font(.system(size: 12, weight: .semibold))
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .semibold))
+            }
+            .foregroundStyle(T.primary)
+            .padding(.top, 2)
+        }
+        .buttonStyle(.plain)
     }
 
     var body: some View {
@@ -604,6 +627,17 @@ struct StayForm: View {
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(T.inkSub)
                                 ChipGroup(options: LEAVE_TRANSPORTS, value: $leaveMethod)
+                                busTimetableButton
+                            }
+                            // 出租车预约：出寮方法选了「タクシー」就当场露出希望时刻选择器
+                            // （itsuki 2026-06-04：废止旧·独立「タクシー予約」开关框，改成跟出寮方法连动）
+                            if leaveMethod == StayForm.TAXI_METHOD {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("タクシー希望時刻")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(T.inkSub)
+                                    TimeField(date: $taxiTime)
+                                }
                             }
                         }
                     }
@@ -627,28 +661,7 @@ struct StayForm: View {
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(T.inkSub)
                                 ChipGroup(options: RETURN_TRANSPORTS, value: $returnMethod)
-                            }
-                        }
-                    }
-                    .padding(.bottom, 18)
-
-                    // ── 出租车预约「タクシー予約」section · 全出寮届共通 · itsuki 2026-06-03 ────
-                    SectionLabel(n: "T", label: "タクシー予約")
-                    Card(padding: 14) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Toggle(isOn: $taxiReserved) {
-                                Text("タクシーを予約する")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundStyle(T.ink)
-                            }
-                            .tint(T.primary)
-                            if taxiReserved {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("希望時刻")
-                                        .font(.system(size: 12, weight: .semibold))
-                                        .foregroundStyle(T.inkSub)
-                                    TimeField(date: $taxiTime)
-                                }
+                                busTimetableButton
                             }
                         }
                     }
@@ -943,8 +956,8 @@ struct StayForm: View {
         let mealNoteValue = meIsOverseas ? StayForm.nilIfBlank(mealNote) : nil
         let companionValue = StayForm.nilIfBlank(companion)
         let destCitiesValue = StayForm.nilIfBlank(destCities)
-        // 出租车预约：开关开 → "HH:MM:SS"；关 → nil（不预约）
-        let taxiTimeValue: String? = taxiReserved ? StayForm.formatHM(taxiTime) + ":00" : nil
+        // 出租车预约：出寮方法选了「タクシー」→ "HH:MM:SS"；选别的 → nil（不预约）
+        let taxiTimeValue: String? = leaveMethod == StayForm.TAXI_METHOD ? StayForm.formatHM(taxiTime) + ":00" : nil
 
         // F2: stay_locations object 数组（外泊 / 帰国届用、帰省届不带）
         // IX-010: UI 输入框标的是「滞在先住所」（地址），所以写进 address 字段。
