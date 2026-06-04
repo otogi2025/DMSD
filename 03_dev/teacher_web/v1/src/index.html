@@ -19341,6 +19341,40 @@
               >
                 印刷 · PDF 保存
               </button>
+              <button
+                onClick={async () => {
+                  // 食堂用食数表导出：今天 ~ +31 天（食数来自将来的外泊/帰国届的食事不要期间）
+                  const pad = (n) => String(n).padStart(2, "0");
+                  const fmt = (d) =>
+                    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+                  const start = new Date();
+                  const end = new Date();
+                  end.setDate(end.getDate() + 31);
+                  try {
+                    await window.tomoshibiApi.downloadMealsExport(
+                      fmt(start),
+                      fmt(end),
+                      authToken,
+                    );
+                  } catch (e) {
+                    window.alert(
+                      `食数表の取得に失敗しました (${(e && e.status) || "network"})`,
+                    );
+                  }
+                }}
+                style={{
+                  padding: "6px 12px",
+                  background: "transparent",
+                  color: T.ink3,
+                  border: `1px solid ${T.lineStrong}`,
+                  borderRadius: 8,
+                  fontFamily: "inherit",
+                  fontSize: 12,
+                  cursor: "pointer",
+                }}
+              >
+                食数表（今後1ヶ月）DL
+              </button>
             </div>
 
             {error !== null ? (

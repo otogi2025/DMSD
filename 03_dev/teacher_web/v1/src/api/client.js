@@ -350,6 +350,41 @@
       return res.blob();
     },
 
+    // ── 食堂用「食数表」导出（杭田 2026-06-04 一-7）──
+    // GET /meals/export?from=&to= → .xlsx blob（后端从各申请的食事不要期间算出每天朝昼夕不需要的食数）
+    // 接口需鉴权 + 限寮務系角色 + 返二进制，手搓 fetch 带 token（不走 request）+ 触发浏览器下载。
+    downloadMealsExport: async (from, to, token) => {
+      const base = window.API_BASE || "/api/v1";
+      const qs = new URLSearchParams();
+      qs.set("from", from);
+      qs.set("to", to);
+      const res = await fetch(`${base}/meals/export?${qs.toString()}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        if (res.status === 401 && typeof api._onUnauthorized === "function") {
+          try {
+            api._onUnauthorized();
+          } catch (_) {
+            /* 钩子内部错误不要影响 throw */
+          }
+        }
+        throw { status: res.status };
+      }
+      const blob = await res.blob();
+      const cd = res.headers.get("Content-Disposition") || "";
+      const m = cd.match(/filename="?([^"]+)"?/);
+      const filename = m ? m[1] : "meals.xlsx";
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    },
+
     // ── 指導履歴（spec §7.9 — 5-30 新増）──
     // POST → 老师录入指导记录 body={student_id, content, category?, guidance_date, confidential}
     createGuidance: (studentId, body, token) =>
