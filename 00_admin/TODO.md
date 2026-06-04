@@ -107,6 +107,16 @@
 - [ ] **iOS 生产版接 `/api/v1/outings` 系列接口** — 现外出客户端只有演示版（`ApplyStubs.swift` 假数据）。生产版要新接：提出 → `POST /outings`、列表 → `GET /outings/mine`、详情 → `GET /outings/{id}`、撤回 → `PATCH /{id}/withdraw`。后端 status 只有 `pending/approved/withdrawn` 三态，2 步进度按这三态映射（`pending`=先生確認待ち / `approved`=確認済显示 `confirmed_by_name` / `withdrawn`=取消）。
 - [ ] **老师网页加外出「確認」按钮** — 列表 `GET /outings/pending-for-me` + 点确认调 `PATCH /outings/{id}/confirm`（单按钮，不是多级审批 UI）。
 
+## 🛰️ 2026-06-04 点呼机硬件下单 — Amazon/SS 已下单 / 秋月待台风后下 / LED 代码待改
+
+> 点呼机首台演示机硬件总检查 + 下单，约 2.2 万日元。LED 驱动从「3.3V GPIO 直驱」改「**5V 驱动 / 低电平点亮**」（A 方案 — 绿/蓝/白 工作电压 Vf 3.1V，3.3V 针 +220Ω 几乎不亮）。详见 `03_dev/rollcall_device/点呼机采购清单.html` + `点呼机接线说明.md §4` + `decision_log` 2026-06-04 条。
+
+- [x] ~~Amazon 下单~~ ✅ 2026-06-04 — PN532 V3 + NTAG215 ×10 + Lazos 喇叭 + 面包板 + 排针 + 烙铁套装。
+- [x] ~~Switch Science 下单~~ ✅ 2026-06-04 — ST25DV16K ×4。
+- [ ] **🌪️ 秋月下单（待台风 6 号通販センター恢复营业）** — Pi 3A+ 主板 + 5V3A 电源 + 4 色 LED + 220Ω + **10kΩ（ST25DV GPO 上拉，125103）** + 杜邦线 + 5V 风扇 + **万用表 MAS830L（112542）**。
+- [ ] **`led.py` 写「低电平=亮」反逻辑** — A 方案 LED 从 5V 驱动、GPIO 当电流 sink；代码开机第一步把 4 个 LED GPIO 设成输出高电平（灭），防开机浮空误亮。（点呼机 `src/` 代码未实装）
+- [ ] **装机接线注意（到货时做）** — PN532 VCC 接 **3.3V**（不接 5V）+ 跳线拨到 SPI 模式；ST25DV GPO 接 10kΩ 外部上拉到 3.3V；PN532 与 ST25DV 拉开 ≥10cm。
+
 ## 🐞 系统 Bug 专栏（v1.0 上线前 — 5-20 审查作战产出）
 
 > **131 条 bug 详细管理见**：[`00_admin/系统bug专栏.md`](系统bug专栏.md)

@@ -277,7 +277,7 @@
           </li>
           <li>
             <b>防代刷</b
-            >：卡有唯一编号（防随便复制）；手机碰的网址带一次性验证码（用过即失效，防截图转发替别人签到）。
+            >：卡有唯一编号（防随便复制）；手机碰一下直接把身份写进贴纸的邮箱，主板当场读出并盖时间戳上报（手机全程不联网，没有网址可截图转发）。最终靠老师听播报后对人脸（人眼确认）。
           </li>
           <li>
             <b>现场反馈</b>：签到成功亮绿灯 +
@@ -315,8 +315,10 @@
         </div>
         <p><b>路径 B — 手机碰贴纸：</b></p>
         <div class="wire">
-          主板每隔几秒改写贴纸（ST25DV）里的网址（带一次性验证码）→
-          学生手机碰一下 → 打开签到网页 → 后端校验验证码
+          学生手机碰一下贴纸（ST25DV）→
+          手机把身份数据写进贴纸的邮箱（Mailbox，芯片里一块手机和主板都能读写的内存）→
+          贴纸的门铃针（GPO 中断）通知主板 → 主板用 I²C 读出邮箱数据 →
+          主板盖时间戳 → 网络发后端（手机全程不联网）
         </div>
 
         <h3>5 个模块各干什么</h3>
@@ -336,7 +338,7 @@
             </tr>
             <tr>
               <td>ST25DV 贴纸</td>
-              <td>能被主板改写、又能被手机读的特殊 NFC 标签</td>
+              <td>能被手机写入、又能被主板读的特殊 NFC 标签（带邮箱内存）</td>
               <td><b>I²C</b>（一种 2 线通信总线）</td>
             </tr>
             <tr>
@@ -352,7 +354,7 @@
             <tr>
               <td>喇叭</td>
               <td>播日语姓名</td>
-              <td>插 USB 口</td>
+              <td>音频插 3.5mm；USB 取电插单独充电头</td>
             </tr>
           </tbody>
         </table>
@@ -374,27 +376,35 @@
       <!-- ============ ③ 提醒 ============ -->
       <h2 id="alert">③ 下单前必看（我核对链接后发现的问题）</h2>
 
-      <div class="alert">
-        <b>① 风扇链接是 12V 的，但树莓派只有 5V！</b><br />
-        你给的风扇链接（<a
+      <div class="info">
+        <b>① 风扇已定：秋月 114184（5V，¥450）。</b><br />
+        原来给的 Amazon 链接（<a
           class="buy"
           href="https://www.amazon.co.jp/dp/B0DYV31FJZ"
           target="_blank"
           >B0DYV31FJZ</a
-        >）抓出来是「JYUDAUFU 30×10mm <b>DC 12V</b> 风扇 4 个装」。12V
-        风扇接树莓派 5V 转不动甚至不转。上次就说好换 5V 的——<b
-          >这个别买，重新找 5V 30mm 风扇</b
+        >）是「JYUDAUFU 30×10mm <b>DC 12V</b>」，12V 接树莓派 5V
+        不转，<b>作废</b>。换成秋月（<a
+          class="buy"
+          href="https://akizukidenshi.com/catalog/g/g114184/"
+          target="_blank"
+          >114184</a
+        >）「DCファン 5V 30×30×10mm コネクター付」（型号 YDH3010C05），<b
+          >5V + 2.54mm 接头直插树莓派 pin4(5V)+pin6(GND)，红线对 5V，别插反</b
         >。
       </div>
 
-      <div class="alert">
-        <b>② 喇叭对不上。</b>截图里是 HONKYOB ¥1,980，但你给的链接（<a
+      <div class="info">
+        <b>② 喇叭已定：Lazos L-SK-B（¥748）。</b>之前截图 HONKYOB / 链接 Apqfw
+        HM5002 两款都作废，改用 Lazos（<a
           class="buy"
-          href="https://www.amazon.co.jp/dp/B0G64JFMNR"
+          href="https://www.amazon.co.jp/dp/B099ZLVLMM"
           target="_blank"
-          >B0G64JFMNR</a
-        >）抓出来是「Apqfw HM5002」另一款。两个都是 USB
-        小喇叭功能差不多，<b>你确认到底买哪个</b>，别两个都下。
+          >B099ZLVLMM</a
+        >）「USBスピーカー L-SK-B」，<b>USB 取电 + 3.5mm 音频，6W</b>。接法：<b
+          >3.5mm 那根插树莓派音频口，USB 那根插单独 5V 充电头（不占树莓派唯一的
+          USB 口）</b
+        >。装系统后用 raspi-config 把声音切到「模拟音频」才出声。
       </div>
 
       <div class="alert">
@@ -595,13 +605,62 @@
               </td>
               <td><span class="pill p-pend">和上一行重复</span></td>
             </tr>
+            <tr>
+              <td>5V 30mm 风扇 YDH3010C05（2.54mm 接头直插树莓派）</td>
+              <td class="num">450</td>
+              <td class="num">1</td>
+              <td class="num">450</td>
+              <td>
+                <a
+                  class="buy"
+                  href="https://akizukidenshi.com/catalog/g/g114184/"
+                  target="_blank"
+                  >114184</a
+                >
+              </td>
+              <td><span class="pill p-ok">✓ 已确认（5V/2.54mm）</span></td>
+            </tr>
+            <tr>
+              <td>
+                10kΩ 电阻 1/4W（ST25DV GPO 门铃线外部上拉，Codex 建议）100 本入
+              </td>
+              <td class="num">100</td>
+              <td class="num">1</td>
+              <td class="num">100</td>
+              <td>
+                <a
+                  class="buy"
+                  href="https://akizukidenshi.com/catalog/g/g125103/"
+                  target="_blank"
+                  >125103</a
+                >
+              </td>
+              <td><span class="pill p-ok">✓ 已确认（RD25S 10K）</span></td>
+            </tr>
+            <tr>
+              <td>
+                数字万用表 MAS830L（工具 · 量电压 / 通断蜂鸣，零基础调试用）
+              </td>
+              <td class="num">2,480</td>
+              <td class="num">1</td>
+              <td class="num">2,480</td>
+              <td>
+                <a
+                  class="buy"
+                  href="https://akizukidenshi.com/catalog/g/g112542/"
+                  target="_blank"
+                  >112542</a
+                >
+              </td>
+              <td><span class="pill p-ok">✓ 已确认（有通断蜂鸣）</span></td>
+            </tr>
           </tbody>
           <tfoot>
             <tr>
-              <td><b>秋月小计</b></td>
+              <td><b>秋月小计</b>（含 10kΩ + 万用表工具）</td>
               <td></td>
               <td></td>
-              <td class="num"><b>≈ 7,970</b></td>
+              <td class="num"><b>≈ 11,000</b></td>
               <td colspan="2"></td>
             </tr>
           </tfoot>
@@ -673,10 +732,10 @@
           </thead>
           <tbody>
             <tr>
-              <td>PN532 V3 NFC 套件（读学生卡）</td>
-              <td class="num">1,190</td>
+              <td>PN532 V3 NFC 套件（读学生卡，自带排针+杜邦线+测试卡）</td>
+              <td class="num">1,234</td>
               <td class="num">1</td>
-              <td class="num">1,190</td>
+              <td class="num">1,234</td>
               <td>
                 <a
                   class="buy"
@@ -685,7 +744,7 @@
                   >B0C7Q1PX3R</a
                 >
               </td>
-              <td><span class="pill p-pend">链接抓不到，自己核对</span></td>
+              <td><span class="pill p-ok">✓ 已确认（V3 支持 SPI）</span></td>
             </tr>
             <tr>
               <td>NTAG215 白卡 10 张（学生卡）</td>
@@ -703,23 +762,19 @@
               <td><span class="pill p-ok">✓ 已确认</span></td>
             </tr>
             <tr>
-              <td>USB 迷你喇叭（日语播报）</td>
-              <td class="num">1,980</td>
+              <td>Lazos L-SK-B USB 喇叭（USB 取电 + 3.5mm 音频，6W）</td>
+              <td class="num">748</td>
               <td class="num">1</td>
-              <td class="num">1,980</td>
+              <td class="num">748</td>
               <td>
                 <a
                   class="buy"
-                  href="https://www.amazon.co.jp/dp/B0G64JFMNR"
+                  href="https://www.amazon.co.jp/dp/B099ZLVLMM"
                   target="_blank"
-                  >B0G64JFMNR</a
+                  >B099ZLVLMM</a
                 >
               </td>
-              <td>
-                <span class="pill p-pend"
-                  >链接是 Apqfw，截图是 HONKYOB，选一个</span
-                >
-              </td>
+              <td><span class="pill p-ok">✓ 已确认</span></td>
             </tr>
             <tr>
               <td>2.54mm 公母排针套装 60 个（焊 PN532+ST25DV）</td>
@@ -752,20 +807,40 @@
               <td><span class="pill p-ok">✓ 已确认</span></td>
             </tr>
             <tr>
-              <td class="del">5V 30mm 风扇</td>
+              <td>
+                Lesimoll 14 合 1 烙铁套装（60W 可调温 + 焊锡 0.8mm + 架子 + 海绵
+                + 吸锡器 + 镊子 + 日语说明书）
+              </td>
+              <td class="num">1,990</td>
+              <td class="num">1</td>
+              <td class="num">1,990</td>
+              <td>
+                <a
+                  class="buy"
+                  href="https://www.amazon.co.jp/s?k=はんだごて+14in1+60W"
+                  target="_blank"
+                  >Lesimoll 14合1</a
+                >
+              </td>
+              <td><span class="pill p-ok">✓ 已确认</span></td>
+            </tr>
+            <tr>
+              <td class="del">5V 30mm 风扇（→ 移到秋月 114184）</td>
               <td class="num">—</td>
               <td class="num">1</td>
               <td class="num">—</td>
               <td><span class="del">B0DYV31FJZ</span></td>
-              <td><span class="pill p-del">链接是 12V！重找 5V</span></td>
+              <td><span class="pill p-ok">→ 改秋月 114184 ¥450</span></td>
             </tr>
           </tbody>
           <tfoot>
             <tr>
-              <td><b>Amazon 小计</b>（不含待定喇叭/风扇）</td>
+              <td>
+                <b>Amazon 小计</b>（含 Lazos 喇叭 + 烙铁套装；风扇已移秋月）
+              </td>
               <td></td>
               <td></td>
-              <td class="num"><b>≈ 5,569</b></td>
+              <td class="num"><b>≈ 6,371</b></td>
               <td colspan="2"></td>
             </tr>
           </tfoot>
@@ -773,11 +848,79 @@
       </div>
 
       <div class="card">
-        <span class="total">合计 ≈ 17,800 円</span>
+        <span class="total">合计 ≈ 22,200 円</span>
         <span class="small"
-          >（秋月 7,970 ＋ SS 4,272 ＋ Amazon 5,569，已删 Qwiic 省
-          3,090；不含待定的风扇 / 读卡器；ST25DV 按 4 个算）</span
+          >（秋月单 11,570【原 8,990 ＋ 10kΩ 100 ＋ 万用表 2,480】＋ Switch
+          Science 4,272【ST25DV×4】＋ Amazon 6,371【6 件】；已删 Qwiic 省
+          3,090；microSD 卡 / 读卡器 itsuki 已有）<br />
+          <b>下单状态（2026-06-04）</b>：✅ Amazon 已下单 / ✅ Switch Science
+          已下单 / ⏳ <b>秋月待下单</b>（台风 6
+          号通販センター临时休业，等恢复营业再下；秋月料含 Pi 主板 + 电源 + LED
+          + 电阻 + 10kΩ + 杜邦线 + 风扇 + 万用表）。</span
         >
+      </div>
+
+      <!-- ============ 下单截图存档 ============ -->
+      <div class="card">
+        <h3 id="orders">📸 实际下单截图（2026-06-04 存档 · 对账用）</h3>
+        <p class="small">
+          itsuki 2026-06-04 真实下单的订单页 / 购物车截图，跟上面 ④
+          采购清单逐项对账。
+        </p>
+        <h4>
+          秋月单：Pi 主板 + 电源 + 4 色 LED + 220Ω 电阻 + 杜邦线 + 风扇 — 合计
+          ¥8,990
+        </h4>
+        <img
+          src="采购截图/秋月订单_1.png"
+          alt="秋月订单（上半）"
+          style="max-width: 100%; border: 1px solid #ccc; margin: 6px 0"
+        />
+        <img
+          src="采购截图/秋月订单_2.png"
+          alt="秋月订单（下半）"
+          style="max-width: 100%; border: 1px solid #ccc; margin: 6px 0"
+        />
+        <img
+          src="采购截图/秋月订单_确定_8990.png"
+          alt="秋月确定页 ¥8,990"
+          style="max-width: 100%; border: 1px solid #ccc; margin: 6px 0"
+        />
+        <h4>
+          Amazon 购物车：烙铁套装 + 喇叭 + 面包板 + 排针 + NTAG215 卡 + PN532 —
+          小计 ¥6,371（6 件）
+        </h4>
+        <img
+          src="采购截图/Amazon购物车_1.png"
+          alt="Amazon 购物车（上半）"
+          style="max-width: 100%; border: 1px solid #ccc; margin: 6px 0"
+        />
+        <img
+          src="采购截图/Amazon购物车_PN532.png"
+          alt="Amazon 购物车 PN532"
+          style="max-width: 100%; border: 1px solid #ccc; margin: 6px 0"
+        />
+        <img
+          src="采购截图/Amazon购物车_小计_6371.png"
+          alt="Amazon 小计 ¥6,371"
+          style="max-width: 100%; border: 1px solid #ccc; margin: 6px 0"
+        />
+        <h4>
+          追加（2026-06-04 总检查后加买）：10kΩ 电阻（GPO 上拉）+ MAS830L 万用表
+        </h4>
+        <img
+          src="采购截图/秋月_10kΩ电阻_125103.png"
+          alt="秋月 10kΩ 电阻 125103"
+          style="max-width: 100%; border: 1px solid #ccc; margin: 6px 0"
+        />
+        <img
+          src="采购截图/秋月_万用表_MAS830L_112542.png"
+          alt="秋月 万用表 MAS830L 112542"
+          style="max-width: 100%; border: 1px solid #ccc; margin: 6px 0"
+        />
+        <p class="small">
+          Switch Science 的 ST25DV16K ×4（¥4,272）是另一单下单的，本批截图未含。
+        </p>
       </div>
 
       <!-- ============ ⑤ 接线 ============ -->
@@ -806,21 +949,27 @@
           <p class="small">板底 6 个焊孔焊排针，再用母-母杜邦线接</p>
         </div>
         <div class="card">
-          <h3>LED ×4（每个串 220Ω 电阻）</h3>
+          <h3>LED ×4（每个串 220Ω · 5V 驱动 / 低电平点亮）</h3>
           <div class="wire">
-            蓝 待机&nbsp;&nbsp;→ pin15 / GPIO22<br />
-            绿 成功&nbsp;&nbsp;→ pin13 / GPIO27<br />
-            红 失败&nbsp;&nbsp;→ pin11 / GPIO17<br />
-            白 启动&nbsp;&nbsp;→ pin16 / GPIO23
+            蓝 待机&nbsp;&nbsp;→ 短腿 pin15 / GPIO22<br />
+            绿 成功&nbsp;&nbsp;→ 短腿 pin13 / GPIO27<br />
+            红 失败&nbsp;&nbsp;→ 短腿 pin11 / GPIO17<br />
+            白 启动&nbsp;&nbsp;→ 短腿 pin16 / GPIO23<br />
+            4 个长腿 → 各串 220Ω → 5V（pin2 / pin4）
           </div>
-          <p class="small">长腿→电阻→GPIO；短腿→接地</p>
+          <p class="small">
+            2026-06-04 改 A 方案：长腿(正极)→电阻→<b>5V 针</b>，短腿(负极)→<b
+              >GPIO 信号针</b
+            >；代码 <b>低电平=亮</b>。原「3.3V GPIO
+            直驱」会让绿/蓝/白几乎不亮（绿 Vf 3.1V，查证秋月官方页 g112117）。
+          </p>
         </div>
         <div class="card">
           <h3>风扇 / 喇叭</h3>
           <div class="wire">
-            风扇正极 → 5V（pin2/pin4）<br />
-            风扇负极 → 接地<br />
-            喇叭 → USB 口
+            风扇正极 → 5V（pin4）／负极 → 接地（pin6）<br />
+            风扇 2.54mm 接头直插 pin4+pin6，红线对 5V，别插反<br />
+            喇叭 → 音频 3.5mm 插主板；USB 取电插单独充电头（不占主板 USB 口）
           </div>
           <p class="small">
             ⚠️ 风扇绝不接 GPIO 信号针（会烧主板）；风扇必须 5V
