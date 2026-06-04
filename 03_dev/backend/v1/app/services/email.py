@@ -10,6 +10,7 @@
 - 失败は notification_log に残す (status='failed' + last_error) → 業務 flow は止めない
 - API_KEY 未設定の dev 環境では「ログだけ書いて成功扱い」にして開発を阻害しない
 """
+
 from __future__ import annotations
 
 import logging
@@ -38,7 +39,7 @@ def render_application_submitted(
 ----------
 学生:        {student.name} (学号 {student.student_no})
 寮:          {_dorm_label(student.dorm_unit)}  / 部屋 {student.room_no}
-区分:        {'留学生' if student.is_overseas else '一般寮生'}
+区分:        {"留学生" if student.is_overseas else "一般寮生"}
 種類:        {application.kind}
 出寮日時:    {application.leave_date} {application.leave_time}
 帰寮日時:    {application.return_date} {application.return_time}
@@ -53,12 +54,57 @@ def render_application_submitted(
     return subject, body
 
 
+def render_application_decided(
+    *,
+    application: models.Application,
+    student: models.Student,
+    result: str,
+    decided_role: str,
+    comment: str | None,
+) -> tuple[str, str]:
+    """審査結果（承認 / 却下）を提出者本人へ通知する件名 + 本文。
+
+    杭田 2026-06-04 要件: 役職への通知だけでなく、提出者にも結果を
+    「残る」メールで知らせる（プッシュは消して忘れるため不可）。
+    """
+    is_approved = result == "approved"
+    head = "承認されました" if is_approved else "却下されました"
+    subject = f"[Tomoshibi] 出寮届 {head}: {student.name} ({application.kind})"
+
+    if is_approved:
+        state_line = "全役職の承認が完了しました（承認）"
+        tail = "出寮の準備を進めてください。"
+    else:
+        state_line = f"却下（{decided_role}）"
+        tail = "担当の先生に確認のうえ、必要であれば修正して再提出してください。"
+
+    comment_block = f"コメント:    {comment}\n" if comment else ""
+
+    body = f"""出寮届が{head}。
+
+----------
+学生:        {student.name} (学号 {student.student_no})
+種類:        {application.kind}
+出寮日時:    {application.leave_date} {application.leave_time}
+帰寮日時:    {application.return_date} {application.return_time}
+状態:        {state_line}
+{comment_block}----------
+
+{tail}
+
+— Tomoshibi (灯火) システム
+"""
+    return subject, body
+
+
 def render_test_email(*, body_text: str) -> str:
     return body_text
 
 
 def _dorm_label(dorm_unit: int) -> str:
-    return {1: "1 寮 (男)", 2: "2 寮 (男)", 4: "4 寮 (女)"}.get(dorm_unit, f"{dorm_unit} 寮")
+    return {1: "1 寮 (男)", 2: "2 寮 (男)", 4: "4 寮 (女)"}.get(
+        dorm_unit, f"{dorm_unit} 寮"
+    )
 
 
 # ---------------------------------------------------------------
@@ -166,6 +212,76 @@ def send_application_submitted(
         log.sent_at = datetime.now(timezone.utc)
     else:
         # SENDGRID_API_KEY 未設定 (dev) は "skipped" 扱い、failed と区別
+        if error and "not configured" in error:
+            log.status = "pending"
+            log.last_error = "dev mode: SendGrid API key not configured (skipped)"
+        else:
+            log.status = "failed"
+            log.last_error = (error or f"HTTP {status_code}")[:500]
+    return log
+
+
+# ---------------------------------------------------------------
+# Public API: 审批结果通知提出者本人 (杭田 2026-06-04 / R1)
+# ---------------------------------------------------------------
+def send_application_decided(
+    db: Session,
+    *,
+    application: models.Application,
+    student: models.Student,
+    result: str,
+    decided_role: str,
+    comment: str | None,
+) -> models.NotificationLog:
+    """审批终态（承認 / 却下）结果を提出者本人へメール通知する。
+
+    - 收件人 = 学生本人の email（未登録なら failed 記録、業務は止めない）
+    - notification_log に 1 行記録（template_key='application_decided'）
+    - dev で SENDGRID_API_KEY 未設定なら pending（skipped）扱い
+    """
+    subject, body = render_application_decided(
+        application=application,
+        student=student,
+        result=result,
+        decided_role=decided_role,
+        comment=comment,
+    )
+    to_email = student.email
+    payload = {
+        "subject": subject,
+        "to": [to_email] if to_email else [],
+        "student_id": str(student.id),
+        "application_id": str(application.id),
+        "result": result,
+    }
+
+    log = models.NotificationLog(
+        channel="email",
+        template_key="application_decided",
+        target_type="student",
+        target_id=student.id,
+        target_email=to_email,
+        payload=payload,
+        status="pending",
+        attempts=0,
+    )
+    db.add(log)
+    db.flush()  # log.id 確定
+
+    if not to_email:
+        log.status = "failed"
+        log.last_error = "提出者本人に email 登録なし"
+        log.attempts = 0
+        return log
+
+    sent, status_code, error = _send_via_sendgrid(
+        to_emails=[to_email], subject=subject, body_text=body
+    )
+    log.attempts = 1
+    if sent:
+        log.status = "sent"
+        log.sent_at = datetime.now(timezone.utc)
+    else:
         if error and "not configured" in error:
             log.status = "pending"
             log.last_error = "dev mode: SendGrid API key not configured (skipped)"

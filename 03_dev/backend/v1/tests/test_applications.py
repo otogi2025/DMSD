@@ -391,3 +391,114 @@ class TestUpdateApplication:
         db_session.expire_all()
         appr2 = db_session.get(models.ApplicationApproval, appr_id)
         assert appr2 is not None and appr2.decision == "approve", appr2
+
+
+class TestApprovalNotifiesStudent:
+    """杭田 2026-06-04：审批走到终态后给提出者本人发邮件（template_key=application_decided）。
+
+    部分通过（approved_partial）/ 审批中（pending）不通知，只在 approved / rejected 终态发。
+    dev 环境没配 SENDGRID_API_KEY，不会真发，只在 notification_log 留一行。
+    """
+
+    def _create_pending(self, client, student_token) -> str:
+        res = client.post(
+            "/api/v1/applications",
+            json=_kisei_body(),
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 201, res.text
+        return res.json()["id"]
+
+    def test_reject_notifies_submitter_by_email(
+        self, client, student_token, teacher_token, db_session
+    ):
+        """却下（rejected）→ 给提出者本人发 application_decided 通知（日志 1 行、收件人=学生 email）。"""
+        from app import models
+
+        app_id = self._create_pending(client, student_token)
+        res = client.post(
+            f"/api/v1/applications/{app_id}/approvals",
+            json={"decision": "reject", "comment": "書類に不備があります"},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 200, res.text
+        assert res.json()["status"] == "rejected", res.text
+
+        logs = (
+            db_session.query(models.NotificationLog)
+            .filter_by(template_key="application_decided")
+            .all()
+        )
+        assert len(logs) == 1, "审批结果通知日志应恰好 1 条"
+        log = logs[0]
+        assert log.channel == "email"
+        assert log.target_type == "student"
+        assert log.target_email == "ryu@test.jp"
+        assert log.payload.get("result") == "rejected"
+
+    def test_partial_approve_does_not_notify(
+        self, client, student_token, teacher_token, db_session
+    ):
+        """部分通过（approved_partial）阶段不通知——只在终态发。"""
+        from app import models
+
+        app_id = self._create_pending(client, student_token)
+        res = client.post(
+            f"/api/v1/applications/{app_id}/approvals",
+            json={"decision": "approve"},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 200, res.text
+        st = res.json()["status"]
+        logs = (
+            db_session.query(models.NotificationLog)
+            .filter_by(template_key="application_decided")
+            .count()
+        )
+        # 留学生帰省审批链是多役职 → 单人 approve 仍是 approved_partial（通知 0 条）。
+        # 万一链只有 1 役职就会直接 approved（通知 1 条）。两种都做一致校验。
+        if st == "approved":
+            assert logs == 1
+        else:
+            assert st == "approved_partial", res.text
+            assert logs == 0, "途中段階で通知してはいけない"
+
+    def test_full_approve_notifies_submitter(
+        self, client, student_token, teacher_token, db_session
+    ):
+        """全役职 approve → approved → 给提出者本人发 application_decided 通知。"""
+        from datetime import datetime, timezone
+        from uuid import UUID
+
+        from app import models
+
+        app_id = self._create_pending(client, student_token)
+        uuid = UUID(app_id)
+        # 把 teacher_token（寮務課長）以外的 pending 审批行直接置 approve，凑出终态
+        rows = (
+            db_session.query(models.ApplicationApproval)
+            .filter_by(application_id=uuid)
+            .all()
+        )
+        for r in rows:
+            if r.approver_role != "寮務課長":
+                r.decision = "approve"
+                r.decided_at = datetime.now(timezone.utc)
+        db_session.commit()
+
+        res = client.post(
+            f"/api/v1/applications/{app_id}/approvals",
+            json={"decision": "approve"},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 200, res.text
+        assert res.json()["status"] == "approved", res.text
+
+        logs = (
+            db_session.query(models.NotificationLog)
+            .filter_by(template_key="application_decided")
+            .all()
+        )
+        assert len(logs) == 1, "全承認時に通知 1 行"
+        assert logs[0].payload.get("result") == "approved"
+        assert logs[0].target_email == "ryu@test.jp"

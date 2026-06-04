@@ -907,7 +907,7 @@ bus_routes
 |---|---|---|---|
 | 出寮届 提交 → 役职 | 役职(寮務部長 等)| **邮件** R1 | `POST /notifications/email` |
 | **出寮届 修改 → chain 全员(2026-04-30 後續 新増)** | chain 役职(已批も含む) | **邮件** R1 再送 | 同 email |
-| 役职 承认 / 不承认 → 学生 | 学生 | push + in-app | `POST /notifications/push` |
+| 役职 承认 / 不承认 → 学生 | 学生 | **邮件** R1(2026-06-04 杭田訂正: push→邮件、提出が「残る」ため) | `template_key=application_decided` |
 | **学習欠席届 提交 → 学習担当(2026-04-30 後續 修订)** | 学習担当 | **老师 Web 通知中心**(非邮件) | `POST /notifications/web` |
 | **学習欠席届 批/不批 → 学生(2026-04-30 後續 新増)** | 学生 | **iOS push**(R1 例外) | push |
 | **学習対象 加入 / 移出 → 学生(2026-04-30 後續 新増)** | 学生 | **iOS push** | push |

@@ -149,11 +149,13 @@ CHECK (
 |---|---|
 | 出寮届 提交 → 役职 | **email**（必须） |
 | 学習欠席届 提交 → 学習担当 | **email**（必须） |
-| 役职 承认/拒否 → 学生 | push + in-app（email 可选） |
+| 役职 承认/拒否 → 学生 | **email**（必须）— 杭田 2026-06-04 訂正：原定 push，改为邮件，因「提出したことが残る」（推送会被划掉忘记） |
 | 学号変更 → 老师（误输入检测） | **email**（必须） |
 | 巴士时刻 / お知らせ 投稿 → 学生 | push + in-app |
 
 后端必须实现 **2 通道**: `notifications.email_send()` + `notifications.push_send()`。任一通道失败 → retry 3 次 → 失败记 `notification_log` + 告警（不阻塞业务流程）。
+
+> **2026-06-04 实装**：审批终态（approved / rejected）给提出者本人发邮件已落地 —— `services/email.py` 的 `render_application_decided` + `send_application_decided`（template_key=`application_decided`），由 `routers/applications.py` 的 `decide_approval` 在 `_recompute_application_status` 后、状态变终态时调用。学生本人无 email 登录则记 failed 不阻塞业务。push 通道（`services/push.py`）仍为死代码、符合杭田「不要推送」。
 
 ### 3.3 R2 — 老龄寮監 一本道 UX
 

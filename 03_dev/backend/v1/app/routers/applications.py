@@ -569,6 +569,19 @@ def decide_approval(
     # application.status 自動更新
     _recompute_application_status(app)
 
+    # 杭田 2026-06-04 需求：审批走到终态（approved 通过 / rejected 却下）后，
+    # 给提交者本人发邮件通知结果（要「残る」=留痕，不能用推送，推送会被划掉忘记）。
+    # approved_partial（部分通过）/ pending（审批中）不通知。
+    if app.status in ("approved", "rejected") and app.student is not None:
+        email_svc.send_application_decided(
+            db,
+            application=app,
+            student=app.student,
+            result=app.status,
+            decided_role=teacher.role,
+            comment=body.comment,
+        )
+
     db.add(
         models.AuditLog(
             actor_type="teacher",
