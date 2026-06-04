@@ -75,8 +75,6 @@ struct RootView: View {
         case .homeEvents: EventsView()
         case let .homeEventDetail(id): EventDetailView(id: id)
         case .homeBus: BusView()
-        case .homeSuggest: SuggestView()
-        case .homeSuggestFeed: SuggestFeedView()
         // §2 申し込み — Agent D 实装
         case .apply: ApplyListView()
         case .applyNew: ApplyNewView()

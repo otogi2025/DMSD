@@ -815,7 +815,7 @@ struct HomeView: View {
 }
 
 // ───────────────────────────────────────────────────────────
-// MARK: - LifeTab · bus / package / events / lost / suggest
+// MARK: - LifeTab · bus / package / events / lost
 
 // ───────────────────────────────────────────────────────────
 
@@ -875,7 +875,6 @@ struct LifeTab: View {
             eventsCard
             musicCard
             lostCard
-            suggestCard
         }
     }
 
@@ -1113,30 +1112,6 @@ struct LifeTab: View {
         }
     }
 
-    // MARK: Suggest — JSX: 💭 emoji 20 / 40×40 pill bg
-
-    private var suggestCard: some View {
-        HomeCard(pad: 14, onTap: { router.go(.homeSuggest) }) {
-            HStack(spacing: 12) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(T.pill)
-                        .frame(width: 40, height: 40)
-                    Text("💭").font(.system(size: 20))
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("匿名で建議を送る")
-                        .font(.system(size: 13.5, weight: .semibold))
-                        .foregroundStyle(T.ink)
-                    Text("寮運営への匿名フィードバック")
-                        .font(.system(size: 11))
-                        .foregroundStyle(T.inkMute)
-                }
-                Spacer(minLength: 0)
-                Ic.chevR(16).foregroundStyle(T.inkMute)
-            }
-        }
-    }
 }
 
 // ───────────────────────────────────────────────────────────

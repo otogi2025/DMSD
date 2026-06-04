@@ -112,5 +112,4 @@ data class AppState(
     val musicVotes: Map<String, String> = emptyMap(), // id -> 'up'
     val musicRequests: List<MusicRequest> = emptyList(),
     val lostFoundClaims: Map<String, Boolean> = emptyMap(),
-    val feedback: List<String> = emptyList(), // 简化为 JSON string 列表
 )

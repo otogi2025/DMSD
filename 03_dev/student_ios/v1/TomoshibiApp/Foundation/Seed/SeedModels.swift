@@ -150,10 +150,3 @@ struct SongItem: Hashable, Identifiable {
     let up: Int
     let down: Int
 }
-
-struct SuggestItem: Hashable, Identifiable {
-    let id: Int
-    let q: String
-    let a: String
-    let date: String
-}

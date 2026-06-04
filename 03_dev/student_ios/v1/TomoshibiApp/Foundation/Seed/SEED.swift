@@ -190,7 +190,7 @@ enum SEED {
         .init(date: "2026-04-10", time: "09:00", title: "春期課題考査", place: "本校", desc: "1〜③ + 新入生オリエンテーション"),
         .init(date: "2026-04-11", time: "08:30", title: "みつ元気プロジェクト", place: "御津公民館", desc: "戦略会議 9:45〜。特別運行便あり。"),
         .init(date: "2026-04-23", time: "18:00", title: "誕生日会", place: "カフェテリア", desc: "夕食後、軽食と自己紹介タイム"),
-        .init(date: "2026-04-25", time: "10:00", title: "避難訓練", place: "寮ロビー集合", desc: "全員参加必須"),
+        .init(date: "2026-04-25", time: "10:00", title: "避難訓練", place: "寮玄関前集合", desc: "全員参加必須"),
         .init(date: "2026-04-26", time: "14:00", title: "茶道部体験", place: "和室", desc: "初心者歓迎"),
         .init(date: "2026-04-29", time: "07:30", title: "GW外泊・帰省・買い物", place: "特別運行便", desc: "7:30 高校棟→岡山駅西口 / 10:10 高校棟→金川駅 / 15:33,17:02 金川駅→寮"),
         .init(date: "2026-05-06", time: "09:20", title: "GW後帰寮日", place: "特別運行便", desc: "9:20,10:10 高校棟→金川駅 / 15:33 金川駅→寮 / 18:45 岡山駅西口→寮"),
@@ -200,11 +200,11 @@ enum SEED {
     ]
 
     static let lost: [LostItem] = [
-        .init(id: 1, title: "青い折りたたみ傘", place: "食堂", date: "04-21", color: "#3b82f6"),
+        .init(id: 1, title: "青い折りたたみ傘", place: "玄関", date: "04-21", color: "#3b82f6"),
         .init(id: 2, title: "黒の鍵", place: "玄関", date: "04-20", color: "#1f2937"),
         .init(id: 3, title: "赤のペンケース", place: "図書室", date: "04-18", color: "#ef4444"),
-        .init(id: 4, title: "緑のノート", place: "食堂", date: "04-16", color: "#10b981"),
-        .init(id: 5, title: "イヤホン (白)", place: "ロビー", date: "04-15", color: "#f3f4f6"),
+        .init(id: 4, title: "緑のノート", place: "玄関", date: "04-16", color: "#10b981"),
+        .init(id: 5, title: "イヤホン (白)", place: "廊下", date: "04-15", color: "#f3f4f6"),
         .init(id: 6, title: "財布", place: "男子浴場", date: "04-12", color: "#7c3aed"),
     ]
 
@@ -217,11 +217,5 @@ enum SEED {
         .init(id: 6, title: "マリーゴールド", artist: "あいみょん", by: "03号", up: 8, down: 1),
         .init(id: 7, title: "群青", artist: "YOASOBI", by: "11号", up: 6, down: 0),
         .init(id: 8, title: "ミックスナッツ", artist: "Official髭男dism", by: "09号", up: 4, down: 1),
-    ]
-
-    static let suggestions: [SuggestItem] = [
-        .init(id: 1, q: "食堂のメニューに野菜料理を増やしてほしい", a: "来月から週 2 回、野菜定食を追加予定です。", date: "2026-04-10"),
-        .init(id: 2, q: "Wi-Fi のルーター増設お願いします", a: "4 階・5 階に追加設置予定（5 月中）。", date: "2026-04-08"),
-        .init(id: 3, q: "洗濯機の台数を増やしてほしい", a: "来年度の予算で検討します。", date: "2026-04-02"),
     ]
 }

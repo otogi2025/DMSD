@@ -26,7 +26,7 @@ import jp.tomoshibi.android.ui.screens.rollcall.RollCallScreen
 import jp.tomoshibi.android.ui.screens.splash.SplashScreen
 import jp.tomoshibi.android.ui.screens.welcome.WelcomeScreen
 
-// NavHost — 23 个 destination
+// NavHost — 22 个 destination
 // 转场动画对应 React app-shell.jsx slide / fade / modal
 @Composable
 fun TomoshibiNavGraph(navController: NavHostController) {
@@ -38,7 +38,7 @@ fun TomoshibiNavGraph(navController: NavHostController) {
         enterTransition = { fadeIn(tween(220)) },
         exitTransition = { fadeOut(tween(180)) },
         popEnterTransition = { fadeIn(tween(220)) },
-        popExitTransition = { fadeOut(tween(180)) }
+        popExitTransition = { fadeOut(tween(180)) },
     ) {
         // ── auth flow ─────────────
         composable(Route.Splash.path) { SplashScreen(navController) }
@@ -54,7 +54,7 @@ fun TomoshibiNavGraph(navController: NavHostController) {
             route = Route.Nfc.path,
             enterTransition = { slideInVertically(tween(320)) { it } + fadeIn(tween(280)) },
             exitTransition = { fadeOut(tween(200)) },
-            popExitTransition = { slideOutVertically(tween(320)) { it } + fadeOut(tween(280)) }
+            popExitTransition = { slideOutVertically(tween(320)) { it } + fadeOut(tween(280)) },
         ) { NfcScreen(navController) }
         composable(Route.Notifications.path) { NotificationsScreen(navController) }
         composable(Route.MyPage.path) { MyPageScreen(navController) }
@@ -62,24 +62,27 @@ fun TomoshibiNavGraph(navController: NavHostController) {
         // ── second-level ──────────
         composable(
             route = Route.ApplyNew.PATH,
-            arguments = listOf(navArgument(Route.ApplyNew.ARG_KIND) {
-                type = NavType.StringType
-                defaultValue = "外泊"
-            })
+            arguments =
+                listOf(
+                    navArgument(Route.ApplyNew.ARG_KIND) {
+                        type = NavType.StringType
+                        defaultValue = "外泊"
+                    },
+                ),
         ) { entry ->
             val kind = entry.arguments?.getString(Route.ApplyNew.ARG_KIND) ?: "外泊"
             ApplyNewScreen(navController, kind = kind)
         }
         composable(
             route = Route.ApplicationDetail.PATH,
-            arguments = listOf(navArgument(Route.ApplicationDetail.ARG_ID) { type = NavType.StringType })
+            arguments = listOf(navArgument(Route.ApplicationDetail.ARG_ID) { type = NavType.StringType }),
         ) { entry ->
             val id = entry.arguments?.getString(Route.ApplicationDetail.ARG_ID) ?: ""
             ApplicationDetailScreen(navController, id)
         }
         composable(
             route = Route.NotifDetail.PATH,
-            arguments = listOf(navArgument(Route.NotifDetail.ARG_ID) { type = NavType.StringType })
+            arguments = listOf(navArgument(Route.NotifDetail.ARG_ID) { type = NavType.StringType }),
         ) { entry ->
             val id = entry.arguments?.getString(Route.NotifDetail.ARG_ID) ?: ""
             NotifDetailScreen(navController, id)
@@ -88,12 +91,11 @@ fun TomoshibiNavGraph(navController: NavHostController) {
         composable(Route.RollCall.path) { RollCallScreen(navController) }
         composable(Route.Settings.path) { SettingsScreen(navController) }
 
-        // ── community 7 屏 ────────
+        // ── community 6 屏 ────────
         composable(Route.Music.path) { MusicScreen(navController) }
         composable(Route.Study.path) { StudyScreen(navController) }
         composable(Route.LostFound.path) { LostFoundScreen(navController) }
         composable(Route.Schedule.path) { ScheduleScreen(navController) }
-        composable(Route.Feedback.path) { FeedbackScreen(navController) }
         composable(Route.Bus.path) { BusScreen(navController) }
         composable(Route.Delivery.path) { DeliveryScreen(navController) }
     }

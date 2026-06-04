@@ -539,7 +539,7 @@ struct LostNewView: View {
                     .padding(.bottom, 18)
 
                     Field(label: "拾得場所", required: true) {
-                        TField(text: $place, placeholder: "ロビー / 食堂 / ...")
+                        TField(text: $place, placeholder: "玄関 / 廊下 / ...")
                     }
                     .padding(.bottom, 18)
 
@@ -634,7 +634,7 @@ struct LostDetailView: View {
                                 Pill(text: l.date, tone: .neutral)
                             }
                             .padding(.bottom, 14)
-                            Text("ロビーのソファ付近で拾いました。黒色のコンパクト傘、持ち手に小さな白い傷があります。心当たりのある方はご連絡ください。")
+                            Text("玄関付近で拾いました。黒色のコンパクト傘、持ち手に小さな白い傷があります。心当たりのある方はご連絡ください。")
                                 .font(.system(size: 14))
                                 .foregroundStyle(T.inkSub)
                                 .lineSpacing(4) // lineHeight 1.7
@@ -1476,173 +1476,6 @@ struct BusView: View {
 #Preview {
     BusView()
         .environmentObject(RouterStore(initial: .homeBus))
-        .environmentObject(AppStore())
-}
-
-// MARK: - §16 SuggestView · 匿名建議
-
-struct SuggestView: View {
-    @EnvironmentObject var router: RouterStore
-    @EnvironmentObject var app: AppStore
-    @State private var cat: String = ""
-    @State private var body_: String = ""
-
-    private let cats = ["食堂", "設備", "運営", "交流", "その他"]
-
-    var body: some View {
-        VStack(spacing: 0) {
-            PageHeader(
-                title: "匿名建議",
-                level: 2,
-                right: AnyView(
-                    Button { router.go(.homeSuggestFeed) } label: {
-                        Text("回応一覧")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(T.primary)
-                    }
-                    .buttonStyle(.plain)
-                )
-            )
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    // privacy banner · padding '12 14' primary/0a bg primary/22 border
-                    HStack(alignment: .top, spacing: 0) {
-                        Text("🔒 投稿は完全匿名です。あなたの名前・番号は送信されません。")
-                            .font(.system(size: 12))
-                            .foregroundStyle(T.primaryDk)
-                            .lineSpacing(3)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .background(T.primary.opacity(0.04))
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(T.primary.opacity(0.13), lineWidth: 1)
-                    )
-                    .padding(.bottom, 18)
-
-                    // カテゴリ radio row
-                    Field(label: "カテゴリ", required: true) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            // FlowLayout via HStack wrap — 5 item 应该 fit 一排
-                            HStack(spacing: 8) {
-                                ForEach(cats.prefix(3), id: \.self) { c in
-                                    catChip(c)
-                                }
-                            }
-                            HStack(spacing: 8) {
-                                ForEach(cats.suffix(2), id: \.self) { c in
-                                    catChip(c)
-                                }
-                            }
-                        }
-                    }
-                    .padding(.bottom, 18)
-
-                    Field(label: "内容", required: true) {
-                        TArea(text: $body_, placeholder: "寮運営へのご意見・ご要望", rows: 6)
-                    }
-                    .padding(.bottom, 18)
-
-                    PrimaryButton(title: "送信する", enabled: !cat.isEmpty && !body_.isEmpty) {
-                        app.showToast("送信しました（匿名）")
-                        Task {
-                            try? await Task.sleep(nanoseconds: 500_000_000)
-                            await MainActor.run { router.go(.home) }
-                        }
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 4)
-                .padding(.bottom, 24)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(T.pearl.ignoresSafeArea())
-    }
-
-    private func catChip(_ c: String) -> some View {
-        let sel = cat == c
-        return Button {
-            cat = c
-        } label: {
-            Text(c)
-                .font(.system(size: 14, weight: sel ? .bold : .medium))
-                .foregroundStyle(sel ? T.primary : T.ink)
-                .padding(.horizontal, 16)
-                .frame(minHeight: 42)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(sel ? T.primary.opacity(0.06) : T.pearl)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(sel ? T.primary : T.hair, lineWidth: sel ? 1.5 : 1)
-                )
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-#Preview {
-    SuggestView()
-        .environmentObject(RouterStore(initial: .homeSuggest))
-        .environmentObject(AppStore())
-}
-
-// MARK: - §17 SuggestFeedView · 建議回応一覧
-
-struct SuggestFeedView: View {
-    var body: some View {
-        VStack(spacing: 0) {
-            PageHeader(title: "建議回応一覧", level: 2)
-            ScrollView {
-                VStack(spacing: 10) {
-                    ForEach(SEED.suggestions) { s in
-                        Card(padding: 14) {
-                            VStack(alignment: .leading, spacing: 0) {
-                                // date · fontSize 10.5 mono inkMute · marginBottom 6
-                                Text(s.date)
-                                    .font(.system(size: 10.5, design: .monospaced))
-                                    .foregroundStyle(T.inkMute)
-                                    .padding(.bottom, 6)
-                                // Q · fontSize 13 bold ink · marginBottom 8
-                                Text("Q · \(s.q)")
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundStyle(T.ink)
-                                    .padding(.bottom, 8)
-                                // A · padding '10 12' borderRadius 10 primary/0a bg · primaryDk fg fontSize 12.5
-                                Text("A · \(s.a)")
-                                    .font(.system(size: 12.5))
-                                    .foregroundStyle(T.primaryDk)
-                                    .lineSpacing(2)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 10)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                            .fill(T.primary.opacity(0.04))
-                                    )
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 4)
-                .padding(.bottom, 24)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(T.pearl.ignoresSafeArea())
-    }
-}
-
-#Preview {
-    SuggestFeedView()
-        .environmentObject(RouterStore(initial: .homeSuggestFeed))
         .environmentObject(AppStore())
 }
 

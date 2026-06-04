@@ -28,6 +28,10 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
 
 private val APP_STATE_KEY = stringPreferencesKey("app_state_json")
 
+// 共享 JSON 编解码器。ignoreUnknownKeys = 解码时忽略 JSON 里有、但 AppState 已删掉的字段，
+// 这样删字段（如本次删匿名建議的 feedback 字段）后，老用户本地存档不会解析失败回落、丢掉其余本地数据
+private val appJson = Json { ignoreUnknownKeys = true }
+
 class AppStore(
     private val context: Context,
 ) {
@@ -38,7 +42,7 @@ class AppStore(
                 MockData.INITIAL_STATE
             } else {
                 try {
-                    Json.decodeFromString<AppState>(json)
+                    appJson.decodeFromString<AppState>(json)
                 } catch (e: Exception) {
                     // schema 漂移时 fallback 默认 — v1.0 不做 migration
                     // 记日志：异常被吞会导致老用户升级后本地数据无声丢失，至少留排查线索
@@ -53,13 +57,13 @@ class AppStore(
             val current =
                 prefs[APP_STATE_KEY]?.let {
                     try {
-                        Json.decodeFromString<AppState>(it)
+                        appJson.decodeFromString<AppState>(it)
                     } catch (e: Exception) {
                         android.util.Log.e("AppStore", "update 时 AppState 解析失败，回落 MockData", e)
                         MockData.INITIAL_STATE
                     }
                 } ?: MockData.INITIAL_STATE
-            prefs[APP_STATE_KEY] = Json.encodeToString(transform(current))
+            prefs[APP_STATE_KEY] = appJson.encodeToString(transform(current))
         }
     }
 
