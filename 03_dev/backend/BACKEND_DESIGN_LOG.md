@@ -1021,6 +1021,21 @@ dev/staging 用，触发 `email_send` 验证 provider 联通。
 
 > v1 必须用 **Redis pub/sub** 跨进程，不能像 demo 那样内存 dict（4 台 iPad 不同后端进程时会失同步）。
 
+### 5.8 点呼机掉线检测 + 离线告警推送 ✅（2026-06-04 itsuki 拍板）
+
+点呼机自己断网时报不了「我离线了」（连后端都连不上）→ **必须由后端发现**。机制：
+
+1. 点呼机↔后端是 WebSocket 长连接（后端推指令）。这条长连接断开 = 后端立刻知道某台点呼机掉线（`device_id` 标记 `offline`）。
+2. 后端通过老师网页的 WebSocket（`/api/v1/ws/teacher`）推一条新事件给该寮所有在线老师：
+   ```json
+   { "type": "device_offline", "device_id": "...", "dorm_unit": "...", "at": "..." }
+   ```
+3. 点呼机重连成功 → 后端推 `{ "type": "device_online", "device_id": "...", "at": "..." }` 解除告警。
+
+> 事件类型从原来的 `checkin / override / outstay_new` 扩到再加 `device_offline / device_online` 两个。
+
+**离线期间签到数据怎么合并（2026-06-04 itsuki 拍板：老师手动优先）**：网络恢复后点呼机批量补传的离线签到日志（带 swipe_time），和老师在平板上手动判的状态**可能撞同一个学生**。规则：**老师手动判定优先**（人 > 机器，对齐 spec「老师是唯一改判者」永久硬约束）—— 补传日志里该学生若老师已手动判过，不覆盖，只作为 `card` 方式的参考记录写入 `rollcall_events`（append-only 多写一行，不动老师那行）。
+
 ---
 
 ## 6. 错误码（P0 范围）
