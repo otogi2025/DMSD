@@ -16063,6 +16063,8 @@
       function OutstayDetailModal({ app, onClose, onAction, authToken }) {
         const T = window.RYO;
         const [confirm, setConfirm] = React.useState(null);
+        // 杭田 2026-06-04 二-4: 审批时给学生看的评论输入（补强旧 UI 弱点）
+        const [comment, setComment] = React.useState("");
         // backend から取った完全な ApplicationOut
         const [detail, setDetail] = React.useState(null);
         const [auditLog, setAuditLog] = React.useState([]);
@@ -16556,6 +16558,37 @@
                 )}
               </div>
 
+              {/* 杭田 2026-06-04 二-4: 学生へ見せるコメント入力欄（承認/却下時に学生へ通知） */}
+              <div style={{ padding: "12px 28px 0", background: T.surfaceAlt }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: T.ink2,
+                    marginBottom: 6,
+                  }}
+                >
+                  学生へのコメント（任意・承認/却下時に学生へメールで通知されます）
+                </label>
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="例：書類の不備を修正してください"
+                  rows={2}
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "8px 10px",
+                    border: `1px solid ${T.lineStrong}`,
+                    borderRadius: 8,
+                    fontFamily: "inherit",
+                    fontSize: 13,
+                    resize: "vertical",
+                  }}
+                />
+              </div>
+
               {/* フッター — 操作ボタン */}
               <div
                 style={{
@@ -16647,12 +16680,12 @@
             {confirm && (
               <window.ConfirmModal
                 title={`${applicantName} の${kindLabel}申請を${confirm.label}しますか？`}
-                desc="承認・却下・保留いずれの場合も、学生には iOS App に push 通知が送信されます。"
+                desc="承認・却下の結果は学生へメールで通知されます（入力したコメントも一緒に届きます）。"
                 danger={confirm.action === "rejected"}
                 confirmLabel={confirm.label}
                 onCancel={() => setConfirm(null)}
                 onConfirm={() => {
-                  onAction(confirm.action);
+                  onAction(confirm.action, comment);
                   setConfirm(null);
                 }}
               />
@@ -18165,7 +18198,7 @@
               <input
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                placeholder="玄関 / 食堂 / 風呂場 / ロビー 等"
+                placeholder="玄関 / 廊下 / 風呂場 / 共用キッチン 等"
                 style={inputStyle(T)}
               />
             </Field>
@@ -18458,7 +18491,7 @@
         {
           id: "L001",
           title: "ピンクの水筒",
-          foundAt: "食堂",
+          foundAt: "玄関",
           memo: "サーモス製、ステッカー付き",
           date: "04-22",
           status: "open",
@@ -18483,7 +18516,7 @@
         {
           id: "L004",
           title: "青色ボールペン",
-          foundAt: "ロビー",
+          foundAt: "廊下",
           memo: "",
           date: "03-15",
           status: "archived",
@@ -19607,7 +19640,6 @@
         "共用キッチン",
         "階段",
         "玄関",
-        "ロビー",
         "その他",
       ];
 
@@ -27507,7 +27539,7 @@
                 app={outstayTarget}
                 authToken={authToken}
                 onClose={() => setOutstayTarget(null)}
-                onAction={async (a) => {
+                onAction={async (a, comment) => {
                   // Task #6 第 7 步: backend decide() を呼ぶ (app._backend が有る = backend
                   // から adapt されたデータ / 無い = window.OUTSTAY_APPS demo データ)。
                   // a='approved'/'rejected' → backend 'approve'/'reject' へ map。
@@ -27523,7 +27555,7 @@
                       await window.tomoshibiApi.decide(
                         backendApp.id,
                         decision,
-                        undefined,
+                        comment || undefined,
                         authToken,
                       );
                       // 成功時 pending list を refetch (該当 application が消える)
@@ -27547,7 +27579,7 @@
                   setOutstayTarget(null);
                   setToast({
                     type: "ok",
-                    msg: `申請を${a === "approved" ? "承認" : a === "rejected" ? "却下" : "保留"}しました · iOS にプッシュ通知送信済み`,
+                    msg: `申請を${a === "approved" ? "承認" : a === "rejected" ? "却下" : "保留"}しました${a === "approved" || a === "rejected" ? " · 学生へメール通知送信済み" : ""}`,
                   });
                 }}
               />
