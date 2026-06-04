@@ -26125,6 +26125,8 @@
         const [editTarget, setEditTarget] = React.useState(null); // 編集対象 incident
         const [toast, setToast] = React.useState(null);
         const [confirmDelete, setConfirmDelete] = React.useState(null); // 軟削除確認対象
+        // 杭田 2026-06-04 五-6: 涉及学生姓名 chip 点击 → 开个人档案弹窗
+        const [profileTarget, setProfileTarget] = React.useState(null);
 
         // フォームフィールド（新規 / 編集 兼用）
         const [fTitle, setFTitle] = React.useState("");
@@ -26436,9 +26438,35 @@
                         padding: "10px 12px",
                         fontSize: 12,
                         color: T.ink3,
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 4,
+                        alignItems: "center",
                       }}
                     >
-                      {(inc.involved_student_ids || []).length} 名
+                      {inc.involved_students && inc.involved_students.length > 0
+                        ? inc.involved_students.map((s) => (
+                            <button
+                              key={s.id}
+                              onClick={() =>
+                                setProfileTarget({ id: s.id, name: s.name })
+                              }
+                              title="個人データを表示"
+                              style={{
+                                padding: "2px 8px",
+                                fontSize: 11.5,
+                                fontFamily: "inherit",
+                                color: T.cobalt,
+                                background: T.surfaceAlt,
+                                border: `1px solid ${T.lineStrong}`,
+                                borderRadius: 999,
+                                cursor: "pointer",
+                              }}
+                            >
+                              {s.name}
+                            </button>
+                          ))
+                        : `${(inc.involved_student_ids || []).length} 名`}
                     </div>
                     <div
                       style={{
@@ -26716,6 +26744,15 @@
               >
                 {toast.msg}
               </div>
+            )}
+            {/* 杭田 2026-06-04 五-6: 涉及学生姓名点击 → 个人档案弹窗 */}
+            {profileTarget && (
+              <window.StudentProfileModal
+                studentId={profileTarget.id}
+                studentName={profileTarget.name}
+                authToken={authToken}
+                onClose={() => setProfileTarget(null)}
+              />
             )}
           </div>
         );

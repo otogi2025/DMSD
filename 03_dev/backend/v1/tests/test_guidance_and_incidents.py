@@ -352,6 +352,11 @@ class TestIncidentRecords:
         )
         assert res.status_code == 201
         assert sid in res.json()["involved_student_ids"]
+        # 杭田 2026-06-04 五-6: involved_students 带姓名（前端做可点击跳个人档案的 chip）
+        involved = res.json()["involved_students"]
+        assert len(involved) == 1, involved
+        assert involved[0]["id"] == sid
+        assert involved[0]["name"], "涉及学生姓名应非空"
 
     def test_create_invalid_student_404(self, client, seed_data, ryomu_token):
         """涉及学生 ID 不存在 → 404。"""

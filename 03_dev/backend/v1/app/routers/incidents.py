@@ -45,6 +45,45 @@ def _require_incident_role(teacher: models.Teacher) -> None:
         )
 
 
+def _to_incident_out(
+    db: Session, row: models.IncidentRecord
+) -> schemas.IncidentRecordOut:
+    """ORM 事案行 → 输出 schema，并把 involved_student_ids 解析成带姓名的 list。
+
+    杭田 2026-06-04 五-6: 前端要把涉及学生姓名做成可点击 chip 跳个人档案，
+    所以这里 join Student 取姓名。找不到的学生（已删等）标「（不明）」。
+    """
+    out = schemas.IncidentRecordOut.model_validate(row)
+    raw_ids = [str(s) for s in (row.involved_student_ids or [])]
+    if raw_ids:
+        uuids = []
+        for s in raw_ids:
+            try:
+                uuids.append(UUID(s))
+            except (ValueError, TypeError):
+                pass
+        name_map = {}
+        if uuids:
+            students = db.scalars(
+                select(models.Student).where(models.Student.id.in_(uuids))
+            ).all()
+            name_map = {str(stu.id): stu.name for stu in students}
+        out.involved_students = [
+            schemas.IncidentStudentBrief(id=s, name=name_map.get(s, "（不明）"))
+            for s in raw_ids
+            if s in name_map or _is_uuid(s)
+        ]
+    return out
+
+
+def _is_uuid(s: str) -> bool:
+    try:
+        UUID(s)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
 @router.post("", response_model=schemas.IncidentRecordOut, status_code=201)
 def create_incident(
     body: schemas.IncidentRecordCreateIn,
@@ -90,7 +129,7 @@ def create_incident(
     )
     db.commit()
     db.refresh(row)
-    return schemas.IncidentRecordOut.model_validate(row)
+    return _to_incident_out(db, row)
 
 
 @router.get("", response_model=schemas.IncidentRecordListOut)
@@ -106,9 +145,7 @@ def list_incidents(
         .where(models.IncidentRecord.deleted_at.is_(None))
         .order_by(models.IncidentRecord.incident_date.desc())
     ).all()
-    return schemas.IncidentRecordListOut(
-        items=[schemas.IncidentRecordOut.model_validate(r) for r in rows]
-    )
+    return schemas.IncidentRecordListOut(items=[_to_incident_out(db, r) for r in rows])
 
 
 @router.get("/{incident_id}", response_model=schemas.IncidentRecordOut)
@@ -126,7 +163,7 @@ def get_incident(
             status_code=404,
             detail={"code": "INCIDENT_NOT_FOUND", "message": "事案不存在"},
         )
-    return schemas.IncidentRecordOut.model_validate(row)
+    return _to_incident_out(db, row)
 
 
 @router.patch("/{incident_id}", response_model=schemas.IncidentRecordOut)
@@ -178,7 +215,7 @@ def patch_incident(
     )
     db.commit()
     db.refresh(row)
-    return schemas.IncidentRecordOut.model_validate(row)
+    return _to_incident_out(db, row)
 
 
 @router.delete("/{incident_id}", status_code=204)

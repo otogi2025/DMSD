@@ -1362,11 +1362,20 @@ class IncidentRecordPatchIn(BaseModel):
     incident_date: Optional[date] = None
 
 
+class IncidentStudentBrief(BaseModel):
+    """事案に関わった学生の最小情報（杭田 2026-06-04 五-6: 姓名タップで個人データへ）。"""
+
+    id: UUID
+    name: str
+
+
 class IncidentRecordOut(ORMModel):
     id: UUID
     title: str
     body: str
     involved_student_ids: list[Any]
+    # 杭田 2026-06-04 五-6: 涉及学生姓名（前端用来做可点击跳个人档案的 chip）
+    involved_students: list[IncidentStudentBrief] = Field(default_factory=list)
     recorded_by: UUID
     incident_date: date
     created_at: datetime
