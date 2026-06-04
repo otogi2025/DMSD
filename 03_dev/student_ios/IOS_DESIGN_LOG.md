@@ -10,7 +10,7 @@
 | 层 | 进度 | 说明 |
 |---|---|---|
 | 设计文档（本文） | ✅ ~95% | 989 行设计，主体 v2 已落 + 5-03 注册 flow 更新 |
-| Network/Endpoints | ✅ | Auth / Applications / Study / Announcements / RollCall 全加（A-024 已修） |
+| Network/Endpoints | ✅ | Auth / Applications / Study / Announcements / RollCall / Bus / **Events**（2026-06-04 杭田一-9：行事予定从 SEED.events 切真后端 GET /events，三态仿 BusListView）全加（A-024 已修） |
 | Features/Home | ✅ | Home omnibus 完成；amber Card 三态 long-press demo 包 `#if DEMO`（A-033 5-26 做法 B 落地） |
 | Features/Auth | ✅ | 注册 flow 6 step UI 完成；密码预填 / 000000 后门全包 `#if DEMO`（A-035 已修） |
 | Features/StayList | ✅ | UI 完成；listMine + detail/audit 切真 API + unauthorized → mock 兜底（A-037 5-21 + 5-27 切回完成） |
