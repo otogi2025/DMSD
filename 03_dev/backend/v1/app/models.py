@@ -509,6 +509,15 @@ class StudyOnlineRequest(Base):
     period_to: Mapped[date] = mapped_column(Date, nullable=False)
     weekly_schedule: Mapped[dict] = mapped_column(JSON, nullable=False)
     contract_ref: Mapped[Optional[str]] = mapped_column(Text)
+    # 契約書文件（合同 = 网课报名凭证）照片 / PDF。学生提交申请后单独上传，可选。
+    # contract_file_path = 服务器上相对 upload_dir 的存放路径（如 contracts/<id>.pdf），不暴露给客户端。
+    contract_file_path: Mapped[Optional[str]] = mapped_column(Text)
+    # contract_file_name = 学生上传时的原始文件名，老师下载时按这个显示。
+    contract_file_name: Mapped[Optional[str]] = mapped_column(Text)
+    # contract_mime = 文件类型（image/jpeg | image/png | image/heic | application/pdf）。
+    contract_mime: Mapped[Optional[str]] = mapped_column(String(100))
+    # contract_size = 文件字节数，列表 / 详情显示大小用。
+    contract_size: Mapped[Optional[int]] = mapped_column(Integer)
     submitted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

@@ -442,6 +442,12 @@ class StudyOnlineRequestOut(BaseModel):
     period_to: date
     weekly_schedule: dict[str, Any]
     contract_ref: Optional[str]
+    # 契約書文件信息 — 不暴露服务器物理路径 contract_file_path（安全）。
+    # 客户端按 contract_file_name 是否非空判断「有没有上传文件」，
+    # 要看内容时调 GET /study/online-requests/{id}/contract。
+    contract_file_name: Optional[str] = None
+    contract_mime: Optional[str] = None
+    contract_size: Optional[int] = None
     submitted_at: datetime
     status: Literal["pending", "approved", "rejected", "revoked"]
     decided_by: Optional[UUID]
@@ -1418,6 +1424,22 @@ class ProfileDemeritEntry(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ProfileStudyOnlineEntry(BaseModel):
+    """在线学习申请 — 列表 entry（含契約書文件信息，老师在学生个人页看历史合同用）。"""
+
+    id: UUID
+    period_from: date
+    period_to: date
+    status: str  # pending / approved / rejected / revoked
+    submitted_at: datetime
+    # 契約書文件信息 — 非空表示传过合同，点 GET /study/online-requests/{id}/contract 下载查看。
+    contract_file_name: Optional[str]
+    contract_mime: Optional[str]
+    contract_size: Optional[int]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class StudentProfileOut(BaseModel):
     """GET /students/{id}/profile 聚合响应。"""
 
@@ -1428,6 +1450,8 @@ class StudentProfileOut(BaseModel):
     # 寮務系老师 → 有数据；学生本人 → 空列表（C 案 §7.10）
     guidance_records: list[ProfileGuidanceEntry]
     demerit_events: list[ProfileDemeritEntry]
+    # 在线学习申请履历（含契約書文件）— 老师点进学生个人页看历史上传的合同
+    study_online_requests: list[ProfileStudyOnlineEntry]
 
 
 # ---------------------------------------------------------------

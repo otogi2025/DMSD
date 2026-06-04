@@ -24975,6 +24975,7 @@
           ["basic", "基本情報"],
           ["applications", "出寮届"],
           ["study", "学習出席"],
+          ["online", "オンライン学習"],
           ["rollcall", "点呼"],
           ["guidance", "指導履歴"],
           ["demerit", "扣分"],
@@ -25516,6 +25517,108 @@
                           d.created_at ? d.created_at.slice(0, 10) : "—",
                         ]}
                       />
+                    )}
+
+                    {/* 在线学习申请 tab — 含契約書（合同）查看 */}
+                    {tab === "online" && (
+                      <div>
+                        {(!data.study_online_requests ||
+                          data.study_online_requests.length === 0) && (
+                          <div style={{ color: T.ink3, fontSize: 13 }}>
+                            オンライン学習申請がありません
+                          </div>
+                        )}
+                        {data.study_online_requests &&
+                          data.study_online_requests.map((so) => (
+                            <div
+                              key={so.id}
+                              style={{
+                                padding: "12px 14px",
+                                marginBottom: 8,
+                                background: T.surfaceAlt,
+                                borderRadius: 8,
+                                border: `1px solid ${T.line}`,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  marginBottom: 8,
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    color: T.ink2,
+                                  }}
+                                >
+                                  {so.period_from} 〜 {so.period_to}
+                                </span>
+                                <span style={{ fontSize: 11, color: T.ink3 }}>
+                                  {so.status === "approved"
+                                    ? "許可"
+                                    : so.status === "rejected"
+                                      ? "却下"
+                                      : so.status === "revoked"
+                                        ? "取消"
+                                        : "審査中"}
+                                </span>
+                              </div>
+                              {so.contract_file_name ? (
+                                <button
+                                  onClick={async () => {
+                                    // 先在点击的同步时机开空窗口，再 await 取文件 —
+                                    // 否则 await 后再 window.open 会被浏览器当非用户操作拦截
+                                    const win = window.open("", "_blank");
+                                    try {
+                                      const blob =
+                                        await window.tomoshibiApi.downloadOnlineContract(
+                                          so.id,
+                                          authToken,
+                                        );
+                                      const url = URL.createObjectURL(blob);
+                                      if (win) {
+                                        win.location = url;
+                                      } else {
+                                        // 弹窗被拦 → 退化成当前页跳转
+                                        window.location.href = url;
+                                      }
+                                      setTimeout(
+                                        () => URL.revokeObjectURL(url),
+                                        60000,
+                                      );
+                                    } catch (e) {
+                                      if (win) win.close();
+                                      setToast({
+                                        type: "danger",
+                                        msg: "契約書の取得に失敗しました",
+                                      });
+                                    }
+                                  }}
+                                  style={{
+                                    padding: "6px 12px",
+                                    background: T.cobaltSoft,
+                                    color: T.cobaltDeep,
+                                    border: "none",
+                                    borderRadius: 6,
+                                    fontFamily: "inherit",
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  📎 契約書を見る（{so.contract_file_name}）
+                                </button>
+                              ) : (
+                                <span style={{ fontSize: 12, color: T.ink3 }}>
+                                  契約書の添付なし
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                      </div>
                     )}
                   </>
                 )}

@@ -176,6 +176,15 @@ def get_student_profile(
         .limit(limit)
     ).all()
 
+    # 6. 在线学习申请履历（study_online_requests 表，含契約書文件信息）
+    #    老师点进学生个人页能看到该学生历史上传的所有合同。
+    study_online_requests = db.scalars(
+        select(models.StudyOnlineRequest)
+        .where(models.StudyOnlineRequest.student_id == student_id)
+        .order_by(models.StudyOnlineRequest.submitted_at.desc())
+        .limit(limit)
+    ).all()
+
     # ---- 组装响应 ----
     return schemas.StudentProfileOut(
         student=schemas.StudentProfileBasic(
@@ -248,5 +257,18 @@ def get_student_profile(
                 created_at=de.created_at,
             )
             for de in demerit_events
+        ],
+        study_online_requests=[
+            schemas.ProfileStudyOnlineEntry(
+                id=so.id,
+                period_from=so.period_from,
+                period_to=so.period_to,
+                status=so.status,
+                submitted_at=so.submitted_at,
+                contract_file_name=so.contract_file_name,
+                contract_mime=so.contract_mime,
+                contract_size=so.contract_size,
+            )
+            for so in study_online_requests
         ],
     )

@@ -1198,6 +1198,8 @@ dev/staging 用，触发 `email_send` 验证 provider 联通。
 
 | 2026-06-03 | **出租车预约「タクシー予約」**：`applications` 加 `taxi_reservation_time`（`Time` / nullable，null = 不预约 / 有值 = 想坐车时刻），三种出寮届 + 外出共通。`models.py` 加列 / `schemas.py` 三处（`ApplicationBase`→三 Create 继承 + `ApplicationOut` + `ApplicationUpdateIn`）/ `routers/applications.py`（create app_kwargs 存 + `_to_application_out` 映射；PUT 修改届走 `model_dump`+`setattr` 自动）/ migration `a7b8c9d0e1f2`（down=`b2c3d4e5f6a1`；codex 审出初版编号 `e3f4a5b6c7d8` 撞既有 events 迁移、已换 + `alembic heads` 验证单 head）。自由 `Time` 字段后端不挑值。全套 223 测试绿（+2 taxi：带预约回显 / 不带默认 null）。| [Mac-Opus 4.8 1M] CC + codex |
 
+| 2026-06-04 | **オンライン学習 契約書文件上传**：`StudyOnlineRequest` 加 4 列 `contract_file_path/file_name/mime/size`（migration `c9d0e1f2a3b4`，down=`a7b8c9d0e1f2`）。新端点 `POST /study/online-requests/{id}/contract`（上传，`get_current_student` 鉴权 — 仅本人 + 仅 pending）+ `GET .../{id}/contract`（下载 FileResponse，学生本人 OR 老师受 R4 寮边界）。文件存盘 `upload_dir/contracts/<申请id>.<ext>`，DB 只存路径/名/类型/大小，存盘名用申请 id 防路径穿越；白名单 JPEG/PNG/HEIC/PDF + 10MB 限。`StudyOnlineRequestOut` + 新 `ProfileStudyOnlineEntry` 加文件元数据（不暴露物理路径），`student_profile` 加 `study_online_requests` 子块。codex 5.5 xhigh 审出并修：列表端点 `list_online_requests` 补 R4 寮过滤（防跨寮老师从列表泄露别寮合同文件名）/ 写文件→commit→删旧文件 顺序改原子 / 文件名 `_safe_filename` 去控制字符+限长防 Content-Disposition 注入。测试 +16（含列表寮边界）。验证：pytest 64 passed（study_online 16 + study 13 + applications 20 + 既有未破坏）。⚠️ 暂存用 hunk 过滤避开并发会话的清扫/巴士改动。| [Mac-Opus 4.8] CC + codex |
+
 ---
 
 **END** — code agent 接手时先读 §1-§3 + §10，决策点先和 itsuki 确认完再动手。

@@ -78,6 +78,11 @@ final class APIClient {
             throw APIError.network(error)
         }
 
+        return try decodeResponse(data: data, response: response)
+    }
+
+    /// 共用响应解析 — request（JSON）和 upload（multipart）走同一套状态码 / 解码口径。
+    private func decodeResponse<Res: Decodable>(data: Data, response: URLResponse) throws -> Res {
         guard let http = response as? HTTPURLResponse else {
             throw APIError.unknown
         }
@@ -127,6 +132,60 @@ final class APIClient {
 
     func delete(path: String) async throws {
         let _: EmptyResponse = try await request(method: "DELETE", path: path, body: nil as String?)
+    }
+
+    // MARK: - multipart 文件上传
+
+    /// multipart/form-data 单文件上传（契約書照片 / PDF）。
+    /// 手搓 multipart body：边界 + Content-Disposition + 文件字节。响应解析与 request 同口径。
+    func upload<Res: Decodable>(
+        path: String,
+        fileData: Data,
+        fileName: String,
+        mimeType: String,
+        fieldName: String = "file"
+    ) async throws -> Res {
+        guard let url = URL(string: baseURL + path) else {
+            throw APIError.unknown
+        }
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue(
+            "multipart/form-data; boundary=\(boundary)",
+            forHTTPHeaderField: "Content-Type"
+        )
+        if let tok = token {
+            req.setValue("Bearer \(tok)", forHTTPHeaderField: "Authorization")
+        }
+
+        // 文件名直接拼进 Content-Disposition 头 → 含换行 / 引号会破坏 multipart 结构，
+        // 先去掉 CR / LF / 双引号（用户选的 PDF 文件名理论上可含这些）
+        let safeName = fileName
+            .replacingOccurrences(of: "\r", with: "")
+            .replacingOccurrences(of: "\n", with: "")
+            .replacingOccurrences(of: "\"", with: "")
+
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append(
+            "Content-Disposition: form-data; name=\"\(fieldName)\"; filename=\"\(safeName)\"\r\n"
+                .data(using: .utf8)!
+        )
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(fileData)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        req.httpBody = body
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: req)
+        } catch {
+            throw APIError.network(error)
+        }
+
+        return try decodeResponse(data: data, response: response)
     }
 }
 

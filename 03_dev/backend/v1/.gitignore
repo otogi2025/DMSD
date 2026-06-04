@@ -20,6 +20,9 @@ env/
 *.db-shm
 *.db-wal
 
+# 上传文件（用户内容 — 在线学习申请的契約書照片 / PDF，不进 repo）
+uploads/
+
 # Excel 出力 (テスト時生成物)
 exports/
 *.xlsx

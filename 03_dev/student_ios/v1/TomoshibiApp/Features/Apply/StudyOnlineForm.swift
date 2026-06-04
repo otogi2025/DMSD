@@ -25,6 +25,8 @@ struct StudyOnlineForm: View {
     @State private var periodFrom: Date = ApplyFormDate.threeDaysLater
     @State private var periodTo: Date = ApplyFormDate.threeDaysLater
     @State private var contractRef: String = ""
+    @State private var pickedContract: PickedContract?
+    @State private var isSubmitting = false
     @State private var schedule: [String: [OnlineScheduleSlot]] = StudyOnlineForm.emptySchedule
 
     private static let emptySchedule: [String: [OnlineScheduleSlot]] = [
@@ -86,10 +88,17 @@ struct StudyOnlineForm: View {
                     .padding(.bottom, 18)
 
                     ApplyFormSectionLabel(n: "3", label: "契約書")
-                    Field(label: "契約書・受講証明の説明", hint: "オンライン授業の契約書、申込完了画面、URL などを入力してください。ファイル添付は後続対応です。") {
-                        TArea(text: $contractRef,
-                              placeholder: "契約書や受講証明の内容・リンクを入力",
-                              rows: 4)
+                    Card(padding: 14) {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Field(label: "契約書ファイル", hint: "契約書の写真または PDF を添付してください（任意）") {
+                                ContractFilePicker(picked: $pickedContract)
+                            }
+                            Field(label: "補足説明", hint: "契約書の内容・受講証明・リンクなど（任意）") {
+                                TArea(text: $contractRef,
+                                      placeholder: "契約書や受講証明の内容・リンクを入力",
+                                      rows: 3)
+                            }
+                        }
                     }
                     .padding(.bottom, 18)
 
@@ -102,17 +111,17 @@ struct StudyOnlineForm: View {
                     .padding(.bottom, 22)
 
                     Button { submit() } label: {
-                        Text("提出する")
+                        Text(isSubmitting ? "提出中…" : "提出する")
                             .font(.system(size: 15, weight: .bold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity, minHeight: 52)
                             .background {
                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(canSubmit ? T.primary : T.inkFaint)
+                                    .fill(canSubmit && !isSubmitting ? T.primary : T.inkFaint)
                             }
                     }
                     .buttonStyle(.plain)
-                    .disabled(!canSubmit)
+                    .disabled(!canSubmit || isSubmitting)
                     .padding(.bottom, 32)
                 }
                 .padding(.horizontal, 20)
@@ -274,6 +283,11 @@ struct StudyOnlineForm: View {
     }
 
     private func submitAsync() async {
+        // 防连点：提交期间再点直接忽略（两步提交会放大重复申请问题）
+        guard !isSubmitting else { return }
+        isSubmitting = true
+        defer { isSubmitting = false }
+
         let body = StudyAPI.OnlineRequestBody(
             reason: reason,
             period_from: ApplyFormDate.formatYMD(periodFrom),
@@ -283,7 +297,23 @@ struct StudyOnlineForm: View {
         )
 
         do {
-            _ = try await StudyAPI.submitOnlineRequest(body: body)
+            let out = try await StudyAPI.submitOnlineRequest(body: body)
+            // 选了契約書文件 → 申请建好后第二步把文件传上去（用户感知是点一次「提出」）
+            if let contract = pickedContract {
+                do {
+                    _ = try await StudyAPI.uploadOnlineContract(
+                        requestId: out.id,
+                        fileData: contract.data,
+                        fileName: contract.fileName,
+                        mimeType: contract.mime
+                    )
+                } catch {
+                    // 申请已成立但合同没传上 — 不回退申请，提示用户稍后从一覧重新添付
+                    app.showToast("申請は提出されましたが契約書の添付に失敗しました")
+                    router.go(.applyDone(kind: "studyOnline"))
+                    return
+                }
+            }
             app.showToast("オンライン学習申請を提出しました")
             router.go(.applyDone(kind: "studyOnline"))
         } catch let APIError.unprocessable(msg) {

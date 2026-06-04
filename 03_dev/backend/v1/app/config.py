@@ -61,6 +61,13 @@ class Settings(BaseSettings):
     # ログ
     log_level: str = "INFO"
 
+    # 文件上传 — 在线学习申请的契約書（合同 = 网课报名凭证）照片 / PDF
+    # upload_dir = 服务器上存上传文件的根目录（相对后端进程工作目录）。
+    # 上线时改成挂载盘的绝对路径，如 /var/lib/tomoshibi/uploads。
+    upload_dir: str = "./uploads"
+    # 单个契約書文件大小上限（字节）— 10 MB。手机拍照 / PDF 一般 1-5 MB，10 MB 留余量。
+    contract_max_bytes: int = 10 * 1024 * 1024
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

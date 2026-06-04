@@ -49,6 +49,18 @@
 - [ ] **老师网页时间显示不处理时区**（假说，需运行时验证）— `teacher_web` 用字符串切片 `iso.slice(11,16)` 取时分（`src/index.html` + 单文件副本），不管时区偏移。若后端 `TIMESTAMPTZ` 序列化成 UTC，老师端显示的巴士/时刻会差几小时。当前 seed 存 JST，暂时没爆，但老师端上线前必须改成 `toLocaleTimeString(..., {timeZone:"Asia/Tokyo"})`。非本会话改的文件。
 - [ ] **登录空字段校验漏换行符**（低优先）— `AuthStubs.swift` 登录空字段检查用 `.whitespaces` 而非 `.whitespacesAndNewlines`，粘贴带换行的账号不会被清掉、可能登录失败。这行是别的会话 6-04 加的空字段校验、非本会话改，顺手记此。
 
+## 📎 2026-06-04 オンライン学習 契約書文件上传 — 后续 backlog
+
+> 本会话实装契約書（合同）照片/PDF 上传：后端（4 列 + 上传/下载端点 + migration `c9d0e1f2a3b4`）+ iOS（底部弹窗选照片/拍照/文件 + 转 JPEG + 两步提交）+ teacher_web（学生档案页查看）。codex 5.5 xhigh 审过、阻塞级以外的快修都修了（列表寮过滤 / 原子写盘 / 文件名清理 / multipart 转义 / 防连点 / 相机可用性检查 / 弹窗拦截）。验证：后端 pytest 64 过、iOS 双 scheme BUILD SUCCEEDED、teacher_web check_jsx 0 错误。剩下这些：
+
+- [ ] **契約書是否强制？（产品决策待 itsuki 拍板）** — 现在合同字段是「任意」（可不传就提交，后端审批也不拦无合同申请）。codex 认为「在线学习申请的核心就是合同凭证，允许无合同提交+审批 = 绕过功能意义」。但原设计就是任意字段，CC 不擅自改成必填。itsuki 定：(a) 强制必传（iOS 提交按钮要求 + 后端审批前校验无合同返 409/422）(b) 保持任意。
+- [ ] **iOS 第二步上传失败后无补传入口** — 两步提交（先建申请、再传文件）第二步失败时申请已成立但没合同，提示「稍后从一覧重新添付」，但申请列表行只显示期间+状态，没有重传按钮。要在列表 pending+无合同的行加「契約書を添付」入口。
+- [ ] **iOS 学生看不到自己已传的合同预览** — 传完只在表单里显示文件名，进了列表/详情看不到。学生应能查看/下载自己上传的合同。
+- [ ] **后端大文件内存放大（v1.1 加固）** — `upload_contract` 先 `file.file.read()` 完整读入再查 10MB，认证学生可发超大 multipart 撑内存。要：反代层配 body limit + 后端先看 Content-Length / 分块读到临时文件超限即拒。
+- [ ] **content_type magic bytes 二次校验（v1.1）** — 现在只按客户端发的 content_type 白名单（可伪造）。v1.1 加文件头 magic bytes 校验真实类型。已在 `study_online.py` 注释标注。
+- [ ] **Android 端实装** — 当前 demo 阶段 Android 没做契約書上传。spec 见 `system_features.md §7.3.5 类型 A`。等 Android 基础架构推进时做（entity + retrofit + Compose 选择器 + 转 JPEG）。
+- [ ] **iOS project.pbxproj 未提交** — 本会话因 pbxproj 被并发会话的巴士功能污染（xcodegen 重生成含 BusAPI.swift 引用），没提交 pbxproj，只提交了 `project.yml`（含相机权限）。新增的 `ContractFilePicker.swift` 要靠下次 `xcodegen` 重新生成进工程，或并发会话收尾时一起提交 pbxproj。
+
 ## 🐞 系统 Bug 专栏（v1.0 上线前 — 5-20 审查作战产出）
 
 > **131 条 bug 详细管理见**：[`00_admin/系统bug专栏.md`](系统bug专栏.md)

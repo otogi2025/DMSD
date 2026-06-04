@@ -40,6 +40,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.itsuki.tomoshibi      # 正式版 bundle id
         PRODUCT_NAME: TomoshibiApp
+        # 相机权限说明 — 在线学习申请拍摄契約書（合同）照片用；不声明会闪退
+        INFOPLIST_KEY_NSCameraUsageDescription: "オンライン学習の契約書を撮影するためにカメラを使用します"
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: "YES"
         INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
         INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleDefault

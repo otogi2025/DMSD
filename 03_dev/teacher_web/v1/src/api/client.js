@@ -307,6 +307,28 @@
       );
     },
 
+    // ── 在线学习申请 契約書下载（2026-06-04 新增）──
+    // GET /api/v1/study/online-requests/{id}/contract → 文件 blob（照片 / PDF）
+    // 老师在学生个人页点「契約書を見る」时调；接口需鉴权，手搓 fetch 带 token（不走 request — 它只解 JSON）。
+    downloadOnlineContract: async (requestId, token) => {
+      const base = window.API_BASE || "/api/v1";
+      const res = await fetch(
+        `${base}/study/online-requests/${requestId}/contract`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+      );
+      if (!res.ok) {
+        if (res.status === 401 && typeof api._onUnauthorized === "function") {
+          try {
+            api._onUnauthorized();
+          } catch (_) {
+            /* 钩子内部错误不要影响 throw */
+          }
+        }
+        throw { status: res.status };
+      }
+      return res.blob();
+    },
+
     // ── 指導履歴（spec §7.9 — 5-30 新増）──
     // POST → 老师录入指导记录 body={student_id, content, category?, guidance_date, confidential}
     createGuidance: (studentId, body, token) =>

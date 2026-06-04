@@ -49,6 +49,26 @@ enum StudyAPI {
         return try await APIClient.shared.get(path: "/api/v1/study/online-requests/mine")
     }
 
+    /// 上传在线学习申请的契約書（合同 = 网课报名凭证）照片 / PDF。
+    /// multipart/form-data；先提交申请拿到 id，再调本方法把文件传上去。
+    /// - Throws:
+    ///   - APIError.unprocessable — 类型不符 / 超大 / 空文件
+    ///   - APIError.unauthorized — 401 → 重新登录
+    @MainActor
+    static func uploadOnlineContract(
+        requestId: UUID,
+        fileData: Data,
+        fileName: String,
+        mimeType: String
+    ) async throws -> StudyOnlineRequestOut {
+        return try await APIClient.shared.upload(
+            path: "/api/v1/study/online-requests/\(requestId.uuidString)/contract",
+            fileData: fileData,
+            fileName: fileName,
+            mimeType: mimeType
+        )
+    }
+
     /// GET /api/v1/study/absence-requests/me/summary 响应 — 当前学生当月请假次数。
     /// 与后端 MyAbsenceSummaryOut 对齐（IX-034）。
     struct MyAbsenceSummaryOut: Decodable {

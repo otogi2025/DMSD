@@ -915,6 +915,14 @@ itsuki 拍板出租车预约功能，老师端要「能看到 + 主页防漏看�
 - 申请详情「日時・移動手段」section 加「タクシー予約」字段（`detail.taxi_reservation_time`，无则「予約なし」）
 - 数据直接来自后端 `ApplicationOut.taxi_reservation_time`，`client.js` 透传不用改。`check_jsx` 16 块 0 错误
 
+## 14. オンライン学習 契約書（合同）查看 — 2026-06-04
+
+学生在 iOS 上传契約書照片/PDF，老师要能在学生个人档案页看历史合同。
+- 学生档案弹窗加「オンライン学習」tab：列学生历史在线学习申请（期间 + 状态 JP 标签），有合同的行显示「契約書を見る」按钮
+- `client.js` 加 `downloadOnlineContract(id, token)`：`fetch` 带 token → blob（普通 `<a>` 链接带不了 Authorization 头，故走 fetch + objectURL）；401 调 `_onUnauthorized` 钩子
+- 点按钮：先在点击同步时机 `window.open("", "_blank")` 开空窗口（codex 审出 — await 后再 open 会被浏览器弹窗拦截），再把 blob URL 赋给它；被拦则退化当前页跳转；60 秒后 `revokeObjectURL`
+- `check_jsx` 16 块 0 错误
+
 ---
 
 **END** — 本档随 Web 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。
