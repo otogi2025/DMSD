@@ -343,6 +343,7 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `__init__.py` | Python 包声明 | ✅ | 空文件 |
 | `auth.py` | 登录认证 API（学生 + 教师登录 / JWT 令牌签发） | ✅ | P0 完整 |
 | `applications.py` | 学生外泊 / 帰省 / 帰国 申请 API（提交 / 邮件 / 履历 / 详情） | ⚠️ | P0 70% / 缺 #10-#13 役职审批 endpoint |
+| `outings.py` | 外出申请 API（当天回寮短时外出，单一老师确认）— 提出 / 列表 / 待确认 / 详情 / 确认 / 撤回 6 接口 | ✅ | 2026-06-04 建（outings 独立表，确认者从令牌取 + R4 寮边界 + 19 测试） |
 | `meals.py` | 食堂用餐统计 API — 输出 JSON 或 Excel 文件（openpyxl 生成 xlsx） | ✅ | P0 完整 |
 | `notifications.py` | 推送通知 API — 走 SendGrid 邮件 | ✅ | 烟雾测试通过 |
 | `accounts.py` | 学生账号管理 API（注册 POST /accounts / 密码重置） | ✅ | 5-04 启 / 缺 DELETE /accounts/me — Apple 5.1.1(v) 强制 |
@@ -390,6 +391,9 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `alembic/versions/d4e5f6a7b8c9_*.py` | 加学生注册码表 | ✅ | 5-03 |
 | `alembic/versions/e5f6a7b8c9d0_*.py` | 加公告表 | ✅ | 5-03 |
 | `alembic/versions/f6a7b8c9d0e1_*.py` | 加 demo reviewer 标志位（Apple 审核员账号） | ✅ | 5-08 |
+| `alembic/versions/e1f2a3b4c5d6_add_outings*.py` | 加 outings 外出申请表（单一老师确认） | ✅ | 6-04 / down=c9d0e1f2a3b4 |
+
+> ⚠️ 本列表只列了部分迁移 — 5-27~6-04 间多个会话加的迁移（demerit/cleaning/frontdesk、dorm forms、taxi、contract 等）未登记，实际 `alembic/versions/` 现有 17 个 `.py`。属历史漂移，待全量校准。
 
 ### 3.7 v1 P0 缺块清单（**2026-05-13 audit 校准 — #2 #3 已完成**）
 

@@ -50,6 +50,15 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+### 2026-06-04 外出申請 単一先生確認 — iOS 演示 + 个人页面精致化 + 后端实装 by [Opus 4.8 1M]
+
+- 起因：itsuki 实机看 iOS 演示，① 外出申请不该走多级审查、一个老师确认即可 ② 个人页面太丑、「行事予定」做太小。后续追加「后端的你也给做了」。
+- iOS（commit `8563d05`）：个人页面顶部加「行事予定」日程卡（最近 3 条）+ 6 宫格 emoji 换 SF Symbols + 删底部小字；外出进度 3 步（提出→審査→完了）改 2 步（提出→先生確認）+ 显示确认老师名。Demo/Release 双 scheme BUILD SUCCEEDED。
+- **后端**（commit `4bdd716`）：itsuki 拍板「单独建 outings 表」（不塞 applications，那表为过夜申请设计 + 绑 7 级审批链）。建 Outing 表 + OutingCreateIn/OutingOut + 迁移 `e1f2a3b4c5d6` + 路由 `outings.py` 6 接口 + 19 测试。安全：确认者 teacher_id 从登录令牌取不信任客户端 + R4 寮边界 + 状态机原子条件更新。全套 pytest 258 passed。
+- codex(gpt-5.5 xhigh) 两批各 2 轮审查收敛：iOS 批驳回 1（状态机演示版不触发）改 1（日期解析）；后端批采纳 major（并发非原子→原子更新）+ 3 minor。均 0 blocker/0 major 收敛。
+- 多会话：models.py/schemas.py 夹着别会话「去ロビー」改动，按协作板约定连带提交保留不回退 + 留言。踩 ruff 删 import 坑（同款 memory）。
+- AC：模式 2（不盲信 codex 逮真 major）+ 6（建表方案 A/B 取舍，CC 摊矛盾给 itsuki 拍板不自己定不可逆 schema）。raw `2026-06-04.md`。剩 iOS 生产版 + 老师网页接 outings 接口（已记 TODO）。
+
 ### 2026-06-04 AC 升学素材体系大重构 — 两校共用池 + 二次重构四层 + 8.6 万字对话总结 by [Opus 4.8 1M]
 
 - 起因：itsuki 连环追问暴露旧 AC 素材体系设计缺陷（radar inbox 跟素材候选职责重叠 / 「人工精选」闸门从没运转 / 要同时申请筑波+庆应需素材通用）。
