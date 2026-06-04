@@ -17,7 +17,8 @@
  *   Auth         — teacherLogin
  *   Applications — pendingForMe / getApplication / decide / getAuditLog / activeLeaves
  *   Study        — studyTodayAttendees / studyCheckin / studyFinalize /
- *                  absenceRequests / decideAbsence / cancelToday
+ *                  absenceRequests / decideAbsence / cancelToday /
+ *                  studyRoster / studyRosterAdd / studyRosterRemove
  *   Rollcall     — rollcallTodaySessions / rollcallStart / rollcallEnd /
  *                  rollcallBoard / rollcallSummary
  *   Teachers     — listTeachers / createInvitation
@@ -119,6 +120,16 @@
         token,
       ),
     cancelToday: (token) => request("POST", "/study/cancel-today", {}, token),
+
+    // ── 学習対象名簿 管理（杭田 060604 五-2）──
+    // 当前学期名簿在籍者一览（带学生姓名 / 房间 / 寮）。角色 gate：学習担当 / 寮務部長 / 寮務課長 / 寮監。
+    studyRoster: (token) => request("GET", "/study/roster", undefined, token),
+    // 把一名学生加入名簿 — body 用 { student_no }（6 位学号）或 { student_id }（UUID）。
+    studyRosterAdd: (body, token) =>
+      request("POST", "/study/roster", body, token),
+    // 把一名学生移出名簿（软删，removed_at = now）。
+    studyRosterRemove: (student_id, token) =>
+      request("DELETE", `/study/roster/${student_id}`, undefined, token),
 
     // ── Rollcall ──
     rollcallTodaySessions: (token) =>

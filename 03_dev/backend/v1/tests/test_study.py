@@ -39,6 +39,17 @@ def study_roster(db_session, seed_data):
     return roster
 
 
+@pytest.fixture
+def low_role_teacher_token(client, seed_data):
+    """管理係（不在名簿管理 gate 里）token — 用于断言 403 无权。"""
+    res = client.post(
+        "/api/v1/sessions/teacher",
+        json={"login_id": "kanri", "password": "test-password-12345"},
+    )
+    assert res.status_code == 200, res.text
+    return res.json()["access_token"]
+
+
 class TestStudyToday:
     """GET /study/today/attendees"""
 
@@ -311,3 +322,188 @@ class TestCancelToday:
         )
         assert res.status_code == 200
         assert "cancelled_count" in res.json()
+
+
+class TestRoster:
+    """学習対象名簿 管理 — GET / POST / DELETE /study/roster（杭田 060604 五-2）。"""
+
+    def test_list_roster_requires_role(self, client, low_role_teacher_token):
+        """名簿管理 gate 外的角色（管理係）拉名簿 → 403 FORBIDDEN_ROLE。"""
+        res = client.get(
+            "/api/v1/study/roster",
+            headers={"Authorization": f"Bearer {low_role_teacher_token}"},
+        )
+        assert res.status_code == 403, res.text
+        assert res.json()["detail"]["code"] == "FORBIDDEN_ROLE"
+
+    def test_add_to_roster(self, client, teacher_token, seed_data):
+        """老师把学生加入名簿 → 201，且记录 added_by = 操作老师。"""
+        res = client.post(
+            "/api/v1/study/roster",
+            json={"student_id": str(seed_data["student"].id)},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 201, res.text
+        data = res.json()
+        assert data["student_id"] == str(seed_data["student"].id)
+        # added_by 非空 = 老师手动加入（不是系统自动）
+        assert data["added_by"] is not None
+
+    def test_add_by_student_no(self, client, teacher_token, seed_data):
+        """老师按学号（6 位）加入名簿 → 201。seed 学生学号 = 060218。"""
+        res = client.post(
+            "/api/v1/study/roster",
+            json={"student_no": seed_data["student"].student_no},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 201, res.text
+        assert res.json()["student_id"] == str(seed_data["student"].id)
+
+    def test_add_no_identifier_422(self, client, teacher_token):
+        """既不给 student_id 也不给 student_no → 422 请求体校验失败。"""
+        res = client.post(
+            "/api/v1/study/roster",
+            json={},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 422, res.text
+
+    def test_add_then_listed(self, client, teacher_token, seed_data):
+        """加入后，GET /study/roster 一览里能看到这个学生。"""
+        client.post(
+            "/api/v1/study/roster",
+            json={"student_id": str(seed_data["student"].id)},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        res = client.get(
+            "/api/v1/study/roster",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 200, res.text
+        ids = [e["student_id"] for e in res.json()]
+        assert str(seed_data["student"].id) in ids
+
+    def test_add_nonexistent_student_404(self, client, teacher_token):
+        """加一个不存在的 student_id → 404 NOT_FOUND。"""
+        res = client.post(
+            "/api/v1/study/roster",
+            json={"student_id": "00000000-0000-0000-0000-000000000000"},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 404, res.text
+        assert res.json()["detail"]["code"] == "NOT_FOUND"
+
+    def test_add_duplicate_409(self, client, teacher_token, seed_data):
+        """同学期同学生再加一次（已在籍）→ 409 ALREADY_IN_ROSTER。"""
+        client.post(
+            "/api/v1/study/roster",
+            json={"student_id": str(seed_data["student"].id)},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        res = client.post(
+            "/api/v1/study/roster",
+            json={"student_id": str(seed_data["student"].id)},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 409, res.text
+        assert res.json()["detail"]["code"] == "ALREADY_IN_ROSTER"
+
+    def test_remove_then_not_listed(self, client, teacher_token, seed_data):
+        """加入 → 移出（软删）后，一览里不再返回这个学生。"""
+        client.post(
+            "/api/v1/study/roster",
+            json={"student_id": str(seed_data["student"].id)},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        res_del = client.delete(
+            f"/api/v1/study/roster/{seed_data['student'].id}",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res_del.status_code == 200, res_del.text
+        assert res_del.json()["removed"] is True
+
+        res = client.get(
+            "/api/v1/study/roster",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        ids = [e["student_id"] for e in res.json()]
+        assert str(seed_data["student"].id) not in ids
+
+    def test_remove_soft_delete_keeps_row(
+        self, client, db_session, teacher_token, seed_data
+    ):
+        """软删 = 行还在、只是 removed_at 非空（不物理删除）。"""
+        from datetime import date
+
+        from app import models
+
+        client.post(
+            "/api/v1/study/roster",
+            json={"student_id": str(seed_data["student"].id)},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        client.delete(
+            f"/api/v1/study/roster/{seed_data['student'].id}",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        today = date.today()
+        season = "spring" if today.month <= 8 else "fall"
+        term = f"{today.year}-{season}"
+        rows = (
+            db_session.query(models.StudyRoster)
+            .filter(
+                models.StudyRoster.student_id == seed_data["student"].id,
+                models.StudyRoster.academic_term == term,
+            )
+            .all()
+        )
+        # 物理行仍在（软删），removed_at 已置非空
+        assert len(rows) == 1
+        assert rows[0].removed_at is not None
+
+    def test_revive_removed_no_unique_clash(self, client, teacher_token, seed_data):
+        """移出后再加入 → 复活旧行（removed_at 置回 None），不撞唯一约束、不新建第二行。"""
+
+        sid = str(seed_data["student"].id)
+        client.post(
+            "/api/v1/study/roster",
+            json={"student_id": sid},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        client.delete(
+            f"/api/v1/study/roster/{sid}",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        # 再加入 — 应复活成功（201），而非 500 唯一约束冲突
+        res = client.post(
+            "/api/v1/study/roster",
+            json={"student_id": sid},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 201, res.text
+
+        # 一览里又出现这个学生
+        res_list = client.get(
+            "/api/v1/study/roster",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        ids = [e["student_id"] for e in res_list.json()]
+        assert sid in ids
+
+    def test_remove_not_in_roster_404(self, client, teacher_token, seed_data):
+        """移出一个不在名簿的学生 → 404 NOT_IN_ROSTER。"""
+        res = client.delete(
+            f"/api/v1/study/roster/{seed_data['student'].id}",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 404, res.text
+        assert res.json()["detail"]["code"] == "NOT_IN_ROSTER"
+
+    def test_remove_requires_role(self, client, low_role_teacher_token, seed_data):
+        """名簿管理 gate 外的角色移出 → 403。"""
+        res = client.delete(
+            f"/api/v1/study/roster/{seed_data['student'].id}",
+            headers={"Authorization": f"Bearer {low_role_teacher_token}"},
+        )
+        assert res.status_code == 403, res.text
+        assert res.json()["detail"]["code"] == "FORBIDDEN_ROLE"

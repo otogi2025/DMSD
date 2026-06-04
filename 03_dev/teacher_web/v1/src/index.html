@@ -14773,12 +14773,16 @@
 
       function StudyAttendancePage({ teacher, authToken }) {
         const T = window.RYO;
-        const [view, setView] = React.useState("attendance"); // attendance / absence-inbox
+        const [view, setView] = React.useState("attendance"); // attendance / absence-inbox / roster
         const [today, setToday] = React.useState(null); // studyTodayAttendees 返
         const [absenceList, setAbsenceList] = React.useState(null);
         const [loading, setLoading] = React.useState(false);
         const [err, setErr] = React.useState("");
         const [acting, setActing] = React.useState({}); // student_id → boolean 動作中
+        // 学習対象名簿 管理（杭田 060604 五-2）
+        const [roster, setRoster] = React.useState(null); // studyRoster 返回的在籍者一览
+        const [rosterErr, setRosterErr] = React.useState("");
+        const [addNo, setAddNo] = React.useState(""); // 「学生追加」输入框里的学号
 
         const refetch = React.useCallback(async () => {
           if (!authToken) return;
@@ -14869,6 +14873,73 @@
           }
         };
 
+        // 名簿一览：进「名簿管理」tab 时拉一次（与出席 / 欠席不同接口，单独 fetch）
+        const refetchRoster = React.useCallback(async () => {
+          if (!authToken) return;
+          setRosterErr("");
+          try {
+            const list = await window.tomoshibiApi.studyRoster(authToken);
+            setRoster(list || []);
+          } catch (e) {
+            if (e && e.status === 403) {
+              setRosterErr("名簿管理は「学習担当 / 寮務」権限が必要です");
+            } else {
+              setRosterErr(
+                `名簿の取得に失敗 (${(e && e.status) || "network"})`,
+              );
+            }
+          }
+        }, [authToken]);
+
+        React.useEffect(() => {
+          if (view === "roster") refetchRoster();
+        }, [view, refetchRoster]);
+
+        // 学生追加：输入框填学号 → POST /study/roster { student_no }
+        const doAddToRoster = async () => {
+          const no = (addNo || "").trim();
+          if (!/^\d{6}$/.test(no)) {
+            setRosterErr(
+              "学号は 6 桁（学年 2 + クラス 2 + 番号 2）で入力してください",
+            );
+            return;
+          }
+          setRosterErr("");
+          try {
+            await window.tomoshibiApi.studyRosterAdd(
+              { student_no: no },
+              authToken,
+            );
+            setAddNo("");
+            await refetchRoster();
+          } catch (e) {
+            if (e && e.status === 404) {
+              setRosterErr(`学号 ${no} の学生が見つかりません`);
+            } else if (e && e.status === 409) {
+              setRosterErr(`学号 ${no} は既に名簿に登録済みです`);
+            } else {
+              setRosterErr(`追加に失敗 (${(e && e.status) || "network"})`);
+            }
+          }
+        };
+
+        // 从学習对象名簿移出：DELETE /study/roster/{student_id}（软删）
+        const doRemoveFromRoster = async (student_id, name) => {
+          if (!window.confirm(`${name} さんを学習対象名簿から外しますか?`))
+            return;
+          setActing((m) => ({ ...m, [student_id]: true }));
+          try {
+            await window.tomoshibiApi.studyRosterRemove(student_id, authToken);
+            await refetchRoster();
+          } catch (e) {
+            setRosterErr(
+              `名簿から外すのに失敗 (${(e && e.status) || "network"})`,
+            );
+          } finally {
+            setActing((m) => ({ ...m, [student_id]: false }));
+          }
+        };
+
         const statusBadge = (s) => {
           if (!s) return ["未点呼", T.ink3, T.graySoft, T.grayBorder];
           if (s.status === "present" || s.status === "ok")
@@ -14954,7 +15025,12 @@
                     fontWeight: 600,
                   }}
                 >
-                  学習担当 &gt; {view === "attendance" ? "出席" : "欠席届"}
+                  学習担当 &gt;{" "}
+                  {view === "attendance"
+                    ? "出席"
+                    : view === "absence-inbox"
+                      ? "欠席届"
+                      : "名簿管理"}
                 </div>
                 <h1
                   style={{
@@ -15000,6 +15076,22 @@
                 >
                   欠席届{" "}
                   {pendingAbsence.length > 0 && `(${pendingAbsence.length})`}
+                </button>
+                <button
+                  onClick={() => setView("roster")}
+                  style={{
+                    padding: "8px 14px",
+                    background: view === "roster" ? T.cobalt : T.surface,
+                    color: view === "roster" ? "#fff" : T.ink2,
+                    border: `1px solid ${view === "roster" ? T.cobalt : T.lineStrong}`,
+                    borderRadius: 8,
+                    fontFamily: "inherit",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  名簿管理
                 </button>
               </div>
             </div>
@@ -15429,6 +15521,212 @@
                   </div>
                 ))}
               </div>
+            )}
+
+            {view === "roster" && (
+              <>
+                {rosterErr && (
+                  <div
+                    style={{
+                      padding: 12,
+                      background: T.dangerSoft,
+                      color: T.danger,
+                      border: `1px solid ${T.dangerBorder}`,
+                      borderRadius: 8,
+                      fontSize: 12,
+                      marginBottom: 14,
+                    }}
+                  >
+                    {rosterErr}
+                  </div>
+                )}
+
+                {/* 学生追加：输学号 → 加入名簿 */}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    alignItems: "center",
+                    marginBottom: 14,
+                    background: T.surface,
+                    border: `1px solid ${T.line}`,
+                    borderRadius: 12,
+                    padding: "14px 18px",
+                    boxShadow: T.shadow1,
+                  }}
+                >
+                  <label
+                    style={{ fontSize: 12, color: T.ink2, fontWeight: 600 }}
+                  >
+                    学号で追加
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="例: 060218"
+                    value={addNo}
+                    onChange={(e) =>
+                      setAddNo(e.target.value.replace(/[^\d]/g, ""))
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") doAddToRoster();
+                    }}
+                    style={{
+                      width: 140,
+                      padding: "8px 12px",
+                      border: `1px solid ${T.lineStrong}`,
+                      borderRadius: 8,
+                      fontFamily: T.mono,
+                      fontSize: 13,
+                    }}
+                  />
+                  <button
+                    onClick={doAddToRoster}
+                    style={{
+                      padding: "8px 16px",
+                      background: T.cobalt,
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 8,
+                      fontFamily: "inherit",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    学生追加
+                  </button>
+                  <button
+                    onClick={refetchRoster}
+                    style={{
+                      marginLeft: "auto",
+                      padding: "8px 14px",
+                      background: T.surface,
+                      color: T.ink2,
+                      border: `1px solid ${T.lineStrong}`,
+                      borderRadius: 8,
+                      fontFamily: "inherit",
+                      fontSize: 12,
+                      cursor: "pointer",
+                    }}
+                  >
+                    再読み込み
+                  </button>
+                </div>
+
+                {/* 名簿在籍者一览 */}
+                <div
+                  style={{
+                    background: T.surface,
+                    border: `1px solid ${T.line}`,
+                    borderRadius: 12,
+                    overflow: "hidden",
+                    boxShadow: T.shadow1,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "110px 1fr 120px 90px 130px",
+                      background: T.surfaceAlt,
+                      color: T.ink2,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      letterSpacing: 1,
+                      borderBottom: `1px solid ${T.line}`,
+                    }}
+                  >
+                    {["学号", "氏名", "部屋", "寮", "操作"].map((h) => (
+                      <div key={h} style={{ padding: "10px 14px" }}>
+                        {h}
+                      </div>
+                    ))}
+                  </div>
+                  {roster === null && (
+                    <div
+                      style={{
+                        padding: 40,
+                        textAlign: "center",
+                        color: T.ink3,
+                        fontSize: 13,
+                      }}
+                    >
+                      読み込み中…
+                    </div>
+                  )}
+                  {roster !== null && roster.length === 0 && (
+                    <div
+                      style={{
+                        padding: 40,
+                        textAlign: "center",
+                        color: T.ink3,
+                        fontSize: 13,
+                      }}
+                    >
+                      名簿に登録された学生がいません
+                    </div>
+                  )}
+                  {(roster || []).map((r, i) => (
+                    <div
+                      key={r.student_id}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "110px 1fr 120px 90px 130px",
+                        borderTop: i > 0 ? `1px solid ${T.line}` : "none",
+                        alignItems: "center",
+                        fontSize: 13,
+                      }}
+                    >
+                      <div
+                        style={{
+                          padding: "10px 14px",
+                          fontFamily: T.mono,
+                          color: T.ink2,
+                        }}
+                      >
+                        {r.student_no}
+                      </div>
+                      <div style={{ padding: "10px 14px" }}>{r.name}</div>
+                      <div
+                        style={{
+                          padding: "10px 14px",
+                          fontFamily: T.mono,
+                          color: T.ink3,
+                        }}
+                      >
+                        {r.room_no}
+                      </div>
+                      <div style={{ padding: "10px 14px", color: T.ink3 }}>
+                        {r.dorm_unit}
+                      </div>
+                      <div style={{ padding: "10px 14px" }}>
+                        <button
+                          onClick={() =>
+                            doRemoveFromRoster(r.student_id, r.name)
+                          }
+                          disabled={acting[r.student_id]}
+                          style={{
+                            padding: "4px 12px",
+                            background: T.surface,
+                            color: T.danger,
+                            border: `1px solid ${T.dangerBorder}`,
+                            borderRadius: 6,
+                            fontFamily: "inherit",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            cursor: acting[r.student_id]
+                              ? "not-allowed"
+                              : "pointer",
+                          }}
+                        >
+                          名簿から外す
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         );

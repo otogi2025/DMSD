@@ -8,6 +8,9 @@ POST /api/v1/study/absence-requests             — 学習欠席届 (学生)
 GET  /api/v1/study/absence-requests             — 欠席届一覧 (学習担当)
 POST /api/v1/study/absence-requests/{id}/decision — 承認/拒否
 POST /api/v1/study/cancel-today                 — 今日学習中止 (学習担当のみ)
+GET    /api/v1/study/roster                      — 学習対象名簿一覧 (学習担当 / 寮務管理)
+POST   /api/v1/study/roster                      — 名簿に学生追加
+DELETE /api/v1/study/roster/{student_id}         — 名簿から学生を外す (软删)
 """
 
 from __future__ import annotations
@@ -671,8 +674,240 @@ def cancel_today(
 
 
 # ---------------------------------------------------------------
+# 学習対象名簿 管理（杭田 2026-06-04 需求「五-2」）
+# GET    /study/roster        — 当前名簿在籍者一览（学習担当 / 寮務管理）
+# POST   /study/roster        — 把一名学生加入名簿（added_by = 当前老师）
+# DELETE /study/roster/{sid}  — 把一名学生移出名簿（软删 removed_at = now）
+# ---------------------------------------------------------------
+# 名簿管理角色 gate — 跟 bulk-finalize / 欠席届承認 同一组（学習担当 + 寮務管理层）
+_ROSTER_ROLES = ("学習担当", "寮務部長", "寮務課長", "寮監")
+
+
+@router.get("/roster", response_model=list[schemas.StudyRosterEntryOut])
+def list_roster(
+    target_date: Optional[date] = Query(None),
+    db: Session = Depends(get_db),
+    teacher: models.Teacher = Depends(require_teacher_roles(*_ROSTER_ROLES)),
+):
+    """当前学期名簿在籍者一览 — 给老师网页「学習対象名簿管理」页用。
+
+    口径：removed_at 为空（在籍中）+ 当前学期。带学生姓名 / 房间 / 寮，
+    并按 R4 寮边界过滤掉老师管辖外的学生（跨寮角色看全部）。
+    """
+    today = target_date or _today_jst()
+    term = _academic_term(today)
+
+    roster_rows = db.scalars(
+        select(models.StudyRoster).where(
+            models.StudyRoster.academic_term == term,
+            models.StudyRoster.removed_at.is_(None),
+        )
+    ).all()
+    if not roster_rows:
+        return []
+
+    student_ids = [r.student_id for r in roster_rows]
+    students = db.scalars(
+        select(models.Student).where(models.Student.id.in_(student_ids))
+    ).all()
+    student_map = {s.id: s for s in students}
+
+    # R4 寮边界：跨寮角色 dorm_units 为 None → 不过滤；dorm-scoped 角色只看管辖寮
+    allowed = dorm_units_for_teacher(teacher)
+
+    out: list[schemas.StudyRosterEntryOut] = []
+    for r in roster_rows:
+        s = student_map.get(r.student_id)
+        if not s:
+            continue
+        if allowed is not None and s.dorm_unit not in allowed:
+            continue
+        out.append(
+            schemas.StudyRosterEntryOut(
+                student_id=s.id,
+                student_no=s.student_no,
+                name=s.name,
+                room_no=s.room_no,
+                dorm_unit=s.dorm_unit,
+                academic_term=r.academic_term,
+                added_by=r.added_by,
+                added_at=r.added_at,
+            )
+        )
+    out.sort(key=lambda e: e.name)
+    return out
+
+
+@router.post("/roster", response_model=schemas.StudyRosterEntryOut, status_code=201)
+def add_to_roster(
+    body: schemas.StudyRosterAddIn,
+    db: Session = Depends(get_db),
+    teacher: models.Teacher = Depends(require_teacher_roles(*_ROSTER_ROLES)),
+):
+    """把一名学生加入当前学期名簿。
+
+    - 学生不存在 → 404
+    - R4 寮边界：dorm-scoped 角色不能加管辖外学生 → 403
+    - 唯一约束 uq_roster_term(student_id, academic_term)：若已有「同学期 + 同学生」的旧行，
+      不新建（会撞唯一约束），改为「复活」= removed_at 置回 None + 更新 added_by；
+      若该行本就在籍（removed_at 为空）→ 409 已在籍。
+
+    可用 student_id（UUID）或 student_no（6 位学号 = 年级 2 + 班级 2 + 座号 2）指定学生，
+    学号由 grade_code + class_code + seat_no 拼成（model 上是 derived property、不是列），
+    故按这三段拆开查。
+    """
+    today = _today_jst()
+    term = _academic_term(today)
+
+    student = _resolve_roster_student(db, body)
+    if not student:
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "学生が見つかりません"}
+        )
+
+    # R4 寮边界：寮監等 dorm-scoped 角色不能给管辖外学生操作名簿
+    _assert_student_in_dorm(teacher, student)
+
+    # 查同学期同学生的既存行（唯一约束限定每学期每人最多一行）
+    # 注意：用解析出来的 student.id（不是 body.student_id —— 按学号加入时 body.student_id 为空）
+    existing = db.scalars(
+        select(models.StudyRoster).where(
+            models.StudyRoster.student_id == student.id,
+            models.StudyRoster.academic_term == term,
+        )
+    ).first()
+
+    if existing is not None:
+        if existing.removed_at is None:
+            raise HTTPException(
+                409,
+                {"code": "ALREADY_IN_ROSTER", "message": "既に名簿に登録済みです"},
+            )
+        # 复活：把已移出的旧行重新置为在籍，避免撞唯一约束新建第二行
+        existing.removed_at = None
+        existing.added_by = teacher.id
+        existing.added_at = _now_jst()
+        record = existing
+    else:
+        record = models.StudyRoster(
+            student_id=student.id,
+            academic_term=term,
+            added_by=teacher.id,
+        )
+        db.add(record)
+
+    db.flush()
+
+    db.add(
+        models.AuditLog(
+            actor_type="teacher",
+            actor_id=teacher.id,
+            action="study_roster.add",
+            target_type="study_roster",
+            target_id=record.id,
+            payload={
+                "student_id": str(student.id),
+                "academic_term": term,
+                "revived": existing is not None,
+            },
+        )
+    )
+
+    db.commit()
+    db.refresh(record)
+    return schemas.StudyRosterEntryOut(
+        student_id=student.id,
+        student_no=student.student_no,
+        name=student.name,
+        room_no=student.room_no,
+        dorm_unit=student.dorm_unit,
+        academic_term=record.academic_term,
+        added_by=record.added_by,
+        added_at=record.added_at,
+    )
+
+
+@router.delete("/roster/{student_id}", status_code=200)
+def remove_from_roster(
+    student_id: UUID,
+    db: Session = Depends(get_db),
+    teacher: models.Teacher = Depends(require_teacher_roles(*_ROSTER_ROLES)),
+):
+    """把一名学生移出当前学期名簿 — 软删（removed_at 置 now），不物理删除。
+
+    - 学生不存在 / 该学生当前学期不在名簿（无在籍行）→ 404
+    - R4 寮边界：dorm-scoped 角色不能移管辖外学生 → 403
+    """
+    today = _today_jst()
+    term = _academic_term(today)
+
+    student = db.get(models.Student, student_id)
+    if not student:
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "学生が見つかりません"}
+        )
+
+    # R4 寮边界：先校验老师能不能操作这个学生
+    _assert_student_in_dorm(teacher, student)
+
+    record = db.scalars(
+        select(models.StudyRoster).where(
+            models.StudyRoster.student_id == student_id,
+            models.StudyRoster.academic_term == term,
+            models.StudyRoster.removed_at.is_(None),
+        )
+    ).first()
+    if record is None:
+        raise HTTPException(
+            404,
+            {"code": "NOT_IN_ROSTER", "message": "この学生は名簿に登録されていません"},
+        )
+
+    record.removed_at = _now_jst()
+    db.flush()
+
+    db.add(
+        models.AuditLog(
+            actor_type="teacher",
+            actor_id=teacher.id,
+            action="study_roster.remove",
+            target_type="study_roster",
+            target_id=record.id,
+            payload={"student_id": str(student_id), "academic_term": term},
+        )
+    )
+
+    db.commit()
+    return {"removed": True, "student_id": str(student_id), "academic_term": term}
+
+
+# ---------------------------------------------------------------
 # 内部ユーティリティ
 # ---------------------------------------------------------------
+def _resolve_roster_student(
+    db: Session, body: schemas.StudyRosterAddIn
+) -> Optional[models.Student]:
+    """把名簿加入请求里的 student_id 或 student_no 解析成 Student 行。
+
+    优先用 student_id（UUID 直查）；没有就按 student_no 6 位拆成
+    年级 2 + 班级 2 + 座号 2 查（student_no 是 model 的 derived property 不是列，不能直接等值查）。
+    解析不到返回 None（调用方转 404）。
+    """
+    if body.student_id is not None:
+        return db.get(models.Student, body.student_id)
+    no = (body.student_no or "").strip()
+    if len(no) != 6:
+        return None
+    grade, klass, seat = no[0:2], no[2:4], no[4:6]
+    return db.scalars(
+        select(models.Student).where(
+            models.Student.grade_code == grade,
+            models.Student.class_code == klass,
+            models.Student.seat_no == seat,
+        )
+    ).first()
+
+
 def _academic_term(d: date) -> str:
     """date → '2026-spring' / '2026-fall' 形式。"""
     season = "spring" if d.month <= 8 else "fall"

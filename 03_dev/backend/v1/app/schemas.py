@@ -458,6 +458,39 @@ class StudyAbsenceRequestOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class StudyRosterEntryOut(BaseModel):
+    """GET /study/roster 返回的一条记录 — 名簿在籍中的一名学生。"""
+
+    student_id: UUID
+    student_no: str
+    name: str
+    room_no: str
+    dorm_unit: int
+    academic_term: str
+    # added_by 为空 = 系统自动加入（中学全员）/ 非空 = 老师手动加入
+    added_by: Optional[UUID]
+    added_at: datetime
+
+
+class StudyRosterAddIn(BaseModel):
+    """POST /study/roster — 把一名学生加入学習対象名簿。
+
+    两种指定方式二选一（至少给一个）：
+    - student_id：学生 UUID（客户端已拿到 id 时用）
+    - student_no：学号（6 位 = 年级 2 + 班级 2 + 座号 2），老师网页直接输学号用。
+      老师网页名簿管理页用学号 —— 避免依赖账号管理搜索接口（那个接口角色 gate 更窄）。
+    """
+
+    student_id: Optional[UUID] = None
+    student_no: Optional[str] = Field(None, min_length=6, max_length=6)
+
+    @model_validator(mode="after")
+    def _need_one(self) -> "StudyRosterAddIn":
+        if self.student_id is None and not self.student_no:
+            raise ValueError("student_id か student_no のどちらかが必要です")
+        return self
+
+
 class StudyOnlineRequestIn(BaseModel):
     """学生提交在线学习申请。"""
 
