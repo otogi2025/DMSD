@@ -24,6 +24,43 @@
 
 ---
 
+## 📋 杭田 2026-06-04 完整需求对照 — 缺口 13 条（🔴 高优先）
+
+> **起因**：宿舍管理方杭田 2026-06-04 给了一份完整功能需求清单（生徒提出 / 役職許可 / 点呼学習 / 確認用一覧 / 寮務教师管理 + 通知要求用邮件）。CC 派 4 个子代理逐条对照 5 端代码核对，每条都带文件证据。已做到的（✅）不列，下面只列「完全没做 + 做了一半 + 要清理」。
+>
+> **最该先补**：第 1 条（出寮者一览，杭田用 ● 标的重点）+ 第 6 条（学生不知道自己被批没批）。**改起来最快**：第 9、10 条都是「做了没接通」，不用从零做。
+
+### 🔴 完全没做（6 条）
+
+- [ ] **1. 出寮者一览确认页**（寮監·事务室电脑用）— 页面和后端接口都不存在。杭田用 ● 标的重点需求，连带他要的「能打印 / 只读防误删 / 1·2寮和4寮分开显示 / 出寮届录入 1 小时内反映」全没落点。设计文档 `BACKEND_DESIGN_LOG.md` / `WEB_DESIGN_LOG.md` 标了 P1 计划，但代码没跟上（接口 `GET /applications/active` 不存在）。
+- [ ] **2. 学生 增 / 删**（寮務教师用）— 没有添加 / 删除（退寮）学生的接口。学生现在只能自己用注册码注册，网页「アカウント無効化」按钮点了只弹「未対応」。
+- [ ] **3. 改晚自习参加名单**（寮務教师用）— `StudyRoster`（晚自习名单表）只能读，没有增删名单的接口和界面。
+- [ ] **4. 老师当天补录出寮届**（寮務教师用）— `applications.py` 注释明写「仅学生用，教师当日代录超出范围」，是被有意划出去的。
+- [ ] **5. 事案点姓名跳转档案**（寮務教师用）— 数据层 `involved_student_ids` 存了涉及学生的 ID，但网页事案列表没做可点姓名跳转。杭田自己也说这个还没实装。
+- [ ] **6. 审批结果通知学生** — 老师批了 / 驳回了，后端审批函数一封邮件都没发。杭田要邮件（明说不要推送）。
+
+### 🟡 做了一半（6 条）
+
+- [ ] **7. 安卓端接后端** — 约 22 屏界面骨架搭好了，但没连后端，还不能真用。另见下方 §🐞 「Android 整个无网络层」。
+- [ ] **8. 食堂食数** — 后端能从「食事不要期間」算出每天朝 / 昼 / 夕要几食，但①导出的是 Excel 文件，不是杭田说的 Google 表格 ②老师网页上没有导出按钮（点不到）。
+- [ ] **9. 行事予定 学生看不到真数据** — 老师网页能编辑行事日程，但学生 iPhone 显示的是写死的假数据（`ScheduleStubs.swift` 读本地 `SEED.events`），没接后端。编辑端和显示端没打通。
+- [ ] **10. 老师写评论给学生** — 后端能存评论、也能显示给学生，但网页审批时评论永远传空（没有填评论的输入框）。杭田说旧版这功能弱、想加强。
+- [ ] **11. 点呼结束后改判** — 杭田要「事后随时改遅刻 / 欠席，跟时刻无关」。现在点呼一旦结束就锁住（`rollcall.py` session ended 返 409 拒绝）。晚自习侧能随时改，朝 / 夜点呼侧不能。
+- [ ] **12. 朝 / 夜点呼履歴分开** — 个人档案里朝点呼、夜点呼合在一个「点呼」分页，杭田要各一份履歴。小偏差。
+
+### 🧹 要清理（1 条）
+
+- [ ] **13. 网页 5 处假「已发推送」文案** — `index.html` 有 5 处写「已向学生发送推送通知」，实际后端啥都没发（`push.py` 是死代码，没有任何地方调用它）。杭田明说不要推送。删掉或改成真实状态。
+
+### ⚠️ 不在本清单（做了，但要先跟杭田对齐才能动）
+
+- 役职审批链的役职数：杭田原话是 2-4 个役职，5-28 按宿舍实物纸质表扩成了 4-6 个（差担任 / 管理係 / 国際交流課長）
+- 帰国届审批链尾的「校長」留不留（杭田这次没提）
+- 食数导出格式：Google 表格 还是 Excel 够用
+- 审批结果通知要不要也做成邮件（跟提交通知一致）
+
+---
+
 ## 🌐 teacher_web v1.0 收敛后 follow-up（2026-05-31 加）
 
 > teacher_web + 后端经 codex 5 轮复审收敛 0 blocker/major（后端 193 测试）。详见 `05_logs/teacher_web_v1.0_W8审查findings.md` + raw `2026-05-31_teacher_web_v1.0全实装+codex5轮收敛.md`。剩这些非阻塞 follow-up：
@@ -61,14 +98,14 @@
 - [ ] **Android 端实装** — 当前 demo 阶段 Android 没做契約書上传。spec 见 `system_features.md §7.3.5 类型 A`。等 Android 基础架构推进时做（entity + retrofit + Compose 选择器 + 转 JPEG）。
 - [ ] **iOS project.pbxproj 未提交** — 本会话因 pbxproj 被并发会话的巴士功能污染（xcodegen 重生成含 BusAPI.swift 引用），没提交 pbxproj，只提交了 `project.yml`（含相机权限）。新增的 `ContractFilePicker.swift` 要靠下次 `xcodegen` 重新生成进工程，或并发会话收尾时一起提交 pbxproj。
 
-## 🚪 2026-06-04 外出申請 単一先生確認 — 后端 + 老师网页待实装
+## 🚪 2026-06-04 外出申請 単一先生確認 — 后端✅ / 客户端接线待做
 
-> 本会话把外出申請改成「一名老师确认即可」（去掉多级审查），iOS 演示版 + 设计文档已落（`system_features.md §7.2.7` + `ApplyStubs.swift` 2 步进度 + `IOS_DESIGN_LOG §14.20`）。真后端逻辑因 `models.py`/`schemas.py` 被并发会话占用 + 外出后端本就未建表，本会话没做。等后端档期：
+> 外出申請改「一名老师确认即可」（去掉多级审查）。iOS 演示版 + 设计文档 + **后端**已落。后端选「单独建 outings 表」（不塞 applications）：`models.py` Outing 表 + `schemas.py` OutingCreateIn/OutingOut + 迁移 `e1f2a3b4c5d6` + 路由 `outings.py` 6 接口 + 14 测试，全套 253 passed。详见 `BACKEND_DESIGN_LOG §12`（2026-06-04 行）+ `system_features §7.2.7`。
 
-- [ ] **后端建外出（outing）申请 + 确认字段** — 现 `applications` 种类 CHECK 只允许出寮届三种（帰省/外泊/帰国），外出根本不在后端。要加 `outing` 类型 + `confirmed_by_teacher_id`（外键→teachers）+ `confirmed_at`，加 migration。
-- [ ] **确认接口 `PATCH /applications/:id/confirm`** — 老师点确认 → 从登录老师令牌取 teacher_id 自动记录确认者（**不信任客户端传 teacher_id**）。学生侧详情显示确认老师姓名（演示版现写死「松本 先生」）。
-- [ ] **接后端时收紧 iOS 外出进度状态机（codex 2026-06-04 审查提）** — 现 `ApplyStubs.swift` 外出 2 步用 `active: !(status=="approved")`，演示版只有 approved 一条不触发；接后端后 `draft/rejected/returned/withdrawn` 会全被误显示成「先生の確認待ち」。接后端时改成按 status 分支（`pending` 才 active / `approved` 才 done / 撤回·差戻给各自终态文案）。
-- [ ] **老师网页加外出「確認」按钮** — 调上面的确认接口（单按钮，不是多级审批 UI）。
+- [x] ~~**后端建外出表 + 确认字段**~~ ✅ 2026-06-04 — 新建 `outings` 表（含 `confirmed_by_teacher_id` / `confirmed_at`），不污染 applications。
+- [x] ~~**确认接口**~~ ✅ 2026-06-04 — `PATCH /api/v1/outings/{id}/confirm`，确认者 teacher_id 从登录令牌取（不信任客户端）+ R4 寮边界 + 只能确认 pending + 重复 409。
+- [ ] **iOS 生产版接 `/api/v1/outings` 系列接口** — 现外出客户端只有演示版（`ApplyStubs.swift` 假数据）。生产版要新接：提出 → `POST /outings`、列表 → `GET /outings/mine`、详情 → `GET /outings/{id}`、撤回 → `PATCH /{id}/withdraw`。后端 status 只有 `pending/approved/withdrawn` 三态，2 步进度按这三态映射（`pending`=先生確認待ち / `approved`=確認済显示 `confirmed_by_name` / `withdrawn`=取消）。
+- [ ] **老师网页加外出「確認」按钮** — 列表 `GET /outings/pending-for-me` + 点确认调 `PATCH /outings/{id}/confirm`（单按钮，不是多级审批 UI）。
 
 ## 🐞 系统 Bug 专栏（v1.0 上线前 — 5-20 审查作战产出）
 
