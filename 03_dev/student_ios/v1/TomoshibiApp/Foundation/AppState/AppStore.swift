@@ -279,8 +279,12 @@ final class AppStore: ObservableObject {
                 UserDefaults.standard.removeObject(forKey: Self.tokenExpiryKey)
             } else {
                 // 未过期（或没存过期时刻的旧令牌 → 保守恢复，由后续 401 兜底）
-                // 直接赋 _authToken 会跳过 didSet → APIClient 同步不上、所以走 self.authToken
+                // ⚠️ Swift 规则（已 swift 实测）：在 init 内给带 didSet 的属性赋值**不触发 didSet**。
+                //   所以光 `authToken = saved` 不会同步 APIClient.shared.token（didSet 才做这件事），
+                //   启动后所有请求无 Authorization 头 → 401 → loadMe 把刚恢复的登录态又清掉、冷启动保持登录失效。
+                //   必须在这里显式同步一次（codex 第三轮 major #1）。
                 authToken = saved
+                APIClient.shared.token = saved
             }
         }
         // IX-008: 启动若已恢复有效令牌，拉当前学生信息填 currentUser（各页显真实数据，非演示假数据）
