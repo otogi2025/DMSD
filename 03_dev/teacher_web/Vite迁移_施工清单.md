@@ -164,12 +164,31 @@
 - RollCallLanding：4c2578f「删 demo」误删的 Stat/TrendChart/Legend 从 git 历史恢复
 - 图标统一 Vite import；vite.config resolve.extensions .ts 优先（旧 client.js 与新 client.ts 同名冲突）
 
-**🔄 阶段5 剩余（待 itsuki + codex）**：
-- ⏳ codex 终审 beqdkwrbg 进行中 → 回来逐条裁决修到收敛
-- ⏸ itsuki 双击 `预览Vite新版老师网站.command` 肉眼逐页对比界面一致（§5 最硬标准）
-- ⏸ itsuki 拍板后：切正式 `启动老师网站.command` 托管 dist + 归档旧 index.html/client.js/vendor
-- ⏸ itsuki 决策：点呼落地页统计卡 demo 假数据（删 / 接真后端）
-- 📋 收尾清理：死代码 RecStatusBadge / BusPostCard 等（旧版也死代码，忠实搬了，非阻塞）
+**🔄 阶段5 剩余 —— compact 交接（2026-06-05；itsuki 授权「后端也交给你，肉眼签收最后我来，其余你都做」）**
+
+【已验证 — chrome 自动化实测（强证据）】
+- 登录跑通：选老师卡片(新股 先生)→输密码(123456)→进 app ✓
+- Shell 外壳 + 17 菜单导航全渲染 + 路由切换(申請↔代録) ✓
+- 申請(审批)页 + 代録表单(杭田新功能,搜学生/三种届/日期方法时刻/理由/食堂) 完整渲染 ✓
+- Ryō 配色/Noto Sans JP/灯火图标 跟旧版一致 ✓；API 调用参数正确 ✓
+- 三路审查全收敛(地基19+终审workflow8+codex3,全修)；tsc 0+build通(414KB)+后端308测试过
+
+【⚠️ 阻塞项 — 后端 dev 数据库(非迁移bug,itsuki已授权CC修)】
+- 现象：代録搜学生「検索に失敗」；后端日志 `no such column: students.needs_renewal`
+- 真因：needs_renewal 是别会话6-05 renewal功能加的列；dev库 alembic 多head分叉(b2c3d4e5f6a7重复 + 两个head: b2c3d4e5f6a7 / e1f2a3b4c5d6)，upgrade head 失败、列没建上 → 所有查 students 的功能(代録/学生账号/学习名簿/点呼board/出寮者一覧含student)在dev库都500
+- 铁证非迁移问题：前端请求参数对 + pytest 308过(test库用 conftest create_all 有此列)
+- 修法(新会话做)：alembic merge heads 合并两head → 创 merge revision → upgrade head；或 reseed dev库(seed.py)。修后重起后端验证
+
+【剩余 TODO(新会话照做)】
+1. 修后端 dev 库 alembic 多head(merge heads + upgrade) → 代録等 students 功能恢复
+2. 重起后端托管 dist + chrome 验证代録搜学生/点呼/学習/出寮者一覧/审批 + 逐页截图16页(客观验证界面一致)
+3. 切正式 启动老师网站.command → 托管 dist(现托管 src);加 npm run build 步骤
+4. 归档旧 src/index.html(29305行) + api/client.js + vendor/ + 打包脚本(build_single_file.py等) → 99_archive
+5. 收尾文档：WEB_DESIGN_LOG(迁移记录) + raw/2026-06-05(AC素材) + decision_log(迁Vite落地) + memory更新(project_teacher_web_vite_migration 标完成) + project-overview同步(新增~30 .tsx) + 心智模型(老师网页 HTML→Vite 成熟度)
+6. itsuki 肉眼最终签收(双击预览,他做) → push(itsuki明示)
+
+【迁移产出文件清单】src/ 下：main.tsx/App.tsx/Shell.tsx/theme.ts/utils.ts/vite-env.d.ts/api(client.ts+types.ts) + components/(22页+3弹窗 OverrideModal/OutstayDetailModal/StudentProfileModal + shared.tsx)。配置 package.json/vite.config.ts(resolve.extensions .ts优先,base './')/tsconfig.json/index.html。
+预览脚本：repo根 预览Vite新版老师网站.command(双击 build+后端托管dist+开浏览器)。
 
 ## 9. 切分清单（已执行，存档备查）
 
