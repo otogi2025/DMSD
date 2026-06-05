@@ -78,7 +78,7 @@ object MockData {
             Notification("N2", "申請", "外泊申請が承認されました", "田中先生が承認しました", "昨日 16:30", false),
             Notification("N3", "減点", "遅刻警告", "今月の遅刻が 5 回に到達", "昨日 9:00", false),
             Notification("N4", "活動", "明日 18:00 新入生歓迎会", "食堂集合", "昨日", false),
-            Notification("N5", "リクエスト", "あなたの投稿曲が採用されました", "Lemon / 米津玄師", "2 日前", true),
+            Notification("N5", "リクエスト曲", "あなたの投稿曲が採用されました", "Lemon / 米津玄師", "2 日前", true),
         )
 
     val DEFAULT_MUSIC =

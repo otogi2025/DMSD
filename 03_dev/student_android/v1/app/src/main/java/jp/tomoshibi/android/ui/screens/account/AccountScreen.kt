@@ -33,12 +33,13 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneOffset
 
-// 4 step 注册 — 对齐 iOS AuthStubs.swift §0.3-§0.6 RegisterStep1-4
+// 5 step 注册 — 对齐 iOS AuthStubs.swift §0.3-§0.7 RegisterStep1-5（规格 §2.4~§2.8）
 //
 // Step 1 基本情報    : アバター + 氏名 + 性別 toggle + 学生区分 toggle + 生年月日 + 学年 chip + 組 toggle + 出席番号 + 部屋番号 + アカウント番号 060218 自動算
 // Step 2 点呼区分    : 一般寮生 / サッカー部 single-select card
 // Step 3 連絡先      : メール + 電話
-// Step 4 パスワード設定 : amber 警告 banner + pw + pw2
+// Step 4「パスワード設定」: 琥珀色警告条 + 密码 + 密码确认（本地校验最少 6 位，itsuki 2026-06-05 拍板统一 6）
+// Step 5「認証コード」  : 琥珀色警告条 + 6 桁大字输入 + 倒计时重发按钮 + 422 错误位 → 完成跳「ようこそ」欢迎页
 //
 // FormData 全部 demo seed 预填 — itsuki 一路点「次へ」即可完成（iOS 00 号 demo 等价）
 private data class FormData(
@@ -55,6 +56,7 @@ private data class FormData(
     val phone: String = "090-0000-0000",
     val pw: String = "demo1234",
     val pw2: String = "demo1234",
+    val code: String = "000000", // 「認証コード」认证码 — 演示版预填 6 桁（对齐 iOS DEMO 预填 000000）
 )
 
 private val GRADES = listOf("中1", "中2", "中3", "高1", "高2", "高3")
@@ -92,8 +94,9 @@ fun AccountScreen(navController: NavHostController) {
     val tokens = SuzuT.current
     val store = LocalAppStore.current
     val scope = rememberCoroutineScope()
-    var step by remember { mutableStateOf(1) } // 1..4 (跟 iOS 一致)
+    var step by remember { mutableStateOf(1) } // 1..5 (跟 iOS RegisterStep1-5 一致)
     var data by remember { mutableStateOf(FormData()) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     val canNext: Boolean =
         when (step) {
@@ -113,7 +116,13 @@ fun AccountScreen(navController: NavHostController) {
             }
 
             4 -> {
+                // 密码本地校验：最少 6 位 + 两次一致（itsuki 2026-06-05 拍板统一 6）
                 data.pw.length >= 6 && data.pw == data.pw2
+            }
+
+            5 -> {
+                // 认证码：恰好 6 位数字（对齐 iOS canSubmit）
+                data.code.length == 6 && data.code.all(Char::isDigit)
             }
 
             else -> {
@@ -121,32 +130,41 @@ fun AccountScreen(navController: NavHostController) {
             }
         }
 
+    // 提交建号 — 演示版本地写假人 + 跳欢迎页（不接后端）
+    val submit: () -> Unit = {
+        scope.launch {
+            store.update {
+                it.copy(
+                    // 注册即登录 — 写假人的同时把登录态置 true（对齐 LoginScreen 登录后置 authed=true）。
+                    // 缺这句的话：注册→Welcome→Home 后 authed 仍为 false，下次启动 Splash 会按 authed 判定把人踢回登录页。
+                    authed = true,
+                    user =
+                        User(
+                            name = data.name,
+                            kana = data.name, // demo 简化
+                            email = data.email,
+                            dorm = dormName(data),
+                            room = fullRoom(data),
+                            avatar = data.name.firstOrNull()?.toString() ?: "リ",
+                            studentNo = computedAccount(data),
+                            gradeClass = "${data.grade}${data.classSuffix}組 ${data.seatNo}番",
+                            category = catName(data),
+                            phone = data.phone,
+                        ),
+                )
+            }
+            navController.navigate(Route.Welcome.path) {
+                popUpTo(Route.Account.path) { inclusive = true }
+            }
+        }
+    }
+
     val onNext: () -> Unit = {
-        if (step < 4) {
+        // Step4 完成后进 Step5 认证码（原本 Step4 直接跳 Welcome，现改成 Step4 → Step5 → Welcome）
+        if (step < 5) {
             step++
         } else {
-            scope.launch {
-                store.update {
-                    it.copy(
-                        user =
-                            User(
-                                name = data.name,
-                                kana = data.name, // demo 简化
-                                email = data.email,
-                                dorm = dormName(data),
-                                room = fullRoom(data),
-                                avatar = data.name.firstOrNull()?.toString() ?: "リ",
-                                studentNo = computedAccount(data),
-                                gradeClass = "${data.grade}${data.classSuffix}組 ${data.seatNo}番",
-                                category = catName(data),
-                                phone = data.phone,
-                            ),
-                    )
-                }
-                navController.navigate(Route.Welcome.path) {
-                    popUpTo(Route.Account.path) { inclusive = true }
-                }
-            }
+            submit()
         }
     }
 
@@ -159,7 +177,8 @@ fun AccountScreen(navController: NavHostController) {
             1 -> "基本情報"
             2 -> "点呼区分"
             3 -> "連絡先"
-            else -> "パスワード設定"
+            4 -> "パスワード設定"
+            else -> "認証コード"
         }
 
     Column(modifier = Modifier.fillMaxSize().background(tokens.pearl)) {
@@ -194,7 +213,7 @@ fun AccountScreen(navController: NavHostController) {
                 )
                 Spacer(Modifier.weight(1f))
                 Text(
-                    "$step / 4",
+                    "$step / 5",
                     color = tokens.inkMute,
                     style = TextStyle(fontSize = 12.sp, fontFamily = FontFamily.Monospace),
                 )
@@ -211,7 +230,7 @@ fun AccountScreen(navController: NavHostController) {
                 Box(
                     modifier =
                         Modifier
-                            .fillMaxWidth(step / 4f)
+                            .fillMaxWidth(step / 5f)
                             .height(4.dp)
                             .clip(RoundedCornerShape(2.dp))
                             .background(tokens.btnGrad),
@@ -235,6 +254,7 @@ fun AccountScreen(navController: NavHostController) {
                 2 -> Step2Cat(data) { data = it }
                 3 -> Step3Contact(data) { data = it }
                 4 -> Step4Password(data) { data = it }
+                5 -> Step5Code(data, context) { data = it }
             }
         }
 
@@ -596,7 +616,8 @@ private fun Step4Password(
     LabeledTextField("パスワード", required = true, value = d.pw, placeholder = "", isPassword = true) {
         onChange(d.copy(pw = it))
     }
-    Text("8 文字以上", color = t.inkMute, style = TextStyle(fontSize = 11.sp))
+    // 提示文案对齐本地校验最少 6 位（itsuki 2026-06-05 拍板统一 6）
+    Text("6 文字以上", color = t.inkMute, style = TextStyle(fontSize = 11.sp))
 
     LabeledTextField(
         "パスワード（確認）",
@@ -611,6 +632,154 @@ private fun Step4Password(
 }
 
 // ════════════════════════════════════════════════════════════════
+// Step 5 認証コード（规格 §2.8）— 琥珀警告条 + 6 桁大字输入 + 倒计时重发 + 422 错误位
+// ════════════════════════════════════════════════════════════════
+@Composable
+private fun Step5Code(
+    d: FormData,
+    context: android.content.Context,
+    onChange: (FormData) -> Unit,
+) {
+    val t = SuzuT.current
+
+    // 倒计时秒数 — 进屏即从 60 倒数，到 0 才允许「再送信」（本地 state，不接后端）
+    var remain by remember { mutableStateOf(60) }
+    // 422 错误位 — 演示版恒为空（真实环境放后端返回的日语错误串）
+    val errorMsg: String? = null
+
+    // 每秒减 1，到 0 停（LaunchedEffect 跟 remain 绑定，每次变动重新挂一帧 delay）
+    LaunchedEffect(remain) {
+        if (remain > 0) {
+            kotlinx.coroutines.delay(1000)
+            remain -= 1
+        }
+    }
+
+    // 琥珀色警告条（同 Step4 样式，正文换成认证码说明）
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(t.warnBg)
+                .border(1.dp, t.warn.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier.size(24.dp).clip(CircleShape).background(t.warn),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                "!",
+                color = Color.White,
+                style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
+            )
+        }
+        Text(
+            "教員から発行された 6 桁の認証コードを入力してください。コードは発行から 5 分以内のみ有効です。",
+            color = t.warnDeep,
+            style = TextStyle(fontSize = 12.5.sp, lineHeight = 18.sp),
+        )
+    }
+
+    // 标签
+    FieldLabel("認証コード（6 桁）")
+
+    // 居中超大输入框：28sp heavy 等宽 + 字距 8，数字键盘，实时过滤只留数字、最多 6 位
+    OutlinedTextField(
+        value = d.code,
+        onValueChange = { onChange(d.copy(code = it.filter(Char::isDigit).take(6))) },
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true,
+        shape = RoundedCornerShape(12.dp),
+        textStyle =
+            TextStyle(
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Black,
+                fontFamily = FontFamily.Monospace,
+                letterSpacing = 8.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            ),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        placeholder = {
+            Text(
+                "000000",
+                color = t.inkFaint,
+                style =
+                    TextStyle(
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.Monospace,
+                        letterSpacing = 8.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        isError = errorMsg != null,
+        colors =
+            OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = t.ink,
+                unfocusedBorderColor = t.hair,
+                focusedContainerColor = t.pill,
+                unfocusedContainerColor = t.pill,
+                errorBorderColor = t.danger,
+            ),
+    )
+
+    // 422 错误条：红字红底圆角框（演示版 errorMsg 恒空 → 不显示）
+    if (errorMsg != null) {
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(t.dangerBg)
+                    .border(1.dp, t.danger.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+        ) {
+            Text(
+                errorMsg,
+                color = t.danger,
+                style = TextStyle(fontSize = 12.5.sp, lineHeight = 18.sp),
+            )
+        }
+    }
+
+    // 倒计时重发按钮：remain > 0 时灰禁用显「再送信（NN 秒）」，到 0 可点显「再送信」
+    val canResend = remain == 0
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(44.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(if (canResend) t.pill else t.hairSoft)
+                .then(
+                    if (canResend) {
+                        Modifier.clickable {
+                            // 演示版：本地重置倒计时 + toast（不真发码）
+                            remain = 60
+                            android.widget.Toast
+                                .makeText(context, "認証コードを再送信しました", android.widget.Toast.LENGTH_SHORT)
+                                .show()
+                        }
+                    } else {
+                        Modifier
+                    },
+                ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            if (canResend) "再送信" else "再送信（$remain 秒）",
+            color = if (canResend) t.ink else t.inkMute,
+            style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
+        )
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
 // Footer (戻る + 次へ / アカウント作成完了)
 // ════════════════════════════════════════════════════════════════
 @Composable
@@ -621,7 +790,8 @@ private fun FooterBar(
     onNext: () -> Unit,
 ) {
     val t = SuzuT.current
-    val nextLabel = if (step < 4) "次へ" else "アカウント作成完了"
+    // 末步（Step5 认证码）按钮文案改成「アカウント作成完了」，其余步是「次へ」
+    val nextLabel = if (step < 5) "次へ" else "アカウント作成完了"
     Column {
         Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(t.hair))
         Row(
