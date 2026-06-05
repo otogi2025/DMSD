@@ -4,65 +4,69 @@
 
 # DMSD → Tomoshibi（灯火）
 
-> **项目名（仓库/开发代号）**：DMSD — Dormitory Management System Digitalization
-> **系统/产品名（对外）**：**Tomoshibi**（灯火 / ともしび）
->
-> 把我们宿舍的纸质点呼流程数字化。
->
-> **当前版本**：见 [`CHANGELOG.md`](./CHANGELOG.md)（单源真值，v0.8.0 + 之后多次未 bump 推进）
-> **状态**：5 端代码层全启动 — iOS Swift / Android Compose / Teacher Web TS / FastAPI 后端 / 点呼机 Pi 3A+ 骨架，硬件采购 + Pi 上手编程 阶段
-> **作者**：itsuki（伊月）— 零基础起步，边学边做
+> **仓库 / 开发代号**：DMSD — Dormitory Management System Digitalization
+> **产品名**：Tomoshibi（灯火 / ともしび）
+> **一句话**：把宿舍纸质点呼、纪律管理、申请流程数字化。
+> **当前版本**：见 [`CHANGELOG.md`](./CHANGELOG.md)（版本号单源真值）
+> **当前状态**：5 端代码层全启动，v1.0 完整体推进中。
+> **作者**：itsuki（伊月）— 零基础起步，边学边做。
+
+---
+
+## 第一次读这个项目
+
+如果你是第一次打开这个仓库，请先读：
+
+1. [`PROJECT_GUIDE.md`](./PROJECT_GUIDE.md) — 新人导览：项目是什么、现在做到哪、先读哪些文件。
+2. [`00_admin/progress_overview.md`](./00_admin/progress_overview.md) — 当前状态快照：架构、阶段、进度。
+3. [`.claude/skills/project-overview/SKILL.md`](./.claude/skills/project-overview/SKILL.md) — 文件级地图：每个文件/目录大概干什么。
+
+`README.md` 是仓库门面；`PROJECT_GUIDE.md` 是真正给新人顺着读的导览。
 
 ---
 
 ## 这是什么
 
-我住的宿舍每天都要点呼，现在用的是纸质签到表。这种方式慢、容易漏。
+我住的宿舍每天都要点呼，现在用的是纸质签到表。这种方式慢、容易漏，也很难和纪律分数、外泊申请、学习出席记录连起来。
 
-Tomoshibi 用 NFC 卡 + 服务器 + 手机 App + 墙上的专用小设备（点呼机）把这整个流程数字化。
+Tomoshibi 用 NFC 卡、学生手机 App、老师 Web、后端服务器和入口处的专用点呼机，把这个流程数字化。
+
+核心目标不是“做一个 App”，而是把宿舍管理里每天重复、容易出错的流程，变成一套可以实际运行的系统。
 
 ---
 
 ## 做到哪了
 
-**截至 2026-05-21**（v0.8.0 close + 之后多次未 bump 推进）：
+**截至 2026-06-05**：
 
-**项目近期里程碑**（详见 `CHANGELOG.md` + `00_admin/progress_overview.md`）：
+- 2026-04-28：Demo 跑通（iPhone NFC → 后端 → iPad 座位变绿 + 日语播报）。
+- 2026-04-29：宿舍管理员当面口头同意采纳系统，GitHub repo 首次 public。
+- 2026-04-30：老师反馈 38 条吸收进 `system_features.md`。
+- 2026-05-02：v0.8.0 close，iOS / Android / Teacher Web / Backend / 点呼机 5 端代码层全启动。
+- 2026-05-08：点呼机硬件方案定稿（Pi 3A+ + PN532 V3 + ST25DV16K + USB 小音响）。
+- 2026-05-19：project-overview 大改造，建立文件级总览和防漂机制。
+- 2026-05-20 到 05-22：多轮审查和 bug findings 修复。
+- 2026-05-26：Teacher Web 的 Vite + TypeScript 实装版被整体废弃，回到 Ryō 风格 standalone HTML 主线。
+- 2026-05-27：Teacher Web v1.0 深夜推进，后端新增 discipline / cleaning / front desk / WebSocket 等能力；同日完成 iOS 审查、全项目审查、project-overview 再校准。
+- 2026-05-28：宿舍申请表后端全链路（5 张新表 + 校長审批链）+ iOS 6 个申请界面实装 + 点呼机硬件采购定稿。
+- 2026-05-30：Teacher Web v1.0 完整施工 6 大模块（行事予定 / 巴士时刻表 / 指導履歴 / 事案 / 个人档案聚合 / 学号一括进级）。
+- 2026-05-31：iOS 多功能从假数据接真后端（IX 系列）+ 后端 findings 全面修复，Codex 多轮复审（后端测试 193 → 220 全过）。
+- 2026-06-03：版本号回溯规范化 — 把 5-11 到 6-02 的 236 个 commit 按语义化版本补了 6 个版本标签（v0.8.1 ~ v0.12.0）。
+- 2026-06-03：出租车予約功能 4 端实装（v0.13.0）。
+- 2026-06-04：杭田老师 6-04 需求大批 + 外出申請 + オンライン学習契約書（v0.14.0）。
+- 2026-06-05：老师网页从 standalone HTML 迁到 React + TypeScript + Vite（界面冻结原样搬）+ Android 对齐 iOS + 学年更新完成（v0.15.0，当前版本）。
 
-- 2026-04-28 — Demo 跑通（iPhone NFC → 后端 → iPad 座位变绿 + 日语播报）
-- 2026-04-29 — **宿舍管理员当面口头同意采纳系统** + GitHub repo 首次 public
-- 2026-04-30 — spec 主体 38 条 R1-R4 + 8 分阈值拍板入 system_features
-- 2026-05-02 — **5 端代码层全启动**（v0.8.0 close）：iOS 网络层 / Android Compose bootstrap / teacher_web v1 TS+Vite / backend rollcall+study+teachers routers / iOS↔backend 字段对齐 F1-F5+Q1
-- 2026-05-08 — **硬件全定稿**：Pi 3A+ + PN532 V3 + ST25DV16K + LED 模块 + 01Studio USB 小音响
-- 2026-05-13 — 文件大整理 + project-overview skill 建立（630+ 文件清单单源真值）
-- 2026-05-19 — project-overview 大改造（9 处漂移修 + §0.1 体量重算 957 文件）+ 防漂 C 方案（hook 全覆盖 + 启动对账）
-- 2026-05-20+ — 131 条 bug findings 4 会话并行修复
-- 2026-05-22 — project-overview §0.1 再校准 957→980（5-21 demo 158 文件归档落地）+ Fix-Bot 4 effective_* 字段彻底删完成 + Codex 第二轮全文件覆盖 audit（39 条 / 24 独立 + 13 复核 + 2 positive）
+当前重点：
 
-**5 端代码层实装状态**（截至 5-21）：
-
-- ✅ **规格层**：RollCall_Spec.md（~1000 行）+ 字典三件套（枚举 / 字段 / 错误码 / 设备注册）+ system_features.md 830 行（4-30 大重写）
-- ✅ **后端 FastAPI**：1134 行 BACKEND_DESIGN_LOG + 8 router（auth / rollcall / study / accounts / admin_registration_code / teachers / applications / meals / notifications）+ Alembic migration 框架 + 37 case pytest 全 pass
-- ✅ **iOS Swift/SwiftUI**：Foundation 层 17 文件 1861 行（网络 / Keychain / Route / AppStore）+ 3 个核心 Feature（Auth / Home / Community 5K+ 行）实装中
-- ✅ **Android Kotlin/Compose**：22 屏（Login/Home/Apply/MyPage/Settings/Schedule/Bus/Study/Music/Notifications/NfcScreen 等）+ MainActivity / NavGraph / AppStore / MockData / Theme
-- 🟡 **Teacher Web HTML standalone（Ryō 风格）**：5-02 起 TS+Vite+Zustand 实装版做到 5-26 被 itsuki 拍板「整体废弃」并归档（不是他心里那套 Ryō 24 学生座席表 + 实时点呼仪表盘），现在权威源 = `v1/src/index.html` standalone，5-27 凌晨 28+ commit 接 backend client.js helper（rollcall sessions history / discipline / cleaning / front_desk / announcements）
-- 🔄 **点呼机 Pi 3A+**：硬件全定稿（5-08）+ ROLLCALL_DEVICE_DESIGN_LOG 226 行 + src/main.py 骨架；硬件采购 + Pi 上手编程 未开始
-- ✅ **工程治理**：跨会话同步机制 A+B+C / 版本管理 SOP（迁 `.claude/skills/version-bump/` skill 形态）/ 18 条联动规则 + 11 hook / 7 项目 skill / project-overview 单源真值
-
-**为什么这个顺序**：我是零基础高一时开始想这个项目，花了大量时间先把"这个系统到底要长什么样"写清楚 → 再用 prototype 把交互跑通 → 接 4-28 demo 拿管理员反馈 → 5-02 起 5 端代码层并发推进。我认为这个顺序是对的（下面"AI 协作"一段会再讲一次）。
-
----
-
-## 目录导航（推荐阅读顺序）
-
-| 顺序 | 文件 | 看什么 |
-|---|---|---|
-| 1 | [`CHANGELOG.md`](./CHANGELOG.md) | 项目版本变更历史（含 pre-0.1 追认） |
-| 2 | [`01_specs/rollcall/RollCall_Spec.md`](./01_specs/rollcall/RollCall_Spec.md) | 点呼系统完整规格（~1000 行，业务 + API） |
-| 3 | [`05_logs/decision_log.md`](./05_logs/decision_log.md) | 每个重要决策的"之前 → 现在 → 为什么" |
-| 4 | [`05_logs/project_evolution.md`](./05_logs/project_evolution.md) | 项目整体如何从"想法"演变到"可动手蓝图" |
-| 5 | [`05_logs/learning_path.md`](./05_logs/learning_path.md) | 我作为零基础学习者的学习路径 |
-| 6 | [`00_admin/progress_overview.md`](./00_admin/progress_overview.md) | 阶段进度快照（章节级） |
+| 端 | 状态 |
+|---|---|
+| 规格层 | `system_features.md` + `RollCall_Spec.md` + 字段/枚举/错误码字典仍是业务真值。 |
+| Backend | FastAPI + PostgreSQL + Alembic。13 router 注册，61 endpoint 可 import；discipline / cleaning / front desk / WebSocket 已推进。 |
+| iOS | SwiftUI 项目在 `03_dev/student_ios/v1/`；核心 Features + Network + Foundation 已建立，近期完成自主审查并修掉 1 处 force unwrap。 |
+| Android | Kotlin + Compose 项目已建，视觉层覆盖主要学生端屏幕；真后端接入和测试仍待推进。 |
+| Teacher Web | 6-05 迁到 React + TypeScript + Vite（界面冻结从 Ryō standalone HTML 原样搬），权威源 `03_dev/teacher_web/v1/src/`。 |
+| 点呼机 | 硬件方案和 Python 骨架已建，真实 Pi 上手和 NFC/LED/audio/API 模块实装仍在后续。 |
+| 工程治理 | WIP / TODO / progress_overview / project-overview / hooks / skills 已形成协作和防漂体系。 |
 
 ---
 
@@ -70,34 +74,39 @@ Tomoshibi 用 NFC 卡 + 服务器 + 手机 App + 墙上的专用小设备（点�
 
 | 部分 | 技术 |
 |---|---|
-| 学生 App | iOS（Swift / SwiftUI）+ Android（Kotlin / Compose） |
-| 老师 Web | HTML standalone（Ryō 风格 / 单 HTML / client.js fetch）— 5-26 起 v0.8 阶段立项的 TS+Vite+Zustand 实装版整体废弃（归档到 `99_archive/2026-05-26_teacher_web_vite实装作废/`），回到 4-21 Ryō standalone 主线 |
+| 学生 App | iOS（Swift / SwiftUI）+ Android（Kotlin / Jetpack Compose） |
+| 老师 Web | React + TypeScript + Vite（Ryō 风格界面，iPad 浏览器使用） |
 | 后端 | FastAPI / Python + PostgreSQL + Alembic |
 | 点呼机 | Raspberry Pi 3A+ + PN532 V3 NFC + 01Studio USB 小音响 + Python |
-| NFC 卡 / 标签 | NTAG215（学生卡）+ ST25DV16K（动态标签，每 10 秒刷新 nonce） |
-| 版本 / 协作 | Git + GitHub + Claude Code |
-
-**上线姿态**（2026-04-19 决定）：v1.0 **一次性**上线三种使用方式（卡 / iPhone / Android），不做"先上卡再上 App"的分阶段。开发内部按 M1→M5 里程碑推进，兜底是"做不完至少 M1+M2 可以 demo"。
+| NFC 卡 / 标签 | NTAG215（学生卡）+ ST25DV16K（入口动态标签，每 10 秒刷新 nonce） |
+| 协作 / 版本 | Git + GitHub + Claude Code |
 
 ---
 
-## 关于 AI 协作（诚实声明）
+## 推荐阅读顺序
 
-**我在整个项目过程中使用了 Claude Code 作为搭档**（AI 家教 + 代码助手 + 写作辅助）。这对我不是秘密，我写这一段就是想把这件事说清楚。
+| 顺序 | 文件 | 看什么 |
+|---|---|---|
+| 1 | [`PROJECT_GUIDE.md`](./PROJECT_GUIDE.md) | 新人导览，先建立整体地图。 |
+| 2 | [`00_admin/progress_overview.md`](./00_admin/progress_overview.md) | 当前架构和阶段进度。 |
+| 3 | [`02_design/system_features.md`](./02_design/system_features.md) | 5 端共用功能规格真值。 |
+| 4 | [`01_specs/rollcall/RollCall_Spec.md`](./01_specs/rollcall/RollCall_Spec.md) | 点呼系统完整业务规格。 |
+| 5 | [`CHANGELOG.md`](./CHANGELOG.md) | 版本演变和里程碑。 |
+| 6 | [`05_logs/decision_log.md`](./05_logs/decision_log.md) | 关键决策和理由。 |
+| 7 | [`05_logs/project_evolution.md`](./05_logs/project_evolution.md) | 项目如何从想法演变到系统。 |
+| 8 | [`.claude/skills/project-overview/SKILL.md`](./.claude/skills/project-overview/SKILL.md) | 查具体文件/目录是干什么的。 |
 
-具体做法：
+---
 
-- **我决定"做什么"，AI 帮我实现"怎么做"**，每段代码我都必须能解释给别人听
-- **AI 不是听话的执行者，是"有原则的教练"** —— 我希望它质疑我、打断我、在我漏看的地方提醒我
-- **所有重大决策最终由我拍板**，包括主动**反驳 AI 的过度建议**（例如 2026-04-15 我反对 AI 推荐的高配 Raspberry Pi，转而选更便宜的低配款 + "thin client / thick server" 架构原则）
+## 关于 AI 协作
 
-如果你想看我怎么和 AI 协作的具体证据，可以读：
+我在整个项目过程中使用 Claude Code 作为搭档：它像 AI 家教、代码助手、审查员和写作辅助。重大决策由我拍板，AI 负责帮助我发现盲点、解释技术、实现代码、整理记录。
 
-- [`CLAUDE.md`](./CLAUDE.md) —— 我给 AI 的项目指令
-- `05_logs/decision_log.md` 2026-04-15 条 —— 反驳 AI 过度配置
-- [`00_admin/2026-04-19_项目审查_backlog.md`](./00_admin/2026-04-19_项目审查_backlog.md) —— AI 对项目做的深度审查 + 我的取舍判断
+我保留这一点，是因为这个项目本身也在记录一个零基础学习者如何和 AI 协作完成真实工程。相关证据可以看：
 
-我相信"成熟地使用 AI"本身也是现代软件工程的一部分，不需要遮掩。
+- [`CLAUDE.md`](./CLAUDE.md) — 我给 AI 的项目指令。
+- [`05_logs/decision_log.md`](./05_logs/decision_log.md) — 关键决策记录。
+- [`05_logs/project_evolution.md`](./05_logs/project_evolution.md) — 项目演化叙事。
 
 ---
 
@@ -106,4 +115,4 @@ Tomoshibi 用 NFC 卡 + 服务器 + 手机 App + 墙上的专用小设备（点�
 - **开发者**：itsuki（otogi2025@gmail.com）
 - **GitHub**：https://github.com/otogi2025/DMSD
 - **项目起始**：2026-02
-- **升学目标**：筑波大学 情報学群 情報科学類 AC 入試（2027 年 4 月入学）—— DMSD 也是我 AC 入試 的核心叙事项目。这个动机我不回避：**"真诚解决真问题"和"把解决过程作为升学叙事"本来就不冲突**。
+- **升学目标**：筑波大学 情報学群 情報科学類 AC 入試（2027 年 4 月入学）
