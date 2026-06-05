@@ -285,3 +285,33 @@ export function ModalFooter({
     </div>
   );
 }
+
+// 源 index.html 16293-16317（applications 块；ApplicationsPage + OutstayDetailModal 跨块共用）
+export function StateBadge({ s }: { s: string }) {
+  const T = RYO;
+  const map = (
+    {
+      pending: [T.warn, T.warnSoft, T.warnBorder, "審査待ち"],
+      approved: [T.ok, T.okSoft, T.okBorder, "承認済"],
+      rejected: [T.danger, T.dangerSoft, T.dangerBorder, "却下"],
+      question: [T.cobalt, T.cobaltSoft, T.infoBorder, "質問あり"],
+    } as Record<string, [string, string, string, string]>
+  )[s];
+  return (
+    <span
+      style={{
+        fontSize: 11,
+        fontWeight: 700,
+        padding: "2px 8px",
+        borderRadius: 4,
+        background: map[1],
+        color: map[0],
+        border: `1px solid ${map[2]}`,
+        letterSpacing: 0.5,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {map[3]}
+    </span>
+  );
+}
