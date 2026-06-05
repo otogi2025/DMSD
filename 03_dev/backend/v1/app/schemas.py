@@ -1148,6 +1148,14 @@ class FrontDeskItemCreateIn(BaseModel):
     location: Optional[str] = Field(None, max_length=200)
     # 默认 expires_in_days: delivery=7 / lost_and_found=30（router 层应用）
 
+    @model_validator(mode="after")
+    def _delivery_requires_student(self):
+        # 宅配(delivery)必须指定收件学生 —— 否则学生端 GET /mine 按 student_id 过滤永远查不到、
+        # 登记成功但无人收到通知（codex 第三轮 major #2）。失物招领的 student_id 是捡到人、可空。
+        if self.kind == "delivery" and self.student_id is None:
+            raise ValueError("宅配は受取人（student_id）の指定が必須です")
+        return self
+
 
 # ---------------------------------------------------------------
 # 学生账号管理（admin 端，spec §7.1）— 2026-05-30 实装
