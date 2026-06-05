@@ -1148,6 +1148,16 @@ class FrontDeskItemCreateIn(BaseModel):
     location: Optional[str] = Field(None, max_length=200)
     # 默认 expires_in_days: delivery=7 / lost_and_found=30（router 层应用）
 
+    @field_validator("student_id", mode="before")
+    @classmethod
+    def _blank_student_id_to_none(cls, v):
+        # 老师网页表单留空常发空字符串 / 纯空白而非 null —— 先归一成 None，
+        # 否则 Optional[UUID] 解析空串直接 422：失物招领本应允许空、宅配也拿不到下面那条清晰报错
+        # （codex 第四轮 major #1）。
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
+
     @model_validator(mode="after")
     def _delivery_requires_student(self):
         # 宅配(delivery)必须指定收件学生 —— 否则学生端 GET /mine 按 student_id 过滤永远查不到、
