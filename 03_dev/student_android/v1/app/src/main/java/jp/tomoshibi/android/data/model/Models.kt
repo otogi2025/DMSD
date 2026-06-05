@@ -81,9 +81,23 @@ data class LostItem(
 
 @Serializable
 data class EventItem(
-    val date: String, // "04-05"
+    val date: String, // home 预览用短格式 "04-05"；日历用 ISO "2026-04-05"
     val title: String,
     val time: String, // "08:30"
+    val id: Int = 0, // 日历详情用（DEFAULT_EVENTS 给真 id；预览用默认 0）
+    val place: String = "", // 场所，可空（如「食堂」）
+    val desc: String = "", // 描述，可空
+)
+
+// 点歌单条（对应 iOS SongItem；賛成/反対投票 2026-05-01 已废，up/down 保留字段不显示）
+@Serializable
+data class SongItem(
+    val id: Int,
+    val title: String,
+    val artist: String,
+    val by: String, // 投稿者号（如「00号」）
+    val up: Int = 0,
+    val down: Int = 0,
 )
 
 @Serializable

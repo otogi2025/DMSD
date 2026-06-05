@@ -194,6 +194,36 @@ object MockData {
             ),
         )
 
+    // 点歌假数据 — 8 条（对应 iOS SEED.songs）
+    val DEFAULT_SONGS =
+        listOf(
+            SongItem(8, "ミックスナッツ", "Official髭男dism", "07号"),
+            SongItem(7, "群青", "YOASOBI", "06号"),
+            SongItem(6, "マリーゴールド", "あいみょん", "05号"),
+            SongItem(5, "紅蓮華", "LiSA", "04号"),
+            SongItem(4, "炎", "LiSA", "03号"),
+            SongItem(3, "Pretender", "Official髭男dism", "02号"),
+            SongItem(2, "夜に駆ける", "YOASOBI", "01号"),
+            SongItem(1, "Lemon", "米津玄師", "00号"),
+        )
+
+    // 行事予定假数据 — 12 条（对应 iOS SEED.events，ISO 日期 + 场所 + 描述，给月历 + 活動詳細 用）
+    val DEFAULT_EVENTS =
+        listOf(
+            EventItem("2026-04-05", "留 4 アクティビティ", "08:30", id = 1, place = "多目的ホール", desc = "新年度最初の寮生交流イベントです。"),
+            EventItem("2026-04-07", "帰寮日", "15:33", id = 2, place = "寮玄関", desc = "春休み明けの帰寮日です。"),
+            EventItem("2026-04-12", "茶道部体験", "14:00", id = 3, place = "和室", desc = "茶道部による体験会を開催します。"),
+            EventItem("2026-04-19", "避難訓練", "10:00", id = 4, place = "寮玄関前集合", desc = "防災のための避難訓練を実施します。"),
+            EventItem("2026-04-23", "新入生歓迎会", "18:00", id = 5, place = "食堂", desc = "新入生を歓迎する食事会です。"),
+            EventItem("2026-04-29", "GW 特別便運行", "07:00", id = 6, place = "寮玄関", desc = "ゴールデンウィークの空港送迎便を運行します。"),
+            EventItem("2026-05-06", "帰寮日", "17:00", id = 7, place = "寮玄関", desc = "ゴールデンウィーク明けの帰寮日です。"),
+            EventItem("2026-05-10", "保護者面談", "13:00", id = 8, place = "応接室", desc = "保護者との面談を行います。"),
+            EventItem("2026-05-16", "防災訓練", "10:00", id = 9, place = "寮玄関前集合", desc = "全寮生参加必須の防災訓練です。"),
+            EventItem("2026-05-23", "球技大会", "13:00", id = 10, place = "体育館", desc = "寮対抗の球技大会を開催します。"),
+            EventItem("2026-05-28", "進路ガイダンス", "16:00", id = 11, place = "多目的ホール", desc = "進学・進路についてのガイダンスです。"),
+            EventItem("2026-05-31", "誕生日会", "19:00", id = 12, place = "カフェテリア", desc = "今月誕生日の寮生をお祝いします。"),
+        )
+
     // 今週の活動 14 件 + 2 行 preview（iOS Home 「行事」section）
     const val EVENTS_THIS_WEEK = 14
     val EVENTS_PREVIEW =

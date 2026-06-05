@@ -132,6 +132,21 @@ fun TomoshibiNavGraph(navController: NavHostController) {
         }
         composable(Route.Lockout.path) { LockoutScreen(navController) }
         composable(Route.PwReset.path) { PwResetScreen(navController) }
+        composable(Route.MusicNew.path) { MusicNewScreen(navController) }
+        composable(
+            route = Route.MusicDetail.PATH,
+            arguments = listOf(navArgument(Route.MusicDetail.ARG_ID) { type = NavType.IntType }),
+        ) { entry ->
+            val id = entry.arguments?.getInt(Route.MusicDetail.ARG_ID) ?: 0
+            MusicDetailScreen(navController, id)
+        }
+        composable(
+            route = Route.EventDetail.PATH,
+            arguments = listOf(navArgument(Route.EventDetail.ARG_ID) { type = NavType.IntType }),
+        ) { entry ->
+            val id = entry.arguments?.getInt(Route.EventDetail.ARG_ID) ?: 0
+            EventDetailScreen(navController, id)
+        }
 
         // ── community 6 屏 ────────
         composable(Route.Music.path) { MusicScreen(navController) }

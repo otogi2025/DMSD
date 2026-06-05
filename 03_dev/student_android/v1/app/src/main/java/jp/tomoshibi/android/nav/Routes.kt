@@ -123,6 +123,26 @@ sealed class Route(
 
     data object PwReset : Route("pwreset") // 找回密码说明
 
+    data object MusicNew : Route("music/new") // 点歌投稿屏「曲を投稿」
+
+    data class MusicDetail(
+        val id: Int,
+    ) : Route("music/$id") {
+        companion object {
+            const val PATH = "music/{id}"
+            const val ARG_ID = "id"
+        }
+    }
+
+    data class EventDetail(
+        val id: Int,
+    ) : Route("events/$id") {
+        companion object {
+            const val PATH = "events/{id}"
+            const val ARG_ID = "id"
+        }
+    }
+
     // ── community 6 屏 (从 Home 进入) ──
     data object Music : Route("music")
 

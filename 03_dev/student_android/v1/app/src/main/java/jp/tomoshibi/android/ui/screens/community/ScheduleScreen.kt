@@ -1,158 +1,434 @@
 package jp.tomoshibi.android.ui.screens.community
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.data.model.EventItem
+import jp.tomoshibi.android.data.seed.MockData
+import jp.tomoshibi.android.nav.Route
 import jp.tomoshibi.android.ui.components.GlobalScaffold
+import jp.tomoshibi.android.ui.components.PageHeader
+import jp.tomoshibi.android.ui.components.Pill
+import jp.tomoshibi.android.ui.components.PillTone
+import jp.tomoshibi.android.ui.components.SuzuCard
 import jp.tomoshibi.android.ui.icons.SuzuIcons
-import jp.tomoshibi.android.ui.theme.MonoNumeralStyle
 import jp.tomoshibi.android.ui.theme.SuzuT
+import java.time.LocalDate
+import java.time.YearMonth
 
-// 行事 — 14 件 mock，包含 iOS Home preview 用的两条权威值（04-05/04-07）
-private data class ScheduleEvent(val date: String, val title: String, val time: String)
+// 行事予定（カレンダー）— 对齐 iOS ScheduleView：
+//   月历卡（月切换头 + 7 列网格）+ 选中日详情。数据来自 MockData.DEFAULT_EVENTS（12 件，4-05 ~ 5-31）。
+//   本波只做演示版：今天基准固定 2026-04-23，不接后端、不分三态加载，详情可点跳。
 
-private val MOCK_EVENTS = listOf(
-    ScheduleEvent("04-02", "新入生 オリエンテーション", "09:00"),
-    ScheduleEvent("04-05", "留 4 アクティビティ", "08:30"),
-    ScheduleEvent("04-07", "帰寮日", "15:33"),
-    ScheduleEvent("04-09", "防災訓練", "10:00"),
-    ScheduleEvent("04-12", "寮ミーティング", "19:00"),
-    ScheduleEvent("04-14", "クラブ活動説明会", "16:30"),
-    ScheduleEvent("04-17", "面談（担任）", "14:00"),
-    ScheduleEvent("04-20", "図書館見学", "13:00"),
-    ScheduleEvent("04-22", "中間試験開始", "08:30"),
-    ScheduleEvent("04-25", "留学生交流会", "18:00"),
-    ScheduleEvent("04-27", "バス遠足申込締切", "17:00"),
-    ScheduleEvent("04-29", "親睦食事会", "18:30"),
-    ScheduleEvent("05-01", "GW 開始", "00:00"),
-    ScheduleEvent("05-06", "GW 後 帰寮", "20:00")
-)
+// 演示版「今天」固定值 — 对齐 iOS DEMO 构建 2026-04-23
+private val TODAY = LocalDate.parse("2026-04-23")
+
+// 曜日表头（日 月 火 水 木 金 土）— 周日=索引 0，对齐 iOS Calendar.weekday-1
+private val WEEKDAY_LABELS = listOf("日", "月", "火", "水", "木", "金", "土")
 
 @Composable
 fun ScheduleScreen(navController: NavHostController) {
-    val tokens = SuzuT.current
-    var month by remember { mutableStateOf(4) }
+    val t = SuzuT.current
+    val teal = MaterialTheme.colorScheme.primary // 主色
+    val accent = MaterialTheme.colorScheme.secondary // 圆点用强调色
 
-    // 按日期分组（保持原顺序）— mock 内已有序
-    val grouped = remember(month) {
-        val prefix = month.toString().padStart(2, '0')
-        MOCK_EVENTS.filter { it.date.startsWith(prefix) }.groupBy { it.date }
+    // 全部行事按日期解析成 LocalDate（date 是 ISO "2026-04-05"，直接 parse）
+    val events = MockData.DEFAULT_EVENTS
+    val eventDates = remember(events) { events.map { LocalDate.parse(it.date) } }
+
+    // 月份范围 = 最早行事月 ~ 最晚行事月，且强制含「今天」所在月
+    val months =
+        remember(eventDates) {
+            val ymList = eventDates.map { YearMonth.from(it) } + YearMonth.from(TODAY)
+            val minYm = ymList.min()
+            val maxYm = ymList.max()
+            // 从最早到最晚逐月列出，做切月边界判断
+            val list = mutableListOf<YearMonth>()
+            var cur = minYm
+            while (!cur.isAfter(maxYm)) {
+                list.add(cur)
+                cur = cur.plusMonths(1)
+            }
+            list
+        }
+
+    // 当前显示的月份索引 —— 初始停在「今天」所在月
+    var monthIndex by remember {
+        mutableIntStateOf(months.indexOf(YearMonth.from(TODAY)).coerceAtLeast(0))
+    }
+    val curMonth = months[monthIndex]
+
+    // 当前选中的「日」（1 起）—— 初始选今天那一天（若不在当前月则选 1 号）
+    var selectedDay by remember {
+        mutableIntStateOf(if (YearMonth.from(TODAY) == curMonth) TODAY.dayOfMonth else 1)
+    }
+    val selectedDate = curMonth.atDay(selectedDay.coerceIn(1, curMonth.lengthOfMonth()))
+
+    // 当天行事（按 selectedDate 过滤）
+    val dayEvents = events.filter { LocalDate.parse(it.date) == selectedDate }
+
+    // 切月：边界禁用 + 切完把选中日 clamp 到新月天数（防 5/31 切到没有 31 号的月）
+    fun changeMonth(delta: Int) {
+        val next = monthIndex + delta
+        if (next < 0 || next > months.lastIndex) return
+        monthIndex = next
+        val newMonth = months[next]
+        selectedDay = selectedDay.coerceIn(1, newMonth.lengthOfMonth())
     }
 
     GlobalScaffold(activeTab = "", navController = navController) {
-        Column(modifier = Modifier.fillMaxSize().background(tokens.pearl)) {
-            // 头部
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(top = 18.dp, bottom = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier.size(44.dp).clip(CircleShape).clickable { navController.popBackStack() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(SuzuIcons.ChevL, contentDescription = "戻る", tint = tokens.ink, modifier = Modifier.size(24.dp))
-                }
-                Spacer(Modifier.width(4.dp))
-                Text("行事スケジュール", color = tokens.ink,
-                    style = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.Bold))
-            }
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(t.pearl)
+                    .verticalScroll(rememberScrollState()),
+        ) {
+            PageHeader(title = "行事予定", level = 2, onLeft = { navController.popBackStack() })
 
-            // 月切替
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 12.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier.size(36.dp).clip(CircleShape)
-                        .background(tokens.paper)
-                        .clickable(enabled = month > 1) { if (month > 1) month -= 1 },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(SuzuIcons.ChevL, contentDescription = "前月",
-                        tint = if (month > 1) tokens.ink else tokens.inkFaint,
-                        modifier = Modifier.size(20.dp))
-                }
-                Spacer(Modifier.width(20.dp))
-                Text("${month.toString().padStart(2, '0')} 月",
-                    color = tokens.ink,
-                    style = MonoNumeralStyle.copy(fontSize = 22.sp, lineHeight = 28.sp,
-                        fontWeight = FontWeight.SemiBold))
-                Spacer(Modifier.width(20.dp))
-                Box(
-                    modifier = Modifier.size(36.dp).clip(CircleShape)
-                        .background(tokens.paper)
-                        .clickable(enabled = month < 12) { if (month < 12) month += 1 },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(SuzuIcons.ChevR, contentDescription = "次月",
-                        tint = if (month < 12) tokens.ink else tokens.inkFaint,
-                        modifier = Modifier.size(20.dp))
-                }
-            }
-
-            // 列表
-            Column(
-                modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                if (grouped.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 60.dp),
-                        contentAlignment = Alignment.Center
+            // ── 日历卡 ──
+            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                SuzuCard(padding = 16) {
+                    // 月切换头：左右箭头 +「YYYY 年 M 月」（纯字符串拼接，不过 NumberFormat）
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("この月の予定はありません", color = tokens.inkMute,
-                            style = TextStyle(fontSize = 14.sp))
+                        ArrowButton(
+                            icon = SuzuIcons.ChevL,
+                            enabled = monthIndex > 0,
+                            onClick = { changeMonth(-1) },
+                        )
+                        Spacer(Modifier.weight(1f))
+                        // 年份纯字符串拼接，绝不能过 NumberFormat 否则变 2,026
+                        Text(
+                            "${curMonth.year} 年 ${curMonth.monthValue} 月",
+                            color = t.ink,
+                            style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                        )
+                        Spacer(Modifier.weight(1f))
+                        ArrowButton(
+                            icon = SuzuIcons.ChevR,
+                            enabled = monthIndex < months.lastIndex,
+                            onClick = { changeMonth(1) },
+                        )
                     }
-                }
-                grouped.forEach { (date, events) ->
-                    events.forEach { e ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(tokens.paper)
-                                .padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // 日期 pill
-                            Box(
-                                modifier = Modifier.clip(RoundedCornerShape(8.dp))
-                                    .background(tokens.pill)
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+
+                    Spacer(Modifier.height(14.dp))
+
+                    // 曜日表头 7 列（日=红 / 土=主色 / 其余弱字）
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        WEEKDAY_LABELS.forEachIndexed { i, label ->
+                            Text(
+                                label,
+                                modifier = Modifier.weight(1f),
+                                color =
+                                    when (i) {
+                                        0 -> t.danger
+
+                                        // 日
+                                        6 -> teal
+
+                                        // 土
+                                        else -> t.inkMute
+                                    },
+                                textAlign = TextAlign.Center,
+                                style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(6.dp))
+
+                    // 7 列网格：月初前空白格（firstWeekday 个）+ 当月各天
+                    // 周日=0 索引：java.time getDayOfWeek 周一=1…周日=7，转成周日=0 用 % 7
+                    val firstWeekday = curMonth.atDay(1).dayOfWeek.value % 7
+                    val daysInMonth = curMonth.lengthOfMonth()
+                    val totalCells = firstWeekday + daysInMonth
+                    val rows = (totalCells + 6) / 7 // 向上取整成完整周行数
+
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        for (rowIdx in 0 until rows) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
-                                Text(date, color = tokens.ink,
-                                    style = MonoNumeralStyle.copy(fontSize = 12.sp, lineHeight = 16.sp,
-                                        fontWeight = FontWeight.SemiBold))
+                                for (col in 0 until 7) {
+                                    val cellIndex = rowIdx * 7 + col
+                                    val day = cellIndex - firstWeekday + 1
+                                    if (day in 1..daysInMonth) {
+                                        val cellDate = curMonth.atDay(day)
+                                        // 当天行事数（最多画 3 个圆点）
+                                        val dotCount =
+                                            eventDates.count { it == cellDate }.coerceAtMost(3)
+                                        DayCell(
+                                            day = day,
+                                            isSelected = day == selectedDay,
+                                            isToday = cellDate == TODAY,
+                                            dotCount = dotCount,
+                                            teal = teal,
+                                            accent = accent,
+                                            modifier = Modifier.weight(1f),
+                                            onClick = { selectedDay = day },
+                                        )
+                                    } else {
+                                        // 月初/月末空白格
+                                        Spacer(Modifier.weight(1f).aspectRatio(1f))
+                                    }
+                                }
                             }
-                            Spacer(Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(e.title, color = tokens.ink,
-                                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold))
-                            }
-                            Spacer(Modifier.width(8.dp))
-                            Text(e.time, color = tokens.inkSub,
-                                style = MonoNumeralStyle.copy(fontSize = 13.sp, lineHeight = 18.sp,
-                                    fontWeight = FontWeight.Medium))
                         }
                     }
                 }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // ── 选中日详情 ──
+            // 标题「M 月 D 日（曜日）」+ 右「N 件」胶囊
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "${selectedDate.monthValue} 月 ${selectedDate.dayOfMonth} 日（${WEEKDAY_LABELS[selectedDate.dayOfWeek.value % 7]}）",
+                    color = t.ink,
+                    style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
+                )
+                Spacer(Modifier.weight(1f))
+                Pill("${dayEvents.size} 件", tone = PillTone.Accent)
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                if (dayEvents.isEmpty()) {
+                    // 无事件空态：Cal 图标 +「予定なし」+「この日の活動はありません」
+                    SuzuCard(padding = 14) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Icon(
+                                SuzuIcons.Cal,
+                                contentDescription = null,
+                                tint = t.inkMute,
+                                modifier = Modifier.size(36.dp),
+                            )
+                            Text(
+                                "予定なし",
+                                color = t.inkSub,
+                                style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
+                            )
+                            Text(
+                                "この日の活動はありません",
+                                color = t.inkMute,
+                                style = TextStyle(fontSize = 12.sp),
+                            )
+                        }
+                    }
+                } else {
+                    dayEvents.forEach { ev ->
+                        EventRow(
+                            event = ev,
+                            teal = teal,
+                            onClick = { navController.navigate(Route.EventDetail(ev.id).path) },
+                        )
+                    }
+                }
                 Spacer(Modifier.height(20.dp))
+            }
+        }
+    }
+}
+
+// 月切换箭头按钮（36 圆 + 禁用时变弱字色不可点）
+@Composable
+private fun ArrowButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val t = SuzuT.current
+    Box(
+        modifier =
+            Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(percent = 50))
+                .background(t.pearl)
+                .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = if (enabled) t.ink else t.inkFaint,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+// 单日格子 — 正方形：
+//   选中 = 主色实心 + 白字加粗；今天（非选中）= 浅主色底 + 主色描边；
+//   有行事且非选中 = 底部画 1~3 个强调色小圆点（按当天事件数）
+@Composable
+private fun DayCell(
+    day: Int,
+    isSelected: Boolean,
+    isToday: Boolean,
+    dotCount: Int,
+    teal: Color,
+    accent: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val t = SuzuT.current
+    Box(
+        modifier =
+            modifier
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(10.dp))
+                .then(
+                    when {
+                        isSelected -> Modifier.background(teal)
+                        isToday -> Modifier.background(t.pill).border(1.dp, teal, RoundedCornerShape(10.dp))
+                        else -> Modifier
+                    },
+                ).clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                "$day",
+                color =
+                    when {
+                        isSelected -> Color.White
+                        isToday -> teal
+                        else -> t.ink
+                    },
+                style =
+                    TextStyle(
+                        fontSize = 14.sp,
+                        fontFamily = FontFamily.Monospace, // 数字等宽
+                        fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal,
+                    ),
+            )
+            // 圆点行：有行事且非选中才画（选中态底已是主色，画点没意义）
+            if (dotCount > 0 && !isSelected) {
+                Spacer(Modifier.height(2.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    repeat(dotCount) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .size(4.dp)
+                                    .clip(RoundedCornerShape(percent = 50))
+                                    .background(accent),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// 行事一条 — Card(padding 14)：左 56 宽时刻（主色等宽）+ 1dp 竖分隔 + 标题加粗 +「📍 场所」+ 右 ChevR
+@Composable
+private fun EventRow(
+    event: EventItem,
+    teal: Color,
+    onClick: () -> Unit,
+) {
+    val t = SuzuT.current
+    Box(modifier = Modifier.clickable(onClick = onClick)) {
+        SuzuCard(padding = 14) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // 左 56 宽时刻（主色等宽）
+                Text(
+                    event.time,
+                    modifier = Modifier.width(56.dp),
+                    color = teal,
+                    textAlign = TextAlign.Center,
+                    style =
+                        TextStyle(
+                            fontSize = 15.sp,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                )
+                // 1dp 竖分隔
+                Box(
+                    modifier =
+                        Modifier
+                            .width(1.dp)
+                            .height(36.dp)
+                            .background(t.hair),
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        event.title,
+                        color = t.ink,
+                        style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                    )
+                    // 场所非空才画
+                    if (event.place.isNotEmpty()) {
+                        Spacer(Modifier.height(3.dp))
+                        Text(
+                            "📍 ${event.place}",
+                            color = t.inkSub,
+                            style = TextStyle(fontSize = 12.sp),
+                        )
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    SuzuIcons.ChevR,
+                    contentDescription = null,
+                    tint = t.inkFaint,
+                    modifier = Modifier.size(18.dp),
+                )
             }
         }
     }
