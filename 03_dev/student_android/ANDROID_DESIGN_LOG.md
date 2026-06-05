@@ -1,6 +1,6 @@
 # Tomoshibi 学生 Android App · 设计决策完整归档
 
-> **作用**：Android 端実装方针 / Compose 翻译规则 / 22 屏 route registry / Phase 计划。同 iOS 侧 `student_ios/IOS_DESIGN_LOG.md` 等价档。
+> **作用**：Android 端実装方针 / Compose 翻译规则 / 21 屏 route registry / Phase 计划。同 iOS 侧 `student_ios/IOS_DESIGN_LOG.md` 等价档。
 > **建立**：2026-05-02 by [Mac-mini]
 > **路线**：CC 主导，从 Claude Design 出的 standalone HTML 蓝图（22 屏全接通可交互 React App）**逐屏对译** Kotlin + Jetpack Compose。**不**派 sub agent / 不走 Claude Design 二次出工程。
 >
@@ -10,7 +10,7 @@
 
 | 层 | 进度 | 说明 |
 |---|---|---|
-| 设计文档（本文） | ✅ 100% | 253 行设计，含 22 屏 route registry |
+| 设计文档（本文） | ✅ 100% | 含 21 屏 route registry |
 | Compose UI | 🟡 部分 | 10+ 屏已对译；Auth / Application / RollCall 主 flow 可走 |
 | HTTP client | ⏳ 0% | **无 Retrofit / Ktor / OkHttp** — 全本地 mock（A-016 待主会话拍板）|
 | 字段对齐 backend | ⏳ 0% | `Models.kt` 全 camelCase 跟 backend snake_case 完全脱节（A-016） |
@@ -47,7 +47,7 @@
 | 字体（数字）| Roboto Mono | 对应 iOS SF Mono — 减点 4.5 / 时间 09:20 等 |
 | NFC | `android.nfc.NfcAdapter` + ForegroundDispatch | NFC 写在 Activity 而非 Composable，详见 §6 |
 | 日期时间 | `kotlinx-datetime` | 跨平台、不依赖 java.time API level |
-| 依赖注入 | 暂不引入 Hilt/Koin | v1.0 屏幕数 22 屏，手动 DI 够用 |
+| 依赖注入 | 暂不引入 Hilt/Koin | v1.0 屏幕数 21 屏，手动 DI 够用 |
 | 网络 | Ktor Client | 后端 API 调用（v1.1+，v1.0 mock 数据）|
 | JSON | kotlinx.serialization | 标准做法 |
 
@@ -66,7 +66,7 @@ app/src/main/java/jp/tomoshibi/android/
 │   ├── components/              ← 共用 Composable（AmberCard, RollCallButton, BottomTabs, ...）
 │   ├── icons/
 │   │   └── SuzuIcons.kt         ← 32 个 ImageVector（对应 React tokens.jsx Ic 组件）
-│   └── screens/                 ← 22 屏 1:1 对应 React 组件
+│   └── screens/                 ← 21 屏 1:1 对应 React 组件
 │       ├── splash/SplashScreen.kt
 │       ├── onboarding/OnboardingScreen.kt
 │       ├── account/AccountScreen.kt
@@ -87,7 +87,6 @@ app/src/main/java/jp/tomoshibi/android/
 │       ├── community/StudyScreen.kt
 │       ├── community/LostFoundScreen.kt
 │       ├── community/ScheduleScreen.kt
-│       ├── community/FeedbackScreen.kt
 │       ├── community/BusScreen.kt
 │       └── community/DeliveryScreen.kt
 ├── data/
@@ -95,7 +94,7 @@ app/src/main/java/jp/tomoshibi/android/
 │   ├── model/                   ← Application / Notification / Deduction / etc data classes
 │   └── seed/MockData.kt         ← 对应 React tokens.jsx DATA + app-shell.jsx DEFAULT_STATE
 └── nav/
-    ├── Routes.kt                ← sealed class Route — 23 个 route case (1 splash + 22 screens)
+    ├── Routes.kt                ← sealed class Route — 22 个 route case (1 splash + 21 screens)
     └── NavGraph.kt              ← NavHost composable, 注册所有 route
 ```
 
@@ -145,7 +144,7 @@ app/src/main/java/jp/tomoshibi/android/
 
 ---
 
-## 4. 22 屏 Route Registry
+## 4. 21 屏 Route Registry
 
 来源：`Tomoshibi App.html` line 110-134 SCREENS object。
 
@@ -171,9 +170,8 @@ app/src/main/java/jp/tomoshibi/android/
 | 17 | StudyScreen | Route.Study | community | P4 |
 | 18 | LostFoundScreen | Route.LostFound | community | P4 |
 | 19 | ScheduleScreen | Route.Schedule | community | P4 |
-| 20 | FeedbackScreen | Route.Feedback | community | P4 |
-| 21 | BusScreen | Route.Bus | community | P4 |
-| 22 | DeliveryScreen | Route.Delivery | community | P4 |
+| 20 | BusScreen | Route.Bus | community | P4 |
+| 21 | DeliveryScreen | Route.Delivery | community | P4 |
 
 ---
 
@@ -262,7 +260,7 @@ itsuki 2026-06-03 拍板出租车预约功能（4 端）。iOS / 老师网页 / 
 
 **Android 本次未做**，理由：Android 现在是 Compose 骨架、申请表单（`ApplyNewScreen.kt`）未接后端、本地无法 gradle 编译验证 → 加 `Switch` UI 占位有 import 风险又测不了，价值低于风险。
 
-**待办**：Android 接后端时，`ApplyNewScreen.kt` 出寮届表单加「タクシー予約」开关 + 时刻选择（出寮 / 帰寮 / 行先 字段附近），提交带 `taxi_reservation_time`、详情页显示，跟 iOS `StayForm` 对齐。详见 `00_admin/TODO.md` N-004。
+**待办**：Android 接后端时，`ApplyNewScreen.kt` 出寮届表单**照 iOS 2026-06-04 新交互做**（见 `IOS_DESIGN_LOG.md §14.17`）—— **出寮方法选了「タクシー」就当场露出时刻选择器**，不做独立开关、不为帰寮加预约（后端 `taxi_reservation_time` 只一个字段、只管出寮），提交带 `taxi_reservation_time`、详情页显示，跟 iOS `StayForm` 对齐。详见 `00_admin/TODO.md` N-004。
 
 ---
 
