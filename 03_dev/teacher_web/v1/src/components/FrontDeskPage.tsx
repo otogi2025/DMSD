@@ -67,7 +67,9 @@ export function FrontDeskPage({
     api
       .notifyFrontDesk(id, authToken)
       .then(() => loadItems())
-      .catch((e) => alert("通知処理失敗: " + (e.message || JSON.stringify(e))));
+      .catch((e) =>
+        alert("通知処理に失敗しました：" + (e.message || JSON.stringify(e))),
+      );
   };
 
   const handlePickup = (id: string) => {
@@ -75,7 +77,9 @@ export function FrontDeskPage({
     api
       .pickupFrontDesk(id, authToken)
       .then(() => loadItems())
-      .catch((e) => alert("受取処理失敗: " + (e.message || JSON.stringify(e))));
+      .catch((e) =>
+        alert("受取処理に失敗しました：" + (e.message || JSON.stringify(e))),
+      );
   };
 
   // location 空时按原逻辑提交 null（后端接受 null）；FrontDeskCreateIn.location 类型为 string?，故此处 cast
@@ -89,7 +93,9 @@ export function FrontDeskPage({
         setComposing(false);
         loadItems();
       })
-      .catch((e) => alert("登録失敗: " + (e.message || JSON.stringify(e))));
+      .catch((e) =>
+        alert("登録に失敗しました：" + (e.message || JSON.stringify(e))),
+      );
   };
 
   const delFiltered = deliveries.filter((d) =>
@@ -170,8 +176,7 @@ export function FrontDeskPage({
         </button>
       </div>
       <div style={{ fontSize: 12, color: T.ink3, marginBottom: 18 }}>
-        寮監前台受付の代行記録 —
-        宅配便の到着通知と、館内で見つかった忘れ物の管理。
+        寮の受付窓口での代行記録です。宅配便の到着通知と、館内で見つかった忘れ物を管理します。
       </div>
 
       {/* 错误横幅 */}
@@ -268,7 +273,7 @@ export function FrontDeskPage({
               color={T.ok}
             />
             <FdStat
-              label="保管庫行"
+              label="長期保管"
               value={stats.archived}
               note="1ヶ月経過"
               color={T.ink3}
@@ -614,7 +619,7 @@ function LostItemRow({
       </span>
       {l.location && (
         <span style={{ fontSize: 12, color: T.ink3, minWidth: 100 }}>
-          発見場所: {l.location}
+          発見場所：{l.location}
         </span>
       )}
       <span style={{ fontSize: 12, color: T.ink2, flex: 1 }}>

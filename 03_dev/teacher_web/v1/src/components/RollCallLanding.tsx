@@ -147,7 +147,7 @@ export function RollCallLanding({
           }}
         >
           <div style={{ color: T.cobaltDeep }}>
-            <span style={{ fontWeight: 700 }}>先ほどの点呼:</span>{" "}
+            <span style={{ fontWeight: 700 }}>先ほどの点呼：</span>{" "}
             {lastEnded.sessionName || lastEnded.name} · {lastEnded.start} →{" "}
             {lastEnded.end} · 出席率{" "}
             <span style={{ fontFamily: T.mono, fontWeight: 700 }}>
@@ -168,7 +168,7 @@ export function RollCallLanding({
               cursor: "pointer",
             }}
           >
-            総結を見る →
+            集計を見る →
           </button>
         </div>
       )}
@@ -313,7 +313,7 @@ export function RollCallLanding({
           marginTop: 22,
         }}
       >
-        最近のセッション
+        最近の点呼
       </div>
       <div
         style={{

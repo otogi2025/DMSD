@@ -102,7 +102,7 @@ export function RecordsPage({
             marginLeft: 10,
           }}
         >
-          セッション
+          点呼名
         </label>
         <select
           style={{
@@ -113,12 +113,12 @@ export function RecordsPage({
             fontSize: 13,
           }}
         >
-          <option>晩点呼 · 普通寮生</option>
-          <option>朝点呼 · 普通寮生</option>
+          <option>晩点呼・普通寮生</option>
+          <option>朝点呼・普通寮生</option>
         </select>
         <div style={{ flex: 1 }} />
         <button
-          onClick={() => alert("Demo 版未対応")}
+          onClick={() => alert("この機能は準備中です")}
           style={{
             padding: "6px 12px",
             background: "transparent",
@@ -145,7 +145,7 @@ export function RecordsPage({
             cursor: "pointer",
           }}
         >
-          印刷 · PDF 保存
+          印刷・PDF 保存
         </button>
       </div>
 
@@ -200,7 +200,7 @@ export function RecordsPage({
               borderBottom: `1px solid ${T.line}`,
             }}
           >
-            {["セッション名", "日時", "出席", "遅刻", "欠席"].map((h) => (
+            {["点呼名", "日時", "出席", "遅刻", "欠席"].map((h) => (
               <div key={h} style={{ padding: "10px 12px" }}>
                 {h}
               </div>

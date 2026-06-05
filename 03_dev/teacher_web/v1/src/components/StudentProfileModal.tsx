@@ -55,7 +55,7 @@ export function StudentProfileModal({
         setLoading(false);
       })
       .catch((e) => {
-        setError(e.message || "档案取得失敗");
+        setError(e.message || "個人データの取得に失敗しました");
         setLoading(false);
       });
   }, [studentId, authToken]);
@@ -117,7 +117,7 @@ export function StudentProfileModal({
     ["online", "オンライン学習"],
     ["rollcall", "点呼"],
     ["guidance", "指導履歴"],
-    ["demerit", "扣分"],
+    ["demerit", "減点"],
   ];
 
   const s = data && data.student;
@@ -173,7 +173,7 @@ export function StudentProfileModal({
                   fontWeight: 600,
                 }}
               >
-                学生個人档案
+                個人データ
               </div>
               <div style={{ fontSize: 20, fontWeight: 700, marginTop: 2 }}>
                 {studentName}
@@ -478,7 +478,7 @@ export function StudentProfileModal({
                           marginBottom: 12,
                         }}
                       >
-                        指導記録を録入
+                        指導記録を登録
                       </div>
                       <div
                         style={{
@@ -584,7 +584,7 @@ export function StudentProfileModal({
                           checked={gConfidential}
                           onChange={(e) => setGConfidential(e.target.checked)}
                         />
-                        機密フラグ（学生本人に非表示）
+                        機密扱い（学生本人に非表示）
                       </label>
                       {gError && (
                         <div
@@ -651,7 +651,7 @@ export function StudentProfileModal({
                         cursor: "pointer",
                       }}
                     >
-                      ＋ 指導記録を録入
+                      ＋ 指導記録を登録
                     </button>
                   )}
                 </div>
@@ -661,7 +661,7 @@ export function StudentProfileModal({
               {tab === "demerit" && (
                 <ProfileList
                   items={data.demerit_events}
-                  emptyMsg="扣分の記録がありません"
+                  emptyMsg="減点の記録がありません"
                   cols={["種別", "ポイント", "理由", "月", "登録日"]}
                   render={(d: ProfileDemeritEntry) => [
                     d.source_type,

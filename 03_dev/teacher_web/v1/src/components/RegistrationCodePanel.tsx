@@ -128,7 +128,7 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
             letterSpacing: -0.3,
           }}
         >
-          403 — 権限がありません
+          403：権限がありません
         </h1>
         <div
           style={{
@@ -244,7 +244,7 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
             >
               {expired ? (
                 <span style={{ fontWeight: 700 }}>
-                  期限切れ — 新しいコードを生成してください
+                  期限切れです。新しいコードを生成してください
                 </span>
               ) : (
                 <>

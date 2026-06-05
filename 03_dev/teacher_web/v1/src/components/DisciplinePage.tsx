@@ -102,13 +102,13 @@ export function DisciplinePage({
         loadRanking();
       })
       .catch((e) => {
-        alert("手動加算失敗: " + (e.message || JSON.stringify(e)));
+        alert("手動加算に失敗しました：" + (e.message || JSON.stringify(e)));
       });
   };
 
   // 撤销最近一条手动扣分
   const handleRevoke = (ev: DemeritEvent) => {
-    const reason = prompt("撤销理由を入力してください（必須）");
+    const reason = prompt("取り消し理由を入力してください（必須）");
     if (!reason || !reason.trim()) return;
     api
       .revokeDemerit(ev.id, { revoke_reason: reason.trim() }, authToken)
@@ -118,7 +118,7 @@ export function DisciplinePage({
         loadRanking();
       })
       .catch((e) => {
-        alert("撤消失敗: " + (e.message || JSON.stringify(e)));
+        alert("取り消しに失敗しました：" + (e.message || JSON.stringify(e)));
       });
   };
 
@@ -233,7 +233,7 @@ export function DisciplinePage({
               cursor: "pointer",
             }}
           >
-            撤消
+            取り消し
           </button>
           <button
             onClick={() => {
@@ -273,7 +273,7 @@ export function DisciplinePage({
           }}
         >
           <div style={{ fontSize: 14, fontWeight: 700 }}>
-            現在の減点ルール（運用前、先生と調整可）
+            現在の減点ルール（運用開始前のため、先生方と調整可能です）
           </div>
           <div style={{ flex: 1 }} />
         </div>
@@ -281,12 +281,12 @@ export function DisciplinePage({
           <RulePill label="遅刻" value="0.5 点" color={T.late} />
           <RulePill label="欠席" value="1.0 点" color={T.danger} />
           <RulePill
-            label="清掃罰則 発動"
+            label="清掃罰則の適用"
             value="月累計 ≥ 4 点"
             color={T.warn}
           />
           <RulePill
-            label="外出禁止 発動"
+            label="外出禁止の適用"
             value="月累計 ≥ 8 点"
             color={T.danger}
           />
@@ -442,7 +442,7 @@ export function DisciplinePage({
 
       <SectionH
         n="2"
-        title="清掃罰則リスト (来月対象)"
+        title="清掃罰則リスト（来月対象）"
         note={`${cleaningList.length} 名`}
       />
       <StudentCardRow
@@ -454,7 +454,7 @@ export function DisciplinePage({
 
       <SectionH
         n="3"
-        title="外出禁止リスト (来月対象)"
+        title="外出禁止リスト（来月対象）"
         note={`${banList.length} 名`}
       />
       <StudentCardRow
@@ -466,7 +466,7 @@ export function DisciplinePage({
 
       <SectionH
         n="4"
-        title="警告リスト (閾値近接)"
+        title="警告リスト（基準値に接近）"
         note={`${warnList.length} 名`}
       />
       <StudentCardRow
@@ -519,7 +519,7 @@ export function DisciplinePage({
             lineHeight: 1.7,
           }}
         >
-          将来、後端サーバーに常駐スクリプトを設置し、特定学生の遅刻・欠席が一定数に達した時点で自動的に寮監へアラート短評を生成する予定です。現在は手動確認のみ。
+          将来的には、特定の学生の遅刻・欠席が一定数に達した時点で、システムが自動的に寮監へアラートを通知する予定です。現在は手動確認のみです。
         </div>
       </div>
 
@@ -575,7 +575,7 @@ function ManualDemeritModal({
     ).finally(() => setSubmitting(false));
   };
   return (
-    <ModalShell T={T} title={`手動加算 — ${target.name}`} onClose={onClose}>
+    <ModalShell T={T} title={`手動加算：${target.name}`} onClose={onClose}>
       <ModalField T={T} label="減点数">
         <input
           type="number"
@@ -590,7 +590,7 @@ function ManualDemeritModal({
         <input
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="例: 消灯後廊下で騒いでいた"
+          placeholder="例：消灯後廊下で騒いでいた"
           style={modalInputStyle(T)}
         />
       </ModalField>

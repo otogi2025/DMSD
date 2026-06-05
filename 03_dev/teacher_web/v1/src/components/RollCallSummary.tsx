@@ -40,7 +40,7 @@ export function RollCallSummary({
     return (
       <div style={{ padding: 48, textAlign: "center", color: T.ink3 }}>
         <div style={{ fontSize: 14, marginBottom: 16 }}>
-          サマリーがありません
+          集計結果がありません
         </div>
         <button
           onClick={onBack}
@@ -80,7 +80,7 @@ export function RollCallSummary({
     },
     {
       key: "health_issue",
-      label: "体調報告 (特殊要求)",
+      label: "体調報告（要配慮）",
       color: T.warn,
       soft: T.warnSoft,
       border: T.warnBorder,
@@ -88,7 +88,7 @@ export function RollCallSummary({
     },
     {
       key: "exempted_outstay",
-      label: "外宿自動スキップ",
+      label: "外泊につき対象外",
       color: T.ink2,
       soft: T.graySoft,
       border: T.grayBorder,
@@ -105,7 +105,7 @@ export function RollCallSummary({
           fontWeight: 600,
         }}
       >
-        点呼 &gt; 総結
+        点呼 &gt; 集計
       </div>
       <h1
         style={{
@@ -115,7 +115,7 @@ export function RollCallSummary({
           letterSpacing: -0.3,
         }}
       >
-        点呼総結
+        点呼集計
       </h1>
       {lastEnded && (
         <div
@@ -180,7 +180,7 @@ export function RollCallSummary({
                   fontFamily: T.mono,
                 }}
               >
-                {sec.list.length} 名
+                {sec.list.length}名
               </div>
             </div>
             {sec.list.length === 0 ? (

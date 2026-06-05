@@ -78,7 +78,7 @@ export function DisclosureRequestsPage({
   };
 
   const statusLabel: Record<string, string> = {
-    pending: "待処理",
+    pending: "審査待ち",
     approved_full: "全部開示済",
     approved_partial: "部分開示済",
     rejected: "拒否済",
@@ -206,10 +206,10 @@ export function DisclosureRequestsPage({
                   {item.student_no}
                 </div>
                 <div style={{ fontSize: 12, color: T.ink3 }}>
-                  申請:{" "}
+                  申請：{" "}
                   {item.requested_at ? item.requested_at.slice(0, 10) : "—"}
                   {item.reason && (
-                    <span style={{ marginLeft: 8 }}>理由: {item.reason}</span>
+                    <span style={{ marginLeft: 8 }}>理由：{item.reason}</span>
                   )}
                 </div>
               </div>
@@ -250,7 +250,7 @@ export function DisclosureRequestsPage({
               {/* 已决定 — 显示决定备注 */}
               {item.status !== "pending" && item.decision_note && (
                 <div style={{ fontSize: 12, color: T.ink3 }}>
-                  メモ: {item.decision_note}
+                  メモ：{item.decision_note}
                 </div>
               )}
             </div>

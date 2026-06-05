@@ -106,7 +106,7 @@ export function SearchPage({
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="氏名・学籍番号で検索（後端検索）"
+            placeholder="氏名・学籍番号で検索"
             style={{
               width: "100%",
               padding: "11px 14px",
@@ -308,10 +308,10 @@ function StudentDossier({
       </div>
 
       <Block k="rollcall" title="点呼履歴" badge="月別サマリー">
-        4 月: 時間内 18 / 遅刻 2 / 欠席 0 · 3 月: 時間内 31 / 遅刻 0 / 欠席 0
+        4月：時間内 18 / 遅刻 2 / 欠席 0 ・ 3月：時間内 31 / 遅刻 0 / 欠席 0
       </Block>
       <Block k="demerit" title="減点明細" badge="累計 1.0 点">
-        04-17 遅刻 0.5 点 · 04-09 遅刻 0.5 点
+        04-17 遅刻 0.5点 ・ 04-09 遅刻 0.5点
       </Block>
       <Block k="health" title="体調報告履歴">
         提出記録なし
@@ -320,10 +320,10 @@ function StudentDossier({
         提出記録なし
       </Block>
       <Block k="apps" title="申請履歴">
-        04-21 外泊申請 (審査待ち) · 03-15 外泊申請 (承認済)
+        04-21 外泊申請（審査待ち） ・ 03-15 外泊申請（承認済）
       </Block>
       <Block k="other" title="清掃・活動・宅配 等">
-        清掃 4 月実施 6 回 · 宅配受取 2 件
+        清掃 4月実施 6回 ・ 宅配受取 2件
       </Block>
     </div>
   );

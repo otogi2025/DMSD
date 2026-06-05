@@ -113,7 +113,7 @@ export function Shell({
     ["accounts", "学生アカウント管理"],
     ["admin-registration-code", "学生登録コード"],
     ...(canGuidance
-      ? ([["incidents", "事案録入"]] as Array<[string, string]>)
+      ? ([["incidents", "事案記録"]] as Array<[string, string]>)
       : []),
     ...(canGuidance
       ? ([["disclosure-requests", "開示申請"]] as Array<[string, string]>)
@@ -140,9 +140,9 @@ export function Shell({
       accounts: "学生アカウント管理",
       "admin-registration-code": "学生登録コード",
       "teachers-admin": "教員アカウント管理",
-      incidents: "事案録入",
+      incidents: "事案記録",
       "disclosure-requests": "開示申請",
-      summary: "点呼総結",
+      summary: "点呼集計",
       search: "検索結果",
     }[active] || "";
 
@@ -422,7 +422,7 @@ export function Shell({
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && q.trim()) onSearch(q.trim());
                 }}
-                placeholder="学生名・部屋番号・日付で検索..."
+                placeholder="学生名・部屋番号・日付で検索…"
                 style={{
                   flex: 1,
                   border: "none",
@@ -526,10 +526,10 @@ export function Shell({
           <div
             title={
               backendReachable === false
-                ? "backend 接続不可 — DEMO seed で動作中"
+                ? "サーバーに接続できません（デモデータで表示中）"
                 : backendReachable === true
-                  ? "backend 接続中 — 真値で動作中"
-                  : "backend 接続未確認 (ログイン直後など)"
+                  ? "サーバーに接続中（実データ）"
+                  : "サーバー接続を確認中（ログイン直後など）"
             }
             style={{
               display: "flex",
@@ -600,11 +600,11 @@ export function Shell({
                   wsStatus === "failed" ? "none" : "pulse 1.2s infinite",
               }}
             />
-            {wsStatus === "connecting" && "リアルタイム接続中..."}
+            {wsStatus === "connecting" && "リアルタイム接続中…"}
             {wsStatus === "disconnected" &&
-              "リアルタイム再接続中... 操作は続行できます"}
+              "リアルタイム再接続中… 操作は続行できます"}
             {wsStatus === "failed" &&
-              "リアルタイム接続失敗 — 画面の自動更新が停止しています。ページを再読み込みしてください"}
+              "リアルタイム接続に失敗しました。画面の自動更新が停止しています。ページを再読み込みしてください"}
           </div>
         )}
         <div style={{ flex: 1, overflow: "auto", position: "relative" }}>

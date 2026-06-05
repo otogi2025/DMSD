@@ -489,7 +489,7 @@ function TeachersAdminCreateModal({
               color: T.ink,
             }}
           >
-            <option value="">跨寮（指定なし）</option>
+            <option value="">全寮（指定なし）</option>
             <option value="1">男一寮</option>
             <option value="2">男二寮</option>
             <option value="4">女寮</option>

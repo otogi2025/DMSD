@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO, dormLabel, API_BASE, APP_VERSION } from "../theme";
+import { RYO, dormLabel, APP_VERSION } from "../theme";
 import { api } from "../api/client";
 import type { TeacherProfile } from "../api/types";
 import tomoshibiIcon from "../assets/tomoshibi-icon.png";
@@ -66,7 +66,7 @@ export function LoginScreen({
       .catch((e) => {
         if (cancelled) return;
         console.warn("[LoginScreen] listTeachersPublic 失败", e);
-        setLoadErr(e && e.status ? `(${e.status})` : "(接続失敗)");
+        setLoadErr(e && e.status ? `（${e.status}）` : "（接続失敗）");
         setTeachers([]);
       });
     return () => {
@@ -94,7 +94,7 @@ export function LoginScreen({
           setErr("3 回失敗しました。30 分間ロックされます。");
           setFails(0);
         } else {
-          setErr(`パスワードが違います (残り ${3 - n} 回)`);
+          setErr(`パスワードが違います（残り ${3 - n} 回）`);
         }
         setPassword("");
       } else if (err2 && err2.status === 423) {
@@ -103,7 +103,7 @@ export function LoginScreen({
         setErr(`サーバーエラー (${err2.status})`);
       } else {
         setErr(
-          "サーバーに接続できません。backend が起動しているか確認してください。",
+          "サーバーに接続できません。しばらくしてから再度お試しください。",
         );
       }
     } finally {
@@ -384,7 +384,7 @@ export function LoginScreen({
               fontFamily: T.mono,
             }}
           >
-            backend が起動しているか確認してください ({API_BASE})
+            サーバーに接続できません。管理者にお問い合わせください。
           </div>
         </div>
       )}

@@ -217,7 +217,7 @@ export function AccountsPage({
       .catch((e) => {
         setToast({
           type: "err",
-          msg: `パスワードリセット失敗: ${e.message || "エラー"}`,
+          msg: `パスワードの初期化に失敗しました：${e.message || "エラー"}`,
         });
       });
   };
@@ -262,7 +262,7 @@ export function AccountsPage({
       .catch((e) => {
         setToast({
           type: "err",
-          msg: `ロック解除失敗: ${e.message || "エラー"}`,
+          msg: `ロック解除に失敗しました：${e.message || "エラー"}`,
         });
       });
   };
@@ -388,7 +388,7 @@ export function AccountsPage({
             }}
           >
             <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
-              学年更新の開始 — プレビュー
+              学年更新の開始（プレビュー）
             </h2>
             <p style={{ fontSize: 13, color: T.ink3, marginBottom: 16 }}>
               中1〜高2 に番号の再設定を依頼し、高3
@@ -613,7 +613,7 @@ export function AccountsPage({
         <AcctStat
           label="総アカウント"
           value={loading ? "…" : stats.total}
-          note="後端から取得"
+          note="サーバーから取得"
           color={T.ink}
         />
         <AcctStat
@@ -644,7 +644,7 @@ export function AccountsPage({
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="番号・氏名で検索（後端検索）"
+          placeholder="番号・氏名で検索"
           style={{
             flex: 1,
             minWidth: 280,
@@ -950,7 +950,7 @@ export function AccountsPage({
                             fontFamily: "inherit",
                           }}
                         >
-                          档案
+                          記録
                         </button>
                       </div>
                     </div>

@@ -113,7 +113,7 @@ export function IncidentsPage({ authToken }: { authToken: string }) {
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const badId = ids.find((id) => !uuidRe.test(id));
     if (badId) {
-      setFError(`関係学生IDの形式が不正です（UUID形式が必要）: ${badId}`);
+      setFError(`関係学生IDの形式が正しくありません：${badId}`);
       return;
     }
     setFSubmitting(true);
@@ -185,7 +185,7 @@ export function IncidentsPage({ authToken }: { authToken: string }) {
         }}
       >
         <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.3 }}>
-          事案録入
+          事案記録
         </h1>
         <button
           onClick={openNew}
@@ -201,7 +201,7 @@ export function IncidentsPage({ authToken }: { authToken: string }) {
             cursor: "pointer",
           }}
         >
-          ＋ 新規録入
+          ＋ 新規登録
         </button>
       </div>
 
@@ -357,7 +357,7 @@ export function IncidentsPage({ authToken }: { authToken: string }) {
                         {s.name}
                       </button>
                     ))
-                  : `${(inc.involved_student_ids || []).length} 名`}
+                  : `${(inc.involved_student_ids || []).length}名`}
               </div>
               <div
                 style={{
@@ -436,7 +436,7 @@ export function IncidentsPage({ authToken }: { authToken: string }) {
                 marginBottom: 18,
               }}
             >
-              {editTarget ? "事案を編集" : "事案を録入"}
+              {editTarget ? "事案を編集" : "事案を登録"}
             </div>
             <div style={{ marginBottom: 14 }}>
               <div
@@ -472,7 +472,7 @@ export function IncidentsPage({ authToken }: { authToken: string }) {
                   marginBottom: 4,
                 }}
               >
-                事発日
+                発生日
               </div>
               <input
                 type="date"
@@ -526,12 +526,12 @@ export function IncidentsPage({ authToken }: { authToken: string }) {
                   marginBottom: 4,
                 }}
               >
-                関係学生 UUID（カンマ区切り、任意）
+                関係学生ID（カンマ区切り、任意）
               </div>
               <input
                 value={fStudentIds}
                 onChange={(e) => setFStudentIds(e.target.value)}
-                placeholder="例: uuid-1, uuid-2"
+                placeholder="例：学生IDをカンマ区切りで入力"
                 style={{
                   width: "100%",
                   padding: "9px 12px",
@@ -544,7 +544,7 @@ export function IncidentsPage({ authToken }: { authToken: string }) {
                 }}
               />
               <div style={{ fontSize: 11, color: T.ink3, marginTop: 4 }}>
-                ※ 学生 ID は学生アカウント管理ページで確認できます
+                ※ 学生IDは学生アカウント管理ページで確認できます
               </div>
             </div>
             {fError && (

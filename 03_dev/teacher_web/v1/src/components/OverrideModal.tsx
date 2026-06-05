@@ -184,7 +184,7 @@ export function OverrideModal({
                   marginBottom: 10,
                 }}
               >
-                提出: {student.pending.submittedAt || "19:22"}
+                提出：{student.pending.submittedAt || "19:22"}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button
@@ -221,8 +221,7 @@ export function OverrideModal({
                 </button>
               </div>
               <div style={{ fontSize: 10, color: T.ink3, marginTop: 8 }}>
-                ※「保存して反映」を押すと承認・却下が確定し、学生に push
-                通知が送信されます。
+                ※「保存して反映」を押すと承認・却下が確定し、学生にプッシュ通知が送信されます。
               </div>
             </div>
           )}

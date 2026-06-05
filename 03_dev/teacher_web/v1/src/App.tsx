@@ -152,7 +152,7 @@ export function App() {
         warned = true;
         setToast({
           type: "warn",
-          msg: "あと 5 分でログイン画面に戻ります",
+          msg: "あと5分でログイン画面に戻ります",
         });
       }
     }, 5000);
@@ -408,7 +408,7 @@ export function App() {
     if (pickedTeacher) {
       setToast({
         type: "ok",
-        msg: `${pickedTeacher.name} 先生でサインインしました · ${dormLabel(pickedTeacher.dorm)} 担当`,
+        msg: `${pickedTeacher.name} 先生でログインしました・${dormLabel(pickedTeacher.dorm)}担当`,
       });
     }
   };
@@ -438,7 +438,7 @@ export function App() {
     setPage(home);
     setToast({
       type: "ok",
-      msg: `${t.name} 先生でサインインしました · ${dormLabel(t.dorm)} 担当`,
+      msg: `${t.name} 先生でログインしました・${dormLabel(t.dorm)}担当`,
     });
   };
   // Task #15 W5 拍板: backend revoke + frontend clear 两边都做
@@ -520,7 +520,7 @@ export function App() {
         setLiveMode(true);
         setToast({
           type: "ok",
-          msg: `backend session 起動: ${board.entries.length} 名`,
+          msg: `サーバーに接続しました：${board.entries.length}名`,
         });
         return;
       } catch (err) {
@@ -530,7 +530,7 @@ export function App() {
         );
         setToast({
           type: "warn",
-          msg: "backend session 起動失敗 → demo モードで継続",
+          msg: "サーバーに接続できないため、デモ表示で継続します",
         });
       }
     }
@@ -538,7 +538,7 @@ export function App() {
     // 后端不可达 / session 未找到 — 显示错误，不用假数据填充
     setToast({
       type: "error",
-      msg: "点呼を開始できません。後端に接続できないか、今日のセッションが見つかりません。",
+      msg: "点呼を開始できません。サーバーに接続できないか、本日の点呼が見つかりません。",
     });
   };
   // Task #6 真接口对接: session.sessionId 是 UUID 则调 backend rollcallEnd。
@@ -572,7 +572,7 @@ export function App() {
         console.warn("[App] rollcallEnd 失敗 (UI 側は終了処理続行)", err);
         setToast({
           type: "warn",
-          msg: "backend session 終了失敗 (画面は閉じます)",
+          msg: "点呼終了の保存に失敗しました（画面は閉じます）",
         });
       }
     }
@@ -629,7 +629,7 @@ export function App() {
     setPage("summary");
     // backend session 终了时如果上面没出 warn，就出 ok 的 toast
     if (!(session.sessionId && authToken)) {
-      setToast({ type: "ok", msg: "点呼が保存されました (demo)" });
+      setToast({ type: "ok", msg: "点呼が保存されました" });
     } else {
       setToast({ type: "ok", msg: "点呼が保存されました" });
     }
@@ -669,7 +669,7 @@ export function App() {
         console.warn("[App] patchRollcallEvent 失败 → 仅本地更新", err);
         setToast({
           type: "warn",
-          msg: "backend 改判保存失败 → 表示のみ更新",
+          msg: "変更の保存に失敗しました。表示のみ更新します",
         });
       }
     }
@@ -709,18 +709,18 @@ export function App() {
           _boardEntryToStudent(e, teacher.dorm),
         );
         setStudents(fresh);
-        setToast({ type: "warn", msg: "セッションをリセットしました" });
+        setToast({ type: "warn", msg: "点呼をリセットしました" });
       } catch (err) {
         console.warn("[App] resetLive board 再取得失敗", err);
         setToast({
           type: "error",
-          msg: "リセット失敗: 後端からデータを取得できませんでした",
+          msg: "リセットに失敗しました：サーバーからデータを取得できませんでした",
         });
       }
     } else {
       setToast({
         type: "error",
-        msg: "リセット失敗: 有効なセッションがありません",
+        msg: "リセットに失敗しました：有効な点呼がありません",
       });
     }
   };
@@ -965,7 +965,7 @@ export function App() {
                 console.warn("[App] decide 失敗", err);
                 setToast({
                   type: "warn",
-                  msg: `backend 承認 / 却下失敗 (${err.status || "network"}) · 画面は閉じます`,
+                  msg: `申請の承認・却下を保存できませんでした（${err.status || "通信エラー"}）。画面は閉じます。`,
                 });
                 setOutstayTarget(null);
                 return;

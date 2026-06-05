@@ -188,8 +188,7 @@ export function SelectTeacherScreen({
           color: T.ink3,
         }}
       >
-        Tomoshibi {APP_VERSION} · 担当者は 30
-        分操作がないと自動で本画面に戻ります
+        Tomoshibi {APP_VERSION}・担当者は30分操作がないと自動で本画面に戻ります
       </div>
 
       {confirmDelete && (
@@ -521,7 +520,7 @@ function AddTeacherModal({
             fontWeight: 600,
           }}
         >
-          教員を追加 · {dormLabel(dorm)}
+          教員を追加・{dormLabel(dorm)}
         </div>
         <div
           style={{
@@ -533,7 +532,12 @@ function AddTeacherModal({
         >
           新しい先生を登録
         </div>
-        <LField label="氏名 (必須)" value={name} onChange={setName} autoFocus />
+        <LField
+          label="氏名（必須）"
+          value={name}
+          onChange={setName}
+          autoFocus
+        />
         <div style={{ marginBottom: 4 }}>
           <div
             style={{
@@ -543,7 +547,7 @@ function AddTeacherModal({
               fontWeight: 600,
             }}
           >
-            ふりがな (検索用 · 任意)
+            ふりがな（検索用・任意）
           </div>
           <input
             value={furigana}
@@ -564,7 +568,7 @@ function AddTeacherModal({
           />
         </div>
         <div style={{ fontSize: 11, color: T.ink3, marginTop: 12 }}>
-          担当寮: <b style={{ color: T.ink2 }}>{dormLabel(dorm)}</b>
+          担当寮：<b style={{ color: T.ink2 }}>{dormLabel(dorm)}</b>
           （カラム位置で自動判定）
         </div>
         <div

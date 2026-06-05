@@ -245,7 +245,9 @@ export function InfoPage({
       setPosts((prev) => prev.filter((p) => p._id !== id));
       if (openId === id) setOpenId(null);
     } catch (e) {
-      alert("削除失敗: " + ((e as Error).message || JSON.stringify(e)));
+      alert(
+        "削除に失敗しました：" + ((e as Error).message || JSON.stringify(e)),
+      );
     }
   };
 
@@ -260,7 +262,9 @@ export function InfoPage({
       const det = await api.getAnnouncement(announcementId, authToken);
       setDetailCache((c) => ({ ...c, [announcementId]: det }));
     } catch (e) {
-      alert("返信失敗: " + ((e as Error).message || JSON.stringify(e)));
+      alert(
+        "返信に失敗しました：" + ((e as Error).message || JSON.stringify(e)),
+      );
     }
   };
 
@@ -272,7 +276,10 @@ export function InfoPage({
       const det = await api.getAnnouncement(announcementId, authToken);
       setDetailCache((c) => ({ ...c, [announcementId]: det }));
     } catch (e) {
-      alert("返信削除失敗: " + ((e as Error).message || JSON.stringify(e)));
+      alert(
+        "返信の削除に失敗しました：" +
+          ((e as Error).message || JSON.stringify(e)),
+      );
     }
   };
 
@@ -572,7 +579,7 @@ export function InfoPage({
                               marginBottom: 8,
                             }}
                           >
-                            返信 {det.replies ? det.replies.length : 0} 件
+                            返信 {det.replies ? det.replies.length : 0}件
                           </div>
                           {det.replies &&
                             det.replies.map((r) => (
@@ -890,7 +897,7 @@ function EditNoticeModal({
                 marginBottom: 6,
               }}
             >
-              配送対象（scope）
+              配信対象
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               {[
@@ -1072,8 +1079,8 @@ function EventCalendar({
     .slice()
     .sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99"));
   const selDate = new Date(selected + "T00:00:00");
-  const selJa = `${selDate.getMonth() + 1} 月 ${selDate.getDate()} 日（${["日", "月", "火", "水", "木", "金", "土"][selDate.getDay()]}）`;
-  const monthJa = `${y} 年 ${m + 1} 月`;
+  const selJa = `${selDate.getMonth() + 1}月${selDate.getDate()}日（${["日", "月", "火", "水", "木", "金", "土"][selDate.getDay()]}）`;
+  const monthJa = `${y}年${m + 1}月`;
 
   const dowLabels = ["日", "月", "火", "水", "木", "金", "土"];
   const navMonth = (delta: number) => setCursor(new Date(y, m + delta, 1));
@@ -1103,7 +1110,9 @@ function EventCalendar({
       await api.deleteEvent(id, authToken);
       loadEvents();
     } catch (e) {
-      alert("削除失敗: " + ((e as Error).message || JSON.stringify(e)));
+      alert(
+        "削除に失敗しました：" + ((e as Error).message || JSON.stringify(e)),
+      );
     }
   };
 
@@ -1337,7 +1346,7 @@ function EventCalendar({
               fontFamily: T.mono,
             }}
           >
-            {selEvents.length} 件
+            {selEvents.length}件
           </span>
           {canEdit && (
             <button
@@ -1708,12 +1717,14 @@ function BusSchedulePanel({
   // 软停用（DELETE → deprecated=true）
   const handleDeprecate = async (id: string) => {
     if (!authToken) return;
-    if (!confirm("このバス便を停用しますか？（非表示になります）")) return;
+    if (!confirm("このバス便を運休にしますか？（非表示になります）")) return;
     try {
       await api.deleteBusRoute(id, authToken);
       loadRoutes();
     } catch (e) {
-      alert("停用失敗: " + ((e as Error).message || JSON.stringify(e)));
+      alert(
+        "運休に失敗しました：" + ((e as Error).message || JSON.stringify(e)),
+      );
     }
   };
 
@@ -1824,7 +1835,7 @@ function BusSchedulePanel({
               cursor: "pointer",
             }}
           >
-            停用
+            運休
           </button>
         </>
       )}
@@ -2685,7 +2696,7 @@ function ComposeNoticeModal({
     } catch (e) {
       setErrorMsg(
         (e as Error)?.message ||
-          "公告发送失败 — backend 接続不可 / 权限不足，请稍候再試",
+          "お知らせの送信に失敗しました。サーバーに接続できないか、権限が不足している可能性があります。しばらくしてから再度お試しください。",
       );
       setSubmitting(false);
     }
@@ -2813,7 +2824,7 @@ function ComposeNoticeModal({
                 marginBottom: 6,
               }}
             >
-              配送対象（scope）
+              配信対象
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               {[
@@ -2857,7 +2868,7 @@ function ComposeNoticeModal({
             </div>
           )}
           <div style={{ fontSize: 11, color: T.ink3 }}>
-            投稿後、対象寮生の iOS / Android App に push 通知が送信されます。
+            投稿後、対象寮生の iOS・Android アプリにプッシュ通知が送信されます。
           </div>
         </div>
         <div

@@ -31,7 +31,7 @@ export function NotificationsPage({
           letterSpacing: -0.3,
         }}
       >
-        通知中心
+        通知センター
       </h1>
       <div
         style={{

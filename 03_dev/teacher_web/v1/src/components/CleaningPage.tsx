@@ -84,7 +84,9 @@ export function CleaningPage({ authToken }: { authToken: string }) {
         setRejectTarget(null);
         loadItems();
       })
-      .catch((e) => alert("審査失敗: " + (e.message || JSON.stringify(e))));
+      .catch((e) =>
+        alert("審査に失敗しました：" + (e.message || JSON.stringify(e))),
+      );
   };
 
   const handleCreate = (body: CleaningCreateIn) => {
@@ -94,7 +96,9 @@ export function CleaningPage({ authToken }: { authToken: string }) {
         setComposing(false);
         loadItems();
       })
-      .catch((e) => alert("登録失敗: " + (e.message || JSON.stringify(e))));
+      .catch((e) =>
+        alert("登録に失敗しました：" + (e.message || JSON.stringify(e))),
+      );
   };
 
   const statusColors: Record<string, [string, string, string, string]> = {
@@ -102,7 +106,7 @@ export function CleaningPage({ authToken }: { authToken: string }) {
     done: [T.cobalt, "#e8f0ff", "#b3c9f7", "完了報告済"],
     passed: [T.ok, T.okSoft, T.okBorder, "承認済"],
     failed: [T.danger, "#fff0f0", "#f5c6cb", "却下"],
-    skipped: [T.ink3, T.surfaceAlt, T.line, "スキップ"],
+    skipped: [T.ink3, T.surfaceAlt, T.line, "免除"],
   };
 
   return (
@@ -260,7 +264,7 @@ export function CleaningPage({ authToken }: { authToken: string }) {
                     marginBottom: 4,
                   }}
                 >
-                  学生 ID: {String(item.student_id).slice(0, 8)}…
+                  学生ID：{String(item.student_id).slice(0, 8)}…
                 </div>
                 <div
                   style={{
@@ -270,7 +274,7 @@ export function CleaningPage({ authToken }: { authToken: string }) {
                     marginBottom: 10,
                   }}
                 >
-                  担当日: {item.scheduled_date}
+                  担当日：{item.scheduled_date}
                 </div>
                 {item.failure_reason && (
                   <div
@@ -280,7 +284,7 @@ export function CleaningPage({ authToken }: { authToken: string }) {
                       marginBottom: 8,
                     }}
                   >
-                    却下理由: {item.failure_reason}
+                    却下理由：{item.failure_reason}
                   </div>
                 )}
                 {canInspect && (
@@ -383,7 +387,7 @@ function CleaningCreateModal({
   const disabled = !studentId.trim();
   return (
     <ModalShell T={T} title="清掃を割り当て" onClose={onClose}>
-      <ModalField T={T} label="学生 ID（UUID）">
+      <ModalField T={T} label="学生ID">
         <input
           value={studentId}
           onChange={(e) => setStudentId(e.target.value)}
@@ -444,13 +448,13 @@ function CleaningRejectModal({
   const [reason, setReason] = React.useState("");
   const disabled = !reason.trim();
   return (
-    <ModalShell T={T} title={`却下 — ${item.area}`} onClose={onClose}>
+    <ModalShell T={T} title={`却下：${item.area}`} onClose={onClose}>
       <ModalField T={T} label="却下理由（必須）">
         <textarea
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           rows={3}
-          placeholder="例: 清掃が不十分でした"
+          placeholder="例：清掃が不十分でした"
           style={{
             ...modalInputStyle(T),
             resize: "vertical",

@@ -222,8 +222,7 @@ export function ActiveLeavesPage({ authToken }: { authToken: string }) {
         出寮者一覧
       </h1>
       <div style={{ fontSize: 12.5, color: T.ink3, marginBottom: 18 }}>
-        指定日に出寮中（承認済み）の寮生一覧です。閲覧専用 ·
-        編集不可。「更新」で最新の届を再取得します。
+        指定日に出寮中（承認済み）の寮生一覧です。閲覧専用・編集不可。「更新」で最新の届を再取得します。
       </div>
 
       <div
@@ -278,7 +277,7 @@ export function ActiveLeavesPage({ authToken }: { authToken: string }) {
             cursor: "pointer",
           }}
         >
-          印刷 · PDF 保存
+          印刷・PDF 保存
         </button>
         <button
           onClick={async () => {
@@ -308,7 +307,7 @@ export function ActiveLeavesPage({ authToken }: { authToken: string }) {
             cursor: "pointer",
           }}
         >
-          食数表（今後1ヶ月）DL
+          食数表（今後1ヶ月）出力
         </button>
       </div>
 
@@ -339,7 +338,7 @@ export function ActiveLeavesPage({ authToken }: { authToken: string }) {
             borderRadius: 12,
           }}
         >
-          {authToken ? "読み込み中..." : "ログインしてください"}
+          {authToken ? "読み込み中…" : "ログインしてください"}
         </div>
       ) : rows.length === 0 ? (
         <div

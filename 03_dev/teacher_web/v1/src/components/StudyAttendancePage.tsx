@@ -55,7 +55,7 @@ export function StudyAttendancePage({
       } else if (ex && ex.status) {
         setErr(`サーバーエラー (${ex.status})`);
       } else {
-        setErr("サーバーに接続できません — backend を起動してください");
+        setErr("サーバーに接続できません。しばらくしてから再度お試しください");
       }
     } finally {
       setLoading(false);
@@ -154,9 +154,7 @@ export function StudyAttendancePage({
   const doAddToRoster = async () => {
     const no = (addNo || "").trim();
     if (!/^\d{6}$/.test(no)) {
-      setRosterErr(
-        "学号は 6 桁（学年 2 + クラス 2 + 番号 2）で入力してください",
-      );
+      setRosterErr("学籍番号は6桁（学年2＋クラス2＋番号2）で入力してください");
       return;
     }
     setRosterErr("");
@@ -167,9 +165,9 @@ export function StudyAttendancePage({
     } catch (e) {
       const ex = e as { status?: number };
       if (ex && ex.status === 404) {
-        setRosterErr(`学号 ${no} の学生が見つかりません`);
+        setRosterErr(`学籍番号 ${no} の学生が見つかりません`);
       } else if (ex && ex.status === 409) {
-        setRosterErr(`学号 ${no} は既に名簿に登録済みです`);
+        setRosterErr(`学籍番号 ${no} は既に名簿に登録済みです`);
       } else {
         setRosterErr(`追加に失敗 (${(ex && ex.status) || "network"})`);
       }
@@ -209,7 +207,7 @@ export function StudyAttendancePage({
     if (e === "exempted_outstay")
       return ["外泊免除", T.ink2, T.graySoft, T.grayBorder];
     if (e === "exempted_absence")
-      return ["請假承認済", T.cobaltDeep, T.cobaltSoft, T.infoBorder];
+      return ["欠席承認済", T.cobaltDeep, T.cobaltSoft, T.infoBorder];
     return null;
   };
 
@@ -433,7 +431,7 @@ export function StudyAttendancePage({
                 cursor: "pointer",
               }}
             >
-              学習終了 (未出席を欠席に確定)
+              学習終了（未出席を欠席に確定）
             </button>
             <button
               onClick={doCancelToday}
@@ -490,7 +488,7 @@ export function StudyAttendancePage({
                 borderBottom: `1px solid ${T.line}`,
               }}
             >
-              {["部屋", "学号", "氏名", "予定", "状態", "操作"].map((h) => (
+              {["部屋", "学籍番号", "氏名", "予定", "状態", "操作"].map((h) => (
                 <div key={h} style={{ padding: "10px 14px" }}>
                   {h}
                 </div>
@@ -804,13 +802,13 @@ export function StudyAttendancePage({
             }}
           >
             <label style={{ fontSize: 12, color: T.ink2, fontWeight: 600 }}>
-              学号で追加
+              学籍番号で追加
             </label>
             <input
               type="text"
               inputMode="numeric"
               maxLength={6}
-              placeholder="例: 060218"
+              placeholder="例：060218"
               value={addNo}
               onChange={(e) => setAddNo(e.target.value.replace(/[^\d]/g, ""))}
               onKeyDown={(e) => {
@@ -881,7 +879,7 @@ export function StudyAttendancePage({
                 borderBottom: `1px solid ${T.line}`,
               }}
             >
-              {["学号", "氏名", "部屋", "寮", "操作"].map((h) => (
+              {["学籍番号", "氏名", "部屋", "寮", "操作"].map((h) => (
                 <div key={h} style={{ padding: "10px 14px" }}>
                   {h}
                 </div>

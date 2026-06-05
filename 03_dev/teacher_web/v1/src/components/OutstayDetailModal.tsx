@@ -372,7 +372,7 @@ export function OutstayDetailModal({
 
           {/* 餐食跳过 */}
           {detail && detail.meals_skip && detail.meals_skip.length > 0 && (
-            <Section title="食事スキップ">
+            <Section title="欠食">
               {detail.meals_skip.map((m: any, i) => (
                 <F key={i} label={String(m.date || i)} mono>
                   {[m.breakfast && "朝", m.lunch && "昼", m.dinner && "夕"]
@@ -391,7 +391,7 @@ export function OutstayDetailModal({
           {detail &&
             detail.approval_chain &&
             detail.approval_chain.length > 0 && (
-              <Section title="承認チェーン">
+              <Section title="承認経路">
                 <div
                   style={{
                     display: "flex",
@@ -491,7 +491,7 @@ export function OutstayDetailModal({
 
           {/* 审计日志 */}
           {auditLog.length > 0 && (
-            <Section title="審計ログ">
+            <Section title="監査ログ">
               <div
                 style={{
                   display: "flex",
