@@ -62,6 +62,40 @@ sealed class Route(
 
     data object Settings : Route("settings")
 
+    // ── 个人页（「マイページ」）子页 (从 MyPage landing 进入) ──
+    data object MyInfo : Route("my/info")
+
+    data object MyInfoEdit : Route("my/info/edit")
+
+    data object MyRollcall : Route("my/rollcall")
+
+    data class MyRollcallDetail(
+        val id: String,
+    ) : Route("my/rollcall/$id") {
+        companion object {
+            const val PATH = "my/rollcall/{id}"
+            const val ARG_ID = "id"
+        }
+    }
+
+    data object MyPoints : Route("my/points")
+
+    data object MyPointsChart : Route("my/points/chart")
+
+    data object MyDiscipline : Route("my/discipline")
+
+    data object MyHealth : Route("my/health")
+
+    data object MyClean : Route("my/clean")
+
+    data object MyPackages : Route("my/packages")
+
+    data object MyStudy : Route("my/study")
+
+    data object MySettings : Route("my/settings")
+
+    data object MyAbout : Route("my/about")
+
     // ── community 6 屏 (从 Home 进入) ──
     data object Music : Route("music")
 

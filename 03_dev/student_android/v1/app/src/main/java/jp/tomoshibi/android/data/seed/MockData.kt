@@ -9,16 +9,19 @@ import jp.tomoshibi.android.data.model.*
 object MockData {
     val DEFAULT_USER =
         User(
-            name = "リュウイヒ",
-            kana = "りゅういひ",
+            name = "リュウ イヒ",
+            kana = "りゅう いひ",
             email = "demo@example.com",
             dorm = "男寮",
-            room = "M101",
+            room = "A5",
             avatar = "リ",
             studentNo = "060218",
-            gradeClass = "高3B組 18番",
+            gradeClass = "高3 B組 18番",
             category = "一般寮生",
             phone = "090-0000-0000",
+            birthDate = "2006-10-14",
+            gender = "男",
+            isStudyTarget = false,
         )
 
     val DEFAULT_APPLICATIONS =
@@ -100,6 +103,36 @@ object MockData {
             PackageItem(2, "04-22", "佐川急便", "領済"),
             PackageItem(3, "04-18", "ヤマト運輸", "領済", "460-1234-5678"),
             PackageItem(4, "04-10", "郵便局", "領済"),
+        )
+
+    // 点呼履历 — 2026-04-05 ~ 04-21 每天朝/晩两条（对齐 iOS SEED.rollcall）
+    // 遅刻日（朝）= 5/7/12/18/21；欠席日（晩）= 15/20；其余時間内
+    val DEFAULT_ROLLCALL: List<RollcallEntry> =
+        buildList {
+            val lateMorning = setOf(5, 7, 12, 18, 21)
+            val absentEvening = setOf(15, 20)
+            for (d in 5..21) {
+                val dd = "%02d".format(d)
+                val date = "2026-04-$dd"
+                val mStatus = if (d in lateMorning) "遅刻" else "時間内"
+                add(RollcallEntry("RC-04$dd-AM", date, "朝点呼", mStatus, "NFC"))
+                val eStatus = if (d in absentEvening) "欠席" else "時間内"
+                add(RollcallEntry("RC-04$dd-PM", date, "晩点呼", eStatus, if (eStatus == "欠席") "―" else "NFC"))
+            }
+        }
+
+    // 体调报告履历 — 2 条（对齐 iOS SEED.health）
+    val DEFAULT_HEALTH =
+        listOf(
+            HealthRecord("H1", "2026-04-14", "頭痛", 37.2, "午後ずっと頭が重い"),
+            HealthRecord("H2", "2026-04-03", "腹痛"),
+        )
+
+    // 扫除提出履历 — 2 条（对齐 iOS SEED.cleaning）
+    val DEFAULT_CLEANING =
+        listOf(
+            CleaningRecord("C1", "2026-04-19", "部屋", "通過", 5),
+            CleaningRecord("C2", "2026-04-05", "共用エリア", "退回", null, "床が汚れている"),
         )
 
     // 今週の活動 14 件 + 2 行 preview（iOS Home 「行事」section）

@@ -16,8 +16,7 @@ import jp.tomoshibi.android.ui.screens.community.*
 import jp.tomoshibi.android.ui.screens.deduction.DeductionScreen
 import jp.tomoshibi.android.ui.screens.home.HomeScreen
 import jp.tomoshibi.android.ui.screens.login.LoginScreen
-import jp.tomoshibi.android.ui.screens.mypage.MyPageScreen
-import jp.tomoshibi.android.ui.screens.mypage.SettingsScreen
+import jp.tomoshibi.android.ui.screens.mypage.*
 import jp.tomoshibi.android.ui.screens.nfc.NfcScreen
 import jp.tomoshibi.android.ui.screens.notifications.NotifDetailScreen
 import jp.tomoshibi.android.ui.screens.notifications.NotificationsScreen
@@ -90,6 +89,27 @@ fun TomoshibiNavGraph(navController: NavHostController) {
         composable(Route.Deduction.path) { DeductionScreen(navController) }
         composable(Route.RollCall.path) { RollCallScreen(navController) }
         composable(Route.Settings.path) { SettingsScreen(navController) }
+
+        // ── 个人页（「マイページ」）13 子页 ────
+        composable(Route.MyInfo.path) { MyInfoScreen(navController) }
+        composable(Route.MyInfoEdit.path) { MyInfoEditScreen(navController) }
+        composable(Route.MyRollcall.path) { MyRollcallScreen(navController) }
+        composable(
+            route = Route.MyRollcallDetail.PATH,
+            arguments = listOf(navArgument(Route.MyRollcallDetail.ARG_ID) { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString(Route.MyRollcallDetail.ARG_ID) ?: ""
+            MyRollcallDetailScreen(navController, id)
+        }
+        composable(Route.MyPoints.path) { MyPointsScreen(navController) }
+        composable(Route.MyPointsChart.path) { MyPointsChartScreen(navController) }
+        composable(Route.MyDiscipline.path) { MyDisciplineScreen(navController) }
+        composable(Route.MyHealth.path) { MyHealthScreen(navController) }
+        composable(Route.MyClean.path) { MyCleanScreen(navController) }
+        composable(Route.MyPackages.path) { MyPackagesScreen(navController) }
+        composable(Route.MyStudy.path) { MyStudyScreen(navController) }
+        composable(Route.MySettings.path) { MySettingsScreen(navController) }
+        composable(Route.MyAbout.path) { MyAboutScreen(navController) }
 
         // ── community 6 屏 ────────
         composable(Route.Music.path) { MusicScreen(navController) }

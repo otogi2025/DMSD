@@ -18,6 +18,9 @@ data class User(
     val gradeClass: String = "高3B組 18番",
     val category: String = "一般寮生", // 一般寮生 / 留学生 / サッカー部
     val phone: String = "090-0000-0000",
+    val birthDate: String = "2006-10-14", // 生年月日
+    val gender: String = "男", // 性別
+    val isStudyTarget: Boolean = false, // 晚自习（夜間学習）对象，false=対象外
 )
 
 enum class ApplicationStatus { PENDING, APPROVED, RETURNED, REJECTED }
@@ -90,6 +93,37 @@ data class PackageItem(
     val from: String, // 发货方（Amazon / 佐川急便 等）
     val status: String, // 待領 / 領済
     val tracking: String? = null, // 追跡番号，可空
+)
+
+// 点呼履历单条 — 对应 iOS SeedModels.swift RollcallEntry（个人页「点呼履歴」屏用）
+@Serializable
+data class RollcallEntry(
+    val id: String, // "RC-0405-AM"
+    val date: String, // "2026-04-05"
+    val session: String, // 朝点呼 / 晩点呼
+    val status: String, // 時間内 / 遅刻 / 欠席
+    val method: String, // NFC / ―（欠席时无方式）
+)
+
+// 体调报告履历单条 — 对应 iOS SeedModels.swift HealthRecord
+@Serializable
+data class HealthRecord(
+    val id: String,
+    val date: String, // "2026-04-14"
+    val symptom: String, // 症状（頭痛 / 腹痛）
+    val tempC: Double? = null, // 体温，可空（无温度时不显）
+    val note: String? = null, // 备注，可空
+)
+
+// 扫除提出履历单条 — 对应 iOS SeedModels.swift CleaningRecord
+@Serializable
+data class CleaningRecord(
+    val id: String,
+    val date: String, // "2026-04-19"
+    val scope: String, // 范围（「部屋」/「共用エリア」）
+    val status: String, // 通過 / 退回
+    val score: Int? = null, // 分数，可空（退回时无分）
+    val comment: String? = null, // 退回评语，可空
 )
 
 enum class ThemeMode { LIGHT, DARK }
