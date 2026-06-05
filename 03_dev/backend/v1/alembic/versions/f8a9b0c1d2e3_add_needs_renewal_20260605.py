@@ -6,9 +6,13 @@
 高3（grade_code='06'）开闸时直接 status='graduated'，不打标记。
 推翻 2026-04-30「老师代改 / 学生只读」方案。见 system_features §4.2。itsuki 2026-06-05 拍板。
 
-Revision ID: b2c3d4e5f6a7
+Revision ID: f8a9b0c1d2e3
 Revises: e1f2a3b4c5d6
 Create Date: 2026-06-05
+
+注意（2026-06-05 修）：本文件原 revision 误写成 b2c3d4e5f6a7，跟早期的
+align_application_schema 撞号，导致 alembic 报「revision 出现多次」+ 假多头，
+upgrade head 失败。改成唯一号 f8a9b0c1d2e3，文件名同步重命名。
 
 """
 
@@ -17,7 +21,7 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "b2c3d4e5f6a7"
+revision: str = "f8a9b0c1d2e3"
 down_revision: Union[str, Sequence[str], None] = "e1f2a3b4c5d6"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
