@@ -301,6 +301,7 @@ export function TeachersAdminPage({
             bottom: 24,
             right: 24,
             padding: "12px 18px",
+            // 迁移修正：旧 index.html 成功提示误用 T.success*（RYO 无此 key→透明无色，旧 bug），新版统一真实存在的 T.ok*（绿）
             background: toast.type === "ok" ? T.okSoft : T.dangerSoft,
             color: toast.type === "ok" ? T.ok : T.danger,
             border: `1px solid ${toast.type === "ok" ? T.okBorder : T.dangerBorder}`,

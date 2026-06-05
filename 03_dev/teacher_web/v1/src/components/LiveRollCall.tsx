@@ -24,7 +24,7 @@ interface SeatStudent {
 
 // 当前老师（本组件用 dorm + name 两个字段，本地演示状态）
 interface LiveTeacher {
-  dorm: number;
+  dorm: string; // "men" / "women"（App 由 assigned_dorm 派生），dormLabel 期待字符串
   name: string;
 }
 
@@ -144,7 +144,7 @@ export function LiveRollCall({
             <div style={{ fontSize: 16, fontWeight: 700, marginTop: 1 }}>
               {sessionName}{" "}
               <span style={{ color: T.ink3, fontSize: 13, fontWeight: 500 }}>
-                · {dormLabel(String(teacher.dorm))} · {teacher.name} 先生
+                · {dormLabel(teacher.dorm)} · {teacher.name} 先生
               </span>
             </div>
           </div>
