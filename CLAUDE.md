@@ -37,7 +37,7 @@
 
 | 目录 | 干嘛 |
 |---|---|
-| `00_admin/` | WIP / TODO / 项目文件总览 / 文档同步点清单 / hooks |
+| `00_admin/` | WIP / TODO / 项目文件总览 / 文档同步点清单 / hooks / `handoff/`（AI 会话间交接件，用完移 99_archive，见 `00_admin/handoff/README.md`）|
 | `01_specs/` | 规格文档 — rollcall/ 字典 + 主体 |
 | `02_design/` | 设计文档 — hardware / flow / system_features 等 |
 | `03_dev/` | 代码 — backend / teacher_web / student_ios / student_android / rollcall_device（点呼机）|
