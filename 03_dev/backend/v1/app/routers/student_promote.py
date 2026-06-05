@@ -31,7 +31,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import require_teacher_roles
+from ..deps import dorm_units_for_teacher, require_teacher_roles
 
 router = APIRouter(prefix="/api/v1/students", tags=["student / renewal"])
 
@@ -69,6 +69,10 @@ def renewal_start(
         models.Student.is_demo.is_(False),
         models.Student.grade_code.in_(_VALID_GRADES),
     )
+    # R4 寮边界：跨寮角色（寮務部長/課長）allowed=None 看全部；分寮管理係只开闸本人管辖寮
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None:
+        stmt = stmt.where(models.Student.dorm_unit.in_(allowed))
     students = db.scalars(stmt.order_by(models.Student.grade_code)).all()
 
     # 2. 分类计算变更内容（不管 dry_run 都要算，给预览用）

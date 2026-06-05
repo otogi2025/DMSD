@@ -477,6 +477,7 @@ class TestStudentRenewNumber:
             dorm_unit=1,
         )
         db_session.add(occupier)
+        seed_data["student"].needs_renewal = True  # 模拟开闸后状态
         db_session.commit()
 
         tok = _student_tok(client, "060218")
@@ -500,6 +501,7 @@ class TestStudentRenewNumber:
             dorm_unit=1,
         )
         db_session.add(other)
+        seed_data["student"].needs_renewal = True  # 模拟开闸后状态
         db_session.commit()
         other_id = other.id
 
@@ -531,6 +533,17 @@ class TestStudentRenewNumber:
             json={"grade_code": "06", "class_code": "01", "seat_no": "30"},
         )
         assert res.status_code == 401
+
+    def test_self_renew_not_open(self, client, seed_data):
+        """未开闸（needs_renewal=False，默认）→ 409 RENEWAL_NOT_OPEN，防绕过开闸。"""
+        tok = _student_tok(client, "060218")
+        res = client.post(
+            "/api/v1/students/me/renew-number",
+            headers={"Authorization": f"Bearer {tok}"},
+            json={"grade_code": "06", "class_code": "01", "seat_no": "30"},
+        )
+        assert res.status_code == 409, res.text
+        assert res.json()["detail"]["code"] == "RENEWAL_NOT_OPEN"
 
 
 class TestRenewalProgress:
@@ -626,6 +639,63 @@ class TestTeacherRenewSeat:
             json={"grade_code": "01", "class_code": "01", "seat_no": "50"},
         )
         assert res.status_code == 403
+
+
+class TestRenewalDormBoundary:
+    """R4 寮边界 — 分寮管理係只能操作本人管辖寮（codex 6-05 审出补）。"""
+
+    def _setup(self, db_session):
+        pw = security.hash_password("test-password-12345")
+        # 分寮管理係（assigned_dorm=1 → dorm_units_for_teacher 限 [1,2]，非跨寮角色）
+        kanri1 = models.Teacher(
+            login_id="kanri_dorm1",
+            name="管理一郎",
+            email="k1@test.jp",
+            password_hash=pw,
+            role="管理係",
+            assigned_dorm=1,
+        )
+        db_session.add(kanri1)
+        # dorm 4（女寮）学生
+        girl = models.Student(
+            grade_code="05",
+            class_code="01",
+            seat_no="01",
+            name="女寮生",
+            gender="female",
+            room_no="W101",
+            dorm_unit=4,
+        )
+        db_session.add(girl)
+        db_session.commit()
+        return girl.id
+
+    def test_renew_seat_other_dorm_forbidden(self, client, db_session):
+        """dorm1 管理係 改 dorm4 学生番号 → 403 FORBIDDEN_DORM。"""
+        girl_id = self._setup(db_session)
+        tok = _tok(client, "kanri_dorm1")
+        res = client.post(
+            f"/api/v1/accounts/{girl_id}/renew-seat",
+            headers={"Authorization": f"Bearer {tok}"},
+            json={"grade_code": "05", "class_code": "01", "seat_no": "50"},
+        )
+        assert res.status_code == 403, res.text
+        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+
+    def test_progress_excludes_other_dorm(self, client, db_session):
+        """dorm1 管理係 的进度名单不含 dorm4 学生。"""
+        girl_id = self._setup(db_session)
+        girl = db_session.get(models.Student, girl_id)
+        girl.needs_renewal = True
+        db_session.commit()
+        tok = _tok(client, "kanri_dorm1")
+        res = client.get(
+            "/api/v1/students/renewal-progress",
+            headers={"Authorization": f"Bearer {tok}"},
+        )
+        assert res.status_code == 200, res.text
+        nos = {i["student_no"] for i in res.json()["items"]}
+        assert "050101" not in nos  # dorm4 女寮生不在 dorm1 管理係 视野
 
 
 class TestStudentMe:

@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import require_teacher_roles
+from ..deps import dorm_units_for_teacher, require_teacher_roles
 from ..security import hash_password
 
 router = APIRouter(
@@ -305,13 +305,16 @@ def renewal_progress(
 
     pending_count=0 = 全员改完。老师网页据此显示「全員完了」。
     """
+    stmt = select(models.Student).where(
+        models.Student.needs_renewal.is_(True),
+        models.Student.is_demo.is_(False),
+    )
+    # R4 寮边界：分寮管理係只看本人管辖寮的未更新名单（跨寮角色 allowed=None 看全部）
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None:
+        stmt = stmt.where(models.Student.dorm_unit.in_(allowed))
     students = db.scalars(
-        select(models.Student)
-        .where(
-            models.Student.needs_renewal.is_(True),
-            models.Student.is_demo.is_(False),
-        )
-        .order_by(
+        stmt.order_by(
             models.Student.grade_code,
             models.Student.class_code,
             models.Student.seat_no,
@@ -351,6 +354,16 @@ def teacher_renew_seat(
 ):
     """老师单件改某学生番号（兜底 — 学生不会操作 / 填错时）。"""
     student = _get_student_or_404(student_id, db)
+    # R4 寮边界：分寮管理係只能改本人管辖寮的学生（跨寮角色 allowed=None 不限）
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None and student.dorm_unit not in allowed:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "FORBIDDEN_DORM",
+                "message": "担当寮外の学生は変更できません",
+            },
+        )
     new_no = f"{body.grade_code}{body.class_code}{body.seat_no}"
 
     # 查重（排除该学生自己）

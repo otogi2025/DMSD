@@ -82,6 +82,17 @@ def renew_my_number(
     """
     new_no = f"{body.grade_code}{body.class_code}{body.seat_no}"
 
+    # 0. 必须老师已开闸（needs_renewal=True）才能自设 — 防绕过开闸直接调 API 改番号。
+    #    iOS 顶部按钮也只在 needs_renewal 时显示，这里是后端兜底。
+    if not student.needs_renewal:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "RENEWAL_NOT_OPEN",
+                "message": "学年更新の対象ではありません",
+            },
+        )
+
     # 1. 应用层查重（排除自己）— 照 accounts.py 注册查重模式
     existing = db.scalars(
         select(models.Student).where(
