@@ -1702,12 +1702,15 @@ struct MySettingsView: View {
     @EnvironmentObject var app: AppStore
     @EnvironmentObject var router: RouterStore // IX-002: 删账号成功后跳登录页用
 
-    // 通知 prefs (demo 用 local state; 不接后端)
-    @State private var prefRoll: Bool = true // 点呼リマインダー
-    @State private var prefApp: Bool = true // 申請結果
-    @State private var prefPkg: Bool = true // 快递到着 (JSX 原文：快递到着)
-    @State private var prefAct: Bool = true // 活動リマインダー
-    @State private var prefPts: Bool = true // 減点警告
+    // 通知偏好开关 — 用 @AppStorage 本地持久化（跟暗色模式 isDark 同一套机制、存进 UserDefaults）。
+    // 苹果审核 5.1.1: push 通知必须可被用户拒绝 → 各类开关要记住状态、重启不丢。
+    // ⚠️ 现状: push(APNs) 未接通、真公告通知暂不读这些开关 → 这些 key 目前只持久化「用户意愿」，
+    //   等 push 接通 + 通知聚合做完后，发送/过滤侧再消费它们（见 handoff §7.3）。
+    @AppStorage("notif_pref_roll") private var prefRoll: Bool = true // 「点呼リマインダー」签到提醒
+    @AppStorage("notif_pref_app") private var prefApp: Bool = true // 「申請結果」审批结果
+    @AppStorage("notif_pref_pkg") private var prefPkg: Bool = true // 「荷物到着」包裹到达
+    @AppStorage("notif_pref_act") private var prefAct: Bool = true // 「活動リマインダー」活动提醒
+    @AppStorage("notif_pref_pts") private var prefPts: Bool = true // 「減点警告」扣分警告
 
     // App Store 5.1.1(v) 强制要求的账号删除流程
     @State private var showDeleteConfirm: Bool = false
