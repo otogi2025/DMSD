@@ -16,49 +16,47 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 >
 > **历史**：原文件 `2026-05-01_全文件审查.md` 由主会话切 7 组 + Explore agent 并行扫描 606 个 git-tracked 文件（venv / __pycache__ / DerivedData 已自动排除）后合成。**5-04 itsuki 拍板**升级为系统级单源真值文件，去掉日期前缀；**5-04 深夜 itsuki 二度拍板**整体迁入 skill 形态（`.claude/skills/project-overview/SKILL.md`）— 因为「不是给我看的，是给 CC 看的」 → skill 形态加载更高效。
 >
-> **和 `00_admin/文件结构指南.md` 关系**：那份偏「顶级目录骨架 + 权限速查」（静态参考，430 行）；本文件偏「每个文件状态 + 价值评估 + AC top 10」（动态总览，~650 行）。两份分工不同，本 skill 是**新会话首选入口**。
+> **和别的「介绍型」文件分工**（三层不重叠）：`PROJECT_GUIDE.md`（根目录）= 新人 / AI 深入理解整个项目的导览；`00_admin/项目心智模型.md` = AI 开局必读的 1 屏骨架（系统怎么跑通 + 5 端现状）；**本 skill** = 1388 文件逐个的「字典」，想知道某个文件干嘛时查。
 >
-> **最后更新**：2026-05-19 — (1) 文件介绍大改造：27 段文件表全部加「一句话作用」列；(2) 9 处文件数漂移全修：§3 backend 35→56 + 加 §3.6.5 alembic 9 文件 / §4 teacher_web 314→333 + 重写 §4.3（v1 已 Vite+TS 重构）/ §5 iOS 54→66 + Foundation 17→29 + Features 8 个行数全更新 / §5.7 Android 56→80 + 22→23 屏 / §5.8 rollcall_device 8→10 / §1.6 hooks 标题数 / §2.2 rollcall 标题 / §6.2 raw 加 5-16 两文件 / §7.2 9 个子目录文件数填上。早些更新：2026-05-16（3 天漂移大校准 + §14 收尾强制清单）；2026-05-13 早（接力 CC 26 文件大整理校准）；2026-05-12 凌晨（CC 自治大整理校准）；2026-05-06（独立 repo 模式退役）；2026-05-04 深夜（迁入 skill 形态）
+> **最后更新**：2026-06-05 — 全文件对账校准（1200→1396 真实数，以 HEAD committed 为准）：backend §3 大补（routers 11→26 / tests 5→19 / alembic 9→22 / 总 62→103）+ iOS 67→78 / Android 80→131 / 点呼机 12→36 / 05_logs 92→160 / 99_archive 431→639 + 散件补漏（01_specs / 02_design / 04_ops / 根目录 / skills 标题）。更早的逐次更新记录见 git log。
 
-**最后扫描真值**：2026-05-16 用 `git ls-files | awk -F/ '{print $1}' | sort | uniq -c` 全 repo 真实统计 + `find` 各组验证（含非编号目录 / .gitignore 排除项）。下次大整理时更新本字段。
+**最后扫描真值**：2026-06-05 `git ls-tree -r HEAD` 全统计（1396 已提交文件）+ 各组逐组验证 + `bin/check_overview_drift.sh` 校验。下次结构大改时更新本字段。
 
 ---
 
 ## 0. 摘要
 
-### 0.1 体量（2026-05-29 校准 — committed 1200，本次会话 +2：`00_admin/项目心智模型.md` + `05_logs/raw/2026-05-29_项目心智模型机制.md`；另有 TODO/hooks/dependabot 等未 commit 改动非本会话所做，未逐个对账）
+### 0.1 体量（2026-06-05 对账 — `git ls-tree HEAD` 真实统计，1396 个已提交文件）
 
 | 顶级目录 | 文件数 | 占比 | 主要内容 |
 |---|---|---|---|
-| `99_archive/` | 620 | 52% | 归档物（5-26 晚段-4 加 `2026-05-26_teacher_web_vite实装作废/` 13 文件 = App.tsx + main.tsx + Shell.tsx + pages × 5 + store/auth.ts + vite_root_index.html + package.json + lock + vite.config.ts + tailwind.config.js + postcss.config.js + tsconfig × 2 — itsuki 拍板 Vite + TS 实装版整体废弃 + 5-26 晚加 `2026-05-26_ios_v1_demo_snapshot/` 42 文件（iOS demo 后门删除前快照） + 5-26 早 3 个 iOS 上架配置归位 + 5-22 加 2026-05-21_pre_fix + 2026-05-22_tomoshibi_appstore_fork 残余 + 5-21 teacher_web/demo 整组 158 文件归档 + 早期 GPT 对话 / throwaway iOS / demo 4-28 / 5-12 深夜大整理 / cloud agent 退役 / 5-02 handoff × 4 等）|
-| `03_dev/` | 391 | 33% | 代码 + 设计 LOG（含未 commit iOS `APIErrorPresenter.swift` + `project.pbxproj.bak3_before_apierrorpresenter_register` 2 文件；5-27 早段-2 git mv `student_ios/_archived_DESIGN_BRIEF_Round1_context.md` → 99_archive/2026-04-22_ios_round1_design_brief/；5-26 晚段-4 删除 Vite 实装 13 文件 → 全归档 → teacher_web 回到 Ryō standalone 主线）|
-| `05_logs/` | 119 | 9.8% | raw 68（5-16/19/21/22/22-iOS/24/25/25-AC学习清单/26/26-dmsd-startup/26-vite废弃+polish回滚/27-teacher_web_v1.0_深夜推进/27-ios审查/27-全项目审查/27-anti-ai-flavor双层防御立项/27-整理inbox+8类升级/27-老师实名账户登录/27-ios登录注册大改+审批链进度条/28-ios_codex审查/28-注册页demo空+数字码+设计文档中文化/28-web登录页修复）/ AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）|
-| `00_admin/` | 22 | 1.8% | 8 顶级 md（5-29 加 项目心智模型.md）+ hooks 子目录 — 5-21 加 `系统bug专栏.md` + `codex_audit_prompt.md`（详见 §1.2）|
+| `99_archive/` | 639 | 46% | 归档物（5-26 晚段-4 加 `2026-05-26_teacher_web_vite实装作废/` 13 文件 = App.tsx + main.tsx + Shell.tsx + pages × 5 + store/auth.ts + vite_root_index.html + package.json + lock + vite.config.ts + tailwind.config.js + postcss.config.js + tsconfig × 2 — itsuki 拍板 Vite + TS 实装版整体废弃 + 5-26 晚加 `2026-05-26_ios_v1_demo_snapshot/` 42 文件（iOS demo 后门删除前快照） + 5-26 早 3 个 iOS 上架配置归位 + 5-22 加 2026-05-21_pre_fix + 2026-05-22_tomoshibi_appstore_fork 残余 + 5-21 teacher_web/demo 整组 158 文件归档 + 早期 GPT 对话 / throwaway iOS / demo 4-28 / 5-12 深夜大整理 / cloud agent 退役 / 5-02 handoff × 4 等）|
+| `03_dev/` | 526 | 38% | 代码 + 设计 LOG（含未 commit iOS `APIErrorPresenter.swift` + `project.pbxproj.bak3_before_apierrorpresenter_register` 2 文件；5-27 早段-2 git mv `student_ios/_archived_DESIGN_BRIEF_Round1_context.md` → 99_archive/2026-04-22_ios_round1_design_brief/；5-26 晚段-4 删除 Vite 实装 13 文件 → 全归档 → teacher_web 回到 Ryō standalone 主线）|
+| `05_logs/` | 148 | 11% | raw 68（5-16/19/21/22/22-iOS/24/25/25-AC学习清单/26/26-dmsd-startup/26-vite废弃+polish回滚/27-teacher_web_v1.0_深夜推进/27-ios审查/27-全项目审查/27-anti-ai-flavor双层防御立项/27-整理inbox+8类升级/27-老师实名账户登录/27-ios登录注册大改+审批链进度条/28-ios_codex审查/28-注册页demo空+数字码+设计文档中文化/28-web登录页修复）/ AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）|
+| `00_admin/` | 25 | 1.8% | 8 顶级 md（5-29 加 项目心智模型.md）+ hooks 子目录 — 5-21 加 `系统bug专栏.md` + `codex_audit_prompt.md`（详见 §1.2）|
 | `01_specs/` | 14 | 1.2% | 规格冻结区（含 5 .pages 不可读）|
-| `.claude/` | 11 | 1.0% | 8 skill + 1 agent + 2 配置（settings / session-coord.config）— **5-26 加 `dmsd-startup/SKILL.md`**（启动 SOP 集中）/ 5-19 加 `.claude/agents/security-reviewer.md`（详见 §1.7.5）|
-| `06_assets/` | 8 | 0.8% | 4 icon + 术语表.html + 学习内容清单.html + bus_schedule + bus_notice 真实样本 |
-| 根目录 | 8 | 0.7% | CLAUDE / README / PROJECT_GUIDE / CHANGELOG / LICENSE / .gitignore / .graphifyignore / 启动老师网站.command |
-| `02_design/` | 3 | 0.3% | system_features + hardware + flow（bus_schedule 5-08 挪到 06_assets/）|
+| `.claude/` | 12 | 0.9% | 8 skill + 1 agent + 2 配置（settings / session-coord.config）— **5-26 加 `dmsd-startup/SKILL.md`**（启动 SOP 集中）/ 5-19 加 `.claude/agents/security-reviewer.md`（详见 §1.7.5）|
+| `06_assets/` | 9 | 0.6% | 4 icon + 术语表.html + 学习内容清单.html + bus_schedule + bus_notice 真实样本 + app_screens_2026-06-05_ios/ |
+| 根目录 | 8 | 0.6% | CLAUDE / README / CHANGELOG / LICENSE / .gitignore / .graphifyignore / 启动老师网站.command / 预览Vite新版老师网站.command（PROJECT_GUIDE.md 已建但未提交）|
+| `02_design/` | 4 | 0.3% | system_features + hardware + flow + NFC防代刷_后端立项施工计划 |
 | `docs/` | 3 | 0.3% | Matt Pocock 套件 per-repo 配置（agents/{issue-tracker,triage-labels,domain}.md）|
 | `bin/` | 3 | 0.3% | sync-check + create_local_dev_symlink + check_overview_drift（5-19 加）|
-| `04_ops/` | 2 | 0.2% | MAC_MINI_SETUP + wifi_survey_howto |
+| `04_ops/` | 3 | 0.2% | MAC_MINI_SETUP + wifi_survey_howto + teacher_web_v1.0_上线部署清单 |
 | `.github/` | 2 | 0.1% | workflows/test.yml（GitHub Actions CI 自动跑测试）+ dependabot.yml（依赖漏洞自动监控 — pip/gradle/actions 每周一）|
-| **总计** | **1200** | 100% | |
+| **总计** | **1396** | 100% | |
 
-> **5-16 → 5-22 重大变动**：5-21 teacher_web/demo 整组 158 文件从 `03_dev/teacher_web/demo/` 挪到 `99_archive/2026-05-21_teacher_web_demo_archived/` —— 所以 `03_dev/` 从 546 降到 395，`99_archive/` 从 273 升到 431。同期加 `.github/workflows/test.yml`（CI）+ `00_admin/系统bug专栏.md` + `00_admin/codex_audit_prompt.md` + `.claude/agents/security-reviewer.md`。
->
-> **5-01 → 5-22 累计增长 374 文件**（606 → 980，62% 增长）。主因同上 + backend 6357（API 全实装）+ Android Compose 22 屏 + 点呼机骨架。
+> **占比读法**：归档 `99_archive/` + 代码 `03_dev/` 占 84%。日常开发的「活」文件主要在 `03_dev/`（代码）+ `00_admin/`（管理）+ `01_specs/`（规格）+ `02_design/`（设计）+ `.claude/`（AI 配置）。`99_archive/` 是历史归档区，按子目录粒度维护（见 §7），不逐文件追描述。
 
-### 0.2 状态分布
+### 0.2 状态分布（2026-06-05 近似 — 总 1396）
 
-| 状态 | 数量 | 占比 |
+| 类别 | 估算 | 说明 |
 |---|---|---|
-| ✅ active（仍在更新或被引用） | ~155 | 26% |
-| 📦 archived（任务结束保留作参考） | ~395 | 65%（含 268 vendor 字体） |
-| ⚠️ stale（内容过期或冗余复制） | ~25 | 4% |
-| ❓ 不可读（.pages / .docx / 二进制 PDF dump） | ~31 | 5% |
+| 📦 归档 `99_archive/` | ~639 | 历史物，占 46%，日常不查 |
+| ✅ 活跃代码 + 文档 | ~570 | `03_dev/` + `00_admin/` + `01_specs/` + `02_design/` + `.claude/`（含 teacher_web 130 + iOS/Android vendor 字体，第三方资源价值上算 archived）|
+| 📝 日志记录 `05_logs/` | ~149 | raw + AC 叙事 + 审查报告，多数写过不改的历史 |
+| ❓ 不可读（.pages / .docx / .510Z） | ~24 | 早期手稿，已被 .md 取代（清理需 itsuki 一次性确认，见 §11）|
 
-> 注：teacher_web 的 268 vendor 字体严格说"在用"（HTML 实际加载），但都是第三方资源，价值上当成 archived 处理。
+> 精确逐文件状态需扫全 repo；本表按目录粒度近似。
 
 ### 0.3 五条关键发现
 
@@ -66,7 +64,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 2. **teacher_web 当前主线已明确**：6-05 从 HTML 单文件迁到 **React + TypeScript + Vite**（界面冻结原样搬，吸取 5-26 教训），当前权威源是 `03_dev/teacher_web/v1/src/` 下 React+TS（main/App/Shell/theme/utils/api(client.ts+types.ts)/components 26 .tsx），构建产物 `dist/`。旧 standalone HTML 已归档。
 
-3. **后端 v1 已从 P0 骨架推进到 v1.0 功能补齐阶段**：13 router 注册，61 endpoint 可 import；discipline / cleaning / front_desk / WebSocket 已在 5-27 推进。
+3. **后端 v1 已从 P0 骨架推进到 v1.0 功能补齐阶段**：25 个 router 覆盖全业务线（扣分 / 清扫 / 前台 / 外出 / 事案 / 指导 / 学年更新 / 巴士 / 行事 / WebSocket 等）；**防作弊核心后端仍未写**（§3.7）。
 
 4. **iOS / Android / teacher_web / backend / 点呼机 5 端代码层都已启动**，但成熟度不同：backend 和 iOS 更靠前，Android 真后端接入与测试、点呼机真机模块仍待续。
 
@@ -84,7 +82,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 **统计**：✅ 22 / 📦 7 / ⚠️ 3 / ❓ 4
 
-### 1.1 根目录（7 文件）
+### 1.1 根目录（8 文件已提交；PROJECT_GUIDE.md 已建但未提交）
 
 | 文件 | 作用 | 状态 | 备注 |
 |---|---|---|---|
@@ -92,9 +90,11 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `CLAUDE.md` | AI 项目指令权威源（每会话必读） | ✅ | 4-30 沟通规则 #6 升级 |
 | `CHANGELOG.md` | 18 tag 全程 + 版本号单源真值 | ✅ | 教授会看 |
 | `README.md` | 项目对外介绍（4-30 名字 Tomoshibi 定名） | ✅ | 4-29 起 GitHub public |
-| `PROJECT_GUIDE.md` | 第一次了解项目的人用的新手导览 — 项目是什么 / 5 端结构 / 当前状态 / 推荐阅读顺序 | ✅ | 2026-05-27 加，README 指向它 |
+| `PROJECT_GUIDE.md` | 给第一次了解项目的人 / AI 深入理解项目用的导览 — 项目是什么 / 5 端结构 / 系统怎么跑通 / 推荐阅读顺序 | ⏳ | **已建但未提交**（git 还不跟踪）/ 6-05 扩充中 |
 | `LICENSE` | All Rights Reserved + AC 后 4 方向评估 | ✅ | 不常改 |
+| `.graphifyignore` | graphify 知识图谱忽略规则（防 vendor 字体污染图谱） | ✅ | |
 | `启动老师网站.command` | 双击一键：build Vite dist → 后端 8000 托管 dist 到 /teacher/ → 自动开浏览器 | ✅ | 6-05 改成 Vite 版（原起前端 8787 托管 src 旧单文件） |
+| `预览Vite新版老师网站.command` | 双击预览 Vite 新版老师网页（迁移期间核对界面用） | ✅ | 6-05 加 |
 
 ### 1.2 00_admin/AI 协作 + 项目治理（2026-05-22 校准 — 7 顶级 md + hooks 子目录，5-21 加 2 个长期治理文件）
 
@@ -110,7 +110,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `系统bug专栏.md` | **5-21 加** 131 条 v1.0 上线前 bug 集中管理（🔴 阻塞 43 / 🟡 该修 58 / 🟢 优化 30）— 由 5-19~5-21 三子代理审 + 主会话整理产出 / **5-22 加 Codex 第二轮 audit 段**（24 独立发现 + 13 复核 + 2 positive，共 39 条 / `audit_2026-05-22_codex/`）| ✅ |
 | `codex_audit_prompt.md` | **5-21 加** Codex 第二轮 audit prompt 模板（27 必读文件 + 17 审查维度 + Claude 漏的 4 类重点）— 给 itsuki 喂 codex 用 | ✅ |
 
-**实际剩余在 `00_admin/` 顶级**（2026-05-22 ls 真实）：`文档同步点清单.md` + `2026-04-19_项目审查_backlog.md` + `progress_overview.md`（§1.3）+ `WIP.md` + `TODO.md` + `系统bug专栏.md` + `codex_audit_prompt.md` + `hooks/`（§1.6）= 7 md + 1 子目录。
+**实际剩余在 `00_admin/` 顶级**（2026-06-05 ls 真实，10 md + `hooks/` 子目录）：`文档同步点清单.md` + `2026-04-19_项目审查_backlog.md` + `progress_overview.md`（§1.3）+ `项目心智模型.md`（§1.3）+ `WIP.md` + `TODO.md` + `系统bug专栏.md` + `codex_audit_prompt.md` + `iOS_Android_对齐规格.md`（iOS↔Android 逐屏对齐规格）+ `iOS_Android对齐_GOAL提示词.md`（对齐会话的 /goal 提示词）+ `hooks/`（§1.6）。另有 `五端对齐_GOAL提示词.md` 未提交、`老师网页Vite迁移_GOAL提示词.md` 工作区已删。
 
 ### 1.3 00_admin/会话状态（4 文件 — 2026-05-29 加 项目心智模型 / 2026-05-13 progress_draft 归档）
 
@@ -168,7 +168,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `lib/sync-rules.sh` | 19 条文件联动规则的代码版 — pre-commit + sync-check.sh 都调它 | ✅ | 5-16 重 grep `^add_rule` 验证 = 19 条真实数 |
 | `README.md` | hooks 目录总说明（3 类 hook 全覆盖：git pre-commit + git post-commit/checkout + CC PostToolUse 6 + CC PreToolUse 1） | ✅ | 改 hook 必同步 |
 
-### 1.7 .claude/skills（8 skill）
+### 1.7 .claude/skills（9 skill — 2026-06-04 加 codex-review）
 
 | skill | 一句话作用 | 触发关键词 | 状态 |
 |---|---|---|---|
@@ -262,11 +262,11 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 
 ---
 
-## 2. 第 2 组：01_specs + 02_design（16 文件 — 2026-05-22 校准 17→16）
+## 2. 第 2 组：01_specs + 02_design（18 文件 — 2026-06-05 校准 16→18）
 
-**统计**：✅ 11 / 📦 0 / ⚠️ 1 / ❓ 5（全是 .pages）
+**统计**：✅ 13 / ⚠️ 1 / ❓ 5（全是 .pages）
 
-### 2.1 01_specs/ 顶级（5 文件）
+### 2.1 01_specs/ 顶级（6 文件）
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
@@ -275,6 +275,7 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `API_CONVENTIONS.md` | backend API 的命名规范 + 错误码体系（URL 路由 / HTTP 动词 / 错误码） | ✅ | 4-22 修订 8 处 |
 | `IA_UI_v0.1.pages` | 信息架构（IA）+ UI 早期草稿（Pages） | ❓ | 已被 `v0.1完整计划.pdf §3` + `system_features.md §7` 覆盖 |
 | `Overview_of_Features_v0.1.pages` | 功能总览早期草稿（Pages） | ❓ | 已被 `system_features.md`（4-30 重写 357→830 行）取代 |
+| `teacher_web_v1.0_backend_models_propose.md` | teacher_web v1.0 要的后端数据模型提案 — discipline/cleaning/front_desk 三表字段 | ✅ | 5-27 深夜推进时给 itsuki 拍板用 |
 
 ### 2.2 01_specs/rollcall/（8 文件）
 
@@ -289,20 +290,21 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `DMSDv0.1验收脚本.pages` | v0.1 验收测试脚本（Pages） | ❓ | 跟 PDF §1.2 是否相同需 itsuki 决定 |
 | `v0.1_冻结决策.md` | v0.1 阶段冻结时拍板的决策快照 | ⚠️ | 4-29 阈值再冻结后 ~10 处文档已修 / 本文角色（备份 vs 历史快照）需明确 |
 
-### 2.3 02_design/（3 文件 — 2026-05-08 bus_schedule_real.md 挪到 06_assets/）
+### 2.3 02_design/（4 文件）
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
 | `system_features.md` | ⭐ 5 端（iOS / Android / 后端 / teacher_web / 点呼机）共用的功能规格真值 | ✅ | 4-30 轨道 ABC 同日完成（覆盖老师 38 条反馈） |
 | `hardware_design.md` | 点呼机硬件选型 + 接线设计（Pi 3A+ 选型 + 砍 Pi 4B 的论证） | ✅ | 跟 `03_dev/rollcall_device/` 软件层互补 / AC 素材 |
 | `flow_design.md` | 学生点呼的 3 种流程图（路径 A 刷卡 / 路径 B iOS 自助 / 路径 B Android 自助） | ✅ | 视觉流程图参考 |
+| `NFC防代刷_后端立项施工计划.md` | NFC 防代刷后端实装的立项施工计划 — 对应「全项目最大未完成块」防作弊核心后端 | ✅ | 设备注册校验 + 卡→学生映射 + 传输安全 |
 
 ---
 
-## 3. 第 3 组：03_dev/backend（62 文件 — 2026-05-22 校准 56→62）
+## 3. 第 3 组：03_dev/backend（103 文件 — 2026-06-05 校准 62→103）
 
-**统计**：✅ 44（v1）+ 10（demo 锁定）+ 2（顶级散件 README + BACKEND_DESIGN_LOG）= 56
-**核心**：v1 P0 完成约 70% / 5-12 大幅实装 router + alembic migration（22→44 增长 22 文件主因）
+**统计**：v1 91（routers 26 + services 5 + tests 19 + alembic 22 + app 核心 9 + 配置 ~10）+ demo 10 锁定 + 顶层 2（README + BACKEND_DESIGN_LOG）= 103
+**核心**：v1 功能大幅扩张 — 6-05 已有 25 router / 19 test / 18 迁移；扣分 / 清扫 / 前台 / 外出 / 事案 / 指导 / 学年更新等 §7 全业务线后端已实装。**防作弊核心后端仍未写**（见 §3.7）
 
 ### 3.1 backend 顶层 + demo（13 文件）
 
@@ -322,7 +324,7 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `seed.py` | 数据库初始化脚本 — 灌种子数据（教师 8 角色 + 班主任 + 学生 2 人含留学生）| ✅ | 空库启动后跑一次 |
 | `.gitignore` | git 忽略规则（保护 .env 密钥不进 git / 排除 venv 虚拟环境） | ✅ | 防泄漏关键文件 |
 
-### 3.3 backend/v1/app/ 核心（10 文件 — 2026-05-27 加 ws_manager.py）
+### 3.3 backend/v1/app/ 核心（9 文件 — app 顶级，不含 routers/services 子目录）
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
@@ -336,24 +338,40 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `schemas.py` | API 请求/响应的 Pydantic 数据校验定义（含 discriminated union — 按字段值分流校验）| ✅ | iOS / Android 字段对齐参考 |
 | `ws_manager.py` | **2026-05-27 加** — WebSocket 老师端连接管理单例（TeacherConnectionManager / asyncio.Lock / broadcast_sync 同步触发） | ✅ | 单进程 in-memory v1.0 / 多进程后期换 Redis pub/sub |
 
-### 3.4 backend/v1/app/routers/（**11 文件 — 2026-05-13 audit 补 6 漏**）
+### 3.4 backend/v1/app/routers/（26 文件 = __init__ + 25 router — 2026-06-05 校准 11→26）
+
+> 按业务线分组。⚠️ = 有未完成块。
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
 | `__init__.py` | Python 包声明 | ✅ | 空文件 |
-| `auth.py` | 登录认证 API（学生 + 教师登录 / JWT 令牌签发） | ✅ | P0 完整 |
-| `applications.py` | 学生外泊 / 帰省 / 帰国 申请 API（提交 / 邮件 / 履历 / 详情） | ⚠️ | P0 70% / 缺 #10-#13 役职审批 endpoint |
-| `outings.py` | 外出申请 API（当天回寮短时外出，单一老师确认）— 提出 / 列表 / 待确认 / 详情 / 确认 / 撤回 6 接口 | ✅ | 2026-06-04 建（outings 独立表，确认者从令牌取 + R4 寮边界 + 19 测试） |
-| `meals.py` | 食堂用餐统计 API — 输出 JSON 或 Excel 文件（openpyxl 生成 xlsx） | ✅ | P0 完整 |
-| `notifications.py` | 推送通知 API — 走 SendGrid 邮件 | ✅ | 烟雾测试通过 |
-| `accounts.py` | 学生账号管理 API（注册 POST /accounts / 密码重置） | ✅ | 5-04 启 / 缺 DELETE /accounts/me — Apple 5.1.1(v) 强制 |
-| `admin_registration_code.py` | 管理员发学生注册码的 API（刷新 / 查当前 / 查历史） | ✅ | 5-03 启 |
-| `announcements.py` | 老师发公告 API（list / detail / replies / reads 9 个 endpoint） | ✅ | 5-03 启 |
-| `rollcall.py` | 点呼 NFC 刷卡 API — 学生刷卡后记出席 | ⚠️ | 5-12 挂载 / NFC card_uid 防作弊核心未真接（145-153 行暫定） |
-| `study.py` | 学習担当 NFC API — 学習区 3 tap 状态机 + 欠席届 + 出席统计 | ⚠️ | 5-12 挂载 |
-| `teachers.py` | 教师管理 API（CRUD + 邀请 token 发放） | ✅ | 5-03 启 |
+| `auth.py` | 登录认证 — 学生 + 教师登录 / JWT 令牌签发 | ✅ | P0 |
+| `accounts.py` | 学生账号自助（注册 / 密码重置） | ✅ | 缺 DELETE /accounts/me（Apple 5.1.1(v) 强制） |
+| `admin_accounts.py` | 学生账号 admin 端 — 寮务管理角色管账号 | ✅ | 6 月新增 |
+| `admin_registration_code.py` | 管理员发学生注册码（刷新 / 查当前 / 查历史） | ✅ | |
+| `teachers.py` | 教师管理（CRUD + 邀请 token 发放） | ✅ | |
+| `rollcall.py` | 点呼 NFC 刷卡 — 学生刷卡后记出席 | ⚠️ | 防作弊核心未真接（暂用老师令牌 + 手传 student_id） |
+| `study.py` | 学習担当 NFC — 学習区 3 tap 状态机 + 欠席届 + 出席统计 | ⚠️ | 5-12 挂载 |
+| `study_online.py` | 在线学习申请 — 学生提交 / 老师审批取消 | ✅ | 6 月新增 |
+| `applications.py` | 外泊 / 帰省 / 帰国 申请（提交 / 邮件 / 履历 / 详情） | ⚠️ | 缺 #10-#13 役职审批 endpoint |
+| `outings.py` | 当天回寮短时外出（单一老师确认）— 6 接口 | ✅ | 6-04 建 + R4 寮边界 + 19 测试 |
+| `dorm_life.py` | 宿舍生活类申请 4 种 — 行事企画 / 日课变更 / 冷蔵庫購入 / 物品所持 | ✅ | 6 月新增 |
+| `discipline.py` | 扣分 / 規律処分 — 月排名 + 阈值标记 + 手动加扣分 | ✅ | 5-27 加（DisciplinePage 接后端核心） |
+| `cleaning.py` | 清扫安排 — 老师审核，不通过自动加扣分 | ✅ | 5-27 加 |
+| `front_desk.py` | 前台 — 宅配 + 失物招领登记 / 通知学生 | ✅ | 5-27 加 |
+| `guidance.py` | 指导履历录入 + 学生开示申请 | ✅ | 6 月新增（§7.9/§7.10） |
+| `incidents.py` | 事案录入 — 老师录 / 查 / 编辑 | ✅ | 6 月新增（§7.9） |
+| `student_profile.py` | 学生档案聚合页 — 一次返回各维度履历 | ✅ | 老师全看 / 学生只看自己 |
+| `student_promote.py` | 学年更新「开闸」— 老师每年 4 月点一次发通知 | ✅ | 6-05 学生自设方案（§4.2） |
+| `announcements.py` | 老师公告（list / detail / replies / reads 9 endpoint） | ✅ | |
+| `meals.py` | 食堂用餐统计 — JSON 或 Excel（openpyxl） | ✅ | P0 |
+| `events.py` | 行事予定 — 列 / 新建 / 编辑 / 删（老师 + 学生可看） | ✅ | 6 月新增 |
+| `bus_routes.py` | 巴士时刻表 — 老师都可看 / 役职可改 | ✅ | 6 月新增（§7.6） |
+| `notifications.py` | 推送通知 — 走 SendGrid 邮件 | ✅ | |
+| `device_tokens.py` | 设备推送令牌 — App 启动注册本机令牌（幂等） | ✅ | 6 月新增（§7.13） |
+| `ws.py` | WebSocket — 老师端实时事件流（点呼 / 申请推送 → LiveRollCall 实时刷座席） | ✅ | 6 月新增 |
 
-### 3.5 backend/v1/app/services/（4 文件）
+### 3.5 backend/v1/app/services/（5 文件 — 6-05 加 push.py）
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
@@ -361,8 +379,9 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `meals.py` | 食堂用餐业务逻辑（router 之外的纯业务函数） | ✅ | P0 完整 |
 | `approval_chain.py` | 申请审批链业务逻辑 — 按申请类型决定要哪几个老师审 | ⚠️ | 外泊 chain 已确定 / 帰省 + 帰国 chain 是暫定值（待 itsuki 见老师补 4 张实物表） |
 | `email.py` | 发邮件业务逻辑（包 SendGrid SDK） | ⚠️ | 90% 完整 / 缺 retry 3 次循环（设计要求） |
+| `push.py` | 推送通知业务逻辑（设备令牌 → 推送） | ✅ | 配 `device_tokens.py` 路由 |
 
-### 3.6 backend/v1/tests/（**5 文件 — 2026-05-13 audit 校准**）
+### 3.6 backend/v1/tests/（19 文件 — 2026-06-05 校准 5→19）
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
@@ -372,10 +391,23 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `test_announcements.py` | 公告 API 的测试 | ✅ | 5-03 启 |
 | `test_demo_reviewer.py` | Apple 审核员 demo 账号的测试 | ✅ | 5-08 拍板 |
 | `test_registration_code.py` | 注册码 API 测试（/refresh / /current / /history） | ✅ | 5-03 启 |
+| `test_admin_accounts.py` | admin 端学生账号管理测试 | ✅ | |
+| `test_applications.py` | 外泊 / 帰省 / 帰国 申请测试 | ✅ | |
+| `test_outings.py` | 外出申请 + R4 寮边界测试（19 用例） | ✅ | 6-04 |
+| `test_study.py` | 学習担当 NFC 状态机测试 | ✅ | |
+| `test_study_online.py` | 在线学习申请审批测试 | ✅ | |
+| `test_rollcall.py` | 点呼刷卡记出席测试 | ✅ | |
+| `test_events_and_bus.py` | 行事予定 + 巴士时刻表测试 | ✅ | |
+| `test_guidance_and_incidents.py` | 指导履历 + 事案录入测试 | ✅ | |
+| `test_student_profile_and_promote.py` | 学生档案聚合 + 学年更新测试 | ✅ | |
+| `test_push.py` | 推送通知 + 设备令牌测试 | ✅ | |
+| `test_email_resend.py` | 邮件重发测试 | ✅ | |
+| `test_dorm_boundary_fixes.py` | 寮边界判定回归测试（IX-014 类 bug 防回归） | ✅ | |
+| `test_security_fixes.py` | 安全修复回归测试 | ✅ | |
 
-**实际 42 test case** — 覆盖率 35-45%（远低于 BACKEND_DESIGN_LOG §8 要求 70% — 5-12 深度审查 P1 发现）。
+> 测试文件从 5 涨到 19，覆盖 6 月新增的全部业务线。具体 test case 数 + 覆盖率需跑 `pytest` 实测（BACKEND_DESIGN_LOG §8 目标 70%）。
 
-### 3.6.5 backend/v1/alembic/（9 文件 — **2026-05-19 校准补漏 — 原表完全没列**）
+### 3.6.5 backend/v1/alembic/（22 文件 = 4 框架 + 18 迁移脚本 — 2026-06-05 校准 9→22）
 
 > Alembic = Python 数据库迁移工具，让 schema 变化有版本记录。每次改 `models.py` 字段都要生成一个 versions/*.py 迁移脚本。
 
@@ -391,19 +423,27 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `alembic/versions/d4e5f6a7b8c9_*.py` | 加学生注册码表 | ✅ | 5-03 |
 | `alembic/versions/e5f6a7b8c9d0_*.py` | 加公告表 | ✅ | 5-03 |
 | `alembic/versions/f6a7b8c9d0e1_*.py` | 加 demo reviewer 标志位（Apple 审核员账号） | ✅ | 5-08 |
-| `alembic/versions/e1f2a3b4c5d6_add_outings*.py` | 加 outings 外出申请表（单一老师确认） | ✅ | 6-04 / down=c9d0e1f2a3b4 |
+| `alembic/versions/e1f2a3b4c5d6_add_outings*.py` | 加 outings 外出申请表（单一老师确认） | ✅ | 6-04 |
+| `versions/d2e3f4a5b6c7_add_dorm_application_forms*.py` | 加宿舍生活类申请 4 表 | ✅ | 5-28 |
+| `versions/a1b2c3d4e5f6_add_device_tokens*.py` | 加设备推送令牌表 | ✅ | 5-30 |
+| `versions/a1b2c3d4e5f6_device_token_unique_index.py` | 设备令牌唯一索引（防重复注册） | ✅ | |
+| `versions/e3f4a5b6c7d8_add_events_and_bus_routes*.py` | 加行事予定 + 巴士时刻表 | ✅ | 5-30 |
+| `versions/f7a8b9c0d1e2_add_guidance_and_incidents*.py` | 加指导履历 + 事案表 | ✅ | 5-30 |
+| `versions/c1d2e3f4a5b6_add_demerit_cleaning_frontdesk.py` | 加扣分 + 清扫 + 前台 3 表 | ✅ | 5-27 |
+| `versions/a7b8c9d0e1f2_add_taxi_reservation_time*.py` | 加 taxi 预约时间字段 | ✅ | 6-03 |
+| `versions/c9d0e1f2a3b4_add_contract_file_to_study_online*.py` | 在线学习申请加合同文件字段 | ✅ | 6-04 |
+| `versions/a8b9c0d1e2f3_add_rce_idempotency_unique.py` | 注册码兑换幂等唯一约束 | ✅ | |
+| `versions/b9c0d1e2f3a4_remove_applied_group.py` | 删废弃的 applied_group 字段 | ✅ | |
+| `versions/f8a9b0c1d2e3_add_needs_renewal*.py` | 加 needs_renewal 学年更新标记字段 | ✅ | 6-05 |
 
-> ⚠️ 本列表只列了部分迁移 — 5-27~6-04 间多个会话加的迁移（demerit/cleaning/frontdesk、dorm forms、taxi、contract 等）未登记，实际 `alembic/versions/` 现有 17 个 `.py`。属历史漂移，待全量校准。
+### 3.7 v1 剩余缺块（2026-06-05 校准）
 
-### 3.7 v1 P0 缺块清单（**2026-05-13 audit 校准 — #2 #3 已完成**）
+> 6 月已补：rollcall / study router 挂载 + 扣分 / 清扫 / 前台 / 外出 / 事案 / 指导 / 学年更新 / 巴士 / 行事等全业务线。仍缺：
 
-需后续 P1 会话补：
-1. `routers/applications.py` 加 `POST /{id}/approvals`（#10-#13 役职审批）+ `DELETE /{id}`（D3 撤回）
-2. ~~新建 `routers/rollcall.py`~~ → ✅ **5-12 commit 96f86eb 已挂载**（但 NFC card_uid 防作弊核心未真接 — 见 §3.4 ⚠️ + 深度审查 P0）
-3. ~~新建 `routers/study.py`~~ → ✅ **5-12 commit 96f86eb 已挂载**
-4. `services/email.py` 补 retry 3 次
-5. **`routers/accounts.py` 加 DELETE /accounts/me**（5-13 audit 新发现 — Apple 5.1.1(v) 强制要求 / BACKEND_DESIGN_LOG §5.1.6 已 spec）
-6. **NFC card_uid 全栈实装**（5-13 audit / backend codex full audit 重点）— Student.card_uid 字段 + cards 表 + alembic migration + UNIQUE INDEX + admin_cards.py 路由
+1. **防作弊核心后端**（全项目最大缺口）— 设备注册校验 + 卡→学生映射（`Student.card_uid` 字段 + cards 表 + UNIQUE 索引 + admin_cards 路由）+ 点呼机↔后端传输安全。当前签到暂用老师令牌 + 手传 `student_id`。施工计划见 `02_design/NFC防代刷_后端立项施工计划.md`。
+2. `routers/applications.py` 加役职审批 endpoint（#10-#13）+ 撤回（`DELETE /{id}`）。
+3. `routers/accounts.py` 加 `DELETE /accounts/me`（Apple 5.1.1(v) 强制 / BACKEND_DESIGN_LOG §5.1.6 已 spec）。
+4. `services/email.py` 补 retry 3 次循环。
 
 ---
 
@@ -456,10 +496,10 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 
 ---
 
-## 5. 第 5 组：03_dev/student_ios + student_android + rollcall_device + LATEST.md（67 + 80 + 12 + 1 文件 — 2026-05-22 校准 ios 66→67）
+## 5. 第 5 组：03_dev/student_ios + student_android + rollcall_device + LATEST.md（78 + 131 + 36 + 1 文件 — 2026-06-05 校准）
 
-**统计**：✅ 31 / 📦 4 / ⚠️ 6 / ❓/⏳ 13
-**核心发现**：iOS SwiftUI 项目已在 `03_dev/student_ios/v1/` 主线推进，Foundation / Network / Features 结构成型；5-27 自主审查修过 1 处 force unwrap，另有少量架构性问题入 TODO。
+**统计**：iOS 78（顶层 2 + demo 4 + v1 72）/ Android 131（v1 全 Compose）/ 点呼机 36（软件骨架 12 + 采购截图 24）/ `03_dev/LATEST.md` 1。
+**核心发现**：iOS SwiftUI 主线在 `03_dev/student_ios/v1/`，Foundation / Network / Features 结构成型；Android 6 月大幅扩到 57 屏；点呼机仍骨架。三端真后端接入随 backend 推进。
 
 ### 5.1 顶层 + demo（8 文件）
 
@@ -493,7 +533,7 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 
 `project.pbxproj`（27KB 机器生成）+ `contents.xcworkspacedata` + 5 个 Assets.xcassets 元数据/icon = ✅。**STATUS.md 提到 Assets 暂因 SDK 冲突移除**，需要 4-23 后澄清现状。
 
-### 5.5 v1/Features/（8 个 *Stubs.swift）
+### 5.5 v1/Features/（11 文件 — 8 个 *Stubs.swift + Apply 下 3 个真实表单）
 
 | 文件 | 一句话作用 | 行数 | 状态 |
 |---|---|---|---|
@@ -505,12 +545,15 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `Schedule/ScheduleStubs.swift` | 日程屏（已废 — 并入 Home + Community） | 343 | ❌ 可删 |
 | `StayList/StayListStubs.swift` | 外泊清单屏（已废 — 并入 Apply） | 1588 | ⏳ 行数翻倍可能不再是纯 stub — 实装前先 review |
 | `BusList/BusListStubs.swift` | 班车清单屏（已废 — 并入 Community Bus card） | 330 | ❌ 可删 |
+| `Apply/ApplyFormSupport.swift` | 申请表单的共用支撑组件 | — | ✅ |
+| `Apply/DormLifeForms.swift` | 宿舍生活类 4 种申请的表单实装（对齐后端 dorm_life） | — | ✅ |
+| `Apply/StudyOnlineForm.swift` | 在线学习申请表单实装（对齐后端 study_online） | — | ✅ |
 
-### 5.6 v1/Foundation/（29 文件 — 2026-05-19 校准 17→29 扩展）+ Root/（3 文件）
+### 5.6 v1/Foundation/（36 文件 — 2026-06-05 校准 29→36，Network 层随后端实装扩张）+ Root/（3 文件）
 
 Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing / Seed / Theme / Network 等基础层 + RootView + GlobalOverlays + TomoshibiApp 入口。原 17 文件 1861 行已扩到 29 文件（v1 实装中陆续加 NetworkModels / API endpoint / 复用组件等）。
 
-### 5.7 03_dev/student_android/（Android 第 4 端,2026-05-06 合并回 DMSD,80 文件 — 2026-05-19 校准 56→80 Compose 实装大幅扩展）
+### 5.7 03_dev/student_android/（Android 第 4 端,2026-05-06 合并回 DMSD,131 文件 — 2026-06-05 校准 80→131 Compose 屏大幅扩张）
 
 > **背景**：2026-05-02 itsuki 拍板 v1.0 直接 iOS + Android 双端上线,Android 用 Kotlin + Jetpack Compose + Material 3 从 Claude Design 22 屏 standalone HTML 逐屏对译。原独立 repo `Tomoshibi-Android` 5-06 退役合并回 DMSD（详见 §8.1 退役 cloud agent 模式）。
 
@@ -525,11 +568,11 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 | `v1/app/.../ui/components/`（5 文件）| 跨屏共用 UI 组件 — TopRollBar / GlobalScaffold / BottomTabs / RollCallSheet / HomeCards | 5 | ✅ |
 | `v1/app/.../ui/theme/`（4 文件）| Material 3 主题层 — Color / Theme / Tokens / Type | 4 | ✅ |
 | `v1/app/.../ui/icons/SuzuIcons.kt` | Tomoshibi 自定义图标集 | 1 | ✅ |
-| `v1/app/.../ui/screens/`（23 屏）| 23 个屏的 Compose 实装 — splash / welcome / onboarding / login / home / rollcall / applications × 3 / mypage × 2 / nfc / deduction / account / community × 7 / notifications × 2 + 1 新增 | 23 | ✅ |
+| `v1/app/.../ui/screens/`（57 文件）| 各业务线屏的 Compose 实装 — applications 16 / community 13 / mypage 12 / login 3 / announcements + notifications 各 2 / home / rollcall / nfc / deduction / account / bus / splash / welcome / onboarding 各 1 | 57 | ✅ |
 | `v1/app/src/{androidTest,test}/`（2 文件）| 测试脚手架 — ExampleInstrumentedTest + ExampleUnitTest | 2 | ✅ 未真写测试 |
 
 **核心发现**：
-- 22 屏目标 ✅ 全部到位（design 蓝图与代码 1:1）
+- 屏数从 22 涨到 57（6 月大幅扩展 — 申请类 16 + 社区类 13 + 个人页 12）
 - 包名 `jp.tomoshibi.android` — Tomoshibi 命名跟 iOS / 后端一致
 - 跟 iOS 的对应：`screens/` ≈ iOS `Features/Stubs.swift`,`components/` ≈ `Foundation/`,`nav/` ≈ `Foundation/Routing/`
 - **真后端接入未做** — 当前是 MockData seed,backend v1 上线后改 fetch API（同 iOS,见 §3.7 backend P0 缺块）
@@ -538,7 +581,7 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 - ⏳ 未做 spec-sync 跨端字段对齐检查（spec-sync skill 价值在 backend 上线后跑）
 - 22 屏 vs system_features §7 14 子节功能矩阵 — 视觉层覆盖 ✅,业务规则层（扣分阈值 / 时间窗 / 役职链）待 backend 接通后实战验证
 
-### 5.8 03_dev/rollcall_device/（点呼机第 5 端,2026-05-08 建骨架,12 文件）
+### 5.8 03_dev/rollcall_device/（点呼机第 5 端,2026-05-08 建骨架,36 文件 = 软件骨架 12 + 采购截图 24）
 
 > **背景**：2026-05-08 itsuki 拍板「点呼机当第 5 端」(对称 backend / iOS / Android / teacher_web 4 端模式) — 跑在 Raspberry Pi 3A+ 上的 Python 程序,读 NTAG215 学生卡 + 写 ST25DV16K 动态贴纸 + LED 反馈 + 日语播报。物理硬件层在 `02_design/hardware_design.md`,本目录是软件层。
 
@@ -552,6 +595,7 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 | `config/.gitkeep` + `docs/.gitkeep` | 占位文件让空目录能进 git（systemd unit / 部署手册 / 接线图 待写） | ⏳ 占位 | git 不 track 空目录的解决方案 |
 | `点呼机接线说明.md` | 各模块接 Pi 3A+ 的接线方法（PN532 走 SPI / ST25DV 走 I²C / LED GPIO / 风扇 5V / 喇叭 USB + 7 条零基础避坑） | ⏳ 待到货实测 | 2026-05-28 硬件采购会话建 / 配 `02_design/hardware_design.md` |
 | `点呼机采购清单.html` | 首台演示机采购清单（按秋月/Switch Science/Amazon 分渠道 + 价格 + 库存状态）+ 点呼机功能 / 模块对应 / 接线速查，浏览器可视化快速查看 | ⏳ 待下单 | 2026-05-28 硬件采购会话建 / 部分线下部分线上 |
+| `采购截图/`（24 张 PNG） | 点呼机配件采购截图 — Amazon 购物车 + 秋月电子订单 + 各模块单品 | ✅ | 5-28 硬件采购会话存证 |
 
 **v1.0 实装顺序建议**（按 ROLLCALL_DEVICE_DESIGN_LOG §10 拍板后）：
 1. itsuki 拍板 D1-D6（NFC 库 / ST25DV 驱动方案 / TTS 方案 / SPI 还是 I2C / WebSocket 还是 HTTP / 设备认证）
@@ -567,10 +611,10 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 
 ---
 
-## 6. 第 6 组：05_logs + 06_assets + bin（92 文件 — 2026-05-29 加 raw/2026-05-29 / 2026-05-22 校准 36→91，05_logs/raw 持续增长）
+## 6. 第 6 组：05_logs + 06_assets + bin（160 文件 = 05_logs 148 + 06_assets 9 + bin 3 — 2026-06-05 校准）
 
-**统计**：✅ 24 / 📦 2 / ⚠️ 10
-**核心发现**：raw 04-12 ~ 04-30 高频产出（13 份）；80+ 条 #AC候选；4 篇 problem_solving 全集中于 4-10/4-15
+**05_logs 148 细分**：raw 91（每天原始会话记录）+ AC_叙事 12 + dev_log 9 + problem_solving 4 + audit_2026-05-19 13 + audit_2026-05-22_codex 7 + 3 个 meta（decision_log / learning_path / project_evolution）+ 散件 ~9（teacher_web 施工 3 + 各 audit 单件 + 漏洞清单 + 版本演变一览 等）。
+**核心发现**：raw 是项目最大原始素材区，AC 候选密度最高的几天见 §6.2 ⭐ 标记。
 
 ### 6.1 05_logs/ 根级 meta（3 文件）
 
@@ -580,7 +624,9 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 | `learning_path.md` | itsuki 学习哲学 + 已走的路 — AC 自我推荐书素材 | ✅ | 最后 4-13 / 4-10 后新学的 NFC / Swift / 硬件未追记 |
 | `project_evolution.md` | 项目重大转折记录（每次 = 转折点 + 起因 + 影响） | ✅ | 4 次已记 / 最后 4-13 / 待补"第 5 次转折" = demo 完成情况 |
 
-### 6.2 05_logs/raw/（68 文件 — 含 README — 5-22~5-28 新增 19：5-22 iOS fork + 5-22 海关 + 5-24 iOS bug + 5-25 drift + session-coord + 5-25 AC 学习清单起草 + 5-26 中枢 + 5-26 dmsd-startup + 5-26 vite 废弃 + 5-27 teacher_web 深夜推进 + 5-27 iOS 审查 + 5-27 全项目审查 + 5-27 anti-ai-flavor 双层防御立项 + 5-27 整理 inbox+8 类升级 + 5-27 老师实名账户登录 + 5-27 iOS 登录注册大改+审批链进度条 + 5-28 iOS codex 审查 + 5-28 注册页 demo 空+数字码+设计文档中文化 + 5-28 web登录页修复）
+### 6.2 05_logs/raw/（91 文件 — 含 README — 2026-06-05 校准 68→91，每天一份原始会话记录，持续增长）
+
+> raw 是项目最大的原始素材区。下表只列 AC 候选密度高（⭐ 多）的关键日，不逐个列全部 91 份 — 找某天记录直接看文件名 `raw/YYYY-MM-DD*.md`。
 
 | 文件 | 这天发生了啥 | AC 候选密度 |
 |---|---|---|
@@ -655,10 +701,9 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 
 ---
 
-## 7. 第 7 组：99_archive（431 文件 — 2026-05-22 校准 109→431，**5-21 加 teacher_web/demo 158 文件批量归档**）
+## 7. 第 7 组：99_archive（639 文件 — 2026-06-05 校准 431→639，历史归档区，按子目录粒度维护）
 
-**统计**：📦 96 / ⚠️ 5（NFC 鬼影）/ ❓ 8（.510Z + .pages + .docx 不可读）
-**总磁盘**：~21 MB
+> 归档区文件最多（占全项目 46%），但都是「任务结束保留作参考」的历史物，CC 日常很少查具体某个文件。本组只维护**子目录级**结构（§7.2），不逐个文件追描述。找老归档先看 `99_archive/README.md`。
 
 ### 7.1 根级（21 文件）
 
@@ -710,7 +755,7 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 | 模块 | 策略 | 现状 |
 |---|---|---|
 | **backend** | "重写 + 参考" | demo 锁定不动；v1 schema 全新（UUID + TIMESTAMPTZ + CHECK 约束）；ws_manager / models 思路参考 ✅ |
-| **teacher_web** | "复制起点 + 待改" | demo / v1 100% MD5 相同（4-30 整体复制后未动）⏳ |
+| **teacher_web** | "界面冻结迁移" | 6-05 从 HTML 单文件迁到 React+TS+Vite，界面 100% 原样搬；旧版归档 ✅ |
 | **student_ios** | DMSD single source | Swift 在 `03_dev/student_ios/v1/TomoshibiApp/`（16578 行），直接 Xcode 改 ✅ |
 | **student_android** | DMSD single source | Kotlin 在 `03_dev/student_android/v1/`（6945 行 / 2026-05-06 从 Tomoshibi-Android 合并），直接 Android Studio 改 ✅ |
 
@@ -735,93 +780,15 @@ repo 里共 **8 个 .pages + 2 个 .docx + 14 个 .510Z = 24 个 CC 不可读文
 - ⚠️ `decision_log.md` 6 条决策"事后回看"占位待补
 - ⚠️ `跨会话_ios_共享决策.md` 短期 TODO 文件已过期（iOS 工程独立）
 
-### 8.4 三层 DESIGN_LOG 体系成熟度
+### 8.4 五层 DESIGN_LOG 体系
 
-4-29 大整理后建立的 BACKEND / WEB / IOS 三层体系：
-- 都活跃维护中（4-30 同日全部更新）
-- 都和 `system_features.md` 锁定同步关系
-- 都有 §11 v1.0 实装清单 section
-- 都被 v1/v_demo 子目录共享（不重复 per-module）
-
-这是 4-29 整理的最大资产 — **值得在 AC 叙事 v0.7.0 / v0.8.0 重点展开**（"工程化治理思维"角度）。
+五端各有 DESIGN_LOG（各端设计决策的权威源）：BACKEND / IOS / ANDROID / WEB / ROLLCALL_DEVICE。都跟 `02_design/system_features.md`（共用层真值）锁定同步——改某端业务代码前先查对应端 DESIGN_LOG。这套「1 个共用层 + 5 个专属层」的治理是 AC「工程化治理思维」素材。
 
 ---
 
-## 9. 综合行动清单
+## 9. 任务清单 → 见 `00_admin/TODO.md`
 
-### 9.1 P0 立即可做（**2026-05-13 commit b37d065 + 81842f4 + 859693e 大部分已 ✅**）
-
-| # | 任务 | 来源 | 状态 |
-|---|---|---|---|
-| 1 | ~~`跨会话_ios_共享决策.md` 归档~~ → `99_archive/2026-05-12_深夜大整理/` | §1.5 | ✅ 5-13 commit 81842f4 |
-| 2 | ~~`v0.4.0_S系列spec漏洞优先级分析.md` 归档~~ | §1.2 | ✅ 5-13 commit 81842f4 |
-| 3 | ~~`DESIGN_BRIEF.md` 改名~~ → `_archived_DESIGN_BRIEF_Round1_context.md` | §5.1 | ✅ 5-13 commit 81842f4 |
-| 4 | ~~`Round2_Prompt_C3.md` 改名~~ → `_archived_Round2_Prompt_draft.md` | §5.1 | ✅ 5-13 commit 81842f4 |
-| 5 | ~~`.DS_Store` 误进 git~~ | §7 | ✅ `.gitignore` 已生效 git 不 track |
-| 6 | 在 `models.py` 表 docstring 标 P0 / P1 / P2 | §3.3 | ⏳ 未做 |
-| 7 | 更新 `文件结构指南.md`：补 v0.6.0/v0.7.0 AC 叙事文件 + 新增 raw 日志 + cross-session iOS 决策的归宿 | 跨多组 | ⏳ 部分（本 skill 已校准，`文件结构指南.md` 待 itsuki 拍板）|
-| 8 | 更新 `99_archive/README.md` 时间戳 + 鬼影文件解决说明 | §7.5 | ⏳ 未做（itsuki 拍板）|
-| 9 | **5-13 新增**：4 sub agent draft 待 itsuki 粘贴 → `decision_log` / `learning_path` / `project_evolution` / `system_features §8` | — | ⏳ /tmp/ 待 itsuki |
-| 10 | **5-13 新增**：classifier 拦 2 个 skill `sed -i.bak 's\|17 条联动\|18 条\|' .claude/skills/file-linkage/SKILL.md` + `sed -i.bak 's\|/Users/itsuki/\|/Users/kurekoduki/\|g' .claude/skills/memory-write/SKILL.md` | — | ⏳ itsuki 自己 sed |
-| 11 | **5-13 新增**：99_archive 100% 重复目录 `2026-05-02_backend_handoff_F1-F7/` vs `2026-05-02_handoff_F1-F7/` itsuki 决定删哪个 | §7 | ⏳ itsuki 拍板 |
-
-### 9.2 P1 itsuki 决定后批量执行（节省 ~13 MB）
-
-| # | 任务 | 决定点 |
-|---|---|---|
-| 9 | 删 14 个 `99_archive/ファイル - *.510Z` PDF dump | 已确认对应 .md 在 raw/2025-12 |
-| 10 | 删 5 个 `99_archive/*.pages`（learning_process / progress_log × 2 / 需要学习 / Folder_Structure）| 都已被 .md 抢救 |
-| 11 | 删 2 个 `99_archive/01_specs_Overview_原稿/*.docx` | 已被 .md 取代 |
-| 12 | 删 4 个 `01_specs/*.pages`（API_Contract / IA_UI / Overview_of_Features / RollCall_Spec_v0.1）| 已被 .md 取代 |
-| 13 | 处理 `01_specs/rollcall/DMSDv0.1验收脚本.pages` | 与 PDF §1.2 是否相同？|
-| 14 | 处理 `99_archive/NFC_NFD_鬼影文件/` 5 个 | 问题已解决可删；保留则 README 补说明 |
-
-### 9.3 P1 待 itsuki 手笔合并（30-60 分钟单次工作）
-
-| # | 任务 | 文件 |
-|---|---|---|
-| 15 | 合并 `progress_overview_draft_2026-04-20.md` → `progress_overview.md` | §1.3 |
-| 16 | 合并 `Batch3_itsuki手笔素材指引.md` 4 个 draft → decision_log / project_evolution / learning_path | §1.4 |
-| 17 | 追记 `learning_path.md` 4-10 后新学（NFC 原理 / Core NFC / Swift / 硬件选型） | §6.1 |
-| 18 | 补 `decision_log.md` 6 条"事后回看"（可月度 review 中合并） | §6.1 |
-
-### 9.4 P1 待开发会话补全（后端 P0 缺块）
-
-| # | 任务 |
-|---|---|
-| 19 | `routers/applications.py` 加 `POST /{id}/approvals`（#10-#13 役职审批） |
-| 20 | 新建 `routers/rollcall.py`（#14-#20 点呼 iPad） |
-| 21 | 新建 `routers/study.py`（#16-#20 学习担当） |
-| 22 | `services/email.py` 补 retry 3 次循环 |
-
-### 9.5 P1 待开发会话推进（teacher_web v1.0 启动）
-
-| # | 任务 |
-|---|---|
-| 23 | 删 v1/ 复用的 build/single-file 脚本（4 个 .command + .py） |
-| 24 | 改 `theme.jsx` seed → fetch API |
-| 25 | 改 `shell.jsx` 5 角色不同菜单 |
-| 26 | 改 `login.jsx` 真认证 |
-| 27 | 改 `live-roll-call.jsx` poll → WebSocket |
-| 28 | 补 Tier 1 剩余页面（外泊 / 帰省 / 帰国 / records / search / 健康申报 / 请假流程） |
-
-### 9.6 P1 iOS（待 Agent 派发）
-
-| # | 任务 |
-|---|---|
-| 29 | Agent D dispatch — Apply v2（StayForm 8 section） |
-| 30 | Agent E dispatch — MyPage v2（Landing + Info + Rollcall + Points + PointsChart + Discipline + Settings 14 view） |
-| 31 | 决定 Schedule / StayList / BusList 3 个 stub 命运（删 / redirect / 保留） |
-| 32 | 澄清 Assets.xcassets SDK 冲突现状 |
-
-### 9.7 P2 一月内（脱敏 + 补 AC 素材）
-
-| # | 任务 |
-|---|---|
-| 34 | `06_assets/real_samples/bus_notice_*.md` 学生实名脱敏（v1.0 公开前必做） |
-| 35 | 提炼 4 篇 problem_solving → iCloud `03_素材_候选/`（CC 协助） |
-| 36 | `AC_志望動機_素材.md` Q1-Q8 起草 |
-| 37 | 月度 review（5 月底）— 5 月 AC 候选 + monthly_review/2026-05.md |
+> 原来这里维护 P0/P1/P2 行动清单，2026-06-05 废弃 —— 任务真值统一在 `00_admin/TODO.md`（项目的 issue tracker，按 A 工程 / B 文档 / C AC 素材 三轨分类）。本 skill 只管「文件清单」，不重复维护任务清单（两处会打架）。
 
 ---
 
@@ -840,36 +807,13 @@ repo 里共 **8 个 .pages + 2 个 .docx + 14 个 .510Z = 24 个 CC 不可读文
 | 7 | `00_admin/v0.7.0_AC叙事.md` 三轨 A/B/C 并行 | #3 #4 | 多会话工程实践 + 信息源选择 lesson |
 | 8 | `99_archive/2026-04-15_old_demo/` 9 文件 | #3 | 首个可运行原型（Flask + iPhone Shortcuts + TTS） |
 | 9 | `99_archive/2026-05-06_cloud_agent_退役/` 完整归档 | #3 #4 | 多 agent 协作的工程解 → 退役迭代（4-23 拍板 → 5-06 退役 13 天周期，约束变化后的方法论再校准）|
-| 10 | `00_admin/版本管理SOP.md` + hooks 三件套 | #4 | 文档治理思维：从漂移发现到机制化解决 |
+| 10 | `.claude/skills/version-bump/SKILL.md` + hooks 治理 | #4 | 文档治理思维：从漂移发现到机制化解决 |
 
 ---
 
-## 11. itsuki 待决定列表
+## 11. 待决定 + 审查历史 → 见 `00_admin/TODO.md` / git log
 
-| # | 决定点 | 影响 |
-|---|---|---|
-| 1 | 24 个不可读文件（.pages / .docx / .510Z）一次性清理? | 节省 ~13 MB / 减少 confused 文件 |
-| 2 | NFC_NFD 鬼影文件去留? | 5 文件去留 + README 加 1 句解决方式 |
-| 3 | `v0.1_冻结决策.md` 角色定位（备份单源 / 历史快照） | 影响 §文档同步点清单 登记 |
-| 4 | `progress_overview_draft_2026-04-20.md` 合并时机 | 教授看 GitHub "做到哪了" 信息新鲜度 |
-| 5 | `Batch3_itsuki手笔素材指引.md` 4 个 draft 合并时机 | 30-60 分钟单次工作 |
-| 6 | iOS Schedule / StayList / BusList 3 个 stub 命运 | 删 / redirect / 保留 |
-| 7 | `bus_notice_*.md` 学生实名脱敏时机 | v1.0 公开前必做 |
-| 8 | 是否启动 v1.0 teacher_web 真改造（删 demo 复用脚本 + 真后端 + 5 角色菜单） | v1.0 进度 |
-
----
-
-## 12. 附：本次审查方法
-
-1. 主会话切 7 组（按目录分组 + vendor 聚合）
-2. 7 个 Explore agent 并行扫描，每个 agent 拿到：
-   - 项目背景（DMSD / Tomoshibi / 当前 v0.7.0 / 三层 DESIGN_LOG 体系等）
-   - 范围内文件清单
-   - 输出格式规约（每个文件给作用 / 状态 / 价值 / 建议 4 列）
-3. 每个 agent 返回独立 markdown report
-4. 主会话合成：精简表格 + 横向洞察 + 综合行动清单 + AC top 10
-
-**精简率**：原 7 个 agent 报告共 ~2500 行 → 本文 ~600 行（保留所有文件清单 + 关键结论 + 跨组洞察，去掉重复列）。
+> 原「itsuki 待决定列表」（不可读文件清理 / 鬼影文件去留 / 学生实名脱敏时机 等）已并入 `00_admin/TODO.md` 统一管理。原「本次审查方法」（2026-05-01 首次 7 组 Explore agent 并行扫描合成）属历史过程，归 git log，不在本 skill 留存。
 
 ---
 
