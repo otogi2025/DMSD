@@ -47,6 +47,7 @@
 		B44CB0467883974CE94C820A /* TopRollBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F5108D87904D498A8215B0 /* TopRollBar.swift */; };
 		B61FB76EA851BC80A2FBBE39 /* Route.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C054666A54A77C6971A7BD /* Route.swift */; };
 		B97F2CD7088F960531EFF66B /* Ic.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF988C23F66A4E622622302F /* Ic.swift */; };
+		C75ED6393B19EBBEE7CA1A15 /* OutingsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 492E8FE746273F00BC46D772 /* OutingsAPI.swift */; };
 		CB5C431AB69BF972FFB160CB /* HomeStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89293A7DB55301A3F1DDE5EE /* HomeStubs.swift */; };
 		CF76384DA126CF63F99BE13E /* StudyAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD89B96B9E1EC056A73411B6 /* StudyAPI.swift */; };
 		D802FA046E6B50B968F5826F /* MyPageStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E749CA72863EC4E0022C7B6 /* MyPageStubs.swift */; };
@@ -88,6 +89,7 @@
 		442041B74BB2BF0DA65D37EE /* ScheduleStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleStubs.swift; sourceTree = "<group>"; };
 		45EEA8DBC6162B90B9119E85 /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
 		4871E294F8315859BF244132 /* ApplicationsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationsAPI.swift; sourceTree = "<group>"; };
+		492E8FE746273F00BC46D772 /* OutingsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutingsAPI.swift; sourceTree = "<group>"; };
 		4A1DA47ECA99A6BC826597E0 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		56739ED2BA471039822C2E43 /* APIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIError.swift; sourceTree = "<group>"; };
 		5802FFC4938B6F524F6703C5 /* TomoshibiApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = TomoshibiApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -139,6 +141,7 @@
 				8771AACE31B06D1D9DAF7044 /* BusAPI.swift */,
 				AFDFE87D987EF1A14F86E420 /* DormLifeAPI.swift */,
 				AE8464C86A7E2262CDCEA498 /* EventsAPI.swift */,
+				492E8FE746273F00BC46D772 /* OutingsAPI.swift */,
 				B6BED925E6CDEDFF9B146D29 /* RollCallAPI.swift */,
 				DD89B96B9E1EC056A73411B6 /* StudyAPI.swift */,
 			);
@@ -504,6 +507,7 @@
 				5ED1EEDC4A69AC06E29DAEA1 /* KeychainService.swift in Sources */,
 				D802FA046E6B50B968F5826F /* MyPageStubs.swift in Sources */,
 				514CAEBC12DA5C1D83417976 /* NetworkModels.swift in Sources */,
+				C75ED6393B19EBBEE7CA1A15 /* OutingsAPI.swift in Sources */,
 				F2032E9BF093EAA2F43FEDD8 /* PageHeader.swift in Sources */,
 				9F98E4CC9626DDB3E7C20C57 /* PrimaryButton.swift in Sources */,
 				8F6D452D51998868F8DCCD0C /* RollCallAPI.swift in Sources */,
@@ -609,7 +613,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Tomoshibi;
-				INFOPLIST_KEY_CFBundleShortVersionString = 0.12.0;
+				INFOPLIST_KEY_CFBundleShortVersionString = 0.15.0;
 				INFOPLIST_KEY_CFBundleVersion = 1;
 				INFOPLIST_KEY_NSCameraUsageDescription = "オンライン学習の契約書を撮影するためにカメラを使用します";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -702,7 +706,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Tomoshibi Demo";
-				INFOPLIST_KEY_CFBundleShortVersionString = 0.12.0;
+				INFOPLIST_KEY_CFBundleShortVersionString = 0.15.0;
 				INFOPLIST_KEY_CFBundleVersion = 1;
 				INFOPLIST_KEY_NSCameraUsageDescription = "オンライン学習の契約書を撮影するためにカメラを使用します";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -803,7 +807,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Tomoshibi;
-				INFOPLIST_KEY_CFBundleShortVersionString = 0.12.0;
+				INFOPLIST_KEY_CFBundleShortVersionString = 0.15.0;
 				INFOPLIST_KEY_CFBundleVersion = 1;
 				INFOPLIST_KEY_NSCameraUsageDescription = "オンライン学習の契約書を撮影するためにカメラを使用します";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

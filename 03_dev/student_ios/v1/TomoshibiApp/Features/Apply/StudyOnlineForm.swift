@@ -1,6 +1,7 @@
 // StudyOnlineForm.swift
 // Features · Apply — 学習欠席届 类型 A「オンライン学習申請」
 
+import QuickLook // 契約書（图片 / PDF）的 .quickLookPreview 预览（A3）
 import SwiftUI
 
 private struct OnlineScheduleSlot: Identifiable, Hashable {
@@ -371,7 +372,7 @@ struct StudyOnlineRequestListView: View {
                             .frame(maxWidth: .infinity)
                     } else {
                         ForEach(items) { item in
-                            StudyOnlineRequestRow(item: item)
+                            StudyOnlineRequestRow(item: item, onChanged: { await load() })
                         }
                     }
                 }
@@ -403,22 +404,135 @@ struct StudyOnlineRequestListView: View {
 
 private struct StudyOnlineRequestRow: View {
     let item: StudyOnlineRequestOut
+    /// 上传成功后让父列表重新拉数据（这行就会从「未添付」变成「已上传」展示）
+    var onChanged: () async -> Void
+    @EnvironmentObject var app: AppStore
+
+    @State private var picked: PickedContract?
+    @State private var uploading = false
+    @State private var downloading = false
+    @State private var previewURL: URL?
 
     var body: some View {
         Card(padding: 14) {
-            HStack(alignment: .top, spacing: 10) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("期間")
-                        .font(.system(size: 12))
-                        .foregroundStyle(T.inkSub)
-                    Text("\(item.period_from) 〜 \(item.period_to)")
-                        .font(.system(size: 15, weight: .bold, design: .monospaced))
-                        .foregroundStyle(T.ink)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("期間")
+                            .font(.system(size: 12))
+                            .foregroundStyle(T.inkSub)
+                        Text("\(item.period_from) 〜 \(item.period_to)")
+                            .font(.system(size: 15, weight: .bold, design: .monospaced))
+                            .foregroundStyle(T.ink)
+                    }
+                    Spacer()
+                    let pair = studyOnlineStatusPair(item.status)
+                    Pill(text: pair.label, tone: pair.tone)
                 }
-                Spacer()
-                let pair = studyOnlineStatusPair(item.status)
-                Pill(text: pair.label, tone: pair.tone)
+
+                contractSection
             }
+        }
+        .quickLookPreview($previewURL)
+        .onChangeCompat(of: picked) { newValue in
+            // 选好文件就立刻上传（用户感知是点一下「契約書を添付」就传上去）
+            if newValue != nil { Task { await upload() } }
+        }
+    }
+
+    /// 契約書区：已上传 → 文件名 +「表示」(A3 下载查看)；审查中且没合同 → 补传入口 (A2)。
+    @ViewBuilder
+    private var contractSection: some View {
+        if let name = item.contract_file_name {
+            // A3：已上传 → 文件名 +「表示」（下载二进制 → QuickLook 预览图片 / PDF）
+            Rectangle().fill(T.hair).frame(height: 0.5)
+            HStack(spacing: 8) {
+                Image(systemName: item.contract_mime == "application/pdf" ? "doc.fill" : "photo.fill")
+                    .font(.system(size: 15))
+                    .foregroundStyle(T.primary)
+                Text(name)
+                    .font(.system(size: 12))
+                    .foregroundStyle(T.inkSub)
+                    .lineLimit(1)
+                Spacer()
+                Button {
+                    Task { await showContract() }
+                } label: {
+                    Text(downloading ? "読込中…" : "表示")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(downloading ? T.inkMute : T.primary)
+                }
+                .buttonStyle(.plain)
+                .disabled(downloading)
+            }
+        } else if item.status == "pending" {
+            // A2：审查中 + 没合同（提交时第二步上传失败 / 当时没传）→ 给补传入口
+            Rectangle().fill(T.hair).frame(height: 0.5)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("契約書が未添付です")
+                    .font(.system(size: 12))
+                    .foregroundStyle(T.inkSub)
+                if uploading {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text("アップロード中…")
+                            .font(.system(size: 12))
+                            .foregroundStyle(T.inkSub)
+                    }
+                } else {
+                    ContractFilePicker(picked: $picked)
+                }
+            }
+        }
+    }
+
+    /// A2：把选好的契約書传到这条申请（仅 pending 状态后端才接受）。
+    private func upload() async {
+        guard let contract = picked else { return }
+        uploading = true
+        defer { uploading = false }
+        do {
+            _ = try await StudyAPI.uploadOnlineContract(
+                requestId: item.id,
+                fileData: contract.data,
+                fileName: contract.fileName,
+                mimeType: contract.mime
+            )
+            app.showToast("契約書を添付しました")
+            picked = nil
+            await onChanged()
+        } catch let APIError.unprocessable(msg) {
+            // 类型不符 / 超大 / 已审查不能改
+            app.showToast(msg)
+            picked = nil
+        } catch APIError.unauthorized {
+            app.authToken = nil
+        } catch APIError.network {
+            app.showToast("通信エラーが発生しました。電波を確認してください")
+            picked = nil
+        } catch {
+            app.showToast(error.localizedDescription)
+            picked = nil
+        }
+    }
+
+    /// A3：下载契約書文件 → 写临时文件 → QuickLook 预览。
+    private func showContract() async {
+        downloading = true
+        defer { downloading = false }
+        do {
+            let data = try await StudyAPI.downloadOnlineContract(requestId: item.id)
+            let ext = item.contract_mime == "application/pdf" ? "pdf" : "jpg"
+            let tmp = FileManager.default.temporaryDirectory
+                .appendingPathComponent("contract_\(item.id.uuidString).\(ext)")
+            try data.write(to: tmp, options: .atomic)
+            previewURL = tmp
+        } catch APIError.unauthorized {
+            app.authToken = nil
+        } catch APIError.network {
+            app.showToast("通信エラーが発生しました。電波を確認してください")
+        } catch {
+            app.showToast("契約書の取得に失敗しました")
         }
     }
 }

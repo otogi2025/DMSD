@@ -100,6 +100,18 @@ struct ApplyListView: View {
         )
     }
 
+    /// 后端 OutingOut → 列表用 ApplicationItem。外出在独立 outings 表，
+    /// id 加 "outing:" 前缀 → 详情页 ApplyDetailView 按前缀分流到 OutingDetailView。
+    private func mapOutingToItem(_ o: OutingOut) -> ApplicationItem {
+        ApplicationItem(
+            id: "outing:\(o.id.uuidString)",
+            type: "outing",
+            status: o.status,
+            date: o.outing_date,
+            summary: o.destination.map { "外出・\($0)" } ?? "外出"
+        )
+    }
+
     /// 拉列表数据：演示读 SEED，生产调 GET /applications/mine
     private func load() async {
         loading = true
@@ -109,8 +121,14 @@ struct ApplyListView: View {
             hasLoaded = true
         #else
             do {
-                let out = try await ApplicationsAPI.listMine()
-                items = out.map(mapToItem)
+                let apps = try await ApplicationsAPI.listMine()
+                var merged = apps.map(mapToItem)
+                // 外出（独立 outings 表）失败不拖垮出寮届列表：拉不到就只是不显示外出
+                if let outings = try? await OutingsAPI.listMine() {
+                    merged += outings.map(mapOutingToItem)
+                }
+                // 出寮届 + 外出按日期倒序合并展示
+                items = merged.sorted { $0.date > $1.date }
                 hasLoaded = true
             } catch APIError.unauthorized {
                 // codex: 令牌过期/失效 → 清登录态走登录页（跟 StayListView 一致），
@@ -225,7 +243,8 @@ private struct ApplicationRow: View {
 
     var body: some View {
         let t = applyType(item.type)
-        let sp = statusPair(item.status)
+        // 外出是独立 outings 表、三态语义不同（確認待ち/確認済/取消済），别套出寮届的「審査中/承認済」
+        let sp = item.type == "outing" ? outingStatusPair(item.status) : statusPair(item.status)
         Card(padding: 14) {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 12) {
@@ -1562,6 +1581,12 @@ struct GenericApplyForm: View {
     @State private var repairPlace: String = "自室"
     @State private var guardian: Bool = false
 
+    // ── 外出（outing）専用 — 接 outings 后端（A1）。后端 OutingCreateIn.outing_date 必填，旧表单缺这些字段 ──
+    @State private var outingDate: Date = .init() // 外出日（今日以降）；后端拒过去日期
+    @State private var outingLeaveTime: Date = StayForm.parseHM("13:00") ?? Date()
+    @State private var outingReturnTime: Date = StayForm.parseHM("17:00") ?? Date()
+    @State private var isSubmittingOuting: Bool = false
+
     private var type: ApplyTypeMeta {
         applyType(kind)
     }
@@ -1644,6 +1669,18 @@ struct GenericApplyForm: View {
                     if needsDest {
                         Field(label: "行き先", required: true) {
                             TField(text: $dest, placeholder: "行き先を入力")
+                        }.padding(.bottom, 14)
+                    }
+                    if isOuting {
+                        // 外出是当天回寮 — 外出日（必填）+ 外出/回寮时刻。后端 OutingCreateIn 要 outing_date
+                        Field(label: "外出日", required: true) {
+                            DateField(date: $outingDate)
+                        }.padding(.bottom, 14)
+                        Field(label: "外出時刻") {
+                            TimeField(date: $outingLeaveTime)
+                        }.padding(.bottom, 14)
+                        Field(label: "帰寮予定時刻") {
+                            TimeField(date: $outingReturnTime)
                         }.padding(.bottom, 14)
                     }
                     if isGuest {
@@ -1794,19 +1831,24 @@ struct GenericApplyForm: View {
                         .buttonStyle(.plain)
 
                         Button {
-                            router.go(.applyPreview(kind: kind))
+                            // 外出（outing）= 接 outings 后端直接提出（跳过演示用确认页）；其他类型仍走确认页
+                            if isOuting {
+                                Task { await submitOuting() }
+                            } else {
+                                router.go(.applyPreview(kind: kind))
+                            }
                         } label: {
-                            Text("次へ · 確認")
+                            Text(isOuting ? (isSubmittingOuting ? "提出中…" : "提出する") : "次へ · 確認")
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundStyle(.white)
                                 .frame(maxWidth: .infinity, minHeight: 52)
                                 .background {
                                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .fill(canSubmit ? T.primary : T.inkFaint)
+                                        .fill(canSubmit && !isSubmittingOuting ? T.primary : T.inkFaint)
                                 }
                         }
                         .buttonStyle(.plain)
-                        .disabled(!canSubmit)
+                        .disabled(!canSubmit || isSubmittingOuting)
                     }
                 }
                 .padding(.horizontal, 20)
@@ -1829,6 +1871,44 @@ struct GenericApplyForm: View {
             guard app.currentUser != nil else { return }
             contact = app.displayUser.phone
             didPrefillContact = true
+        #endif
+    }
+
+    /// A1：外出申请直接接 outings 后端提出（pending → 等老师确认）。
+    /// 演示构建不连后端、直接跳完成页讲叙事。
+    private func submitOuting() async {
+        guard !isSubmittingOuting else { return }
+        isSubmittingOuting = true
+        defer { isSubmittingOuting = false }
+        #if DEMO
+            app.showToast("外出申請を提出しました")
+            router.go(.applyDone(kind: "outing"))
+        #else
+            let trimmedDest = dest.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedReason = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+            let body = OutingCreateBody(
+                outing_date: StayForm.formatYMD(outingDate),
+                destination: trimmedDest.isEmpty ? nil : trimmedDest,
+                leave_time: StayForm.formatHM(outingLeaveTime),
+                return_time: StayForm.formatHM(outingReturnTime),
+                taxi_reservation_time: taxiReserved ? StayForm.formatHM(taxiTime) : nil,
+                reason: trimmedReason.isEmpty ? nil : trimmedReason
+            )
+            do {
+                _ = try await OutingsAPI.create(body)
+                app.showToast("外出申請を提出しました")
+                router.go(.applyDone(kind: "outing"))
+            } catch let APIError.unprocessable(msg) {
+                // 外出日是过去 / 时刻矛盾 等的输入错误
+                app.showToast(msg)
+            } catch APIError.unauthorized {
+                app.authToken = nil
+                router.replace(.login)
+            } catch APIError.network {
+                app.showToast("通信エラーが発生しました。電波を確認してください")
+            } catch {
+                app.showToast(error.localizedDescription)
+            }
         #endif
     }
 }
@@ -2103,6 +2183,16 @@ struct ApplyDetailView: View {
     }
 
     var body: some View {
+        if id.hasPrefix("outing:") {
+            // 生产：外出申请走独立 outings 后端，ApplyListView 给外出 id 加了 "outing:" 前缀
+            OutingDetailView(outingId: String(id.dropFirst("outing:".count)))
+        } else {
+            stayOrOtherBody
+        }
+    }
+
+    @ViewBuilder
+    private var stayOrOtherBody: some View {
         // 4-30 後續: 出寮届系（stay/holiday/returncountry/return）→ 显示 chain timeline (StayDetailView)
         // 老师 #5 要求：申请人能看到 chain 上每个役职是否已许可
         #if DEMO
@@ -2332,4 +2422,229 @@ private struct WorkflowStepsView: View {
     ApplyDetailView(id: "a3")
         .environmentObject(RouterStore(initial: .applyDetail(id: "a3")))
         .environmentObject(AppStore())
+}
+
+// ============================================================================
+// §2.14 OutingDetailView — 外出申请详情（接 outings 后端 · 2 步进度）A1
+//
+// 外出是独立 outings 表（不是出寮届 applications）：不过夜 / 一名老师确认即可。
+// 三态映射 2 步进度：pending=先生確認待ち / approved=確認済（显示确认老师名）/ withdrawn=取消。
+// 只在生产被调（ApplyListView 给外出 id 加了 "outing:" 前缀），演示版外出仍走 SEED otherDetailBody。
+// ============================================================================
+
+struct OutingDetailView: View {
+    let outingId: String
+    @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
+
+    @State private var loaded: OutingOut?
+    @State private var isLoading = false
+    @State private var isWithdrawing = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            PageHeader(title: "申請詳細", level: 2)
+            ScrollView {
+                if isLoading, loaded == nil {
+                    ProgressView()
+                        .tint(T.primary)
+                        .frame(maxWidth: .infinity, minHeight: 200)
+                } else if let o = loaded {
+                    content(o)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 4)
+                        .padding(.bottom, 28)
+                } else {
+                    VStack(spacing: 12) {
+                        Spacer(minLength: 80)
+                        Text("申請が見つかりません")
+                            .font(.system(size: 14))
+                            .foregroundStyle(T.inkSub)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .refreshable { await load() }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(T.pearl.ignoresSafeArea())
+        .task { await load() }
+    }
+
+    private func content(_ o: OutingOut) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // 详情卡
+            Card(padding: 18) {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 18))
+                            .foregroundStyle(T.primary)
+                            .frame(width: 44, height: 44)
+                            .background {
+                                RoundedRectangle(cornerRadius: 12, style: .continuous).fill(T.pill)
+                            }
+                        Text("外出申請")
+                            .font(.system(size: 16, weight: .heavy))
+                            .foregroundStyle(T.ink)
+                        Spacer()
+                        let sp = outingStatusPair(o.status)
+                        Pill(text: sp.label, tone: sp.tone)
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        outingRow(label: "外出日", value: o.outing_date)
+                        if let d = o.destination, !d.isEmpty {
+                            divider; outingRow(label: "行き先", value: d)
+                        }
+                        if let t = o.leave_time {
+                            divider; outingRow(label: "外出時刻", value: hm(t))
+                        }
+                        if let t = o.return_time {
+                            divider; outingRow(label: "帰寮予定時刻", value: hm(t))
+                        }
+                        if let t = o.taxi_reservation_time {
+                            divider; outingRow(label: "タクシー予約", value: hm(t))
+                        }
+                        if let r = o.reason, !r.isEmpty {
+                            divider; outingRow(label: "理由", value: r)
+                        }
+                    }
+                    .padding(.top, 12)
+                    .overlay(alignment: .top) { Rectangle().fill(T.hair).frame(height: 0.5) }
+                }
+            }
+
+            // 进捗（2 步）
+            Card(padding: 18) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("進捗")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(T.inkSub).kerning(1.2)
+                        .padding(.bottom, 14)
+                    WorkflowStepsView(steps: steps(o))
+                }
+            }
+
+            // 撤回（仅 pending）
+            if o.status == "pending" {
+                Button {
+                    Task { await withdraw(o) }
+                } label: {
+                    Text(isWithdrawing ? "取消中…" : "申請を取消")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(T.danger)
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .background {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous).fill(T.paper)
+                        }
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(T.danger.opacity(0.25), lineWidth: 1.5)
+                        }
+                }
+                .buttonStyle(.plain)
+                .disabled(isWithdrawing)
+            }
+        }
+    }
+
+    private var divider: some View {
+        Rectangle().fill(T.hair).frame(height: 0.5).padding(.vertical, 9)
+    }
+
+    private func outingRow(label: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label).font(.system(size: 13)).foregroundStyle(T.inkSub)
+            Spacer()
+            Text(value)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(T.ink)
+                .multilineTextAlignment(.trailing)
+        }
+    }
+
+    /// 时刻 "HH:mm:ss" → "HH:mm"（去秒、UI 简洁）
+    private func hm(_ s: String) -> String {
+        let parts = s.split(separator: ":")
+        return parts.count >= 2 ? "\(parts[0]):\(parts[1])" : s
+    }
+
+    /// datetime "2026-06-05T13:55:04[.xxx][+09:00]" → "2026-06-05 13:55"（兼容带/不带时区·小数秒）
+    private func fmtDateTime(_ iso: String) -> String {
+        let parts = iso.split(separator: "T", maxSplits: 1)
+        guard parts.count == 2 else { return iso }
+        let hmParts = parts[1].split(separator: ":")
+        return hmParts.count >= 2 ? "\(parts[0]) \(hmParts[0]):\(hmParts[1])" : String(parts[0])
+    }
+
+    /// 三态 → 2 步进度（提出 → 確認）。confirmed 时第 2 步显示确认老师名。
+    private func steps(_ o: OutingOut) -> [ApplyDetailView.StepMeta] {
+        let confirmed = o.status == "approved"
+        let withdrawn = o.status == "withdrawn"
+        let submitTime = fmtDateTime(o.submitted_at)
+        let confirmTime = o.confirmed_at.map { fmtDateTime($0) }
+        return [
+            .init(k: "submit", label: "提出", done: true, active: false, time: submitTime, label2: nil),
+            .init(k: "confirm",
+                  label: confirmed ? "確認" : (withdrawn ? "取消" : "先生の確認待ち"),
+                  done: confirmed,
+                  active: !confirmed && !withdrawn,
+                  time: confirmTime,
+                  label2: confirmed ? o.confirmed_by_name : nil,
+                  activeNote: confirmed || withdrawn ? nil : "担当の先生が確認します"),
+        ]
+    }
+
+    private func load() async {
+        isLoading = true
+        defer { isLoading = false }
+        guard let uuid = UUID(uuidString: outingId) else {
+            app.showToast("無効な申請 ID です")
+            router.back()
+            return
+        }
+        do {
+            loaded = try await OutingsAPI.detail(id: uuid)
+        } catch APIError.unauthorized {
+            app.authToken = nil
+            router.back()
+        } catch {
+            app.showToast(APIErrorPresenter.userMessage(
+                for: error, fallback: "外出申請の取得に失敗しました"
+            ))
+            router.back()
+        }
+    }
+
+    /// 撤回 pending 的外出申请；并发被老师确认时后端回 409 → 重拉最新状态。
+    private func withdraw(_ o: OutingOut) async {
+        guard !isWithdrawing else { return }
+        isWithdrawing = true
+        defer { isWithdrawing = false }
+        do {
+            loaded = try await OutingsAPI.withdraw(id: o.id)
+            app.showToast("申請を取消しました")
+        } catch let APIError.unprocessable(msg) {
+            app.showToast(msg)
+        } catch APIError.server(409, _) {
+            app.showToast("確認待ちの申請のみ取消できます")
+            await load()
+        } catch APIError.unauthorized {
+            app.authToken = nil
+            router.replace(.login)
+        } catch APIError.network {
+            app.showToast("通信エラーが発生しました。電波を確認してください")
+        } catch {
+            app.showToast(error.localizedDescription)
+        }
+    }
+}
+
+/// 外出三态 → 状态 Pill（外出语义：確認待ち / 確認済 / 取消済）
+private func outingStatusPair(_ status: String) -> (label: String, tone: Pill.Tone) {
+    switch status {
+    case "approved": return ("確認済", .ok)
+    case "withdrawn": return ("取消済", .neutral)
+    default: return ("確認待ち", .warn)
+    }
 }
