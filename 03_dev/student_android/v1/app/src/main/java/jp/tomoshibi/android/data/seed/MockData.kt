@@ -135,6 +135,65 @@ object MockData {
             CleaningRecord("C2", "2026-04-05", "共用エリア", "退回", null, "床が汚れている"),
         )
 
+    // 特別運航便假数据 — 5 个日别（对应 iOS SEED.busSchedule，含通学便/特別便/空港便）
+    val DEFAULT_BUS_ROUTES =
+        listOf(
+            SpecialBusRoute("B1", "2026-04-29", "水", "08:30", "寮 → 高校棟", "通学便"),
+            SpecialBusRoute("B2", "2026-04-29", "水", "18:00", "高校棟 → 寮", "通学便"),
+            SpecialBusRoute("B3", "2026-05-06", "水", "07:00", "寮 → 関西空港", "特別便", isAirport = true, seats = "残り 8 席"),
+            SpecialBusRoute("B4", "2026-05-06", "水", "09:20", "高校棟 → 金川駅", "通学便"),
+            SpecialBusRoute("B5", "2026-05-16", "土", "10:00", "寮 → 伊丹空港", "特別便", isAirport = true, seats = "残り 3 席"),
+            SpecialBusRoute("B6", "2026-05-23", "土", "08:00", "寮 → 高校棟", "通学便"),
+            SpecialBusRoute("B7", "2026-05-31", "日", "13:00", "寮 → 関西空港", "特別便", isAirport = true, seats = "満席"),
+        )
+
+    // 老师公告列表假数据（对应 iOS announcement list）
+    val DEFAULT_ANNOUNCEMENTS =
+        listOf(
+            AnnouncementBrief(
+                "AN1",
+                "ゴールデンウィークの帰省について",
+                "GW 期間中の帰省届は 4/25 までに提出してください。バスの増便もあります。",
+                "田中先生",
+                "2 時間前",
+                isRead = false,
+                replyCount = 2,
+            ),
+            AnnouncementBrief(
+                "AN2",
+                "防災訓練のお知らせ",
+                "5 月 16 日（土）10:00 より避難訓練を実施します。全寮生参加必須です。",
+                "佐藤先生",
+                "昨日",
+                isRead = true,
+                replyCount = 0,
+            ),
+        )
+
+    // 公告详情假数据（按 id 取，含回复链）
+    val DEFAULT_ANNOUNCEMENT_DETAILS =
+        listOf(
+            AnnouncementDetail(
+                "AN1",
+                "ゴールデンウィークの帰省について",
+                "GW 期間中（4/29〜5/6）の帰省を希望する寮生は、帰省届を 4/25（金）までに寮務室へ提出してください。\n\n空港送迎便の増便も予定しています。詳細は「特別運航便」のページをご確認ください。",
+                "田中先生",
+                "2026/04/20 14:30",
+                listOf(
+                    AnnouncementReply("リュウ イヒ", "student", "2026/04/20 15:10", "バスの時刻表はどこで確認できますか？"),
+                    AnnouncementReply("田中先生", "teacher", "2026/04/20 16:00", "アプリの「特別運航便」から確認できます。"),
+                ),
+            ),
+            AnnouncementDetail(
+                "AN2",
+                "防災訓練のお知らせ",
+                "5 月 16 日（土）10:00 より避難訓練を実施します。全寮生の参加が必須です。\n\n当日は寮玄関前に集合してください。",
+                "佐藤先生",
+                "2026/05/15 09:00",
+                emptyList(),
+            ),
+        )
+
     // 今週の活動 14 件 + 2 行 preview（iOS Home 「行事」section）
     const val EVENTS_THIS_WEEK = 14
     val EVENTS_PREVIEW =

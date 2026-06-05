@@ -102,7 +102,7 @@ fun HomeScreen(navController: NavHostController) {
                 iconTint = MaterialTheme.colorScheme.primary,
                 title = "次のバス便",
                 subtitle = "${bus.time} · ${bus.route}",
-                onClick = { navController.navigate(Route.Bus.path) },
+                onClick = { navController.navigate(Route.BusList.path) },
             )
 
             // ── 3. 宅配便（red badge）──

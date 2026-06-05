@@ -126,6 +126,51 @@ data class CleaningRecord(
     val comment: String? = null, // 退回评语，可空
 )
 
+// 特別運航便单条（界面模型，对应 iOS SpecialBusRoute）
+@Serializable
+data class SpecialBusRoute(
+    val id: String,
+    val date: String, // "2026-05-06"
+    val weekday: String, // 日语单字曜日（如「水」）
+    val time: String, // 出发时刻 "09:20"
+    val direction: String, // 路线方向（如「高校棟 → 金川駅」）
+    val kind: String, // 「通学便」/「特別便」
+    val isAirport: Boolean = false, // 是否空港送迎便
+    val seats: String? = null, // 座席说明，可空（如「残り 8 席」）
+)
+
+// 老师公告列表项（对应 iOS AnnouncementBrief）
+@Serializable
+data class AnnouncementBrief(
+    val id: String,
+    val title: String,
+    val summary: String, // 摘要（列表显 2 行）
+    val author: String, // 老师名
+    val time: String, // 相对时间显示文本（如「2 時間前」）
+    val isRead: Boolean = false, // 是否已读
+    val replyCount: Int = 0, // 回复数
+)
+
+// 公告回复单条（对应 iOS AnnouncementReplyOut）
+@Serializable
+data class AnnouncementReply(
+    val authorName: String,
+    val authorKind: String, // "teacher" / "student"（teacher 显示「教員」徽章）
+    val createdAt: String, // "2026/04/20 16:00"
+    val body: String,
+)
+
+// 公告详情（对应 iOS AnnouncementDetail）
+@Serializable
+data class AnnouncementDetail(
+    val id: String,
+    val title: String,
+    val body: String,
+    val author: String, // 老师名
+    val createdAt: String, // "2026/04/20 14:30"
+    val replies: List<AnnouncementReply> = emptyList(),
+)
+
 enum class ThemeMode { LIGHT, DARK }
 
 // 点呼状态机 — 对应 iOS HomeStubs.swift 的 4 态 hero

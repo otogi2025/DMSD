@@ -96,6 +96,33 @@ sealed class Route(
 
     data object MyAbout : Route("my/about")
 
+    // ── 杂项 / 公告 / 认证补全 ──
+    data object BusList : Route("bus/list") // 特別運航便一覧
+
+    data class PackageDetail(
+        val id: Int,
+    ) : Route("packages/$id") {
+        companion object {
+            const val PATH = "packages/{id}"
+            const val ARG_ID = "id"
+        }
+    }
+
+    data object Announcements : Route("announcements") // お知らせ一覧
+
+    data class Announcement(
+        val id: String,
+    ) : Route("announcements/$id") {
+        companion object {
+            const val PATH = "announcements/{id}"
+            const val ARG_ID = "id"
+        }
+    }
+
+    data object Lockout : Route("lockout") // 登录失败锁定页
+
+    data object PwReset : Route("pwreset") // 找回密码说明
+
     // ── community 6 屏 (从 Home 进入) ──
     data object Music : Route("music")
 

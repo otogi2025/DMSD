@@ -9,13 +9,15 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import jp.tomoshibi.android.ui.screens.account.AccountScreen
+import jp.tomoshibi.android.ui.screens.announcements.*
 import jp.tomoshibi.android.ui.screens.applications.ApplicationDetailScreen
 import jp.tomoshibi.android.ui.screens.applications.ApplicationsScreen
 import jp.tomoshibi.android.ui.screens.applications.ApplyNewScreen
+import jp.tomoshibi.android.ui.screens.bus.BusListScreen
 import jp.tomoshibi.android.ui.screens.community.*
 import jp.tomoshibi.android.ui.screens.deduction.DeductionScreen
 import jp.tomoshibi.android.ui.screens.home.HomeScreen
-import jp.tomoshibi.android.ui.screens.login.LoginScreen
+import jp.tomoshibi.android.ui.screens.login.*
 import jp.tomoshibi.android.ui.screens.mypage.*
 import jp.tomoshibi.android.ui.screens.nfc.NfcScreen
 import jp.tomoshibi.android.ui.screens.notifications.NotifDetailScreen
@@ -110,6 +112,26 @@ fun TomoshibiNavGraph(navController: NavHostController) {
         composable(Route.MyStudy.path) { MyStudyScreen(navController) }
         composable(Route.MySettings.path) { MySettingsScreen(navController) }
         composable(Route.MyAbout.path) { MyAboutScreen(navController) }
+
+        // ── 杂项 / 公告 / 认证补全 ────
+        composable(Route.BusList.path) { BusListScreen(navController) }
+        composable(
+            route = Route.PackageDetail.PATH,
+            arguments = listOf(navArgument(Route.PackageDetail.ARG_ID) { type = NavType.IntType }),
+        ) { entry ->
+            val id = entry.arguments?.getInt(Route.PackageDetail.ARG_ID) ?: 0
+            PackageDetailScreen(navController, id)
+        }
+        composable(Route.Announcements.path) { AnnouncementsScreen(navController) }
+        composable(
+            route = Route.Announcement.PATH,
+            arguments = listOf(navArgument(Route.Announcement.ARG_ID) { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString(Route.Announcement.ARG_ID) ?: ""
+            AnnouncementDetailScreen(navController, id)
+        }
+        composable(Route.Lockout.path) { LockoutScreen(navController) }
+        composable(Route.PwReset.path) { PwResetScreen(navController) }
 
         // ── community 6 屏 ────────
         composable(Route.Music.path) { MusicScreen(navController) }

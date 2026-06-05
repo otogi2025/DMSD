@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import jp.tomoshibi.android.data.model.PackageItem
 import jp.tomoshibi.android.data.seed.MockData
+import jp.tomoshibi.android.nav.Route
 import jp.tomoshibi.android.ui.components.EmptyState
 import jp.tomoshibi.android.ui.components.GlobalScaffold
 import jp.tomoshibi.android.ui.components.PageHeader
@@ -82,6 +83,7 @@ fun DeliveryScreen(navController: NavHostController) {
                             received = received + pkg.id
                             Toast.makeText(ctx, "受取しました", Toast.LENGTH_SHORT).show()
                         },
+                        onClick = { navController.navigate(Route.PackageDetail(pkg.id).path) },
                     )
                 }
                 Spacer(Modifier.height(20.dp))
@@ -122,6 +124,7 @@ private fun PackageRow(
     pkg: PackageItem,
     showReceive: Boolean,
     onReceive: () -> Unit,
+    onClick: () -> Unit,
 ) {
     val t = SuzuT.current
     Row(
@@ -130,6 +133,7 @@ private fun PackageRow(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
                 .background(t.paper)
+                .clickable(onClick = onClick)
                 .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
