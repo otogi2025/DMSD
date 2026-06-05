@@ -124,7 +124,7 @@ def upgrade() -> None:
             nullable=True,
         ),
         sa.CheckConstraint(
-            "area IN ('浴室','廊下','トイレ','共用キッチン','階段','玄関','ロビー','その他')",
+            "area IN ('浴室','廊下','トイレ','共用キッチン','階段','玄関','その他')",
             name="ck_cleaning_area",
         ),
         sa.CheckConstraint(
