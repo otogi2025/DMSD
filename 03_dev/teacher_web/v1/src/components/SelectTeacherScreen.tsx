@@ -3,6 +3,7 @@ import { RYO } from "../theme";
 import { APP_VERSION } from "../theme";
 import { dormLabel } from "../theme";
 import { ConfirmModal } from "./shared";
+import tomoshibiIcon from "../assets/tomoshibi-icon.png";
 
 // 源 index.html 10645-11295（components/select-teacher.jsx 块）。
 // 页面：/login/select-teacher — 从「男性寮 / 女性寮」两栏里选今天值班的老师卡片。
@@ -20,13 +21,7 @@ interface TeacherVM {
   lastLoginMins: number | null;
 }
 
-// window.__resources 是 index.html head 里注入的运行时全局资源包
-// （存图标等静态资源路径）；Vite 版会在入口处同样注入。此处声明其类型。
-declare global {
-  interface Window {
-    __resources: { tomoshibiIcon: string };
-  }
-}
+// 品牌图标用 Vite 资产 import（构建产出带哈希 URL）。
 
 export function SelectTeacherScreen({
   teachers,
@@ -80,7 +75,7 @@ export function SelectTeacherScreen({
         }}
       >
         <img
-          src={window.__resources.tomoshibiIcon}
+          src={tomoshibiIcon}
           alt="Tomoshibi"
           style={{ width: 44, height: 44, borderRadius: 11 }}
         />

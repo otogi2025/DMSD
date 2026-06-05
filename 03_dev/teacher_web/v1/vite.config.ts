@@ -7,6 +7,12 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   base: "./",
   plugins: [react()],
+  // src/api/ 下旧 client.js（旧网页 standalone 用，IIFE 挂 window 无 export）和新 client.ts 同名。
+  // 让 .ts 优先解析，import "./api/client" 命中 client.ts（有 export api），不是 client.js。
+  // 旧 client.js 阶段5 归档旧网页时一起清掉。
+  resolve: {
+    extensions: [".ts", ".tsx", ".mjs", ".js", ".jsx", ".json"],
+  },
   server: {
     port: 5173,
     proxy: {

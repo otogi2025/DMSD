@@ -2,12 +2,10 @@ import React from "react";
 import { RYO, dormLabel, API_BASE, APP_VERSION } from "../theme";
 import { api } from "../api/client";
 import type { TeacherProfile } from "../api/types";
+import tomoshibiIcon from "../assets/tomoshibi-icon.png";
 
 // 源 index.html 10068-10643（components/login.jsx 块）。界面原样搬。
-// 品牌图标地址 —— 源里走 window.__resources.tomoshibiIcon（index.html 第 8 行赋的字符串
-// "assets/tomoshibi-icon.png"）。本端无 Vite *.png 模块声明，故按原运行时字符串原样硬写，
-// img src 与旧版完全一致（界面冻结）。
-const tomoshibiIcon = "assets/tomoshibi-icon.png";
+// 品牌图标用 Vite 资产 import（构建产出带哈希 URL），渲染 <img src> 等价旧版。
 
 // /login —— 实名账户 2 屏合一登录（2026-05-27 拍板，取代旧共用密码版）
 //   屏 1 = 老师卡片列表（男寮 / 女寮 2 列，GET /teachers/public 无认证拿）

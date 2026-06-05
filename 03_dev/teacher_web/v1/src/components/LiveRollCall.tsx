@@ -1,16 +1,12 @@
 import React from "react";
 import { RYO, dormLabel, LATE_THRESHOLD_SEC } from "../theme";
+import tomoshibiIcon from "../assets/tomoshibi-icon.png";
 
 // 源 index.html 12368-13008（components/live-roll-call.jsx 块）。
 // 实时点呼大屏：迟到状态 + 预测条 + 演示控制台 + 座席网格。
 // 界面原样搬，仅作用域引用方式改写（window.RYO→RYO / window.dormLabel→dormLabel /
-// window.LATE_THRESHOLD_SEC→LATE_THRESHOLD_SEC / window.__resources.tomoshibiIcon→Vite 资产 URL）。
+// window.LATE_THRESHOLD_SEC→LATE_THRESHOLD_SEC / 图标用 Vite import）。
 // fabBtn / NfcIndicator / Metric / SeatCard / Badge / LegendPanel 是本块私有子组件，同文件不 export。
-
-// 灯火图标资产 —— 源里走 window.__resources.tomoshibiIcon（值 "assets/tomoshibi-icon.png"）。
-// 迁移后用 Vite 的资产 URL 解析（构建时产出带哈希的正确 URL），渲染出的 <img src> 等价。
-const tomoshibiIcon = new URL("../assets/tomoshibi-icon.png", import.meta.url)
-  .href;
 
 // 座席学生（本组件本地演示状态，非后端类型）
 interface SeatStudent {

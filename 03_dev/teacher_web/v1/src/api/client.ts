@@ -68,9 +68,9 @@ import type {
   TeacherWSHandle,
 } from "./types";
 
-// 401 全局拦截回调（§11.5 W3）：App mount 时注册 logout
+// 401 全局拦截回调（§11.5 W3）：App mount 时注册 logout，cleanup 时传 null 清除
 let onUnauthorized: (() => void) | null = null;
-export function setOnUnauthorized(cb: () => void): void {
+export function setOnUnauthorized(cb: (() => void) | null): void {
   onUnauthorized = cb;
 }
 
