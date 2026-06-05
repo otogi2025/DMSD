@@ -1728,13 +1728,14 @@ struct LoginView: View {
             return
         }
 
-        // 账号去首尾空格：学号是 6 桁数字、空格永远非法，复制粘贴常带空格 / 换行 → 统一 trim 后再用
+        // 账号去首尾空白：学号是 6 桁数字、空格永远非法，复制粘贴常带空格 / 换行
+        //   → 用 .whitespacesAndNewlines 统一 trim（含换行符；原 .whitespaces 只去空格/制表符、漏换行）后再用
         // 密码不 trim：用户故意打的空格也算密码内容，原样发后端（后端只校验长度 6–128，schemas.py）
-        let trimmedAcc = acc.trimmingCharacters(in: .whitespaces)
+        let trimmedAcc = acc.trimmingCharacters(in: .whitespacesAndNewlines)
 
         // 空字段检查：账号 / 密码任一空着就当场拦下，别拿空值去请求后端
         // （原来空着也直发请求，失败落到「通信エラー」提示，跟「没填」对不上、误导用户 — itsuki 2026-06-04）
-        if trimmedAcc.isEmpty || pw.trimmingCharacters(in: .whitespaces).isEmpty {
+        if trimmedAcc.isEmpty || pw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             app.showToast("アカウント番号とパスワードを入力してください")
             return
         }

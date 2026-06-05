@@ -106,6 +106,7 @@ final class AppStore: ObservableObject {
                     announcements = []
                     announcementDetails = [:]
                     announcementUnreadCount = 0
+                    packages = []
                     studyLeaveCountThisMonth = 0
                 #endif
             }
@@ -132,6 +133,10 @@ final class AppStore: ObservableObject {
     var displayUser: User {
         currentUser ?? SEED.user
     }
+
+    /// AppDelegate（push 回调）拿不到 SwiftUI 的 @StateObject 实例 —— 用单例共享同一个 AppStore。
+    /// App 入口的 @StateObject 也指向 shared，保证 push 回调写的状态就是界面读的那个。
+    static let shared = AppStore()
 
     /// IX-036: 令牌过期时刻（UserDefaults key）。
     /// 有效期本身不是机密（机密的是令牌正文，仍存 Keychain），所以过期时刻放 UserDefaults。
@@ -189,6 +194,10 @@ final class AppStore: ObservableObject {
                 // IX-009：登录 / 启动即拉公告未読数，让 Home 铃铛 badge 首屏就准
                 // （announcements 列表是懒加载、首屏可能空；这里只拉轻量 count）。
                 await loadAnnouncementUnreadCount()
+                // IX-009：登录 / 启动即拉包裹，让 Home 铃铛 badge 首屏含包裹未読。
+                await loadMyPackages()
+                // IX-009：补报启动时还没登录就拿到的 APNs deviceToken。
+                await flushDeviceTokenIfPossible()
             } catch APIError.unauthorized {
                 // 令牌过期 / 失效（401）→ 清令牌强制重登（didSet 会清 currentUser + 复位 SEED.user），
                 // 不再默默回退到演示假人身份。
@@ -871,6 +880,65 @@ final class AppStore: ObservableObject {
     /// 真 push 接收後動的に追加される通知（SEED.notifications は静的の初期 placeholder）
     @Published var pushNotifications: [NotificationItem] = []
 
+    // MARK: - 包裹通知（IX-009 真数据源 · GET /api/v1/front-desk/mine）
+
+    //
+    // 学生自己的宅配（包裹）。生产构建聚合进通知中心「宅配」标签 + 铃铛未読 badge。
+    // 演示构建不拉真后端。模型 + 拉取都内联在本文件 —— 多会话并行时不碰公共网络层文件
+    // （NetworkModels.swift / Endpoints），降低跟「申请表单簇」会话的撞车风险。
+
+    /// 通知中心「宅配」数据源 — 当前学生的包裹缓存（loadMyPackages 拉真后端填）。
+    @Published var packages: [FrontDeskItemBrief] = []
+
+    /// GET /api/v1/front-desk/mine 返回的单个包裹（只取通知需要的字段、对齐后端 FrontDeskItemOut）。
+    struct FrontDeskItemBrief: Decodable, Identifiable {
+        let id: UUID
+        let kind: String
+        let description: String
+        let status: String // pending / notified / picked_up / expired / discarded
+        // datetime 用 Date —— APIClient.decodeISO8601Date 已统一兼容开发环境无时区裸时间（按 UTC 解释），
+        // 跟相邻公告(AnnouncementBrief)同方针，全走健壮解码器。
+        let createdAt: Date
+        let notifiedAt: Date?
+
+        enum CodingKeys: String, CodingKey {
+            case id, kind, description, status
+            case createdAt = "created_at"
+            case notifiedAt = "notified_at"
+        }
+    }
+
+    /// 把包裹缓存映射成通知卡（type「宅配」→ 通知中心「宅配」标签下显示）。
+    /// - id 用 -(100000+idx)：跟公告 -(idx+1) / push ≥1000 三段都不相撞。
+    /// - 未読 = 还没取走（pending / notified）；picked_up 等终态视为已読。
+    private var packageNotifications: [NotificationItem] {
+        packages.enumerated().map { idx, p in
+            NotificationItem(
+                id: -(100_000 + idx),
+                type: "宅配",
+                title: p.status == "picked_up" ? "荷物を受け取りました" : "荷物が届いています",
+                time: Self.notifTimeLabel(p.notifiedAt ?? p.createdAt),
+                body: p.description,
+                unread: p.status == "pending" || p.status == "notified"
+            )
+        }
+    }
+
+    /// 拉当前学生的包裹（生产构建用）。带令牌守卫 —— 登出 / 切用户不写回旧用户的包裹。
+    @MainActor
+    func loadMyPackages() async {
+        let tokenAtStart = authToken
+        do {
+            let items: [FrontDeskItemBrief] = try await APIClient.shared.get(
+                path: "/api/v1/front-desk/mine"
+            )
+            guard authToken == tokenAtStart else { return }
+            packages = items
+        } catch {
+            // 拉失败不阻塞通知中心其他源 —— 静默，下次刷新再试。
+        }
+    }
+
     /// 通知中心显示用。
     /// - 演示构建：push（接通前空）+ SEED.notifications fixture，撑住演示叙事。
     /// - 生产构建：push + 真公告映射（announcementNotifications），不再泄漏 SEED 假通知（IX-009）。
@@ -879,7 +947,7 @@ final class AppStore: ObservableObject {
         #if DEMO
             return pushNotifications + SEED.notifications
         #else
-            return pushNotifications + announcementNotifications
+            return pushNotifications + announcementNotifications + packageNotifications
         #endif
     }
 
@@ -913,6 +981,7 @@ final class AppStore: ObservableObject {
         #if !DEMO
             try? await loadAnnouncementList()
             await loadAnnouncementUnreadCount()
+            await loadMyPackages()
         #endif
     }
 
@@ -925,6 +994,59 @@ final class AppStore: ObservableObject {
             // badge 改用后端真实未読数 announcementUnreadCount（loadMe 登录/启动即拉）+ push 未読，
             // 不依赖 announcements 列表是否已加载（IX-009 修复）。
             return pushNotifications.filter { $0.unread }.count + announcementUnreadCount
+                + packageNotifications.filter { $0.unread }.count
+        #endif
+    }
+
+    // MARK: - APNs 设备令牌注册（IX-009 push 接通准备）
+
+    //
+    // AppDelegate 向苹果注册成功后拿到 deviceToken（设备唯一推送地址），调本方法上报后端
+    // POST /api/v1/notifications/device-token。后端 push.py 之后按这些 token 群发推送。
+    // ⚠️ 真机收推送还需 itsuki 在 Apple Developer 后台申请 APNs 证书(.p8) 配到后端凭证；
+    //    entitlements 的 aps-environment 已就绪、不用改 project.yml。
+
+    /// 最近一次从 APNs 拿到的 deviceToken。**上报成功后不清空** —— 切换用户后由 loadMe 再 flush 一次，
+    /// 把设备重新绑定到当前登录学生（codex Finding 4：原来上报成功就清空，A 登出 B 登入同一设备不重报、
+    /// 后端 token 仍归 A、A 的推送会打到 B 的设备）。后端 device-token upsert 本就会把归属转给当前学生。
+    private var deviceToken: String?
+
+    /// 去重：(令牌, 当时 authToken) 已成功上报过就跳过 —— 换用户 / 重登 authToken 会变 → 触发重报。
+    private var reportedDeviceToken: String?
+    private var reportedForAuthToken: String?
+
+    /// AppDelegate 拿到 deviceToken 后调 —— 存下并尝试上报（未登录则等登录后由 flush 补报）。
+    @MainActor
+    func registerDeviceToken(_ token: String) async {
+        deviceToken = token
+        await flushDeviceTokenIfPossible()
+    }
+
+    /// 把 deviceToken 发给后端。未登录 / 失败则保留，下次登录或启动再试。
+    /// 登录成功（loadMe）后也调一次 —— 补报启动时还没登录就拿到的 token + 切换用户后重新绑定设备。
+    @MainActor
+    func flushDeviceTokenIfPossible() async {
+        #if DEMO
+            return // 演示构建不连后端、不上报 token
+        #else
+            guard let token = deviceToken, let auth = authToken else { return } // 未登录，留着等登录后再报
+            // 同一令牌已为当前会话(authToken)上报过 → 跳过，避免每次 loadMe 重复上报
+            if token == reportedDeviceToken, auth == reportedForAuthToken { return }
+            struct Body: Encodable {
+                let platform: String
+                let token: String
+            }
+            struct Res: Decodable { let created: Bool }
+            do {
+                let _: Res = try await APIClient.shared.post(
+                    path: "/api/v1/notifications/device-token",
+                    body: Body(platform: "ios", token: token)
+                )
+                reportedDeviceToken = token
+                reportedForAuthToken = auth
+            } catch {
+                // 失败不记录 reported*，下次登录 / 启动再试。
+            }
         #endif
     }
 

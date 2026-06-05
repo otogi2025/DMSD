@@ -215,6 +215,20 @@ private func decodeISO8601Date(_ decoder: Decoder) throws -> Date {
         return date
     }
 
+    // 无时区兜底：开发环境 SQLite 对 DateTime(timezone=True) 弱支持，func.now() 存的是 UTC 裸时间，
+    // Pydantic 序列化成 "2026-06-05T14:21:14"（无 Z），上面两个要求带时区的 formatter 都解不出 →
+    // 否则整段响应 decode fail（公告 / 申请 / 晚自习 / 点呼等所有 Date 字段都会中，dev 真测确认）。
+    // 按 UTC 解释这种裸时间，恢复模型声明 DateTime(timezone=True) 的本意；生产 PostgreSQL 带时区走上面分支。
+    let naiveUTC = DateFormatter()
+    naiveUTC.locale = Locale(identifier: "en_US_POSIX")
+    naiveUTC.timeZone = TimeZone(identifier: "UTC")
+    for fmt in ["yyyy-MM-dd'T'HH:mm:ss.SSSSSS", "yyyy-MM-dd'T'HH:mm:ss"] {
+        naiveUTC.dateFormat = fmt
+        if let date = naiveUTC.date(from: raw) {
+            return date
+        }
+    }
+
     throw DecodingError.dataCorruptedError(
         in: container,
         debugDescription: "ISO8601 时间格式无法解析: \(raw)"

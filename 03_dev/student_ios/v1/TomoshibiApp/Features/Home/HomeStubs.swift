@@ -701,7 +701,8 @@ struct HomeView: View {
             )
         case .done:
             heroBlock(
-                caption: "\(app.checkinAt ?? "21:02")",
+                // ios-home-07：checkinAt 为 nil（罕见竞态）时不显写死假时刻 21:02，用中性占位
+                caption: "\(app.checkinAt ?? "--:--")",
                 big: "時間内",
                 sub: "今回の点呼は完了しました",
                 bigColor: Color(hex: 0x2C6048),
@@ -1387,7 +1388,8 @@ struct RollcallSheet: View {
                 .padding(.bottom, 10)
 
             // JSX: Pill tone=ok / 13 / padding 6 14
-            Text("\(app.checkinAt ?? "21:02") · \(app.checkinKind ?? "時間内")")
+            // ios-home-07：nil 兜底用中性占位（原写死假时刻 21:02）
+            Text("\(app.checkinAt ?? "--:--") · \(app.checkinKind ?? "時間内")")
                 .font(.system(size: 13, weight: .bold))
                 .kerning(0.26)
                 .padding(.horizontal, 14).padding(.vertical, 6)
@@ -1473,7 +1475,7 @@ struct RollcallSheet: View {
                 // IX-024: 自动关弹窗前确认展示的仍是点呼弹窗，
                 // 否则用户在这 2 秒内新开了别的弹窗（如体调报告），不能误把它关掉
                 guard !Task.isCancelled, app.sheetOpen == .rollcall else { return }
-                let at = app.checkinAt ?? "21:02"
+                let at = app.checkinAt ?? "--:--" // ios-home-07：原兜底写死假时刻 21:02
                 app.closeSheet()
                 app.showToast("チェックイン完了 · \(at)")
                 step = .idle
