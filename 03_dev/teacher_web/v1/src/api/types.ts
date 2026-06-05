@@ -1,6 +1,5 @@
-// 后端 API 请求/响应类型 —— 对齐 backend schemas.py + 01_specs FIELD_REGISTRY。
-// 核心类型从归档 client_5-27_类型参考.ts 复用（已对齐 iOS NetworkModels + schemas）。
-// 标注「阶段3 核对」的新接口类型据 client.js 注释推断，搬对应页面时跟 schemas.py 精校。
+// 后端 API 请求/响应类型 —— 严格对齐 backend schemas.py（单源真值）。
+// 2026-06-05 三路审查（workflow+codex+自审）后按 schemas.py 逐类型重写对齐，行号见各注释。
 
 // ── 老师档案（原 store/auth.TeacherProfile，本地化）──
 export interface TeacherProfile {
@@ -18,7 +17,20 @@ export interface TeacherLoginOut {
 }
 
 // ── 申請（出寮届）──
-// backend ApplicationOut.status 6 值
+// 对齐 schemas.py StayLocation(29-35)
+export interface StayLocation {
+  kind: string; // 必填：ホテル / 親戚宅 / 自宅 等
+  name: string; // 必填，max 200
+  address?: string | null; // 可选，max 500
+  phone?: string | null; // 可选，max 32
+}
+
+// 对齐 schemas.py MealSkipEntry(38-42)
+export interface MealSkip {
+  date: string;
+  meal: "朝食" | "昼食" | "夕食";
+}
+
 export type AppStatus =
   | "pending"
   | "approved_partial"
@@ -44,35 +56,32 @@ export interface StudentBrief {
   room_no: string;
 }
 
-export interface StayLocation {
-  date: string;
-  location: string;
-  contact?: string | null;
-}
-
-export interface MealSkip {
-  date: string;
-  meal: "朝食" | "昼食" | "夕食";
-}
-
+// 对齐 schemas.py ApplicationOut(182-223)。date/time/datetime 序列化成字符串 → string。
 export interface Application {
   id: string;
   student_id: string;
   student: StudentBrief | null;
   kind: "帰省" | "外泊" | "帰国";
-  reason: string | null;
   leave_date: string;
   leave_method: string;
   leave_time: string;
   return_date: string;
   return_method: string;
   return_time: string;
+  contact_phone: string | null;
+  meal_note: string | null;
   stay_locations: StayLocation[] | null;
   meals_skip: MealSkip[] | null;
+  companion: string | null;
+  dest_cities: string | null;
+  receipt_submitted: boolean; // 后端 bool=False，非可空
+  reason: string | null;
+  is_long_vacation: boolean; // 后端 bool=False，非可空
   flight_dep_air: string | null;
   flight_dep_at: string | null;
   flight_arr_air: string | null;
   flight_arr_at: string | null;
+  taxi_reservation_time: string | null; // 后端 Optional[time]
   bus_route_id: string | null;
   submitted_at: string;
   status: AppStatus;
@@ -89,7 +98,7 @@ export interface AuditEntry {
   created_at: string;
 }
 
-// ── 学習出席 ──
+// ── 学習出席（对齐 schemas.py 377-413/450-462）──
 export interface StudyAttendeeOut {
   student_id: string;
   student_no: string;
@@ -125,6 +134,7 @@ export interface StudyAbsenceRequestOut {
   id: string;
   student_id: string;
   target_date: string;
+  period: "first_half" | "second_half" | "full"; // 请假范围（前半节/后半节/全部）
   reason: string;
   submitted_at: string;
   status: "pending" | "approved" | "rejected";
@@ -133,7 +143,7 @@ export interface StudyAbsenceRequestOut {
   comment: string | null;
 }
 
-// 学習対象名簿 在籍者（阶段3 核对 schemas.py StudyRoster*）
+// 学習対象名簿 在籍者
 export interface StudyRosterItem {
   student_id: string;
   student_no: string;
@@ -142,7 +152,7 @@ export interface StudyRosterItem {
   dorm_unit: number;
 }
 
-// ── 点呼 ──
+// ── 点呼（对齐 schemas.py 693-757）──
 export interface RollCallSessionOut {
   id: string;
   dorm_unit_set: number[];
@@ -157,6 +167,7 @@ export interface RollCallSessionOut {
   scheduled_auto_end_at: string;
 }
 
+// 对齐 RollCallBoardEntryOut(740-749)
 export interface RollCallBoardEntry {
   student_id: string;
   student_no: string;
@@ -164,6 +175,7 @@ export interface RollCallBoardEntry {
   room_no: string;
   base_status: "init" | "present" | "late" | "absent" | "exempt_range";
   checked_in_at: string | null;
+  last_event_id: string | null; // 本场次该生最新 event id，OverrideModal 改判用；init 学生为 null
 }
 
 export interface RollCallBoardOut {
@@ -181,14 +193,14 @@ export interface RollCallSummaryOut {
   exempted_outstay: { student_id: string; name: string; room_no: string }[];
 }
 
-// 教师改判单条 event 后返回（阶段3 核对 schemas.py RollCallEventOut）
+// PATCH /rollcall/events/{id} 返回，对齐 RollCallEventOut(729-737)
 export interface RollCallEventOut {
   id: string;
   student_id: string;
-  status: string;
-  reason: string | null;
-  evidence: string | null;
-  updated_at: string;
+  base_status: string; // init/present/late/absent/exempt_range
+  status_source: string; // auto_nfc / manual
+  checked_in_at: string;
+  path_type: string | null;
 }
 
 // ── 教员账户 ──
@@ -203,7 +215,6 @@ export interface TeacherOut {
   created_at: string;
 }
 
-// 登录页第 1 屏无认证用（最小字段）
 export interface TeacherPublic {
   id: string;
   name: string;
@@ -285,7 +296,16 @@ export interface RegistrationCode {
   expires_in_seconds: number;
 }
 
-// ── 扣分 / 規律処分（阶段3 核对 schemas.py Demerit*）──
+// ── 扣分 / 規律処分 ──
+export type DemeritSourceType =
+  | "rollcall_late"
+  | "rollcall_absent"
+  | "cleaning_failed"
+  | "curfew_violation"
+  | "study_absent"
+  | "manual";
+
+// 对齐 DemeritRankingEntryOut(1025-1036)
 export interface DisciplineRankingEntry {
   student_id: string;
   student_no: string;
@@ -293,43 +313,62 @@ export interface DisciplineRankingEntry {
   room_no: string;
   dorm_unit: number;
   total_points: number;
-  rank: number;
+  is_cleaning_threshold: boolean; // >=4 点，清扫线
+  is_curfew_threshold: boolean; // >=8 点，禁足线
 }
 
+// 对齐 DemeritRankingOut(1039-1045)
 export interface DisciplineRankingOut {
   month: string;
   entries: DisciplineRankingEntry[];
+  cleaning_threshold_count: number;
+  curfew_threshold_count: number;
 }
 
+// 对齐 DemeritEventOut(999-1022) — createManualDemerit / revokeDemerit 返回
 export interface DemeritEvent {
   id: string;
   student_id: string;
+  source_type: DemeritSourceType;
+  source_event_id: string | null;
   points: number;
   reason: string;
-  source_type: string;
+  month: string;
   created_at: string;
+  created_by_teacher_id: string | null;
   revoked_at: string | null;
+  revoked_by_teacher_id: string | null;
+  revoke_reason: string | null;
 }
 
+// 对齐 DemeritManualIn(1074-1079)
 export interface ManualDemeritIn {
   student_id: string;
   points: number;
   reason: string;
 }
 
-// ── 学生账号管理（阶段3 核对 schemas.py StudentOut）──
-export interface StudentAccount {
+// ── 学生账号管理（对齐 StudentAccountListItem 1157-1178）──
+export interface StudentAccountListItem {
   id: string;
   student_no: string;
+  grade_code: string;
+  class_code: string;
+  seat_no: string;
   name: string;
-  dorm_unit: number;
   room_no: string;
-  is_overseas: boolean;
+  dorm_unit: number;
+  gender: "male" | "female";
   status: string;
-  locked: boolean;
-  failed_login_count: number;
-  email: string | null;
+  needs_renewal: boolean;
+  is_locked: boolean;
   last_login_at: string | null;
+}
+
+// 对齐 StudentAccountListOut(1181-1186)
+export interface StudentAccountListOut {
+  total: number;
+  items: StudentAccountListItem[];
 }
 
 export interface PasswordResetOut {
@@ -343,7 +382,7 @@ export interface SimpleMessageOut {
   message: string;
 }
 
-// ── 行事予定（阶段3 核对 schemas.py Event*）──
+// ── 行事予定（对齐 DormEventOut 1228-1240）──
 export interface EventItem {
   id: string;
   title: string;
@@ -352,6 +391,14 @@ export interface EventItem {
   start_at: string | null;
   end_at: string | null;
   description: string | null;
+  created_by_teacher_id: string;
+  created_at: string;
+  updated_at: string | null;
+}
+
+// 对齐 DormEventListOut(1243-1246)
+export interface EventListOut {
+  items: EventItem[];
 }
 
 export interface EventCreateIn {
@@ -363,7 +410,7 @@ export interface EventCreateIn {
   description?: string;
 }
 
-// ── 巴士时刻表（阶段3 核对 schemas.py BusRoute*）──
+// ── 巴士时刻表（对齐 BusRouteOut 1279-1293）──
 export interface BusRoute {
   id: string;
   kind: "daily_commute" | "dorm_special";
@@ -371,9 +418,17 @@ export interface BusRoute {
   direction: string;
   schedule_at: string;
   arrival_at: string | null;
-  visible_to: string | null;
+  visible_to: string; // 后端非空，默认 'all'
   note: string | null;
   deprecated: boolean;
+  created_by_teacher_id: string;
+  created_at: string;
+  updated_at: string | null;
+}
+
+// 对齐 BusRouteListOut(1296-1299)
+export interface BusRouteListOut {
+  items: BusRoute[];
 }
 
 export interface BusRouteCreateIn {
@@ -386,72 +441,165 @@ export interface BusRouteCreateIn {
   note?: string;
 }
 
-// ── 清扫安排（阶段3 核对 schemas.py Cleaning*）──
+// ── 清扫安排（对齐 CleaningAssignmentOut 1091-1105）— 一条记录 = 一个学生 ──
 export interface CleaningItem {
   id: string;
-  scheduled_date: string;
+  student_id: string;
   area: string;
-  assignee_student_ids: string[];
-  status: string;
+  scheduled_date: string;
+  status: "assigned" | "done" | "passed" | "failed" | "skipped";
+  assigned_by_teacher_id: string | null;
+  assigned_at: string;
+  done_at: string | null;
+  inspected_by_teacher_id: string | null;
   inspected_at: string | null;
-  inspector_id: string | null;
-  result: string | null;
+  failure_reason: string | null;
+  demerit_event_id: string | null;
 }
 
+// 对齐 CleaningAssignmentCreateIn(1108-1113)
 export interface CleaningCreateIn {
+  student_id: string;
+  area:
+    | "浴室"
+    | "廊下"
+    | "トイレ"
+    | "共用キッチン"
+    | "階段"
+    | "玄関"
+    | "その他";
   scheduled_date: string;
-  area: string;
-  assignee_student_ids: string[];
 }
 
+// 对齐 CleaningInspectIn(1116-1120)
 export interface CleaningInspectIn {
   result: "passed" | "failed";
-  note?: string;
+  failure_reason?: string;
 }
 
-// ── 前台业务（宅配 / 失物，阶段3 核对 schemas.py FrontDesk*）──
+// ── 前台业务（对齐 FrontDeskItemOut 1126-1138）──
 export interface FrontDeskItem {
   id: string;
   kind: "delivery" | "lost_and_found";
-  title: string;
-  description: string | null;
-  owner_student_id: string | null;
-  status: string;
+  student_id: string | null;
+  description: string; // 后端必填
+  location: string | null;
+  status: "pending" | "notified" | "picked_up" | "expired" | "discarded";
+  created_by_teacher_id: string;
   created_at: string;
-  expires_at: string | null;
   notified_at: string | null;
   picked_up_at: string | null;
+  expires_at: string; // 后端必返
 }
 
+// 对齐 FrontDeskItemCreateIn(1142-1148)
 export interface FrontDeskCreateIn {
-  kind: string;
-  title: string;
-  description?: string;
-  owner_student_id?: string;
+  kind: "delivery" | "lost_and_found";
+  student_id?: string;
+  description: string; // 后端必填 min_length=1
+  location?: string;
 }
 
-// ── 学生个人档案聚合（阶段3 核对 schemas.py StudentProfileOut）──
+// ── 学生个人档案聚合（对齐 StudentProfileOut 1543-1554 + Profile*Entry 1464-1540）──
+export interface StudentProfileBasic {
+  id: string;
+  student_no: string;
+  name: string;
+  name_kana: string | null;
+  grade_code: string;
+  class_code: string;
+  seat_no: string;
+  gender: string;
+  category: string;
+  room_no: string;
+  dorm_unit: number;
+  is_overseas: boolean;
+  email: string | null;
+  phone: string | null;
+  avatar_url: string | null;
+  status: string;
+  registered_at: string;
+  needs_renewal: boolean;
+}
+
+export interface ProfileApplicationEntry {
+  id: string;
+  kind: "帰省" | "外泊" | "帰国";
+  leave_date: string;
+  return_date: string;
+  status: string;
+  submitted_at: string;
+}
+
+export interface ProfileStudyCheckinEntry {
+  id: string;
+  target_date: string;
+  status: string;
+  checked_at: string | null;
+}
+
+export interface ProfileRollCallEntry {
+  id: string;
+  session_id: string;
+  session_type: string;
+  base_status: string;
+  status_source: string;
+  checked_in_at: string;
+}
+
+export interface ProfileGuidanceEntry {
+  id: string;
+  category: string | null;
+  guidance_date: string;
+  confidential: boolean;
+  content: string;
+  created_at: string;
+}
+
+export interface ProfileDemeritEntry {
+  id: string;
+  source_type: DemeritSourceType;
+  points: number;
+  reason: string;
+  month: string;
+  created_at: string;
+}
+
+export interface ProfileStudyOnlineEntry {
+  id: string;
+  period_from: string;
+  period_to: string;
+  status: string;
+  submitted_at: string;
+  contract_file_name: string | null;
+  contract_mime: string | null;
+  contract_size: number | null;
+}
+
 export interface StudentProfile {
-  student: StudentAccount;
-  applications: Application[];
-  study_checkins: unknown[];
-  rollcall_events: unknown[];
-  guidance_records: GuidanceItem[];
-  demerit_events: DemeritEvent[];
+  student: StudentProfileBasic;
+  applications: ProfileApplicationEntry[];
+  study_checkins: ProfileStudyCheckinEntry[];
+  rollcall_events: ProfileRollCallEntry[];
+  guidance_records: ProfileGuidanceEntry[];
+  demerit_events: ProfileDemeritEntry[];
+  study_online_requests: ProfileStudyOnlineEntry[];
 }
 
-// ── 指導履歴（阶段3 核对 schemas.py Guidance*）──
+// ── 指導履歴（对齐 GuidanceRecordOut 1315-1324）──
 export interface GuidanceItem {
   id: string;
   student_id: string;
+  teacher_id: string; // 后端字段名是 teacher_id（不是 author_teacher_id）
   content: string;
   category: string | null;
   guidance_date: string;
   confidential: boolean;
-  author_teacher_id: string;
   created_at: string;
+  deleted_at: string | null;
 }
 
+// 对齐 GuidanceRecordCreateIn(1305-1312)
 export interface GuidanceCreateIn {
   student_id: string;
   content: string;
@@ -460,18 +608,23 @@ export interface GuidanceCreateIn {
   confidential: boolean;
 }
 
-// ── 開示申請（阶段3 核对 schemas.py Disclosure*）──
+// ── 開示申請（对齐 GuidanceDisclosureRequestOut 1361-1373）──
 export interface DisclosureRequest {
   id: string;
   student_id: string;
-  student_name: string;
-  reason: string;
-  status: string;
-  submitted_at: string;
+  student_no: string; // 后端发的是学号（不是 student_name）
+  reason: string | null;
+  requested_at: string; // 后端字段名是 requested_at（不是 submitted_at）
+  status: "pending" | "approved_full" | "approved_partial" | "rejected";
+  decided_by: string | null;
   decided_at: string | null;
   decision_note: string | null;
+  visible_from: string | null;
+  visible_until: string | null;
+  revoked_at: string | null;
 }
 
+// 对齐 GuidanceDisclosureDecisionIn(1337-1344)
 export interface DisclosureDecisionIn {
   decision: "approved_full" | "approved_partial" | "rejected";
   decision_note?: string;
@@ -479,19 +632,29 @@ export interface DisclosureDecisionIn {
   visible_until?: string;
 }
 
-// ── 事案録入（阶段3 核对 schemas.py Incident*）──
+// ── 事案録入（对齐 IncidentRecordOut 1415-1426 + IncidentStudentBrief 1408-1413）──
+export interface IncidentStudentBrief {
+  id: string;
+  name: string;
+}
+
 export interface IncidentItem {
   id: string;
   title: string;
+  body: string;
   incident_date: string;
   involved_student_ids: string[];
+  involved_students: IncidentStudentBrief[]; // 6-04 杭田加的可点击 chip
+  recorded_by: string;
   created_at: string;
+  updated_at?: string | null;
+  deleted_at?: string | null;
 }
 
-export interface IncidentDetail extends IncidentItem {
-  body: string;
-}
+// 后端 listIncidents / getIncident 都返完整 IncidentRecordOut（含 body），列表项即详情
+export type IncidentDetail = IncidentItem;
 
+// 对齐 IncidentRecordCreateIn(1390-1396)
 export interface IncidentCreateIn {
   title: string;
   body: string;
@@ -499,24 +662,54 @@ export interface IncidentCreateIn {
   incident_date: string;
 }
 
-// ── 学号一括进级（阶段3 核对 schemas.py BulkPromote*）──
-export interface PromoteEntry {
+// ── 学年更新 / 学生自设番号（对齐 schemas.py 1566-1627）— 6-05 学生自设方案 ──
+// 端点：POST /students/renewal-start（开闸）/ GET /students/renewal-progress / POST /accounts/{id}/renew-seat（老师兜底）
+export interface RenewalStartIn {
+  dry_run: boolean;
+}
+
+export interface RenewalStartEntry {
   student_id: string;
   student_no: string;
   name: string;
-  old_grade_code: string;
-  new_grade_code: string;
-  action: string;
-  old_status: string;
-  new_status: string;
+  grade_code: string;
+  action: "notify" | "graduate";
 }
 
-export interface PromoteResult {
+export interface RenewalStartOut {
   dry_run: boolean;
-  promote_count: number;
+  notify_count: number;
   graduate_count: number;
   total_affected: number;
-  entries: PromoteEntry[];
+  entries: RenewalStartEntry[];
+}
+
+export interface RenewalProgressItem {
+  id: string;
+  student_no: string;
+  name: string;
+  grade_code: string;
+  class_code: string;
+  seat_no: string;
+}
+
+export interface RenewalProgressOut {
+  pending_count: number;
+  items: RenewalProgressItem[];
+}
+
+// 对齐 TeacherRenewSeatIn(1621-1627)
+export interface TeacherRenewSeatIn {
+  grade_code: string;
+  class_code: string;
+  seat_no: string;
+}
+
+// 老师单件改番号返回（admin_accounts.py renew-seat；阶段3 核对具体返回）
+export interface RenewSeatOut {
+  student_id: string;
+  student_no: string;
+  message?: string;
 }
 
 // ── 代録（老师代学生提出寮届）请求体 ──
@@ -530,12 +723,17 @@ export interface ApplicationCreateBody {
   return_date: string;
   return_method: string;
   return_time: string;
+  contact_phone?: string | null;
+  meal_note?: string | null;
   stay_locations?: StayLocation[] | null;
   meals_skip?: MealSkip[] | null;
+  companion?: string | null;
+  dest_cities?: string | null;
   flight_dep_air?: string | null;
   flight_dep_at?: string | null;
   flight_arr_air?: string | null;
   flight_arr_at?: string | null;
+  taxi_reservation_time?: string | null;
   bus_route_id?: string | null;
 }
 

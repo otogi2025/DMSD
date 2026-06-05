@@ -37,13 +37,15 @@ import type {
   DisciplineRankingOut,
   DemeritEvent,
   ManualDemeritIn,
-  StudentAccount,
+  StudentAccountListOut,
   PasswordResetOut,
   SimpleMessageOut,
   EventItem,
   EventCreateIn,
+  EventListOut,
   BusRoute,
   BusRouteCreateIn,
+  BusRouteListOut,
   CleaningItem,
   CleaningCreateIn,
   CleaningInspectIn,
@@ -57,7 +59,11 @@ import type {
   IncidentItem,
   IncidentDetail,
   IncidentCreateIn,
-  PromoteResult,
+  RenewalStartIn,
+  RenewalStartOut,
+  RenewalProgressOut,
+  TeacherRenewSeatIn,
+  RenewSeatOut,
   WSStatus,
   TeacherWSHandle,
 } from "./types";
@@ -376,7 +382,11 @@ export const api = {
     ),
   createManualDemerit: (body: ManualDemeritIn, token: string) =>
     request<DemeritEvent>("POST", "/discipline/manual", body, token),
-  revokeDemerit: (event_id: string, body: { reason: string }, token: string) =>
+  revokeDemerit: (
+    event_id: string,
+    body: { revoke_reason: string },
+    token: string,
+  ) =>
     request<DemeritEvent>(
       "POST",
       `/discipline/${event_id}/revoke`,
@@ -396,7 +406,12 @@ export const api = {
     if (params && params.status)
       q.push(`status=${encodeURIComponent(params.status)}`);
     const qs = q.length ? `?${q.join("&")}` : "";
-    return request<StudentAccount[]>("GET", `/students${qs}`, undefined, token);
+    return request<StudentAccountListOut>(
+      "GET",
+      `/students${qs}`,
+      undefined,
+      token,
+    );
   },
   resetStudentPassword: (studentId: string, token: string) =>
     request<PasswordResetOut>(
@@ -419,7 +434,7 @@ export const api = {
     if (from_date) q.push(`from_date=${encodeURIComponent(from_date)}`);
     if (to_date) q.push(`to_date=${encodeURIComponent(to_date)}`);
     const qs = q.length ? `?${q.join("&")}` : "";
-    return request<EventItem[]>("GET", `/events${qs}`, undefined, token);
+    return request<EventListOut>("GET", `/events${qs}`, undefined, token);
   },
   createEvent: (body: EventCreateIn, token: string) =>
     request<EventItem>("POST", "/events", body, token),
@@ -431,7 +446,12 @@ export const api = {
   // ── 巴士时刻表 ──
   listBusRoutes: (token: string, kind?: string) => {
     const qs = kind ? `?kind=${encodeURIComponent(kind)}` : "";
-    return request<BusRoute[]>("GET", `/bus/routes${qs}`, undefined, token);
+    return request<BusRouteListOut>(
+      "GET",
+      `/bus/routes${qs}`,
+      undefined,
+      token,
+    );
   },
   createBusRoute: (body: BusRouteCreateIn, token: string) =>
     request<BusRoute>("POST", "/bus/routes", body, token),
@@ -588,11 +608,30 @@ export const api = {
   deleteIncident: (id: string, token: string) =>
     request<void>("DELETE", `/incidents/${id}`, undefined, token),
 
-  // ── 学号一括进级 ──
-  promoteStudents: (
-    body: { dry_run: boolean; target_grade_codes?: string[] },
+  // ── 学年更新 / 学生自设番号（6-05 学生自设方案，推翻 5-30 老师代改）──
+  // 开闸：中1~高2 打 needs_renewal 标记 + 高3 毕业，不直接改番号。body={dry_run}
+  startRenewal: (body: RenewalStartIn, token: string) =>
+    request<RenewalStartOut>("POST", "/students/renewal-start", body, token),
+  // 进度：老师看谁还没自设番号（needs_renewal=true）
+  renewalProgress: (token: string) =>
+    request<RenewalProgressOut>(
+      "GET",
+      "/students/renewal-progress",
+      undefined,
+      token,
+    ),
+  // 老师单件改某学生番号（兜底 — 学生不会操作 / 填错时）。撞号返 422 STUDENT_NO_TAKEN
+  teacherRenewSeat: (
+    studentId: string,
+    body: TeacherRenewSeatIn,
     token: string,
-  ) => request<PromoteResult>("POST", "/students/bulk-promote", body, token),
+  ) =>
+    request<RenewSeatOut>(
+      "POST",
+      `/accounts/${studentId}/renew-seat`,
+      body,
+      token,
+    ),
 
   // ── WebSocket helper (/ws/teacher 收 checkin / outstay_new 事件) ──
   // 用法: const handle = api.openTeacherWS(token, onMessage, onStatus?)
