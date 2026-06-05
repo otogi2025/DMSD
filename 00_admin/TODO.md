@@ -111,6 +111,13 @@
 - [ ] **iOS 生产版接 `/api/v1/outings` 系列接口** — 现外出客户端只有演示版（`ApplyStubs.swift` 假数据）。生产版要新接：提出 → `POST /outings`、列表 → `GET /outings/mine`、详情 → `GET /outings/{id}`、撤回 → `PATCH /{id}/withdraw`。后端 status 只有 `pending/approved/withdrawn` 三态，2 步进度按这三态映射（`pending`=先生確認待ち / `approved`=確認済显示 `confirmed_by_name` / `withdrawn`=取消）。
 - [ ] **老师网页加外出「確認」按钮** — 列表 `GET /outings/pending-for-me` + 点确认调 `PATCH /outings/{id}/confirm`（单按钮，不是多级审批 UI）。
 
+## 🔁 2026-06-05 学年更新 / 学生自设番号 — 后端✅ iOS✅ 老师网页✅ / Android + 1 共用层问题
+
+> 学号每年变 → 学生自设番号（推翻 4-30 老师代改，spec §4.2）。后端（开闸+自设+进度+单件改+R4）+ iOS（顶部横幅+弹窗）+ 老师网页（开闸+分组列表+进度+单件改+4/1横幅）本会话全做完并提交。codex gpt-5.5 xhigh 两轮复审：第一轮 4 major 全采纳修（R4 寮边界 + 开闸检查），全套 308 passed。
+
+- [ ] **🟠 待 itsuki 拍板：`deps.py` `dorm_units_for_teacher` 失败放行**（codex 第二轮挑出）— 非跨寮角色（管理係/寮監）但 `assigned_dorm=None` 时函数返回 `None` = 看全部。**这是共用函数**，外出 `outings` + 学生档案 `student_profile` + 本功能都在用，改它影响全代码库。两种可能：① 故意（无分配寮的管理係 = 中央看全部）② 失败放行漏洞。要不要改成「无分配寮非跨寮角色 → 看不到任何寮（fail-closed）」由 itsuki 定 —— 不在番号更新功能里顺手改全代码库。**注**：现有 `admin_accounts` 的密码重置/解锁/学生列表也共用同一函数、同一行为，要改一起改。
+- [ ] **Android 端学年更新对齐** — 归别会话（`00_admin/iOS_Android对齐_GOAL提示词.md`），CC 不碰安卓。
+
 ## 🛰️ 2026-06-04 点呼机硬件下单 — Amazon/SS 已下单 / 秋月待台风后下 / LED 代码待改
 
 > 点呼机首台演示机硬件总检查 + 下单，约 2.2 万日元。LED 驱动从「3.3V GPIO 直驱」改「**5V 驱动 / 低电平点亮**」（A 方案 — 绿/蓝/白 工作电压 Vf 3.1V，3.3V 针 +220Ω 几乎不亮）。详见 `03_dev/rollcall_device/点呼机采购清单.html` + `点呼机接线说明.md §4` + `decision_log` 2026-06-04 条。
