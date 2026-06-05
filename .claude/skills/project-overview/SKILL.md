@@ -64,7 +64,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 1. **第一次了解项目的入口已拆层**：`README.md` 负责 GitHub 门面；`PROJECT_GUIDE.md` 负责新人导览；本 skill 负责文件级地图。
 
-2. **teacher_web 当前主线已明确**：5-26 废弃 Vite + TypeScript 实装版，当前权威源是 `03_dev/teacher_web/v1/src/index.html` standalone HTML（Ryō 风格）+ `src/api/client.js`。
+2. **teacher_web 当前主线已明确**：6-05 从 HTML 单文件迁到 **React + TypeScript + Vite**（界面冻结原样搬，吸取 5-26 教训），当前权威源是 `03_dev/teacher_web/v1/src/` 下 React+TS（main/App/Shell/theme/utils/api(client.ts+types.ts)/components 26 .tsx），构建产物 `dist/`。旧 standalone HTML 已归档。
 
 3. **后端 v1 已从 P0 骨架推进到 v1.0 功能补齐阶段**：13 router 注册，61 endpoint 可 import；discipline / cleaning / front_desk / WebSocket 已在 5-27 推进。
 
@@ -74,7 +74,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ### 0.4 跨组横向洞察（详见 §8）
 
-- **demo ↔ v1 复制策略**（2026-05-06 独立 repo 模式退役后）：backend 选了"重写"（schema 全新）✅；teacher_web 经过 Vite 试做后 5-26 回到 Ryō standalone HTML 主线；iOS / Android 真代码全部在 DMSD 内（曾经的独立 repo + cloud agent 同步三件套已归档到 `99_archive/2026-05-06_cloud_agent_退役/`）。
+- **demo ↔ v1 复制策略**（2026-05-06 独立 repo 模式退役后）：backend 选了"重写"（schema 全新）✅；teacher_web 5-26 Vite 试做(重做新界面)被否决后回 standalone HTML，6-05 重新迁 Vite（这次界面冻结原样搬，成功）；iOS / Android 真代码全部在 DMSD 内（曾经的独立 repo + cloud agent 同步三件套已归档到 `99_archive/2026-05-06_cloud_agent_退役/`）。
 - **五层 DESIGN_LOG 体系生效**：BACKEND / IOS / ANDROID / WEB 四端 DESIGN_LOG 都活跃且与 system_features.md 同步链清晰；2026-05-08 加点呼机 ROLLCALL_DEVICE_DESIGN_LOG 成第 5 个 — 是 4-29 大整理后的最大资产，5-08 收口。
 - **AC 叙事供应充足**：80+ 条 #AC候选 + 6 个 per-version 叙事（v0.3-0.7）+ 4 个 problem_solving 精品版 + 3 个 03_dev/_DESIGN_LOG 工程化叙事 — 数量上远超 AC 自我推荐书所需。
 
@@ -94,7 +94,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `README.md` | 项目对外介绍（4-30 名字 Tomoshibi 定名） | ✅ | 4-29 起 GitHub public |
 | `PROJECT_GUIDE.md` | 第一次了解项目的人用的新手导览 — 项目是什么 / 5 端结构 / 当前状态 / 推荐阅读顺序 | ✅ | 2026-05-27 加，README 指向它 |
 | `LICENSE` | All Rights Reserved + AC 后 4 方向评估 | ✅ | 不常改 |
-| `启动老师网站.command` | 双击一键起后端 8000 + 前端 8787 + 自动开浏览器（老师 Web 本地启动） | ✅ | 2026-05-28 加，替代已归档的 `teacher_web/v1/开发模式跑.command` |
+| `启动老师网站.command` | 双击一键：build Vite dist → 后端 8000 托管 dist 到 /teacher/ → 自动开浏览器 | ✅ | 6-05 改成 Vite 版（原起前端 8787 托管 src 旧单文件） |
 
 ### 1.2 00_admin/AI 协作 + 项目治理（2026-05-22 校准 — 7 顶级 md + hooks 子目录，5-21 加 2 个长期治理文件）
 
@@ -407,43 +407,52 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 
 ---
 
-## 4. 第 4 组：03_dev/teacher_web（161 文件 — 2026-05-27 校准，当前主线 = Ryō standalone HTML）
+## 4. 第 4 组：03_dev/teacher_web（177 文件 — 2026-06-05 校准，当前主线 = React + TypeScript + Vite）
 
-**统计**：顶级 2（DESIGN_BRIEF + WEB_DESIGN_LOG）+ v1 159。
-**核心状态**：5-26 itsuki 拍板废弃 Vite + TypeScript 实装版（归档到 `99_archive/2026-05-26_teacher_web_vite实装作废/`），teacher_web 当前权威主线回到 `v1/src/index.html` standalone HTML（Ryō 风格）+ `src/api/client.js` backend helper。
+**统计**：顶级 2（DESIGN_BRIEF + WEB_DESIGN_LOG）+ v1 175（其中 src/_assets 字体 130）。
+**核心状态**：6-05 从「HTML 单文件 + 浏览器内 Babel 编译」**迁到 React 18 + TypeScript + Vite** 正规工程（界面 100% 冻结原样搬，吸取 5-26 失败教训）。chrome 客观实测 17 页全渲染 + 27 接口全 200 + 真数据通；仅剩 itsuki 肉眼签收 + push。旧单文件版归档到 `99_archive/2026-06-05_teacher_web_html单文件版归档/`。注：5-26 那次早期 Vite 试做（重做新界面被否决）归档在 `99_archive/2026-05-26_teacher_web_vite实装作废/`，跟本次是两回事。
 
 ### 4.1 顶层（2 文件）
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
 | `DESIGN_BRIEF.md` | teacher_web 给设计师的需求简报 + 实装跟踪 | ✅ | Round 2/3 handoff |
-| `WEB_DESIGN_LOG.md` | ⭐ teacher_web 设计决策权威源（18 项时间线 + Tomoshibi 命名 + Ryo 涼配色方案） | ✅ | 改 teacher_web 业务代码前必查 |
+| `WEB_DESIGN_LOG.md` | ⭐ teacher_web 设计决策权威源（16 项时间线含 §16 Vite 迁移 + Tomoshibi 命名 + Ryo 涼配色方案） | ✅ | 改 teacher_web 业务代码前必查 |
 
 ### 4.2 demo/（已归档）
 
 5-21 teacher_web demo 整组 158 文件已挪到 `99_archive/2026-05-21_teacher_web_demo_archived/`。当前 `03_dev/teacher_web/` 下不再保留 `demo/` 主线目录。
 
-### 4.3 v1/（159 文件 — standalone HTML 主线）
+### 4.3 v1/（175 文件 — React + TypeScript + Vite 主线）
 
-> **5-27 校准**：当前不是 Vite + TypeScript 主线。Vite 实装版已整体归档；`v1/` 保留 standalone HTML 运行链 + vendor 字体/React/Babel 资源 + `_legacy` 旧组件参考。
+> **6-05 校准**：迁到 Vite 正规工程。入口是根 `index.html`(引 /src/main.tsx)；源码全在 `src/` 下 React+TS；构建产物 `dist/` 已 gitignore（不提交，启动脚本现 build）。旧 standalone HTML 运行链(index.html 29629 行 + client.js + vendor + 打包脚本)已整体归档。
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
-| `README.md` | v1 启动说明（当前已按 standalone 主线修过） | ✅ | 新会话看 teacher_web 先读 |
-| `src/index.html` | 老师 Web 当前主入口 — Ryō 风格 24 学生座席表 + 实时点呼仪表盘 + 多页面逻辑 | ✅ | 当前权威主线 |
-| `src/index.css` | standalone HTML 配套样式 | ✅ | 与 `src/index.html` 同步 |
-| `src/api/client.js` | 5-27 接后端的 JavaScript helper（rollcall / discipline / cleaning / front_desk / announcements 等） | ✅ | 浏览器直接用 |
-| `src/api/client.ts` | TypeScript 版 client 残留参考 | ⚠️ | 当前运行主线用 `client.js` |
-| `src/components/_legacy/*.jsx`（14 文件）| 旧 React 组件参考（accounts / app / roll-call / shell 等） | 📦 | 只读参考，不是当前入口 |
-| `src/vendor/` + `src/_assets/` + `src/assets/` | React/Babel vendor + 字体 + icon 资源 | ✅ | standalone HTML 依赖 |
-| `tomoshibi` + `demo_server.py` | NFC 实时点呼演示入口（仅前端 + demo 端点）| ✅ | `开发模式跑.command` 已 5-28 归档；正式登录走项目根 `启动老师网站.command` |
-| `build_single_file.py` + `rebuild.command` + `打包单文件.command` | 单文件打包链 | ⚠️ | 上线前需确认是否仍保留 |
+| `README.md` | v1 启动说明 | ✅ | 新会话看 teacher_web 先读（⚠️ 可能仍描述旧 standalone 链，待核） |
+| `index.html` | Vite 入口（14 行，引 `/src/main.tsx`） | ✅ | 根目录，不是 src 下 |
+| `package.json` / `package-lock.json` | 依赖 + 脚本（build = `tsc --noEmit && vite build`） | ✅ | React18 + Vite6 + TS5 |
+| `vite.config.ts` | Vite 配置（`base:"./"` + proxy /api→8000 + `resolve.extensions` .ts 优先） | ✅ | |
+| `tsconfig.json` | TypeScript 配置 | ✅ | |
+| `src/main.tsx` | 挂载入口（render App + 引 fonts.css/styles.css） | ✅ | |
+| `src/App.tsx` | 鉴权状态 + 路由 switch（角色门控前的总枢纽） | ✅ | |
+| `src/Shell.tsx` | 侧栏 17 菜单 + 角色门控 + 顶栏搜索 | ✅ | |
+| `src/theme.ts` | RYO 配色 + 常量 + dormLabel + `API_BASE="/api/v1"` | ✅ | `window.RYO` 迁来 |
+| `src/utils.ts` | 4 个 JST 日本时间助手（跨页共用） | ✅ | |
+| `src/api/client.ts` | 60+ 接口方法（rollcall/discipline/cleaning/front_desk/announcements 等） | ✅ | 旧 `client.js` 拆来，有 export |
+| `src/api/types.ts` | 50+ 后端类型，对齐 `backend/app/schemas.py` | ✅ | |
+| `src/components/*.tsx`（26 文件）| 22 页 + 3 弹窗(OverrideModal/OutstayDetailModal/StudentProfileModal) + `shared.tsx`(公共组件) | ✅ | window.XxxPage 迁来 |
+| `src/components/RollCallLanding.tsx` | 点呼默认页 | ⚠️ | 统计卡/趋势图/最近セッション是原样搬的硬编码 demo 数据(带「DEMO」标记)，是否接真后端待 itsuki 拍 |
+| `src/fonts.css` + `src/styles.css` | 全局字体(@font-face 引 _assets) + 样式 | ✅ | |
+| `src/_assets/`（130 .woff2）| Noto Sans JP 等字体文件 | ✅ | fonts.css 引用，Vite 构建打进 dist |
+| `src/assets/tomoshibi-icon.png` | 灯火图标 | ✅ | |
+| `src/vite-env.d.ts` | Vite 类型声明（.png import 等） | ✅ | |
 
 **当前 v1.0 推进重点**：
-1. 保持 standalone HTML 主线，不再回到已归档的 Vite + TypeScript 实装版
-2. 继续把页面接到 FastAPI 后端 helper
-3. 按 5 角色权限和真实业务规则补齐页面状态
-4. 上线前清理 demo-only scaffold 和过期脚本
+1. itsuki 肉眼签收界面跟旧版一致 → push（CC 不自动 push）
+2. RollCallLanding 的 demo 数据是否接真后端，待 itsuki 拍
+3. README 若仍描述旧 standalone 链需更新
+4. 上线前清理其余 demo-only scaffold
 
 ---
 

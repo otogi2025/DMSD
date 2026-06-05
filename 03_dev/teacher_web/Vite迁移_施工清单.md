@@ -115,12 +115,12 @@
 
 ## 5. 完成的总验证标准
 
-- [ ] `npm run build` 成功产出 `dist/`，0 报错
-- [ ] `tsc`（TypeScript 类型检查）0 错误
-- [ ] 16 个主页面 + 登录页逐页跟旧版**界面一致**（肉眼对比，这是最硬的标准）
-- [ ] 核心功能跑通：登录 / 代録出寮届 / 出寮者一覧 / 申請审批 / 点呼板 / 学習出席
-- [ ] 起后端托管 `dist/`，浏览器访问正常
-- [ ] 后端 295 测试仍全过（迁移不应碰后端，若碰了要确认）
+- [x] `npm run build` 成功产出 `dist/`，0 报错（产物 index js 414KB / css 398KB）
+- [x] `tsc`（TypeScript 类型检查）0 错误（build = `tsc --noEmit && vite build`）
+- [ ] 16 个主页面 + 登录页逐页跟旧版**界面一致**（肉眼对比，这是最硬的标准）→ **留 itsuki 签收**；CC 已 chrome 客观验证 17 页全渲染无崩溃 + Ryō 配色/字体/图标一致
+- [x] 核心功能跑通：登录 / 代録出寮届 / 出寮者一覧 / 申請审批 / 点呼板 / 学習出席（chrome 实测真数据通，27 接口全 200）
+- [x] 起后端托管 `dist/`，浏览器访问正常（`启动老师网站.command` 已切 dist）
+- [x] 后端测试仍全过（311 passed；本会话顺带修了别会话留的 dev 库 revision 撞号阻塞）
 
 ---
 
@@ -173,19 +173,19 @@
 - Ryō 配色/Noto Sans JP/灯火图标 跟旧版一致 ✓；API 调用参数正确 ✓
 - 三路审查全收敛(地基19+终审workflow8+codex3,全修)；tsc 0+build通(414KB)+后端308测试过
 
-【⚠️ 阻塞项 — 后端 dev 数据库(非迁移bug,itsuki已授权CC修)】
+【✅ 已解决 — 后端 dev 数据库(非迁移bug,itsuki已授权CC修;commit e5073e5)】
 - 现象：代録搜学生「検索に失敗」；后端日志 `no such column: students.needs_renewal`
-- 真因：needs_renewal 是别会话6-05 renewal功能加的列；dev库 alembic 多head分叉(b2c3d4e5f6a7重复 + 两个head: b2c3d4e5f6a7 / e1f2a3b4c5d6)，upgrade head 失败、列没建上 → 所有查 students 的功能(代録/学生账号/学习名簿/点呼board/出寮者一覧含student)在dev库都500
-- 铁证非迁移问题：前端请求参数对 + pytest 308过(test库用 conftest create_all 有此列)
-- 修法(新会话做)：alembic merge heads 合并两head → 创 merge revision → upgrade head；或 reseed dev库(seed.py)。修后重起后端验证
+- 真因(比交接时以为的更准)：**不是多head分叉，是 revision 撞号** — 别会话6-05 加的 add_needs_renewal 误用了早期 align_application_schema 占用的号 b2c3d4e5f6a7(复制文件忘改 revision 行)，alembic 警告「revision 出现多次」+ 报两个假head，upgrade head 失败
+- 铁证非迁移问题：前端请求参数对 + pytest 全过(test库用 conftest create_all 有此列)
+- 实际修法：计划的 `merge heads` 治不了撞号 → 改成换唯一号 f8a9b0c1d2e3 + 文件改名(单头恢复)。dev库另发现是 create_all+版本戳脱节的半新半旧态(逐迁移报 table already exists)→ 重建库(删→seed→stamp head)。重起后端 chrome 实测代録搜「田中」秒出
 
-【剩余 TODO(新会话照做)】
-1. 修后端 dev 库 alembic 多head(merge heads + upgrade) → 代録等 students 功能恢复
-2. 重起后端托管 dist + chrome 验证代録搜学生/点呼/学習/出寮者一覧/审批 + 逐页截图16页(客观验证界面一致)
-3. 切正式 启动老师网站.command → 托管 dist(现托管 src);加 npm run build 步骤
-4. 归档旧 src/index.html(29305行) + api/client.js + vendor/ + 打包脚本(build_single_file.py等) → 99_archive
-5. 收尾文档：WEB_DESIGN_LOG(迁移记录) + raw/2026-06-05(AC素材) + decision_log(迁Vite落地) + memory更新(project_teacher_web_vite_migration 标完成) + project-overview同步(新增~30 .tsx) + 心智模型(老师网页 HTML→Vite 成熟度)
-6. itsuki 肉眼最终签收(双击预览,他做) → push(itsuki明示)
+【剩余 TODO — 2026-06-05 收尾会话全部做完(除 6)】
+1. ✅ 修后端 dev 库：不是多head分叉而是 **revision 撞号**(needs_renewal 误用 align_application_schema 的 b2c3d4e5f6a7)→ 计划的 merge heads 治不了，改成换唯一号 f8a9b0c1d2e3 + 重建库 + stamp head(commit e5073e5)
+2. ✅ chrome 客观验证：17 页全渲染无崩溃 + 27 接口全 200 + 控制台0报错 + 代録搜学生/点呼/学習/出寮者一覧/审批 真数据通
+3. ✅ 切正式 启动老师网站.command → build dist + 后端托管 dist(commit c9d20c4)
+4. ✅ 归档旧 src/index.html(29629行) + client.js + vendor + 打包脚本 + Tomoshibi_v3_single.html → 99_archive/2026-06-05_teacher_web_html单文件版归档/(commit c9d20c4)
+5. ✅ 收尾文档：WEB_DESIGN_LOG §16 + raw/2026-06-05_teacher_web_vite迁移.md + decision_log + memory(标完成) + project-overview(§4整段重写) + 心智模型
+6. ⏳ itsuki 肉眼最终签收(双击 启动老师网站.command,他做) → push(itsuki明示)
 
 【迁移产出文件清单】src/ 下：main.tsx/App.tsx/Shell.tsx/theme.ts/utils.ts/vite-env.d.ts/api(client.ts+types.ts) + components/(22页+3弹窗 OverrideModal/OutstayDetailModal/StudentProfileModal + shared.tsx)。配置 package.json/vite.config.ts(resolve.extensions .ts优先,base './')/tsconfig.json/index.html。
 预览脚本：repo根 预览Vite新版老师网站.command(双击 build+后端托管dist+开浏览器)。

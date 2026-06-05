@@ -35,9 +35,11 @@
 2. 服务器多人访问下，现在的 HTML 单文件（1.2MB + 浏览器现编译 + 用 react 开发版）首屏慢，Vite 打包预编译快很多。
 3. 选 Vite 不选 Next.js：老师网页是内部管理后台、不需搜索引擎收录，Next.js 的服务器端渲染卖点用不上。
 
-**这个改动影响了什么**: teacher_web 大重构。施工清单 `03_dev/teacher_web/Vite迁移_施工清单.md` + GOAL 提示词 `00_admin/老师网页Vite迁移_GOAL提示词.md`。迁移期间旧版照常能用。**铁律：界面 100% 冻结**——吸取 5-26 上次 Vite 失败教训（重做新界面被否决「这他妈根本不是我的 web」）。当前未开工，等 compact 后照 GOAL 执行。
+**这个改动影响了什么**: teacher_web 大重构。施工清单 `03_dev/teacher_web/Vite迁移_施工清单.md` + GOAL 提示词 `00_admin/老师网页Vite迁移_GOAL提示词.md`。迁移期间旧版照常能用。**铁律：界面 100% 冻结**——吸取 5-26 上次 Vite 失败教训（重做新界面被否决「这他妈根本不是我的 web」）。
 
-**相关**: `05_logs/raw/2026-06-05.md`（模式 3 失败教训应用 + 模式 6 取舍）；memory project_teacher_web_vite_migration
+**执行结果（2026-06-05 完成，commit 链 45688d3→…→c9d20c4）**: 5 阶段全做完（骨架→公共层→逐页搬 26 组件→外壳路由→切托管回归）；三路审查收敛（地基 19 + 终审 8 + codex 3）；顺带修了别会话留下的后端 dev 库 alembic revision 撞号阻塞（`b2c3d4e5f6a7` 重复 → 改 `f8a9b0c1d2e3` + 重建库，commit e5073e5）；chrome 客观实测 17 页全渲染 + 27 接口全 200 + 控制台 0 报错 + 代録/点呼/学習/出寮者一覧/审批真数据通 + 后端 311 测试全过；`启动老师网站.command` 切到 build+托管 dist；旧单文件版归档到 `99_archive/2026-06-05_teacher_web_html单文件版归档/`。**仅剩 itsuki 肉眼签收 + push**。界面冻结铁律已守住（chrome 实测 Ryō 配色/字体/图标跟旧版一致，没重蹈 5-26 覆辙）。
+
+**相关**: `05_logs/raw/2026-06-05_teacher_web_vite迁移.md`（模式 3 失败教训应用 + 模式 6 取舍）；memory project_teacher_web_vite_migration
 **事后回看**(几个月后补填):
 
 ## 2026-06-05 — 邮件服务 SendGrid → Resend（永久免费）

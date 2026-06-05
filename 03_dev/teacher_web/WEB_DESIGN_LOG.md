@@ -953,4 +953,46 @@ itsuki 拍板出租车预约功能，老师端要「能看到 + 主页防漏看�
 
 ---
 
+## 16. HTML 单文件 → React + TypeScript + Vite 迁移 — 2026-06-05
+
+老师网页从「单个 ~29600 行 `index.html` + 浏览器内 `babel.min.js` 现场把 JSX 编译成 JS + `react.development.js` 开发版」迁到 **React 18 + TypeScript + Vite** 正规模块化工程。itsuki 6-05 拍板「一步到位上 TypeScript」+ 授权「肉眼签收最后我来，其余你都做」。
+
+### 16.1 为什么迁（撤回两个伪约束）
+
+itsuki 纠正 CC 两个错误前提：① 部署目标是**服务器**（多人访问），不是本地一台电脑；② 别拿「itsuki 零基础维护难」当论据——有 AI 辅助维护，维护能力不进权衡。撤回伪约束后，React+Vite 的业界标准 + 首屏快（打包预编译 vs 浏览器现编译 1.2MB）+ AC 价值占上风。选 Vite 不选 Next.js：内部管理后台不需搜索引擎收录，服务器端渲染卖点用不上。
+
+### 16.2 铁律（吸取 5-26 失败教训，已守住）
+
+5-26 上次 Vite 迁移失败不是技术问题，是产品方向错——重做了一套全新 4 标签管理后台，被 itsuki 否决「这他妈根本不是我的 web」。本次铁律：**界面 100% 冻结，逐页原样搬，一个像素不改外观**；样式保持内联 `style` + Ryō 配色（`window.RYO` 迁成 import 的 `theme.ts`，不用 Tailwind）；全局状态用 React 自带 `useState` + Context（不引 Zustand）。chrome 实测 Ryō 配色 / Noto Sans JP 字体 / 灯火图标跟旧版一致。
+
+### 16.3 工程结构（当前权威源 `03_dev/teacher_web/v1/`）
+
+- **入口**：根 `index.html`（14 行，引 `/src/main.tsx`）→ `src/main.tsx`（挂载 + 引 fonts.css/styles.css）→ `src/App.tsx`（鉴权状态 + 路由 switch）→ `src/Shell.tsx`（侧栏 17 菜单 + 角色门控 + 顶栏）
+- **公共层**：`src/theme.ts`（RYO 配色 + 常量 + dormLabel + `API_BASE="/api/v1"`）/ `src/utils.ts`（4 个 JST 日本时间助手）/ `src/api/types.ts`（50+ 后端类型，对齐 `backend/app/schemas.py`）/ `src/api/client.ts`（60+ 接口方法）/ `src/components/shared.tsx`（ConfirmModal/DormBadge/ModalShell/ModalField/ModalFooter/StateBadge）
+- **页面/弹窗**：`src/components/` 26 个 `.tsx`（22 页 + 3 弹窗 OverrideModal/OutstayDetailModal/StudentProfileModal + shared）
+- **资源**：`src/_assets/`（fonts.css 引用的 .woff2 字体）+ `src/assets/tomoshibi-icon.png`
+- **配置**：`package.json`（build = `tsc --noEmit && vite build`）/ `vite.config.ts`（`base:"./"` + proxy /api→8000 + `resolve.extensions` .ts 优先）/ `tsconfig.json`
+- **迁移映射**：`window.RYO`→`import { RYO } from theme`；`window.tomoshibiApi`→`import { api } from api/client`；`window.XxxPage`→各组件 import；旧 `client.js`(IIFE 挂 window) 拆成 `client.ts`(有 export) + `types.ts`(类型)；`React.useState` 原样保留；JSX + 内联 style 逐字搬；注释改中文，UI 字符串保持日语
+
+### 16.4 验证（chrome 客观实测 + 后端测试）
+
+- `npm run build`：0 报错（tsc 0 + vite build，产物 index js 414KB / css 398KB + 字体）
+- chrome 自动化：登录跑通（选老师卡片→输密码→进 app）；17 菜单页全渲染无崩溃；27 个接口请求全 200；控制台 0 报错；代録搜学生(田中 太郎)、点呼板(対象 2 名)、学習出席(名簿 2 人)、出寮者一覧、审批(申請) 全部真数据通
+- 后端 311 测试全过
+
+### 16.5 托管 + 归档
+
+- `启动老师网站.command`（项目根）改成 build dist → 后端用 `TEACHER_WEB_DIR=dist` 托管到 `/teacher/` 路径（同源，前端用相对 `/api/v1` 连后端）
+- 旧物归档 `99_archive/2026-06-05_teacher_web_html单文件版归档/`：`src/index.html`(旧 29629 行源) + `api/client.js`(旧 IIFE) + `vendor/`(浏览器版 react+babel) + 打包脚本(`build_single_file.py`/`打包单文件.command`/`rebuild.command`/`check_jsx.js`/`tomoshibi`) + `Tomoshibi_v3_single.html`(33MB 旧自包含产物，双击可看旧版界面做对比)
+
+### 16.6 已知遗留（itsuki 决策）
+
+`RollCallLanding`（点呼默认页）的统计卡 + 趋势图 + 最近セッション表是从旧 `index.html` 原样照搬的硬编码 demo 数据（页面带「DEMO」标记）。忠实迁移保留了它，是否接真后端待 itsuki 拍（属 demo scaffold 范畴）。
+
+### 16.7 剩余
+
+itsuki 双击 `启动老师网站.command` 肉眼签收界面跟旧版一致 → 确认后 push（CC 不自动 push）。完整施工记录见 `03_dev/teacher_web/Vite迁移_施工清单.md` §8。
+
+---
+
 **END** — 本档随 Web 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。
