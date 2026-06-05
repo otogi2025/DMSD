@@ -978,7 +978,8 @@ struct StayDetailView: View {
                     divider; fieldRow(label: "帰寮日", value: r)
                 }
                 if let m = item.leaveMethod {
-                    divider; fieldRow(label: "帰省方法", value: m)
+                    // kind 为 .holiday（回老家）时标签用「帰省方法」；其余（外出过夜 / 回国 / 其他）离寮，用更通用的「出寮方法」
+                    divider; fieldRow(label: item.kind == .holiday ? "帰省方法" : "出寮方法", value: m)
                 }
                 if let m = item.returnMethod {
                     divider; fieldRow(label: "帰寮方法", value: m)
