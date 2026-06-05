@@ -766,7 +766,7 @@ struct MyInfoEditView: View {
                             TField(text: $room, placeholder: "101", keyboard: .numberPad)
                         }
                     }
-                    .onChange(of: room) { _, newVal in
+                    .onChangeCompat(of: room) { newVal in
                         let filtered = newVal.filter { $0.isNumber }
                         room = String(filtered.prefix(3))
                     }
@@ -1433,11 +1433,11 @@ struct MyPointsChartView: View {
                         style: StrokeStyle(lineWidth: 1, dash: [2, 3])
                     )
 
-                    // Y label
+                    // Y label — 全用 Text-returning 链（字体内置 monospaced + foregroundColor），
+                    // iOS 16 兼容：Text.foregroundStyle 返回 Text 仅 iOS 17+，否则 ctx.draw 不认
                     let text = Text("\(Int(g))")
-                        .font(.system(size: 9))
-                        .monospaced()
-                        .foregroundStyle(T.inkMute)
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundColor(T.inkMute)
                     ctx.draw(text, at: CGPoint(x: 10, y: y), anchor: .leading)
                 }
 
@@ -1482,10 +1482,10 @@ struct MyPointsChartView: View {
                 // X labels
                 for (i, m) in self.months.enumerated() {
                     let x = xFor(i)
+                    // 全用 Text-returning 链（字体内置 monospaced + foregroundColor），iOS 16 兼容
                     let text = Text(m)
-                        .font(.system(size: 9))
-                        .monospaced()
-                        .foregroundStyle(T.inkMute)
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundColor(T.inkMute)
                     ctx.draw(text, at: CGPoint(x: x, y: size.height - 8), anchor: .center)
                 }
             }

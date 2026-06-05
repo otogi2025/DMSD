@@ -46,7 +46,7 @@ struct TopRollBar: View {
         case .active:
             Image(systemName: "dot.circle.fill")
                 .foregroundStyle(T.danger)
-                .symbolEffect(.pulse)
+                .pulseIfAvailable()
         case .absent:
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(.white)
@@ -100,6 +100,18 @@ struct TopRollBar: View {
         case .active: T.warnBg
         case .absent: T.danger
         case .done: T.okBg
+        }
+    }
+}
+
+/// .symbolEffect(.pulse) 脉冲动画 iOS 17+ 才有；iOS 16 退化成无动画（最低支持 iOS 16 编译兼容）
+private extension View {
+    @ViewBuilder
+    func pulseIfAvailable() -> some View {
+        if #available(iOS 17.0, *) {
+            symbolEffect(.pulse)
+        } else {
+            self
         }
     }
 }

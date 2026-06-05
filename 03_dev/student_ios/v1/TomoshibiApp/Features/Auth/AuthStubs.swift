@@ -897,7 +897,7 @@ struct RegisterStep1View: View {
                     Field(label: "部屋番号", required: true) {
                         TField(text: $room, placeholder: "")
                     }
-                    .onChange(of: room) { _, newVal in
+                    .onChangeCompat(of: room) { newVal in
                         // 英数字のみ、最大 4 桁
                         let filtered = newVal.filter { $0.isLetter || $0.isNumber }
                             .uppercased()
@@ -2089,7 +2089,7 @@ struct RegisterStep5View: View {
                                 RoundedRectangle(cornerRadius: 14)
                                     .stroke(T.hair, lineWidth: 1)
                             }
-                            .onChange(of: code) { _, new in
+                            .onChangeCompat(of: code) { new in
                                 // 限制只能输入数字 + 最多 6 桁
                                 let filtered = String(new.filter { $0.isNumber }.prefix(6))
                                 if filtered != new { code = filtered }

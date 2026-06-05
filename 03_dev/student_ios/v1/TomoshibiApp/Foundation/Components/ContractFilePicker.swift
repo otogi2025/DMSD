@@ -67,7 +67,7 @@ struct ContractFilePicker: View {
         }
         // 相册选图（系统选择器，不需相册权限）
         .photosPicker(isPresented: $showPhotos, selection: $photoItem, matching: .images)
-        .onChange(of: photoItem) { _, newItem in
+        .onChangeCompat(of: photoItem) { newItem in
             guard let newItem else { return }
             Task { await handlePhotoItem(newItem) }
         }

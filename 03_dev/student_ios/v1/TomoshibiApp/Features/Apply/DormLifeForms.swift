@@ -362,7 +362,7 @@ struct FridgePurchaseForm: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl)
         .onAppear { prefillContact() }
-        .onChange(of: app.currentUser?.account) { _, _ in prefillContact() } // 自动登录冷启动：真实用户晚到时补填一次（Codex 6-03）
+        .onChangeCompat(of: app.currentUser?.account) { prefillContact() } // 自动登录冷启动：真实用户晚到时补填一次（Codex 6-03）
     }
 
     /// 预填本人联系电话：生产只在拿到真实 currentUser 后填（冷启动假人 SEED.user 不写入）；演示构建直接用 SEED。didPrefill 守卫防重复覆盖。
@@ -588,7 +588,7 @@ struct ItemPossessionForm: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl)
         .onAppear { prefillRoom() }
-        .onChange(of: app.currentUser?.account) { _, _ in prefillRoom() } // 自动登录冷启动：真实用户晚到时补填一次（Codex 6-03）
+        .onChangeCompat(of: app.currentUser?.account) { prefillRoom() } // 自动登录冷启动：真实用户晚到时补填一次（Codex 6-03）
     }
 
     /// 预填房间号：生产只在拿到真实 currentUser 后填（冷启动假人 SEED.user.room 不写入）；演示构建直接用 SEED。didPrefill 守卫防重复覆盖。
