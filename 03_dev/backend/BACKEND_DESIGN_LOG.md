@@ -21,6 +21,7 @@
 | 扣分值 / 改判重算 | ✅ 已修 | 迟到/缺席 0.5/1.0（system_features §862 冻结值，旧 1.0/2.0 是 drift）；改判 `_apply_override_demerit` 改「按当前状态重算」修多步改判少扣 bug（itsuki 5-31 + Codex 5.5 审）|
 | 注册码 TTL / 关闭 | ✅ 已修 | 自动失效 5→30 分 + 新增 `POST /admin/registration-code/close` 手动关闭（itsuki 5-31；「一次性」需求拒绝）|
 | 密码下限 | ✅ 已修 | 设密码处（老师注册 / 学生建号）6→8 位；登录处不卡长度（保护错误密码锁定测试）（itsuki 5-31）|
+| 邮件发送 | 🟡 dev | SendGrid（2025 春取消永久免费）→ Resend（永久免费 3000 封/月）迁移完成（6-05）；无密钥时 dev 模式跳过不真发，itsuki 注册 resend.com 拿密钥填 .env 即真发；urllib POST 无第三方依赖；带 3 单元测试（test_email_resend.py）|
 
 ### 字段隐私分级（2026-05-21 A-023 加）
 

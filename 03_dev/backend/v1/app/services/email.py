@@ -1,4 +1,4 @@
-"""SendGrid メール送信 (D1)。
+"""Resend 邮件发送 (D1)。
 
 設計権威: BACKEND_DESIGN_LOG.md §3.2 §5.6 §10-D1 + system_features.md §7.13。
 - 出寮届 提交 → 役职 (R1 = メール固定)
@@ -8,7 +8,7 @@
 
 設計理念:
 - 失败は notification_log に残す (status='failed' + last_error) → 業務 flow は止めない
-- API_KEY 未設定の dev 環境では「ログだけ書いて成功扱い」にして開発を阻害しない
+- API_KEY 未设置的 dev 环境只记日志当成功，不阻碍开发
 """
 
 from __future__ import annotations
@@ -108,52 +108,65 @@ def _dorm_label(dorm_unit: int) -> str:
 
 
 # ---------------------------------------------------------------
-# SendGrid 送信
+# Resend 发送
 # ---------------------------------------------------------------
-def _send_via_sendgrid(
+def _send_via_resend(
     *,
     to_emails: list[str],
     subject: str,
     body_text: str,
 ) -> tuple[bool, int | None, str | None]:
-    """実際に SendGrid API を叩く。
+    """实际调 Resend API（HTTP POST https://api.resend.com/emails）。
+
+    标准库 urllib 直接 POST，不引第三方依赖。RESEND_API_KEY 未设置时 dev 模式跳过。
 
     Returns:
-        (sent, sendgrid_status_code, error_message)
+        (sent, http_status_code, error_message)
     """
     settings = get_settings()
-    if not settings.sendgrid_api_key:
+    if not settings.resend_api_key:
         logger.warning(
-            "SENDGRID_API_KEY 未設定 — メール送信をスキップ (dev mode). subject=%s",
+            "RESEND_API_KEY 未设置 — 跳过邮件发送 (dev mode). subject=%s",
             subject,
         )
-        return False, None, "SENDGRID_API_KEY not configured"
-
-    try:
-        # lazy import — 依存をオプショナルに保つ
-        from sendgrid import SendGridAPIClient
-        from sendgrid.helpers.mail import Mail
-    except ImportError as e:
-        logger.error("sendgrid package not installed: %s", e)
-        return False, None, f"sendgrid not installed: {e}"
+        return False, None, "RESEND_API_KEY not configured"
 
     if not to_emails:
         return False, None, "no recipients"
 
-    message = Mail(
-        from_email=(settings.email_from, settings.email_from_name),
-        to_emails=to_emails,
-        subject=subject,
-        plain_text_content=body_text,
+    # lazy import — 标准库，无第三方依赖
+    import json
+    import urllib.error
+    import urllib.request
+
+    payload = json.dumps(
+        {
+            "from": f"{settings.email_from_name} <{settings.email_from}>",
+            "to": to_emails,
+            "subject": subject,
+            "text": body_text,
+        }
+    ).encode("utf-8")
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {settings.resend_api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
     )
     try:
-        client = SendGridAPIClient(settings.sendgrid_api_key)
-        response = client.send(message)
-        # SendGrid 2xx = 受理 (実配達は別)
-        ok = 200 <= response.status_code < 300
-        return ok, response.status_code, None if ok else f"HTTP {response.status_code}"
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            code = resp.status
+            # Resend 2xx = 受理(实际投递另算)
+            ok = 200 <= code < 300
+            return ok, code, None if ok else f"HTTP {code}"
+    except urllib.error.HTTPError as e:
+        logger.warning("Resend send failed: HTTP %s", e.code)
+        return False, e.code, f"HTTP {e.code}"
     except Exception as e:  # noqa: BLE001 — network 系は何でも来る
-        logger.exception("SendGrid send failed: %s", e)
+        logger.exception("Resend send failed: %s", e)
         return False, None, str(e)
 
 
@@ -203,7 +216,7 @@ def send_application_submitted(
         log.attempts = 0
         return log
 
-    sent, status_code, error = _send_via_sendgrid(
+    sent, status_code, error = _send_via_resend(
         to_emails=to_emails, subject=subject, body_text=body
     )
     log.attempts = 1
@@ -211,10 +224,10 @@ def send_application_submitted(
         log.status = "sent"
         log.sent_at = datetime.now(timezone.utc)
     else:
-        # SENDGRID_API_KEY 未設定 (dev) は "skipped" 扱い、failed と区別
+        # RESEND_API_KEY 未设置 (dev) 视为 skipped，跟 failed 区分
         if error and "not configured" in error:
             log.status = "pending"
-            log.last_error = "dev mode: SendGrid API key not configured (skipped)"
+            log.last_error = "dev mode: Resend API key not configured (skipped)"
         else:
             log.status = "failed"
             log.last_error = (error or f"HTTP {status_code}")[:500]
@@ -237,7 +250,7 @@ def send_application_decided(
 
     - 收件人 = 学生本人の email（未登録なら failed 記録、業務は止めない）
     - notification_log に 1 行記録（template_key='application_decided'）
-    - dev で SENDGRID_API_KEY 未設定なら pending（skipped）扱い
+    - dev 下 RESEND_API_KEY 未设置则 pending（skipped）
     """
     subject, body = render_application_decided(
         application=application,
@@ -274,7 +287,7 @@ def send_application_decided(
         log.attempts = 0
         return log
 
-    sent, status_code, error = _send_via_sendgrid(
+    sent, status_code, error = _send_via_resend(
         to_emails=[to_email], subject=subject, body_text=body
     )
     log.attempts = 1
@@ -284,7 +297,7 @@ def send_application_decided(
     else:
         if error and "not configured" in error:
             log.status = "pending"
-            log.last_error = "dev mode: SendGrid API key not configured (skipped)"
+            log.last_error = "dev mode: Resend API key not configured (skipped)"
         else:
             log.status = "failed"
             log.last_error = (error or f"HTTP {status_code}")[:500]
@@ -315,7 +328,7 @@ def send_test_email(
     db.add(log)
     db.flush()
 
-    sent, status_code, error = _send_via_sendgrid(
+    sent, status_code, error = _send_via_resend(
         to_emails=[to], subject=subject, body_text=body_text
     )
     log.attempts = 1

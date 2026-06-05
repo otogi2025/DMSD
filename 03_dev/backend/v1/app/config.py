@@ -48,8 +48,9 @@ class Settings(BaseSettings):
     jwt_access_expire_min: int = 1440  # 24h
     jwt_refresh_expire_min: int = 43200  # 30d
 
-    # SendGrid (D1)
-    sendgrid_api_key: str = ""
+    # 邮件发送 (D1) — SendGrid 2025 春取消永久免费,换 Resend(永久免费 3000封/月)
+    sendgrid_api_key: str = ""  # 弃用,保留避免旧 .env 报错
+    resend_api_key: str = ""  # Resend 密钥(re_xxx)— itsuki 注册 resend.com 拿后填 .env;空=dev 模式只记日志不真发
     email_from: str = "noreply@tomoshibi.example.jp"
     email_from_name: str = "Tomoshibi 通知"
 
