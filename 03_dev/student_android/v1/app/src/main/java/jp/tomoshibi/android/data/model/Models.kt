@@ -215,3 +215,149 @@ data class AppState(
     val musicRequests: List<MusicRequest> = emptyList(),
     val lostFoundClaims: Map<String, Boolean> = emptyMap(),
 )
+
+// ───────── 申請履歴 family（对应 iOS StayListStubs.swift）─────────
+// 老師 38 条 #5「提交后给提交者展示承认状态」。后端 GET /applications/mine 未接 → MockData。
+// 为避免跟上面「申し込み tab」用的 ApplicationStatus(4 值) 撞名，这家全部加 Stay 前缀。
+
+// 承認役职（对应 iOS ApprovalRole）— label 是承認链上显示的役职名
+enum class StayApprovalRole(
+    val label: String,
+) {
+    HOMEROOM("担任"),
+    DORM_HEAD("寮務部長"),
+    DORM_CHIEF("寮務課長"),
+    INTL_HEAD("国際交流部長"),
+    INTL_CHIEF("国際交流課長"),
+    MANAGEMENT("管理係"),
+    PRINCIPAL("校長"),
+}
+
+// 承認決定（对应 iOS ApprovalDecision）
+enum class StayDecision(
+    val label: String,
+) {
+    PENDING("審査中"),
+    APPROVED("承認"),
+    REJECTED("差戻"),
+}
+
+// 承認链一环（对应 iOS ApprovalStep）
+@Serializable
+data class StayApprovalStep(
+    val role: String, // StayApprovalRole.label
+    val approverName: String? = null, // null = 仅显示役职名
+    val decision: String, // StayDecision.name（PENDING/APPROVED/REJECTED）
+    val decidedAt: String? = null, // "2026-04-21 11:02"
+    val comment: String? = null,
+)
+
+// 操作履历一条（对应 iOS AuditLogEntry）— 最新在前
+@Serializable
+data class StayAuditEntry(
+    val at: String, // "2026-05-01 14:32"
+    val action: String, // 操作类型，值即 UI 文案：「提出」「修改届を提出」「差戻」「承認」
+    val actor: String, // 役职名+担当者 / 申請者本人
+    val detail: String? = null, // 修改届理由 / 差戻理由
+)
+
+// 申請状态（7 值，对应 iOS ApplicationStatus）— label 是状态徽章文案
+enum class StayStatus(
+    val label: String,
+) {
+    DRAFT("下書き"),
+    PENDING("審査中"),
+    APPROVED_PARTIAL("一部承認"),
+    APPROVED("承認済"),
+    REJECTED("差戻"),
+    RETURNED("要修正"),
+    WITHDRAWN("取消済"),
+}
+
+// 申請种类（对应 iOS ApplicationKind）
+enum class StayKind(
+    val label: String,
+) {
+    STAY("外泊"),
+    HOLIDAY("帰省"),
+    RETURN("帰国"),
+    OTHER("その他"),
+}
+
+// 申請履歴 詳細（对应 iOS StayApplication）— GET /applications/:id 的界面模型
+@Serializable
+data class StayApplication(
+    val id: String,
+    val kind: String, // StayKind.label
+    val status: String, // StayStatus.name
+    val leaveDate: String, // "2026-05-03"
+    val returnDate: String? = null,
+    val summary: String,
+    val destination: String? = null,
+    val leaveMethod: String? = null,
+    val returnMethod: String? = null,
+    val taxiReservationTime: String? = null, // 出租车预约时刻，null=不预约
+    val chain: List<StayApprovalStep> = emptyList(),
+    val submittedAt: String, // "2026-04-20 10:24"
+    val auditLog: List<StayAuditEntry> = emptyList(),
+) {
+    // 修改届可提交：仅 審査中 / 一部承認 / 要修正 状态（system_features §7.2.4）
+    val isEditable: Boolean
+        get() =
+            status in
+                setOf(
+                    StayStatus.PENDING.name,
+                    StayStatus.APPROVED_PARTIAL.name,
+                    StayStatus.RETURNED.name,
+                )
+}
+
+// 行事企画 申請（对应 iOS DormEventProposalOut）
+@Serializable
+data class DormEventProposal(
+    val id: String,
+    val teamName: String? = null, // 企画团队名
+    val title: String, // 企画名
+    val heldAt: String, // 开催日時 "2026-05-10 18:00"
+    val place: String,
+    val expectedCount: Int, // 预想参加人数
+    val target: String, // 对象
+    val purpose: String,
+    val content: String,
+    val riskSolution: String, // 风险对策
+    val expectedCost: String, // 预想费用
+    val status: String = "pending", // pending / approved / rejected
+)
+
+// 在线学习申請（对应 iOS StudyOnlineRequestOut）
+@Serializable
+data class StudyOnlineRequest(
+    val id: String,
+    val reason: String,
+    val periodFrom: String, // 期間 "2026-05-01"
+    val periodTo: String,
+    val contractFileName: String? = null, // 契約書文件名，null=未上传
+    val status: String = "pending",
+)
+
+// 冷蔵庫購入 申請（对应 iOS FridgePurchaseRequestOut）
+@Serializable
+data class FridgePurchaseRequest(
+    val id: String,
+    val product: String, // "A" | "B"（指定 2 款）
+    val contactPhone: String,
+    val submittedAt: String,
+    val status: String = "pending", // pending / ordered / delivered / rejected
+)
+
+// 物品所持 申請（对应 iOS ItemPossessionRequestOut）
+@Serializable
+data class ItemPossessionRequest(
+    val id: String,
+    val roomNo: String,
+    val item: String, // 持込物品名
+    val reason: String,
+    val guardianName: String, // 保護者名
+    val submittedAt: String,
+    val status: String = "pending", // pending / approved / rejected
+)

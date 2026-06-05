@@ -155,4 +155,34 @@ sealed class Route(
     data object Bus : Route("bus")
 
     data object Delivery : Route("delivery")
+
+    // ── 申請履歴 family（老師38条#5；前缀 stayhistory 防撞 applications/{id}）──
+    data object StayList : Route("stayhistory") // 申請履歴一覧
+
+    data class StayDetail(
+        val id: String,
+    ) : Route("stayhistory/$id") {
+        companion object {
+            const val PATH = "stayhistory/{id}"
+            const val ARG_ID = "id"
+        }
+    }
+
+    data class StayEdit(
+        val id: String,
+    ) : Route("stayhistory/$id/edit") {
+        companion object {
+            const val PATH = "stayhistory/{id}/edit"
+            const val ARG_ID = "id"
+        }
+    }
+
+    // ── 4 类型申請一覧（前缀 applylist 唯一）──
+    data object DormEventList : Route("applylist/events") // 行事企画一覧
+
+    data object StudyOnlineList : Route("applylist/online") // 在线学习申請一覧
+
+    data object FridgeList : Route("applylist/fridge") // 冷蔵庫購入一覧
+
+    data object ItemList : Route("applylist/items") // 物品所持一覧
 }

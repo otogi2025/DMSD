@@ -271,6 +271,150 @@ object MockData {
 
     val DEFAULT_DELIVERY = DeliveryInfo(1, "Amazon", "本日到着")
 
+    // ───────── 申請履歴 family 假数据（对应 iOS StayListMock）─────────
+    // 用户「リュウ イヒ」= 留学生 → 外泊承認链 5 役职：「担任」「国際交流部長」「寮務課長」「寮務部長」「管理係」
+    private val OVERSEAS_STAY_ROLES =
+        listOf("担任", "国際交流部長", "寮務課長", "寮務部長", "管理係")
+
+    // 全员同决定的承認链（用于「全 pending」「全 approved」两种简单态）
+    private fun chainAll(
+        decision: StayDecision,
+        decidedAt: String? = null,
+    ): List<StayApprovalStep> =
+        OVERSEAS_STAY_ROLES.map {
+            StayApprovalStep(
+                role = it,
+                decision = decision.name,
+                decidedAt = if (decision == StayDecision.PENDING) null else decidedAt,
+            )
+        }
+
+    val DEFAULT_STAY_APPLICATIONS: List<StayApplication> =
+        listOf(
+            // 1) 外泊 審査中 — 链全 pending
+            StayApplication(
+                id = "s1",
+                kind = StayKind.STAY.label,
+                status = StayStatus.PENDING.name,
+                leaveDate = "2026-05-03",
+                returnDate = "2026-05-05",
+                summary = "実家へ外泊",
+                destination = "東京都世田谷区",
+                leaveMethod = "JR",
+                returnMethod = "JR",
+                chain = chainAll(StayDecision.PENDING),
+                submittedAt = "2026-05-01 10:24",
+                auditLog =
+                    listOf(
+                        StayAuditEntry(at = "2026-05-01 10:24", action = "提出", actor = "リュウ イヒ"),
+                    ),
+            ),
+            // 2) 帰省 承認済 — 链全 approved
+            StayApplication(
+                id = "s2",
+                kind = StayKind.HOLIDAY.label,
+                status = StayStatus.APPROVED.name,
+                leaveDate = "2026-04-20",
+                returnDate = "2026-04-23",
+                summary = "GW 帰省",
+                destination = "大阪府",
+                leaveMethod = "新幹線",
+                returnMethod = "新幹線",
+                chain = chainAll(StayDecision.APPROVED, decidedAt = "2026-04-19 16:00"),
+                submittedAt = "2026-04-18 09:10",
+                auditLog =
+                    listOf(
+                        StayAuditEntry(at = "2026-04-19 16:00", action = "承認", actor = "管理係：田中"),
+                        StayAuditEntry(at = "2026-04-18 09:10", action = "提出", actor = "リュウ イヒ"),
+                    ),
+            ),
+            // 3) 外泊 要修正（差戻）— 担任承認、国際交流部長差戻、其余 pending
+            StayApplication(
+                id = "s3",
+                kind = StayKind.STAY.label,
+                status = StayStatus.RETURNED.name,
+                leaveDate = "2026-05-10",
+                returnDate = "2026-05-11",
+                summary = "友人宅に外泊",
+                destination = "神奈川県横浜市",
+                leaveMethod = "バス",
+                returnMethod = "バス",
+                chain =
+                    listOf(
+                        StayApprovalStep("担任", "佐藤", StayDecision.APPROVED.name, "2026-05-08 11:02"),
+                        StayApprovalStep("国際交流部長", "鈴木", StayDecision.REJECTED.name, "2026-05-08 14:30", comment = "外泊先の連絡先を明記してください"),
+                        StayApprovalStep("寮務課長", decision = StayDecision.PENDING.name),
+                        StayApprovalStep("寮務部長", decision = StayDecision.PENDING.name),
+                        StayApprovalStep("管理係", decision = StayDecision.PENDING.name),
+                    ),
+                submittedAt = "2026-05-07 19:40",
+                auditLog =
+                    listOf(
+                        StayAuditEntry(at = "2026-05-08 14:30", action = "差戻", actor = "国際交流部長：鈴木", detail = "外泊先の連絡先を明記してください"),
+                        StayAuditEntry(at = "2026-05-08 11:02", action = "承認", actor = "担任：佐藤"),
+                        StayAuditEntry(at = "2026-05-07 19:40", action = "提出", actor = "リュウ イヒ"),
+                    ),
+            ),
+        )
+
+    // 行事企画 一覧 假数据
+    val DEFAULT_DORM_EVENTS: List<DormEventProposal> =
+        listOf(
+            DormEventProposal(
+                id = "ev1",
+                teamName = "3 階有志",
+                title = "春の交流会",
+                heldAt = "2026-05-18 18:00",
+                place = "1 階ラウンジ",
+                expectedCount = 30,
+                target = "全寮生",
+                purpose = "新入寮生との親睦",
+                content = "軽食を囲んでの交流会",
+                riskSolution = "食物アレルギー確認・21 時までに解散",
+                expectedCost = "5,000 円",
+                status = "pending",
+            ),
+        )
+
+    // 在线学习申請 一覧 假数据
+    val DEFAULT_STUDY_ONLINE: List<StudyOnlineRequest> =
+        listOf(
+            StudyOnlineRequest(
+                id = "so1",
+                reason = "オンライン英会話の受講",
+                periodFrom = "2026-05-01",
+                periodTo = "2026-07-31",
+                contractFileName = "契約書.pdf",
+                status = "approved",
+            ),
+        )
+
+    // 冷蔵庫購入 申請 一覧 假数据
+    val DEFAULT_FRIDGE: List<FridgePurchaseRequest> =
+        listOf(
+            FridgePurchaseRequest(
+                id = "fr1",
+                product = "A",
+                contactPhone = "090-1234-5678",
+                submittedAt = "2026-04-25 13:20",
+                status = "ordered",
+            ),
+        )
+
+    // 物品所持 申請 一覧 假数据
+    val DEFAULT_ITEMS: List<ItemPossessionRequest> =
+        listOf(
+            ItemPossessionRequest(
+                id = "it1",
+                roomNo = "A5",
+                item = "電気ケトル",
+                reason = "お茶を淹れるため",
+                guardianName = "リュウ ジェンミン",
+                submittedAt = "2026-04-22 20:05",
+                status = "pending",
+            ),
+        )
+
     // 完整初始 AppState — fresh state（走完整 Onboarding → Account → Welcome → Login → Home）
     // Account 注册各 step 默认预填 demo seed，itsuki 一路点「次へ」走完，不用手动填
     val INITIAL_STATE =

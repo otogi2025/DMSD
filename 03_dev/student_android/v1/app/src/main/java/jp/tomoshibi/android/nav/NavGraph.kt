@@ -10,9 +10,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import jp.tomoshibi.android.ui.screens.account.AccountScreen
 import jp.tomoshibi.android.ui.screens.announcements.*
-import jp.tomoshibi.android.ui.screens.applications.ApplicationDetailScreen
-import jp.tomoshibi.android.ui.screens.applications.ApplicationsScreen
-import jp.tomoshibi.android.ui.screens.applications.ApplyNewScreen
+import jp.tomoshibi.android.ui.screens.applications.*
 import jp.tomoshibi.android.ui.screens.bus.BusListScreen
 import jp.tomoshibi.android.ui.screens.community.*
 import jp.tomoshibi.android.ui.screens.deduction.DeductionScreen
@@ -155,5 +153,28 @@ fun TomoshibiNavGraph(navController: NavHostController) {
         composable(Route.Schedule.path) { ScheduleScreen(navController) }
         composable(Route.Bus.path) { BusScreen(navController) }
         composable(Route.Delivery.path) { DeliveryScreen(navController) }
+
+        // ── 申請履歴 family（老師38条#5）────
+        composable(Route.StayList.path) { StayListScreen(navController) }
+        composable(
+            route = Route.StayDetail.PATH,
+            arguments = listOf(navArgument(Route.StayDetail.ARG_ID) { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString(Route.StayDetail.ARG_ID) ?: ""
+            StayDetailScreen(navController, id)
+        }
+        composable(
+            route = Route.StayEdit.PATH,
+            arguments = listOf(navArgument(Route.StayEdit.ARG_ID) { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString(Route.StayEdit.ARG_ID) ?: ""
+            StayEditScreen(navController, id)
+        }
+
+        // ── 4 类型申請一覧 ────
+        composable(Route.DormEventList.path) { DormEventListScreen(navController) }
+        composable(Route.StudyOnlineList.path) { StudyOnlineListScreen(navController) }
+        composable(Route.FridgeList.path) { FridgeListScreen(navController) }
+        composable(Route.ItemList.path) { ItemListScreen(navController) }
     }
 }
