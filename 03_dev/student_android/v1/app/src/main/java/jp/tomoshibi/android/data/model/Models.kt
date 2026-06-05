@@ -83,6 +83,15 @@ data class EventItem(
     val time: String, // "08:30"
 )
 
+@Serializable
+data class PackageItem(
+    val id: Int,
+    val date: String, // "本日" / "04-22"
+    val from: String, // 发货方（Amazon / 佐川急便 等）
+    val status: String, // 待領 / 領済
+    val tracking: String? = null, // 追跡番号，可空
+)
+
 enum class ThemeMode { LIGHT, DARK }
 
 // 点呼状态机 — 对应 iOS HomeStubs.swift 的 4 态 hero

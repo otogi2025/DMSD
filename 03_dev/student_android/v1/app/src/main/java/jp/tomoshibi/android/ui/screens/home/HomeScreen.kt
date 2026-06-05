@@ -8,11 +8,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -29,6 +31,10 @@ import jp.tomoshibi.android.ui.components.SectionCard
 import jp.tomoshibi.android.ui.components.TopRollBar
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 // HomeScreen omnibus — 6 section 自上而下（对应 iOS HomeStubs.swift LifeTab）
 //   1. TopRollBar (amber hero, 跳 Deduction)
@@ -56,22 +62,27 @@ fun HomeScreen(navController: NavHostController) {
                     .padding(top = 24.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // ── greeting ──
-            Column {
-                Text(
-                    text = "おかえりなさい",
-                    color = tokens.inkSub,
-                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium),
-                )
-                Text(
-                    text = "${state.user.name.ifEmpty { "リュウイヒ" }}さん",
-                    color = tokens.ink,
-                    style = TextStyle(fontSize = 26.sp, fontWeight = FontWeight.Bold),
-                )
-                Text(
-                    text = "${state.user.dorm} ${state.user.room}",
-                    color = tokens.inkMute,
-                    style = TextStyle(fontSize = 11.sp),
+            // ── 问候行（「おかえり、{name} さん」+ JST 当天日期 + 铃铛未读 badge）对齐 iOS ──
+            val unread = state.notifications.count { !it.read }
+            Row(verticalAlignment = Alignment.Top) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    Text(
+                        text = "おかえり、${state.user.name.ifEmpty { "リュウイヒ" }} さん",
+                        color = tokens.ink,
+                        style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.2.sp),
+                    )
+                    Text(
+                        text = todayJstLabel(),
+                        color = tokens.inkMute,
+                        style = TextStyle(fontSize = 12.sp),
+                    )
+                }
+                BellButton(
+                    unread = unread,
+                    onClick = { navController.navigate(Route.Notifications.path) },
                 )
             }
 
@@ -88,8 +99,9 @@ fun HomeScreen(navController: NavHostController) {
             SectionCard(
                 icon = SuzuIcons.Bus,
                 iconBg = tokens.pill,
-                title = "次回バス ${bus.time}",
-                subtitle = "${bus.date} ・ ${bus.route}",
+                iconTint = MaterialTheme.colorScheme.primary,
+                title = "次のバス便",
+                subtitle = "${bus.time} · ${bus.route}",
                 onClick = { navController.navigate(Route.Bus.path) },
             )
 
@@ -97,9 +109,10 @@ fun HomeScreen(navController: NavHostController) {
             val delivery = MockData.DEFAULT_DELIVERY
             SectionCard(
                 icon = SuzuIcons.Pkg,
-                iconBg = tokens.danger,
-                title = "宅配便",
-                subtitle = "${delivery.source}・${delivery.note}",
+                iconBg = tokens.dangerBg,
+                iconTint = tokens.danger,
+                title = "宅配便 · ${delivery.count} 件未受取",
+                subtitle = delivery.note,
                 badge = delivery.count,
                 onClick = { navController.navigate(Route.Delivery.path) },
             )
@@ -114,8 +127,8 @@ fun HomeScreen(navController: NavHostController) {
             SectionCard(
                 icon = SuzuIcons.Music,
                 iconBg = MusicPurple,
-                title = "リクエスト曲",
-                subtitle = "${topSong.title}・${topSong.artist}",
+                title = "リクエスト曲 · ${state.musicRequests.size} 件",
+                subtitle = "${topSong.title} · ${topSong.artist}",
                 onClick = { navController.navigate(Route.Music.path) },
             )
 
@@ -157,7 +170,7 @@ private fun EventsCard(navController: NavHostController) {
                 Icon(
                     imageVector = SuzuIcons.Cal,
                     contentDescription = null,
-                    tint = t.ink,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -219,7 +232,7 @@ private fun LostFoundGrid(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = "遺失物・最新",
+                text = "遺失物 · 最新",
                 color = t.ink,
                 style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
                 modifier = Modifier.weight(1f),
@@ -283,3 +296,58 @@ private fun parseHexColor(hex: String): Color? =
     runCatching {
         Color(hex.toLong(16))
     }.getOrNull()
+
+// 铃铛按钮 — 44×44 圆角 14 白底 + hair 描边 + 阴影；未读 > 0 时右上叠红胶囊 badge（对齐 iOS greetingRow）
+@Composable
+private fun BellButton(
+    unread: Int,
+    onClick: () -> Unit,
+) {
+    val t = SuzuT.current
+    Box(contentAlignment = Alignment.TopEnd) {
+        Box(
+            modifier =
+                Modifier
+                    .size(44.dp)
+                    .shadow(4.dp, RoundedCornerShape(14.dp), ambientColor = t.ink, spotColor = t.ink)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(t.paper)
+                    .border(0.5.dp, t.hair, RoundedCornerShape(14.dp))
+                    .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = SuzuIcons.Bell,
+                contentDescription = "通知",
+                tint = t.ink,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        if (unread > 0) {
+            Box(
+                modifier =
+                    Modifier
+                        .offset(x = 4.dp, y = (-4).dp)
+                        .defaultMinSize(minWidth = 16.dp, minHeight = 16.dp)
+                        .clip(RoundedCornerShape(percent = 50))
+                        .background(t.danger)
+                        .border(1.5.dp, Color.White, RoundedCornerShape(percent = 50))
+                        .padding(horizontal = 4.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "$unread",
+                    color = Color.White,
+                    style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                )
+            }
+        }
+    }
+}
+
+// JST（日本时间）当天日期，格式「2026 年 6 月 5 日（金）」— 运行时实时生成（对齐 iOS）
+private fun todayJstLabel(): String {
+    val today = LocalDate.now(ZoneId.of("Asia/Tokyo"))
+    val fmt = DateTimeFormatter.ofPattern("yyyy 年 M 月 d 日（E）", Locale.JAPANESE)
+    return today.format(fmt)
+}

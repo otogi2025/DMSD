@@ -36,30 +36,33 @@ fun SectionCard(
     title: String,
     subtitle: String? = null,
     badge: Int? = null,
-    onClick: () -> Unit
+    iconTint: Color = Color.White,
+    onClick: () -> Unit,
 ) {
     val t = SuzuT.current
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(t.paper)
-            .clickable(onClick = onClick)
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(t.paper)
+                .clickable(onClick = onClick)
+                .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(iconBg),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(iconBg),
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(20.dp)
+                tint = iconTint,
+                modifier = Modifier.size(20.dp),
             )
         }
         Spacer(modifier = Modifier.width(12.dp))
@@ -67,28 +70,29 @@ fun SectionCard(
             Text(
                 text = title,
                 color = t.ink,
-                style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
             )
             if (subtitle != null) {
                 Text(
                     text = subtitle,
                     color = t.inkMute,
-                    style = TextStyle(fontSize = 11.sp)
+                    style = TextStyle(fontSize = 11.sp),
                 )
             }
         }
         if (badge != null) {
             Box(
-                modifier = Modifier
-                    .size(20.dp)
-                    .clip(CircleShape)
-                    .background(t.danger),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .size(20.dp)
+                        .clip(CircleShape)
+                        .background(t.danger),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = "$badge",
                     color = Color.White,
-                    style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Bold),
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
@@ -97,7 +101,7 @@ fun SectionCard(
             imageVector = SuzuIcons.ChevR,
             contentDescription = null,
             tint = t.inkMute,
-            modifier = Modifier.size(16.dp)
+            modifier = Modifier.size(16.dp),
         )
     }
 }

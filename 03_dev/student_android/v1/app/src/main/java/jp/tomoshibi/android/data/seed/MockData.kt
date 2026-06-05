@@ -93,6 +93,15 @@ object MockData {
             LostItem("L3", "赤のペンケース", "FFEC9FAA"),
         )
 
+    // 宅配 — 4 条（1 待領 + 3 領済），对齐 iOS SEED.packages
+    val DEFAULT_PACKAGES =
+        listOf(
+            PackageItem(1, "本日", "Amazon", "待領", "JP1234567890"),
+            PackageItem(2, "04-22", "佐川急便", "領済"),
+            PackageItem(3, "04-18", "ヤマト運輸", "領済", "460-1234-5678"),
+            PackageItem(4, "04-10", "郵便局", "領済"),
+        )
+
     // 今週の活動 14 件 + 2 行 preview（iOS Home 「行事」section）
     const val EVENTS_THIS_WEEK = 14
     val EVENTS_PREVIEW =
