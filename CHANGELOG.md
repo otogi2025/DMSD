@@ -1,6 +1,6 @@
 # Changelog
 
-> **最后更新**: 2026-06-03（**v0.8.1 ~ v0.12.0 回溯补标** — 5-11 ~ 6-02 一个多月连续施工的 236 commit 一次性按语义化版本（SemVer）规范回溯补 6 个版本标签 + CHANGELOG 条目，**当前版本 v0.12.0**；详见下方各版本段顶部「回溯补标说明」banner）。早些更新：2026-05-02 晚（**v0.8.0 close** — 5 端代码层全启动（含点呼机骨架）：Android Compose bootstrap + 10 屏 / iOS 网络层完整建设 + AppStore 切真后端 / teacher_web v1 TS+Vite+Zustand 升级 + 5 page / backend rollcall+study+teachers routers + Alembic 框架 / iOS↔backend 字段对齐 F1-F5+Q1）。早些更新：v0.7.0 close（三轨 A+B+C 同日完成 38 条老师反馈 + 实物表 evidence 推翻 LINE 文字推测 + 沟通规则 #6 + SOP §8.5 版本路线图）；v0.6.0 close（老师 4-29 LINE 38 条受领 + RollCall_Spec 5 处时序修订 + system_features 中文骨架大重写）；v0.4.0 + v0.5.0 双 minor 闭合；**版本管理 SOP 建立**
+> **最后更新**: 2026-06-05（**v0.13.0 ~ v0.15.0 三连 minor** — 6-03/6-04/6-05 三天 80 commit 按天切 3 个次版本：v0.13.0 出租车予約+删寮ウォール / v0.14.0 杭田 6-04 需求批+外出申請+契約書 / v0.15.0 老师网页迁 Vite+Android 对齐+学年更新+Resend，**当前版本 v0.15.0**；三端客户端版本号同步到 0.15.0）。早些更新：2026-06-03（**v0.8.1 ~ v0.12.0 回溯补标** — 5-11 ~ 6-02 一个多月连续施工的 236 commit 一次性按语义化版本（SemVer）规范回溯补 6 个版本标签 + CHANGELOG 条目；详见下方各版本段顶部「回溯补标说明」banner）。早些更新：2026-05-02 晚（**v0.8.0 close** — 5 端代码层全启动（含点呼机骨架）：Android Compose bootstrap + 10 屏 / iOS 网络层完整建设 + AppStore 切真后端 / teacher_web v1 TS+Vite+Zustand 升级 + 5 page / backend rollcall+study+teachers routers + Alembic 框架 / iOS↔backend 字段对齐 F1-F5+Q1）。早些更新：v0.7.0 close（三轨 A+B+C 同日完成 38 条老师反馈 + 实物表 evidence 推翻 LINE 文字推测 + 沟通规则 #6 + SOP §8.5 版本路线图）；v0.6.0 close（老师 4-29 LINE 38 条受领 + RollCall_Spec 5 处时序修订 + system_features 中文骨架大重写）；v0.4.0 + v0.5.0 双 minor 闭合；**版本管理 SOP 建立**
 >
 > **2026-05-19 注**: v0.8 之后累积 15+ commit 实质推进（5-04 文件联动工具 / 5-08 硬件全定稿 / 5-10 ac-radar / 5-11 cc-comm-rules + graphify / 5-13 文件大整理 / 5-14 anti-ai-flavor / 5-16 跨项目大修 / 5-19 project-overview 大改造 + 防漂 C 方案 / 5-20+ 131 条 bug findings 修复），未到 bump 触发线，详见 WIP + progress_overview。
 >
@@ -16,6 +16,68 @@
 > 打这些标签的目的：让"讨论了十几种方案才写第一版文档"这件事有可追溯的证据链。
 >
 > **2026-04-20 更新**：10 个 pre-0.1 annotated tag（`v0.0.1` - `v0.0.10`）已追认打在 initial commit `3baa168` 上，每个 tag message 里写了对应版本的核心内容 + 指向 CHANGELOG / raw 的指针。`git tag -l | sort -V` 可以看到完整版本历史。
+
+---
+
+## [0.15.0] - 2026-06-05（老师网页迁 Vite + Android 对齐 iOS + 学年更新完成）
+
+> **为什么次版本号**：多个真新功能 —— 学年更新/学生自设番号 5 端完成 + 老师网页 HTML→React/TS/Vite 迁移 + Android 对齐 iOS 43/60 屏 + 邮件 Resend。对应 commit 段 6-05（45 commit），末端 `3ac00bc`。
+
+### Added（新功能）
+- 学年更新 / 学生自设番号：后端开闸+自设+进度+老师单件改 + iOS 番号再設定按钮/弹窗 + 老师网页开闸/分组列表/进度横幅/兜底单件改 + 4/1 提醒横幅
+- 老师网页从 HTML 单文件迁到 React 18 + TypeScript + Vite（界面 100% 冻结原样搬，26 组件；chrome 实测 17 页全渲染 + 27 接口 200 + 真数据通）
+- student_android 对齐 iOS 7 波 ≈43/60 屏（マイページ全家桶 / 申請表单群 / 点歌 3 屏 / 行事予定 / 通知中心 / 点呼 NFC 状态条 / 学習签到 Sheet 等）
+- 邮件 SendGrid → Resend 迁移（dev 无密钥不真发 + pytest）
+
+### Changed
+- `启动老师网站.command` 切到 build dist + 后端托管 dist；旧 HTML 单文件版整组归档到 `99_archive/2026-06-05_teacher_web_html单文件版归档/`
+
+### Fixed
+- 后端 dev 库 alembic revision 撞号修复（needs_renewal 误用 `b2c3d4e5f6a7` → 改唯一号 `f8a9b0c1d2e3` + 重建库）
+- 老师网页 Vite 迁移三路审查收敛（地基 workflow 19 + 终审 workflow 8 + codex 3）
+- 后端 pytest 311 全过
+
+### Notes
+- 老师网页仅剩 itsuki 肉眼签收 + push；RollCallLanding 统计卡是原样照搬的 demo 数据（带「DEMO」标记），接不接真后端待 itsuki 决策
+
+---
+
+## [0.14.0] - 2026-06-04（杭田 6-04 教师需求大批 + 外出申請 + オンライン学習契約書）
+
+> **为什么次版本号**：杭田老师 6-04 一批新功能横跨 5 端 + 新建外出申請（outings）功能 + 在线学习契約書上传。对应 commit 段 6-04（23 commit），末端 `04d738f`。
+
+### Added（新功能）
+- 外出申請（outings）：新建 outings 表 + 6 接口 + 単一先生確認流程（后端 + iOS）
+- オンライン学習申請 契約書文件上传（后端 + iOS + 老师网页）
+- 杭田 6-04 需求批：出寮者一覧只读页（网页 + 后端 `GET /applications/active`）/ 审批加学生评论框 / 审批结果给提出者本人发邮件 / 个人データ点呼履历朝夜分开 / 事案涉及学生姓名可点跳个人档案 / 行事予定接真后端 `GET /events` / 点呼 live 板预标出寮願生 exempt_range / 学習対象名簿增删 / 食数表导出入口 / 代録出寮届当日补录（后端）
+- 寮生特別運行时刻表接真后端 + dev 种子巴士数据
+- iOS 个人ページ精致化 + 巴士时刻表入口
+
+### Changed
+- 删除匿名建議功能（iOS + Android）+ 遗失物场所文案修正
+
+### Notes
+- 点呼机离线 → 老师手动接管设计（5 文档对齐）+ codex-review skill 立项
+
+---
+
+## [0.13.0] - 2026-06-03（出租车予約 4 端 + 出寮届表单对齐实物表 + 删寮ウォール）
+
+> **为什么次版本号**：出租车予約跨 4 端新功能 + 寮ウォール（学生掲示板）功能删除（落实 4-29 拍板）+ 文件联动系统扩展。对应 commit 段 6-03（12 commit，含 6-03 版本号回溯规范化收尾），末端 `b23f62c`。
+
+### Added（新功能）
+- 出租车予約「タクシー予約」4 端 + 出寮届表单字段对齐实物样本
+
+### Changed
+- 删除寮ウォール（学生掲示板）—— 落实 4-29 拍板（iOS struct 18→15 + 残留注释中文化）
+- 文件联动系统补 4 类盲点（规则 19→23 条）+ codex 审查修复
+- 三端客户端版本号统一到 0.12.0（6-03 回溯规范化收尾）
+
+### Fixed
+- iOS Codex 审查加固：日期初值 JST + 表单冷启动竞态补填 + 低风险残留清理
+
+### Notes
+- 点呼机架构反转（手机读 → 写）5 文档对齐 + codex 复审 A 组 9 处一致性修复
 
 ---
 

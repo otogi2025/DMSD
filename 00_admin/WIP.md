@@ -21,7 +21,7 @@
 
 ---
 
-**当前版本**: v0.12.0 <!-- VERSION_OK -->（2026-06-03 回溯把 5-11~6-02 的 236 commit 按 SemVer 补了 6 个版本标签 v0.8.1~v0.12.0，详见 CHANGELOG 顶部）
+**当前版本**: v0.15.0 <!-- VERSION_OK -->（2026-06-05 把 6-03/6-04/6-05 三天 80 commit 按天切 3 个 minor v0.13.0~v0.15.0；三端客户端版本号同步 0.15.0，详见 CHANGELOG 顶部）
 **版本 bump 流程**: `.claude/skills/version-bump/SKILL.md`（itsuki 说「迭代/bump/发版本/打 tag」自动触发；CC 有否决权 — 即使 itsuki 说要 bump 但 §2 决策树不命中可以拒绝）
 
 ---

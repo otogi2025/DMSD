@@ -97,15 +97,15 @@ extension Color {
 // MARK: - 版本号显示常量
 
 //
-// production 版 = "v0.12.0" / demo 版 = "v0.12.0-demo"
+// production 版 = "v0.15.0" / demo 版 = "v0.15.0-demo"
 // 集中管理避免散布，将来真正发布时改一处即可。
 
 enum AppVersionTag {
     static let full: String = {
         #if DEMO
-            return "v0.12.0-demo"
+            return "v0.15.0-demo"
         #else
-            return "v0.12.0"
+            return "v0.15.0"
         #endif
     }()
 }
