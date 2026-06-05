@@ -940,4 +940,17 @@ itsuki 拍板出租车预约功能，老师端要「能看到 + 主页防漏看�
 
 ---
 
+## 15. 学年更新 / 番号再設定 — 学生アカウント管理页 + 4/1 提醒 — 2026-06-05
+
+学号每年变 → 学生自设番号（推翻 4-30 老师代改，spec §4.2）。老师网页在「学生アカウント管理」页做老师侧（开闸 + 看进度 + 兜底单件改）：
+- `client.js`：旧 `promoteStudents`（`/students/bulk-promote`）换成 `startRenewal`（`/students/renewal-start`）+ `renewalProgress`（`GET /students/renewal-progress`）+ `teacherRenewSeat`（`POST /accounts/{id}/renew-seat`）
+- 旧「一括進級」按钮 + 整套 promote modal **改造**成「学年更新を開始」开闸：dry_run 预览「通知 N（中1~高2）/ 卒業 M（高3）」→ 确认执行（`handlePromote*` 内部名沿用、行为换成 startRenewal，少改面）
+- 学生列表从平铺 `visible.map` 改成**按 学年→A/B 组 分组折叠**（`gradeClassGroups` useMemo + `collapsedGroups`），组标题显示人数 + 「未更新 N」badge
+- 顶部进度横幅（`renewalProgress.pending_count > 0` 时显示总未更新数）
+- `AccountDetailModal` 加「学籍番号（学年更新の補助）」编辑区：学年/组下拉 + 出席番号输入 → `teacherRenewSeat` 单件改（学生不会操作/填错时兜底），撞号弹后端日语提示
+- `RollCallLanding`（点呼默认页）4 月（`getMonth()===3`）顶部显示「新学年です…学年更新を開始してください」提醒横幅 + 跳学生管理按钮
+- `check_jsx` 16 块 0 错误。⏳ Android 端待别会话对齐
+
+---
+
 **END** — 本档随 Web 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。

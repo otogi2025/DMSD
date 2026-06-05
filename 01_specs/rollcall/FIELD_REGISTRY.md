@@ -22,6 +22,7 @@
 - `student_id`
 - `teacher_id`
 - `seat_no`
+- `needs_renewal`（**2026-06-05 新增** — 学年更新「待更新」标记。`Boolean`，老师点开闸 `POST /students/renewal-start` 后给中1~高2 active 学生置 `true`，学生自设新番号成功后清 `false`；高3 开闸时直接 `status=graduated` 不打标记。iOS 主页据此显「更新番号」横幅，老师网页据此显进度。spec §4.2）
 - `device_id`（**4-17 新增** — 详见 `DEVICE_REGISTRY.md`）
 - `card_uid`（**4-21 新增** — 路径 A 核心。NTAG215 UID 7 bytes hex 编码，存为 14 位小写 hex 字符串无分隔符。`UNIQUE` 约束。多对一到 `student_id`（换卡场景：旧 UID 作废记录保留 / 新 UID 绑定同一 `student_id`）。仅路径 A 使用。详见 2.9 卡生命周期 + `RollCall_Spec.md §10.2`）
 

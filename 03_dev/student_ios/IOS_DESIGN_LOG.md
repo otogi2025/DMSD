@@ -1265,4 +1265,27 @@ itsuki：「オンライン学習要可以上传图片，上传合同」+「选�
 
 ---
 
+### 14.21 番号再設定（学年更新）— 学生自设番号 — 2026-06-05（itsuki 拍板）
+
+学号每年变（出席番号年年调），改成学生自设（推翻 4-30 老师代改，spec §4.2）。iOS 学生端：
+- `AuthAPI.swift`：`StudentMeOut` 加 `needs_renewal: Bool?`（Optional 兜底，防分阶段部署解码失败）+ 新 `StudentRenewalAPI.renewNumber` 接 `POST /students/me/renew-number`
+- `AppStore.swift`：加 `@Published needsRenewal`（loadMe 从 /me 读 / 登出清）+ `submitRenewStudentNo`（令牌守卫 + 成功后 loadMe 收敛新学号、不丢扣分统计）
+- `SheetKind.renewStudentNo` + `GlobalOverlays` 渲染分发
+- 主页 `needsRenewal=true` 时顶部「学籍番号の更新が必要です」横幅 → 点开 `RenewStudentNoSheet`（HomeStubs）
+- `RenewStudentNoSheet`：选 学年/组/出席番号（radioChip + 输入）+ 实时预览新学号 + 撞号 422 原样弹后端日语提示（走 `APIError.unprocessable`）
+
+**验证**：Demo / Release 双 scheme BUILD SUCCEEDED。
+
+### 14.22 最低支持降到 iOS 16 — 2026-06-05（itsuki 拍板）
+
+原最低支持 iOS 26，降到 16。按编译器报错逐个改 iOS 17+ 专属写法：
+- `TopRollBar.swift` `symbolEffect(.pulse)` → `if #available(iOS 17)` 判断（16 无脉冲动画）
+- `onChange` 两参数（iOS 17）→ 新建 `Foundation/Components/ViewCompat.swift` 的 `onChangeCompat` 跨版本封装（DormLifeForms / ApplyStubs / AuthStubs / MyPageStubs / ContractFilePicker 共 5 处）
+- 减点趋势图 Canvas `Text.foregroundStyle`（iOS 17 才返 Text，否则 `ctx.draw` 不认）→ 改 `font(design:.monospaced)` + `foregroundColor`（2 处）
+- `project.yml` 三处部署目标 26→16 + 顺带写入 Xcode 推荐设置 `ENABLE_USER_SCRIPT_SANDBOXING` / `STRING_CATALOG_GENERATE_SYMBOLS`
+
+**验证**：双 scheme BUILD SUCCEEDED。
+
+---
+
 **END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）; 5-31 修改届接后端（§14.7）+ 当前用户接 /me（§14.8）; 6-02 IX-008 二审修复 + IX-008b 扣分统计（§14.9）+ IX-034 请假计数按月（§14.10）+ IX-009 通知（§14.11）+ IX-007 详情页（§14.12）+ 6-03 低风险残留清理（表单预填迁 displayUser + 在线自习日期 JST）（§14.13）+ 删除寮ウォール（学生掲示板，落实 4-29 拍板）（§14.14）+ 演示数据修正 + 出寮届表单对齐实物表 + 页面切换黑屏修复（§14.15）+ 早帰/その他类型删除 + 帰国隐藏行先都市名 + 出租车预约 4 端（§14.16）。
