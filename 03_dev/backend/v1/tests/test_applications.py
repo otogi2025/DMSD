@@ -686,3 +686,117 @@ class TestApplicationByTeacher:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 404, res.text
+
+
+class TestProxyCandidates:
+    """杭田 2026-06-04 五-3: 代録表单的学生选择器 GET /applications/proxy-candidates。
+
+    权限对齐代録（5 角色），不复用 admin 的 GET /students（只 3 角色）。
+    """
+
+    URL = "/api/v1/applications/proxy-candidates"
+
+    def test_dairoku_lists_students(self, client, teacher_token, seed_data):
+        """寮務課長搜学生 → 200 + 含 seed 学生（精简字段）。"""
+        res = client.get(self.URL, headers={"Authorization": f"Bearer {teacher_token}"})
+        assert res.status_code == 200, res.text
+        rows = res.json()
+        sid = str(seed_data["student"].id)
+        hit = [r for r in rows if r["id"] == sid]
+        assert hit, rows
+        # 精简字段：学号 / 姓名 / 寮 / 是否留学生 / 房间，不含账号锁定信息
+        assert set(hit[0].keys()) == {
+            "id",
+            "student_no",
+            "name",
+            "dorm_unit",
+            "is_overseas",
+            "room_no",
+        }
+
+    def test_search_by_name(self, client, teacher_token, seed_data):
+        """q=姓名片段 → 命中。"""
+        res = client.get(
+            self.URL,
+            params={"q": "リュウ"},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 200, res.text
+        assert str(seed_data["student"].id) in [r["id"] for r in res.json()]
+
+    def test_search_by_student_no(self, client, teacher_token, seed_data):
+        """q=学号片段（grade+class+seat 拼接）→ 命中。"""
+        res = client.get(
+            self.URL,
+            params={"q": "060218"},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 200, res.text
+        assert str(seed_data["student"].id) in [r["id"] for r in res.json()]
+
+    def test_ippan_kyoushi_allowed(self, client, seed_data):
+        """寮務一般教師（admin GET /students 用不了的角色）→ 200。
+
+        这是本接口存在的理由：代録 5 角色都要能搜学生。
+        """
+        from app import security
+
+        tannin = seed_data["teachers"]["tannin"]
+        token = security.create_access_token(tannin.id, f"teacher:{tannin.role}")
+        res = client.get(self.URL, headers={"Authorization": f"Bearer {token}"})
+        assert res.status_code == 200, res.text
+
+    def test_non_dairoku_forbidden(self, client, seed_data):
+        """非寮務系角色（国際交流部長）→ 403。"""
+        from app import security
+
+        kokukou = seed_data["teachers"]["kokukou_buchou"]
+        token = security.create_access_token(kokukou.id, f"teacher:{kokukou.role}")
+        res = client.get(self.URL, headers={"Authorization": f"Bearer {token}"})
+        assert res.status_code == 403, res.text
+        assert res.json()["detail"]["code"] == "FORBIDDEN_ROLE"
+
+    def test_student_token_rejected(self, client, student_token):
+        """学生 token 不能用代録选择器。"""
+        res = client.get(self.URL, headers={"Authorization": f"Bearer {student_token}"})
+        assert res.status_code in (401, 403), res.text
+
+    def test_dorm_boundary(self, client, seed_data, db_session):
+        """4寮老师搜不到 1寮学生（R4 边界）— seed 学生是 dorm1。"""
+        from app import models, security
+
+        other = models.Teacher(
+            login_id="onna_dairoku4",
+            name="4寮代録",
+            email="od4@test.jp",
+            password_hash=security.hash_password("test-password-12345"),
+            role="寮務一般教師",
+            assigned_dorm=4,
+        )
+        db_session.add(other)
+        db_session.commit()
+        token = security.create_access_token(other.id, f"teacher:{other.role}")
+        res = client.get(self.URL, headers={"Authorization": f"Bearer {token}"})
+        assert res.status_code == 200, res.text
+        assert str(seed_data["student"].id) not in [r["id"] for r in res.json()]
+
+    def test_excludes_demo_student(self, client, teacher_token, db_session):
+        """is_demo=True 的假数据学生不出现在选择器里。"""
+        from app import models
+
+        demo = models.Student(
+            grade_code="06",
+            class_code="02",
+            seat_no="99",
+            name="デモ学生",
+            gender="male",
+            room_no="M199",
+            dorm_unit=1,
+            is_overseas=False,
+            is_demo=True,
+        )
+        db_session.add(demo)
+        db_session.commit()
+        res = client.get(self.URL, headers={"Authorization": f"Bearer {teacher_token}"})
+        assert res.status_code == 200, res.text
+        assert str(demo.id) not in [r["id"] for r in res.json()]

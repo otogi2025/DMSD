@@ -95,6 +95,24 @@
         undefined,
         token,
       ),
+    // 2026-06-05 杭田需求「五-3」代録 — 老师代学生补录出寮届。
+    // proxyCandidates: 搜可代録的学生（按老师寮边界过滤、限代録 5 角色）
+    proxyCandidates: (token, q) =>
+      request(
+        "GET",
+        "/applications/proxy-candidates" +
+          (q ? "?q=" + encodeURIComponent(q) : ""),
+        undefined,
+        token,
+      ),
+    // createByTeacher: 提交代録出寮届（body = 跟学生侧一样的 kind 分型结构）
+    createByTeacher: (student_id, body, token) =>
+      request(
+        "POST",
+        "/applications/by-teacher?student_id=" + encodeURIComponent(student_id),
+        body,
+        token,
+      ),
 
     // ── Study ──
     studyTodayAttendees: (token) =>

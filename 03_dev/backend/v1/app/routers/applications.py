@@ -421,6 +421,68 @@ def list_active_leaves(
 
 
 # ---------------------------------------------------------------
+# GET /applications/proxy-candidates — 老师代録用「搜学生」（杭田五-3）
+# ⚠️ 静态路由必须排在 /{application_id} 之前，否则会被当成 application_id
+# ---------------------------------------------------------------
+@router.get("/proxy-candidates", response_model=list[schemas.StudentBrief])
+def list_proxy_candidates(
+    q: Optional[str] = Query(None, description="姓名 or 学号 模糊搜"),
+    db: Session = Depends(get_db),
+    teacher: models.Teacher = Depends(get_current_teacher),
+):
+    """老师代録出寮届时的学生选择器数据源（杭田五-3「教師用は当日入力も可」）。
+
+    刻意不复用 admin 的 GET /students：那个只给寮务管理 3 角色、还暴露账号
+    锁定信息。代録接口允许 5 角色（_DAIROKU_ROLES），所以这里权限与代録对齐，
+    只回精简字段（学号 / 姓名 / 寮 / 是否留学生 / 房间），并按 R4 寮边界过滤——
+    老师只能搜到自己管辖寮的学生。
+    """
+    if teacher.role not in _DAIROKU_ROLES:
+        raise HTTPException(
+            403, {"code": "FORBIDDEN_ROLE", "message": "代録権限がありません"}
+        )
+
+    stmt = select(models.Student).where(models.Student.is_demo.is_(False))
+
+    if q and q.strip():
+        like = f"%{q.strip()}%"
+        stmt = stmt.where(
+            (models.Student.name.like(like))
+            | (
+                (
+                    models.Student.grade_code
+                    + models.Student.class_code
+                    + models.Student.seat_no
+                ).like(like)
+            )
+        )
+
+    # R4 寮边界过滤（跟 list_active_leaves / pending-for-me 同一套逻辑）
+    if teacher.assigned_dorm is not None and teacher.role not in {
+        "校長",
+        "寮務部長",
+        "寮務課長",
+        "国際交流部長",
+        "国際交流課長",
+        "管理係",
+    }:
+        if teacher.assigned_dorm == 1:
+            stmt = stmt.where(models.Student.dorm_unit.in_([1, 2]))
+        else:
+            stmt = stmt.where(models.Student.dorm_unit == teacher.assigned_dorm)
+
+    # limit 100：前端有搜索框，超 100 提示老师用姓名/学号筛选
+    stmt = stmt.order_by(
+        models.Student.grade_code,
+        models.Student.class_code,
+        models.Student.seat_no,
+    ).limit(100)
+
+    students = db.scalars(stmt).all()
+    return [schemas.StudentBrief.model_validate(s) for s in students]
+
+
+# ---------------------------------------------------------------
 # GET /applications/{id} — #5 承认状态查询
 # ---------------------------------------------------------------
 @router.get("/{application_id}", response_model=schemas.ApplicationOut)
