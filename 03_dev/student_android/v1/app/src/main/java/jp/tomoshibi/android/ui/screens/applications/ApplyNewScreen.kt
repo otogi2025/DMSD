@@ -35,22 +35,49 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 // 7 类申请 — 对应 iOS APPLY_TYPES 前 7 个高頻 kind
-private data class ApplyKindMeta(val key: String, val name: String, val sub: String)
-private val APPLY_KINDS_7 = listOf(
-    ApplyKindMeta("外出", "外出", "当日帰寮"),
-    ApplyKindMeta("外泊", "外泊", "寮外宿泊"),
-    ApplyKindMeta("帰省", "帰省", "実家帰省"),
-    ApplyKindMeta("帰国", "帰国", "一時帰国"),
-    ApplyKindMeta("早帰", "早帰", "門限前帰寮"),
-    ApplyKindMeta("修繕", "修繕", "設備修繕"),
-    ApplyKindMeta("学習", "学習", "学習関連")
+private data class ApplyKindMeta(
+    val key: String,
+    val name: String,
+    val sub: String,
 )
+
+private val APPLY_KINDS_7 =
+    listOf(
+        ApplyKindMeta("外出", "外出", "当日帰寮"),
+        ApplyKindMeta("外泊", "外泊", "寮外宿泊"),
+        ApplyKindMeta("帰省", "帰省", "実家帰省"),
+        ApplyKindMeta("帰国", "帰国", "一時帰国"),
+        ApplyKindMeta("早帰", "早帰", "門限前帰寮"),
+        ApplyKindMeta("修繕", "修繕", "設備修繕"),
+        ApplyKindMeta("学習", "学習", "学習関連"),
+    )
 
 private val DATE_FMT = DateTimeFormatter.ofPattern("yyyy/MM/dd")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ApplyNewScreen(navController: NavHostController, kind: String = "外泊") {
+fun ApplyNewScreen(
+    navController: NavHostController,
+    kind: String = "外泊",
+) {
+    // 按申请类型分派到专属表单；外出/早帰/修繕/代理受取/来访/行事企画/冷藏库/物品/其他 等类型走下面通用表单
+    when (kind) {
+        "外泊", "帰省", "帰国" -> {
+            StayForm(navController, kind) // 出寮届三合一
+            return
+        }
+
+        "学習欠席" -> {
+            StudyAbsenceForm(navController) // 学習欠席届
+            return
+        }
+
+        "オンライン学習" -> {
+            StudyOnlineForm(navController) // 在线学习届
+            return
+        }
+    }
+
     val tokens = SuzuT.current
     val store = LocalAppStore.current
     val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
@@ -87,11 +114,11 @@ fun ApplyNewScreen(navController: NavHostController, kind: String = "外泊") {
             // ── header ──
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 24.dp, bottom = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
                     modifier = Modifier.size(36.dp).clip(CircleShape).clickable { navController.popBackStack() },
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     Text("←", color = tokens.ink, style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.SemiBold))
                 }
@@ -100,29 +127,37 @@ fun ApplyNewScreen(navController: NavHostController, kind: String = "外泊") {
             }
 
             Column(
-                modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 // ── deadline warning banner ──
                 Row(
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                        .background(tokens.warnBg).padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(tokens.warnBg)
+                            .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text("⚠", color = tokens.warnDeep, style = TextStyle(fontSize = 14.sp))
                     Spacer(Modifier.width(8.dp))
                     Text(
                         "出発日の 48 時間前まで、または週の水曜 23:59 までに提出してください",
                         color = tokens.warnDeep,
-                        style = TextStyle(fontSize = 12.sp, lineHeight = 16.sp)
+                        style = TextStyle(fontSize = 12.sp, lineHeight = 16.sp),
                     )
                 }
 
                 // ── 申請者本人 read-only block ──
                 SectionTitle("1", "申請者本人")
                 Column(
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(tokens.paper)
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(tokens.paper),
                 ) {
                     InfoRow("学号", user.studentNo, mono = true)
                     Divider(color = tokens.hair, thickness = 0.5.dp)
@@ -138,20 +173,27 @@ fun ApplyNewScreen(navController: NavHostController, kind: String = "外泊") {
                 }
                 Text(
                     "※ ログイン中のアカウントで提出されます。他の生徒の代理提出はできません。",
-                    color = tokens.inkMute, style = TextStyle(fontSize = 11.sp, lineHeight = 16.sp)
+                    color = tokens.inkMute,
+                    style = TextStyle(fontSize = 11.sp, lineHeight = 16.sp),
                 )
 
                 // ── dynamic fields ──
                 SectionTitle("2", "申請内容")
                 Column(
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(tokens.paper).padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(tokens.paper)
+                            .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     if (showLeaveDate) {
                         DateField("出寮日", leaveDate.format(DATE_FMT)) { showLeavePicker = true }
                         Text(
                             "※ 出寮日は明日以降のみ選択できます",
-                            color = tokens.inkMute, style = TextStyle(fontSize = 10.sp)
+                            color = tokens.inkMute,
+                            style = TextStyle(fontSize = 10.sp),
                         )
                         TimeChip("出寮時刻", leaveTime) { leaveTime = it }
                     }
@@ -175,36 +217,42 @@ fun ApplyNewScreen(navController: NavHostController, kind: String = "外泊") {
                 // ── submit ──
                 val canSubmit = !pastDeadline && reason.isNotBlank()
                 Box(
-                    modifier = Modifier.fillMaxWidth().height(54.dp).clip(RoundedCornerShape(16.dp))
-                        .background(if (canSubmit) tokens.ink else tokens.inkFaint)
-                        .clickable(enabled = canSubmit) {
-                            scope.launch {
-                                val newApp = Application(
-                                    id = "A-${System.currentTimeMillis() % 100000}",
-                                    kind = kind,
-                                    dest = dest.ifBlank { "—" },
-                                    from = leaveDate.toString(),
-                                    to = if (showReturnDate || showReturnDateOnly) returnDate.toString() else leaveDate.toString(),
-                                    status = ApplicationStatus.PENDING,
-                                    reason = reason,
-                                    createdAt = LocalDate.now().toString()
-                                )
-                                store.update { it.copy(applications = listOf(newApp) + it.applications) }
-                                navController.popBackStack()
-                            }
-                        },
-                    contentAlignment = Alignment.Center
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(54.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(if (canSubmit) tokens.ink else tokens.inkFaint)
+                            .clickable(enabled = canSubmit) {
+                                scope.launch {
+                                    val newApp =
+                                        Application(
+                                            id = "A-${System.currentTimeMillis() % 100000}",
+                                            kind = kind,
+                                            dest = dest.ifBlank { "—" },
+                                            from = leaveDate.toString(),
+                                            to = if (showReturnDate || showReturnDateOnly) returnDate.toString() else leaveDate.toString(),
+                                            status = ApplicationStatus.PENDING,
+                                            reason = reason,
+                                            createdAt = LocalDate.now().toString(),
+                                        )
+                                    store.update { it.copy(applications = listOf(newApp) + it.applications) }
+                                    navController.popBackStack()
+                                }
+                            },
+                    contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         if (pastDeadline) "提出期限を過ぎています" else "提出する",
                         color = if (canSubmit) Color.White else tokens.inkSub,
-                        style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold),
                     )
                 }
                 if (pastDeadline) {
                     Text(
                         "期限後の申請は寮監に直接ご相談ください",
-                        color = tokens.danger, style = TextStyle(fontSize = 11.sp)
+                        color = tokens.danger,
+                        style = TextStyle(fontSize = 11.sp),
                     )
                 }
                 Spacer(Modifier.height(40.dp))
@@ -213,43 +261,59 @@ fun ApplyNewScreen(navController: NavHostController, kind: String = "外泊") {
     }
 
     if (showLeavePicker) {
-        val pickerState = rememberDatePickerState(
-            initialSelectedDateMillis = leaveDate.atStartOfDay(java.time.ZoneOffset.UTC)
-                .toInstant().toEpochMilli()
-        )
+        val pickerState =
+            rememberDatePickerState(
+                initialSelectedDateMillis =
+                    leaveDate
+                        .atStartOfDay(java.time.ZoneOffset.UTC)
+                        .toInstant()
+                        .toEpochMilli(),
+            )
         DatePickerDialog(
             onDismissRequest = { showLeavePicker = false },
             confirmButton = {
                 TextButton(onClick = {
                     pickerState.selectedDateMillis?.let {
-                        val picked = java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneOffset.UTC).toLocalDate()
+                        val picked =
+                            java.time.Instant
+                                .ofEpochMilli(it)
+                                .atZone(java.time.ZoneOffset.UTC)
+                                .toLocalDate()
                         if (picked.isAfter(LocalDate.now())) leaveDate = picked
                     }
                     showLeavePicker = false
                 }) { Text("OK") }
             },
-            dismissButton = { TextButton(onClick = { showLeavePicker = false }) { Text("キャンセル") } }
+            dismissButton = { TextButton(onClick = { showLeavePicker = false }) { Text("キャンセル") } },
         ) {
             DatePicker(state = pickerState)
         }
     }
     if (showReturnPicker) {
-        val pickerState = rememberDatePickerState(
-            initialSelectedDateMillis = returnDate.atStartOfDay(java.time.ZoneOffset.UTC)
-                .toInstant().toEpochMilli()
-        )
+        val pickerState =
+            rememberDatePickerState(
+                initialSelectedDateMillis =
+                    returnDate
+                        .atStartOfDay(java.time.ZoneOffset.UTC)
+                        .toInstant()
+                        .toEpochMilli(),
+            )
         DatePickerDialog(
             onDismissRequest = { showReturnPicker = false },
             confirmButton = {
                 TextButton(onClick = {
                     pickerState.selectedDateMillis?.let {
-                        val picked = java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneOffset.UTC).toLocalDate()
+                        val picked =
+                            java.time.Instant
+                                .ofEpochMilli(it)
+                                .atZone(java.time.ZoneOffset.UTC)
+                                .toLocalDate()
                         if (!picked.isBefore(leaveDate)) returnDate = picked
                     }
                     showReturnPicker = false
                 }) { Text("OK") }
             },
-            dismissButton = { TextButton(onClick = { showReturnPicker = false }) { Text("キャンセル") } }
+            dismissButton = { TextButton(onClick = { showReturnPicker = false }) { Text("キャンセル") } },
         ) {
             DatePicker(state = pickerState)
         }
@@ -257,12 +321,15 @@ fun ApplyNewScreen(navController: NavHostController, kind: String = "外泊") {
 }
 
 @Composable
-private fun SectionTitle(num: String, label: String) {
+private fun SectionTitle(
+    num: String,
+    label: String,
+) {
     val t = SuzuT.current
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(
             modifier = Modifier.size(20.dp).clip(RoundedCornerShape(6.dp)).background(t.ink),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             Text(num, color = t.pearl, style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold))
         }
@@ -271,44 +338,69 @@ private fun SectionTitle(num: String, label: String) {
 }
 
 @Composable
-private fun InfoRow(label: String, value: String, mono: Boolean = false) {
+private fun InfoRow(
+    label: String,
+    value: String,
+    mono: Boolean = false,
+) {
     val t = SuzuT.current
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, color = t.inkSub, modifier = Modifier.width(80.dp), style = TextStyle(fontSize = 12.sp))
         Text(
-            value, color = t.ink,
-            style = TextStyle(
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                fontFamily = if (mono) androidx.compose.ui.text.font.FontFamily.Monospace else null
-            )
+            value,
+            color = t.ink,
+            style =
+                TextStyle(
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    fontFamily = if (mono) androidx.compose.ui.text.font.FontFamily.Monospace else null,
+                ),
         )
     }
 }
 
 @Composable
-private fun DateField(label: String, value: String, onClick: () -> Unit) {
+private fun DateField(
+    label: String,
+    value: String,
+    onClick: () -> Unit,
+) {
     val t = SuzuT.current
     Column {
         Text(label, color = t.inkSub, style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold))
         Spacer(Modifier.height(6.dp))
         Box(
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                .background(t.pill).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 12.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(t.pill)
+                    .clickable(onClick = onClick)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
         ) {
             Text(
-                value, color = t.ink,
-                style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                value,
+                color = t.ink,
+                style =
+                    TextStyle(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    ),
             )
         }
     }
 }
 
 @Composable
-private fun TimeChip(label: String, value: String, onChange: (String) -> Unit) {
+private fun TimeChip(
+    label: String,
+    value: String,
+    onChange: (String) -> Unit,
+) {
     val t = SuzuT.current
     val options = listOf("06:00", "12:00", "18:00", "20:00", "22:00")
     Column {
@@ -318,18 +410,23 @@ private fun TimeChip(label: String, value: String, onChange: (String) -> Unit) {
             options.forEach { opt ->
                 val active = opt == value
                 Box(
-                    modifier = Modifier.clip(RoundedCornerShape(99.dp))
-                        .background(if (active) t.ink else t.paper)
-                        .then(if (active) Modifier else Modifier.border(1.dp, t.hair, RoundedCornerShape(99.dp)))
-                        .clickable { onChange(opt) }
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(99.dp))
+                            .background(if (active) t.ink else t.paper)
+                            .then(if (active) Modifier else Modifier.border(1.dp, t.hair, RoundedCornerShape(99.dp)))
+                            .clickable { onChange(opt) }
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
                 ) {
                     Text(
-                        opt, color = if (active) t.pearl else t.ink,
-                        style = TextStyle(
-                            fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-                        )
+                        opt,
+                        color = if (active) t.pearl else t.ink,
+                        style =
+                            TextStyle(
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            ),
                     )
                 }
             }
@@ -338,14 +435,24 @@ private fun TimeChip(label: String, value: String, onChange: (String) -> Unit) {
 }
 
 @Composable
-private fun TextField2(label: String, value: String, hint: String, multiline: Boolean = false, onChange: (String) -> Unit) {
+private fun TextField2(
+    label: String,
+    value: String,
+    hint: String,
+    multiline: Boolean = false,
+    onChange: (String) -> Unit,
+) {
     val t = SuzuT.current
     Column {
         Text(label, color = t.inkSub, style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold))
         Spacer(Modifier.height(6.dp))
         Box(
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                .background(t.pill).padding(horizontal = 14.dp, vertical = 12.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(t.pill)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
         ) {
             BasicTextField(
                 value = value,
@@ -359,7 +466,7 @@ private fun TextField2(label: String, value: String, hint: String, multiline: Bo
                         Text(hint, color = t.inkFaint, style = TextStyle(fontSize = 14.sp))
                     }
                     inner()
-                }
+                },
             )
         }
     }

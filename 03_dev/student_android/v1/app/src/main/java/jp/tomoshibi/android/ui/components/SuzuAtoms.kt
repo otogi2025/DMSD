@@ -24,14 +24,24 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -507,5 +517,115 @@ fun PageHeader(
         Text(title, color = t.ink, style = TextStyle(fontSize = 17.sp, fontWeight = FontWeight.Bold))
         Spacer(Modifier.weight(1f))
         if (right != null) right()
+    }
+}
+
+// 4.17 DateField — 日期选择字段（Field 包裹 + 点击弹 Material DatePicker，回传 ISO "yyyy-MM-dd"）
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DateField(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    required: Boolean = false,
+    placeholder: String = "日付を選択",
+    onPick: (String) -> Unit,
+) {
+    val t = SuzuT.current
+    val cs = MaterialTheme.colorScheme
+    var open by remember { mutableStateOf(false) }
+    Field(label = label, required = required, modifier = modifier) {
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(t.pearl)
+                    .border(BorderStroke(1.dp, t.hair), RoundedCornerShape(12.dp))
+                    .clickable { open = true }
+                    .padding(horizontal = 14.dp),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            Text(
+                value.ifEmpty { placeholder },
+                color = if (value.isEmpty()) t.inkMute else t.ink,
+                style = TextStyle(fontSize = 15.sp),
+            )
+        }
+    }
+    if (open) {
+        val state = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { open = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    state.selectedDateMillis?.let { ms ->
+                        // DatePicker 选中毫秒是 UTC 当天 0 点，按 UTC 取日历日避免偏移
+                        val d = java.time.Instant.ofEpochMilli(ms).atZone(java.time.ZoneOffset.UTC).toLocalDate()
+                        onPick(d.toString())
+                    }
+                    open = false
+                }) { Text("OK", color = cs.primary) }
+            },
+            dismissButton = {
+                TextButton(onClick = { open = false }) { Text("キャンセル", color = t.inkSub) }
+            },
+        ) {
+            DatePicker(state = state)
+        }
+    }
+}
+
+// 4.18 TimeField — 时刻选择字段（Field 包裹 + 点击弹 Material TimePicker，回传 "HH:mm"）
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TimeField(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    required: Boolean = false,
+    placeholder: String = "時刻を選択",
+    onPick: (String) -> Unit,
+) {
+    val t = SuzuT.current
+    val cs = MaterialTheme.colorScheme
+    var open by remember { mutableStateOf(false) }
+    Field(label = label, required = required, modifier = modifier) {
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(t.pearl)
+                    .border(BorderStroke(1.dp, t.hair), RoundedCornerShape(12.dp))
+                    .clickable { open = true }
+                    .padding(horizontal = 14.dp),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            Text(
+                value.ifEmpty { placeholder },
+                color = if (value.isEmpty()) t.inkMute else t.ink,
+                style = TextStyle(fontSize = 15.sp),
+            )
+        }
+    }
+    if (open) {
+        val state = rememberTimePickerState(is24Hour = true)
+        AlertDialog(
+            onDismissRequest = { open = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    onPick("%02d:%02d".format(state.hour, state.minute))
+                    open = false
+                }) { Text("OK", color = cs.primary) }
+            },
+            dismissButton = {
+                TextButton(onClick = { open = false }) { Text("キャンセル", color = t.inkSub) }
+            },
+            text = { TimePicker(state = state) },
+            containerColor = t.paper,
+        )
     }
 }
