@@ -1,7 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import "./fonts.css";
+import "./styles.css";
 
-// 阶段1 占位入口 —— 验证 Vite + TypeScript 构建链跑通。
+// 阶段2 占位入口 —— 验证公共层（theme/api/css/字体）能编译打包。
 // 阶段4 会替换成真正的 <App />。
 function Placeholder() {
   return (

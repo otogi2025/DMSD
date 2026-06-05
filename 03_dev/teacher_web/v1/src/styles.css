@@ -1,0 +1,68 @@
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #f4f5f7;
+        font-family:
+          "Noto Sans JP",
+          -apple-system,
+          sans-serif;
+        color: #14171f;
+        -webkit-font-smoothing: antialiased;
+      }
+      button {
+        font-family: inherit;
+      }
+      *::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      *::-webkit-scrollbar-thumb {
+        background: #cdd0d8;
+        border-radius: 5px;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+      }
+      *::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
+      @keyframes popIn {
+        0% {
+          opacity: 0;
+          transform: scale(0.85);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      @keyframes toastIn {
+        0% {
+          opacity: 0;
+          transform: translateX(-50%) translateY(8px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+      }
+      @media print {
+        aside,
+        header,
+        button,
+        [data-print-hide] {
+          display: none !important;
+        }
+        body {
+          background: #fff !important;
+        }
+      }
