@@ -909,12 +909,13 @@ final class AppStore: ObservableObject {
     }
 
     /// 把包裹缓存映射成通知卡（type「宅配」→ 通知中心「宅配」标签下显示）。
-    /// - id 用 -(100000+idx)：跟公告 -(idx+1) / push ≥1000 三段都不相撞。
+    /// - id 用 -(10_000_000+idx)：跟公告 -(idx+1) / push ≥1000 三段都不相撞
+    ///   （偏移量取够大 —— 公告要 1000 万条才会追到包裹区，实际不可能，codex 第二轮 minor）。
     /// - 未読 = 还没取走（pending / notified）；picked_up 等终态视为已読。
     private var packageNotifications: [NotificationItem] {
         packages.enumerated().map { idx, p in
             NotificationItem(
-                id: -(100_000 + idx),
+                id: -(10_000_000 + idx),
                 type: "宅配",
                 title: p.status == "picked_up" ? "荷物を受け取りました" : "荷物が届いています",
                 time: Self.notifTimeLabel(p.notifiedAt ?? p.createdAt),
