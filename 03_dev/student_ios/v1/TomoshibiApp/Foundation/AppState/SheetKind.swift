@@ -12,6 +12,7 @@ enum SheetKind: Hashable {
     case logout // ログアウト 確認
     case studyCheckin // 学习 NFC 2 次碰签到 (system_features §7.3.3)
     case songReport(songId: Int) // リクエスト曲 通報 sheet (system_features §7.11.2)
+    case renewStudentNo // 番号再設定 — 学年更新时学生自设番号 (system_features §4.2)
 }
 
 enum RollState {

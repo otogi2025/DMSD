@@ -161,6 +161,13 @@ struct HomeView: View {
                     .padding(.leading, 20).padding(.trailing, 20)
                     .padding(.top, 14).padding(.bottom, 6)
 
+                // 学年更新「待更新」时顶部横幅 → 点开番号再設定弹窗（spec §4.2）
+                if app.needsRenewal {
+                    renewBanner
+                        .padding(.horizontal, 16)
+                        .padding(.top, 6)
+                }
+
                 // §2 扣分 amber Card  ——  JSX: padding 12px 16px 6px
                 pointsCard
                     .padding(.horizontal, 16)
@@ -227,6 +234,42 @@ struct HomeView: View {
             }
             .buttonStyle(.plain)
         }
+    }
+
+    // MARK: 学年更新「待更新」横幅（spec §4.2）
+
+    private var renewBanner: some View {
+        Button { app.openSheet(.renewStudentNo) } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "person.text.rectangle")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(T.primary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("学籍番号の更新が必要です")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(T.ink)
+                    Text("新学年の 学年・組・出席番号 を設定してください")
+                        .font(.system(size: 12))
+                        .foregroundStyle(T.inkMute)
+                }
+                Spacer(minLength: 0)
+                Text("更新")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    .background(Capsule().fill(T.primary))
+            }
+            .padding(14)
+            .background {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(T.primary.opacity(0.06))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(T.primary.opacity(0.3), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: 扣分 Card（amber · JSX #5c3410 ink）
@@ -1111,7 +1154,6 @@ struct LifeTab: View {
                 .padding(8)
         }
     }
-
 }
 
 // ───────────────────────────────────────────────────────────
@@ -2093,6 +2135,150 @@ struct OtherSheet: View {
     }
 
     private func radioChip(title: String, selected: Bool, onTap: @escaping () -> Void) -> some View {
+        Button(action: onTap) {
+            Text(title)
+                .font(.system(size: 14, weight: selected ? .bold : .medium))
+                .foregroundStyle(selected ? T.primary : T.ink)
+                .padding(.horizontal, 16).padding(.vertical, 10)
+                .background {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(selected ? T.primary.opacity(0.06) : T.pearl)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(selected ? T.primary : T.hair, lineWidth: selected ? 1.5 : 1)
+                }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// ───────────────────────────────────────────────────────────
+// MARK: - RenewStudentNoSheet · 番号再設定（学年更新 / 学生自设番号，spec §4.2）
+
+// ───────────────────────────────────────────────────────────
+
+/// 学年更新时学生自设新番号 —— 选 学年 / 组 / 出席番号 → 提交。
+/// 撞号后端返 422 → 原样弹日语提示。成功后 AppStore 清 needsRenewal、顶部按钮消失。
+struct RenewStudentNoSheet: View {
+    @EnvironmentObject var app: AppStore
+
+    @State private var gradeCode: String = ""
+    @State private var classCode: String = ""
+    @State private var seatInput: String = ""
+    @State private var submitting = false
+
+    /// 学年：中高一貫 6 年制（01→中1 … 06→高3）
+    private let grades: [(code: String, label: String)] = [
+        ("01", "中1"), ("02", "中2"), ("03", "中3"),
+        ("04", "高1"), ("05", "高2"), ("06", "高3"),
+    ]
+    /// 组：A→01 / B→02
+    private let classes: [(code: String, label: String)] = [
+        ("01", "A組"), ("02", "B組"),
+    ]
+
+    private var seatNo: Int? {
+        Int(seatInput)
+    }
+
+    private var canSubmit: Bool {
+        !gradeCode.isEmpty && !classCode.isEmpty
+            && (seatNo.map { $0 >= 1 && $0 <= 99 } ?? false)
+            && !submitting
+    }
+
+    var body: some View {
+        GlassSheet(onClose: { app.closeSheet() }) {
+            VStack(alignment: .leading, spacing: 18) {
+                Text("学籍番号の再設定")
+                    .font(.system(size: 20, weight: .heavy))
+                    .foregroundStyle(T.ink)
+
+                Text("新学年の 学年・組・出席番号 を選んでください。学籍番号は自動で計算されます。")
+                    .font(.system(size: 13))
+                    .foregroundStyle(T.inkSub)
+
+                fieldLabel("学年")
+                FlowLayout(spacing: 8) {
+                    ForEach(grades, id: \.code) { g in
+                        radioChip(title: g.label, selected: gradeCode == g.code) {
+                            gradeCode = g.code
+                        }
+                    }
+                }
+
+                fieldLabel("組")
+                FlowLayout(spacing: 8) {
+                    ForEach(classes, id: \.code) { c in
+                        radioChip(title: c.label, selected: classCode == c.code) {
+                            classCode = c.code
+                        }
+                    }
+                }
+
+                fieldLabel("出席番号")
+                TField(text: $seatInput, placeholder: "例: 18", keyboard: .numberPad)
+                    .onChangeCompat(of: seatInput) {
+                        // 只留数字、最多 2 桁
+                        let digits = seatInput.filter { $0.isNumber }
+                        seatInput = String(digits.prefix(2))
+                    }
+
+                // 实时预览新学号（3 段齐了才显示）
+                if !gradeCode.isEmpty, !classCode.isEmpty,
+                   let s = seatNo, s >= 1, s <= 99
+                {
+                    Text("新しい学籍番号: \(gradeCode)\(classCode)\(String(format: "%02d", s))")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(T.primary)
+                }
+
+                PrimaryButton(
+                    title: submitting ? "送信中…" : "更新する",
+                    enabled: canSubmit
+                ) {
+                    submit()
+                }
+                .padding(.top, 2)
+            }
+            .padding(.top, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func fieldLabel(_ text: String) -> some View {
+        HStack(spacing: 4) {
+            Text(text)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(T.inkSub)
+            Text("*").foregroundStyle(T.danger)
+        }
+    }
+
+    private func submit() {
+        guard let s = seatNo else { return }
+        submitting = true
+        let seat = String(format: "%02d", s)
+        Task {
+            do {
+                try await app.submitRenewStudentNo(
+                    gradeCode: gradeCode, classCode: classCode, seatNo: seat
+                )
+                app.closeSheet() // 成功 toast 已在 submitRenewStudentNo 内显示
+            } catch is CancellationError {
+                // 提交在途登出 / 切用户 → 静默中止
+            } catch {
+                // 撞号(422)「已有人设定」/ 网络错 → 弹后端日语提示，留在弹窗让学生改
+                submitting = false
+                app.showToast(error.localizedDescription)
+            }
+        }
+    }
+
+    private func radioChip(
+        title: String, selected: Bool, onTap: @escaping () -> Void
+    ) -> some View {
         Button(action: onTap) {
             Text(title)
                 .font(.system(size: 14, weight: selected ? .bold : .medium))

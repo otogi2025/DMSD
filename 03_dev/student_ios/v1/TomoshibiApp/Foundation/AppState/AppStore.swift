@@ -96,6 +96,7 @@ final class AppStore: ObservableObject {
                 // IX-008: 登出 / 令牌失效 → 清当前用户 + SEED.user 复位演示默认，
                 // 防上一个真实用户的姓名 / 房号等残留到登录页 / 下一个人。
                 currentUser = nil
+                needsRenewal = false
                 SEED.user = SEED.demoUserSeed
                 #if !DEMO
                     // IX-008 Batch 2: 生产构建登出，把所有跟当前用户绑定的状态一并清空 ——
@@ -121,6 +122,10 @@ final class AppStore: ObservableObject {
     /// IX-008: 当前登录学生的真实信息（登录后从 GET /students/me 拉）。
     /// nil = 未登录 / 演示 / 还没拉到 → displayUser 回退 SEED.user 假占位。
     @Published var currentUser: User? = nil
+
+    /// 学年更新「待更新」标记（spec §4.2）— GET /students/me 的 needs_renewal。
+    /// true = 主页顶部显示「更新番号」按钮，让学生自设新番号。登出清 false。
+    @Published var needsRenewal: Bool = false
 
     /// IX-008: 各页显示当前用户统一走这个 —— 登录拉到真实数据就用真的，否则 SEED.user 占位。
     /// 替换原来直接读 SEED.user（演示假数据泄漏到生产）。
@@ -171,6 +176,8 @@ final class AppStore: ObservableObject {
                 // summary / absence 都有 await，写回前再确认还是同一个令牌。
                 guard authToken == tokenAtStart else { return }
                 currentUser = mapped
+                // 学年更新「待更新」标记（spec §4.2）— 后端 /me 的 needs_renewal，缺省按 false。
+                needsRenewal = me.needs_renewal ?? false
                 // IX-034 修复③(补)：代次没变才写回 —— summary 在途时若用户提交了请假
                 // （+1 并自增代次），旧 summary 数不得覆盖刚更新的本地数。
                 if let absenceCount, absenceCountRevision == absenceRevAtStart {
@@ -598,6 +605,25 @@ final class AppStore: ObservableObject {
         } else {
             showToast("学習欠席届を提出しました")
         }
+    }
+
+    /// 番号再設定 提交（学年更新 / 学生自设番号，spec §4.2）。
+    /// 接 POST /api/v1/students/me/renew-number。撞号后端返 422 → 调用方 catch 弹日语提示。
+    /// 成功后清 needsRenewal 标记 + 重拉 /me 让新学号 / 扣分统计收敛（不丢统计）。
+    func submitRenewStudentNo(
+        gradeCode: String, classCode: String, seatNo: String
+    ) async throws {
+        // 提交在途若登出 / 切到别的用户，成功返回后不把结果写到别人身上。
+        let tokenAtStart = authToken
+        _ = try await StudentRenewalAPI.renewNumber(
+            gradeCode: gradeCode, classCode: classCode, seatNo: seatNo
+        )
+        guard authToken == tokenAtStart else { throw CancellationError() }
+        // 成功 → 即时清标记（顶部按钮立刻消失），再重拉 /me 让新学号 / 统计收敛。
+        needsRenewal = false
+        await loadMe()
+        guard authToken == tokenAtStart else { throw CancellationError() }
+        showToast("学籍番号を更新しました")
     }
 
     /// JST 今日的 "yyyy-MM-dd" 字符串

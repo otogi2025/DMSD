@@ -125,6 +125,9 @@ struct StudentMeOut: Decodable {
     let phone: String?
     let avatar_url: String?
     let status: String
+    /// 学年更新「待更新」标记 — true 时主页顶部显示「更新番号」按钮（spec §4.2）。
+    /// Optional 兜底：分阶段部署时若后端未发该字段，避免整个 /me 解码失败。
+    let needs_renewal: Bool?
     // registered_at 解码时忽略（Decodable 默认跳过多余字段）
 }
 
@@ -134,6 +137,32 @@ enum StudentsAPI {
     @MainActor
     static func me() async throws -> StudentMeOut {
         try await APIClient.shared.get(path: "/api/v1/students/me")
+    }
+}
+
+// MARK: - 番号再設定（学年更新 / 学生自设番号，spec §4.2 — 2026-06-05）
+
+enum StudentRenewalAPI {
+    /// POST /api/v1/students/me/renew-number 请求 body — 身份从登录令牌取，不含 student_id。
+    struct RenewBody: Encodable {
+        let grade_code: String
+        let class_code: String
+        let seat_no: String
+    }
+
+    /// 学生自设番号 — 选新的 学年 / 组 / 出席番号。
+    /// 撞号时后端返 422 → APIError.unprocessable(日语提示)，原样弹给学生。
+    /// 成功返回更新后的 StudentMeOut（新 student_no + needs_renewal=false）。
+    @MainActor
+    static func renewNumber(
+        gradeCode: String, classCode: String, seatNo: String
+    ) async throws -> StudentMeOut {
+        let body = RenewBody(
+            grade_code: gradeCode, class_code: classCode, seat_no: seatNo
+        )
+        return try await APIClient.shared.post(
+            path: "/api/v1/students/me/renew-number", body: body
+        )
     }
 }
 
