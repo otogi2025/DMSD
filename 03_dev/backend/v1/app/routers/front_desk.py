@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import dorm_units_for_teacher, get_current_teacher
+from ..deps import dorm_units_for_teacher, get_current_student, get_current_teacher
 
 
 def _assert_student_in_dorm(teacher: models.Teacher, student: models.Student) -> None:
@@ -69,6 +69,30 @@ def list_items(
                 },
             )
         stmt = stmt.where(models.FrontDeskItem.kind == kind)
+    return [schemas.FrontDeskItemOut.model_validate(r) for r in db.scalars(stmt).all()]
+
+
+@router.get("/mine", response_model=list[schemas.FrontDeskItemOut])
+def list_my_deliveries(
+    db: Session = Depends(get_db),
+    student: models.Student = Depends(get_current_student),
+):
+    """学生查自己的宅配（包裹）— iOS 通知中心「荷物」数据源。
+
+    - 只返回 kind='delivery' 且 student_id = 当前学生 的条目
+    - 失物招领（lost_and_found）不在此列：那时 student_id 是捡到人、非「我的包裹」语义
+    - 不过滤 status：未取走（pending/notified）+ 已取走（picked_up）都返回，
+      「哪些算未读 badge」交给 iOS 端按 status 判定（picked_up 视为已读）
+    - 按 created_at 倒序（最新包裹在前）
+    """
+    stmt = (
+        select(models.FrontDeskItem)
+        .where(
+            models.FrontDeskItem.student_id == student.id,
+            models.FrontDeskItem.kind == "delivery",
+        )
+        .order_by(models.FrontDeskItem.created_at.desc())
+    )
     return [schemas.FrontDeskItemOut.model_validate(r) for r in db.scalars(stmt).all()]
 
 
