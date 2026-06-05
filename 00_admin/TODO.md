@@ -116,7 +116,22 @@
 > 学号每年变 → 学生自设番号（推翻 4-30 老师代改，spec §4.2）。后端（开闸+自设+进度+单件改+R4）+ iOS（顶部横幅+弹窗）+ 老师网页（开闸+分组列表+进度+单件改+4/1横幅）本会话全做完并提交。codex gpt-5.5 xhigh 两轮复审：第一轮 4 major 全采纳修（R4 寮边界 + 开闸检查），全套 308 passed。
 
 - [ ] **🟠 待 itsuki 拍板：`deps.py` `dorm_units_for_teacher` 失败放行**（codex 第二轮挑出）— 非跨寮角色（管理係/寮監）但 `assigned_dorm=None` 时函数返回 `None` = 看全部。**这是共用函数**，外出 `outings` + 学生档案 `student_profile` + 本功能都在用，改它影响全代码库。两种可能：① 故意（无分配寮的管理係 = 中央看全部）② 失败放行漏洞。要不要改成「无分配寮非跨寮角色 → 看不到任何寮（fail-closed）」由 itsuki 定 —— 不在番号更新功能里顺手改全代码库。**注**：现有 `admin_accounts` 的密码重置/解锁/学生列表也共用同一函数、同一行为，要改一起改。
-- [ ] **Android 端学年更新对齐** — 归别会话（`00_admin/iOS_Android对齐_GOAL提示词.md`），CC 不碰安卓。
+- [x] ~~**Android 端学年更新对齐**~~ ✅ 2026-06-05 完成（番号再設定弹窗 RenewStudentNoSheet 已建，见下方「📱 Android 对齐续做」段）
+
+## 📱 2026-06-05 Android 对齐 iOS 续做 — 客户端实装全部完成 / 剩视觉签收 + 渐进接线
+
+> 本会话 `/goal` 盯目标把 Android 学生 app 对齐 iOS 做到「iOS 73 个界面 Android 全有对应 + 编译退出码 0」。详见 raw `2026-06-05_android对齐续做.md` + 报告 `05_logs/raw/android对齐_总结报告_2026-06-05.md`。全本地未 push。
+
+- [x] ~~八~十一波 ~20 屏~~ ✅（申請履歴承認链 / 4 类型一覧 / 3 专属表单 + 确认完成页 / 遺失物投稿詳細 / 今週の活動一覧 / 反馈三子表单 / 番号再設定 / RollCallSheet 4 步动画）commit `67a67d2`→`3c67473`
+- [x] ~~学習履歴「対象」分支~~ ✅ commit `ad54f80`
+- [x] ~~Android 网络层从零搭建~~ ✅（ApiClient + ApiError + 25+ DTO + 7 端点 + manifest 联网权限）commit `5826750`
+- [ ] **🟡 itsuki 视觉签收** — 开 Android Studio 模拟器照清单 `05_logs/raw/android对齐_视觉签收清单_2026-06-05.md` 逐屏肉眼核对颜色/间距/字号（CC 无图形界面做不了，唯一剩的人工步骤）
+- [ ] **Android 各屏网络层接线** — 从 MockData 切真实联网，渐进式（iOS 自身也只接一半，匹配其状态）
+- [ ] **后端密码 `min_length` 8→6** — Android 客户端已是 6；后端文件改归后端会话（itsuki 已定 6）
+- [ ] project-overview 同步 Android 新增 ~25 文件（`data/network/` + 新屏）— 本会话另一会话占用 git 工作树，避让未做
+- [ ] ANDROID_DESIGN_LOG 同步新屏 + 网络层 — 同上，另一会话有 pending 改动，避让
+- [ ] （可选）2 条文字 mock 缺口：`帰寮予定時刻が門限…`（申請详情差戻示例文）/ `寮監：田中先生（内線 101）`（缺席态 toast 联系人）— 都是 mock 数据非界面标签
+- [ ] **v1.1**：真实 NFC 防作弊学生端提交（nonce/ECDSA）— 学生 app 现两端都模拟、已对齐；防作弊属点呼机+后端，非 v1.0 范围（见 memory `project_nfc_anticheat_not_in_student_app`）
 
 ## 🛰️ 2026-06-04 点呼机硬件下单 — 三家全部已下单 ✅ / 等到货装机 / LED 代码待改
 
