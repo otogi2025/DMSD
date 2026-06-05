@@ -75,7 +75,29 @@ def register_device_token(
         last_seen_at=now,
     )
     db.add(dt)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # 并发竞态：另一个请求在「查不到 → 插入」之间先插了同一 token（撞 UNIQUE）。
+        # 回滚后复用那行、改成当前学生，兜成幂等成功（codex Finding 5）。
+        db.rollback()
+        existing = db.scalars(
+            select(models.DeviceToken).where(models.DeviceToken.token == body.token)
+        ).first()
+        if existing is None:
+            raise
+        existing.student_id = student.id
+        existing.platform = body.platform
+        existing.last_seen_at = now
+        existing.revoked_at = None
+        db.commit()
+        db.refresh(existing)
+        return schemas.DeviceTokenRegisterOut(
+            id=existing.id,
+            student_id=existing.student_id,
+            platform=existing.platform,
+            created=False,
+        )
     db.refresh(dt)
 
     return schemas.DeviceTokenRegisterOut(
