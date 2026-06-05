@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -25,9 +26,12 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import jp.tomoshibi.android.data.model.Application
 import jp.tomoshibi.android.data.model.ApplicationStatus
+import jp.tomoshibi.android.data.model.User
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.ui.components.GlobalScaffold
+import jp.tomoshibi.android.ui.components.PageHeader
+import jp.tomoshibi.android.ui.components.PrimaryButton
 import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -76,6 +80,21 @@ fun ApplyNewScreen(
             StudyOnlineForm(navController) // 在线学习届
             return
         }
+
+        "行事企画" -> {
+            DormEventProposalForm(navController) // 行事企画書
+            return
+        }
+
+        "冷蔵庫購入" -> {
+            FridgePurchaseForm(navController) // 冷蔵庫購入届
+            return
+        }
+
+        "物品所持" -> {
+            ItemPossessionForm(navController) // 物品所持許可願
+            return
+        }
     }
 
     val tokens = SuzuT.current
@@ -108,6 +127,47 @@ fun ApplyNewScreen(
     // 出発日 picker dialog
     var showLeavePicker by remember { mutableStateOf(false) }
     var showReturnPicker by remember { mutableStateOf(false) }
+
+    // 通用表单内置 3 段（对齐 iOS edit → ApplyPreviewView → ApplyDoneView）
+    var stage by remember { mutableStateOf("edit") }
+
+    // 确认页 — 对齐 iOS ApplyPreviewView（键值确认卡 +「提出後は審査待ち」banner +「戻る」「提出する」按钮）
+    if (stage == "preview") {
+        GenericApplyPreview(
+            kind = kind,
+            user = user,
+            dest = dest,
+            leaveDate = leaveDate,
+            returnDate = returnDate,
+            reason = reason,
+            hasReturn = showReturnDate || showReturnDateOnly,
+            navController = navController,
+            onBack = { stage = "edit" },
+            onSubmit = {
+                scope.launch {
+                    val newApp =
+                        Application(
+                            id = "A-${System.currentTimeMillis() % 100000}",
+                            kind = kind,
+                            dest = dest.ifBlank { "—" },
+                            from = leaveDate.toString(),
+                            to = if (showReturnDate || showReturnDateOnly) returnDate.toString() else leaveDate.toString(),
+                            status = ApplicationStatus.PENDING,
+                            reason = reason,
+                            createdAt = LocalDate.now().toString(),
+                        )
+                    store.update { it.copy(applications = listOf(newApp) + it.applications) }
+                    stage = "done"
+                }
+            },
+        )
+        return
+    }
+    // 完成页 — 对齐 iOS ApplyDoneView（绿勾 +「申請を提出しました」+「予想審査時間」卡 +「一覧へ」按钮）
+    if (stage == "done") {
+        GenericApplyDone(kind = kind, navController = navController)
+        return
+    }
 
     GlobalScaffold(activeTab = "apply", navController = navController) {
         Column(modifier = Modifier.fillMaxSize().background(tokens.pearl)) {
@@ -466,6 +526,174 @@ private fun TextField2(
                         Text(hint, color = t.inkFaint, style = TextStyle(fontSize = 14.sp))
                     }
                     inner()
+                },
+            )
+        }
+    }
+}
+
+// ── 通用申请 确认页（对齐 iOS ApplyPreviewView）——键值确认卡 + info banner +「戻る」「提出する」──
+@Composable
+private fun GenericApplyPreview(
+    kind: String,
+    user: User,
+    dest: String,
+    leaveDate: LocalDate,
+    returnDate: LocalDate,
+    reason: String,
+    hasReturn: Boolean,
+    navController: NavHostController,
+    onBack: () -> Unit,
+    onSubmit: () -> Unit,
+) {
+    val t = SuzuT.current
+    // 按类型拼确认行（左标签 / 右值），对齐 iOS ApplyPreviewView.rows
+    val rows =
+        buildList {
+            add("種別" to "${kind}申請")
+            add("申請者" to user.name)
+            if (dest.isNotBlank()) add((if (kind == "修繕") "修繕場所" else "行先") to dest)
+            if (kind in listOf("外出", "外泊", "帰省", "帰国", "学習")) {
+                add("出寮日" to leaveDate.format(DATE_FMT))
+            }
+            if (hasReturn) add("帰寮日" to returnDate.format(DATE_FMT))
+            add("理由" to reason.ifBlank { "—" })
+        }
+    GlobalScaffold(activeTab = "apply", navController = navController) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(t.pearl)
+                    .verticalScroll(rememberScrollState()),
+        ) {
+            PageHeader(title = "申請内容の確認", level = 2, onLeft = onBack)
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+                // info banner
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(t.pill)
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                ) {
+                    Text(
+                        "ℹ 提出後は審査待ちとなります。承認されるまでは内容の変更が可能です。",
+                        color = t.inkSub,
+                        style = TextStyle(fontSize = 13.sp, lineHeight = 18.sp),
+                    )
+                }
+                Spacer(Modifier.height(18.dp))
+                // 键值确认卡
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(t.paper),
+                ) {
+                    rows.forEachIndexed { i, (label, value) ->
+                        if (i > 0) Divider(color = t.hair, thickness = 0.5.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            Text(label, color = t.inkSub, modifier = Modifier.width(100.dp), style = TextStyle(fontSize = 13.sp))
+                            Text(
+                                value,
+                                color = t.ink,
+                                modifier = Modifier.weight(1f),
+                                style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(20.dp))
+                // 「戻る」「提出する」双按钮
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .height(52.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(t.paper)
+                                .border(1.5.dp, t.hair, RoundedCornerShape(16.dp))
+                                .clickable(onClick = onBack),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("戻る", color = t.inkSub, style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold))
+                    }
+                    PrimaryButton(title = "提出する", modifier = Modifier.weight(1f), onClick = onSubmit)
+                }
+                Spacer(Modifier.height(24.dp))
+            }
+        }
+    }
+}
+
+// ── 通用申请 完成页（对齐 iOS ApplyDoneView）——绿勾 +「申請を提出しました」+「予想審査時間」+「一覧へ」──
+@Composable
+private fun GenericApplyDone(
+    kind: String,
+    navController: NavHostController,
+) {
+    val t = SuzuT.current
+    val cs = MaterialTheme.colorScheme
+    GlobalScaffold(activeTab = "apply", navController = navController) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(t.paper)
+                    .padding(horizontal = 28.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // 绿勾徽章 — 青→accent 渐变（对齐 iOS LinearGradient [primary, accent]）
+            Box(
+                modifier =
+                    Modifier
+                        .size(96.dp)
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(Brush.linearGradient(listOf(cs.primary, cs.secondary))),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("✓", color = Color.White, style = TextStyle(fontSize = 44.sp, fontWeight = FontWeight.Bold))
+            }
+            Spacer(Modifier.height(22.dp))
+            Text("申請を提出しました", color = t.ink, style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold))
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "${kind}申請を受け付けました。\n審査完了時に通知でお知らせします。",
+                color = t.inkSub,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                style = TextStyle(fontSize = 14.sp, lineHeight = 20.sp),
+            )
+            Spacer(Modifier.height(28.dp))
+            // 予想審査時間 卡
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(t.pearl)
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("予想審査時間", color = t.inkSub, style = TextStyle(fontSize = 12.sp))
+                Spacer(Modifier.weight(1f))
+                Text("1〜2 時間", color = t.ink, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold))
+            }
+            Spacer(Modifier.height(28.dp))
+            PrimaryButton(
+                title = "一覧へ",
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    navController.navigate(jp.tomoshibi.android.nav.Route.Applications.path) {
+                        popUpTo(jp.tomoshibi.android.nav.Route.Applications.path) { inclusive = true }
+                    }
                 },
             )
         }
