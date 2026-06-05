@@ -18,36 +18,36 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 >
 > **和别的「介绍型」文件分工**（三层不重叠）：`PROJECT_GUIDE.md`（根目录）= 新人 / AI 深入理解整个项目的导览；`00_admin/项目心智模型.md` = AI 开局必读的 1 屏骨架（系统怎么跑通 + 5 端现状）；**本 skill** = 1388 文件逐个的「字典」，想知道某个文件干嘛时查。
 >
-> **最后更新**：2026-06-05 — 全文件对账校准（1200→1396 真实数，以 HEAD committed 为准）：backend §3 大补（routers 11→26 / tests 5→19 / alembic 9→22 / 总 62→103）+ iOS 67→78 / Android 80→131 / 点呼机 12→36 / 05_logs 92→160 / 99_archive 431→639 + 散件补漏（01_specs / 02_design / 04_ops / 根目录 / skills 标题）。更早的逐次更新记录见 git log。
+> **最后更新**：2026-06-05 — 全文件对账校准（1200→1399 真实数，以 HEAD committed 为准）：backend §3 大补（routers 11→26 / tests 5→20 / alembic 9→22 / 总 62→104）+ iOS 67→78 / Android 80→131 / 点呼机 12→36 / 05_logs 92→161 / 99_archive 431→639 + 散件补漏（01_specs / 02_design / 04_ops / 根目录 / skills 标题）。收尾时点含别会话并行提交（test_front_desk 等）。更早记录见 git log。
 
-**最后扫描真值**：2026-06-05 `git ls-tree -r HEAD` 全统计（1396 已提交文件）+ 各组逐组验证 + `bin/check_overview_drift.sh` 校验。下次结构大改时更新本字段。
+**最后扫描真值**：2026-06-05 `git ls-tree -r HEAD` 全统计（1399 已提交文件）+ 各组逐组验证 + `bin/check_overview_drift.sh` 校验。下次结构大改时更新本字段。
 
 ---
 
 ## 0. 摘要
 
-### 0.1 体量（2026-06-05 对账 — `git ls-tree HEAD` 真实统计，1396 个已提交文件）
+### 0.1 体量（2026-06-05 对账 — `git ls-tree HEAD` 真实统计，1399 个已提交文件；收尾时点，别会话并行提交中可能微动）
 
 | 顶级目录 | 文件数 | 占比 | 主要内容 |
 |---|---|---|---|
 | `99_archive/` | 639 | 46% | 归档物（5-26 晚段-4 加 `2026-05-26_teacher_web_vite实装作废/` 13 文件 = App.tsx + main.tsx + Shell.tsx + pages × 5 + store/auth.ts + vite_root_index.html + package.json + lock + vite.config.ts + tailwind.config.js + postcss.config.js + tsconfig × 2 — itsuki 拍板 Vite + TS 实装版整体废弃 + 5-26 晚加 `2026-05-26_ios_v1_demo_snapshot/` 42 文件（iOS demo 后门删除前快照） + 5-26 早 3 个 iOS 上架配置归位 + 5-22 加 2026-05-21_pre_fix + 2026-05-22_tomoshibi_appstore_fork 残余 + 5-21 teacher_web/demo 整组 158 文件归档 + 早期 GPT 对话 / throwaway iOS / demo 4-28 / 5-12 深夜大整理 / cloud agent 退役 / 5-02 handoff × 4 等）|
-| `03_dev/` | 526 | 38% | 代码 + 设计 LOG（含未 commit iOS `APIErrorPresenter.swift` + `project.pbxproj.bak3_before_apierrorpresenter_register` 2 文件；5-27 早段-2 git mv `student_ios/_archived_DESIGN_BRIEF_Round1_context.md` → 99_archive/2026-04-22_ios_round1_design_brief/；5-26 晚段-4 删除 Vite 实装 13 文件 → 全归档 → teacher_web 回到 Ryō standalone 主线）|
-| `05_logs/` | 148 | 11% | raw 68（5-16/19/21/22/22-iOS/24/25/25-AC学习清单/26/26-dmsd-startup/26-vite废弃+polish回滚/27-teacher_web_v1.0_深夜推进/27-ios审查/27-全项目审查/27-anti-ai-flavor双层防御立项/27-整理inbox+8类升级/27-老师实名账户登录/27-ios登录注册大改+审批链进度条/28-ios_codex审查/28-注册页demo空+数字码+设计文档中文化/28-web登录页修复）/ AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）|
+| `03_dev/` | 527 | 38% | 代码 + 设计 LOG（含未 commit iOS `APIErrorPresenter.swift` + `project.pbxproj.bak3_before_apierrorpresenter_register` 2 文件；5-27 早段-2 git mv `student_ios/_archived_DESIGN_BRIEF_Round1_context.md` → 99_archive/2026-04-22_ios_round1_design_brief/；5-26 晚段-4 删除 Vite 实装 13 文件 → 全归档 → teacher_web 回到 Ryō standalone 主线）|
+| `05_logs/` | 149 | 11% | raw 68（5-16/19/21/22/22-iOS/24/25/25-AC学习清单/26/26-dmsd-startup/26-vite废弃+polish回滚/27-teacher_web_v1.0_深夜推进/27-ios审查/27-全项目审查/27-anti-ai-flavor双层防御立项/27-整理inbox+8类升级/27-老师实名账户登录/27-ios登录注册大改+审批链进度条/28-ios_codex审查/28-注册页demo空+数字码+设计文档中文化/28-web登录页修复）/ AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）|
 | `00_admin/` | 25 | 1.8% | 8 顶级 md（5-29 加 项目心智模型.md）+ hooks 子目录 — 5-21 加 `系统bug专栏.md` + `codex_audit_prompt.md`（详见 §1.2）|
 | `01_specs/` | 14 | 1.2% | 规格冻结区（含 5 .pages 不可读）|
 | `.claude/` | 12 | 0.9% | 8 skill + 1 agent + 2 配置（settings / session-coord.config）— **5-26 加 `dmsd-startup/SKILL.md`**（启动 SOP 集中）/ 5-19 加 `.claude/agents/security-reviewer.md`（详见 §1.7.5）|
 | `06_assets/` | 9 | 0.6% | 4 icon + 术语表.html + 学习内容清单.html + bus_schedule + bus_notice 真实样本 + app_screens_2026-06-05_ios/ |
-| 根目录 | 8 | 0.6% | CLAUDE / README / CHANGELOG / LICENSE / .gitignore / .graphifyignore / 启动老师网站.command / 预览Vite新版老师网站.command（PROJECT_GUIDE.md 已建但未提交）|
+| 根目录 | 9 | 0.6% | CLAUDE / README / CHANGELOG / LICENSE / .gitignore / .graphifyignore / PROJECT_GUIDE / 启动老师网站.command / 预览Vite新版老师网站.command |
 | `02_design/` | 4 | 0.3% | system_features + hardware + flow + NFC防代刷_后端立项施工计划 |
 | `docs/` | 3 | 0.3% | Matt Pocock 套件 per-repo 配置（agents/{issue-tracker,triage-labels,domain}.md）|
 | `bin/` | 3 | 0.3% | sync-check + create_local_dev_symlink + check_overview_drift（5-19 加）|
 | `04_ops/` | 3 | 0.2% | MAC_MINI_SETUP + wifi_survey_howto + teacher_web_v1.0_上线部署清单 |
 | `.github/` | 2 | 0.1% | workflows/test.yml（GitHub Actions CI 自动跑测试）+ dependabot.yml（依赖漏洞自动监控 — pip/gradle/actions 每周一）|
-| **总计** | **1396** | 100% | |
+| **总计** | **1399** | 100% | |
 
 > **占比读法**：归档 `99_archive/` + 代码 `03_dev/` 占 84%。日常开发的「活」文件主要在 `03_dev/`（代码）+ `00_admin/`（管理）+ `01_specs/`（规格）+ `02_design/`（设计）+ `.claude/`（AI 配置）。`99_archive/` 是历史归档区，按子目录粒度维护（见 §7），不逐文件追描述。
 
-### 0.2 状态分布（2026-06-05 近似 — 总 1396）
+### 0.2 状态分布（2026-06-05 近似 — 总 1399）
 
 | 类别 | 估算 | 说明 |
 |---|---|---|
@@ -82,7 +82,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 **统计**：✅ 22 / 📦 7 / ⚠️ 3 / ❓ 4
 
-### 1.1 根目录（8 文件已提交；PROJECT_GUIDE.md 已建但未提交）
+### 1.1 根目录（9 文件已提交）
 
 | 文件 | 作用 | 状态 | 备注 |
 |---|---|---|---|
@@ -90,7 +90,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `CLAUDE.md` | AI 项目指令权威源（每会话必读） | ✅ | 4-30 沟通规则 #6 升级 |
 | `CHANGELOG.md` | 18 tag 全程 + 版本号单源真值 | ✅ | 教授会看 |
 | `README.md` | 项目对外介绍（4-30 名字 Tomoshibi 定名） | ✅ | 4-29 起 GitHub public |
-| `PROJECT_GUIDE.md` | 给第一次了解项目的人 / AI 深入理解项目用的导览 — 项目是什么 / 5 端结构 / 系统怎么跑通 / 推荐阅读顺序 | ⏳ | **已建但未提交**（git 还不跟踪）/ 6-05 扩充中 |
+| `PROJECT_GUIDE.md` | 给第一次了解 / AI 深入理解整个项目的导览 — 项目是什么 / 5 端结构 / 系统怎么跑通 / 核心业务概念 / 数据模型 / 关键决策 / 阅读顺序 | ✅ | 6-05 扩成深度版 commit `8193dae`（项目心智模型的展开详版）|
 | `LICENSE` | All Rights Reserved + AC 后 4 方向评估 | ✅ | 不常改 |
 | `.graphifyignore` | graphify 知识图谱忽略规则（防 vendor 字体污染图谱） | ✅ | |
 | `启动老师网站.command` | 双击一键：build Vite dist → 后端 8000 托管 dist 到 /teacher/ → 自动开浏览器 | ✅ | 6-05 改成 Vite 版（原起前端 8787 托管 src 旧单文件） |
@@ -301,9 +301,9 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 
 ---
 
-## 3. 第 3 组：03_dev/backend（103 文件 — 2026-06-05 校准 62→103）
+## 3. 第 3 组：03_dev/backend（104 文件 — 2026-06-05 校准 62→104）
 
-**统计**：v1 91（routers 26 + services 5 + tests 19 + alembic 22 + app 核心 9 + 配置 ~10）+ demo 10 锁定 + 顶层 2（README + BACKEND_DESIGN_LOG）= 103
+**统计**：v1 92（routers 26 + services 5 + tests 20 + alembic 22 + app 核心 9 + 配置 ~10）+ demo 10 锁定 + 顶层 2（README + BACKEND_DESIGN_LOG）= 104
 **核心**：v1 功能大幅扩张 — 6-05 已有 25 router / 19 test / 18 迁移；扣分 / 清扫 / 前台 / 外出 / 事案 / 指导 / 学年更新等 §7 全业务线后端已实装。**防作弊核心后端仍未写**（见 §3.7）
 
 ### 3.1 backend 顶层 + demo（13 文件）
@@ -381,7 +381,7 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `email.py` | 发邮件业务逻辑（包 SendGrid SDK） | ⚠️ | 90% 完整 / 缺 retry 3 次循环（设计要求） |
 | `push.py` | 推送通知业务逻辑（设备令牌 → 推送） | ✅ | 配 `device_tokens.py` 路由 |
 
-### 3.6 backend/v1/tests/（19 文件 — 2026-06-05 校准 5→19）
+### 3.6 backend/v1/tests/（20 文件 — 2026-06-05 校准 5→20）
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
@@ -404,6 +404,7 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `test_email_resend.py` | 邮件重发测试 | ✅ | |
 | `test_dorm_boundary_fixes.py` | 寮边界判定回归测试（IX-014 类 bug 防回归） | ✅ | |
 | `test_security_fixes.py` | 安全修复回归测试 | ✅ | |
+| `test_front_desk.py` | 前台（宅配 / 失物）测试 | ✅ | 6-05 别会话加 |
 
 > 测试文件从 5 涨到 19，覆盖 6 月新增的全部业务线。具体 test case 数 + 覆盖率需跑 `pytest` 实测（BACKEND_DESIGN_LOG §8 目标 70%）。
 
@@ -611,9 +612,9 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 
 ---
 
-## 6. 第 6 组：05_logs + 06_assets + bin（160 文件 = 05_logs 148 + 06_assets 9 + bin 3 — 2026-06-05 校准）
+## 6. 第 6 组：05_logs + 06_assets + bin（161 文件 = 05_logs 149 + 06_assets 9 + bin 3 — 2026-06-05 校准）
 
-**05_logs 148 细分**：raw 91（每天原始会话记录）+ AC_叙事 12 + dev_log 9 + problem_solving 4 + audit_2026-05-19 13 + audit_2026-05-22_codex 7 + 3 个 meta（decision_log / learning_path / project_evolution）+ 散件 ~9（teacher_web 施工 3 + 各 audit 单件 + 漏洞清单 + 版本演变一览 等）。
+**05_logs 149 细分**：raw 92（每天原始会话记录）+ AC_叙事 12 + dev_log 9 + problem_solving 4 + audit_2026-05-19 13 + audit_2026-05-22_codex 7 + 3 个 meta（decision_log / learning_path / project_evolution）+ 散件 ~9（teacher_web 施工 3 + 各 audit 单件 + 漏洞清单 + 版本演变一览 等）。
 **核心发现**：raw 是项目最大原始素材区，AC 候选密度最高的几天见 §6.2 ⭐ 标记。
 
 ### 6.1 05_logs/ 根级 meta（3 文件）
@@ -624,7 +625,7 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 | `learning_path.md` | itsuki 学习哲学 + 已走的路 — AC 自我推荐书素材 | ✅ | 最后 4-13 / 4-10 后新学的 NFC / Swift / 硬件未追记 |
 | `project_evolution.md` | 项目重大转折记录（每次 = 转折点 + 起因 + 影响） | ✅ | 4 次已记 / 最后 4-13 / 待补"第 5 次转折" = demo 完成情况 |
 
-### 6.2 05_logs/raw/（91 文件 — 含 README — 2026-06-05 校准 68→91，每天一份原始会话记录，持续增长）
+### 6.2 05_logs/raw/（92 文件 — 含 README — 2026-06-05 校准 68→92，每天一份原始会话记录，持续增长）
 
 > raw 是项目最大的原始素材区。下表只列 AC 候选密度高（⭐ 多）的关键日，不逐个列全部 91 份 — 找某天记录直接看文件名 `raw/YYYY-MM-DD*.md`。
 
