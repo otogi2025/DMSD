@@ -46,9 +46,9 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ### 0.2 ⭐ 版本演变一览必更新（铁律）
 
-> **历史漂移证据**：2026-05-04 审视发现 — **v0.6.0（4-29 close）+ v0.8.0（5-02 close）都没更新到 `00_admin/版本演变一览.md`**。SOP §4 第 3 行写了"必改"但实战漂移。所以做 skill 时要明确铁律。
+> **历史漂移证据**：2026-05-04 审视发现 — **v0.6.0（4-29 close）+ v0.8.0（5-02 close）都没更新到 `05_logs/版本演变一览.md`**。SOP §4 第 3 行写了"必改"但实战漂移。所以做 skill 时要明确铁律。
 
-**铁律**：**每次 bump 必须更新 `00_admin/版本演变一览.md`**，不能跳过。如果 CC 走 §3 流程时漏了这一步，**视为 bump 失败**，必须回头补。
+**铁律**：**每次 bump 必须更新 `05_logs/版本演变一览.md`**，不能跳过。如果 CC 走 §3 流程时漏了这一步，**视为 bump 失败**，必须回头补。
 
 **怎么写一览段**：
 - 标题格式：`## vX.Y.Z — 一句话主题（YYYY-MM-DD close）`
@@ -169,7 +169,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 |---|---|---|---|---|
 | 1 | `CHANGELOG.md` | 顶部新条目 + 头部"最后更新"时间戳 | CC | 🔴 必 |
 | 2 | `00_admin/WIP.md` | 头部第一行 `**当前版本**: vX.Y.Z` | CC | 🔴 必 |
-| 3 | `00_admin/版本演变一览.md` | 加新版本一句话 + 详细段（按既有格式） | CC | 🔴 **必（§0.2 铁律）** |
+| 3 | `05_logs/版本演变一览.md` | 加新版本一句话 + 详细段（按既有格式） | CC | 🔴 **必（§0.2 铁律）** |
 | 4 | `00_admin/vX.Y.Z_AC叙事.md` | 新建（5-04 起 itsuki 自写；CC 不主动起草，等 itsuki 来问才辅助） | itsuki | 🔴 必（itsuki 侧）|
 | 5 | `05_logs/raw/YYYY-MM-DD.md` | dump 一条 #AC候选 标 "版本号 bump = 重大决策"（按 session-wrap skill）| CC | 🔴 必 |
 | 6 | `git tag` | 打 tag（**等 itsuki 明示**）| itsuki / CC 经授权 | 🟠 半必 |

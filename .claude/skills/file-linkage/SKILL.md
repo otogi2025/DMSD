@@ -252,13 +252,16 @@ grep -rn "ComponentName" 03_dev/student_ios/v1/TomoshibiApp/Features/
 
 ---
 
-### Rule 23: version-number-chain（action — 版本号链,2026-06-03 加）
+### Rule 23: version-number-chain（action — 版本号链,2026-06-03 加 / 2026-06-05 加版本演变一览）
 
-**触发**：`CHANGELOG.md`（仓库根）/ `00_admin/WIP.md`
+**触发**：`CHANGELOG.md`（仓库根）/ `00_admin/WIP.md` / `05_logs/版本演变一览.md`
 
-**必做动作**：核对两处版本号是否同步。
+**必做动作**：核对三处是否同步 ——
+- **`CHANGELOG.md` = 版本号唯一真值**（改文件版本时以它为准）
+- `00_admin/WIP.md` 头部「当前版本」= 二级源（版本号要跟 CHANGELOG 一致）
+- `05_logs/版本演变一览.md` = 面向 AC 教授的详细叙事版（**改 CHANGELOG 必连带改这里**：加新版本的总表行 + 详细段，因为这是 AC 素材）
 
-**为什么**：`文档同步点清单.md §1` 定义版本号单一真值 = `CHANGELOG.md`,二级源 = `WIP.md` 头部「当前版本」。过去靠 `post-edit-version-hardcode-check.sh`（拦硬编码版本号的 hook）+ version-bump skill 人肉流程管,联动系统本身对「改一处提醒核对另一处」零覆盖,补这条 action 补齐。
+**为什么**：`文档同步点清单.md §1` 定义版本号单一真值 = `CHANGELOG.md`。改 CHANGELOG = 迭代版本，必须同步：① WIP 头部版本号 ② 版本演变一览。后者是 itsuki 2026-06-05 拍板补的绑定 —— 原话「迭代版本要改 changelog，改了 changelog 就该改版本演变一览，这两个文件要绑在一起，版本演变一览要包含详细的内容，因为是素材」。过去 Rule 23 只绑 CHANGELOG↔WIP、漏了版本演变一览，6-05 补齐。完整 bump 流程见 version-bump skill。
 
 ---
 
@@ -295,8 +298,9 @@ grep -rn "ComponentName" 03_dev/student_ios/v1/TomoshibiApp/Features/
 | `flow_design.md` | Rule 20 (点呼机架构链任一改) |
 | `项目心智模型.md` | Rule 20 (点呼机架构链任一改) |
 | `01_specs/rollcall 字典四件套 + RollCall_Spec.md` | Rule 22 (spec 字典链任一改) |
-| `CHANGELOG.md` | Rule 23 (WIP.md 版本号改) |
+| `CHANGELOG.md` | Rule 23 (WIP.md / 版本演变一览 版本号改) |
 | `WIP.md`（版本号部分） | Rule 23 (CHANGELOG.md 改) |
+| `05_logs/版本演变一览.md` | Rule 23 (CHANGELOG.md 改 — 必连带加总表行+详细段) |
 | `system_features.md` | Rule 19 (任一端 *_DESIGN_LOG 改) |
 | `RootView.swift` | Rule 4 (Route.swift 改) |
 | `hooks/README.md` | Rule 8 (hooks/* 改) |

@@ -231,9 +231,9 @@ add_rule \
 
 add_rule \
   "version-number-chain" \
-  '^CHANGELOG\.md$|^00_admin/WIP\.md$' \
+  '^CHANGELOG\.md$|^00_admin/WIP\.md$|^05_logs/版本演变一览\.md$' \
   '' \
-  '版本号单源 CHANGELOG.md + 二级源 WIP.md 头部「当前版本」(文档同步点清单 §1 双源同步) → 改一处核对另一处是否同步' \
+  '版本号单一真值 = CHANGELOG.md（改文件版本以它为准）。改 CHANGELOG = 迭代版本 → 必同步：① WIP.md 头部「当前版本」② 05_logs/版本演变一览.md（加总表行+详细段，AC 素材；itsuki 6-05 拍板 CHANGELOG↔版本演变一览 绑定）。完整流程见 version-bump skill' \
   "action"
 
 # ============================================================
