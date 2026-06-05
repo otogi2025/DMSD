@@ -11998,6 +11998,47 @@
               舎監 {teacher.name} 先生
             </div>
 
+            {/* 学年更新 4 月リマインダー — 毎年 4 月、学生アカウント管理から開始を促す（spec §4.2）*/}
+            {today.getMonth() === 3 && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  background: T.warnSoft,
+                  border: `1px solid ${T.warnBorder}`,
+                  borderRadius: 12,
+                  padding: "12px 18px",
+                  marginBottom: 18,
+                  fontSize: 13,
+                }}
+              >
+                <span style={{ color: T.warn, fontWeight: 600 }}>
+                  新学年です。「学生アカウント管理」から学年更新を開始してください。
+                </span>
+                {onNav && (
+                  <button
+                    onClick={() => onNav("accounts")}
+                    style={{
+                      padding: "7px 14px",
+                      background: T.cobalt,
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 8,
+                      fontFamily: "inherit",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    学生管理へ
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Task #13 spec §5.6: 重新查看刚结束的点呼总结入口 */}
             {lastEnded && onShowSummary && (
               <div
@@ -25109,6 +25150,24 @@
             });
         };
 
+        // 老师单件改某学生番号（兜底 — 学生不会操作 / 填错时）。撞号后端返 422。
+        const handleTeacherRenewSeat = (account, body) => {
+          window.tomoshibiApi
+            .teacherRenewSeat(account.id, body, authToken)
+            .then(() => {
+              setToast({ type: "ok", msg: "学籍番号を更新しました" });
+              setDetailTarget(null);
+              fetchAccounts();
+              fetchRenewalProgress();
+            })
+            .catch((e) => {
+              setToast({
+                type: "err",
+                msg: e.message || "学籍番号の更新に失敗しました",
+              });
+            });
+        };
+
         // 解锁 — 成功后刷新该行 is_locked 状态
         const handleUnlock = (account) => {
           window.tomoshibiApi
@@ -25854,6 +25913,7 @@
                 onSave={handleSave}
                 onPasswordReset={handlePasswordReset}
                 onUnlock={handleUnlock}
+                onRenewSeat={handleTeacherRenewSeat}
               />
             )}
 
@@ -26055,12 +26115,25 @@
         onSave,
         onPasswordReset,
         onUnlock,
+        onRenewSeat,
       }) {
         const T = window.RYO;
         const [tab, setTab] = React.useState("profile");
         // 後端の StudentAccountListItem には email / phone がないため空文字で初期化
         const [room, setRoom] = React.useState(account.room_no || "");
         const dirty = room !== (account.room_no || "");
+        // 学籍番号 单件改（兜底）— 学年/组/出席番号 三选择，预填当前值
+        const [rnGrade, setRnGrade] = React.useState(account.grade_code || "");
+        const [rnClass, setRnClass] = React.useState(account.class_code || "");
+        const [rnSeat, setRnSeat] = React.useState(account.seat_no || "");
+        const rnDirty =
+          rnGrade !== account.grade_code ||
+          rnClass !== account.class_code ||
+          rnSeat !== account.seat_no;
+        const rnValid =
+          /^0[1-6]$/.test(rnGrade) &&
+          /^0[12]$/.test(rnClass) &&
+          /^\d{2}$/.test(rnSeat);
 
         const genderLabel =
           { male: "男性", female: "女性" }[account.gender] || "—";
@@ -26287,6 +26360,128 @@
                       mono
                     />
                     <div />
+                  </div>
+
+                  {/* 学籍番号 单件改（兜底）— 通常学生自设，老师在此替不会操作 / 填错的学生改 */}
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: T.ink3,
+                      letterSpacing: 2,
+                      fontWeight: 700,
+                      marginBottom: 10,
+                      paddingBottom: 6,
+                      borderBottom: `1px solid ${T.line}`,
+                    }}
+                  >
+                    § 学籍番号（学年更新の補助）
+                  </div>
+                  <div style={{ marginBottom: 24 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 10,
+                        alignItems: "flex-end",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <label style={{ fontSize: 12, color: T.ink3 }}>
+                        学年
+                        <select
+                          value={rnGrade}
+                          onChange={(e) => setRnGrade(e.target.value)}
+                          style={{
+                            display: "block",
+                            marginTop: 4,
+                            padding: "6px 8px",
+                            borderRadius: 6,
+                            border: `1px solid ${T.lineStrong}`,
+                            fontFamily: "inherit",
+                            fontSize: 13,
+                          }}
+                        >
+                          <option value="01">中1</option>
+                          <option value="02">中2</option>
+                          <option value="03">中3</option>
+                          <option value="04">高1</option>
+                          <option value="05">高2</option>
+                          <option value="06">高3</option>
+                        </select>
+                      </label>
+                      <label style={{ fontSize: 12, color: T.ink3 }}>
+                        組
+                        <select
+                          value={rnClass}
+                          onChange={(e) => setRnClass(e.target.value)}
+                          style={{
+                            display: "block",
+                            marginTop: 4,
+                            padding: "6px 8px",
+                            borderRadius: 6,
+                            border: `1px solid ${T.lineStrong}`,
+                            fontFamily: "inherit",
+                            fontSize: 13,
+                          }}
+                        >
+                          <option value="01">A組</option>
+                          <option value="02">B組</option>
+                        </select>
+                      </label>
+                      <label style={{ fontSize: 12, color: T.ink3 }}>
+                        出席番号
+                        <input
+                          value={rnSeat}
+                          onChange={(e) =>
+                            setRnSeat(
+                              e.target.value.replace(/\D/g, "").slice(0, 2),
+                            )
+                          }
+                          placeholder="18"
+                          style={{
+                            display: "block",
+                            marginTop: 4,
+                            padding: "6px 8px",
+                            width: 60,
+                            borderRadius: 6,
+                            border: `1px solid ${T.lineStrong}`,
+                            fontFamily: T.mono,
+                            fontSize: 13,
+                          }}
+                        />
+                      </label>
+                      <button
+                        disabled={!rnDirty || !rnValid}
+                        onClick={() =>
+                          onRenewSeat &&
+                          onRenewSeat(account, {
+                            grade_code: rnGrade,
+                            class_code: rnClass,
+                            seat_no: rnSeat,
+                          })
+                        }
+                        style={{
+                          padding: "8px 14px",
+                          background:
+                            !rnDirty || !rnValid ? T.lineStrong : T.cobalt,
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 8,
+                          fontFamily: "inherit",
+                          fontSize: 13,
+                          fontWeight: 700,
+                          cursor:
+                            !rnDirty || !rnValid ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        番号を更新 → {rnGrade}
+                        {rnClass}
+                        {rnSeat}
+                      </button>
+                    </div>
+                    <div style={{ fontSize: 11, color: T.ink3, marginTop: 6 }}>
+                      ※ 通常は学生本人が App
+                      で設定します。本人ができない・誤入力時の補助です。
+                    </div>
                   </div>
 
                   <div
