@@ -128,7 +128,7 @@
 - [ ] **🟡 itsuki 视觉签收** — 开 Android Studio 模拟器照清单 `05_logs/raw/android对齐_视觉签收清单_2026-06-05.md` 逐屏肉眼核对颜色/间距/字号（CC 无图形界面做不了，唯一剩的人工步骤）
 - [ ] **Android 各屏网络层接线** — 从 MockData 切真实联网，渐进式（iOS 自身也只接一半，匹配其状态）
 - [ ] **后端密码 `min_length` 8→6** — Android 客户端已是 6；后端文件改归后端会话（itsuki 已定 6）
-- [ ] project-overview 同步 Android 新增 ~25 文件（`data/network/` + 新屏）— 本会话另一会话占用 git 工作树，避让未做
+- [x] ~~project-overview 同步 Android 新增 ~25 文件~~ ✅ 2026-06-05 完成（全文件对账时 Android 80→131 校准 + §5.7 屏数 22→57，commit `8193dae`）
 - [ ] ANDROID_DESIGN_LOG 同步新屏 + 网络层 — 同上，另一会话有 pending 改动，避让
 - [ ] （可选）2 条文字 mock 缺口：`帰寮予定時刻が門限…`（申請详情差戻示例文）/ `寮監：田中先生（内線 101）`（缺席态 toast 联系人）— 都是 mock 数据非界面标签
 - [ ] **v1.1**：真实 NFC 防作弊学生端提交（nonce/ECDSA）— 学生 app 现两端都模拟、已对齐；防作弊属点呼机+后端，非 v1.0 范围（见 memory `project_nfc_anticheat_not_in_student_app`）
@@ -337,7 +337,7 @@
 
 ### 📊 project-overview 历史欠债（2026-05-25 加）
 
-- [ ] **§6.2 raw 标题数漂**：§0.1 体量表写 raw 50+5（含 5-24/5-25），但 §6.2 章节标题还停在「48 文件」+ 描述写「5-16 ~ 5-21 4 个新增 raw 未 commit」— 至少 4 个 raw 没列进章节本体（5-22 / 5-22-iOS / 5-24 / 5-25）。下次 project-overview 大整理时校准 §6.2 标题 + 描述
+- [x] ~~**§6.2 raw 标题数漂**~~ ✅ 2026-06-05 完成（全文件对账时 §6.2 raw 标题校准到 91 + 改成「按关键日维护、不逐列全部 91 份」；§0.1 体量表全刷到 HEAD committed 1396，commit `8193dae`）
 
 ### 🐚 shell 工具链 quirk（2026-05-25 加）
 
