@@ -705,13 +705,6 @@ export interface TeacherRenewSeatIn {
   seat_no: string;
 }
 
-// 老师单件改番号返回（admin_accounts.py renew-seat；阶段3 核对具体返回）
-export interface RenewSeatOut {
-  student_id: string;
-  student_no: string;
-  message?: string;
-}
-
 // ── 代録（老师代学生提出寮届）请求体 ──
 // 跟学生侧一样的 kind 分型结构（帰省 / 外泊 / 帰国）
 export interface ApplicationCreateBody {

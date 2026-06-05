@@ -63,7 +63,7 @@ import type {
   RenewalStartOut,
   RenewalProgressOut,
   TeacherRenewSeatIn,
-  RenewSeatOut,
+  StudentProfileBasic,
   WSStatus,
   TeacherWSHandle,
 } from "./types";
@@ -317,13 +317,12 @@ export const api = {
       token,
     ),
   createAnnouncement: (body: AnnouncementCreateIn, token: string) =>
-    request<AnnouncementDetail>("POST", "/announcements", body, token),
+    request<AnnouncementBrief>("POST", "/announcements", body, token),
   updateAnnouncement: (
     id: string,
     body: Partial<AnnouncementCreateIn>,
     token: string,
-  ) =>
-    request<AnnouncementDetail>("PATCH", `/announcements/${id}`, body, token),
+  ) => request<AnnouncementBrief>("PATCH", `/announcements/${id}`, body, token),
   deleteAnnouncement: (id: string, token: string) =>
     request<void>("DELETE", `/announcements/${id}`, undefined, token),
   getAnnouncementUnreadCount: (token: string) =>
@@ -358,7 +357,7 @@ export const api = {
 
   // ── 学生登録码（admin）──
   getRegistrationCodeCurrent: (token: string) =>
-    request<RegistrationCode>(
+    request<RegistrationCode | null>(
       "GET",
       "/admin/registration-code/current",
       undefined,
@@ -626,7 +625,7 @@ export const api = {
     body: TeacherRenewSeatIn,
     token: string,
   ) =>
-    request<RenewSeatOut>(
+    request<StudentProfileBasic>(
       "POST",
       `/accounts/${studentId}/renew-seat`,
       body,
