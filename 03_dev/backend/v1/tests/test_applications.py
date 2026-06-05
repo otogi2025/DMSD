@@ -687,6 +687,33 @@ class TestApplicationByTeacher:
         )
         assert res.status_code == 404, res.text
 
+    def test_cross_dorm_forbidden(self, client, seed_data, db_session):
+        """4寮老师绕开候选列表、直接 POST by-teacher 给 1寮学生 → 403 FORBIDDEN_DORM。
+
+        student_id 来自 query param，必须有寮边界回归保护（codex 审查 低-2）。
+        """
+        from app import models, security
+
+        other = models.Teacher(
+            login_id="onna_dairoku4_post",
+            name="4寮代録P",
+            email="od4p@test.jp",
+            password_hash=security.hash_password("test-password-12345"),
+            role="寮務一般教師",
+            assigned_dorm=4,
+        )
+        db_session.add(other)
+        db_session.commit()
+        token = security.create_access_token(other.id, f"teacher:{other.role}")
+        sid = str(seed_data["student"].id)  # seed 学生在 1 寮
+        res = client.post(
+            f"/api/v1/applications/by-teacher?student_id={sid}",
+            json=self._today_body(),
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert res.status_code == 403, res.text
+        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+
 
 class TestProxyCandidates:
     """杭田 2026-06-04 五-3: 代録表单的学生选择器 GET /applications/proxy-candidates。

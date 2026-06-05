@@ -44,7 +44,7 @@ def create_application(
     db: Session = Depends(get_db),
     student: models.Student = Depends(get_current_student),
 ):
-    # (#3) 出寮日 = 明天起 — 教师当日代録は P1 範囲外、本 endpoint は学生のみ
+    # (#3) 出寮日 = 明天起 — 学生本人只能提明天起；老师当日代録走 /by-teacher
     if body.leave_date <= datetime.now(_JST).date():
         raise HTTPException(
             status_code=422,
@@ -166,7 +166,7 @@ def create_application_by_teacher(
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(get_current_teacher),
 ):
-    """老师代学生补录出寮届（杭田五-3「教師用は当日入力も可」）。
+    """老师代学生补录出寮届（杭田五-3「老师可代学生当日补录」）。
 
     与学生自助提交 POST /applications 的区别：
     ① 鉴权用老师（限寮務系角色）；② student_id 由老师指定（受 R4 寮边界）；
@@ -190,7 +190,7 @@ def create_application_by_teacher(
             403, {"code": "FORBIDDEN_DORM", "message": "担当外の寮の学生です"}
         )
 
-    # 老师代録放宽到「当日も可」，但仍禁过去日
+    # 老师代録放宽到当日（学生侧禁当日），但仍禁过去日
     if body.leave_date < datetime.now(_JST).date():
         raise HTTPException(
             422,
@@ -430,7 +430,7 @@ def list_proxy_candidates(
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(get_current_teacher),
 ):
-    """老师代録出寮届时的学生选择器数据源（杭田五-3「教師用は当日入力も可」）。
+    """老师代録出寮届时的学生选择器数据源（杭田五-3「老师可代学生当日补录」）。
 
     刻意不复用 admin 的 GET /students：那个只给寮务管理 3 角色、还暴露账号
     锁定信息。代録接口允许 5 角色（_DAIROKU_ROLES），所以这里权限与代録对齐，

@@ -19078,9 +19078,9 @@
       }
 
       // ─────────────────────────────────────────────────────────
-      // 代録（出寮届）— 杭田 2026-06-05 五-3「教師用は当日入力も可」
+      // 代録（出寮届）— 杭田 2026-06-05 五-3「老师可代学生当日补录」
       // 老师替学生补录帰省 / 外泊 / 帰国届。提交到 POST /applications/by-teacher。
-      // 字段照抄 iOS 学生侧 ApplyStubs.swift + 实物届け類（様式3-2 外泊 / 3-3 帰省）。
+      // 字段照抄 iOS 学生侧 ApplyStubs.swift + 实物纸质申请表（様式3-2 外泊 / 3-3 帰省）。
       // 学生选择器走 GET /applications/proxy-candidates（限代録 5 角色 + 寮边界过滤）。
       // 日本人 vs 留学生 食事栏不同：留学生填食事不要期间、日本人自己填食事表。
       // ─────────────────────────────────────────────────────────
@@ -19123,6 +19123,8 @@
         const [candidates, setCandidates] = React.useState([]);
         const [picked, setPicked] = React.useState(null);
         const [loadingC, setLoadingC] = React.useState(false);
+        // 搜学生网络失败标志 — 区分「真没这学生」vs「网络出错」，别让老师误判
+        const [candErr, setCandErr] = React.useState(false);
 
         // ── 申請种类 ──
         const [kind, setKind] = React.useState("帰省");
@@ -19136,6 +19138,8 @@
         const [returnTime, setReturnTime] = React.useState("18:00");
         const [contactPhone, setContactPhone] = React.useState("");
         const [reason, setReason] = React.useState("");
+        // 出租车预约希望时刻（仅出寮方法选「出租车」那项时用，独立于出寮时刻，同 iOS）
+        const [taxiResvTime, setTaxiResvTime] = React.useState("17:00");
 
         // ── 帰省 ──
         const [isLongVacation, setIsLongVacation] = React.useState(false);
@@ -19173,10 +19177,16 @@
             api
               .proxyCandidates(authToken, q)
               .then((rows) => {
-                if (!cancelled) setCandidates(rows || []);
+                if (!cancelled) {
+                  setCandidates(rows || []);
+                  setCandErr(false);
+                }
               })
               .catch(() => {
-                if (!cancelled) setCandidates([]);
+                if (!cancelled) {
+                  setCandidates([]);
+                  setCandErr(true);
+                }
               })
               .finally(() => {
                 if (!cancelled) setLoadingC(false);
@@ -19217,23 +19227,46 @@
             setMsg({ type: "err", text: "学生を選択してください" });
             return;
           }
-          if (returnDate < leaveDate) {
-            setMsg({ type: "err", text: "帰寮日は出寮日以降にしてください" });
+          // 时刻补秒：网页 time 输入是 "HH:mm"，后端要 "HH:mm:ss"
+          const hms = (t) => (t && t.length === 5 ? t + ":00" : t);
+          // 帰寮必须晚于出寮 —— 合成 日期+时刻 完整比较（同日 17:00 出 / 08:00 帰 这种
+          // 倒挂也拦；ISO 定宽字符串可直接按字典序比）
+          if (
+            returnDate + "T" + hms(returnTime) <=
+            leaveDate + "T" + hms(leaveTime)
+          ) {
+            setMsg({
+              type: "err",
+              text: "帰寮日時は出寮日時より後にしてください",
+            });
             return;
           }
           const needStay = kind === "外泊" || kind === "帰国";
-          const stayLocations = stayText
+          const stayRaw = stayText
             .split("\n")
             .map((s) => s.trim())
-            .filter(Boolean)
-            .map((s) => ({ kind: "その他", name: s, address: s, phone: null }));
-          if (needStay && stayLocations.length === 0) {
+            .filter(Boolean);
+          if (needStay && stayRaw.length === 0) {
             setMsg({ type: "err", text: "宿泊先を1件以上入力してください" });
             return;
           }
-          // 时刻补秒：网页 time 输入是 "HH:mm"，后端要 "HH:mm:ss"
-          const hms = (t) => (t && t.length === 5 ? t + ":00" : t);
-          const taxiTime = leaveMethod === "タクシー" ? hms(leaveTime) : null;
+          // 宿泊先单行上限 200（后端 StayLocation.name max_length=200，前端先拦给提示）
+          if (stayRaw.some((s) => s.length > 200)) {
+            setMsg({
+              type: "err",
+              text: "宿泊先は1行200文字以内で入力してください",
+            });
+            return;
+          }
+          const stayLocations = stayRaw.map((s) => ({
+            kind: "その他",
+            name: s,
+            address: s,
+            phone: null,
+          }));
+          // 出租车预约时刻：出寮方法选「出租车」才填，是独立时刻（可不同于出寮时刻），同 iOS
+          const taxiTimeValue =
+            leaveMethod === "タクシー" ? hms(taxiResvTime) : null;
 
           let mealsSkip = [];
           if (isOverseas && skipEnabled) {
@@ -19252,6 +19285,7 @@
             }
           }
 
+          // reason 三种届共通（后端 ApplicationBase 已定义）→ 放 base 不在各分支重复
           const base = {
             kind,
             leave_date: leaveDate,
@@ -19262,19 +19296,15 @@
             return_time: hms(returnTime),
             contact_phone: contactPhone.trim() || null,
             meal_note: isOverseas ? mealNote.trim() || null : null,
-            taxi_reservation_time: taxiTime,
+            taxi_reservation_time: taxiTimeValue,
+            reason: reason.trim() || null,
           };
           let body;
           if (kind === "帰省") {
-            body = {
-              ...base,
-              reason: reason.trim() || null,
-              is_long_vacation: isLongVacation,
-            };
+            body = { ...base, is_long_vacation: isLongVacation };
           } else if (kind === "外泊") {
             body = {
               ...base,
-              reason: reason.trim() || null,
               companion: companion.trim() || null,
               dest_cities: destCities.trim() || null,
               stay_locations: stayLocations,
@@ -19286,18 +19316,26 @@
               setMsg({ type: "err", text: "出発・到着空港を入力してください" });
               return;
             }
+            const depAt = leaveDate + "T" + hms(departFlightTime) + "+09:00";
+            const arrAt = returnDate + "T" + hms(arriveFlightTime) + "+09:00";
+            // 到着必须晚于出发（后端 KikokuCreateIn 也校验，前端先拦给友好提示）
+            if (arrAt <= depAt) {
+              setMsg({
+                type: "err",
+                text: "到着時刻は出発時刻より後にしてください",
+              });
+              return;
+            }
             body = {
               ...base,
-              reason: reason.trim() || null,
               companion: companion.trim() || null,
               dest_cities: destCities.trim() || null,
               stay_locations: stayLocations,
               meals_skip: mealsSkip,
               flight_dep_air: departAirport.trim(),
-              flight_dep_at: leaveDate + "T" + hms(departFlightTime) + "+09:00",
+              flight_dep_at: depAt,
               flight_arr_air: arriveAirport.trim(),
-              flight_arr_at:
-                returnDate + "T" + hms(arriveFlightTime) + "+09:00",
+              flight_arr_at: arrAt,
             };
           }
 
@@ -19310,15 +19348,22 @@
               text:
                 picked.name + " さんの" + kind + "届を代録しました（承認待ち）",
             });
-            // 重置申請内容（保留已选学生，方便连续代録）
+            // 重置申請内容（保留已选学生，方便连续代録）— 含飞机 / 食事日期 / 出租车时刻
             setReason("");
             setCompanion("");
             setDestCities("");
             setStayText("");
             setSkipEnabled(false);
             setMealNote("");
+            setSkipStartDate(todayStr);
+            setSkipEndDate(todayStr);
+            setDepartFlightTime("10:00");
+            setArriveFlightTime("12:00");
+            setTaxiResvTime("17:00");
           } catch (e) {
-            const code = e && e.body && e.body.detail && e.body.detail.code;
+            // client.js 的 request 把后端 {detail:{code,message}} 铺平到错误对象
+            // 顶层 → e.code / e.message / e.status（不是 e.body.detail.code）
+            const code = e && e.code;
             const text =
               code === "FORBIDDEN_DORM"
                 ? "担当外の寮の学生です"
@@ -19326,7 +19371,10 @@
                   ? "代録権限がありません"
                   : code === "LEAVE_DATE_PAST"
                     ? "出寮日は本日以降を指定してください"
-                    : "提出に失敗しました (" + (e.status || "network") + ")";
+                    : (e && e.message) ||
+                      "提出に失敗しました (" +
+                        ((e && e.status) || "network") +
+                        ")";
             setMsg({ type: "err", text });
           } finally {
             setSubmitting(false);
@@ -19464,6 +19512,12 @@
                       >
                         読み込み中…
                       </div>
+                    ) : candErr ? (
+                      <div
+                        style={{ padding: 12, fontSize: 12, color: T.danger }}
+                      >
+                        検索に失敗しました（ネットワークを確認してください）
+                      </div>
                     ) : candidates.length === 0 ? (
                       <div
                         style={{ padding: 12, fontSize: 12, color: T.muted }}
@@ -19475,8 +19529,11 @@
                         <div
                           key={c.id}
                           onClick={() => {
+                            // 选新学生时重置日期回今天，避免上一个学生的日期残留误提
                             setPicked(c);
                             setMsg(null);
+                            setLeaveDate(todayStr);
+                            setReturnDate(todayStr);
                           }}
                           style={{
                             padding: "9px 12px",
@@ -19616,6 +19673,19 @@
                   />
                 </div>
               </div>
+              {leaveMethod === "タクシー" ? (
+                <div style={{ marginBottom: 14 }}>
+                  <label style={labelStyle}>
+                    タクシー希望時刻（出寮方法＝タクシー）
+                  </label>
+                  <input
+                    type="time"
+                    value={taxiResvTime}
+                    onChange={(e) => setTaxiResvTime(e.target.value)}
+                    style={{ ...dateInputStyle, maxWidth: 160 }}
+                  />
+                </div>
+              ) : null}
               <div>
                 <label style={labelStyle}>本人連絡先（任意）</label>
                 <input
