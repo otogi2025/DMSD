@@ -143,6 +143,36 @@
 
 ---
 
-## 8. 进度记录（执行时在这里更新）
+## 8. 进度记录
 
-- 2026-06-05：规划完成，未开工。等 compact + GOAL 提示词触发执行。
+**2026-06-05 执行（新会话照 GOAL 提示词）—— 主体技术完成**
+
+| 阶段 | 状态 | commit | 验证 |
+|---|---|---|---|
+| 0 勘察 | ✅ | (tag vite-migration-base) | 29305 行结构摸清,18 babel 块,纯内联 style |
+| 1 骨架 | ✅ | 45688d3 | tsc 0 + build 通 + dev HTTP200 |
+| 2 公共层 | ✅ | 84b7b42 + 3c5d7e4(审查修) | theme/api(types+client)/fonts/styles; 三路审 19 条对齐后端 |
+| 3 逐页搬 | ✅ | fd909fa(样板)+66e1730(第一批)+8f24d3a(第二批) | 26 组件; workflow 两批并行搬; RollCallLanding 恢复误删组件 |
+| 4 外壳枢纽 | ✅ | 1d8ac03 | Shell+App; 整个应用 build 通(58模块 414KB); 修 14 authToken 类型缝 |
+| 5 切换+回归 | 🔄 | 86b9b18(终审修 part1) | tsc 0 + build 通 + 后端 308 测试全过; 终审 workflow 8 条无界面破坏 |
+
+**实际产出**：22 页 + 3 弹窗 + shared + Shell + App + theme/api(client.ts+types.ts)/utils/vite-env，共 ~30 .ts(x) 文件。
+
+**关键修复**：
+- types.ts 系统对齐后端 schemas.py（字段名/list 包装/缺失字段，三路审查 19 条）
+- 跨块共用符号抽 utils.ts(JST 助手) + shared.tsx(StateBadge 等)，子代理不用 window 蒙混
+- RollCallLanding：4c2578f「删 demo」误删的 Stat/TrendChart/Legend 从 git 历史恢复
+- 图标统一 Vite import；vite.config resolve.extensions .ts 优先（旧 client.js 与新 client.ts 同名冲突）
+
+**🔄 阶段5 剩余（待 itsuki + codex）**：
+- ⏳ codex 终审 beqdkwrbg 进行中 → 回来逐条裁决修到收敛
+- ⏸ itsuki 双击 `预览Vite新版老师网站.command` 肉眼逐页对比界面一致（§5 最硬标准）
+- ⏸ itsuki 拍板后：切正式 `启动老师网站.command` 托管 dist + 归档旧 index.html/client.js/vendor
+- ⏸ itsuki 决策：点呼落地页统计卡 demo 假数据（删 / 接真后端）
+- 📋 收尾清理：死代码 RecStatusBadge / BusPostCard 等（旧版也死代码，忠实搬了，非阻塞）
+
+## 9. 切分清单（已执行，存档备查）
+
+迁移按 babel 块切分，巨块（pages-records 6000 行 / accounts 3300 行）按内部组件拆。
+共用层：theme.ts(RYO+常量+dormLabel) / utils.ts(4 JST 助手) / api/types.ts(50+ 后端类型) / api/client.ts(60+ 方法) / components/shared.tsx(ConfirmModal/DormBadge/ModalShell/ModalField/ModalFooter/StateBadge)。
+组件文件清单见 src/components/ + src/Shell.tsx + src/App.tsx。
