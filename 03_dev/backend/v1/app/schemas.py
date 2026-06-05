@@ -1159,11 +1159,17 @@ class StudentAccountListItem(BaseModel):
 
     id: UUID
     student_no: str
+    # 学号三段分量 — 老师网页按「年级 → A/B 班」分组折叠用（spec §4.2）
+    grade_code: str
+    class_code: str
+    seat_no: str
     name: str
     room_no: str
     dorm_unit: int
     gender: Literal["male", "female"]
     status: str
+    # 学年更新「待更新」标记 — 老师网页列表显示谁还没改番号（spec §4.2）
+    needs_renewal: bool
     # Account.locked_until > now() = 被锁定（locked_until IS NULL 或 <= now = 未锁）
     is_locked: bool
     # Account.last_login_at（Account 表有该字段则返回）
@@ -1449,6 +1455,8 @@ class StudentProfileBasic(BaseModel):
     avatar_url: Optional[str]
     status: str
     registered_at: datetime
+    # 学年更新「待更新」标记 — True 时 iOS 顶部显示「更新番号」按钮（spec §4.2）
+    needs_renewal: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -1547,47 +1555,75 @@ class StudentProfileOut(BaseModel):
 
 
 # ---------------------------------------------------------------
-# 学号一括进级（spec §4.2）— 2026-05-30 实装
-#   端点：POST /api/v1/students/bulk-promote
-#   角色：寮務部長 / 寮務課長 / 管理係
+# 学年更新 / 学生自设番号（spec §4.2）— 2026-06-05 学生自设方案（推翻 4-30 老师代改）
+#   端点：
+#     POST /api/v1/students/renewal-start            老师开闸（中1~高2 打 needs_renewal + 高3 毕业）
+#     POST /api/v1/students/me/renew-number          学生自设番号（身份从令牌取，不信客户端）
+#     GET  /api/v1/students/renewal-progress         老师看谁还没改
+#     POST /api/v1/accounts/{student_id}/renew-seat  老师单件改番号（兜底）
+#   角色 gate（老师侧）：寮務部長 / 寮務課長 / 管理係
 # ---------------------------------------------------------------
-class BulkPromoteIn(BaseModel):
-    """一括进级输入。
-
-    dry_run=True（默认）→ 只预览，不写 DB
-    dry_run=False → 真改
-    target_grade_codes → 指定年级进级（空/None = 全员）
-    """
+class RenewalStartIn(BaseModel):
+    """开闸输入。dry_run=True（默认）→ 只预览不写 DB；dry_run=False → 真执行。"""
 
     dry_run: bool = True
-    # 可选：只进级指定年级（如 ["04","05"] 只升高1高2，高3自动变 graduated）
-    # None / 空列表 = 全员 active 学生
-    target_grade_codes: Optional[list[Annotated[str, Field(pattern=r"^0[1-6]$")]]] = (
-        None
-    )
 
 
-class BulkPromoteEntry(BaseModel):
-    """一括进级预览/结果 — 单条学生变更记录。"""
+class RenewalStartEntry(BaseModel):
+    """开闸预览/结果 — 单条学生。"""
 
     student_id: UUID
     student_no: str
     name: str
-    old_grade_code: str
-    new_grade_code: str
-    action: Literal["promote", "graduate"]
-    old_status: str
-    new_status: str
+    grade_code: str
+    # notify = 打「待更新」标记让学生自设番号；graduate = 高3 毕业离场
+    action: Literal["notify", "graduate"]
 
 
-class BulkPromoteOut(BaseModel):
-    """POST /students/bulk-promote 响应。"""
+class RenewalStartOut(BaseModel):
+    """POST /students/renewal-start 响应。"""
 
     dry_run: bool
-    promote_count: int  # grade_code +1 的学生数
-    graduate_count: int  # 高 3 → graduated 的学生数
+    notify_count: int  # 被打「待更新」标记的学生数（中1~高2）
+    graduate_count: int  # 高3 → graduated 的学生数
     total_affected: int
-    entries: list[BulkPromoteEntry]
+    entries: list[RenewalStartEntry]
+
+
+class StudentRenewNumberIn(BaseModel):
+    """学生自设番号输入 — 身份从登录令牌取，请求体不含 student_id。"""
+
+    grade_code: Annotated[str, Field(pattern=r"^\d{2}$")]
+    class_code: Annotated[str, Field(pattern=r"^\d{2}$")]
+    seat_no: Annotated[str, Field(pattern=r"^\d{2}$")]
+
+
+class RenewalProgressItem(BaseModel):
+    """进度 — 一个还没改番号的学生。"""
+
+    id: UUID
+    student_no: str
+    name: str
+    grade_code: str
+    class_code: str
+    seat_no: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RenewalProgressOut(BaseModel):
+    """GET /students/renewal-progress 响应 — 老师看谁还没改（needs_renewal=True）。"""
+
+    pending_count: int  # 还没改的人数
+    items: list[RenewalProgressItem]
+
+
+class TeacherRenewSeatIn(BaseModel):
+    """老师单件改某学生番号输入（兜底 — 学生不会操作 / 填错时）。"""
+
+    grade_code: Annotated[str, Field(pattern=r"^\d{2}$")]
+    class_code: Annotated[str, Field(pattern=r"^\d{2}$")]
+    seat_no: Annotated[str, Field(pattern=r"^\d{2}$")]
 
 
 # ---------------------------------------------------------------

@@ -8,12 +8,13 @@
   - 他の学生 token：403
   - 不存在学生：404
 
-- POST /api/v1/students/bulk-promote
-  - dry_run=True：预览正确分组（promote / graduate）
-  - dry_run=False：真改 grade_code / status
-  - 高 3 进级变 graduated
-  - target_grade_codes 过滤
+- POST /api/v1/students/renewal-start（开闸 — 2026-06-05 学生自设方案）
+  - dry_run=True：预览（notify 中1~高2 / graduate 高3）
+  - dry_run=False：中1~高2 打 needs_renewal、高3 毕业、grade_code 不变
   - 非 ADMIN_ROLES：403
+- POST /api/v1/students/me/renew-number（学生自设番号：成功 / 撞号 422 / 身份从令牌取 / 401）
+- GET /api/v1/students/renewal-progress（老师看谁没改：5 人 / 越权 403）
+- POST /api/v1/accounts/{id}/renew-seat（老师单件改番号：成功 / 撞号 422 / 越权 403）
 """
 
 from __future__ import annotations
@@ -275,11 +276,11 @@ class TestStudentProfile:
 
 
 # -----------------------------------------------------------------------
-# 一括進級 tests
+# 学年更新 / 学生自设番号 tests（spec §4.2 — 2026-06-05 学生自设方案）
 # -----------------------------------------------------------------------
 @pytest.fixture
 def promote_seed(db_session):
-    """6 学年分 + 管理者 + 権限なし教师を作成。"""
+    """6 学年各 1 人 + is_demo 1 人 + 管理者 + 権限なし教师を作成。"""
     pw = security.hash_password("test-password-12345")
 
     # 各学年 1 人（中1〜高3）
@@ -340,56 +341,57 @@ def promote_seed(db_session):
     return {"students": students, "demo": demo, "admin": admin, "no_perm": no_perm}
 
 
-class TestBulkPromote:
+class TestRenewalStart:
+    """POST /students/renewal-start — 老师开闸（中1~高2 打标记 + 高3 毕业）。"""
+
     def test_dry_run_preview(self, client, promote_seed):
-        """dry_run=True → 进级 5 人 + 毕业 1 人，DB 不变。"""
+        """dry_run=True → 通知 5 人（中1~高2）+ 毕业 1 人（高3），demo 排除，DB 不变。"""
         tok = _tok(client, "buchou_promote")
         res = client.post(
-            "/api/v1/students/bulk-promote",
+            "/api/v1/students/renewal-start",
             headers={"Authorization": f"Bearer {tok}"},
             json={"dry_run": True},
         )
         assert res.status_code == 200, res.text
         data = res.json()
         assert data["dry_run"] is True
-        assert data["promote_count"] == 5  # 中1〜高2
+        assert data["notify_count"] == 5  # 中1〜高2
         assert data["graduate_count"] == 1  # 高3
         assert data["total_affected"] == 6
-        # demo 学生不在进级范围内
+        # demo 学生不在范围内
         assert all(e["student_no"] != "030199" for e in data["entries"])
 
     def test_dry_run_no_db_change(self, client, promote_seed, db_session):
-        """dry_run=True → grade_code 没有真正改变。"""
+        """dry_run=True → needs_renewal / status 都没变。"""
         tok = _tok(client, "buchou_promote")
         client.post(
-            "/api/v1/students/bulk-promote",
+            "/api/v1/students/renewal-start",
             headers={"Authorization": f"Bearer {tok}"},
             json={"dry_run": True},
         )
         from sqlalchemy import select
 
+        db_session.expire_all()
         students = db_session.scalars(
             select(models.Student).where(models.Student.is_demo.is_(False))
         ).all()
-        # grade_code 仍然是 01〜06，没有变化
-        codes = sorted([s.grade_code for s in students])
-        assert codes == ["01", "02", "03", "04", "05", "06"]
+        assert all(not s.needs_renewal for s in students)
+        assert all(s.status == "active" for s in students)
 
-    def test_real_promote(self, client, promote_seed, db_session):
-        """dry_run=False → grade_code 真实变更。"""
+    def test_real_start(self, client, promote_seed, db_session):
+        """dry_run=False → 中1~高2 打 needs_renewal=True，高3 毕业，grade_code 全不变。"""
         tok = _tok(client, "buchou_promote")
         res = client.post(
-            "/api/v1/students/bulk-promote",
+            "/api/v1/students/renewal-start",
             headers={"Authorization": f"Bearer {tok}"},
             json={"dry_run": False},
         )
         assert res.status_code == 200, res.text
         data = res.json()
         assert data["dry_run"] is False
-        assert data["promote_count"] == 5
+        assert data["notify_count"] == 5
         assert data["graduate_count"] == 1
 
-        # 确认 DB 变更
         from sqlalchemy import select
 
         db_session.expire_all()
@@ -398,48 +400,230 @@ class TestBulkPromote:
         ).all()
         by_name = {s.name: s for s in students}
 
-        # 中1(原 grade 01) → 02
-        assert by_name["1年生"].grade_code == "02"
-        # 高2(原 grade 05) → 06
-        assert by_name["5年生"].grade_code == "06"
-        # 高3(原 grade 06) → graduated，grade_code 不变
+        # 中1~高2 → needs_renewal=True，grade_code 没动
+        assert by_name["1年生"].needs_renewal
+        assert by_name["1年生"].grade_code == "01"
+        assert by_name["5年生"].needs_renewal
+        assert by_name["5年生"].grade_code == "05"
+        # 高3 → graduated，不打标记
         assert by_name["6年生"].status == "graduated"
+        assert not by_name["6年生"].needs_renewal
         assert by_name["6年生"].grade_code == "06"
 
-    def test_target_grade_codes_filter(self, client, promote_seed, db_session):
-        """target_grade_codes 指定 → 只进级指定年级。"""
+    def test_demo_excluded(self, client, promote_seed, db_session):
+        """is_demo 学生不参与开闸（不打标记 / 不毕业）。"""
         tok = _tok(client, "buchou_promote")
-        res = client.post(
-            "/api/v1/students/bulk-promote",
+        client.post(
+            "/api/v1/students/renewal-start",
             headers={"Authorization": f"Bearer {tok}"},
-            json={"dry_run": False, "target_grade_codes": ["04", "05"]},
+            json={"dry_run": False},
         )
-        assert res.status_code == 200, res.text
-        data = res.json()
-        # 高1→高2 + 高2→高3 共 2 人
-        assert data["total_affected"] == 2
-        assert data["promote_count"] == 2
-        assert data["graduate_count"] == 0
-
-        # 中1〜中3 不在范围内，grade_code 没变
         from sqlalchemy import select
 
         db_session.expire_all()
-        students = db_session.scalars(
-            select(models.Student).where(models.Student.is_demo.is_(False))
-        ).all()
-        by_name = {s.name: s for s in students}
-        assert by_name["1年生"].grade_code == "01"  # 未变化
-        assert by_name["4年生"].grade_code == "05"  # 04→05
-        assert by_name["5年生"].grade_code == "06"  # 05→06
+        demo = db_session.scalars(
+            select(models.Student).where(models.Student.is_demo.is_(True))
+        ).first()
+        assert not demo.needs_renewal
+        assert demo.status == "active"
 
     def test_forbidden_role(self, client, promote_seed):
         """无权限老师（学習担当）→ 403。"""
         tok = _tok(client, "gakushu_promote")
         res = client.post(
-            "/api/v1/students/bulk-promote",
+            "/api/v1/students/renewal-start",
             headers={"Authorization": f"Bearer {tok}"},
             json={"dry_run": True},
+        )
+        assert res.status_code == 403
+
+
+class TestStudentRenewNumber:
+    """POST /students/me/renew-number — 学生自设番号（身份从令牌取）。"""
+
+    def test_self_renew_success(self, client, seed_data, db_session):
+        """学生改自己番号成功 → 新 student_no + needs_renewal 清零。"""
+        student = seed_data["student"]
+        student.needs_renewal = True  # 模拟开闸后状态
+        db_session.commit()
+        sid = student.id
+
+        tok = _student_tok(client, "060218")
+        res = client.post(
+            "/api/v1/students/me/renew-number",
+            headers={"Authorization": f"Bearer {tok}"},
+            json={"grade_code": "06", "class_code": "01", "seat_no": "30"},
+        )
+        assert res.status_code == 200, res.text
+        data = res.json()
+        assert data["student_no"] == "060130"
+        assert data["needs_renewal"] is False
+
+        db_session.expire_all()
+        s = db_session.get(models.Student, sid)
+        assert s.seat_no == "30"
+        assert s.class_code == "01"
+        assert not s.needs_renewal
+
+    def test_self_renew_collision(self, client, seed_data, db_session):
+        """目标番号被别人占 → 422 STUDENT_NO_TAKEN。"""
+        occupier = models.Student(
+            grade_code="06",
+            class_code="01",
+            seat_no="30",
+            name="占位学生",
+            gender="male",
+            room_no="M130",
+            dorm_unit=1,
+        )
+        db_session.add(occupier)
+        db_session.commit()
+
+        tok = _student_tok(client, "060218")
+        res = client.post(
+            "/api/v1/students/me/renew-number",
+            headers={"Authorization": f"Bearer {tok}"},
+            json={"grade_code": "06", "class_code": "01", "seat_no": "30"},
+        )
+        assert res.status_code == 422, res.text
+        assert res.json()["detail"]["code"] == "STUDENT_NO_TAKEN"
+
+    def test_self_renew_ignores_body_student_id(self, client, seed_data, db_session):
+        """身份从令牌取 — 请求体即使塞 student_id 也被忽略，只改本人。"""
+        other = models.Student(
+            grade_code="04",
+            class_code="02",
+            seat_no="05",
+            name="他人",
+            gender="male",
+            room_no="M405",
+            dorm_unit=1,
+        )
+        db_session.add(other)
+        db_session.commit()
+        other_id = other.id
+
+        tok = _student_tok(client, "060218")
+        res = client.post(
+            "/api/v1/students/me/renew-number",
+            headers={"Authorization": f"Bearer {tok}"},
+            json={
+                "grade_code": "06",
+                "class_code": "01",
+                "seat_no": "40",
+                "student_id": str(other_id),  # 恶意：试图改别人
+            },
+        )
+        assert res.status_code == 200, res.text
+        # 本人（060218）被改成 060140
+        assert res.json()["student_no"] == "060140"
+        # 他人完全没动
+        db_session.expire_all()
+        o = db_session.get(models.Student, other_id)
+        assert o.grade_code == "04"
+        assert o.class_code == "02"
+        assert o.seat_no == "05"
+
+    def test_self_renew_requires_auth(self, client, seed_data):
+        """无令牌 → 401。"""
+        res = client.post(
+            "/api/v1/students/me/renew-number",
+            json={"grade_code": "06", "class_code": "01", "seat_no": "30"},
+        )
+        assert res.status_code == 401
+
+
+class TestRenewalProgress:
+    """GET /students/renewal-progress — 老师看谁还没改番号。"""
+
+    def test_progress_after_start(self, client, promote_seed):
+        tok = _tok(client, "buchou_promote")
+        client.post(
+            "/api/v1/students/renewal-start",
+            headers={"Authorization": f"Bearer {tok}"},
+            json={"dry_run": False},
+        )
+        res = client.get(
+            "/api/v1/students/renewal-progress",
+            headers={"Authorization": f"Bearer {tok}"},
+        )
+        assert res.status_code == 200, res.text
+        data = res.json()
+        # 中1~高2 共 5 人待更新（高3 毕业 / demo 排除）
+        assert data["pending_count"] == 5
+        assert len(data["items"]) == 5
+        nos = {i["student_no"] for i in data["items"]}
+        assert "060106" not in nos  # 高3 不在
+        assert "030199" not in nos  # demo 不在
+
+    def test_progress_empty_before_start(self, client, promote_seed):
+        tok = _tok(client, "buchou_promote")
+        res = client.get(
+            "/api/v1/students/renewal-progress",
+            headers={"Authorization": f"Bearer {tok}"},
+        )
+        assert res.status_code == 200, res.text
+        assert res.json()["pending_count"] == 0
+
+    def test_progress_forbidden(self, client, promote_seed):
+        tok = _tok(client, "gakushu_promote")
+        res = client.get(
+            "/api/v1/students/renewal-progress",
+            headers={"Authorization": f"Bearer {tok}"},
+        )
+        assert res.status_code == 403
+
+
+class TestTeacherRenewSeat:
+    """POST /accounts/{id}/renew-seat — 老师单件改某学生番号（兜底）。"""
+
+    def _s1_id(self, db_session):
+        from sqlalchemy import select
+
+        s1 = db_session.scalars(
+            select(models.Student).where(models.Student.name == "1年生")
+        ).first()
+        return s1
+
+    def test_teacher_renew_success(self, client, promote_seed, db_session):
+        s1 = self._s1_id(db_session)
+        s1.needs_renewal = True
+        db_session.commit()
+        sid = s1.id
+
+        tok = _tok(client, "buchou_promote")
+        res = client.post(
+            f"/api/v1/accounts/{sid}/renew-seat",
+            headers={"Authorization": f"Bearer {tok}"},
+            json={"grade_code": "01", "class_code": "01", "seat_no": "50"},
+        )
+        assert res.status_code == 200, res.text
+        assert res.json()["student_no"] == "010150"
+
+        db_session.expire_all()
+        s = db_session.get(models.Student, sid)
+        assert s.seat_no == "50"
+        assert not s.needs_renewal
+
+    def test_teacher_renew_collision(self, client, promote_seed, db_session):
+        """改成 2年生 的号（020102）→ 撞号 422。"""
+        sid = self._s1_id(db_session).id
+        tok = _tok(client, "buchou_promote")
+        res = client.post(
+            f"/api/v1/accounts/{sid}/renew-seat",
+            headers={"Authorization": f"Bearer {tok}"},
+            json={"grade_code": "02", "class_code": "01", "seat_no": "02"},
+        )
+        assert res.status_code == 422, res.text
+        assert res.json()["detail"]["code"] == "STUDENT_NO_TAKEN"
+
+    def test_teacher_renew_forbidden(self, client, promote_seed, db_session):
+        sid = self._s1_id(db_session).id
+        tok = _tok(client, "gakushu_promote")
+        res = client.post(
+            f"/api/v1/accounts/{sid}/renew-seat",
+            headers={"Authorization": f"Bearer {tok}"},
+            json={"grade_code": "01", "class_code": "01", "seat_no": "50"},
         )
         assert res.status_code == 403
 

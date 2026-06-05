@@ -20,6 +20,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -59,6 +60,76 @@ def get_my_basic_profile(
     student: models.Student = Depends(get_current_student),
 ) -> schemas.StudentProfileBasic:
     """GET /students/me — 当前登录学生的基本信息（仿老师端 /teachers/me）。"""
+    return schemas.StudentProfileBasic.model_validate(student)
+
+
+# 学生自设番号（番号再設定，spec §4.2 — 2026-06-05 学生自设方案）。
+# 身份从登录令牌取（get_current_student），不信任客户端传 student_id。
+# 路由 /students/me/renew-number 是字面段，不会被 /students/{id}/profile 吞。
+@router.post("/students/me/renew-number", response_model=schemas.StudentProfileBasic)
+def renew_my_number(
+    body: schemas.StudentRenewNumberIn,
+    student: models.Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+) -> schemas.StudentProfileBasic:
+    """学生自设番号 — 选新的 学年/组/出席番号，撞号返 422。
+
+    流程：
+        1. 应用层查重：新「年级+班级+出席番号」被别人占（排除自己）→ 422
+        2. 改本人三段番号 + 清 needs_renewal=False
+        3. commit；并发抢同号 → DB 唯一约束 uq_students_no 兜底，转 422
+        4. 写 audit_logs（actor=学生本人）
+    """
+    new_no = f"{body.grade_code}{body.class_code}{body.seat_no}"
+
+    # 1. 应用层查重（排除自己）— 照 accounts.py 注册查重模式
+    existing = db.scalars(
+        select(models.Student).where(
+            models.Student.grade_code == body.grade_code,
+            models.Student.class_code == body.class_code,
+            models.Student.seat_no == body.seat_no,
+            models.Student.id != student.id,
+        )
+    ).first()
+    if existing:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "STUDENT_NO_TAKEN",
+                "message": f"学号 {new_no} は既に他の人が設定しています",
+            },
+        )
+
+    # 2. 改本人三段番号 + 清待更新标记
+    student.grade_code = body.grade_code
+    student.class_code = body.class_code
+    student.seat_no = body.seat_no
+    student.needs_renewal = False
+
+    # 3. audit + commit（并发抢同号 → uq_students_no 唯一约束抛 IntegrityError → 转 422）
+    db.add(
+        models.AuditLog(
+            actor_type="student",
+            actor_id=student.id,
+            action="student.renew_number",
+            target_type="student",
+            target_id=student.id,
+            payload={"new_student_no": new_no},
+        )
+    )
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "STUDENT_NO_TAKEN",
+                "message": f"学号 {new_no} は既に他の人が設定しています",
+            },
+        )
+
+    db.refresh(student)
     return schemas.StudentProfileBasic.model_validate(student)
 
 
@@ -210,6 +281,7 @@ def get_student_profile(
             avatar_url=student.avatar_url,
             status=student.status,
             registered_at=student.registered_at,
+            needs_renewal=student.needs_renewal,
         ),
         applications=[
             schemas.ProfileApplicationEntry(

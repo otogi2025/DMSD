@@ -16,6 +16,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -154,11 +155,15 @@ def list_students(
             schemas.StudentAccountListItem(
                 id=s.id,
                 student_no=s.student_no,
+                grade_code=s.grade_code,
+                class_code=s.class_code,
+                seat_no=s.seat_no,
                 name=s.name,
                 room_no=s.room_no,
                 dorm_unit=s.dorm_unit,
                 gender=s.gender,
                 status=s.status,
+                needs_renewal=s.needs_renewal,
                 is_locked=_is_locked(acct) if acct else False,
                 last_login_at=acct.last_login_at if acct else None,
             )
@@ -283,3 +288,118 @@ def unlock_account(
     db.commit()
 
     return schemas.UnlockOut(student_id=student_id)
+
+
+# ---------------------------------------------------------------
+# 4. GET /api/v1/students/renewal-progress — 学年更新进度（老师看谁还没改番号）
+#    - 列出 needs_renewal=True 的真实学生（排除 is_demo）
+#    - 老师网页据此显示「还差 N 人」+ 未改名单（前端按年级→班级分组）
+#    - spec §4.2（2026-06-05 学生自设方案）
+# ---------------------------------------------------------------
+@router.get("/students/renewal-progress", response_model=schemas.RenewalProgressOut)
+def renewal_progress(
+    teacher: models.Teacher = Depends(require_teacher_roles(*ADMIN_ROLES)),
+    db: Session = Depends(get_db),
+):
+    """学年更新进度 — 还没自设番号的学生名单（needs_renewal=True）。
+
+    pending_count=0 = 全员改完。老师网页据此显示「全員完了」。
+    """
+    students = db.scalars(
+        select(models.Student)
+        .where(
+            models.Student.needs_renewal.is_(True),
+            models.Student.is_demo.is_(False),
+        )
+        .order_by(
+            models.Student.grade_code,
+            models.Student.class_code,
+            models.Student.seat_no,
+        )
+    ).all()
+    items = [
+        schemas.RenewalProgressItem(
+            id=s.id,
+            student_no=s.student_no,
+            name=s.name,
+            grade_code=s.grade_code,
+            class_code=s.class_code,
+            seat_no=s.seat_no,
+        )
+        for s in students
+    ]
+    return schemas.RenewalProgressOut(pending_count=len(items), items=items)
+
+
+# ---------------------------------------------------------------
+# 5. POST /api/v1/accounts/{student_id}/renew-seat — 老师单件改某学生番号（兜底）
+#    - 学生不会操作 / 填错时，老师代改其 grade/class/seat
+#    - 查重（排除自己）撞号 422；改完清 needs_renewal=False
+#    - 写 audit_logs（action=student.renew_seat_by_teacher）
+#    - spec §4.2（2026-06-05 学生自设方案，老师兜底手段）
+# ---------------------------------------------------------------
+@router.post(
+    "/accounts/{student_id}/renew-seat",
+    response_model=schemas.StudentProfileBasic,
+    status_code=status.HTTP_200_OK,
+)
+def teacher_renew_seat(
+    student_id: UUID,
+    body: schemas.TeacherRenewSeatIn,
+    teacher: models.Teacher = Depends(require_teacher_roles(*ADMIN_ROLES)),
+    db: Session = Depends(get_db),
+):
+    """老师单件改某学生番号（兜底 — 学生不会操作 / 填错时）。"""
+    student = _get_student_or_404(student_id, db)
+    new_no = f"{body.grade_code}{body.class_code}{body.seat_no}"
+
+    # 查重（排除该学生自己）
+    existing = db.scalars(
+        select(models.Student).where(
+            models.Student.grade_code == body.grade_code,
+            models.Student.class_code == body.class_code,
+            models.Student.seat_no == body.seat_no,
+            models.Student.id != student_id,
+        )
+    ).first()
+    if existing:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "STUDENT_NO_TAKEN",
+                "message": f"学号 {new_no} は既に使われています",
+            },
+        )
+
+    student.grade_code = body.grade_code
+    student.class_code = body.class_code
+    student.seat_no = body.seat_no
+    student.needs_renewal = False
+
+    db.add(
+        models.AuditLog(
+            actor_type="teacher",
+            actor_id=teacher.id,
+            action="student.renew_seat_by_teacher",
+            target_type="student",
+            target_id=student_id,
+            payload={
+                "new_student_no": new_no,
+                "changed_by_teacher_id": str(teacher.id),
+            },
+        )
+    )
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "STUDENT_NO_TAKEN",
+                "message": f"学号 {new_no} は既に使われています",
+            },
+        )
+
+    db.refresh(student)
+    return schemas.StudentProfileBasic.model_validate(student)

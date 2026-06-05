@@ -72,6 +72,9 @@ class Student(Base):
     # demo / reviewer 账号标志 — admin 学生列表 / 出席统计默认过滤掉
     # （审核员 / 老师体验用账号；spec system_features.md §7.20）
     is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # 学年更新「待更新」标记 — 老师点「学年更新を開始」开闸后置 True，学生自设番号成功后清 False
+    # （spec system_features §4.2 — 2026-06-05 学生自设方案）
+    needs_renewal: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     # relations
     applications: Mapped[list["Application"]] = relationship(back_populates="student")
@@ -89,6 +92,7 @@ class Student(Base):
         UniqueConstraint("grade_code", "class_code", "seat_no", name="uq_students_no"),
         Index("idx_students_dorm", "dorm_unit", "status"),
         Index("idx_students_is_demo", "is_demo"),
+        Index("idx_students_needs_renewal", "needs_renewal"),
     )
 
     @property
