@@ -50,6 +50,14 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+### 2026-06-05 VPS 部署排查 + 个人网站整理 + 仪表盘自动更新 by [Opus 4.8 1M]
+- itsuki 要部署后端+网站 → 排查发现两者早在 Google Cloud（`34.85.74.70`）上线 3-4 周（Docker：Caddy+FastAPI+PG），三域名全在线；纠正「VPS 停用」陈旧记忆
+- 抢救 4 个部署配置进 git（commit `c91d7e7`）；**提交前逮到 `reseed_reviewer.sql` 含 Apple 审核员明文密码**，拦下没进公开仓库
+- 整理 VPS（删旧备份+nginx残留+Docker缓存 846M）；撤 pj.tomoshibi.cc「项目总览」「文件总览」（移 `_offline_pages/`）
+- 仪表盘：修 frozen 倒计时 bug（改日本时间实时）+ 数据刷今天 + 建一键生成器 `生成仪表盘.py`
+- 后端重新部署 Mac→VPS 方案就绪，itsuki 说「先别动」（app 闲置）；新 3 memory（vps-production / release-status / external-state）
+- 详见 raw `2026-06-05_vps部署排查与网站整理.md`
+
 ### 2026-06-05 老师网页 Vite 迁移收尾 + 版本号 v0.12.1+v0.13~v0.15 + handoff 文件夹 by [Opus 4.8 1M · ultracode] <!-- VERSION_OK -->（当前版本见 CHANGELOG.md 顶部）
 
 - **老师网页 Vite 迁移全做完**（compact 后接施工清单 §8）：修后端 dev 库 alembic revision 撞号（`b2c3d4e5f6a7` 重复 → 改 `f8a9b0c1d2e3` + 重建库）→ chrome 客观实测 17 页全渲染 + 27 接口全 200 + 0 报错 + 真数据通 → `启动老师网站.command` 切 build dist + 旧 HTML 单文件版归档 → 收尾 6 文档。后端 311 测试过。**仅剩 itsuki 肉眼签收 + push**。

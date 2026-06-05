@@ -13,6 +13,18 @@
 
 ---
 
+## 🖥️ 2026-06-05 VPS 部署排查 + 个人网站整理（本会话）
+
+**做完**：
+- [x] ~~部署配置抢救进 git~~ ✅ commit `c91d7e7`（Dockerfile / docker-compose / Caddyfile / DEPLOY.md — VPS 独有、没进仓库的 4 个部署文件）
+- [x] ~~VPS 环境整理~~ ✅ 删 3 个后端旧备份 + nginx 残留 /var/www + Docker 构建缓存 846M（磁盘 39%→37%）
+- [x] ~~pj.tomoshibi.cc 撤项目总览 + 文件总览~~ ✅ 移到 VPS `~/tomoshibi-backend/_offline_pages/`（可恢复）+ 首页去死链
+- [x] ~~仪表盘修 frozen 倒计时 bug + 数据刷今天 + 建一键生成器~~ ✅ `生成仪表盘.py`（iCloud 全项目中枢，跑「更新仪表盘」自动读 3 仓库版本 + 推 VPS）
+
+**待做 / 挂起**：
+- [ ] 🟡 **后端重新部署 Mac→VPS**（线上 `0.1.0-v1-skeleton` 11 router → Mac v0.15.0 26 router）— 平滑升级方案就绪：迁移链 `f6a7b8c9d0e1`→head 线性可达 / 线上真实用户=0 无数据损失 / 新代码环境变量齐。itsuki 6-05 说 app 闲置「先别动」，**等他发话再做** <!-- VERSION_OK -->
+- [ ] reseed_reviewer.sql 含 Apple 审核员**明文密码**（在 VPS 那份，没公开没进 git）— itsuki 可决定要不要抹成占位符 + 换密码重 seed
+
 ## 🎓 AC 升学素材整理 + 升学文件夹结构完善（🔴 高优先 — 2026-06-03 itsuki 拍板加）
 
 > ✅ **2026-06-04 全部完成（含超额重构）**。itsuki 两件事都做了，且发现旧体系设计缺陷后重新设计成「两校（筑波/庆应）共用原始素材池」新架构。
