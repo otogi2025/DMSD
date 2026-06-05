@@ -363,3 +363,21 @@ data class ItemPossessionRequest(
     val submittedAt: String,
     val status: String = "pending", // pending / approved / rejected
 )
+
+// 学習出席打卡种类（对应 iOS StudyTap）— 一天 2 次
+enum class StudyTap(
+    val label: String,
+) {
+    START("学習開始"),
+    END("学習終了"),
+}
+
+// 学習出席打卡履历一条（对应 iOS StudyHistoryEntry）
+@Serializable
+data class StudyHistoryEntry(
+    val id: String,
+    val date: String, // "2026-05-10"
+    val tapKind: String, // StudyTap.name（START / END）
+    val timeHM: String, // "19:38"
+    val note: String? = null, // 备注，可空（值即 UI 文案，如「遅刻」）
+)

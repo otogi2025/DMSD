@@ -415,6 +415,20 @@ object MockData {
             ),
         )
 
+    // 学習出席打卡履历假数据（対象学生用，对齐 iOS studyHistory）
+    // 3 天：05-10 齐全時間内 / 05-09 齐全但遅刻 / 05-08 只 1 次未完
+    val DEFAULT_STUDY_HISTORY: List<StudyHistoryEntry> =
+        listOf(
+            StudyHistoryEntry("sh1", "2026-05-10", StudyTap.START.name, "19:38"),
+            StudyHistoryEntry("sh2", "2026-05-10", StudyTap.END.name, "21:42"),
+            StudyHistoryEntry("sh3", "2026-05-09", StudyTap.START.name, "19:52", note = "遅刻"),
+            StudyHistoryEntry("sh4", "2026-05-09", StudyTap.END.name, "21:43"),
+            StudyHistoryEntry("sh5", "2026-05-08", StudyTap.START.name, "19:39"),
+        )
+
+    // 当月学習欠席届 累计次数（>3 显示超過警告，对齐 iOS studyLeaveCountThisMonth）
+    const val STUDY_LEAVE_COUNT = 2
+
     // 完整初始 AppState — fresh state（走完整 Onboarding → Account → Welcome → Login → Home）
     // Account 注册各 step 默认预填 demo seed，itsuki 一路点「次へ」走完，不用手动填
     val INITIAL_STATE =
