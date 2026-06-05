@@ -4,7 +4,8 @@
 > **建立**：2026-04-21 by [Code-Agent]（原为 Claude Design 任务书 v1）
 > **2026-04-21 晚更新**：Round 2 Claude Design 产出已落盘本目录，itsuki 拍板"就按这个版本来"。
 > **2026-05-26 大调整**：Vite + TypeScript 实装版（5-02 立项）废弃归档到 `99_archive/2026-05-26_teacher_web_vite实装作废/`。回到 Ryō standalone 主线。当天跑过一次 `frontend-design` skill polish（米白和纸 / 朱色 / 明朝体）但 itsuki 不喜欢已回滚 — 设计层面回到 4-21 Round 2 原版。
-> **权威源**：`v1/src/index.html`（**24041 行** standalone — 5-27 校准，原文档写 7700+ 已严重过时）+ `v1/src/components/_legacy/*.jsx`（14 个 JSX 组件源 — accounts / app / applications / discipline / front-desk / live-roll-call / login / outstay-detail-modal / override-modal / pages-records-search-etc / roll-call-landing / select-teacher / shell / theme — 原文档写 `v1/src/_legacy/` 路径错，实际是 `components/_legacy/`）
+> **⚠️ 2026-06-05 迁 Vite（本简报以下内容多为历史）**：老师网页已从 HTML 单文件迁到 **React 18 + TypeScript + Vite**（界面 100% 冻结、逐页原样搬）。旧 standalone（`index.html` / `client.js` / `vendor` / `_legacy`）已整组归档到 `99_archive/2026-06-05_teacher_web_html单文件版归档/`。**本简报以下关于 standalone HTML / `_legacy` jsx / 内联打包 的描述均为历史，已不是当前实装方式**。当前权威源 = `v1/src/` 下 React+TS（`main.tsx`/`App.tsx`/`Shell.tsx`/`theme.ts`/`api/(client.ts+types.ts)`/`components/` 26 个 .tsx）；新会话看老师网页先读 `v1/README.md` + `WEB_DESIGN_LOG.md` §16。
+> **（历史·已归档）旧权威源**：`v1/src/index.html`（24041 行 standalone — 5-27 校准）+ `v1/src/components/_legacy/*.jsx`（14 个 JSX 组件源）
 
 ---
 

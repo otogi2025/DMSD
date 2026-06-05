@@ -50,6 +50,14 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+### 2026-06-05 老师网页 Vite 迁移收尾 + 版本号 v0.12.1+v0.13~v0.15 + handoff 文件夹 by [Opus 4.8 1M · ultracode] <!-- VERSION_OK -->（当前版本见 CHANGELOG.md 顶部）
+
+- **老师网页 Vite 迁移全做完**（compact 后接施工清单 §8）：修后端 dev 库 alembic revision 撞号（`b2c3d4e5f6a7` 重复 → 改 `f8a9b0c1d2e3` + 重建库）→ chrome 客观实测 17 页全渲染 + 27 接口全 200 + 0 报错 + 真数据通 → `启动老师网站.command` 切 build dist + 旧 HTML 单文件版归档 → 收尾 6 文档。后端 311 测试过。**仅剩 itsuki 肉眼签收 + push**。
+- **版本号**：6-03~6-05 三天 80 commit 按真实 commit 顺序切 `v0.12.1`(patch 纯修复) + `v0.13.0`/`v0.14.0`/`v0.15.0`(minor)，三端客户端版本号同步 0.15.0，4 个本地 tag。itsuki 借此搞懂语义化版本(SemVer) patch(修订号)概念。 <!-- VERSION_OK -->（历史记录，当前版本见 CHANGELOG.md 顶部）
+- **handoff 文件夹机制**：itsuki 拍板交接件不该堆 00_admin 根 → 建 `00_admin/handoff/`(只放活的) + 用完移 99_archive + session-wrap §5.5.9.5 自动清理 + 旧 5 个交接件全归档到 `99_archive/2026-06-05_handoff已完成/`。
+- **同步修 3 处旧描述**（防新会话被误导）：teacher_web `README.md` / `DESIGN_BRIEF.md` / 本 WIP 把老师网页从「standalone HTML / 未开工」更新到「Vite 已完成」。
+- 全本地未 push（这天累计领先远程 336 commit）。AC：模式 2（撞号假设修正）+ 模式 5（itsuki 学 SemVer + 自悟 handoff 治理结构）+ 方法论（chrome 客观验证）。raw `2026-06-05_teacher_web_vite迁移.md`。
+
 ### 2026-06-05 学年更新/学生自设番号 五端 + iOS 16 + 对齐文档 + codex 两轮 by [Opus 4.8 1M · ultracode]
 
 - itsuki 实机审 iOS 问「番号年年变，登录不方便？」→ CC 查出**这事 4-30 已拍板「老师改/学生只读」**、跟今天说的相反 → itsuki **当场翻自己旧决定**改成学生自设。CC 主动挖 4 坑（撞号/鸡生蛋/高3毕业/误输）itsuki 逐个拍板。
@@ -63,7 +71,7 @@
 
 - 杭田代録出寮届网页表单从无到有：后端 `GET /applications/proxy-candidates` 搜学生接口（补「代録能用 5 角色、admin 列学生只给 3 角色」的权限洞）+ 前端 `ProxyApplicationPage`（字段照抄 iOS、食事按 is_overseas 切换）+ 8 测试。
 - **三路审查**（CC 自审 + workflow 24 代理 + Codex）修一批：错误提示取值路径 / 帰寮时刻只比日期不比时刻 / 时区算今天依赖浏览器 / 出租车独立时刻 / 注释假名。3 commit `e77dace`/`f3a846e`/`40de4e3`，pytest 295 全过、check_jsx 0 错误。三路发现几乎不重叠。
-- itsuki 拍板两件：① 老师网页 HTML 单文件 → **React+TS+Vite**（界面 100% 冻结、吸取 5-26 失败、施工清单 + GOAL 提示词已写、**未开工**等 compact 后执行）② 邮件 SendGrid → **Resend**（永久免费、待注册拿密钥）。
+- itsuki 拍板两件：① 老师网页 HTML 单文件 → **React+TS+Vite**（界面 100% 冻结、吸取 5-26 失败、施工清单 + GOAL 提示词已写；**已在后续会话全部做完 — 见顶部最新条目**）② 邮件 SendGrid → **Resend**（永久免费、待注册拿密钥；已实装 commit `ea7a18a`）。
 - itsuki 立规矩：**别拿「零基础维护难」当论据（有 AI）** + 纠正「部署是服务器不是本地一台电脑」。已立 2 memory。
 - 杭田 13 条 TODO 标完成 9 条（剩 2 学生增删 / 7 安卓 / 11 点呼改判 / 13 假推送清理）。
 - AC：模式 3（5-26 失败教训应用）+ 模式 5（前端架构认知）+ 模式 6（取舍）+ 纠正 AI。raw `2026-06-05.md`。
@@ -85,98 +93,6 @@
 - codex(gpt-5.5 xhigh) 两批各 2 轮审查收敛：iOS 批驳回 1（状态机演示版不触发）改 1（日期解析）；后端批采纳 major（并发非原子→原子更新）+ 3 minor。均 0 blocker/0 major 收敛。
 - 多会话：models.py/schemas.py 夹着别会话「去ロビー」改动，按协作板约定连带提交保留不回退 + 留言。踩 ruff 删 import 坑（同款 memory）。
 - AC：模式 2（不盲信 codex 逮真 major）+ 6（建表方案 A/B 取舍，CC 摊矛盾给 itsuki 拍板不自己定不可逆 schema）。raw `2026-06-04.md`。剩 iOS 生产版 + 老师网页接 outings 接口（已记 TODO）。
-
-### 2026-06-04 AC 升学素材体系大重构 — 两校共用池 + 二次重构四层 + 8.6 万字对话总结 by [Opus 4.8 1M]
-
-- 起因：itsuki 连环追问暴露旧 AC 素材体系设计缺陷（radar inbox 跟素材候选职责重叠 / 「人工精选」闸门从没运转 / 要同时申请筑波+庆应需素材通用）。
-- itsuki 核心洞察：原始素材两校通用、分叉在产出端（= 单一数据源多视图，他自己悟出来的）。
-- 做了（7 步全程只移不删，旧物归档）：iCloud 根建统一归档区 `99_归档/` + 共用池 `大学入試/00_原始素材池_两校共用/`；迁 75 原始素材进池；筑波 `04_素材_成品`（_v2归档31个）整体归档；两校侧重组成 `03_按X口味提炼/04_产出/99_证据截图`；改 6 脚本指向新池（append_to_scratchpad / daily-archive / session-start 重写 / startup_check / pre-write-protected 重写护新 04_产出 区 / ac-radar SKILL.md）；2 README + 验证全绿。
-- 同会话早段：iOS 动画黑屏诊断归档 / 外部 AI 项目评估两段归档（审前提标 SFC≠筑波等 5 处不能照抄）/ 统一两个 AC 根目录（AC/→大学入試/ 移 19 文件 + 改脚本 + 修 memory 路径错）。
-- AC：模式 5（元认知，顶级）+ 系统架构设计（单一数据源多视图）。新建 memory `project_ac_material_system_two_school_pool`。raw `2026-06-04.md`。
-- **后段（同会话）**：itsuki 嫌按「类型」分乱 → 重定义按「重要度」四层（1 自动产出 / 2 我挑的 / 3 最重要 / 4 金句）→ CC 迁文件 + 改 4 脚本指向 + 旧壳归档；memory 同步成四层。
-- itsuki 要从完整会话记录找金句/最重要 → 不信任 CC 抽取坚持自己发 → jsonl 打不开被迫靠 CC → CC 全读 8.6 万字 30 条发言、提取发言存桌面让他核对、写 3 文件归位。发现 itsuki 06-03 已自挑好金句+最高权重，印证主体性。
-- 后段 AC：人机信任张力（itsuki 要可验证 / 掌控 / 不盲信，跟「AI 是知识通道、决策中心是我大脑」骨架一致）+ 元认知（信息架构按重要度重分）。
-
-### 2026-06-04 项目协作机制讨论 — 启动 skill/hook + 心智模型/WIP 职责 + 建 codex-review skill by [Opus 4.8 1M]
-
-- 起因：itsuki 主动反思自己搭的协作机制，连问启动要不要改 hook / WIP 和心智模型是否冗余 / 把「派 codex 审查」做成 skill。
-- ① 启动维持 skill 不上 hook（itsuki 自己想通：只要记得说「启动」，skill 就能代替 hook 全部功能；「机制兜底优于自律」铁律针对 CC 反复忘，触发权收回自己手里就不适用）。
-- ② 心智模型 vs WIP 砍重叠：心智模型 §4 四列→两列（只标成熟度档位 + 一句话定位，细节进度归 WIP，防作弊大缺口单独强调），治好「§4 老过期漂移」。session-wrap 项 12 同步改成「只在成熟度跳档才更新 §4」。当前焦点留 WIP。
-- ③ 新建 `codex-review` skill（派 codex gpt-5.5 xhigh 只读审本会话改动 → CC 逐条裁决+修 → 复审 → 跑到收敛；不带「codex」字样不触发）+ 登记 CLAUDE.md / project-overview。
-- AC：模式 5（认知，顶级 ×2）+ 模式 6（取舍 ×3）+ 模式 2（把不盲信 codex 制度化）。raw `2026-06-04.md`。
-
-### 2026-06-03 演示版逐屏打磨 + 出租车预约 4 端功能 by [Opus 4.8 1M]
-
-- 起因：itsuki 实机逐屏看 iOS 演示版揪问题（假数据自相矛盾 / 表单不符真实纸质表 / 页面切换黑屏），逐条改；后授权全自主做完出租车功能 + codex 审 + 收尾，期间不打断。
-- 演示打磨：通知 / 主页去 Amazon + 活动改誕生日会 / カフェテリア + 删早帰 / その他申请类型 + 删 4 处界面假 ID + 删 2 条矛盾假数据（早帰点进去显示成帰国届）+ 页面切换黑屏修复（`RootView` 去 opacity transition）。
-- 出寮届表单对齐两张真实纸质表（様式3-1 帰国 / 様式3-2 外泊）：交通方法拆出寮 / 帰寮两串不同选项 + 删飞机（走帰国飞机段单独填）+「教員送迎」→「教員」+ 加寮生特別運行 + 滞在先→宿泊先 + 帰国隐藏「行先（都市名）」。
-- **出租车预约 4 端新功能**：后端 `applications.taxi_reservation_time`（Time/nullable）+ migration `a7b8c9d0e1f2` + iOS `StayForm` 提交+详情+外出 UI 桩 + 老师网页预留的「タクシー」tab 实装（badge 防漏看）。Android 记 TODO（骨架未接后端、无法 gradle 验证）。前后端对齐。
-- codex 5.5 xhigh 审查：1 阻塞（migration 编号撞既有 events，换 `a7b8c9d0e1f2` + `alembic heads` 验证）+ 3 建议（帰国教师详情误显行先都市 / 修改届 taxi 名义改 create-only / tab sub 共享）全修。验证：后端 223 测试 / iOS 双 scheme BUILD SUCCEEDED / check_jsx 0 错。
-- AC：模式 2（codex 审出真 bug→CC 独立核实→修 + CC 自己编译 exit code 陷阱自纠）+ 5（真实凭证驱动表单设计）+ 6（判断后端不用改 / Android 取舍）。raw `2026-06-03_演示打磨+出租车功能.md`。
-
-### 2026-06-03 文件联动系统盲点补全 + codex 审查 by [Opus 4.8 1M]
-
-- 起因：补一条点呼机架构链联动规则（6-02 漂移事故的漏）后，itsuki 让「优化所有文件互联 + 找别的有问题的文件」→ CC 否决「1256 文件全连 = 噪音淹没信号 / 告警疲劳」，改精准补真实盲点。
-- 产出：联动规则 19 → 23 条。补 4 类盲点（老师网页活代码 index.html/client.js 裸奔 / 后端字段漏提醒 Android / spec 字典链 / 版本号链）+ codex GPT-5.5 xhigh 审查后修 2 处 + 新增 Rule 24（联动系统自身同步）。改 `00_admin/hooks/lib/sync-rules.sh`（规则真值）+ `.claude/skills/file-linkage/SKILL.md`（人读版）。
-- 独立验证两层 AI：子代理逮到 2 处数字不准、codex 逮到 1 处错误修法（建议 ERE 不支持的 `(?!...)` 负向先行）。codex 揪的 3 个预先存在问题（demo 函数返回值反转 / Rule 6 死路径 / must 路径无锚定）记 `TODO.md` §🛠️ D1-D3。
-- AC：模式 2（AI 方案崩→核验→真做）+ 模式 6（取舍）。raw `2026-06-03_文件联动盲点补全.md`。
-
-### 2026-06-03 版本号回溯规范化 — 236 commit 补 6 个版本标签 + 三端版本号统一 by [Opus 4.8 1M]
-
-- ✅ **回溯补 6 个版本标签 v0.8.1~v0.12.0**（时间对齐各段末端 commit）+ CHANGELOG 6 条目 + WIP 当前版本 v0.8.0→v0.12.0（commit `48e7c97`）。判断：每段有真新功能=次版本号 / 纯修复或开发工具链=修订号。<!-- VERSION_OK -->
-- ✅ **三端客户端版本号统一 0.12.0**（commit `e91e768`）：iOS project.yml + TTokens（rc/demo）+ Android versionName + 老师网页 APP_VERSION 全部统一。<!-- VERSION_OK -->
-- 🔧 **index.html / README 版本号改动留工作树**（跟并行会话改动叠着，等 itsuki 整理文件一起 commit + push）。本会话发现另一窗口在并行改 iOS/点呼机/file-linkage。
-- AC：模式 5（itsuki 学 SemVer 主/次/修订号规则 + commit 数≠版本号 + 否决 v10.0/重写历史）+ 不盲信 AI（itsuki「修了很多 bug 先确认」逼 CC 用数据验证定性）。详见 raw `2026-06-03_版本号回溯规范化.md`。<!-- VERSION_OK -->
-
-### 2026-06-02 iOS B 类接后端续 — IX-034 请假计数 + 过夜无人值守 GOAL 设计 by [Opus 4.8 1M]
-
-**🔴 进度 + 过夜 GOAL 运行规则在 `05_logs/ios接后端_进度与handoff.md` §7（新会话 / 压缩后先读）。**
-
-- ✅ **IX-034 请假计数按月接后端**（`e0c150c`）：后端 `GET /study/absence-requests/me/summary`（当月 target_date 全状态计数）+ iOS loadMe 拉真实当月数替代内存累加 + 3 测试。后端 220 / iOS 双绿。Codex 5.5 xhigh 审出 4 点待修（跨月仍 +1 / loadMe 令牌竞态 / 测试时区 / formatYMD）→ 留过夜 GOAL 第一件事。
-- 🔍 **IX-007 调查揪出前提是假的**：修繕/来訪/代理受取后端零实装（`applications` 表 CHECK 只允许出寮届三种）→ otherDetailBody 生产是死分支 → 走 Option A 降级 DEMO（Option B 真做要拍板，跳过）。
-- 🌙 **设计过夜无人值守 GOAL**：itsuki「挂这儿去睡，遇要决策的跳过、做能做的」→ 写 goal 指令 + handoff §7（不准问 / 跳决策记清单 / 不 push / handoff 自管上下文）。
-- **待办**：handoff §7.1 IX-034 4 点 → IX-009 通知（聚合公告+审批）→ IX-007 Option A → 5-30 审查 🟡 批。
-- AC：审任务前提（代码 CHECK 约束推翻文档描述）+「修好所有问题」拆三层 + 委托 AI 过夜自主跑设计护栏。raw `2026-06-02_iOS接后端_IX-034+过夜GOAL.md`。
-
-### 2026-05-31 iOS 学生端 B 类「演示假数据→真后端」接线（多阶段 + codex 每阶段审）by [Opus 4.8 1M]
-
-**🔴 本会话进度全在 `05_logs/ios接后端_进度与handoff.md`（压缩防丢信息文件 — 新会话 / 压缩后先读它）。**
-
-**主题**：iOS B 类「演示假数据→真后端」。itsuki「全都修好」+「每阶段派 codex gpt-5.5 xhigh 审」+「别停下问自己决定」。**两大块完成**：
-- ✅ **IX-004 修改届接后端 — 5 轮 Codex 对抗复审收敛关闭**（`5a8be64`→`0ee5546`→`5b97b45`+文档`a49daf9`）。每轮真挑出问题（阶段3 含越权+滥用2个我没看出的），每条核实再修，测试 1→18 个。后端 pytest 201 / iOS 双 scheme 绿。
-- ✅ **IX-008 当前用户接 /me**（`464d42f` /me + `04e5887` category + `b4dea6f` iOS currentUser/displayUser + `97d0180` 登出残留修复）。73 处假用户 → 登录拉 `/me` 真实化（currentUser+displayUser+SEED.user安全网）。后端 209 / iOS 双绿。**Codex 额度被并发会话耗尽（晚11:57重置）→ 我自己自审 + 逮到登出残留 bug 修了**，独立审查待补。
-- **待办**（详见 TODO §🔧 + `05_logs/ios接后端_进度与handoff.md`）：IX-008 Codex 补审 / IX-008b 扣分统计接入(真人现显0) / 老师退回(returned)动作未实装 / is_study_target 后端字段。
-- AC：多 AI 对抗复审当质量门 + 额度耗尽自己顶上 + 重构前调研拆阶段（模式 2+5+6）。raw `2026-05-31_ios接后端_IX004收敛+IX008用户资料.md`。
-
-### 2026-05-29 session-coord 协作板改 hook 自动维护 by [MacBook-Pro-Opus 4.8 1M]
-
-**主题**：itsuki 自己发现多窗口协作板（session-coord）缺陷「注册完不更新 / 别窗口不知道在干嘛 / 怕费 token」→ 要求「先帮我了解再优化」。CC 读全部脚本确认 3 条全对 → 诊断真因「靠 CC 每回合自觉跑脚本，CC 不自觉=摆设」→ 撞 itsuki 旧铁律「机制兜底优于自律」。方案：改 hook 后台自动维护。新建 `~/.claude/hooks/session-coord-auto.sh` + `lib/session_coord_auto.py`（挂 SessionStart+UserPromptSubmit）：开窗自动注册 + 每次发话刷心跳 + 把 itsuki 那句话存「当前任务」，零对话 token；改 register.sh（认 `CLAUDE_CODE_SESSION_ID` + 幂等）/ scan.sh（死窗口瘦身 + 自动清理超 1h）。配套同步 6 文档。已验证 hook 建目录/记任务/scan 对号/瘦身（假数据模拟），**真实触发待 itsuki 重开窗口确认**。全局 9 文件不在 repo 无法 commit，DMSD 内仅 dmsd-startup/SKILL.md + raw commit（`f424f7e`）。AC：模式 2+5+6。raw：`05_logs/raw/2026-05-29_session-coord自动化.md`
-
-### 2026-05-29 扫项目推荐自动化 + 配 Dependabot / 密钥扫描 by [MacBook-Pro-Opus 4.8 1M]
-
-**主题**：itsuki 用 claude-automation-recommender skill 扫 DMSD，要推荐 hooks/skills/MCP/子代理/自动化并配好。CC 实扫现有配置（已很满：8 DMSD skill + 15+ hook + context7/github/chrome-devtools MCP），只推真缺的 3 个，并把「不缺的」诚实列出。itsuki 反复纠正「术语看不懂，说人话」→ CC 重列全 18 候选大白话版（每个一句它干嘛）。建好 **#14 Dependabot**（`.github/dependabot.yml` 监控后端/点呼机 pip + 安卓 gradle + actions 漏洞，每周一）+ **#1 pre-commit 密钥扫描**（造假 SendGrid 密钥实测，拦得住 exit 1）。#7/#9/#10（连本地库/线上库/Sentry）因没服务器、本地库基本空（2 学生）→ CC 判断「现在加没意义/加不了」记 TODO §🔌「上线时配置」等上线提醒。#16 安卓 CI 判不建（代码还早，会天天编译失败红叉）。AC：模式 5（itsuki 学会「数据库本地 vs 服务器」「MCP 是啥」「CI 概念」「Playwright 不操纵电脑只开浏览器」）+ 技术判断（质疑 #7 前提 / 主动要求 #9 提前记防忘）。raw：`05_logs/raw/2026-05-29_扫项目推荐自动化.md` <!-- VERSION_OK -->
-
-### 2026-05-29 项目心智模型机制建立 by [MacBook-Pro-Opus 4.8 1M]
-
-**主题**：itsuki 提元认知问题「AI 开新会话没有整个项目的样子，改前端不知道后端写到哪」→ CC 诊断「不缺文档，缺『对的文档在对的时候被读』」→ A/B/C 方案 itsuki 选 A → 落地：新建 `00_admin/项目心智模型.md`（7 节骨架 / 107 行 / 约 2-3 千 token：项目+5 端 / 系统怎么跑通 / 绑住 5 端的契约 / 5 端各自现状 / 核心不变量 / 未决问题 / 维护说明）+ `dmsd-startup` Step 3 扩成「读心智模型+WIP」开局自动读（v0.3.0）+ `session-wrap` 加「项 12 心智模型同步」收尾自动更（清单 11→12 项 + 修 §7.5.5 老错 8→12）+ project-overview §1.3 加 entry。代码核准后端签到：考勤主干已实装（present/late + 扣分 + WebSocket + 幂等），但防作弊核心（nonce / ECDSA 签名 / device 校验 / 卡→学生映射）后端一行没写 → 确认 TODO A-010「v1.0 上线最大隐患」。过程教训：CC 把 itsuki 模糊「没问题」当成「去查后端吧」+ scope 膨胀（填一行做成审一遍），被纠正当场认错 → memory `feedback_terse_confirm_not_blank_check.md`。**悬挂决策**：要不要给心智模型加启动硬挂钩（100% 保险 vs 现在指令级约 99% 稳，token 花费两者一样）。raw：`05_logs/raw/2026-05-29_项目心智模型机制.md` <!-- VERSION_OK -->
-
-### 2026-05-28 启动 / 收尾流程改造 by [MacBook-Pro-Opus 4.7 1M]
-
-**主题**：itsuki 让 CC 列启动 / 收尾流程 → 拍板改造。启动 skill（dmsd-startup）删 project-overview 漂移检测（移收尾）+ 5 件事砍到 4 件 + Step 4 改逐项打勾；收尾 skill（session-wrap）git 放宽（commit/bump/tag 自主 / push 明示 / reset --hard/rm 确认）+ 新增 §7.6 收尾终判（跑完说「可关 / 不可关」）；停 settings.json 启动漂移 hook；建死引用 memory `feedback_commit_push_tag_division.md`。撞 Claude Code 启动配置系统硬保护（口头授权清不掉 → itsuki 切权限模式）。AC：模式 5（工具安全边界）+ 模式 6（可逆性设计权限）。raw：`05_logs/raw/2026-05-28_启动收尾流程改造.md`
-
-### 2026-05-28 点呼机硬件采购 + 「116 天磨穿」伪问题 by [MacBook-Pro-Opus 4.7 1M]
-
-**主题**：itsuki「今晚把点呼机硬件全买好」→ CC 发现 5-22 海关查扣后日本本地选型（`hardware_design.md` §5.1'）还是「待选型」占位 → itsuki 给 5-19 调研的 4 家分工清单（秋月電子/Switch Science/Amazon Japan/ヨドバシ）+ 拍板方案 A 首单 1 台演示机（约 19,800 日元）→ CC 回填 hardware_design 4 处。CC 调 Codex（GPT-5.5 xhigh）审查报「ST25DV 每 10 秒写 EEPROM → 116 天磨穿」当致命问题，CC 原样转 itsuki 建议暂停 → **itsuki 一句常识推翻**：点呼非 24h 全天，只在时间窗刷（120~360 次/天）→ 寿命 7-22 年，116 天伪问题（Codex 算术对但前提错，CC 转述没审前提=失职）→ 写给第二个 AI 的提示词把坑写进去防再犯，第二 AI 确认伪问题 + 补 ST 官方手册引用。逐件核对截图选型（13 件）+ 教练答零基础问题（电阻/LED 多色/焊不焊/USB 喇叭供电）。决策：ST25DV ×4 / 风扇 5V 30×30×10 / 喇叭 USB 型 / 转接线 SparkFun Qwiic 套件 / 不买外壳 + SD 卡（已有）。AC 价值 ⭐⭐⭐⭐⭐：模式 2（AI 权威定量被常识推翻 顶级）+ 模式 4（多 AI 交叉验证）+ 模式 5（元认知立学习任务）+ 模式 3（5-22 海关查扣失败教训）+ 协作纠错（CC 没审 Codex 前提）。raw：`05_logs/raw/2026-05-28_点呼机硬件采购+116天伪问题.md`
-
-### 2026-05-28 web 登录页修复 — 账号砍到1个 + 返回按钮改显眼 by [MacBook-Pro-Sonnet 4.6]
-
-**主题**：compact 续接（前半段 f4a882f 已 commit）。itsuki 第一次实机打开新实名账户登录页，报 2 个 bug：①登录页 9 个账号「密码不知道」→ CC 查出密码是 `seed.py:39 DEV_PASSWORD = "123456"` 明文常量（itsuki 不知道有这个东西）→ 9 个假数据账号砍到 1 个「新股（寮務部長/全权限跨寮）」+ 备份旧数据库 + 重建 dev 库（seed 是幂等的：光改代码不动数据库 = 旧数据还在，必须重建）②密码页「← 別の先生を選ぶ」返回按钮「失灵」→ CC 用截图里「パスワードが違います(残り 2 回)」反推 React 确实活着（逻辑 OK），真因是按钮 fontSize:12+灰色+padding:0 点击区域极小 → 改蓝色背景+padding:8px 可见按钮。commit `01d0654`。AC：模式 2（假设崩→继续→真因）+ 模式 5（seed 隐藏常量 / 数据层 vs 代码层认知）× 2。raw：`05_logs/raw/2026-05-28_web登录页修复.md`
-
-### 2026-05-28 宿舍申請实物表数字化 by [MacBook-Pro-Opus 4.7 1M]
-
-**主题**：itsuki 提供宿舍真实纸质申请表「届け類.pdf」9 种扫描件 → 要求读懂 + 派 codex 双读对比 + 写进设计规范 + 实装（三步走）。CC 读 10 页 = 9 种表（帰省通常/長期 / 外泊日本人/留学生 / 学習欠席 / 行事企画 / 日課変更 / 冷蔵庫 / 物品所持）。codex（gpt-5.5）独立读图 3 次调用失败逐个修（参数贪婪吞提示词 → stdin / 目录信任 → skip / 只读沙箱）后双读核对**高度一致**。写进 `system_features.md` §7.2（出寮届補完）+ §7.3.5（补漏掉的在线学习申请类型）+ §7.21（新增 4 种全新表单）+ §8（数据模型 + 4 新表）+ IOS_DESIGN_LOG §14（别会话 commit 0ccd19d 带走）。itsuki 拍板 6 待决点：①日本人外泊含寮務部長（4人）②留学生帰省跟实物走（4人无国際交流部長）③帰国届有独立表「様式3-1 留学生・長期休暇」抬头**校長**→approver_role 加校長第7值 ④学習欠席一人审查 ⑤晚自习开始 19:40（实物 19:30 作废）⑥4 种新表都进 v1.0。实装 backlog 进 TODO §T。AC：需求工程（真实凭证驱动设计）+ 多 AI 交叉验证 + 发现现有设计缺口（学習欠席届只做半截）。本会话 commit：system_features + TODO（待 commit）。
-
----
 
 ## 🤝 多会话占用（避免冲突）
 
