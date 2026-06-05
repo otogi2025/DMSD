@@ -66,8 +66,8 @@ import java.time.format.DateTimeFormatter
 // 本波纯 UI + 动画 mock —— 不真碰 NFC、不发网络、不写本地状态库。
 // ───────────────────────────────────────────────────────────────
 
-// 4 步状态机（对齐 iOS idle/scanning/success/fail）
-private enum class Step { Idle, Scanning, Success, Fail }
+// 4 步状态机（对齐 iOS idle/scanning/success/fail）— RollCallSheet 共用同一套，故 internal
+internal enum class Step { Idle, Scanning, Success, Fail }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -286,7 +286,7 @@ private fun IdleBody(
 
 // ── Step 2 · scanning（与 RollCallSheet 一致：「スキャン中…」+ 旋转环 +「動かないでください」）──
 @Composable
-private fun ScanningBody() {
+internal fun ScanningBody() {
     val t = SuzuT.current
 
     Spacer(Modifier.height(8.dp))
@@ -400,7 +400,7 @@ private fun SuccessBody(
 
 // ── Step 4 · fail（与 RollCallSheet 一致：「失敗。もう一度」+ 失败说明 +「再試行」→ idle）──
 @Composable
-private fun FailBody(onRetry: () -> Unit) {
+internal fun FailBody(onRetry: () -> Unit) {
     val t = SuzuT.current
 
     Spacer(Modifier.height(8.dp))
@@ -449,7 +449,7 @@ private fun FailBody(onRetry: () -> Unit) {
 // ── 脉冲圆（idle 步用）────────────────────────────────────────────
 // 一圈淡色圆持续放大 + 淡出，中心是实心圆 + NFC 图标。整体 140dp。
 @Composable
-private fun PulseCircle() {
+internal fun PulseCircle() {
     val t = SuzuT.current
     // 无限循环动画：0→1 往复，驱动外圈的缩放 + 透明度
     val transition = rememberInfiniteTransition(label = "pulse")
@@ -500,7 +500,7 @@ private fun PulseCircle() {
 // ── 旋转环（scanning 步用）────────────────────────────────────────
 // Canvas 画一段 270° 弧，无限旋转一整圈，做「扫描中」的转圈视觉。整体 120dp。
 @Composable
-private fun SpinnerRing() {
+internal fun SpinnerRing() {
     val transition = rememberInfiniteTransition(label = "spinner")
     // 旋转角度 0 → 360 无限循环
     val angle by transition.animateFloat(
