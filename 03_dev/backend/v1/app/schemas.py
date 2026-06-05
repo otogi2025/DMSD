@@ -110,6 +110,10 @@ class ApplicationBase(BaseModel):
     def _check_dates(self) -> "ApplicationBase":
         if self.return_date < self.leave_date:
             raise ValueError("return_date must be on or after leave_date")
+        # 同日时帰寮必须晚于出寮（codex 审查 中-1：原来只比日期，同日 17:00 出 /
+        # 08:00 帰 这种倒挂能过；放后端 = 5 端所有客户端统一兜底）
+        if self.return_date == self.leave_date and self.return_time <= self.leave_time:
+            raise ValueError("return_time must be after leave_time on the same day")
         return self
 
 

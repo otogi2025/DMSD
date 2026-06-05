@@ -714,6 +714,28 @@ class TestApplicationByTeacher:
         assert res.status_code == 403, res.text
         assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
 
+    def test_same_day_reversed_time_rejected(self, client, teacher_token, seed_data):
+        """同日 帰寮时刻早于出寮时刻 → 422（codex 审查 中-1：后端共用规则兜底）。"""
+        from datetime import date
+
+        sid = str(seed_data["student"].id)
+        body = {
+            "kind": "帰省",
+            "leave_date": date.today().isoformat(),
+            "leave_method": "JR",
+            "leave_time": "17:00:00",
+            "return_date": date.today().isoformat(),
+            "return_method": "JR",
+            "return_time": "08:00:00",
+            "reason": "同日倒挂テスト",
+        }
+        res = client.post(
+            f"/api/v1/applications/by-teacher?student_id={sid}",
+            json=body,
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 422, res.text
+
 
 class TestProxyCandidates:
     """杭田 2026-06-04 五-3: 代録表单的学生选择器 GET /applications/proxy-candidates。

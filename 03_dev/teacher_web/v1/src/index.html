@@ -14159,8 +14159,8 @@
           } catch (e) {
             console.warn("[TeachersAdmin] createTeacher 失败", e);
             const msg =
-              e && e.body && e.body.detail && e.body.detail.message
-                ? e.body.detail.message
+              e && e.message
+                ? e.message
                 : `追加に失敗しました (${e && e.status ? e.status : "?"})`;
             return { ok: false, error: msg };
           }
@@ -14175,8 +14175,8 @@
           } catch (e) {
             console.warn("[TeachersAdmin] deleteTeacher 失败", e);
             const msg =
-              e && e.body && e.body.detail && e.body.detail.message
-                ? e.body.detail.message
+              e && e.message
+                ? e.message
                 : `削除に失敗しました (${e && e.status ? e.status : "?"})`;
             setToast({ type: "warn", msg });
             setConfirmDelete(null);
@@ -23812,7 +23812,7 @@
             });
           } catch (e) {
             setErrorMsg(
-              (e && e.body && e.body.detail && e.body.detail.message) ||
+              (e && e.message) ||
                 "公告发送失败 — backend 接続不可 / 权限不足，请稍候再試",
             );
             setSubmitting(false);
