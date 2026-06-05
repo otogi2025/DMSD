@@ -50,6 +50,15 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+### 2026-06-05 学年更新/学生自设番号 五端 + iOS 16 + 对齐文档 + codex 两轮 by [Opus 4.8 1M · ultracode]
+
+- itsuki 实机审 iOS 问「番号年年变，登录不方便？」→ CC 查出**这事 4-30 已拍板「老师改/学生只读」**、跟今天说的相反 → itsuki **当场翻自己旧决定**改成学生自设。CC 主动挖 4 坑（撞号/鸡生蛋/高3毕业/误输）itsuki 逐个拍板。
+- 五端实装（Workflow 4 agent 勘察 → 串行）：后端 `needs_renewal` 列+迁移+开闸/自设/进度/单件改+R4（308 测试）+ iOS 顶部横幅+弹窗 + 老师网页 开闸+分组折叠列表+进度+单件改+4/1横幅。**Android 不碰**（itsuki 怒「别动安卓」，归别会话）。
+- **iOS 最低支持 26→16**：编译器报错逐个修（symbolEffect/onChange两参数/Canvas Text.foregroundStyle）+ 新建 `ViewCompat.swift`，双 scheme BUILD SUCCEEDED。
+- **iOS↔Android 对齐交接**（Workflow 11 agent 读 iOS 真代码）：`00_admin/iOS_Android_对齐规格.md` 3068 行 + `00_admin/iOS_Android对齐_GOAL提示词.md`（itsuki 教 /goal 用法后重写成可测量终态+40 轮刹车）+ `06_assets/app_screens_2026-06-05_ios/` 14 截图清单（PNG 待 itsuki 拖入）。
+- **codex 两轮**：① 4 major（R4 缺失）CC 先怀疑前提→查实 codex 对（管理係不在 CROSS_DORM_ROLES）→全采纳修+补 3 测试 ② `dorm_units_for_teacher` 共用函数 fail-open，CC 裁决出范围→记 TODO 给 itsuki 拍。不盲信 AI 双向。
+- 10 commit 全本地**未 push**。AC：模式 2（不盲信 AI ⭐顶级）+ 5（翻旧决定 / 学 /goal）+ 6（取舍）。raw `2026-06-05.md` 会话 B。
+
 ### 2026-06-05 代録网页表单 + 老师网页迁 Vite 决策 by [Opus 4.8 1M]
 
 - 杭田代録出寮届网页表单从无到有：后端 `GET /applications/proxy-candidates` 搜学生接口（补「代録能用 5 角色、admin 列学生只给 3 角色」的权限洞）+ 前端 `ProxyApplicationPage`（字段照抄 iOS、食事按 is_overseas 切换）+ 8 测试。
