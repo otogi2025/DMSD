@@ -29,6 +29,7 @@ import androidx.navigation.NavHostController
 import jp.tomoshibi.android.data.model.LostItem
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
+import jp.tomoshibi.android.nav.Route
 import jp.tomoshibi.android.ui.components.GlobalScaffold
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
@@ -48,10 +49,8 @@ fun LostFoundScreen(navController: NavHostController) {
     val tokens = SuzuT.current
     val store = LocalAppStore.current
     val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
-    val scope = rememberCoroutineScope()
 
     var query by remember { mutableStateOf("") }
-    var detailFor by remember { mutableStateOf<LostItem?>(null) }
 
     val filtered =
         remember(query) {
@@ -88,7 +87,7 @@ fun LostFoundScreen(navController: NavHostController) {
                             .size(40.dp)
                             .clip(CircleShape)
                             .background(tokens.btnGrad)
-                            .clickable { /* 新規届出 dialog — v1.0 占位，P1+ 接表单 */ },
+                            .clickable { navController.navigate(Route.LostNew.path) },
                     contentAlignment = Alignment.Center,
                 ) {
                     Text("+", color = Color.White, style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold))
@@ -136,7 +135,7 @@ fun LostFoundScreen(navController: NavHostController) {
                     Column(
                         modifier =
                             Modifier
-                                .clickable { detailFor = item }
+                                .clickable { navController.navigate(Route.LostDetail(item.id).path) }
                                 .alpha(if (claimed) 0.5f else 1f),
                     ) {
                         Box(
@@ -169,83 +168,6 @@ fun LostFoundScreen(navController: NavHostController) {
                             item.label,
                             color = tokens.ink,
                             style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    // 详情 bottom sheet
-    val item = detailFor
-    if (item != null) {
-        val sheetState = rememberModalBottomSheetState()
-        val claimed = state.lostFoundClaims[item.id] == true
-        ModalBottomSheet(
-            onDismissRequest = { detailFor = null },
-            sheetState = sheetState,
-            containerColor = tokens.paper,
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp),
-            ) {
-                Box(
-                    modifier =
-                        Modifier
-                            .size(120.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(parseArgbHex(item.colorHex)),
-                )
-                Spacer(Modifier.height(14.dp))
-                Text(
-                    item.label,
-                    color = tokens.ink,
-                    style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold),
-                )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    "拾得場所: 玄関 / 拾得日: 2026-04-25",
-                    color = tokens.inkSub,
-                    style = TextStyle(fontSize = 12.sp),
-                )
-                Spacer(Modifier.height(16.dp))
-                if (claimed) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(99.dp))
-                                .background(tokens.hairSoft)
-                                .padding(vertical = 14.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            "預かり中",
-                            color = tokens.inkSub,
-                            style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
-                        )
-                    }
-                } else {
-                    Box(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(99.dp))
-                                .background(tokens.btnGrad)
-                                .clickable {
-                                    scope.launch {
-                                        store.update { s ->
-                                            s.copy(lostFoundClaims = s.lostFoundClaims + (item.id to true))
-                                        }
-                                    }
-                                    detailFor = null
-                                }.padding(vertical = 14.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            "これは私のもの",
-                            color = Color.White,
-                            style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
                         )
                     }
                 }

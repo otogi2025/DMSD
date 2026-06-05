@@ -77,6 +77,8 @@ data class LostItem(
     val id: String,
     val label: String,
     val colorHex: String, // 用 hex string 序列化 — Compose 侧 Color(0xFF + 后 6 位) parse
+    val place: String = "", // 拾得場所（详情屏用，对齐 iOS LostItem.place）
+    val date: String = "", // 拾得日「2026-04-25」（详情屏用，对齐 iOS LostItem.date）
 )
 
 @Serializable

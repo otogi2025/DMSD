@@ -176,5 +176,16 @@ fun TomoshibiNavGraph(navController: NavHostController) {
         composable(Route.StudyOnlineList.path) { StudyOnlineListScreen(navController) }
         composable(Route.FridgeList.path) { FridgeListScreen(navController) }
         composable(Route.ItemList.path) { ItemListScreen(navController) }
+
+        // ── 遺失物投稿/詳細 + 本周活动列表 ────
+        composable(Route.LostNew.path) { LostNewScreen(navController) }
+        composable(
+            route = Route.LostDetail.PATH,
+            arguments = listOf(navArgument(Route.LostDetail.ARG_ID) { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString(Route.LostDetail.ARG_ID) ?: ""
+            LostDetailScreen(navController, id)
+        }
+        composable(Route.Events.path) { EventsScreen(navController) }
     }
 }

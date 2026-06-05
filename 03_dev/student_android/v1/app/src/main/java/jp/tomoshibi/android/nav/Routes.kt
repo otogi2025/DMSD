@@ -185,4 +185,18 @@ sealed class Route(
     data object FridgeList : Route("applylist/fridge") // 冷蔵庫購入一覧
 
     data object ItemList : Route("applylist/items") // 物品所持一覧
+
+    // ── 遺失物投稿/详情 + 本周活动列表 ──
+    data object LostNew : Route("lostnew") // 遺失物投稿屏
+
+    data class LostDetail(
+        val id: String,
+    ) : Route("lostdetail/$id") {
+        companion object {
+            const val PATH = "lostdetail/{id}"
+            const val ARG_ID = "id"
+        }
+    }
+
+    data object Events : Route("events") // 本周活动列表（对齐 iOS homeEvents）
 }

@@ -91,9 +91,9 @@ object MockData {
     // 失物 — Home omnibus 3 色块 grid（对应 iOS / React DATA.lostFound）
     val DEFAULT_LOST_FOUND =
         listOf(
-            LostItem("L1", "青いおりたたみ傘", "FFA9C8E8"),
-            LostItem("L2", "黒の鍵", "FF9DA3A4"),
-            LostItem("L3", "赤のペンケース", "FFEC9FAA"),
+            LostItem("L1", "青いおりたたみ傘", "FFA9C8E8", place = "玄関", date = "2026-04-25"),
+            LostItem("L2", "黒の鍵", "FF9DA3A4", place = "廊下", date = "2026-04-23"),
+            LostItem("L3", "赤のペンケース", "FFEC9FAA", place = "食堂", date = "2026-04-21"),
         )
 
     // 宅配 — 4 条（1 待領 + 3 領済），对齐 iOS SEED.packages

@@ -154,7 +154,7 @@ private fun EventsCard(navController: NavHostController) {
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(18.dp))
                 .background(t.paper)
-                .clickable { navController.navigate(Route.Schedule.path) }
+                .clickable { navController.navigate(Route.Events.path) }
                 .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {

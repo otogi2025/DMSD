@@ -1,6 +1,5 @@
 package jp.tomoshibi.android.ui.components
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
@@ -11,7 +10,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import jp.tomoshibi.android.data.model.RollState
@@ -34,10 +32,10 @@ fun GlobalScaffold(
 ) {
     var rollSheetOpen by remember { mutableStateOf(false) }
     var feedbackSheetOpen by remember { mutableStateOf(false) }
+    var feedbackKind by remember { mutableStateOf<String?>(null) } // 选中后打开 health/absence/other 子表单
     val tokens = SuzuT.current
     val store = LocalAppStore.current
     val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
-    val ctx = LocalContext.current
 
     Box(modifier = Modifier.fillMaxSize().background(tokens.pearl)) {
         // 内容层 — 留 92dp 底部空间给 BottomTabs（capsule 62 + 边距 16 + raised 凸起 22）
@@ -80,10 +78,15 @@ fun GlobalScaffold(
                 onDismiss = { feedbackSheetOpen = false },
                 onSelect = { kind ->
                     feedbackSheetOpen = false
-                    // TODO: health/absence/other 子表单弹窗待建，先 toast 占位
-                    Toast.makeText(ctx, "「$kind」の報告は後日対応", Toast.LENGTH_SHORT).show()
+                    feedbackKind = kind // 打开对应子表单
                 },
             )
+        }
+        // 反馈子表单（对齐 iOS HealthSheet/AbsenceSheet/OtherSheet）
+        when (feedbackKind) {
+            "health" -> HealthSheet(onDismiss = { feedbackKind = null })
+            "absence" -> AbsenceSheet(onDismiss = { feedbackKind = null })
+            "other" -> OtherSheet(onDismiss = { feedbackKind = null })
         }
     }
 }
