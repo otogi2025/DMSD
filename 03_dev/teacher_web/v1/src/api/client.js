@@ -438,12 +438,22 @@
     deleteIncident: (id, token) =>
       request("DELETE", `/incidents/${id}`, undefined, token),
 
-    // ── 学号一括进级（spec §4.2 — 5-30 新増）──
-    // POST body={dry_run: bool, target_grade_codes?: string[]}
-    // 响应: {dry_run, promote_count, graduate_count, total_affected, entries[]}
-    // entries[]: {student_id, student_no, name, old_grade_code, new_grade_code, action, old_status, new_status}
-    promoteStudents: (body, token) =>
-      request("POST", "/students/bulk-promote", body, token),
+    // ── 学年更新 / 学生自设番号（spec §4.2 — 6-05 学生自设方案，推翻 5-30 老师代改）──
+    // 开闸（按钮「学年更新を開始」）：中1~高2 打 needs_renewal 标记 + 高3 毕业。不直接改番号。
+    // POST body={dry_run: bool}；响应 {dry_run, notify_count, graduate_count, total_affected, entries[]}
+    // entries[]: {student_id, student_no, name, grade_code, action: "notify"|"graduate"}
+    startRenewal: (body, token) =>
+      request("POST", "/students/renewal-start", body, token),
+
+    // 进度：老师看谁还没自设番号（needs_renewal=true）。
+    // GET 响应 {pending_count, items[]}；items[]: {id, student_no, name, grade_code, class_code, seat_no}
+    renewalProgress: (token) =>
+      request("GET", "/students/renewal-progress", null, token),
+
+    // 老师单件改某学生番号（兜底 — 学生不会操作 / 填错时）。
+    // POST body={grade_code, class_code, seat_no}；撞号返 422 STUDENT_NO_TAKEN。
+    teacherRenewSeat: (studentId, body, token) =>
+      request("POST", `/accounts/${studentId}/renew-seat`, body, token),
 
     // 401 全局拦截注册（§11.5 W3 拍板）
     // App() 在 mount 时调 setOnUnauthorized(() => logout()) 注册回调。

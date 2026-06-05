@@ -24938,22 +24938,25 @@
         const [tempPwModal, setTempPwModal] = React.useState(null); // {name, student_no, pw}
         // 5-30: 个人档案聚合弹窗 — {id, name} | null
         const [profileTarget, setProfileTarget] = React.useState(null);
-        // 5-30: 一括進級 modal — null=关闭 / "preview"=预览中 / "confirm"=执行中
-        const [promoteModal, setPromoteModal] = React.useState(null); // null | {phase, preview}
+        // 6-05: 学年更新「开闸」modal — null=关闭 / {phase:"preview", preview} = 预览中
+        // （推翻 5-30 老师代改进级 → 改成学生自设，老师只开闸 + 通知）
+        const [promoteModal, setPromoteModal] = React.useState(null);
         const [promoteLoading, setPromoteLoading] = React.useState(false);
         const [promoteError, setPromoteError] = React.useState(null);
+        // 进度：还没自设番号的学生（needs_renewal=true）。{pending_count, items[]} | null
+        const [renewalProgress, setRenewalProgress] = React.useState(null);
 
-        // 权限：仅寮務部長 / 寮務課長 / 管理係 可操作进级
+        // 权限：仅寮務部長 / 寮務課長 / 管理係 可开闸 / 单件改番号
         const PROMOTE_ROLES = ["寮務部長", "寮務課長", "管理係"];
         const canPromote =
           teacher && teacher.role && PROMOTE_ROLES.includes(teacher.role);
 
-        // 一括進級：先 dry_run=true 预览，确认后 dry_run=false 真执行
+        // 开闸（按钮「学年更新を開始」）：先 dry_run=true 预览（通知 N 人 + 毕业 M 人），确认后真执行
         const handlePromotePreview = () => {
           setPromoteError(null);
           setPromoteLoading(true);
           window.tomoshibiApi
-            .promoteStudents({ dry_run: true }, authToken)
+            .startRenewal({ dry_run: true }, authToken)
             .then((res) => {
               setPromoteModal({ phase: "preview", preview: res });
               setPromoteLoading(false);
@@ -24969,18 +24972,28 @@
           setPromoteError(null);
           setPromoteLoading(true);
           window.tomoshibiApi
-            .promoteStudents({ dry_run: false }, authToken)
+            .startRenewal({ dry_run: false }, authToken)
             .then(() => {
               setPromoteModal(null);
               setPromoteLoading(false);
-              setToast({ type: "ok", msg: "一括進級が完了しました" });
+              setToast({ type: "ok", msg: "学年更新を開始しました" });
               fetchAccounts();
+              fetchRenewalProgress();
             })
             .catch((e) => {
-              setPromoteError(e.message || "進級実行失敗");
+              setPromoteError(e.message || "学年更新の開始に失敗しました");
               setPromoteLoading(false);
             });
         };
+
+        // 拉「谁还没自设番号」进度 — 进页面 + 开闸后刷新
+        const fetchRenewalProgress = React.useCallback(() => {
+          if (!authToken) return;
+          window.tomoshibiApi
+            .renewalProgress(authToken)
+            .then((res) => setRenewalProgress(res))
+            .catch(() => setRenewalProgress(null));
+        }, [authToken]);
 
         // 後端からリスト取得 — query / dormFilter が変わるたびに再取得
         const fetchAccounts = React.useCallback(() => {
@@ -25011,11 +25024,46 @@
           fetchAccounts();
         }, [fetchAccounts]);
 
+        React.useEffect(() => {
+          fetchRenewalProgress();
+        }, [fetchRenewalProgress]);
+
+        // 学生列表按「学年 → A/B 組」分组折叠（spec §4.2 做法 A）
+        const [collapsedGroups, setCollapsedGroups] = React.useState({});
+        const GRADE_LABEL = {
+          "01": "中1",
+          "02": "中2",
+          "03": "中3",
+          "04": "高1",
+          "05": "高2",
+          "06": "高3",
+        };
+        const CLASS_LABEL = { "01": "A組", "02": "B組" };
+
         // フィルタ: locked だけ追加でフロント側絞り込み（後端 status=locked と二重になるが安全）
         let visible = accounts;
         if (dormFilter === "locked")
           visible = accounts.filter((a) => a.is_locked);
         // 後端検索済みなのでフロント側の追加テキスト絞り込みは不要
+
+        // 按 学年码 → 组码 分组，组内保持后端给的 seat 顺序
+        const gradeClassGroups = React.useMemo(() => {
+          const map = {};
+          visible.forEach((a) => {
+            const key = `${a.grade_code || "??"}-${a.class_code || "??"}`;
+            (map[key] = map[key] || []).push(a);
+          });
+          return Object.keys(map)
+            .sort()
+            .map((key) => {
+              const [g, c] = key.split("-");
+              return {
+                key,
+                label: `${GRADE_LABEL[g] || g} ${CLASS_LABEL[c] || c}`,
+                rows: map[key],
+              };
+            });
+        }, [visible]);
 
         const stats = {
           total: accounts.length,
@@ -25139,7 +25187,7 @@
                       opacity: promoteLoading ? 0.6 : 1,
                     }}
                   >
-                    {promoteLoading ? "読み込み中…" : "一括進級"}
+                    {promoteLoading ? "読み込み中…" : "学年更新を開始"}
                   </button>
                 )}
                 <button
@@ -25208,10 +25256,12 @@
                   <h2
                     style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}
                   >
-                    一括進級 — プレビュー
+                    学年更新の開始 — プレビュー
                   </h2>
                   <p style={{ fontSize: 13, color: T.ink3, marginBottom: 16 }}>
-                    以下の変更が行われます。確認してから「実行」してください。
+                    中1〜高2 に番号の再設定を依頼し、高3
+                    を卒業にします。学籍番号は学生本人が App
+                    で設定します。確認してから「実行」してください。
                   </p>
                   <div
                     style={{
@@ -25222,7 +25272,7 @@
                     }}
                   >
                     {[
-                      ["進級", promoteModal.preview.promote_count, T.cobalt],
+                      ["通知", promoteModal.preview.notify_count, T.cobalt],
                       ["卒業", promoteModal.preview.graduate_count, T.ok],
                       ["合計", promoteModal.preview.total_affected, T.ink],
                     ].map(([label, val, color]) => (
@@ -25274,7 +25324,7 @@
                             top: 0,
                           }}
                         >
-                          {["学番", "氏名", "変更", "ステータス"].map((h) => (
+                          {["学番", "氏名", "学年", "対応"].map((h) => (
                             <th
                               key={h}
                               style={{
@@ -25301,6 +25351,9 @@
                               {e.student_no}
                             </td>
                             <td style={{ padding: "5px 10px" }}>{e.name}</td>
+                            <td style={{ padding: "5px 10px", color: T.ink3 }}>
+                              {GRADE_LABEL[e.grade_code] || e.grade_code}
+                            </td>
                             <td
                               style={{
                                 padding: "5px 10px",
@@ -25310,11 +25363,8 @@
                               }}
                             >
                               {e.action === "graduate"
-                                ? `${e.old_grade_code} → 卒業`
-                                : `${e.old_grade_code} → ${e.new_grade_code}`}
-                            </td>
-                            <td style={{ padding: "5px 10px", color: T.ink3 }}>
-                              {e.new_status}
+                                ? "卒業"
+                                : "番号再設定を依頼"}
                             </td>
                           </tr>
                         ))}
@@ -25375,7 +25425,7 @@
                         opacity: promoteLoading ? 0.6 : 1,
                       }}
                     >
-                      {promoteLoading ? "実行中…" : "実行（元に戻せません）"}
+                      {promoteLoading ? "実行中…" : "実行する"}
                     </button>
                   </div>
                 </div>
@@ -25396,6 +25446,25 @@
                 }}
               >
                 ⚠️ {loadError}
+              </div>
+            )}
+
+            {/* 学年更新进度横幅 — 有人待自设番号时显示（各组人数在下面列表组标题里）*/}
+            {renewalProgress && renewalProgress.pending_count > 0 && (
+              <div
+                style={{
+                  padding: "10px 14px",
+                  background: T.warnSoft,
+                  border: `1px solid ${T.warnBorder}`,
+                  borderRadius: 8,
+                  color: T.warn,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  marginBottom: 16,
+                }}
+              >
+                学年更新：未更新 {renewalProgress.pending_count} 名 —
+                各組見出しに内訳を表示
               </div>
             )}
 
@@ -25545,165 +25614,225 @@
                 </div>
               )}
               {!loading &&
-                visible.map((a, i) => (
-                  <div
-                    key={a.id}
-                    onClick={() => setDetailTarget(a)}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns:
-                        "110px 160px 80px 60px 80px 130px 110px 90px",
-                      borderTop: i > 0 ? `1px solid ${T.line}` : "none",
-                      fontSize: 12.5,
-                      alignItems: "center",
-                      cursor: "pointer",
-                      transition: "background .1s",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background = T.surfaceAlt)
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = "transparent")
-                    }
-                  >
-                    <div
-                      style={{
-                        padding: "10px 12px",
-                        fontFamily: T.mono,
-                        fontWeight: 700,
-                        color: T.ink2,
-                      }}
-                    >
-                      {a.student_no}
-                    </div>
-                    <div style={{ padding: "10px 12px", fontWeight: 600 }}>
-                      {a.name}
-                    </div>
-                    <div
-                      style={{
-                        padding: "10px 12px",
-                        fontFamily: T.mono,
-                        color: T.ink3,
-                      }}
-                    >
-                      {a.room_no}
-                    </div>
-                    <div
-                      style={{
-                        padding: "10px 12px",
-                        fontFamily: T.mono,
-                        color: T.ink3,
-                      }}
-                    >
-                      {a.dorm_unit}寮
-                    </div>
-                    <div style={{ padding: "10px 12px", color: T.ink3 }}>
-                      {a.gender === "male" ? "男" : "女"}
-                    </div>
-                    <div
-                      style={{
-                        padding: "10px 12px",
-                        fontFamily: T.mono,
-                        fontSize: 11,
-                        color: T.ink3,
-                      }}
-                    >
-                      {a.last_login_at ? a.last_login_at.slice(5, 16) : "—"}
-                    </div>
-                    <div style={{ padding: "10px 12px" }}>
-                      {a.is_locked ? (
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            padding: "2px 8px",
-                            borderRadius: 4,
-                            background: T.dangerSoft,
-                            color: T.danger,
-                            border: `1px solid ${T.dangerBorder}`,
-                          }}
-                        >
-                          🔒 ロック
-                        </span>
-                      ) : a.status === "active" ? (
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            padding: "2px 8px",
-                            borderRadius: 4,
-                            background: T.okSoft,
-                            color: T.ok,
-                            border: `1px solid ${T.okBorder}`,
-                          }}
-                        >
-                          正常
-                        </span>
-                      ) : (
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            padding: "2px 8px",
-                            borderRadius: 4,
-                            background: T.warnSoft,
-                            color: T.warn,
-                            border: `1px solid ${T.warnBorder}`,
-                          }}
-                        >
-                          {a.status}
-                        </span>
-                      )}
-                    </div>
-                    <div
-                      style={{
-                        padding: "6px 8px",
-                        display: "flex",
-                        gap: 4,
-                        alignItems: "center",
-                      }}
-                    >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDetailTarget(a);
-                        }}
+                gradeClassGroups.map((group) => {
+                  const isCollapsed = collapsedGroups[group.key];
+                  const groupPending = group.rows.filter(
+                    (r) => r.needs_renewal,
+                  ).length;
+                  return (
+                    <React.Fragment key={group.key}>
+                      {/* 分组标题行（学年+组）点击折叠，右侧显示人数 + 未更新数 */}
+                      <div
+                        onClick={() =>
+                          setCollapsedGroups((m) => ({
+                            ...m,
+                            [group.key]: !m[group.key],
+                          }))
+                        }
                         style={{
-                          padding: "4px 9px",
-                          fontSize: 11,
-                          fontWeight: 700,
-                          background: "transparent",
-                          color: T.cobalt,
-                          border: `1px solid ${T.cobalt}`,
-                          borderRadius: 6,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: "8px 12px",
+                          background: T.surfaceAlt,
+                          borderTop: `1px solid ${T.line}`,
                           cursor: "pointer",
-                          fontFamily: "inherit",
-                        }}
-                      >
-                        詳細
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setProfileTarget({ id: a.id, name: a.name });
-                        }}
-                        style={{
-                          padding: "4px 9px",
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: 700,
-                          background: "transparent",
                           color: T.ink2,
-                          border: `1px solid ${T.lineStrong}`,
-                          borderRadius: 6,
-                          cursor: "pointer",
-                          fontFamily: "inherit",
                         }}
                       >
-                        档案
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                        <span style={{ color: T.ink3 }}>
+                          {isCollapsed ? "▶" : "▼"}
+                        </span>
+                        <span>{group.label}</span>
+                        <span style={{ color: T.ink3, fontWeight: 500 }}>
+                          · {group.rows.length}人
+                        </span>
+                        {groupPending > 0 && (
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: "1px 8px",
+                              borderRadius: 8,
+                              background: T.warnSoft,
+                              color: T.warn,
+                            }}
+                          >
+                            未更新 {groupPending}
+                          </span>
+                        )}
+                      </div>
+                      {!isCollapsed &&
+                        group.rows.map((a, i) => (
+                          <div
+                            key={a.id}
+                            onClick={() => setDetailTarget(a)}
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns:
+                                "110px 160px 80px 60px 80px 130px 110px 90px",
+                              borderTop: i > 0 ? `1px solid ${T.line}` : "none",
+                              fontSize: 12.5,
+                              alignItems: "center",
+                              cursor: "pointer",
+                              transition: "background .1s",
+                            }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.background = T.surfaceAlt)
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.background = "transparent")
+                            }
+                          >
+                            <div
+                              style={{
+                                padding: "10px 12px",
+                                fontFamily: T.mono,
+                                fontWeight: 700,
+                                color: T.ink2,
+                              }}
+                            >
+                              {a.student_no}
+                            </div>
+                            <div
+                              style={{ padding: "10px 12px", fontWeight: 600 }}
+                            >
+                              {a.name}
+                            </div>
+                            <div
+                              style={{
+                                padding: "10px 12px",
+                                fontFamily: T.mono,
+                                color: T.ink3,
+                              }}
+                            >
+                              {a.room_no}
+                            </div>
+                            <div
+                              style={{
+                                padding: "10px 12px",
+                                fontFamily: T.mono,
+                                color: T.ink3,
+                              }}
+                            >
+                              {a.dorm_unit}寮
+                            </div>
+                            <div
+                              style={{ padding: "10px 12px", color: T.ink3 }}
+                            >
+                              {a.gender === "male" ? "男" : "女"}
+                            </div>
+                            <div
+                              style={{
+                                padding: "10px 12px",
+                                fontFamily: T.mono,
+                                fontSize: 11,
+                                color: T.ink3,
+                              }}
+                            >
+                              {a.last_login_at
+                                ? a.last_login_at.slice(5, 16)
+                                : "—"}
+                            </div>
+                            <div style={{ padding: "10px 12px" }}>
+                              {a.is_locked ? (
+                                <span
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    padding: "2px 8px",
+                                    borderRadius: 4,
+                                    background: T.dangerSoft,
+                                    color: T.danger,
+                                    border: `1px solid ${T.dangerBorder}`,
+                                  }}
+                                >
+                                  🔒 ロック
+                                </span>
+                              ) : a.status === "active" ? (
+                                <span
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    padding: "2px 8px",
+                                    borderRadius: 4,
+                                    background: T.okSoft,
+                                    color: T.ok,
+                                    border: `1px solid ${T.okBorder}`,
+                                  }}
+                                >
+                                  正常
+                                </span>
+                              ) : (
+                                <span
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    padding: "2px 8px",
+                                    borderRadius: 4,
+                                    background: T.warnSoft,
+                                    color: T.warn,
+                                    border: `1px solid ${T.warnBorder}`,
+                                  }}
+                                >
+                                  {a.status}
+                                </span>
+                              )}
+                            </div>
+                            <div
+                              style={{
+                                padding: "6px 8px",
+                                display: "flex",
+                                gap: 4,
+                                alignItems: "center",
+                              }}
+                            >
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDetailTarget(a);
+                                }}
+                                style={{
+                                  padding: "4px 9px",
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  background: "transparent",
+                                  color: T.cobalt,
+                                  border: `1px solid ${T.cobalt}`,
+                                  borderRadius: 6,
+                                  cursor: "pointer",
+                                  fontFamily: "inherit",
+                                }}
+                              >
+                                詳細
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setProfileTarget({ id: a.id, name: a.name });
+                                }}
+                                style={{
+                                  padding: "4px 9px",
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  background: "transparent",
+                                  color: T.ink2,
+                                  border: `1px solid ${T.lineStrong}`,
+                                  borderRadius: 6,
+                                  cursor: "pointer",
+                                  fontFamily: "inherit",
+                                }}
+                              >
+                                档案
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                    </React.Fragment>
+                  );
+                })}
               {!loading && visible.length === 0 && (
                 <div
                   style={{
