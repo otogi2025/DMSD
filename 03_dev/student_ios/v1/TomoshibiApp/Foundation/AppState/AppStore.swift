@@ -899,14 +899,15 @@ final class AppStore: ObservableObject {
         let id: UUID
         let kind: String
         let description: String
+        let location: String? // 保管場所（后端 FrontDeskItem.location；宅配詳細页用）
         let status: String // pending / notified / picked_up / expired / discarded
-        // datetime 用 Date —— APIClient.decodeISO8601Date 已统一兼容开发环境无时区裸时间（按 UTC 解释），
+        // datetime 用 Date —— 后端统一输出带 +09:00 日本时间（TZDateTime），APIClient.decodeISO8601Date 直接解码。
         // 跟相邻公告(AnnouncementBrief)同方针，全走健壮解码器。
         let createdAt: Date
         let notifiedAt: Date?
 
         enum CodingKeys: String, CodingKey {
-            case id, kind, description, status
+            case id, kind, description, location, status
             case createdAt = "created_at"
             case notifiedAt = "notified_at"
         }

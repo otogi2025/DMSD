@@ -193,6 +193,84 @@ struct NotificationsView: View {
         .environmentObject(AppStore())
 }
 
+// MARK: - 包裹展示模型（统一 demo 假数据 与 生产真后端两个数据源）
+
+/// 宅配卡片 / 详情共用的展示模型。
+/// - 演示构建(#if DEMO)：由 `SEED.packages`（静态假数据 PackageItem）映射
+/// - 生产构建：由 `AppStore.packages`（GET /api/v1/front-desk/mine 真后端 FrontDeskItemBrief）映射
+/// 两个数据源在 UI 层收敛成一个类型，PackagesView / MyPackagesView / PackageDetailView 都只认它，
+/// 假数据靠 `#if DEMO` 守卫 → 生产构建绝不显示假包裹。
+struct PackageDisplay: Identifiable {
+    let id: String // 演示=PackageItem.id(Int) 转字符串 / 生产=FrontDeskItem UUID 字符串
+    let title: String // 演示=配送業者 / 生产=包裹说明(description)
+    let dateLabel: String // 到着日（卡片副标题）
+    let arrivedLabel: String // 详情「到着」行文案
+    let tracking: String? // 追跡番号（仅演示有，后端无此字段）
+    let location: String? // 保管場所（后端 location）
+    let isWaiting: Bool // true=待取（状态 pending/notified）/ false=已取（picked_up 等终态）
+    let statusLabel: String // 详情「状態」行用：精确到 5 状态（picked_up/expired/discarded 各自文案，不一律「受取済」）
+    var statusText: String {
+        isWaiting ? "待領" : "領済"
+    }
+}
+
+/// 后端 5 状态 → 学生侧展示文案（codex 审查 major #2：expired/discarded 不能一律显示「受取済」）。
+private func packageStatusLabel(_ backendStatus: String) -> String {
+    switch backendStatus {
+    case "pending", "notified": return "受取待ち"
+    case "picked_up": return "受取済"
+    case "expired": return "期限切れ"
+    case "discarded": return "処分済"
+    default: return backendStatus
+    }
+}
+
+private let pkgDateFmt: DateFormatter = {
+    let f = DateFormatter()
+    f.locale = Locale(identifier: "ja_JP")
+    f.timeZone = TimeZone(identifier: "Asia/Tokyo")
+    f.dateFormat = "yyyy-MM-dd"
+    return f
+}()
+
+private let pkgArrivedFmt: DateFormatter = {
+    let f = DateFormatter()
+    f.locale = Locale(identifier: "ja_JP")
+    f.timeZone = TimeZone(identifier: "Asia/Tokyo")
+    f.dateFormat = "yyyy-MM-dd HH:mm"
+    return f
+}()
+
+extension PackageDisplay {
+    /// 演示构建：从 SEED 假数据映射。
+    init(demo p: PackageItem) {
+        self.init(
+            id: String(p.id),
+            title: p.from,
+            dateLabel: p.date,
+            arrivedLabel: "\(p.date) 14:22",
+            tracking: p.tracking,
+            location: "寮務室前棚 A-3",
+            isWaiting: p.status == "待領",
+            statusLabel: p.status // 演示数据状态本就是日语「待領 / 領済」
+        )
+    }
+
+    /// 生产构建：从后端 FrontDeskItemBrief 映射（status pending/notified 视为待取、其余视为已取）。
+    init(brief b: AppStore.FrontDeskItemBrief) {
+        self.init(
+            id: b.id.uuidString,
+            title: b.description,
+            dateLabel: pkgDateFmt.string(from: b.createdAt),
+            arrivedLabel: pkgArrivedFmt.string(from: b.notifiedAt ?? b.createdAt),
+            tracking: nil,
+            location: b.location,
+            isWaiting: b.status == "pending" || b.status == "notified",
+            statusLabel: packageStatusLabel(b.status)
+        )
+    }
+}
+
 // MARK: - §2 PackagesView · 宅配（v2 修正：快递 → 宅配）
 
 struct PackagesView: View {
@@ -202,16 +280,25 @@ struct PackagesView: View {
 
     enum PkgTab: Hashable { case wait, done }
 
+    /// 全部包裹（演示=SEED 假数据 / 生产=后端真数据，靠 #if DEMO 守卫）。
+    private var allRows: [PackageDisplay] {
+        #if DEMO
+            return SEED.packages.map(PackageDisplay.init(demo:))
+        #else
+            return app.packages.map(PackageDisplay.init(brief:))
+        #endif
+    }
+
     private var waitCount: Int {
-        SEED.packages.filter { $0.status == "待領" }.count
+        allRows.filter { $0.isWaiting }.count
     }
 
     private var doneCount: Int {
-        SEED.packages.filter { $0.status == "領済" }.count
+        allRows.filter { !$0.isWaiting }.count
     }
 
-    private var list: [PackageItem] {
-        SEED.packages.filter { tab == .wait ? $0.status == "待領" : $0.status == "領済" }
+    private var list: [PackageDisplay] {
+        allRows.filter { tab == .wait ? $0.isWaiting : !$0.isWaiting }
     }
 
     var body: some View {
@@ -244,9 +331,15 @@ struct PackagesView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl.ignoresSafeArea())
+        .task {
+            // 生产构建：进页拉真后端包裹（演示构建用 SEED，不拉）
+            #if !DEMO
+                await app.loadMyPackages()
+            #endif
+        }
     }
 
-    private func pkgCard(_ p: PackageItem) -> some View {
+    private func pkgCard(_ p: PackageDisplay) -> some View {
         Button { router.go(.homePackageDetail(id: p.id)) } label: {
             Card(padding: 14) {
                 // HStack alignItems:'center' gap:12
@@ -255,17 +348,17 @@ struct PackagesView: View {
                     Text("📦")
                         .font(.system(size: 28))
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(p.from)
+                        Text(p.title)
                             .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(T.ink)
                         // date + tracking · fontFamily:T.mono fontSize:11 color:T.inkMute
-                        Text("\(p.date)\(p.tracking.map { " · \($0)" } ?? "")")
+                        Text("\(p.dateLabel)\(p.tracking.map { " · \($0)" } ?? "")")
                             .font(.system(size: 11, design: .monospaced))
                             .foregroundStyle(T.inkMute)
                     }
                     Spacer()
                     // 待領 only：受取 button · height 36 padding '0 16' fontSize 13
-                    if p.status == "待領" {
+                    if p.isWaiting {
                         Text("受取")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(.white)
@@ -292,22 +385,40 @@ struct PackagesView: View {
 // MARK: - §3 PackageDetailView · 宅配詳細
 
 struct PackageDetailView: View {
-    let id: Int
+    let id: String
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
-    private var item: PackageItem? {
-        SEED.packages.first(where: { $0.id == id })
+    /// 演示=按 SEED 的 Int id（转字符串）匹配 / 生产=按后端 UUID 字符串匹配，靠 #if DEMO 守卫。
+    private var item: PackageDisplay? {
+        #if DEMO
+            return SEED.packages.first(where: { String($0.id) == id }).map(PackageDisplay.init(demo:))
+        #else
+            return app.packages.first(where: { $0.id.uuidString == id }).map(PackageDisplay.init(brief:))
+        #endif
     }
 
-    /// JSX 写死 4 行 meta · 用 package item 填充可用字段
-    private func rows(_ p: PackageItem) -> [(String, String)] {
-        [
-            ("配送業者", p.from),
-            ("到着時刻", "\(p.date) 14:22"),
-            ("追跡番号", p.tracking ?? "―"),
-            ("保管場所", "寮務室前棚 A-3"),
-        ]
+    /// 详情 meta 行：演示沿用 JSX 4 行（含追踪号等门面字段）；
+    /// 生产只列后端真有的字段（说明 / 到达 / 状态 / 保管位置），不假造后端没有的配送商、追踪号。
+    private func rows(_ p: PackageDisplay) -> [(String, String)] {
+        #if DEMO
+            return [
+                ("配送業者", p.title),
+                ("到着時刻", p.arrivedLabel),
+                ("追跡番号", p.tracking ?? "―"),
+                ("保管場所", p.location ?? "―"),
+            ]
+        #else
+            var r: [(String, String)] = [
+                ("内容", p.title),
+                ("到着", p.arrivedLabel),
+                ("状態", p.statusLabel),
+            ]
+            if let loc = p.location, !loc.isEmpty {
+                r.append(("保管場所", loc))
+            }
+            return r
+        #endif
     }
 
     var body: some View {
@@ -349,12 +460,16 @@ struct PackageDetailView: View {
                         .padding(.top, 4)
 
                         // marginTop 20
-                        PrimaryButton(title: "受取確認") {
-                            app.showToast("受取完了しました")
-                            router.back()
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 20)
+                        // 受取確認：仅演示构建。生产无学生自助确认端点（取走由老师标记 / NFC 取走是 v1.1+），
+                        // 不放假按钮误导学生。
+                        #if DEMO
+                            PrimaryButton(title: "受取確認") {
+                                app.showToast("受取完了しました")
+                                router.back()
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.top, 20)
+                        #endif
                     } else {
                         EmptyState(icon: "shippingbox", title: "宅配が見つかりません")
                     }
@@ -364,12 +479,18 @@ struct PackageDetailView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl.ignoresSafeArea())
+        .task {
+            // 生产构建：深进详情时若包裹缓存还空（冷启动 / 直达），补拉一次
+            #if !DEMO
+                if app.packages.isEmpty { await app.loadMyPackages() }
+            #endif
+        }
     }
 }
 
 #Preview {
-    PackageDetailView(id: 1)
-        .environmentObject(RouterStore(initial: .homePackageDetail(id: 1)))
+    PackageDetailView(id: "1")
+        .environmentObject(RouterStore(initial: .homePackageDetail(id: "1")))
         .environmentObject(AppStore())
 }
 

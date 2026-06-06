@@ -76,7 +76,14 @@ struct MyLandingView: View {
 
     /// 履歴 grid（6 件 · 2-col grid）
     private var blocks: [MyLandingGridBlock] {
-        let pendingPackages = SEED.packages.filter { $0.status == "待領" }.count
+        // 包裹 badge 跟列表同源：演示用 SEED 假数据 / 生产用 app.packages 真后端（codex 审查 major #4）
+        #if DEMO
+            let pendingPackages = SEED.packages.filter { $0.status == "待領" }.count
+        #else
+            let pendingPackages = app.packages.filter {
+                $0.status == "pending" || $0.status == "notified"
+            }.count
+        #endif
         let packagesBadge = pendingPackages > 0 ? "\(pendingPackages)" : nil
 
         return [
@@ -139,6 +146,12 @@ struct MyLandingView: View {
             }
         }
         .background(T.pearl.ignoresSafeArea())
+        .task {
+            // 生产构建：拉真后端包裹，让上面的包裹 badge 计数准确（演示用 SEED 不拉）
+            #if !DEMO
+                await app.loadMyPackages()
+            #endif
+        }
     }
 
     // MARK: Profile card（紧凑：avatar 56 + 名字 + 账号 + Pill 一行）
@@ -1651,12 +1664,23 @@ struct MyCleanView: View {
 
 struct MyPackagesView: View {
     @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
+
+    /// 全部包裹（演示=SEED 假数据 / 生产=后端真数据，靠 #if DEMO 守卫，跟 PackagesView 同源）。
+    private var rows: [PackageDisplay] {
+        #if DEMO
+            return SEED.packages.map(PackageDisplay.init(demo:))
+        #else
+            return app.packages.map(PackageDisplay.init(brief:))
+        #endif
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             PageHeader(title: "荷物受取履歴", level: 2) // iosmypage-11：原中文「快递領取履歴」→ 日语
             ScrollView {
                 VStack(spacing: 10) {
-                    ForEach(SEED.packages) { p in
+                    ForEach(rows) { p in
                         Button {
                             router.go(.homePackageDetail(id: p.id))
                         } label: {
@@ -1665,20 +1689,23 @@ struct MyPackagesView: View {
                                     Text("📦")
                                         .font(.system(size: 28))
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(p.from)
+                                        Text(p.title)
                                             .font(.system(size: 14, weight: .bold))
                                             .foregroundStyle(T.ink)
-                                        Text(p.date)
+                                        Text(p.dateLabel)
                                             .font(.system(size: 11))
                                             .monospaced()
                                             .foregroundStyle(T.inkMute)
                                     }
                                     Spacer()
-                                    Pill(text: p.status, tone: p.status == "待領" ? .warn : .neutral)
+                                    Pill(text: p.statusText, tone: p.isWaiting ? .warn : .neutral)
                                 }
                             }
                         }
                         .buttonStyle(.plain)
+                    }
+                    if rows.isEmpty {
+                        EmptyState(icon: "shippingbox", title: "なし")
                     }
                 }
                 .padding(.horizontal, 20)
@@ -1687,6 +1714,11 @@ struct MyPackagesView: View {
             }
         }
         .background(T.pearl.ignoresSafeArea())
+        .task {
+            #if !DEMO
+                await app.loadMyPackages()
+            #endif
+        }
     }
 }
 

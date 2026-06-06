@@ -24,7 +24,8 @@ enum Route: Hashable {
     // §1.4 Home 子页 Community
     case homeNotifications
     case homePackages
-    case homePackageDetail(id: Int)
+    // id 用 String：演示构建是 SEED.PackageItem 的 Int（转字符串），生产构建是后端 FrontDeskItem 的 UUID 字符串
+    case homePackageDetail(id: String)
     case homeLost
     case homeLostNew
     case homeLostDetail(id: Int)
