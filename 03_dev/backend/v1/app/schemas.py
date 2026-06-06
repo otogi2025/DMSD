@@ -1123,6 +1123,20 @@ class CleaningInspectIn(BaseModel):
 # ---------------------------------------------------------------
 # 前台业务（spec §7.12 宅配 + 失物招领）— 5-27 凌晨新增
 # ---------------------------------------------------------------
+class FrontDeskStudentBrief(BaseModel):
+    """前台登记宅配时挑收件学生用的最小字段（不含账号锁定 / 登录等敏感信息）。
+
+    与「学生账号管理」的 StudentAccountListItem 区别：本类权限更宽（含寮監，能登记宅配的角色都能搜），
+    但只暴露挑人需要的字段，故单独定义、不复用账号管理那套。
+    """
+
+    id: UUID
+    name: str
+    room_no: str
+    student_no: str  # grade_code + class_code + seat_no 拼接
+    dorm_unit: int
+
+
 class FrontDeskItemOut(BaseModel):
     id: UUID
     kind: Literal["delivery", "lost_and_found"]

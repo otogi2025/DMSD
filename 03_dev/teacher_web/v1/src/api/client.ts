@@ -51,6 +51,7 @@ import type {
   CleaningInspectIn,
   FrontDeskItem,
   FrontDeskCreateIn,
+  FrontDeskStudentBrief,
   StudentProfile,
   GuidanceItem,
   GuidanceCreateIn,
@@ -486,6 +487,16 @@ export const api = {
     request<FrontDeskItem>("POST", `/front-desk/${id}/notify`, {}, token),
   pickupFrontDesk: (id: string, token: string) =>
     request<FrontDeskItem>("POST", `/front-desk/${id}/picked-up`, {}, token),
+  // 前台登记宅配挑收件学生（权限含寮監，按男/女寮过滤）—— 区别于账号管理的 listStudents
+  searchFrontDeskStudents: (q: string, token: string) => {
+    const qs = q ? `?q=${encodeURIComponent(q)}` : "";
+    return request<FrontDeskStudentBrief[]>(
+      "GET",
+      `/front-desk/students${qs}`,
+      undefined,
+      token,
+    );
+  },
 
   // ── 学生个人档案聚合 ──
   getStudentProfile: (studentId: string, token: string, limit?: number) => {

@@ -20,7 +20,7 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -57,7 +57,7 @@ def list_items(
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(get_current_teacher),
 ):
-    """列前台条目 — kind 可选过滤。"""
+    """列前台条目 — kind 可选过滤 + 按老师管辖男/女寮过滤。"""
     stmt = select(models.FrontDeskItem).order_by(models.FrontDeskItem.created_at.desc())
     if kind:
         if kind not in {"delivery", "lost_and_found"}:
@@ -69,6 +69,21 @@ def list_items(
                 },
             )
         stmt = stmt.where(models.FrontDeskItem.kind == kind)
+
+    # R4 寮过滤：寮監等管辖男/女寮的老师只看关联学生属于自己男/女寮的条目。
+    # itsuki 拍板「按男寮 / 女寮过滤、不细分到楼」—— dorm_units_for_teacher 返回的本就是
+    # 男女寮粒度（男寮=[1,2] / 女寮=[4] / 跨寮角色=None=看全部）。
+    # 无关联学生的条目（如无主失物 student_id=NULL）对所有老师可见。
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None:
+        stmt = stmt.outerjoin(
+            models.Student, models.FrontDeskItem.student_id == models.Student.id
+        ).where(
+            or_(
+                models.FrontDeskItem.student_id.is_(None),
+                models.Student.dorm_unit.in_(allowed),
+            )
+        )
     return [schemas.FrontDeskItemOut.model_validate(r) for r in db.scalars(stmt).all()]
 
 
@@ -94,6 +109,54 @@ def list_my_deliveries(
         .order_by(models.FrontDeskItem.created_at.desc())
     )
     return [schemas.FrontDeskItemOut.model_validate(r) for r in db.scalars(stmt).all()]
+
+
+@router.get("/students", response_model=list[schemas.FrontDeskStudentBrief])
+def search_recipients(
+    q: Optional[str] = None,
+    db: Session = Depends(get_db),
+    teacher: models.Teacher = Depends(get_current_teacher),
+):
+    """前台登记宅配时挑收件学生用 —— 权限同前台登记(_ADMIN_ROLES，含寮監)，
+    按老师管辖男/女寮过滤，只返回挑人需要的最小字段。
+
+    为什么单独建此端点、不复用账号管理的 GET /students：那个端点角色集不含寮監
+    （寮監能登记宅配却搜不了学生 → 选择器对寮監直接 403 失效），且会暴露账号锁定 /
+    最后登录时间等敏感字段，前台挑人不需要。
+    """
+    if teacher.role not in _ADMIN_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "FORBIDDEN_ROLE",
+                "message": "前台登记需要寮監 / 寮務 / 管理係 权限",
+            },
+        )
+    stmt = select(models.Student).where(models.Student.is_demo.is_(False))
+    if q:
+        like = f"%{q}%"
+        stmt = stmt.where(
+            models.Student.name.like(like)
+            | (
+                models.Student.grade_code
+                + models.Student.class_code
+                + models.Student.seat_no
+            ).like(like)
+        )
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None:
+        stmt = stmt.where(models.Student.dorm_unit.in_(allowed))
+    stmt = stmt.order_by(models.Student.room_no).limit(20)
+    return [
+        schemas.FrontDeskStudentBrief(
+            id=s.id,
+            name=s.name,
+            room_no=s.room_no,
+            student_no=f"{s.grade_code}{s.class_code}{s.seat_no}",
+            dorm_unit=s.dorm_unit,
+        )
+        for s in db.scalars(stmt).all()
+    ]
 
 
 @router.post("", response_model=schemas.FrontDeskItemOut, status_code=201)

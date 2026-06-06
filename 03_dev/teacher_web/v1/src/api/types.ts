@@ -500,6 +500,15 @@ export interface FrontDeskCreateIn {
   location?: string;
 }
 
+// 前台登记宅配挑收件学生用的最小字段（对齐后端 schemas.FrontDeskStudentBrief）
+export interface FrontDeskStudentBrief {
+  id: string;
+  name: string;
+  room_no: string;
+  student_no: string;
+  dorm_unit: number;
+}
+
 // ── 学生个人档案聚合（对齐 StudentProfileOut 1543-1554 + Profile*Entry 1464-1540）──
 export interface StudentProfileBasic {
   id: string;

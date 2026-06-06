@@ -5,14 +5,19 @@ import type {
   TeacherProfile,
   FrontDeskItem,
   FrontDeskCreateIn,
+  FrontDeskStudentBrief,
 } from "../api/types";
 import { ModalShell, ModalField, ModalFooter } from "./shared";
 
 // 源 index.html 17884-18885（front-desk 块）。界面原样搬，仅作用域引用方式改造。
 // フロント業務页 —— 宅配通知 + 忘れ物（コミュニティから拆分）
 
-// 撰写弹窗回调要提交的内容（部屋番号/発見場所 可空）
-type ComposeBody = { description: string; location: string | null };
+// 撰写弹窗回调要提交的内容（部屋番号/発見場所 可空；宅配带收件学生 student_id）
+type ComposeBody = {
+  description: string;
+  location: string | null;
+  student_id?: string | null;
+};
 
 export function FrontDeskPage({
   teacher: _teacher,
@@ -113,7 +118,11 @@ export function FrontDeskPage({
         : l.status === "picked_up",
   );
 
-  const todayIso = new Date().toISOString().slice(0, 10);
+  // 「本日」按日本时区算 —— 后端时间统一是 +09:00 日本时间；用 UTC 会在日本凌晨 00-09 时算成昨天。
+  // sv-SE 区域设置输出 ISO 格式 "YYYY-MM-DD"。
+  const todayIso = new Date().toLocaleDateString("sv-SE", {
+    timeZone: "Asia/Tokyo",
+  });
   // 两个标签页统计字段不同 —— 用 Record 统一类型，避免联合后各字段变 number|undefined
   const stats: Record<string, number> =
     tab === "delivery"
@@ -403,6 +412,7 @@ export function FrontDeskPage({
       {composing && tab === "delivery" && (
         <DeliveryComposeModal
           T={T}
+          authToken={authToken}
           onClose={() => setComposing(false)}
           onSubmit={(body) => addItem({ ...body, kind: "delivery" })}
         />
@@ -487,6 +497,19 @@ function DeliveryRow({
 }) {
   const isPicked = d.status === "picked_up";
   const isNotified = d.status === "notified";
+  // expired（显示「期限切れ」）/ discarded（显示「処分済」）是终态 —— v1.0 暂无代码会置成这俩，
+  // 但防御性处理：终态显示对应标签且不再显示「通知済に」「受取済に」操作按钮（点了后端会拒绝）。
+  const isClosed =
+    isPicked || d.status === "expired" || d.status === "discarded";
+  const statusLabel = isPicked
+    ? "受取済"
+    : d.status === "expired"
+      ? "期限切れ"
+      : d.status === "discarded"
+        ? "処分済"
+        : isNotified
+          ? "通知済"
+          : "未受取";
   const dateStr = d.created_at
     ? d.created_at.slice(5, 16).replace("T", " ")
     : "—";
@@ -498,7 +521,7 @@ function DeliveryRow({
         gap: 14,
         padding: "12px 16px",
         background: T.surface,
-        border: `1px solid ${isPicked ? T.line : T.warnBorder}`,
+        border: `1px solid ${isClosed ? T.line : T.warnBorder}`,
         borderRadius: 10,
       }}
     >
@@ -508,16 +531,28 @@ function DeliveryRow({
           fontWeight: 700,
           padding: "3px 8px",
           borderRadius: 4,
-          background: isPicked ? T.okSoft : isNotified ? "#fffbe6" : T.warnSoft,
-          color: isPicked ? T.ok : isNotified ? "#b58c00" : T.warn,
-          border: `1px solid ${isPicked ? T.okBorder : T.warnBorder}`,
+          background: isPicked
+            ? T.okSoft
+            : isNotified
+              ? "#fffbe6"
+              : isClosed
+                ? T.surfaceAlt
+                : T.warnSoft,
+          color: isPicked
+            ? T.ok
+            : isNotified
+              ? "#b58c00"
+              : isClosed
+                ? T.ink3
+                : T.warn,
+          border: `1px solid ${isPicked ? T.okBorder : isClosed ? T.line : T.warnBorder}`,
           letterSpacing: 0.5,
           whiteSpace: "nowrap",
           minWidth: 68,
           textAlign: "center",
         }}
       >
-        {isPicked ? "受取済" : isNotified ? "通知済" : "未受取"}
+        {statusLabel}
       </span>
       <span
         style={{
@@ -547,12 +582,12 @@ function DeliveryRow({
           {d.picked_up_at.slice(5, 16).replace("T", " ")} 受取
         </span>
       )}
-      {!isPicked && !isNotified && (
+      {!isClosed && !isNotified && (
         <button onClick={() => onNotify(d.id)} style={actionBtn(T, "ghost")}>
           通知済に
         </button>
       )}
-      {!isPicked && (
+      {!isClosed && (
         <button onClick={() => onPickup(d.id)} style={actionBtn(T, "ok")}>
           受取済に
         </button>
@@ -640,27 +675,172 @@ function LostItemRow({
 }
 
 // DeliveryComposeModal —— 对齐后端 FrontDeskItemCreateIn
-// 提交: { kind:"delivery", description, location }
-// student_id 任意（v1 以 description 含名字字符串的方式运用）
+// 提交: { kind:"delivery", student_id, description, location }
+// 后端强制 delivery 必带 student_id（否则学生端 GET /front-desk/mine 永远查不到、登记成功却没人收到通知）→
+// 此处「受取人」做成必选的学生搜索选择器，不再靠 description 里写名字字符串。
 function DeliveryComposeModal({
   T,
+  authToken,
   onClose,
   onSubmit,
 }: {
   T: RyoTokens;
+  authToken: string | null;
   onClose: () => void;
   onSubmit: (body: ComposeBody) => void;
 }) {
   const [description, setDescription] = React.useState("");
   const [location, setLocation] = React.useState("");
-  const disabled = !description.trim();
+  // 收件学生（必选）—— studentQuery 是搜索框文本，selected 是已选定的学生
+  const [studentQuery, setStudentQuery] = React.useState("");
+  const [results, setResults] = React.useState<FrontDeskStudentBrief[]>([]);
+  const [selected, setSelected] = React.useState<FrontDeskStudentBrief | null>(
+    null,
+  );
+  const [searching, setSearching] = React.useState(false);
+
+  // 按姓名 / 学籍番号搜索学生，300ms 防抖。已选定或搜索框空时不搜。
+  // 用 searchFrontDeskStudents（GET /front-desk/students）而非账号管理的 listStudents：
+  // 后者角色集不含寮監（寮監能登记宅配却搜不了学生），且暴露账号锁定等敏感字段。
+  // 此端点权限含寮監、按老师管辖男/女寮过滤、只返回挑人字段。
+  React.useEffect(() => {
+    const q = studentQuery.trim();
+    if (!authToken || selected || q.length < 1) {
+      setResults([]);
+      return;
+    }
+    let cancelled = false;
+    setSearching(true);
+    const timer = setTimeout(() => {
+      api
+        .searchFrontDeskStudents(q, authToken)
+        .then((data) => {
+          if (!cancelled) setResults(data.slice(0, 8));
+        })
+        .catch(() => {
+          if (!cancelled) setResults([]);
+        })
+        .finally(() => {
+          if (!cancelled) setSearching(false);
+        });
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [studentQuery, selected, authToken]);
+
+  const disabled = !description.trim() || !selected;
   return (
     <ModalShell T={T} title="宅配通知を追加" onClose={onClose}>
-      <ModalField T={T} label="内容（受取人・配送業者・件数等）">
+      <ModalField T={T} label="受取人（必須）">
+        {selected ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+              padding: "9px 12px",
+              border: `1px solid ${T.lineStrong}`,
+              borderRadius: 8,
+              background: T.surfaceAlt,
+              fontSize: 13,
+              color: T.ink,
+            }}
+          >
+            <span>
+              {selected.name}（{selected.room_no} / {selected.student_no}）
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setSelected(null);
+                setStudentQuery("");
+              }}
+              style={{
+                border: "none",
+                background: "transparent",
+                color: T.danger,
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              変更
+            </button>
+          </div>
+        ) : (
+          <>
+            <input
+              value={studentQuery}
+              onChange={(e) => setStudentQuery(e.target.value)}
+              placeholder="氏名 / 学籍番号で検索"
+              style={inputStyle(T)}
+            />
+            {studentQuery.trim() && (
+              <div
+                style={{
+                  marginTop: 4,
+                  border: `1px solid ${T.line}`,
+                  borderRadius: 8,
+                  overflow: "hidden",
+                  background: T.surface,
+                }}
+              >
+                {searching && (
+                  <div
+                    style={{
+                      padding: "8px 12px",
+                      fontSize: 12,
+                      color: T.muted,
+                    }}
+                  >
+                    検索中…
+                  </div>
+                )}
+                {!searching && results.length === 0 && (
+                  <div
+                    style={{
+                      padding: "8px 12px",
+                      fontSize: 12,
+                      color: T.muted,
+                    }}
+                  >
+                    該当者なし
+                  </div>
+                )}
+                {!searching &&
+                  results.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setSelected(s)}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "8px 12px",
+                        border: "none",
+                        borderBottom: `1px solid ${T.line}`,
+                        background: T.surface,
+                        fontSize: 13,
+                        color: T.ink,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {s.name}（{s.room_no} / {s.student_no}）
+                    </button>
+                  ))}
+              </div>
+            )}
+          </>
+        )}
+      </ModalField>
+      <ModalField T={T} label="内容（配送業者・件数等）">
         <input
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="例: 田中 隼人 M101 ヤマト運輸 1件"
+          placeholder="例: ヤマト運輸 1件"
           style={inputStyle(T)}
         />
       </ModalField>
@@ -677,9 +857,11 @@ function DeliveryComposeModal({
         onClose={onClose}
         onSubmit={() =>
           !disabled &&
+          selected &&
           onSubmit({
             description: description.trim(),
             location: location.trim() || null,
+            student_id: selected.id,
           })
         }
         disabled={disabled}
