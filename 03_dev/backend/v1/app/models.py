@@ -902,6 +902,42 @@ class RollCallEvent(Base):
     )
 
 
+class RollCallReport(Base):
+    """点呼时学生上报：体调不适 / 当次缺席 / 其他问题。
+
+    对应 iOS 点呼界面三个弹窗（体調報告 / 今回欠席の申請 / その他の問題）接真后端。
+    无正式 spec — CC 取最小设计：学生提交一条上报，老师在列表能看到 + 标记已处理。
+    kind 区分三类；session_id 关联当次点呼场次（可空 — 非点呼时段也能报体调）。
+    """
+
+    __tablename__ = "rollcall_reports"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id"), nullable=False, index=True
+    )
+    # 关联当次点呼场次（可空 — 学生非点呼时段也能上报体调）
+    session_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("rollcall_sessions.id")
+    )
+    # health=体调不适 / absence=当次缺席 / other=其他问题
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)  # 上报正文（学生填写）
+    created_at: Mapped[datetime] = mapped_column(
+        TZDateTime, nullable=False, server_default=func.now()
+    )
+    # 老师处理：标记已读 / 已处理
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+    resolved_by_teacher_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+
+    __table_args__ = (
+        CheckConstraint("kind IN ('health','absence','other')", name="ck_rcr_kind"),
+        Index("idx_rcr_student_created", "student_id", "created_at"),
+    )
+
+
 # ---------------------------------------------------------------
 # 教師招待 (Teacher Invitation — §3.4)
 # ---------------------------------------------------------------
@@ -1451,4 +1487,108 @@ class IncidentRecord(Base):
     __table_args__ = (
         Index("idx_ir_recorded_by", "recorded_by", "incident_date"),
         Index("idx_ir_date_active", "incident_date", "deleted_at"),
+    )
+
+
+# ---------------------------------------------------------------
+# 点歌（UI「リクエスト曲」）— spec §7.11 最小版（投稿 + 一览；通报/封禁 v1.1）
+# ---------------------------------------------------------------
+class SongRequest(Base):
+    """学生点歌投稿。最小版 A（itsuki 2026-06-06）：只做投稿 + 男/女寮一览。
+
+    spec §7.11 的通报（通報）+ 累计封禁（ban_level）+ 自动解禁 cron + 老师管理页
+    属完整版，降到 v1.1。dorm_unit 记投稿时学生的寮，给老师按男/女寮分 tab 用。
+    """
+
+    __tablename__ = "song_requests"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id"), nullable=False, index=True
+    )
+    # 投稿时学生的寮（1/2 男 / 4 女）— 老师男女寮 tab 用
+    dorm_unit: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    song_title: Mapped[str] = mapped_column(Text, nullable=False)
+    artist: Mapped[Optional[str]] = mapped_column(Text)
+    note: Mapped[Optional[str]] = mapped_column(Text)  # 留言（想听的理由等）
+    created_at: Mapped[datetime] = mapped_column(
+        TZDateTime, nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (Index("idx_song_dorm_created", "dorm_unit", "created_at"),)
+
+
+# ---------------------------------------------------------------
+# 遗失物投稿（学生社区版）— 无 spec，CC 最小设计
+# 跟 front_desk_item 的 lost_and_found 区别：那是老师前台登记的官方失物招领，
+# 这是学生之间「捡到 / 丢了东西」的社区互助投稿。
+# ---------------------------------------------------------------
+class LostFoundPost(Base):
+    """学生遗失物社区投稿（捡到 found / 丢了 lost）。"""
+
+    __tablename__ = "lost_found_posts"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id"), nullable=False, index=True
+    )
+    post_type: Mapped[str] = mapped_column(String(8), nullable=False)  # found / lost
+    item_name: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    location: Mapped[Optional[str]] = mapped_column(Text)  # 捡到 / 丢失地点
+    # open 进行中 / resolved 已认领或解决
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="open")
+    created_at: Mapped[datetime] = mapped_column(
+        TZDateTime, nullable=False, server_default=func.now()
+    )
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+
+    __table_args__ = (
+        CheckConstraint("post_type IN ('found','lost')", name="ck_lfp_type"),
+        CheckConstraint("status IN ('open','resolved')", name="ck_lfp_status"),
+        Index("idx_lfp_status_created", "status", "created_at"),
+    )
+
+
+# ---------------------------------------------------------------
+# 修繕 / 来訪者 / 代理受取 申请 — 无 spec，CC 最小设计
+# 三类轻量申请合用一张表（kind 区分）：学生提交 → 老师确认 / 学生撤回。
+# 跟出寮届（applications 多级审查）+ 外出（outings 单老师确认）都不同，是更轻的杂项申请。
+# ---------------------------------------------------------------
+class MiscRequest(Base):
+    """杂项申请：修繕（repair）/ 来訪者（guest）/ 代理受取（proxy_receipt）。"""
+
+    __tablename__ = "misc_requests"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id"), nullable=False, index=True
+    )
+    # repair 修繕 / guest 来訪者 / proxy_receipt 代理受取
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    # 标题：坏的东西 / 访客名 / 代领物品
+    subject: Mapped[str] = mapped_column(Text, nullable=False)
+    detail: Mapped[Optional[str]] = mapped_column(Text)
+    target_date: Mapped[Optional[date]] = mapped_column(
+        Date
+    )  # 来訪日 / 受取日（修繕可空）
+    # pending 待老师确认 / confirmed 已确认 / withdrawn 学生撤回
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    created_at: Mapped[datetime] = mapped_column(
+        TZDateTime, nullable=False, server_default=func.now()
+    )
+    confirmed_by_teacher_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    confirmed_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+    withdrawn_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+
+    __table_args__ = (
+        CheckConstraint(
+            "kind IN ('repair','guest','proxy_receipt')", name="ck_misc_kind"
+        ),
+        CheckConstraint(
+            "status IN ('pending','confirmed','withdrawn')", name="ck_misc_status"
+        ),
+        Index("idx_misc_student_status", "student_id", "status"),
     )

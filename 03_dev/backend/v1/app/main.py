@@ -48,10 +48,13 @@ from .routers import (
     front_desk,
     guidance,
     incidents,
+    lost_found,
     meals,
+    misc_requests,
     notifications,
     outings,
     rollcall,
+    songs,
     student_profile,
     student_promote,
     study,
@@ -165,6 +168,9 @@ app.include_router(events.router)
 app.include_router(bus_routes.router)
 app.include_router(guidance.router)
 app.include_router(incidents.router)
+app.include_router(songs.router)
+app.include_router(lost_found.router)
+app.include_router(misc_requests.router)
 app.include_router(student_profile.router)
 app.include_router(student_promote.router)
 app.include_router(ws.router)

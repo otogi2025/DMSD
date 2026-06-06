@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import dorm_units_for_teacher, get_current_teacher
+from ..deps import dorm_units_for_teacher, get_current_student, get_current_teacher
 
 
 def _assert_student_in_dorm(teacher: models.Teacher, student: models.Student) -> None:
@@ -73,6 +73,24 @@ def list_cleaning(
             ).all()
         }
         rows = [r for r in rows if r.student_id in student_ids]
+    return [schemas.CleaningAssignmentOut.model_validate(r) for r in rows]
+
+
+@router.get("/me", response_model=list[schemas.CleaningAssignmentOut])
+def list_my_cleaning(
+    student: models.Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
+    """学生查自己的清扫提出履历（iOS 个人主页的「掃除提出履歴」接真后端）。
+
+    按计划日倒序返回本人全部清扫安排（含已完成 done / 审核 passed / 不通过 failed）。
+    路由 /me 是字面段，放在带 query 的 GET "" 之后不冲突。
+    """
+    rows = db.scalars(
+        select(models.CleaningAssignment)
+        .where(models.CleaningAssignment.student_id == student.id)
+        .order_by(models.CleaningAssignment.scheduled_date.desc())
+    ).all()
     return [schemas.CleaningAssignmentOut.model_validate(r) for r in rows]
 
 

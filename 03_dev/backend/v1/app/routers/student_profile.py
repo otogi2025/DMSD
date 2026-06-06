@@ -63,6 +63,78 @@ def get_my_basic_profile(
     return schemas.StudentProfileBasic.model_validate(student)
 
 
+# IX 个人信息编辑：学生改自己的联系方式 / 房间号（iOS 个人主页的「連絡先・部屋編集」接真后端）。
+# 路由 /students/me 是字面段，PATCH 与上面 GET 同路径不同方法，不冲突。
+@router.patch("/students/me", response_model=schemas.StudentProfileBasic)
+def update_my_profile(
+    body: schemas.StudentSelfUpdateIn,
+    student: models.Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+) -> schemas.StudentProfileBasic:
+    """学生改自己的个人信息 — 只允许 email / phone / avatar_url / room_no。
+
+    设计（无 spec，CC 取的最小安全方案）：
+    - PATCH 只动「显式传了」的字段（exclude_unset），没传的保持原值
+    - 番号 / 姓名 / 性别 / 寮 / 类别 不可自助改（番号走 renew-number，其余归老师）
+    - email 改动查重（跟注册同口径，不能撞别人）
+    - room_no 改动校验前缀与本人 dorm_unit 一致（M*** 男寮 1|2 / W*** 女寮 4），
+      防学生换到异性寮 / 错号段；dorm_unit 本身学生改不了，所以等价于「同寮内换房间」
+    """
+    data = body.model_dump(exclude_unset=True)
+
+    # email 改动查重（排除自己）
+    if data.get("email"):
+        dup = db.scalars(
+            select(models.Student).where(
+                models.Student.email == data["email"],
+                models.Student.id != student.id,
+            )
+        ).first()
+        if dup:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "EMAIL_TAKEN",
+                    "message": f"email {data['email']} は既に使われています",
+                },
+            )
+
+    # room_no 改动校验前缀 ↔ 本人 dorm_unit 一致
+    if data.get("room_no"):
+        prefix = data["room_no"][:1].upper()
+        expected_prefix = "M" if student.dorm_unit in (1, 2) else "W"
+        if prefix != expected_prefix:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "INVALID_ROOM_FORMAT",
+                    "message": (
+                        f"部屋番号 '{data['room_no']}' は所属寮（{expected_prefix}***）"
+                        "と一致しません"
+                    ),
+                },
+            )
+
+    # 应用更新（只动白名单字段；空字符串视为清空联系方式）
+    for field in ("email", "phone", "avatar_url", "room_no"):
+        if field in data:
+            setattr(student, field, data[field])
+
+    db.add(
+        models.AuditLog(
+            actor_type="student",
+            actor_id=student.id,
+            action="student.update_self_profile",
+            target_type="student",
+            target_id=student.id,
+            payload={"fields": sorted(data.keys())},
+        )
+    )
+    db.commit()
+    db.refresh(student)
+    return schemas.StudentProfileBasic.model_validate(student)
+
+
 # 学生自设番号（番号再設定，spec §4.2 — 2026-06-05 学生自设方案）。
 # 身份从登录令牌取（get_current_student），不信任客户端传 student_id。
 # 路由 /students/me/renew-number 是字面段，不会被 /students/{id}/profile 吞。

@@ -23,7 +23,11 @@ from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas, ws_manager as _ws
 from ..database import get_db
-from ..deps import dorm_units_for_teacher, get_current_teacher
+from ..deps import (
+    dorm_units_for_teacher,
+    get_current_student,
+    get_current_teacher,
+)
 
 
 def _assert_student_in_dorm(teacher: models.Teacher, student: models.Student) -> None:
@@ -743,6 +747,113 @@ def patch_event(
     )
 
     return schemas.RollCallEventOut.model_validate(override_event)
+
+
+# ---------------------------------------------------------------
+# 点呼时学生上报（体调 / 当次缺席 / 其他问题）— IX iOS 点呼弹窗接真后端
+# ---------------------------------------------------------------
+@router.post("/reports", response_model=schemas.RollCallReportOut, status_code=201)
+def create_rollcall_report(
+    body: schemas.RollCallReportCreateIn,
+    student: models.Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
+    """学生点呼上报 — 体调不适 / 当次缺席 / 其他问题（iOS 点呼界面三弹窗）。
+
+    身份从登录令牌取（不信任客户端传 student_id）。
+    传了 session_id 就校验该点呼场次存在（不存在 → 404）。
+    """
+    if body.session_id is not None:
+        session = db.get(models.RollCallSession, body.session_id)
+        if session is None:
+            raise HTTPException(
+                404,
+                {
+                    "code": "SESSION_NOT_FOUND",
+                    "message": "点呼セッションが見つかりません",
+                },
+            )
+    report = models.RollCallReport(
+        student_id=student.id,
+        session_id=body.session_id,
+        kind=body.kind,
+        body=body.body,
+    )
+    db.add(report)
+    db.commit()
+    db.refresh(report)
+    return schemas.RollCallReportOut.model_validate(report)
+
+
+@router.get("/reports/mine", response_model=list[schemas.RollCallReportOut])
+def list_my_rollcall_reports(
+    student: models.Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
+    """学生查自己提交过的点呼上报（按时间倒序）。"""
+    rows = db.scalars(
+        select(models.RollCallReport)
+        .where(models.RollCallReport.student_id == student.id)
+        .order_by(models.RollCallReport.created_at.desc())
+    ).all()
+    return [schemas.RollCallReportOut.model_validate(r) for r in rows]
+
+
+@router.get("/reports", response_model=list[schemas.RollCallReportOut])
+def list_rollcall_reports(
+    only_unresolved: bool = False,
+    db: Session = Depends(get_db),
+    teacher: models.Teacher = Depends(get_current_teacher),
+):
+    """老师查学生点呼上报列表 — R4 寮过滤，可只看未处理。
+
+    只看本人管辖寮学生的上报（跨寮役职看全部）。
+    only_unresolved=True 只返回还没标处理的。
+    """
+    stmt = select(models.RollCallReport).order_by(
+        models.RollCallReport.created_at.desc()
+    )
+    if only_unresolved:
+        stmt = stmt.where(models.RollCallReport.resolved_at.is_(None))
+    rows = db.scalars(stmt).all()
+    # R4 寮过滤（男寮 1→[1,2] / 女寮 4→[4] / 跨寮 → None 看全部）
+    dorm_units = dorm_units_for_teacher(teacher)
+    if dorm_units is not None:
+        student_ids = {
+            s.id
+            for s in db.scalars(
+                select(models.Student).where(models.Student.dorm_unit.in_(dorm_units))
+            ).all()
+        }
+        rows = [r for r in rows if r.student_id in student_ids]
+    return [schemas.RollCallReportOut.model_validate(r) for r in rows]
+
+
+@router.patch("/reports/{report_id}/resolve", response_model=schemas.RollCallReportOut)
+def resolve_rollcall_report(
+    report_id: UUID,
+    db: Session = Depends(get_db),
+    teacher: models.Teacher = Depends(get_current_teacher),
+):
+    """老师标记某条点呼上报为已处理 — R4 寮边界，重复处理返 409。"""
+    report = db.get(models.RollCallReport, report_id)
+    if not report:
+        raise HTTPException(
+            404, {"code": "REPORT_NOT_FOUND", "message": "報告が見つかりません"}
+        )
+    # R4 寮边界：通过上报学生校验老师管辖寮
+    student = db.get(models.Student, report.student_id)
+    if student:
+        _assert_student_in_dorm(teacher, student)
+    if report.resolved_at is not None:
+        raise HTTPException(
+            409, {"code": "ALREADY_RESOLVED", "message": "この報告は既に処理済みです"}
+        )
+    report.resolved_at = _now_jst()
+    report.resolved_by_teacher_id = teacher.id
+    db.commit()
+    db.refresh(report)
+    return schemas.RollCallReportOut.model_validate(report)
 
 
 # ---------------------------------------------------------------

@@ -1121,6 +1121,107 @@ class CleaningInspectIn(BaseModel):
 
 
 # ---------------------------------------------------------------
+# 点呼时学生上报（体调 / 当次缺席 / 其他问题）— IX iOS 点呼弹窗接真后端
+# ---------------------------------------------------------------
+class RollCallReportCreateIn(BaseModel):
+    """学生点呼上报输入。kind 对应 iOS 三个弹窗，body 是学生填写的正文。"""
+
+    kind: Literal["health", "absence", "other"]
+    body: str = Field(min_length=1, max_length=2000)
+    session_id: Optional[UUID] = None  # 关联当次点呼场次（可空）
+
+
+class RollCallReportOut(BaseModel):
+    id: UUID
+    student_id: UUID
+    session_id: Optional[UUID]
+    kind: Literal["health", "absence", "other"]
+    body: str
+    created_at: datetime
+    resolved_at: Optional[datetime]
+    resolved_by_teacher_id: Optional[UUID]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ---------------------------------------------------------------
+# 点歌（UI「リクエスト曲」）最小版 — IX iOS 社区功能接真后端
+# ---------------------------------------------------------------
+class SongRequestCreateIn(BaseModel):
+    """学生点歌投稿输入。dorm_unit 后端从登录学生自动取，不收客户端。"""
+
+    song_title: str = Field(min_length=1, max_length=200)
+    artist: Optional[str] = Field(None, max_length=200)
+    note: Optional[str] = Field(None, max_length=500)
+
+
+class SongRequestOut(BaseModel):
+    id: UUID
+    student_id: UUID
+    dorm_unit: int
+    song_title: str
+    artist: Optional[str]
+    note: Optional[str]
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ---------------------------------------------------------------
+# 遗失物社区投稿 — IX iOS 社区功能接真后端
+# ---------------------------------------------------------------
+class LostFoundCreateIn(BaseModel):
+    """学生遗失物投稿输入（捡到 found / 丢了 lost）。"""
+
+    post_type: Literal["found", "lost"]
+    item_name: str = Field(min_length=1, max_length=200)
+    description: Optional[str] = Field(None, max_length=2000)
+    location: Optional[str] = Field(None, max_length=200)
+
+
+class LostFoundOut(BaseModel):
+    id: UUID
+    student_id: UUID
+    post_type: Literal["found", "lost"]
+    item_name: str
+    description: Optional[str]
+    location: Optional[str]
+    status: Literal["open", "resolved"]
+    created_at: datetime
+    resolved_at: Optional[datetime]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ---------------------------------------------------------------
+# 杂项申请（修繕 / 来訪者 / 代理受取）— IX iOS 申请页接真后端
+# ---------------------------------------------------------------
+class MiscRequestCreateIn(BaseModel):
+    """学生杂项申请输入。"""
+
+    kind: Literal["repair", "guest", "proxy_receipt"]
+    subject: str = Field(min_length=1, max_length=200)
+    detail: Optional[str] = Field(None, max_length=2000)
+    target_date: Optional[date] = None
+
+
+class MiscRequestOut(BaseModel):
+    id: UUID
+    student_id: UUID
+    kind: Literal["repair", "guest", "proxy_receipt"]
+    subject: str
+    detail: Optional[str]
+    target_date: Optional[date]
+    status: Literal["pending", "confirmed", "withdrawn"]
+    created_at: datetime
+    confirmed_by_teacher_id: Optional[UUID]
+    confirmed_at: Optional[datetime]
+    withdrawn_at: Optional[datetime]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ---------------------------------------------------------------
 # 前台业务（spec §7.12 宅配 + 失物招领）— 5-27 凌晨新增
 # ---------------------------------------------------------------
 class FrontDeskStudentBrief(BaseModel):
@@ -1491,6 +1592,22 @@ class StudentProfileBasic(BaseModel):
     needs_renewal: bool = False
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class StudentSelfUpdateIn(BaseModel):
+    """学生自己改个人信息（iOS マイページ「連絡先・部屋編集」用）。
+
+    只开放低风险字段：email / phone / avatar_url / room_no。
+    PATCH 语义 — 只更新「显式传了」的字段（exclude_unset），没传的不动。
+    番号 / 姓名 / 性别 / 寮 / 类别 不可自助改：番号走 renew-number 流程，
+    换寮 / 改名等敏感操作归老师。room_no 后端会校验前缀与本人 dorm_unit 一致
+    （M*** + 男寮 1|2 / W*** + 女寮 4），防换到异性寮 / 错号段。
+    """
+
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    avatar_url: Optional[str] = None
+    room_no: Optional[str] = Field(None, max_length=8)
 
 
 class ProfileApplicationEntry(BaseModel):
