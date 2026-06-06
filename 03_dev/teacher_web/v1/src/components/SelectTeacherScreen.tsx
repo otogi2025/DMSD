@@ -115,7 +115,7 @@ export function SelectTeacherScreen({
         }}
       >
         <DormColumn
-          label="男性寮"
+          label="男子寮"
           icon="M"
           accent={T.maleAccent}
           soft={T.maleSoft}
@@ -128,7 +128,7 @@ export function SelectTeacherScreen({
           onAdd={() => setAddModal({ dorm: "men" })}
         />
         <DormColumn
-          label="女性寮"
+          label="女子寮"
           icon="F"
           accent={T.femaleAccent}
           soft={T.femaleSoft}

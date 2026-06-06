@@ -285,8 +285,8 @@ export function InfoPage({
 
   const scopeLabel: Record<string, string> = {
     all: "全寮生",
-    male: "男寮",
-    female: "女寮",
+    male: "男子寮",
+    female: "女子寮",
   };
 
   return (
@@ -902,8 +902,8 @@ function EditNoticeModal({
             <div style={{ display: "flex", gap: 8 }}>
               {[
                 { k: "all", label: "全寮生" },
-                { k: "male", label: "男寮のみ" },
-                { k: "female", label: "女寮のみ" },
+                { k: "male", label: "男子寮のみ" },
+                { k: "female", label: "女子寮のみ" },
               ].map((o) => (
                 <button
                   key={o.k}
@@ -1687,8 +1687,8 @@ function BusSchedulePanel({
   const visibleLabel: Record<string, string> = {
     all: "全員",
     dorm_only: "寮生のみ",
-    men: "男寮",
-    women: "女寮",
+    men: "男子寮",
+    women: "女子寮",
   };
 
   const loadRoutes = React.useCallback(() => {
@@ -2158,8 +2158,8 @@ function BusRouteModal({
         >
           <option value="all">全員</option>
           <option value="dorm_only">寮生のみ</option>
-          <option value="men">男寮</option>
-          <option value="women">女寮</option>
+          <option value="men">男子寮</option>
+          <option value="women">女子寮</option>
         </select>
       </Field>
       <Field T={T} label="備考（任意）">
@@ -2829,8 +2829,8 @@ function ComposeNoticeModal({
             <div style={{ display: "flex", gap: 8 }}>
               {[
                 { k: "all", label: "全寮生" },
-                { k: "male", label: "男寮のみ" },
-                { k: "female", label: "女寮のみ" },
+                { k: "male", label: "男子寮のみ" },
+                { k: "female", label: "女子寮のみ" },
               ].map((o) => (
                 <button
                   key={o.k}

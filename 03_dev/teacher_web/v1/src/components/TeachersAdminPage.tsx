@@ -206,8 +206,8 @@ export function TeachersAdminPage({
               t.assigned_dorm == null
                 ? "—"
                 : t.assigned_dorm === 4
-                  ? "女寮"
-                  : "男寮";
+                  ? "女子寮"
+                  : "男子寮";
             const isSelf = t.id === currentTeacherId;
             return (
               <div
@@ -490,9 +490,9 @@ function TeachersAdminCreateModal({
             }}
           >
             <option value="">全寮（指定なし）</option>
-            <option value="1">男一寮</option>
-            <option value="2">男二寮</option>
-            <option value="4">女寮</option>
+            <option value="1">一寮（男子）</option>
+            <option value="2">二寮（男子）</option>
+            <option value="4">四寮（女子）</option>
           </select>
         </label>
 

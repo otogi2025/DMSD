@@ -641,6 +641,15 @@ export function App() {
   // overrideTarget.lastEventId 为 null（init 状态学生）或 demo 模式时走旧本地 state 路径
   const _frontStatusToBackend = (s: string) =>
     s === "ok" ? "present" : s === "exempt" ? "exempt_range" : s; // late / absent 原样
+  // 状态值日语化（toast 给老师看，避免露 ok/late/absent 英文）
+  const _statusLabelJa = (s: string): string =>
+    ({
+      ok: "出席",
+      late: "遅刻",
+      absent: "欠席",
+      exempt: "外泊（対象外）",
+      unknown: "未確認",
+    })[s] || s;
   const saveOverride = async (patch: any) => {
     const target = overrideTarget;
     // 真接 backend：有 lastEventId + authToken + sessionId 时调 PATCH
@@ -662,7 +671,7 @@ export function App() {
         );
         setToast({
           type: "ok",
-          msg: `${target.name} の状態を ${patch.status} に変更`,
+          msg: `${target.name} の状態を「${_statusLabelJa(patch.status)}」に変更しました`,
         });
         // 注：backend 异步 WebSocket broadcast 也会回推 setStudents，这里乐观更新保证 UI 即时反映
       } catch (err) {

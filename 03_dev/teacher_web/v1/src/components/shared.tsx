@@ -120,7 +120,7 @@ export function DormBadge({ dorm }: { dorm: string }) {
         border: `1px solid ${isMen ? T.maleAccent : T.femaleAccent}33`,
       }}
     >
-      {isMen ? "男性寮" : "女性寮"}
+      {isMen ? "男子寮" : "女子寮"}
     </span>
   );
 }

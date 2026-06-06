@@ -316,8 +316,8 @@ export function CommunityPage({
           <>
             <span style={{ color: T.ink3, marginLeft: 6 }}>寮 ·</span>
             {[
-              ["men", "男寮"],
-              ["women", "女寮"],
+              ["men", "男子寮"],
+              ["women", "女子寮"],
               ["all", "両方"],
             ].map(([k, l]) => {
               const n = posts.filter(

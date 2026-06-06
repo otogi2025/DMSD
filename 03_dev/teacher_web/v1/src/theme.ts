@@ -47,9 +47,9 @@ export const RYO = {
 
 export type RyoTokens = typeof RYO;
 
-// 寮标签转换: dorm 字段（"men"/"women"，由后端 assigned_dorm 派生 4→women/其他→men）→ 日语显示名「男性寮」「女性寮」
+// 寮标签转换: dorm 字段（"men"/"women"，由后端 assigned_dorm 派生 4→women/其他→men）→ 日语显示名「男子寮」「女子寮」
 export function dormLabel(d: string): string {
-  return d === "men" ? "男性寮" : "女性寮";
+  return d === "men" ? "男子寮" : "女子寮";
 }
 
 // App 全局常量

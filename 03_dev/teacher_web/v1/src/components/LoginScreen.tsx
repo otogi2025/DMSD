@@ -317,7 +317,7 @@ export function LoginScreen({
               marginTop: 14,
             }}
           >
-            Tomoshibi {APP_VERSION} · 2026 AC 入試プロジェクト成果物
+            Tomoshibi {APP_VERSION}
           </div>
         </div>
       </div>
@@ -400,7 +400,7 @@ export function LoginScreen({
           }}
         >
           <LoginDormColumn
-            label="男性寮"
+            label="男子寮"
             icon="M"
             accent={T.maleAccent}
             soft={T.maleSoft}
@@ -409,7 +409,7 @@ export function LoginScreen({
             onPick={setPicked}
           />
           <LoginDormColumn
-            label="女性寮"
+            label="女子寮"
             icon="F"
             accent={T.femaleAccent}
             soft={T.femaleSoft}
@@ -428,7 +428,7 @@ export function LoginScreen({
           marginTop: 36,
         }}
       >
-        Tomoshibi {APP_VERSION} · 2026 AC 入試プロジェクト成果物
+        Tomoshibi {APP_VERSION}
       </div>
     </div>
   );

@@ -356,8 +356,8 @@ export function ActiveLeavesPage({ authToken }: { authToken: string }) {
         </div>
       ) : (
         <>
-          {renderBlock("1・2寮（男寮）", menRows)}
-          {renderBlock("4寮（女寮）", womenRows)}
+          {renderBlock("一寮・二寮（男子寮）", menRows)}
+          {renderBlock("四寮（女子寮）", womenRows)}
         </>
       )}
     </div>
