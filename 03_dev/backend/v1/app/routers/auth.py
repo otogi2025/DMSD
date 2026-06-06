@@ -64,20 +64,21 @@ def login_student(body: schemas.StudentLoginIn, db: Session = Depends(get_db)):
         ).first()
 
     now = datetime.now(timezone.utc)
-    # SQLite 返回 naive datetime，PostgreSQL 生产返回 aware datetime。
-    # 统一去掉时区信息后比较，避免 TypeError。
-    now_naive = now.replace(tzinfo=None)
 
+    # locked_until 经 TZDateTime 读出是带时区的（JST）。统一补/转成 aware 再比「绝对时刻」，
+    # 不能剥时区按墙钟比 —— 旧写法剥时区比 naive，TZDateTime 改造后会把 JST 墙钟当 UTC，
+    # 15 分钟的锁会被误判成约 9 小时 15 分（codex 审查 major #1）。与老师登录段口径一致。
     def _is_locked(dt) -> bool:
-        """判断 locked_until 是否还在未来（naive/aware 两种情况都兼容）。"""
         if dt is None:
             return False
-        compare = dt.replace(tzinfo=None) if dt.tzinfo else dt
-        return compare > now_naive
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt > now
 
     def _remaining_min(dt) -> int:
-        compare = dt.replace(tzinfo=None) if dt.tzinfo else dt
-        return int((compare - now_naive).total_seconds() / 60) + 1
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return int((dt - now).total_seconds() / 60) + 1
 
     # B6：检查账号是否被锁
     if account and _is_locked(account.locked_until):
@@ -97,8 +98,8 @@ def login_student(body: schemas.StudentLoginIn, db: Session = Depends(get_db)):
         if account:
             account.failed_count = (account.failed_count or 0) + 1
             if account.failed_count >= STUDENT_LOCK_THRESHOLD:
-                # 写 naive datetime — SQLite 兼容；PG 本番 DateTime(timezone=True) 也能存
-                account.locked_until = now_naive + timedelta(
+                # 写带时区的世界时 —— TZDateTime 写入侧统一转 UTC 存（与老师登录段口径一致）
+                account.locked_until = now + timedelta(
                     minutes=STUDENT_LOCK_DURATION_MIN
                 )
                 account.lock_level = (account.lock_level or 0) + 1

@@ -36,8 +36,8 @@ struct OutingOut: Decodable, Hashable, Identifiable {
     let taxi_reservation_time: String?
     let reason: String?
     let status: String // "pending" | "approved" | "withdrawn"
-    // datetime 也保 String：dev 用 SQLite，DateTime(timezone=True) 读回是 naive、序列化成无时区
-    // "2026-06-05T13:55:04"，而 APIClient 的 ISO8601 解码器要求带时区会整段 fail（真测确认）。
+    // 这几个时刻保 String：仅用于外出申请列表 / 详情的纯展示，不参与计算，直接显示后端原文。
+    // （后端已统一输出带 +09:00 日本时间 —— database.py 的 TZDateTime，dev/prod 一致。）
     let submitted_at: String
     let withdrawn_at: String?
     let confirmed_by_teacher_id: UUID?

@@ -5,7 +5,8 @@
 ⚠️ 数据类型注意:
 - UUID = SQLAlchemy `Uuid` 跨 SQLite/PG 兼容 (SQLite 用 CHAR(32), PG 用 native UUID)
 - JSON = `JSON` (SQLAlchemy 抽象, SQLite 用 TEXT, PG 用 JSONB)
-- TIMESTAMPTZ → SQLAlchemy `DateTime(timezone=True)` (SQLite 弱対応, PG native)
+- TIMESTAMPTZ → 自定义 `TZDateTime`（见 database.py）：存世界时、读出带 +09:00 日本时间，
+  dev(SQLite)/prod(PG) 输出一致，客户端不用猜时区
 - 一部 PG 専用 CHECK (CURRENT_DATE 比較等) は app 層で再校验, DB layer は最低限
 
 decision IDs (BACKEND_DESIGN_LOG §10):
@@ -25,7 +26,6 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     Date,
-    DateTime,
     Float,
     ForeignKey,
     Index,
@@ -40,7 +40,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .database import Base
+from .database import Base, TZDateTime
 
 
 # ---------------------------------------------------------------
@@ -66,7 +66,7 @@ class Student(Base):
     phone: Mapped[Optional[str]] = mapped_column(Text)
     avatar_url: Mapped[Optional[str]] = mapped_column(Text)
     registered_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
     status: Mapped[str] = mapped_column(Text, nullable=False, default="active")
     # demo / reviewer 账号标志 — admin 学生列表 / 出席统计默认过滤掉
@@ -129,11 +129,11 @@ class Teacher(Base):
     # D2 拍板: assigned_dorm = NULL (跨寮) | 1 (男寮 = 1+2 暗指) | 4 (女寮)
     assigned_dorm: Mapped[Optional[int]] = mapped_column(SmallInteger)
     failed_count: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
-    locked_until: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    locked_until: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+    last_login_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     status: Mapped[str] = mapped_column(Text, nullable=False, default="active")
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
 
     __table_args__ = (
@@ -170,7 +170,7 @@ class ClassTeacherAssignment(Base):
     effective_from: Mapped[date] = mapped_column(Date, nullable=False)
     effective_to: Mapped[Optional[date]] = mapped_column(Date)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
 
     __table_args__ = (
@@ -199,11 +199,11 @@ class Account(Base):
     )
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
     failed_count: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
-    locked_until: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    locked_until: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     lock_level: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
-    last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    last_login_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
 
 
@@ -265,19 +265,19 @@ class Application(Base):
 
     # 帰国 only
     flight_dep_air: Mapped[Optional[str]] = mapped_column(Text)
-    flight_dep_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    flight_dep_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     flight_arr_air: Mapped[Optional[str]] = mapped_column(Text)
-    flight_arr_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    flight_arr_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
 
     # 巴士関連 (P2)
     bus_route_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid)
 
     # 状态
     submitted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
     status: Mapped[str] = mapped_column(String(24), nullable=False, default="pending")
-    withdrawn_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    withdrawn_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
 
     # relations
     student: Mapped["Student"] = relationship(back_populates="applications")
@@ -334,11 +334,11 @@ class ApplicationApproval(Base):
     approver_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid, ForeignKey("teachers.id")
     )
-    decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    decided_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     decision: Mapped[Optional[str]] = mapped_column(String(8))
     comment: Mapped[Optional[str]] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
 
     application: Mapped["Application"] = relationship(back_populates="approvals")
@@ -387,15 +387,15 @@ class Outing(Base):
     # 状态：pending（等待老师确认）/ approved（已确认）/ withdrawn（学生取消）
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
     submitted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
-    withdrawn_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    withdrawn_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
 
     # 确认（单一老师）— 确认的老师从登录令牌记录，不信任客户端传入
     confirmed_by_teacher_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid, ForeignKey("teachers.id")
     )
-    confirmed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    confirmed_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
 
     # 关系（不设 back_populates — 不改 Student / Teacher 那边）
     student: Mapped["Student"] = relationship()
@@ -433,9 +433,9 @@ class NotificationLog(Base):
     attempts: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
     last_error: Mapped[Optional[str]] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
-    sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    sent_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
 
     __table_args__ = (
         CheckConstraint(
@@ -470,7 +470,7 @@ class AuditLog(Base):
     ip_address: Mapped[Optional[str]] = mapped_column(String(64))
     user_agent: Mapped[Optional[str]] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
 
     __table_args__ = (
@@ -501,11 +501,9 @@ class StudyRoster(Base):
         Uuid, ForeignKey("teachers.id")
     )  # NULL = system (中学全員自動)
     added_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
-    removed_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True)
-    )  # NULL = 在籍中
+    removed_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)  # NULL = 在籍中
 
     student: Mapped["Student"] = relationship()
 
@@ -529,13 +527,13 @@ class StudyAbsenceRequest(Base):
     period: Mapped[str] = mapped_column(String(16), nullable=False, default="full")
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     submitted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
     decided_by: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid, ForeignKey("teachers.id")
     )
-    decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    decided_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     comment: Mapped[Optional[str]] = mapped_column(Text)
 
     student: Mapped["Student"] = relationship()
@@ -577,13 +575,13 @@ class StudyOnlineRequest(Base):
     # contract_size = 文件字节数，列表 / 详情显示大小用。
     contract_size: Mapped[Optional[int]] = mapped_column(Integer)
     submitted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
     decided_by: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid, ForeignKey("teachers.id")
     )
-    decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    decided_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     comment: Mapped[Optional[str]] = mapped_column(Text)
 
     student: Mapped["Student"] = relationship()
@@ -608,9 +606,7 @@ class StudyCheckin(Base):
         Uuid, ForeignKey("students.id"), nullable=False
     )
     target_date: Mapped[date] = mapped_column(Date, nullable=False)
-    checked_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True)
-    )  # NULL = 未签
+    checked_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)  # NULL = 未签
     status: Mapped[str] = mapped_column(
         String(16), nullable=False, default="init"
     )  # init / present / late / absent / exempt
@@ -648,7 +644,7 @@ class DormEventProposal(Base):
     )
     team_name: Mapped[Optional[str]] = mapped_column(Text)
     title: Mapped[str] = mapped_column(Text, nullable=False)
-    held_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    held_at: Mapped[datetime] = mapped_column(TZDateTime, nullable=False)
     place: Mapped[str] = mapped_column(Text, nullable=False)
     expected_count: Mapped[int] = mapped_column(Integer, nullable=False)
     target: Mapped[str] = mapped_column(Text, nullable=False)
@@ -658,13 +654,13 @@ class DormEventProposal(Base):
     expected_cost: Mapped[str] = mapped_column(Text, nullable=False)
     note: Mapped[Optional[str]] = mapped_column(Text)
     submitted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
     result: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
     decided_by: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid, ForeignKey("teachers.id")
     )
-    decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    decided_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     comment: Mapped[Optional[str]] = mapped_column(Text)
 
     proposer: Mapped["Student"] = relationship()
@@ -689,21 +685,19 @@ class DormScheduleChange(Base):
         Uuid, ForeignKey("teachers.id"), nullable=False
     )
     class_or_club: Mapped[str] = mapped_column(Text, nullable=False)
-    period_from: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
-    period_to: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    period_from: Mapped[datetime] = mapped_column(TZDateTime, nullable=False)
+    period_to: Mapped[datetime] = mapped_column(TZDateTime, nullable=False)
     student_count: Mapped[int] = mapped_column(Integer, nullable=False)
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     change_content: Mapped[str] = mapped_column(Text, nullable=False)
     submitted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
     decided_by: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid, ForeignKey("teachers.id")
     )
-    decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    decided_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     comment: Mapped[Optional[str]] = mapped_column(Text)
 
     requester: Mapped["Teacher"] = relationship(foreign_keys=[requester_id])
@@ -730,14 +724,14 @@ class FridgePurchaseRequest(Base):
     contact_wechat: Mapped[Optional[str]] = mapped_column(Text)
     product: Mapped[str] = mapped_column(String(1), nullable=False)
     submitted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
     delivered_sign: Mapped[Optional[str]] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
     decided_by: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid, ForeignKey("teachers.id")
     )
-    decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    decided_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     comment: Mapped[Optional[str]] = mapped_column(Text)
 
     student: Mapped["Student"] = relationship()
@@ -767,13 +761,13 @@ class ItemPossessionRequest(Base):
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     guardian_name: Mapped[str] = mapped_column(Text, nullable=False)
     submitted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
     decided_by: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid, ForeignKey("teachers.id")
     )
-    decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    decided_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     comment: Mapped[Optional[str]] = mapped_column(Text)
 
     student: Mapped["Student"] = relationship()
@@ -811,33 +805,29 @@ class RollCallSession(Base):
     session_status: Mapped[str] = mapped_column(
         String(16), nullable=False, default="draft"
     )  # draft / running / ended
-    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    started_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     started_source: Mapped[Optional[str]] = mapped_column(
         String(16)
     )  # 'teacher' | 'system'
     started_by: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid, ForeignKey("teachers.id")
     )
-    ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    ended_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     ended_source: Mapped[Optional[str]] = mapped_column(String(16))
     ended_by: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid, ForeignKey("teachers.id")
     )
     scheduled_window_start_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
+        TZDateTime, nullable=False
     )
     scheduled_on_time_end_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
+        TZDateTime, nullable=False
     )
-    scheduled_late_end_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
-    scheduled_auto_end_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
-    settle_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    scheduled_late_end_at: Mapped[datetime] = mapped_column(TZDateTime, nullable=False)
+    scheduled_auto_end_at: Mapped[datetime] = mapped_column(TZDateTime, nullable=False)
+    settle_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
 
     events: Mapped[list["RollCallEvent"]] = relationship(
@@ -884,7 +874,7 @@ class RollCallEvent(Base):
     # 窗口永远固定 (§5.4)，分组直接走 §6.4 student_group (从 session + 学生当前组推导)
     # 不再需要在 event 层存「本次判定使用的 group」 — 因为 group 永远等于 student 当前 group
     checked_in_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
     idempotency_key: Mapped[Optional[str]] = mapped_column(
         Text
@@ -931,14 +921,14 @@ class TeacherInvitation(Base):
     target_role: Mapped[str] = mapped_column(String(32), nullable=False)
     target_dorm: Mapped[Optional[int]] = mapped_column(SmallInteger)
     expires_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
+        TZDateTime, nullable=False
     )  # 通常 7 日後
-    used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     used_by: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid, ForeignKey("teachers.id")
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
 
     __table_args__ = (Index("idx_tinv_token", "token"),)
@@ -959,14 +949,12 @@ class StudentRegistrationCode(Base):
         Uuid, ForeignKey("teachers.id"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
     # = created_at + 5 分钟（应用层算，不放 DB default — TTL 调整只动应用层即可）
-    expires_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
+    expires_at: Mapped[datetime] = mapped_column(TZDateTime, nullable=False)
     # 生成新码时把旧 active 行的本字段 set 为 now()；NULL = 仍是候选有效码
-    invalidated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    invalidated_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     # 审核员永久码标志 — refresh 不作废 + 跟普通 5 分钟码并存（spec §7.16 例外条款）
     # is_reviewer=True 的码长期有效，专给 Apple 审核员 / itsuki 内测用，普通老师不可见
     is_reviewer: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
@@ -999,16 +987,16 @@ class Announcement(Base):
         Uuid, ForeignKey("teachers.id"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+        TZDateTime,
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
     )
     # 软删 — 已删的不出现在学生列表里
-    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
 
     __table_args__ = (
         CheckConstraint(
@@ -1035,7 +1023,7 @@ class AnnouncementRead(Base):
         primary_key=True,
     )
     read_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
 
 
@@ -1056,9 +1044,9 @@ class AnnouncementReply(Base):
     author_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
-    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
 
     __table_args__ = (
         CheckConstraint(
@@ -1100,7 +1088,7 @@ class DemeritEvent(Base):
     month: Mapped[str] = mapped_column(String(7), nullable=False, index=True)
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
     # NULL = 系统自动判定（cron 跑 rollcall settle）/ 非 NULL = 老师手动加扣
     created_by_teacher_id: Mapped[Optional[uuid.UUID]] = mapped_column(
@@ -1108,7 +1096,7 @@ class DemeritEvent(Base):
     )
 
     # 撤销软删除
-    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     revoked_by_teacher_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid, ForeignKey("teachers.id")
     )
@@ -1151,17 +1139,17 @@ class CleaningAssignment(Base):
         Uuid, ForeignKey("teachers.id")
     )
     assigned_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
 
     # 学生上报扫完时刻
-    done_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    done_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
 
     # 老师审核
     inspected_by_teacher_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid, ForeignKey("teachers.id")
     )
-    inspected_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    inspected_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     # 不通过时填写
     failure_reason: Mapped[Optional[str]] = mapped_column(Text)
     # 不通过时自动加的 DemeritEvent.id（关联，方便撤销时一并撤回扣分）
@@ -1211,13 +1199,11 @@ class FrontDeskItem(Base):
         Uuid, ForeignKey("teachers.id"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
-    notified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    picked_up_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    expires_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
+    notified_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+    picked_up_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+    expires_at: Mapped[datetime] = mapped_column(TZDateTime, nullable=False)
 
     __table_args__ = (
         CheckConstraint(
@@ -1251,19 +1237,19 @@ class DormEvent(Base):
         Date, nullable=False
     )  # 主日期（日历定位用）
     start_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True)
+        TZDateTime
     )  # 开始时刻（NULL=全天）
     end_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True)
+        TZDateTime
     )  # 结束时刻（NULL=全天）
     description: Mapped[Optional[str]] = mapped_column(Text)  # 说明备注
     created_by_teacher_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("teachers.id"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
-    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
 
     __table_args__ = (
         CheckConstraint(
@@ -1295,10 +1281,10 @@ class BusRoute(Base):
         Text, nullable=False
     )  # 寮→駅 / 駅→寮 / 寮→空港 等
     schedule_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
+        TZDateTime, nullable=False
     )  # 出发时刻
     arrival_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True)
+        TZDateTime
     )  # 到达时刻（空港便等）
     visible_to: Mapped[str] = mapped_column(
         String(16), nullable=False, default="all"
@@ -1309,9 +1295,9 @@ class BusRoute(Base):
         Uuid, ForeignKey("teachers.id"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
-    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
 
     __table_args__ = (
         CheckConstraint(
@@ -1349,9 +1335,9 @@ class GuidanceRecord(Base):
     confidential: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     guidance_date: Mapped[date] = mapped_column(Date, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
-    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
 
     student: Mapped["Student"] = relationship(foreign_keys=[student_id])
     teacher: Mapped["Teacher"] = relationship(foreign_keys=[teacher_id])
@@ -1373,19 +1359,19 @@ class GuidanceDisclosureRequest(Base):
     )
     reason: Mapped[Optional[str]] = mapped_column(Text)
     requested_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
     status: Mapped[str] = mapped_column(String(24), nullable=False, default="pending")
     decided_by: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid, ForeignKey("teachers.id")
     )
-    decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    decided_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     decision_note: Mapped[Optional[str]] = mapped_column(Text)
     # 部分开示时的开示范围（全部开示时两字段均 NULL）
     visible_from: Mapped[Optional[date]] = mapped_column(Date)
     visible_until: Mapped[Optional[date]] = mapped_column(Date)
     # 老师事后撤销开示（误开示对策）
-    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
 
     student: Mapped["Student"] = relationship(foreign_keys=[student_id])
 
@@ -1419,12 +1405,12 @@ class DeviceToken(Base):
     platform: Mapped[str] = mapped_column(String(8), nullable=False)
     token: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
     # App 每次启动时更新，用来判断 token 是否还活跃
-    last_seen_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    last_seen_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     # 软删 — revoked_at 非 NULL 表示已失效（App 卸载、用户注销等）
-    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
 
     __table_args__ = (
         CheckConstraint("platform IN ('ios','android')", name="ck_dt_platform"),
@@ -1455,10 +1441,10 @@ class IncidentRecord(Base):
     )
     incident_date: Mapped[date] = mapped_column(Date, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        TZDateTime, nullable=False, server_default=func.now()
     )
-    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
 
     recorder: Mapped["Teacher"] = relationship(foreign_keys=[recorded_by])
 
