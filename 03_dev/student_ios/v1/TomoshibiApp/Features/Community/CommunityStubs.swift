@@ -818,6 +818,7 @@ struct LostNewView: View {
                     _ = try await LostFoundAPI.create(body)
                     guard app.authToken == tokenAtStart else { return } // 切账号 / 登出后不在新会话刷新 / 弹 toast
                     await app.loadLostFound() // 投稿后刷新一览
+                    guard app.authToken == tokenAtStart else { return } // loadLostFound 也有 await → 二次确认再 toast/导航
                     app.showToast("投稿しました")
                     router.go(.homeLost)
                 } catch {
@@ -948,15 +949,16 @@ struct LostDetailView: View {
             resolving = true
             let tokenAtStart = app.authToken
             Task {
+                defer { resolving = false } // 任何 return（含下方 guard 提前返回）都复位按钮，否则永久禁用
                 do {
                     _ = try await LostFoundAPI.resolve(id: uuid)
                     guard app.authToken == tokenAtStart else { return } // 切账号 / 登出后不在新会话刷新 / 弹 toast
                     await app.loadLostFound()
+                    guard app.authToken == tokenAtStart else { return } // loadLostFound 也有 await → 二次确认再 toast
                     app.showToast("解決済みにしました")
                 } catch {
                     app.showToast("操作に失敗しました")
                 }
-                resolving = false
             }
         #endif
     }
@@ -1231,6 +1233,7 @@ struct MusicNewView: View {
                     _ = try await SongsAPI.create(body)
                     guard app.authToken == tokenAtStart else { return } // 切账号 / 登出后不在新会话刷新 / 弹 toast
                     await app.loadSongs() // 投稿后刷新一览
+                    guard app.authToken == tokenAtStart else { return } // loadSongs 也有 await → 二次确认再 toast/导航
                     app.showToast("投稿しました")
                     router.go(.homeMusic)
                 } catch {
