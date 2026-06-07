@@ -2000,8 +2000,7 @@ struct HealthSheet: View {
                     }
 
                     PrimaryButton(title: "提出", enabled: !sym.isEmpty) {
-                        app.closeSheet()
-                        app.showToast("先生に通知しました")
+                        submit()
                     }
                     .padding(.top, 2)
                 }
@@ -2010,6 +2009,31 @@ struct HealthSheet: View {
             }
             .frame(maxHeight: 560)
         }
+    }
+
+    /// 体调上报提交 —— 演示版假 toast / 生产版 POST /rollcall/reports（kind=health）。
+    private func submit() {
+        #if DEMO
+            app.closeSheet()
+            app.showToast("先生に通知しました")
+        #else
+            // 把「症状」「体温」「補足」三栏内容拼成后端 body 自由文本（后两栏任意，空则省略）。
+            var lines = ["症状：\(sym)"]
+            let t = temp.trimmingCharacters(in: .whitespaces)
+            if !t.isEmpty { lines.append("体温：\(t)℃") }
+            let n = note.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !n.isEmpty { lines.append("補足：\(n)") }
+            let bodyText = lines.joined(separator: "\n")
+            Task {
+                do {
+                    _ = try await RollCallReportsAPI.create(kind: "health", body: bodyText)
+                    app.closeSheet()
+                    app.showToast("先生に通知しました")
+                } catch {
+                    app.showToast("送信に失敗しました")
+                }
+            }
+        #endif
     }
 
     /// JSX Radio option chip · selected: primary outline + pill tint
@@ -2066,14 +2090,32 @@ struct AbsenceSheet: View {
                     title: "提出",
                     enabled: !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ) {
-                    app.closeSheet()
-                    app.showToast("審査中です")
+                    submit()
                 }
                 .padding(.top, 2)
             }
             .padding(.top, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    /// 当次欠席上报提交 —— 演示版假 toast / 生产版 POST /rollcall/reports（kind=absence）。
+    private func submit() {
+        #if DEMO
+            app.closeSheet()
+            app.showToast("審査中です")
+        #else
+            let bodyText = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+            Task {
+                do {
+                    _ = try await RollCallReportsAPI.create(kind: "absence", body: bodyText)
+                    app.closeSheet()
+                    app.showToast("審査中です")
+                } catch {
+                    app.showToast("送信に失敗しました")
+                }
+            }
+        #endif
     }
 }
 
@@ -2126,14 +2168,34 @@ struct OtherSheet: View {
                     enabled: !cat.isEmpty &&
                         !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ) {
-                    app.closeSheet()
-                    app.showToast("送信しました")
+                    submit()
                 }
                 .padding(.top, 2)
             }
             .padding(.top, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    /// 其他问题上报提交 —— 演示版假 toast / 生产版 POST /rollcall/reports（kind=other）。
+    private func submit() {
+        #if DEMO
+            app.closeSheet()
+            app.showToast("送信しました")
+        #else
+            // 把「分類」「内容」拼成后端 body 自由文本。
+            let c = content.trimmingCharacters(in: .whitespacesAndNewlines)
+            let bodyText = "分類：\(cat)\n内容：\(c)"
+            Task {
+                do {
+                    _ = try await RollCallReportsAPI.create(kind: "other", body: bodyText)
+                    app.closeSheet()
+                    app.showToast("送信しました")
+                } catch {
+                    app.showToast("送信に失敗しました")
+                }
+            }
+        #endif
     }
 
     private func radioChip(title: String, selected: Bool, onTap: @escaping () -> Void) -> some View {

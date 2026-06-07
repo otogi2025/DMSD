@@ -51,3 +51,36 @@ struct RollCallEventOut: Decodable, Identifiable, Hashable {
     let checked_in_at: Date
     let path_type: String? // "A" / "B" / "manual"
 }
+
+// MARK: - 点呼时学生上报（体调不良 / 当次欠席 / 其他问题）— POST /rollcall/reports（功能③）
+
+/// POST /api/v1/rollcall/reports 请求 body（对齐后端 RollCallReportCreateIn）。
+struct RollCallReportBody: Encodable {
+    let kind: String // "health" | "absence" | "other"
+    let body: String // 自由文本 1~2000 字
+    let session_id: UUID? // 当前点呼 session；学生端无缓存 → nil（后端 Optional）
+}
+
+/// POST /rollcall/reports 响应（对齐后端 RollCallReportOut）。
+/// 三个上报弹窗只关心提交成功与否、不渲染返回值，故仅作解码用。
+struct RollCallReportOut: Decodable, Identifiable, Hashable {
+    let id: UUID
+    let student_id: UUID
+    let session_id: UUID?
+    let kind: String
+    let body: String
+    let created_at: Date
+    let resolved_at: Date?
+    let resolved_by_teacher_id: UUID?
+}
+
+enum RollCallReportsAPI {
+    /// 点呼时上报。kind 区分体调（health）/ 当次欠席（absence）/ 其他（other），body 是自由文本。
+    @MainActor
+    static func create(
+        kind: String, body: String, sessionId: UUID? = nil
+    ) async throws -> RollCallReportOut {
+        let payload = RollCallReportBody(kind: kind, body: body, session_id: sessionId)
+        return try await APIClient.shared.post(path: "/api/v1/rollcall/reports", body: payload)
+    }
+}
