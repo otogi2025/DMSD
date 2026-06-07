@@ -1101,6 +1101,22 @@ dev/staging 用，触发 `email_send` 验证 provider 联通。
 - `/applications` 提交: 10 req/min/学生（防大量乱提交）
 - 用 Redis sliding window
 
+### 7.5 演示账号真隔离（2026-06-07 itsuki 拍板 — is_demo 横切隔离）
+
+**需求**：演示老师账号登录只看演示数据、真老师看真实数据，上线后互不污染（宿舍演示 / Apple 审核用）。同一套生产网页、靠账号区分。
+
+**机制**：
+- `Student.is_demo` + `Teacher.is_demo` 两个对称字段（迁移 `d5e6f7a8b9c0`，teachers 表加列 + 索引）
+- `deps.demo_scope_for_teacher(teacher)` 返回 `Student.is_demo.is_(teacher.is_demo)` —— 真老师(False)只看真实学生、演示老师(True)只看演示学生。真老师行为同改造前（硬编码 `is_demo.is_(False)` 提升为依登录者而定，常量值不变）
+- 所有老师「读取/返回学生数据的列表查询」where 加此过滤；按 student_id 单点操作的端点加 `student.is_demo != teacher.is_demo → 404` 校验
+- 跟 R4 寮过滤（`dorm_units_for_teacher`）正交叠加
+- 演示数据 `seed.py` **opt-in**（仅 env `DEMO_TEACHER_PASSWORD` 设置时建演示老师 + 3 演示学生），默认关闭 = 隔离未完整期间生产零风险
+
+**⚠️ is_demo 是横切关注点**（遍布全后端老师→学生数据流，需逐端点加过滤）。已覆盖核心列表 + 多数读取端点。**演示账号 v1.0 启用前必须补完**（详见 `00_admin/TODO.md` §🔐 重大决策）：
+- 写权限越界：演示老师能 start/end 真实点呼 session、对真实学生 finalize 晚自习
+- approval_chain 邮件：真实学生申请会通知演示老师（演示老师 role 跨寮的副作用）
+- 弱边角：principal 端点（songs / lost_found）+ 单点 detail
+
 ---
 
 ## 8. 测试要求
