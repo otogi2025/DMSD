@@ -28,7 +28,7 @@ enum Route: Hashable {
     case homePackageDetail(id: String)
     case homeLost
     case homeLostNew
-    case homeLostDetail(id: Int)
+    case homeLostDetail(id: String)
     case homeMusic
     case homeMusicNew
     case homeMusicDetail(id: String)

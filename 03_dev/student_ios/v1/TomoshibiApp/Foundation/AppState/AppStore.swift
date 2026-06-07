@@ -96,6 +96,7 @@ final class AppStore: ObservableObject {
                 // IX-008: 登出 / 令牌失效 → 清当前用户 + SEED.user 复位演示默认，
                 // 防上一个真实用户的姓名 / 房号等残留到登录页 / 下一个人。
                 currentUser = nil
+                myStudentId = nil
                 needsRenewal = false
                 SEED.user = SEED.demoUserSeed
                 #if !DEMO
@@ -110,6 +111,7 @@ final class AppStore: ObservableObject {
                     studyLeaveCountThisMonth = 0
                     cleaningHistory = []
                     songRequests = []
+                    lostFound = []
                 #endif
             }
         }
@@ -125,6 +127,11 @@ final class AppStore: ObservableObject {
     /// IX-008: 当前登录学生的真实信息（登录后从 GET /students/me 拉）。
     /// nil = 未登录 / 演示 / 还没拉到 → displayUser 回退 SEED.user 假占位。
     @Published var currentUser: User? = nil
+
+    /// 当前登录学生自己的 UUID 字符串（loadMe 从 /students/me 的 id 填）。
+    /// 功能⑤遗失物「本人才能解决」owner 判断 + 功能⑦⑧拉 /students/{id}/profile 都要用它。
+    /// 登出随 currentUser 一起清。
+    @Published var myStudentId: String? = nil
 
     /// 学年更新「待更新」标记（spec §4.2）— GET /students/me 的 needs_renewal。
     /// true = 主页顶部显示「更新番号」按钮，让学生自设新番号。登出清 false。
@@ -183,6 +190,8 @@ final class AppStore: ObservableObject {
                 // summary / absence 都有 await，写回前再确认还是同一个令牌。
                 guard authToken == tokenAtStart else { return }
                 currentUser = mapped
+                // 功能⑤⑦⑧用：存本人 UUID（遗失物 owner 判断 + 拉个人 profile）。
+                myStudentId = me.id
                 // 学年更新「待更新」标记（spec §4.2）— 后端 /me 的 needs_renewal，缺省按 false。
                 needsRenewal = me.needs_renewal ?? false
                 // IX-034 修复③(补)：代次没变才写回 —— summary 在途时若用户提交了请假
@@ -978,6 +987,24 @@ final class AppStore: ObservableObject {
             let items = try await SongsAPI.list()
             guard authToken == tokenAtStart else { return }
             songRequests = items
+        } catch {
+            // 拉失败静默，下次进页面再试。
+        }
+    }
+
+    // MARK: - 遗失物一览（功能⑤ · GET /api/v1/lost-found）
+
+    /// 遗失物一览缓存（生产构建用，loadLostFound 拉真后端填；后端已新→旧排序）。
+    @Published var lostFound: [LostFoundOut] = []
+
+    /// 拉遗失物一览（生产构建用）。带令牌守卫 —— 登出 / 切用户不写回旧用户数据。
+    @MainActor
+    func loadLostFound() async {
+        let tokenAtStart = authToken
+        do {
+            let items = try await LostFoundAPI.list()
+            guard authToken == tokenAtStart else { return }
+            lostFound = items
         } catch {
             // 拉失败静默，下次进页面再试。
         }

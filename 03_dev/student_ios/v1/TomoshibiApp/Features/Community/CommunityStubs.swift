@@ -496,17 +496,66 @@ struct PackageDetailView: View {
 
 // MARK: - §4 LostView · 遺失物
 
+/// 遗失物卡片视图模型 —— 演示（SEED.lost）/ 生产（LostFoundOut）归一成同一套展示字段。
+struct LostDisplay: Identifiable {
+    let id: String // 演示=LostItem.id(Int)→String / 生产=UUID 字符串
+    let title: String // 演示=title / 生产=item_name
+    let place: String // 演示=place / 生产=location
+    let date: String // 卡片日期 label（演示=date / 生产=created_at 格式化）
+    let detail: String? // 详情描述（生产=description / 演示=nil，详情页演示用固定文案）
+    let colorHex: String // 卡片渐变色（演示=color / 生产=固定色，后端无装饰色字段）
+    let isResolved: Bool // 生产 status==resolved（已解决）
+    let ownerId: String? // 投稿者 UUID（生产=student_id，用于「本人才能解决」判断；演示=nil）
+}
+
+private let lostDateFmt: DateFormatter = {
+    let f = DateFormatter()
+    f.locale = Locale(identifier: "ja_JP")
+    f.timeZone = TimeZone(identifier: "Asia/Tokyo")
+    f.dateFormat = "MM-dd"
+    return f
+}()
+
+extension LostDisplay {
+    /// 演示构建：从 SEED.lost 映射。
+    init(demo l: LostItem) {
+        self.init(
+            id: String(l.id), title: l.title, place: l.place, date: l.date,
+            detail: nil, colorHex: l.color, isResolved: false, ownerId: nil
+        )
+    }
+
+    /// 生产构建：从后端 LostFoundOut 映射（固定渐变色）。
+    init(real l: LostFoundOut) {
+        self.init(
+            id: l.id.uuidString, title: l.item_name, place: l.location ?? "—",
+            date: lostDateFmt.string(from: l.created_at), detail: l.description,
+            colorHex: "#7c3aed", isResolved: l.status == "resolved",
+            ownerId: l.student_id.uuidString
+        )
+    }
+}
+
 struct LostView: View {
     @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
     @State private var search: String = ""
 
-    /// IX-030 修复：原来列表无条件显示 SEED.lost 全部、不理会搜索框。
-    /// 这里按搜索词过滤：标题 / 拾得场所 / 日期任一命中即保留，大小写不敏感。
+    /// 全部遗失物（演示=SEED 假数据 / 生产=后端真数据，靠 #if DEMO 守卫，归一成 LostDisplay）。
+    private var allRows: [LostDisplay] {
+        #if DEMO
+            return SEED.lost.map(LostDisplay.init(demo:))
+        #else
+            return app.lostFound.map(LostDisplay.init(real:))
+        #endif
+    }
+
+    /// IX-030 修复：按搜索词过滤：标题 / 拾得场所 / 日期任一命中即保留，大小写不敏感。
     /// 搜索词为空时返回全部。
-    private var filteredLost: [LostItem] {
+    private var filteredLost: [LostDisplay] {
         let q = search.trimmingCharacters(in: .whitespacesAndNewlines)
-        if q.isEmpty { return SEED.lost }
-        return SEED.lost.filter {
+        if q.isEmpty { return allRows }
+        return allRows.filter {
             $0.title.localizedCaseInsensitiveContains(q)
                 || $0.place.localizedCaseInsensitiveContains(q)
                 || $0.date.localizedCaseInsensitiveContains(q)
@@ -576,17 +625,22 @@ struct LostView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl.ignoresSafeArea())
+        .task {
+            #if !DEMO
+                await app.loadLostFound()
+            #endif
+        }
     }
 
-    private func lostCell(_ l: LostItem) -> some View {
+    private func lostCell(_ l: LostDisplay) -> some View {
         // 对等 JSX: aspectRatio 1 · gradient `${color}aa → ${color}44`
         Button { router.go(.homeLostDetail(id: l.id)) } label: {
             VStack(alignment: .leading, spacing: 0) {
                 ZStack {
                     LinearGradient(
                         colors: [
-                            colorFromHex(l.color).opacity(2.0 / 3.0), // aa ≈ 0.67
-                            colorFromHex(l.color).opacity(0.27), // 44 ≈ 0.27
+                            colorFromHex(l.colorHex).opacity(2.0 / 3.0), // aa ≈ 0.67
+                            colorFromHex(l.colorHex).opacity(0.27), // 44 ≈ 0.27
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -633,8 +687,15 @@ struct LostView: View {
 struct LostNewView: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
+    @State private var postType: String = "found" // 種別 默认「拾得物」(found)
+    @State private var itemName: String = ""
     @State private var place: String = ""
     @State private var feature: String = ""
+
+    /// 品名必填（后端 item_name 必填）。
+    private var canSubmit: Bool {
+        !itemName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -656,6 +717,20 @@ struct LostNewView: View {
                                 .stroke(style: StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
                                 .foregroundStyle(T.inkFaint)
                         )
+                    }
+                    .padding(.bottom, 18)
+
+                    // 種別选择（「拾得物」found /「落とし物」lost）—— 后端 post_type 必填。
+                    Field(label: "種別", required: true) {
+                        HStack(spacing: 8) {
+                            typeChip(title: "拾得物", value: "found")
+                            typeChip(title: "落とし物", value: "lost")
+                        }
+                    }
+                    .padding(.bottom, 18)
+
+                    Field(label: "品名", required: true) {
+                        TField(text: $itemName, placeholder: "傘 / 鍵 / 財布 ...")
                     }
                     .padding(.bottom, 18)
 
@@ -687,12 +762,8 @@ struct LostNewView: View {
                     }
                     .padding(.bottom, 18)
 
-                    PrimaryButton(title: "投稿する") {
-                        app.showToast("投稿しました")
-                        Task {
-                            try? await Task.sleep(nanoseconds: 500_000_000)
-                            await MainActor.run { router.go(.homeLost) }
-                        }
+                    PrimaryButton(title: "投稿する", enabled: canSubmit) {
+                        submit()
                     }
                 }
                 .padding(.horizontal, 20)
@@ -702,6 +773,56 @@ struct LostNewView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl.ignoresSafeArea())
+    }
+
+    /// 種別选择 chip。
+    private func typeChip(title: String, value: String) -> some View {
+        let selected = postType == value
+        return Button { postType = value } label: {
+            Text(title)
+                .font(.system(size: 14, weight: selected ? .bold : .medium))
+                .foregroundStyle(selected ? T.primary : T.ink)
+                .padding(.horizontal, 16).padding(.vertical, 10)
+                .background {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(selected ? T.primary.opacity(0.06) : T.pearl)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(selected ? T.primary : T.hair, lineWidth: selected ? 1.5 : 1)
+                }
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// 投稿提交 —— 演示版假 toast / 生产版 POST /lost-found。
+    private func submit() {
+        #if DEMO
+            app.showToast("投稿しました")
+            Task {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                await MainActor.run { router.go(.homeLost) }
+            }
+        #else
+            let loc = place.trimmingCharacters(in: .whitespacesAndNewlines)
+            let desc = feature.trimmingCharacters(in: .whitespacesAndNewlines)
+            let body = LostFoundBody(
+                post_type: postType,
+                item_name: itemName.trimmingCharacters(in: .whitespacesAndNewlines),
+                description: desc.isEmpty ? nil : desc,
+                location: loc.isEmpty ? nil : loc
+            )
+            Task {
+                do {
+                    _ = try await LostFoundAPI.create(body)
+                    await app.loadLostFound() // 投稿后刷新一览
+                    app.showToast("投稿しました")
+                    router.go(.homeLost)
+                } catch {
+                    app.showToast("投稿に失敗しました")
+                }
+            }
+        #endif
     }
 }
 
@@ -714,11 +835,33 @@ struct LostNewView: View {
 // MARK: - §6 LostDetailView · 遺失物詳細
 
 struct LostDetailView: View {
-    let id: Int
+    let id: String
     @EnvironmentObject var app: AppStore
+    @State private var resolving = false
 
-    private var item: LostItem? {
-        SEED.lost.first(where: { $0.id == id })
+    /// 演示=按 id 从 SEED 查 / 生产=从后端缓存按 UUID 查，归一成 LostDisplay。
+    private var item: LostDisplay? {
+        #if DEMO
+            return SEED.lost.first(where: { String($0.id) == id }).map(LostDisplay.init(demo:))
+        #else
+            return app.lostFound.first(where: { $0.id.uuidString == id }).map(LostDisplay.init(real:))
+        #endif
+    }
+
+    /// 详情描述：演示用固定文案（SEED 无此字段）/ 生产显真 description。
+    private var detailText: String {
+        #if DEMO
+            return "玄関付近で拾いました。黒色のコンパクト傘、持ち手に小さな白い傷があります。心当たりのある方はご連絡ください。"
+        #else
+            return item?.detail ?? "（説明はありません）"
+        #endif
+    }
+
+    /// 本人投稿且未解决 → 显示「解决」按钮（后端 PATCH resolve 仅投稿者本人可调）。
+    private var canResolve: Bool {
+        guard let l = item, !l.isResolved,
+              let owner = l.ownerId, let me = app.myStudentId else { return false }
+        return owner == me
     }
 
     var body: some View {
@@ -731,8 +874,8 @@ struct LostDetailView: View {
                         ZStack {
                             LinearGradient(
                                 colors: [
-                                    colorFromHex(l.color).opacity(2.0 / 3.0),
-                                    colorFromHex(l.color).opacity(0.27),
+                                    colorFromHex(l.colorHex).opacity(2.0 / 3.0),
+                                    colorFromHex(l.colorHex).opacity(0.27),
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -753,17 +896,30 @@ struct LostDetailView: View {
                             HStack(spacing: 6) {
                                 Pill(text: l.place, tone: .accent)
                                 Pill(text: l.date, tone: .neutral)
+                                if l.isResolved {
+                                    Pill(text: "解決済み", tone: .ok)
+                                }
                             }
                             .padding(.bottom, 14)
-                            Text("玄関付近で拾いました。黒色のコンパクト傘、持ち手に小さな白い傷があります。心当たりのある方はご連絡ください。")
+                            Text(detailText)
                                 .font(.system(size: 14))
                                 .foregroundStyle(T.inkSub)
                                 .lineSpacing(4) // lineHeight 1.7
                                 .fixedSize(horizontal: false, vertical: true)
                                 .padding(.bottom, 20)
-                            PrimaryButton(title: "私のものです") {
-                                app.showToast("投稿者に通知しました")
-                            }
+                            #if DEMO
+                                // 演示版保留「私のものです」claim（联系投稿者是 v1.1，无后端接口）。
+                                PrimaryButton(title: "私のものです") {
+                                    app.showToast("投稿者に通知しました")
+                                }
+                            #else
+                                // 生产版：仅投稿者本人、未解决时显「解决」按钮 → PATCH /lost-found/{id}/resolve。
+                                if canResolve {
+                                    PrimaryButton(title: "解決済みにする", enabled: !resolving) {
+                                        resolve(l)
+                                    }
+                                }
+                            #endif
                         }
                         .padding(20)
                     } else {
@@ -774,12 +930,36 @@ struct LostDetailView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl.ignoresSafeArea())
+        .task {
+            #if !DEMO
+                // 深链直接进详情时缓存可能为空 → 拉一次一览兜底。
+                if app.lostFound.isEmpty { await app.loadLostFound() }
+            #endif
+        }
+    }
+
+    /// 标为已解决（仅生产）。
+    private func resolve(_ l: LostDisplay) {
+        #if !DEMO
+            guard let uuid = UUID(uuidString: l.id) else { return }
+            resolving = true
+            Task {
+                do {
+                    _ = try await LostFoundAPI.resolve(id: uuid)
+                    await app.loadLostFound()
+                    app.showToast("解決済みにしました")
+                } catch {
+                    app.showToast("操作に失敗しました")
+                }
+                resolving = false
+            }
+        #endif
     }
 }
 
 #Preview {
-    LostDetailView(id: 1)
-        .environmentObject(RouterStore(initial: .homeLostDetail(id: 1)))
+    LostDetailView(id: "1")
+        .environmentObject(RouterStore(initial: .homeLostDetail(id: "1")))
         .environmentObject(AppStore())
 }
 
