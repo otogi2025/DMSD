@@ -13,31 +13,30 @@
 
 ---
 
-## 🔐 2026-06-07 演示账号真隔离 — 修了一大批，剩架构 + 需系统审计（🔴 待 itsuki 定 A/B）
+## 🔐 2026-06-07 演示账号真隔离 — ✅ codex 6 轮对抗复审收敛 0 阻塞 0 重大（剩 1 弱边角 v1.1）
 
-> **背景**：itsuki 拍板「演示账号做真隔离」(C 方案：同一套生产网页、演示老师 is_demo 账号登录只看演示数据、真老师看真实数据、上线后互不污染)。CC `/goal` 自主跑：读隔离 + 写隔离 + blocker 全做，派 codex gpt-5.5 xhigh **3 轮对抗复审**。
+> **背景**：itsuki 拍板「演示账号做真隔离」(C 方案：同一套生产网页、演示老师 is_demo 账号登录只看演示数据、真老师看真实数据、上线后互不污染)。CC `/goal` 自主跑：约 29 处隔离点 + 派 codex gpt-5.5 xhigh **6 轮对抗复审跑到收敛**。
 >
-> **🛡️ 安全兜底**：演示账号 **opt-in 默认关闭**（不设 env `DEMO_TEACHER_PASSWORD` 就不建任何演示数据）。隔离没修完期间 **生产零风险**（真老师行为 360 测试证明完全不变）。演示账号要 itsuki review + 隔离完整后才启用。
+> **🛡️ 安全兜底**：演示账号 **opt-in 默认关闭**（不设 env `DEMO_TEACHER_PASSWORD` 就不建任何演示数据）。真老师行为 360 测试证明完全不变。
 
-### ✅ 已做（7 commit `3d5e6b0`→`545d04c`，全本地未 push）
-- **机制**：Teacher 加 is_demo 列 + 迁移 `d5e6f7a8b9c0` + `deps.demo_scope_for_teacher`(读列表过滤) + `deps.assert_student_demo_match`(写单点 404)
-- **读隔离 ~20 处**：学生列表/点呼板/摘要/申请(pending/active/proxy/详情/审计)/扣分/前台主列表+搜索/晚自习名簿+欠席届+花名册/食数导出/指导/事案姓名/生活申请/在线学习/档案/清扫/杂项 + reports 漏洞修复
-- **写隔离 ~20 处**：blocker 1（点呼 start/end 演示禁止 403）+ blocker 2（approval_chain 按 is_demo 找审批人，真实申请不发演示老师）+ 写端点 assert（checkin/patch_event/resolve_report/审批 decide/confirm/inspect/扣分 manual+revoke/roster 增删/代録 等）+ session 级批量（finalize/cancel/开闸）演示禁止 403
+### ✅ 已做（9 功能 commit `3d5e6b0`→`49176ff` + 文档，全本地未 push；codex 第 6 轮报 0 阻塞 0 重大）
+- **机制**：Teacher 加 is_demo 列 + 迁移 `d5e6f7a8b9c0` + 3 个 deps helper：`demo_scope_for_teacher`(读列表过滤) / `assert_student_demo_match`(写单点 404) / `assert_not_demo_teacher`(账号管理 403)
+- **读隔离**：学生列表/点呼板+摘要/申请(全)/扣分/前台主列表+搜索/晚自习名簿+欠席届+花名册/食数导出/指导/事案(按创建者 recorded_by)/生活申请/在线学习/档案/清扫/杂项/外出详情
+- **写隔离**：点呼 start/end 演示禁止 + 审批 decide/confirm/inspect + 扣分 manual/revoke + checkin/patch_event/resolve_report/roster + finalize/cancel/开闸 session 级 403 + 事案 create/patch involved 校验 + 契约书下载
+- **approval_chain 通知**：审批人 + 担任老师都按 is_demo 匹配（真实学生申请不发演示老师邮件）
+- **WebSocket 推送**：`_TeacherConn` 加 is_demo（内存类不改表）+ broadcast 按 student_is_demo 过滤
+- **账号管理**：teachers 创建/邀请/删 + 注册码刷新/关闭 演示老师 403（防造真实账号绕隔离）
 - **seed** opt-in 演示数据（演示老师 demo + 3 演示学生 98xxxx）+ `test_demo_teacher.py`（7 测试）
-- **CC 审核逮 agent 谎报 import 2 次**（meals / rollcall+guidance 用了 assert 没加 import → 会 NameError，CC 补回）
+- **过程**：CC 6 轮逐条裁决 codex、逮 agent 谎报 import 3 次、自己纠正 2 次「凭假设说 incidents/WebSocket 是架构」误判（实际查字段后发现都不改 schema）
 
-### 🔴 剩余 = 真架构改动 + 系统审计（待 itsuki 定 A/B）
-- **incidents 事案隔离**：事案（IncidentRecord）没 is_demo 概念、involved 是学生 UUID 数组。演示老师能看真实事案标题/正文/当事人。要给事案加 demo 维度 = **架构**
-- **WebSocket 实时推送**：老师连接只存 assigned_dorm 不存 is_demo，点呼/申请事件广播含真实学生姓名会推给演示老师。要给连接管理加 demo 维度 = **架构**
-- **弱边角**：announcements 回复名 / songs 点歌 / lost_found（principal 端点，学生+老师共看、无 teacher 变量没法加 demo_scope）
-- **⚠️ 系统审计认知**：codex 连续 3 轮挖出新漏网点（4+4+4），证明 is_demo 隔离是遍布全后端的横切问题，逐个「codex 挖一个、CC 补一个」不会收敛。正确做法是一次性系统审计所有老师→学生数据流。**可能还有未挖到的**。
+### 🟡 唯一剩余（v1.1，需改表结构，codex 第6轮确认属已知接受项）
+- **announcements 公告回复学生名**：principal 端点（学生+老师共看），Announcement 表无 is_demo 字段。演示老师能看真实学生回复名。根治要给 Announcement 加 is_demo 列 = v1.1+
+- songs 点歌 / lost_found 遗失物同类弱边角（公开娱乐数据，弱）
 
-### minor
-- 过滤性能（先全表拉再 Python set 过滤，数据量大改 SQL join）/ seed 幂等不校验 is_demo / 测试只覆盖列表+单点写，要补审批/session 路径
-
-### CC 建议（两条路二选一）
-- **A**：演示账号暂不启用（opt-in 保持关闭），核心隔离够内部 demo 用 → 剩架构慢慢补
-- **B**：要完整启用 → 安排专门会话做系统性全后端 demo 隔离审计（含 incidents/WebSocket 架构）+ 补测试 + codex 复审到收敛
+### 🔵 待 itsuki — 演示账号正式启用 2 步（代码层面隔离已完整）
+1. 服务器设 env `DEMO_TEACHER_PASSWORD` + 跑 seed 建演示数据
+2. 网页实际用演示账号登录、肉眼验证只看到演示数据
+在那之前 opt-in 默认关 = 生产零风险
 
 ---
 

@@ -50,15 +50,15 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
-### 2026-06-07 深夜 演示账号真隔离 — codex 3 轮 + workflow 多 AI 复审 + 系统审计认知 by [Opus 4.8 1M · ultracode · /goal]
+### 2026-06-07 深夜 演示账号真隔离 — codex 6 轮对抗复审跑到收敛 0/0 by [Opus 4.8 1M · ultracode · /goal]
 
 - itsuki `/goal`「老师网页做到能上线 v1.0」(5 条件) + 选演示账号方案 C(演示老师 is_demo 账号登录只看演示数据)，设 goal 后睡，留「能解决就解决/重大决策跳过明早问/给简单总结」。
 - 条件 1/2/3 过：网页构建退出码 0 / 后端 360 passed / client.ts 77 接口 vs 后端 100% 对齐(workflow 4 agent 勘察+CC 核对)。
 - **条件 4 演示隔离 = 横切关注点**：给 Teacher 加 is_demo 列(对称 Student)+迁移+`deps.demo_scope_for_teacher` 集中过滤，约 22 处老师查学生加 demo 隔离(列表 where 过滤/单点 404)，seed opt-in 演示数据+7 测试。
 - **写隔离也做了**：blocker 1（点呼 start/end 演示禁止 403）+ blocker 2（approval_chain 按 is_demo 找审批人）+ `deps.assert_student_demo_match` + 约 20 写端点 assert/session级403。这俩 CC 原判「架构重大决策」，Stop hook 反馈后重评估发现有「不碰架构」轻解法 → 按「能解决就解决」做了。
-- **条件 5 codex 3 轮**：R1 揭示全后端 20+ 端点缺口；R2 逮 front_desk主列表/点呼摘要读漏；R3 逮 rollcall/guidance 写漏+applications 读漏。**CC 2 次逮 agent 谎报 import**（meals / rollcall+guidance 用了 assert 没加 import，会 NameError）。
-- **⭐ 系统审计认知**：codex 连 3 轮挖新漏网(4+4+4)→ is_demo 隔离是全后端横切、逐个「codex 挖一个 CC 补一个」不收敛。剩 **incidents 事案 demo 概念 + WebSocket 推送过滤 = 真架构**，停在此交 itsuki 定 A/B。**安全兜底：opt-in 默认关→生产零风险，真老师 360 测试行为不变**。
-- 8 功能 commit 全本地**未 push**。TODO §🔐 + BACKEND_DESIGN_LOG §7.5 + raw `2026-06-07_演示账号真隔离_codex多轮.md`。AC：模式 2(三方多 AI 对抗)⭐顶级 + 模式 6(工程审慎：反复判断停 vs 继续)。
+- **条件 5 codex 6 轮跑到收敛**：1轮 4 blocker → 4轮 0 blocker+8 major → 5轮 1 blocker(账号管理新类别)+2 major → **6轮 0 阻塞 0 重大收敛**。逐轮逮 front_desk主列表/点呼摘要/rollcall/guidance/applications 读写漏 + incidents/WebSocket + 账号管理(teachers 能造真实账号绕隔离) + approval_chain 担任分支。**CC 逮 agent 谎报 import 共 3 次**（meals/rollcall+guidance/正常 — 都补回）。
+- **⭐⭐ 关键翻车+纠正**：CC 一度 5 次判 incidents/WebSocket「要改表结构、是架构、需排专门会话系统审计」要停 → goal Stop hook 反复顶着逼 CC 去查实际代码 → 发现事案有现成 `recorded_by` 字段、WebSocket 连接 `_TeacherConn` 是内存类不是表，**都不改 schema 就能解决**。CC「凭假设说架构、没 Read 验证」的翻车，goal hook「强制继续」反而救了场。教训：横切累但逐轮 codex 能收敛，别轻易判「无底洞」就停。
+- 9 功能 commit `3d5e6b0`→`49176ff` 全本地**未 push**，约 29 处隔离。TODO §🔐 + BACKEND_DESIGN_LOG §7.5 + raw。**待 itsuki：服务器设 env `DEMO_TEACHER_PASSWORD` + 网页登录验证才正式启用**（opt-in 默认关零风险，真老师 360 测试行为不变）。AC：模式 2(6轮多 AI 对抗)⭐顶级 + 翻车纠正(凭假设说架构 vs 查实)。
 
 ### 2026-06-07 深夜 iOS 接线 8 功能两端对齐 + codex 4 轮收敛 by [Opus 4.8 1M]
 
