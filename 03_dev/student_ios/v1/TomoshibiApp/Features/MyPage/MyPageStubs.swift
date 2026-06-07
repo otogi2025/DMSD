@@ -896,6 +896,38 @@ struct MyInfoEditView: View {
         let u0 = app.displayUser
         let newRoom = roomPrefix + room
 
+        #if DEMO
+            // 演示版：只改本地假数据 + 假 toast，不连后端。
+            applyLocalChanges(newRoom: newRoom, before: u0)
+            app.showToast("保存しました")
+            router.back()
+        #else
+            // 生产版：PATCH /students/me，只传用户实际改动的字段（PATCH 语义）。
+            let body = StudentSelfUpdateBody(
+                email: email != u0.email ? email : nil,
+                phone: phone != u0.phone ? phone : nil,
+                avatar_url: nil,
+                room_no: newRoom != u0.room ? newRoom : nil
+            )
+            Task {
+                do {
+                    _ = try await StudentsAPI.updateMe(body)
+                    // 后端已接受 → 同步本地（变更历史 + currentUser + SEED.user）。
+                    applyLocalChanges(newRoom: newRoom, before: u0)
+                    app.showToast("保存しました")
+                    router.back()
+                } catch let APIError.unprocessable(msg) {
+                    // 撞邮箱（EMAIL_TAKEN）/ 房号前缀跟本人寮不符（INVALID_ROOM_FORMAT）→ 后端日语提示原样弹，不返回让学生改。
+                    app.showToast(msg)
+                } catch {
+                    app.showToast("保存に失敗しました")
+                }
+            }
+        #endif
+    }
+
+    /// 本地状态更新 —— 演示 / 生产成功后共用：记变更历史 + 刷新 currentUser + 安全网 SEED.user。
+    private func applyLocalChanges(newRoom: String, before u0: User) {
         app.appendChange(field: "room", label: "部屋番号", before: u0.room, after: newRoom)
         app.appendChange(field: "email", label: "メール", before: u0.email, after: email)
         app.appendChange(field: "phone", label: "電話", before: u0.phone, after: phone)
@@ -910,9 +942,6 @@ struct MyInfoEditView: View {
         SEED.user.room = newRoom
         SEED.user.email = email
         SEED.user.phone = phone
-
-        app.showToast("保存しました")
-        router.back()
     }
 }
 

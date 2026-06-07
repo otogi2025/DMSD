@@ -131,12 +131,37 @@ struct StudentMeOut: Decodable {
     // registered_at 解码时忽略（Decodable 默认跳过多余字段）
 }
 
+/// PATCH /students/me 请求体（对齐后端 StudentSelfUpdate）。
+/// 全 Optional —— Swift 合成 Encodable 对 nil Optional 走 encodeIfPresent 自动省略，
+/// 故只编码用户实际改了的字段，实现 PATCH「只传要改的」语义。
+struct StudentSelfUpdateBody: Encodable {
+    let email: String?
+    let phone: String?
+    let avatar_url: String?
+    let room_no: String?
+}
+
 enum StudentsAPI {
     /// GET /students/me — 当前登录学生的基本信息。
     /// 仿 teachers/me；后端从令牌取学生，无需传 id。
     @MainActor
     static func me() async throws -> StudentMeOut {
         try await APIClient.shared.get(path: "/api/v1/students/me")
+    }
+
+    /// PATCH /students/me — 学生自改联系方式 / 房号（只传非 nil 字段）。
+    /// - 撞别人邮箱 → 422 EMAIL_TAKEN；房号前缀跟本人寮不符（男 M*** / 女 W***）→ 422 INVALID_ROOM_FORMAT。
+    ///   两种 422 的日语提示由 APIError.unprocessable 原样带出，直接弹给学生。
+    /// - 响应是后端 StudentProfileBasic（比 StudentMeOut 多 registered_at）；
+    ///   Decodable 默认忽略多余字段 → 直接复用 StudentMeOut 解码。
+    /// - APIClient 无 PATCH 便利方法 → 调底层泛型 request（同 OutingsAPI.withdraw 做法）。
+    @MainActor
+    static func updateMe(_ body: StudentSelfUpdateBody) async throws -> StudentMeOut {
+        try await APIClient.shared.request(
+            method: "PATCH",
+            path: "/api/v1/students/me",
+            body: body
+        )
     }
 }
 
