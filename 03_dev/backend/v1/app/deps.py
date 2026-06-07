@@ -69,6 +69,22 @@ def assert_student_demo_match(teacher: models.Teacher, student: models.Student) 
         )
 
 
+def assert_not_demo_teacher(teacher: models.Teacher) -> None:
+    """演示老师禁止账号 / 全局管理操作（创建/邀请/删除老师、刷新/关闭学生注册码等）→ 403。
+
+    演示账号只能在演示数据范围内只读/操作演示数据，不能制造真实账号、不能影响全局配置 ——
+    否则演示老师可造一个 is_demo=False 的真实老师账号、用它登录绕过整个演示隔离（隔离根基漏洞）。
+    """
+    if teacher.is_demo:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "DEMO_FORBIDDEN",
+                "message": "デモアカウントはこの操作を実行できません",
+            },
+        )
+
+
 def _parse_bearer(auth_header: str | None) -> str:
     if not auth_header or not auth_header.lower().startswith("bearer "):
         raise HTTPException(

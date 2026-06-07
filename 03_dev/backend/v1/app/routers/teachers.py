@@ -19,7 +19,11 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import get_current_teacher, require_teacher_roles
+from ..deps import (
+    assert_not_demo_teacher,
+    get_current_teacher,
+    require_teacher_roles,
+)
 from ..security import hash_password
 
 router = APIRouter(prefix="/api/v1/teachers", tags=["teachers"])
@@ -54,6 +58,8 @@ def create_invitation(
             403,
             {"code": "FORBIDDEN_ROLE", "message": "招待を発行できる役職ではありません"},
         )
+    # 演示老师禁止账号管理（防演示账号造真实老师绕过隔离）
+    assert_not_demo_teacher(teacher)
 
     # target_role が有効かチェック
     if body.target_role not in models.TEACHER_ROLES:
@@ -213,6 +219,9 @@ def create_teacher(
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(require_teacher_roles(*TEACHER_ADMIN_ROLES)),
 ):
+    # 演示老师禁止创建真实老师账号（防造 is_demo=False 账号登录绕过隔离）
+    assert_not_demo_teacher(teacher)
+
     if body.role not in models.TEACHER_ROLES:
         raise HTTPException(
             422,
@@ -269,6 +278,9 @@ def delete_teacher(
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(require_teacher_roles(*TEACHER_ADMIN_ROLES)),
 ):
+    # 演示老师禁止删除老师账号（防演示账号操作真实人事绕过隔离）
+    assert_not_demo_teacher(teacher)
+
     if teacher.id == teacher_id:
         raise HTTPException(
             400,

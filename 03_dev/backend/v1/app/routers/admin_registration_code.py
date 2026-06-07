@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import require_teacher_roles
+from ..deps import assert_not_demo_teacher, require_teacher_roles
 
 router = APIRouter(
     prefix="/api/v1/admin/registration-code",
@@ -102,6 +102,8 @@ def refresh_code(
         3. INSERT 新行
         4. 写 audit log
     """
+    # 演示老师禁止刷新全局学生注册码（会作废真实码、绕过演示隔离）→ 403
+    assert_not_demo_teacher(teacher)
     now = datetime.now(timezone.utc)
 
     # 1. 把所有现存 active 码作废（§7.16.2 规则 3 — 同时只能 1 个有效）
@@ -169,6 +171,8 @@ def close_code(
     把现存 active 非审核员码标 invalidated_at；审核员永久码不动。
     没有 active 码时也安全返回（幂等）。
     """
+    # 演示老师禁止关闭全局学生注册码（会作废真实码、绕过演示隔离）→ 403
+    assert_not_demo_teacher(teacher)
     now = datetime.now(timezone.utc)
     # 只关「生效中（未过期）」的码 —— 与 /current 同口径（invalidated IS NULL + expires_at > now）。
     # 过期码 /current 本就返回 null → close 应 no-op、不记 audit（Codex 5.5 P3）。

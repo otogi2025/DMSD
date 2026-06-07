@@ -97,6 +97,9 @@ def resolve_homeroom_teacher(
                 models.ClassTeacherAssignment.effective_to >= on_date,
             ),
             models.ClassTeacherAssignment.effective_from <= on_date,
+            # 演示隔离：演示学生的担任只解析到演示老师，真实学生只解析到真实老师
+            # （否则跨 cohort 担任绑定时，演示学生的通知邮件会发给真实老师）
+            models.Teacher.is_demo == student.is_demo,
         )
         .limit(1)
     )
