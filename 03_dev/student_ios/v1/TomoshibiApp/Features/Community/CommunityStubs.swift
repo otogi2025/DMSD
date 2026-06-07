@@ -858,10 +858,11 @@ struct LostDetailView: View {
     }
 
     /// 本人投稿且未解决 → 显示「解决」按钮（后端 PATCH resolve 仅投稿者本人可调）。
+    /// 大小写不敏感比对 —— ownerId 来自 Swift UUID.uuidString(大写)，myStudentId 来自后端 /me 的 id(小写)。
     private var canResolve: Bool {
         guard let l = item, !l.isResolved,
               let owner = l.ownerId, let me = app.myStudentId else { return false }
-        return owner == me
+        return owner.caseInsensitiveCompare(me) == .orderedSame
     }
 
     var body: some View {
@@ -1306,79 +1307,85 @@ struct MusicDetailView: View {
         VStack(spacing: 0) {
             PageHeader(title: "曲詳細", level: 2)
             ScrollView {
-                VStack(spacing: 0) {
-                    // 160x160 rounded album · gradient · centered
-                    ZStack {
-                        LinearGradient(
-                            colors: [T.accentSoft, T.accent],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                        Ic.music(82).foregroundStyle(.white)
-                    }
-                    .frame(width: 160, height: 160)
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .shadow(color: T.primary.opacity(0.25), radius: 20, x: 0, y: 12)
-                    .padding(.bottom, 20)
-
-                    Text(song?.title ?? "—")
-                        .font(.system(size: 22, weight: .heavy))
-                        .foregroundStyle(T.ink)
-                        .padding(.bottom, 6)
-
-                    Text(metaText)
-                        .font(.system(size: 14))
-                        .foregroundStyle(T.inkSub)
-                        .padding(.bottom, 24)
-
-                    Card(padding: 16) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("投稿理由")
-                                .font(.system(size: 12))
-                                .foregroundStyle(T.inkSub)
-                            Text(reasonText)
-                                .font(.system(size: 14))
-                                .foregroundStyle(T.ink)
-                                .lineSpacing(3)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                if song == nil {
+                    // 生产深链指向不存在的曲 → 空状态（对齐 LostDetailView，codex 复审 minor-2）
+                    EmptyState(icon: "music.note", title: "見つかりません")
+                        .padding(.top, 40)
+                } else {
+                    VStack(spacing: 0) {
+                        // 160x160 rounded album · gradient · centered
+                        ZStack {
+                            LinearGradient(
+                                colors: [T.accentSoft, T.accent],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            Ic.music(82).foregroundStyle(.white)
                         }
-                    }
-                    .padding(.bottom, 18)
+                        .frame(width: 160, height: 160)
+                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .shadow(color: T.primary.opacity(0.25), radius: 20, x: 0, y: 12)
+                        .padding(.bottom, 20)
 
-                    #if DEMO
-                        // 通報按钮 —— 投票（赞成/反对）已 2026-05-01 拍板废止（system_features §7.11）；
-                        // 通報本身也是 v1.1，仅演示版显示。
-                        Button {
-                            app.openSheet(.songReport(songId: Int(id) ?? 0))
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.system(size: 16, weight: .semibold))
-                                Text("この曲を通報する")
-                                    .font(.system(size: 15, weight: .bold))
+                        Text(song?.title ?? "—")
+                            .font(.system(size: 22, weight: .heavy))
+                            .foregroundStyle(T.ink)
+                            .padding(.bottom, 6)
+
+                        Text(metaText)
+                            .font(.system(size: 14))
+                            .foregroundStyle(T.inkSub)
+                            .padding(.bottom, 24)
+
+                        Card(padding: 16) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("投稿理由")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(T.inkSub)
+                                Text(reasonText)
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(T.ink)
+                                    .lineSpacing(3)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                             }
-                            .foregroundStyle(T.warnDeep)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous).fill(T.warnBg)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .stroke(T.warn.opacity(0.4), lineWidth: 1.5)
-                            )
                         }
-                        .buttonStyle(.plain)
-                        .padding(.bottom, 10)
+                        .padding(.bottom, 18)
 
-                        Text("通報内容は寮務の先生に届きます。投稿者には通報した人は知られません。")
-                            .font(.system(size: 11))
-                            .foregroundStyle(T.inkMute)
-                            .multilineTextAlignment(.center)
-                            .lineSpacing(3)
-                    #endif
+                        #if DEMO
+                            // 通報按钮 —— 投票（赞成/反对）已 2026-05-01 拍板废止（system_features §7.11）；
+                            // 通報本身也是 v1.1，仅演示版显示。
+                            Button {
+                                app.openSheet(.songReport(songId: Int(id) ?? 0))
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text("この曲を通報する")
+                                        .font(.system(size: 15, weight: .bold))
+                                }
+                                .foregroundStyle(T.warnDeep)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 52)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous).fill(T.warnBg)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .stroke(T.warn.opacity(0.4), lineWidth: 1.5)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.bottom, 10)
+
+                            Text("通報内容は寮務の先生に届きます。投稿者には通報した人は知られません。")
+                                .font(.system(size: 11))
+                                .foregroundStyle(T.inkMute)
+                                .multilineTextAlignment(.center)
+                                .lineSpacing(3)
+                        #endif
+                    }
+                    .padding(20)
                 }
-                .padding(20)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -1021,10 +1021,15 @@ final class AppStore: ObservableObject {
     @Published var myDemeritEvents: [ProfileDemeritEntry] = []
 
     /// 拉本人 profile（功能⑦⑧共用：一次 GET /students/{id}/profile 同时填点呼 + 减点两块）。
-    /// 带令牌守卫；myStudentId 还没填到（loadMe 未完成）时跳过。
+    /// 带令牌守卫。冷启动时 loadMe 异步未完成 → myStudentId 还是 nil，这里先补拉一次 loadMe，
+    /// 否则点呼/减点页 .task 只触发一次、profile 永远拉不到（codex 复审 major-4）。
     @MainActor
     func loadMyProfile() async {
         let tokenAtStart = authToken
+        if myStudentId == nil {
+            await loadMe()
+            guard authToken == tokenAtStart else { return }
+        }
         guard let sid = myStudentId else { return }
         do {
             let out = try await StudentProfileAPI.profile(studentId: sid)

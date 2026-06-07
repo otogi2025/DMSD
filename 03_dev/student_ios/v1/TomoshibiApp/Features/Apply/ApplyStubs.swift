@@ -1645,6 +1645,8 @@ struct GenericApplyForm: View {
     private var canSubmit: Bool {
         guard !reason.isEmpty else { return false }
         if needsDest && dest.trimmingCharacters(in: .whitespaces).isEmpty { return false } // 外出: 去的地方「行き先」必填（trim 防只填空格）
+        // 来訪者(guest)「来訪者氏名」/ 代理受取(parcel)「荷物の概要」也走 dest 字段、标了必填 → 同样 trim 后必须非空（codex 复审 minor-1）
+        if (isGuest || isParcel) && dest.trimmingCharacters(in: .whitespaces).isEmpty { return false }
         return true
     }
 
