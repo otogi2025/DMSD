@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..deps import (
+    assert_student_demo_match,
     demo_scope_for_teacher,
     get_current_teacher,
 )
@@ -105,7 +106,8 @@ def create_incident(
 
     # 校验涉及学生是否都存在
     for sid in body.involved_student_ids:
-        if not db.get(models.Student, sid):
+        student = db.get(models.Student, sid)
+        if not student:
             raise HTTPException(
                 status_code=404,
                 detail={
@@ -113,6 +115,8 @@ def create_incident(
                     "message": f"涉及学生 {sid} 不存在",
                 },
             )
+        # 演示隔离：演示老师不能把真实学生挂进事案、真老师不能挂演示学生（否则 404）
+        assert_student_demo_match(teacher, student)
 
     row = models.IncidentRecord(
         title=body.title,
@@ -219,7 +223,8 @@ def patch_incident(
         row.body = body.body
     if body.involved_student_ids is not None:
         for sid in body.involved_student_ids:
-            if not db.get(models.Student, sid):
+            student = db.get(models.Student, sid)
+            if not student:
                 raise HTTPException(
                     status_code=404,
                     detail={
@@ -227,6 +232,8 @@ def patch_incident(
                         "message": f"涉及学生 {sid} 不存在",
                     },
                 )
+            # 演示隔离：替换涉及学生时同样禁止跨 demo 边界挂学生（否则 404）
+            assert_student_demo_match(teacher, student)
         row.involved_student_ids = [str(s) for s in body.involved_student_ids]
     if body.incident_date is not None:
         row.incident_date = body.incident_date

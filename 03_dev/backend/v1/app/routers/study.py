@@ -374,11 +374,15 @@ def bulk_finalize(
     term = _academic_term(today)
 
     # R4 寮边界：先拉全 roster，再按老师管辖寮过滤（跨寮角色 None → 不过滤）
+    # 演示隔离：join Student 加 demo_scope — 真老师只结算真实学生、演示老师只结算演示学生
     all_roster_ids = set(
         db.scalars(
-            select(models.StudyRoster.student_id).where(
+            select(models.StudyRoster.student_id)
+            .join(models.Student, models.Student.id == models.StudyRoster.student_id)
+            .where(
                 models.StudyRoster.academic_term == term,
                 models.StudyRoster.removed_at.is_(None),
+                demo_scope_for_teacher(teacher),
             )
         ).all()
     )
@@ -678,11 +682,15 @@ def cancel_today(
     today = _today_jst()
     term = _academic_term(today)
 
+    # 演示隔离：join Student 加 demo_scope — 真老师只取消真实学生、演示老师只取消演示学生
     roster_ids = list(
         db.scalars(
-            select(models.StudyRoster.student_id).where(
+            select(models.StudyRoster.student_id)
+            .join(models.Student, models.Student.id == models.StudyRoster.student_id)
+            .where(
                 models.StudyRoster.academic_term == term,
                 models.StudyRoster.removed_at.is_(None),
+                demo_scope_for_teacher(teacher),
             )
         ).all()
     )
@@ -984,10 +992,12 @@ def _notify_absence_submitted(
 ) -> None:
     """学習欠席届提出 → 学習担当 email (R1)。失敗しても業務ブロックしない。"""
     try:
+        # 演示隔离：按欠席届学生 is_demo 选老师 — 演示学生通知演示老师、真实学生通知真老师
         teachers = db.scalars(
             select(models.Teacher).where(
                 models.Teacher.role == "学習担当",
                 models.Teacher.status == "active",
+                models.Teacher.is_demo == student.is_demo,
             )
         ).all()
         to_emails = [t.email for t in teachers if t.email]

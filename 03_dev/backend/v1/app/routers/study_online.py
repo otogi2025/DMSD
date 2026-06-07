@@ -308,6 +308,9 @@ def download_contract(
 
     if isinstance(principal, models.Teacher):
         student = db.get(models.Student, record.student_id)
+        # 演示读隔离：演示老师只能下载演示学生的契約書，否则 404（防凭真实 request UUID 越权下载）
+        if student is not None:
+            assert_student_demo_match(principal, student)
         allowed = dorm_units_for_teacher(principal)
         if (
             allowed is not None

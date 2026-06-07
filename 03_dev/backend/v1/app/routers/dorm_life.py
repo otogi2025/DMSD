@@ -188,6 +188,12 @@ def list_schedule_changes(
     )
     if status_filter:
         stmt = stmt.where(models.DormScheduleChange.status == status_filter)
+    # 演示隔离 — 寮日課変更願是「老师提交」的（requester_id → teachers.id），没有学生，
+    # 故不能用 _filter_student_scope（那个 join Student）。改 join 申请老师表按 is_demo 对齐：
+    # 真老师只看真老师提交的申请、演示老师只看演示老师提交的，防演示数据漏给真老师。
+    stmt = stmt.join(
+        models.Teacher, models.Teacher.id == models.DormScheduleChange.requester_id
+    ).where(models.Teacher.is_demo == teacher.is_demo)
     rows = db.scalars(stmt).all()
     return [schemas.DormScheduleChangeOut.model_validate(row) for row in rows]
 
@@ -206,6 +212,12 @@ def decide_schedule_change(
 ):
     record = db.get(models.DormScheduleChange, change_id)
     if not record:
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "申請が見つかりません"}
+        )
+    # 演示隔离 — 本申请由老师提交（无学生），故不能用 assert_student_demo_match（那个比学生 is_demo）。
+    # 比申请老师（record.requester）与当前老师 is_demo：演示老师只能决定演示老师的申请，反之亦然。
+    if record.requester.is_demo != teacher.is_demo:
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "申請が見つかりません"}
         )

@@ -205,6 +205,9 @@ def get_outing(
                 detail={"code": "FORBIDDEN", "message": "他人の申請は閲覧できません"},
             )
     else:
+        # 演示读隔离：演示老师只能看演示学生的外出详情、真老师只能看真实学生（否则 404）。
+        # 防演示老师凭真实 outing UUID 越权读真实学生外出详情（codex 第4轮审查指出）。
+        assert_student_demo_match(actor, outing.student)
         allowed = dorm_units_for_teacher(actor)
         if allowed is not None and outing.student.dorm_unit not in allowed:
             raise HTTPException(
