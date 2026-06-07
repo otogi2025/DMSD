@@ -13,6 +13,42 @@
 
 ---
 
+## 🔐 2026-06-07 演示账号真隔离 — codex 揭示隔离不完整（🔴 重大决策待 itsuki 定范围）
+
+> **背景**：itsuki 拍板「演示账号做真隔离」(C 方案：同一套生产网页、演示老师 is_demo 账号登录只看演示数据)。CC 实装核心列表隔离（commit `3d5e6b0`）→ 派 codex gpt-5.5 xhigh 审查 → **codex 揭示隔离严重不完整：4 blocker + 1 major**，范围远超原估计（全后端 20+ 老师端点 + 架构判断）。
+>
+> **🛡️ 安全兜底**：演示账号 **opt-in 默认关闭**（不设 env `DEMO_TEACHER_PASSWORD` 就不建任何演示数据）。隔离没修完期间 **生产零风险**（真老师行为 358 测试证明完全不变）。演示账号要 itsuki review + 隔离完整后才启用。
+
+### ✅ 已做（commit `3d5e6b0` + 待 commit 的 cleaning/misc/房号）
+- Teacher 加 is_demo 列 + 迁移 `d5e6f7a8b9c0` + `deps.demo_scope_for_teacher` 集中过滤函数
+- 核心列表隔离 13 处：学生列表 / 点呼板 / 申请(pending/active/proxy) / 扣分 / 前台 / renewal-progress / 清扫 / 杂项申请 + reports
+- `admin_accounts._get_student_or_404` 单点保护参数化（演示老师只碰演示学生）
+- rollcall `/reports` 顺修漏洞（跨寮老师原完全不过滤）
+- seed opt-in 演示数据（演示老师 + 3 演示学生）+ `test_demo_teacher.py`（5 测试）
+
+### 🔴 待 itsuki 定范围 — codex 揭示缺口（CC 深夜未改，避免无复核大改 v1.0 业务代码）
+
+**读泄漏（演示老师能看到真实学生数据）— 机械加 demo_scope 可解但量大**：
+- `study.py` 8 入口（今日出席名单 / 欠席届 / 花名册 / finalize / cancel）— blocker 3
+- `meals.py` service 食数 Excel 导出混入真实+演示学生 — major 1
+- `student_profile` / `guidance` / `study_online` / `dorm_life` / `incidents` / `announcements` / `lost_found` / `songs` / `outings` 其他读取端点 — blocker 4（14 条）
+
+**写权限越界 + 架构判断（重大，需 itsuki 拍）**：
+- blocker 1：演示老师能 start/end **真实**点呼 session → 触发真实学生结算扣分。需给 RollCallSession 加 demo 概念（架构改动）
+- blocker 2：approval_chain 按 role 找审批老师会找到演示老师（role=寮務部長）→ 真实学生申请邮件发给演示老师。涉及「演示老师 role 是否该跨寮」架构判断
+- study finalize/checkin 等写操作对真实学生的越界
+
+**minor**：
+- reports/cleaning/misc 过滤是「先全表拉再 Python set 过滤」→ 数据量大时改 SQL join（性能）
+- seed 幂等只查学号不校验 is_demo（98xxxx 段不会撞真实，影响小）
+- 测试只覆盖学生列表+密码重置，要补 applications/study/rollcall/profile 路径
+
+### CC 建议（两条路二选一）
+- **A**：演示账号暂不启用（opt-in 保持关闭），核心隔离够内部 demo 用 → 缺口慢慢补
+- **B**：要完整启用 → 安排专门会话做全后端 demo 隔离审计 + 补测试 + codex 复审到收敛
+
+---
+
 ## 🐞 2026-06-06 早 itsuki 反馈 5 件 → 已做 + codex 2 轮复审收敛
 
 > 起因：itsuki 看通宵报告后对 5 件提反馈转成任务。全部实装 + 派 codex（gpt-5.5 xhigh）2 轮复审到 0 阻塞 0 重大。详见 raw `2026-06-06`。验证：后端 321 passed / iOS 双 scheme 编译过 / 老师网页 tsc 过。

@@ -23,7 +23,12 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import dorm_units_for_teacher, get_current_student, get_current_teacher
+from ..deps import (
+    demo_scope_for_teacher,
+    dorm_units_for_teacher,
+    get_current_student,
+    get_current_teacher,
+)
 
 
 def _assert_student_in_dorm(teacher: models.Teacher, student: models.Student) -> None:
@@ -63,16 +68,14 @@ def list_cleaning(
         .order_by(models.CleaningAssignment.area)
     )
     rows = db.scalars(stmt).all()
-    # R4 寮过滤（男寮 1→[1,2] / 女寮 4→[4] / 跨寮 → None 看全部）
+    # R4 寮过滤 + 演示隔离：真老师看真实学生清扫 / 演示老师看演示学生清扫
+    # （跨寮老师 dorm_units=None 原先完全不过滤，演示数据会漏进真老师 — 改成总按 demo 过滤）
     dorm_units = dorm_units_for_teacher(teacher)
+    student_q = select(models.Student.id).where(demo_scope_for_teacher(teacher))
     if dorm_units is not None:
-        student_ids = {
-            s.id
-            for s in db.scalars(
-                select(models.Student).where(models.Student.dorm_unit.in_(dorm_units))
-            ).all()
-        }
-        rows = [r for r in rows if r.student_id in student_ids]
+        student_q = student_q.where(models.Student.dorm_unit.in_(dorm_units))
+    allowed_ids = set(db.scalars(student_q).all())
+    rows = [r for r in rows if r.student_id in allowed_ids]
     return [schemas.CleaningAssignmentOut.model_validate(r) for r in rows]
 
 
