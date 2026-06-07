@@ -1627,6 +1627,21 @@ struct GenericApplyForm: View {
         kind == "outing"
     }
 
+    /// 修繕 / 来訪者 / 代理受取（iOS「parcel」）三类 → 接 misc-requests 后端（功能⑥）。
+    private var isMiscKind: Bool {
+        ["repair", "guest", "parcel"].contains(kind)
+    }
+
+    /// 提交按钮文案：外出 / 生产版 misc 直接提交显「提出する」，否则走确认页显「次へ · 確認」。
+    private var submitButtonLabel: String {
+        if isSubmittingOuting { return "提出中…" }
+        #if DEMO
+            return isOuting ? "提出する" : "次へ · 確認"
+        #else
+            return (isOuting || isMiscKind) ? "提出する" : "次へ · 確認"
+        #endif
+    }
+
     private var canSubmit: Bool {
         guard !reason.isEmpty else { return false }
         if needsDest && dest.trimmingCharacters(in: .whitespaces).isEmpty { return false } // 外出: 去的地方「行き先」必填（trim 防只填空格）
@@ -1831,14 +1846,24 @@ struct GenericApplyForm: View {
                         .buttonStyle(.plain)
 
                         Button {
-                            // 外出（outing）= 接 outings 后端直接提出（跳过演示用确认页）；其他类型仍走确认页
+                            // 外出 = 直接接 outings 后端（跳过演示确认页）；
+                            // 修繕/来訪/代理(仅生产) = 直接接 misc-requests（确认页拿不到表单数据，必须在此提交）；
+                            // 其他类型 + 演示版全部仍走确认页。
                             if isOuting {
                                 Task { await submitOuting() }
                             } else {
-                                router.go(.applyPreview(kind: kind))
+                                #if DEMO
+                                    router.go(.applyPreview(kind: kind))
+                                #else
+                                    if isMiscKind {
+                                        Task { await submitMisc() }
+                                    } else {
+                                        router.go(.applyPreview(kind: kind))
+                                    }
+                                #endif
                             }
                         } label: {
-                            Text(isOuting ? (isSubmittingOuting ? "提出中…" : "提出する") : "次へ · 確認")
+                            Text(submitButtonLabel)
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundStyle(.white)
                                 .frame(maxWidth: .infinity, minHeight: 52)
@@ -1910,6 +1935,64 @@ struct GenericApplyForm: View {
                 app.showToast(error.localizedDescription)
             }
         #endif
+    }
+
+    /// 功能⑥：修繕 / 来訪 / 代理受取直接接 misc-requests 后端提出（仅生产调用；演示走确认页不调）。
+    /// 确认页 ApplyPreviewView 只传 kind、拿不到表单数据 → 必须在此（数据所在处）提交。
+    private func submitMisc() async {
+        guard !isSubmittingOuting else { return }
+        isSubmittingOuting = true
+        defer { isSubmittingOuting = false }
+
+        // iOS kind → 后端 kind（iOS「parcel」=「代理受取」对应后端 proxy_receipt）。
+        let backendKind: String
+        switch kind {
+        case "repair": backendKind = "repair"
+        case "guest": backendKind = "guest"
+        case "parcel": backendKind = "proxy_receipt"
+        default: return
+        }
+
+        // subject / target_date 按类型取：
+        //   修繕   = 場所(repairPlace) / 无日期
+        //   来訪者 = 来訪者氏名(dest) / 来訪日(date)
+        //   代理受取 = 荷物概要(dest) / 无日期
+        let trimmedDest = dest.trimmingCharacters(in: .whitespacesAndNewlines)
+        let subject: String
+        let targetDate: String?
+        switch kind {
+        case "repair":
+            subject = repairPlace
+            targetDate = nil
+        case "guest":
+            subject = trimmedDest.isEmpty ? type.name : trimmedDest
+            targetDate = StayForm.formatYMD(date)
+        default: // parcel
+            subject = trimmedDest.isEmpty ? type.name : trimmedDest
+            targetDate = nil
+        }
+
+        let trimmedReason = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+        let body = MiscRequestBody(
+            kind: backendKind,
+            subject: subject,
+            detail: trimmedReason.isEmpty ? nil : trimmedReason,
+            target_date: targetDate
+        )
+        do {
+            _ = try await MiscRequestsAPI.create(body)
+            app.showToast("\(type.name)申請を提出しました")
+            router.go(.applyDone(kind: kind))
+        } catch let APIError.unprocessable(msg) {
+            app.showToast(msg)
+        } catch APIError.unauthorized {
+            app.authToken = nil
+            router.replace(.login)
+        } catch APIError.network {
+            app.showToast("通信エラーが発生しました。電波を確認してください")
+        } catch {
+            app.showToast(error.localizedDescription)
+        }
     }
 }
 

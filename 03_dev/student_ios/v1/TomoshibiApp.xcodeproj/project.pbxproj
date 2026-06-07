@@ -65,6 +65,7 @@
 		F55F4FC9A7444F2E2004E521 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 889D1EB8DA1127DE3F18DDA2 /* GlassCard.swift */; };
 		F67686555C566AF6C807A839 /* GlobalOverlays.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3890FA991AB039C6830E6710 /* GlobalOverlays.swift */; };
 		F7D5612FC374813C3DD41675 /* ApplyStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 153F3098DCB9936D8021790F /* ApplyStubs.swift */; };
+		FD707A891E88A4D9A233DEE0 /* MiscRequestsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE1BD23BC071D9183656B2B /* MiscRequestsAPI.swift */; };
 		FDC8E189629ACE9559758360 /* ViewCompat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89751E6898BFC299634AAB48 /* ViewCompat.swift */; };
 		FF1F6559CB40440FDA1C5739 /* SEED.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284355530CF272CA953BF511 /* SEED.swift */; };
 /* End PBXBuildFile section */
@@ -94,6 +95,7 @@
 		4871E294F8315859BF244132 /* ApplicationsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationsAPI.swift; sourceTree = "<group>"; };
 		492E8FE746273F00BC46D772 /* OutingsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutingsAPI.swift; sourceTree = "<group>"; };
 		4A1DA47ECA99A6BC826597E0 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		4FE1BD23BC071D9183656B2B /* MiscRequestsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiscRequestsAPI.swift; sourceTree = "<group>"; };
 		56739ED2BA471039822C2E43 /* APIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIError.swift; sourceTree = "<group>"; };
 		5802FFC4938B6F524F6703C5 /* TomoshibiApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = TomoshibiApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5ADCD09C35CE74209B76A719 /* SongsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SongsAPI.swift; sourceTree = "<group>"; };
@@ -149,6 +151,7 @@
 				AFDFE87D987EF1A14F86E420 /* DormLifeAPI.swift */,
 				AE8464C86A7E2262CDCEA498 /* EventsAPI.swift */,
 				CDA09D5E1B32E11CFD9CD320 /* LostFoundAPI.swift */,
+				4FE1BD23BC071D9183656B2B /* MiscRequestsAPI.swift */,
 				492E8FE746273F00BC46D772 /* OutingsAPI.swift */,
 				B6BED925E6CDEDFF9B146D29 /* RollCallAPI.swift */,
 				5ADCD09C35CE74209B76A719 /* SongsAPI.swift */,
@@ -516,6 +519,7 @@
 				B97F2CD7088F960531EFF66B /* Ic.swift in Sources */,
 				5ED1EEDC4A69AC06E29DAEA1 /* KeychainService.swift in Sources */,
 				686B91E579379AA4571D92D4 /* LostFoundAPI.swift in Sources */,
+				FD707A891E88A4D9A233DEE0 /* MiscRequestsAPI.swift in Sources */,
 				D802FA046E6B50B968F5826F /* MyPageStubs.swift in Sources */,
 				514CAEBC12DA5C1D83417976 /* NetworkModels.swift in Sources */,
 				C75ED6393B19EBBEE7CA1A15 /* OutingsAPI.swift in Sources */,
