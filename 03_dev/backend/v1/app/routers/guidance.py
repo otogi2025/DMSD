@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session, selectinload
 from .. import models, schemas
 from ..database import get_db
 from ..deps import (
+    assert_student_demo_match,
     demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_student,
@@ -80,6 +81,8 @@ def create_guidance(
     """老师录入学生指导记录。"""
     _require_guidance_role(teacher)
     student = _get_student_or_404(student_id, db)
+    # 演示写隔离：演示老师只能给演示学生写记录、真老师只能给真实学生写（否则 404 隐藏存在性）
+    assert_student_demo_match(teacher, student)
 
     # R4 寮边界：跨寮角色（返回 None）可写全部；其他老师只能写自己管辖寮的学生
     allowed = dorm_units_for_teacher(teacher)
@@ -297,6 +300,8 @@ def decide_disclosure(
 
     # R4 寮边界：从申请行拿 student_id，查该学生所属寮
     disclosure_student = _get_student_or_404(row.student_id, db)
+    # 演示写隔离：演示老师只能决定演示学生的开示申请、真老师只能决定真实学生的（否则 404 隐藏存在性）
+    assert_student_demo_match(teacher, disclosure_student)
     allowed = dorm_units_for_teacher(teacher)
     if allowed is not None and disclosure_student.dorm_unit not in allowed:
         raise HTTPException(

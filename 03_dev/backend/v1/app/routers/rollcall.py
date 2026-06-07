@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session, selectinload
 from .. import models, schemas, ws_manager as _ws
 from ..database import get_db
 from ..deps import (
+    assert_student_demo_match,
     demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_student,
@@ -363,6 +364,9 @@ def create_checkin(
     # R4 寮边界：寮監等寮 scoped 角色不能给管辖外寮学生签到
     _assert_student_in_dorm(teacher, student)
 
+    # 演示隔离：演示老师只能给演示学生签到、真老师只能给真实学生签到（跨 demo → 404）
+    assert_student_demo_match(teacher, student)
+
     # A-011 (2026-05-21): 幂等 check 改成「先查 idempotency_key 命中」
     # 1. 如果 client 传了 idempotency_key → 用 (session_id, idempotency_key) 唯一定位
     # 2. 否则 fallback 到原逻辑（同 session + 同 student + 同 source）
@@ -681,6 +685,8 @@ def patch_event(
     student = db.get(models.Student, event.student_id)
     if student:
         _assert_student_in_dorm(teacher, student)
+        # 演示隔离：演示老师只能改判演示学生、真老师只能改判真实学生（跨 demo → 404）
+        assert_student_demo_match(teacher, student)
 
     # 终态约束：已结束(ended)的场次禁止改判（spec §11 结束后冻结）
     session = db.get(models.RollCallSession, event.session_id)
@@ -866,6 +872,8 @@ def resolve_rollcall_report(
     student = db.get(models.Student, report.student_id)
     if student:
         _assert_student_in_dorm(teacher, student)
+        # 演示隔离：演示老师只能处理演示学生上报、真老师只能处理真实学生上报（跨 demo → 404）
+        assert_student_demo_match(teacher, student)
     if report.resolved_at is not None:
         raise HTTPException(
             409, {"code": "ALREADY_RESOLVED", "message": "この報告は既に処理済みです"}

@@ -524,6 +524,10 @@ def get_application(
                 detail={"code": "FORBIDDEN", "message": "他人の届は閲覧できません"},
             )
     elif isinstance(actor, models.Teacher):
+        # 演示读隔离：演示老师只能读演示学生的届、真老师只能读真实学生（否则当 404）。
+        # 在寮边界前先判，防演示老师知道真实 UUID 就能读全文。
+        if app.student is not None:
+            assert_student_demo_match(actor, app.student)
         if not _teacher_can_view(actor, app.student):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -750,6 +754,10 @@ def get_application_audit(
                 403, {"code": "FORBIDDEN", "message": "他人の届は閲覧できません"}
             )
     elif isinstance(actor, models.Teacher):
+        # 演示读隔离：演示老师只能读演示学生的 audit、真老师只能读真实学生（否则当 404）。
+        # 在寮边界前先判，防演示老师知道真实 UUID 就能读 audit（含 amend_reason 全文）。
+        if app.student is not None:
+            assert_student_demo_match(actor, app.student)
         if not _teacher_can_view(actor, app.student):
             raise HTTPException(
                 403, {"code": "FORBIDDEN_DORM", "message": "担当外の寮の届です"}
