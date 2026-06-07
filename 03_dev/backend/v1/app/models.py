@@ -132,6 +132,10 @@ class Teacher(Base):
     locked_until: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     last_login_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     status: Mapped[str] = mapped_column(Text, nullable=False, default="active")
+    # demo 账号标志 — 演示老师，只看演示数据（is_demo=True 学生），真老师把演示数据过滤掉
+    # 与 Student.is_demo（第 74 行）对称：真老师 False 看真实学生，演示老师 True 只看演示学生
+    # 仅后端内部隔离用，不暴露给客户端（TeacherOut / TeacherPublicOut 都不含本字段）
+    is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(
         TZDateTime, nullable=False, server_default=func.now()
     )
@@ -147,6 +151,7 @@ class Teacher(Base):
             name="ck_teachers_dorm",
         ),
         CheckConstraint("status IN ('active','disabled')", name="ck_teachers_status"),
+        Index("idx_teachers_is_demo", "is_demo"),
     )
 
 

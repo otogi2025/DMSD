@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session, selectinload
 from .. import models, schemas
 from ..database import get_db
 from ..deps import (
+    demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_principal,
     get_current_student,
@@ -154,7 +155,7 @@ def list_pending_for_me(
         .join(models.Student, models.Student.id == models.Outing.student_id)
         .where(
             models.Outing.status == "pending",
-            models.Student.is_demo.is_(False),
+            demo_scope_for_teacher(teacher),
         )
         .options(
             selectinload(models.Outing.student),

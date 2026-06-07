@@ -22,7 +22,11 @@ from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas, ws_manager as _ws
 from ..database import get_db
-from ..deps import get_current_student, get_current_teacher
+from ..deps import (
+    demo_scope_for_teacher,
+    get_current_student,
+    get_current_teacher,
+)
 from ..services import approval_chain, email as email_svc
 
 _JST = ZoneInfo("Asia/Tokyo")
@@ -339,7 +343,7 @@ def list_pending_for_me(
         )
         .where(
             models.Application.status.in_(["pending", "approved_partial"]),
-            models.Student.is_demo.is_(False),
+            demo_scope_for_teacher(teacher),
         )
         .options(
             selectinload(models.Application.approvals),
@@ -392,7 +396,7 @@ def list_active_leaves(
             models.Application.status == "approved",
             models.Application.leave_date <= target,
             models.Application.return_date >= target,
-            models.Student.is_demo.is_(False),
+            demo_scope_for_teacher(teacher),
         )
         .options(
             selectinload(models.Application.approvals),
@@ -442,7 +446,7 @@ def list_proxy_candidates(
             403, {"code": "FORBIDDEN_ROLE", "message": "代録権限がありません"}
         )
 
-    stmt = select(models.Student).where(models.Student.is_demo.is_(False))
+    stmt = select(models.Student).where(demo_scope_for_teacher(teacher))
 
     if q and q.strip():
         like = f"%{q.strip()}%"

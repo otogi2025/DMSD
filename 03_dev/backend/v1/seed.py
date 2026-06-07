@@ -379,6 +379,62 @@ PROD_REVIEWER_STUDENT = dict(
     is_demo=True,  # 关键标志 — admin 学生列表 / 出席统计自动过滤
 )
 
+# 宿舍演示 / Apple 审核用「演示老师 + 演示学生」（is_demo=True，对真老师全隐身）
+# opt-in：仅当 env DEMO_TEACHER_PASSWORD 设置时建（缺失跳过，不破坏现有部署）
+DEMO_TEACHER = dict(
+    login_id="demo",
+    name="デモ教員",
+    email="demo-teacher@tomoshibi.example",
+    role="寮務部長",  # 跨寮 → 演示老师能看到所有演示寮（1/2/4）的演示学生
+    assigned_dorm=None,
+    is_demo=True,
+)
+# 演示学生学号用 98xxxx 段（避开真实学年 01-06 + reviewer 999999），覆盖男/女寮
+DEMO_STUDENTS = [
+    dict(
+        grade_code="98",
+        class_code="01",
+        seat_no="01",
+        name="デモ 一郎",
+        name_kana="デモ イチロウ",
+        gender="male",
+        category="一般寮生",
+        room_no="D101",
+        dorm_unit=1,
+        is_overseas=False,
+        email="demo-s1@tomoshibi.example",
+        is_demo=True,
+    ),
+    dict(
+        grade_code="98",
+        class_code="02",
+        seat_no="01",
+        name="デモ 二郎",
+        name_kana="デモ ジロウ",
+        gender="male",
+        category="一般寮生",
+        room_no="D201",
+        dorm_unit=2,
+        is_overseas=True,
+        email="demo-s2@tomoshibi.example",
+        is_demo=True,
+    ),
+    dict(
+        grade_code="98",
+        class_code="04",
+        seat_no="01",
+        name="デモ 花子",
+        name_kana="デモ ハナコ",
+        gender="female",
+        category="一般寮生",
+        room_no="D401",
+        dorm_unit=4,
+        is_overseas=False,
+        email="demo-s3@tomoshibi.example",
+        is_demo=True,
+    ),
+]
+
 
 def seed_prod(db) -> None:
     """production minimal 数据 — VPS Postgres 部署用。
@@ -481,6 +537,9 @@ def seed_prod(db) -> None:
 
     db.commit()
 
+    # 4. 演示数据（opt-in）— 演示老师 + 演示学生，全 is_demo=True，对真老师隐身
+    _seed_demo_data(db)
+
     log.info("=" * 60)
     log.info("production seed 完成（最小必要数据）")
     log.info(
@@ -492,6 +551,62 @@ def seed_prod(db) -> None:
         "reviewer 注册码来自: env REVIEWER_REGISTRATION_CODE (is_reviewer=True 永久)"
     )
     log.info("=" * 60)
+
+
+# =============================================================
+# 演示数据（opt-in）
+# =============================================================
+
+
+def _seed_demo_data(db) -> None:
+    """演示老师 + 演示学生（全 is_demo=True）— opt-in，仅 env DEMO_TEACHER_PASSWORD 设置时建。
+
+    演示老师登录只看演示学生（is_demo=True），真老师看不到任何演示数据（is_demo 隔离）。
+    缺 env 则跳过，不影响主 seed、不破坏现有生产部署。
+    """
+    demo_password = os.environ.get("DEMO_TEACHER_PASSWORD")
+    if not demo_password:
+        log.info("DEMO_TEACHER_PASSWORD 未设置 — 跳过演示数据（opt-in）")
+        return
+
+    demo_pw_hash = security.hash_password(demo_password)
+
+    # 演示老师（幂等）
+    existing_demo_teacher = db.scalars(
+        select(models.Teacher).where(
+            models.Teacher.login_id == DEMO_TEACHER["login_id"]
+        )
+    ).first()
+    if existing_demo_teacher:
+        log.info("演示老师已存在 — 跳过")
+    else:
+        db.add(models.Teacher(**DEMO_TEACHER, password_hash=demo_pw_hash))
+        log.info("加演示老师 login_id=%s is_demo=True", DEMO_TEACHER["login_id"])
+
+    # 演示学生（幂等，各建 Account 共用演示密码）
+    for s_data in DEMO_STUDENTS:
+        existing = db.scalars(
+            select(models.Student).where(
+                models.Student.grade_code == s_data["grade_code"],
+                models.Student.class_code == s_data["class_code"],
+                models.Student.seat_no == s_data["seat_no"],
+            )
+        ).first()
+        if existing:
+            log.info(
+                "演示学生 %s%s%s 已存在 — 跳过",
+                s_data["grade_code"],
+                s_data["class_code"],
+                s_data["seat_no"],
+            )
+            continue
+        student = models.Student(**s_data)
+        db.add(student)
+        db.flush()
+        db.add(models.Account(student_id=student.id, password_hash=demo_pw_hash))
+        log.info("加演示学生 student_no=%s is_demo=True", student.student_no)
+
+    db.commit()
 
 
 # =============================================================

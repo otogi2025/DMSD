@@ -30,6 +30,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..deps import (
+    demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_student,
     get_current_teacher,
@@ -91,7 +92,7 @@ def get_ranking(
     points_by_student: dict[UUID, float] = {r.student_id: r.total_points for r in rows}
 
     # 拉全员学生（即使本月 0 点也要列出）
-    student_stmt = select(models.Student).where(models.Student.is_demo.is_(False))
+    student_stmt = select(models.Student).where(demo_scope_for_teacher(teacher))
     # R4 寮过滤（男寮 1→[1,2] / 女寮 4→[4] / 跨寮 → None 看全部）
     dorm_units = dorm_units_for_teacher(teacher)
     if dorm_units is not None:

@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session, selectinload
 from .. import models, schemas, ws_manager as _ws
 from ..database import get_db
 from ..deps import (
+    demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_student,
     get_current_teacher,
@@ -446,12 +447,12 @@ def session_board(
     session = _get_session_or_404(db, session_id)
 
     # このセッション対象の学生 (R4: dorm_unit_set で絞る)
-    # is_demo 学生排除 — reviewer / 体验账号不进出席板
+    # 演示隔离：真老师看真实学生板 / 演示老师看演示学生板（reviewer/体验账号据此分流）
     students = db.scalars(
         select(models.Student).where(
             models.Student.dorm_unit.in_(session.dorm_unit_set),
             models.Student.status == "active",
-            models.Student.is_demo.is_(False),
+            demo_scope_for_teacher(teacher),
         )
     ).all()
 
@@ -817,15 +818,14 @@ def list_rollcall_reports(
         stmt = stmt.where(models.RollCallReport.resolved_at.is_(None))
     rows = db.scalars(stmt).all()
     # R4 寮过滤（男寮 1→[1,2] / 女寮 4→[4] / 跨寮 → None 看全部）
+    # + 演示隔离：真老师只看真实学生上报 / 演示老师只看演示学生上报
+    # （原先跨寮 dorm_units=None 时完全不过滤，演示学生上报会漏进真老师列表 — 一并修掉）
     dorm_units = dorm_units_for_teacher(teacher)
+    student_q = select(models.Student.id).where(demo_scope_for_teacher(teacher))
     if dorm_units is not None:
-        student_ids = {
-            s.id
-            for s in db.scalars(
-                select(models.Student).where(models.Student.dorm_unit.in_(dorm_units))
-            ).all()
-        }
-        rows = [r for r in rows if r.student_id in student_ids]
+        student_q = student_q.where(models.Student.dorm_unit.in_(dorm_units))
+    allowed_student_ids = set(db.scalars(student_q).all())
+    rows = [r for r in rows if r.student_id in allowed_student_ids]
     return [schemas.RollCallReportOut.model_validate(r) for r in rows]
 
 

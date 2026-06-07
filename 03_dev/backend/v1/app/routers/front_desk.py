@@ -25,7 +25,12 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import dorm_units_for_teacher, get_current_student, get_current_teacher
+from ..deps import (
+    demo_scope_for_teacher,
+    dorm_units_for_teacher,
+    get_current_student,
+    get_current_teacher,
+)
 
 
 def _assert_student_in_dorm(teacher: models.Teacher, student: models.Student) -> None:
@@ -132,7 +137,7 @@ def search_recipients(
                 "message": "前台登记需要寮監 / 寮務 / 管理係 权限",
             },
         )
-    stmt = select(models.Student).where(models.Student.is_demo.is_(False))
+    stmt = select(models.Student).where(demo_scope_for_teacher(teacher))
     if q:
         like = f"%{q}%"
         stmt = stmt.where(

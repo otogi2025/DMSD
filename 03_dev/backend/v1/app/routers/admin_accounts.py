@@ -21,7 +21,11 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import dorm_units_for_teacher, require_teacher_roles
+from ..deps import (
+    demo_scope_for_teacher,
+    dorm_units_for_teacher,
+    require_teacher_roles,
+)
 from ..security import hash_password
 
 router = APIRouter(
@@ -55,10 +59,17 @@ def _is_locked(account: models.Account) -> bool:
     return locked_until > now
 
 
-def _get_student_or_404(student_id: UUID, db: Session) -> models.Student:
-    """按 student_id 查学生，找不到就 raise 404。排除 demo/reviewer 账号。"""
+def _get_student_or_404(
+    student_id: UUID, db: Session, teacher: models.Teacher
+) -> models.Student:
+    """按 student_id 查学生，找不到就 raise 404。
+
+    演示隔离：真老师只能碰真实学生，演示老师只能碰演示学生
+    （student.is_demo 必须等于 teacher.is_demo，否则当作不存在 → 404）。
+    真老师（is_demo=False）行为同改造前：演示学生照样 404。
+    """
     student = db.get(models.Student, student_id)
-    if not student or student.is_demo:
+    if not student or student.is_demo != teacher.is_demo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "STUDENT_NOT_FOUND", "message": "学生が見つかりません"},
@@ -106,8 +117,8 @@ def list_students(
         3. JOIN accounts 取锁定状态和最后登录时间
         4. 返回列表 + total
     """
-    # 1. 基础 query — 排除 demo 账号（is_demo=False 的真实学生）
-    stmt = select(models.Student).where(models.Student.is_demo.is_(False))
+    # 1. 基础 query — 演示隔离（真老师看真实学生 / 演示老师看演示学生）
+    stmt = select(models.Student).where(demo_scope_for_teacher(teacher))
 
     # 2. 可选过滤条件
     if q:
@@ -200,7 +211,7 @@ def password_reset(
         6. 返回含明文临时密码的响应（只此一次）
     """
     # 1. 查学生
-    _get_student_or_404(student_id, db)
+    _get_student_or_404(student_id, db, teacher)
 
     # 2. 查 account
     account = _get_account_or_404(student_id, db)
@@ -261,7 +272,7 @@ def unlock_account(
         4. 写 audit_logs（action=account.unlock）
     """
     # 1. 查学生
-    _get_student_or_404(student_id, db)
+    _get_student_or_404(student_id, db, teacher)
 
     # 2. 查 account
     account = _get_account_or_404(student_id, db)
@@ -307,7 +318,7 @@ def renewal_progress(
     """
     stmt = select(models.Student).where(
         models.Student.needs_renewal.is_(True),
-        models.Student.is_demo.is_(False),
+        demo_scope_for_teacher(teacher),
     )
     # R4 寮边界：分寮管理係只看本人管辖寮的未更新名单（跨寮角色 allowed=None 看全部）
     allowed = dorm_units_for_teacher(teacher)
@@ -353,7 +364,7 @@ def teacher_renew_seat(
     db: Session = Depends(get_db),
 ):
     """老师单件改某学生番号（兜底 — 学生不会操作 / 填错时）。"""
-    student = _get_student_or_404(student_id, db)
+    student = _get_student_or_404(student_id, db, teacher)
     # R4 寮边界：分寮管理係只能改本人管辖寮的学生（跨寮角色 allowed=None 不限）
     allowed = dorm_units_for_teacher(teacher)
     if allowed is not None and student.dorm_unit not in allowed:

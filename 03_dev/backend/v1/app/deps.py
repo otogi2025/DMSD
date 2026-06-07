@@ -40,6 +40,22 @@ def dorm_units_for_teacher(teacher: models.Teacher) -> Optional[list[int]]:
     return [teacher.assigned_dorm]
 
 
+def demo_scope_for_teacher(teacher: models.Teacher):
+    """演示隔离过滤条件 — 返回作用在 Student.is_demo 上的 SQLAlchemy 条件。
+
+    与 R4 寮过滤（dorm_units_for_teacher）正交，叠加用：
+    - 真老师（is_demo=False）→ Student.is_demo IS False（只看真实学生，行为同改造前）
+    - 演示老师（is_demo=True）→ Student.is_demo IS True（只看演示学生）
+
+    用法（替换散落各 router 的硬编码 .where(Student.is_demo.is_(False))）：
+        stmt = stmt.where(demo_scope_for_teacher(teacher))
+
+    注：改造前各处硬编码 .is_(False) 等价于「真老师」分支，故真老师查询结果不变；
+    本函数只多开了「演示老师只看演示学生」这条反向通路。
+    """
+    return models.Student.is_demo.is_(teacher.is_demo)
+
+
 def _parse_bearer(auth_header: str | None) -> str:
     if not auth_header or not auth_header.lower().startswith("bearer "):
         raise HTTPException(

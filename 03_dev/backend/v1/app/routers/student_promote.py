@@ -31,7 +31,11 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import dorm_units_for_teacher, require_teacher_roles
+from ..deps import (
+    demo_scope_for_teacher,
+    dorm_units_for_teacher,
+    require_teacher_roles,
+)
 
 router = APIRouter(prefix="/api/v1/students", tags=["student / renewal"])
 
@@ -66,7 +70,7 @@ def renewal_start(
     # 1. 查询 active 真实学生（只取 grade_code 合法 '01'~'06'，跳过脏数据防 500）
     stmt = select(models.Student).where(
         models.Student.status == "active",
-        models.Student.is_demo.is_(False),
+        demo_scope_for_teacher(teacher),
         models.Student.grade_code.in_(_VALID_GRADES),
     )
     # R4 寮边界：跨寮角色（寮務部長/課長）allowed=None 看全部；分寮管理係只开闸本人管辖寮
