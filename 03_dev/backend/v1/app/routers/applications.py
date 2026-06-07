@@ -144,7 +144,8 @@ def create_application(
             "leave_date": application.leave_date.isoformat(),
             "return_date": application.return_date.isoformat(),
             "student_name": student.name,
-        }
+        },
+        student_is_demo=student.is_demo,
     )
 
     # evidence pending な chain は header に警告
@@ -285,7 +286,8 @@ def create_application_by_teacher(
             "leave_date": application.leave_date.isoformat(),
             "return_date": application.return_date.isoformat(),
             "student_name": student.name,
-        }
+        },
+        student_is_demo=student.is_demo,
     )
 
     return _to_application_out(application)

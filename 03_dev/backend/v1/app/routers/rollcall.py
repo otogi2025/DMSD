@@ -452,6 +452,7 @@ def create_checkin(
             "room_no": student.room_no,
         },
         dorm_unit=student.dorm_unit,
+        student_is_demo=student.is_demo,
     )
 
     return schemas.RollCallEventOut.model_validate(event)
@@ -772,6 +773,7 @@ def patch_event(
             "override_reason": body.reason,
         },
         dorm_unit=student.dorm_unit if student else None,
+        student_is_demo=student.is_demo if student else None,
     )
 
     return schemas.RollCallEventOut.model_validate(override_event)

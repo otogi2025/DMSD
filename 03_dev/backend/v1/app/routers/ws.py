@@ -55,8 +55,9 @@ async def teacher_ws(
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
         assigned_dorm = teacher.assigned_dorm
+        is_demo = teacher.is_demo  # 演示隔离 — 连接带 is_demo，broadcast 按它过滤
 
-    await manager.connect(websocket, teacher_id, assigned_dorm)
+    await manager.connect(websocket, teacher_id, assigned_dorm, is_demo)
     try:
         while True:
             # frontend 不主动发消息（被动接收）— 仅处理 ping/pong / 心跳

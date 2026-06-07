@@ -32,6 +32,7 @@ class _TeacherConn:
     teacher_id: UUID
     websocket: WebSocket
     assigned_dorm: int | None  # 跨寮 4 类 = None / 男寮 = 1 / 女寮 = 4
+    is_demo: bool = False  # 演示隔离 — 演示老师连接只收演示学生事件、真老师只收真实学生
 
 
 class TeacherConnectionManager:
@@ -53,6 +54,7 @@ class TeacherConnectionManager:
         websocket: WebSocket,
         teacher_id: UUID,
         assigned_dorm: int | None,
+        is_demo: bool = False,
     ) -> None:
         await websocket.accept()
         async with self._lock:
@@ -61,6 +63,7 @@ class TeacherConnectionManager:
                     teacher_id=teacher_id,
                     websocket=websocket,
                     assigned_dorm=assigned_dorm,
+                    is_demo=is_demo,
                 )
             )
         logger.info(
@@ -76,19 +79,27 @@ class TeacherConnectionManager:
         logger.info("WS teacher disconnected active=%d", len(self._conns))
 
     async def broadcast(
-        self, event: dict[str, Any], dorm_unit: int | None = None
+        self,
+        event: dict[str, Any],
+        dorm_unit: int | None = None,
+        student_is_demo: bool | None = None,
     ) -> None:
         """推给活跃老师连接。
 
         dorm_unit=None  → 推给全部连接（系统级事件 / 跨寮场景）。
         dorm_unit=<int> → 只推给 assigned_dorm 匹配的连接，
                           以及 assigned_dorm IS None（跨寮管理员）的连接。
+        student_is_demo=<bool> → 演示隔离：只推给 is_demo 匹配的老师连接
+                          （演示老师只收演示学生事件 / 真老师只收真实学生事件）。
         失败连接自动剔除。
         """
         async with self._lock:
             targets = list(self._conns)
         dead: list[_TeacherConn] = []
         for c in targets:
+            # 演示隔离：事件涉及学生时按 is_demo 匹配过滤（演示数据不推给真老师，反之）
+            if student_is_demo is not None and c.is_demo != student_is_demo:
+                continue
             # 寮过滤：男寮老师(assigned_dorm=1)收 dorm_unit 1+2、女寮(4)收 4、跨寮(None)收全部
             # 与 deps.dorm_units_for_teacher 映射一致（原精确比较 != 会漏推 dorm_unit=2 给男寮老师）
             if dorm_unit is not None and c.assigned_dorm is not None:
@@ -105,11 +116,15 @@ class TeacherConnectionManager:
                 self._conns = [c for c in self._conns if c not in dead]
 
     def broadcast_sync(
-        self, event: dict[str, Any], dorm_unit: int | None = None
+        self,
+        event: dict[str, Any],
+        dorm_unit: int | None = None,
+        student_is_demo: bool | None = None,
     ) -> None:
         """同步 router (def, 不是 async def) 触发广播用。
 
         dorm_unit 同 broadcast() — 事件涉及学生所在的 dorm_unit。
+        student_is_demo 同 broadcast() — 事件涉及学生的 is_demo（演示隔离）。
         把协程提交回主 event loop（run_coroutine_threadsafe），不阻塞 router 返回。
         失败绝不向 router 抛异常 — 广播是副作用，不能拖垮已提交的业务（applchain-12）。
         """
@@ -120,7 +135,10 @@ class TeacherConnectionManager:
             return
         try:
             asyncio.run_coroutine_threadsafe(
-                self.broadcast(event, dorm_unit=dorm_unit), loop
+                self.broadcast(
+                    event, dorm_unit=dorm_unit, student_is_demo=student_is_demo
+                ),
+                loop,
             )
         except Exception:
             logger.warning("WS broadcast_sync failed (event dropped)", exc_info=True)

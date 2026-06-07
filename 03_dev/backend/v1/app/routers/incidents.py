@@ -150,9 +150,15 @@ def list_incidents(
     """老师查事案列表（按事发日期倒序，排除软删）。"""
     _require_incident_role(teacher)
 
+    # 演示隔离：按事案创建者(recorded_by)的 is_demo 过滤 —— 演示老师只看演示老师建的事案、
+    # 真老师只看真老师建的（事案本身没 demo 列，用现有创建者关系判，不改 schema）
     rows = db.scalars(
         select(models.IncidentRecord)
-        .where(models.IncidentRecord.deleted_at.is_(None))
+        .join(models.Teacher, models.Teacher.id == models.IncidentRecord.recorded_by)
+        .where(
+            models.IncidentRecord.deleted_at.is_(None),
+            models.Teacher.is_demo == teacher.is_demo,
+        )
         .order_by(models.IncidentRecord.incident_date.desc())
     ).all()
     return schemas.IncidentRecordListOut(
@@ -175,6 +181,12 @@ def get_incident(
             status_code=404,
             detail={"code": "INCIDENT_NOT_FOUND", "message": "事案不存在"},
         )
+    # 演示隔离：演示老师只能看演示老师建的事案（按创建者 is_demo），否则当作不存在 404
+    if row.recorder.is_demo != teacher.is_demo:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "INCIDENT_NOT_FOUND", "message": "事案不存在"},
+        )
     return _to_incident_out(db, row, teacher)
 
 
@@ -190,6 +202,12 @@ def patch_incident(
 
     row = db.get(models.IncidentRecord, incident_id)
     if not row or row.deleted_at is not None:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "INCIDENT_NOT_FOUND", "message": "事案不存在"},
+        )
+    # 演示隔离：演示老师只能改演示老师建的事案（按创建者 is_demo），否则当作不存在 404
+    if row.recorder.is_demo != teacher.is_demo:
         raise HTTPException(
             status_code=404,
             detail={"code": "INCIDENT_NOT_FOUND", "message": "事案不存在"},
@@ -241,6 +259,12 @@ def delete_incident(
 
     row = db.get(models.IncidentRecord, incident_id)
     if not row or row.deleted_at is not None:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "INCIDENT_NOT_FOUND", "message": "事案不存在"},
+        )
+    # 演示隔离：演示老师只能删演示老师建的事案（按创建者 is_demo），否则当作不存在 404
+    if row.recorder.is_demo != teacher.is_demo:
         raise HTTPException(
             status_code=404,
             detail={"code": "INCIDENT_NOT_FOUND", "message": "事案不存在"},
