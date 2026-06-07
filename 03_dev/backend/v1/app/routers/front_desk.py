@@ -79,11 +79,19 @@ def list_items(
     # itsuki 拍板「按男寮 / 女寮过滤、不细分到楼」—— dorm_units_for_teacher 返回的本就是
     # 男女寮粒度（男寮=[1,2] / 女寮=[4] / 跨寮角色=None=看全部）。
     # 无关联学生的条目（如无主失物 student_id=NULL）对所有老师可见。
+    # 总 outerjoin Student：演示隔离（无主条目 student_id=NULL 对所有老师可见；
+    # 有主条目按 demo 隔离 — 真老师只看真实学生条目 / 演示老师只看演示学生条目）+ R4 寮过滤叠加。
     allowed = dorm_units_for_teacher(teacher)
+    stmt = stmt.outerjoin(
+        models.Student, models.FrontDeskItem.student_id == models.Student.id
+    ).where(
+        or_(
+            models.FrontDeskItem.student_id.is_(None),
+            demo_scope_for_teacher(teacher),
+        )
+    )
     if allowed is not None:
-        stmt = stmt.outerjoin(
-            models.Student, models.FrontDeskItem.student_id == models.Student.id
-        ).where(
+        stmt = stmt.where(
             or_(
                 models.FrontDeskItem.student_id.is_(None),
                 models.Student.dorm_unit.in_(allowed),

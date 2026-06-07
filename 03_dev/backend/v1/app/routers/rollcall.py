@@ -557,6 +557,9 @@ def session_summary(
         s = db.get(models.Student, sid)
         if not s:
             continue
+        # 演示隔离：跳过跨 demo 学生（演示老师只看演示学生摘要 / 真老师只看真实学生）
+        if s.is_demo != teacher.is_demo:
+            continue
         entry = {"student_id": str(sid), "name": s.name, "room_no": s.room_no}
         if e.base_status == "absent":
             absent.append(entry)
