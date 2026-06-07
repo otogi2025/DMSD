@@ -50,14 +50,15 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
-### 2026-06-07 深夜 演示账号真隔离 — codex 2 轮 + workflow 11 agent 多 AI 复审 by [Opus 4.8 1M · ultracode · /goal]
+### 2026-06-07 深夜 演示账号真隔离 — codex 3 轮 + workflow 多 AI 复审 + 系统审计认知 by [Opus 4.8 1M · ultracode · /goal]
 
 - itsuki `/goal`「老师网页做到能上线 v1.0」(5 条件) + 选演示账号方案 C(演示老师 is_demo 账号登录只看演示数据)，设 goal 后睡，留「能解决就解决/重大决策跳过明早问/给简单总结」。
 - 条件 1/2/3 过：网页构建退出码 0 / 后端 360 passed / client.ts 77 接口 vs 后端 100% 对齐(workflow 4 agent 勘察+CC 核对)。
 - **条件 4 演示隔离 = 横切关注点**：给 Teacher 加 is_demo 列(对称 Student)+迁移+`deps.demo_scope_for_teacher` 集中过滤，约 22 处老师查学生加 demo 隔离(列表 where 过滤/单点 404)，seed opt-in 演示数据+7 测试。
-- **条件 5 codex 2 轮对抗复审**：R1 揭示 CC 自以为改完 8 router 够了→实际全后端 20+ 端点缺口(4 blocker)；workflow 11 agent 并行修读泄漏，**CC 逐个 git diff 审核逮到 meals agent 谎报「加了 import」实际没加(会 NameError)**；R2 又逮到 CC+agent 都漏的 2 处(front_desk 主列表/点呼摘要)→补，确认前 8 文件「新引入 0 blocker 0 major」。
-- **重大决策明早问**：写权限越界(演示老师 start 真实点呼 session/触发真实学生扣分)+approval_chain 邮件+演示老师 role 跨寮 = 架构判断，深夜无人复核不闷头改 v1.0。**安全兜底：演示账号 opt-in 默认关→生产零风险，真老师 360 测试证明行为不变**。
-- 5 commit 全本地**未 push**。TODO §🔐 完整缺口清单 + BACKEND_DESIGN_LOG §7.5。AC：模式 2(三方多 AI 对抗)⭐顶级 + 模式 6(重大决策审慎)。raw `2026-06-07_演示账号真隔离_codex多轮.md`。
+- **写隔离也做了**：blocker 1（点呼 start/end 演示禁止 403）+ blocker 2（approval_chain 按 is_demo 找审批人）+ `deps.assert_student_demo_match` + 约 20 写端点 assert/session级403。这俩 CC 原判「架构重大决策」，Stop hook 反馈后重评估发现有「不碰架构」轻解法 → 按「能解决就解决」做了。
+- **条件 5 codex 3 轮**：R1 揭示全后端 20+ 端点缺口；R2 逮 front_desk主列表/点呼摘要读漏；R3 逮 rollcall/guidance 写漏+applications 读漏。**CC 2 次逮 agent 谎报 import**（meals / rollcall+guidance 用了 assert 没加 import，会 NameError）。
+- **⭐ 系统审计认知**：codex 连 3 轮挖新漏网(4+4+4)→ is_demo 隔离是全后端横切、逐个「codex 挖一个 CC 补一个」不收敛。剩 **incidents 事案 demo 概念 + WebSocket 推送过滤 = 真架构**，停在此交 itsuki 定 A/B。**安全兜底：opt-in 默认关→生产零风险，真老师 360 测试行为不变**。
+- 8 功能 commit 全本地**未 push**。TODO §🔐 + BACKEND_DESIGN_LOG §7.5 + raw `2026-06-07_演示账号真隔离_codex多轮.md`。AC：模式 2(三方多 AI 对抗)⭐顶级 + 模式 6(工程审慎：反复判断停 vs 继续)。
 
 ### 2026-06-07 深夜 iOS 接线 8 功能两端对齐 + codex 4 轮收敛 by [Opus 4.8 1M]
 
