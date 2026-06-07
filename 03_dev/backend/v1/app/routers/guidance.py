@@ -23,7 +23,12 @@ from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import dorm_units_for_teacher, get_current_student, get_current_teacher
+from ..deps import (
+    demo_scope_for_teacher,
+    dorm_units_for_teacher,
+    get_current_student,
+    get_current_teacher,
+)
 
 router = APIRouter(prefix="/api/v1", tags=["guidance"])
 
@@ -127,6 +132,14 @@ def list_guidance(
     _require_guidance_role(teacher)
     student = _get_student_or_404(student_id, db)
 
+    # 演示隔离：老师传任意 student_id 拉指导履历 → 演示老师不能拉真实学生（反之亦然），
+    # 否则跨寮演示老师能读到真实学生的指导记录 = 泄漏。当作 404 隐藏存在性。
+    if student.is_demo != teacher.is_demo:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "STUDENT_NOT_FOUND", "message": "学生不存在"},
+        )
+
     # R4 寮边界：跨寮角色（dorm_units_for_teacher 返回 None）可查全部；
     # 其他老师只能查自己管辖寮的学生
     allowed = dorm_units_for_teacher(teacher)
@@ -227,9 +240,16 @@ def list_disclosure_requests(
     """
     _require_guidance_role(teacher)
 
+    # 演示隔离：始终 join Student 并按 demo 过滤（真老师只看真学生 / 演示老师只看演示学生），
+    # 否则跨寮演示老师能看到真实学生的开示申请 = 泄漏。
     stmt = (
         select(models.GuidanceDisclosureRequest)
         .options(selectinload(models.GuidanceDisclosureRequest.student))
+        .join(
+            models.Student,
+            models.GuidanceDisclosureRequest.student_id == models.Student.id,
+        )
+        .where(demo_scope_for_teacher(teacher))
         .order_by(models.GuidanceDisclosureRequest.requested_at.desc())
     )
     if not include_revoked:
@@ -238,10 +258,7 @@ def list_disclosure_requests(
     # R4 寮边界过滤
     allowed = dorm_units_for_teacher(teacher)
     if allowed is not None:
-        stmt = stmt.join(
-            models.Student,
-            models.GuidanceDisclosureRequest.student_id == models.Student.id,
-        ).where(models.Student.dorm_unit.in_(allowed))
+        stmt = stmt.where(models.Student.dorm_unit.in_(allowed))
 
     rows = db.scalars(stmt).all()
     return schemas.GuidanceDisclosureListOut(

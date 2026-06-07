@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..deps import (
+    demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_student,
     get_current_teacher,
@@ -102,10 +103,18 @@ def today_attendees(
     study_start = _study_start_dt(today)
 
     # 当日有効な study_roster
+    # 演示隔离：join Student 加 demo_scope，让真老师只拿真实学生名簿 / 演示老师只拿演示学生名簿。
+    # student_ids 是后续 outstay / absence / checkin / 学生详细 全部查询的源头，
+    # 在这里收口一次即整页隔离（不必逐查再加 demo 过滤）。
     term = _academic_term(today)
-    roster_stmt = select(models.StudyRoster).where(
-        models.StudyRoster.academic_term == term,
-        models.StudyRoster.removed_at.is_(None),
+    roster_stmt = (
+        select(models.StudyRoster)
+        .join(models.Student, models.Student.id == models.StudyRoster.student_id)
+        .where(
+            models.StudyRoster.academic_term == term,
+            models.StudyRoster.removed_at.is_(None),
+            demo_scope_for_teacher(teacher),
+        )
     )
     roster_rows = db.scalars(roster_stmt).all()
     student_ids = [r.student_id for r in roster_rows]
@@ -545,8 +554,16 @@ def list_absence_requests(
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(get_current_teacher),
 ):
-    stmt = select(models.StudyAbsenceRequest).order_by(
-        models.StudyAbsenceRequest.submitted_at.asc()
+    # 演示隔离：join Student 加 demo_scope，让真老师只看真实学生的欠席届 /
+    # 演示老师只看演示学生的欠席届（否则演示老师能读到真实学生提交的欠席届）。
+    stmt = (
+        select(models.StudyAbsenceRequest)
+        .join(
+            models.Student,
+            models.Student.id == models.StudyAbsenceRequest.student_id,
+        )
+        .where(demo_scope_for_teacher(teacher))
+        .order_by(models.StudyAbsenceRequest.submitted_at.asc())
     )
     if target_date:
         stmt = stmt.where(models.StudyAbsenceRequest.target_date == target_date)
@@ -708,8 +725,13 @@ def list_roster(
         return []
 
     student_ids = [r.student_id for r in roster_rows]
+    # 演示隔离：真老师只取真实学生 / 演示老师只取演示学生。
+    # student_map 缺该学生时下面 for 循环 continue 跳过，等于把异 cohort 名簿行过滤掉。
     students = db.scalars(
-        select(models.Student).where(models.Student.id.in_(student_ids))
+        select(models.Student).where(
+            models.Student.id.in_(student_ids),
+            demo_scope_for_teacher(teacher),
+        )
     ).all()
     student_map = {s.id: s for s in students}
 

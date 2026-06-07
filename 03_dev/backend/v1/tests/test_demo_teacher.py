@@ -120,3 +120,25 @@ def test_demo_teacher_can_reset_demo_student(client, demo_teacher_token, demo_da
     )
     assert res.status_code == 200, res.text
     assert "temporary_password" in res.json()
+
+
+def test_demo_teacher_cannot_view_real_student_profile(
+    client, demo_teacher_token, seed_data
+):
+    """演示老师 GET 真实学生个人档案聚合 → 404（演示老师只能查演示学生）。"""
+    res = client.get(
+        f"/api/v1/students/{seed_data['student'].id}/profile",
+        headers={"Authorization": f"Bearer {demo_teacher_token}"},
+    )
+    assert res.status_code == 404, res.text
+
+
+def test_real_teacher_cannot_view_demo_student_profile(
+    client, teacher_token, demo_data
+):
+    """真老师 GET 演示学生个人档案聚合 → 404（演示学生对真老师隐身）。"""
+    res = client.get(
+        f"/api/v1/students/{demo_data['demo_student'].id}/profile",
+        headers={"Authorization": f"Bearer {teacher_token}"},
+    )
+    assert res.status_code == 404, res.text

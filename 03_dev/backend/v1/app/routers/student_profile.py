@@ -253,6 +253,13 @@ def get_student_profile(
             )
         # R4 寮边界：先取学生信息才能比对 dorm_unit
         _student_for_check = _get_student_or_404(student_id, db)
+        # 演示隔离：真老师只能查真实学生，演示老师只能查演示学生
+        # （is_demo 不匹配当作不存在 → 404，与 admin_accounts.py 同口径，防演示老师拉真实学生 profile 泄漏）
+        if _student_for_check.is_demo != actor_teacher.is_demo:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"code": "STUDENT_NOT_FOUND", "message": "学生が見つかりません"},
+            )
         allowed = dorm_units_for_teacher(actor_teacher)
         if allowed is not None and _student_for_check.dorm_unit not in allowed:
             raise HTTPException(

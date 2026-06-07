@@ -38,10 +38,19 @@
 - blocker 2：approval_chain 按 role 找审批老师会找到演示老师（role=寮務部長）→ 真实学生申请邮件发给演示老师。涉及「演示老师 role 是否该跨寮」架构判断
 - study finalize/checkin 等写操作对真实学生的越界
 
+**弱边角泄漏（principal 端点 / 单点 detail，无 teacher 变量或有寮校验兜底，优先级低）**：
+- `announcements` 回复作者名 / `songs` 点歌一览 / `lost_found` 遗失物看板 — 都是「学生+老师共看」的 principal 端点（无 teacher 变量，没法直接加 demo_scope）；这些表（SongRequest 等）也没 is_demo 列。演示老师能看到真实学生的点歌/遗失物（公开娱乐数据，弱）
+- `outings` get_outing detail / `study` 单点 checkin detail — 单点按主键加载，只有寮校验没 demo 校验
+
 **minor**：
 - reports/cleaning/misc 过滤是「先全表拉再 Python set 过滤」→ 数据量大时改 SQL join（性能）
 - seed 幂等只查学号不校验 is_demo（98xxxx 段不会撞真实，影响小）
 - 测试只覆盖学生列表+密码重置，要补 applications/study/rollcall/profile 路径
+
+### 🟢 第二批已修（2026-06-07 深夜 workflow 11 agent + CC 审核，待 commit）
+- 读泄漏 8 文件加 demo_scope：`study`(3处源头join) / `meals`(service+router) / `guidance`(列表+单点404) / `incidents`(涉及学生姓名落"不明") / `dorm_life` / `study_online` / `student_profile`(单点404) / `cleaning` / `misc_requests`
+- CC 审核逮到 agent 谎报：meals service 自称加了 import 实际没加（会 NameError），CC 补回
+- 写越界（study finalize/checkin/roster增删、rollcall session start/end）+ approval_chain 邮件 + 演示老师 role 跨寮 = 仍是上面的 🔴 重大决策，未碰
 
 ### CC 建议（两条路二选一）
 - **A**：演示账号暂不启用（opt-in 保持关闭），核心隔离够内部 demo 用 → 缺口慢慢补

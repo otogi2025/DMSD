@@ -11,17 +11,19 @@ Q7 答え: 「Excel 表格、要包含的数据是哪些学生不需要餐食、
 
 ⚠️ 2026-05-02 形式変更: 旧 meals_skip_from/to datetime range → 新 [{date, meal}] リスト。
 """
+
 from __future__ import annotations
 
 import io
 from dataclasses import dataclass, field
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, timedelta, timezone
 from typing import Iterable
 
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from .. import models
+from ..deps import demo_scope_for_teacher
 
 JST = timezone(timedelta(hours=9))
 
@@ -73,11 +75,14 @@ def _date_range(d_from: date, d_to: date) -> Iterable[date]:
 
 
 def calc_meals(
-    db: Session, *, range_from: date, range_to: date
+    db: Session, *, teacher: models.Teacher, range_from: date, range_to: date
 ) -> MealsCalcResult:
     """[range_from, range_to] (両端含む) の食事不要数を計算。
 
     meals_skip = [{date: '2026-05-01', meal: '朝食'}, ...] 形式を集計。
+
+    teacher の演示隔离: demo_scope_for_teacher(teacher) で
+    真老师只看真实学生 / 演示老师只看演示学生（防演示账号看到真实学生泄漏）。
     """
     if range_to < range_from:
         raise ValueError("range_to must be >= range_from")
@@ -89,6 +94,7 @@ def calc_meals(
             and_(
                 models.Application.status == "approved",
                 models.Application.meals_skip.is_not(None),
+                demo_scope_for_teacher(teacher),
             )
         )
     )
@@ -101,7 +107,7 @@ def calc_meals(
     detail_map: dict[tuple, StudentMealDetail] = {}
 
     for app, student in rows:
-        for entry in (app.meals_skip or []):
+        for entry in app.meals_skip or []:
             try:
                 entry_date = date.fromisoformat(entry["date"])
                 meal = entry["meal"]
@@ -138,7 +144,9 @@ def calc_meals(
         range_from=range_from,
         range_to=range_to,
         daily=sorted(daily_map.values(), key=lambda x: x.target_date),
-        details=sorted(detail_map.values(), key=lambda x: (x.target_date, x.student_no)),
+        details=sorted(
+            detail_map.values(), key=lambda x: (x.target_date, x.student_no)
+        ),
     )
 
 
@@ -159,9 +167,7 @@ def export_excel(result: MealsCalcResult) -> bytes:
     # ---- Sheet 1: 日別集計 ----
     ws1 = wb.active
     ws1.title = "日別集計"
-    ws1.append(
-        ["日付", "曜日", "朝食 不要数", "昼食 不要数", "夕食 不要数", "合計"]
-    )
+    ws1.append(["日付", "曜日", "朝食 不要数", "昼食 不要数", "夕食 不要数", "合計"])
     for c in ws1[1]:
         c.font = Font(bold=True, color="FFFFFF")
         c.fill = PatternFill("solid", fgColor="4472C4")
@@ -182,7 +188,9 @@ def export_excel(result: MealsCalcResult) -> bytes:
         )
     # 合計行
     totals = result.total
-    grand_total = totals["breakfast_skip"] + totals["lunch_skip"] + totals["dinner_skip"]
+    grand_total = (
+        totals["breakfast_skip"] + totals["lunch_skip"] + totals["dinner_skip"]
+    )
     ws1.append(
         [
             "合計",
@@ -205,9 +213,7 @@ def export_excel(result: MealsCalcResult) -> bytes:
 
     # ---- Sheet 2: 学生別詳細 ----
     ws2 = wb.create_sheet(title="学生別詳細")
-    ws2.append(
-        ["日付", "学号", "氏名", "寮", "部屋", "朝食", "昼食", "夕食"]
-    )
+    ws2.append(["日付", "学号", "氏名", "寮", "部屋", "朝食", "昼食", "夕食"])
     for c in ws2[1]:
         c.font = Font(bold=True, color="FFFFFF")
         c.fill = PatternFill("solid", fgColor="4472C4")
@@ -228,7 +234,14 @@ def export_excel(result: MealsCalcResult) -> bytes:
         )
 
     widths2 = {
-        "A": 12, "B": 10, "C": 18, "D": 12, "E": 8, "F": 8, "G": 8, "H": 8,
+        "A": 12,
+        "B": 10,
+        "C": 18,
+        "D": 12,
+        "E": 8,
+        "F": 8,
+        "G": 8,
+        "H": 8,
     }
     for col, w in widths2.items():
         ws2.column_dimensions[col].width = w

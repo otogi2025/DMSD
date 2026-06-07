@@ -21,7 +21,10 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import get_current_teacher
+from ..deps import (
+    demo_scope_for_teacher,
+    get_current_teacher,
+)
 
 router = APIRouter(prefix="/api/v1/incidents", tags=["incidents"])
 
@@ -46,12 +49,16 @@ def _require_incident_role(teacher: models.Teacher) -> None:
 
 
 def _to_incident_out(
-    db: Session, row: models.IncidentRecord
+    db: Session, row: models.IncidentRecord, teacher: models.Teacher
 ) -> schemas.IncidentRecordOut:
     """ORM 事案行 → 输出 schema，并把 involved_student_ids 解析成带姓名的 list。
 
     杭田 2026-06-04 五-6: 前端要把涉及学生姓名做成可点击 chip 跳个人档案，
     所以这里 join Student 取姓名。找不到的学生（已删等）标「（不明）」。
+
+    演示隔离: 姓名解析查询叠加 demo_scope_for_teacher(teacher) —— 演示老师
+    只能解析到演示学生姓名，真老师只能解析到真实学生姓名；超出范围的 id
+    落到「（不明）」，防止演示老师通过事案涉及学生看到真实学生姓名。
     """
     out = schemas.IncidentRecordOut.model_validate(row)
     raw_ids = [str(s) for s in (row.involved_student_ids or [])]
@@ -65,7 +72,10 @@ def _to_incident_out(
         name_map = {}
         if uuids:
             students = db.scalars(
-                select(models.Student).where(models.Student.id.in_(uuids))
+                select(models.Student).where(
+                    models.Student.id.in_(uuids),
+                    demo_scope_for_teacher(teacher),
+                )
             ).all()
             name_map = {str(stu.id): stu.name for stu in students}
         out.involved_students = [
@@ -129,7 +139,7 @@ def create_incident(
     )
     db.commit()
     db.refresh(row)
-    return _to_incident_out(db, row)
+    return _to_incident_out(db, row, teacher)
 
 
 @router.get("", response_model=schemas.IncidentRecordListOut)
@@ -145,7 +155,9 @@ def list_incidents(
         .where(models.IncidentRecord.deleted_at.is_(None))
         .order_by(models.IncidentRecord.incident_date.desc())
     ).all()
-    return schemas.IncidentRecordListOut(items=[_to_incident_out(db, r) for r in rows])
+    return schemas.IncidentRecordListOut(
+        items=[_to_incident_out(db, r, teacher) for r in rows]
+    )
 
 
 @router.get("/{incident_id}", response_model=schemas.IncidentRecordOut)
@@ -163,7 +175,7 @@ def get_incident(
             status_code=404,
             detail={"code": "INCIDENT_NOT_FOUND", "message": "事案不存在"},
         )
-    return _to_incident_out(db, row)
+    return _to_incident_out(db, row, teacher)
 
 
 @router.patch("/{incident_id}", response_model=schemas.IncidentRecordOut)
@@ -215,7 +227,7 @@ def patch_incident(
     )
     db.commit()
     db.refresh(row)
-    return _to_incident_out(db, row)
+    return _to_incident_out(db, row, teacher)
 
 
 @router.delete("/{incident_id}", status_code=204)

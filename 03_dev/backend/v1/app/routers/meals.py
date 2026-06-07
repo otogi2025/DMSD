@@ -3,6 +3,7 @@
 GET /api/v1/meals/calc?from=&to=          — JSON (debug 用)
 GET /api/v1/meals/export?from=&to=        — .xlsx ダウンロード
 """
+
 from __future__ import annotations
 
 from datetime import date
@@ -45,9 +46,12 @@ def calc(
     if to < from_:
         raise HTTPException(
             status_code=422,
-            detail={"code": "INVALID_RANGE", "message": "to は from 以後にしてください"},
+            detail={
+                "code": "INVALID_RANGE",
+                "message": "to は from 以後にしてください",
+            },
         )
-    result = meals_svc.calc_meals(db, range_from=from_, range_to=to)
+    result = meals_svc.calc_meals(db, teacher=teacher, range_from=from_, range_to=to)
     return schemas.MealsCalcOut(
         range_from=result.range_from,
         range_to=result.range_to,
@@ -75,9 +79,12 @@ def export(
     if to < from_:
         raise HTTPException(
             status_code=422,
-            detail={"code": "INVALID_RANGE", "message": "to は from 以後にしてください"},
+            detail={
+                "code": "INVALID_RANGE",
+                "message": "to は from 以後にしてください",
+            },
         )
-    result = meals_svc.calc_meals(db, range_from=from_, range_to=to)
+    result = meals_svc.calc_meals(db, teacher=teacher, range_from=from_, range_to=to)
     payload = meals_svc.export_excel(result)
     filename = meals_svc.export_filename(from_, to)
 

@@ -22,6 +22,7 @@ from .. import models, schemas
 from ..config import get_settings
 from ..database import get_db
 from ..deps import (
+    demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_principal,
     get_current_student,
@@ -123,20 +124,25 @@ def list_online_requests(
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(get_current_teacher),
 ):
-    stmt = select(models.StudyOnlineRequest).order_by(
-        models.StudyOnlineRequest.submitted_at.asc()
+    # 总是 join Student：演示隔离过滤（demo_scope_for_teacher）必须对全部角色生效，
+    # 否则全寮角色（dorm_units_for_teacher 返回 None）的演示老师会看到真实学生申请。
+    stmt = (
+        select(models.StudyOnlineRequest)
+        .join(
+            models.Student,
+            models.Student.id == models.StudyOnlineRequest.student_id,
+        )
+        .where(demo_scope_for_teacher(teacher))
+        .order_by(models.StudyOnlineRequest.submitted_at.asc())
     )
     if status_filter:
         stmt = stmt.where(models.StudyOnlineRequest.status == status_filter)
     # R4 寮边界：寮監等 dorm-scoped 老师只看本寮学生的申请；全寮角色（寮務部長等）
-    # dorm_units_for_teacher 返回 None → 不过滤。列表含契約書文件名等元数据，
+    # dorm_units_for_teacher 返回 None → 不按寮过滤。列表含契約書文件名等元数据，
     # 跨寮可见会泄露别寮学生姓名 / 课程信息。
     allowed = dorm_units_for_teacher(teacher)
     if allowed is not None:
-        stmt = stmt.join(
-            models.Student,
-            models.Student.id == models.StudyOnlineRequest.student_id,
-        ).where(models.Student.dorm_unit.in_(allowed))
+        stmt = stmt.where(models.Student.dorm_unit.in_(allowed))
     rows = db.scalars(stmt).all()
     return [schemas.StudyOnlineRequestOut.model_validate(row) for row in rows]
 

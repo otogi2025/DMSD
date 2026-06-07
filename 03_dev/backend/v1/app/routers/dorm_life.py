@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..deps import (
+    demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_student,
     get_current_teacher,
@@ -34,13 +35,19 @@ def _now_jst() -> datetime:
 
 
 def _filter_student_scope(stmt, student_id_column, teacher: models.Teacher):
-    """按老师负责寮过滤学生提交类申请。"""
+    """按老师负责寮 + 演示隔离过滤学生提交类申请。
+
+    总 join 学生表叠加 demo 过滤：真老师只看真实学生申请 / 演示老师只看演示学生申请。
+    （原先跨寮老师 dorm_units=None 时直接 return stmt 完全不过滤，演示数据会漏给真老师 —
+    现改成无论是否跨寮都按 demo 过滤，仅 dorm 限制是条件叠加的。）
+    """
     dorm_units = dorm_units_for_teacher(teacher)
-    if dorm_units is None:
-        return stmt
-    return stmt.join(models.Student, models.Student.id == student_id_column).where(
-        models.Student.dorm_unit.in_(dorm_units)
+    stmt = stmt.join(models.Student, models.Student.id == student_id_column).where(
+        demo_scope_for_teacher(teacher)
     )
+    if dorm_units is not None:
+        stmt = stmt.where(models.Student.dorm_unit.in_(dorm_units))
+    return stmt
 
 
 def _ensure_pending(current_status: str) -> None:
