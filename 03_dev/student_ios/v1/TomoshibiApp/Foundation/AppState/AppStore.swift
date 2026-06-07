@@ -112,6 +112,8 @@ final class AppStore: ObservableObject {
                     cleaningHistory = []
                     songRequests = []
                     lostFound = []
+                    myRollcallEvents = []
+                    myDemeritEvents = []
                 #endif
             }
         }
@@ -1005,6 +1007,30 @@ final class AppStore: ObservableObject {
             let items = try await LostFoundAPI.list()
             guard authToken == tokenAtStart else { return }
             lostFound = items
+        } catch {
+            // 拉失败静默，下次进页面再试。
+        }
+    }
+
+    // MARK: - 个人 profile：点呼事件 + 减点事件（功能⑦⑧ · GET /students/{id}/profile）
+
+    /// 点呼事件缓存（功能⑦ 点呼履历，生产构建用）。
+    @Published var myRollcallEvents: [ProfileRollCallEntry] = []
+
+    /// 减点事件缓存（功能⑧ 減点明細，生产构建用）。
+    @Published var myDemeritEvents: [ProfileDemeritEntry] = []
+
+    /// 拉本人 profile（功能⑦⑧共用：一次 GET /students/{id}/profile 同时填点呼 + 减点两块）。
+    /// 带令牌守卫；myStudentId 还没填到（loadMe 未完成）时跳过。
+    @MainActor
+    func loadMyProfile() async {
+        let tokenAtStart = authToken
+        guard let sid = myStudentId else { return }
+        do {
+            let out = try await StudentProfileAPI.profile(studentId: sid)
+            guard authToken == tokenAtStart else { return }
+            myRollcallEvents = out.rollcall_events
+            myDemeritEvents = out.demerit_events
         } catch {
             // 拉失败静默，下次进页面再试。
         }

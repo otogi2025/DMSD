@@ -91,7 +91,7 @@ struct RootView: View {
         case .myInfo: MyInfoView()
         case .myInfoEdit: MyInfoEditView()
         case .myRollcall: MyRollcallView()
-        case let .myRollcallDetail(entryId): MyRollcallDetailView(entry: SEED.rollcall.first { $0.id == entryId })
+        case let .myRollcallDetail(entryId): MyRollcallDetailView(entryId: entryId)
         case .myPoints: MyPointsView()
         case .myPointsChart: MyPointsChartView()
         case .myDiscipline: MyDisciplineView()

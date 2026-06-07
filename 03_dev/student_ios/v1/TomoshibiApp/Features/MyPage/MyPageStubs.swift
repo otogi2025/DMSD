@@ -953,29 +953,107 @@ struct MyInfoEditView: View {
 
 // MARK: - 3. MyRollcallView (L2)
 
+/// 点呼履历卡片视图模型 —— 演示（SEED.rollcall）/ 生产（ProfileRollCallEntry）归一成同一套展示字段。
+struct RollcallDisplay: Identifiable {
+    let id: String // 演示=RollcallEntry.id / 生产=event UUID 字符串
+    let date: String // yyyy-MM-dd（分组键 + 展示）
+    let session: String // 朝点呼 / 晩点呼
+    let state: String // 時間内 / 遅刻 / 欠席 / 免除
+    let method: String // NFC / ―
+    let checkinTime: String? // 生产=checked_in_at 的 HH:mm:ss（详情真打卡时刻）；演示=nil
+
+    var isMorning: Bool {
+        session.hasPrefix("朝")
+    }
+}
+
+private let rollcallDateFmt: DateFormatter = {
+    let f = DateFormatter()
+    f.locale = Locale(identifier: "ja_JP")
+    f.timeZone = TimeZone(identifier: "Asia/Tokyo")
+    f.dateFormat = "yyyy-MM-dd"
+    return f
+}()
+
+private let rollcallTimeFmt: DateFormatter = {
+    let f = DateFormatter()
+    f.locale = Locale(identifier: "ja_JP")
+    f.timeZone = TimeZone(identifier: "Asia/Tokyo")
+    f.dateFormat = "HH:mm:ss"
+    return f
+}()
+
+extension RollcallDisplay {
+    /// 演示构建：从 SEED.rollcall 映射。
+    init(demo r: RollcallEntry) {
+        self.init(
+            id: r.id, date: r.date, session: r.session,
+            state: r.state, method: r.method, checkinTime: nil
+        )
+    }
+
+    /// 生产构建：从后端 ProfileRollCallEntry 映射。
+    init(real e: ProfileRollCallEntry) {
+        self.init(
+            id: e.id.uuidString,
+            date: rollcallDateFmt.string(from: e.checked_in_at),
+            session: e.session_type == "morning" ? "朝点呼" : "晩点呼",
+            state: RollcallDisplay.stateLabel(e.base_status),
+            method: e.status_source == "auto_nfc" ? "NFC" : "―",
+            checkinTime: rollcallTimeFmt.string(from: e.checked_in_at)
+        )
+    }
+
+    /// 后端 base_status → 日语展示文案。
+    static func stateLabel(_ s: String) -> String {
+        switch s {
+        case "present": return "時間内"
+        case "late": return "遅刻"
+        case "absent": return "欠席"
+        case "exempt_range": return "免除"
+        default: return s
+        }
+    }
+}
+
 struct MyRollcallView: View {
     @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
     @State private var selectedMonth: String = "4月"
 
     private let monthOptions: [String] = ["4月", "3月", "2月"]
 
-    /// 按 date group (preserve original order from SEED)
-    /// IX-020: 先按选中月份过滤记录日期再分组，否则点了「4月/3月/2月」按钮列表纹丝不动。
-    private var grouped: [(date: String, items: [RollcallEntry])] {
-        // selectedMonth 形如 "4月" → 解析成 "yyyy-MM" 前缀，按 r.date 前缀过滤
-        let monthPrefix = MyPageMonthUtil.prefix(forJapaneseMonthLabel: selectedMonth)
-        var seen: [String] = []
-        var map: [String: [RollcallEntry]] = [:]
-        for r in SEED.rollcall {
-            // 解析失败（理论不会发生）时退回不过滤，保证至少显示全部
-            if let p = monthPrefix, !r.date.hasPrefix(p) { continue }
-            if map[r.date] == nil {
-                seen.append(r.date)
-                map[r.date] = []
+    /// 按 date 分组（保持原顺序）。
+    /// 演示=SEED 按选中月份过滤后分组（IX-020）；生产=后端点呼事件(新→旧)全部分组（月份 pills 演示专属，见 body）。
+    private var grouped: [(date: String, items: [RollcallDisplay])] {
+        #if DEMO
+            // selectedMonth 形如 "4月" → 解析成 "yyyy-MM" 前缀，按 r.date 前缀过滤
+            let monthPrefix = MyPageMonthUtil.prefix(forJapaneseMonthLabel: selectedMonth)
+            var seen: [String] = []
+            var map: [String: [RollcallDisplay]] = [:]
+            for r in SEED.rollcall {
+                if let p = monthPrefix, !r.date.hasPrefix(p) { continue }
+                let d = RollcallDisplay(demo: r)
+                if map[d.date] == nil {
+                    seen.append(d.date)
+                    map[d.date] = []
+                }
+                map[d.date]?.append(d)
             }
-            map[r.date]?.append(r)
-        }
-        return seen.map { (date: $0, items: map[$0] ?? []) }
+            return seen.map { (date: $0, items: map[$0] ?? []) }
+        #else
+            var seen: [String] = []
+            var map: [String: [RollcallDisplay]] = [:]
+            for e in app.myRollcallEvents {
+                let d = RollcallDisplay(real: e)
+                if map[d.date] == nil {
+                    seen.append(d.date)
+                    map[d.date] = []
+                }
+                map[d.date]?.append(d)
+            }
+            return seen.map { (date: $0, items: map[$0] ?? []) }
+        #endif
     }
 
     var body: some View {
@@ -983,26 +1061,32 @@ struct MyRollcallView: View {
             PageHeader(title: "点呼履歴", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    // Month filter pills
-                    HStack(spacing: 6) {
-                        ForEach(monthOptions, id: \.self) { m in
-                            Button {
-                                selectedMonth = m
-                            } label: {
-                                Text(m)
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 6)
-                                    .foregroundStyle(selectedMonth == m ? Color.white : T.primary)
-                                    .background {
-                                        Capsule()
-                                            .fill(selectedMonth == m ? T.primary : T.pill)
-                                    }
+                    #if DEMO
+                        // Month filter pills —— 月份固定 4/3/2 月，仅演示版；生产显全部最近记录。
+                        HStack(spacing: 6) {
+                            ForEach(monthOptions, id: \.self) { m in
+                                Button {
+                                    selectedMonth = m
+                                } label: {
+                                    Text(m)
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 6)
+                                        .foregroundStyle(selectedMonth == m ? Color.white : T.primary)
+                                        .background {
+                                            Capsule()
+                                                .fill(selectedMonth == m ? T.primary : T.pill)
+                                        }
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
                         }
+                        .padding(.bottom, 14)
+                    #endif
+
+                    if grouped.isEmpty {
+                        EmptyState(icon: "checklist", title: "なし")
                     }
-                    .padding(.bottom, 14)
 
                     // Grouped list
                     ForEach(grouped, id: \.date) { grp in
@@ -1038,9 +1122,14 @@ struct MyRollcallView: View {
             }
         }
         .background(T.pearl.ignoresSafeArea())
+        .task {
+            #if !DEMO
+                await app.loadMyProfile()
+            #endif
+        }
     }
 
-    private func rollcallRow(_ r: RollcallEntry) -> some View {
+    private func rollcallRow(_ r: RollcallDisplay) -> some View {
         HStack(spacing: 12) {
             Text(r.session)
                 .font(.system(size: 13, weight: .semibold))
@@ -1064,6 +1153,7 @@ struct MyRollcallView: View {
         switch state {
         case "時間内": return .ok
         case "遅刻": return .warn
+        case "免除": return .neutral
         default: return .danger
         }
     }
@@ -1081,18 +1171,28 @@ struct MyRollcallDetailView: View {
     // IX-012: 详情页原来用写死常量（永远显示 "2026-04-12 朝点呼 / 遅刻 0.5 点"），
     // 连「欠席」记录点进来也显示「遅刻 0.5 点」。改成按被点那行记录渲染。
     //
-    // 路由层已补：Route.myRollcallDetail(entryId:) 带关联值，列表点击传 r.id，
-    // RootView 按 id 从 SEED.rollcall 查记录传进来；entry 为 nil 时退回第一条做 fallback。
-    let entry: RollcallEntry?
+    // 路由传 entryId（被点那行的 id）；演示从 SEED.rollcall 查、生产从 app.myRollcallEvents 查，
+    // 归一成 RollcallDisplay。查不到退回一个占位，至少不凭空写死。
+    let entryId: String?
+    @EnvironmentObject var app: AppStore
 
-    init(entry: RollcallEntry? = nil) {
-        self.entry = entry
+    init(entryId: String? = nil) {
+        self.entryId = entryId
     }
 
-    /// 实际渲染用的记录：没传就退回种子里第一条记录，至少不再凭空写死
-    private var record: RollcallEntry {
-        entry ?? SEED.rollcall.first
-            ?? RollcallEntry(date: "—", session: "—", state: "時間内", method: "―")
+    /// 实际渲染用的记录（演示 / 生产分别按 id 查，查不到退回占位）。
+    private var record: RollcallDisplay {
+        let resolved: RollcallDisplay?
+        #if DEMO
+            resolved = SEED.rollcall.first(where: { $0.id == entryId }).map(RollcallDisplay.init(demo:))
+        #else
+            resolved = app.myRollcallEvents
+                .first(where: { $0.id.uuidString == entryId })
+                .map(RollcallDisplay.init(real:))
+        #endif
+        return resolved ?? RollcallDisplay(
+            id: "—", date: "—", session: "朝点呼", state: "時間内", method: "―", checkinTime: nil
+        )
     }
 
     /// 标题行 "2026-04-21 朝点呼"
@@ -1103,37 +1203,46 @@ struct MyRollcallDetailView: View {
     /// 点呼场次 ID：由日期 + 朝/晚场次派生，朝场→AM / 晚场→PM，形如 RC-20260421-AM
     private var sessionID: String {
         let datePart = record.date.filter { $0.isNumber }
-        let suffix = record.session.hasPrefix("朝") ? "AM" : "PM"
+        let suffix = record.isMorning ? "AM" : "PM"
         return "RC-\(datePart)-\(suffix)"
     }
 
-    /// 状態行文字：迟到/缺席带扣分点数，时间内不带点数
+    /// 状態行文字：迟到/缺席带扣分点数，时间内/免除不带点数
     private var stateText: String {
         switch record.state {
         case "遅刻": return "遅刻 0.5 点"
         case "欠席": return "欠席 1.0 点"
+        case "免除": return "免除"
         default: return "時間内"
         }
     }
 
-    /// 键值明细：只有迟到才有「打卡时刻 / 迟到时长」两行，缺席和时间内不显示迟到专属行
+    /// 键值明细：開始/締切按场次派生（后端 rollcall_events 不含窗口）；
+    /// 打卡时刻 演示用固定值（仅迟到显示）、生产显真实 checked_in_at（欠席无打卡不显）。
     private var kvPairs: [(String, String)] {
         var pairs: [(String, String)] = [
             ("状態", stateText),
             ("方式", record.method),
         ]
-        if record.session.hasPrefix("朝") {
+        if record.isMorning {
             pairs.append(("開始時刻", "07:00:00"))
             pairs.append(("締切時刻", "07:10:00"))
         } else {
             pairs.append(("開始時刻", "21:00:00"))
             pairs.append(("締切時刻", "21:10:00"))
         }
-        // 打卡时刻 / 迟到时长 仅在迟到（state == "遅刻"）时有意义：缺席没打卡、时间内不迟到
-        if record.state == "遅刻" {
-            pairs.append(("チェックイン", "07:12:34"))
-            pairs.append(("遅れ", "+2分34秒"))
-        }
+        #if DEMO
+            // 演示：打卡时刻 / 迟到时长 仅在迟到时有固定示例值。
+            if record.state == "遅刻" {
+                pairs.append(("チェックイン", "07:12:34"))
+                pairs.append(("遅れ", "+2分34秒"))
+            }
+        #else
+            // 生产：显真实打卡时刻（欠席无打卡 → 不显）；迟到时长后端未给 → 不显。
+            if let t = record.checkinTime, record.state != "欠席" {
+                pairs.append(("チェックイン", t))
+            }
+        #endif
         return pairs
     }
 
@@ -1191,6 +1300,12 @@ struct MyRollcallDetailView: View {
             }
         }
         .background(T.pearl.ignoresSafeArea())
+        .task {
+            #if !DEMO
+                // 深链直接进详情时缓存可能为空 → 拉一次 profile 兜底。
+                if app.myRollcallEvents.isEmpty { await app.loadMyProfile() }
+            #endif
+        }
     }
 }
 
