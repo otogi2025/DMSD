@@ -1317,12 +1317,53 @@ struct MyRollcallDetailView: View {
 
 // MARK: - 5. MyPointsView (L2)
 
+/// 减点明细行视图模型 —— 演示（SEED.points）/ 生产（ProfileDemeritEntry）归一。
+struct PointDisplay: Identifiable {
+    let id: String
+    let date: String // 日付（演示=date / 生产=created_at 格式化）
+    let label: String // 演示=「朝点呼 · 遅刻」/ 生产=reason
+    let val: Double // 扣分点数
+}
+
+private let pointsDateFmt: DateFormatter = {
+    let f = DateFormatter()
+    f.locale = Locale(identifier: "ja_JP")
+    f.timeZone = TimeZone(identifier: "Asia/Tokyo")
+    f.dateFormat = "yyyy-MM-dd"
+    return f
+}()
+
+extension PointDisplay {
+    /// 演示构建：从 SEED.points 映射。
+    init(demo p: PointRecord) {
+        self.init(id: p.id, date: p.date, label: "\(p.session) · \(p.kind)", val: p.val)
+    }
+
+    /// 生产构建：从后端 ProfileDemeritEntry 映射（标签用 reason）。
+    init(real e: ProfileDemeritEntry) {
+        self.init(
+            id: e.id.uuidString, date: pointsDateFmt.string(from: e.created_at),
+            label: e.reason, val: e.points
+        )
+    }
+}
+
 struct MyPointsView: View {
     @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
 
-    /// 今月合計 · 动态从 SEED.user.points (目前 4.5)
+    /// 今月合計 —— app.displayUser.points（loadMe 已从 DisciplineAPI.mySummary 拉真数据）。
     private var totalText: String {
-        String(format: "%.1f", SEED.user.points)
+        String(format: "%.1f", app.displayUser.points)
+    }
+
+    /// 减点明细行（演示=SEED 假数据 / 生产=后端真数据，靠 #if DEMO 守卫，归一成 PointDisplay）。
+    private var rows: [PointDisplay] {
+        #if DEMO
+            return SEED.points.map(PointDisplay.init(demo:))
+        #else
+            return app.myDemeritEvents.map(PointDisplay.init(real:))
+        #endif
     }
 
     var body: some View {
@@ -1380,11 +1421,15 @@ struct MyPointsView: View {
                     // Points list
                     Card(padding: 0) {
                         VStack(spacing: 0) {
-                            ForEach(Array(SEED.points.enumerated()), id: \.offset) { idx, p in
+                            ForEach(Array(rows.enumerated()), id: \.offset) { idx, p in
                                 if idx > 0 {
                                     Divider().background(T.hair)
                                 }
                                 pointRow(p)
+                            }
+                            if rows.isEmpty {
+                                EmptyState(icon: "checkmark.seal", title: "減点なし")
+                                    .padding(.vertical, 8)
                             }
                         }
                     }
@@ -1420,18 +1465,24 @@ struct MyPointsView: View {
             }
         }
         .background(T.pearl.ignoresSafeArea())
+        .task {
+            #if !DEMO
+                await app.loadMyProfile()
+            #endif
+        }
     }
 
-    private func pointRow(_ p: PointRecord) -> some View {
+    private func pointRow(_ p: PointDisplay) -> some View {
         HStack(spacing: 12) {
             Text(p.date)
                 .font(.system(size: 12))
                 .monospaced()
                 .foregroundStyle(T.inkMute)
                 .frame(width: 80, alignment: .leading)
-            Text("\(p.session) · \(p.kind)")
+            Text(p.label)
                 .font(.system(size: 13))
                 .foregroundStyle(T.ink)
+                .lineLimit(1)
             Spacer()
             Text(String(format: "+%.1f", p.val))
                 .font(.system(size: 14, weight: .bold))
@@ -1445,7 +1496,7 @@ struct MyPointsView: View {
     /// 进度条 0 → 8 with threshold markers at 4 (清掃) / 8 (外出禁止)
     private var progressBar: some View {
         let maxVal: Double = 8
-        let v = min(SEED.user.points, maxVal)
+        let v = min(app.displayUser.points, maxVal)
         let ratio = v / maxVal
         return VStack(alignment: .leading, spacing: 6) {
             GeometryReader { geo in
@@ -1504,11 +1555,37 @@ struct MyPointsView: View {
 // MARK: - 6. MyPointsChartView (L3)
 
 struct MyPointsChartView: View {
-    /// 12 个月数据 · 对等 JSX `[0, 0, 1, 0, 0.5, 1, 0, 2, 0, 1, 2, 4]`
-    /// 注意：最后一月对齐 SEED.user.points (4.5) 以保持全局一致
-    private let data: [Double] = [0, 0, 1, 0, 0.5, 1, 0, 2, 0, 1, 2, 4.5]
-    private let months: [String] = ["5", "6", "7", "8", "9", "10", "11", "12", "1", "2", "3", "4"]
+    @EnvironmentObject var app: AppStore
     private let maxVal: Double = 8
+
+    /// 过去 12 个月的减点数据（旧→新）。
+    /// 演示=固定示例曲线；生产=按 myDemeritEvents 的 month("yyyy-MM") 聚合到最近 12 个月。
+    private var monthlyData: (labels: [String], values: [Double]) {
+        #if DEMO
+            return (
+                ["5", "6", "7", "8", "9", "10", "11", "12", "1", "2", "3", "4"],
+                [0, 0, 1, 0, 0.5, 1, 0, 2, 0, 1, 2, 4.5]
+            )
+        #else
+            let cal = Calendar.current
+            let now = Date()
+            var labels: [String] = []
+            var values: [Double] = []
+            for offset in stride(from: 11, through: 0, by: -1) {
+                guard let d = cal.date(byAdding: .month, value: -offset, to: now) else { continue }
+                let comps = cal.dateComponents([.year, .month], from: d)
+                let y = comps.year ?? 0
+                let m = comps.month ?? 0
+                let key = String(format: "%04d-%02d", y, m)
+                let sum = app.myDemeritEvents
+                    .filter { $0.month == key }
+                    .reduce(0.0) { $0 + $1.points }
+                labels.append("\(m)")
+                values.append(sum)
+            }
+            return (labels, values)
+        #endif
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1557,11 +1634,19 @@ struct MyPointsChartView: View {
             }
         }
         .background(T.pearl.ignoresSafeArea())
+        .task {
+            #if !DEMO
+                await app.loadMyProfile()
+            #endif
+        }
     }
 
     /// 对等 JSX SVG viewBox 0 0 320 180 · gridlines 0/2/4/6/8 · 2 threshold lines · path + dots + x labels
     private var chartCanvas: some View {
-        GeometryReader { geo in
+        let md = monthlyData // 取一次（演示固定 / 生产按月聚合），避免 Canvas 闭包内重复计算
+        let values = md.values
+        let labels = md.labels
+        return GeometryReader { geo in
             Canvas { ctx, size in
                 let left: CGFloat = 30
                 let right: CGFloat = size.width
@@ -1575,7 +1660,7 @@ struct MyPointsChartView: View {
                     bottom - innerH * CGFloat(v / self.maxVal)
                 }
                 let xFor: (Int) -> CGFloat = { i in
-                    left + innerW * CGFloat(i) / CGFloat(self.data.count - 1)
+                    left + innerW * CGFloat(i) / CGFloat(max(values.count - 1, 1))
                 }
 
                 // Gridlines 0 / 2 / 4 / 6 / 8
@@ -1612,7 +1697,7 @@ struct MyPointsChartView: View {
 
                 // Data polyline
                 var line = Path()
-                for (i, v) in self.data.enumerated() {
+                for (i, v) in values.enumerated() {
                     let pt = CGPoint(x: xFor(i), y: yFor(v))
                     if i == 0 {
                         line.move(to: pt)
@@ -1627,17 +1712,17 @@ struct MyPointsChartView: View {
                 )
 
                 // Dots · 最后一月 highlight (r=5, warn), others r=3.5
-                for (i, v) in self.data.enumerated() {
+                for (i, v) in values.enumerated() {
                     let x = xFor(i)
                     let y = yFor(v)
-                    let isLast = (i == self.data.count - 1)
+                    let isLast = (i == values.count - 1)
                     let r: CGFloat = isLast ? 5 : 3.5
                     let dot = Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2))
                     ctx.fill(dot, with: .color(isLast ? T.warn : T.primary))
                 }
 
                 // X labels
-                for (i, m) in self.months.enumerated() {
+                for (i, m) in labels.enumerated() {
                     let x = xFor(i)
                     // 全用 Text-returning 链（字体内置 monospaced + foregroundColor），iOS 16 兼容
                     let text = Text(m)
