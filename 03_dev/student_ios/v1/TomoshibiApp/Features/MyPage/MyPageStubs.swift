@@ -1603,13 +1603,85 @@ struct MyHealthView: View {
 
 // MARK: - 9. MyCleanView (L2)
 
+/// 掃除履历卡片视图模型 —— 演示（SEED.cleaning）/ 生产（CleaningAssignmentOut）归一成同一套展示字段。
+struct CleaningDisplay: Identifiable {
+    let id: String
+    let range: String // 掃除範囲（演示=range / 生产=area）
+    let date: String // 日付（演示=date / 生产=scheduled_date）
+    let pillText: String // Pill 文案（演示可含「· N点」/ 生产仅状态文字，后端无分数）
+    let tone: Pill.Tone // Pill 配色
+    let rejected: Bool // 退回 → 显示理由块
+    let comment: String? // 退回理由（演示=comment / 生产=failure_reason）
+}
+
+extension CleaningDisplay {
+    /// 演示构建：从 SEED.cleaning 映射（状态本就是日语「通過 / 退回」、带分数）。
+    init(demo c: CleaningRecord) {
+        self.init(
+            id: "\(c.date):\(c.range)",
+            range: c.range,
+            date: c.date,
+            pillText: c.score.map { "\(c.status) · \($0)点" } ?? c.status,
+            tone: c.status == "通過" ? .ok : .danger,
+            rejected: c.rejected,
+            comment: c.comment
+        )
+    }
+
+    /// 生产构建：从后端 CleaningAssignmentOut 映射。后端无分数 → Pill 仅显状态文字。
+    init(real a: CleaningAssignmentOut) {
+        self.init(
+            id: a.id.uuidString,
+            range: a.area,
+            date: a.scheduled_date,
+            pillText: Self.statusLabel(a.status),
+            tone: Self.statusTone(a.status),
+            rejected: a.status == "failed",
+            comment: a.failure_reason
+        )
+    }
+
+    /// 后端状态 → 日语展示文案。
+    static func statusLabel(_ s: String) -> String {
+        switch s {
+        case "passed": return "通過"
+        case "failed": return "退回"
+        case "done": return "提出済"
+        case "assigned": return "未提出"
+        case "skipped": return "免除"
+        default: return s
+        }
+    }
+
+    /// 后端状态 → Pill 配色（passed=ok / failed=danger / done=accent / 其余=neutral）。
+    static func statusTone(_ s: String) -> Pill.Tone {
+        switch s {
+        case "passed": return .ok
+        case "failed": return .danger
+        case "done": return .accent
+        default: return .neutral
+        }
+    }
+}
+
 struct MyCleanView: View {
+    @EnvironmentObject var app: AppStore
+
+    /// 演示=SEED 假数据 / 生产=后端真数据，靠 #if DEMO 守卫，归一成 CleaningDisplay。
+    private var rows: [CleaningDisplay] {
+        #if DEMO
+            return SEED.cleaning.map(CleaningDisplay.init(demo:))
+        #else
+            return app.cleaningHistory.map(CleaningDisplay.init(real:))
+        #endif
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             PageHeader(title: "掃除提出履歴", level: 2)
             ScrollView {
                 VStack(spacing: 10) {
-                    ForEach(Array(SEED.cleaning.enumerated()), id: \.offset) { _, c in
+                    ForEach(rows) { c in
                         Card(padding: 14) {
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack(alignment: .center) {
@@ -1623,10 +1695,7 @@ struct MyCleanView: View {
                                             .foregroundStyle(T.inkMute)
                                     }
                                     Spacer()
-                                    Pill(
-                                        text: c.score.map { "\(c.status) · \($0)点" } ?? c.status,
-                                        tone: c.status == "通過" ? .ok : .danger
-                                    )
+                                    Pill(text: c.pillText, tone: c.tone)
                                 }
                                 if c.rejected, let comment = c.comment {
                                     Text(comment)
@@ -1644,6 +1713,9 @@ struct MyCleanView: View {
                             }
                         }
                     }
+                    if rows.isEmpty {
+                        EmptyState(icon: "sparkles", title: "なし")
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
@@ -1651,6 +1723,11 @@ struct MyCleanView: View {
             }
         }
         .background(T.pearl.ignoresSafeArea())
+        .task {
+            #if !DEMO
+                await app.loadCleaningHistory()
+            #endif
+        }
     }
 }
 

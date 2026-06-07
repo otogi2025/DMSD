@@ -108,6 +108,7 @@ final class AppStore: ObservableObject {
                     announcementUnreadCount = 0
                     packages = []
                     studyLeaveCountThisMonth = 0
+                    cleaningHistory = []
                 #endif
             }
         }
@@ -942,6 +943,24 @@ final class AppStore: ObservableObject {
             packages = items
         } catch {
             // 拉失败不阻塞通知中心其他源 —— 静默，下次刷新再试。
+        }
+    }
+
+    // MARK: - 掃除提出履历（功能① · GET /api/v1/cleaning/me）
+
+    /// 当前学生的清扫提出履历缓存（生产构建用，loadCleaningHistory 拉真后端填）。
+    @Published var cleaningHistory: [CleaningAssignmentOut] = []
+
+    /// 拉当前学生的清扫履历（按计划日倒序）。带令牌守卫 —— 登出 / 切用户不写回旧用户数据。
+    @MainActor
+    func loadCleaningHistory() async {
+        let tokenAtStart = authToken
+        do {
+            let items = try await CleaningAPI.listMine()
+            guard authToken == tokenAtStart else { return }
+            cleaningHistory = items
+        } catch {
+            // 拉失败静默，下次进页面再试。
         }
     }
 

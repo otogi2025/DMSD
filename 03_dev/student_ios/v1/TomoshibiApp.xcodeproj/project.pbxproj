@@ -21,6 +21,7 @@
 		3C37F26FA83CA7D697E12260 /* TTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCAE320FB742688FEDA8AD6A /* TTokens.swift */; };
 		3F57F0E82139A1345857FA2B /* AuthAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 957056CB9FD91DC0E2D033C9 /* AuthAPI.swift */; };
 		4737D096D1DEED27D8472AC0 /* SheetKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = B522E5E1E9C32585E0C4AF54 /* SheetKind.swift */; };
+		487A2063AD2055FCB58D0D41 /* CleaningAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6DD25F46AB2CD84E3B64879 /* CleaningAPI.swift */; };
 		4A8821C5C58789727530CE99 /* RouterStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D12E5F5519B6567648A2C5E0 /* RouterStore.swift */; };
 		4CC4A649A5CBA03229C7BF17 /* StudyOnlineForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28E8541F23E43B67EBF8C833 /* StudyOnlineForm.swift */; };
 		4EF492AEB1CA2FF4273DBCCF /* StayListStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B7B19307005D8E2D07B44D /* StayListStubs.swift */; };
@@ -116,6 +117,7 @@
 		B2FD432EFB4459068B330D99 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		B522E5E1E9C32585E0C4AF54 /* SheetKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SheetKind.swift; sourceTree = "<group>"; };
 		B6BED925E6CDEDFF9B146D29 /* RollCallAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RollCallAPI.swift; sourceTree = "<group>"; };
+		B6DD25F46AB2CD84E3B64879 /* CleaningAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleaningAPI.swift; sourceTree = "<group>"; };
 		BA2858BE1F7C0F629E01ED97 /* CACHEDIR.TAG */ = {isa = PBXFileReference; path = CACHEDIR.TAG; sourceTree = "<group>"; };
 		C4ADECD57FEC5CA168619042 /* SeedModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeedModels.swift; sourceTree = "<group>"; };
 		D12E5F5519B6567648A2C5E0 /* RouterStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouterStore.swift; sourceTree = "<group>"; };
@@ -139,6 +141,7 @@
 				350CA686A2E4CE6284AA20D8 /* ApplicationsCreateBodies.swift */,
 				957056CB9FD91DC0E2D033C9 /* AuthAPI.swift */,
 				8771AACE31B06D1D9DAF7044 /* BusAPI.swift */,
+				B6DD25F46AB2CD84E3B64879 /* CleaningAPI.swift */,
 				AFDFE87D987EF1A14F86E420 /* DormLifeAPI.swift */,
 				AE8464C86A7E2262CDCEA498 /* EventsAPI.swift */,
 				492E8FE746273F00BC46D772 /* OutingsAPI.swift */,
@@ -491,6 +494,7 @@
 				2B6C0691DF7E81796FBFF7B8 /* BreadcrumbOverlay.swift in Sources */,
 				32687849989CCFB7709FF663 /* BusAPI.swift in Sources */,
 				262922121023D44B3A752345 /* BusListStubs.swift in Sources */,
+				487A2063AD2055FCB58D0D41 /* CleaningAPI.swift in Sources */,
 				E4AB919291B8E27C9C51FCA0 /* CommunityStubs.swift in Sources */,
 				DA74DBACDF5EF9838F3C3074 /* ContractFilePicker.swift in Sources */,
 				B1E6FCA177F7821D3694AE43 /* DormLifeAPI.swift in Sources */,
