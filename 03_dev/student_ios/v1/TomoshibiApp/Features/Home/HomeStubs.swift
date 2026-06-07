@@ -2024,9 +2024,11 @@ struct HealthSheet: View {
             let n = note.trimmingCharacters(in: .whitespacesAndNewlines)
             if !n.isEmpty { lines.append("補足：\(n)") }
             let bodyText = lines.joined(separator: "\n")
+            let tokenAtStart = app.authToken
             Task {
                 do {
                     _ = try await RollCallReportsAPI.create(kind: "health", body: bodyText)
+                    guard app.authToken == tokenAtStart else { return } // 切账号 / 登出后不在新会话弹 toast
                     app.closeSheet()
                     app.showToast("先生に通知しました")
                 } catch {
@@ -2106,9 +2108,11 @@ struct AbsenceSheet: View {
             app.showToast("審査中です")
         #else
             let bodyText = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+            let tokenAtStart = app.authToken
             Task {
                 do {
                     _ = try await RollCallReportsAPI.create(kind: "absence", body: bodyText)
+                    guard app.authToken == tokenAtStart else { return } // 切账号 / 登出后不在新会话弹 toast
                     app.closeSheet()
                     app.showToast("審査中です")
                 } catch {
@@ -2186,9 +2190,11 @@ struct OtherSheet: View {
             // 把「分類」「内容」拼成后端 body 自由文本。
             let c = content.trimmingCharacters(in: .whitespacesAndNewlines)
             let bodyText = "分類：\(cat)\n内容：\(c)"
+            let tokenAtStart = app.authToken
             Task {
                 do {
                     _ = try await RollCallReportsAPI.create(kind: "other", body: bodyText)
+                    guard app.authToken == tokenAtStart else { return } // 切账号 / 登出后不在新会话弹 toast
                     app.closeSheet()
                     app.showToast("送信しました")
                 } catch {

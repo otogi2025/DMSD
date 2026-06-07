@@ -812,9 +812,11 @@ struct LostNewView: View {
                 description: desc.isEmpty ? nil : desc,
                 location: loc.isEmpty ? nil : loc
             )
+            let tokenAtStart = app.authToken
             Task {
                 do {
                     _ = try await LostFoundAPI.create(body)
+                    guard app.authToken == tokenAtStart else { return } // 切账号 / 登出后不在新会话刷新 / 弹 toast
                     await app.loadLostFound() // 投稿后刷新一览
                     app.showToast("投稿しました")
                     router.go(.homeLost)
@@ -944,9 +946,11 @@ struct LostDetailView: View {
         #if !DEMO
             guard let uuid = UUID(uuidString: l.id) else { return }
             resolving = true
+            let tokenAtStart = app.authToken
             Task {
                 do {
                     _ = try await LostFoundAPI.resolve(id: uuid)
+                    guard app.authToken == tokenAtStart else { return } // 切账号 / 登出后不在新会话刷新 / 弹 toast
                     await app.loadLostFound()
                     app.showToast("解決済みにしました")
                 } catch {
@@ -1221,9 +1225,11 @@ struct MusicNewView: View {
                 artist: artist.trimmingCharacters(in: .whitespacesAndNewlines),
                 note: trimmedNote.isEmpty ? nil : trimmedNote
             )
+            let tokenAtStart = app.authToken
             Task {
                 do {
                     _ = try await SongsAPI.create(body)
+                    guard app.authToken == tokenAtStart else { return } // 切账号 / 登出后不在新会话刷新 / 弹 toast
                     await app.loadSongs() // 投稿后刷新一览
                     app.showToast("投稿しました")
                     router.go(.homeMusic)

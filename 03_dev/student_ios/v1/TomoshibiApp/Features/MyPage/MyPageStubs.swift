@@ -909,9 +909,12 @@ struct MyInfoEditView: View {
                 avatar_url: nil,
                 room_no: newRoom != u0.room ? newRoom : nil
             )
+            let tokenAtStart = app.authToken
             Task {
                 do {
                     _ = try await StudentsAPI.updateMe(body)
+                    // await 后切账号 / 登出则放弃 —— 否则把上个用户的资料写进新用户的 currentUser/SEED.user（codex 复审 R2 major）。
+                    guard app.authToken == tokenAtStart else { return }
                     // 后端已接受 → 同步本地（变更历史 + currentUser + SEED.user）。
                     applyLocalChanges(newRoom: newRoom, before: u0)
                     app.showToast("保存しました")

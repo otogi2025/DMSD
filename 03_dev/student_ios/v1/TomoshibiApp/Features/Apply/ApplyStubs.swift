@@ -1981,8 +1981,10 @@ struct GenericApplyForm: View {
             detail: trimmedReason.isEmpty ? nil : trimmedReason,
             target_date: targetDate
         )
+        let tokenAtStart = app.authToken
         do {
             _ = try await MiscRequestsAPI.create(body)
+            guard app.authToken == tokenAtStart else { return } // 切账号 / 登出后不在新会话弹 toast / 导航
             app.showToast("\(type.name)申請を提出しました")
             router.go(.applyDone(kind: kind))
         } catch let APIError.unprocessable(msg) {
