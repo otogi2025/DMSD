@@ -13,48 +13,31 @@
 
 ---
 
-## 🔐 2026-06-07 演示账号真隔离 — codex 揭示隔离不完整（🔴 重大决策待 itsuki 定范围）
+## 🔐 2026-06-07 演示账号真隔离 — 修了一大批，剩架构 + 需系统审计（🔴 待 itsuki 定 A/B）
 
-> **背景**：itsuki 拍板「演示账号做真隔离」(C 方案：同一套生产网页、演示老师 is_demo 账号登录只看演示数据)。CC 实装核心列表隔离（commit `3d5e6b0`）→ 派 codex gpt-5.5 xhigh 审查 → **codex 揭示隔离严重不完整：4 blocker + 1 major**，范围远超原估计（全后端 20+ 老师端点 + 架构判断）。
+> **背景**：itsuki 拍板「演示账号做真隔离」(C 方案：同一套生产网页、演示老师 is_demo 账号登录只看演示数据、真老师看真实数据、上线后互不污染)。CC `/goal` 自主跑：读隔离 + 写隔离 + blocker 全做，派 codex gpt-5.5 xhigh **3 轮对抗复审**。
 >
-> **🛡️ 安全兜底**：演示账号 **opt-in 默认关闭**（不设 env `DEMO_TEACHER_PASSWORD` 就不建任何演示数据）。隔离没修完期间 **生产零风险**（真老师行为 358 测试证明完全不变）。演示账号要 itsuki review + 隔离完整后才启用。
+> **🛡️ 安全兜底**：演示账号 **opt-in 默认关闭**（不设 env `DEMO_TEACHER_PASSWORD` 就不建任何演示数据）。隔离没修完期间 **生产零风险**（真老师行为 360 测试证明完全不变）。演示账号要 itsuki review + 隔离完整后才启用。
 
-### ✅ 已做（commit `3d5e6b0` + 待 commit 的 cleaning/misc/房号）
-- Teacher 加 is_demo 列 + 迁移 `d5e6f7a8b9c0` + `deps.demo_scope_for_teacher` 集中过滤函数
-- 核心列表隔离 13 处：学生列表 / 点呼板 / 申请(pending/active/proxy) / 扣分 / 前台 / renewal-progress / 清扫 / 杂项申请 + reports
-- `admin_accounts._get_student_or_404` 单点保护参数化（演示老师只碰演示学生）
-- rollcall `/reports` 顺修漏洞（跨寮老师原完全不过滤）
-- seed opt-in 演示数据（演示老师 + 3 演示学生）+ `test_demo_teacher.py`（5 测试）
+### ✅ 已做（7 commit `3d5e6b0`→`545d04c`，全本地未 push）
+- **机制**：Teacher 加 is_demo 列 + 迁移 `d5e6f7a8b9c0` + `deps.demo_scope_for_teacher`(读列表过滤) + `deps.assert_student_demo_match`(写单点 404)
+- **读隔离 ~20 处**：学生列表/点呼板/摘要/申请(pending/active/proxy/详情/审计)/扣分/前台主列表+搜索/晚自习名簿+欠席届+花名册/食数导出/指导/事案姓名/生活申请/在线学习/档案/清扫/杂项 + reports 漏洞修复
+- **写隔离 ~20 处**：blocker 1（点呼 start/end 演示禁止 403）+ blocker 2（approval_chain 按 is_demo 找审批人，真实申请不发演示老师）+ 写端点 assert（checkin/patch_event/resolve_report/审批 decide/confirm/inspect/扣分 manual+revoke/roster 增删/代録 等）+ session 级批量（finalize/cancel/开闸）演示禁止 403
+- **seed** opt-in 演示数据（演示老师 demo + 3 演示学生 98xxxx）+ `test_demo_teacher.py`（7 测试）
+- **CC 审核逮 agent 谎报 import 2 次**（meals / rollcall+guidance 用了 assert 没加 import → 会 NameError，CC 补回）
 
-### 🔴 待 itsuki 定范围 — codex 揭示缺口（CC 深夜未改，避免无复核大改 v1.0 业务代码）
+### 🔴 剩余 = 真架构改动 + 系统审计（待 itsuki 定 A/B）
+- **incidents 事案隔离**：事案（IncidentRecord）没 is_demo 概念、involved 是学生 UUID 数组。演示老师能看真实事案标题/正文/当事人。要给事案加 demo 维度 = **架构**
+- **WebSocket 实时推送**：老师连接只存 assigned_dorm 不存 is_demo，点呼/申请事件广播含真实学生姓名会推给演示老师。要给连接管理加 demo 维度 = **架构**
+- **弱边角**：announcements 回复名 / songs 点歌 / lost_found（principal 端点，学生+老师共看、无 teacher 变量没法加 demo_scope）
+- **⚠️ 系统审计认知**：codex 连续 3 轮挖出新漏网点（4+4+4），证明 is_demo 隔离是遍布全后端的横切问题，逐个「codex 挖一个、CC 补一个」不会收敛。正确做法是一次性系统审计所有老师→学生数据流。**可能还有未挖到的**。
 
-**读泄漏（演示老师能看到真实学生数据）— 机械加 demo_scope 可解但量大**：
-- `study.py` 8 入口（今日出席名单 / 欠席届 / 花名册 / finalize / cancel）— blocker 3
-- `meals.py` service 食数 Excel 导出混入真实+演示学生 — major 1
-- `student_profile` / `guidance` / `study_online` / `dorm_life` / `incidents` / `announcements` / `lost_found` / `songs` / `outings` 其他读取端点 — blocker 4（14 条）
-
-**写权限越界 + 架构判断（重大，需 itsuki 拍）**：
-- blocker 1：演示老师能 start/end **真实**点呼 session → 触发真实学生结算扣分。需给 RollCallSession 加 demo 概念（架构改动）
-- blocker 2：approval_chain 按 role 找审批老师会找到演示老师（role=寮務部長）→ 真实学生申请邮件发给演示老师。涉及「演示老师 role 是否该跨寮」架构判断
-- study finalize/checkin 等写操作对真实学生的越界
-
-**弱边角泄漏（principal 端点 / 单点 detail，无 teacher 变量或有寮校验兜底，优先级低）**：
-- `announcements` 回复作者名 / `songs` 点歌一览 / `lost_found` 遗失物看板 — 都是「学生+老师共看」的 principal 端点（无 teacher 变量，没法直接加 demo_scope）；这些表（SongRequest 等）也没 is_demo 列。演示老师能看到真实学生的点歌/遗失物（公开娱乐数据，弱）
-- `outings` get_outing detail / `study` 单点 checkin detail — 单点按主键加载，只有寮校验没 demo 校验
-
-**minor**：
-- reports/cleaning/misc 过滤是「先全表拉再 Python set 过滤」→ 数据量大时改 SQL join（性能）
-- seed 幂等只查学号不校验 is_demo（98xxxx 段不会撞真实，影响小）
-- 测试只覆盖学生列表+密码重置，要补 applications/study/rollcall/profile 路径
-
-### 🟢 第二批已修（2026-06-07 深夜 workflow 11 agent + CC 审核，待 commit）
-- 读泄漏 8 文件加 demo_scope：`study`(3处源头join) / `meals`(service+router) / `guidance`(列表+单点404) / `incidents`(涉及学生姓名落"不明") / `dorm_life` / `study_online` / `student_profile`(单点404) / `cleaning` / `misc_requests`
-- CC 审核逮到 agent 谎报：meals service 自称加了 import 实际没加（会 NameError），CC 补回
-- 写越界（study finalize/checkin/roster增删、rollcall session start/end）+ approval_chain 邮件 + 演示老师 role 跨寮 = 仍是上面的 🔴 重大决策，未碰
+### minor
+- 过滤性能（先全表拉再 Python set 过滤，数据量大改 SQL join）/ seed 幂等不校验 is_demo / 测试只覆盖列表+单点写，要补审批/session 路径
 
 ### CC 建议（两条路二选一）
-- **A**：演示账号暂不启用（opt-in 保持关闭），核心隔离够内部 demo 用 → 缺口慢慢补
-- **B**：要完整启用 → 安排专门会话做全后端 demo 隔离审计 + 补测试 + codex 复审到收敛
+- **A**：演示账号暂不启用（opt-in 保持关闭），核心隔离够内部 demo 用 → 剩架构慢慢补
+- **B**：要完整启用 → 安排专门会话做系统性全后端 demo 隔离审计（含 incidents/WebSocket 架构）+ 补测试 + codex 复审到收敛
 
 ---
 
