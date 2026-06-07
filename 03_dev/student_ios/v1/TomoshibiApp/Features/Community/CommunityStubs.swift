@@ -792,13 +792,45 @@ struct LostDetailView: View {
 // - 上部に hint banner: 「気になる曲があれば、通報ボタンから先生にお伝えできます。」
 //   (吊し上げ防止のため、通報件数は学生側に基本表示しない)
 
+/// 点歌卡片视图模型 —— 演示（SEED.songs）/ 生产（SongRequestOut）归一成同一套展示字段。
+struct SongDisplay: Identifiable {
+    let id: String // 演示=SongItem.id(Int)→String / 生产=UUID 字符串
+    let title: String
+    let artist: String
+    let by: String // 投稿者名（演示有 / 生产后端无此字段 → 空）
+    let note: String? // 投稿理由（生产=note / 演示=nil，详情页演示用固定文案）
+
+    /// 卡片副标题：生产无投稿者 → 只显艺术家。
+    var metaLine: String {
+        by.isEmpty ? artist : "\(artist) · \(by)"
+    }
+}
+
+extension SongDisplay {
+    /// 演示构建：从 SEED.songs 映射。
+    init(demo s: SongItem) {
+        self.init(id: String(s.id), title: s.title, artist: s.artist, by: s.by, note: nil)
+    }
+
+    /// 生产构建：从后端 SongRequestOut 映射（无投稿者 / 无票数）。
+    init(real s: SongRequestOut) {
+        self.init(
+            id: s.id.uuidString, title: s.song_title, artist: s.artist ?? "", by: "", note: s.note
+        )
+    }
+}
+
 struct MusicView: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
-    /// 投稿順 (新→旧) — id が大きいものを先頭に
-    private var sortedSongs: [SongItem] {
-        SEED.songs.sorted { $0.id > $1.id }
+    /// 演示=SEED 假数据(新→旧) / 生产=后端真数据(后端已新→旧)，靠 #if DEMO 守卫，归一成 SongDisplay。
+    private var rows: [SongDisplay] {
+        #if DEMO
+            return SEED.songs.sorted { $0.id > $1.id }.map(SongDisplay.init(demo:))
+        #else
+            return app.songRequests.map(SongDisplay.init(real:))
+        #endif
     }
 
     var body: some View {
@@ -810,13 +842,19 @@ struct MusicView: View {
             )
             ScrollView {
                 VStack(spacing: 0) {
-                    hintBanner
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 12)
+                    #if DEMO
+                        // 通報導線 hint —— 通報是 v1.1，仅演示版显示。
+                        hintBanner
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 12)
+                    #endif
 
                     VStack(spacing: 8) {
-                        ForEach(sortedSongs, id: \.id) { s in
+                        ForEach(rows) { s in
                             songCard(s: s)
+                        }
+                        if rows.isEmpty {
+                            EmptyState(icon: "music.note", title: "なし")
                         }
                     }
                     .padding(.horizontal, 16)
@@ -827,6 +865,11 @@ struct MusicView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl.ignoresSafeArea())
+        .task {
+            #if !DEMO
+                await app.loadSongs()
+            #endif
+        }
     }
 
     /// 通報導線の存在を学生に認知させるための hint banner
@@ -853,7 +896,7 @@ struct MusicView: View {
         }
     }
 
-    private func songCard(s: SongItem) -> some View {
+    private func songCard(s: SongDisplay) -> some View {
         Card(padding: 14) {
             HStack(alignment: .center, spacing: 12) {
                 // 44x44 gradient album (タップで詳細)
@@ -879,7 +922,7 @@ struct MusicView: View {
                             .foregroundStyle(T.ink)
                             .lineLimit(1)
                             .truncationMode(.tail)
-                        Text("\(s.artist) · \(s.by)")
+                        Text(s.metaLine)
                             .font(.system(size: 12))
                             .foregroundStyle(T.inkSub)
                             .lineLimit(1)
@@ -889,26 +932,28 @@ struct MusicView: View {
                 }
                 .buttonStyle(.plain)
 
-                // 通報 button (system_features §7.11.2)
-                Button {
-                    app.openSheet(.songReport(songId: s.id))
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 11, weight: .semibold))
-                        Text("通報")
-                            .font(.system(size: 11, weight: .semibold))
+                #if DEMO
+                    // 通報 button (system_features §7.11.2) —— 通報是 v1.1，仅演示版。
+                    Button {
+                        app.openSheet(.songReport(songId: Int(s.id) ?? 0))
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.system(size: 11, weight: .semibold))
+                            Text("通報")
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundStyle(T.warnDeep)
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .background {
+                            Capsule().fill(T.warnBg)
+                        }
+                        .overlay {
+                            Capsule().stroke(T.warn.opacity(0.3), lineWidth: 1)
+                        }
                     }
-                    .foregroundStyle(T.warnDeep)
-                    .padding(.horizontal, 10).padding(.vertical, 6)
-                    .background {
-                        Capsule().fill(T.warnBg)
-                    }
-                    .overlay {
-                        Capsule().stroke(T.warn.opacity(0.3), lineWidth: 1)
-                    }
-                }
-                .buttonStyle(.plain)
+                    .buttonStyle(.plain)
+                #endif
             }
         }
     }
@@ -967,11 +1012,7 @@ struct MusicNewView: View {
                         && !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                         && !artist.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     PrimaryButton(title: "投稿する", enabled: canSubmitSong) {
-                        app.showToast("投稿しました")
-                        Task {
-                            try? await Task.sleep(nanoseconds: 500_000_000)
-                            await MainActor.run { router.go(.homeMusic) }
-                        }
+                        submit()
                     }
                 }
                 .padding(.horizontal, 20)
@@ -981,6 +1022,35 @@ struct MusicNewView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl.ignoresSafeArea())
+    }
+
+    /// 点歌投稿提交 —— 演示版假 toast / 生产版 POST /songs（后端按本人寮自动取 dorm）。
+    private func submit() {
+        #if DEMO
+            app.showToast("投稿しました")
+            Task {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                await MainActor.run { router.go(.homeMusic) }
+            }
+        #else
+            // Apple Music URL 是演示版的「自動取得」占位，后端无 url 字段 → 生产只传曲名 / 艺术家 / 投稿理由。
+            let trimmedNote = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+            let body = SongRequestBody(
+                song_title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+                artist: artist.trimmingCharacters(in: .whitespacesAndNewlines),
+                note: trimmedNote.isEmpty ? nil : trimmedNote
+            )
+            Task {
+                do {
+                    _ = try await SongsAPI.create(body)
+                    await app.loadSongs() // 投稿后刷新一览
+                    app.showToast("投稿しました")
+                    router.go(.homeMusic)
+                } catch {
+                    app.showToast("投稿に失敗しました")
+                }
+            }
+        #endif
     }
 
     /// 通報多数で投稿封禁中の banner (system_features §7.11.2)
@@ -1020,12 +1090,36 @@ struct MusicNewView: View {
 // MARK: - §9 MusicDetailView · 曲詳細
 
 struct MusicDetailView: View {
-    let id: Int
+    let id: String
     @EnvironmentObject var app: AppStore
 
-    /// JSX 原文 hard-coded Lilac · 我们用 id 找回 SEED song，fallback Lilac
-    private var song: SongItem {
-        SEED.songs.first(where: { $0.id == id }) ?? SEED.songs[0]
+    /// 演示=按 id 从 SEED 查(查不到 fallback 第一首) / 生产=从后端缓存按 UUID 查，归一成 SongDisplay。
+    private var song: SongDisplay? {
+        #if DEMO
+            let item = SEED.songs.first(where: { String($0.id) == id }) ?? SEED.songs.first
+            return item.map(SongDisplay.init(demo:))
+        #else
+            return app.songRequests.first(where: { $0.id.uuidString == id }).map(SongDisplay.init(real:))
+        #endif
+    }
+
+    /// 副标题：演示显「artist · 投稿 投稿者」/ 生产无投稿者 → 只显 artist。
+    private var metaText: String {
+        guard let s = song else { return "" }
+        #if DEMO
+            return "\(s.artist) · 投稿 \(s.by)"
+        #else
+            return s.artist
+        #endif
+    }
+
+    /// 投稿理由：演示用固定文案（SEED 无此字段）/ 生产显真 note。
+    private var reasonText: String {
+        #if DEMO
+            return "朝の支度時間に聴きたい、明るい気持ちになれる曲です。"
+        #else
+            return song?.note ?? "（理由は未記入です）"
+        #endif
     }
 
     var body: some View {
@@ -1047,12 +1141,12 @@ struct MusicDetailView: View {
                     .shadow(color: T.primary.opacity(0.25), radius: 20, x: 0, y: 12)
                     .padding(.bottom, 20)
 
-                    Text(song.title)
+                    Text(song?.title ?? "—")
                         .font(.system(size: 22, weight: .heavy))
                         .foregroundStyle(T.ink)
                         .padding(.bottom, 6)
 
-                    Text("\(song.artist) · 投稿 \(song.by)")
+                    Text(metaText)
                         .font(.system(size: 14))
                         .foregroundStyle(T.inkSub)
                         .padding(.bottom, 24)
@@ -1062,7 +1156,7 @@ struct MusicDetailView: View {
                             Text("投稿理由")
                                 .font(.system(size: 12))
                                 .foregroundStyle(T.inkSub)
-                            Text("朝の支度時間に聴きたい、明るい気持ちになれる曲です。")
+                            Text(reasonText)
                                 .font(.system(size: 14))
                                 .foregroundStyle(T.ink)
                                 .lineSpacing(3)
@@ -1071,47 +1165,56 @@ struct MusicDetailView: View {
                     }
                     .padding(.bottom, 18)
 
-                    // 通報ボタン (賛/反対は 2026-05-01 拍板で廃止 — system_features §7.11)
-                    Button {
-                        app.openSheet(.songReport(songId: song.id))
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.system(size: 16, weight: .semibold))
-                            Text("この曲を通報する")
-                                .font(.system(size: 15, weight: .bold))
+                    #if DEMO
+                        // 通報按钮 —— 投票（赞成/反对）已 2026-05-01 拍板废止（system_features §7.11）；
+                        // 通報本身也是 v1.1，仅演示版显示。
+                        Button {
+                            app.openSheet(.songReport(songId: Int(id) ?? 0))
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Text("この曲を通報する")
+                                    .font(.system(size: 15, weight: .bold))
+                            }
+                            .foregroundStyle(T.warnDeep)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous).fill(T.warnBg)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .stroke(T.warn.opacity(0.4), lineWidth: 1.5)
+                            )
                         }
-                        .foregroundStyle(T.warnDeep)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous).fill(T.warnBg)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .stroke(T.warn.opacity(0.4), lineWidth: 1.5)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.bottom, 10)
+                        .buttonStyle(.plain)
+                        .padding(.bottom, 10)
 
-                    Text("通報内容は寮務の先生に届きます。投稿者には通報した人は知られません。")
-                        .font(.system(size: 11))
-                        .foregroundStyle(T.inkMute)
-                        .multilineTextAlignment(.center)
-                        .lineSpacing(3)
+                        Text("通報内容は寮務の先生に届きます。投稿者には通報した人は知られません。")
+                            .font(.system(size: 11))
+                            .foregroundStyle(T.inkMute)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(3)
+                    #endif
                 }
                 .padding(20)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl.ignoresSafeArea())
+        .task {
+            #if !DEMO
+                // 深链直接进详情时缓存可能为空 → 拉一次一览兜底。
+                if app.songRequests.isEmpty { await app.loadSongs() }
+            #endif
+        }
     }
 }
 
 #Preview {
-    MusicDetailView(id: 1)
-        .environmentObject(RouterStore(initial: .homeMusicDetail(id: 1)))
+    MusicDetailView(id: "1")
+        .environmentObject(RouterStore(initial: .homeMusicDetail(id: "1")))
         .environmentObject(AppStore())
 }
 

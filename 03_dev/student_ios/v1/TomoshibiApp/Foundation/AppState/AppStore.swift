@@ -109,6 +109,7 @@ final class AppStore: ObservableObject {
                     packages = []
                     studyLeaveCountThisMonth = 0
                     cleaningHistory = []
+                    songRequests = []
                 #endif
             }
         }
@@ -959,6 +960,24 @@ final class AppStore: ObservableObject {
             let items = try await CleaningAPI.listMine()
             guard authToken == tokenAtStart else { return }
             cleaningHistory = items
+        } catch {
+            // 拉失败静默，下次进页面再试。
+        }
+    }
+
+    // MARK: - 点歌一览（功能④ · GET /api/v1/songs）
+
+    /// 点歌一览缓存（生产构建用，loadSongs 拉真后端填；后端已新→旧排序）。
+    @Published var songRequests: [SongRequestOut] = []
+
+    /// 拉点歌一览（生产构建用）。带令牌守卫 —— 登出 / 切用户不写回旧用户数据。
+    @MainActor
+    func loadSongs() async {
+        let tokenAtStart = authToken
+        do {
+            let items = try await SongsAPI.list()
+            guard authToken == tokenAtStart else { return }
+            songRequests = items
         } catch {
             // 拉失败静默，下次进页面再试。
         }

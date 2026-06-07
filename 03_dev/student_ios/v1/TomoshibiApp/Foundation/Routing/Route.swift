@@ -31,7 +31,7 @@ enum Route: Hashable {
     case homeLostDetail(id: Int)
     case homeMusic
     case homeMusicNew
-    case homeMusicDetail(id: Int)
+    case homeMusicDetail(id: String)
     case homeEvents
     case homeEventDetail(id: Int)
     case homeBus

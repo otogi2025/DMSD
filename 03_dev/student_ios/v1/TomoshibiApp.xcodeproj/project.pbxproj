@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		01A670CB8B7B467739C7EA58 /* Toast.swift in Sources */ = {isa = PBXBuildFile; fileRef = A652D7FC37C1A6417822DCAA /* Toast.swift */; };
 		0D70EF6043AAE7D57114C6D2 /* AuthStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198EF6A8C6E10AE3DBF4B316 /* AuthStubs.swift */; };
+		106D9C75A679DE11CFCD0644 /* SongsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ADCD09C35CE74209B76A719 /* SongsAPI.swift */; };
 		11FF2BD4AC27376886104D2C /* ApplicationsCreateBodies.swift in Sources */ = {isa = PBXBuildFile; fileRef = 350CA686A2E4CE6284AA20D8 /* ApplicationsCreateBodies.swift */; };
 		12937C81977BB20921592E09 /* CACHEDIR.TAG in Resources */ = {isa = PBXBuildFile; fileRef = BA2858BE1F7C0F629E01ED97 /* CACHEDIR.TAG */; };
 		12D13D4914611D5D0DB127B8 /* BottomNav.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1692CD80AD61B3BFA74FE01D /* BottomNav.swift */; };
@@ -94,6 +95,7 @@
 		4A1DA47ECA99A6BC826597E0 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		56739ED2BA471039822C2E43 /* APIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIError.swift; sourceTree = "<group>"; };
 		5802FFC4938B6F524F6703C5 /* TomoshibiApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = TomoshibiApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5ADCD09C35CE74209B76A719 /* SongsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SongsAPI.swift; sourceTree = "<group>"; };
 		71453E806B7A27446A7B2BE3 /* 12865348558069377973 */ = {isa = PBXFileReference; path = 12865348558069377973; sourceTree = "<group>"; };
 		7AFBB7C7CB1B14AF649FFB7D /* GlassSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassSheet.swift; sourceTree = "<group>"; };
 		7E749CA72863EC4E0022C7B6 /* MyPageStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyPageStubs.swift; sourceTree = "<group>"; };
@@ -146,6 +148,7 @@
 				AE8464C86A7E2262CDCEA498 /* EventsAPI.swift */,
 				492E8FE746273F00BC46D772 /* OutingsAPI.swift */,
 				B6BED925E6CDEDFF9B146D29 /* RollCallAPI.swift */,
+				5ADCD09C35CE74209B76A719 /* SongsAPI.swift */,
 				DD89B96B9E1EC056A73411B6 /* StudyAPI.swift */,
 			);
 			path = Endpoints;
@@ -522,6 +525,7 @@
 				9D5C7625BD899998AEA129C5 /* ScheduleStubs.swift in Sources */,
 				717A2649DF90EC3426200B6D /* SeedModels.swift in Sources */,
 				4737D096D1DEED27D8472AC0 /* SheetKind.swift in Sources */,
+				106D9C75A679DE11CFCD0644 /* SongsAPI.swift in Sources */,
 				4EF492AEB1CA2FF4273DBCCF /* StayListStubs.swift in Sources */,
 				CF76384DA126CF63F99BE13E /* StudyAPI.swift in Sources */,
 				4CC4A649A5CBA03229C7BF17 /* StudyOnlineForm.swift in Sources */,
