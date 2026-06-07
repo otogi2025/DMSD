@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -67,6 +67,17 @@ def renewal_start(
     3. dry_run=True → 只返回预览列表，不写 DB
     4. dry_run=False → 真改 + 写 audit_logs
     """
+    # 0. 演示账号写隔离：开闸是 session 级批量写（影响一组学生，无法按单个学生判 demo），
+    #    演示老师一律禁止
+    if teacher.is_demo:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "DEMO_READONLY",
+                "message": "デモアカウントは操作できません",
+            },
+        )
+
     # 1. 查询 active 真实学生（只取 grade_code 合法 '01'~'06'，跳过脏数据防 500）
     stmt = select(models.Student).where(
         models.Student.status == "active",

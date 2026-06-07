@@ -191,6 +191,15 @@ def start_session(
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(get_current_teacher),
 ):
+    # 演示隔离：演示账号只读点呼，不能操作真实点呼场次（场次无 demo 标记，写会碰真实学生扣分）
+    if teacher.is_demo:
+        raise HTTPException(
+            403,
+            {
+                "code": "DEMO_READONLY",
+                "message": "デモアカウントは点呼を操作できません",
+            },
+        )
     session = _get_session_or_404(db, session_id)
     now = _now_jst()
 
@@ -233,6 +242,15 @@ def end_session(
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(get_current_teacher),
 ):
+    # 演示隔离：演示账号只读点呼，不能操作真实点呼场次（end 会触发 _settle_absent 给真实学生记缺席扣分）
+    if teacher.is_demo:
+        raise HTTPException(
+            403,
+            {
+                "code": "DEMO_READONLY",
+                "message": "デモアカウントは点呼を操作できません",
+            },
+        )
     session = _get_session_or_404(db, session_id)
     if session.session_status != "running":
         raise HTTPException(

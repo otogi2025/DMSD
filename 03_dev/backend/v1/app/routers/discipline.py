@@ -30,6 +30,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..deps import (
+    assert_student_demo_match,
     demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_student,
@@ -188,6 +189,8 @@ def create_manual_demerit(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "STUDENT_NOT_FOUND", "message": "学生不存在"},
         )
+    # 演示写隔离：演示老师只能给演示学生扣分（真老师反之），否则 404
+    assert_student_demo_match(teacher, student)
     # R4 寮边界：寮監是 dorm-scoped 角色，管辖外学生不能手动加扣分
     allowed = dorm_units_for_teacher(teacher)
     if allowed is not None and student.dorm_unit not in allowed:
@@ -240,6 +243,8 @@ def revoke_demerit(
     # R4 寮边界：通过扣分事件找对应学生，寮監只能撤销本寮学生的扣分
     student = db.get(models.Student, event.student_id)
     if student:
+        # 演示写隔离：演示老师只能撤销演示学生的扣分（真老师反之），否则 404
+        assert_student_demo_match(teacher, student)
         allowed = dorm_units_for_teacher(teacher)
         if allowed is not None and student.dorm_unit not in allowed:
             raise HTTPException(

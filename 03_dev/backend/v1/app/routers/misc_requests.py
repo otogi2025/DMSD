@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..deps import (
+    assert_student_demo_match,
     demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_student,
@@ -94,6 +95,8 @@ def confirm_misc_request(
         )
     student = db.get(models.Student, row.student_id)
     if student:
+        # 演示账号写隔离：演示老师只能确认演示学生申请、真老师只能确认真实学生申请（不匹配 raise 404）
+        assert_student_demo_match(teacher, student)
         allowed = dorm_units_for_teacher(teacher)
         if allowed is not None and student.dorm_unit not in allowed:
             raise HTTPException(

@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..deps import (
+    assert_student_demo_match,
     demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_student,
@@ -120,6 +121,8 @@ def create_cleaning(
         )
     # R4 寮边界：寮監等寮 scoped 角色不能给管辖外寮学生派清扫
     _assert_student_in_dorm(teacher, student)
+    # 演示写隔离：演示老师只能给演示学生派清扫、真老师只能给真实学生
+    assert_student_demo_match(teacher, student)
     row = models.CleaningAssignment(
         student_id=body.student_id,
         area=body.area,
@@ -159,6 +162,8 @@ def inspect_cleaning(
     student = db.get(models.Student, row.student_id)
     if student:
         _assert_student_in_dorm(teacher, student)
+        # 演示写隔离：演示老师只能审核演示学生的清扫、真老师只能审核真实学生
+        assert_student_demo_match(teacher, student)
     if row.status in {"passed", "failed", "skipped"}:
         raise HTTPException(
             status_code=409,

@@ -56,6 +56,19 @@ def demo_scope_for_teacher(teacher: models.Teacher):
     return models.Student.is_demo.is_(teacher.is_demo)
 
 
+def assert_student_demo_match(teacher: models.Teacher, student: models.Student) -> None:
+    """演示写隔离 — 演示老师只能操作演示学生、真老师只能操作真实学生，否则当作不存在 404。
+
+    用于按 student_id / application_id 写单个学生数据的端点（checkin / 审批 / 扣分 等），
+    防演示老师构造真实 student_id 越权写真实数据（反之真老师写演示学生）。真老师行为同改造前。
+    """
+    if student.is_demo != teacher.is_demo:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "STUDENT_NOT_FOUND", "message": "学生が見つかりません"},
+        )
+
+
 def _parse_bearer(auth_header: str | None) -> str:
     if not auth_header or not auth_header.lower().startswith("bearer "):
         raise HTTPException(

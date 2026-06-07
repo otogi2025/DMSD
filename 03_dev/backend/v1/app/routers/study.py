@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..deps import (
+    assert_student_demo_match,
     demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_student,
@@ -311,6 +312,9 @@ def create_checkin(
             404, {"code": "NOT_FOUND", "message": "学生が見つかりません"}
         )
 
+    # 演示隔离：演示老师只能给演示学生写、真老师只能给真实学生写（否则 404）
+    assert_student_demo_match(teacher, student)
+
     # R4 寮边界：寮監等 dorm-scoped 角色不能给管辖外学生写出席记录
     _assert_student_in_dorm(teacher, student)
 
@@ -359,6 +363,13 @@ def bulk_finalize(
         require_teacher_roles("学習担当", "寮務部長", "寮務課長", "寮監")
     ),
 ):
+    # 演示隔离：批量结算影响一组学生、无法按单个学生判 demo → 演示老师整体禁止
+    if teacher.is_demo:
+        raise HTTPException(
+            403,
+            {"code": "DEMO_READONLY", "message": "デモアカウントは操作できません"},
+        )
+
     today = body.target_date or _today_jst()
     term = _academic_term(today)
 
@@ -476,6 +487,8 @@ def patch_checkin(
     # R4 寮边界：通过 checkin 记录找到对应学生，校验老师管辖范围
     student = db.get(models.Student, record.student_id)
     if student:
+        # 演示隔离：演示老师只能改演示学生记录、真老师只能改真实学生记录（否则 404）
+        assert_student_demo_match(teacher, student)
         _assert_student_in_dorm(teacher, student)
     record.status = body.status
     record.overridden_by = teacher.id
@@ -626,6 +639,10 @@ def decide_absence_request(
     record = db.get(models.StudyAbsenceRequest, request_id)
     if not record:
         raise HTTPException(404, {"code": "NOT_FOUND", "message": "届が見つかりません"})
+    # 演示隔离：审批间接关联学生 → 取届对应学生判 demo（演示老师只能审演示学生的届）
+    student = db.get(models.Student, record.student_id)
+    if student:
+        assert_student_demo_match(teacher, student)
     if record.status != "pending":
         raise HTTPException(
             409,
@@ -651,6 +668,13 @@ def cancel_today(
     ),
 ):
     """今日の学習を中止 = 全 roster 学生を 'exempt' に一括設定。"""
+    # 演示隔离：全 roster 批量取消影响一组学生、无法按单个学生判 demo → 演示老师整体禁止
+    if teacher.is_demo:
+        raise HTTPException(
+            403,
+            {"code": "DEMO_READONLY", "message": "デモアカウントは操作できません"},
+        )
+
     today = _today_jst()
     term = _academic_term(today)
 
@@ -788,6 +812,9 @@ def add_to_roster(
             404, {"code": "NOT_FOUND", "message": "学生が見つかりません"}
         )
 
+    # 演示隔离：演示老师只能把演示学生加进名簿、真老师只能加真实学生（否则 404）
+    assert_student_demo_match(teacher, student)
+
     # R4 寮边界：寮監等 dorm-scoped 角色不能给管辖外学生操作名簿
     _assert_student_in_dorm(teacher, student)
 
@@ -879,6 +906,9 @@ def remove_from_roster(
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "学生が見つかりません"}
         )
+
+    # 演示隔离：演示老师只能移演示学生、真老师只能移真实学生（否则 404）
+    assert_student_demo_match(teacher, student)
 
     # R4 寮边界：先校验老师能不能操作这个学生
     _assert_student_in_dorm(teacher, student)

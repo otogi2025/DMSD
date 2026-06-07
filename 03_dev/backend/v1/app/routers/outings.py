@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session, selectinload
 from .. import models, schemas
 from ..database import get_db
 from ..deps import (
+    assert_student_demo_match,
     demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_principal,
@@ -226,6 +227,9 @@ def confirm_outing(
     teacher: models.Teacher = Depends(get_current_teacher),
 ):
     outing = _load_outing(db, outing_id)
+
+    # 演示写隔离：演示老师只能确认演示学生的申请、真老师只能确认真实学生（否则 404）
+    assert_student_demo_match(teacher, outing.student)
 
     # R4 寮边界：非跨寮角色只能确认自己寮的学生
     allowed = dorm_units_for_teacher(teacher)

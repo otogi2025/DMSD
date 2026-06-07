@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..deps import (
+    assert_student_demo_match,
     demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_student,
@@ -126,6 +127,7 @@ def decide_event_proposal(
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "申請が見つかりません"}
         )
+    assert_student_demo_match(teacher, record.proposer)
     _ensure_pending(record.result)
     record.result = body.decision
     record.decided_by = teacher.id
@@ -289,6 +291,7 @@ def decide_fridge_purchase(
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "申請が見つかりません"}
         )
+    assert_student_demo_match(teacher, record.student)
     # 冷蔵庫購入届合法状态流转白名单：pending→ordered/rejected、ordered→delivered
     # 白名单外（ordered→rejected、已 delivered/rejected 再次决定、同状态重复覆盖等）一律拒绝
     _allowed_fridge_transitions: dict[str, set[str]] = {
@@ -387,6 +390,7 @@ def decide_item_possession(
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "申請が見つかりません"}
         )
+    assert_student_demo_match(teacher, record.student)
     _ensure_pending(record.status)
     record.status = body.decision
     record.decided_by = teacher.id

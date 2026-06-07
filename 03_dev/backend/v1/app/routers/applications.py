@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session, selectinload
 from .. import models, schemas, ws_manager as _ws
 from ..database import get_db
 from ..deps import (
+    assert_student_demo_match,
     demo_scope_for_teacher,
     get_current_student,
     get_current_teacher,
@@ -187,6 +188,9 @@ def create_application_by_teacher(
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "学生が見つかりません"}
         )
+
+    # 演示写隔离：演示老师只能给演示学生代録、真老师只能给真实学生（否则当 404）
+    assert_student_demo_match(teacher, student)
 
     # R4 寮边界：老师只能给管辖寮的学生代録
     if not _teacher_can_view(teacher, student):
@@ -782,6 +786,10 @@ def decide_approval(
     ).first()
     if not app:
         raise HTTPException(404, {"code": "NOT_FOUND", "message": "届が見つかりません"})
+
+    # 演示写隔离：演示老师只能审批演示学生的届、真老师只能审批真实学生（否则当 404）
+    if app.student is not None:
+        assert_student_demo_match(teacher, app.student)
 
     # 当前役職の pending 行を探す
     pending_row = next(

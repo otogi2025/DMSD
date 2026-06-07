@@ -8,6 +8,7 @@
 担任 (homeroom) 按学生班级从 `class_teacher_assignment` 表解决。
 其他役职从 teachers.role 查询；校長作为帰国留学生链尾的普通审批环。
 """
+
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -127,6 +128,10 @@ def resolve_teachers_by_role(
             models.Teacher.status == "active",
         )
     )
+    # 演示隔离：真实学生申请只找真老师、演示学生申请只找演示老师
+    # （否则演示老师 role=寮務部長 会被算进真实学生申请的审批人 + 收到真实申请邮件）
+    if student is not None:
+        stmt = stmt.where(models.Teacher.is_demo == student.is_demo)
     return list(db.scalars(stmt).all())
 
 

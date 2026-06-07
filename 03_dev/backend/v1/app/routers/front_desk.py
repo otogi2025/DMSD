@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..deps import (
+    assert_student_demo_match,
     demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_student,
@@ -194,6 +195,8 @@ def create_item(
                 status_code=404,
                 detail={"code": "STUDENT_NOT_FOUND", "message": "学生不存在"},
             )
+        # 演示写隔离：有关联学生时演示老师只能挂演示学生 / 真老师只能挂真实学生
+        assert_student_demo_match(teacher, student)
         # R4 寮边界：有关联学生时校验属本老师管辖寮
         _assert_student_in_dorm(teacher, student)
     days = (
@@ -238,10 +241,11 @@ def notify_item(
             status_code=404,
             detail={"code": "ITEM_NOT_FOUND", "message": "条目不存在"},
         )
-    # R4 寮边界：条目关联学生时校验属本老师管辖寮
+    # 演示写隔离 + R4 寮边界：条目关联学生时校验
     if row.student_id:
         student = db.get(models.Student, row.student_id)
         if student:
+            assert_student_demo_match(teacher, student)
             _assert_student_in_dorm(teacher, student)
     if row.status != "pending":
         raise HTTPException(
@@ -279,10 +283,11 @@ def mark_picked_up(
             status_code=404,
             detail={"code": "ITEM_NOT_FOUND", "message": "条目不存在"},
         )
-    # R4 寮边界：条目关联学生时校验属本老师管辖寮
+    # 演示写隔离 + R4 寮边界：条目关联学生时校验
     if row.student_id:
         student = db.get(models.Student, row.student_id)
         if student:
+            assert_student_demo_match(teacher, student)
             _assert_student_in_dorm(teacher, student)
     if row.status not in {"pending", "notified"}:
         raise HTTPException(

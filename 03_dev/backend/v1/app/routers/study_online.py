@@ -22,6 +22,7 @@ from .. import models, schemas
 from ..config import get_settings
 from ..database import get_db
 from ..deps import (
+    assert_student_demo_match,
     demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_principal,
@@ -166,6 +167,8 @@ def decide_online_request(
     # R4 寮边界：寮監是 dorm-scoped 角色，只能审批本寮学生的在线申请
     student = db.get(models.Student, record.student_id)
     if student:
+        # 演示写隔离：演示老师只能审批演示学生的申请，否则 404（防越权审批真实学生）
+        assert_student_demo_match(teacher, student)
         allowed = dorm_units_for_teacher(teacher)
         if allowed is not None and student.dorm_unit not in allowed:
             raise HTTPException(
