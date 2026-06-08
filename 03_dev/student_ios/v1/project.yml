@@ -45,6 +45,14 @@ targets:
         PRODUCT_NAME: TomoshibiApp
         # 相机权限说明 — 在线学习申请拍摄契約書（合同）照片用；不声明会闪退
         INFOPLIST_KEY_NSCameraUsageDescription: "オンライン学習の契約書を撮影するためにカメラを使用します"
+        # NFC 用途说明（iosnfc-③ 上线缺口）— 手机点呼把学号写进点呼机 NFC 芯片时系统弹的提示；不声明 CoreNFC 一调就闪退
+        INFOPLIST_KEY_NFCReaderUsageDescription: "点呼の出席を点呼機に送信するために NFC を使用します"
+        # 加密合规标志（iosenc-⑩ 上线缺口）— app 只走标准 HTTPS、属苹果豁免类，填 NO 免每次上传 App Store 手填问询
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: "NO"
+        # 推送 + NFC 权限声明文件接线（iosent-③ 上线缺口）— 把 TomoshibiApp.entitlements 挂进构建
+        # ⚠️ 当前全程关签名（DEVELOPMENT_TEAM 空 + CODE_SIGNING_ALLOWED NO），接 entitlements 受限能力（aps-environment 推送 + NFC）
+        #    在不签名模拟器构建可能报 provisioning 错；若编译挂→注释掉下一行留待办、上面 NFC 用途字符串保留（goal §3③回退预案）
+        CODE_SIGN_ENTITLEMENTS: TomoshibiApp/TomoshibiApp.entitlements
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: "YES"
         INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
         INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleDefault
