@@ -114,6 +114,11 @@ final class AppStore: ObservableObject {
                     lostFound = []
                     myRollcallEvents = []
                     myDemeritEvents = []
+                    // codex m-1: 列表加载三态也要重置，否则下个登录用户短暂看到上个账号的失败 / 加载文案
+                    profileState = .idle
+                    cleaningHistoryState = .idle
+                    songsState = .idle
+                    lostFoundState = .idle
                 #endif
             }
         }

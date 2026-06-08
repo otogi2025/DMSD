@@ -70,6 +70,8 @@ struct MyLandingView: View {
 
     /// 行事予定卡的数据源（ios⑦ 上线缺口）：演示版读 SEED.events，生产版由 .task 从后端拉到这里
     @State private var loadedEvents: [EventItem] = []
+    /// codex M-4: 行事卡加载状态，区分 加载中 / 失败 / 真没活动（演示版恒 .idle 走空态）
+    @State private var eventsState: AppStore.ListLoadState = .idle
 
     // 2026-05-03 itsuki 拍板「方案 B 分层重设计」:
     //   - profile 缩小（avatar 56 + 一行 info + Pill）
@@ -225,6 +227,7 @@ struct MyLandingView: View {
         /// 未登录不拉；拉失败保持空 loadedEvents → scheduleCard 自然显「当面の予定はありません」，不喂假行事让学生误事。
         private func loadEvents() async {
             guard app.isAuthenticated else { return }
+            eventsState = .loading
             // 今日起到明年底，覆盖近期所有活动（landing 只显示最近 3 条）
             let fromYear = Int(MyLandingView.todayStr.prefix(4)) ?? 2026
             let from = MyLandingView.todayStr
@@ -232,8 +235,11 @@ struct MyLandingView: View {
             do {
                 let raw = try await EventsAPI.listEvents(fromDate: from, toDate: to)
                 loadedEvents = EventMapper.map(raw)
+                eventsState = .loaded
             } catch {
+                // codex M-4: 拉失败设 .failed 而非静默空，scheduleCard 显失败态而非误报「无活动」
                 loadedEvents = []
+                eventsState = .failed(APIErrorPresenter.userMessage(for: error, fallback: "行事予定の取得に失敗しました"))
             }
         }
     #endif
@@ -267,10 +273,24 @@ struct MyLandingView: View {
                 }
 
                 if upcomingEvents.isEmpty {
-                    Text("当面の予定はありません")
-                        .font(.system(size: 12))
-                        .foregroundStyle(T.inkMute)
-                        .padding(.top, 12)
+                    // codex M-4: 演示 idle 走 default 空态；生产区分 加载中 / 失败 / 真没活动
+                    switch eventsState {
+                    case .loading:
+                        Text("読み込み中…")
+                            .font(.system(size: 12))
+                            .foregroundStyle(T.inkMute)
+                            .padding(.top, 12)
+                    case .failed:
+                        Text("読み込みに失敗しました")
+                            .font(.system(size: 12))
+                            .foregroundStyle(T.inkMute)
+                            .padding(.top, 12)
+                    default:
+                        Text("当面の予定はありません")
+                            .font(.system(size: 12))
+                            .foregroundStyle(T.inkMute)
+                            .padding(.top, 12)
+                    }
                 } else {
                     // 近期活动列表（最多 3 条），条目之间用细分隔线
                     VStack(spacing: 0) {
@@ -448,7 +468,10 @@ struct MyLandingView: View {
 
     private var pointsStatusCard: some View {
         let pts = app.displayUser.points
+        // codex M-3: 生产没拉到资料时占位 points=0，等级 / 点数显「—」而非误导成「良好 0.0」
+        let isPlaceholder = app.profileIsPlaceholder
         let level: (numColor: Color, bgColor: Color, label: String, pillTone: Pill.Tone) = {
+            if isPlaceholder { return (T.inkMute, T.pill, "—", .neutral) }
             if pts >= 8 { return (T.danger, T.dangerBg, "禁足", .danger) }
             if pts >= 4 { return (T.warn, T.warnBg, "罰掃 注意", .warn) }
             return (T.ok, T.okBg, "良好", .ok)
@@ -466,7 +489,7 @@ struct MyLandingView: View {
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(T.inkSub)
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(String(format: "%.1f", pts))
+                        Text(isPlaceholder ? "—" : String(format: "%.1f", pts))
                             .font(.system(size: 22, weight: .heavy, design: .monospaced))
                             .foregroundStyle(level.numColor)
                         Text("点")
@@ -1404,7 +1427,8 @@ struct MyPointsView: View {
 
     /// 今月合計 —— app.displayUser.points（loadMe 已从 DisciplineAPI.mySummary 拉真数据）。
     private var totalText: String {
-        String(format: "%.1f", app.displayUser.points)
+        // codex M-3: 生产没拉到资料时占位 points=0，显「—」而非「0.0」误导成零减点
+        app.profileIsPlaceholder ? "—" : String(format: "%.1f", app.displayUser.points)
     }
 
     /// 减点明细行（演示=SEED 假数据 / 生产=后端真数据，靠 #if DEMO 守卫，归一成 PointDisplay）。

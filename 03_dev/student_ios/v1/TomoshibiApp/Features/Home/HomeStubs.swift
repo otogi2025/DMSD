@@ -1504,34 +1504,50 @@ struct RollcallSheet: View {
         #else
             // 生产版（ios① 上线缺口）：真用 CoreNFC 把学号写进墙上 ST25DV Mailbox（手机不联网，点呼机读走发后端）。
             // 架构反转后手机不再 POST checkin，本地只做物理确认（做法 A）、不等后端结果。
-            guard let sid = app.myStudentId, let uuid = UUID(uuidString: sid) else {
-                app.showToast("ログインが必要です")
-                return
-            }
             withAnimation(.easeOut(duration: 0.22)) { step = .scanning }
+            let writer = ST25DVWriter()
             scanTask = Task {
-                do {
-                    try await ST25DVWriter().writeCheckin(studentId: uuid, type: .rollcall)
-                    await MainActor.run {
-                        guard !Task.isCancelled, app.sheetOpen == .rollcall else { return }
-                        app.recordCheckin() // 本地物理确认（卡变绿）、非权威；权威判定在点呼机 + 后端
-                        withAnimation(.easeOut(duration: 0.22)) { step = .success }
+                await withTaskCancellationHandler {
+                    // codex M-2: 冷启动 token 已恢复但 loadMe 没跑完 → myStudentId 暂时 nil，先补拉一次再判断
+                    if app.myStudentId == nil { await app.loadMe() }
+                    guard let sid = app.myStudentId, let uuid = UUID(uuidString: sid) else {
+                        await MainActor.run {
+                            guard app.sheetOpen == .rollcall else { return }
+                            withAnimation(.easeOut(duration: 0.22)) { step = .fail }
+                            app.showToast("学生情報の取得に失敗しました")
+                        }
+                        return
                     }
-                    try? await Task.sleep(nanoseconds: 2_000_000_000)
-                    await MainActor.run {
-                        guard !Task.isCancelled, app.sheetOpen == .rollcall else { return }
-                        app.closeSheet()
-                        app.showToast("点呼機に送信しました")
-                        step = .idle
+                    do {
+                        try await writer.writeCheckin(studentId: uuid, type: .rollcall)
+                        await MainActor.run {
+                            guard !Task.isCancelled, app.sheetOpen == .rollcall else { return }
+                            app.recordCheckin() // 本地物理确认（卡变绿）、非权威；权威判定在点呼机 + 后端
+                            withAnimation(.easeOut(duration: 0.22)) { step = .success }
+                        }
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        await MainActor.run {
+                            guard !Task.isCancelled, app.sheetOpen == .rollcall else { return }
+                            app.closeSheet()
+                            app.showToast("点呼機に送信しました")
+                            step = .idle
+                        }
+                    } catch ST25DVError.unavailable {
+                        await MainActor.run {
+                            guard app.sheetOpen == .rollcall else { return }
+                            withAnimation(.easeOut(duration: 0.22)) { step = .fail }
+                            app.showToast("この端末は NFC 非対応です")
+                        }
+                    } catch {
+                        // codex M-1: catch 也加 guard，用户已关弹窗 / 取消时不再改 step
+                        await MainActor.run {
+                            guard !Task.isCancelled, app.sheetOpen == .rollcall else { return }
+                            withAnimation(.easeOut(duration: 0.22)) { step = .fail }
+                        }
                     }
-                } catch ST25DVError.unavailable {
-                    await MainActor.run {
-                        withAnimation(.easeOut(duration: 0.22)) { step = .fail }
-                        app.showToast("この端末は NFC 非対応です")
-                    }
-                } catch {
-                    // 写入失败 / 用户取消：显失败态（failView 提示再試行），不假装成功
-                    await MainActor.run { withAnimation(.easeOut(duration: 0.22)) { step = .fail } }
+                } onCancel: {
+                    // codex M-1: 取消 Swift Task 时也 invalidate NFC session，否则系统 NFC 界面不随弹窗关闭
+                    writer.cancel()
                 }
             }
         #endif
@@ -1886,33 +1902,50 @@ struct StudyCheckinSheet: View {
             }
         #else
             // 生产版（ios① 上线缺口）：真用 CoreNFC 把学号写进墙上 ST25DV Mailbox（类型 0x02 学習签到）。
-            guard let sid = app.myStudentId, let uuid = UUID(uuidString: sid) else {
-                app.showToast("ログインが必要です")
-                return
-            }
             withAnimation(.easeOut(duration: 0.22)) { step = .scanning }
+            let writer = ST25DVWriter()
             scanTask = Task {
-                do {
-                    try await ST25DVWriter().writeCheckin(studentId: uuid, type: .study)
-                    await MainActor.run {
-                        guard !Task.isCancelled, app.sheetOpen == .studyCheckin else { return }
-                        recordedTap = app.recordStudyTap() // 本地物理确认、非权威
-                        withAnimation(.easeOut(duration: 0.22)) { step = .success }
+                await withTaskCancellationHandler {
+                    // codex M-2: 冷启动 token 已恢复但 loadMe 没跑完 → myStudentId 暂时 nil，先补拉一次再判断
+                    if app.myStudentId == nil { await app.loadMe() }
+                    guard let sid = app.myStudentId, let uuid = UUID(uuidString: sid) else {
+                        await MainActor.run {
+                            guard app.sheetOpen == .studyCheckin else { return }
+                            withAnimation(.easeOut(duration: 0.22)) { step = .fail }
+                            app.showToast("学生情報の取得に失敗しました")
+                        }
+                        return
                     }
-                    try? await Task.sleep(nanoseconds: 2_000_000_000)
-                    await MainActor.run {
-                        guard !Task.isCancelled, app.sheetOpen == .studyCheckin else { return }
-                        app.closeSheet()
-                        app.showToast("点呼機に送信しました")
-                        step = .idle
+                    do {
+                        try await writer.writeCheckin(studentId: uuid, type: .study)
+                        await MainActor.run {
+                            guard !Task.isCancelled, app.sheetOpen == .studyCheckin else { return }
+                            recordedTap = app.recordStudyTap() // 本地物理确认、非权威
+                            withAnimation(.easeOut(duration: 0.22)) { step = .success }
+                        }
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        await MainActor.run {
+                            guard !Task.isCancelled, app.sheetOpen == .studyCheckin else { return }
+                            app.closeSheet()
+                            app.showToast("点呼機に送信しました")
+                            step = .idle
+                        }
+                    } catch ST25DVError.unavailable {
+                        await MainActor.run {
+                            guard app.sheetOpen == .studyCheckin else { return }
+                            withAnimation(.easeOut(duration: 0.22)) { step = .fail }
+                            app.showToast("この端末は NFC 非対応です")
+                        }
+                    } catch {
+                        // codex M-1: catch 也加 guard，用户已关弹窗 / 取消时不再改 step
+                        await MainActor.run {
+                            guard !Task.isCancelled, app.sheetOpen == .studyCheckin else { return }
+                            withAnimation(.easeOut(duration: 0.22)) { step = .fail }
+                        }
                     }
-                } catch ST25DVError.unavailable {
-                    await MainActor.run {
-                        withAnimation(.easeOut(duration: 0.22)) { step = .fail }
-                        app.showToast("この端末は NFC 非対応です")
-                    }
-                } catch {
-                    await MainActor.run { withAnimation(.easeOut(duration: 0.22)) { step = .fail } }
+                } onCancel: {
+                    // codex M-1: 取消 Swift Task 时也 invalidate NFC session
+                    writer.cancel()
                 }
             }
         #endif

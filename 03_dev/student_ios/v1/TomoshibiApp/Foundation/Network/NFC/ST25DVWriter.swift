@@ -33,7 +33,12 @@ enum ST25DVError: Error {
 /// @unchecked Sendable：NFC 一次签到全程串行（begin → didDetect → connect → 写 → invalidate），
 /// continuation / payload 不存在真并发访问，故安全标注、压掉 CoreNFC completion 闭包的 Sendable 告警。
 final class ST25DVWriter: NSObject, @unchecked Sendable {
+    // codex B-2: 锁保护 continuation / session 跨线程读写 —— NFC 回调在 session 内部队列、
+    //   writeCheckin 在调用线程，无锁理论上有可见性 race，加锁让 @unchecked Sendable 名副其实。
+    private let lock = NSLock()
     private var continuation: CheckedContinuation<Void, Error>?
+    // codex B-1: 强引用持有 session，防 ARC 在 await 等待期间把它提前释放（局部变量出作用域就没人持有了）。
+    private var session: NFCTagReaderSession?
     private var payload = Data()
 
     func writeCheckin(studentId: UUID, type: CheckinType) async throws {
@@ -47,20 +52,39 @@ final class ST25DVWriter: NSObject, @unchecked Sendable {
         payload = data
 
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+            lock.lock()
             self.continuation = cont
             // ST25DV 是 NFC Type 5 / ISO15693 标签
-            let session = NFCTagReaderSession(pollingOption: .iso15693, delegate: self, queue: nil)
-            session?.alertMessage = "点呼機にタッチしてください"
-            session?.begin()
+            let s = NFCTagReaderSession(pollingOption: .iso15693, delegate: self, queue: nil)
+            self.session = s
+            lock.unlock()
+            s?.alertMessage = "点呼機にタッチしてください"
+            s?.begin()
         }
     }
 
+    /// 取消（用户关签到弹窗时调，codex M-1）：invalidate session 会触发 didInvalidateWithError → finish(.failure)，
+    /// continuation 正常以失败结束、不会泄漏；NFC 系统界面也随之关闭。
+    func cancel() {
+        lock.lock()
+        let s = session
+        lock.unlock()
+        s?.invalidate()
+    }
+
+    /// codex B-2: 幂等 + 线程安全地结束。原子取出 continuation 置 nil —— 成功路径 invalidate 会再触发
+    /// didInvalidateWithError 二次调 finish，此时 continuation 已 nil → guard 直接返回，绝不双重 resume 崩溃。
     private func finish(_ result: Result<Void, Error>) {
-        switch result {
-        case .success: continuation?.resume()
-        case let .failure(error): continuation?.resume(throwing: error)
-        }
+        lock.lock()
+        let cont = continuation
         continuation = nil
+        session = nil
+        lock.unlock()
+        guard let cont else { return }
+        switch result {
+        case .success: cont.resume()
+        case let .failure(error): cont.resume(throwing: error)
+        }
     }
 }
 
