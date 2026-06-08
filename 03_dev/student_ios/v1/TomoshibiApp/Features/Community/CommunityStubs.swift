@@ -612,14 +612,33 @@ struct LostView: View {
                         GridItem(.flexible(), spacing: 10),
                         GridItem(.flexible(), spacing: 10),
                     ]
-                    LazyVGrid(columns: cols, spacing: 10) {
-                        // IX-030 修复：数据源改用按搜索词过滤后的 filteredLost（原来直接铺 SEED.lost）
-                        ForEach(filteredLost) { l in
-                            lostCell(l)
+                    // 三态（ios④ 上线缺口）：原来直接铺 grid、无加载/失败/空态 → 网断时一片空白被当成「没有遗失物」。
+                    // 演示版 lostFoundState 恒 .idle 走 default。
+                    if allRows.isEmpty {
+                        switch app.lostFoundState {
+                        case .loading:
+                            ProgressView().frame(maxWidth: .infinity).padding(.top, 40)
+                        case let .failed(msg):
+                            EmptyState(icon: "exclamationmark.triangle", title: "読み込みに失敗しました", message: msg)
+                                .frame(maxWidth: .infinity).padding(.top, 20)
+                        default:
+                            EmptyState(icon: "magnifyingglass", title: "落とし物はありません")
+                                .frame(maxWidth: .infinity).padding(.top, 20)
                         }
+                    } else if filteredLost.isEmpty {
+                        // 有数据但搜索词无匹配
+                        EmptyState(icon: "magnifyingglass", title: "見つかりません")
+                            .frame(maxWidth: .infinity).padding(.top, 20)
+                    } else {
+                        LazyVGrid(columns: cols, spacing: 10) {
+                            // IX-030 修复：数据源改用按搜索词过滤后的 filteredLost（原来直接铺 SEED.lost）
+                            ForEach(filteredLost) { l in
+                                lostCell(l)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 24)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 24)
                 }
             }
         }
@@ -1041,7 +1060,15 @@ struct MusicView: View {
                             songCard(s: s)
                         }
                         if rows.isEmpty {
-                            EmptyState(icon: "music.note", title: "なし")
+                            // 三态（ios④ 上线缺口）：演示 idle 走 default；生产区分 加载中 / 失败 / 真没数据
+                            switch app.songsState {
+                            case .loading:
+                                ProgressView().frame(maxWidth: .infinity).padding(.vertical, 16)
+                            case let .failed(msg):
+                                EmptyState(icon: "exclamationmark.triangle", title: "読み込みに失敗しました", message: msg)
+                            default:
+                                EmptyState(icon: "music.note", title: "なし")
+                            }
                         }
                     }
                     .padding(.horizontal, 16)

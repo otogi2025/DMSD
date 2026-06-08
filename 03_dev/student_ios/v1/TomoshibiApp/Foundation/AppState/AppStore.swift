@@ -145,6 +145,18 @@ final class AppStore: ObservableObject {
         currentUser ?? SEED.user
     }
 
+    /// 列表加载三态（ios④ 上线缺口）：区分「加载中 / 加载失败 / 真没数据」，
+    /// 防网断时把「有 5 条扣分」静默显示成「減点なし」。演示版不调 loadXxx → 状态保持 .idle 走原空态。
+    enum ListLoadState: Equatable {
+        case idle, loading, loaded
+        case failed(String) // 携带用户友好错误文案
+    }
+
+    @Published var profileState: ListLoadState = .idle // 减点⑧+点呼⑦ 共用 loadMyProfile
+    @Published var cleaningHistoryState: ListLoadState = .idle
+    @Published var songsState: ListLoadState = .idle
+    @Published var lostFoundState: ListLoadState = .idle
+
     /// AppDelegate（push 回调）拿不到 SwiftUI 的 @StateObject 实例 —— 用单例共享同一个 AppStore。
     /// App 入口的 @StateObject 也指向 shared，保证 push 回调写的状态就是界面读的那个。
     static let shared = AppStore()
@@ -967,12 +979,15 @@ final class AppStore: ObservableObject {
     @MainActor
     func loadCleaningHistory() async {
         let tokenAtStart = authToken
+        cleaningHistoryState = .loading
         do {
             let items = try await CleaningAPI.listMine()
             guard authToken == tokenAtStart else { return }
             cleaningHistory = items
+            cleaningHistoryState = .loaded
         } catch {
-            // 拉失败静默，下次进页面再试。
+            guard authToken == tokenAtStart else { return } // 切用户/登出后不写回旧状态
+            cleaningHistoryState = .failed(APIErrorPresenter.userMessage(for: error, fallback: "掃除履歴の取得に失敗しました"))
         }
     }
 
@@ -985,12 +1000,15 @@ final class AppStore: ObservableObject {
     @MainActor
     func loadSongs() async {
         let tokenAtStart = authToken
+        songsState = .loading
         do {
             let items = try await SongsAPI.list()
             guard authToken == tokenAtStart else { return }
             songRequests = items
+            songsState = .loaded
         } catch {
-            // 拉失败静默，下次进页面再试。
+            guard authToken == tokenAtStart else { return }
+            songsState = .failed(APIErrorPresenter.userMessage(for: error, fallback: "リクエスト曲の取得に失敗しました"))
         }
     }
 
@@ -1003,12 +1021,15 @@ final class AppStore: ObservableObject {
     @MainActor
     func loadLostFound() async {
         let tokenAtStart = authToken
+        lostFoundState = .loading
         do {
             let items = try await LostFoundAPI.list()
             guard authToken == tokenAtStart else { return }
             lostFound = items
+            lostFoundState = .loaded
         } catch {
-            // 拉失败静默，下次进页面再试。
+            guard authToken == tokenAtStart else { return }
+            lostFoundState = .failed(APIErrorPresenter.userMessage(for: error, fallback: "落とし物の取得に失敗しました"))
         }
     }
 
@@ -1026,18 +1047,25 @@ final class AppStore: ObservableObject {
     @MainActor
     func loadMyProfile() async {
         let tokenAtStart = authToken
+        profileState = .loading
         if myStudentId == nil {
             await loadMe()
             guard authToken == tokenAtStart else { return }
         }
-        guard let sid = myStudentId else { return }
+        guard let sid = myStudentId else {
+            // 拿不到学号（loadMe 失败 / 未登录）→ 算加载失败，让点呼/减点页显失败态而非「なし」
+            profileState = .failed("学生情報の取得に失敗しました")
+            return
+        }
         do {
             let out = try await StudentProfileAPI.profile(studentId: sid)
             guard authToken == tokenAtStart else { return }
             myRollcallEvents = out.rollcall_events
             myDemeritEvents = out.demerit_events
+            profileState = .loaded
         } catch {
-            // 拉失败静默，下次进页面再试。
+            guard authToken == tokenAtStart else { return }
+            profileState = .failed(APIErrorPresenter.userMessage(for: error, fallback: "点呼・減点情報の取得に失敗しました"))
         }
     }
 

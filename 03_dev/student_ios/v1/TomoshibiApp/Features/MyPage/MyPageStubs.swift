@@ -1127,7 +1127,15 @@ struct MyRollcallView: View {
                     #endif
 
                     if grouped.isEmpty {
-                        EmptyState(icon: "checklist", title: "なし")
+                        // 三态（ios④ 上线缺口）：演示 idle 走 default；生产区分 加载中 / 失败 / 真没记录
+                        switch app.profileState {
+                        case .loading:
+                            ProgressView().frame(maxWidth: .infinity).padding(.vertical, 16)
+                        case let .failed(msg):
+                            EmptyState(icon: "exclamationmark.triangle", title: "読み込みに失敗しました", message: msg)
+                        default:
+                            EmptyState(icon: "checklist", title: "なし")
+                        }
                     }
 
                     // Grouped list
@@ -1470,8 +1478,20 @@ struct MyPointsView: View {
                                 pointRow(p)
                             }
                             if rows.isEmpty {
-                                EmptyState(icon: "checkmark.seal", title: "減点なし")
-                                    .padding(.vertical, 8)
+                                // 三态（ios④ 上线缺口）：演示版 profileState 恒 .idle 走 default 显「減点なし」；
+                                // 生产版区分 加载中 / 失败 / 真没数据，防网断把「有减点」误显成「減点なし」
+                                switch app.profileState {
+                                case .loading:
+                                    ProgressView()
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 16)
+                                case let .failed(msg):
+                                    EmptyState(icon: "exclamationmark.triangle", title: "読み込みに失敗しました", message: msg)
+                                        .padding(.vertical, 8)
+                                default:
+                                    EmptyState(icon: "checkmark.seal", title: "減点なし")
+                                        .padding(.vertical, 8)
+                                }
                             }
                         }
                     }
@@ -1985,7 +2005,15 @@ struct MyCleanView: View {
                         }
                     }
                     if rows.isEmpty {
-                        EmptyState(icon: "sparkles", title: "なし")
+                        // 三态（ios④ 上线缺口）：演示 idle 走 default；生产区分 加载中 / 失败 / 真没记录
+                        switch app.cleaningHistoryState {
+                        case .loading:
+                            ProgressView().frame(maxWidth: .infinity).padding(.vertical, 16)
+                        case let .failed(msg):
+                            EmptyState(icon: "exclamationmark.triangle", title: "読み込みに失敗しました", message: msg)
+                        default:
+                            EmptyState(icon: "sparkles", title: "なし")
+                        }
                     }
                 }
                 .padding(.horizontal, 20)
