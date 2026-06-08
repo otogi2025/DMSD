@@ -487,7 +487,7 @@ struct StayListView: View {
             let raw = try await ApplicationsAPI.listMine()
             apps = raw.map { $0.toStayApplication() }
         } catch APIError.unauthorized {
-            // 401 = token 失效：清 authToken 触发 didSet 自动跳登录页
+            // 401 = token 失效：清 authToken → RootView 全局 onChange 守卫(ios⑤ 上线缺口)自动跳登录页
             // 不再显示 mock 假数据（避免用户以为登录还有效 — 2026-05-27 codex 审查后改）
             app.authToken = nil
             apps = []
@@ -797,7 +797,7 @@ struct StayDetailView: View {
             loadedItem = item
             loadedAuditLog = entries
         } catch APIError.unauthorized {
-            // 401 = token 失效：清 authToken 触发 didSet 跳登录页（不显示 mock 假数据）
+            // 401 = token 失效：清 authToken → RootView 全局 onChange 守卫(ios⑤)跳登录页（不显示 mock 假数据）
             app.authToken = nil
             router.back()
         } catch {
@@ -1284,7 +1284,7 @@ struct StayEditForm: View {
             loadedOriginal = detailOut.toStayApplication()
             initFields()
         } catch APIError.unauthorized {
-            // 401 = 令牌失效：清 authToken（didSet 删 Keychain）+ 退回，不显示假数据
+            // 401 = 令牌失效：清 authToken（didSet 删 Keychain）→ RootView 全局 onChange 守卫(ios⑤)跳登录页，不显示假数据
             app.authToken = nil
             router.back()
         } catch {
