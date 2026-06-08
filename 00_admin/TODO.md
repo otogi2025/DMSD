@@ -49,6 +49,15 @@
 
 ---
 
+## 📲 2026-06-08 iOS 接线 8 功能两端对齐 — ✅ 全做完 / 剩文档同步欠债
+
+> 8 个学生界面生产分支接真后端 + codex 5 轮复审收敛（0 阻塞 0 重大）+ itsuki 4 项追问全做。代码完结、双 scheme BUILD SUCCEEDED、11+ commit 本地未 push。详见 `05_logs/raw/2026-06-07_iOS接线8功能+codex4轮收敛.md`。
+
+仅剩文档同步（低优先、不阻塞，上下文太满留下次做）：
+- [ ] `IOS_DESIGN_LOG.md` 补「8 界面生产分支接后端 + 演示分支保留」段（流程变更，当前只在 raw / commit 里）
+- [ ] project-overview §0.1 体量表 iOS 文件数 +7（新增 6 endpoint + StudentProfileAPI）+ 顶部「最后更新」刷新（注：project-overview 用目录级引用、不逐个列 endpoint，所以只是计数漂移）
+- [ ] （可选）`Tomoshibi-iOS` 镜像 repo：本会话改了 ~14 个 .swift，要不要 `bash bin/sync-ios-refs.sh` 同步（涉及推独立 repo，等 itsuki）
+
 ## 🐞 2026-06-06 早 itsuki 反馈 5 件 → 已做 + codex 2 轮复审收敛
 
 > 起因：itsuki 看通宵报告后对 5 件提反馈转成任务。全部实装 + 派 codex（gpt-5.5 xhigh）2 轮复审到 0 阻塞 0 重大。详见 raw `2026-06-06`。验证：后端 321 passed / iOS 双 scheme 编译过 / 老师网页 tsc 过。
