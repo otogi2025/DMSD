@@ -34,7 +34,6 @@ enum Route: Hashable {
     case homeMusicDetail(id: String)
     case homeEvents
     case homeEventDetail(id: Int)
-    case homeBus
 
     // §2 申し込み
     case apply
@@ -99,7 +98,6 @@ enum Route: Hashable {
         case .homeMusicDetail: return "詳細"
         case .homeEvents: return "活動"
         case .homeEventDetail: return "詳細"
-        case .homeBus: return "バス時刻"
         case .apply: return "申し込み"
         case .applyNew: return "新規申請"
         case .applyForm: return "入力"
