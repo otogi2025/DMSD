@@ -68,6 +68,9 @@ struct MyLandingView: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
+    /// 行事予定卡的数据源（ios⑦ 上线缺口）：演示版读 SEED.events，生产版由 .task 从后端拉到这里
+    @State private var loadedEvents: [EventItem] = []
+
     // 2026-05-03 itsuki 拍板「方案 B 分层重设计」:
     //   - profile 缩小（avatar 56 + 一行 info + Pill）
     //   - 学習 / 点呼 / 減点 = Card 化置顶（最重要 → 最显眼）
@@ -147,10 +150,11 @@ struct MyLandingView: View {
         }
         .background(T.pearl.ignoresSafeArea())
         .task {
-            // 生产构建：拉真后端包裹 + 本人 profile（「今月の点呼」统计用真实点呼事件）；演示用 SEED 不拉
+            // 生产构建：拉真后端包裹 + 本人 profile（「今月の点呼」统计用真实点呼事件）+ 行事予定；演示用 SEED 不拉
             #if !DEMO
                 await app.loadMyPackages()
                 await app.loadMyProfile()
+                await loadEvents()
             #endif
         }
     }
@@ -201,14 +205,38 @@ struct MyLandingView: View {
     }
 
     /// 今日（含）之后最近的活动，最多 3 条
+    /// 数据源（ios⑦ 上线缺口）：演示版 SEED.events 假数据 / 生产版 loadedEvents（后端拉到的真行事）
     private var upcomingEvents: [EventItem] {
-        Array(
-            SEED.events
+        #if DEMO
+            let source = SEED.events
+        #else
+            let source = loadedEvents
+        #endif
+        return Array(
+            source
                 .filter { $0.date >= MyLandingView.todayStr }
                 .sorted { $0.date < $1.date }
                 .prefix(3)
         )
     }
+
+    #if !DEMO
+        /// 生产版拉行事予定（ios⑦ 上线缺口）：仿 ScheduleView.load()。
+        /// 未登录不拉；拉失败保持空 loadedEvents → scheduleCard 自然显「当面の予定はありません」，不喂假行事让学生误事。
+        private func loadEvents() async {
+            guard app.isAuthenticated else { return }
+            // 今日起到明年底，覆盖近期所有活动（landing 只显示最近 3 条）
+            let fromYear = Int(MyLandingView.todayStr.prefix(4)) ?? 2026
+            let from = MyLandingView.todayStr
+            let to = "\(fromYear + 1)-12-31"
+            do {
+                let raw = try await EventsAPI.listEvents(fromDate: from, toDate: to)
+                loadedEvents = EventMapper.map(raw)
+            } catch {
+                loadedEvents = []
+            }
+        }
+    #endif
 
     /// "2026-04-25" 拆成（月: "4月", 日: "25"）；非法日期返回空串而非「0月0」
     private func monthDay(_ date: String) -> (m: String, d: String) {
