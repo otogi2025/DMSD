@@ -37,7 +37,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `01_specs/` | 14 | 1.2% | 规格冻结区（含 5 .pages 不可读）|
 | `.claude/` | 12 | 0.9% | 8 skill + 1 agent + 2 配置（settings / session-coord.config）— **5-26 加 `dmsd-startup/SKILL.md`**（启动 SOP 集中）/ 5-19 加 `.claude/agents/security-reviewer.md`（详见 §1.7.5）|
 | `06_assets/` | 9 | 0.6% | 4 icon + 术语表.html + 学习内容清单.html + bus_schedule + bus_notice 真实样本 + app_screens_2026-06-05_ios/ |
-| 根目录 | 9 | 0.6% | CLAUDE / README / CHANGELOG / LICENSE / .gitignore / .graphifyignore / PROJECT_GUIDE / 启动老师网站.command / 预览Vite新版老师网站.command |
+| 根目录 | 8 | 0.6% | CLAUDE / README / CHANGELOG / LICENSE / .gitignore / .graphifyignore / PROJECT_GUIDE / start-teacher-web.command |
 | `02_design/` | 4 | 0.3% | system_features + hardware + flow + NFC防代刷_后端立项施工计划 |
 | `docs/` | 3 | 0.3% | Matt Pocock 套件 per-repo 配置（agents/{issue-tracker,triage-labels,domain}.md）|
 | `bin/` | 3 | 0.3% | sync-check + create_local_dev_symlink + check_overview_drift（5-19 加）|
@@ -82,7 +82,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 **统计**：✅ 22 / 📦 7 / ⚠️ 3 / ❓ 4
 
-### 1.1 根目录（9 文件已提交）
+### 1.1 根目录（8 文件已提交）
 
 | 文件 | 作用 | 状态 | 备注 |
 |---|---|---|---|
@@ -93,8 +93,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `PROJECT_GUIDE.md` | 给第一次了解 / AI 深入理解整个项目的导览 — 项目是什么 / 5 端结构 / 系统怎么跑通 / 核心业务概念 / 数据模型 / 关键决策 / 阅读顺序 | ✅ | 6-05 扩成深度版 commit `8193dae`（项目心智模型的展开详版）|
 | `LICENSE` | All Rights Reserved + AC 后 4 方向评估 | ✅ | 不常改 |
 | `.graphifyignore` | graphify 知识图谱忽略规则（防 vendor 字体污染图谱） | ✅ | |
-| `启动老师网站.command` | 双击一键：build Vite dist → 后端 8000 托管 dist 到 /teacher/ → 自动开浏览器 | ✅ | 6-05 改成 Vite 版（原起前端 8787 托管 src 旧单文件） |
-| `预览Vite新版老师网站.command` | 双击预览 Vite 新版老师网页（迁移期间核对界面用） | ✅ | 6-05 加 |
+| `start-teacher-web.command` | 双击一键：build Vite dist → 后端 8000 托管 dist 到 /teacher/ → 自动开浏览器 | ✅ | 6-08 中文名改英文名（原 `启动老师网站.command`，itsuki 嫌中文名蠢）；6-05 改成 Vite 版（原起前端 8787 托管 src 旧单文件）；6-08 重建 dev 库补 teacher.is_demo 列 + demo 账号 |
 
 ### 1.2 00_admin/AI 协作 + 项目治理（2026-05-22 校准 — 7 顶级 md + hooks 子目录，5-21 加 2 个长期治理文件）
 

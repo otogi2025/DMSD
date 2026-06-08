@@ -510,7 +510,7 @@ round3/
 3. `v1/README.md` — 怎么打开 / CLI 用法
 
 **当前推进方式**：
-- 看效果：双击项目根 `启动老师网站.command`（起后端 8000 + 前端 8787 + 自动开浏览器）/ NFC 演示用 `cd v1 && ./tomoshibi start`（仅前端，不起后端）
+- 看效果：双击项目根 `start-teacher-web.command`（起后端 8000 + 前端 8787 + 自动开浏览器）/ NFC 演示用 `cd v1 && ./tomoshibi start`（仅前端，不起后端）
 - 改 UI：编辑 `v1/src/index.html`（standalone HTML，所有 CSS/JS inline）— 改完浏览器 Cmd+R 刷新
 - 改 JSX 源后内联：`v1/rebuild.command`（把 `_legacy/*.jsx` 重新内联到 `index.html`）
 - 打包单文件 demo：`v1/打包单文件.command`（用 `build_single_file.py` 打包成可携带单 HTML）
@@ -908,7 +908,7 @@ CC 在 itsuki 选 A（Ryō 框架内 polish）后跑 frontend-design skill，提
 
 ### 12.6 怎么打开看效果（itsuki 下次想看）
 
-**方式 A 双击（推荐）**：Finder 找项目根 `启动老师网站.command` 双击 → 同时起后端 8000 + 前端 8787 + 自动开浏览器（原 `v1/开发模式跑.command` 只起前端，5-28 归档）
+**方式 A 双击（推荐）**：Finder 找项目根 `start-teacher-web.command` 双击 → 同时起后端 8000 + 前端 8787 + 自动开浏览器（原 `v1/开发模式跑.command` 只起前端，5-28 归档）
 
 **方式 B CLI（仅 NFC 演示）**：`cd ~/dev/DMSD/03_dev/teacher_web/v1 && ./tomoshibi start`（+ `stop` / `status` / `help`）— 只起前端不起后端，走登录用方式 A
 
@@ -982,7 +982,7 @@ itsuki 纠正 CC 两个错误前提：① 部署目标是**服务器**（多人�
 
 ### 16.5 托管 + 归档
 
-- `启动老师网站.command`（项目根）改成 build dist → 后端用 `TEACHER_WEB_DIR=dist` 托管到 `/teacher/` 路径（同源，前端用相对 `/api/v1` 连后端）
+- `start-teacher-web.command`（项目根）改成 build dist → 后端用 `TEACHER_WEB_DIR=dist` 托管到 `/teacher/` 路径（同源，前端用相对 `/api/v1` 连后端）
 - 旧物归档 `99_archive/2026-06-05_teacher_web_html单文件版归档/`：`src/index.html`(旧 29629 行源) + `api/client.js`(旧 IIFE) + `vendor/`(浏览器版 react+babel) + 打包脚本(`build_single_file.py`/`打包单文件.command`/`rebuild.command`/`check_jsx.js`/`tomoshibi`) + `Tomoshibi_v3_single.html`(33MB 旧自包含产物，双击可看旧版界面做对比)
 
 ### 16.6 已知遗留（itsuki 决策）
@@ -991,7 +991,7 @@ itsuki 纠正 CC 两个错误前提：① 部署目标是**服务器**（多人�
 
 ### 16.7 剩余
 
-itsuki 双击 `启动老师网站.command` 肉眼签收界面跟旧版一致 → 确认后 push（CC 不自动 push）。完整施工记录见 `03_dev/teacher_web/Vite迁移_施工清单.md` §8。
+itsuki 双击 `start-teacher-web.command` 肉眼签收界面跟旧版一致 → 确认后 push（CC 不自动 push）。完整施工记录见 `03_dev/teacher_web/Vite迁移_施工清单.md` §8。
 
 ---
 

@@ -4,7 +4,7 @@
 
 ## 怎么打开看效果
 
-双击项目根 `~/dev/DMSD/启动老师网站.command` → 自动 build 出 `dist/` + 起后端（8000 端口）托管 dist + 开浏览器到 `http://localhost:8000/teacher/`。
+双击项目根 `~/dev/DMSD/start-teacher-web.command` → 自动 build 出 `dist/` + 起后端（8000 端口）托管 dist + 开浏览器到 `http://localhost:8000/teacher/`。
 
 > 后端托管前端 + 接口同源（都在 8000），老师登录是实名账户（密码存后端数据库），所以前端不能单独跑，必须后端一起起。
 

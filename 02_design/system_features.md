@@ -1760,7 +1760,7 @@ item_possession_requests                    -- 物品所持許可願(様式2-1)
 | # | 文件 | demo 内容 | 上线前怎么改 |
 |---|---|---|---|
 | 1 | `03_dev/teacher_web/v1/demo_server.py` | 整个文件 = 内存模拟后端 + `/api/server-info`（LAN IP 自动检测）+ 银行卡 NFC POST 接口 | 全删；前端改连真 `/api/v1/*`（v1.0 backend）。README.md line 16 已 TODO「真后端连接」|
-| 2 | ~~`03_dev/teacher_web/v1/开发模式跑.command`~~ | ✅ 已归档（2026-05-28） | ✅ 完成 — 移到 `99_archive/2026-05-28_开发模式跑_被启动全套脚本替代/`；启动改用项目根 `启动老师网站.command`（起后端 8000 + 前端 8787）|
+| 2 | ~~`03_dev/teacher_web/v1/开发模式跑.command`~~ | ✅ 已归档（2026-05-28） | ✅ 完成 — 移到 `99_archive/2026-05-28_开发模式跑_被启动全套脚本替代/`；启动改用项目根 `start-teacher-web.command`（起后端 8000 + 前端 8787）|
 | 3 | `03_dev/teacher_web/v1/src/index.html` line ~4895-4931 | demo_server.py /api/server-info 自动检测 LAN IP UI 块（带 IP card）| 删整段 — production 不需要查 LAN IP |
 | 4 | `03_dev/teacher_web/demo/` 整个目录 | 4-28 demo 的 round3 副本 | 整个目录删（已有 v1/ 替代）|
 
