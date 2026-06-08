@@ -68,6 +68,8 @@ def get_current(
 
     教师 Web「学生注册码」面板挂载时调用，每 30 秒轮询一次。
     """
+    # 演示老师禁读真实注册码（否则能拿真实码→自注册建真实学生账号、绕过整套演示隔离）→ 403
+    assert_not_demo_teacher(teacher)
     now = datetime.now(timezone.utc)
     row = db.scalars(
         select(models.StudentRegistrationCode)
@@ -214,6 +216,8 @@ def get_history(
     §7.16.5 功能矩阵的「码生成 / 使用 audit log」中「生成侧」view。
     「使用侧」view（哪个学生用了哪个码注册）= 单独 endpoint，v1.1 再做。
     """
+    # 演示老师禁读真实注册码历史（含真实码明文）→ 403
+    assert_not_demo_teacher(teacher)
     rows = db.execute(
         select(
             models.StudentRegistrationCode,

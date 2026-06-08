@@ -340,6 +340,9 @@ def seed_dev(db) -> None:
             log.info("加巴士便: %s %s", name, schedule_at)
         db.commit()
 
+    # itsuki 拍板 B：dev 也建演示数据（演示账号开发期开箱即用，跟 prod 一致）
+    _seed_demo_data(db)
+
     log.info("=" * 60)
     log.info("dev seed 完成")
     log.info("学生 login: 060218 (留学生 リュウ) / 060103 (一般 田中)")
@@ -559,15 +562,14 @@ def seed_prod(db) -> None:
 
 
 def _seed_demo_data(db) -> None:
-    """演示老师 + 演示学生（全 is_demo=True）— opt-in，仅 env DEMO_TEACHER_PASSWORD 设置时建。
+    """演示老师 + 演示学生（全 is_demo=True）— 默认启用（itsuki 拍板：演示账号开箱即用）。
 
     演示老师登录只看演示学生（is_demo=True），真老师看不到任何演示数据（is_demo 隔离）。
-    缺 env 则跳过，不影响主 seed、不破坏现有生产部署。
+    密码取 env DEMO_TEACHER_PASSWORD，缺失则用默认 "demo123"
+    （演示账号被 is_demo 隔离限死、碰不到真实数据，公开密码可接受）。幂等，重复跑不重建。
     """
-    demo_password = os.environ.get("DEMO_TEACHER_PASSWORD")
-    if not demo_password:
-        log.info("DEMO_TEACHER_PASSWORD 未设置 — 跳过演示数据（opt-in）")
-        return
+    # 密码 env 优先，缺失用默认 "demo123"（演示账号被 is_demo 隔离，碰不到真实数据）
+    demo_password = os.environ.get("DEMO_TEACHER_PASSWORD") or "demo123"
 
     demo_pw_hash = security.hash_password(demo_password)
 

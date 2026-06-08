@@ -21,7 +21,11 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import get_current_principal, get_current_teacher
+from ..deps import (
+    assert_not_demo_teacher,
+    get_current_principal,
+    get_current_teacher,
+)
 
 router = APIRouter(prefix="/api/v1/bus/routes", tags=["bus"])
 
@@ -33,6 +37,8 @@ _VALID_VISIBLE_TO = {"all", "dorm_only", "men", "women"}
 
 
 def _require_edit_role(teacher: models.Teacher) -> None:
+    # 演示老师禁增删改全局巴士便（巴士无 is_demo，会污染真实学生看到的班次）→ 403
+    assert_not_demo_teacher(teacher)
     if teacher.role not in _EDIT_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

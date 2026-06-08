@@ -33,6 +33,7 @@ from .. import models, schemas, security
 from ..database import get_db
 from ..deps import (
     _parse_bearer,
+    assert_not_demo_teacher,
     get_current_principal,
     get_current_student,
     get_current_teacher,
@@ -343,6 +344,9 @@ def post_reply(
 ):
     """发回复 — 学生 / 老师都行（按 JWT 自动判 author_kind）。"""
     author_kind, author_id, actor = _resolve_actor(authorization, db)
+    # 演示老师禁回复公告（公告无 is_demo，演示老师回复会出现在真实公告下、真实学生可见）→ 403
+    if author_kind == "teacher":
+        assert_not_demo_teacher(actor)
 
     ann = db.get(models.Announcement, announcement_id)
     if not ann or ann.deleted_at is not None:
@@ -390,6 +394,9 @@ def delete_reply(
     """删回复 — 自己发的 or 任意老师都能删。"""
     author_kind, author_id, _actor = _resolve_actor(authorization, db)
     is_teacher = author_kind == "teacher"
+    # 演示老师禁删回复（「老师能删任何回复」会让演示老师删真实学生在真实公告下的回复）→ 403
+    if is_teacher:
+        assert_not_demo_teacher(_actor)
 
     reply = db.get(models.AnnouncementReply, reply_id)
     if not reply or reply.announcement_id != announcement_id or reply.deleted_at:
@@ -424,6 +431,8 @@ def post_announcement(
     db: Session = Depends(get_db),
 ):
     """老师发公告 — 任何老师 role 都可以（不限定职务，§7.15.7）。"""
+    # 演示老师禁发公告（公告无 is_demo、读侧只按性别过滤，会推送给全体真实学生）→ 403
+    assert_not_demo_teacher(teacher)
     ann = models.Announcement(
         title=body.title,
         body=body.body,

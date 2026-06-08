@@ -142,3 +142,180 @@ def test_real_teacher_cannot_view_demo_student_profile(
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert res.status_code == 404, res.text
+
+
+# ─────────────────────────────────────────────────────────────
+# 全局端点演示隔离 — 演示老师禁碰「全局管理 / 写真实数据」端点（assert_not_demo_teacher → 403）
+# 2026-06-08 codex 多视角复审挖出：演示账号默认启用 + 公开密码 demo123 后，这些全局端点
+# （注册码读 / 公告发 / 日程 / 巴士 / 测试邮件 / 老师目录）原本漏的隔离从「需先攻破账号」变零成本可达。
+# 这些表无 is_demo 列，只能靠 assert_not_demo_teacher 角色门拦（演示老师 is_demo=True → 403）。
+# ─────────────────────────────────────────────────────────────
+
+_DEMO_FORBIDDEN_GET = [
+    "/api/v1/admin/registration-code/current",  # 读真实注册码 → 提权链根基
+    "/api/v1/admin/registration-code/history",  # 读真实注册码历史明文
+    "/api/v1/teachers/",  # 枚举真实老师 login_id / email
+]
+
+
+@pytest.mark.parametrize("path", _DEMO_FORBIDDEN_GET)
+def test_demo_teacher_forbidden_global_get(client, demo_teacher_token, path):
+    """演示老师 GET 全局管理读端点 → 403 DEMO_FORBIDDEN。"""
+    res = client.get(path, headers={"Authorization": f"Bearer {demo_teacher_token}"})
+    assert res.status_code == 403, res.text
+    assert res.json()["detail"]["code"] == "DEMO_FORBIDDEN", res.text
+
+
+def test_demo_teacher_cannot_post_announcement(client, demo_teacher_token):
+    """演示老师发公告 → 403（公告无 is_demo、读侧只按性别过滤、会推给全体真实学生）。"""
+    res = client.post(
+        "/api/v1/announcements",
+        headers={"Authorization": f"Bearer {demo_teacher_token}"},
+        json={"title": "t", "body": "b", "scope": "all"},
+    )
+    assert res.status_code == 403, res.text
+    assert res.json()["detail"]["code"] == "DEMO_FORBIDDEN", res.text
+
+
+def test_demo_teacher_cannot_create_event(client, demo_teacher_token):
+    """演示老师建行事予定 → 403（行事无 is_demo、污染真实学生日程）。"""
+    res = client.post(
+        "/api/v1/events",
+        headers={"Authorization": f"Bearer {demo_teacher_token}"},
+        json={"title": "t", "category": "学校行事", "event_date": "2026-07-01"},
+    )
+    assert res.status_code == 403, res.text
+    assert res.json()["detail"]["code"] == "DEMO_FORBIDDEN", res.text
+
+
+def test_demo_teacher_cannot_create_bus_route(client, demo_teacher_token):
+    """演示老师建巴士便 → 403（巴士无 is_demo、污染真实学生班次）。"""
+    res = client.post(
+        "/api/v1/bus/routes",
+        headers={"Authorization": f"Bearer {demo_teacher_token}"},
+        json={
+            "kind": "daily_commute",
+            "name": "n",
+            "direction": "登校",
+            "schedule_at": "2026-07-01T08:00:00",
+            "visible_to": "all",
+        },
+    )
+    assert res.status_code == 403, res.text
+    assert res.json()["detail"]["code"] == "DEMO_FORBIDDEN", res.text
+
+
+def test_demo_teacher_cannot_send_test_email(client, demo_teacher_token):
+    """演示老师用真实发邮件通道 → 403（防滥发 / 钓鱼 / 耗配额）。"""
+    res = client.post(
+        "/api/v1/notifications/test",
+        headers={"Authorization": f"Bearer {demo_teacher_token}"},
+        json={"to": "x@test.jp", "subject": "s", "body_text": "b"},
+    )
+    assert res.status_code == 403, res.text
+    assert res.json()["detail"]["code"] == "DEMO_FORBIDDEN", res.text
+
+
+def test_real_teacher_not_blocked_by_demo_guard(client, teacher_token):
+    """回归：真老师（is_demo=False）调这些全局端点不被新演示 guard 误伤。"""
+    # GET 老师目录 — 真老师寮務課長 200
+    res = client.get(
+        "/api/v1/teachers/", headers={"Authorization": f"Bearer {teacher_token}"}
+    )
+    assert res.status_code == 200, res.text
+    # GET 当前注册码 — 真老师 200（可能 body 为 null，但绝非 403）
+    res = client.get(
+        "/api/v1/admin/registration-code/current",
+        headers={"Authorization": f"Bearer {teacher_token}"},
+    )
+    assert res.status_code == 200, res.text
+
+
+def test_demo_teacher_cannot_reply_announcement(
+    client, demo_teacher_token, teacher_token
+):
+    """演示老师禁回复公告（老师分支回复会写穿到真实公告、真实学生可见）→ 403。"""
+    # 真老师先发一个真实公告
+    res = client.post(
+        "/api/v1/announcements",
+        headers={"Authorization": f"Bearer {teacher_token}"},
+        json={"title": "real", "body": "b", "scope": "all"},
+    )
+    assert res.status_code == 201, res.text
+    ann_id = res.json()["id"]
+    # 演示老师试图回复这个真实公告 → 403
+    res = client.post(
+        f"/api/v1/announcements/{ann_id}/replies",
+        headers={"Authorization": f"Bearer {demo_teacher_token}"},
+        json={"body": "demo reply"},
+    )
+    assert res.status_code == 403, res.text
+    assert res.json()["detail"]["code"] == "DEMO_FORBIDDEN", res.text
+
+
+def test_demo_teacher_cannot_delete_reply(client, demo_teacher_token):
+    """演示老师禁删回复（「老师能删任何回复」会让它删真实学生回复）→ 403（查 reply 前就拦）。"""
+    import uuid as _uuid
+
+    res = client.delete(
+        f"/api/v1/announcements/{_uuid.uuid4()}/replies/{_uuid.uuid4()}",
+        headers={"Authorization": f"Bearer {demo_teacher_token}"},
+    )
+    assert res.status_code == 403, res.text
+    assert res.json()["detail"]["code"] == "DEMO_FORBIDDEN", res.text
+
+
+# ─────────────────────────────────────────────────────────────
+# 前台无主条目 + 社区投稿（front_desk / songs / lost_found）演示隔离
+# 2026-06-08 第 2 轮复审挖出：前台无主失物条目演示老师能写穿、社区投稿列表无 demo 过滤双向泄漏
+# ─────────────────────────────────────────────────────────────
+
+
+def test_demo_teacher_cannot_create_unowned_frontdesk_item(client, demo_teacher_token):
+    """演示老师建无主失物条目（student_id 空）→ 403（否则污染真实老师前台板）。"""
+    res = client.post(
+        "/api/v1/front-desk",
+        headers={"Authorization": f"Bearer {demo_teacher_token}"},
+        json={"kind": "lost_and_found", "description": "傘", "location": "ロビー"},
+    )
+    assert res.status_code == 403, res.text
+    assert res.json()["detail"]["code"] == "DEMO_FORBIDDEN", res.text
+
+
+def test_demo_teacher_cannot_see_real_song_requests(
+    client, student_token, demo_teacher_token
+):
+    """演示老师点歌一览看不到真实学生投稿（principal.is_demo 双向隔离）。"""
+    res = client.post(
+        "/api/v1/songs",
+        headers={"Authorization": f"Bearer {student_token}"},
+        json={"song_title": "RealSong", "artist": "A", "note": "n"},
+    )
+    assert res.status_code == 201, res.text
+    res = client.get(
+        "/api/v1/songs", headers={"Authorization": f"Bearer {demo_teacher_token}"}
+    )
+    assert res.status_code == 200, res.text
+    assert "RealSong" not in {s["song_title"] for s in res.json()}
+
+
+def test_demo_teacher_cannot_see_real_lost_found(
+    client, student_token, demo_teacher_token
+):
+    """演示老师遗失物一览看不到真实学生投稿。"""
+    res = client.post(
+        "/api/v1/lost-found",
+        headers={"Authorization": f"Bearer {student_token}"},
+        json={
+            "post_type": "lost",
+            "item_name": "RealWallet",
+            "description": "d",
+            "location": "l",
+        },
+    )
+    assert res.status_code == 201, res.text
+    res = client.get(
+        "/api/v1/lost-found", headers={"Authorization": f"Bearer {demo_teacher_token}"}
+    )
+    assert res.status_code == 200, res.text
+    assert "RealWallet" not in {p["item_name"] for p in res.json()}

@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..deps import (
+    assert_not_demo_teacher,
     assert_student_demo_match,
     demo_scope_for_teacher,
     dorm_units_for_teacher,
@@ -199,6 +200,9 @@ def create_item(
         assert_student_demo_match(teacher, student)
         # R4 寮边界：有关联学生时校验属本老师管辖寮
         _assert_student_in_dorm(teacher, student)
+    else:
+        # 无主条目（失物招领 student_id 空）无法按学生判 demo，演示老师禁建（否则污染真实老师前台板）→ 403
+        assert_not_demo_teacher(teacher)
     days = (
         DELIVERY_EXPIRES_DAYS
         if body.kind == "delivery"
@@ -247,6 +251,9 @@ def notify_item(
         if student:
             assert_student_demo_match(teacher, student)
             _assert_student_in_dorm(teacher, student)
+    else:
+        # 无主条目演示老师禁操作（改真实无主条目状态）→ 403
+        assert_not_demo_teacher(teacher)
     if row.status != "pending":
         raise HTTPException(
             status_code=409,
@@ -289,6 +296,9 @@ def mark_picked_up(
         if student:
             assert_student_demo_match(teacher, student)
             _assert_student_in_dorm(teacher, student)
+    else:
+        # 无主条目演示老师禁操作（改真实无主条目状态）→ 403
+        assert_not_demo_teacher(teacher)
     if row.status not in {"pending", "notified"}:
         raise HTTPException(
             status_code=409,

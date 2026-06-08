@@ -176,6 +176,8 @@ def list_teachers(
         require_teacher_roles("寮務部長", "寮務課長", "寮監")
     ),
 ):
+    # 演示老师禁枚举真实老师账号（login_id / email 等敏感字段）→ 403
+    assert_not_demo_teacher(teacher)
     stmt = select(models.Teacher).where(models.Teacher.status == "active")
     if role_filter:
         stmt = stmt.where(models.Teacher.role == role_filter)

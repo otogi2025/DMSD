@@ -609,25 +609,6 @@ export function Shell({
         )}
         <div style={{ flex: 1, overflow: "auto", position: "relative" }}>
           {children}
-          <div
-            style={{
-              position: "fixed",
-              right: 14,
-              bottom: 14,
-              fontSize: 9,
-              fontWeight: 700,
-              color: T.warn,
-              background: T.warnSoft,
-              border: `1px solid ${T.warnBorder}`,
-              padding: "3px 8px",
-              borderRadius: 4,
-              letterSpacing: 2,
-              zIndex: 50,
-              fontFamily: T.mono,
-            }}
-          >
-            DEMO
-          </div>
         </div>
       </div>
     </div>

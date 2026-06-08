@@ -2,6 +2,7 @@
 
 POST /api/v1/notifications/test  — SendGrid 送達 smoke テスト (#6 完成定義)
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -9,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import get_current_teacher
+from ..deps import assert_not_demo_teacher, get_current_teacher
 from ..services import email as email_svc
 
 router = APIRouter(prefix="/api/v1/notifications", tags=["notifications"])
@@ -25,6 +26,8 @@ def send_test(
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(get_current_teacher),
 ):
+    # 演示老师禁用真实发邮件通道（防滥发 / 钓鱼 / 耗 SendGrid 配额 / 损发信域名信誉）→ 403
+    assert_not_demo_teacher(teacher)
     if teacher.role not in _ALLOWED_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

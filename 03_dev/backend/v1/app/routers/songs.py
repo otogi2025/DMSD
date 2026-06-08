@@ -48,7 +48,14 @@ def list_song_requests(
     principal: models.Student | models.Teacher = Depends(get_current_principal),
 ):
     """点歌一览（投稿顺，新→旧）。学生 + 老师都能看；dorm 参数给老师男/女寮 tab 用。"""
-    stmt = select(models.SongRequest).order_by(models.SongRequest.created_at.desc())
+    # 演示隔离：principal（学生 / 老师都有 is_demo）只看与自己同侧学生的投稿
+    # —— 演示老师 / 演示学生只看演示投稿，真老师 / 真学生只看真实投稿（双向防泄漏）
+    stmt = (
+        select(models.SongRequest)
+        .join(models.Student, models.SongRequest.student_id == models.Student.id)
+        .where(models.Student.is_demo == principal.is_demo)
+        .order_by(models.SongRequest.created_at.desc())
+    )
     if dorm is not None:
         stmt = stmt.where(models.SongRequest.dorm_unit == dorm)
     rows = db.scalars(stmt).all()
