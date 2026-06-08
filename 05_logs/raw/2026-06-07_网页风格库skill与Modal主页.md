@@ -150,3 +150,7 @@ itsuki 做完问「你觉得这个网站我可以拿来干嘛？」CC 给了用�
 - 主页：导航加「文档」锚 + 新「📖 DMSD 文档」区（项目导览 / 文件总览入口）+ DMSD 项目卡刷新（点出「NFC 防代刷后端是最大未完成块」）+ 数据戳 6-07。
 - 本地页面源在 `/tmp/pj_out/`（临时，丢了可从 VPS curl 回；canonical = VPS）。
 - ⚠️ 仍全是 VPS + 个人站活，DMSD 仓库只动 raw/WIP/TODO/memory 记录类。**DMSD repo 未 push**。
+
+## 2026-06-08 后续 — iq 改回智商测试（昨晚 flag 的问题 itsuki 拍板了）
+- itsuki 醒来一句「把 iq 改成原本的测 iq 的网站」→ 从 VPS 备份 `iq/index.html.bak_pre_qts_dashboard` 取回原智商测试页（Cognitive Assessment 35 题，5 模块），按 B 类配方 Modal 换肤（单一 :root 暖金→黑绿 + 火苗导航 + Hanken 标题字体，纯变量驱动换得很干净），部署覆盖 /iq/。curl 验证：标题 Cognitive Assessment / 认知评估×3 / 火苗导航齐 / 量化盘内容归零 / 暖金归零。被覆盖的 QTS 量化盘 demo 备份在 VPS `iq/index.html.bak_qts_dashboard_modal_20260608`（未服务，要用再说）。
+- AC 价值：昨晚 H 类不编/不乱改（发现 iq 内容标签对不上→不擅自改、记 TODO 等拍板）→ 今天 itsuki 一句话拍板→当场解决。「把决策权还给用户」闭环正例。

@@ -84,7 +84,7 @@
 **2026-06-07 个人网站 Modal 改版后续**（全站 9 页已统一 Modal 风 + 部署上线，备份 VPS `_bak_pre_modal_20260607/`）：
 - [x] ~~6 个子页面是否 Modal 化~~ ✅ 2026-06-07 深夜全站化：6 子页换肤 + 2 新页（项目导览←PROJECT_GUIDE / 文件总览←project-overview）+ 标志改 SVG 立体火苗，9 页全部署 curl 验证 200/零残留暖金
 - [x] ~~旧 `仪表盘.html` 删否~~ ✅ 移到 VPS `~/tomoshibi-backend/static/pj/_offline_orphans/`（线上 404，可恢复）
-- [ ] 🟠 **`/iq/` 页内容与标签对不上** — 首页第 05 行标「Cognitive Assessment 智商自测」，但实际页是 **QTS 量化交易监控演示盘**（VPS `iq/index.html.bak_pre_qts_dashboard` 证实 /iq/ 被换过）。itsuki 定：① /iq/ 要放哪个（智商测试 vs QTS 盘）② 据此改首页标签或换回页面内容。CC 没乱改（不知你意图）
+- [x] ~~🟠 `/iq/` 页内容与标签对不上~~ ✅ 2026-06-08 itsuki 拍板「iq 改回原本测 iq 的网站」→ 从 VPS 备份 `index.html.bak_pre_qts_dashboard` 取回智商测试页（Cognitive Assessment 35 题）+ Modal 换肤 + 部署覆盖 /iq/，curl 验证标题=Cognitive Assessment / 量化盘内容归零 / 暖金归零。首页「智商自测」标签现与内容对上。QTS 盘备份在 VPS `iq/index.html.bak_qts_dashboard_modal_20260608`（未服务，要用再说）
 - [ ] 🟡 **慶應倒计时日期** — 现用「待公布」虚线卡占位（翻遍所有文件确认慶應关键日期没有）。itsuki 从慶應官网拿到出願期 / 試験日 / 合格発表日 → 发 CC，改成真倒计时（改首页 `events` 数组）
 - [ ] **网站定位决策** — 现全公开无密码却装私人内部进度（AC 倒计时/项目待办/慶應待提供）。三选一：A 加密当纯私人 / B 拆出公开作品集给教授看 / C 维持现状
 - [ ] 项目焦点文字写死不自动更新（itsuki 接受）— 若要项目状态也自动刷新，把 Modal 样式搬进 `生成仪表盘.py` 让它一键重生成首页（注意：现在还有 8 个子页面也要纳入生成器才好维护）
