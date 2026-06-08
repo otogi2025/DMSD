@@ -37,8 +37,11 @@ final class ST25DVWriter: NSObject, @unchecked Sendable {
     //   writeCheckin 在调用线程，无锁理论上有可见性 race，加锁让 @unchecked Sendable 名副其实。
     private let lock = NSLock()
     private var continuation: CheckedContinuation<Void, Error>?
-    // codex B-1: 强引用持有 session，防 ARC 在 await 等待期间把它提前释放（局部变量出作用域就没人持有了）。
+    /// codex B-1: 强引用持有 session，防 ARC 在 await 等待期间把它提前释放（局部变量出作用域就没人持有了）。
     private var session: NFCTagReaderSession?
+    // codex 三轮 M-1: 取消请求标志 —— cancel() 可能在 writeCheckin 创建 / begin session 之前就触发，
+    //   靠它在锁内原子判断「该不该开 NFC」，封住「已取消却 begin」的空窗。
+    private var cancelRequested = false
     private var payload = Data()
 
     func writeCheckin(studentId: UUID, type: CheckinType) async throws {
@@ -53,13 +56,20 @@ final class ST25DVWriter: NSObject, @unchecked Sendable {
 
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             lock.lock()
+            // codex 三轮 M-1: 创建 + begin session 都在锁内，且先查 cancelRequested ——
+            //   若取消已抢先发生（cancel() 在本闭包前 / 中跑过），直接以取消失败结束、绝不 begin 开 NFC。
+            if cancelRequested {
+                lock.unlock()
+                cont.resume(throwing: CancellationError())
+                return
+            }
             self.continuation = cont
             // ST25DV 是 NFC Type 5 / ISO15693 标签
             let s = NFCTagReaderSession(pollingOption: .iso15693, delegate: self, queue: nil)
             self.session = s
-            lock.unlock()
             s?.alertMessage = "点呼機にタッチしてください"
             s?.begin()
+            lock.unlock()
         }
     }
 
@@ -67,6 +77,7 @@ final class ST25DVWriter: NSObject, @unchecked Sendable {
     /// continuation 正常以失败结束、不会泄漏；NFC 系统界面也随之关闭。
     func cancel() {
         lock.lock()
+        cancelRequested = true // codex 三轮 M-1: 标记取消，writeCheckin 若还没 begin 就不会再开 NFC
         let s = session
         lock.unlock()
         s?.invalidate()
