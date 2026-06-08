@@ -1288,4 +1288,30 @@ itsuki：「オンライン学習要可以上传图片，上传合同」+「选�
 
 ---
 
-**END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）; 5-31 修改届接后端（§14.7）+ 当前用户接 /me（§14.8）; 6-02 IX-008 二审修复 + IX-008b 扣分统计（§14.9）+ IX-034 请假计数按月（§14.10）+ IX-009 通知（§14.11）+ IX-007 详情页（§14.12）+ 6-03 低风险残留清理（表单预填迁 displayUser + 在线自习日期 JST）（§14.13）+ 删除寮ウォール（学生掲示板，落实 4-29 拍板）（§14.14）+ 演示数据修正 + 出寮届表单对齐实物表 + 页面切换黑屏修复（§14.15）+ 早帰/その他类型删除 + 帰国隐藏行先都市名 + 出租车预约 4 端（§14.16）。
+**END v2** — 5-04 老师公告 v1.0 完成（§13）; 5-28 申請实物表補完 iOS 影响（§14）+ iOS 实装完成（§14.6）; 5-31 修改届接后端（§14.7）+ 当前用户接 /me（§14.8）; 6-02 IX-008 二审修复 + IX-008b 扣分统计（§14.9）+ IX-034 请假计数按月（§14.10）+ IX-009 通知（§14.11）+ IX-007 详情页（§14.12）+ 6-03 低风险残留清理（表单预填迁 displayUser + 在线自习日期 JST）（§14.13）+ 删除寮ウォール（学生掲示板，落实 4-29 拍板）（§14.14）+ 演示数据修正 + 出寮届表单对齐实物表 + 页面切换黑屏修复（§14.15）+ 早帰/その他类型删除 + 帰国隐藏行先都市名 + 出租车预约 4 端（§14.16）；6-09 iOS 上线缺口 11 功能实装 + codex 4 轮对抗复审收敛（§15）。
+
+---
+
+## §15 [2026-06-09] iOS 上线缺口 11 功能实装 + codex 4 轮对抗复审
+
+施工图（`00_admin/handoff/iOS上线缺口_GOAL提示词.md`）列的第二档🟡+第一档代码项共 11 个缺口功能，每功能单独 commit、正式版+演示版双 scheme BUILD SUCCEEDED。详见 raw/dev_log `2026-06-09` + TODO §📱 段顶进度块。
+
+### §15.1 ① 手机点呼签到 — CoreNFC 写 ST25DV Mailbox（最重要的新设计）
+
+按 2026-06-02「架构反转」（手机不联网，用 CoreNFC 把学号写进墙上 ST25DV16K 的 Mailbox，点呼机读走发后端）实装：
+- 新建 `Foundation/Network/NFC/ST25DVWriter.swift`：`writeCheckin(studentId:type:)`。写进 Mailbox 的数据格式 = 1字节版本 0x01 + 1字节类型（0x01点呼/0x02学習）+ 16字节 UUID 原始值。ISO15693 自定义命令字节占位 `// TODO[硬件]` 待 ST25DV16K datasheet + 点呼机 `st25dv.py` 对齐。
+- `HomeStubs.swift` 点呼 + 学習 `simulate()` 分轨：演示版 `#if DEMO` 保留假动作；生产版 `#else` 真写 ST25DV、本地物理确认（做法 A）不等后端、失败显 fail 态。
+- `RollCallAPI.checkin` 注释从旧 nonce 方案纠正成架构反转说明、标学生端弃用勿删（可能给老师代点用）。
+- **Swift 6 并发处理**：用 completion handler 版绕开 async Task 闭包的 'sending' parameter data race 检查；`@preconcurrency import CoreNFC` + 类标 `@unchecked Sendable` + NSLock 原子管理 continuation + `withTaskCancellationHandler`（取消时 invalidate session）+ `cancelRequested` 标志把「创建+begin session」整段挪进锁内（经 codex 4 轮复审逐层封住 NFC 取消竞态）。
+
+### §15.2 其余 10 功能（简表）
+- ② 图标：保留 itsuki 6-07 做的 Xcode 26 `.icon` 玻璃火苗（不建 appiconset，编译验证 iOS16 出图标）。
+- ③⑩ `project.yml`：NFC 用途说明 + 加密合规标志 `ITSAppUsesNonExemptEncryption` + `CODE_SIGN_ENTITLEMENTS` 接线。
+- ④ AppStore `ListLoadState` 枚举 + 4 状态字段，减点/点呼/掃除/点歌/遗失物 5 界面空态改三态（加载中/失败/真空），防网断把「有减点」显成「減点なし」。
+- ⑤ `RootView` 加 `onChange(of: app.authToken)` 全局令牌守卫（单参 iOS16 兼容），令牌变 nil 统一跳登录。
+- ⑥ `displayUser` getter：生产已登录但没拉到资料返回 `User.placeholder` + `profileIsPlaceholder` 标志，不回退演示假人「リュウ イヒ」。
+- ⑦ 删 `BusView` 死页 + `.homeBus` 路由；我的页行事卡接 `EventsAPI`。
+- ⑧ `PrivacyInfo.xcprivacy` 据实补 6 类数据收集声明。⑨ 删暗色死控件开关。⑪ 通知开关加「接通后生效」说明。
+
+### §15.3 codex 4 轮对抗复审
+gpt-5 + high（非预期 gpt-5.5 + xhigh）逐层挖 `ST25DVWriter` NFC 取消竞态：一轮 2 阻塞（session 被 ARC 提前释放 / continuation 跨线程双重 resume）+ 4 重大 + 1 次要 → 二/三轮 M-1 越挖越深 → 四轮核实死锁判断 + 0 阻塞 0 重大收敛。CC 不盲信（指出 codex 高估了 B-2「双重 resume 崩溃」，单线程本不崩）+ 修完自己 xcodebuild 双 scheme 验。
