@@ -1510,6 +1510,8 @@ struct RollcallSheet: View {
                 await withTaskCancellationHandler {
                     // codex M-2: 冷启动 token 已恢复但 loadMe 没跑完 → myStudentId 暂时 nil，先补拉一次再判断
                     if app.myStudentId == nil { await app.loadMe() }
+                    // codex 二轮 M-1: 取消若发生在 loadMe 等待期间，这里拦住 —— 否则往下会创建 NFC session（已取消却开扫描）
+                    guard !Task.isCancelled else { return }
                     guard let sid = app.myStudentId, let uuid = UUID(uuidString: sid) else {
                         await MainActor.run {
                             guard app.sheetOpen == .rollcall else { return }
@@ -1908,6 +1910,8 @@ struct StudyCheckinSheet: View {
                 await withTaskCancellationHandler {
                     // codex M-2: 冷启动 token 已恢复但 loadMe 没跑完 → myStudentId 暂时 nil，先补拉一次再判断
                     if app.myStudentId == nil { await app.loadMe() }
+                    // codex 二轮 M-1: 取消若发生在 loadMe 等待期间，这里拦住 —— 否则往下会创建 NFC session（已取消却开扫描）
+                    guard !Task.isCancelled else { return }
                     guard let sid = app.myStudentId, let uuid = UUID(uuidString: sid) else {
                         await MainActor.run {
                             guard app.sheetOpen == .studyCheckin else { return }
