@@ -72,6 +72,7 @@ commit `15b0ce5`（12 文件）本地**未 push**。test_demo_teacher 7→20 测
 > - ✅ ③ entitlements 接线（85，代码部分）— `project.yml` 加 `CODE_SIGN_ENTITLEMENTS` + NFC 用途说明，`70a7d46`。**外部**（苹果后台开推送能力 + APNs 证书）仍留 itsuki。
 > - ✅ ④ 列表三态（88）/ ⑤ 令牌过期跳登录（89）/ ⑥ 离线不显假学生（90）/ ⑦ 删巴士死页+events 接后端（91）/ ⑧ 隐私清单据实补（92 代码部分）/ ⑨ 删暗色死控件（93）/ ⑩ 加密标志（94）/ ⑪ 通知开关加说明（98 说明部分）— `53ab362`~`2800402`。
 > - ⏳ **仍留 itsuki / 外部 / v1.1**：81-82 后端部署 + 苹果账号（外部）/ ⑧ App Store Connect 隐私问卷（外部，要跟代码声明一致）/ ③ 苹果后台推送能力（外部）/ 95 构建号递增（发版流程）/ 96 元数据（外部）/ 97 零测试 / 99 老日语注释 / 第三档 🟢 v1.1 全部。
+> - 📋 **收尾遗留（2026-06-09 会话上下文满、留下次补）**：① `project-overview` SKILL.md 登记新建 `03_dev/student_ios/v1/TomoshibiApp/Foundation/Network/NFC/ST25DVWriter.swift` + NFC 新目录 + §0.1 体量表校准（本会话 +1 文件）；② 筑波 AC 中央 inbox 的 6 字段 tag 版（DMSD raw `2026-06-09` 详细叙事 + jsonl 原文已 cp 到两校池 `1_自动产出/对话原文/`，tag 版可月度回顾时从 raw 提炼）。
 
 > **起因**：itsuki 问「iOS 距离正式版还差什么」→ CC 派 6 维度子代理 + 完整性补漏审 2.2 万行 iOS 代码，CC 自己 grep 复核了 3 条最关键阻塞（点呼签到不发后端 / entitlements 没接进构建 / 图标对不上，**均属实**）。详见本会话 raw `2026-06-08`。
 >
