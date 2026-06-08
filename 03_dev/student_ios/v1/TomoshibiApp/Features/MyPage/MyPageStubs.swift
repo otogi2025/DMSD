@@ -2103,6 +2103,12 @@ struct MySettingsView: View {
                         }
                     }
 
+                    // 「通知が有効になってから反映されます」= 通知接通(APNs)后这组开关才生效，先告知用户、避免误以为关掉就不收
+                    Text("通知が有効になってから反映されます")
+                        .font(.system(size: 11))
+                        .foregroundStyle(T.inkMute)
+                        .padding(.horizontal, 4)
+
                     // 暗色模式（iOS 扩展，不在 JSX 但 TASK_E 要求）
                     Card(padding: 0) {
                         HStack {
