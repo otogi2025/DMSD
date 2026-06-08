@@ -41,6 +41,7 @@
 		8F6D452D51998868F8DCCD0C /* RollCallAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6BED925E6CDEDFF9B146D29 /* RollCallAPI.swift */; };
 		8F964714A4052D7FDE85B3A1 /* GlassBackdrop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35A6E6C6215754A03D910C0D /* GlassBackdrop.swift */; };
 		901E949457B307E054D48669 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F5853681D4FAB97B68321735 /* Assets.xcassets */; };
+		97C00CD2119310D8F7BC0725 /* ST25DVWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B225E3570526D88F978C444 /* ST25DVWriter.swift */; };
 		98028465FA560FC57B88380A /* TomoshibiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 993086C5D62807475E44116A /* TomoshibiApp.swift */; };
 		9D19C569089A3E9876D257CF /* UIAtoms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34F1E4B79C3FBE44EA30BC5A /* UIAtoms.swift */; };
 		9D5C7625BD899998AEA129C5 /* ScheduleStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 442041B74BB2BF0DA65D37EE /* ScheduleStubs.swift */; };
@@ -109,6 +110,7 @@
 		89293A7DB55301A3F1DDE5EE /* HomeStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeStubs.swift; sourceTree = "<group>"; };
 		8931D8D354707BEEA3881238 /* DormLifeForms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DormLifeForms.swift; sourceTree = "<group>"; };
 		89751E6898BFC299634AAB48 /* ViewCompat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewCompat.swift; sourceTree = "<group>"; };
+		8B225E3570526D88F978C444 /* ST25DVWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ST25DVWriter.swift; sourceTree = "<group>"; };
 		8F9FAF40754D51FE50898CA8 /* APIErrorPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIErrorPresenter.swift; sourceTree = "<group>"; };
 		913EE3180E383A5CA9F9E244 /* File.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = File.txt; sourceTree = "<group>"; };
 		957056CB9FD91DC0E2D033C9 /* AuthAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthAPI.swift; sourceTree = "<group>"; };
@@ -185,6 +187,14 @@
 			path = StayList;
 			sourceTree = "<group>";
 		};
+		10C4DC5A316E036B6F489087 /* NFC */ = {
+			isa = PBXGroup;
+			children = (
+				8B225E3570526D88F978C444 /* ST25DVWriter.swift */,
+			);
+			path = NFC;
+			sourceTree = "<group>";
+		};
 		16A401D72828F09F8347CEEF /* Features */ = {
 			isa = PBXGroup;
 			children = (
@@ -232,6 +242,7 @@
 			children = (
 				05231B3D980B5DB7AA307B3E /* Endpoints */,
 				4DBA3CECFBFBD4167AFD9A52 /* Mappers */,
+				10C4DC5A316E036B6F489087 /* NFC */,
 				3BFEC1BD19A61E61CD73B258 /* APIClient.swift */,
 				56739ED2BA471039822C2E43 /* APIError.swift */,
 				8F9FAF40754D51FE50898CA8 /* APIErrorPresenter.swift */,
@@ -533,6 +544,7 @@
 				B61FB76EA851BC80A2FBBE39 /* Route.swift in Sources */,
 				4A8821C5C58789727530CE99 /* RouterStore.swift in Sources */,
 				FF1F6559CB40440FDA1C5739 /* SEED.swift in Sources */,
+				97C00CD2119310D8F7BC0725 /* ST25DVWriter.swift in Sources */,
 				9D5C7625BD899998AEA129C5 /* ScheduleStubs.swift in Sources */,
 				717A2649DF90EC3426200B6D /* SeedModels.swift in Sources */,
 				4737D096D1DEED27D8472AC0 /* SheetKind.swift in Sources */,

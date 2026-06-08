@@ -1481,27 +1481,60 @@ struct RollcallSheet: View {
     // MARK: transition helpers
 
     private func simulate() {
-        withAnimation(.easeOut(duration: 0.22)) { step = .scanning }
-        // IX-024: 把延时任务存进 scanTask，弹窗消失时 onDisappear 会 cancel 它
-        scanTask = Task {
-            try? await Task.sleep(nanoseconds: 500_000_000)
-            await MainActor.run {
-                // IX-024: 记录前确认任务没被取消、且当前展示的还是点呼弹窗
-                guard !Task.isCancelled, app.sheetOpen == .rollcall else { return }
-                app.recordCheckin()
-                withAnimation(.easeOut(duration: 0.22)) { step = .success }
+        #if DEMO
+            // 演示版：原假动作（0.5s 扫描动画 → 假签到 → 2s 自动关），给宿舍管理员演示用
+            withAnimation(.easeOut(duration: 0.22)) { step = .scanning }
+            // IX-024: 把延时任务存进 scanTask，弹窗消失时 onDisappear 会 cancel 它
+            scanTask = Task {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                await MainActor.run {
+                    guard !Task.isCancelled, app.sheetOpen == .rollcall else { return }
+                    app.recordCheckin()
+                    withAnimation(.easeOut(duration: 0.22)) { step = .success }
+                }
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                await MainActor.run {
+                    guard !Task.isCancelled, app.sheetOpen == .rollcall else { return }
+                    let at = app.checkinAt ?? "--:--"
+                    app.closeSheet()
+                    app.showToast("チェックイン完了 · \(at)")
+                    step = .idle
+                }
             }
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            await MainActor.run {
-                // IX-024: 自动关弹窗前确认展示的仍是点呼弹窗，
-                // 否则用户在这 2 秒内新开了别的弹窗（如体调报告），不能误把它关掉
-                guard !Task.isCancelled, app.sheetOpen == .rollcall else { return }
-                let at = app.checkinAt ?? "--:--" // ios-home-07：原兜底写死假时刻 21:02
-                app.closeSheet()
-                app.showToast("チェックイン完了 · \(at)")
-                step = .idle
+        #else
+            // 生产版（ios① 上线缺口）：真用 CoreNFC 把学号写进墙上 ST25DV Mailbox（手机不联网，点呼机读走发后端）。
+            // 架构反转后手机不再 POST checkin，本地只做物理确认（做法 A）、不等后端结果。
+            guard let sid = app.myStudentId, let uuid = UUID(uuidString: sid) else {
+                app.showToast("ログインが必要です")
+                return
             }
-        }
+            withAnimation(.easeOut(duration: 0.22)) { step = .scanning }
+            scanTask = Task {
+                do {
+                    try await ST25DVWriter().writeCheckin(studentId: uuid, type: .rollcall)
+                    await MainActor.run {
+                        guard !Task.isCancelled, app.sheetOpen == .rollcall else { return }
+                        app.recordCheckin() // 本地物理确认（卡变绿）、非权威；权威判定在点呼机 + 后端
+                        withAnimation(.easeOut(duration: 0.22)) { step = .success }
+                    }
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    await MainActor.run {
+                        guard !Task.isCancelled, app.sheetOpen == .rollcall else { return }
+                        app.closeSheet()
+                        app.showToast("点呼機に送信しました")
+                        step = .idle
+                    }
+                } catch ST25DVError.unavailable {
+                    await MainActor.run {
+                        withAnimation(.easeOut(duration: 0.22)) { step = .fail }
+                        app.showToast("この端末は NFC 非対応です")
+                    }
+                } catch {
+                    // 写入失败 / 用户取消：显失败态（failView 提示再試行），不假装成功
+                    await MainActor.run { withAnimation(.easeOut(duration: 0.22)) { step = .fail } }
+                }
+            }
+        #endif
     }
 
     private func cancel() {
@@ -1826,31 +1859,63 @@ struct StudyCheckinSheet: View {
     }
 
     private func simulate() {
-        withAnimation(.easeOut(duration: 0.22)) { step = .scanning }
-        // IX-011: 把延时任务存进 scanTask，弹窗消失时 onDisappear 会 cancel 它
-        scanTask = Task {
-            try? await Task.sleep(nanoseconds: 500_000_000)
-            await MainActor.run {
-                // IX-011: 跑 recordStudyTap 前先确认任务没被取消、且当前展示的还是本签到弹窗，
-                // 否则用户在这 0.5 秒内点背景关掉了弹窗，已取消的打卡不应被写进出席记录
-                guard !Task.isCancelled, app.sheetOpen == .studyCheckin else { return }
-                recordedTap = app.recordStudyTap()
-                withAnimation(.easeOut(duration: 0.22)) { step = .success }
-            }
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            await MainActor.run {
-                // IX-011: 自动关弹窗前同样确认没被取消、且展示的仍是本弹窗，避免误关用户新开的别的弹窗
-                guard !Task.isCancelled, app.sheetOpen == .studyCheckin else { return }
-                let label = recordedTap?.label ?? "—"
-                app.closeSheet()
-                if app.nextStudyTap == nil {
-                    app.showToast("学習出席完了 · 全 2 回 タップ済み")
-                } else {
-                    app.showToast("\(label) 完了")
+        #if DEMO
+            // 演示版：原假动作（0.5s 扫描 → 假打卡 → 2s 自动关）
+            withAnimation(.easeOut(duration: 0.22)) { step = .scanning }
+            // IX-011: 把延时任务存进 scanTask，弹窗消失时 onDisappear 会 cancel 它
+            scanTask = Task {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                await MainActor.run {
+                    // IX-011: 跑 recordStudyTap 前先确认任务没被取消、且当前展示的还是本签到弹窗
+                    guard !Task.isCancelled, app.sheetOpen == .studyCheckin else { return }
+                    recordedTap = app.recordStudyTap()
+                    withAnimation(.easeOut(duration: 0.22)) { step = .success }
                 }
-                step = .idle
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                await MainActor.run {
+                    guard !Task.isCancelled, app.sheetOpen == .studyCheckin else { return }
+                    let label = recordedTap?.label ?? "—"
+                    app.closeSheet()
+                    if app.nextStudyTap == nil {
+                        app.showToast("学習出席完了 · 全 2 回 タップ済み")
+                    } else {
+                        app.showToast("\(label) 完了")
+                    }
+                    step = .idle
+                }
             }
-        }
+        #else
+            // 生产版（ios① 上线缺口）：真用 CoreNFC 把学号写进墙上 ST25DV Mailbox（类型 0x02 学習签到）。
+            guard let sid = app.myStudentId, let uuid = UUID(uuidString: sid) else {
+                app.showToast("ログインが必要です")
+                return
+            }
+            withAnimation(.easeOut(duration: 0.22)) { step = .scanning }
+            scanTask = Task {
+                do {
+                    try await ST25DVWriter().writeCheckin(studentId: uuid, type: .study)
+                    await MainActor.run {
+                        guard !Task.isCancelled, app.sheetOpen == .studyCheckin else { return }
+                        recordedTap = app.recordStudyTap() // 本地物理确认、非权威
+                        withAnimation(.easeOut(duration: 0.22)) { step = .success }
+                    }
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    await MainActor.run {
+                        guard !Task.isCancelled, app.sheetOpen == .studyCheckin else { return }
+                        app.closeSheet()
+                        app.showToast("点呼機に送信しました")
+                        step = .idle
+                    }
+                } catch ST25DVError.unavailable {
+                    await MainActor.run {
+                        withAnimation(.easeOut(duration: 0.22)) { step = .fail }
+                        app.showToast("この端末は NFC 非対応です")
+                    }
+                } catch {
+                    await MainActor.run { withAnimation(.easeOut(duration: 0.22)) { step = .fail } }
+                }
+            }
+        #endif
     }
 
     private func cancel() {

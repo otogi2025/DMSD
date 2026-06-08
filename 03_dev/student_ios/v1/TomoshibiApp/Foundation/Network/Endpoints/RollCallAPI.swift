@@ -11,12 +11,13 @@
 import Foundation
 
 enum RollCallAPI {
-    /// POST /api/v1/rollcall/sessions/:id/checkins — 学生 BTR tap 入口
+    /// POST /api/v1/rollcall/sessions/:id/checkins
     ///
-    /// 路径 B（iPhone 静态标签）使用：
-    ///   - 用户 tap iPhone-BTR 触发 iOS Universal Link
-    ///   - app 拿到 nonce（v1.1+ 起 ECDSA 签名）
-    ///   - 调本方法提交 checkin
+    /// ⚠️ 架构反转后（2026-06-02 itsuki 拍板，权威 02_design/flow_design.md §3）学生 app 弃用本方法：
+    /// 旧方案（路径 B）= 手机读贴纸拿一次性随机码 nonce → 手机自己 POST 提交 checkin。
+    /// 新方案 = 手机不联网，用 CoreNFC 把 student_id 写进墙上 ST25DV Mailbox（见 ST25DVWriter）→
+    ///   点呼机读走 → 由点呼机 POST 后端。手机不再直接调本方法。
+    /// 保留代码 + 定义（可能给老师代点 / 路径 A 补录用），勿删；学生 app 签到链路已改走 ST25DVWriter。
     @MainActor
     static func checkin(
         sessionId: UUID,
