@@ -664,17 +664,19 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 | `2026-05-27_全项目审查.md` | 5-27 早段：itsuki 启动「全项目审查 + 不要偷懒」会话 — CC 一次过扫 1189 文件 + grep 决策关键词 + 比对 SKILL.md §0.1 → 直接修 6 处 Vite 决策漂移（README × 2 / LATEST / progress_overview / WEB_DESIGN_LOG / client.ts）+ 物理清 7 个 .DS_Store + git mv `_archived_DESIGN_BRIEF` → 99_archive + TODO §🛠️ §N 加 8 条 backlog（99_archive 散件归档 / .pages 历史归档 / graphify 刷 / backend/demo 处置 / progress_overview 大改 / v0.9 bump 决策 / 决策状态扫描 hook propose） | ⭐⭐⭐⭐⭐ |
 | `2026-05-28_web登录页修复.md` | 5-28：itsuki 第一次实机打开实名账户登录页报 2 个 bug — ①9 个账号「密码不知道」→ 查出 seed.py 明文常量 DEV_PASSWORD="123456"（模式 5 认知改变：数据层 vs 代码层分离）→ 砍到 1 个账号「新股」重建 dev 库；②返回按钮「失灵」→ 截图里 401 错误反推 React 活着（逻辑 OK）→ 真因 fontSize:12+灰色+padding:0 点击区域极小 → 改蓝色背景可见按钮（模式 2 假设崩了继续追查） | ⭐⭐⭐⭐ |
 
-### 6.3 05_logs/dev_log/（9 文件）
+### 6.3 05_logs/dev_log/（每日工程简报 + 格式说明 + 历史旧文件）
 
 | 文件 | 这天/这阶段做了啥 | 状态 |
 |---|---|---|
+| `_README_工程简报格式.md` | dev_log 工程简报格式说明书（2026-06-08 复活时建）— 纯工程事实 + 跟 AC 素材分开铁律 + 模板 | ✅ |
+| `YYYY-MM-DD.md`（每日工程简报） | CC 收尾自动生成的纯工程流水账（改了哪些文件 / 修了什么 bug / commit 清单），2026-06-08 复活 | ✅ |
 | 2026-02 月 4 个 | 早期规格设计阶段（v0.1 spec 起草） | 📦 历史快照 |
 | `2026-04-10_空白期反思_索引.md` | 1 个月空白期的项目内锚点（正文反思在 iCloud） | ✅ |
 | `2026-04-10_回归日.md` + `2026-04-10_session_summary.md` | 空白期后回归项目第一天的记录 | ✅ |
 | `2026-04-12_NFC方案设计日.md` | NFC 方案敲定那一天 | ✅ |
 | `2026-04-15_[NFC][MULTI]_硬件重开与Phase2架构.md` | NFC 硬件重新选型 + Phase 2 架构（多端模式） | ✅ |
 
-> **断更现象**：02-08 → 04-10 共 66 天无 dev_log。已由 `空白期反思_索引` 解释。
+> **断更 + 复活**：02-08 → 04-10 共 66 天无 dev_log（已由 `空白期反思_索引` 解释）。4-15 后再次断更，被 AC 素材 raw/ 吸走 → 2026-06-08 itsuki 拍板复活，改成纯工程简报 + CC 收尾自动生成。
 
 ### 6.4 05_logs/problem_solving/（4 文件）
 

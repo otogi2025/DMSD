@@ -50,6 +50,13 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+### 2026-06-08 复活 dev_log 工程简报 + 写进 session-wrap skill by [Opus 4.8 1M]
+
+- itsuki 发现收尾流程偏 AC 素材采集、「实际今天改了什么」没人记 → 排查出 `05_logs/dev_log/`（工程日志）4-15 后废弃被 raw/ 吸走 → 拍板复活，跟 AC 素材物理分开，CC 收尾自动生成。
+- 改 4 处：新建 `dev_log/_README_工程简报格式.md`（纯工程格式 + 跟 AC 分开铁律）+ session-wrap SKILL 加 §5.5.16（收尾固定步骤）+ §7.5.1 核对表 12→13 项 + §6 权限 dev_log 划进「CC 自由直写」+ project-overview §6.3 登记。第一篇试跑 `dev_log/2026-06-08.md`。
+- 中途纠正一次：CC 造「叙事整理型」生词 + 把整理活甩回 itsuki，被怒怼「叙事整理是什么鬼？为什么要我做」→ 删词改成全 CC 自动写。
+- 本地 commit 未 push。AC：模式 5（用工具中发现工具缺陷主动改流程）+ 纠正 AI。raw `2026-06-08.md`。
+
 ### 2026-06-07 深夜 演示账号真隔离 — codex 6 轮对抗复审跑到收敛 0/0 by [Opus 4.8 1M · ultracode · /goal]
 
 - itsuki `/goal`「老师网页做到能上线 v1.0」(5 条件) + 选演示账号方案 C(演示老师 is_demo 账号登录只看演示数据)，设 goal 后睡，留「能解决就解决/重大决策跳过明早问/给简单总结」。
@@ -85,31 +92,6 @@
 - **不盲信 AI 三处**：codex 说 ruff 删了我的 import → 读真文件证实（自己两步 Edit 又踩 ruff 坑）；codex 说 didSet 不触发 → Swift 实测证实 codex 对；codex 说包裹专属页读 SEED → 核实判定「早先半成品非本批 bug」记 TODO 不盲改。
 - 12 commit 全本地**未 push**，全程精确 pathspec、零卷入隔壁活跃会话的 teacher_web tsx。README 顺手刷新到当前版本（去掉原本写死的旧版本号 + 老师网页 Vite 叙述对齐 CHANGELOG）。
 - AC：模式 2（多 AI 对抗复审 + 假设验证）⭐顶级 + 验证纪律。raw `2026-06-05.md` 末尾通宵段。
-
-### 2026-06-05 VPS 部署排查 + 个人网站整理 + 仪表盘自动更新 by [Opus 4.8 1M]
-- itsuki 要部署后端+网站 → 排查发现两者早在 Google Cloud（`34.85.74.70`）上线 3-4 周（Docker：Caddy+FastAPI+PG），三域名全在线；纠正「VPS 停用」陈旧记忆
-- 抢救 4 个部署配置进 git（commit `c91d7e7`）；**提交前逮到 `reseed_reviewer.sql` 含 Apple 审核员明文密码**，拦下没进公开仓库
-- 整理 VPS（删旧备份+nginx残留+Docker缓存 846M）；撤 pj.tomoshibi.cc「项目总览」「文件总览」（移 `_offline_pages/`）
-- 仪表盘：修 frozen 倒计时 bug（改日本时间实时）+ 数据刷今天 + 建一键生成器 `生成仪表盘.py`
-- 后端重新部署 Mac→VPS 方案就绪，itsuki 说「先别动」（app 闲置）；新 3 memory（vps-production / release-status / external-state）
-- 详见 raw `2026-06-05_vps部署排查与网站整理.md`
-
-### 2026-06-05 老师网页 Vite 迁移收尾 + 版本号 v0.12.1+v0.13~v0.15 + handoff 文件夹 by [Opus 4.8 1M · ultracode] <!-- VERSION_OK -->（当前版本见 CHANGELOG.md 顶部）
-
-- **老师网页 Vite 迁移全做完**（compact 后接施工清单 §8）：修后端 dev 库 alembic revision 撞号（`b2c3d4e5f6a7` 重复 → 改 `f8a9b0c1d2e3` + 重建库）→ chrome 客观实测 17 页全渲染 + 27 接口全 200 + 0 报错 + 真数据通 → `启动老师网站.command` 切 build dist + 旧 HTML 单文件版归档 → 收尾 6 文档。后端 311 测试过。**仅剩 itsuki 肉眼签收 + push**。
-- **版本号**：6-03~6-05 三天 80 commit 按真实 commit 顺序切 `v0.12.1`(patch 纯修复) + `v0.13.0`/`v0.14.0`/`v0.15.0`(minor)，三端客户端版本号同步 0.15.0，4 个本地 tag。itsuki 借此搞懂语义化版本(SemVer) patch(修订号)概念。 <!-- VERSION_OK -->（历史记录，当前版本见 CHANGELOG.md 顶部）
-- **handoff 文件夹机制**：itsuki 拍板交接件不该堆 00_admin 根 → 建 `00_admin/handoff/`(只放活的) + 用完移 99_archive + session-wrap §5.5.9.5 自动清理 + 旧 5 个交接件全归档到 `99_archive/2026-06-05_handoff已完成/`。
-- **同步修 3 处旧描述**（防新会话被误导）：teacher_web `README.md` / `DESIGN_BRIEF.md` / 本 WIP 把老师网页从「standalone HTML / 未开工」更新到「Vite 已完成」。
-- 全本地未 push（这天累计领先远程 336 commit）。AC：模式 2（撞号假设修正）+ 模式 5（itsuki 学 SemVer + 自悟 handoff 治理结构）+ 方法论（chrome 客观验证）。raw `2026-06-05_teacher_web_vite迁移.md`。
-
-### 2026-06-05 学年更新/学生自设番号 五端 + iOS 16 + 对齐文档 + codex 两轮 by [Opus 4.8 1M · ultracode]
-
-- itsuki 实机审 iOS 问「番号年年变，登录不方便？」→ CC 查出**这事 4-30 已拍板「老师改/学生只读」**、跟今天说的相反 → itsuki **当场翻自己旧决定**改成学生自设。CC 主动挖 4 坑（撞号/鸡生蛋/高3毕业/误输）itsuki 逐个拍板。
-- 五端实装（Workflow 4 agent 勘察 → 串行）：后端 `needs_renewal` 列+迁移+开闸/自设/进度/单件改+R4（308 测试）+ iOS 顶部横幅+弹窗 + 老师网页 开闸+分组折叠列表+进度+单件改+4/1横幅。**Android 不碰**（itsuki 怒「别动安卓」，归别会话）。
-- **iOS 最低支持 26→16**：编译器报错逐个修（symbolEffect/onChange两参数/Canvas Text.foregroundStyle）+ 新建 `ViewCompat.swift`，双 scheme BUILD SUCCEEDED。
-- **iOS↔Android 对齐交接**（Workflow 11 agent 读 iOS 真代码）：`00_admin/iOS_Android_对齐规格.md` 3068 行 + `00_admin/iOS_Android对齐_GOAL提示词.md`（itsuki 教 /goal 用法后重写成可测量终态+40 轮刹车）+ `06_assets/app_screens_2026-06-05_ios/` 14 截图清单（PNG 待 itsuki 拖入）。
-- **codex 两轮**：① 4 major（R4 缺失）CC 先怀疑前提→查实 codex 对（管理係不在 CROSS_DORM_ROLES）→全采纳修+补 3 测试 ② `dorm_units_for_teacher` 共用函数 fail-open，CC 裁决出范围→记 TODO 给 itsuki 拍。不盲信 AI 双向。
-- 10 commit 全本地**未 push**。AC：模式 2（不盲信 AI ⭐顶级）+ 5（翻旧决定 / 学 /goal）+ 6（取舍）。raw `2026-06-05.md` 会话 B。
 
 ## 🤝 多会话占用（避免冲突）
 
