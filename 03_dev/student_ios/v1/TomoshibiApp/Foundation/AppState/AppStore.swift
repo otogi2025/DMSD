@@ -139,10 +139,26 @@ final class AppStore: ObservableObject {
     /// true = 主页顶部显示「更新番号」按钮，让学生自设新番号。登出清 false。
     @Published var needsRenewal: Bool = false
 
-    /// IX-008: 各页显示当前用户统一走这个 —— 登录拉到真实数据就用真的，否则 SEED.user 占位。
-    /// 替换原来直接读 SEED.user（演示假数据泄漏到生产）。
+    /// IX-008 + ios⑥: 各页显示当前用户统一走这个。
+    /// 演示版：currentUser 拉到就用真的、否则 SEED.user 假人撑叙事。
+    /// 生产版：拉到用真的；已登录但还没拉到 → User.placeholder 空白占位「—」（不回退演示假人，防泄漏给真实用户）；未登录 → SEED 占位过场。
     var displayUser: User {
-        currentUser ?? SEED.user
+        if let u = currentUser { return u }
+        #if DEMO
+            return SEED.user
+        #else
+            return isAuthenticated ? User.placeholder : SEED.user
+        #endif
+    }
+
+    /// 生产构建已登录但 currentUser 还没拉到（displayUser 当前是 User.placeholder 占位）。演示版恒 false。
+    /// HomeStubs amber 卡等读数值的地方靠它把占位的 0 显成「—」（占位的字符串字段已自带「—」，数值字段得 view 层判）。
+    var profileIsPlaceholder: Bool {
+        #if DEMO
+            return false
+        #else
+            return isAuthenticated && currentUser == nil
+        #endif
     }
 
     /// 列表加载三态（ios④ 上线缺口）：区分「加载中 / 加载失败 / 真没数据」，

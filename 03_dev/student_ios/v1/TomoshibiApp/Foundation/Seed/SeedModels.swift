@@ -25,6 +25,15 @@ struct User: Hashable {
     var isStudyTarget: Bool = true
     /// 留学生 flag (system_features §8.1 / Q11 — 自己申报). リュウ イヒ = 留学生 (chain は 5 役职)
     var isOverseas: Bool = true
+
+    /// 生产构建已登录但还没拉到本人资料时的空白占位（ios⑥ 上线缺口）：
+    /// 字符串字段显「—」，数值字段填 0（view 层靠 AppStore.profileIsPlaceholder 把数值也显成「—」）。
+    /// 防生产环境回退到演示假人「リュウ イヒ / 4.5 点」泄漏给真实用户。
+    static let placeholder = User(
+        account: "—", name: "—", nameKana: "—", birth: "—", age: 0,
+        gender: "—", dorm: "—", room: "—", category: "—", email: "—",
+        phone: "—", avatar: "—", points: 0, lateCount: 0, absentCount: 0
+    )
 }
 
 struct PointRecord: Hashable, Identifiable {

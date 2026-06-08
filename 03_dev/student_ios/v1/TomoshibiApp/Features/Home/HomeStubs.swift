@@ -553,7 +553,7 @@ struct HomeView: View {
                 .padding(.bottom, 6)
 
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(String(format: "%.1f", app.displayUser.points))
+                    Text(app.profileIsPlaceholder ? "—" : String(format: "%.1f", app.displayUser.points))
                         .font(.system(size: 56, weight: .heavy, design: .monospaced))
                         .kerning(-1.12)
                         .foregroundStyle(deepBrown)
@@ -568,10 +568,10 @@ struct HomeView: View {
                 HStack {
                     HStack(spacing: 0) {
                         Text("遅刻 ")
-                        Text("\(app.displayUser.lateCount)")
+                        Text(app.profileIsPlaceholder ? "—" : "\(app.displayUser.lateCount)")
                             .font(.system(size: 12, weight: .bold, design: .monospaced))
                         Text(" 回 · 欠席 ")
-                        Text("\(app.displayUser.absentCount)")
+                        Text(app.profileIsPlaceholder ? "—" : "\(app.displayUser.absentCount)")
                             .font(.system(size: 12, weight: .bold, design: .monospaced))
                         Text(" 回")
                     }
@@ -610,7 +610,7 @@ struct HomeView: View {
                         .kerning(1.98)
                         .textCase(.uppercase)
                         .foregroundStyle(labelColor)
-                    Text(String(format: "%.1f 点", app.displayUser.points))
+                    Text(app.profileIsPlaceholder ? "—" : String(format: "%.1f 点", app.displayUser.points))
                         .font(.system(size: 13, weight: .bold, design: .monospaced))
                         .foregroundStyle(valueColor)
                     Spacer()
