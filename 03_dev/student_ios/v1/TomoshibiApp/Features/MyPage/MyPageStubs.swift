@@ -2109,24 +2109,9 @@ struct MySettingsView: View {
                         .foregroundStyle(T.inkMute)
                         .padding(.horizontal, 4)
 
-                    // 暗色模式（iOS 扩展，不在 JSX 但 TASK_E 要求）
-                    Card(padding: 0) {
-                        HStack {
-                            Text("ダークモード")
-                                .font(.system(size: 14))
-                                .foregroundStyle(T.ink)
-                            Spacer()
-                            Toggle("", isOn: Binding(
-                                get: { app.isDark },
-                                set: { app.isDark = $0 }
-                            ))
-                            .labelsHidden()
-                            .toggleStyle(.switch)
-                            .tint(T.primary)
-                        }
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 14)
-                    }
+                    // 暗色模式开关已删（iosmypage-⑨ 上线缺口）：入口 TomoshibiApp.swift 钉死亮色「.preferredColorScheme(.light)」、
+                    // 开关拨了无任何反应 = 死控件，删 UI 避免给用户假开关。真做暗色是 N18、留 v1.1
+                    // （AppStore.isDark 字段 + 入口注释保留备用，N18 实装时直接接上）。
 
                     #if DEMO
                         // Push 通知 demo 触发段（仅 demo 版显示、production 编译时排除）
