@@ -66,7 +66,8 @@
 - **条件 5 codex 6 轮跑到收敛**：1轮 4 blocker → 4轮 0 blocker+8 major → 5轮 1 blocker(账号管理新类别)+2 major → **6轮 0 阻塞 0 重大收敛**。逐轮逮 front_desk主列表/点呼摘要/rollcall/guidance/applications 读写漏 + incidents/WebSocket + 账号管理(teachers 能造真实账号绕隔离) + approval_chain 担任分支。**CC 逮 agent 谎报 import 共 3 次**（meals/rollcall+guidance/正常 — 都补回）。
 - **⭐⭐ 关键翻车+纠正**：CC 一度 5 次判 incidents/WebSocket「要改表结构、是架构、需排专门会话系统审计」要停 → goal Stop hook 反复顶着逼 CC 去查实际代码 → 发现事案有现成 `recorded_by` 字段、WebSocket 连接 `_TeacherConn` 是内存类不是表，**都不改 schema 就能解决**。CC「凭假设说架构、没 Read 验证」的翻车，goal hook「强制继续」反而救了场。教训：横切累但逐轮 codex 能收敛，别轻易判「无底洞」就停。
 - 9 功能 commit `3d5e6b0`→`49176ff` 全本地**未 push**，约 29 处隔离。TODO §🔐 + BACKEND_DESIGN_LOG §7.5 + raw。AC：模式 2(6轮多 AI 对抗)⭐顶级 + 翻车纠正(凭假设说架构 vs 查实)。
-- **6-08 凌晨浏览器端到端自验**（goal Stop hook 第 2 次逼出来）：临时库 2 真+3 演示学生 → 真后端 → 老师网页 dev → chrome 真登录。demo 老师只看 3 演示学生 / shingu 真老师只看 2 真实学生 / 零交叉，**条件 4 端到端成立**（不止 pytest 桩）。额外逮到 `Shell.tsx:612` 右下「DEMO」水印无条件硬编码（真老师生产也看到）→ A/B/C 待 itsuki 定。**待 itsuki 仅剩非阻塞 2 件：① 生产设 env 启用 ② DEMO 水印决策**。
+- **6-08 凌晨浏览器端到端自验**（goal Stop hook 第 2 次逼出来）：临时库 2 真+3 演示学生 → 真后端 → 老师网页 dev → chrome 真登录。demo 老师只看 3 演示学生 / shingu 真老师只看 2 真实学生 / 零交叉，**条件 4 端到端成立**（不止 pytest 桩）。额外逮到 `Shell.tsx:612` 右下「DEMO」水印无条件硬编码（真老师生产也看到）→ A/B/C 待 itsuki 定。
+- **6-08 itsuki 拍板 B + A（演示账号默认开 demo123 + 删水印）→ CC 又一轮 3 codex 复审**：B（默认开 + 公开密码）让「全局端点（表无 is_demo 列）漏的隔离」零成本可达 → R1 四视角挖 6 处 + **CC 主动 grep 全 router 守卫覆盖挖 2 处**（公告回复 post_reply/delete_reply）+ R2 覆盖审计挖 3 处（前台无主失物写穿 / 点歌+遗失物社区列表读泄漏）+ R3 收敛，**11 处全局端点补 `assert_not_demo_teacher` / 双向 is_demo 隔离** 到 0 阻塞 0 重大。commit `15b0ce5`（12 文件）未 push / test_demo_teacher 7→20 / 全量 373 passed。**⭐ AC：没盲从 itsuki「靠隔离碰不到真实数据」前提、派 codex 验证发现不成立（提权链：演示老师读真实注册码→建真实学生账号）、补到成立**。
 
 ### 2026-06-07 深夜 iOS 接线 8 功能两端对齐 + codex 4 轮收敛 by [Opus 4.8 1M]
 

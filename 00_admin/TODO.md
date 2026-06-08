@@ -29,9 +29,8 @@
 - **seed** opt-in 演示数据（演示老师 demo + 3 演示学生 98xxxx）+ `test_demo_teacher.py`（7 测试）
 - **过程**：CC 6 轮逐条裁决 codex、逮 agent 谎报 import 3 次、自己纠正 2 次「凭假设说 incidents/WebSocket 是架构」误判（实际查字段后发现都不改 schema）
 
-### 🟡 唯一剩余（v1.1，需改表结构，codex 第6轮确认属已知接受项）
-- **announcements 公告回复学生名**：principal 端点（学生+老师共看），Announcement 表无 is_demo 字段。演示老师能看真实学生回复名。根治要给 Announcement 加 is_demo 列 = v1.1+
-- songs 点歌 / lost_found 遗失物同类弱边角（公开娱乐数据，弱）
+### 🟡 唯一剩余（v1.1，需改表结构）
+- **announcements 公告读**：演示老师能【读】真实公告 list/detail（Announcement 表无 is_demo 列）。写侧已全堵（发公告 / 回复 / 删回复都 403），只剩读老师广播（非学生隐私）。根治要 Announcement 加 is_demo 列 = v1.1。（songs / lost_found 原是同类弱边角，6-08 已修双向隔离、不再剩）
 
 ### ✅ 浏览器端到端验证已做（CC 6-08 凌晨自验，不止 pytest）
 本地起临时库（2 真实学生 + 3 演示学生）+ 真后端 + 老师网页 dev + chrome 真登录：
@@ -39,13 +38,18 @@
 - 真老师 shingu 登录 → 只显示 2 真实学生（田中太郎/リュウイヒ），零交叉
 - curl 直打后端 API 同结论。**条件 4「网页能用演示账号登录看演示数据、真账号看真实数据」端到端成立**
 
-### 🔵 待 itsuki — 2 件（非阻塞）
-1. **生产启用演示账号**：服务器设 env `DEMO_TEACHER_PASSWORD` + 跑 seed 建演示数据（在那之前 opt-in 默认关 = 生产零风险）
-2. **🟠 DEMO 水印决策（界面，端到端验证逮到）**：`Shell.tsx:612-630` 右下角「DEMO」角标是**无条件硬编码**，真老师生产登录也会看到，不像 v1.0 正式版。改法待 itsuki 定：
-   - A 删掉（v1.0 不要水印，但动了界面外观=违反冻结字面）
-   - B 只演示账号显示（要把 `teacher.is_demo` 暴露给前端，破坏现有「is_demo 不暴露」零联动设计 + 改 schema）
-   - C 留着（接受真老师看 DEMO）
-   注：旁边 banner 的「LIVE/DEMO」是后端连接状态指示器（连上=LIVE 连不上=DEMO），跟这个右下角水印是两回事，不用动
+### ✅ 6-08 itsuki 拍板 B + A 已实装 + 全局端点隔离补齐（3 轮 codex 复审再收敛）
+itsuki 早上回 2 选择题：① 演示账号选 **B**（去掉 opt-in 开关、密码缺省 demo123、dev+prod 都默认建、开箱即用，**推翻上面"opt-in 默认关"的安全兜底**）② DEMO 水印选 **A**（删 `Shell.tsx` 右下无条件水印）。
+
+**关键发现**：B（默认开 + 公开密码 demo123）让「全局端点（表无 is_demo 列）漏的演示隔离」从「需先攻破账号」变零成本可达。3 轮 codex 对抗复审挖 + 修 **11 处全局端点**到收敛：
+- R1 四视角挖 6 处：注册码读 current/history（提权链根基：读真实码→建真实学生账号绕隔离）/ 公告发 / 日程 / 巴士 / 测试邮件 / 老师目录 → `assert_not_demo_teacher` 403
+- CC 主动 grep 全 router 守卫覆盖又挖 2 处：公告回复 post_reply / 删回复 delete_reply（principal 端点老师分支零检查）→ 403
+- R2 覆盖审计挖 3 处：前台无主失物写穿（else 分支 403）/ 点歌+遗失物社区列表读泄漏（join Student 按 principal.is_demo 双向隔离）
+- R3 确认 3 修复对 + 扫全 25 router 无残余 → **0 阻塞 0 重大收敛**
+commit `15b0ce5`（12 文件）本地**未 push**。test_demo_teacher 7→20 测试 / 后端全量 373 passed / 网页构建退出码 0。
+
+### 🔵 待 itsuki（仅 1 件，非阻塞）
+生产部署跑 seed 时演示账号会自动建（密码 demo123）。上线前你确认一句：演示账号用公开密码 demo123 是否接受 —— 它被 11 处隔离限死、碰不到任何真实数据（codex 3 轮确认 0 阻塞 0 重大）。
 
 ---
 
