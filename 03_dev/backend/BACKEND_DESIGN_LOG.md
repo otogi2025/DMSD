@@ -1117,6 +1117,20 @@ dev/staging 用，触发 `email_send` 验证 provider 联通。
 - approval_chain 邮件：真实学生申请会通知演示老师（演示老师 role 跨寮的副作用）
 - 弱边角：principal 端点（songs / lost_found）+ 单点 detail
 
+### 7.5.1 演示账号默认启用 + 全局端点隔离补齐（2026-06-08 itsuki 拍板 B + 3 轮 codex 复审收敛）
+
+itsuki 拍板把演示账号从 opt-in 默认关改成 **默认启用**（`seed.py` 去开关、密码缺省 `demo123`、dev+prod 都建、开箱即用）。这让上面「v1.0 启用前必补完」的隔离债**立刻到期**——默认开 + 公开密码 demo123（演示老师 login_id=demo 经无认证 `/teachers/public` 全网可见）让「全局端点（表无 is_demo 列、只靠角色门）漏的隔离」从「需先攻破账号」变零成本可达。
+
+补完方式：表无 is_demo 列的全局端点靠 `deps.assert_not_demo_teacher(teacher)` 角色门（演示老师 403），社区列表靠 `principal.is_demo` 双向过滤。3 轮 codex 对抗复审挖 + 修 **11 处全局端点**：
+- 注册码读 current/history（提权链根基：演示老师读真实码 → POST /accounts 建真实学生账号绕整套隔离）/ 公告发 post_announcement + 回复 post_reply + 删回复 delete_reply / 行事 events + 巴士 bus_routes 写门 / 测试邮件 notifications send_test / 老师目录 list_teachers → 加 `assert_not_demo_teacher`
+- 前台无主失物条目（`front_desk` student_id 空时原守卫被 `if student_id` 跳过）→ else 分支补 403
+- 点歌 songs + 遗失物 lost_found 社区列表 → join Student 按 `principal.is_demo` 双向隔离（演示侧/真实侧互不看到对方投稿）
+- codex 第 3 轮扫全 25 router 无残余 → **0 阻塞 0 重大收敛**
+
+剩 v1.1 唯一弱边角：announcements 公告**读** list/detail（Announcement 表无 is_demo 列，演示老师能读老师广播、非学生隐私，写侧已全堵）。根治要 Announcement 加 is_demo 列。
+
+验证：`test_demo_teacher.py` 7→20 测试 / 后端全量 373 passed / 网页构建退出码 0。commit `15b0ce5`。
+
 ---
 
 ## 8. 测试要求
