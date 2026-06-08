@@ -147,9 +147,10 @@ struct MyLandingView: View {
         }
         .background(T.pearl.ignoresSafeArea())
         .task {
-            // 生产构建：拉真后端包裹，让上面的包裹 badge 计数准确（演示用 SEED 不拉）
+            // 生产构建：拉真后端包裹 + 本人 profile（「今月の点呼」统计用真实点呼事件）；演示用 SEED 不拉
             #if !DEMO
                 await app.loadMyPackages()
+                await app.loadMyProfile()
             #endif
         }
     }
@@ -377,20 +378,30 @@ struct MyLandingView: View {
         // IX-025: 标题写「今月」就只统计当月记录，否则接后端多月数据后会偏大。
         // r.date 形如 "2026-04-21"，取前 7 位 "2026-04" 当月份键来过滤。
         #if DEMO
-            // 演示版：种子数据全是 2026-04，固定按 4 月口径统计，保持原演示效果
+            // 演示版：种子数据全是 2026-04，固定按 4 月口径统计 SEED，保持原演示效果
             let monthPrefix = "2026-04"
-        #else
-            // 生产版：按系统当前年月过滤
-            let monthPrefix = MyPageMonthUtil.currentMonthPrefix()
-        #endif
-        for r in SEED.rollcall where r.date.hasPrefix(monthPrefix) {
-            switch r.state {
-            case "時間内": onTime += 1
-            case "遅刻": late += 1
-            case "欠席": absent += 1
-            default: break
+            for r in SEED.rollcall where r.date.hasPrefix(monthPrefix) {
+                switch r.state {
+                case "時間内": onTime += 1
+                case "遅刻": late += 1
+                case "欠席": absent += 1
+                default: break
+                }
             }
-        }
+        #else
+            // 生产版：按系统当前年月过滤真实点呼事件（loadMyProfile 拉到的 app.myRollcallEvents）
+            let monthPrefix = MyPageMonthUtil.currentMonthPrefix()
+            for e in app.myRollcallEvents
+                where rollcallDateFmt.string(from: e.checked_in_at).hasPrefix(monthPrefix)
+            {
+                switch RollcallDisplay.stateLabel(e.base_status) {
+                case "時間内": onTime += 1
+                case "遅刻": late += 1
+                case "欠席": absent += 1
+                default: break
+                }
+            }
+        #endif
         return (onTime, late, absent)
     }
 
@@ -1190,7 +1201,7 @@ struct MyRollcallDetailView: View {
             resolved = SEED.rollcall.first(where: { $0.id == entryId }).map(RollcallDisplay.init(demo:))
         #else
             resolved = app.myRollcallEvents
-                .first(where: { $0.id.uuidString == entryId })
+                .first(where: { $0.id.uuidString.caseInsensitiveCompare(entryId ?? "") == .orderedSame })
                 .map(RollcallDisplay.init(real:))
         #endif
         return resolved ?? RollcallDisplay(

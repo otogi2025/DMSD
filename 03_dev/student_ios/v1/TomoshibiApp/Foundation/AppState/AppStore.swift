@@ -444,7 +444,7 @@ final class AppStore: ObservableObject {
         guard authToken == tokenAtStart else { return }
         announcementDetails[id] = detail
         // 详情 GET 后端会自动 mark read，本地 cache 也同步翻 true
-        if let idx = announcements.firstIndex(where: { $0.id.uuidString == id }) {
+        if let idx = announcements.firstIndex(where: { $0.id.uuidString.caseInsensitiveCompare(id) == .orderedSame }) {
             // brief 是 immutable struct — 整条替换
             let old = announcements[idx]
             announcements[idx] = AnnouncementBrief(

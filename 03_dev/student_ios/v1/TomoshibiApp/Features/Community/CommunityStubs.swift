@@ -394,7 +394,7 @@ struct PackageDetailView: View {
         #if DEMO
             return SEED.packages.first(where: { String($0.id) == id }).map(PackageDisplay.init(demo:))
         #else
-            return app.packages.first(where: { $0.id.uuidString == id }).map(PackageDisplay.init(brief:))
+            return app.packages.first(where: { $0.id.uuidString.caseInsensitiveCompare(id) == .orderedSame }).map(PackageDisplay.init(brief:))
         #endif
     }
 
@@ -847,7 +847,7 @@ struct LostDetailView: View {
         #if DEMO
             return SEED.lost.first(where: { String($0.id) == id }).map(LostDisplay.init(demo:))
         #else
-            return app.lostFound.first(where: { $0.id.uuidString == id }).map(LostDisplay.init(real:))
+            return app.lostFound.first(where: { $0.id.uuidString.caseInsensitiveCompare(id) == .orderedSame }).map(LostDisplay.init(real:))
         #endif
     }
 
@@ -1289,7 +1289,7 @@ struct MusicDetailView: View {
             let item = SEED.songs.first(where: { String($0.id) == id }) ?? SEED.songs.first
             return item.map(SongDisplay.init(demo:))
         #else
-            return app.songRequests.first(where: { $0.id.uuidString == id }).map(SongDisplay.init(real:))
+            return app.songRequests.first(where: { $0.id.uuidString.caseInsensitiveCompare(id) == .orderedSame }).map(SongDisplay.init(real:))
         #endif
     }
 

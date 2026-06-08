@@ -1921,8 +1921,10 @@ struct GenericApplyForm: View {
                 taxi_reservation_time: taxiReserved ? StayForm.formatHM(taxiTime) : nil,
                 reason: trimmedReason.isEmpty ? nil : trimmedReason
             )
+            let tokenAtStart = app.authToken
             do {
                 _ = try await OutingsAPI.create(body)
+                guard app.authToken == tokenAtStart else { return } // 切账号 / 登出后不在新会话弹 toast / 导航
                 app.showToast("外出申請を提出しました")
                 router.go(.applyDone(kind: "outing"))
             } catch let APIError.unprocessable(msg) {

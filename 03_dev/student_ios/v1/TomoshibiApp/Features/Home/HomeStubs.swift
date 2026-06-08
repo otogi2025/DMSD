@@ -865,6 +865,7 @@ struct HomeView: View {
 
 struct LifeTab: View {
     @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
 
     /// 次回運行バス情報（busSchedule を見て「今日」or「直近未来日」の最初の便を返す）
     private struct UpcomingBus {
@@ -919,6 +920,13 @@ struct LifeTab: View {
             eventsCard
             musicCard
             lostCard
+        }
+        .task {
+            // 生产构建：拉真后端点歌 / 遗失物，让首页预览卡显真实最新（演示用 SEED 不拉）
+            #if !DEMO
+                await app.loadSongs()
+                await app.loadLostFound()
+            #endif
         }
     }
 
@@ -1066,7 +1074,14 @@ struct LifeTab: View {
     // top song = SEED.songs[0]（up 順で sort 済み seed）
 
     private var musicCard: some View {
-        let topSong = SEED.songs.first
+        // 演示=SEED 假数据 / 生产=后端真数据（首页预览卡，靠 #if DEMO 守卫）
+        #if DEMO
+            let songCount = SEED.songs.count
+            let topLine: String? = SEED.songs.first.map { "\($0.title) · \($0.artist)" }
+        #else
+            let songCount = app.songRequests.count
+            let topLine: String? = app.songRequests.first.map { "\($0.song_title) · \($0.artist ?? "")" }
+        #endif
         return HomeCard(pad: 14, onTap: { router.go(.homeMusic) }) {
             HStack(spacing: 12) {
                 ZStack {
@@ -1081,11 +1096,11 @@ struct LifeTab: View {
                     Ic.music(22).foregroundStyle(.white)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("リクエスト曲 · \(SEED.songs.count) 件")
+                    Text("リクエスト曲 · \(songCount) 件")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(T.ink)
-                    if let s = topSong {
-                        Text("\(s.title) · \(s.artist)")
+                    if let line = topLine {
+                        Text(line)
                             .font(.system(size: 12))
                             .foregroundStyle(T.inkSub)
                             .lineLimit(1)
@@ -1104,7 +1119,13 @@ struct LifeTab: View {
     // MARK: Lost — JSX: 3 列方格 / aspect 1 / color .22 bg + linear-gradient overlay
 
     private var lostCard: some View {
-        HomeCard(pad: 14, onTap: { router.go(.homeLost) }) {
+        // 演示=SEED 假数据 / 生产=后端真数据最新 3 条（首页预览卡，靠 #if DEMO 守卫，归一成 LostDisplay）
+        #if DEMO
+            let tiles = SEED.lost.prefix(3).map(LostDisplay.init(demo:))
+        #else
+            let tiles = app.lostFound.prefix(3).map(LostDisplay.init(real:))
+        #endif
+        return HomeCard(pad: 14, onTap: { router.go(.homeLost) }) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Text("遺失物 · 最新")
@@ -1118,7 +1139,7 @@ struct LifeTab: View {
                     GridItem(.flexible(), spacing: 8),
                     GridItem(.flexible(), spacing: 8),
                 ], spacing: 8) {
-                    ForEach(SEED.lost.prefix(3), id: \.id) { item in
+                    ForEach(tiles) { item in
                         lostTile(item)
                     }
                 }
@@ -1127,8 +1148,8 @@ struct LifeTab: View {
     }
 
     @ViewBuilder
-    private func lostTile(_ item: LostItem) -> some View {
-        let c = Color(hexString: item.color) ?? T.inkFaint
+    private func lostTile(_ item: LostDisplay) -> some View {
+        let c = Color(hexString: item.colorHex) ?? T.inkFaint
         ZStack(alignment: .bottomLeading) {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(c.opacity(0.13)) // JSX color+'22' ≈ 13%
