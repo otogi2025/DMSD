@@ -20,6 +20,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,10 +43,13 @@ import jp.tomoshibi.android.data.model.StayAuditEntry
 import jp.tomoshibi.android.data.model.StayDecision
 import jp.tomoshibi.android.data.model.StayKind
 import jp.tomoshibi.android.data.model.StayStatus
-import jp.tomoshibi.android.data.seed.MockData
+import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.endpoints.ApplicationsAPI
 import jp.tomoshibi.android.nav.Route
-import jp.tomoshibi.android.ui.components.EmptyState
+import jp.tomoshibi.android.ui.components.FailedBox
 import jp.tomoshibi.android.ui.components.GlobalScaffold
+import jp.tomoshibi.android.ui.components.LoadState
+import jp.tomoshibi.android.ui.components.LoadingBox
 import jp.tomoshibi.android.ui.components.PageHeader
 import jp.tomoshibi.android.ui.components.Pill
 import jp.tomoshibi.android.ui.components.PillTone
@@ -49,6 +58,7 @@ import jp.tomoshibi.android.ui.components.SuzuCard
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
 import jp.tomoshibi.android.ui.theme.SuzuTokens
+import kotlinx.coroutines.launch
 
 // ─────────────────────────────────────────────────────────────────────
 // StayDetailScreen —— 「申請詳細」（申請内容 + 承認状況 timeline + 操作履歴）
@@ -59,7 +69,8 @@ import jp.tomoshibi.android.ui.theme.SuzuTokens
 //   3) 承認状況 timeline：chain 每环 役职名 + 决定 Pill + 担当者 + 时刻 + 审查中标记
 //   4) 差戻评语卡：chain 里最后一个带 comment 的环（红底警告）
 //   5) 操作履歴：auditLog 逐条 at / action / actor / detail（竖线串联的时间轴）
-// 数据从 MockData.DEFAULT_STAY_APPLICATIONS 按 id 取，取不到显示 EmptyState。
+// 数据从真后端 ApplicationsAPI.detail(id) 拉单条 ApplicationOut，再 .toStayApplication() 转本地模型。
+// 套三态外壳（加载中 / 失败 / 成功）；详情屏是单条，不需要 Empty 态，找不到 / 异常都走 FailedBox。
 // isEditable 为 true 时底部「修改届を提出」按钮 → 跳 StayEdit 路由。
 // ─────────────────────────────────────────────────────────────────────
 
@@ -69,8 +80,25 @@ fun StayDetailScreen(
     id: String,
 ) {
     val t = SuzuT.current
-    // 按 id 从 mock 列表取详情；取不到 = null
-    val item = MockData.DEFAULT_STAY_APPLICATIONS.firstOrNull { it.id == id }
+    val scope = rememberCoroutineScope()
+    // 三态：Loading / Failed(消息) / Success(映射后的 StayApplication)。详情单条不设 Empty。
+    var ui by remember { mutableStateOf<LoadState<StayApplication>>(LoadState.Loading) }
+
+    // 加载函数（重试也调它）。失败必须落 Failed，绝不退化成假数据。
+    suspend fun load() {
+        ui = LoadState.Loading
+        ui =
+            try {
+                // GET /applications/:id → ApplicationOut，经共享映射转成界面用的 StayApplication
+                val item = ApplicationsAPI.detail(id).toStayApplication()
+                LoadState.Success(item)
+            } catch (e: ApiError) {
+                LoadState.Failed(e.display)
+            } catch (e: Exception) {
+                LoadState.Failed("読み込みに失敗しました")
+            }
+    }
+    LaunchedEffect(Unit) { load() }
 
     GlobalScaffold(activeTab = "apply", navController = navController) {
         Column(
@@ -86,45 +114,55 @@ fun StayDetailScreen(
                 onLeft = { navController.popBackStack() },
             )
 
-            if (item == null) {
-                // 找不到该 id → 空状态占位（对齐 iOS 加载失败时的处理）
-                EmptyState(
-                    title = "申請が見つかりません",
-                    icon = SuzuIcons.Doc,
-                    message = "この申請は削除されたか、存在しません。",
-                )
-            } else {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    Spacer(Modifier.height(2.dp))
+            // 三态渲染（详情屏只有 Loading / Failed / Success）
+            when (val s = ui) {
+                LoadState.Loading -> {
+                    LoadingBox()
+                }
 
-                    HeaderCard(t, item)
-                    FieldsCard(t, item)
-                    ChainCard(t, item)
+                is LoadState.Failed -> {
+                    FailedBox(s.message, onRetry = { scope.launch { load() } })
+                }
 
-                    // chain 里最后一个带评语的环 → 差戻评语卡
-                    val lastComment = item.chain.lastOrNull { !it.comment.isNullOrBlank() }
-                    if (lastComment != null) {
-                        CommentCard(t, lastComment)
+                // Empty 态详情屏用不到（detail 永远是单条），理论上不会进这分支；兜底当失败处理
+                LoadState.Empty -> {
+                    FailedBox("読み込みに失敗しました", onRetry = { scope.launch { load() } })
+                }
+
+                is LoadState.Success -> {
+                    val item = s.value
+                    Column(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        Spacer(Modifier.height(2.dp))
+
+                        HeaderCard(t, item)
+                        FieldsCard(t, item)
+                        ChainCard(t, item)
+
+                        // chain 里最后一个带评语的环 → 差戻评语卡
+                        val lastComment = item.chain.lastOrNull { !it.comment.isNullOrBlank() }
+                        if (lastComment != null) {
+                            CommentCard(t, lastComment)
+                        }
+
+                        HistoryCard(t, item)
+
+                        // 修改届可提交时露出底部按钮 → 跳编辑屏
+                        if (item.isEditable) {
+                            PrimaryButton(
+                                title = "修改届を提出",
+                                icon = SuzuIcons.Edit,
+                                onClick = { navController.navigate(Route.StayEdit(id).path) },
+                            )
+                        }
+
+                        Spacer(Modifier.height(40.dp))
                     }
-
-                    HistoryCard(t, item)
-
-                    // 修改届可提交时露出底部按钮 → 跳编辑屏
-                    if (item.isEditable) {
-                        PrimaryButton(
-                            title = "修改届を提出",
-                            icon = SuzuIcons.Edit,
-                            onClick = { navController.navigate(Route.StayEdit(id).path) },
-                        )
-                    }
-
-                    Spacer(Modifier.height(40.dp))
                 }
             }
         }

@@ -21,9 +21,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,21 +43,26 @@ import jp.tomoshibi.android.data.model.StayApplication
 import jp.tomoshibi.android.data.model.StayDecision
 import jp.tomoshibi.android.data.model.StayKind
 import jp.tomoshibi.android.data.model.StayStatus
-import jp.tomoshibi.android.data.seed.MockData
+import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.endpoints.ApplicationsAPI
 import jp.tomoshibi.android.nav.Route
 import jp.tomoshibi.android.ui.components.EmptyState
+import jp.tomoshibi.android.ui.components.FailedBox
 import jp.tomoshibi.android.ui.components.GlobalScaffold
+import jp.tomoshibi.android.ui.components.LoadState
+import jp.tomoshibi.android.ui.components.LoadingBox
 import jp.tomoshibi.android.ui.components.PageHeader
 import jp.tomoshibi.android.ui.components.Pill
 import jp.tomoshibi.android.ui.components.PillTone
 import jp.tomoshibi.android.ui.components.SuzuCard
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
+import kotlinx.coroutines.launch
 
 // 申請履歴一覧（提出后给提交者展示承認状态，L2 子页）— 対齐 iOS StayListView（StayListStubs.swift 392-675）
-//   PageHeader「申請履歴」level 2 + 顶部状态过滤标签 + 竖排卡列表，逐条 MockData.DEFAULT_STAY_APPLICATIONS
+//   PageHeader「申請履歴」level 2 + 顶部状态过滤标签 + 竖排卡列表，逐条来自后端映射后的 StayApplication
 //   每条 StayRow：種別 icon +「{種別}届」+ 状态 Pill + summary + 承認 chain 进度点列 + 出寮日
-//   静态列表（后端 GET /applications/mine 未接，先用 MockData 兜底）
+//   接真后端 ApplicationsAPI.listMine() → .toStayApplication() 映射 → 三态外壳（照 AnnouncementsScreen 模板）
 
 // 顶部过滤标签 — 対齐 iOS tabs（4 个代表标签，按状态组匹配）
 //   每个标签代表的 StayStatus name 集合：すべて = 全部 / 審査中 = PENDING / 承認済 = APPROVED+APPROVED_PARTIAL / 差戻 = REJECTED+RETURNED
@@ -76,16 +83,28 @@ private val STAY_FILTER_TABS: List<StayFilterTab> =
 
 @Composable
 fun StayListScreen(navController: NavHostController) {
-    // 选中的过滤标签下标（默认 0 =「すべて」）
+    val scope = rememberCoroutineScope()
+    // 选中的过滤标签下标（默认 0 =「すべて」）—— 过滤作用在映射后的列表上，逻辑不变
     var filterIndex by remember { mutableStateOf(0) }
 
-    // 出寮日降序排列（最新在前），再按选中标签过滤
-    val items =
-        remember(filterIndex) {
-            val sorted = MockData.DEFAULT_STAY_APPLICATIONS.sortedByDescending { it.leaveDate }
-            val tab = STAY_FILTER_TABS[filterIndex]
-            if (tab.statuses == null) sorted else sorted.filter { it.status in tab.statuses }
-        }
+    // 三态：Loading / Failed(消息) / Empty / Success(映射后的 StayApplication 全量列表，未过滤)
+    var ui by remember { mutableStateOf<LoadState<List<StayApplication>>>(LoadState.Loading) }
+
+    // 加载函数（重试也调它）。失败必须落 Failed，绝不退化成空列表 / 假数据。
+    suspend fun load() {
+        ui = LoadState.Loading
+        ui =
+            try {
+                // GET /applications/mine 拿后端 DTO，再用共享映射 .toStayApplication() 转成界面本地模型
+                val list = ApplicationsAPI.listMine().map { it.toStayApplication() }
+                if (list.isEmpty()) LoadState.Empty else LoadState.Success(list)
+            } catch (e: ApiError) {
+                LoadState.Failed(e.display)
+            } catch (e: Exception) {
+                LoadState.Failed("読み込みに失敗しました")
+            }
+    }
+    LaunchedEffect(Unit) { load() }
 
     GlobalScaffold(activeTab = "apply", navController = navController) {
         Column(
@@ -100,42 +119,77 @@ fun StayListScreen(navController: NavHostController) {
                 onLeft = { navController.popBackStack() },
             )
 
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-            ) {
-                FilterTabs(
-                    selectedIndex = filterIndex,
-                    onSelect = { filterIndex = it },
-                )
-                Spacer(Modifier.height(14.dp))
+            when (val s = ui) {
+                LoadState.Loading -> {
+                    LoadingBox()
+                }
 
-                if (items.isEmpty()) {
-                    EmptyState(
-                        icon = SuzuIcons.Box,
-                        title = "申請はありません",
-                        // 「すべて」无申請时引导提交，过滤后无结果时提示条件不匹配
-                        message =
-                            if (STAY_FILTER_TABS[filterIndex].statuses == null) {
-                                "外泊・帰省・帰国届を提出すると、ここに表示されます。"
-                            } else {
-                                "条件に一致する申請はありません。"
-                            },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        items.forEach { item ->
-                            StayRow(
-                                item = item,
-                                onClick = { navController.navigate(Route.StayDetail(item.id).path) },
-                            )
-                        }
+                is LoadState.Failed -> {
+                    FailedBox(s.message, onRetry = { scope.launch { load() } })
+                }
+
+                // 一条申請都没有（GET 成功但空）—— 引导去提交
+                LoadState.Empty -> {
+                    Column(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                    ) {
+                        FilterTabs(
+                            selectedIndex = filterIndex,
+                            onSelect = { filterIndex = it },
+                        )
+                        Spacer(Modifier.height(14.dp))
+                        EmptyState(
+                            icon = SuzuIcons.Box,
+                            title = "申請はありません",
+                            message = "外泊・帰省・帰国届を提出すると、ここに表示されます。",
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(28.dp))
                     }
                 }
-                Spacer(Modifier.height(28.dp))
+
+                is LoadState.Success -> {
+                    // 出寮日降序排列（最新在前），再按选中标签过滤 —— 作用在映射后的列表上
+                    val tab = STAY_FILTER_TABS[filterIndex]
+                    val sorted = s.value.sortedByDescending { it.leaveDate }
+                    val items = if (tab.statuses == null) sorted else sorted.filter { it.status in tab.statuses }
+
+                    Column(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                    ) {
+                        FilterTabs(
+                            selectedIndex = filterIndex,
+                            onSelect = { filterIndex = it },
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        if (items.isEmpty()) {
+                            // 全量非空但当前过滤标签下无结果 —— 提示条件不匹配（区别于完全无申請的 Empty 态）
+                            EmptyState(
+                                icon = SuzuIcons.Box,
+                                title = "申請はありません",
+                                message = "条件に一致する申請はありません。",
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                items.forEach { item ->
+                                    StayRow(
+                                        item = item,
+                                        onClick = { navController.navigate(Route.StayDetail(item.id).path) },
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(28.dp))
+                    }
+                }
             }
         }
     }

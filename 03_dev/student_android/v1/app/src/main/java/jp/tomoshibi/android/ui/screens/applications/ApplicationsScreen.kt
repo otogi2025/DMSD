@@ -32,13 +32,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.data.model.Application
 import jp.tomoshibi.android.data.model.ApplicationStatus
-import jp.tomoshibi.android.data.seed.MockData
-import jp.tomoshibi.android.data.store.LocalAppStore
+import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.endpoints.ApplicationsAPI
 import jp.tomoshibi.android.nav.Route
+import jp.tomoshibi.android.ui.components.FailedBox
 import jp.tomoshibi.android.ui.components.GlobalScaffold
+import jp.tomoshibi.android.ui.components.LoadState
+import jp.tomoshibi.android.ui.components.LoadingBox
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
+import kotlinx.coroutines.launch
 
 // 対齐 iOS ApplyListView (ApplyStubs.swift §57-145):
 //   头部 = 「⌂ 申し込み」（home 图标前缀，点击回首页）
@@ -50,28 +55,30 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 fun ApplicationsScreen(navController: NavHostController) {
     val tokens = SuzuT.current
     val primary = MaterialTheme.colorScheme.primary
-    val store = LocalAppStore.current
-    val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
+    val scope = rememberCoroutineScope()
     var filter by remember { mutableStateOf("all") }
     var kindSheetOpen by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val filtered =
-        state.applications.filter { app ->
-            when (filter) {
-                "all" -> true
+    // 三态：Loading / Failed(消息) / Empty / Success(后端 ApplicationOut 映射成的本地 Application 列表)。
+    // 数据源从 AppStore.state.applications（假数据）换成真后端 ApplicationsAPI.listMine()。
+    var ui by remember { mutableStateOf<LoadState<List<Application>>>(LoadState.Loading) }
 
-                "pending" -> app.status == ApplicationStatus.PENDING
-
-                // 承認済 tab 同时收「承認済」与「一部承認」（iOS 一致）
-                "approved" -> app.status == ApplicationStatus.APPROVED
-
-                "draft" -> false
-
-                // demo 暂无「下書き」状态（接后端后按 status==draft 过滤）
-                else -> true
+    // 加载函数（重试也调它）。失败必须落 Failed，绝不退化成空列表 / 假数据。
+    suspend fun load() {
+        ui = LoadState.Loading
+        ui =
+            try {
+                // listMine() 返回 List<ApplicationOut>（后端 DTO），用共享映射 toUiApplication() 转成本地 Application。
+                val items = ApplicationsAPI.listMine().map { it.toUiApplication() }
+                if (items.isEmpty()) LoadState.Empty else LoadState.Success(items)
+            } catch (e: ApiError) {
+                LoadState.Failed(e.display)
+            } catch (e: Exception) {
+                LoadState.Failed("読み込みに失敗しました")
             }
-        }
+    }
+    LaunchedEffect(Unit) { load() }
 
     GlobalScaffold(activeTab = "apply", navController = navController) {
         Box(modifier = Modifier.fillMaxSize().background(tokens.pearl)) {
@@ -137,45 +144,72 @@ fun ApplicationsScreen(navController: NavHostController) {
                     }
                 }
 
-                // ── 列表 ──
-                Column(
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
-                            .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    if (filtered.isEmpty()) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 60.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Text("📋", style = TextStyle(fontSize = 40.sp))
-                            Text(
-                                "申請はありません",
-                                color = tokens.inkSub,
-                                style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
-                            )
-                            Text(
-                                "下の＋ボタンから新規作成できます",
-                                color = tokens.inkMute,
-                                style = TextStyle(fontSize = 12.sp),
-                            )
+                // ── 列表区（三态外壳只包这里；头部 + 筛选 chip + FAB 在外层不受影响）──
+                when (val s = ui) {
+                    LoadState.Loading -> {
+                        // weight(1f) 让加载占位撑满列表区，转圈垂直居中
+                        Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            LoadingBox()
                         }
                     }
-                    filtered.forEach { app ->
-                        ApplicationRow(
-                            kind = app.kind,
-                            summary = app.dest,
-                            date = app.createdAt,
-                            status = app.status,
-                            onClick = { navController.navigate("applications/${app.id}") },
-                        )
+
+                    is LoadState.Failed -> {
+                        Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            FailedBox(s.message, onRetry = { scope.launch { load() } })
+                        }
                     }
-                    Spacer(Modifier.height(120.dp))
+
+                    // 后端真返回空（一条申請都没有）—— 用本屏自带的「📋 申請はありません」空卡（带新規作成提示）
+                    LoadState.Empty -> {
+                        Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            ApplicationsEmptyCard()
+                        }
+                    }
+
+                    is LoadState.Success -> {
+                        // 筛选逻辑作用在映射后的 List<Application> 上（与原假数据版完全一致）
+                        val filtered =
+                            s.value.filter { app ->
+                                when (filter) {
+                                    "all" -> true
+
+                                    "pending" -> app.status == ApplicationStatus.PENDING
+
+                                    // 承認済 tab 同时收「承認済」与「一部承認」（iOS 一致）
+                                    "approved" -> app.status == ApplicationStatus.APPROVED
+
+                                    "draft" -> false
+
+                                    // demo 暂无「下書き」状态（接后端后按 status==draft 过滤）
+                                    else -> true
+                                }
+                            }
+
+                        Column(
+                            modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            // 这里的空 = 「数据非空但筛选后无命中」（区别于上面后端整体为空的 LoadState.Empty）
+                            if (filtered.isEmpty()) {
+                                ApplicationsEmptyCard()
+                            }
+                            filtered.forEach { app ->
+                                ApplicationRow(
+                                    kind = app.kind,
+                                    summary = app.dest,
+                                    date = app.createdAt,
+                                    status = app.status,
+                                    onClick = { navController.navigate("applications/${app.id}") },
+                                )
+                            }
+                            Spacer(Modifier.height(120.dp))
+                        }
+                    }
                 }
             }
 
@@ -285,6 +319,30 @@ private fun ApplicationRow(
             date,
             color = t.inkMute,
             style = TextStyle(fontSize = 11.sp, fontFamily = FontFamily.Monospace),
+        )
+    }
+}
+
+// 空态卡 —「📋 申請はありません」+ 新規作成提示。两处复用：
+//   1) 后端整体返回空（LoadState.Empty）  2) 数据非空但筛选后无命中（Success 分支内）
+@Composable
+private fun ApplicationsEmptyCard() {
+    val tokens = SuzuT.current
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 60.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text("📋", style = TextStyle(fontSize = 40.sp))
+        Text(
+            "申請はありません",
+            color = tokens.inkSub,
+            style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
+        )
+        Text(
+            "下の＋ボタンから新規作成できます",
+            color = tokens.inkMute,
+            style = TextStyle(fontSize = 12.sp),
         )
     }
 }
