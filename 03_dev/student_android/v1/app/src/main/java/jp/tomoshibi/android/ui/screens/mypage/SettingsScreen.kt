@@ -186,6 +186,8 @@ fun SettingsScreen(navController: NavHostController) {
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch {
+                        // 初期化：清整个 DataStore（含令牌）+ 清内存 ApiClient.token
+                        jp.tomoshibi.android.data.network.ApiClient.token = null
                         store.reset()
                         showResetDialog = false
                         navController.navigate(Route.Splash.path) { popUpTo(0) { inclusive = true } }

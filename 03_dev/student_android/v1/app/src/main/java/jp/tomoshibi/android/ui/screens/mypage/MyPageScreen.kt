@@ -133,8 +133,9 @@ fun MyPageScreen(navController: NavHostController) {
             onDismiss = { showLogoutSheet = false },
             onLogout = {
                 scope.launch {
-                    // 清登录态 + 跳登录页（清空返回栈，回不去个人页）
-                    store.update { it.copy(authed = false) }
+                    // 登出：清登录态 + 令牌（DataStore authToken + 内存 ApiClient.token）+ 跳登录页（清空返回栈，回不去个人页）
+                    jp.tomoshibi.android.data.network.ApiClient.token = null
+                    store.update { it.copy(authed = false, authToken = null) }
                     showLogoutSheet = false
                     navController.navigate(Route.Login.path) {
                         popUpTo(0) { inclusive = true }

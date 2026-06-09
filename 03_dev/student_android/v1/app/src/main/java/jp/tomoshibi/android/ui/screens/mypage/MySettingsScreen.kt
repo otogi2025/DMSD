@@ -172,7 +172,9 @@ fun MySettingsScreen(navController: NavHostController) {
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch {
-                        // demo 阶段无后端：清本地登录态 → 跳登录页（清空返回栈）
+                        // 清本地登录态 + 令牌（DataStore + 内存 ApiClient.token）→ 跳登录页（清空返回栈）
+                        // 注：账号删除接真后端 AccountsAPI.deleteMyAccount() 留待 account 组接线
+                        jp.tomoshibi.android.data.network.ApiClient.token = null
                         store.reset()
                         showDeleteDialog = false
                         navController.navigate(Route.Login.path) { popUpTo(0) { inclusive = true } }

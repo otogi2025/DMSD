@@ -34,6 +34,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.BuildConfig
+import jp.tomoshibi.android.data.network.ApiClient
+import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.endpoints.AuthAPI
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.nav.Route
@@ -41,7 +45,6 @@ import jp.tomoshibi.android.ui.components.Field
 import jp.tomoshibi.android.ui.components.PrimaryButton
 import jp.tomoshibi.android.ui.components.TField
 import jp.tomoshibi.android.ui.theme.SuzuT
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // 演示版预填值（对齐 iOS DEMO 分支：番号 060217 / 邮箱 demo@example.com / 密码 12345678）
@@ -85,45 +88,66 @@ fun LoginScreen(navController: NavHostController) {
     // 登录按钮可点条件：标识非空 + 密码达标 + 不在加载中
     val canSubmit = identifierFilled && passwordValid && !loading
 
-    // 演示版登录：本地校验通过 → authed=true → 进主页（清栈不让返回登录）；
-    // 校验不过当失败处理，累计到阈值跳锁定页。
+    // 真后端登录（对齐 iOS AuthStubs.tryLogin）：
+    //   - 邮箱 tab → 后端未实装邮箱登录，提示切番号
+    //   - 番号 tab → 调 AuthAPI.loginStudent → set ApiClient.token + 持久化 DataStore → 进 home
+    //   - 演示版（debug 包）magic creds（060217 / 12345678）→ 跳过 API 直接进 home（无后端演示 / 离线场景）
+    //   - 401 → 失败累计到阈值跳锁定页；422 / 网络 → 原样弹后端 / 兜底文案
     val submit: () -> Unit = submit@{
         if (loading) return@submit
+        // 邮箱 tab：后端只支持学号登录，提示切番号（对齐 iOS）
+        if (!accountMode) {
+            Toast.makeText(context, "アカウント番号でログインしてください", Toast.LENGTH_SHORT).show()
+            return@submit
+        }
+        // 账号去首尾空白（学号是 6 桁数字、复制粘贴常带空格 / 换行）；密码不 trim（空格也算密码内容）
+        val trimmedAcc = accountNo.trim()
+        if (trimmedAcc.isEmpty() || password.isEmpty()) {
+            Toast.makeText(context, "アカウント番号とパスワードを入力してください", Toast.LENGTH_SHORT).show()
+            return@submit
+        }
         loading = true
         scope.launch {
-            delay(600)
-            // 演示版校验：标识非空 + 密码达 6 位即视为登录成功
-            val ok = identifierFilled && passwordValid
-            if (ok) {
+            // 演示版 magic creds：仅 debug 包生效，跳过 API 直接进 home（用于无后端演示 / 离线）
+            if (BuildConfig.DEBUG && trimmedAcc == DEMO_ACCOUNT_NO && password == DEMO_PASSWORD) {
                 failCount = 0
                 store.update { it.copy(authed = true) }
+                loading = false
                 navController.navigate(Route.Home.path) {
                     popUpTo(0) { inclusive = true }
                 }
-            } else {
-                // 失败累计；到阈值跳 401 锁定页，否则原地 toast 提示
-                failCount += 1
-                loading = false
-                if (failCount >= LOGIN_FAIL_THRESHOLD) {
-                    navController.navigate(Route.Lockout.path)
-                } else {
-                    Toast.makeText(context, "ログインに失敗しました", Toast.LENGTH_SHORT).show()
-                }
+                return@launch
             }
-        }
-    }
+            // 真实 API 登录
+            try {
+                val token = AuthAPI.loginStudent(trimmedAcc, password)
+                // set ApiClient.token：之后所有请求自动带 Authorization: Bearer
+                ApiClient.token = token.accessToken
+                failCount = 0
+                // 持久化令牌进 DataStore（authed + authToken），下次启动 MainActivity 自动恢复 = 自动登录
+                store.update { it.copy(authed = true, authToken = token.accessToken) }
+                loading = false
+                navController.navigate(Route.Home.path) {
+                    popUpTo(0) { inclusive = true }
+                }
+            } catch (e: ApiError) {
+                loading = false
+                when (e) {
+                    // 学号 / 密码错（401）→ 失败累计，到阈值跳锁定页
+                    is ApiError.Unauthorized -> {
+                        failCount += 1
+                        if (failCount >= LOGIN_FAIL_THRESHOLD) {
+                            navController.navigate(Route.Lockout.path)
+                        } else {
+                            Toast.makeText(context, "アカウント番号またはパスワードが違います", Toast.LENGTH_SHORT).show()
+                        }
+                    }
 
-    // DEMO：注册一路点完后回到 Login，1.5 秒自动 ログイン → Home
-    // 实质 = iOS「アカウント作成完了→自動ログイン」体验等价（v1.0 demo 阶段）。
-    // 仅在注册流真正预填了 user.email 且尚未登录时触发，不影响手动登录。
-    androidx.compose.runtime.LaunchedEffect(state.user.email) {
-        if (state.user.email.isNotBlank() && !state.authed) {
-            // 注册流回来时让邮箱 tab 直接显示注册用的邮箱
-            email = state.user.email
-            delay(1500)
-            store.update { it.copy(authed = true) }
-            navController.navigate(Route.Home.path) {
-                popUpTo(0) { inclusive = true }
+                    // 422（格式错，后端日语消息）/ 网络 / 解码 等 → 原样弹提示，不累计失败
+                    else -> {
+                        Toast.makeText(context, e.display, Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         }
     }
