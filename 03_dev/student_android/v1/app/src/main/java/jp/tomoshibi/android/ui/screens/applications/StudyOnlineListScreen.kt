@@ -13,6 +13,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
@@ -21,23 +27,47 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import jp.tomoshibi.android.data.model.StudyOnlineRequest
-import jp.tomoshibi.android.data.seed.MockData
+import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.StudyOnlineRequestOut
+import jp.tomoshibi.android.data.network.endpoints.StudyAPI
 import jp.tomoshibi.android.ui.components.EmptyState
+import jp.tomoshibi.android.ui.components.FailedBox
 import jp.tomoshibi.android.ui.components.GlobalScaffold
+import jp.tomoshibi.android.ui.components.LoadState
+import jp.tomoshibi.android.ui.components.LoadingBox
 import jp.tomoshibi.android.ui.components.PageHeader
 import jp.tomoshibi.android.ui.components.Pill
 import jp.tomoshibi.android.ui.components.PillTone
 import jp.tomoshibi.android.ui.components.SuzuCard
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
+import kotlinx.coroutines.launch
 
-// 在线学习申請一覧（L2 子页）— 对齐 iOS StudyOnlineRequestListView
-//   PageHeader「オンライン学習申請一覧」level 2 + 竖排卡列表，逐条 MockData.DEFAULT_STUDY_ONLINE
+// 在线学习申請一覧（L2 子页）— 对齐 iOS StudyOnlineRequestListView，接真后端。
+//   PageHeader「オンライン学習申請一覧」level 2 + 竖排卡列表，逐条后端 StudyOnlineRequestOut
 //   每条 SuzuCard：左 竖排「期間」标签 + 期间值 periodFrom〜periodTo + reason + 契约书文件名 / 右上 状态 Pill
-//   空列表 → EmptyState「提出済みの申請はありません」
+//   三态：加载中 LoadingBox / 失败 FailedBox（敏感数据失败绝不退化成空列表）/ 空 EmptyState「提出済みの申請はありません」
 @Composable
 fun StudyOnlineListScreen(navController: NavHostController) {
+    val scope = rememberCoroutineScope()
+    // 三态：Loading / Failed(消息) / Empty / Success(后端 StudyOnlineRequestOut 列表)
+    var ui by remember { mutableStateOf<LoadState<List<StudyOnlineRequestOut>>>(LoadState.Loading) }
+
+    // 加载函数（重试也调它）。失败必须落 Failed，绝不退化成空列表。
+    suspend fun load() {
+        ui = LoadState.Loading
+        ui =
+            try {
+                val items = StudyAPI.listMyOnlineRequests()
+                if (items.isEmpty()) LoadState.Empty else LoadState.Success(items)
+            } catch (e: ApiError) {
+                LoadState.Failed(e.display)
+            } catch (e: Exception) {
+                LoadState.Failed("読み込みに失敗しました")
+            }
+    }
+    LaunchedEffect(Unit) { load() }
+
     GlobalScaffold(activeTab = "apply", navController = navController) {
         Column(
             modifier =
@@ -58,16 +88,28 @@ fun StudyOnlineListScreen(navController: NavHostController) {
                         .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                val items = MockData.DEFAULT_STUDY_ONLINE
-                if (items.isEmpty()) {
+                // 三态渲染
+                when (val s = ui) {
+                    LoadState.Loading -> {
+                        LoadingBox()
+                    }
+
+                    is LoadState.Failed -> {
+                        FailedBox(s.message, onRetry = { scope.launch { load() } })
+                    }
+
                     // 空列表占位 —「提出済みの申請はありません」（iOS 同文案）
-                    EmptyState(
-                        title = "提出済みの申請はありません",
-                        icon = SuzuIcons.Book,
-                    )
-                } else {
-                    items.forEach { item ->
-                        StudyOnlineRequestCard(item)
+                    LoadState.Empty -> {
+                        EmptyState(
+                            title = "提出済みの申請はありません",
+                            icon = SuzuIcons.Book,
+                        )
+                    }
+
+                    is LoadState.Success -> {
+                        s.value.forEach { item ->
+                            StudyOnlineRequestCard(item)
+                        }
                     }
                 }
                 Spacer(Modifier.height(20.dp))
@@ -76,9 +118,10 @@ fun StudyOnlineListScreen(navController: NavHostController) {
     }
 }
 
-// 单条在线学习申請卡 — 左竖排（「期間」标签 + 期間值 + reason + 契約書文件名）+ 右上 状态 Pill
+// 单条在线学习申請卡 — 左竖排（「期間」标签 + 期間値 + reason + 契約書文件名）+ 右上 状态 Pill
+// item 为后端 DTO StudyOnlineRequestOut（不再经 MockData / data.model 本地模型）
 @Composable
-private fun StudyOnlineRequestCard(item: StudyOnlineRequest) {
+private fun StudyOnlineRequestCard(item: StudyOnlineRequestOut) {
     val t = SuzuT.current
     SuzuCard(padding = 14) {
         Row(

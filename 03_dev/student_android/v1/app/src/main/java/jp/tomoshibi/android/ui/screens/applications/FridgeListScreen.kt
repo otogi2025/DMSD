@@ -13,6 +13,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
@@ -20,22 +26,47 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import jp.tomoshibi.android.data.model.FridgePurchaseRequest
-import jp.tomoshibi.android.data.seed.MockData
+import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.FridgePurchaseRequestOut
+import jp.tomoshibi.android.data.network.endpoints.DormLifeAPI
 import jp.tomoshibi.android.ui.components.EmptyState
+import jp.tomoshibi.android.ui.components.FailedBox
 import jp.tomoshibi.android.ui.components.GlobalScaffold
+import jp.tomoshibi.android.ui.components.LoadState
+import jp.tomoshibi.android.ui.components.LoadingBox
 import jp.tomoshibi.android.ui.components.PageHeader
 import jp.tomoshibi.android.ui.components.Pill
 import jp.tomoshibi.android.ui.components.PillTone
 import jp.tomoshibi.android.ui.components.SuzuCard
+import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
+import kotlinx.coroutines.launch
 
-// 冷蔵庫購入届一覧（冷藏箱购买申请一览，L2 子页）— 对齐 iOS FridgePurchaseListView（DormLifeForms.swift 第 431 行起）
-//   PageHeader「冷蔵庫購入届一覧」level 2 + 竖排卡列表，逐条 MockData.DEFAULT_FRIDGE
+// 冷蔵庫購入届一覧（冷藏箱购买申请一览，L2 子页）— 接真后端 DormLifeAPI.listMyFridgePurchases()（GET /api/v1/dorm-life/fridge-purchases/mine）。
+//   PageHeader「冷蔵庫購入届一覧」level 2 + 竖排卡列表，逐条吃后端 DTO FridgePurchaseRequestOut
 //   每条 SuzuCard：左竖排「購入製品」标签 + 製品名 + Spacer + 右状态 Pill
-//   空列表走 EmptyState「提出済みの届はありません」
+//   套三态外壳：Loading→LoadingBox / Failed→FailedBox(可重试) / Empty→EmptyState「提出済みの届はありません」/ Success→卡列表
 @Composable
 fun FridgeListScreen(navController: NavHostController) {
+    val scope = rememberCoroutineScope()
+    // 三态：Loading / Failed(消息) / Empty / Success(后端 FridgePurchaseRequestOut 列表)
+    var ui by remember { mutableStateOf<LoadState<List<FridgePurchaseRequestOut>>>(LoadState.Loading) }
+
+    // 加载函数（重试也调它）。失败必须落 Failed，绝不退化成空列表。
+    suspend fun load() {
+        ui = LoadState.Loading
+        ui =
+            try {
+                val items = DormLifeAPI.listMyFridgePurchases()
+                if (items.isEmpty()) LoadState.Empty else LoadState.Success(items)
+            } catch (e: ApiError) {
+                LoadState.Failed(e.display)
+            } catch (e: Exception) {
+                LoadState.Failed("読み込みに失敗しました")
+            }
+    }
+    LaunchedEffect(Unit) { load() }
+
     GlobalScaffold(activeTab = "apply", navController = navController) {
         Column(
             modifier =
@@ -49,31 +80,43 @@ fun FridgeListScreen(navController: NavHostController) {
                 onLeft = { navController.popBackStack() },
             )
 
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                val items = MockData.DEFAULT_FRIDGE
-                if (items.isEmpty()) {
-                    // 空状态 — iOS 用 snowflake 图标，Android 无对应令牌，沿用 EmptyState 默认图标
+            // 三态渲染
+            when (val s = ui) {
+                LoadState.Loading -> {
+                    LoadingBox()
+                }
+
+                is LoadState.Failed -> {
+                    FailedBox(s.message, onRetry = { scope.launch { load() } })
+                }
+
+                // 空态 — iOS 用 snowflake 图标，Android 无对应令牌，沿用 EmptyState 默认图标
+                LoadState.Empty -> {
                     EmptyState(title = "提出済みの届はありません")
-                } else {
-                    items.forEach { item ->
-                        FridgePurchaseCard(item)
+                }
+
+                is LoadState.Success -> {
+                    Column(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        s.value.forEach { item ->
+                            FridgePurchaseCard(item)
+                        }
+                        Spacer(Modifier.height(20.dp))
                     }
                 }
-                Spacer(Modifier.height(20.dp))
             }
         }
     }
 }
 
-// 单条冷蔵庫購入卡 — 左竖排「購入製品」标签 + 製品名 + 右状态 Pill（对齐 iOS FridgePurchaseRow）
+// 单条冷蔵庫購入卡 — 左竖排「購入製品」标签 + 製品名 + 右状态 Pill（对齐 iOS FridgePurchaseRow，item 为后端 DTO FridgePurchaseRequestOut）
 @Composable
-private fun FridgePurchaseCard(item: FridgePurchaseRequest) {
+private fun FridgePurchaseCard(item: FridgePurchaseRequestOut) {
     val t = SuzuT.current
     SuzuCard(padding = 14) {
         Row(
@@ -88,7 +131,7 @@ private fun FridgePurchaseCard(item: FridgePurchaseRequest) {
                     style = TextStyle(fontSize = 12.sp),
                 )
                 Spacer(Modifier.height(4.dp))
-                // 製品名（A/B 款照 iOS fridgeProductText 展开）
+                // 製品名（A/B 款照 iOS fridgeProductText 展开，后端 product 字段同为 "A"/"B"）
                 Text(
                     fridgeProductText(item.product),
                     color = t.ink,
