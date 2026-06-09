@@ -21,7 +21,7 @@
 
 ---
 
-**当前版本**: v0.15.0 <!-- VERSION_OK -->（2026-06-05 把 6-03/6-04/6-05 三天 80 commit 按天切 3 个 minor v0.13.0~v0.15.0；三端客户端版本号同步 0.15.0，详见 CHANGELOG 顶部）
+**当前版本**: v0.19.3 <!-- VERSION_OK -->（2026-06-09 把 v0.15.0 之后 95 个 commit 按「一个 bug 一个补丁号 / 连续 feat 批次合成次版本号」重排补打 32 个标签 v0.15.1~v0.19.3；远程 origin 最后 push 停在 v0.8.0 故重排安全；详见 CHANGELOG 顶部「2026-06-09 重排说明」）
 **版本 bump 流程**: `.claude/skills/version-bump/SKILL.md`（itsuki 说「迭代/bump/发版本/打 tag」自动触发；CC 有否决权 — 即使 itsuki 说要 bump 但 §2 决策树不命中可以拒绝）
 
 ---

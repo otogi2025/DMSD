@@ -13,6 +13,48 @@
 
 ---
 
+## 🔍 2026-06-09 深度审查 19 条 findings（多代理 6 维度审 v0.15.0..HEAD + 3 未提交改动 → 对抗验证确认）<!-- VERSION_OK -->
+
+> **背景**：itsuki 要「整个审查 + 重排版本号」。CC 派多代理深度审查 v0.15.0 之后 95 个 commit 累积改动 + 3 个未提交改动，6 维度并行找 + 逐条对抗验证。**0 阻塞 / 2 重大 / 12 次要 / 5 小问题**。itsuki 拍板：**这些 bug 先记在这，不在本次发版里修**（发版只重排版本号）。后端 pytest 373 全过 + iOS 正式版/演示版双编译 BUILD SUCCEEDED，所以全部不阻塞发版。<!-- VERSION_OK -->
+
+### 🔴 重大 2 条
+
+- [ ] **M-1 首页活动卡生产版显假数据** — `03_dev/student_ios/v1/TomoshibiApp/Features/Home/HomeStubs.swift:1039,1048`。LifeTab 首页「今週の活動」件数 + 列表直读 `SEED.events`，无 `#if DEMO` 守卫。隔壁「我的页」同类卡 6-08 已修接真后端（`MyPageStubs.swift:211`），首页这张漏修。生产学生看到 2 个月前死假活动。修法：照搬 MyLanding 写法（`#if DEMO` 读 SEED / `#else` 由 `.task` 拉 `EventsAPI.listEvents` 填本地状态 + 三态空态）。
+- [ ] **M-2 硬件采购唯一真值文档倒挂** — `02_design/hardware_design.md:8,23-24`。这次点呼机日志改成「已下单」，但 `hardware_design.md`（自称采购唯一真值）§0 状态表仍写「定稿 / 未下单」、最后更新只到 6-03 → 真值文档反比下游旧。另：实买的 10kΩ 电阻（ST25DV GPO 上拉）+ MAS830L 万用表没进它的 §4.6 元件清单（BOM）。修法：把已下单状态 + 这两件补进 hardware_design.md。
+
+### 🟡 次要 11 条（+1 符合意图无需动）
+
+**演示账号隔离·读泄漏（3，写入侧已堵死，仅演示老师能「读」真实数据，风险有限）**
+- [ ] 审核员永久注册码经 `POST /accounts` 能造出 `is_demo=False` 真实学生、污染真老师列表 — `03_dev/backend/v1/app/routers/accounts.py:50-77,138-152`（修法：创建学生时若 `code_row.is_reviewer` 则 `student.is_demo=True`）
+- [ ] 演示老师能读真实公告正文 + 真实学生回复（含真名）— `announcements.py:114-186,219-326`（公告表无 `is_demo` 列，需改表结构，归 v1.1）
+- [ ] 演示老师能读真实「前台无主失物」条目，反向真老师也看到演示无主条目 — `front_desk.py:86-101`（同上，表无 `is_demo` 列）
+
+**时区（3）**
+- [ ] ⚠️ iOS 出站请求若带时间字段会差约 31 年 — `Foundation/Network/APIClient.swift:70` 裸 `JSONEncoder()` 没设 `dateEncodingStrategy`（Swift 默认 2001 基准、后端按 1970 解）。目前唯一这样的字段是点呼上报 `t`。一行修：给编码器设日期策略。
+- [ ] 后端改修届时间比对 `_norm()` 把 naive 时间当日本时间，跟 TZDateTime 写入侧当世界时口径相反、差 9 小时 — `applications.py:660-668`
+- [ ] iOS 解码器 naiveUTC 兜底分支已成死代码 + 注释写反 — `APIClient.swift:218-230`
+
+**iOS 首页预览卡读 SEED（3，跟 M-1 同族，整张 LifeTab 接线没完工）**
+- [ ] 首页快递卡 packageCard 生产版读 `SEED.packages`（列表页已接真后端、首页漏）— `HomeStubs.swift:912-914,999-1013`
+- [ ] 活动详情页 EventDetailView 按 `SEED.events` 下标取数，生产接真后端后点活动**打不开** — `ScheduleStubs.swift:120-124`
+- [ ] 首页巴士卡 busCard 读 `SEED.busSchedule`（巴士后端可能本就无真接口，存疑）— `HomeStubs.swift:898,904`
+
+**未提交改动（2）**
+- [ ] 点呼机日志写「6-04 三家全部下单」，但秋月实际 6-05 才下单 — `ROLLCALL_DEVICE_DESIGN_LOG.md:15,61`（日期差一天、AC 叙事可被订单截图反查）
+- [ ] 演示老师改名「デモ教員」→「デモ」后，`tests/test_demo_teacher.py:27` 旧名残留（不破坏测试、仅命名不一致）
+
+**符合 itsuki 意图、不动**
+- ✅（无需改）登录页改「朝日塾」是老师网页唯一改的品牌位、其余仍「灯火/Tomoshibi」 — `LoginScreen.tsx:154`。itsuki 6-09 明示「只改这一处主页、别处不动」，符合意图。
+
+### ⚪ 小问题 5 条（可清可不清）
+- [ ] 点呼改判广播：学生已删时 `student_is_demo` 传 None → 事件回退推给全部老师含演示老师 — `rollcall.py:766-777`
+- [ ] `OutingOut` 多个 datetime 字段 iOS 解成 String、后端是 datetime，靠注释维系无机制兜底 — `OutingsAPI.swift:41-45`
+- [ ] iOS 网络模型 CodingKeys 风格不统一（多数裸 snake_case、个别 camelCase+CodingKeys）— `AppStore.swift:944-959`
+- [ ] `seed_dev` 完成日志硬写「password: demo123」，env 设了 `DEMO_TEACHER_PASSWORD` 时会误导 — `seed.py:316`
+- [ ] `DEV_PASSWORD` / `pw_hash` 在 dev 纯 demo 后成死代码 — `seed.py:41,55`
+
+---
+
 ## 🔐 2026-06-07 演示账号真隔离 — ✅ codex 6 轮对抗复审收敛 0 阻塞 0 重大（剩 1 弱边角 v1.1）
 
 > **背景**：itsuki 拍板「演示账号做真隔离」(C 方案：同一套生产网页、演示老师 is_demo 账号登录只看演示数据、真老师看真实数据、上线后互不污染)。CC `/goal` 自主跑：约 29 处隔离点 + 派 codex gpt-5.5 xhigh **6 轮对抗复审跑到收敛**。
@@ -88,7 +130,7 @@ commit `15b0ce5`（12 文件）本地**未 push**。test_demo_teacher 7→20 测
 
 ### 🔴 第一档 — 真·阻塞上线（不解决 app 不能用 / 上不了架）
 - [ ] 【外部】**完整后端部署到生产** — 正式版打 `https://api.tomoshibi.cc`，线上只跑 `0.1.0` 骨架；Mac 上完整版（26 router 后端功能模块接线）没传上去 → 上架后几乎每个请求都 404。部署后逐条 curl 那 19 接口确认非 404（404 才是没部署，200/401/403 都算路由存在）。⚠️ 与 §🖥️ 上面「后端重新部署 Mac→VPS」是**同一件**，互相参见。
-- [ ] 【外部 + 代码】**苹果开发者账号 + 代码签名** — `project.yml:21-23` `DEVELOPMENT_TEAM`（团队编号）为空 + `CODE_SIGNING_ALLOWED / REQUIRED: NO`（签名 = 苹果用你证书给 app 盖章），做不出可上传的包。① itsuki 办付费苹果开发者账号（约 99 美元 / 年，§📱 6-03 记「续费中」）② 填团队编号 + 签名开关改 YES（代码 CC 做）。
+- [ ] 【外部 + 代码】**苹果开发者账号 + 代码签名** — `project.yml:21-23` `DEVELOPMENT_TEAM`（团队编号）为空 + `CODE_SIGNING_ALLOWED / REQUIRED: NO`（签名 = 苹果用你证书给 app 盖章），做不出可上传的包。① ~~办苹果开发者账号~~ ✅ **已办好（2026-06-09 itsuki 告知）** ② 剩：填团队编号 + 签名开关改 YES（代码 CC 做）。〔注：Android 不走 Google Play、改 APK 自托管；卡+点呼机第二波 —— 详见 decision_log 2026-06-09 + memory project-release-status〕
 - [ ] 【代码】**app 图标对不上** — `Assets.xcassets`（素材库）里只有 `TomoshibiFlame`、没有 `AppIcon` 条目，但构建设置 `ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon`（`project.pbxproj:631/724/825`）指向它，真图标是散放的 `AppIcon.icon` + `AppIcon-1024.png` → 可能上传报「缺 1024 图标」。新建 `AppIcon` 图标集放 1024 图（或确认 Xcode 26 新格式被识别），本地 Archive（打包上架版）验证图标显示。
 - [ ] 【代码 + 外部】**推送 entitlements 没接进构建** — `TomoshibiApp.entitlements`（声明 app 要用推送等能力的配置文件）只被列在工程里（`project.pbxproj:135/317`），无 `CODE_SIGN_ENTITLEMENTS` 设置接上它 → 推送代码写好了但拿不到权限。代码：`project.yml` 加 `CODE_SIGN_ENTITLEMENTS`。外部：苹果后台为 `com.itsuki.tomoshibi` 开推送能力 + 生成 APNs 推送证书配到后端。（若 v1.0 不上推送，改成删 entitlements 里的推送项，避免审核期对不上）
 
@@ -377,6 +419,19 @@ commit `15b0ce5`（12 文件）本地**未 push**。test_demo_teacher 7→20 测
 ## 🆕 v1.0 后新功能候选（2026-05-21 itsuki 提）
 
 > 这一段记 itsuki 想加但**当前不在 v1.0 上线必做范围**的功能。每条带场景 + 设计点 + 完成定义。等设计层评估完再决定 v1.0 加 / 推到 v1.1。
+
+### N-005 — 灾难强制提示音（突破勿扰/静音）⭐ AC 高权重素材（2026-06-09 itsuki 防灾训练后提）
+
+- **来源**：2026-06-09 宿舍防灾训练，itsuki 现场发现「有同学戴耳机/玩手机没听到警铃就没出来」→ 想到给 app 加灾难强制提示音。AC 素材已存高权重池 `2_我挑的/2026-06-09_防灾训练_灾难强制提示音.md` + raw `2026-06-09_防灾训练_灾难强制提示音想法.md`
+- **场景**：火灾/地震等灾难时，确保戴耳机/开勿扰/静音的学生也能收到警报、逃出来
+- **行为**：管理员触发灾难警报 → 学生 app 强制出声 + 弹横幅，突破勿扰/静音
+- **设计点**：
+  - iOS = Critical Alerts（重要通知，突破勿扰+静音），需向苹果**特批申请**该权限
+  - Android = `IMPORTANCE_HIGH` + 全屏意图通知（full-screen intent）
+  - 谁触发：宿舍管理员从老师网页发？后端群推机制
+  - 误报防护：这种强制提示不能乱发，要权限控制 + 确认步骤
+- **完成定义**：管理员一键发灾难警报，全员手机（含勿扰/静音）强制响铃 + 弹避难提示
+- **叙事价值**：把 Tomoshibi「灯火 = 守护学生平安」从「点呼考勤」扩成「人身安全守护系统」，主线一致
 
 ### N-001 — Web「开始点呼」按钮自动状态切换
 
