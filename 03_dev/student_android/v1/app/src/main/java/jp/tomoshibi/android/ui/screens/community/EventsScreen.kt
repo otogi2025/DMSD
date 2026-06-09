@@ -22,9 +22,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,20 +41,28 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import jp.tomoshibi.android.data.model.EventItem
-import jp.tomoshibi.android.data.seed.MockData
-import jp.tomoshibi.android.nav.Route
+import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.EventOut
+import jp.tomoshibi.android.data.network.endpoints.EventsAPI
+import jp.tomoshibi.android.ui.components.FailedBox
 import jp.tomoshibi.android.ui.components.GlobalScaffold
+import jp.tomoshibi.android.ui.components.LoadState
+import jp.tomoshibi.android.ui.components.LoadingBox
 import jp.tomoshibi.android.ui.components.PageHeader
 import jp.tomoshibi.android.ui.components.SuzuCard
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
+import kotlinx.coroutines.launch
 
 // 「カレンダー」屏 — 1:1 对齐 iOS EventsView（CommunityStubs.swift 999-1222）。
 //   上半：月历卡（4 月 / 5 月 切换头 + 7 列网格，有行事的日子打小圆点）。
 //   下半：选中日的行事列表（标题「M 月 D 日（曜日）」+ N 件胶囊 / 空态「予定なし」）。
-//   数据 = MockData.DEFAULT_EVENTS（ISO 日期 "2026-04-05"）。点一条行事跳详情。
+//   数据 = 真后端 EventsAPI.listEvents()（GET /api/v1/events），返回 List<EventOut>（ISO 日期 "2026-04-23"）。
 //   iOS 用 GlassSheet 在本屏没出现，本屏纯页面，无弹窗。
+//
+// 接后端三态：进屏拉一次全部行事，整张月历（含小圆点）+ 选中日列表都依赖这份数据，
+//   所以三态外壳套在整个月历 + 列表区外面（加载中转圈 / 失败 FailedBox 带重试 / 空态「予定なし」）。
+//   切月 / 选日只是本地状态，不再发请求（一次拉全量后内存过滤）。
 
 // 演示版「今天」固定 2026-04-23，对齐 iOS EventsView 的 todayMonth=4 / todayDay=23
 private const val YEAR = 2026
@@ -61,8 +72,82 @@ private const val TODAY_DAY = 23
 // 曜日表头（日 月 火 水 木 金 土）— 周日=索引 0，对齐 iOS weekdayJP
 private val WEEKDAY_JP = listOf("日", "月", "火", "水", "木", "金", "土")
 
+// 后端 EventOut.startAt 是带时分时区的 ISO datetime（"2026-04-23T18:00:00+09:00"），可空。
+//   取「HH:mm」给月历行事行的左侧时刻列用。为空（全天行事）显「終日」。
+//   解析失败原样退到「終日」，避免越界崩溃。
+private fun fmtEventTime(startAt: String?): String {
+    if (startAt == null) {
+        return "終日"
+    }
+    return runCatching { startAt.substring(11, 16) }.getOrDefault("終日")
+}
+
 @Composable
 fun EventsScreen(navController: NavHostController) {
+    val t = SuzuT.current
+    val scope = rememberCoroutineScope()
+
+    // 三态：Loading / Failed(消息) / Empty / Success(后端 EventOut 列表)
+    var ui by remember { mutableStateOf<LoadState<List<EventOut>>>(LoadState.Loading) }
+
+    // 加载函数（重试也调它）。失败必须落 Failed，绝不退化成空列表。
+    suspend fun load() {
+        ui = LoadState.Loading
+        ui =
+            try {
+                // 不传 fromDate / toDate = 后端返回全部行事，本地按月 / 按日过滤
+                val items = EventsAPI.listEvents()
+                if (items.isEmpty()) LoadState.Empty else LoadState.Success(items)
+            } catch (e: ApiError) {
+                LoadState.Failed(e.display)
+            } catch (e: Exception) {
+                LoadState.Failed("読み込みに失敗しました")
+            }
+    }
+    LaunchedEffect(Unit) { load() }
+
+    GlobalScaffold(activeTab = "", navController = navController) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(t.pearl)
+                    .verticalScroll(rememberScrollState()),
+        ) {
+            // 标题「カレンダー」抄 iOS PageHeader(title: "カレンダー", level: 2)
+            PageHeader(title = "カレンダー", level = 2, onLeft = { navController.popBackStack() })
+
+            // 三态渲染：整个月历 + 选中日列表都依赖后端数据，整块套三态
+            when (val s = ui) {
+                LoadState.Loading -> {
+                    LoadingBox()
+                }
+
+                is LoadState.Failed -> {
+                    FailedBox(s.message, onRetry = { scope.launch { load() } })
+                }
+
+                // 空态 —— 后端一条行事都没有，复用月历空态文案「予定なし」+ 日历图标
+                LoadState.Empty -> {
+                    CalendarBody(events = emptyList(), navController = navController)
+                }
+
+                is LoadState.Success -> {
+                    CalendarBody(events = s.value, navController = navController)
+                }
+            }
+        }
+    }
+}
+
+// 月历主体（月切换 + 网格 + 选中日列表）—— events 是当前已拉到的全部后端行事，内存过滤。
+//   抽成独立 composable 是为了在 Success / Empty 两态复用同一套月历 UI（Empty 时传空列表，
+//   月历照常显示，只是每天都没小圆点、选中日列表走「予定なし」空态卡）。
+@Composable
+private fun CalendarBody(
+    events: List<EventOut>,
+    navController: NavHostController,
+) {
     val t = SuzuT.current
 
     // 当前显示月份（4 月 / 5 月 两态切换，对齐 iOS selectedMonth）
@@ -83,50 +168,42 @@ fun EventsScreen(navController: NavHostController) {
         selectedDay = selectedDay.coerceAtMost(newDaysInMonth)
     }
 
-    // 某天的行事（按 ISO 日期 "YYYY-MM-DD" 过滤）
-    fun eventsForDay(day: Int): List<EventItem> {
+    // 某天的行事（按后端 eventDate "YYYY-MM-DD" 过滤，并按 startAt 时刻排序，
+    //   全天行事 startAt 为 null 排最前）
+    fun eventsForDay(day: Int): List<EventOut> {
         val dateStr = "%d-%02d-%02d".format(YEAR, selectedMonth, day)
-        return MockData.DEFAULT_EVENTS.filter { it.date == dateStr }
+        return events.filter { it.eventDate == dateStr }.sortedBy { it.startAt ?: "" }
     }
 
-    GlobalScaffold(activeTab = "", navController = navController) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .background(t.pearl)
-                    .verticalScroll(rememberScrollState()),
-        ) {
-            // 标题「カレンダー」抄 iOS PageHeader(title: "カレンダー", level: 2)
-            PageHeader(title = "カレンダー", level = 2, onLeft = { navController.popBackStack() })
-
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                CalendarCard(
-                    selectedMonth = selectedMonth,
-                    selectedDay = selectedDay,
-                    firstWeekdayOfMonth = firstWeekdayOfMonth,
-                    daysInMonth = daysInMonth,
-                    hasEvent = { day -> eventsForDay(day).isNotEmpty() },
-                    onPrevMonth = { switchMonth(maxOf(4, selectedMonth - 1)) },
-                    onNextMonth = { switchMonth(minOf(5, selectedMonth + 1)) },
-                    onSelectDay = { selectedDay = it },
-                )
-                SelectedDaySection(
-                    selectedMonth = selectedMonth,
-                    selectedDay = selectedDay,
-                    firstWeekdayOfMonth = firstWeekdayOfMonth,
-                    events = eventsForDay(selectedDay),
-                    onEventClick = { ev -> navController.navigate(Route.EventDetail(ev.id).path) },
-                )
-                Spacer(Modifier.height(12.dp))
-            }
-        }
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        CalendarCard(
+            selectedMonth = selectedMonth,
+            selectedDay = selectedDay,
+            firstWeekdayOfMonth = firstWeekdayOfMonth,
+            daysInMonth = daysInMonth,
+            hasEvent = { day -> eventsForDay(day).isNotEmpty() },
+            onPrevMonth = { switchMonth(maxOf(4, selectedMonth - 1)) },
+            onNextMonth = { switchMonth(minOf(5, selectedMonth + 1)) },
+            onSelectDay = { selectedDay = it },
+        )
+        SelectedDaySection(
+            selectedMonth = selectedMonth,
+            selectedDay = selectedDay,
+            firstWeekdayOfMonth = firstWeekdayOfMonth,
+            events = eventsForDay(selectedDay),
+            onEventClick = {
+                // TODO 接后端：行事详情页 EventDetailScreen 仍读 MockData，且 EventDetail 路由参数是
+                //   Int 类型（NavType.IntType），而后端 EventOut.id 是 String，无法直接传入。
+                //   等详情屏也接后端 + 路由改 String 后再恢复跳转，本屏只改列表数据源（限定单文件）。
+            },
+        )
+        Spacer(Modifier.height(12.dp))
     }
 }
 
@@ -312,13 +389,14 @@ private fun DayCell(
 
 // 下半：选中日的行事区
 //   标题「M 月 D 日（曜日）」+ 右「N 件」胶囊（>0 才画）；空态「予定なし」卡。
+//   events 现在是后端 EventOut 列表。
 @Composable
 private fun SelectedDaySection(
     selectedMonth: Int,
     selectedDay: Int,
     firstWeekdayOfMonth: Int,
-    events: List<EventItem>,
-    onEventClick: (EventItem) -> Unit,
+    events: List<EventOut>,
+    onEventClick: (EventOut) -> Unit,
 ) {
     val t = SuzuT.current
     val teal = MaterialTheme.colorScheme.primary // 主色
@@ -399,10 +477,11 @@ private fun SelectedDaySection(
     }
 }
 
-// 行事一条 — Card(padding 14)：左 56 宽时刻（主色等宽）+ 1dp 竖分隔 + 标题加粗 +「📍 场所」+ 右 ChevR
+// 行事一条 — Card(padding 14)：左 56 宽时刻（主色等宽）+ 1dp 竖分隔 + 标题加粗 + 分类行 + 右 ChevR
+//   event 为后端 DTO EventOut。
 @Composable
 private fun EventRow(
-    event: EventItem,
+    event: EventOut,
     teal: Color,
     onClick: () -> Unit,
 ) {
@@ -410,9 +489,9 @@ private fun EventRow(
     Box(modifier = Modifier.clickable(onClick = onClick)) {
         SuzuCard(padding = 14) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // 左 56 宽时刻（主色等宽）
+                // 左 56 宽时刻（主色等宽）—— 取 startAt 的「HH:mm」，全天行事显「終日」
                 Text(
-                    event.time,
+                    fmtEventTime(event.startAt),
                     modifier = Modifier.width(56.dp),
                     color = teal,
                     textAlign = TextAlign.Center,
@@ -439,9 +518,10 @@ private fun EventRow(
                         style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
                     )
                     Spacer(Modifier.height(3.dp))
-                    // 「📍 场所」一行（对齐 iOS 📍 + e.place）
+                    // 副行：后端 EventOut 没有「场所 place」字段，改显分类 category
+                    //   （「学校行事」「寮行事」「外部」「その他」之一）。原 iOS 的 📍 场所映射不到后端字段。
                     Text(
-                        "📍 ${event.place}",
+                        event.category,
                         color = t.inkSub,
                         style = TextStyle(fontSize = 12.sp),
                     )
