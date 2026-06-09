@@ -20,25 +20,99 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import jp.tomoshibi.android.data.model.SpecialBusRoute
-import jp.tomoshibi.android.data.seed.MockData
+import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.BusRouteOut
+import jp.tomoshibi.android.data.network.endpoints.BusAPI
 import jp.tomoshibi.android.ui.components.EmptyState
+import jp.tomoshibi.android.ui.components.FailedBox
 import jp.tomoshibi.android.ui.components.GlobalScaffold
+import jp.tomoshibi.android.ui.components.LoadState
+import jp.tomoshibi.android.ui.components.LoadingBox
 import jp.tomoshibi.android.ui.components.PageHeader
 import jp.tomoshibi.android.ui.components.Pill
 import jp.tomoshibi.android.ui.components.PillTone
 import jp.tomoshibi.android.ui.components.TToggle
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
+import kotlinx.coroutines.launch
+import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-// 特別運航便一覧 — 対齐 iOS BusListView：
+// 特別運航便一覧 — 接真后端 BusAPI.listRoutes()（spec §7.6，GET /api/v1/bus/routes）。
 //   PageHeader「特別運航便」level 2 + 空港案内 banner + 3 胶囊筛选 tab + 空港のみ开关 + 日别分组列表
 //   「次便」高亮在「筛选后可见列表」里临场算（不在数据里写死），切筛选不会错位
+//
+// 三态外壳照 AnnouncementsScreen 模板：Loading / Failed(重试) / Empty / Success。
+// 拿到后端 List<BusRouteOut> 后，整屏交互（筛选 / 分组 / 次便）在「成功内容」里基于 routes 跑。
+//
+// DTO → UI 字段映射（DTO BusRouteOut 字段名跟原界面模型 SpecialBusRoute 不同，按含义对应）：
+//   id        → id（直接）
+//   kind      → 后端代码 "daily_commute" / "dorm_special"，本屏转成日语「通学便」/「特別便」显示 + 筛选用代码比对
+//   direction → direction（直接）
+//   schedule_at（ISO 完整日期时间 String，如 "2026-05-06T09:20:00+09:00"）→ 拆出 date "2026-05-06" + time "09:20"，weekday 由 date 算
+//   isAirport → DTO 没有此字段，从 name + direction 是否含「空港」推断
+//   seats     → DTO 没有座席字段，原 UI 的「残り N 席」显示项暂无数据来源，恒为 null（见下方 TODO）
 @Composable
 fun BusListScreen(navController: NavHostController) {
+    val t = SuzuT.current
+    val scope = rememberCoroutineScope()
+    // 三态：Loading / Failed(消息) / Empty / Success(后端 BusRouteOut 列表)
+    var ui by remember { mutableStateOf<LoadState<List<BusRouteOut>>>(LoadState.Loading) }
+
+    // 加载函数（重试也调它）。失败必须落 Failed，绝不退化成空列表。
+    suspend fun load() {
+        ui = LoadState.Loading
+        ui =
+            try {
+                val items = BusAPI.listRoutes()
+                if (items.isEmpty()) LoadState.Empty else LoadState.Success(items)
+            } catch (e: ApiError) {
+                LoadState.Failed(e.display)
+            } catch (e: Exception) {
+                LoadState.Failed("読み込みに失敗しました")
+            }
+    }
+    LaunchedEffect(Unit) { load() }
+
+    GlobalScaffold(activeTab = "", navController = navController) {
+        Column(modifier = Modifier.fillMaxSize().background(t.pearl)) {
+            PageHeader(title = "特別運航便", level = 2, onLeft = { navController.popBackStack() })
+
+            // 三态渲染
+            when (val s = ui) {
+                LoadState.Loading -> {
+                    LoadingBox()
+                }
+
+                is LoadState.Failed -> {
+                    FailedBox(s.message, onRetry = { scope.launch { load() } })
+                }
+
+                // 空态（后端返回零条便）
+                LoadState.Empty -> {
+                    EmptyState(
+                        icon = SuzuIcons.Bus,
+                        title = "運航便はありません",
+                    )
+                }
+
+                is LoadState.Success -> {
+                    BusListContent(navController = navController, routes = s.value)
+                }
+            }
+        }
+    }
+}
+
+// 成功内容：原本整屏的筛选 / 分组 / 次便逻辑搬到这里，吃后端 routes（List<BusRouteOut>）。
+@Composable
+private fun BusListContent(
+    navController: NavHostController,
+    routes: List<BusRouteOut>,
+) {
     val t = SuzuT.current
     val cs = MaterialTheme.colorScheme
 
@@ -47,16 +121,16 @@ fun BusListScreen(navController: NavHostController) {
     // 「空港送迎便のみ」开关
     var airportOnly by remember { mutableStateOf(false) }
 
-    // 先按筛选条件过滤出可见列表
+    // 先按筛选条件过滤出可见列表。kind 用后端代码比对（"dorm_special" / "daily_commute"）。
     val visible =
-        MockData.DEFAULT_BUS_ROUTES.filter { route ->
+        routes.filter { route ->
             val passKind =
                 when (filter) {
-                    "dorm" -> route.kind == "特別便"
-                    "commute" -> route.kind == "通学便"
+                    "dorm" -> route.kind == "dorm_special"
+                    "commute" -> route.kind == "daily_commute"
                     else -> true
                 }
-            val passAirport = !airportOnly || route.isAirport
+            val passAirport = !airportOnly || route.isAirport()
             passKind && passAirport
         }
 
@@ -66,96 +140,129 @@ fun BusListScreen(navController: NavHostController) {
         LocalDateTime
             .now(ZoneId.of("Asia/Tokyo"))
             .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
-    val nextId = visible.firstOrNull { now <= "${it.date} ${it.time}" }?.id
+    val nextId = visible.firstOrNull { now <= "${it.date()} ${it.time()}" }?.id
 
     // 按日期分组，组 key 升序排列
-    val groups = visible.groupBy { it.date }.toSortedMap()
+    val groups = visible.groupBy { it.date() }.toSortedMap()
 
-    GlobalScaffold(activeTab = "", navController = navController) {
-        Column(modifier = Modifier.fillMaxSize().background(t.pearl)) {
-            PageHeader(title = "特別運航便", level = 2, onLeft = { navController.popBackStack() })
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Spacer(Modifier.height(4.dp))
 
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Spacer(Modifier.height(4.dp))
-
-                // 空港送迎案内 banner — 浅药丸底圆角卡，左「✈」+ 右两行
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(t.pill)
-                            .padding(14.dp),
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    Text("✈", style = TextStyle(fontSize = 24.sp))
-                    Spacer(Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "空港送迎便について",
-                            color = t.ink,
-                            style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
-                        )
-                        Spacer(Modifier.height(3.dp))
-                        Text(
-                            "帰国届を出す場合は、空港便にチェックを入れて選択してください。",
-                            color = t.inkSub,
-                            style = TextStyle(fontSize = 12.sp, lineHeight = 17.sp),
-                        )
-                    }
-                }
-
-                // 筛选区第一行：3 颗胶囊 tab
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterPill("すべて", filter == "all") { filter = "all" }
-                    FilterPill("特別便", filter == "dorm") { filter = "dorm" }
-                    FilterPill("通学便", filter == "commute") { filter = "commute" }
-                }
-
-                // 筛选区第二行：开关 +「空港送迎便のみ」（开时文字变主色）
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TToggle(checked = airportOnly, onCheckedChange = { airportOnly = it })
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        "空港送迎便のみ",
-                        color = if (airportOnly) cs.primary else t.inkSub,
-                        style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium),
-                    )
-                }
-
-                // 筛选后无结果 → 空态
-                if (visible.isEmpty()) {
-                    EmptyState(
-                        icon = SuzuIcons.Bus,
-                        title = "該当する便はありません",
-                        message = "条件を変えてお試しください。",
-                    )
-                }
-
-                // 日别分组列表 — 每组一张圆角卡
-                groups.forEach { (date, routes) ->
-                    BusDayGroup(date = date, weekday = routes.first().weekday, routes = routes, nextId = nextId)
-                }
-
-                // 底部备注（弱字）
+        // 空港送迎案内 banner — 浅药丸底圆角卡，左「✈」+ 右两行
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(t.pill)
+                    .padding(14.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Text("✈", style = TextStyle(fontSize = 24.sp))
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "※ 通常日のスクールバスは別途ご確認ください。特別便は乗車名簿への事前チェックが必要です。",
-                    color = t.inkMute,
-                    style = TextStyle(fontSize = 11.sp, lineHeight = 15.sp),
+                    "空港送迎便について",
+                    color = t.ink,
+                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
                 )
-
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    "帰国届を出す場合は、空港便にチェックを入れて選択してください。",
+                    color = t.inkSub,
+                    style = TextStyle(fontSize = 12.sp, lineHeight = 17.sp),
+                )
             }
         }
+
+        // 筛选区第一行：3 颗胶囊 tab
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterPill("すべて", filter == "all") { filter = "all" }
+            FilterPill("特別便", filter == "dorm") { filter = "dorm" }
+            FilterPill("通学便", filter == "commute") { filter = "commute" }
+        }
+
+        // 筛选区第二行：开关 +「空港送迎便のみ」（开时文字变主色）
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TToggle(checked = airportOnly, onCheckedChange = { airportOnly = it })
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "空港送迎便のみ",
+                color = if (airportOnly) cs.primary else t.inkSub,
+                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium),
+            )
+        }
+
+        // 筛选后无结果 → 空态
+        if (visible.isEmpty()) {
+            EmptyState(
+                icon = SuzuIcons.Bus,
+                title = "該当する便はありません",
+                message = "条件を変えてお試しください。",
+            )
+        }
+
+        // 日别分组列表 — 每组一张圆角卡
+        groups.forEach { (date, dayRoutes) ->
+            BusDayGroup(date = date, weekday = dayRoutes.first().weekday(), routes = dayRoutes, nextId = nextId)
+        }
+
+        // 底部备注（弱字）
+        Text(
+            "※ 通常日のスクールバスは別途ご確認ください。特別便は乗車名簿への事前チェックが必要です。",
+            color = t.inkMute,
+            style = TextStyle(fontSize = 11.sp, lineHeight = 15.sp),
+        )
+
+        Spacer(Modifier.height(20.dp))
     }
 }
+
+// === BusRouteOut（后端 DTO）→ 原 UI 显示项的小转换函数 ===
+// 后端只给 schedule_at（ISO 完整日期时间）+ kind 代码 + name/direction，原界面需要的
+// date / time / weekday / 日语 kind / isAirport 在这里从 DTO 字段临场推算。
+
+// schedule_at "2026-05-06T09:20:00+09:00" → 日期 "2026-05-06"。解析失败原样返回前 10 字符。
+private fun BusRouteOut.date(): String = runCatching { scheduleAt.substring(0, 10) }.getOrDefault(scheduleAt.take(10))
+
+// schedule_at → 出发时刻 "09:20"。解析失败返回空串。
+private fun BusRouteOut.time(): String = runCatching { scheduleAt.substring(11, 16) }.getOrDefault("")
+
+// date() → 日语单字曜日（如「水」）。解析失败返回空串。
+private fun BusRouteOut.weekday(): String =
+    runCatching {
+        when (LocalDate.parse(date()).dayOfWeek) {
+            DayOfWeek.MONDAY -> "月"
+            DayOfWeek.TUESDAY -> "火"
+            DayOfWeek.WEDNESDAY -> "水"
+            DayOfWeek.THURSDAY -> "木"
+            DayOfWeek.FRIDAY -> "金"
+            DayOfWeek.SATURDAY -> "土"
+            DayOfWeek.SUNDAY -> "日"
+        }
+    }.getOrDefault("")
+
+// kind 后端代码 → 日语显示。"dorm_special"=特別便 / "daily_commute"=通学便。
+private fun BusRouteOut.kindLabel(): String =
+    when (kind) {
+        "dorm_special" -> "特別便"
+        "daily_commute" -> "通学便"
+        else -> kind
+    }
+
+// 是否空港送迎便：DTO 没有专门字段，从便名 name + 方向 direction 是否含「空港」推断。
+private fun BusRouteOut.isAirport(): Boolean = name.contains("空港") || direction.contains("空港")
+
+// 座席说明（如「残り 8 席」）：DTO 没有座席字段，原 UI 显示项暂无数据来源。
+// TODO 接后端：缺 endpoint —— BusRouteOut 不含残席数，待后端加座席字段后填这里，现恒为 null（右侧弱字不显示）。
+private fun BusRouteOut.seats(): String? = null
 
 // 筛选胶囊单颗：选中 = 主色底白字 / 未选 = pill 底主色字
 @Composable
@@ -187,7 +294,7 @@ private fun FilterPill(
 private fun BusDayGroup(
     date: String,
     weekday: String,
-    routes: List<SpecialBusRoute>,
+    routes: List<BusRouteOut>,
     nextId: String?,
 ) {
     val t = SuzuT.current
@@ -242,11 +349,14 @@ private fun BusDayGroup(
 // 单条便：左 36 圆角图标块 + 中（时刻 + Pill）+ direction + 右（次便 Pill + seats）
 @Composable
 private fun BusRow(
-    route: SpecialBusRoute,
+    route: BusRouteOut,
     isNext: Boolean,
 ) {
     val t = SuzuT.current
     val cs = MaterialTheme.colorScheme
+    val isAirport = route.isAirport()
+    val kindLabel = route.kindLabel()
+    val seats = route.seats()
     Row(
         modifier =
             Modifier
@@ -264,7 +374,7 @@ private fun BusRow(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = if (route.isAirport) SuzuIcons.Plane else SuzuIcons.Bus,
+                imageVector = if (isAirport) SuzuIcons.Plane else SuzuIcons.Bus,
                 contentDescription = null,
                 tint = if (isNext) Color.White else cs.primary,
                 modifier = Modifier.size(18.dp),
@@ -276,13 +386,13 @@ private fun BusRow(
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    route.time,
+                    route.time(),
                     color = t.ink,
                     style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace),
                 )
                 // 通学便 = Neutral / 特別便 = Accent
-                Pill(route.kind, tone = if (route.kind == "特別便") PillTone.Accent else PillTone.Neutral)
-                if (route.isAirport) {
+                Pill(kindLabel, tone = if (kindLabel == "特別便") PillTone.Accent else PillTone.Neutral)
+                if (isAirport) {
                     Pill("空港", tone = PillTone.Accent)
                 }
             }
@@ -295,15 +405,15 @@ private fun BusRow(
         }
 
         // 右侧：次便 Pill + seats 弱字
-        if (isNext || route.seats != null) {
+        if (isNext || seats != null) {
             Spacer(Modifier.width(8.dp))
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 if (isNext) {
                     Pill("次便", tone = PillTone.Accent)
                 }
-                if (route.seats != null) {
+                if (seats != null) {
                     Text(
-                        route.seats,
+                        seats,
                         color = t.inkMute,
                         style = TextStyle(fontSize = 11.sp),
                     )
