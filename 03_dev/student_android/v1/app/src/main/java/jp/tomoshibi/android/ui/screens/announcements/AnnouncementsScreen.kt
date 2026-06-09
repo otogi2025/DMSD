@@ -20,6 +20,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,22 +35,49 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import jp.tomoshibi.android.data.model.AnnouncementBrief
-import jp.tomoshibi.android.data.seed.MockData
+import jp.tomoshibi.android.data.network.AnnouncementBrief
+import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.endpoints.AnnouncementsAPI
 import jp.tomoshibi.android.nav.Route
 import jp.tomoshibi.android.ui.components.EmptyState
+import jp.tomoshibi.android.ui.components.FailedBox
 import jp.tomoshibi.android.ui.components.GlobalScaffold
+import jp.tomoshibi.android.ui.components.LoadState
+import jp.tomoshibi.android.ui.components.LoadingBox
 import jp.tomoshibi.android.ui.components.SuzuCard
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
+import kotlinx.coroutines.launch
 
-// お知らせ一覧 — 対齐 iOS AnnouncementListView（§5.3）：
-//   自绘 header（返回箭头 +「お知らせ」标题，注意不是 PageHeader）
-//   每行卡：左未读圆点 + 标题（未读加粗）+ 摘要 2 行 + 底行「老师名 · 相对时间」+ 有回复时右侧气泡 + 回复数
+// 公告一览（标题「お知らせ」）— 接真后端 AnnouncementsAPI.list()（§5.3）。
+//
+// ★★ 本屏是「列表屏接后端」的示范模板，其余列表屏照此结构改：
+//    1. 三态 var ui by remember { mutableStateOf<LoadState<List<XxxOut>>>(LoadState.Loading) }
+//    2. suspend fun load()：try 调 XxxAPI.yyy() → 空判 Empty/Success；catch ApiError → Failed(e.display)
+//    3. LaunchedEffect(Unit) { load() } 进屏即拉
+//    4. when (ui) { Loading -> LoadingBox; Failed -> FailedBox(重试); Empty -> EmptyState; Success -> 列表 }
+//    5. 行卡直接吃后端 DTO 字段（不再经 MockData / data.model 本地模型）
 @Composable
 fun AnnouncementsScreen(navController: NavHostController) {
     val t = SuzuT.current
-    val list = MockData.DEFAULT_ANNOUNCEMENTS
+    val scope = rememberCoroutineScope()
+    // 三态：Loading / Failed(消息) / Empty / Success(后端 AnnouncementBrief 列表)
+    var ui by remember { mutableStateOf<LoadState<List<AnnouncementBrief>>>(LoadState.Loading) }
+
+    // 加载函数（重试也调它）。失败必须落 Failed，绝不退化成空列表。
+    suspend fun load() {
+        ui = LoadState.Loading
+        ui =
+            try {
+                val items = AnnouncementsAPI.list().items
+                if (items.isEmpty()) LoadState.Empty else LoadState.Success(items)
+            } catch (e: ApiError) {
+                LoadState.Failed(e.display)
+            } catch (e: Exception) {
+                LoadState.Failed("読み込みに失敗しました")
+            }
+    }
+    LaunchedEffect(Unit) { load() }
 
     GlobalScaffold(activeTab = "", navController = navController) {
         Column(modifier = Modifier.fillMaxSize().background(t.pearl)) {
@@ -78,31 +111,45 @@ fun AnnouncementsScreen(navController: NavHostController) {
                 )
             }
 
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                if (list.isEmpty()) {
-                    // 空态 —— bell.slash 等价图标 SuzuIcons.Bell
+            // 三态渲染
+            when (val s = ui) {
+                LoadState.Loading -> {
+                    LoadingBox()
+                }
+
+                is LoadState.Failed -> {
+                    FailedBox(s.message, onRetry = { scope.launch { load() } })
+                }
+
+                // 空态 —— bell.slash 等价图标 SuzuIcons.Bell
+                LoadState.Empty -> {
                     EmptyState(title = "お知らせはありません", icon = SuzuIcons.Bell)
                 }
-                list.forEach { brief ->
-                    AnnouncementRow(
-                        brief = brief,
-                        onClick = { navController.navigate(Route.Announcement(brief.id).path) },
-                    )
+
+                is LoadState.Success -> {
+                    Column(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                                .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        s.value.forEach { brief ->
+                            AnnouncementRow(
+                                brief = brief,
+                                onClick = { navController.navigate(Route.Announcement(brief.id).path) },
+                            )
+                        }
+                        Spacer(Modifier.height(20.dp))
+                    }
                 }
-                Spacer(Modifier.height(20.dp))
             }
         }
     }
 }
 
-// 公告列表卡 — 左未读圆点 + 标题/摘要/底行，整卡点击进详情
+// 公告列表卡 — 左未读圆点 + 标题/摘要/底行，整卡点击进详情（brief 为后端 DTO AnnouncementBrief）
 @Composable
 private fun AnnouncementRow(
     brief: AnnouncementBrief,
@@ -143,22 +190,22 @@ private fun AnnouncementRow(
                         ),
                 )
                 Spacer(Modifier.height(4.dp))
-                // 摘要：最多 2 行，超出省略
+                // 摘要：最多 2 行，超出省略（后端 body_summary）
                 Text(
-                    brief.summary,
+                    brief.bodySummary,
                     color = t.inkSub,
                     style = TextStyle(fontSize = 13.sp, lineHeight = 18.sp),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(Modifier.height(8.dp))
-                // 底行：左「老师名 · 相对时间」灰字，右回复气泡 + 回复数
+                // 底行：左「老师名 · 时刻」灰字，右回复气泡 + 回复数
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        "${brief.author} · ${brief.time}",
+                        "${brief.authorTeacherName} · ${fmtTime(brief.createdAt)}",
                         color = t.inkMute,
                         style = TextStyle(fontSize = 11.sp),
                     )
@@ -182,3 +229,7 @@ private fun AnnouncementRow(
         }
     }
 }
+
+// ISO datetime（"2026-04-20T14:30:00+09:00"）→ 简洁显示「MM-dd HH:mm」。
+// 解析失败（后端格式变化 / 串太短）原样返回，避免显示崩溃。
+private fun fmtTime(iso: String): String = runCatching { "${iso.substring(5, 10)} ${iso.substring(11, 16)}" }.getOrDefault(iso)
