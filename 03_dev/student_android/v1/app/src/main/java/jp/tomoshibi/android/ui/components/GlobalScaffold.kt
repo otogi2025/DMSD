@@ -36,6 +36,7 @@ fun GlobalScaffold(
     val tokens = SuzuT.current
     val store = LocalAppStore.current
     val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Box(modifier = Modifier.fillMaxSize().background(tokens.pearl)) {
         // 内容层 — 留 92dp 底部空间给 BottomTabs（capsule 62 + 边距 16 + raised 凸起 22）
@@ -65,7 +66,14 @@ fun GlobalScaffold(
             BottomTabs(
                 navController = navController,
                 active = activeTab,
-                onRollClick = { rollSheetOpen = true },
+                // v1.0：点呼签到入口隐藏（NFC 写卡 / 签到属 v1.1，依赖硬件未就绪）。
+                // 点中央按钮提示「近日公開」，不弹 RollCallSheet、不呈现可签到假象。
+                // v1.1 恢复：把 onRollClick 改回 { rollSheetOpen = true } 即可。
+                onRollClick = {
+                    android.widget.Toast
+                        .makeText(context, "点呼機能は近日公開予定です", android.widget.Toast.LENGTH_SHORT)
+                        .show()
+                },
             )
         }
         // 点呼 sheet — 中央按钮触发后覆盖
