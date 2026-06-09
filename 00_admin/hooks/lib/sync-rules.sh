@@ -250,6 +250,13 @@ add_rule \
   '联动规则代码 sync-rules.sh 改了 → 给人读的 .claude/skills/file-linkage/SKILL.md 必须同步(两边漂了联动系统就半失效:hook 按代码跑、人按表查,对不上)' \
   "must"
 
+add_rule \
+  "api-conventions" \
+  '^01_specs/API_CONVENTIONS\.md$' \
+  '' \
+  'API 全局约定改了 → 核对四端 API 实装是否跟约定一致: 后端 routers/schemas.py + iOS Endpoints/NetworkModels.swift + Android data/network + teacher_web src/api/client.js。itsuki 常改 API,故每次触发都提醒(action)' \
+  "action"
+
 # ============================================================
 # 函数：check_sync_for_files
 #   输入：参数 = 改过的文件路径列表

@@ -240,11 +240,15 @@ P6 接 backend 时换成 Ktor Client + Repository pattern。
 
 ## 8. 待决清单（不阻塞 P1）
 
+> ⭐ **2026-06-09 itsuki 拍板分发方式：不上 Google Play、不办谷歌开发者账号** —— 改打签名 APK（安卓安装包文件）上传到后端 VPS、学生自己下载安装。**理由：有中国留学生的手机用不了 Google Play**。所以「Google Play 上架 / 商店审核 / 商店隐私表单 / 谷歌账号」全部不需要；但 keystore 仍要（打可安装 APK 必须 release 签名）。详见 `05_logs/decision_log.md` 2026-06-09 + memory `project-release-status`。
+> ⚠️ 连带影响：FCM（谷歌推送）依赖手机装了 Google Play 服务 → **中国留学生手机收不到 FCM 推送**，Android 推送方案 v1.1 要另想。
+
 - [ ] 字体 license 确认（Noto Sans JP — Apache 2.0，OK 可商用 / 可 bundle）
-- [ ] applicationId 是否最终 `jp.tomoshibi.android`（vs `jp.tomoshibi.tomoshibi` / `dev.tomoshibi.android` 等）
-- [ ] keystore 创建 + 密码管理流程（参照 CLAUDE.md "本地 Mac + 后端服务器加密 + 纸质密码 + 年度校验"）
+- [ ] applicationId 是否最终 `jp.tomoshibi.android`（APK 自托管不强制商店唯一性，定了好管理）
+- [ ] keystore 创建 + 密码管理流程（**APK 自托管仍需 release 签名才能装**；参照 CLAUDE.md "本地 Mac + 后端服务器加密 + 纸质密码 + 年度校验"）
+- [ ] **APK 自托管落地**：后端放一个 APK 下载入口（页面/链接）+ 引导用户开「允许安装未知来源」+ 想清版本更新怎么提示用户重下
 - [ ] Android 真机调试 — 当前 emulator 不支持 NFC，最终需要 1 台 Android 真机（itsuki 决策时再讨论）
-- [ ] FCM Sender ID + Server Key（接 backend 时填）
+- [ ] ~~FCM Sender ID + Server Key~~ → 见上：FCM 对中国留学生手机不可达，Android 推送 v1.1 另议
 
 ---
 

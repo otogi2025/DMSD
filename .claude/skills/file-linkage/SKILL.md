@@ -1,6 +1,6 @@
 ---
 name: file-linkage
-description: DMSD 文件联动矩阵 — 改 A 必查 B 的完整规则表（23 条联动规则 + 反向索引 + 检查命令）。⭐ 触发：CC 改文件后想确认联动 / itsuki 说「联动检查 / 我改了 X 要查什么 / 改 A 要不要改 B」/ 改了任何 backend models / spec / system_features / Route 等"高联动文件"。短小专一（~200 行）— 比 project-overview skill 短，给频繁触发设计。
+description: DMSD 文件联动矩阵 — 改 A 必查 B 的完整规则表（24 条联动规则 + 反向索引 + 检查命令）。⭐ 触发：CC 改文件后想确认联动 / itsuki 说「联动检查 / 我改了 X 要查什么 / 改 A 要不要改 B」/ 改了任何 backend models / spec / system_features / Route 等"高联动文件"。短小专一（~200 行）— 比 project-overview skill 短，给频繁触发设计。
 when_to_use: ⭐ 触发 — 「联动 / 联动检查 / 我改了 X 要查什么 / 改 A 要改 B 吗 / sync-check」/ CC 自己刚改了 backend models / spec 主体 / system_features / Route.swift / iOS Foundation 组件 / hooks 时主动确认。配套 PostToolUse hook 自动跑 sync-rules.sh — hook 是确定性快查，本 skill 是 LLM 可读详细版。
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
@@ -28,9 +28,9 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ---
 
-## §1 联动矩阵（23 条规则）
+## §1 联动矩阵（24 条规则）
 
-> **编号说明**（消除困惑）：规则按历史顺序编号、有跳号 —— 没有 Rule 6（早期删过留的空号）,Rule 10-13 是一个条目涵盖 4 条 ios-foundation 组件规则。所以下面编号最高到 **Rule 24**,但实际 `add_rule` 共 **23 条**（以 `sync-rules.sh` 实际条数为准,别被最大编号误导）。
+> **编号说明**（消除困惑）：规则按历史顺序编号、有跳号 —— 没有 Rule 6（早期删过留的空号）,Rule 10-13 是一个条目涵盖 4 条 ios-foundation 组件规则。所以下面编号最高到 **Rule 25**,但实际 `add_rule` 共 **24 条**（以 `sync-rules.sh` 实际条数为准,别被最大编号误导）。
 
 ### Rule 1: backend-models（must）
 
@@ -276,6 +276,20 @@ grep -rn "ComponentName" 03_dev/student_ios/v1/TomoshibiApp/Features/
 
 ---
 
+### Rule 25: api-conventions（action — API 约定联动,2026-06-09 加）
+
+**触发**：`01_specs/API_CONVENTIONS.md`（后端 API 全局约定 — 响应格式 / 鉴权 / URL 命名 / 字段风格 / 错误码）
+
+**必做动作**：核对四端 API 实装是否跟约定一致 ——
+- 后端 `03_dev/backend/v1/app/routers/*.py` + `schemas.py`
+- iOS `Foundation/Network/Endpoints/*.swift` + `NetworkModels.swift`
+- Android `data/network/*`（接后端后）
+- 老师网页 `03_dev/teacher_web/v1/src/api/client.js`
+
+**为什么**：itsuki 2026-06-09 拍板「我经常改 API，这个文件必须进联动」。API_CONVENTIONS 是四端共同遵守的契约（URL 命名 / 响应包裹 / 字段风格），改它 = 改契约，四端实装都可能要跟。用 action（每次触发都无条件提醒）而非 must —— 四端是否都要改取决于改了哪条约定，must 的「至少改 1 个就放行」会漏掉「只改约定、各端没跟」。补这条后，「改 API 约定」不再是联动盲点（过去只有 Rule 1/2/21 覆盖 models/routers，约定文档本身无规则）。
+
+---
+
 ## §2 反向索引（按目标文件查谁改了它要联动）
 
 > CC 想知道「改了 schemas.py 是因为什么 trigger?」时反向查。
@@ -302,6 +316,7 @@ grep -rn "ComponentName" 03_dev/student_ios/v1/TomoshibiApp/Features/
 | `WIP.md`（版本号部分） | Rule 23 (CHANGELOG.md 改) |
 | `05_logs/版本演变一览.md` | Rule 23 (CHANGELOG.md 改 — 必连带加总表行+详细段) |
 | `system_features.md` | Rule 19 (任一端 *_DESIGN_LOG 改) |
+| 四端 API 实装（routers/schemas/iOS Endpoints+NetworkModels/Android/web client.js） | Rule 25 (API_CONVENTIONS.md 改) |
 | `RootView.swift` | Rule 4 (Route.swift 改) |
 | `hooks/README.md` | Rule 8 (hooks/* 改) |
 | `CLAUDE.md` | Rule 9 (bin/*.sh 改) |

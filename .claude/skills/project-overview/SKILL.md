@@ -261,32 +261,31 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 
 ---
 
-## 2. 第 2 组：01_specs + 02_design（18 文件 — 2026-06-05 校准 16→18）
+## 2. 第 2 组：01_specs + 02_design（17 文件 — 6-09：+3 范围冻结规格 +1 v1.0 验收脚本、-5 早期 .pages 全归档到 99_archive）
 
-**统计**：✅ 13 / ⚠️ 1 / ❓ 5（全是 .pages）
+**统计**：✅ 17 / ⚠️ 1 / ❓ 0（早期 .pages 已全部归档）
 
-### 2.1 01_specs/ 顶级（6 文件）
+### 2.1 01_specs/ 顶级（7 文件）
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
 | `v0.1完整计划.pdf` | v0.1 版本的 10 部完整规划（项目顶层蓝图） | ✅ | PDF 可读 / AC 答辩用 |
-| `API_Contract_v0.1.pages` | 早期 API 契约草稿（Pages 文档） | ❓ | 已被 `API_CONVENTIONS.md` 取代 / CC 读不出 |
-| `API_CONVENTIONS.md` | backend API 的命名规范 + 错误码体系（URL 路由 / HTTP 动词 / 错误码） | ✅ | 4-22 修订 8 处 |
-| `IA_UI_v0.1.pages` | 信息架构（IA）+ UI 早期草稿（Pages） | ❓ | 已被 `v0.1完整计划.pdf §3` + `system_features.md §7` 覆盖 |
-| `Overview_of_Features_v0.1.pages` | 功能总览早期草稿（Pages） | ❓ | 已被 `system_features.md`（4-30 重写 357→830 行）取代 |
-| `teacher_web_v1.0_backend_models_propose.md` | teacher_web v1.0 要的后端数据模型提案 — discipline/cleaning/front_desk 三表字段 | ✅ | 5-27 深夜推进时给 itsuki 拍板用 |
+| `API_CONVENTIONS.md` | backend API 的命名规范 + 错误码体系（URL 路由 / HTTP 动词 / 错误码） | ✅ | 通用约定有效；§2/§8 URL 命名已跟实际代码漂移 |
+| `teacher_web_v1.0_backend_models_propose.md` | teacher_web v1.0 要的后端数据模型提案 — discipline/cleaning/front_desk 三表字段 | ⚠️ | 一次性提案、内容已实装；候选归档 |
+| `v1.0_范围冻结决策.md` | ⭐ 产品 v1.0 范围冻结 — 纳入功能 / 范围决策 / 排除项 / 验收 / 各端任务 | ✅ | 6-09 itsuki 拍板三波切分后定稿 |
+| `v1.0_验收脚本.md` | v1.0 上线前人工验收测试用例集（替代失效的 v0.1 验收脚本）| ✅ | 6-09 重写 |
+| `v1.1_范围冻结决策.md` | 产品 v1.1 范围冻结 — 点呼签到 + 卡 + 点呼终端 + 防作弊（硬件就绪触发）| ✅ | 6-09 定范围，硬件就绪启动 |
+| `v1.2_范围冻结决策.md` | 产品 v1.2+ 候选池 — 紧急警报 / 暗色 / 在线学习 / 出租车 Android / FCM（非冻结，待拍板升格）| ✅ | 6-09 归集 |
 
-### 2.2 01_specs/rollcall/（8 文件）
+### 2.2 01_specs/rollcall/（6 文件）
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
 | `RollCall_Spec.md` | 点呼系统的核心规格文档（v0.3.0 主体）— 所有点呼相关规则的权威源 | ✅ | 4-29 修订 5 处（§4.2 / §5.2 / §5.4 / §5.5 / §5.6） |
-| `RollCall_Spec_v0.1.pages` | v0.1 版本的 Pages 原稿 | ❓ | 已被 .md 替代 / 无价值 |
 | `ENUM_REGISTRY.md` | 点呼相关 15 种枚举值定义（出席状态 / 役职 / 申请类型等） | ✅ | 跨端字段对齐参考 |
 | `FIELD_REGISTRY.md` | 点呼相关字段统一登记表 + 禁止使用的字段名单 | ✅ | 4-22 增补 |
 | `DEVICE_REGISTRY.md` | 点呼机设备字段登记（含 `device_retired_at` 永久注销字段） | ✅ | backend models 对齐参考 |
 | `ERROR_CODES.md` | backend 返回客户端的 12 个错误码定义 | ✅ | 与 API_CONVENTIONS 对齐 |
-| `DMSDv0.1验收脚本.pages` | v0.1 验收测试脚本（Pages） | ❓ | 跟 PDF §1.2 是否相同需 itsuki 决定 |
 | `v0.1_冻结决策.md` | v0.1 阶段冻结时拍板的决策快照 | ⚠️ | 4-29 阈值再冻结后 ~10 处文档已修 / 本文角色（备份 vs 历史快照）需明确 |
 
 ### 2.3 02_design/（4 文件）

@@ -1,0 +1,968 @@
+<!doctype html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tomoshibi 距 v1.0 上线还差什么</title>
+    <style>
+      :root {
+        --bg: #faf7f2;
+        --card: #ffffff;
+        --ink: #2b2620;
+        --mute: #8a8175;
+        --line: #ece5da;
+        --amber: #e8932a;
+        --amberSoft: #fff4e2;
+        --red: #d64545;
+        --redSoft: #fde8e8;
+        --yellow: #c9941f;
+        --yellowSoft: #fbf3dc;
+        --green: #3f9e5a;
+        --greenSoft: #e6f4ea;
+        --blue: #3a6ea5;
+        --blueSoft: #e7f0f9;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family:
+          -apple-system, "PingFang SC", "Hiragino Sans", system-ui, sans-serif;
+        line-height: 1.65;
+        font-size: 15px;
+      }
+      .wrap {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 28px 18px 80px;
+      }
+      header {
+        border-bottom: 3px solid var(--amber);
+        padding-bottom: 16px;
+        margin-bottom: 8px;
+      }
+      h1 {
+        font-size: 24px;
+        margin: 0 0 6px;
+        letter-spacing: 0.5px;
+      }
+      h1 .flame {
+        color: var(--amber);
+      }
+      .sub {
+        color: var(--mute);
+        font-size: 13.5px;
+      }
+      .lead {
+        background: var(--amberSoft);
+        border: 1px solid #f0dcbd;
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin: 18px 0;
+        font-size: 14.5px;
+      }
+      .lead b {
+        color: #b06d12;
+      }
+      .phase {
+        background: var(--blueSoft);
+        border: 1px solid #cfe0f2;
+        border-radius: 12px;
+        padding: 12px 16px;
+        margin: 14px 0;
+        font-size: 14px;
+      }
+      .phase b {
+        color: #2c5a85;
+      }
+      h2 {
+        font-size: 18px;
+        margin: 34px 0 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      h2 .bar {
+        width: 5px;
+        height: 20px;
+        background: var(--amber);
+        border-radius: 3px;
+        display: inline-block;
+      }
+
+      .mat {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 16px 18px;
+      }
+      .matrow {
+        display: grid;
+        grid-template-columns: 128px 1fr 70px;
+        align-items: center;
+        gap: 10px;
+        margin: 9px 0;
+      }
+      .matname {
+        font-size: 13.5px;
+        font-weight: 600;
+      }
+      .track {
+        background: #eee7dc;
+        border-radius: 8px;
+        height: 14px;
+        overflow: hidden;
+      }
+      .fill {
+        height: 100%;
+        border-radius: 8px;
+      }
+      .matpct {
+        font-size: 12px;
+        color: var(--mute);
+        text-align: right;
+      }
+      .disc {
+        color: var(--mute);
+        font-size: 12px;
+        margin-top: 10px;
+      }
+
+      .mtn {
+        display: grid;
+        gap: 12px;
+      }
+      .mtncard {
+        background: var(--redSoft);
+        border: 1px solid #f3c9c9;
+        border-left: 5px solid var(--red);
+        border-radius: 10px;
+        padding: 14px 16px;
+      }
+      .mtncard h3 {
+        margin: 0 0 4px;
+        font-size: 16px;
+        color: #a82f2f;
+      }
+      .mtncard p {
+        margin: 0;
+        font-size: 13.5px;
+        color: #5c4a45;
+      }
+      .mtncard .who {
+        font-size: 12px;
+        color: #9a4a4a;
+        margin-top: 6px;
+        font-weight: 600;
+      }
+
+      .you {
+        background: var(--blueSoft);
+        border: 1px solid #cfe0f2;
+        border-radius: 12px;
+        padding: 14px 18px;
+      }
+      .you ul {
+        margin: 6px 0 0;
+        padding-left: 20px;
+      }
+      .you li {
+        margin: 5px 0;
+        font-size: 14px;
+      }
+      .done {
+        color: var(--green);
+        font-weight: 600;
+      }
+
+      details {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        margin: 11px 0;
+        overflow: hidden;
+      }
+      summary {
+        cursor: pointer;
+        padding: 14px 18px;
+        font-size: 16px;
+        font-weight: 600;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      summary::-webkit-details-marker {
+        display: none;
+      }
+      summary .tri {
+        color: var(--mute);
+        font-size: 12px;
+        transition: transform 0.2s;
+      }
+      details[open] summary .tri {
+        transform: rotate(90deg);
+      }
+      summary .mt {
+        margin-left: auto;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--mute);
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 2px 10px;
+      }
+      .body {
+        padding: 4px 18px 16px;
+        border-top: 1px solid var(--line);
+      }
+      .item {
+        display: grid;
+        grid-template-columns: 14px 1fr;
+        gap: 10px;
+        padding: 9px 0;
+        border-bottom: 1px dashed var(--line);
+      }
+      .item:last-child {
+        border-bottom: none;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-top: 7px;
+      }
+      .d-red {
+        background: var(--red);
+      }
+      .d-yellow {
+        background: var(--yellow);
+      }
+      .d-green {
+        background: var(--green);
+      }
+      .it-title {
+        font-weight: 600;
+        font-size: 14px;
+      }
+      .it-detail {
+        font-size: 13px;
+        color: #5b5349;
+        margin-top: 2px;
+      }
+      .tag {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: 6px;
+        padding: 1px 7px;
+        margin-left: 6px;
+        vertical-align: middle;
+      }
+      .t-you {
+        background: var(--blueSoft);
+        color: #2c5a85;
+      }
+      .t-code {
+        background: var(--greenSoft);
+        color: #2f7a45;
+      }
+      .t-both {
+        background: #f0eaf7;
+        color: #6a4fa0;
+      }
+      .t-hw {
+        background: #f3ece2;
+        color: #8a6a3a;
+      }
+      .t-2 {
+        background: #eae6df;
+        color: #6b6358;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        font-size: 12.5px;
+        color: var(--mute);
+        margin: 10px 0 0;
+      }
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      footer {
+        margin-top: 40px;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+        color: var(--mute);
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>
+          <span class="flame">&#9650;</span> Tomoshibi 距 v1.0 上线还差什么
+        </h1>
+        <div class="sub">
+          生成日期 2026-06-09 · 数据来自当天对项目 5 端 + 硬件 +
+          上线运维的逐项核实
+        </div>
+      </header>
+
+      <div class="lead">
+        一句话现状：<b>iOS 和老师网页是 5 端里最接近完成的</b>（剩你签收 +
+        上架这类外部动作）；<b
+          >真正挡住上线的是三座大山——防作弊后端、点呼机软件、Android 接后端</b
+        >，都是几天到几周的代码工程、目前基本没开工。
+      </div>
+
+      <div class="phase">
+        <b>上线分两波（你 2026-06-09 拍板）：</b><br />
+        <b>第一波</b> = 先把 app 发出去（iOS 上架 App Store + Android 打 APK
+        安装包放后端给学生自己下载，<b>不走 Google Play</b
+        >，因为中国留学生手机用不了）。<br />
+        <b>第二波</b> = app 上线之后再做<b>学生卡 + 点呼机</b>（硬件这波后补）。
+      </div>
+
+      <h2><span class="bar"></span>各板块完成度（粗略示意）</h2>
+      <div class="mat">
+        <div class="matrow">
+          <span class="matname">老师网页</span>
+          <div class="track">
+            <div
+              class="fill"
+              style="width: 90%; background: var(--green)"
+            ></div>
+          </div>
+          <span class="matpct">~90%</span>
+        </div>
+        <div class="matrow">
+          <span class="matname">学生 iOS</span>
+          <div class="track">
+            <div
+              class="fill"
+              style="width: 85%; background: var(--green)"
+            ></div>
+          </div>
+          <span class="matpct">~85%</span>
+        </div>
+        <div class="matrow">
+          <span class="matname">后端（业务主干）</span>
+          <div class="track">
+            <div
+              class="fill"
+              style="width: 65%; background: var(--yellow)"
+            ></div>
+          </div>
+          <span class="matpct">~65%</span>
+        </div>
+        <div class="matrow">
+          <span class="matname">学生 Android</span>
+          <div class="track">
+            <div
+              class="fill"
+              style="width: 35%; background: var(--yellow)"
+            ></div>
+          </div>
+          <span class="matpct">~35%</span>
+        </div>
+        <div class="matrow">
+          <span class="matname">防作弊核心</span>
+          <div class="track">
+            <div class="fill" style="width: 5%; background: var(--red)"></div>
+          </div>
+          <span class="matpct">~5%</span>
+        </div>
+        <div class="matrow">
+          <span class="matname"
+            >点呼机软件
+            <span style="color: var(--mute); font-weight: 400"
+              >(第二波)</span
+            ></span
+          >
+          <div class="track">
+            <div class="fill" style="width: 8%; background: var(--red)"></div>
+          </div>
+          <span class="matpct">~8%</span>
+        </div>
+        <div class="matrow">
+          <span class="matname"
+            >学生卡 / 硬件
+            <span style="color: var(--mute); font-weight: 400"
+              >(第二波)</span
+            ></span
+          >
+          <div class="track">
+            <div class="fill" style="width: 20%; background: var(--red)"></div>
+          </div>
+          <span class="matpct">~20%</span>
+        </div>
+        <div class="disc">
+          ⚠️ 进度条是「大概感觉」，不是精确测量 ——
+          只为让你一眼看出哪块远、哪块近。点呼机和学生卡属第二波，不挡第一波 app
+          上线。
+        </div>
+      </div>
+
+      <h2><span class="bar"></span>三座大山（最重的代码工程）</h2>
+      <div class="mtn">
+        <div class="mtncard">
+          <h3>A. 防作弊核心后端 —— 一行没写</h3>
+          <p>
+            没有「设备注册校验」（认不出哪台是真点呼机）、没有「卡↔学生」对照表（光刷卡认不出是谁）、没有点呼机「设备密钥」（挡不住冒充点呼机）。签到接口现在还在用老师令牌临时顶着
+            + 手动塞学号。这块跟点呼机/学生卡咬合，可以跟着第二波一起做。
+          </p>
+          <div class="who">谁做：代码（要写） · 状态：没开工</div>
+        </div>
+        <div class="mtncard">
+          <h3>B. 点呼机软件 —— 几乎全空（第二波）</h3>
+          <p>
+            宿舍门口那台机器的程序基本没写：读卡、读手机写来的数据、连后端、喇叭播报、亮灯，每步都没代码（主程序才
+            16 行）。属第二波，不挡 app 先上线。
+          </p>
+          <div class="who">谁做：代码（要写） · 状态：没开工</div>
+        </div>
+        <div class="mtncard">
+          <h3>C. Android 接后端 —— 壳齐芯没接（第一波要它）</h3>
+          <p>
+            57 个界面全做好了但全是假数据，登录是假的、令牌从没存过、手机 NFC
+            签到一行没写。联网代码搭好了但没接到界面上。<b
+              >这块在第一波，因为 Android app 要跟 iOS 一起发出去。</b
+            >
+          </p>
+          <div class="who">谁做：代码（要写） · 状态：做了一半</div>
+        </div>
+      </div>
+
+      <h2><span class="bar"></span>只有你能做的事（代码做不了，要你出手）</h2>
+      <div class="you">
+        <ul>
+          <li>
+            <span class="done">✅ 苹果开发者账号已办好</span>（不用再办）→ iOS
+            上架链路通了
+          </li>
+          <li>
+            <b>把完整版后端部署到生产服务器</b> api.tomoshibi.cc ——
+            但你说要<b>先在本地把前端+后端对齐做好才上传</b>，所以等你本地对齐完成
+          </li>
+          <li>
+            <b>老师网页肉眼签收</b>（双击打开逐页核对没走样）→ 然后 push（423
+            个提交还没推 GitHub）
+          </li>
+          <li>
+            <b>iOS 这次改的 11 项真机/肉眼签收</b> +
+            <b>Android 模拟器逐屏视觉签收</b>
+          </li>
+          <li>
+            <b>注册 Resend 邮件服务</b>拿密钥 + 绑域名（审批通知邮件靠它发）
+          </li>
+          <li><b>iOS 上架 App Store</b>（账号已办好，剩提交审核）</li>
+          <li>
+            <b>几个待你拍板的方向</b>：学生退寮怎么处理 / 点呼结束后能不能改判 /
+            演示账号公开密码能不能接受
+          </li>
+          <li class="done">
+            （不用做了：谷歌开发者账号 ✗ Google Play 上架 ✗ —— 改 APK 自托管）
+          </li>
+          <li>（第二波再做：买学生卡、点呼机硬件装机）</li>
+        </ul>
+      </div>
+
+      <h2><span class="bar"></span>按板块逐项（点开看细节）</h2>
+      <div class="legend">
+        <span><span class="dot d-red"></span>阻塞上线</span>
+        <span><span class="dot d-yellow"></span>重要</span>
+        <span><span class="dot d-green"></span>可选 / v1.1</span>
+        <span><span class="tag t-you">你</span>外部动作</span>
+        <span><span class="tag t-code">码</span>写代码</span>
+        <span><span class="tag t-both">两者</span></span>
+        <span><span class="tag t-hw">硬件</span></span>
+        <span><span class="tag t-2">第二波</span></span>
+      </div>
+
+      <details open>
+        <summary>
+          <span class="tri">&#9654;</span>后端 + 防作弊<span class="mt"
+            >~65%</span
+          >
+        </summary>
+        <div class="body">
+          <div class="item">
+            <div class="dot d-red"></div>
+            <div>
+              <div class="it-title">
+                签到接口没有「设备」身份认证<span class="tag t-code">码</span
+                ><span class="tag t-2">第二波</span>
+              </div>
+              <div class="it-detail">
+                点呼机没法以设备身份调接口，现在靠老师令牌顶着。跟点呼机一起做。
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-red"></div>
+            <div>
+              <div class="it-title">
+                没有「卡↔学生」对照表 + 绑卡功能<span class="tag t-code"
+                  >码</span
+                ><span class="tag t-2">第二波</span>
+              </div>
+              <div class="it-detail">
+                光刷卡后端认不出是谁。跟学生卡一起做。
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-red"></div>
+            <div>
+              <div class="it-title">
+                点呼机↔后端缺设备密钥<span class="tag t-code">码</span
+                ><span class="tag t-2">第二波</span>
+              </div>
+              <div class="it-detail">只有 HTTPS 加密，挡不住冒充点呼机。</div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-red"></div>
+            <div>
+              <div class="it-title">
+                完整版后端部署到生产<span class="tag t-you">你</span>
+              </div>
+              <div class="it-detail">
+                第一波要：app 上架前后端得是完整版，否则请求全
+                404。等你本地前后端对齐后上传。
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-yellow"></div>
+            <div>
+              <div class="it-title">
+                一批数据库约束迁移没做<span class="tag t-code">码</span>
+              </div>
+              <div class="it-detail">
+                生产换 PostgreSQL 后有数据完整性隐患，部署同期一起做。
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-yellow"></div>
+            <div>
+              <div class="it-title">
+                寮越权校验没全覆盖<span class="tag t-code">码</span>
+              </div>
+              <div class="it-detail">
+                点呼/打扫/前台/申请/晚自习几个写接口待确认。
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-yellow"></div>
+            <div>
+              <div class="it-title">
+                迁移脚本本身没测过 + 登录认证几个漏洞要复核<span
+                  class="tag t-code"
+                  >码</span
+                >
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-green"></div>
+            <div>
+              <div class="it-title">
+                演示账号读公告小边角 / 推送真投递<span class="tag t-both"
+                  >两者</span
+                >
+              </div>
+              <div class="it-detail">写侧已堵；推送 v1.1。</div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>
+          <span class="tri">&#9654;</span>学生 Android（第一波）<span class="mt"
+            >~35%</span
+          >
+        </summary>
+        <div class="body">
+          <div class="item">
+            <div class="dot d-red"></div>
+            <div>
+              <div class="it-title">
+                57 个界面从假数据切真后端<span class="tag t-code">码</span>
+              </div>
+              <div class="it-detail">界面全做好了但没一个真发网络请求。</div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-red"></div>
+            <div>
+              <div class="it-title">
+                登录接真 + 令牌持久化<span class="tag t-code">码</span>
+              </div>
+              <div class="it-detail">
+                现在点登录直接进首页（假的），关 app 不记登录。
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-red"></div>
+            <div>
+              <div class="it-title">
+                手机 NFC 签到从零写<span class="tag t-code">码</span
+                ><span class="tag t-2">硬件期</span>
+              </div>
+              <div class="it-detail">
+                对应 iOS 的写卡功能；真用要等点呼机硬件（第二波），代码可先写。
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-red"></div>
+            <div>
+              <div class="it-title">
+                打可安装 APK：release 签名 + 版本号<span class="tag t-both"
+                  >两者</span
+                >
+              </div>
+              <div class="it-detail">
+                改 APK 自托管后不走 Google Play，但 APK
+                仍要签名才能装，要先生成签名密钥。
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-yellow"></div>
+            <div>
+              <div class="it-title">
+                APK 自托管落地<span class="tag t-both">两者</span>
+              </div>
+              <div class="it-detail">
+                后端放一个 APK 下载入口 + 引导用户开「允许安装未知来源」+
+                想清怎么提示更新。
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-yellow"></div>
+            <div>
+              <div class="it-title">
+                图标还是默认绿机器人<span class="tag t-you">你</span>
+              </div>
+              <div class="it-detail">
+                APK 自托管没有商店审核，不会被打回；但仍建议换成 Tomoshibi
+                品牌图标，显得正式。
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-yellow"></div>
+            <div>
+              <div class="it-title">
+                NFC 权限申报 + 字段对齐验证 + 你视觉签收<span class="tag t-both"
+                  >两者</span
+                >
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-green"></div>
+            <div>
+              <div class="it-title">
+                FCM 推送 / 出租车预约补做<span class="tag t-both">两者</span>
+              </div>
+              <div class="it-detail">
+                ⚠️ FCM 推送对中国留学生手机（无谷歌服务）不可达，v1.1 另议。
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="tri">&#9654;</span>学生 iOS（第一波）<span class="mt"
+            >~85% · 最接近完成</span
+          >
+        </summary>
+        <div class="body">
+          <div class="item">
+            <div class="dot d-red"></div>
+            <div>
+              <div class="it-title">
+                填团队编号 + 打开签名<span class="tag t-both">两者</span>
+              </div>
+              <div class="it-detail">
+                苹果账号已办好 ✅，现在只剩把团队编号填进工程 +
+                打开签名开关（之前为模拟器编译关掉了）。
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-red"></div>
+            <div>
+              <div class="it-title">
+                推送：缺证书 + 后端推送服务<span class="tag t-both">两者</span>
+              </div>
+              <div class="it-detail">
+                手机端代码写好了，真机收不到推送（缺苹果推送证书）。
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-yellow"></div>
+            <div>
+              <div class="it-title">
+                NFC 写卡命令码是占位<span class="tag t-code">码</span
+                ><span class="tag t-2">硬件期</span>
+              </div>
+              <div class="it-detail">
+                真机写不进，等点呼机硬件按手册填真值（第二波联调）。
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-yellow"></div>
+            <div>
+              <div class="it-title">
+                包裹页 + 公告未读数 2 列表没做三态<span class="tag t-code"
+                  >码</span
+                >
+              </div>
+              <div class="it-detail">
+                网断时包裹页仍显「なし」；5 个失败态没重试按钮。半小时能补。
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-yellow"></div>
+            <div>
+              <div class="it-title">
+                图标设置可能没写进工程定义 + 11 项待你签收<span
+                  class="tag t-both"
+                  >两者</span
+                >
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-green"></div>
+            <div>
+              <div class="it-title">
+                暗色模式（推 v2）/ 在线学习申请（v1.1）<span class="tag t-both"
+                  >两者</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="tri">&#9654;</span>老师网页（第一波）<span class="mt"
+            >~90% · 待签收</span
+          >
+        </summary>
+        <div class="body">
+          <div class="item">
+            <div class="dot d-red"></div>
+            <div>
+              <div class="it-title">
+                你肉眼签收 + push<span class="tag t-you">你</span>
+              </div>
+              <div class="it-detail">
+                技术做完了，双击打开逐页核对没走样，然后 push（423 提交没推）。
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-red"></div>
+            <div>
+              <div class="it-title">
+                依赖的后端没部署（接口全 404）<span class="tag t-you">你</span>
+              </div>
+              <div class="it-detail">同后端那条，等你本地对齐后部署。</div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-yellow"></div>
+            <div>
+              <div class="it-title">
+                点呼默认页统计卡还是假数据<span class="tag t-both">两者</span>
+              </div>
+              <div class="it-detail">待你定：删掉还是接真后端。</div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-yellow"></div>
+            <div>
+              <div class="it-title">
+                邮件 Resend 差你注册拿密钥<span class="tag t-you">你</span>
+              </div>
+              <div class="it-detail">
+                代码写好了，去 resend.com 注册 + 绑域名才能真发邮件。
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-yellow"></div>
+            <div>
+              <div class="it-title">
+                登录页校名改「朝日塾」还没提交<span class="tag t-both"
+                  >两者</span
+                >
+              </div>
+              <div class="it-detail">
+                工作区有这处改动，确认是真校名后跟 push 一起处理。
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="tri">&#9654;</span>第一波上线运维<span class="mt"
+            >等本地对齐</span
+          >
+        </summary>
+        <div class="body">
+          <div class="item">
+            <div class="dot d-red"></div>
+            <div>
+              <div class="it-title">
+                后端完整版部署到生产<span class="tag t-you">你</span>
+              </div>
+              <div class="it-detail">
+                所有端的共同前提。你说先本地把前后端对齐做好再上 VPS。
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-red"></div>
+            <div>
+              <div class="it-title">
+                iOS 上架 App Store<span class="tag t-you">你</span>
+              </div>
+              <div class="it-detail">账号已办好，剩提交审核。</div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-red"></div>
+            <div>
+              <div class="it-title">
+                Android：打 APK 上传后端 + 放下载入口<span class="tag t-both"
+                  >两者</span
+                >
+              </div>
+              <div class="it-detail">
+                不走 Google Play。学生从后端下载安装。
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-red"></div>
+            <div>
+              <div class="it-title">
+                生产数据库跑迁移 + 定时备份<span class="tag t-both">两者</span>
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-yellow"></div>
+            <div>
+              <div class="it-title">
+                240+ 提交本地没推 GitHub + 审核员演示账号决策<span
+                  class="tag t-you"
+                  >你</span
+                >
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-green"></div>
+            <div>
+              <div class="it-title">
+                崩溃监控 + 线上数据库直连<span class="tag t-both">两者</span>
+              </div>
+              <div class="it-detail">上线后做。</div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="tri">&#9654;</span>第二波（app 上架之后再做）<span
+            class="mt"
+            >硬件 + 防作弊</span
+          >
+        </summary>
+        <div class="body">
+          <div class="item">
+            <div class="dot d-red"></div>
+            <div>
+              <div class="it-title">
+                点呼机软件全套<span class="tag t-code">码</span>
+              </div>
+              <div class="it-detail">
+                读卡 / 读手机写的数据 / 连后端 / 播报 / 亮灯（见三座大山 B）。
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-red"></div>
+            <div>
+              <div class="it-title">
+                防作弊核心后端<span class="tag t-code">码</span>
+              </div>
+              <div class="it-detail">
+                设备注册 / 卡↔学生映射 / 设备密钥（见三座大山 A）。
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-red"></div>
+            <div>
+              <div class="it-title">
+                NTAG215 学生卡采购（约 120 张）<span class="tag t-you">你</span>
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="dot d-red"></div>
+            <div>
+              <div class="it-title">
+                给每张卡写 UID 绑学生 + 点呼机硬件装机<span class="tag t-both"
+                  >两者</span
+                ><span class="tag t-hw">硬件</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <footer>
+        数据来源：2026-06-09 对 5 端代码 + 设计文档 +
+        待办清单的逐项核实（不是凭记忆）。<br />
+        分波 / 分发方式按你 2026-06-09 拍板：Android 走 APK 自托管不上 Google
+        Play、卡+点呼机第二波、苹果账号已办好。<br />
+        这是某一刻的快照，做完一项就过期一项 —— 真值随时看
+        <code>00_admin/TODO.md</code>。
+      </footer>
+    </div>
+  </body>
+</html>

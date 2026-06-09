@@ -1,6 +1,6 @@
 # DMSD v0.1 API 全局约定
 
-更新时间：2026-04-22（4-22 修订：§1 精化 ok=true 字段集 + §8-§15 新增 URL/HTTP 动词/分页/日期/命名/版本号/状态码/error.detail schema 扩写 — 对应 backlog S13 / L8 / S19 对齐）
+更新时间：2026-06-09（按实际实装同步 §2 鉴权 / §8 URL 命名 / §13 URL 路径段 —— 关闭 L8；详见各节）。早期：2026-04-22（§1 精化 + §8-§15 扩写 — S13 / L8 / S19）
 v0.1 原版 2026-02-12；后续修订见 CHANGELOG + 本文件顶部。
 
 ## 1. 统一响应包裹格式（强制）
@@ -16,13 +16,12 @@ v0.1 原版 2026-02-12；后续修订见 CHANGELOG + 本文件顶部。
 - 禁止在 `data` 内再次嵌套 `ok` 字段。
 - 详细 error.detail schema 见 §15。
 
-## 2. 鉴权与角色（最小可跑）
+## 2. 鉴权与角色（2026-06-09 按实装对齐）
 - Header：`Authorization: Bearer <token>`
-- 学生 token 只允许访问 `/student/*` 下的 endpoint
-- 老师 token 只允许访问 `/teacher/*` 下的 endpoint
-- token 过期 / 无效 → 返回 `UNAUTHORIZED`
-- token 角色不匹配（学生访问 `/teacher/*` 或反之）→ 返回 `FORBIDDEN`
-- **URL 前缀统一**见 §8（含 L8 漏洞记录）
+- **URL 不分角色前缀**：全部端点统一在 `/api/v1/<资源>` 下；角色由 token 校验，不在 URL 体现（实装如此，见 §8）。
+- 权限不匹配（学生调老师专属操作，或反之）→ 返回 `FORBIDDEN`（在端点内按角色校验，不靠 URL 前缀拦）。
+- 同一资源端点可按 token 角色返回不同数据（例：`GET /api/v1/students/me` 学生取本人资料；老师管理走 `students` 下管理端点）。
+- token 过期 / 无效 → 返回 `UNAUTHORIZED`。
 
 ## 3. 本地开发联调方案（第 16 条，已拍板）
 - 采用 `/auth/dev_login`（仅开发环境可用）。
@@ -55,35 +54,17 @@ v0.1 原版 2026-02-12；后续修订见 CHANGELOG + 本文件顶部。
 
 ---
 
-## 8. URL 命名规则（4-22 新增 — S13 + L8）
+## 8. URL 命名规则（2026-06-09 按实装对齐 — L8 关闭）
 
-### 8.1 现状（问题记录）
+实装统一采用：**`/api/v1/<资源>`，角色由 token 校验、不进 URL**（即原 §8.2 评估里的「方案 C」方向）。
 
-spec v0.3 里出现两种 URL 前缀风格：
-- `/student/*` / `/teacher/*`（本文件 §2 旧写法，按角色分隔）
-- `/api/v1/rollcall/sessions/{session_id}/checkins`（RollCall_Spec §5.1 / §5.1.2 / Device_Contract 骨架 §3.1，按版本 + 资源分隔 — **2026-05-22 修 FC-017：旧 /api/v1/checkin 已废，统一到真实实装路径**）
+规则：
+- 版本前缀固定 `/api/v1/`。
+- 资源名：**多词资源用连字符（kebab-case）** —— 实装如此：`/api/v1/lost-found` / `/api/v1/misc-requests` / `/api/v1/dorm-life` / `/api/v1/front-desk` / `/api/v1/study/online-requests`。单词资源直接用：`/api/v1/accounts` / `/api/v1/students` / `/api/v1/songs` / `/api/v1/announcements`。
+- 资源下子路径用 RESTful 嵌套：`/api/v1/rollcall/sessions/{session_id}/checkins`、`/api/v1/students/me`。
+- 角色不进 URL（无 `/student/*`·`/teacher/*` 前缀）；学生 / 老师由 token 区分，端点内做权限校验。
 
-**两种不兼容**：一个 endpoint 只能归其中一类。**L8 漏洞未闭合** —— 需要 itsuki 拍板统一。
-
-### 8.2 🔄 待 itsuki 拍板：URL 命名统一方向
-
-| 方案 | 示例 | 优点 | 缺点 |
-|---|---|---|---|
-| **A（RESTful + 版本前缀 + 角色子前缀）** | `/api/v1/student/me/checkins` / `/api/v1/teacher/sessions/{id}/start` / `/api/v1/device/checkin` | 版本号明确；REST 习惯；路径即角色；新客户端可自主发现 | URL 变长 |
-| **B（按角色分前缀 + 版本在 Header）** | `/student/me/checkins` + `X-API-Version: v1` Header / `/teacher/sessions/{id}/start` | URL 简短；本文件 §2 一致；角色清晰 | 版本号藏在 Header 不直观；和 spec §5.1 `/api/v1/*` 不兼容（要改 spec） |
-| **C（无角色前缀 + 版本前缀）** | `/api/v1/checkins`（角色由 token 校验）| 最简洁；角色仅靠 Bearer token；和 spec §5.1 最兼容 | 相同 endpoint 学生 / 老师语义不同，易混 |
-
-**CC 推荐**：**A** —— 路径即角色对新手最友好；和现有 spec §5.1 `/api/v1/*` 最小改动兼容；`X-API-Version` header 对零基础学习者不友好。
-
-**拍板后连带改动**：
-- 本文件 §2 改 URL 模板
-- RollCall_Spec §5.1 / §5.1.2 示例改
-- Device_Contract 骨架 §3 改
-- ERROR_CODES 无影响
-
-### 8.3 拍板前的临时规则
-
-在 §8.2 拍板前，新文档 / 代码统一**使用方案 A 书写**（减少后期返工）；历史文档（本文件 §2 / spec §5.1）保留原风格，等一次性统一时再改。
+**历史（L8 已关闭）**：4-22 曾记 L8 —— 当时 `/student/*`·`/teacher/*` 角色前缀写法与 `/api/v1/*` 资源式写法并存、待拍板统一。实装最终走「资源式 + token 辨角色」，本节按实装定稿，L8 关闭。
 
 ---
 
@@ -176,7 +157,7 @@ GET /api/v1/teacher/sessions?page=1&page_size=20&order_by=started_at&order=desc
 - 禁止 camelCase（`studentId`）或 PascalCase（`StudentID`）
 - 见 `FIELD_REGISTRY.md §1 强制规则` + `ENUM_REGISTRY.md §15`
 
-**URL 路径段**：也用小写蛇形（`/api/v1/rollcall_sessions/{id}`），**不使用 hyphen**（避免 `/roll-call-sessions` 和其他文档字段名风格不一致）。
+**URL 路径段**（2026-06-09 按实装更正）：多词资源用**连字符 kebab-case**（实装如此：`/api/v1/lost-found` / `misc-requests` / `dorm-life` / `front-desk` / `online-requests`）。JSON / 数据库字段仍用小写蛇形（`student_id`）。即：**URL 用连字符、字段用蛇形** —— 业界常见分工。（原 4-22 写「URL 也用蛇形不用 hyphen」，与实装不符，已更正。）
 
 ---
 
