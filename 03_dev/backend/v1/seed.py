@@ -40,48 +40,18 @@ log = logging.getLogger("seed")
 
 DEV_PASSWORD = "123456"
 
-DEV_STUDENTS = [
-    dict(
-        grade_code="06",
-        class_code="02",
-        seat_no="18",
-        name="リュウ イヒ",
-        name_kana="リュウ イヒ",
-        gender="male",
-        category="一般寮生",
-        room_no="M101",
-        dorm_unit=1,
-        is_overseas=True,
-        email="ryu.ihi@example.jp",
-    ),
-    dict(
-        grade_code="06",
-        class_code="01",
-        seat_no="03",
-        name="田中 太郎",
-        name_kana="タナカ タロウ",
-        gender="male",
-        category="一般寮生",
-        room_no="M203",
-        dorm_unit=1,
-        is_overseas=False,
-        email="tanaka.taro@example.jp",
-    ),
-]
+# dev 纯 demo：现在还没人注册，真实学生 / 老师一律不建种子，全走 _seed_demo_data 的演示数据
+# itsuki 拍板：删 shingu，dev 只留 demo 账号，学生名字之类的只放 demo
+DEV_STUDENTS = []
 
-DEV_TEACHERS = [
-    dict(
-        login_id="shingu",
-        name="新股",
-        email="shingu@example.jp",
-        role="寮務部長",
-        assigned_dorm=None,
-    ),
-]
+DEV_TEACHERS = []
 
 
 def seed_dev(db) -> None:
-    """dev dummy 数据 — 本机 SQLite 开发用。"""
+    """dev dummy 数据 — 本机 SQLite 开发用（纯 demo：只建演示老师 + 演示学生）。"""
+    # itsuki 拍板：dev 只留 demo 账号 → 先建演示数据，后面的学习名簿 / 校车便都挂到 demo 上
+    _seed_demo_data(db)
+
     pw_hash = security.hash_password(DEV_PASSWORD)
 
     # 学生
@@ -210,12 +180,12 @@ def seed_dev(db) -> None:
     db.commit()
 
     # 巴士便（spec §7.6）— 寮生特別運行（dorm_special）+ 平日通学便（daily_commute）。
-    # 全挂到役职老师 shingu（寮務部長）名下，作为 created_by_teacher_id。
+    # 全挂到 demo 演示老师名下，作为 created_by_teacher_id（dev 已纯 demo，无 shingu）。
     # iOS BusListView / 老师网页 都靠 GET /api/v1/bus/routes 读这批数据。
-    shingu = db.scalars(
-        select(models.Teacher).where(models.Teacher.login_id == "shingu")
+    demo_teacher = db.scalars(
+        select(models.Teacher).where(models.Teacher.login_id == "demo")
     ).first()
-    if shingu:
+    if demo_teacher:
         # (kind, name, direction, 月, 日, 出发时, 出发分, 到达时, 到达分(无则 None), visible_to, note)
         bus_rows = [
             # ── 寮生特別運行便：外宿 / 回家 / 购物 / 回国机场接送 ──
@@ -334,20 +304,16 @@ def seed_dev(db) -> None:
                     arrival_at=arrival_at,
                     visible_to=vis,
                     note=note,
-                    created_by_teacher_id=shingu.id,
+                    created_by_teacher_id=demo_teacher.id,
                 )
             )
             log.info("加巴士便: %s %s", name, schedule_at)
         db.commit()
 
-    # itsuki 拍板 B：dev 也建演示数据（演示账号开发期开箱即用，跟 prod 一致）
-    _seed_demo_data(db)
-
     log.info("=" * 60)
-    log.info("dev seed 完成")
-    log.info("学生 login: 060218 (留学生 リュウ) / 060103 (一般 田中)")
-    log.info("教师 login: shingu (新股)")
-    log.info("password (全员共通): %s", DEV_PASSWORD)
+    log.info("dev seed 完成（纯 demo）")
+    log.info("演示老师 login: demo / 演示学生 login: 980101 980201 980401")
+    log.info("password: demo123（演示账号共通）")
     log.info("=" * 60)
 
 
@@ -386,7 +352,7 @@ PROD_REVIEWER_STUDENT = dict(
 # opt-in：仅当 env DEMO_TEACHER_PASSWORD 设置时建（缺失跳过，不破坏现有部署）
 DEMO_TEACHER = dict(
     login_id="demo",
-    name="デモ教員",
+    name="デモ",
     email="demo-teacher@tomoshibi.example",
     role="寮務部長",  # 跨寮 → 演示老师能看到所有演示寮（1/2/4）的演示学生
     assigned_dorm=None,

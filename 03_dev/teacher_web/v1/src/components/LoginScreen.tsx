@@ -151,7 +151,7 @@ export function LoginScreen({
             marginTop: 2,
           }}
         >
-          灯火 · 寮管理システム
+          朝日塾 · 寮管理システム
         </div>
       </div>
     </div>
