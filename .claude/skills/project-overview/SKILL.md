@@ -18,7 +18,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 >
 > **和别的「介绍型」文件分工**（三层不重叠）：`PROJECT_GUIDE.md`（根目录）= 新人 / AI 深入理解整个项目的导览；`00_admin/项目心智模型.md` = AI 开局必读的 1 屏骨架（系统怎么跑通 + 5 端现状）；**本 skill** = 1388 文件逐个的「字典」，想知道某个文件干嘛时查。
 >
-> **最后更新**：2026-06-05 — 全文件对账校准（1200→1399 真实数，以 HEAD committed 为准）：backend §3 大补（routers 11→26 / tests 5→20 / alembic 9→22 / 总 62→104）+ iOS 67→78 / Android 80→131 / 点呼机 12→36 / 05_logs 92→161 / 99_archive 431→639 + 散件补漏（01_specs / 02_design / 04_ops / 根目录 / skills 标题）。收尾时点含别会话并行提交（test_front_desk 等）。更早记录见 git log。
+> **最后更新**：2026-06-10 — §6.2 raw 92→108 / §6.3 dev_log 9→14 / 05_logs 总数 177（find 实数，本会话 iOS 全量审查新增 raw 2 + dev_log 1，其余为并行会话累积）。上一轮：2026-06-05 — 全文件对账校准（1200→1399 真实数，以 HEAD committed 为准）：backend §3 大补（routers 11→26 / tests 5→20 / alembic 9→22 / 总 62→104）+ iOS 67→78 / Android 80→131 / 点呼机 12→36 / 05_logs 92→161 / 99_archive 431→639 + 散件补漏（01_specs / 02_design / 04_ops / 根目录 / skills 标题）。收尾时点含别会话并行提交（test_front_desk 等）。更早记录见 git log。
 
 **最后扫描真值**：2026-06-05 `git ls-tree -r HEAD` 全统计（1399 已提交文件）+ 各组逐组验证 + `bin/check_overview_drift.sh` 校验。下次结构大改时更新本字段。
 
@@ -612,7 +612,7 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 
 ## 6. 第 6 组：05_logs + 06_assets + bin（161 文件 = 05_logs 149 + 06_assets 9 + bin 3 — 2026-06-05 校准）
 
-**05_logs 149 细分**：raw 92（每天原始会话记录）+ AC_叙事 12 + dev_log 9 + problem_solving 4 + audit_2026-05-19 13 + audit_2026-05-22_codex 7 + 3 个 meta（decision_log / learning_path / project_evolution）+ 散件 ~9（teacher_web 施工 3 + 各 audit 单件 + 漏洞清单 + 版本演变一览 等）。
+**05_logs 177 细分（2026-06-10 实数 find 校准）**：raw 108（每天原始会话记录）+ AC_叙事 12 + dev_log 14 + problem_solving 4 + audit_2026-05-19 13 + audit_2026-05-22_codex 7 + 3 个 meta（decision_log / learning_path / project_evolution）+ 散件 ~9（teacher_web 施工 3 + 各 audit 单件 + 漏洞清单 + 版本演变一览 等）。
 **核心发现**：raw 是项目最大原始素材区，AC 候选密度最高的几天见 §6.2 ⭐ 标记。
 
 ### 6.1 05_logs/ 根级 meta（3 文件）
@@ -623,7 +623,7 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 | `learning_path.md` | itsuki 学习哲学 + 已走的路 — AC 自我推荐书素材 | ✅ | 最后 4-13 / 4-10 后新学的 NFC / Swift / 硬件未追记 |
 | `project_evolution.md` | 项目重大转折记录（每次 = 转折点 + 起因 + 影响） | ✅ | 4 次已记 / 最后 4-13 / 待补"第 5 次转折" = demo 完成情况 |
 
-### 6.2 05_logs/raw/（92 文件 — 含 README — 2026-06-05 校准 68→92，每天一份原始会话记录，持续增长）
+### 6.2 05_logs/raw/（108 文件 — 含 README — 2026-06-10 校准 92→108，每天一份原始会话记录，持续增长）
 
 > raw 是项目最大的原始素材区。下表只列 AC 候选密度高（⭐ 多）的关键日，不逐个列全部 91 份 — 找某天记录直接看文件名 `raw/YYYY-MM-DD*.md`。
 

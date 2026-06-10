@@ -50,6 +50,14 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+### 2026-06-10 iOS 全量审查 + 前后端对齐 — 额度中断收口 by [Fable 5 · ultracode]
+
+- itsuki 要「审查所有 iOS 代码 + 前端后端对齐」（全量 22543 行，区别于 6-09 增量审查）。26 个一线代理（13 审查分片 + 13 对齐域）+ 对抗验证（重大 3 票多数决）。
+- **额度两次撞限**（250 代理后挂、续跑又静默断），itsuki 喊停 → CC 停工作流**零代理本地收口**：脚本解析工作流日志收割 233 条发现 + 160 个验证裁决配对合并。
+- 结果入 `TODO.md §🔍 2026-06-10`：确认 138 / 推翻 8（误报率 5%）/ **86 条未验证**（含 22 重大，工作流缓存在可续跑）→ 合并后 84 条待办。按 6-09 拍板**只记录未修**。
+- 最大发现：**点呼显示链 iOS 端整条是假的**（签到永远「時間内」、弹窗永远「点呼時間外」、详情时刻写死）。另亲自 grep 核实「{ok,data} 响应包络两侧代码都不存在」= 心智模型 §3 + API_CONVENTIONS 文档漂移，已挂心智模型 §6 未决。
+- commit `71d9200`（TODO + 原始数据 json）+ 收尾 commit，未 push。raw `2026-06-10_iOS全量审查.md`。
+
 ### 2026-06-10 点呼机设计档案「硬件待下单」文档漂移修复 by [Opus 4.8 1M]
 
 - itsuki 发现 `ROLLCALL_DEVICE_DESIGN_LOG.md`（点呼机软件设计档案）还写「硬件待下单 ⏳」，要 CC 诊断根因。
@@ -77,43 +85,6 @@
 - 改 4 处：新建 `dev_log/_README_工程简报格式.md`（纯工程格式 + 跟 AC 分开铁律）+ session-wrap SKILL 加 §5.5.16（收尾固定步骤）+ §7.5.1 核对表 12→13 项 + §6 权限 dev_log 划进「CC 自由直写」+ project-overview §6.3 登记。第一篇试跑 `dev_log/2026-06-08.md`。
 - 中途纠正一次：CC 造「叙事整理型」生词 + 把整理活甩回 itsuki，被怒怼「叙事整理是什么鬼？为什么要我做」→ 删词改成全 CC 自动写。
 - 本地 commit 未 push。AC：模式 5（用工具中发现工具缺陷主动改流程）+ 纠正 AI。raw `2026-06-08.md`。
-
-### 2026-06-07 深夜 演示账号真隔离 — codex 6 轮对抗复审跑到收敛 0/0 by [Opus 4.8 1M · ultracode · /goal]
-
-- itsuki `/goal`「老师网页做到能上线 v1.0」(5 条件) + 选演示账号方案 C(演示老师 is_demo 账号登录只看演示数据)，设 goal 后睡，留「能解决就解决/重大决策跳过明早问/给简单总结」。
-- 条件 1/2/3 过：网页构建退出码 0 / 后端 360 passed / client.ts 77 接口 vs 后端 100% 对齐(workflow 4 agent 勘察+CC 核对)。
-- **条件 4 演示隔离 = 横切关注点**：给 Teacher 加 is_demo 列(对称 Student)+迁移+`deps.demo_scope_for_teacher` 集中过滤，约 22 处老师查学生加 demo 隔离(列表 where 过滤/单点 404)，seed opt-in 演示数据+7 测试。
-- **写隔离也做了**：blocker 1（点呼 start/end 演示禁止 403）+ blocker 2（approval_chain 按 is_demo 找审批人）+ `deps.assert_student_demo_match` + 约 20 写端点 assert/session级403。这俩 CC 原判「架构重大决策」，Stop hook 反馈后重评估发现有「不碰架构」轻解法 → 按「能解决就解决」做了。
-- **条件 5 codex 6 轮跑到收敛**：1轮 4 blocker → 4轮 0 blocker+8 major → 5轮 1 blocker(账号管理新类别)+2 major → **6轮 0 阻塞 0 重大收敛**。逐轮逮 front_desk主列表/点呼摘要/rollcall/guidance/applications 读写漏 + incidents/WebSocket + 账号管理(teachers 能造真实账号绕隔离) + approval_chain 担任分支。**CC 逮 agent 谎报 import 共 3 次**（meals/rollcall+guidance/正常 — 都补回）。
-- **⭐⭐ 关键翻车+纠正**：CC 一度 5 次判 incidents/WebSocket「要改表结构、是架构、需排专门会话系统审计」要停 → goal Stop hook 反复顶着逼 CC 去查实际代码 → 发现事案有现成 `recorded_by` 字段、WebSocket 连接 `_TeacherConn` 是内存类不是表，**都不改 schema 就能解决**。CC「凭假设说架构、没 Read 验证」的翻车，goal hook「强制继续」反而救了场。教训：横切累但逐轮 codex 能收敛，别轻易判「无底洞」就停。
-- 9 功能 commit `3d5e6b0`→`49176ff` 全本地**未 push**，约 29 处隔离。TODO §🔐 + BACKEND_DESIGN_LOG §7.5 + raw。AC：模式 2(6轮多 AI 对抗)⭐顶级 + 翻车纠正(凭假设说架构 vs 查实)。
-- **6-08 凌晨浏览器端到端自验**（goal Stop hook 第 2 次逼出来）：临时库 2 真+3 演示学生 → 真后端 → 老师网页 dev → chrome 真登录。demo 老师只看 3 演示学生 / shingu 真老师只看 2 真实学生 / 零交叉，**条件 4 端到端成立**（不止 pytest 桩）。额外逮到 `Shell.tsx:612` 右下「DEMO」水印无条件硬编码（真老师生产也看到）→ A/B/C 待 itsuki 定。
-- **6-08 itsuki 拍板 B + A（演示账号默认开 demo123 + 删水印）→ CC 又一轮 3 codex 复审**：B（默认开 + 公开密码）让「全局端点（表无 is_demo 列）漏的隔离」零成本可达 → R1 四视角挖 6 处 + **CC 主动 grep 全 router 守卫覆盖挖 2 处**（公告回复 post_reply/delete_reply）+ R2 覆盖审计挖 3 处（前台无主失物写穿 / 点歌+遗失物社区列表读泄漏）+ R3 收敛，**11 处全局端点补 `assert_not_demo_teacher` / 双向 is_demo 隔离** 到 0 阻塞 0 重大。commit `15b0ce5`（12 文件）未 push / test_demo_teacher 7→20 / 全量 373 passed。**⭐ AC：没盲从 itsuki「靠隔离碰不到真实数据」前提、派 codex 验证发现不成立（提权链：演示老师读真实注册码→建真实学生账号）、补到成立**。
-
-### 2026-06-07 深夜 iOS 接线 8 功能两端对齐 + codex 4 轮收敛 by [Opus 4.8 1M]
-
-- itsuki 压缩会话后用 `/goal`（完成条件=8 界面接真后端+双 scheme BUILD SUCCEEDED+各一 commit），CC 自主跑完。8 个学生界面生产分支(`#else`)从假数据接真后端：①扫除 GET /cleaning/me ②个人信息 PATCH /students/me ③体调欠席其他 POST /rollcall/reports ④点歌 /songs ⑤遗失物 /lost-found ⑥修繕来訪代理 /misc-requests ⑦点呼历史 ⑧减点明细（⑦⑧共用 /students/{id}/profile）。演示分支 `#if DEMO` 假数据全留。
-- 新建 6 endpoint + AppStore 缓存/loadXxx(都带令牌守卫)/myStudentId + 归一视图模型(双 init 把演示日语枚举 vs 后端英语枚举翻成同一套展示) + Route 的 homeMusicDetail/homeLostDetail id Int→String 容纳 UUID(承宅配先例)。每功能 commit 一个(显式 pathspec，⑦⑧同文件不同段用 `git add -p` 拆 2 commit)。
-- **codex gpt-5.5 xhigh 只读 4 轮对抗复审跑到收敛**：R1 6条(修4缓2)→R2「9处提交流缺令牌守卫」(修8缓1)→R3「3处双await漏第二守卫+resolve按钮卡死」(修3)→R4 零新发现「本次8功能改动已收敛 0 blocker 0 major」。每条核实真代码再裁决(不盲信)、修完 CC 自己 xcodebuild 双 scheme 验(codex 编译不了 iOS)。
-- **留 itsuki 4 项拍板**(都早存在/超本次8界面、不影响收敛)：①首页`HomeStubs`音乐/遗失物预览卡 + ②`MyPage` landing「今月点呼」汇总卡生产仍读 SEED ③`submitOuting`缺守卫 ④详情查表 uuidString 大小写(不触发的防御性假设)。
-- 11 commit 全本地**未 push**。AC：模式 2（多 AI 对抗复审，每轮真挖出我没看到的 bug）⭐顶级。raw `2026-06-07_iOS接线8功能+codex4轮收敛.md`。
-
-### 2026-06-06 早 itsuki 反馈 5 件 → 实装 + codex 2 轮复审收敛 by [Opus 4.8 1M · ultracode]
-
-- itsuki 看通宵报告后对 5 件提反馈转任务：① 时区（否决通宵 iOS 端「猜世界时」治标修法，要「直接带时区、默认日本时区」）② iOS 包裹一览页假数据 demo 留着但生产别漏 + 后端做完两端对齐 ③ 老师网页宅配登记必选收件学生 ④ 前台列表按男/女寮过滤 ⑤ 外出注释清理。
-- **时区根治**：实测挖出真乱源——SQLite 读回丢时区、且不同字段存的时区不一样（点呼按日本时间存 / created_at 按世界时存）。新建 `database.py` 的 `TZDateTime` 类型（写入统一存 UTC、读出统一 +09:00 日本时间），`models.py` 88 字段替换，一处全解。**逮到方法名坑**：第一版写 `process_bind_value`（错），SQLAlchemy 认 `process_bind_param`，名字错会静默不生效（造成「读对写不对」），逐层 debug + 内省 `_has_bind_processor` 定位。
-- iOS 包裹一览页/MyPage/履历三处 `#if DEMO` 守卫（生产接 `/front-desk/mine`）+ 新建共用 `PackageDisplay` + 路由 id `Int`→`String`；老师网页宅配 Modal 加学生搜索选择器（必选）；后端前台列表按 `dorm_units_for_teacher` 男女寮过滤。
-- **codex 第 1 轮**：4 重大 3 次要 1 建议 → 逐条核实裁决修（auth 学生封锁剥时区差 9 小时是我 TZDateTime 引入的真回归 / iOS 5 状态映射 / 老师网页终态显示 / MyPage badge 假数据 / 日期时区 / 注释）。**CC 自查逮到 codex 没提的真 bug**：寮監登记宅配搜不了学生（403）→ 新增 `GET /front-desk/students` 专用接口。**第 2 轮 0 阻塞 0 重大收敛**。
-- 验证：后端 321 passed（+3 新测试）/ iOS 双 scheme BUILD SUCCEEDED / 老师网页 tsc 过。**未 push**。AC：模式 2（多 AI 对抗复审 + 不盲信 + 自查逮 bug）⭐顶级 + 调试纪律（方法名坑实测定位）。raw `2026-06-06.md`。
-
-### 2026-06-06 通宵 codex 4 轮对抗复审几个并行会话的混乱改动 by [Opus 4.8 1M · ultracode]
-
-- itsuki 睡前甩几个并行会话累积的混乱未提交改动（iOS 推送/包裹/外出/契約書 + 后端新端点 + 文档），要 CC 通宵审 + 扣 codex + 修 + 审到 codex 没话说 + 早上一次性列。
-- 先建基线（iOS 生产+演示双版本 BUILD SUCCEEDED + 后端 pytest 318）+ 读懂全部未提交改动。CC 自己先挖到**系统性 datetime 解码坑**：dev 用 SQLite，`DateTime(timezone=True)` 读回是无时区裸时间，iOS ISO8601 解码器要带时区 → 公告/申请/晚自习/点呼约 25 个 Date 字段解码整段失败。python + Swift 双实证后，在唯一解码入口 `decodeISO8601Date` 加 UTC 兜底**一处全修**。
-- **codex 5 轮（4 实质 + 1 确认）跑到收敛「0 阻塞 0 重大」**。共修：datetime 解码兜底 / 设备令牌切换用户重报 / 并发注册幂等 / 包裹通知 id 防撞 / **冷启动恢复令牌没同步 APIClient**（Swift `init` 内赋值不触发 `didSet`，自写 Swift 实证 + 代码注释原本写反）/ 宅配登记必填收件人 + 空串归一化。
-- **不盲信 AI 三处**：codex 说 ruff 删了我的 import → 读真文件证实（自己两步 Edit 又踩 ruff 坑）；codex 说 didSet 不触发 → Swift 实测证实 codex 对；codex 说包裹专属页读 SEED → 核实判定「早先半成品非本批 bug」记 TODO 不盲改。
-- 12 commit 全本地**未 push**，全程精确 pathspec、零卷入隔壁活跃会话的 teacher_web tsx。README 顺手刷新到当前版本（去掉原本写死的旧版本号 + 老师网页 Vite 叙述对齐 CHANGELOG）。
-- AC：模式 2（多 AI 对抗复审 + 假设验证）⭐顶级 + 验证纪律。raw `2026-06-05.md` 末尾通宵段。
 
 ## 🤝 多会话占用（避免冲突）
 
