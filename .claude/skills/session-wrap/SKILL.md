@@ -757,7 +757,7 @@ bash ~/.claude/scripts/daily-archive-cp.sh --cwd "$PWD"
 > **背景**：5-22 点呼机推进会话里撞到 5-12~16 中国海关查扣事件 → itsuki 拍板撤回中国海运渠道改日本本地买。CC 主动 propose 写 `05_logs/decision_log.md` 草稿，itsuki 反问「哪个 skill 提醒你写？」+ 拍板「decision_log 专门做一 skill — 我的目标是多方位收集素材」+ 反问「我不是有 ac-radar 了吗」+ 最终拍板「直接放收尾流程里作子节，不做独立 SKILL.md」。
 > 本节 = 不重复 ac-radar（实时短 tag）/ §5.5.1 AC dump（深度叙事）已做的事，只补「按 `decision_log.md` 格式起草决策脉络条目」这一空缺。
 
-**时机**：在 §5.5.7 git commit 之前跑（草稿等 itsuki 粘到 `05_logs/decision_log.md` 顶部之后，跟其他改动一起 commit）。
+**时机**：在 §5.5.7 git commit 之前跑（CC 直接 Edit 完 `decision_log.md`，跟其他改动一起 commit）。
 
 **触发**：每次收尾必跑，不靠关键词。CC 复用 §5.5.0 全量扫描结果识别「重大决策 ≥ 1 条」就触发。如本次会话无重大决策 → 输出「本次无重大决策，§5.5.15 跳过」一行，不出空草稿。
 
@@ -825,8 +825,6 @@ bash ~/.claude/scripts/daily-archive-cp.sh --cwd "$PWD"
 **反模式**：
 
 - ❌ 拿当前会话所有「拍板 / 讨论」都塞 decision_log（不区分「决策」vs「实施细节」）
-- ❌ CC 直接写 `05_logs/decision_log.md` 正文（违反 §6.1）
-- ❌ 起草草稿后默认 itsuki 已粘（不确认就 commit 走人）
 - ❌ 跟 §5.5.1 AC dump 内容大量重复（dump 是叙事，draft 是决策脉络，不一样）
 
 #### 5.5.16 dev-log 工程简报 — 纯工程流水账（2026-06-08 itsuki 拍板复活）
