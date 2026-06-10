@@ -90,7 +90,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `CLAUDE.md` | AI 项目指令权威源（每会话必读） | ✅ | 4-30 沟通规则 #6 升级 |
 | `CHANGELOG.md` | 18 tag 全程 + 版本号单源真值 | ✅ | 教授会看 |
 | `README.md` | 项目对外介绍（4-30 名字 Tomoshibi 定名） | ✅ | 4-29 起 GitHub public |
-| `PROJECT_GUIDE.md` | 给第一次了解 / AI 深入理解整个项目的导览 — 项目是什么 / 5 端结构 / 系统怎么跑通 / 核心业务概念 / 数据模型 / 关键决策 / 阅读顺序 | ✅ | 6-05 扩成深度版 commit `8193dae`（项目心智模型的展开详版）|
+| `PROJECT_GUIDE.md` | 给第一次了解 / AI 深入理解整个项目的导览 — 项目是什么 / 5 端结构 / 系统怎么跑通 / 核心业务概念 + 规则数字速查 / 数据模型 / 关键决策 + 演化时间线 / AI 协作体系 / 阅读顺序。可单文件外发给无仓库的 AI 当「项目老师」用 | ✅ | 6-10 补外发场景（§4.5 规则数字 / §8.5 时间线 / §15 AI 协作体系）；6-05 扩成深度版 |
 | `LICENSE` | All Rights Reserved + AC 后 4 方向评估 | ✅ | 不常改 |
 | `.graphifyignore` | graphify 知识图谱忽略规则（防 vendor 字体污染图谱） | ✅ | |
 | `start-teacher-web.command` | 双击一键：build Vite dist → 后端 8000 托管 dist 到 /teacher/ → 自动开浏览器 | ✅ | 6-08 中文名改英文名（原 `启动老师网站.command`，itsuki 嫌中文名蠢）；6-05 改成 Vite 版（原起前端 8787 托管 src 旧单文件）；6-08 重建 dev 库补 teacher.is_demo 列 + demo 账号 |
