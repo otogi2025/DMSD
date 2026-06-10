@@ -339,7 +339,7 @@
 
 **之前的决策**(隐性 / 长期): CC 在 CLAUDE.md / SKILL.md / 文档同步点等指令文档里习惯加「2026-05-XX 拍板 / 上线 / 新加 / B-XXX 死链修复」类时间戳 / 历史标记 — 以为是「可追溯 + 有上下文」，itsuki 反复看到反感累积
 **新的决策**:
-1. **铁律立项**：指令文档（CLAUDE.md / SKILL.md / `.claude/agents/*.md` / `docs/agents/*.md`）正文不写时间戳 / 历史标记 — 历史归 git log / `05_logs/decision_log.md` / raw / CHANGELOG
+1. **铁律立项**：指令文档（CLAUDE.md / SKILL.md / `.claude/agents/*.md` / `docs/agents/*.md`）正文不写时间戳 / 历史标记 — 历史归 git log / `05_logs/decisions/decision_log.md` / raw / CHANGELOG
 2. **写到 memory**：新建 `~/.claude/projects/-Users-kurekoduki-dev-DMSD/memory/feedback_no_timestamps_in_instruction_docs.md`（跨会话坚持）
 3. **DMSD CLAUDE.md 重写**：247→190 行（A 砍 120 行历史/复制版段 + B 搬 35 行到 dmsd-startup §4 + D 补 70 行参考 QTS 模式 — Skills 继承段 / Hooks 继承段 / 全项目中枢联动 / 沟通规则简版 / Git 段）
 4. WIP 顶部「最后更新」+「最近会话」段时间戳是例外（协调用，本来就是日志性质）

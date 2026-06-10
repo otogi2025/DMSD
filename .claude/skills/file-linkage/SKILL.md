@@ -28,7 +28,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ---
 
-## §1 联动矩阵（24 条规则）
+## §1 联动矩阵（26 条规则 — 真值 = `00_admin/hooks/lib/sync-rules.sh` 的 add_rule 数，两边必须一致）
 
 > **编号说明**（消除困惑）：规则按历史顺序编号、有跳号 —— 没有 Rule 6（早期删过留的空号）,Rule 10-13 是一个条目涵盖 4 条 ios-foundation 组件规则。所以下面编号最高到 **Rule 25**,但实际 `add_rule` 共 **24 条**（以 `sync-rules.sh` 实际条数为准,别被最大编号误导）。
 
@@ -287,6 +287,17 @@ grep -rn "ComponentName" 03_dev/student_ios/v1/TomoshibiApp/Features/
 - 老师网页 `03_dev/teacher_web/v1/src/api/client.js`
 
 **为什么**：itsuki 2026-06-09 拍板「我经常改 API，这个文件必须进联动」。API_CONVENTIONS 是四端共同遵守的契约（URL 命名 / 响应包裹 / 字段风格），改它 = 改契约，四端实装都可能要跟。用 action（每次触发都无条件提醒）而非 must —— 四端是否都要改取决于改了哪条约定，must 的「至少改 1 个就放行」会漏掉「只改约定、各端没跟」。补这条后，「改 API 约定」不再是联动盲点（过去只有 Rule 1/2/21 覆盖 models/routers，约定文档本身无规则）。
+
+### Rule 26: scope-freeze（must — 版本范围冻结链）
+
+**触发**：`01_specs/v1.0_范围冻结决策.md` / `v1.1_范围冻结决策.md` / `v1.2_范围冻结决策.md` 任何一份
+
+**必做动作**：功能在 v1.0 / v1.1 / v1.2 之间挪动时，核对 ——
+- 另外两份范围冻结文件（功能从一个版本挪出，必然挪进另一个版本，两份都要动）
+- `00_admin/v1.0上线缺口看板.html`（v1.0 范围变了，看板上的缺口项跟着变）
+- `00_admin/TODO.md` §A 上线必做层（范围进出 = 必做清单进出）
+
+**为什么**：三份冻结文件 + 缺口看板 + TODO §A 描述的是同一件事（哪些功能挡 v1.0 上线）的五个视图，改一处不改其余 = 范围真值分裂。过去这五个文件零联动保护。
 
 ---
 

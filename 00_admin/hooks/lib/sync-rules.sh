@@ -257,6 +257,13 @@ add_rule \
   'API 全局约定改了 → 核对四端 API 实装是否跟约定一致: 后端 routers/schemas.py + iOS Endpoints/NetworkModels.swift + Android data/network + teacher_web src/api/client.js。itsuki 常改 API,故每次触发都提醒(action)' \
   "action"
 
+add_rule \
+  "scope-freeze" \
+  '^01_specs/v1\.[0-9]+_范围冻结决策\.md$' \
+  '00_admin/v1\.0上线缺口看板\.html,01_specs/v1\.0_范围冻结决策\.md,01_specs/v1\.1_范围冻结决策\.md,01_specs/v1\.2_范围冻结决策\.md,00_admin/TODO\.md' \
+  '范围冻结决策改了(功能在 v1.0/v1.1/v1.2 之间挪动) → 核对: ① 另外两份范围冻结文件(功能从 A 挪出必挪入 B,两份都要动) ② 00_admin/v1.0上线缺口看板.html(v1.0 范围变 = 看板缺口项变) ③ 00_admin/TODO.md §A 上线必做层(范围进出 = 必做清单进出)' \
+  "must"
+
 # ============================================================
 # 函数：check_sync_for_files
 #   输入：参数 = 改过的文件路径列表

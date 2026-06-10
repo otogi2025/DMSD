@@ -620,8 +620,8 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
-| `decision_log.md` | **重大决策正本**（每条 = 决策 + 理由 + 影响 + 事后回看完整格式） | ✅ | 最后 6-10（清扫删除 + 收尾砍会话总结）/ "事后回看"占位待补 |
-| `decision_log_全部.md` | **所有决策流水**（普通 + 重大都记，一条 3-5 行；重大的另在 decision_log.md 有完整版） | ✅ | 6-10 新建（itsuki 拍板「有决策就记，不只重大」）/ 收尾核对表第 3 项强制写 |
+| `decisions/decision_log.md` | **重大决策正本**（每条 = 决策 + 理由 + 影响 + 事后回看完整格式）。6-10 从 05_logs 根移入 decisions/ 子目录 | ✅ | 最后 6-10（清扫删除 + 收尾砍会话总结）/ "事后回看"占位待补 |
+| `decisions/decision_log_全部.md` | **所有决策流水**（普通 + 重大都记，一条 3-5 行；重大的另在 decision_log.md 有完整版） | ✅ | 6-10 新建（itsuki 拍板「有决策就记，不只重大」）/ 收尾核对表第 3 项强制写 |
 | `learning_path.md` | itsuki 学习哲学 + 已走的路 — AC 自我推荐书素材 | ✅ | 最后 4-13 / 4-10 后新学的 NFC / Swift / 硬件未追记 |
 | `project_evolution.md` | 项目重大转折记录（每次 = 转折点 + 起因 + 影响） | ✅ | 4 次已记 / 最后 4-13 / 待补"第 5 次转折" = demo 完成情况 |
 

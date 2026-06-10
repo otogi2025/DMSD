@@ -515,7 +515,7 @@ Step 7: 给 itsuki 列「我从今天对话扫到 N 条素材」清单：
 | AC 价值评分（⭐⭐⭐⭐⭐ 等） | 同上 | 同上 |
 | AC 叙事策略 / 关联度 / 风险 | iCloud `02_学习与知识 / 升学 / 大学入試 / 筑波大学 AC入試 準備 / 03_素材_候选/` | 中枢档案 / DMSD repo |
 | 跨项目协同状态（现状一句话 / 工程事实） | 中枢 `项目档案/<项目>.md` | — |
-| 决策脉络（方向反转 / 架构变化 / 选型变化等 6 类） | `DMSD/05_logs/decision_log.md`（详见 §5.5.15） | — |
+| 决策脉络（方向反转 / 架构变化 / 选型变化等 6 类） | `DMSD/05_logs/decisions/decision_log.md`（详见 §5.5.15） | — |
 
 **例外注脚**：`decision_log.md` 条目末尾写一行「相关：raw/...md（深度 AC 素材 + 模式 X 顶级）」算合法**指针注脚**（指向原始日志），不算把 AC 评分写在 decision_log 主体里 — 不要清。
 
@@ -740,7 +740,7 @@ bash ~/.claude/scripts/daily-archive-cp.sh --cwd "$PWD"
 
 ##### 5.5.14.2 会话总结 / 今日总结 — 已退役
 
-「详细日记式会话总结」「今日总结」两个产出已砍（内容与 raw 详细叙事 + dev_log 工程简报完全重叠，决策见 `05_logs/decision_log.md` 2026-06-10 条目）。触发词「今日总结 / 今天总结 / 写日记」不再产出 iCloud 日记，按 §5.5.0 正常收尾即可。
+「详细日记式会话总结」「今日总结」两个产出已砍（内容与 raw 详细叙事 + dev_log 工程简报完全重叠，决策见 `05_logs/decisions/decision_log.md` 2026-06-10 条目）。触发词「今日总结 / 今天总结 / 写日记」不再产出 iCloud 日记，按 §5.5.0 正常收尾即可。
 
 ##### 5.5.14.3 跟 ac-radar 的并行关系（不冲突）
 
@@ -754,15 +754,15 @@ bash ~/.claude/scripts/daily-archive-cp.sh --cwd "$PWD"
 
 #### 5.5.15 decision-draft — 决策日志草稿起草子流程（2026-05-22 itsuki 拍板加）
 
-> **背景**：5-22 点呼机推进会话里撞到 5-12~16 中国海关查扣事件 → itsuki 拍板撤回中国海运渠道改日本本地买。CC 主动 propose 写 `05_logs/decision_log.md` 草稿，itsuki 反问「哪个 skill 提醒你写？」+ 拍板「decision_log 专门做一 skill — 我的目标是多方位收集素材」+ 反问「我不是有 ac-radar 了吗」+ 最终拍板「直接放收尾流程里作子节，不做独立 SKILL.md」。
+> **背景**：5-22 点呼机推进会话里撞到 5-12~16 中国海关查扣事件 → itsuki 拍板撤回中国海运渠道改日本本地买。CC 主动 propose 写 `05_logs/decisions/decision_log.md` 草稿，itsuki 反问「哪个 skill 提醒你写？」+ 拍板「decision_log 专门做一 skill — 我的目标是多方位收集素材」+ 反问「我不是有 ac-radar 了吗」+ 最终拍板「直接放收尾流程里作子节，不做独立 SKILL.md」。
 > 本节 = 不重复 ac-radar（实时短 tag）/ §5.5.1 AC dump（深度叙事）已做的事，只补「按 `decision_log.md` 格式起草决策脉络条目」这一空缺。
 
 **时机**：在 §5.5.7 git commit 之前跑（CC 直接 Edit 完 `decision_log.md`，跟其他改动一起 commit）。
 
 **触发**：每次收尾必跑，不靠关键词。CC 复用 §5.5.0 全量扫描结果，识别本会话**所有决策（普通 + 重大都记，不只重大）**：
 
-- **普通决策**（实施细节之上的取舍 / 拍板，但够不上下面 6 类重大标准）→ 写 3-5 行短条目进 `05_logs/decision_log_全部.md`（日期 / 决策一句话 / 为什么一句话）
-- **重大决策**（命中下面 6 类）→ 短条目照写进 `decision_log_全部.md`，**另**按完整格式写进 `05_logs/decision_log.md`（重大决策正本）
+- **普通决策**（实施细节之上的取舍 / 拍板，但够不上下面 6 类重大标准）→ 写 3-5 行短条目进 `05_logs/decisions/decision_log_全部.md`（日期 / 决策一句话 / 为什么一句话）
+- **重大决策**（命中下面 6 类）→ 短条目照写进 `decision_log_全部.md`，**另**按完整格式写进 `05_logs/decisions/decision_log.md`（重大决策正本）
 - 本会话一条决策都没有 → 输出「本次无决策，§5.5.15 跳过」一行
 
 **重大决策识别 6 类**（§5.5.0 扫描结果再过一遍）：
@@ -774,7 +774,7 @@ bash ~/.claude/scripts/daily-archive-cp.sh --cwd "$PWD"
 5. **铁律 / 红线落地** — 例：iOS 早期代码扔
 6. **跨端 / 跨项目 / 跨工具的取舍** — 例：5-06 退役独立 repo
 
-**草稿格式**（按 `05_logs/decision_log.md` 顶部模板）：
+**草稿格式**（按 `05_logs/decisions/decision_log.md` 顶部模板）：
 
 ```markdown
 ## YYYY-MM-DD — [决策简述]
@@ -791,11 +791,11 @@ bash ~/.claude/scripts/daily-archive-cp.sh --cwd "$PWD"
 
 **铁律**（CLAUDE.md AC 默认底线 §3 + 本 SKILL §6.1）：
 
-- CC **直接 Edit** `05_logs/decision_log.md` 顶部「## 决策记录(倒序)」段后，按文件顶部模板格式插入新决策
+- CC **直接 Edit** `05_logs/decisions/decision_log.md` 顶部「## 决策记录(倒序)」段后，按文件顶部模板格式插入新决策
 - 不让 itsuki 做粘贴的手活（itsuki 5-26 怒怼「他妈的别让我来做」拍板 — 详见 memory `feedback_no_handoff_work_back_to_itsuki.md`）
 - itsuki 看完不满意会自己改 / 让 CC 改
 
-**输出位置**：普通条目直接写进 `05_logs/decision_log_全部.md` 顶部，重大条目两边都写。收尾报告里只引用「## 2026-XX-XX 决策标题 → 文件名:行号」级别索引让 itsuki 知道写哪了。
+**输出位置**：普通条目直接写进 `05_logs/decisions/decision_log_全部.md` 顶部，重大条目两边都写。收尾报告里只引用「## 2026-XX-XX 决策标题 → 文件名:行号」级别索引让 itsuki 知道写哪了。
 
 **跟 ac-radar / §5.5.1 AC dump 分工**（同份会话上下文，3 种产出，不重叠）：
 
@@ -867,8 +867,8 @@ bash ~/.claude/scripts/daily-archive-cp.sh --cwd "$PWD"
 
 **A 类 — CC 直接 Edit 写（记录类，不让 itsuki 做粘贴手活，2026-05-26 itsuki 怒怼「他妈的别让我来做」拍板反转原「永不直写」规则）**：
 
-- `05_logs/decision_log.md` — 重大决策正本，按文件顶部模板格式 Edit 到「## 决策记录(倒序)」段后
-- `05_logs/decision_log_全部.md` — 所有决策流水（普通 + 重大短条目），Edit 到顶部
+- `05_logs/decisions/decision_log.md` — 重大决策正本，按文件顶部模板格式 Edit 到「## 决策记录(倒序)」段后
+- `05_logs/decisions/decision_log_全部.md` — 所有决策流水（普通 + 重大短条目），Edit 到顶部
 - `05_logs/project_evolution.md` — 按文件现有格式追加
 - `05_logs/learning_path.md` — 按文件现有格式追加
 
@@ -938,7 +938,7 @@ CC 跑完 §5.5 后，**最终收尾报告必须**包含以下 13 项逐条状�
 |---|---|---|
 | 1 | **AC 素材**（详细叙事写 `05_logs/raw/当天.md` + 信号条写 iCloud 共用池自动捕获）| ✅ 写了 + 路径 / ⏸ 本会话无素材 + 显式说明 / ❌ 漏 |
 | 2 | **dev_log 工程简报**（写 `05_logs/dev_log/当天.md`：新增/修改了什么功能、新增/删除了哪些文件、修了什么 bug、跑了什么验证、commit 清单、本会话新增决策一览（一句话 + 指向决策日志），详见 §5.5.16）| ✅ 写了 + 路径 / ⏸ 无工程改动 + 显式说明 / ❌ 漏 |
-| 3 | **决策日志**（本会话**所有决策**都记，不只重大：普通决策 3-5 行短条目进 `05_logs/decision_log_全部.md`；命中 6 类**重大**标准的，短条目照写、**另**写完整条目进 `05_logs/decision_log.md`，详见 §5.5.15）| ✅ 写了 + 条数 / ⏸ 本会话无决策 + 显式说明 / ❌ 漏 |
+| 3 | **决策日志**（本会话**所有决策**都记，不只重大：普通决策 3-5 行短条目进 `05_logs/decisions/decision_log_全部.md`；命中 6 类**重大**标准的，短条目照写、**另**写完整条目进 `05_logs/decisions/decision_log.md`，详见 §5.5.15）| ✅ 写了 + 条数 / ⏸ 本会话无决策 + 显式说明 / ❌ 漏 |
 | 4 | **learning_path / project_evolution**（学了任何新东西 → 追加 `05_logs/learning_path.md`；项目有任何演化（功能加/砍/改、方向变）→ 追加 `05_logs/project_evolution.md`。**不设重大门槛，有就写**）| ✅ 写了 + 文件名 / ⏸ 无新学习且无演化 + 显式说明 / ❌ 漏 |
 | 5 | **WIP / TODO 双向刷新**（详见 §7.5.7 — 强制 Edit TODO.md 落地，不允许只写报告）| ✅ 必须列行号 / ⏸ 极少情况：本会话零任务零产出 |
 | 6 | memory 维护（MEMORY.md 索引 + feedback 写入）| ✅ 检查 + 摘要 / ⏸ 不需要写 / ❌ 漏 |

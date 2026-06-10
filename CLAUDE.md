@@ -90,7 +90,7 @@ git 状态确认（git status / 残留 / 未 push / stash）→ **会话结尾�
 
 1. iCloud `05_产出/` 永不写 — itsuki 原创志望理由书 / 自我推荐书 / 面试准备
 2. iCloud `03_素材_候选/` + `04_素材_成品/` 写需 itsuki 当场授权
-3. `05_logs/decision_log.md` / `project_evolution.md` / `learning_path.md` **CC 直接 Edit 写**（记录类，不让 itsuki 做粘贴手活 — 详见 memory `feedback_no_handoff_work_back_to_itsuki.md`）；AC 叙事文档 + iCloud 仍归 itsuki
+3. `05_logs/decisions/decision_log.md` / `project_evolution.md` / `learning_path.md` **CC 直接 Edit 写**（记录类，不让 itsuki 做粘贴手活 — 详见 memory `feedback_no_handoff_work_back_to_itsuki.md`）；AC 叙事文档 + iCloud 仍归 itsuki
 4. AC 叙事文档 `vX.Y.Z_AC叙事.md` itsuki 自己写，CC 等他来问才辅助，不主动起草
 5. 叙事归属：raw 阶段写「AI 提了 X，我评估后采纳/拒绝/改造，理由是 Y」 — **不写"未完全理解"类自我贬低标记**
 
@@ -124,7 +124,7 @@ git 状态确认（git status / 残留 / 未 push / stash）→ **会话结尾�
 | **version-bump** | 迭代 / bump / 发版本 / 打 tag / 发版 / release | 版本决策树（CC 有否决权）+ 发版 SOP |
 | **new-feature** | 新功能 X / 加 Y / 实装 Z / 做 W | 5 端实装模板（spec→backend→iOS→Android→点呼机）|
 | **spec-sync** | 跨端检查 / 字段对齐 / API 对齐 | backend↔iOS↔Android 字段提取对比 |
-| **file-linkage** | 联动 / 改 A 要查 B / 我改了 X 要查什么 | 文件联动矩阵（17 条规则 + 反向索引）|
+| **file-linkage** | 联动 / 改 A 要查 B / 我改了 X 要查什么 | 文件联动矩阵（条数以 `sync-rules.sh` 为准，不在此硬编码）|
 | **project-overview** | X 文件在哪 / 项目里有 X 类文件吗 / 找文件 | 项目所有文件清单 + 状态 + AC 价值 |
 | **memory-write** | 记一下规则 / 以后这样 / memory 加一条 | memory 写入 SOP（4 类型 / 查重 / 索引）|
 | **codex-review** | codex 审查 / 派 codex 审 / codex 挑刺 / codex 找 bug / 让 codex 审一下（**须带「codex」字样**）| 派 codex（gpt-5.5 xhigh）只读审本会话改动 → CC 逐条裁决 + 修 → 复审 → 跑到收敛 |
