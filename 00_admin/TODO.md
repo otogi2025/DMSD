@@ -6,10 +6,163 @@
 > - 进度叙事看 `CHANGELOG.md` 全版本一览 + `PROJECT_GUIDE.md` §8.5 时间线（原 progress_overview.md 2026-06-10 退役归档,职能被这两处取代）
 > - 完成的任务: 在 checkbox 前打 x,隔段时间(每周或每月)批量移到"已完成归档"
 
-**最后更新**: 2026-06-09（**iOS 上线缺口 11 功能实装 + codex 4 轮对抗复审收敛**：施工图列的第二档🟡+第一档代码项共 11 功能全实装、正式版+演示版双 scheme 编译过、codex 4 轮逐层挖 NFC 取消竞态到 0 阻塞 0 重大，13 commit 全本地未 push，详见 §📱 段顶进度块 + raw/dev_log `2026-06-09`）。早些 2026-06-08（**新增 §📱 iOS 上线缺口盘点**：itsuki 问「iOS 距正式版还差什么」→ 6 维度子代理 + 补漏审 2.2 万行 + CC 自己 grep 复核 3 大阻塞 → 三档分类入 TODO[阻塞 4 / 重要 12 / v1.1 10]+ 1 个待 itsuki 拍板决策「手机点不点呼签到」；最致命：点呼签到正式版纯本地假、不发后端）。早些 2026-06-08 凌晨（**演示账号真隔离 §🔐 段刷新到收敛**：codex 6 轮 0 阻塞 0 重大 + 浏览器端到端自验[demo 老师只看 3 演示学生/真老师只看 2 真实/零交叉]条件 4 端到端成立；🔵 待 itsuki 非阻塞 2 件 = 生产设 env 启用 + `Shell.tsx:612` 右下 DEMO 水印决策 A/B/C；🟡 剩 announcements 回复名 v1.1）。早些 2026-06-07 深夜（个人网站全站 Modal 化 + 部署上线后 §🖥️ 刷新：子页面 Modal 化 ✅ + 删孤儿仪表盘 ✅ 标完成；新增 🟠 `/iq/` 内容与「智商测试」标签对不上待 itsuki 定；剩慶應日期 / 网站定位 / 生成器自动刷新 3 条）。早些 2026-06-07（个人网站 Modal 主页改版后续 5 条入 §🖥️ 段：慶應日期待补 / 子页面是否 Modal 化 / 旧仪表盘.html 删否 / 网站公开 vs 私人定位 / 生成器自动刷新）。早些 2026-06-06 早（itsuki 看通宵报告后反馈 5 件 → 全实装：时区根治[TZDateTime 88字段] + iOS包裹接真后端+demo守卫 + 老师网页宅配选学生 + 前台列表男女寮过滤 + 外出注释 + 自查修寮監挑学生403；派 codex gpt-5.5 xhigh 2 轮复审收敛 0 阻塞 0 重大；后端 321 passed / iOS 双 scheme 过 / 老师网页 tsc 过；§🐞 段刷新标完成 5 + 加 4 条次要/决策留项）。早些 2026-06-06 通宵（codex 4 轮对抗复审几个并行会话改动 → 10 条当场修+提交，§🐞 加 4 条需你决策的留项）。早些 2026-06-05（杭田 13 条标完成 9 条（剩 2 学生增删/7 安卓/11 点呼改判/13 假推送清理）+ 新增 §🚧 老师网页 Vite 迁移 + 邮件 Resend 2 条；代録网页表单本会话做完）。早些 2026-06-04（遗失物 食堂→玄関 + ロビー全删（含掃除约束 + 行事集合点）/ 匿名建議五端代码彻底删除（iOS 6 文件 + Android 5 文件含整屏 + 2 设计日志）/ codex（gpt-5.5 xhigh）审查闭环收敛 0 遗留 / 新增 §🧹 2 条 backlog，详 raw `2026-06-04`）。早些 2026-06-03（**§📱 iOS 上架冲刺段重新校准** — 实测线上后端 `api.tomoshibi.cc` 在线但跑 5-08 骨架版（40 接口 / 本地 61）；itsuki 确认 3 事实：首次上架（5-08 卡 Validate 没提交）+ 开发者账号续费中 + 谷歌云服务器自付费在跑；拍板**公开上架** + 工作流「后端本地做完再一次性部署」+ 三阶段路线；今天 v1.0 功能范围：IX-007 不进 v1.0 往后堆 / 老师退回(差戻) v1.0 必做 / 学習対象字段要做 / 通知子系统完整方案（5 内容源 + push + 设置可关闭））。早些 2026-06-02（点呼机 ST25DV **架构反转**落地 — §R 加「🔄 架构反转后续」4 条（防代刷随反转简化（CC 初判「阻塞」被纠正：手机不联网→旧 nonce 多余）/ 连带 4 文件待简化 / 🟠后端三选一跟老师谈 / 人脸归 v2.0）+ §R 学习任务标进展（跟 Gemini 系统学过一轮）+ 作废「nonce 时间窗回填」任务（反转后 116 天伪问题消失）。详 decision_log + raw `2026-06-02`）。早些 2026-05-31（teacher_web v1.0 + 后端经 codex 5 轮复审收敛 0 blocker/major → 加 §🌐 follow-up 段 5 条：设计文档同步 / NFC 防代刷立项 / push 真投递 / 上线 ops / 低优先清理。详见 raw `2026-05-31_teacher_web_v1.0全实装+codex5轮收敛.md`）。早些 2026-05-30（全项目第二轮审查 — 多代理 workflow + Codex 复核 + 3 补审 → 175 条；§🐞 系统 Bug 专栏段加「2026-05-30 审查 backlog」8 条大工程；修 11 处小 bug commit `6cc5c07`；与 itsuki `/goal` 并行施工会话协调 + 收尾流程改进 session-wrap §7.6.7）。早些 2026-05-29（CC 扫项目推荐自动化 → 加 §🔌「上线时配置」段记 #7 连本地库 / #9 连线上库 / #10 Sentry，等上线提醒；建 Dependabot 依赖监控 + pre-commit 密钥扫描）。早些 2026-05-28 凌晨（跨夜会话 — 主体在 5-27 晚段-3：老师实名账户登录改造 + codex 5.5 xhigh 审查；§🚀-G 加 codex 剩余 4 项 itsuki 决策 / 大工程 + §🚀-D `/community` 行去「匿名建議」字眼跟 spec §7.14 拍板对齐）。早些 5-27 晚段-1 — anti-ai-flavor 双层防御立项会话加 §🛠️ §P 新段 5 条 — iOS 推进延后 / 环境清单 md↔html 同步 / Stop hook 首次实战观察 / 翻车案例库 v1.1 核对 / 5 铁律没升 8 类。起因：itsuki 启动 iOS → CC 报告状态翻车 3 处 → itsuki 主动提「立 hook 强制扫 + 白名单」方向 → 工程实装 3 新文件 + 2 改文件全在 ~/.claude/ 全局目录）。早些 5-27 早段（全项目审查会话加 §🛠️ §N 新段 8 条「全项目审查 backlog」+ 直接修 6 处 Vite 决策漂移 + 物理清 7 个 .DS_Store + git mv `student_ios/_archived_DESIGN_BRIEF_Round1_context.md` 到 99_archive；起因：itsuki 启动「全项目审查 — 每个文件 / 文件关联 / 关联 skill / 内容审查 / project-overview 检查全跑」强调「不要偷懒 + 扫整个项目所有文件 + 不要给我留问题 + 所有问题加 TODO 里」）。早些 5-27 深夜（14 件 TODO 小活批量清：6 件本来就闭合 TODO 没刷状态 / 7 件真做 / 2 件挂起等拍板。详见 WIP.md 顶部「最后更新」概要）。早些 2026-05-26 晚段-4（§🛠️ 加 §L 新段「teacher_web Vite 废弃 + Ryō polish 回滚残留」5 条 — 写 demo_server.py 恢复 NFC 实时点呼 / 系统bug专栏 FC-025/26/27/28 标 N/A / 未来 polish 候选方向 4 个 / WEB_DESIGN_LOG §7+§10 复核 / DESIGN_BRIEF §3-§8 复核；同时改 §🚧 主会话保留 6 条 A-039（vite 验证 N/A → Ryō standalone 直接验证）+ 改 line 888 ✅ S15 标反转（Vite 实装废弃）+ §K「WIP 加本会话条目」标 ✅ 完成；起因：itsuki 启动 teacher_web 推进 + 看到 Vite 实装版怒怼「不是我的 web」拍板「垃圾归档用 B」+ frontend-design polish 试做后整体不喜欢一句「回滚」全退）。早些 5-26 晚段-2（§🛠️ 加 §K 新段「启动 SOP 集中化 + CLAUDE.md 重写残留」5 条 — 全局环境清单同步 / ~/.claude/ git repo propose 强化 / 其他 5 项目启动 skill / sync-check bin-script 警告 / WIP 加本会话条目；起因：dmsd-startup skill 立项 + DMSD CLAUDE.md 247→190 行重写到 QTS 模式 + 6 项目 CLAUDE.md 加沟通铁律「不主动用英语名词」+ destructive-bash 行为约定 + CLAUDE.md 文档观转变（时间戳冗余禁止））。早些 5-25 晚段（§🛠️ J 加 2 条新待办 — 触发词「翻车」首次实战测试 + inbox 累到 3-5 条后写「整理 inbox」SOP；起因：anti-ai-flavor skill 加第 3 触发词「翻车」单字 + 新建 `~/.claude/skills/anti-ai-flavor/inbox.md` — itsuki 收尾中途立项自我迭代机制）；早些更新：2026-05-25（5-25 drift 修 + session-coord 三层保险会话加 §📊 project-overview 历史欠债 2 条 + §🐚 shell 工具链 quirk 1 条 + §🛠️ J 首次创建 6 条）；2026-05-24 5-22 修漏洞会话补 §🎯 D1-D5 + §📁 / §💾 标 ✅ + 加未 push 37 commit；5-22 §🛰️ 点呼机段配件采购方向反转 — 5-12~16 中国海关查扣 → itsuki 拍板撤回中国海运 → 日本本地买 / 原 11 件淘宝清单 + 2 任务作废 / 加 6 条新待办；2026-05-21 加 §🐞 系统 Bug 专栏入口 131 条 / 清 §⏰ Cloud Design 5-12 过期项；2026-05-14 §🛠️ G + H；2026-05-13 §🛠️ E + F；2026-05-11 §📄；2026-05-08 §📱 + §🛰️ + §🐛<!-- VERSION_OK -->
+**最后更新**: 2026-06-10（**新增 §🔍 iOS 全量审查 + 前后端对齐**：itsuki 要全量审 iOS 22543 行 + 前后端对齐 → 26 分片多代理 + 逐条对抗验证，一线 233 条去重发现、验证确认 138 / 推翻 8、86 条因额度用尽未验证标 ⚠️；合并同根因后入 TODO：重大确认 5 组[点呼显示链整条假/点呼中欠席死 UI/三上报无防连点/登录锁定两套口径/体調履歴假病历] + 未验证重大 22 + 次要 44 + 小 12 + 文档契约修正 1[{ok,data} 包络实际不存在、心智模型与 API_CONVENTIONS 要改]；按 6-09 拍板只记录不修；原始数据含验证理由存 `05_logs/raw/2026-06-10_iOS全量审查_原始发现数据.json`）。早些 2026-06-09（**iOS 上线缺口 11 功能实装 + codex 4 轮对抗复审收敛**：施工图列的第二档🟡+第一档代码项共 11 功能全实装、正式版+演示版双 scheme 编译过、codex 4 轮逐层挖 NFC 取消竞态到 0 阻塞 0 重大，13 commit 全本地未 push，详见 §📱 段顶进度块 + raw/dev_log `2026-06-09`）。早些 2026-06-08（**新增 §📱 iOS 上线缺口盘点**：itsuki 问「iOS 距正式版还差什么」→ 6 维度子代理 + 补漏审 2.2 万行 + CC 自己 grep 复核 3 大阻塞 → 三档分类入 TODO[阻塞 4 / 重要 12 / v1.1 10]+ 1 个待 itsuki 拍板决策「手机点不点呼签到」；最致命：点呼签到正式版纯本地假、不发后端）。早些 2026-06-08 凌晨（**演示账号真隔离 §🔐 段刷新到收敛**：codex 6 轮 0 阻塞 0 重大 + 浏览器端到端自验[demo 老师只看 3 演示学生/真老师只看 2 真实/零交叉]条件 4 端到端成立；🔵 待 itsuki 非阻塞 2 件 = 生产设 env 启用 + `Shell.tsx:612` 右下 DEMO 水印决策 A/B/C；🟡 剩 announcements 回复名 v1.1）。早些 2026-06-07 深夜（个人网站全站 Modal 化 + 部署上线后 §🖥️ 刷新：子页面 Modal 化 ✅ + 删孤儿仪表盘 ✅ 标完成；新增 🟠 `/iq/` 内容与「智商测试」标签对不上待 itsuki 定；剩慶應日期 / 网站定位 / 生成器自动刷新 3 条）。早些 2026-06-07（个人网站 Modal 主页改版后续 5 条入 §🖥️ 段：慶應日期待补 / 子页面是否 Modal 化 / 旧仪表盘.html 删否 / 网站公开 vs 私人定位 / 生成器自动刷新）。早些 2026-06-06 早（itsuki 看通宵报告后反馈 5 件 → 全实装：时区根治[TZDateTime 88字段] + iOS包裹接真后端+demo守卫 + 老师网页宅配选学生 + 前台列表男女寮过滤 + 外出注释 + 自查修寮監挑学生403；派 codex gpt-5.5 xhigh 2 轮复审收敛 0 阻塞 0 重大；后端 321 passed / iOS 双 scheme 过 / 老师网页 tsc 过；§🐞 段刷新标完成 5 + 加 4 条次要/决策留项）。早些 2026-06-06 通宵（codex 4 轮对抗复审几个并行会话改动 → 10 条当场修+提交，§🐞 加 4 条需你决策的留项）。早些 2026-06-05（杭田 13 条标完成 9 条（剩 2 学生增删/7 安卓/11 点呼改判/13 假推送清理）+ 新增 §🚧 老师网页 Vite 迁移 + 邮件 Resend 2 条；代録网页表单本会话做完）。早些 2026-06-04（遗失物 食堂→玄関 + ロビー全删（含掃除约束 + 行事集合点）/ 匿名建議五端代码彻底删除（iOS 6 文件 + Android 5 文件含整屏 + 2 设计日志）/ codex（gpt-5.5 xhigh）审查闭环收敛 0 遗留 / 新增 §🧹 2 条 backlog，详 raw `2026-06-04`）。早些 2026-06-03（**§📱 iOS 上架冲刺段重新校准** — 实测线上后端 `api.tomoshibi.cc` 在线但跑 5-08 骨架版（40 接口 / 本地 61）；itsuki 确认 3 事实：首次上架（5-08 卡 Validate 没提交）+ 开发者账号续费中 + 谷歌云服务器自付费在跑；拍板**公开上架** + 工作流「后端本地做完再一次性部署」+ 三阶段路线；今天 v1.0 功能范围：IX-007 不进 v1.0 往后堆 / 老师退回(差戻) v1.0 必做 / 学習対象字段要做 / 通知子系统完整方案（5 内容源 + push + 设置可关闭））。早些 2026-06-02（点呼机 ST25DV **架构反转**落地 — §R 加「🔄 架构反转后续」4 条（防代刷随反转简化（CC 初判「阻塞」被纠正：手机不联网→旧 nonce 多余）/ 连带 4 文件待简化 / 🟠后端三选一跟老师谈 / 人脸归 v2.0）+ §R 学习任务标进展（跟 Gemini 系统学过一轮）+ 作废「nonce 时间窗回填」任务（反转后 116 天伪问题消失）。详 decision_log + raw `2026-06-02`）。早些 2026-05-31（teacher_web v1.0 + 后端经 codex 5 轮复审收敛 0 blocker/major → 加 §🌐 follow-up 段 5 条：设计文档同步 / NFC 防代刷立项 / push 真投递 / 上线 ops / 低优先清理。详见 raw `2026-05-31_teacher_web_v1.0全实装+codex5轮收敛.md`）。早些 2026-05-30（全项目第二轮审查 — 多代理 workflow + Codex 复核 + 3 补审 → 175 条；§🐞 系统 Bug 专栏段加「2026-05-30 审查 backlog」8 条大工程；修 11 处小 bug commit `6cc5c07`；与 itsuki `/goal` 并行施工会话协调 + 收尾流程改进 session-wrap §7.6.7）。早些 2026-05-29（CC 扫项目推荐自动化 → 加 §🔌「上线时配置」段记 #7 连本地库 / #9 连线上库 / #10 Sentry，等上线提醒；建 Dependabot 依赖监控 + pre-commit 密钥扫描）。早些 2026-05-28 凌晨（跨夜会话 — 主体在 5-27 晚段-3：老师实名账户登录改造 + codex 5.5 xhigh 审查；§🚀-G 加 codex 剩余 4 项 itsuki 决策 / 大工程 + §🚀-D `/community` 行去「匿名建議」字眼跟 spec §7.14 拍板对齐）。早些 5-27 晚段-1 — anti-ai-flavor 双层防御立项会话加 §🛠️ §P 新段 5 条 — iOS 推进延后 / 环境清单 md↔html 同步 / Stop hook 首次实战观察 / 翻车案例库 v1.1 核对 / 5 铁律没升 8 类。起因：itsuki 启动 iOS → CC 报告状态翻车 3 处 → itsuki 主动提「立 hook 强制扫 + 白名单」方向 → 工程实装 3 新文件 + 2 改文件全在 ~/.claude/ 全局目录）。早些 5-27 早段（全项目审查会话加 §🛠️ §N 新段 8 条「全项目审查 backlog」+ 直接修 6 处 Vite 决策漂移 + 物理清 7 个 .DS_Store + git mv `student_ios/_archived_DESIGN_BRIEF_Round1_context.md` 到 99_archive；起因：itsuki 启动「全项目审查 — 每个文件 / 文件关联 / 关联 skill / 内容审查 / project-overview 检查全跑」强调「不要偷懒 + 扫整个项目所有文件 + 不要给我留问题 + 所有问题加 TODO 里」）。早些 5-27 深夜（14 件 TODO 小活批量清：6 件本来就闭合 TODO 没刷状态 / 7 件真做 / 2 件挂起等拍板。详见 WIP.md 顶部「最后更新」概要）。早些 2026-05-26 晚段-4（§🛠️ 加 §L 新段「teacher_web Vite 废弃 + Ryō polish 回滚残留」5 条 — 写 demo_server.py 恢复 NFC 实时点呼 / 系统bug专栏 FC-025/26/27/28 标 N/A / 未来 polish 候选方向 4 个 / WEB_DESIGN_LOG §7+§10 复核 / DESIGN_BRIEF §3-§8 复核；同时改 §🚧 主会话保留 6 条 A-039（vite 验证 N/A → Ryō standalone 直接验证）+ 改 line 888 ✅ S15 标反转（Vite 实装废弃）+ §K「WIP 加本会话条目」标 ✅ 完成；起因：itsuki 启动 teacher_web 推进 + 看到 Vite 实装版怒怼「不是我的 web」拍板「垃圾归档用 B」+ frontend-design polish 试做后整体不喜欢一句「回滚」全退）。早些 5-26 晚段-2（§🛠️ 加 §K 新段「启动 SOP 集中化 + CLAUDE.md 重写残留」5 条 — 全局环境清单同步 / ~/.claude/ git repo propose 强化 / 其他 5 项目启动 skill / sync-check bin-script 警告 / WIP 加本会话条目；起因：dmsd-startup skill 立项 + DMSD CLAUDE.md 247→190 行重写到 QTS 模式 + 6 项目 CLAUDE.md 加沟通铁律「不主动用英语名词」+ destructive-bash 行为约定 + CLAUDE.md 文档观转变（时间戳冗余禁止））。早些 5-25 晚段（§🛠️ J 加 2 条新待办 — 触发词「翻车」首次实战测试 + inbox 累到 3-5 条后写「整理 inbox」SOP；起因：anti-ai-flavor skill 加第 3 触发词「翻车」单字 + 新建 `~/.claude/skills/anti-ai-flavor/inbox.md` — itsuki 收尾中途立项自我迭代机制）；早些更新：2026-05-25（5-25 drift 修 + session-coord 三层保险会话加 §📊 project-overview 历史欠债 2 条 + §🐚 shell 工具链 quirk 1 条 + §🛠️ J 首次创建 6 条）；2026-05-24 5-22 修漏洞会话补 §🎯 D1-D5 + §📁 / §💾 标 ✅ + 加未 push 37 commit；5-22 §🛰️ 点呼机段配件采购方向反转 — 5-12~16 中国海关查扣 → itsuki 拍板撤回中国海运 → 日本本地买 / 原 11 件淘宝清单 + 2 任务作废 / 加 6 条新待办；2026-05-21 加 §🐞 系统 Bug 专栏入口 131 条 / 清 §⏰ Cloud Design 5-12 过期项；2026-05-14 §🛠️ G + H；2026-05-13 §🛠️ E + F；2026-05-11 §📄；2026-05-08 §📱 + §🛰️ + §🐛<!-- VERSION_OK -->
 **当前版本**: 见 `CHANGELOG.md` 顶部 · 单源真值，见 `00_admin/文档同步点清单.md`
 
 > **2026-04-17 归档说明**：`executable_dev_checklist.md` 已归档到 `99_archive/2026-04-12_executable_dev_checklist.md`（内容已过期，功能被本 TODO.md 吸收）。
+
+---
+
+## 🔍 2026-06-10 iOS 全量审查 + 前后端对齐（26 分片多代理 + 对抗验证 — 额度中断提前收口）
+
+> **背景**：itsuki 要「审查所有 iOS 代码 + 前端后端对齐」。13 个代码审查分片（全量 22543 行 Swift）+ 13 个接口域对齐代理，一线报 233 条去重发现 → 逐条对抗验证（重大 3 票多数决）。**额度两次用尽 itsuki 喊停**：146 条完成验证（确认 138 / 推翻 8，误报率约 5%）、**86 条没来得及验证**（大概率为真但未核实，标 ⚠️）。已跟 §🔍 6-09 / §📱 上线缺口去重，同根因多处合并。按 itsuki 6-09 拍板：**只记录不当场修**。
+> 原始数据（含每条验证理由）：`05_logs/raw/2026-06-10_iOS全量审查_原始发现数据.json`。验证缓存还在，下次想补验 86 条可续跑。
+
+### 🔴 重大 — 已验证确认（5 组）
+
+- [ ] **R-1 点呼显示链整条是假的（生产版）** — ① 签到弹窗永远显示「点呼時間外です」警示，真点呼时段也显示（`HomeStubs.swift:1247-1267`）② 签到成功后硬编码「時間内」判定，迟到学生也被告知时间内（`HomeStubs.swift:1413,1524-1528` + `AppStore.swift:547-564` recordCheckin 本地恒写時間内）③「我的页」点呼详情開始/締切时刻写死 07:00/21:00 跟 spec 点呼时刻表全不符（`MyPageStubs.swift:1300-1306`）。根因：iOS 没有从后端拉「点呼时间窗 + 判定结果」的链路。
+- [ ] **R-2 点呼中/欠席状态 UI 是死件** — rollState 的 .active/.absent 全工程零写入点，点呼倒计时 hero/遅刻/欠席卡片、卡上快捷按钮在两种构建里都永不出现（`HomeStubs.swift:596-715,824-858` + `AppStore.swift:344-345,585-587` 无推送源）。
+- [ ] **R-3 三个点呼上报弹窗无防连点** — 体調報告/欠席申請/その他 提交无在途守卫，慢网下连点必产生重复上报（`HomeStubs.swift:2125-2327`）。
+- [ ] **R-4 登录锁定 iOS 与后端两套口径** — 本地 5 段阶锁定纯内存假戏：杀 app 计数清零、「永久ロック」假的且无出口（`AuthStubs.swift:1830-1846`）；后端真锁 HTTP 423 / 账号停用 403 反而没特判、显示成「サーバーエラー」（`AuthStubs.swift:1762-1773` + `APIClient.swift:108-115`）。
+- [ ] **R-5 体調報告履歴整页显示假病历**（验证 1 票通过、票不全）— `MyPageStubs.swift:1867-1911` 整页无 #if DEMO、无后端拉取，生产学生打开看到假人发烧 38 度记录当自己健康史。M-1 族之外的新站点。
+
+### ⚠️ 重大 — 未验证（额度中断没跑完验证，修之前先逐条核实代码；合并后 22 条）
+
+**注册/登录簇**
+- [ ] 注册密码长度三层不一致：UI 提示 8+ / 客户端校验放行 6 位 / 后端要求 8+，6-7 位密码最后一步必失败且只见笼统「入力エラー」（`NetworkModels.swift:295-297` + `AuthStubs.swift:1329-1335`）【对齐类】
+- [ ] 注册完成页生产分支直读 SEED.user，显示假名假账号番号（`AuthStubs.swift:1471-1489`）
+- [ ] 房号字母前缀两处衍生（同根因的已验证条见 Y-4）：输「M205」寮号推断错（`AppStore.swift:47-51`）；字母开头房号直发后端必 422（`AuthStubs.swift:896-905`）【对齐类】
+- [ ] 登录页「メール」tab 生产可见但后端无邮箱登录端点，永远拒绝登录（`AuthStubs.swift:1686-1729`；配套文案条已验证见 Y-37）【对齐类】
+- [ ] 注册 Step1「写真を選択」生产死按钮（`AuthStubs.swift:729-746`）
+
+**申请表单簇**
+- [ ] StayForm 出寮届提交无防连点：双击创建两份申请、双发审批邮件（`ApplyStubs.swift:963-965`）
+- [ ] 「下書き保存」纯假动作：弹成功 toast 什么都不存、「下書き」tab 生产永远空、用户表单数据丢失（`ApplyStubs.swift:841-843,1833-1847`）
+- [ ] 修改届可把宿泊先清成空数组绕过后端「至少 1 件」约束 + 多条滞在先被压成 1 条丢地址电话（`StayListStubs.swift:1215-1218,1539-1543`）【对齐类】
+- [ ] 行事企画/冷蔵庫/物品所持三表单无防连点，重复点击写入重复申请（`DormLifeForms.swift:147-153,404-411,630-638`）
+- [ ] 修繕/来訪/代理受取提交后进黑洞：无一览/详情/撤回入口（`ApplyStubs.swift:124-131,1946-2002`；其中「后端 GET /misc-requests/mine 有、iOS 没接」这半已验证 → Y-10）
+- [ ] 来訪者表单来訪日默认写死过去日期 2026-04-25，可原样提交、后端不拦（`ApplyStubs.swift:1571-1572,1714-1718`）
+- [ ] 列表加载失败的错误文案算出来但从不显示，网络失败渲染成「申請はありません」假空态——已知「6 列表假空态」范围再扩大：StayList（`StayListStubs.swift:401,441-447,494-501`）+ DormLife 三列表（`DormLifeForms.swift:218-256`）+ オンライン学習一覧（`StudyOnlineForm.swift:364-402`）+ 宅配页（`CommunityStubs.swift:319-339`）
+
+**社区/行事簇**
+- [ ] 遗失物投稿整链路死件：投稿页无任何导航入口 + 后端只收学生令牌 → 生产没有任何端能写遗失物表、列表永远空（`CommunityStubs.swift:567,706-848`）【对齐类】
+- [ ] MusicNewView/LostNewView 投稿无防连点重复 POST（`CommunityStubs.swift:1242-1271,818-848`）
+- [ ] 活動カレンダー整页（EventsView）生产读 SEED 假行事 + 日历硬编码 2026 年 4/5 月（`CommunityStubs.swift:1446-1659`）
+- [ ] 行事详情生产无处可看（description/结束时刻全程不可达、行尾箭头死按钮）——比已知 #2（EventDetailView 下标越界）范围更大（`ScheduleStubs.swift:119-125,280-308,394-401`）
+- [ ] 巴士便 visible_to（性别/寮限定可见范围）两侧都不执行：iOS 映射后不过滤、后端也不过滤——女生能看到男生专用便（`BusListStubs.swift:144,183-195` + `bus_routes.py:52-78`）【对齐类】
+
+**学習（晚自习）簇**
+- [ ] 整链路生产闭死：studyState 无数据源恒 idle + isStudyTarget 硬编 false（被老师列入名簿的学生 app 里永远「学習対象外」，且该标记无任何传输路径）+ 学習履歴丢弃后端已返回的 study_checkins（`AppStore.swift:291,595-603,770-778` + `MyPageStubs.swift:2471`）【对齐类】
+
+**推送/账号簇**
+- [ ] 生产登出不清 pushNotifications：前一个用户的推送（含減点/申請隐私）残留给下一个登录者（`AppStore.swift:102-122`）
+- [ ] 登出不撤销设备令牌、后端无撤销端点：已登出设备继续收旧用户隐私推送（`device_tokens.py:26-35`）【对齐类】
+- [ ] 后端 send_push 零业务调用点：设备令牌收了存了，但没有任何业务事件触发推送——推送链路后端侧也是断的（`app/services/push.py:114-122`）【对齐类】
+- [ ] 個人情報页生产显示「生年月日: (0 歳)」：/me 不含生日但行照渲染（`MyPageStubs.swift:648`）【对齐类】
+
+**演示构建反向漏洞 + 组件**
+- [ ] 演示构建直打真后端（跟「生产读 SEED」相反方向的同类病）：StudyOnlineForm 全文件 / submitStudyLeave / DormLifeForms 6 调用点都没有 #if DEMO 分支（`StudyOnlineForm.swift:286-330` + `AppStore.swift:630-667` + `DormLifeForms.swift:243-256`）
+- [ ] PageHeader 长按弹面包屑松手时返回按钮动作同时触发，导航双触发（`PageHeader.swift:28-52`）
+
+### 🟡 次要 — 已验证确认（合并同根因后 44 条）
+
+**前后端对齐类（14）**
+- [ ] Y-1 APIClient 不解析 FastAPI 默认 422 数组形 detail——所有 Pydantic 校验错（时刻倒挂/字段超长/邮箱非法等）一律退化成笼统「入力エラー」，用户不知道错哪（`APIClient.swift:243-268`；6 个代理各自撞到，影响所有表单）
+- [ ] Y-2 注册码有效期文案失配：iOS 对学生显示「5 分钟有效」，后端真值 30 分钟（用户可见文案 `AuthStubs.swift:2053`；注释同病 `NetworkModels.swift:261` / `AuthAPI.swift:34`）
+- [ ] Y-3 注册客户端漏邮箱格式校验（连 trim 都没有），无效邮箱拖到后端 EmailStr 422 才报笼统错（`NetworkModels.swift:289-291` + `AuthStubs.swift:1275-1283`）
+- [ ] Y-4 房号首位字母不加 M/W 前缀直送，后端只认 M/W → 必 422（`AppStore.swift:38-42`）
+- [ ] Y-5 点呼上报正文 iOS 不限字数，后端上限 2000 字，超长 422 不可读（`HomeStubs.swift:2143-2153`）
+- [ ] Y-6 通知中心包裹卡把 expired/discarded 两个后端状态映射成「荷物が届いています」（`AppStore.swift:966-976`）
+- [ ] Y-7 profile 接口 limit 封顶 100 且无分页，点呼履历只覆盖约 7 周，撑不起注释声称的「12 个月」（`StudentProfileAPI.swift:41-46`）
+- [ ] Y-8 学習卡 TODO 注释指向的 /study/today/state、/study/attendance/mine 两端点后端不存在（`AppStore.swift:599,771`）
+- [ ] Y-9 推送 payload「type」键契约只写在 iOS 侧，后端 payload 构造与 schemas 均无此约定（`TomoshibiApp.swift:107`）
+- [ ] Y-10 杂项申请一览 GET /misc-requests/mine 后端有、iOS 没调——学生提交后在 app 里看不到状态（`misc_requests.py:50-52`）
+- [ ] Y-11 指导记录开示请求 POST /students/{id}/guidance/disclosure-request 后端有、iOS 无入口（`guidance.py:175-184`）
+- [ ] Y-12 AnnouncementsAPI.deleteReply 有后端有包装、无界面入口——学生删不了自己的回复（`AuthAPI.swift:98-104`）
+- [ ] Y-13 老师代录动作 application.submit_by_teacher iOS 没映射，学生履历显示英文原始串（`StayListStubs.swift:1777-1786`）
+- [ ] Y-14 EventItem.id 用「日期+标题」拼接、丢弃后端真 UUID，同日同名行事撞 id（`ScheduleStubs.swift:270,388-403` + `SeedModels.swift:134-137`）
+
+**错误处理/三态缺失（9）**
+- [ ] Y-15 AppStore 的 loadXxx 系列把 401 吞成普通失败：不清令牌、不跳登录（`AppStore.swift:1001-1091`）
+- [ ] Y-16 loadMe 扣分汇总 try? 静默吞错——拉失败时扣分/迟到/缺席数恒显 0 当真值（`AppStore.swift:216-220`）
+- [ ] Y-17 通知中心三个数据源拉取全部吞错、无三态（`AppStore.swift:1131-1137,989-991,458-460`）
+- [ ] Y-18 荷物受取履歴吞错后显示「なし」（`MyPageStubs.swift:2107-2109`）
+- [ ] Y-19 提出済み一覧（在线学习）网络故障显示假空态（`StudyOnlineForm.swift:364-402`）
+- [ ] Y-20 公告一覧/详情失败态只有一行字无重试按钮 + 每次进入全屏转圈盖住已有缓存（`HomeStubs.swift:2638-2647,2797-2806`）
+- [ ] Y-21 首页点歌/遗失物卡失败显示假空态「0 件」（`HomeStubs.swift:1076-1148`）
+- [ ] Y-22 点歌/遗失物提交失败吞掉后端具体错误、401 不清令牌（`CommunityStubs.swift:844,979,1267`）
+- [ ] Y-23 列表 .task 被取消时误弹「通信エラー」toast 到下一个页面（`DormLifeForms.swift:250-253`）
+
+**令牌守卫家族（1 条总）**
+- [ ] Y-24 「令牌为空不发请求」守卫缺失是全局性问题——已知 #9 只记了 submitOuting 1 处，实际 25+ 处：AppStore 10 处（451,464,473,497,633,676,981,1001,1022,1043）/ StudyAPI 全部 6 调用 / DormLifeForms 6 处 / CommunityStubs 2 处（834-837,1257-1260）/ HomeStubs 三上报（2150-2160）/ ApplyListView.load（`ApplyStubs.swift:116-145`）；另 StayForm.submitAsync 成功路径缺在途切号守卫（`ApplyStubs.swift:1074-1076`）。建议做成统一入口一次修。
+
+**生产分支假数据/死件（12）**
+- [ ] Y-25 StayList 生产保留「未登录显 Mock」回退 + 带非 UUID id 进详情/编辑走 mock 假数据假提交（`StayListStubs.swift:767-777,1271-1280,1509-1522`）
+- [ ] Y-26 审计履历转换器读 SEED.user.name——loadMe 失败窗口操作人显示假名「リュウ イヒ」（`StayListStubs.swift:1764`）
+- [ ] Y-27 行事/巴士 load() 未登录回退 SEED.events / BusListMock，假数据无守卫编进生产二进制（`ScheduleStubs.swift:91-95` + `BusListStubs.swift:276-279`）
+- [ ] Y-28 処分履歴页是写死的静态空态，恒显「処分歴はまだありません」（`MyPageStubs.swift:1843`）
+- [ ] Y-29 EventDetailView「カレンダーに追加」生产假动作只弹 toast 不写日历（`CommunityStubs.swift:1733-1735`）
+- [ ] Y-30 LostNewView 三件套：「画像」标必填但是死控件 / 拾得日時硬编码 2026-04-22 15:00 / 必填红星不校验留空可提交（`CommunityStubs.swift:706-781`）
+- [ ] Y-31 通知中心过滤 pill 与生产类型不匹配：公告无法筛、「活動」pill 永远空（`CommunityStubs.swift:98-106`）
+- [ ] Y-32 変更履歴只存内存重启即丢，注释承诺「从后端拉」未实装（`MyPageStubs.swift:714-756` + `AppStore.swift:368-376`）
+- [ ] Y-33 修繕表单「写真を追加（任意）」纯装饰死控件（`ApplyStubs.swift:1765-1779`）
+- [ ] Y-34 ApplyPreviewView 假提交无守卫：写死申请人「Nishimura Aoi」+ 不调后端直接报成功（`ApplyStubs.swift:2030-2118`）
+- [ ] Y-35 GenericApplyForm 收集字段提交丢弃：外出「交通手段/連絡先」、来訪者必填「帰寮予定時刻/連絡先」都不发后端，学生填的信息静默丢（`ApplyStubs.swift:1726-1737,1788-1792,1916-1923,1980-1985`）
+- [ ] Y-36 SongReportSheet（点歌举报）无守卫编进生产：读 SEED.songs + 假封禁模拟（`CommunityStubs.swift:1781-1798`）
+
+**表单交互（5）**
+- [ ] Y-37 注册完成页文案承诺「可用邮箱登录」与实际功能不符（`AuthStubs.swift:1497`）
+- [ ] Y-38 StudyAbsenceForm 提出无防连点，第二发 422 弹在完成页上（`ApplyStubs.swift:1510-1547`）
+- [ ] Y-39 連絡先・部屋編集「保存する」无在途守卫：连点重复 PATCH 且 router.back() 弹两层（`MyPageStubs.swift:975-990`）；修改届提交无视觉反馈 isSubmitting 不禁用按钮（`StayListStubs.swift:1462-1475`）
+- [ ] Y-40 StayForm 必填校验不 trim：纯空格绕过「理由」必填原样发后端（`ApplyStubs.swift:528,542-544,1014`）
+- [ ] Y-41 編集页预填只在 onAppear 跑一次，资料未到时把占位「—」填进邮箱/电话不回填（`MyPageStubs.swift:876`）
+
+**时区/历法（3）**
+- [ ] Y-42 公告/学习完成时刻格式化没固定 Asia/Tokyo——手机时区非日本的留学生看到的时间偏移（`HomeStubs.swift:2924-2972,1966-1971,2749-2758`）
+- [ ] Y-43 combineDateAndTimeISO 用设备时区拼合实施日时（同文件 formatYMD 已修固定 JST、此函数漏改）（`ApplyFormSupport.swift:107-120`）
+- [ ] Y-44 Calendar.current 和暦坑两处：系统设和暦时「今月の点呼」统计全归零（`MyPageStubs.swift:35-38`）+ 減点グラフ 12 个月曲线全 0（`MyPageStubs.swift:1656-1665`）
+
+**导航/状态/组件（10）**
+- [ ] Y-45 注册各步「戻る」用 router.go() 压栈而非 back()，导航栈无限增长（`AuthStubs.swift:1133/1279/1403/2125`）
+- [ ] Y-46 401 踢回登录页时全局 sheet/breadcrumb 浮层不关闭，盖在登录页上且可能残留前用户内容（`RootView.swift:47-51`）
+- [ ] Y-47 OutingDetailView 401 只 router.back() 不跳登录，同文件其他 401 处理不一致（`ApplyStubs.swift:2697-2699`）
+- [ ] Y-48 showToast 不取消上一个清除任务——连续两条 toast 第二条被提前抹掉（`AppStore.swift:523-531`）
+- [ ] Y-49 NFCTagReaderSession 创建失败（init? 返回 nil）时 continuation 永不恢复，签到 Task 永久挂起（`ST25DVWriter.swift:66-72`）
+- [ ] Y-50 生产 UI 文案混简体中文：「学号」（`AuthStubs.swift:1727`）/ FeedbackSheet「反馈」、学习卡「請假」「签到」（`HomeStubs.swift:2018,2024,407,482,499`）
+- [ ] Y-51 巴士日分组头把当日首条班次 note 当整组标题，其余 note 永不显示（`BusListStubs.swift:198-205,371-377`）
+- [ ] Y-52 承认时附带的 comment 被当差戻警告红卡显示（`StayListStubs.swift:720-722,1039-1063`）
+- [ ] Y-53 SEED.user 用 nonisolated(unsafe) 全局可变变量承载生产真实用户数据、并发检查显式关闭（`SEED.swift:32`）；User.placeholder 缺省 isStudyTarget/isOverseas=true，拉失败窗口普通学生渲染成「学習対象+留学生」（`SeedModels.swift:24-36`）
+- [ ] Y-54 downloadOnlineContract 绕过 APIClient 用 URLSession.shared：无 15 秒超时、base URL 规则手抄第二份（`StudyAPI.swift:79-112`）；GlassSheet onClose 声明从未调用 9 处死回调（`GlassSheet.swift:8`）；ContractFilePicker photoItem 不复位、删附件后重选同照片无反应（`ContractFilePicker.swift:69-73`）；TArea 的 TextEditor 没设 .scrollContentBackground(.hidden) 自定义底色被盖（`Field.swift:80-101`）；前台点推送横幅同条通知重复插入两次（`TomoshibiApp.swift:82-99`）
+
+### ⚪ 小 — 已验证确认（合并后 12 条）
+
+- [ ] X-1 注释漂移合集：`Route.swift:2`「32 case」实际 54 / `StayListStubs.swift:8-11` mock 承认链与 approval_chain.py 漂移 / `ApplyStubs.swift:1576` 外出表单「纯演示桩」注释失实（出租车时刻已真发后端）/ `StudyAPI.swift:4-9` 文件头只列 1/6 端点 / `SeedModels.swift:6` account 注释 4 位实际 6 位 / `GlassCard.swift:4-5` 写「iOS 26 不降级」与 iOS 16 决策矛盾 / `ScheduleStubs.swift:372-377` fetchRange 注释「今年」代码取去年 / `StudyOnlineForm.swift:504-507` 契約書 409 注释分支不可达 / `AppStore.swift:979-987` loadXxx 注释自称带守卫实际没有
+- [ ] X-2 死代码合集：MealCheckbox（`ApplyStubs.swift:1377-1399`）/ Array.subscript(safe:)（`StudyOnlineForm.swift:549-553`）/ OnboardingView+PwResetView 无导航入口（`AuthStubs.swift:210-326,1932-1993`，PwReset 还混中文「後台」）/ Ic 图标 13 个零引用含已砍寮ウォール残留（`Ic.swift:16-40`）/ IOSStatusBar 假状态栏（`IOSStatusBar.swift:6-23`）/ SpecialBusRoute.isNext 死字段（`BusListStubs.swift:60-217`）/ ApplyKindMapper study_absence 死条目（`ApplyKindMapper.swift:14`）/ BusListStubs 401「セッション切れ」死文案（`BusListStubs.swift:284-290`）
+- [ ] X-3 日语注释违反中文铁律（新文件，非老 Stub 豁免范围）：`APIClient.swift:2-40` 等网络层 3 文件 / `ApplyKindMapper.swift` 全文 / BreadcrumbOverlay + BottomNav
+- [ ] X-4 App 内显示版本 AppVersionTag 写死 0.15.0、与 project.yml 双源维护且已落后（`TTokens.swift:103-111`）<!-- VERSION_OK -->
+- [ ] X-5 RollCallAPI.checkin 包装的端点要老师令牌、学生调必 403（`RollCallAPI.swift:20-28`；验证代理间有分歧：一票认为「保留给方案 B」前提还成立，待硬件联调时一并定）
+- [ ] X-6 点歌卡 artist 空时显示「曲名 · 」尾巴分隔符（`HomeStubs.swift:1083`）
+- [ ] X-7 タクシー予約时刻原样显示「HH:MM:SS」带秒（`StayListStubs.swift:74,987-989`）
+- [ ] X-8 audit 子请求 catch-all 把 401 当非致命吞、不清令牌（`StayListStubs.swift:786-794`）
+- [ ] X-9 详情页「セッション ID」是前端拼的假 ID，后端真 session_id 解码了不用（`MyPageStubs.swift:1277-1281`）
+- [ ] X-10 PrimaryButton destructive 分支优先于 disabled，禁用的红按钮仍显示可点外观（`PrimaryButton.swift:28-44`）；PageHeader 打开面包屑没包 withAnimation 硬切（`PageHeader.swift:46-51`）；ToastView 全屏 frame 没关命中测试、显示 2.2 秒内挡下方点击（`Toast.swift:9-19`）
+- [ ] X-11 后端有 iOS 没接（信息性）：点呼上报履历 GET /rollcall/reports/mine 只写不读，学生上报后无处回看（`rollcall.py:818-820`）/ 登出 DELETE /sessions/current 不调、只清本地令牌（`auth.py:215-227`）/ 巴士单条详情不调（影响为零）
+- [ ] X-12 未验证的小问题残余（额度中断，列标题备查）：后台/杀进程期间到达的推送不点横幅就进不了通知中心 + 重启清零（`TomoshibiApp.swift:80-99`）/ 三投稿表单无长度上限校验撞后端 max_length（`schemas.py:1150-1205`）/ breadcrumb 跳级按值匹配、栈里有重复路由时跳错层（`BreadcrumbOverlay.swift:58-70`）
+
+### 📄 文档契约修正（CC 已亲自 grep 核实，非代理转述）
+
+- [ ] **{ok,data} 响应包络实际不存在** — 后端 29 个路由全部直接返回数据模型（全局 grep 仅 main.py 健康检查返回 {"status":"ok"}），iOS 也直接解码，**两侧代码一致没毛病**；但 `00_admin/项目心智模型.md` §3 第 1 条 + `01_specs/API_CONVENTIONS.md` 仍把包络写成契约 → 改文档对齐现实（真要包络则两侧大改，不建议）。
+
+### ❌ 对抗验证推翻的 8 条（列出防以后重复报）
+
+点呼详情查不到记录回退「時間内 朝点呼」/ RouterStore.go 无防重复推入 / ApplyKindMapper 日语注释（与 X-3 重复报的变体被判重复）/ 公告页无 #if DEMO 演示必报错 / loadCleaningHistory 缺守卫 / RollCallAPI.checkin 保留前提不成立（另一票判成立，见 X-5）/ 杂项 withdraw iOS 无入口 / GET /teachers/public iOS 没调
+
+### 修复顺序建议（等 itsuki 拍板）
+
+1. **先修 R-1/R-2（点呼显示链）+ 注册/登录簇** — 点呼是系统核心卖点，上线第一晚就暴露；注册是新生第一接触点。
+2. **防连点家族**（R-3 + 未验证 5 条 + Y-38/39）一个共用「在途禁用」组件一次修完。
+3. **Y-24 令牌守卫家族** 在 APIClient 统一入口加一道，25+ 处一次收。
+4. 86 条未验证里 22 条重大：额度恢复后续跑验证（缓存在），或修之前逐条人工核实。
 
 ---
 
