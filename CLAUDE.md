@@ -182,9 +182,10 @@ itsuki 名下 4 个项目（大学入試 / DMSD / Tango / QTS）互通的中央�
 ## Git
 
 - 不写 `Co-Authored-By` trailer
-- 不自动 push / tag
+- 不自动 push（本地 commit / bump / tag 可自主 — 见 memory `feedback_commit_push_tag_division.md`）
 - 敏感文件（.env / API key / 账号密码）绝不 commit
 - commit 前 pre-commit hook 自动跑一致性检查
+- ⭐ **做完一件事立刻 commit，不攒到收尾** — 一个功能 / 一个 bug 修复 / 一份文档改动 = 当场一个 commit，用显式文件路径提交（防卷走别会话改动）。理由：① 多会话共用工作区，未提交改动会被别的窗口覆盖（5-30 / 6-04 真事故）② 收尾时多件事混在工作区拆不开、commit 历史回溯不清。收尾时如工作区仍混着多件未提交的事 → 按文件分组拆成多个 commit（`git add -p` / 显式路径），不打包成一个
 
 ## Agent skills（外部 Matt Pocock 套件）
 
