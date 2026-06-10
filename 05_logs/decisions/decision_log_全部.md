@@ -17,6 +17,9 @@
 
 ## 决策流水（倒序）
 
+## 2026-06-11 — project-overview §0.1 体量表用 `git ls-files` committed 标准口径，不追漂移脚本「实际」
+为什么：`bin/check_overview_drift.sh` 对 05_logs 偶报 173/174 跳动（中文文件名 NFC/NFD quirk）+ 把未提交的 .bak/itsuki 新 icon 算进「实际」是噪音。固定可复现的 ls-files committed（1450）当真值，脚注标注脚本噪音来源——不让抖动的工具读数污染真值表。
+
 ## 2026-06-10 — 「做完一件事立刻 commit」立为铁律（项目 + 全局 CLAUDE.md）
 为什么：AI 一个会话混做多件事、收尾才一笔提交，多会话互相覆盖 + 历史拆不开。[重大 → 完整版见 decision_log.md 同日条目]
 
