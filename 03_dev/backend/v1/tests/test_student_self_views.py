@@ -1,14 +1,12 @@
 """学生自查视图端点测试（IX 系列 — iOS 个人主页假数据接真后端）。
 
 覆盖：
-- GET   /api/v1/cleaning/me     学生查自己的清扫提出履历
 - PATCH /api/v1/students/me      学生改自己的联系方式 / 房间号
 """
 
 from __future__ import annotations
 
 import uuid
-from datetime import date
 
 from app import models, security
 
@@ -43,94 +41,6 @@ def _add_student(db, *, grade, klass, seat, name, gender, room, dorm, email=None
         )
     )
     return s
-
-
-def _add_cleaning(db, *, student_id, area, scheduled_date, status="assigned"):
-    row = models.CleaningAssignment(
-        student_id=student_id,
-        area=area,
-        scheduled_date=scheduled_date,
-        status=status,
-    )
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return row
-
-
-# ---------------- GET /cleaning/me（扫除提出履历）----------------
-
-
-def test_cleaning_mine_returns_own(client, seed_data, student_token, db_session):
-    """只返回本人的清扫记录，不含别人的。"""
-    me = seed_data["student"]
-    other = _add_student(
-        db_session,
-        grade="06",
-        klass="02",
-        seat="19",
-        name="他人",
-        gender="male",
-        room="M102",
-        dorm=1,
-    )
-    _add_cleaning(
-        db_session, student_id=me.id, area="浴室", scheduled_date=date(2026, 6, 1)
-    )
-    _add_cleaning(
-        db_session,
-        student_id=me.id,
-        area="廊下",
-        scheduled_date=date(2026, 6, 5),
-        status="passed",
-    )
-    _add_cleaning(
-        db_session, student_id=other.id, area="トイレ", scheduled_date=date(2026, 6, 3)
-    )
-
-    res = client.get(
-        "/api/v1/cleaning/me",
-        headers={"Authorization": f"Bearer {student_token}"},
-    )
-    assert res.status_code == 200, res.text
-    data = res.json()
-    assert len(data) == 2
-    assert all(r["student_id"] == str(me.id) for r in data)
-
-
-def test_cleaning_mine_ordered_newest_first(
-    client, seed_data, student_token, db_session
-):
-    """按计划日倒序。"""
-    me = seed_data["student"]
-    _add_cleaning(
-        db_session, student_id=me.id, area="浴室", scheduled_date=date(2026, 6, 1)
-    )
-    _add_cleaning(
-        db_session, student_id=me.id, area="廊下", scheduled_date=date(2026, 6, 9)
-    )
-    res = client.get(
-        "/api/v1/cleaning/me",
-        headers={"Authorization": f"Bearer {student_token}"},
-    )
-    assert res.status_code == 200, res.text
-    dates = [r["scheduled_date"] for r in res.json()]
-    assert dates == ["2026-06-09", "2026-06-01"]
-
-
-def test_cleaning_mine_requires_auth(client):
-    """无 token → 401。"""
-    res = client.get("/api/v1/cleaning/me")
-    assert res.status_code == 401, res.text
-
-
-def test_cleaning_mine_rejects_teacher(client, seed_data, teacher_token):
-    """老师 token 调学生端接口 → 403。"""
-    res = client.get(
-        "/api/v1/cleaning/me",
-        headers={"Authorization": f"Bearer {teacher_token}"},
-    )
-    assert res.status_code == 403, res.text
 
 
 # ---------------- PATCH /students/me（个人信息编辑）----------------

@@ -37,7 +37,7 @@ export function CommunityPage({
   teacher: { dorm?: string; name?: string } | null;
 }) {
   const T = RYO;
-  const [tab, setTab] = React.useState("board");
+  const [tab, setTab] = React.useState("song");
   const [posts, setPosts] = React.useState<CommunityPost[]>([]); // A6/codex: 掲示板 无后端，去假数据空状态
   const [filter, setFilter] = React.useState("all");
   const [slotFilter, setSlotFilter] = React.useState("all"); // song tab 専用: all / morning / evening
@@ -138,9 +138,9 @@ export function CommunityPage({
   };
 
   const tabs: [string, string, string][] = [
-    ["board", "掲示板", "学生からの一般投稿"],
     ["song", "リクエスト曲", "寮内 BGM リクエスト · 提出順に再生"],
-    // 5-27 itsuki 拍板砍「匿名建議」(原 anon tab) — system_features §7.14 4-29 已拍板砍社区/匿名建议整体
+    // itsuki 拍板删「掲示板」残留 tab — system_features §7.14（4-29 已拍板砍学生留言板 + 社区整体），保留「リクエスト曲」（点歌）
+    // 「匿名建議」tab 此前已砍
   ];
 
   return (

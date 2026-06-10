@@ -1004,7 +1004,6 @@ class DemeritEventOut(BaseModel):
     source_type: Literal[
         "rollcall_late",
         "rollcall_absent",
-        "cleaning_failed",
         "curfew_violation",
         "study_absent",
         "manual",
@@ -1031,8 +1030,7 @@ class DemeritRankingEntryOut(BaseModel):
     room_no: str
     dorm_unit: int
     total_points: float
-    # 阈值标记 — itsuki 5-22 拍板 4 清扫 / 8 禁足
-    is_cleaning_threshold: bool  # total_points >= 4
+    # 阈值标记 — 8 禁足（4 清扫已随清扫功能删除）
     is_curfew_threshold: bool  # total_points >= 8
 
 
@@ -1041,7 +1039,6 @@ class DemeritRankingOut(BaseModel):
 
     month: str
     entries: list[DemeritRankingEntryOut]
-    cleaning_threshold_count: int  # >= 4 点的学生数
     curfew_threshold_count: int  # >= 8 点的学生数
 
 
@@ -1083,41 +1080,6 @@ class DemeritRevokeIn(BaseModel):
     """撤销扣分输入。"""
 
     revoke_reason: str = Field(..., min_length=1, max_length=2000)
-
-
-# ---------------------------------------------------------------
-# 清扫安排（spec §7.10）— 5-27 凌晨新增
-# ---------------------------------------------------------------
-class CleaningAssignmentOut(BaseModel):
-    id: UUID
-    student_id: UUID
-    area: str
-    scheduled_date: date
-    status: Literal["assigned", "done", "passed", "failed", "skipped"]
-    assigned_by_teacher_id: Optional[UUID]
-    assigned_at: datetime
-    done_at: Optional[datetime]
-    inspected_by_teacher_id: Optional[UUID]
-    inspected_at: Optional[datetime]
-    failure_reason: Optional[str]
-    demerit_event_id: Optional[UUID]
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class CleaningAssignmentCreateIn(BaseModel):
-    """老师分配清扫输入。"""
-
-    student_id: UUID
-    area: Literal["浴室", "廊下", "トイレ", "共用キッチン", "階段", "玄関", "その他"]
-    scheduled_date: date
-
-
-class CleaningInspectIn(BaseModel):
-    """老师审核输入 — passed / failed + 不通过原因。"""
-
-    result: Literal["passed", "failed"]
-    failure_reason: Optional[str] = Field(None, max_length=2000)
 
 
 # ---------------------------------------------------------------

@@ -358,7 +358,7 @@ private fun RollcallStat(
     }
 }
 
-// C. 減点明細卡 — 分数 4.5（DEFAULT_DEDUCTIONS 合计）→ 4–7.9 档 = 橙 warn + Pill「罰掃 注意」
+// C. 減点明細卡 — 分数 4.5（DEFAULT_DEDUCTIONS 合计）→ 4–7.9 档 = 橙 warn + Pill「注意」
 @Composable
 private fun PointsStatusCard(
     points: Double,
@@ -366,11 +366,11 @@ private fun PointsStatusCard(
 ) {
     val t = SuzuT.current
     val primary = MaterialTheme.colorScheme.primary
-    // 分数档：<4 良好(绿) / 4–7.9 罰掃 注意(橙) / ≥8 禁足(红)
+    // 分数档：<4 良好(绿) / 4–7.9 注意(橙) / ≥8 禁足(红)
     val (iconBg, numColor, tier) =
         when {
             points < 4.0 -> Triple(t.okBg, t.ok, PillTone.Ok to "良好")
-            points < 8.0 -> Triple(t.warnBg, t.warn, PillTone.Warn to "罰掃 注意")
+            points < 8.0 -> Triple(t.warnBg, t.warn, PillTone.Warn to "注意")
             else -> Triple(t.dangerBg, t.danger, PillTone.Danger to "禁足")
         }
     StatusCardShell(iconBg = iconBg, emoji = "📉", onClick = onClick) {
@@ -408,7 +408,6 @@ private fun HistoryGrid(navController: NavHostController) {
             GridBlock("処分履歴", SuzuIcons.Warn, Route.MyDiscipline.path),
             GridBlock("体調報告履歴", SuzuIcons.Face, Route.MyHealth.path),
             GridBlock("申請履歴", SuzuIcons.Doc, Route.Applications.path),
-            GridBlock("掃除提出履歴", SuzuIcons.Sparkles, Route.MyClean.path),
             GridBlock("荷物受取履歴", SuzuIcons.Pkg, Route.MyPackages.path, badge = "1"),
         )
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

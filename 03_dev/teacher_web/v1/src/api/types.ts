@@ -300,7 +300,6 @@ export interface RegistrationCode {
 export type DemeritSourceType =
   | "rollcall_late"
   | "rollcall_absent"
-  | "cleaning_failed"
   | "curfew_violation"
   | "study_absent"
   | "manual";
@@ -313,7 +312,6 @@ export interface DisciplineRankingEntry {
   room_no: string;
   dorm_unit: number;
   total_points: number;
-  is_cleaning_threshold: boolean; // >=4 点，清扫线
   is_curfew_threshold: boolean; // >=8 点，禁足线
 }
 
@@ -321,7 +319,6 @@ export interface DisciplineRankingEntry {
 export interface DisciplineRankingOut {
   month: string;
   entries: DisciplineRankingEntry[];
-  cleaning_threshold_count: number;
   curfew_threshold_count: number;
 }
 
@@ -439,42 +436,6 @@ export interface BusRouteCreateIn {
   arrival_at?: string;
   visible_to?: string;
   note?: string;
-}
-
-// ── 清扫安排（对齐 CleaningAssignmentOut 1091-1105）— 一条记录 = 一个学生 ──
-export interface CleaningItem {
-  id: string;
-  student_id: string;
-  area: string;
-  scheduled_date: string;
-  status: "assigned" | "done" | "passed" | "failed" | "skipped";
-  assigned_by_teacher_id: string | null;
-  assigned_at: string;
-  done_at: string | null;
-  inspected_by_teacher_id: string | null;
-  inspected_at: string | null;
-  failure_reason: string | null;
-  demerit_event_id: string | null;
-}
-
-// 对齐 CleaningAssignmentCreateIn(1108-1113)
-export interface CleaningCreateIn {
-  student_id: string;
-  area:
-    | "浴室"
-    | "廊下"
-    | "トイレ"
-    | "共用キッチン"
-    | "階段"
-    | "玄関"
-    | "その他";
-  scheduled_date: string;
-}
-
-// 对齐 CleaningInspectIn(1116-1120)
-export interface CleaningInspectIn {
-  result: "passed" | "failed";
-  failure_reason?: string;
 }
 
 // ── 前台业务（对齐 FrontDeskItemOut 1126-1138）──

@@ -24,6 +24,20 @@
 
 ## 决策记录(倒序)
 
+## 2026-06-10 — 清扫 / 罚扫功能全 5 端删除
+
+**之前的决策**: 5-27 凌晨实装清扫安排（`CleaningAssignment` 表 + `cleaning.py` + 老师审核「通過/退回」+ 退回自动加扣分 `cleaning_failed` 2.5 点）+ 罚扫机制（月累计 ≥4 点 → 来月罚扫当番）。iOS / Android「掃除提出履歴」页、老师网页「清掃確認」页、扣分页 / 首页减点条的「4 点清掃罰則」阈值显示全部实装。
+**新的决策**: 整套清扫 / 罚扫从全 5 端 + 数据库彻底删除。8 点禁足阈值保留，4 点罚扫阈值随清扫删。
+**为什么改**:
+1. itsuki 起因是误以为「老师网页有清扫页、iOS 没有」。CC 核实推翻——iOS / Android 其实都有「掃除提出履歴」。但 itsuki 在知道全端都有之后仍拍板删。
+2. 清扫 / 罚扫不在 v1.0 核心价值（点呼 + 出寮届 + 学習 + 减点）里，罚扫是边角惩戒机制；删掉减维护面 + UI 复杂度。
+**这个改动影响了什么**: 后端删 `cleaning.py` + `CleaningAssignment` 表 + `cleaning_failed` 扣分类型 + discipline 撤销联动 + 6 测试 + 新增删表迁移 `e6f7a8b9c0d1`；老师网页删 `CleaningPage` + 导航 + 通知入口 + `DisciplinePage` 罚扫列 / 名单 / 规则；iOS 删 `MyCleanView` + `CleaningAPI` + 假数据 + 路由 + Home/MyPage 减点显示的 4 点标记；Android 同 iOS。验证全绿：后端 367 测试 / 老师网页 tsc 0 / iOS 双 scheme BUILD SUCCEEDED / Android BUILD SUCCESSFUL。
+**事后回看**(几个月后补填):
+
+相关：`raw/2026-06-10.md`（深度 AC 素材：CC 核实推翻 itsuki 误判前提的「假设崩了→继续调查」模式 + 5 端一致删除工程）
+
+---
+
 ## 2026-06-09 — 版本号重排：一个 bug 一个补丁号 / 连续 feat 批次合成次版本号
 
 **之前的决策**: 6-03 / 6-05 回溯补标时「一天一个 minor、不分 bug 还是功能」（v0.13.0 / v0.14.0 / v0.15.0 全是 minor，中间没有补丁号）。

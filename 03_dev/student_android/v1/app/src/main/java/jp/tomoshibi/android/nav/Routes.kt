@@ -86,8 +86,6 @@ sealed class Route(
 
     data object MyHealth : Route("my/health")
 
-    data object MyClean : Route("my/clean")
-
     data object MyPackages : Route("my/packages")
 
     data object MyStudy : Route("my/study")

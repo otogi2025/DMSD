@@ -764,7 +764,7 @@ struct HomeView: View {
         .buttonStyle(.plain)
     }
 
-    /// JSX progress bar: h 8 / radius 4 / bg white.4 / fill 50% amber / 2 threshold marks
+    /// JSX progress bar: h 8 / radius 4 / bg white.4 / fill 50% amber / 1 threshold mark (8)
     private func progressRow(deepBrown: Color) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             GeometryReader { geo in
@@ -787,11 +787,6 @@ struct HomeView: View {
                         )
                         .frame(width: w * pct, height: 8)
 
-                    // JSX: threshold 4 点（50%）
-                    Rectangle()
-                        .fill(deepBrown.opacity(0.4))
-                        .frame(width: 2, height: 12)
-                        .offset(x: w * 0.5 - 1, y: 0)
                     // JSX: threshold 8 点（100%）
                     Rectangle()
                         .fill(deepBrown.opacity(0.4))
@@ -801,11 +796,9 @@ struct HomeView: View {
             }
             .frame(height: 12)
 
-            // JSX: fontSize 10 / mono / opacity .7 · "0" "4 · 清掃" "8 · 外出禁止"
+            // JSX: fontSize 10 / mono / opacity .7 · "0" "8 · 外出禁止"
             HStack {
                 Text("0")
-                Spacer()
-                Text("4 · 清掃")
                 Spacer()
                 Text("8 · 外出禁止")
             }
@@ -816,7 +809,7 @@ struct HomeView: View {
 
     // MARK: 点呼状态 pill 文字/颜色（amber card 右上）
 
-    // 老师点开始点呼前 = 来月より清掃対象（普通 warn 提示）
+    // 老师点开始点呼前 = 点呼開始前（普通提示）
     // 点呼中 = 残り XX:XX で遅刻判定（warn orange）
     // 遅刻（倒计时归零未签到）= 遅刻（danger red）
     // 已签到 = 時間内にチェックイン（ok green）
@@ -824,7 +817,7 @@ struct HomeView: View {
     private var pointsPillText: String {
         switch app.rollState {
         case .idle:
-            return "来月より清掃対象"
+            return "点呼開始前"
         case .active:
             if app.rollCountdownSec <= 0 {
                 return "遅刻"

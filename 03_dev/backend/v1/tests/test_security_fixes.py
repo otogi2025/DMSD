@@ -284,64 +284,6 @@ def _make_ryokan_token(client, db_session) -> str:
     return res.json()["access_token"]
 
 
-def test_b8_cleaning_create_cross_dorm_403(client, db_session, seed_data):
-    """女寮監が男寮学生 (dorm_unit=1) に清扫分配 → 403。"""
-    from datetime import date
-
-    ryokan_token = _make_ryokan_token(client, db_session)
-    student_id = str(seed_data["student"].id)  # dorm_unit=1
-
-    res = client.post(
-        "/api/v1/cleaning",
-        json={
-            "student_id": student_id,
-            "area": "廊下",
-            "scheduled_date": date.today().isoformat(),
-        },
-        headers={"Authorization": f"Bearer {ryokan_token}"},
-    )
-    assert res.status_code == 403, res.text
-    assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
-
-
-def test_b8_cleaning_create_same_dorm_ok(client, db_session, seed_data):
-    """男寮監 (assigned_dorm=1) が男寮学生に清扫分配 → 201。"""
-    from datetime import date
-
-    from app import models, security
-
-    pw = security.hash_password("test-password-12345")
-    t = models.Teacher(
-        login_id="otokan_test",
-        name="男寮監テスト",
-        email="otokan@test.jp",
-        password_hash=pw,
-        role="寮監",
-        assigned_dorm=1,  # 男寮
-    )
-    db_session.add(t)
-    db_session.commit()
-
-    res_login = client.post(
-        "/api/v1/sessions/teacher",
-        json={"login_id": "otokan_test", "password": "test-password-12345"},
-    )
-    assert res_login.status_code == 200, res_login.text
-    token = res_login.json()["access_token"]
-
-    student_id = str(seed_data["student"].id)  # dorm_unit=1
-    res = client.post(
-        "/api/v1/cleaning",
-        json={
-            "student_id": student_id,
-            "area": "廊下",
-            "scheduled_date": date.today().isoformat(),
-        },
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    assert res.status_code == 201, res.text
-
-
 def test_b8_front_desk_create_cross_dorm_403(client, db_session, seed_data):
     """女寮監が男寮学生 (dorm_unit=1) に宅配登记 → 403。"""
     ryokan_token = _make_ryokan_token(client, db_session)

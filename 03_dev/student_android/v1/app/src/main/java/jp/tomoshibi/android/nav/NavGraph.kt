@@ -105,7 +105,6 @@ fun TomoshibiNavGraph(navController: NavHostController) {
         composable(Route.MyPointsChart.path) { MyPointsChartScreen(navController) }
         composable(Route.MyDiscipline.path) { MyDisciplineScreen(navController) }
         composable(Route.MyHealth.path) { MyHealthScreen(navController) }
-        composable(Route.MyClean.path) { MyCleanScreen(navController) }
         composable(Route.MyPackages.path) { MyPackagesScreen(navController) }
         composable(Route.MyStudy.path) { MyStudyScreen(navController) }
         composable(Route.MySettings.path) { MySettingsScreen(navController) }

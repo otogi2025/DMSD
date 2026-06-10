@@ -39,11 +39,10 @@ from ..deps import (
 
 router = APIRouter(prefix="/api/v1/discipline", tags=["discipline"])
 
-# itsuki 5-22 拍板的扣分阈值
-CLEANING_THRESHOLD = 4.0
+# itsuki 5-22 拍板的扣分阈值（4 清扫已随清扫功能删除）
 CURFEW_THRESHOLD = 8.0
 
-# 手动加扣分 / 撤销权限 — 跟 cleaning / front_desk 对齐 4 类
+# 手动加扣分 / 撤销权限 — 跟 front_desk 对齐
 # 寮監 + 寮務部長 + 寮務課長 + 管理係
 # （学習担当的扣分由 study.py 自动加，不走手动；一般教师 + 国際交流系 不行）
 _ADMIN_ROLES = {"寮監", "寮務部長", "寮務課長", "管理係"}
@@ -101,14 +100,10 @@ def get_ranking(
     all_students = db.scalars(student_stmt).all()
 
     entries: list[schemas.DemeritRankingEntryOut] = []
-    cleaning_n = 0
     curfew_n = 0
     for s in all_students:
         total = points_by_student.get(s.id, 0.0)
-        is_clean = total >= CLEANING_THRESHOLD
         is_curfew = total >= CURFEW_THRESHOLD
-        if is_clean:
-            cleaning_n += 1
         if is_curfew:
             curfew_n += 1
         # student_no = grade_code + class_code + seat_no 拼接
@@ -121,7 +116,6 @@ def get_ranking(
                 room_no=s.room_no,
                 dorm_unit=s.dorm_unit,
                 total_points=total,
-                is_cleaning_threshold=is_clean,
                 is_curfew_threshold=is_curfew,
             )
         )
@@ -131,7 +125,6 @@ def get_ranking(
     return schemas.DemeritRankingOut(
         month=month,
         entries=entries,
-        cleaning_threshold_count=cleaning_n,
         curfew_threshold_count=curfew_n,
     )
 
@@ -262,21 +255,6 @@ def revoke_demerit(
     event.revoked_at = datetime.now(timezone.utc)
     event.revoked_by_teacher_id = teacher.id
     event.revoke_reason = body.revoke_reason
-    # backend-biz-04 修复：撤销「清扫不通过」扣分要联动退回清扫单状态，
-    # 否则 CleaningPage 仍显示「不通过」与已撤销的扣分矛盾。
-    # 仅 cleaning_failed 有父表回指（rollcall/study 是 forward-only，靠 ranking 过滤 revoked_at）。
-    if event.source_type == "cleaning_failed":
-        cleaning = db.scalar(
-            select(models.CleaningAssignment).where(
-                models.CleaningAssignment.demerit_event_id == event.id
-            )
-        )
-        if cleaning is not None:
-            cleaning.status = "assigned"
-            cleaning.failure_reason = None
-            cleaning.inspected_at = None
-            cleaning.inspected_by_teacher_id = None
-            cleaning.demerit_event_id = None
     db.commit()
     db.refresh(event)
     return schemas.DemeritEventOut.model_validate(event)

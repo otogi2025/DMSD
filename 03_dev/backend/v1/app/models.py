@@ -1098,17 +1098,16 @@ class AnnouncementReply(Base):
 
 
 # ---------------------------------------------------------------
-# 扣分事件 — spec §7.5 規律処分 / itsuki 5-22 阈值 4 清扫 / 8 禁足
+# 扣分事件 — spec §7.5 規律処分 / 阈值 8 禁足（4 清扫已随清扫功能删除）
 # ---------------------------------------------------------------
-# 5-27 凌晨 CC 替 itsuki 默认决策的字段（起床后可推翻）:
-# - source_type ENUM 6 值: rollcall_late / rollcall_absent / cleaning_failed /
+# - source_type ENUM 5 值: rollcall_late / rollcall_absent /
 #   curfew_violation / study_absent / manual
-# - points 默认: late=1.0 / absent=2.0 / cleaning=2.5 / curfew=5.0 / study_absent=1.5
-# - 类型 Float（允许 0.5 分罚扫）
+# - points 默认: late=1.0 / absent=2.0 / curfew=5.0 / study_absent=1.5
+# - 类型 Float（允许 0.5 分）
 # - revoke 软删除（保留 revoked_at + reason，列表过滤掉）
 # - manual 类型创建权限: 寮監 + 寮務全员（router 层 check）
 class DemeritEvent(Base):
-    """扣分事件，DisciplinePage / CleaningPage / 警告列表全部依赖。"""
+    """扣分事件，DisciplinePage / 警告列表全部依赖。"""
 
     __tablename__ = "demerit_event"
 
@@ -1145,69 +1144,11 @@ class DemeritEvent(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "source_type IN ('rollcall_late','rollcall_absent','cleaning_failed','curfew_violation','study_absent','manual')",
+            "source_type IN ('rollcall_late','rollcall_absent','curfew_violation','study_absent','manual')",
             name="ck_demerit_source",
         ),
         Index("idx_demerit_student_month", "student_id", "month"),
         Index("idx_demerit_month_active", "month", "revoked_at"),
-    )
-
-
-# ---------------------------------------------------------------
-# 清扫安排 — spec §7.10 清扫审查
-# ---------------------------------------------------------------
-# CC 5-27 凌晨替 itsuki 默认决策（起床后可推翻）:
-# - area ENUM 8 类（用日文字符串作为 UI 显示值）— itsuki 起床后看实际宿舍区域清单可改
-# - status ENUM: assigned 已分配 / done 学生扫完上报 / passed 老师审通过 /
-#   failed 审不通过（自动加 DemeritEvent）/ skipped 取消跳过
-# - failed → 自动加 DemeritEvent.source_type='cleaning_failed' points=2.5
-#   （业务逻辑由 router 层触发）
-class CleaningAssignment(Base):
-    """清扫安排单。CleaningPage / 警告列表 用。"""
-
-    __tablename__ = "cleaning_assignment"
-
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    student_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("students.id"), nullable=False, index=True
-    )
-    area: Mapped[str] = mapped_column(String(32), nullable=False)
-    # 计划执行日 (YYYY-MM-DD)
-    scheduled_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
-    status: Mapped[str] = mapped_column(String(16), nullable=False, default="assigned")
-
-    assigned_by_teacher_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        Uuid, ForeignKey("teachers.id")
-    )
-    assigned_at: Mapped[datetime] = mapped_column(
-        TZDateTime, nullable=False, server_default=func.now()
-    )
-
-    # 学生上报扫完时刻
-    done_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
-
-    # 老师审核
-    inspected_by_teacher_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        Uuid, ForeignKey("teachers.id")
-    )
-    inspected_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
-    # 不通过时填写
-    failure_reason: Mapped[Optional[str]] = mapped_column(Text)
-    # 不通过时自动加的 DemeritEvent.id（关联，方便撤销时一并撤回扣分）
-    demerit_event_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        Uuid, ForeignKey("demerit_event.id")
-    )
-
-    __table_args__ = (
-        CheckConstraint(
-            "area IN ('浴室','廊下','トイレ','共用キッチン','階段','玄関','その他')",
-            name="ck_cleaning_area",
-        ),
-        CheckConstraint(
-            "status IN ('assigned','done','passed','failed','skipped')",
-            name="ck_cleaning_status",
-        ),
-        Index("idx_cleaning_student_date", "student_id", "scheduled_date"),
     )
 
 

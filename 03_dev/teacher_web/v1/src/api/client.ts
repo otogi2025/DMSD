@@ -46,9 +46,6 @@ import type {
   BusRoute,
   BusRouteCreateIn,
   BusRouteListOut,
-  CleaningItem,
-  CleaningCreateIn,
-  CleaningInspectIn,
   FrontDeskItem,
   FrontDeskCreateIn,
   FrontDeskStudentBrief,
@@ -462,19 +459,6 @@ export const api = {
   ) => request<BusRoute>("PATCH", `/bus/routes/${id}`, body, token),
   deleteBusRoute: (id: string, token: string) =>
     request<void>("DELETE", `/bus/routes/${id}`, undefined, token),
-
-  // ── 清扫安排 ──
-  listCleaning: (token: string, scheduledDate: string) =>
-    request<CleaningItem[]>(
-      "GET",
-      `/cleaning?scheduled_date=${encodeURIComponent(scheduledDate)}`,
-      undefined,
-      token,
-    ),
-  createCleaning: (body: CleaningCreateIn, token: string) =>
-    request<CleaningItem>("POST", "/cleaning", body, token),
-  inspectCleaning: (id: string, body: CleaningInspectIn, token: string) =>
-    request<CleaningItem>("POST", `/cleaning/${id}/inspect`, body, token),
 
   // ── 前台业务（宅配 + 失物）──
   listFrontDesk: (token: string, kind?: string) => {

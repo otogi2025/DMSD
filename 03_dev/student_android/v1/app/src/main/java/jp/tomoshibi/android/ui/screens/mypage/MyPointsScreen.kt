@@ -93,7 +93,7 @@ fun MyPointsScreen(navController: NavHostController) {
                 // ── 琥珀渐变总分卡（amberGrad 底，深棕字）──
                 AmberTotalCard(total = total)
 
-                // ── 进度条 0→8（4 处橙标 / 8 处红标 + 下方刻度行）──
+                // ── 进度条 0→8（8 处红标 + 下方刻度行）──
                 PointsProgressBar(ratio = ratio)
 
                 // ── 明细列表（逐条 DEFAULT_DEDUCTIONS，padding 0 的白卡）──
@@ -163,7 +163,7 @@ private fun AmberTotalCard(total: Double) {
     }
 }
 
-// 进度条：灰底胶囊 + amber→warn 渐变填充到 ratio + 4 橙标 / 8 红标 + 下方刻度行
+// 进度条：灰底胶囊 + amber→warn 渐变填充到 ratio + 8 红标 + 下方刻度行
 @Composable
 private fun PointsProgressBar(ratio: Float) {
     val t = SuzuT.current
@@ -186,22 +186,6 @@ private fun PointsProgressBar(ratio: Float) {
                         .clip(RoundedCornerShape(percent = 50))
                         .background(t.warn),
             )
-            // 4 处橙竖标（位于 4/8 = 50%）
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth(0.5f)
-                        .height(12.dp),
-                contentAlignment = Alignment.CenterEnd,
-            ) {
-                Box(
-                    modifier =
-                        Modifier
-                            .width(2.dp)
-                            .height(12.dp)
-                            .background(t.warnDeep),
-                )
-            }
             // 8 处红竖标（位于最右端 8/8 = 100%）
             Box(
                 modifier =
@@ -220,21 +204,14 @@ private fun PointsProgressBar(ratio: Float) {
             }
         }
 
-        // 下方刻度行：0 / 4 清掃罰則 / 8 外出禁止
+        // 下方刻度行：0 / 8 外出禁止
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(
                 "0",
                 color = t.inkMute,
                 style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
             )
-            // 中点「4 清掃罰則」靠 weight 拉到 50% 一带（左半占满后右对齐）
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                Text(
-                    "4 清掃罰則",
-                    color = t.warnDeep,
-                    style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
-                )
-            }
+            Spacer(modifier = Modifier.weight(1f))
             Text(
                 "8 外出禁止",
                 color = t.danger,
@@ -298,7 +275,7 @@ private fun RuleBox() {
             style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold, lineHeight = 18.sp),
         )
         Text(
-            "月累計 4 点で清掃罰則 · 月累計 8 点で外出禁止",
+            "月累計 8 点で外出禁止",
             color = t.inkSub,
             style = TextStyle(fontSize = 12.sp, lineHeight = 18.sp),
         )
@@ -356,9 +333,7 @@ fun MyPointsChartScreen(navController: NavHostController) {
 
                     Spacer(Modifier.height(16.dp))
 
-                    // 图例：橙线「清掃罰則閾値」/ 红线「外出禁止閾値」
-                    LegendRow(color = t.warn, label = "清掃罰則閾値")
-                    Spacer(Modifier.height(6.dp))
+                    // 图例：红线「外出禁止閾値」
                     LegendRow(color = t.danger, label = "外出禁止閾値")
                 }
 
@@ -368,7 +343,7 @@ fun MyPointsChartScreen(navController: NavHostController) {
     }
 }
 
-// 折线图 Canvas：青绿折线 + 节点圆点 + y=4 橙虚线 + y=8 红线，y 轴 0→8 映射高度
+// 折线图 Canvas：青绿折线 + 节点圆点 + y=8 红线，y 轴 0→8 映射高度
 @Composable
 private fun PointsLineChart() {
     val t = SuzuT.current
@@ -392,14 +367,6 @@ private fun PointsLineChart() {
         // x 均分到 12 个节点
         fun xPx(i: Int): Float = if (data.size <= 1) w / 2f else (i.toFloat() / (data.size - 1)) * w
 
-        // y=4 橙色虚线阈值（清掃罰則）
-        drawLine(
-            color = t.warn,
-            start = Offset(0f, yPx(4.0)),
-            end = Offset(w, yPx(4.0)),
-            strokeWidth = 2f,
-            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f), 0f),
-        )
         // y=8 红色实线阈值（外出禁止）
         drawLine(
             color = t.danger,

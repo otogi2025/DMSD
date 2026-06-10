@@ -51,7 +51,7 @@ data class Deduction(
     val date: String,
     val points: Double,
     val reason: String,
-    val tier: Int, // 处罚档（§862 月累计）：0=无 / 4=罚扫(月累计≥4) / 8=禁足(月累计≥8)
+    val tier: Int, // 处罚档（§862 月累计）：0=无 / 8=禁足(月累计≥8)（原 4=罚扫随清扫功能删）
 )
 
 @Serializable
@@ -129,17 +129,6 @@ data class HealthRecord(
     val symptom: String, // 症状（頭痛 / 腹痛）
     val tempC: Double? = null, // 体温，可空（无温度时不显）
     val note: String? = null, // 备注，可空
-)
-
-// 扫除提出履历单条 — 对应 iOS SeedModels.swift CleaningRecord
-@Serializable
-data class CleaningRecord(
-    val id: String,
-    val date: String, // "2026-04-19"
-    val scope: String, // 范围（「部屋」/「共用エリア」）
-    val status: String, // 通過 / 退回
-    val score: Int? = null, // 分数，可空（退回时无分）
-    val comment: String? = null, // 退回评语，可空
 )
 
 // 特別運航便单条（界面模型，对应 iOS SpecialBusRoute）

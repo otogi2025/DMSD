@@ -109,14 +109,12 @@ final class AppStore: ObservableObject {
                     announcementUnreadCount = 0
                     packages = []
                     studyLeaveCountThisMonth = 0
-                    cleaningHistory = []
                     songRequests = []
                     lostFound = []
                     myRollcallEvents = []
                     myDemeritEvents = []
                     // codex m-1: 列表加载三态也要重置，否则下个登录用户短暂看到上个账号的失败 / 加载文案
                     profileState = .idle
-                    cleaningHistoryState = .idle
                     songsState = .idle
                     lostFoundState = .idle
                 #endif
@@ -174,7 +172,6 @@ final class AppStore: ObservableObject {
     }
 
     @Published var profileState: ListLoadState = .idle // 减点⑧+点呼⑦ 共用 loadMyProfile
-    @Published var cleaningHistoryState: ListLoadState = .idle
     @Published var songsState: ListLoadState = .idle
     @Published var lostFoundState: ListLoadState = .idle
 
@@ -988,27 +985,6 @@ final class AppStore: ObservableObject {
             packages = items
         } catch {
             // 拉失败不阻塞通知中心其他源 —— 静默，下次刷新再试。
-        }
-    }
-
-    // MARK: - 掃除提出履历（功能① · GET /api/v1/cleaning/me）
-
-    /// 当前学生的清扫提出履历缓存（生产构建用，loadCleaningHistory 拉真后端填）。
-    @Published var cleaningHistory: [CleaningAssignmentOut] = []
-
-    /// 拉当前学生的清扫履历（按计划日倒序）。带令牌守卫 —— 登出 / 切用户不写回旧用户数据。
-    @MainActor
-    func loadCleaningHistory() async {
-        let tokenAtStart = authToken
-        cleaningHistoryState = .loading
-        do {
-            let items = try await CleaningAPI.listMine()
-            guard authToken == tokenAtStart else { return }
-            cleaningHistory = items
-            cleaningHistoryState = .loaded
-        } catch {
-            guard authToken == tokenAtStart else { return } // 切用户/登出后不写回旧状态
-            cleaningHistoryState = .failed(APIErrorPresenter.userMessage(for: error, fallback: "掃除履歴の取得に失敗しました"))
         }
     }
 

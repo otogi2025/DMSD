@@ -332,7 +332,7 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `security.py` | JWT 令牌生成 + 密码哈希 + 认证中间件 | ✅ | 范式标准 |
 | `main.py` | FastAPI 应用入口 — 注册路由 + 中间件 + 启动 hook | ✅ | uvicorn 启动这个 |
 | `config.py` | 配置加载（读 .env → Pydantic Settings） | ✅ | 范式标准 |
-| `models.py` | 数据库 21+ 张表的 ORM 定义（含 5-27 加的 DemeritEvent / CleaningAssignment / FrontDeskItem 等 P1/P2 表） | ⚠️ | 对应 router 部分缺 / 建议在 docstring 标 P0/P1/P2 优先级 |
+| `models.py` | 数据库 20+ 张表的 ORM 定义（含 5-27 加的 DemeritEvent / FrontDeskItem 等 P1/P2 表；CleaningAssignment 6-10 随清扫功能删） | ⚠️ | 对应 router 部分缺 / 建议在 docstring 标 P0/P1/P2 优先级 |
 | `schemas.py` | API 请求/响应的 Pydantic 数据校验定义（含 discriminated union — 按字段值分流校验）| ✅ | iOS / Android 字段对齐参考 |
 | `ws_manager.py` | **2026-05-27 加** — WebSocket 老师端连接管理单例（TeacherConnectionManager / asyncio.Lock / broadcast_sync 同步触发） | ✅ | 单进程 in-memory v1.0 / 多进程后期换 Redis pub/sub |
 
@@ -355,7 +355,7 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `outings.py` | 当天回寮短时外出（单一老师确认）— 6 接口 | ✅ | 6-04 建 + R4 寮边界 + 19 测试 |
 | `dorm_life.py` | 宿舍生活类申请 4 种 — 行事企画 / 日课变更 / 冷蔵庫購入 / 物品所持 | ✅ | 6 月新增 |
 | `discipline.py` | 扣分 / 規律処分 — 月排名 + 阈值标记 + 手动加扣分 | ✅ | 5-27 加（DisciplinePage 接后端核心） |
-| `cleaning.py` | 清扫安排 — 老师审核，不通过自动加扣分 | ✅ | 5-27 加 |
+| ~~`cleaning.py`~~ | 🚫 清扫功能全 5 端删除（itsuki 2026-06-10 拍板）— 文件 + cleaning_assignment 表 + 4 点罚扫已删 | — | 5-27 加 / 6-10 删 |
 | `front_desk.py` | 前台 — 宅配 + 失物招领登记 / 通知学生 | ✅ | 5-27 加 |
 | `guidance.py` | 指导履历录入 + 学生开示申请 | ✅ | 6 月新增（§7.9/§7.10） |
 | `incidents.py` | 事案录入 — 老师录 / 查 / 编辑 | ✅ | 6 月新增（§7.9） |
@@ -478,7 +478,7 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `src/Shell.tsx` | 侧栏 17 菜单 + 角色门控 + 顶栏搜索 | ✅ | |
 | `src/theme.ts` | RYO 配色 + 常量 + dormLabel + `API_BASE="/api/v1"` | ✅ | `window.RYO` 迁来 |
 | `src/utils.ts` | 4 个 JST 日本时间助手（跨页共用） | ✅ | |
-| `src/api/client.ts` | 60+ 接口方法（rollcall/discipline/cleaning/front_desk/announcements 等） | ✅ | 旧 `client.js` 拆来，有 export |
+| `src/api/client.ts` | 60+ 接口方法（rollcall/discipline/front_desk/announcements 等；cleaning 6-10 删） | ✅ | 旧 `client.js` 拆来，有 export |
 | `src/api/types.ts` | 50+ 后端类型，对齐 `backend/app/schemas.py` | ✅ | |
 | `src/components/*.tsx`（26 文件）| 22 页 + 3 弹窗(OverrideModal/OutstayDetailModal/StudentProfileModal) + `shared.tsx`(公共组件) | ✅ | window.XxxPage 迁来 |
 | `src/components/RollCallLanding.tsx` | 点呼默认页 | ⚠️ | 统计卡/趋势图/最近セッション是原样搬的硬编码 demo 数据(带「DEMO」标记)，是否接真后端待 itsuki 拍 |

@@ -16,7 +16,6 @@ import { RecordsPage } from "./components/RecordsPage";
 import { ActiveLeavesPage } from "./components/ActiveLeavesPage";
 import { SearchPage } from "./components/SearchPage";
 import { NotificationsPage } from "./components/NotificationsPage";
-import { CleaningPage } from "./components/CleaningPage";
 import { InfoPage } from "./components/InfoPage";
 import { CommunityPage } from "./components/CommunityPage";
 import { AccountsPage } from "./components/AccountsPage";
@@ -863,9 +862,6 @@ export function App() {
       break;
     case "notifications":
       body = <NotificationsPage teacher={teacher} onNav={nav} />;
-      break;
-    case "cleaning":
-      body = <CleaningPage authToken={authToken} />;
       break;
     case "info":
       body = <InfoPage teacher={teacher} authToken={authToken} />;

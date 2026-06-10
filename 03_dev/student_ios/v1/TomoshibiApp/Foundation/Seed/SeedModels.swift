@@ -69,19 +69,6 @@ struct HealthRecord: Hashable, Identifiable {
     let note: String
 }
 
-struct CleaningRecord: Hashable, Identifiable {
-    var id: String {
-        "\(date):\(range)"
-    }
-
-    let date: String
-    let range: String
-    let status: String // 通過 / 退回
-    let score: Int?
-    let rejected: Bool
-    let comment: String?
-}
-
 struct PackageItem: Hashable, Identifiable {
     let id: Int
     let date: String

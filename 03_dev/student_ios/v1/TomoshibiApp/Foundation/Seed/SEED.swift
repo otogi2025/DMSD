@@ -69,11 +69,6 @@ enum SEED {
         .init(date: "2026-04-03", sym: "腹痛", temp: nil, note: ""),
     ]
 
-    static let cleaning: [CleaningRecord] = [
-        .init(date: "2026-04-19", range: "部屋", status: "通過", score: 5, rejected: false, comment: nil),
-        .init(date: "2026-04-05", range: "共用エリア", status: "退回", score: nil, rejected: true, comment: "床が汚れている"),
-    ]
-
     static let packages: [PackageItem] = [
         .init(id: 1, date: "2026-04-22", from: "宅配便", status: "待領", tracking: "JP12345"),
         .init(id: 2, date: "2026-04-18", from: "佐川", status: "領済", tracking: nil),
