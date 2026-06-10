@@ -57,6 +57,12 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+### 2026-06-10 WIP/TODO 瘦身重组（交接任务执行）by [Fable 5]
+
+- 接手交接件 `WIP_TODO瘦身_交接_2026-06-10.md`：TODO.md 2220 行重排成 §A 上线必做(102) / §B 不挡上线(199) / §C 长尾存疑(230) / §D 等拍板(40) 四层，整段已完成移 `TODO_完成归档.md`；WIP 顶部 1.26 万字历史段剪切 `99_archive/2026-06-10_WIP历史段归档.md`。
+- 脚本断言 2220 行全覆盖 + 未完成 571 条前后对账一条不丢。跟交接件两处出入已明示：零散 ✅ 条目留原位当证据 / §A 102 条超「几十条」预估不硬砍。
+- 4 commit（`b429940`/`cc62fa2`/`475d9c2`/`fc58de1`）未 push。raw `2026-06-10_WIP_TODO瘦身.md` + dev_log 同名。
+
 ### 2026-06-10 iOS 全量审查 + 前后端对齐 — 额度中断收口 by [Fable 5 · ultracode]
 
 - itsuki 要「审查所有 iOS 代码 + 前端后端对齐」（全量 22543 行，区别于 6-09 增量审查）。26 个一线代理（13 审查分片 + 13 对齐域）+ 对抗验证（重大 3 票多数决）。
@@ -85,13 +91,6 @@
 - 11 功能各单独 commit、正式版+演示版双 scheme BUILD SUCCEEDED：① 手机 NFC 签到（新建 `ST25DVWriter.swift` 用 CoreNFC 写 ST25DV Mailbox，2026-06-02 架构反转方案，命令字节占位 TODO[硬件]）/ ② `.icon` 图标保留验证（不建 appiconset）/ ③ entitlements+NFC说明 / ④ 6 列表三态 / ⑤ 令牌过期跳登录 / ⑥ 离线不显假学生 / ⑦ 删巴士死页+events接后端 / ⑧ 隐私清单据实补 / ⑨ 删暗色死控件 / ⑩ 加密标志 / ⑪ 通知说明。
 - **codex 4 轮对抗复审**（gpt-5 + high，非预期 gpt-5.5 + xhigh）逐层挖 `ST25DVWriter` NFC 取消竞态：一轮 2 阻塞+4 重大+1 次要 → 二/三轮 M-1 越挖越深（cancel 空操作 → 创建 session 前空窗）→ 四轮核实死锁判断 + 报 0 阻塞 0 重大收敛。CC 不盲信（指出 codex 高估了「B-2 双重 resume 崩溃」，单线程本不崩只是跨线程没锁）+ 修完自己 xcodebuild 双 scheme 验。
 - 13 commit 全本地**未 push**。AC：模式 2（多 AI 对抗复审）⭐顶级 + 不盲信 AI + Swift 6 并发实战。raw/dev_log `2026-06-09`。
-
-### 2026-06-08 复活 dev_log 工程简报 + 写进 session-wrap skill by [Opus 4.8 1M]
-
-- itsuki 发现收尾流程偏 AC 素材采集、「实际今天改了什么」没人记 → 排查出 `05_logs/dev_log/`（工程日志）4-15 后废弃被 raw/ 吸走 → 拍板复活，跟 AC 素材物理分开，CC 收尾自动生成。
-- 改 4 处：新建 `dev_log/_README_工程简报格式.md`（纯工程格式 + 跟 AC 分开铁律）+ session-wrap SKILL 加 §5.5.16（收尾固定步骤）+ §7.5.1 核对表 12→13 项 + §6 权限 dev_log 划进「CC 自由直写」+ project-overview §6.3 登记。第一篇试跑 `dev_log/2026-06-08.md`。
-- 中途纠正一次：CC 造「叙事整理型」生词 + 把整理活甩回 itsuki，被怒怼「叙事整理是什么鬼？为什么要我做」→ 删词改成全 CC 自动写。
-- 本地 commit 未 push。AC：模式 5（用工具中发现工具缺陷主动改流程）+ 纠正 AI。raw `2026-06-08.md`。
 
 ## 🤝 多会话占用（避免冲突）
 
