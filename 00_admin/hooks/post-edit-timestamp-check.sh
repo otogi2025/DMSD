@@ -2,7 +2,7 @@
 # DMSD CC PostToolUse hook — 声明性文件「最后更新」时间戳检查
 #
 # 配置位置：.claude/settings.json hooks.PostToolUse[matcher="Write|Edit"]
-# 触发时机：CC 改了 WIP / TODO / progress_overview / 文档同步点清单 等声明性文件
+# 触发时机：CC 改了 WIP / TODO / 文档同步点清单 等声明性文件
 #
 # 工作流：
 # 1. 读 stdin 提取 file_path
@@ -14,7 +14,6 @@
 # 受检文件：
 # - 00_admin/WIP.md
 # - 00_admin/TODO.md
-# - 00_admin/progress_overview.md
 # - 00_admin/文档同步点清单.md
 # - CHANGELOG.md（顶部 ## [vX.Y.Z] - YYYY-MM-DD 也算时间戳）
 #
@@ -50,7 +49,7 @@ fi
 
 WATCHED=""
 case "$RELATIVE_PATH" in
-  "00_admin/WIP.md"|"00_admin/TODO.md"|"00_admin/progress_overview.md"|"00_admin/文档同步点清单.md"|"CHANGELOG.md")
+  "00_admin/WIP.md"|"00_admin/TODO.md"|"00_admin/文档同步点清单.md"|"CHANGELOG.md")
     WATCHED="$RELATIVE_PATH"
     ;;
   *)

@@ -68,7 +68,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 4. **iOS / Android / teacher_web / backend / 点呼机 5 端代码层都已启动**，但成熟度不同：backend 和 iOS 更靠前，Android 真后端接入与测试、点呼机真机模块仍待续。
 
-5. **历史归档和当前主线必须分开读**：`99_archive/`、`05_logs/raw/`、`.pages` / `.docx` / `.510Z` 多数不是新人入口；找当前状态优先看 `WIP.md` + `progress_overview.md`。
+5. **历史归档和当前主线必须分开读**：`99_archive/`、`05_logs/raw/`、`.pages` / `.docx` / `.510Z` 多数不是新人入口；找当前状态优先看 `WIP.md` + `项目心智模型.md`。
 
 ### 0.4 跨组横向洞察（详见 §8）
 
@@ -109,16 +109,16 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `系统bug专栏.md` | **5-21 加** 131 条 v1.0 上线前 bug 集中管理（🔴 阻塞 43 / 🟡 该修 58 / 🟢 优化 30）— 由 5-19~5-21 三子代理审 + 主会话整理产出 / **5-22 加 Codex 第二轮 audit 段**（24 独立发现 + 13 复核 + 2 positive，共 39 条 / `audit_2026-05-22_codex/`）| ✅ |
 | `codex_audit_prompt.md` | **5-21 加** Codex 第二轮 audit prompt 模板（27 必读文件 + 17 审查维度 + Claude 漏的 4 类重点）— 给 itsuki 喂 codex 用 | ✅ |
 
-**实际剩余在 `00_admin/` 顶级**（2026-06-05 ls 真实，10 md + `hooks/` 子目录）：`文档同步点清单.md` + `2026-04-19_项目审查_backlog.md` + `progress_overview.md`（§1.3）+ `项目心智模型.md`（§1.3）+ `WIP.md` + `TODO.md` + `系统bug专栏.md` + `codex_audit_prompt.md` + `iOS_Android_对齐规格.md`（iOS↔Android 逐屏对齐规格）+ `iOS_Android对齐_GOAL提示词.md`（对齐会话的 /goal 提示词）+ `hooks/`（§1.6）。另有 `五端对齐_GOAL提示词.md` 未提交、`老师网页Vite迁移_GOAL提示词.md` 工作区已删。
+**实际剩余在 `00_admin/` 顶级**（2026-06-10 校准，9 md + `hooks/` 子目录 — progress_overview.md 当日退役移 99_archive）：`文档同步点清单.md` + `2026-04-19_项目审查_backlog.md` + `项目心智模型.md`（§1.3）+ `WIP.md` + `TODO.md` + `系统bug专栏.md` + `codex_audit_prompt.md` + `iOS_Android_对齐规格.md`（iOS↔Android 逐屏对齐规格）+ `iOS_Android对齐_GOAL提示词.md`（对齐会话的 /goal 提示词）+ `hooks/`（§1.6）。另有 `五端对齐_GOAL提示词.md` 未提交、`老师网页Vite迁移_GOAL提示词.md` 工作区已删。
 
 ### 1.3 00_admin/会话状态（4 文件 — 2026-05-29 加 项目心智模型 / 2026-05-13 progress_draft 归档）
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
-| `项目心智模型.md` | **2026-05-29 加** AI 开局必读骨架 — 系统怎么跑通 + 5 端各自现状 + 绑住 5 端的契约 + 核心不变量 + 当前未决问题 | ✅ | 由 dmsd-startup §2 Step 3 开局自动读 / session-wrap §7.5.1 项 12 收尾更新。不是文件清单（project-overview）/ 不是教授进度页（progress_overview）/ 不是新人导览（PROJECT_GUIDE）|
+| `项目心智模型.md` | **2026-05-29 加** AI 开局必读骨架 — 系统怎么跑通 + 5 端各自现状 + 绑住 5 端的契约 + 核心不变量 + 当前未决问题 | ✅ | 由 dmsd-startup §2 Step 3 开局自动读 / session-wrap §7.5.1 项 12 收尾更新。不是文件清单（project-overview）/ 不是新人导览（PROJECT_GUIDE）/ 不是版本编年史（CHANGELOG）|
 | `WIP.md` | 当下书签 — 记最近 5 次会话做了啥 / 当前焦点 / 多会话占用 / 阻塞项。CC 每次新会话必读全文 | ✅ | 短期记忆，跟 TODO 不重叠 |
 | `TODO.md` | 所有未完成事项的完整清单（真值）— 按 A 工程 / B 文档 / C AC 素材 三轨分类 | ✅ | 长期 backlog（待办池），CC 新会话扫顶部 200 行 |
-| `progress_overview.md` | 项目长期章节目录 — 教授看 GitHub 时「项目做到哪了」的对外页面 | ⚠️ | 5-04 正文更新到 v0.8，5-12 后又过期 8 天 |
+| ~~`progress_overview.md`~~ | （已退役 — 长期没人维护必然过期，进度叙事归 CHANGELOG 全版本一览 + PROJECT_GUIDE §8.5 时间线；活待办已提取 TODO §N+）| 📦 | → `99_archive/2026-06-10_progress_overview退役.md`（itsuki 6-10 拍板）|
 | ~~`progress_overview_draft_2026-04-20.md`~~ | （已归档 — 4-20 draft 比 5-04 正文还旧）| 📦 | → `99_archive/2026-05-12_深夜大整理/`（5-13 commit 81842f4）|
 
 ### 1.4 05_logs/AC_叙事/（12 文件 — **2026-05-13 commit b37d065 从 00_admin/ 迁入**，Q3 拍板）
@@ -191,7 +191,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | 文件 | 一句话作用 | 状态 |
 |---|---|---|
 | `settings.json` | Claude Code DMSD 项目级配置 — 注册 hooks（SessionStart 跑 check_overview_drift / PostToolUse 跑 sync-check + format / UserPromptSubmit 跑 anti-ai-flavor 提醒 / 等）| ✅ |
-| `session-coord.config.json` | session-coord skill 协作板配置 — 列哪些文件 strict_lock（CLAUDE.md / progress_overview / CHANGELOG / spec 主体 + 字典 4 件）/ advisory_lock（WIP / TODO / 5 DESIGN_LOG / system_features / 文档同步点清单）。**2026-05-22 修 FC-003**：原锁清单引用已废文件名 `RollCall_Spec_v0.1.md` + `dictionary_v0.1_v0.2_v0.3.md`，改成 `RollCall_Spec.md` + 4 个字典文件真名 | ✅ |
+| `session-coord.config.json` | session-coord skill 协作板配置 — 列哪些文件 strict_lock（CLAUDE.md / CHANGELOG / spec 主体 + 字典 4 件）/ advisory_lock（WIP / TODO / 5 DESIGN_LOG / system_features / 文档同步点清单）。**2026-05-22 修 FC-003**：原锁清单引用已废文件名 `RollCall_Spec_v0.1.md` + `dictionary_v0.1_v0.2_v0.3.md`，改成 `RollCall_Spec.md` + 4 个字典文件真名 | ✅ |
 
 ### 1.7.5 .claude/agents（1 subagent — **2026-05-19 新建**）
 

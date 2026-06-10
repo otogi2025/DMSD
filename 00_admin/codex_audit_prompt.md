@@ -46,7 +46,7 @@ OpenAI Codex（OpenAI 的代码 / 推理工具），被 itsuki 派来对 DMSD �
 ## 项目结构
 
 ```
-00_admin/         管理文档（WIP / TODO / progress_overview / 文档同步点清单 / hooks / 系统bug专栏）
+00_admin/         管理文档（WIP / TODO / 项目心智模型 / 文档同步点清单 / hooks / 系统bug专栏）
 01_specs/         规格文档（rollcall/ 字典 + 主体）
 02_design/        设计文档（hardware / flow / system_features）
 03_dev/           5 端代码（backend / teacher_web / student_ios / student_android / rollcall_device）
@@ -67,8 +67,8 @@ bin/              脚本（含启动对账 / 联动检查）
 2. `00_admin/WIP.md` — 当下书签 + 最近 5 会话 + 多会话占用
 3. `00_admin/TODO.md` — 完整未完成 backlog（顶部含 §🐞 系统 Bug 专栏入口 + §🆕 v1.0 后新功能候选）
 4. **`00_admin/系统bug专栏.md`** — **Claude 第一轮找到的 131 条 bug**（你跟这个对照，每条标「重复 / 独立发现 / Claude 漏」）
-5. `00_admin/progress_overview.md` — 阶段进度快照（给 itsuki + 教授读）
-6. `CHANGELOG.md` — 版本变更编年史
+5. `00_admin/项目心智模型.md` — 系统骨架 + 5 端现状（原 progress_overview.md 2026-06-10 退役）
+6. `CHANGELOG.md` — 版本变更编年史（顶部全版本一览）
 7. `README.md` — public GitHub repo 首屏
 
 ### Claude 维护的项目总览（重点扫漂移）
@@ -140,7 +140,7 @@ bin/              脚本（含启动对账 / 联动检查）
 14. **跨项目残留** — `~/dev/SC26/.claude/skills/` + `~/dev/cc-project-template/.claude/skills/` + `~/dev/Tango/.claude/skills/` 含 DMSD 字眼
 15. **依赖 CVE（已知漏洞编号 — Common Vulnerabilities and Exposures）** — Python `requirements.txt` / iOS `Package.swift` / Android `build.gradle`
 16. **后端测试** — `03_dev/backend/v1/tests/` 覆盖 + `.github/workflows/` CI（持续集成）配置
-17. **逐字精读** — 所有声明性文件（CLAUDE.md / WIP / TODO / progress_overview / README / CHANGELOG / spec / DESIGN_LOG）笔误 / 错字 / 引用失效 / 数字日期版本号自相矛盾
+17. **逐字精读** — 所有声明性文件（CLAUDE.md / WIP / TODO / README / CHANGELOG / spec / DESIGN_LOG）笔误 / 错字 / 引用失效 / 数字日期版本号自相矛盾
 
 ## ⭐ 重点 — Claude 第一轮可能漏的（你重点扫）
 

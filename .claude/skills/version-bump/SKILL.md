@@ -179,7 +179,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 - iCloud `00_通用指南/版本管理实践指南.md §12` 项目规划表 — itsuki 同步（CC 不写 iCloud）
 - `00_admin/TODO.md` — 如果 bump 影响 TODO 排期
-- `00_admin/progress_overview.md` — 如果是章节级里程碑
+- `PROJECT_GUIDE.md §8.5` 演化时间线 — 如果是阶段级里程碑（原 progress_overview.md 2026-06-10 退役）
 
 ### 全量扫描清单（§0.3 铁律 — 每次 bump 前跑）
 
@@ -419,7 +419,7 @@ T+N 天: 回滚预案（如出问题）
 - [ ] git status 工作树干净（无未 commit 改动）
 - [ ] CHANGELOG.md 顶部 `[Unreleased]` 段 → 改成正式版本号 + 日期
 - [ ] 同步点清单 11 项全过：`00_admin/文档同步点清单.md`
-- [ ] WIP.md / TODO.md / progress_overview.md 最近更新对齐
+- [ ] WIP.md / TODO.md 最近更新对齐
 - [ ] `bash bin/sync-check.sh` → 0 警告
 - [ ] `bash 00_admin/hooks/pre-commit` 手动模拟 → 0 阻塞
 

@@ -18,7 +18,7 @@
 如果你是第一次打开这个仓库，请先读：
 
 1. [`PROJECT_GUIDE.md`](./PROJECT_GUIDE.md) — 新人导览：项目是什么、现在做到哪、先读哪些文件。
-2. [`00_admin/progress_overview.md`](./00_admin/progress_overview.md) — 当前状态快照：架构、阶段、进度。
+2. [`00_admin/项目心智模型.md`](./00_admin/项目心智模型.md) — 1 屏骨架：系统怎么跑通 + 5 端现状。
 3. [`.claude/skills/project-overview/SKILL.md`](./.claude/skills/project-overview/SKILL.md) — 文件级地图：每个文件/目录大概干什么。
 
 `README.md` 是仓库门面；`PROJECT_GUIDE.md` 是真正给新人顺着读的导览。
@@ -66,7 +66,7 @@ Tomoshibi 用 NFC 卡、学生手机 App、老师 Web、后端服务器和入口
 | Android | Kotlin + Compose 项目已建，视觉层覆盖主要学生端屏幕；真后端接入和测试仍待推进。 |
 | Teacher Web | 6-05 迁到 React + TypeScript + Vite（界面冻结从 Ryō standalone HTML 原样搬），权威源 `03_dev/teacher_web/v1/src/`。 |
 | 点呼机 | 硬件方案和 Python 骨架已建，真实 Pi 上手和 NFC/LED/audio/API 模块实装仍在后续。 |
-| 工程治理 | WIP / TODO / progress_overview / project-overview / hooks / skills 已形成协作和防漂体系。 |
+| 工程治理 | WIP / TODO / project-overview / hooks / skills 已形成协作和防漂体系。 |
 
 ---
 
@@ -88,7 +88,7 @@ Tomoshibi 用 NFC 卡、学生手机 App、老师 Web、后端服务器和入口
 | 顺序 | 文件 | 看什么 |
 |---|---|---|
 | 1 | [`PROJECT_GUIDE.md`](./PROJECT_GUIDE.md) | 新人导览，先建立整体地图。 |
-| 2 | [`00_admin/progress_overview.md`](./00_admin/progress_overview.md) | 当前架构和阶段进度。 |
+| 2 | [`00_admin/项目心智模型.md`](./00_admin/项目心智模型.md) | 1 屏速记：系统怎么跑通 + 5 端现状。 |
 | 3 | [`02_design/system_features.md`](./02_design/system_features.md) | 5 端共用功能规格真值。 |
 | 4 | [`01_specs/rollcall/RollCall_Spec.md`](./01_specs/rollcall/RollCall_Spec.md) | 点呼系统完整业务规格。 |
 | 5 | [`CHANGELOG.md`](./CHANGELOG.md) | 版本演变和里程碑。 |

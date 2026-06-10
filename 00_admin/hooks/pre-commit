@@ -2,7 +2,7 @@
 # DMSD pre-commit hook — 文档版本号一致性检查
 #
 # 检查规则：
-# "声明性文件"（CLAUDE.md / WIP / TODO / progress_overview）不应硬编码版本号。
+# "声明性文件"（CLAUDE.md / WIP / TODO）不应硬编码版本号。
 # 单源真值 = CHANGELOG.md 顶部。其他文件用指针 "当前版本见 CHANGELOG.md"。
 #
 # 背景：
@@ -20,7 +20,6 @@ DECLARATIVE_FILES=(
     "CLAUDE.md"
     "00_admin/WIP.md"
     "00_admin/TODO.md"
-    "00_admin/progress_overview.md"
 )
 
 # 每个文件只检查前 N 行（状态声明通常在头部；日志 / 历史引用区放行）

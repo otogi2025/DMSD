@@ -91,7 +91,7 @@ python3 ~/.claude/skills/ac-radar/scripts/startup_check.py
 |---|---|---|
 | 读 `00_admin/TODO.md` | itsuki 不想被 CC 催进度 | 只在 itsuki 主动问「下一步做什么」/「还有什么没做」才读 |
 | 跑 `git status` | 启动时跑会噪音 + 容易引导 CC 想 commit | 会话结束走 [[session-wrap]] §5.5.9 |
-| 读 `progress_overview.md` / `CHANGELOG.md` | 它们是给教授 / 全部读者看的，CC 启动不需要 | 版本 bump 时由 [[version-bump]] skill 处理 |
+| 读 `CHANGELOG.md` | 它是给全部读者看的版本编年史，CC 启动不需要 | 版本 bump 时由 [[version-bump]] skill 处理 |
 | 检测装的工具 vs 环境清单 | 全局挂钩 `~/.claude/hooks/session-start-env-diff.sh` 在管 | 挂钩自动跑，CC 看到输出再反应 |
 
 ## 4. 按需触发的事（itsuki 输入命中哪些场景 → CC 做什么）

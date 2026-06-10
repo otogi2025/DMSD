@@ -21,7 +21,6 @@
 # - CLAUDE.md
 # - 00_admin/WIP.md
 # - 00_admin/TODO.md
-# - 00_admin/progress_overview.md
 #
 # 2026-05-04 itsuki 拍板新建（5 hook 一波加）
 
@@ -52,7 +51,7 @@ fi
 # ============================================================
 
 case "$RELATIVE_PATH" in
-  "CLAUDE.md"|"00_admin/WIP.md"|"00_admin/TODO.md"|"00_admin/progress_overview.md")
+  "CLAUDE.md"|"00_admin/WIP.md"|"00_admin/TODO.md")
     : # 受检
     ;;
   *)
@@ -112,7 +111,7 @@ $(echo "$VIOLATIONS" | sed 's/^/     /')
 
 📜 单源真值规则：
 - 版本号 single source = \`CHANGELOG.md\` 顶部
-- 声明性文件（CLAUDE.md / WIP / TODO / progress_overview）只用指针：\"当前版本见 CHANGELOG.md 顶部\"
+- 声明性文件（CLAUDE.md / WIP / TODO）只用指针：\"当前版本见 CHANGELOG.md 顶部\"
 - 例外（极少）：历史引用（\"v0.2.0 时决定...\"）→ 行末加 \`<!-- VERSION_OK -->\` 豁免
 
 → 修复 2 选 1：

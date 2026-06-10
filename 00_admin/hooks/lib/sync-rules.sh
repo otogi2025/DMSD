@@ -419,7 +419,7 @@ check_new_declarative_files() {
     [ -z "$f" ] && continue
     if echo "$f" | grep -qE '^(CLAUDE\.md|00_admin/[^/]+\.md)$'; then
       # 排除已登记的常规文件
-      if ! echo "$f" | grep -qE '^(00_admin/(WIP|TODO|progress_overview|文档同步点清单|文件结构指南|版本管理SOP|CLAUDE_CODE_记录指南)\.md)$'; then
+      if ! echo "$f" | grep -qE '^(00_admin/(WIP|TODO|文档同步点清单|文件结构指南|版本管理SOP|CLAUDE_CODE_记录指南)\.md)$'; then
         hit="${hit}${f}\n"
       fi
     fi

@@ -4,7 +4,6 @@
 
   "strict_lock": [
     "CLAUDE.md",
-    "00_admin/progress_overview.md",
     "CHANGELOG.md",
     "01_specs/rollcall/RollCall_Spec.md",
     "01_specs/rollcall/FIELD_REGISTRY.md",

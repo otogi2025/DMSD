@@ -10,7 +10,7 @@
 > |---|---|---|
 > | **WIP.md（本文件）** | 当下书签 + 最近 5 次会话 1-2 行总结 + 多会话占用 + 阻塞项 | CC（每次会话开始读全文）|
 > | **TODO.md** | **所有未完成事项的完整 backlog**（真值）| itsuki + CC（每次会话开始扫顶部 200 行）|
-> | **progress_overview.md** | 长期章节目录（稳定，每次 close 版本时更新）| itsuki + 教授读 |
+> | ~~progress_overview.md~~ | 2026-06-10 退役归档 — 进度叙事归 CHANGELOG 全版本一览 + PROJECT_GUIDE §8.5 | — |
 > | **CHANGELOG.md** | 已发布版本编年史 | 全部读者 |
 > | **commit history** | 每次改动的细节 | git log 可查 |
 >
@@ -42,7 +42,7 @@
 **当前版本之后的阶段**（版本号见 `CHANGELOG.md` 顶部） — 5 端代码层启动完毕（iOS + Android + Web + Backend + 点呼机），下一步重点：
 1. 老师公告 4 端实装（iOS + Android + Web + Backend — 不含点呼机）— spec 已落 `system_features.md §7.15`
 2. 学生注册码 v1.0 实装（4 端 spec 已就位 2026-05-03 上午别会话 — 不含点呼机）
-3. 文档欠债：`progress_overview.md` 章节级里程碑刷新（4-17 之后没动）
+3. ~~文档欠债：`progress_overview.md` 章节级里程碑刷新~~（2026-06-10 以退役方式解决 — 归档进 99_archive，待办已提取 TODO §N+）
 
 → 完整 backlog 看 `TODO.md`。
 
@@ -141,7 +141,7 @@
 
 1. 每个「占用」任务必须标出涉及文件 / 目录
 2. 其他会话不能动正在被占用的文件
-3. **共享文件**（`CLAUDE.md` / `WIP.md` / `progress_overview.md` / `CHANGELOG.md` / `TODO.md`）：一次只能一个会话改，改完立刻 commit + push
+3. **共享文件**（`CLAUDE.md` / `WIP.md` / `CHANGELOG.md` / `TODO.md`）：一次只能一个会话改，改完立刻 commit + push
 4. 改 `WIP.md` 本身：先 pull，改完立刻 push
 5. git conflict：停下来问 itsuki，不自己猜合并
 
