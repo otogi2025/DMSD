@@ -1,13 +1,13 @@
 ---
 name: version-bump
-description: DMSD 版本号 bump 完整流程（5 步 + 7 处联动文件强制同步）。⭐ 主触发 = itsuki 说「迭代 / bump / 发版本 / 打 tag / 升级版本 / 发布 vX.Y.Z」。⭐ CC 有否决权 — 即使 itsuki 说要迭代，CC 读完 §2 决策树后判断不该 bump，可以拒绝。⭐ 版本演变一览必更新 — 历史已踩漂移（v0.6.0 / v0.8.0 都没更新到一览），现在写成铁律强制。包含决策树 / 5 步流程 / 7 处联动 / commit 前缀 / staging 污染防御 / 30 秒判断 / 路线图。
+description: DMSD 版本号 bump 完整流程（5 步 + 8 处联动文件强制同步）。⭐ 主触发 = itsuki 说「迭代 / bump / 发版本 / 打 tag / 升级版本 / 发布 vX.Y.Z」。⭐ CC 有否决权 — 即使 itsuki 说要迭代，CC 读完 §2 决策树后判断不该 bump，可以拒绝。⭐ 版本演变一览必更新 — 历史已踩漂移（v0.6.0 / v0.8.0 都没更新到一览），现在写成铁律强制。包含决策树 / 5 步流程 / 7 处联动 / commit 前缀 / staging 污染防御 / 30 秒判断 / 路线图。
 when_to_use: ⭐ 主触发 — itsuki 说「迭代 / bump / 发版本 / 打 tag / 升级版本 / 发布 / release / 升到 v0.X.Y」。次触发 — 改了 01_specs/ 主体 / 字典 / 02_design/system_features.md / 03_dev/ 主体 / pre-commit hook 提醒 "考虑 bump" / 累积 5+ commit 含实质改动 / 会话结束做一致性检查。
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
 # Version Bump Skill — DMSD 版本迭代完整流程
 
-> **核心理念**：版本号 bump = **多文件强制同步动作**，不是 "改 CHANGELOG 就完事"。每次 bump **强制更新 7 处联动文件**（不是 SOP 旧版的 6 处 — 因为 v0.6.0 / v0.8.0 漂移让我意识到要加防御）。
+> **核心理念**：版本号 bump = **多文件强制同步动作**，不是 "改 CHANGELOG 就完事"。每次 bump **强制更新 8 处联动文件**（不是 SOP 旧版的 6 处 — 因为 v0.6.0 / v0.8.0 漂移让我意识到要加防御）。
 >
 > **来源**：基于 `00_admin/版本管理SOP.md`（v0.4.0 建立 → v0.7.0 首次全套跑通 → 但 v0.6.0 / v0.8.0 漂移证明 prompt 不够强）+ 2026-05-04 itsuki 4 条新铁律（否决权 / 必更一览 / 全量扫描 / 迭代关键词）→ 整体迁入做成 skill。
 >
@@ -89,7 +89,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 1. **当前版本** = `CHANGELOG.md` 顶部第一条（也同步在 `WIP.md` 头部）
 2. **改 spec 主体 / 字典 / 02_design / 03_dev 大块** → 必读 §2 决策树
-3. **决定 bump** → 跑 §3 五步 + 对照 §4 联动文件清单（**必改 7 处**）
+3. **决定 bump** → 跑 §3 五步 + 对照 §4 联动文件清单（**必改 8 处**）
 4. **commit 前缀对照表** → §5
 5. **协作模型**（CC 自动 commit / itsuki 主导 push + bump + AC 叙事 / CC 执行 tag）→ 详见 session-wrap skill §5.5.7
 
@@ -141,7 +141,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 - 头部 "最后更新" 时间戳同步刷新
 - 参考 v0.3.2 / v0.7.0 段的写法
 
-### 步骤 3：同步 §4 联动文件（**必改 7 处**）
+### 步骤 3：同步 §4 联动文件（**必改 8 处**）
 
 见 §4 表格，逐项过。**§4 第 3 项「版本演变一览」是 §0.2 铁律 — 不能跳过**。
 
@@ -161,9 +161,10 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ---
 
-## §4 Bump 时联动文件清单（**必改 7 处**）
+## §4 Bump 时联动文件清单（**必改 8 处**）
 
 > ⭐ 比旧 SOP 多一处（第 7 项）— 因为 itsuki 拍板要求"全量扫描"，发现 `.claude/skills/project-overview/SKILL.md` 也是迭代联动点（新建 AC 叙事文档时要更新总览）。
+> ⭐ 第 8 项 2026-06-12 补 — 三端客户端版本号实际每次大版本都在同步改（0.12.0 / 0.15.0 两次都改过），但本清单一直没列，6-09 重排后三端就停在 0.15.0 漂移了。
 
 | # | 文件 | 改什么 | 谁改 | 优先级 |
 |---|---|---|---|---|
@@ -174,6 +175,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | 5 | iCloud raw 池 `raw详细叙事/YYYY-MM-DD.md`（见 session-wrap §3.1）| dump 一条 #AC候选 标 "版本号 bump = 重大决策"（按 session-wrap skill）| CC | 🔴 必 |
 | 6 | `git tag` | 打 tag（**等 itsuki 明示**）| itsuki / CC 经授权 | 🟠 半必 |
 | 7 | `.claude/skills/project-overview/SKILL.md` | 如果新建了 vX.Y.Z_AC叙事.md → §1.4 加新条目 + 计数 | CC | 🟠 半必（条件触发）|
+| 8 | 三端客户端版本号：iOS `03_dev/student_ios/v1/project.yml`（`INFOPLIST_KEY_CFBundleShortVersionString`）/ Android `03_dev/student_android/v1/app/build.gradle.kts`（`versionName`）/ 老师网页 `03_dev/teacher_web/v1/src/theme.ts`（`APP_VERSION`）| 三处统一改成新版本号 | CC | 🟠 半必（minor bump 必同步；patch 可攒到下次 minor 一起）|
 
 ### 可选联动（按情况）
 

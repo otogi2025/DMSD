@@ -257,12 +257,13 @@ grep -rn "ComponentName" 03_dev/student_ios/v1/TomoshibiApp/Features/
 
 **触发**：`CHANGELOG.md`（仓库根）/ `00_admin/WIP.md` / `05_logs/版本演变一览.md`
 
-**必做动作**：核对三处是否同步 ——
+**必做动作**：核对四处是否同步 ——
 - **`CHANGELOG.md` = 版本号唯一真值**（改文件版本时以它为准）
 - `00_admin/WIP.md` 头部「当前版本」= 二级源（版本号要跟 CHANGELOG 一致）
 - `05_logs/版本演变一览.md` = 面向 AC 教授的详细叙事版（**改 CHANGELOG 必连带改这里**：加新版本的总表行 + 详细段，因为这是 AC 素材）
+- 三端客户端版本号：iOS `03_dev/student_ios/v1/project.yml`（`INFOPLIST_KEY_CFBundleShortVersionString`）/ Android `03_dev/student_android/v1/app/build.gradle.kts`（`versionName`）/ 老师网页 `03_dev/teacher_web/v1/src/theme.ts`（`APP_VERSION`）— minor bump 必同步，patch 可攒到下次 minor
 
-**为什么**：`文档同步点清单.md §1` 定义版本号单一真值 = `CHANGELOG.md`。改 CHANGELOG = 迭代版本，必须同步：① WIP 头部版本号 ② 版本演变一览。后者是 itsuki 2026-06-05 拍板补的绑定 —— 原话「迭代版本要改 changelog，改了 changelog 就该改版本演变一览，这两个文件要绑在一起，版本演变一览要包含详细的内容，因为是素材」。过去 Rule 23 只绑 CHANGELOG↔WIP、漏了版本演变一览，6-05 补齐。完整 bump 流程见 version-bump skill。
+**为什么**：`文档同步点清单.md §1` 定义版本号单一真值 = `CHANGELOG.md`。改 CHANGELOG = 迭代版本，必须同步：① WIP 头部版本号 ② 版本演变一览 ③ 三端客户端版本号。② 是 itsuki 2026-06-05 拍板补的绑定 —— 原话「迭代版本要改 changelog，改了 changelog 就该改版本演变一览，这两个文件要绑在一起，版本演变一览要包含详细的内容，因为是素材」。③ 是 2026-06-12 补 —— 三端实际每次大版本都在同步改（0.12.0 / 0.15.0 两次），但规则一直没列，6-09 重排后三端停在 0.15.0 漂移了。完整 bump 流程见 version-bump skill。
 
 ---
 
@@ -337,6 +338,7 @@ grep -rn "ComponentName" 03_dev/student_ios/v1/TomoshibiApp/Features/
 | `CHANGELOG.md` | Rule 23 (WIP.md / 版本演变一览 版本号改) |
 | `WIP.md`（版本号部分） | Rule 23 (CHANGELOG.md 改) |
 | `05_logs/版本演变一览.md` | Rule 23 (CHANGELOG.md 改 — 必连带加总表行+详细段) |
+| 三端客户端版本号（iOS `project.yml` / Android `build.gradle.kts` / web `theme.ts`） | Rule 23 (CHANGELOG.md 版本号改 — minor 必同步) |
 | `system_features.md` | Rule 19 (任一端 *_DESIGN_LOG 改) |
 | 四端 API 实装（routers/schemas/iOS Endpoints+NetworkModels/Android/web client.js） | Rule 25 (API_CONVENTIONS.md 改) |
 | `RootView.swift` | Rule 4 (Route.swift 改) |
