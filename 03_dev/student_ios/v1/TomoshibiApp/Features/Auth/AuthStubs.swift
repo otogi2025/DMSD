@@ -252,19 +252,19 @@ struct OnboardingView: View {
     }
 
     private let slides: [Slide] = [
-        // ① 点呼 — v1.0 只支持「卡贴点呼机」，不支持手机签到，故只讲卡（手机签到留 v1.1）
+        // ① 点呼 — 用「タッチで」泛指（不提卡 / 不提手机，因为这是 iPhone app、卡跟它无关；v1.0 也不支持手机签到）
         Slide(
             sfSymbol: "wave.3.right.circle.fill",
-            title: "カードでかんたん点呼",
-            sub: "カードをかざすだけ。\n毎晩の点呼が数秒で完了。",
+            title: "タッチで点呼",
+            sub: "かざすだけで\n毎晩の点呼が数秒で完了",
             gradStart: 0xE8F4F6, gradEnd: 0xA8DCE2,
             fg: T.primary
         ),
         // ② 申请
         Slide(
             sfSymbol: "square.and.pencil.circle.fill",
-            title: "外出も帰省もアプリから",
-            sub: "外泊・帰省・タクシー…\n申請はすべてここで。",
+            title: "外泊も帰省もアプリから",
+            sub: "外泊・帰省・タクシー…\n申請はすべてここで",
             gradStart: 0xFDF4E1, gradEnd: 0xFFE9B5,
             fg: T.warnDeep
         ),
@@ -272,7 +272,7 @@ struct OnboardingView: View {
         Slide(
             sfSymbol: "person.text.rectangle.fill",
             title: "自分の記録をいつでも",
-            sub: "点呼履歴も減点も、\nマイページで確認。",
+            sub: "点呼履歴も減点も\nマイページで確認",
             gradStart: 0xE3F1EA, gradEnd: 0x8BC6A3,
             fg: T.okDeep
         ),
@@ -291,7 +291,8 @@ struct OnboardingView: View {
         ),
     ]
 
-    /// 看完 / 跳过 → 标记已看，跳登录页（新用户在登录页点「新規登録」进注册）
+    /// 看完（最后一页「始める」）→ 标记已看，跳登录页（新用户在登录页点「新規登録」进注册）
+    /// 无「スキップ」按钮 — itsuki 拍板所有人首次必须看完 4 页
     private func finish() {
         hasSeenOnboarding = true
         router.replace(.login)
@@ -299,15 +300,6 @@ struct OnboardingView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Spacer()
-                Button("スキップ") { finish() }
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(T.inkSub)
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 8)
-
             TabView(selection: $idx) {
                 ForEach(slides.indices, id: \.self) { i in
                     slideView(slides[i]).tag(i)

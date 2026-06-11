@@ -1354,8 +1354,9 @@ gpt-5 + high（非预期 gpt-5.5 + xhigh）逐层挖 `ST25DVWriter` NFC 取消�
 
 ### §18.1 介绍页（OnboardingView）重做 4 页 + 只显示一次（commit `fa05f17`）
 - 原 3 页介绍（点呼/申请/生活）自 5-07「不每次启动都弹」拍板后变孤儿页（无任何活路由指向，谁都看不到）。本次重做并真正接回启动流。
-- **方案 B「学生的一天」4 页**：① カードでかんたん点呼（**只讲卡** — v1.0 不支持手机签到，ST25DVWriter 留 v1.1）② 外出も帰省もアプリから ③ 自分の記録をいつでも ④ AI でもっと便利に（一键翻译/总结公告 + AI 头像，带机种小字）。每页 1 图标 + 1 标题 + 副标题（或 AI 页 3 行功能 + 小字）。
-- **只显示一次**：`SplashView` 加 `@AppStorage("hasSeenOnboarding")`。无 token 且本机没看过 → `.onboarding`；`OnboardingView` 的「始める」/「スキップ」置标记 → `.replace(.login)`（新用户在登录页点「新規登録」进注册）。有 token 直接 home（老用户不弹），看过的人不再弹（解决 5-07「太烦」）。
+- **方案 B「学生的一天」4 页**：① タッチで点呼（用「タッチで」泛指 — itsuki 拍板「ios app 跟卡无关」，不提卡也不提手机；v1.0 不支持手机签到）② 外泊も帰省もアプリから ③ 自分の記録をいつでも ④ AI でもっと便利に（一键翻译/总结公告 + AI 头像，带机种小字）。每页 1 图标 + 1 标题 + 副标题（或 AI 页 3 行功能 + 小字）。**副文案全部不带句号「。」**（itsuki 拍板）。
+- **无「スキップ」按钮 — 所有人首次必须看完 4 页**（itsuki 拍板，6-11 看完初版后撤掉 skip）。
+- **只显示一次**：`SplashView` 加 `@AppStorage("hasSeenOnboarding")`。无 token 且本机没看过 → `.onboarding`；`OnboardingView` 最后一页「始める」置标记 → `.replace(.login)`（新用户在登录页点「新規登録」进注册）。有 token 直接 home（老用户不弹），看过的人不再弹（解决 5-07「太烦」）。
 
 ### §18.2 公告详情页 AI 一键翻译 + 一键要約（commit `785c206`）
 - `AnnouncementDetailView` 正文下加 AI 操作行 + 正文设 `.textSelection(.enabled)`。
