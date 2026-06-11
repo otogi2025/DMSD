@@ -57,6 +57,14 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+### 2026-06-11 iOS R-3~R-5 + 图标 + M-1 + 首批单测 + 签名接线 by [Opus 4.8 1M]
+
+- 接 R3R4R5 交接件：R-3 三上报弹窗防连点 / R-4 登录锁定接后端 423/403 / R-5 体調履歴接 reports/mine。6-10 审查「🔴 重大已验证 5 组」清零。
+- v1.0 盘点（头号阻塞=后端待 itsuki 本地对齐后部署）；R-1~R-5 补同步设计档（IOS §16 / BACKEND §5.5.7-8 / system_features §7.4.2）。
+- 全端图标换 Tomoshibi-icon-1（iOS `31a40fc` + 老师网页 `4201a2f`；Android 拍板先搁置）；M-1 首页活动卡+巴士卡接真 `fc57edb`。
+- **iOS 首批单元测试**：抽 `decideRollState` 纯函数 + TomoshibiAppTests 目标 + 7 条时间窗状态机测试，`xcodebuild test 7/7 passed`（iOS 首次有逻辑测试）。
+- **签名接线**：Team ID `DCQ2KT5ZA9` 入 project.yml + IOS_DESIGN_LOG §19 配置登记表 + 签名开关 YES。CC 能做的 4 件齐活。双 scheme BUILD SUCCEEDED 全程绿。版本由并行会话 bump（见 CHANGELOG 顶部）。所有 commit 未 push。
+
 ### 2026-06-10 WIP/TODO 瘦身重组（交接任务执行）by [Fable 5]
 
 - 接手交接件 `WIP_TODO瘦身_交接_2026-06-10.md`：TODO.md 2220 行重排成 §A 上线必做(102) / §B 不挡上线(199) / §C 长尾存疑(230) / §D 等拍板(40) 四层，整段已完成移 `TODO_完成归档.md`；WIP 顶部 1.26 万字历史段剪切 `99_archive/2026-06-10_WIP历史段归档.md`。
