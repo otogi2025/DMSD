@@ -1373,3 +1373,19 @@ gpt-5 + high（非预期 gpt-5.5 + xhigh）逐层挖 `ST25DVWriter` NFC 取消�
 - **AI 头像**：Image Playground，iOS 18.2+ 且 Apple Intelligence 机种。
 - 故 AI 页小字只声明「AI 要約とアバター生成は iPhone 15 Pro 以降（Apple Intelligence 対応機種）が必要」—— 翻译全机种可用不设限。
 - 工具链：Xcode 26.5 + iOS 26.5 SDK，三框架（Translation/FoundationModels/ImagePlayground）全在 SDK 里，弱链接。正式版 + 演示版双 BUILD SUCCEEDED。
+
+## §19 上线签名 / 构建配置登记（⭐ 配置真值表 — 这类「外部账号/编号」值的登记位）
+
+> 生效真值在 `03_dev/student_ios/v1/project.yml`（这里是人读的对照登记）。Team ID 不是密码、是半公开标识，进公开仓库属正常。
+
+| 项 | 值 | 说明 |
+|---|---|---|
+| **苹果开发者 Team ID（团队编号）** | `DCQ2KT5ZA9` | itsuki 2026-06-11 提供。`project.yml` 的 `DEVELOPMENT_TEAM`。Archive/上架签名用 |
+| 正式版 bundle id | `com.itsuki.tomoshibi` | App Store 上架的应用唯一身份号 |
+| 演示版 bundle id | `com.itsuki.tomoshibi.demo` | 演示版独立 id，可与正式版同机共存 |
+| 测试目标 bundle id | `com.itsuki.tomoshibi.tests` | 单元测试 bundle |
+| 签名方式 | Automatic（自动） | Xcode 按 Team 拉/建描述文件 |
+| 签名开关 | `CODE_SIGNING_ALLOWED/REQUIRED = YES` | 2026-06-11 开（原全程关）；Archive 需 Xcode 登录该开发者账号 |
+| 最低系统 | iOS 16.0 | itsuki 2026-06-05 拍板 |
+
+**⚠️ Archive 上架仍需 itsuki 在 Xcode 做**：① Xcode → Settings → Accounts 登录该开发者 Apple ID（CC 的 headless 构建拿不到登录态/描述文件）② 苹果后台为 `com.itsuki.tomoshibi` 开推送能力 + 生成 APNs 证书（若 v1.0 上推送）。CC 侧只负责把 project.yml 配好 + 模拟器构建验证不破。
