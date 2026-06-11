@@ -399,6 +399,12 @@
 
 > 体验改进 / 文档完善 / 重构 / 接线推进类 — 不影响「能不能上线」，影响「好不好用」。
 
+## 📝 2026-06-11 收尾文档欠债（iOS 推进会话遗留 — 小，不挡）
+- [ ] project-overview SKILL.md 登记新建测试目录 `03_dev/student_ios/v1/TomoshibiAppTests/`（RollStateMachineTests.swift）+ §0.1 体量表 +N（当时并行会话在 churn 仓库、没当场刷防漂）
+- [ ] 心智模型 §iOS 可补一句「iOS 首次有逻辑层单元测试（点呼时间窗状态机 7 条），验证不再只靠编译绿」
+- [ ] M-1 同族遗留：HomeStubs `packageCard` 仍读 `SEED.packages`（生产显假包裹件数），本次只接了活动卡+巴士卡 → 同法加 #if DEMO + app.loadMyPackages
+- [ ] iOS 单元测试覆盖面扩展（当前只点呼时间窗状态机；登录锁定判定 / 房号解析 / JSON 解码等可续补，非阻塞）
+
 ## ⚡ 2026-06-11 页面/功能响应时间优化（性能加固 — v1.1，itsuki 拍板）
 
 > itsuki 2026-06-11 拍板：「某个页面或者功能的响应时间也要缩短，做优化。这个是另外一个大工程，放 v1.1 冻结清单。**v1.0 的目标是可用**。」
