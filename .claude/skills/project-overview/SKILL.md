@@ -41,7 +41,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `02_design/` | 4 | 0.3% | system_features + hardware + flow + NFC防代刷_后端立项施工计划 |
 | `docs/` | 3 | 0.3% | Matt Pocock 套件 per-repo 配置（agents/{issue-tracker,triage-labels,domain}.md）|
 | `bin/` | 5 | 0.3% | sync-check + create_local_dev_symlink + check_overview_drift + **export_openapi.sh**（导后端接口总表，6-11）+ **generate_file_inventory.py**（文件清单生成器，6-11）|
-| `04_ops/` | 3 | 0.2% | MAC_MINI_SETUP + wifi_survey_howto + teacher_web_v1.0_上线部署清单 |
+| `04_ops/` | 4 | 0.3% | MAC_MINI_SETUP + wifi_survey_howto + teacher_web_v1.0_上线部署清单 + 个人网站_pj部署运维 |
 | `.github/` | 3 | — | CI / 机器人配置（**push 前都不生效**）：`workflows/test.yml` 后端 pytest（5-21 建 C-048）/ `workflows/ci.yml` 老师网页构建（6-11 建）/ `dependabot.yml` 依赖更新机器人（5-29 建）|
 | `.github/` | 2 | 0.1% | workflows/test.yml（GitHub Actions CI 自动跑测试）+ dependabot.yml（依赖漏洞自动监控 — pip/gradle/actions 每周一）|
 | **总计** | **1450** | 100% | |
@@ -145,6 +145,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `跨会话_ios_共享决策.md` → `99_archive/2026-05-12_深夜大整理/` | iOS 项目跨多会话同步的临时决策表（5-06 退役独立 repo 模式后失效） | 📦 已归档 |
 | `wifi_survey_howto.md` → `04_ops/` | 宿舍 WiFi 信号实地调研的方法说明 | ✅ |
 | `MAC_MINI_SETUP.md` → `04_ops/` | Mac mini 部署后端的步骤手册 | ✅ |
+| `个人网站_pj部署运维.md` → `04_ops/` | pj.tomoshibi.cc 个人网站部署运维真值（docker/Caddy/部署流程/页面清单/加密码方法） | ✅ |
 | `漏洞_剩余清单_2026-04-21.md` → `05_logs/` | 28 条还没修的 spec 漏洞索引 | ✅ |
 | `版本演变一览.md` → `05_logs/` | 18 个 git tag 的故事线（每个 tag 当时做了啥） | ✅ |
 | `术语表.html` → `06_assets/` | 180+ 词的可交互术语学习页面（itsuki AC 面试日语准备） | ✅ |
