@@ -1760,9 +1760,21 @@ struct LoginView: View {
             app.resetLoginFailures()
             router.replace(.home)
         } catch APIError.unauthorized {
-            // 学号 / 密码错 → 走锁定升级
-            app.recordLoginFailure()
-            router.go(.lockout)
+            // 学号 / 密码错（后端尚未锁）
+            app.recordLoginFailure() // 本地连续失败计数（纯 UX，锁定真值以后端 423 为准）
+            #if DEMO
+                // 演示版保留本地锁定升级演出（30/60/300… 秒倒计时）
+                router.go(.lockout)
+            #else
+                // 生产版不走本地写死倒计时的假 LockoutView，只提示凭证错误
+                app.showToast("学籍番号またはパスワードが違います")
+            #endif
+        } catch let APIError.server(423, msg) {
+            // 后端真锁（B6 学生连续失败锁）→ 显示后端日语文案（含「残り約 X 分」），以后端为锁定真值
+            app.showToast(msg.isEmpty ? "アカウントロック中です。しばらくしてからお試しください" : msg)
+        } catch let APIError.server(403, msg) {
+            // 账号停用（status != active）
+            app.showToast(msg.isEmpty ? "アカウントが無効です。寮監にご連絡ください" : msg)
         } catch let APIError.unprocessable(msg) {
             // 学号格式错（非 6 桁数字）等
             app.showToast(msg)
