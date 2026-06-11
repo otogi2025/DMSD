@@ -18,6 +18,7 @@ LICENSE	开源许可证
 00_admin/文件批注.tsv	本文件 — 文件清单的人写批注半边
 00_admin/文件清单_自动生成.md	机器生成的全文件清单（勿手改，生成器拼 ls-files + 批注）
 00_admin/handoff/README.md	AI 会话交接件文件夹的规则（含交接词模板归档义务段）
+00_admin/handoff/push准备_交接提示词_2026-06-11.md	交接件 — push 前内容盘点 + 推 main 与 143 标签 + CI 首跑观察（compact 后会话接手）
 00_admin/v1.0上线缺口看板.html	v1.0 上线还差什么的可视化看板
 01_specs/rollcall/RollCall_Spec.md	点呼核心规格（冻结主体）
 02_design/system_features.md	5 端共用设计层单源真值
@@ -44,5 +45,4 @@ bin/generate_file_inventory.py	文件清单生成器（收尾时跑，机器半�
 00_admin/hooks/lib/sync-rules.sh	文件联动规则库（条数真值）
 00_admin/hooks/pre-commit	git 提交前一致性检查
 05_logs/dev_log/2026-06-11_管理体系二期.md	工程简报 — 管理体系二期会话（raw 迁移/启动改版/三件新基建）
-00_admin/handoff/iOS点呼状态机单元测试_交接_2026-06-11.md	交接件 — iOS 首批单元测试任务（等 iOS 接线会话收工接手）
 05_logs/dev_log/_README_工程简报格式.md	dev_log 目录格式说明（收尾模板）
