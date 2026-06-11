@@ -26,7 +26,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ## 0. 摘要
 
-### 0.1 体量（2026-06-11 raw 迁出后 1450→1345 — `git ls-files` committed 真值；收尾时点，别会话并行提交中可能微动）
+### 0.1 体量（2026-06-11 raw 迁出后 1450→1345、随后 +1（`.github/workflows/ci.yml` CI 配置）— `git ls-files` committed 真值；收尾时点，别会话并行提交中可能微动）
 
 | 顶级目录 | 文件数 | 占比 | 主要内容 |
 |---|---|---|---|
@@ -42,6 +42,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `docs/` | 3 | 0.3% | Matt Pocock 套件 per-repo 配置（agents/{issue-tracker,triage-labels,domain}.md）|
 | `bin/` | 3 | 0.3% | sync-check + create_local_dev_symlink + check_overview_drift（5-19 加）|
 | `04_ops/` | 3 | 0.2% | MAC_MINI_SETUP + wifi_survey_howto + teacher_web_v1.0_上线部署清单 |
+| `.github/` | 1 | — | `workflows/ci.yml` — CI 持续集成配置（push 后 GitHub 自动跑 后端 pytest + 老师网页构建；6-11 建，**push 前不生效**）|
 | `.github/` | 2 | 0.1% | workflows/test.yml（GitHub Actions CI 自动跑测试）+ dependabot.yml（依赖漏洞自动监控 — pip/gradle/actions 每周一）|
 | **总计** | **1450** | 100% | |
 
