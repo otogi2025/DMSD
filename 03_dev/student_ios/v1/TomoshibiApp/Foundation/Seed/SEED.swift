@@ -215,77 +215,97 @@ enum SEED {
     ]
 
     /// 老师公告（演示版假数据 — 真公告走后端 /api/v1/announcements）。
-    /// 6-11 itsuki 发现公告页一直是孤儿（没入口），补主页入口后才暴露演示版从来没有 seed → 列表报通信错误。
+    /// 内容是 itsuki 提供的真实宿舍公告（新谷和之 寮監 · Google Classroom），纯日语原文不含翻译
+    /// （翻译走详情页「翻訳」按钮，不在数据里预存）。6-11 itsuki 发现公告页是孤儿、补入口后才需要这套 seed。
+    private static let dormTeacherId = UUID(uuidString: "BBBB0001-0000-0000-0000-000000000001")!
+    private static let dormTeacherName = "新谷 和之"
+
     static let announcements: [AnnouncementBrief] = [
         AnnouncementBrief(
             id: UUID(uuidString: "AAAA0001-0000-0000-0000-000000000001")!,
-            title: "台風接近に伴う門限変更のお知らせ",
-            bodySummary: "明日は台風の接近が予想されるため、門限を 18:00 に繰り上げます。外出予定の寮生は早めに帰寮してください。",
+            title: "ごみの捨て方について",
+            bodySummary: "昨日の罰則清掃時に複数個所で飲みかけのペットボトル，缶が捨ててあり，コバエが飛んでいました。今後，特に飲食物を捨てる場合は全て空にした状態で…",
             scope: "all",
-            authorTeacherId: UUID(uuidString: "BBBB0001-0000-0000-0000-000000000001")!,
-            authorTeacherName: "田中 寮監",
-            createdAt: Date().addingTimeInterval(-3600 * 5),
-            updatedAt: Date().addingTimeInterval(-3600 * 5),
-            isRead: false,
-            replyCount: 2
+            authorTeacherId: dormTeacherId, authorTeacherName: dormTeacherName,
+            createdAt: Date().addingTimeInterval(-86400 * 1),
+            updatedAt: Date().addingTimeInterval(-86400 * 1),
+            isRead: false, replyCount: 0
         ),
         AnnouncementBrief(
             id: UUID(uuidString: "AAAA0002-0000-0000-0000-000000000002")!,
-            title: "週末の定期清掃について",
-            bodySummary: "今週末、共用スペースの定期清掃を行います。当日は私物を各自の部屋に移動しておいてください。",
+            title: "廊下のコンセントの利用について",
+            bodySummary: "①サッカー部 ・廊下のコンセントを使う場合は盗電扱いとなります。盗電は犯罪です。本日から廊下のコンセントの使用をなくし…",
             scope: "all",
-            authorTeacherId: UUID(uuidString: "BBBB0002-0000-0000-0000-000000000002")!,
-            authorTeacherName: "佐藤 先生",
-            createdAt: Date().addingTimeInterval(-86400 * 2),
-            updatedAt: Date().addingTimeInterval(-86400 * 2),
-            isRead: false,
-            replyCount: 0
+            authorTeacherId: dormTeacherId, authorTeacherName: dormTeacherName,
+            createdAt: Date().addingTimeInterval(-86400 * 3),
+            updatedAt: Date().addingTimeInterval(-86400 * 3),
+            isRead: false, replyCount: 0
         ),
         AnnouncementBrief(
             id: UUID(uuidString: "AAAA0003-0000-0000-0000-000000000003")!,
-            title: "食堂メニュー変更のお知らせ",
-            bodySummary: "来月より食堂の夕食メニューを一部変更します。アレルギー対応については栄養士までご相談ください。",
+            title: "男子寮防災訓練について",
+            bodySummary: "明日の学習時間に男子のみ防災訓練があります。男子生徒は学習に参加せず，寮での待機となります。…※女子は通常通り学習があります。",
             scope: "all",
-            authorTeacherId: UUID(uuidString: "BBBB0003-0000-0000-0000-000000000003")!,
-            authorTeacherName: "山本 栄養士",
-            createdAt: Date().addingTimeInterval(-86400 * 6),
-            updatedAt: Date().addingTimeInterval(-86400 * 6),
-            isRead: true,
-            replyCount: 1
+            authorTeacherId: dormTeacherId, authorTeacherName: dormTeacherName,
+            createdAt: Date().addingTimeInterval(-86400 * 3),
+            updatedAt: Date().addingTimeInterval(-86400 * 3),
+            isRead: false, replyCount: 0
+        ),
+        AnnouncementBrief(
+            id: UUID(uuidString: "AAAA0004-0000-0000-0000-000000000004")!,
+            title: "夜学習について",
+            bodySummary: "6月5日（金）は夜学習は自室学習となります。自由時間ではないので，必ず学習に取り組むように。",
+            scope: "all",
+            authorTeacherId: dormTeacherId, authorTeacherName: dormTeacherName,
+            createdAt: Date().addingTimeInterval(-86400 * 8),
+            updatedAt: Date().addingTimeInterval(-86400 * 8),
+            isRead: true, replyCount: 0
+        ),
+        AnnouncementBrief(
+            id: UUID(uuidString: "AAAA0005-0000-0000-0000-000000000005")!,
+            title: "ホタル祭りについて",
+            bodySummary: "◯ホタル祭りに参加する寮生の注意事項 １．外出簿に記名し，鍵を提出すること。２．男子寮玄関前に20:00に集合し，指示に従うこと…",
+            scope: "all",
+            authorTeacherId: dormTeacherId, authorTeacherName: dormTeacherName,
+            createdAt: Date().addingTimeInterval(-86400 * 13),
+            updatedAt: Date().addingTimeInterval(-86400 * 13),
+            isRead: true, replyCount: 0
+        ),
+        AnnouncementBrief(
+            id: UUID(uuidString: "AAAA0006-0000-0000-0000-000000000006")!,
+            title: "金銭のやり取りについて",
+            bodySummary: "寮生間での金銭のやり取りは禁止しています。金銭を渡して，雑用や課題（宿題）をしてもらうことは絶対してはいけません。",
+            scope: "all",
+            authorTeacherId: dormTeacherId, authorTeacherName: dormTeacherName,
+            createdAt: Date().addingTimeInterval(-86400 * 29),
+            updatedAt: Date().addingTimeInterval(-86400 * 29),
+            isRead: true, replyCount: 0
         ),
     ]
 
-    /// 公告详情（演示版）— 全文 + 回复，按 id 字符串（小写）查
+    /// 公告详情（演示版）— 全文（日语原文），按 id 字符串（小写）查。回复为空（这些是单向连絡事項）。
     static let announcementDetails: [String: AnnouncementDetail] = {
-        func reply(_ kind: String, _ name: String, _ body: String, _ ago: TimeInterval) -> AnnouncementReplyOut {
-            AnnouncementReplyOut(
-                id: UUID(), authorKind: kind, authorId: UUID(),
-                authorName: name, body: body, createdAt: Date().addingTimeInterval(ago)
-            )
-        }
-        let bodies: [String: (String, [AnnouncementReplyOut])] = [
-            "aaaa0001-0000-0000-0000-000000000001": (
-                "明日（6/12）は台風の接近が予想されます。つきましては、安全確保のため門限を通常より早め、18:00 とします。\n\n外出予定の寮生は早めに帰寮してください。やむを得ず遅れる場合は必ず寮監まで連絡してください。",
-                [reply("teacher", "田中 寮監", "進路状況によっては追加で連絡します。", -3600 * 4),
-                 reply("student", "リュウ イヒ", "承知しました。", -3600 * 3)]
-            ),
-            "aaaa0002-0000-0000-0000-000000000002": (
-                "今週末（土曜 10:00〜）、共用スペース（ラウンジ・洗濯室）の定期清掃を行います。当日は私物を各自の部屋に移動しておいてください。移動されていない私物は一時的に保管します。",
-                []
-            ),
-            "aaaa0003-0000-0000-0000-000000000003": (
-                "来月より食堂の夕食メニューを一部変更します。栄養バランスを考慮した新メニューを導入します。\n\nアレルギー対応については、これまで通り栄養士までご相談ください。",
-                [reply("teacher", "山本 栄養士", "ご要望があればこの投稿に返信してください。", -86400 * 5)]
-            ),
+        let bodies: [String: String] = [
+            "aaaa0001-0000-0000-0000-000000000001":
+                "昨日の罰則清掃時に複数個所で飲みかけのペットボトル，缶が捨ててあり，コバエが飛んでいました。\n今後，特に飲食物を捨てる場合は全て空にした状態で捨てるようにして下さい。\n寮内が臭くなり，不衛生となります。\n衛生環境を整えるように一人一人が意識して気を付けるようにして下さい。\nまた，清掃分担でゴミ捨ての担当者はゴミの状況を確認して早めに捨てるようにしましょう。",
+            "aaaa0002-0000-0000-0000-000000000002":
+                "①サッカー部\n・現状，サッカー部の靴乾燥機に使用している寮生が多いですが，廊下のコンセントを使う場合は盗電扱いとなります。盗電は犯罪です。譲歩策として本日から廊下のコンセントの使用をなくし，部屋のコンセントを使用して廊下に出して使用して下さい。\n※またはトレーニングルームで乾燥をするようにして下さい（現在相談中のため現時点では上記で乾燥をするように）。\n②一般生\n・一般生の中にも廊下のコンセントを使用している生徒がいます。本日より，使用しないようにして下さい。上記同様，盗電扱いです。\n③廊下のコンセント使用可能な場合の事例\n・普段の寮清掃時の掃除機等の使用（個人的使用は不可）\n・特別な許可を得ている場合（相談は新谷まで）\n・個室のコンセントの不具合等で使用ができない場合（代替措置）",
+            "aaaa0003-0000-0000-0000-000000000003":
+                "明日の学習時間に男子のみ防災訓練があります。\n男子生徒は学習に参加せず，寮での待機となります。\nただし，全体が遅くなった場合は学習を行いますので，全員が速やかに避難できるように放送を注意して聞いてください。\nまた，イヤホンをしていて放送を聞いていない，お風呂に入っていたなどの理由で防災訓練に参加しなかった場合は指導の対象となります。\n※女子は通常通り学習があります。",
+            "aaaa0004-0000-0000-0000-000000000004":
+                "6月5日（金）は夜学習は自室学習となります。\n自由時間ではないので，必ず学習に取り組むように。",
+            "aaaa0005-0000-0000-0000-000000000005":
+                "◯ホタル祭りに参加する寮生の注意事項\n１．ホタル祭りに参加する生徒は外出簿に記名し，鍵を提出すること。\n２．ホタルの見学に参加する生徒は必ず男子寮玄関前に20:00に集合し，指示に従うこと。\n３．ホタル祭りに参加する生徒の最終門限は21:30として，その場で点呼（健康観察）。\n４．ホタル祭りに参加した生徒の入浴は23:00までとする（浴室のシャワー，個室のシャワーを使用すること）\n５．30日土曜日の清掃は自室の清掃をしっかりすること。\n◯ホタル祭りに参加しない生徒の注意事項\n１．通常の寮の休日時程に準ずる（門限は19:50，点呼は20:00）。\n２．30日土曜日の清掃は自室の清掃をしっかりすること。",
+            "aaaa0006-0000-0000-0000-000000000006":
+                "寮生間での金銭のやり取りは禁止しています。\n金銭を渡して，雑用や課題（宿題）をしてもらうことは絶対してはいけません。\nそれ以外でも金銭が関わることについては絶対にしないように。",
         ]
         var dict: [String: AnnouncementDetail] = [:]
         for a in announcements {
             let key = a.id.uuidString.lowercased()
-            let (body, replies) = bodies[key] ?? (a.bodySummary, [])
             dict[key] = AnnouncementDetail(
-                id: a.id, title: a.title, body: body, scope: a.scope,
+                id: a.id, title: a.title, body: bodies[key] ?? a.bodySummary, scope: a.scope,
                 authorTeacherId: a.authorTeacherId, authorTeacherName: a.authorTeacherName,
-                createdAt: a.createdAt, updatedAt: a.updatedAt, replies: replies
+                createdAt: a.createdAt, updatedAt: a.updatedAt, replies: []
             )
         }
         return dict
