@@ -33,11 +33,20 @@ INVITATION_EXPIRE_DAYS = 7
 # 邀请码（invitation）流程允许的角色 — 包含「学習担当」（§3.4 拍板，可发邀请给学生）
 INVITE_ALLOWED_ROLES = {"寮務部長", "寮務課長", "寮監", "学習担当"}
 
+
 # 教师账户管理（POST / DELETE）权限 — 只允许寮務管理 3 角色，不包含「学習担当」
 # 理由：「学習担当」只负责学习出席 + 点歌请求管理，不涉及人事
 # 5-27 codex 审查 #2 防权限提升 — 原方案误把「学習担当」放进 INVITE_ALLOWED_ROLES
-# 让该角色能直接创建/删除老师 = 越权
-TEACHER_ADMIN_ROLES = {"寮務部長", "寮務課長", "寮監"}
+# 让该角色能直接创建/删除老师 = 越权。
+# 2026-06-12 codex 审查 F4：权限分级后职位退化为纯显示标签，「谁是老师账号管理员」
+# 不再数职位标签，改由 effective_group 对「老师账号管理」簇是否达 MANAGE 判定
+# （仅 op / 寮管理者 有 M；permission_group 为 NULL 时按职位回退兜底）。
+def _has_teacher_account_admin(teacher: models.Teacher) -> bool:
+    return permissions.has_permission(
+        permissions.effective_group(teacher),
+        permissions.C_TEACHER_ACCOUNT,
+        permissions.MANAGE,
+    )
 
 
 # ---------------------------------------------------------------
@@ -213,7 +222,7 @@ def list_teachers_public(db: Session = Depends(get_db)):
 # ---------------------------------------------------------------
 # POST /teachers — 已登录教师 + 寮务管理权限 → 直接创建新教师（v1.0 简化版）
 # §3.4「前台不允许自助注册任何教师账号 / 必须先用现有教师账号登录 → 加 / 删」
-# 5-27 codex 审查 #2: 权限只给 TEACHER_ADMIN_ROLES 不给学習担当（防越权）
+# 5-27 codex 审查 #2: 权限只给「老师账号管理」MANAGE 组（require_permission，防越权）
 # 5-27 codex 审查 #5: 唯一性预查 + IntegrityError 双重保护防并发 race
 # ---------------------------------------------------------------
 @router.post("/", response_model=schemas.TeacherOut, status_code=201)
@@ -290,8 +299,8 @@ def create_teacher(
 # ---------------------------------------------------------------
 # DELETE /teachers/{teacher_id} — 已登录教师 + 寮务管理权限 → 删除教师
 # 自己删自己拦截（防最后一个账号没人能登录）
-# 5-27 codex 审查 #2: 权限只给 TEACHER_ADMIN_ROLES（不给学習担当）
-# 5-27 codex 审查 #3: 删最后一个寮务管理角色拦截（防系统 lockout 没人能管理教师）
+# 5-27 codex 审查 #2: 权限只给「老师账号管理」MANAGE 组（require_permission，不给学習担当）
+# 5-27 codex 审查 #3 + 2026-06-12 F4: 删最后一个有该管理权的老师拦截（按 effective_group 判，防 lockout）
 # ---------------------------------------------------------------
 @router.delete("/{teacher_id}", status_code=204)
 def delete_teacher(
@@ -315,16 +324,18 @@ def delete_teacher(
             404, {"code": "NOT_FOUND", "message": "教師が見つかりません"}
         )
 
-    # 删最后一个寮务管理角色拦截 — 防系统 lockout
-    if target.role in TEACHER_ADMIN_ROLES:
-        remaining = db.scalar(
-            select(func.count(models.Teacher.id)).where(
-                models.Teacher.role.in_(TEACHER_ADMIN_ROLES),
+    # 删最后一个「老师账号管理」管理员拦截 — 防系统 lockout
+    # 2026-06-12 codex 审查 F4：按 effective_group 实际权限判，不再数职位标签。
+    # effective_group 含 NULL 时按职位回退，故 SQL 无法直接表达 → 取 active 老师在 Python 里数。
+    if _has_teacher_account_admin(target):
+        others = db.scalars(
+            select(models.Teacher).where(
                 models.Teacher.status == "active",
                 models.Teacher.id != target.id,
             )
-        )
-        if not remaining or remaining < 1:
+        ).all()
+        remaining = sum(1 for t in others if _has_teacher_account_admin(t))
+        if remaining < 1:
             raise HTTPException(
                 400,
                 {
