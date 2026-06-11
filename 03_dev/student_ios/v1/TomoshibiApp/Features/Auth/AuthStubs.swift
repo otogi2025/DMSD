@@ -618,14 +618,10 @@ struct RegisterStep1View: View {
 
     @State private var avatar: String = "default"
 
-    // ── Apple Image Playground · AI 头像生成 ─────────────────────────
-    // 上架版（iOS 18.0 deployment target）暂禁此功能 — \.supportsImagePlayground 是 iOS 18.1+ Environment value
-    // v1.x deployment target 升到 18.1+ 时改回 @Environment(\.supportsImagePlayground)
-    // 当前硬编码 false 让「AI 生成」按钮全员隐藏（功能未启用，跟不支持机型 UX 一致）
-    private let supportsImagePlayground = false
-    @State private var showImagePlayground: Bool = false
-    // 模型 cold start 5 秒掩饰 — 点击后立刻显示 loading，5.5 秒兜底复位
-    @State private var isLoadingImagePlayground: Bool = false
+    // ── Apple Image Playground · AI 头像生成（iOS 18.2+ 且 Apple Intelligence 机种）──────
+    // 18.2 专属 API（@Environment(\.supportsImagePlayground) + .imagePlaygroundSheet）全部隔离在
+    // 文件末的 AIAvatarGenerateButton 子视图里（标 @available(iOS 18.2)）。父视图只在 if #available 分支挂它，
+    // 所以部署目标 16.0 也能编译，低于 18.2 / 不支持 Apple Intelligence 的机种不显示该按钮。
     @State private var generatedAvatarURL: URL? = nil
     @State private var isOverseas: Bool = {
         #if DEMO
@@ -762,41 +758,14 @@ struct RegisterStep1View: View {
                                 .buttonStyle(.plain)
 
                                 // ⭐ AI 生成头像（Apple Image Playground · 设备本地推理，零成本零网络）
-                                // 不支持的机型（iPhone 14 及以前）按钮直接不显示 → UX 一致
-                                if supportsImagePlayground {
-                                    Button {
-                                        // 立刻显示 loading 让用户感知 app 在响应（模型 cold start ~5 秒）
-                                        isLoadingImagePlayground = true
-                                        showImagePlayground = true
-                                        // 兜底复位：5.5 秒后强制结束 loading，覆盖最长 cold start
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 5.5) {
-                                            isLoadingImagePlayground = false
-                                        }
-                                    } label: {
-                                        HStack(spacing: 6) {
-                                            if isLoadingImagePlayground {
-                                                ProgressView()
-                                                    .controlSize(.small)
-                                                    .tint(.white)
-                                                Text("準備中…")
-                                                    .font(.system(size: 13, weight: .semibold))
-                                            } else {
-                                                Image(systemName: "sparkles")
-                                                    .font(.system(size: 12, weight: .semibold))
-                                                Text("AI で生成")
-                                                    .font(.system(size: 13, weight: .semibold))
-                                            }
-                                        }
-                                        .foregroundStyle(.white)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 38)
-                                        .background {
-                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                                .fill(isLoadingImagePlayground ? T.accent.opacity(0.7) : T.accent)
-                                        }
-                                    }
-                                    .buttonStyle(.plain)
-                                    .disabled(isLoadingImagePlayground)
+                                // iOS 18.2+ 且 Apple Intelligence 机种才显示；其余机种这颗按钮不出现 → UX 一致
+                                // 18.2 专属 API 全部隔离在 AIAvatarGenerateButton 子视图里（见文件末）
+                                if #available(iOS 18.2, *) {
+                                    AIAvatarGenerateButton(
+                                        name: name,
+                                        generatedAvatarURL: $generatedAvatarURL,
+                                        avatar: $avatar
+                                    )
                                 }
                             }
                         }
@@ -1046,11 +1015,8 @@ struct RegisterStep1View: View {
             .padding(.bottom, 32)
         }
         .background(T.paper)
-        // ⭐ Apple Image Playground sheet — 上架版暂禁（iOS 18.1+ API）
-        // 上面 supportsImagePlayground = false 让按钮永远不显示，sheet 永远不触发
-        // 这里整段 .imagePlaygroundSheet(...) 也必须删 — 编译器对 modifier 做静态可用性检查，
-        // 即使 showImagePlayground 永远 false，含 iOS 18.1 modifier 也会让 deployment target 18.0 编译失败
-        // v1.x 把 deployment target 升到 18.1+ 时把这整段加回来 + 把 supportsImagePlayground 改回 @Environment
+        // ⭐ Apple Image Playground sheet 已隔离进 AIAvatarGenerateButton 子视图（见下），
+        // 不再挂在这里 —— 那样能把 iOS 18.2 专属 modifier 关进 @available 子视图，部署目标 16.0 也能编译。
     }
 }
 
@@ -1058,6 +1024,75 @@ struct RegisterStep1View: View {
     RegisterStep1View()
         .environmentObject(RouterStore())
         .environmentObject(AppStore())
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - AI 头像生成按钮（Apple Image Playground · iOS 18.2+ 且 Apple Intelligence 机种）
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// 整个子视图标 @available(iOS 18.2)，把两处 18.2 专属 API 关在里面：
+//   - @Environment(\.supportsImagePlayground) — 设备是否支持 Image Playground + Apple Intelligence 已在系统设置开启
+//   - .imagePlaygroundSheet(...)             — 弹设备本地 AI 生成头像浮层
+// 父视图（RegisterStep1View）只在 if #available(iOS 18.2, *) 分支里挂它，所以低部署目标编译无碍、旧机种不显示。
+
+@available(iOS 18.2, *)
+private struct AIAvatarGenerateButton: View {
+    let name: String
+    @Binding var generatedAvatarURL: URL?
+    @Binding var avatar: String
+
+    @Environment(\.supportsImagePlayground) private var supportsImagePlayground
+    @State private var showSheet: Bool = false
+    /// 模型 cold start 5 秒掩饰 — 点击后立刻显示 loading，5.5 秒兜底复位
+    @State private var isLoading: Bool = false
+
+    var body: some View {
+        // 设备不支持（机种旧 / Apple Intelligence 没开）→ 整颗按钮不出现，UX 跟不支持机种一致
+        if supportsImagePlayground {
+            Button {
+                isLoading = true
+                showSheet = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5.5) {
+                    isLoading = false
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    if isLoading {
+                        ProgressView()
+                            .controlSize(.small)
+                            .tint(.white)
+                        Text("準備中…")
+                            .font(.system(size: 13, weight: .semibold))
+                    } else {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text("AI で生成")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 38)
+                .background {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(isLoading ? T.accent.opacity(0.7) : T.accent)
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(isLoading)
+            .imagePlaygroundSheet(
+                isPresented: $showSheet,
+                concept: "学生 アバター \(name) 笑顔 cute",
+                onCompletion: { url in
+                    // onCompletion 拿到的 url 是 iOS 系统给的临时文件路径（v1.x 上传后端时改存远程 URL）
+                    generatedAvatarURL = url
+                    avatar = url.absoluteString
+                    isLoading = false
+                }
+            )
+        }
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
