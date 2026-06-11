@@ -16,14 +16,14 @@
 > | 文件 | 内容 | 给谁看 |
 > |---|---|---|
 > | **WIP.md（本文件）** | 当下书签 + 最近 5 次会话 1-2 行总结 + 多会话占用 + 阻塞项 | CC（每次会话开始读全文）|
-> | **TODO.md** | **所有未完成事项的完整 backlog**（真值）| itsuki + CC（每次会话开始扫顶部 200 行）|
+> | **TODO.md** | **所有未完成事项的完整 backlog**（真值）| itsuki + CC（itsuki 主动问待办时才读，启动不扫）|
 > | ~~progress_overview.md~~ | 2026-06-10 退役归档 — 进度叙事归 CHANGELOG 全版本一览 + PROJECT_GUIDE §8.5 | — |
 > | **CHANGELOG.md** | 已发布版本编年史 | 全部读者 |
 > | **commit history** | 每次改动的细节 | git log 可查 |
 >
 > **铁律**：未完成的事**只写在 TODO.md**。本文件**绝不**复述 TODO 的内容。
 >
-> - **会话开始**: CC 走 `.claude/skills/dmsd-startup/SKILL.md` §2 — 5 件必做事（多会话协同注册 / project-overview 漂移检测 / ac-radar startup_check / 读 WIP / 报告状态）。**TODO + git status 启动不主动跑**（TODO 等 itsuki 主动问，git status 留收尾 §5.5.9）
+> - **会话开始**: CC 走 `.claude/skills/dmsd-startup/SKILL.md` §2 — 4 件必做事（多会话协同读取 / ac-radar startup_check / 读 项目心智模型 + WIP / 逐项打勾报告）。**TODO + git status 启动不主动跑**（TODO 等 itsuki 主动问，git status 留收尾 §5.5.9）
 > - **会话结束**: CC 更新「最近会话」+「多会话占用」；新增的 backlog **写到 TODO.md** 不写这里
 
 ---

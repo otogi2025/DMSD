@@ -67,7 +67,7 @@ python3 ~/.claude/skills/ac-radar/scripts/startup_check.py
 - 多会话占用（§ 多会话占用，避免跟别的会话撞文件）
 - 阻塞项（§ 阻塞项）
 
-注意：WIP 顶部「会话开始: CC 读 ... + TODO.md 顶部 200 行 + git status」是旧版指令（跟 CLAUDE.md 新指令冲突）。按本 skill 做 — TODO 不主动读，git status 留到收尾。
+TODO 不主动读（itsuki 主动问才读），git status 留到收尾。
 
 ### Step 4 — 逐项打勾报告 + 等指令
 

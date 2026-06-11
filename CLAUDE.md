@@ -4,13 +4,13 @@
 
 除非这个词在项目代码 / 文档 / 文件名里真出现过，否则一律用中文。比如别说「凭证 credential」「兜底 fallback」「联动 sync」，直接说中文。
 
-**不要默认认为 itsuki 认识项目里的各种名词和英语单词**。哪怕这个词在项目里真出现过，CC 第一次提到它时也要带一句解释「这是什么 / 在哪出现 / 干嘛用的」。例如说「`models.py`」要补一句「这是 backend 后端的数据库表定义文件」；说「FC-024」要补一句「这是系统 bug 专栏里的编号，指 teacher_web 明文密码漏洞」。itsuki 是零基础 + 项目体量 1193 文件 + 5 端联动，记不住所有代号 / 缩写 / 文件名 / 角色名。
+**不要默认认为 itsuki 认识项目里的各种名词和英语单词**。哪怕这个词在项目里真出现过，CC 第一次提到它时也要带一句解释「这是什么 / 在哪出现 / 干嘛用的」。例如说「`models.py`」要补一句「这是 backend 后端的数据库表定义文件」；说「FC-024」要补一句「这是系统 bug 专栏里的编号，指 teacher_web 明文密码漏洞」。itsuki 是零基础 + 项目体量 1400+ 文件 + 5 端联动，记不住所有代号 / 缩写 / 文件名 / 角色名。
 
 完整规则在 `~/.claude/CLAUDE.md`。
 
 ## ⭐⭐⭐ dmsd-startup 强制加载
 
-每次会话启动 **第一件事** 先 Read `.claude/skills/dmsd-startup/SKILL.md`，按 §2 顺序跑 5 件启动必做事（多会话协同注册 / project-overview 漂移检测 / ac-radar startup_check / 读 WIP / 报告状态）。
+每次会话启动 **第一件事** 先 Read `.claude/skills/dmsd-startup/SKILL.md`，按 §2 顺序跑 4 件启动必做事（多会话协同读取 / ac-radar startup_check / 读 项目心智模型 + WIP / 逐项打勾报告）。
 
 不依赖关键词触发 — 每次新会话第一个回合 CC 必须主动加载本 skill。
 
@@ -112,7 +112,6 @@ git 状态确认（git status / 残留 / 未 push / stash）→ **会话结尾�
 | skill | 干嘛 |
 |---|---|
 | **ac-radar** | 实时 AC 入试素材捕获（写中央 inbox + iCloud raw 池当天文件）|
-| **anti-ai-flavor** | 反 AI 味（每次回复前 8 类自检 + 5 铁律 — 5-27 从 6 类升 8 类加 G 自指失败 + H 编造数据）|
 | **cc-comm-rules** | 跟 itsuki 沟通的强制规则 |
 | **session-coord** | 多终端会话协作板（防文件冲突）|
 | **patina / patina-max** | 去 AI 味重写（AC 叙事文档慎用 patina-max — 违反默认底线第 4 条）|
@@ -126,7 +125,7 @@ git 状态确认（git status / 残留 / 未 push / stash）→ **会话结尾�
 
 | skill | 触发 | 干嘛 |
 |---|---|---|
-| **dmsd-startup** | always-on 启动时 | 5 件启动必做事 |
+| **dmsd-startup** | always-on 启动时 | 4 件启动必做事 |
 | **session-wrap** | 收尾 / 整理今天 / 总结今天 / 记一下今天 | AC 素材全量扫描 dump + git 状态确认 |
 | **version-bump** | 迭代 / bump / 发版本 / 打 tag / 发版 / release | 版本决策树（CC 有否决权）+ 发版 SOP |
 | **new-feature** | 新功能 X / 加 Y / 实装 Z / 做 W | 5 端实装模板（spec→backend→iOS→Android→点呼机）|
@@ -136,30 +135,9 @@ git 状态确认（git status / 残留 / 未 push / stash）→ **会话结尾�
 | **memory-write** | 记一下规则 / 以后这样 / memory 加一条 | memory 写入 SOP（4 类型 / 查重 / 索引）|
 | **codex-review** | codex 审查 / 派 codex 审 / codex 挑刺 / codex 找 bug / 让 codex 审一下（**须带「codex」字样**）| 派 codex（gpt-5.5 xhigh）只读审本会话改动 → CC 逐条裁决 + 修 → 复审 → 跑到收敛 |
 
-## Hooks 继承
+## Hooks
 
-### 全局自动继承（`~/.claude/hooks/`，注册在 `~/.claude/settings.json`）
-
-- `anti-ai-flavor-precheck.sh` — UserPromptSubmit 注入 8 类反面提醒（5-27 升级）
-- `pre-bash-destructive-block.sh` — 拦 `rm -rf` / `git reset --hard` / `git push --force` 类危险命令（warn 模式，不阻断）
-- `session-start-env-diff.sh` — SessionStart 对账实际装的工具 vs `~/.claude/我的环境.html`
-- `session-start-coord-check.sh` — SessionStart 多终端协作板提醒（**DMSD 项目下静默退出**，由 dmsd-startup §2 接管）
-
-### DMSD 项目专属（`00_admin/hooks/` + `bin/`）
-
-7 PostToolUse + 1 PreToolUse + 1 SessionStart + git pre-commit。完整说明：`00_admin/hooks/README.md`。
-
-| hook | 触发 | 干嘛 |
-|---|---|---|
-| `post-edit-sync-check.sh` | Write/Edit 后 | 实时联动检查 + demo scaffold 字眼检测 |
-| `post-edit-memory-check.sh` | Write/Edit memory 目录后 | memory 索引检查 |
-| `post-edit-japanese-comment-check.sh` | Write/Edit 代码文件后 | 日语注释扫描（违反中文铁律就提醒）|
-| `post-edit-timestamp-check.sh` | Write/Edit WIP/TODO/progress 后 | 时间戳过期检查 |
-| `post-edit-version-hardcode-check.sh` | Write/Edit 声明性文件后 | 硬编码版本号 `vX.Y.Z` 实时拦 |
-| `post-edit-project-overview-check.sh` | Write/Edit 任何 DMSD 文件后 | project-overview 同步提醒 |
-| `post-edit-format.sh` | Write/Edit 代码文件后 | 多语言自动格式化（ruff / swiftformat / ktlint / prettier）|
-| `bin/check_overview_drift.sh` | SessionStart | project-overview §0.1 体量表跟 git ls-files 对账（dmsd-startup §2 也调）|
-| `00_admin/hooks/pre-commit` | git commit 时 | 一致性检查 |
+hook 注册真值 = `~/.claude/settings.json`（全局）+ `.claude/settings.json`（DMSD 项目）— 本文件不罗列清单，要查看注册表。项目 hook 逐个说明：`00_admin/hooks/README.md`；git pre-commit 在 `00_admin/hooks/pre-commit`。
 
 ## 全项目中枢联动
 
@@ -174,17 +152,9 @@ itsuki 名下 4 个项目（大学入試 / DMSD / Tango / QTS）互通的中央�
 
 完整机制说明 → 中枢 `CLAUDE.md`
 
-## 沟通规则（继承 `~/.claude/CLAUDE.md` 简版）
+## 沟通规则
 
-- **中文回答**
-- 英文 / 日语 / 缩写第一次出现必翻译 + 一句解释
-- 不假设任何先验知识
-- 教练身份 — 解释「为什么」「是什么」，不只是「怎么做」
-- anti-ai-flavor 8 类自检（A 术语裸露 / B 缺上下文 / C 复杂条件句 / D 网络黑话 / E 字面化执行 / F 客套腔 / G 自指失败 / H 编造数据）+ 5 铁律（起因 / 改哪+这是啥 / 改的内容 / 每对象解释 / 下一步推荐）
-- 主动诊断 — 看到 itsuki 做法低效就当场点出，给具体原因
-- 提选项用 A/B/C，不用甲乙丙
-- 触发词「说人话」= 重写上一条 / 「单词白名单」= 列英文词让 itsuki 选 / 「翻车」= 记 inbox 做 5 字段分析
-- 出练习题结合 DMSD 场景 — 点呼 / 扣分 / 签到
+全套继承 `~/.claude/CLAUDE.md`（中文 / 翻译术语 / 零基础 / 教练身份 / 不编造 / A/B/C 选项），不在此重抄。DMSD 补充一条：出练习题结合 DMSD 场景 — 点呼 / 扣分 / 签到。
 
 ## Git
 
