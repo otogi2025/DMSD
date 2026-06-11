@@ -997,6 +997,15 @@ req: `{ "to_status": "late", "reason": "...", "evidence": "..." }`
 约束: `reason` 必填；时限矩阵（§11.3）按教师 role + 距 session_started_at 时间检查。
 副作用: ledger 自动 +/- 分（§11.4）+ audit_logs。
 
+#### 5.5.7 `GET /rollcall/me/today` — 学生查今日本人点呼（2026-06-11 新增 / R-1+R-2）
+
+学生令牌（`get_current_student`）。返回今天自己所属寮的点呼场次 list（`MyRollCallTodaySession`）：`session_type` / `day_type` / `session_status` + 四个时间窗 `scheduled_window_start_at` / `scheduled_on_time_end_at` / `scheduled_late_end_at` / `scheduled_auto_end_at` + 本人 `my_status`（present/late/absent/exempt_range，nil=未签）+ `my_checked_in_at`。寮过滤 = `student.dorm_unit in session.dorm_unit_set`（Python 侧 filter），join `RollCallEvent` 取本人状态。空数组 = 本日无我寮点呼。
+**背景**：补全 iOS 缺口——iOS 原本没有「拉本人点呼时间窗 + 判定」的链路，导致显示链整条写死假数据。iOS 用四时间窗 + 当前时刻真实算 idle / 进行中倒计时 / 時間内 / 遅刻。配套 `student_profile` profile 接口给 `ProfileRollCallEntry` 补 `scheduled_window_start_at` / `scheduled_on_time_end_at`（详情页显真实開始/締切）。
+
+#### 5.5.8 体调上报族 `POST/GET /rollcall/reports*`
+
+点呼时学生上报（功能③）。`POST /rollcall/reports`（`RollCallReportCreateIn`：kind=health/absence/other + 自由文本 body + 可选 session_id）；`GET /rollcall/reports/mine` 学生查本人全部上报（按 created_at 倒序，不按 kind 过滤——iOS「体調報告履歴」自行 filter kind=health，2026-06-11 R-5 接上）；`GET /rollcall/reports` 老师查（R4 寮过滤 + demo 隔离 + only_unresolved）；`PATCH /rollcall/reports/:id/resolve` 老师标记已处理。
+
 ### 5.6 通知 (R1)
 
 #### 5.6.1 内部 `notifications.email_send(template_key, target, payload)`

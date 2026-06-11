@@ -725,8 +725,11 @@
 | 「点呼総結」中层页(4 区块)§5.6 | — | ⏳ V1.0 新增 | `GET /sessions/:id/summary` ⏳ | 寮監 | (V1) |
 | 主页"看本场结果"入口 §5.6 | — | ⏳ V1.0 | 同上 | 寮監 | (V1) |
 | 手动状态变更(绿/黄/红切换)| — | ✅ override-modal.jsx | `PATCH /checkins/:id` ⏳ | 寮監 | (D) |
-| 顶部点呼 bar(学生侧 status)| ✅ HomeView TopRollBar | — | `GET /checkin/status` ⏳ | 学生 | (D) |
+| 顶部点呼 bar(学生侧 status)| ✅ HomeView 接 me/today | — | `GET /rollcall/me/today` ✅ | 学生 | (V1) |
 | 1·2 寮 / 4 寮 别 session R4 | — | ⏳ V1.0 | session.dorm_unit | 系统 | (V1) |
+
+> **2026-06-11 学生端点呼显示接真（R-1/R-2）**：原 iOS 没有「拉本人点呼时间窗 + 判定」的链路，显示链整条写死假数据。新增后端 `GET /rollcall/me/today`（学生令牌，返回今日本人寮场次 + 四时间窗 + my_status，详见 BACKEND_DESIGN_LOG §5.5.7），iOS 用时间窗 + 当前时刻真实算「点呼時間外 / 受付中 / 時間内 / 遅刻」。Android 同款显示链尚未接（仍待实装）。
+> **体調報告履歴（R-5）**：学生「体調報告履歴」页接后端已有的 `GET /rollcall/reports/mine`（filter kind=health），iOS 2026-06-11 接上，Android 该页尚未实装。
 
 ### 7.5 行事予定(完整 calendar,现有不够 Q9)
 
