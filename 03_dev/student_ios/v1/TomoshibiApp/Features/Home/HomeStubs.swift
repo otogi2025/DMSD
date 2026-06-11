@@ -13,6 +13,13 @@
 
 import SwiftUI
 
+// Translation（翻译框架，iOS 17.4+，全机种）— 公告「翻訳」按钮用 .translationPresentation 弹系统翻译浮层
+import Translation
+
+// FoundationModels（设备端大模型框架，iOS 26+ 且 Apple Intelligence 机种）— 公告「AI 要約」按钮用它直接调本地模型生成要点
+// 框架弱链接：import 本身在低部署目标（16.0）下能编译，真正调用一律包在 if #available(iOS 26.0) 里
+import FoundationModels
+
 // ───────────────────────────────────────────────────────────
 // MARK: - 私有扩展：hex string → Color（Lost 用）
 
@@ -2771,6 +2778,48 @@ private struct AnnouncementListCard: View {
 
 // MARK: - 详情 view
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 公告 AI 助手（翻訳 / AI 要約）
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// 两个能力分别走 Apple 的两套系统框架，机种门槛不同：
+//   - 翻訳   : Translation 框架（iOS 17.4+，全机种、设备端、免费、不联网）→ .translationPresentation 弹系统浮层
+//   - AI 要約: FoundationModels 框架（iOS 26+ 且 Apple Intelligence 机种）→ 直接调本地 3B 模型生成要点
+// 留学生看不懂日文公告时一键翻成母语 / 公告太长时一键提炼要点 —— 都在设备本地跑，不上传任何内容。
+
+/// 翻訳浮层 modifier — 包了一层 if #available，让低于 iOS 17.4 的机种安全降级（不显示浮层、不报错）
+extension View {
+    @ViewBuilder
+    func announcementTranslateOverlay(isPresented: Binding<Bool>, text: String) -> some View {
+        if #available(iOS 17.4, *) {
+            translationPresentation(isPresented: isPresented, text: text)
+        } else {
+            self
+        }
+    }
+}
+
+/// FoundationModels 调用封装 — 全部成员标 @available(iOS 26.0)，只在 if #available 分支里碰
+enum AnnouncementAI {
+    /// 当前机种 + 系统 + Apple Intelligence 状态是否允许用本地模型（决定「AI 要約」按钮显不显示）
+    @available(iOS 26.0, *)
+    static var isSummarizeAvailable: Bool {
+        if case .available = SystemLanguageModel.default.availability { return true }
+        return false
+    }
+
+    /// 把公告正文交给设备端模型，返回日文要点总结
+    @available(iOS 26.0, *)
+    static func summarize(_ text: String) async throws -> String {
+        let session = LanguageModelSession {
+            "あなたは寮のお知らせを要約するアシスタントです。本文の重要な点を、3 つまでの短い箇条書きで、日本語で簡潔にまとめてください。余計な前置きは書かないでください。"
+        }
+        let response = try await session.respond(to: text)
+        return response.content
+    }
+}
+
 struct AnnouncementDetailView: View {
     let id: String
     @EnvironmentObject var router: RouterStore
@@ -2780,6 +2829,13 @@ struct AnnouncementDetailView: View {
     @State private var loadError: String? = nil
     @State private var replyText: String = ""
     @State private var isPosting: Bool = false
+
+    // 公告 AI 操作状态（翻訳 / 要約）
+    @State private var showTranslation: Bool = false // 翻訳浮层开关
+    @State private var showSummary: Bool = false // 要約结果 sheet 开关
+    @State private var summaryText: String? = nil // 要約结果文字（nil = 还没出）
+    @State private var isSummarizing: Bool = false // 要約生成中 loading
+    @State private var summaryError: String? = nil // 要約失败提示
 
     private var detail: AnnouncementDetail? {
         app.announcementDetails[id]
@@ -2840,6 +2896,10 @@ struct AnnouncementDetailView: View {
                             .foregroundStyle(T.ink)
                             .lineSpacing(4)
                             .frame(maxWidth: .infinity, alignment: .leading)
+                            .textSelection(.enabled) // 可选中 → 用户也能长按用系统菜单翻译 / 要約
+
+                        // AI 操作行：翻訳（全機種）+ AI 要約（iOS 26+ 且 Apple Intelligence 機種）
+                        announcementAIRow(body: d.body)
 
                         Divider().padding(.vertical, 4)
 
@@ -2861,6 +2921,11 @@ struct AnnouncementDetailView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 16)
+                }
+                // 翻訳浮层（点「翻訳」弹）+ AI 要約结果弹窗（点「AI 要約」弹）
+                .announcementTranslateOverlay(isPresented: $showTranslation, text: d.body)
+                .sheet(isPresented: $showSummary) {
+                    summarySheet
                 }
 
                 // 回复输入框
@@ -2903,6 +2968,122 @@ struct AnnouncementDetailView: View {
 
     private var canSend: Bool {
         !replyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// ── AI 操作行（翻訳 / AI 要約）──────────────────────────────
+    /// 翻訳 = 全機種显示；AI 要約 = 仅 iOS 26+ 且 Apple Intelligence 机种显示（否则整颗按钮不出现）
+    private func announcementAIRow(body: String) -> some View {
+        HStack(spacing: 10) {
+            Button {
+                showTranslation = true
+            } label: {
+                aiActionChip(icon: "globe", title: "翻訳")
+            }
+            .buttonStyle(.plain)
+
+            if #available(iOS 26.0, *) {
+                if AnnouncementAI.isSummarizeAvailable {
+                    Button {
+                        startSummarize(body)
+                    } label: {
+                        aiActionChip(icon: "sparkles", title: "AI 要約")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            Spacer()
+        }
+    }
+
+    private func aiActionChip(icon: String, title: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon).font(.system(size: 12, weight: .semibold))
+            Text(title).font(.system(size: 12.5, weight: .semibold))
+        }
+        .foregroundStyle(T.primary)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background { Capsule().fill(T.primary.opacity(0.08)) }
+    }
+
+    /// 点「AI 要約」→ 弹 sheet + 调设备端模型生成要点（只在 iOS 26+ 调，签名标 @available）
+    @available(iOS 26.0, *)
+    private func startSummarize(_ text: String) {
+        showSummary = true
+        summaryText = nil
+        summaryError = nil
+        isSummarizing = true
+        Task {
+            do {
+                summaryText = try await AnnouncementAI.summarize(text)
+            } catch {
+                summaryError = "要約の生成に失敗しました。もう一度お試しください。"
+            }
+            isSummarizing = false
+        }
+    }
+
+    /// AI 要約结果弹窗（内容是纯文字展示，不碰 iOS 26 专属 API，所以不用标 @available）
+    private var summarySheet: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles").font(.system(size: 15, weight: .semibold))
+                    Text("AI 要約").font(.system(size: 16, weight: .bold))
+                }
+                .foregroundStyle(T.primary)
+                Spacer()
+                Button { showSummary = false } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(T.inkMute)
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 18)
+            .padding(.bottom, 12)
+
+            Divider()
+
+            ScrollView {
+                if isSummarizing {
+                    HStack(spacing: 10) {
+                        ProgressView()
+                        Text("要約を生成中…")
+                            .font(.system(size: 14))
+                            .foregroundStyle(T.inkSub)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 40)
+                } else if let err = summaryError {
+                    Text(err)
+                        .font(.system(size: 14))
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 24)
+                        .padding(.horizontal, 20)
+                } else if let s = summaryText {
+                    Text(s)
+                        .font(.system(size: 14))
+                        .foregroundStyle(T.ink)
+                        .lineSpacing(5)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(20)
+                }
+            }
+
+            Text("※ この要約は端末内の Apple Intelligence で生成されています。内容は送信されません。")
+                .font(.system(size: 10.5))
+                .foregroundStyle(T.inkMute)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 16)
+        }
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
     }
 
     private func loadDetail() async {
