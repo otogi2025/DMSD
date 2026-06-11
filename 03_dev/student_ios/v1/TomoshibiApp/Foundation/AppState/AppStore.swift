@@ -620,50 +620,64 @@ final class AppStore: ObservableObject {
         #endif
     }
 
-    /// 从 todaySessions + 当前时刻派生 rollState / checkinAt / checkinKind / rollCountdownSec。
+    /// 时间窗状态机的纯判定结果（不碰 @Published / 时钟 / 格式化 — 方便单测）。
+    struct RollStateDecision: Equatable {
+        var rollState: RollState
+        var checkinKind: String? // 「時間内」/「遅刻」/ nil
+        var checkedInAt: Date? // 已签到时刻原始值（格式化留给调用方）；未签到 nil
+        var countdownSec: Int? // active 时到「時間内」截止的倒计时秒；其余状态 nil（不改原值）
+    }
+
+    /// 纯函数：从场次列表 + 注入的「现在」派生点呼状态。无副作用、不读真实时钟 → 可单测（R-1/R-2 时间窗状态机）。
     /// 选「当前进行中场次」(now 落在 window_start..auto_end)；否则最近的未来场次做预告(idle)。
+    static func decideRollState(sessions: [MyRollCallTodaySession], now: Date) -> RollStateDecision {
+        let current = sessions.first {
+            now >= $0.scheduled_window_start_at && now <= $0.scheduled_auto_end_at
+        }
+        let upcoming = sessions
+            .filter { now < $0.scheduled_window_start_at }
+            .min { $0.scheduled_window_start_at < $1.scheduled_window_start_at }
+        guard let s = current ?? upcoming else {
+            // 本日我寮无点呼 → 安全落 idle（点呼卡显减点预告、不显假倒计时）
+            return RollStateDecision(rollState: .idle, checkinKind: nil, checkedInAt: nil, countdownSec: nil)
+        }
+        // 已签到 → done，带真实签到时刻 + 真实判定（「時間内」/「遅刻」）
+        if let at = s.my_checked_in_at {
+            return RollStateDecision(
+                rollState: .done,
+                checkinKind: (s.my_status == "late") ? "遅刻" : "時間内",
+                checkedInAt: at,
+                countdownSec: nil
+            )
+        }
+        // 未签到，按时间窗判定
+        if now < s.scheduled_window_start_at {
+            return RollStateDecision(rollState: .idle, checkinKind: nil, checkedInAt: nil, countdownSec: nil) // 下次点呼预告
+        } else if now <= s.scheduled_late_end_at {
+            // 受付中（含遅刻段）→ active；倒计时到「時間内」截止时刻
+            return RollStateDecision(
+                rollState: .active,
+                checkinKind: nil,
+                checkedInAt: nil,
+                countdownSec: max(0, Int(s.scheduled_on_time_end_at.timeIntervalSince(now)))
+            )
+        } else {
+            // 超过迟到截止仍未签到 → 欠席
+            return RollStateDecision(rollState: .absent, checkinKind: nil, checkedInAt: nil, countdownSec: nil)
+        }
+    }
+
+    /// 从 todaySessions + 当前时刻派生 rollState / checkinAt / checkinKind / rollCountdownSec。
+    /// 判定逻辑全在纯函数 decideRollState 里（可单测）；本方法只负责取真实时钟 + 写 @Published + 格式化。
     func refreshRollStateFromSessions() {
         #if DEMO
             return
         #else
-            let now = Date()
-            let current = todaySessions.first {
-                now >= $0.scheduled_window_start_at && now <= $0.scheduled_auto_end_at
-            }
-            let upcoming = todaySessions
-                .filter { now < $0.scheduled_window_start_at }
-                .min { $0.scheduled_window_start_at < $1.scheduled_window_start_at }
-            guard let s = current ?? upcoming else {
-                // 本日我寮无点呼 → 安全落 idle（点呼卡显减点预告、不显假倒计时）
-                rollState = .idle
-                checkinAt = nil
-                checkinKind = nil
-                return
-            }
-            // 已签到 → done，显真实签到时刻 + 真实判定（「時間内」/「遅刻」）
-            if let at = s.my_checked_in_at {
-                rollState = .done
-                checkinAt = Self.jstHHmm.string(from: at)
-                checkinKind = (s.my_status == "late") ? "遅刻" : "時間内"
-                return
-            }
-            // 未签到，按时间窗判定
-            if now < s.scheduled_window_start_at {
-                rollState = .idle // 下次点呼预告
-                checkinAt = nil
-                checkinKind = nil
-            } else if now <= s.scheduled_late_end_at {
-                // 受付中（含遅刻段）→ active；倒计时到「時間内」截止时刻
-                rollState = .active
-                rollCountdownSec = max(0, Int(s.scheduled_on_time_end_at.timeIntervalSince(now)))
-                checkinAt = nil
-                checkinKind = nil
-            } else {
-                // 超过迟到截止仍未签到 → 欠席
-                rollState = .absent
-                checkinAt = nil
-                checkinKind = nil
-            }
+            let d = Self.decideRollState(sessions: todaySessions, now: Date())
+            rollState = d.rollState
+            checkinKind = d.checkinKind
+            checkinAt = d.checkedInAt.map { Self.jstHHmm.string(from: $0) }
+            if let sec = d.countdownSec { rollCountdownSec = sec }
         #endif
     }
 
