@@ -204,6 +204,19 @@ audit log 表 = `audit_logs(id, actor_type, actor_id, action, target_type, targe
 
 ---
 
+### 3.8 教师权限分级（teacher_permission_v1 实装落地，2026-06-11）
+
+单源真值 = `02_design/teacher_permission_v1.md`（旧「按职责勾选」模型作废）。后端落地：
+
+- **模型**：`Teacher.permission_group`（5 值枚举或 NULL + CheckConstraint）；迁移 `f1a2b3c4d5e6` 加列 + 按职位回填。职位 `role` 退化为纯显示标签、不参与鉴权。
+- **矩阵**：`app/permissions.py` PRESET（5 权限组 × 16 功能簇 → MANAGE / VIEW / NONE，严格照设计 §5）+ `ROLE_DEFAULT_GROUP`（NULL 组按职位回退的向后兼容 shim，生产账号显式配组后不触发）。
+- **闸**：`deps.require_permission(功能簇, 级别)` 取代裸 `get_current_teacher` / `require_teacher_roles`；17 个簇路由的老师端点全改挂（管理动作 M / 查看动作 V），拒绝时 `detail.code="FORBIDDEN_ROLE"`（沿用旧码）。
+- **正交关系**：寮过滤（`dorm_units_for_teacher`）/ 演示隔离（`assert_not_demo_teacher` / `demo_scope_for_teacher`）/ 审批链 角色逻辑 与权限闸正交叠加，全部保留不变。
+- **op 账号**：`seed.py` 从环境变量 `OP_PASSWORD` 注入，明文绝不入仓库 / 迁移（缺失则跳过建账号）。
+- **两处保留的职位域规则**（待 itsuki 决定是否也纯按权限组判）：① `applications.py` 代録 / proxy-candidates 仍叠加 `_DAIROKU_ROLES`（§6 未把它们列进 cluster-2 管理动作清单）；② `teachers.py delete_teacher` 仍用 `TEACHER_ADMIN_ROLES` 防删最后一个管理员。
+
+---
+
 ## 4. 数据模型 — P0 范围
 
 > **真值**: `system_features.md §8`。本节 = **P0 实装版**（补 §8 没写的字段 + 加索引 / 约束）。

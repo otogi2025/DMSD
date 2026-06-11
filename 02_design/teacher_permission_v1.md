@@ -144,5 +144,14 @@
 
 ## 10. 与旧文档的关系
 
-- 本文件取代 `system_features.md` §3.4 / §3.4 教师权限模型「按职责勾选」（朝点呼/夜点呼/学習担当/寮務/指导履歴/巴士行事 master）——该旧模型作废，`system_features.md` 对应段落收尾时改为指向本文件。
-- 鉴权机制现状记录见 `03_dev/backend/BACKEND_DESIGN_LOG.md`，实装后补本设计落地段。
+- 本文件取代 `system_features.md` §3.4 / §3.4 教师权限模型「按职责勾选」（朝点呼/夜点呼/学習担当/寮務/指导履歴/巴士行事 master）——该旧模型作废，`system_features.md` 对应段落已改为指向本文件（2026-06-11）。
+- 鉴权机制现状 + 本设计落地记录见 `03_dev/backend/BACKEND_DESIGN_LOG.md §3.8`（2026-06-11 实装）。
+
+## 11. 实装落地（2026-06-11）
+
+后端 + 老师网页两端已实装（commit `78ea32f` 后端核心 / `49139d5` 端到端 + 网页）：
+
+- **后端**：`app/permissions.py`（§5 矩阵单源真值 PRESET + ROLE_DEFAULT_GROUP 向后兼容回退）；`Teacher.permission_group` 列 + 迁移 `f1a2b3c4d5e6`；`deps.require_permission(簇,级别)` 闸取代 17 个簇路由里所有裸 `get_current_teacher` / `require_teacher_roles`；op 账号经 `OP_PASSWORD` 环境变量注入（明文绝不入仓库）。pytest 371 passed / 0 failed。
+- **老师网页**：建账号弹窗加权限组选择器；`src/api/permissions.ts` 前端矩阵镜像（仅 UI 显隐用，非安全边界）。`npm run build` 退出码 0。
+- **§6 端点映射实装注记**：代録（`applications.py` by-teacher）与 proxy-candidates 因 §6 未列进 cluster-2 管理动作清单，挂 `require_permission` 的同时保留了 `_DAIROKU_ROLES` 职责域规则；`teachers.py delete_teacher` 保留 `TEACHER_ADMIN_ROLES`（防删最后一个管理员）。这两处职位域规则是否也纯按权限组判，待 itsuki 拍板。
+- **未接线**：「按权限组隐藏/置灰功能入口」的导航联动 —— 前端矩阵已备好，具体 UX 待 itsuki 拍板（不擅自改冻结的 web 界面）。

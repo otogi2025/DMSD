@@ -24,6 +24,19 @@
 
 ## 决策记录(倒序)
 
+## 2026-06-11 — 老师权限分级系统后端 + 老师网页实装（旧「按职责勾选」模型作废）
+
+**之前的决策**: 老师权限 = 职位（`teachers.role` 9 枚举）死绑：`deps.require_teacher_roles` 按职位硬拦，但绝大多数端点裸挂 `get_current_teacher`（登录即全能），仅学生账号 / 注册码 / 老师账号 / 在线学习审批挂了职位闸。权限几乎没按功能细分。
+**新的决策**: 实装 `teacher_permission_v1.md` —— 职位退化为纯显示标签、不决定任何权限；权限改为「权限组 + 按功能两级开关」：5 权限组（op / 寮管理者 / 一般宿管 / 一般宿管+晚自习 / 申請承認専用）× 16 功能簇 → 管理 M / 查看 V / 无 ✕（设计 §5 矩阵为单源真值）。后端建 `app/permissions.py` 矩阵 + `deps.require_permission(簇,级别)` 闸，17 个簇路由的老师端点全改挂、不再裸用 get_current_teacher / require_teacher_roles。`Teacher` 加 `permission_group` 列 + 迁移 `f1a2b3c4d5e6`。op 账号经环境变量 `OP_PASSWORD` 注入、明文绝不入仓库。老师网页建账号弹窗加权限组选择器 + 前端权限矩阵 `permissions.ts`。
+**为什么改**: 老师按班次轮值、同一人不同时段在男寮/女寮、有时多人同管 —— 把权限绑死在固定职位上不符合现实（典型反例：`assigned_dorm=1` 男寮老师走到女寮调不出女寮名单）。
+**这个改动影响了什么**:
+1. 新设计原则「哪怕没管理权也至少给查看权」+「操作组（一般宿管系）含学生账号管理权」与若干旧测试冲突 —— itsuki 解禁后更新了 13 条旧「职位 403」断言（7 条查看 403 + 6 条管理 403），每条注明矩阵依据；旧行为是被新设计明确废弃的。
+2. `寮監` 默认映射「一般宿管+晚自习」（一线运营全要操作）→ 寮边界安全测试（FORBIDDEN_DORM）保持有效不削弱。
+3. 两处保留职位域规则待后续拍板：代録/proxy-candidates 的 `_DAIROKU_ROLES`、delete_teacher 的 `TEACHER_ADMIN_ROLES`（防删最后一个管理员）。
+4. 「按权限组隐藏/置灰功能入口」的导航联动：前端矩阵已备好，UX 待 itsuki 拍板再接线（不擅自改冻结的 web 界面）。
+**验证**: 后端 pytest 371 passed / 0 failed；老师网页 `npm run build` 退出码 0；`grep EziP7mDub9Rp` 仓库零命中。commit `78ea32f`（后端核心）+ `49139d5`（端到端 + 网页）。
+**事后回看**(几个月后补填):
+
 ## 2026-06-11 — 启动流程大改版（session-coord 停用 + 中枢信箱并入 + 说明书不再每会话重读 + 真值指针化）
 
 **之前的决策**: 启动按三处指令叠加执行 — dmsd-startup 4 件事（含协作板扫描）+ 全局 CLAUDE.md 强制每会话读 ac-radar/cc-comm-rules/session-coord 三份完整说明书 + 项目 CLAUDE.md 另一段要求读中枢信箱。合计读 1150+ 行才能说第一句话。
