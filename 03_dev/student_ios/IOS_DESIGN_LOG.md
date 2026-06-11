@@ -1315,3 +1315,27 @@ itsuki：「オンライン学習要可以上传图片，上传合同」+「选�
 
 ### §15.3 codex 4 轮对抗复审
 gpt-5 + high（非预期 gpt-5.5 + xhigh）逐层挖 `ST25DVWriter` NFC 取消竞态：一轮 2 阻塞（session 被 ARC 提前释放 / continuation 跨线程双重 resume）+ 4 重大 + 1 次要 → 二/三轮 M-1 越挖越深 → 四轮核实死锁判断 + 0 阻塞 0 重大收敛。CC 不盲信（指出 codex 高估了 B-2「双重 resume 崩溃」，单线程本不崩）+ 修完自己 xcodebuild 双 scheme 验。
+
+## §16 [2026-06-11] 6-10 全量审查「🔴 重大已验证 5 组」R-1~R-5 清零
+
+6-10 iOS 全量审查逮出 5 组生产版「显示假数据 / 假锁定 / 假病历」缺口。背景：iOS v1.0 只为上架 App Store 占位、学生暂不真用，所以目标是「界面好看完整、不露假数据破绽」（v1.0 不支持手机签到=方案 A，但 6-09 的 `ST25DVWriter` 代码保留留 v1.1，itsuki「别动」）。两个会话做完，双 scheme BUILD SUCCEEDED。
+
+### §16.1 R-1 / R-2 点呼显示链接真（会话 B，方案 B = 动后端补接口）
+根因：iOS 从来没有「从后端拉今日本人点呼时间窗 + 判定结果」的链路，所以签到弹窗永远显「点呼時間外」、签到成功硬编码「時間内」、详情页開始/締切写死 07:00/21:00。
+- 后端新建学生端 `GET /rollcall/me/today`（`rollcall.py` `my_today_rollcall` + `schemas.py` `MyRollCallTodaySession`，commit `8cdff97`）：返回今日本人寮场次 + 四个 scheduled_* 时间窗 + 我的判定。
+- iOS `RollCallAPI.myToday()` + `AppStore.refreshRollStateFromSessions()` 时间窗状态机：用四时间窗 + 当前时刻真实算 idle / 进行中倒计时 / 時間内 / 遅刻，驱动 `rollState` 的 .active/.absent（原本全工程零写入点 = R-2 死件）。`HomeStubs` done hero 用 `checkinKind`、banner 按 rollState（commit `20776b6`）。
+- R-1③：profile 接口 join session 带窗口时刻，`ProfileRollCallEntry` 两端加 `scheduled_window_start_at`/`scheduled_on_time_end_at`，详情页生产显真实窗口（commit `9f92d00`）。
+
+### §16.2 R-3 三个点呼上报弹窗防连点（commit `d3d0439`）
+`HomeStubs` 的 `HealthSheet`/`AbsenceSheet`/`OtherSheet` 提交无在途守卫，慢网连点重复 POST。照 `RenewStudentNoSheet` 现成范本各加 `@State submitting`：按钮 `enabled` 追加 `!submitting` + title 显「送信中…」+ 生产版 `submit()` 进 Task 前置 `submitting=true`、catch 失败复位让学生重试。
+
+### §16.3 R-4 登录锁定以后端为真值（commit `7841f5a`）
+原本 iOS 本地 5 段阶锁定纯内存假戏（杀 app 清零、「永久」无出口），后端真锁 423 / 停用 403 反掉进笼统 server 错误丢日语文案。
+- 生产版 401（凭证错、后端尚未锁）只 `showToast` 提示，不再走本地写死倒计时的假 `LockoutView`；演示版 `#if DEMO` 保留本地锁定升级演出。
+- 新增 `catch APIError.server(423, let msg)` → 显后端「アカウントロック中（残り約 X 分）」；`catch APIError.server(403, let msg)` → 显账号停用提示。链路核实：后端 `auth.py` 423/403 的 detail 是 `{code,message}` dict → iOS `DetailError.extractMessage` 已支持取 message。
+- 本地 `loginFailCount` 保留作纯 UX 计数，锁定真值以后端 423 为准。
+
+### §16.4 R-5 体調報告履歴接真数据（commit `e4078c5`）
+`MyHealthView` 原整页 `ForEach(SEED.health)` 无 `#if DEMO`、无后端拉取 → 生产学生看到假人发烧 38 度记录当自己健康史。
+- `RollCallReportsAPI.listMine()` 接后端已有的 `GET /rollcall/reports/mine`（缺口在 iOS 侧没 list 方法；后端不按 kind 过滤 → iOS 端 filter `kind=="health"`）。
+- `MyHealthView` 改双轨（演示 `SEED.health` / 生产 `.task` 拉 `listMine()`）+ 三态（加载转圈 / 失败可重试 / 真空态），失败也不退回假病历。生产版后端 body 是自由文本（症状/体温/補足 拼成多行）原样显示 + 提交时刻。
