@@ -924,6 +924,7 @@ struct LifeTab: View {
 
     var body: some View {
         VStack(spacing: 10) {
+            announcementCard
             busCard
             packageCard
             eventsCard
@@ -931,8 +932,9 @@ struct LifeTab: View {
             lostCard
         }
         .task {
-            // 生产构建：拉真后端点歌 / 遗失物 / 行事 / 巴士，让首页预览卡显真实最新（演示用 SEED 不拉）
+            // 生产构建：拉真后端公告 / 点歌 / 遗失物 / 行事 / 巴士，让首页预览卡显真实最新（演示用 SEED 不拉）
             #if !DEMO
+                try? await app.loadAnnouncementList()
                 await app.loadSongs()
                 await app.loadLostFound()
                 await loadHomeEventsAndBus()
@@ -960,6 +962,52 @@ struct LifeTab: View {
             }
         }
     #endif
+
+    // MARK: 公告卡「お知らせ」— 主页公告入口（itsuki 6-11 发现 AnnouncementListView 是孤儿页：老师网页发了公告、iOS 学生从任何地方都进不去；本卡补入口）
+
+    private var announcementCard: some View {
+        HomeCard(pad: 14, onTap: { router.go(.homeAnnouncements) }) {
+            HStack(spacing: 12) {
+                ZStack(alignment: .topTrailing) {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(T.primary.opacity(0.07))
+                        .frame(width: 44, height: 44)
+                        .overlay {
+                            Image(systemName: "megaphone.fill")
+                                .font(.system(size: 20))
+                                .foregroundStyle(T.primary)
+                        }
+                    if app.announcementUnreadCount > 0 {
+                        Text("\(app.announcementUnreadCount)")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.white)
+                            .frame(width: 20, height: 20)
+                            .background(Circle().fill(T.danger))
+                            .overlay(Circle().stroke(.white, lineWidth: 2))
+                            .offset(x: 4, y: -4)
+                    }
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("お知らせ")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(T.ink)
+                    Text(latestAnnouncementSubtitle)
+                        .font(.system(size: 12))
+                        .foregroundStyle(T.inkSub)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+                Ic.chevR(16).foregroundStyle(T.inkMute)
+            }
+        }
+    }
+
+    /// 公告卡副标题：有列表显最新一条标题；否则按未读数 / 兜底文案
+    private var latestAnnouncementSubtitle: String {
+        if let first = app.announcements.first { return first.title }
+        if app.announcementUnreadCount > 0 { return "未読 \(app.announcementUnreadCount) 件" }
+        return "寮からのお知らせ"
+    }
 
     // MARK: Bus card — JSX: 44×44 primary.12 bg / bus icon / 13 inkSub / 22 mono bold time
 

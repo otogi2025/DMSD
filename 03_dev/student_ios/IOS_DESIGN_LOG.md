@@ -1374,6 +1374,12 @@ gpt-5 + high（非预期 gpt-5.5 + xhigh）逐层挖 `ST25DVWriter` NFC 取消�
 - 故 AI 页小字只声明「AI 要約とアバター生成は iPhone 15 Pro 以降（Apple Intelligence 対応機種）が必要」—— 翻译全机种可用不设限。
 - 工具链：Xcode 26.5 + iOS 26.5 SDK，三框架（Translation/FoundationModels/ImagePlayground）全在 SDK 里，弱链接。正式版 + 演示版双 BUILD SUCCEEDED。
 
+### §18.5 [2026-06-11] 老师公告主页入口补全（itsuki 发现孤儿页）+ 后端对齐核对
+- **缺口**：itsuki 看主页发现没有「お知らせ（老师公告）」入口。CC 全 app grep 确认 `AnnouncementListView`（公告一覧）+ 详情页代码都在，但**没有任何地方导航到 `.homeAnnouncements`** —— 主页无卡、铃铛（通知中心 NotificationsView）也不连公告、唯一导航是「列表内卡片→详情」但列表本身打不开。= 老师在 teacher_web 发了公告，iOS 学生从任何地方都进不去（跟介绍页同类「页面做了没接入口」病）。讽刺的是 §18.2 的 AI 翻译/要約刚挂在这个谁都打不开的详情页上。
+- **修复**：`LifeTab` 主页卡片列**首位**加 `announcementCard` → `router.go(.homeAnnouncements)`。megaphone 图标 + 未读角标（`app.announcementUnreadCount`，与铃铛同源）+ 副标题显最新公告标题（`app.announcements.first.title`）/ 兜底「未読 N 件」/「寮からのお知らせ」。生产版 `.task` 加 `try? await app.loadAnnouncementList()` 让卡显真实最新。
+- **后端对齐核对（itsuki 要求）**：iOS ↔ backend `/api/v1/announcements` 全链路逐字段比对 = **完全对齐，零漂移**：① 接口路径（GET list/unread-count/{id}、POST {id}/replies、DELETE {id}/replies/{rid}）一字不差 ② `AnnouncementBrief` 10 字段（含 `body_summary`/`is_read`/`reply_count` snake_case 映射）③ `AnnouncementDetailOut` 9 字段 + replies ④ `AnnouncementReplyOut` 6 字段 ⑤ unread_count ⑥ scope（后端 Literal[all/male/female]、iOS String 兼容）。数据层不需改。
+- 正式版 + 演示版双 BUILD SUCCEEDED。
+
 ## §19 上线签名 / 构建配置登记（⭐ 配置真值表 — 这类「外部账号/编号」值的登记位）
 
 > 生效真值在 `03_dev/student_ios/v1/project.yml`（这里是人读的对照登记）。Team ID 不是密码、是半公开标识，进公开仓库属正常。
