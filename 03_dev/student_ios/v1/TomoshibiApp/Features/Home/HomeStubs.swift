@@ -2073,6 +2073,7 @@ struct HealthSheet: View {
     @State private var sym: String = ""
     @State private var temp: String = ""
     @State private var note: String = ""
+    @State private var submitting = false
 
     /// JSX options
     private let symptoms = ["発熱", "頭痛", "腹痛", "吐き気", "風邪症状", "その他"]
@@ -2120,7 +2121,9 @@ struct HealthSheet: View {
                               rows: 3)
                     }
 
-                    PrimaryButton(title: "提出", enabled: !sym.isEmpty) {
+                    PrimaryButton(title: submitting ? "送信中…" : "提出",
+                                  enabled: !sym.isEmpty && !submitting)
+                    {
                         submit()
                     }
                     .padding(.top, 2)
@@ -2146,6 +2149,7 @@ struct HealthSheet: View {
             if !n.isEmpty { lines.append("補足：\(n)") }
             let bodyText = lines.joined(separator: "\n")
             let tokenAtStart = app.authToken
+            submitting = true
             Task {
                 do {
                     _ = try await RollCallReportsAPI.create(kind: "health", body: bodyText)
@@ -2153,6 +2157,7 @@ struct HealthSheet: View {
                     app.closeSheet()
                     app.showToast("先生に通知しました")
                 } catch {
+                    submitting = false // 失败留在弹窗让学生重试
                     app.showToast("送信に失敗しました")
                 }
             }
@@ -2188,6 +2193,7 @@ struct AbsenceSheet: View {
     @EnvironmentObject var app: AppStore
 
     @State private var reason: String = ""
+    @State private var submitting = false
 
     var body: some View {
         GlassSheet(onClose: { app.closeSheet() }) {
@@ -2210,8 +2216,9 @@ struct AbsenceSheet: View {
                 }
 
                 PrimaryButton(
-                    title: "提出",
+                    title: submitting ? "送信中…" : "提出",
                     enabled: !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        && !submitting
                 ) {
                     submit()
                 }
@@ -2230,6 +2237,7 @@ struct AbsenceSheet: View {
         #else
             let bodyText = reason.trimmingCharacters(in: .whitespacesAndNewlines)
             let tokenAtStart = app.authToken
+            submitting = true
             Task {
                 do {
                     _ = try await RollCallReportsAPI.create(kind: "absence", body: bodyText)
@@ -2237,6 +2245,7 @@ struct AbsenceSheet: View {
                     app.closeSheet()
                     app.showToast("審査中です")
                 } catch {
+                    submitting = false // 失败留在弹窗让学生重试
                     app.showToast("送信に失敗しました")
                 }
             }
@@ -2254,6 +2263,7 @@ struct OtherSheet: View {
 
     @State private var cat: String = ""
     @State private var content: String = ""
+    @State private var submitting = false
 
     private let categories = ["遅刻理由", "外出中", "NFC 不具合", "その他"]
 
@@ -2289,9 +2299,10 @@ struct OtherSheet: View {
                 }
 
                 PrimaryButton(
-                    title: "提出",
+                    title: submitting ? "送信中…" : "提出",
                     enabled: !cat.isEmpty &&
                         !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        && !submitting
                 ) {
                     submit()
                 }
@@ -2312,6 +2323,7 @@ struct OtherSheet: View {
             let c = content.trimmingCharacters(in: .whitespacesAndNewlines)
             let bodyText = "分類：\(cat)\n内容：\(c)"
             let tokenAtStart = app.authToken
+            submitting = true
             Task {
                 do {
                     _ = try await RollCallReportsAPI.create(kind: "other", body: bodyText)
@@ -2319,6 +2331,7 @@ struct OtherSheet: View {
                     app.closeSheet()
                     app.showToast("送信しました")
                 } catch {
+                    submitting = false // 失败留在弹窗让学生重试
                     app.showToast("送信に失敗しました")
                 }
             }
