@@ -452,48 +452,79 @@ final class AppStore: ObservableObject {
 
     /// 拉未读数
     func loadAnnouncementUnreadCount() async {
-        let tokenAtStart = authToken
-        do {
-            let res = try await AnnouncementsAPI.unreadCount()
-            // IX-009：登出 / 切用户后不写回旧用户的未読数（防 badge 串号）。
-            guard authToken == tokenAtStart else { return }
-            announcementUnreadCount = res.unreadCount
-        } catch {
-            // 拉失败不阻塞主页其他功能 — 静默忽略，下次刷新再试
-        }
+        #if DEMO
+            announcementUnreadCount = SEED.announcements.filter { !$0.isRead }.count
+            return
+        #else
+            let tokenAtStart = authToken
+            do {
+                let res = try await AnnouncementsAPI.unreadCount()
+                // IX-009：登出 / 切用户后不写回旧用户的未読数（防 badge 串号）。
+                guard authToken == tokenAtStart else { return }
+                announcementUnreadCount = res.unreadCount
+            } catch {
+                // 拉失败不阻塞主页其他功能 — 静默忽略，下次刷新再试
+            }
+        #endif
     }
 
     /// 拉列表（一覧 view 进入时调）
     func loadAnnouncementList() async throws {
-        let tokenAtStart = authToken
-        let res = try await AnnouncementsAPI.list()
-        // IX-009：登出 / 切用户后不写回旧用户的公告列表（防上一个人的公告残留到下一个人）。
-        guard authToken == tokenAtStart else { return }
-        announcements = res.items
+        #if DEMO
+            // 演示版用 SEED 假公告，不连后端（否则演示无网 / 无真令牌时整列表报通信错误）
+            announcements = SEED.announcements
+            return
+        #else
+            let tokenAtStart = authToken
+            let res = try await AnnouncementsAPI.list()
+            // IX-009：登出 / 切用户后不写回旧用户的公告列表（防上一个人的公告残留到下一个人）。
+            guard authToken == tokenAtStart else { return }
+            announcements = res.items
+        #endif
     }
 
     /// 拉详情（详情 view 进入时调；自动写已读 → backend 下次 list 返回 isRead=true）
     func loadAnnouncementDetail(id: String) async throws {
-        let tokenAtStart = authToken
-        let detail = try await AnnouncementsAPI.detail(id: id)
-        // IX-009：登出 / 切用户后不写回旧用户的公告详情 / 已读状态（防详情缓存 + 列表已读串号）。
-        guard authToken == tokenAtStart else { return }
-        announcementDetails[id] = detail
-        // 详情 GET 后端会自动 mark read，本地 cache 也同步翻 true
-        if let idx = announcements.firstIndex(where: { $0.id.uuidString.caseInsensitiveCompare(id) == .orderedSame }) {
-            // brief 是 immutable struct — 整条替换
-            let old = announcements[idx]
-            announcements[idx] = AnnouncementBrief(
-                id: old.id, title: old.title, bodySummary: old.bodySummary,
-                scope: old.scope, authorTeacherId: old.authorTeacherId,
-                authorTeacherName: old.authorTeacherName,
-                createdAt: old.createdAt, updatedAt: old.updatedAt,
-                isRead: true, // ← flip 已读
-                replyCount: old.replyCount
-            )
-        }
-        // 同步未读数
-        await loadAnnouncementUnreadCount()
+        #if DEMO
+            // 演示版从 SEED 取详情（id 是 UUID 大写串，SEED 字典按小写键查）
+            if let d = SEED.announcementDetails[id.lowercased()] {
+                announcementDetails[id] = d
+            }
+            // demo 也把列表那条翻已读 + 同步未读数（让 badge 实时减）
+            if let idx = announcements.firstIndex(where: { $0.id.uuidString.caseInsensitiveCompare(id) == .orderedSame }) {
+                let old = announcements[idx]
+                announcements[idx] = AnnouncementBrief(
+                    id: old.id, title: old.title, bodySummary: old.bodySummary,
+                    scope: old.scope, authorTeacherId: old.authorTeacherId,
+                    authorTeacherName: old.authorTeacherName,
+                    createdAt: old.createdAt, updatedAt: old.updatedAt,
+                    isRead: true, replyCount: old.replyCount
+                )
+            }
+            announcementUnreadCount = announcements.filter { !$0.isRead }.count
+            return
+        #else
+            let tokenAtStart = authToken
+            let detail = try await AnnouncementsAPI.detail(id: id)
+            // IX-009：登出 / 切用户后不写回旧用户的公告详情 / 已读状态（防详情缓存 + 列表已读串号）。
+            guard authToken == tokenAtStart else { return }
+            announcementDetails[id] = detail
+            // 详情 GET 后端会自动 mark read，本地 cache 也同步翻 true
+            if let idx = announcements.firstIndex(where: { $0.id.uuidString.caseInsensitiveCompare(id) == .orderedSame }) {
+                // brief 是 immutable struct — 整条替换
+                let old = announcements[idx]
+                announcements[idx] = AnnouncementBrief(
+                    id: old.id, title: old.title, bodySummary: old.bodySummary,
+                    scope: old.scope, authorTeacherId: old.authorTeacherId,
+                    authorTeacherName: old.authorTeacherName,
+                    createdAt: old.createdAt, updatedAt: old.updatedAt,
+                    isRead: true, // ← flip 已读
+                    replyCount: old.replyCount
+                )
+            }
+            // 同步未读数
+            await loadAnnouncementUnreadCount()
+        #endif
     }
 
     /// 发回复（学生用 — 老师 reply 走 teacher_web）

@@ -213,4 +213,81 @@ enum SEED {
         .init(id: 7, title: "群青", artist: "YOASOBI", by: "11号", up: 6, down: 0),
         .init(id: 8, title: "ミックスナッツ", artist: "Official髭男dism", by: "09号", up: 4, down: 1),
     ]
+
+    /// 老师公告（演示版假数据 — 真公告走后端 /api/v1/announcements）。
+    /// 6-11 itsuki 发现公告页一直是孤儿（没入口），补主页入口后才暴露演示版从来没有 seed → 列表报通信错误。
+    static let announcements: [AnnouncementBrief] = [
+        AnnouncementBrief(
+            id: UUID(uuidString: "AAAA0001-0000-0000-0000-000000000001")!,
+            title: "台風接近に伴う門限変更のお知らせ",
+            bodySummary: "明日は台風の接近が予想されるため、門限を 18:00 に繰り上げます。外出予定の寮生は早めに帰寮してください。",
+            scope: "all",
+            authorTeacherId: UUID(uuidString: "BBBB0001-0000-0000-0000-000000000001")!,
+            authorTeacherName: "田中 寮監",
+            createdAt: Date().addingTimeInterval(-3600 * 5),
+            updatedAt: Date().addingTimeInterval(-3600 * 5),
+            isRead: false,
+            replyCount: 2
+        ),
+        AnnouncementBrief(
+            id: UUID(uuidString: "AAAA0002-0000-0000-0000-000000000002")!,
+            title: "週末の定期清掃について",
+            bodySummary: "今週末、共用スペースの定期清掃を行います。当日は私物を各自の部屋に移動しておいてください。",
+            scope: "all",
+            authorTeacherId: UUID(uuidString: "BBBB0002-0000-0000-0000-000000000002")!,
+            authorTeacherName: "佐藤 先生",
+            createdAt: Date().addingTimeInterval(-86400 * 2),
+            updatedAt: Date().addingTimeInterval(-86400 * 2),
+            isRead: false,
+            replyCount: 0
+        ),
+        AnnouncementBrief(
+            id: UUID(uuidString: "AAAA0003-0000-0000-0000-000000000003")!,
+            title: "食堂メニュー変更のお知らせ",
+            bodySummary: "来月より食堂の夕食メニューを一部変更します。アレルギー対応については栄養士までご相談ください。",
+            scope: "all",
+            authorTeacherId: UUID(uuidString: "BBBB0003-0000-0000-0000-000000000003")!,
+            authorTeacherName: "山本 栄養士",
+            createdAt: Date().addingTimeInterval(-86400 * 6),
+            updatedAt: Date().addingTimeInterval(-86400 * 6),
+            isRead: true,
+            replyCount: 1
+        ),
+    ]
+
+    /// 公告详情（演示版）— 全文 + 回复，按 id 字符串（小写）查
+    static let announcementDetails: [String: AnnouncementDetail] = {
+        func reply(_ kind: String, _ name: String, _ body: String, _ ago: TimeInterval) -> AnnouncementReplyOut {
+            AnnouncementReplyOut(
+                id: UUID(), authorKind: kind, authorId: UUID(),
+                authorName: name, body: body, createdAt: Date().addingTimeInterval(ago)
+            )
+        }
+        let bodies: [String: (String, [AnnouncementReplyOut])] = [
+            "aaaa0001-0000-0000-0000-000000000001": (
+                "明日（6/12）は台風の接近が予想されます。つきましては、安全確保のため門限を通常より早め、18:00 とします。\n\n外出予定の寮生は早めに帰寮してください。やむを得ず遅れる場合は必ず寮監まで連絡してください。",
+                [reply("teacher", "田中 寮監", "進路状況によっては追加で連絡します。", -3600 * 4),
+                 reply("student", "リュウ イヒ", "承知しました。", -3600 * 3)]
+            ),
+            "aaaa0002-0000-0000-0000-000000000002": (
+                "今週末（土曜 10:00〜）、共用スペース（ラウンジ・洗濯室）の定期清掃を行います。当日は私物を各自の部屋に移動しておいてください。移動されていない私物は一時的に保管します。",
+                []
+            ),
+            "aaaa0003-0000-0000-0000-000000000003": (
+                "来月より食堂の夕食メニューを一部変更します。栄養バランスを考慮した新メニューを導入します。\n\nアレルギー対応については、これまで通り栄養士までご相談ください。",
+                [reply("teacher", "山本 栄養士", "ご要望があればこの投稿に返信してください。", -86400 * 5)]
+            ),
+        ]
+        var dict: [String: AnnouncementDetail] = [:]
+        for a in announcements {
+            let key = a.id.uuidString.lowercased()
+            let (body, replies) = bodies[key] ?? (a.bodySummary, [])
+            dict[key] = AnnouncementDetail(
+                id: a.id, title: a.title, body: body, scope: a.scope,
+                authorTeacherId: a.authorTeacherId, authorTeacherName: a.authorTeacherName,
+                createdAt: a.createdAt, updatedAt: a.updatedAt, replies: replies
+            )
+        }
+        return dict
+    }()
 }

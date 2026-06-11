@@ -932,9 +932,11 @@ struct LifeTab: View {
             lostCard
         }
         .task {
-            // 生产构建：拉真后端公告 / 点歌 / 遗失物 / 行事 / 巴士，让首页预览卡显真实最新（演示用 SEED 不拉）
+            // 公告列表 + 未读数：demo 走 SEED / 生产走后端（两个 load 都已 demo-aware），让公告卡显最新标题 + 红点
+            try? await app.loadAnnouncementList()
+            await app.loadAnnouncementUnreadCount()
+            // 其余卡片：生产拉后端，演示直接读 SEED（不在这拉）
             #if !DEMO
-                try? await app.loadAnnouncementList()
                 await app.loadSongs()
                 await app.loadLostFound()
                 await loadHomeEventsAndBus()

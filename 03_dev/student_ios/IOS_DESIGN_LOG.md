@@ -1379,6 +1379,7 @@ gpt-5 + high（非预期 gpt-5.5 + xhigh）逐层挖 `ST25DVWriter` NFC 取消�
 - **修复**：`LifeTab` 主页卡片列**首位**加 `announcementCard` → `router.go(.homeAnnouncements)`。megaphone 图标 + 未读角标（`app.announcementUnreadCount`，与铃铛同源）+ 副标题显最新公告标题（`app.announcements.first.title`）/ 兜底「未読 N 件」/「寮からのお知らせ」。生产版 `.task` 加 `try? await app.loadAnnouncementList()` 让卡显真实最新。
 - **后端对齐核对（itsuki 要求）**：iOS ↔ backend `/api/v1/announcements` 全链路逐字段比对 = **完全对齐，零漂移**：① 接口路径（GET list/unread-count/{id}、POST {id}/replies、DELETE {id}/replies/{rid}）一字不差 ② `AnnouncementBrief` 10 字段（含 `body_summary`/`is_read`/`reply_count` snake_case 映射）③ `AnnouncementDetailOut` 9 字段 + replies ④ `AnnouncementReplyOut` 6 字段 ⑤ unread_count ⑥ scope（后端 Literal[all/male/female]、iOS String 兼容）。数据层不需改。
 - 正式版 + 演示版双 BUILD SUCCEEDED。
+- **连带修演示版「通信エラー」**：补入口后 itsuki 一点进列表就报通信错误 —— 孤儿页从没被打开过，所以演示版从来没人发现它的三个 load（list/detail/unread-count）**没有 `#if DEMO` 分支**，演示版直接连真后端（无网/无真令牌）必报错。修：`SEED.swift` 加 3 条假公告（含全文 + 回复）+ 三个 load 加 DEMO 分支走 SEED + 主页 `.task` 改无条件拉（已 demo-aware）。这属编译期数据切换（生产版不含），非「上线前必删 scaffold」。
 
 ## §19 上线签名 / 构建配置登记（⭐ 配置真值表 — 这类「外部账号/编号」值的登记位）
 
