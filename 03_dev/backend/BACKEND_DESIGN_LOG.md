@@ -214,7 +214,13 @@ audit log 表 = `audit_logs(id, actor_type, actor_id, action, target_type, targe
 - **正交关系**：寮过滤（`dorm_units_for_teacher`）/ 演示隔离（`assert_not_demo_teacher` / `demo_scope_for_teacher`）/ 审批链 角色逻辑 与权限闸正交叠加，全部保留不变。
 - **op 账号**：`seed.py` 从环境变量 `OP_PASSWORD` 注入，明文绝不入仓库 / 迁移（缺失则跳过建账号）。
 - **两处保留的职位域规则**（待 itsuki 决定是否也纯按权限组判）：① `applications.py` 代録 / proxy-candidates 仍叠加 `_DAIROKU_ROLES`（§6 未把它们列进 cluster-2 管理动作清单）；② `teachers.py delete_teacher` 仍用 `TEACHER_ADMIN_ROLES` 防删最后一个管理员。
-- **codex 复审（2026-06-11，gpt-5.5 xhigh 只读）**：0 阻塞 / 5 重大 / 2 次要 / 1 建议。CC 逐条独立核实。当场修 1 条：`student_promote.py /renewal-start` 漏迁（§6 把 renewal 列为 cluster 12 管理动作）→ 由 `require_teacher_roles(*_ADMIN_ROLES)` 改挂 `require_permission(C_STUDENT_ACCOUNT, MANAGE)`，body 寮过滤/演示隔离保留，测试零破坏。其余 4 重大涉产品/设计/安全决策（寮边界放大 14 端点 / 建账号是否强制 permission_group / 删管理员按职位计数 / 学習担当 回填映射）全列 `00_admin/TODO.md` §B 待 itsuki 拍板，未擅自改。
+- **codex 复审（2026-06-11，gpt-5.5 xhigh 只读）**：0 阻塞 / 5 重大 / 2 次要 / 1 建议。CC 逐条独立核实，itsuki 拍板后修了 4 条（F3 保持现状）：
+  - **F2 renewal-start 漏迁**：`student_promote.py` 由 `require_teacher_roles(*_ADMIN_ROLES)` 改挂 `require_permission(C_STUDENT_ACCOUNT, MANAGE)`（§6 把 renewal 列为 cluster 12 管理动作）。
+  - **F1 寮边界**：codex 报 14 端点「被放大」，CC 核实只有 `admin_accounts` 的 `/students`(list) / `password-reset` / `unlock` 3 个是本次真放大的（改动前 ADMIN_ROLES 3 职位 → 改动后所有 M 组含分寮老师、且无寮过滤）；其余 11 个是改动前就有的既有问题（裸 `get_current_teacher` 或已含分寮角色，本次没放大、部分还收窄）。修法：list 查询加寮过滤、password-reset/unlock 加 `_assert_student_in_dorm`（403 FORBIDDEN_DORM，与同文件 renew_seat 一致）。既有 11 端点另记 TODO 安全加固。
+  - **F4 删管理员按职位计数**：`teachers.py delete_teacher` 由数 `TEACHER_ADMIN_ROLES`(职位) 改为按 `effective_group` 对 `C_TEACHER_ACCOUNT` 是否达 MANAGE 计数（`_has_teacher_account_admin`）。顺带修正旧逻辑的真 bug：旧集合错含寮監（实为 V）、漏了校長（实为 M）。
+  - **F5 学習担当 回退映射**：`permissions.py` + 迁移回填把 `学習担当` 从 `申請承認専用`(晚自习只读) 改成 `一般宿管+晚自习`(itsuki 确认其负责晚自习管理)。
+  - **F3（保持现状）**：建账号允许 permission_group=NULL→职位回退是故意留的安全网，itsuki 拍板不强制必填。
+  - 次要/建议（F6 前端导航按职位显隐 / F7 共享端点 / F8 代録职位）记 `00_admin/TODO.md` §B。
 
 ---
 
