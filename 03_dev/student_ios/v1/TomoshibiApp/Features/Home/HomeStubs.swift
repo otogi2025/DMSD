@@ -700,12 +700,14 @@ struct HomeView: View {
                 subColor: Color.white.opacity(0.95)
             )
         case .done:
+            // R-1②：判定不再写死「時間内」，按后端 my_status 派生的 checkinKind 显（遅刻 → 赤）
+            let isLate = app.checkinKind == "遅刻"
             heroBlock(
                 // ios-home-07：checkinAt 为 nil（罕见竞态）时不显写死假时刻 21:02，用中性占位
                 caption: "\(app.checkinAt ?? "--:--")",
-                big: "時間内",
+                big: app.checkinKind ?? "時間内",
                 sub: "今回の点呼は完了しました",
-                bigColor: Color(hex: 0x2C6048),
+                bigColor: isLate ? T.danger : Color(hex: 0x2C6048),
                 captionColor: deepBrown.opacity(0.7),
                 subColor: deepBrown.opacity(0.8)
             )
@@ -1239,22 +1241,25 @@ struct RollcallSheet: View {
 
             // JSX idle 専用 warn banner
             // JSX: padding 10 14 / radius 12 / warnBg / warn.40 border / warnDeep 12 / lh 1.5
+            // R-1①：文案 + 配色按真实 rollState（受付中=绿 / 时间外=黄），不再写死「時間外」误导
             HStack(alignment: .top, spacing: 6) {
-                Text("⚠")
+                Text(app.rollState == .active ? "✓" : "⚠")
                     .font(.system(size: 12))
-                Text("点呼時間外です。点呼開始まで少々お待ちください。")
+                Text(app.rollState == .active
+                    ? "点呼受付中です。下のボタンでチェックインしてください。"
+                    : "点呼時間外です。点呼開始まで少々お待ちください。")
                     .font(.system(size: 12))
                     .lineSpacing(2)
             }
-            .foregroundStyle(T.warnDeep)
+            .foregroundStyle(app.rollState == .active ? T.okDeep : T.warnDeep)
             .padding(.horizontal, 14).padding(.vertical, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(T.warnBg)
+                    .fill(app.rollState == .active ? T.okBg : T.warnBg)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(T.warn.opacity(0.25), lineWidth: 1)
+                            .stroke((app.rollState == .active ? T.okDeep : T.warn).opacity(0.25), lineWidth: 1)
                     )
             )
             .padding(.bottom, 20)

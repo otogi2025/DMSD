@@ -241,6 +241,8 @@ final class AppStore: ObservableObject {
                 await loadMyPackages()
                 // IX-009：补报启动时还没登录就拿到的 APNs deviceToken。
                 await flushDeviceTokenIfPossible()
+                // R-1/R-2：拉今日点呼场次，驱动首页点呼卡真实状态（idle/进行中/時間内/遅刻/欠席）
+                await loadTodayRollcall()
             } catch APIError.unauthorized {
                 // 令牌过期 / 失效（401）→ 清令牌强制重登（didSet 会清 currentUser + 复位 SEED.user），
                 // 不再默默回退到演示假人身份。
@@ -361,6 +363,10 @@ final class AppStore: ObservableObject {
 
     /// 已签到判定（"時間内" / "遅刻"）
     @Published var checkinKind: String? = nil
+
+    /// 今日「我所属寮」的点呼场次（GET /rollcall/me/today）。
+    /// 生产版 rollState / 倒计时 / 「時間内」「遅刻」判定的真实数据源（R-1/R-2）；演示版空、走本地假状态机。
+    @Published var todaySessions: [MyRollCallTodaySession] = []
 
     /// 账号关联字段的变更履歴（MyInfo 编辑时 append）
     /// production 版初始空、登录后从后端拉；demo 版有进级 placeholder seed。
@@ -583,11 +589,91 @@ final class AppStore: ObservableObject {
     // memory project_demo_scaffolds_to_remove_before_v1.md #1, #15
     // 接 backend event 驱动后 rollState 由 server 推送，不再 demo 循环
 
-    /// active 中に 1 秒ごと呼ばれる（HomeView の Timer から）
+    /// HomeView 的 countdownTimer 每秒调一次。
     func tickCountdown() {
-        guard rollState == .active, rollCountdownSec > 0 else { return }
-        rollCountdownSec -= 1
+        #if DEMO
+            // 演示版：本地假状态机倒计时（给宿舍管理员演示用）
+            guard rollState == .active, rollCountdownSec > 0 else { return }
+            rollCountdownSec -= 1
+        #else
+            // 生产版（R-1/R-2）：按今日真实点呼场次 + 当前时刻重算状态，
+            // idle→进行中→欠席 自动流转、倒计时按「時間内」截止真实递减，不再本地写死。
+            refreshRollStateFromSessions()
+        #endif
     }
+
+    /// 登录 / 启动后拉今日「我所属寮」的点呼场次（演示版不拉，保留本地假状态机）。
+    func loadTodayRollcall() async {
+        #if DEMO
+            return
+        #else
+            guard let tokenAtStart = authToken else { return }
+            do {
+                let rows = try await RollCallAPI.myToday()
+                guard authToken == tokenAtStart else { return } // await 后换人则丢弃
+                todaySessions = rows
+                refreshRollStateFromSessions()
+            } catch {
+                // 拉不到保持现状（不显假数据）；打日志便于开发期发现字段漂移
+                print("[loadTodayRollcall] /rollcall/me/today 拉取失败：\(error)")
+            }
+        #endif
+    }
+
+    /// 从 todaySessions + 当前时刻派生 rollState / checkinAt / checkinKind / rollCountdownSec。
+    /// 选「当前进行中场次」(now 落在 window_start..auto_end)；否则最近的未来场次做预告(idle)。
+    func refreshRollStateFromSessions() {
+        #if DEMO
+            return
+        #else
+            let now = Date()
+            let current = todaySessions.first {
+                now >= $0.scheduled_window_start_at && now <= $0.scheduled_auto_end_at
+            }
+            let upcoming = todaySessions
+                .filter { now < $0.scheduled_window_start_at }
+                .min { $0.scheduled_window_start_at < $1.scheduled_window_start_at }
+            guard let s = current ?? upcoming else {
+                // 本日我寮无点呼 → 安全落 idle（点呼卡显减点预告、不显假倒计时）
+                rollState = .idle
+                checkinAt = nil
+                checkinKind = nil
+                return
+            }
+            // 已签到 → done，显真实签到时刻 + 真实判定（「時間内」/「遅刻」）
+            if let at = s.my_checked_in_at {
+                rollState = .done
+                checkinAt = Self.jstHHmm.string(from: at)
+                checkinKind = (s.my_status == "late") ? "遅刻" : "時間内"
+                return
+            }
+            // 未签到，按时间窗判定
+            if now < s.scheduled_window_start_at {
+                rollState = .idle // 下次点呼预告
+                checkinAt = nil
+                checkinKind = nil
+            } else if now <= s.scheduled_late_end_at {
+                // 受付中（含遅刻段）→ active；倒计时到「時間内」截止时刻
+                rollState = .active
+                rollCountdownSec = max(0, Int(s.scheduled_on_time_end_at.timeIntervalSince(now)))
+                checkinAt = nil
+                checkinKind = nil
+            } else {
+                // 超过迟到截止仍未签到 → 欠席
+                rollState = .absent
+                checkinAt = nil
+                checkinKind = nil
+            }
+        #endif
+    }
+
+    /// HH:mm（JST）— 点呼签到时刻显示用
+    private static let jstHHmm: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
+        return f
+    }()
 
     // MARK: - 学習（晚自习）状态机
 

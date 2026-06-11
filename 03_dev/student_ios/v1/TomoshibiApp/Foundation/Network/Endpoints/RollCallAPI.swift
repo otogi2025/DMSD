@@ -26,6 +26,34 @@ enum RollCallAPI {
         let path = "/api/v1/rollcall/sessions/\(sessionId.uuidString.lowercased())/checkins"
         return try await APIClient.shared.post(path: path, body: body)
     }
+
+    /// GET /api/v1/rollcall/me/today
+    ///
+    /// 学生查今天自己所属寮的点呼场次 + 自己在每场的签到状态。
+    /// iOS 用四个 scheduled_* 时间窗 + 当前时刻真实算出 idle / 进行中倒计时 / 時間内 / 遅刻，
+    /// 替代原本地写死的「時間外」「時間内」(R-1/R-2)。空数组 = 本日无我寮点呼。
+    @MainActor
+    static func myToday() async throws -> [MyRollCallTodaySession] {
+        try await APIClient.shared.get(path: "/api/v1/rollcall/me/today")
+    }
+}
+
+/// GET /api/v1/rollcall/me/today 单条响应（对齐 backend schemas.py MyRollCallTodaySession）。
+struct MyRollCallTodaySession: Decodable, Identifiable, Hashable {
+    let session_id: UUID
+    let session_type: String // morning / evening
+    let day_type: String // weekday / weekend_holiday
+    let session_status: String // draft / running / ended
+    let scheduled_window_start_at: Date
+    let scheduled_on_time_end_at: Date
+    let scheduled_late_end_at: Date
+    let scheduled_auto_end_at: Date
+    let my_status: String? // present/late/absent/exempt_range；nil = 还没签到
+    let my_checked_in_at: Date?
+
+    var id: UUID {
+        session_id
+    }
 }
 
 /// POST /api/v1/rollcall/sessions/:id/checkins 请求 body
