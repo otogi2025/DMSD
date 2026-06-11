@@ -12,7 +12,8 @@
 - 写 audit_logs（action=student.renewal_start）。
 - 不建新表，只改 students.needs_renewal / students.status。
 
-角色 gate: 寮務部長 / 寮務課長 / 管理係（ADMIN_ROLES，同 admin_accounts.py）
+权限 gate: require_permission(学生账号管理簇, 管理 M) — teacher_permission_v1.md §6
+将 renewal 列为「学生账号管理」cluster 的管理动作（2026-06-11 权限分级；职位 role 退化为纯显示标签，不再参与鉴权）。body 内保留 demo 隔离 + 寮过滤（只开闸本人管辖寮）。
 
 后续（本次未实装）:
 - 开闸后 push 通知学生 → v1.1+ 议题（通知系统对接）
@@ -29,18 +30,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import models, permissions, schemas
 from ..database import get_db
 from ..deps import (
     demo_scope_for_teacher,
     dorm_units_for_teacher,
-    require_teacher_roles,
+    require_permission,
 )
 
 router = APIRouter(prefix="/api/v1/students", tags=["student / renewal"])
-
-# 同 admin_accounts.py ADMIN_ROLES
-_ADMIN_ROLES = ("寮務部長", "寮務課長", "管理係")
 
 # 高 3 = 最高学年（开闸时毕业，不打 needs_renewal 标记）
 _MAX_GRADE = "06"
@@ -54,7 +52,9 @@ _VALID_GRADES = ["01", "02", "03", "04", "05", "06"]
 )
 def renewal_start(
     body: schemas.RenewalStartIn,
-    teacher: models.Teacher = Depends(require_teacher_roles(*_ADMIN_ROLES)),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_STUDENT_ACCOUNT, permissions.MANAGE)
+    ),
     db: Session = Depends(get_db),
 ):
     """开闸（学年更新を開始）— 中1~高2 打「待更新」标记、高3 毕业。
