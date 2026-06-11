@@ -460,6 +460,7 @@
 - [x] **F3 已拍板保持现状**（2026-06-12）：建账号允许 permission_group=NULL→职位回退是故意留的安全网，itsuki 拍板不强制必填（建账号网页本来就会填，回退网兜底迁移期/API 直连）。
 - [x] **F4 已修**（2026-06-12，itsuki 拍板）：`teachers.py delete_teacher` 防删最后管理员由数 `TEACHER_ADMIN_ROLES`(职位) 改为按 `effective_group` 对 `C_TEACHER_ACCOUNT` 达 MANAGE 计数（`_has_teacher_account_admin`）。顺带修旧逻辑真 bug：旧集合错含寮監(实为V)、漏了校長(实为M)。
 - [x] **F5 已修**（2026-06-12，itsuki 确认学習担当负责晚自习）：`permissions.py` + 迁移回填把 `学習担当` 从 `申請承認専用`(晚自习只读) 改成 `一般宿管+晚自习`(有晚自习管理权)。⚠️ 副作用提示：该组同时含学生账号/前台/扣分等全套一般宿管权限（5 组预设较粗、无「仅审批+晚自习」组）；若只想给晚自习不想给其余，需立第 6 组或按功能覆盖（itsuki 已知悉、接受）。
+- [ ] **上线注意（codex 复审提示）**：F5 改的是迁移 `f1a2b3c4d5e6` 的回填值。当前本地 DB 停在 `e6f7a8b9c0d1`（未跑过该迁移）、生产也没这个新迁移 → 现状安全、首次跑会用新值。但**部署时若发现某 DB 已跑过旧版该迁移**（学習担当 已被回填成 `申請承認専用`），改文件不会自动重跑 → 需补一次数据修正迁移或手动 `UPDATE teachers SET permission_group='一般宿管+晚自习' WHERE role='学習担当' AND permission_group='申請承認専用'`。
 - [ ] **F6（次要→= 待拍板③）前端导航仍按 role 判显隐**：`Shell.tsx:75`/`App.tsx:396,414`，`TeacherProfile` 没带 permission_group。后端安全不受影响，但 UI 显隐与真实权限不一致。待拍板 UX（隐藏 vs 置灰）后接线。
 - [ ] **F7（次要）共享端点老师分支没显式 require_permission**：`announcements`/`bus_routes`/`events`/`applications._resolve_actor` 走 `get_current_principal`，当前簇多为全组 M 故风险低，但未来矩阵变化会漂移；`applications._resolve_actor`(506/553) 还缺 active 状态校验。
 - [ ] **F8（建议→= 待拍板②）`_DAIROKU_ROLES` 代録资格仍按职位**：`applications.py:161` 无提权空洞，但与「role 纯标签」语义冲突，会误拦有权限组但 display role 不在列表的老师。文档化为业务例外 or 改权限组/capability 字段。
