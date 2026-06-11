@@ -52,6 +52,7 @@
 		B61FB76EA851BC80A2FBBE39 /* Route.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C054666A54A77C6971A7BD /* Route.swift */; };
 		B97F2CD7088F960531EFF66B /* Ic.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF988C23F66A4E622622302F /* Ic.swift */; };
 		C75ED6393B19EBBEE7CA1A15 /* OutingsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 492E8FE746273F00BC46D772 /* OutingsAPI.swift */; };
+		C95132AC0325A890FD2EF1AF /* RollStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 738D063BBD4F7D59CAA43BDB /* RollStateMachineTests.swift */; };
 		CB5C431AB69BF972FFB160CB /* HomeStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89293A7DB55301A3F1DDE5EE /* HomeStubs.swift */; };
 		CF76384DA126CF63F99BE13E /* StudyAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD89B96B9E1EC056A73411B6 /* StudyAPI.swift */; };
 		D802FA046E6B50B968F5826F /* MyPageStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E749CA72863EC4E0022C7B6 /* MyPageStubs.swift */; };
@@ -71,6 +72,16 @@
 		FF1F6559CB40440FDA1C5739 /* SEED.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284355530CF272CA953BF511 /* SEED.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		4159076E62810301EB1D9479 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 20E9B96DECC3EDF120F354D0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A91187321EBED0A24FCED0C1;
+			remoteInfo = TomoshibiApp;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		0075F4B1C56BD52A9D418086 /* ApplyFormSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplyFormSupport.swift; sourceTree = "<group>"; };
 		05C054666A54A77C6971A7BD /* Route.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Route.swift; sourceTree = "<group>"; };
@@ -79,6 +90,7 @@
 		153F3098DCB9936D8021790F /* ApplyStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplyStubs.swift; sourceTree = "<group>"; };
 		1692CD80AD61B3BFA74FE01D /* BottomNav.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomNav.swift; sourceTree = "<group>"; };
 		17B7B19307005D8E2D07B44D /* StayListStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StayListStubs.swift; sourceTree = "<group>"; };
+		18F25536D77C2040621B8A7D /* TomoshibiAppTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TomoshibiAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		198EF6A8C6E10AE3DBF4B316 /* AuthStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStubs.swift; sourceTree = "<group>"; };
 		19E9B8643079E37AE47A07A4 /* .gitignore */ = {isa = PBXFileReference; path = .gitignore; sourceTree = "<group>"; };
 		284355530CF272CA953BF511 /* SEED.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SEED.swift; sourceTree = "<group>"; };
@@ -102,6 +114,7 @@
 		5ADCD09C35CE74209B76A719 /* SongsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SongsAPI.swift; sourceTree = "<group>"; };
 		6C029EB0842D846493CFE168 /* StudentProfileAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudentProfileAPI.swift; sourceTree = "<group>"; };
 		71453E806B7A27446A7B2BE3 /* 12865348558069377973 */ = {isa = PBXFileReference; path = 12865348558069377973; sourceTree = "<group>"; };
+		738D063BBD4F7D59CAA43BDB /* RollStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RollStateMachineTests.swift; sourceTree = "<group>"; };
 		7AFBB7C7CB1B14AF649FFB7D /* GlassSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassSheet.swift; sourceTree = "<group>"; };
 		7E749CA72863EC4E0022C7B6 /* MyPageStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyPageStubs.swift; sourceTree = "<group>"; };
 		8771AACE31B06D1D9DAF7044 /* BusAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BusAPI.swift; sourceTree = "<group>"; };
@@ -211,6 +224,7 @@
 			isa = PBXGroup;
 			children = (
 				5802FFC4938B6F524F6703C5 /* TomoshibiApp.app */,
+				18F25536D77C2040621B8A7D /* TomoshibiAppTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -303,6 +317,14 @@
 			path = Apply;
 			sourceTree = "<group>";
 		};
+		6F79FEE4EFFC2462950D53D9 /* TomoshibiAppTests */ = {
+			isa = PBXGroup;
+			children = (
+				738D063BBD4F7D59CAA43BDB /* RollStateMachineTests.swift */,
+			);
+			path = TomoshibiAppTests;
+			sourceTree = "<group>";
+		};
 		832D59404B9B7E11EE3FB472 /* Community */ = {
 			isa = PBXGroup;
 			children = (
@@ -360,6 +382,7 @@
 			isa = PBXGroup;
 			children = (
 				9C2CA1F91680EB7292479047 /* TomoshibiApp */,
+				6F79FEE4EFFC2462950D53D9 /* TomoshibiAppTests */,
 				1CF8CD4DD7E1CA60A4173809 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -426,6 +449,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		01DFC0FF25CE3AECDAECA87C /* TomoshibiAppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D0F1784C8CA2DA76D2DAAA9C /* Build configuration list for PBXNativeTarget "TomoshibiAppTests" */;
+			buildPhases = (
+				79B3BDFE37626C5DD3C07BEF /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				17E3CB59E81B14C80FFC357B /* PBXTargetDependency */,
+			);
+			name = TomoshibiAppTests;
+			packageProductDependencies = (
+			);
+			productName = TomoshibiAppTests;
+			productReference = 18F25536D77C2040621B8A7D /* TomoshibiAppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		A91187321EBED0A24FCED0C1 /* TomoshibiApp */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 85CCC4FE2446162A3C3A5C96 /* Build configuration list for PBXNativeTarget "TomoshibiApp" */;
@@ -453,6 +494,10 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
+					01DFC0FF25CE3AECDAECA87C = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
 					A91187321EBED0A24FCED0C1 = {
 						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
@@ -474,6 +519,7 @@
 			projectRoot = "";
 			targets = (
 				A91187321EBED0A24FCED0C1 /* TomoshibiApp */,
+				01DFC0FF25CE3AECDAECA87C /* TomoshibiAppTests */,
 			);
 		};
 /* End PBXProject section */
@@ -558,7 +604,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		79B3BDFE37626C5DD3C07BEF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C95132AC0325A890FD2EF1AF /* RollStateMachineTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		17E3CB59E81B14C80FFC357B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A91187321EBED0A24FCED0C1 /* TomoshibiApp */;
+			targetProxy = 4159076E62810301EB1D9479 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		0F9D913EE8324550AF0C0E5C /* Demo */ = {
@@ -633,6 +695,25 @@
 			};
 			name = Demo;
 		};
+		1D167AC53DE709DA58B7D40C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.itsuki.tomoshibi.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TomoshibiApp.app/TomoshibiApp";
+			};
+			name = Release;
+		};
 		1E3BAC2A297050AF92DBBF71 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -642,7 +723,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Tomoshibi;
-				INFOPLIST_KEY_CFBundleShortVersionString = 0.15.0;
+				INFOPLIST_KEY_CFBundleShortVersionString = 0.22.3;
 				INFOPLIST_KEY_CFBundleVersion = 1;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NFCReaderUsageDescription = "点呼の出席を点呼機に送信するために NFC を使用します";
@@ -738,7 +819,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Tomoshibi Demo";
-				INFOPLIST_KEY_CFBundleShortVersionString = 0.15.0;
+				INFOPLIST_KEY_CFBundleShortVersionString = 0.22.3;
 				INFOPLIST_KEY_CFBundleVersion = 1;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NFCReaderUsageDescription = "点呼の出席を点呼機に送信するために NFC を使用します";
@@ -760,6 +841,25 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Demo;
+		};
+		86ADA3F4BE4A4B29AFC0E293 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.itsuki.tomoshibi.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TomoshibiApp.app/TomoshibiApp";
+			};
+			name = Debug;
 		};
 		C905404D1623F05CD9E0AA98 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -842,7 +942,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Tomoshibi;
-				INFOPLIST_KEY_CFBundleShortVersionString = 0.15.0;
+				INFOPLIST_KEY_CFBundleShortVersionString = 0.22.3;
 				INFOPLIST_KEY_CFBundleVersion = 1;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NFCReaderUsageDescription = "点呼の出席を点呼機に送信するために NFC を使用します";
@@ -864,6 +964,25 @@
 			};
 			name = Release;
 		};
+		FE94FD91C8EC75A0C95F4FE9 /* Demo */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.itsuki.tomoshibi.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TomoshibiApp.app/TomoshibiApp";
+			};
+			name = Demo;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -873,6 +992,16 @@
 				1E3BAC2A297050AF92DBBF71 /* Debug */,
 				50422C9D91CDD35D03A8ED20 /* Demo */,
 				E87E601C28BF1F60FF3ABB0C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D0F1784C8CA2DA76D2DAAA9C /* Build configuration list for PBXNativeTarget "TomoshibiAppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				86ADA3F4BE4A4B29AFC0E293 /* Debug */,
+				FE94FD91C8EC75A0C95F4FE9 /* Demo */,
+				1D167AC53DE709DA58B7D40C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

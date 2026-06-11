@@ -630,7 +630,8 @@ final class AppStore: ObservableObject {
 
     /// 纯函数：从场次列表 + 注入的「现在」派生点呼状态。无副作用、不读真实时钟 → 可单测（R-1/R-2 时间窗状态机）。
     /// 选「当前进行中场次」(now 落在 window_start..auto_end)；否则最近的未来场次做预告(idle)。
-    static func decideRollState(sessions: [MyRollCallTodaySession], now: Date) -> RollStateDecision {
+    /// nonisolated：纯值计算、不碰主线程状态 → 测试可在非主线程同步调用（AppStore 本身是 @MainActor）。
+    nonisolated static func decideRollState(sessions: [MyRollCallTodaySession], now: Date) -> RollStateDecision {
         let current = sessions.first {
             now >= $0.scheduled_window_start_at && now <= $0.scheduled_auto_end_at
         }

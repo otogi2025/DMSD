@@ -71,13 +71,34 @@ targets:
           INFOPLIST_KEY_CFBundleDisplayName: Tomoshibi Demo
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG DEMO"
 
+  # 单元测试目标（iOS 首批逻辑测试，2026-06-11）— 宿主 TomoshibiApp，@testable import 测纯函数
+  TomoshibiAppTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: TomoshibiAppTests
+    dependencies:
+      - target: TomoshibiApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.itsuki.tomoshibi.tests
+        GENERATE_INFOPLIST_FILE: "YES"
+        # 宿主 app 跑模拟器测试不需签名（与主 target 一致关签名）
+        CODE_SIGNING_ALLOWED: "NO"
+
 schemes:
-  TomoshibiApp:                # 正式版 scheme
+  TomoshibiApp:                # 正式版 scheme（含单元测试）
     build:
       targets:
         TomoshibiApp: all
+        TomoshibiAppTests: [test]
     run:
       config: Debug
+    test:
+      config: Debug
+      targets:
+        - TomoshibiAppTests
     archive:
       config: Release
   TomoshibiAppDemo:            # 演示版 scheme（顶部 scheme 切换器选这个 = 演示版）
