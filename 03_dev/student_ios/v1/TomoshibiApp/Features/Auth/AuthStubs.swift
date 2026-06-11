@@ -45,6 +45,9 @@ struct SplashView: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
     @State private var appear: Bool = false
+    /// 「介绍页看过没」标记 — @AppStorage 自动读写 UserDefaults（手机本地小仓库）。
+    /// 首次安装本机没这条记录 → 默认 false → 走一次介绍页；OnboardingView 看完/跳过置 true，以后再不弹。
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
 
     var body: some View {
         ZStack {
@@ -94,12 +97,15 @@ struct SplashView: View {
             Task {
                 try? await Task.sleep(nanoseconds: 2_200_000_000)
                 await MainActor.run {
-                    // 启动跳转逻辑（2026-05-07 itsuki 拍板）：
-                    //   - Keychain 已恢复 token → 自动登录跳 home
-                    //   - 没 token → 跳 login（老用户再登录 / 新用户走 login 里的「新規登録」link）
-                    // onboarding 不再强制路径（每次启动都看一遍太烦）
+                    // 启动跳转逻辑：
+                    //   - Keychain 已恢复 token → 自动登录跳 home（老用户不看介绍页）
+                    //   - 没 token + 本机没看过介绍 → 走一次介绍页（首次安装的新用户）
+                    //   - 没 token + 已看过介绍 → 跳 login（老用户再登录 / 新用户在 login 点「新規登録」注册）
+                    // 介绍页只在首次安装看一次（hasSeenOnboarding 标记），不每次启动都弹（2026-05-07 itsuki 拍板「太烦」）
                     if app.authToken != nil {
                         router.replace(.home)
+                    } else if !hasSeenOnboarding {
+                        router.replace(.onboarding)
                     } else {
                         router.replace(.login)
                     }
@@ -209,46 +215,93 @@ private struct FlameShape: Shape {
 
 struct OnboardingView: View {
     @EnvironmentObject var router: RouterStore
+    // 看完标记 — 置 true 后 SplashView 不再走介绍页（与 SplashView 同一个 @AppStorage key）
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
     @State private var idx: Int = 0
+
+    /// 介绍页一行功能（仅 AI 页用，每行一个小图标 + 一句话）
+    private struct Feature {
+        let icon: String
+        let label: String
+    }
 
     private struct Slide {
         let sfSymbol: String
         let title: String
-        let sub: String
+        let sub: String? // 页 1-3 用（可含换行）
+        let features: [Feature]? // 页 4（AI）用：nil = 普通页
+        let footnote: String? // 页 4 设备机种小字
         let gradStart: UInt32
         let gradEnd: UInt32
         let fg: Color
+
+        init(
+            sfSymbol: String, title: String,
+            sub: String? = nil, features: [Feature]? = nil, footnote: String? = nil,
+            gradStart: UInt32, gradEnd: UInt32, fg: Color
+        ) {
+            self.sfSymbol = sfSymbol
+            self.title = title
+            self.sub = sub
+            self.features = features
+            self.footnote = footnote
+            self.gradStart = gradStart
+            self.gradEnd = gradEnd
+            self.fg = fg
+        }
     }
 
     private let slides: [Slide] = [
+        // ① 点呼 — v1.0 只支持「卡贴点呼机」，不支持手机签到，故只讲卡（手机签到留 v1.1）
         Slide(
             sfSymbol: "wave.3.right.circle.fill",
-            title: "タッチで点呼",
-            sub: "NFC にかざすだけ",
+            title: "カードでかんたん点呼",
+            sub: "カードをかざすだけ。\n毎晩の点呼が数秒で完了。",
             gradStart: 0xE8F4F6, gradEnd: 0xA8DCE2,
             fg: T.primary
         ),
+        // ② 申请
         Slide(
             sfSymbol: "square.and.pencil.circle.fill",
-            title: "申請はアプリで",
-            sub: "外泊・帰省・タクシー",
+            title: "外出も帰省もアプリから",
+            sub: "外泊・帰省・タクシー…\n申請はすべてここで。",
             gradStart: 0xFDF4E1, gradEnd: 0xFFE9B5,
             fg: T.warnDeep
         ),
+        // ③ 看记录
         Slide(
-            sfSymbol: "sparkles",
-            title: "寮生活をひとつに",
-            sub: "バス・活動・荷物",
+            sfSymbol: "person.text.rectangle.fill",
+            title: "自分の記録をいつでも",
+            sub: "点呼履歴も減点も、\nマイページで確認。",
             gradStart: 0xE3F1EA, gradEnd: 0x8BC6A3,
             fg: T.okDeep
         ),
+        // ④ AI 功能（翻译全机种 / 总结、头像需 Apple Intelligence 机种）
+        Slide(
+            sfSymbol: "sparkles",
+            title: "AI でもっと便利に",
+            features: [
+                Feature(icon: "globe", label: "お知らせをワンタップ翻訳"),
+                Feature(icon: "list.bullet.rectangle", label: "お知らせをワンタップ要約"),
+                Feature(icon: "person.crop.circle.badge.plus", label: "アバターを AI で生成"),
+            ],
+            footnote: "※ AI 要約とアバター生成は iPhone 15 Pro 以降（Apple Intelligence 対応機種）が必要です",
+            gradStart: 0xF0EBFB, gradEnd: 0xC9B8F0,
+            fg: Color(hex: 0x7A5CC4)
+        ),
     ]
+
+    /// 看完 / 跳过 → 标记已看，跳登录页（新用户在登录页点「新規登録」进注册）
+    private func finish() {
+        hasSeenOnboarding = true
+        router.replace(.login)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
                 Spacer()
-                Button("スキップ") { router.replace(.registerStep1) }
+                Button("スキップ") { finish() }
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(T.inkSub)
             }
@@ -277,7 +330,7 @@ struct OnboardingView: View {
                     if idx < slides.count - 1 {
                         withAnimation { idx += 1 }
                     } else {
-                        router.replace(.registerStep1)
+                        finish()
                     }
                 }
             }
@@ -297,23 +350,61 @@ struct OnboardingView: View {
                         startPoint: .topLeading, endPoint: .bottomTrailing
                     )
                 )
-                .frame(width: 240, height: 240)
+                .frame(width: 200, height: 200)
                 .overlay {
                     Image(systemName: s.sfSymbol)
-                        .font(.system(size: 120, weight: .regular))
+                        .font(.system(size: 100, weight: .regular))
                         .foregroundStyle(s.fg)
                 }
                 .shadow(color: Color(hex: 0x0F1E22, alpha: 0.10), radius: 30, x: 0, y: 24)
-                .padding(.bottom, 44)
+                .padding(.bottom, 36)
 
             Text(s.title)
-                .font(.system(size: 28, weight: .bold))
+                .font(.system(size: 26, weight: .bold))
                 .foregroundStyle(T.ink)
-                .padding(.bottom, 10)
+                .multilineTextAlignment(.center)
+                .padding(.bottom, 12)
+                .padding(.horizontal, 24)
 
-            Text(s.sub)
-                .font(.system(size: 15))
-                .foregroundStyle(T.inkSub)
+            // 普通页：副标题
+            if let sub = s.sub {
+                Text(sub)
+                    .font(.system(size: 15))
+                    .foregroundStyle(T.inkSub)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+                    .padding(.horizontal, 24)
+            }
+
+            // AI 页：功能列表 + 机种小字
+            if let features = s.features {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(features.indices, id: \.self) { i in
+                        let f = features[i]
+                        HStack(spacing: 10) {
+                            Image(systemName: f.icon)
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(s.fg)
+                                .frame(width: 28, height: 28)
+                                .background { Circle().fill(s.fg.opacity(0.12)) }
+                            Text(f.label)
+                                .font(.system(size: 14.5, weight: .medium))
+                                .foregroundStyle(T.ink)
+                        }
+                    }
+                }
+                .padding(.horizontal, 40)
+
+                if let footnote = s.footnote {
+                    Text(footnote)
+                        .font(.system(size: 11))
+                        .foregroundStyle(T.inkMute)
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(2)
+                        .padding(.top, 18)
+                        .padding(.horizontal, 28)
+                }
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
