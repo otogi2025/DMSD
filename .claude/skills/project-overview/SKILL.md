@@ -18,7 +18,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 >
 > **和别的「介绍型」文件分工**（三层不重叠）：`PROJECT_GUIDE.md`（根目录）= 新人 / AI 深入理解整个项目的导览；`00_admin/项目心智模型.md` = AI 开局必读的 1 屏骨架（系统怎么跑通 + 5 端现状）；**本 skill** = 1388 文件逐个的「字典」，想知道某个文件干嘛时查。
 >
-> **最后更新**：2026-06-10 晚 — 全目录对账校准（1399→1450 committed，以 `git ls-files` 标准口径为准）：99_archive 639→650 / 03_dev 527→541（backend 104→112 加 lost_found+misc_requests+songs 3 路由 + test_demo_teacher/test_student_self_views 2 测试 / iOS 78→84 加 5 个 API endpoint + ST25DVWriter / Android 131→132 / teacher_web 177→176）/ 05_logs 149→174（raw +1 至 109 + dev_log +5 至 16，6-06~6-10 会话累积）/ 00_admin 25→28（加 handoff/ 4 件 + v1.0上线缺口看板.html）/ 01_specs 14→13。cleaning 全 5 端删（6-10）。更早记录见 git log。
+> **最后更新**：2026-06-11 — **raw 整体迁出仓库**（107 文件 → iCloud 素材池 `1_自动产出/raw详细叙事/`，commit `d54f16b`；总量 1450→1345 / 05_logs 174→69；§6.2 表改历史索引用）。早些 2026-06-10 晚 — 全目录对账校准（1399→1450 committed，以 `git ls-files` 标准口径为准）：99_archive 639→650 / 03_dev 527→541（backend 104→112 加 lost_found+misc_requests+songs 3 路由 + test_demo_teacher/test_student_self_views 2 测试 / iOS 78→84 加 5 个 API endpoint + ST25DVWriter / Android 131→132 / teacher_web 177→176）/ 05_logs 149→174（raw +1 至 109 + dev_log +5 至 16，6-06~6-10 会话累积）/ 00_admin 25→28（加 handoff/ 4 件 + v1.0上线缺口看板.html）/ 01_specs 14→13。cleaning 全 5 端删（6-10）。更早记录见 git log。
 
 **最后扫描真值**：2026-06-10 `git ls-files` 全统计（1450 已提交文件）+ 各组逐组验证。⚠️ 启动时 `bin/check_overview_drift.sh` 会显示「写 1450 / 实际更多」的差—— 那是它把未提交的 .bak 备份 / itsuki 新加的 icon / 未提交 handoff 也算进「实际」了，属临时文件噪音，不进 §0.1（本表只记 committed 真值）。脚本对 05_logs committed 偶尔报 173（中文文件名 NFC/NFD 归一化 quirk），以 `git ls-files` 的 174 为准。下次结构大改时更新本字段。
 
@@ -26,13 +26,13 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ## 0. 摘要
 
-### 0.1 体量（2026-06-10 对账 — `git ls-files` committed 真值，1450 个已提交文件；收尾时点，别会话并行提交中可能微动）
+### 0.1 体量（2026-06-11 raw 迁出后 1450→1345 — `git ls-files` committed 真值；收尾时点，别会话并行提交中可能微动）
 
 | 顶级目录 | 文件数 | 占比 | 主要内容 |
 |---|---|---|---|
 | `99_archive/` | 650 | 45% | 归档物（5-26 晚段-4 加 `2026-05-26_teacher_web_vite实装作废/` 13 文件 = App.tsx + main.tsx + Shell.tsx + pages × 5 + store/auth.ts + vite_root_index.html + package.json + lock + vite.config.ts + tailwind.config.js + postcss.config.js + tsconfig × 2 — itsuki 拍板 Vite + TS 实装版整体废弃 + 5-26 晚加 `2026-05-26_ios_v1_demo_snapshot/` 42 文件（iOS demo 后门删除前快照） + 5-26 早 3 个 iOS 上架配置归位 + 5-22 加 2026-05-21_pre_fix + 2026-05-22_tomoshibi_appstore_fork 残余 + 5-21 teacher_web/demo 整组 158 文件归档 + 早期 GPT 对话 / throwaway iOS / demo 4-28 / 5-12 深夜大整理 / cloud agent 退役 / 5-02 handoff × 4 等）|
 | `03_dev/` | 541 | 37% | 代码 + 设计 LOG（含未 commit iOS `APIErrorPresenter.swift` + `project.pbxproj.bak3_before_apierrorpresenter_register` 2 文件；5-27 早段-2 git mv `student_ios/_archived_DESIGN_BRIEF_Round1_context.md` → 99_archive/2026-04-22_ios_round1_design_brief/；5-26 晚段-4 删除 Vite 实装 13 文件 → 全归档 → teacher_web 回到 Ryō standalone 主线）|
-| `05_logs/` | 174 | 12% | raw 109 / dev_log 16 / AC_叙事 12 / audit_2026-05-19 13 + audit_2026-05-22_codex 7 / problem_solving 4 / decisions 2 + learning_path + project_evolution / 散件（详见 §6）（早期细分：5-16/19/21/22/22-iOS/24/25/25-AC学习清单/26/26-dmsd-startup/26-vite废弃+polish回滚/27-teacher_web_v1.0_深夜推进/27-ios审查/27-全项目审查/27-anti-ai-flavor双层防御立项/27-整理inbox+8类升级/27-老师实名账户登录/27-ios登录注册大改+审批链进度条/28-ios_codex审查/28-注册页demo空+数字码+设计文档中文化/28-web登录页修复）/ AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）|
+| `05_logs/` | 69 | 5% | **raw 已迁 iCloud 素材池（6-11，仓库剩 README + 滞留文件）** / dev_log 16 / AC_叙事 12 / audit_2026-05-19 13 + audit_2026-05-22_codex 7 / problem_solving 4 / decisions 2 + learning_path + project_evolution / 散件（详见 §6）（早期细分：5-16/19/21/22/22-iOS/24/25/25-AC学习清单/26/26-dmsd-startup/26-vite废弃+polish回滚/27-teacher_web_v1.0_深夜推进/27-ios审查/27-全项目审查/27-anti-ai-flavor双层防御立项/27-整理inbox+8类升级/27-老师实名账户登录/27-ios登录注册大改+审批链进度条/28-ios_codex审查/28-注册页demo空+数字码+设计文档中文化/28-web登录页修复）/ AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）|
 | `00_admin/` | 28 | 1.9% | 10 顶级 md + `handoff/`（4 件 AI 交接）+ `v1.0上线缺口看板.html` + hooks 子目录（详见 §1.2）|
 | `01_specs/` | 13 | 0.9% | 规格冻结区（早期 .pages 已全归档 99_archive）|
 | `.claude/` | 12 | 0.9% | 8 skill + 1 agent + 2 配置（settings / session-coord.config）— **5-26 加 `dmsd-startup/SKILL.md`**（启动 SOP 集中）/ 5-19 加 `.claude/agents/security-reviewer.md`（详见 §1.7.5）|
@@ -618,7 +618,7 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 
 ## 6. 第 6 组：05_logs + 06_assets + bin（186 文件 = 05_logs 174 + 06_assets 9 + bin 3 — 2026-06-10 校准）
 
-**05_logs 174 细分（`git ls-files` 口径；漂移脚本偶报 173 = 中文文件名 NFC/NFD 归一化 quirk，详见 §0.1 脚注）**：raw 109（每天原始会话记录）+ dev_log 16 + AC_叙事 12 + problem_solving 4 + audit_2026-05-19 13 + audit_2026-05-22_codex 7 + audit_2026-05-21_codex 1 + meta（decisions/ 2 + learning_path + project_evolution）+ 散件 ~9（teacher_web 施工 3 + 各 audit 单件 + 漏洞清单 + 版本演变一览 + 杭田需求清单 等）。
+**05_logs 69 细分（2026-06-11 raw 迁出后；`git ls-files` 口径，中文文件名 NFC/NFD 归一化 quirk 可能 ±1，详见 §0.1 脚注）**：raw 3（README 指路牌 + 滞留文件，正本已迁 iCloud）+ dev_log 16 + AC_叙事 12 + problem_solving 4 + audit_2026-05-19 13 + audit_2026-05-22_codex 7 + audit_2026-05-21_codex 1 + meta（decisions/ 2 + learning_path + project_evolution）+ 散件 ~9（teacher_web 施工 3 + 各 audit 单件 + 漏洞清单 + 版本演变一览 + 杭田需求清单 等）。
 **核心发现**：raw 是项目最大原始素材区，AC 候选密度最高的几天见 §6.2 ⭐ 标记。
 
 ### 6.1 05_logs/ 根级 meta（3 文件）
@@ -630,9 +630,9 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 | `learning_path.md` | itsuki 学习哲学 + 已走的路 — AC 自我推荐书素材 | ✅ | 最后 4-13 / 4-10 后新学的 NFC / Swift / 硬件未追记 |
 | `project_evolution.md` | 项目重大转折记录（每次 = 转折点 + 起因 + 影响） | ✅ | 4 次已记 / 最后 4-13 / 待补"第 5 次转折" = demo 完成情况 |
 
-### 6.2 05_logs/raw/（109 文件 — 含 README — 2026-06-10 校准 108→109，每天一份原始会话记录，持续增长）
+### 6.2 05_logs/raw/（⚠️ 2026-06-11 已迁出仓库 — 仓库只剩指路牌 README + 4 个别会话滞留文件）
 
-> raw 是项目最大的原始素材区。下表只列 AC 候选密度高（⭐ 多）的关键日，不逐个列全部 91 份 — 找某天记录直接看文件名 `raw/YYYY-MM-DD*.md`。
+> **raw 整体迁 iCloud 素材池**（itsuki 2026-06-11 拍板「raw 不放 DMSD 里面」）：107 个文件迁到 `~/Library/Mobile Documents/com~apple~CloudDocs/02_学习与知识/升学/大学入試/00_原始素材池_两校共用/1_自动产出/raw详细叙事/`（commit `d54f16b`）。新 raw 也直接写那里（session-wrap §3.1）。下表保留当**历史索引**用 — 找某天记录去 iCloud raw 池按文件名找，AC 候选密度 ⭐ 标记仍有效。
 
 | 文件 | 这天发生了啥 | AC 候选密度 |
 |---|---|---|

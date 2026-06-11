@@ -42,7 +42,7 @@
 | `02_design/` | 设计文档 — hardware / flow / system_features 等 |
 | `03_dev/` | 代码 — backend / teacher_web / student_ios / student_android / rollcall_device（点呼机）|
 | `04_ops/` | 运维 |
-| `05_logs/` | 开发 log — raw / dev_log / problem_solving / decision_log / learning_path / project_evolution |
+| `05_logs/` | 开发 log — dev_log / problem_solving / decisions/（决策日志双文件）/ learning_path / project_evolution。**raw（AC 素材详细叙事）已迁 iCloud 素材池**（路径见 session-wrap skill §3.1），仓库 `05_logs/raw/` 只剩指路牌 README |
 | `06_assets/` | 参考材料 / 真实样本 |
 | `07_release/` | 发布物 |
 | `99_archive/` | 早期归档 |
@@ -104,7 +104,7 @@ git 状态确认（git status / 残留 / 未 push / stash）→ **会话结尾�
 
 | skill | 干嘛 |
 |---|---|
-| **ac-radar** | 实时 AC 入试素材捕获（写中央 inbox + DMSD raw 段）|
+| **ac-radar** | 实时 AC 入试素材捕获（写中央 inbox + iCloud raw 池当天文件）|
 | **anti-ai-flavor** | 反 AI 味（每次回复前 8 类自检 + 5 铁律 — 5-27 从 6 类升 8 类加 G 自指失败 + H 编造数据）|
 | **cc-comm-rules** | 跟 itsuki 沟通的强制规则 |
 | **session-coord** | 多终端会话协作板（防文件冲突）|

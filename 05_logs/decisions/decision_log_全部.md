@@ -17,6 +17,12 @@
 
 ## 决策流水（倒序）
 
+## 2026-06-11 — raw（AC 素材详细叙事）整体迁出仓库 → iCloud 素材池
+为什么：仓库 public 而 raw 含未过滤原始语气；硬证据职能由 jsonl 承担；两校素材统一归池。107 文件迁 `1_自动产出/raw详细叙事/`。[重大 → 完整版见 decision_log.md 同日条目]
+
+## 2026-06-11 — 收尾文件联动检查升级为双重保险（脚本扫 + CC 读 file-linkage 人工对照）
+为什么：sync-check 脚本只会正则匹配路径，改动没踩中规则路径但实质影响联动对象时静默放行；CC 懂语义但会忘。两条腿互补盲区，写进 session-wrap §5.5.4 + 核对表第 7 项。
+
 ## 2026-06-11 — project-overview §0.1 体量表用 `git ls-files` committed 标准口径，不追漂移脚本「实际」
 为什么：`bin/check_overview_drift.sh` 对 05_logs 偶报 173/174 跳动（中文文件名 NFC/NFD quirk）+ 把未提交的 .bak/itsuki 新 icon 算进「实际」是噪音。固定可复现的 ls-files committed（1450）当真值，脚注标注脚本噪音来源——不让抖动的工具读数污染真值表。
 
