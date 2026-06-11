@@ -1853,41 +1853,44 @@ struct MyDisciplineView: View {
 // MARK: - 8. MyHealthView (L2)
 
 struct MyHealthView: View {
+    @EnvironmentObject var app: AppStore
+
+    // 生产版数据源（ios 上线缺口 R-5）：演示版读 SEED.health 假病历 / 生产版 .task 拉本人 health 上报到这里。
+    @State private var reports: [RollCallReportOut] = []
+    @State private var loadState: AppStore.ListLoadState = .idle
+
     var body: some View {
         VStack(spacing: 0) {
             PageHeader(title: "体調報告履歴", level: 2)
             ScrollView {
                 VStack(spacing: 10) {
-                    ForEach(Array(SEED.health.enumerated()), id: \.offset) { _, h in
-                        Card(padding: 14) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                HStack {
-                                    HStack(spacing: 8) {
-                                        Text(h.sym)
-                                            .font(.system(size: 14, weight: .bold))
-                                            .foregroundStyle(T.ink)
-                                        if let temp = h.temp {
-                                            Text(String(format: "%.1f°C", temp))
-                                                .font(.system(size: 13, weight: .semibold))
-                                                .monospaced()
-                                                .foregroundStyle(T.danger)
-                                        }
-                                    }
-                                    Spacer()
-                                    Text(h.date)
-                                        .font(.system(size: 11))
-                                        .monospaced()
-                                        .foregroundStyle(T.inkMute)
-                                }
-                                if !h.note.isEmpty {
-                                    Text(h.note)
-                                        .font(.system(size: 12.5))
-                                        .foregroundStyle(T.inkSub)
-                                        .lineSpacing(3)
+                    #if DEMO
+                        ForEach(Array(SEED.health.enumerated()), id: \.offset) { _, h in
+                            demoCard(h)
+                        }
+                    #else
+                        // 三态（R-5 上线缺口）：加载中转圈 / 失败可重试 / 真空态——绝不显 SEED.health 假病历
+                        switch loadState {
+                        case .idle, .loading:
+                            ProgressView().frame(maxWidth: .infinity).padding(.vertical, 24)
+                        case let .failed(msg):
+                            VStack(spacing: 12) {
+                                EmptyState(icon: "exclamationmark.triangle",
+                                           title: "読み込みに失敗しました", message: msg)
+                                Button("再読み込み") { Task { await load() } }
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(T.primary)
+                            }
+                        case .loaded:
+                            if reports.isEmpty {
+                                EmptyState(icon: "heart.text.square", title: "体調報告はありません")
+                            } else {
+                                ForEach(reports) { r in
+                                    realCard(r)
                                 }
                             }
                         }
-                    }
+                    #endif
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
@@ -1895,6 +1898,82 @@ struct MyHealthView: View {
             }
         }
         .background(T.pearl.ignoresSafeArea())
+        .task {
+            #if !DEMO
+                await load()
+            #endif
+        }
+    }
+
+    #if !DEMO
+        /// 生产版拉本人体调上报历史。后端 /reports/mine 返回全 kind → 这里只留 health。
+        /// 未登录不拉；拉失败设 .failed 显错误态而非空态，绝不退回 SEED.health 假病历。
+        private func load() async {
+            guard app.isAuthenticated else { return }
+            loadState = .loading
+            do {
+                let all = try await RollCallReportsAPI.listMine()
+                reports = all.filter { $0.kind == "health" }
+                loadState = .loaded
+            } catch {
+                reports = []
+                loadState = .failed(
+                    APIErrorPresenter.userMessage(for: error, fallback: "体調報告の取得に失敗しました")
+                )
+            }
+        }
+
+        /// 生产版卡片：后端 body 是自由文本（症状／体温／補足 拼成的多行），原样显示 + 提交时刻。
+        private func realCard(_ r: RollCallReportOut) -> some View {
+            Card(padding: 14) {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Spacer()
+                        Text(rollcallDateFmt.string(from: r.created_at))
+                            .font(.system(size: 11))
+                            .monospaced()
+                            .foregroundStyle(T.inkMute)
+                    }
+                    Text(r.body)
+                        .font(.system(size: 12.5))
+                        .foregroundStyle(T.inkSub)
+                        .lineSpacing(3)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        }
+    #endif
+
+    /// 演示版卡片：SEED.health 结构化假病历（症状 / 体温 / 補足）。
+    private func demoCard(_ h: HealthRecord) -> some View {
+        Card(padding: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    HStack(spacing: 8) {
+                        Text(h.sym)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(T.ink)
+                        if let temp = h.temp {
+                            Text(String(format: "%.1f°C", temp))
+                                .font(.system(size: 13, weight: .semibold))
+                                .monospaced()
+                                .foregroundStyle(T.danger)
+                        }
+                    }
+                    Spacer()
+                    Text(h.date)
+                        .font(.system(size: 11))
+                        .monospaced()
+                        .foregroundStyle(T.inkMute)
+                }
+                if !h.note.isEmpty {
+                    Text(h.note)
+                        .font(.system(size: 12.5))
+                        .foregroundStyle(T.inkSub)
+                        .lineSpacing(3)
+                }
+            }
+        }
     }
 }
 

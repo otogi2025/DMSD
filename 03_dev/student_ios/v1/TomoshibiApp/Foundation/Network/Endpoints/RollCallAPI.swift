@@ -112,4 +112,11 @@ enum RollCallReportsAPI {
         let payload = RollCallReportBody(kind: kind, body: body, session_id: sessionId)
         return try await APIClient.shared.post(path: "/api/v1/rollcall/reports", body: payload)
     }
+
+    /// GET /api/v1/rollcall/reports/mine —— 学生查自己提交过的全部上报（后端按时间倒序，含三 kind）。
+    /// 「体調報告履歴」只显示 health → 调用方自行 filter kind=="health"（后端不按 kind 过滤）。
+    @MainActor
+    static func listMine() async throws -> [RollCallReportOut] {
+        try await APIClient.shared.get(path: "/api/v1/rollcall/reports/mine")
+    }
 }
