@@ -264,6 +264,15 @@ add_rule \
   '范围冻结决策改了(功能在 v1.0/v1.1/v1.2 之间挪动) → 核对: ① 另外两份范围冻结文件(功能从 A 挪出必挪入 B,两份都要动) ② 00_admin/v1.0上线缺口看板.html(v1.0 范围变 = 看板缺口项变) ③ 00_admin/TODO.md §A 上线必做层(范围进出 = 必做清单进出)' \
   "must"
 
+# 启动流程真值链 — dmsd-startup §2 是启动步骤唯一真值,CLAUDE.md/WIP 只写指针
+# (itsuki 2026-06-11 拍板;历史教训:两处复述步骤都漂移过)
+add_rule \
+  "startup-truth-chain" \
+  '^\.claude/skills/dmsd-startup/SKILL\.md$' \
+  'CLAUDE\.md,00_admin/WIP\.md' \
+  '启动流程说明书改了 → 核对: ① CLAUDE.md「dmsd-startup 强制加载」段 + skills 表(只许写指针,发现复述步骤内容就删成指针) ② 00_admin/WIP.md 顶部「会话开始」行(同样只许指针)' \
+  "must"
+
 # ============================================================
 # 函数：check_sync_for_files
 #   输入：参数 = 改过的文件路径列表

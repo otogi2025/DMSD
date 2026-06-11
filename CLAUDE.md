@@ -10,7 +10,7 @@
 
 ## ⭐⭐⭐ dmsd-startup 强制加载
 
-每次会话启动 **第一件事** 先 Read `.claude/skills/dmsd-startup/SKILL.md`，按 §2 顺序跑 4 件启动必做事（多会话协同读取 / ac-radar startup_check / 读 项目心智模型 + WIP / 逐项打勾报告）。
+每次会话启动 **第一件事** 先 Read `.claude/skills/dmsd-startup/SKILL.md`，按 §2 顺序执行。**步骤内容以 skill §2 为唯一真值，本文件不复述**（历史上复述过的两处都漂移了 — 联动 Rule 27 兜底）。
 
 不依赖关键词触发 — 每次新会话第一个回合 CC 必须主动加载本 skill。
 
@@ -113,7 +113,7 @@ git 状态确认（git status / 残留 / 未 push / stash）→ **会话结尾�
 |---|---|
 | **ac-radar** | 实时 AC 入试素材捕获（写中央 inbox + iCloud raw 池当天文件）|
 | **cc-comm-rules** | 跟 itsuki 沟通的强制规则 |
-| **session-coord** | 多终端会话协作板（防文件冲突）|
+| ~~session-coord~~ | 多终端会话协作板 — **2026-06-11 停用**（没用上，防冲突靠即做即提交铁律；脚本保留可恢复）|
 | **patina / patina-max** | 去 AI 味重写（AC 叙事文档慎用 patina-max — 违反默认底线第 4 条）|
 | **diagnose** | 调试硬 bug 流程 |
 | **tdd** | 测试驱动开发 |
@@ -125,7 +125,7 @@ git 状态确认（git status / 残留 / 未 push / stash）→ **会话结尾�
 
 | skill | 触发 | 干嘛 |
 |---|---|---|
-| **dmsd-startup** | always-on 启动时 | 4 件启动必做事 |
+| **dmsd-startup** | always-on 启动时 | 启动必做事（内容以 skill §2 为真值，此处不复述）|
 | **session-wrap** | 收尾 / 整理今天 / 总结今天 / 记一下今天 | AC 素材全量扫描 dump + git 状态确认 |
 | **version-bump** | 迭代 / bump / 发版本 / 打 tag / 发版 / release | 版本决策树（CC 有否决权）+ 发版 SOP |
 | **new-feature** | 新功能 X / 加 Y / 实装 Z / 做 W | 5 端实装模板（spec→backend→iOS→Android→点呼机）|

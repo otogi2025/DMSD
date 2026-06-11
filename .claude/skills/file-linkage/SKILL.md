@@ -300,6 +300,16 @@ grep -rn "ComponentName" 03_dev/student_ios/v1/TomoshibiApp/Features/
 
 **为什么**：三份冻结文件 + 缺口看板 + TODO §A 描述的是同一件事（哪些功能挡 v1.0 上线）的五个视图，改一处不改其余 = 范围真值分裂。过去这五个文件零联动保护。
 
+### Rule 27: startup-truth-chain（must — 启动流程真值链，2026-06-11 加）
+
+**触发**：`.claude/skills/dmsd-startup/SKILL.md`
+
+**必做动作**：核对 ——
+- `CLAUDE.md`「dmsd-startup 强制加载」段 + skills 表那一行 — **只许写指针**（「按 skill §2 执行」），发现复述步骤内容就删成指针
+- `00_admin/WIP.md` 顶部「会话开始」行 — 同样只许指针
+
+**为什么**：dmsd-startup §2 是启动步骤唯一真值。历史教训：CLAUDE.md 和 WIP 顶部都复述过步骤清单，结果「漂移检测移走」9 天没人同步两处。指针化 + 本规则兜底，itsuki 2026-06-11 拍板。
+
 ---
 
 ## §2 反向索引（按目标文件查谁改了它要联动）

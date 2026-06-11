@@ -23,7 +23,7 @@
 >
 > **铁律**：未完成的事**只写在 TODO.md**。本文件**绝不**复述 TODO 的内容。
 >
-> - **会话开始**: CC 走 `.claude/skills/dmsd-startup/SKILL.md` §2 — 4 件必做事（多会话协同读取 / ac-radar startup_check / 读 项目心智模型 + WIP / 逐项打勾报告）。**TODO + git status 启动不主动跑**（TODO 等 itsuki 主动问，git status 留收尾 §5.5.9）
+> - **会话开始**: CC 走 `.claude/skills/dmsd-startup/SKILL.md` §2（步骤内容以 skill 为唯一真值，本行不复述 — 防漂移）
 > - **会话结束**: CC 更新「最近会话」+「多会话占用」；新增的 backlog **写到 TODO.md** 不写这里
 
 ---
