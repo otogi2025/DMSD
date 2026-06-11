@@ -63,6 +63,32 @@ if [ $FAIL -eq 1 ]; then
 fi
 
 # ============================================================
+# 版本演变一览 拦截检查（阻塞）
+#
+# 背景：「每次 bump 必更新 版本演变一览」铁律（version-bump skill §0.2）
+#   靠提醒已失效 3 次（v0.6.0 / v0.8.0 / 6-09 重排 32 版未补），
+#   itsuki 偏好机制兜底 → 升级为拦截：
+#   本次 commit 含 CHANGELOG.md 且其顶部版本号在一览里查不到 → 拒绝提交。
+#   patch 并入范围行也算数（如总表行 "v0.22.1~0.22.3" 文本含 "0.22.3"）。
+# 紧急绕过：git commit --no-verify（不推荐）
+# ============================================================
+
+if git diff --cached --name-only | grep -qx "CHANGELOG.md"; then
+    OVERVIEW_FILE="05_logs/版本演变一览.md"
+    TOP_VER=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
+    if [ -n "$TOP_VER" ] && [ -f "$OVERVIEW_FILE" ]; then
+        if ! grep -qF "$TOP_VER" "$OVERVIEW_FILE"; then
+            echo ""
+            echo "❌ CHANGELOG 顶部版本 v${TOP_VER} 在 ${OVERVIEW_FILE} 里查不到（连总表行都没有）"
+            echo "   铁律：改 CHANGELOG 版本必须连带更新版本演变一览（version-bump skill §0.2）"
+            echo "   解决：一览加总表行（patch 可并入范围行）+ minor 加详细段，再重新 commit"
+            echo "   紧急绕过（不推荐）：git commit --no-verify"
+            exit 1
+        fi
+    fi
+fi
+
+# ============================================================
 # 版本 bump 提醒（2026-04-29 加 — 非阻塞，仅提示）
 #
 # 触发条件: 本次 commit 包含可能触发版本 bump 的文件改动。

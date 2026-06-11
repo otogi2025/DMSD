@@ -168,10 +168,16 @@ bash 00_admin/hooks/install.sh
 
 ## 使用
 
-平时不用做任何事。每次 `git commit` 前 hook 会自动跑：
+平时不用做任何事。每次 `git commit` 前 hook 会自动跑 5 段检查：
+
+1. **声明性文件硬编码版本号**（阻塞）— CLAUDE.md / WIP / TODO 头部不许写死版本号
+2. **版本演变一览拦截**（阻塞）— 本次 commit 含 CHANGELOG.md 时，其顶部版本号必须能在 `05_logs/版本演变一览.md` 里查到（总表范围行也算）。背景：「bump 必更一览」铁律靠提醒漂移了 3 次，升级成拦截
+3. **版本 bump 提醒**（仅提示）— spec / 设计文档改动提示对照决策树
+4. **文件联动提醒**（仅提示）— staged 文件命中 sync-rules.sh 规则时列联动对象
+5. **密钥泄露扫描**（阻塞）— 新增行匹配已知厂商密钥格式就拒绝
 
 - ✅ 检查通过 → commit 正常进行
-- ❌ 检查失败 → 看 hook 输出的错误信息，改掉硬编码版本号再 commit
+- ❌ 检查失败 → 看 hook 输出的错误信息，改完再 commit
 
 ## 豁免机制
 
@@ -234,7 +240,7 @@ git config --unset core.hooksPath
 
 ## ⚠️ graphify hook install 漂移注意（2026-05-11 踩坑记）
 
-跑 `graphify hook install` 会**改 git `core.hooksPath`** 到它自己创建的 `.beads/hooks/` 目录，**覆盖 DMSD 原本设的 `00_admin/hooks/`** → DMSD 的 `pre-commit`（版本号 / bump / 联动 3 检查）整个失效。
+跑 `graphify hook install` 会**改 git `core.hooksPath`** 到它自己创建的 `.beads/hooks/` 目录，**覆盖 DMSD 原本设的 `00_admin/hooks/`** → DMSD 的 `pre-commit`（5 段检查，见「使用」节）整个失效。
 
 **修法**：
 
