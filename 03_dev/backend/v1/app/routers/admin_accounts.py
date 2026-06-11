@@ -78,6 +78,23 @@ def _get_student_or_404(
     return student
 
 
+def _assert_student_in_dorm(teacher: models.Teacher, student: models.Student) -> None:
+    """R4 寮边界 — 分寮老师只能操作本人管辖寮的学生，跨寮 → 403 FORBIDDEN_DORM。
+
+    跨寮角色 / NULL 寮 allowed=None 不限。语义与同文件 teacher_renew_seat 一致。
+    2026-06-12 codex 审查 F1：权限分级把改密码/解锁放给分寮操作组后，补此寮校验防跨寮写。
+    """
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None and student.dorm_unit not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "FORBIDDEN_DORM",
+                "message": "担当寮外の学生は操作できません",
+            },
+        )
+
+
 def _get_account_or_404(student_id: UUID, db: Session) -> models.Account:
     """按 student_id 查 Account，找不到就 raise 404。"""
     account = db.scalars(
@@ -122,6 +139,13 @@ def list_students(
     """
     # 1. 基础 query — 演示隔离（真老师看真实学生 / 演示老师看演示学生）
     stmt = select(models.Student).where(demo_scope_for_teacher(teacher))
+
+    # R4 寮边界：分寮老师只看本人管辖寮的学生（跨寮角色 / NULL 寮 allowed=None 看全部）。
+    # 与下面的 dorm_unit 查询参数（用户主动筛选）叠加 AND，安全过滤优先。
+    # 2026-06-12 codex 审查 F1：权限分级把名单查看放给分寮组后，补此寮过滤。
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None:
+        stmt = stmt.where(models.Student.dorm_unit.in_(allowed))
 
     # 2. 可选过滤条件
     if q:
@@ -215,8 +239,9 @@ def password_reset(
         5. 写 audit_logs（actor=老师，action=account.password_reset）
         6. 返回含明文临时密码的响应（只此一次）
     """
-    # 1. 查学生
-    _get_student_or_404(student_id, db, teacher)
+    # 1. 查学生（含演示隔离）+ 寮边界校验（分寮老师不能改别寮学生密码）
+    student = _get_student_or_404(student_id, db, teacher)
+    _assert_student_in_dorm(teacher, student)
 
     # 2. 查 account
     account = _get_account_or_404(student_id, db)
@@ -278,8 +303,9 @@ def unlock_account(
         3. 清 locked_until / failed_count / lock_level
         4. 写 audit_logs（action=account.unlock）
     """
-    # 1. 查学生
-    _get_student_or_404(student_id, db, teacher)
+    # 1. 查学生（含演示隔离）+ 寮边界校验（分寮老师不能解锁别寮学生）
+    student = _get_student_or_404(student_id, db, teacher)
+    _assert_student_in_dorm(teacher, student)
 
     # 2. 查 account
     account = _get_account_or_404(student_id, db)
