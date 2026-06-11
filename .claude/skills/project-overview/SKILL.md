@@ -290,7 +290,7 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `ERROR_CODES.md` | backend 返回客户端的 12 个错误码定义 | ✅ | 与 API_CONVENTIONS 对齐 |
 | `v0.1_冻结决策.md` | v0.1 阶段冻结时拍板的决策快照 | ⚠️ | 4-29 阈值再冻结后 ~10 处文档已修 / 本文角色（备份 vs 历史快照）需明确 |
 
-### 2.3 02_design/（4 文件）
+### 2.3 02_design/（5 文件）
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
@@ -298,6 +298,7 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `hardware_design.md` | 点呼机硬件选型 + 接线设计（Pi 3A+ 选型 + 砍 Pi 4B 的论证） | ✅ | 跟 `03_dev/rollcall_device/` 软件层互补 / AC 素材 |
 | `flow_design.md` | 学生点呼的 3 种流程图（路径 A 刷卡 / 路径 B iOS 自助 / 路径 B Android 自助） | ✅ | 视觉流程图参考 |
 | `NFC防代刷_后端立项施工计划.md` | NFC 防代刷后端实装的立项施工计划 — 对应「全项目最大未完成块」防作弊核心后端 | ✅ | 设备注册校验 + 卡→学生映射 + 传输安全 |
+| `teacher_permission_v1.md` | **2026-06-11 定稿+实装** — 老师权限分级单源真值（5 权限组 × 16 功能簇矩阵；职位退化纯显示标签） | ✅ | 取代旧 system_features §3.4「按职责勾选」；后端+网页已实装 |
 
 ---
 
@@ -324,13 +325,14 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `seed.py` | 数据库初始化脚本 — 灌种子数据（教师 8 角色 + 班主任 + 学生 2 人含留学生）| ✅ | 空库启动后跑一次 |
 | `.gitignore` | git 忽略规则（保护 .env 密钥不进 git / 排除 venv 虚拟环境） | ✅ | 防泄漏关键文件 |
 
-### 3.3 backend/v1/app/ 核心（9 文件 — app 顶级，不含 routers/services 子目录）
+### 3.3 backend/v1/app/ 核心（10 文件 — app 顶级，不含 routers/services 子目录）
 
 | 文件 | 一句话作用 | 状态 | 备注 |
 |---|---|---|---|
 | `__init__.py` | Python 包声明（让 app/ 成 Python 包） | ✅ | 范式标准 |
 | `database.py` | 数据库连接 + session 管理（SQLAlchemy 引擎初始化） | ✅ | 范式标准 |
-| `deps.py` | FastAPI 依赖注入（含 5-27 加的 `dorm_units_for_teacher` R4 helper — 男寮 = unit 1+2 / 女寮 = unit 4 / 跨寮 4 类 = None） | ✅ | 范式标准 |
+| `deps.py` | FastAPI 依赖注入（含 5-27 加的 `dorm_units_for_teacher` R4 helper + **6-11 加 `require_permission` 权限分级闸**） | ✅ | 范式标准 |
+| `permissions.py` | **2026-06-11 加** — 老师权限分级单源真值矩阵（5 权限组 × 16 功能簇 → M/V/✕）+ ROLE_DEFAULT_GROUP 职位回退；`deps.require_permission` 据此判定 | ✅ | 实装 `02_design/teacher_permission_v1.md` §5 |
 | `security.py` | JWT 令牌生成 + 密码哈希 + 认证中间件 | ✅ | 范式标准 |
 | `main.py` | FastAPI 应用入口 — 注册路由 + 中间件 + 启动 hook | ✅ | uvicorn 启动这个 |
 | `config.py` | 配置加载（读 .env → Pydantic Settings） | ✅ | 范式标准 |
@@ -487,6 +489,7 @@ DMSD 项目级 subagent（子代理 — CC 派出去做独立任务的小弟）�
 | `src/utils.ts` | 4 个 JST 日本时间助手（跨页共用） | ✅ | |
 | `src/api/client.ts` | 60+ 接口方法（rollcall/discipline/front_desk/announcements 等；cleaning 6-10 删） | ✅ | 旧 `client.js` 拆来，有 export |
 | `src/api/types.ts` | 50+ 后端类型，对齐 `backend/app/schemas.py` | ✅ | |
+| `src/api/permissions.ts` | **2026-06-11 加** — 前端权限分级矩阵镜像（§5 PRESET + canView/canManage）；仅用于 UI 显隐/置灰，非安全边界 | ✅ | 镜像后端 `app/permissions.py` |
 | `src/components/*.tsx`（26 文件）| 22 页 + 3 弹窗(OverrideModal/OutstayDetailModal/StudentProfileModal) + `shared.tsx`(公共组件) | ✅ | window.XxxPage 迁来 |
 | `src/components/RollCallLanding.tsx` | 点呼默认页 | ⚠️ | 统计卡/趋势图/最近セッション是原样搬的硬编码 demo 数据(带「DEMO」标记)，是否接真后端待 itsuki 拍 |
 | `src/fonts.css` + `src/styles.css` | 全局字体(@font-face 引 _assets) + 样式 | ✅ | |
