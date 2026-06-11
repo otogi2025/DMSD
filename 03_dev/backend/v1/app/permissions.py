@@ -142,8 +142,9 @@ ROLE_DEFAULT_GROUP: dict[str, str] = {
     "管理係": GROUP_GENERAL,
     # 寮監 = 一线寮务运营（点呼 / 扣分 / 前台 / 晚自习全要操作）→ 全操作组（含晚自习）。
     "寮監": GROUP_GENERAL_STUDY,
-    # 学習担当 = 审批 / 学习侧为主，不碰学生账号管理 → 申請承認専用。
-    "学習担当": GROUP_APPROVAL,
+    # 学習担当 = 负责晚自习出席 / 学习管理（itsuki 2026-06-12 确认实际职责）→ 一般宿管+晚自习。
+    # （申請承認専用 对晚自习只有 VIEW，会把学習担当锁出晚自习管理，故不映到该组。）
+    "学習担当": GROUP_GENERAL_STUDY,
     "寮務一般教師": GROUP_GENERAL,
 }
 

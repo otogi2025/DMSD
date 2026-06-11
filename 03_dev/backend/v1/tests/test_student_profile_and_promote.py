@@ -326,13 +326,16 @@ def promote_seed(db_session):
     )
     db_session.add(admin)
 
-    # 学習担当（无权限）
+    # 低权限老师夹具 — 显式配「申請承認専用」组（对学生账号管理只有 V、无 M），
+    # 用作"无管理权"测试。显式配组、不依赖职位回退（2026-06-12 F5 已把学習担当回退组
+    # 改成一般宿管+晚自习，故不能再靠 role 回退当低权限夹具）。
     no_perm = models.Teacher(
         login_id="gakushu_promote",
         name="学習先生",
         email="gakushu@promote.jp",
         password_hash=pw,
         role="学習担当",
+        permission_group="申請承認専用",
     )
     db_session.add(no_perm)
     db_session.flush()
@@ -579,10 +582,10 @@ class TestRenewalProgress:
         assert res.json()["pending_count"] == 0
 
     def test_progress_forbidden(self, client, promote_seed):
-        """学習担当 → 可查看学年更新进度（200）。
+        """低权限老师（申請承認専用 组）→ 可查看学年更新进度（200）。
 
         权限分级改造（teacher_permission_v1.md §5 第 12 行「学生账号管理」5 组全部至少 V）后，
-        旧「学習担当非账号管理角色 → 403」废弃。学習担当 默认映射「申請承認専用」对学生账号管理有 V（查看）。
+        旧「非账号管理角色 → 403」废弃。申請承認専用 组对学生账号管理有 V（查看）。
         管理动作（单件改番号 renew-seat）仍需 M（申請承認専用 = V<M），TestTeacherRenewSeat 保持 403。
         """
         tok = _tok(client, "gakushu_promote")
