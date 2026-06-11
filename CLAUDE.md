@@ -76,6 +76,8 @@
 - **后端测试必须用项目自带虚拟环境** — 系统 Python 没装 fastapi，裸跑 `pytest` 必败。正确：`cd 03_dev/backend/v1 && .venv/bin/python -m pytest`（全量约 3 分钟）。
 - **iOS 演示版直接用 `TomoshibiAppDemo` scheme 构建** — 不要按 BUILD.md 老办法手动加 `SWIFT_ACTIVE_COMPILATION_CONDITIONS`。正式版 scheme 是 `TomoshibiApp`，destination 用 `iPhone 17 Pro` 模拟器。
 - **Xcode 里手动改的工程配置必须写进 `project.yml`** — xcodegen 重新生成 pbxproj 时会把手动配置全部擦掉。
+- **改完哪端，必须跑哪端的验证再报完成** — 后端 → pytest 全绿（中途可只跑改动相关的测试文件，收尾前全量）；iOS → 双 scheme 都 BUILD SUCCEEDED；Android → `./gradlew assembleDebug`；老师网页 → `npm run build`。编译 / 测试是机器跑的、对话里只占几行字，跳过它 = 没验证就报完成。
+- **Write/Edit 代码后 hook 会自动格式化**（ruff / swiftformat / ktlint / prettier 分语言接管）— 副作用：加 import 必须同一次改动带上用法，分两步加的话 ruff 当场删掉「还没被用到」的 import。
 
 ## 会话结束 — 走 session-wrap skill
 
