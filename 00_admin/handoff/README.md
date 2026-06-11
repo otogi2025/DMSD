@@ -32,9 +32,9 @@
 - `iOS上线缺口_GOAL提示词.md` —— iOS 上线缺口施工图（2026-06-09 会话已照它做完 11 功能，是否归档待确认）
 - `Android接后端_GOAL提示词.md` —— Android 接后端施工提示词（未跟踪新文件，待接手）
 - `GitHub历史清理计划_2026-06-09.md` —— GitHub 历史清理计划（未跟踪新文件，待执行）
-- `iOS点呼状态机单元测试_交接_2026-06-11.md` —— iOS 首批单元测试（时间窗状态机 5-6 条 + test target 建立），等 iOS 接线会话收工后接手
 
 ## 已完成归档记录
 
 - `WIP_TODO瘦身_交接_2026-06-10.md` → `99_archive/2026-06-10_handoff已完成/`（2026-06-10 接手会话完成：TODO 分层 §A-§D + WIP 顶部瘦身）
 - `iOS_R3R4R5提示词_2026-06-11.md` → `99_archive/2026-06-11_handoff已完成/`（2026-06-11 接手会话完成：R-3 三上报弹窗防连点 / R-4 登录锁定接后端 423/403 / R-5 体調報告履歴接真数据，双 scheme BUILD SUCCEEDED）
+- `iOS点呼状态机单元测试_交接_2026-06-11.md` → `99_archive/2026-06-11_handoff已完成/`（2026-06-11 接手会话完成：抽 decideRollState 纯函数 + 建 TomoshibiAppTests 测试目标 + 7 条时间窗状态机测试，xcodebuild test 7/7 passed + 双 scheme BUILD SUCCEEDED）
