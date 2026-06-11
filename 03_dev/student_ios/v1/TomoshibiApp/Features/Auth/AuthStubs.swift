@@ -256,7 +256,7 @@ struct OnboardingView: View {
         Slide(
             sfSymbol: "wave.3.right.circle.fill",
             title: "タッチで点呼",
-            sub: "かざすだけで\n毎晩の点呼が数秒で完了",
+            sub: "かざすだけで\n毎日の点呼が数秒で完了",
             gradStart: 0xE8F4F6, gradEnd: 0xA8DCE2,
             fg: T.primary
         ),
