@@ -55,7 +55,7 @@ itsuki 的话或当前对话信息属于：
 | 「v1.0 不分阶段一次上线」 | ✅ project | 决策动机非代码可推导 |
 | 「itsuki 是男生中文用 ta」 | ✅ user | 关于 itsuki 本人 |
 | 「不要写多段注释」 | ✅ feedback | CC 行为约束 |
-| 「raw 日志在 05_logs/raw/」 | ❌ 不存 | 路径事实，CLAUDE.md 已写 |
+| 「raw 日志在 iCloud raw 池」 | ❌ 不存 | 路径事实，session-wrap §3.1 已写 |
 | 「Linear INGEST 项目跟踪 pipeline bug」 | ✅ reference | 外部系统位置 |
 | 「Apple Developer 是付费 99 USD/年」 | ✅ user | 关于 itsuki 资源状态 |
 

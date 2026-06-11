@@ -171,7 +171,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | 2 | `00_admin/WIP.md` | 头部第一行 `**当前版本**: vX.Y.Z` | CC | 🔴 必 |
 | 3 | `05_logs/版本演变一览.md` | 加新版本一句话 + 详细段（按既有格式） | CC | 🔴 **必（§0.2 铁律）** |
 | 4 | `00_admin/vX.Y.Z_AC叙事.md` | 新建（5-04 起 itsuki 自写；CC 不主动起草，等 itsuki 来问才辅助） | itsuki | 🔴 必（itsuki 侧）|
-| 5 | `05_logs/raw/YYYY-MM-DD.md` | dump 一条 #AC候选 标 "版本号 bump = 重大决策"（按 session-wrap skill）| CC | 🔴 必 |
+| 5 | iCloud raw 池 `raw详细叙事/YYYY-MM-DD.md`（见 session-wrap §3.1）| dump 一条 #AC候选 标 "版本号 bump = 重大决策"（按 session-wrap skill）| CC | 🔴 必 |
 | 6 | `git tag` | 打 tag（**等 itsuki 明示**）| itsuki / CC 经授权 | 🟠 半必 |
 | 7 | `.claude/skills/project-overview/SKILL.md` | 如果新建了 vX.Y.Z_AC叙事.md → §1.4 加新条目 + 计数 | CC | 🟠 半必（条件触发）|
 
@@ -501,7 +501,7 @@ gh release create vX.Y.Z \
 minor / major 如有外部用户：
 - iOS 用户：TestFlight 推送 build
 - 演示：通知宿舍管理员
-- AC 素材：dump 到 `05_logs/raw/<date>.md` 标 5 级里程碑
+- AC 素材：dump 到 iCloud raw 池 `<date>.md` 标 5 级里程碑（路径见 session-wrap §3.1）
 
 ### §13.4 T+1 天：发版后监控
 
