@@ -442,3 +442,94 @@ class TestPatchEvent:
         assert len(active) == 1, f"应只剩 1 条有效扣分，实际 {len(active)} 条"
         assert active[0].source_type == "rollcall_late"
         assert active[0].points == 0.5, f"迟到应扣 0.5，实际 {active[0].points}"
+
+
+class TestMyTodayRollCall:
+    """GET /rollcall/me/today — 学生端今日自分点呼（R-1/R-2 iOS 真实显示数据源）。"""
+
+    def test_requires_student_token(self, client, teacher_token, rollcall_session):
+        """老师令牌访问 → 403（学生专用端点）。"""
+        res = client.get(
+            "/api/v1/rollcall/me/today",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 403, res.text
+
+    def test_returns_my_dorm_session_unsigned(
+        self, client, student_token, rollcall_session
+    ):
+        """我寮今日场次未签到 → 返回 1 条、my_status=None、四时间窗齐全。"""
+        res = client.get(
+            "/api/v1/rollcall/me/today",
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 200, res.text
+        body = res.json()
+        assert len(body) == 1, body
+        row = body[0]
+        assert row["session_id"] == str(rollcall_session.id)
+        assert row["session_type"] == "evening"
+        assert row["session_status"] == "running"
+        assert row["my_status"] is None
+        assert row["my_checked_in_at"] is None
+        # 四个时间窗时刻都要有（iOS 算 idle/进行中/時間内/遅刻 全靠它）
+        for key in (
+            "scheduled_window_start_at",
+            "scheduled_on_time_end_at",
+            "scheduled_late_end_at",
+            "scheduled_auto_end_at",
+        ):
+            assert row[key], f"{key} 缺失"
+
+    def test_shows_my_status_after_checkin(
+        self, client, db_session, student_token, seed_data, rollcall_session
+    ):
+        """已签到 → my_status / my_checked_in_at 返回真实判定。"""
+        now = datetime.now(ZoneInfo("Asia/Tokyo"))
+        db_session.add(
+            models.RollCallEvent(
+                session_id=rollcall_session.id,
+                student_id=seed_data["student"].id,
+                base_status="present",
+                status_source="manual_checkin",
+                checked_in_at=now,
+            )
+        )
+        db_session.commit()
+        res = client.get(
+            "/api/v1/rollcall/me/today",
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 200, res.text
+        row = res.json()[0]
+        assert row["my_status"] == "present"
+        assert row["my_checked_in_at"] is not None
+
+    def test_excludes_other_dorm_session(
+        self, client, db_session, student_token, rollcall_session
+    ):
+        """女寮 [4] 今日场次不返回给一寮（dorm_unit=1）学生。"""
+        now = datetime.now(ZoneInfo("Asia/Tokyo"))
+        db_session.add(
+            models.RollCallSession(
+                dorm_unit_set=[4],
+                session_type="evening",
+                day_type="weekday",
+                session_status="running",
+                started_at=now,
+                scheduled_window_start_at=now - timedelta(minutes=5),
+                scheduled_on_time_end_at=now + timedelta(minutes=10),
+                scheduled_late_end_at=now + timedelta(minutes=20),
+                scheduled_auto_end_at=now + timedelta(minutes=30),
+            )
+        )
+        db_session.commit()
+        res = client.get(
+            "/api/v1/rollcall/me/today",
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 200, res.text
+        body = res.json()
+        # 只返回我寮（[1,2]）那条，不含女寮 [4]
+        assert len(body) == 1, body
+        assert body[0]["session_id"] == str(rollcall_session.id)

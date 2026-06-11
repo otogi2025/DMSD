@@ -706,6 +706,26 @@ class RollCallSessionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class MyRollCallTodaySession(BaseModel):
+    """学生端「今日の自分の点呼」— GET /rollcall/me/today 的单条。
+
+    = 今天我所属寮的一个点呼场次 + 我在该场的签到状态。
+    iOS 用它真实算出 idle / 进行中倒计时 / 時間内 / 遅刻，不再本地写死。
+    """
+
+    session_id: UUID
+    session_type: str  # morning / evening
+    day_type: str  # weekday / weekend_holiday
+    session_status: str  # draft / running / ended
+    scheduled_window_start_at: datetime
+    scheduled_on_time_end_at: datetime
+    scheduled_late_end_at: datetime
+    scheduled_auto_end_at: datetime
+    # 我在该场的签到判定：present/late/absent/exempt_range/init；None = 还没签到
+    my_status: Optional[str] = None
+    my_checked_in_at: Optional[datetime] = None
+
+
 class RollCallCheckinIn(BaseModel):
     """POST /rollcall/sessions/:id/checkins — NFC or 手動点呼。
 

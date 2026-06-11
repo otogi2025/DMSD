@@ -133,6 +133,67 @@ def today_sessions(
 
 
 # ---------------------------------------------------------------
+# GET /rollcall/me/today  — 学生端「今日の自分の点呼」(iOS HomeView / MyPage 用)
+# 学生令牌；返回今天「我所属寮」的点呼场次 + 我在每场的签到状态。
+# iOS 用四个 scheduled_* 时间窗 + 当前时刻算 idle/进行中/時間内/遅刻，my_status
+# 给已签到的真实判定 — 替代原来本地写死的「時間外」「時間内」(R-1/R-2)。
+# ---------------------------------------------------------------
+@router.get("/me/today", response_model=list[schemas.MyRollCallTodaySession])
+def my_today_rollcall(
+    student: models.Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
+    from zoneinfo import ZoneInfo
+
+    today = _today_jst()
+    jst = ZoneInfo("Asia/Tokyo")
+    day_start = datetime(today.year, today.month, today.day, 0, 0, 0, tzinfo=jst)
+    day_end = day_start + timedelta(days=1)
+    sessions = db.scalars(
+        select(models.RollCallSession)
+        .where(
+            models.RollCallSession.scheduled_window_start_at >= day_start,
+            models.RollCallSession.scheduled_window_start_at < day_end,
+        )
+        .order_by(models.RollCallSession.scheduled_window_start_at)
+    ).all()
+    # dorm_unit_set 是 JSON 列（[1,2] 男寮 / [4] 女寮），跨 DB 的 JSON 包含查询不可移植，
+    # 故在 Python 侧按学生 dorm_unit 过滤（今日场次量很小，性能无虑）。
+    mine = [s for s in sessions if student.dorm_unit in (s.dorm_unit_set or [])]
+
+    # 我在这些场次的签到事件（1 学生 1 场次最多 1 行，幂等保证）
+    events: dict = {}
+    session_ids = [s.id for s in mine]
+    if session_ids:
+        rows = db.scalars(
+            select(models.RollCallEvent).where(
+                models.RollCallEvent.session_id.in_(session_ids),
+                models.RollCallEvent.student_id == student.id,
+            )
+        ).all()
+        events = {e.session_id: e for e in rows}
+
+    out = []
+    for s in mine:
+        ev = events.get(s.id)
+        out.append(
+            schemas.MyRollCallTodaySession(
+                session_id=s.id,
+                session_type=s.session_type,
+                day_type=s.day_type,
+                session_status=s.session_status,
+                scheduled_window_start_at=s.scheduled_window_start_at,
+                scheduled_on_time_end_at=s.scheduled_on_time_end_at,
+                scheduled_late_end_at=s.scheduled_late_end_at,
+                scheduled_auto_end_at=s.scheduled_auto_end_at,
+                my_status=ev.base_status if ev else None,
+                my_checked_in_at=ev.checked_in_at if ev else None,
+            )
+        )
+    return out
+
+
+# ---------------------------------------------------------------
 # GET /rollcall/sessions?from=&to=  — 历史列表 (教师 Web RecordsPage 用)
 # 5-27 新增：从已有 RollCallSession model 派生 SELECT 查询，不需要新 schema。
 # 日期范围 from / to 是 YYYY-MM-DD，不指定时默认查过去 7 天（含今天）。
