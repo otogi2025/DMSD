@@ -1347,3 +1347,28 @@ gpt-5 + high（非预期 gpt-5.5 + xhigh）逐层挖 `ST25DVWriter` NFC 取消�
 
 ### §17.2 首页活动卡 + 巴士卡接后端（M-1，commit `fc57edb`）
 `LifeTab` 首页「今週の活動」卡 + 巴士卡原直读 `SEED.events` / `SEED.busSchedule` 无 `#if DEMO` → 生产学生看到 2 个月前死假活动/巴士。修法照 `MyLandingView` / `BusListView` 范本：加 `loadedEvents`/`loadedBusRoutes` 两个 `@State`，`.task` 生产版（`#if !DEMO`）拉 `EventsAPI.listEvents`（今日起到次年底）+ `BusAPI.listRoutes`（经 `BusRouteMapper`）。`eventsCard` 用 `#if DEMO SEED.events #else loadedEvents`；`upcomingBus` 从 `loadedBusRoutes`（`SpecialBusRoute`）算今日未过/最近未来第一班，`UpcomingBus` 结构从 `BusLine` 改持 `SpecialBusRoute`，busCard 渲染字段相应改 `ub.route.scheduleAt`/`.direction`/`.date`/`.weekday`。拉失败显「0 件」/「予定なし」不退回假数据。〔同族遗留：`packageCard` 仍读 `SEED.packages`，未在本次范围。〕
+
+## §18 [2026-06-11] 首次进入介绍页重做 + 公告 AI 翻译/总结 + AI 头像启用
+
+> 起因：itsuki 要「新用户初次进入用最少文字页数快速建立对 app 的认知」（v1.0 一大批用户进来），且要在介绍页加一页 Apple Intelligence 功能。AC 角度：真正的用户设计从用户视角思考。过程中 CC 两次拦下「宣传 app 里不存在/不可用功能」的坑（详 raw `2026-06-11_iOS介绍页+AI功能`）。
+
+### §18.1 介绍页（OnboardingView）重做 4 页 + 只显示一次（commit `fa05f17`）
+- 原 3 页介绍（点呼/申请/生活）自 5-07「不每次启动都弹」拍板后变孤儿页（无任何活路由指向，谁都看不到）。本次重做并真正接回启动流。
+- **方案 B「学生的一天」4 页**：① カードでかんたん点呼（**只讲卡** — v1.0 不支持手机签到，ST25DVWriter 留 v1.1）② 外出も帰省もアプリから ③ 自分の記録をいつでも ④ AI でもっと便利に（一键翻译/总结公告 + AI 头像，带机种小字）。每页 1 图标 + 1 标题 + 副标题（或 AI 页 3 行功能 + 小字）。
+- **只显示一次**：`SplashView` 加 `@AppStorage("hasSeenOnboarding")`。无 token 且本机没看过 → `.onboarding`；`OnboardingView` 的「始める」/「スキップ」置标记 → `.replace(.login)`（新用户在登录页点「新規登録」进注册）。有 token 直接 home（老用户不弹），看过的人不再弹（解决 5-07「太烦」）。
+
+### §18.2 公告详情页 AI 一键翻译 + 一键要約（commit `785c206`）
+- `AnnouncementDetailView` 正文下加 AI 操作行 + 正文设 `.textSelection(.enabled)`。
+- **翻訳**：`import Translation` + `.translationPresentation(isPresented:text:)` 弹系统翻译浮层。iOS 17.4+，**全机种**、设备端、不联网。用 `announcementTranslateOverlay` View 扩展包 `if #available(iOS 17.4)` 安全降级。
+- **AI 要約**：`import FoundationModels` + `LanguageModelSession { 指令 } / respond(to:)` 调设备本地 3B 模型生成日文要点，结果 `.medium` sheet 展示。**iOS 26+ 且 Apple Intelligence 机种**（`SystemLanguageModel.default.availability == .available`）才显示按钮，封装在 `AnnouncementAI` enum（成员标 `@available(iOS 26.0)`）。
+
+### §18.3 重新启用 AI 头像生成（Apple Image Playground，commit `c5ce9a0`）
+- 注册第 1 步「AI で生成」按钮原被硬编码 `supportsImagePlayground = false` 禁用（怕 18.1+ 的 `@Environment(\.supportsImagePlayground)` 在低部署目标编译失败）。
+- 本次启用：把 18.2 专属 API（`@Environment(\.supportsImagePlayground)` + `.imagePlaygroundSheet(isPresented:concept:onCompletion:)`）全部隔离进 `AIAvatarGenerateButton` 子视图（标 `@available(iOS 18.2)`），父视图只在 `if #available(iOS 18.2, *)` 分支挂它 → 部署目标 16.0 照常编译，旧机种/未开 Apple Intelligence 不显示。
+
+### §18.4 机种门槛事实（写进 AI 页小字）
+- **翻译**：Translation 框架，iOS 17.4+，全机种（不需要 Apple Intelligence）。
+- **AI 要約**：FoundationModels，iOS 26+ 且 Apple Intelligence 机种（iPhone 15 Pro / Pro Max + 16 全系，A17 Pro 芯片以上）。
+- **AI 头像**：Image Playground，iOS 18.2+ 且 Apple Intelligence 机种。
+- 故 AI 页小字只声明「AI 要約とアバター生成は iPhone 15 Pro 以降（Apple Intelligence 対応機種）が必要」—— 翻译全机种可用不设限。
+- 工具链：Xcode 26.5 + iOS 26.5 SDK，三框架（Translation/FoundationModels/ImagePlayground）全在 SDK 里，弱链接。正式版 + 演示版双 BUILD SUCCEEDED。
