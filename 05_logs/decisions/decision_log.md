@@ -34,7 +34,7 @@
 2. `寮監` 默认映射「一般宿管+晚自习」（一线运营全要操作）→ 寮边界安全测试（FORBIDDEN_DORM）保持有效不削弱。
 3. 两处保留职位域规则待后续拍板：代録/proxy-candidates 的 `_DAIROKU_ROLES`、delete_teacher 的 `TEACHER_ADMIN_ROLES`（防删最后一个管理员）。
 4. 「按权限组隐藏/置灰功能入口」的导航联动：前端矩阵已备好，UX 待 itsuki 拍板再接线（不擅自改冻结的 web 界面）。
-**验证**: 后端 pytest 371 passed / 0 failed；老师网页 `npm run build` 退出码 0；`grep EziP7mDub9Rp` 仓库零命中。commit `78ea32f`（后端核心）+ `49139d5`（端到端 + 网页）。
+**验证**: 后端 pytest 371 passed / 0 failed；老师网页 `npm run build` 退出码 0；op 明文密码全仓库零命中（只读环境变量 `OP_PASSWORD`）。commit `78ea32f`（后端核心）+ `49139d5`（端到端 + 网页）。
 **事后回看**(几个月后补填):
 
 ## 2026-06-11 — 启动流程大改版（session-coord 停用 + 中枢信箱并入 + 说明书不再每会话重读 + 真值指针化）
