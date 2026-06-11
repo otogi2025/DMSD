@@ -260,3 +260,10 @@ git config core.hooksPath 00_admin/hooks
 - `00_admin/2026-04-19_项目审查_backlog.md` — 发现本问题的审查报告（D22 / D23 / D25 / L11）
 - `05_logs/raw/2026-04-19.md` — 发现 + 解决的原始记录（AC 素材）
 - `05_logs/raw/2026-05-11.md §D` — graphify 上线 + vendor 污染 + .beads 漂移发现（AC 素材）
+
+---
+
+## bin/ 配套脚本补充（2026-06-11 加，收尾核对表第 7 项调用）
+
+- `bin/export_openapi.sh` — 导出后端接口总表（OpenAPI）到 `03_dev/backend/v1/openapi_snapshot.json`。改了 backend 的会话收尾时跑，`git diff` 直接显示字段层变化，跨端对齐从「读代码猜」变「对总表核」。
+- `bin/generate_file_inventory.py` — 文件清单生成器：`git ls-files`（机器半边，永远是真的）+ `00_admin/文件批注.tsv`（人写的「这文件干嘛」半边）拼成 `00_admin/文件清单_自动生成.md`，并报告未批注新文件 / 已删文件的残留批注。手写文件清单漂移问题的机制解。

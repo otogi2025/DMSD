@@ -1,0 +1,45 @@
+# 文件批注 — 路径<TAB>一句话说明（人维护的那一半；机器部分由 bin/generate_file_inventory.py 拼）
+# 收尾时生成器会报「未批注」新文件，CC 读文件补一行进来。批注的文件删了，生成器会提示清理。
+CLAUDE.md	DMSD 项目给 Claude Code 的指令书（每会话自动加载）
+README.md	项目门面 — GitHub 访客第一眼
+CHANGELOG.md	版本编年史（版本号单一真值在顶部）
+PROJECT_GUIDE.md	项目深度导览 — 可单文件外发给无仓库 AI
+LICENSE	开源许可证
+.gitignore	git 忽略清单
+.github/workflows/ci.yml	老师网页 CI — push 后自动跑类型检查+构建（6-11 建，push 前不生效）
+.github/workflows/test.yml	后端 CI — push 后自动跑 alembic + pytest（5-21 建 C-048，push 前不生效）
+.github/dependabot.yml	依赖更新机器人配置（5-29 建）
+00_admin/WIP.md	当下书签 — 最近 5 次会话 + 焦点 + 阻塞项（启动必读）
+00_admin/TODO.md	全部未完成事项的完整清单（§A 上线必做 / §B 不挡上线 / §C 长尾 / §D 等拍板）
+00_admin/TODO_完成归档.md	TODO 里整段做完的搬这留痕
+00_admin/项目心智模型.md	AI 开局必读骨架 — 系统怎么跑 + 5 端现状 + 契约 + 不变量
+00_admin/文档同步点清单.md	单源真值表 — 哪些事实只许写在哪个文件（pre-commit 配套）
+00_admin/系统bug专栏.md	全系统 bug 编号台账（FC-XXX 等）
+00_admin/文件批注.tsv	本文件 — 文件清单的人写批注半边
+00_admin/文件清单_自动生成.md	机器生成的全文件清单（勿手改，生成器拼 ls-files + 批注）
+00_admin/handoff/README.md	AI 会话交接件文件夹的规则（含交接词模板归档义务段）
+00_admin/v1.0上线缺口看板.html	v1.0 上线还差什么的可视化看板
+01_specs/rollcall/RollCall_Spec.md	点呼核心规格（冻结主体）
+02_design/system_features.md	5 端共用设计层单源真值
+02_design/hardware_design.md	点呼机硬件选型 / BOM
+02_design/flow_design.md	签到流程图 + 攻防分析
+03_dev/backend/v1/app/main.py	后端 FastAPI 入口（142 接口挂载处）
+03_dev/backend/v1/app/models.py	后端数据库表定义（ORM 真值）
+03_dev/backend/v1/app/schemas.py	后端 API 输入输出字段定义
+03_dev/backend/v1/openapi_snapshot.json	后端接口总表快照（bin/export_openapi.sh 导出，跨端字段对齐的对照表）
+03_dev/backend/BACKEND_DESIGN_LOG.md	后端専属设计档案
+03_dev/student_ios/IOS_DESIGN_LOG.md	iOS 専属设计档案
+03_dev/student_android/ANDROID_DESIGN_LOG.md	Android 専属设计档案
+03_dev/teacher_web/WEB_DESIGN_LOG.md	老师网页専属设计档案
+03_dev/rollcall_device/ROLLCALL_DEVICE_DESIGN_LOG.md	点呼机専属设计档案
+05_logs/decisions/decision_log.md	重大决策正本（完整格式）
+05_logs/decisions/decision_log_全部.md	所有决策流水（一条 3-5 行）
+05_logs/learning_path.md	itsuki 学习轨迹
+05_logs/project_evolution.md	项目重大转折记录
+05_logs/raw/README.md	raw 已迁 iCloud 素材池的指路牌
+bin/sync-check.sh	文件联动手动全扫
+bin/check_overview_drift.sh	project-overview 体量对账
+bin/export_openapi.sh	导出后端接口总表（改了 backend 收尾时跑）
+bin/generate_file_inventory.py	文件清单生成器（收尾时跑，机器半边）
+00_admin/hooks/lib/sync-rules.sh	文件联动规则库（条数真值）
+00_admin/hooks/pre-commit	git 提交前一致性检查

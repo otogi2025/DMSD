@@ -40,9 +40,9 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | 根目录 | 8 | 0.6% | CLAUDE / README / CHANGELOG / LICENSE / .gitignore / .graphifyignore / PROJECT_GUIDE / start-teacher-web.command |
 | `02_design/` | 4 | 0.3% | system_features + hardware + flow + NFC防代刷_后端立项施工计划 |
 | `docs/` | 3 | 0.3% | Matt Pocock 套件 per-repo 配置（agents/{issue-tracker,triage-labels,domain}.md）|
-| `bin/` | 3 | 0.3% | sync-check + create_local_dev_symlink + check_overview_drift（5-19 加）|
+| `bin/` | 5 | 0.3% | sync-check + create_local_dev_symlink + check_overview_drift + **export_openapi.sh**（导后端接口总表，6-11）+ **generate_file_inventory.py**（文件清单生成器，6-11）|
 | `04_ops/` | 3 | 0.2% | MAC_MINI_SETUP + wifi_survey_howto + teacher_web_v1.0_上线部署清单 |
-| `.github/` | 1 | — | `workflows/ci.yml` — CI 持续集成配置（push 后 GitHub 自动跑 后端 pytest + 老师网页构建；6-11 建，**push 前不生效**）|
+| `.github/` | 3 | — | CI / 机器人配置（**push 前都不生效**）：`workflows/test.yml` 后端 pytest（5-21 建 C-048）/ `workflows/ci.yml` 老师网页构建（6-11 建）/ `dependabot.yml` 依赖更新机器人（5-29 建）|
 | `.github/` | 2 | 0.1% | workflows/test.yml（GitHub Actions CI 自动跑测试）+ dependabot.yml（依赖漏洞自动监控 — pip/gradle/actions 每周一）|
 | **总计** | **1450** | 100% | |
 

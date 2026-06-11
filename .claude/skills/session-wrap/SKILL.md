@@ -967,7 +967,7 @@ CC 跑完 §5.5 后，**最终收尾报告必须**包含以下 13 项逐条状�
 | 4 | **learning_path / project_evolution**（学了任何新东西 → 追加 `05_logs/learning_path.md`；项目有任何演化（功能加/砍/改、方向变）→ 追加 `05_logs/project_evolution.md`。**不设重大门槛，有就写**）| ✅ 写了 + 文件名 / ⏸ 无新学习且无演化 + 显式说明 / ❌ 漏 |
 | 5 | **WIP / TODO 双向刷新**（详见 §7.5.7 — 强制 Edit TODO.md 落地，不允许只写报告）| ✅ 必须列行号 / ⏸ 极少情况：本会话零任务零产出 |
 | 6 | memory 维护（MEMORY.md 索引 + feedback 写入）| ✅ 检查 + 摘要 / ⏸ 不需要写 / ❌ 漏 |
-| 7 | **文件联动检查 — 双重保险**（① `sync-rules.sh` 全部规则脚本扫 ② CC 自己 Read `file-linkage/SKILL.md` 把本会话改过的文件人工对照规则表过一遍——脚本管正则匹配，CC 管语义判断。**设计文档同步**（system_features + 5 端 DESIGN_LOG）已含在规则 3 / 14-18 里，不再单列；本会话有文件**新建 / 删除 / 改名 / 大幅改作用** → 同步 project-overview 字典 + 顶部「最后更新」，也并在本项）| ✅ 脚本扫 + 人工对照都做 + 报告 / ❌ 漏 + 理由 |
+| 7 | **文件联动检查 — 双重保险 + 两个并行真值更新**（① `sync-rules.sh` 全部规则脚本扫 ② CC 自己 Read `file-linkage/SKILL.md` 把本会话改过的文件人工对照规则表过一遍——脚本管正则匹配，CC 管语义判断 ③ 本会话改了 backend → `bash bin/export_openapi.sh` 重导接口总表，`git diff` 看字段层变化、对照 iOS / Android / 老师网页（itsuki 6-11 拍板：跟联动检查并行的查字段手段）④ `python3 bin/generate_file_inventory.py` 刷新文件清单 → 输出的「未批注」新文件 CC 读一眼补一句进 `00_admin/文件批注.tsv` 再跑一遍。**设计文档同步**（system_features + 5 端 DESIGN_LOG）已含在规则 3 / 14-18 里，不再单列；project-overview 字典同步也并在本项）| ✅ 全做 + 报告 / ⏸ 部分不触发（如没改 backend）+ 理由 / ❌ 漏 |
 | 8 | git 状态确认（工作树 + 提交历史 + 别会话残留）| ✅ 看了 + 摘要 / ❌ 漏 + 理由 |
 | 9 | 跨仓库 / 跨工作区同步（VPS / fork / **AC 状态快照** — 本会话有 AC 侧重大进展就刷新 iCloud `状态快照.md` 的 🤖 段，见 §5.5.12）| ✅ 同步 + 哪些 / ⏸ 不触发 + 理由 / ❌ 漏 |
 | 10 | **全局环境清单同步**（本会话动过 `~/.claude/` 下 skill / hook / `settings.json` / 装新工具 → 同步 `~/.claude/我的环境.md` + `.html`）| ✅ 同步了 / ⏸ 没动全局环境 + 显式说明 / ❌ 漏 |
