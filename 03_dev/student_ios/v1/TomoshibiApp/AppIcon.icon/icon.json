@@ -1,8 +1,8 @@
 {
   "fill" : {
     "linear-gradient" : [
-      "display-p3:0.81787,0.23145,0.19739,1.00000",
-      "display-p3:0.96783,0.91928,0.88528,1.00000"
+      "display-p3:0.46938,0.80883,0.87681,1.00000",
+      "display-p3:0.85196,0.95747,0.96783,1.00000"
     ],
     "orientation" : {
       "start" : {
@@ -19,14 +19,14 @@
     {
       "layers" : [
         {
-          "glass" : true,
-          "image-name" : "tomoshibi_flame 2.png",
-          "name" : "tomoshibi_flame 2",
+          "image-name" : "tomoshibi-icon-new.png",
+          "name" : "tomoshibi-icon-new",
+          "opacity" : 1,
           "position" : {
-            "scale" : 1.7,
+            "scale" : 3,
             "translation-in-points" : [
-              0,
-              0
+              1.5,
+              -362.5703125
             ]
           }
         }
