@@ -1,37 +1,25 @@
-# DMSD 持续集成（CI）— push / PR 后 GitHub 服务器自动跑测试
-# itsuki 2026-06-11 拍板上线。第一版只覆盖后端 + 老师网页（跑在免费的 Linux 机器上）；
-# iOS / Android 需要别的运行环境（macOS 机器 / Android 工具链），等这版跑稳了再加。
-# 注意：本文件 push 到 GitHub 之前不会生效，也没法在本地验证 — 首次 push 后看 Actions 页签，红了再修。
+# 老师网页 CI — push / PR 改了 teacher_web 后自动跑类型检查 + 构建
+# 后端 pytest 早有专属配置（.github/workflows/test.yml，5-21 建）— 本文件不重复，只补老师网页这块。
+# 注意：push 到 GitHub 之前不生效，首次 push 后看 Actions 页签，红了再修。
 
-name: CI
+name: teacher-web
 
 on:
   push:
     branches: [main]
+    paths:
+      - "03_dev/teacher_web/v1/**"
+      - ".github/workflows/ci.yml"
   pull_request:
+    paths:
+      - "03_dev/teacher_web/v1/**"
+      - ".github/workflows/ci.yml"
 
 jobs:
-  backend:
-    name: 后端 pytest
+  build:
+    name: 类型检查 + 构建
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: 03_dev/backend/v1
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: 03_dev/backend/v1/requirements.txt
-      - name: 装依赖
-        run: pip install -r requirements.txt
-      - name: 跑全量测试
-        run: python -m pytest -q
-
-  teacher_web:
-    name: 老师网页 类型检查+构建
-    runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: 03_dev/teacher_web/v1
