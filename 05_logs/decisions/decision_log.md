@@ -24,6 +24,17 @@
 
 ## 决策记录(倒序)
 
+## 2026-06-11 — 启动流程大改版（session-coord 停用 + 中枢信箱并入 + 说明书不再每会话重读 + 真值指针化）
+
+**之前的决策**: 启动按三处指令叠加执行 — dmsd-startup 4 件事（含协作板扫描）+ 全局 CLAUDE.md 强制每会话读 ac-radar/cc-comm-rules/session-coord 三份完整说明书 + 项目 CLAUDE.md 另一段要求读中枢信箱。合计读 1150+ 行才能说第一句话。
+**新的决策**: ① session-coord（多会话协作板）整体停用 — 三个挂钩从 settings.json 摘除（备份 `settings.json.bak_before_coord_off_20260611`），脚本保留可恢复；② 中枢信箱读取并入 dmsd-startup 为新 Step 1；③ ac-radar / cc-comm-rules 说明书不再每会话读原文（精华已在全局 CLAUDE.md，按需加载）；④ 立「dmsd-startup §2 = 启动步骤唯一真值，CLAUDE.md / WIP 只写指针不复述」+ 联动 Rule 27（startup-truth-chain）兜底。
+**为什么改**:
+1. 协作板三个功能（看别窗口 / 互留言 / 占用登记）实际没用上 — 信箱建立以来零留言，占用登记防不住真覆盖；真正起作用的防冲突机制是「做完一件事立刻 commit」铁律
+2. 720 行规则说明书的内容 90% 是固定行为约定，每会话重读纯烧上下文
+3. 启动逻辑散在三处违反 dmsd-startup「集中管理」的立项初衷；复述步骤的两处（CLAUDE.md / WIP 顶部）历史上都漂移过 —「漂移检测移走」9 天没人同步
+**这个改动影响了什么**: dmsd-startup v0.4.0 重写（4 件事：中枢信箱 / ac-radar 检查 / 心智模型+WIP / 打勾报告）；全局 CLAUDE.md「每次会话启动必做」段瘦身；CLAUDE.md / WIP 顶部指针化；sync-rules 加 Rule 27；ac-radar startup_check.py 加永远在的状态行；handoff README 加交接词模板归档义务段。启动负担从 1150+ 行降到约 450 行（dmsd-startup 160 + 心智模型 111 + WIP 159 + 信箱一小份）
+**事后回看**(几个月后补填):
+
 ## 2026-06-11 — raw（AC 素材详细叙事）整体迁出仓库 → iCloud 素材池
 
 **之前的决策**(2026-06-10): raw 留项目仓库当 Git 时间戳证据，去留挂 TODO §D 待拍板。
