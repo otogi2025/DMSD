@@ -117,30 +117,36 @@ class TestDormEvents:
         assert len(items) == 0
 
     def test_create_403_no_permission(self, client, seed_data, readonly_token):
-        """一般教师创建行事 → 403。"""
+        """一般教师 → 可创建行事（201）。
+
+        权限分级改造（teacher_permission_v1.md §5 第 7 行「行事·活动」5 组全部 M）后，
+        旧「一般教师不在编辑角色集 → 403」废弃：该功能簇人人可管。仅演示老师另被隔离闸拦截。
+        """
         res = client.post(
             "/api/v1/events",
             headers={"Authorization": f"Bearer {readonly_token}"},
             json={
-                "title": "不正アクセス",
+                "title": "始業式",
                 "category": "学校行事",
                 "event_date": "2026-04-01",
             },
         )
-        assert res.status_code == 403
-        assert res.json()["detail"]["code"] == "FORBIDDEN_ROLE"
+        assert res.status_code == 201
 
     def test_patch_403_no_permission(
         self, client, seed_data, edit_token, readonly_token
     ):
-        """一般教师编辑行事 → 403。"""
+        """一般教师 → 可编辑行事（200）。
+
+        同 create：teacher_permission_v1.md §5 第 7 行「行事·活动」5 组全部 M，人人可管。
+        """
         ev = _make_event(client, edit_token)
         res = client.patch(
             f"/api/v1/events/{ev['id']}",
             headers={"Authorization": f"Bearer {readonly_token}"},
-            json={"title": "不正"},
+            json={"title": "改名"},
         )
-        assert res.status_code == 403
+        assert res.status_code == 200
 
     def test_patch_404_not_found(self, client, seed_data, edit_token):
         """PATCH 不存在的 id → 404。"""
@@ -278,31 +284,37 @@ class TestBusRoutes:
         assert items_all[0]["deprecated"] is True
 
     def test_create_403_no_permission(self, client, seed_data, readonly_token):
-        """一般教师创建巴士便 → 403。"""
+        """一般教师 → 可创建巴士便（201）。
+
+        权限分级改造（teacher_permission_v1.md §5 第 6 行「巴士路线」5 组全部 M）后，
+        旧「一般教师不在编辑角色集 → 403」废弃：该功能簇人人可管。仅演示老师另被隔离闸拦截。
+        """
         res = client.post(
             "/api/v1/bus/routes",
             headers={"Authorization": f"Bearer {readonly_token}"},
             json={
                 "kind": "daily_commute",
-                "name": "不正",
+                "name": "朝便",
                 "direction": "寮→駅",
                 "schedule_at": "2026-05-30T06:50:00+09:00",
             },
         )
-        assert res.status_code == 403
-        assert res.json()["detail"]["code"] == "FORBIDDEN_ROLE"
+        assert res.status_code == 201
 
     def test_patch_403_no_permission(
         self, client, seed_data, edit_token, readonly_token
     ):
-        """一般教师编辑巴士便 → 403。"""
+        """一般教师 → 可编辑巴士便（200）。
+
+        同 create：teacher_permission_v1.md §5 第 6 行「巴士路线」5 组全部 M，人人可管。
+        """
         bus = _make_bus(client, edit_token)
         res = client.patch(
             f"/api/v1/bus/routes/{bus['id']}",
             headers={"Authorization": f"Bearer {readonly_token}"},
-            json={"name": "不正"},
+            json={"name": "改名"},
         )
-        assert res.status_code == 403
+        assert res.status_code == 200
 
     def test_get_detail_404(self, client, seed_data, edit_token):
         """GET 不存在的 id → 404。"""

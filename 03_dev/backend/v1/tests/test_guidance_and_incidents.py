@@ -114,13 +114,18 @@ class TestGuidanceRecords:
         assert res.status_code == 404
 
     def test_list_403_non_ryomu(self, client, seed_data, kokukou_token):
-        """国際交流部長无权查指导记录列表 → 403。"""
+        """国際交流部長 → 可查看指导记录列表（200）。
+
+        权限分级改造（teacher_permission_v1.md §5 第 15 行「指导履历」5 组全部至少 V）后，
+        旧「国際交流部長不在指导角色集 → 403」废弃。国際 默认映射「申請承認専用」，对指导履历有 V（查看）。
+        管理动作（录入）仍需 M，下方 test_create_403_non_ryomu 保持 403。
+        """
         sid = _student_id(seed_data)
         res = client.get(
             f"/api/v1/students/{sid}/guidance",
             headers={"Authorization": f"Bearer {kokukou_token}"},
         )
-        assert res.status_code == 403
+        assert res.status_code == 200
 
 
 # -----------------------------------------------------------------------
@@ -253,12 +258,15 @@ class TestGuidanceDisclosure:
         assert res.status_code == 404
 
     def test_list_403_non_ryomu(self, client, seed_data, kokukou_token):
-        """国際交流部長无权查开示列表 → 403。"""
+        """国際交流部長 → 可查看开示申请列表（200）。
+
+        同指导履历（teacher_permission_v1.md §5 第 15 行 5 组全部至少 V）：国際 默认「申請承認専用」有 V。
+        """
         res = client.get(
             "/api/v1/guidance/disclosure-requests",
             headers={"Authorization": f"Bearer {kokukou_token}"},
         )
-        assert res.status_code == 403
+        assert res.status_code == 200
 
 
 # -----------------------------------------------------------------------
@@ -370,12 +378,17 @@ class TestIncidentRecords:
         assert res.status_code == 403
 
     def test_list_403_non_ryomu(self, client, seed_data, kokukou_token):
-        """国際交流部長无权查事案列表 → 403。"""
+        """国際交流部長 → 可查看事案列表（200）。
+
+        权限分级改造（teacher_permission_v1.md §5 第 14 行「事案记录」5 组全部至少 V）后，
+        旧「国際交流部長不在事案角色集 → 403」废弃。国際 默认「申請承認専用」有 V（查看）。
+        管理动作（录入）仍需 M，上方 test_create_403_non_ryomu 保持 403。
+        """
         res = client.get(
             "/api/v1/incidents",
             headers={"Authorization": f"Bearer {kokukou_token}"},
         )
-        assert res.status_code == 403
+        assert res.status_code == 200
 
     def test_get_404_not_found(self, client, seed_data, ryomu_token):
         """不存在的事案 ID → 404。"""

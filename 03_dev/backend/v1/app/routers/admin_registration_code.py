@@ -16,9 +16,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import models, permissions, schemas
 from ..database import get_db
-from ..deps import assert_not_demo_teacher, require_teacher_roles
+from ..deps import assert_not_demo_teacher, require_permission
 
 router = APIRouter(
     prefix="/api/v1/admin/registration-code",
@@ -61,7 +61,9 @@ def _to_out(row: models.StudentRegistrationCode) -> schemas.RegistrationCodeOut:
 
 @router.get("/current", response_model=schemas.RegistrationCodeOut | None)
 def get_current(
-    teacher: models.Teacher = Depends(require_teacher_roles(*ADMIN_ROLES)),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_REG_CODE, permissions.VIEW)
+    ),
     db: Session = Depends(get_db),
 ):
     """返回当前生效的码；没有则返回 null。
@@ -93,7 +95,9 @@ def get_current(
     status_code=status.HTTP_201_CREATED,
 )
 def refresh_code(
-    teacher: models.Teacher = Depends(require_teacher_roles(*ADMIN_ROLES)),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_REG_CODE, permissions.MANAGE)
+    ),
     db: Session = Depends(get_db),
 ):
     """生成新码 + 立即作废旧码（§7.16.2 规则 3）。
@@ -165,7 +169,9 @@ def refresh_code(
 
 @router.post("/close", status_code=status.HTTP_204_NO_CONTENT)
 def close_code(
-    teacher: models.Teacher = Depends(require_teacher_roles(*ADMIN_ROLES)),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_REG_CODE, permissions.MANAGE)
+    ),
     db: Session = Depends(get_db),
 ):
     """老师手动关闭当前注册码 —— 立即作废、不生成新码（itsuki 2026-05-31：点「关闭」即无效）。
@@ -208,7 +214,9 @@ def close_code(
 @router.get("/history", response_model=schemas.RegistrationCodeHistoryOut)
 def get_history(
     limit: int = Query(50, ge=1, le=200),
-    teacher: models.Teacher = Depends(require_teacher_roles(*ADMIN_ROLES)),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_REG_CODE, permissions.VIEW)
+    ),
     db: Session = Depends(get_db),
 ):
     """过去发行历史（新→旧）。

@@ -14,16 +14,16 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import models, permissions, schemas
 from ..database import get_db
 from ..deps import (
     assert_not_demo_teacher,
     get_current_principal,
-    get_current_teacher,
+    require_permission,
 )
 
 router = APIRouter(prefix="/api/v1/events", tags=["events"])
@@ -36,16 +36,9 @@ _VALID_CATEGORIES = {"学校行事", "寮行事", "外部", "その他"}
 
 
 def _require_edit_role(teacher: models.Teacher) -> None:
-    # 演示老师禁增删改全局行事（行事无 is_demo，会污染真实学生看到的日程）→ 403
+    # 演示老师禁增删改全局行事（行事无 is_demo，会污染真实学生看到的日程）→ 403。
+    # 权限组判定（行事·活动 = M）已上移到端点的 require_permission 闸；此处只剩演示隔离。
     assert_not_demo_teacher(teacher)
-    if teacher.role not in _EDIT_ROLES:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "code": "FORBIDDEN_ROLE",
-                "message": "行事予定の増删改には 寮務部長 / 寮務課長 / 管理係 権限が必要です",
-            },
-        )
 
 
 @router.get("", response_model=schemas.DormEventListOut)
@@ -71,7 +64,9 @@ def list_events(
 def create_event(
     body: schemas.DormEventCreateIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_EVENT, permissions.MANAGE)
+    ),
 ):
     """役职老师新建行事予定。"""
     _require_edit_role(teacher)
@@ -103,7 +98,9 @@ def patch_event(
     event_id: UUID,
     body: schemas.DormEventPatchIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_EVENT, permissions.MANAGE)
+    ),
 ):
     """役职老师编辑行事予定（部分更新）。"""
     _require_edit_role(teacher)
@@ -142,7 +139,9 @@ def patch_event(
 def delete_event(
     event_id: UUID,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_EVENT, permissions.MANAGE)
+    ),
 ):
     """役职老师删除行事予定（物理删除）。"""
     _require_edit_role(teacher)

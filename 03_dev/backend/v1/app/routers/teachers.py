@@ -19,10 +19,10 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
+from .. import permissions
 from ..deps import (
     assert_not_demo_teacher,
-    get_current_teacher,
-    require_teacher_roles,
+    require_permission,
 )
 from ..security import hash_password
 
@@ -51,13 +51,10 @@ TEACHER_ADMIN_ROLES = {"寮務部長", "寮務課長", "寮監"}
 def create_invitation(
     body: schemas.TeacherInvitationIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_TEACHER_ACCOUNT, permissions.MANAGE)
+    ),
 ):
-    if teacher.role not in INVITE_ALLOWED_ROLES:
-        raise HTTPException(
-            403,
-            {"code": "FORBIDDEN_ROLE", "message": "招待を発行できる役職ではありません"},
-        )
     # 演示老师禁止账号管理（防演示账号造真实老师绕过隔离）
     assert_not_demo_teacher(teacher)
 
@@ -173,7 +170,7 @@ def list_teachers(
     role_filter: str | None = Query(None, alias="role"),
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(
-        require_teacher_roles("寮務部長", "寮務課長", "寮監")
+        require_permission(permissions.C_TEACHER_ACCOUNT, permissions.VIEW)
     ),
 ):
     # 演示老师禁枚举真实老师账号（login_id / email 等敏感字段）→ 403
@@ -189,7 +186,11 @@ def list_teachers(
 # GET /teachers/me — 自分のプロフィール
 # ---------------------------------------------------------------
 @router.get("/me", response_model=schemas.TeacherOut)
-def me(teacher: models.Teacher = Depends(get_current_teacher)):
+def me(
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_TEACHER_ACCOUNT, permissions.VIEW)
+    ),
+):
     return schemas.TeacherOut.model_validate(teacher)
 
 
@@ -219,7 +220,9 @@ def list_teachers_public(db: Session = Depends(get_db)):
 def create_teacher(
     body: schemas.TeacherCreateIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(require_teacher_roles(*TEACHER_ADMIN_ROLES)),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_TEACHER_ACCOUNT, permissions.MANAGE)
+    ),
 ):
     # 演示老师禁止创建真实老师账号（防造 is_demo=False 账号登录绕过隔离）
     assert_not_demo_teacher(teacher)
@@ -278,7 +281,9 @@ def create_teacher(
 def delete_teacher(
     teacher_id: UUID,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(require_teacher_roles(*TEACHER_ADMIN_ROLES)),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_TEACHER_ACCOUNT, permissions.MANAGE)
+    ),
 ):
     # 演示老师禁止删除老师账号（防演示账号操作真实人事绕过隔离）
     assert_not_demo_teacher(teacher)

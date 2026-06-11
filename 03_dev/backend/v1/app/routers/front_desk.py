@@ -23,7 +23,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import models, permissions, schemas
 from ..database import get_db
 from ..deps import (
     assert_not_demo_teacher,
@@ -31,7 +31,7 @@ from ..deps import (
     demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_student,
-    get_current_teacher,
+    require_permission,
 )
 
 
@@ -62,7 +62,9 @@ LOST_AND_FOUND_EXPIRES_DAYS = 30
 def list_items(
     kind: Optional[str] = None,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_FRONTDESK, permissions.VIEW)
+    ),
 ):
     """列前台条目 — kind 可选过滤 + 按老师管辖男/女寮过滤。"""
     stmt = select(models.FrontDeskItem).order_by(models.FrontDeskItem.created_at.desc())
@@ -130,23 +132,16 @@ def list_my_deliveries(
 def search_recipients(
     q: Optional[str] = None,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_FRONTDESK, permissions.VIEW)
+    ),
 ):
-    """前台登记宅配时挑收件学生用 —— 权限同前台登记(_ADMIN_ROLES，含寮監)，
+    """前台登记宅配时挑收件学生用 —— 前台·宅配 V 权限即可，
     按老师管辖男/女寮过滤，只返回挑人需要的最小字段。
 
-    为什么单独建此端点、不复用账号管理的 GET /students：那个端点角色集不含寮監
-    （寮監能登记宅配却搜不了学生 → 选择器对寮監直接 403 失效），且会暴露账号锁定 /
-    最后登录时间等敏感字段，前台挑人不需要。
+    为什么单独建此端点、不复用账号管理的 GET /students：那是「学生账号管理」功能簇，
+    会暴露账号锁定 / 最后登录时间等敏感字段，前台挑人不需要、权限级别也不同。
     """
-    if teacher.role not in _ADMIN_ROLES:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "code": "FORBIDDEN_ROLE",
-                "message": "前台登记需要寮監 / 寮務 / 管理係 权限",
-            },
-        )
     stmt = select(models.Student).where(demo_scope_for_teacher(teacher))
     if q:
         like = f"%{q}%"
@@ -178,17 +173,11 @@ def search_recipients(
 def create_item(
     body: schemas.FrontDeskItemCreateIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_FRONTDESK, permissions.MANAGE)
+    ),
 ):
     """老师登记新条目。"""
-    if teacher.role not in _ADMIN_ROLES:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "code": "FORBIDDEN_ROLE",
-                "message": "前台登记需要寮監 / 寮務 / 管理係 权限",
-            },
-        )
     if body.student_id:
         student = db.get(models.Student, body.student_id)
         if not student:
@@ -228,17 +217,11 @@ def create_item(
 def notify_item(
     item_id: UUID,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_FRONTDESK, permissions.MANAGE)
+    ),
 ):
     """标记已通知学生 — pending → notified。"""
-    if teacher.role not in _ADMIN_ROLES:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "code": "FORBIDDEN_ROLE",
-                "message": "前台操作需要寮監 / 寮務 / 管理係 权限",
-            },
-        )
     row = db.get(models.FrontDeskItem, item_id)
     if not row:
         raise HTTPException(
@@ -273,17 +256,11 @@ def notify_item(
 def mark_picked_up(
     item_id: UUID,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_FRONTDESK, permissions.MANAGE)
+    ),
 ):
     """标记学生已取走 — pending/notified → picked_up。"""
-    if teacher.role not in _ADMIN_ROLES:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "code": "FORBIDDEN_ROLE",
-                "message": "前台操作需要寮監 / 寮務 / 管理係 权限",
-            },
-        )
     row = db.get(models.FrontDeskItem, item_id)
     if not row:
         raise HTTPException(

@@ -133,13 +133,18 @@ class TestListStudents:
         assert res.status_code == 401
 
     def test_403_wrong_role(self, client, admin_seed):
-        """寮監（権限なし）→ 403。"""
+        """寮監 → 学生名单可查看（200）。
+
+        权限分级改造（teacher_permission_v1.md §5 第 12 行「学生账号管理」对 5 个权限组
+        全部至少给查看 V）后，旧的「寮監连学生名单都看不了 → 403」行为被废弃。
+        寮監 默认映射到「一般宿管+晚自习」操作组，对学生账号管理有 M（含 V）。
+        """
         token = _teacher_token(client, "no_perm")
         res = client.get(
             "/api/v1/students",
             headers={"Authorization": f"Bearer {token}"},
         )
-        assert res.status_code == 403
+        assert res.status_code == 200
 
     def test_200_returns_real_students_only(self, client, admin_seed):
         """管理係 → 200、is_demo 学生が含まれない、total が実学生数と一致。"""
@@ -265,14 +270,19 @@ class TestPasswordReset:
         assert res.status_code == 401
 
     def test_403_wrong_role(self, client, admin_seed):
-        """権限なし役职 → 403。"""
+        """寮監 → 可重置学生密码（200）。
+
+        权限分级改造（teacher_permission_v1.md §5 第 12 行「学生账号管理」一般宿管系=M）后，
+        旧的「寮監非账号管理角色 → 403」行为被废弃：寮監 默认映射到「一般宿管+晚自习」操作组，
+        对学生账号管理有管理权 M。生产环境如需限制，给该账号显式指定「申請承認専用」组即可。
+        """
         token = _teacher_token(client, "no_perm")
         sid = str(admin_seed["student_a"].id)
         res = client.post(
             f"/api/v1/accounts/{sid}/password-reset",
             headers={"Authorization": f"Bearer {token}"},
         )
-        assert res.status_code == 403
+        assert res.status_code == 200
 
     def test_404_student_not_found(self, client, admin_seed):
         """存在しない student_id → 404。"""
@@ -389,14 +399,18 @@ class TestUnlockAccount:
         assert res.status_code == 401
 
     def test_403_wrong_role(self, client, admin_seed):
-        """権限なし役职 → 403。"""
+        """寮監 → 可解锁学生账号（200）。
+
+        同 password-reset：权限分级改造后旧「寮監非账号管理角色 → 403」废弃，
+        寮監 默认映射到「一般宿管+晚自习」操作组，对学生账号管理有 M（teacher_permission_v1 §5 行 12）。
+        """
         token = _teacher_token(client, "no_perm")
         sid = str(admin_seed["student_a"].id)
         res = client.post(
             f"/api/v1/accounts/{sid}/unlock",
             headers={"Authorization": f"Bearer {token}"},
         )
-        assert res.status_code == 403
+        assert res.status_code == 200
 
     def test_404_student_not_found(self, client, admin_seed):
         import uuid

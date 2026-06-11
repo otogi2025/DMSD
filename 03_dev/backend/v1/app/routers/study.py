@@ -27,13 +27,13 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
+from .. import permissions
 from ..deps import (
     assert_student_demo_match,
     demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_student,
-    get_current_teacher,
-    require_teacher_roles,
+    require_permission,
 )
 
 
@@ -98,7 +98,9 @@ def _study_start_dt(target: date) -> datetime:
 def today_attendees(
     target_date: Optional[date] = Query(None),
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_STUDY, permissions.VIEW)
+    ),
 ):
     today = target_date or _today_jst()
     study_start = _study_start_dt(today)
@@ -283,7 +285,9 @@ def today_attendees(
 def create_checkin(
     body: schemas.StudyCheckinIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_STUDY, permissions.MANAGE)
+    ),
 ):
     from zoneinfo import ZoneInfo
 
@@ -360,7 +364,7 @@ def bulk_finalize(
     body: schemas.StudyFinalizeIn,
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(
-        require_teacher_roles("学習担当", "寮務部長", "寮務課長", "寮監")
+        require_permission(permissions.C_STUDY, permissions.MANAGE)
     ),
 ):
     # 演示隔离：批量结算影响一组学生、无法按单个学生判 demo → 演示老师整体禁止
@@ -481,7 +485,9 @@ def patch_checkin(
     checkin_id: UUID,
     body: schemas.StudyCheckinPatch,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_STUDY, permissions.MANAGE)
+    ),
 ):
     record = db.get(models.StudyCheckin, checkin_id)
     if not record:
@@ -569,7 +575,9 @@ def list_absence_requests(
     target_date: Optional[date] = Query(None),
     status_filter: Optional[str] = Query(None, alias="status"),
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_STUDY, permissions.VIEW)
+    ),
 ):
     # 演示隔离：join Student 加 demo_scope，让真老师只看真实学生的欠席届 /
     # 演示老师只看演示学生的欠席届（否则演示老师能读到真实学生提交的欠席届）。
@@ -637,7 +645,7 @@ def decide_absence_request(
     body: schemas.StudyAbsenceDecisionIn,
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(
-        require_teacher_roles("学習担当", "寮務部長", "寮務課長", "寮監")
+        require_permission(permissions.C_STUDY, permissions.MANAGE)
     ),
 ):
     record = db.get(models.StudyAbsenceRequest, request_id)
@@ -668,7 +676,7 @@ def decide_absence_request(
 def cancel_today(
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(
-        require_teacher_roles("学習担当", "寮務部長", "寮務課長")
+        require_permission(permissions.C_STUDY, permissions.MANAGE)
     ),
 ):
     """今日の学習を中止 = 全 roster 学生を 'exempt' に一括設定。"""
@@ -737,7 +745,9 @@ _ROSTER_ROLES = ("学習担当", "寮務部長", "寮務課長", "寮監")
 def list_roster(
     target_date: Optional[date] = Query(None),
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(require_teacher_roles(*_ROSTER_ROLES)),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_STUDY, permissions.VIEW)
+    ),
 ):
     """当前学期名簿在籍者一览 — 给老师网页「学習対象名簿管理」页用。
 
@@ -797,7 +807,9 @@ def list_roster(
 def add_to_roster(
     body: schemas.StudyRosterAddIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(require_teacher_roles(*_ROSTER_ROLES)),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_STUDY, permissions.MANAGE)
+    ),
 ):
     """把一名学生加入当前学期名簿。
 
@@ -899,7 +911,9 @@ def add_to_roster(
 def remove_from_roster(
     student_id: UUID,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(require_teacher_roles(*_ROSTER_ROLES)),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_STUDY, permissions.MANAGE)
+    ),
 ):
     """把一名学生移出当前学期名簿 — 软删（removed_at 置 now），不物理删除。
 

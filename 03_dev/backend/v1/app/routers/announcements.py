@@ -29,14 +29,14 @@ from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy import func as sa_func, select
 from sqlalchemy.orm import Session
 
-from .. import models, schemas, security
+from .. import models, permissions, schemas, security
 from ..database import get_db
 from ..deps import (
     _parse_bearer,
     assert_not_demo_teacher,
     get_current_principal,
     get_current_student,
-    get_current_teacher,
+    require_permission,
 )
 
 router = APIRouter(prefix="/api/v1/announcements", tags=["announcements"])
@@ -427,7 +427,9 @@ def delete_reply(
 )
 def post_announcement(
     body: schemas.AnnouncementCreateIn,
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_ANNOUNCE, permissions.MANAGE)
+    ),
     db: Session = Depends(get_db),
 ):
     """老师发公告 — 任何老师 role 都可以（不限定职务，§7.15.7）。"""
@@ -460,7 +462,9 @@ def post_announcement(
 def update_announcement(
     announcement_id: UUID,
     body: schemas.AnnouncementUpdateIn,
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_ANNOUNCE, permissions.MANAGE)
+    ),
     db: Session = Depends(get_db),
 ):
     """老师编辑 — v1.0 仅作者本人可编辑（寮监 admin 编辑 = v1.1）。"""
@@ -502,7 +506,9 @@ def update_announcement(
 @router.delete("/{announcement_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_announcement(
     announcement_id: UUID,
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_ANNOUNCE, permissions.MANAGE)
+    ),
     db: Session = Depends(get_db),
 ):
     """老师软删 — v1.0 仅作者本人可删（寮监 admin 删 = v1.1）。"""

@@ -21,10 +21,11 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
+from .. import permissions
 from ..deps import (
     demo_scope_for_teacher,
     dorm_units_for_teacher,
-    require_teacher_roles,
+    require_permission,
 )
 from ..security import hash_password
 
@@ -106,7 +107,9 @@ def list_students(
     student_status: str | None = Query(
         None, alias="status", description="账号状态过滤 (active/locked/graduated 等)"
     ),
-    teacher: models.Teacher = Depends(require_teacher_roles(*ADMIN_ROLES)),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_STUDENT_ACCOUNT, permissions.VIEW)
+    ),
     db: Session = Depends(get_db),
 ):
     """学生列表 — 老师网页「账号管理页」挂载时调用。
@@ -197,7 +200,9 @@ def list_students(
 )
 def password_reset(
     student_id: UUID,
-    teacher: models.Teacher = Depends(require_teacher_roles(*ADMIN_ROLES)),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_STUDENT_ACCOUNT, permissions.MANAGE)
+    ),
     db: Session = Depends(get_db),
 ):
     """重置学生密码 — 临时密码明文仅此次响应返回，老师转交学生。
@@ -260,7 +265,9 @@ def password_reset(
 )
 def unlock_account(
     student_id: UUID,
-    teacher: models.Teacher = Depends(require_teacher_roles(*ADMIN_ROLES)),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_STUDENT_ACCOUNT, permissions.MANAGE)
+    ),
     db: Session = Depends(get_db),
 ):
     """解锁被锁账号。
@@ -309,7 +316,9 @@ def unlock_account(
 # ---------------------------------------------------------------
 @router.get("/students/renewal-progress", response_model=schemas.RenewalProgressOut)
 def renewal_progress(
-    teacher: models.Teacher = Depends(require_teacher_roles(*ADMIN_ROLES)),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_STUDENT_ACCOUNT, permissions.VIEW)
+    ),
     db: Session = Depends(get_db),
 ):
     """学年更新进度 — 还没自设番号的学生名单（needs_renewal=True）。
@@ -360,7 +369,9 @@ def renewal_progress(
 def teacher_renew_seat(
     student_id: UUID,
     body: schemas.TeacherRenewSeatIn,
-    teacher: models.Teacher = Depends(require_teacher_roles(*ADMIN_ROLES)),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_STUDENT_ACCOUNT, permissions.MANAGE)
+    ),
     db: Session = Depends(get_db),
 ):
     """老师单件改某学生番号（兜底 — 学生不会操作 / 填错时）。"""

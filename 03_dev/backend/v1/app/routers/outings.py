@@ -22,7 +22,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session, selectinload
 
-from .. import models, schemas
+from .. import models, permissions, schemas
 from ..database import get_db
 from ..deps import (
     assert_student_demo_match,
@@ -30,7 +30,7 @@ from ..deps import (
     dorm_units_for_teacher,
     get_current_principal,
     get_current_student,
-    get_current_teacher,
+    require_permission,
 )
 
 _JST = ZoneInfo("Asia/Tokyo")
@@ -149,7 +149,9 @@ def list_mine(
 @router.get("/pending-for-me", response_model=list[schemas.OutingOut])
 def list_pending_for_me(
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_APPROVAL, permissions.VIEW)
+    ),
 ):
     stmt = (
         select(models.Outing)
@@ -227,7 +229,9 @@ def get_outing(
 def confirm_outing(
     outing_id: UUID,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_APPROVAL, permissions.MANAGE)
+    ),
 ):
     outing = _load_outing(db, outing_id)
 

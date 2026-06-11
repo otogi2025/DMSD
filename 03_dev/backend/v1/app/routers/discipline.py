@@ -27,14 +27,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import models, permissions, schemas
 from ..database import get_db
 from ..deps import (
     assert_student_demo_match,
     demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_student,
-    get_current_teacher,
+    require_permission,
 )
 
 router = APIRouter(prefix="/api/v1/discipline", tags=["discipline"])
@@ -52,7 +52,9 @@ _ADMIN_ROLES = {"寮監", "寮務部長", "寮務課長", "管理係"}
 def get_ranking(
     month: str,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_DEMERIT, permissions.VIEW)
+    ),
 ):
     """月排名 — month 是 YYYY-MM 字符串。
 
@@ -164,17 +166,11 @@ def get_my_discipline_summary(
 def create_manual_demerit(
     body: schemas.DemeritManualIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_DEMERIT, permissions.MANAGE)
+    ),
 ):
-    """手动加扣分（寮監 / 寮務部長 / 寮務課長 / 管理係 权限）。"""
-    if teacher.role not in _ADMIN_ROLES:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "code": "FORBIDDEN_ROLE",
-                "message": "手动加扣分需要寮監 / 寮務 / 管理係 权限",
-            },
-        )
+    """手动加扣分（扣分管理 M 权限）。"""
     # 校验学生存在
     student = db.get(models.Student, body.student_id)
     if not student:
@@ -216,17 +212,11 @@ def revoke_demerit(
     event_id: UUID,
     body: schemas.DemeritRevokeIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_DEMERIT, permissions.MANAGE)
+    ),
 ):
     """撤销扣分 — 软删除（保留 row + 标 revoked_at）。"""
-    if teacher.role not in _ADMIN_ROLES:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "code": "FORBIDDEN_ROLE",
-                "message": "撤销扣分需要寮監 / 寮務 / 管理係 权限",
-            },
-        )
     event = db.get(models.DemeritEvent, event_id)
     if not event:
         raise HTTPException(

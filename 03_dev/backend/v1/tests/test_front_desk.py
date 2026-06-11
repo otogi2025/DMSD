@@ -310,11 +310,15 @@ def test_search_recipients_ryokan_can_access_and_dorm_filtered(
     assert "女子 受取人" not in names  # 女寮学生被过滤掉
 
 
-def test_search_recipients_rejects_non_admin_role(client, seed_data):
-    """寮務一般教師（tannin，不在前台登记角色集）调挑学生接口 → 403。"""
+def test_search_recipients_non_admin_can_view(client, seed_data):
+    """寮務一般教師（tannin）→ 可查看前台挑学生接口（200）。
+
+    权限分级改造（teacher_permission_v1.md §5 第 4 行「前台·宅配」5 组全部至少给查看 V）后，
+    旧的「寮務一般教師不在前台角色集 → 403」行为被废弃。tannin 默认映射「一般宿管」，对前台有 M（含 V）。
+    """
     token = _login_teacher(client, "tannin")
     res = client.get(
         "/api/v1/front-desk/students",
         headers={"Authorization": f"Bearer {token}"},
     )
-    assert res.status_code == 403, res.text
+    assert res.status_code == 200, res.text

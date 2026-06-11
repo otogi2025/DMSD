@@ -19,34 +19,18 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import models, permissions, schemas
 from ..database import get_db
 from ..deps import (
     assert_student_demo_match,
     demo_scope_for_teacher,
-    get_current_teacher,
+    require_permission,
 )
 
 router = APIRouter(prefix="/api/v1/incidents", tags=["incidents"])
 
-_INCIDENT_ROLES = {
-    "寮務部長",
-    "寮務課長",
-    "寮監",
-    "寮務一般教師",
-    "管理係",
-}
-
-
-def _require_incident_role(teacher: models.Teacher) -> None:
-    if teacher.role not in _INCIDENT_ROLES:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "code": "FORBIDDEN_ROLE",
-                "message": "事案录入需要寮務系老师权限",
-            },
-        )
+# 事案记录的功能权限（C_INCIDENT：管理动作 M / 查看动作 V）由各端点的 require_permission 闸判定，
+# 不再按职位拦（旧 _INCIDENT_ROLES 职位集已随权限分级改造移除）。寮边界仍在端点内单独校验。
 
 
 def _to_incident_out(
@@ -99,10 +83,11 @@ def _is_uuid(s: str) -> bool:
 def create_incident(
     body: schemas.IncidentRecordCreateIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_INCIDENT, permissions.MANAGE)
+    ),
 ):
     """老师录入新事案。"""
-    _require_incident_role(teacher)
 
     # 校验涉及学生是否都存在
     for sid in body.involved_student_ids:
@@ -149,10 +134,11 @@ def create_incident(
 @router.get("", response_model=schemas.IncidentRecordListOut)
 def list_incidents(
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_INCIDENT, permissions.VIEW)
+    ),
 ):
     """老师查事案列表（按事发日期倒序，排除软删）。"""
-    _require_incident_role(teacher)
 
     # 演示隔离：按事案创建者(recorded_by)的 is_demo 过滤 —— 演示老师只看演示老师建的事案、
     # 真老师只看真老师建的（事案本身没 demo 列，用现有创建者关系判，不改 schema）
@@ -174,10 +160,11 @@ def list_incidents(
 def get_incident(
     incident_id: UUID,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_INCIDENT, permissions.VIEW)
+    ),
 ):
     """老师查事案详情。"""
-    _require_incident_role(teacher)
 
     row = db.get(models.IncidentRecord, incident_id)
     if not row or row.deleted_at is not None:
@@ -199,10 +186,11 @@ def patch_incident(
     incident_id: UUID,
     body: schemas.IncidentRecordPatchIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_INCIDENT, permissions.MANAGE)
+    ),
 ):
     """老师编辑事案（部分更新）。"""
-    _require_incident_role(teacher)
 
     row = db.get(models.IncidentRecord, incident_id)
     if not row or row.deleted_at is not None:
@@ -259,10 +247,11 @@ def patch_incident(
 def delete_incident(
     incident_id: UUID,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_INCIDENT, permissions.MANAGE)
+    ),
 ):
     """老师软删事案（设 deleted_at，不物理删除）。"""
-    _require_incident_role(teacher)
 
     row = db.get(models.IncidentRecord, incident_id)
     if not row or row.deleted_at is not None:

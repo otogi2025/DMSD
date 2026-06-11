@@ -328,7 +328,21 @@ PROD_ADMIN_TEACHER = dict(
     # admin 邮箱用环境变量（生产部署设 ADMIN_EMAIL=真邮箱，不入仓库）；默认占位，不暴露隐私也不跟学生 demo 邮箱撞
     email=os.environ.get("ADMIN_EMAIL", "admin@tomoshibi.example"),
     role="寮務部長",
+    permission_group="寮管理者",  # 全权限·个人（teacher_permission_v1.md §3）
     assigned_dorm=None,
+)
+
+# op 账号（系统最高运维账号，teacher_permission_v1.md §7）— 全权限·非个人。
+# 密码绝不入仓库 / 迁移 / seed：seed 时从环境变量 OP_PASSWORD 读取，缺失则不建 op（不设缺省值）。
+# role 仅显示用、不参与鉴权；权限由 permission_group="op" 决定。
+OP_TEACHER = dict(
+    login_id="op",
+    name="システム管理 (op)",
+    email=os.environ.get("OP_EMAIL", "op@tomoshibi.example"),
+    role="寮務部長",
+    permission_group="op",
+    assigned_dorm=None,
+    is_demo=False,
 )
 
 # Apple 审核员 / 老师体验用账号 — spec system_features.md §7.20
@@ -355,6 +369,7 @@ DEMO_TEACHER = dict(
     name="デモ",
     email="demo-teacher@tomoshibi.example",
     role="寮務部長",  # 跨寮 → 演示老师能看到所有演示寮（1/2/4）的演示学生
+    permission_group="寮管理者",  # 演示老师全功能可见（演示数据范围内）
     assigned_dorm=None,
     is_demo=True,
 )
@@ -452,6 +467,27 @@ def seed_prod(db) -> None:
             PROD_ADMIN_TEACHER["login_id"],
             PROD_ADMIN_TEACHER["role"],
         )
+
+    # 1b. op 账号（最高运维，teacher_permission_v1.md §7）— 仅当 OP_PASSWORD 设置时建。
+    # 密码绝不入仓库；环境变量缺失则跳过（不设缺省值）。
+    op_password = os.environ.get("OP_PASSWORD")
+    if not op_password:
+        log.info("OP_PASSWORD 未设置 — 跳过建 op 账号（teacher_permission_v1 §7）")
+    else:
+        existing_op = db.scalars(
+            select(models.Teacher).where(
+                models.Teacher.login_id == OP_TEACHER["login_id"]
+            )
+        ).first()
+        if existing_op:
+            log.info("op 账号已存在 — 跳过")
+        else:
+            db.add(
+                models.Teacher(
+                    **OP_TEACHER, password_hash=security.hash_password(op_password)
+                )
+            )
+            log.info("加 op 账号 login_id=op permission_group=op")
 
     # 2. reviewer 学生（is_demo=True）
     existing_reviewer = db.scalars(

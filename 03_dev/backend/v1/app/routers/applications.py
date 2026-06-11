@@ -20,13 +20,13 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from .. import models, schemas, ws_manager as _ws
+from .. import models, permissions, schemas, ws_manager as _ws
 from ..database import get_db
 from ..deps import (
     assert_student_demo_match,
     demo_scope_for_teacher,
     get_current_student,
-    get_current_teacher,
+    require_permission,
 )
 from ..services import approval_chain, email as email_svc
 
@@ -170,7 +170,9 @@ def create_application_by_teacher(
     body: schemas.ApplicationCreateIn,
     student_id: UUID = Query(...),
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_APPROVAL, permissions.MANAGE)
+    ),
 ):
     """老师代学生补录出寮届（杭田五-3「老师可代学生当日补录」）。
 
@@ -327,7 +329,9 @@ def list_mine(
 @router.get("/pending-for-me", response_model=list[schemas.ApplicationOut])
 def list_pending_for_me(
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_APPROVAL, permissions.VIEW)
+    ),
 ):
     """当前役职 (teacher.role) が未決の application_approvals を持つ届を返す。"""
     from sqlalchemy import and_
@@ -382,7 +386,9 @@ def list_pending_for_me(
 def list_active_leaves(
     on_date: Optional[date] = Query(None, alias="date"),
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_APPROVAL, permissions.VIEW)
+    ),
 ):
     """事務室 PC 用「現在出寮中の学生一覧」（只读汇总）。
 
@@ -438,7 +444,9 @@ def list_active_leaves(
 def list_proxy_candidates(
     q: Optional[str] = Query(None, description="姓名 or 学号 模糊搜"),
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_APPROVAL, permissions.VIEW)
+    ),
 ):
     """老师代録出寮届时的学生选择器数据源（杭田五-3「老师可代学生当日补录」）。
 
@@ -784,7 +792,9 @@ def decide_approval(
     application_id: UUID,
     body: schemas.ApprovalIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_APPROVAL, permissions.MANAGE)
+    ),
 ):
     app = db.scalars(
         select(models.Application)

@@ -23,12 +23,13 @@ from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas, ws_manager as _ws
 from ..database import get_db
+from .. import permissions
 from ..deps import (
     assert_student_demo_match,
     demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_student,
-    get_current_teacher,
+    require_permission,
 )
 
 
@@ -105,7 +106,9 @@ def _as_jst_aware(value: datetime) -> datetime:
 @router.get("/today/sessions", response_model=list[schemas.RollCallSessionOut])
 def today_sessions(
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_ROLLCALL, permissions.VIEW)
+    ),
 ):
     from zoneinfo import ZoneInfo
 
@@ -204,7 +207,9 @@ def list_sessions_history(
     from_: Optional[date] = None,
     to: Optional[date] = None,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_ROLLCALL, permissions.VIEW)
+    ),
 ):
     from zoneinfo import ZoneInfo
 
@@ -251,7 +256,9 @@ def list_sessions_history(
 def start_session(
     session_id: UUID,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_ROLLCALL, permissions.MANAGE)
+    ),
 ):
     # 演示隔离：演示账号只读点呼，不能操作真实点呼场次（场次无 demo 标记，写会碰真实学生扣分）
     if teacher.is_demo:
@@ -302,7 +309,9 @@ def start_session(
 def end_session(
     session_id: UUID,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_ROLLCALL, permissions.MANAGE)
+    ),
 ):
     # 演示隔离：演示账号只读点呼，不能操作真实点呼场次（end 会触发 _settle_absent 给真实学生记缺席扣分）
     if teacher.is_demo:
@@ -351,7 +360,9 @@ def create_checkin(
     session_id: UUID,
     body: schemas.RollCallCheckinIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_ROLLCALL, permissions.MANAGE)
+    ),
 ):
     session = _get_session_or_404(db, session_id)
     if session.session_status != "running":
@@ -526,7 +537,9 @@ def create_checkin(
 def session_board(
     session_id: UUID,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_ROLLCALL, permissions.VIEW)
+    ),
 ):
     session = _get_session_or_404(db, session_id)
 
@@ -613,7 +626,9 @@ def session_board(
 def session_summary(
     session_id: UUID,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_ROLLCALL, permissions.VIEW)
+    ),
 ):
     session = _get_session_or_404(db, session_id)
     today = _today_jst()
@@ -734,7 +749,9 @@ def patch_event(
     event_id: UUID,
     body: schemas.RollCallEventPatch,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_ROLLCALL, permissions.MANAGE)
+    ),
 ):
     event = db.get(models.RollCallEvent, event_id)
     if not event:
@@ -894,7 +911,9 @@ def list_my_rollcall_reports(
 def list_rollcall_reports(
     only_unresolved: bool = False,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_ROLLCALL, permissions.VIEW)
+    ),
 ):
     """老师查学生点呼上报列表 — R4 寮过滤，可只看未处理。
 
@@ -923,7 +942,9 @@ def list_rollcall_reports(
 def resolve_rollcall_report(
     report_id: UUID,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_ROLLCALL, permissions.MANAGE)
+    ),
 ):
     """老师标记某条点呼上报为已处理 — R4 寮边界，重复处理返 409。"""
     report = db.get(models.RollCallReport, report_id)

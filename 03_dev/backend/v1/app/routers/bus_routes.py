@@ -15,16 +15,16 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import models, permissions, schemas
 from ..database import get_db
 from ..deps import (
     assert_not_demo_teacher,
     get_current_principal,
-    get_current_teacher,
+    require_permission,
 )
 
 router = APIRouter(prefix="/api/v1/bus/routes", tags=["bus"])
@@ -37,16 +37,9 @@ _VALID_VISIBLE_TO = {"all", "dorm_only", "men", "women"}
 
 
 def _require_edit_role(teacher: models.Teacher) -> None:
-    # 演示老师禁增删改全局巴士便（巴士无 is_demo，会污染真实学生看到的班次）→ 403
+    # 演示老师禁增删改全局巴士便（巴士无 is_demo，会污染真实学生看到的班次）→ 403。
+    # 权限组判定（巴士路线 = M）已上移到端点的 require_permission 闸；此处只剩演示隔离。
     assert_not_demo_teacher(teacher)
-    if teacher.role not in _EDIT_ROLES:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "code": "FORBIDDEN_ROLE",
-                "message": "巴士便の増删改には 寮務部長 / 寮務課長 / 管理係 権限が必要です",
-            },
-        )
 
 
 @router.get("", response_model=schemas.BusRouteListOut)
@@ -98,7 +91,9 @@ def get_bus_route(
 def create_bus_route(
     body: schemas.BusRouteCreateIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_BUS, permissions.MANAGE)
+    ),
 ):
     """役职老师新建巴士便。"""
     _require_edit_role(teacher)
@@ -139,7 +134,9 @@ def patch_bus_route(
     route_id: UUID,
     body: schemas.BusRoutePatchIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_BUS, permissions.MANAGE)
+    ),
 ):
     """役职老师编辑巴士便（部分更新）。
     A9 审查结论：deprecated 软删可逆 — spec §7.6 无不可逆条款，
@@ -212,7 +209,9 @@ def patch_bus_route(
 def delete_bus_route(
     route_id: UUID,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_BUS, permissions.MANAGE)
+    ),
 ):
     """役职老师停用巴士便（标 deprecated=True，不物理删除）。"""
     _require_edit_role(teacher)

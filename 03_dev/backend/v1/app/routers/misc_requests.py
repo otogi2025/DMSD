@@ -13,14 +13,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import models, permissions, schemas
 from ..database import get_db
 from ..deps import (
     assert_student_demo_match,
     demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_student,
-    get_current_teacher,
+    require_permission,
 )
 
 router = APIRouter(prefix="/api/v1/misc-requests", tags=["misc-requests"])
@@ -64,7 +64,9 @@ def list_my_misc_requests(
 @router.get("", response_model=list[schemas.MiscRequestOut])
 def list_misc_requests(
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_APPROVAL, permissions.VIEW)
+    ),
 ):
     """老师查杂项申请列表 — R4 寮过滤（男寮[1,2]/女寮[4]/跨寮看全部）。"""
     rows = db.scalars(
@@ -85,7 +87,9 @@ def list_misc_requests(
 def confirm_misc_request(
     request_id: UUID,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_APPROVAL, permissions.MANAGE)
+    ),
 ):
     """老师确认杂项申请 — R4 寮边界，非「确认待ち」状态返 409。"""
     row = db.get(models.MiscRequest, request_id)

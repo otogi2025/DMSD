@@ -579,12 +579,18 @@ class TestRenewalProgress:
         assert res.json()["pending_count"] == 0
 
     def test_progress_forbidden(self, client, promote_seed):
+        """学習担当 → 可查看学年更新进度（200）。
+
+        权限分级改造（teacher_permission_v1.md §5 第 12 行「学生账号管理」5 组全部至少 V）后，
+        旧「学習担当非账号管理角色 → 403」废弃。学習担当 默认映射「申請承認専用」对学生账号管理有 V（查看）。
+        管理动作（单件改番号 renew-seat）仍需 M（申請承認専用 = V<M），TestTeacherRenewSeat 保持 403。
+        """
         tok = _tok(client, "gakushu_promote")
         res = client.get(
             "/api/v1/students/renewal-progress",
             headers={"Authorization": f"Bearer {tok}"},
         )
-        assert res.status_code == 403
+        assert res.status_code == 200
 
 
 class TestTeacherRenewSeat:

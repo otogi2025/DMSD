@@ -21,14 +21,14 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..config import get_settings
 from ..database import get_db
+from .. import permissions
 from ..deps import (
     assert_student_demo_match,
     demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_principal,
     get_current_student,
-    get_current_teacher,
-    require_teacher_roles,
+    require_permission,
 )
 
 router = APIRouter(prefix="/api/v1/study/online-requests", tags=["study"])
@@ -123,7 +123,9 @@ def list_my_online_requests(
 def list_online_requests(
     status_filter: str | None = Query("pending", alias="status"),
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_APPROVAL, permissions.VIEW)
+    ),
 ):
     # 总是 join Student：演示隔离过滤（demo_scope_for_teacher）必须对全部角色生效，
     # 否则全寮角色（dorm_units_for_teacher 返回 None）的演示老师会看到真实学生申请。
@@ -157,7 +159,7 @@ def decide_online_request(
     body: schemas.StudyOnlineDecisionIn,
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(
-        require_teacher_roles("学習担当", "寮務部長", "寮務課長", "寮監")
+        require_permission(permissions.C_APPROVAL, permissions.MANAGE)
     ),
 ):
     record = db.get(models.StudyOnlineRequest, request_id)

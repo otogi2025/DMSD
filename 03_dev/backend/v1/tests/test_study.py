@@ -328,13 +328,17 @@ class TestRoster:
     """学習対象名簿 管理 — GET / POST / DELETE /study/roster（杭田 060604 五-2）。"""
 
     def test_list_roster_requires_role(self, client, low_role_teacher_token):
-        """名簿管理 gate 外的角色（管理係）拉名簿 → 403 FORBIDDEN_ROLE。"""
+        """管理係 → 可查看学習名簿（200）。
+
+        权限分级改造（teacher_permission_v1.md §5 第 11 行「晚自习出席记录」名簿查看=V，
+        一般宿管系含 V）后，旧「管理係不在名簿角色集 → 403」废弃。管理係 默认映射「一般宿管」对 study 有 V。
+        管理动作（增删名簿）仍需 M（一般宿管 = V<M），下方 test_remove_requires_role 保持 403。
+        """
         res = client.get(
             "/api/v1/study/roster",
             headers={"Authorization": f"Bearer {low_role_teacher_token}"},
         )
-        assert res.status_code == 403, res.text
-        assert res.json()["detail"]["code"] == "FORBIDDEN_ROLE"
+        assert res.status_code == 200, res.text
 
     def test_add_to_roster(self, client, teacher_token, seed_data):
         """老师把学生加入名簿 → 201，且记录 added_by = 操作老师。"""

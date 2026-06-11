@@ -126,6 +126,10 @@ class Teacher(Base):
     email: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
     role: Mapped[str] = mapped_column(String(32), nullable=False)
+    # 权限分级（teacher_permission_v1.md）: 账号创建时指定一个权限组，权限组决定每个功能簇的级别。
+    # 职位 role 退化为纯显示标签、不参与鉴权；鉴权看 permission_group。
+    # NULL = 还没显式配组（迁移前建的老师 / 测试夹具）→ app/permissions.py 按 role 回退默认组。
+    permission_group: Mapped[Optional[str]] = mapped_column(String(32))
     # D2 拍板: assigned_dorm = NULL (跨寮) | 1 (男寮 = 1+2 暗指) | 4 (女寮)
     assigned_dorm: Mapped[Optional[int]] = mapped_column(SmallInteger)
     failed_count: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
@@ -149,6 +153,11 @@ class Teacher(Base):
         CheckConstraint(
             "assigned_dorm IS NULL OR assigned_dorm IN (1, 2, 4)",
             name="ck_teachers_dorm",
+        ),
+        CheckConstraint(
+            "permission_group IS NULL OR permission_group IN "
+            "('op','寮管理者','一般宿管','一般宿管+晚自习','申請承認専用')",
+            name="ck_teachers_permission_group",
         ),
         CheckConstraint("status IN ('active','disabled')", name="ck_teachers_status"),
         Index("idx_teachers_is_demo", "is_demo"),

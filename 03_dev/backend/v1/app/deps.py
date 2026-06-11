@@ -14,7 +14,7 @@ from uuid import UUID
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 
-from . import models, security
+from . import models, permissions, security
 from .database import get_db
 
 # R4 — 跨寮角色能看全件
@@ -229,6 +229,40 @@ def require_teacher_roles(*allowed: str):
                 detail={
                     "code": "FORBIDDEN_ROLE",
                     "message": f"権限不足 (必要 role: {', '.join(allowed)})",
+                },
+            )
+        return teacher
+
+    return _checker
+
+
+def require_permission(cluster: str, level: int):
+    """权限分级闸（teacher_permission_v1.md §5）— 替代裸 get_current_teacher / require_teacher_roles。
+
+    用法：`Depends(require_permission(permissions.C_ROLLCALL, permissions.MANAGE))`
+    —— 管理动作传 MANAGE，查看动作传 VIEW。
+
+    按当前老师的有效权限组（permissions.effective_group）查 §5 矩阵：
+    - 级别达标 → 放行，返回 Teacher（端点 body 照常拿到老师对象）。
+    - 级别不足 → 403，detail.code = "FORBIDDEN_ROLE"（沿用旧闸的错误码，前端无需改）。
+
+    注：寮过滤（dorm_units_for_teacher）与本闸正交叠加 —— 本闸只判「能不能用这个功能」，
+    寮过滤在端点 body 内判「能看到哪些寮的学生」。
+    """
+
+    def _checker(
+        teacher: models.Teacher = Depends(get_current_teacher),
+    ) -> models.Teacher:
+        group = permissions.effective_group(teacher)
+        if not permissions.has_permission(group, cluster, level):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "FORBIDDEN_ROLE",
+                    "message": (
+                        f"権限不足（{cluster} には {permissions.level_name(level)} "
+                        "権限が必要です）"
+                    ),
                 },
             )
         return teacher

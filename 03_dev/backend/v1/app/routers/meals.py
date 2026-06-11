@@ -12,9 +12,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import models, permissions, schemas
 from ..database import get_db
-from ..deps import get_current_teacher
+from ..deps import require_permission
 from ..services import meals as meals_svc
 
 router = APIRouter(prefix="/api/v1/meals", tags=["meals"])
@@ -40,9 +40,10 @@ def calc(
     from_: date = Query(..., alias="from"),
     to: date = Query(...),
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_MEAL, permissions.VIEW)
+    ),
 ):
-    _check_role(teacher)
     if to < from_:
         raise HTTPException(
             status_code=422,
@@ -73,9 +74,10 @@ def export(
     from_: date = Query(..., alias="from"),
     to: date = Query(...),
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_MEAL, permissions.MANAGE)
+    ),
 ):
-    _check_role(teacher)
     if to < from_:
         raise HTTPException(
             status_code=422,

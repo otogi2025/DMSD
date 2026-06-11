@@ -21,37 +21,21 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from .. import models, schemas
+from .. import models, permissions, schemas
 from ..database import get_db
 from ..deps import (
     assert_student_demo_match,
     demo_scope_for_teacher,
     dorm_units_for_teacher,
     get_current_student,
-    get_current_teacher,
+    require_permission,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["guidance"])
 
 # 有权录入指导记录 + 查看 + 决定开示的角色
-_GUIDANCE_ROLES = {
-    "寮務部長",
-    "寮務課長",
-    "寮監",
-    "寮務一般教師",
-    "管理係",
-}
-
-
-def _require_guidance_role(teacher: models.Teacher) -> None:
-    if teacher.role not in _GUIDANCE_ROLES:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "code": "FORBIDDEN_ROLE",
-                "message": "指导履历操作需要寮務系老师权限",
-            },
-        )
+# 指导履历的功能权限（C_GUIDANCE：管理动作 M / 查看动作 V）由各端点的 require_permission 闸判定，
+# 不再按职位拦（旧 _GUIDANCE_ROLES 职位集已随权限分级改造移除）。寮边界仍在端点内单独校验。
 
 
 def _get_student_or_404(student_id: UUID, db: Session) -> models.Student:
@@ -76,10 +60,11 @@ def create_guidance(
     student_id: UUID,
     body: schemas.GuidanceRecordCreateIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_GUIDANCE, permissions.MANAGE)
+    ),
 ):
     """老师录入学生指导记录。"""
-    _require_guidance_role(teacher)
     student = _get_student_or_404(student_id, db)
     # 演示写隔离：演示老师只能给演示学生写记录、真老师只能给真实学生写（否则 404 隐藏存在性）
     assert_student_demo_match(teacher, student)
@@ -129,10 +114,11 @@ def list_guidance(
     student_id: UUID,
     limit: int = Query(50, le=200),
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_GUIDANCE, permissions.VIEW)
+    ),
 ):
     """老师查某学生全部指导记录（未软删的）。limit 默认 50，最大 200。"""
-    _require_guidance_role(teacher)
     student = _get_student_or_404(student_id, db)
 
     # 演示隔离：老师传任意 student_id 拉指导履历 → 演示老师不能拉真实学生（反之亦然），
@@ -235,13 +221,14 @@ def create_disclosure_request(
 def list_disclosure_requests(
     include_revoked: bool = False,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_GUIDANCE, permissions.VIEW)
+    ),
 ):
     """老师查开示申请列表（按申请时间倒序）。
     默认过滤 revoked_at IS NULL（未撤销），include_revoked=true 可看全部。
     R4 寮过滤：跨寮角色看全部；其他老师只看自己管辖寮的学生的申请。
     """
-    _require_guidance_role(teacher)
 
     # 演示隔离：始终 join Student 并按 demo 过滤（真老师只看真学生 / 演示老师只看演示学生），
     # 否则跨寮演示老师能看到真实学生的开示申请 = 泄漏。
@@ -277,10 +264,11 @@ def decide_disclosure(
     request_id: UUID,
     body: schemas.GuidanceDisclosureDecisionIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_GUIDANCE, permissions.MANAGE)
+    ),
 ):
     """老师决定开示：全部开示 / 部分开示 / 拒绝。"""
-    _require_guidance_role(teacher)
 
     row = db.scalar(
         select(models.GuidanceDisclosureRequest)
