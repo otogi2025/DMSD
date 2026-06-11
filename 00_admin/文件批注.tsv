@@ -43,3 +43,6 @@ bin/export_openapi.sh	导出后端接口总表（改了 backend 收尾时跑）
 bin/generate_file_inventory.py	文件清单生成器（收尾时跑，机器半边）
 00_admin/hooks/lib/sync-rules.sh	文件联动规则库（条数真值）
 00_admin/hooks/pre-commit	git 提交前一致性检查
+05_logs/dev_log/2026-06-11_管理体系二期.md	工程简报 — 管理体系二期会话（raw 迁移/启动改版/三件新基建）
+00_admin/handoff/iOS点呼状态机单元测试_交接_2026-06-11.md	交接件 — iOS 首批单元测试任务（等 iOS 接线会话收工接手）
+05_logs/dev_log/_README_工程简报格式.md	dev_log 目录格式说明（收尾模板）
