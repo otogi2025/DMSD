@@ -1023,6 +1023,9 @@ struct RollcallDisplay: Identifiable {
     let state: String // 時間内 / 遅刻 / 欠席 / 免除
     let method: String // NFC / ―
     let checkinTime: String? // 生产=checked_in_at 的 HH:mm:ss（详情真打卡时刻）；演示=nil
+    // R-1③：場次窗口時刻 HH:mm:ss（生产=后端真实開始/締切；演示 / 旧数据=nil 不显，不写死）
+    let windowStart: String?
+    let onTimeEnd: String?
 
     var isMorning: Bool {
         session.hasPrefix("朝")
@@ -1050,7 +1053,8 @@ extension RollcallDisplay {
     init(demo r: RollcallEntry) {
         self.init(
             id: r.id, date: r.date, session: r.session,
-            state: r.state, method: r.method, checkinTime: nil
+            state: r.state, method: r.method, checkinTime: nil,
+            windowStart: nil, onTimeEnd: nil
         )
     }
 
@@ -1062,7 +1066,10 @@ extension RollcallDisplay {
             session: e.session_type == "morning" ? "朝点呼" : "晩点呼",
             state: RollcallDisplay.stateLabel(e.base_status),
             method: e.status_source == "auto_nfc" ? "NFC" : "―",
-            checkinTime: rollcallTimeFmt.string(from: e.checked_in_at)
+            checkinTime: rollcallTimeFmt.string(from: e.checked_in_at),
+            // R-1③：真实场次窗口（旧数据无窗口 → nil，详情不显该行）
+            windowStart: e.scheduled_window_start_at.map { rollcallTimeFmt.string(from: $0) },
+            onTimeEnd: e.scheduled_on_time_end_at.map { rollcallTimeFmt.string(from: $0) }
         )
     }
 
@@ -1261,7 +1268,8 @@ struct MyRollcallDetailView: View {
                 .map(RollcallDisplay.init(real:))
         #endif
         return resolved ?? RollcallDisplay(
-            id: "—", date: "—", session: "朝点呼", state: "時間内", method: "―", checkinTime: nil
+            id: "—", date: "—", session: "朝点呼", state: "時間内", method: "―", checkinTime: nil,
+            windowStart: nil, onTimeEnd: nil
         )
     }
 
@@ -1294,13 +1302,20 @@ struct MyRollcallDetailView: View {
             ("状態", stateText),
             ("方式", record.method),
         ]
-        if record.isMorning {
-            pairs.append(("開始時刻", "07:00:00"))
-            pairs.append(("締切時刻", "07:10:00"))
-        } else {
-            pairs.append(("開始時刻", "21:00:00"))
-            pairs.append(("締切時刻", "21:10:00"))
-        }
+        #if DEMO
+            // 演示：固定示例窗口（叙事用）
+            if record.isMorning {
+                pairs.append(("開始時刻", "07:00:00"))
+                pairs.append(("締切時刻", "07:10:00"))
+            } else {
+                pairs.append(("開始時刻", "21:00:00"))
+                pairs.append(("締切時刻", "21:10:00"))
+            }
+        #else
+            // R-1③：生产显真实场次窗口（后端 join session 得）；旧数据无窗口则不显，不写死假时刻
+            if let ws = record.windowStart { pairs.append(("開始時刻", ws)) }
+            if let oe = record.onTimeEnd { pairs.append(("締切時刻", oe)) }
+        #endif
         #if DEMO
             // 演示：打卡时刻 / 迟到时长 仅在迟到时有固定示例值。
             if record.state == "遅刻" {

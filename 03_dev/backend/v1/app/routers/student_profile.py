@@ -305,7 +305,13 @@ def get_student_profile(
     # 3. 点呼记录（rollcall_events 表）— join session 取 session_type（朝/夜）
     #    杭田 2026-06-04 五-5：个人档案点呼履历要朝点呼/夜点呼分开，故带上 session_type
     rollcall_rows = db.execute(
-        select(models.RollCallEvent, models.RollCallSession.session_type)
+        select(
+            models.RollCallEvent,
+            models.RollCallSession.session_type,
+            # R-1③：带上窗口时刻，iOS 履历详情显真实開始/締切
+            models.RollCallSession.scheduled_window_start_at,
+            models.RollCallSession.scheduled_on_time_end_at,
+        )
         .join(
             models.RollCallSession,
             models.RollCallSession.id == models.RollCallEvent.session_id,
@@ -401,8 +407,10 @@ def get_student_profile(
                 base_status=rce.base_status,
                 status_source=rce.status_source,
                 checked_in_at=rce.checked_in_at,
+                scheduled_window_start_at=win_start,
+                scheduled_on_time_end_at=ontime_end,
             )
-            for rce, session_type in rollcall_rows
+            for rce, session_type, win_start, ontime_end in rollcall_rows
         ],
         guidance_records=[
             schemas.ProfileGuidanceEntry(

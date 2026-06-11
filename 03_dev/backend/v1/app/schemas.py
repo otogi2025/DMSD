@@ -1625,6 +1625,9 @@ class ProfileRollCallEntry(BaseModel):
     base_status: str  # present / late / absent / exempt_range
     status_source: str
     checked_in_at: datetime
+    # R-1③：该场次的窗口时刻（join session 得），iOS 履历详情显真实開始/締切，不再写死 07:00/21:00
+    scheduled_window_start_at: Optional[datetime] = None
+    scheduled_on_time_end_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 

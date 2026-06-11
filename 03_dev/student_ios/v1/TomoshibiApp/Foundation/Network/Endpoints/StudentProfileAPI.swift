@@ -17,6 +17,9 @@ struct ProfileRollCallEntry: Decodable, Identifiable, Hashable {
     let base_status: String // "present" | "late" | "absent" | "exempt_range"
     let status_source: String // "auto_nfc" | ...
     let checked_in_at: Date // 派生展示日期 + 打卡时刻，需参与排序 → Date
+    // R-1③：该场次窗口时刻（后端 join session 得），履历详情显真实開始/締切；旧数据可能 nil
+    let scheduled_window_start_at: Date?
+    let scheduled_on_time_end_at: Date?
 }
 
 /// 减点事件 entry（对齐后端 ProfileDemeritEntry）。
