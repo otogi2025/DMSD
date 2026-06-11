@@ -7,7 +7,7 @@
 # 工作流：
 # 1. 读 stdin 提取 file_path
 # 2. 按扩展名分发到对应格式化工具：
-#    - .py            → ruff check --fix + ruff format
+#    - .py            → ruff check --fix（--unfixable F401: 未使用 import 不自动删）+ ruff format
 #    - .swift         → swiftformat
 #    - .kt / .kts     → ktlint -F
 #    - .ts/.tsx/.js/.jsx/.vue/.css/.scss/.html/.json → prettier --write
@@ -69,7 +69,8 @@ fi
 case "$FILE_PATH" in
   *.py)
     if command -v ruff >/dev/null 2>&1; then
-      ruff check --fix "$FILE_PATH" >/dev/null 2>&1 || true
+      # --unfixable F401: 未使用 import 只报告不自动删 — 防 AI 分两步写代码（先加 import 再写用法）时 import 被中途删掉
+      ruff check --fix --unfixable F401 "$FILE_PATH" >/dev/null 2>&1 || true
       ruff format "$FILE_PATH" >/dev/null 2>&1 || true
     fi
     ;;

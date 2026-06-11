@@ -58,7 +58,7 @@ DMSD 用了 **3 类 hook**（2026-05-04 itsuki 拍板补 CC PostToolUse hook 后
 #### G. `post-edit-format.sh` — 多语言代码自动格式化（**2026-05-19 itsuki claude-code-setup 推荐后落地**）
 - 触发条件：CC Write/Edit 命中代码文件
 - 按扩展名分发：
-  - `.py` → `ruff check --fix` + `ruff format`
+  - `.py` → `ruff check --fix --unfixable F401` + `ruff format`（F401 = 未使用 import 只报告不自动删 — 防 AI 分两步写代码时 import 被中途删掉，6-11 机制兜底）
   - `.swift` → `swiftformat`
   - `.kt / .kts` → `ktlint -F`
   - `.ts / .tsx / .js / .jsx / .vue / .css / .scss / .html / .json` → `prettier --write`
