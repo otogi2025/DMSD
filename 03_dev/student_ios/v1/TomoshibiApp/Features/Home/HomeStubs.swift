@@ -869,11 +869,14 @@ struct LifeTab: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
-    /// 次回運行バス情報（busSchedule を見て「今日」or「直近未来日」の最初の便を返す）
+    /// 首页活动卡数据源（M-1 上线缺口）：演示版读 SEED.events / 生产版 .task 拉 EventsAPI 到这里
+    @State private var loadedEvents: [EventItem] = []
+    /// 首页巴士卡数据源：演示版 BusListMock / 生产版 .task 拉 BusAPI.listRoutes 到这里
+    @State private var loadedBusRoutes: [SpecialBusRoute] = []
+
+    /// 下一班巴士信息（从巴士便列表里取「今日且时刻未过」或「最近未来日」的第一班）
     private struct UpcomingBus {
-        let date: String // "2026-04-29"
-        let weekday: String // "水"
-        let line: BusLine
+        let route: SpecialBusRoute
         let isToday: Bool
     }
 
@@ -896,17 +899,21 @@ struct LifeTab: View {
         let today = Self.ymdFormatter.string(from: now)
         let nowHM = Self.hmFormatter.string(from: now)
 
-        // 今日の便（時刻が今より後のもの）
-        if let day = SEED.busSchedule.first(where: { $0.date == today }),
-           let line = day.lines.first(where: { $0.time > nowHM })
-        {
-            return UpcomingBus(date: day.date, weekday: day.weekday, line: line, isToday: true)
+        // 数据源：演示版假数据 / 生产版后端拉到的真巴士便（空 = 未登录/还没拉到/真没班 → 显「予定なし」不喂假）
+        #if DEMO
+            let source = BusListMock.all
+        #else
+            let source = loadedBusRoutes
+        #endif
+        let active = source.filter { !$0.deprecated }
+
+        // 今日且时刻未过的第一班（source 已按出发时刻排序）
+        if let r = active.first(where: { $0.date == today && $0.scheduleAt > nowHM }) {
+            return UpcomingBus(route: r, isToday: true)
         }
-        // 未来日の最初の便
-        if let day = SEED.busSchedule.first(where: { $0.date > today }),
-           let line = day.lines.first
-        {
-            return UpcomingBus(date: day.date, weekday: day.weekday, line: line, isToday: false)
+        // 最近未来日的第一班
+        if let r = active.first(where: { $0.date > today }) {
+            return UpcomingBus(route: r, isToday: false)
         }
         return nil
     }
@@ -924,13 +931,35 @@ struct LifeTab: View {
             lostCard
         }
         .task {
-            // 生产构建：拉真后端点歌 / 遗失物，让首页预览卡显真实最新（演示用 SEED 不拉）
+            // 生产构建：拉真后端点歌 / 遗失物 / 行事 / 巴士，让首页预览卡显真实最新（演示用 SEED 不拉）
             #if !DEMO
                 await app.loadSongs()
                 await app.loadLostFound()
+                await loadHomeEventsAndBus()
             #endif
         }
     }
+
+    #if !DEMO
+        /// 生产版拉首页活动卡 + 巴士卡的真数据（M-1 上线缺口）。
+        /// 未登录不拉；拉失败保持空 → 卡片显「0 件」/「予定なし」，绝不退回 SEED 假数据让学生误事。
+        private func loadHomeEventsAndBus() async {
+            guard app.isAuthenticated else { return }
+            let today = Self.ymdFormatter.string(from: Date())
+            let toYear = (Int(today.prefix(4)) ?? 2026) + 1
+            do {
+                let raw = try await EventsAPI.listEvents(fromDate: today, toDate: "\(toYear)-12-31")
+                loadedEvents = EventMapper.map(raw)
+            } catch {
+                loadedEvents = []
+            }
+            do {
+                loadedBusRoutes = try BusRouteMapper.map(await BusAPI.listRoutes())
+            } catch {
+                loadedBusRoutes = []
+            }
+        }
+    #endif
 
     // MARK: Bus card — JSX: 44×44 primary.12 bg / bus icon / 13 inkSub / 22 mono bold time
 
@@ -951,24 +980,24 @@ struct LifeTab: View {
                             .font(.system(size: 13))
                             .foregroundStyle(T.inkSub)
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Text(ub.line.time)
+                            Text(ub.route.scheduleAt)
                                 .font(.system(size: 22, weight: .bold, design: .monospaced))
                                 .foregroundStyle(T.ink)
                             if ub.isToday {
-                                Text("· \(ub.line.route)")
+                                Text("· \(ub.route.direction)")
                                     .font(.system(size: 12))
                                     .foregroundStyle(T.inkMute)
                                     .lineLimit(1)
                             } else {
                                 // "4/29(水) 07:30" 形式
-                                let md = String(ub.date.dropFirst(5)).replacingOccurrences(of: "-", with: "/")
-                                Text("· \(md)(\(ub.weekday))")
+                                let md = String(ub.route.date.dropFirst(5)).replacingOccurrences(of: "-", with: "/")
+                                Text("· \(md)(\(ub.route.weekday))")
                                     .font(.system(size: 12))
                                     .foregroundStyle(T.inkMute)
                             }
                         }
                         if !ub.isToday {
-                            Text(ub.line.route)
+                            Text(ub.route.direction)
                                 .font(.system(size: 11))
                                 .foregroundStyle(T.inkMute)
                                 .lineLimit(1)
@@ -1028,7 +1057,13 @@ struct LifeTab: View {
     // MARK: Events — JSX: accent.22 32×32 icon / 今週の活動 · 3 件 / 列 2 件
 
     private var eventsCard: some View {
-        HomeCard(pad: 14, onTap: { router.go(.homeEvents) }) {
+        // 演示=SEED 假行事 / 生产=后端真行事（首页预览卡，靠 #if DEMO 守卫；空 = 未登录/拉失败 → 显 0 件不喂假）
+        #if DEMO
+            let events = SEED.events
+        #else
+            let events = loadedEvents
+        #endif
+        return HomeCard(pad: 14, onTap: { router.go(.homeEvents) }) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     HStack(spacing: 10) {
@@ -1038,7 +1073,7 @@ struct LifeTab: View {
                                 .frame(width: 32, height: 32)
                             Ic.calendar(18).foregroundStyle(T.primary)
                         }
-                        Text("今週の活動 · \(SEED.events.count) 件")
+                        Text("今週の活動 · \(events.count) 件")
                             .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(T.ink)
                     }
@@ -1047,7 +1082,7 @@ struct LifeTab: View {
                 }
 
                 VStack(spacing: 0) {
-                    ForEach(SEED.events.prefix(2), id: \.id) { e in
+                    ForEach(events.prefix(2), id: \.id) { e in
                         HStack(spacing: 10) {
                             // JSX: mono 11 / inkMute / w 50 · slice(5) = "MM-DD"
                             Text(String(e.date.dropFirst(5)))
