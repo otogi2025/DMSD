@@ -77,10 +77,6 @@
 - **iOS 演示版直接用 `TomoshibiAppDemo` scheme 构建** — 不要按 BUILD.md 老办法手动加 `SWIFT_ACTIVE_COMPILATION_CONDITIONS`。正式版 scheme 是 `TomoshibiApp`，destination 用 `iPhone 17 Pro` 模拟器。
 - **Xcode 里手动改的工程配置必须写进 `project.yml`** — xcodegen 重新生成 pbxproj 时会把手动配置全部擦掉。
 
-## 会话开始 — 走 dmsd-startup skill
-
-启动 SOP 完整版在 `.claude/skills/dmsd-startup/SKILL.md`。
-
 ## 会话结束 — 走 session-wrap skill
 
 收尾 SOP 完整版在 `.claude/skills/session-wrap/SKILL.md`，触发关键词「收尾 / 整理今天 / 总结今天 / 记一下今天」自动加载。
@@ -109,17 +105,10 @@ git 状态确认（git status / 残留 / 未 push / stash）→ **会话结尾�
 
 ### 全局自动继承（`~/.claude/skills/` + plugin）
 
-| skill | 干嘛 |
-|---|---|
-| **ac-radar** | 实时 AC 入试素材捕获（写中央 inbox + iCloud raw 池当天文件）|
-| **cc-comm-rules** | 跟 itsuki 沟通的强制规则 |
-| ~~session-coord~~ | 多终端会话协作板 — **2026-06-11 停用**（没用上，防冲突靠即做即提交铁律；脚本保留可恢复）|
-| **patina / patina-max** | 去 AI 味重写（AC 叙事文档慎用 patina-max — 违反默认底线第 4 条）|
-| **diagnose** | 调试硬 bug 流程 |
-| **tdd** | 测试驱动开发 |
-| **grill-me** | 拷问设计 |
-| **graphify** | 代码知识图谱（`graphify-out/GRAPH_REPORT.md`，改完代码跑 `graphify update .`）|
-| **docx / xlsx / pptx / pdf** | 4 个文档生成 skill（AC 出愿 PDF 备用）|
+全局 skill / hook 清单的真值 = `~/.claude/我的环境.md`，各 skill 靠自己的说明文字自动触发，不在此罗列。DMSD 特有注意事项只有两条：
+
+- **patina / patina-max**（去 AI 味重写）：AC 叙事文档慎用 patina-max — 违反 AC 默认底线第 4 条
+- **graphify**（代码知识图谱）：改完代码跑 `graphify update .`，产出在 `graphify-out/GRAPH_REPORT.md`
 
 ### DMSD 项目专属（`.claude/skills/`）
 
@@ -141,16 +130,7 @@ hook 注册真值 = `~/.claude/settings.json`（全局）+ `.claude/settings.jso
 
 ## 全项目中枢联动
 
-中枢位置：`~/Library/Mobile Documents/com~apple~CloudDocs/02_学习与知识/升学/大学入試/全项目中枢/`
-
-itsuki 名下 4 个项目（大学入試 / DMSD / Tango / QTS）互通的中央协同板。CC 实例之间不能直接调用（每个 CC 独立进程），靠中枢文件传信。
-
-- **会话启动时**：来中枢读 `信箱/DMSD_inbox.md`，有新留言报告 itsuki
-- **会话收尾时**：来中枢更新 `项目档案/DMSD.md` 的「现状一句话」+「最后更新日期」
-- **想留言给别项目**：写到 `信箱/<对方>_inbox.md`（对方 = 大学入試 / Tango / QTS）
-- **想知道别项目在干嘛**：读 `项目档案/<对方>.md` 或 `_中央板.md`
-
-完整机制说明 → 中枢 `CLAUDE.md`
+中枢 = itsuki 名下 4 个项目（大学入試 / DMSD / Tango / QTS）互通的中央协同板：`~/Library/Mobile Documents/com~apple~CloudDocs/02_学习与知识/升学/大学入試/全项目中枢/`。启动读信箱已并入 dmsd-startup、收尾更新档案已并入 session-wrap，不在此复述。想给别项目留言 → 写中枢 `信箱/<对方>_inbox.md`；想看别项目动态 → 读 `项目档案/` 或 `_中央板.md`。完整机制 → 中枢 `CLAUDE.md`。
 
 ## 沟通规则
 
