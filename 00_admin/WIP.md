@@ -57,6 +57,13 @@
 
 ## 📜 最近会话（最多保留 5 条，老的删 — 详细历史看 commit log + raw/）
 
+### 2026-06-11 iOS 首次进入介绍页重做 + 公告 AI 功能 + 老师公告主页入口修复 by [Opus 4.8 1M]
+
+- 介绍页（OnboardingView）重做 4 页（タッチで点呼/外泊も帰省も/自分の記録/AI でもっと便利に）+ 只显示一次（SplashView `@AppStorage hasSeenOnboarding`）+ 无スキップ。原 3 页自 5-07 起是孤儿页（无活路由）。
+- 公告详情页加 AI 一键翻译（Translation 全机种）+ 一键要約（FoundationModels iOS 26+）；AI 头像启用（Image Playground 18.2+，子视图隔离）。
+- **itsuki 发现严重 bug**：老师公告 `AnnouncementListView` 是孤儿页、iOS 学生从任何地方进不去 → 主页加 announcementCard 入口；连带修演示版三 load 无 DEMO 分支（SEED 补 6 条真实宿舍公告，纯日语）。核实 iOS↔后端公告完全对齐。
+- 9 commit（`785c206`/`c5ce9a0`/`fa05f17`/`cb6e245`/`5fd518a`/`ae3128e`/`53e8d42`/`70cc10e`/`8407e04`），正式版+演示版双 BUILD SUCCEEDED，**未 push**。详见 dev_log 2026-06-11 会话 E + raw `2026-06-11_iOS介绍页+AI功能`。
+
 ### 2026-06-11 iOS R-3~R-5 + 图标 + M-1 + 首批单测 + 签名接线 by [Opus 4.8 1M]
 
 - 接 R3R4R5 交接件：R-3 三上报弹窗防连点 / R-4 登录锁定接后端 423/403 / R-5 体調履歴接 reports/mine。6-10 审查「🔴 重大已验证 5 组」清零。
