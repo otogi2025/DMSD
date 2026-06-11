@@ -2,6 +2,7 @@ import React from "react";
 import { RYO } from "../theme";
 import { api } from "../api/client";
 import type { TeacherOut, TeacherCreateIn } from "../api/types";
+import { SELECTABLE_GROUPS, GROUP_DORM_ADMIN } from "../api/permissions";
 
 // 源 index.html 14147-14813（components/teachers-admin-page.jsx 块）。界面原样搬，仅作用域引用改写。
 // /teachers-admin — 教员账号管理（2026-05-27 拍板）
@@ -333,6 +334,8 @@ function TeachersAdminCreateModal({
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [role, setRole] = React.useState("寮監");
+  const [permissionGroup, setPermissionGroup] =
+    React.useState(GROUP_DORM_ADMIN);
   const [assignedDorm, setAssignedDorm] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [err, setErr] = React.useState("");
@@ -369,6 +372,7 @@ function TeachersAdminCreateModal({
       email: email.trim(),
       password,
       role,
+      permission_group: permissionGroup,
       assigned_dorm: assignedDorm === "" ? undefined : Number(assignedDorm),
     });
     setSubmitting(false);
@@ -462,6 +466,42 @@ function TeachersAdminCreateModal({
               </option>
             ))}
           </select>
+        </label>
+
+        <label style={{ display: "block", marginBottom: 14 }}>
+          <div
+            style={{
+              fontSize: 11,
+              color: T.ink2,
+              marginBottom: 6,
+              fontWeight: 600,
+            }}
+          >
+            権限グループ
+          </div>
+          <select
+            value={permissionGroup}
+            onChange={(e) => setPermissionGroup(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              border: `1px solid ${T.lineStrong}`,
+              borderRadius: 8,
+              fontFamily: "inherit",
+              fontSize: 14,
+              background: T.surface,
+              color: T.ink,
+            }}
+          >
+            {SELECTABLE_GROUPS.map((g) => (
+              <option key={g.value} value={g.value}>
+                {g.label}
+              </option>
+            ))}
+          </select>
+          <div style={{ fontSize: 11, color: T.ink3, marginTop: 6 }}>
+            役職は表示のみ。実際の機能権限はこの権限グループで決まります。
+          </div>
         </label>
 
         <label style={{ display: "block", marginBottom: 14 }}>

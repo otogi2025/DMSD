@@ -834,6 +834,9 @@ class TeacherOut(BaseModel):
     name: str
     email: str
     role: str
+    # 权限组（teacher_permission_v1.md §3）— 决定该账号每个功能簇的权限级别；
+    # NULL = 还没显式配组（鉴权时按职位回退默认组，见 app/permissions.py）。
+    permission_group: Optional[str] = None
     assigned_dorm: Optional[int]
     status: str
     created_at: datetime
@@ -862,7 +865,9 @@ class TeacherCreateIn(BaseModel):
     name: str = Field(..., min_length=1)
     email: EmailStr
     password: str = Field(..., min_length=8)
-    role: str
+    role: str  # 职位标签（仅显示，不参与鉴权）
+    # 权限组（teacher_permission_v1.md §3）— 决定该账号功能权限；省略则建账号后按职位回退默认组。
+    permission_group: Optional[str] = None
     assigned_dorm: Optional[int] = None
 
 

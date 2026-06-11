@@ -232,6 +232,21 @@ def create_teacher(
             422,
             {"code": "INVALID_ROLE", "message": f"無効な役職: {body.role}"},
         )
+    # 权限组校验（teacher_permission_v1.md §3）— 省略则建账号后按职位回退默认组。
+    # 不允许经此端点创建 op（系统运维账号只走 seed + 环境变量 OP_PASSWORD）。
+    if body.permission_group is not None and body.permission_group not in (
+        permissions.GROUP_DORM_ADMIN,
+        permissions.GROUP_GENERAL,
+        permissions.GROUP_GENERAL_STUDY,
+        permissions.GROUP_APPROVAL,
+    ):
+        raise HTTPException(
+            422,
+            {
+                "code": "INVALID_PERMISSION_GROUP",
+                "message": f"無効な権限グループ: {body.permission_group}",
+            },
+        )
     # 唯一性预检 — login_id / email（不能完全防 race，仅给友好错误）
     existing = db.scalars(
         select(models.Teacher).where(
@@ -251,6 +266,7 @@ def create_teacher(
         email=body.email,
         password_hash=hash_password(body.password),
         role=body.role,
+        permission_group=body.permission_group,
         assigned_dorm=body.assigned_dorm,
         status="active",
     )

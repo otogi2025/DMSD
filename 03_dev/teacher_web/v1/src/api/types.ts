@@ -210,6 +210,8 @@ export interface TeacherOut {
   name: string;
   email: string;
   role: string;
+  // 权限组（teacher_permission_v1 §3）— 决定每个功能簇的权限级别；null = 未显式配组（后端按职位回退默认组）
+  permission_group: string | null;
   assigned_dorm: number | null;
   status: string;
   created_at: string;
@@ -227,7 +229,8 @@ export interface TeacherCreateIn {
   name: string;
   email: string;
   password: string;
-  role: string;
+  role: string; // 职位标签（仅显示）
+  permission_group?: string | null; // 权限组（决定功能权限）
   assigned_dorm?: number;
 }
 
