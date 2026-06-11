@@ -3,6 +3,7 @@
 <!-- 滚动规则：最后更新段只留最近 5 次会话，老条目收尾时移 99_archive -->
 **最后更新**: 2026-06-11（最近 5 次会话，每条一行；完整历史原文 → `99_archive/2026-06-10_WIP历史段归档.md`）
 
+- **2026-06-11 iOS 点呼显示链 R-1/R-2 接真后端**——新建学生端 `GET /rollcall/me/today`（今日本人寮场次+四时间窗+我的判定）；iOS AppStore 时间窗状态机真实驱动 rollState（idle→进行中→欠席）+ 签到判定，消除写死「時間外/時間内」+ MyPage 详情写死 07:00/21:00（R-1③ profile 接口补窗口字段）。3 commit（`8cdff97`/`20776b6`/`9f92d00`）+ 收尾 `e0521e3`，**未 push**。R-3/4/5 提示词存 `handoff/`，待 compact 后接做。决策：v1.0 不支持手机签到但 ST25DVWriter 留 / iOS 暂只为上架。详见 dev_log `2026-06-11`。
 - **2026-06-11 三份索引文档对账校准**——`project-overview`（文件字典 1399→1450 committed：backend 104→112 加 3 路由 2 测试 / iOS 78→84 / Android 131→132 / 99_archive 639→650 等）+ `PROJECT_GUIDE`（§5.1 响应包络标「与代码不符」对齐心智模型 + decision_log 路径修）+ `~/.claude/我的环境.md`（anti-ai-flavor 6→8 类 / DMSD skills 8→9 补 codex-review / 删退役 progress_overview）。2 commit（`cc29127`/`5d4ad3d`）未 push。⚠️ `我的环境.html` 落后待重生成（记 TODO）。详见 raw/dev_log `2026-06-11`。
 - **2026-06-10 优化项目框架（管理体系大改版）**——progress_overview 退役 / PROJECT_GUIDE 补成可外发版 / 收尾流程重构（核对表 13 项、砍 iCloud 会话总结、决策日志拆 `decisions/` 双文件、学习轨迹+演化入强制核对）/ Rule 26 范围冻结联动 / 即做即提交立铁律 / anti-ai-flavor 提醒 hook 停用。详见 raw/dev_log `2026-06-10_优化项目框架`。**未 push**。
 - **2026-06-10 WIP/TODO 瘦身重组**——按交接件 `WIP_TODO瘦身_交接_2026-06-10.md` 把 TODO.md 重排成 §A 上线必做 / §B 不挡上线 / §C 长尾存疑 / §D 等拍板 四层（571 条未完成只搬家未改写、前后计数一致，整段已完成移 `TODO_完成归档.md`）+ 本段瘦身到 5 条。**未 push**。
