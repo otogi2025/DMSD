@@ -21,6 +21,20 @@
                ReferencedContainer = "container:TomoshibiApp.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "01DFC0FF25CE3AECDAECA87C"
+               BuildableName = "TomoshibiAppTests.xctest"
+               BlueprintName = "TomoshibiAppTests"
+               ReferencedContainer = "container:TomoshibiApp.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -39,7 +53,20 @@
          </BuildableReference>
       </MacroExpansion>
       <Testables>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "01DFC0FF25CE3AECDAECA87C"
+               BuildableName = "TomoshibiAppTests.xctest"
+               BlueprintName = "TomoshibiAppTests"
+               ReferencedContainer = "container:TomoshibiApp.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
+      <CommandLineArguments>
+      </CommandLineArguments>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
