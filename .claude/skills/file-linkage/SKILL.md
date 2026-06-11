@@ -263,7 +263,7 @@ grep -rn "ComponentName" 03_dev/student_ios/v1/TomoshibiApp/Features/
 - `05_logs/版本演变一览.md` = 面向 AC 教授的详细叙事版（**改 CHANGELOG 必连带改这里**：加新版本的总表行 + 详细段，因为这是 AC 素材）
 - 三端客户端版本号：iOS `03_dev/student_ios/v1/project.yml`（`INFOPLIST_KEY_CFBundleShortVersionString`）/ Android `03_dev/student_android/v1/app/build.gradle.kts`（`versionName`）/ 老师网页 `03_dev/teacher_web/v1/src/theme.ts`（`APP_VERSION`）— minor bump 必同步，patch 可攒到下次 minor
 
-**为什么**：`文档同步点清单.md §1` 定义版本号单一真值 = `CHANGELOG.md`。改 CHANGELOG = 迭代版本，必须同步：① WIP 头部版本号 ② 版本演变一览 ③ 三端客户端版本号。② 是 itsuki 2026-06-05 拍板补的绑定 —— 原话「迭代版本要改 changelog，改了 changelog 就该改版本演变一览，这两个文件要绑在一起，版本演变一览要包含详细的内容，因为是素材」。③ 是 2026-06-12 补 —— 三端实际每次大版本都在同步改（0.12.0 / 0.15.0 两次），但规则一直没列，6-09 重排后三端停在 0.15.0 漂移了。完整 bump 流程见 version-bump skill。
+**为什么**：`文档同步点清单.md §1` 定义版本号单一真值 = `CHANGELOG.md`。改 CHANGELOG = 迭代版本，必须同步：① WIP 头部版本号 ② 版本演变一览 ③ 三端客户端版本号。② 是 itsuki 2026-06-05 拍板补的绑定 —— 原话「迭代版本要改 changelog，改了 changelog 就该改版本演变一览，这两个文件要绑在一起，版本演变一览要包含详细的内容，因为是素材」。③ 是后补 —— 三端实际每次大版本都在同步改，但规则一直没列过，曾因此漂移（一次重排后三端版本号停在旧值没人发现）。完整 bump 流程见 version-bump skill。
 
 ---
 
