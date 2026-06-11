@@ -1339,3 +1339,11 @@ gpt-5 + high（非预期 gpt-5.5 + xhigh）逐层挖 `ST25DVWriter` NFC 取消�
 `MyHealthView` 原整页 `ForEach(SEED.health)` 无 `#if DEMO`、无后端拉取 → 生产学生看到假人发烧 38 度记录当自己健康史。
 - `RollCallReportsAPI.listMine()` 接后端已有的 `GET /rollcall/reports/mine`（缺口在 iOS 侧没 list 方法；后端不按 kind 过滤 → iOS 端 filter `kind=="health"`）。
 - `MyHealthView` 改双轨（演示 `SEED.health` / 生产 `.task` 拉 `listMine()`）+ 三态（加载转圈 / 失败可重试 / 真空态），失败也不退回假病历。生产版后端 body 是自由文本（症状/体温/補足 拼成多行）原样显示 + 提交时刻。
+
+## §17 [2026-06-11] app 图标换新 + 首页活动/巴士卡接真（M-1）
+
+### §17.1 app 图标换成 Tomoshibi-icon-1（commit `31a40fc`）
+`TomoshibiApp/AppIcon.icon` 内容换成 `06_assets/icons/Tomoshibi-icon-1.icon`（itsuki 6-09 做的新设计 — 青绿线性渐变 + tomoshibi-icon-new.png logo 层 + translucency），`AppIcon-1024.png` 同步换成新 1024 图。替换旧红色玻璃火苗。文件名/路径不变 → pbxproj 无需改。双 scheme BUILD SUCCEEDED。（全项目图标统一：老师网页 logo 同日同步换；Android 自适应图标因需合成 logo+渐变层 + 本机无 ImageMagick + 另会话在改 Android，留作专项跟进。）
+
+### §17.2 首页活动卡 + 巴士卡接后端（M-1，commit `fc57edb`）
+`LifeTab` 首页「今週の活動」卡 + 巴士卡原直读 `SEED.events` / `SEED.busSchedule` 无 `#if DEMO` → 生产学生看到 2 个月前死假活动/巴士。修法照 `MyLandingView` / `BusListView` 范本：加 `loadedEvents`/`loadedBusRoutes` 两个 `@State`，`.task` 生产版（`#if !DEMO`）拉 `EventsAPI.listEvents`（今日起到次年底）+ `BusAPI.listRoutes`（经 `BusRouteMapper`）。`eventsCard` 用 `#if DEMO SEED.events #else loadedEvents`；`upcomingBus` 从 `loadedBusRoutes`（`SpecialBusRoute`）算今日未过/最近未来第一班，`UpcomingBus` 结构从 `BusLine` 改持 `SpecialBusRoute`，busCard 渲染字段相应改 `ub.route.scheduleAt`/`.direction`/`.date`/`.weekday`。拉失败显「0 件」/「予定なし」不退回假数据。〔同族遗留：`packageCard` 仍读 `SEED.packages`，未在本次范围。〕
