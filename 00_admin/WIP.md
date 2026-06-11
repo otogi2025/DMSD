@@ -3,11 +3,11 @@
 <!-- 滚动规则：最后更新段只留最近 5 次会话，老条目收尾时移 99_archive -->
 **最后更新**: 2026-06-11（最近 5 次会话，每条一行；完整历史原文 → `99_archive/2026-06-10_WIP历史段归档.md`）
 
+- **2026-06-11 管理体系二期（启动流程改版 + 真值机器化）**——raw 107 文件迁 iCloud 素材池（仓库留指路牌）/ session-coord 停用 / 启动要读的量 1150→450 行（dmsd-startup v0.4.0 指针化 + Rule 27 兜底）/ 新基建三件（老师网页 CI `ci.yml` + 后端 142 接口总表 `openapi_snapshot.json` + 文件清单生成器双轨）/ 收尾核对表 13→14 项（AC 快照第 9 项 + 版本判定第 13 项并入）/ iOS 单元测试交接件 / worktree 指南入第二大脑。17+ commit **未 push**。详见 dev_log `2026-06-11_管理体系二期`。<!-- VERSION_OK -->
 - **2026-06-11 CLAUDE.md 治理瘦身 + demo 认知缺口修补（harness 评估会话）**——评估第三方插件 harness 后判不装（会覆盖手写 CLAUDE.md + 不适配 5 端 monorepo）、改手工跑 5 端命令实测（后端 367 passed / iOS 双 scheme / Android / 网页全过，3 发现入 TODO §B）。CLAUDE.md 大瘦身（DMSD 171→155 / 全局 113→46，删复印件换指针）+ anti-ai-flavor 整套退役归档 + ruff 删 import 坑用挂钩 `--unfixable F401` 机制堵死 + 心智模型补 §4.1 demo 双轨 + 立 150 行红线。多 commit（`92012a0`/`8f73449`/`caef9d3`/`8f78ec0`/`56f8aec` 等）**未 push**。详见 dev_log/raw `2026-06-11`。
 - **2026-06-11 iOS 点呼显示链 R-1/R-2 接真后端**——新建学生端 `GET /rollcall/me/today`（今日本人寮场次+四时间窗+我的判定）；iOS AppStore 时间窗状态机真实驱动 rollState（idle→进行中→欠席）+ 签到判定，消除写死「時間外/時間内」+ MyPage 详情写死 07:00/21:00（R-1③ profile 接口补窗口字段）。3 commit（`8cdff97`/`20776b6`/`9f92d00`）+ 收尾 `e0521e3`，**未 push**。R-3/4/5 提示词存 `handoff/`，待 compact 后接做。决策：v1.0 不支持手机签到但 ST25DVWriter 留 / iOS 暂只为上架。详见 dev_log `2026-06-11`。
 - **2026-06-11 三份索引文档对账校准**——`project-overview`（文件字典 1399→1450 committed：backend 104→112 加 3 路由 2 测试 / iOS 78→84 / Android 131→132 / 99_archive 639→650 等）+ `PROJECT_GUIDE`（§5.1 响应包络标「与代码不符」对齐心智模型 + decision_log 路径修）+ `~/.claude/我的环境.md`（anti-ai-flavor 6→8 类 / DMSD skills 8→9 补 codex-review / 删退役 progress_overview）。2 commit（`cc29127`/`5d4ad3d`）未 push。⚠️ `我的环境.html` 落后待重生成（记 TODO）。详见 raw/dev_log `2026-06-11`。
 - **2026-06-10 优化项目框架（管理体系大改版）**——progress_overview 退役 / PROJECT_GUIDE 补成可外发版 / 收尾流程重构（核对表 13 项、砍 iCloud 会话总结、决策日志拆 `decisions/` 双文件、学习轨迹+演化入强制核对）/ Rule 26 范围冻结联动 / 即做即提交立铁律 / anti-ai-flavor 提醒 hook 停用。详见 raw/dev_log `2026-06-10_优化项目框架`。**未 push**。
-- **2026-06-10 WIP/TODO 瘦身重组**——按交接件 `WIP_TODO瘦身_交接_2026-06-10.md` 把 TODO.md 重排成 §A 上线必做 / §B 不挡上线 / §C 长尾存疑 / §D 等拍板 四层（571 条未完成只搬家未改写、前后计数一致，整段已完成移 `TODO_完成归档.md`）+ 本段瘦身到 5 条。**未 push**。
 
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
@@ -28,7 +28,7 @@
 
 ---
 
-**当前版本**: v0.22.3 <!-- VERSION_OK -->（2026-06-11 插空细分：老段号位空隙补打 70 个补丁标签 v0.3.3~v0.14.8（已 push 旧标签与 commit 全未动）+ 新段补 v0.20.0~v0.22.3，标签总数 143；详见 CHANGELOG 顶部「2026-06-11 插空细分说明」。更早：2026-06-09 重排 v0.15.1~v0.19.3 ×32）
+**当前版本**: v0.23.0 <!-- VERSION_OK -->（2026-06-11 深夜「版本当场结账」首战 — iOS 体验功能批次 + 首批 7 条单元测试 + 管理基建搭车，详见 CHANGELOG 顶部）。早些（2026-06-11 插空细分：老段号位空隙补打 70 个补丁标签 v0.3.3~v0.14.8（已 push 旧标签与 commit 全未动）+ 新段补 v0.20.0~v0.22.3，标签总数 143；详见 CHANGELOG 顶部「2026-06-11 插空细分说明」。更早：2026-06-09 重排 v0.15.1~v0.19.3 ×32）
 **版本 bump 流程**: `.claude/skills/version-bump/SKILL.md`（itsuki 说「迭代/bump/发版本/打 tag」自动触发；CC 有否决权 — 即使 itsuki 说要 bump 但 §2 决策树不命中可以拒绝）
 
 ---

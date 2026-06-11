@@ -58,7 +58,7 @@ targets:
         INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleDefault
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_CFBundleDisplayName: Tomoshibi
-        INFOPLIST_KEY_CFBundleShortVersionString: "0.22.3"
+        INFOPLIST_KEY_CFBundleShortVersionString: "0.23.0"
         INFOPLIST_KEY_CFBundleVersion: "1"
         SWIFT_EMIT_LOC_STRINGS: "YES"
         GENERATE_INFOPLIST_FILE: "YES"
