@@ -17,6 +17,21 @@
 
 ## 决策流水（倒序）
 
+## 2026-06-11 — iOS 签名接线：填 Team ID DCQ2KT5ZA9 + 签名开关全关改 YES
+为什么：itsuki 给了苹果开发者团队编号，App Store 上架/Archive 必须签名（原 project.yml 全程关、开发期模拟器够用）。模拟器构建不受影响，真 Archive 仍需 itsuki 在 Xcode 登该账号。
+
+## 2026-06-11 — Team ID 等「外部账号/编号」配置值放仓库（设计档案 + project.yml），不只放 CC memory
+为什么：itsuki 怒「team id 放设计档案或者别的 dmsd 里面该放这种东西的地方啊」——memory 是 CC 本地、itsuki 看不见也不算 DMSD。规则：配置真值进仓库（project.yml 生效位 + IOS_DESIGN_LOG §19 人读登记表），memory 只作 recall 附带。
+
+## 2026-06-11 — Android 图标暂不换（itsuki「先别管」）
+为什么：iOS + 老师网页图标已换 Tomoshibi-icon-1；Android 自适应图标需合成 logo+渐变层、本机无 ImageMagick + 别会话在改 Android → 拍板先搁置。
+
+## 2026-06-11 — iOS 点呼判定抽纯函数 decideRollState + 建首批单元测试
+为什么：iOS 至今只有「编译过」一种验证，造假而编译绿 → 抽可注入 now 的纯函数（标 nonisolated）+ 建 TomoshibiAppTests 目标 + 7 条时间窗状态机测试。iOS 首次有逻辑层测试。
+
+## 2026-06-11 — M-1 修首页活动卡顺带把同卡片群巴士卡一起接真
+为什么：itsuki 说「M-1/巴士卡」一起修。两卡同样直读 SEED 假数据，一笔接真（EventsAPI/BusAPI）；packageCard 同族但不在范围、记遗留。
+
 ## 2026-06-11 — 版本判定并入收尾核对表（第 13 项），当场结账不攒标签
 为什么：itsuki 提出「光 commit 不更新版本，收尾当场 bump，下个会话看到新版往上叠」— 治 6-09 那种 95 commit 回头补 32 标签的回溯马拉松。决策树 + CC 否决权照旧，不该升报理由。核对表 13→14 项。
 
