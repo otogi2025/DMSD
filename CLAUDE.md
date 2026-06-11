@@ -70,6 +70,13 @@
 - 中文铁律：代码注释 + 内部文档 100% 中文 / UI 字符串保持日语（hook 实时扫描）
 - 文件联动详见：`.claude/skills/file-linkage/SKILL.md`
 
+## 各端构建 / 测试防坑（实测验证过，CC 跑命令前先看）
+
+- **项目根目录没有任何技术栈配置文件** — 5 端各自埋在 `03_dev/<端>/v1/` 下，在根目录跑 `pytest` / `npm test` 必失败。先 cd 进对应端再跑。
+- **后端测试必须用项目自带虚拟环境** — 系统 Python 没装 fastapi，裸跑 `pytest` 必败。正确：`cd 03_dev/backend/v1 && .venv/bin/python -m pytest`（全量约 3 分钟）。
+- **iOS 演示版直接用 `TomoshibiAppDemo` scheme 构建** — 不要按 BUILD.md 老办法手动加 `SWIFT_ACTIVE_COMPILATION_CONDITIONS`。正式版 scheme 是 `TomoshibiApp`，destination 用 `iPhone 17 Pro` 模拟器。
+- **Xcode 里手动改的工程配置必须写进 `project.yml`** — xcodegen 重新生成 pbxproj 时会把手动配置全部擦掉。
+
 ## 会话开始 — 走 dmsd-startup skill
 
 启动 SOP 完整版在 `.claude/skills/dmsd-startup/SKILL.md`。
