@@ -32,7 +32,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 |---|---|---|---|
 | `99_archive/` | 650 | 45% | 归档物（5-26 晚段-4 加 `2026-05-26_teacher_web_vite实装作废/` 13 文件 = App.tsx + main.tsx + Shell.tsx + pages × 5 + store/auth.ts + vite_root_index.html + package.json + lock + vite.config.ts + tailwind.config.js + postcss.config.js + tsconfig × 2 — itsuki 拍板 Vite + TS 实装版整体废弃 + 5-26 晚加 `2026-05-26_ios_v1_demo_snapshot/` 42 文件（iOS demo 后门删除前快照） + 5-26 早 3 个 iOS 上架配置归位 + 5-22 加 2026-05-21_pre_fix + 2026-05-22_tomoshibi_appstore_fork 残余 + 5-21 teacher_web/demo 整组 158 文件归档 + 早期 GPT 对话 / throwaway iOS / demo 4-28 / 5-12 深夜大整理 / cloud agent 退役 / 5-02 handoff × 4 等）|
 | `03_dev/` | 541 | 37% | 代码 + 设计 LOG（含未 commit iOS `APIErrorPresenter.swift` + `project.pbxproj.bak3_before_apierrorpresenter_register` 2 文件；5-27 早段-2 git mv `student_ios/_archived_DESIGN_BRIEF_Round1_context.md` → 99_archive/2026-04-22_ios_round1_design_brief/；5-26 晚段-4 删除 Vite 实装 13 文件 → 全归档 → teacher_web 回到 Ryō standalone 主线）|
-| `05_logs/` | 70 | 5% | **raw 已迁 iCloud 素材池（6-11，仓库剩 README + 滞留文件）** / dev_log 17 / AC_叙事 12 / audit_2026-05-19 13 + audit_2026-05-22_codex 7 / problem_solving 4 / decisions 2 + learning_path + project_evolution / 散件（详见 §6）（早期细分：5-16/19/21/22/22-iOS/24/25/25-AC学习清单/26/26-dmsd-startup/26-vite废弃+polish回滚/27-teacher_web_v1.0_深夜推进/27-ios审查/27-全项目审查/27-anti-ai-flavor双层防御立项/27-整理inbox+8类升级/27-老师实名账户登录/27-ios登录注册大改+审批链进度条/28-ios_codex审查/28-注册页demo空+数字码+设计文档中文化/28-web登录页修复）/ AC_叙事 12 / dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）|
+| `05_logs/` | 57 | 5% | **raw 已迁 iCloud 素材池（6-11，仓库剩 README + 滞留文件）** / dev_log 17 / AC_叙事 已迁iCloud（剩README）/ audit_2026-05-19 13 + audit_2026-05-22_codex 7 / problem_solving 4 / decisions 2 + learning_path + project_evolution / 散件（详见 §6）（早期细分：5-16/19/21/22/22-iOS/24/25/25-AC学习清单/26/26-dmsd-startup/26-vite废弃+polish回滚/27-teacher_web_v1.0_深夜推进/27-ios审查/27-全项目审查/27-anti-ai-flavor双层防御立项/27-整理inbox+8类升级/27-老师实名账户登录/27-ios登录注册大改+审批链进度条/28-ios_codex审查/28-注册页demo空+数字码+设计文档中文化/28-web登录页修复）/ AC_叙事 已迁iCloud（剩README）/ dev_log / problem_solving / meta + audit_2026-05-19/（_session_prompts + _fixed_1-4 + 3 session findings + _master_issues）+ audit_2026-05-21_codex/ + audit_2026-05-22_codex/（5 类 jsonl + tsv + findings.md + json）|
 | `00_admin/` | 28 | 1.9% | 10 顶级 md + `handoff/`（4 件 AI 交接）+ `v1.0上线缺口看板.html` + hooks 子目录（详见 §1.2）|
 | `01_specs/` | 13 | 0.9% | 规格冻结区（早期 .pages 已全归档 99_archive）|
 | `.claude/` | 12 | 0.9% | 8 skill + 1 agent + 2 配置（settings / session-coord.config）— **5-26 加 `dmsd-startup/SKILL.md`**（启动 SOP 集中）/ 5-19 加 `.claude/agents/security-reviewer.md`（详见 §1.7.5）|
@@ -41,7 +41,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `02_design/` | 4 | 0.3% | system_features + hardware + flow + NFC防代刷_后端立项施工计划 |
 | `docs/` | 3 | 0.3% | Matt Pocock 套件 per-repo 配置（agents/{issue-tracker,triage-labels,domain}.md）|
 | `bin/` | 5 | 0.3% | sync-check + create_local_dev_symlink + check_overview_drift + **export_openapi.sh**（导后端接口总表，6-11）+ **generate_file_inventory.py**（文件清单生成器，6-11）|
-| `04_ops/` | 4 | 0.3% | MAC_MINI_SETUP + wifi_survey_howto + teacher_web_v1.0_上线部署清单 + 个人网站_pj部署运维 |
+| `04_ops/` | 3 | 0.3% | MAC_MINI_SETUP + wifi_survey_howto + teacher_web_v1.0_上线部署清单（个人网站_pj部署运维 → 本地不入库 🔒）|
 | `.github/` | 3 | — | CI / 机器人配置（**push 前都不生效**）：`workflows/test.yml` 后端 pytest（5-21 建 C-048）/ `workflows/ci.yml` 老师网页构建（6-11 建）/ `dependabot.yml` 依赖更新机器人（5-29 建）|
 | `.github/` | 2 | 0.1% | workflows/test.yml（GitHub Actions CI 自动跑测试）+ dependabot.yml（依赖漏洞自动监控 — pip/gradle/actions 每周一）|
 | **总计** | **1450** | 100% | |
@@ -123,16 +123,9 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | ~~`progress_overview.md`~~ | （已退役 — 长期没人维护必然过期，进度叙事归 CHANGELOG 全版本一览 + PROJECT_GUIDE §8.5 时间线；活待办已提取 TODO §N+）| 📦 | → `99_archive/2026-06-10_progress_overview退役.md`（itsuki 6-10 拍板）|
 | ~~`progress_overview_draft_2026-04-20.md`~~ | （已归档 — 4-20 draft 比 5-04 正文还旧）| 📦 | → `99_archive/2026-05-12_深夜大整理/`（5-13 commit 81842f4）|
 
-### 1.4 05_logs/AC_叙事/（12 文件 — **2026-05-13 commit b37d065 从 00_admin/ 迁入**，Q3 拍板）
+### 1.4 05_logs/AC_叙事/（**已整体迁出仓库 → iCloud 素材池 `2_我挑的/AC_叙事_DMSD/`**）
 
-| 文件（现路径 `05_logs/AC_叙事/`） | 一句话作用 | 状态 | 备注 |
-|---|---|---|---|
-| `v0.3.0_AC叙事.md` ~ `v0.8.0_AC叙事.md`（8 个含 v0.3.2）| 每个版本一份 AC 叙事素材 — 这版本做了啥 / 为啥这么做 / 跟 AC 4 维度怎么挂 | ✅ | **5-04 起新规则**：itsuki 自己写，CC 不主动起草。历史 v0.3-v0.8 的 7 个是 CC 起草保持不动 |
-| `面试准备_索引.md` | 面试题库索引 — 6 大类 42+ 题（题目占位 / 回答留 iCloud） | ✅ | itsuki 出愿前练习用 |
-| `原创设计_语音播报防作弊.md` | 语音播报防代刷的完整设计思路（自动贩卖机灵感 → 代刷观察 → 工程实装） | ✅ | ⭐ AC 最强素材之一 |
-| `AC_志望動機_素材.md` | 志望理由书的素材框架 — 8 个核心问题留白等 itsuki 自填 | ⚠️ | 框架完整 / 内容 0/8 |
-| `AC_提交_checklist.md` | 出愿前 6 个倒计时 gate（关卡）+ 月度回顾工作流 | ⚠️ | 5-10 起 |
-| `Batch3_itsuki手笔素材指引.md` | 4 个已写好可直接粘贴（ready-to-paste）的 draft，等 itsuki 合并 | 📦 | 30-45min 工作量 |
+原 12 份 AC 叙事文档（各版本叙事 ×8 / 面试准备索引 / 原创设计_语音播报防作弊 / 志望動機素材 / 提交 checklist / Batch3 手笔指引）属个人升学申请材料，itsuki 拍板不放公开仓库，整体迁至 iCloud 素材池。仓库目录只留 `README.md` 指路牌。迁出原则与 `05_logs/raw/` 一致：工程事实留仓库，个人叙事归私有笔记。
 
 ### 1.5 00_admin/v0.4.0 spec draft + 管理文档（**2026-05-13 commit 81842f4 全分散到 7 个目的地**）
 
@@ -145,7 +138,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | `跨会话_ios_共享决策.md` → `99_archive/2026-05-12_深夜大整理/` | iOS 项目跨多会话同步的临时决策表（5-06 退役独立 repo 模式后失效） | 📦 已归档 |
 | `wifi_survey_howto.md` → `04_ops/` | 宿舍 WiFi 信号实地调研的方法说明 | ✅ |
 | `MAC_MINI_SETUP.md` → `04_ops/` | Mac mini 部署后端的步骤手册 | ✅ |
-| `个人网站_pj部署运维.md` → `04_ops/` | pj.tomoshibi.cc 个人网站部署运维真值（docker/Caddy/部署流程/页面清单/加密码方法） | ✅ |
+| `个人网站_pj部署运维.md` → 本地文件（不入库） | pj.tomoshibi.cc 个人网站部署运维真值（docker/Caddy/部署流程/页面清单/加密码方法）— 含服务器 IP + SSH 用户名，itsuki 拍板不公开，留本地 `04_ops/` 不进 git | 🔒 |
 | `漏洞_剩余清单_2026-04-21.md` → `05_logs/` | 28 条还没修的 spec 漏洞索引 | ✅ |
 | `版本演变一览.md` → `05_logs/` | 18 个 git tag 的故事线（每个 tag 当时做了啥） | ✅ |
 | `术语表.html` → `06_assets/` | 180+ 词的可交互术语学习页面（itsuki AC 面试日语准备） | ✅ |
@@ -623,7 +616,7 @@ Foundation 全部 ✅ frozen — AppState / Components / LiquidGlass / Routing /
 
 ## 6. 第 6 组：05_logs + 06_assets + bin（186 文件 = 05_logs 174 + 06_assets 9 + bin 3 — 2026-06-10 校准）
 
-**05_logs 70 细分（2026-06-12 +1 dev_log；`git ls-files` 口径，中文文件名 NFC/NFD 归一化 quirk 可能 ±1，详见 §0.1 脚注）**：raw 3（README 指路牌 + 滞留文件，正本已迁 iCloud）+ dev_log 17 + AC_叙事 12 + problem_solving 4 + audit_2026-05-19 13 + audit_2026-05-22_codex 7 + audit_2026-05-21_codex 1 + meta（decisions/ 2 + learning_path + project_evolution）+ 散件 ~9（teacher_web 施工 3 + 各 audit 单件 + 漏洞清单 + 版本演变一览 + 杭田需求清单 等）。
+**05_logs 57 细分（AC_叙事 12 + raw 滞留 2 已迁 iCloud；`git ls-files` 口径，中文文件名 NFC/NFD 归一化 quirk 可能 ±1，详见 §0.1 脚注）**：raw 1（README 指路牌，正本已迁 iCloud）+ dev_log 17 + AC_叙事 1（README 指路牌） + problem_solving 4 + audit_2026-05-19 13 + audit_2026-05-22_codex 7 + audit_2026-05-21_codex 1 + meta（decisions/ 2 + learning_path + project_evolution）+ 散件 ~9（teacher_web 施工 3 + 各 audit 单件 + 漏洞清单 + 版本演变一览 + 杭田需求清单 等）。
 **核心发现**：raw 是项目最大原始素材区，AC 候选密度最高的几天见 §6.2 ⭐ 标记。
 
 ### 6.1 05_logs/ 根级 meta（3 文件）
