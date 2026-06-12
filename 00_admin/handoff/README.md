@@ -31,12 +31,12 @@
 - `版本号v0.13-v0.15收尾_交接提示词_2026-06-05.md` —— 版本号 v0.12.1+v0.13~v0.15 收尾验证 + 老师网页肉眼签收 + push，待别的会话接手
 - `iOS上线缺口_GOAL提示词.md` —— iOS 上线缺口施工图（2026-06-09 会话已照它做完 11 功能，是否归档待确认）
 - `Android接后端_GOAL提示词.md` —— Android 接后端施工提示词（未跟踪新文件，待接手）
-- `GitHub历史清理计划_2026-06-09.md` —— GitHub 历史清理计划（未跟踪新文件，待执行）
 - `AppStore上线流程_2026-06-11.md` —— iOS App Store 上线流程 + 3 个待拍板决策（推送/后端部署/版本号），本会话 compact 后接手开始走上线
 - `push准备_交接提示词_2026-06-11.md` —— 陪 itsuki 做 push 前内容盘点（他要排除部分文件不公开）+ push main 与 143 个标签 + CI 首跑观察，版本细分会话 compact 后接手
 
 ## 已完成归档记录
 
+- `GitHub历史清理计划_2026-06-09.md` → `99_archive/2026-06-12_handoff作废/`（**作废未执行** — itsuki 2026-06-12 拍板「不重写已公开历史、证据链优先」，该计划的 filter-repo + 强制覆盖路线与此矛盾，整体废弃；个人材料改走「迁出 iCloud + 删除 commit」路线）
 - `WIP_TODO瘦身_交接_2026-06-10.md` → `99_archive/2026-06-10_handoff已完成/`（2026-06-10 接手会话完成：TODO 分层 §A-§D + WIP 顶部瘦身）
 - `iOS_R3R4R5提示词_2026-06-11.md` → `99_archive/2026-06-11_handoff已完成/`（2026-06-11 接手会话完成：R-3 三上报弹窗防连点 / R-4 登录锁定接后端 423/403 / R-5 体調報告履歴接真数据，双 scheme BUILD SUCCEEDED）
 - `iOS点呼状态机单元测试_交接_2026-06-11.md` → `99_archive/2026-06-11_handoff已完成/`（2026-06-11 接手会话完成：抽 decideRollState 纯函数 + 建 TomoshibiAppTests 测试目标 + 7 条时间窗状态机测试，xcodebuild test 7/7 passed + 双 scheme BUILD SUCCEEDED）
