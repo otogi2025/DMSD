@@ -590,7 +590,7 @@ struct MyLandingView: View {
             VStack(spacing: 0) {
                 // 「行事予定」入口 2026-06-04 搬到本页顶部日程卡（itsuki 拍板：埋在这里太小）
                 // 「特別運航便」入口 2026-05-03 搬到 Home busCard（itsuki 拍板：去重复）
-                settingsRow(label: "通知設定", chev: true, danger: false) {
+                settingsRow(label: "設定", chev: true, danger: false) {
                     router.go(.mySettings)
                 }
                 Divider().background(T.hair).padding(.leading, 0)
@@ -2072,6 +2072,9 @@ struct MySettingsView: View {
     @State private var deleting: Bool = false
     @State private var deleteError: String? = nil
 
+    /// 默认翻译语言代码（空串 = 没设、公告页点「翻訳」时每次弹语言选择窗）。跟公告详情页 AnnouncementDetailView 同一个 UserDefaults key、改一边另一边即时生效。
+    @AppStorage("translate_default_lang") private var defaultTranslateLang: String = ""
+
     private var notifRows: [(key: String, label: String, binding: Binding<Bool>)] {
         [
             ("roll", "点呼リマインダー", $prefRoll),
@@ -2082,11 +2085,69 @@ struct MySettingsView: View {
         ]
     }
 
+    /// 翻译默认语言可选项 —— 空串 = 每次翻译都弹窗问；其余对应 TranslateLang（定义在 HomeStubs.swift）。
+    private var translateLangOptions: [(code: String, label: String)] {
+        [("", "毎回選択する")] + TranslateLang.allCases.map { ($0.rawValue, $0.shortLabel) }
+    }
+
+    /// 翻译设定 section —— 改公告「翻訳」按钮的默认目标语言（含「毎回選択する」= 回到每次弹窗）
+    private var translateSettingSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("お知らせの翻訳")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(T.inkMute)
+                .kerning(0.6)
+                .padding(.top, 2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Card(padding: 0) {
+                VStack(spacing: 0) {
+                    ForEach(Array(translateLangOptions.enumerated()), id: \.offset) { idx, opt in
+                        if idx > 0 {
+                            Divider().background(T.hair)
+                        }
+                        Button {
+                            defaultTranslateLang = opt.code
+                        } label: {
+                            HStack {
+                                Text(opt.label)
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(T.ink)
+                                Spacer()
+                                if defaultTranslateLang == opt.code {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundStyle(T.primary)
+                                }
+                            }
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 14)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            Text("お知らせ詳細の「翻訳」から、本文を選んだ言語に翻訳できます。")
+                .font(.system(size: 11))
+                .foregroundStyle(T.inkMute)
+                .padding(.horizontal, 4)
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            PageHeader(title: "通知設定", level: 2)
+            PageHeader(title: "設定", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
+                    translateSettingSection
+
+                    Text("通知")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(T.inkMute)
+                        .kerning(0.6)
+                        .padding(.top, 2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
                     Card(padding: 0) {
                         VStack(spacing: 0) {
                             ForEach(Array(notifRows.enumerated()), id: \.offset) { idx, row in

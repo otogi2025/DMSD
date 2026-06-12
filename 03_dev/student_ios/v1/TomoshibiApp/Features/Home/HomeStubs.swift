@@ -13,8 +13,9 @@
 
 import SwiftUI
 
-// Translation（翻译框架，iOS 17.4+，全机种）— 公告「翻訳」按钮用 .translationPresentation 弹系统翻译浮层
-import Translation
+// Translation（翻译框架）— 公告「翻訳」按钮用 TranslationSession 程序化接口（iOS 18.0+）把正文原地翻成母语，拿到译文自己显示
+// @preconcurrency：Translation 框架的 TranslationSession 还没标 Sendable，在 Swift 6 完全并发下从 MainActor 闭包调 translate 会报「sending session」数据竞争；用 @preconcurrency 把这类来自该模块的并发报错降级，是 Apple 框架并发标注未跟上时的标准过渡手段。
+@preconcurrency import Translation
 
 // FoundationModels（设备端大模型框架，iOS 26+ 且 Apple Intelligence 机种）— 公告「AI 要約」按钮用它直接调本地模型生成要点
 // 框架弱链接：import 本身在低部署目标（16.0）下能编译，真正调用一律包在 if #available(iOS 26.0) 里
@@ -2873,15 +2874,92 @@ private struct AnnouncementListCard: View {
 //   - AI 要約: FoundationModels 框架（iOS 26+ 且 Apple Intelligence 机种）→ 直接调本地 3B 模型生成要点
 // 留学生看不懂日文公告时一键翻成母语 / 公告太长时一键提炼要点 —— 都在设备本地跑，不上传任何内容。
 
-/// 翻訳浮层 modifier — 包了一层 if #available，让低于 iOS 17.4 的机种安全降级（不显示浮层、不报错）
-extension View {
-    @ViewBuilder
-    func announcementTranslateOverlay(isPresented: Binding<Bool>, text: String) -> some View {
-        if #available(iOS 17.4, *) {
-            translationPresentation(isPresented: isPresented, text: text)
-        } else {
-            self
+/// 公告翻译支持的语言 — 宿舍留学生的主要母语（英 / 中 / 泰 / 越）。
+/// rawValue = 翻译目标语言代码（BCP-47 标准），存进 UserDefaults（手机本地小仓库）当「默认翻译语言」用的也是这个字符串。
+enum TranslateLang: String, CaseIterable, Identifiable {
+    case english = "en"
+    case chinese = "zh-Hans" // 简体中文
+    case thai = "th"
+    case vietnamese = "vi"
+
+    var id: String {
+        rawValue
+    }
+
+    /// 语言选择窗里显示的名字 — 母语原文拼写（让用户一眼找到自己的语言）+ 日语括注。
+    var pickerLabel: String {
+        switch self {
+        case .english: return "English（英語）"
+        case .chinese: return "简体中文（中国語）"
+        case .thai: return "ไทย（タイ語）"
+        case .vietnamese: return "Tiếng Việt（ベトナム語）"
         }
+    }
+
+    /// 翻译完成状态条 / 设置页里显示的短名字。
+    var shortLabel: String {
+        switch self {
+        case .english: return "English"
+        case .chinese: return "简体中文"
+        case .thai: return "ไทย"
+        case .vietnamese: return "Tiếng Việt"
+        }
+    }
+}
+
+/// 一次翻译请求 —— id 每次新建都不同。父视图拿它当 SwiftUI 的 `.id`，
+/// 换语言 / 重新翻译时让隐藏执行器整个重建、重新触发翻译。不含 iOS 18 专属类型，能直接放进父视图状态里。
+struct TranslateRequest: Identifiable, Equatable {
+    let id = UUID()
+    let code: String // 目标语言代码 = TranslateLang.rawValue
+}
+
+/// 只负责「执行翻译」的隐藏子视图（iOS 18.0+）。
+/// `TranslationSession.Configuration` / `.translationTask` 是 iOS 18.0 才存在的类型，
+/// 直接写在父视图本体（部署目标 16.0）里会因类型解析报编译错 → 隔离到这里。
+/// 父视图侧用 `.id("<语言>-<次数>")` 贴换、把这个子视图整个重建，靠 `.task` 触发翻译。
+@available(iOS 18.0, *)
+private struct AnnouncementTranslateRunner: View {
+    let text: String
+    let targetCode: String
+    // 用 @Binding（值类型 String?/Bool 都是 Sendable）回写结果，而不是传回调闭包：
+    // 回调闭包是非 Sendable，会把 translationTask 的 action 整个推断成 MainActor 隔离，
+    // 进而让 session 变「main actor-isolated」、再调 nonisolated 的 translate 触发 Swift 6 数据竞争报错。
+    // 只捕获 Sendable 值后，action 保持 nonisolated，session 干净；结果回写统一切到 MainActor.run。
+    @Binding var translatedText: String?
+    @Binding var isTranslating: Bool
+    @Binding var failed: Bool
+
+    @State private var config: TranslationSession.Configuration?
+
+    var body: some View {
+        // 把 binding 取成局部 let，让 translationTask 闭包只捕获这几个局部值、不捕获 self。
+        // translationTask 的 action 是 nonisolated 非 @Sendable，闭包一旦捕获 self（@MainActor 视图）
+        // 就被推断成 MainActor 隔离，session 随之变「main actor-isolated」→ 调 nonisolated 的 translate 报数据竞争。
+        let resultBinding = $translatedText
+        let loadingBinding = $isTranslating
+        let failBinding = $failed
+        let body = text
+        return Color.clear
+            .frame(height: 0)
+            .translationTask(config) { session in
+                let translated = try? await session.translate(body).targetText
+                await MainActor.run {
+                    if let translated {
+                        resultBinding.wrappedValue = translated
+                    } else {
+                        failBinding.wrappedValue = true
+                    }
+                    loadingBinding.wrappedValue = false
+                }
+            }
+            .task {
+                // source: nil = 自动判定原文语言（公告是日语）。target = 用户选的母语。
+                config = TranslationSession.Configuration(
+                    source: nil,
+                    target: Locale.Language(identifier: targetCode)
+                )
+            }
     }
 }
 
@@ -2916,7 +2994,17 @@ struct AnnouncementDetailView: View {
     @State private var isPosting: Bool = false
 
     // 公告 AI 操作状态（翻訳 / 要約）
-    @State private var showTranslation: Bool = false // 翻訳浮层开关
+    // ── 翻訳（原地把正文翻成母语）──
+    @State private var translateReq: TranslateRequest? = nil // 非 nil = 当前要翻成哪个语言（喂给隐藏执行器 AnnouncementTranslateRunner）
+    @State private var translatedText: String? = nil // 译文（nil = 显示原文）
+    @State private var translatedLabel: String? = nil // 译文语言短名（状态条用，如「简体中文」）
+    @State private var isTranslating: Bool = false // 翻译进行中 loading
+    @State private var translateFailed: Bool = false // 翻译失败标记
+    @State private var showLangPicker: Bool = false // 语言选择窗开关
+    @State private var rememberAsDefault: Bool = false // 语言选择窗里「以后默认翻成这个语言」勾选状态（临时，确认后才写入 AppStorage）
+    /// 默认翻译语言代码（空串 = 没设默认、每次翻译都先弹语言选择窗）。跟设置页 MySettingsView 同一个 key、改一边另一边即时生效。
+    @AppStorage("translate_default_lang") private var defaultTranslateLang: String = ""
+    // ── AI 要約 ──
     @State private var showSummary: Bool = false // 要約结果 sheet 开关
     @State private var summaryText: String? = nil // 要約结果文字（nil = 还没出）
     @State private var isSummarizing: Bool = false // 要約生成中 loading
@@ -2975,16 +3063,32 @@ struct AnnouncementDetailView: View {
                             }
                         }
 
-                        // 正文
-                        Text(d.body)
+                        // 正文 —— 翻译完成后原地显示译文，否则显示原文
+                        Text(translatedText ?? d.body)
                             .font(.system(size: 14))
                             .foregroundStyle(T.ink)
                             .lineSpacing(4)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .textSelection(.enabled) // 可选中 → 用户也能长按用系统菜单翻译 / 要約
+                            .textSelection(.enabled) // 可选中复制
 
-                        // AI 操作行：翻訳（全機種）+ AI 要約（iOS 26+ 且 Apple Intelligence 機種）
+                        // 翻译状态条（翻译中 loading / 失败重试 / 已翻译可切回原文）
+                        translateStatusBar
+
+                        // AI 操作行：翻訳（iOS 18+）+ AI 要約（iOS 26+ 且 Apple Intelligence 機種）
                         announcementAIRow(body: d.body)
+
+                        // 隐藏执行器：translateReq 非 nil 时真正跑翻译（iOS 18 专属类型隔离在子视图里）。
+                        // req.id 换了就重建 → 重新触发翻译，支持换语言 / 重试。
+                        if #available(iOS 18.0, *), let req = translateReq {
+                            AnnouncementTranslateRunner(
+                                text: d.body,
+                                targetCode: req.code,
+                                translatedText: $translatedText,
+                                isTranslating: $isTranslating,
+                                failed: $translateFailed
+                            )
+                            .id(req.id)
+                        }
 
                         Divider().padding(.vertical, 4)
 
@@ -3008,7 +3112,9 @@ struct AnnouncementDetailView: View {
                     .padding(.vertical, 16)
                 }
                 // 翻訳浮层（点「翻訳」弹）+ AI 要約结果弹窗（点「AI 要約」弹）
-                .announcementTranslateOverlay(isPresented: $showTranslation, text: d.body)
+                .sheet(isPresented: $showLangPicker) {
+                    langPickerSheet
+                }
                 .sheet(isPresented: $showSummary) {
                     summarySheet
                 }
@@ -3056,15 +3162,17 @@ struct AnnouncementDetailView: View {
     }
 
     /// ── AI 操作行（翻訳 / AI 要約）──────────────────────────────
-    /// 翻訳 = 全機種显示；AI 要約 = 仅 iOS 26+ 且 Apple Intelligence 机种显示（否则整颗按钮不出现）
+    /// 翻訳 = iOS 18+ 显示（程序化翻译接口门槛）；AI 要約 = 仅 iOS 26+ 且 Apple Intelligence 机种显示（否则整颗按钮不出现）
     private func announcementAIRow(body: String) -> some View {
         HStack(spacing: 10) {
-            Button {
-                showTranslation = true
-            } label: {
-                aiActionChip(icon: "globe", title: "翻訳")
+            if #available(iOS 18.0, *) {
+                Button {
+                    onTapTranslate()
+                } label: {
+                    aiActionChip(icon: "globe", title: "翻訳")
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
 
             if #available(iOS 26.0, *) {
                 if AnnouncementAI.isSummarizeAvailable {
@@ -3090,6 +3198,166 @@ struct AnnouncementDetailView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
         .background { Capsule().fill(T.primary.opacity(0.08)) }
+    }
+
+    /// 翻译状态条 —— 正文下方那行：翻译中转圈 / 失败可重试 / 已翻译可切回原文（没翻译时整行不出现）
+    @ViewBuilder
+    private var translateStatusBar: some View {
+        if isTranslating {
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text("翻訳中…")
+                    .font(.system(size: 12))
+                    .foregroundStyle(T.inkSub)
+                Spacer()
+            }
+        } else if translateFailed {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 12, weight: .semibold))
+                Text("翻訳に失敗しました")
+                    .font(.system(size: 12))
+                Spacer()
+                Button {
+                    if let req = translateReq { retryTranslate(req.code) }
+                } label: {
+                    Text("再試行").font(.system(size: 12, weight: .semibold))
+                }
+                .buttonStyle(.plain)
+            }
+            .foregroundStyle(.red)
+        } else if let label = translatedLabel, translatedText != nil {
+            HStack(spacing: 8) {
+                Image(systemName: "globe").font(.system(size: 11, weight: .semibold))
+                Text("\(label) に翻訳しました")
+                    .font(.system(size: 12, weight: .medium))
+                Spacer()
+                Button {
+                    resetToOriginal()
+                } label: {
+                    Text("原文に戻す").font(.system(size: 12, weight: .semibold))
+                }
+                .buttonStyle(.plain)
+            }
+            .foregroundStyle(T.primary)
+        }
+    }
+
+    /// 点「翻訳」：有默认语言就直接翻，没设默认就弹语言选择窗
+    private func onTapTranslate() {
+        if !defaultTranslateLang.isEmpty, let lang = TranslateLang(rawValue: defaultTranslateLang) {
+            startTranslate(lang)
+        } else {
+            rememberAsDefault = false
+            showLangPicker = true
+        }
+    }
+
+    /// 真正发起翻译：清掉旧译文、亮 loading、塞一个新请求给隐藏执行器（执行器靠 req.id 重建触发）
+    private func startTranslate(_ lang: TranslateLang) {
+        translatedText = nil
+        translateFailed = false
+        isTranslating = true
+        translatedLabel = lang.shortLabel
+        translateReq = TranslateRequest(code: lang.rawValue)
+    }
+
+    /// 语言选择窗里点某语言：勾了「以后默认」就写进 UserDefaults，然后翻译
+    private func pickLang(_ lang: TranslateLang) {
+        if rememberAsDefault {
+            defaultTranslateLang = lang.rawValue
+        }
+        showLangPicker = false
+        startTranslate(lang)
+    }
+
+    /// 失败后重试当前语言
+    private func retryTranslate(_ code: String) {
+        guard let lang = TranslateLang(rawValue: code) else { return }
+        startTranslate(lang)
+    }
+
+    /// 切回原文：清掉译文 + 请求
+    private func resetToOriginal() {
+        translatedText = nil
+        translatedLabel = nil
+        translateFailed = false
+        isTranslating = false
+        translateReq = nil
+    }
+
+    /// 语言选择窗 —— 点「翻訳」且没设默认语言时弹出。4 个语言行 + 一个「以后默认翻成这个语言」勾选
+    private var langPickerSheet: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "globe").font(.system(size: 15, weight: .semibold))
+                    Text("翻訳する言語").font(.system(size: 16, weight: .bold))
+                }
+                .foregroundStyle(T.primary)
+                Spacer()
+                Button { showLangPicker = false } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(T.inkMute)
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 18)
+            .padding(.bottom, 8)
+
+            VStack(spacing: 0) {
+                ForEach(Array(TranslateLang.allCases.enumerated()), id: \.element.id) { idx, lang in
+                    if idx > 0 { Divider().background(T.hair) }
+                    Button {
+                        pickLang(lang)
+                    } label: {
+                        HStack {
+                            Text(lang.pickerLabel)
+                                .font(.system(size: 15))
+                                .foregroundStyle(T.ink)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(T.inkMute)
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 14)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            Button {
+                rememberAsDefault.toggle()
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: rememberAsDefault ? "checkmark.square.fill" : "square")
+                        .font(.system(size: 18))
+                        .foregroundStyle(rememberAsDefault ? T.primary : T.inkMute)
+                    Text("次回からこの言語に翻訳する")
+                        .font(.system(size: 13))
+                        .foregroundStyle(T.ink)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.vertical, 14)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Text("デフォルトの言語は設定画面でいつでも変更できます。")
+                .font(.system(size: 11))
+                .foregroundStyle(T.inkMute)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 16)
+        }
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
     }
 
     /// 点「AI 要約」→ 弹 sheet + 调设备端模型生成要点（只在 iOS 26+ 调，签名标 @available）
