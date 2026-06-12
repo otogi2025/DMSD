@@ -1,6 +1,6 @@
 # Changelog
 
-> **最后更新**: 2026-06-11 深夜（**v0.23.0 — iOS 体验功能批次 + 首批单元测试 + 管理基建搭车，当前版本 v0.23.0**：收尾「版本当场结账」新机制首战 — v0.22.3 之后 28 commit 一次结清。驱动者 = iOS 功能批次（介绍页重做 4 页 / 公告 AI 翻译+要約 / 图标换 Tomoshibi-icon-1 / 首页活动+巴士卡接真 M-1 / AI 头像启用）+ iOS 首批 7 条单元测试（点呼时间窗状态机，test target 从零建立）；管理基建（老师网页 CI / 后端 142 接口总表 / 文件清单生成器 / raw 迁 iCloud / 启动收尾流程改版）按规矩不驱动版本号、随段记录。三端客户端版本号同步 0.23.0）。早些更新：2026-06-11（**插空细分 + 新段补标 — v0.3.3~v0.14.8 共 70 个补丁插空 + v0.20.0~v0.22.3 新打，当前版本 v0.22.3**：按「一个 bug 一个补丁号」给老段号位空隙里的 70 个 fix commit 逐个补打补丁标签（已 push 的 67 个旧标签与 commit 全部未动、历史未重写，新标签日期回填 commit 当天）；3 个号位死区内 13 个 fix 在对应版本段「死区注记」逐条列出；v0.19.3 之后 76 个 commit 按同标准切 3 minor + 3 patch。详见下方「2026-06-11 插空细分说明」banner）。早些更新：2026-06-09（**v0.15.1 ~ v0.19.3 重排补打 32 个标签** — v0.15.0 之后 95 个 commit（6-05~6-09、全本地未 push）按 itsuki 拍板「一个 bug 一个补丁号 / 连续 feat 批次合成次版本号」重排，当前版本 **v0.19.3**；远程 origin 最后 push 停在 v0.8.0 故重排安全；详见下方「2026-06-09 重排说明」banner + 各版本段。深度审查 19 条 findings 记 `00_admin/TODO.md` §🔍 不在本次修）。早些更新：2026-06-05（**v0.12.1 patch + v0.13.0 ~ v0.15.0 三连 minor** — 6-03/6-04/6-05 三天 80 commit 按真实 commit 顺序切：v0.12.1（6-03 纯修复段：删寮ウォール收尾 + iOS 既存 bug + 点呼机文档）/ v0.13.0 出租车予約 4 端 + 文件联动 / v0.14.0 杭田 6-04 需求批 + 外出申請 + 契約書 / v0.15.0 老师网页迁 Vite + Android 对齐 + 学年更新 + Resend，**当前版本 v0.15.0**；三端客户端版本号同步到 0.15.0）。早些更新：2026-06-03（**v0.8.1 ~ v0.12.0 回溯补标** — 5-11 ~ 6-02 一个多月连续施工的 236 commit 一次性按语义化版本（SemVer）规范回溯补 6 个版本标签 + CHANGELOG 条目；详见下方各版本段顶部「回溯补标说明」banner）。早些更新：2026-05-02 晚（**v0.8.0 close** — 5 端代码层全启动（含点呼机骨架）：Android Compose bootstrap + 10 屏 / iOS 网络层完整建设 + AppStore 切真后端 / teacher_web v1 TS+Vite+Zustand 升级 + 5 page / backend rollcall+study+teachers routers + Alembic 框架 / iOS↔backend 字段对齐 F1-F5+Q1）。早些更新：v0.7.0 close（三轨 A+B+C 同日完成 38 条老师反馈 + 实物表 evidence 推翻 LINE 文字推测 + 沟通规则 #6 + SOP §8.5 版本路线图）；v0.6.0 close（老师 4-29 LINE 38 条受领 + RollCall_Spec 5 处时序修订 + system_features 中文骨架大重写）；v0.4.0 + v0.5.0 双 minor 闭合；**版本管理 SOP 建立**
+> **最后更新**: 2026-06-12（**v0.23.4 — 老师权限分级 codex 审查四项修复，当前版本 v0.23.4**：4 个补丁（F1~F5 中 4 个被采纳）经 codex 二次审查 + CC 独立核实前提后修复，pytest 371 passed 全程保持，复审收敛 blocker 0 / major 0）。早些更新：2026-06-11 深夜（**v0.23.0 — iOS 体验功能批次 + 首批单元测试 + 管理基建搭车，当前版本 v0.23.0**：收尾「版本当场结账」新机制首战 — v0.22.3 之后 28 commit 一次结清。驱动者 = iOS 功能批次（介绍页重做 4 页 / 公告 AI 翻译+要約 / 图标换 Tomoshibi-icon-1 / 首页活动+巴士卡接真 M-1 / AI 头像启用）+ iOS 首批 7 条单元测试（点呼时间窗状态机，test target 从零建立）；管理基建（老师网页 CI / 后端 142 接口总表 / 文件清单生成器 / raw 迁 iCloud / 启动收尾流程改版）按规矩不驱动版本号、随段记录。三端客户端版本号同步 0.23.0）。早些更新：2026-06-11（**插空细分 + 新段补标 — v0.3.3~v0.14.8 共 70 个补丁插空 + v0.20.0~v0.22.3 新打，当前版本 v0.22.3**：按「一个 bug 一个补丁号」给老段号位空隙里的 70 个 fix commit 逐个补打补丁标签（已 push 的 67 个旧标签与 commit 全部未动、历史未重写，新标签日期回填 commit 当天）；3 个号位死区内 13 个 fix 在对应版本段「死区注记」逐条列出；v0.19.3 之后 76 个 commit 按同标准切 3 minor + 3 patch。详见下方「2026-06-11 插空细分说明」banner）。早些更新：2026-06-09（**v0.15.1 ~ v0.19.3 重排补打 32 个标签** — v0.15.0 之后 95 个 commit（6-05~6-09、全本地未 push）按 itsuki 拍板「一个 bug 一个补丁号 / 连续 feat 批次合成次版本号」重排，当前版本 **v0.19.3**；远程 origin 最后 push 停在 v0.8.0 故重排安全；详见下方「2026-06-09 重排说明」banner + 各版本段。深度审查 19 条 findings 记 `00_admin/TODO.md` §🔍 不在本次修）。早些更新：2026-06-05（**v0.12.1 patch + v0.13.0 ~ v0.15.0 三连 minor** — 6-03/6-04/6-05 三天 80 commit 按真实 commit 顺序切：v0.12.1（6-03 纯修复段：删寮ウォール收尾 + iOS 既存 bug + 点呼机文档）/ v0.13.0 出租车予約 4 端 + 文件联动 / v0.14.0 杭田 6-04 需求批 + 外出申請 + 契約書 / v0.15.0 老师网页迁 Vite + Android 对齐 + 学年更新 + Resend，**当前版本 v0.15.0**；三端客户端版本号同步到 0.15.0）。早些更新：2026-06-03（**v0.8.1 ~ v0.12.0 回溯补标** — 5-11 ~ 6-02 一个多月连续施工的 236 commit 一次性按语义化版本（SemVer）规范回溯补 6 个版本标签 + CHANGELOG 条目；详见下方各版本段顶部「回溯补标说明」banner）。早些更新：2026-05-02 晚（**v0.8.0 close** — 5 端代码层全启动（含点呼机骨架）：Android Compose bootstrap + 10 屏 / iOS 网络层完整建设 + AppStore 切真后端 / teacher_web v1 TS+Vite+Zustand 升级 + 5 page / backend rollcall+study+teachers routers + Alembic 框架 / iOS↔backend 字段对齐 F1-F5+Q1）。早些更新：v0.7.0 close（三轨 A+B+C 同日完成 38 条老师反馈 + 实物表 evidence 推翻 LINE 文字推测 + 沟通规则 #6 + SOP §8.5 版本路线图）；v0.6.0 close（老师 4-29 LINE 38 条受领 + RollCall_Spec 5 处时序修订 + system_features 中文骨架大重写）；v0.4.0 + v0.5.0 双 minor 闭合；**版本管理 SOP 建立**
 >
 > **2026-05-19 注**: v0.8 之后累积 15+ commit 实质推进（5-04 文件联动工具 / 5-08 硬件全定稿 / 5-10 ac-radar / 5-11 cc-comm-rules + graphify / 5-13 文件大整理 / 5-14 anti-ai-flavor / 5-16 跨项目大修 / 5-19 project-overview 大改造 + 防漂 C 方案 / 5-20+ 131 条 bug findings 修复），未到 bump 触发线，详见 WIP + progress_overview。
 >
@@ -72,12 +72,32 @@
 | v0.21.0 | 2026-06-10 | 清扫/罚扫功能全 5 端删除 |
 | v0.22.0 | 2026-06-11 | iOS 点呼显示链接真后端 R-1/R-2 + 后端 /rollcall/me/today |
 | v0.22.1~0.22.3 | 2026-06-11 | 补丁 ×3：R-3 防连点 / R-4 登录锁定真值 / R-5 体調履歴接真 |
-| **v0.23.0** | **2026-06-11** | **iOS 体验功能批次（介绍页/AI 翻译要約/新图标/首页接真/AI 头像）+ 首批 7 条单元测试 + 管理基建搭车（CI/接口总表/文件清单/raw 迁 iCloud）← 当前版本** |
+| v0.23.0 | 2026-06-11 | iOS 体验功能批次（介绍页/AI 翻译要約/新图标/首页接真/AI 头像）+ 首批 7 条单元测试 + 管理基建搭车（CI/接口总表/文件清单/raw 迁 iCloud）|
+| v0.23.1 | 2026-06-12 | 补丁：F2 renewal-start 端点漏挂权限闸（codex 审查）|
+| v0.23.2 | 2026-06-12 | 补丁：F1 admin_accounts 3 端点补寮边界（codex 审查）|
+| v0.23.3 | 2026-06-12 | 补丁：F4 delete_teacher 最后管理员保护集合错误（codex 审查）|
+| **v0.23.4** | **2026-06-12** | **补丁：F5 学習担当 fallback 组错误（codex 审查）← 当前版本** |
 | v1.0.0 | 目标 2026 底~2027 初 | 宿舍正式上线 |
 
 ---
 
 > **【2026-06-11 插空细分 + 新段补标说明 · v0.3.3 ~ v0.14.8（70 补丁）+ v0.20.0 ~ v0.22.3】** 按 itsuki 拍板「一个 bug 一个补丁号」两步补齐：① 老段（v0.3.2 ~ v0.15.0）号位空隙里的 70 个 `fix` commit 逐个补打补丁标签（v0.3.3~0.3.6 / v0.5.1 / v0.6.1~0.6.2 / v0.7.1~0.7.2 / v0.8.3~0.8.8 / v0.9.1~0.9.5 / v0.10.1~0.10.12 / v0.11.1~0.11.30 / v0.14.1~0.14.8）—— **已 push 的 67 个旧标签一个未动、commit 未动、历史未重写**，新标签日期回填 commit 当天；3 个号位死区（v0.8.0→v0.8.1→v0.8.2、v0.12.0→v0.12.1）内 13 个 fix 无空号可插，在对应版本段「死区注记」逐条列出。② v0.19.3 之后 76 个 commit 按同标准切 3 minor + 3 patch（v0.20.0 ~ v0.22.3，当前版本）。v0.3.2 以前的早期 commit 未用 feat/fix 前缀，不做机械细分。管理体系类 fix/feat（收尾流程 / hooks / 联动规则）按 version-bump 决策树第 7-9 条不驱动版本号。
+
+## [0.23.4] - 2026-06-12（修订：F5 学習担当 fallback 组错误）
+
+> **修订号**：codex 审查发现 `ROLE_DEFAULT_GROUP["学習担当"]` 错误映射到 `申請承認専用`（无操作权），itsuki 拍板改为 `一般宿管+晚自习`。alembic 迁移回填同步；`gakushu_promote` 测试夹具显式设 `permission_group="申請承認専用"` 防 fallback 依赖。commit `2087587`。
+
+## [0.23.3] - 2026-06-12（修订：F4 delete_teacher 管理员保护集合错误）
+
+> **修订号**：`TEACHER_ADMIN_ROLES = {"寮務部長", "寮務課長", "寮監"}` 集合成员错误（寮監 = VIEW 组被误含；校長 = MANAGE 组被遗漏）。新增 `_has_teacher_account_admin(teacher)` 函数按 `effective_group` 正确判断；删老师保护逻辑改用 Python 侧遍历计数。commit `b217453`。
+
+## [0.23.2] - 2026-06-12（修订：F1 admin_accounts 3 端点补寮边界）
+
+> **修订号**：`GET /students`、`password-reset`、`unlock-account` 三端点在权限分级后缺寮边界过滤。新增 `_assert_student_in_dorm` helper；`list_students` 加 `dorm_units_for_teacher` 过滤；`password_reset`/`unlock_account` 拿学生后立即校验寮归属。commits `718cced`。codex 报 14 个端点，CC 独立 git diff 核实只有 3 个是本次权限分级引入的缺口，其余 11 个是历史预存在问题（F1-遗留）。
+
+## [0.23.1] - 2026-06-12（修订：F2 renewal-start 漏挂权限闸）
+
+> **修订号**：`student_promote.py` 的 `/renewal-start` 端点仍用旧 `require_teacher_roles(*_ADMIN_ROLES)` 未迁移。改挂 `require_permission(C_STUDENT_ACCOUNT, MANAGE)`，删 `_ADMIN_ROLES` 常量。commit `4cb86b1`。
 
 ## [0.23.0] - 2026-06-11
 

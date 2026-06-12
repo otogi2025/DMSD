@@ -1,13 +1,13 @@
 # 当前工作状态 (Work In Progress)
 
 <!-- 滚动规则：最后更新段只留最近 5 次会话，老条目收尾时移 99_archive -->
-**最后更新**: 2026-06-11（最近 5 次会话，每条一行；完整历史原文 → `99_archive/2026-06-10_WIP历史段归档.md`）
+**最后更新**: 2026-06-12（最近 5 次会话，每条一行；完整历史原文 → `99_archive/2026-06-10_WIP历史段归档.md`）
 
+- **2026-06-12 老师权限分级 codex 审查 + 四项修复**——codex (gpt-5.5 / xhigh) 只读审查前一会话权限分级实装，5 条 findings（F1~F5）；CC 独立核实每条前提后：F1 修 3 端点（admin_accounts 寮边界缺口，codex 报 14 个 CC 核实只有 3 个是本次引入）/ F2 修 renewal-start 漏挂权限闸 / F4 修 delete_teacher 角色集合错误 / F5 改 学習担当 fallback 组 / F3 保持现状。pytest 371 passed 全程保持，复审收敛 blocker 0 / major 0。8 commit（`4cb86b1`~`8965cb3`）**未 push**。详见 dev_log `2026-06-12_権限分级codex审查`。<!-- VERSION_OK -->
 - **2026-06-11 版本史插空细分（版本迭代记录优化会话）**——itsuki 拍板方案 A：老段号位空隙补打 70 个补丁标签 v0.3.3~v0.14.8（已 push 旧标签与 commit 零改动、标签日期回填）+ 新段 v0.20.0~v0.22.3，标签 67→143；CHANGELOG +76 段 + 死区注记；版本演变一览补 6-09 欠的 v0.15.1~v0.19.3 详细段；version-bump 联动 7→8 处（三端客户端版本号）+ pre-commit 加「一览拦截」（提醒升级阻塞）。AC 叙事 CC 起草版放 iCloud 共用池 2_我挑的（待 itsuki 审改）。push 准备交接件存 `handoff/`。6 commit + 收尾批，**未 push**。详见 dev_log `2026-06-11` 会话 D 段。<!-- VERSION_OK -->
 - **2026-06-11 管理体系二期（启动流程改版 + 真值机器化）**——raw 107 文件迁 iCloud 素材池（仓库留指路牌）/ session-coord 停用 / 启动要读的量 1150→450 行（dmsd-startup v0.4.0 指针化 + Rule 27 兜底）/ 新基建三件（老师网页 CI `ci.yml` + 后端 142 接口总表 `openapi_snapshot.json` + 文件清单生成器双轨）/ 收尾核对表 13→14 项（AC 快照第 9 项 + 版本判定第 13 项并入）/ iOS 单元测试交接件 / worktree 指南入第二大脑。17+ commit **未 push**。详见 dev_log `2026-06-11_管理体系二期`。<!-- VERSION_OK -->
 - **2026-06-11 CLAUDE.md 治理瘦身 + demo 认知缺口修补（harness 评估会话）**——评估第三方插件 harness 后判不装（会覆盖手写 CLAUDE.md + 不适配 5 端 monorepo）、改手工跑 5 端命令实测（后端 367 passed / iOS 双 scheme / Android / 网页全过，3 发现入 TODO §B）。CLAUDE.md 大瘦身（DMSD 171→155 / 全局 113→46，删复印件换指针）+ anti-ai-flavor 整套退役归档 + ruff 删 import 坑用挂钩 `--unfixable F401` 机制堵死 + 心智模型补 §4.1 demo 双轨 + 立 150 行红线。多 commit（`92012a0`/`8f73449`/`caef9d3`/`8f78ec0`/`56f8aec` 等）**未 push**。详见 dev_log/raw `2026-06-11`。
 - **2026-06-11 iOS 点呼显示链 R-1/R-2 接真后端**——新建学生端 `GET /rollcall/me/today`（今日本人寮场次+四时间窗+我的判定）；iOS AppStore 时间窗状态机真实驱动 rollState（idle→进行中→欠席）+ 签到判定，消除写死「時間外/時間内」+ MyPage 详情写死 07:00/21:00（R-1③ profile 接口补窗口字段）。3 commit（`8cdff97`/`20776b6`/`9f92d00`）+ 收尾 `e0521e3`，**未 push**。R-3/4/5 提示词存 `handoff/`，待 compact 后接做。决策：v1.0 不支持手机签到但 ST25DVWriter 留 / iOS 暂只为上架。详见 dev_log `2026-06-11`。
-- **2026-06-11 三份索引文档对账校准**——`project-overview`（文件字典 1399→1450 committed：backend 104→112 加 3 路由 2 测试 / iOS 78→84 / Android 131→132 / 99_archive 639→650 等）+ `PROJECT_GUIDE`（§5.1 响应包络标「与代码不符」对齐心智模型 + decision_log 路径修）+ `~/.claude/我的环境.md`（anti-ai-flavor 6→8 类 / DMSD skills 8→9 补 codex-review / 删退役 progress_overview）。2 commit（`cc29127`/`5d4ad3d`）未 push。⚠️ `我的环境.html` 落后待重生成（记 TODO）。详见 raw/dev_log `2026-06-11`。
 
 > **本文件 = Claude Code 的「当下书签 + 多会话协调」清单。短小为美。**
 >
@@ -28,7 +28,7 @@
 
 ---
 
-**当前版本**: v0.23.0 <!-- VERSION_OK -->（2026-06-11 深夜「版本当场结账」首战 — iOS 体验功能批次 + 首批 7 条单元测试 + 管理基建搭车，详见 CHANGELOG 顶部）。早些（2026-06-11 插空细分：老段号位空隙补打 70 个补丁标签 v0.3.3~v0.14.8（已 push 旧标签与 commit 全未动）+ 新段补 v0.20.0~v0.22.3，标签总数 143；详见 CHANGELOG 顶部「2026-06-11 插空细分说明」。更早：2026-06-09 重排 v0.15.1~v0.19.3 ×32）
+**当前版本**: v0.23.4 <!-- VERSION_OK -->（2026-06-12 老师权限分级 codex 审查四项修复 — F2/F1/F4/F5，详见 CHANGELOG 顶部）。早些（2026-06-11 深夜「版本当场结账」首战 — iOS 体验功能批次 + 首批 7 条单元测试 + 管理基建搭车）。早些（2026-06-11 插空细分：老段号位空隙补打 70 个补丁标签 v0.3.3~v0.14.8（已 push 旧标签与 commit 全未动）+ 新段补 v0.20.0~v0.22.3，标签总数 143；详见 CHANGELOG 顶部「2026-06-11 插空细分说明」。更早：2026-06-09 重排 v0.15.1~v0.19.3 ×32）
 **版本 bump 流程**: `.claude/skills/version-bump/SKILL.md`（itsuki 说「迭代/bump/发版本/打 tag」自动触发；CC 有否决权 — 即使 itsuki 说要 bump 但 §2 决策树不命中可以拒绝）
 
 ---

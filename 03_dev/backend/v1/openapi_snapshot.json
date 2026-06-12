@@ -7202,6 +7202,17 @@
             "title": "Password",
             "type": "string"
           },
+          "permission_group": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Permission Group"
+          },
           "role": {
             "title": "Role",
             "type": "string"
@@ -7356,6 +7367,17 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "permission_group": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Permission Group"
           },
           "role": {
             "title": "Role",
@@ -9589,7 +9611,7 @@
     },
     "/api/v1/discipline/manual": {
       "post": {
-        "description": "手动加扣分（寮監 / 寮務部長 / 寮務課長 / 管理係 权限）。",
+        "description": "手动加扣分（扣分管理 M 权限）。",
         "operationId": "create_manual_demerit_api_v1_discipline_manual_post",
         "parameters": [
           {
@@ -11333,7 +11355,7 @@
     },
     "/api/v1/front-desk/students": {
       "get": {
-        "description": "前台登记宅配时挑收件学生用 —— 权限同前台登记(_ADMIN_ROLES，含寮監)，\n按老师管辖男/女寮过滤，只返回挑人需要的最小字段。\n\n为什么单独建此端点、不复用账号管理的 GET /students：那个端点角色集不含寮監\n（寮監能登记宅配却搜不了学生 → 选择器对寮監直接 403 失效），且会暴露账号锁定 /\n最后登录时间等敏感字段，前台挑人不需要。",
+        "description": "前台登记宅配时挑收件学生用 —— 前台·宅配 V 权限即可，\n按老师管辖男/女寮过滤，只返回挑人需要的最小字段。\n\n为什么单独建此端点、不复用账号管理的 GET /students：那是「学生账号管理」功能簇，\n会暴露账号锁定 / 最后登录时间等敏感字段，前台挑人不需要、权限级别也不同。",
         "operationId": "search_recipients_api_v1_front_desk_students_get",
         "parameters": [
           {

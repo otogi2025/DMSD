@@ -54,6 +54,21 @@
 **验证**: 后端 pytest 371 passed / 0 failed；老师网页 `npm run build` 退出码 0；op 明文密码全仓库零命中（只读环境变量 `OP_PASSWORD`）。commit `78ea32f`（后端核心）+ `49139d5`（端到端 + 网页）。
 **事后回看**(几个月后补填):
 
+---
+
+## 2026-06-12 — 老师权限分级 codex 审查：四项修复 + 一项保持现状（F1~F5）
+
+**背景**: 上一会话实装完权限分级后，派 codex (gpt-5.5 / xhigh) 只读二次审查。共 5 条发现，CC 逐条独立核实后裁决。
+**修复了什么**:
+- **F1（采纳部分）**: `admin_accounts` 的 `GET /students`、`password-reset`、`unlock-account` 三端点缺寮边界 —— 新增 `_assert_student_in_dorm` helper + `list_students` 加寮过滤。（codex 报 14 个端点，CC 独立 git diff 核实只有 3 个是本次引入的缺口，其余 11 个是预存在问题，记 F1-遗留 TODO）
+- **F2（采纳）**: `renewal-start` 端点漏挂 `require_permission`，旧 `require_teacher_roles` 未迁移。
+- **F4（采纳）**: `delete_teacher` 最后管理员保护用 `TEACHER_ADMIN_ROLES` 集合，集合成员错误（寮監 被误含 / 校長 被遗漏）。改用 `_has_teacher_account_admin(effective_group)` 按实际权限判。
+- **F5（采纳）**: `学習担当` role fallback 映射到 `申請承認専用`（错），itsuki 拍板改映射 `一般宿管+晚自习`；alembic 迁移回填同步；测试夹具 `gakushu_promote` 加显式 `permission_group="申請承認専用"`（防依赖已变更 fallback）。
+- **F3（保持现状）**: `required_reason` 可不填 — itsuki 拍板有意设计，codex 建议强制，驳回。
+**最终收敛**: codex 复审 blocker 0 / major 0。pytest 371 passed / 0 failed 全程保持。
+**遗留**: F1-遗留 11 个预存在端点（rollcall board/summary / 申請审批 / 缺课 / 事故全列）待 itsuki 决策 v1.0 前是否补；F5 若生产 DB 已跑旧迁移需手动 UPDATE。
+**事后回看**(几个月后补填):
+
 ## 2026-06-11 — 启动流程大改版（session-coord 停用 + 中枢信箱并入 + 说明书不再每会话重读 + 真值指针化）
 
 **之前的决策**: 启动按三处指令叠加执行 — dmsd-startup 4 件事（含协作板扫描）+ 全局 CLAUDE.md 强制每会话读 ac-radar/cc-comm-rules/session-coord 三份完整说明书 + 项目 CLAUDE.md 另一段要求读中枢信箱。合计读 1150+ 行才能说第一句话。
