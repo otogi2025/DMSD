@@ -67,6 +67,45 @@ logging.basicConfig(level=settings.log_level)
 logger = logging.getLogger("tomoshibi.startup")
 
 
+def _warn_if_db_schema_outdated() -> None:
+    """开发数据库 schema 落后自检（只读 / 只打日志 / 绝不阻断启动）。
+
+    dev 用 create_all() 建表，它只补缺失的表、不会给已存在的旧表加新列。
+    切分支或拉新代码后若别人写了新 Alembic 迁移、而本地库没 `alembic upgrade head`，
+    任何查到该表的接口都会 500（2026-06-13 teachers.permission_group 真事故）。
+    本函数比对「库当前迁移版本 vs 最新 head」，落后则醒目提示，让人开网页 500 前就看到。
+    """
+    try:
+        from pathlib import Path
+
+        from alembic.config import Config
+        from alembic.runtime.migration import MigrationContext
+        from alembic.script import ScriptDirectory
+
+        from .database import engine
+
+        cfg = Config()
+        cfg.set_main_option(
+            "script_location", str(Path(__file__).resolve().parent.parent / "alembic")
+        )
+        heads = set(ScriptDirectory.from_config(cfg).get_heads())
+
+        with engine.connect() as conn:
+            current = MigrationContext.configure(conn).get_current_revision()
+
+        # current=None：全新 create_all 建的库（schema 本就是最新），不告警
+        if current is not None and current not in heads:
+            logger.warning(
+                "⚠️  [STARTUP] 数据库 schema 落后！当前版本=%s，最新=%s。"
+                " 切分支/拉新代码后常见——请在 03_dev/backend/v1 跑"
+                " `.venv/bin/alembic upgrade head` 再用，否则查到相关表的接口会返回 500。",
+                current,
+                ",".join(sorted(heads)) or "(无)",
+            )
+    except Exception as exc:  # 自检自身出错绝不能拖垮启动
+        logger.debug("[STARTUP] 迁移版本自检跳过（%s）", exc)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # RUN-1: 启动时明显打印当前 APP_ENV，让 ops 一眼确认模式
@@ -100,6 +139,8 @@ async def lifespan(app: FastAPI):
     # dev 环境自动建表；production 仍然必须由 Alembic 管理 schema。
     if settings.app_env == "dev":
         create_all()
+        # create_all 不给已存在的旧表补新列 → 切分支后库可能落后于最新迁移，启动时提醒
+        _warn_if_db_schema_outdated()
 
     # WS 广播需要主 event loop 引用 — sync router 在 threadpool 线程靠它把协程提交回主 loop（rollcall-06）
     from .ws_manager import manager as _ws_manager
