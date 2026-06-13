@@ -35,7 +35,10 @@ export function IncidentsPage({ authToken }: { authToken: string }) {
   const [fDate, setFDate] = React.useState(
     new Date().toISOString().slice(0, 10),
   );
-  const [fStudentIds, setFStudentIds] = React.useState(""); // 逗号分隔 UUID 输入
+  // 关系学生：从「逗号分隔 UUID 手输」改为多选选择器，存 {id, name}
+  const [fStudents, setFStudents] = React.useState<
+    { id: string; name: string; sub?: string }[]
+  >([]);
   const [fSubmitting, setFSubmitting] = React.useState(false);
   const [fError, setFError] = React.useState<string | null>(null);
 
@@ -71,7 +74,7 @@ export function IncidentsPage({ authToken }: { authToken: string }) {
     setFTitle("");
     setFBody("");
     setFDate(new Date().toISOString().slice(0, 10));
-    setFStudentIds("");
+    setFStudents([]);
     setFError(null);
     setShowForm(true);
   };
@@ -81,7 +84,12 @@ export function IncidentsPage({ authToken }: { authToken: string }) {
     setFTitle(inc.title);
     setFBody(inc.body);
     setFDate(inc.incident_date);
-    setFStudentIds((inc.involved_student_ids || []).join(", "));
+    // 编辑回填：优先用后端带姓名的 involved_students；缺名时退回用 ID 当显示名
+    setFStudents(
+      (inc.involved_students || []).length > 0
+        ? inc.involved_students.map((s) => ({ id: s.id, name: s.name }))
+        : (inc.involved_student_ids || []).map((id) => ({ id, name: id })),
+    );
     setFError(null);
     setShowForm(true);
   };
@@ -92,12 +100,6 @@ export function IncidentsPage({ authToken }: { authToken: string }) {
     setFError(null);
   };
 
-  const parseStudentIds = (raw: string) =>
-    raw
-      .split(/[,\s]+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-
   const submitForm = () => {
     if (!fTitle.trim()) {
       setFError("タイトルを入力してください");
@@ -107,15 +109,8 @@ export function IncidentsPage({ authToken }: { authToken: string }) {
       setFError("内容を入力してください");
       return;
     }
-    const ids = parseStudentIds(fStudentIds);
-    // A7/codex: 提交前校验 UUID 格式，非法明确提示而不是 send 给后端吃 422
-    const uuidRe =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const badId = ids.find((id) => !uuidRe.test(id));
-    if (badId) {
-      setFError(`関係学生IDの形式が正しくありません：${badId}`);
-      return;
-    }
+    // 学生 ID 来自多选选择器（真实学生），无需再校验 UUID 格式
+    const ids = fStudents.map((s) => s.id);
     setFSubmitting(true);
     setFError(null);
 
@@ -526,25 +521,16 @@ export function IncidentsPage({ authToken }: { authToken: string }) {
                   marginBottom: 4,
                 }}
               >
-                関係学生ID（カンマ区切り、任意）
+                関係学生（任意・複数選択可）
               </div>
-              <input
-                value={fStudentIds}
-                onChange={(e) => setFStudentIds(e.target.value)}
-                placeholder="例：学生IDをカンマ区切りで入力"
-                style={{
-                  width: "100%",
-                  padding: "9px 12px",
-                  border: `1px solid ${T.lineStrong}`,
-                  borderRadius: 8,
-                  fontFamily: T.mono,
-                  fontSize: 12,
-                  background: T.surface,
-                  boxSizing: "border-box",
-                }}
+              <StudentMultiSelect
+                selected={fStudents}
+                onChange={setFStudents}
+                authToken={authToken}
               />
               <div style={{ fontSize: 11, color: T.ink3, marginTop: 4 }}>
-                ※ 学生IDは学生アカウント管理ページで確認できます
+                ※
+                クリックで一覧を開き、名前・部屋番号・学籍番号で検索して選択できます
               </div>
             </div>
             {fError && (
@@ -644,6 +630,269 @@ export function IncidentsPage({ authToken }: { authToken: string }) {
           authToken={authToken}
           onClose={() => setProfileTarget(null)}
         />
+      )}
+    </div>
+  );
+}
+
+// 学生多选选择器 —— 替代原「逗号分隔 UUID 手输」。
+// 点击触发框 → 就地展开（搜索框 + 学生列表），点行勾选 / 取消，选中显示为可删 chip。
+// 不用浮层（position:absolute），避免被表单 modal 的 overflow:auto 裁掉。
+function StudentMultiSelect({
+  selected,
+  onChange,
+  authToken,
+}: {
+  selected: { id: string; name: string; sub?: string }[];
+  onChange: (next: { id: string; name: string; sub?: string }[]) => void;
+  authToken: string;
+}) {
+  const T = RYO;
+  const [open, setOpen] = React.useState(false);
+  const [query, setQuery] = React.useState("");
+  const [results, setResults] = React.useState<
+    { id: string; name: string; sub: string }[]
+  >([]);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const boxRef = React.useRef<HTMLDivElement>(null);
+
+  // 点击选择器外部 → 收起
+  React.useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+
+  // 展开 / 改搜索词 → 拉学生（200ms 防抖，避免每键一次请求）
+  React.useEffect(() => {
+    if (!open || !authToken) return;
+    let cancelled = false;
+    setLoading(true);
+    const timer = setTimeout(() => {
+      api
+        .listStudents(query.trim() ? { q: query.trim() } : undefined, authToken)
+        .then((res) => {
+          if (cancelled) return;
+          setResults(
+            (res.items || []).map((s) => ({
+              id: s.id,
+              name: s.name,
+              sub: `${s.room_no}号室 · ${s.student_no}`,
+            })),
+          );
+          setError(null);
+          setLoading(false);
+        })
+        .catch((e) => {
+          if (cancelled) return;
+          setError(e.message || "学生リストの取得に失敗しました");
+          setResults([]);
+          setLoading(false);
+        });
+    }, 200);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [open, query, authToken]);
+
+  const isSelected = (id: string) => selected.some((s) => s.id === id);
+  const toggle = (s: { id: string; name: string; sub?: string }) => {
+    if (isSelected(s.id)) {
+      onChange(selected.filter((x) => x.id !== s.id));
+    } else {
+      onChange([...selected, { id: s.id, name: s.name, sub: s.sub }]);
+    }
+  };
+
+  return (
+    <div ref={boxRef}>
+      {/* 触发框：显示选中 chip + 展开箭头 */}
+      <div
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          width: "100%",
+          minHeight: 40,
+          padding: "6px 10px",
+          border: `1px solid ${open ? T.cobalt : T.lineStrong}`,
+          borderRadius: 8,
+          background: T.surface,
+          boxSizing: "border-box",
+          cursor: "pointer",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 6,
+          alignItems: "center",
+        }}
+      >
+        {selected.length === 0 && (
+          <span style={{ fontSize: 13, color: T.ink3 }}>
+            学生を選択（クリックで一覧）
+          </span>
+        )}
+        {selected.map((s) => (
+          <span
+            key={s.id}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 2,
+              padding: "2px 4px 2px 10px",
+              fontSize: 12,
+              color: T.cobalt,
+              background: T.cobaltSoft,
+              borderRadius: 999,
+            }}
+          >
+            {s.name}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange(selected.filter((x) => x.id !== s.id));
+              }}
+              title="削除"
+              style={{
+                border: "none",
+                background: "transparent",
+                color: T.cobalt,
+                cursor: "pointer",
+                fontSize: 14,
+                lineHeight: 1,
+                padding: "0 4px",
+              }}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <span style={{ marginLeft: "auto", color: T.ink3, fontSize: 11 }}>
+          {open ? "▲" : "▼"}
+        </span>
+      </div>
+
+      {/* 就地展开面板：搜索框 + 列表 */}
+      {open && (
+        <div
+          style={{
+            marginTop: 6,
+            border: `1px solid ${T.lineStrong}`,
+            borderRadius: 10,
+            overflow: "hidden",
+            boxShadow: T.shadow1,
+          }}
+        >
+          <div style={{ padding: 8, borderBottom: `1px solid ${T.line}` }}>
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="名前・部屋番号・学籍番号で検索…"
+              style={{
+                width: "100%",
+                padding: "7px 10px",
+                border: `1px solid ${T.line}`,
+                borderRadius: 6,
+                fontFamily: "inherit",
+                fontSize: 13,
+                background: T.surfaceAlt,
+                boxSizing: "border-box",
+                outline: "none",
+              }}
+            />
+          </div>
+          <div style={{ maxHeight: 240, overflowY: "auto" }}>
+            {loading && (
+              <div
+                style={{
+                  padding: 16,
+                  textAlign: "center",
+                  color: T.ink3,
+                  fontSize: 12,
+                }}
+              >
+                読み込み中…
+              </div>
+            )}
+            {!loading && error && (
+              <div
+                style={{
+                  padding: 16,
+                  textAlign: "center",
+                  color: T.danger,
+                  fontSize: 12,
+                }}
+              >
+                ⚠️ {error}
+              </div>
+            )}
+            {!loading && !error && results.length === 0 && (
+              <div
+                style={{
+                  padding: 16,
+                  textAlign: "center",
+                  color: T.ink3,
+                  fontSize: 12,
+                }}
+              >
+                該当する学生がいません
+              </div>
+            )}
+            {!loading &&
+              !error &&
+              results.map((s) => {
+                const on = isSelected(s.id);
+                return (
+                  <div
+                    key={s.id}
+                    onClick={() => toggle(s)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "8px 12px",
+                      cursor: "pointer",
+                      fontSize: 13,
+                      background: on ? T.cobaltSoft : "transparent",
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: 4,
+                        border: `1px solid ${on ? T.cobalt : T.lineStrong}`,
+                        background: on ? T.cobalt : "transparent",
+                        color: "#fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 11,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {on ? "✓" : ""}
+                    </span>
+                    <span style={{ flex: 1, color: T.ink }}>{s.name}</span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        color: T.ink3,
+                        fontFamily: T.mono,
+                      }}
+                    >
+                      {s.sub}
+                    </span>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
       )}
     </div>
   );
