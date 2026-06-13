@@ -3,15 +3,15 @@
 // 对等 refs/phaseB_src/c13988a3__SplashPage_OnboardingPage_RegisterDonePage.js
 // 9 个 struct View（+ private helpers）:
 //   1. SplashView            — 火焰 wordmark · 2s fadeIn · → .onboarding
-//   2. OnboardingView        — 3 slide TabView + スキップ · → .login
-//   3. RegisterStep1View     — 氏名 / 生年月日 / 性別 / アバター
-//   4. RegisterStep2View     — 点呼区分 radio (一般寮生 / サッカー部)
-//   5. RegisterStep3View     — メール / 電話
-//   6. RegisterStep4View     — パスワード × 2
-//   7. RegisterDoneView      — ✅ zoom + アカウント番号 00
-//   8. LoginView             — 番号 / メール tab · magic seed
-//   9. LockoutView           — 30 秒 カウントダウン
-//   10. PwResetView          — 寮監ご連絡説明
+//   2. OnboardingView        — 3 slide TabView + 跳过按钮 · → .login
+//   3. RegisterStep1View     — 姓名 / 生年月日 / 性别 / 头像
+//   4. RegisterStep2View     — 点呼区分 radio（普通寮生 / 足球部）
+//   5. RegisterStep3View     — 邮箱 / 电话
+//   6. RegisterStep4View     — 密码 × 2
+//   7. RegisterDoneView      — ✅ zoom + 账号番号 00
+//   8. LoginView             — 学号 / 邮箱 tab · magic seed
+//   9. LockoutView           — 30 秒倒计时
+//   10. PwResetView          — 联系宿舍管理员说明
 //
 // Fidelity 铁律:
 //   - 日文字符串逐字照抄 JSX（JSX 的 "晚" 按 v2 HTML 规约替换为 "晩"）
@@ -203,14 +203,14 @@ private struct FlameShape: Shape {
 //
 // JSX 对等:
 //   background: T.paper
-//   top-right スキップ button (fontSize:14, fontWeight:500, T.inkSub)
-//   3 slides: [点呼自動化 / 申請線上化 / 生活機能一体]
+//   右上角跳过按钮 (fontSize:14, fontWeight:500, T.inkSub)
+//   3 slides: [点呼自动化 / 申请线上化 / 生活功能一体]
 //   illustration: 220×220 rounded 28 with linear-gradient + Ic.phoneTap/mail/calendar(40) scaled 2.6
 //   tag   : fontSize:11, weight:700, letterSpacing 0.18em, uppercase
 //   title : fontSize:26, weight:700, lineHeight:1.35
 //   body  : fontSize:14, lineHeight:1.7
 //   dots  : active 24×8 / inactive 8×8, gap:8
-//   CTA   : 次へ / 始める (PrimaryBtn full)
+//   CTA   : 下一步 / 开始 (PrimaryBtn full)
 //   → router.replace(.login)   (assignment override, JSX 走 /register/1)
 
 struct OnboardingView: View {
@@ -252,7 +252,7 @@ struct OnboardingView: View {
     }
 
     private let slides: [Slide] = [
-        // ① 点呼 — 用「タッチで」泛指（不提卡 / 不提手机，因为这是 iPhone app、卡跟它无关；v1.0 也不支持手机签到）
+        // ① 点呼 — 用"触碰"泛指（不提卡 / 不提手机，因为这是 iPhone app、卡跟它无关；v1.0 也不支持手机签到）
         Slide(
             sfSymbol: "wave.3.right.circle.fill",
             title: "タッチで点呼",
@@ -292,7 +292,7 @@ struct OnboardingView: View {
     ]
 
     /// 看完（最后一页「始める」）→ 标记已看，跳登录页（新用户在登录页点「新規登録」进注册）
-    /// 无「スキップ」按钮 — itsuki 拍板所有人首次必须看完 4 页
+    /// 无跳过按钮 — itsuki 拍板所有人首次必须看完 4 页
     private func finish() {
         hasSeenOnboarding = true
         router.replace(.login)
@@ -661,10 +661,10 @@ private struct GhostButtonFull: View {
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // JSX:
-//   氏名 TField (default "リュウ イヒ")
-//   生年月日 button 48pt with date string (hint: ホイール式の日付ピッカーが表示されます)
-//   性別 Radio 男/女 (hint: 性別により自動的に男寮 / 女寮に配属されます)
-//   アバター: Avatar 64 letter + 2 buttons "写真を選択" / "デフォルトを使う"
+//   姓名 TField (default "リュウ イヒ")
+//   生年月日 button 48pt with date string（提示：将显示滚轮式日期选择器）
+//   性别 Radio 男/女（提示：系统将根据性别自动分配男寮/女寮）
+//   头像: Avatar 64 letter + 2 buttons "写真を選択" / "デフォルトを使う"
 //   footer: PrimaryBtn full disabled=!ok  → go('/register/2')
 
 struct RegisterStep1View: View {
@@ -740,7 +740,7 @@ struct RegisterStep1View: View {
     }
 
     private var classCode: String {
-        // A組 → 01 / B組 → 02 / 未选 → 00（防 canNext 兜底失效时也不写假数据）
+        // A组 → 01 / B组 → 02 / 未选 → 00（防 canNext 兜底失效时也不写假数据）
         switch classSuffix {
         case "A": return "01"
         case "B": return "02"
@@ -748,7 +748,7 @@ struct RegisterStep1View: View {
         }
     }
 
-    /// 6 桁: 年級(2) + 組(2) + 出席番号(2) · 高3 B 18 → "060218"
+    /// 6 位: 年级(2) + 班组(2) + 出席番号(2) · 高3 B 18 → "060218"
     private var computedAccount: String {
         let n = max(0, min(99, Int(seatNoStr) ?? 0))
         return gradeCode + classCode + String(format: "%02d", n)
@@ -950,7 +950,7 @@ struct RegisterStep1View: View {
                         TField(text: $room, placeholder: "")
                     }
                     .onChangeCompat(of: room) { newVal in
-                        // 英数字のみ、最大 4 桁
+                        // 只允许英数字，最多 4 位
                         let filtered = newVal.filter { $0.isLetter || $0.isNumber }
                             .uppercased()
                         room = String(filtered.prefix(4))
@@ -1187,10 +1187,10 @@ private struct AIAvatarGenerateButton: View {
 //   heading "あなたの点呼区分" fontSize:15, weight:700, marginBottom:14
 //   2 custom radio cards:
 //     regular : "一般寮生" + detail "平日: 朝 7:00 / 晩 21:00  ·  土日: 朝 8:00 / 晩 21:30"
-//     soccer  : "サッカー部" + detail "早朝練があるため  ·  平日: 朝 6:00 / 晩 21:00"
+//     soccer  : "サッカー部" + detail "有早练  ·  平日: 朝 6:00 / 晩 21:00"
 //   card: padding 18, radius 16, border selected: 1.5 T.primary + bg: T.primary08 + shadow
 //   radio visual: 22×22 circle, when selected: border 6 T.primary + bg #fff
-//   footer: 2 buttons (戻る / 次へ) gap:10
+//   footer: 2 buttons（返回 / 下一步）gap:10
 //   (注意: JSX 写作 "晚" — 按 REMOTE_AGENT_GUIDE §1.1 v2 HTML 已修为 "晩"，Swift 写 "晩")
 
 struct RegisterStep2View: View {
@@ -1199,7 +1199,7 @@ struct RegisterStep2View: View {
     @State private var cat: String = "regular"
 
     /// UI 选项 → backend category 字符串
-    /// backend Student.category 没 CHECK 约束，但保持人类可读的日语名（管理员后台看的）
+    /// backend Student.category 没 CHECK 约束，但保持人类可读的日语名（管理员后台展示用）
     private func categoryLabel(_ v: String) -> String {
         switch v {
         case "soccer": return "サッカー部"
@@ -1338,9 +1338,9 @@ private func footerDouble(
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // JSX:
-//   メールアドレス (required, hint: 認証メールは送信されません。将来のパスワードリセット時の確認用です)
+//   邮箱地址 (required, hint: 不会发送验证邮件。用于将来重置密码时的确认)
 //     default: demo@example.com
-//   電話番号 (required, hint: 寮監があなたに連絡する場合に使います)
+//   电话号码 (required, hint: 宿舍管理员联系学生时使用)
 //     default: 090-0000-0000
 
 struct RegisterStep3View: View {
@@ -1420,9 +1420,9 @@ struct RegisterStep3View: View {
 // JSX:
 //   amber banner: 24×24 orange circle with "!" + "ご注意ください" heading + body
 //     padding: 14×16, radius 14, bg T.warnBg, border T.warn40
-//   パスワード (required, hint "8 文字以上", secure)
-//   パスワード（確認） (required, error "パスワードが一致しません" when mismatch, secure)
-//   footer: 戻る + アカウント作成完了  (disabled when !pw || !pw2 || mismatch)
+//   密码 (required, hint "8 字符以上", secure)
+//   密码（确认） (required, error "パスワードが一致しません" when mismatch, secure)
+//   footer: 返回 + 创建账号  (disabled when !pw || !pw2 || mismatch)
 
 struct RegisterStep4View: View {
     @EnvironmentObject var router: RouterStore
@@ -1668,16 +1668,16 @@ struct RegisterDoneView: View {
 //   bg: linear-gradient(180deg, #eff2f3 → #e4ebec)
 //   header centered: "Tomoshibi"  fontSize:28, weight:700, T.primaryDk, letterSpacing 0.04em
 //                    "灯火 · ログイン"  fontSize:12, T.inkMute, letterSpacing 0.08em
-//   mode tab 2 segments: 番号で / メールで  (active: T.paper bg + T.primary fg + shadow)
+//   mode tab 2 segments: 学号 / 邮箱  (active: T.paper bg + T.primary fg + shadow)
 //     container: T.pill (primary08) bg, radius 12, padding 3
-//   番号: アカウント番号 Input numeric (fontSize:20, mono, letterSpacing 0.1em), default "060217"
-//   メール: メールアドレス Input type=email, default "demo@example.com"
-//   パスワード: secure, default "12345678"
-//   ログイン btn
-//   row: 新規登録 (T.inkSub) ←→ パスワードを忘れた → (T.primary)
+//   学号: 账号番号 Input numeric (fontSize:20, mono, letterSpacing 0.1em), default "060217"
+//   邮箱: 邮箱地址 Input type=email, default "demo@example.com"
+//   密码: secure, default "12345678"
+//   登录按钮
+//   row: 新规注册 (T.inkSub) ←→ 忘记密码 → (T.primary)
 //   footer mono: Tomoshibi v0.1.0-demo · 2026 AC 入試プロジェクト
-//   magic seed（仅 DEMO 编译 + 番号 mode）: acc=="060217" && pw=="12345678" → router.replace(.home)
-//   （「メール」mode 暂不支持登录，只提示切学号；真账号走 AuthAPI / 401 → lockout）
+//   magic seed（仅 DEMO 编译 + 学号 mode）: acc=="060217" && pw=="12345678" → router.replace(.home)
+//   （邮箱 mode 暂不支持登录，只提示切换学号；真实账号走 AuthAPI / 401 → lockout）
 
 struct LoginView: View {
     @EnvironmentObject var router: RouterStore
@@ -1840,7 +1840,7 @@ struct LoginView: View {
         isLoading = true
         defer { isLoading = false }
 
-        // メール mode 暂未支持（backend F6 注册流程未实装、邮箱登录后做）
+        // 邮箱 mode 暂未支持（backend F6 注册流程未实装、邮箱登录后做）
         if mode == .email {
             app.showToast("学号でログインしてください")
             return

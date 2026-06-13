@@ -63,12 +63,12 @@ struct RegistrationDraft {
     }
 }
 
-/// アカウント関連フィールドの変更履歴（MyInfo 編集時に append）
+/// 账号关联字段的变更历史记录（MyInfo 编辑时 append）
 struct ChangeLogEntry: Hashable, Identifiable {
     let id: UUID
-    let at: Date // 変更時刻
+    let at: Date // 变更时刻
     let field: String // 例: "grade" / "room"
-    let label: String // 日本語表示: "学年" / "部屋番号"
+    let label: String // 日语界面显示名: "学年" / "部屋番号"
     let before: String
     let after: String
 
@@ -378,7 +378,7 @@ final class AppStore: ObservableObject {
         #endif
     }()
 
-    /// 変更を記録（field ごと · before == after ならスキップ）
+    /// 记录字段变更（逐字段比对，before == after 则跳过）
     func appendChange(field: String, label: String, before: String, after: String) {
         guard before != after else { return }
         changeLog.insert(
@@ -906,21 +906,21 @@ final class AppStore: ObservableObject {
         #endif
     }()
 
-    // MARK: - リクエスト曲 通報・封禁 (system_features §7.11.2) — 2026-05-01 拍板
+    // MARK: - 点歌通报与封禁 (system_features §7.11.2) — 2026-05-01 拍板
 
-    /// 各曲の通報件数（songId → count）。一覧の老師側 badge は 7 件以上で出る。
+    /// 各曲的通报件数（songId → count）。列表老师侧 badge 达 7 件以上才显示。
     @Published var songReportCounts: [Int: Int] = [:]
 
-    /// 自分が投稿した曲への通報合計（badge 7 判定用 + 自動封禁判定用）
+    /// 本人投稿歌曲的通报累计（badge 7 判定用 + 自动封禁判定用）
     @Published var myReportTotal: Int = 0
 
-    /// 自分の投稿封禁レベル（0=制限なし / 1=1ヶ月 / 2=3ヶ月 / 3=永久）
+    /// 本人投稿封禁等级（0=无限制 / 1=1个月 / 2=3个月 / 3=永久）
     @Published var songBanLevel: Int = 0
 
-    /// 投稿封禁解除時刻（nil = 制限なし、level=3 は遠い未来扱いで実質 nil で許す）
+    /// 投稿封禁解除时刻（nil=无限制；level=3 视为遥远未来，实质按 nil 处理）
     @Published var songBanUntil: Date? = nil
 
-    /// 投稿可能か — banLevel + banUntil 判定
+    /// 是否可投稿 — 由 banLevel + banUntil 判定
     var canPostSong: Bool {
         if songBanLevel == 0 { return true }
         if songBanLevel >= 3 { return false } // 永久禁止
@@ -928,7 +928,7 @@ final class AppStore: ObservableObject {
         return Date() >= until
     }
 
-    /// 封禁状態の表示文字列 (MusicNewView で表示)
+    /// 封禁状态的显示文字串（在 MusicNewView 里显示）
     var songBanDescription: String? {
         guard !canPostSong else { return nil }
         if songBanLevel >= 3 { return "投稿は永久に停止されています。" }
@@ -941,13 +941,13 @@ final class AppStore: ObservableObject {
         return "現在投稿停止中"
     }
 
-    /// 通報を 1 件記録（demo: 全件自分宛にカウントして自動封禁を体感できるようにする）
-    /// 実装時は backend が songId → 投稿者 をルックアップして本人にだけ加算する。
+    /// 记录 1 条通报（demo：全部计入本人累计，让演示时能体感自动封禁流程）
+    /// 正式实现时由 backend 通过 songId 查投稿者，只给本人加计数。
     func reportSong(songId: Int, reason _: SongReportReason, freeText _: String?) {
         songReportCounts[songId, default: 0] += 1
-        // demo: 投稿者の本人累計にも加算（実 prod は songs.posted_by_id を見る）
+        // demo：同时加进投稿者本人累计（正式生产版看 songs.posted_by_id）
         myReportTotal += 1
-        // 5 件超で次の段階へ自動エスカレーション
+        // 超过阈值自动升级封禁等级
         let prevLevel = songBanLevel
         if myReportTotal >= 15 {
             songBanLevel = 3
@@ -971,7 +971,7 @@ final class AppStore: ObservableObject {
         }
     }
 
-    /// demo 用 reset (マイページ 設定から呼ぶ想定 — 今回は未配線)
+    /// demo 用 reset（预计从个人页"设置"调用 — 本次暂未接线）
     func resetSongBan() {
         songBanLevel = 0
         songBanUntil = nil
@@ -993,19 +993,19 @@ final class AppStore: ObservableObject {
         return f.string(from: Date())
     }
 
-    // MARK: - ログインロック升级 (CLAUDE.md §App 账号规则 + 4-22 拍板の 5 段階)
+    // MARK: - 登录锁定升级 (CLAUDE.md §App 账号规则 + 4-22 拍板的 5 阶段)
 
     //
-    // 失敗回数 → ロック期間: 1=30秒 / 2=1分 / 3=5分 / 4=30分 / 5=1時間 / 6+=永久
-    // 永久ロックは寮監に連絡して解除。次回ログイン成功で counter リセット。
+    // 失败次数 → 锁定时长: 1=30秒 / 2=1分 / 3=5分 / 4=30分 / 5=1小时 / 6+=永久
+    // 永久锁定须联系宿舍管理员解除。下次登录成功后 counter 重置。
 
-    /// ログイン失敗累計 (永久ロックは 6 以上)
+    /// 登录失败累计次数（永久锁定为 6 以上）
     @Published var loginFailCount: Int = 0
 
-    /// ロック期間 (failCount に対応する秒数 — 6+ は nil = 永久)
+    /// 各锁定阶段时长（秒数，与 failCount 对应 — 6+ 为 nil = 永久）
     static let lockoutDurations: [Int] = [30, 60, 300, 1800, 3600]
 
-    /// 現在のロック段階の秒数 (永久 → nil)
+    /// 当前锁定阶段的秒数（永久 → nil）
     var currentLockoutSeconds: Int? {
         let idx = loginFailCount - 1
         guard idx >= 0 else { return nil }
@@ -1015,7 +1015,7 @@ final class AppStore: ObservableObject {
         return nil // 永久
     }
 
-    /// 現在のロック段階の表示文字列
+    /// 当前锁定阶段的显示文字串
     var currentLockoutLabel: String {
         switch loginFailCount {
         case 1: return "30 秒"
@@ -1027,7 +1027,7 @@ final class AppStore: ObservableObject {
         }
     }
 
-    /// 次の段階の表示文字列 (後段が無いなら nil)
+    /// 下一阶段的显示文字串（已是最后阶段则为 nil）
     var nextLockoutLabel: String? {
         switch loginFailCount {
         case 1: return "1 分"
@@ -1039,12 +1039,12 @@ final class AppStore: ObservableObject {
         }
     }
 
-    /// ログイン失敗時に呼ぶ — failCount += 1
+    /// 登录失败时调用 — failCount += 1
     func recordLoginFailure() {
         loginFailCount += 1
     }
 
-    /// ログイン成功時 / ロック明け で呼ぶ — counter reset
+    /// 登录成功 / 锁定到期 时调用 — 重置计数器
     func resetLoginFailures() {
         loginFailCount = 0
     }
@@ -1056,7 +1056,7 @@ final class AppStore: ObservableObject {
     //   → 解析 payload → 调 handleIncomingPush(...) 把通知 insert 到 pushNotifications。
     // 当前是接入前的 store：APNs 接通前 pushNotifications 空。
 
-    /// 真 push 接收後動的に追加される通知（SEED.notifications は静的の初期 placeholder）
+    /// 收到真实 push 后动态追加的通知（SEED.notifications 是静态初始占位数据）
     @Published var pushNotifications: [NotificationItem] = []
 
     // MARK: - 包裹通知（IX-009 真数据源 · GET /api/v1/front-desk/mine）
@@ -1309,7 +1309,7 @@ final class AppStore: ObservableObject {
         #endif
     }
 
-    /// APNs delegate 受信後调 — push 1 条 insert
+    /// APNs delegate 收到推送后调用 — 插入 1 条 push 通知
     /// - Parameters:
     ///   - type: NotificationItem.type 字段（"申請" / "減点" / "学習" / "リクエスト曲" 等）
     ///   - title: 标题
@@ -1369,20 +1369,20 @@ final class AppStore: ObservableObject {
 // MARK: - 学習 NFC 出席（system_features §7.3.3-6）
 
 enum StudyTap: String, Hashable, CaseIterable {
-    case start // 19:35 ～ 19:40 学習開始
+    case start // 19:35 ～ 19:40 学习开始
     case end // 21:45 学习结束（itsuki 2026-05-31：废除中场 tap，简化成开始 / 结束 2 次）
 }
 
-/// 出席状態（amber Card / マイページ で表示）
+/// 出席状态（在 amber Card / 个人页里显示）
 enum StudyAttendance: String {
-    case idle // 学習時間外
-    case none // active だが 0 tap
-    case progressing // 1 tap 済（通常進行中）
-    case green // 两次 tap 完成 = 时间内
-    case yellow // 遅刻
+    case idle // 学习时间外
+    case none // 进行中但 0 次 tap
+    case progressing // 已 tap 1 次（正常进行中）
+    case green // 两次 tap 均完成 = 时间内
+    case yellow // 迟到
     case red // 缺席
-    case abnormal // 不一致 = ⚠️ 異常 老師手動判
-    case excused // 欠席承認済
+    case abnormal // 前后不一致 = 异常，须老师手动判定
+    case excused // 缺席已获批准
 }
 
 // MARK: - 通報理由 (system_features §7.11.2)

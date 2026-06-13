@@ -1,18 +1,18 @@
-// StayListStubs.swift · 申請履歴 一覧 + 承認 chain 詳細
+// StayListStubs.swift · 申请履历 列表 + 承认 chain 详情
 // ⭐ 会话 C · 老師 38 条 #5「提交后给提交者展示承认状态」
 //
-// API 対応（B 未到位 → mock）:
+// API 对应（B 未到位 → mock）:
 //   GET /applications/mine    → StayListView         (BACKEND_DESIGN_LOG §5.2.2)
 //   GET /applications/:id     → StayDetailView       (BACKEND_DESIGN_LOG §5.2.3)
 //
-// chain 規則（IOS_DESIGN_LOG §11.9 I11）:
+// chain 规则（IOS_DESIGN_LOG §11.9 I11）:
 //   外泊届 一般 = 担任 / 寮務課長 / 管理係                         (3 役职)
 //   外泊届 留学生 = 担任 / 国際交流部長 / 寮務課長 / 寮務部長 / 管理係  (5 役职)
 //   帰省 / 帰国届 chain = ⏳ 实物表 evidence 待ち
 
 import SwiftUI
 
-// MARK: - 役职 / 決定 / chain entry モデル
+// MARK: - 角色 / 决定 / chain 步骤模型
 
 enum ApprovalRole: String, CaseIterable, Hashable {
     case homeroom = "担任"

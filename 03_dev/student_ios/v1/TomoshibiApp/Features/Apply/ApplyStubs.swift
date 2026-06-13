@@ -6,7 +6,7 @@
 //   - 颜色全部走 T.* tokens
 //   - SF Symbols 用 Ic.* (JSX 源用 SVG path 但 Ic 已是视觉接近的 SF Symbol wrapper,
 //     保持 Agent D 与 Foundation 的一致性, 避免 feature 级重复造轮)
-//   - StayForm 对应 JSX line 92-292 的 8 section (本人連絡先 / 同行者 / 日時 / 方法 / 宿泊先 / 食事 / 理由 / 備考)
+//   - StayForm 对应 JSX line 92-292 的 8 section（本人联系方式 / 同行者 / 日期时间 / 交通方式 / 住宿地点 / 餐食 / 理由 / 备注）
 
 import SwiftUI
 
@@ -371,8 +371,8 @@ struct ApplyFormDispatcher: View {
     let kind: String
 
     var body: some View {
-        // 老師反饋 #1-#4 対応: 出寮届 = 帰省 / 外泊 / 帰国 三種類はすべて StayForm へ
-        // §7.2 字段累積表に従い動的表示（StayForm 内部で kind 判定）
+        // 老师反馈 #1-#4 对应：出寮届 = 帰省 / 外泊 / 帰国 三种类型全部走 StayForm
+        // 按 §7.2 字段累积表动态显示（StayForm 内部根据 kind 判断）
         if kind == "stay" || kind == "holiday" || kind == "returncountry" {
             StayForm(kind: kind)
         } else if kind == "studyAbsence" {
@@ -392,18 +392,18 @@ struct ApplyFormDispatcher: View {
 }
 
 // ============================================================================
-// §2.4 StayForm ⭐⭐⭐ — 出寮届 (帰省 / 外泊 / 帰国) · §7.2 spec 実装
+// §2.4 StayForm ⭐⭐⭐ — 出寮届（帰省 / 外泊 / 帰国）· §7.2 spec 实装
 //
-// 老師 38 条反饋 #1-#4 対応:
-//   #1 学生は自分のみ提出可 → 申請者本人 = SEED.user 固定 read-only · 提出時 assert
-//   #2 三種類字段 (帰省 / 外泊 / 帰国) 累積モデル
-//   #3 出寮日 = 明日以降のみ (DatePicker minDate = tomorrow)
-//   #4 不要な field は隠す (kind 別 dynamic 表示)
+// 老师 38 条反馈 #1-#4 对应：
+//   #1 学生只能提交自己的申请 → 申请者本人 = SEED.user 固定 read-only · 提交时 assert
+//   #2 三种类型（帰省 / 外泊 / 帰国）字段累积模型
+//   #3 出寮日 = 仅限明日以后（DatePicker minDate = tomorrow）
+//   #4 不需要的字段隐藏（按 kind 动态显示）
 //
-// 字段累積:
-//   帰省  : 出寮日 / 帰省方法 / 出寮時刻 / 帰寮日 / 帰寮方法 / 帰寮時刻
-//   外泊  : 帰省字段 + 外泊地点(可多个) + 食事不要期間
-//   帰国  : 外泊字段 + 出発空港 / 出発時刻 / 到着空港 / 到着時刻
+// 字段累积：
+//   帰省  : 出寮日 / 帰省方式 / 出寮时刻 / 帰寮日 / 帰寮方式 / 帰寮时刻
+//   外泊  : 帰省字段 + 外泊地点（可多个）+ 免餐期间
+//   帰国  : 外泊字段 + 出发机场 / 出发时刻 / 到达机场 / 到达时刻
 // ============================================================================
 
 struct StayForm: View {
@@ -450,7 +450,7 @@ struct StayForm: View {
     @State private var destCities: String = ""
     @State private var mealNote: String = ""
 
-    // ── §7.2 共通字段 (帰省/外泊/帰国 三種類すべて) ─────────────────────────
+    // ── §7.2 共通字段（帰省 / 外泊 / 帰国 三种类型通用）────────────────────────
     @State private var leaveDate: Date = StayForm.tomorrow
     @State private var leaveTime: Date = StayForm.parseHM("18:00") ?? Date()
     @State private var leaveMethod: String = "JR"
@@ -458,7 +458,7 @@ struct StayForm: View {
     @State private var returnTime: Date = StayForm.parseHM("20:00") ?? Date()
     @State private var returnMethod: String = "JR"
 
-    // ── 外泊 / 帰国 only ─────────────────────────────────────────────────
+    // ── 仅外泊 / 帰国 ────────────────────────────────────────────────────
     // 滞在先 1 件 = 稳定 id + 地址。用 id 当列表项身份（不用数组下标），
     // 删中间一行时输入框内容 / 焦点不会串到别行（IX-032）。
     @State private var stayPlaces: [StayPlaceItem] = [StayPlaceItem()] // 外泊地点(可多个)
@@ -468,7 +468,7 @@ struct StayForm: View {
     @State private var skipEndMeal: String = "朝食"
     @State private var skipEnabled: Bool = true // 食事不要期間 を申告するか
 
-    // ── 帰国 only ────────────────────────────────────────────────────────
+    // ── 仅帰国 ───────────────────────────────────────────────────────────
     @State private var departAirport: String = ""
     @State private var departFlightTime: Date = StayForm.parseHM("10:00") ?? Date()
     @State private var arriveAirport: String = ""
@@ -523,7 +523,7 @@ struct StayForm: View {
         applyType(kind)
     }
 
-    // 提出可否: 必須項目が埋まっているか
+    // 是否可提交：必填项是否已填写
     private var canSubmit: Bool {
         if reason.isEmpty { return false }
         // IX-018: 把离校 / 返校都按「日期 + 时刻」合成成完整时间再比较。
@@ -1088,10 +1088,10 @@ struct StayForm: View {
         }
     }
 
-    // MARK: - meals_skip 展開ヘルパー
+    // MARK: - meals_skip 展开辅助方法
 
     ///
-    /// (skipStartDate, skipStartMeal) → (skipEndDate, skipEndMeal) の間の全食事エントリを生成
+    /// 生成（skipStartDate, skipStartMeal）→（skipEndDate, skipEndMeal）区间内的所有餐食条目
     static func expandMealsSkip(
         from startDate: Date, startMeal: String,
         to endDate: Date, endMeal: String
@@ -1119,7 +1119,7 @@ struct StayForm: View {
 
     // MARK: - helpers (parse / format date · 静的)
 
-    /// 明日 0:00 — DatePicker minDate に使う (#3)
+    /// 明日 0:00 — 用作 DatePicker 的 minDate（#3）
     static var tomorrow: Date {
         let cal = Calendar.current
         let today0 = cal.startOfDay(for: Date())
@@ -1183,7 +1183,7 @@ struct StayForm: View {
         return f.string(from: combined)
     }
 
-    /// 空白だけの入力は backend へ送らない
+    /// 仅含空白的输入不发送到后端
     static func nilIfBlank(_ s: String) -> String? {
         let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
@@ -1413,10 +1413,10 @@ struct StudyAbsenceForm: View {
 
     @State private var reason: String = ""
     @State private var range: StudyLeaveRange = .first
-    /// 欠席する日付。デフォルト = 今日。今後 14 日まで選択可。
+    /// 请假日期。默认 = 今天。可选范围：今天起 14 天以内。
     @State private var targetDate: Date = .init()
 
-    /// 選択可能な日付範囲: 今日〜14 日後
+    /// 可选日期范围：今天～14 天后
     private var dateRange: ClosedRange<Date> {
         let now = Date()
         let later = now.addingTimeInterval(60 * 60 * 24 * 14)

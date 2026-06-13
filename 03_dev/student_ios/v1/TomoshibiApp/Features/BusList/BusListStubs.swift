@@ -1,10 +1,10 @@
-// BusListStubs.swift · 寮生特別運航便 一覧
-// ⭐ 会话 C · 老師 38 条 #8「寮生特別運航便の一覧表示（参考用 + ApplyForm 帰省方法選択時に確認）」
+// BusListStubs.swift · 寮生专用特别运航班次一览
+// ⭐ 会话 C · 老师 38 条 #8「寮生专用特别运航班次一览（参考用 + 外出申请表选择回家方式时确认）」
 //
-// API 対応（B 未到位 → mock）:
+// API 对应（后端 B 尚未到位 → 使用 mock 数据）:
 //   GET /buses                → BusListView         (system_features §7.6)
 //
-// system_features.md §7.6.1 のデータ模型に対応:
+// system_features.md §7.6.1 的数据模型对应:
 //   bus_routes
 //     ├── kind         ENUM('daily_commute','dorm_special')
 //     ├── name         "朝便 6:50 寮 → 駅"
@@ -13,13 +13,13 @@
 //     ├── arrival_at   TIMESTAMPTZ NULL
 //     └── visible_to   ENUM('all','dorm_only','men','women')
 //
-// 杭田差別化:
-//   - 既存 BusView（CommunityStubs.swift）= 日別グループ表示（demo 純粋 一覧）
-//   - 本 BusListView = kind フィルタ可（特別便 / 通学便）+ 空港送迎強調 + 申請動線
+// 差异点:
+//   - 原有 BusView（CommunityStubs.swift）= 按日分组显示（demo 纯列表）
+//   - 本 BusListView = 可按班次类型过滤（特别班 / 通学班）+ 突出显示机场接送 + 申请入口
 
 import SwiftUI
 
-// MARK: - データ模型
+// MARK: - 数据模型
 
 enum BusKind: String, Hashable {
     case dailyCommute = "daily_commute" // 平日通学便
@@ -47,21 +47,21 @@ enum BusVisibility: String, Hashable {
 struct SpecialBusRoute: Hashable, Identifiable {
     let id: String
     let kind: BusKind
-    let name: String // 表示用 短い名前 "GW外泊 朝便"
-    let direction: String // "高校棟 → 岡山駅西口"
-    let date: String // "2026-04-29"
-    let weekday: String // "水"
-    let scheduleAt: String // "07:30"
-    let arrivalAt: String? // "08:25" / nil
+    let name: String // 显示用短名称，如 "GW外泊 朝便"
+    let direction: String // 如 "高校棟 → 岡山駅西口"
+    let date: String // 如 "2026-04-29"
+    let weekday: String // 如 "水"
+    let scheduleAt: String // 如 "07:30"
+    let arrivalAt: String? // 如 "08:25" / nil
     let visibleTo: BusVisibility
-    let isAirport: Bool // 空港送迎便（帰国届で重要）
-    let purpose: String? // "GW外泊・帰省・買い物" — 用途タグ
-    let seatsLabel: String // "空きあり" / "残 3" 等
-    let isNext: Bool // 直近の便ハイライト
+    let isAirport: Bool // 机场接送班次（对归国届申请尤为重要）
+    let purpose: String? // 如 "GW外泊・帰省・買い物" — 用途标签
+    let seatsLabel: String // 如 "空きあり" / "残 3" 等
+    let isNext: Bool // 最近班次高亮标记
     let deprecated: Bool
 }
 
-// MARK: - モックデータ（SEED.busSchedule をベースに kind/visibility を付与）
+// MARK: - 模拟数据（以 SEED.busSchedule 为基础，附加 kind/visibility 字段）
 
 enum BusListMock {
     static let all: [SpecialBusRoute] = makeAll()
@@ -70,7 +70,7 @@ enum BusListMock {
         var routes: [SpecialBusRoute] = []
         for sched in SEED.busSchedule {
             for (i, line) in sched.lines.enumerated() {
-                // 岡山駅（冈山站）是电车站不是机场，只在路线名含「空港」（机场）时才判定为机场送迎便
+                // 岡山駅是电车站不是机场，只在路线名含「空港」（机场）时才判定为机场接送班次
                 let isAirport = line.route.contains("空港")
                 let kind: BusKind = sched.notice != nil ? .dormSpecial : .dailyCommute
                 routes.append(SpecialBusRoute(
@@ -95,7 +95,7 @@ enum BusListMock {
     }
 
     private static func shortName(from label: String, time: String) -> String {
-        // "GW外泊・帰省・買い物" + "07:30" → "GW外泊 07:30 便"
+        // "GW外泊・帰省・買い物" + "07:30" → 取第一个用途词拼成 "GW外泊 07:30 便"
         let head = label.split(separator: "・").first.map(String.init) ?? label
         return "\(head) \(time) 便"
     }

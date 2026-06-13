@@ -21,10 +21,10 @@ struct ScheduleView: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore // 判断登录态：已登录拉真后端 / 未登录回退 SEED
 
-    /// 表示中の月（YearMonth）
+    /// 当前显示的月份（YearMonth 年月值）
     @State private var ym: YearMonth = ScheduleView.initialYearMonth()
 
-    /// 選択された日（同じ月の中で nil 不可になったら 1）
+    /// 已选中的日期（同月内不允许为 nil，默认取 1 日）
     @State private var selectedDay: Int = ScheduleView.initialDay()
 
     /// 数据源：未登录 = SEED.events 兜底；已登录 = 后端 GET /api/v1/events 映射结果。
@@ -124,7 +124,7 @@ struct ScheduleView: View {
         router.go(.homeEventDetail(id: idx))
     }
 
-    // MARK: 月切替 + 日グリッド
+    // MARK: 月份切换 + 日期格子
 
     private var calendarCard: some View {
         Card(padding: 16) {
@@ -169,18 +169,18 @@ struct ScheduleView: View {
     private var dayGrid: some View {
         let cols = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
         return LazyVGrid(columns: cols, spacing: 4) {
-            // 曜日ヘッダ
+            // 星期标题行
             ForEach(["日", "月", "火", "水", "木", "金", "土"], id: \.self) { d in
                 Text(d)
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(weekdayColor(d))
                     .padding(.vertical, 6)
             }
-            // 月初前の空白
+            // 月初前的空白占位格
             ForEach(0 ..< ym.firstWeekdayIndex, id: \.self) { _ in
                 Color.clear.aspectRatio(1, contentMode: .fit)
             }
-            // 当月の日
+            // 当月各日
             ForEach(1 ... ym.daysInMonth, id: \.self) { day in
                 dayCell(day)
             }
@@ -227,7 +227,7 @@ struct ScheduleView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: 選択日 詳細セクション
+    // MARK: 已选日期 详情区块
 
     private var selectedDaySection: some View {
         let evs = eventsForDay(selectedDay)
@@ -307,7 +307,7 @@ struct ScheduleView: View {
         }
     }
 
-    // MARK: ナビゲーション補助
+    // MARK: 导航辅助
 
     private var canGoBack: Bool {
         ym > monthRange.lowerBound
@@ -403,7 +403,7 @@ enum EventMapper {
     }
 }
 
-// MARK: - YearMonth (year-month + 日数 + 月初曜日 計算)
+// MARK: - YearMonth（年月值 + 当月天数 + 月初星期计算）
 
 struct YearMonth: Hashable, Comparable {
     let year: Int
@@ -430,7 +430,7 @@ struct YearMonth: Hashable, Comparable {
         return YearMonth(year: newYear, month: totalMonth + 1)
     }
 
-    /// 当月の日数
+    /// 当月天数
     var daysInMonth: Int {
         var comp = DateComponents()
         comp.year = year
