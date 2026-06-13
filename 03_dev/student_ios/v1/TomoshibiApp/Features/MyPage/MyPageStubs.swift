@@ -75,7 +75,7 @@ struct MyLandingView: View {
     //   - profile 缩小（avatar 56 + 一行 info + Pill）
     //   - 学習 / 点呼 / 減点 = Card 化置顶（最重要 → 最显眼）
     //   - 履歴 grid 缩到 6 件（删点呼 / 減点 / 学習 — 已 Card 化）
-    //   - settings 删特別運航便（已搬到 Home busCard）
+    //   - settings 删特別運行便（已搬到 Home busCard）
 
     /// 履歴 grid（6 件 · 2-col grid）
     private var blocks: [MyLandingGridBlock] {
@@ -589,7 +589,7 @@ struct MyLandingView: View {
         Card(padding: 0) {
             VStack(spacing: 0) {
                 // 「行事予定」入口 2026-06-04 搬到本页顶部日程卡（itsuki 拍板：埋在这里太小）
-                // 「特別運航便」入口 2026-05-03 搬到 Home busCard（itsuki 拍板：去重复）
+                // 「特別運行便」入口 2026-05-03 搬到 Home busCard（itsuki 拍板：去重复）
                 settingsRow(label: "設定", chev: true, danger: false) {
                     router.go(.mySettings)
                 }

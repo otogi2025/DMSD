@@ -67,7 +67,7 @@ enum Route: Hashable {
     case stayDetail(id: String) // #5 申請詳細 + 承認 chain（GET /applications/:id）
     case stayEdit(id: String) // 出寮届 修改届 (system_features §7.2.4-5)
     case schedule // #9 行事予定 月历（GET /events）
-    case busList // #8 寮生特別運航便 一覧（GET /buses）
+    case busList // #8 寮生特別運行便 一覧（GET /buses）
 
     /// Breadcrumb 显示名（日本語）
     var displayName: String {
@@ -124,7 +124,7 @@ enum Route: Hashable {
         case .stayDetail: return "申請詳細"
         case .stayEdit: return "修改届"
         case .schedule: return "行事予定"
-        case .busList: return "特別運航便"
+        case .busList: return "特別運行便"
         }
     }
 

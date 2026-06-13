@@ -546,7 +546,7 @@ struct StayForm: View {
     }
 
     /// 「寮生特別運行の時刻表を見る」按钮 — 出寮方法 / 帰寮方法 下方各放一个，
-    /// 因为这两组移动方式里都能选「寮生特別運行」。点了跳到特別運航便一覧（BusListView）。
+    /// 因为这两组移动方式里都能选「寮生特別運行」。点了跳到特別運行便一覧（BusListView）。
     private var busTimetableButton: some View {
         Button {
             router.go(.busList)

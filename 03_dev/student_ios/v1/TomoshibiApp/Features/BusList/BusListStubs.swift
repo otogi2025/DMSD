@@ -23,12 +23,12 @@ import SwiftUI
 
 enum BusKind: String, Hashable {
     case dailyCommute = "daily_commute" // 平日通学便
-    case dormSpecial = "dorm_special" // 寮特別運航便
+    case dormSpecial = "dorm_special" // 寮特別運行便
 
     var label: String {
         switch self {
         case .dailyCommute: return "通学便"
-        case .dormSpecial: return "特別便"
+        case .dormSpecial: return "特別運行便"
         }
     }
 
@@ -162,29 +162,20 @@ enum BusRouteMapper {
 }
 
 // ============================================================================
-// MARK: - BusListView · 特別運航便 一覧
+// MARK: - BusListView · 特別運行便 一覧
 
 // ============================================================================
 
 struct BusListView: View {
     @EnvironmentObject var app: AppStore // 判断登录态：已登录拉真后端 / 未登录回退假数据
-    @State private var kindFilter: BusKind? = nil // nil = 全部
     @State private var airportOnly: Bool = false
     @State private var routes: [SpecialBusRoute] = [] // 数据源：后端 GET /api/v1/bus/routes 或 mock 兜底
     @State private var isLoading: Bool = false
     @State private var loadError: String? = nil // 已登录拉取失败时的报错（不喂假数据，见 load）
 
-    private let tabs: [(label: String, value: BusKind?)] = [
-        ("すべて", nil),
-        ("特別便", .dormSpecial),
-        ("通学便", .dailyCommute),
-    ]
-
     private var filtered: [SpecialBusRoute] {
-        var arr = routes
-        if let k = kindFilter {
-            arr = arr.filter { $0.kind == k }
-        }
+        // 本页只显示寮生特別運行便，隐藏平日通学便（itsuki 2026-06-13）
+        var arr = routes.filter { $0.kind == .dormSpecial }
         if airportOnly {
             arr = arr.filter { $0.isAirport }
         }
@@ -218,7 +209,7 @@ struct BusListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            PageHeader(title: "特別運航便", level: 2)
+            PageHeader(title: "特別運行便", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     headerNotice
@@ -323,36 +314,19 @@ struct BusListView: View {
     // MARK: 筛选 row
 
     private var filters: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(Array(tabs.enumerated()), id: \.offset) { _, tab in
-                        let selected = kindFilter == tab.value
-                        Button { kindFilter = tab.value } label: {
-                            Text(tab.label)
-                                .font(.system(size: 12.5, weight: .semibold))
-                                .padding(.horizontal, 14).padding(.vertical, 7)
-                                .foregroundStyle(selected ? Color.white : T.primary)
-                                .background {
-                                    Capsule().fill(selected ? T.primary : T.pill)
-                                }
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-            HStack(spacing: 8) {
-                Toggle(isOn: $airportOnly) { EmptyView() }
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .tint(T.primary)
-                    .scaleEffect(0.85)
-                    .frame(width: 50)
-                Text("空港送迎便のみ")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(airportOnly ? T.primary : T.inkSub)
-                Spacer()
-            }
+        // 班次类型筛选条（原「すべて」「特別便」「通学便」三选项）已删 —— 本页只显示特別運行便，
+        // 仅保留「空港送迎便のみ」开关（提交帰国届选机场班次时用）。
+        HStack(spacing: 8) {
+            Toggle(isOn: $airportOnly) { EmptyView() }
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .tint(T.primary)
+                .scaleEffect(0.85)
+                .frame(width: 50)
+            Text("空港送迎便のみ")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(airportOnly ? T.primary : T.inkSub)
+            Spacer()
         }
     }
 
