@@ -217,27 +217,8 @@ def get_current_principal(
     )
 
 
-def require_teacher_roles(*allowed: str):
-    """`require_teacher_roles('寮務部長', '寮務課長')` 形式で使う。"""
-
-    def _checker(
-        teacher: models.Teacher = Depends(get_current_teacher),
-    ) -> models.Teacher:
-        if teacher.role not in allowed:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={
-                    "code": "FORBIDDEN_ROLE",
-                    "message": f"権限不足 (必要 role: {', '.join(allowed)})",
-                },
-            )
-        return teacher
-
-    return _checker
-
-
 def require_permission(cluster: str, level: int):
-    """权限分级闸（teacher_permission_v1.md §5）— 替代裸 get_current_teacher / require_teacher_roles。
+    """权限分级闸（teacher_permission_v1.md §5）— 替代裸 get_current_teacher 与旧的按职位鉴权。
 
     用法：`Depends(require_permission(permissions.C_ROLLCALL, permissions.MANAGE))`
     —— 管理动作传 MANAGE，查看动作传 VIEW。

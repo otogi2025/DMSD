@@ -17,7 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import models, permissions, schemas
 from ..database import get_db
 from ..deps import (
     assert_student_demo_match,
@@ -25,7 +25,7 @@ from ..deps import (
     dorm_units_for_teacher,
     get_current_student,
     get_current_teacher,
-    require_teacher_roles,
+    require_permission,
 )
 
 router = APIRouter(prefix="/api/v1/dorm-life", tags=["dorm-life"])
@@ -120,7 +120,9 @@ def decide_event_proposal(
     proposal_id: UUID,
     body: schemas.DormEventProposalDecisionIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(require_teacher_roles("寮務課長", "寮務部長")),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_APPROVAL, permissions.MANAGE)
+    ),
 ):
     record = db.get(models.DormEventProposal, proposal_id)
     if not record:
@@ -207,7 +209,7 @@ def decide_schedule_change(
     body: schemas.DormScheduleChangeDecisionIn,
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(
-        require_teacher_roles("国際交流部長", "寮務部長", "寮務課長")
+        require_permission(permissions.C_APPROVAL, permissions.MANAGE)
     ),
 ):
     record = db.get(models.DormScheduleChange, change_id)
@@ -295,7 +297,7 @@ def decide_fridge_purchase(
     body: schemas.FridgePurchaseDecisionIn,
     db: Session = Depends(get_db),
     teacher: models.Teacher = Depends(
-        require_teacher_roles("寮務課長", "国際交流部長", "寮務部長", "管理係")
+        require_permission(permissions.C_APPROVAL, permissions.MANAGE)
     ),
 ):
     record = db.get(models.FridgePurchaseRequest, request_id)
@@ -395,7 +397,9 @@ def decide_item_possession(
     request_id: UUID,
     body: schemas.ItemPossessionDecisionIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(require_teacher_roles("寮務課長", "寮務部長")),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_APPROVAL, permissions.MANAGE)
+    ),
 ):
     record = db.get(models.ItemPossessionRequest, request_id)
     if not record:

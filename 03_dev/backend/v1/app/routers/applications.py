@@ -158,9 +158,6 @@ def create_application(
 # ---------------------------------------------------------------
 # POST /applications/by-teacher — 杭田 2026-06-04 五-3: 老师代学生当日补录
 # ---------------------------------------------------------------
-_DAIROKU_ROLES = {"寮務部長", "寮務課長", "寮監", "寮務一般教師", "管理係"}
-
-
 @router.post(
     "/by-teacher",
     response_model=schemas.ApplicationOut,
@@ -177,15 +174,10 @@ def create_application_by_teacher(
     """老师代学生补录出寮届（杭田五-3「老师可代学生当日补录」）。
 
     与学生自助提交 POST /applications 的区别：
-    ① 鉴权用老师（限寮務系角色）；② student_id 由老师指定（受 R4 寮边界）；
+    ① 鉴权需「申请审批」权限；② student_id 由老师指定（受 R4 寮边界）；
     ③ 允许当日（leave_date >= 今天，仅禁过去日；学生侧必须明天以后）。
     其余（审批链 / 提交邮件通知 / WebSocket 推送）与学生提交完全一致。
     """
-    if teacher.role not in _DAIROKU_ROLES:
-        raise HTTPException(
-            403, {"code": "FORBIDDEN_ROLE", "message": "代録権限がありません"}
-        )
-
     student = db.get(models.Student, student_id)
     if not student:
         raise HTTPException(
@@ -450,16 +442,10 @@ def list_proxy_candidates(
 ):
     """老师代録出寮届时的学生选择器数据源（杭田五-3「老师可代学生当日补录」）。
 
-    刻意不复用 admin 的 GET /students：那个只给寮务管理 3 角色、还暴露账号
-    锁定信息。代録接口允许 5 角色（_DAIROKU_ROLES），所以这里权限与代録对齐，
-    只回精简字段（学号 / 姓名 / 寮 / 是否留学生 / 房间），并按 R4 寮边界过滤——
-    老师只能搜到自己管辖寮的学生。
+    刻意不复用 admin 的 GET /students：那个还暴露账号锁定信息。这里权限与代録
+    对齐（都需「申请审批」权限），只回精简字段（学号 / 姓名 / 寮 / 是否留学生 /
+    房间），并按 R4 寮边界过滤——老师只能搜到自己管辖寮的学生。
     """
-    if teacher.role not in _DAIROKU_ROLES:
-        raise HTTPException(
-            403, {"code": "FORBIDDEN_ROLE", "message": "代録権限がありません"}
-        )
-
     stmt = select(models.Student).where(demo_scope_for_teacher(teacher))
 
     if q and q.strip():

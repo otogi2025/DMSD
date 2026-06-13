@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -18,21 +18,6 @@ from ..deps import require_permission
 from ..services import meals as meals_svc
 
 router = APIRouter(prefix="/api/v1/meals", tags=["meals"])
-
-
-# 食堂データを見て良い役职 (寮務 + 管理係)
-_ALLOWED_ROLES = {"寮務部長", "寮務課長", "管理係", "寮務一般教師"}
-
-
-def _check_role(teacher: models.Teacher) -> None:
-    if teacher.role not in _ALLOWED_ROLES:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "code": "FORBIDDEN_ROLE",
-                "message": "食堂データへのアクセス権限がありません",
-            },
-        )
 
 
 @router.get("/calc", response_model=schemas.MealsCalcOut)

@@ -651,8 +651,13 @@ class TestApplicationByTeacher:
         assert res.status_code == 422, res.text
         assert res.json()["detail"]["code"] == "LEAVE_DATE_PAST"
 
-    def test_non_dairoku_role_forbidden(self, client, seed_data):
-        """非寮務系角色（国際交流部長）不能代録 → 403。"""
+    def test_any_approval_role_allowed(self, client, seed_data):
+        """职位纯标签化后：国際交流部長（有「申请审批」权限）也能代録 → 201。
+
+        旧设计把代録限定在 _DAIROKU_ROLES 5 个职位，国際交流部長被拒。
+        职位退化为纯显示标签、代録改按权限组（C_APPROVAL）判后门槛移除——
+        任意有审批权限的老师都能代録（寮边界仍由 R4 单独把关）。
+        """
         from app import security
 
         kokukou = seed_data["teachers"]["kokukou_buchou"]
@@ -663,8 +668,7 @@ class TestApplicationByTeacher:
             json=self._today_body(),
             headers={"Authorization": f"Bearer {token}"},
         )
-        assert res.status_code == 403, res.text
-        assert res.json()["detail"]["code"] == "FORBIDDEN_ROLE"
+        assert res.status_code == 201, res.text
 
     def test_student_token_rejected(self, client, student_token, seed_data):
         """学生 token 不能用代録端点。"""
@@ -795,15 +799,17 @@ class TestProxyCandidates:
         res = client.get(self.URL, headers={"Authorization": f"Bearer {token}"})
         assert res.status_code == 200, res.text
 
-    def test_non_dairoku_forbidden(self, client, seed_data):
-        """非寮務系角色（国際交流部長）→ 403。"""
+    def test_any_approval_role_allowed(self, client, seed_data):
+        """职位纯标签化后：国際交流部長（有「申请审批」权限）也能用代録选择器 → 200。
+
+        旧设计限 _DAIROKU_ROLES 5 职位，改按权限组（C_APPROVAL）判后门槛移除。
+        """
         from app import security
 
         kokukou = seed_data["teachers"]["kokukou_buchou"]
         token = security.create_access_token(kokukou.id, f"teacher:{kokukou.role}")
         res = client.get(self.URL, headers={"Authorization": f"Bearer {token}"})
-        assert res.status_code == 403, res.text
-        assert res.json()["detail"]["code"] == "FORBIDDEN_ROLE"
+        assert res.status_code == 200, res.text
 
     def test_student_token_rejected(self, client, student_token):
         """学生 token 不能用代録选择器。"""

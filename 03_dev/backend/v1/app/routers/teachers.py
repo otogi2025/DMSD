@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -30,15 +30,8 @@ router = APIRouter(prefix="/api/v1/teachers", tags=["teachers"])
 
 INVITATION_EXPIRE_DAYS = 7
 
-# 邀请码（invitation）流程允许的角色 — 包含「学習担当」（§3.4 拍板，可发邀请给学生）
-INVITE_ALLOWED_ROLES = {"寮務部長", "寮務課長", "寮監", "学習担当"}
 
-
-# 教师账户管理（POST / DELETE）权限 — 只允许寮務管理 3 角色，不包含「学習担当」
-# 理由：「学習担当」只负责学习出席 + 点歌请求管理，不涉及人事
-# 5-27 codex 审查 #2 防权限提升 — 原方案误把「学習担当」放进 INVITE_ALLOWED_ROLES
-# 让该角色能直接创建/删除老师 = 越权。
-# 2026-06-12 codex 审查 F4：权限分级后职位退化为纯显示标签，「谁是老师账号管理员」
+# 教师账户管理（POST / DELETE）权限 — 职位退化为纯显示标签后，「谁是老师账号管理员」
 # 不再数职位标签，改由 effective_group 对「老师账号管理」簇是否达 MANAGE 判定
 # （仅 op / 寮管理者 有 M；permission_group 为 NULL 时按职位回退兜底）。
 def _has_teacher_account_admin(teacher: models.Teacher) -> bool:
