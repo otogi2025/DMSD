@@ -1,11 +1,11 @@
 // StudyAPI.swift
 // Foundation · Network · Endpoints — 学習（晚自习）相关 endpoint 包装
 //
-// 学生侧能用的:
+// 学生侧可用的:
 //   - POST /api/v1/study/absence-requests   学習欠席届 提交
 //
-// 不在这里的（教师侧 endpoint、学生不会调）:
-//   - 教师批准 / 拒否 学習欠席届
+// 不在这里的（教师侧 endpoint，学生不会调用）:
+//   - 教师批准 / 拒绝 学習欠席届
 //   - 学習出席 NFC tap 提交（backend 待实装）
 
 import Foundation
@@ -37,13 +37,13 @@ enum StudyAPI {
         return try await APIClient.shared.post(path: "/api/v1/study/absence-requests", body: body)
     }
 
-    /// 学習オンライン申請 提交
+    /// 在线学习申请 提交
     @MainActor
     static func submitOnlineRequest(body: OnlineRequestBody) async throws -> StudyOnlineRequestOut {
         return try await APIClient.shared.post(path: "/api/v1/study/online-requests", body: body)
     }
 
-    /// 学習オンライン申請 我的列表
+    /// 在线学习申请 我的列表
     @MainActor
     static func listMyOnlineRequests() async throws -> [StudyOnlineRequestOut] {
         return try await APIClient.shared.get(path: "/api/v1/study/online-requests/mine")
@@ -102,7 +102,7 @@ enum StudyAPI {
     }
 
     /// APIClient.baseURL 是 private、且 APIClient.swift 不在本簇可改文件 → 下载二进制（非 JSON）
-    /// 这里复制同一套 base URL 规则（DEBUG=localhost / RELEASE=本番 + 环境变量覆盖），与 APIClient 保持一致。
+    /// 这里复制同一套 base URL 规则（DEBUG=localhost / RELEASE=生产服务器 + 环境变量覆盖），与 APIClient 保持一致。
     private static var apiBaseURL: String {
         #if DEBUG
             return ProcessInfo.processInfo.environment["TOMOSHIBI_API_URL"] ?? "http://localhost:8000"

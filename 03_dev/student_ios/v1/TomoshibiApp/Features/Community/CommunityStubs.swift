@@ -42,7 +42,7 @@ private struct FilterPill: View {
     }
 }
 
-/// 2-tab segmented（待領 / 領済 · リスト / カレンダー）
+/// 2-tab segmented（待領 / 領済 · 列表 / 日历）
 /// 对等 JSX: `gridTemplateColumns:'1fr 1fr', gap:4, padding:4, background:T.pill, borderRadius:12`
 private struct SegTabs<Value: Hashable>: View {
     @Binding var selection: Value
@@ -564,11 +564,11 @@ struct LostView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // 遺失物は寮監のみ投稿可能 → 学生側は右上 + ボタンなし（閲覧専用）
+            // 遺失物只有寮監可投稿 → 学生端右上无 + 按钮（仅浏览）
             PageHeader(title: "遺失物", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    // 案内: 寮監に届ける旨
+                    // 提示：请将拾得物交给寮監
                     HStack(alignment: .top, spacing: 6) {
                         Image(systemName: "info.circle.fill")
                             .font(.system(size: 13))
@@ -993,10 +993,10 @@ struct LostDetailView: View {
 
 //
 // 変更点:
-// - 並び順: 投稿順（新→旧 = id 降順）。賛/反対は廃止。
-// - 各 row に「⚠ 通報する」ボタンを追加。push で SheetKind.songReport 起動。
-// - 上部に hint banner: 「気になる曲があれば、通報ボタンから先生にお伝えできます。」
-//   (吊し上げ防止のため、通報件数は学生側に基本表示しない)
+// - 排序：投稿顺（新→旧 = id 降序）。赞成/反对废止。
+// - 每行新增「⚠ 通報する」按钮，push 启动 SheetKind.songReport。
+// - 顶部 hint banner：「気になる曲があれば、通報ボタンから先生にお伝えできます。」
+//   （为防止公开施压，通报件数基本不在学生端显示）
 
 /// 点歌卡片视图模型 —— 演示（SEED.songs）/ 生产（SongRequestOut）归一成同一套展示字段。
 struct SongDisplay: Identifiable {
@@ -1086,7 +1086,7 @@ struct MusicView: View {
         }
     }
 
-    /// 通報導線の存在を学生に認知させるための hint banner
+    /// 让学生知晓通报入口存在的 hint banner
     private var hintBanner: some View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: "info.circle.fill")
@@ -1113,7 +1113,7 @@ struct MusicView: View {
     private func songCard(s: SongDisplay) -> some View {
         Card(padding: 14) {
             HStack(alignment: .center, spacing: 12) {
-                // 44x44 gradient album (タップで詳細)
+                // 44x44 渐变专辑封面（点击进详情）
                 Button { router.go(.homeMusicDetail(id: s.id)) } label: {
                     ZStack {
                         LinearGradient(
@@ -1128,7 +1128,7 @@ struct MusicView: View {
                 }
                 .buttonStyle(.plain)
 
-                // title + meta · flex 1 (タップで詳細)
+                // title + meta · flex 1（点击进详情）
                 Button { router.go(.homeMusicDetail(id: s.id)) } label: {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(s.title)
@@ -1270,7 +1270,7 @@ struct MusicNewView: View {
         #endif
     }
 
-    /// 通報多数で投稿封禁中の banner (system_features §7.11.2)
+    /// 通报次数过多导致投稿被封禁时的 banner (system_features §7.11.2)
     private var banBanner: some View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: "exclamationmark.octagon.fill")
@@ -1445,8 +1445,8 @@ struct MusicDetailView: View {
 
 struct EventsView: View {
     @EnvironmentObject var router: RouterStore
-    @State private var selectedMonth: Int = 4 // 4 月 / 5 月 トグル
-    @State private var selectedDay: Int = 23 // 初期選択日（demo: 今日 2026-04-23）
+    @State private var selectedMonth: Int = 4 // 4 月 / 5 月 切换
+    @State private var selectedDay: Int = 23 // 初始选择日（demo: 今日 2026-04-23）
 
     private let todayMonth = 4
     private let todayDay = 23
@@ -1488,7 +1488,7 @@ struct EventsView: View {
         .background(T.pearl.ignoresSafeArea())
     }
 
-    // MARK: — 上半：カレンダー
+    // MARK: — 上半：日历
 
     private var calendarCard: some View {
         Card(padding: 16) {
@@ -1517,18 +1517,18 @@ struct EventsView: View {
 
                 let cols = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
                 LazyVGrid(columns: cols, spacing: 4) {
-                    // 曜日ラベル
+                    // 星期标签
                     ForEach(["日", "月", "火", "水", "木", "金", "土"], id: \.self) { d in
                         Text(d)
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(T.inkMute)
                             .padding(.vertical, 6)
                     }
-                    // 前の月の空白
+                    // 上个月的空白占位
                     ForEach(0 ..< firstWeekdayOfMonth, id: \.self) { _ in
                         Color.clear.aspectRatio(1, contentMode: .fit)
                     }
-                    // 当月の日
+                    // 当月的日期
                     ForEach(1 ... daysInMonth, id: \.self) { day in
                         dayCell(day)
                     }
@@ -1572,7 +1572,7 @@ struct EventsView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: — 下半：選択日の行事
+    // MARK: — 下半：所选日期的行事
 
     private var selectedDaySection: some View {
         let evs = eventsForDay(selectedDay)
@@ -1776,7 +1776,7 @@ struct EventDetailView: View {
 
 // ───────────────────────────────────────────────────────────
 //
-// 4 理由 + その他自由記入。提出時に AppStore.reportSong(...) を叩いて自動封禁判定を回す。
+// 4 种理由 + 其他自由填写。提交时调用 AppStore.reportSong(...) 触发自动封禁判定。
 
 struct SongReportSheet: View {
     let songId: Int

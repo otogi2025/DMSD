@@ -1,8 +1,8 @@
 // BottomNav.swift · 3 tab + 中央 ⭐点呼 action button
-// iOS 26 Liquid Glass morph 効果 (itsuki 2026-05-01 反馈):
-//   選択中 tab に高光ガラスが乗り、別 tab を tap すると capsule がスーッと滑って morph する。
-//   `GlassEffectContainer` + `glassEffectID` + `.interactive()` で実現。
-//   iOS < 26 は legacy fallback（ガラス無し、active 単純 tint）。
+// iOS 26 Liquid Glass morph 效果 (itsuki 2026-05-01 反馈):
+//   选中的 tab 叠加高光玻璃，切换到别的 tab 时 capsule 平滑滑动 morph。
+//   通过 `GlassEffectContainer` + `glassEffectID` + `.interactive()` 实现。
+//   iOS < 26 使用旧版回退方案（无玻璃效果，active 仅简单 tint）。
 
 import SwiftUI
 
@@ -20,7 +20,7 @@ struct BottomNav: View {
                 legacyBar
             }
 
-            // 中央 ⭐点呼 action button · 凸起浮在 bar 上方
+            // 中央 ⭐点呼 action button · 凸出悬浮在 bar 上方
             centerButton
                 .offset(y: -10)
         }
@@ -32,7 +32,7 @@ struct BottomNav: View {
     private var liquidGlassBar: some View {
         // 整个 bar 用 .glassEffect 做 Liquid Glass 胶囊。
         // active tab 用 matchedGeometryEffect 让背景半透明 capsule 滑动 morph
-        // （iOS 26 .glassEffect API 在 button .background 里会覆盖 icon/label，故弃用）。
+        // （iOS 26 .glassEffect API 在 button .background 里会覆盖 icon/label，故不用）。
         HStack(spacing: 0) {
             navTab26(icon: "envelope.fill", label: "申し込み",
                      active: router.current.isApplyBranch,
@@ -55,10 +55,10 @@ struct BottomNav: View {
                    value: router.current)
     }
 
-    /// nav tab (iOS 26 版) — active 时背后画一个半透明 primary tint capsule，
-    /// 用 matchedGeometryEffect 让它在切换时滑动 morph。
-    /// （注：之所以不用 .glassEffect + glassEffectID 是因为 iOS 26 glassEffect
-    /// 在 button .background 里会盖住 icon + label，导致 button 看不见。）
+    /// nav tab（iOS 26 版）— active 时在背后绘制一个半透明 primary tint capsule，
+    /// 用 matchedGeometryEffect 在切换时让它滑动 morph。
+    /// （不使用 .glassEffect + glassEffectID 的原因：iOS 26 glassEffect
+    /// 在 button .background 里会遮住 icon + label，导致按钮不可见。）
     @available(iOS 26.0, *)
     private func navTab26(icon: String, label: String, active: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
@@ -83,7 +83,7 @@ struct BottomNav: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - iOS < 26 fallback
+    // MARK: - iOS < 26 旧版回退
 
     private var legacyBar: some View {
         HStack(spacing: 0) {
@@ -106,10 +106,10 @@ struct BottomNav: View {
         .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 6)
     }
 
-    /// nav tab — VStack を Button label に置きつつ、hit 領域を bar 全体（高さ 62pt）に拡大。
-    /// 旧コードは VStack 自然高さ（≈40pt）しか hit せず、上下 10pt の空白がタップ漏れして
-    /// 背面の ScrollView に貫通していた（itsuki 2026-05-01 報告）。
-    /// `.frame(maxHeight: .infinity)` + `.contentShape(Rectangle())` で row 全域を hit 化。
+    /// nav tab — 将 VStack 作为 Button label，同时将点击区域扩展到整个 bar（高度 62pt）。
+    /// 旧代码仅 VStack 自然高度（≈40pt）可点击，上下各 10pt 空白会漏触
+    /// 穿透到背面的 ScrollView（itsuki 2026-05-01 报告）。
+    /// 用 `.frame(maxHeight: .infinity)` + `.contentShape(Rectangle())` 将整行全域设为可点击。
     private func navTab(icon: String, label: String, active: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 3) {

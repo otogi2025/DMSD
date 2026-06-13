@@ -157,7 +157,7 @@ struct HomeView: View {
         app.unreadNotificationCount
     }
 
-    /// 1 秒ごとに active 中の倒计时を進める Timer
+    /// 每 1 秒推进 active 中倒计时的 Timer
     private let countdownTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -185,7 +185,7 @@ struct HomeView: View {
                         app.tickStudyCountdown() // 4-30 學習 demo
                     }
 
-                // §3 LifeTab 内容直显（segmented + コミュニティ + 通知 tab 砍掉，通知用右上角按钮看）
+                // §3 LifeTab 内容直显（segmented + 社区 + 通知 tab 砍掉，通知用右上角按钮看）
                 LifeTab()
                     .padding(.horizontal, 16)
                     .padding(.top, 14).padding(.bottom, 16)
@@ -283,9 +283,9 @@ struct HomeView: View {
     // MARK: 扣分 Card（amber · JSX #5c3410 ink）
 
     //
-    // idle 時：今月の減点を大表示（4.5点 + progress bar + 遅刻/欠席 counts）
-    // active/late/done 時：点呼ヒーロー表示に切替（大きな 点呼中 · 2:50 / 遅刻 / 時間内 + 欠席申請 / 体調報告 ボタン）
-    //                      今月点数は右下に小さく退避
+    // idle 时：大字显示本月减点（4.5点 + progress bar + 迟到/缺席 counts）
+    // active/late/done 时：切换到点呼英雄显示（大字「点呼中 · 2:50 / 遅刻 / 時間内」+ 欠席申請 / 体調報告 按钮）
+    //                      本月分数退避到右下角小字
 
     private var pointsCard: some View {
         // JSX ink：#5c3410（深褐）
@@ -328,7 +328,7 @@ struct HomeView: View {
         .animation(.spring(response: 0.34, dampingFraction: 0.82), value: app.studyState)
     }
 
-    /// absent 時は赤グラデーション、それ以外は amber
+    /// absent 时显红色渐变，其余情况显 amber
     private var cardGradient: LinearGradient {
         if app.rollState == .absent {
             return LinearGradient(
@@ -365,7 +365,7 @@ struct HomeView: View {
         let isActive = app.studyState == .active
 
         VStack(alignment: .leading, spacing: 0) {
-            // header row — タイトル + ステータス pill
+            // header row — 标题 + 状态 pill
             HStack(alignment: .top) {
                 Text(isActive ? "学習中" : "学習開始まで")
                     .font(.system(size: 11, weight: .bold))
@@ -388,7 +388,7 @@ struct HomeView: View {
                     .padding(.bottom, 14)
                 studyActionButtons(deepBrown: deepBrown)
             } else {
-                // upcoming = 倒计时 hero + 請假ボタン
+                // upcoming = 倒计时 hero + 请假按钮
                 Button { router.go(.applyForm(kind: "studyAbsence")) } label: {
                     VStack(alignment: .leading, spacing: 0) {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -476,7 +476,7 @@ struct HomeView: View {
         }
     }
 
-    /// active 时的操作 row — 「NFC で签到」+「請假」（无下一 tap 时显示「全 2 回完了」）
+    /// active 时的操作 row — 「NFC で签到」+「請假」（无下一 tap 时显示「全 2 次完了」）
     @ViewBuilder
     private func studyActionButtons(deepBrown: Color) -> some View {
         if let _ = app.nextStudyTap {
@@ -539,7 +539,7 @@ struct HomeView: View {
         }
     }
 
-    // MARK: idle content（今月の減点 hero）
+    // MARK: idle content（本月减点 hero）
 
     private func idleContent(deepBrown: Color) -> some View {
         Button { router.go(.myPoints) } label: {
@@ -603,14 +603,14 @@ struct HomeView: View {
 
     @ViewBuilder
     private func rollActiveContent(deepBrown: Color) -> some View {
-        // absent 時はカード全体が赤 → テキストは白系に
+        // absent 时卡片整体变红 → 文字改为白色系
         let isAbsent = app.rollState == .absent
         let labelColor: Color = isAbsent ? Color.white.opacity(0.9) : deepBrown.opacity(0.8)
         let valueColor: Color = isAbsent ? .white : deepBrown
         let chevColor: Color = isAbsent ? Color.white.opacity(0.9) : deepBrown.opacity(0.85)
 
         VStack(alignment: .leading, spacing: 0) {
-            // Row 1: 小さな 今月の減点 · 4.5 点 / 詳細
+            // Row 1: 小字显示 本月减点 · 4.5 点 / 详细
             Button { router.go(.myPoints) } label: {
                 HStack(spacing: 8) {
                     Text("今月の減点")
@@ -637,7 +637,7 @@ struct HomeView: View {
             heroStatus(deepBrown: deepBrown)
                 .padding(.bottom, 14)
 
-            // Row 3: アクションボタン（absent 時は単独の「寮監に連絡」、それ以外は 欠席申請 + 体調報告）
+            // Row 3: 操作按钮（absent 时单独显示「寮監に連絡」，其余显 欠席申請 + 体調報告）
             if isAbsent {
                 Button {
                     app.showToast("寮監：田中先生（内線 101）へ直接ご連絡ください")
@@ -671,7 +671,7 @@ struct HomeView: View {
         }
     }
 
-    /// active: 大きな「点呼中 · 2:50」カウントダウン / late: 赤の遅刻 / done: 緑の時間内
+    /// active: 大字「点呼中 · 2:50」倒计时 / late: 红色迟到 / done: 绿色时间内
     @ViewBuilder
     private func heroStatus(deepBrown: Color) -> some View {
         switch app.rollState {
@@ -820,9 +820,9 @@ struct HomeView: View {
     // MARK: 点呼状态 pill 文字/颜色（amber card 右上）
 
     // 老师点开始点呼前 = 点呼開始前（普通提示）
-    // 点呼中 = 残り XX:XX で遅刻判定（warn orange）
+    // 点呼中 = 剩余 XX:XX 遅刻判定（warn orange）
     // 遅刻（倒计时归零未签到）= 遅刻（danger red）
-    // 已签到 = 時間内にチェックイン（ok green）
+    // 已签到 = 时间内签到（ok green）
 
     private var pointsPillText: String {
         switch app.rollState {
@@ -947,7 +947,7 @@ struct LifeTab: View {
 
     #if !DEMO
         /// 生产版拉首页活动卡 + 巴士卡的真数据（M-1 上线缺口）。
-        /// 未登录不拉；拉失败保持空 → 卡片显「0 件」/「予定なし」，绝不退回 SEED 假数据让学生误事。
+        /// 未登录不拉；拉失败保持空 → 卡片显「0 件」/「无预定」，绝不退回 SEED 假数据让学生误事。
         private func loadHomeEventsAndBus() async {
             guard app.isAuthenticated else { return }
             let today = Self.ymdFormatter.string(from: Date())
@@ -1158,8 +1158,8 @@ struct LifeTab: View {
     // MARK: Music — リクエスト曲（CommunityTab 砍后 #37 入口在这里恢复）
 
     //
-    // 老師 38 条 #37「音楽機能は残す」→ 紫グラデの 44 アイコン + 件数 + トップ 1 曲のプレビュー
-    // top song = SEED.songs[0]（up 順で sort 済み seed）
+    // 老師 38 条 #37「音楽機能は残す」→ 紫色渐变的 44 图标 + 件数 + 排名第 1 的曲目预览
+    // top song = SEED.songs[0]（按投票数排序的 seed）
 
     private var musicCard: some View {
         // 演示=SEED 假数据 / 生产=后端真数据（首页预览卡，靠 #if DEMO 守卫）
@@ -1310,7 +1310,7 @@ struct RollcallSheet: View {
         }
     }
 
-    // MARK: idle — scanning の準備ができました
+    // MARK: idle — 扫描准备完毕
 
     private var idleView: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -1462,7 +1462,7 @@ struct RollcallSheet: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: success — チェックイン完了 · 21:02 · 時間内
+    // MARK: success — 签到完成 · 21:02 · 時間内
 
     private var successView: some View {
         VStack(spacing: 0) {
@@ -1661,7 +1661,7 @@ struct RollcallSheet: View {
 // ───────────────────────────────────────────────────────────
 
 /// State: idle → scanning（0.5s）→ success（2s auto close）/ fail（retry）
-/// 1 sheet 開く度に 1 回分の tap を記録する（次回開いた時は次の tap）
+/// 每次打开 sheet 记录 1 次 tap（下次打开时记录下一次 tap）
 struct StudyCheckinSheet: View {
     @EnvironmentObject var app: AppStore
 
@@ -1909,7 +1909,7 @@ struct StudyCheckinSheet: View {
     }
 
     private var nextTapAfterRecord: (label: String, window: String)? {
-        // record 後に次の tap があれば案内
+        // 记录后若还有下一次 tap 则给出提示
         let after = app.nextStudyTap
         switch after {
         case .start: return ("学習開始", "19:35〜19:40")

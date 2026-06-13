@@ -23,12 +23,12 @@ struct User: Hashable {
     var seatNo: Int = 18
     /// 学習対象学生 flag (system_features §7.3 — 中学全员 / 高中考试不合格者). demo seed = true 让所有学習 UI 可见
     var isStudyTarget: Bool = true
-    /// 留学生 flag (system_features §8.1 / Q11 — 自己申报). リュウ イヒ = 留学生 (chain は 5 役职)
+    /// 留学生 flag (system_features §8.1 / Q11 — 自己申报). 演示用户「リュウ イヒ」= 留学生（承认链为 5 个角色）
     var isOverseas: Bool = true
 
     /// 生产构建已登录但还没拉到本人资料时的空白占位（ios⑥ 上线缺口）：
     /// 字符串字段显「—」，数值字段填 0（view 层靠 AppStore.profileIsPlaceholder 把数值也显成「—」）。
-    /// 防生产环境回退到演示假人「リュウ イヒ / 4.5 点」泄漏给真实用户。
+    /// 防生产环境回退到演示假人「リュウ イヒ」(4.5 点) 泄漏给真实用户。
     static let placeholder = User(
         account: "—", name: "—", nameKana: "—", birth: "—", age: 0,
         gender: "—", dorm: "—", room: "—", category: "—", email: "—",
@@ -42,8 +42,8 @@ struct PointRecord: Hashable, Identifiable {
     }
 
     let date: String
-    let session: String // 朝点呼 / 晩点呼
-    let kind: String // 遅刻 / 欠席
+    let session: String // 朝点呼 / 晩点呼（保留日语原词）
+    let kind: String // 遅刻 / 欠席（保留日语原词）
     let val: Double
 }
 
@@ -54,7 +54,7 @@ struct RollcallEntry: Hashable, Identifiable {
 
     let date: String
     let session: String
-    let state: String // 時間内 / 遅刻 / 欠席
+    let state: String // 時間内 / 遅刻 / 欠席（保留日语原词）
     let method: String // NFC / ―
 }
 
@@ -79,7 +79,7 @@ struct PackageItem: Hashable, Identifiable {
 
 struct NotificationItem: Hashable, Identifiable {
     let id: Int
-    let type: String // 宅配 / 申請 / 減点 / 活動 / リクエスト曲
+    let type: String // UI 分类标签：「宅配」/「申請」/「減点」/「活動」/「リクエスト曲」
     let title: String
     let time: String
     let body: String
@@ -88,8 +88,8 @@ struct NotificationItem: Hashable, Identifiable {
 
 struct ApplicationItem: Hashable, Identifiable {
     let id: String
-    let type: String // stay / holiday / outing / return / repair / parcel / guest / other
-    let status: String // pending / approved / returned / withdrawn / draft / rejected
+    let type: String // stay / holiday / outing / return / repair / parcel / guest / other（申请类型）
+    let status: String // pending / approved / returned / withdrawn / draft / rejected（审批状态）
     let date: String
     let summary: String
 }
@@ -105,7 +105,7 @@ struct BusLine: Hashable, Identifiable {
     let next: Bool
 }
 
-/// バス時刻表 · 日別グループ（bus_schedule_real.md 対応）
+/// 巴士时刻表 · 按日分组（对应 bus_schedule_real.md）
 struct BusDaySchedule: Hashable, Identifiable {
     var id: String {
         date

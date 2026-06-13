@@ -1,5 +1,5 @@
 // ScheduleStubs.swift · 行事预定 月历（日历「行事予定」页）
-// ⭐ 会话 C · 老師 38 条 #9「行事予定の表示（参考用）」+ Q9「現有日历不够要加强」
+// ⭐ 会话 C · 老师 38 条 #9「行事予定の表示（参考用）」+ Q9「现有日历不够要加强」
 //
 // API 对接（杭田 2026-06-04 需求「一・行事予定表示」）:
 //   GET /api/v1/events?from_date=&to_date=   → ScheduleView   (system_features §7.5)
@@ -443,7 +443,7 @@ struct YearMonth: Hashable, Comparable {
         return r.count
     }
 
-    /// 月初日が週の何番目か（0 = 日曜）
+    /// 月初是星期几（0 = 周日）
     var firstWeekdayIndex: Int {
         var comp = DateComponents()
         comp.year = year

@@ -8,7 +8,7 @@
 // chain 规则（IOS_DESIGN_LOG §11.9 I11）:
 //   外泊届 一般 = 担任 / 寮務課長 / 管理係                         (3 役职)
 //   外泊届 留学生 = 担任 / 国際交流部長 / 寮務課長 / 寮務部長 / 管理係  (5 役职)
-//   帰省 / 帰国届 chain = ⏳ 实物表 evidence 待ち
+//   帰省 / 帰国届 chain = ⏳ 实物表 evidence 待确认
 
 import SwiftUI
 
@@ -50,7 +50,7 @@ enum ApprovalDecision: String, Hashable {
 
 struct ApprovalStep: Hashable, Identifiable {
     let role: ApprovalRole
-    let approverName: String? // nil = 老师未指定 / 役职名のみ表示
+    let approverName: String? // nil = 老师未指定 / 仅显示役职名
     let decision: ApprovalDecision
     let decidedAt: String? // "2026-04-21 11:02"
     let comment: String?
@@ -60,10 +60,10 @@ struct ApprovalStep: Hashable, Identifiable {
     }
 }
 
-/// アプリ内で扱う出寮届の詳細（GET /applications/:id 返り値の iOS 模型）
+/// 应用内处理的出寮届详情（GET /applications/:id 返回值的 iOS 数据模型）
 struct StayApplication: Hashable, Identifiable {
     let id: String // "a1" 等
-    var kind: ApplicationKind // 外泊 / 帰省 / 帰国 / その他
+    var kind: ApplicationKind // 外泊 / 帰省 / 帰国 / 其他
     var status: ApplicationStatus // pending / approved / rejected / returned / withdrawn / draft
     var leaveDate: String // "2026-05-03"
     var returnDate: String?
@@ -77,7 +77,7 @@ struct StayApplication: Hashable, Identifiable {
     var auditLog: [AuditLogEntry] = [] // 操作履歴（提出 / 修改届 / 差戻 / 承認）
 
     /// 修改届 可提交：仅 pending / approved_partial / returned 状态可
-    /// system_features §7.2.4 「pending / partiallyApproved / returned で編集可」
+    /// system_features §7.2.4 「pending / partiallyApproved / returned 状态可编辑」
     /// backend PUT /applications/:id 同条件接受。
     var isEditable: Bool {
         switch status {
@@ -94,7 +94,7 @@ struct AuditLogEntry: Hashable, Identifiable {
     let at: String // "2026-05-01 14:32"
     let action: String // "提出" / "修改届を提出" / "差戻" / "承認" 等
     let actor: String // 役职名 + 担当者名 / 申請者本人
-    let detail: String? // 修改届時の amendReason / 差戻理由 等
+    let detail: String? // 修改届时的 amendReason / 差戻理由 等
 
     init(at: String, action: String, actor: String, detail: String? = nil) {
         id = UUID()
@@ -111,7 +111,7 @@ enum ApplicationKind: String, Hashable {
     case `return` = "帰国"
     case other = "その他"
 
-    /// SEED.applications.type ("stay" / "holiday" / "return" / ...) からマップ
+    /// 从 SEED.applications.type ("stay" / "holiday" / "return" / ...) 映射
     static func fromSeedType(_ t: String) -> ApplicationKind {
         switch t {
         case "stay": return .stay
@@ -161,11 +161,11 @@ enum ApplicationStatus: String, Hashable {
     }
 }
 
-// MARK: - chain ジェネレータ（モック / I11 規則対応）
+// MARK: - chain 生成器（mock / I11 规则对应）
 
 enum ApprovalChainBuilder {
-    /// 外泊届 chain を生成（IOS_DESIGN_LOG §11.9 I11 の規則）
-    /// - Parameter isOverseas: 学生が留学生か（system_features §7.2.2 / Q11）
+    /// 生成外泊届 chain（IOS_DESIGN_LOG §11.9 I11 的规则）
+    /// - Parameter isOverseas: 学生是否为留学生（system_features §7.2.2 / Q11）
     static func stayChain(isOverseas: Bool) -> [ApprovalRole] {
         if isOverseas {
             // 留学生 = 担任 / 国際交流部長 / 寮務課長 / 寮務部長 / 管理係（5 役职）
@@ -176,9 +176,9 @@ enum ApprovalChainBuilder {
         }
     }
 
-    /// 帰省 / 帰国届 chain — evidence 待ち（暫定: 外泊と同一 / 老師 LINE「外泊と同じ」）
+    /// 帰省 / 帰国届 chain — evidence 待确认（暂定: 与外泊相同 / 老师 LINE「外泊と同じ」）
     static func holidayChain(isOverseas: Bool) -> [ApprovalRole] {
-        // ⏳ 实物表到着後に確定。暫定で外泊と同一 chain を使用。
+        // ⏳ 实物表到达后确定。暂定使用与外泊相同的 chain。
         return stayChain(isOverseas: isOverseas)
     }
 
@@ -192,16 +192,16 @@ enum ApprovalChainBuilder {
     }
 }
 
-// MARK: - モックデータ（B 未到位 → SEED.applications を拡張）
+// MARK: - mock 数据（后端 B 未到位 → 扩展 SEED.applications）
 
 @MainActor
 enum StayListMock {
-    /// 暫定の留学生フラグ（SEED.user に is_overseas が無いため、リュウ イヒ = 留学生 扱いとする）
+    /// 暂定留学生标志（因 SEED.user 无 is_overseas 字段，将「リュウ イヒ」视为留学生处理）
     static let isOverseas: Bool = true
 
-    /// 修改届 mock store（lazy init から initial seed を構築）
-    /// `@MainActor` で囲い込んでいるので nonisolated unsafe は不要。view は全て MainActor で動く。
-    /// API 接続時は `URLSession + async/await`（IOS_DESIGN_LOG §11.9 I2）に置換。
+    /// 修改届 mock store（从 lazy init 构建初始 seed）
+    /// 已用 `@MainActor` 包裹，无需 nonisolated unsafe。所有 view 均在 MainActor 上运行。
+    /// API 接入时替换为 `URLSession + async/await`（IOS_DESIGN_LOG §11.9 I2）。
     private static var _store: [StayApplication]?
 
     static var all: [StayApplication] {
@@ -247,7 +247,7 @@ enum StayListMock {
         }
         item.status = .pending
 
-        // auditLog append（最新が先頭）
+        // auditLog append（最新记录在首位）
         let entry = AuditLogEntry(
             at: nowJaString(),
             action: "修改届を提出",
@@ -266,10 +266,10 @@ enum StayListMock {
             let status = ApplicationStatus.fromSeed(item.status)
             let chainRoles = ApprovalChainBuilder.chain(for: kind, isOverseas: isOverseas)
             let steps = makeSteps(for: chainRoles, applicationStatus: status, baseDate: item.date)
-            // outing / return / parcel / repair / guest / other は #5 の対象外（chain 無し）
-            // → 見せても意味がないので、出寮届 系（stay / holiday / return）のみ表示
+            // outing / return / parcel / repair / guest / other 不在 #5 范围内（无 chain）
+            // → 显示无意义，仅显示出寮届系（stay / holiday / return）
             guard kind != .other else { return nil }
-            // 初期 auditLog: 提出 entry 1 件 + 差戻 / 承認 ある場合の history も補足
+            // 初始 auditLog: 1 条提出 entry + 有差戻 / 承認 时补充 history
             var auditLog: [AuditLogEntry] = []
             auditLog.append(AuditLogEntry(
                 at: "\(item.date) 10:24",
@@ -286,7 +286,7 @@ enum StayListMock {
                     detail: step.comment
                 ))
             }
-            // 最新が先頭
+            // 最新记录在首位
             auditLog.sort { $0.at > $1.at }
 
             return StayApplication(
@@ -313,7 +313,7 @@ enum StayListMock {
         return f.string(from: Date())
     }
 
-    /// chain の各 step に decision / decided_at を割り当てる（status から逆算）
+    /// 为 chain 的各 step 分配 decision / decided_at（从 status 反推）
     private static func makeSteps(
         for roles: [ApprovalRole],
         applicationStatus status: ApplicationStatus,
@@ -338,7 +338,7 @@ enum StayListMock {
             case .draft, .withdrawn: return 0
             }
         }()
-        // 差戻の場合、最後の承認役职は rejected
+        // 差戻 的情况下，最后的承认役职为 rejected
         let rejectedIndex: Int? = (status == .rejected) ? approvedCount : nil
 
         return roles.enumerated().map { idx, role in
@@ -385,7 +385,7 @@ enum StayListMock {
 }
 
 // ============================================================================
-// MARK: - StayListView · 申請履歴 一覧（マイページ → 申請履歴）
+// MARK: - StayListView · 申請履歴 一览（我的页面 → 申請履歴）
 
 // ============================================================================
 
@@ -393,7 +393,7 @@ struct StayListView: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
-    @State private var filter: ApplicationStatus? = nil // nil = すべて
+    @State private var filter: ApplicationStatus? = nil // nil = 全部
     // A-037 (2026-05-21): 切回 ApplicationsAPI.listMine() — StayListMock 仅作未登录态兜底
     @State private var apps: [StayApplication] = []
     @State private var isLoading: Bool = false
@@ -555,7 +555,7 @@ private struct StayRow: View {
                     Ic.chevR(14).foregroundStyle(T.inkMute)
                 }
 
-                // 2 段目: 承認 chain サマリ（dot 列）
+                // 第 2 行: 承認 chain 摘要（点列）
                 if !item.chain.isEmpty {
                     chainDots
                 }
@@ -840,7 +840,7 @@ struct StayDetailView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - 編集 button (isEditable のみ)
+    // MARK: - 编辑按钮（仅 isEditable 时显示）
 
     private var editButton: some View {
         Button {
@@ -1167,7 +1167,7 @@ private struct ChainTimelineView: View {
 // 提出条件: original.isEditable == true（status ∈ {pending, returned}）
 // 提出後: chain 全員 reset to pending + auditLog append + status = pending
 // 身份字段（学号/姓名/学年・組/寮・部屋/区分/携帯）read-only
-// 修改の理由 必填（chain 再批時に各 approver に見せる）
+// 修改理由 必填（chain 重新审批时向各 approver 展示）
 // ============================================================================
 
 struct StayEditForm: View {
@@ -1189,7 +1189,7 @@ struct StayEditForm: View {
         )
     }
 
-    // ── 編集対象 (init で original から prefill) ──────────────────────────
+    // ── 编辑目标（init 时从 original 预填）──────────────────────────
     @State private var leaveDate: Date = .init()
     @State private var returnDate: Date = .init()
     @State private var leaveMethod: String = "JR"
@@ -1722,7 +1722,7 @@ extension ApplicationOut {
         // 简要文案（一覧 row 用）— "外泊届 5/3〜5/5 · 友達宅"
         let summaryText = Self.makeSummary(kind: kindEnum, leaveDate: leave_date, returnDate: return_date, stayLocations: stay_locations)
 
-        // 滞在先（一行目だけ表示用）
+        // 滞在先（仅用于显示第一行）
         let firstLocationName: String? = stay_locations?.first?["name"]?.value
 
         return StayApplication(

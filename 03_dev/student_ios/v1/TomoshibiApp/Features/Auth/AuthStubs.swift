@@ -661,7 +661,7 @@ private struct GhostButtonFull: View {
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // JSX:
-//   姓名 TField (default "リュウ イヒ")
+//   姓名 TField（默认值 "リュウ イヒ"）
 //   生年月日 button 48pt with date string（提示：将显示滚轮式日期选择器）
 //   性别 Radio 男/女（提示：系统将根据性别自动分配男寮/女寮）
 //   头像: Avatar 64 letter + 2 buttons "写真を選択" / "デフォルトを使う"
@@ -783,7 +783,7 @@ struct RegisterStep1View: View {
 
             ScrollView {
                 VStack(spacing: 18) {
-                    // 1. アバター（最初に選ぶ）
+                    // 1. 头像（首先选择）
                     Field(label: "アバター") {
                         HStack(alignment: .center, spacing: 14) {
                             // 有 AI 生成 URL 就显示图片，否则 fallback 到字母 Avatar
@@ -956,7 +956,7 @@ struct RegisterStep1View: View {
                         room = String(filtered.prefix(4))
                     }
 
-                    // アカウント番号 プレビュー
+                    // 账号番号 预览
                     HStack {
                         Text("アカウント番号")
                             .font(.system(size: 12, weight: .semibold))
@@ -1309,7 +1309,7 @@ struct RegisterStep2View: View {
         .environmentObject(AppStore())
 }
 
-/// 共通 2 按钮 footer (戻る + 次へ) — private 避免污染其他 feature
+/// 公共 2 按钮 footer（戻る + 次へ）— private 避免污染其他 feature
 @MainActor
 private func footerDouble(
     nextTitle: String = "次へ",
@@ -1413,7 +1413,7 @@ struct RegisterStep3View: View {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MARK: - §0.6 RegisterStep4 パスワード設定
+// MARK: - §0.6 RegisterStep4 密码设置
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //
@@ -1552,7 +1552,7 @@ struct RegisterStep4View: View {
 //   Account panel: padding 20×24, radius 20, bg linear-gradient #e8f4f6 → #a8dce2
 //     "あなたのアカウント番号" fontSize:11, weight:700, letterSpacing 0.18em, uppercase, T.primaryDk
 //     "00"  fontSize:64, weight:800, mono, T.primaryDk, letterSpacing -0.02em
-//     次回からはこの...  fontSize:12, T.primaryDk opacity:.8
+//     下次登录用这个...  fontSize:12, T.primaryDk opacity:.8
 //   footer: "始める" PrimaryBtn full → go('/home')
 
 struct RegisterDoneView: View {
@@ -1833,7 +1833,7 @@ struct LoginView: View {
     /// 登录尝试（async — 调 AuthAPI.loginStudent）
     ///
     /// 流程：
-    ///  - メール mode → backend 还没实装邮箱登录,提示用户切到学号
+    ///  - 邮箱 mode → backend 还没实装邮箱登录，提示用户切到学号
     ///  - DEMO 编译模式 + magic creds（acc=="060217" / pw=="12345678"）→ 跳过 API 直接进 home
     ///  - 其他全走 AuthAPI.loginStudent → 401 走 lockout / 其他 error 走 toast
     private func tryLogin() async {
@@ -1852,7 +1852,7 @@ struct LoginView: View {
         let trimmedAcc = acc.trimmingCharacters(in: .whitespacesAndNewlines)
 
         // 空字段检查：账号 / 密码任一空着就当场拦下，别拿空值去请求后端
-        // （原来空着也直发请求，失败落到「通信エラー」提示，跟「没填」对不上、误导用户 — itsuki 2026-06-04）
+        // （原来空着也直发请求，失败落到「通信错误」提示，跟「没填」对不上、误导用户 — itsuki 2026-06-04）
         if trimmedAcc.isEmpty || pw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             app.showToast("アカウント番号とパスワードを入力してください")
             return
@@ -1888,7 +1888,7 @@ struct LoginView: View {
                 app.showToast("学籍番号またはパスワードが違います")
             #endif
         } catch let APIError.server(423, msg) {
-            // 后端真锁（B6 学生连续失败锁）→ 显示后端日语文案（含「残り約 X 分」），以后端为锁定真值
+            // 后端真锁（B6 学生连续失败锁）→ 显示后端日语文案（含「剩余约 X 分」），以后端为锁定真值
             app.showToast(msg.isEmpty ? "アカウントロック中です。しばらくしてからお試しください" : msg)
         } catch let APIError.server(403, msg) {
             // 账号停用（status != active）
@@ -2123,7 +2123,7 @@ struct PwResetView: View {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MARK: - §0.6.5 RegisterStep5 認証コード（2026-05-04 加，App Store 上架对策）
+// MARK: - §0.6.5 RegisterStep5 认证码（2026-05-04 加，App Store 上架对策）
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //

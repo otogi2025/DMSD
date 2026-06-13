@@ -1,14 +1,14 @@
 // APIClient.swift
-// Foundation · Network — HTTP シングルトン
+// Foundation · Network — HTTP 单例
 //
-// 使い方:
+// 使用方法:
 //   let client = APIClient.shared
-//   client.token = "eyJ..."          // login 成功後にセット
+//   client.token = "eyJ..."          // login 成功后设置
 //   let out: TokenOut = try await client.post("/api/v1/auth/login", body: body)
 
 import Foundation
 
-// MARK: - 設定
+// MARK: - 配置
 
 // 上架版：DEBUG（Xcode Run）→ localhost / RELEASE（Archive 上架）→ VPS 生产
 #if DEBUG
@@ -17,7 +17,7 @@ import Foundation
     private let DEFAULT_BASE_URL = "https://api.tomoshibi.cc"
 #endif
 
-// MARK: - レスポンス型
+// MARK: - 响应类型
 
 struct TokenOut: Decodable {
     let accessToken: String
@@ -37,7 +37,7 @@ struct TokenOut: Decodable {
 final class APIClient {
     static let shared = APIClient()
 
-    /// login 後にセット、以降の全リクエストに Authorization: Bearer <token> を付ける
+    /// login 成功后设置，后续所有请求都会附加 Authorization: Bearer <token>
     var token: String?
 
     private let baseURL: String
@@ -50,7 +50,7 @@ final class APIClient {
         session = URLSession(configuration: config)
     }
 
-    // MARK: - Generic request
+    // MARK: - 通用请求
 
     func request<Req: Encodable, Res: Decodable>(
         method: String,
@@ -116,7 +116,7 @@ final class APIClient {
         }
     }
 
-    // MARK: - 便利ラッパー
+    // MARK: - 便捷包装
 
     func get<Res: Decodable>(path: String) async throws -> Res {
         try await request(method: "GET", path: path, body: nil as String?)

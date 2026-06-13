@@ -125,7 +125,7 @@ enum BusRouteMapper {
         let weekdayChars = ["日", "月", "火", "水", "木", "金", "土"]
 
         // isNext（「次便」高亮）改由 BusListView.nextVisibleId 按当前筛选结果实时算，
-        // 这里只排序、不定 isNext —— 否则切到「特別便 / 空港のみ」筛选后标记会错位（codex 审查 LOW）。
+        // 这里只排序、不定 isNext —— 否则切到「特别便 / 仅空港」筛选后标记会错位（codex 审查 LOW）。
         let sorted = outs.sorted { $0.schedule_at < $1.schedule_at }
 
         return sorted.map { o in
@@ -168,7 +168,7 @@ enum BusRouteMapper {
 
 struct BusListView: View {
     @EnvironmentObject var app: AppStore // 判断登录态：已登录拉真后端 / 未登录回退假数据
-    @State private var kindFilter: BusKind? = nil // nil = すべて
+    @State private var kindFilter: BusKind? = nil // nil = 全部
     @State private var airportOnly: Bool = false
     @State private var routes: [SpecialBusRoute] = [] // 数据源：后端 GET /api/v1/bus/routes 或 mock 兜底
     @State private var isLoading: Bool = false
@@ -194,7 +194,7 @@ struct BusListView: View {
         }
     }
 
-    /// 日付別グループ
+    /// 按日期分组
     private var grouped: [(date: String, weekday: String, purpose: String?, items: [SpecialBusRoute])] {
         let groups = Dictionary(grouping: filtered, by: { $0.date })
         let keys = groups.keys.sorted()
@@ -297,7 +297,7 @@ struct BusListView: View {
         }
     }
 
-    // MARK: 上部 banner（帰国届 ヒント）
+    // MARK: 上部 banner（帰国届 提示）
 
     private var headerNotice: some View {
         HStack(alignment: .top, spacing: 8) {
@@ -320,7 +320,7 @@ struct BusListView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    // MARK: フィルタ row
+    // MARK: 筛选 row
 
     private var filters: some View {
         VStack(alignment: .leading, spacing: 10) {

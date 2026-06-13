@@ -466,7 +466,7 @@ struct StayForm: View {
     @State private var skipStartMeal: String = "夕食" // 朝食 / 昼食 / 夕食
     @State private var skipEndDate: Date = StayForm.tomorrow
     @State private var skipEndMeal: String = "朝食"
-    @State private var skipEnabled: Bool = true // 食事不要期間 を申告するか
+    @State private var skipEnabled: Bool = true // 是否申告免餐期间
 
     // ── 仅帰国 ───────────────────────────────────────────────────────────
     @State private var departAirport: String = ""
@@ -523,7 +523,7 @@ struct StayForm: View {
         applyType(kind)
     }
 
-    // 是否可提交：必填项是否已填写
+    /// 是否可提交：必填项是否已填写
     private var canSubmit: Bool {
         if reason.isEmpty { return false }
         // IX-018: 把离校 / 返校都按「日期 + 时刻」合成成完整时间再比较。
@@ -579,7 +579,7 @@ struct StayForm: View {
                         kindBanner(text: "📝 外泊申請は出発 3 日前までに提出してください")
                     }
 
-                    // ── Header card (届の種類) ──────────────────────────────
+                    // ── Header card（申请类型）──────────────────────────────
                     headerCard
                         .padding(.bottom, 20)
 
@@ -640,7 +640,7 @@ struct StayForm: View {
                                     .font(.system(size: 10.5))
                                     .foregroundStyle(T.inkMute)
                             }
-                            // 帰省方法 (= 出寮時の移動手段)
+                            // 帰省方法（= 出寮时的交通方式）
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(isHoliday ? "帰省方法" : "出寮方法")
                                     .font(.system(size: 12, weight: .semibold))
@@ -686,7 +686,7 @@ struct StayForm: View {
                     }
                     .padding(.bottom, 18)
 
-                    // ── §5 外泊地点（外泊 / 帰国 のみ · 動的表示 #4）──────────
+                    // ── §5 外泊地点（外泊 / 帰国 限定 · 动态显示 #4）──────────
                     if needPlaces {
                         SectionLabel(n: "5", label: "同行者・行先・外泊地点")
                         Card(padding: 14) {
@@ -743,7 +743,7 @@ struct StayForm: View {
                         .padding(.bottom, 18)
                     }
 
-                    // ── §6 食事不要期間（外泊 / 帰国 のみ）─────────────────
+                    // ── §6 食事不要期間（外泊 / 帰国 限定）─────────────────
                     if needSkipMeal {
                         SectionLabel(n: "6", label: "寮食堂 食事申告")
                         Card(padding: 14) {
@@ -799,7 +799,7 @@ struct StayForm: View {
                         .padding(.bottom, 18)
                     }
 
-                    // ── §7 飛行機（帰国 のみ）─────────────────────────────
+                    // ── §7 飛行機（帰国 限定）─────────────────────────────
                     if needFlight {
                         SectionLabel(n: "7", label: "飛行機")
                         Card(padding: 14) {
@@ -1399,7 +1399,7 @@ private struct MealCheckbox: View {
 }
 
 // ============================================================================
-// §2.5 GenericApplyForm — 共通フォーム (outing / return / repair / parcel / guest / other)
+// §2.5 GenericApplyForm — 通用表单 (outing / return / repair / parcel / guest / other)
 // ============================================================================
 
 // ============================================================================
@@ -1428,7 +1428,7 @@ struct StudyAbsenceForm: View {
             PageHeader(title: "学習欠席届", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    // §1 欠席する日付 (DatePicker)
+                    // §1 缺席日期（DatePicker）
                     VStack(alignment: .leading, spacing: 8) {
                         SectionLabel(n: "1", label: "欠席する日付")
                         DatePicker(
