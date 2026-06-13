@@ -155,3 +155,12 @@
 - **老师网页**：建账号弹窗加权限组选择器；`src/api/permissions.ts` 前端矩阵镜像（仅 UI 显隐用，非安全边界）。`npm run build` 退出码 0。
 - **§6 端点映射实装注记**：代録（`applications.py` by-teacher）与 proxy-candidates 因 §6 未列进 cluster-2 管理动作清单，挂 `require_permission` 的同时保留了 `_DAIROKU_ROLES` 职责域规则；`teachers.py delete_teacher` 保留 `TEACHER_ADMIN_ROLES`（防删最后一个管理员）。这两处职位域规则是否也纯按权限组判，待 itsuki 拍板。
 - **未接线**：「按权限组隐藏/置灰功能入口」的导航联动 —— 前端矩阵已备好，具体 UX 待 itsuki 拍板（不擅自改冻结的 web 界面）。
+
+## 11.1 第二轮落地（2026-06-13）— 职位彻底退出鉴权
+
+itsuki 2026-06-13 拍板：职位（`teachers.role`）只作显示标签，**一处不参与鉴权**。在前一轮权限分级基础上清掉残留的职位判断：
+
+- **后端**（commit `365f3e7`）：`dorm_life` 4 个审批 decide 端点 `require_teacher_roles(职位)` → `require_permission(C_APPROVAL, MANAGE)`；`applications` 代録 / proxy-candidates 删 `_DAIROKU_ROLES` 职位二次检查（端点已挂权限闸）；`notifications` 通知测试职位闸 → `require_permission(C_ANNOUNCE, MANAGE)`；`meals` 删死代码 `_check_role`；`teachers` 删死代码 `INVITE_ALLOWED_ROLES`；`deps` 删无人使用的 `require_teacher_roles` 闸函数（全后端已无引用）。pytest 371 passed（2 个「非代録职位 403」测试改写为「按权限组放行」新预期）。
+- **老师网页**（commit `3382021`）：`Shell` 里 3 个按旧职位列表隐藏的菜单（代録 / 事案記録 / 教員管理）改为无条件显示。**前端不做按权限置灰**——itsuki 拍板「直接全部允许查看」：所有老师都能查看所有功能页，「增删改」限制由后端权限闸按权限组把关（无权限点击被 403 拦）。依据：§5 矩阵里没有任何功能簇对任何组是 ✕（不可见），人人至少有查看权，故菜单层面无需隐藏 / 置灰。
+- **审批链**（`approval_chain.py`）：itsuki 2026-06-13 拍板**保留职位驱动**。审批链是「申请路由给谁审」的业务工作流，不是「能不能用功能」的权限闸，职位在此是业务角色而非鉴权，保留不违背「职位不参与鉴权」。
+- **寮过滤（R4）**：itsuki 倾向「所有老师可查看所有学生，仅修改受权限限制」，但该改动牵动冻结规格 R4 + 25+ 端点 + 男女寮隐私（男寮男老师将能看到全部女生敏感信息），作为独立任务另行处理（见 `00_admin/TODO.md`），本轮不动。`student_profile`（学生档案查看）的职位判断随寮过滤一并处理。
