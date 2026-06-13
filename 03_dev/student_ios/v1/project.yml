@@ -50,9 +50,8 @@ targets:
         INFOPLIST_KEY_NFCReaderUsageDescription: "点呼の出席を点呼機に送信するために NFC を使用します"
         # 加密合规标志（iosenc-⑩ 上线缺口）— app 只走标准 HTTPS、属苹果豁免类，填 NO 免每次上传 App Store 手填问询
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: "NO"
-        # 推送 + NFC 权限声明文件接线（iosent-③ 上线缺口）— 把 TomoshibiApp.entitlements 挂进构建
-        # ⚠️ 当前全程关签名（DEVELOPMENT_TEAM 空 + CODE_SIGNING_ALLOWED NO），接 entitlements 受限能力（aps-environment 推送 + NFC）
-        #    在不签名模拟器构建可能报 provisioning 错；若编译挂→注释掉下一行留待办、上面 NFC 用途字符串保留（goal §3③回退预案）
+        # 推送 + NFC 权限声明文件接线 — 把 TomoshibiApp.entitlements 挂进构建（aps-environment 推送 + NFC 受限能力）
+        # 签名已就绪：DEVELOPMENT_TEAM 已填 + CODE_SIGNING_ALLOWED YES（见上 base 段），Archive 上架时 Xcode 自动签名拉描述文件
         CODE_SIGN_ENTITLEMENTS: TomoshibiApp/TomoshibiApp.entitlements
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: "YES"
         INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
