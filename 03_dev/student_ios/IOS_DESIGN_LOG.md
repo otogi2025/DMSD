@@ -955,21 +955,28 @@ extension Color {
 
 **実装**: `AnnouncementDetailView.generateSummary()` + `summaryBanner` + state `aiSummary / isSummarizing / summaryError`。
 
-### 13.4 詳細 view 内 一键日中翻訳（spec §7.15.5）
+### 13.4 公告详情页·正文母语翻译（spec §7.15.5 / 2026-06-12 全面改版）
 
-**Framework**: `import Translation` (iOS 17.4+ presentation, iOS 18+ programmatic)。
+> 框架：`@preconcurrency import Translation`（iOS 18.0+ 程序化接口）。
+> `@preconcurrency` 是必须的：`TranslationSession` 未标 Sendable，Swift 6 完全并发下从 `.translationTask` 的 MainActor 闭包调 nonisolated 的 `translate` 会报「sending session」数据竞争——这是苹果框架并发标注没跟上 Swift 6 时的官方过渡手段。
 
-**動作**:
-- ボタン押下 → `translationConfig` を `Locale.Language("ja") → Locale.Language("zh-Hans")` で設定
-- `.translationTask(translationConfig) { session in ... }` modifier が自動再実行
-- `session.translate(batch:)` でタイトル / 本文 / 全 reply を 1 回の batch で翻訳
-- `clientIdentifier` で振り分け → `translatedTitle / translatedBody / translatedReplies[UUID]` cache
-- `showOriginal = false` で表示切替（cache 命中時は再翻訳せず即時切替）
-- 再押で `showOriginal = true` で原文に戻す（cache は破棄しない）
+**2026-06-12 改版（废弃旧的系统翻译浮层 `.translationPresentation`）**：
+- 旧实装只是弹屏幕中央一个系统小窗。itsuki 看实机截图后否决 →「不要弹框，要把本文本身翻成母语」。
+- 新实装 = **正文原地替换成译文** + 译文下方「○○ に翻訳しました · 原文に戻す」状态条切回原文；翻译中转圈 / 失败「再試行」。
 
-**UI**: `actionButtonsRow` 内 character.bubble icon + 「中国語に翻訳」⇄「原文に戻す」/「翻訳中…」。
+**对应语言（4 个 — 宿舍留学生主要母语）**：English / 简体中文(zh-Hans) / ไทย(th) / Tiếng Việt(vi)。
 
-**実装**: `AnnouncementDetailView.startTranslation() + runTranslation(session:)` + state 6 個。`AnnouncementReplyRow` に `overrideBody: String?` 追加して翻訳済本文を注入。
+**动作**：
+- 点「翻訳」→ 设过默认语言就直接翻；没设默认就弹语言选择窗 `langPickerSheet`
+- 语言选择窗里勾「次回からこの言語に翻訳する」→ 存 `@AppStorage("translate_default_lang")`（空串 = 每次弹窗）
+- `AnnouncementTranslateRunner`（@available(iOS 18.0) 的隐藏子视图，把 `TranslationSession.Configuration` 这个 iOS 18 专属类型从详情页本体隔离出去）在 `.translationTask` 里 `session.translate(body)`；靠 `.id(req.id)` 贴换重建来支持换语言 / 重试
+- source: nil（自动判定原文语言，公告是日语）；target = 选中语言
+
+**设置页联动**：`MySettingsView`（原「通知設定」升级为综合「設定」页）的「お知らせの翻訳」section 改默认语言，含「毎回選択する」回到每次弹窗；与详情页共用同一 `translate_default_lang` key。
+
+**iOS 18 未满**：「翻訳」按钮整颗 hide（程序化接口 iOS 18+ 才有）。
+
+**实装**：`HomeStubs.swift` 的 `TranslateLang` enum / `TranslateRequest` / `AnnouncementTranslateRunner` / `AnnouncementDetailView` 翻译 state + `langPickerSheet`；`MyPageStubs.swift` 的 `translateSettingSection`。双 scheme BUILD SUCCEEDED。
 
 ### 13.5 AppStore demo seed（⚠️ DEMO-ONLY）
 

@@ -990,9 +990,10 @@ Home 画面 **顶部 2 ブロック目**(挨拶 + 减点 amber Card の直下):
 - ⭐ **AI 要約**(本文 + 全返信を 1-2 行に圧縮)
   - **iOS 26 Foundation Models framework**(設備本地推理 / ゼロ網絡 / ゼロコスト)
   - Apple Intelligence 対応端末のみ表示、非対応端末は要約ボタン非表示で UX 一致
-- ⭐ **翻訳**(日 ⇄ 中)
-  - iOS 17.4+ **Translation framework**(初回時に言語 pack download、以降オフライン)
-  - 返信本文も逐条翻訳可
+- ⭐ **翻訳**（お知らせ本文を母語に翻訳）
+  - **Translation framework**（端末内・オフライン・全機種、Apple Intelligence 不要）
+  - **2026-06-12 改版（iOS 先行・共用層真值更新）**：旧「日⇄中のシステム浮層（`translationPresentation`）」を廃止 →「**本文を原地で訳文に差し替え + 原文に戻す**」方式（programmatic API、**iOS 18.0+**）。対応言語 **4 つ：英 / 简中(zh-Hans) / タイ / ベトナム**（寮の留学生の主な母語）。「翻訳」押下で言語選択シート → 「次回からこの言語に翻訳する」チェックで既定言語を記憶（設定画面「お知らせの翻訳」で変更・「毎回選択する」に戻す可）。詳細 → `IOS_DESIGN_LOG §13.4`
+  - ⚠️ 現状 **本文のみ**翻訳（返信 reply は対象外）。**Android 未実装**（TODO §B「安卓老师公告同类隐患」で対齐予定）
 - 返信エリア(下記)
 
 #### 7.15.6 返信(reply)
@@ -1069,7 +1070,7 @@ announcement_replies
 | 回复（全员互见）| ✅ | ✅ | ⏳ | ⏳ | — |
 | HomeView 入口 card（最新 1 件 + 未读 N badge）| — | ✅ | ⏳ | — | — |
 | AI 要約（Foundation Models, on-device）| — | ✅ v1.0 | ⏳ v1.1 | — | 不支持的机型按钮隐藏 |
-| 一键日中翻訳（Translation framework, batch）| — | ✅ v1.0 | ⏳ v1.1 | — | 多语言扩展（越南 / 印尼 / 韩） |
+| 一键翻訳（原地·4 语言 英/简中/泰/越，6-12 改版）| — | ✅ v1.0 | ⏳ v1.1 | — | reply 翻译 / 更多语言（印尼 / 韩）/ Android 对齐 |
 | Push 通知 | — | ⏳ v1.1 | ⏳ v1.1 | — | scope = male/female 时 push 怎么过滤 |
 | 附件（图片 / PDF）| — | — | — | — | v1.1 |
 | 投诉机制（学生 → 老师）| — | — | — | — | v1.1（看公告投稿规模决定）|
