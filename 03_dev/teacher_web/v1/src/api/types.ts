@@ -222,6 +222,8 @@ export interface TeacherPublic {
   name: string;
   assigned_dorm: number | null;
   last_login_at: string | null;
+  // 有效权限组（后端已按职位回退）— 登录页按权限组分栏用
+  permission_group: string | null;
 }
 
 export interface TeacherCreateIn {

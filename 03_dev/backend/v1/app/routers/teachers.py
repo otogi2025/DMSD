@@ -199,7 +199,8 @@ def me(
 # ---------------------------------------------------------------
 # GET /teachers/public — 登录页第 1 屏用（无认证、最小字段）
 # 2026-05-27 itsuki 拍板：实名账户登录方式，前端进 web 就能看到老师卡片列表。
-# 只返 id+name+assigned_dorm+last_login_at — 不返 login_id/email/role/status。
+# 只返 id+name+assigned_dorm+last_login_at+permission_group — 不返 login_id/email/role/status。
+# permission_group 返「有效权限组」（已按职位回退）供登录页按权限组分栏；属半公开信息。
 # ---------------------------------------------------------------
 @router.get("/public", response_model=list[schemas.TeacherPublicOut])
 def list_teachers_public(db: Session = Depends(get_db)):
@@ -209,7 +210,16 @@ def list_teachers_public(db: Session = Depends(get_db)):
         .order_by(models.Teacher.name)
     )
     teachers = db.scalars(stmt).all()
-    return [schemas.TeacherPublicOut.model_validate(t) for t in teachers]
+    return [
+        schemas.TeacherPublicOut(
+            id=t.id,
+            name=t.name,
+            assigned_dorm=t.assigned_dorm,
+            last_login_at=t.last_login_at,
+            permission_group=permissions.effective_group(t),
+        )
+        for t in teachers
+    ]
 
 
 # ---------------------------------------------------------------

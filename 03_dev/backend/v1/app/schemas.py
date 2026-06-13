@@ -853,6 +853,9 @@ class TeacherPublicOut(BaseModel):
     name: str
     assigned_dorm: Optional[int]
     last_login_at: Optional[datetime]
+    # 有效权限组（已按职位回退）— 登录页按权限组分栏用。注：方案 B 登录页本就
+    # 公开展示老师卡片，权限组属半公开信息（仍不暴露 login_id/email/role）。
+    permission_group: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

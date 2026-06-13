@@ -2,6 +2,12 @@ import React from "react";
 import { RYO, dormLabel, APP_VERSION } from "../theme";
 import { api } from "../api/client";
 import type { TeacherProfile } from "../api/types";
+import {
+  GROUP_DORM_ADMIN,
+  GROUP_GENERAL,
+  GROUP_GENERAL_STUDY,
+  GROUP_APPROVAL,
+} from "../api/permissions";
 import tomoshibiIcon from "../assets/tomoshibi-icon.png";
 
 // 源 index.html 10068-10643（components/login.jsx 块）。界面原样搬。
@@ -18,6 +24,7 @@ interface PickedTeacher {
   id: string;
   name: string;
   dorm: "men" | "women";
+  permissionGroup: string | null;
   initial: string;
   lastLoginMins: number | null;
 }
@@ -54,6 +61,7 @@ export function LoginScreen({
           id: t.id,
           name: t.name,
           dorm: t.assigned_dorm === 4 ? "women" : "men",
+          permissionGroup: t.permission_group ?? null,
           initial: (t.name || "?").charAt(0),
           lastLoginMins: t.last_login_at
             ? Math.floor(
@@ -324,9 +332,14 @@ export function LoginScreen({
     );
   }
 
-  // —————— 屏 1：老师列表 ——————
-  const men = (teachers || []).filter((t) => t.dorm === "men");
-  const women = (teachers || []).filter((t) => t.dorm === "women");
+  // —————— 屏 1：老师列表（按权限组分 4 栏；op 运维账号不上墙、走单独入口） ——————
+  const tAll = teachers || [];
+  const dormAdmin = tAll.filter((t) => t.permissionGroup === GROUP_DORM_ADMIN);
+  const general = tAll.filter((t) => t.permissionGroup === GROUP_GENERAL);
+  const generalStudy = tAll.filter(
+    (t) => t.permissionGroup === GROUP_GENERAL_STUDY,
+  );
+  const approval = tAll.filter((t) => t.permissionGroup === GROUP_APPROVAL);
 
   return (
     <div
@@ -393,27 +406,45 @@ export function LoginScreen({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 28,
-            maxWidth: 980,
+            gridTemplateColumns: "1fr 1fr 1fr 1fr",
+            gap: 20,
+            maxWidth: 1280,
             margin: "0 auto",
           }}
         >
-          <LoginDormColumn
-            label="男子寮"
-            icon="M"
-            accent={T.maleAccent}
-            soft={T.maleSoft}
-            teachers={men}
+          <LoginGroupColumn
+            label="寮管理者"
+            icon="管"
+            accent={T.cobalt}
+            soft={T.cobaltSoft}
+            teachers={dormAdmin}
             lastTeacherId={lastTeacherId}
             onPick={setPicked}
           />
-          <LoginDormColumn
-            label="女子寮"
-            icon="F"
+          <LoginGroupColumn
+            label="一般宿管"
+            icon="般"
+            accent={T.maleAccent}
+            soft={T.maleSoft}
+            teachers={general}
+            lastTeacherId={lastTeacherId}
+            onPick={setPicked}
+          />
+          <LoginGroupColumn
+            label="一般宿管＋晚自習"
+            icon="習"
             accent={T.femaleAccent}
             soft={T.femaleSoft}
-            teachers={women}
+            teachers={generalStudy}
+            lastTeacherId={lastTeacherId}
+            onPick={setPicked}
+          />
+          <LoginGroupColumn
+            label="申請承認専用"
+            icon="承"
+            accent={T.cobalt}
+            soft={T.cobaltSoft}
+            teachers={approval}
             lastTeacherId={lastTeacherId}
             onPick={setPicked}
           />
@@ -434,8 +465,8 @@ export function LoginScreen({
   );
 }
 
-// 私有子组件 —— 一列（男寮 / 女寮），渲染该寮的老师卡片
-function LoginDormColumn({
+// 私有子组件 —— 一列（一个权限组），渲染该组的老师卡片
+function LoginGroupColumn({
   label,
   icon,
   accent,
@@ -508,7 +539,7 @@ function LoginDormColumn({
               textAlign: "center",
             }}
           >
-            この寮の担当先生は登録されていません
+            この権限グループの先生はいません
           </div>
         )}
       </div>
@@ -582,8 +613,29 @@ function LoginTeacherCard({
         {(t.name || "?").charAt(0)}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: T.ink }}>
+        <div
+          style={{
+            fontSize: 16,
+            fontWeight: 700,
+            color: T.ink,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
           {t.name} 先生
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 600,
+              color: t.dorm === "men" ? T.maleAccent : T.femaleAccent,
+              background: t.dorm === "men" ? T.maleSoft : T.femaleSoft,
+              padding: "2px 7px",
+              borderRadius: 999,
+            }}
+          >
+            {t.dorm === "men" ? "男子寮" : "女子寮"}
+          </span>
         </div>
         <div
           style={{
