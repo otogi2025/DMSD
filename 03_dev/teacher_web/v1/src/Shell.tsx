@@ -27,7 +27,6 @@ export function Shell({
   onResumeLive,
   backendReachable,
   wsStatus,
-  currentRole,
   authToken,
 }: {
   teacher: ShellTeacher | null;
@@ -43,8 +42,6 @@ export function Shell({
   backendReachable: boolean | null;
   // 5-27 spec §11.8: WebSocket 状态 null / connecting / connected / disconnected / failed
   wsStatus: string | null;
-  // 5-27 codex 审查 #11: backend authProfile.role — 教师管理 nav 按角色 hide
-  currentRole: string | null;
   // 全局搜索学生建议用
   authToken: string | null;
 }) {
@@ -72,37 +69,14 @@ export function Shell({
     return () => window.removeEventListener("keydown", h);
   }, []);
 
-  // 5-27 codex 审查 #11: 教师管理 nav 按 currentRole 过滤（与 backend teachers.py TEACHER_ADMIN_ROLES 对齐）
-  const TEACHER_ADMIN_ROLES_FRONT = ["寮務部長", "寮務課長", "寮監"];
-  const canManageTeachers =
-    currentRole && TEACHER_ADMIN_ROLES_FRONT.includes(currentRole);
-  // 5-30: 事案録入 + 指導履歴 — 寮務系角色可见（与 backend incidents.py _INCIDENT_ROLES 对齐）
-  const GUIDANCE_ROLES_FRONT = [
-    "寮務部長",
-    "寮務課長",
-    "寮監",
-    "寮務一般教師",
-    "管理係",
-  ];
-  const canGuidance = currentRole && GUIDANCE_ROLES_FRONT.includes(currentRole);
-  // 2026-06-05 代録（出寮届）— 限寮務系 5 角色（与 backend _DAIROKU_ROLES 对齐）
-  const DAIROKU_ROLES_FRONT = [
-    "寮務部長",
-    "寮務課長",
-    "寮監",
-    "寮務一般教師",
-    "管理係",
-  ];
-  const canProxyApply =
-    currentRole && DAIROKU_ROLES_FRONT.includes(currentRole);
+  // 职位退化为纯显示标签后，菜单不再按职位隐藏 —— 所有老师都能查看所有功能页，
+  // 「增删改」的权限由后端权限闸（require_permission）按权限组把关。
   const NAV: Array<[string, string, number?]> = [
     ["roll-call", "点呼"],
     ["notifications", "通知", 7],
     ["discipline", "規律・処分"],
     ["applications", "申請", 3],
-    ...(canProxyApply
-      ? ([["proxy-application", "代録"]] as Array<[string, string]>)
-      : []),
+    ["proxy-application", "代録"],
     ["study", "学習出席"],
     ["records", "記録"],
     ["active-leaves", "出寮者一覧"],
@@ -111,15 +85,9 @@ export function Shell({
     ["front-desk", "フロント業務"],
     ["accounts", "学生アカウント管理"],
     ["admin-registration-code", "学生登録コード"],
-    ...(canGuidance
-      ? ([["incidents", "事案記録"]] as Array<[string, string]>)
-      : []),
-    ...(canGuidance
-      ? ([["disclosure-requests", "開示申請"]] as Array<[string, string]>)
-      : []),
-    ...(canManageTeachers
-      ? ([["teachers-admin", "教員アカウント管理"]] as Array<[string, string]>)
-      : []),
+    ["incidents", "事案記録"],
+    ["disclosure-requests", "開示申請"],
+    ["teachers-admin", "教員アカウント管理"],
   ];
 
   const pageLabel =

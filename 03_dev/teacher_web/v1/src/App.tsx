@@ -923,7 +923,6 @@ export function App() {
         onLogout={logout}
         backendReachable={backendReachable}
         wsStatus={wsStatus}
-        currentRole={authProfile && authProfile.role}
         authToken={authToken}
         onSwitchTeacher={() => {
           // 5-27 拍板：切替＝ログアウト相当（实名账户 = 必須再認証）。
