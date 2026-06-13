@@ -399,6 +399,18 @@
 
 > 体验改进 / 文档完善 / 重构 / 接线推进类 — 不影响「能不能上线」，影响「好不好用」。
 
+## 🧹 2026-06-13 公开仓库大整理（白名单方案 — ⭐ 下个 compact 会话首要任务）
+
+> 方案已定 + 部分已落地，**大整理本体待执行**。完整执行依据：`00_admin/handoff/push大整理_执行计划_2026-06-13.md`；compact 后 itsuki 粘贴 `push大整理_compact后交接提示词_2026-06-13.md`。
+
+- [ ] **B1** .gitignore 改白名单（只放行 `01_specs`/`02_design`/`03_dev`/`04_ops` + README/LICENSE/CHANGELOG + .github/.gitignore）
+- [ ] **B2** `git rm -r --cached`：00_admin / .claude / docs / bin / 99_archive / 06_assets / 根散文件（CLAUDE.md / PROJECT_GUIDE.md / start-teacher-web.command / .graphifyignore）
+- [ ] **B3** `05_logs/` 复制 iCloud 素材池 + 校验 + 从 DMSD 删 + 留 README 指路牌
+- [ ] **善后①** 修 pre-commit 的「CHANGELOG↔版本演变一览」检查（05_logs 迁走后失效）
+- [ ] **善后②** 出「受影响 skill/工作流」清单（session-wrap 收尾「提交 WIP/dev_log」、version-bump 路径等）
+- [ ] **push** 等 itsuki 明示（做完所有改动停下，给「待 push 预览」）
+- [ ] **后续单独任务**：数字编号目录改名（`01_specs`→`specs`）— 牵动 5 端源码路径 + 构建配置，要 5 端重新构建验证，风险高，单独做
+
 ## 💬 2026-06-12 老师单独给某个学生发私信（新功能 — itsuki 拍板要做，版本待定）
 
 > itsuki 2026-06-12 拍板：「老师可以单独给某个学生发信息。这个我不知道放到哪个版本，暂时就决定要做这个。」
