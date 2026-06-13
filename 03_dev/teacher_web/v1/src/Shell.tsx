@@ -201,7 +201,7 @@ export function Shell({
           <img
             src={tomoshibiIcon}
             alt=""
-            style={{ width: 30, height: 30, borderRadius: 8 }}
+            style={{ width: 42, height: 42, borderRadius: 10, flexShrink: 0 }}
           />
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: 1 }}>
@@ -475,6 +475,8 @@ export function Shell({
                 border: `1px solid ${T.okBorder}`,
                 fontFamily: "inherit",
                 cursor: "pointer",
+                flexShrink: 0,
+                whiteSpace: "nowrap",
               }}
             >
               <span
@@ -503,6 +505,8 @@ export function Shell({
               gap: 5,
               fontSize: 11,
               color: T.ink3,
+              flexShrink: 0,
+              whiteSpace: "nowrap",
             }}
           >
             <span
@@ -522,7 +526,15 @@ export function Shell({
                   : "..."}
             </span>
           </div>
-          <div style={{ fontSize: 12, color: T.ink3, fontFamily: T.mono }}>
+          <div
+            style={{
+              fontSize: 12,
+              color: T.ink3,
+              fontFamily: T.mono,
+              flexShrink: 0,
+              whiteSpace: "nowrap",
+            }}
+          >
             {nowLabel}
           </div>
           <button
@@ -536,6 +548,8 @@ export function Shell({
               fontFamily: "inherit",
               fontSize: 11,
               cursor: "pointer",
+              flexShrink: 0,
+              whiteSpace: "nowrap",
             }}
           >
             ログアウト
