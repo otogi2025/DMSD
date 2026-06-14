@@ -1,7 +1,6 @@
 package jp.tomoshibi.android.ui.screens.bus
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,8 +40,9 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-// 特別運航便一覧 — 接真后端 BusAPI.listRoutes()（spec §7.6，GET /api/v1/bus/routes）。
-//   PageHeader「特別運航便」level 2 + 空港案内 banner + 3 胶囊筛选 tab + 空港のみ开关 + 日别分组列表
+// 特別運行便一覧 — 接真后端 BusAPI.listRoutes()（spec §7.6，GET /api/v1/bus/routes）。
+//   PageHeader「特別運行便」level 2 + 空港案内 banner +「空港送迎便のみ」开关 + 日别分组列表
+//   只显示寮生特別運行便（dorm_special），平日通学便不显示（itsuki 2026-06-13，与 iOS 对齐）
 //   「次便」高亮在「筛选后可见列表」里临场算（不在数据里写死），切筛选不会错位
 //
 // 三态外壳照 AnnouncementsScreen 模板：Loading / Failed(重试) / Empty / Success。
@@ -50,7 +50,7 @@ import java.time.format.DateTimeFormatter
 //
 // DTO → UI 字段映射（DTO BusRouteOut 字段名跟原界面模型 SpecialBusRoute 不同，按含义对应）：
 //   id        → id（直接）
-//   kind      → 后端代码 "daily_commute" / "dorm_special"，本屏转成日语「通学便」/「特別便」显示 + 筛选用代码比对
+//   kind      → 后端代码 "daily_commute" / "dorm_special"；本屏只显示 dorm_special，徽章日语「特別運行便」
 //   direction → direction（直接）
 //   schedule_at（ISO 完整日期时间 String，如 "2026-05-06T09:20:00+09:00"）→ 拆出 date "2026-05-06" + time "09:20"，weekday 由 date 算
 //   isAirport → DTO 没有此字段，从 name + direction 是否含「空港」推断
@@ -79,7 +79,7 @@ fun BusListScreen(navController: NavHostController) {
 
     GlobalScaffold(activeTab = "", navController = navController) {
         Column(modifier = Modifier.fillMaxSize().background(t.pearl)) {
-            PageHeader(title = "特別運航便", level = 2, onLeft = { navController.popBackStack() })
+            PageHeader(title = "特別運行便", level = 2, onLeft = { navController.popBackStack() })
 
             // 三态渲染
             when (val s = ui) {
@@ -95,7 +95,7 @@ fun BusListScreen(navController: NavHostController) {
                 LoadState.Empty -> {
                     EmptyState(
                         icon = SuzuIcons.Bus,
-                        title = "運航便はありません",
+                        title = "運行便はありません",
                     )
                 }
 
@@ -116,22 +116,13 @@ private fun BusListContent(
     val t = SuzuT.current
     val cs = MaterialTheme.colorScheme
 
-    // 筛选 tab：all=すべて / dorm=特別便 / commute=通学便（本地 state）
-    var filter by remember { mutableStateOf("all") }
     // 「空港送迎便のみ」开关
     var airportOnly by remember { mutableStateOf(false) }
 
-    // 先按筛选条件过滤出可见列表。kind 用后端代码比对（"dorm_special" / "daily_commute"）。
+    // 本页只显示寮生特別運行便（dorm_special），平日通学便隐藏（itsuki 2026-06-13，与 iOS 对齐）。
     val visible =
         routes.filter { route ->
-            val passKind =
-                when (filter) {
-                    "dorm" -> route.kind == "dorm_special"
-                    "commute" -> route.kind == "daily_commute"
-                    else -> true
-                }
-            val passAirport = !airportOnly || route.isAirport()
-            passKind && passAirport
+            route.kind == "dorm_special" && (!airportOnly || route.isAirport())
         }
 
     // 「次便」判定：日本时区当前时刻拼成 "yyyy-MM-dd HH:mm"，
@@ -182,14 +173,8 @@ private fun BusListContent(
             }
         }
 
-        // 筛选区第一行：3 颗胶囊 tab
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterPill("すべて", filter == "all") { filter = "all" }
-            FilterPill("特別便", filter == "dorm") { filter = "dorm" }
-            FilterPill("通学便", filter == "commute") { filter = "commute" }
-        }
-
-        // 筛选区第二行：开关 +「空港送迎便のみ」（开时文字变主色）
+        // 班次类型筛选条（原「すべて」「特別便」「通学便」三胶囊）已删 —— 本页只显示特別運行便。
+        // 仅保留下方开关 +「空港送迎便のみ」（开时文字变主色）
         Row(verticalAlignment = Alignment.CenterVertically) {
             TToggle(checked = airportOnly, onCheckedChange = { airportOnly = it })
             Spacer(Modifier.width(8.dp))
@@ -249,10 +234,10 @@ private fun BusRouteOut.weekday(): String =
         }
     }.getOrDefault("")
 
-// kind 后端代码 → 日语显示。"dorm_special"=特別便 / "daily_commute"=通学便。
+// kind 后端代码 → 日语显示。"dorm_special"=特別運行便 / "daily_commute"=通学便（本页只显示前者）。
 private fun BusRouteOut.kindLabel(): String =
     when (kind) {
-        "dorm_special" -> "特別便"
+        "dorm_special" -> "特別運行便"
         "daily_commute" -> "通学便"
         else -> kind
     }
@@ -263,31 +248,6 @@ private fun BusRouteOut.isAirport(): Boolean = name.contains("空港") || direct
 // 座席说明（如「残り 8 席」）：DTO 没有座席字段，原 UI 显示项暂无数据来源。
 // TODO 接后端：缺 endpoint —— BusRouteOut 不含残席数，待后端加座席字段后填这里，现恒为 null（右侧弱字不显示）。
 private fun BusRouteOut.seats(): String? = null
-
-// 筛选胶囊单颗：选中 = 主色底白字 / 未选 = pill 底主色字
-@Composable
-private fun FilterPill(
-    label: String,
-    active: Boolean,
-    onClick: () -> Unit,
-) {
-    val t = SuzuT.current
-    val cs = MaterialTheme.colorScheme
-    Box(
-        modifier =
-            Modifier
-                .clip(RoundedCornerShape(percent = 50))
-                .background(if (active) cs.primary else t.pill)
-                .clickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-    ) {
-        Text(
-            label,
-            color = if (active) Color.White else cs.primary,
-            style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
-        )
-    }
-}
 
 // 一个日别分组卡：组头（月/日 等宽 +「(曜日)」）+ 多行便
 @Composable
@@ -390,8 +350,8 @@ private fun BusRow(
                     color = t.ink,
                     style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace),
                 )
-                // 通学便 = Neutral / 特別便 = Accent
-                Pill(kindLabel, tone = if (kindLabel == "特別便") PillTone.Accent else PillTone.Neutral)
+                // 特別運行便 = Accent（本页只显示这类，恒为强调色）
+                Pill(kindLabel, tone = if (kindLabel == "特別運行便") PillTone.Accent else PillTone.Neutral)
                 if (isAirport) {
                     Pill("空港", tone = PillTone.Accent)
                 }

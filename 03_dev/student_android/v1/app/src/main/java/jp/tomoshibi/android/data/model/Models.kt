@@ -131,7 +131,7 @@ data class HealthRecord(
     val note: String? = null, // 备注，可空
 )
 
-// 特別運航便单条（界面模型，对应 iOS SpecialBusRoute）
+// 特別運行便单条（界面模型，对应 iOS SpecialBusRoute）
 @Serializable
 data class SpecialBusRoute(
     val id: String,

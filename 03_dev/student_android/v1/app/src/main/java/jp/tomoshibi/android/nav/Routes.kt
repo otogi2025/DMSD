@@ -95,7 +95,7 @@ sealed class Route(
     data object MyAbout : Route("my/about")
 
     // ── 杂项 / 公告 / 认证补全 ──
-    data object BusList : Route("bus/list") // 特別運航便一覧
+    data object BusList : Route("bus/list") // 特別運行便一覧
 
     data class PackageDetail(
         val id: Int,
