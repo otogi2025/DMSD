@@ -1,7 +1,7 @@
 # TASK C · Community (Home 子页 18 页) · SwiftUI 实装
 
 > **Dispatch**: Agent tool · subagent_type=`general-purpose`
-> **工程**: `~/dev/TomoshibiiOSApp/TomoshibiApp/Features/Community/CommunityStubs.swift`
+> **工程**: `03_dev/student_ios/v1/TomoshibiApp/Features/Community/CommunityStubs.swift`
 > **翻译源**: `phaseB_src/33f0266b__NotificationsPage_PackagesPage_PackageDetailPage.js`（demo 阶段 JSX 源，已归档、不在仓库）
 
 ## 产物
@@ -40,7 +40,7 @@ struct LostView: View {
 
 ## Foundation API
 
-读 `~/dev/TomoshibiiOSApp/TomoshibiApp/Foundation/` 全部文件熟悉。关键:
+读 `03_dev/student_ios/v1/TomoshibiApp/Foundation/` 全部文件熟悉。关键:
 
 - `@EnvironmentObject var router: RouterStore` · `router.go(.xxx)` / `router.back()`
 - `@EnvironmentObject var app: AppStore` · `app.showToast("...")` / `app.openSheet(.kind)`
@@ -71,7 +71,7 @@ private func colorFromHex(_ hex: String) -> Color {
 
 1. Replace `CommunityStubs.swift` · 18 struct · 600-900 行
 2. 每 struct `#Preview { XxxView().environmentObject(RouterStore()).environmentObject(AppStore()) }`
-3. Build verify: `cd ~/dev/TomoshibiiOSApp && xcodegen generate && xcodebuild -project TomoshibiApp.xcodeproj -scheme TomoshibiApp -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -configuration Debug build 2>&1 | grep -E "error:|BUILD"` → `** BUILD SUCCEEDED **`
+3. Build verify: `cd 03_dev/student_ios/v1 && xcodegen generate && xcodebuild -project TomoshibiApp.xcodeproj -scheme TomoshibiApp -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -configuration Debug build 2>&1 | grep -E "error:|BUILD"` → `** BUILD SUCCEEDED **`
 4. 完成 report（完成 page 清单 + build 状态 + 偏差）
 
 ## 不要做

@@ -1,7 +1,7 @@
 # TASK E · MyPage (マイページ 14 页) · SwiftUI 实装
 
 > **Dispatch**: Agent tool · subagent_type=`general-purpose`
-> **工程**: `~/dev/TomoshibiiOSApp/TomoshibiApp/Features/MyPage/MyPageStubs.swift`
+> **工程**: `03_dev/student_ios/v1/TomoshibiApp/Features/MyPage/MyPageStubs.swift`
 > **翻译源**: `phaseB_src/e38fcebf__LogoutSheet.js`（demo 阶段 JSX 源，已归档、不在仓库）
 
 ## 产物

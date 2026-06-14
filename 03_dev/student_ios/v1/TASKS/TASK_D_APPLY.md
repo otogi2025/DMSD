@@ -1,7 +1,7 @@
 # TASK D · Apply (申し込み 13 页 · StayForm 最复杂) · SwiftUI 实装
 
 > **Dispatch**: Agent tool · subagent_type=`general-purpose`
-> **工程**: `~/dev/TomoshibiiOSApp/TomoshibiApp/Features/Apply/ApplyStubs.swift`
+> **工程**: `03_dev/student_ios/v1/TomoshibiApp/Features/Apply/ApplyStubs.swift`
 > **翻译源**: `phaseB_src/100ba570__ApplyListPage_ApplyNewPage_ApplyFormPage.js`（demo 阶段 JSX 源，已归档、不在仓库）
 
 ## 产物
