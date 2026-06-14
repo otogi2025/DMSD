@@ -72,28 +72,35 @@ export function Shell({
     return () => window.removeEventListener("keydown", h);
   }, []);
 
-  // 侧栏徽章数字 — authToken 来了就拉（通知未读数 + 待审申请数）
+  // 侧栏徽章数字 — authToken 来了就拉（通知未读数 + 待审申请数）。
+  // 阶段2-C：每 30 秒自动重拉一次，事件产生后侧栏数字会自己更新，老师不用手动刷新。
+  // （真·WebSocket 瞬时推留 v1.1 — 现有老师 WS 只在点呼会话时连，平时浏览后台未连。）
   React.useEffect(() => {
     if (!authToken) return;
     let cancelled = false;
-    api
-      .notificationUnreadCount(authToken)
-      .then((r) => {
-        if (!cancelled) setNotifUnread(r.unread_count);
-      })
-      .catch(() => {
-        if (!cancelled) setNotifUnread(null);
-      });
-    api
-      .pendingForMe(authToken)
-      .then((list) => {
-        if (!cancelled) setPendingApps((list || []).length);
-      })
-      .catch(() => {
-        if (!cancelled) setPendingApps(null);
-      });
+    const refresh = () => {
+      api
+        .notificationUnreadCount(authToken)
+        .then((r) => {
+          if (!cancelled) setNotifUnread(r.unread_count);
+        })
+        .catch(() => {
+          if (!cancelled) setNotifUnread(null);
+        });
+      api
+        .pendingForMe(authToken)
+        .then((list) => {
+          if (!cancelled) setPendingApps((list || []).length);
+        })
+        .catch(() => {
+          if (!cancelled) setPendingApps(null);
+        });
+    };
+    refresh();
+    const id = setInterval(refresh, 30000);
     return () => {
       cancelled = true;
+      clearInterval(id);
     };
   }, [authToken]);
 
@@ -267,14 +274,21 @@ export function Shell({
         <div style={{ height: 1, background: T.line }} />
         <nav style={{ padding: "10px 10px", flex: 1, overflowY: "auto" }}>
           {NAV_GROUPS.map((group, gi) => (
-            <div key={group.title}>
+            <div
+              key={group.title}
+              style={{
+                marginTop: gi === 0 ? 2 : 12,
+                paddingTop: gi === 0 ? 0 : 10,
+                borderTop: gi === 0 ? "none" : `1px solid ${T.line}`,
+              }}
+            >
               <div
                 style={{
-                  fontSize: 10.5,
-                  fontWeight: 700,
-                  color: T.ink3,
-                  letterSpacing: 0.6,
-                  padding: gi === 0 ? "4px 12px 6px" : "16px 12px 6px",
+                  fontSize: 11,
+                  fontWeight: 800,
+                  color: T.ink2,
+                  letterSpacing: 1,
+                  padding: "0 12px 7px",
                 }}
               >
                 {group.title}
