@@ -315,7 +315,7 @@ struct StudyOnlineForm: View {
                     return
                 } catch {
                     // 申请已成立但合同没传上 — 不回退申请，提示用户稍后从一覧重新添付
-                    app.showToast("申請は提出されましたが契約書の添付に失敗しました")
+                    app.showToast("申請を受け付けましたが、契約書の添付に失敗しました。後で一覧から添付してください")
                     router.go(.applyDone(kind: "studyOnline"))
                     return
                 }
@@ -463,7 +463,7 @@ private struct StudyOnlineRequestRow: View {
                 Button {
                     Task { await showContract() }
                 } label: {
-                    Text(downloading ? "読込中…" : "表示")
+                    Text(downloading ? "読み込み中…" : "表示")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(downloading ? T.inkMute : T.primary)
                 }

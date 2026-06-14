@@ -857,7 +857,7 @@ struct RegisterStep1View: View {
                     // 2. 氏名
                     Field(
                         label: "氏名",
-                        hint: "日本人は漢字、留学生はカタカナで入力してください",
+                        hint: "日本人の方は漢字、留学生の方はカタカナでご入力ください",
                         required: true
                     ) {
                         TField(text: $name, placeholder: "")
@@ -1395,7 +1395,7 @@ struct RegisterStep3View: View {
 
                     Field(
                         label: "電話番号",
-                        hint: "寮監があなたに連絡する場合に使います",
+                        hint: "寮監から連絡する際に使用します",
                         required: true
                     ) {
                         TField(text: $phone, placeholder: "090-1234-5678", keyboard: .phonePad)
@@ -1491,7 +1491,7 @@ struct RegisterStep4View: View {
                             Text("ご注意ください")
                                 .font(.system(size: 12.5, weight: .bold))
                                 .foregroundStyle(T.warnDeep)
-                            Text("パスワードは自分では変更できません。変更には寮監への連絡が必要です。入力時は慎重にお願いします。")
+                            Text("パスワードはご自身では変更できません。変更には寮監への連絡が必要です。入力の際は慎重にお願いいたします。")
                                 .font(.system(size: 12.5))
                                 .foregroundStyle(T.warnDeep)
                                 .lineSpacing(3)
@@ -1628,7 +1628,7 @@ struct RegisterDoneView: View {
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)
 
-                Text("次回からはこの 6 桁番号\nまたはメールアドレスと\nパスワードでログインしてください")
+                Text("次回からはこの 6 桁の番号\nまたはメールアドレスと\nパスワードでログインしてください")
                     .font(.system(size: 12))
                     .foregroundStyle(T.primaryDk.opacity(0.8))
                     .lineSpacing(3)
@@ -1819,8 +1819,8 @@ struct LoginView: View {
     // JSX: 2-tab segmented control, bg T.pill, padding 3
     private var modeTab: some View {
         HStack(spacing: 0) {
-            tabBtn(title: "番号", active: mode == .number) { mode = .number }
-            tabBtn(title: "メール", active: mode == .email) { mode = .email }
+            tabBtn(title: "番号", active: mode == .number) { mode = .number; email = "" }
+            tabBtn(title: "メール", active: mode == .email) { mode = .email; acc = "" }
         }
         .padding(3)
         .background {
@@ -1908,7 +1908,7 @@ struct LoginView: View {
             app.showToast(msg.isEmpty ? "アカウントロック中です。しばらくしてからお試しください" : msg)
         } catch let APIError.server(403, msg) {
             // 账号停用（status != active）
-            app.showToast(msg.isEmpty ? "アカウントが無効です。寮監にご連絡ください" : msg)
+            app.showToast(msg.isEmpty ? "このアカウントは現在ご利用いただけません。寮監にお問い合わせください" : msg)
         } catch let APIError.unprocessable(msg) {
             // 学号格式错（非 6 桁数字）等
             app.showToast(msg)
@@ -2006,7 +2006,7 @@ struct LockoutView: View {
 
                 // 当前阶段 + 下一阶段提示
                 VStack(spacing: 2) {
-                    Text("現在 \(app.loginFailCount) 回目のロック（\(app.currentLockoutLabel)）")
+                    Text("現在、\(app.loginFailCount) 回目のロックです（\(app.currentLockoutLabel)）")
                     if let next = app.nextLockoutLabel {
                         Text("次に失敗すると、ロック時間が \(next) に延長されます")
                     }
@@ -2099,7 +2099,7 @@ struct PwResetView: View {
                         Text("ℹ")
                             .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(T.primary)
-                        Text("リセット後、新しいパスワードが寮監から伝えられます")
+                        Text("リセット後、新しいパスワードは寮監からお伝えします")
                             .font(.system(size: 12.5))
                             .foregroundStyle(T.primaryDk)
                             .lineSpacing(3)

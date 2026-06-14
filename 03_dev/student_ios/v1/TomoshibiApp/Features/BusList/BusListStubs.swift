@@ -196,15 +196,18 @@ struct BusListView: View {
     }
 
     /// 当前筛选结果里「下一班」（第一个出发时刻 ≥ 现在）的 id —— 按筛选后的可见列表实时算。
-    /// 日期 / 时刻都是零填充字符串（"yyyy-MM-dd" + "HH:mm"），拼起来按字符串比较 == 时间先后。
+    /// date("yyyy-MM-dd") + scheduleAt("HH:mm") 解析回 Date(JST) 再比较时间先后，不依赖零填充字典序。
     private var nextVisibleId: String? {
         let jst = TimeZone(identifier: "Asia/Tokyo") ?? .current
         let fmt = DateFormatter()
         fmt.locale = Locale(identifier: "en_US_POSIX")
         fmt.timeZone = jst
         fmt.dateFormat = "yyyy-MM-dd HH:mm"
-        let nowStr = fmt.string(from: Date())
-        return filtered.first { nowStr <= "\($0.date) \($0.scheduleAt)" }?.id
+        let now = Date()
+        return filtered.first { row in
+            guard let depart = fmt.date(from: "\(row.date) \(row.scheduleAt)") else { return true }
+            return now <= depart
+        }?.id
     }
 
     var body: some View {

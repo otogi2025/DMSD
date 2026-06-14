@@ -1271,7 +1271,7 @@ final class AppStore: ObservableObject {
             id: nextId,
             type: type,
             title: title,
-            time: "今",
+            time: "たった今",
             body: body,
             unread: true
         )

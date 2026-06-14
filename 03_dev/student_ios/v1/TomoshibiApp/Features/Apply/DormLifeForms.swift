@@ -340,7 +340,7 @@ struct FridgePurchaseForm: View {
                             selection: $product,
                             value: "B",
                             title: "B: Haier 2ドア 85L",
-                            detail: "直冷式（JR-N85A-W）約 2 万円。A より小さな冷凍室があります"
+                            detail: "直冷式（JR-N85A-W）約 2 万円。A にない小型冷凍室付き"
                         )
                     }
                     .padding(.bottom, 18)

@@ -1328,7 +1328,7 @@ struct StayEditForm: View {
 
     private var identitySection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionLabel("申請者本人（変更不可）")
+            sectionLabel("申請者情報（変更不可）")
             Card(padding: 0) {
                 VStack(spacing: 0) {
                     idRow("アカウント番号", app.displayUser.account, isFirst: true)

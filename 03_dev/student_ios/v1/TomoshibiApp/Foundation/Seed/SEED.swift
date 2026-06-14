@@ -83,7 +83,7 @@ enum SEED {
         static let notifications: [NotificationItem] = [
             .init(id: 1, type: "宅配", title: "荷物到着", time: "今日 14:20", body: "寮監室前で受取り", unread: true),
             .init(id: 2, type: "申請", title: "外泊申請が承認されました", time: "昨日 16:30", body: "承認されました", unread: true),
-            .init(id: 3, type: "減点", title: "遅刻警告", time: "昨日 9:00", body: "今月の遅刻が 5 回に到達", unread: false),
+            .init(id: 3, type: "減点", title: "遅刻警告", time: "昨日 9:00", body: "今月の遅刻が 5 回に達しました", unread: false),
             .init(id: 4, type: "活動", title: "明日 18:00 誕生日会", time: "昨日", body: "カフェテリア集合", unread: true),
             .init(id: 5, type: "リクエスト曲", title: "あなたの投稿曲が採用されました", time: "2 日前", body: "Lemon / 米津玄師", unread: false),
         ]

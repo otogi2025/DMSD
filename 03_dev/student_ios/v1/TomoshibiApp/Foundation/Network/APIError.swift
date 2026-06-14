@@ -13,11 +13,11 @@ enum APIError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .network: return "通信エラーが発生しました。電波を確認してください"
+        case .network: return "通信エラーが発生しました。電波を確認してください。"
         case .decode: return "データの読み込みに失敗しました"
-        case .unauthorized: return "ログインが必要です"
+        case .unauthorized: return "ログインが必要です。"
         case let .unprocessable(msg): return msg
-        case let .server(code, msg): return "サーバーエラー (\(code)): \(msg)"
+        case let .server(code, msg): return "サーバーエラー（コード: \(code)）: \(msg)"
         case .unknown: return "不明なエラー"
         }
     }

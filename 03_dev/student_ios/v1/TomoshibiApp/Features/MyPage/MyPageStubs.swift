@@ -376,10 +376,10 @@ struct MyLandingView: View {
 
     private var studyStateText: String {
         switch app.studyState {
-        case .idle: return "対象外（今日）"
+        case .idle: return "本日は対象外"
         case .upcoming: return "開始まで \(formatCountdown(app.studyCountdownSec))"
         case .active: return "進行中"
-        case .done: return "本日完了 ✅"
+        case .done: return "本日完了"
         }
     }
 
@@ -2502,7 +2502,7 @@ struct MyStudyView: View {
             Text("学習対象外です")
                 .font(.system(size: 17, weight: .heavy))
                 .foregroundStyle(T.ink)
-            Text("あなたは現在、晩学習（夜間学習）の対象ではありません。\n学習担当の先生が対象に指定すると、ここに出席状況が表示されます。")
+            Text("現在、晩学習（夜間学習）の対象ではありません。\n学習担当の先生が対象に指定すると、ここに出席状況が表示されます。")
                 .font(.system(size: 13))
                 .foregroundStyle(T.inkSub)
                 .multilineTextAlignment(.center)

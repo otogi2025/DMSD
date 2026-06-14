@@ -46,7 +46,7 @@ private func statusPair(_ status: String) -> (label: String, tone: Pill.Tone) {
     case "pending": return ("審査中", .warn)
     case "approved": return ("承認済", .ok)
     case "approved_partial": return ("一部承認", .ok) // codex: 原来落 default 显示原始英文
-    case "rejected": return ("差戻", .danger)
+    case "rejected": return ("差し戻し", .danger)
     case "returned": return ("要修正", .danger)
     case "withdrawn": return ("取消済", .neutral)
     default: return (status, .neutral)
@@ -1074,7 +1074,7 @@ struct StayForm: View {
                 )
                 _ = try await ApplicationsAPI.create(body)
             default:
-                app.showToast("未対応の届です")
+                app.showToast("この種類の届には対応していません")
                 return
             }
             // 提交成功
@@ -2044,7 +2044,7 @@ struct ApplyPreviewView: View {
         var base: [(String, String)] = [
             ("種別", type.name),
             ("申請番号", "A-TEMP"),
-            ("申請者", "12号 · Nishimura Aoi"),
+            ("申請者", "12番 · Nishimura Aoi"),
         ]
         switch kind {
         case "outing": base += [("行き先", "新宿")]
@@ -2276,7 +2276,7 @@ struct ApplyDetailView: View {
         let reviewActive = a.status == "pending"
         let reviewTime: String? = reviewActive ? nil : a.date + " 11:02"
         let finalDone = a.status == "approved" || a.status == "rejected"
-        let finalLabel2 = a.status == "rejected" ? "差戻" : "承認"
+        let finalLabel2 = a.status == "rejected" ? "差し戻し" : "承認"
         return [
             .init(k: "submit", label: "提出", done: true, active: false, time: submitTime, label2: nil),
             .init(k: "review", label: "審査", done: reviewDone, active: reviewActive, time: reviewTime, label2: nil, activeNote: "担当者：松本 先生 · 審査中"),
@@ -2385,10 +2385,10 @@ struct ApplyDetailView: View {
                         // Rejected banner
                         if a.status == "rejected" {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("⚠ 差戻理由")
+                                Text("⚠ 差し戻し理由")
                                     .font(.system(size: 12, weight: .bold))
                                     .foregroundStyle(T.danger)
-                                Text("帰寮予定時刻が門限（22:00）を超えています。外泊申請として再提出してください。")
+                                Text("帰寮予定時刻が門限（22:00）を過ぎています。外泊申請として再提出してください。")
                                     .font(.system(size: 13))
                                     .foregroundStyle(T.ink)
                                     .lineSpacing(3)
@@ -2701,7 +2701,7 @@ struct OutingDetailView: View {
         isLoading = true
         defer { isLoading = false }
         guard let uuid = UUID(uuidString: outingId) else {
-            app.showToast("無効な申請 ID です")
+            app.showToast("申請が見つかりませんでした")
             router.back()
             return
         }
