@@ -24,20 +24,18 @@ CROSS_DORM_ROLES = frozenset(
 
 
 def dorm_units_for_teacher(teacher: models.Teacher) -> Optional[list[int]]:
-    """R4 寮过滤 — 返回该教师能看到的 dorm_unit 列表。
+    """寮过滤 — 返回该教师能看到的 dorm_unit 列表（None = 不限制 / 看全部）。
 
-    - 跨寮角色（校長 / 寮務部長 / 寮務課長 / 国際交流部長 / 国際交流課長）→ None（看全部）
-    - 男寮老师（assigned_dorm=1）→ [1, 2]（spec: 男生 dorm_unit IN (1, 2)）
-    - 女寮老师（assigned_dorm=4）→ [4]
-    - assigned_dorm IS NULL（跨寮预设）→ None
+    itsuki 2026-06-13 拍板**取消寮过滤**：所有老师可查看 / 操作所有学生，不再按
+    男女宿舍（dorm_unit 1,2=男 / 4=女）隔开 —— 功能权限仍由 require_permission 按
+    权限组把关。本函数因此返回全部寮 `[1, 2, 4]`（= 不限制）。
+
+    返回全集而非 None：有些调用点直接 `.in_(allowed)` 没有 `if allowed is not None`
+    守卫，返回 None 会让 SQL 的 `.in_(None)` 报错；返回全集则无论有无守卫都匹配到
+    全部学生。返回类型仍保留 Optional[list[int]]，便于将来恢复按寮过滤
+    （旧逻辑见 git 历史 / CROSS_DORM_ROLES 常量）。
     """
-    if teacher.role in CROSS_DORM_ROLES:
-        return None
-    if teacher.assigned_dorm is None:
-        return None
-    if teacher.assigned_dorm == 1:
-        return [1, 2]
-    return [teacher.assigned_dorm]
+    return [1, 2, 4]
 
 
 def demo_scope_for_teacher(teacher: models.Teacher):

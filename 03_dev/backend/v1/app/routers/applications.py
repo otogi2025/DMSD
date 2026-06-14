@@ -353,19 +353,7 @@ def list_pending_for_me(
         )
         .order_by(models.Application.submitted_at.asc())
     )
-    # R4 dorm filter（join 已在上面加了，这里只追加 where）
-    if teacher.assigned_dorm is not None and teacher.role not in {
-        "校長",
-        "寮務部長",
-        "寮務課長",
-        "国際交流部長",
-        "国際交流課長",
-        "管理係",
-    }:
-        if teacher.assigned_dorm == 1:
-            stmt = stmt.where(models.Student.dorm_unit.in_([1, 2]))
-        else:
-            stmt = stmt.where(models.Student.dorm_unit == teacher.assigned_dorm)
+    # 寮过滤已取消（itsuki 2026-06-13）：所有老师看所有寮的待审申请。
     apps = db.scalars(stmt).all()
     return [_to_application_out(a) for a in apps]
 
@@ -411,19 +399,7 @@ def list_active_leaves(
             models.Application.leave_date.asc(),
         )
     )
-    # R4 寮边界过滤（跟 pending-for-me 同一套逻辑）
-    if teacher.assigned_dorm is not None and teacher.role not in {
-        "校長",
-        "寮務部長",
-        "寮務課長",
-        "国際交流部長",
-        "国際交流課長",
-        "管理係",
-    }:
-        if teacher.assigned_dorm == 1:
-            stmt = stmt.where(models.Student.dorm_unit.in_([1, 2]))
-        else:
-            stmt = stmt.where(models.Student.dorm_unit == teacher.assigned_dorm)
+    # 寮过滤已取消（itsuki 2026-06-13）：所有老师看所有寮的出寮中学生。
     apps = db.scalars(stmt).all()
     return [_to_application_out(a) for a in apps]
 
@@ -461,20 +437,7 @@ def list_proxy_candidates(
             )
         )
 
-    # R4 寮边界过滤（跟 list_active_leaves / pending-for-me 同一套逻辑）
-    if teacher.assigned_dorm is not None and teacher.role not in {
-        "校長",
-        "寮務部長",
-        "寮務課長",
-        "国際交流部長",
-        "国際交流課長",
-        "管理係",
-    }:
-        if teacher.assigned_dorm == 1:
-            stmt = stmt.where(models.Student.dorm_unit.in_([1, 2]))
-        else:
-            stmt = stmt.where(models.Student.dorm_unit == teacher.assigned_dorm)
-
+    # 寮过滤已取消（itsuki 2026-06-13）：所有老师可搜到所有寮的学生。
     # limit 100：前端有搜索框，超 100 提示老师用姓名/学号筛选
     stmt = stmt.order_by(
         models.Student.grade_code,
@@ -580,24 +543,8 @@ def _resolve_actor(
 
 
 def _teacher_can_view(teacher: models.Teacher, student: models.Student) -> bool:
-    # 跨寮 role
-    if teacher.role in {
-        "校長",
-        "寮務部長",
-        "寮務課長",
-        "国際交流部長",
-        "国際交流課長",
-        "管理係",
-    }:
-        return True
-    # assigned_dorm = 1 → 男寮 (1+2 暗指)
-    if teacher.assigned_dorm is None:
-        return True
-    if teacher.assigned_dorm == 1 and student.dorm_unit in (1, 2):
-        return True
-    if teacher.assigned_dorm == student.dorm_unit:
-        return True
-    return False
+    # itsuki 2026-06-13 取消寮过滤：所有老师可查看所有学生（功能权限由权限组把关）。
+    return True
 
 
 # A-013 (2026-05-21): GET /applications/pending-for-me 已移到 /{application_id} 之前。
