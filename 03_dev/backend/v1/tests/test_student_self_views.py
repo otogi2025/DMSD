@@ -212,8 +212,8 @@ def test_my_reports_returns_own(client, seed_data, student_token):
     assert len(res.json()) == 2
 
 
-def test_teacher_list_reports_dorm_filtered(client, seed_data, db_session):
-    """老师查上报列表 — 男寮担任只看男寮，跨寮役职看全部。"""
+def test_teacher_list_reports_all_dorms(client, seed_data, db_session):
+    """老师查上报列表 — 寮过滤已取消 2026-06-13：所有老师看全部寮的上报。"""
     me = seed_data["student"]  # dorm 1 男寮
     female = _add_student(
         db_session,
@@ -228,7 +228,7 @@ def test_teacher_list_reports_dorm_filtered(client, seed_data, db_session):
     _add_report(db_session, student_id=me.id, body="男寮上报")
     _add_report(db_session, student_id=female.id, body="女寮上报")
 
-    token = _login_teacher(client, "tannin")  # assigned_dorm=1 → [1,2]
+    token = _login_teacher(client, "tannin")  # assigned_dorm=1 → 寮过滤取消后看全部
     res = client.get(
         "/api/v1/rollcall/reports",
         headers={"Authorization": f"Bearer {token}"},
@@ -236,7 +236,7 @@ def test_teacher_list_reports_dorm_filtered(client, seed_data, db_session):
     assert res.status_code == 200, res.text
     bodies = {r["body"] for r in res.json()}
     assert "男寮上报" in bodies
-    assert "女寮上报" not in bodies
+    assert "女寮上报" in bodies  # 寮过滤取消后女寮上报也可见
 
     token2 = _login_teacher(client, "ryomu_kachou")  # 跨寮役职
     res2 = client.get(
@@ -480,8 +480,8 @@ def test_misc_student_withdraw(client, seed_data, student_token, db_session):
     assert res.json()["status"] == "withdrawn"
 
 
-def test_misc_teacher_dorm_filter(client, seed_data, db_session):
-    """老师列表按男/女寮过滤。"""
+def test_misc_teacher_all_dorms(client, seed_data, db_session):
+    """老师列表 — 寮过滤已取消 2026-06-13：所有老师看全部寮。"""
     me = seed_data["student"]  # dorm 1
     female = _add_student(
         db_session,
@@ -504,11 +504,11 @@ def test_misc_teacher_dorm_filter(client, seed_data, db_session):
         )
     )
     db_session.commit()
-    token = _login_teacher(client, "tannin")  # dorm 1 → [1,2]
+    token = _login_teacher(client, "tannin")  # dorm 1 → 寮过滤取消后看全部
     res = client.get(
         "/api/v1/misc-requests", headers={"Authorization": f"Bearer {token}"}
     )
     assert res.status_code == 200, res.text
     subjects = {r["subject"] for r in res.json()}
     assert "男寮申请" in subjects
-    assert "女寮申请" not in subjects
+    assert "女寮申请" in subjects  # 寮过滤取消后女寮申请也可见

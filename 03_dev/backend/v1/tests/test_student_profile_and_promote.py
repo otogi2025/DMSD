@@ -210,8 +210,8 @@ class TestStudentProfile:
         res = client.get(f"/api/v1/students/{sid}/profile")
         assert res.status_code == 401
 
-    def test_cross_dorm_forbidden(self, client, db_session, profile_seed):
-        """#2 寮边界：女寮老师（assigned_dorm=4）查男寮学生（dorm_unit=1）→ 403。"""
+    def test_cross_dorm_now_allowed(self, client, db_session, profile_seed):
+        """#2 寮过滤已取消 2026-06-13：女寮老师（assigned_dorm=4）查男寮学生（dorm_unit=1）→ 现在允许。"""
         pw = security.hash_password("test-password-12345")
         # 女寮担当寮監（assigned_dorm=4）
         joshi_kanri = models.Teacher(
@@ -226,14 +226,13 @@ class TestStudentProfile:
         db_session.commit()
 
         tok = _tok(client, "joshi_kanri_test")
-        # profile_seed 的学生 dorm_unit=1（男寮），跨寮应该 403
+        # profile_seed 的学生 dorm_unit=1（男寮），跨寮现已放开
         sid = str(profile_seed["student"].id)
         res = client.get(
             f"/api/v1/students/{sid}/profile",
             headers={"Authorization": f"Bearer {tok}"},
         )
-        assert res.status_code == 403
-        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+        assert res.status_code == 200, res.text
 
     def test_rollcall_entries_carry_session_type(
         self, client, db_session, profile_seed
@@ -679,8 +678,8 @@ class TestRenewalDormBoundary:
         db_session.commit()
         return girl.id
 
-    def test_renew_seat_other_dorm_forbidden(self, client, db_session):
-        """dorm1 管理係 改 dorm4 学生番号 → 403 FORBIDDEN_DORM。"""
+    def test_renew_seat_other_dorm_now_allowed(self, client, db_session):
+        """dorm1 管理係 改 dorm4 学生番号 → 现在允许（寮过滤已取消 2026-06-13）。"""
         girl_id = self._setup(db_session)
         tok = _tok(client, "kanri_dorm1")
         res = client.post(
@@ -688,11 +687,10 @@ class TestRenewalDormBoundary:
             headers={"Authorization": f"Bearer {tok}"},
             json={"grade_code": "05", "class_code": "01", "seat_no": "50"},
         )
-        assert res.status_code == 403, res.text
-        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+        assert res.status_code == 200, res.text
 
-    def test_progress_excludes_other_dorm(self, client, db_session):
-        """dorm1 管理係 的进度名单不含 dorm4 学生。"""
+    def test_progress_now_includes_other_dorm(self, client, db_session):
+        """dorm1 管理係 的进度名单现在也含 dorm4 学生（寮过滤已取消 2026-06-13）。"""
         girl_id = self._setup(db_session)
         girl = db_session.get(models.Student, girl_id)
         girl.needs_renewal = True
@@ -704,7 +702,7 @@ class TestRenewalDormBoundary:
         )
         assert res.status_code == 200, res.text
         nos = {i["student_no"] for i in res.json()["items"]}
-        assert "050101" not in nos  # dorm4 女寮生不在 dorm1 管理係 视野
+        assert "050101" in nos  # 寮过滤取消后 dorm4 女寮生也进入 dorm1 管理係 视野
 
 
 class TestStudentMe:

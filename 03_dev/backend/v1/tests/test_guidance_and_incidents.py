@@ -450,8 +450,10 @@ class TestGuidanceDormBoundary:
         assert res.status_code == 200, res.text
         return res.json()["access_token"]
 
-    def test_create_guidance_cross_dorm_403(self, client, seed_data, joshi_token):
-        """女寮老师对男寮学生录入指导记录 → 403 FORBIDDEN_DORM。"""
+    def test_create_guidance_cross_dorm_now_allowed(
+        self, client, seed_data, joshi_token
+    ):
+        """女寮老师对男寮学生录入指导记录 → 现在允许（寮过滤已取消 2026-06-13）。"""
         sid = _student_id(seed_data)  # 学生 dorm_unit=1
         res = client.post(
             f"/api/v1/students/{sid}/guidance",
@@ -462,13 +464,12 @@ class TestGuidanceDormBoundary:
                 "guidance_date": "2026-05-30",
             },
         )
-        assert res.status_code == 403, res.text
-        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+        assert res.status_code == 201, res.text
 
-    def test_decide_disclosure_cross_dorm_403(
+    def test_decide_disclosure_cross_dorm_now_allowed(
         self, client, seed_data, student_token, joshi_token
     ):
-        """女寮老师审批男寮学生的开示申请 → 403 FORBIDDEN_DORM。"""
+        """女寮老师审批男寮学生的开示申请 → 现在允许（寮过滤已取消 2026-06-13）。"""
         sid = _student_id(seed_data)
         # 学生先提交开示申请
         r = client.post(
@@ -479,11 +480,10 @@ class TestGuidanceDormBoundary:
         assert r.status_code == 201, r.text
         req_id = r.json()["id"]
 
-        # 女寮老师尝试审批 → 跨寮，应 403
+        # 女寮老师审批 → 跨寮现已放开，应成功
         res = client.post(
             f"/api/v1/guidance/disclosure-requests/{req_id}/decision",
             headers={"Authorization": f"Bearer {joshi_token}"},
             json={"decision": "approved_full"},
         )
-        assert res.status_code == 403, res.text
-        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+        assert res.status_code == 200, res.text

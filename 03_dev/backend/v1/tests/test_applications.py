@@ -314,14 +314,14 @@ class TestUpdateApplication:
         assert res.status_code == 422, res.text
         assert res.json()["detail"]["code"] == "NO_CHANGES", res.text
 
-    def test_audit_teacher_outside_dorm_forbidden(
+    def test_audit_teacher_outside_dorm_now_allowed(
         self, client, student_token, seed_data, db_session
     ):
-        """非担当寮老师读 audit → 403（payload 含 amend_reason，不能任意老师读任意申请履历）。"""
+        """非担当寮老师读 audit → 现在允许（寮过滤已取消 2026-06-13，功能权限仍由权限组把关）。"""
         from app import models, security
 
         app_id = self._create_pending(client, student_token)
-        # 造一个「女寮(unit4)担当、非跨寮 role」老师，对男寮(unit1)的 seed 学生应 403
+        # 「女寮(unit4)担当、非跨寮 role」老师，对男寮(unit1)的 seed 学生现已放开
         other = models.Teacher(
             login_id="onna_tannin",
             name="女寮担任",
@@ -337,7 +337,7 @@ class TestUpdateApplication:
             f"/api/v1/applications/{app_id}/audit",
             headers={"Authorization": f"Bearer {token}"},
         )
-        assert res.status_code == 403, res.text
+        assert res.status_code == 200, res.text
 
     def test_audit_cross_dorm_teacher_allowed(
         self, client, student_token, teacher_token
@@ -577,8 +577,8 @@ class TestActiveLeaves:
         assert res.status_code == 200, res.text
         assert app_id not in [a["id"] for a in res.json()]
 
-    def test_active_dorm_boundary(self, client, student_token, db_session):
-        """dorm4 担任老师看不到 dorm1 学生的出寮（R4 边界）。"""
+    def test_active_cross_dorm_now_included(self, client, student_token, db_session):
+        """dorm4 担任老师现在也能看到 dorm1 学生的出寮（寮过滤已取消 2026-06-13）。"""
         from app import models, security
 
         app_id = self._approved_active(client, student_token, db_session)
@@ -598,7 +598,7 @@ class TestActiveLeaves:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert res.status_code == 200, res.text
-        assert app_id not in [a["id"] for a in res.json()]
+        assert app_id in [a["id"] for a in res.json()]
 
     def test_active_requires_teacher(self, client, student_token):
         """学生 token 不能看出寮者一覧。"""
@@ -691,10 +691,10 @@ class TestApplicationByTeacher:
         )
         assert res.status_code == 404, res.text
 
-    def test_cross_dorm_forbidden(self, client, seed_data, db_session):
-        """4寮老师绕开候选列表、直接 POST by-teacher 给 1寮学生 → 403 FORBIDDEN_DORM。
+    def test_cross_dorm_now_allowed(self, client, seed_data, db_session):
+        """4寮老师直接 POST by-teacher 给 1寮学生 → 现在允许（寮过滤已取消 2026-06-13）。
 
-        student_id 来自 query param，必须有寮边界回归保护（codex 审查 低-2）。
+        功能权限（代録需「申请审批」权限）仍由权限组把关，跟寮无关。
         """
         from app import models, security
 
@@ -715,8 +715,7 @@ class TestApplicationByTeacher:
             json=self._today_body(),
             headers={"Authorization": f"Bearer {token}"},
         )
-        assert res.status_code == 403, res.text
-        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+        assert res.status_code == 201, res.text
 
     def test_same_day_reversed_time_rejected(self, client, teacher_token, seed_data):
         """同日 帰寮时刻早于出寮时刻 → 422（codex 审查 中-1：后端共用规则兜底）。"""
@@ -816,8 +815,8 @@ class TestProxyCandidates:
         res = client.get(self.URL, headers={"Authorization": f"Bearer {student_token}"})
         assert res.status_code in (401, 403), res.text
 
-    def test_dorm_boundary(self, client, seed_data, db_session):
-        """4寮老师搜不到 1寮学生（R4 边界）— seed 学生是 dorm1。"""
+    def test_cross_dorm_now_included(self, client, seed_data, db_session):
+        """4寮老师现在也能搜到 1寮学生（寮过滤已取消 2026-06-13）— seed 学生是 dorm1。"""
         from app import models, security
 
         other = models.Teacher(
@@ -833,7 +832,7 @@ class TestProxyCandidates:
         token = security.create_access_token(other.id, f"teacher:{other.role}")
         res = client.get(self.URL, headers={"Authorization": f"Bearer {token}"})
         assert res.status_code == 200, res.text
-        assert str(seed_data["student"].id) not in [r["id"] for r in res.json()]
+        assert str(seed_data["student"].id) in [r["id"] for r in res.json()]
 
     def test_excludes_demo_student(self, client, teacher_token, db_session):
         """is_demo=True 的假数据学生不出现在选择器里。"""

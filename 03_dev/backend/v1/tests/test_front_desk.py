@@ -197,11 +197,10 @@ def _login_teacher(client, login_id):
     return res.json()["access_token"]
 
 
-def test_list_filtered_by_male_female_dorm(client, seed_data, db_session):
-    """GET /front-desk 按老师管辖男/女寮过滤：
-    - 男寮 scope 老师（tannin assigned_dorm=1 → 管 dorm_unit 1,2）只看男寮学生的条目
-    - 跨寮老师（寮務課長 assigned_dorm=None）看全部
-    （itsuki 拍板：只分男寮 / 女寮、不细分到楼）。
+def test_list_now_shows_all_dorms(client, seed_data, db_session):
+    """GET /front-desk 寮过滤已取消 2026-06-13：所有老师看全部寮的条目。
+    - 男寮 scope 老师（tannin assigned_dorm=1）现在也能看到女寮学生的条目
+    - 跨寮老师（寮務課長 assigned_dorm=None）看全部（不变）
     """
     male_student = seed_data["student"]  # dorm_unit=1（男寮）
     teacher = seed_data["teachers"]["ryomu_kachou"]  # 登记人
@@ -242,7 +241,7 @@ def test_list_filtered_by_male_female_dorm(client, seed_data, db_session):
         kind="lost_and_found",
     )
 
-    # 男寮 scope 老师：只看男寮 + 无主条目，看不到女寮
+    # 男寮 scope 老师：寮过滤取消后看全部（男寮 + 女寮 + 无主条目）
     male_token = _login_teacher(client, "tannin")
     res = client.get(
         "/api/v1/front-desk",
@@ -252,7 +251,7 @@ def test_list_filtered_by_male_female_dorm(client, seed_data, db_session):
     descs = {i["description"] for i in res.json()}
     assert "男寮の荷物" in descs
     assert "無主の忘れ物" in descs
-    assert "女寮の荷物" not in descs
+    assert "女寮の荷物" in descs  # 寮过滤取消后女寮条目也可见
 
     # 跨寮老师：全部可见
     cross_token = _login_teacher(client, "ryomu_kachou")
@@ -265,12 +264,10 @@ def test_list_filtered_by_male_female_dorm(client, seed_data, db_session):
     assert {"男寮の荷物", "女寮の荷物", "無主の忘れ物"} <= descs2
 
 
-def test_search_recipients_ryokan_can_access_and_dorm_filtered(
-    client, seed_data, db_session
-):
+def test_search_recipients_ryokan_can_access_all_dorms(client, seed_data, db_session):
     """GET /front-desk/students 挑收件学生：
     - 寮監能访问（核心修复：账号管理的 /students 角色集不含寮監，会 403）
-    - 按管辖男/女寮过滤（男寮監看不到女寮学生）。
+    - 寮过滤已取消 2026-06-13：男寮監现在也能搜到女寮学生。
     """
     from app import security
 
@@ -307,7 +304,7 @@ def test_search_recipients_ryokan_can_access_and_dorm_filtered(
     assert res.status_code == 200, res.text  # 核心：寮監不再 403
     names = {s["name"] for s in res.json()}
     assert seed_data["student"].name in names  # 男寮学生可见
-    assert "女子 受取人" not in names  # 女寮学生被过滤掉
+    assert "女子 受取人" in names  # 寮过滤取消后女寮学生也可见
 
 
 def test_search_recipients_non_admin_can_view(client, seed_data):

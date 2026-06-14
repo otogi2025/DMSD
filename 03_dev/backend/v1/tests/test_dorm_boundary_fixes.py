@@ -148,15 +148,16 @@ class TestGuidanceDormBoundary:
         )
         assert r.status_code == 200, r.text
 
-    def test_list_guidance_other_dorm_403(self, client, cross_dorm_setup, joshi_token):
-        """女寮老師が男寮学生の指導履歴を見ようとすると 403。"""
+    def test_list_guidance_other_dorm_now_allowed(
+        self, client, cross_dorm_setup, joshi_token
+    ):
+        """女寮老師が男寮学生の指導履歴を見る → 現在許可（寮過滤已取消 2026-06-13）。"""
         student_id = str(cross_dorm_setup["student"].id)
         r = client.get(
             f"/api/v1/students/{student_id}/guidance",
             headers={"Authorization": f"Bearer {joshi_token}"},
         )
-        assert r.status_code == 403, r.text
-        assert r.json()["detail"]["code"] == "FORBIDDEN_DORM"
+        assert r.status_code == 200, r.text
 
     def test_cross_dorm_role_can_see_any(self, client, cross_dorm_setup, seed_data):
         """跨寮役职（寮務部長、assigned_dorm=None）は男女どちらの学生も見れる。"""
@@ -172,10 +173,10 @@ class TestGuidanceDormBoundary:
         )
         assert r.status_code == 200, r.text
 
-    def test_list_disclosure_requests_dorm_filter(
+    def test_list_disclosure_requests_now_includes_other_dorm(
         self, client, cross_dorm_setup, joshi_token, student_token
     ):
-        """男寮学生提交开示申请后，女寮老师的列表里不包含该申请。"""
+        """男寮学生提交开示申请后，女寮老师的列表现在也包含该申请（寮过滤已取消 2026-06-13）。"""
         # 学生提交申请
         res = client.post(
             f"/api/v1/students/{cross_dorm_setup['student'].id}/guidance/disclosure-request",
@@ -184,13 +185,15 @@ class TestGuidanceDormBoundary:
         )
         assert res.status_code == 201, res.text
 
-        # 女寮老师拉列表 → 男寮学生的申请不应出现
+        # 女寮老师拉列表 → 男寮学生的申请现在也出现
         r = client.get(
             "/api/v1/guidance/disclosure-requests",
             headers={"Authorization": f"Bearer {joshi_token}"},
         )
         assert r.status_code == 200, r.text
-        assert r.json()["items"] == [], "女寮老师不应看到男寮学生的开示申请"
+        assert len(r.json()["items"]) == 1, (
+            "寮过滤取消后女寮老师也应看到男寮学生的开示申请"
+        )
 
     def test_list_disclosure_requests_own_dorm_visible(
         self, client, cross_dorm_setup, student_token, seed_data
@@ -331,23 +334,22 @@ def ryokan_token(client, ryokan_teacher):
 class TestStudyDormBoundary:
     """study.py 寮边界补齐 — 女寮寮監操作男寮学生 → 403。"""
 
-    def test_create_checkin_wrong_dorm_403(
+    def test_create_checkin_wrong_dorm_now_allowed(
         self, client, ryokan_token, seed_data, db_session
     ):
-        """女寮寮監给男寮学生（dorm_unit=1）登出席记录 → 403 FORBIDDEN_DORM。"""
+        """女寮寮監给男寮学生（dorm_unit=1）登出席记录 → 现在允许（寮过滤已取消 2026-06-13）。"""
         student_id = str(seed_data["student"].id)  # dorm_unit=1（男寮）
         res = client.post(
             "/api/v1/study/checkins",
             json={"student_id": student_id},
             headers={"Authorization": f"Bearer {ryokan_token}"},
         )
-        assert res.status_code == 403, res.text
-        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+        assert res.status_code == 201, res.text
 
-    def test_patch_checkin_wrong_dorm_403(
+    def test_patch_checkin_wrong_dorm_now_allowed(
         self, client, ryokan_token, seed_data, db_session
     ):
-        """女寮寮監修改男寮学生的出席记录 → 403 FORBIDDEN_DORM。"""
+        """女寮寮監修改男寮学生的出席记录 → 现在允许（寮过滤已取消 2026-06-13）。"""
         from datetime import date
 
         # 直接在 DB 建 checkin 行（StudyCheckinOut 没有 id 字段，不能从 API 取）
@@ -360,14 +362,13 @@ class TestStudyDormBoundary:
         db_session.commit()
         db_session.refresh(checkin)
 
-        # 女寮寮監来改 → 403
+        # 女寮寮監来改 → 跨寮现已放开，应成功
         patch_res = client.patch(
             f"/api/v1/study/checkins/{checkin.id}",
             json={"status": "absent", "override_reason": "テスト"},
             headers={"Authorization": f"Bearer {ryokan_token}"},
         )
-        assert patch_res.status_code == 403, patch_res.text
-        assert patch_res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+        assert patch_res.status_code == 200, patch_res.text
 
     def test_create_checkin_own_dorm_ok(self, client, seed_data, db_session):
         """男寮寮監（assigned_dorm=1）给男寮学生（dorm_unit=1）登出席 → 正常。"""
@@ -449,36 +450,34 @@ class TestRollcallSessionDormBoundary:
         db_session.refresh(session)
         return session
 
-    def test_start_session_wrong_dorm_403(
+    def test_start_session_wrong_dorm_now_allowed(
         self, client, ryokan_token, male_dorm_session
     ):
-        """女寮寮監开男寮 session → 403 FORBIDDEN_DORM。"""
+        """女寮寮監开男寮 session → 现在允许（寮过滤已取消 2026-06-13）。"""
         res = client.post(
             f"/api/v1/rollcall/sessions/{male_dorm_session.id}/start",
             headers={"Authorization": f"Bearer {ryokan_token}"},
         )
-        assert res.status_code == 403, res.text
-        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+        assert res.status_code == 200, res.text
 
-    def test_end_session_wrong_dorm_403(
+    def test_end_session_wrong_dorm_now_allowed(
         self, client, ryokan_token, running_male_dorm_session
     ):
-        """女寮寮監结束男寮 running session → 403 FORBIDDEN_DORM。"""
+        """女寮寮監结束男寮 running session → 现在允许（寮过滤已取消 2026-06-13）。"""
         res = client.post(
             f"/api/v1/rollcall/sessions/{running_male_dorm_session.id}/end",
             headers={"Authorization": f"Bearer {ryokan_token}"},
         )
-        assert res.status_code == 403, res.text
-        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+        assert res.status_code == 200, res.text
 
 
 class TestDisciplineDormBoundary:
     """discipline.py 手动加扣分 / 撤销 寮边界 — 女寮寮監操作男寮学生 → 403。"""
 
-    def test_create_manual_demerit_wrong_dorm_403(
+    def test_create_manual_demerit_wrong_dorm_now_allowed(
         self, client, ryokan_token, seed_data
     ):
-        """女寮寮監给男寮学生手动加扣分 → 403 FORBIDDEN_DORM。"""
+        """女寮寮監给男寮学生手动加扣分 → 现在允许（寮过滤已取消 2026-06-13）。"""
         student_id = str(seed_data["student"].id)  # dorm_unit=1（男寮）
         res = client.post(
             "/api/v1/discipline/manual",
@@ -489,13 +488,12 @@ class TestDisciplineDormBoundary:
             },
             headers={"Authorization": f"Bearer {ryokan_token}"},
         )
-        assert res.status_code == 403, res.text
-        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+        assert res.status_code == 201, res.text
 
-    def test_revoke_demerit_wrong_dorm_403(
+    def test_revoke_demerit_wrong_dorm_now_allowed(
         self, client, ryokan_token, seed_data, db_session
     ):
-        """女寮寮監撤销男寮学生的扣分记录 → 403 FORBIDDEN_DORM。"""
+        """女寮寮監撤销男寮学生的扣分记录 → 现在允许（寮过滤已取消 2026-06-13）。"""
         from datetime import datetime
         from zoneinfo import ZoneInfo
 
@@ -516,8 +514,7 @@ class TestDisciplineDormBoundary:
             json={"revoke_reason": "テスト撤销"},
             headers={"Authorization": f"Bearer {ryokan_token}"},
         )
-        assert res.status_code == 403, res.text
-        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+        assert res.status_code == 200, res.text
 
     def test_cross_dorm_role_can_add_demerit(self, client, seed_data):
         """跨寮役职（寮務課長）给任意学生手动加扣分 → 正常（不受寮限）。"""

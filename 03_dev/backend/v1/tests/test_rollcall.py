@@ -363,16 +363,17 @@ class TestPatchEvent:
         assert res.status_code == 409, res.text
         assert res.json()["detail"]["code"] == "SESSION_ENDED"
 
-    def test_dorm_check_before_ended_probe(
+    def test_cross_dorm_teacher_hits_ended_gate(
         self, client, teacher_token, seed_data, rollcall_session, db_session
     ):
-        """授权顺序：管辖外老师改已结束场次 → 403 FORBIDDEN_DORM（不能拿到 409 探测状态）。"""
+        """寮过滤已取消 2026-06-13：跨寮老师改判不再被 FORBIDDEN_DORM 挡，
+        改已结束场次直接命中 409 SESSION_ENDED（终态门）。"""
         from app import security
 
         student_id = str(seed_data["student"].id)  # 学生 dorm_unit=1
         event_id = self._checkin(client, teacher_token, rollcall_session.id, student_id)
 
-        # 建一个只管 4 栋（女寮）的老师 — 与学生（1 栋）不同寮
+        # 建一个只管 4 栋（女寮）的老师 — 与学生（1 栋）不同寮，过去会被 FORBIDDEN_DORM 挡
         t4 = models.Teacher(
             login_id="ryomu4",
             name="女寮太郎",
@@ -382,7 +383,7 @@ class TestPatchEvent:
             assigned_dorm=4,
         )
         db_session.add(t4)
-        # 同时把 session 标 ended（验证 dorm 检查在终态门之前）
+        # 把 session 标 ended
         sess = db_session.get(models.RollCallSession, rollcall_session.id)
         sess.session_status = "ended"
         db_session.commit()
@@ -399,8 +400,8 @@ class TestPatchEvent:
             json={"to_status": "late", "reason": "遅刻"},
             headers={"Authorization": f"Bearer {token4}"},
         )
-        assert res.status_code == 403, res.text
-        assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+        assert res.status_code == 409, res.text
+        assert res.json()["detail"]["code"] == "SESSION_ENDED"
 
     def test_multistep_override_recomputes_demerit(
         self, client, teacher_token, seed_data, rollcall_session, db_session

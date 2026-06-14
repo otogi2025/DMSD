@@ -284,8 +284,8 @@ def _make_ryokan_token(client, db_session) -> str:
     return res.json()["access_token"]
 
 
-def test_b8_front_desk_create_cross_dorm_403(client, db_session, seed_data):
-    """女寮監が男寮学生 (dorm_unit=1) に宅配登记 → 403。"""
+def test_b8_front_desk_create_cross_dorm_now_allowed(client, db_session, seed_data):
+    """女寮監が男寮学生 (dorm_unit=1) に宅配登记 → 现在允许（寮过滤已取消 2026-06-13）。"""
     ryokan_token = _make_ryokan_token(client, db_session)
     student_id = str(seed_data["student"].id)
 
@@ -298,12 +298,11 @@ def test_b8_front_desk_create_cross_dorm_403(client, db_session, seed_data):
         },
         headers={"Authorization": f"Bearer {ryokan_token}"},
     )
-    assert res.status_code == 403, res.text
-    assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+    assert res.status_code == 201, res.text
 
 
-def test_b8_rollcall_checkin_cross_dorm_403(client, db_session, seed_data):
-    """女寮監が男寮学生 (dorm_unit=1) に点呼签到 → 403。"""
+def test_b8_rollcall_checkin_cross_dorm_now_allowed(client, db_session, seed_data):
+    """女寮監が男寮学生 (dorm_unit=1) に点呼签到 → 现在允许（寮过滤已取消 2026-06-13）。"""
     from datetime import datetime, timedelta
     from zoneinfo import ZoneInfo
 
@@ -337,8 +336,7 @@ def test_b8_rollcall_checkin_cross_dorm_403(client, db_session, seed_data):
         },
         headers={"Authorization": f"Bearer {ryokan_token}"},
     )
-    assert res.status_code == 403, res.text
-    assert res.json()["detail"]["code"] == "FORBIDDEN_DORM"
+    assert res.status_code == 201, res.text
 
 
 # ─────────────────────────────────────────

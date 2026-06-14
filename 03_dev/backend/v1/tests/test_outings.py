@@ -131,13 +131,13 @@ class TestPendingForMe:
         assert res.status_code == 200
         assert len(res.json()) >= 1
 
-    def test_pending_excludes_other_dorm(self, client, student_token, db_session):
-        """别寮（女寮 dorm 4）老师的待确认列表里看不到男寮学生的外出（R4 边界）。"""
+    def test_pending_now_includes_other_dorm(self, client, student_token, db_session):
+        """别寮（女寮 dorm 4）老师的待确认列表现在也含男寮学生的外出（寮过滤已取消 2026-06-13）。"""
         outing = _create_outing(client, student_token)  # 学生 dorm_unit=1
         token4 = _make_dorm4_teacher_token(client, db_session)
         res = client.get("/api/v1/outings/pending-for-me", headers=_auth(token4))
         assert res.status_code == 200
-        assert outing["id"] not in [o["id"] for o in res.json()]
+        assert outing["id"] in [o["id"] for o in res.json()]
 
 
 class TestGetDetail:
@@ -157,12 +157,12 @@ class TestGetDetail:
         )
         assert res.status_code == 200
 
-    def test_other_dorm_teacher_forbidden(self, client, student_token, db_session):
-        """别寮老师看男寮学生的外出详情 → 403。"""
+    def test_other_dorm_teacher_now_allowed(self, client, student_token, db_session):
+        """别寮老师看男寮学生的外出详情 → 现在允许（寮过滤已取消 2026-06-13）。"""
         outing = _create_outing(client, student_token)
         token4 = _make_dorm4_teacher_token(client, db_session)
         res = client.get(f"/api/v1/outings/{outing['id']}", headers=_auth(token4))
-        assert res.status_code == 403
+        assert res.status_code == 200, res.text
 
 
 class TestConfirm:
@@ -219,14 +219,15 @@ class TestConfirm:
         teacher = seed_data["teachers"]["ryomu_kachou"]
         assert res.json()["confirmed_by_teacher_id"] == str(teacher.id)
 
-    def test_confirm_dorm_boundary(self, client, student_token, db_session):
-        """别寮（女寮 dorm 4）老师不能确认男寮（dorm 1）学生的外出 → 403。"""
+    def test_confirm_cross_dorm_now_allowed(self, client, student_token, db_session):
+        """别寮（女寮 dorm 4）老师确认男寮（dorm 1）学生的外出 → 现在允许（寮过滤已取消 2026-06-13）。"""
         outing = _create_outing(client, student_token)  # 学生 dorm_unit=1
         token4 = _make_dorm4_teacher_token(client, db_session)
         res = client.patch(
             f"/api/v1/outings/{outing['id']}/confirm", headers=_auth(token4)
         )
-        assert res.status_code == 403
+        assert res.status_code == 200, res.text
+        assert res.json()["status"] == "approved"
 
 
 class TestWithdraw:

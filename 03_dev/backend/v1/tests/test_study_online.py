@@ -236,22 +236,24 @@ class TestDownloadContract:
         )
         assert res.status_code == 403
 
-    def test_cross_dorm_teacher_403(
+    def test_cross_dorm_teacher_now_allowed(
         self, client, student_token, female_dorm_teacher_token
     ):
+        """寮过滤已取消 2026-06-13：女寮老师下载男寮学生的契約書 → 现在允许。"""
         rid = _create_request(client, student_token)
         _upload(client, student_token, rid)
         res = client.get(
             f"/api/v1/study/online-requests/{rid}/contract",
             headers={"Authorization": f"Bearer {female_dorm_teacher_token}"},
         )
-        assert res.status_code == 403
+        assert res.status_code == 200, res.text
 
 
-class TestListR4Boundary:
-    def test_cross_dorm_teacher_list_excludes(
+class TestListCrossDorm:
+    def test_cross_dorm_teacher_list_now_includes(
         self, client, student_token, teacher_token, female_dorm_teacher_token
     ):
+        """寮过滤已取消 2026-06-13：女寮老师的待审列表现在也含男寮学生的申请。"""
         # 男寮（dorm_unit=1）学生提交一条 pending 申请
         rid = _create_request(client, student_token)
         # 本寮 / 全寮老师能在待审列表看到它
@@ -261,13 +263,13 @@ class TestListR4Boundary:
         )
         assert res_ok.status_code == 200, res_ok.text
         assert any(r["id"] == rid for r in res_ok.json())
-        # 女寮（assigned_dorm=4）老师看不到男寮学生的申请 — 连合同文件名元数据都不该泄露
+        # 女寮（assigned_dorm=4）老师现在也能看到男寮学生的申请
         res_block = client.get(
             "/api/v1/study/online-requests",
             headers={"Authorization": f"Bearer {female_dorm_teacher_token}"},
         )
         assert res_block.status_code == 200, res_block.text
-        assert all(r["id"] != rid for r in res_block.json())
+        assert any(r["id"] == rid for r in res_block.json())
 
 
 class TestProfileIncludesOnline:
