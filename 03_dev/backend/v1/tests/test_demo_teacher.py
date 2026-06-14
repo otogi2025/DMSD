@@ -166,15 +166,33 @@ def test_demo_teacher_forbidden_global_get(client, demo_teacher_token, path):
     assert res.json()["detail"]["code"] == "DEMO_FORBIDDEN", res.text
 
 
-def test_demo_teacher_cannot_post_announcement(client, demo_teacher_token):
-    """演示老师发公告 → 403（公告无 is_demo、读侧只按性别过滤、会推给全体真实学生）。"""
+def test_demo_teacher_announcement_isolated_from_real(
+    client, demo_teacher_token, teacher_token
+):
+    """公告补 is_demo 字段后，演示老师可发公告（不再一刀切 403），但发的是 is_demo=True 公告：
+    演示老师自己 list 看得到、真老师 list 看不到（双向隔离，不污染真实学生）。"""
+    # 演示老师发公告 → 201（发的是演示公告 is_demo=True）
     res = client.post(
         "/api/v1/announcements",
         headers={"Authorization": f"Bearer {demo_teacher_token}"},
-        json={"title": "t", "body": "b", "scope": "all"},
+        json={"title": "demo-only", "body": "b", "scope": "all"},
     )
-    assert res.status_code == 403, res.text
-    assert res.json()["detail"]["code"] == "DEMO_FORBIDDEN", res.text
+    assert res.status_code == 201, res.text
+    demo_ann_id = res.json()["id"]
+    # 演示老师 list 看得到自己发的演示公告
+    res = client.get(
+        "/api/v1/announcements",
+        headers={"Authorization": f"Bearer {demo_teacher_token}"},
+    )
+    assert res.status_code == 200, res.text
+    assert demo_ann_id in {a["id"] for a in res.json()["items"]}
+    # 真老师 list 看不到这条演示公告（is_demo 隔离）
+    res = client.get(
+        "/api/v1/announcements",
+        headers={"Authorization": f"Bearer {teacher_token}"},
+    )
+    assert res.status_code == 200, res.text
+    assert demo_ann_id not in {a["id"] for a in res.json()["items"]}
 
 
 def test_demo_teacher_cannot_create_event(client, demo_teacher_token):
@@ -231,11 +249,12 @@ def test_real_teacher_not_blocked_by_demo_guard(client, teacher_token):
     assert res.status_code == 200, res.text
 
 
-def test_demo_teacher_cannot_reply_announcement(
+def test_demo_teacher_cannot_reply_real_announcement(
     client, demo_teacher_token, teacher_token
 ):
-    """演示老师禁回复公告（老师分支回复会写穿到真实公告、真实学生可见）→ 403。"""
-    # 真老师先发一个真实公告
+    """演示老师回复真实公告 → 404（公告补 is_demo 后：真实公告对演示老师不可见，
+    当作不存在，比旧 403 隔离更强 — 连存在性都不暴露）。"""
+    # 真老师先发一个真实公告（is_demo=False）
     res = client.post(
         "/api/v1/announcements",
         headers={"Authorization": f"Bearer {teacher_token}"},
@@ -243,26 +262,44 @@ def test_demo_teacher_cannot_reply_announcement(
     )
     assert res.status_code == 201, res.text
     ann_id = res.json()["id"]
-    # 演示老师试图回复这个真实公告 → 403
+    # 演示老师试图回复这个真实公告 → 404（看不见，当不存在）
     res = client.post(
         f"/api/v1/announcements/{ann_id}/replies",
         headers={"Authorization": f"Bearer {demo_teacher_token}"},
         json={"body": "demo reply"},
     )
-    assert res.status_code == 403, res.text
-    assert res.json()["detail"]["code"] == "DEMO_FORBIDDEN", res.text
+    assert res.status_code == 404, res.text
+    assert res.json()["detail"]["code"] == "NOT_FOUND", res.text
 
 
-def test_demo_teacher_cannot_delete_reply(client, demo_teacher_token):
-    """演示老师禁删回复（「老师能删任何回复」会让它删真实学生回复）→ 403（查 reply 前就拦）。"""
-    import uuid as _uuid
-
+def test_demo_teacher_cannot_delete_real_reply(
+    client, demo_teacher_token, teacher_token, student_token
+):
+    """演示老师删真实公告下的回复 → 404（is_demo 隔离：真实公告对演示老师不可见，
+    连同其下回复一起当作不存在）。"""
+    # 真老师发真实公告（is_demo=False）
+    res = client.post(
+        "/api/v1/announcements",
+        headers={"Authorization": f"Bearer {teacher_token}"},
+        json={"title": "real", "body": "b", "scope": "all"},
+    )
+    assert res.status_code == 201, res.text
+    ann_id = res.json()["id"]
+    # 真学生回复，产生一条真实回复
+    res = client.post(
+        f"/api/v1/announcements/{ann_id}/replies",
+        headers={"Authorization": f"Bearer {student_token}"},
+        json={"body": "real reply"},
+    )
+    assert res.status_code == 201, res.text
+    reply_id = res.json()["id"]
+    # 演示老师试图删这条真实回复 → 404（看不到真实公告，当不存在）
     res = client.delete(
-        f"/api/v1/announcements/{_uuid.uuid4()}/replies/{_uuid.uuid4()}",
+        f"/api/v1/announcements/{ann_id}/replies/{reply_id}",
         headers={"Authorization": f"Bearer {demo_teacher_token}"},
     )
-    assert res.status_code == 403, res.text
-    assert res.json()["detail"]["code"] == "DEMO_FORBIDDEN", res.text
+    assert res.status_code == 404, res.text
+    assert res.json()["detail"]["code"] == "NOT_FOUND", res.text
 
 
 # ─────────────────────────────────────────────────────────────

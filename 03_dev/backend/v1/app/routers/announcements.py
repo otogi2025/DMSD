@@ -33,7 +33,6 @@ from .. import models, permissions, schemas, security
 from ..database import get_db
 from ..deps import (
     _parse_bearer,
-    assert_not_demo_teacher,
     get_current_principal,
     get_current_student,
     require_permission,
@@ -119,7 +118,9 @@ def list_announcements(
     """列表 (FC-027 修复: 学生 + 老师都能调)。
 
     学生: scope 自动过滤 (按 gender) + 已读状态 + 回复数。
-    老师: 全部公告 (不过滤 scope, 让老师能看到所有 scope 的内容) + is_read=False。
+    老师: 不过滤 scope (看到所有 scope 的内容) + is_read=False。
+    demo 隔离: 演示老师 / 演示学生只看演示公告 (is_demo=True)，
+    真老师 / 真实学生只看真实公告 (is_demo=False) — 与 students/teachers.is_demo 对称。
     """
     is_teacher = isinstance(principal, models.Teacher)
     if is_teacher:
@@ -130,7 +131,11 @@ def list_announcements(
                 models.Teacher,
                 models.Announcement.author_teacher_id == models.Teacher.id,
             )
-            .where(models.Announcement.deleted_at.is_(None))
+            .where(
+                models.Announcement.deleted_at.is_(None),
+                # demo 隔离: 演示老师只看演示公告，真老师只看真实公告
+                models.Announcement.is_demo.is_(principal.is_demo),
+            )
             .order_by(models.Announcement.created_at.desc())
         ).all()
         read_ids: set = set()
@@ -146,6 +151,8 @@ def list_announcements(
             .where(
                 models.Announcement.deleted_at.is_(None),
                 models.Announcement.scope.in_(scopes),
+                # demo 隔离: 演示学生只看演示公告，真实学生只看真实公告
+                models.Announcement.is_demo.is_(principal.is_demo),
             )
             .order_by(models.Announcement.created_at.desc())
         ).all()
@@ -197,6 +204,8 @@ def get_unread_count(
         select(sa_func.count(models.Announcement.id)).where(
             models.Announcement.deleted_at.is_(None),
             models.Announcement.scope.in_(scopes),
+            # demo 隔离: 演示学生只数演示公告，真实学生只数真实公告
+            models.Announcement.is_demo.is_(student.is_demo),
         )
     )
     read_count = db.scalar(
@@ -209,6 +218,8 @@ def get_unread_count(
             models.AnnouncementRead.student_id == student.id,
             models.Announcement.deleted_at.is_(None),
             models.Announcement.scope.in_(scopes),
+            # demo 隔离: 与 total 同口径，演示 / 真实公告各自只数自己那批
+            models.Announcement.is_demo.is_(student.is_demo),
         )
     )
     return schemas.AnnouncementUnreadCountOut(
@@ -230,6 +241,13 @@ def get_announcement_detail(
     is_teacher = isinstance(principal, models.Teacher)
     ann = db.get(models.Announcement, announcement_id)
     if not ann or ann.deleted_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "公告が見つかりません"},
+        )
+    # demo 隔离: 演示 principal 只能看演示公告、真实 principal 只能看真实公告，
+    # 否则当作不存在 404（同 deps.assert_student_demo_match 思路，防构造真实 id 越权窥视）
+    if ann.is_demo != principal.is_demo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "NOT_FOUND", "message": "公告が見つかりません"},
@@ -344,12 +362,16 @@ def post_reply(
 ):
     """发回复 — 学生 / 老师都行（按 JWT 自动判 author_kind）。"""
     author_kind, author_id, actor = _resolve_actor(authorization, db)
-    # 演示老师禁回复公告（公告无 is_demo，演示老师回复会出现在真实公告下、真实学生可见）→ 403
-    if author_kind == "teacher":
-        assert_not_demo_teacher(actor)
 
     ann = db.get(models.Announcement, announcement_id)
     if not ann or ann.deleted_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "公告が見つかりません"},
+        )
+    # demo 隔离: 演示 actor 只能回复演示公告、真实 actor 只能回复真实公告，否则当作不存在 404。
+    # 公告补 is_demo 字段后，演示老师可在演示沙盒内回复演示公告，不再一刀切禁止演示老师回复。
+    if actor.is_demo != ann.is_demo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "NOT_FOUND", "message": "公告が見つかりません"},
@@ -394,12 +416,17 @@ def delete_reply(
     """删回复 — 自己发的 or 任意老师都能删。"""
     author_kind, author_id, _actor = _resolve_actor(authorization, db)
     is_teacher = author_kind == "teacher"
-    # 演示老师禁删回复（「老师能删任何回复」会让演示老师删真实学生在真实公告下的回复）→ 403
-    if is_teacher:
-        assert_not_demo_teacher(_actor)
 
     reply = db.get(models.AnnouncementReply, reply_id)
     if not reply or reply.announcement_id != announcement_id or reply.deleted_at:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "返信が見つかりません"},
+        )
+    # demo 隔离: 演示 actor 只能操作演示公告下的回复、真实 actor 只能操作真实公告下的，
+    # 否则当作不存在 404（防演示老师删真实公告下回复 / 反之）。补 is_demo 后解除一刀切禁止。
+    parent_ann = db.get(models.Announcement, announcement_id)
+    if parent_ann is None or parent_ann.is_demo != _actor.is_demo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "NOT_FOUND", "message": "返信が見つかりません"},
@@ -433,13 +460,14 @@ def post_announcement(
     db: Session = Depends(get_db),
 ):
     """老师发公告 — 任何老师 role 都可以（不限定职务，§7.15.7）。"""
-    # 演示老师禁发公告（公告无 is_demo、读侧只按性别过滤，会推送给全体真实学生）→ 403
-    assert_not_demo_teacher(teacher)
+    # demo 隔离: 演示老师发的公告 is_demo=True（只演示学生 / 演示老师可见），真老师发的 is_demo=False。
+    # 公告补 is_demo 字段后不再一刀切禁演示老师发 — 演示老师在演示沙盒内发演示公告，不污染真实学生。
     ann = models.Announcement(
         title=body.title,
         body=body.body,
         scope=body.scope,
         author_teacher_id=teacher.id,
+        is_demo=teacher.is_demo,
     )
     db.add(ann)
     db.commit()

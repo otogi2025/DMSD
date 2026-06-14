@@ -1047,6 +1047,11 @@ class Announcement(Base):
     )
     # 软删 — 已删的不出现在学生列表里
     deleted_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+    # demo 隔离 — 与 students.is_demo / teachers.is_demo 对称（2026-06-13）。
+    # 演示老师发的公告 is_demo=True，真实学生 / 真老师查询自动过滤掉；
+    # 演示学生 / 演示老师只看 is_demo=True 公告。公告原本无隔离字段，靠禁演示老师发/回复兜底，
+    # 本次补字段后解除该限制（演示老师可在演示沙盒内发/回复演示公告）。
+    is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     __table_args__ = (
         CheckConstraint(
@@ -1054,6 +1059,7 @@ class Announcement(Base):
         ),
         Index("idx_announcement_created", "created_at"),
         Index("idx_announcement_scope_active", "scope", "deleted_at"),
+        Index("idx_announcement_is_demo", "is_demo"),
     )
 
 
@@ -1446,13 +1452,13 @@ class IncidentRecord(Base):
 
 
 # ---------------------------------------------------------------
-# 点歌（UI「リクエスト曲」）— spec §7.11 最小版（投稿 + 一览；通报/封禁 v1.1）
+# 点歌（UI「リクエスト曲」）— spec §7.11（投稿 + 一览）
 # ---------------------------------------------------------------
 class SongRequest(Base):
-    """学生点歌投稿。最小版 A（itsuki 2026-06-06）：只做投稿 + 男/女寮一览。
+    """学生点歌投稿（itsuki 2026-06-06）：只做投稿 + 男/女寮一览。
 
-    spec §7.11 的通报（通報）+ 累计封禁（ban_level）+ 自动解禁 cron + 老师管理页
-    属完整版，降到 v1.1。dorm_unit 记投稿时学生的寮，给老师按男/女寮分 tab 用。
+    dorm_unit 记投稿时学生的寮，给老师按男/女寮分 tab 用。
+    （原通报 + 封禁设计 itsuki 2026-06-13 拍板彻底删除，不再降 v1.1）
     """
 
     __tablename__ = "song_requests"

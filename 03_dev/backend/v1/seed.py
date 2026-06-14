@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import logging
 import os
+import uuid
 from datetime import date, datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 
@@ -419,6 +420,94 @@ DEMO_STUDENTS = [
     ),
 ]
 
+# 演示宿舍公告（is_demo=True，挂演示老师名下）— 与 iOS 演示版本地 SEED.swift 内容一字对齐
+# （itsuki 提供的真实宿舍公告原文，新谷和之 寮監 · Google Classroom，纯日语不含翻译）。
+# id 用固定 UUID（与 iOS SEED 的 AAAA000x 段一致），幂等检查按 id；scope 全 all（同 iOS）。
+# created_at 用「现在往前推 days_ago 天」还原时间线（同 iOS Date().addingTimeInterval(-86400*N)）。
+DEMO_ANNOUNCEMENTS = [
+    dict(
+        id=uuid.UUID("aaaa0001-0000-0000-0000-000000000001"),
+        title="ごみの捨て方について",
+        body=(
+            "昨日の罰則清掃時に複数個所で飲みかけのペットボトル，缶が捨ててあり，コバエが飛んでいました。\n"
+            "今後，特に飲食物を捨てる場合は全て空にした状態で捨てるようにして下さい。\n"
+            "寮内が臭くなり，不衛生となります。\n"
+            "衛生環境を整えるように一人一人が意識して気を付けるようにして下さい。\n"
+            "また，清掃分担でゴミ捨ての担当者はゴミの状況を確認して早めに捨てるようにしましょう。"
+        ),
+        scope="all",
+        days_ago=1,
+    ),
+    dict(
+        id=uuid.UUID("aaaa0002-0000-0000-0000-000000000002"),
+        title="廊下のコンセントの利用について",
+        body=(
+            "①サッカー部\n"
+            "・現状，サッカー部の靴乾燥機に使用している寮生が多いですが，廊下のコンセントを使う場合は盗電扱いとなります。盗電は犯罪です。譲歩策として本日から廊下のコンセントの使用をなくし，部屋のコンセントを使用して廊下に出して使用して下さい。\n"
+            "※またはトレーニングルームで乾燥をするようにして下さい（現在相談中のため現時点では上記で乾燥をするように）。\n"
+            "②一般生\n"
+            "・一般生の中にも廊下のコンセントを使用している生徒がいます。本日より，使用しないようにして下さい。上記同様，盗電扱いです。\n"
+            "③廊下のコンセント使用可能な場合の事例\n"
+            "・普段の寮清掃時の掃除機等の使用（個人的使用は不可）\n"
+            "・特別な許可を得ている場合（相談は新谷まで）\n"
+            "・個室のコンセントの不具合等で使用ができない場合（代替措置）"
+        ),
+        scope="all",
+        days_ago=3,
+    ),
+    dict(
+        id=uuid.UUID("aaaa0003-0000-0000-0000-000000000003"),
+        title="男子寮防災訓練について",
+        body=(
+            "明日の学習時間に男子のみ防災訓練があります。\n"
+            "男子生徒は学習に参加せず，寮での待機となります。\n"
+            "ただし，全体が遅くなった場合は学習を行いますので，全員が速やかに避難できるように放送を注意して聞いてください。\n"
+            "また，イヤホンをしていて放送を聞いていない，お風呂に入っていたなどの理由で防災訓練に参加しなかった場合は指導の対象となります。\n"
+            "※女子は通常通り学習があります。"
+        ),
+        scope="all",
+        days_ago=3,
+    ),
+    dict(
+        id=uuid.UUID("aaaa0004-0000-0000-0000-000000000004"),
+        title="夜学習について",
+        body=(
+            "6月5日（金）は夜学習は自室学習となります。\n"
+            "自由時間ではないので，必ず学習に取り組むように。"
+        ),
+        scope="all",
+        days_ago=8,
+    ),
+    dict(
+        id=uuid.UUID("aaaa0005-0000-0000-0000-000000000005"),
+        title="ホタル祭りについて",
+        body=(
+            "◯ホタル祭りに参加する寮生の注意事項\n"
+            "１．ホタル祭りに参加する生徒は外出簿に記名し，鍵を提出すること。\n"
+            "２．ホタルの見学に参加する生徒は必ず男子寮玄関前に20:00に集合し，指示に従うこと。\n"
+            "３．ホタル祭りに参加する生徒の最終門限は21:30として，その場で点呼（健康観察）。\n"
+            "４．ホタル祭りに参加した生徒の入浴は23:00までとする（浴室のシャワー，個室のシャワーを使用すること）\n"
+            "５．30日土曜日の清掃は自室の清掃をしっかりすること。\n"
+            "◯ホタル祭りに参加しない生徒の注意事項\n"
+            "１．通常の寮の休日時程に準ずる（門限は19:50，点呼は20:00）。\n"
+            "２．30日土曜日の清掃は自室の清掃をしっかりすること。"
+        ),
+        scope="all",
+        days_ago=13,
+    ),
+    dict(
+        id=uuid.UUID("aaaa0006-0000-0000-0000-000000000006"),
+        title="金銭のやり取りについて",
+        body=(
+            "寮生間での金銭のやり取りは禁止しています。\n"
+            "金銭を渡して，雑用や課題（宿題）をしてもらうことは絶対してはいけません。\n"
+            "それ以外でも金銭が関わることについては絶対にしないように。"
+        ),
+        scope="all",
+        days_ago=29,
+    ),
+]
+
 
 def seed_prod(db) -> None:
     """production minimal 数据 — VPS Postgres 部署用。
@@ -611,6 +700,34 @@ def _seed_demo_data(db) -> None:
         log.info("加演示学生 student_no=%s is_demo=True", student.student_no)
 
     db.commit()
+
+    # 演示公告（is_demo=True，挂演示老师名下）— 幂等，按固定 id 检查，重复跑不重建。
+    # 演示老师 / 演示学生看得到，真老师 / 真实学生被 is_demo 隔离过滤掉，上线不污染。
+    demo_teacher = db.scalars(
+        select(models.Teacher).where(
+            models.Teacher.login_id == DEMO_TEACHER["login_id"]
+        )
+    ).first()
+    if demo_teacher:
+        for a_data in DEMO_ANNOUNCEMENTS:
+            if db.get(models.Announcement, a_data["id"]):
+                log.info("演示公告「%s」已存在 — 跳过", a_data["title"])
+                continue
+            created = datetime.now(timezone.utc) - timedelta(days=a_data["days_ago"])
+            db.add(
+                models.Announcement(
+                    id=a_data["id"],
+                    title=a_data["title"],
+                    body=a_data["body"],
+                    scope=a_data["scope"],
+                    author_teacher_id=demo_teacher.id,
+                    is_demo=True,
+                    created_at=created,
+                    updated_at=created,
+                )
+            )
+            log.info("加演示公告「%s」is_demo=True", a_data["title"])
+        db.commit()
 
 
 # =============================================================
