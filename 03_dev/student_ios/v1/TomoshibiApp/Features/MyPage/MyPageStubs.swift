@@ -800,6 +800,7 @@ struct MyInfoEditView: View {
     @State private var room: String = ""
     @State private var email: String = ""
     @State private var phone: String = ""
+    @State private var isSubmitting = false
 
     private var canSave: Bool {
         !room.trimmingCharacters(in: .whitespaces).isEmpty
@@ -860,7 +861,7 @@ struct MyInfoEditView: View {
 
             VStack(spacing: 0) {
                 Rectangle().fill(T.hair).frame(height: 0.5)
-                PrimaryButton(title: "保存する", enabled: canSave) {
+                PrimaryButton(title: "保存する", enabled: canSave && !isSubmitting) {
                     saveAndLog()
                 }
                 .padding(.horizontal, 24)
@@ -952,6 +953,9 @@ struct MyInfoEditView: View {
     }
 
     private func saveAndLog() {
+        // 防连点：保存在途再点直接忽略，避免重复 PATCH + 重复写变更历史
+        guard !isSubmitting else { return }
+        isSubmitting = true
         let u0 = app.displayUser
         let newRoom = roomPrefix + room
 
@@ -959,6 +963,7 @@ struct MyInfoEditView: View {
             // 演示版：只改本地假数据 + 假 toast，不连后端。
             applyLocalChanges(newRoom: newRoom, before: u0)
             app.showToast("保存しました")
+            isSubmitting = false
             router.back()
         #else
             // 生产版：PATCH /students/me，只传用户实际改动的字段（PATCH 语义）。
@@ -970,6 +975,7 @@ struct MyInfoEditView: View {
             )
             let tokenAtStart = app.authToken
             Task {
+                defer { isSubmitting = false }
                 do {
                     _ = try await StudentsAPI.updateMe(body)
                     // await 后切账号 / 登出则放弃 —— 否则把上个用户的资料写进新用户的 currentUser/SEED.user（codex 复审 R2 major）。

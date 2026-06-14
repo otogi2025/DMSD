@@ -19,6 +19,7 @@ struct DormEventProposalForm: View {
     @State private var riskSolution: String = ""
     @State private var expectedCost: String = ""
     @State private var note: String = ""
+    @State private var isSubmitting = false
 
     private var expectedCount: Int? {
         Int(expectedCountText.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -108,7 +109,7 @@ struct DormEventProposalForm: View {
                     }
                     .padding(.bottom, 22)
 
-                    submitButton(title: "提出する", canSubmit: canSubmit) {
+                    submitButton(title: "提出する", canSubmit: canSubmit && !isSubmitting) {
                         submit()
                     }
                     .padding(.bottom, 32)
@@ -153,6 +154,11 @@ struct DormEventProposalForm: View {
     }
 
     private func submitAsync(expectedCount: Int) async {
+        // 防连点：提交在途再点直接忽略，避免重复提交
+        guard !isSubmitting else { return }
+        isSubmitting = true
+        defer { isSubmitting = false }
+
         let body = DormLifeAPI.EventProposalBody(
             team_name: ApplyFormDate.nilIfBlank(teamName),
             title: title.trimmed,
@@ -295,6 +301,7 @@ struct FridgePurchaseForm: View {
     @State private var didPrefillContact = false
     @State private var contactWechat: String = ""
     @State private var product: String = "A"
+    @State private var isSubmitting = false
 
     private var canSubmit: Bool {
         !contactPhone.trimmed.isEmpty && ["A", "B"].contains(product)
@@ -350,7 +357,7 @@ struct FridgePurchaseForm: View {
                     }
                     .padding(.bottom, 22)
 
-                    submitButton(title: "提出する", canSubmit: canSubmit) {
+                    submitButton(title: "提出する", canSubmit: canSubmit && !isSubmitting) {
                         submit()
                     }
                     .padding(.bottom, 32)
@@ -411,6 +418,11 @@ struct FridgePurchaseForm: View {
     }
 
     private func submitAsync(body: DormLifeAPI.FridgePurchaseBody) async {
+        // 防连点：提交在途再点直接忽略，避免重复提交
+        guard !isSubmitting else { return }
+        isSubmitting = true
+        defer { isSubmitting = false }
+
         do {
             _ = try await DormLifeAPI.submitFridgePurchase(body: body)
             app.showToast("冷蔵庫購入届を提出しました")
@@ -531,6 +543,7 @@ struct ItemPossessionForm: View {
     @State private var item: String = ""
     @State private var reason: String = ""
     @State private var guardianName: String = ""
+    @State private var isSubmitting = false
 
     private var canSubmit: Bool {
         !roomNo.trimmed.isEmpty
@@ -576,7 +589,7 @@ struct ItemPossessionForm: View {
                     }
                     .padding(.bottom, 22)
 
-                    submitButton(title: "提出する", canSubmit: canSubmit) {
+                    submitButton(title: "提出する", canSubmit: canSubmit && !isSubmitting) {
                         submit()
                     }
                     .padding(.bottom, 32)
@@ -638,6 +651,11 @@ struct ItemPossessionForm: View {
     }
 
     private func submitAsync(body: DormLifeAPI.ItemPossessionBody) async {
+        // 防连点：提交在途再点直接忽略，避免重复提交
+        guard !isSubmitting else { return }
+        isSubmitting = true
+        defer { isSubmitting = false }
+
         do {
             _ = try await DormLifeAPI.submitItemPossession(body: body)
             app.showToast("物品所持許可願を提出しました")

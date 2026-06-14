@@ -710,6 +710,7 @@ struct LostNewView: View {
     @State private var itemName: String = ""
     @State private var place: String = ""
     @State private var feature: String = ""
+    @State private var isSubmitting = false
 
     /// 品名必填（后端 item_name 必填）。
     private var canSubmit: Bool {
@@ -781,7 +782,7 @@ struct LostNewView: View {
                     }
                     .padding(.bottom, 18)
 
-                    PrimaryButton(title: "投稿する", enabled: canSubmit) {
+                    PrimaryButton(title: "投稿する", enabled: canSubmit && !isSubmitting) {
                         submit()
                     }
                 }
@@ -816,11 +817,17 @@ struct LostNewView: View {
 
     /// 投稿提交 —— 演示版假 toast / 生产版 POST /lost-found。
     private func submit() {
+        // 防连点：提交在途再点直接忽略，避免重复提交
+        guard !isSubmitting else { return }
+        isSubmitting = true
         #if DEMO
             app.showToast("投稿しました")
             Task {
                 try? await Task.sleep(nanoseconds: 500_000_000)
-                await MainActor.run { router.go(.homeLost) }
+                await MainActor.run {
+                    isSubmitting = false
+                    router.go(.homeLost)
+                }
             }
         #else
             let loc = place.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -833,6 +840,7 @@ struct LostNewView: View {
             )
             let tokenAtStart = app.authToken
             Task {
+                defer { isSubmitting = false }
                 do {
                     _ = try await LostFoundAPI.create(body)
                     guard app.authToken == tokenAtStart else { return } // 切账号 / 登出后不在新会话刷新 / 弹 toast
@@ -1131,6 +1139,7 @@ struct MusicNewView: View {
     @State private var title: String = ""
     @State private var artist: String = ""
     @State private var reason: String = ""
+    @State private var isSubmitting = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1162,7 +1171,7 @@ struct MusicNewView: View {
                     // trimmingCharacters 去掉首尾空白，防止只输空格也算非空。
                     let canSubmitSong = !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                         && !artist.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    PrimaryButton(title: "投稿する", enabled: canSubmitSong) {
+                    PrimaryButton(title: "投稿する", enabled: canSubmitSong && !isSubmitting) {
                         submit()
                     }
                 }
@@ -1177,11 +1186,17 @@ struct MusicNewView: View {
 
     /// 点歌投稿提交 —— 演示版假 toast / 生产版 POST /songs（后端按本人寮自动取 dorm）。
     private func submit() {
+        // 防连点：提交在途再点直接忽略，避免重复提交
+        guard !isSubmitting else { return }
+        isSubmitting = true
         #if DEMO
             app.showToast("投稿しました")
             Task {
                 try? await Task.sleep(nanoseconds: 500_000_000)
-                await MainActor.run { router.go(.homeMusic) }
+                await MainActor.run {
+                    isSubmitting = false
+                    router.go(.homeMusic)
+                }
             }
         #else
             // Apple Music URL 是演示版的「自動取得」占位，后端无 url 字段 → 生产只传曲名 / 艺术家 / 投稿理由。
@@ -1193,6 +1208,7 @@ struct MusicNewView: View {
             )
             let tokenAtStart = app.authToken
             Task {
+                defer { isSubmitting = false }
                 do {
                     _ = try await SongsAPI.create(body)
                     guard app.authToken == tokenAtStart else { return } // 切账号 / 登出后不在新会话刷新 / 弹 toast

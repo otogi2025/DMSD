@@ -479,6 +479,7 @@ struct StayForm: View {
 
     /// ── 出租车预约「タクシー予約」— 出寮方法选了「タクシー」时想坐车的时刻（itsuki 2026-06-04：废止独立开关，改成出寮方法连动）──
     @State private var taxiTime: Date = StayForm.parseHM("18:00") ?? Date()
+    @State private var isSubmitting = false
 
     /// 出租车这个移动方式的字面量 —— 出寮方法选了它才出预约时刻选择器。
     /// 抽成常量：下面 LEAVE_TRANSPORTS 数组 + UI 条件 + 提交逻辑三处都引这一个，改文案只改这里、不会漏改某处静默失效
@@ -864,11 +865,11 @@ struct StayForm: View {
                                 .frame(maxWidth: .infinity, minHeight: 52)
                                 .background {
                                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .fill(canSubmit ? T.primary : T.inkFaint)
+                                        .fill((canSubmit && !isSubmitting) ? T.primary : T.inkFaint)
                                 }
                         }
                         .buttonStyle(.plain)
-                        .disabled(!canSubmit)
+                        .disabled(!canSubmit || isSubmitting)
                     }
                     .padding(.bottom, 14)
 
@@ -965,6 +966,11 @@ struct StayForm: View {
     }
 
     private func submitAsync() async {
+        // 防连点：提交在途再点直接忽略，避免重复提交
+        guard !isSubmitting else { return }
+        isSubmitting = true
+        defer { isSubmitting = false }
+
         // 共通字段（backend time 要 "HH:mm:ss" 格式、append :00）
         let backendKind = ApplyKindMapper.encode(kind)
         let leaveDateStr = StayForm.formatYMD(leaveDate)
@@ -1415,6 +1421,7 @@ struct StudyAbsenceForm: View {
     @State private var range: StudyLeaveRange = .first
     /// 请假日期。默认 = 今天。可选范围：今天起 14 天以内。
     @State private var targetDate: Date = .init()
+    @State private var isSubmitting = false
 
     /// 可选日期范围：今天～14 天后
     private var dateRange: ClosedRange<Date> {
@@ -1512,7 +1519,11 @@ struct StudyAbsenceForm: View {
                             app.showToast("理由を入力してください")
                             return
                         }
+                        // 防连点：提交在途再点直接忽略，避免重复提交
+                        guard !isSubmitting else { return }
+                        isSubmitting = true
                         Task {
+                            defer { isSubmitting = false }
                             do {
                                 try await app.submitStudyLeave(
                                     targetDate: StayForm.formatYMD(targetDate),
@@ -1539,9 +1550,10 @@ struct StudyAbsenceForm: View {
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity, minHeight: 48)
-                            .background(Capsule().fill(T.primary))
+                            .background(Capsule().fill(isSubmitting ? T.inkFaint : T.primary))
                     }
                     .buttonStyle(.plain)
+                    .disabled(isSubmitting)
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
                     .padding(.bottom, 32)
