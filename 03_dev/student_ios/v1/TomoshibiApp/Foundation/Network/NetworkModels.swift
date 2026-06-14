@@ -51,8 +51,8 @@ struct ApplicationOut: Decodable, Hashable, Identifiable {
     let meal_note: String?
     let companion: String?
     let dest_cities: String?
-    let receipt_submitted: Bool?
-    let is_long_vacation: Bool?
+    let receipt_submitted: Bool // backend bool=False 恒发；_to_application_out 用 bool(...) 强转，永不 null
+    let is_long_vacation: Bool  // 同上，后端 schemas.py:203,205 非 Optional
 
     // 日期、时刻：backend 用 date / time 类型 → 保 String
     let leave_date: String // "2026-05-03"
