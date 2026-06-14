@@ -861,7 +861,13 @@ export function App() {
       );
       break;
     case "notifications":
-      body = <NotificationsPage teacher={teacher} onNav={nav} />;
+      body = (
+        <NotificationsPage
+          teacher={teacher}
+          onNav={nav}
+          authToken={authToken}
+        />
+      );
       break;
     case "info":
       body = <InfoPage teacher={teacher} authToken={authToken} />;

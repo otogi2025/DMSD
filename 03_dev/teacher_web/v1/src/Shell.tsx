@@ -52,6 +52,9 @@ export function Shell({
   const [q, setQ] = React.useState("");
   const [focused, setFocused] = React.useState(false);
   const [nowLabel, setNowLabel] = React.useState(() => formatNowJa());
+  // 侧栏徽章真实数字（替代写死的 7 / 3）— 通知未读数 + 待审申请数
+  const [notifUnread, setNotifUnread] = React.useState<number | null>(null);
+  const [pendingApps, setPendingApps] = React.useState<number | null>(null);
   // 顶栏实时时钟
   React.useEffect(() => {
     const id = setInterval(() => setNowLabel(formatNowJa()), 30000);
@@ -69,13 +72,38 @@ export function Shell({
     return () => window.removeEventListener("keydown", h);
   }, []);
 
+  // 侧栏徽章数字 — authToken 来了就拉（通知未读数 + 待审申请数）
+  React.useEffect(() => {
+    if (!authToken) return;
+    let cancelled = false;
+    api
+      .notificationUnreadCount(authToken)
+      .then((r) => {
+        if (!cancelled) setNotifUnread(r.unread_count);
+      })
+      .catch(() => {
+        if (!cancelled) setNotifUnread(null);
+      });
+    api
+      .pendingForMe(authToken)
+      .then((list) => {
+        if (!cancelled) setPendingApps((list || []).length);
+      })
+      .catch(() => {
+        if (!cancelled) setPendingApps(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authToken]);
+
   // 职位退化为纯显示标签后，菜单不再按职位隐藏 —— 所有老师都能查看所有功能页，
   // 「增删改」的权限由后端权限闸（require_permission）按权限组把关。
   const NAV: Array<[string, string, number?]> = [
     ["roll-call", "点呼"],
-    ["notifications", "通知", 7],
+    ["notifications", "通知", notifUnread || undefined],
     ["discipline", "規律・処分"],
-    ["applications", "申請", 3],
+    ["applications", "申請", pendingApps || undefined],
     ["proxy-application", "代録"],
     ["study", "学習出席"],
     ["records", "記録"],

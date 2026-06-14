@@ -35,6 +35,8 @@ import type {
   AnnouncementCreateIn,
   RegistrationCode,
   DisciplineRankingOut,
+  NotificationFeedOut,
+  NotificationUnreadCountOut,
   DemeritEvent,
   ManualDemeritIn,
   StudentAccountListOut,
@@ -365,6 +367,36 @@ export const api = {
     request<RegistrationCode>(
       "POST",
       "/admin/registration-code/refresh",
+      {},
+      token,
+    ),
+
+  // ── 通知中心（阶段1）──
+  notificationFeed: (token: string) =>
+    request<NotificationFeedOut>(
+      "GET",
+      "/notifications/feed",
+      undefined,
+      token,
+    ),
+  notificationUnreadCount: (token: string) =>
+    request<NotificationUnreadCountOut>(
+      "GET",
+      "/notifications/unread-count",
+      undefined,
+      token,
+    ),
+  markNotificationRead: (id: string, token: string) =>
+    request<NotificationUnreadCountOut>(
+      "POST",
+      `/notifications/${encodeURIComponent(id)}/read`,
+      {},
+      token,
+    ),
+  markAllNotificationsRead: (token: string) =>
+    request<NotificationUnreadCountOut>(
+      "POST",
+      "/notifications/read-all",
       {},
       token,
     ),

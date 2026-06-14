@@ -1,16 +1,117 @@
 import React from "react";
 import { RYO } from "../theme";
-import type { TeacherProfile } from "../api/types";
+import { api } from "../api/client";
+import type { TeacherProfile, NotificationItem } from "../api/types";
 
-// 源 index.html 20771-20898（pages-records 块）。界面原样搬，仅 window.RYO→RYO。
+// 通知中心（UI「通知センター」）— 阶段1（itsuki 2026-06-13）。
+// 2 张卡用现成接口算真数字（待审申请 / 警告人数）；最近通知流来自后端
+// GET /notifications/feed（取时扫现有事件同步）；点一条标记已读 +「すべて既読にする」按钮。
+// 通報卡已删（通報功能 2026-06-13 彻底删除）。
+
+// 当月 YYYY-MM（给扣分 ranking 接口）
+function currentMonth(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+// event_at（ISO）→ "MM-DD HH:mm"
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${mm}-${dd} ${hh}:${mi}`;
+}
+
+// category → 标签 + 颜色
+function categoryMeta(category: string, T: typeof RYO) {
+  switch (category) {
+    case "application":
+      return { label: "申請", color: T.cobalt };
+    case "demerit":
+      return { label: "減点", color: T.danger };
+    case "rollcall_report":
+      return { label: "点呼報告", color: T.warn };
+    default:
+      return { label: "通知", color: T.ink3 };
+  }
+}
+
 export function NotificationsPage({
-  teacher,
   onNav,
+  authToken,
 }: {
   teacher: TeacherProfile;
   onNav: (view: string) => void;
+  authToken: string;
 }) {
   const T = RYO;
+  const [items, setItems] = React.useState<NotificationItem[]>([]);
+  const [unread, setUnread] = React.useState(0);
+  const [pendingCount, setPendingCount] = React.useState<number | null>(null);
+  const [warningCount, setWarningCount] = React.useState<number | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const loadFeed = React.useCallback(() => {
+    if (!authToken) return;
+    setLoading(true);
+    api
+      .notificationFeed(authToken)
+      .then((res) => {
+        setItems(res.items || []);
+        setUnread(res.unread_count || 0);
+        setError(null);
+        setLoading(false);
+      })
+      .catch((e) => {
+        setError(e.message || "通知の取得に失敗しました");
+        setLoading(false);
+      });
+  }, [authToken]);
+
+  React.useEffect(() => {
+    loadFeed();
+  }, [loadFeed]);
+
+  // 2 张卡的真实数字（用现成接口，不经通知表）
+  React.useEffect(() => {
+    if (!authToken) return;
+    api
+      .pendingForMe(authToken)
+      .then((list) => setPendingCount((list || []).length))
+      .catch(() => setPendingCount(null));
+    api
+      .getDisciplineRanking(authToken, currentMonth())
+      .then((r) => setWarningCount(r.curfew_threshold_count ?? 0))
+      .catch(() => setWarningCount(null));
+  }, [authToken]);
+
+  const markRead = (n: NotificationItem) => {
+    if (n.is_read) return;
+    // 乐观更新 — 先本地标已读，失败靠重拉回滚
+    setItems((list) =>
+      list.map((x) => (x.id === n.id ? { ...x, is_read: true } : x)),
+    );
+    setUnread((u) => Math.max(0, u - 1));
+    api
+      .markNotificationRead(n.id, authToken)
+      .then((res) => setUnread(res.unread_count))
+      .catch(() => loadFeed());
+  };
+
+  const markAllRead = () => {
+    if (unread === 0) return;
+    setItems((list) => list.map((x) => ({ ...x, is_read: true })));
+    setUnread(0);
+    api
+      .markAllNotificationsRead(authToken)
+      .then((res) => setUnread(res.unread_count))
+      .catch(() => loadFeed());
+  };
+
   return (
     <div style={{ padding: "28px 32px 48px" }}>
       <div
@@ -36,49 +137,209 @@ export function NotificationsPage({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
+          gridTemplateColumns: "repeat(3, 1fr)",
           gap: 12,
           marginBottom: 24,
         }}
       >
         <NotifCard
-          n="—"
+          n={pendingCount == null ? "—" : pendingCount}
           label="審査待ち申請"
           color={T.cobalt}
           onClick={() => onNav("applications")}
         />
         <NotifCard
-          n="—"
+          n={warningCount == null ? "—" : warningCount}
           label="警告リスト"
           color={T.warn}
           onClick={() => onNav("discipline")}
         />
       </div>
+
       <div
         style={{
-          fontSize: 12,
-          color: T.ink3,
-          letterSpacing: 1.5,
-          fontWeight: 700,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
           marginBottom: 10,
         }}
       >
-        最近の通知
+        <div
+          style={{
+            fontSize: 12,
+            color: T.ink3,
+            letterSpacing: 1.5,
+            fontWeight: 700,
+          }}
+        >
+          最近の通知
+          {unread > 0 && (
+            <span
+              style={{
+                marginLeft: 8,
+                fontSize: 11,
+                background: T.danger,
+                color: "#fff",
+                padding: "1px 8px",
+                borderRadius: 10,
+                fontWeight: 700,
+              }}
+            >
+              未読 {unread}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={markAllRead}
+          disabled={unread === 0}
+          style={{
+            padding: "5px 12px",
+            background: "transparent",
+            color: unread === 0 ? T.ink3 : T.cobalt,
+            border: `1px solid ${unread === 0 ? T.line : T.cobalt}`,
+            borderRadius: 8,
+            fontFamily: "inherit",
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: unread === 0 ? "default" : "pointer",
+          }}
+        >
+          すべて既読にする
+        </button>
       </div>
-      {/* 通知功能本期未实装 — 准备中占位 */}
-      <div
-        style={{
-          background: T.surface,
-          border: `1px dashed ${T.lineStrong}`,
-          borderRadius: 12,
-          padding: "32px 0",
-          textAlign: "center",
-          color: T.ink3,
-          fontSize: 13,
-        }}
-      >
-        通知機能は準備中です
-      </div>
+
+      {error && (
+        <div
+          style={{
+            padding: "10px 14px",
+            background: T.dangerSoft,
+            border: `1px solid ${T.dangerBorder}`,
+            borderRadius: 8,
+            color: T.danger,
+            fontSize: 13,
+            marginBottom: 12,
+          }}
+        >
+          ⚠️ {error}
+        </div>
+      )}
+
+      {loading && items.length === 0 ? (
+        <div
+          style={{
+            background: T.surface,
+            border: `1px dashed ${T.lineStrong}`,
+            borderRadius: 12,
+            padding: "32px 0",
+            textAlign: "center",
+            color: T.ink3,
+            fontSize: 13,
+          }}
+        >
+          読み込み中…
+        </div>
+      ) : items.length === 0 ? (
+        <div
+          style={{
+            background: T.surface,
+            border: `1px dashed ${T.lineStrong}`,
+            borderRadius: 12,
+            padding: "32px 0",
+            textAlign: "center",
+            color: T.ink3,
+            fontSize: 13,
+          }}
+        >
+          通知はありません
+        </div>
+      ) : (
+        <div
+          style={{
+            background: T.surface,
+            border: `1px solid ${T.line}`,
+            borderRadius: 12,
+            overflow: "hidden",
+            boxShadow: T.shadow1,
+          }}
+        >
+          {items.map((n, i) => {
+            const meta = categoryMeta(n.category, T);
+            return (
+              <div
+                key={n.id}
+                onClick={() => markRead(n)}
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 12,
+                  padding: "12px 16px",
+                  borderTop: i > 0 ? `1px solid ${T.line}` : "none",
+                  background: n.is_read ? "transparent" : T.cobaltSoft,
+                  cursor: n.is_read ? "default" : "pointer",
+                }}
+              >
+                {/* 未读小圆点 */}
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    marginTop: 5,
+                    flexShrink: 0,
+                    background: n.is_read ? "transparent" : T.cobalt,
+                  }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      marginBottom: 2,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 10,
+                        color: meta.color,
+                        background: T.surfaceAlt,
+                        border: `1px solid ${T.lineStrong}`,
+                        padding: "1px 7px",
+                        borderRadius: 4,
+                        fontWeight: 700,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {meta.label}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: n.is_read ? 500 : 700,
+                        color: T.ink,
+                      }}
+                    >
+                      {n.title}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 12.5, color: T.ink2 }}>{n.body}</div>
+                </div>
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: T.ink3,
+                    fontFamily: T.mono,
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                >
+                  {formatTime(n.event_at)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -89,7 +350,7 @@ function NotifCard({
   color,
   onClick,
 }: {
-  n: string;
+  n: number | string;
   label: string;
   color: string;
   onClick: () => void;

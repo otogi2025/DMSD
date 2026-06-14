@@ -713,3 +713,23 @@ export interface TeacherWSHandle {
   getStatus: () => WSStatus;
   readonly readyState: number;
 }
+
+// ── 老师通知中心（阶段1）— 对齐后端 schemas.py NotificationItem / NotificationFeedOut ──
+export interface NotificationItem {
+  id: string;
+  category: string; // application=申请提交 / demerit=扣分 / rollcall_report=点呼上报
+  title: string;
+  body: string;
+  related_student_id: string | null;
+  event_at: string;
+  is_read: boolean;
+}
+
+export interface NotificationFeedOut {
+  items: NotificationItem[];
+  unread_count: number;
+}
+
+export interface NotificationUnreadCountOut {
+  unread_count: number;
+}
