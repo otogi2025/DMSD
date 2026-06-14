@@ -1553,3 +1553,67 @@ class MiscRequest(Base):
         ),
         Index("idx_misc_student_status", "student_id", "status"),
     )
+
+
+# ---------------------------------------------------------------
+# 老师通知中心（UI「通知センター」）— spec §7.13 / 阶段1（itsuki 2026-06-13）
+# ---------------------------------------------------------------
+class Notification(Base):
+    """老师通知中心的一条通知。
+
+    填充方式：取 feed 时由 routers/notifications.py 的同步逻辑扫描现有事件表
+    （申请提交 applications / 扣分 demerit_event / 点呼上报 rollcall_reports），
+    按 (source_table, source_id) 幂等插入缺失的通知行 —— 不在各事件产生点写钩子，
+    降低与其它会话改后端文件的冲突面。
+    已读/未读由 NotificationRead 表按老师各记各的（本表不存已读状态）。
+    is_demo 做 realm 隔离：演示老师只看 is_demo=True，真老师只看 is_demo=False。
+    """
+
+    __tablename__ = "notifications"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    # 类别：application=申请提交 / demerit=扣分 / rollcall_report=点呼上报
+    category: Mapped[str] = mapped_column(String(32), nullable=False)
+    # 来源事件定位（幂等同步去重用）— source_id 全局唯一（UUID），故跨 realm 不会撞
+    source_table: Mapped[str] = mapped_column(String(48), nullable=False)
+    source_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    # 涉及学生 — 老师网页点 chip 跳个人档案用；学生删除后置空
+    related_student_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("students.id", ondelete="SET NULL")
+    )
+    # demo / 真实 realm 隔离
+    is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # 事件发生时刻（排序用，取自来源事件的时间戳）
+    event_at: Mapped[datetime] = mapped_column(TZDateTime, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        TZDateTime, nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("source_table", "source_id", name="uq_notif_source"),
+        Index("idx_notif_demo_event", "is_demo", "event_at"),
+    )
+
+
+class NotificationRead(Base):
+    """老师已读记录 — 每个老师对每条通知最多 1 行，有行 = 已读。"""
+
+    __tablename__ = "notification_reads"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    notification_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("notifications.id", ondelete="CASCADE"), nullable=False
+    )
+    teacher_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("teachers.id", ondelete="CASCADE"), nullable=False
+    )
+    read_at: Mapped[datetime] = mapped_column(
+        TZDateTime, nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("notification_id", "teacher_id", name="uq_notif_read"),
+        Index("idx_notif_read_teacher", "teacher_id"),
+    )

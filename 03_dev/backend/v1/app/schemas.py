@@ -1787,3 +1787,32 @@ class DeviceTokenRegisterOut(BaseModel):
     created: bool  # True = 新建, False = 幂等更新（已有 token 更新 last_seen_at）
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ---------------------------------------------------------------
+# 老师通知中心（UI「通知センター」）— 阶段1
+# ---------------------------------------------------------------
+class NotificationItem(ORMModel):
+    """通知中心的一条通知（GET /api/v1/notifications/feed 列表项）。"""
+
+    id: UUID
+    # application=申请提交 / demerit=扣分 / rollcall_report=点呼上报
+    category: str
+    title: str
+    body: str
+    related_student_id: Optional[UUID] = None
+    event_at: datetime
+    is_read: bool
+
+
+class NotificationFeedOut(BaseModel):
+    """GET /api/v1/notifications/feed 响应：最近通知流 + 未读数。"""
+
+    items: list[NotificationItem]
+    unread_count: int
+
+
+class NotificationUnreadCountOut(BaseModel):
+    """GET /unread-count + 标记已读端点 响应：当前老师未读数。"""
+
+    unread_count: int
