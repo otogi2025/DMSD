@@ -43,10 +43,6 @@ fun MusicNewScreen(navController: NavHostController) {
     var artist by remember { mutableStateOf("") } // 艺术家（必填）
     var reason by remember { mutableStateOf("") } // 投稿理由（选填）
 
-    // TODO: 封禁（ban）逻辑本波略过 —— iOS §3.6 里 reportSong 累计举报数升级封禁等级
-    //       （≥5 停 1 月 / ≥10 停 3 月 / ≥15 永久），封禁时顶部要显示红色 banBanner 且禁止投稿。
-    //       本演示版恒为可投稿，待后端通报系统落地后再补。
-
     // 可点条件：曲名 trim 后非空 且 艺术家 trim 后非空（只输空格不算）
     val canSubmit = title.trim().isNotEmpty() && artist.trim().isNotEmpty()
 

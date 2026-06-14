@@ -906,79 +906,6 @@ final class AppStore: ObservableObject {
         #endif
     }()
 
-    // MARK: - 点歌通报与封禁 (system_features §7.11.2) — 2026-05-01 拍板
-
-    /// 各曲的通报件数（songId → count）。列表老师侧 badge 达 7 件以上才显示。
-    @Published var songReportCounts: [Int: Int] = [:]
-
-    /// 本人投稿歌曲的通报累计（badge 7 判定用 + 自动封禁判定用）
-    @Published var myReportTotal: Int = 0
-
-    /// 本人投稿封禁等级（0=无限制 / 1=1个月 / 2=3个月 / 3=永久）
-    @Published var songBanLevel: Int = 0
-
-    /// 投稿封禁解除时刻（nil=无限制；level=3 视为遥远未来，实质按 nil 处理）
-    @Published var songBanUntil: Date? = nil
-
-    /// 是否可投稿 — 由 banLevel + banUntil 判定
-    var canPostSong: Bool {
-        if songBanLevel == 0 { return true }
-        if songBanLevel >= 3 { return false } // 永久禁止
-        guard let until = songBanUntil else { return true }
-        return Date() >= until
-    }
-
-    /// 封禁状态的显示文字串（在 MusicNewView 里显示）
-    var songBanDescription: String? {
-        guard !canPostSong else { return nil }
-        if songBanLevel >= 3 { return "投稿は永久に停止されています。" }
-        if let until = songBanUntil {
-            let f = DateFormatter()
-            f.dateFormat = "M月d日"
-            f.locale = Locale(identifier: "ja_JP")
-            return "現在投稿停止中（\(f.string(from: until)) まで）"
-        }
-        return "現在投稿停止中"
-    }
-
-    /// 记录 1 条通报（demo：全部计入本人累计，让演示时能体感自动封禁流程）
-    /// 正式实现时由 backend 通过 songId 查投稿者，只给本人加计数。
-    func reportSong(songId: Int, reason _: SongReportReason, freeText _: String?) {
-        songReportCounts[songId, default: 0] += 1
-        // demo：同时加进投稿者本人累计（正式生产版看 songs.posted_by_id）
-        myReportTotal += 1
-        // 超过阈值自动升级封禁等级
-        let prevLevel = songBanLevel
-        if myReportTotal >= 15 {
-            songBanLevel = 3
-            songBanUntil = nil
-        } else if myReportTotal >= 10 {
-            songBanLevel = 2
-            songBanUntil = Calendar.current.date(byAdding: .month, value: 3, to: Date())
-        } else if myReportTotal >= 5 {
-            songBanLevel = 1
-            songBanUntil = Calendar.current.date(byAdding: .month, value: 1, to: Date())
-        }
-        if songBanLevel != prevLevel {
-            switch songBanLevel {
-            case 1: showToast("通報多数のため、1 ヶ月間投稿停止になりました。")
-            case 2: showToast("通報多数のため、3 ヶ月間投稿停止になりました。")
-            case 3: showToast("通報多数のため、永久に投稿停止になりました。")
-            default: break
-            }
-        } else {
-            showToast("通報を送信しました。")
-        }
-    }
-
-    /// demo 用 reset（预计从个人页"设置"调用 — 本次暂未接线）
-    func resetSongBan() {
-        songBanLevel = 0
-        songBanUntil = nil
-        myReportTotal = 0
-        songReportCounts = [:]
-    }
-
     private static func nowHM() -> String {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
@@ -1383,24 +1310,6 @@ enum StudyAttendance: String {
     case red // 缺席
     case abnormal // 前后不一致 = 异常，须老师手动判定
     case excused // 缺席已获批准
-}
-
-// MARK: - 通報理由 (system_features §7.11.2)
-
-enum SongReportReason: String, CaseIterable, Hashable {
-    case noisy // うるさい
-    case taste // 曲調が好みでない / 不快
-    case lyrics // 歌詞が不適切
-    case other // その他（自由記入）
-
-    var label: String {
-        switch self {
-        case .noisy: return "うるさい"
-        case .taste: return "曲調が好みでない / 不快"
-        case .lyrics: return "歌詞が不適切"
-        case .other: return "その他"
-        }
-    }
 }
 
 /// マイページ 学習履歴 entry

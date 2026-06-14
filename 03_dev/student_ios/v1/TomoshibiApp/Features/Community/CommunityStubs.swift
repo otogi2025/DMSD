@@ -994,9 +994,6 @@ struct LostDetailView: View {
 //
 // 変更点:
 // - 排序：投稿顺（新→旧 = id 降序）。赞成/反对废止。
-// - 每行新增「⚠ 通報する」按钮，push 启动 SheetKind.songReport。
-// - 顶部 hint banner：「気になる曲があれば、通報ボタンから先生にお伝えできます。」
-//   （为防止公开施压，通报件数基本不在学生端显示）
 
 /// 点歌卡片视图模型 —— 演示（SEED.songs）/ 生产（SongRequestOut）归一成同一套展示字段。
 struct SongDisplay: Identifiable {
@@ -1048,13 +1045,6 @@ struct MusicView: View {
             )
             ScrollView {
                 VStack(spacing: 0) {
-                    #if DEMO
-                        // 通報導線 hint —— 通報是 v1.1，仅演示版显示。
-                        hintBanner
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 12)
-                    #endif
-
                     VStack(spacing: 8) {
                         ForEach(rows) { s in
                             songCard(s: s)
@@ -1083,30 +1073,6 @@ struct MusicView: View {
             #if !DEMO
                 await app.loadSongs()
             #endif
-        }
-    }
-
-    /// 让学生知晓通报入口存在的 hint banner
-    private var hintBanner: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "info.circle.fill")
-                .font(.system(size: 13))
-                .foregroundStyle(T.primary)
-                .padding(.top, 1)
-            Text("気になる曲があれば、各曲の「⚠ 通報」ボタンから先生にお伝えできます。")
-                .font(.system(size: 12))
-                .foregroundStyle(T.primaryDk)
-                .lineSpacing(3)
-        }
-        .padding(.horizontal, 14).padding(.vertical, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(T.primary.opacity(0.05))
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(T.primary.opacity(0.18), lineWidth: 1)
         }
     }
 
@@ -1145,29 +1111,6 @@ struct MusicView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-
-                #if DEMO
-                    // 通報 button (system_features §7.11.2) —— 通報是 v1.1，仅演示版。
-                    Button {
-                        app.openSheet(.songReport(songId: Int(s.id) ?? 0))
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "exclamationmark.triangle")
-                                .font(.system(size: 11, weight: .semibold))
-                            Text("通報")
-                                .font(.system(size: 11, weight: .semibold))
-                        }
-                        .foregroundStyle(T.warnDeep)
-                        .padding(.horizontal, 10).padding(.vertical, 6)
-                        .background {
-                            Capsule().fill(T.warnBg)
-                        }
-                        .overlay {
-                            Capsule().stroke(T.warn.opacity(0.3), lineWidth: 1)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                #endif
             }
         }
     }
@@ -1194,11 +1137,6 @@ struct MusicNewView: View {
             PageHeader(title: "曲を投稿", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    if !app.canPostSong {
-                        banBanner
-                            .padding(.bottom, 18)
-                    }
-
                     Field(label: "Apple Music URL", hint: "曲情報を自動取得します") {
                         TField(text: $url, placeholder: "https://music.apple.com/...")
                     }
@@ -1220,10 +1158,9 @@ struct MusicNewView: View {
                     .padding(.bottom, 18)
 
                     // IX-021 修复：曲名 / 艺术家 两个字段标了必填（红星号），
-                    // 投稿按钮要在两者都非空时才可点（原来只看封禁状态 canPostSong）。
+                    // 投稿按钮要在两者都非空时才可点。
                     // trimmingCharacters 去掉首尾空白，防止只输空格也算非空。
-                    let canSubmitSong = app.canPostSong
-                        && !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    let canSubmitSong = !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                         && !artist.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     PrimaryButton(title: "投稿する", enabled: canSubmitSong) {
                         submit()
@@ -1268,33 +1205,6 @@ struct MusicNewView: View {
                 }
             }
         #endif
-    }
-
-    /// 通报次数过多导致投稿被封禁时的 banner (system_features §7.11.2)
-    private var banBanner: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "exclamationmark.octagon.fill")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(T.danger)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(app.songBanDescription ?? "投稿停止中")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(T.danger)
-                Text("通報多数のため、現在リクエスト曲の投稿はできません。詳細は寮監にご相談ください。")
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(T.danger.opacity(0.85))
-                    .lineSpacing(3)
-            }
-        }
-        .padding(.horizontal, 14).padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(T.dangerBg)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(T.danger.opacity(0.3), lineWidth: 1)
-        }
     }
 }
 
@@ -1386,39 +1296,6 @@ struct MusicDetailView: View {
                             }
                         }
                         .padding(.bottom, 18)
-
-                        #if DEMO
-                            // 通報按钮 —— 投票（赞成/反对）已 2026-05-01 拍板废止（system_features §7.11）；
-                            // 通報本身也是 v1.1，仅演示版显示。
-                            Button {
-                                app.openSheet(.songReport(songId: Int(id) ?? 0))
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "exclamationmark.triangle.fill")
-                                        .font(.system(size: 16, weight: .semibold))
-                                    Text("この曲を通報する")
-                                        .font(.system(size: 15, weight: .bold))
-                                }
-                                .foregroundStyle(T.warnDeep)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 52)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous).fill(T.warnBg)
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .stroke(T.warn.opacity(0.4), lineWidth: 1.5)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .padding(.bottom, 10)
-
-                            Text("通報内容は寮務の先生に届きます。投稿者には通報した人は知られません。")
-                                .font(.system(size: 11))
-                                .foregroundStyle(T.inkMute)
-                                .multilineTextAlignment(.center)
-                                .lineSpacing(3)
-                        #endif
                     }
                     .padding(20)
                 }
@@ -1769,160 +1646,4 @@ struct EventDetailView: View {
     EventDetailView(id: 0)
         .environmentObject(RouterStore(initial: .homeEventDetail(id: 0)))
         .environmentObject(AppStore())
-}
-
-// ───────────────────────────────────────────────────────────
-// MARK: - SongReportSheet · リクエスト曲 通報 (system_features §7.11.2)
-
-// ───────────────────────────────────────────────────────────
-//
-// 4 种理由 + 其他自由填写。提交时调用 AppStore.reportSong(...) 触发自动封禁判定。
-
-struct SongReportSheet: View {
-    let songId: Int
-    @EnvironmentObject var app: AppStore
-
-    @State private var reason: SongReportReason? = nil
-    @State private var freeText: String = ""
-
-    private var song: SongItem? {
-        SEED.songs.first(where: { $0.id == songId })
-    }
-
-    private var canSubmit: Bool {
-        guard let r = reason else { return false }
-        if r == .other {
-            return !freeText.trimmingCharacters(in: .whitespaces).isEmpty
-        }
-        return true
-    }
-
-    var body: some View {
-        GlassSheet(onClose: { app.closeSheet() }) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("曲を通報する")
-                        .font(.system(size: 20, weight: .heavy))
-                        .foregroundStyle(T.ink)
-
-                    if let s = song {
-                        HStack(spacing: 10) {
-                            ZStack {
-                                LinearGradient(
-                                    colors: [T.accentSoft, T.accent],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                                Ic.music(18).foregroundStyle(.white)
-                            }
-                            .frame(width: 38, height: 38)
-                            .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(s.title)
-                                    .font(.system(size: 13.5, weight: .bold))
-                                    .foregroundStyle(T.ink)
-                                    .lineLimit(1)
-                                Text("\(s.artist) · \(s.by)")
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(T.inkSub)
-                                    .lineLimit(1)
-                            }
-                            Spacer()
-                        }
-                        .padding(.horizontal, 12).padding(.vertical, 10)
-                        .background {
-                            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(T.pill)
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: 7) {
-                        HStack(spacing: 4) {
-                            Text("通報の理由")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(T.inkSub)
-                            Text("*").foregroundStyle(T.danger)
-                        }
-                        VStack(spacing: 6) {
-                            ForEach(SongReportReason.allCases, id: \.self) { r in
-                                reasonRow(r)
-                            }
-                        }
-                    }
-
-                    if reason == .other {
-                        VStack(alignment: .leading, spacing: 7) {
-                            HStack(spacing: 4) {
-                                Text("詳細")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundStyle(T.inkSub)
-                                Text("*").foregroundStyle(T.danger)
-                            }
-                            TArea(text: $freeText,
-                                  placeholder: "通報の理由を具体的にお書きください",
-                                  rows: 3)
-                        }
-                    }
-
-                    Text("※ 通報内容は寮務の先生に届きます。投稿者には通報した人は知られません。\n※ 多数の通報を受けた場合、投稿者の投稿が一定期間制限される場合があります。")
-                        .font(.system(size: 11))
-                        .foregroundStyle(T.inkMute)
-                        .lineSpacing(3)
-
-                    PrimaryButton(title: "通報を送る", enabled: canSubmit) {
-                        guard let r = reason else { return }
-                        app.reportSong(
-                            songId: songId,
-                            reason: r,
-                            freeText: r == .other ? freeText : nil
-                        )
-                        app.closeSheet()
-                    }
-                }
-                .padding(.top, 8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .frame(maxHeight: 600)
-        }
-    }
-
-    @ViewBuilder
-    private func reasonRow(_ r: SongReportReason) -> some View {
-        let selected = reason == r
-        Button { reason = r } label: {
-            HStack(spacing: 10) {
-                ZStack {
-                    Circle()
-                        .stroke(selected ? T.primary : T.inkFaint,
-                                lineWidth: selected ? 6 : 1.5)
-                        .frame(width: 20, height: 20)
-                    if selected {
-                        Circle().fill(.white).frame(width: 6, height: 6)
-                    }
-                }
-                Text(r.label)
-                    .font(.system(size: 14, weight: selected ? .bold : .medium))
-                    .foregroundStyle(selected ? T.primary : T.ink)
-                Spacer()
-            }
-            .padding(.horizontal, 14).padding(.vertical, 12)
-            .background {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(selected ? T.primary.opacity(0.05) : T.pearl)
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(selected ? T.primary : T.hair,
-                            lineWidth: selected ? 1.5 : 1)
-            }
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-#Preview("SongReportSheet") {
-    ZStack {
-        T.pearl.ignoresSafeArea()
-        SongReportSheet(songId: 1)
-    }
-    .environmentObject(AppStore())
 }

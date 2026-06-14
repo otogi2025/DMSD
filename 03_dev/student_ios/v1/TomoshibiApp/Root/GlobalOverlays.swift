@@ -37,7 +37,6 @@ struct GlobalOverlays: View {
         case .other: OtherSheet()
         case .logout: LogoutSheet()
         case .studyCheckin: StudyCheckinSheet()
-        case let .songReport(songId): SongReportSheet(songId: songId)
         case .renewStudentNo: RenewStudentNoSheet()
         }
     }

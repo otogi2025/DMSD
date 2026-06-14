@@ -23,8 +23,6 @@ type CommunityPost = {
   comments?: number;
   pinned?: boolean;
   deleted?: boolean;
-  resolved?: boolean;
-  flagCount?: number;
   timeSlot?: string; // "morning" | "evening"
   songStatus?: string; // "pending" | "approved" | "rejected"
   decidedAt?: string;
@@ -55,12 +53,6 @@ export function CommunityPage({
   };
   const handlePin = (id: string | number) =>
     setPosts(posts.map((p) => (p.id === id ? { ...p, pinned: !p.pinned } : p)));
-  const handleResolve = (id: string | number) =>
-    setPosts(
-      posts.map((p) =>
-        p.id === id ? { ...p, flagCount: 0, resolved: true } : p,
-      ),
-    );
   const handleSongDecision = (id: string | number, decision: string) =>
     setPosts(
       posts.map((p) =>
@@ -77,8 +69,6 @@ export function CommunityPage({
 
   const catPosts = posts.filter((p) => p.cat === tab && !p.deleted);
   let visible = catPosts;
-  if (filter === "flagged")
-    visible = catPosts.filter((p) => (p.flagCount ?? 0) > 0 && !p.resolved);
   if (filter === "pinned") visible = catPosts.filter((p) => p.pinned);
   if (tab === "song" && slotFilter !== "all")
     visible = visible.filter((p) => p.timeSlot === slotFilter);
@@ -131,9 +121,6 @@ export function CommunityPage({
   const stats = {
     total: posts.filter((p) => !p.deleted).length,
     today: posts.filter((p) => !p.deleted && p.date === "04-22").length,
-    flagged: posts.filter(
-      (p) => (p.flagCount ?? 0) > 0 && !p.resolved && !p.deleted,
-    ).length,
     deleted: posts.filter((p) => p.deleted).length,
   };
 
@@ -179,7 +166,7 @@ export function CommunityPage({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
+          gridTemplateColumns: "repeat(3, 1fr)",
           gap: 12,
           marginBottom: 20,
         }}
@@ -195,13 +182,6 @@ export function CommunityPage({
           value={stats.today}
           note="04-22"
           color={T.cobalt}
-        />
-        <StatCard
-          label="通報中"
-          value={stats.flagged}
-          note="要確認"
-          color={T.danger}
-          onClick={stats.flagged > 0 ? () => setFilter("flagged") : null}
         />
         <StatCard
           label="削除済み"
@@ -220,15 +200,8 @@ export function CommunityPage({
           flexWrap: "wrap",
         }}
       >
-        {tabs.map(([k, l, desc]) => {
+        {tabs.map(([k, l]) => {
           const count = posts.filter((p) => p.cat === k && !p.deleted).length;
-          const flagged = posts.filter(
-            (p) =>
-              p.cat === k &&
-              !p.deleted &&
-              (p.flagCount ?? 0) > 0 &&
-              !p.resolved,
-          ).length;
           return (
             <button
               key={k}
@@ -255,21 +228,6 @@ export function CommunityPage({
               <span style={{ color: T.ink3, fontSize: 11, fontWeight: 500 }}>
                 ({count})
               </span>
-              {flagged > 0 && (
-                <span
-                  style={{
-                    marginLeft: 6,
-                    fontSize: 10,
-                    background: T.danger,
-                    color: "#fff",
-                    padding: "1px 5px",
-                    borderRadius: 8,
-                    fontWeight: 700,
-                  }}
-                >
-                  {flagged}
-                </span>
-              )}
             </button>
           );
         })}
@@ -291,7 +249,6 @@ export function CommunityPage({
         </span>
         {[
           ["all", "全て"],
-          ["flagged", "通報あり"],
           ["pinned", "ピン留め"],
         ].map(([k, l]) => (
           <button
@@ -422,7 +379,6 @@ export function CommunityPage({
             post={p}
             onDelete={handleDelete}
             onPin={handlePin}
-            onResolve={handleResolve}
             onSongDecision={handleSongDecision}
             queueNo={approvedOrder[p.id]}
           />
@@ -504,14 +460,12 @@ function PostCard({
   post,
   onDelete,
   onPin,
-  onResolve,
   onSongDecision,
   queueNo,
 }: {
   post: CommunityPost;
   onDelete: (id: string | number) => void;
   onPin: (id: string | number) => void;
-  onResolve: (id: string | number) => void;
   onSongDecision: (id: string | number, decision: string) => void;
   queueNo?: number;
 }) {
@@ -548,13 +502,11 @@ function PostCard({
   const st = songStatus && statusMap[songStatus];
   const borderColor = post.pinned
     ? T.cobalt
-    : (post.flagCount ?? 0) > 0 && !post.resolved
-      ? T.danger
-      : songStatus === "approved"
-        ? T.okBorder
-        : songStatus === "rejected"
-          ? T.dangerBorder
-          : T.line;
+    : songStatus === "approved"
+      ? T.okBorder
+      : songStatus === "rejected"
+        ? T.dangerBorder
+        : T.line;
   return (
     <div
       style={{
@@ -692,21 +644,6 @@ function PostCard({
               PIN
             </span>
           )}
-          {(post.flagCount ?? 0) > 0 && !post.resolved && (
-            <span
-              style={{
-                fontSize: 10,
-                color: T.danger,
-                background: T.dangerSoft,
-                padding: "2px 6px",
-                borderRadius: 4,
-                fontWeight: 700,
-                border: `1px solid ${T.dangerBorder}`,
-              }}
-            >
-              通報 {post.flagCount}
-            </span>
-          )}
         </div>
       </div>
 
@@ -805,24 +742,6 @@ function PostCard({
             }}
           >
             審査取消
-          </button>
-        )}
-        {(post.flagCount ?? 0) > 0 && !post.resolved && (
-          <button
-            onClick={() => onResolve(post.id)}
-            style={{
-              padding: "4px 10px",
-              background: T.surface,
-              color: T.ok,
-              border: `1px solid ${T.okBorder}`,
-              borderRadius: 6,
-              fontFamily: "inherit",
-              fontSize: 11,
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            通報解除
           </button>
         )}
         <button

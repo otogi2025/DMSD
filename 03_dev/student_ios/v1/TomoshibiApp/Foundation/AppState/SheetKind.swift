@@ -11,7 +11,6 @@ enum SheetKind: Hashable {
     case other // 其他问题
     case logout // 退出登录确认
     case studyCheckin // 学习 NFC 2 次碰签到 (system_features §7.3.3)
-    case songReport(songId: Int) // 点歌举报 sheet (system_features §7.11.2)
     case renewStudentNo // 番号重新设定 — 学年更新时学生自设番号 (system_features §4.2)
 }
 

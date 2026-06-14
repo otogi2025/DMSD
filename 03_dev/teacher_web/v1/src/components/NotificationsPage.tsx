@@ -49,12 +49,6 @@ export function NotificationsPage({
         />
         <NotifCard
           n="—"
-          label="通報"
-          color={T.danger}
-          onClick={() => onNav("community")}
-        />
-        <NotifCard
-          n="—"
           label="警告リスト"
           color={T.warn}
           onClick={() => onNav("discipline")}
