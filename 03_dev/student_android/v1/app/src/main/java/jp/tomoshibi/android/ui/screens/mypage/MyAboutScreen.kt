@@ -32,7 +32,7 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 // Tomoshibi について（关于页，L2）— 对齐 iOS MyAboutView：
 //   PageHeader「Tomoshibi について」level 2
 //   居中字标块（Tomoshibi 40 heavy 深青绿 + 灯 火 14 大字距 + 版本号 11 等宽）
-//   AC 署名卡（SuzuCard 圆角 18）：系统说明 + 灯火由来引文 + 分隔线 + 成果物署名
+//   作者署名卡（SuzuCard 圆角 18）：系统说明 + 灯火由来引文 + 分隔线 + 作者署名
 @Composable
 fun MyAboutScreen(navController: NavHostController) {
     val t = SuzuT.current
@@ -112,7 +112,7 @@ fun MyAboutScreen(navController: NavHostController) {
                     )
                     Spacer(Modifier.height(16.dp))
                     Text(
-                        "2026 年 AC 入試プロジェクト成果物",
+                        "個人開発プロジェクト",
                         color = t.inkSub,
                         style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
                     )
