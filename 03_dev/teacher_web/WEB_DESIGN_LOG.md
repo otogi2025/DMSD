@@ -41,7 +41,7 @@
 | 2026-04-21 晚 · 21:00 | itsuki 给 Q1-Q11 答复 + 要求"不要给选择题，列所有页面 + 功能，我一条条审" |
 | 2026-04-21 晚 · 21:05 | [Code-Agent] 列 Round 3 清单（R2.1-R2.5 / II L.1-L.6 / III.A-E / IV SK / V G / VI P / VII GAP）共 ~60 条 |
 | 2026-04-21 晚 · 21:10 | itsuki 一次性给 Round 3 完整决策（闲置退回 / 登录重构 / 编辑模式 / 男女寮 / Tomoshibi 命名 + 火焰 logo / 最近点呼可跳 / 趋势图 / 外宿表按实表 / 申请中心 / 全局检索 / 自动警告脚本暂不做）|
-| 2026-04-21 晚 · 21:15 | [Code-Agent] 建 `round3_handoff/` + 导入 3 张参考图 + 写 Round 3 Prompt + WEB_DESIGN_LOG + 更新 questions_for_requirements.md |
+| 2026-04-21 晚 · 21:15 | [Code-Agent] 建 Round 3 交接目录（已归档）+ 导入 3 张参考图 + 写 Round 3 Prompt + WEB_DESIGN_LOG + 更新 questions_for_requirements.md |
 | 2026-04-22 下午 · 16:25 | itsuki 给出 Claude Design Round 3 成品 `Tomoshibi_Prototype_v3__Standalone_.html`（9.4MB，self-unpacking bundle）|
 | 2026-04-22 下午 · 16:28 | [Code-Agent] 导入到 `round3/Tomoshibi_Prototype_v3.html`（standalone 可直接浏览器打开）+ 用 Python 脚本解包 manifest（146 个资源）→ 重命名 JS 为 12 个 component + 3 个 vendor + 1 icon + 130 fonts，产出可编辑版 `round3/src/`（index.html + components/ + vendor/ + assets/ + _assets/ fonts）|
 | 2026-04-22 下午 · 17:35 | itsuki 双击 `src/index.html` 全空白 → 诊断：`file://` 协议下 `integrity+crossorigin` 让 React/Babel 被 CORS block + `text/babel` script 靠 fetch 拉 .jsx 跨源受阻。Fix：删 integrity/crossorigin 属性 + 加 `round3/开发模式跑.command`（`python3 -m http.server 8787` 一键启动脚本 + 自动开浏览器）|
@@ -67,7 +67,7 @@
   - Web UI 标题 / iOS App 名 / README / 对管理员・教授文案：**Tomoshibi**
   - spec 文档 / commit msg / 内部 variable 名（`window.RYO` 等）：DMSD 或 Tomoshibi 都可
   - Shell 左上 wordmark "DMSD" → "Tomoshibi"，下面"寮管理システム"不动
-- **App icon**：`round3_handoff/01_tomoshibi_icon.png`（火焰 + 中心黄球，"灯火"视觉）替换原 ◇ 菱形
+- **App icon**：`01_tomoshibi_icon.png`（已归档；火焰 + 中心黄球，"灯火"视觉）替换原 ◇ 菱形
 - **AC 面试话术（itsuki 原话定版）**："我在日本留学，宿舍是我在异国的第二个家。这个系统守护的是'灯火'——每个学生夜晚平安归来、房间亮起一盏灯。所以取日语名 Tomoshibi（灯火）。"
 
 ---
@@ -169,7 +169,7 @@ round3/
 - `components/roll-call-landing.jsx` — 加了 7-day 迟到/欠席 bar chart
 - `components/live-roll-call.jsx` — 加了 late 黄 + 3-min 迟到倒计时 + デモコンソール NFC sim + 凡例
 
-### 4.1 Round 2 handoff bundle（`teacher_web/` 根目录）
+### 4.1 Round 2 handoff bundle（已归档，不在公开仓库）
 
 | 文件 | 作用 |
 |---|---|
@@ -415,14 +415,14 @@ round3/
 
 ## 7. 参考资料索引
 
-> **2026-05-27 更新**：原 round2/ + round3/ + handoff/ + round3_handoff/ 4 个子目录全部塌缩归档（详见 §12 Vite 废弃 + DESIGN_BRIEF §2 文件清单）。原资源路径已迁到归档目录或塌缩到 `v1/src/components/_legacy/` + `v1/src/assets/`。
+> **2026-05-27 更新**：原 round2/ + round3/ + handoff/ + round3_handoff/ 4 个子目录全部塌缩归档、不在公开仓库（详见 §12 Vite 废弃 + DESIGN_BRIEF §2 文件清单）。原资源路径已迁到归档目录或塌缩到 `v1/src/components/_legacy/` + `v1/src/assets/`。
 
 | 资源 | 路径 | 备注 |
 |---|---|---|
 | 当前权威源（standalone） | `v1/src/index.html` | 7700+ 行 inline 全部 CSS/JS/字体 |
 | JSX 组件源（14 个） | `v1/src/components/_legacy/*.jsx` | 原 round2/ + round3/ 塌缩后命名（误导但已实际是 Ryō 主源） |
 | 后端对接代码 | `v1/src/api/client.ts` | 416 行 26 endpoint — 保留未用，未来 Ryō 接真后端复用 |
-| 火焰 logo | `v1/src/assets/tomoshibi-icon.png` | 原 round3_handoff/01_tomoshibi_icon.png |
+| 火焰 logo | `v1/src/assets/tomoshibi-icon.png` | 原 round3 交接图 01_tomoshibi_icon.png（已归档） |
 | Claude Design 历史对话 | 已归档，不在公开仓库 | itsuki ↔ Claude Design Round 1-3 完整迭代 — AC ⭐ |
 | Spec 色表权威 | `01_specs/rollcall/RollCall_Spec.md §4.1` | 5 色 + overlay 黑 |
 | Spec 时间窗 | `01_specs/rollcall/RollCall_Spec.md §5.3` | `window_start / on_time_end / late_end / auto_end_at` |

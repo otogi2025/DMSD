@@ -27,7 +27,7 @@
 | 2026-04-21 晚 · [Code-Agent] session | 写 `DESIGN_BRIEF.md` v1（4 tab 架构，签到不在 App 内）→ **已归档为 `_archived_v1_DESIGN_BRIEF_2026-04-21.md`** |
 | 2026-04-22 晚 · [Mac-demo-sprint] 早段 | itsuki 提供完整新架构：**3 按钮 nav + Home omnibus + 中央点呼按钮 + 注册 flow + 锁定升级**，推翻旧 4-tab 方案 |
 | 2026-04-22 晚 · [Mac-demo-sprint] 中段 | itsuki 答 Q1-Q8 + N1-N20 + 00 号 seed 详细配置；"其他由你决定" → 全默认采纳 |
-| 2026-04-22 晚 · [Mac-demo-sprint] 晚段 | 本 LOG 最终化 + `round1_handoff/Round1_Prompt.md` 落盘 + references 导入 + DESIGN_BRIEF.md 升到 v2 final |
+| 2026-04-22 晚 · [Mac-demo-sprint] 晚段 | 本 LOG 最终化 + `Round1_Prompt.md`（已归档）落盘 + references 导入 + DESIGN_BRIEF.md 升到 v2 final |
 | 2026-04-22 晚 · 18:45 | itsuki 拍板：**Pi 3A+ 购买不及 → demo 当天用银行卡 + iPhone 快捷指令代替点呼機**。[Code-Agent] 在 `teacher_web/round3/` 实装 `demo_server.py`（POST `/checkin?no=XX`）+ `live-roll-call.jsx` polling + SpeechSynthesis 日语 TTS + `NFC_DEMO_SETUP.md` 教程。见 `teacher_web/NFC_DEMO_SETUP.md`（iPhone 快捷指令配置 + 局域网 IP + 演示台本） |
 | 2026-04-22 夜 · 19:10 | itsuki 拍板 **外泊申请提交期限规则**：出发日所在那周的周三 23:59、或出发前 48 小时，取较早的那个。iOS App 侧必须在期限后屏蔽提交（界面：提交按钮禁用 + 说明「期限を過ぎました。寮監と直接相談してください」+ 通往寮监室的导引）。Web 侧已经在 `teacher_web/round3/src/components/applications.jsx` + `outstay-detail-modal.jsx` 实装好（`outstayDeadline()` 辅助函数 / 列表的期限标记 / 详情弹窗的「§提出期限」段 + 需面谈警示 + 说明横幅）· 写 iOS Round 1/2 Prompt 时要把这条规则加到申请流程 step 2 或 3 |
 
@@ -509,7 +509,7 @@ itsuki Q5 指示：**像 Web Round 1 一样，Claude Design 先列 3 variations�
 
 ## 7. 全 App 页面清单（v2 · 63 页 + 10 组件 = 73 项）
 
-> 详见 `DESIGN_BRIEF.md §4` + `round1_handoff/Round1_Prompt.md`（字段级）。清单概要：
+> 详见 `DESIGN_BRIEF.md §4` + `Round1_Prompt.md`（字段级，已归档）。清单概要：
 
 | Section | 范围 | 数量 |
 |---|---|---|
@@ -579,9 +579,9 @@ itsuki Q5 指示：**像 Web Round 1 一样，Claude Design 先列 3 variations�
 
 ## 10. 下一步
 
-1. ✅ `round1_handoff/Round1_Prompt.md` 已写
+1. ✅ `Round1_Prompt.md` 已写（已归档）
 2. ⏳ itsuki 扫 Prompt → 找漏洞 / 微调
-3. ⏳ itsuki 开 claude.ai Design project → 拖入 `round1_handoff/` 整个文件夹 → 贴 prompt → 让 Claude Design 先出 3 variations
+3. ⏳ itsuki 开 claude.ai Design project → 拖入交接文件夹（已归档）→ 贴 prompt → 让 Claude Design 先出 3 variations
 4. ⏳ itsuki 选定 variation → Claude Design Phase B 输出全 73 页
 5. ⏳ standalone HTML 下载到本目录 → 代码 agent 接入 SwiftUI
 

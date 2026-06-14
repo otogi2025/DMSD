@@ -149,4 +149,4 @@ D3-D6 路线（端点引用 backend FastAPI `app/main.py` + `routers/`）：
 
 ## 附录 · 历史（Round 1-2 任务书原文）
 
-Round 1-2 的 Opening Prompt 已被 Claude Design 消化，原文留在 `handoff/chat1.md` 里（作 AC 素材 —— 展示 itsuki 如何引导 AI 设计师迭代出满意结果）。
+Round 1-2 的 Opening Prompt 已被 Claude Design 消化，原文作 AC 素材已归档、不在公开仓库（展示 itsuki 如何引导 AI 设计师迭代出满意结果）。
