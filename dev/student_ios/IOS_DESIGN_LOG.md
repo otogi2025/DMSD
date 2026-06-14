@@ -1424,3 +1424,25 @@ gpt-5 + high（非预期 gpt-5.5 + xhigh）逐层挖 `ST25DVWriter` NFC 取消�
 | 最低系统 | iOS 16.0 | itsuki 2026-06-05 拍板 |
 
 **⚠️ Archive 上架仍需 itsuki 在 Xcode 做**：① Xcode → Settings → Accounts 登录该开发者 Apple ID（CC 的 headless 构建拿不到登录态/描述文件）② 苹果后台为 `com.itsuki.tomoshibi` 开推送能力 + 生成 APNs 证书（若 v1.0 上推送）。CC 侧只负责把 project.yml 配好 + 模拟器构建验证不破。
+
+---
+
+## §21 [2026-06-14] 日历去重：删旧 EventsView，合并到 ScheduleView（commit `96baa86`）
+
+> 起因：itsuki 截图反馈「カレンダー」页有行事的日期蓝点与日数字重叠。诊断发现：该 bug 早在 2026-05-03 已于 `ScheduleView` 修复（数字居中 + 蓝点贴底），本页未同步——根因是项目存在两套功能重叠的日历代码。
+
+### §21.1 两套日历的由来
+- 旧 `EventsView`（`CommunityStubs.swift`，标题「カレンダー」，路由 `.homeEvents`，主页活动卡入口）：早期演示版，月份硬编码 4 / 5 月、不接后端。
+- 新 `ScheduleView`（`ScheduleStubs.swift`，标题「行事予定」，路由 `.schedule`，マイページ入口）：杭田 2026-06-04「行事予定表示」需求实装，接后端 `GET /api/v1/events`、可滚任意月，2026-05-03 已修蓝点重叠（数字居中 + 蓝点 `Spacer` 贴底 + `padding(.bottom)`）。
+
+### §21.2 处置（方案 A — 删重复）
+- 删 `EventsView` 整体（含 `calendarCard` / `dayCell` / `selectedDaySection` / `eventsForDay` 等私有成员）+ 其 `#Preview`，净删 233 行。
+- 主页活动卡 `HomeStubs.swift` onTap `.homeEvents` → `.schedule`，两个入口统一指向新日历。
+- 删路由 `homeEvents`（`Route.swift` 枚举 case + displayName「活動」 + `RootView.swift` 分发分支）。
+- **保留** `EventDetailView`（活動詳細，§14）+ 路由 `.homeEventDetail`：新 `ScheduleView` 的详情页仍复用它（`ScheduleStubs` `onTapEvent` → `.homeEventDetail`），删了会编译失败。
+
+### §21.3 验证
+- 双 scheme（`iPhone 17 Pro`）BUILD SUCCEEDED——全 App 编译通过即证明无残留引用、无遗漏 switch 分支。
+- 蓝点重叠 bug 因旧日历整体删除而消失（先行的位置修复 commit `ded0883` 随 `EventsView` 删除而退役，仅留作「发现 bug」证据）。
+
+> 隐患根治：重复代码导致「修一处漏一处」，本次即此模式的实证；合并后日历相关改动只有 `ScheduleView` 一处。
