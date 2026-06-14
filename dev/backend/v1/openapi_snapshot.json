@@ -2454,10 +2454,22 @@
         "description": "老师登记新条目输入。",
         "properties": {
           "description": {
-            "maxLength": 2000,
-            "minLength": 1,
-            "title": "Description",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "item_count": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Item Count",
+            "type": "integer"
           },
           "kind": {
             "enum": [
@@ -2493,8 +2505,7 @@
           }
         },
         "required": [
-          "kind",
-          "description"
+          "kind"
         ],
         "title": "FrontDeskItemCreateIn",
         "type": "object"
@@ -2524,6 +2535,10 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "item_count": {
+            "title": "Item Count",
+            "type": "integer"
           },
           "kind": {
             "enum": [
@@ -2598,6 +2613,7 @@
           "student_id",
           "description",
           "location",
+          "item_count",
           "status",
           "created_by_teacher_id",
           "created_at",
@@ -6025,7 +6041,7 @@
           },
           "password": {
             "maxLength": 128,
-            "minLength": 8,
+            "minLength": 6,
             "title": "Password",
             "type": "string"
           },
@@ -9873,6 +9889,76 @@
           }
         },
         "summary": "Get Ranking",
+        "tags": [
+          "discipline"
+        ]
+      }
+    },
+    "/api/v1/discipline/students": {
+      "get": {
+        "description": "手动加扣分时挑学生用 —— 扣分管理 V 权限即可。\n\n为什么单独建此端点、不复用 front-desk 的 GET /students：那个要「前台·宅配」权限，\n但能扣分的老师（寮監 / 寮務）未必有前台权限 —— 权限簇不同，复用会把寮監锁在外面\n（6-14 选学生统一改造 §5 约束2 倾向①：新建权限与扣分对齐的轻量接口）。\n返回字段复用 FrontDeskStudentBrief（挑人最小字段），老师网页 StudentPicker 统一消费。\n同样按老师管辖男/女寮过滤 + 演示隔离。",
+        "operationId": "search_students_for_demerit_api_v1_discipline_students_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FrontDeskStudentBrief"
+                  },
+                  "title": "Response Search Students For Demerit Api V1 Discipline Students Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search Students For Demerit",
         "tags": [
           "discipline"
         ]
