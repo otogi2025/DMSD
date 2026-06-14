@@ -33,4 +33,3 @@ TomoshibiAppTests/
 
 - 共用规则: `design/system_features.md`
 - iOS 専属设计: `../IOS_DESIGN_LOG.md`
-- HTML プロトタイプ参考: `../demo/Tomoshibi_iOS_PhaseB_v2.html`（pixel-level fidelity 起点）

@@ -11,7 +11,7 @@
 | 端 | 当前位置 | demo 归档位置 |
 |---|---|---|
 | 老师 Web | `dev/teacher_web/v1/src/index.html`（Ryō standalone HTML，5-26 起 Vite + TS 实装版整体废弃 + 5-27 凌晨接 backend client.js helper）| 旧 demo 与 Vite 实装版均已归档，不在公开仓库 |
-| 学生 iOS | `dev/student_ios/v1/`（Swift + SwiftUI 真代码）| `dev/student_ios/demo/` 仍在原位（HTML プロトタイプ）|
+| 学生 iOS | `dev/student_ios/v1/`（Swift + SwiftUI 真代码）| `archive/2026-06-14_ios_phaseB_demo/` 已归档（HTML PhaseB 原型），不在公开仓库 |
 | iOS App Store fork | — | 5-08 上架冲刺 fork，5-22 backport 后归档，不在公开仓库 |
 
 ---
@@ -30,9 +30,9 @@
 
 ### 学生 iOS（HTML プロトタイプ阶段，~ 2026-05-06）
 
-- HTML プロトタイプ：`dev/student_ios/demo/Tomoshibi_iOS_PhaseB_v2.html`
-- JSX 解包源：`dev/student_ios/demo/phaseB_src/`
-- QA 記録：`dev/student_ios/demo/QA_Round1_PhaseB.md`
+- HTML プロトタイプ：`archive/2026-06-14_ios_phaseB_demo/Tomoshibi_iOS_PhaseB_v2.html`（已归档）
+- JSX 解包源：`archive/2026-06-14_ios_phaseB_demo/phaseB_src/`（已归档）
+- QA 記録：`archive/2026-06-14_ios_phaseB_demo/QA_Round1_PhaseB.md`（已归档）
 - 設計 LOG：`dev/student_ios/IOS_DESIGN_LOG.md`（✅ 仍活）
 - ~~Swift v1.0 実装曾用独立 repo 模式~~ → **2026-05-06 退役独立 repo 模式，全部代码移入 DMSD `dev/student_ios/v1/`**
 

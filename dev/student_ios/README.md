@@ -12,8 +12,6 @@
 |---|---|
 | `IOS_DESIGN_LOG.md` | iOS 専属設計決定の完全アーカイブ（§3 注册 flow、§3.9 学号 6 桁、§3.10 房间号、§3.11 改动履歴 など）|
 | `v1/` | Swift 実装本体（TomoshibiApp Xcode プロジェクト + Foundation + Features + TASKS）|
-| `demo/` | HTML プロトタイプ（Claude Design 産出物、視覚 source of truth）+ QA 記録 |
-
 ---
 
 ## 関連文書（外部）
