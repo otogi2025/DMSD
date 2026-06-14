@@ -24,6 +24,8 @@ import androidx.navigation.NavHostController
 import jp.tomoshibi.android.data.model.Application
 import jp.tomoshibi.android.data.model.ApplicationStatus
 import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.ApplicationOut
+import jp.tomoshibi.android.data.network.ApprovalStepOut
 import jp.tomoshibi.android.data.network.endpoints.ApplicationsAPI
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
@@ -54,7 +56,7 @@ fun ApplicationDetailScreen(
     val scope = rememberCoroutineScope()
 
     // 三态：Loading / Failed(消息) / Success(单条 Application)。详情屏是单条，不需要 Empty 态。
-    var ui by remember { mutableStateOf<LoadState<Application>>(LoadState.Loading) }
+    var ui by remember { mutableStateOf<LoadState<ApplicationOut>>(LoadState.Loading) }
 
     // 加载函数（重试也调它）。调 ApplicationsAPI.detail(id) 拿 ApplicationOut，再 .toUiApplication() 转成界面用的本地 Application。
     // 后端 404（找不到此申請）等异常一律走 Failed，绝不退化成空/假数据。
@@ -62,7 +64,7 @@ fun ApplicationDetailScreen(
         ui = LoadState.Loading
         ui =
             try {
-                LoadState.Success(ApplicationsAPI.detail(id).toUiApplication())
+                LoadState.Success(ApplicationsAPI.detail(id))
             } catch (e: ApiError) {
                 LoadState.Failed(e.display)
             } catch (e: Exception) {
@@ -103,7 +105,9 @@ fun ApplicationDetailScreen(
                 }
 
                 is LoadState.Success -> {
-                    val app = s.value
+                    val dto = s.value
+                    // 基本字段用映射后的本地 Application；承認链单独用 DTO 的真实 approval_chain（见下方 chainFromBackend）。
+                    val app = dto.toUiApplication()
                     Column(
                         modifier =
                             Modifier
@@ -180,7 +184,7 @@ fun ApplicationDetailScreen(
 
                         // ── 承認チェーン ──
                         Section("承認の流れ")
-                        val chain = buildChain(state.user.category, app)
+                        val chain = chainFromBackend(dto.approvalChain)
                         Column(
                             modifier =
                                 Modifier
@@ -230,36 +234,18 @@ fun ApplicationDetailScreen(
     }
 }
 
-// 一般寮生 = 3 段：担任 → 寮務課長 → 管理係
-// 留学生 = 5 段：担任 → 寮務課長 → 国際交流部長 → 寮務部長 → 管理係
-private fun buildChain(
-    category: String,
-    app: Application,
-): List<ChainStep> {
-    val approved = app.status == ApplicationStatus.APPROVED
-    val pending = app.status == ApplicationStatus.PENDING
-    val rejected = app.status == ApplicationStatus.REJECTED || app.status == ApplicationStatus.RETURNED
-
-    val isOverseas = category.contains("留学生")
-    val roles =
-        if (isOverseas) {
-            listOf("担任", "寮務課長", "国際交流部長", "寮務部長", "管理係")
-        } else {
-            listOf("担任", "寮務課長", "管理係")
-        }
-
-    // 简化：approved 全部绿 / rejected 第 1 个红 + 后续灰 / pending 第 1 个绿 + 第 2 个黄 + 后续灰
-    return roles.mapIndexed { i, role ->
-        when {
-            approved -> ChainStep(role, "approved", "${app.createdAt} 16:30")
-            rejected && i == 0 -> ChainStep(role, "rejected", "${app.createdAt} 09:15")
-            rejected -> ChainStep(role, "idle", null)
-            pending && i == 0 -> ChainStep(role, "approved", "${app.createdAt} 10:20")
-            pending && i == 1 -> ChainStep(role, "pending", null)
-            else -> ChainStep(role, "idle", null)
-        }
+// 承認链：直接用后端返回的真实 approval_chain（每步真实役职名 + 决定 + 时刻），不再按 status 推断假审批人/时间。
+//   decision: "approve"→approved / "reject"→rejected / null（未决）→pending
+private fun chainFromBackend(steps: List<ApprovalStepOut>): List<ChainStep> =
+    steps.map { step ->
+        val state =
+            when (step.decision) {
+                "approve" -> "approved"
+                "reject" -> "rejected"
+                else -> "pending"
+            }
+        ChainStep(role = step.approverRole, state = state, ts = step.decidedAt)
     }
-}
 
 @Composable
 private fun ChainRow(

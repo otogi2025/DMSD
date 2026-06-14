@@ -333,10 +333,9 @@ private fun CalendarBody(
                 EventRow(
                     event = ev,
                     teal = teal,
-                    // EventDetail 路由参数是 IntType（nav 地基文件，本施工不能改），
-                    // 但后端 EventOut.id 是 String（可能是 UUID）→ 这里 toIntOrNull 兜底，解析不出就传 0。
-                    // TODO 接后端：详情路由 id 类型 Int vs 后端 String 不一致，等详情屏接后端时统一成 String 路由。
-                    onClick = { navController.navigate(Route.EventDetail(ev.id.toIntOrNull() ?: 0).path) },
+                    // TODO 接后端：EventOut.id 是 String(UUID) 但 EventDetail 路由是 Int 且详情屏仍读 MockData，
+                    // toIntOrNull 失败会传 0、导航到错误详情，故暂禁用点击（对齐 EventsScreen），等详情屏接后端 + 路由改 String 再恢复。
+                    onClick = { },
                 )
             }
         }

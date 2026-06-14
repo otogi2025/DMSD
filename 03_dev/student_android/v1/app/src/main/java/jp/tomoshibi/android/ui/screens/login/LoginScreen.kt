@@ -70,12 +70,12 @@ fun LoginScreen(navController: NavHostController) {
 
     // mode tab：true=番号 tab（默认，对齐 iOS 优先番号）/ false=邮箱 tab
     var accountMode by remember { mutableStateOf(true) }
-    // 番号输入框（数字键盘）
-    var accountNo by remember { mutableStateOf(DEMO_ACCOUNT_NO) }
-    // 邮箱输入框（邮箱键盘）— 若注册流预填了 user.email 用它，否则用演示邮箱
-    var email by remember { mutableStateOf(state.user.email.ifEmpty { DEMO_EMAIL }) }
-    // 密码输入框（secure 遮码）
-    var password by remember { mutableStateOf(DEMO_PASSWORD) }
+    // 番号输入框（数字键盘）。演示版（debug 包）预填演示账号方便点；正式版（release）留空，不泄漏演示凭据。
+    var accountNo by remember { mutableStateOf(if (BuildConfig.DEBUG) DEMO_ACCOUNT_NO else "") }
+    // 邮箱输入框（邮箱键盘）。debug 包预填注册流邮箱 / 演示邮箱；release 留空。
+    var email by remember { mutableStateOf(if (BuildConfig.DEBUG) state.user.email.ifEmpty { DEMO_EMAIL } else "") }
+    // 密码输入框（secure 遮码）。debug 包预填演示密码；release 留空。
+    var password by remember { mutableStateOf(if (BuildConfig.DEBUG) DEMO_PASSWORD else "") }
     // 加载态：点登录后按钮变「ログイン中…」并禁用，避免重复提交
     var loading by remember { mutableStateOf(false) }
     // 登录失败累计计数（本地 state，到阈值跳锁定页）

@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import jp.tomoshibi.android.data.model.AppState
+import jp.tomoshibi.android.data.network.ApiClient
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.nav.Route
@@ -32,12 +33,18 @@ fun SplashScreen(navController: NavHostController) {
 
     // 1.4 秒后跳转 — 看 onboarded / authed flag 决定去哪
     LaunchedEffect(state) {
+        // 自动登录：从持久化的 authToken 恢复 ApiClient.token（异步、不阻塞主线程；进 Home 前的任何请求都在这之后）。
+        state.authToken?.let { ApiClient.token = it }
         delay(1400)
-        val target = when {
-            state.authed -> Route.Home.path
-            state.onboarded -> Route.Login.path
-            else -> Route.Onboarding.path
-        }
+        val target =
+            when {
+                // 必须 authed 且令牌非空才进 Home，避免旧档 authed=true/authToken=null 进去后全站请求 401。
+                state.authed && state.authToken != null -> Route.Home.path
+
+                state.onboarded -> Route.Login.path
+
+                else -> Route.Onboarding.path
+            }
         navController.navigate(target) {
             popUpTo(Route.Splash.path) { inclusive = true }
         }
@@ -46,49 +53,53 @@ fun SplashScreen(navController: NavHostController) {
     // 灯字 logo 脉冲缩放动画
     val infinite = rememberInfiniteTransition(label = "splashPulse")
     val scale by infinite.animateFloat(
-        initialValue = 1f, targetValue = 1.05f,
+        initialValue = 1f,
+        targetValue = 1.05f,
         animationSpec = infiniteRepeatable(tween(1000, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "splashScale"
+        label = "splashScale",
     )
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(tokens.btnGrad),
-        contentAlignment = Alignment.Center
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(tokens.btnGrad),
+        contentAlignment = Alignment.Center,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             // 灯字 logo — 100dp 圆角 30dp（iOS Splash 视觉对齐）
             Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .scale(scale)
-                    .clip(RoundedCornerShape(30.dp))
-                    .background(Color.White.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .size(100.dp)
+                        .scale(scale)
+                        .clip(RoundedCornerShape(30.dp))
+                        .background(Color.White.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = "灯",
                     color = Color.White,
-                    style = TextStyle(fontSize = 56.sp, fontWeight = FontWeight.Light)
+                    style = TextStyle(fontSize = 56.sp, fontWeight = FontWeight.Light),
                 )
             }
             Text(
                 text = "Tomoshibi",
                 color = Color.White,
-                style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
+                style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.SemiBold),
             )
             Text(
                 text = "寮生活、もっと近くに。",
                 color = Color.White.copy(alpha = 0.85f),
-                style = TextStyle(
-                    fontSize = 13.sp,
-                    letterSpacing = 0.6.sp
-                ),
-                textAlign = TextAlign.Center
+                style =
+                    TextStyle(
+                        fontSize = 13.sp,
+                        letterSpacing = 0.6.sp,
+                    ),
+                textAlign = TextAlign.Center,
             )
         }
     }
