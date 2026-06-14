@@ -111,4 +111,4 @@ Tomoshibi 用 NFC 卡、学生手机 App、老师 Web、后端服务器和入口
 
 - **开发者**：itsuki（otogi2025@gmail.com）
 - **GitHub**：https://github.com/otogi2025/DMSD
-- **项目起始**：2026-02
+- **项目起始**：2025-12（NFC 方案早期设计讨论；Git 历史自 2026-03）
