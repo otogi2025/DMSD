@@ -65,6 +65,110 @@ _ROLLCALL_KIND_LABEL = {
     "other": "その他の問題",
 }
 
+# 学習欠席届 period → 日语标签
+_STUDY_PERIOD_LABEL = {
+    "first_half": "前半節",
+    "second_half": "後半節",
+    "full": "終日",
+}
+
+# 杂项申请 kind → 日语标签
+_MISC_KIND_LABEL = {
+    "repair": "修繕",
+    "guest": "来訪者",
+    "proxy_receipt": "代理受取",
+}
+
+# 第二批通知来源（阶段2）：8 类「学生提交、老师该知道」的申请表。
+# 每条配置一种表的同步参数，避免 8 段几乎一样的代码：
+#   model       该表的 ORM 模型类
+#   student_fk  关联学生的外键列（多数是 student_id，行事企画是 proposer_id）
+#   time_col    事件时间列（多数 submitted_at，开示申请 requested_at，杂项 created_at）
+#   source_table 去重用的源表名（与 Notification.source_table 对应）
+#   category    通知分类（老师网页据此显示标签 + 决定点击跳哪页）
+#   title       通知标题（日语 UI）
+#   body        构造正文的函数 (申请行, 学生) → 日语字符串
+_REQUEST_SOURCES = [
+    {
+        "model": models.Outing,
+        "student_fk": models.Outing.student_id,
+        "time_col": models.Outing.submitted_at,
+        "source_table": "outings",
+        "category": "outing",
+        "title": "外出申請",
+        "body": lambda r, s: (
+            f"{s.name} さん：{r.destination or '外出'}（{r.outing_date}）"
+        ),
+    },
+    {
+        "model": models.StudyAbsenceRequest,
+        "student_fk": models.StudyAbsenceRequest.student_id,
+        "time_col": models.StudyAbsenceRequest.submitted_at,
+        "source_table": "study_absence_requests",
+        "category": "study_absence",
+        "title": "学習欠席届",
+        "body": lambda r, s: (
+            f"{s.name} さん：{r.target_date}（{_STUDY_PERIOD_LABEL.get(r.period, r.period)}）"
+        ),
+    },
+    {
+        "model": models.StudyOnlineRequest,
+        "student_fk": models.StudyOnlineRequest.student_id,
+        "time_col": models.StudyOnlineRequest.submitted_at,
+        "source_table": "study_online_requests",
+        "category": "study_online",
+        "title": "オンライン学習申請",
+        "body": lambda r, s: f"{s.name} さん：{r.period_from}〜{r.period_to}",
+    },
+    {
+        "model": models.DormEventProposal,
+        "student_fk": models.DormEventProposal.proposer_id,
+        "time_col": models.DormEventProposal.submitted_at,
+        "source_table": "dorm_event_proposals",
+        "category": "dorm_event",
+        "title": "寮生行事企画申請",
+        "body": lambda r, s: f"{s.name} さん：{r.title}",
+    },
+    {
+        "model": models.FridgePurchaseRequest,
+        "student_fk": models.FridgePurchaseRequest.student_id,
+        "time_col": models.FridgePurchaseRequest.submitted_at,
+        "source_table": "fridge_purchase_requests",
+        "category": "fridge",
+        "title": "冷蔵庫購入届",
+        "body": lambda r, s: f"{s.name} さん：タイプ{r.product}",
+    },
+    {
+        "model": models.ItemPossessionRequest,
+        "student_fk": models.ItemPossessionRequest.student_id,
+        "time_col": models.ItemPossessionRequest.submitted_at,
+        "source_table": "item_possession_requests",
+        "category": "item",
+        "title": "物品所持許可願",
+        "body": lambda r, s: f"{s.name} さん：{r.item}",
+    },
+    {
+        "model": models.GuidanceDisclosureRequest,
+        "student_fk": models.GuidanceDisclosureRequest.student_id,
+        "time_col": models.GuidanceDisclosureRequest.requested_at,
+        "source_table": "guidance_disclosure_requests",
+        "category": "disclosure",
+        "title": "指導開示申請",
+        "body": lambda r, s: f"{s.name} さんが指導履歴の開示を申請しました",
+    },
+    {
+        "model": models.MiscRequest,
+        "student_fk": models.MiscRequest.student_id,
+        "time_col": models.MiscRequest.created_at,
+        "source_table": "misc_requests",
+        "category": "misc",
+        "title": "雑項申請",
+        "body": lambda r, s: (
+            f"{s.name} さん：{_MISC_KIND_LABEL.get(r.kind, r.kind)}／{r.subject}"
+        ),
+    },
+]
+
 
 def _fmt_points(points: float) -> str:
     """0.5 → "0.5" / 1.0 → "1"（整数去小数点）。"""
@@ -163,6 +267,33 @@ def _sync_notifications(db: Session, *, is_demo: bool) -> None:
                 event_at=rep.created_at,
             )
         )
+
+    # ④ 第二批：8 类申请表（外出 / 学习缺席 / 在线学习 / 行事企划 /
+    #    冰箱购入 / 物品持有 / 指导开示 / 杂项）— 配置见 _REQUEST_SOURCES
+    for cfg in _REQUEST_SOURCES:
+        rows = (
+            db.query(cfg["model"], models.Student)
+            .join(models.Student, cfg["student_fk"] == models.Student.id)
+            .filter(models.Student.is_demo == is_demo)
+            .order_by(cfg["time_col"].desc())
+            .limit(_SYNC_SCAN_LIMIT)
+            .all()
+        )
+        for row, stu in rows:
+            if (cfg["source_table"], row.id) in existing:
+                continue
+            new_rows.append(
+                models.Notification(
+                    category=cfg["category"],
+                    source_table=cfg["source_table"],
+                    source_id=row.id,
+                    title=cfg["title"],
+                    body=cfg["body"](row, stu),
+                    related_student_id=stu.id,
+                    is_demo=is_demo,
+                    event_at=getattr(row, cfg["time_col"].key),
+                )
+            )
 
     if new_rows:
         db.add_all(new_rows)

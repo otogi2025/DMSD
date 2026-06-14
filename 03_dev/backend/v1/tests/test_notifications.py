@@ -7,8 +7,19 @@
 from __future__ import annotations
 
 import uuid
+from datetime import date, datetime, timezone
 
 from app import models
+
+
+def _feed(client, token):
+    """拉一次通知流，返回 JSON body。"""
+    res = client.get(
+        "/api/v1/notifications/feed",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 200, res.text
+    return res.json()
 
 
 def _add_demerit(db_session, student, reason="遅刻", points=1.0):
@@ -126,3 +137,86 @@ def test_mark_read_unknown_404(client, seed_data, teacher_token):
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert res.status_code == 404
+
+
+# ---------------------------------------------------------------
+# 阶段2：第二批通知来源（8 类申请表）。这里抽查 4 类，
+# 覆盖 3 个字段名坑：proposer_id（行事企画）/ requested_at（开示）/ created_at（杂项）。
+# ---------------------------------------------------------------
+
+
+def test_feed_syncs_outing(client, seed_data, teacher_token, db_session):
+    """外出申请 → category=outing 进通知流。"""
+    db_session.add(
+        models.Outing(
+            student_id=seed_data["student"].id,
+            outing_date=date(2026, 6, 20),
+            destination="駅前",
+        )
+    )
+    db_session.commit()
+    body = _feed(client, teacher_token)
+    assert len(body["items"]) == 1
+    item = body["items"][0]
+    assert item["category"] == "outing"
+    assert "駅前" in item["body"]
+    assert item["related_student_id"] == str(seed_data["student"].id)
+
+
+def test_feed_syncs_misc_request(client, seed_data, teacher_token, db_session):
+    """杂项申请 → category=misc（时间列是 created_at，不是 submitted_at）。"""
+    db_session.add(
+        models.MiscRequest(
+            student_id=seed_data["student"].id,
+            kind="repair",
+            subject="エアコン故障",
+        )
+    )
+    db_session.commit()
+    body = _feed(client, teacher_token)
+    assert len(body["items"]) == 1
+    item = body["items"][0]
+    assert item["category"] == "misc"
+    assert "修繕" in item["body"]
+    assert "エアコン故障" in item["body"]
+
+
+def test_feed_syncs_dorm_event_proposal(client, seed_data, teacher_token, db_session):
+    """行事企画申请 → category=dorm_event（学生外键是 proposer_id，状态列是 result）。"""
+    db_session.add(
+        models.DormEventProposal(
+            proposer_id=seed_data["student"].id,
+            title="夏祭り企画",
+            held_at=datetime(2026, 8, 1, 18, 0, tzinfo=timezone.utc),
+            place="食堂",
+            expected_count=50,
+            target="全寮生",
+            purpose="交流",
+            content="屋台と花火",
+            risk_solution="消火器準備",
+            expected_cost="3万円",
+        )
+    )
+    db_session.commit()
+    body = _feed(client, teacher_token)
+    assert len(body["items"]) == 1
+    item = body["items"][0]
+    assert item["category"] == "dorm_event"
+    assert "夏祭り企画" in item["body"]
+    assert item["related_student_id"] == str(seed_data["student"].id)
+
+
+def test_feed_syncs_guidance_disclosure(client, seed_data, teacher_token, db_session):
+    """指导开示申请 → category=disclosure（时间列是 requested_at）。"""
+    db_session.add(
+        models.GuidanceDisclosureRequest(
+            student_id=seed_data["student"].id,
+            reason="進路相談のため",
+        )
+    )
+    db_session.commit()
+    body = _feed(client, teacher_token)
+    assert len(body["items"]) == 1
+    item = body["items"][0]
+    assert item["category"] == "disclosure"
+    assert item["related_student_id"] == str(seed_data["student"].id)
