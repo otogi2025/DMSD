@@ -1,5 +1,5 @@
-// BusListStubs.swift · 寮生专用特别运航班次一览
-// ⭐ 会话 C · 老师 38 条 #8「寮生专用特别运航班次一览（参考用 + 外出申请表选择回家方式时确认）」
+// BusListStubs.swift · 寮生专用特别运行班次一览
+// ⭐ 会话 C · 老师 38 条 #8「寮生专用特别运行班次一览（参考用 + 外出申请表选择回家方式时确认）」
 //
 // API 对应（后端 B 尚未到位 → 使用 mock 数据）:
 //   GET /buses                → BusListView         (system_features §7.6)
