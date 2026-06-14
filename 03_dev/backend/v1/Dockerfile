@@ -23,6 +23,11 @@ COPY alembic /app/alembic
 COPY alembic.ini /app/
 COPY seed.py /app/
 
+# 上传目录（在线学习契約書照片/PDF）先建好，随下面 chown -R /app 一起设成 tomoshibi 所有。
+# 必须在镜像里预建：生产挂 uploads_data named volume 时，卷首次挂载会继承挂载点的属主；
+# 若挂载点不存在则默认 root 所有，非 root 的 tomoshibi 用户 makedirs/写文件直接 Permission denied。
+RUN mkdir -p /app/uploads
+
 # 非 root 用户跑（生产安全）
 RUN useradd -m -u 1000 tomoshibi \
     && chown -R tomoshibi:tomoshibi /app

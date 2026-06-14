@@ -36,6 +36,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      # 契約書文件（在线学习申请上传的照片/PDF）持久化 — 容器重建/更新不丢（itsuki 2026-06-14 上架审查补）
+      # 挂载点 /app/uploads 已在 Dockerfile 预建 + chown tomoshibi，卷首次挂载继承属主，非 root 用户可写
+      - uploads_data:/app/uploads
     # 不直接暴露 8000 到公网，让 Caddy 反代
 
   caddy:
@@ -56,3 +60,4 @@ volumes:
   postgres_data:
   caddy_data:
   caddy_config:
+  uploads_data:
