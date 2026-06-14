@@ -717,7 +717,10 @@ export interface TeacherWSHandle {
 // ── 老师通知中心（阶段1）— 对齐后端 schemas.py NotificationItem / NotificationFeedOut ──
 export interface NotificationItem {
   id: string;
-  category: string; // application=申请提交 / demerit=扣分 / rollcall_report=点呼上报
+  // application=出寮届 / demerit=扣分 / rollcall_report=点呼上报 /
+  // 阶段2 新增：outing 外出 / study_absence 学习缺席 / study_online 在线学习 /
+  // dorm_event 行事企划 / fridge 冰箱 / item 物品 / disclosure 指导开示 / misc 杂项
+  category: string;
   title: string;
   body: string;
   related_student_id: string | null;

@@ -34,10 +34,39 @@ function categoryMeta(category: string, T: typeof RYO) {
       return { label: "減点", color: T.danger };
     case "rollcall_report":
       return { label: "点呼報告", color: T.warn };
+    // 阶段2 新增 8 类申请来源
+    case "outing":
+      return { label: "外出", color: T.cobalt };
+    case "study_absence":
+      return { label: "学習欠席", color: T.cobalt };
+    case "study_online":
+      return { label: "オンライン学習", color: T.cobalt };
+    case "dorm_event":
+      return { label: "行事企画", color: T.cobalt };
+    case "fridge":
+      return { label: "冷蔵庫", color: T.ink2 };
+    case "item":
+      return { label: "物品所持", color: T.ink2 };
+    case "disclosure":
+      return { label: "開示申請", color: T.warn };
+    case "misc":
+      return { label: "雑項", color: T.ink2 };
     default:
       return { label: "通知", color: T.ink3 };
   }
 }
+
+// category → 点击通知跳转的目标页。
+// 老师网页有对应审查页的才跳；其余（外出 / 行事企画 / 冰箱 / 物品 / 杂项）
+// 当前没有审查页 → 不跳、仅标已读。
+const NAV_TARGET: Record<string, string> = {
+  application: "applications",
+  demerit: "discipline",
+  rollcall_report: "records",
+  disclosure: "disclosure-requests",
+  study_absence: "study",
+  study_online: "study",
+};
 
 export function NotificationsPage({
   onNav,
@@ -110,6 +139,13 @@ export function NotificationsPage({
       .markAllNotificationsRead(authToken)
       .then((res) => setUnread(res.unread_count))
       .catch(() => loadFeed());
+  };
+
+  // 点一条通知：先标已读，再按 category 跳到对应审查页（没有对应页的类型只标已读）
+  const handleClick = (n: NotificationItem) => {
+    markRead(n); // markRead 内部已判 is_read，已读不会重复请求
+    const target = NAV_TARGET[n.category];
+    if (target) onNav(target);
   };
 
   return (
@@ -267,7 +303,7 @@ export function NotificationsPage({
             return (
               <div
                 key={n.id}
-                onClick={() => markRead(n)}
+                onClick={() => handleClick(n)}
                 style={{
                   display: "flex",
                   alignItems: "flex-start",
@@ -275,7 +311,10 @@ export function NotificationsPage({
                   padding: "12px 16px",
                   borderTop: i > 0 ? `1px solid ${T.line}` : "none",
                   background: n.is_read ? "transparent" : T.cobaltSoft,
-                  cursor: n.is_read ? "default" : "pointer",
+                  cursor:
+                    !n.is_read || NAV_TARGET[n.category]
+                      ? "pointer"
+                      : "default",
                 }}
               >
                 {/* 未读小圆点 */}
