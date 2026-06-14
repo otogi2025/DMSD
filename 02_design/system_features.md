@@ -45,12 +45,12 @@
 
 **问题**: iOS App / Android App / 老师 Web / 后端 API / 点呼机软件 是 5 端共存,容易漂移。
 
-**5 端布局**（2026-05-06 起单 repo 同源，退役独立 repo 模式）:
-- iOS 在 `~/dev/DMSD/03_dev/student_ios/v1/`
-- Android 在 `~/dev/DMSD/03_dev/student_android/v1/`
-- Web 在 `~/dev/DMSD/03_dev/teacher_web/v1/`
-- 后端在 `~/dev/DMSD/03_dev/backend/v1/`
-- 点呼机软件在 `~/dev/DMSD/03_dev/rollcall_device/`（2026-05-08 加 — 第 5 端）
+**5 端布局**（单 repo 同源）:
+- iOS 在 `03_dev/student_ios/v1/`
+- Android 在 `03_dev/student_android/v1/`
+- Web 在 `03_dev/teacher_web/v1/`
+- 后端在 `03_dev/backend/v1/`
+- 点呼机软件在 `03_dev/rollcall_device/`（第 5 端）
 
 → **共用功能**(账号 / 申请 / 通知 / 出寮届 / 学習 / 点呼 等)在一端改了,其他端没跟上 → 必然漂移。
 
@@ -67,7 +67,7 @@
 | 改了点呼机软件行为 | (1) 在 `03_dev/rollcall_device/ROLLCALL_DEVICE_DESIGN_LOG.md` 记录 (2) **共用层改动同步本文 §7** |
 | 提了新功能(未实装) | 在本文 §7 加一行标"⏳ 提案中"→ 等 itsuki 拍板 |
 
-> **历史**: 2026-05-06 之前 iOS / Android 分别有独立 GitHub repo（otogi2025/Tomoshibi-iOS、otogi2025/Tomoshibi-Android）+ `bin/sync-ios-refs.sh` 跨 repo 物理复制脚本。2026-05-06 拍板退役独立 repo 模式 — 全部在 DMSD 内单 repo 同源，跨 repo 同步规则废止。详见 `99_archive/2026-05-06_cloud_agent_退役/`。
+> **历史**: 早期 iOS / Android 曾各有独立仓库 + 跨 repo 物理复制脚本。后拍板退役独立 repo 模式 — 全部在 DMSD 内单 repo 同源，跨 repo 同步规则废止。
 
 ---
 
@@ -178,7 +178,7 @@
   后端实装：`app/permissions.py`（矩阵）+ `deps.require_permission` 闸；落地记录见 `BACKEND_DESIGN_LOG.md`。
 - **留学生 flag**: App 注册时学生自己选"是 / 不是"(Q11)→ 数据来源 = 自己申报,不是学校官方名单
 - **教师密码重置**: 学生 → 找宿管 → 宿管在 Web 后台手动重置 / 教师 → 找跟进项目的负责老师(Q10)
-- **学生注册時 = 教師発行の 6 桁登録コード必須**(2026-05-03 itsuki 拍板, App Store 公開対策, **詳細 §7.16**): 学生は登録 flow 最終 step で「寮務管理」権限教師が後台で生成した 6 桁コードを入力しないと登録不可。コードは同時 1 個のみ有効、30 分で expire（itsuki 5-31 拍板 5 分→30 分）、教師が再生成すると前コード即失効、「閉じる」で手動即失効も可。背景・代替案比較 → `05_logs/raw/2026-05-03.md §11`
+- **学生注册時 = 教師発行の 6 桁登録コード必須**(2026-05-03 itsuki 拍板, App Store 公開対策, **詳細 §7.16**): 学生は登録 flow 最終 step で「寮務管理」権限教師が後台で生成した 6 桁コードを入力しないと登録不可。コードは同時 1 個のみ有効、30 分で expire（itsuki 5-31 拍板 5 分→30 分）、教師が再生成すると前コード即失効、「閉じる」で手動即失効も可。背景・代替案比較は §7.16 を参照。
 
 ---
 
@@ -206,7 +206,7 @@
 
 ### 4.2 生命周期
 
-> **2026-06-05 拍板(推翻 2026-04-30)**: 学号变更改为**学生自助再設定**(番号再設定)。老师只「开闸 + 通知」+ 兜底单件改,不再全员代改。理由: 出席番号每年基本都变,全员靠老师改工作量大;学生自设后本人记得住自己的番号;少数填错由老师事后单件修正即可,比全员代改省事。原 4-30「老师全员代改 / 学生只读」方案废弃。详细决策脉络见 `05_logs/decision_log.md`。
+> **2026-06-05 拍板(推翻 2026-04-30)**: 学号变更改为**学生自助再設定**(番号再設定)。老师只「开闸 + 通知」+ 兜底单件改,不再全员代改。理由: 出席番号每年基本都变,全员靠老师改工作量大;学生自设后本人记得住自己的番号;少数填错由老师事后单件修正即可,比全员代改省事。原 4-30「老师全员代改 / 学生只读」方案废弃。
 
 > **不变前提**: 学号 = 学年码(2) + 组码(2) + 出席番号(2),6 桁;学生身份真值是 `students.id` (UUID,永久不变),学号是 derived property(`grade_code + class_code + seat_no` 拼出来,不单存)。**每年学号变不影响身份 / 密码 / NFC 卡绑定 / 申请履历**——这些都挂在 UUID 上。
 
@@ -664,7 +664,7 @@
 
 #### 7.3.8 主页 amber Card 三态(2026-04-30 後續 拍板 — ⚠️ DEMO-ONLY)
 
-> ⚠️ **demo-only scaffold**: itsuki 4-30 後續 明示「以上这些只是为了演示才做的、最终版要删别忘了」。v1.0 上线前**必须删除**這套三態切換機制(memory `project_demo_scaffolds_to_remove_before_v1.md` 加入)。
+> ⚠️ **demo-only scaffold**: itsuki 4-30 後續 明示「以上这些只是为了演示才做的、最终版要删别忘了」。v1.0 上线前**必须删除**這套三態切換機制。
 
 **三态(学習対象学生のみ)**:
 - 平时 = 扣分点数表示
@@ -835,67 +835,13 @@ bus_routes
 - **並び順 = 投稿順**(新→旧)。**赞 / 踩 (up/down) は廃止**。理由: 人気投票ではなく単純な希望リスト。
 - 学生 iOS = リクエスト曲 一覧、老师 Web = 寮 (男 / 女) 別 tab。
 
-#### 7.11.2 投诉(通報)システム(2026-05-01 拍板)
-
-> **背景**: itsuki 4-30 后续の追加要望「いいね / よくないねでは健全な空気を作れない。投稿者を傷つけずにダメな曲を排除したい」→ **赞踩を廃止**して「投诉 (通報) ボタン」に置き換え。
-
-**学生 iOS** (リクエスト曲 一覧の各 row):
-- 「⚠ 通報する」ボタン 1 つだけ
-- 押すと選択 sheet が出る:
-  - **「うるさい」**
-  - **「曲調が好みでない / 不快」**
-  - **「歌詞が不適切」**
-  - **「その他(自由記入)」**
-- 投稿カードに通報件数の表示は **基本しない**(吊し上げ防止)。**ただし通報 7 件以上**になったカードには寮務教师だけが見えるバッジ「⚠ 通報多数」を出す(学生からは見えない)。
-- 一覧上部に hint banner: 「気になる曲があれば、通報ボタンから先生にお伝えできます。」(目立たないが認知させる)
-
-**閾値・封禁ルール**:
-
-| 累積通報数 (本人投稿への通報合計) | 措置 |
-|---|---|
-| 5 件 | **1 ヶ月 投稿禁止**(再投稿不可、既存投稿は残る)|
-| 解除後 さらに 5 件 | **3 ヶ月 投稿禁止** |
-| さらに 5 件 | **永久 投稿禁止** |
-
-- 「累積通報数」は**通報事案単位**でカウント(同一通報者が同一曲に複数回押しても 1 とみなす)。
-- 段階は学生ごとに状態を保持: `ban_level ∈ {0, 1, 2, 3}` / 0=制限なし / 1=1 ヶ月 / 2=3 ヶ月 / 3=永久。
-- 制限中は投稿フォームに「現在投稿停止中(あと N 日)」表示。
-- **解除タイマーは backend cron**(日次)で `ban_until` を見て自動再開。
-
-**老师 Web** (コミュニティ管理 → リクエスト曲):
-- 各曲カードに通報件数 + 通報理由の内訳(1 タップで展開)
-- **手動封禁**: 学生 row から「投稿禁止にする (1 ヶ月 / 3 ヶ月 / 永久)」ボタン → 確認 dialog → DB の `ban_level` 更新。
-- 学生 row に通報多数バッジ: **本人投稿への通報合計が 7 件以上**になった学生 → 「⚠ 通報多数 (N 件)」バッジ + クリックで通報履歴閲覧。
-- 通報事案 list page: 全寮の通報を時系列で見れる(寮監夜勤時の確認用)。
-
-**通知**:
-- 学生本人が封禁された場合 → iOS push「リクエスト曲の投稿が制限されました(N ヶ月)」+ in-app banner。
-- 老师側へは閾値到達時のみ Web 通知中心(R1 邮件は不要 — 緊急性低)。
-
-#### 7.11.3 機能矩阵
+#### 7.11.2 機能矩阵
 
 | 功能 | 学生 iOS | 老师 Web | 后端 API | 角色 | Demo/V1 |
 |---|---|---|---|---|---|
 | 曲リクエスト 投稿 | 〇 投稿フォーム(封禁中は提出 block)| — | `POST /songs` ⏳ | 学生 | (D) → (V1) |
 | 一覧 = **投稿順**(赞踩廃止)| 〇 リクエスト曲 一覧 | ✅ 男寮 / 女寮 tab + 件数 | `GET /songs?dorm=&order=submitted_desc` ⏳ | 全員 | (V1) |
-| 通報ボタン + 理由選択 sheet | 〇 row 単位 | — | `POST /songs/:id/reports` ⏳ | 学生 | (V1) |
-| 通報 7 件以上 → 老師側「通報多数」badge | — | ✅ カードに badge | aggregate query | 寮務 | (V1) |
-| 通報合計 5 / 10 / 15 件で **自動 封禁**(1m / 3m / 永久)| 〇 通知接収 + 投稿フォーム block | ✅ 学生 row 状態表示 | backend trigger ⏳ | 系统 | (V1) |
-| 老师手動封禁(1m / 3m / 永久)| 〇 通知接収 | ✅ 学生 row「投稿禁止」ボタン | `PATCH /students/:id/song-ban` ⏳ | 寮務 | (V1) |
-| 解除タイマー(日次 cron で `ban_until` 経過なら 0 に戻す)| — | — | cron | 系统 | (V1) |
 | 承认 / 拒否 / 审查取消(既存)| 〇 通知接收 | ✅ 承认状态 toggle | `PATCH /songs/:id/state` ⏳ | 寮務 | (D) |
-
-> **データモデル**(§8 への追記候補):
->
-> ```
-> song_reports
-> ├── id, song_id FK, reporter_id FK, reason ENUM('うるさい','曲調','歌詞','その他'), free_text TEXT?, created_at
->
-> students 追加列:
-> ├── song_ban_level     SMALLINT  DEFAULT 0    -- 0/1/2/3
-> ├── song_ban_until     TIMESTAMPTZ NULL       -- NULL = 解除済 / level=3 は遠い未来
-> ├── song_report_total  INT       DEFAULT 0    -- 本人投稿への累積通報数(badge 7 判定)
-> ```
 
 ### 7.12 规律・处分
 
@@ -907,7 +853,7 @@ bus_routes
 | 禁足 通知(≥8 点)| 〇 マイページ | ✅ 罚则 list | `GET /penalties/grounding` ⏳ | 学生 + 寮務 | (D) |
 | 密码锁 → 老师通报 | 〇 锁屏 | ✅ accounts.jsx「ロック中」filter | 自动连携 ⏳ | 系统 + 寮務 | (D) |
 
-> **罚则数值**(2026-04-30 拍板): 迟到 0.5 / 缺席 1.0 / 月累计 ≥8 禁足（原「≥4 罚扫」2026-06-10 随清扫功能删除）— **backend 常量 hardcode**(不做 DB 表 + admin UI)。改时走 git commit + redeploy。**上线前不再跟老师确认**(暂定 4 个值就这样定)。理由: 学校扣分规则改动频度极低,admin UI 是 YAGNI。单源真值: `01_specs/rollcall/v0.1_冻结决策.md §1` + `00_admin/文档同步点清单.md §10`。
+> **罚则数值**(2026-04-30 拍板): 迟到 0.5 / 缺席 1.0 / 月累计 ≥8 禁足（原「≥4 罚扫」2026-06-10 随清扫功能删除）— **backend 常量 hardcode**(不做 DB 表 + admin UI)。改时走 git commit + redeploy。**上线前不再跟老师确认**(暂定 4 个值就这样定)。理由: 学校扣分规则改动频度极低,admin UI 是 YAGNI。单源真值: `01_specs/rollcall/v0.1_冻结决策.md §1`。
 
 ### 7.13 通知(R1 邮件固定 + 学生 push + 老师 Web 通知中心)
 
@@ -993,7 +939,7 @@ Home 画面 **顶部 2 ブロック目**(挨拶 + 减点 amber Card の直下):
 - ⭐ **翻訳**（お知らせ本文を母語に翻訳）
   - **Translation framework**（端末内・オフライン・全機種、Apple Intelligence 不要）
   - **2026-06-12 改版（iOS 先行・共用層真值更新）**：旧「日⇄中のシステム浮層（`translationPresentation`）」を廃止 →「**本文を原地で訳文に差し替え + 原文に戻す**」方式（programmatic API、**iOS 18.0+**）。対応言語 **4 つ：英 / 简中(zh-Hans) / タイ / ベトナム**（寮の留学生の主な母語）。「翻訳」押下で言語選択シート → 「次回からこの言語に翻訳する」チェックで既定言語を記憶（設定画面「お知らせの翻訳」で変更・「毎回選択する」に戻す可）。詳細 → `IOS_DESIGN_LOG §13.4`
-  - ⚠️ 現状 **本文のみ**翻訳（返信 reply は対象外）。**Android 未実装**（TODO §B「安卓老师公告同类隐患」で対齐予定）
+  - ⚠️ 現状 **本文のみ**翻訳（返信 reply は対象外）。**Android 未実装**（後で同類機能を Android 端と対齐予定）
 - 返信エリア(下記)
 
 #### 7.15.6 返信(reply)
@@ -1001,7 +947,7 @@ Home 画面 **顶部 2 ブロック目**(挨拶 + 减点 amber Card の直下):
 - **itsuki 2026-05-03 拍板**: 学生**全員互見**(option 2 採用)。理由 = Classroom と同等の透明感、学生間で予定確認しやすい、AI 要約と組み合わせて長スレッドも俯瞰可
 - 投稿: 学生 / 老师 ともに可
 - 削除: 自分の返信のみ削除可。老师は全返信に対する削除権
-- moderation: 通報機能(学生 → 老师)— v1.1。v1.0 は老师が手動巡回(投稿規模が予測可能なため)
+- moderation: v1.1(不適切な返信への対応機能)。v1.0 は老师が手動巡回(投稿規模が予測可能なため)
 - 表示順: 時系列 asc(古い → 新しい、Slack 風)
 
 #### 7.15.7 老师 Web 端(投稿 / 編集 / 削除 / 返信管理)
@@ -1079,13 +1025,13 @@ announcement_replies
 
 #### 7.15.12 AC 叙事(2026-05-03 拍板の論点)
 
-> Apple Intelligence on-device 推理路線への統一(Image Playground 頭像 / Foundation Models 要約 / Translation framework)= **クラウド AI API 依存ゼロ + 学生 privacy 完全保持 + 運用コストゼロ + オフライン可動**。AC 面接で「なぜ ChatGPT/Gemini API でなく Apple 平台原生?」に答えられる体系化判断。判断理由のスナップショットは `05_logs/raw/2026-05-03.md` に dump。
+> Apple Intelligence on-device 推理路線への統一(Image Playground 頭像 / Foundation Models 要約 / Translation framework)= **クラウド AI API 依存ゼロ + 学生 privacy 完全保持 + 運用コストゼロ + オフライン可動**。AC 面接で「なぜ ChatGPT/Gemini API でなく Apple 平台原生?」に答えられる体系化判断。
 
 ---
 
 ### 7.16 学生注册码（教师生成、App Store 公開対策）— 2026-05-03 itsuki 拍板
 
-> **背景**: itsuki 2026-05-03 拍板。**App Store 上架 = 全人類に配布チャネルが開く**ことに自分で気づいて入れた防護。AC 叙事の論点 + 経緯詳細は `05_logs/raw/2026-05-03.md §11`。
+> **背景**: itsuki 2026-05-03 拍板。**App Store 上架 = 全人類に配布チャネルが開く**ことに自分で気づいて入れた防護。
 
 #### 7.16.1 設計原理
 
@@ -1170,7 +1116,7 @@ announcement_replies
 
 #### 7.16.9 ⭐ AC 叙事フック
 
-「App Store 上架 = 配布の利便性」しか見ていなかった元の認識に対して、「上架 = 全人類に配布チャネルを開放」という側面を自分で発見したことが核心。**問題発見 + 自己認識 + 問題解決** の三点セットが 1 つの素材に揃う。詳細は `05_logs/raw/2026-05-03.md §11`（特に §11.2 自己認識 / §11.4 代替案比較）。
+「App Store 上架 = 配布の利便性」しか見ていなかった元の認識に対して、「上架 = 全人類に配布チャネルを開放」という側面を自分で発見したことが核心。**問題発見 + 自己認識 + 問題解決** の三点セットが 1 つの素材に揃う。
 
 ---
 
@@ -1268,14 +1214,14 @@ announcement_replies
 - reviewer 码不出现在老师面板 = 防泄漏（老师看不到 = 没法截图传播）
 
 **5-08 历史教训**（AC 叙事用）：
-5-08 上架冲刺时另一个 CC 会话在 fork 用直接塞 `999999` 永久码进 prod DB（`expires_at=2030`），无 schema flag 区分。本主 CC review 戳穿 5 个 bug：(1) 老师按一次 refresh 即作废 (2) random 可能撞 999999 (3) 6 个 9 太好猜 + 永久 = 生产后门 (4) admin 默认密码进 git 历史 (5) fork 偏离主项目权威源。重做后落实本节方案。详见 `05_logs/raw/2026-05-08.md`。
+5-08 上架冲刺时另一个 CC 会话在 fork 用直接塞 `999999` 永久码进 prod DB（`expires_at=2030`），无 schema flag 区分。本主 CC review 戳穿 5 个 bug：(1) 老师按一次 refresh 即作废 (2) random 可能撞 999999 (3) 6 个 9 太好猜 + 永久 = 生产后门 (4) admin 默认密码进 git 历史 (5) fork 偏离主项目权威源。重做后落实本节方案。
 
 **功能矩阵**：
 
 | 功能 | 学生 iOS | 学生 Android | 教师 Web | 后端 API | 谁能用 | 上线版本 |
 |---|---|---|---|---|---|---|
 | Demo 账号登录（直接） | ✅ login 画面 | ⏳ | — | ✅ `POST /sessions/student` | Apple 审核员 / 老师 | v1.0 |
-| Demo 账号 is_demo 过滤 | — | — | — | ✅ rollcall / applications | — | v1.0 |
+| Demo 账号 is_demo 过滤 | — | — | — | ✅ 全老师→学生数据端点 + 公告（2026-06-13 `Announcement` 加 is_demo 列，读写双侧隔离根治；详见 BACKEND_DESIGN_LOG §7.5.2）| — | v1.0 |
 | Reviewer 注册码永久有效 | ✅ RegisterStep5 | ⏳ | — | ✅ POST /accounts | 老师演示用 | v1.0 |
 | Reviewer 注册码不在老师面板 | — | — | ✅ 自动 | ✅ `/current` 过滤 | — | v1.0 |
 
@@ -1620,8 +1566,7 @@ item_possession_requests                    -- 物品所持許可願(様式2-1)
 ## APPENDIX A — 老师 4-29 LINE 原文 + 38 条要件 + Q1-Q12 答案
 
 > **保留作 evidence**(中文翻译 + 日语原文)
-> **完整翻译 + 38 条整理** 看 `00_admin/TODO.md §🎯 4-28 demo 后老师反馈 backlog`
-> **聊天原文记录** 看 `05_logs/raw/2026-04-29.md`
+> 完整翻译 + 38 条整理 + 聊天原文记录归内部开发档案，不在公开仓库。
 
 ### A.1 平台标记
 
@@ -1749,7 +1694,7 @@ item_possession_requests                    -- 物品所持許可願(様式2-1)
 
 - `system_features.md §7.3.8` 主页 amber Card 学習倒计时（client-side timer）— spec 标 "(D 仅)" 已知 v1.0 删
 
-> **2026-05-22 sync-check 复检记录**：`bin/sync-check.sh` 触发 `[demo-scaffold-detect]` × 3（`HomeStubs.swift` / `StayListStubs.swift` / `AppStore.swift` 新加 demo 关键词字眼）— **复检结论：3 处全部已在上方 #4 / #5 / #6 / #7 登记**。5-22 早段 iOS fork 融合会话改这 3 文件时新加的字眼属于「已登记 demo 的局部调整」+「demo 已删的历史标记注释」，不构成新增 demo scaffold。下次 sync-check 触发同样 3 文件时无需再补登。
+> **2026-05-22 复检记录**：demo-scaffold 自动检测触发 × 3（`HomeStubs.swift` / `StayListStubs.swift` / `AppStore.swift` 新加 demo 关键词字眼）— **复检结论：3 处全部已在上方 #4 / #5 / #6 / #7 登记**。5-22 早段 iOS fork 融合会话改这 3 文件时新加的字眼属于「已登记 demo 的局部调整」+「demo 已删的历史标记注释」，不构成新增 demo scaffold。下次检测触发同样 3 文件时无需再补登。
 
 ### Backend
 
@@ -1761,7 +1706,7 @@ item_possession_requests                    -- 物品所持許可願(様式2-1)
 | # | 文件 | demo 内容 | 上线前怎么改 |
 |---|---|---|---|
 | 1 | `03_dev/teacher_web/v1/demo_server.py` | 整个文件 = 内存模拟后端 + `/api/server-info`（LAN IP 自动检测）+ 银行卡 NFC POST 接口 | 全删；前端改连真 `/api/v1/*`（v1.0 backend）。README.md line 16 已 TODO「真后端连接」|
-| 2 | ~~`03_dev/teacher_web/v1/开发模式跑.command`~~ | ✅ 已归档（2026-05-28） | ✅ 完成 — 移到 `99_archive/2026-05-28_开发模式跑_被启动全套脚本替代/`；启动改用项目根 `start-teacher-web.command`（起后端 8000 + 前端 8787）|
+| 2 | ~~`03_dev/teacher_web/v1/开发模式跑.command`~~ | ✅ 已归档（2026-05-28） | ✅ 完成 — 旧开发模式脚本已归档（不在公开仓库）；启动改用项目根的启动脚本（起后端 8000 + 前端 8787）|
 | 3 | `03_dev/teacher_web/v1/src/index.html` line ~4895-4931 | demo_server.py /api/server-info 自动检测 LAN IP UI 块（带 IP card）| 删整段 — production 不需要查 LAN IP |
 | 4 | `03_dev/teacher_web/demo/` 整个目录 | 4-28 demo 的 round3 副本 | 整个目录删（已有 v1/ 替代）|
 

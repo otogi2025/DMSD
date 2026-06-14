@@ -1156,9 +1156,21 @@ itsuki 拍板把演示账号从 opt-in 默认关改成 **默认启用**（`seed.
 - 点歌 songs + 遗失物 lost_found 社区列表 → join Student 按 `principal.is_demo` 双向隔离（演示侧/真实侧互不看到对方投稿）
 - codex 第 3 轮扫全 25 router 无残余 → **0 阻塞 0 重大收敛**
 
-剩 v1.1 唯一弱边角：announcements 公告**读** list/detail（Announcement 表无 is_demo 列，演示老师能读老师广播、非学生隐私，写侧已全堵）。根治要 Announcement 加 is_demo 列。
+~~剩 v1.1 唯一弱边角：announcements 公告**读** list/detail（Announcement 表无 is_demo 列，演示老师能读老师广播、非学生隐私，写侧已全堵）。根治要 Announcement 加 is_demo 列。~~ → **2026-06-13 已根治，见 §7.5.2**。
 
 验证：`test_demo_teacher.py` 7→20 测试 / 后端全量 373 passed / 网页构建退出码 0。commit `15b0ce5`。
+
+### 7.5.2 公告 demo 隔离根治（2026-06-13 — Announcement 加 is_demo 列，对齐 iOS 演示公告）
+
+§7.5.1 留的 v1.1 唯一弱边角（公告读侧无隔离）本次根治。动因：itsuki 要「老师网页公告 ↔ iOS 演示版本地 6 条公告」数据对齐 —— 对齐要把那 6 条种进后端，而种之前必须先补 demo 隔离（否则演示公告会推给真实学生）。
+
+- `Announcement.is_demo` 字段 + `idx_announcement_is_demo` 索引（迁移 `a2b3c4d5e6f7`），与 students/teachers.is_demo 三表对称。
+- **读侧**（原弱边角）：`list` / `unread-count` / `detail` 全部 where 加 `Announcement.is_demo.is_(principal.is_demo)`；detail 不匹配返 404（同 `assert_student_demo_match`「当不存在」思路，比 403 隔离更强 — 连存在性都不暴露）。
+- **写侧**从「一刀切 `assert_not_demo_teacher` 403」升级为真隔离：`post_announcement` 写 `is_demo=teacher.is_demo`（演示老师发演示公告）；`post_reply` / `delete_reply` 改为 `actor.is_demo != ann.is_demo → 404`。演示老师不再被禁，可在演示沙盒内发/回复演示公告。
+- `seed.py _seed_demo_data` 种 6 条演示宿舍公告（is_demo=True，固定 UUID 与 iOS `SEED.swift` 一字对齐，挂演示老师名下，幂等）。
+- iOS↔后端公告字段/接口/行为本就完全对齐（`is_demo` 不进 client schema），iOS 零改动。
+
+验证：公告 + 演示隔离 26 测试全绿（`test_announcements.py` 6 + `test_demo_teacher.py` 20，用专属测试库避多会话并发抢同一 `test_tomoshibi.db` 的污染）；`test_demo_teacher` 公告 3 测试更新为新隔离语义（403→404 / 能发但隔离）。commit `859419a`。
 
 ---
 
