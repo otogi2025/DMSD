@@ -528,20 +528,28 @@ export function InfoPage({
                   >
                     {p.title}
                   </div>
-                  {p.body && (
-                    <div
-                      style={{
-                        color: T.ink2,
-                        fontSize: 12,
-                        lineHeight: 1.6,
-                      }}
-                    >
-                      {p.body}
-                    </div>
-                  )}
+                  {(() => {
+                    // 展开时把全文 det.body 原地替换掉摘要 p.body 显示；
+                    // 未展开 / 详情还没拉到时仍显示摘要 —— 消除「摘要 + 全文」重复。
+                    const showFull = isOpen && det && det.body;
+                    const text = showFull ? det.body : p.body;
+                    if (!text) return null;
+                    return (
+                      <div
+                        style={{
+                          color: T.ink2,
+                          fontSize: showFull ? 13 : 12,
+                          lineHeight: 1.7,
+                          whiteSpace: showFull ? "pre-wrap" : "normal",
+                        }}
+                      >
+                        {text}
+                      </div>
+                    );
+                  })()}
                 </div>
 
-                {/* 展開時: 全文 + 返信 */}
+                {/* 展开区：只放回复列表 + 回复输入框（全文已在头部原地替换摘要显示）*/}
                 {isOpen && (
                   <div
                     style={{
@@ -552,23 +560,8 @@ export function InfoPage({
                   >
                     {det ? (
                       <>
-                        {det.body && det.body !== p.body && (
-                          <div
-                            style={{
-                              margin: "12px 0",
-                              padding: "10px 12px",
-                              background: T.surface,
-                              border: `1px solid ${T.line}`,
-                              borderRadius: 8,
-                              fontSize: 13,
-                              lineHeight: 1.7,
-                              whiteSpace: "pre-wrap",
-                            }}
-                          >
-                            {det.body}
-                          </div>
-                        )}
-                        {/* 返信一覧 */}
+                        {/* 全文已在可折叠头部原地替换摘要显示，这里不再重复展示 */}
+                        {/* 返信一覧（回复列表）*/}
                         <div style={{ marginTop: 12 }}>
                           <div
                             style={{
@@ -795,8 +788,11 @@ function EditNoticeModal({
         style={{
           background: T.surface,
           borderRadius: 14,
-          width: 540,
+          width: 680,
           maxWidth: "100%",
+          maxHeight: "90vh",
+          display: "flex",
+          flexDirection: "column",
           boxShadow: T.shadowModal,
           overflow: "hidden",
         }}
@@ -830,6 +826,8 @@ function EditNoticeModal({
             display: "flex",
             flexDirection: "column",
             gap: 14,
+            overflowY: "auto",
+            flex: 1,
           }}
         >
           <div>
@@ -873,7 +871,7 @@ function EditNoticeModal({
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              rows={6}
+              rows={12}
               style={{
                 width: "100%",
                 padding: "10px 12px",
@@ -2720,8 +2718,11 @@ function ComposeNoticeModal({
         style={{
           background: T.surface,
           borderRadius: 14,
-          width: 540,
+          width: 680,
           maxWidth: "100%",
+          maxHeight: "90vh",
+          display: "flex",
+          flexDirection: "column",
           boxShadow: T.shadowModal,
           overflow: "hidden",
         }}
@@ -2755,6 +2756,8 @@ function ComposeNoticeModal({
             display: "flex",
             flexDirection: "column",
             gap: 14,
+            overflowY: "auto",
+            flex: 1,
           }}
         >
           <div>
@@ -2800,7 +2803,7 @@ function ComposeNoticeModal({
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder="詳細をここに記入..."
-              rows={6}
+              rows={12}
               style={{
                 width: "100%",
                 padding: "10px 12px",
