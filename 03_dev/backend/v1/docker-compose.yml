@@ -31,7 +31,7 @@ services:
       APP_ENV: ${APP_ENV:-production}
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-tomoshibi}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-tomoshibi}
       JWT_SECRET: ${JWT_SECRET}
-      JWT_ACCESS_EXPIRE_MIN: ${JWT_ACCESS_EXPIRE_MIN:-1440}
+      JWT_ACCESS_EXPIRE_MIN: ${JWT_ACCESS_EXPIRE_MIN:-525600}  # 1 年=持久登录（itsuki 2026-06-14；与 config.py 默认一致，别漏改这处否则生产仍 24h）
       CORS_ORIGINS: ${CORS_ORIGINS:-https://api.tomoshibi.cc}
     depends_on:
       postgres:

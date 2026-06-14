@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-me-in-production"
     # 算法硬锁为安全 HMAC 清单 — 防 .env 误配成 none / 非对称算法导致弱签名或密钥混淆
     jwt_algorithm: Literal["HS256", "HS384", "HS512"] = "HS256"
-    jwt_access_expire_min: int = 1440  # 24h
+    jwt_access_expire_min: int = 525600  # 1 年=持久登录（itsuki 2026-06-14 上架拍板；iOS IX-036 据 expires_in 判过期，值大→启动不自动登出，登录后基本不掉，除非手动登出/换手机）
     jwt_refresh_expire_min: int = 43200  # 30d
 
     # 邮件发送 (D1) — SendGrid 2025 春取消永久免费,换 Resend(永久免费 3000封/月)
