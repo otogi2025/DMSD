@@ -11,11 +11,8 @@
 | ファイル / ディレクトリ | 役割 |
 |---|---|
 | `IOS_DESIGN_LOG.md` | iOS 専属設計決定の完全アーカイブ（§3 注册 flow、§3.9 学号 6 桁、§3.10 房间号、§3.11 改动履歴 など）|
-| `DESIGN_BRIEF.md` | 初期 Claude Design 入力（Round 1-2 履歴）|
-| `handoff_for_code_agent.md` | コード agent 向け引き継ぎ |
-| `_archived_v1_DESIGN_BRIEF_2026-04-21.md` | v1 の旧 brief（4 tab 旧方案、2026-04-22 架構推翻時に archive）|
-| `round1_handoff/` | Round 1 Prompt + 参考画像 |
-| `designs/` | HTML プロトタイプ本体 + JSX 解包源 + QA 記録 |
+| `v1/` | Swift 実装本体（TomoshibiApp Xcode プロジェクト + Foundation + Features + TASKS）|
+| `demo/` | HTML プロトタイプ（Claude Design 産出物、視覚 source of truth）+ QA 記録 |
 
 ---
 
