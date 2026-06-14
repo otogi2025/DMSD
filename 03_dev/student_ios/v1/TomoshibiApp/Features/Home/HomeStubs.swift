@@ -1114,7 +1114,7 @@ struct LifeTab: View {
         #else
             let events = loadedEvents
         #endif
-        return HomeCard(pad: 14, onTap: { router.go(.homeEvents) }) {
+        return HomeCard(pad: 14, onTap: { router.go(.schedule) }) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     HStack(spacing: 10) {

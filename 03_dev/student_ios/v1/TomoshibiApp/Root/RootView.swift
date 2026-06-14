@@ -81,7 +81,6 @@ struct RootView: View {
         case .homeMusic: MusicView()
         case .homeMusicNew: MusicNewView()
         case let .homeMusicDetail(id): MusicDetailView(id: id)
-        case .homeEvents: EventsView()
         case let .homeEventDetail(id): EventDetailView(id: id)
         // §2 申し込み — Agent D 实装
         case .apply: ApplyListView()
