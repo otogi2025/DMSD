@@ -211,7 +211,7 @@ audit log 表 = `audit_logs(id, actor_type, actor_id, action, target_type, targe
 - **模型**：`Teacher.permission_group`（5 值枚举或 NULL + CheckConstraint）；迁移 `f1a2b3c4d5e6` 加列 + 按职位回填。职位 `role` 退化为纯显示标签、不参与鉴权。
 - **矩阵**：`app/permissions.py` PRESET（5 权限组 × 16 功能簇 → MANAGE / VIEW / NONE，严格照设计 §5）+ `ROLE_DEFAULT_GROUP`（NULL 组按职位回退的向后兼容 shim，生产账号显式配组后不触发）。
 - **闸**：`deps.require_permission(功能簇, 级别)` 取代裸 `get_current_teacher` / `require_teacher_roles`；17 个簇路由的老师端点全改挂（管理动作 M / 查看动作 V），拒绝时 `detail.code="FORBIDDEN_ROLE"`（沿用旧码）。
-- **正交关系**：寮过滤（`dorm_units_for_teacher`）/ 演示隔离（`assert_not_demo_teacher` / `demo_scope_for_teacher`）/ 审批链 角色逻辑 与权限闸正交叠加，全部保留不变。
+- **正交关系**：演示隔离（`assert_not_demo_teacher` / `demo_scope_for_teacher`）/ 审批链 角色逻辑 与权限闸正交叠加，保留不变。⚠️ 寮过滤（`dorm_units_for_teacher`）**已于 2026-06-14 取消**（见下「3.8.2 寮过滤取消」）——不再是正交叠加项，现恒返回全寮。
 - **op 账号**：`seed.py` 从环境变量 `OP_PASSWORD` 注入，明文绝不入仓库 / 迁移（缺失则跳过建账号）。
 - **两处保留的职位域规则**（待 itsuki 决定是否也纯按权限组判）：① `applications.py` 代録 / proxy-candidates 仍叠加 `_DAIROKU_ROLES`（§6 未把它们列进 cluster-2 管理动作清单）；② `teachers.py delete_teacher` 仍用 `TEACHER_ADMIN_ROLES` 防删最后一个管理员。
 - **codex 复审（2026-06-11，gpt-5.5 xhigh 只读）**：0 阻塞 / 5 重大 / 2 次要 / 1 建议。CC 逐条独立核实，itsuki 拍板后修了 4 条（F3 保持现状）：
@@ -221,6 +221,16 @@ audit log 表 = `audit_logs(id, actor_type, actor_id, action, target_type, targe
   - **F5 学習担当 回退映射**：`permissions.py` + 迁移回填把 `学習担当` 从 `申請承認専用`(晚自习只读) 改成 `一般宿管+晚自习`(itsuki 确认其负责晚自习管理)。
   - **F3（保持现状）**：建账号允许 permission_group=NULL→职位回退是故意留的安全网，itsuki 拍板不强制必填。
   - 次要/建议（F6 前端导航按职位显隐 / F7 共享端点 / F8 代録职位）记入内部 TODO 跟踪。
+
+#### 3.8.2 寮过滤取消（2026-06-14）
+
+itsuki 2026-06-13 拍板**取消老师寮过滤**：所有老师可查看/操作所有学生，「能不能改」仅由权限组（§5 矩阵）把关，不再叠加男/女寮（`assigned_dorm`）边界。原话「学生信息本就公开，约束在『改』不在『看』」。
+
+- **代码**（commit `d8ddad5`）：`deps.dorm_units_for_teacher` 恒返回全寮 `[1,2,4]`（返全集而非 None，避免无 `if allowed is not None` 守卫的调用点 `.in_(None)` 报错）；`applications._teacher_can_view` → `return True`；删 applications 3 处内联寮过滤块。25+ 个调用点因此自动放开，逻辑无需逐改。
+- **`§3.8 中 F1 寮边界 / TODO「F1-遗留 11 端点补寮过滤」均作废**——取消寮过滤后，补寮过滤方向相反、无意义。`admin_accounts` 的 `_assert_student_in_dorm` 等校验因 `dorm_units_for_teacher` 恒全寮而成为 no-op，代码留着无害。
+- **测试**（commit `874d5c1`）：约 35 个寮边界测试改写（403 FORBIDDEN_DORM→200/201、列表排除别寮→含别寮）。全量 **379 passed**。
+- **刻意保留**（与「老师跨寮访问」正交，非寮过滤）：① 男女寮**分开显示** + 独立 session（R4 显示规则，`system_features §2`）；② 学生只看本寮点呼场次（`/rollcall/me/today`）；③ 学生房号不能改成异性寮（格式校验）；④ WebSocket 按寮广播；⑤ demo `is_demo` 隔离。
+- 隐私权衡（男老师可见女生信息）itsuki 已知悉并接受。详见 `02_design/teacher_permission_v1.md §11.2`。
 
 ---
 
