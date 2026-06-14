@@ -319,3 +319,86 @@ def test_search_recipients_non_admin_can_view(client, seed_data):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert res.status_code == 200, res.text
+
+
+# ---------------------------------------------------------------
+# 件数 item_count + description 按 kind 校验（2026-06-14 选学生统一 + 快递改造）
+# ---------------------------------------------------------------
+def _create_url():
+    return "/api/v1/front-desk"
+
+
+def test_create_delivery_default_item_count(client, seed_data):
+    """宅配登记不传 item_count → 默认 1。"""
+    token = _login_teacher(client, "ryomu_kachou")
+    res = client.post(
+        _create_url(),
+        json={
+            "kind": "delivery",
+            "student_id": str(seed_data["student"].id),
+            "description": "ヤマト",
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 201, res.text
+    assert res.json()["item_count"] == 1
+
+
+def test_create_delivery_with_item_count(client, seed_data):
+    """宅配登记传 item_count=3 → 落库 + 回显 3。"""
+    token = _login_teacher(client, "ryomu_kachou")
+    res = client.post(
+        _create_url(),
+        json={
+            "kind": "delivery",
+            "student_id": str(seed_data["student"].id),
+            "item_count": 3,
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 201, res.text
+    assert res.json()["item_count"] == 3
+
+
+def test_create_item_count_must_be_positive(client, seed_data):
+    """item_count=0 → 422（下限 1）。"""
+    token = _login_teacher(client, "ryomu_kachou")
+    res = client.post(
+        _create_url(),
+        json={
+            "kind": "delivery",
+            "student_id": str(seed_data["student"].id),
+            "item_count": 0,
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 422, res.text
+
+
+def test_create_delivery_description_optional(client, seed_data):
+    """宅配 description 可不传 → 201 + 缺省存空串（6-14 备注改可选）。"""
+    token = _login_teacher(client, "ryomu_kachou")
+    res = client.post(
+        _create_url(),
+        json={
+            "kind": "delivery",
+            "student_id": str(seed_data["student"].id),
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 201, res.text
+    assert res.json()["description"] == ""
+
+
+def test_create_lost_and_found_requires_description(client, seed_data):
+    """失物招领不传 description → 422（物品说明仍必填）。"""
+    token = _login_teacher(client, "ryomu_kachou")
+    res = client.post(
+        _create_url(),
+        json={
+            "kind": "lost_and_found",
+            "location": "食堂",
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 422, res.text

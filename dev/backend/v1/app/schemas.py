@@ -1235,6 +1235,7 @@ class FrontDeskItemOut(BaseModel):
     student_id: Optional[UUID]
     description: str
     location: Optional[str]
+    item_count: int  # 宅配件数（delivery）；lost_and_found 恒为 1
     status: Literal["pending", "notified", "picked_up", "expired", "discarded"]
     created_by_teacher_id: UUID
     created_at: datetime
@@ -1250,8 +1251,12 @@ class FrontDeskItemCreateIn(BaseModel):
 
     kind: Literal["delivery", "lost_and_found"]
     student_id: Optional[UUID] = None
-    description: str = Field(..., min_length=1, max_length=2000)
+    # description 必填性按 kind 区分（见 _lost_and_found_requires_description）：
+    # 失物招领=物品说明、必填；宅配=可选备注、可空（router 落库时缺省存空串，DB 列仍 NOT NULL）。
+    description: Optional[str] = Field(None, max_length=2000)
     location: Optional[str] = Field(None, max_length=200)
+    # 宅配件数（delivery 用，老师登记几件）；lost_and_found 忽略、恒为 1。默认 1、下限 1。
+    item_count: int = Field(1, ge=1)
     # 默认 expires_in_days: delivery=7 / lost_and_found=30（router 层应用）
 
     @field_validator("student_id", mode="before")
@@ -1264,12 +1269,28 @@ class FrontDeskItemCreateIn(BaseModel):
             return None
         return v
 
+    @field_validator("description", mode="before")
+    @classmethod
+    def _blank_description_to_none(cls, v):
+        # 表单留空 / 纯空白 → 归一成 None，便于下面按 kind 校验（失物纯空白也算没填）。
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
+
     @model_validator(mode="after")
     def _delivery_requires_student(self):
         # 宅配(delivery)必须指定收件学生 —— 否则学生端 GET /mine 按 student_id 过滤永远查不到、
         # 登记成功但无人收到通知（codex 第三轮 major #2）。失物招领的 student_id 是捡到人、可空。
         if self.kind == "delivery" and self.student_id is None:
             raise ValueError("宅配は受取人（student_id）の指定が必須です")
+        return self
+
+    @model_validator(mode="after")
+    def _lost_and_found_requires_description(self):
+        # 失物招领必须有物品说明（description）；宅配的 description 只是可选备注。
+        # 配合 6-14 改造：宅配弹窗去掉「配送業者」、备注改可选。
+        if self.kind == "lost_and_found" and not self.description:
+            raise ValueError("失物招领は物品の説明（description）が必須です")
         return self
 
 

@@ -1190,6 +1190,11 @@ class FrontDeskItem(Base):
     description: Mapped[str] = mapped_column(Text, nullable=False)
     # 失物发现位置 / 宅配保管位置
     location: Mapped[Optional[str]] = mapped_column(Text)
+    # 宅配件数 — delivery 时有意义（老师登记几件包裹）；lost_and_found 恒为 1、忽略。
+    # 历史行（加列前）server_default="1" 回填。
+    item_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="1", default=1
+    )
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
 
     created_by_teacher_id: Mapped[uuid.UUID] = mapped_column(

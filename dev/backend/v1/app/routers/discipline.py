@@ -162,6 +162,49 @@ def get_my_discipline_summary(
     )
 
 
+@router.get("/students", response_model=list[schemas.FrontDeskStudentBrief])
+def search_students_for_demerit(
+    q: str | None = None,
+    db: Session = Depends(get_db),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_DEMERIT, permissions.VIEW)
+    ),
+):
+    """手动加扣分时挑学生用 —— 扣分管理 V 权限即可。
+
+    为什么单独建此端点、不复用 front-desk 的 GET /students：那个要「前台·宅配」权限，
+    但能扣分的老师（寮監 / 寮務）未必有前台权限 —— 权限簇不同，复用会把寮監锁在外面
+    （6-14 选学生统一改造 §5 约束2 倾向①：新建权限与扣分对齐的轻量接口）。
+    返回字段复用 FrontDeskStudentBrief（挑人最小字段），老师网页 StudentPicker 统一消费。
+    同样按老师管辖男/女寮过滤 + 演示隔离。
+    """
+    stmt = select(models.Student).where(demo_scope_for_teacher(teacher))
+    if q:
+        like = f"%{q}%"
+        stmt = stmt.where(
+            models.Student.name.like(like)
+            | (
+                models.Student.grade_code
+                + models.Student.class_code
+                + models.Student.seat_no
+            ).like(like)
+        )
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None:
+        stmt = stmt.where(models.Student.dorm_unit.in_(allowed))
+    stmt = stmt.order_by(models.Student.room_no).limit(20)
+    return [
+        schemas.FrontDeskStudentBrief(
+            id=s.id,
+            name=s.name,
+            room_no=s.room_no,
+            student_no=f"{s.grade_code}{s.class_code}{s.seat_no}",
+            dorm_unit=s.dorm_unit,
+        )
+        for s in db.scalars(stmt).all()
+    ]
+
+
 @router.post("/manual", response_model=schemas.DemeritEventOut, status_code=201)
 def create_manual_demerit(
     body: schemas.DemeritManualIn,

@@ -201,8 +201,10 @@ def create_item(
     row = models.FrontDeskItem(
         kind=body.kind,
         student_id=body.student_id,
-        description=body.description,
+        # 宅配备注可空 → 缺省存空串（DB 列 NOT NULL）；失物招领 schema 已保证非空。
+        description=body.description or "",
         location=body.location,
+        item_count=body.item_count,
         status="pending",
         created_by_teacher_id=teacher.id,
         expires_at=expires_at,
