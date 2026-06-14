@@ -1580,8 +1580,8 @@ struct GenericApplyForm: View {
 
     @State private var dest: String = ""
     @State private var reason: String = ""
-    @State private var date: Date = StayForm.parseYMD("2026-04-25") ?? Date()
-    @State private var endDate: Date = StayForm.parseYMD("2026-04-26") ?? Date()
+    @State private var date: Date = StayForm.tomorrow
+    @State private var endDate: Date = Calendar.current.date(byAdding: .day, value: 1, to: StayForm.tomorrow) ?? StayForm.tomorrow
     @State private var time: Date = StayForm.parseHM("18:00") ?? Date()
     @State private var contact: String = ""
     @State private var didPrefillContact: Bool = false
@@ -1725,13 +1725,13 @@ struct GenericApplyForm: View {
 
                     if !isRepair && !isParcel && !isOuting {
                         Field(label: isReturn ? "日付" : (needsEnd ? "開始日" : "日付"), required: true) {
-                            DateField(date: $date)
+                            DateField(date: $date, minDate: StayForm.tomorrow)
                         }
                         .padding(.bottom, 14)
                     }
                     if needsEnd {
                         Field(label: "終了日", required: true) {
-                            DateField(date: $endDate)
+                            DateField(date: $endDate, minDate: date)
                         }
                         .padding(.bottom, 14)
                     }

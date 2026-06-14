@@ -1615,7 +1615,8 @@ struct RollcallSheet: View {
                         try await writer.writeCheckin(studentId: uuid, type: .rollcall)
                         await MainActor.run {
                             guard !Task.isCancelled, app.sheetOpen == .rollcall else { return }
-                            app.recordCheckin() // 本地物理确认（卡变绿）、非权威；权威判定在点呼机 + 后端
+                            // 生产版不本地置 done（伪判定，会被每秒 refreshRollStateFromSessions 覆盖回受付中/欠席）；
+                            // 只显「写卡成功」绿勾，点呼状态由后端 my_checked_in_at 驱动。
                             withAnimation(.easeOut(duration: 0.22)) { step = .success }
                         }
                         try? await Task.sleep(nanoseconds: 2_000_000_000)

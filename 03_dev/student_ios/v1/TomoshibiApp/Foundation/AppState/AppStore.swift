@@ -586,35 +586,39 @@ final class AppStore: ObservableObject {
     //   → 后端返回 checkin record → 这里更新 rollState / checkinAt / checkinKind
     // 当前是接入前的 mock：直接本地记录，后端联通后改成 await api.postCheckin(...)。
 
-    /// done 表示自动恢复 idle 的任务（避免重复持有）
-    private var autoDismissDoneTask: Task<Void, Never>?
+    #if DEMO
+        /// done 表示自动恢复 idle 的任务（避免重复持有）
+        /// 仅演示版：本地 mock 点呼状态机用。生产版点呼状态由后端 my_checked_in_at 经
+        /// refreshRollStateFromSessions 驱动，绝不本地置 done（否则被每秒 timer 覆盖回去，体验像签到失败）。
+        private var autoDismissDoneTask: Task<Void, Never>?
 
-    /// NFC tap 成功后调（真 production 由后端 response 触发）
-    func recordCheckin() {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "HH:mm"
-        checkinAt = fmt.string(from: Date())
-        checkinKind = "時間内"
-        rollState = .done
+        /// NFC tap 成功后调（仅演示版本地假确认；生产版不调它——权威判定在点呼机 + 后端）
+        func recordCheckin() {
+            let fmt = DateFormatter()
+            fmt.dateFormat = "HH:mm"
+            checkinAt = fmt.string(from: Date())
+            checkinKind = "時間内"
+            rollState = .done
 
-        // 5 秒后自动恢复 idle（done 完成提示自然消失）
-        autoDismissDoneTask?.cancel()
-        autoDismissDoneTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            guard !Task.isCancelled else { return }
-            await MainActor.run {
-                guard let self else { return }
-                if self.rollState == .done {
-                    withAnimation(.easeInOut(duration: 0.4)) {
-                        self.rollState = .idle
-                        self.rollCountdownSec = 180
-                        self.checkinAt = nil
-                        self.checkinKind = nil
+            // 5 秒后自动恢复 idle（done 完成提示自然消失）
+            autoDismissDoneTask?.cancel()
+            autoDismissDoneTask = Task { [weak self] in
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    guard let self else { return }
+                    if self.rollState == .done {
+                        withAnimation(.easeInOut(duration: 0.4)) {
+                            self.rollState = .idle
+                            self.rollCountdownSec = 180
+                            self.checkinAt = nil
+                            self.checkinKind = nil
+                        }
                     }
                 }
             }
         }
-    }
+    #endif
 
     // A-030 / A-033 (2026-05-21): cycleDemoRollState() 已删
     // memory project_demo_scaffolds_to_remove_before_v1.md #1, #15
