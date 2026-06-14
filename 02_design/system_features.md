@@ -407,7 +407,7 @@
 | 给役职发**邮件**通知 #6 / R1 | — | — | `POST /notifications/email` ⏳ | 系统 | (V1) |
 | 役职 承认 / 不承认 #10 | 〇 通知接收 | ✅ ApprovalPage | `PATCH /apply/:id/state` ⏳ | 役职 | (V1) |
 | 给提交者发评论 #13(**杭田弱点**)| 〇 通知接收 | ✅ 评论栏 | `POST /apply/:id/comment` ⏳ | 役职 | (V1) |
-| 寮生特别运航便 一覧显示 #8(**杭田没实装**)| 〇 帰省方法选择时 select | ✅ 编辑 #11 | `GET /bus/special` ⏳ | 学生 + 役职 | (V1) |
+| 寮生特别运行便 一覧显示 #8(**杭田没实装**)| 〇 帰省方法选择时 select | ✅ 编辑 #11 | `GET /bus/special` ⏳ | 学生 + 役职 | (V1) |
 | 行事予定显示 #9 | ✅ カレンダー（2026-06-04 接真后端）| ✅ 编辑 #12 | `GET /events` ✅ | 学生 + 役职 | (V1) |
 | 食堂食数计算(食事不要期间 → 朝/昼/夕 → **Excel 导出**)#7 / Q7 | — | ✅ MealsPage 显示 | `GET /apply/meals/calc?date=` ⏳ | 寮務 | (V1) |
 
@@ -740,7 +740,7 @@
 | 行事予定 通知(加・改时)| 〇 push + in-app | ✅ 编辑即反映 | (内部) | 系统 | (V1) |
 | 出寮届 提交时旁边显示行事予定参考 | 〇 ApplyForm 旁边 calendar | — | 同上 | 学生 | (V1) |
 
-### 7.6 寮生特别运航便(学校巴士 / 寮特殊巴士 / 学生选择) — 杭田没实装的差别化功能
+### 7.6 寮生特别运行便(学校巴士 / 寮特殊巴士 / 学生选择) — 杭田没实装的差别化功能
 
 > **Q8 答**: 学校有固定 bus(平日给通学生用)+ 宿舍特殊 bus(不固定时间去市区,老师手动加)。学生提交外宿之类的时候要加一个可以选哪班特别巴士或者平日巴士,因为有时候有特别巴士会送学生到机场。
 
@@ -763,7 +763,7 @@ bus_routes
 
 | 功能 | 学生 iOS | 老师 Web | 后端 API | 角色 | Demo/V1 |
 |---|---|---|---|---|---|
-| 巴士一覧 阅览 #8 | 〇 **ホーム busCard → BusListView**(filter 付き / 2026-05-03 MyPage から移設・重複解消) | ✅ 阅览 | `GET /bus/routes` ⏳ | 学生 + 役职 | (V1) |
+| 巴士一覧 阅览 #8 | 〇 **ホーム busCard → BusListView**(特別運行便のみ表示・空港 toggle / 2026-06-13 通学便種別 filter 削除〔iOS+Android 対齐〕 / 2026-05-03 MyPage から移設・重複解消) | ✅ 阅览 | `GET /bus/routes` ⏳ | 学生 + 役职 | (V1) |
 | 巴士 录入・编辑・删除 #11 | — | ✅ BusManagementPage | `POST/PATCH/DELETE /bus/routes` ⏳ | 役职 | (V1) |
 | 出寮届 提交时选巴士(特别便 / 平日便)#8 | 〇 ApplyForm 帰省方法 = bus 时 dropdown | — | apply 上加关联字段 | 学生 | (V1) |
 | 空港送迎特别便 显示(只在 帰国届时)| 〇 帰国届 ApplyForm | ✅ 同上 | `GET /bus/airport` filter | 学生 + 役职 | (V1) |
@@ -1356,7 +1356,7 @@ applications                                -- 出寮届(帰省 / 外泊 / 帰�
 ├── flight_dep_at   TIMESTAMPTZ NULL
 ├── flight_arr_air  TEXT NULL
 ├── flight_arr_at   TIMESTAMPTZ NULL
-├── bus_route_id    UUID FK → bus_routes.id NULL  -- 选特别运航便等 (Q8)
+├── bus_route_id    UUID FK → bus_routes.id NULL  -- 选特别运行便等 (Q8)
 ├── contact_phone   TEXT NULL               -- 本人連絡先 携帯(实物表補完 5-28)
 ├── companion       TEXT NULL               -- 外泊 同行者(实物表補完 5-28)
 ├── dest_cities     TEXT NULL               -- 外泊 行先(都市名、全记入)(实物表補完 5-28)
@@ -1631,12 +1631,12 @@ item_possession_requests                    -- 物品所持許可願(様式2-1)
 　帰国：外泊と同じ
 ・出寮願提出時、上記の役職に通知を送る（修正→現在メール通知）
 ・食堂スタッフへの食数通知（食事不要期間から計算、Excel 出力）
-・寮生特別運航便一覧表示（杭田未実装）
+・寮生特別運行便一覧表示（杭田未実装）
 ・行事予定表示
 
 〇役職の出寮届許可用
 ・出寮届を確認し、許可もしくは不許可を出す
-・寮生特別運航便の入力＆編集
+・寮生特別運行便の入力＆編集
 ・表示する行事予定表の変更
 ・出寮届提出者にコメントを表示する（杭田弱）
 

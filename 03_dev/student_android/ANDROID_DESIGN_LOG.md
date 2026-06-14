@@ -266,4 +266,17 @@ itsuki 2026-06-03 拍板出租车预约功能（4 端）。iOS / 老师网页 / 
 
 ---
 
+## 11. 特別運行便一覧：只显示特別便 + 删通学便筛选 + 運航→運行（2026-06-13，与 iOS 对齐，commit `79f702c`）
+
+itsuki 看 iOS 班车页反馈三点，拍板 iOS + Android + 共用规格全同步。Android `BusListScreen.kt` 照 iOS `BusListView` 同改：
+
+- **只显示寮生特別運行便**：`visible` 过滤改成只留 `kind == "dorm_special"`，平日通学便（`daily_commute`）不再显示（页脚弱字已注明「※ 通常日のスクールバスは別途ご確認ください」= 普通校车另查）。
+- **删类型筛选条**：原「すべて」「特別便」「通学便」3 颗 `FilterPill` 胶囊 + `filter` state + `FilterPill` 组件定义 +`clickable` 孤儿 import 全删，只保留「空港送迎便のみ」开关。
+- **徽章全称**：`kindLabel()` 的 `dorm_special` 显示从「特別便」→「特別運行便」，`BusRow` 的 Pill tone 比对同步改。
+- **汉字 運航→運行**：标题 `PageHeader`、空状态「運行便はありません」、`Routes.kt` / `Models.kt` / `MockData.kt`（含 2 处公告假数据 UI 串）——「運航」专指船 / 飞机、巴士的标准日语是「運行」，itsuki 反馈用的就是「運行」，全项目统一。
+- **验证**：`./gradlew assembleDebug` BUILD SUCCESSFUL。
+- 共用规格 `system_features.md §7.6.2` 同步更新（只显示特別運行便 / 删类型 filter）。iOS 侧见 `IOS_DESIGN_LOG.md §19`。
+
+---
+
 **END** — 本档随实装进展持续更新。
