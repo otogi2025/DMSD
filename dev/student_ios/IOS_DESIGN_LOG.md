@@ -1446,3 +1446,37 @@ gpt-5 + high（非预期 gpt-5.5 + xhigh）逐层挖 `ST25DVWriter` NFC 取消�
 - 蓝点重叠 bug 因旧日历整体删除而消失（先行的位置修复 commit `ded0883` 随 `EventsView` 删除而退役，仅留作「发现 bug」证据）。
 
 > 隐患根治：重复代码导致「修一处漏一处」，本次即此模式的实证；合并后日历相关改动只有 `ScheduleView` 一处。
+
+---
+
+## §22 [2026-06-14] 上线前审查 Tier2/Tier3 — JST 时区策略 + 安全纵深 + 行为修正（v0.23.10）
+
+> 起因：6-13 全量审查分层后，Tier1（必改）已在 v0.23.9 落地，本段是 Tier2（重要）+ Tier3（润色）一次做完。只记**设计相关**的（时区策略 / 安全姿态 / 关键行为）；日语措辞润色（约 56 处）属 typo 级、不入设计日志。commit `4fe5565`/`dff7063`/`a1ef0e4`/`aa047fa`/`fd4b5bd`/`6f3765a`。
+
+### §22.1 JST 时区策略（选择性，非全局）⭐ 设计原则
+**只对「绝对时刻 / 今天·月份判断 / 时间合成」加 `Asia/Tokyo`，对 date-only 民事日期绝不加。**
+- 加 JST（10 处）：公告展示/回复时间格式化、首页班车·活动「今天」判断、点呼本地记录(DEMO)、学习打卡历史日期、本月点呼统计口径、违纪图表月份分桶、归国航班时间用 Tokyo `Calendar` 合成。
+- **绝不加 JST**：生日 `AppStore.swift birthdayString`（来自 date-only DatePicker 的 yyyy-MM-dd）——在 UTC+10/+12 设备加 JST 会把生日算到前一天。
+- **绝不全局设** `JSONEncoder.dateEncodingStrategy = .iso8601`——会波及 date-only 字段（全工程 grep 确认 0 处、本批未引入）。
+- 航班/申请时间合成的根因在 `Calendar.current` 合成那一刻（把用户选的墙上时刻按设备时区解释成绝对时刻），只改输出 formatter 无效，必须用 Tokyo `Calendar` 合成。
+
+### §22.2 安全纵深加固
+- Keychain token 访问级别 `AfterFirstUnlockThisDeviceOnly` → `WhenUnlockedThisDeviceOnly`（锁屏后不可读，更严）。
+- `APIClient` baseURL 的环境变量覆盖（`TOMOSHIBI_API_URL`）只在 `#if DEBUG` 生效，Release 二进制固定生产地址——防越狱/调试器/MDM 注入把带 JWT 的请求重定向。
+- 4 处生产 `print(error)`（loadMe / loadTodayRollcall / 外泊审计 / APNs 注册失败）包进 `#if DEBUG`，避免后端原始 error 进 Release 系统日志。
+- Keychain 写失败处理：删 DEBUG `assertionFailure`（环境性写失败不该崩 DEBUG/Preview/单测）+ print 仅 DEBUG（合并 D 簇 bug 修复与 E 簇安全意图）。
+- **引入 `#if DEBUG/#else` 后额外跑 Release 档 `xcodebuild`** 验 `#else` 分支（baseURL 生产固定 + APNs 空回调体）编译。
+
+### §22.3 关键行为修正（设计相关的几个）
+- NFC 点呼**生产**状态不再本地伪置（Tier1 已包 `#if DEMO`，本批 JST 修复亦只动 DEMO 内的 `recordCheckin`）。
+- `ApplyKindMapper` 内部键 `study_absence` → `studyAbsence`（修死键：全 App kind 实际是驼峰，旧下划线键查不到→POST 时 encode 回退原值发错给后端）。
+- 班车候选「下一班」判断从字符串字典序比较改为解析回 `Date(JST)` 比较（不依赖零填充）。
+- 通用申请默认日期、未读 badge 数据源、点呼详情 O(n) 查找、toast/锁定计时器/头像 loading 竞态等见 commit `aa047fa`。
+
+### §22.4 留给 itsuki 的 3 项（未改，技术可改但归属/语义需定）
+1. 介绍页 Tomoshibi 命名故事日语助词修正——AC 叙事文案归 itsuki。
+2. 「変更不可（先生に依頼）」称呼是否改「寮監」——谁负责改学生学号/姓名是项目语义。
+3. 演示申請者姓名汉字写法——本批只改了 `12号→12番` 单位，姓名「Nishimura Aoi」保留（agent 自造汉字无出处）。
+
+### §22.5 方法论
+6 簇并行「分析→对抗核验」工作流（12 代理）重定位被 Tier1 改漂的行号 + 出经核验的精确改法，CC 用 Python 断言落地（每条全文件命中=1）+ 双 scheme 真编译 + 按簇 commit。**前后端枚举收紧**（meal/period/post_type/product String→enum）经两轮 AI 判定会引发多文件连锁+改运行时行为、UI 已有守卫 → 只安全收 `Bool?→Bool`，其余记 TODO 缓办。
