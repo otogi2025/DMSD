@@ -308,6 +308,11 @@ struct StudyOnlineForm: View {
                         fileName: contract.fileName,
                         mimeType: contract.mime
                     )
+                } catch APIError.unauthorized {
+                    // 上传时令牌已失效（用户其实已登出）→ 清 token + 跳回登录，不进完成页
+                    app.authToken = nil
+                    router.replace(.login)
+                    return
                 } catch {
                     // 申请已成立但合同没传上 — 不回退申请，提示用户稍后从一覧重新添付
                     app.showToast("申請は提出されましたが契約書の添付に失敗しました")
@@ -325,7 +330,7 @@ struct StudyOnlineForm: View {
         } catch APIError.network {
             app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(error.localizedDescription)
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "オンライン学習申請の提出に失敗しました"))
         }
     }
 }
@@ -396,7 +401,7 @@ struct StudyOnlineRequestListView: View {
         } catch APIError.network {
             app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(error.localizedDescription)
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "オンライン学習申請一覧の取得に失敗しました"))
         }
         loading = false
     }
@@ -511,7 +516,7 @@ private struct StudyOnlineRequestRow: View {
             app.showToast("通信エラーが発生しました。電波を確認してください")
             picked = nil
         } catch {
-            app.showToast(error.localizedDescription)
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "契約書の添付に失敗しました"))
             picked = nil
         }
     }

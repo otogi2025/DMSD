@@ -134,6 +134,43 @@ final class APIClient {
         let _: EmptyResponse = try await request(method: "DELETE", path: path, body: nil as String?)
     }
 
+    // MARK: - 二进制下载
+
+    /// 下载二进制文件（契約書图片 / PDF 等非 JSON 响应）。
+    /// 与 request / upload 共用 baseURL + Bearer 鉴权 + 同一个 session（带超时、将来可挂证书绑定），
+    /// 但不走 JSONDecoder —— 2xx 时直接返回原始字节。错误口径与其他方法一致。
+    func download(path: String) async throws -> Data {
+        guard let url = URL(string: baseURL + path) else {
+            throw APIError.unknown
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        if let tok = token {
+            req.setValue("Bearer \(tok)", forHTTPHeaderField: "Authorization")
+        }
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: req)
+        } catch {
+            throw APIError.network(error)
+        }
+
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.unknown
+        }
+        switch http.statusCode {
+        case 200 ... 299:
+            return data
+        case 401:
+            throw APIError.unauthorized
+        default:
+            let msg = DetailError.extractMessage(from: data) ?? ""
+            throw APIError.server(http.statusCode, msg)
+        }
+    }
+
     // MARK: - multipart 文件上传
 
     /// multipart/form-data 单文件上传（契約書照片 / PDF）。

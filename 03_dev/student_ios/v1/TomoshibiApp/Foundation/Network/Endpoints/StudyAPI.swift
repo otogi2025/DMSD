@@ -70,45 +70,15 @@ enum StudyAPI {
     }
 
     /// 下载在线学习申请的契約書文件（二进制：图片 / PDF）。
-    /// 不走 APIClient.get（那个按 JSON 解码、二进制会失败）；APIClient.swift 不在本簇可改文件，
-    /// 这里自建最小请求，base URL / 鉴权（Bearer token）跟 APIClient 保持一致。
+    /// 走统一 APIClient.download（共用 baseURL + 鉴权 + 同一 session，将来加证书绑定也覆盖得到）。
     /// - Throws:
     ///   - APIError.unauthorized — 401 → 重新登录
     ///   - APIError.server(404, _) — 没上传过 / 文件丢失
     @MainActor
     static func downloadOnlineContract(requestId: UUID) async throws -> Data {
-        let path = "/api/v1/study/online-requests/\(requestId.uuidString)/contract"
-        guard let url = URL(string: apiBaseURL + path) else { throw APIError.unknown }
-        var req = URLRequest(url: url)
-        if let tok = APIClient.shared.token {
-            req.setValue("Bearer \(tok)", forHTTPHeaderField: "Authorization")
-        }
-        let data: Data
-        let response: URLResponse
-        do {
-            (data, response) = try await URLSession.shared.data(for: req)
-        } catch {
-            throw APIError.network(error)
-        }
-        guard let http = response as? HTTPURLResponse else { throw APIError.unknown }
-        switch http.statusCode {
-        case 200 ... 299:
-            return data
-        case 401:
-            throw APIError.unauthorized
-        default:
-            throw APIError.server(http.statusCode, "契約書の取得に失敗しました")
-        }
-    }
-
-    /// APIClient.baseURL 是 private、且 APIClient.swift 不在本簇可改文件 → 下载二进制（非 JSON）
-    /// 这里复制同一套 base URL 规则（DEBUG=localhost / RELEASE=生产服务器 + 环境变量覆盖），与 APIClient 保持一致。
-    private static var apiBaseURL: String {
-        #if DEBUG
-            return ProcessInfo.processInfo.environment["TOMOSHIBI_API_URL"] ?? "http://localhost:8000"
-        #else
-            return ProcessInfo.processInfo.environment["TOMOSHIBI_API_URL"] ?? "https://api.tomoshibi.cc"
-        #endif
+        return try await APIClient.shared.download(
+            path: "/api/v1/study/online-requests/\(requestId.uuidString)/contract"
+        )
     }
 
     /// GET /api/v1/study/absence-requests/me/summary 响应 — 当前学生当月请假次数。

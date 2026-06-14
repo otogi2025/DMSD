@@ -167,6 +167,13 @@ struct ContractFilePicker: View {
             guard let url = urls.first else { return }
             let scoped = url.startAccessingSecurityScopedResource()
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            // 先看文件大小属性（不读内容）：超 10 MB 直接拒，避免把超大 PDF 整包读进内存才校验（那样校验前就可能卡死/崩）。
+            if let fileSize = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize,
+               fileSize > ContractImage.maxBytes
+            {
+                errorText = "ファイルが大きすぎます（10 MB 以下にしてください）"
+                return
+            }
             guard let raw = try? Data(contentsOf: url) else {
                 errorText = "ファイルの読み込みに失敗しました"
                 return

@@ -1899,7 +1899,7 @@ struct LoginView: View {
         } catch APIError.network {
             app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(error.localizedDescription)
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "ログインに失敗しました"))
         }
     }
 }

@@ -1090,7 +1090,7 @@ struct StayForm: View {
         } catch APIError.network {
             app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(error.localizedDescription)
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "申請の提出に失敗しました"))
         }
     }
 
@@ -1542,7 +1542,7 @@ struct StudyAbsenceForm: View {
                             } catch is CancellationError {
                                 // IX-034：提交在途登出 / 切用户 → 静默中止，不导航完成页、不弹错误
                             } catch {
-                                app.showToast(error.localizedDescription)
+                                app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "申請の提出に失敗しました"))
                             }
                         }
                     } label: {
@@ -1948,7 +1948,7 @@ struct GenericApplyForm: View {
             } catch APIError.network {
                 app.showToast("通信エラーが発生しました。電波を確認してください")
             } catch {
-                app.showToast(error.localizedDescription)
+                app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "外出申請の提出に失敗しました"))
             }
         #endif
     }
@@ -2009,7 +2009,7 @@ struct GenericApplyForm: View {
         } catch APIError.network {
             app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(error.localizedDescription)
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "申請の提出に失敗しました"))
         }
     }
 }
@@ -2736,7 +2736,7 @@ struct OutingDetailView: View {
         } catch APIError.network {
             app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(error.localizedDescription)
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "申請の取消に失敗しました"))
         }
     }
 }

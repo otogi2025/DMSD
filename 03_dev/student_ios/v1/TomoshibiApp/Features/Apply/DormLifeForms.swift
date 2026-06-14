@@ -185,7 +185,7 @@ struct DormEventProposalForm: View {
         } catch APIError.network {
             app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(error.localizedDescription)
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "行事企画申請の提出に失敗しました"))
         }
     }
 }
@@ -256,7 +256,7 @@ struct DormEventProposalListView: View {
         } catch APIError.network {
             app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(error.localizedDescription)
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "行事企画一覧の取得に失敗しました"))
         }
         loading = false
     }
@@ -435,7 +435,7 @@ struct FridgePurchaseForm: View {
         } catch APIError.network {
             app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(error.localizedDescription)
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "冷蔵庫購入届の提出に失敗しました"))
         }
     }
 }
@@ -506,7 +506,7 @@ struct FridgePurchaseListView: View {
         } catch APIError.network {
             app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(error.localizedDescription)
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "冷蔵庫購入届一覧の取得に失敗しました"))
         }
         loading = false
     }
@@ -668,7 +668,7 @@ struct ItemPossessionForm: View {
         } catch APIError.network {
             app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(error.localizedDescription)
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "物品所持許可願の提出に失敗しました"))
         }
     }
 }
@@ -739,7 +739,7 @@ struct ItemPossessionListView: View {
         } catch APIError.network {
             app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(error.localizedDescription)
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "物品所持許可願一覧の取得に失敗しました"))
         }
         loading = false
     }

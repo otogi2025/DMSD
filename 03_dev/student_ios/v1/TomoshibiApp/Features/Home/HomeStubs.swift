@@ -2569,7 +2569,7 @@ struct RenewStudentNoSheet: View {
             } catch {
                 // 撞号(422)「已有人设定」/ 网络错 → 弹后端日语提示，留在弹窗让学生改
                 submitting = false
-                app.showToast(error.localizedDescription)
+                app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "学籍番号の設定に失敗しました"))
             }
         }
     }
