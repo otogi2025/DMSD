@@ -1165,7 +1165,8 @@ struct StayForm: View {
     /// 把一个日期的年月日 + 一个时刻的时分合成成一个 Date。
     /// TimeField 只带时刻、底层日期是 2000-01-01，所以要跟对应的日期组合起来用。
     static func combine(date: Date, time: Date) -> Date {
-        let cal = Calendar.current
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Asia/Tokyo") ?? .current
         let d = cal.dateComponents([.year, .month, .day], from: date)
         let t = cal.dateComponents([.hour, .minute], from: time)
         var c = DateComponents()

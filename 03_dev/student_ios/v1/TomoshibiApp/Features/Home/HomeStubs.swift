@@ -885,6 +885,7 @@ struct LifeTab: View {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         f.locale = Locale(identifier: "ja_JP")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
         return f
     }()
 
@@ -892,6 +893,7 @@ struct LifeTab: View {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
         f.locale = Locale(identifier: "ja_JP")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
         return f
     }()
 
@@ -2859,6 +2861,7 @@ private struct AnnouncementListCard: View {
         if diff < 86400 { return "\(diff / 3600) 時間前" }
         let f = DateFormatter()
         f.dateFormat = "MM/dd"
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
         return f.string(from: date)
     }
 }
@@ -3470,6 +3473,7 @@ struct AnnouncementDetailView: View {
     private func formatFull(_ date: Date) -> String {
         let f = DateFormatter()
         f.dateFormat = "yyyy/MM/dd HH:mm"
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
         return f.string(from: date)
     }
 }
@@ -3514,6 +3518,7 @@ private struct AnnouncementReplyRow: View {
     private func formatTime(_ date: Date) -> String {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
         return f.string(from: date)
     }
 }

@@ -31,7 +31,9 @@ import SwiftUI
 private enum MyPageMonthUtil {
     /// 系统当前年月，输出形如 "2026-04"（用于按当月过滤记录）
     static func currentMonthPrefix() -> String {
-        let comps = Calendar.current.dateComponents([.year, .month], from: Date())
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Asia/Tokyo") ?? .current
+        let comps = cal.dateComponents([.year, .month], from: Date())
         return String(format: "%04d-%02d", comps.year ?? 0, comps.month ?? 0)
     }
 
@@ -44,7 +46,9 @@ private enum MyPageMonthUtil {
         #if DEMO
             let year = 2026
         #else
-            let year = Calendar.current.component(.year, from: Date())
+            var cal = Calendar(identifier: .gregorian)
+            cal.timeZone = TimeZone(identifier: "Asia/Tokyo") ?? .current
+            let year = cal.component(.year, from: Date())
         #endif
         return String(format: "%04d-%02d", year, month)
     }
@@ -1661,7 +1665,8 @@ struct MyPointsChartView: View {
                 [0, 0, 1, 0, 0.5, 1, 0, 2, 0, 1, 2, 4.5]
             )
         #else
-            let cal = Calendar.current
+            var cal = Calendar(identifier: .gregorian)
+            cal.timeZone = TimeZone(identifier: "Asia/Tokyo") ?? .current
             let now = Date()
             var labels: [String] = []
             var values: [Double] = []
@@ -2382,7 +2387,7 @@ struct MyAboutView: View {
                         Spacer().frame(height: 16)
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("2026 年 AC 入試プロジェクト成果物")
+                            Text("個人開発プロジェクト")
                                 .font(.system(size: 12))
                                 .foregroundStyle(T.inkMute)
                             Text("— リュウ イヒ")

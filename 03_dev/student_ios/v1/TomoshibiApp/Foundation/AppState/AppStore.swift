@@ -596,6 +596,7 @@ final class AppStore: ObservableObject {
         func recordCheckin() {
             let fmt = DateFormatter()
             fmt.dateFormat = "HH:mm"
+            fmt.timeZone = TimeZone(identifier: "Asia/Tokyo")
             checkinAt = fmt.string(from: Date())
             checkinKind = "時間内"
             rollState = .done
@@ -914,6 +915,7 @@ final class AppStore: ObservableObject {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
         f.locale = Locale(identifier: "ja_JP")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
         return f.string(from: Date())
     }
 
@@ -921,6 +923,7 @@ final class AppStore: ObservableObject {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         f.locale = Locale(identifier: "ja_JP")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
         return f.string(from: Date())
     }
 
