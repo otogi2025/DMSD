@@ -37,7 +37,7 @@ Tomoshibi 用 NFC 卡、学生手机 App、老师 Web、后端服务器和入口
 
 ## 做到哪了
 
-**截至 2026-06-05**：
+**截至 2026-06-15**：
 
 - 2026-04-28：Demo 跑通（iPhone NFC → 后端 → iPad 座位变绿 + 日语播报）。
 - 2026-04-29：宿舍管理员当面口头同意采纳系统，GitHub repo 首次 public。
@@ -54,19 +54,23 @@ Tomoshibi 用 NFC 卡、学生手机 App、老师 Web、后端服务器和入口
 - 2026-06-03：版本号回溯规范化 — 把 5-11 到 6-02 的 236 个 commit 按语义化版本补了 6 个版本标签（v0.8.1 ~ v0.12.0）。
 - 2026-06-03：出租车予約功能 4 端实装（v0.13.0）。
 - 2026-06-04：杭田老师 6-04 需求大批 + 外出申請 + オンライン学習契約書（v0.14.0）。
-- 2026-06-05：老师网页从 standalone HTML 迁到 React + TypeScript + Vite（界面冻结原样搬）+ Android 对齐 iOS + 学年更新完成（v0.15.0，当前版本）。
+- 2026-06-05：老师网页从 standalone HTML 迁到 React + TypeScript + Vite（界面冻结原样搬）+ Android 对齐 iOS + 学年更新完成（v0.15.0）。
+- 2026-06-09 ~ 06-11：版本号体系按语义化版本（SemVer）规范化（回溯补标 + 插空细分）；iOS 体验功能批次（介绍页重做 / 公告 AI 翻译·要約 / 首页接真数据）+ iOS 首批单元测试（点呼时间窗状态机）。
+- 2026-06-12 ~ 06-13：iOS 公告原地翻译（Apple Intelligence）+ 老师权限分级 + 公告 is_demo 演示隔离 + 后端 schema 落后自检。
+- 2026-06-14：iOS 上线前全量审查（日语自然度 / bug / 漏洞 / 前后端对齐，Tier1–3 修复，当前版本 v0.23.10）。
+- 2026-06-13 ~ 06-15：公开仓库治理 — 白名单 .gitignore（只公开软件本体）+ 顶层目录去数字编号前缀（9 目录改名 + 全引用同步）+ 仓库门面整理。
 
 当前重点：
 
 | 端 | 状态 |
 |---|---|
 | 规格层 | `system_features.md` + `RollCall_Spec.md` + 字段/枚举/错误码字典仍是业务真值。 |
-| Backend | FastAPI + PostgreSQL + Alembic。13 router 注册，61 endpoint 可 import；discipline / cleaning / front desk / WebSocket 已推进。 |
-| iOS | SwiftUI 项目在 `dev/student_ios/v1/`；核心 Features + Network + Foundation 已建立，近期完成自主审查并修掉 1 处 force unwrap。 |
+| Backend | FastAPI + PostgreSQL + Alembic。27 router（REST + WebSocket）覆盖点呼 / 申请 / 公告 / 指导 / 事案 / 前台 等业务域。 |
+| iOS | SwiftUI 项目在 `dev/student_ios/v1/`；学生端主要功能已接真后端，完成多轮上线前审查（日语自然度 / bug / 漏洞 / 前后端对齐）+ 首批单元测试。 |
 | Android | Kotlin + Compose 项目已建，视觉层覆盖主要学生端屏幕；真后端接入和测试仍待推进。 |
-| Teacher Web | 6-05 迁到 React + TypeScript + Vite（界面冻结从 Ryō standalone HTML 原样搬），权威源 `dev/teacher_web/v1/src/`。 |
+| Teacher Web | React + TypeScript + Vite（Ryō 风格界面冻结搬迁），权威源 `dev/teacher_web/v1/src/`。 |
 | 点呼机 | 硬件方案和 Python 骨架已建，真实 Pi 上手和 NFC/LED/audio/API 模块实装仍在后续。 |
-| 工程治理 | WIP / TODO / project-overview / hooks / skills 已形成协作和防漂体系。 |
+| 工程治理 | WIP / TODO / project-overview / hooks / skills 协作防漂体系；公开仓库白名单 + 目录规范化。 |
 
 ---
 
