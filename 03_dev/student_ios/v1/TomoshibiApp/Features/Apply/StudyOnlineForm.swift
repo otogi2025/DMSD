@@ -546,7 +546,7 @@ private func studyOnlineStatusPair(_ status: String) -> (label: String, tone: Pi
     switch status {
     case "approved": return ("許可", .ok)
     case "rejected": return ("却下", .danger)
-    case "revoked": return ("取消", .neutral)
+    case "revoked": return ("取り消し", .neutral)
     default: return ("審査中", .warn)
     }
 }

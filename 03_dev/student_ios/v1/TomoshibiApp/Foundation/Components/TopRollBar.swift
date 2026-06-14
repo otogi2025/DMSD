@@ -62,9 +62,9 @@ struct TopRollBar: View {
         case .active:
             let m = app.rollCountdownSec / 60
             let s = app.rollCountdownSec % 60
-            return String(format: "点呼中 · あと %d分%02d秒で遅刻判定", m, s)
+            return String(format: "点呼中 · 遅刻まであと %d分%02d秒", m, s)
         case .absent:
-            return "欠席判定 · 寮監に直接連絡"
+            return "欠席となりました · 寮監に直接ご連絡ください"
         case .done:
             return "チェックイン済 \(app.checkinAt ?? "") · \(app.checkinKind ?? "")"
         }

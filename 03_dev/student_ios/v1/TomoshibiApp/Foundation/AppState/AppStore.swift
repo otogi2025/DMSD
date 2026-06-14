@@ -794,7 +794,7 @@ final class AppStore: ObservableObject {
         // 不把完成提示 / 完成页写到登出态或下一个人；抛 CancellationError 让调用方静默中止导航。
         guard authToken == tokenAtStart else { throw CancellationError() }
         if isThisMonth, studyLeaveCountThisMonth > 3 {
-            showToast("今月、もう \(studyLeaveCountThisMonth) 回お休みされていますね。体調管理、お気をつけて。")
+            showToast("今月はすでに \(studyLeaveCountThisMonth) 回お休みされていますね。体調にはくれぐれもお気をつけください。")
         } else {
             showToast("学習欠席届を提出しました")
         }
@@ -1270,7 +1270,7 @@ final class AppStore: ObservableObject {
             handleIncomingPush(
                 type: "学習",
                 title: "学習欠席届が承認されました",
-                body: "本日の前半節について、学習担当の先生から承認されました。"
+                body: "本日の前半節について、学習担当の先生が承認しました。"
             )
         }
 

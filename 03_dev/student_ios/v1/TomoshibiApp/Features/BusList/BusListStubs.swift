@@ -238,7 +238,7 @@ struct BusListView: View {
                             daySection(group, nextId: nextId)
                         }
                     }
-                    Text("※ 通常日のスクールバスは別途ご確認ください。特別便は乗車名簿への事前チェックが必要です。")
+                    Text("※ 通常日のスクールバスは別途ご確認ください。特別便のご利用には、事前に乗車名簿への登録が必要です。")
                         .font(.system(size: 11))
                         .foregroundStyle(T.inkMute)
                         .lineSpacing(3)
@@ -299,7 +299,7 @@ struct BusListView: View {
                 Text("空港送迎便について")
                     .font(.system(size: 12.5, weight: .bold))
                     .foregroundStyle(T.primary)
-                Text("帰国届を出す場合は、空港便にチェックを入れて選択してください。")
+                Text("帰国届を提出する場合は、「空港送迎便のみ」をオンにして該当の便を選択してください。")
                     .font(.system(size: 11.5))
                     .foregroundStyle(T.inkSub)
                     .lineSpacing(2)

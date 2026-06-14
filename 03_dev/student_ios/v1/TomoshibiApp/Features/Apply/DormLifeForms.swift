@@ -96,7 +96,7 @@ struct DormEventProposalForm: View {
                     ApplyFormSectionLabel(n: "4", label: "確認事項")
                     Card(padding: 14) {
                         VStack(alignment: .leading, spacing: 12) {
-                            Field(label: "予想問題点と解決策", required: true) {
+                            Field(label: "想定される問題点と対応策", required: true) {
                                 TArea(text: $riskSolution, placeholder: "予想される問題と対応策", rows: 5)
                             }
                             Field(label: "予想経費", required: true) {
@@ -711,7 +711,7 @@ struct ItemPossessionListView: View {
                             Skeleton(height: 74)
                         }
                     } else if items.isEmpty {
-                        EmptyState(icon: "shippingbox", title: "提出済みの願はありません")
+                        EmptyState(icon: "shippingbox", title: "提出済みの申請はありません")
                             .frame(maxWidth: .infinity)
                     } else {
                         ForEach(items) { item in

@@ -573,7 +573,7 @@ struct StayForm: View {
                 VStack(alignment: .leading, spacing: 0) {
                     // ── kind 別 hint banner ─────────────────────────────────
                     if isHoliday {
-                        kindBanner(text: "⏰ 帰省申請は毎週水曜日 18:00 が締切です")
+                        kindBanner(text: "⏰ 帰省申請の締切は毎週水曜日18:00です")
                     } else if isReturnCountry {
                         kindBanner(text: "✈️ 帰国申請は航空券確定後に提出してください")
                     } else {
@@ -777,7 +777,7 @@ struct StayForm: View {
                                                 ChipGroup(options: MEALS, value: $skipEndMeal)
                                             }
                                         }
-                                        Text("※ 上記期間（開始の食事から終了の食事まで）の寮食堂を不要とします")
+                                        Text("※ 上記の期間（開始の食事から終了の食事まで）は寮食堂の食事を不要とします")
                                             .font(.system(size: 10.5))
                                             .foregroundStyle(T.inkMute)
                                     }
@@ -788,10 +788,10 @@ struct StayForm: View {
                                               rows: 3)
                                     }
                                 } else {
-                                    Text("食事は食事入力表でご記入ください")
+                                    Text("食事の変更は食事入力表にご記入ください")
                                         .font(.system(size: 13, weight: .semibold))
                                         .foregroundStyle(T.ink)
-                                    Text("※ 日本人生徒の食事変更は学校指定の食事入力表で扱います。")
+                                    Text("※ 日本人生徒の食事の変更は、学校指定の食事入力表で行ってください。")
                                         .font(.system(size: 10.5))
                                         .foregroundStyle(T.inkMute)
                                 }
@@ -1005,7 +1005,7 @@ struct StayForm: View {
             // 开关还开着却发空数组 = 用户以为申报了免餐、其实什么都没申报。
             // 这里拦下来，让用户改餐次顺序。
             if mealsSkip.isEmpty {
-                app.showToast("食事不要期間が空です。開始・終了の食事の順序をご確認ください")
+                app.showToast("食事不要期間が指定されていません。開始と終了の食事の順序をご確認ください")
                 return
             }
         } else {
@@ -2408,13 +2408,13 @@ struct ApplyDetailView: View {
                         // Actions per status
                         if a.status == "pending" {
                             Button {
-                                app.showToast("申請を取消しました")
+                                app.showToast("申請を取り消しました")
                                 Task {
                                     try? await Task.sleep(nanoseconds: 400_000_000)
                                     await MainActor.run { router.replace(.apply) }
                                 }
                             } label: {
-                                Text("申請を取消")
+                                Text("申請を取り消し")
                                     .font(.system(size: 14, weight: .bold))
                                     .foregroundStyle(T.danger)
                                     .frame(maxWidth: .infinity, minHeight: 48)
@@ -2632,7 +2632,7 @@ struct OutingDetailView: View {
                 Button {
                     Task { await withdraw(o) }
                 } label: {
-                    Text(isWithdrawing ? "取消中…" : "申請を取消")
+                    Text(isWithdrawing ? "取り消し中…" : "申請を取り消し")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(T.danger)
                         .frame(maxWidth: .infinity, minHeight: 48)
@@ -2725,11 +2725,11 @@ struct OutingDetailView: View {
         defer { isWithdrawing = false }
         do {
             loaded = try await OutingsAPI.withdraw(id: o.id)
-            app.showToast("申請を取消しました")
+            app.showToast("申請を取り消しました")
         } catch let APIError.unprocessable(msg) {
             app.showToast(msg)
         } catch APIError.server(409, _) {
-            app.showToast("確認待ちの申請のみ取消できます")
+            app.showToast("確認待ちの申請のみ取り消せます")
             await load()
         } catch APIError.unauthorized {
             app.authToken = nil
@@ -2737,7 +2737,7 @@ struct OutingDetailView: View {
         } catch APIError.network {
             app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "申請の取消に失敗しました"))
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "申請の取り消しに失敗しました"))
         }
     }
 }

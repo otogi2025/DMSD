@@ -285,7 +285,7 @@ struct OnboardingView: View {
                 Feature(icon: "list.bullet.rectangle", label: "お知らせをワンタップ要約"),
                 Feature(icon: "person.crop.circle.badge.plus", label: "アバターを AI で生成"),
             ],
-            footnote: "※ AI 要約とアバター生成は iPhone 15 Pro 以降（Apple Intelligence 対応機種）が必要です",
+            footnote: "※ AI 要約とアバター生成には iPhone 15 Pro 以降（Apple Intelligence 対応機種）が必要です",
             gradStart: 0xF0EBFB, gradEnd: 0xC9B8F0,
             fg: Color(hex: 0x7A5CC4)
         ),
@@ -1675,7 +1675,7 @@ struct RegisterDoneView: View {
 //   密码: secure, default "12345678"
 //   登录按钮
 //   row: 新规注册 (T.inkSub) ←→ 忘记密码 → (T.primary)
-//   footer mono: Tomoshibi v0.1.0-demo · 2026 AC 入試プロジェクト
+//   footer mono: Tomoshibi v0.1.0-demo
 //   magic seed（仅 DEMO 编译 + 学号 mode）: acc=="060217" && pw=="12345678" → router.replace(.home)
 //   （邮箱 mode 暂不支持登录，只提示切换学号；真实账号走 AuthAPI / 401 → lockout）
 
@@ -1885,7 +1885,7 @@ struct LoginView: View {
                 router.go(.lockout)
             #else
                 // 生产版不走本地写死倒计时的假 LockoutView，只提示凭证错误
-                app.showToast("アカウント番号またはパスワードが違います")
+                app.showToast("アカウント番号またはパスワードが正しくありません")
             #endif
         } catch let APIError.server(423, msg) {
             // 后端真锁（B6 学生连续失败锁）→ 显示后端日语文案（含「剩余约 X 分」），以后端为锁定真值
@@ -1964,7 +1964,7 @@ struct LockoutView: View {
 
             if isPermanent {
                 // 永久锁 — 不显示倒计时
-                Text("永久")
+                Text("ロック中")
                     .font(.system(size: 36, weight: .heavy))
                     .foregroundStyle(T.danger)
                     .padding(.vertical, 18)
@@ -1992,7 +1992,7 @@ struct LockoutView: View {
                 VStack(spacing: 2) {
                     Text("現在 \(app.loginFailCount) 回目のロック（\(app.currentLockoutLabel)）")
                     if let next = app.nextLockoutLabel {
-                        Text("次回失敗で \(next) ロックに上がります")
+                        Text("次に失敗すると、ロック時間が \(next) に延長されます")
                     }
                 }
                 .font(.system(size: 11.5))
@@ -2250,7 +2250,7 @@ struct RegisterStep5View: View {
             }
 
             footerDouble(
-                nextTitle: isLoading ? "送信中…" : "アカウント作成完了",
+                nextTitle: isLoading ? "送信中…" : "アカウントを作成",
                 nextEnabled: canSubmit && !isLoading,
                 onBack: { router.go(.registerStep4) },
                 onNext: submit

@@ -680,7 +680,7 @@ struct HomeView: View {
                 heroBlock(
                     caption: "今回の点呼",
                     big: "遅刻",
-                    sub: "欠席申請または体調報告で救済可能",
+                    sub: "欠席申請または体調報告で判定を見直せます",
                     bigColor: T.danger,
                     captionColor: deepBrown.opacity(0.7),
                     subColor: deepBrown.opacity(0.8)
@@ -1540,7 +1540,7 @@ struct RollcallSheet: View {
             }
             .padding(.bottom, 18)
 
-            Text("失敗。もう一度")
+            Text("読み取りに失敗しました")
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(T.ink)
                 .padding(.bottom, 10)
@@ -1939,7 +1939,7 @@ struct StudyCheckinSheet: View {
             }
             .padding(.bottom, 18)
 
-            Text("失敗。もう一度")
+            Text("読み取りに失敗しました")
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(T.ink)
                 .padding(.bottom, 10)
@@ -2097,7 +2097,7 @@ struct FeedbackSheet: View {
               kind: .health),
         .init(id: "absence", icon: "📝",
               label: "今回欠席の申請",
-              detail: "今回の点呼を欠席したい理由を申請",
+              detail: "今回の点呼を欠席する理由を入力",
               kind: .absence),
         .init(id: "other", icon: "💬",
               label: "その他の問題",

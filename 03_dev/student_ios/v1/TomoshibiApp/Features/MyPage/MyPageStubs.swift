@@ -1377,7 +1377,7 @@ struct MyRollcallDetailView: View {
                     }
 
                     // Info box
-                    Text("ℹ 改判はされていません")
+                    Text("ℹ 判定の変更はされていません")
                         .font(.system(size: 12))
                         .foregroundStyle(T.primaryDk)
                         .padding(.horizontal, 14)
