@@ -53,11 +53,14 @@ enum KeychainService {
 
         // SecItemAdd/Update 的返回状态码以前被丢弃 → 写失败时静默返回，
         // app 重启读不到 token、自动登录失效且无从定位（IX-037）。
-        // 现在检查状态码：非 errSecSuccess 就打日志，DEBUG 下直接断言暴露。
+        // 清单 #9 + 漏洞E：原来 DEBUG 下 assertionFailure 会中断运行 —— 但 Keychain 写失败多是环境性
+        //（模拟器 keychain 偶发不可用 / 首次解锁前不可写 / entitlement 缺 keychain-access-group），
+        // 不是代码逻辑 bug，硬断言把外部存储失败伪装成代码崩溃、还打断 Preview / 单测。
+        // 降级为可观测日志，且只在 DEBUG 输出（Release 不写日志，避免 OSStatus 进系统日志）。
         if status != errSecSuccess {
-            print("KeychainService.save 失败：OSStatus=\(status)")
             #if DEBUG
-                assertionFailure("Keychain token 保存失败 OSStatus=\(status)")
+                let detail = SecCopyErrorMessageString(status, nil) as String? ?? ""
+                print("KeychainService.save 失败：OSStatus=\(status) \(detail)")
             #endif
         }
     }

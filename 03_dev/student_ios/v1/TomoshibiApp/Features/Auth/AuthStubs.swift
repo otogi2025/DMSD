@@ -1129,6 +1129,9 @@ private struct AIAvatarGenerateButton: View {
     @State private var showSheet: Bool = false
     /// 模型 cold start 5 秒掩饰 — 点击后立刻显示 loading，5.5 秒兜底复位
     @State private var isLoading: Bool = false
+    /// 清单 #7：每次点开自增的代次令牌。5.5 秒兜底任务只在「自己仍是最新那次」时才复位 isLoading，
+    /// 防取消后又快速重开时，上一次的兜底任务把新一次的 loading 提前关掉。
+    @State private var loadGeneration: Int = 0
 
     var body: some View {
         // 设备不支持（机种旧 / Apple Intelligence 没开）→ 整颗按钮不出现，UX 跟不支持机种一致
@@ -1136,7 +1139,10 @@ private struct AIAvatarGenerateButton: View {
             Button {
                 isLoading = true
                 showSheet = true
+                loadGeneration += 1
+                let gen = loadGeneration
                 DispatchQueue.main.asyncAfter(deadline: .now() + 5.5) {
+                    guard gen == loadGeneration else { return }
                     isLoading = false
                 }
             } label: {
@@ -1164,6 +1170,15 @@ private struct AIAvatarGenerateButton: View {
             }
             .buttonStyle(.plain)
             .disabled(isLoading)
+            .onChange(of: showSheet) { _, isShown in
+                // 清单 #7：浮层被取消时 onCompletion 不会触发、isPresented 自动变 false。
+                // 这里在浮层关闭且没拿到生成结果（取消场景）时立刻复位 isLoading，
+                // 不再让按钮假死到 5.5 秒兜底。代次自增使遗留兜底任务作废（见上）。
+                if !isShown, generatedAvatarURL == nil {
+                    loadGeneration += 1
+                    isLoading = false
+                }
+            }
             .imagePlaygroundSheet(
                 isPresented: $showSheet,
                 concept: "学生 アバター \(name) 笑顔 cute",
@@ -1171,6 +1186,7 @@ private struct AIAvatarGenerateButton: View {
                     // onCompletion 拿到的 url 是 iOS 系统给的临时文件路径（v1.x 上传后端时改存远程 URL）
                     generatedAvatarURL = url
                     avatar = url.absoluteString
+                    loadGeneration += 1
                     isLoading = false
                 }
             )
@@ -2023,6 +2039,10 @@ struct LockoutView: View {
         sec = app.currentLockoutSeconds ?? 30
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             Task { @MainActor in
+                // 清单 #6：stopTimer() 会 invalidate + 置 timer=nil。若 timer 触发后、对应 Task 已入队，
+                // 期间用户手动返回触发 onDisappear→stopTimer，这个迟到的 Task 仍会跑到 router.replace(.login)
+                // 把用户从他主动返回到的页面又弹回登录。加 timer==nil 守卫挡掉 invalidate 后入队的 Task。
+                guard timer != nil else { return }
                 guard sec > 0 else { return }
                 sec -= 1
                 if sec == 0 {

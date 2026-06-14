@@ -352,6 +352,10 @@ final class AppStore: ObservableObject {
     /// Toast 文本（nil = 不显示）· 2.2 秒自动清
     @Published var toast: String? = nil
 
+    /// Toast 自动清理的代次令牌：每次 showToast 自增，定时清理只在「自己仍是最新那条」时才置 nil。
+    /// 防 2.2 秒内连续两次 showToast 时，旧 toast 的定时任务把后一个 toast 提前清掉（清单 #26）。
+    private var toastGeneration: Int = 0
+
     /// 暗色模式 toggle（MySettings 控制）
     @AppStorage("isDark") var isDark: Bool = false
 
@@ -555,10 +559,14 @@ final class AppStore: ObservableObject {
     // MARK: - Toast 辅助
 
     func showToast(_ text: String) {
+        toastGeneration &+= 1
+        let gen = toastGeneration
         withAnimation { toast = text }
         Task {
             try? await Task.sleep(nanoseconds: 2_200_000_000)
             await MainActor.run {
+                // 自己已被后一条 toast 顶替（gen 落后）→ 不清，交给最新那条的任务清。
+                guard self.toastGeneration == gen else { return }
                 withAnimation { self.toast = nil }
             }
         }
@@ -1184,9 +1192,14 @@ final class AppStore: ObservableObject {
             return allNotifications.filter { $0.unread }.count
         #else
             // 生产：announcements 列表是懒加载的（只在通知/公告页 .task 拉），首屏 Home 可能为空 →
-            // badge 改用后端真实未読数 announcementUnreadCount（loadMe 登录/启动即拉）+ push 未読，
-            // 不依赖 announcements 列表是否已加载（IX-009 修复）。
-            return pushNotifications.filter { $0.unread }.count + announcementUnreadCount
+            // badge 用后端真实未読数 announcementUnreadCount（loadMe 登录/启动即拉），首屏不依赖列表是否加载（IX-009）。
+            // 清单 #28：列表一旦加载（announcements 非空），改用列表自身的未読条数 —— 与通知中心
+            //   allNotifications 的 announcementNotifications 同源，避免某条详情已读后列表已减、badge 仍用
+            //   后端旧 count 而两边数字对不上的中间态。列表为空（未加载）时仍回退后端 count。
+            let announcementUnread = announcements.isEmpty
+                ? announcementUnreadCount
+                : announcements.filter { !$0.isRead }.count
+            return pushNotifications.filter { $0.unread }.count + announcementUnread
                 + packageNotifications.filter { $0.unread }.count
         #endif
     }

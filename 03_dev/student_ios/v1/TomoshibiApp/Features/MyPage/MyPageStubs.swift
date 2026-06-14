@@ -1284,20 +1284,22 @@ struct MyRollcallDetailView: View {
     }
 
     /// 标题行 "2026-04-21 朝点呼"
-    private var titleText: String {
-        "\(record.date) \(record.session)"
+    /// 清单 #16：record 是 O(n) 线性查找，改成把已解析的 rec 作参数传入，
+    /// 一次 body 求值只查一次（body 开头 let rec = record），避免每个 computed 属性各查一遍。
+    private func titleText(_ rec: RollcallDisplay) -> String {
+        "\(rec.date) \(rec.session)"
     }
 
     /// 点呼场次 ID：由日期 + 朝/晚场次派生，朝场→AM / 晚场→PM，形如 RC-20260421-AM
-    private var sessionID: String {
-        let datePart = record.date.filter { $0.isNumber }
-        let suffix = record.isMorning ? "AM" : "PM"
+    private func sessionID(_ rec: RollcallDisplay) -> String {
+        let datePart = rec.date.filter { $0.isNumber }
+        let suffix = rec.isMorning ? "AM" : "PM"
         return "RC-\(datePart)-\(suffix)"
     }
 
     /// 状態行文字：迟到/缺席带扣分点数，时间内/免除不带点数
-    private var stateText: String {
-        switch record.state {
+    private func stateText(_ rec: RollcallDisplay) -> String {
+        switch rec.state {
         case "遅刻": return "遅刻 0.5 点"
         case "欠席": return "欠席 1.0 点"
         case "免除": return "免除"
@@ -1307,9 +1309,10 @@ struct MyRollcallDetailView: View {
 
     /// 键值明细：開始/締切按场次派生（后端 rollcall_events 不含窗口）；
     /// 打卡时刻 演示用固定值（仅迟到显示）、生产显真实 checked_in_at（欠席无打卡不显）。
-    private var kvPairs: [(String, String)] {
+    private func kvPairs(_ rec: RollcallDisplay) -> [(String, String)] {
+        let record = rec
         var pairs: [(String, String)] = [
-            ("状態", stateText),
+            ("状態", stateText(rec)),
             ("方式", record.method),
         ]
         #if DEMO
@@ -1347,13 +1350,15 @@ struct MyRollcallDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     Card(padding: 18) {
+                        // 清单 #16：一次 body 求值只解析一次 record（O(n) 查找），下面各处复用 rec。
+                        let rec = record
                         VStack(alignment: .leading, spacing: 0) {
-                            Text(titleText)
+                            Text(titleText(rec))
                                 .font(.system(size: 16, weight: .bold))
                                 .monospaced()
                                 .foregroundStyle(T.primary)
                                 .padding(.bottom, 2)
-                            Text("セッション ID: \(sessionID)")
+                            Text("セッション ID: \(sessionID(rec))")
                                 .font(.system(size: 12))
                                 .foregroundStyle(T.inkMute)
                                 .padding(.bottom, 14)
@@ -1362,7 +1367,7 @@ struct MyRollcallDetailView: View {
                                 alignment: .leading,
                                 spacing: 12
                             ) {
-                                ForEach(Array(kvPairs.enumerated()), id: \.offset) { _, pair in
+                                ForEach(Array(kvPairs(rec).enumerated()), id: \.offset) { _, pair in
                                     VStack(alignment: .leading, spacing: 3) {
                                         Text(pair.0)
                                             .font(.system(size: 11))
@@ -1926,6 +1931,13 @@ struct MyHealthView: View {
                 let all = try await RollCallReportsAPI.listMine()
                 reports = all.filter { $0.kind == "health" }
                 loadState = .loaded
+            } catch APIError.unauthorized {
+                // codex 漏6：token 失效（401）原来被裹进通用 .failed、登录态滞留、后续都撞 401。
+                // 跟 BusList.load 等列表页一致：清登录态（authToken=nil 的 didSet 删 Keychain + 跳登录），
+                // 不在子页强行 router 跳转，显「需重登」错误态而非假装拉失败。
+                app.authToken = nil
+                reports = []
+                loadState = .failed("セッションの有効期限が切れました。再度ログインしてください。")
             } catch {
                 reports = []
                 loadState = .failed(

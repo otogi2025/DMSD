@@ -321,7 +321,16 @@ struct ScheduleView: View {
         let next = ym.advanced(by: delta)
         guard monthRange.contains(next) else { return }
         ym = next
-        selectedDay = min(selectedDay, next.daysInMonth)
+        // 先夹到目标月有效范围（防选中日号超出该月天数）。
+        let clamped = min(selectedDay, next.daysInMonth)
+        // 清单 #3：仅当原选中日在目标月「无效（被夹掉）」时才复位 —— 若恰好回到今天所在月，
+        // 复位成 today.day 让今天重新选中、底部章节标题对；否则只用夹后的值，
+        // 不擅自改用户在目标月里仍有效的刻意选择。
+        if clamped != selectedDay, next.equals(today: ScheduleView.today) {
+            selectedDay = ScheduleView.today.day
+        } else {
+            selectedDay = clamped
+        }
     }
 
     private var eventsInMonth: Int {
