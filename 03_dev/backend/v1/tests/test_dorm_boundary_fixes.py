@@ -34,7 +34,9 @@ class TestWsBroadcastDormFilter:
         )
 
     def _run(self, coro):
-        return asyncio.get_event_loop().run_until_complete(coro)
+        # asyncio.run() 自建并关闭事件循环 — 避免 get_event_loop() 在
+        # Python 3.12 无运行循环时抛 DeprecationWarning（被 pytest 当 error）
+        return asyncio.run(coro)
 
     def test_broadcast_no_filter_reaches_all(self):
         """dorm_unit=None（全局广播）— 所有连接都收到。"""
