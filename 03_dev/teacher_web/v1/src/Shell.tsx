@@ -73,8 +73,10 @@ export function Shell({
   }, []);
 
   // 侧栏徽章数字 — authToken 来了就拉（通知未读数 + 待审申请数）。
-  // 阶段2-C：每 30 秒自动重拉一次，事件产生后侧栏数字会自己更新，老师不用手动刷新。
-  // （真·WebSocket 瞬时推留 v1.1 — 现有老师 WS 只在点呼会话时连，平时浏览后台未连。）
+  // 阶段2-C：每 60 秒自动重拉一次，事件产生后侧栏数字会自己更新，老师不用手动刷新。
+  // 周期取 60 秒（不是更短）：unread-count 接口每次会触发后端扫现有事件表做懒同步，
+  // 频率越高后端越费 —— codex 审查指出这点，小宿舍规模 60 秒足够、又不浪费。
+  // （真·WebSocket 瞬时推 + 后端增量水位线同步留 v1.1 — 见 TODO；现有老师 WS 只在点呼会话时连。）
   React.useEffect(() => {
     if (!authToken) return;
     let cancelled = false;
@@ -97,7 +99,7 @@ export function Shell({
         });
     };
     refresh();
-    const id = setInterval(refresh, 30000);
+    const id = setInterval(refresh, 60000);
     return () => {
       cancelled = true;
       clearInterval(id);
