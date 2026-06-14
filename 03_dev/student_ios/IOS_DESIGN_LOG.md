@@ -1388,7 +1388,28 @@ gpt-5 + high（非预期 gpt-5.5 + xhigh）逐层挖 `ST25DVWriter` NFC 取消�
 - 正式版 + 演示版双 BUILD SUCCEEDED。
 - **连带修演示版「通信エラー」**：补入口后 itsuki 一点进列表就报通信错误 —— 孤儿页从没被打开过，所以演示版从来没人发现它的三个 load（list/detail/unread-count）**没有 `#if DEMO` 分支**，演示版直接连真后端（无网/无真令牌）必报错。修：`SEED.swift` 加 3 条假公告（含全文 + 回复）+ 三个 load 加 DEMO 分支走 SEED + 主页 `.task` 改无条件拉（已 demo-aware）。这属编译期数据切换（生产版不含），非「上线前必删 scaffold」。
 
-## §19 上线签名 / 构建配置登记（⭐ 配置真值表 — 这类「外部账号/编号」值的登记位）
+## §19 [2026-06-13] 特別運行便一覧：只显示特別便 + 日语汉字 運航→運行 统一（commit `57c8398`）
+
+> 起因：itsuki 截图反馈三点 —— ① 这页只该显示特別運行便、不显示通学便 ② 每行徽章该用全称「特別運行便」不是缩写「特別便」 ③ 标题该是「特別運行便」。
+
+### §19.1 只显示特別運行便、删通学便筛选
+- `BusListView.filtered` 改成只保留 `kind == .dormSpecial`（寮生特別運行便），平日通学便（`dailyCommute`）不再显示。
+- 删掉顶部「すべて」「特別便」「通学便」三选项类型筛选条（`tabs` + `kindFilter` state + 横向 chip ScrollView 全删）—— 只剩一类后筛选已无意义。保留下方「空港送迎便のみ」开关（提交帰国届选机场班次时用）。
+- 每行徽章 `BusKind.dormSpecial.label`「特別便」→「特別運行便」（全称）。
+
+### §19.2 日语汉字 運航 → 運行 统一（itsuki 直觉纠对了代码错字）
+- itsuki 反馈写的是「運行」，但界面标题原本写「運航」。查证：**運航** 专给船 / 飞机用、**運行** 才是巴士 / 电车（按时刻表跑的车）的标准日语 —— 班车是巴士，itsuki 的「運行」才对，代码的「運航」是错字。
+- 项目里「運行」本就是主流（SEED 假数据 `notice`、申請表「寮生特別運行」选项、出寮帰寮表单、`NetworkModels` / `BusAPI` 注释约 15 处），只有本班车界面的标题 + 路由名（共 6 处）落单用「運航」。
+- 修：6 处「運航」全统一成「運行」—— `BusListStubs.swift`（label / 标题 / MARK / 枚举注释）+ `Route.swift`（`.busList` displayName + 注释）+ `MyPageStubs.swift`（2 处注释）+ `ApplyStubs.swift`（1 处注释）。
+- ⚠️ 本设计档案早期章节（§12.5 标题 / §14.18 等）仍存历史「運航」写法，属当时记录，未回溯改。
+
+### §19.3 验证
+- 正式版 `TomoshibiApp` + 演示版 `TomoshibiAppDemo` 双 scheme（`iPhone 17 Pro`）**BUILD SUCCEEDED**。
+- 改动只动注释 / 显示字符串 + 删筛选 UI，无字段 / 接口 / 数据层变化（后端 `/api/v1/bus/routes` 不动）。
+
+---
+
+## §20 上线签名 / 构建配置登记（⭐ 配置真值表 — 这类「外部账号/编号」值的登记位）
 
 > 生效真值在 `03_dev/student_ios/v1/project.yml`（这里是人读的对照登记）。Team ID 不是密码、是半公开标识，进公开仓库属正常。
 
