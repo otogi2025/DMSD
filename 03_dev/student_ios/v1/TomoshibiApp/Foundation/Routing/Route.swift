@@ -122,7 +122,7 @@ enum Route: Hashable {
         case .myStudy: return "学習履歴"
         case .stayList: return "申請履歴"
         case .stayDetail: return "申請詳細"
-        case .stayEdit: return "修改届"
+        case .stayEdit: return "変更届"
         case .schedule: return "行事予定"
         case .busList: return "特別運行便"
         }

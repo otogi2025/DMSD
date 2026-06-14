@@ -278,7 +278,7 @@ struct StudentAccountCreateBody: Encodable {
         // 学年 / 班级 / 座位：backend 各 ^\d{2}$（恰好 2 位数字）
         if !Self.isTwoDigits(grade_code) { return "学年は 2 桁の数字で入力してください" }
         if !Self.isTwoDigits(class_code) { return "クラスは 2 桁の数字で入力してください" }
-        if !Self.isTwoDigits(seat_no) { return "座席番号は 2 桁の数字で入力してください" }
+        if !Self.isTwoDigits(seat_no) { return "出席番号は 2 桁の数字で入力してください" }
         // 部屋番号：backend min_length=3, max_length=8
         if room_no.count < 3 { return "部屋番号は 3 文字以上で入力してください" }
         if room_no.count > 8 { return "部屋番号は 8 文字以内で入力してください" }

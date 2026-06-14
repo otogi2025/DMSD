@@ -27,7 +27,7 @@ private let APPLY_TYPES: [ApplyTypeMeta] = [
     .init(k: "repair", name: "修繕", icon: "wrench.and.screwdriver", desc: "部屋・設備の修繕依頼"),
     .init(k: "parcel", name: "代理受取", icon: "shippingbox", desc: "不在時の荷物代理受取"),
     .init(k: "guest", name: "来訪者", icon: "person.2", desc: "家族・友人の来訪"),
-    .init(k: "studyAbsence", name: "学習欠席", icon: "book.closed", desc: "晚自习の欠席届（前半・後半・両方）"),
+    .init(k: "studyAbsence", name: "学習欠席", icon: "book.closed", desc: "夜間学習の欠席届（前半・後半・両方）"),
     .init(k: "studyOnline", name: "オンライン学習", icon: "laptopcomputer", desc: "自室でのオンライン学習"),
     .init(k: "event", name: "行事企画", icon: "sparkles", desc: "寮内イベントの企画申請"),
     .init(k: "fridge", name: "冷蔵庫購入", icon: "snowflake", desc: "指定冷蔵庫の購入届"),
@@ -587,7 +587,7 @@ struct StayForm: View {
                     SectionLabel(n: "1", label: "申請者本人")
                     Card(padding: 0) {
                         VStack(spacing: 0) {
-                            InfoRow(k: "学号", v: meAccount, isFirst: true)
+                            InfoRow(k: "アカウント番号", v: meAccount, isFirst: true)
                             InfoRow(k: "氏名", v: meName)
                             InfoRow(k: "学年・組", v: "\(meClass)  \(meNo)")
                             InfoRow(k: "寮・部屋", v: meDorm)
@@ -688,7 +688,7 @@ struct StayForm: View {
 
                     // ── §5 外泊地点（外泊 / 帰国 限定 · 动态显示 #4）──────────
                     if needPlaces {
-                        SectionLabel(n: "5", label: "同行者・行先・外泊地点")
+                        SectionLabel(n: "5", label: "同行者・行先・宿泊先")
                         Card(padding: 14) {
                             VStack(alignment: .leading, spacing: 12) {
                                 Field(label: "同行者") {

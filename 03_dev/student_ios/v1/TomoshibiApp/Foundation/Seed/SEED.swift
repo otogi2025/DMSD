@@ -70,10 +70,10 @@ enum SEED {
     ]
 
     static let packages: [PackageItem] = [
-        .init(id: 1, date: "2026-04-22", from: "宅配便", status: "待領", tracking: "JP12345"),
-        .init(id: 2, date: "2026-04-18", from: "佐川", status: "領済", tracking: nil),
-        .init(id: 3, date: "2026-04-10", from: "ヤマト", status: "領済", tracking: nil),
-        .init(id: 4, date: "2026-04-05", from: "郵便局", status: "領済", tracking: nil),
+        .init(id: 1, date: "2026-04-22", from: "宅配便", status: "受取待ち", tracking: "JP12345"),
+        .init(id: 2, date: "2026-04-18", from: "佐川", status: "受取済", tracking: nil),
+        .init(id: 3, date: "2026-04-10", from: "ヤマト", status: "受取済", tracking: nil),
+        .init(id: 4, date: "2026-04-05", from: "郵便局", status: "受取済", tracking: nil),
     ]
 
     // IX-009：演示假通知 fixture —— 圈进 #if DEMO，生产构建物理上没有这段，
@@ -81,7 +81,7 @@ enum SEED {
     //   生产通知源 = 真公告（AppStore.announcementNotifications）+ 真 push。
     #if DEMO
         static let notifications: [NotificationItem] = [
-            .init(id: 1, type: "宅配", title: "荷物到着", time: "今日 14:20", body: "寮管室前で受取り", unread: true),
+            .init(id: 1, type: "宅配", title: "荷物到着", time: "今日 14:20", body: "寮監室前で受取り", unread: true),
             .init(id: 2, type: "申請", title: "外泊申請が承認されました", time: "昨日 16:30", body: "承認されました", unread: true),
             .init(id: 3, type: "減点", title: "遅刻警告", time: "昨日 9:00", body: "今月の遅刻が 5 回に到達", unread: false),
             .init(id: 4, type: "活動", title: "明日 18:00 誕生日会", time: "昨日", body: "カフェテリア集合", unread: true),

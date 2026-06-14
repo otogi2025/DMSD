@@ -81,7 +81,7 @@ struct MyLandingView: View {
     private var blocks: [MyLandingGridBlock] {
         // 包裹 badge 跟列表同源：演示用 SEED 假数据 / 生产用 app.packages 真后端（codex 审查 major #4）
         #if DEMO
-            let pendingPackages = SEED.packages.filter { $0.status == "待領" }.count
+            let pendingPackages = SEED.packages.filter { $0.status == "受取待ち" }.count
         #else
             let pendingPackages = app.packages.filter {
                 $0.status == "pending" || $0.status == "notified"
@@ -897,7 +897,7 @@ struct MyInfoEditView: View {
             Card(padding: 0) {
                 VStack(spacing: 0) {
                     HStack {
-                        Text("学号")
+                        Text("アカウント番号")
                             .font(.system(size: 13))
                             .foregroundStyle(T.inkSub)
                             .frame(width: 90, alignment: .leading)
@@ -932,7 +932,7 @@ struct MyInfoEditView: View {
 
     private var helpInfoBox: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("ℹ 学号・姓名・生年月日・性別の変更は寮監にご連絡ください。")
+            Text("ℹ アカウント番号・氏名・生年月日・性別の変更は寮監にご連絡ください。")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(T.primaryDk)
             Text("変更履歴は次の画面で確認できます。")
@@ -2275,7 +2275,7 @@ struct MySettingsView: View {
                     .foregroundStyle(T.warnDeep)
                     .kerning(0.6)
                     .padding(.top, 8)
-                Text("この section は demo 版限定です（production では非表示）。")
+                Text("このセクションはデモ版限定です（本番環境では非表示）。")
                     .font(.system(size: 10))
                     .foregroundStyle(T.inkMute)
                 Card(padding: 0) {
@@ -2292,7 +2292,7 @@ struct MySettingsView: View {
                             app.simulateStudyRosterAdded()
                         }
                         Divider().background(T.hair)
-                        pushDemoRow(label: "外泊届（修改届）が再承認された") {
+                        pushDemoRow(label: "外泊届（変更届）が再承認された") {
                             app.simulateAmendmentRebatch()
                         }
                     }
@@ -2631,7 +2631,7 @@ struct MyStudyView: View {
                         .padding(.horizontal, 7).padding(.vertical, 2)
                         .background { Capsule().fill(T.okBg) }
                 } else {
-                    Text("未完")
+                    Text("未完了")
                         .font(.system(size: 10.5, weight: .bold))
                         .foregroundStyle(T.danger)
                         .padding(.horizontal, 7).padding(.vertical, 2)

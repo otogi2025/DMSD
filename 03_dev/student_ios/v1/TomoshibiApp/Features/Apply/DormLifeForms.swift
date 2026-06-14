@@ -85,8 +85,8 @@ struct DormEventProposalForm: View {
                             Field(label: "目的", required: true) {
                                 TArea(text: $purpose, placeholder: "企画の目的", rows: 4)
                             }
-                            Field(label: "企画内容", hint: "時間表も含めて入力してください", required: true) {
-                                TArea(text: $content, placeholder: "具体的な内容・時間表", rows: 6)
+                            Field(label: "企画内容", hint: "スケジュールも含めて入力してください", required: true) {
+                                TArea(text: $content, placeholder: "具体的な内容・スケジュール", rows: 6)
                             }
                         }
                     }

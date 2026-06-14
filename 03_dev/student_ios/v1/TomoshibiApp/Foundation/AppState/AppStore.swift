@@ -828,7 +828,7 @@ final class AppStore: ObservableObject {
         /// memory project_demo_scaffolds_to_remove_before_v1.md #15
         func cycleDemoStudyState() {
             switch studyState {
-            case .idle: studyState = .upcoming; studyCountdownSec = 600; showToast("Demo · 学習 10 分前 (倒计时 10:00)")
+            case .idle: studyState = .upcoming; studyCountdownSec = 600; showToast("Demo · 学習 10 分前 (残り 10:00)")
             case .upcoming: studyState = .active; studyTaps = []; showToast("Demo · 学習進行中（NFC で 2 回タップ）")
             case .active: studyState = .done; showToast("Demo · 学習終了")
             case .done: studyState = .idle; studyTaps = []; showToast("Demo · 学習対象外")
@@ -1286,8 +1286,8 @@ final class AppStore: ObservableObject {
         func simulateAmendmentRebatch() {
             handleIncomingPush(
                 type: "申請",
-                title: "外泊届（修改届）が承認されました",
-                body: "修改届の内容で寮務課長まで承認が進みました。残り 1 名の承認をお待ちください。"
+                title: "外泊届（変更届）が承認されました",
+                body: "変更届の内容で寮務課長まで承認が進みました。残り 1 名の承認をお待ちください。"
             )
         }
     #endif

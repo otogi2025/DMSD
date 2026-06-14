@@ -1842,7 +1842,7 @@ struct LoginView: View {
 
         // 邮箱 mode 暂未支持（backend F6 注册流程未实装、邮箱登录后做）
         if mode == .email {
-            app.showToast("学号でログインしてください")
+            app.showToast("アカウント番号でログインしてください")
             return
         }
 
@@ -1885,7 +1885,7 @@ struct LoginView: View {
                 router.go(.lockout)
             #else
                 // 生产版不走本地写死倒计时的假 LockoutView，只提示凭证错误
-                app.showToast("学籍番号またはパスワードが違います")
+                app.showToast("アカウント番号またはパスワードが違います")
             #endif
         } catch let APIError.server(423, msg) {
             // 后端真锁（B6 学生连续失败锁）→ 显示后端日语文案（含「剩余约 X 分」），以后端为锁定真值
@@ -2068,7 +2068,7 @@ struct PwResetView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text("パスワードのリセットは App 内では行えません。寮監に直接お声がけください。寮監がシステム後台で手動でリセットします。")
+                    Text("パスワードのリセットはアプリ内では行えません。寮監に直接お声がけください。寮監が管理画面で手動でリセットします。")
                         .font(.system(size: 15))
                         .foregroundStyle(T.ink)
                         .lineSpacing(8) // 1.75 on 15 ≈ 11; per line extra ≈ 8

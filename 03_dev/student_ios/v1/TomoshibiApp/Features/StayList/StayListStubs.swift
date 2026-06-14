@@ -92,7 +92,7 @@ struct StayApplication: Hashable, Identifiable {
 struct AuditLogEntry: Hashable, Identifiable {
     let id: UUID
     let at: String // "2026-05-01 14:32"
-    let action: String // "提出" / "修改届を提出" / "差戻" / "承認" 等
+    let action: String // 操作类型，如「提出」「変更届を提出」「差戻」「承認」等
     let actor: String // 役职名 + 担当者名 / 申請者本人
     let detail: String? // 修改届时的 amendReason / 差戻理由 等
 
@@ -250,7 +250,7 @@ enum StayListMock {
         // auditLog append（最新记录在首位）
         let entry = AuditLogEntry(
             at: nowJaString(),
-            action: "修改届を提出",
+            action: "変更届を提出",
             actor: SEED.user.name,
             detail: amendReason
         )
@@ -849,7 +849,7 @@ struct StayDetailView: View {
             HStack(spacing: 8) {
                 Image(systemName: "pencil")
                     .font(.system(size: 14, weight: .semibold))
-                Text("修改届を提出")
+                Text("変更届を提出")
                     .font(.system(size: 14, weight: .bold))
             }
             .foregroundStyle(.white)
@@ -939,7 +939,7 @@ struct StayDetailView: View {
     private func auditColor(_ action: String) -> Color {
         if action.contains("承認") { return T.ok }
         if action.contains("差戻") { return T.danger }
-        if action.contains("修改") { return T.warn }
+        if action.contains("変更") { return T.warn }
         return T.primary
     }
 
@@ -1219,7 +1219,7 @@ struct StayEditForm: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            PageHeader(title: "\(original.kind.rawValue)届 修改届", level: 3)
+            PageHeader(title: "\(original.kind.rawValue)届の変更", level: 3)
             ScrollView {
                 if isLoading && loadedOriginal == nil {
                     ProgressView()
@@ -1304,7 +1304,7 @@ struct StayEditForm: View {
                 .foregroundStyle(T.warnDeep)
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 3) {
-                Text("修改届を提出すると、承認の流れが最初からやり直しになります。")
+                Text("変更届を提出すると、承認の流れが最初からやり直しになります。")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(T.warnDeep)
                 Text("先にご承認いただいた先生にも、もう一度ご承認をお願いすることになります。")
@@ -1329,7 +1329,7 @@ struct StayEditForm: View {
             sectionLabel("申請者本人（変更不可）")
             Card(padding: 0) {
                 VStack(spacing: 0) {
-                    idRow("学号", app.displayUser.account, isFirst: true)
+                    idRow("アカウント番号", app.displayUser.account, isFirst: true)
                     idRow("氏名", app.displayUser.name)
                     idRow("学年・組", "\(app.displayUser.grade) \(app.displayUser.classSuffix)組 \(app.displayUser.seatNo)番")
                     idRow("寮・部屋", "\(app.displayUser.dorm) \(app.displayUser.room)")
@@ -1337,7 +1337,7 @@ struct StayEditForm: View {
                     idRow("携帯電話", app.displayUser.phone)
                 }
             }
-            Text("※ 身份情報の変更は寮監にご連絡ください。修改届では変更できません。")
+            Text("※ 個人情報の変更は寮監にご連絡ください。変更届では変更できません。")
                 .font(.system(size: 11))
                 .foregroundStyle(T.inkMute)
         }
@@ -1426,15 +1426,15 @@ struct StayEditForm: View {
     private var amendReasonSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 4) {
-                sectionLabel("修改の理由")
+                sectionLabel("変更の理由")
                 Text("*").foregroundStyle(T.danger).font(.system(size: 13, weight: .heavy))
             }
             TArea(
                 text: $amendReason,
-                placeholder: "修改の理由を入力してください",
+                placeholder: "変更の理由を入力してください",
                 rows: 4
             )
-            Text("※ 各役职の先生にこの理由が表示されます。")
+            Text("※ 各役職の先生にこの理由が表示されます。")
                 .font(.system(size: 11))
                 .foregroundStyle(T.inkMute)
         }
@@ -1462,7 +1462,7 @@ struct StayEditForm: View {
             Button {
                 submit()
             } label: {
-                Text("修改届を提出")
+                Text("変更届を提出")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity, minHeight: 52)
@@ -1516,7 +1516,7 @@ struct StayEditForm: View {
                 destination: trimmedDest.isEmpty ? nil : trimmedDest,
                 amendReason: amendReason
             )
-            app.showToast("修改届を提出しました")
+            app.showToast("変更届を提出しました")
             router.back()
             return
         }
@@ -1544,7 +1544,7 @@ struct StayEditForm: View {
 
         do {
             _ = try await ApplicationsAPI.update(id: uuid, body: body)
-            app.showToast("修改届を提出しました")
+            app.showToast("変更届を提出しました")
             router.back()
         } catch APIError.unauthorized {
             app.authToken = nil
@@ -1671,7 +1671,7 @@ struct StayEditForm: View {
         .environmentObject(AppStore())
 }
 
-#Preview("StayEdit · 修改届") {
+#Preview("StayEdit · 変更届") {
     StayEditForm(id: "a1")
         .environmentObject(RouterStore(initial: .stayEdit(id: "a1")))
         .environmentObject(AppStore())
@@ -1777,7 +1777,7 @@ extension AuditLogOut {
     private static func translateAction(_ raw: String) -> String {
         switch raw {
         case "application.submit": return "提出"
-        case "application.amend", "application.update": return "修改届を提出"
+        case "application.amend", "application.update": return "変更届を提出"
         case "application.approve": return "承認"
         case "application.reject": return "差戻"
         case "application.withdraw": return "取消"

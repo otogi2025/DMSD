@@ -210,7 +210,7 @@ struct PackageDisplay: Identifiable {
     let isWaiting: Bool // true=待取（状态 pending/notified）/ false=已取（picked_up 等终态）
     let statusLabel: String // 详情「状態」行用：精确到 5 状态（picked_up/expired/discarded 各自文案，不一律「受取済」）
     var statusText: String {
-        isWaiting ? "待領" : "領済"
+        isWaiting ? "受取待ち" : "受取済"
     }
 }
 
@@ -251,8 +251,8 @@ extension PackageDisplay {
             arrivedLabel: "\(p.date) 14:22",
             tracking: p.tracking,
             location: "寮務室前棚 A-3",
-            isWaiting: p.status == "待領",
-            statusLabel: p.status // 演示数据状态本就是日语「待領 / 領済」
+            isWaiting: p.status == "受取待ち",
+            statusLabel: p.status // 演示数据状态本就是日语「受取待ち / 受取済」
         )
     }
 
@@ -308,8 +308,8 @@ struct PackagesView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     // SegTabs · marginBottom 14
                     SegTabs(selection: $tab, items: [
-                        (.wait, "待領 · \(waitCount)"),
-                        (.done, "領済 · \(doneCount)"),
+                        (.wait, "受取待ち · \(waitCount)"),
+                        (.done, "受取済 · \(doneCount)"),
                     ])
                     .padding(.horizontal, 16)
                     .padding(.top, 4)

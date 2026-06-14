@@ -487,7 +487,7 @@ struct HomeView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "iphone.radiowaves.left.and.right")
                             .font(.system(size: 14, weight: .semibold))
-                        Text("NFC で签到")
+                        Text("NFC でチェックイン")
                             .font(.system(size: 13.5, weight: .bold))
                     }
                     .foregroundStyle(deepBrown)
@@ -920,7 +920,7 @@ struct LifeTab: View {
     }
 
     private var pendingPkg: Int {
-        SEED.packages.filter { $0.status == "待領" }.count
+        SEED.packages.filter { $0.status == "受取待ち" }.count
     }
 
     var body: some View {
@@ -2106,13 +2106,13 @@ struct FeedbackSheet: View {
         GlassSheet(onClose: { app.closeSheet() }) {
             VStack(alignment: .leading, spacing: 0) {
                 // JSX: 20 800 / marginBottom 6
-                Text("反馈を送る")
+                Text("報告・連絡を送る")
                     .font(.system(size: 20, weight: .heavy))
                     .foregroundStyle(T.ink)
                     .padding(.bottom, 6)
 
                 // JSX: 13 inkSub / marginBottom 18
-                Text("どの種類の反馈を送りますか？")
+                Text("どの種類の報告を送りますか？")
                     .font(.system(size: 13))
                     .foregroundStyle(T.inkSub)
                     .padding(.bottom, 18)

@@ -73,7 +73,7 @@ struct PackageItem: Hashable, Identifiable {
     let id: Int
     let date: String
     let from: String
-    let status: String // 待領 / 領済
+    let status: String // 状态值：「受取待ち」/「受取済」
     let tracking: String?
 }
 
