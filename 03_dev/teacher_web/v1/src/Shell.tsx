@@ -99,23 +99,47 @@ export function Shell({
 
   // 职位退化为纯显示标签后，菜单不再按职位隐藏 —— 所有老师都能查看所有功能页，
   // 「增删改」的权限由后端权限闸（require_permission）按权限组把关。
-  const NAV: Array<[string, string, number?]> = [
-    ["roll-call", "点呼"],
-    ["notifications", "通知", notifUnread || undefined],
-    ["discipline", "規律・処分"],
-    ["applications", "申請", pendingApps || undefined],
-    ["proxy-application", "代録"],
-    ["study", "学習出席"],
-    ["records", "記録"],
-    ["active-leaves", "出寮者一覧"],
-    ["info", "お知らせ・バス"],
-    ["community", "コミュニティ管理"],
-    ["front-desk", "フロント業務"],
-    ["accounts", "学生アカウント管理"],
-    ["admin-registration-code", "学生登録コード"],
-    ["incidents", "事案記録"],
-    ["disclosure-requests", "開示申請"],
-    ["teachers-admin", "教員アカウント管理"],
+  // 6-14: 导航从 16 项平铺改为 4 组归类（信息架构优化）——
+  // 高频值班操作在上、偶尔用的管理项沉底，每组加灰色小标题方便「分块跳」。
+  // 徽章（通知未读 / 申请待审）随所属项保留。
+  type NavItem = [string, string, number?];
+  const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
+    {
+      title: "点呼業務",
+      items: [
+        ["roll-call", "点呼"],
+        ["proxy-application", "代録"],
+        ["active-leaves", "出寮者一覧"],
+        ["notifications", "通知", notifUnread || undefined],
+      ],
+    },
+    {
+      title: "生活・指導",
+      items: [
+        ["applications", "申請", pendingApps || undefined],
+        ["discipline", "規律・処分"],
+        ["study", "学習出席"],
+        ["records", "記録"],
+        ["incidents", "事案記録"],
+      ],
+    },
+    {
+      title: "情報・発信",
+      items: [
+        ["info", "お知らせ・バス"],
+        ["community", "コミュニティ管理"],
+        ["front-desk", "フロント業務"],
+      ],
+    },
+    {
+      title: "管理・設定",
+      items: [
+        ["accounts", "学生アカウント管理"],
+        ["admin-registration-code", "学生登録コード"],
+        ["teachers-admin", "教員アカウント管理"],
+        ["disclosure-requests", "開示申請"],
+      ],
+    },
   ];
 
   const pageLabel =
@@ -242,49 +266,64 @@ export function Shell({
         </div>
         <div style={{ height: 1, background: T.line }} />
         <nav style={{ padding: "10px 10px", flex: 1, overflowY: "auto" }}>
-          {NAV.map(([id, label, badge]) => {
-            const isActive = id === active;
-            return (
-              <button
-                key={id}
-                onClick={() => onNav && onNav(id)}
+          {NAV_GROUPS.map((group, gi) => (
+            <div key={group.title}>
+              <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  width: "100%",
-                  padding: "9px 12px",
-                  marginBottom: 2,
-                  background: isActive ? T.cobaltSoft : "transparent",
-                  color: isActive ? T.cobaltDeep : T.ink2,
-                  fontFamily: "inherit",
-                  fontSize: 13.5,
-                  fontWeight: isActive ? 600 : 500,
-                  border: "none",
-                  borderRadius: 8,
-                  cursor: "pointer",
-                  textAlign: "left",
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  color: T.ink3,
+                  letterSpacing: 0.6,
+                  padding: gi === 0 ? "4px 12px 6px" : "16px 12px 6px",
                 }}
               >
-                <span>{label}</span>
-                {badge != null && (
-                  <span
+                {group.title}
+              </div>
+              {group.items.map(([id, label, badge]) => {
+                const isActive = id === active;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => onNav && onNav(id)}
                     style={{
-                      fontSize: 11,
-                      background: isActive ? T.cobalt : T.lineStrong,
-                      color: "#fff",
-                      padding: "1px 8px",
-                      borderRadius: 10,
-                      fontWeight: 600,
-                      fontVariantNumeric: "tabular-nums",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      width: "100%",
+                      padding: "9px 12px",
+                      marginBottom: 2,
+                      background: isActive ? T.cobaltSoft : "transparent",
+                      color: isActive ? T.cobaltDeep : T.ink2,
+                      fontFamily: "inherit",
+                      fontSize: 13.5,
+                      fontWeight: isActive ? 600 : 500,
+                      border: "none",
+                      borderRadius: 8,
+                      cursor: "pointer",
+                      textAlign: "left",
                     }}
                   >
-                    {badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+                    <span>{label}</span>
+                    {badge != null && (
+                      <span
+                        style={{
+                          fontSize: 11,
+                          background: isActive ? T.cobalt : T.lineStrong,
+                          color: "#fff",
+                          padding: "1px 8px",
+                          borderRadius: 10,
+                          fontWeight: 600,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
         <div
           style={{
