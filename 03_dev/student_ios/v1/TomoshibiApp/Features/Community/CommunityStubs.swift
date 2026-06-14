@@ -1439,7 +1439,8 @@ struct EventsView: View {
         return Button {
             selectedDay = day
         } label: {
-            ZStack(alignment: .bottom) {
+            // 数字居中 + 蓝点贴底（避免和数字重叠 — 对齐 ScheduleStubs 既有修法）
+            ZStack {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(bg)
                     .overlay {
@@ -1453,10 +1454,13 @@ struct EventsView: View {
                     .foregroundStyle(fg)
                 // 有行事时小圆点 · 选中时 hide（已高亮不需要再叠圆点）
                 if hasEvent && !isSelected {
-                    Circle()
-                        .fill(T.accent)
-                        .frame(width: 4, height: 4)
-                        .offset(y: -3)
+                    VStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        Circle()
+                            .fill(T.accent)
+                            .frame(width: 4, height: 4)
+                            .padding(.bottom, 3)
+                    }
                 }
             }
             .aspectRatio(1, contentMode: .fit)
