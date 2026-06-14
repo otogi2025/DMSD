@@ -261,6 +261,7 @@ round3/
 | Topbar 右侧 | 点呼実施中 badge（按可跳 live）+ **WS 接続状态** dot + 日時 + **ログアウト** button（新）|
 | 左下 教员信息 | 阿凡达 + 氏名 + **担当寮 badge**（男寮/女寮色分）+「切替」+ **「当番中 / 非番」indicator** |
 | 左 nav 分组（6-14 追加） | 16 菜单平铺 → **4 组归类**，每组加灰色小标题、高频在上 / 管理项沉底。组划分：点呼業務（点呼・代録・出寮者一覧・通知）/ 生活・指導（申請・規律・処分・学習出席・記録・事案記録）/ 情報・発信（お知らせ・バス・コミュニティ管理・フロント業務）/ 管理・設定（学生アカウント管理・学生登録コード・教員アカウント管理・開示申請）。起因 itsuki 截图反馈「散在一排不美观不直观」。⚠️ §4.2 旧表「7 大类」是 5-26 废弃 Vite 版的笼统旧话、无具体定义，不作数 |
+| 菜单可见性（6-14 厘清，单源真值）| **16 项全部对所有登录老师显示**，不按角色 / 职位隐藏任何菜单。敏感功能（教員アカウント管理 / 学生登録コード / 事案記録 / 開示申請 等）的增删改由**后端 `require_permission` 按权限组把关**：无权限老师能进页面、但具体操作被后端拦（403）。⚠️ 本档早期多处「某菜单仅 X 権限可見 / role-based nav」（§5.3' 教师管理「仅寮務管理可見」、§7.16 学生登録コード、§4.2 代録限 5 角色 `DAIROKU_ROLES_FRONT` 等）全是「职位退化为纯显示标签」重构**之前**的旧设计，已撤回、不作数 —— 现实以本行为准 |
 
 ### 5.6 点呼 Dashboard（/roll-call）改动
 
@@ -683,7 +684,7 @@ iPad ★ 路由 **必須**:
 
 ### 11.7 共通 Component（demo R3 から升级）
 
-- `<Shell>` — 教師独自 login / role-based filter / 担当寮 badge / logout button / Tomoshibi logo / dynamic browser title
+- `<Shell>` — 教師独自 login / 全教師に全メニュー表示（旧 role-based filter は撤回）/ 担当寮 badge / logout button / Tomoshibi logo / dynamic browser title
 - `<DormSwitch>` — PC 上方 dropdown（assigned_dorm IS NULL の役职のみ表示 / 操作）
 - `<ApprovalChain>` — 4 役职行 cards 組件
 - `<SeatGrid>` — demo `live-roll-call.jsx` 沿用 + R4 dorm 自動 filter
@@ -967,7 +968,7 @@ itsuki 纠正 CC 两个错误前提：① 部署目标是**服务器**（多人�
 
 ### 16.3 工程结构（当前权威源 `03_dev/teacher_web/v1/`）
 
-- **入口**：根 `index.html`（14 行，引 `/src/main.tsx`）→ `src/main.tsx`（挂载 + 引 fonts.css/styles.css）→ `src/App.tsx`（鉴权状态 + 路由 switch）→ `src/Shell.tsx`（侧栏 16 菜单 / 4 组归类 + 角色门控 + 顶栏）
+- **入口**：根 `index.html`（14 行，引 `/src/main.tsx`）→ `src/main.tsx`（挂载 + 引 fonts.css/styles.css）→ `src/App.tsx`（鉴权状态 + 路由 switch）→ `src/Shell.tsx`（侧栏 16 菜单 / 4 组归类・全教師表示 + 顶栏）
 - **公共层**：`src/theme.ts`（RYO 配色 + 常量 + dormLabel + `API_BASE="/api/v1"`）/ `src/utils.ts`（4 个 JST 日本时间助手）/ `src/api/types.ts`（50+ 后端类型，对齐 `backend/app/schemas.py`）/ `src/api/client.ts`（60+ 接口方法）/ `src/components/shared.tsx`（ConfirmModal/DormBadge/ModalShell/ModalField/ModalFooter/StateBadge）
 - **页面/弹窗**：`src/components/` 26 个 `.tsx`（22 页 + 3 弹窗 OverrideModal/OutstayDetailModal/StudentProfileModal + shared）
 - **资源**：`src/_assets/`（fonts.css 引用的 .woff2 字体）+ `src/assets/tomoshibi-icon.png`

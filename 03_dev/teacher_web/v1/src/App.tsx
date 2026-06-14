@@ -899,11 +899,11 @@ export function App() {
       body = <StudyAttendancePage teacher={teacher} authToken={authToken} />;
       break;
     case "incidents":
-      // 5-30: 事案録入ページ (spec §7.9 #33) — 寮務系権限のみ nav に表示
+      // 事案记录录入页（spec §7.9 #33）。导航对所有老师显示；增删改权限由后端 require_permission 把关（旧「仅寮务系权限可见」已随职位退化为纯显示标签而撤回）
       body = <IncidentsPage authToken={authToken} />;
       break;
     case "disclosure-requests":
-      // 5-30: 開示申請審査ページ (spec §7.10) — 寮務系権限のみ nav に表示
+      // 开示申请审查页（spec §7.10）。导航对所有老师显示；增删改权限由后端 require_permission 把关（旧「仅寮务系权限可见」已随职位退化为纯显示标签而撤回）
       body = <DisclosureRequestsPage authToken={authToken} />;
       break;
     default:
