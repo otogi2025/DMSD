@@ -779,7 +779,7 @@ extension Color {
 
 - Xcode 17+ / iOS 26 SDK
 - TestFlight 配信（itsuki 自分のデバイス確認）
-- App Store 申請: AC 入試後 / itsuki 卒業後 ⏳
+- App Store 申請: 後日予定 ⏳
 
 ### 11.9 ⏳ 待 itsuki 拍板（P0 阻塞）
 
