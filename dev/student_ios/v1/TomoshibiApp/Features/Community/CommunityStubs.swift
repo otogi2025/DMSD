@@ -207,6 +207,7 @@ struct PackageDisplay: Identifiable {
     let arrivedLabel: String // 详情「到着」行文案
     let tracking: String? // 追跡番号（仅演示有，后端无此字段）
     let location: String? // 保管場所（后端 location）
+    let itemCount: Int // 宅配件数（后端 item_count；演示默认 1）
     let isWaiting: Bool // true=待取（状态 pending/notified）/ false=已取（picked_up 等终态）
     let statusLabel: String // 详情「状態」行用：精确到 5 状态（picked_up/expired/discarded 各自文案，不一律「受取済」）
     var statusText: String {
@@ -251,6 +252,7 @@ extension PackageDisplay {
             arrivedLabel: "\(p.date) 14:22",
             tracking: p.tracking,
             location: "寮務室前棚 A-3",
+            itemCount: 1, // 演示假数据无件数字段，占位 1
             isWaiting: p.status == "受取待ち",
             statusLabel: p.status // 演示数据状态本就是日语「受取待ち / 受取済」
         )
@@ -260,11 +262,13 @@ extension PackageDisplay {
     init(brief b: AppStore.FrontDeskItemBrief) {
         self.init(
             id: b.id.uuidString,
-            title: b.description,
+            // 备注可空（6-14 起宅配备注改可选）→ 空时用件数当主标题，保证卡片有意义
+            title: b.description.isEmpty ? "荷物 \(b.itemCount)件" : b.description,
             dateLabel: pkgDateFmt.string(from: b.createdAt),
             arrivedLabel: pkgArrivedFmt.string(from: b.notifiedAt ?? b.createdAt),
             tracking: nil,
             location: b.location,
+            itemCount: b.itemCount,
             isWaiting: b.status == "pending" || b.status == "notified",
             statusLabel: packageStatusLabel(b.status)
         )
@@ -411,6 +415,7 @@ struct PackageDetailView: View {
         #else
             var r: [(String, String)] = [
                 ("内容", p.title),
+                ("件数", "\(p.itemCount)件"),
                 ("到着", p.arrivedLabel),
                 ("状態", p.statusLabel),
             ]

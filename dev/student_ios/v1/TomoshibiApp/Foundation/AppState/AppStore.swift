@@ -1021,6 +1021,7 @@ final class AppStore: ObservableObject {
         let kind: String
         let description: String
         let location: String? // 保管場所（后端 FrontDeskItem.location；宅配詳細页用）
+        let itemCount: Int // 宅配件数（后端 item_count；2026-06-14 加）
         let status: String // pending / notified / picked_up / expired / discarded
         // datetime 用 Date —— 后端统一输出带 +09:00 日本时间（TZDateTime），APIClient.decodeISO8601Date 直接解码。
         // 跟相邻公告(AnnouncementBrief)同方针，全走健壮解码器。
@@ -1029,6 +1030,7 @@ final class AppStore: ObservableObject {
 
         enum CodingKeys: String, CodingKey {
             case id, kind, description, location, status
+            case itemCount = "item_count"
             case createdAt = "created_at"
             case notifiedAt = "notified_at"
         }
@@ -1043,7 +1045,9 @@ final class AppStore: ObservableObject {
             NotificationItem(
                 id: -(10_000_000 + idx),
                 type: "宅配",
-                title: p.status == "picked_up" ? "荷物を受け取りました" : "荷物が届いています",
+                title: p.status == "picked_up"
+                    ? "荷物を受け取りました"
+                    : "荷物が届いています（\(p.itemCount)件）",
                 time: Self.notifTimeLabel(p.notifiedAt ?? p.createdAt),
                 body: p.description,
                 unread: p.status == "pending" || p.status == "notified"

@@ -1480,3 +1480,20 @@ gpt-5 + high（非预期 gpt-5.5 + xhigh）逐层挖 `ST25DVWriter` NFC 取消�
 
 ### §22.5 方法论
 6 簇并行「分析→对抗核验」工作流（12 代理）重定位被 Tier1 改漂的行号 + 出经核验的精确改法，CC 用 Python 断言落地（每条全文件命中=1）+ 双 scheme 真编译 + 按簇 commit。**前后端枚举收紧**（meal/period/post_type/product String→enum）经两轮 AI 判定会引发多文件连锁+改运行时行为、UI 已有守卫 → 只安全收 `Bool?→Bool`，其余记 TODO 缓办。
+
+## §23 [2026-06-15] 宅配件数 item_count 解析 + 显示（选学生统一改造 iOS 段）
+
+> 后端 6-15 给 `FrontDeskItem` 加了 `item_count`（老师网页宅配弹窗改成步进器选件数、备注改可选）。iOS 学生端这次只跟上「解析 + 显示件数」，不涉及选学生组件（那是老师网页的事）。
+
+### §23.1 改动
+- `AppStore.FrontDeskItemBrief` 加 `let itemCount: Int` + CodingKey `item_count`（对齐后端 `FrontDeskItemOut`）。
+- `PackageDisplay`（宅配卡片/详情统一展示模型）加 `itemCount`；`init(brief:)` 透传，`init(demo:)` 占位 1（演示假数据无件数字段）。
+- 备注（description）6-14 起对宅配改可选、可能为空 → `init(brief:)` 的卡片主标题空备注时回退「荷物 N件」，保证卡片有意义。
+- 通知中心宅配条标题带件数：「荷物が届いています（N件）」。
+- 宅配詳細页 meta 增「件数」行。
+
+### §23.2 字段对齐
+后端 `FrontDeskItemOut.item_count: int` ↔ iOS `FrontDeskItemBrief.itemCount: Int`（CodingKey `item_count`）。snake↔camel 经 CodingKeys 显式映射。
+
+### §23.3 验证
+`TomoshibiApp` + `TomoshibiAppDemo` 双 scheme BUILD SUCCEEDED（iPhone 17 Pro 模拟器）。SourceKit 跨文件「Cannot find in scope」是已知误报，以 xcodebuild 为准。
