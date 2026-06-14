@@ -8,7 +8,7 @@ lifecycleRuntimeKtx = "2.6.1"
 activityCompose = "1.8.0"
 kotlin = "2.2.10"
 composeBom = "2026.02.01"
-navCompose = "2.8.5"
+navCompose = "2.9.8"
 datastore = "1.1.1"
 serializationJson = "1.7.3"
 
