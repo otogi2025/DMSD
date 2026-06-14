@@ -6,7 +6,8 @@ import type { RegistrationCode } from "../api/types";
 // Task #14 学生登录码（学生登録コード）面板
 // 来源：WEB_DESIGN_LOG §11.9.1 + system_features.md §7.16（5-03 itsuki 拍板）
 // 目的：App Store 公开后通过 6 位有效期 5 分钟的码做学生注册 gate
-// 权限：仅寮務部長 / 寮務課長 / 管理係 三个角色可访问（其他教师 403）
+// 权限（2026-06-14 itsuki 拍板）：所有权限组都能完整使用，演示账号也可用 → 后端不再返回 403。
+//   下面 forbidden 分支保留作兜底（防御后端意外 403），正常路径不会触发。
 // 跟 iOS 对齐：iOS RegisterStep5 已使用注册码（5-26 A-035 修复时改成真接 backend）
 // 源 index.html 13694-14143（components/registration-code-panel.jsx 块）。界面原样搬，仅作用域引用方式改写。
 export function RegistrationCodePanel({ authToken }: { authToken: string }) {
@@ -141,7 +142,7 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
             lineHeight: 1.7,
           }}
         >
-          このページは <b>寮務部長 / 寮務課長 / 管理係</b> のみ閲覧できます。
+          このページを表示する権限がありません。
         </div>
       </div>
     );

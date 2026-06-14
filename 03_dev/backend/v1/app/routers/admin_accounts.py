@@ -4,7 +4,7 @@
 - system_features.md §7.1（学生账号管理）
 - BACKEND_DESIGN_LOG.md §5.x
 
-角色 gate：寮務部長 / 寮務課長 / 管理係（同 admin_registration_code.py ADMIN_ROLES）
+角色 gate：寮務部長 / 寮務課長 / 管理係
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ router = APIRouter(
     tags=["admin / accounts"],
 )
 
-# 同 admin_registration_code.py ADMIN_ROLES — §3.4 寮务管理 3 个角色
+# §3.4 寮务管理 3 个角色
 ADMIN_ROLES = ("寮務部長", "寮務課長", "管理係")
 
 # 临时密码：16 桁英数字混合（大文字 + 小文字 + 数字 — 猜测难度足够，不用特殊符号避免输错）

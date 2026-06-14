@@ -109,7 +109,13 @@ PRESET: dict[str, dict[str, int]] = {
     C_MEAL: {_O: _M, _DA: _M, _G: _M, _GS: _M, _AP: _M},  # 10
     C_STUDY: {_O: _M, _DA: _M, _G: _V, _GS: _M, _AP: _V},  # 11
     C_STUDENT_ACCOUNT: {_O: _M, _DA: _M, _G: _M, _GS: _M, _AP: _V},  # 12
-    C_REG_CODE: {_O: _M, _DA: _M, _G: _M, _GS: _M, _AP: _V},  # 13
+    C_REG_CODE: {
+        _O: _M,
+        _DA: _M,
+        _G: _M,
+        _GS: _M,
+        _AP: _M,
+    },  # 13（2026-06-14 itsuki 拍板：所有权限组都能完整用注册码，申請承認専用 V→M）
     C_INCIDENT: {_O: _M, _DA: _M, _G: _M, _GS: _M, _AP: _V},  # 14
     C_GUIDANCE: {_O: _M, _DA: _M, _G: _M, _GS: _M, _AP: _V},  # 15
     C_TEACHER_ACCOUNT: {_O: _M, _DA: _M, _G: _V, _GS: _V, _AP: _V},  # 16

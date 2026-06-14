@@ -148,11 +148,12 @@ export const PRESET: Record<string, Record<string, Level>> = {
     [GROUP_APPROVAL]: V,
   },
   [C_REG_CODE]: {
+    // 2026-06-14 itsuki 拍板：所有权限组都能完整用注册码（申請承認専用 V→M）。
     [GROUP_OP]: M,
     [GROUP_DORM_ADMIN]: M,
     [GROUP_GENERAL]: M,
     [GROUP_GENERAL_STUDY]: M,
-    [GROUP_APPROVAL]: V,
+    [GROUP_APPROVAL]: M,
   },
   [C_INCIDENT]: {
     [GROUP_OP]: M,

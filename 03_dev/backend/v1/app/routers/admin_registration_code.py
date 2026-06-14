@@ -1,10 +1,16 @@
-"""学生注册码 admin 端点（限定寮务管理 role）。
+"""学生注册码 admin 端点。
 
 权威 spec：
 - BACKEND_DESIGN_LOG.md §5.x（教师 admin 学生登录码）
 - system_features.md §7.16（核心规则 8 条）
 
 2026-05-03 itsuki 拍板背景：App Store 上架对策。完整经过见内部开发日志。
+
+权限（2026-06-14 itsuki 拍板）：
+- 5 个权限组全部可完整使用（C_REG_CODE 矩阵全 MANAGE）。
+- 演示账号同样可见 / 操作真实注册码 —— itsuki 在知情（演示老师可用真码注册真实学生、
+  破坏 is_demo 演示隔离）的前提下选择取消 6-08 加的 assert_not_demo_teacher 闸，理由是
+  演示便利优先、不愿做演示专用假码。决策记录见 05_logs/decisions/decision_log.md。
 """
 
 from __future__ import annotations
@@ -18,7 +24,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, permissions, schemas
 from ..database import get_db
-from ..deps import assert_not_demo_teacher, require_permission
+from ..deps import require_permission
 
 router = APIRouter(
     prefix="/api/v1/admin/registration-code",
@@ -29,9 +35,6 @@ router = APIRouter(
 # 30 分钟自动失效（itsuki 2026-05-31 拍板：老师生成后写黑板 / 口头告知，30 分钟够全班输入；
 # 老师也可点「关闭」手动提前作废 —— 见下面 close 端点）。
 REGISTRATION_CODE_TTL_MINUTES = 30
-
-# §3.4 教师权限「寮务管理」对应的 role（spec 未细分，先取 3 个最相关）
-ADMIN_ROLES = ("寮務部長", "寮務課長", "管理係")
 
 
 def _generate_code() -> str:
@@ -70,8 +73,7 @@ def get_current(
 
     教师 Web「学生注册码」面板挂载时调用，每 30 秒轮询一次。
     """
-    # 演示老师禁读真实注册码（否则能拿真实码→自注册建真实学生账号、绕过整套演示隔离）→ 403
-    assert_not_demo_teacher(teacher)
+    # 2026-06-14 itsuki 拍板：演示账号同样可读真实注册码（取消 assert_not_demo_teacher 闸）。
     now = datetime.now(timezone.utc)
     row = db.scalars(
         select(models.StudentRegistrationCode)
@@ -108,8 +110,7 @@ def refresh_code(
         3. INSERT 新行
         4. 写 audit log
     """
-    # 演示老师禁止刷新全局学生注册码（会作废真实码、绕过演示隔离）→ 403
-    assert_not_demo_teacher(teacher)
+    # 2026-06-14 itsuki 拍板：演示账号同样可刷新注册码（取消 assert_not_demo_teacher 闸）。
     now = datetime.now(timezone.utc)
 
     # 1. 把所有现存 active 码作废（§7.16.2 规则 3 — 同时只能 1 个有效）
@@ -179,8 +180,7 @@ def close_code(
     把现存 active 非审核员码标 invalidated_at；审核员永久码不动。
     没有 active 码时也安全返回（幂等）。
     """
-    # 演示老师禁止关闭全局学生注册码（会作废真实码、绕过演示隔离）→ 403
-    assert_not_demo_teacher(teacher)
+    # 2026-06-14 itsuki 拍板：演示账号同样可关闭注册码（取消 assert_not_demo_teacher 闸）。
     now = datetime.now(timezone.utc)
     # 只关「生效中（未过期）」的码 —— 与 /current 同口径（invalidated IS NULL + expires_at > now）。
     # 过期码 /current 本就返回 null → close 应 no-op、不记 audit（Codex 5.5 P3）。
@@ -224,8 +224,7 @@ def get_history(
     §7.16.5 功能矩阵的「码生成 / 使用 audit log」中「生成侧」view。
     「使用侧」view（哪个学生用了哪个码注册）= 单独 endpoint，v1.1 再做。
     """
-    # 演示老师禁读真实注册码历史（含真实码明文）→ 403
-    assert_not_demo_teacher(teacher)
+    # 2026-06-14 itsuki 拍板：演示账号同样可读注册码历史（取消 assert_not_demo_teacher 闸）。
     rows = db.execute(
         select(
             models.StudentRegistrationCode,

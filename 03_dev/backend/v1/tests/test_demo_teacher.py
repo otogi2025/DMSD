@@ -147,13 +147,13 @@ def test_real_teacher_cannot_view_demo_student_profile(
 # ─────────────────────────────────────────────────────────────
 # 全局端点演示隔离 — 演示老师禁碰「全局管理 / 写真实数据」端点（assert_not_demo_teacher → 403）
 # 2026-06-08 codex 多视角复审挖出：演示账号默认启用 + 公开密码 demo123 后，这些全局端点
-# （注册码读 / 公告发 / 日程 / 巴士 / 测试邮件 / 老师目录）原本漏的隔离从「需先攻破账号」变零成本可达。
+# （公告发 / 日程 / 巴士 / 测试邮件 / 老师目录）原本漏的隔离从「需先攻破账号」变零成本可达。
 # 这些表无 is_demo 列，只能靠 assert_not_demo_teacher 角色门拦（演示老师 is_demo=True → 403）。
+# 注：注册码（current / history / refresh / close）2026-06-14 itsuki 拍板放开演示账号，已移出本表
+#     —— 见 test_demo_teacher_can_read_registration_code。
 # ─────────────────────────────────────────────────────────────
 
 _DEMO_FORBIDDEN_GET = [
-    "/api/v1/admin/registration-code/current",  # 读真实注册码 → 提权链根基
-    "/api/v1/admin/registration-code/history",  # 读真实注册码历史明文
     "/api/v1/teachers/",  # 枚举真实老师 login_id / email
 ]
 
@@ -164,6 +164,19 @@ def test_demo_teacher_forbidden_global_get(client, demo_teacher_token, path):
     res = client.get(path, headers={"Authorization": f"Bearer {demo_teacher_token}"})
     assert res.status_code == 403, res.text
     assert res.json()["detail"]["code"] == "DEMO_FORBIDDEN", res.text
+
+
+def test_demo_teacher_can_read_registration_code(client, demo_teacher_token):
+    """2026-06-14 itsuki 拍板：演示账号可读真实注册码（取消 assert_not_demo_teacher 闸）→ 不再 403。
+
+    itsuki 在知情（演示老师能拿真码注册真实学生、破坏 is_demo 隔离）的前提下选择放开。
+    body 可能为 null（当前无生效码），但绝非 403。
+    """
+    res = client.get(
+        "/api/v1/admin/registration-code/current",
+        headers={"Authorization": f"Bearer {demo_teacher_token}"},
+    )
+    assert res.status_code == 200, res.text
 
 
 def test_demo_teacher_announcement_isolated_from_real(

@@ -211,7 +211,7 @@ audit log 表 = `audit_logs(id, actor_type, actor_id, action, target_type, targe
 - **模型**：`Teacher.permission_group`（5 值枚举或 NULL + CheckConstraint）；迁移 `f1a2b3c4d5e6` 加列 + 按职位回填。职位 `role` 退化为纯显示标签、不参与鉴权。
 - **矩阵**：`app/permissions.py` PRESET（5 权限组 × 16 功能簇 → MANAGE / VIEW / NONE，严格照设计 §5）+ `ROLE_DEFAULT_GROUP`（NULL 组按职位回退的向后兼容 shim，生产账号显式配组后不触发）。
 - **闸**：`deps.require_permission(功能簇, 级别)` 取代裸 `get_current_teacher` / `require_teacher_roles`；17 个簇路由的老师端点全改挂（管理动作 M / 查看动作 V），拒绝时 `detail.code="FORBIDDEN_ROLE"`（沿用旧码）。
-- **正交关系**：演示隔离（`assert_not_demo_teacher` / `demo_scope_for_teacher`）/ 审批链 角色逻辑 与权限闸正交叠加，保留不变。⚠️ 寮过滤（`dorm_units_for_teacher`）**已于 2026-06-14 取消**（见下「3.8.2 寮过滤取消」）——不再是正交叠加项，现恒返回全寮。
+- **正交关系**：演示隔离（`assert_not_demo_teacher` / `demo_scope_for_teacher`）/ 审批链 角色逻辑 与权限闸正交叠加，保留不变。⚠️ 寮过滤（`dorm_units_for_teacher`）**已于 2026-06-14 取消**（见下「3.8.2 寮过滤取消」）——不再是正交叠加项，现恒返回全寮。⚠️ 另：**注册码管理 4 端点已于 2026-06-14 移除 `assert_not_demo_teacher`**（itsuki 拍板演示账号可用真实注册码，回退 6-08 commit `49176ff` 加的演示隔离闸；矩阵同步全 M）——`assert_not_demo_teacher` 本体仍守 events/bus/test-email/teachers 等端点，仅注册码这一簇放开。
 - **op 账号**：`seed.py` 从环境变量 `OP_PASSWORD` 注入，明文绝不入仓库 / 迁移（缺失则跳过建账号）。
 - **两处保留的职位域规则**（待 itsuki 决定是否也纯按权限组判）：① `applications.py` 代録 / proxy-candidates 仍叠加 `_DAIROKU_ROLES`（§6 未把它们列进 cluster-2 管理动作清单）；② `teachers.py delete_teacher` 仍用 `TEACHER_ADMIN_ROLES` 防删最后一个管理员。
 - **codex 复审（2026-06-11，gpt-5.5 xhigh 只读）**：0 阻塞 / 5 重大 / 2 次要 / 1 建议。CC 逐条独立核实，itsuki 拍板后修了 4 条（F3 保持现状）：
@@ -777,7 +777,7 @@ Authorization: Bearer <学生 JWT>
 
 ### 5.x 教師 admin — 学生登録コード（2026-05-03 拍板、§4.10 + system_features §7.16）
 
-> アクセス権限 = `teacher` JWT + 「寮務管理」権限（§3.4 教師権限モデル）。他 role は 403。
+> アクセス権限（2026-06-14 itsuki 更新）= `teacher` JWT のみ。権限グループ §5 矩阵で全 5 グループが MANAGE（生成 / 関閉 / 閲覧 / 履歴すべて）。**デモアカウントも利用可**（`assert_not_demo_teacher` 撤去）。職位（role）による制限なし。
 
 #### 5.x.1 `GET /admin/registration-code/current`
 

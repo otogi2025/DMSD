@@ -1276,7 +1276,7 @@ class FrontDeskItemCreateIn(BaseModel):
 # ---------------------------------------------------------------
 # 学生账号管理（admin 端，spec §7.1）— 2026-05-30 实装
 #   权威 spec：system_features.md §7.1
-#   角色 gate：寮務部長 / 寮務課長 / 管理係（同注册码 ADMIN_ROLES）
+#   角色 gate：寮務部長 / 寮務課長 / 管理係
 # ---------------------------------------------------------------
 class StudentAccountListItem(BaseModel):
     """GET /students 列表 — 每个学生一条。"""
