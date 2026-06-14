@@ -8,11 +8,11 @@ on:
   push:
     branches: [main]
     paths:
-      - "03_dev/teacher_web/v1/**"
+      - "dev/teacher_web/v1/**"
       - ".github/workflows/ci.yml"
   pull_request:
     paths:
-      - "03_dev/teacher_web/v1/**"
+      - "dev/teacher_web/v1/**"
       - ".github/workflows/ci.yml"
 
 jobs:
@@ -22,14 +22,14 @@ jobs:
     timeout-minutes: 10
     defaults:
       run:
-        working-directory: 03_dev/teacher_web/v1
+        working-directory: dev/teacher_web/v1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: 03_dev/teacher_web/v1/package-lock.json
+          cache-dependency-path: dev/teacher_web/v1/package-lock.json
       - name: 装依赖
         run: npm ci
       - name: 类型检查 + 构建

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="03_dev/student_ios/v1/TomoshibiApp/AppIcon-1024.png" alt="Tomoshibi 灯火" width="160" height="160" />
+  <img src="dev/student_ios/v1/TomoshibiApp/AppIcon-1024.png" alt="Tomoshibi 灯火" width="160" height="160" />
 </p>
 
 # DMSD → Tomoshibi（灯火）
@@ -17,11 +17,11 @@
 
 如果你是第一次打开这个仓库，建议按这个顺序读：
 
-1. [`02_design/system_features.md`](./02_design/system_features.md) — 5 端共用功能规格，系统整体能力一览。
-2. [`01_specs/rollcall/RollCall_Spec.md`](./01_specs/rollcall/RollCall_Spec.md) — 点呼系统完整业务规格。
-3. [`03_dev/`](./03_dev/) — 5 端源代码，每个端目录下有自己的 README。
+1. [`design/system_features.md`](./design/system_features.md) — 5 端共用功能规格，系统整体能力一览。
+2. [`specs/rollcall/RollCall_Spec.md`](./specs/rollcall/RollCall_Spec.md) — 点呼系统完整业务规格。
+3. [`dev/`](./dev/) — 5 端源代码，每个端目录下有自己的 README。
 
-`README.md` 是仓库门面，`02_design/` 与 `01_specs/` 是理解系统设计的入口。
+`README.md` 是仓库门面，`design/` 与 `specs/` 是理解系统设计的入口。
 
 ---
 
@@ -62,9 +62,9 @@ Tomoshibi 用 NFC 卡、学生手机 App、老师 Web、后端服务器和入口
 |---|---|
 | 规格层 | `system_features.md` + `RollCall_Spec.md` + 字段/枚举/错误码字典仍是业务真值。 |
 | Backend | FastAPI + PostgreSQL + Alembic。13 router 注册，61 endpoint 可 import；discipline / cleaning / front desk / WebSocket 已推进。 |
-| iOS | SwiftUI 项目在 `03_dev/student_ios/v1/`；核心 Features + Network + Foundation 已建立，近期完成自主审查并修掉 1 处 force unwrap。 |
+| iOS | SwiftUI 项目在 `dev/student_ios/v1/`；核心 Features + Network + Foundation 已建立，近期完成自主审查并修掉 1 处 force unwrap。 |
 | Android | Kotlin + Compose 项目已建，视觉层覆盖主要学生端屏幕；真后端接入和测试仍待推进。 |
-| Teacher Web | 6-05 迁到 React + TypeScript + Vite（界面冻结从 Ryō standalone HTML 原样搬），权威源 `03_dev/teacher_web/v1/src/`。 |
+| Teacher Web | 6-05 迁到 React + TypeScript + Vite（界面冻结从 Ryō standalone HTML 原样搬），权威源 `dev/teacher_web/v1/src/`。 |
 | 点呼机 | 硬件方案和 Python 骨架已建，真实 Pi 上手和 NFC/LED/audio/API 模块实装仍在后续。 |
 | 工程治理 | WIP / TODO / project-overview / hooks / skills 已形成协作和防漂体系。 |
 
@@ -87,10 +87,10 @@ Tomoshibi 用 NFC 卡、学生手机 App、老师 Web、后端服务器和入口
 
 | 顺序 | 文件 | 看什么 |
 |---|---|---|
-| 1 | [`02_design/system_features.md`](./02_design/system_features.md) | 5 端共用功能规格真值。 |
-| 2 | [`01_specs/rollcall/RollCall_Spec.md`](./01_specs/rollcall/RollCall_Spec.md) | 点呼系统完整业务规格。 |
-| 3 | [`02_design/`](./02_design/) | 硬件 / 流程 / 权限等设计文档。 |
-| 4 | [`03_dev/`](./03_dev/) | 5 端源代码，各端目录下有自己的 README。 |
+| 1 | [`design/system_features.md`](./design/system_features.md) | 5 端共用功能规格真值。 |
+| 2 | [`specs/rollcall/RollCall_Spec.md`](./specs/rollcall/RollCall_Spec.md) | 点呼系统完整业务规格。 |
+| 3 | [`design/`](./design/) | 硬件 / 流程 / 权限等设计文档。 |
+| 4 | [`dev/`](./dev/) | 5 端源代码，各端目录下有自己的 README。 |
 | 5 | [`CHANGELOG.md`](./CHANGELOG.md) | 版本演变和里程碑。 |
 
 ---

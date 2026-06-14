@@ -3,14 +3,14 @@
 # 公开仓库 otogi2025/DMSD 只保留「DMSD 软件本体」，其余默认不公开。
 # 机制：先忽略一切（/*），再用 ! 放行项目本体。
 # 新加的任何文件 / 文件夹默认不公开 —— 零维护。
-# 详见 00_admin/handoff/push大整理_执行计划_2026-06-13.md
+# 详见 admin/handoff/push大整理_执行计划_2026-06-13.md
 # ────────────────────────────────────────────────────────────────
 # 放行（= 会出现在公开 GitHub 上的）只有「项目本体」：
 /*
-!/01_specs/
-!/02_design/
-!/03_dev/
-!/04_ops/
+!/specs/
+!/design/
+!/dev/
+!/ops/
 !/.github/
 !/.gitignore
 !/README.md
@@ -18,9 +18,9 @@
 !/CHANGELOG.md
 
 # ════════════════════════════════════════════════════════════════
-# 以下 pattern：放行目录（尤其 03_dev/ 04_ops/）内部仍必须忽略的
+# 以下 pattern：放行目录（尤其 dev/ ops/）内部仍必须忽略的
 # 垃圾 / 构建产物 / 密钥 / 数据库 / 备份。
-# 白名单 !/03_dev/ 放行了整个目录，这些 pattern 负责重新挡住目录里
+# 白名单 !/dev/ 放行了整个目录，这些 pattern 负责重新挡住目录里
 # 不该公开的东西（node_modules、.venv、.env、密钥等）。
 # ════════════════════════════════════════════════════════════════
 
@@ -116,7 +116,7 @@ Desktop.ini
 # ── graphify 知识图谱产物（82M+ 临时文件，不入 repo）─
 graphify-out/
 
-# ── graphify hook install 残留目录（hook 已 copy 到 00_admin/hooks/，详见 hooks/README.md ⚠️ 段）─
+# ── graphify hook install 残留目录（hook 已 copy 到 admin/hooks/，详见 hooks/README.md ⚠️ 段）─
 .beads/
 
 # ── Matt Pocock skills `to-prd` 中间产物（PRD 详细文档，进 TODO.md 后即可弃） ─
@@ -148,6 +148,6 @@ secrets/
 *.bak[0-9]*
 
 # ── 含服务器 IP/SSH 用户名的运维文档，itsuki 拍板不公开，只留本地（2026-06-12）─
-04_ops/个人网站_pj部署运维.md
+ops/个人网站_pj部署运维.md
 # ── 个人机器迁移/恢复指南（含 iCloud 私人路径 + Claude memory 恢复流程），不公开（2026-06-13）─
-04_ops/MAC_MINI_SETUP.md
+ops/MAC_MINI_SETUP.md

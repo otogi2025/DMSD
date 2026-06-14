@@ -7,9 +7,9 @@
 #   之前是手动追漏洞编号（CVE-2024-33663 / CVE-2024-33664），现在交给机器人。
 #
 # 监控范围（每端依赖清单所在目录）：
-#   - 后端 Python        03_dev/backend/v1/requirements.txt
-#   - 点呼机 Python      03_dev/rollcall_device/requirements.txt
-#   - 安卓 Gradle        03_dev/student_android/v1
+#   - 后端 Python        dev/backend/v1/requirements.txt
+#   - 点呼机 Python      dev/rollcall_device/requirements.txt
+#   - 安卓 Gradle        dev/student_android/v1
 #   - GitHub Actions 工作流自身
 # 暂不含：
 #   - iOS：依赖写在 project.yml 由 xcodegen 生成，无独立 Package.swift，Dependabot 暂认不了
@@ -21,7 +21,7 @@ version: 2
 updates:
   # 后端 Python 依赖
   - package-ecosystem: "pip"
-    directory: "/03_dev/backend/v1"
+    directory: "/dev/backend/v1"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -35,7 +35,7 @@ updates:
 
   # 点呼机 Python 依赖
   - package-ecosystem: "pip"
-    directory: "/03_dev/rollcall_device"
+    directory: "/dev/rollcall_device"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -43,7 +43,7 @@ updates:
 
   # 安卓 Gradle 依赖
   - package-ecosystem: "gradle"
-    directory: "/03_dev/student_android/v1"
+    directory: "/dev/student_android/v1"
     schedule:
       interval: "weekly"
       day: "monday"
