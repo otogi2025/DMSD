@@ -924,7 +924,8 @@ class StudentAccountCreateIn(BaseModel):
     is_overseas: bool = False
     email: Optional[EmailStr] = None
     phone: Optional[str] = Field(None, max_length=32)
-    password: str = Field(..., min_length=8, max_length=128)
+    # min_length=6 对齐 iOS 学生注册本地校验（itsuki 2026-06-14 上架拍板；老师注册密码仍 8 位不降）
+    password: str = Field(..., min_length=6, max_length=128)
     # 老师在后台生成的 6 桁码（默认 30 分钟内有效）
     registration_code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
 
