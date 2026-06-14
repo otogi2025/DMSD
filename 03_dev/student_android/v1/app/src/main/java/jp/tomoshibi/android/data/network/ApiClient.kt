@@ -14,7 +14,7 @@ import java.net.URL
 
 // HTTP 客户端单例（对应 iOS Foundation/Network/APIClient.swift）。
 //   用法：ApiClient.token = "eyJ..."（登录成功后 set）→ val out: XxxOut = ApiClient.get("/api/v1/...")
-//   网络层从零搭建蓝图见 00_admin/iOS_Android_对齐规格.md 第 563-958 行。
+//   网络层从零搭建蓝图见 内部对齐规格 第 563-958 行。
 //   注意：本层是结构对齐（跟 iOS 一致地存在），各屏从 MockData 切到真实联网是渐进式
 //   （iOS 自身也只接了一半），整套真实联网 + 真实 NFC 防作弊签到依赖后端实装。
 object ApiClient {

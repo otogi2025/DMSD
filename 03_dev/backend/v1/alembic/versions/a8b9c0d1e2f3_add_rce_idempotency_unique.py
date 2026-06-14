@@ -3,7 +3,7 @@
 2026-05-21: A-011 修复 — RollCallEvent.idempotency_key 没 UniqueConstraint
   - 同 session + 同 key 必须唯一，防 client 重试 / 复用 key 产生重复事件
   - 配套 router 改：先查 idempotency_key 命中 → 直接返已存事件
-  - 权威：A-011 in 05_logs/audit_2026-05-19/session_A_findings.md
+  - 权威：A-011（内部审查记录）
 
 Revision ID: a8b9c0d1e2f3
 Revises: f6a7b8c9d0e1

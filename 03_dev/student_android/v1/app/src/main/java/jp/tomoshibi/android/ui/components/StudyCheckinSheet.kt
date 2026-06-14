@@ -58,7 +58,7 @@ import java.time.format.DateTimeFormatter
 // ───────────────────────────────────────────────────────────────
 // StudyCheckinSheet — 晚自习 NFC「2 次签到」弹窗
 // 对齐 iOS Foundation/Features/Home/HomeStubs.swift 的 StudyCheckinSheet（simulate() 行 1805）。
-// 规格真值：00_admin/iOS_Android_对齐规格.md 第 2978–3003 行（③ 学習 NFC 2 次签到）。
+// 规格真值：内部对齐规格 第 2978–3003 行（③ 学習 NFC 2 次签到）。
 //
 // 机制：一次晚自习要碰 NFC 2 次 —— 学習開始（受付 19:35–19:40）+ 学習終了（受付 21:40–21:50）。
 // 本文件用本地变量 tapIndex（1=开始 / 2=结束）演示「这是第几次签到」，每开一次只走一次签到。

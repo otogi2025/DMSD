@@ -920,7 +920,7 @@ final class AppStore: ObservableObject {
         return f.string(from: Date())
     }
 
-    // MARK: - 登录锁定升级 (CLAUDE.md §App 账号规则 + 4-22 拍板的 5 阶段)
+    // MARK: - 登录锁定升级 (内部账号规则 + 4-22 拍板的 5 阶段)
 
     //
     // 失败次数 → 锁定时长: 1=30秒 / 2=1分 / 3=5分 / 4=30分 / 5=1小时 / 6+=永久

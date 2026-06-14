@@ -4,7 +4,7 @@
 - BACKEND_DESIGN_LOG.md §5.x（教师 admin 学生登录码）
 - system_features.md §7.16（核心规则 8 条）
 
-2026-05-03 itsuki 拍板背景：App Store 上架对策。完整经过 → 05_logs/raw/2026-05-03.md §11。
+2026-05-03 itsuki 拍板背景：App Store 上架对策。完整经过见内部开发日志。
 """
 
 from __future__ import annotations

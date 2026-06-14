@@ -58,7 +58,7 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 
 // ─────────────────────────────────────────────────────────────────────
 // StayForm —— 出寮届（外泊 / 帰省 / 帰国 三合一，最复杂表单）
-// 対齐规格 00_admin/iOS_Android_对齐规格.md §2（行 1782-1862）+ iOS ApplyStubs.swift StayForm。
+// 内部对齐规格 §2（行 1782-1862）+ iOS ApplyStubs.swift StayForm。
 // kind 取「外泊」/「帰省」/「帰国」（从 NavGraph 传入的 ApplyNew kind 参数），
 // 按 kind 累积显隐区块（§2.2）：
 //   帰省 = §1 §2(含届区分) §3 §4 §8

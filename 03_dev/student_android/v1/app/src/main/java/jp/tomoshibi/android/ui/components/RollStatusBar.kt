@@ -35,7 +35,7 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 
 // ───────────────────────────────────────────────────────────────
 // RollStatusBar — 顶部点呼状态条（胶囊横条），对齐 iOS Foundation/Components/TopRollBar.swift
-// 规格：00_admin/iOS_Android_对齐规格.md ① 顶部状态条 TopRollBar（4 态）+ Android 对齐要点 A
+// 规格：内部对齐规格 ① 顶部状态条 TopRollBar（4 态）+ Android 对齐要点 A
 //
 // 注意命名：iOS 叫 TopRollBar，但 Android 的「TopRollBar」名字已被主页 amber hero 占用，
 //           所以这个全局顶部状态条改叫 RollStatusBar。

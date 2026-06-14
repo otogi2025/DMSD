@@ -36,7 +36,7 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 // 职责：只做「3 选 1」的分发框架 —— 点哪个选项就回调 onSelect(类型) + onDismiss 关窗，
 //      具体子表单（身体状况报告 / 缺席申请 / 其他问题）归别处（health/absence/other），本文件不实装。
 // 本波纯 UI，无状态机、无动画、不发网络。
-// 规格真值：00_admin/iOS_Android_对齐规格.md 第 3007–3017 行（④ 反馈三选一）。
+// 规格真值：内部对齐规格 第 3007–3017 行（④ 反馈三选一）。
 // ───────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)

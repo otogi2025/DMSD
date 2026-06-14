@@ -5,7 +5,7 @@
   - 老师提前按按钮只改 started_at 显示，不改判定窗口
   - 故 applied_group 字段无意义（窗口不变 → 分组永远 = student 当前 group）
   - 直接走 §6.4 student_group，不在 event 层冗余存
-  - 权威：A-022 in 05_logs/audit_2026-05-19/_master_issues.md
+  - 权威：A-022（内部审查记录）
   - 关联：RollCall_Spec §5.4 / §6.4 / §7 / §10
 
 Revision ID: b9c0d1e2f3a4
