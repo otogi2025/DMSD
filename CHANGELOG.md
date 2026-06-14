@@ -1,6 +1,6 @@
 # Changelog
 
-> **最后更新**: 2026-06-13（**v0.23.7 — 公告补 is_demo 隔离 + 对齐 iOS 演示公告，当前版本 v0.23.7**：`Announcement` 加 is_demo 字段+索引+迁移 `a2b3c4d5e6f7`；6 端点按 is_demo 隔离（演示老师/学生只看演示公告、碰真实公告返 404），解除演示老师禁发/禁回复改成 demo 沙盒内可操作；seed 种 6 条演示公告（固定 UUID 对齐 iOS SEED.swift）；根治 BACKEND_DESIGN_LOG §7.5.1 记的 v1.1 公告读侧隔离债。公告+demo 26 测试全绿（专属库避多会话并发污染）。单功能簇 patch，三端客户端版本号可攒未动）。早些更新：2026-06-13（**v0.23.6 — 后端启动 schema 落后自检，当前版本 v0.23.6**：`main.py` lifespan 加 `_warn_if_db_schema_outdated()`，dev 启动比对库 alembic 版本 vs head，落后打 WARNING（`current=None` 全新库静默不误报）。背景：teachers/public 500 根因是本地 dev 库缺 6-12 alembic 迁移 `f1a2b3c4d5e6`（`teachers.permission_group` 列）。pytest 371 passed）。早些更新：2026-06-12（**v0.23.5 — iOS 公告翻訳重做（原地翻译），当前版本 v0.23.5**：把公告翻译从弹系统浮层改成正文原地翻成母语（`TranslationSession` 程序化接口 iOS18+）+ 语言选择窗 英/简中/泰/越 + 默认语言记忆 + 「通知設定」升级综合「設定」页；`@preconcurrency` 解决 Swift6 完全并发「sending session」报错。双 scheme BUILD SUCCEEDED。单功能簇 patch，三端客户端版本号 patch 可攒未动）。早些更新：2026-06-12（**v0.23.4 — 老师权限分级 codex 审查四项修复，当前版本 v0.23.4**：4 个补丁（F1~F5 中 4 个被采纳）经 codex 二次审查 + CC 独立核实前提后修复，pytest 371 passed 全程保持，复审收敛 blocker 0 / major 0）。早些更新：2026-06-11 深夜（**v0.23.0 — iOS 体验功能批次 + 首批单元测试 + 管理基建搭车，当前版本 v0.23.0**：收尾「版本当场结账」新机制首战 — v0.22.3 之后 28 commit 一次结清。驱动者 = iOS 功能批次（介绍页重做 4 页 / 公告 AI 翻译+要約 / 图标换 Tomoshibi-icon-1 / 首页活动+巴士卡接真 M-1 / AI 头像启用）+ iOS 首批 7 条单元测试（点呼时间窗状态机，test target 从零建立）；管理基建（老师网页 CI / 后端 142 接口总表 / 文件清单生成器 / raw 迁 iCloud / 启动收尾流程改版）按规矩不驱动版本号、随段记录。三端客户端版本号同步 0.23.0）。早些更新：2026-06-11（**插空细分 + 新段补标 — v0.3.3~v0.14.8 共 70 个补丁插空 + v0.20.0~v0.22.3 新打，当前版本 v0.22.3**：按「一个 bug 一个补丁号」给老段号位空隙里的 70 个 fix commit 逐个补打补丁标签（已 push 的 67 个旧标签与 commit 全部未动、历史未重写，新标签日期回填 commit 当天）；3 个号位死区内 13 个 fix 在对应版本段「死区注记」逐条列出；v0.19.3 之后 76 个 commit 按同标准切 3 minor + 3 patch。详见下方「2026-06-11 插空细分说明」banner）。早些更新：2026-06-09（**v0.15.1 ~ v0.19.3 重排补打 32 个标签** — v0.15.0 之后 95 个 commit（6-05~6-09、全本地未 push）按 itsuki 拍板「一个 bug 一个补丁号 / 连续 feat 批次合成次版本号」重排，当前版本 **v0.19.3**；远程 origin 最后 push 停在 v0.8.0 故重排安全；详见下方「2026-06-09 重排说明」banner + 各版本段。深度审查 19 条 findings 记 `00_admin/TODO.md` §🔍 不在本次修）。早些更新：2026-06-05（**v0.12.1 patch + v0.13.0 ~ v0.15.0 三连 minor** — 6-03/6-04/6-05 三天 80 commit 按真实 commit 顺序切：v0.12.1（6-03 纯修复段：删寮ウォール收尾 + iOS 既存 bug + 点呼机文档）/ v0.13.0 出租车予約 4 端 + 文件联动 / v0.14.0 杭田 6-04 需求批 + 外出申請 + 契約書 / v0.15.0 老师网页迁 Vite + Android 对齐 + 学年更新 + Resend，**当前版本 v0.15.0**；三端客户端版本号同步到 0.15.0）。早些更新：2026-06-03（**v0.8.1 ~ v0.12.0 回溯补标** — 5-11 ~ 6-02 一个多月连续施工的 236 commit 一次性按语义化版本（SemVer）规范回溯补 6 个版本标签 + CHANGELOG 条目；详见下方各版本段顶部「回溯补标说明」banner）。早些更新：2026-05-02 晚（**v0.8.0 close** — 5 端代码层全启动（含点呼机骨架）：Android Compose bootstrap + 10 屏 / iOS 网络层完整建设 + AppStore 切真后端 / teacher_web v1 TS+Vite+Zustand 升级 + 5 page / backend rollcall+study+teachers routers + Alembic 框架 / iOS↔backend 字段对齐 F1-F5+Q1）。早些更新：v0.7.0 close（三轨 A+B+C 同日完成 38 条老师反馈 + 实物表 evidence 推翻 LINE 文字推测 + 沟通规则 #6 + SOP §8.5 版本路线图）；v0.6.0 close（老师 4-29 LINE 38 条受领 + RollCall_Spec 5 处时序修订 + system_features 中文骨架大重写）；v0.4.0 + v0.5.0 双 minor 闭合；**版本管理 SOP 建立**
+> **最后更新**: 2026-06-14（**v0.23.8 — iOS+Android 班车「特別運行便」一覧只显示特別便 + 運航→運行 汉字统一，当前版本 v0.23.8**：itsuki 截图反馈，两端班车页只显示寮生特別運行便（隐藏平日通学便）+ 删「すべて/特別便/通学便」类型筛选条（留空港开关）+ 徽章用全称「特別運行便」；itsuki 凭母语级日语直觉纠对代码错字「運航」（专指船/飞机）→ 巴士标准「運行」，全项目 13+ 处简繁運航/运航统一成運行/运行；共用规格 §7.6.2 同步。iOS 双 scheme + Android assembleDebug 通过，5 commit。单功能簇 patch，三端客户端版本号可攒未动）。早些更新：2026-06-13（**v0.23.7 — 公告补 is_demo 隔离 + 对齐 iOS 演示公告，当前版本 v0.23.7**：`Announcement` 加 is_demo 字段+索引+迁移 `a2b3c4d5e6f7`；6 端点按 is_demo 隔离（演示老师/学生只看演示公告、碰真实公告返 404），解除演示老师禁发/禁回复改成 demo 沙盒内可操作；seed 种 6 条演示公告（固定 UUID 对齐 iOS SEED.swift）；根治 BACKEND_DESIGN_LOG §7.5.1 记的 v1.1 公告读侧隔离债。公告+demo 26 测试全绿（专属库避多会话并发污染）。单功能簇 patch，三端客户端版本号可攒未动）。早些更新：2026-06-13（**v0.23.6 — 后端启动 schema 落后自检，当前版本 v0.23.6**：`main.py` lifespan 加 `_warn_if_db_schema_outdated()`，dev 启动比对库 alembic 版本 vs head，落后打 WARNING（`current=None` 全新库静默不误报）。背景：teachers/public 500 根因是本地 dev 库缺 6-12 alembic 迁移 `f1a2b3c4d5e6`（`teachers.permission_group` 列）。pytest 371 passed）。早些更新：2026-06-12（**v0.23.5 — iOS 公告翻訳重做（原地翻译），当前版本 v0.23.5**：把公告翻译从弹系统浮层改成正文原地翻成母语（`TranslationSession` 程序化接口 iOS18+）+ 语言选择窗 英/简中/泰/越 + 默认语言记忆 + 「通知設定」升级综合「設定」页；`@preconcurrency` 解决 Swift6 完全并发「sending session」报错。双 scheme BUILD SUCCEEDED。单功能簇 patch，三端客户端版本号 patch 可攒未动）。早些更新：2026-06-12（**v0.23.4 — 老师权限分级 codex 审查四项修复，当前版本 v0.23.4**：4 个补丁（F1~F5 中 4 个被采纳）经 codex 二次审查 + CC 独立核实前提后修复，pytest 371 passed 全程保持，复审收敛 blocker 0 / major 0）。早些更新：2026-06-11 深夜（**v0.23.0 — iOS 体验功能批次 + 首批单元测试 + 管理基建搭车，当前版本 v0.23.0**：收尾「版本当场结账」新机制首战 — v0.22.3 之后 28 commit 一次结清。驱动者 = iOS 功能批次（介绍页重做 4 页 / 公告 AI 翻译+要約 / 图标换 Tomoshibi-icon-1 / 首页活动+巴士卡接真 M-1 / AI 头像启用）+ iOS 首批 7 条单元测试（点呼时间窗状态机，test target 从零建立）；管理基建（老师网页 CI / 后端 142 接口总表 / 文件清单生成器 / raw 迁 iCloud / 启动收尾流程改版）按规矩不驱动版本号、随段记录。三端客户端版本号同步 0.23.0）。早些更新：2026-06-11（**插空细分 + 新段补标 — v0.3.3~v0.14.8 共 70 个补丁插空 + v0.20.0~v0.22.3 新打，当前版本 v0.22.3**：按「一个 bug 一个补丁号」给老段号位空隙里的 70 个 fix commit 逐个补打补丁标签（已 push 的 67 个旧标签与 commit 全部未动、历史未重写，新标签日期回填 commit 当天）；3 个号位死区内 13 个 fix 在对应版本段「死区注记」逐条列出；v0.19.3 之后 76 个 commit 按同标准切 3 minor + 3 patch。详见下方「2026-06-11 插空细分说明」banner）。早些更新：2026-06-09（**v0.15.1 ~ v0.19.3 重排补打 32 个标签** — v0.15.0 之后 95 个 commit（6-05~6-09、全本地未 push）按 itsuki 拍板「一个 bug 一个补丁号 / 连续 feat 批次合成次版本号」重排，当前版本 **v0.19.3**；远程 origin 最后 push 停在 v0.8.0 故重排安全；详见下方「2026-06-09 重排说明」banner + 各版本段。深度审查 19 条 findings 记 `00_admin/TODO.md` §🔍 不在本次修）。早些更新：2026-06-05（**v0.12.1 patch + v0.13.0 ~ v0.15.0 三连 minor** — 6-03/6-04/6-05 三天 80 commit 按真实 commit 顺序切：v0.12.1（6-03 纯修复段：删寮ウォール收尾 + iOS 既存 bug + 点呼机文档）/ v0.13.0 出租车予約 4 端 + 文件联动 / v0.14.0 杭田 6-04 需求批 + 外出申請 + 契約書 / v0.15.0 老师网页迁 Vite + Android 对齐 + 学年更新 + Resend，**当前版本 v0.15.0**；三端客户端版本号同步到 0.15.0）。早些更新：2026-06-03（**v0.8.1 ~ v0.12.0 回溯补标** — 5-11 ~ 6-02 一个多月连续施工的 236 commit 一次性按语义化版本（SemVer）规范回溯补 6 个版本标签 + CHANGELOG 条目；详见下方各版本段顶部「回溯补标说明」banner）。早些更新：2026-05-02 晚（**v0.8.0 close** — 5 端代码层全启动（含点呼机骨架）：Android Compose bootstrap + 10 屏 / iOS 网络层完整建设 + AppStore 切真后端 / teacher_web v1 TS+Vite+Zustand 升级 + 5 page / backend rollcall+study+teachers routers + Alembic 框架 / iOS↔backend 字段对齐 F1-F5+Q1）。早些更新：v0.7.0 close（三轨 A+B+C 同日完成 38 条老师反馈 + 实物表 evidence 推翻 LINE 文字推测 + 沟通规则 #6 + SOP §8.5 版本路线图）；v0.6.0 close（老师 4-29 LINE 38 条受领 + RollCall_Spec 5 处时序修订 + system_features 中文骨架大重写）；v0.4.0 + v0.5.0 双 minor 闭合；**版本管理 SOP 建立**
 >
 > **2026-05-19 注**: v0.8 之后累积 15+ commit 实质推进（5-04 文件联动工具 / 5-08 硬件全定稿 / 5-10 ac-radar / 5-11 cc-comm-rules + graphify / 5-13 文件大整理 / 5-14 anti-ai-flavor / 5-16 跨项目大修 / 5-19 project-overview 大改造 + 防漂 C 方案 / 5-20+ 131 条 bug findings 修复），未到 bump 触发线，详见 WIP + progress_overview。
 >
@@ -19,7 +19,7 @@
 
 ---
 
-## 全版本一览（v0.0.1 → v0.23.6）
+## 全版本一览（v0.0.1 → v0.23.8）
 
 > 一行一个版本快速定位，技术细节见下方对应 `## [x.y.z]` 段。
 > **版本号单一真值 = 本文件（CHANGELOG.md）**。
@@ -84,6 +84,26 @@
 ---
 
 > **【2026-06-11 插空细分 + 新段补标说明 · v0.3.3 ~ v0.14.8（70 补丁）+ v0.20.0 ~ v0.22.3】** 按 itsuki 拍板「一个 bug 一个补丁号」两步补齐：① 老段（v0.3.2 ~ v0.15.0）号位空隙里的 70 个 `fix` commit 逐个补打补丁标签（v0.3.3~0.3.6 / v0.5.1 / v0.6.1~0.6.2 / v0.7.1~0.7.2 / v0.8.3~0.8.8 / v0.9.1~0.9.5 / v0.10.1~0.10.12 / v0.11.1~0.11.30 / v0.14.1~0.14.8）—— **已 push 的 67 个旧标签一个未动、commit 未动、历史未重写**，新标签日期回填 commit 当天；3 个号位死区（v0.8.0→v0.8.1→v0.8.2、v0.12.0→v0.12.1）内 13 个 fix 无空号可插，在对应版本段「死区注记」逐条列出。② v0.19.3 之后 76 个 commit 按同标准切 3 minor + 3 patch（v0.20.0 ~ v0.22.3，当前版本）。v0.3.2 以前的早期 commit 未用 feat/fix 前缀，不做机械细分。管理体系类 fix/feat（收尾流程 / hooks / 联动规则）按 version-bump 决策树第 7-9 条不驱动版本号。
+
+## [0.23.8] - 2026-06-14（修订：iOS+Android 班车「特別運行便」一覧只显示特別便 + 運航→運行 汉字统一）
+
+> 起因：itsuki 截图反馈 iOS 班车页三点，拍板 iOS + Android + 共用规格全同步。
+
+### Changed
+- **班车一覧只显示寮生特別運行便**：iOS `BusListView.filtered` / Android `BusListScreen` 的可见列表过滤改成只留 `dorm_special`，平日通学便（`daily_commute`）不再显示（通常日校车靠页脚弱字另查）
+- **删类型筛选条**：两端「すべて / 特別便 / 通学便」3 胶囊筛选 + 相关 state / 组件 / 孤儿 import 全删，只保留「空港送迎便のみ」开关
+- **徽章用全称**：每行徽章「特別便」→「特別運行便」
+- **共用规格 `system_features.md §7.6.2`** 班车一覧行为描述同步更新（只显示特別運行便 / 删类型 filter）
+
+### Fixed
+- **運航 → 運行 汉字纠错**：itsuki 凭母语级日语直觉打的「運行」纠对了代码里一直没人发现的错字 ——「運航」专给船 / 飞机、巴士的标准日语是「運行」（项目里「運行」本就是主流约 15 处，只班车界面落单 6 处）。全项目 13+ 处简繁「運航 / 运航」统一成「運行 / 运行」：iOS（`BusListStubs`/`Route`/`MyPageStubs`/`ApplyStubs`）+ Android（`BusListScreen`/`Routes`/`Models`/`MockData` 含 2 处公告假数据 UI 串）+ `system_features.md`（5 处）+ `BACKEND_DESIGN_LOG.md`。`IOS_DESIGN_LOG.md` 历史章节 6 处刻意保留作历史记录（§19.4 声明）
+
+### Notes
+- 验证：iOS 正式版 + 演示版双 scheme `BUILD SUCCEEDED`；Android `./gradlew assembleDebug` `BUILD SUCCESSFUL`
+- 5 commit（`57c8398` iOS 代码 / `875c10a` IOS_DESIGN_LOG §19 / `c1b59b7` iOS 文件头补漏 / `79f702c` Android 代码 / `5102da4` 规格+后端·Android 设计档案）
+- 单功能簇 patch，三端客户端版本号可攒未动
+
+---
 
 ## [0.23.7] - 2026-06-13（公告补 is_demo 隔离 + 对齐 iOS 演示公告）
 
