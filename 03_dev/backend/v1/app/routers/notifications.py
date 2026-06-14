@@ -190,9 +190,16 @@ def _insert_skip_conflicts(db: Session, rows: list[models.Notification]) -> None
             with db.begin_nested():
                 db.add(row)
                 db.flush()
-        except IntegrityError:
-            # 并发请求已插入同一来源行 — 跳过，外层事务继续
-            pass
+        except IntegrityError as e:
+            # 只吞「同一来源被并发插了重复」这一种（撞 uq_notif_source）；
+            # 其余完整性错误（外键 / 非空 / check）不掩盖 —— 重新抛出暴露真问题，
+            # 否则会静默丢数据还让接口返回成功。
+            # 跨方言匹配：PostgreSQL 报约束名 uq_notif_source；
+            # SQLite 报「UNIQUE constraint failed: ...source_id」。
+            msg = str(getattr(e, "orig", e)).lower()
+            if "uq_notif_source" in msg or ("unique" in msg and "source_id" in msg):
+                continue  # 预期的并发重复 — 跳过这条，外层事务继续
+            raise
 
 
 def _sync_notifications(db: Session, *, is_demo: bool) -> None:

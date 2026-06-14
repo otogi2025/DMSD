@@ -9,6 +9,9 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime, timezone
 
+import pytest
+from sqlalchemy.exc import IntegrityError
+
 from app import models
 
 
@@ -246,6 +249,28 @@ def test_insert_skip_conflicts_dedup(db_session, seed_data):
         .count()
     )
     assert cnt == 1  # 第二条被跳过，没重复
+
+
+def test_insert_skip_conflicts_reraises_other_integrity(db_session, seed_data):
+    """codex ②：非 uq_notif_source 的完整性错误不能被吞，要重新抛出。
+
+    构造一条 category=None（违反 NOT NULL）的通知，_insert_skip_conflicts 应让它
+    抛出 IntegrityError 而不是静默跳过（否则会掩盖外键/非空/check 类真 bug）。
+    """
+    from app.routers import notifications as notif_mod
+
+    bad = models.Notification(
+        category=None,  # 违反 NOT NULL → 期望被重新抛出
+        source_table="x",
+        source_id=uuid.uuid4(),
+        title="t",
+        body="b",
+        is_demo=False,
+        event_at=datetime(2026, 6, 14, 20, 0, tzinfo=timezone.utc),
+    )
+    with pytest.raises(IntegrityError):
+        notif_mod._insert_skip_conflicts(db_session, [bad])
+    db_session.rollback()
 
 
 def test_feed_syncs_guidance_disclosure(client, seed_data, teacher_token, db_session):
