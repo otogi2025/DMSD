@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="06_assets/icons/tomoshibi_app_icon_256.png" alt="Tomoshibi 灯火" width="160" height="160" />
+  <img src="03_dev/student_ios/v1/TomoshibiApp/AppIcon-1024.png" alt="Tomoshibi 灯火" width="160" height="160" />
 </p>
 
 # DMSD → Tomoshibi（灯火）
@@ -15,13 +15,13 @@
 
 ## 第一次读这个项目
 
-如果你是第一次打开这个仓库，请先读：
+如果你是第一次打开这个仓库，建议按这个顺序读：
 
-1. [`PROJECT_GUIDE.md`](./PROJECT_GUIDE.md) — 新人导览：项目是什么、现在做到哪、先读哪些文件。
-2. [`00_admin/项目心智模型.md`](./00_admin/项目心智模型.md) — 1 屏骨架：系统怎么跑通 + 5 端现状。
-3. [`.claude/skills/project-overview/SKILL.md`](./.claude/skills/project-overview/SKILL.md) — 文件级地图：每个文件/目录大概干什么。
+1. [`02_design/system_features.md`](./02_design/system_features.md) — 5 端共用功能规格，系统整体能力一览。
+2. [`01_specs/rollcall/RollCall_Spec.md`](./01_specs/rollcall/RollCall_Spec.md) — 点呼系统完整业务规格。
+3. [`03_dev/`](./03_dev/) — 5 端源代码，每个端目录下有自己的 README。
 
-`README.md` 是仓库门面；`PROJECT_GUIDE.md` 是真正给新人顺着读的导览。
+`README.md` 是仓库门面，`02_design/` 与 `01_specs/` 是理解系统设计的入口。
 
 ---
 
@@ -87,14 +87,11 @@ Tomoshibi 用 NFC 卡、学生手机 App、老师 Web、后端服务器和入口
 
 | 顺序 | 文件 | 看什么 |
 |---|---|---|
-| 1 | [`PROJECT_GUIDE.md`](./PROJECT_GUIDE.md) | 新人导览，先建立整体地图。 |
-| 2 | [`00_admin/项目心智模型.md`](./00_admin/项目心智模型.md) | 1 屏速记：系统怎么跑通 + 5 端现状。 |
-| 3 | [`02_design/system_features.md`](./02_design/system_features.md) | 5 端共用功能规格真值。 |
-| 4 | [`01_specs/rollcall/RollCall_Spec.md`](./01_specs/rollcall/RollCall_Spec.md) | 点呼系统完整业务规格。 |
+| 1 | [`02_design/system_features.md`](./02_design/system_features.md) | 5 端共用功能规格真值。 |
+| 2 | [`01_specs/rollcall/RollCall_Spec.md`](./01_specs/rollcall/RollCall_Spec.md) | 点呼系统完整业务规格。 |
+| 3 | [`02_design/`](./02_design/) | 硬件 / 流程 / 权限等设计文档。 |
+| 4 | [`03_dev/`](./03_dev/) | 5 端源代码，各端目录下有自己的 README。 |
 | 5 | [`CHANGELOG.md`](./CHANGELOG.md) | 版本演变和里程碑。 |
-| 6 | [`05_logs/decision_log.md`](./05_logs/decision_log.md) | 关键决策和理由。 |
-| 7 | [`05_logs/project_evolution.md`](./05_logs/project_evolution.md) | 项目如何从想法演变到系统。 |
-| 8 | [`.claude/skills/project-overview/SKILL.md`](./.claude/skills/project-overview/SKILL.md) | 查具体文件/目录是干什么的。 |
 
 ---
 
@@ -102,11 +99,7 @@ Tomoshibi 用 NFC 卡、学生手机 App、老师 Web、后端服务器和入口
 
 我在整个项目过程中使用 Claude Code 作为搭档：它像 AI 家教、代码助手、审查员和写作辅助。重大决策由我拍板，AI 负责帮助我发现盲点、解释技术、实现代码、整理记录。
 
-我保留这一点，是因为这个项目本身也在记录一个零基础学习者如何和 AI 协作完成真实工程。相关证据可以看：
-
-- [`CLAUDE.md`](./CLAUDE.md) — 我给 AI 的项目指令。
-- [`05_logs/decision_log.md`](./05_logs/decision_log.md) — 关键决策记录。
-- [`05_logs/project_evolution.md`](./05_logs/project_evolution.md) — 项目演化叙事。
+我保留这一点，是因为这个项目本身也在记录一个零基础学习者如何和 AI 协作完成真实工程。完整的决策记录与演化叙事保留在本地开发日志中。
 
 ---
 

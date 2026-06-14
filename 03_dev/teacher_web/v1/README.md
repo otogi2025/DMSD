@@ -4,7 +4,13 @@
 
 ## 怎么打开看效果
 
-双击项目根 `~/dev/DMSD/start-teacher-web.command` → 自动 build 出 `dist/` + 起后端（8000 端口）托管 dist + 开浏览器到 `http://localhost:8000/teacher/`。
+```bash
+cd 03_dev/teacher_web/v1
+npm ci          # 安装依赖（按 package-lock.json 精确装）
+npm run build   # 产出 dist/（tsc 类型检查 + vite 打包）
+```
+
+然后起后端，让后端用 `TEACHER_WEB_DIR=dist` 把 `dist/` 托管到 `/teacher/` 路径（8000 端口），浏览器打开 `http://localhost:8000/teacher/`。
 
 > 后端托管前端 + 接口同源（都在 8000），老师登录是实名账户（密码存后端数据库），所以前端不能单独跑，必须后端一起起。
 
@@ -18,9 +24,9 @@
 ## 开发命令
 
 ```bash
-cd ~/dev/DMSD/03_dev/teacher_web/v1
+cd 03_dev/teacher_web/v1
 npm run dev      # Vite 开发服务器(5173) + 热重载(HMR)，/api 自动代理到后端 8000
-npm run build    # tsc 类型检查 + 打包出 dist/（启动脚本就是跑这个）
+npm run build    # tsc 类型检查 + 打包出 dist/
 npm run preview  # 本地预览 dist
 ```
 
@@ -32,11 +38,11 @@ npm run preview  # 本地预览 dist
 - `components/` —— 26 个 `.tsx`（22 页 + 3 弹窗 OverrideModal/OutstayDetailModal/StudentProfileModal + `shared.tsx`）
 - `_assets/`（fonts.css 引用的字体） + `assets/`（图标） + `fonts.css` + `styles.css`
 - 配置：`vite.config.ts`（`base:"./"` + proxy /api→8000 + resolve.extensions .ts 优先） + `tsconfig.json` + `package.json`
-- 构建产物 `dist/` 已 gitignore（不提交，启动脚本现 build）
+- 构建产物 `dist/` 已 gitignore（不提交，`npm run build` 现 build）
 
 ## 旧版（HTML 单文件）已归档
 
-2026-06-05 前是「29629 行 `index.html` + 浏览器内 Babel 编译 React + `react.development.js` 开发版」。已整组归档到 `99_archive/2026-06-05_teacher_web_html单文件版归档/`（含旧 index.html / client.js / vendor / 打包脚本 / `Tomoshibi_v3_single.html` 33MB 自包含版，双击可看旧版界面做对比）。迁移完整记录见 `../WEB_DESIGN_LOG.md` §16 + `../Vite迁移_施工清单.md`。
+2026-06-05 前是「29629 行 `index.html` + 浏览器内 Babel 编译 React + `react.development.js` 开发版」。旧版已整组归档，不在公开仓库（含旧 index.html / client.js / vendor / 打包脚本 / 33MB 自包含单文件版，可看旧版界面做对比）。迁移完整记录见 `../WEB_DESIGN_LOG.md` §16 + `../Vite迁移_施工清单.md`。
 
 ## 当前状态
 

@@ -10,9 +10,9 @@
 
 | 端 | 当前位置 | demo 归档位置 |
 |---|---|---|
-| 老师 Web | `03_dev/teacher_web/v1/src/index.html`（Ryō standalone HTML，5-26 起 Vite + TS 实装版整体废弃 + 5-27 凌晨接 backend client.js helper）| 5-21 demo 158 文件 → `99_archive/2026-05-21_teacher_web_demo_archived/`；5-26 Vite 实装 13 文件 → `99_archive/2026-05-26_teacher_web_vite实装作废/`|
+| 老师 Web | `03_dev/teacher_web/v1/src/index.html`（Ryō standalone HTML，5-26 起 Vite + TS 实装版整体废弃 + 5-27 凌晨接 backend client.js helper）| 旧 demo 与 Vite 实装版均已归档，不在公开仓库 |
 | 学生 iOS | `03_dev/student_ios/v1/`（Swift + SwiftUI 真代码）| `03_dev/student_ios/demo/` 仍在原位（HTML プロトタイプ）|
-| iOS App Store fork | — | `99_archive/2026-05-22_tomoshibi_appstore_fork/`（5-08 上架冲刺 fork，5-22 backport 后归档）|
+| iOS App Store fork | — | 5-08 上架冲刺 fork，5-22 backport 后归档，不在公开仓库 |
 
 ---
 
@@ -34,7 +34,7 @@
 - JSX 解包源：`03_dev/student_ios/demo/phaseB_src/`
 - QA 記録：`03_dev/student_ios/demo/QA_Round1_PhaseB.md`
 - 設計 LOG：`03_dev/student_ios/IOS_DESIGN_LOG.md`（✅ 仍活）
-- ~~Swift v1.0 実装别 repo `~/dev/TomoshibiiOSApp/`~~ → **2026-05-06 退役独立 repo 模式，全部代码移入 DMSD `03_dev/student_ios/v1/`**
+- ~~Swift v1.0 実装曾用独立 repo 模式~~ → **2026-05-06 退役独立 repo 模式，全部代码移入 DMSD `03_dev/student_ios/v1/`**
 
 ---
 
@@ -45,6 +45,5 @@
 3. **HTML プロトタイプ** 作为设计冻结后的「视觉真值」用途已被 5 个端的 *_DESIGN_LOG.md 取代
 
 详见：
-- `99_archive/2026-05-06_cloud_agent_退役/`（退役决策 + 迁移记录）
-- `99_archive/2026-04-29_pre_v1.0_cleanup/`（4-29 大整理产物）
 - `CHANGELOG.md` v0.6 ~ v0.8 段
+- 退役决策 + 迁移记录、4-29 大整理产物均已归档，不在公开仓库

@@ -29,8 +29,6 @@
 
 **仍 ⏳**: 巴士 / 行事 / 指導履歴 / 事案 / 食堂他データ / WebSocket + Redis / refresh_token rotation / 整点 session minute-5 bug。
 
-详见 `~/dev/DMSD/05_logs/raw/2026-05-12_问题清单_codex修复SOP.md`（11 区域 codex 整合的 P0 修复清单）。
-
 権威設計文書 → `../BACKEND_DESIGN_LOG.md` (P0 範囲は §2.1)。
 
 ---
@@ -152,6 +150,6 @@ evidence 入手次第、`app/services/approval_chain.py` の `EXTERNAL_ROLES_BY_
 ## 📚 関連ドキュメント
 
 - 権威設計 → `../BACKEND_DESIGN_LOG.md`
-- 38 条要件 → `../../../00_admin/TODO.md §🎯`
+- 38 条要件（老師フィードバック backlog）→ 内部管理ドキュメント（公開リポジトリ対象外）
 - 実物表 evidence → `../BACKEND_DESIGN_LOG.md §10 D4` + `system_features.md §7.2.2`
 - demo 版 (4-28 管理員 demo, ロック中) → `../demo/`

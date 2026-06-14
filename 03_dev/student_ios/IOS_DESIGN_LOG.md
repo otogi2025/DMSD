@@ -267,7 +267,7 @@ Claude Design **必须**默认创建 00 号账户，seed 数据：
 
 #### 3.12.1 动机
 
-itsuki 2026-05-03 拍板。App Store 上架 = 向全人类开放下载渠道。在注册入口加一道门，让「物理上能接触到老师的人」才能注册。经过详见 `05_logs/raw/2026-05-03.md §11`。
+itsuki 2026-05-03 拍板。App Store 上架 = 向全人类开放下载渠道。在注册入口加一道门，让「物理上能接触到老师的人」才能注册。
 
 #### 3.12.2 界面规格（iOS 专属）
 
@@ -293,7 +293,7 @@ itsuki 2026-05-03 拍板。App Store 上架 = 向全人类开放下载渠道。�
 
 #### 3.12.4 ⚠️ Demo 阶段的处理
 
-`05_logs/raw/2026-05-03.md §11` 的 itsuki 拍板 = 从 v1.0 开始实装。Demo 4-28 已经结束，所以**不需要 Demo 跳过**。新入学季（预定 2026-04）= v1.0 范围。
+2026-05-03 itsuki 拍板 = 从 v1.0 开始实装。Demo 4-28 已经结束，所以**不需要 Demo 跳过**。新入学季（预定 2026-04）= v1.0 范围。
 
 实装范围:
 - Step 6 view（一次性密码风格的 6 桁输入框）
@@ -326,7 +326,7 @@ itsuki 2026-05-03 拍板。App Store 上架 = 向全人类开放下载渠道。�
 - LoginView「新規登録」按钮（line 1583）已有，跳 `.registerStep1`，不动
 - onboarding 入口暂无 button（dead code 但不删，v1.x 加引导触发）
 
-**双端同步**：上架版 fork（`~/dev/Tomoshibi-AppStore/ios/`）+ 主项目（`03_dev/student_ios/v1/`）同步改完 2026-05-07
+**双端同步**：上架版 fork + 主项目（`03_dev/student_ios/v1/`）同步改完 2026-05-07（fork 已退役，主项目为唯一开发线）
 
 ---
 
@@ -348,7 +348,7 @@ itsuki 2026-05-03 拍板。App Store 上架 = 向全人类开放下载渠道。�
 
 **Backend 接 endpoint**：见 `BACKEND_DESIGN_LOG §5.1.6`
 
-**双端同步**：2026-05-22 主项目 v1 backport 完成（fork 已归档到 `99_archive/2026-05-22_tomoshibi_appstore_fork/`，主项目变唯一开发线）。改动落在 `MyPageStubs.swift` MySettingsView（state + accountDeletionSection + performDelete）+ `AuthAPI.swift` AccountsAPI.deleteMyAccount()。
+**双端同步**：2026-05-22 主项目 v1 backport 完成（上架版 fork 已退役归档，主项目变唯一开发线）。改动落在 `MyPageStubs.swift` MySettingsView（state + accountDeletionSection + performDelete）+ `AuthAPI.swift` AccountsAPI.deleteMyAccount()。
 
 ---
 
@@ -548,7 +548,7 @@ itsuki Q5 指示：**像 Web Round 1 一样，Claude Design 先列 3 variations�
 | N5 | 通报老师 web 呈现 | /discipline 底部 card |
 | N6 | 头像 source | 相册 only |
 | N7 | 男女寮标识 | 单一"男寮/女寮" |
-| N8 | 注册激活 | 即激活（推翻 CLAUDE.md "面签" 规则 — §9 同步）|
+| N8 | 注册激活 | 即激活（推翻旧"面签"激活规则）|
 | N9 | 长按返回时长 | 0.4 秒 |
 | N10 | sheet 上顶部 bar | 不显示 |
 | N11 | 非点呼时段点中央按钮 | 提示 + 允许演示扫描 |
@@ -570,10 +570,10 @@ itsuki Q5 指示：**像 Web Round 1 一样，Claude Design 先列 3 variations�
 
 | # | 改动 | 目标 | 状态 |
 |---|---|---|---|
-| 9.1 | `§账号规则` "面签激活" → "即激活" + 新增锁定升级策略 | `CLAUDE.md`（主指令档）| ✅ **2026-05-26 自动消除** — commit `d608846` CLAUDE.md 重写到 QTS 模式时整段被砍，不再含「面签激活/即激活/账号规则」字样 |
+| 9.1 | `§账号规则` "面签激活" → "即激活" + 新增锁定升级策略 | 主指令档 | ✅ **2026-05-26 自动消除** — 主指令档重写后整段被砍，不再含「面签激活/即激活/账号规则」字样 |
 | 9.2 | 老师 Web 加"学生账号管理 / 密码重置"页 | `teacher_web/round3/src/components/accounts.jsx` | **✅ 2026-04-22 晚 [Code-Agent] 直接在 Round 3 里加完** — 番号/氏名/部屋/邮箱/电话/最终登录/状态 列表 + 详情 modal（プロフィール 编辑 + 密码重置 + ロック解除 + アクティビティ 时间线）。Shell 左 nav 加「学生アカウント管理」入口。seed 24 人（00 = リュウ イヒ，01-23 真实学生） |
-| 9.3 | 老师 Web `/discipline` 加"被锁定学生通知"card | 同上 | 🔄 **2026-05-26 转 Web 端 TODO** — 见 `00_admin/TODO.md` §🆕 v1.0 后新功能候选 N-003。归属从 iOS 设计日志 §9 移到 Web 端 backlog（这条本来就是 Web 活，iOS 侧不动） |
-| 9.4 | `sprint.md` / `scope_tier.md` 纳入"iOS App 注册 flow + 锁定策略" | `demo_4-28/sprint.md` + `scope_tier.md` | ✅ **2026-04-29 自动消除** — commit `d590159` demo_4-28 整段归档到 `99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/`，sprint.md / scope_tier.md 已不在活跃区，无需再同步 |
+| 9.3 | 老师 Web `/discipline` 加"被锁定学生通知"card | 同上 | 🔄 **2026-05-26 转 Web 端 backlog（N-003）** — 归属从 iOS 设计日志 §9 移到 Web 端待办（这条本来就是 Web 活，iOS 侧不动） |
+| 9.4 | demo 冲刺文档纳入"iOS App 注册 flow + 锁定策略" | demo 冲刺文档 | ✅ **2026-04-29 自动消除** — demo 冲刺文档整段已归档，不在活跃区，无需再同步 |
 
 ---
 
@@ -595,7 +595,7 @@ itsuki Q5 指示：**像 Web Round 1 一样，Claude Design 先列 3 variations�
 > 2. **专属层（本档全文）**: 本 LOG §1-§9 = iOS 设计决策 + §10 跨档同步 + 本 §11 = 实装层
 > 3. **后端 API 契约**: `03_dev/backend/BACKEND_DESIGN_LOG.md`
 >
-> **单 repo**（2026-05-06 退役独立 repo / 2026-05-21 C-012 清理）: Swift 实装直接在 `03_dev/student_ios/v1/TomoshibiApp/`，跟 backend / Android / Web / 点呼机 全在 DMSD 单 repo 里。原跨 repo 同步规则（`bin/sync-ios-refs.sh` / `Tomoshibi-iOS/refs/`）已废。
+> **单 repo**（2026-05-06 退役独立 repo / 2026-05-21 C-012 清理）: Swift 实装直接在 `03_dev/student_ios/v1/TomoshibiApp/`，跟 backend / Android / Web / 点呼机 全在 DMSD 单 repo 里。原跨 repo 同步规则已废。
 >
 > **决策标记**: ✅ 已定 / 🟡 CC 假设（itsuki 有否决权）/ ⏳ 待拍板（聚集到 §11.9）
 
@@ -631,7 +631,7 @@ itsuki Q5 指示：**像 Web Round 1 一样，Claude Design 先列 3 variations�
 
 ### 11.3 demo only scaffold 削除清单（v1 ship 前必ず除去）
 
-memory `project_demo_scaffolds_to_remove_before_v1.md` 真值。具体ファイル:
+v1 上线前必须移除的 demo-only 桩清单。具体ファイル:
 
 | 場所 | 内容 |
 |---|---|
@@ -841,7 +841,7 @@ extension Color {
 
 **修**: 3 箇所の `CODE_SIGNING_ALLOWED = NO` + `CODE_SIGNING_REQUIRED = NO` を削除（default = YES に戻す）。`project.pbxproj.bak2` バックアップ作成。
 
-**学び（itsuki AC 素材化済 — raw/2026-05-03.md §11）**: GUI と底層 build setting の不整合に注意。Xcode は底層 setting を優先し GUI は読み取り表示のみ。
+**学び**: GUI と底層 build setting の不整合に注意。Xcode は底層 setting を優先し GUI は読み取り表示のみ。
 
 ### 12.2 GlassSheet 底部留白修復
 
@@ -902,7 +902,7 @@ extension Color {
 4. **Apple Intelligence 非対応端末は機能 hide で UX 一致** — 「ボタン無いだけ」、エラーメッセージ無し
 5. **Image Playground と統一理念** — app 全体が Apple 平台原生 AI 能力に統一押注
 
-**AC 叙事**: `raw/2026-05-03.md §14` ⭐⭐⭐ #AC候選。`system_features.md §7.15.12` AC 叙事段に同内容落档。
+**AC 叙事**: `system_features.md §7.15.12` AC 叙事段に同内容落档。
 
 ### 12.7 SourceKit 誤報問題（環境）
 
@@ -1054,7 +1054,7 @@ xcodebuild iPhone 17 simulator BUILD SUCCEEDED 確認済（2026-05-04）。
 
 ### 14.6 iOS 实装完成（2026-05-28 — codex gpt-5.5 xhigh 干活 + CC 审查 + 独立 xcodebuild 验证）
 
-实装详细叙事见 `05_logs/raw/2026-05-28_申請实物表数字化.md` 阶段 7。本节只记 iOS 工程层结果。
+本节只记 iOS 工程层结果。
 
 **改的文件**：
 - `ApplyStubs.swift` — 出寮届 StayForm 扩展（contact_phone / companion / dest_cities / is_long_vacation 通常時vs長期休暇 / 命名班车 / 食事日本人vs留学生分支）+ APPLY_TYPES 加 4 新类型 + dispatcher 分派
@@ -1080,7 +1080,7 @@ xcodebuild iPhone 17 simulator BUILD SUCCEEDED 確認済（2026-05-04）。
 
 ### 14.7 修改届（StayEditForm）接真后端 — IX-004 + 多轮 Codex 收敛（2026-05-31）
 
-「B 类：演示假数据 → 真后端」推进的一环。改届表单原来只调 `StayListMock.applyAmendment` 纯本地 mock，现在接 `PUT /applications/:id`。详细叙事见 `05_logs/ios接后端_进度与handoff.md`。
+「B 类：演示假数据 → 真后端」推进的一环。改届表单原来只调 `StayListMock.applyAmendment` 纯本地 mock，现在接 `PUT /applications/:id`。
 
 **改的文件**：
 - `Features/StayList/StayListStubs.swift` — `StayEditForm.load`（已登录→`ApplicationsAPI.detail` 拉真申请预填）+ `submitAsync`（已登录→`ApplicationUpdateBody` 调 PUT）。**修改理由 `amendReason` 发后端新字段 `amend_reason`**（之前 UI 强制填但提交丢、后端看不到）。**日期 / 方法只发真改过的字段**（无条件发出寮日会触发后端「出寮日>今日」校验、误拒只改帰寮的旧届）。audit mapper 加 `application.update` 文案 + 履历显示 amend_reason。修改理由去空白用 `.whitespacesAndNewlines`（防纯换行绕过必填）。演示 / 未登录态仍走 mock。
@@ -1094,7 +1094,7 @@ xcodebuild iPhone 17 simulator BUILD SUCCEEDED 確認済（2026-05-04）。
 
 ### 14.8 当前用户接 /me — IX-008（2026-05-31）
 
-73 处写死的演示假用户 `SEED.user` → 登录拉真实用户。详细决策见 `05_logs/decision_log.md` 2026-05-31 条 + raw `2026-05-31_ios接后端_IX004收敛+IX008用户资料.md` §3。
+73 处写死的演示假用户 `SEED.user` → 登录拉真实用户。
 
 **改的文件**：
 - `AppStore.swift` — `currentUser` + `displayUser = currentUser ?? SEED.user` + `loadMe()`（拉 `/me` → `mapMeToUser` → 设 currentUser **并写回 SEED.user 当安全网**覆盖没法用 app 的站点）；登录 + 启动调 loadMe；登出 didSet 清 currentUser + SEED.user 复位 `demoUserSeed`（防真实用户残留）。
@@ -1105,7 +1105,7 @@ xcodebuild iPhone 17 simulator BUILD SUCCEEDED 確認済（2026-05-04）。
 
 **自挑的值**（itsuki 拍板）：统计字段（points/迟到/欠席）真人先 0（4.5 是 demo）；isStudyTarget 默认 false（老师后台手动设的才是）；UI 入口可见、点进去显「不需要晚自习」。
 
-**残留**：IX-008b 扣分统计接入 / 老师退回(returned)动作 / is_study_target 后端字段（见 TODO §🔧）。Codex 独立审查待额度恢复补。
+**残留**：IX-008b 扣分统计接入 / 老师退回(returned)动作 / is_study_target 后端字段（已记入待办）。Codex 独立审查待额度恢复补。
 
 **验证**：生产 + 演示双 scheme BUILD SUCCEEDED；后端 209 passed（含 4 个 /me 测试）。
 
@@ -1150,7 +1150,7 @@ xcodebuild iPhone 17 simulator BUILD SUCCEEDED 確認済（2026-05-04）。
 
 ### 14.13 低风险残留清理 — 表单预填迁 displayUser + 在线自习日期固定 JST（2026-06-03）
 
-IX-008 Batch 2 收尾的低危残留（handoff §4.2/§7.1）一并清掉：
+IX-008 Batch 2 收尾的低危残留一并清掉：
 
 1. **3 个表单的 `@State` 预填不再抓全局假人 SEED.user** —— `StayForm.contactPhone`（ApplyStubs）/ `FridgePurchaseForm.contactPhone` / `ItemPossessionForm.roomNo`（DormLifeForms）原 `@State` 默认值直接读 `SEED.user.phone` / `.room`，view init 时一次性捕获、loadMe 晚到 / 切账号都不刷新（冷启动 sub 秒窗口会拿到旧假数据）。改成 `@State` 默认空 + `.onAppear` 带 `didPrefill` 守卫从 `app.displayUser` 填一次（同 `MyInfoEditView.loadCurrentInfo` 做法）。演示构建 `displayUser = SEED.user`，行为不变。
 
@@ -1301,7 +1301,7 @@ itsuki：「オンライン学習要可以上传图片，上传合同」+「选�
 
 ## §15 [2026-06-09] iOS 上线缺口 11 功能实装 + codex 4 轮对抗复审
 
-施工图（`00_admin/handoff/iOS上线缺口_GOAL提示词.md`）列的第二档🟡+第一档代码项共 11 个缺口功能，每功能单独 commit、正式版+演示版双 scheme BUILD SUCCEEDED。详见 raw/dev_log `2026-06-09` + TODO §📱 段顶进度块。
+施工图列的第二档🟡+第一档代码项共 11 个缺口功能，每功能单独 commit、正式版+演示版双 scheme BUILD SUCCEEDED。
 
 ### §15.1 ① 手机点呼签到 — CoreNFC 写 ST25DV Mailbox（最重要的新设计）
 
@@ -1350,7 +1350,7 @@ gpt-5 + high（非预期 gpt-5.5 + xhigh）逐层挖 `ST25DVWriter` NFC 取消�
 ## §17 [2026-06-11] app 图标换新 + 首页活动/巴士卡接真（M-1）
 
 ### §17.1 app 图标换成 Tomoshibi-icon-1（commit `31a40fc`）
-`TomoshibiApp/AppIcon.icon` 内容换成 `06_assets/icons/Tomoshibi-icon-1.icon`（itsuki 6-09 做的新设计 — 青绿线性渐变 + tomoshibi-icon-new.png logo 层 + translucency），`AppIcon-1024.png` 同步换成新 1024 图。替换旧红色玻璃火苗。文件名/路径不变 → pbxproj 无需改。双 scheme BUILD SUCCEEDED。（全项目图标统一：老师网页 logo 同日同步换；Android 自适应图标因需合成 logo+渐变层 + 本机无 ImageMagick + 另会话在改 Android，留作专项跟进。）
+`TomoshibiApp/AppIcon.icon` 内容换成 itsuki 6-09 做的新设计图标（青绿线性渐变 + logo 层 + translucency），`AppIcon-1024.png` 同步换成新 1024 图。替换旧红色玻璃火苗。文件名/路径不变 → pbxproj 无需改。双 scheme BUILD SUCCEEDED。（全项目图标统一：老师网页 logo 同日同步换；Android 自适应图标因需合成 logo+渐变层 + 本机无 ImageMagick + 另会话在改 Android，留作专项跟进。）
 
 ### §17.2 首页活动卡 + 巴士卡接后端（M-1，commit `fc57edb`）
 `LifeTab` 首页「今週の活動」卡 + 巴士卡原直读 `SEED.events` / `SEED.busSchedule` 无 `#if DEMO` → 生产学生看到 2 个月前死假活动/巴士。修法照 `MyLandingView` / `BusListView` 范本：加 `loadedEvents`/`loadedBusRoutes` 两个 `@State`，`.task` 生产版（`#if !DEMO`）拉 `EventsAPI.listEvents`（今日起到次年底）+ `BusAPI.listRoutes`（经 `BusRouteMapper`）。`eventsCard` 用 `#if DEMO SEED.events #else loadedEvents`；`upcomingBus` 从 `loadedBusRoutes`（`SpecialBusRoute`）算今日未过/最近未来第一班，`UpcomingBus` 结构从 `BusLine` 改持 `SpecialBusRoute`，busCard 渲染字段相应改 `ub.route.scheduleAt`/`.direction`/`.date`/`.weekday`。拉失败显「0 件」/「予定なし」不退回假数据。〔同族遗留：`packageCard` 仍读 `SEED.packages`，未在本次范围。〕

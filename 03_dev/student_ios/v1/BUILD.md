@@ -14,7 +14,7 @@
 ### Production（默认无 DEMO flag）
 
 ```bash
-cd ~/dev/DMSD/03_dev/student_ios/v1
+cd 03_dev/student_ios/v1
 xcodebuild \
   -project TomoshibiApp.xcodeproj \
   -scheme TomoshibiApp \
@@ -25,7 +25,7 @@ xcodebuild \
 ### Demo（加 DEMO flag）
 
 ```bash
-cd ~/dev/DMSD/03_dev/student_ios/v1
+cd 03_dev/student_ios/v1
 xcodebuild \
   -project TomoshibiApp.xcodeproj \
   -scheme TomoshibiApp \

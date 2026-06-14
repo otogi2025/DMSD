@@ -2,32 +2,29 @@
 
 **学生 iOS v1.0 实装 — Swift / SwiftUI**。
 
-## 实装位置 — 独立 repo
+## 实装位置
 
-Swift 实装代码 **不在本 DMSD repo**，而是在独立 GitHub repo：
+Swift 实装代码就在本目录下：
 
 ```
-~/dev/TomoshibiiOSApp/
-├── TomoshibiApp/         ← Swift 主体（Features/ Foundation/ Root/）
-├── TomoshibiApp.xcodeproj
-├── refs/                 ← DMSD 内设计档案的物理拷贝（cloud agent 用）
-├── REMOTE_AGENT_GUIDE.md
-├── STATUS.md
-└── ...
+TomoshibiApp/         ← Swift 主体（Features/ Foundation/ Root/）
+TomoshibiApp.xcodeproj
+TomoshibiAppTests/
+...
 ```
 
-GitHub: `otogi2025/Tomoshibi-iOS`
+> 早期曾用独立 repo 模式，2026-05-06 退役，全部代码统一移入本目录。
 
-## 为什么独立
+## 为什么放在 DMSD 内
 
 - itsuki workflow: VS Code / Xcode 左代码 + 右 Simulator
-- DMSD 是设计/文档仓，iOS Swift 实装是另一种类型的产出（pixel-level fidelity 的真 SwiftUI）
-- 跨 repo 同步规则见 `CLAUDE.md §文档一致性规则 → 跨 repo 同步规则`
+- 5 端统一在 DMSD monorepo 内管理，版本 / commit 单一来源
+- iOS Swift 实装是 pixel-level fidelity 的真 SwiftUI 产出
 
 ## 启动 Xcode
 
 ```bash
-open ~/dev/TomoshibiiOSApp/TomoshibiApp.xcodeproj
+# 打开本目录下的 TomoshibiApp.xcodeproj
 # 选 iPhone 17 Pro Simulator（iOS 26.0）
 # ▶ Run
 ```

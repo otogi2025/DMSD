@@ -101,9 +101,9 @@
 
 > 这些字段名在早期设计讨论里出现过，最终未采用。统一登记此处以防新代码意外复用。每条注明来源 + 废弃时间。
 
-- `my_status` — 来源：`99_archive/2025-12_早期GPT对话/` 原稿（2025-12 GPT-5.2-pro 讨论里的候选命名）。未进入任何 spec 版本即淘汰；**废弃时间**：2026-02-12（v0.1 冻结时选定 `base_status` 家族命名，同时否决以 `my_` 前缀作字段名的风格）
+- `my_status` — 来源：2025-12 早期讨论稿（已归档，不在公开仓库；2025-12 GPT-5.2-pro 讨论里的候选命名）。未进入任何 spec 版本即淘汰；**废弃时间**：2026-02-12（v0.1 冻结时选定 `base_status` 家族命名，同时否决以 `my_` 前缀作字段名的风格）
 - `my_base_status` — 来源：同上（`my_status` 的派生候选）。**废弃时间**：同上
-- `seat_status` — 来源：`99_archive/2025-12_早期GPT对话/prompt.txt` 行 82 "更新该学生座位 seat_status = present 或 late"。语义和 `base_status` 重复，淘汰；**废弃时间**：2026-02-12（v0.1 冻结）
+- `seat_status` — 来源：2025-12 早期讨论稿（已归档，不在公开仓库）"更新该学生座位 seat_status = present 或 late"。语义和 `base_status` 重复，淘汰；**废弃时间**：2026-02-12（v0.1 冻结）
 - `state` — 来源：泛名，早期设计里偶用；太宽泛无法单义（session_status / base_status / device_active 等都可能被混叫 `state`）。**废弃时间**：2026-02-12（v0.1 冻结引入 `base_status` / `session_status` 等具体命名）
 - `background_status` — 来源：`01_specs/rollcall/v0.1_冻结决策.md` + `RollCall_Spec.md` v0.1 原版；**废弃时间**：2026-04-17（Q1 决策重命名为 `base_status`，详见 `ENUM_REGISTRY.md §3` 4-17 修订）
 

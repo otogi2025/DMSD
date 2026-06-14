@@ -24,7 +24,7 @@
 |---|---|
 | 2026-05-02 14:00 | itsuki 拍板 v1.0 直接 iOS + Android 双端上线（不分阶段）|
 | 2026-05-02 16:55 | itsuki 给 Claude Design standalone HTML 路径，提议"逐屏对译 + CC 主导，不派 sub agent" |
-| 2026-05-02 17:08 | 路线变更确认 — 归档原 `student_android/v1/round1_handoff/`（Claude Design handoff 路线已废，见 `99_archive/2026-05-02_android_handoff_route_archived/`）|
+| 2026-05-02 17:08 | 路线变更确认 — Claude Design handoff 路线已废，原 `round1_handoff/` 目录已归档（不在公开仓库）|
 | 2026-05-02 17:14 | itsuki 用 Claude Design "Handoff to Claude Code" 导出完整包（22 屏 React 源码 + iOS 参考材料），CC fetch + 解压到 `/tmp/tomoshibi_handoff/dmsd-android/`（**注意**：临时位置，不在 git）|
 | 2026-05-02 17:25 | itsuki 拍板 "一个会话解决所有问题" — CC 校准 scope: 冲到 context 极限或装机闭环跑通为止；目标 framework + 4-6 核心屏，剩余进 backlog |
 
@@ -240,12 +240,12 @@ P6 接 backend 时换成 Ktor Client + Repository pattern。
 
 ## 8. 待决清单（不阻塞 P1）
 
-> ⭐ **2026-06-09 itsuki 拍板分发方式：不上 Google Play、不办谷歌开发者账号** —— 改打签名 APK（安卓安装包文件）上传到后端 VPS、学生自己下载安装。**理由：有中国留学生的手机用不了 Google Play**。所以「Google Play 上架 / 商店审核 / 商店隐私表单 / 谷歌账号」全部不需要；但 keystore 仍要（打可安装 APK 必须 release 签名）。详见 `05_logs/decision_log.md` 2026-06-09 + memory `project-release-status`。
+> ⭐ **2026-06-09 itsuki 拍板分发方式：不上 Google Play、不办谷歌开发者账号** —— 改打签名 APK（安卓安装包文件）上传到后端 VPS、学生自己下载安装。**理由：有中国留学生的手机用不了 Google Play**。所以「Google Play 上架 / 商店审核 / 商店隐私表单 / 谷歌账号」全部不需要；但 keystore 仍要（打可安装 APK 必须 release 签名）。
 > ⚠️ 连带影响：FCM（谷歌推送）依赖手机装了 Google Play 服务 → **中国留学生手机收不到 FCM 推送**，Android 推送方案 v1.1 要另想。
 
 - [ ] 字体 license 确认（Noto Sans JP — Apache 2.0，OK 可商用 / 可 bundle）
 - [ ] applicationId 是否最终 `jp.tomoshibi.android`（APK 自托管不强制商店唯一性，定了好管理）
-- [ ] keystore 创建 + 密码管理流程（**APK 自托管仍需 release 签名才能装**；参照 CLAUDE.md "本地 Mac + 后端服务器加密 + 纸质密码 + 年度校验"）
+- [ ] keystore 创建 + 密码管理流程（**APK 自托管仍需 release 签名才能装**；密码管理沿用项目既定方案 — 本地 Mac + 后端服务器加密 + 纸质密码 + 年度校验）
 - [ ] **APK 自托管落地**：后端放一个 APK 下载入口（页面/链接）+ 引导用户开「允许安装未知来源」+ 想清版本更新怎么提示用户重下
 - [ ] Android 真机调试 — 当前 emulator 不支持 NFC，最终需要 1 台 Android 真机（itsuki 决策时再讨论）
 - [ ] ~~FCM Sender ID + Server Key~~ → 见上：FCM 对中国留学生手机不可达，Android 推送 v1.1 另议
@@ -254,9 +254,7 @@ P6 接 backend 时换成 Ktor Client + Repository pattern。
 
 ## 9. 单 repo 同步
 
-⚠️ **2026-05-06 退役独立 repo** — Android 代码直接在 `03_dev/student_android/v1/`，跟 backend / iOS / Web 全在 DMSD 单 repo 里。原跨 repo 同步规则（`bin/sync-android-refs.sh` / 跨 repo 物理 copy 等）已废 — 2026-05-21 C-012 清理。
-
-**TODO**: 写 `bin/sync-android-refs.sh`（P0 后期或 P1 初期建立）。
+⚠️ **2026-05-06 退役独立 repo** — Android 代码直接在 `03_dev/student_android/v1/`，跟 backend / iOS / Web 全在 DMSD 单 repo 里。原跨 repo 同步规则（跨 repo 物理 copy 等）已废。
 
 ## 10. 出租车预约「タクシー予約」— 待 Android 接后端时实装（2026-06-03）
 
@@ -264,7 +262,7 @@ itsuki 2026-06-03 拍板出租车预约功能（4 端）。iOS / 老师网页 / 
 
 **Android 本次未做**，理由：Android 现在是 Compose 骨架、申请表单（`ApplyNewScreen.kt`）未接后端、本地无法 gradle 编译验证 → 加 `Switch` UI 占位有 import 风险又测不了，价值低于风险。
 
-**待办**：Android 接后端时，`ApplyNewScreen.kt` 出寮届表单**照 iOS 2026-06-04 新交互做**（见 `IOS_DESIGN_LOG.md §14.17`）—— **出寮方法选了「タクシー」就当场露出时刻选择器**，不做独立开关、不为帰寮加预约（后端 `taxi_reservation_time` 只一个字段、只管出寮），提交带 `taxi_reservation_time`、详情页显示，跟 iOS `StayForm` 对齐。详见 `00_admin/TODO.md` N-004。
+**待办**：Android 接后端时，`ApplyNewScreen.kt` 出寮届表单**照 iOS 2026-06-04 新交互做**（见 `IOS_DESIGN_LOG.md §14.17`）—— **出寮方法选了「タクシー」就当场露出时刻选择器**，不做独立开关、不为帰寮加预约（后端 `taxi_reservation_time` 只一个字段、只管出寮），提交带 `taxi_reservation_time`、详情页显示，跟 iOS `StayForm` 对齐。
 
 ---
 

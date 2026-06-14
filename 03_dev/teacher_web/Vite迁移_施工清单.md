@@ -18,14 +18,13 @@
 2. **逐页对比验证** —— 每搬完一页，跟旧 `index.html` 版肉眼对比该页，确认长得一模一样再搬下一页。
 3. **不引入新设计体系** —— 样式保持现在的内联 `style={{...}}` + `window.RYO` 配色（迁成 import 的 theme 模块）。**不改 Tailwind**（5-26 失败版用了 Tailwind，是界面变样的元凶之一）。
 4. **状态管理用 React 自带** —— 现有 `React.useState` 逻辑不变；跨页共享状态用 React Context。**不引 Zustand 等额外库**（先求迁对，不叠加新东西）。
-5. **别拿「itsuki 零基础 / 维护难」当任何论据** —— 见 memory `feedback_no_zero_basis_excuse`。
+5. **别拿「itsuki 零基础 / 维护难」当任何论据**。
 
 ### 为什么有这些铁律 —— 5-26 失败复盘
 
-2026-05-26 上次 Vite 迁移被 itsuki 一句「这他妈根本不是我的 web」否决归档。**根因不是技术，是产品方向错**：5-02 立项时本该把现有 Ryō 界面接后端，结果**重做了一套全新的 4 标签管理后台界面**，跟 itsuki 满意的座席表+仪表盘完全不同。
-- 失败版归档在 `99_archive/2026-05-26_teacher_web_vite实装作废/`（React18 + TypeScript5 + Vite6 + Zustand5 + Tailwind3，13 文件）
+2026-05-26 上次 Vite 迁移被 itsuki 判定「跟我设想的界面完全不符」否决归档。**根因不是技术，是产品方向错**：5-02 立项时本该把现有 Ryō 界面接后端，结果**重做了一套全新的 4 标签管理后台界面**，跟 itsuki 满意的座席表+仪表盘完全不同。
+- 失败版已归档（不在公开仓库）（React18 + TypeScript5 + Vite6 + Zustand5 + Tailwind3，13 文件）
 - **它的工程配置（package.json / vite.config.ts / tsconfig.json）技术上没问题、可参考；但它的界面代码（App.tsx / pages/*.tsx / Shell.tsx）不可用 —— 界面要用现在 `index.html` 里的**
-- 复盘详情：`05_logs/raw/2026-05-26_teacher_web_vite废弃+polish回滚.md`
 
 ---
 
@@ -183,8 +182,8 @@
 1. ✅ 修后端 dev 库：不是多head分叉而是 **revision 撞号**(needs_renewal 误用 align_application_schema 的 b2c3d4e5f6a7)→ 计划的 merge heads 治不了，改成换唯一号 f8a9b0c1d2e3 + 重建库 + stamp head(commit e5073e5)
 2. ✅ chrome 客观验证：17 页全渲染无崩溃 + 27 接口全 200 + 控制台0报错 + 代録搜学生/点呼/学習/出寮者一覧/审批 真数据通
 3. ✅ 切正式 启动老师网站.command → build dist + 后端托管 dist(commit c9d20c4)
-4. ✅ 归档旧 src/index.html(29629行) + client.js + vendor + 打包脚本 + Tomoshibi_v3_single.html → 99_archive/2026-06-05_teacher_web_html单文件版归档/(commit c9d20c4)
-5. ✅ 收尾文档：WEB_DESIGN_LOG §16 + raw/2026-06-05_teacher_web_vite迁移.md + decision_log + memory(标完成) + project-overview(§4整段重写) + 心智模型
+4. ✅ 归档旧 src/index.html(29629行) + client.js + vendor + 打包脚本 + Tomoshibi_v3_single.html（已归档，不在公开仓库；commit c9d20c4）
+5. ✅ 收尾文档：WEB_DESIGN_LOG §16（公开）+ 内部开发档案（raw / decision_log / project-overview / 心智模型，不在公开仓库）
 6. ⏳ itsuki 肉眼最终签收(双击 启动老师网站.command,他做) → push(itsuki明示)
 
 【迁移产出文件清单】src/ 下：main.tsx/App.tsx/Shell.tsx/theme.ts/utils.ts/vite-env.d.ts/api(client.ts+types.ts) + components/(22页+3弹窗 OverrideModal/OutstayDetailModal/StudentProfileModal + shared.tsx)。配置 package.json/vite.config.ts(resolve.extensions .ts优先,base './')/tsconfig.json/index.html。

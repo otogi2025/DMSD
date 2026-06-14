@@ -12,7 +12,7 @@
 |---|---|---|
 | 设计文档（本文） | ✅ 100% | 806 行设计 + 5-03 学生登録コードパネル |
 | **当前权威源** | ✅ | **`v1/src/index.html` 24041 行 standalone HTML**（4-21 Round 2 + 4-22 Round 3 + 之后多次 polish 推进累积）+ `v1/src/components/_legacy/*.jsx` 14 JSX 源（accounts / app / applications / discipline / front-desk / live-roll-call / login / outstay-detail-modal / override-modal / pages-records-search-etc / roll-call-landing / select-teacher / shell / theme） |
-| **v1/src/ Vite + TS 实装** | ❌ 5-26 整体废弃 | 归档到 `99_archive/2026-05-26_teacher_web_vite实装作废/`（App.tsx / pages × 5 / store / Shell / package.json / vite.config.ts 等 13 文件）。废弃理由：itsuki 5-26 看到 Vite 实装版「这他妈根本不是我的 web」拍板「垃圾归档」 |
+| **v1/src/ Vite + TS 实装** | ❌ 5-26 整体废弃 | 已归档，不在公开仓库（App.tsx / pages × 5 / store / Shell / package.json / vite.config.ts 等 13 文件）。废弃理由：itsuki 5-26 看到 Vite 实装版后判定其与本人设想的界面完全不符，拍板废弃归档 |
 | `api/client.js` + `api/client.ts` | 🟡 保留未用（除 Login） | `client.js`（5-04 后多次扩，含 rollcall / discipline / cleaning / front-desk / announcements 5 类 helper 含 5-27 补的 4 个 announcement helper）+ `client.ts`（416 行 TS 类型版，5-26 归档迁移前留下）— 实装时只有 Login 已真接 backend，其他 15 个 page 全部 `window.*` 假数据 |
 | Ryō standalone NFC 实时点呼 demo | 🟡 双入口不一致 | `demo_server.py` 文件**真存在 142 行**（3 端点 /api/server-info / POST /checkin / GET /events/latest）；但启动脚本 `开发模式跑.command` 调 `python3 -m http.server`（demo 端点失效）vs `tomoshibi` CLI 调 `python3 demo_server.py`（demo 端点正常）— **双击 vs CLI 行为不一致** — 需统一到一个入口 |
 | AnnouncementsAPI | 🟢 backend 5 端点已实装 + client.js 已暴露 | 5-27 backend 5 endpoint 全注册（list / unread-count / detail / replies / replies/{id}）+ client.js 5-27 补 4 helper（updateAnnouncement / getAnnouncementUnreadCount / postAnnouncementReply / deleteAnnouncementReply）— 缺老师公告**发布页 UI**（A-026 已补 type 但 UI 不在范围）|
@@ -54,7 +54,7 @@
 | 2026-04-22 下午 · 17:55 | 白屏 2 连事件：Round 1 file:// CORS（Babel fetch .jsx 被 block + integrity 属性导致 CORS）→ 做 `rebuild.command` 把 jsx 内联到 index.html + 删 integrity/crossorigin 属性；Round 2 男寮 12→13 人后 records.jsx statuses hardcode 12 项数组越界 → RecStatusBadge crash 白屏 → `i % statuses.length` + fallback 修复 |
 | 2026-04-22 下午 · 17:40 | itsuki 4 项调整：(1) `申請センター` 詳細列被挤没 → 列宽 80px→100px + 整行可点 hover 变色（applications.jsx）(2) **リュウ イヒ 女子寮 W101 → 男子寮 M101 as itsuki demo binding 迁移**（theme.jsx ROSTER_MEN 前插 + ROSTER_WOMEN 去掉，变 13男/11女；OUTSTAY_APPS + COMMUNITY_POSTS + cleaning mock 的 room W101→M101 同步迁移；佐藤 M101→M102、高橋 M102→M103 级联）(3) 让 リュウ イヒ 进清扫罚则名单：discipline.jsx demerit 数组 [0] 改成 `late=5 absent=2 → total=4.5`（清扫线 ≥4、禁足 ≥8） (4) 名前検索空格 normalize 修复：shell topbar suggestions 动态从 `window.ROSTER_ALL` 生成 + `normalize(s)=replace(/\s+/g,'').toLowerCase()` 比对；SearchPage 同逻辑 + 担当寮优先 → 全寮 fallback + 跨寮 warn banner |
 | 2026-04-22 下午 · 17:00 | itsuki 走查 Round 3 发现 3 个文案问题 + 要求重做 コミュニティ 页 + 审 bug。[Code-Agent] 修复：`申請中心 → 申請センター`（applications.jsx）· `寮コミュニティ → コミュニティ管理`（shell.jsx nav + pages.jsx h1）· **CommunityPage 大改**（卡片 + 头像 + 点赞/评论 + 老师管理按钮 删除/ピン留め/通報解除 + 4 个统计卡片 + 3 个过滤器 + 5 tab 真实 seed 21 条学生投稿含通报样本）· **InfoPage お知らせ投稿 button**（右上 + ComposeNoticeModal 标题+本文）· 审出 7 bug 全修（override 却下/既読 死按钮 · discipline+notifications+records 里 hardcoded 男寮人名 → dynamic 按 teacher.dorm · shell 顶栏 2026-04-21 硬编码日期 → live clock · roll-call landing 日期 → 动态 · applications 外泊 badge 3 → 实际 pending count） |
-| 2026-04-22 ~ 06-04（多次） | ⚠️ 本时间线在此有断档：4-22 之后到 6-04 的多次推进（backend 接入 / 学習出席页 / 出寮者一覧 / 食数导出按钮 / 学習名簿 等）未逐条入本表，真值见 git log + `05_logs/杭田需求_无人值守施工清单.md` §6。 |
+| 2026-04-22 ~ 06-04（多次） | ⚠️ 本时间线在此有断档：4-22 之后到 6-04 的多次推进（backend 接入 / 学習出席页 / 出寮者一覧 / 食数导出按钮 / 学習名簿 等）未逐条入本表，真值见 git log。 |
 | 2026-06-05 | **代録（出寮届）表单页** `ProxyApplicationPage`（杭田五-3「教師用は当日入力可」收尾）：老师替学生补录帰省/外泊/帰国届。① 学生选择器走 `proxyCandidates`（GET /applications/proxy-candidates，按寮边界 + 姓名/学号搜）② 申請种类 3 按钮切换 ③ 共有字段（出寮/帰寮 日期·方法·时刻 + 本人連絡先），交通手段下拉选项与 iOS `ApplyStubs` LEAVE/RETURN_TRANSPORTS 一致 ④ 种类别：帰省理由 + 長期休暇 / 外泊·帰国 同行者+行先+宿泊先（必填≥1）/ 帰国 飞机信息 ⑤ 食事栏按学生 `is_overseas` 切换：留学生填食事不要期间（前端展开成 `[{date,meal}]`，照抄 iOS expandMealsSkip）、日本人显示「自己填食事入力表」提示。提交 `createByTeacher` → POST /applications/by-teacher。导航栏「代録」项限代録 5 角色（`DAIROKU_ROLES_FRONT`）可见。`client.js` 加 `proxyCandidates`+`createByTeacher`。验证 check_jsx 16 块 0 错误。| [Mac-Opus 4.8 1M] CC |
 
 ---
@@ -394,7 +394,6 @@ round3/
 - **后端实装方案**：FastAPI scheduled task (apscheduler) 或独立 worker 进程
 - **关联 feature**：規律・処分 / 通知中心 / 学生 iOS App 本人向け警告
 - **实装时机**：demo 采纳后第一批 post-demo feature
-- **persisted location**：`99_archive/2026-04-29_pre_v1.0_cleanup/demo_4-28/questions_for_requirements.md §N4.5`
 
 ### 6.2 男女寮数据库分离（后端）
 
@@ -424,7 +423,7 @@ round3/
 | JSX 组件源（14 个） | `v1/src/components/_legacy/*.jsx` | 原 round2/ + round3/ 塌缩后命名（误导但已实际是 Ryō 主源） |
 | 后端对接代码 | `v1/src/api/client.ts` | 416 行 26 endpoint — 保留未用，未来 Ryō 接真后端复用 |
 | 火焰 logo | `v1/src/assets/tomoshibi-icon.png` | 原 round3_handoff/01_tomoshibi_icon.png |
-| Claude Design 历史对话 | 已归档到 `99_archive/2026-04-29_pre_v1.0_cleanup/` 或 `99_archive/2026-05-21_teacher_web_demo_archived/` | itsuki ↔ Claude Design Round 1-3 完整迭代 — AC ⭐ |
+| Claude Design 历史对话 | 已归档，不在公开仓库 | itsuki ↔ Claude Design Round 1-3 完整迭代 — AC ⭐ |
 | Spec 色表权威 | `01_specs/rollcall/RollCall_Spec.md §4.1` | 5 色 + overlay 黑 |
 | Spec 时间窗 | `01_specs/rollcall/RollCall_Spec.md §5.3` | `window_start / on_time_end / late_end / auto_end_at` |
 | Spec 老师时刻表 | `01_specs/rollcall/RollCall_Spec.md §4.2` | 朝/晚点呼 平日/祝休日 ×普通寮生/部活 |
@@ -510,13 +509,13 @@ round3/
 3. `v1/README.md` — 怎么打开 / CLI 用法
 
 **当前推进方式**：
-- 看效果：双击项目根 `start-teacher-web.command`（起后端 8000 + 前端 8787 + 自动开浏览器）/ NFC 演示用 `cd v1 && ./tomoshibi start`（仅前端，不起后端）
+- 看效果：双击项目根启动脚本（本地保留不公开，起后端 8000 + 前端 8787 + 自动开浏览器）/ NFC 演示用 `cd v1 && ./tomoshibi start`（仅前端，不起后端）
 - 改 UI：编辑 `v1/src/index.html`（standalone HTML，所有 CSS/JS inline）— 改完浏览器 Cmd+R 刷新
 - 改 JSX 源后内联：`v1/rebuild.command`（把 `_legacy/*.jsx` 重新内联到 `index.html`）
 - 打包单文件 demo：`v1/打包单文件.command`（用 `build_single_file.py` 打包成可携带单 HTML）
 - 接真后端：参考 `v1/src/api/client.ts` 已定义的 26 个 endpoint — 内联到 standalone 时需要删 TS 类型导出 + 暴露到 `window.tomoshibiApi` namespace（详见 DESIGN_BRIEF §6）
 
-历史归档：原 `round2/` / `round3/` / `handoff/` / `round3_handoff/` 4 个子目录已迁到 `99_archive/2026-05-21_teacher_web_demo_archived/`；Vite + TS 实装版迁到 `99_archive/2026-05-26_teacher_web_vite实装作废/`。Round 1-3 历史对话作 AC 素材保留。
+历史归档：原 `round2/` / `round3/` / `handoff/` / `round3_handoff/` 4 个子目录 + Vite + TS 实装版均已归档，不在公开仓库。Round 1-3 历史对话作 AC 素材保留。
 
 ---
 
@@ -732,7 +731,7 @@ iPad ★ 路由 **必須**:
 
 #### 動機
 
-App Store 上架 = 全人類に配布チャネル開放。**「ダウンロードは公開、登録はゲート」** に分離するために、教師が発行した 6 桁コードを学生が登録最終 step で入れる。経緯詳細 → `05_logs/raw/2026-05-03.md §11`。
+App Store 上架 = 全人類に配布チャネル開放。**「ダウンロードは公開、登録はゲート」** に分離するために、教師が発行した 6 桁コードを学生が登録最終 step で入れる。
 
 #### ルート
 
@@ -854,7 +853,7 @@ interface RegistrationCodeStore {
 
 ### 12.2 归档动作
 
-13 个 Vite 文件 `git mv` 到 `99_archive/2026-05-26_teacher_web_vite实装作废/`：
+13 个 Vite 文件 `git mv` 归档（不在公开仓库）：
 
 | 类别 | 文件 |
 |---|---|
@@ -908,9 +907,9 @@ CC 在 itsuki 选 A（Ryō 框架内 polish）后跑 frontend-design skill，提
 
 ### 12.6 怎么打开看效果（itsuki 下次想看）
 
-**方式 A 双击（推荐）**：Finder 找项目根 `start-teacher-web.command` 双击 → 同时起后端 8000 + 前端 8787 + 自动开浏览器（原 `v1/开发模式跑.command` 只起前端，5-28 归档）
+**方式 A 双击（推荐）**：双击项目根启动脚本（本地保留不公开）→ 同时起后端 8000 + 前端 8787 + 自动开浏览器（原 `v1/开发模式跑.command` 只起前端，5-28 归档）
 
-**方式 B CLI（仅 NFC 演示）**：`cd ~/dev/DMSD/03_dev/teacher_web/v1 && ./tomoshibi start`（+ `stop` / `status` / `help`）— 只起前端不起后端，走登录用方式 A
+**方式 B CLI（仅 NFC 演示）**：`cd 03_dev/teacher_web/v1 && ./tomoshibi start`（+ `stop` / `status` / `help`）— 只起前端不起后端，走登录用方式 A
 
 **改完 HTML 想看效果**：浏览器手动刷新 Cmd+R（standalone HTML 没 HMR）
 
@@ -982,8 +981,8 @@ itsuki 纠正 CC 两个错误前提：① 部署目标是**服务器**（多人�
 
 ### 16.5 托管 + 归档
 
-- `start-teacher-web.command`（项目根）改成 build dist → 后端用 `TEACHER_WEB_DIR=dist` 托管到 `/teacher/` 路径（同源，前端用相对 `/api/v1` 连后端）
-- 旧物归档 `99_archive/2026-06-05_teacher_web_html单文件版归档/`：`src/index.html`(旧 29629 行源) + `api/client.js`(旧 IIFE) + `vendor/`(浏览器版 react+babel) + 打包脚本(`build_single_file.py`/`打包单文件.command`/`rebuild.command`/`check_jsx.js`/`tomoshibi`) + `Tomoshibi_v3_single.html`(33MB 旧自包含产物，双击可看旧版界面做对比)
+- 项目根启动脚本（本地保留不公开）改成 build dist → 后端用 `TEACHER_WEB_DIR=dist` 托管到 `/teacher/` 路径（同源，前端用相对 `/api/v1` 连后端）
+- 旧物已归档（不在公开仓库）：旧 `src/index.html`(29629 行源) + `api/client.js`(旧 IIFE) + `vendor/`(浏览器版 react+babel) + 打包脚本 + 33MB 旧自包含产物（双击可看旧版界面做对比）
 
 ### 16.6 已知遗留（itsuki 决策）
 
@@ -991,7 +990,7 @@ itsuki 纠正 CC 两个错误前提：① 部署目标是**服务器**（多人�
 
 ### 16.7 剩余
 
-itsuki 双击 `start-teacher-web.command` 肉眼签收界面跟旧版一致 → 确认后 push（CC 不自动 push）。完整施工记录见 `03_dev/teacher_web/Vite迁移_施工清单.md` §8。
+itsuki 双击项目根启动脚本肉眼签收界面跟旧版一致 → 确认后 push（CC 不自动 push）。完整施工记录见 `03_dev/teacher_web/Vite迁移_施工清单.md` §8。
 
 ---
 

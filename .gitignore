@@ -149,3 +149,5 @@ secrets/
 
 # ── 含服务器 IP/SSH 用户名的运维文档，itsuki 拍板不公开，只留本地（2026-06-12）─
 04_ops/个人网站_pj部署运维.md
+# ── 个人机器迁移/恢复指南（含 iCloud 私人路径 + Claude memory 恢复流程），不公开（2026-06-13）─
+04_ops/MAC_MINI_SETUP.md

@@ -1,6 +1,6 @@
 # Student iOS — 設計文書 + HTML プロトタイプ
 
-> **Swift 実装は本ディレクトリに**ない**。別 GitHub repo `otogi2025/Tomoshibi-iOS` → ローカルは `~/dev/TomoshibiiOSApp/`**。
+> **当時の Swift 実装は本ディレクトリには**ない**。別 GitHub repo `otogi2025/Tomoshibi-iOS` 上にあった（後に DMSD `03_dev/student_ios/v1/` へ統合）。**
 >
 > 本ディレクトリの役割 = iOS App の **設計文書** + **HTML プロトタイプ**（Claude Design 産出物、視覚 source of truth）。Swift 実装はこれらを参照して書かれる。
 
@@ -22,17 +22,6 @@
 ## 関連文書（外部）
 
 - **共用機能マトリクス（long-term source of truth）**: `../../02_design/system_features.md`
-- **Swift 実装** : `~/dev/TomoshibiiOSApp/`（独立 repo）
-- **Swift 進捗** : `~/dev/TomoshibiiOSApp/STATUS.md`
-- **Remote Agent 仕様**: `~/dev/TomoshibiiOSApp/REMOTE_AGENT_GUIDE.md`
-- **跨会话協作 スナップショット**: `../../00_admin/跨会话_ios_共享决策.md`
-
----
-
-## 同步フロー
-
-DMSD (本リポ) → Tomoshibi-iOS/refs/ は `bin/sync-ios-refs.sh` で単方向コピー。
-本ディレクトリの設計文書を改動したら `bash bin/sync-ios-refs.sh` を走らせ、Tomoshibi-iOS 側で commit を促す。
 
 ---
 
