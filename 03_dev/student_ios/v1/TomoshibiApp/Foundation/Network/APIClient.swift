@@ -165,6 +165,9 @@ final class APIClient {
             return data
         case 401:
             throw APIError.unauthorized
+        case 422:
+            let msg = DetailError.extractMessage(from: data) ?? "入力エラー"
+            throw APIError.unprocessable(msg)
         default:
             let msg = DetailError.extractMessage(from: data) ?? ""
             throw APIError.server(http.statusCode, msg)
