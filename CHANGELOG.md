@@ -1226,7 +1226,7 @@
 - `00_admin/版本演变一览.md` 详细版（每个变化单独一句话解释，覆盖 18 tag + 补 v0.1.0 - v0.1.3 四个遗漏 tag）
 
 **memory**:
-- `~/.claude/projects/-Users-kurekoduki-dev-DMSD/memory/project_naming_tomoshibi.md`（跨会话 memory）
+- memory `project_naming_tomoshibi.md`（跨会话 memory，本地、不在公开仓库）
 
 ### Changed — 全局系统名同步 + spec 主体修补
 

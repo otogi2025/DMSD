@@ -2,7 +2,7 @@
 
 > **Dispatch**: Agent tool · subagent_type=`general-purpose`
 > **工程**: `~/dev/TomoshibiiOSApp/TomoshibiApp/Features/Community/CommunityStubs.swift`
-> **翻译源**: `/Users/kurekoduki/dev/DMSD/03_dev/demo_4-28/Student_iOS_new/designs/phaseB_src/33f0266b__NotificationsPage_PackagesPage_PackageDetailPage.js`
+> **翻译源**: `phaseB_src/33f0266b__NotificationsPage_PackagesPage_PackageDetailPage.js`（demo 阶段 JSX 源，已归档、不在仓库）
 
 ## 产物
 

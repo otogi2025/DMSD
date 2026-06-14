@@ -2,7 +2,7 @@
 
 > **Dispatch**: Agent tool · subagent_type=`general-purpose`
 > **工程**: `~/dev/TomoshibiiOSApp/TomoshibiApp/Features/Apply/ApplyStubs.swift`
-> **翻译源**: `/Users/kurekoduki/dev/DMSD/03_dev/demo_4-28/Student_iOS_new/designs/phaseB_src/100ba570__ApplyListPage_ApplyNewPage_ApplyFormPage.js`
+> **翻译源**: `phaseB_src/100ba570__ApplyListPage_ApplyNewPage_ApplyFormPage.js`（demo 阶段 JSX 源，已归档、不在仓库）
 
 ## 产物
 
