@@ -315,3 +315,313 @@ export function StateBadge({ s }: { s: string }) {
     </span>
   );
 }
+
+// ── 学生选择器（共用）── 2026-06-14 选学生统一改造
+// 把原来散在「前台快递 / 事件记录 / 扣分页」各写各的「挑学生」收拢成一个组件。
+//   mode="single" 单选：点一行即选定并收起，触发框显示「姓名（部屋号 · 学籍番号）」；
+//   mode="multi"  多选：勾选累加成可删 chip（沿用原 StudentMultiSelect 的就地展开面板，
+//                       不用 position:absolute 浮层、避免被表单 modal 的 overflow 裁掉）。
+// searchApi 由调用方传入 → 适配三个权限不同的后端接口（前台 C_FRONTDESK / 账号管理
+//   C_STUDENT_ACCOUNT / 扣分 C_DEMERIT），组件本身不绑死某个接口。
+// 打开即拉一页学生（空查询，后端返前 ~20 条）→ 不打字也能滚动点选；想筛再打字（250ms 防抖）。
+export type PickerStudent = {
+  id: string;
+  name: string;
+  room_no: string;
+  student_no: string;
+};
+
+export function StudentPicker({
+  mode,
+  searchApi,
+  selected,
+  onChange,
+  authToken,
+  autoOpen,
+  placeholder,
+}: {
+  mode: "single" | "multi";
+  searchApi: (q: string, token: string) => Promise<PickerStudent[]>;
+  selected: PickerStudent[];
+  onChange: (next: PickerStudent[]) => void;
+  authToken: string;
+  autoOpen?: boolean; // 单选放在 modal 里时设 true → 打开即展开列表（itsuki「打开弹窗就直接列出」）
+  placeholder?: string;
+}) {
+  const T = RYO;
+  const [open, setOpen] = React.useState(!!autoOpen);
+  const [query, setQuery] = React.useState("");
+  const [results, setResults] = React.useState<PickerStudent[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const boxRef = React.useRef<HTMLDivElement>(null);
+  // searchApi 多半是调用方内联箭头函数（每渲染换身份）→ 存 ref，effect 不依赖它、避免每次重渲染重拉。
+  const searchApiRef = React.useRef(searchApi);
+  searchApiRef.current = searchApi;
+
+  // 点击选择器外部 → 收起
+  React.useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+
+  // 展开 / 改搜索词 → 拉学生（250ms 防抖）。空查询也拉 → 打开即列表。
+  React.useEffect(() => {
+    if (!open || !authToken) return;
+    let cancelled = false;
+    setLoading(true);
+    const timer = setTimeout(() => {
+      searchApiRef
+        .current(query.trim(), authToken)
+        .then((rows) => {
+          if (cancelled) return;
+          setResults(rows);
+          setError(null);
+          setLoading(false);
+        })
+        .catch((e) => {
+          if (cancelled) return;
+          setError(e.message || "学生リストの取得に失敗しました");
+          setResults([]);
+          setLoading(false);
+        });
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [open, query, authToken]);
+
+  const isSelected = (id: string) => selected.some((s) => s.id === id);
+  const pick = (s: PickerStudent) => {
+    if (mode === "single") {
+      onChange([s]);
+      setOpen(false);
+      setQuery("");
+    } else if (isSelected(s.id)) {
+      onChange(selected.filter((x) => x.id !== s.id));
+    } else {
+      onChange([...selected, s]);
+    }
+  };
+
+  const sub = (s: PickerStudent) => `${s.room_no}号室 · ${s.student_no}`;
+
+  return (
+    <div ref={boxRef}>
+      {/* 触发框 */}
+      <div
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          width: "100%",
+          minHeight: 40,
+          padding: "6px 10px",
+          border: `1px solid ${open ? T.cobalt : T.lineStrong}`,
+          borderRadius: 8,
+          background: T.surface,
+          boxSizing: "border-box",
+          cursor: "pointer",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 6,
+          alignItems: "center",
+        }}
+      >
+        {mode === "single" ? (
+          selected.length === 0 ? (
+            <span style={{ fontSize: 13, color: T.ink3 }}>
+              {placeholder || "学生を選択（クリックで一覧）"}
+            </span>
+          ) : (
+            <span style={{ fontSize: 13, color: T.ink }}>
+              <span style={{ fontWeight: 600 }}>{selected[0].name}</span>
+              <span
+                style={{
+                  color: T.ink3,
+                  fontSize: 12,
+                  marginLeft: 8,
+                  fontFamily: T.mono,
+                }}
+              >
+                {sub(selected[0])}
+              </span>
+            </span>
+          )
+        ) : (
+          <>
+            {selected.length === 0 && (
+              <span style={{ fontSize: 13, color: T.ink3 }}>
+                {placeholder || "学生を選択（クリックで一覧）"}
+              </span>
+            )}
+            {selected.map((s) => (
+              <span
+                key={s.id}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 2,
+                  padding: "2px 4px 2px 10px",
+                  fontSize: 12,
+                  color: T.cobalt,
+                  background: T.cobaltSoft,
+                  borderRadius: 999,
+                }}
+              >
+                {s.name}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onChange(selected.filter((x) => x.id !== s.id));
+                  }}
+                  title="削除"
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    color: T.cobalt,
+                    cursor: "pointer",
+                    fontSize: 14,
+                    lineHeight: 1,
+                    padding: "0 4px",
+                  }}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </>
+        )}
+        <span style={{ marginLeft: "auto", color: T.ink3, fontSize: 11 }}>
+          {open ? "▲" : "▼"}
+        </span>
+      </div>
+
+      {/* 就地展开面板：搜索框 + 列表 */}
+      {open && (
+        <div
+          style={{
+            marginTop: 6,
+            border: `1px solid ${T.lineStrong}`,
+            borderRadius: 10,
+            overflow: "hidden",
+            boxShadow: T.shadow1,
+          }}
+        >
+          <div style={{ padding: 8, borderBottom: `1px solid ${T.line}` }}>
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="名前・部屋番号・学籍番号で検索…"
+              style={{
+                width: "100%",
+                padding: "7px 10px",
+                border: `1px solid ${T.line}`,
+                borderRadius: 6,
+                fontFamily: "inherit",
+                fontSize: 13,
+                background: T.surfaceAlt,
+                boxSizing: "border-box",
+                outline: "none",
+              }}
+            />
+          </div>
+          <div style={{ maxHeight: 240, overflowY: "auto" }}>
+            {loading && (
+              <div
+                style={{
+                  padding: 16,
+                  textAlign: "center",
+                  color: T.ink3,
+                  fontSize: 12,
+                }}
+              >
+                読み込み中…
+              </div>
+            )}
+            {!loading && error && (
+              <div
+                style={{
+                  padding: 16,
+                  textAlign: "center",
+                  color: T.danger,
+                  fontSize: 12,
+                }}
+              >
+                ⚠️ {error}
+              </div>
+            )}
+            {!loading && !error && results.length === 0 && (
+              <div
+                style={{
+                  padding: 16,
+                  textAlign: "center",
+                  color: T.ink3,
+                  fontSize: 12,
+                }}
+              >
+                該当する学生がいません
+              </div>
+            )}
+            {!loading &&
+              !error &&
+              results.map((s) => {
+                const on = isSelected(s.id);
+                return (
+                  <div
+                    key={s.id}
+                    onClick={() => pick(s)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "8px 12px",
+                      cursor: "pointer",
+                      fontSize: 13,
+                      background: on ? T.cobaltSoft : "transparent",
+                    }}
+                  >
+                    {mode === "multi" && (
+                      <span
+                        style={{
+                          width: 16,
+                          height: 16,
+                          borderRadius: 4,
+                          border: `1px solid ${on ? T.cobalt : T.lineStrong}`,
+                          background: on ? T.cobalt : "transparent",
+                          color: "#fff",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 11,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {on ? "✓" : ""}
+                      </span>
+                    )}
+                    <span style={{ flex: 1, color: T.ink }}>{s.name}</span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        color: T.ink3,
+                        fontFamily: T.mono,
+                      }}
+                    >
+                      {sub(s)}
+                    </span>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

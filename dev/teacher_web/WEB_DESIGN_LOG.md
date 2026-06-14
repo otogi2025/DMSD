@@ -995,6 +995,43 @@ itsuki 纠正 CC 两个错误前提：① 部署目标是**服务器**（多人�
 
 itsuki 双击项目根启动脚本肉眼签收界面跟旧版一致 → 确认后 push（CC 不自动 push）。完整施工记录见 `dev/teacher_web/Vite迁移_施工清单.md` §8。
 
+## 17. 选学生统一组件 StudentPicker + 宅配件数改造 — 2026-06-15
+
+> 起因：itsuki 2026-06-14 截图反馈フロント業務「宅配通知を追加」弹窗选学生不好用，提出「选学生做成可复用组件、别处也统一用」。同会话 brainstorming 出设计、6-15 实装。
+
+### 17.1 共用组件 StudentPicker（`shared.tsx`）
+
+原来「挑学生」三处各写各的：前台快递自写搜索单选 / 事件记录 `StudentMultiSelect` 多选 / 扣分页根本没有主动搜学生入口（只能从排行榜点）。本次抽一个 `StudentPicker`：
+
+- `mode="single" | "multi"`：单选点一行即选定收起、显示「姓名（部屋号 · 学籍番号）」；多选勾选累加 chip。
+- `searchApi: (q, token) => Promise<PickerStudent[]>`：搜索函数由调用方传入 → 适配三个权限不同的后端接口，组件不绑死。**用 ref 存 searchApi**，effect 不依赖它，避免调用方传内联箭头函数每次重渲染触发重拉。
+- `autoOpen`：放 modal 里时设 true → 打开即展开列表（itsuki「打开弹窗就直接列出学生，滚动着点，懒得打字；想筛再打字」）。空查询也拉一页（后端返前 ~20 条）。
+- 就地展开面板（非 `position:absolute` 浮层），避免被表单 modal 的 overflow 裁掉（沿用原 StudentMultiSelect 的做法）。
+
+### 17.2 三处接入
+
+| 处 | mode | searchApi | 备注 |
+|---|---|---|---|
+| 前台快递 `DeliveryComposeModal` | single | `searchFrontDeskStudents`（`C_FRONTDESK`）| 见 17.3 |
+| 事件记录 `IncidentsPage` | multi | `listStudents`（`C_STUDENT_ACCOUNT`）| 删本地 `StudentMultiSelect`，回填只有 id+name 时 room_no/student_no 填空串占位（chip 只显示 name）|
+| 扣分页 `DisciplinePage`（新入口）| single | `searchDemeritStudents`（`C_DEMERIT`）| 见 17.4 |
+
+### 17.3 宅配弹窗改造（`FrontDeskPage`）
+
+- 受取人 → `StudentPicker(single, autoOpen)`。
+- 件数 → 步进器（−/数字/＋，下限 1）选 `item_count`，不再靠 description 写「ヤマト 1件」。
+- 部屋番号 → 选学生后自动带出其 `room_no`、只读展示。
+- 备注 → 改可选（去掉原「配送業者」字段）。
+- 列表行 description 列改成显示「N件 + 可选备注」（件数移出 description 后板上仍可见）。
+
+### 17.4 扣分页新入口（`DisciplinePage`）
+
+排行榜上方加「＋ 任意の学生に手動加算」按钮 → 新 `ManualDemeritSearchModal`（StudentPicker single + 减点数 + 理由 一弹窗）。**保留排行榜行的「手動加算」旧入口不动**。新接口 `searchDemeritStudents` 走 `C_DEMERIT` 权限：能扣分的寮監 / 寮務未必有前台权限，复用 front-desk 搜学生接口会把他们锁在外面（详见 BACKEND_DESIGN_LOG 2026-06-15 条 + 后端 §5 约束2）。
+
+### 17.5 验证
+
+`npm run build`（`tsc --noEmit && vite build`）通过。后端段见 BACKEND_DESIGN_LOG 2026-06-15。iOS item_count 显示见 IOS_DESIGN_LOG。
+
 ---
 
 **END** — 本档随 Web 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。

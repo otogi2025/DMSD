@@ -422,6 +422,17 @@ export const api = {
       body,
       token,
     ),
+  // 手动加扣分挑学生（C_DEMERIT 权限）—— 区别于 front-desk 的 searchFrontDeskStudents
+  // （那个要前台权限，能扣分的寮監未必有）。返回同款最小字段 FrontDeskStudentBrief。
+  searchDemeritStudents: (q: string, token: string) => {
+    const qs = q ? `?q=${encodeURIComponent(q)}` : "";
+    return request<FrontDeskStudentBrief[]>(
+      "GET",
+      `/discipline/students${qs}`,
+      undefined,
+      token,
+    );
+  },
 
   // ── Accounts（学生账号管理）──
   listStudents: (

@@ -448,8 +448,9 @@ export interface FrontDeskItem {
   id: string;
   kind: "delivery" | "lost_and_found";
   student_id: string | null;
-  description: string; // 后端必填
+  description: string; // 宅配可空（缺省空串）/ 失物必填 —— 后端列仍 NOT NULL
   location: string | null;
+  item_count: number; // 宅配件数；失物恒 1（2026-06-14 加）
   status: "pending" | "notified" | "picked_up" | "expired" | "discarded";
   created_by_teacher_id: string;
   created_at: string;
@@ -458,12 +459,13 @@ export interface FrontDeskItem {
   expires_at: string; // 后端必返
 }
 
-// 对齐 FrontDeskItemCreateIn(1142-1148)
+// 对齐 FrontDeskItemCreateIn(1148-）
 export interface FrontDeskCreateIn {
   kind: "delivery" | "lost_and_found";
   student_id?: string;
-  description: string; // 后端必填 min_length=1
+  description?: string; // 宅配可选备注 / 失物必填（后端按 kind 校验，2026-06-14 改可选）
   location?: string;
+  item_count?: number; // 宅配件数，默认 1、下限 1（2026-06-14 加）
 }
 
 // 前台登记宅配挑收件学生用的最小字段（对齐后端 schemas.FrontDeskStudentBrief）

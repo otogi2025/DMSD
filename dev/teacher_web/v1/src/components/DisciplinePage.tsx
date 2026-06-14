@@ -2,7 +2,13 @@ import React from "react";
 import { RYO, dormLabel } from "../theme";
 import type { RyoTokens } from "../theme";
 import { api } from "../api/client";
-import { ModalShell, ModalField, ModalFooter } from "./shared";
+import {
+  ModalShell,
+  ModalField,
+  ModalFooter,
+  StudentPicker,
+  type PickerStudent,
+} from "./shared";
 import type {
   TeacherProfile,
   DisciplineRankingOut,
@@ -53,6 +59,8 @@ export function DisciplinePage({
     student_id: string;
     name: string;
   } | null>(null); // {student_id, name}
+  // 「任意の学生に手動加算」搜学生入口弹窗开关（2026-06-14，独立于排行榜行的旧入口）
+  const [searchAddOpen, setSearchAddOpen] = React.useState(false);
   // 最近手动加扣分记录（用于即时撤销）
   const [lastEvent, setLastEvent] = React.useState<DemeritEvent | null>(null); // DemeritEventOut
   const [lastEventMsg, setLastEventMsg] = React.useState<string | null>(null);
@@ -89,6 +97,7 @@ export function DisciplinePage({
   // 手动加扣分
   const handleManualSubmit = (
     studentId: string,
+    name: string,
     points: number,
     reason: string,
   ) => {
@@ -96,8 +105,9 @@ export function DisciplinePage({
       .createManualDemerit({ student_id: studentId, points, reason }, authToken)
       .then((ev) => {
         setLastEvent(ev);
-        setLastEventMsg(`${manualTarget?.name} に ${points} 点を追加しました`);
+        setLastEventMsg(`${name} に ${points} 点を追加しました`);
         setManualTarget(null);
+        setSearchAddOpen(false);
         loadRanking();
       })
       .catch((e) => {
@@ -285,6 +295,30 @@ export function DisciplinePage({
         </div>
       </div>
 
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: 12,
+        }}
+      >
+        <button
+          onClick={() => setSearchAddOpen(true)}
+          style={{
+            padding: "9px 16px",
+            background: T.cobalt,
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            fontFamily: "inherit",
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+        >
+          ＋ 任意の学生に手動加算
+        </button>
+      </div>
       <SectionH n="1" title="今月全員ランキング" />
       {loadingBackend ? (
         <div style={{ padding: 24, color: T.ink3, fontSize: 13 }}>
@@ -493,12 +527,23 @@ export function DisciplinePage({
         </div>
       </div>
 
-      {/* 手动加分 modal */}
+      {/* 手动加分 modal —— 从排行榜行点「手動加算」进入（旧方式，保留）*/}
       {manualTarget && (
         <ManualDemeritModal
           T={T}
           target={manualTarget}
           onClose={() => setManualTarget(null)}
+          onSubmit={(sid, pts, rsn) =>
+            handleManualSubmit(sid, manualTarget.name, pts, rsn)
+          }
+        />
+      )}
+      {/* 搜任意学生加分 modal —— 2026-06-14 新入口（不必先上排行榜）*/}
+      {searchAddOpen && (
+        <ManualDemeritSearchModal
+          T={T}
+          authToken={authToken}
+          onClose={() => setSearchAddOpen(false)}
           onSubmit={handleManualSubmit}
         />
       )}
@@ -546,6 +591,79 @@ function ManualDemeritModal({
   };
   return (
     <ModalShell T={T} title={`手動加算：${target.name}`} onClose={onClose}>
+      <ModalField T={T} label="減点数">
+        <input
+          type="number"
+          min="0.5"
+          step="0.5"
+          value={points}
+          onChange={(e) => setPoints(e.target.value)}
+          style={modalInputStyle(T)}
+        />
+      </ModalField>
+      <ModalField T={T} label="理由（必須）">
+        <input
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="例：消灯後廊下で騒いでいた"
+          style={modalInputStyle(T)}
+        />
+      </ModalField>
+      <ModalFooter
+        T={T}
+        onClose={onClose}
+        onSubmit={handleSubmit}
+        disabled={disabled}
+      />
+    </ModalShell>
+  );
+}
+
+// 搜学生加分 modal（2026-06-14 新入口）—— StudentPicker(single) + 减点数 + 理由 一弹窗搞定。
+// 用 searchDemeritStudents（C_DEMERIT 权限）而非 front-desk 的搜学生接口（权限簇不同）。
+function ManualDemeritSearchModal({
+  T,
+  authToken,
+  onClose,
+  onSubmit,
+}: {
+  T: RyoTokens;
+  authToken: string;
+  onClose: () => void;
+  onSubmit: (
+    studentId: string,
+    name: string,
+    points: number,
+    reason: string,
+  ) => void;
+}) {
+  const [selected, setSelected] = React.useState<PickerStudent[]>([]);
+  const [points, setPoints] = React.useState("1");
+  const [reason, setReason] = React.useState("");
+  const [submitting, setSubmitting] = React.useState(false);
+  const student = selected[0] || null;
+  const disabled =
+    !student || !reason.trim() || parseFloat(points) <= 0 || submitting;
+  const handleSubmit = () => {
+    if (disabled || !student) return;
+    setSubmitting(true);
+    Promise.resolve(
+      onSubmit(student.id, student.name, parseFloat(points), reason.trim()),
+    ).finally(() => setSubmitting(false));
+  };
+  return (
+    <ModalShell T={T} title="任意の学生に手動加算" onClose={onClose}>
+      <ModalField T={T} label="学生（必須）">
+        <StudentPicker
+          mode="single"
+          autoOpen
+          searchApi={(q, token) => api.searchDemeritStudents(q, token)}
+          selected={selected}
+          onChange={setSelected}
+          authToken={authToken}
+          placeholder="氏名 / 学籍番号で検索（クリックで一覧）"
+        />
+      </ModalField>
       <ModalField T={T} label="減点数">
         <input
           type="number"

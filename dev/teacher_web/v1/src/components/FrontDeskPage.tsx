@@ -5,9 +5,14 @@ import type {
   TeacherProfile,
   FrontDeskItem,
   FrontDeskCreateIn,
-  FrontDeskStudentBrief,
 } from "../api/types";
-import { ModalShell, ModalField, ModalFooter } from "./shared";
+import {
+  ModalShell,
+  ModalField,
+  ModalFooter,
+  StudentPicker,
+  type PickerStudent,
+} from "./shared";
 
 // 源 index.html 17884-18885（front-desk 块）。界面原样搬，仅作用域引用方式改造。
 // フロント業務页 —— 宅配通知 + 忘れ物（コミュニティから拆分）
@@ -17,6 +22,7 @@ type ComposeBody = {
   description: string;
   location: string | null;
   student_id?: string | null;
+  item_count?: number; // 宅配件数（2026-06-14）；失物不传、后端默认 1
 };
 
 export function FrontDeskPage({
@@ -574,8 +580,20 @@ function DeliveryRow({
       >
         {d.location || "—"}
       </span>
-      <span style={{ fontSize: 12, color: T.ink2, flex: 1 }}>
-        {d.description}
+      <span
+        style={{
+          fontSize: 12,
+          color: T.ink2,
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        <span style={{ fontWeight: 700, color: T.ink }}>{d.item_count}件</span>
+        {d.description && (
+          <span style={{ color: T.ink3 }}>{d.description}</span>
+        )}
       </span>
       {isPicked && d.picked_up_at && (
         <span style={{ fontSize: 11, color: T.ink3, fontFamily: T.mono }}>
@@ -675,9 +693,12 @@ function LostItemRow({
 }
 
 // DeliveryComposeModal —— 对齐后端 FrontDeskItemCreateIn
-// 提交: { kind:"delivery", student_id, description, location }
-// 后端强制 delivery 必带 student_id（否则学生端 GET /front-desk/mine 永远查不到、登记成功却没人收到通知）→
-// 此处「受取人」做成必选的学生搜索选择器，不再靠 description 里写名字字符串。
+// 提交: { kind:"delivery", student_id, description(任意备注), location(=房号), item_count }
+// 2026-06-14 选学生统一 + 快递改造：
+//   - 受取人 → 共用 StudentPicker（single），打开即列表、滚动点选、想筛再打字
+//   - 件数 → 步进器选数字（item_count），不再靠 description 里写「ヤマト 1件」
+//   - 部屋番号 → 选学生后自动带出其 room_no、只读
+//   - 備考 → 改可选（去掉原「配送業者」字段）
 function DeliveryComposeModal({
   T,
   authToken,
@@ -689,166 +710,94 @@ function DeliveryComposeModal({
   onClose: () => void;
   onSubmit: (body: ComposeBody) => void;
 }) {
-  const [description, setDescription] = React.useState("");
-  const [location, setLocation] = React.useState("");
-  // 收件学生（必选）—— studentQuery 是搜索框文本，selected 是已选定的学生
-  const [studentQuery, setStudentQuery] = React.useState("");
-  const [results, setResults] = React.useState<FrontDeskStudentBrief[]>([]);
-  const [selected, setSelected] = React.useState<FrontDeskStudentBrief | null>(
-    null,
-  );
-  const [searching, setSearching] = React.useState(false);
+  const [selected, setSelected] = React.useState<PickerStudent[]>([]);
+  const [itemCount, setItemCount] = React.useState(1);
+  const [note, setNote] = React.useState(""); // 備考（任意）
+  const student = selected[0] || null;
+  const disabled = !student;
 
-  // 按姓名 / 学籍番号搜索学生，300ms 防抖。已选定或搜索框空时不搜。
-  // 用 searchFrontDeskStudents（GET /front-desk/students）而非账号管理的 listStudents：
-  // 后者角色集不含寮監（寮監能登记宅配却搜不了学生），且暴露账号锁定等敏感字段。
-  // 此端点权限含寮監、按老师管辖男/女寮过滤、只返回挑人字段。
-  React.useEffect(() => {
-    const q = studentQuery.trim();
-    if (!authToken || selected || q.length < 1) {
-      setResults([]);
-      return;
-    }
-    let cancelled = false;
-    setSearching(true);
-    const timer = setTimeout(() => {
-      api
-        .searchFrontDeskStudents(q, authToken)
-        .then((data) => {
-          if (!cancelled) setResults(data.slice(0, 8));
-        })
-        .catch(() => {
-          if (!cancelled) setResults([]);
-        })
-        .finally(() => {
-          if (!cancelled) setSearching(false);
-        });
-    }, 300);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [studentQuery, selected, authToken]);
+  const stepBtn: React.CSSProperties = {
+    width: 36,
+    height: 36,
+    border: `1px solid ${T.lineStrong}`,
+    background: T.surface,
+    color: T.ink,
+    fontSize: 18,
+    fontWeight: 700,
+    lineHeight: 1,
+    cursor: "pointer",
+  };
 
-  const disabled = !description.trim() || !selected;
   return (
     <ModalShell T={T} title="宅配通知を追加" onClose={onClose}>
       <ModalField T={T} label="受取人（必須）">
-        {selected ? (
+        <StudentPicker
+          mode="single"
+          autoOpen
+          searchApi={(q, token) => api.searchFrontDeskStudents(q, token)}
+          selected={selected}
+          onChange={setSelected}
+          authToken={authToken || ""}
+          placeholder="氏名 / 学籍番号で検索（クリックで一覧）"
+        />
+      </ModalField>
+      <ModalField T={T} label="件数">
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <button
+            type="button"
+            onClick={() => setItemCount((n) => Math.max(1, n - 1))}
+            style={{ ...stepBtn, borderRadius: "8px 0 0 8px" }}
+          >
+            −
+          </button>
           <div
             style={{
+              minWidth: 48,
+              height: 36,
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
-              gap: 8,
-              padding: "9px 12px",
-              border: `1px solid ${T.lineStrong}`,
-              borderRadius: 8,
+              justifyContent: "center",
+              borderTop: `1px solid ${T.lineStrong}`,
+              borderBottom: `1px solid ${T.lineStrong}`,
               background: T.surfaceAlt,
-              fontSize: 13,
+              fontSize: 15,
+              fontWeight: 700,
               color: T.ink,
             }}
           >
-            <span>
-              {selected.name}（{selected.room_no} / {selected.student_no}）
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                setSelected(null);
-                setStudentQuery("");
-              }}
-              style={{
-                border: "none",
-                background: "transparent",
-                color: T.danger,
-                fontSize: 12,
-                cursor: "pointer",
-              }}
-            >
-              変更
-            </button>
+            {itemCount}
           </div>
-        ) : (
-          <>
-            <input
-              value={studentQuery}
-              onChange={(e) => setStudentQuery(e.target.value)}
-              placeholder="氏名 / 学籍番号で検索"
-              style={inputStyle(T)}
-            />
-            {studentQuery.trim() && (
-              <div
-                style={{
-                  marginTop: 4,
-                  border: `1px solid ${T.line}`,
-                  borderRadius: 8,
-                  overflow: "hidden",
-                  background: T.surface,
-                }}
-              >
-                {searching && (
-                  <div
-                    style={{
-                      padding: "8px 12px",
-                      fontSize: 12,
-                      color: T.muted,
-                    }}
-                  >
-                    検索中…
-                  </div>
-                )}
-                {!searching && results.length === 0 && (
-                  <div
-                    style={{
-                      padding: "8px 12px",
-                      fontSize: 12,
-                      color: T.muted,
-                    }}
-                  >
-                    該当者なし
-                  </div>
-                )}
-                {!searching &&
-                  results.map((s) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => setSelected(s)}
-                      style={{
-                        display: "block",
-                        width: "100%",
-                        textAlign: "left",
-                        padding: "8px 12px",
-                        border: "none",
-                        borderBottom: `1px solid ${T.line}`,
-                        background: T.surface,
-                        fontSize: 13,
-                        color: T.ink,
-                        cursor: "pointer",
-                      }}
-                    >
-                      {s.name}（{s.room_no} / {s.student_no}）
-                    </button>
-                  ))}
-              </div>
-            )}
-          </>
-        )}
+          <button
+            type="button"
+            onClick={() => setItemCount((n) => n + 1)}
+            style={{ ...stepBtn, borderRadius: "0 8px 8px 0" }}
+          >
+            ＋
+          </button>
+          <span style={{ marginLeft: 10, fontSize: 13, color: T.ink3 }}>
+            件
+          </span>
+        </div>
       </ModalField>
-      <ModalField T={T} label="内容（配送業者・件数等）">
-        <input
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="例: ヤマト運輸 1件"
-          style={inputStyle(T)}
-        />
+      <ModalField T={T} label="部屋番号（受取人から自動）">
+        <div
+          style={{
+            padding: "9px 12px",
+            border: `1px solid ${T.line}`,
+            borderRadius: 8,
+            background: T.surfaceAlt,
+            fontSize: 13,
+            color: student ? T.ink : T.ink3,
+          }}
+        >
+          {student ? student.room_no : "学生を選択すると自動入力されます"}
+        </div>
       </ModalField>
-      <ModalField T={T} label="部屋番号・場所">
+      <ModalField T={T} label="備考（任意）">
         <input
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          placeholder="M101 / W113 等"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="例: 冷蔵・大型 等（任意）"
           style={inputStyle(T)}
         />
       </ModalField>
@@ -857,11 +806,12 @@ function DeliveryComposeModal({
         onClose={onClose}
         onSubmit={() =>
           !disabled &&
-          selected &&
+          student &&
           onSubmit({
-            description: description.trim(),
-            location: location.trim() || null,
-            student_id: selected.id,
+            description: note.trim(),
+            location: student.room_no,
+            student_id: student.id,
+            item_count: itemCount,
           })
         }
         disabled={disabled}
