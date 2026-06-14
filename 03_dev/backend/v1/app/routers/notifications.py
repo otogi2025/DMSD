@@ -8,6 +8,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import models, permissions, schemas
@@ -175,11 +176,31 @@ def _fmt_points(points: float) -> str:
     return str(int(points)) if points == int(points) else str(points)
 
 
+def _insert_skip_conflicts(db: Session, rows: list[models.Notification]) -> None:
+    """逐条插入通知行，撞唯一约束就跳过（并发安全）。
+
+    内存去重（existing 集合）只在单请求内有效；多个老师同时在线 + 侧栏每 30 秒
+    轮询 unread-count + 通知页拉 feed → 两个请求可能都读到「还没有某新事件」的
+    快照、都尝试插同一 (source_table, source_id)，第二个会撞 uq_notif_source。
+    这里每条用 savepoint（嵌套事务）包起来，撞约束就回滚该 savepoint 并跳过，
+    外层事务不受影响（SQLite + PostgreSQL 都支持 savepoint）。
+    """
+    for row in rows:
+        try:
+            with db.begin_nested():
+                db.add(row)
+                db.flush()
+        except IntegrityError:
+            # 并发请求已插入同一来源行 — 跳过，外层事务继续
+            pass
+
+
 def _sync_notifications(db: Session, *, is_demo: bool) -> None:
     """把现有事件幂等同步成通知行（只处理与 realm[is_demo] 匹配的事件）。
 
-    按 (source_table, source_id) 去重，只插缺失的。source_id 是 UUID 全局唯一，
-    故用全量已存在键集合去重，绝不会撞 uq_notif_source 唯一约束。
+    按 (source_table, source_id) 去重，只插缺失的（source_id 是 UUID 全局唯一）。
+    内存去重挡掉单请求内的重复；并发请求间的竞争由 _insert_skip_conflicts
+    的 savepoint+跳过兜底（防撞 uq_notif_source 变 500）。
     """
     existing = {
         (st, sid)
@@ -296,8 +317,7 @@ def _sync_notifications(db: Session, *, is_demo: bool) -> None:
             )
 
     if new_rows:
-        db.add_all(new_rows)
-        db.flush()
+        _insert_skip_conflicts(db, new_rows)
 
 
 def _unread_count(db: Session, teacher: models.Teacher) -> int:

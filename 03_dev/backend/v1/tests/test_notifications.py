@@ -206,6 +206,48 @@ def test_feed_syncs_dorm_event_proposal(client, seed_data, teacher_token, db_ses
     assert item["related_student_id"] == str(seed_data["student"].id)
 
 
+def test_insert_skip_conflicts_dedup(db_session, seed_data):
+    """并发兜底：用同一 (source_table, source_id) 插第二条通知应被跳过、不抛错、不重复。
+
+    模拟两个请求竞争同一未同步源行的场景：第一条已落库，第二条撞 uq_notif_source。
+    _insert_skip_conflicts 应靠 savepoint 跳过它而不是冒泡成 IntegrityError/500。
+    """
+    from app.routers import notifications as notif_mod
+
+    sid = uuid.uuid4()
+    now = datetime(2026, 6, 14, 20, 0, tzinfo=timezone.utc)
+    n1 = models.Notification(
+        category="demerit",
+        source_table="demerit_event",
+        source_id=sid,
+        title="t1",
+        body="b1",
+        is_demo=False,
+        event_at=now,
+    )
+    db_session.add(n1)
+    db_session.commit()
+
+    n2 = models.Notification(
+        category="demerit",
+        source_table="demerit_event",
+        source_id=sid,  # 同源 → 撞唯一约束
+        title="t2",
+        body="b2",
+        is_demo=False,
+        event_at=now,
+    )
+    notif_mod._insert_skip_conflicts(db_session, [n2])  # 不应抛错
+    db_session.commit()
+
+    cnt = (
+        db_session.query(models.Notification)
+        .filter(models.Notification.source_id == sid)
+        .count()
+    )
+    assert cnt == 1  # 第二条被跳过，没重复
+
+
 def test_feed_syncs_guidance_disclosure(client, seed_data, teacher_token, db_session):
     """指导开示申请 → category=disclosure（时间列是 requested_at）。"""
     db_session.add(
