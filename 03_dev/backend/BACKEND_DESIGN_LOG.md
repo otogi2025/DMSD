@@ -533,6 +533,38 @@ CREATE TABLE notification_log (
 CREATE INDEX idx_notif_status ON notification_log (status, created_at) WHERE status IN ('pending','retrying');
 ```
 
+**老师通知中心（UI「通知センター」）— `notifications` / `notification_reads`**（2026-06-13 阶段1 + 2026-06-14 阶段2）
+
+```sql
+-- 一条老师通知（来源于某个事件，幂等去重）
+CREATE TABLE notifications (
+  id                 UUID PRIMARY KEY,
+  category           TEXT NOT NULL,   -- application/demerit/rollcall_report/outing/study_absence/study_online/dorm_event/fridge/item/disclosure/misc
+  source_table       TEXT NOT NULL,   -- 来源事件表名
+  source_id          UUID NOT NULL,   -- 来源事件主键（UUID 全局唯一）
+  title              TEXT NOT NULL,
+  body               TEXT NOT NULL DEFAULT '',
+  related_student_id UUID,            -- 涉及学生（学生删除 SET NULL）
+  is_demo            BOOLEAN NOT NULL DEFAULT false,  -- realm 隔离
+  event_at           TIMESTAMPTZ NOT NULL,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_notif_source UNIQUE (source_table, source_id)
+);
+-- 老师已读记录（每老师每通知最多 1 行，有行=已读）
+CREATE TABLE notification_reads (
+  id, notification_id UUID, teacher_id UUID, read_at TIMESTAMPTZ,
+  CONSTRAINT uq_notif_read UNIQUE (notification_id, teacher_id)
+);
+```
+
+设计要点：
+- **填充方式 = 取 feed 时同步，不在各事件产生点写钩子**：`routers/notifications.py` 的 `_sync_notifications()` 在 GET /feed / GET /unread-count / POST /read-all 时扫现有事件表，按 `(source_table, source_id)` 幂等插缺失通知行。理由：只碰 models/schemas/notifications.py，不改各业务路由，降低多会话并发改后端的冲突面。代价：通知非事件即时生成。
+- **来源（阶段2 扩到 11 类）**：applications(出寮届) / demerit_event(扣分，滤 revoked) / rollcall_reports(点呼上报) + 8 张申请表（outings / study_absence_requests / study_online_requests / dorm_event_proposals / fridge_purchase_requests / item_possession_requests / guidance_disclosure_requests / misc_requests）。8 张表数据驱动配置 `_REQUEST_SOURCES`。注意非标准列名：DormEventProposal 用 `proposer_id`+`result`、GuidanceDisclosureRequest 用 `requested_at`、MiscRequest 用 `created_at`。
+- **已读未读**：各老师在 `notification_reads` 各记各的；未读数 = realm 内通知总数 − 本人已读数。
+- **realm 隔离**：`is_demo` 按学生 is_demo，演示老师只看演示、真老师只看真实。
+- **并发安全（阶段2 修）**：内存去重只单请求内有效，多请求并发会撞 `uq_notif_source`。`_insert_skip_conflicts()` 每条用 savepoint（`db.begin_nested`）包，**只**吞唯一约束冲突跳过、其余 IntegrityError 重抛（不掩盖外键/非空错误），避免变 500。
+- **v1.1 待办**：① 取 feed 全量扫改增量水位线（只扫比上次新的行）② 真·WebSocket 瞬时推（现 WS 只在点呼会话连）③ 学生端 push（device_tokens 地基已在，缺密钥+安卓 FCM+事件接线）。详见 `00_admin/TODO.md`。
+
 ### 4.9 `audit_logs`
 
 ```sql
