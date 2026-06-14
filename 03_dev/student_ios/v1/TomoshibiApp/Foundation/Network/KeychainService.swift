@@ -35,7 +35,7 @@ enum KeychainService {
         // 要写入 / 更新的内容
         let attributes: [String: Any] = [
             kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
         ]
 
         // codex: 原来先 SecItemDelete 再 SecItemAdd，万一 Add 失败、旧 token 已被删，

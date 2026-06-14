@@ -74,7 +74,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         _: UIApplication,
         didFailToRegisterForRemoteNotificationsWithError error: Error
     ) {
-        print("[APNs] 远程通知注册失败：\(error.localizedDescription)")
+        #if DEBUG
+            print("[APNs] 远程通知注册失败：\(error.localizedDescription)")
+        #endif
     }
 
     /// app 在前台时收到 push —— 仍弹横幅 + 进通知列表。

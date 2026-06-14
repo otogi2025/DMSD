@@ -253,7 +253,9 @@ final class AppStore: ObservableObject {
             } catch {
                 // 网络 / 解码失败 → 保持 currentUser = nil，displayUser 回退占位，不打断登录。
                 // 打日志区分（后端字段改名导致的解码失败，开发期能据此发现）。
-                print("[loadMe] /students/me 拉取失败：\(error)")
+                #if DEBUG
+                    print("[loadMe] /students/me 拉取失败：\(error)")
+                #endif
             }
         #endif
     }
@@ -659,7 +661,9 @@ final class AppStore: ObservableObject {
                 refreshRollStateFromSessions()
             } catch {
                 // 拉不到保持现状（不显假数据）；打日志便于开发期发现字段漂移
-                print("[loadTodayRollcall] /rollcall/me/today 拉取失败：\(error)")
+                #if DEBUG
+                    print("[loadTodayRollcall] /rollcall/me/today 拉取失败：\(error)")
+                #endif
             }
         #endif
     }

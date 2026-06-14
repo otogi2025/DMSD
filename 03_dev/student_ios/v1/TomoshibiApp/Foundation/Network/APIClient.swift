@@ -44,7 +44,13 @@ final class APIClient {
     private let session: URLSession
 
     private init() {
-        baseURL = ProcessInfo.processInfo.environment["TOMOSHIBI_API_URL"] ?? DEFAULT_BASE_URL
+        // 环境变量覆盖只在 DEBUG 构建生效；Release（上架）二进制不读环境变量，
+        // 避免越狱 / 调试器附加 / MDM 注入把带 JWT 的请求重定向到攻击者服务器。
+        #if DEBUG
+            baseURL = ProcessInfo.processInfo.environment["TOMOSHIBI_API_URL"] ?? DEFAULT_BASE_URL
+        #else
+            baseURL = DEFAULT_BASE_URL
+        #endif
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 15
         session = URLSession(configuration: config)
