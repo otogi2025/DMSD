@@ -52,7 +52,7 @@ struct ApplicationOut: Decodable, Hashable, Identifiable {
     let companion: String?
     let dest_cities: String?
     let receipt_submitted: Bool // backend bool=False 恒发；_to_application_out 用 bool(...) 强转，永不 null
-    let is_long_vacation: Bool  // 同上，后端 schemas.py:203,205 非 Optional
+    let is_long_vacation: Bool // 同上，后端 schemas.py:203,205 非 Optional
 
     // 日期、时刻：backend 用 date / time 类型 → 保 String
     let leave_date: String // "2026-05-03"
@@ -197,6 +197,7 @@ struct BusRouteOut: Decodable, Hashable, Identifiable {
     let arrival_at: Date? // 到达时刻（空港便等才有）
     let visible_to: String // "all" | "dorm_only" | "men" | "women"
     let note: String?
+    let purpose: String? // 用途说明 — 老师录入，日期头右上角每天显示一条
     let deprecated: Bool
     let created_by_teacher_id: UUID
     let created_at: Date

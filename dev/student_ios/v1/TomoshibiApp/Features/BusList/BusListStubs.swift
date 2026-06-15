@@ -143,7 +143,7 @@ enum BusRouteMapper {
                 arrivalAt: o.arrival_at.map { timeFmt.string(from: $0) },
                 visibleTo: mapVisibility(o.visible_to),
                 isAirport: isAirport,
-                purpose: o.note,
+                purpose: o.purpose, // 老师在加便表单写的「用途・説明」，日期头右上角每天显示一条
                 seatsLabel: "",
                 isNext: false, // 实时由 nextVisibleId 决定，见 busRow
                 deprecated: o.deprecated
