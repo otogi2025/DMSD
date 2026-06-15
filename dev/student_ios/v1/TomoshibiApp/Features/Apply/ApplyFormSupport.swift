@@ -38,6 +38,10 @@ struct ApplyDateField: View {
         .labelsHidden()
         .datePickerStyle(.compact)
         .environment(\.locale, Locale(identifier: "ja_JP"))
+        // 固定 JST 时区+日历：非 JST 设备（留学生回国 UTC+8 等）也按日本时间显示/存储。
+        // 否则用户选的钟面时间存成设备时区的绝对时刻，combineDateAndTimeISO 用东京日历提取会偏（codex 审出）。
+        .environment(\.timeZone, TimeZone(identifier: "Asia/Tokyo")!)
+        .environment(\.calendar, ApplyFormDate.tokyoCalendar)
         .frame(maxWidth: .infinity, minHeight: 42)
         .padding(.horizontal, 8)
         .background {
@@ -57,6 +61,9 @@ struct ApplyTimeField: View {
             .labelsHidden()
             .datePickerStyle(.compact)
             .environment(\.locale, Locale(identifier: "ja_JP"))
+            // 固定 JST 时区+日历（同 ApplyDateField）：非 JST 设备也按日本时间，否则时刻偏移（codex 审出）。
+            .environment(\.timeZone, TimeZone(identifier: "Asia/Tokyo")!)
+            .environment(\.calendar, ApplyFormDate.tokyoCalendar)
             .frame(maxWidth: .infinity, minHeight: 42)
             .padding(.horizontal, 8)
             .background {
@@ -86,6 +93,7 @@ enum ApplyFormDate {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
         f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo") // 固定 JST：DatePicker 已固定东京时区，初值字符串也按 JST 解读，否则偏移
         return f.date(from: s) ?? Date()
     }
 
@@ -101,6 +109,7 @@ enum ApplyFormDate {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
         f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo") // 固定 JST，与 DatePicker / parseHM 一致
         return f.string(from: d)
     }
 
