@@ -759,7 +759,7 @@ struct LostNewView: View {
                     }
                     .padding(.bottom, 18)
 
-                    Field(label: "拾得場所", required: true) {
+                    Field(label: "場所", required: true) {
                         TField(text: $place, placeholder: "玄関 / 廊下 / ...")
                     }
                     .padding(.bottom, 18)

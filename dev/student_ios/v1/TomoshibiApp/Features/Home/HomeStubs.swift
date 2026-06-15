@@ -401,7 +401,7 @@ struct HomeView: View {
                                 .foregroundStyle(deepBrown.opacity(0.75))
                         }
                         .padding(.bottom, 12)
-                        Text("前半節 19:40〜20:40 ／ 後半節 20:45〜21:45")
+                        Text("前半 19:40〜20:40 ／ 後半 20:45〜21:45")
                             .font(.system(size: 12))
                             .foregroundStyle(deepBrown.opacity(0.85))
                             .padding(.bottom, 12)
@@ -412,7 +412,7 @@ struct HomeView: View {
                             Spacer()
                             HStack(spacing: 4) {
                                 Ic.chevR(14)
-                                Text("請假")
+                                Text("欠席届")
                                     .font(.system(size: 12, weight: .bold))
                             }
                             .foregroundStyle(deepBrown)
@@ -1893,11 +1893,11 @@ struct StudyCheckinSheet: View {
                 .padding(.bottom, 10)
 
             if let n = nextTapAfterRecord {
-                Text("次は \(n.label) を \(n.window) に")
+                Text("次回：\(n.label)（\(n.window)）")
                     .font(.system(size: 13))
                     .foregroundStyle(T.inkSub)
             } else {
-                Text("\(Self.fmtNow()) · 本日の学習出席は完了")
+                Text("\(Self.fmtNow()) · 本日の学習出席 完了")
                     .font(.system(size: 13, weight: .bold))
                     .kerning(0.26)
                     .padding(.horizontal, 14).padding(.vertical, 6)

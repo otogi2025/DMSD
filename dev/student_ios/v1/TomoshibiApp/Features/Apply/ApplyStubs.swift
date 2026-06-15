@@ -729,13 +729,13 @@ struct StayForm: View {
                                         HStack(spacing: 6) {
                                             Image(systemName: "plus.circle")
                                                 .font(.system(size: 14, weight: .semibold))
-                                            Text("地点を追加")
+                                            Text("滞在先を追加")
                                                 .font(.system(size: 13, weight: .semibold))
                                         }
                                         .foregroundStyle(T.primary)
                                     }
                                     .buttonStyle(.plain)
-                                    Text("※ 複数の地点に滞在する場合はすべて入力してください")
+                                    Text("※ 複数の場所に滞在する場合はすべて入力してください")
                                         .font(.system(size: 10.5))
                                         .foregroundStyle(T.inkMute)
                                 }
@@ -2208,7 +2208,7 @@ struct ApplyDoneView: View {
                 // UUID、没有人类可读的申请号，所以去掉这行假数据，只留预想审查时间。
                 VStack(spacing: 4) {
                     HStack {
-                        Text("予想審査時間").font(.system(size: 12)).foregroundStyle(T.inkSub)
+                        Text("審査時間の目安").font(.system(size: 12)).foregroundStyle(T.inkSub)
                         Spacer()
                         Text("1〜2 時間")
                             .font(.system(size: 12, weight: .bold))

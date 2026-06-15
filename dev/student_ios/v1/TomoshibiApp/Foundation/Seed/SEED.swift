@@ -92,7 +92,7 @@ enum SEED {
     static let applications: [ApplicationItem] = [
         .init(id: "a1", type: "stay", status: "pending", date: "2026-04-20", summary: "東京 · 2 泊 3 日"),
         .init(id: "a3", type: "holiday", status: "approved", date: "2026-04-15", summary: "茨城 · 帰省"),
-        .init(id: "a4", type: "outing", status: "approved", date: "2026-04-02", summary: "駅前 · タクシー予約"),
+        .init(id: "a4", type: "outing", status: "approved", date: "2026-04-02", summary: "駅前 · 買い物"),
     ]
 
     /// 実スクールバス時刻表（2026-04-29 水 GW外泊・帰省等 特別運行便パターン）

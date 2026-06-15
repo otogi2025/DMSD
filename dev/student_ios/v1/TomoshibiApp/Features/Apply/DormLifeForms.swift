@@ -569,7 +569,7 @@ struct ItemPossessionForm: View {
                             Field(label: "所持物品", required: true) {
                                 TField(text: $item, placeholder: "所持したい物品")
                             }
-                            Field(label: "希望所持理由", required: true) {
+                            Field(label: "所持理由", required: true) {
                                 TArea(text: $reason, placeholder: "理由を入力してください", rows: 4)
                             }
                             Field(label: "保護者氏名", required: true) {

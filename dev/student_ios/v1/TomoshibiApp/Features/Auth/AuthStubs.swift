@@ -1861,7 +1861,7 @@ struct LoginView: View {
 
         // 邮箱 mode 暂未支持（backend F6 注册流程未实装、邮箱登录后做）
         if mode == .email {
-            app.showToast("アカウント番号でログインしてください")
+            app.showToast("メールでのログインは現在ご利用いただけません。アカウント番号でログインしてください")
             return
         }
 
