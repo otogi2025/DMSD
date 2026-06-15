@@ -304,7 +304,7 @@ private fun StatusCardShell(
     }
 }
 
-// A. 学習ステータス卡 — isStudyTarget=false 时显「対象外（今日）」；入口始终显示
+// A. 晩自習ステータス卡 — isStudyTarget=false 时显「対象外（今日）」；入口始终显示
 @Composable
 private fun StudyStatusCard(
     isStudyTarget: Boolean,
@@ -314,7 +314,7 @@ private fun StudyStatusCard(
     val primary = MaterialTheme.colorScheme.primary
     val statusText = if (isStudyTarget) "進行中" else "対象外（今日）"
     StatusCardShell(iconBg = primary.copy(alpha = 0.10f), emoji = "📚", onClick = onClick) {
-        Text("学習ステータス", color = t.inkSub, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold))
+        Text("晩自習ステータス", color = t.inkSub, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold))
         Text(statusText, color = t.ink, style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold))
         Text("履歴を見る →", color = primary, style = TextStyle(fontSize = 11.sp))
     }

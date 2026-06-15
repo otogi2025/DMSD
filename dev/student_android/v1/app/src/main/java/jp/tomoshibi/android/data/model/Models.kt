@@ -20,7 +20,7 @@ data class User(
     val phone: String = "090-0000-0000",
     val birthDate: String = "2006-10-14", // 生年月日
     val gender: String = "男", // 性別
-    val isStudyTarget: Boolean = false, // 晚自习（夜間学習）对象，false=対象外
+    val isStudyTarget: Boolean = false, // 晚自习（晩自習）对象，false=対象外
 )
 
 enum class ApplicationStatus { PENDING, APPROVED, RETURNED, REJECTED }
@@ -356,15 +356,15 @@ data class ItemPossessionRequest(
     val status: String = "pending", // pending / approved / rejected
 )
 
-// 学習出席打卡种类（对应 iOS StudyTap）— 一天 2 次
+// 晩自習出席打卡种类（对应 iOS StudyTap）— 一天 2 次
 enum class StudyTap(
     val label: String,
 ) {
-    START("学習開始"),
-    END("学習終了"),
+    START("晩自習開始"),
+    END("晩自習終了"),
 }
 
-// 学習出席打卡履历一条（对应 iOS StudyHistoryEntry）
+// 晩自習出席打卡履历一条（对应 iOS StudyHistoryEntry）
 @Serializable
 data class StudyHistoryEntry(
     val id: String,

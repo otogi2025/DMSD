@@ -72,7 +72,7 @@ fun ApplyNewScreen(
         }
 
         "学習欠席" -> {
-            StudyAbsenceForm(navController) // 学習欠席届
+            StudyAbsenceForm(navController) // 晩自習欠席届
             return
         }
 
@@ -268,7 +268,7 @@ fun ApplyNewScreen(
                         TextField2("修繕場所", dest, "M101 室・洗面所") { dest = it }
                     }
                     if (showStudyFields) {
-                        DateField("学習日", leaveDate.format(DATE_FMT)) { showLeavePicker = true }
+                        DateField("晩自習日", leaveDate.format(DATE_FMT)) { showLeavePicker = true }
                         TextField2("場所", dest, "図書室") { dest = it }
                     }
                     TextField2("理由", reason, "詳細を記入してください", multiline = true) { reason = it }

@@ -23,7 +23,7 @@ import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.MonoNumeralStyle
 import jp.tomoshibi.android.ui.theme.SuzuT
 
-// 学習履歴 — 显示当月累计 + 历史明细
+// 晩自習履歴 — 显示当月累计 + 历史明细
 // 数据为 mock（v1.0 demo 不接 backend）；P6 后接真 Repository 时换成 store.studyLogs
 private data class StudyEntry(val date: String, val place: String, val enter: String, val leave: String)
 
@@ -55,7 +55,7 @@ fun StudyScreen(navController: NavHostController) {
                     Icon(SuzuIcons.ChevL, contentDescription = "戻る", tint = tokens.ink, modifier = Modifier.size(24.dp))
                 }
                 Spacer(Modifier.width(4.dp))
-                Text("学習履歴", color = tokens.ink,
+                Text("晩自習履歴", color = tokens.ink,
                     style = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.Bold))
             }
 

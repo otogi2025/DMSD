@@ -110,7 +110,7 @@ data class AuditLogOut(
 // 学習（晚自习）
 // ============================================================
 
-// / 学習欠席届（POST /study/absence-requests 响应）
+// / 晩自習欠席届（POST /study/absence-requests 响应）
 @Serializable
 data class StudyAbsenceRequestOut(
     val id: String,

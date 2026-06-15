@@ -44,7 +44,7 @@ import jp.tomoshibi.android.ui.components.TArea
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
 
-// 学習欠席届（晚自习请假）— 対齐 iOS ApplyStubs.swift StudyAbsenceForm（规格 §3）
+// 晩自習欠席届（晚自习请假）— 対齐 iOS ApplyStubs.swift StudyAbsenceForm（规格 §3）
 //   §1 欠席する日付（DateField，规格限今日～14 日后，演示不强制）
 //   §2 欠席する範囲（前半節 / 後半節 / 両方 三选一，RadioCard）
 //   §3 理由（必須，TArea）
@@ -79,7 +79,7 @@ fun StudyAbsenceForm(navController: NavHostController) {
     GlobalScaffold(activeTab = "apply", navController = navController) {
         Column(modifier = Modifier.fillMaxSize().background(t.pearl)) {
             PageHeader(
-                title = "学習欠席届",
+                title = "晩自習欠席届",
                 level = 2,
                 onLeft = { navController.popBackStack() },
             )
@@ -122,7 +122,7 @@ fun StudyAbsenceForm(navController: NavHostController) {
                     DoneStage(
                         tokens = t,
                         onBack = {
-                            Toast.makeText(ctx, "学習欠席届を提出しました", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(ctx, "晩自習欠席届を提出しました", Toast.LENGTH_SHORT).show()
                             navController.popBackStack()
                         },
                     )
@@ -347,7 +347,7 @@ private fun DoneStage(
             style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold),
         )
         Text(
-            "学習欠席届を受け付けました。\n審査完了時に通知でお知らせします。",
+            "晩自習欠席届を受け付けました。\n審査完了時に通知でお知らせします。",
             color = tokens.inkSub,
             style = TextStyle(fontSize = 13.sp, lineHeight = 19.sp),
         )

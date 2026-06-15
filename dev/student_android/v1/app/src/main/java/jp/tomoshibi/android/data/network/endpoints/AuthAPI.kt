@@ -37,7 +37,7 @@ data class TokenOut(
 )
 
 // / GET /students/me 响应 — 后端 StudentProfileBasic（学生基本信息）。
-// / 只含身份字段；统计（扣分/迟到/欠席）+ 学習対象 flag 不在这接口。
+// / 只含身份字段；统计（扣分/迟到/欠席）+ 晩自習対象 flag 不在这接口。
 @Serializable
 data class StudentMeOut(
     val id: String,
