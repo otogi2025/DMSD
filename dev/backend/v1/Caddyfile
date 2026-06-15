@@ -2,9 +2,38 @@
 # 替换 api.tomoshibi.cc 为 itsuki 实际域名
 # 部署前确认 DNS A record 已指向 VPS 公网 IP（domain → IP）
 
+# H-7：下面 iq / pj 两块是顺带在同一台 VPS 托管个人网站（pj.tomoshibi.cc），与宿舍系统后端
+# 无业务依赖。serve 的 /srv/static 来自 compose 挂载的 ./static（不在仓库、部署时手动放，见
+# DEPLOY.md「./static 目录的来源」）。只部署后端 API 时可整段删掉 iq / pj 两块。
+
 # 旧的 iq.tomoshibi.cc 已并入 pj.tomoshibi.cc/iq/，保留 301 兼容老书签
 iq.tomoshibi.cc {
     redir https://pj.tomoshibi.cc/iq/ 301
+}
+
+# apple.tomoshibi.cc：App Store 上架用的隐私政策静态页
+# serve 的 /srv/static/apple 来自 compose 挂载的 ./static/apple（不在仓库，部署时手动放）
+# HTML 源文件版本管理在仓库 ops/apple.tomoshibi.cc/index.html
+apple.tomoshibi.cc {
+    root * /srv/static/apple
+    encode gzip
+    file_server
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    log {
+        output file /data/apple-access.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+        format json
+    }
 }
 
 pj.tomoshibi.cc {
