@@ -37,6 +37,7 @@ from sqlalchemy import (
     UniqueConstraint,
     Uuid,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -267,8 +268,10 @@ class Application(Base):
     meals_skip: Mapped[Optional[list]] = mapped_column(JSON)  # [{date, meal}] 形式
     companion: Mapped[Optional[str]] = mapped_column(Text)
     dest_cities: Mapped[Optional[str]] = mapped_column(Text)
+    # A-485：nullable=False 杜绝三态（原 nullable=True 时 DB 可出 NULL，喂非 Optional 的
+    # ApplicationOut.receipt_submitted: bool 会 500）。配迁移 e1f2a3b4c5d6 回填存量 NULL→False。
     receipt_submitted: Mapped[bool] = mapped_column(
-        Boolean, nullable=True, default=False
+        Boolean, nullable=False, default=False
     )
 
     # 申請理由 (全 kind · spec §7.2.4-5 修改届で必須)
@@ -1052,6 +1055,10 @@ class Announcement(Base):
     # 演示学生 / 演示老师只看 is_demo=True 公告。公告原本无隔离字段，靠禁演示老师发/回复兜底，
     # 本次补字段后解除该限制（演示老师可在演示沙盒内发/回复演示公告）。
     is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # 老师投稿时勾选「学生に通知する」→ True 才进学生通知中心 feed + 触发 push（2026-06-15 §7.13.1）
+    notify_students: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
 
     __table_args__ = (
         CheckConstraint(
@@ -1080,6 +1087,32 @@ class AnnouncementRead(Base):
     )
     read_at: Mapped[datetime] = mapped_column(
         TZDateTime, nullable=False, server_default=func.now()
+    )
+
+
+class StudentNotificationRead(Base):
+    """学生通知中心 feed 里 巴士 / 行事 的已读跟踪（公告复用 AnnouncementRead）。
+
+    student_id + kind('bus'/'event') + ref_id = 复合主键。
+    ref_id 指向 bus_routes.id 或 dorm_events.id，按 kind 区分、DB 层不加 FK，应用层保证
+    （同 AnnouncementReply.author_id 跨表做法）。2026-06-15 §7.13.1。
+    """
+
+    __tablename__ = "student_notification_reads"
+
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("students.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    kind: Mapped[str] = mapped_column(String(8), primary_key=True)  # 'bus' / 'event'
+    ref_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    read_at: Mapped[datetime] = mapped_column(
+        TZDateTime, nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (
+        CheckConstraint("kind IN ('bus','event')", name="ck_student_notif_read_kind"),
     )
 
 
@@ -1264,6 +1297,10 @@ class DormEvent(Base):
         TZDateTime, nullable=False, server_default=func.now()
     )
     updated_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+    # 老师投稿时勾选「学生に通知する」→ True 才进学生通知中心 feed + 触发 push（2026-06-15 §7.13.1）
+    notify_students: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
 
     __table_args__ = (
         CheckConstraint(
@@ -1312,6 +1349,10 @@ class BusRoute(Base):
         TZDateTime, nullable=False, server_default=func.now()
     )
     updated_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+    # 老师投稿时勾选「学生に通知する」→ True 才进学生通知中心 feed + 触发 push（2026-06-15 §7.13.1）
+    notify_students: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
 
     __table_args__ = (
         CheckConstraint(
@@ -1396,6 +1437,17 @@ class GuidanceDisclosureRequest(Base):
         ),
         Index("idx_gdr_student_status", "student_id", "status"),
         Index("idx_gdr_status_requested", "status", "requested_at"),
+        # 「同一学生同时只能有一条 pending 开示申请」这条不变量靠 DB 部分唯一索引兜底。
+        # 路由层先 SELECT 再 INSERT 的检查会被并发绕过（两个请求各自查到无 pending → 都 INSERT），
+        # 部分唯一索引（只约束 status='pending' 的行）让并发第二条 INSERT 撞约束 → 转 409。
+        # SQLite（dev）与 PostgreSQL（prod）都支持 sqlite_where / postgresql_where 部分索引。
+        Index(
+            "uq_gdr_one_pending_per_student",
+            "student_id",
+            unique=True,
+            sqlite_where=text("status = 'pending'"),
+            postgresql_where=text("status = 'pending'"),
+        ),
     )
 
 

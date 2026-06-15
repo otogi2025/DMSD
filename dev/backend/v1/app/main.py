@@ -24,7 +24,9 @@ import asyncio
 import logging
 import os
 import traceback
+import uuid
 from contextlib import asynccontextmanager
+from contextvars import ContextVar
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -60,6 +62,7 @@ from .routers import (
     outings,
     rollcall,
     songs,
+    student_notifications,
     student_profile,
     student_promote,
     study,
@@ -69,7 +72,30 @@ from .routers import (
 )
 
 settings = get_settings()
-logging.basicConfig(level=settings.log_level)
+
+# H-22：请求关联 ID（request_id）—— 每个 HTTP 请求一个短 ID，写进所有日志行，
+# 排障时能把同一请求散落各处的日志串起来。用 ContextVar 跨 async 调用栈传递，
+# 配合 logging.Filter 注入到每条 LogRecord，再让 format 带上 [req=...]。
+_request_id_ctx: ContextVar[str] = ContextVar("request_id", default="-")
+
+
+class _RequestIdLogFilter(logging.Filter):
+    """给每条日志记录补 request_id 字段（取当前 ContextVar 值，无请求上下文时为 '-'）。"""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.request_id = _request_id_ctx.get()
+        return True
+
+
+# 结构化一点的日志格式 —— 带时间 / 级别 / logger 名 / 请求 ID。
+_log_handler = logging.StreamHandler()
+_log_handler.setFormatter(
+    logging.Formatter(
+        "%(asctime)s %(levelname)s [req=%(request_id)s] %(name)s: %(message)s"
+    )
+)
+_log_handler.addFilter(_RequestIdLogFilter())
+logging.basicConfig(level=settings.log_level, handlers=[_log_handler], force=True)
 logger = logging.getLogger("tomoshibi.startup")
 
 # 全局限速器单例从 ratelimit 模块导入（见 import 区，enabled 按环境：dev/测试关、staging/生产开）
@@ -157,6 +183,11 @@ async def lifespan(app: FastAPI):
     yield
 
 
+# H-6：生产环境关闭 /docs /redoc /openapi.json — 否则无认证就暴露完整 API 地图，
+# 给攻击者免费侦察。dev / staging 仍开着方便调试。
+# ⚠️ 部署连通性验证不能再用 /docs（DEPLOY.md 已同步改为用 /healthz）。
+_docs_enabled = settings.app_env != "production"
+
 app = FastAPI(
     title="Tomoshibi Backend v1",
     description=(
@@ -165,8 +196,9 @@ app = FastAPI(
         "本 deployment 目前は P0 範囲 (出寮届 + メール + 食堂) のみ実装。"
     ),
     version=__version__,
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url="/docs" if _docs_enabled else None,
+    redoc_url="/redoc" if _docs_enabled else None,
+    openapi_url="/openapi.json" if _docs_enabled else None,
     lifespan=lifespan,
 )
 
@@ -198,13 +230,32 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     )
 
 
+# E-中-12：CORS 显式列出 method / header，不再 ["*"] 全开。
+# allow_credentials=True 时本就只靠 origin 白名单兜底，方法 / 头也收窄到实际用到的，
+# 缩小被滥用面。老师网页 / iOS 当前只发这几种方法，请求头只带 Authorization + Content-Type。
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
+
+
+# H-22：请求关联 ID 中间件 —— 取客户端传的 X-Request-ID（若有），否则生成短 uuid；
+# set 进 ContextVar 让本请求内所有日志带上同一 ID；并回写到响应头方便前端 / 网关串联。
+# 最后加 = 最外层 = 最早执行，保证后续中间件 / 路由 / 异常处理器都能看到 request_id。
+@app.middleware("http")
+async def _request_id_middleware(request: Request, call_next):
+    incoming = request.headers.get("X-Request-ID")
+    request_id = incoming if incoming else uuid.uuid4().hex[:12]
+    token = _request_id_ctx.set(request_id)
+    try:
+        response = await call_next(request)
+    finally:
+        _request_id_ctx.reset(token)
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 
 @app.get("/")
@@ -218,7 +269,22 @@ def root():
 
 @app.get("/healthz")
 def healthz():
-    return {"status": "ok"}
+    # H-3：浅检查升级 —— 探一次 DB（SELECT 1）。Postgres 挂了 / 连接池耗尽时返回 503，
+    # 让负载均衡 / 监控能真正识别「后端活着但库不可用」，不再永远报 healthy。
+    from sqlalchemy import text
+
+    from .database import engine
+
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except Exception as exc:
+        logger.error("[healthz] DB 探活失败: %s", exc)
+        return JSONResponse(
+            status_code=503,
+            content={"status": "unhealthy", "db": "down"},
+        )
+    return {"status": "ok", "db": "ok"}
 
 
 # routers
@@ -246,6 +312,7 @@ app.include_router(incidents.router)
 app.include_router(songs.router)
 app.include_router(lost_found.router)
 app.include_router(misc_requests.router)
+app.include_router(student_notifications.router)
 app.include_router(student_profile.router)
 app.include_router(student_promote.router)
 app.include_router(ws.router)

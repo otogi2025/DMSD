@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, permissions, schemas
 from ..database import get_db
+from ..services import student_audience
 from ..deps import (
     assert_not_demo_teacher,
     get_current_principal,
@@ -41,6 +42,23 @@ def _require_edit_role(teacher: models.Teacher) -> None:
     assert_not_demo_teacher(teacher)
 
 
+def _check_time_range(start_at: datetime | None, end_at: datetime | None) -> None:
+    """开始时刻不能晚于结束时刻。两个都给且倒置时 422。
+
+    只校验 start_at / end_at 两个时刻字段的先后；不强制 event_date 与时刻同日
+    （行事可能跨午夜，event_date 表示"挂在哪天显示"，与精确时刻未必同日 — 同日约束属
+    产品决策，不在此处兜底）。
+    """
+    if start_at and end_at and start_at > end_at:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "INVALID_TIME_RANGE",
+                "message": "開始時刻は終了時刻以前にしてください",
+            },
+        )
+
+
 @router.get("", response_model=schemas.DormEventListOut)
 def list_events(
     from_date: date | None = None,
@@ -49,6 +67,16 @@ def list_events(
     _principal: models.Student | models.Teacher = Depends(get_current_principal),
 ):
     """列行事予定 — 按日期范围过滤（from_date / to_date 均可选）。学生+老师均可看。"""
+    # 范围倒置（from_date > to_date）会静默返回空集，让调用方误以为"该范围真没行事"。
+    # 两个边界都给且倒置时直接 422，避免静默吞掉错误的查询参数。
+    if from_date and to_date and from_date > to_date:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "INVALID_DATE_RANGE",
+                "message": "開始日は終了日以前にしてください",
+            },
+        )
     stmt = select(models.DormEvent).order_by(models.DormEvent.event_date)
     if from_date:
         stmt = stmt.where(models.DormEvent.event_date >= from_date)
@@ -78,6 +106,7 @@ def create_event(
                 "message": f"category 必须是 {_VALID_CATEGORIES} 之一",
             },
         )
+    _check_time_range(body.start_at, body.end_at)
     row = models.DormEvent(
         title=body.title,
         category=body.category,
@@ -86,10 +115,20 @@ def create_event(
         end_at=body.end_at,
         description=body.description,
         created_by_teacher_id=teacher.id,
+        notify_students=body.notify_students,
     )
     db.add(row)
     db.commit()
     db.refresh(row)
+    # 勾选「学生に通知する」→ 广播推送（feed 靠 notify_students 字段；推送当面 stub）§7.13.1
+    if row.notify_students:
+        student_audience.broadcast_push(
+            db,
+            students=student_audience.students_for_event(db, row),
+            title=row.title,
+            body=row.description or row.category,
+        )
+        db.commit()
     return schemas.DormEventOut.model_validate(row)
 
 
@@ -118,6 +157,10 @@ def patch_event(
                 "message": f"category 必须是 {_VALID_CATEGORIES} 之一",
             },
         )
+    # 时刻先后用合并后的值校验（只传一个时刻时，跟库里已有的另一个比 — 与 create 对齐）。
+    final_start = body.start_at if body.start_at is not None else row.start_at
+    final_end = body.end_at if body.end_at is not None else row.end_at
+    _check_time_range(final_start, final_end)
     for field in (
         "title",
         "category",
@@ -125,6 +168,7 @@ def patch_event(
         "start_at",
         "end_at",
         "description",
+        "notify_students",
     ):
         val = getattr(body, field)
         if val is not None:
@@ -132,6 +176,15 @@ def patch_event(
     row.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(row)
+    # 编辑时主动勾选「通知」→ 重新广播推送（feed 靠字段）§7.13.1
+    if body.notify_students:
+        student_audience.broadcast_push(
+            db,
+            students=student_audience.students_for_event(db, row),
+            title=row.title,
+            body=row.description or row.category,
+        )
+        db.commit()
     return schemas.DormEventOut.model_validate(row)
 
 

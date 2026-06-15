@@ -31,6 +31,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, permissions, schemas, security
 from ..database import get_db
+from ..services import student_audience
 from ..deps import (
     _parse_bearer,
     get_current_principal,
@@ -468,10 +469,20 @@ def post_announcement(
         scope=body.scope,
         author_teacher_id=teacher.id,
         is_demo=teacher.is_demo,
+        notify_students=body.notify_students,
     )
     db.add(ann)
     db.commit()
     db.refresh(ann)
+    # 勾选「学生に通知する」→ 广播推送（feed 靠 notify_students 字段自然包含；推送当面 stub）§7.13.1
+    if ann.notify_students:
+        student_audience.broadcast_push(
+            db,
+            students=student_audience.students_for_announcement(db, ann),
+            title=ann.title,
+            body=_summarize(ann.body),
+        )
+        db.commit()
     return schemas.AnnouncementBrief(
         id=ann.id,
         title=ann.title,
@@ -514,8 +525,20 @@ def update_announcement(
         ann.body = body.body
     if body.scope is not None:
         ann.scope = body.scope
+    if body.notify_students is not None:
+        ann.notify_students = body.notify_students
     db.commit()
     db.refresh(ann)
+
+    # 编辑时主动勾选「通知」→ 重新广播推送（feed 靠字段）§7.13.1
+    if body.notify_students:
+        student_audience.broadcast_push(
+            db,
+            students=student_audience.students_for_announcement(db, ann),
+            title=ann.title,
+            body=_summarize(ann.body),
+        )
+        db.commit()
 
     return schemas.AnnouncementBrief(
         id=ann.id,

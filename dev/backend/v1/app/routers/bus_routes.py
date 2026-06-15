@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, permissions, schemas
 from ..database import get_db
+from ..services import student_audience
 from ..deps import (
     assert_not_demo_teacher,
     get_current_principal,
@@ -122,10 +123,20 @@ def create_bus_route(
         visible_to=body.visible_to,
         note=body.note,
         created_by_teacher_id=teacher.id,
+        notify_students=body.notify_students,
     )
     db.add(row)
     db.commit()
     db.refresh(row)
+    # 勾选「学生に通知する」→ 广播推送（feed 靠 notify_students 字段；推送当面 stub）§7.13.1
+    if row.notify_students:
+        student_audience.broadcast_push(
+            db,
+            students=student_audience.students_for_bus(db, row),
+            title=row.name,
+            body=row.direction,
+        )
+        db.commit()
     return schemas.BusRouteOut.model_validate(row)
 
 
@@ -174,6 +185,7 @@ def patch_bus_route(
         "visible_to",
         "note",
         "deprecated",
+        "notify_students",
     ):
         val = getattr(body, field)
         if val is not None:
@@ -202,6 +214,15 @@ def patch_bus_route(
     )
     db.commit()
     db.refresh(row)
+    # 编辑时主动勾选「通知」→ 重新广播推送（feed 靠字段）§7.13.1
+    if body.notify_students:
+        student_audience.broadcast_push(
+            db,
+            students=student_audience.students_for_bus(db, row),
+            title=row.name,
+            body=row.direction,
+        )
+        db.commit()
     return schemas.BusRouteOut.model_validate(row)
 
 

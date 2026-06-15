@@ -19,6 +19,28 @@ from pydantic import (
 )
 
 
+# C-14：教师职位 Literal — 9 个值必须与 models.TEACHER_ROLES 逐字一致。
+# 用 Literal 而非裸 str，让非法 role 在请求解析阶段就被 422 拦下，
+# 不再拖到 DB CHECK 约束才报 500。改动 TEACHER_ROLES 时本处需同步。
+TeacherRoleLiteral = Literal[
+    "校長",
+    "寮務部長",
+    "寮務課長",
+    "国際交流部長",
+    "国際交流課長",
+    "管理係",
+    "寮監",
+    "学習担当",
+    "寮務一般教師",
+]
+
+# codex-C-2：在线学习申请的周课表形状 — 与 iOS NetworkModels.swift 的
+# [String: [[String: String]]] 一一对应（外层 dict 键=星期，内层 list 的每个
+# dict 是一节课的字段）。输入侧 / 输出侧共用此别名，避免输出退化成 dict[str, Any]
+# 导致 iOS 拿到非双层嵌套时解码炸。
+WeeklyScheduleType = dict[str, list[dict[str, str]]]
+
+
 # ---------------------------------------------------------------
 # 共通
 # ---------------------------------------------------------------
@@ -196,8 +218,11 @@ class ApplicationOut(BaseModel):
     contact_phone: Optional[str] = None
     meal_note: Optional[str] = None
 
-    stay_locations: Optional[list[dict[str, Any]]] = None
-    meals_skip: Optional[list[dict[str, Any]]] = None
+    # B-低-25：用结构化类型解码 DB JSON list，恢复字段校验（原 list[dict] 丢结构）。
+    # 入库侧本就是 StayLocation/MealSkipEntry.model_dump() 写的，形状保证一致；
+    # Pydantic v2 会把 dict 自动 coerce 回模型，meals_skip 的 date 字符串也会解析回 date。
+    stay_locations: Optional[list[StayLocation]] = None
+    meals_skip: Optional[list[MealSkipEntry]] = None
     companion: Optional[str] = None
     dest_cities: Optional[str] = None
     receipt_submitted: bool = False
@@ -298,12 +323,14 @@ class MealsExportQuery(BaseModel):
     from_: date = Field(..., alias="from")
     to: date
 
-    @field_validator("to")
-    @classmethod
-    def _check_to(cls, v: date, info) -> date:
-        if "from_" in info.data and v < info.data["from_"]:
+    @model_validator(mode="after")
+    def _check_to(self) -> "MealsExportQuery":
+        # B-低-24：改用 after 校验器 — 只在 from_ / to 两个字段都成功解析后才跑，
+        # 不再依赖 info.data['from_'] 是否存在（from 解析失败时不会静默跳过区间校验，
+        # 而是 from 字段先各自报 422）。
+        if self.to < self.from_:
             raise ValueError("to must be on or after from")
-        return v
+        return self
 
 
 class MealDailyCount(BaseModel):
@@ -501,7 +528,7 @@ class StudyOnlineRequestIn(BaseModel):
     reason: str = Field(..., min_length=1, max_length=2000)
     period_from: date
     period_to: date
-    weekly_schedule: dict[str, list[dict[str, str]]]
+    weekly_schedule: WeeklyScheduleType
     contract_ref: Optional[str] = Field(None, max_length=2000)
 
     @model_validator(mode="after")
@@ -524,7 +551,8 @@ class StudyOnlineRequestOut(BaseModel):
     reason: str
     period_from: date
     period_to: date
-    weekly_schedule: dict[str, Any]
+    # codex-C-2：与输入侧同形 — 强类型双层嵌套，对齐 iOS [String: [[String: String]]]
+    weekly_schedule: WeeklyScheduleType
     contract_ref: Optional[str]
     # 契約書文件信息 — 不暴露服务器物理路径 contract_file_path（安全）。
     # 客户端按 contract_file_name 是否非空判断「有没有上传文件」，
@@ -801,7 +829,8 @@ class RollCallEventPatch(BaseModel):
 # ---------------------------------------------------------------
 class TeacherInvitationIn(BaseModel):
     target_email: EmailStr
-    target_role: str
+    # C-14：限定为 TEACHER_ROLES 9 值，非法 role 在解析阶段 422 而非 DB CHECK 500
+    target_role: TeacherRoleLiteral
     target_dorm: Optional[int] = None
 
 
@@ -872,7 +901,8 @@ class TeacherCreateIn(BaseModel):
     name: str = Field(..., min_length=1)
     email: EmailStr
     password: str = Field(..., min_length=8)
-    role: str  # 职位标签（仅显示，不参与鉴权）
+    # C-14：职位标签（仅显示，不参与鉴权）— 限定为 TEACHER_ROLES 9 值
+    role: TeacherRoleLiteral
     # 权限组（teacher_permission_v1.md §3）— 决定该账号功能权限；省略则建账号后按职位回退默认组。
     permission_group: Optional[str] = None
     assigned_dorm: Optional[int] = None
@@ -885,7 +915,8 @@ class TeacherCreateIn(BaseModel):
 class RegistrationCodeOut(BaseModel):
     """GET/POST registration-code/* 通用响应。"""
 
-    code: str = Field(..., min_length=6, max_length=6)
+    # C-13：与输入侧 ^\d{6}$ 对齐 — 响应码也是纯 6 位数字
+    code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
     created_at: datetime
     expires_at: datetime
     # 剩余秒数 — 给客户端做倒计时显示用（= max(0, expires_at - now)）
@@ -930,10 +961,22 @@ class StudentAccountCreateIn(BaseModel):
     phone: Optional[str] = Field(None, max_length=32)
     # min_length=6 对齐 iOS 学生注册本地校验（itsuki 2026-06-14 上架拍板；老师注册密码仍 8 位不降）
     password: str = Field(..., min_length=6, max_length=128)
-    # 老师在后台生成的 6 桁码（默认 30 分钟内有效）
+    # 老师在后台生成的 6 桁码（默认 5 分钟内有效，与 models StudentRegistrationCode TTL 一致）
     registration_code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
 
-    # B10：validator 已删 — Literal[1,2,4] 本身就拦 3，无需额外校验器
+    # B10：dorm_unit 的 3 由 Literal[1,2,4] 拦下，无需额外校验器
+
+    @model_validator(mode="after")
+    def _check_room_prefix(self) -> "StudentAccountCreateIn":
+        # C-8：房号前缀必须与寮号一致 — M*** 男寮（dorm_unit 1|2）/ W*** 女寮（dorm_unit 4）。
+        # 与 student_profile.py 学生自助改房号的交叉校验同款，防注册时落异寮房号。
+        prefix = self.room_no[:1].upper()
+        expected_prefix = "M" if self.dorm_unit in (1, 2) else "W"
+        if prefix != expected_prefix:
+            raise ValueError(
+                f"部屋番号 '{self.room_no}' は所属寮（{expected_prefix}***）と一致しません"
+            )
+        return self
 
 
 class StudentAccountCreateOut(BaseModel):
@@ -1006,6 +1049,8 @@ class AnnouncementCreateIn(BaseModel):
     title: str = Field(..., min_length=1, max_length=120)
     body: str = Field(..., min_length=1, max_length=4000)
     scope: Literal["all", "male", "female"]
+    # 投稿时勾选「学生に通知する」→ True 才进学生通知 feed + 推送（§7.13.1）
+    notify_students: bool = False
 
 
 class AnnouncementUpdateIn(BaseModel):
@@ -1014,6 +1059,8 @@ class AnnouncementUpdateIn(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=120)
     body: Optional[str] = Field(None, min_length=1, max_length=4000)
     scope: Optional[Literal["all", "male", "female"]] = None
+    # 编辑时勾选「学生に通知する」(True) → 重新推送 + 进 feed；None/False = 不动通知状态（§7.13.1）
+    notify_students: Optional[bool] = None
 
 
 class AnnouncementReplyCreateIn(BaseModel):
@@ -1024,6 +1071,32 @@ class AnnouncementUnreadCountOut(BaseModel):
     """主页 badge 用 — 当前学生 scope 内未读数。"""
 
     unread_count: int
+
+
+# ---------------------------------------------------------------
+# 学生通知中心 feed（§7.13.1 — 老师勾选「通知」的 公告/巴士/行事 聚合）
+# ---------------------------------------------------------------
+class StudentNotificationItem(BaseModel):
+    """一条学生通知 = 某条 公告/巴士/行事（老师投稿时勾了「通知」）。"""
+
+    kind: Literal["announcement", "bus", "event"]
+    ref_id: UUID  # 对应 announcements / bus_routes / dorm_events 的 id（点击跳转用）
+    title: str
+    body: str  # 摘要
+    created_at: datetime
+    is_read: bool
+
+
+class StudentNotificationFeedOut(BaseModel):
+    items: list[StudentNotificationItem]
+    unread_count: int  # 三类未读合计 — 驱动 app 铃铛 badge
+
+
+class StudentNotificationReadIn(BaseModel):
+    """标记某条学生通知已读。"""
+
+    kind: Literal["announcement", "bus", "event"]
+    ref_id: UUID
 
 
 # ---------------------------------------------------------------
@@ -1107,6 +1180,10 @@ class DemeritManualIn(BaseModel):
     student_id: UUID
     points: float = Field(..., gt=0, le=100)
     reason: str = Field(..., min_length=1, max_length=2000)
+    # 幂等键（A-473）—— 客户端每次「加扣分」点击生成一个 UUID 随请求带上，
+    # 老师双击 / 网络重试时同一个 key 会被后端识别为重复提交、不再叠加第二条扣分。
+    # 可空：不传时退回原行为（不去重），保持对老客户端兼容。
+    idempotency_key: Optional[UUID] = None
 
 
 class DemeritRevokeIn(BaseModel):
@@ -1361,6 +1438,8 @@ class DormEventCreateIn(BaseModel):
     start_at: Optional[datetime] = None
     end_at: Optional[datetime] = None
     description: Optional[str] = Field(None, max_length=2000)
+    # 投稿时勾选「学生に通知する」→ True 才进学生通知 feed + 推送（§7.13.1）
+    notify_students: bool = False
 
 
 class DormEventPatchIn(BaseModel):
@@ -1372,6 +1451,8 @@ class DormEventPatchIn(BaseModel):
     start_at: Optional[datetime] = None
     end_at: Optional[datetime] = None
     description: Optional[str] = Field(None, max_length=2000)
+    # 编辑时勾选「学生に通知する」(True) → 重新推送 + 进 feed（§7.13.1）
+    notify_students: Optional[bool] = None
 
 
 class DormEventOut(ORMModel):
@@ -1410,6 +1491,8 @@ class BusRouteCreateIn(BaseModel):
     arrival_at: Optional[datetime] = None
     visible_to: str = Field(default="all", description="all / dorm_only / men / women")
     note: Optional[str] = Field(None, max_length=2000)
+    # 投稿时勾选「学生に通知する」→ True 才进学生通知 feed + 推送（§7.13.1）
+    notify_students: bool = False
 
 
 class BusRoutePatchIn(BaseModel):
@@ -1423,6 +1506,8 @@ class BusRoutePatchIn(BaseModel):
     visible_to: Optional[str] = None
     note: Optional[str] = Field(None, max_length=2000)
     deprecated: Optional[bool] = None
+    # 编辑时勾选「学生に通知する」(True) → 重新推送 + 进 feed（§7.13.1）
+    notify_students: Optional[bool] = None
 
 
 class BusRouteOut(ORMModel):
@@ -1656,7 +1741,7 @@ class ProfileRollCallEntry(BaseModel):
     id: UUID
     session_id: UUID
     session_type: str  # morning / evening — 杭田 2026-06-04 五-5 要朝/夜分开
-    base_status: str  # present / late / absent / exempt_range
+    base_status: str  # init / present / late / absent / exempt_range（与 models RollCallEvent CHECK 一致）
     status_source: str
     checked_in_at: datetime
     # R-1③：该场次的窗口时刻（join session 得），iOS 履历详情显真实開始/締切，不再写死 07:00/21:00
