@@ -1104,7 +1104,7 @@ struct StayForm: View {
     ) -> [[String: String]] {
         let mealOrder = ["朝食", "昼食", "夕食"]
         var result: [[String: String]] = []
-        let cal = Calendar.current
+        let cal = ApplyFormDate.tokyoCalendar // 固定 JST：日期步进与 formatYMD(JST) 一致，非 JST 设备 meals_skip 不偏（codex 审出）
         var current = startDate
         while current <= endDate {
             let isFirst = cal.isDate(current, inSameDayAs: startDate)
@@ -1127,7 +1127,7 @@ struct StayForm: View {
 
     /// 明日 0:00 — 用作 DatePicker 的 minDate（#3）
     static var tomorrow: Date {
-        let cal = Calendar.current
+        let cal = ApplyFormDate.tokyoCalendar // 固定 JST：出寮日 minDate「明天」按日本时间算，非 JST 设备不偏天（codex 审出）
         let today0 = cal.startOfDay(for: Date())
         return cal.date(byAdding: .day, value: 1, to: today0) ?? today0
     }
@@ -1596,7 +1596,7 @@ struct GenericApplyForm: View {
     @State private var dest: String = ""
     @State private var reason: String = ""
     @State private var date: Date = StayForm.tomorrow
-    @State private var endDate: Date = Calendar.current.date(byAdding: .day, value: 1, to: StayForm.tomorrow) ?? StayForm.tomorrow
+    @State private var endDate: Date = ApplyFormDate.tokyoCalendar.date(byAdding: .day, value: 1, to: StayForm.tomorrow) ?? StayForm.tomorrow // 固定 JST 日历（统一时区口径）
     @State private var time: Date = StayForm.parseHM("18:00") ?? Date()
     @State private var contact: String = ""
     @State private var didPrefillContact: Bool = false

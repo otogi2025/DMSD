@@ -377,8 +377,9 @@ enum StayListMock {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         f.locale = Locale(identifier: "ja_JP")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo") // 固定 JST，与 formatYMD 一致（codex 时区排查统一）
         guard let date = f.date(from: d),
-              let added = Calendar.current.date(byAdding: .day, value: days, to: date)
+              let added = ApplyFormDate.tokyoCalendar.date(byAdding: .day, value: days, to: date)
         else { return nil }
         return f.string(from: added)
     }

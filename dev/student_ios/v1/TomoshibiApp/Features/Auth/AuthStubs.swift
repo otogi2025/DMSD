@@ -681,13 +681,13 @@ struct RegisterStep1View: View {
     @State private var birth: Date = {
         #if DEMO
             var c = DateComponents(); c.year = 2006; c.month = 10; c.day = 14
-            return Calendar.current.date(from: c) ?? Date()
+            return ApplyFormDate.tokyoCalendar.date(from: c) ?? Date() // 固定 JST，与 birthdayString 格式化时区一致
         #else
             // 非 DEMO 默认值 = 在校生年龄中位数（初一到高三平均 15 岁）→ 2011-01-01
             // 任意年级学生只需双向滚 2-4 年就到自己生日（vs Date() 要滚 12-18 年）
             // itsuki 2026-05-27 主动提报「人性化设计」拍板 — 群体中位数默认
             var c = DateComponents(); c.year = 2011; c.month = 1; c.day = 1
-            return Calendar.current.date(from: c) ?? Date()
+            return ApplyFormDate.tokyoCalendar.date(from: c) ?? Date() // 固定 JST，与 birthdayString 格式化时区一致
         #endif
     }()
 
