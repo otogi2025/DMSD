@@ -30,15 +30,18 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """Upgrade schema."""
     # 1. 存量 NULL 回填 False（必须在改 NOT NULL 前做，否则旧 NULL 行会让 NOT NULL 约束失败）。
+    #    codex 复审（2026-06-15）：用 SQL 标准布尔字面量 FALSE，不能用整数 0 —— 生产 PostgreSQL
+    #    严格类型，`bool_col = 0` 报「column is of type boolean but expression is of type integer」
+    #    直接阻塞 upgrade；dev 的 SQLite 宽松接受 0 才没暴露。FALSE 在 PG 与 SQLite(3.23+) 都合法。
     op.execute(
         sa.text(
-            "UPDATE applications SET receipt_submitted = 0 "
+            "UPDATE applications SET receipt_submitted = FALSE "
             "WHERE receipt_submitted IS NULL"
         )
     )
     op.execute(
         sa.text(
-            "UPDATE applications SET is_long_vacation = 0 "
+            "UPDATE applications SET is_long_vacation = FALSE "
             "WHERE is_long_vacation IS NULL"
         )
     )

@@ -427,6 +427,18 @@ def create_checkin(
     # 演示隔离：演示老师只能给演示学生签到、真老师只能给真实学生签到（跨 demo → 404）
     assert_student_demo_match(teacher, student)
 
+    # codex 复审（2026-06-15）：student-session 寮匹配校验。create_rollcall_report 已校验
+    # 「学生属于该 session 覆盖的寮」(dorm_unit_set)，但老师代签 create_checkin 漏了同款校验
+    # —— 否则老师能把别寮学生签进本场次（dorm_unit_set 不含该生寮），产生错误出勤、扣分挂错
+    # 场次。与 create_rollcall_report 口径一致：不属于则 404（不泄露别寮场次细节）。前置到
+    # session_status 状态门之前，同 E-中-08 防探测。注：这是数据正确性校验，与 2026-06-13
+    # 「取消寮过滤」（查询层老师能看全部寮场次）正交、不冲突。
+    if student.dorm_unit not in (session.dorm_unit_set or []):
+        raise HTTPException(
+            404,
+            {"code": "NOT_FOUND", "message": "対象の点呼セッションが見つかりません"},
+        )
+
     # 寮/demo 通过后才查 session 状态 —— 探测者拿不到 running/draft 状态信息
     if session.session_status != "running":
         raise HTTPException(
