@@ -922,7 +922,13 @@ struct LifeTab: View {
     }
 
     private var pendingPkg: Int {
-        SEED.packages.filter { $0.status == "受取待ち" }.count
+        // 演示版：读 SEED 假快递（status 用日语「受取待ち」）
+        // 生产版：读 app.packages 真实快递（status 用后端英文「pending」/「notified」= 还没取走）
+        #if DEMO
+            return SEED.packages.filter { $0.status == "受取待ち" }.count
+        #else
+            return app.packages.filter { $0.status == "pending" || $0.status == "notified" }.count
+        #endif
     }
 
     var body: some View {

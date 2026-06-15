@@ -1602,7 +1602,9 @@ struct RegisterDoneView: View {
             .padding(.bottom, 28)
 
             // Welcome + subtitle
-            Text("ようこそ、\(SEED.user.name) さん")
+            // 演示版：displayUser 回退 SEED.user 假人（currentUser 为 nil 时）
+            // 生产版：loadMe 成功后显真实用户；失败/断网时显 User.placeholder 占位「—」，不泄漏假人信息
+            Text("ようこそ、\(app.displayUser.name) さん")
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(T.ink)
                 .padding(.bottom, 10)
@@ -1620,7 +1622,7 @@ struct RegisterDoneView: View {
                     .foregroundStyle(T.primaryDk)
                     .textCase(.uppercase)
 
-                Text(SEED.user.account)
+                Text(app.displayUser.account)
                     .font(.system(size: 44, weight: .heavy, design: .monospaced))
                     .foregroundStyle(T.primaryDk)
                     .kerning(-0.9)
