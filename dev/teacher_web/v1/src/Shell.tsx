@@ -128,6 +128,7 @@ export function Shell({
       items: [
         ["applications", "申請", pendingApps || undefined],
         ["discipline", "減点・処分"],
+        ["cleaning", "清掃罰則"],
       ],
     },
     {
@@ -155,6 +156,7 @@ export function Shell({
       "roll-call": "点呼",
       notifications: "通知",
       discipline: "減点・処分",
+      cleaning: "清掃罰則",
       applications: "申請",
       "proxy-application": "代録",
       study: "晩自習出席",

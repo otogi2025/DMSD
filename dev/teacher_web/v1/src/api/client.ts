@@ -48,6 +48,9 @@ import type {
   BusRoute,
   BusRouteCreateIn,
   BusRouteListOut,
+  CleaningItem,
+  CleaningCreateIn,
+  CleaningInspectIn,
   FrontDeskItem,
   FrontDeskCreateIn,
   FrontDeskStudentBrief,
@@ -502,6 +505,15 @@ export const api = {
   ) => request<BusRoute>("PATCH", `/bus/routes/${id}`, body, token),
   deleteBusRoute: (id: string, token: string) =>
     request<void>("DELETE", `/bus/routes/${id}`, undefined, token),
+
+  // ── 清扫安排（罚则清扫）──
+  // listCleaning：后端不带任何参数，直接拉所有未审核（status=assigned/done）的安排，按 scheduled_at 升序。
+  listCleaning: (token: string) =>
+    request<CleaningItem[]>("GET", "/cleaning", undefined, token),
+  createCleaning: (body: CleaningCreateIn, token: string) =>
+    request<CleaningItem>("POST", "/cleaning", body, token),
+  inspectCleaning: (id: string, body: CleaningInspectIn, token: string) =>
+    request<CleaningItem>("POST", `/cleaning/${id}/inspect`, body, token),
 
   // ── 前台业务（宅配 + 失物）──
   listFrontDesk: (token: string, kind?: string) => {

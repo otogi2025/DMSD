@@ -11,6 +11,7 @@ import { ApplicationsPage } from "./components/ApplicationsPage";
 import { ProxyApplicationPage } from "./components/ProxyApplicationPage";
 import { OutstayDetailModal } from "./components/OutstayDetailModal";
 import { DisciplinePage } from "./components/DisciplinePage";
+import { CleaningPage } from "./components/CleaningPage";
 import { FrontDeskPage } from "./components/FrontDeskPage";
 import { RecordsPage } from "./components/RecordsPage";
 import { ActiveLeavesPage } from "./components/ActiveLeavesPage";
@@ -836,6 +837,9 @@ export function App() {
       body = (
         <DisciplinePage teacher={teacher} onNav={nav} authToken={authToken} />
       );
+      break;
+    case "cleaning":
+      body = <CleaningPage authToken={authToken} />;
       break;
     case "records":
       body = (

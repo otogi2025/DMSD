@@ -301,10 +301,40 @@ export interface RegistrationCode {
   expires_in_seconds: number;
 }
 
+// ── 清扫安排（罚则清扫）— 一条记录 = 一个学生 ──
+export interface CleaningItem {
+  id: string;
+  student_id: string;
+  area: string; // 改动2：自由文本（旧版是 7 选 1 枚举）
+  scheduled_at: string; // 改动1：带时区 datetime（ISO8601）。旧版是 scheduled_date(date)
+  status: "assigned" | "done" | "passed" | "failed" | "skipped";
+  assigned_by_teacher_id: string | null;
+  assigned_at: string;
+  done_at: string | null;
+  inspected_by_teacher_id: string | null;
+  inspected_at: string | null;
+  failure_reason: string | null;
+  demerit_event_id: string | null;
+}
+
+// 老师排罚扫提交体
+export interface CleaningCreateIn {
+  student_id: string;
+  area: string; // 改动2：自由文本
+  scheduled_at: string; // 改动1：ISO8601 datetime
+}
+
+// 老师审核罚扫提交体
+export interface CleaningInspectIn {
+  result: "passed" | "failed";
+  failure_reason?: string; // result==="failed" 时必填
+}
+
 // ── 扣分 / 規律処分 ──
 export type DemeritSourceType =
   | "rollcall_late"
   | "rollcall_absent"
+  | "cleaning_failed"
   | "curfew_violation"
   | "study_absent"
   | "manual";
@@ -317,6 +347,7 @@ export interface DisciplineRankingEntry {
   room_no: string;
   dorm_unit: number;
   total_points: number;
+  is_cleaning_threshold: boolean; // >=4 点，清扫线（对称 is_curfew_threshold）
   is_curfew_threshold: boolean; // >=8 点，禁足线
 }
 
@@ -324,6 +355,7 @@ export interface DisciplineRankingEntry {
 export interface DisciplineRankingOut {
   month: string;
   entries: DisciplineRankingEntry[];
+  cleaning_threshold_count: number;
   curfew_threshold_count: number;
 }
 

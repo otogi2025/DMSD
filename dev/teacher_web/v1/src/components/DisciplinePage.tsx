@@ -19,7 +19,7 @@ import type {
 // 源 index.html 17197-17882（components/discipline.jsx 块）。
 // 界面原样搬，仅 window.RYO→RYO / window.tomoshibiApi→api / window.dormLabel→dormLabel /
 // window.ModalShell|ModalField|ModalFooter→从 ./shared import / 日语注释翻成中文。
-// /discipline — 规则卡 + 排行 + 禁足名单 + 警告 + 自动提醒预览。
+// /discipline — 规则卡 + 排行 + 清扫/禁足名单 + 警告 + 自动提醒预览。
 
 // 老师档案在本页会读取 teacher.dorm（"men"/"women" 字符串），
 // 但严格的 TeacherProfile 只声明 assigned_dorm，故扩展出 dorm 字段供本页读取。
@@ -34,6 +34,7 @@ interface RankRow {
   late: number;
   absent: number;
   total: number;
+  is_cleaning_threshold: boolean;
   is_curfew_threshold: boolean;
 }
 
@@ -145,12 +146,17 @@ export function DisciplinePage({
       late: 0,
       absent: 0,
       total: e.total_points,
+      is_cleaning_threshold: e.is_cleaning_threshold,
       is_curfew_threshold: e.is_curfew_threshold,
     }));
   }
 
   const banList = data.filter((d) => d.is_curfew_threshold);
-  const warnList = data.filter((d) => d.total >= 3 && d.total < 4);
+  // ≥4 分罚扫名单；≥8 分只进禁足名单、不重复标罚扫（已 approve 设计第 6 条）
+  const cleaningList = data.filter(
+    (d) => d.is_cleaning_threshold && !d.is_curfew_threshold,
+  );
+  const warnList = data.filter((d) => d.total >= 3 && !d.is_cleaning_threshold);
 
   return (
     <div style={{ padding: "28px 32px 48px" }}>
@@ -335,6 +341,11 @@ export function DisciplinePage({
               <RulePill label="遅刻" value="0.5 点" color={T.late} />
               <RulePill label="欠席" value="1.0 点" color={T.danger} />
               <RulePill
+                label="清掃罰則の適用"
+                value="月累計 ≥ 4 点"
+                color={T.warn}
+              />
+              <RulePill
                 label="外出禁止の適用"
                 value="月累計 ≥ 8 点"
                 color={T.danger}
@@ -389,7 +400,7 @@ export function DisciplinePage({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "50px 1fr 90px 90px 130px 130px",
+                  gridTemplateColumns: "50px 1fr 90px 90px 120px 120px 130px",
                   background: T.surfaceAlt,
                   fontSize: 11,
                   color: T.ink2,
@@ -403,6 +414,7 @@ export function DisciplinePage({
                   "学生",
                   "部屋",
                   "減点合計",
+                  "清掃まで残り",
                   "外出禁止まで残り",
                   "操作",
                 ].map((h) => (
@@ -427,7 +439,7 @@ export function DisciplinePage({
                   key={d.id}
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "50px 1fr 90px 90px 130px 130px",
+                    gridTemplateColumns: "50px 1fr 90px 90px 120px 120px 130px",
                     borderTop: i > 0 ? `1px solid ${T.line}` : "none",
                     fontSize: 12.5,
                     alignItems: "center",
@@ -461,10 +473,19 @@ export function DisciplinePage({
                       fontFamily: T.mono,
                       fontWeight: 700,
                       color:
-                        d.total >= 8 ? T.danger : d.total >= 4 ? T.warn : T.ink,
+                        d.total >= 4 ? T.danger : d.total >= 3 ? T.warn : T.ink,
                     }}
                   >
                     {d.total.toFixed(1)}
+                  </div>
+                  <div
+                    style={{
+                      padding: "9px 12px",
+                      fontFamily: T.mono,
+                      color: T.ink3,
+                    }}
+                  >
+                    {Math.max(0, 4 - d.total).toFixed(1)} 点
                   </div>
                   <div
                     style={{
@@ -505,6 +526,18 @@ export function DisciplinePage({
 
           <SectionH
             n="2"
+            title="清掃罰則リスト（来月対象）"
+            note={`${cleaningList.length} 名`}
+          />
+          <StudentCardRow
+            list={cleaningList}
+            color={T.warn}
+            label="今月減点"
+            empty="該当なし"
+          />
+
+          <SectionH
+            n="3"
             title="外出禁止リスト（来月対象）"
             note={`${banList.length} 名`}
           />
@@ -516,7 +549,7 @@ export function DisciplinePage({
           />
 
           <SectionH
-            n="3"
+            n="4"
             title="警告リスト（基準値に接近）"
             note={`${warnList.length} 名`}
           />
