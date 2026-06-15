@@ -268,16 +268,26 @@ struct ScheduleView: View {
                 }
             } else {
                 ForEach(evs, id: \.id) { e in
-                    Button { onTapEvent(e) } label: {
-                        eventRow(e)
+                    if usingMock {
+                        // SEED 兜底时（未登录 / demo）：可点击跳 SEED 下标制详情页。
+                        Button { onTapEvent(e) } label: {
+                            eventRow(e, showChevron: true)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        // 生产版（已登录拉真后端）：详情页按 SEED 下标取数对不上真数据，
+                        // 不包 Button、不画箭头，行内已显示完整的时刻+标题+地点。
+                        eventRow(e, showChevron: false)
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }
     }
 
-    private func eventRow(_ e: EventItem) -> some View {
+    /// 行事一行表示。
+    /// - showChevron: demo 版（SEED 兜底）可点跳详情时传 true；生产版不跳详情时传 false。
+    ///   生产版箭头去掉，防止用户误以为可以点击查看更多（行内已包含完整的时刻+标题+地点信息）。
+    private func eventRow(_ e: EventItem, showChevron: Bool) -> some View {
         Card(padding: 14) {
             HStack(alignment: .center, spacing: 12) {
                 VStack(spacing: 2) {
@@ -302,7 +312,9 @@ struct ScheduleView: View {
                     }
                 }
                 Spacer()
-                Ic.chevR(14).foregroundStyle(T.inkMute)
+                if showChevron {
+                    Ic.chevR(14).foregroundStyle(T.inkMute)
+                }
             }
         }
     }

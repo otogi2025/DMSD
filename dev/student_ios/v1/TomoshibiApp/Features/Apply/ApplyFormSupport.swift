@@ -105,7 +105,11 @@ enum ApplyFormDate {
     }
 
     static func combineDateAndTimeISO(date: Date, time: Date) -> String {
-        let cal = Calendar.current
+        // 固定 JST（Asia/Tokyo）合成日期时刻，输出带 +09:00 偏移量的 ISO8601 字符串。
+        // 原实现用 Calendar.current（设备时区），非 JST 设备（如留学生回国把手机时区改成 UTC+8）
+        // 合成的时刻会偏移，提交给后端的 held_at 因此不准确。
+        // formatYMD / StayForm 等同文件其他方法已固定 Asia/Tokyo，本函数对齐同一口径。
+        let cal = tokyoCalendar
         let d = cal.dateComponents([.year, .month, .day], from: date)
         let t = cal.dateComponents([.hour, .minute], from: time)
         var c = DateComponents()
@@ -115,8 +119,15 @@ enum ApplyFormDate {
         c.hour = t.hour
         c.minute = t.minute
         c.second = 0
+        c.timeZone = TimeZone(identifier: "Asia/Tokyo")
         let combined = cal.date(from: c) ?? date
-        return ISO8601DateFormatter().string(from: combined)
+
+        // ISO8601DateFormatter 默认输出 UTC（Z 后缀），此处改用带时区偏移的格式化器
+        // 明确保留 +09:00，让后端收到的字符串时区可读、调试清晰。
+        let fmt = ISO8601DateFormatter()
+        fmt.timeZone = TimeZone(identifier: "Asia/Tokyo") ?? .current
+        fmt.formatOptions = [.withInternetDateTime]
+        return fmt.string(from: combined)
     }
 
     static func displayDateTime(_ d: Date) -> String {

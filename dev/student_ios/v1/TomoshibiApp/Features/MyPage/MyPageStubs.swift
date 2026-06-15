@@ -1519,6 +1519,14 @@ struct MyPointsView: View {
                     progressBar
                         .padding(.bottom, 16)
 
+                    // 明细列表区头：明确标注数据范围是「全期間」。
+                    // 上方「今月合計」来自 mySummary（仅当月），下方明细来自 profile（最近 100 条跨全期间），
+                    // 两者口径不同 — 加区头让学生不会误以为明细只列本月减点。
+                    Text("減点履歴（全期間）")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(T.inkSub)
+                        .padding(.bottom, 6)
+
                     // Points list
                     Card(padding: 0) {
                         VStack(spacing: 0) {
