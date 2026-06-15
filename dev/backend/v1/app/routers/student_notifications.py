@@ -8,8 +8,11 @@
 - 巴士 / 行事 → student_notification_reads（本功能新表）。
 未读数 = 三类未读合计，驱动 app 铃铛 badge。
 
-⚠️ 巴士 / 行事 表无 is_demo → feed 只取真实学生范围（演示学生看不到巴士/行事通知，
-   公告则按 is_demo 隔离）。彻底隔离记 TODO。
+demo 隔离（2026-06-16 codex 复审修）：巴士 / 行事 表无自身 is_demo 列 → feed 查询 join teachers
+按「创建老师 is_demo == 当前学生 is_demo」过滤（公告则按 ann.is_demo）。演示学生只看演示老师内容、
+真实学生只看真实老师内容，两侧（feed + 推送）口径一致。
+
+⚠️ 已知限制：每类 .limit(50) 是各类独立取，某类未读超 50 时 unread_count 仍会低估（dorm 规模够用，记 TODO）。
 """
 
 from __future__ import annotations
