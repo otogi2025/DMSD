@@ -1036,4 +1036,29 @@ itsuki 双击项目根启动脚本肉眼签收界面跟旧版一致 → 确认�
 
 ---
 
+## 18. バス拆成独立左栏 + 加便表单简化（2026-06-15，commit `e886e8c`）
+
+> itsuki 截图反馈：「お知らせ・行事カレンダー这两个和バス要分开，巴士独立出来放到左边一栏」+「便名不需要、種類也不需要」+「学生 iOS 右上角看这个 bus 干嘛的，加便时能写、带示例」。
+
+### 18.1 导航拆分（`Shell.tsx`）
+
+- 「情報・発信」组里 `["info","お知らせ・バス"]` 拆成 `["info","お知らせ"]` + 新增 `["bus","バス時刻表"]`（紧跟其后、独立成左栏一项）。`pageLabel` 同步：`info` 改「お知らせ」、加 `bus`「バス時刻表」。
+
+### 18.2 页面拆分（`InfoPage.tsx` / `App.tsx`）
+
+- `InfoPage` 去掉「バス時刻表」tab + 大标题改「お知らせ」，只剩 公告 / 行事カレンダー 两 tab。
+- `BusSchedulePanel` 改 `export`，新增导出的 `BusPage`（包一层标题「バス時刻表」+ 28px padding 与 InfoPage 一致）。`App.tsx` 加 `case "bus" → <BusPage>`。
+
+### 18.3 加便表单改造（`BusRouteModal`）
+
+- 去掉「種別」「便名」两栏（后端默认补全，见 BACKEND_DESIGN_LOG 2026-06-15）；`BusRouteFormData` / `toBusRouteCreateIn` 不再传 `kind`/`name`，`valid` 去掉 `name.trim()`。
+- 新增「用途・説明（学生に表示）」textarea，带示例 placeholder「例：GW の外泊・帰省・買い物に使える臨時便です。」→ 提交进 `purpose`。学生 iOS 端日期头右上角每天显示一条（见 IOS_DESIGN_LOG）。
+- `types.ts`：`BusRoute` 加 `purpose`；`BusRouteCreateIn` 的 `kind`/`name` 改可选 + 加 `purpose`。
+
+### 18.4 验证
+
+`npm run build` 通过。⚠️ 与并发会话（班车 notify_students + 清扫罚扫）共用工作区，全程显式 pathspec / `git add -p` 提交，零污染。
+
+---
+
 **END** — 本档随 Web 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。

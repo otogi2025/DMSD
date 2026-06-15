@@ -1524,3 +1524,19 @@ gpt-5 + high（非预期 gpt-5.5 + xhigh）逐层挖 `ST25DVWriter` NFC 取消�
 
 ### §24.4 验证
 双 scheme BUILD SUCCEEDED（正式版 + 演示版，iPhone 17 Pro）。commit `4455be3`。
+
+---
+
+## §25 班车用途说明改用后端 purpose 字段（2026-06-15，commit `15cd64b`）
+
+itsuki 截图反馈：学生在班车页右上角看「这趟班车干嘛用的」，**每天显示一条**（即 `BusListView` 日期分组头右上角那条用途标签，图 1 里「4/29 (水)」右边的「GW 外泊・帰省・買い物」）。老师在网页加便表单里写（带示例），见 WEB_DESIGN_LOG §18。
+
+### §25.1 改动
+
+- `NetworkModels.swift` `BusRouteOut` 加 `purpose: String?`（可空，后端未返回时解码为 nil、日期头不显示，优雅降级）。
+- `BusListStubs.swift` `BusRouteMapper.map`：`SpecialBusRoute.purpose` 由 `o.note`（备注）改成喂 `o.purpose`（老师写的「用途・説明」专用字段）。
+- **显示位置 / 形态不动**：仍是 `grouped` 取当天首班 `purpose` → `daySection` 日期头右上角、每天一条（`lineLimit(1)` 截断）。`busRow` 不加 per-bus 用途（itsuki 明确「每天显示一条」，非每条班车各一个）。
+- 演示版 `BusListMock` 不变（`purpose: sched.label`，未登录回退仍显示代表性用途标签）。
+
+### §25.2 验证
+双 scheme BUILD SUCCEEDED（正式版 + 演示版，iPhone 17 Pro）。后端 `purpose` 字段见 BACKEND_DESIGN_LOG 2026-06-15。

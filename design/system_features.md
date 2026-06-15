@@ -756,15 +756,19 @@ bus_routes
 ├── arrival_at      TIMESTAMPTZ NULL                       -- 到达时刻(空港便等)
 ├── created_by      UUID FK → teachers.id                  -- 役职手动登录
 ├── visible_to      ENUM('all','dorm_only','men','women') -- 显示对象
+├── note            TEXT NULL                              -- 备注(老师内部 / 运休等)
+├── purpose         TEXT NULL                              -- 用途说明,学生端日期头右上角每天显示一条(2026-06-15)
 └── deprecated      BOOLEAN DEFAULT FALSE
 ```
+
+> **2026-06-15 表单简化**: 老师录入表单去掉「種別」「便名」两栏 —— 新便后端默认 `kind=dorm_special`(寮特殊便) / `name` 缺省用 `direction`(区间) 回填(DB 列仍 NOT NULL)。旧的平日通学便数据保留不动。`kind`/`name` 在 API 上改为可选。
 
 #### 7.6.2 功能矩阵
 
 | 功能 | 学生 iOS | 老师 Web | 后端 API | 角色 | Demo/V1 |
 |---|---|---|---|---|---|
-| 巴士一覧 阅览 #8 | 〇 **ホーム busCard → BusListView**(特別運行便のみ表示・空港 toggle / 2026-06-13 通学便種別 filter 削除〔iOS+Android 対齐〕 / 2026-05-03 MyPage から移設・重複解消) | ✅ 阅览 | `GET /bus/routes` ⏳ | 学生 + 役职 | (V1) |
-| 巴士 录入・编辑・删除 #11 | — | ✅ BusManagementPage | `POST/PATCH/DELETE /bus/routes` ⏳ | 役职 | (V1) |
+| 巴士一覧 阅览 #8 | 〇 **ホーム busCard → BusListView**(特別運行便のみ表示・空港 toggle / 用途説明=日期头右上角每天显示一条〔来自后端 purpose,2026-06-15〕 / 2026-06-13 通学便種別 filter 削除〔iOS+Android 対齐〕 / 2026-05-03 MyPage から移設・重複解消) | ✅ 阅览 | `GET /bus/routes` ⏳ | 学生 + 役职 | (V1) |
+| 巴士 录入・编辑・删除 #11 | — | ✅ 老师网页独立左栏「バス時刻表」(2026-06-15 从「お知らせ・バス」拆出独立成栏);表单去「種別」「便名」+ 加「用途・説明(学生に表示)」栏带示例 | `POST/PATCH/DELETE /bus/routes` ⏳ | 役职 | (V1) |
 | 出寮届 提交时选巴士(特别便 / 平日便)#8 | 〇 ApplyForm 帰省方法 = bus 时 dropdown | — | apply 上加关联字段 | 学生 | (V1) |
 | 空港送迎特别便 显示(只在 帰国届时)| 〇 帰国届 ApplyForm | ✅ 同上 | `GET /bus/airport` filter | 学生 + 役职 | (V1) |
 
