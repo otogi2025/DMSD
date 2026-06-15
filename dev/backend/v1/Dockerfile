@@ -40,9 +40,15 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD curl -fsS http://localhost:8000/healthz || exit 1
 
 # 生产用 gunicorn + uvicorn worker
-# 1 vCPU / 2 GB VPS 用 2 worker：避免 OOM、IO bound 场景下 1-2 worker 就够
+# ⚠️ 必须保持 -w 1（单进程）：
+#   WebSocket 连接表（ws_manager.py）存在单进程内存里，
+#   多进程（-w 2+）时每个 worker 各自维护独立连接表，
+#   跨 worker 的 WS 推送会丢失约一半。
+#   要支持多 worker 需要引入 Redis pub/sub 共享推送通道，
+#   在此之前必须保持单进程，用单进程换正确性。
+#   1 vCPU / 2 GB 小服务器单进程完全够用。
 CMD ["gunicorn", "app.main:app", \
-     "-w", "2", \
+     "-w", "1", \
      "-k", "uvicorn.workers.UvicornWorker", \
      "-b", "0.0.0.0:8000", \
      "--access-logfile", "-", \

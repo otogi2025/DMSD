@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -25,8 +25,11 @@ from .. import models, schemas, security
 from ..config import get_settings
 from ..database import get_db
 from ..deps import get_current_principal  # B1 登出端点用（老师 + 学生都能调）
+from ..ratelimit import limiter
 
 router = APIRouter(prefix="/api/v1/sessions", tags=["auth"])
+
+# 限速器单例见 ..ratelimit（已在 import 区导入，与全后端共用计数）
 
 # 教师 login 锁定阈值（A-006）
 TEACHER_LOCK_THRESHOLD = 3  # 3 次失败立锁
@@ -45,7 +48,16 @@ _DUMMY_PASSWORD_HASH = security.hash_password("dummy-password-for-timing-equaliz
 
 
 @router.post("/student", response_model=schemas.TokenOut)
-def login_student(body: schemas.StudentLoginIn, db: Session = Depends(get_db)):
+@limiter.limit(
+    # 学生登录爆破防护
+    # 20次/分钟/IP — 正常登录极少超过 2-3 次，20 次留有余量但足以阻断爆破
+    "20/minute"
+)
+def login_student(
+    request: Request,
+    body: schemas.StudentLoginIn,
+    db: Session = Depends(get_db),
+):
     grade, klass, seat = body.student_no[:2], body.student_no[2:4], body.student_no[4:6]
 
     student = db.scalars(
@@ -138,7 +150,17 @@ def login_student(body: schemas.StudentLoginIn, db: Session = Depends(get_db)):
 
 
 @router.post("/teacher", response_model=schemas.TeacherTokenOut)
-def login_teacher(body: schemas.TeacherLoginIn, db: Session = Depends(get_db)):
+@limiter.limit(
+    # 老师登录爆破防护
+    # 老师权限比学生高（改判/发注册码/解NFC绑定），用更严格的限制
+    # 10次/分钟/IP — 比学生端收紧一倍，配合已有的 3 次失败锁定（A-006）形成双重防护
+    "10/minute"
+)
+def login_teacher(
+    request: Request,
+    body: schemas.TeacherLoginIn,
+    db: Session = Depends(get_db),
+):
     # 5-27 拍板：支持 teacher_id (UUID) 或 login_id，至少一个
     if not body.teacher_id and not body.login_id:
         raise HTTPException(

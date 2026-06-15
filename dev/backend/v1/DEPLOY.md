@@ -132,6 +132,21 @@ docker compose logs -f caddy
 
 ## 5. 跑 Migration + Seed
 
+⚠️ **seed 依赖以下三个环境变量，必须在 `.env` 里提前设好，否则 seed 命令会失败：**
+
+| 变量名 | 说明 | 示例值 |
+|---|---|---|
+| `ADMIN_INITIAL_PASSWORD` | admin 账号初始密码 | `ChangeMe-强密码` |
+| `REVIEWER_PASSWORD` | Apple 审核员学生账号密码 | `Reviewer-强密码` |
+| `REVIEWER_REGISTRATION_CODE` | 审核员用注册码（6 位数字） | `999999` |
+
+在 `.env` 里加这三行：
+```bash
+ADMIN_INITIAL_PASSWORD=ChangeMe-2026-强密码
+REVIEWER_PASSWORD=Reviewer-2026-强密码
+REVIEWER_REGISTRATION_CODE=999999
+```
+
 ```bash
 # 跑 alembic migration（创建所有表）
 docker compose exec api alembic upgrade head

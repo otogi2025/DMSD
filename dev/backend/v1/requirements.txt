@@ -26,6 +26,9 @@ psycopg[binary]>=3.2.0   # PostgreSQL 16+ (v1 production)
 # migration
 alembic>=1.13.0
 
+# 限速（接口防暴力枚举）
+slowapi>=0.1.9
+
 # 测试
 pytest>=8.3.0
 pytest-asyncio>=0.24.0

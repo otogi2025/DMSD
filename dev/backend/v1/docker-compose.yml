@@ -31,8 +31,19 @@ services:
       APP_ENV: ${APP_ENV:-production}
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-tomoshibi}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-tomoshibi}
       JWT_SECRET: ${JWT_SECRET}
-      JWT_ACCESS_EXPIRE_MIN: ${JWT_ACCESS_EXPIRE_MIN:-525600}  # 1 年=持久登录（itsuki 2026-06-14；与 config.py 默认一致，别漏改这处否则生产仍 24h）
+      JWT_ACCESS_EXPIRE_MIN: ${JWT_ACCESS_EXPIRE_MIN:-525600}  # 1 年=持久登录（与 config.py 默认一致，别漏改这处否则生产仍 24h）
       CORS_ORIGINS: ${CORS_ORIGINS:-https://api.tomoshibi.cc}
+      # 邮件发送（Resend）— 不配则生产邮件静默失效，注册确认/通知全部丢弃
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-Tomoshibi}
+      # 日志级别（不配则用应用默认值，生产建议 WARNING 或 INFO）
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      # seed.py 首次部署用 — 创建 admin/reviewer 账号的初始密码和注册码
+      # 这三个变量必须在 .env 里设好，否则 `docker compose exec api python -m seed` 会失败
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD}
+      REVIEWER_PASSWORD: ${REVIEWER_PASSWORD}
+      REVIEWER_REGISTRATION_CODE: ${REVIEWER_REGISTRATION_CODE}
     depends_on:
       postgres:
         condition: service_healthy

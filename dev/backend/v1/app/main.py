@@ -23,15 +23,21 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import traceback
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from . import __version__
 from .config import get_settings
 from .database import create_all
+from .ratelimit import limiter
 from .routers import (
     accounts,
     admin_accounts,
@@ -65,6 +71,8 @@ from .routers import (
 settings = get_settings()
 logging.basicConfig(level=settings.log_level)
 logger = logging.getLogger("tomoshibi.startup")
+
+# 全局限速器单例从 ratelimit 模块导入（见 import 区，enabled 按环境：dev/测试关、staging/生产开）
 
 
 def _warn_if_db_schema_outdated() -> None:
@@ -161,6 +169,34 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan,
 )
+
+# slowapi 限速器挂到 app 状态上，各接口 @limiter.limit 装饰器读这里
+app.state.limiter = limiter
+
+# slowapi 中间件：拦截超限请求、触发 RateLimitExceeded 异常
+app.add_middleware(SlowAPIMiddleware)
+
+# 限速超限 → 统一 429 JSON 响应（slowapi 内置处理器）
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+# 全局兜底异常处理器 — 捕获所有未被路由层处理的异常
+# 返回统一 500 JSON，不把内部堆栈泄露给客户端，同时记 error 级别日志含 traceback
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    # 记完整堆栈到服务端日志，方便排查
+    logger.error(
+        "未捕获异常 [%s %s]: %s\n%s",
+        request.method,
+        request.url.path,
+        exc,
+        traceback.format_exc(),
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "内部服务器错误，请稍后重试"},
+    )
+
 
 app.add_middleware(
     CORSMiddleware,

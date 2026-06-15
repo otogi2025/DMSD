@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -22,8 +22,11 @@ from .. import models, schemas, security
 from ..config import get_settings
 from ..database import get_db
 from ..deps import get_current_student
+from ..ratelimit import limiter
 
 router = APIRouter(prefix="/api/v1/accounts", tags=["accounts"])
+
+# 限速器单例见 ..ratelimit（已在 import 区导入，与全后端共用计数）
 
 
 def _validate_room_dorm_match(room_no: str, dorm_unit: int, gender: str) -> None:
@@ -82,7 +85,16 @@ def _validate_registration_code(
     response_model=schemas.StudentAccountCreateOut,
     status_code=status.HTTP_201_CREATED,
 )
-def create_account(body: schemas.StudentAccountCreateIn, db: Session = Depends(get_db)):
+@limiter.limit(
+    # 注册接口：6 位注册码暴力枚举防护
+    # 10次/小时/IP — 正常学生注册顶多 1-2 次，10 次已足够容错
+    "10/hour"
+)
+def create_account(
+    request: Request,
+    body: schemas.StudentAccountCreateIn,
+    db: Session = Depends(get_db),
+):
     """学生新规注册 — 必须传 registration_code。
 
     §5.1.5 处理流程：
