@@ -113,7 +113,9 @@ export function DisciplinePage({
       )
       .then((ev) => {
         setLastEvent(ev);
-        setLastEventMsg(`${name} の今月の合計点を ${targetPoints} 点に設定しました`);
+        setLastEventMsg(
+          `${name} の今月の合計点を ${targetPoints} 点に設定しました`,
+        );
         setManualTarget(null);
         setSearchAddOpen(false);
         loadRanking();
@@ -598,7 +600,7 @@ export function DisciplinePage({
                   letterSpacing: 1,
                 }}
               >
-                開発中
+                稼働中
               </span>
             </div>
             <div
@@ -608,7 +610,7 @@ export function DisciplinePage({
                 lineHeight: 1.7,
               }}
             >
-              将来的には、特定の学生の遅刻・欠席が一定数に達した時点で、システムが自動的に寮監へアラートを通知する予定です。現在は手動確認のみです。
+              学生の今月の累計減点が清掃ライン（4点）または外出禁止ライン（8点）に達すると、その学生が所属する寮の担当教員へ自動的に通知（通知センター）が送られます。各ラインにつき月1回まで。
             </div>
           </div>
 
@@ -674,13 +676,16 @@ function ManualDemeritModal({
   const handleSubmit = () => {
     if (disabled) return;
     setSubmitting(true);
-    Promise.resolve(
-      onSubmit(target.student_id, parsed, reason.trim()),
-    ).finally(() => setSubmitting(false));
+    Promise.resolve(onSubmit(target.student_id, parsed, reason.trim())).finally(
+      () => setSubmitting(false),
+    );
   };
   return (
     <ModalShell T={T} title={`合計点を設定：${target.name}`} onClose={onClose}>
-      <ModalField T={T} label={`今月の合計点（現在 ${target.current} 点・絶対値で上書き）`}>
+      <ModalField
+        T={T}
+        label={`今月の合計点（現在 ${target.current} 点・絶対値で上書き）`}
+      >
         <input
           type="number"
           min="0"

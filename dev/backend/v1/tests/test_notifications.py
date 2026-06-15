@@ -271,3 +271,114 @@ def test_insert_skip_conflicts_reraises_other_integrity(db_session, seed_data):
     with pytest.raises(IntegrityError):
         notif_mod._insert_skip_conflicts(db_session, [bad])
     db_session.rollback()
+
+
+# ─────────────────────────────────────────────────────────────
+# 自动告警（demerit_alert）：当月累计扣分达罚扫(4)/禁足(8)线 → 自动通知该生所属寮老师
+# ─────────────────────────────────────────────────────────────
+def _jst_month():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    return datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m")
+
+
+def _teacher_token(client, login_id):
+    res = client.post(
+        "/api/v1/sessions/teacher",
+        json={"login_id": login_id, "password": "test-password-12345"},
+    )
+    assert res.status_code == 200, res.text
+    return res.json()["access_token"]
+
+
+def test_demerit_alert_fires_at_cleaning_line_and_dorm_filtered(
+    client, seed_data, db_session
+):
+    """学生(男寮 dorm_unit=1)当月累计达 4 分 → demerit_alert；男寮/跨寮老师可见、女寮老师不可见。"""
+    from app import security
+
+    student = seed_data["student"]  # dorm_unit=1 男寮
+    db_session.add(
+        models.DemeritEvent(
+            student_id=student.id,
+            source_type="manual",
+            points=4.0,
+            reason="累计テスト",
+            month=_jst_month(),
+        )
+    )
+    # 新建一名女寮老师（assigned_dorm=4）做反例
+    db_session.add(
+        models.Teacher(
+            login_id="joshi_alert",
+            name="女寮花子",
+            email="ja@test.jp",
+            password_hash=security.hash_password("test-password-12345"),
+            role="寮務一般教師",
+            assigned_dorm=4,
+        )
+    )
+    db_session.commit()
+
+    # 跨寮役职（寮務課長 assigned_dorm=None）→ 看得到
+    cross = _feed(client, _teacher_token(client, "ryomu_kachou"))
+    cross_alerts = [i for i in cross["items"] if i["category"] == "demerit_alert"]
+    assert len(cross_alerts) == 1, "跨寮役职应看到 1 条减点警告"
+    assert "清掃ライン" in cross_alerts[0]["title"]
+    assert cross_alerts[0]["related_student_id"] == str(student.id)
+
+    # 男寮担任（assigned_dorm=1）→ 看得到
+    male = _feed(client, _teacher_token(client, "tannin"))
+    assert any(i["category"] == "demerit_alert" for i in male["items"]), (
+        "男寮老师应看到本寮学生的减点警告"
+    )
+
+    # 女寮老师（assigned_dorm=4）→ 看不到男寮学生的告警（寮过滤）
+    joshi = _feed(client, _teacher_token(client, "joshi_alert"))
+    assert not any(i["category"] == "demerit_alert" for i in joshi["items"]), (
+        "女寮老师不应收到男寮学生的减点警告"
+    )
+
+
+def test_demerit_alert_curfew_line_and_idempotent(client, seed_data, db_session):
+    """累计达 8 分 → 罚扫线+禁足线两条告警；多次拉 feed 幂等不重复。"""
+    student = seed_data["student"]
+    db_session.add(
+        models.DemeritEvent(
+            student_id=student.id,
+            source_type="manual",
+            points=8.0,
+            reason="累计テスト",
+            month=_jst_month(),
+        )
+    )
+    db_session.commit()
+
+    token = _teacher_token(client, "ryomu_kachou")
+    body = None
+    for _ in range(3):  # 拉 3 次验证幂等
+        body = _feed(client, token)
+    alerts = [i for i in body["items"] if i["category"] == "demerit_alert"]
+    assert len(alerts) == 2, "达 8 分应有清掃线+外出禁止线两条、且幂等不重复"
+    titles = " ".join(a["title"] for a in alerts)
+    assert "清掃ライン" in titles and "外出禁止ライン" in titles
+
+
+def test_demerit_alert_not_fired_below_threshold(client, seed_data, db_session):
+    """累计仅 3.5 分（未达罚扫线 4）→ 不产生 demerit_alert。"""
+    student = seed_data["student"]
+    db_session.add(
+        models.DemeritEvent(
+            student_id=student.id,
+            source_type="manual",
+            points=3.5,
+            reason="累计テスト",
+            month=_jst_month(),
+        )
+    )
+    db_session.commit()
+    body = _feed(client, _teacher_token(client, "ryomu_kachou"))
+    assert not any(i["category"] == "demerit_alert" for i in body["items"]), (
+        "未达 4 分线不应有减点警告"
+    )

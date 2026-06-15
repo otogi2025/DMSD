@@ -1665,6 +1665,9 @@ class Notification(Base):
     )
     # demo / 真实 realm 隔离
     is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # 目标寮（自动告警 UI「自動アラート」用）：NULL = 全员通知（默认，所有现有通知类型）；
+    # 非 NULL = 仅管辖该 dorm_unit 的老师可见（取 feed 时按 notifications._alert_dorm_units 过滤）。
+    target_dorm: Mapped[Optional[int]] = mapped_column(Integer)
     # 事件发生时刻（排序用，取自来源事件的时间戳）
     event_at: Mapped[datetime] = mapped_column(TZDateTime, nullable=False)
     created_at: Mapped[datetime] = mapped_column(

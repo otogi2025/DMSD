@@ -5,16 +5,24 @@ POST /api/v1/notifications/test  — SendGrid 送達 smoke テスト (#6 完成�
 
 from __future__ import annotations
 
-from uuid import UUID
+from datetime import datetime
+from uuid import NAMESPACE_URL, UUID, uuid5
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func, or_, true
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import models, permissions, schemas
 from ..database import get_db
-from ..deps import assert_not_demo_teacher, get_current_teacher, require_permission
+from ..deps import (
+    assert_not_demo_teacher,
+    get_current_teacher,
+    require_permission,
+)
 from ..services import email as email_svc
+from .discipline import CLEANING_THRESHOLD, CURFEW_THRESHOLD
 
 router = APIRouter(prefix="/api/v1/notifications", tags=["notifications"])
 
@@ -62,6 +70,18 @@ def send_test(
 # 现实现改成「只查该表里『还没有对应通知行』的事件、按时间正序（最旧优先）取 N 条」，
 # 于是每次轮询都从最旧的积压开始补，跨多次轮询把整段积压逐批排空，不会永久漏掉任何事件。
 _SYNC_SCAN_LIMIT = 200
+
+_JST = ZoneInfo("Asia/Tokyo")
+
+# 自动告警（UI「自動アラート」，itsuki 2026-06-15）：学生当月累计扣分达阈值 → 自动给该生所属寮的老师发通知。
+# 两级阈值复用 discipline 的罚扫线(4) / 禁足线(8)，单源对齐；每生每月每级只发一次（uuid5 去重）。
+# (阈值, level 标识, 日语线名)
+_DEMERIT_ALERT_LEVELS = [
+    (CLEANING_THRESHOLD, "cleaning", "清掃ライン"),
+    (CURFEW_THRESHOLD, "curfew", "外出禁止ライン"),
+]
+# 固定命名空间 → source_id 确定性，幂等去重不重复发
+_ALERT_NS = uuid5(NAMESPACE_URL, "tomoshibi/demerit-alert")
 
 # 点呼上报 kind → 日语标题
 _ROLLCALL_KIND_LABEL = {
@@ -343,15 +363,92 @@ def _sync_notifications(db: Session, *, is_demo: bool) -> None:
                 )
             )
 
+    # ⑤ 自动告警：当月累计扣分达罚扫/禁足线的学生 → 给该生所属寮的老师发通知。
+    #    口径与 /ranking 一致（当月 month + 排除已撤销）。每生每月每级一条（uuid5 去重）。
+    month = datetime.now(_JST).strftime("%Y-%m")
+    synced_alert = _synced_source_ids(db, source_table="demerit_alert", is_demo=is_demo)
+    totals = (
+        db.query(
+            models.Student.id,
+            models.Student.name,
+            models.Student.dorm_unit,
+            func.coalesce(func.sum(models.DemeritEvent.points), 0.0).label("total"),
+            func.max(models.DemeritEvent.created_at).label("last_at"),
+        )
+        .join(
+            models.DemeritEvent,
+            models.DemeritEvent.student_id == models.Student.id,
+        )
+        .filter(
+            models.Student.is_demo == is_demo,
+            models.DemeritEvent.month == month,
+            models.DemeritEvent.revoked_at.is_(None),
+        )
+        .group_by(models.Student.id, models.Student.name, models.Student.dorm_unit)
+        .all()
+    )
+    for sid, sname, dorm_unit, total, last_at in totals:
+        for threshold, level, line_label in _DEMERIT_ALERT_LEVELS:
+            if total < threshold:
+                continue
+            source_id = uuid5(_ALERT_NS, f"{sid}:{month}:{level}")
+            if source_id in synced_alert:
+                continue
+            new_rows.append(
+                models.Notification(
+                    category="demerit_alert",
+                    source_table="demerit_alert",
+                    source_id=source_id,
+                    title=f"減点警告：{line_label}到達",
+                    body=(
+                        f"{sname} さんの今月の累計減点が {_fmt_points(total)}点"
+                        f"（{line_label}{_fmt_points(threshold)}点）に達しました"
+                    ),
+                    related_student_id=sid,
+                    is_demo=is_demo,
+                    event_at=last_at or datetime.now(_JST),
+                    target_dorm=dorm_unit,
+                )
+            )
+
     if new_rows:
         _insert_skip_conflicts(db, new_rows)
 
 
+def _alert_dorm_units(teacher: models.Teacher):
+    """该老师作为自动告警定向对象时覆盖的 dorm_unit 集合（None = 全寮役职、看全部）。
+
+    不用 deps.dorm_units_for_teacher —— itsuki 2026-06-13 全局取消寮过滤后它恒返回
+    [1,2,4]（所有老师可查看所有学生）。但本次自动告警要求「只通知该学生所在寮的老师」，
+    故这里按 assigned_dorm 直接判男女寮组（1,2=男 / 4=女）。注意：这只影响告警「推给谁」，
+    不改「谁能查看学生」的全局放开。
+    """
+    d = teacher.assigned_dorm
+    if d is None:
+        return None  # 跨寮役职（寮務部長/課長 等）→ 所有寮的告警都收
+    if d in (1, 2):
+        return [1, 2]  # 男寮老师 → 收男寮（一寮/二寮）告警
+    return [d]  # 女寮(4)老师 → 收女寮告警
+
+
+def _dorm_visibility_filter(teacher: models.Teacher):
+    """通知可见范围：target_dorm 为空（全员通知，所有现有类型）人人可见；
+    非空（自动告警定向到学生寮）的，仅该寮老师 + 跨寮役职可见。"""
+    allowed = _alert_dorm_units(teacher)
+    if allowed is None:
+        return true()
+    return or_(
+        models.Notification.target_dorm.is_(None),
+        models.Notification.target_dorm.in_(allowed),
+    )
+
+
 def _unread_count(db: Session, teacher: models.Teacher) -> int:
-    """当前老师在自己 realm 内的未读通知数 = realm 总通知数 − 本人已读数。"""
+    """当前老师在自己 realm + 管辖寮范围内的未读通知数 = 可见总数 − 本人已读数。"""
+    dorm_filter = _dorm_visibility_filter(teacher)
     total = (
         db.query(models.Notification)
-        .filter(models.Notification.is_demo == teacher.is_demo)
+        .filter(models.Notification.is_demo == teacher.is_demo, dorm_filter)
         .count()
     )
     read = (
@@ -362,6 +459,7 @@ def _unread_count(db: Session, teacher: models.Teacher) -> int:
         )
         .filter(
             models.Notification.is_demo == teacher.is_demo,
+            dorm_filter,
             models.NotificationRead.teacher_id == teacher.id,
         )
         .count()
@@ -387,7 +485,10 @@ def get_feed(
     }
     rows = (
         db.query(models.Notification)
-        .filter(models.Notification.is_demo == teacher.is_demo)
+        .filter(
+            models.Notification.is_demo == teacher.is_demo,
+            _dorm_visibility_filter(teacher),
+        )
         .order_by(models.Notification.event_at.desc())
         .limit(max(1, min(limit, 200)))
         .all()

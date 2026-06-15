@@ -47,6 +47,8 @@ function categoryMeta(category: string, T: typeof RYO) {
       return { label: "冷蔵庫", color: T.ink2 };
     case "item":
       return { label: "物品所持", color: T.ink2 };
+    case "demerit_alert":
+      return { label: "減点警告", color: T.warn };
     case "misc":
       return { label: "雑項", color: T.ink2 };
     default:
@@ -60,6 +62,7 @@ function categoryMeta(category: string, T: typeof RYO) {
 const NAV_TARGET: Record<string, string> = {
   application: "applications",
   demerit: "discipline",
+  demerit_alert: "discipline",
   rollcall_report: "records",
   study_absence: "study",
   study_online: "study",
