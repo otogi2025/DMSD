@@ -21,7 +21,7 @@ struct User: Hashable {
     var grade: String = "高3"
     var classSuffix: String = "B"
     var seatNo: Int = 18
-    /// 学習対象学生 flag (system_features §7.3 — 中学全员 / 高中考试不合格者). demo seed = true 让所有学習 UI 可见
+    /// 晩自習対象学生 flag (system_features §7.3 — 中学全员 / 高中考试不合格者). demo seed = true 让所有学習 UI 可见
     var isStudyTarget: Bool = true
     /// 留学生 flag (system_features §8.1 / Q11 — 自己申报). 演示用户「リュウ イヒ」= 留学生（承认链为 5 个角色）
     var isOverseas: Bool = true

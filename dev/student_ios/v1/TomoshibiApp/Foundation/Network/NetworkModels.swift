@@ -95,7 +95,7 @@ struct AuditLogOut: Decodable, Hashable, Identifiable {
 
 // MARK: - 学習（晚自习）
 
-/// 学習欠席届（POST /study/absence-requests 响应）
+/// 晩自習欠席届（POST /study/absence-requests 响应）
 struct StudyAbsenceRequestOut: Decodable, Hashable, Identifiable {
     let id: UUID
     let student_id: UUID

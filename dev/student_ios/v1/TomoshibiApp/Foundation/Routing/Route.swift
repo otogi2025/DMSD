@@ -59,7 +59,7 @@ enum Route: Hashable {
     case myPackages
     case mySettings
     case myAbout
-    case myStudy // 学習出席履歴 (system_features §7.3.10) — isStudyTarget のみ
+    case myStudy // 晩自習出席履歴 (system_features §7.3.10) — isStudyTarget のみ
 
     // §4 V1 リファレンス系（老師 38 条 #5 / #8 / #9）
     case stayList // #5 申請履歴 一覧（GET /applications/mine）
@@ -117,7 +117,7 @@ enum Route: Hashable {
         case .myPackages: return "宅配履歴"
         case .mySettings: return "設定"
         case .myAbout: return "Tomoshibi について"
-        case .myStudy: return "学習履歴"
+        case .myStudy: return "晩自習履歴"
         case .stayList: return "申請履歴"
         case .stayDetail: return "申請詳細"
         case .stayEdit: return "変更届"

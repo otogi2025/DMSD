@@ -97,7 +97,7 @@ struct NotificationsView: View {
     @EnvironmentObject var app: AppStore
     @State private var filter: String = "すべて"
     /// 4-30 加「学習」(R1 例外的 push 通知种类)
-    private let filters = ["すべて", "申請", "減点", "学習", "宅配", "活動", "リクエスト曲"]
+    private let filters = ["すべて", "申請", "減点", "晩自習", "宅配", "活動", "リクエスト曲"]
 
     private var filtered: [NotificationItem] {
         // 数据源 = AppStore.allNotifications（push 模拟通知 + SEED.notifications）

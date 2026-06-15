@@ -311,7 +311,7 @@ struct HomeView: View {
 
             Group {
                 // ⚠️ DEMO-ONLY 三态切换 (system_features §7.3.8 — v1.0 删)
-                // 学習対象学生 + studyState in upcoming/active → study mode 优先
+                // 晩自習対象学生 + studyState in upcoming/active → study mode 优先
                 if app.displayUser.isStudyTarget && (app.studyState == .upcoming || app.studyState == .active) {
                     studyContent(deepBrown: deepBrown)
                 } else if app.rollState == .idle {
@@ -353,9 +353,9 @@ struct HomeView: View {
     // MARK: study content (4-30 後續 拍板 — ⚠️ DEMO-ONLY · v1.0 删)
 
     //
-    // 学習対象学生 + studyState upcoming/active 时 amber Card 显示这套:
+    // 晩自習対象学生 + studyState upcoming/active 时 amber Card 显示这套:
     // - 学習迟到倒计时（mm:ss）
-    // - 「請假」按钮 → 学習欠席届提交
+    // - 「請假」按钮 → 晩自習欠席届提交
 
     @ViewBuilder
     private func studyContent(deepBrown: Color) -> some View {
@@ -367,7 +367,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 0) {
             // header row — 标题 + 状态 pill
             HStack(alignment: .top) {
-                Text(isActive ? "学習中" : "学習開始まで")
+                Text(isActive ? "晩自習中" : "晩自習開始まで")
                     .font(.system(size: 11, weight: .bold))
                     .kerning(1.98)
                     .textCase(.uppercase)
@@ -526,7 +526,7 @@ struct HomeView: View {
             HStack(spacing: 8) {
                 Image(systemName: "checkmark.seal.fill")
                     .font(.system(size: 16, weight: .semibold))
-                Text("本日の学習出席は完了しました")
+                Text("本日の晩自習出席は完了しました")
                     .font(.system(size: 13, weight: .bold))
             }
             .foregroundStyle(deepBrown)
@@ -1689,8 +1689,8 @@ struct StudyCheckinSheet: View {
 
     private var stepLabel: String {
         switch nextTap {
-        case .start: return "学習開始のタップ"
-        case .end: return "学習終了のタップ"
+        case .start: return "晩自習開始のタップ"
+        case .end: return "晩自習終了のタップ"
         case .none: return "本日完了"
         }
     }
@@ -1767,7 +1767,7 @@ struct StudyCheckinSheet: View {
             .padding(.bottom, 18)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("① 学習室入口の NFC マークにスマホをかざす")
+                Text("① 自習室入口の NFC マークにスマホをかざす")
                 Text("② 画面が光ったら完了")
             }
             .font(.system(size: 14))
@@ -1897,7 +1897,7 @@ struct StudyCheckinSheet: View {
                     .font(.system(size: 13))
                     .foregroundStyle(T.inkSub)
             } else {
-                Text("\(Self.fmtNow()) · 本日の学習出席 完了")
+                Text("\(Self.fmtNow()) · 本日の晩自習出席 完了")
                     .font(.system(size: 13, weight: .bold))
                     .kerning(0.26)
                     .padding(.horizontal, 14).padding(.vertical, 6)
@@ -1921,8 +1921,8 @@ struct StudyCheckinSheet: View {
         // 记录后若还有下一次 tap 则给出提示
         let after = app.nextStudyTap
         switch after {
-        case .start: return ("学習開始", "19:35〜19:40")
-        case .end: return ("学習終了", "21:40〜21:50")
+        case .start: return ("晩自習開始", "19:35〜19:40")
+        case .end: return ("晩自習終了", "21:40〜21:50")
         case .none: return nil
         }
     }
@@ -1995,7 +1995,7 @@ struct StudyCheckinSheet: View {
                     let label = recordedTap?.label ?? "—"
                     app.closeSheet()
                     if app.nextStudyTap == nil {
-                        app.showToast("学習出席完了 · 全 2 回 タップ済み")
+                        app.showToast("晩自習出席完了 · 全 2 回 タップ済み")
                     } else {
                         app.showToast("\(label) 完了")
                     }
@@ -2074,8 +2074,8 @@ struct StudyCheckinSheet: View {
 private extension StudyTap {
     var label: String {
         switch self {
-        case .start: return "学習開始"
-        case .end: return "学習終了"
+        case .start: return "晩自習開始"
+        case .end: return "晩自習終了"
         }
     }
 }

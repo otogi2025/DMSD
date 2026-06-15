@@ -122,7 +122,7 @@ struct MyLandingView: View {
                     // 2. ⭐ 主要状态 Card 群（学習 / 点呼 / 減点）
                     VStack(spacing: 10) {
                         // IX-008: 学習卡片入口始终显示（itsuki：UI 还是可以看得到），
-                        // 非学習対象点进去由学習详情页显「不需要晚自习」，不在这隐藏。
+                        // 非晩自習対象点进去由学習详情页显「不需要晚自习」，不在这隐藏。
                         studyStatusCard
                         rollcallStatusCard
                         pointsStatusCard
@@ -343,7 +343,7 @@ struct MyLandingView: View {
         .padding(.vertical, 9)
     }
 
-    // MARK: ⭐ 学習ステータス Card
+    // MARK: ⭐ 晩自習ステータス Card
 
     private var studyStatusCard: some View {
         Button { router.go(.myStudy) } label: {
@@ -355,7 +355,7 @@ struct MyLandingView: View {
                     Text("📚").font(.system(size: 22))
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("学習ステータス")
+                    Text("晩自習ステータス")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(T.inkSub)
                     Text(studyStateText)
@@ -2311,15 +2311,15 @@ struct MySettingsView: View {
                     .foregroundStyle(T.inkMute)
                 Card(padding: 0) {
                     VStack(spacing: 0) {
-                        pushDemoRow(label: "学習欠席届 → 承認") {
+                        pushDemoRow(label: "晩自習欠席届 → 承認") {
                             app.simulateStudyLeaveApproved()
                         }
                         Divider().background(T.hair)
-                        pushDemoRow(label: "学習欠席届 → 不承認") {
+                        pushDemoRow(label: "晩自習欠席届 → 不承認") {
                             app.simulateStudyLeaveRejected()
                         }
                         Divider().background(T.hair)
-                        pushDemoRow(label: "学習対象に追加された") {
+                        pushDemoRow(label: "晩自習対象に追加された") {
                             app.simulateStudyRosterAdded()
                         }
                         Divider().background(T.hair)
@@ -2444,7 +2444,7 @@ struct MyAboutView: View {
         .environmentObject(AppStore())
 }
 
-// MARK: - 学習履歴 (system_features §7.3.10) — isStudyTarget のみ
+// MARK: - 晩自習履歴 (system_features §7.3.10) — isStudyTarget のみ
 
 struct MyStudyView: View {
     @EnvironmentObject var app: AppStore
@@ -2480,8 +2480,8 @@ struct MyStudyView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            PageHeader(title: "学習履歴", level: 2)
-            // IX-008: 非学習対象（老师后台未指定）→ 点进来显「不需要晚自习」，不显履历
+            PageHeader(title: "晩自習履歴", level: 2)
+            // IX-008: 非晩自習対象（老师后台未指定）→ 点进来显「不需要晚自习」，不显履历
             // （itsuki：UI 入口可见、点进去显示他不需要晚自习）。
             if app.displayUser.isStudyTarget {
                 ScrollView {
@@ -2502,15 +2502,15 @@ struct MyStudyView: View {
         .background(T.pearl.ignoresSafeArea())
     }
 
-    /// 非晚自习对象学生点进「学習履歴」时看到的提示页。
+    /// 非晚自习对象学生点进「晩自習履歴」时看到的提示页。
     private var notStudyTargetNotice: some View {
         VStack(spacing: 14) {
             Spacer()
             Text("📚").font(.system(size: 44))
-            Text("学習対象外です")
+            Text("晩自習対象外です")
                 .font(.system(size: 17, weight: .heavy))
                 .foregroundStyle(T.ink)
-            Text("現在、晩学習（夜間学習）の対象ではありません。\n学習担当の先生が対象に指定すると、ここに出席状況が表示されます。")
+            Text("現在、晩自習の対象ではありません。\n晩自習担当の先生が対象に指定すると、ここに出席状況が表示されます。")
                 .font(.system(size: 13))
                 .foregroundStyle(T.inkSub)
                 .multilineTextAlignment(.center)
@@ -2528,7 +2528,7 @@ struct MyStudyView: View {
         return Card(padding: 18) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Text("今月の学習出席")
+                    Text("今月の晩自習出席")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(T.inkSub).kerning(1.2)
                     Spacer()
@@ -2578,7 +2578,7 @@ struct MyStudyView: View {
                     Text("📝").font(.system(size: 22))
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("今月の学習欠席届")
+                    Text("今月の晩自習欠席届")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(T.inkSub)
                     HStack(alignment: .lastTextBaseline, spacing: 4) {
@@ -2707,10 +2707,10 @@ struct MyStudyView: View {
 
     private var helpInfoBox: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("ℹ 学習出席は NFC を 1 日 2 回タップ")
+            Text("ℹ 晩自習出席は NFC を 1 日 2 回タップ")
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(T.primaryDk)
-            Text("学習開始 (19:40) ／ 学習終了 (21:45)。2 回揃わない場合は異常扱いとなり、学習担当の先生が手動で判定します。")
+            Text("晩自習開始 (19:40) ／ 晩自習終了 (21:45)。2 回揃わない場合は異常扱いとなり、晩自習担当の先生が手動で判定します。")
                 .font(.system(size: 11.5))
                 .foregroundStyle(T.primaryDk.opacity(0.85))
                 .lineSpacing(3)

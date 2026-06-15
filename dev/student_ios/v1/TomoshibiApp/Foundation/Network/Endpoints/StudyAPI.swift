@@ -2,11 +2,11 @@
 // Foundation · Network · Endpoints — 学習（晚自习）相关 endpoint 包装
 //
 // 学生侧可用的:
-//   - POST /api/v1/study/absence-requests   学習欠席届 提交
+//   - POST /api/v1/study/absence-requests   晩自習欠席届 提交
 //
 // 不在这里的（教师侧 endpoint，学生不会调用）:
-//   - 教师批准 / 拒绝 学習欠席届
-//   - 学習出席 NFC tap 提交（backend 待实装）
+//   - 教师批准 / 拒绝 晩自習欠席届
+//   - 晩自習出席 NFC tap 提交（backend 待实装）
 
 import Foundation
 
@@ -27,7 +27,7 @@ enum StudyAPI {
         let contract_ref: String?
     }
 
-    /// 学習欠席届提交
+    /// 晩自習欠席届提交
     /// - Throws:
     ///   - APIError.unprocessable — 同日重复提交、target_date 范围超过等
     ///   - APIError.unauthorized — 401 → 重新登录
@@ -88,7 +88,7 @@ enum StudyAPI {
         let count: Int
     }
 
-    /// 当月学習欠席届次数 — 当前登录学生（按 target_date 落当月计数，IX-034）。
+    /// 当月晩自習欠席届次数 — 当前登录学生（按 target_date 落当月计数，IX-034）。
     /// 登录 / 启动恢复令牌后调，把 studyLeaveCountThisMonth 从纯内存累加换成真实当月数。
     @MainActor
     static func myAbsenceSummary() async throws -> MyAbsenceSummaryOut {
