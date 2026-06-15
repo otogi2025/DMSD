@@ -745,6 +745,32 @@ def _apply_override_demerit(
     if target is not None:
         points, source_type = target
         existing = by_type.get(source_type)
+        if existing is None:
+            # 无既有行 → INSERT。SAVEPOINT 兜并发：两个老师同时首次改判同一生同场，
+            # 都查无各自 INSERT，第二个撞 uq_demerit_source → 重查另一请求刚建的行、落到下面
+            # 更新分支复活/改值，避免裸 500、也不漏改判。
+            try:
+                with db.begin_nested():
+                    db.add(
+                        models.DemeritEvent(
+                            student_id=student_id,
+                            source_type=source_type,
+                            source_event_id=session.id,
+                            points=points,
+                            reason=f"教師改判 → {to_status}（spec §11.4 重算）",
+                            month=month,
+                            created_by_teacher_id=teacher_id,
+                        )
+                    )
+                    db.flush()
+            except IntegrityError:
+                existing = db.scalar(
+                    select(models.DemeritEvent).where(
+                        models.DemeritEvent.student_id == student_id,
+                        models.DemeritEvent.source_type == source_type,
+                        models.DemeritEvent.source_event_id == session.id,
+                    )
+                )
         if existing is not None:
             existing.points = points
             existing.reason = f"教師改判 → {to_status}（spec §11.4 重算）"
@@ -753,18 +779,6 @@ def _apply_override_demerit(
             existing.revoked_at = None
             existing.revoked_by_teacher_id = None
             existing.revoke_reason = None
-        else:
-            db.add(
-                models.DemeritEvent(
-                    student_id=student_id,
-                    source_type=source_type,
-                    source_event_id=session.id,
-                    points=points,
-                    reason=f"教師改判 → {to_status}（spec §11.4 重算）",
-                    month=month,
-                    created_by_teacher_id=teacher_id,
-                )
-            )
 
 
 # ---------------------------------------------------------------

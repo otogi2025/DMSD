@@ -336,3 +336,57 @@ class TestBulkFinalizeDemoIsolation:
         assert res.status_code == 403, res.text
         detail = res.json().get("detail", {})
         assert detail.get("code") == "DEMO_READONLY"
+
+
+class TestPatchCheckinReabsentRevives:
+    """Q2 回归（codex 第一轮复审 2026-06-15）：缺席→出席→再缺席，扣分必须复活，
+    不能被旧软删行还占着的唯一键挡掉导致漏扣。"""
+
+    def test_absent_present_absent_revives_demerit(
+        self, client, db_session, seed_data, study_teacher_token
+    ):
+        teacher = seed_data["teachers"]["ryomu_kachou"]
+        student = seed_data["student"]
+        today = date.today()
+        _add_to_roster(db_session, student, teacher)
+
+        # 1. finalize → 学生缺席 → 1 条 study_absent 扣分
+        res = client.post(
+            "/api/v1/study/checkins/bulk-finalize",
+            json={},
+            headers={"Authorization": f"Bearer {study_teacher_token}"},
+        )
+        assert res.status_code == 200, res.text
+        assert _count_study_absent_events(db_session, student.id, today) == 1
+
+        # 取该生今天的 absent checkin
+        checkin = db_session.scalar(
+            select(models.StudyCheckin).where(
+                models.StudyCheckin.student_id == student.id,
+                models.StudyCheckin.target_date == today,
+            )
+        )
+        assert checkin is not None and checkin.status == "absent"
+        cid = str(checkin.id)
+
+        # 2. 改成 present → 撤销扣分（count 归 0）
+        r2 = client.patch(
+            f"/api/v1/study/checkins/{cid}",
+            json={"status": "present", "override_reason": "出席確認"},
+            headers={"Authorization": f"Bearer {study_teacher_token}"},
+        )
+        assert r2.status_code == 200, r2.text
+        db_session.expire_all()
+        assert _count_study_absent_events(db_session, student.id, today) == 0
+
+        # 3. 再改回 absent → 扣分必须复活（不能漏）
+        r3 = client.patch(
+            f"/api/v1/study/checkins/{cid}",
+            json={"status": "absent", "override_reason": "やはり欠席"},
+            headers={"Authorization": f"Bearer {study_teacher_token}"},
+        )
+        assert r3.status_code == 200, r3.text
+        db_session.expire_all()
+        assert _count_study_absent_events(db_session, student.id, today) == 1, (
+            "再缺席应复活扣分(不能被旧软删行的唯一键挡掉漏扣)"
+        )

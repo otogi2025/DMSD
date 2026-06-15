@@ -575,22 +575,37 @@ def patch_checkin(
     if old_status == "absent" and new_status != "absent":
         _revoke_study_absent_demerit(db, record, teacher.id)
     elif old_status != "absent" and new_status == "absent":
+        # 重新判缺席：先找本 checkin 既有的 study_absent 扣分（含已撤销的 —— 唯一约束不区分 revoked）。
+        # 有则复活（清 revoked_*）、无则 INSERT。否则「缺席→出席→再缺席」回归路径下，旧软删行还占着
+        # 唯一键，直接 INSERT 会撞约束被静默吞掉、扣分漏记。
         month = record.target_date.strftime("%Y-%m")
-        try:
-            with db.begin_nested():
-                db.add(
-                    models.DemeritEvent(
-                        student_id=record.student_id,
-                        source_type="study_absent",
-                        source_event_id=record.id,
-                        points=STUDY_ABSENT_POINTS,
-                        reason=f"学習欠席（{record.target_date.isoformat()}・手動修正）",
-                        month=month,
-                        created_by_teacher_id=teacher.id,
-                    )
+        existing = db.scalar(
+            select(models.DemeritEvent).where(
+                models.DemeritEvent.student_id == record.student_id,
+                models.DemeritEvent.source_type == "study_absent",
+                models.DemeritEvent.source_event_id == record.id,
+            )
+        )
+        if existing is not None:
+            existing.points = STUDY_ABSENT_POINTS
+            existing.reason = f"学習欠席（{record.target_date.isoformat()}・手動修正）"
+            existing.month = month
+            existing.created_by_teacher_id = teacher.id
+            existing.revoked_at = None
+            existing.revoked_by_teacher_id = None
+            existing.revoke_reason = None
+        else:
+            db.add(
+                models.DemeritEvent(
+                    student_id=record.student_id,
+                    source_type="study_absent",
+                    source_event_id=record.id,
+                    points=STUDY_ABSENT_POINTS,
+                    reason=f"学習欠席（{record.target_date.isoformat()}・手動修正）",
+                    month=month,
+                    created_by_teacher_id=teacher.id,
                 )
-        except IntegrityError:
-            pass
+            )
 
     record.status = new_status
     record.overridden_by = teacher.id

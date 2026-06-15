@@ -291,3 +291,41 @@ class TestProfileIncludesOnline:
         assert entry["contract_file_name"] == "contract.pdf"
         assert entry["contract_mime"] == "application/pdf"
         assert entry["contract_size"] == len(PDF_BYTES)
+
+
+class TestReuploadKeepsOldContract:
+    """Q4 回归（codex 第一轮复审 2026-06-15）：已有合同时再传超大文件失败，旧合同必须完好
+    （不被 open(,"wb") 截断、不被删）—— 改流式后写 .tmp + os.replace 原子替换保证。"""
+
+    def test_reupload_too_large_keeps_old_contract(self, client, student_token):
+        import glob
+        import os
+
+        rid = _create_request(client, student_token)
+        # 1. 先成功传一份小 PDF
+        r1 = _upload(client, student_token, rid, name="ok.pdf", body=PDF_BYTES)
+        assert r1.status_code == 200, r1.text
+        contracts_dir = os.path.join(get_settings().upload_dir, "contracts")
+        matches = [
+            m
+            for m in glob.glob(os.path.join(contracts_dir, f"{rid}.*"))
+            if not m.endswith(".tmp")
+        ]
+        assert len(matches) == 1, f"应有 1 份合同文件，实际 {matches}"
+        old_abs = matches[0]
+        with open(old_abs, "rb") as f:
+            assert f.read() == PDF_BYTES
+
+        # 2. 再传超大 → 422
+        big = b"x" * (10 * 1024 * 1024 + 1)
+        r2 = _upload(client, student_token, rid, name="big.pdf", body=big)
+        assert r2.status_code == 422, r2.text
+
+        # 3. 旧合同必须完好（没被截断、没被删）
+        assert os.path.isfile(old_abs), "重传失败不应删旧合同"
+        with open(old_abs, "rb") as f:
+            assert f.read() == PDF_BYTES, "重传失败不应截断旧合同"
+        # 不留 .tmp 残留
+        assert not glob.glob(os.path.join(contracts_dir, "*.tmp")), (
+            "失败后不应残留 .tmp"
+        )
