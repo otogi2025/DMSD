@@ -136,6 +136,12 @@ final class APIClient {
         try await request(method: "PUT", path: path, body: body)
     }
 
+    /// 无响应体的 POST —— 后端返回 204 No Content 的幂等接口（如学生通知「标记已读」）。
+    /// 仿 delete，内部用 EmptyResponse 吃掉空 body，调用方不必关心返回类型。
+    func postNoContent<Req: Encodable>(path: String, body: Req) async throws {
+        let _: EmptyResponse = try await request(method: "POST", path: path, body: body)
+    }
+
     func delete(path: String) async throws {
         let _: EmptyResponse = try await request(method: "DELETE", path: path, body: nil as String?)
     }

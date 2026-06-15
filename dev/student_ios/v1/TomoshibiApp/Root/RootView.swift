@@ -103,6 +103,7 @@ struct RootView: View {
         case .myPointsChart: MyPointsChartView()
         case .myDiscipline: MyDisciplineView()
         case .myHealth: MyHealthView()
+        case .myClean: MyCleanView()
         case .myPackages: MyPackagesView()
         case .mySettings: MySettingsView()
         case .myAbout: MyAboutView()

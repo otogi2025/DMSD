@@ -56,6 +56,7 @@ enum Route: Hashable {
     case myPointsChart
     case myDiscipline
     case myHealth
+    case myClean // 罰則清掃 履歴（功能① · GET /cleaning/me）
     case myPackages
     case mySettings
     case myAbout
@@ -114,6 +115,7 @@ enum Route: Hashable {
         case .myPointsChart: return "グラフ"
         case .myDiscipline: return "処分履歴"
         case .myHealth: return "体調報告履歴"
+        case .myClean: return "罰則清掃 履歴"
         case .myPackages: return "宅配履歴"
         case .mySettings: return "設定"
         case .myAbout: return "Tomoshibi について"
@@ -148,7 +150,7 @@ enum Route: Hashable {
     var isMyBranch: Bool {
         switch self {
         case .my, .myInfo, .myInfoEdit, .myRollcall, .myRollcallDetail, .myPoints, .myPointsChart,
-             .myDiscipline, .myHealth, .myPackages, .mySettings, .myAbout, .myStudy,
+             .myDiscipline, .myHealth, .myClean, .myPackages, .mySettings, .myAbout, .myStudy,
              .stayList, .stayDetail, .stayEdit, .schedule, .busList:
             return true
         default: return false

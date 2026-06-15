@@ -108,14 +108,18 @@ final class AppStore: ObservableObject {
                     announcements = []
                     announcementDetails = [:]
                     announcementUnreadCount = 0
+                    studentNotifications = []
+                    studentNotificationUnreadCount = 0
                     packages = []
                     studyLeaveCountThisMonth = 0
+                    cleaningHistory = []
                     songRequests = []
                     lostFound = []
                     myRollcallEvents = []
                     myDemeritEvents = []
                     // codex m-1: 列表加载三态也要重置，否则下个登录用户短暂看到上个账号的失败 / 加载文案
                     profileState = .idle
+                    cleaningHistoryState = .idle
                     songsState = .idle
                     lostFoundState = .idle
                 #endif
@@ -173,6 +177,7 @@ final class AppStore: ObservableObject {
     }
 
     @Published var profileState: ListLoadState = .idle // 减点⑧+点呼⑦ 共用 loadMyProfile
+    @Published var cleaningHistoryState: ListLoadState = .idle
     @Published var songsState: ListLoadState = .idle
     @Published var lostFoundState: ListLoadState = .idle
 
@@ -234,6 +239,9 @@ final class AppStore: ObservableObject {
                     mapped.points = summary.total_points
                     mapped.lateCount = summary.late_count
                     mapped.absentCount = summary.absent_count
+                    // 罚扫对象 flag：优先后端实时算 needs_cleaning，缺省本地按 total_points>=4 兜底
+                    // （needs_cleaning 是 Bool?，防后端字段名敲定前 / 旧后端没返时整段 summary 解码失败）。
+                    mapped.needsCleaning = summary.needs_cleaning ?? (summary.total_points >= 4)
                 }
                 // IX-034: 再拉当月晩自習欠席届次数（按月真实数，替代纯内存累加 —
                 //   重启 / 跨月不再丢失）。拉不到 nil 保持原值，不打断登录。
@@ -257,12 +265,17 @@ final class AppStore: ObservableObject {
                 // IX-009：登录 / 启动即拉公告未読数，让 Home 铃铛 badge 首屏就准
                 // （announcements 列表是懒加载、首屏可能空；这里只拉轻量 count）。
                 await loadAnnouncementUnreadCount()
+                // §7.13.1：登录 / 启动即拉学生通知 feed，让 Home 铃铛 badge 首屏含通知未読数
+                // （feed 是进通知中心才刷的，不在这拉则首屏 badge 漏掉巴士/行事/通知公告的未読）。
+                await loadStudentNotifications()
                 // IX-009：登录 / 启动即拉包裹，让 Home 铃铛 badge 首屏含包裹未読。
                 await loadMyPackages()
                 // IX-009：补报启动时还没登录就拿到的 APNs deviceToken。
                 await flushDeviceTokenIfPossible()
                 // R-1/R-2：拉今日点呼场次，驱动首页点呼卡真实状态（idle/进行中/時間内/遅刻/欠席）
                 await loadTodayRollcall()
+                // 罚扫：拉本人罚扫安排，驱动主页「下次罚扫」小卡 + 履历页首屏
+                await loadCleaningHistory()
             } catch APIError.unauthorized {
                 // 令牌过期 / 失效（401）→ 清令牌强制重登（didSet 会清 currentUser + 复位 SEED.user），
                 // 不再默默回退到演示假人身份。
@@ -475,6 +488,66 @@ final class AppStore: ObservableObject {
 
     /// 详情 cache — 按 id 缓存，回复发完后 append 到对应 detail
     @Published var announcementDetails: [String: AnnouncementDetail] = [:]
+
+    // MARK: - 学生通知中心 feed（2026-06-15 加，spec §7.13.1）
+
+    //
+    // 老师投稿 公告/巴士/行事 时勾「学生に通知する」(notify_students) 的内容，由后端统一聚合成
+    // 一个 feed 返回（按学生可见范围过滤）。替代原「拉全部公告自映射成通知」(announcementNotifications)，
+    // 改由后端单一真值 + notify_students 开关控制哪条进通知中心，也为将来 Android 复用同一接口铺路。
+
+    /// 通知中心 feed 缓存（生产构建用；refreshNotificationSources / loadMe 拉真后端填）。
+    @Published var studentNotifications: [StudentNotificationItem] = []
+
+    /// feed 未読数 —— Home 铃铛 badge 用（loadMe 登录/启动即拉，首屏不依赖进通知中心）。
+    @Published var studentNotificationUnreadCount: Int = 0
+
+    /// 拉学生通知 feed（items + 未読数）。带令牌守卫，登出/切用户不写回旧用户数据。
+    @MainActor
+    func loadStudentNotifications() async {
+        #if DEMO
+            return // 演示构建用 SEED.notifications 撑叙事，不拉后端
+        #else
+            let tokenAtStart = authToken
+            do {
+                let feed = try await StudentNotificationsAPI.feed()
+                guard authToken == tokenAtStart else { return }
+                studentNotifications = feed.items
+                studentNotificationUnreadCount = feed.unreadCount
+            } catch {
+                // 401 → 集中清令牌触发重登；非 401 静默，下次刷新再试（不阻塞通知中心其他源）。
+                if handleIfUnauthorized(error, tokenAtStart: tokenAtStart) { return }
+            }
+        #endif
+    }
+
+    /// 标记一条 feed 通知已读（点通知卡片时调）。乐观更新：本条翻已読 + 未読数减 1。
+    /// 公告写 announcement_reads / 巴士·行事写 student_notification_reads（后端幂等）。
+    @MainActor
+    func markStudentNotificationRead(kind: String, refId: UUID) async {
+        #if DEMO
+            return
+        #else
+            let tokenAtStart = authToken
+            // 找不到 / 已是已读 → 不发重复请求
+            guard let idx = studentNotifications.firstIndex(where: { $0.kind == kind && $0.refId == refId }),
+                  !studentNotifications[idx].isRead else { return }
+            do {
+                try await StudentNotificationsAPI.markRead(kind: kind, refId: refId)
+                guard authToken == tokenAtStart else { return }
+                // await 后数组可能已变 → 重新定位再翻已読
+                if let i = studentNotifications.firstIndex(where: { $0.kind == kind && $0.refId == refId }),
+                   !studentNotifications[i].isRead
+                {
+                    studentNotifications[i].isRead = true
+                    studentNotificationUnreadCount = max(0, studentNotificationUnreadCount - 1)
+                }
+            } catch {
+                if handleIfUnauthorized(error, tokenAtStart: tokenAtStart) { return }
+                // 非 401：标已读失败不影响显示，静默（下次刷新 feed 会带回真实已読态）
+            }
+        #endif
+    }
 
     /// 拉未读数
     func loadAnnouncementUnreadCount() async {
@@ -1092,6 +1165,80 @@ final class AppStore: ObservableObject {
         }
     }
 
+    // MARK: - 罚扫提出履历（功能① · GET /api/v1/cleaning/me）
+
+    /// 当前学生的罚扫安排 + 检查结果缓存（生产构建用，loadCleaningHistory 拉真后端填）。
+    @Published var cleaningHistory: [CleaningAssignmentOut] = []
+
+    /// 拉当前学生的罚扫履历（后端按计划时刻倒序）。带令牌守卫 —— 登出 / 切用户不写回旧用户数据。
+    @MainActor
+    func loadCleaningHistory() async {
+        let tokenAtStart = authToken
+        cleaningHistoryState = .loading
+        do {
+            let items = try await CleaningAPI.listMine()
+            guard authToken == tokenAtStart else { return }
+            cleaningHistory = items
+            cleaningHistoryState = .loaded
+        } catch {
+            // 401 令牌过期 → 集中清令牌触发重登（跟 loadSongs 对齐）。
+            if handleIfUnauthorized(error, tokenAtStart: tokenAtStart) { return }
+            guard authToken == tokenAtStart else { return } // 切用户/登出后不写回旧状态
+            cleaningHistoryState = .failed(APIErrorPresenter.userMessage(for: error, fallback: "罰則清掃の取得に失敗しました"))
+        }
+    }
+
+    /// 主页「下次罚扫」小卡数据：取未完成、scheduled_at 最早的一条；没有则 nil（小卡不显示）。
+    var nextCleaning: NextCleaningInfo? {
+        #if DEMO
+            // 演示：SEED.cleaning 里挑「未完成」的一条
+            guard let c = SEED.cleaning.first(where: { $0.status == "未提出" || $0.status == "未完成" }) else { return nil }
+            return NextCleaningInfo(dateText: c.dateLabel, timeText: c.timeLabel, area: c.range)
+        #else
+            // 正式：cleaningHistory 里未完成（assigned/done，未 passed/failed/skipped）+ scheduled_at 最早
+            let pending = cleaningHistory
+                .filter { $0.status == "assigned" || $0.status == "done" }
+                .sorted { $0.scheduled_at < $1.scheduled_at }
+            guard let c = pending.first else { return nil }
+            return NextCleaningInfo(
+                dateText: Self.jstMonthDay.string(from: c.scheduled_at),
+                timeText: Self.jstHour.string(from: c.scheduled_at),
+                area: c.area
+            )
+        #endif
+    }
+
+    // 下面 3 个 formatter 标 nonisolated —— AppStore 是 @MainActor，静态属性默认继承隔离，
+    // 但 CleaningDisplay.init(real:) 是普通 struct init（非隔离上下文）要读它们。
+    // DateFormatter 不可变引用、只读用，跨上下文安全，故 nonisolated。
+
+    /// M月d日（JST）— 「下次罚扫」小卡日期
+    nonisolated static let jstMonthDay: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ja_JP")
+        f.dateFormat = "M月d日"
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
+        return f
+    }()
+
+    /// H時（JST）— 「下次罚扫」小卡时刻
+    nonisolated static let jstHour: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ja_JP")
+        f.dateFormat = "H時"
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
+        return f
+    }()
+
+    /// M月d日 H時（JST）— 罚扫履历行日期+时刻
+    nonisolated static let jstDateTimeLabel: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ja_JP")
+        f.dateFormat = "M月d日 H時"
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
+        return f
+    }()
+
     // MARK: - 点歌一览（功能④ · GET /api/v1/songs）
 
     /// 点歌一览缓存（生产构建用，loadSongs 拉真后端填；后端已新→旧排序）。
@@ -1178,29 +1325,43 @@ final class AppStore: ObservableObject {
 
     /// 通知中心显示用。
     /// - 演示构建：push（接通前空）+ SEED.notifications fixture，撑住演示叙事。
-    /// - 生产构建：push + 真公告映射（announcementNotifications），不再泄漏 SEED 假通知（IX-009）。
-    ///   审批结果 / 包裹通知聚合见 handoff §7.3（待拍板：申请列表未在 AppStore 缓存 + 后端无已读态）。
+    /// - 生产构建：push + 学生通知 feed（feedNotifications）+ 包裹，不再泄漏 SEED 假通知（IX-009）。
+    ///   §7.13.1：feed = 老师勾了「学生に通知する」的 公告/巴士/行事，替代原「拉全部公告自映射」announcementNotifications。
     var allNotifications: [NotificationItem] {
         #if DEMO
             return pushNotifications + SEED.notifications
         #else
-            return pushNotifications + announcementNotifications + packageNotifications
+            return pushNotifications + feedNotifications + packageNotifications
         #endif
     }
 
-    /// IX-009：把真公告缓存（AnnouncementsAPI 拉来的 announcements）映射成通知卡。
-    /// - type「お知らせ」：通知中心「すべて」标签下显示；未読 = 公告未読 → 驱动铃铛 badge。
-    /// - id 用负数（按列表序）—— push 的 id 是正数（≥1000），两者绝不相撞。
-    private var announcementNotifications: [NotificationItem] {
-        announcements.enumerated().map { idx, a in
+    /// §7.13.1：把后端学生通知 feed（studentNotifications）映射成通知卡。
+    /// 替代原 announcementNotifications（IX-009 的「拉全部公告自映射」）—— 现在 公告/巴士/行事
+    /// 由后端按 notify_students 开关 + 学生可见范围统一聚合，老师没勾「通知」的不进来。
+    /// - type 按 kind 分：announcement→「お知らせ」/ bus→「バス」/ event→「カレンダー」（都在「すべて」标签显示）。
+    /// - id 用负数（按列表序）—— push 的 id 是正数（≥1000）、包裹用大负数，三段不相撞。
+    /// - kind / refId 带上 → 点卡片调 markStudentNotificationRead 标已读。
+    private var feedNotifications: [NotificationItem] {
+        studentNotifications.enumerated().map { idx, n in
             NotificationItem(
                 id: -(idx + 1),
-                type: "お知らせ",
-                title: a.title,
-                time: Self.notifTimeLabel(a.createdAt),
-                body: a.bodySummary,
-                unread: !a.isRead
+                type: Self.feedNotifType(n.kind),
+                title: n.title,
+                time: Self.notifTimeLabel(n.createdAt),
+                body: n.body,
+                unread: !n.isRead,
+                kind: n.kind,
+                refId: n.refId
             )
+        }
+    }
+
+    /// feed kind → 通知中心 UI 分类标签。
+    private static func feedNotifType(_ kind: String) -> String {
+        switch kind {
+        case "bus": return "バス"
+        case "event": return "カレンダー"
+        default: return "お知らせ" // announcement
         }
     }
 
@@ -1213,11 +1374,10 @@ final class AppStore: ObservableObject {
         return f.string(from: d)
     }
 
-    /// 进入通知中心时刷新通知来源。生产拉真公告列表 + 未読数；演示构建不动（用 SEED）。
+    /// 进入通知中心时刷新通知来源。生产拉学生通知 feed + 包裹；演示构建不动（用 SEED）。
     func refreshNotificationSources() async {
         #if !DEMO
-            try? await loadAnnouncementList()
-            await loadAnnouncementUnreadCount()
+            await loadStudentNotifications()
             await loadMyPackages()
         #endif
     }
@@ -1227,15 +1387,14 @@ final class AppStore: ObservableObject {
         #if DEMO
             return allNotifications.filter { $0.unread }.count
         #else
-            // 生产：announcements 列表是懒加载的（只在通知/公告页 .task 拉），首屏 Home 可能为空 →
-            // badge 用后端真实未読数 announcementUnreadCount（loadMe 登录/启动即拉），首屏不依赖列表是否加载（IX-009）。
-            // 清单 #28：列表一旦加载（announcements 非空），改用列表自身的未読条数 —— 与通知中心
-            //   allNotifications 的 announcementNotifications 同源，避免某条详情已读后列表已减、badge 仍用
-            //   后端旧 count 而两边数字对不上的中间态。列表为空（未加载）时仍回退后端 count。
-            let announcementUnread = announcements.isEmpty
-                ? announcementUnreadCount
-                : announcements.filter { !$0.isRead }.count
-            return pushNotifications.filter { $0.unread }.count + announcementUnread
+            // 生产：feed 是进通知中心才刷的、首屏 Home 可能还没拉 → badge 用后端 feed 未読数
+            //   studentNotificationUnreadCount（loadMe 登录/启动即拉），首屏不依赖是否进过通知中心（§7.13.1）。
+            //   feed 一旦加载（studentNotifications 非空），改用列表自身未読条数 —— 与通知中心 feedNotifications 同源，
+            //   避免某条点已读后列表已减、badge 仍用后端旧 count 对不上的中间态。空（未加载）时回退后端 count。
+            let feedUnread = studentNotifications.isEmpty
+                ? studentNotificationUnreadCount
+                : studentNotifications.filter { !$0.isRead }.count
+            return pushNotifications.filter { $0.unread }.count + feedUnread
                 + packageNotifications.filter { $0.unread }.count
         #endif
     }

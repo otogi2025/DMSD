@@ -175,6 +175,12 @@ struct NotificationsView: View {
                 }
             }
         }
+        // §7.13.1：点后端 feed 来源通知（kind/refId 非 nil）→ 标已读；push/宅配/SEED 无 kind 不响应。
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard let kind = n.kind, let refId = n.refId, n.unread else { return }
+            Task { await app.markStudentNotificationRead(kind: kind, refId: refId) }
+        }
     }
 
     /// 对等 JSX: n.type==='減点'?'warn':n.type==='申請'?'ok':'accent'

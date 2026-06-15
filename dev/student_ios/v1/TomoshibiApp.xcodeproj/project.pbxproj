@@ -22,6 +22,7 @@
 		3C37F26FA83CA7D697E12260 /* TTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCAE320FB742688FEDA8AD6A /* TTokens.swift */; };
 		3F57F0E82139A1345857FA2B /* AuthAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 957056CB9FD91DC0E2D033C9 /* AuthAPI.swift */; };
 		4737D096D1DEED27D8472AC0 /* SheetKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = B522E5E1E9C32585E0C4AF54 /* SheetKind.swift */; };
+		487A2063AD2055FCB58D0D41 /* CleaningAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6DD25F46AB2CD84E3B64879 /* CleaningAPI.swift */; };
 		4A8821C5C58789727530CE99 /* RouterStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D12E5F5519B6567648A2C5E0 /* RouterStore.swift */; };
 		4CC4A649A5CBA03229C7BF17 /* StudyOnlineForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28E8541F23E43B67EBF8C833 /* StudyOnlineForm.swift */; };
 		4EF492AEB1CA2FF4273DBCCF /* StayListStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B7B19307005D8E2D07B44D /* StayListStubs.swift */; };
@@ -54,6 +55,7 @@
 		C75ED6393B19EBBEE7CA1A15 /* OutingsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 492E8FE746273F00BC46D772 /* OutingsAPI.swift */; };
 		C95132AC0325A890FD2EF1AF /* RollStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 738D063BBD4F7D59CAA43BDB /* RollStateMachineTests.swift */; };
 		CB5C431AB69BF972FFB160CB /* HomeStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89293A7DB55301A3F1DDE5EE /* HomeStubs.swift */; };
+		CB6C60EBF2E8B39D99D2EBFB /* StudentNotificationsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DDADF6E6A307FDC44A24B71 /* StudentNotificationsAPI.swift */; };
 		CF76384DA126CF63F99BE13E /* StudyAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD89B96B9E1EC056A73411B6 /* StudyAPI.swift */; };
 		D802FA046E6B50B968F5826F /* MyPageStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E749CA72863EC4E0022C7B6 /* MyPageStubs.swift */; };
 		DA74DBACDF5EF9838F3C3074 /* ContractFilePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CBDB568ECB28D9A0A03BAD7 /* ContractFilePicker.swift */; };
@@ -102,6 +104,7 @@
 		3890FA991AB039C6830E6710 /* GlobalOverlays.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalOverlays.swift; sourceTree = "<group>"; };
 		3BFEC1BD19A61E61CD73B258 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		3CBDB568ECB28D9A0A03BAD7 /* ContractFilePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractFilePicker.swift; sourceTree = "<group>"; };
+		3DDADF6E6A307FDC44A24B71 /* StudentNotificationsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudentNotificationsAPI.swift; sourceTree = "<group>"; };
 		42E4AC21AB2A9B05C9FDAD19 /* NetworkModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkModels.swift; sourceTree = "<group>"; };
 		442041B74BB2BF0DA65D37EE /* ScheduleStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleStubs.swift; sourceTree = "<group>"; };
 		45EEA8DBC6162B90B9119E85 /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
@@ -138,6 +141,7 @@
 		B2FD432EFB4459068B330D99 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		B522E5E1E9C32585E0C4AF54 /* SheetKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SheetKind.swift; sourceTree = "<group>"; };
 		B6BED925E6CDEDFF9B146D29 /* RollCallAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RollCallAPI.swift; sourceTree = "<group>"; };
+		B6DD25F46AB2CD84E3B64879 /* CleaningAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleaningAPI.swift; sourceTree = "<group>"; };
 		BA2858BE1F7C0F629E01ED97 /* CACHEDIR.TAG */ = {isa = PBXFileReference; path = CACHEDIR.TAG; sourceTree = "<group>"; };
 		C4ADECD57FEC5CA168619042 /* SeedModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeedModels.swift; sourceTree = "<group>"; };
 		CDA09D5E1B32E11CFD9CD320 /* LostFoundAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LostFoundAPI.swift; sourceTree = "<group>"; };
@@ -162,6 +166,7 @@
 				350CA686A2E4CE6284AA20D8 /* ApplicationsCreateBodies.swift */,
 				957056CB9FD91DC0E2D033C9 /* AuthAPI.swift */,
 				8771AACE31B06D1D9DAF7044 /* BusAPI.swift */,
+				B6DD25F46AB2CD84E3B64879 /* CleaningAPI.swift */,
 				AFDFE87D987EF1A14F86E420 /* DormLifeAPI.swift */,
 				AE8464C86A7E2262CDCEA498 /* EventsAPI.swift */,
 				CDA09D5E1B32E11CFD9CD320 /* LostFoundAPI.swift */,
@@ -169,6 +174,7 @@
 				492E8FE746273F00BC46D772 /* OutingsAPI.swift */,
 				B6BED925E6CDEDFF9B146D29 /* RollCallAPI.swift */,
 				5ADCD09C35CE74209B76A719 /* SongsAPI.swift */,
+				3DDADF6E6A307FDC44A24B71 /* StudentNotificationsAPI.swift */,
 				6C029EB0842D846493CFE168 /* StudentProfileAPI.swift */,
 				DD89B96B9E1EC056A73411B6 /* StudyAPI.swift */,
 			);
@@ -560,6 +566,7 @@
 				2B6C0691DF7E81796FBFF7B8 /* BreadcrumbOverlay.swift in Sources */,
 				32687849989CCFB7709FF663 /* BusAPI.swift in Sources */,
 				262922121023D44B3A752345 /* BusListStubs.swift in Sources */,
+				487A2063AD2055FCB58D0D41 /* CleaningAPI.swift in Sources */,
 				E4AB919291B8E27C9C51FCA0 /* CommunityStubs.swift in Sources */,
 				DA74DBACDF5EF9838F3C3074 /* ContractFilePicker.swift in Sources */,
 				B1E6FCA177F7821D3694AE43 /* DormLifeAPI.swift in Sources */,
@@ -592,6 +599,7 @@
 				4737D096D1DEED27D8472AC0 /* SheetKind.swift in Sources */,
 				106D9C75A679DE11CFCD0644 /* SongsAPI.swift in Sources */,
 				4EF492AEB1CA2FF4273DBCCF /* StayListStubs.swift in Sources */,
+				CB6C60EBF2E8B39D99D2EBFB /* StudentNotificationsAPI.swift in Sources */,
 				72E6FABAE44A6BCEEF2FE168 /* StudentProfileAPI.swift in Sources */,
 				CF76384DA126CF63F99BE13E /* StudyAPI.swift in Sources */,
 				4CC4A649A5CBA03229C7BF17 /* StudyOnlineForm.swift in Sources */,

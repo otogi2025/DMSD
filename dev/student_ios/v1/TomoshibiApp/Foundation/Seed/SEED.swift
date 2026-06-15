@@ -24,6 +24,7 @@ enum SEED {
         points: 4.5,
         lateCount: 5,
         absentCount: 2,
+        needsCleaning: true, // 4.5 点 ≥ 4 → 罚扫对象（演示走真字段，叙事更干净）
         grade: "高3",
         classSuffix: "B",
         seatNo: 18
@@ -67,6 +68,17 @@ enum SEED {
     static let health: [HealthRecord] = [
         .init(date: "2026-04-14", sym: "頭痛", temp: 37.2, note: "午後ずっと頭が重い"),
         .init(date: "2026-04-03", sym: "腹痛", temp: nil, note: ""),
+    ]
+
+    /// 罚扫（罰則清掃）演示假数据。#if 无关：纯静态，演示页读、正式页不读
+    /// （MyCleanView.rows / nextCleaning 演示分支用 #if DEMO 守卫）。跟其他 SEED 数组一致，别包进 #if DEMO。
+    static let cleaning: [CleaningRecord] = [
+        // 未完成（未来）— 主页「下次罚扫」小卡 + 履历页顶部显示
+        .init(date: "2026-05-20", time: "19:00", range: "玄関まわり", status: "未完成", score: nil, rejected: false, comment: nil),
+        // 通過
+        .init(date: "2026-04-19", time: "19:00", range: "部屋", status: "通過", score: 5, rejected: false, comment: nil),
+        // 退回（却下）
+        .init(date: "2026-04-05", time: "19:00", range: "共用エリア", status: "退回", score: nil, rejected: true, comment: "床が汚れている"),
     ]
 
     static let packages: [PackageItem] = [

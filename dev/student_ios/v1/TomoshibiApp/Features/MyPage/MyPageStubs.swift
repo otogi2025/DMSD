@@ -98,6 +98,7 @@ struct MyLandingView: View {
             .init(key: "discipline", label: "処分履歴", icon: "exclamationmark.triangle", badge: nil, route: .myDiscipline),
             .init(key: "health", label: "体調報告履歴", icon: "cross.case", badge: nil, route: .myHealth),
             .init(key: "apps", label: "申請履歴", icon: "doc.text", badge: nil, route: .stayList),
+            .init(key: "clean", label: "罰則清掃 履歴", icon: "sparkles", badge: nil, route: .myClean),
             .init(key: "packages", label: "荷物受取履歴", icon: "shippingbox", badge: packagesBadge, route: .myPackages),
         ]
     }
@@ -1515,7 +1516,7 @@ struct MyPointsView: View {
                     }
                     .padding(.bottom, 16)
 
-                    // Progress bar with threshold marker (0 / 8)
+                    // Progress bar with threshold markers (0 / 4 / 8)
                     progressBar
                         .padding(.bottom, 16)
 
@@ -1566,7 +1567,7 @@ struct MyPointsView: View {
                                 .font(.system(size: 12))
                                 .foregroundStyle(T.inkSub)
                         }
-                        Text("月累計 8 点で外出禁止")
+                        Text("月累計 4 点で清掃罰則 · 月累計 8 点で外出禁止")
                             .font(.system(size: 12))
                             .foregroundStyle(T.inkSub)
                             .padding(.top, 2)
@@ -1614,7 +1615,7 @@ struct MyPointsView: View {
         .padding(.vertical, 14)
     }
 
-    /// 进度条 0 → 8 with threshold marker at 8 (外出禁止)
+    /// 进度条 0 → 8 with threshold markers at 4 (清掃) / 8 (外出禁止)
     private var progressBar: some View {
         let maxVal: Double = 8
         let v = min(app.displayUser.points, maxVal)
@@ -1633,7 +1634,12 @@ struct MyPointsView: View {
                         ))
                         .frame(width: geo.size.width * CGFloat(ratio), height: 8)
 
-                    // Threshold marker 8 (at far right, visible as small cap)
+                    // Threshold marker 4 (清掃罰則 · warn 橙)
+                    Rectangle()
+                        .fill(T.warn)
+                        .frame(width: 2, height: 14)
+                        .offset(x: geo.size.width * CGFloat(4.0 / maxVal) - 1, y: 0)
+                    // Threshold marker 8 (外出禁止 · danger 赤，far right small cap)
                     Rectangle()
                         .fill(T.danger)
                         .frame(width: 2, height: 14)
@@ -1648,6 +1654,10 @@ struct MyPointsView: View {
                     .font(.system(size: 10))
                     .monospaced()
                     .foregroundStyle(T.inkMute)
+                Spacer()
+                Text("4 清掃罰則")
+                    .font(.system(size: 10))
+                    .foregroundStyle(T.warnDeep)
                 Spacer()
                 Text("8 外出禁止")
                     .font(.system(size: 10))
@@ -1720,6 +1730,14 @@ struct MyPointsChartView: View {
                                 Spacer()
                                 HStack(spacing: 6) {
                                     Rectangle()
+                                        .fill(T.warn)
+                                        .frame(width: 14, height: 2)
+                                    Text("清掃罰則閾値")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(T.inkSub)
+                                }
+                                HStack(spacing: 6) {
+                                    Rectangle()
                                         .fill(T.danger)
                                         .frame(width: 14, height: 2)
                                     Text("外出禁止閾値")
@@ -1745,7 +1763,7 @@ struct MyPointsChartView: View {
         }
     }
 
-    /// 对等 JSX SVG viewBox 0 0 320 180 · gridlines 0/2/4/6/8 · 1 threshold line (8) · path + dots + x labels
+    /// 对等 JSX SVG viewBox 0 0 320 180 · gridlines 0/2/4/6/8 · 2 threshold lines (4/8) · path + dots + x labels
     private var chartCanvas: some View {
         let md = monthlyData // 取一次（演示固定 / 生产按月聚合），避免 Canvas 闭包内重复计算
         let values = md.values
@@ -1786,6 +1804,12 @@ struct MyPointsChartView: View {
                         .foregroundColor(T.inkMute)
                     ctx.draw(text, at: CGPoint(x: 10, y: y), anchor: .leading)
                 }
+
+                // Threshold line 4 (warn · orange dashed) — 清掃罰則閾値
+                var th4 = Path()
+                th4.move(to: CGPoint(x: left, y: yFor(4)))
+                th4.addLine(to: CGPoint(x: right, y: yFor(4)))
+                ctx.stroke(th4, with: .color(T.warn), style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
 
                 // Threshold line 8 (danger · red dashed)
                 var th8 = Path()
@@ -2011,6 +2035,151 @@ struct MyHealthView: View {
 #Preview("MyHealth") {
     MyHealthView()
         .environmentObject(RouterStore(initial: .myHealth))
+        .environmentObject(AppStore())
+}
+
+// MARK: - 9. MyCleanView (L2)
+
+/// 罚扫（罰則清掃）履历卡片视图模型 —— 演示（SEED.cleaning）/ 生产（CleaningAssignmentOut）归一成同一套展示字段。
+struct CleaningDisplay: Identifiable {
+    let id: String
+    let range: String // 清扫地点（演示=range / 生产=area）
+    let date: String // 日付+時刻（演示=dateLabel+timeLabel / 生产=scheduled_at 格式化）
+    let pillText: String // Pill 文案（演示可含「· N点」/ 生产仅状态文字，后端无分数）
+    let tone: Pill.Tone // Pill 配色
+    let rejected: Bool // 却下 → 显示理由块
+    let comment: String? // 却下理由（演示=comment / 生产=failure_reason）
+}
+
+extension CleaningDisplay {
+    /// 演示构建：从 SEED.cleaning 映射（状态本就是日语「通過 / 退回 / 未完成」、带分数）。
+    init(demo c: CleaningRecord) {
+        self.init(
+            id: "\(c.date):\(c.range)",
+            range: c.range,
+            date: "\(c.dateLabel) \(c.timeLabel)", // 改动1：日付+時刻
+            pillText: c.score.map { "\(c.status) · \($0)点" } ?? c.status,
+            // 通過→ok / 退回→danger / 未完成（及其余）→accent
+            tone: c.status == "通過" ? .ok : (c.status == "退回" ? .danger : .accent),
+            rejected: c.rejected,
+            comment: c.comment
+        )
+    }
+
+    /// 生产构建：从后端 CleaningAssignmentOut 映射。后端无分数 → Pill 仅显状态文字。
+    init(real a: CleaningAssignmentOut) {
+        self.init(
+            id: a.id.uuidString,
+            range: a.area,
+            date: AppStore.jstDateTimeLabel.string(from: a.scheduled_at), // 改动1：Date → "M月d日 H時" 展示
+            pillText: Self.statusLabel(a.status),
+            tone: Self.statusTone(a.status),
+            rejected: a.status == "failed",
+            comment: a.failure_reason
+        )
+    }
+
+    /// 后端状态 → 日语展示文案。
+    static func statusLabel(_ s: String) -> String {
+        switch s {
+        case "passed": return "通過"
+        case "failed": return "退回"
+        case "done": return "提出済"
+        case "assigned": return "未提出"
+        case "skipped": return "免除"
+        default: return s
+        }
+    }
+
+    /// 后端状态 → Pill 配色（passed=ok / failed=danger / done=accent / 其余=neutral）。
+    static func statusTone(_ s: String) -> Pill.Tone {
+        switch s {
+        case "passed": return .ok
+        case "failed": return .danger
+        case "done": return .accent
+        default: return .neutral
+        }
+    }
+}
+
+struct MyCleanView: View {
+    @EnvironmentObject var app: AppStore
+
+    /// 演示=SEED 假数据 / 生产=后端真数据，靠 #if DEMO 守卫，归一成 CleaningDisplay。
+    private var rows: [CleaningDisplay] {
+        #if DEMO
+            return SEED.cleaning.map(CleaningDisplay.init(demo:))
+        #else
+            return app.cleaningHistory.map(CleaningDisplay.init(real:))
+        #endif
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            PageHeader(title: "罰則清掃 履歴", level: 2)
+            ScrollView {
+                VStack(spacing: 10) {
+                    ForEach(rows) { c in
+                        Card(padding: 14) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack(alignment: .center) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(c.range)
+                                            .font(.system(size: 14, weight: .bold))
+                                            .foregroundStyle(T.ink)
+                                        Text(c.date)
+                                            .font(.system(size: 11))
+                                            .monospaced()
+                                            .foregroundStyle(T.inkMute)
+                                    }
+                                    Spacer()
+                                    Pill(text: c.pillText, tone: c.tone)
+                                }
+                                if c.rejected, let comment = c.comment {
+                                    Text(comment)
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(T.danger)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 8)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .background {
+                                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                                .fill(T.dangerBg)
+                                        }
+                                        .padding(.top, 2)
+                                }
+                            }
+                        }
+                    }
+                    if rows.isEmpty {
+                        // 三态（ios④ 上线缺口）：演示 idle 走 default；生产区分 加载中 / 失败 / 真没记录
+                        switch app.cleaningHistoryState {
+                        case .loading:
+                            ProgressView().frame(maxWidth: .infinity).padding(.vertical, 16)
+                        case let .failed(msg):
+                            EmptyState(icon: "exclamationmark.triangle", title: "読み込みに失敗しました", message: msg)
+                        default:
+                            EmptyState(icon: "sparkles", title: "なし")
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
+                .padding(.bottom, 24)
+            }
+        }
+        .background(T.pearl.ignoresSafeArea())
+        .task {
+            #if !DEMO
+                await app.loadCleaningHistory()
+            #endif
+        }
+    }
+}
+
+#Preview("MyClean") {
+    MyCleanView()
+        .environmentObject(RouterStore(initial: .myClean))
         .environmentObject(AppStore())
 }
 

@@ -406,6 +406,43 @@ struct AnnouncementUnreadCount: Decodable {
     }
 }
 
+// MARK: - 学生通知中心 feed（2026-06-15 加，spec system_features.md §7.13.1）
+
+/// 一条学生通知 = 某条 公告/巴士/行事（老师投稿时勾了「学生に通知する」）。
+/// 对齐 backend StudentNotificationItem（schemas.py）。
+/// created_at 是带时分时区的完整时刻 → Date（APIClient 已配 .iso8601）。
+struct StudentNotificationItem: Decodable, Identifiable, Hashable {
+    let kind: String // "announcement" | "bus" | "event"
+    let refId: UUID // 对应 announcements / bus_routes / dorm_events 的 id（标已读用）
+    let title: String
+    let body: String // 摘要（后端截断到 80 字）
+    let createdAt: Date
+    var isRead: Bool // 乐观更新需可变 → 点卡片标已读后本地翻 true
+
+    /// kind+refId 组合唯一 → ForEach / 去重用（同一实体不会同 kind 重复）
+    var id: String {
+        "\(kind):\(refId.uuidString)"
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case kind, title, body
+        case refId = "ref_id"
+        case createdAt = "created_at"
+        case isRead = "is_read"
+    }
+}
+
+/// GET /api/v1/student/notifications 响应。对齐 backend StudentNotificationFeedOut。
+struct StudentNotificationFeedOut: Decodable {
+    let items: [StudentNotificationItem]
+    let unreadCount: Int // 三类未读合计 → 驱动铃铛 badge
+
+    enum CodingKeys: String, CodingKey {
+        case items
+        case unreadCount = "unread_count"
+    }
+}
+
 // MARK: - 自由 JSON 字段
 
 /// backend 用 `dict[str, Any]` 返的字段用的薄 Codable wrapper。

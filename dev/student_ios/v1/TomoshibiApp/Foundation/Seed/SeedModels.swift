@@ -18,6 +18,8 @@ struct User: Hashable {
     var points: Double
     var lateCount: Int
     var absentCount: Int
+    /// 罚扫对象 flag — summary.needs_cleaning（后端实时算 total_points>=4）。占位/未登录 = false。
+    var needsCleaning: Bool = false
     var grade: String = "高3"
     var classSuffix: String = "B"
     var seatNo: Int = 18
@@ -69,6 +71,39 @@ struct HealthRecord: Hashable, Identifiable {
     let note: String
 }
 
+/// 罚扫（罰則清掃）演示假数据行（#if DEMO 时 SEED.cleaning 用）。
+/// 改动1：罚扫带时刻 → 加 time 字段；dateLabel/timeLabel 把 "2026-05-20"+"19:00" → "5月20日"/"19時"。
+struct CleaningRecord: Hashable, Identifiable {
+    var id: String {
+        "\(date):\(range)"
+    }
+
+    let date: String // "2026-05-20"（yyyy-MM-dd）
+    let time: String // "19:00"（HH:mm）— 改动1：罚扫带时刻
+    let range: String // 地点（自由文本）
+    let status: String // 通過 / 退回 / 未完成 等（演示日语直接写）
+    let score: Int?
+    let rejected: Bool
+    let comment: String?
+
+    /// "5月20日" — 小卡/履历展示
+    var dateLabel: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ja_JP")
+        f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
+        guard let d = f.date(from: date) else { return date }
+        f.dateFormat = "M月d日"
+        return f.string(from: d)
+    }
+
+    /// "19時" — 小卡/履历展示（取 HH:mm 的小时）
+    var timeLabel: String {
+        let h = time.split(separator: ":").first.map(String.init) ?? time
+        return "\(Int(h) ?? 0)時"
+    }
+}
+
 struct PackageItem: Hashable, Identifiable {
     let id: Int
     let date: String
@@ -79,11 +114,15 @@ struct PackageItem: Hashable, Identifiable {
 
 struct NotificationItem: Hashable, Identifiable {
     let id: Int
-    let type: String // UI 分类标签：「宅配」/「申請」/「減点」/「活動」/「リクエスト曲」
+    let type: String // UI 分类标签：「宅配」/「申請」/「減点」/「活動」/「リクエスト曲」/「お知らせ」/「バス」/「カレンダー」
     let title: String
     let time: String
     let body: String
     let unread: Bool
+    // 后端学生通知 feed 来源标记（2026-06-15）—— 点卡片标已读用。
+    // push / 宅配 / SEED 等非 feed 来源为 nil（带默认值 → 既有初始化点不受影响）。
+    var kind: String? = nil // "announcement" | "bus" | "event"
+    var refId: UUID? = nil // 对应实体 id
 }
 
 struct ApplicationItem: Hashable, Identifiable {

@@ -200,6 +200,9 @@ struct MyDisciplineSummaryOut: Decodable {
     let total_points: Double
     let late_count: Int
     let absent_count: Int
+    /// 改动3：罚扫对象 flag — 后端实时算 total_points >= CLEANING_THRESHOLD(4.0)。
+    /// 声明成 Bool? + 用处 `?? (total_points >= 4)` 兜底：防后端字段名敲定前 / 旧后端没返该字段时整段 summary 解码失败。
+    let needs_cleaning: Bool?
 }
 
 enum DisciplineAPI {

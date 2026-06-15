@@ -185,6 +185,13 @@ struct HomeView: View {
                         app.tickStudyCountdown() // 4-30 學習 demo
                     }
 
+                // §2.5 「下次罚扫」小卡 —— 有未完成罚扫安排时显示，否则整张不渲染
+                if let next = app.nextCleaning {
+                    nextCleaningCard(next)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 4).padding(.bottom, 6)
+                }
+
                 // §3 LifeTab 内容直显（segmented + 社区 + 通知 tab 砍掉，通知用右上角按钮看）
                 LifeTab()
                     .padding(.horizontal, 16)
@@ -326,6 +333,42 @@ struct HomeView: View {
         .modifier(DemoCardCycleGesture(app: app))
         .animation(.spring(response: 0.34, dampingFraction: 0.82), value: app.rollState)
         .animation(.spring(response: 0.34, dampingFraction: 0.82), value: app.studyState)
+    }
+
+    // MARK: 「下次罚扫」小卡（amber 卡之外、下方）
+
+    /// 有未完成罚扫安排时显示；点进罚扫履历页。无安排则 body 里整张不渲染。
+    private func nextCleaningCard(_ info: NextCleaningInfo) -> some View {
+        Button { router.go(.myClean) } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Color(hex: 0xB07A28))
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(Color(hex: 0xFDF4E1)))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("次の罰則清掃")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(T.inkSub)
+                    Text("\(info.dateText) \(info.timeText) · \(info.area)")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(T.ink)
+                }
+                Spacer()
+                Ic.chevR(14)
+                    .foregroundStyle(T.inkMute)
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.white)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(T.hair, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     /// absent 时显红色渐变，其余情况显 amber
@@ -571,6 +614,11 @@ struct HomeView: View {
                 }
                 .padding(.bottom, 12)
 
+                // ≥8 = 外出禁止（赤）/ 4–7 = 罰則清掃 対象（橙）/ <4 不显示。占位时不显示。
+                if !app.profileIsPlaceholder {
+                    cleaningFlagRow(deepBrown: deepBrown)
+                }
+
                 progressRow(deepBrown: deepBrown)
 
                 HStack {
@@ -774,7 +822,7 @@ struct HomeView: View {
         .buttonStyle(.plain)
     }
 
-    /// JSX progress bar: h 8 / radius 4 / bg white.4 / fill 50% amber / 1 threshold mark (8)
+    /// JSX progress bar: h 8 / radius 4 / bg white.4 / fill 50% amber / 2 threshold marks (4/8)
     private func progressRow(deepBrown: Color) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             GeometryReader { geo in
@@ -797,7 +845,12 @@ struct HomeView: View {
                         )
                         .frame(width: w * pct, height: 8)
 
-                    // JSX: threshold 8 点（100%）
+                    // threshold 4 点（50% = 4/8）· 清掃罰則
+                    Rectangle()
+                        .fill(deepBrown.opacity(0.4))
+                        .frame(width: 2, height: 12)
+                        .offset(x: w * 0.5 - 1, y: 0)
+                    // threshold 8 点（100%）· 外出禁止
                     Rectangle()
                         .fill(deepBrown.opacity(0.4))
                         .frame(width: 2, height: 12)
@@ -806,15 +859,44 @@ struct HomeView: View {
             }
             .frame(height: 12)
 
-            // JSX: fontSize 10 / mono / opacity .7 · "0" "8 · 外出禁止"
+            // fontSize 10 / mono / opacity .7 · "0" "4 · 清掃" "8 · 外出禁止"
             HStack {
                 Text("0")
+                Spacer()
+                Text("4 · 清掃")
                 Spacer()
                 Text("8 · 外出禁止")
             }
             .font(.system(size: 10, design: .monospaced))
             .foregroundStyle(deepBrown.opacity(0.7))
         }
+    }
+
+    /// 减点等级标识行：≥8 外出禁止 / 4–7 罰則清掃 対象 / <4 不显示。
+    /// 数据：≥8 用本地 points（点数本地就有）；4–7 优先后端 needsCleaning，本地 pts>=4 兜底。
+    @ViewBuilder
+    private func cleaningFlagRow(deepBrown _: Color) -> some View {
+        let pts = app.displayUser.points
+        if pts >= 8 {
+            cleaningFlagLabel(icon: "exclamationmark.octagon.fill", text: "外出禁止", tint: T.danger)
+                .padding(.bottom, 12)
+        } else if app.displayUser.needsCleaning || pts >= 4 {
+            cleaningFlagLabel(icon: "sparkles", text: "罰則清掃 対象", tint: Color(hex: 0xB07A28))
+                .padding(.bottom, 12)
+        }
+    }
+
+    private func cleaningFlagLabel(icon: String, text: String, tint: Color) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .semibold))
+            Text(text)
+                .font(.system(size: 12.5, weight: .bold))
+        }
+        .foregroundStyle(tint)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(Capsule().fill(Color.white.opacity(0.5)))
     }
 
     // MARK: 点呼状态 pill 文字/颜色（amber card 右上）
