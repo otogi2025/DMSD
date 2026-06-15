@@ -168,7 +168,7 @@ def patch_event(
         "start_at",
         "end_at",
         "description",
-        "notify_students",
+        # notify_students 故意不在此 — 编辑路径不碰它（见下方注释，§7.13.1 修订 2026-06-16）
     ):
         val = getattr(body, field)
         if val is not None:
@@ -176,15 +176,9 @@ def patch_event(
     row.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(row)
-    # 编辑时主动勾选「通知」→ 重新广播推送（feed 靠字段）§7.13.1
-    if body.notify_students:
-        student_audience.broadcast_push(
-            db,
-            students=student_audience.students_for_event(db, row),
-            title=row.title,
-            body=row.description or row.category,
-        )
-        db.commit()
+    # 编辑不碰 notify_students（§7.13.1 修订 2026-06-16 codex 复审）：它是「是否进通知 feed」的持久开关，
+    # 编辑默认不勾会把已通知内容移出 feed（数据丢失）/ 保持勾又每次编辑重推全员 → 编辑路径不动该字段，
+    # 通知只在「新建」时决定。需重新通知请删后重发。
     return schemas.DormEventOut.model_validate(row)
 
 

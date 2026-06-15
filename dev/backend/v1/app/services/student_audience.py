@@ -7,11 +7,14 @@
 
 可见性规则：
 - 公告 scope:  all=全员 / male=男生 / female=女生（对 Student.gender）。按 ann.is_demo 隔离。
-- 巴士 visible_to: all / dorm_only=全员 / men=男生 / women=女生。巴士表无 is_demo → 仅真实学生。
-- 行事: 无范围字段 → 全员。无 is_demo → 仅真实学生。
+- 巴士 visible_to: all / dorm_only=全员 / men=男生 / women=女生。
+- 行事: 无范围字段 → 全员。
 
-⚠️ 巴士 / 行事 表无 is_demo 字段 → 演示老师创建的巴士 / 行事会落到真实学生范围（演示隔离缺口，
-   推送当面 stub 不真发、无实际危害；feed 侧同样限真实学生，演示学生看不到。彻底隔离记 TODO）。
+demo 隔离（2026-06-16 codex 复审修）：巴士 / 行事 表本身无 is_demo 列，但都有
+created_by_teacher_id → 按「创建老师的 is_demo」隔离（与公告 ann.is_demo 对称）。
+- 方向 A（推送）：按创建老师 is_demo 选学生（见 _creator_is_demo）。
+- 方向 B（feed，routers/student_notifications.py）：join teachers 过滤 Teacher.is_demo == student.is_demo。
+两侧一致 —— 演示学生只看演示老师内容、真实学生只看真实老师内容（之前 feed 不过滤、演示学生能看到真实巴士/行事，已修）。
 """
 
 from __future__ import annotations
@@ -47,8 +50,16 @@ def students_for_announcement(db, ann: models.Announcement) -> list[models.Stude
     return stu
 
 
+def _creator_is_demo(db, teacher_id) -> bool:
+    """创建者老师的 is_demo（巴士 / 行事无自身 is_demo 列 → 按创建老师隔离，与公告 ann.is_demo 对称）。"""
+    if teacher_id is None:
+        return False
+    teacher = db.get(models.Teacher, teacher_id)
+    return bool(teacher.is_demo) if teacher is not None else False
+
+
 def students_for_bus(db, bus: models.BusRoute) -> list[models.Student]:
-    stu = _active_students(db, is_demo=False)
+    stu = _active_students(db, is_demo=_creator_is_demo(db, bus.created_by_teacher_id))
     if bus.visible_to == "men":
         stu = [s for s in stu if s.gender == "male"]
     elif bus.visible_to == "women":
@@ -57,7 +68,9 @@ def students_for_bus(db, bus: models.BusRoute) -> list[models.Student]:
 
 
 def students_for_event(db, event: models.DormEvent) -> list[models.Student]:
-    return _active_students(db, is_demo=False)
+    return _active_students(
+        db, is_demo=_creator_is_demo(db, event.created_by_teacher_id)
+    )
 
 
 def broadcast_push(

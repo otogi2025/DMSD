@@ -766,8 +766,9 @@ function EditNoticeModal({
   const [scope, setScope] = React.useState<AnnouncementScope>(
     initial.scope || "all",
   );
-  // 编辑时默认不勾选（改错字不该惊动全员，要重新通知再手动勾）
-  const [notifyStudents, setNotifyStudents] = React.useState(false);
+  // 编辑路径不碰通知（§7.13.1 修订 2026-06-16）：后端编辑接口已忽略 notify_students，
+  // 不再展示勾选框；onSubmit 仍传 false 满足类型、后端忽略（编辑不影响 feed 成员）。
+  const notifyStudents = false;
   const [submitting, setSubmitting] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState("");
   const handleSubmit = async () => {
@@ -955,25 +956,6 @@ function EditNoticeModal({
               {errorMsg}
             </div>
           )}
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              fontSize: 13,
-              color: T.ink,
-              cursor: "pointer",
-              margin: "4px 0 0",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={notifyStudents}
-              onChange={(e) => setNotifyStudents(e.target.checked)}
-              style={{ width: 16, height: 16, cursor: "pointer" }}
-            />
-            学生に通知する（アプリの通知センターに表示）
-          </label>
         </div>
         <div
           style={{
@@ -1687,25 +1669,29 @@ function EventComposeModal({
           {errMsg}
         </div>
       )}
-      <label
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          fontSize: 13,
-          color: T.ink,
-          cursor: "pointer",
-          margin: "4px 0 12px",
-        }}
-      >
-        <input
-          type="checkbox"
-          checked={notifyStudents}
-          onChange={(e) => setNotifyStudents(e.target.checked)}
-          style={{ width: 16, height: 16, cursor: "pointer" }}
-        />
-        学生に通知する（アプリの通知センターに表示）
-      </label>
+      {/* 通知开关只在「新建」出现 —— 编辑路径后端不碰 notify_students（§7.13.1 修订 2026-06-16），
+          显示个无效的勾选框会误导，故编辑时隐藏 */}
+      {!initial && (
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 13,
+            color: T.ink,
+            cursor: "pointer",
+            margin: "4px 0 12px",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={notifyStudents}
+            onChange={(e) => setNotifyStudents(e.target.checked)}
+            style={{ width: 16, height: 16, cursor: "pointer" }}
+          />
+          学生に通知する（アプリの通知センターに表示）
+        </label>
+      )}
       <Footer
         T={T}
         onClose={onClose}
@@ -2254,25 +2240,29 @@ function BusRouteModal({
           {errMsg}
         </div>
       )}
-      <label
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          fontSize: 13,
-          color: T.ink,
-          cursor: "pointer",
-          margin: "4px 0 12px",
-        }}
-      >
-        <input
-          type="checkbox"
-          checked={notifyStudents}
-          onChange={(e) => setNotifyStudents(e.target.checked)}
-          style={{ width: 16, height: 16, cursor: "pointer" }}
-        />
-        学生に通知する（アプリの通知センターに表示）
-      </label>
+      {/* 通知开关只在「新建」出现 —— 编辑路径后端不碰 notify_students（§7.13.1 修订 2026-06-16），
+          显示个无效的勾选框会误导，故编辑时隐藏 */}
+      {!initial && (
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 13,
+            color: T.ink,
+            cursor: "pointer",
+            margin: "4px 0 12px",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={notifyStudents}
+            onChange={(e) => setNotifyStudents(e.target.checked)}
+            style={{ width: 16, height: 16, cursor: "pointer" }}
+          />
+          学生に通知する（アプリの通知センターに表示）
+        </label>
+      )}
       <Footer
         T={T}
         onClose={onClose}

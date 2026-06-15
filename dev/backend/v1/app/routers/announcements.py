@@ -525,20 +525,11 @@ def update_announcement(
         ann.body = body.body
     if body.scope is not None:
         ann.scope = body.scope
-    if body.notify_students is not None:
-        ann.notify_students = body.notify_students
+    # 编辑不碰 notify_students（§7.13.1 修订 2026-06-16 codex 复审）：它是「是否进通知 feed」的持久开关，
+    # 编辑表单默认不勾 → 在此 set false 会把已通知内容移出 feed（数据丢失）；保持 true 又会每次编辑重推全员。
+    # 故编辑路径完全不动该字段，通知只在「新建」时决定。需重新通知请删后重发。
     db.commit()
     db.refresh(ann)
-
-    # 编辑时主动勾选「通知」→ 重新广播推送（feed 靠字段）§7.13.1
-    if body.notify_students:
-        student_audience.broadcast_push(
-            db,
-            students=student_audience.students_for_announcement(db, ann),
-            title=ann.title,
-            body=_summarize(ann.body),
-        )
-        db.commit()
 
     return schemas.AnnouncementBrief(
         id=ann.id,

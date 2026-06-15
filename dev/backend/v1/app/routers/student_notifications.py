@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -81,10 +82,16 @@ def get_student_notification_feed(
     bus_vis = student_audience.bus_visible_to_for_student(student)
     buses = db.scalars(
         select(models.BusRoute)
+        .join(
+            models.Teacher,
+            models.BusRoute.created_by_teacher_id == models.Teacher.id,
+        )
         .where(
             models.BusRoute.notify_students.is_(True),
             models.BusRoute.deprecated.is_(False),
             models.BusRoute.visible_to.in_(bus_vis),
+            # demo 隔离：巴士无自身 is_demo 列 → 按创建老师 is_demo 隔离（codex 复审 2026-06-16）
+            models.Teacher.is_demo == student.is_demo,
         )
         .order_by(models.BusRoute.created_at.desc())
         .limit(limit)
@@ -93,7 +100,15 @@ def get_student_notification_feed(
     # ③ 行事（notify_students=True，全员可见）
     events = db.scalars(
         select(models.DormEvent)
-        .where(models.DormEvent.notify_students.is_(True))
+        .join(
+            models.Teacher,
+            models.DormEvent.created_by_teacher_id == models.Teacher.id,
+        )
+        .where(
+            models.DormEvent.notify_students.is_(True),
+            # demo 隔离：行事无自身 is_demo 列 → 按创建老师 is_demo 隔离（codex 复审 2026-06-16）
+            models.Teacher.is_demo == student.is_demo,
+        )
         .order_by(models.DormEvent.created_at.desc())
         .limit(limit)
     ).all()
@@ -131,8 +146,10 @@ def get_student_notification_feed(
         )
 
     items.sort(key=lambda x: x.created_at, reverse=True)
-    items = items[:limit]
+    # unread_count 用切片前的全量算（badge 真值）—— 不能从 items[:limit] 推导，
+    # 否则未读条数超过一页(limit)时 badge 会低估（codex 复审 2026-06-16）。
     unread_count = sum(1 for i in items if not i.is_read)
+    items = items[:limit]
     return schemas.StudentNotificationFeedOut(items=items, unread_count=unread_count)
 
 
@@ -157,7 +174,11 @@ def mark_student_notification_read(
                     announcement_id=body.ref_id, student_id=student.id
                 )
             )
-            db.commit()
+            try:
+                db.commit()
+            except IntegrityError:
+                # 并发：另一请求已插同一已读行 → 复合主键冲突，回滚即可（幂等，仍返 204）。
+                db.rollback()
     else:  # bus / event（schema Literal 已限定取值）
         exists = db.get(
             models.StudentNotificationRead,
@@ -169,5 +190,8 @@ def mark_student_notification_read(
                     student_id=student.id, kind=body.kind, ref_id=body.ref_id
                 )
             )
-            db.commit()
+            try:
+                db.commit()
+            except IntegrityError:
+                db.rollback()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
