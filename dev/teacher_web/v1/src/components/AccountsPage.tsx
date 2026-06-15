@@ -342,7 +342,7 @@ export function AccountsPage({
               cursor: "pointer",
             }}
           >
-            ＋ 新規追加（iOS から）
+            ＋ 新規追加
           </button>
           <button
             onClick={() => alert("CSV 出力 · 未対応")}
