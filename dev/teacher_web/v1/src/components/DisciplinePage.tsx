@@ -2,6 +2,7 @@ import React from "react";
 import { RYO, dormLabel } from "../theme";
 import type { RyoTokens } from "../theme";
 import { api } from "../api/client";
+import { IncidentsPage } from "./IncidentsPage";
 import {
   ModalShell,
   ModalField,
@@ -64,6 +65,8 @@ export function DisciplinePage({
   // 最近手动加扣分记录（用于即时撤销）
   const [lastEvent, setLastEvent] = React.useState<DemeritEvent | null>(null); // DemeritEventOut
   const [lastEventMsg, setLastEventMsg] = React.useState<string | null>(null);
+  // 6-15:「事案記録」从独立菜单并入本页 → 页内标签页（"demerit"=「減点・処分」/ "incidents"=「事案記録」）
+  const [tab, setTab] = React.useState<"demerit" | "incidents">("demerit");
 
   const loadRanking = React.useCallback(() => {
     if (!authToken) return;
@@ -159,7 +162,7 @@ export function DisciplinePage({
           fontWeight: 600,
         }}
       >
-        規律・処分
+        減点・処分
       </div>
       <h1
         style={{
@@ -169,383 +172,429 @@ export function DisciplinePage({
           letterSpacing: -0.3,
         }}
       >
-        規律・処分
+        減点・処分
       </h1>
-      <div style={{ color: T.ink2, fontSize: 13, marginBottom: 22 }}>
-        {dormLabel(dorm)} · {month.replace("-", " 年 ")} 月
-      </div>
 
-      {/* 错误横幅 */}
-      {fetchError && (
-        <div
-          style={{
-            padding: "10px 16px",
-            background: "#fff0f0",
-            border: "1px solid #f5c6cb",
-            borderRadius: 8,
-            color: T.danger,
-            fontSize: 13,
-            marginBottom: 16,
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-          }}
-        >
-          <span style={{ flex: 1 }}>{fetchError}</span>
-          <button
-            onClick={loadRanking}
-            style={{
-              padding: "4px 12px",
-              background: "transparent",
-              color: T.danger,
-              border: "1px solid #f5c6cb",
-              borderRadius: 6,
-              fontFamily: "inherit",
-              fontSize: 12,
-              cursor: "pointer",
-            }}
-          >
-            再試行
-          </button>
-        </div>
-      )}
-
-      {/* 手动加分后 即时撤销 横幅 */}
-      {lastEventMsg && lastEvent && (
-        <div
-          style={{
-            padding: "10px 16px",
-            background: "#f0fff4",
-            border: "1px solid #b7ebc8",
-            borderRadius: 8,
-            color: T.ok,
-            fontSize: 13,
-            marginBottom: 16,
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-          }}
-        >
-          <span style={{ flex: 1 }}>{lastEventMsg}</span>
-          <button
-            onClick={() => handleRevoke(lastEvent)}
-            style={{
-              padding: "4px 12px",
-              background: "transparent",
-              color: T.danger,
-              border: `1px solid ${T.dangerBorder}`,
-              borderRadius: 6,
-              fontFamily: "inherit",
-              fontSize: 12,
-              cursor: "pointer",
-            }}
-          >
-            取り消し
-          </button>
-          <button
-            onClick={() => {
-              setLastEvent(null);
-              setLastEventMsg(null);
-            }}
-            style={{
-              background: "transparent",
-              border: "none",
-              fontSize: 16,
-              color: T.ink3,
-              cursor: "pointer",
-            }}
-          >
-            ×
-          </button>
-        </div>
-      )}
-
-      {/* 规则卡 */}
-      <div
-        style={{
-          background: T.surface,
-          border: `1px solid ${T.line}`,
-          borderRadius: 12,
-          padding: "18px 22px",
-          boxShadow: T.shadow1,
-          marginBottom: 20,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            marginBottom: 12,
-          }}
-        >
-          <div style={{ fontSize: 14, fontWeight: 700 }}>
-            現在の減点ルール（運用開始前のため、先生方と調整可能です）
-          </div>
-          <div style={{ flex: 1 }} />
-        </div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <RulePill label="遅刻" value="0.5 点" color={T.late} />
-          <RulePill label="欠席" value="1.0 点" color={T.danger} />
-          <RulePill
-            label="外出禁止の適用"
-            value="月累計 ≥ 8 点"
-            color={T.danger}
-          />
-        </div>
-      </div>
-
+      {/* 页内标签页：「減点・処分」（本页原内容）/「事案記録」（原独立菜单，6-15 并入）*/}
       <div
         style={{
           display: "flex",
-          justifyContent: "flex-end",
-          marginBottom: 12,
+          gap: 4,
+          borderBottom: `1px solid ${T.line}`,
+          margin: "14px 0 0",
         }}
       >
-        <button
-          onClick={() => setSearchAddOpen(true)}
-          style={{
-            padding: "9px 16px",
-            background: T.cobalt,
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            fontFamily: "inherit",
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
-        >
-          ＋ 任意の学生に手動加算
-        </button>
+        {(
+          [
+            ["demerit", "減点・処分"],
+            ["incidents", "事案記録"],
+          ] as Array<["demerit" | "incidents", string]>
+        ).map(([k, l]) => (
+          <button
+            key={k}
+            onClick={() => setTab(k)}
+            style={{
+              padding: "10px 18px",
+              background: "transparent",
+              border: "none",
+              borderBottom:
+                tab === k ? `2px solid ${T.cobalt}` : "2px solid transparent",
+              color: tab === k ? T.cobaltDeep : T.ink3,
+              fontWeight: tab === k ? 700 : 500,
+              fontFamily: "inherit",
+              fontSize: 13,
+              cursor: "pointer",
+              marginBottom: -1,
+            }}
+          >
+            {l}
+          </button>
+        ))}
       </div>
-      <SectionH n="1" title="今月全員ランキング" />
-      {loadingBackend ? (
-        <div style={{ padding: 24, color: T.ink3, fontSize: 13 }}>
-          読み込み中…
-        </div>
-      ) : fetchError && !backendRanking ? (
-        <div style={{ padding: 24, color: T.ink3, fontSize: 13 }}>
-          まだデータがありません
+
+      {tab === "incidents" ? (
+        <div style={{ marginTop: 20 }}>
+          <IncidentsPage authToken={authToken} embedded />
         </div>
       ) : (
-        <div
-          style={{
-            background: T.surface,
-            border: `1px solid ${T.line}`,
-            borderRadius: 12,
-            overflow: "hidden",
-            boxShadow: T.shadow1,
-            marginBottom: 24,
-          }}
-        >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "50px 1fr 90px 90px 130px 130px",
-              background: T.surfaceAlt,
-              fontSize: 11,
-              color: T.ink2,
-              fontWeight: 600,
-              letterSpacing: 1,
-              borderBottom: `1px solid ${T.line}`,
-            }}
-          >
-            {[
-              "順位",
-              "学生",
-              "部屋",
-              "減点合計",
-              "外出禁止まで残り",
-              "操作",
-            ].map((h) => (
-              <div key={h} style={{ padding: "10px 12px" }}>
-                {h}
-              </div>
-            ))}
+        <>
+          <div style={{ color: T.ink2, fontSize: 13, margin: "18px 0 22px" }}>
+            {dormLabel(dorm)} · {month.replace("-", " 年 ")} 月
           </div>
-          {data.length === 0 && (
+
+          {/* 错误横幅 */}
+          {fetchError && (
             <div
               style={{
-                padding: "16px 16px",
-                color: T.ink3,
+                padding: "10px 16px",
+                background: "#fff0f0",
+                border: "1px solid #f5c6cb",
+                borderRadius: 8,
+                color: T.danger,
                 fontSize: 13,
+                marginBottom: 16,
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
               }}
             >
-              まだデータがありません
+              <span style={{ flex: 1 }}>{fetchError}</span>
+              <button
+                onClick={loadRanking}
+                style={{
+                  padding: "4px 12px",
+                  background: "transparent",
+                  color: T.danger,
+                  border: "1px solid #f5c6cb",
+                  borderRadius: 6,
+                  fontFamily: "inherit",
+                  fontSize: 12,
+                  cursor: "pointer",
+                }}
+              >
+                再試行
+              </button>
             </div>
           )}
-          {data.map((d, i) => (
+
+          {/* 手动加分后 即时撤销 横幅 */}
+          {lastEventMsg && lastEvent && (
             <div
-              key={d.id}
               style={{
-                display: "grid",
-                gridTemplateColumns: "50px 1fr 90px 90px 130px 130px",
-                borderTop: i > 0 ? `1px solid ${T.line}` : "none",
-                fontSize: 12.5,
+                padding: "10px 16px",
+                background: "#f0fff4",
+                border: "1px solid #b7ebc8",
+                borderRadius: 8,
+                color: T.ok,
+                fontSize: 13,
+                marginBottom: 16,
+                display: "flex",
                 alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <span style={{ flex: 1 }}>{lastEventMsg}</span>
+              <button
+                onClick={() => handleRevoke(lastEvent)}
+                style={{
+                  padding: "4px 12px",
+                  background: "transparent",
+                  color: T.danger,
+                  border: `1px solid ${T.dangerBorder}`,
+                  borderRadius: 6,
+                  fontFamily: "inherit",
+                  fontSize: 12,
+                  cursor: "pointer",
+                }}
+              >
+                取り消し
+              </button>
+              <button
+                onClick={() => {
+                  setLastEvent(null);
+                  setLastEventMsg(null);
+                }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  fontSize: 16,
+                  color: T.ink3,
+                  cursor: "pointer",
+                }}
+              >
+                ×
+              </button>
+            </div>
+          )}
+
+          {/* 规则卡 */}
+          <div
+            style={{
+              background: T.surface,
+              border: `1px solid ${T.line}`,
+              borderRadius: 12,
+              padding: "18px 22px",
+              boxShadow: T.shadow1,
+              marginBottom: 20,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 12,
+              }}
+            >
+              <div style={{ fontSize: 14, fontWeight: 700 }}>
+                現在の減点ルール（運用開始前のため、先生方と調整可能です）
+              </div>
+              <div style={{ flex: 1 }} />
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <RulePill label="遅刻" value="0.5 点" color={T.late} />
+              <RulePill label="欠席" value="1.0 点" color={T.danger} />
+              <RulePill
+                label="外出禁止の適用"
+                value="月累計 ≥ 8 点"
+                color={T.danger}
+              />
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              marginBottom: 12,
+            }}
+          >
+            <button
+              onClick={() => setSearchAddOpen(true)}
+              style={{
+                padding: "9px 16px",
+                background: T.cobalt,
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                fontFamily: "inherit",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              ＋ 任意の学生に手動加算
+            </button>
+          </div>
+          <SectionH n="1" title="今月全員ランキング" />
+          {loadingBackend ? (
+            <div style={{ padding: 24, color: T.ink3, fontSize: 13 }}>
+              読み込み中…
+            </div>
+          ) : fetchError && !backendRanking ? (
+            <div style={{ padding: 24, color: T.ink3, fontSize: 13 }}>
+              まだデータがありません
+            </div>
+          ) : (
+            <div
+              style={{
+                background: T.surface,
+                border: `1px solid ${T.line}`,
+                borderRadius: 12,
+                overflow: "hidden",
+                boxShadow: T.shadow1,
+                marginBottom: 24,
               }}
             >
               <div
                 style={{
-                  padding: "9px 12px",
-                  fontFamily: T.mono,
-                  color: i < 3 ? T.danger : T.ink3,
-                  fontWeight: 700,
+                  display: "grid",
+                  gridTemplateColumns: "50px 1fr 90px 90px 130px 130px",
+                  background: T.surfaceAlt,
+                  fontSize: 11,
+                  color: T.ink2,
+                  fontWeight: 600,
+                  letterSpacing: 1,
+                  borderBottom: `1px solid ${T.line}`,
                 }}
               >
-                #{i + 1}
+                {[
+                  "順位",
+                  "学生",
+                  "部屋",
+                  "減点合計",
+                  "外出禁止まで残り",
+                  "操作",
+                ].map((h) => (
+                  <div key={h} style={{ padding: "10px 12px" }}>
+                    {h}
+                  </div>
+                ))}
               </div>
-              <div style={{ padding: "9px 12px", fontWeight: 600 }}>
-                {d.name}
-              </div>
-              <div
-                style={{
-                  padding: "9px 12px",
-                  fontFamily: T.mono,
-                  color: T.ink3,
-                }}
-              >
-                {d.room}
-              </div>
-              <div
-                style={{
-                  padding: "9px 12px",
-                  fontFamily: T.mono,
-                  fontWeight: 700,
-                  color:
-                    d.total >= 8 ? T.danger : d.total >= 4 ? T.warn : T.ink,
-                }}
-              >
-                {d.total.toFixed(1)}
-              </div>
-              <div
-                style={{
-                  padding: "9px 12px",
-                  fontFamily: T.mono,
-                  color: T.ink3,
-                }}
-              >
-                {Math.max(0, 8 - d.total).toFixed(1)} 点
-              </div>
-              <div style={{ padding: "6px 12px" }}>
-                <button
-                  onClick={() =>
-                    setManualTarget({
-                      student_id: d.student_id,
-                      name: d.name,
-                    })
-                  }
+              {data.length === 0 && (
+                <div
                   style={{
-                    padding: "4px 10px",
-                    background: "transparent",
-                    color: T.cobalt,
-                    border: `1px solid ${T.cobalt}`,
-                    borderRadius: 5,
-                    fontFamily: "inherit",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    cursor: "pointer",
+                    padding: "16px 16px",
+                    color: T.ink3,
+                    fontSize: 13,
                   }}
                 >
-                  手動加算
-                </button>
-              </div>
+                  まだデータがありません
+                </div>
+              )}
+              {data.map((d, i) => (
+                <div
+                  key={d.id}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "50px 1fr 90px 90px 130px 130px",
+                    borderTop: i > 0 ? `1px solid ${T.line}` : "none",
+                    fontSize: 12.5,
+                    alignItems: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "9px 12px",
+                      fontFamily: T.mono,
+                      color: i < 3 ? T.danger : T.ink3,
+                      fontWeight: 700,
+                    }}
+                  >
+                    #{i + 1}
+                  </div>
+                  <div style={{ padding: "9px 12px", fontWeight: 600 }}>
+                    {d.name}
+                  </div>
+                  <div
+                    style={{
+                      padding: "9px 12px",
+                      fontFamily: T.mono,
+                      color: T.ink3,
+                    }}
+                  >
+                    {d.room}
+                  </div>
+                  <div
+                    style={{
+                      padding: "9px 12px",
+                      fontFamily: T.mono,
+                      fontWeight: 700,
+                      color:
+                        d.total >= 8 ? T.danger : d.total >= 4 ? T.warn : T.ink,
+                    }}
+                  >
+                    {d.total.toFixed(1)}
+                  </div>
+                  <div
+                    style={{
+                      padding: "9px 12px",
+                      fontFamily: T.mono,
+                      color: T.ink3,
+                    }}
+                  >
+                    {Math.max(0, 8 - d.total).toFixed(1)} 点
+                  </div>
+                  <div style={{ padding: "6px 12px" }}>
+                    <button
+                      onClick={() =>
+                        setManualTarget({
+                          student_id: d.student_id,
+                          name: d.name,
+                        })
+                      }
+                      style={{
+                        padding: "4px 10px",
+                        background: "transparent",
+                        color: T.cobalt,
+                        border: `1px solid ${T.cobalt}`,
+                        borderRadius: 5,
+                        fontFamily: "inherit",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      手動加算
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          )}
 
-      <SectionH
-        n="2"
-        title="外出禁止リスト（来月対象）"
-        note={`${banList.length} 名`}
-      />
-      <StudentCardRow
-        list={banList}
-        color={T.danger}
-        label="今月減点"
-        empty="該当なし"
-      />
+          <SectionH
+            n="2"
+            title="外出禁止リスト（来月対象）"
+            note={`${banList.length} 名`}
+          />
+          <StudentCardRow
+            list={banList}
+            color={T.danger}
+            label="今月減点"
+            empty="該当なし"
+          />
 
-      <SectionH
-        n="3"
-        title="警告リスト（基準値に接近）"
-        note={`${warnList.length} 名`}
-      />
-      <StudentCardRow
-        list={warnList}
-        color={T.warn}
-        label="今月減点"
-        empty="該当なし"
-      />
+          <SectionH
+            n="3"
+            title="警告リスト（基準値に接近）"
+            note={`${warnList.length} 名`}
+          />
+          <StudentCardRow
+            list={warnList}
+            color={T.warn}
+            label="今月減点"
+            empty="該当なし"
+          />
 
-      {/* 自动提醒预览 */}
-      <div
-        style={{
-          marginTop: 30,
-          background: T.surface,
-          border: `1px dashed ${T.lineStrong}`,
-          borderRadius: 12,
-          padding: "18px 20px",
-          opacity: 0.85,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            marginBottom: 8,
-          }}
-        >
-          <div style={{ fontSize: 14, fontWeight: 700, color: T.ink3 }}>
-            自動アラート
-          </div>
-          <span
+          {/* 自动提醒预览 */}
+          <div
             style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: T.warn,
-              background: T.warnSoft,
-              padding: "2px 8px",
-              borderRadius: 4,
-              letterSpacing: 1,
+              marginTop: 30,
+              background: T.surface,
+              border: `1px dashed ${T.lineStrong}`,
+              borderRadius: 12,
+              padding: "18px 20px",
+              opacity: 0.85,
             }}
           >
-            開発中
-          </span>
-        </div>
-        <div
-          style={{
-            fontSize: 12,
-            color: T.ink3,
-            lineHeight: 1.7,
-          }}
-        >
-          将来的には、特定の学生の遅刻・欠席が一定数に達した時点で、システムが自動的に寮監へアラートを通知する予定です。現在は手動確認のみです。
-        </div>
-      </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 8,
+              }}
+            >
+              <div style={{ fontSize: 14, fontWeight: 700, color: T.ink3 }}>
+                自動アラート
+              </div>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: T.warn,
+                  background: T.warnSoft,
+                  padding: "2px 8px",
+                  borderRadius: 4,
+                  letterSpacing: 1,
+                }}
+              >
+                開発中
+              </span>
+            </div>
+            <div
+              style={{
+                fontSize: 12,
+                color: T.ink3,
+                lineHeight: 1.7,
+              }}
+            >
+              将来的には、特定の学生の遅刻・欠席が一定数に達した時点で、システムが自動的に寮監へアラートを通知する予定です。現在は手動確認のみです。
+            </div>
+          </div>
 
-      {/* 手动加分 modal —— 从排行榜行点「手動加算」进入（旧方式，保留）*/}
-      {manualTarget && (
-        <ManualDemeritModal
-          T={T}
-          target={manualTarget}
-          onClose={() => setManualTarget(null)}
-          onSubmit={(sid, pts, rsn) =>
-            handleManualSubmit(sid, manualTarget.name, pts, rsn)
-          }
-        />
-      )}
-      {/* 搜任意学生加分 modal —— 2026-06-14 新入口（不必先上排行榜）*/}
-      {searchAddOpen && (
-        <ManualDemeritSearchModal
-          T={T}
-          authToken={authToken}
-          onClose={() => setSearchAddOpen(false)}
-          onSubmit={handleManualSubmit}
-        />
+          {/* 手动加分 modal —— 从排行榜行点「手動加算」进入（旧方式，保留）*/}
+          {manualTarget && (
+            <ManualDemeritModal
+              T={T}
+              target={manualTarget}
+              onClose={() => setManualTarget(null)}
+              onSubmit={(sid, pts, rsn) =>
+                handleManualSubmit(sid, manualTarget.name, pts, rsn)
+              }
+            />
+          )}
+          {/* 搜任意学生加分 modal —— 2026-06-14 新入口（不必先上排行榜）*/}
+          {searchAddOpen && (
+            <ManualDemeritSearchModal
+              T={T}
+              authToken={authToken}
+              onClose={() => setSearchAddOpen(false)}
+              onSubmit={handleManualSubmit}
+            />
+          )}
+        </>
       )}
     </div>
   );

@@ -12,7 +12,15 @@ import type { IncidentItem } from "../api/types";
 // toast 提示对象类型
 type Toast = { type: "ok" | "err"; msg: string };
 
-export function IncidentsPage({ authToken }: { authToken: string }) {
+export function IncidentsPage({
+  authToken,
+  embedded = false,
+}: {
+  authToken: string;
+  // embedded = 嵌入到「減点・処分」页的标签页里时为 true：去掉自带外层 padding 与
+  // eyebrow / h1 标题（外层 tab 已标「事案記録」），只保留「＋新規登録」按钮靠右。
+  embedded?: boolean;
+}) {
   const T = RYO;
   const [incidents, setIncidents] = React.useState<IncidentItem[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -170,28 +178,32 @@ export function IncidentsPage({ authToken }: { authToken: string }) {
   };
 
   return (
-    <div style={{ padding: "28px 32px 48px" }}>
-      <div
-        style={{
-          fontSize: 11,
-          color: T.ink3,
-          letterSpacing: 2,
-          fontWeight: 600,
-        }}
-      >
-        寮務管理
-      </div>
+    <div style={{ padding: embedded ? 0 : "28px 32px 48px" }}>
+      {!embedded && (
+        <div
+          style={{
+            fontSize: 11,
+            color: T.ink3,
+            letterSpacing: 2,
+            fontWeight: 600,
+          }}
+        >
+          寮務管理
+        </div>
+      )}
       <div
         style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
-          margin: "4px 0 20px",
+          justifyContent: embedded ? "flex-end" : "space-between",
+          margin: embedded ? "0 0 16px" : "4px 0 20px",
         }}
       >
-        <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.3 }}>
-          事案記録
-        </h1>
+        {!embedded && (
+          <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.3 }}>
+            事案記録
+          </h1>
+        )}
         <button
           onClick={openNew}
           style={{
