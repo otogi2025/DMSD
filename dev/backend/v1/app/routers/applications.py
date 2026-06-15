@@ -17,7 +17,7 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session, selectinload
 
 from .. import models, permissions, schemas, ws_manager as _ws
@@ -29,6 +29,45 @@ from ..deps import (
     require_permission,
 )
 from ..services import approval_chain, email as email_svc
+
+# 出寮届的终态 — 到这几个状态后不再接受任何承认/拒否（不可重新打开）。
+# returned（退回）是学生可继续修改的中间状态，不算终态、不放进来。
+_APPLICATION_TERMINAL_STATUSES = ("approved", "rejected", "withdrawn")
+
+
+def _find_application_by_idempotency_key(
+    db: Session, *, actor_type: str, actor_id: UUID, key: str
+) -> Optional[models.Application]:
+    """同一提交者 + 同一 Idempotency-Key 的提交 audit 已存在时，返回那条届（幂等去重）。
+
+    Application 表不能加 idempotency_key 列（models.py 由别人负责），所以改用
+    提交时写进 AuditLog.payload 的 idempotency_key 反查。重复 POST（重试 / 双击）
+    时不会多生成届 + 审批链 + 邮件。没命中返回 None（继续走新建）。
+    """
+    log = db.scalars(
+        select(models.AuditLog)
+        .where(
+            models.AuditLog.actor_type == actor_type,
+            models.AuditLog.actor_id == actor_id,
+            models.AuditLog.target_type == "application",
+            models.AuditLog.action.in_(
+                ["application.submit", "application.submit_by_teacher"]
+            ),
+            models.AuditLog.payload["idempotency_key"].as_string() == key,
+        )
+        .order_by(models.AuditLog.created_at.asc())
+    ).first()
+    if log is None:
+        return None
+    return db.scalars(
+        select(models.Application)
+        .where(models.Application.id == log.target_id)
+        .options(
+            selectinload(models.Application.approvals),
+            selectinload(models.Application.student),
+        )
+    ).first()
+
 
 _JST = ZoneInfo("Asia/Tokyo")
 
@@ -48,7 +87,21 @@ def create_application(
     response: Response,
     db: Session = Depends(get_db),
     student: models.Student = Depends(get_current_student),
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
 ):
+    # 幂等：客户端传了 Idempotency-Key 且这个 key 之前提交过 → 直接返回那条届，
+    # 不重复建届 / 审批链 / 发邮件（重试、双击会触发同 key 的重复 POST）。
+    # 没传 key 就跳过、保持原行为（与改动前一致，不强制客户端必须传）。
+    if idempotency_key and idempotency_key.strip():
+        existing = _find_application_by_idempotency_key(
+            db,
+            actor_type="student",
+            actor_id=student.id,
+            key=idempotency_key.strip(),
+        )
+        if existing is not None:
+            return _to_application_out(existing)
+
     # (#3) 出寮日 = 明天起 — 学生本人只能提明天起；老师当日代録走 /by-teacher
     if body.leave_date <= datetime.now(_JST).date():
         raise HTTPException(
@@ -117,6 +170,13 @@ def create_application(
     )
 
     # audit
+    _submit_payload = {
+        "kind": application.kind,
+        "notification_log_id": str(notification_log.id),
+    }
+    # 把幂等 key 写进 audit payload，重复提交时靠它反查到这条届（见 _find_application_by_idempotency_key）
+    if idempotency_key and idempotency_key.strip():
+        _submit_payload["idempotency_key"] = idempotency_key.strip()
     db.add(
         models.AuditLog(
             actor_type="student",
@@ -124,10 +184,7 @@ def create_application(
             action="application.submit",
             target_type="application",
             target_id=application.id,
-            payload={
-                "kind": application.kind,
-                "notification_log_id": str(notification_log.id),
-            },
+            payload=_submit_payload,
         )
     )
 
@@ -170,6 +227,7 @@ def create_application_by_teacher(
     teacher: models.Teacher = Depends(
         require_permission(permissions.C_APPROVAL, permissions.MANAGE)
     ),
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
 ):
     """老师代学生补录出寮届（杭田五-3「老师可代学生当日补录」）。
 
@@ -178,6 +236,18 @@ def create_application_by_teacher(
     ③ 允许当日（leave_date >= 今天，仅禁过去日；学生侧必须明天以后）。
     其余（审批链 / 提交邮件通知 / WebSocket 推送）与学生提交完全一致。
     """
+    # 幂等：同 create_application — 老师重复 POST（重试 / 双击）同一 key 时返回已存届，
+    # 不重复建届 + 审批链 + 邮件。这里幂等以老师为 actor（actor_type=teacher）。
+    if idempotency_key and idempotency_key.strip():
+        existing = _find_application_by_idempotency_key(
+            db,
+            actor_type="teacher",
+            actor_id=teacher.id,
+            key=idempotency_key.strip(),
+        )
+        if existing is not None:
+            return _to_application_out(existing)
+
     student = db.get(models.Student, student_id)
     if not student:
         raise HTTPException(
@@ -254,6 +324,14 @@ def create_application_by_teacher(
         to_emails=to_emails,
     )
 
+    _submit_payload = {
+        "kind": application.kind,
+        "student_id": str(student.id),
+        "notification_log_id": str(notification_log.id),
+    }
+    # 把幂等 key 写进 audit payload，重复提交时靠它反查到这条届（见 _find_application_by_idempotency_key）
+    if idempotency_key and idempotency_key.strip():
+        _submit_payload["idempotency_key"] = idempotency_key.strip()
     db.add(
         models.AuditLog(
             actor_type="teacher",
@@ -261,11 +339,7 @@ def create_application_by_teacher(
             action="application.submit_by_teacher",
             target_type="application",
             target_id=application.id,
-            payload={
-                "kind": application.kind,
-                "student_id": str(student.id),
-                "notification_log_id": str(notification_log.id),
-            },
+            payload=_submit_payload,
         )
     )
     db.commit()
@@ -522,7 +596,9 @@ def _resolve_actor(
     sub = UUID(payload["sub"])
     if role == "student":
         s = db.get(models.Student, sub)
-        if not s:
+        # 账号必须存在且 status=='active' — 停用 / 毕业 / 锁定 / 自删的学生哪怕手里还攥着
+        # 没过期的 JWT 也不能再读届 / audit（与 ws.py 老师连接的 active 校验同一原则）。
+        if not s or s.status != "active":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail={"code": "ACCOUNT_INACTIVE", "message": "アカウント無効"},
@@ -530,7 +606,8 @@ def _resolve_actor(
         return s
     if role.startswith("teacher:"):
         t = db.get(models.Teacher, sub)
-        if not t:
+        # 同上：停用（status=='disabled'）的老师即使持有效 JWT 也不能再读届 / audit。
+        if not t or t.status != "active":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail={"code": "ACCOUNT_INACTIVE", "message": "アカウント無効"},
@@ -744,6 +821,36 @@ def decide_approval(
     if app.student is not None:
         assert_student_demo_match(teacher, app.student)
 
+    # 终态总闸：已通过 / 已却下 / 已撤回的届不能再被审批。
+    # 没这道闸时，撤回(withdrawn) / 已终态的届只要链里还有 decision IS NULL 的行，
+    # 当事老师就能继续点「承認」、把 status 又改回 approved_partial / approved（spec §7.2.6 终态不可逆）。
+    if app.status in _APPLICATION_TERMINAL_STATUSES:
+        raise HTTPException(
+            409,
+            {
+                "code": "APPLICATION_FINALIZED",
+                "message": "この届はすでに確定 / 取消済みです",
+            },
+        )
+
+    # 「担任」步必须由这个学生本班的现役担任来批，不能任何挂着 role='担任' 的老师都能批（报告 B5）。
+    # 本班绑定真值在 class_teacher_assignment 表，复用 approval_chain.resolve_homeroom_teacher
+    # （它按学生 grade_code/class_code + 当前年度 + is_homeroom 解析现役担任，含演示隔离）。
+    if teacher.role == "担任":
+        homeroom = (
+            approval_chain.resolve_homeroom_teacher(db, app.student)
+            if app.student is not None
+            else None
+        )
+        if homeroom is None or homeroom.id != teacher.id:
+            raise HTTPException(
+                403,
+                {
+                    "code": "NOT_HOMEROOM_TEACHER",
+                    "message": "この学生の担任ではありません",
+                },
+            )
+
     # 当前役職の pending 行を探す
     pending_row = next(
         (
@@ -778,10 +885,34 @@ def decide_approval(
 
     from datetime import timezone as tz
 
-    pending_row.approver_id = teacher.id
-    pending_row.decision = body.decision
-    pending_row.comment = body.comment
-    pending_row.decided_at = datetime.now(tz.utc)
+    # 原子条件更新（参照 outings.py confirm_outing）：只有这一行 decision 仍是 NULL 才写成功。
+    # 防两个并发请求都通过上面的 pending_row 检查、各写一次造成重复审批 / 状态被覆盖。
+    # rowcount != 1 说明已被别的并发请求抢先批掉 → 回滚 + 409。
+    decided_at = datetime.now(tz.utc)
+    result = db.execute(
+        update(models.ApplicationApproval)
+        .where(
+            models.ApplicationApproval.id == pending_row.id,
+            models.ApplicationApproval.decision.is_(None),
+        )
+        .values(
+            approver_id=teacher.id,
+            decision=body.decision,
+            comment=body.comment,
+            decided_at=decided_at,
+        )
+    )
+    if result.rowcount != 1:
+        db.rollback()
+        raise HTTPException(
+            409,
+            {"code": "APPROVAL_ALREADY_DECIDED", "message": "すでに決定済みです"},
+        )
+
+    # 上面的条件更新走的是 SQL 直更、没经过 ORM，内存里的 pending_row 还是旧值（decision=None）。
+    # 让它失效，下面 _recompute_application_status 遍历 app.approvals 时会重新从库读到刚写的新值。
+    # refresh / recompute / 发邮件 / 写 audit / commit 全在同一事务里，不分开提交。
+    db.expire(pending_row)
 
     # application.status 自動更新
     _recompute_application_status(app)
