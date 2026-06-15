@@ -34,6 +34,7 @@ import type {
   AnnouncementReplyOut,
   AnnouncementCreateIn,
   RegistrationCode,
+  AuditLogListOut,
   DisciplineRankingOut,
   NotificationFeedOut,
   NotificationUnreadCountOut,
@@ -450,6 +451,24 @@ export const api = {
     return request<StudentAccountListOut>(
       "GET",
       `/students${qs}`,
+      undefined,
+      token,
+    );
+  },
+  // ── 操作履历审计（操作记录页）── 只读，后端按 C_AUDIT_LOG 权限闸把关（非管理角色 403）
+  getAuditLogs: (
+    params: { limit?: number; offset?: number; actor_id?: string } | undefined,
+    token: string,
+  ) => {
+    const q: string[] = [];
+    if (params && params.limit != null) q.push(`limit=${params.limit}`);
+    if (params && params.offset != null) q.push(`offset=${params.offset}`);
+    if (params && params.actor_id)
+      q.push(`actor_id=${encodeURIComponent(params.actor_id)}`);
+    const qs = q.length ? `?${q.join("&")}` : "";
+    return request<AuditLogListOut>(
+      "GET",
+      `/admin/audit-logs${qs}`,
       undefined,
       token,
     );

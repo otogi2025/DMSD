@@ -303,6 +303,28 @@ export interface RegistrationCode {
   expires_in_seconds: number;
 }
 
+// ── 操作履历审计（操作记录页）2026-06-16 ──
+// 后端 schemas.AuditLogEntry / AuditLogListOut 对应。后端中间件自动记老师写操作。
+export interface AuditLogEntry {
+  id: string;
+  created_at: string;
+  actor_type: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  action: string; // "METHOD 归一化路径"，如 "POST notifications/read-all"
+  target_type: string | null;
+  target_id: string | null;
+  payload: Record<string, any> | null;
+  ip_address: string | null;
+}
+
+export interface AuditLogListOut {
+  items: AuditLogEntry[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 // ── 清扫安排（罚则清扫）— 一条记录 = 一个学生 ──
 export interface CleaningItem {
   id: string;

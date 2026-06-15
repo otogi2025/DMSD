@@ -28,6 +28,7 @@ export function Shell({
   backendReachable,
   wsStatus,
   authToken,
+  canViewAuditLog,
 }: {
   teacher: ShellTeacher | null;
   active: string;
@@ -44,6 +45,8 @@ export function Shell({
   wsStatus: string | null;
   // 全局搜索学生建议用
   authToken: string | null;
+  // 操作履历审计页只给管理角色显示（与后端 C_AUDIT_LOG 权限闸一致）。
+  canViewAuditLog: boolean;
 }) {
   const T = RYO;
   // Task #6 (5-27): 删 WebSocket demo 模拟，按 backendReachable 真实状态切指示灯。
@@ -146,6 +149,8 @@ export function Shell({
         ["accounts", "学生アカウント管理"],
         ["admin-registration-code", "学生登録コード"],
         ["teachers-admin", "教員アカウント管理"],
+        // 操作履歴 = 操作记录审计页，只给管理角色显示（后端 C_AUDIT_LOG 把关）。
+        ...(canViewAuditLog ? ([["audit-log", "操作履歴"]] as NavItem[]) : []),
       ],
     },
   ];
@@ -168,6 +173,7 @@ export function Shell({
       accounts: "学生アカウント管理",
       "admin-registration-code": "学生登録コード",
       "teachers-admin": "教員アカウント管理",
+      "audit-log": "操作履歴",
       summary: "点呼集計",
       search: "検索結果",
     }[active] || "";

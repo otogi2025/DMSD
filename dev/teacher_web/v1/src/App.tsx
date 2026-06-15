@@ -23,6 +23,7 @@ import { AccountsPage } from "./components/AccountsPage";
 import { RegistrationCodePanel } from "./components/RegistrationCodePanel";
 import { TeachersAdminPage } from "./components/TeachersAdminPage";
 import { StudyAttendancePage } from "./components/StudyAttendancePage";
+import { AuditLogPage } from "./components/AuditLogPage";
 
 export function App() {
   const T = RYO;
@@ -410,24 +411,9 @@ export function App() {
       });
     }
   };
-  // §11.1 P0 角色重定向: 登录后按 authProfile.role 跳对应主页
-  // 役职 (寮務部長/寮務課長/管理係/国際交流部長/国際交流課長) → applications
-  // 学習担当 → study
-  // 寮監 (デフォルト) → roll-call
-  // 前提: backend TeacherOut.role 文字列要跟 spec §3.4 教师权限模型一致。
-  const _roleHomePage = (role: any) => {
-    if (!role) return "roll-call";
-    if (
-      role === "寮務部長" ||
-      role === "寮務課長" ||
-      role === "管理係" ||
-      role === "国際交流部長" ||
-      role === "国際交流課長"
-    )
-      return "applications";
-    if (role === "学習担当") return "study";
-    return "roll-call"; // 寮監 + 默认
-  };
+  // 2026-06-16 itsuki 拍板：登录后默认页统一为「点呼」（不再按角色分流到 申請 / 晩自習）。
+  // 点呼是日常值班的核心操作，所有角色登录都先落在这里。参数保留以兼容现有两处调用点。
+  const _roleHomePage = (_role: any) => "roll-call";
   const pickTeacher = (t: any) => {
     setTeacher(t);
     setLastTeacherId(t.id);
@@ -904,6 +890,10 @@ export function App() {
       // Task #17: 学習出席页 (§11.1 P0 + §7.3)
       body = <StudyAttendancePage teacher={teacher} authToken={authToken} />;
       break;
+    case "audit-log":
+      // 2026-06-16: 操作履历审计页（操作记录）— 只读，后端 C_AUDIT_LOG 权限把关
+      body = <AuditLogPage authToken={authToken} />;
+      break;
     default:
       body = (
         <RollCallLanding
@@ -917,6 +907,24 @@ export function App() {
       );
   }
 
+  // 操作履历审计页可见性 — 与后端 C_AUDIT_LOG 权限组对齐（op / 寮管理者 / 一般宿管）。
+  // permission_group 优先；为空时按职位回退（同后端 ROLE_DEFAULT_GROUP 思路）。仅控制菜单显隐，
+  // 真正的访问控制在后端 require_permission（非管理角色直连接口仍 403）。
+  const _AUDIT_GROUPS = ["op", "寮管理者", "一般宿管"];
+  const _AUDIT_ROLES = [
+    "校長",
+    "寮務部長",
+    "寮務課長",
+    "管理係",
+    "寮務一般教師",
+  ];
+  const canViewAuditLog = !!(
+    authProfile &&
+    (authProfile.permission_group
+      ? _AUDIT_GROUPS.includes(authProfile.permission_group)
+      : _AUDIT_ROLES.includes(authProfile.role))
+  );
+
   return (
     <>
       <Shell
@@ -928,6 +936,7 @@ export function App() {
         backendReachable={backendReachable}
         wsStatus={wsStatus}
         authToken={authToken}
+        canViewAuditLog={canViewAuditLog}
         onSwitchTeacher={() => {
           // 5-27 拍板：切替＝ログアウト相当（实名账户 = 必須再認証）。
           // sessionStorage 不清 — lastTeacherId 保留可让 LoginScreen 卡片高亮「前回」
