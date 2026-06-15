@@ -1061,4 +1061,34 @@ itsuki 双击项目根启动脚本肉眼签收界面跟旧版一致 → 确认�
 
 ---
 
+## 19. 清掃罰則ページ 重做（2026-06-15，commit `743dfd2`）
+
+罚扫功能 6-10 删除后 2026-06-15 itsuki 拍板重做（推翻删除，详见 `logs/decisions/decision_log.md` 同日）。老师网页段恢复 + 改造：
+
+### 19.1 CleaningPage 恢复 + 改造（`components/CleaningPage.tsx`）
+
+- 恢复旧页骨架：顶栏「清掃確認」+「＋ 清掃を割り当て」+ 错误横幅 + 三列卡片网格 + 承認/却下 + 却下理由 modal。
+- 改造 3 处对齐重做设计：① 地点 7 选 1 下拉 → **自由文本 input**（老师手输）② 日期 `type="date"` → **`type="datetime-local"`**（精确到点，提交 `new Date(when).toISOString()`）③ 选学生裸 UUID input → 复用 `shared.tsx` 的 `StudentPicker` 单选（searchApi = `searchDemeritStudents`）。
+- 前端拦「不能选过去时间」（后端 422 兜底）；卡片 `fmtCleaningWhen` 显示「M月D日 H時mm分」。
+- list 口径：`api.listCleaning(token)` **无参**，拉后端所有未审核（assigned/done）安排、按 scheduled_at 升序；副标题「未完了の清掃割り当て一覧」。
+
+### 19.2 DisciplinePage 恢复罚扫名单/列/规则（`components/DisciplinePage.tsx`）
+
+- 恢复「清掃罰則リスト」名单区段：过滤 `is_cleaning_threshold && !is_curfew_threshold`（≥8 分只进禁足名单、不重复标罚扫，对齐「到 8 分不再标罚扫」）。
+- 排行表加「清掃まで残り」列（6→7 列网格）+ 减点合计着色 ≥4 红/≥3 黄。
+- 规则卡加「清掃罰則の適用 月累計 ≥4 点」徽章。
+
+### 19.3 导航 + 路由 + 接口
+
+- `Shell.tsx`：NAV「生活・指導」组挨 discipline 后加 `["cleaning","清掃罰則"]` + pageLabel。
+- `App.tsx`：import `CleaningPage` + switch `case "cleaning"`。
+- `api/types.ts`：恢复 `CleaningItem`/`CleaningCreateIn`/`CleaningInspectIn`（scheduled_at:string + area:string）；`DemeritSourceType` 加 `cleaning_failed`；`DisciplineRankingEntry` 加 `is_cleaning_threshold`、`DisciplineRankingOut` 加 `cleaning_threshold_count`。
+- `api/client.ts`：恢复 `listCleaning`(无参)/`createCleaning`/`inspectCleaning`。
+
+### 19.4 验证
+
+`npm run build` 通过（tsc 0 错 + vite build）。主会话独立复验。
+
+---
+
 **END** — 本档随 Web 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。

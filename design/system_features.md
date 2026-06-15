@@ -911,11 +911,11 @@ bus_reservations
 |---|---|---|---|---|---|
 | 减点累计 显示 | ✅ Home 三色 badge + MyPage 详细 | ✅ discipline.jsx | `GET /discipline/:id` ⏳ | 学生 + 寮務 | (D) |
 | 减点 内訳(迟到/欠席)| 〇 MyPage | ✅ discipline.jsx 详细 | 同上 | 学生 + 寮務 | (D) |
-| ~~罚扫当番 通知(≥4 点)~~ 🚫 **砍**（itsuki 2026-06-10 拍板 — 清扫功能全 5 端代码已删，含「4 点罚扫」阈值）| — | — | — | — | — |
+| 罚扫(≥4 点 自动判定) | 〇 Home「需要罚扫」标识 + 下次罚扫小卡 + 罚扫履历页 | ✅ CleaningPage 排罚扫 + 审核(通過/却下)| `GET/POST /cleaning` + `/cleaning/{id}/inspect` ⏳ | 学生 + 寮務 | (V1) |
 | 禁足 通知(≥8 点)| 〇 マイページ | ✅ 罚则 list | `GET /penalties/grounding` ⏳ | 学生 + 寮務 | (D) |
 | 密码锁 → 老师通报 | 〇 锁屏 | ✅ accounts.jsx「ロック中」filter | 自动连携 ⏳ | 系统 + 寮務 | (D) |
 
-> **罚则数值**(2026-04-30 拍板): 迟到 0.5 / 缺席 1.0 / 月累计 ≥8 禁足（原「≥4 罚扫」2026-06-10 随清扫功能删除）— **backend 常量 hardcode**(不做 DB 表 + admin UI)。改时走 git commit + redeploy。**上线前不再跟老师确认**(暂定 4 个值就这样定)。理由: 学校扣分规则改动频度极低,admin UI 是 YAGNI。单源真值: `specs/rollcall/v0.1_冻结决策.md §1`。
+> **罚则数值**(2026-04-30 拍板 / 2026-06-15 罚扫重做): 迟到 0.5 / 缺席 1.0 / 月累计 ≥4 罚扫（常量 `CLEANING_THRESHOLD=4.0`）/ 月累计 ≥8 禁足（常量 `CURFEW_THRESHOLD=8.0`）— **backend 常量 hardcode**(两常量均在 `dev/backend/v1/app/routers/discipline.py`，不做 DB 表 + admin UI)。改时走 git commit + redeploy。**上线前不再跟老师确认**(暂定就这样定)。理由: 学校扣分规则改动频度极低,admin UI 是 YAGNI。单源真值: `specs/rollcall/v0.1_冻结决策.md §1`。
 
 ### 7.13 通知(R1 邮件固定 + 学生 push + 老师 Web 通知中心)
 
