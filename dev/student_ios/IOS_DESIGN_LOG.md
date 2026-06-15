@@ -1540,3 +1540,29 @@ itsuki 截图反馈：学生在班车页右上角看「这趟班车干嘛用的�
 
 ### §25.2 验证
 双 scheme BUILD SUCCEEDED（正式版 + 演示版，iPhone 17 Pro）。后端 `purpose` 字段见 BACKEND_DESIGN_LOG 2026-06-15。
+
+## §26 通知中心改接后端学生通知 feed（2026-06-15，§7.13.1）
+
+老师投稿 公告/巴士/行事 时勾「学生に通知する」→ 该条进学生通知中心 + 推送。iOS 端把通知中心的数据源从「自己拉全部公告映射成通知卡」(原 `announcementNotifications`) 改成「拉后端统一 feed」—— 由后端按 `notify_students` 开关 + 学生可见范围聚合，老师没勾「通知」的不进来。后端单一真值也为将来 Android 复用同一接口铺路。spec 原文见 `admin/handoff/学生通知功能_第二段进度+§7.13.1规格_2026-06-15.md`（待并入 system_features.md）。
+
+### §26.1 改动
+- `NetworkModels.swift`：加 `StudentNotificationItem`(kind/refId/title/body/createdAt/isRead，snake→camel CodingKeys) + `StudentNotificationFeedOut`(items/unreadCount)。
+- `Endpoints/StudentNotificationsAPI.swift`（新）：`feed()` 拉 `GET /api/v1/student/notifications`；`markRead(kind:refId:)` 调 `POST .../read`。
+- `APIClient.swift`：加 `postNoContent`（仿 `delete`，吃后端 204 空 body，给「标已读」类幂等接口用）。
+- `SeedModels.swift`：`NotificationItem` 加可选 `kind`/`refId`（带默认 nil → 既有 push/宅配/SEED 初始化点不受影响），点卡片标已读时回查 feed 条目用。
+- `AppStore.swift`：
+  - 加 `studentNotifications` 缓存 + `studentNotificationUnreadCount` + `loadStudentNotifications()`（带令牌守卫，演示构建空操作）。
+  - `feedNotifications` 计算属性替代 `announcementNotifications`（kind→type 映射：announcement→「お知らせ」/ bus→「バス」/ event→「カレンダー」；id 用负序、跟 push≥1000、包裹大负数三段不撞）。
+  - `allNotifications` 生产分支 = push + feedNotifications + 包裹。
+  - `refreshNotificationSources` 生产分支 = loadStudentNotifications + loadMyPackages（不再拉全部公告）。
+  - `unreadNotificationCount` 生产分支 badge = push未读 + feed未读数 + 包裹未读（feed 空时回退后端 `studentNotificationUnreadCount`，非空用本地条数，避免点已读后中间态对不上）。
+  - `loadMe` 登录/启动即拉 feed（让首屏铃铛 badge 含通知未读数，不依赖进过通知中心）；登出重置两个 feed 状态。
+  - `markStudentNotificationRead(kind:refId:)`：乐观更新（本条翻已读 + 计数减1），令牌守卫，await 前后重定位数组。
+- `Features/Community/CommunityStubs.swift`：`NotificationsView.notifCard` 加 `.onTapGesture` → feed 来源(kind/refId 非 nil)且未读时调 `markStudentNotificationRead`；push/宅配/SEED 无 kind 不响应。
+- **演示构建不变**：`#if DEMO` 仍用 `SEED.notifications`，feed 相关全空操作。
+
+### §26.2 字段对齐
+`StudentNotificationItem` CodingKeys 对齐后端 `schemas.StudentNotificationItem`：ref_id / created_at / is_read；`StudentNotificationFeedOut.unread_count`。created_at 带时区 → Date（APIClient .iso8601）。
+
+### §26.3 验证（⚠️ 未达双 scheme BUILD SUCCEEDED — 被别会话撞车阻塞）
+本通知改动**单独看编译干净**：提取全部编译错误，5 个全在【另一会话正在做的「罚扫/cleaning」iOS 半成品】(`MyCleanView` 未建 / `nextCleaningCard` / `MyPageStubs.jstDateTimeLabel` actor 隔离)，**没有一个在本通知改动的文件里**。但整个 iOS target 因罚扫半成品编译红 → 拿不到完整 BUILD SUCCEEDED。**待罚扫会话 iOS 落地 build 转绿后，本通知 6 文件作一个干净 commit + 双 scheme 验证。** 现 iOS 改动未提交（已备份 /tmp，记 TODO §📨-E）。
