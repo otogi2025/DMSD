@@ -909,10 +909,12 @@ def decide_approval(
             {"code": "APPROVAL_ALREADY_DECIDED", "message": "すでに決定済みです"},
         )
 
-    # 上面的条件更新走的是 SQL 直更、没经过 ORM，内存里的 pending_row 还是旧值（decision=None）。
-    # 让它失效，下面 _recompute_application_status 遍历 app.approvals 时会重新从库读到刚写的新值。
-    # refresh / recompute / 发邮件 / 写 audit / commit 全在同一事务里，不分开提交。
-    db.expire(pending_row)
+    # 上面的条件更新走的是 SQL 直更、没经过 ORM，内存里的 approval 行还是旧值（decision=None）。
+    # expire 整个 app.approvals 关系（不只当前 pending_row）：否则两个角色并发审批时，另一角色刚批的
+    # 那行在本会话内存里仍是旧值，下面 _recompute_application_status 会误判「还有 pending 行」、把已
+    # 全批的届错误停在 approved_partial。expire 后 recompute 遍历 app.approvals 会从库重读所有行最新值。
+    # （codex 复审发现）recompute / 发邮件 / 写 audit / commit 全在同一事务里，不分开提交。
+    db.expire(app, ["approvals"])
 
     # application.status 自動更新
     _recompute_application_status(app)
