@@ -143,8 +143,8 @@ def test_mark_read_unknown_404(client, seed_data, teacher_token):
 
 
 # ---------------------------------------------------------------
-# 阶段2：第二批通知来源（8 类申请表）。这里抽查 4 类，
-# 覆盖 3 个字段名坑：proposer_id（行事企画）/ requested_at（开示）/ created_at（杂项）。
+# 阶段2：第二批通知来源（7 类申请表）。这里抽查 3 类，
+# 覆盖 2 个字段名坑：proposer_id（行事企画）/ created_at（杂项）。
 # ---------------------------------------------------------------
 
 
@@ -271,19 +271,3 @@ def test_insert_skip_conflicts_reraises_other_integrity(db_session, seed_data):
     with pytest.raises(IntegrityError):
         notif_mod._insert_skip_conflicts(db_session, [bad])
     db_session.rollback()
-
-
-def test_feed_syncs_guidance_disclosure(client, seed_data, teacher_token, db_session):
-    """指导开示申请 → category=disclosure（时间列是 requested_at）。"""
-    db_session.add(
-        models.GuidanceDisclosureRequest(
-            student_id=seed_data["student"].id,
-            reason="進路相談のため",
-        )
-    )
-    db_session.commit()
-    body = _feed(client, teacher_token)
-    assert len(body["items"]) == 1
-    item = body["items"][0]
-    assert item["category"] == "disclosure"
-    assert item["related_student_id"] == str(seed_data["student"].id)

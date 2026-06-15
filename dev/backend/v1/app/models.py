@@ -1445,7 +1445,7 @@ class GuidanceRecord(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     # 类别：生活态度 / 点呼态度 / 同寮纠纷 / 学习 / 其他
     category: Mapped[Optional[str]] = mapped_column(Text)
-    # 默认 confidential — 学生申请开示才能看到（§7.10 C 案）
+    # 默认 confidential（默认隐藏）— 仅老师可见，学生端无查看入口
     confidential: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     guidance_date: Mapped[date] = mapped_column(Date, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -1459,54 +1459,6 @@ class GuidanceRecord(Base):
     __table_args__ = (
         Index("idx_gr_student", "student_id", "deleted_at"),
         Index("idx_gr_teacher", "teacher_id", "guidance_date"),
-    )
-
-
-class GuidanceDisclosureRequest(Base):
-    """指导履历 开示申请 — 学生发起，老师决定（§7.10 C 案）。"""
-
-    __tablename__ = "guidance_disclosure_requests"
-
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    student_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("students.id"), nullable=False
-    )
-    reason: Mapped[Optional[str]] = mapped_column(Text)
-    requested_at: Mapped[datetime] = mapped_column(
-        TZDateTime, nullable=False, server_default=func.now()
-    )
-    status: Mapped[str] = mapped_column(String(24), nullable=False, default="pending")
-    decided_by: Mapped[Optional[uuid.UUID]] = mapped_column(
-        Uuid, ForeignKey("teachers.id")
-    )
-    decided_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
-    decision_note: Mapped[Optional[str]] = mapped_column(Text)
-    # 部分开示时的开示范围（全部开示时两字段均 NULL）
-    visible_from: Mapped[Optional[date]] = mapped_column(Date)
-    visible_until: Mapped[Optional[date]] = mapped_column(Date)
-    # 老师事后撤销开示（误开示对策）
-    revoked_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
-
-    student: Mapped["Student"] = relationship(foreign_keys=[student_id])
-
-    __table_args__ = (
-        CheckConstraint(
-            "status IN ('pending','approved_full','approved_partial','rejected')",
-            name="ck_gdr_status",
-        ),
-        Index("idx_gdr_student_status", "student_id", "status"),
-        Index("idx_gdr_status_requested", "status", "requested_at"),
-        # 「同一学生同时只能有一条 pending 开示申请」这条不变量靠 DB 部分唯一索引兜底。
-        # 路由层先 SELECT 再 INSERT 的检查会被并发绕过（两个请求各自查到无 pending → 都 INSERT），
-        # 部分唯一索引（只约束 status='pending' 的行）让并发第二条 INSERT 撞约束 → 转 409。
-        # SQLite（dev）与 PostgreSQL（prod）都支持 sqlite_where / postgresql_where 部分索引。
-        Index(
-            "uq_gdr_one_pending_per_student",
-            "student_id",
-            unique=True,
-            sqlite_where=text("status = 'pending'"),
-            postgresql_where=text("status = 'pending'"),
-        ),
     )
 
 

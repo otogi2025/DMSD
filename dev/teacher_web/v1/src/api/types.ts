@@ -626,30 +626,6 @@ export interface GuidanceCreateIn {
   confidential: boolean;
 }
 
-// ── 開示申請（对齐 GuidanceDisclosureRequestOut 1361-1373）──
-export interface DisclosureRequest {
-  id: string;
-  student_id: string;
-  student_no: string; // 后端发的是学号（不是 student_name）
-  reason: string | null;
-  requested_at: string; // 后端字段名是 requested_at（不是 submitted_at）
-  status: "pending" | "approved_full" | "approved_partial" | "rejected";
-  decided_by: string | null;
-  decided_at: string | null;
-  decision_note: string | null;
-  visible_from: string | null;
-  visible_until: string | null;
-  revoked_at: string | null;
-}
-
-// 对齐 GuidanceDisclosureDecisionIn(1337-1344)
-export interface DisclosureDecisionIn {
-  decision: "approved_full" | "approved_partial" | "rejected";
-  decision_note?: string;
-  visible_from?: string;
-  visible_until?: string;
-}
-
 // ── 事案録入（对齐 IncidentRecordOut 1415-1426 + IncidentStudentBrief 1408-1413）──
 export interface IncidentStudentBrief {
   id: string;
@@ -762,7 +738,7 @@ export interface NotificationItem {
   id: string;
   // application=出寮届 / demerit=扣分 / rollcall_report=点呼上报 /
   // 阶段2 新增：outing 外出 / study_absence 学习缺席 / study_online 在线学习 /
-  // dorm_event 行事企划 / fridge 冰箱 / item 物品 / disclosure 指导开示 / misc 杂项
+  // dorm_event 行事企划 / fridge 冰箱 / item 物品 / misc 杂项
   category: string;
   title: string;
   body: string;

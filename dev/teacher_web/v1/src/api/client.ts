@@ -57,8 +57,6 @@ import type {
   StudentProfile,
   GuidanceItem,
   GuidanceCreateIn,
-  DisclosureRequest,
-  DisclosureDecisionIn,
   IncidentItem,
   IncidentDetail,
   IncidentCreateIn,
@@ -621,24 +619,6 @@ export const api = {
       "GET",
       `/students/${studentId}/guidance`,
       undefined,
-      token,
-    ),
-  listDisclosureRequests: (token: string) =>
-    request<{ items: DisclosureRequest[] }>(
-      "GET",
-      "/guidance/disclosure-requests",
-      undefined,
-      token,
-    ),
-  decideDisclosure: (
-    requestId: string,
-    body: DisclosureDecisionIn,
-    token: string,
-  ) =>
-    request<DisclosureRequest>(
-      "POST",
-      `/guidance/disclosure-requests/${requestId}/decision`,
-      body,
       token,
     ),
 

@@ -2,7 +2,7 @@
 
 覆盖：
 - #1  WS broadcast dorm_unit 过滤（单元测试：直接测 manager.broadcast 行为）
-- #2  guidance list_guidance / list_disclosure_requests 寮过滤（越权场景 403）
+- #2  guidance list_guidance 寮过滤（越权场景 403）
 - #3  student_profile get_current_principal 鉴权（学生 token 看他人 → 403）
 """
 
@@ -174,53 +174,6 @@ class TestGuidanceDormBoundary:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert r.status_code == 200, r.text
-
-    def test_list_disclosure_requests_now_includes_other_dorm(
-        self, client, cross_dorm_setup, joshi_token, student_token
-    ):
-        """男寮学生提交开示申请后，女寮老师的列表现在也包含该申请（寮过滤已取消 2026-06-13）。"""
-        # 学生提交申请
-        res = client.post(
-            f"/api/v1/students/{cross_dorm_setup['student'].id}/guidance/disclosure-request",
-            json={"reason": "確認したい"},
-            headers={"Authorization": f"Bearer {student_token}"},
-        )
-        assert res.status_code == 201, res.text
-
-        # 女寮老师拉列表 → 男寮学生的申请现在也出现
-        r = client.get(
-            "/api/v1/guidance/disclosure-requests",
-            headers={"Authorization": f"Bearer {joshi_token}"},
-        )
-        assert r.status_code == 200, r.text
-        assert len(r.json()["items"]) == 1, (
-            "寮过滤取消后女寮老师也应看到男寮学生的开示申请"
-        )
-
-    def test_list_disclosure_requests_own_dorm_visible(
-        self, client, cross_dorm_setup, student_token, seed_data
-    ):
-        """男寮老师能看到男寮学生的开示申请。"""
-        # 学生提交申请
-        res = client.post(
-            f"/api/v1/students/{cross_dorm_setup['student'].id}/guidance/disclosure-request",
-            json={"reason": "確認したい"},
-            headers={"Authorization": f"Bearer {student_token}"},
-        )
-        assert res.status_code == 201, res.text
-
-        # 男寮老师（tannin）拉列表 → 应看到 1 条
-        res2 = client.post(
-            "/api/v1/sessions/teacher",
-            json={"login_id": "tannin", "password": "test-password-12345"},
-        )
-        tannin_token = res2.json()["access_token"]
-        r = client.get(
-            "/api/v1/guidance/disclosure-requests",
-            headers={"Authorization": f"Bearer {tannin_token}"},
-        )
-        assert r.status_code == 200, r.text
-        assert len(r.json()["items"]) == 1
 
 
 # ─────────────────────────────────────────────────────────────

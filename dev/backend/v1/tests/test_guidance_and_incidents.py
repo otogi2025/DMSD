@@ -1,9 +1,7 @@
-"""指導履歴 + 事案録入 测试 (spec §7.9/§7.10)。
+"""指導履歴 + 事案録入 测试 (spec §7.9)。
 
 覆盖：
 - 指导记录: POST 创建 / GET 列表 / 403 非寮務老师 / 404 学生不存在
-- 开示申请: 学生 POST 申请 / 重复申请 409 / 403 只能申请自己的
-- 老师查开示列表 / POST 决定开示 / 决定后再决定 409
 - 事案: POST 创建 / GET 列表 / GET 详情 / PATCH 编辑 / DELETE 软删
 - 事案 403 非寮務 / 404 不存在
 """
@@ -123,147 +121,6 @@ class TestGuidanceRecords:
         sid = _student_id(seed_data)
         res = client.get(
             f"/api/v1/students/{sid}/guidance",
-            headers={"Authorization": f"Bearer {kokukou_token}"},
-        )
-        assert res.status_code == 200
-
-
-# -----------------------------------------------------------------------
-# 开示申请 tests
-# -----------------------------------------------------------------------
-class TestGuidanceDisclosure:
-    def test_student_submit_and_teacher_list(
-        self, client, seed_data, student_token, ryomu_token
-    ):
-        """学生提交开示申请 → 老师列表能查到。"""
-        sid = _student_id(seed_data)
-        res = client.post(
-            f"/api/v1/students/{sid}/guidance/disclosure-request",
-            headers={"Authorization": f"Bearer {student_token}"},
-            json={"reason": "自分の指導記録を確認したい"},
-        )
-        assert res.status_code == 201, res.text
-        req_id = res.json()["id"]
-        assert res.json()["status"] == "pending"
-
-        # 老师查列表
-        res2 = client.get(
-            "/api/v1/guidance/disclosure-requests",
-            headers={"Authorization": f"Bearer {ryomu_token}"},
-        )
-        assert res2.status_code == 200
-        ids = [item["id"] for item in res2.json()["items"]]
-        assert req_id in ids
-
-    def test_duplicate_pending_409(self, client, seed_data, student_token):
-        """学生已有 pending 申请时再提交 → 409。"""
-        sid = _student_id(seed_data)
-        payload = {"reason": "確認したい"}
-        client.post(
-            f"/api/v1/students/{sid}/guidance/disclosure-request",
-            headers={"Authorization": f"Bearer {student_token}"},
-            json=payload,
-        )
-        res2 = client.post(
-            f"/api/v1/students/{sid}/guidance/disclosure-request",
-            headers={"Authorization": f"Bearer {student_token}"},
-            json=payload,
-        )
-        assert res2.status_code == 409
-
-    def test_student_cannot_apply_for_others(
-        self, client, seed_data, student_token, db_session
-    ):
-        """学生不能替别人提申请 → 403。"""
-        from app import models, security
-
-        other = models.Student(
-            grade_code="07",
-            class_code="01",
-            seat_no="01",
-            name="別の学生",
-            gender="male",
-            room_no="M201",
-            dorm_unit=1,
-        )
-        db_session.add(other)
-        db_session.flush()
-        db_session.add(
-            models.Account(
-                student_id=other.id,
-                password_hash=security.hash_password("test-password-12345"),
-            )
-        )
-        db_session.commit()
-
-        res = client.post(
-            f"/api/v1/students/{other.id}/guidance/disclosure-request",
-            headers={"Authorization": f"Bearer {student_token}"},
-            json={"reason": "他人の記録を見たい"},
-        )
-        assert res.status_code == 403
-
-    def test_teacher_decide_approved_full(
-        self, client, seed_data, student_token, ryomu_token
-    ):
-        """老师决定全部开示 → status 变 approved_full。"""
-        sid = _student_id(seed_data)
-        res = client.post(
-            f"/api/v1/students/{sid}/guidance/disclosure-request",
-            headers={"Authorization": f"Bearer {student_token}"},
-            json={"reason": "確認したい"},
-        )
-        req_id = res.json()["id"]
-
-        res2 = client.post(
-            f"/api/v1/guidance/disclosure-requests/{req_id}/decision",
-            headers={"Authorization": f"Bearer {ryomu_token}"},
-            json={"decision": "approved_full", "decision_note": "問題なし"},
-        )
-        assert res2.status_code == 200, res2.text
-        assert res2.json()["status"] == "approved_full"
-
-    def test_decide_already_decided_409(
-        self, client, seed_data, student_token, ryomu_token
-    ):
-        """已决定的申请再决定 → 409。"""
-        sid = _student_id(seed_data)
-        res = client.post(
-            f"/api/v1/students/{sid}/guidance/disclosure-request",
-            headers={"Authorization": f"Bearer {student_token}"},
-            json={},
-        )
-        req_id = res.json()["id"]
-
-        client.post(
-            f"/api/v1/guidance/disclosure-requests/{req_id}/decision",
-            headers={"Authorization": f"Bearer {ryomu_token}"},
-            json={"decision": "rejected"},
-        )
-        res2 = client.post(
-            f"/api/v1/guidance/disclosure-requests/{req_id}/decision",
-            headers={"Authorization": f"Bearer {ryomu_token}"},
-            json={"decision": "approved_full"},
-        )
-        assert res2.status_code == 409
-
-    def test_decide_404_not_found(self, client, seed_data, ryomu_token):
-        """不存在的申请 ID → 404。"""
-        fake = "00000000-0000-0000-0000-000000000000"
-        res = client.post(
-            f"/api/v1/guidance/disclosure-requests/{fake}/decision",
-            headers={"Authorization": f"Bearer {ryomu_token}"},
-            json={"decision": "rejected"},
-        )
-        assert res.status_code == 404
-
-    def test_list_403_non_ryomu(self, client, seed_data, kokukou_token):
-        """国際交流部長 → 可查看开示申请列表（200）。
-
-        同指导履历（teacher_permission_v1.md §5 第 15 行 5 组全部至少 V）：国際 默认「申請承認専用」有 V。
-        """
-        res = client.get(
-            "/api/v1/guidance/disclosure-requests",
             headers={"Authorization": f"Bearer {kokukou_token}"},
         )
         assert res.status_code == 200
@@ -423,7 +280,7 @@ class TestIncidentRecords:
 # #2 major — guidance 写操作寮边界测试
 # -----------------------------------------------------------------------
 class TestGuidanceDormBoundary:
-    """create_guidance / decide_disclosure 对跨寮老师应返回 403。
+    """create_guidance 对跨寮老师应返回 403。
 
     场景：学生在 dorm_unit=1（男寮），女寮老师（assigned_dorm=4）无权操作。
     """
@@ -465,25 +322,3 @@ class TestGuidanceDormBoundary:
             },
         )
         assert res.status_code == 201, res.text
-
-    def test_decide_disclosure_cross_dorm_now_allowed(
-        self, client, seed_data, student_token, joshi_token
-    ):
-        """女寮老师审批男寮学生的开示申请 → 现在允许（寮过滤已取消 2026-06-13）。"""
-        sid = _student_id(seed_data)
-        # 学生先提交开示申请
-        r = client.post(
-            f"/api/v1/students/{sid}/guidance/disclosure-request",
-            headers={"Authorization": f"Bearer {student_token}"},
-            json={},
-        )
-        assert r.status_code == 201, r.text
-        req_id = r.json()["id"]
-
-        # 女寮老师审批 → 跨寮现已放开，应成功
-        res = client.post(
-            f"/api/v1/guidance/disclosure-requests/{req_id}/decision",
-            headers={"Authorization": f"Bearer {joshi_token}"},
-            json={"decision": "approved_full"},
-        )
-        assert res.status_code == 200, res.text

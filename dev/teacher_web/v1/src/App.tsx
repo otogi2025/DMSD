@@ -20,7 +20,6 @@ import { NotificationsPage } from "./components/NotificationsPage";
 import { InfoPage, BusPage } from "./components/InfoPage";
 import { CommunityPage } from "./components/CommunityPage";
 import { AccountsPage } from "./components/AccountsPage";
-import { DisclosureRequestsPage } from "./components/DisclosureRequestsPage";
 import { RegistrationCodePanel } from "./components/RegistrationCodePanel";
 import { TeachersAdminPage } from "./components/TeachersAdminPage";
 import { StudyAttendancePage } from "./components/StudyAttendancePage";
@@ -904,10 +903,6 @@ export function App() {
     case "study":
       // Task #17: 学習出席页 (§11.1 P0 + §7.3)
       body = <StudyAttendancePage teacher={teacher} authToken={authToken} />;
-      break;
-    case "disclosure-requests":
-      // 开示申请审查页（spec §7.10）。导航对所有老师显示；增删改权限由后端 require_permission 把关（旧「仅寮务系权限可见」已随职位退化为纯显示标签而撤回）
-      body = <DisclosureRequestsPage authToken={authToken} />;
       break;
     default:
       body = (

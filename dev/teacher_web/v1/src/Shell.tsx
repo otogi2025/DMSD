@@ -146,7 +146,6 @@ export function Shell({
         ["accounts", "学生アカウント管理"],
         ["admin-registration-code", "学生登録コード"],
         ["teachers-admin", "教員アカウント管理"],
-        ["disclosure-requests", "開示申請"],
       ],
     },
   ];
@@ -169,7 +168,6 @@ export function Shell({
       accounts: "学生アカウント管理",
       "admin-registration-code": "学生登録コード",
       "teachers-admin": "教員アカウント管理",
-      "disclosure-requests": "開示申請",
       summary: "点呼集計",
       search: "検索結果",
     }[active] || "";
