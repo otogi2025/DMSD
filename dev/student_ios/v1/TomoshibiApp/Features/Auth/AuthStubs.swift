@@ -892,6 +892,7 @@ struct RegisterStep1View: View {
                             .datePickerStyle(.wheel)
                             .labelsHidden()
                             .environment(\.locale, Locale(identifier: "ja_JP"))
+                            .environment(\.timeZone, TimeZone(identifier: "Asia/Tokyo")!) // 固定 JST，与 birthdayString 格式化时区一致，生日 date-only 不随设备时区漂天
                             .frame(maxWidth: .infinity)
                             .frame(height: 160)
                             .clipped()

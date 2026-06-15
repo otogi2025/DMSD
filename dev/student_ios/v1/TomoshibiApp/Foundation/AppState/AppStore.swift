@@ -59,6 +59,7 @@ struct RegistrationDraft {
         // 年份会被格式化成年号纪年（令和7年 → 0007），把生日写错。参照 todayJaYMD() 的写法。
         f.locale = Locale(identifier: "en_US_POSIX")
         f.calendar = Calendar(identifier: .gregorian)
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo") // 固定 JST，与生日 DatePicker 时区一致，date-only 不随设备时区偏天
         return f.string(from: b)
     }
 }
