@@ -114,7 +114,7 @@ export function StudentProfileModal({
     ["basic", "基本情報"],
     ["applications", "出寮届"],
     ["study", "晩自習出席"],
-    ["online", "オンライン晩自習"],
+    ["online", "オンライン学習"],
     ["rollcall", "点呼"],
     ["guidance", "指導履歴"],
     ["demerit", "減点"],
@@ -679,7 +679,7 @@ export function StudentProfileModal({
                   {(!data.study_online_requests ||
                     data.study_online_requests.length === 0) && (
                     <div style={{ color: T.ink3, fontSize: 13 }}>
-                      オンライン晩自習申請がありません
+                      オンライン学習申請がありません
                     </div>
                   )}
                   {data.study_online_requests &&

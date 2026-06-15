@@ -40,7 +40,7 @@ function categoryMeta(category: string, T: typeof RYO) {
     case "study_absence":
       return { label: "晩自習欠席", color: T.cobalt };
     case "study_online":
-      return { label: "オンライン晩自習", color: T.cobalt };
+      return { label: "オンライン学習", color: T.cobalt };
     case "dorm_event":
       return { label: "行事企画", color: T.cobalt };
     case "fridge":
