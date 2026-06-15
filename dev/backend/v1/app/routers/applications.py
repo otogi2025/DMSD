@@ -806,9 +806,14 @@ def decide_approval(
         require_permission(permissions.C_APPROVAL, permissions.MANAGE)
     ),
 ):
+    # 行锁串行化审批入口（codex 复审）：对该 application 行 SELECT ... FOR UPDATE。
+    # 两个角色并发审批同一届时，第二个会阻塞到第一个事务提交、再读到最新审批状态后重算，
+    # 杜绝「两事务互看不到对方刚 approve 的行、双双写 approved_partial、全批完却卡 partial 无自愈」。
+    # PostgreSQL(生产)真行锁；SQLite(dev/测试)忽略 FOR UPDATE，但其单写者事务天然串行、同样安全。
     app = db.scalars(
         select(models.Application)
         .where(models.Application.id == application_id)
+        .with_for_update()
         .options(
             selectinload(models.Application.approvals),
             selectinload(models.Application.student),
