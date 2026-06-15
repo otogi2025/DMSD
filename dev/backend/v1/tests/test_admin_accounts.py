@@ -502,3 +502,102 @@ class TestUnlockAccount:
             i for i in res.json()["items"] if i["student_no"] == student_a.student_no
         )
         assert item["is_locked"] is False
+
+
+# -----------------------------------------------------------------
+# POST /api/v1/accounts/{id}/renew-seat — 老师兜底改番号
+# A-527（2026-06-15 全维度审查）：在籍校验回归
+# -----------------------------------------------------------------
+
+
+class TestTeacherRenewSeat:
+    def test_200_active_student_ok(self, client, admin_seed):
+        """active 学生 → 改番号成功、needs_renewal 清零。"""
+        token = _teacher_token(client, "kanri_admin")
+        sid = str(admin_seed["student_a"].id)
+        res = client.post(
+            f"/api/v1/accounts/{sid}/renew-seat",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"grade_code": "05", "class_code": "03", "seat_no": "07"},
+        )
+        assert res.status_code == 200, res.text
+        data = res.json()
+        assert data["grade_code"] == "05"
+        assert data["class_code"] == "03"
+        assert data["seat_no"] == "07"
+
+    @pytest.mark.parametrize(
+        "bad_status", ["graduated", "paused", "locked", "transferred"]
+    )
+    def test_409_non_active_student_rejected(
+        self, client, admin_seed, db_session, bad_status
+    ):
+        """非 active（毕业 / 停用 / 锁定 / 転寮）学生 → 409 STUDENT_NOT_ACTIVE，番号不变。"""
+        student_a = admin_seed["student_a"]
+        orig_grade = student_a.grade_code
+        orig_class = student_a.class_code
+        orig_seat = student_a.seat_no
+        # 直接改库把学生置成非在籍状态
+        student_a.status = bad_status
+        db_session.commit()
+
+        token = _teacher_token(client, "kanri_admin")
+        sid = str(student_a.id)
+        res = client.post(
+            f"/api/v1/accounts/{sid}/renew-seat",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"grade_code": "05", "class_code": "03", "seat_no": "07"},
+        )
+        assert res.status_code == 409, res.text
+        assert res.json()["detail"]["code"] == "STUDENT_NOT_ACTIVE"
+
+        # 番号未被改动
+        db_session.refresh(student_a)
+        assert student_a.grade_code == orig_grade
+        assert student_a.class_code == orig_class
+        assert student_a.seat_no == orig_seat
+
+
+# -----------------------------------------------------------------
+# GET /api/v1/students 模糊搜 LIKE 通配符转义
+# B-低-27（2026-06-15 全维度审查）
+# -----------------------------------------------------------------
+
+
+class TestListStudentsLikeEscape:
+    def test_percent_in_q_is_literal_not_wildcard(self, client, admin_seed):
+        """q 含 % → 当字面量处理，不匹配全部学生（转义生效）。"""
+        token = _teacher_token(client, "kanri_admin")
+        # admin_seed 有 2 个真实学生（太郎 / 花子），名字里都没有 % 字符
+        res = client.get(
+            "/api/v1/students",
+            params={"q": "%"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert res.status_code == 200, res.text
+        # 若 % 未转义会被当通配符匹配全部 → 转义后应 0 命中
+        assert res.json()["total"] == 0
+
+    def test_underscore_in_q_is_literal_not_wildcard(self, client, admin_seed):
+        """q 含 _ → 当字面量处理，不匹配任意单字符（转义生效）。"""
+        token = _teacher_token(client, "kanri_admin")
+        res = client.get(
+            "/api/v1/students",
+            params={"q": "_"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert res.status_code == 200, res.text
+        assert res.json()["total"] == 0
+
+    def test_normal_q_still_matches(self, client, admin_seed):
+        """普通查询（不含通配符）→ 转义后照常命中（不回归正常搜索）。"""
+        token = _teacher_token(client, "kanri_admin")
+        res = client.get(
+            "/api/v1/students",
+            params={"q": "花子"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert res.status_code == 200, res.text
+        data = res.json()
+        assert data["total"] == 1
+        assert "花子" in data["items"][0]["name"]

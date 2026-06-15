@@ -293,6 +293,139 @@ class TestProfileIncludesOnline:
         assert entry["contract_size"] == len(PDF_BYTES)
 
 
+class TestSubmitOverlap:
+    """A-623（2026-06-15 修）：同一学生不允许提交与现有 pending/approved 申请时间段重叠的新申请。"""
+
+    def test_overlap_same_period_rejected(self, client, student_token):
+        # 第一份申请：第 5 天单日
+        rid = _create_request(client, student_token, offset_days=5)
+        assert rid
+        # 第二份同一天 → 重叠 → 409
+        pf = (date.today() + timedelta(days=5)).isoformat()
+        res = client.post(
+            "/api/v1/study/online-requests",
+            json={
+                "reason": "重複期間",
+                "period_from": pf,
+                "period_to": pf,
+                "weekly_schedule": {"月": [{"start": "19:40", "end": "21:00"}]},
+            },
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 409, res.text
+        assert res.json()["detail"]["code"] == "ONLINE_REQUEST_OVERLAP"
+
+    def test_overlap_partial_range_rejected(self, client, student_token):
+        # 第一份：第 5~8 天
+        pf1 = (date.today() + timedelta(days=5)).isoformat()
+        pt1 = (date.today() + timedelta(days=8)).isoformat()
+        r1 = client.post(
+            "/api/v1/study/online-requests",
+            json={
+                "reason": "範囲1",
+                "period_from": pf1,
+                "period_to": pt1,
+                "weekly_schedule": {"月": [{"start": "19:40", "end": "21:00"}]},
+            },
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert r1.status_code == 201, r1.text
+        # 第二份：第 7~10 天，与第一份相交 → 409
+        pf2 = (date.today() + timedelta(days=7)).isoformat()
+        pt2 = (date.today() + timedelta(days=10)).isoformat()
+        r2 = client.post(
+            "/api/v1/study/online-requests",
+            json={
+                "reason": "範囲2",
+                "period_from": pf2,
+                "period_to": pt2,
+                "weekly_schedule": {"月": [{"start": "19:40", "end": "21:00"}]},
+            },
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert r2.status_code == 409, r2.text
+
+    def test_non_overlap_allowed(self, client, student_token):
+        # 第一份：第 5~8 天
+        pf1 = (date.today() + timedelta(days=5)).isoformat()
+        pt1 = (date.today() + timedelta(days=8)).isoformat()
+        r1 = client.post(
+            "/api/v1/study/online-requests",
+            json={
+                "reason": "範囲1",
+                "period_from": pf1,
+                "period_to": pt1,
+                "weekly_schedule": {"月": [{"start": "19:40", "end": "21:00"}]},
+            },
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert r1.status_code == 201, r1.text
+        # 第二份：第 9~12 天，与第一份不相交 → 201 放行
+        pf2 = (date.today() + timedelta(days=9)).isoformat()
+        pt2 = (date.today() + timedelta(days=12)).isoformat()
+        r2 = client.post(
+            "/api/v1/study/online-requests",
+            json={
+                "reason": "範囲2",
+                "period_from": pf2,
+                "period_to": pt2,
+                "weekly_schedule": {"月": [{"start": "19:40", "end": "21:00"}]},
+            },
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert r2.status_code == 201, r2.text
+
+    def test_rejected_request_does_not_block(
+        self, client, student_token, teacher_token
+    ):
+        # 第一份申请被老师 rejected 后，同期间再申请应放行（只有 pending/approved 才占用）
+        rid = _create_request(client, student_token, offset_days=5)
+        dec = client.post(
+            f"/api/v1/study/online-requests/{rid}/decision",
+            json={"decision": "rejected"},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert dec.status_code == 200, dec.text
+        pf = (date.today() + timedelta(days=5)).isoformat()
+        res = client.post(
+            "/api/v1/study/online-requests",
+            json={
+                "reason": "再申請",
+                "period_from": pf,
+                "period_to": pf,
+                "weekly_schedule": {"月": [{"start": "19:40", "end": "21:00"}]},
+            },
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 201, res.text
+
+
+class TestDownloadOrphanStudent:
+    """F-中-17（2026-06-15 修）：student 行被删（student_id 悬空）时，老师下载契約書必须 404，
+    不能跳过演示/寮隔离校验直接放行文件（fail-closed）。"""
+
+    def test_teacher_download_orphan_student_404(
+        self, client, student_token, teacher_token, db_session, seed_data
+    ):
+        import uuid as _uuid
+
+        rid = _create_request(client, student_token)
+        _upload(client, student_token, rid)
+        # 直接把这条申请的 student_id 改成不存在的 UUID（模拟 student 行被删 / 悬空）。
+        # 先关外键约束再改，避免 SQLite 拒绝写入。
+        from sqlalchemy import text
+
+        db_session.execute(text("PRAGMA foreign_keys=OFF"))
+        rec = db_session.get(models.StudyOnlineRequest, _uuid.UUID(rid))
+        rec.student_id = _uuid.uuid4()
+        db_session.commit()
+        res = client.get(
+            f"/api/v1/study/online-requests/{rid}/contract",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 404, res.text
+
+
 class TestReuploadKeepsOldContract:
     """Q4 回归（codex 第一轮复审 2026-06-15）：已有合同时再传超大文件失败，旧合同必须完好
     （不被 open(,"wb") 截断、不被删）—— 改流式后写 .tmp + os.replace 原子替换保证。"""

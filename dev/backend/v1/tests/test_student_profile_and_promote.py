@@ -549,6 +549,75 @@ class TestStudentRenewNumber:
         assert res.status_code == 409, res.text
         assert res.json()["detail"]["code"] == "RENEWAL_NOT_OPEN"
 
+    def test_self_renew_db_conflict_writes_failure_audit(
+        self, client, seed_data, db_session, monkeypatch
+    ):
+        """A-491：并发抢同号（绕过应用层查重直接撞 DB 唯一约束）仍返 422，且补写失败审计。
+
+        构造方法：占位学生已占走目标番号，但 monkeypatch 路由里的 select 让应用层查重
+        漏看它（模拟 TOCTOU 窗口 / 并发抢号），逼真正走到 db.commit() 触发 uq_students_no
+        IntegrityError → rollback → A-491 失败审计补写路径。
+        """
+        from app.routers import student_profile
+
+        # 占位学生先占走目标番号 060130
+        occupier = models.Student(
+            grade_code="06",
+            class_code="01",
+            seat_no="30",
+            name="占位学生",
+            gender="male",
+            room_no="M130",
+            dorm_unit=1,
+        )
+        db_session.add(occupier)
+        seed_data["student"].needs_renewal = True  # 模拟开闸后状态
+        db_session.commit()
+
+        # 让路由的应用层查重「看不到」占位学生 —— 在 where 子句尾部再追加一个永远为假的条件，
+        # 使第 1 步 existing 查询返回 None，请求得以走到 db.commit() 真撞唯一约束。
+        _orig_select = student_profile.select
+
+        def _blind_select(*args, **kwargs):
+            stmt = _orig_select(*args, **kwargs)
+            if args and args[0] is models.Student:
+                return stmt.where(models.Student.id != models.Student.id)
+            return stmt
+
+        monkeypatch.setattr(student_profile, "select", _blind_select)
+
+        tok = _student_tok(client, "060218")
+        res = client.post(
+            "/api/v1/students/me/renew-number",
+            headers={"Authorization": f"Bearer {tok}"},
+            json={"grade_code": "06", "class_code": "01", "seat_no": "30"},
+        )
+        # 业务行为不变：撞号仍正确返 422
+        assert res.status_code == 422, res.text
+        assert res.json()["detail"]["code"] == "STUDENT_NO_TAKEN"
+
+        # A-491 核心：失败尝试留下审计痕迹（action=student.renew_number_conflict）
+        db_session.expire_all()
+        audits = (
+            db_session.query(models.AuditLog)
+            .filter(models.AuditLog.action == "student.renew_number_conflict")
+            .all()
+        )
+        assert len(audits) == 1
+        assert audits[0].payload == {"attempted_student_no": "060130"}
+        assert audits[0].actor_type == "student"
+
+        # 同时确认「成功」审计被回滚掉、本人番号没被改（事务正确回滚）
+        success_audits = (
+            db_session.query(models.AuditLog)
+            .filter(models.AuditLog.action == "student.renew_number")
+            .all()
+        )
+        assert len(success_audits) == 0
+        me = db_session.get(models.Student, seed_data["student"].id)
+        assert me.student_no == "060218"
+        assert me.needs_renewal is True
+
 
 class TestRenewalProgress:
     """GET /students/renewal-progress — 老师看谁还没改番号。"""

@@ -184,6 +184,62 @@ class TestDormEvents:
         assert res.status_code == 400
         assert res.json()["detail"]["code"] == "INVALID_CATEGORY"
 
+    def test_create_start_after_end_422(self, client, seed_data, edit_token):
+        """开始时刻晚于结束时刻 → 422 INVALID_TIME_RANGE（A-575）。"""
+        res = client.post(
+            "/api/v1/events",
+            headers={"Authorization": f"Bearer {edit_token}"},
+            json={
+                "title": "テスト",
+                "category": "寮行事",
+                "event_date": "2026-04-01",
+                "start_at": "2026-04-01T18:00:00+09:00",
+                "end_at": "2026-04-01T09:00:00+09:00",
+            },
+        )
+        assert res.status_code == 422, res.text
+        assert res.json()["detail"]["code"] == "INVALID_TIME_RANGE"
+
+    def test_create_start_equals_end_ok(self, client, seed_data, edit_token):
+        """开始时刻等于结束时刻 → 允许（边界值，瞬时行事）。"""
+        res = client.post(
+            "/api/v1/events",
+            headers={"Authorization": f"Bearer {edit_token}"},
+            json={
+                "title": "テスト",
+                "category": "寮行事",
+                "event_date": "2026-04-01",
+                "start_at": "2026-04-01T09:00:00+09:00",
+                "end_at": "2026-04-01T09:00:00+09:00",
+            },
+        )
+        assert res.status_code == 201, res.text
+
+    def test_patch_start_after_end_422_merged(self, client, seed_data, edit_token):
+        """PATCH 只改 start_at 使其晚于库里已有的 end_at → 422（合并值校验，A-575）。"""
+        ev = _make_event(
+            client,
+            edit_token,
+            start_at="2026-04-01T09:00:00+09:00",
+            end_at="2026-04-01T12:00:00+09:00",
+        )
+        res = client.patch(
+            f"/api/v1/events/{ev['id']}",
+            headers={"Authorization": f"Bearer {edit_token}"},
+            json={"start_at": "2026-04-01T18:00:00+09:00"},
+        )
+        assert res.status_code == 422, res.text
+        assert res.json()["detail"]["code"] == "INVALID_TIME_RANGE"
+
+    def test_list_inverted_range_422(self, client, seed_data, edit_token):
+        """from_date > to_date → 422 INVALID_DATE_RANGE，不静默返空（A-581）。"""
+        res = client.get(
+            "/api/v1/events?from_date=2026-05-01&to_date=2026-04-01",
+            headers={"Authorization": f"Bearer {edit_token}"},
+        )
+        assert res.status_code == 422, res.text
+        assert res.json()["detail"]["code"] == "INVALID_DATE_RANGE"
+
 
 # -----------------------------------------------------------------------
 # 巴士时刻表 tests

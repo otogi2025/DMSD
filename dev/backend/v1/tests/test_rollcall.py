@@ -96,6 +96,44 @@ class TestCheckin:
         assert res2.status_code in (200, 201)
         assert res2.json()["id"] == event_id_1
 
+    def test_idempotency_different_keys_same_student_reuse_row(
+        self, client, teacher_token, seed_data, rollcall_session
+    ):
+        """B-中-19：同学生同 session、第二次换 idempotency_key —— 不再新建第二条事件。
+
+        点呼 event 表对 (session_id, student_id) 是「1 学生 1 场次 1 行」幂等模型
+        （models.RollCallEvent docstring + idx_rce_session_student），换 key 也应命中同一行，
+        不能因为 key 不同就漏出第二条 present 事件。原幂等测试只覆盖「同 key 返回原事件」，
+        没测「不同 key 不复用」这条更关键的去重路径。
+        """
+        student_id = str(seed_data["student"].id)
+        res1 = client.post(
+            f"/api/v1/rollcall/sessions/{rollcall_session.id}/checkins",
+            json={
+                "student_id": student_id,
+                "idempotency_key": "key-aaa",
+                "status_source": "auto_nfc",
+                "path_hint": "B",
+            },
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res1.status_code == 201, res1.text
+        event_id_1 = res1.json()["id"]
+
+        res2 = client.post(
+            f"/api/v1/rollcall/sessions/{rollcall_session.id}/checkins",
+            json={
+                "student_id": student_id,
+                "idempotency_key": "key-bbb",  # 换了 key
+                "status_source": "auto_nfc",
+                "path_hint": "B",
+            },
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res2.status_code in (200, 201), res2.text
+        # 关键断言：同学生同场次仍只一行（命中既有事件，不因换 key 而复制）
+        assert res2.json()["id"] == event_id_1, "同学生同场次换 key 不应建出第二条事件"
+
     def test_path_hint_a_requires_card_uid(
         self, client, teacher_token, seed_data, rollcall_session
     ):
@@ -443,6 +481,83 @@ class TestPatchEvent:
         assert len(active) == 1, f"应只剩 1 条有效扣分，实际 {len(active)} 条"
         assert active[0].source_type == "rollcall_late"
         assert active[0].points == 0.5, f"迟到应扣 0.5，实际 {active[0].points}"
+
+    def test_override_late_to_absent_reescalates_demerit(
+        self, client, teacher_token, seed_data, rollcall_session, db_session
+    ):
+        """B-低-17：补全状态转移矩阵 —— present→late→absent 反方向（升级）也按当前状态重算。
+
+        原矩阵只测了 absent→late（降级）一条。本测试锁死「先迟到 0.5、再改判缺席」时
+        旧的 0.5 被撤掉、重记 1.0 缺席，最终只剩 1 条 1.0，不残留迟到的 0.5、不叠加。
+        分值依 spec §862 冻结：迟到 0.5 / 缺席 1.0。
+        """
+        student_id = str(seed_data["student"].id)
+        event_id = self._checkin(client, teacher_token, rollcall_session.id, student_id)
+
+        # present → late（扣 0.5）
+        r1 = client.patch(
+            f"/api/v1/rollcall/events/{event_id}",
+            json={"to_status": "late", "reason": "遅刻"},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert r1.status_code == 200, r1.text
+
+        # late → absent（应撤掉 0.5、重记 1.0）
+        r2 = client.patch(
+            f"/api/v1/rollcall/events/{event_id}",
+            json={"to_status": "absent", "reason": "欠席"},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert r2.status_code == 200, r2.text
+
+        db_session.expire_all()
+        active = (
+            db_session.query(models.DemeritEvent)
+            .filter(
+                models.DemeritEvent.student_id == seed_data["student"].id,
+                models.DemeritEvent.source_event_id == rollcall_session.id,
+                models.DemeritEvent.revoked_at.is_(None),
+            )
+            .all()
+        )
+        assert len(active) == 1, f"应只剩 1 条有效扣分，实际 {len(active)} 条"
+        assert active[0].source_type == "rollcall_absent"
+        assert active[0].points == 1.0, f"缺席应扣 1.0，实际 {active[0].points}"
+
+    def test_override_to_present_clears_demerit(
+        self, client, teacher_token, seed_data, rollcall_session, db_session
+    ):
+        """B-低-17：absent→present（撤销迟到/缺席判定）应把扣分全撤，无残留有效扣分行。"""
+        student_id = str(seed_data["student"].id)
+        event_id = self._checkin(client, teacher_token, rollcall_session.id, student_id)
+
+        # present → absent（扣 1.0）
+        r1 = client.patch(
+            f"/api/v1/rollcall/events/{event_id}",
+            json={"to_status": "absent", "reason": "欠席"},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert r1.status_code == 200, r1.text
+
+        # absent → present（纠正回出席：扣分应全撤）
+        r2 = client.patch(
+            f"/api/v1/rollcall/events/{event_id}",
+            json={"to_status": "present", "reason": "誤判訂正"},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert r2.status_code == 200, r2.text
+
+        db_session.expire_all()
+        active = (
+            db_session.query(models.DemeritEvent)
+            .filter(
+                models.DemeritEvent.student_id == seed_data["student"].id,
+                models.DemeritEvent.source_event_id == rollcall_session.id,
+                models.DemeritEvent.revoked_at.is_(None),
+            )
+            .all()
+        )
+        assert len(active) == 0, f"改判回出席后应无有效扣分，实际 {len(active)} 条"
 
 
 class TestMyTodayRollCall:
