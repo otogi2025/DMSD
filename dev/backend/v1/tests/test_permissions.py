@@ -1,6 +1,6 @@
 """权限矩阵单元测试 — B-中-15（2026-06-15 全维度审查）。
 
-app/permissions.py 的 PRESET（5 权限组 × 16 功能簇）是鉴权单源真值，此前无直接单测。
+app/permissions.py 的 PRESET（5 权限组 × 17 功能簇）是鉴权单源真值，此前无直接单测。
 本文件把矩阵里几个关键边界格断言一遍，锁死「申請承認専用 V vs M」「一般宿管 在学习簇被降级到 V」
 这类容易在重排时被改错的格子，再做几条整体不变量检查（每组每簇级别合法 / MANAGE 蕴含 VIEW）。
 
@@ -50,7 +50,7 @@ class TestPresetBoundaryCells:
         assert P.group_level(P.GROUP_APPROVAL, P.C_TEACHER_ACCOUNT) == P.VIEW
 
     def test_op_and_dorm_admin_manage_everything(self):
-        # op 与 寮管理者 对全部 16 簇都是 MANAGE（全权限组）
+        # op 与 寮管理者 对全部 17 簇都是 MANAGE（全权限组）
         for c in P.ALL_CLUSTERS:
             assert P.group_level(P.GROUP_OP, c) == P.MANAGE, c
             assert P.group_level(P.GROUP_DORM_ADMIN, c) == P.MANAGE, c
@@ -60,7 +60,7 @@ class TestPresetInvariants:
     """矩阵整体不变量。"""
 
     def test_matrix_covers_all_clusters(self):
-        # PRESET 必须给全部 16 簇定义级别
+        # PRESET 必须给全部 17 簇定义级别
         assert set(P.PRESET.keys()) == set(P.ALL_CLUSTERS)
 
     def test_every_cell_is_valid_level(self):

@@ -37,6 +37,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
 from . import __version__
+from .audit import AuditLogMiddleware
 from .config import get_settings
 from .database import create_all
 from .ratelimit import limiter
@@ -46,6 +47,7 @@ from .routers import (
     admin_registration_code,
     announcements,
     applications,
+    audit_log,
     auth,
     bus_routes,
     cleaning,
@@ -259,6 +261,12 @@ async def _request_id_middleware(request: Request, call_next):
     return response
 
 
+# 操作履历审计中间件 — 老师写操作全量自动记日志（app/audit.py）。
+# 放最外层（最后 add = 最外层）：直接拿 uvicorn 的 receive/send，稳妥捕获请求体 + 响应状态，
+# 不被 BaseHTTPMiddleware(request_id) 包裹。只记成功的老师写操作、写库经线程池、失败不影响请求。
+app.add_middleware(AuditLogMiddleware)
+
+
 @app.get("/")
 def root():
     return {
@@ -293,6 +301,7 @@ app.include_router(auth.router)
 app.include_router(accounts.router)
 app.include_router(admin_accounts.router)
 app.include_router(admin_registration_code.router)
+app.include_router(audit_log.router)
 app.include_router(announcements.router)
 app.include_router(applications.router)
 app.include_router(outings.router)

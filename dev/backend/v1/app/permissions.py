@@ -1,6 +1,6 @@
 """老师权限分级 — 单源真值矩阵（实装 design/teacher_permission_v1.md §5）。
 
-5 个权限组 × 16 个功能簇 → 三态权限级别（M 管理 / V 查看 / ✕ 无）。
+5 个权限组 × 17 个功能簇 → 三态权限级别（M 管理 / V 查看 / ✕ 无）。
 `Teacher.permission_group` 只存组名；本模块把组名展开成每簇的级别。
 
 设计原则（itsuki 2026-06-11）：权限按「权限组」判，职位（teachers.role）退化为纯显示标签、
@@ -44,7 +44,7 @@ ALL_GROUPS = (
 )
 
 # ---------------------------------------------------------------
-# 16 个功能簇（§5 矩阵的行）
+# 17 个功能簇（§5 矩阵的行）
 # ---------------------------------------------------------------
 C_ROLLCALL = "点呼运营"  # 1
 C_APPROVAL = "申请审批"  # 2（含在线学习审批）
@@ -62,6 +62,7 @@ C_REG_CODE = "注册码管理"  # 13
 C_INCIDENT = "事案记录"  # 14
 C_GUIDANCE = "指导履历"  # 15
 C_TEACHER_ACCOUNT = "老师账号管理"  # 16
+C_AUDIT_LOG = "操作履历审计"  # 17（2026-06-16 itsuki：老师操作记录页，只读审计）
 
 ALL_CLUSTERS = (
     C_ROLLCALL,
@@ -80,13 +81,14 @@ ALL_CLUSTERS = (
     C_INCIDENT,
     C_GUIDANCE,
     C_TEACHER_ACCOUNT,
+    C_AUDIT_LOG,
 )
 
 # ---------------------------------------------------------------
 # §5 权限矩阵（单源真值）— 行=功能簇，列=权限组 → 级别
 #   M=MANAGE, V=VIEW, 缺省=NONE。严格照 teacher_permission_v1.md §5 表，不得自行改动。
 # ---------------------------------------------------------------
-_M, _V = MANAGE, VIEW
+_M, _V, _N = MANAGE, VIEW, NONE
 _O, _DA, _G, _GS, _AP = (
     GROUP_OP,
     GROUP_DORM_ADMIN,
@@ -119,6 +121,10 @@ PRESET: dict[str, dict[str, int]] = {
     C_INCIDENT: {_O: _M, _DA: _M, _G: _M, _GS: _M, _AP: _V},  # 14
     C_GUIDANCE: {_O: _M, _DA: _M, _G: _M, _GS: _M, _AP: _V},  # 15
     C_TEACHER_ACCOUNT: {_O: _M, _DA: _M, _G: _V, _GS: _V, _AP: _V},  # 16
+    # 17（2026-06-16 itsuki：操作记录页只读审计，只给管理角色看）：
+    #   op / 寮管理者(寮務部長·寮務課長) 完全访问；一般宿管(管理係) 查看；
+    #   一般宿管+晚自习(寮監·学習担当) 与 申請承認専用(国際交流) 无权限。
+    C_AUDIT_LOG: {_O: _M, _DA: _M, _G: _V, _GS: _N, _AP: _N},  # 17
 }
 
 

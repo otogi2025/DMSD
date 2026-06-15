@@ -1924,3 +1924,34 @@ class NotificationUnreadCountOut(BaseModel):
     """GET /unread-count + 标记已读端点 响应：当前老师未读数。"""
 
     unread_count: int
+
+
+# ── 操作履历审计（老师操作记录页）2026-06-16 ──
+class AuditLogEntry(BaseModel):
+    """一条操作记录。写入侧 = app/audit.py 中间件自动埋点 / 端点语义级埋点（注册码等）。
+
+    actor_name = join teachers.name 得到的操作者姓名（系统记录 / 已删账号为 null）。
+    target_type/target_id 中间件自动记时可能为空（详情看 payload）。
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    created_at: datetime
+    actor_type: str
+    actor_id: Optional[UUID] = None
+    actor_name: Optional[str] = None
+    action: str
+    target_type: Optional[str] = None
+    target_id: Optional[UUID] = None
+    payload: Optional[dict[str, Any]] = None
+    ip_address: Optional[str] = None
+
+
+class AuditLogListOut(BaseModel):
+    """GET /api/v1/admin/audit-logs 响应：操作记录一覧（新→旧）+ 分页信息。"""
+
+    items: list[AuditLogEntry]
+    total: int
+    limit: int
+    offset: int

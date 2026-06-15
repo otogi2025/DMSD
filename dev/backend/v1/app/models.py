@@ -481,9 +481,14 @@ class AuditLog(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     actor_type: Mapped[str] = mapped_column(String(16), nullable=False)
     actor_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid)
-    action: Mapped[str] = mapped_column(String(64), nullable=False)
-    target_type: Mapped[str] = mapped_column(String(32), nullable=False)
-    target_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    # 2026-06-16: action 加宽到 128 —— 中间件自动记日志(操作记录页全量埋点)的 action 是
+    # "METHOD 归一化路径"(如 "POST discipline/{id}/revoke")，比旧的 "registration_code.refresh" 长。
+    action: Mapped[str] = mapped_column(String(128), nullable=False)
+    # 2026-06-16: target_type/target_id 改可空 —— 中间件按路径自动埋点时并非每个操作都能解析出
+    # 具体对象(如 POST /discipline/manual 的对象在请求体里)，此时留空、详情存 payload。
+    # 语义级埋点(注册码 refresh/close)仍会填具体 target。
+    target_type: Mapped[Optional[str]] = mapped_column(String(32))
+    target_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid)
     payload: Mapped[Optional[dict]] = mapped_column(JSON)
     ip_address: Mapped[Optional[str]] = mapped_column(String(64))
     user_agent: Mapped[Optional[str]] = mapped_column(Text)
