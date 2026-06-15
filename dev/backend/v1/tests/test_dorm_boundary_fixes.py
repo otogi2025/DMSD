@@ -229,8 +229,10 @@ class TestGuidanceDormBoundary:
 class TestStudentProfileAuth:
     """student_profile 改用 get_current_principal 后的鉴权行为。"""
 
-    def test_teacher_wrong_role_403(self, client, cross_dorm_setup, seed_data):
-        """非寮務系老师（国際交流部長）访问学生档案 → 403。"""
+    def test_teacher_guidance_view_allowed(self, client, cross_dorm_setup, seed_data):
+        """权限组体系迁移后：国際交流部長（默认组「申請承認専用」）对 C_GUIDANCE 有 VIEW
+        → 可访问学生档案（与 guidance.py 的 require_permission(C_GUIDANCE) 一致）。
+        旧的「非寮務职位 → 403」职位集（_GUIDANCE_ROLES）判定已随权限分级改造废弃。"""
         res = client.post(
             "/api/v1/sessions/teacher",
             json={"login_id": "kokukou_buchou", "password": "test-password-12345"},
@@ -241,7 +243,7 @@ class TestStudentProfileAuth:
             f"/api/v1/students/{student_id}/profile",
             headers={"Authorization": f"Bearer {token}"},
         )
-        assert r.status_code == 403, r.text
+        assert r.status_code == 200, r.text
 
     def test_student_can_see_own_profile(
         self, client, cross_dorm_setup, student_token, seed_data

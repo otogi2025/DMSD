@@ -72,7 +72,7 @@ def profile_seed(db_session):
     )
     db_session.add(ryomu)
 
-    # 国際交流部長（非寮務 → 403）
+    # 国際交流部長（默认组「申請承認専用」→ 对 C_GUIDANCE 有 VIEW，可看 profile）
     kokukou = models.Teacher(
         login_id="kokukou_test",
         name="国際先生",
@@ -173,15 +173,17 @@ class TestStudentProfile:
         # 扣分仍可见
         assert len(data["demerit_events"]) == 1
 
-    def test_kokukou_forbidden(self, client, profile_seed):
-        """非寮務老师（国際交流部長）→ 403。"""
+    def test_kokukou_now_allowed(self, client, profile_seed):
+        """权限组体系迁移后：国際交流部長（默认组「申請承認専用」）对 C_GUIDANCE 有 VIEW
+        → 可看 profile，与 guidance.py 的 require_permission(C_GUIDANCE) 一致。
+        旧行为「非寮務职位 → 403」（_GUIDANCE_ROLES 职位集判定）已随权限分级改造废弃。"""
         tok = _tok(client, "kokukou_test")
         sid = str(profile_seed["student"].id)
         res = client.get(
             f"/api/v1/students/{sid}/profile",
             headers={"Authorization": f"Bearer {tok}"},
         )
-        assert res.status_code == 403
+        assert res.status_code == 200
 
     def test_student_cannot_see_others(self, client, profile_seed):
         """学生 A のトークンで学生 B のプロフィールを見ようとする → 403。"""
