@@ -51,8 +51,19 @@ def upgrade() -> None:
 def downgrade() -> None:
     """反向：target 改回 NOT NULL、action 收回 64。
 
-    ⚠️ 降级前若已有 target 为 NULL 的中间件记录，需先清理 / 回填，否则 NOT NULL 约束失败。
+    升级后中间件会产生 target_type/target_id=NULL、action 超 64 字符的行，直接加 NOT NULL /
+    收窄长度会失败 → 先回填占位（NULL target）/ 截断（超长 action）再改约束，保证可执行。
+    占位 UUID 用 32 个 0（PostgreSQL uuid 与 SQLite CHAR(32) 都接受）。substr 两库通用。
     """
+    op.execute(
+        "UPDATE audit_logs SET target_type = 'unknown' WHERE target_type IS NULL"
+    )
+    op.execute(
+        "UPDATE audit_logs "
+        "SET target_id = '00000000000000000000000000000000' "
+        "WHERE target_id IS NULL"
+    )
+    op.execute("UPDATE audit_logs SET action = substr(action, 1, 64)")
     with op.batch_alter_table("audit_logs") as batch_op:
         batch_op.alter_column(
             "target_id",

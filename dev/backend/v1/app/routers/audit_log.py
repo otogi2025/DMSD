@@ -12,7 +12,7 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from .. import models, permissions, schemas
@@ -26,7 +26,7 @@ router = APIRouter(prefix="/api/v1/admin/audit-logs", tags=["admin / audit-logs"
 def list_audit_logs(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
-    actor_id: str | None = Query(None, description="限定某老师的操作"),
+    actor_id: UUID | None = Query(None, description="限定某老师的操作（UUID）"),
     since: datetime | None = Query(None, description="起始时间（含）"),
     until: datetime | None = Query(None, description="结束时间（含）"),
     teacher: models.Teacher = Depends(
@@ -40,18 +40,31 @@ def list_audit_logs(
     - 过滤：actor_id（限定某老师）/ since–until（时间范围）。
     - 分页：limit + offset，附 total 便于前端显示总数 / 翻页。
     """
-    # actor 的 is_demo 必须与查看者一致 → INNER JOIN teachers 过滤；同时取 actor_name 显示。
-    # 学生 / 系统 actor 的记录因 join 不到 teacher 自然被排除（本页只关心「老师操作」）。
+    # 只展示中间件自动记的「METHOD 归一化路径」行（action 以 HTTP 方法 + 空格开头）。
+    # 部分端点内部另写语义级 audit 行（action 形如 "registration_code.refresh"，无方法前缀）——
+    # 那些是各功能自用的、且会与中间件行重复，故在操作记录页过滤掉，保证同一操作只出现一次。
+    _middleware_action = or_(
+        models.AuditLog.action.like("POST %"),
+        models.AuditLog.action.like("PUT %"),
+        models.AuditLog.action.like("PATCH %"),
+        models.AuditLog.action.like("DELETE %"),
+    )
+    # actor 必须是老师 + is_demo 与查看者一致 → INNER JOIN teachers 过滤；同时取 actor_name 显示。
+    # actor_type 显式过滤老师，叠加 join：学生 / 系统 actor 的记录被排除（本页只关心「老师操作」）。
+    # 已知限制：物理删除的老师，其历史操作行因 join 不到 teacher 会从列表消失 —— 见 TODO §B；
+    # v1 接受此 fail-closed 行为（隐藏而非误显/泄漏），正解是把 actor_is_demo 去规范化到行上、
+    # 涉及全部 audit 写入点，超本功能范围。
     base = (
         select(models.AuditLog, models.Teacher.name)
         .join(models.Teacher, models.AuditLog.actor_id == models.Teacher.id)
-        .where(models.Teacher.is_demo == teacher.is_demo)
+        .where(
+            models.AuditLog.actor_type == "teacher",
+            models.Teacher.is_demo == teacher.is_demo,
+            _middleware_action,
+        )
     )
-    if actor_id:
-        try:
-            base = base.where(models.AuditLog.actor_id == UUID(actor_id))
-        except ValueError:
-            pass  # 非法 UUID 当作不过滤（也可改 422，这里宽松处理）
+    if actor_id is not None:
+        base = base.where(models.AuditLog.actor_id == actor_id)
     if since is not None:
         base = base.where(models.AuditLog.created_at >= since)
     if until is not None:

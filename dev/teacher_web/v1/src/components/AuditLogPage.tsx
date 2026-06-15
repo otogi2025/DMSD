@@ -66,14 +66,21 @@ export function AuditLogPage({ authToken }: { authToken: string | null }) {
   const [forbidden, setForbidden] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [expanded, setExpanded] = React.useState<string | null>(null);
+  // 翻页快照边界：首次加载时固定「現在」，后续翻页都带同一 until，
+  // 这样翻页期间新增的操作记录不会让 offset 错位（漏/重）。
+  const untilRef = React.useRef<string | null>(null);
 
   const load = React.useCallback(
     (offset: number) => {
       if (!authToken) return;
+      if (offset === 0) untilRef.current = new Date().toISOString();
       setLoading(true);
       setError(null);
       api
-        .getAuditLogs({ limit: PAGE_SIZE, offset }, authToken)
+        .getAuditLogs(
+          { limit: PAGE_SIZE, offset, until: untilRef.current || undefined },
+          authToken,
+        )
         .then((res) => {
           setItems((prev) =>
             offset === 0 ? res.items : [...prev, ...res.items],

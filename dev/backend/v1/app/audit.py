@@ -23,6 +23,7 @@ import logging
 import re
 import uuid as _uuid
 from typing import Optional
+from urllib.parse import parse_qsl
 
 from starlette.concurrency import run_in_threadpool
 
@@ -38,15 +39,18 @@ _MUTATING = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 # 整段一律不记 —— 它们不是对宿舍数据的「操作」。
 _SKIP_PREFIXES = ("/api/v1/sessions",)
 
-# 已在端点内做语义级 audit 的路径 —— 中间件跳过，避免同一操作记两条（语义级 + 通用级）。
-_SELF_LOGGED_PREFIXES = (
-    "/api/v1/admin/registration-code/refresh",
-    "/api/v1/admin/registration-code/close",
-)
+# 注：部分端点（注册码 refresh/close、出寮届审批等约 12 个 router）内部还会写自己的语义级
+# audit 行（action 形如 "registration_code.refresh"，带语义详情，供各功能自身使用）。
+# 中间件不跳过它们 —— 而是统一记一条 "METHOD 归一化路径" 行；操作记录页的读取端点只展示
+# 中间件这种 "METHOD 路径" 行（见 routers/audit_log.py 的 action 前缀过滤），所以同一操作
+# 在操作记录页只出现一次、不与语义行重复。语义行仍留在表里供各功能（如注册码历史）自用。
 
 _MAX_BODY_BYTES = 16 * 1024  # 超 16KB 的请求体不入 payload（文件上传等），存标记
-# 键名含这些词的值脱敏（密码 / 令牌 / 密钥等绝不入库）
-_SENSITIVE_KEY_RE = re.compile(r"pass|pwd|secret|token|credential", re.IGNORECASE)
+# 键名含这些词的值脱敏（密码 / 令牌 / 密钥 / 凭据 / cookie 等绝不入库）
+_SENSITIVE_KEY_RE = re.compile(
+    r"pass|pwd|secret|token|credential|api[_-]?key|apikey|authorization|cookie",
+    re.IGNORECASE,
+)
 _UUID_RE = re.compile(
     r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
     r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
@@ -185,7 +189,6 @@ class AuditLogMiddleware:
             method not in _MUTATING
             or not path.startswith("/api/v1/")
             or path.startswith(_SKIP_PREFIXES)
-            or path.startswith(_SELF_LOGGED_PREFIXES)
         ):
             await self.app(scope, receive, send)
             return
@@ -196,9 +199,10 @@ class AuditLogMiddleware:
             content_length = int(_header(scope, b"content-length") or "0")
         except ValueError:
             content_length = 0
-        capture_body = (
-            "application/json" in content_type and content_length <= _MAX_BODY_BYTES
-        )
+        is_json = "application/json" in content_type
+        capture_body = is_json and content_length <= _MAX_BODY_BYTES
+        # JSON 但 Content-Length 已超限 → 不抓正文，但要在 payload 留「省略」标记
+        json_oversized = is_json and content_length > _MAX_BODY_BYTES
 
         body_chunks: list[bytes] = []
         body_total = 0
@@ -246,13 +250,14 @@ class AuditLogMiddleware:
                     )
                 except (ValueError, UnicodeDecodeError):
                     body_obj = None
-            elif body_too_large:
+            elif body_too_large or json_oversized:
                 body_obj = "<省略: リクエストが大きすぎます>"
 
             payload: dict = {"method": method, "path": path, "status": status_code}
+            # 查询参数也要脱敏（?token=... 等不能原样落库），按键名解析后脱敏存 dict。
             query = scope.get("query_string", b"").decode("latin-1", "ignore")
             if query:
-                payload["query"] = query
+                payload["query"] = _sanitize(dict(parse_qsl(query)))
             if body_obj is not None:
                 payload["body"] = body_obj
 

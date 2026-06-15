@@ -457,7 +457,9 @@ export const api = {
   },
   // ── 操作履历审计（操作记录页）── 只读，后端按 C_AUDIT_LOG 权限闸把关（非管理角色 403）
   getAuditLogs: (
-    params: { limit?: number; offset?: number; actor_id?: string } | undefined,
+    params:
+      | { limit?: number; offset?: number; actor_id?: string; until?: string }
+      | undefined,
     token: string,
   ) => {
     const q: string[] = [];
@@ -465,6 +467,9 @@ export const api = {
     if (params && params.offset != null) q.push(`offset=${params.offset}`);
     if (params && params.actor_id)
       q.push(`actor_id=${encodeURIComponent(params.actor_id)}`);
+    // until = 翻页快照边界（首次加载固定，后续翻页带同一边界，避免实时新增行导致漏/重）
+    if (params && params.until)
+      q.push(`until=${encodeURIComponent(params.until)}`);
     const qs = q.length ? `?${q.join("&")}` : "";
     return request<AuditLogListOut>(
       "GET",

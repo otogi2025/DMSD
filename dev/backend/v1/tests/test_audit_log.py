@@ -168,3 +168,40 @@ def test_demo_isolation(client, seed_data, db_session):
     }
     assert "POST cleaning" in demo_actions
     assert "POST discipline/manual" not in demo_actions  # 演示老师看不到真老师操作
+
+
+# ---------------------------------------------------------------
+# 读取端点：只显示中间件「METHOD 路径」行（语义行 + 学生行排除，避免重复/越界）
+# ---------------------------------------------------------------
+def test_semantic_and_student_rows_excluded(
+    client, seed_data, teacher_token, db_session
+):
+    real = seed_data["teachers"]["ryomu_kachou"]
+    student = seed_data["student"]
+    # 语义级 teacher 行（点形式 action、无方法前缀）→ 应被排除（避免与中间件行重复）
+    _insert_log(db_session, real.id, "registration_code.refresh")
+    # 中间件式 teacher 行 → 应显示
+    _insert_log(db_session, real.id, "POST events")
+    # 学生 actor 行（即使 action 像方法前缀）→ 应被排除（actor_type=student + join 不到老师）
+    db_session.add(
+        models.AuditLog(
+            actor_type="student",
+            actor_id=student.id,
+            action="POST applications",
+            target_type=None,
+            target_id=None,
+            payload={},
+        )
+    )
+    db_session.commit()
+
+    actions = [
+        e["action"]
+        for e in client.get(
+            "/api/v1/admin/audit-logs",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        ).json()["items"]
+    ]
+    assert "POST events" in actions
+    assert "registration_code.refresh" not in actions  # 语义行排除
+    assert "POST applications" not in actions  # 学生行排除
