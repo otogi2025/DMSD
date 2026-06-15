@@ -133,7 +133,8 @@ export function Shell({
     {
       title: "情報・発信",
       items: [
-        ["info", "お知らせ・バス"],
+        ["info", "お知らせ"],
+        ["bus", "バス時刻表"],
         ["community", "コミュニティ管理"],
         ["front-desk", "フロント業務"],
       ],
@@ -159,7 +160,8 @@ export function Shell({
       study: "晩自習出席",
       records: "点呼記録",
       "active-leaves": "出寮者一覧",
-      info: "お知らせ・バス",
+      info: "お知らせ",
+      bus: "バス時刻表",
       community: "コミュニティ管理",
       "front-desk": "フロント業務",
       accounts: "学生アカウント管理",

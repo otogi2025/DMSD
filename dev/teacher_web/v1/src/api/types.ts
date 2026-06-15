@@ -422,6 +422,7 @@ export interface BusRoute {
   arrival_at: string | null;
   visible_to: string; // 后端非空，默认 'all'
   note: string | null;
+  purpose: string | null; // 用途说明 — 学生 iOS 端右上角展示
   deprecated: boolean;
   created_by_teacher_id: string;
   created_at: string;
@@ -434,13 +435,15 @@ export interface BusRouteListOut {
 }
 
 export interface BusRouteCreateIn {
-  kind: string;
-  name: string;
+  // 6-15: 表单去掉「種別」「便名」后 kind/name 改可选 —— 缺省时后端默认补全。
+  kind?: string;
+  name?: string;
   direction: string;
   schedule_at: string;
   arrival_at?: string;
   visible_to?: string;
   note?: string;
+  purpose?: string;
 }
 
 // ── 前台业务（对齐 FrontDeskItemOut 1126-1138）──

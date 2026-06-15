@@ -16,7 +16,7 @@ import { RecordsPage } from "./components/RecordsPage";
 import { ActiveLeavesPage } from "./components/ActiveLeavesPage";
 import { SearchPage } from "./components/SearchPage";
 import { NotificationsPage } from "./components/NotificationsPage";
-import { InfoPage } from "./components/InfoPage";
+import { InfoPage, BusPage } from "./components/InfoPage";
 import { CommunityPage } from "./components/CommunityPage";
 import { AccountsPage } from "./components/AccountsPage";
 import { DisclosureRequestsPage } from "./components/DisclosureRequestsPage";
@@ -871,6 +871,9 @@ export function App() {
       break;
     case "info":
       body = <InfoPage teacher={teacher} authToken={authToken} />;
+      break;
+    case "bus":
+      body = <BusPage teacher={teacher} authToken={authToken} />;
       break;
     case "community":
       body = <CommunityPage teacher={teacher} />;

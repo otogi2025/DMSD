@@ -66,15 +66,14 @@ interface EventFormData {
   description: string | null;
 }
 
-// 巴士 modal の提交 payload。
+// 巴士 modal 的提交 payload。6-15: kind/name 不再由表单收集（后端默认补全）。
 interface BusRouteFormData {
-  kind: string;
-  name: string;
   direction: string;
   schedule_at: string | null;
   arrival_at: string | null;
   visible_to: string;
   note: string | null;
+  purpose: string | null;
 }
 
 // 巴士告知ボードの行事項目（バックエンド非依存のローカル形式）。
@@ -300,7 +299,7 @@ export function InfoPage({
           gap: 12,
         }}
       >
-        <h1 style={{ fontSize: 24, fontWeight: 700 }}>お知らせ・バス</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 700 }}>お知らせ</h1>
         {tab === "notice" && (
           <button
             onClick={() => setComposing(true)}
@@ -332,7 +331,6 @@ export function InfoPage({
         {[
           ["notice", "お知らせ"],
           ["event", "行事カレンダー"],
-          ["bus", "バス時刻表"],
         ].map(([k, l]) => (
           <button
             key={k}
@@ -714,9 +712,6 @@ export function InfoPage({
       )}
       {tab === "event" && (
         <EventCalendar teacher={teacher} authToken={authToken} />
-      )}
-      {tab === "bus" && (
-        <BusSchedulePanel teacher={teacher} authToken={authToken} />
       )}
       {composing && (
         <ComposeNoticeModal
@@ -1657,10 +1652,28 @@ function EventComposeModal({
   );
 }
 
+// 巴士时刻表独立页 — 6-15 从「お知らせ・バス」拆出来、单独成左栏一项。
+export function BusPage({
+  teacher,
+  authToken,
+}: {
+  teacher: TeacherProfile;
+  authToken: string | null;
+}) {
+  return (
+    <div style={{ padding: "28px 32px" }}>
+      <h1 style={{ fontSize: 24, fontWeight: 700 }}>バス時刻表</h1>
+      <div style={{ marginTop: 18 }}>
+        <BusSchedulePanel teacher={teacher} authToken={authToken} />
+      </div>
+    </div>
+  );
+}
+
 // 巴士时刻表面板 — 真后端数据版（5-30 改造）
-// 后端字段: id / kind / name / direction / schedule_at / arrival_at? / visible_to / note? / deprecated
+// 后端字段: id / kind / name / direction / schedule_at / arrival_at? / visible_to / note? / purpose? / deprecated
 // 权限：寮務部長 / 寮務課長 / 管理係 才显示增删改
-function BusSchedulePanel({
+export function BusSchedulePanel({
   teacher,
   authToken,
 }: {
@@ -1742,13 +1755,12 @@ function BusSchedulePanel({
 
   // BusRouteFormData（null 許容）→ BusRouteCreateIn（undefined 許容）に変換。
   const toBusRouteCreateIn = (fd: BusRouteFormData) => ({
-    kind: fd.kind,
-    name: fd.name,
     direction: fd.direction,
     schedule_at: fd.schedule_at ?? "",
     arrival_at: fd.arrival_at ?? undefined,
     visible_to: fd.visible_to,
     note: fd.note ?? undefined,
+    purpose: fd.purpose ?? undefined,
   });
 
   // 时刻格式化：ISO → HH:MM
@@ -2018,10 +2030,7 @@ function BusRouteModal({
   const toDateStr = (iso: string | null) => (iso ? iso.slice(0, 10) : "");
   const toTimeStr = (iso: string | null) => (iso ? iso.slice(11, 16) : "");
 
-  const [kind, setKind] = React.useState<string>(
-    initial ? initial.kind : "daily_commute",
-  );
-  const [name, setName] = React.useState(initial ? initial.name : "");
+  // 6-15: 表单去掉「種別」「便名」两栏 —— 新便后端默认存 dorm_special、便名用方向回填。
   const [direction, setDirection] = React.useState(
     initial ? initial.direction : "",
   );
@@ -2042,11 +2051,15 @@ function BusRouteModal({
     initial ? initial.visible_to : "all",
   );
   const [note, setNote] = React.useState(initial ? initial.note || "" : "");
+  // 「用途・説明」栏 —— 学生 iOS 端右上角展示这趟班车干嘛用的。
+  const [purpose, setPurpose] = React.useState(
+    initial ? initial.purpose || "" : "",
+  );
   const [submitting, setSubmitting] = React.useState(false);
   const [errMsg, setErrMsg] = React.useState("");
 
   const toIso = (d: string, t: string) => (d && t ? `${d}T${t}:00` : null);
-  const valid = name.trim() && direction.trim() && schedDate && schedTime;
+  const valid = direction.trim() && schedDate && schedTime;
 
   const submit = async () => {
     if (!valid || submitting) return;
@@ -2054,13 +2067,12 @@ function BusRouteModal({
     setErrMsg("");
     try {
       await onSubmit({
-        kind,
-        name: name.trim(),
         direction: direction.trim(),
         schedule_at: toIso(schedDate, schedTime),
         arrival_at: toIso(arrDate, arrTime),
         visible_to: visibleTo,
         note: note.trim() || null,
+        purpose: purpose.trim() || null,
       });
     } catch (e) {
       setErrMsg((e as Error).message || "保存に失敗しました");
@@ -2074,24 +2086,6 @@ function BusRouteModal({
       title={isEdit ? "バス便を編集" : "バス便を追加"}
       onClose={onClose}
     >
-      <Field T={T} label="種別 *">
-        <select
-          value={kind}
-          onChange={(e) => setKind(e.target.value)}
-          style={inputStyle}
-        >
-          <option value="daily_commute">平日通学便</option>
-          <option value="dorm_special">寮特殊便</option>
-        </select>
-      </Field>
-      <Field T={T} label="便名 *">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="例：登校便"
-          style={inputStyle}
-        />
-      </Field>
       <Field T={T} label="方向（区間）*">
         <input
           value={direction}
@@ -2159,6 +2153,15 @@ function BusRouteModal({
           <option value="men">男子寮</option>
           <option value="women">女子寮</option>
         </select>
+      </Field>
+      <Field T={T} label="用途・説明（学生に表示）">
+        <textarea
+          value={purpose}
+          onChange={(e) => setPurpose(e.target.value)}
+          rows={2}
+          placeholder="例：GW の外泊・帰省・買い物に使える臨時便です。"
+          style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
+        />
       </Field>
       <Field T={T} label="備考（任意）">
         <textarea
