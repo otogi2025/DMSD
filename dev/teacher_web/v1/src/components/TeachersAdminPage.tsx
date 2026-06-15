@@ -40,7 +40,7 @@ export function TeachersAdminPage({
         console.warn("[TeachersAdmin] listTeachers 失败", e);
         setLoadErr(
           e && e.status === 403
-            ? "閲覧権限がありません（寮務部長 / 寮務課長 / 寮監）"
+            ? "このページを表示する権限がありません。"
             : `読み込み失敗 ${e && e.status ? `(${e.status})` : ""}`,
         );
         setList([]);

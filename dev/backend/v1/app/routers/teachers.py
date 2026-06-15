@@ -20,10 +20,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from .. import permissions
-from ..deps import (
-    assert_not_demo_teacher,
-    require_permission,
-)
+from ..deps import require_permission
 from ..security import hash_password
 
 router = APIRouter(prefix="/api/v1/teachers", tags=["teachers"])
@@ -57,9 +54,7 @@ def create_invitation(
         require_permission(permissions.C_TEACHER_ACCOUNT, permissions.MANAGE)
     ),
 ):
-    # 演示老师禁止账号管理（防演示账号造真实老师绕过隔离）
-    assert_not_demo_teacher(teacher)
-
+    # 2026-06-15 itsuki 拍板：演示账号同样可发招待 / 列老师 / 增删老师（取消 assert_not_demo_teacher 闸）。
     # target_role が有効かチェック
     if body.target_role not in models.TEACHER_ROLES:
         raise HTTPException(
@@ -175,8 +170,7 @@ def list_teachers(
         require_permission(permissions.C_TEACHER_ACCOUNT, permissions.VIEW)
     ),
 ):
-    # 演示老师禁枚举真实老师账号（login_id / email 等敏感字段）→ 403
-    assert_not_demo_teacher(teacher)
+    # 2026-06-15 itsuki 拍板：演示账号同样可列真实老师（取消 assert_not_demo_teacher 闸）。
     stmt = select(models.Teacher).where(models.Teacher.status == "active")
     if role_filter:
         stmt = stmt.where(models.Teacher.role == role_filter)
@@ -236,9 +230,7 @@ def create_teacher(
         require_permission(permissions.C_TEACHER_ACCOUNT, permissions.MANAGE)
     ),
 ):
-    # 演示老师禁止创建真实老师账号（防造 is_demo=False 账号登录绕过隔离）
-    assert_not_demo_teacher(teacher)
-
+    # 2026-06-15 itsuki 拍板：演示账号同样可创建真实老师（取消 assert_not_demo_teacher 闸）。
     if body.role not in models.TEACHER_ROLES:
         raise HTTPException(
             422,
@@ -313,9 +305,7 @@ def delete_teacher(
         require_permission(permissions.C_TEACHER_ACCOUNT, permissions.MANAGE)
     ),
 ):
-    # 演示老师禁止删除老师账号（防演示账号操作真实人事绕过隔离）
-    assert_not_demo_teacher(teacher)
-
+    # 2026-06-15 itsuki 拍板：演示账号同样可删除老师（取消 assert_not_demo_teacher 闸）。
     if teacher.id == teacher_id:
         raise HTTPException(
             400,
