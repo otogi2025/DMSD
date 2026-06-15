@@ -49,17 +49,15 @@ def list_audit_logs(
         models.AuditLog.action.like("PATCH %"),
         models.AuditLog.action.like("DELETE %"),
     )
-    # actor 必须是老师 + is_demo 与查看者一致 → INNER JOIN teachers 过滤；同时取 actor_name 显示。
-    # actor_type 显式过滤老师，叠加 join：学生 / 系统 actor 的记录被排除（本页只关心「老师操作」）。
-    # 已知限制：物理删除的老师，其历史操作行因 join 不到 teacher 会从列表消失 —— 见 TODO §B；
-    # v1 接受此 fail-closed 行为（隐藏而非误显/泄漏），正解是把 actor_is_demo 去规范化到行上、
-    # 涉及全部 audit 写入点，超本功能范围。
+    # 演示隔离按行上去规范化的 actor_is_demo 列判（不依赖 join），所以**硬删老师后其历史操作行
+    # 仍可见**（codex M3 修复）。actor_name 用 LEFT OUTER JOIN 取，老师已删则为 NULL，前端显示
+    # 「削除済み」。actor_type 显式过滤老师，叠加只看中间件行：学生 / 系统 actor 记录被排除。
     base = (
         select(models.AuditLog, models.Teacher.name)
-        .join(models.Teacher, models.AuditLog.actor_id == models.Teacher.id)
+        .outerjoin(models.Teacher, models.AuditLog.actor_id == models.Teacher.id)
         .where(
             models.AuditLog.actor_type == "teacher",
-            models.Teacher.is_demo == teacher.is_demo,
+            models.AuditLog.actor_is_demo == teacher.is_demo,
             _middleware_action,
         )
     )

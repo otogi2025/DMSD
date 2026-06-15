@@ -481,6 +481,9 @@ class AuditLog(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     actor_type: Mapped[str] = mapped_column(String(16), nullable=False)
     actor_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid)
+    # 2026-06-16: 中间件行去规范化 actor 的 is_demo —— 操作记录页的演示隔离按本列判，不依赖
+    # join teachers，这样硬删老师后其历史操作行在操作记录页仍可见（codex M3）。语义行/旧行为 NULL。
+    actor_is_demo: Mapped[Optional[bool]] = mapped_column(Boolean)
     # 2026-06-16: action 加宽到 128 —— 中间件自动记日志(操作记录页全量埋点)的 action 是
     # "METHOD 归一化路径"(如 "POST discipline/{id}/revoke")，比旧的 "registration_code.refresh" 长。
     action: Mapped[str] = mapped_column(String(128), nullable=False)

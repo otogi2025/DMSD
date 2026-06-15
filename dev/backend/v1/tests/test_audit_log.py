@@ -60,11 +60,12 @@ def _make_demo_teacher(db_session):
     return t
 
 
-def _insert_log(db_session, actor_id, action):
+def _insert_log(db_session, actor_id, action, actor_is_demo=False):
     db_session.add(
         models.AuditLog(
             actor_type="teacher",
             actor_id=actor_id,
+            actor_is_demo=actor_is_demo,
             action=action,
             target_type=None,
             target_id=None,
@@ -142,8 +143,8 @@ def test_admin_can_view(client, seed_data, teacher_token):
 def test_demo_isolation(client, seed_data, db_session):
     real = seed_data["teachers"]["ryomu_kachou"]
     demo = _make_demo_teacher(db_session)
-    _insert_log(db_session, real.id, "POST discipline/manual")  # 真老师操作
-    _insert_log(db_session, demo.id, "POST cleaning")  # 演示老师操作
+    _insert_log(db_session, real.id, "POST discipline/manual", actor_is_demo=False)
+    _insert_log(db_session, demo.id, "POST cleaning", actor_is_demo=True)
     db_session.commit()
 
     real_token = _login(client, "ryomu_kachou")
@@ -205,3 +206,23 @@ def test_semantic_and_student_rows_excluded(
     assert "POST events" in actions
     assert "registration_code.refresh" not in actions  # 语义行排除
     assert "POST applications" not in actions  # 学生行排除
+
+
+# ---------------------------------------------------------------
+# 读取端点：硬删老师后其历史操作行仍可见（codex M3 修复 — actor_is_demo 去规范化 + LEFT JOIN）
+# ---------------------------------------------------------------
+def test_deleted_teacher_row_still_shows(client, seed_data, teacher_token, db_session):
+    import uuid as _uuid
+
+    ghost_id = _uuid.uuid4()  # 已删老师：teachers 表里没有这行
+    # 中间件行：actor_is_demo 去规范化在行上（False=真老师），即使 join 不到老师也应展示
+    _insert_log(db_session, ghost_id, "POST discipline/manual", actor_is_demo=False)
+    db_session.commit()
+
+    items = client.get(
+        "/api/v1/admin/audit-logs",
+        headers={"Authorization": f"Bearer {teacher_token}"},
+    ).json()["items"]
+    ghost = next((e for e in items if e["action"] == "POST discipline/manual"), None)
+    assert ghost is not None, "硬删老师的操作行不应消失"
+    assert ghost["actor_name"] is None  # 老师已删 → 名字为空（前端显示「削除済み」）

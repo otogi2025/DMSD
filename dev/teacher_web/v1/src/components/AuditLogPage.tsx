@@ -201,7 +201,7 @@ export function AuditLogPage({ authToken }: { authToken: string | null }) {
                       {fmtJa(e.created_at)}
                     </td>
                     <td style={{ ...td, whiteSpace: "nowrap" }}>
-                      {e.actor_name || "—"} 先生
+                      {e.actor_name ? `${e.actor_name} 先生` : "（削除済み）"}
                     </td>
                     <td style={td}>{actionLabel(e.action)}</td>
                     <td style={{ ...td, color: T.ink3, fontSize: 12 }}>

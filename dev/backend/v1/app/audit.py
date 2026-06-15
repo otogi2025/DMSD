@@ -47,8 +47,9 @@ _SKIP_PREFIXES = ("/api/v1/sessions",)
 
 _MAX_BODY_BYTES = 16 * 1024  # 超 16KB 的请求体不入 payload（文件上传等），存标记
 # 键名含这些词的值脱敏（密码 / 令牌 / 密钥 / 凭据 / cookie 等绝不入库）
+# 审计场景过度脱敏（误伤普通字段）远比漏脱敏安全 —— 宁可多 *** 也不让密钥落库。
 _SENSITIVE_KEY_RE = re.compile(
-    r"pass|pwd|secret|token|credential|api[_-]?key|apikey|authorization|cookie",
+    r"pass|pwd|secret|token|credential|api[_-]?key|apikey|authorization|cookie|otp",
     re.IGNORECASE,
 )
 _UUID_RE = re.compile(
@@ -148,10 +149,15 @@ def _write_audit_row(
     """同步写一条 audit_logs（独立 session，失败只 warning 不抛）。"""
     db = SessionLocal()
     try:
+        # 去规范化 actor 的 is_demo 到行上：操作记录页据此做演示隔离、不依赖事后 join teachers，
+        # 硬删老师后其历史操作行仍可见（codex M3）。老师不存在（极罕见竞态）→ None。
+        actor = db.get(models.Teacher, actor_id)
+        actor_is_demo = actor.is_demo if actor is not None else None
         db.add(
             models.AuditLog(
                 actor_type="teacher",
                 actor_id=actor_id,
+                actor_is_demo=actor_is_demo,
                 action=action[:128],
                 target_type=target_type,
                 target_id=target_id,
