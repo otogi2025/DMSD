@@ -382,3 +382,62 @@ def test_demerit_alert_not_fired_below_threshold(client, seed_data, db_session):
     assert not any(i["category"] == "demerit_alert" for i in body["items"]), (
         "未达 4 分线不应有减点警告"
     )
+
+
+def test_demerit_alert_mark_read_dorm_filtered(client, seed_data, db_session):
+    """codex 复审 major 回归：别寮老师不能把定向到本寮的告警标记已读（mark_read 404 / read-all 不波及）。"""
+    from app import security
+
+    student = seed_data["student"]  # dorm_unit=1 男寮
+    db_session.add(
+        models.DemeritEvent(
+            student_id=student.id,
+            source_type="manual",
+            points=8.0,
+            reason="累计テスト",
+            month=_jst_month(),
+        )
+    )
+    db_session.add(
+        models.Teacher(
+            login_id="joshi_mr",
+            name="女寮二号",
+            email="jmr@test.jp",
+            password_hash=security.hash_password("test-password-12345"),
+            role="寮務一般教師",
+            assigned_dorm=4,
+        )
+    )
+    db_session.commit()
+
+    # 跨寮老师先拉 feed 触发告警生成、拿到告警 id
+    cross_token = _teacher_token(client, "ryomu_kachou")
+    cross_body = _feed(client, cross_token)
+    alert = next(i for i in cross_body["items"] if i["category"] == "demerit_alert")
+    alert_id = alert["id"]
+
+    # 女寮老师 mark_read 这条男寮告警 → 404（不可见，隐藏存在性）
+    joshi_token = _teacher_token(client, "joshi_mr")
+    r = client.post(
+        f"/api/v1/notifications/{alert_id}/read",
+        headers={"Authorization": f"Bearer {joshi_token}"},
+    )
+    assert r.status_code == 404, "女寮老师不应能标记男寮告警已读"
+
+    # 女寮老师 read-all 后，男寮告警不应给她建已读行（不波及别寮）
+    client.post(
+        "/api/v1/notifications/read-all",
+        headers={"Authorization": f"Bearer {joshi_token}"},
+    )
+    db_session.expire_all()
+    joshi = (
+        db_session.query(models.Teacher).filter_by(login_id="joshi_mr").first()
+    )
+    from uuid import UUID
+
+    read_row = (
+        db_session.query(models.NotificationRead)
+        .filter_by(notification_id=UUID(alert_id), teacher_id=joshi.id)
+        .first()
+    )
+    assert read_row is None, "read-all 不应给女寮老师建男寮告警的已读行"

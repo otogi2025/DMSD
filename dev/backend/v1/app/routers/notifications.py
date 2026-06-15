@@ -443,6 +443,14 @@ def _dorm_visibility_filter(teacher: models.Teacher):
     )
 
 
+def _notif_visible_to(teacher: models.Teacher, notif: models.Notification) -> bool:
+    """单条通知对该老师是否可见（mark_read 用）—— 与 _dorm_visibility_filter 同语义的对象版。"""
+    if notif.target_dorm is None:
+        return True
+    allowed = _alert_dorm_units(teacher)
+    return allowed is None or notif.target_dorm in allowed
+
+
 def _unread_count(db: Session, teacher: models.Teacher) -> int:
     """当前老师在自己 realm + 管辖寮范围内的未读通知数 = 可见总数 − 本人已读数。"""
     dorm_filter = _dorm_visibility_filter(teacher)
@@ -531,7 +539,13 @@ def mark_read(
 ):
     """标记单条通知为已读（幂等）。返回更新后的未读数。"""
     notif = db.get(models.Notification, notification_id)
-    if notif is None or notif.is_demo != teacher.is_demo:
+    # codex 复审 major：除 realm(is_demo) 外还要按寮可见性过滤 —— 否则别寮老师能把定向到本寮的
+    # 自动告警标记已读。不可见的当 404 隐藏存在性（与 feed 过滤口径一致）。
+    if (
+        notif is None
+        or notif.is_demo != teacher.is_demo
+        or not _notif_visible_to(teacher, notif)
+    ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "NOT_FOUND", "message": "通知が見つかりません"},
@@ -584,7 +598,10 @@ def mark_all_read(
     all_ids = [
         nid
         for (nid,) in db.query(models.Notification.id)
-        .filter(models.Notification.is_demo == teacher.is_demo)
+        .filter(
+            models.Notification.is_demo == teacher.is_demo,
+            _dorm_visibility_filter(teacher),
+        )
         .all()
     ]
     for nid in all_ids:

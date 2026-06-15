@@ -263,6 +263,14 @@ def create_manual_demerit(
     # BL-6 修复：月份归属用 JST，防跨月凌晨归错月（与 rollcall/study 保持一致）
     now = datetime.now(_JST)
     month = now.strftime("%Y-%m")
+    # 并发保护（codex 复审 major）：锁住该学生行，串行化对同一学生的并发「设定绝对分」。
+    # 否则两请求可能读到相同 current_total、各算 delta 都插入 → 最终总分 != target_points。
+    # SQLite(dev/test) 单写者本就串行、with_for_update 是 no-op；PostgreSQL(prod) 靠行锁串行。
+    db.execute(
+        select(models.Student.id)
+        .where(models.Student.id == body.student_id)
+        .with_for_update()
+    )
     # B 方案（手动设定绝对分）：算「目标本月总分 − 当前本月总分」的差值，记一条调整事件。
     # 当前总分口径与 /ranking、/me/summary 完全一致（同月 + 排除已撤销），保证设完后该学生
     # 本月总分恰好等于 target_points。差值可正（加分）可负（降分）；0 = 清零本月扣分。
