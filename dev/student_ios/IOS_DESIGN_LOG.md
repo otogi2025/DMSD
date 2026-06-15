@@ -413,14 +413,14 @@ itsuki 2026-05-03 拍板。App Store 上架 = 向全人类开放下载渠道。�
 
 ## 5. 个人主页（マイページ）内容（2026-05-03 itsuki 拍板「方案 B 分层重设计」）
 
-> **5-03 大改原因**：原 8-grid 把「学習履歴 / 点呼履歴 / 減点明細」全塞 grid 一格小图标，重要信息沒有显眼位置。itsuki 反馈「学習履歴塞最下不显眼 / 点呼明細只显示本月不够 / 整体要扩展」→ 拍板方案 B（参照 Apple Health / Activity 信息架构）。實裝完了 = `MyPageStubs.swift` MyLandingView 全面重写。
+> **5-03 大改原因**：原 8-grid 把「晩自習履歴 / 点呼履歴 / 減点明細」全塞 grid 一格小图标，重要信息沒有显眼位置。itsuki 反馈「晩自習履歴塞最下不显眼 / 点呼明細只显示本月不够 / 整体要扩展」→ 拍板方案 B（参照 Apple Health / Activity 信息架构）。實裝完了 = `MyPageStubs.swift` MyLandingView 全面重写。
 
 ### 5.1 整体结构（上 → 下）
 
 ```
 PageHeader「マイページ」
 ├─ profileSection（紧凑：avatar 56pt + 氏名 + アカウント番号 + 寮室 Pill 一行）
-├─ ⭐ 学習ステータス Card（只对学习对象学生显示）
+├─ ⭐ 晩自習ステータス Card（只对学习对象学生显示）
 │    └─ 状态文字（対象外 / 開始まで X:XX / 進行中 / 本日完了 ✅）+「履歴を見る →」
 ├─ ⭐ 今月の点呼 Card
 │    └─ 時間内 / 遅刻 / 欠席 三色统计 +「詳細を見る →」
@@ -439,7 +439,7 @@ PageHeader「マイページ」
 | 项目 | 旧版（8-grid） | 方案 B |
 |---|---|---|
 | profile | avatar 64 + name + account + 2 Pill 竖排 | avatar 56 + 紧凑横一列 |
-| 学習履歴 | grid 第 9 格（只给学习对象加，在最下） | 顶部第 2 块卡片化（最显眼） |
+| 晩自習履歴 | grid 第 9 格（只给学习对象加，在最下） | 顶部第 2 块卡片化（最显眼） |
 | 点呼履歴 | grid 第 2 格（emoji + label） | 卡片化 + 含本月统计 |
 | 減点明細 | grid 第 3 格（emoji + 数字 badge） | 卡片化 + 含点数 + 状态 Pill |
 | 履歴 grid | 8-9 件 | 6 件（去掉点呼 / 减点 / 学习） |
@@ -449,7 +449,7 @@ PageHeader「マイページ」
 
 itsuki 拍板「在マイページ核心信息概览 + 详情入口」模式（参考 Apple Health / Activity）。查看顺位:
 1. 我是谁（profile）
-2. 学习中? 正常吗?（学習 Card）— 只对学习对象学生
+2. 学习中? 正常吗?（晩自習 Card）— 只对学习对象学生
 3. 点呼没问题吧?（点呼 Card）
 4. 减点线没问题吧?（減点 Card）
 5. 其他历史（grid 6 件）
@@ -457,7 +457,7 @@ itsuki 拍板「在マイページ核心信息概览 + 详情入口」模式（�
 
 ### 5.4 统计数据算出（v1.0 demo）
 
-- 学習ステータス: `app.studyState`（idle / upcoming / active / done）+ `app.studyCountdownSec`
+- 晩自習ステータス: `app.studyState`（idle / upcoming / active / done）+ `app.studyCountdownSec`
 - 点呼本月统计: 把 `SEED.rollcall` 按 state 分别 count（時間内 / 遅刻 / 欠席）
 - 减点点数: `SEED.user.points`（5-03 = 4.5）+ 阈值判定（< 4 良好 / 4-7 罰掃 注意 / ≥ 8 禁足）— 阈值跟 §7.12 + RollCall_Spec.md 一致
 
@@ -613,7 +613,7 @@ itsuki Q5 指示：**像 Web Round 1 一样，Claude Design 先列 3 variations�
 | 注册 | 5 step（学年・組・番号・房间号・留学生 flag）| 本档 §3.9 |
 | 認証 | login + 锁定升级 6 段階 | 本档 §3.5 §3.6 |
 
-**P0 範圍外**: 学習欠席届 (Q3) → P1 / 路径 B BTR + Universal Link → P1 / リクエスト曲 → P3 / 個人デ ータ aggregated → P2 / 巴士 + 行事 → P2 / 規律可視 → P3。
+**P0 範圍外**: 晩自習欠席届 (Q3) → P1 / 路径 B BTR + Universal Link → P1 / リクエスト曲 → P3 / 個人デ ータ aggregated → P2 / 巴士 + 行事 → P2 / 規律可視 → P3。
 
 ### 11.2 技术栈（✅ 已定）
 
@@ -791,7 +791,7 @@ extension Color {
 |---|---|---|
 | **I1** | Persistence | ✅ **JWT は Keychain / その他は UserDefaults**（2026-05-02 实装、commit `cf5c9fa`：`Foundation/Network/KeychainService.swift` 新建。理由 = JWT は機密、UserDefaults は明文 plist で脆弱）/ SwiftData は P2 で再検討 |
 | **I2** | Networking | ✅ **URLSession + async/await**（Combine 不採用）/ 2026-05-02 endpoint module 5 個実装済（commit `624fea1`+`a992b4f`）|
-| **I3** | APNs | ✅ P0 = **framework だけ**、実 push test は P1（学習欠席届と一緒） |
+| **I3** | APNs | ✅ P0 = **framework だけ**、実 push test は P1（晩自習欠席届と一緒） |
 | **I4** | i18n（英 / 中文） | ✅ **不要**（日本語 only）、v1.1 で再考 |
 | **I5** | 状態管理 | ✅ **`@Observable`** macro (Swift 5.9+) |
 | **I6** | 注册 = 即 active vs 教師承認 pending | ✅ **即 active**（backend D10 連動） |
@@ -806,7 +806,7 @@ extension Color {
 #### P1
 - 路径 B BTR + Universal Link 実装（`com.tomoshibi://checkin?session=&device=`）
 - Core NFC framework integration
-- 学習欠席届 提出 (Q3 / 19:40 前)
+- 晩自習欠席届 提出 (Q3 / 19:40 前)
 - 通知センター 完成（filter）
 - Push (APNs) 実 cert 設定 + production
 - マイページ 個人情報 編集（学号 / 房間号 / メール）
@@ -815,7 +815,7 @@ extension Color {
 - 巴士一覧 表示（マイページ「バス時刻」）
 - 帰省方法 = bus dropdown（external bus_route_id 関連付）
 - 行事予定 表示（Calendar UI）
-- 個人デ ータ aggregated（出寮履歴 / 学習履歴 / 点呼履歴 全部 tab）
+- 個人デ ータ aggregated（出寮履歴 / 晩自習履歴 / 点呼履歴 全部 tab）
 - 学号 / 房間号 履歴 表示
 - 帰寮通知
 
@@ -988,7 +988,7 @@ extension Color {
 - `postAnnouncementReply` も catch で local 偽 reply 生成 → cache append
 - v1.0 上線前に `seedDemoAnnouncements()` 関数本体 + init() 呼び出し + 3 catch 分岐の DEMO 部分すべて削除
 
-**seed 内容**: 5 件（点呼時間変更 / GW 出寮届 / 男寮浴室点検 / リクエスト曲募集 / 学習対象者更新）+ 3 件の reply chain（学生 + 教員）。UUID 固定（`11111111-...` 〜 `55555555-...`）で list ↔ detail 対応。
+**seed 内容**: 5 件（点呼時間変更 / GW 出寮届 / 男寮浴室点検 / リクエスト曲募集 / 晩自習対象者更新）+ 3 件の reply chain（学生 + 教員）。UUID 固定（`11111111-...` 〜 `55555555-...`）で list ↔ detail 対応。
 
 ### 13.6 一覧 view error 表示順序の修正
 
@@ -1012,12 +1012,12 @@ xcodebuild iPhone 17 simulator BUILD SUCCEEDED 確認済（2026-05-04）。
 
 ## 14. 宿舍申請类实物表補完 — iOS 影响（2026-05-28）
 
-> **起因**: itsuki 2026-05-28 提供宿舍真实纸质申请表「届け類.pdf」(朝日塾中等教育学校 寮)9 种扫描件。CC + codex 双读核对一致。**共用业务规则**(字段 / 审批链 / 注意事项)已写 `design/system_features.md` §7.2(出寮届補完)+ §7.3.5(学習欠席届 在线学习类型 A 補完)+ §7.21(4 种全新申請)+ §8(数据模型)。**本节只记 iOS 专属实装映射**, 不重复业务规则。
+> **起因**: itsuki 2026-05-28 提供宿舍真实纸质申请表「届け類.pdf」(朝日塾中等教育学校 寮)9 种扫描件。CC + codex 双读核对一致。**共用业务规则**(字段 / 审批链 / 注意事项)已写 `design/system_features.md` §7.2(出寮届補完)+ §7.3.5(晩自習欠席届 在线学习类型 A 補完)+ §7.21(4 种全新申請)+ §8(数据模型)。**本节只记 iOS 专属实装映射**, 不重复业务规则。
 
 ### 14.1 iOS 现有承载
 
 - **ApplyForm**(出寮届提交表单)+ **StayList**(申請履歴一覧 / 详情)= 现承载帰省 / 外泊 / 帰国三兄弟
-- 学習欠席届 = §7.3.5 类型 B(体調不良 / 特別課題), iOS 已有
+- 晩自習欠席届 = §7.3.5 类型 B(体調不良 / 特別課題), iOS 已有
 
 ### 14.2 实物补完对 iOS 的 4 个影响点
 
@@ -1025,7 +1025,7 @@ xcodebuild iPhone 17 simulator BUILD SUCCEEDED 確認済（2026-05-04）。
 |---|---|---|---|
 | 1 | 帰省分**通常時 / 長期休暇**两种 | ApplyForm 帰省下加 `is_long_vacation` 选择(段控件或子选项) | 低改动, 可进 v1.0 |
 | 2 | 出寮届**新字段**(同行者 / 行先都市 / 領収書提交标记 / 食事日本人 vs 留学生差异 / 命名班车西口便等) | ApplyForm 动态字段扩展(§7.2.1 補完), 留学生 / 日本人分支 | 中改动, 建议 v1.0 |
-| 3 | 学習**在线学习申请(类型 A)** | 现 iOS 只有类型 B。类型 A 要新字段: 期间 + 周时间表(月~金)+ 契约书凭证 + 3 天前提交 → 扩展学習欠席 ApplyForm 或新建 view | 中改动, 可 v1.1 |
+| 3 | 晩自習**在线学习申请(类型 A)** | 现 iOS 只有类型 B。类型 A 要新字段: 期间 + 周时间表(月~金)+ 契约书凭证 + 3 天前提交 → 扩展晩自習欠席 ApplyForm 或新建 view | 中改动, 可 v1.1 |
 | 4 | **4 种全新表单** | 见 §14.3 逐个取舍 | 待 itsuki 拍 v1.0 范围 |
 
 ### 14.3 4 种全新表单的 iOS 取舍
@@ -1101,7 +1101,7 @@ xcodebuild iPhone 17 simulator BUILD SUCCEEDED 確認済（2026-05-04）。
 - `AuthAPI.swift` — `StudentMeOut` + `StudentsAPI.me()`。
 - `SEED.swift` — 加 `demoUserSeed` 不可变副本（登出复位用）。
 - `HomeStubs.swift` — 7 处 `SEED.user` → `app.displayUser`。
-- `MyPageStubs.swift` — 学習卡片去隐藏门控（常显）+ `MyStudyView` 非学習対象显「学習対象外です」。
+- `MyPageStubs.swift` — 晩自習卡片去隐藏门控（常显）+ `MyStudyView` 非晩自習対象显「晩自習対象外です」。
 
 **自挑的值**（itsuki 拍板）：统计字段（points/迟到/欠席）真人先 0（4.5 是 demo）；isStudyTarget 默认 false（老师后台手动设的才是）；UI 入口可见、点进去显「不需要晚自习」。
 
@@ -1119,7 +1119,7 @@ xcodebuild iPhone 17 simulator BUILD SUCCEEDED 確認済（2026-05-04）。
 - **注册第一步写 SEED.user 加 `#if DEMO` 守卫** — 生产注册只走真实数据通道，防真名配演示残留统计的混血资料。
 - **MyInfoEditView 预填** — `@State` 默认值不再 view-init 抓 SEED.user，改 `.onAppear` 从 `app.displayUser` 填（防 loadMe 晚到 / 切账号不刷新）。
 
-**Batch 2 — 剩余身份站点迁 `app.displayUser`（commit `d21a2b8`）**：MyPage（profileSection / 减点卡 / MyInfoView rows / summaryCard 学習対象）、Apply（StayForm 申請者本人 8 处）、StayList（identitySection ID 卡 6 行）。登出生产构建（`#if !DEMO`）清 changeLog/studyHistory/announcements* 等用户绑定状态（防跨账号残留）。
+**Batch 2 — 剩余身份站点迁 `app.displayUser`（commit `d21a2b8`）**：MyPage（profileSection / 减点卡 / MyInfoView rows / summaryCard 晩自習対象）、Apply（StayForm 申請者本人 8 处）、StayList（identitySection ID 卡 6 行）。登出生产构建（`#if !DEMO`）清 changeLog/studyHistory/announcements* 等用户绑定状态（防跨账号残留）。
 
 **IX-008b 扣分统计接入（后端 `0f84be9` + iOS `d21a2b8`）**：后端 `GET /discipline/me/summary` 返当月扣分汇总；iOS `DisciplineAPI.mySummary()` + `loadMe` 拉 summary 填 currentUser 的 points/lateCount/absentCount。真人现显真实当月扣分/迟到/欠席（按当月算，照系统已有约定）。
 
@@ -1129,7 +1129,7 @@ xcodebuild iPhone 17 simulator BUILD SUCCEEDED 確認済（2026-05-04）。
 
 ### 14.10 IX-034 请假计数按月接后端（2026-06-02，commit `e0c150c`）
 
-学生端「本月学習欠席届（晚自习请假）次数」原来只在 `AppStore.studyLeaveCountThisMonth`（@Published 内存变量）累加 —— app 重启丢、跨月不清零 = 数字错。接成后端按月真实计数：
+学生端「本月晩自習欠席届（晚自习请假）次数」原来只在 `AppStore.studyLeaveCountThisMonth`（@Published 内存变量）累加 —— app 重启丢、跨月不清零 = 数字错。接成后端按月真实计数：
 
 - `StudyAPI.swift` 加 `MyAbsenceSummaryOut` Decodable + `myAbsenceSummary()`（GET `/study/absence-requests/me/summary`）。
 - `AppStore.loadMe` 拉到 /me + 扣分汇总后再拉请假当月数，写回 `studyLeaveCountThisMonth`（写回前 `guard isAuthenticated` 防登出竞态）。登录 / 注册 / 启动恢复令牌三条路径都会拉真实当月数。
@@ -1162,7 +1162,7 @@ IX-008 Batch 2 收尾的低危残留一并清掉：
 
 ### 14.14 删除寮ウォール（学生掲示板）— 落实 4-29 拍板（2026-06-03）
 
-`system_features.md §889` 早在 2026-04-29 就拍板「学生掲示板 🚫 砍」（社区功能不在核心价值 = 点呼/出寮届/学習/扣分），但 iOS 代码里的**寮ウォール**（`WallView` = 宿舍墙 = 学生互相发帖的墙）从没真删 —— 文档砍了、代码漂了 1 个多月，itsuki 反复要求未落实。本次删干净：
+`system_features.md §889` 早在 2026-04-29 就拍板「学生掲示板 🚫 砍」（社区功能不在核心价值 = 点呼/出寮届/晩自習/扣分），但 iOS 代码里的**寮ウォール**（`WallView` = 宿舍墙 = 学生互相发帖的墙）从没真删 —— 文档砍了、代码漂了 1 个多月，itsuki 反复要求未落实。本次删干净：
 
 - `CommunityStubs.swift` 删 `WallView` / `WallNewView` / `WallDetailView` 3 个 struct + 各自 `#Preview`（§10–§12，约 295 行）
 - `Route.swift` 删 `homeWall` / `homeWallNew` / `homeWallDetail` 3 个 case + 标题映射
@@ -1306,8 +1306,8 @@ itsuki：「オンライン学習要可以上传图片，上传合同」+「选�
 ### §15.1 ① 手机点呼签到 — CoreNFC 写 ST25DV Mailbox（最重要的新设计）
 
 按 2026-06-02「架构反转」（手机不联网，用 CoreNFC 把学号写进墙上 ST25DV16K 的 Mailbox，点呼机读走发后端）实装：
-- 新建 `Foundation/Network/NFC/ST25DVWriter.swift`：`writeCheckin(studentId:type:)`。写进 Mailbox 的数据格式 = 1字节版本 0x01 + 1字节类型（0x01点呼/0x02学習）+ 16字节 UUID 原始值。ISO15693 自定义命令字节占位 `// TODO[硬件]` 待 ST25DV16K datasheet + 点呼机 `st25dv.py` 对齐。
-- `HomeStubs.swift` 点呼 + 学習 `simulate()` 分轨：演示版 `#if DEMO` 保留假动作；生产版 `#else` 真写 ST25DV、本地物理确认（做法 A）不等后端、失败显 fail 态。
+- 新建 `Foundation/Network/NFC/ST25DVWriter.swift`：`writeCheckin(studentId:type:)`。写进 Mailbox 的数据格式 = 1字节版本 0x01 + 1字节类型（0x01点呼/0x02晩自習）+ 16字节 UUID 原始值。ISO15693 自定义命令字节占位 `// TODO[硬件]` 待 ST25DV16K datasheet + 点呼机 `st25dv.py` 对齐。
+- `HomeStubs.swift` 点呼 + 晩自習 `simulate()` 分轨：演示版 `#if DEMO` 保留假动作；生产版 `#else` 真写 ST25DV、本地物理确认（做法 A）不等后端、失败显 fail 态。
 - `RollCallAPI.checkin` 注释从旧 nonce 方案纠正成架构反转说明、标学生端弃用勿删（可能给老师代点用）。
 - **Swift 6 并发处理**：用 completion handler 版绕开 async Task 闭包的 'sending' parameter data race 检查；`@preconcurrency import CoreNFC` + 类标 `@unchecked Sendable` + NSLock 原子管理 continuation + `withTaskCancellationHandler`（取消时 invalidate session）+ `cancelRequested` 标志把「创建+begin session」整段挪进锁内（经 codex 4 轮复审逐层封住 NFC 取消竞态）。
 
@@ -1511,7 +1511,7 @@ gpt-5 + high（非预期 gpt-5.5 + xhigh）逐层挖 `ST25DVWriter` NFC 取消�
 | HomeStubs:415 | 請假 | 欠席届 | 中文漏出（硬伤）|
 | HomeStubs:1896 | 次は…を…に | 次回：label（window） | 无谓语悬空句 |
 | HomeStubs:404 | 前半節/後半節 | 前半/後半 | 生造词 |
-| HomeStubs:1900 | 本日の学習出席は完了 | 本日の学習出席 完了 | 裸名词收尾不一致 |
+| HomeStubs:1900 | 本日の晩自習出席は完了 | 本日の晩自習出席 完了 | 裸名词收尾不一致 |
 | DormLifeForms:572 | 希望所持理由 | 所持理由 | 三名词硬拼 |
 | ApplyStubs:2211 | 予想審査時間 | 審査時間の目安 | 直译造词 |
 | ApplyStubs:732/738 | 地点を追加 / 複数の地点に滞在 | 滞在先を追加 / 複数の場所に滞在 | 与标题「宿泊先」不一致 |

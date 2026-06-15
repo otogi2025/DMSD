@@ -54,7 +54,7 @@
 | 2026-04-22 下午 · 17:55 | 白屏 2 连事件：Round 1 file:// CORS（Babel fetch .jsx 被 block + integrity 属性导致 CORS）→ 做 `rebuild.command` 把 jsx 内联到 index.html + 删 integrity/crossorigin 属性；Round 2 男寮 12→13 人后 records.jsx statuses hardcode 12 项数组越界 → RecStatusBadge crash 白屏 → `i % statuses.length` + fallback 修复 |
 | 2026-04-22 下午 · 17:40 | itsuki 4 项调整：(1) `申請センター` 詳細列被挤没 → 列宽 80px→100px + 整行可点 hover 变色（applications.jsx）(2) **リュウ イヒ 女子寮 W101 → 男子寮 M101 as itsuki demo binding 迁移**（theme.jsx ROSTER_MEN 前插 + ROSTER_WOMEN 去掉，变 13男/11女；OUTSTAY_APPS + COMMUNITY_POSTS + cleaning mock 的 room W101→M101 同步迁移；佐藤 M101→M102、高橋 M102→M103 级联）(3) 让 リュウ イヒ 进清扫罚则名单：discipline.jsx demerit 数组 [0] 改成 `late=5 absent=2 → total=4.5`（清扫线 ≥4、禁足 ≥8） (4) 名前検索空格 normalize 修复：shell topbar suggestions 动态从 `window.ROSTER_ALL` 生成 + `normalize(s)=replace(/\s+/g,'').toLowerCase()` 比对；SearchPage 同逻辑 + 担当寮优先 → 全寮 fallback + 跨寮 warn banner |
 | 2026-04-22 下午 · 17:00 | itsuki 走查 Round 3 发现 3 个文案问题 + 要求重做 コミュニティ 页 + 审 bug。[Code-Agent] 修复：`申請中心 → 申請センター`（applications.jsx）· `寮コミュニティ → コミュニティ管理`（shell.jsx nav + pages.jsx h1）· **CommunityPage 大改**（卡片 + 头像 + 点赞/评论 + 老师管理按钮 删除/ピン留め/通報解除 + 4 个统计卡片 + 3 个过滤器 + 5 tab 真实 seed 21 条学生投稿含通报样本）· **InfoPage お知らせ投稿 button**（右上 + ComposeNoticeModal 标题+本文）· 审出 7 bug 全修（override 却下/既読 死按钮 · discipline+notifications+records 里 hardcoded 男寮人名 → dynamic 按 teacher.dorm · shell 顶栏 2026-04-21 硬编码日期 → live clock · roll-call landing 日期 → 动态 · applications 外泊 badge 3 → 实际 pending count） |
-| 2026-04-22 ~ 06-04（多次） | ⚠️ 本时间线在此有断档：4-22 之后到 6-04 的多次推进（backend 接入 / 学習出席页 / 出寮者一覧 / 食数导出按钮 / 学習名簿 等）未逐条入本表，真值见 git log。 |
+| 2026-04-22 ~ 06-04（多次） | ⚠️ 本时间线在此有断档：4-22 之后到 6-04 的多次推进（backend 接入 / 晩自習出席页 / 出寮者一覧 / 食数导出按钮 / 晩自習名簿 等）未逐条入本表，真值见 git log。 |
 | 2026-06-05 | **代録（出寮届）表单页** `ProxyApplicationPage`（杭田五-3「教師用は当日入力可」收尾）：老师替学生补录帰省/外泊/帰国届。① 学生选择器走 `proxyCandidates`（GET /applications/proxy-candidates，按寮边界 + 姓名/学号搜）② 申請种类 3 按钮切换 ③ 共有字段（出寮/帰寮 日期·方法·时刻 + 本人連絡先），交通手段下拉选项与 iOS `ApplyStubs` LEAVE/RETURN_TRANSPORTS 一致 ④ 种类别：帰省理由 + 長期休暇 / 外泊·帰国 同行者+行先+宿泊先（必填≥1）/ 帰国 飞机信息 ⑤ 食事栏按学生 `is_overseas` 切换：留学生填食事不要期间（前端展开成 `[{date,meal}]`，照抄 iOS expandMealsSkip）、日本人显示「自己填食事入力表」提示。提交 `createByTeacher` → POST /applications/by-teacher。导航栏「代録」项限代録 5 角色（`DAIROKU_ROLES_FRONT`）可见。`client.js` 加 `proxyCandidates`+`createByTeacher`。验证 check_jsx 16 块 0 错误。| [Mac-Opus 4.8 1M] CC |
 | 2026-06-14 | **公告页 UI 优化**（`InfoPage.tsx`）：① お知らせ展开去重复 —— 展开时头部摘要原地替换为全文（`whiteSpace:pre-wrap`）+ 删展开区冗余全文框，任意时刻只显一份正文（itsuki 反馈「展开后摘要 + 全文重复显示」，原话「后面的内容叠加到前面的内容上面」）② 编辑/新建公告弹窗加大 —— `width` 540→680 + `textarea rows` 6→12 + 外壳改 flex 列 `maxHeight:90vh` + 内容区 `overflowY:auto`（防正文加高把底部按钮顶出小屏）。富文本编辑（字号/粗体细体）itsuki 拍板放后续版本、记 TODO §B。`npm run build` ✓。commit `0fcf5b5`。| [Mac-Opus 4.8 1M] CC |
 
@@ -261,7 +261,7 @@ round3/
 | Topbar 中央 | **全局检索 input**，placeholder「学生名・部屋番号・日付で検索...」+ 左内侧虫眼鏡 + 右内侧 `⌘K` hint。Enter 跳 `/search?q=` |
 | Topbar 右侧 | 点呼実施中 badge（按可跳 live）+ **WS 接続状态** dot + 日時 + **ログアウト** button（新）|
 | 左下 教员信息 | 阿凡达 + 氏名 + **担当寮 badge**（男寮/女寮色分）+「切替」+ **「当番中 / 非番」indicator** |
-| 左 nav 分组（6-14 追加） | 16 菜单平铺 → **4 组归类**，每组加灰色小标题、高频在上 / 管理项沉底。组划分：点呼業務（点呼・代録・出寮者一覧・通知）/ 生活・指導（申請・規律・処分・学習出席・記録・事案記録）/ 情報・発信（お知らせ・バス・コミュニティ管理・フロント業務）/ 管理・設定（学生アカウント管理・学生登録コード・教員アカウント管理・開示申請）。起因 itsuki 截图反馈「散在一排不美观不直观」。⚠️ §4.2 旧表「7 大类」是 5-26 废弃 Vite 版的笼统旧话、无具体定义，不作数 |
+| 左 nav 分组（6-14 追加） | 16 菜单平铺 → **4 组归类**，每组加灰色小标题、高频在上 / 管理项沉底。组划分：点呼業務（点呼・代録・出寮者一覧・通知）/ 生活・指導（申請・規律・処分・晩自習出席・記録・事案記録）/ 情報・発信（お知らせ・バス・コミュニティ管理・フロント業務）/ 管理・設定（学生アカウント管理・学生登録コード・教員アカウント管理・開示申請）。起因 itsuki 截图反馈「散在一排不美观不直观」。⚠️ §4.2 旧表「7 大类」是 5-26 废弃 Vite 版的笼统旧话、无具体定义，不作数 |
 | 菜单可见性（6-14 厘清，单源真值）| **16 项全部对所有登录老师显示**，不按角色 / 职位隐藏任何菜单。敏感功能（教員アカウント管理 / 事案記録 / 開示申請 等。注：学生登録コード 原在此列，2026-06-14 itsuki 拍板对全权限组 + 演示账号放开、不再被后端拦，已移出 → `design/teacher_permission_v1.md` §5）的增删改由**后端 `require_permission` 按权限组把关**：无权限老师能进页面、但具体操作被后端拦（403）。⚠️ 本档早期多处「某菜单仅 X 権限可見 / role-based nav」（§5.3' 教师管理「仅寮務管理可見」、§7.16 学生登録コード、§4.2 代録限 5 角色 `DAIROKU_ROLES_FRONT` 等）全是「职位退化为纯显示标签」重构**之前**的旧设计，已撤回、不作数 —— 现实以本行为准 |
 
 ### 5.6 点呼 Dashboard（/roll-call）改动
@@ -544,7 +544,7 @@ round3/
 | 寮務部長 / 寮務課長 | 〇 個人 PC（職員室）| 出寮届 一覧 + 承认（#10）+ コメント（#13） |
 | 国際交流部長 / 国際交流課長 | 〇 個人 PC | 同上（仅留学生 外泊/帰国 chain） |
 | **寮監** | **★ 寮管室 iPad** | 朝/夜点呼（#16-#19）+ 改判（一本道 R2） |
-| **学習担当** | **★ 寮管室 iPad** | 学習出席（#14-#15）+ 自動判定修正（#20） |
+| **学習担当** | **★ 寮管室 iPad** | 晩自習出席（#14-#15）+ 自動判定修正（#20） |
 | 寮務一般教師 | 〇 個人 PC | （P0 範囲外） |
 
 #### P0 路由
@@ -625,7 +625,7 @@ iPad ★ 路由 **必須**:
 
 - 30 分钟无操作 → `/logout`
 - 25 分时 toast「あと 5 分で退出します」+「継続」
-- **iPad ★ 例外**: 点呼 session active 中 / 学習 active 中 (19:40-21:45) 不触发
+- **iPad ★ 例外**: 点呼 session active 中 / 晩自習 active 中 (19:40-21:45) 不触发
 - demo `TIMEOUT_MS` constant 保留 + `// DEMO 用短縮` 注释
 
 #### ローディング / エラー / 空状態
@@ -725,7 +725,7 @@ iPad ★ 路由 **必須**:
 | **W3** | login 同路 vs 分两路 | ✅ **分两路**（`/login/student` + `/login/teacher`） |
 | **W4** | 役职 dorm filter 範囲 | ✅ **跨寮役职 = 全件 / 寮監・学習担当 = 自寮のみ** |
 | **W5** | logout sessionStorage clear vs backend revoke | ✅ **両方**（frontend clear + backend `DELETE /sessions/current`） |
-| **W6** | iPad ★ 自动退出 active 中例外 | ✅ **両方 active 中例外**（点呼・学習中は退出 timer 停止） |
+| **W6** | iPad ★ 自动退出 active 中例外 | ✅ **両方 active 中例外**（点呼・晩自習中は退出 timer 停止） |
 | **W7** | RYO theme tokens 直接復用 | ✅ **復用**（demo 安定 + AC 叙事「同じデザイン言語で全システム」） |
 | **W8** | 外泊届 modal layout | ✅ **縦 1 列 cards**（iPad 縦持ち + 5 行 chain で縦のほうが自然） |
 | **W9** | **外泊届承认 chain 实物表対応**（2026-04-30 D4 から）| ⏳ 役职 cards を `student.is_overseas` + `application.kind` で動的生成（一般 = 3 行 / 留学生 = 5 行）。「担任」cards = `student.homeroom_teacher_id` 解决（backend D11 待）|
@@ -981,7 +981,7 @@ itsuki 纠正 CC 两个错误前提：① 部署目标是**服务器**（多人�
 ### 16.4 验证（chrome 客观实测 + 后端测试）
 
 - `npm run build`：0 报错（tsc 0 + vite build，产物 index js 414KB / css 398KB + 字体）
-- chrome 自动化：登录跑通（选老师卡片→输密码→进 app）；17 菜单页全渲染无崩溃；27 个接口请求全 200；控制台 0 报错；代録搜学生(田中 太郎)、点呼板(対象 2 名)、学習出席(名簿 2 人)、出寮者一覧、审批(申請) 全部真数据通
+- chrome 自动化：登录跑通（选老师卡片→输密码→进 app）；17 菜单页全渲染无崩溃；27 个接口请求全 200；控制台 0 报错；代録搜学生(田中 太郎)、点呼板(対象 2 名)、晩自習出席(名簿 2 人)、出寮者一覧、审批(申請) 全部真数据通
 - 后端 311 测试全过
 
 ### 16.5 托管 + 归档

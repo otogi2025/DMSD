@@ -2,7 +2,7 @@
 
 > **作用**: backend（后端 = 服务器代码）agent 接手 v1.0 实装的入口文件。对称 iOS 的 `IOS_DESIGN_LOG.md` 和 Web 的 `WEB_DESIGN_LOG.md` —— 每个端各一个档案。
 > **建立**: 2026-04-30 by [Mac-轨道C-CC]
-> **范围**: **P0 only**（出寮届 #1-9 / #10-13 + 点呼・学習 iPad #14-20 + 邮件通知 R1）。P1/P2/P3 后续会话续写。
+> **范围**: **P0 only**（出寮届 #1-9 / #10-13 + 点呼・晩自習 iPad #14-20 + 邮件通知 R1）。P1/P2/P3 后续会话续写。
 
 ## ⚠️ 实装进度速查表（2026-05-21 A-029 加）
 
@@ -103,8 +103,8 @@
 |---|---|---|---|
 | **#1-#9** | 学生 出寮届提交 | 学生 | 帰省 / 外泊 / 帰国 3 种 |
 | **#10-#13** | 役职 出寮届承认 | 役职（4 人） | 寮務部長 / 寮務課長 / 国際交流部長 / 国際交流課長 |
-| **#14-#20** | 寮監・学習担当 点呼/学習 | 寮監 / 学習担当 | iPad ★ 一本道 UX（R2） |
-| **R1** | 邮件通知 | 役职 / 学習担当 | 出寮届 提交时 / 学習欠席届 提交时 |
+| **#14-#20** | 寮監・学習担当 点呼/晩自習 | 寮監 / 学習担当 | iPad ★ 一本道 UX（R2） |
+| **R1** | 邮件通知 | 役职 / 学習担当 | 出寮届 提交时 / 晩自習欠席届 提交时 |
 
 ### 2.2 P0 范围外（后续会话）
 
@@ -149,7 +149,7 @@ CHECK (
 | 场景 | 手段 |
 |---|---|
 | 出寮届 提交 → 役职 | **email**（必须） |
-| 学習欠席届 提交 → 学習担当 | **email**（必须） |
+| 晩自習欠席届 提交 → 学習担当 | **email**（必须） |
 | 役职 承认/拒否 → 学生 | **email**（必须）— 杭田 2026-06-04 訂正：原定 push，改为邮件，因「提出したことが残る」（推送会被划掉忘记） |
 | 学号変更 → 老师（误输入检测） | **email**（必须） |
 | 巴士时刻 / お知らせ 投稿 → 学生 | push + in-app |
@@ -162,7 +162,7 @@ CHECK (
 
 **这条 UX 约束在 backend API 设计上的体现**:
 - 寮監使用的 endpoint **不能要求"先选条件再查"** — API 默认值要能直接返回当天该寮的现状
-- 例: `GET /study/today/attendees` 不传任何 query param → 自动返回「当天 + 当前教师寮 + 当前学習対象寮生 - 今日学習欠席届承认者 - 今日出寮届承认者」的 ready-to-render list
+- 例: `GET /study/today/attendees` 不传任何 query param → 自动返回「当天 + 当前教师寮 + 当前晩自習対象寮生 - 今日晩自習欠席届承认者 - 今日出寮届承认者」的 ready-to-render list
 - 寮監 iPad UI 不会传 filter / sort / pagination → API 设计不要把 paging 做成必传
 
 ### 3.4 时间 / 时区
@@ -170,7 +170,7 @@ CHECK (
 - 入站 timestamp **接受 ISO 8601 with TZ**，无 TZ 时按 JST 解释
 - 出站 timestamp **统一 ISO 8601 + `+09:00`** 后缀
 - DB column 全 `TIMESTAMPTZ`
-- 业务判定（迟到 / 出寮日 = 明天起 / 学習欠席届截止）一律 **服务器 JST 时刻**，不信任客户端
+- 业务判定（迟到 / 出寮日 = 明天起 / 晩自習欠席届截止）一律 **服务器 JST 时刻**，不信任客户端
 
 ### 3.5 幂等 / 重复防护
 
@@ -957,7 +957,7 @@ req:
 
 副作用: 给学生 push + in_app（不发 email — 不是审批结果）。
 
-### 5.4 学習 — iPad ★ (#14-#20 学習 部分)
+### 5.4 晩自習 — iPad ★ (#14-#20 晩自習 部分)
 
 **前提**: 当前教师 role ∈ {寮監, 学習担当, 寮務一般教師}。
 
@@ -990,11 +990,11 @@ req:
 业务规则:
 - **当天有效 study_roster**（中学全员 = 自动 + 高中手动）
 - **减去** `applications.status='approved'` 且 `target_date ∈ [leave_date, return_date]` 的人 (#14 出寮届控除)
-- **减去** `study_absence_requests.status='approved'` 且 `target_date=今日` 的人 (#14 学習欠席届控除)
+- **减去** `study_absence_requests.status='approved'` 且 `target_date=今日` 的人 (#14 晩自習欠席届控除)
 - 按 `current_teacher.assigned_dorm` filter（R4）
 - name 五十音排序
 
-#### 5.4.2 `POST /study/checkins` — 学習出席记录（#15）
+#### 5.4.2 `POST /study/checkins` — 晩自習出席记录（#15）
 
 req:
 ```json
@@ -1020,7 +1020,7 @@ res: `{ "finalized_count": 5, "absent_students": [...] }`
 req: `{ "status": "present", "override_reason": "ノックの音気付かなかった" }`
 audit_logs(action='study_checkin.override')
 
-#### 5.4.5 学習欠席届 — 学生侧 `POST /study/absence-requests` / 教师侧 `POST /study/absence-requests/:id/decision`
+#### 5.4.5 晩自習欠席届 — 学生侧 `POST /study/absence-requests` / 教师侧 `POST /study/absence-requests/:id/decision`
 
 学生提交 → 学習担当（`role='学習担当'` 教师）email 通知 R1。学習担当 approve/reject。
 
@@ -1103,7 +1103,7 @@ dev/staging 用，触发 `email_send` 验证 provider 联通。
 { "type": "checkin", "student_id": "...", "base_status": "present", "checked_in_at": "..." }
 ```
 
-`WS /ws/study/:date` — 学習出席 iPad 订阅。
+`WS /ws/study/:date` — 晩自習出席 iPad 订阅。
 
 > v1 必须用 **Redis pub/sub** 跨进程，不能像 demo 那样内存 dict（4 台 iPad 不同后端进程时会失同步）。
 
@@ -1137,7 +1137,7 @@ dev/staging 用，触发 `email_send` 验证 provider 联通。
 | `FORBIDDEN_DORM` | 403 | 教师跨 assigned_dorm 操作 |
 | `LEAVE_DATE_NOT_FUTURE` | 422 | (#3) 出寮日 = 今天或过去 |
 | `INVALID_KIND_FIELDS` | 422 | (#2) kind 与字段不匹配 |
-| `LATE_SUBMISSION` | 422 | 学習欠席届 19:40 后提交 |
+| `LATE_SUBMISSION` | 422 | 晩自習欠席届 19:40 后提交 |
 | `APPROVAL_ALREADY_DECIDED` | 409 | role 已决定过 |
 | `APPROVAL_NOT_REQUIRED` | 403 | 当前 role 不在该届 chain |
 | `SESSION_NOT_RUNNING` | 409 | 点呼 |
@@ -1290,7 +1290,7 @@ itsuki 拍板把演示账号从 opt-in 默认关改成 **默认启用**（`seed.
 | **D5** | 学生成功登录后 `lock_level` 清零 | ✅ 是（清 `failed_count` + `lock_level=0`）| §5.1.1 |
 | **D6** | v1 部署 target | ⚠️ 2026-06-03 重开：原 ✅ VPS，现 itsuki 倾向宿舍本地自组装服务器（见 §9.1），最终形态待拍板 | §9 / §9.1 |
 | **D7** | API 前缀 vs subdomain | ✅ `/api/v1/` 同 host | 全 API |
-| **D8** | 高中 学習対象 reset 时点 | ✅ 学習担当手动按按钮 + 一括 add 新学期对象 | §4.6 / §5.4 |
+| **D8** | 高中 晩自習対象 reset 时点 | ✅ 学習担当手动按按钮 + 一括 add 新学期对象 | §4.6 / §5.4 |
 | **D9** | 教师密码 reset 流程 | ✅ 无 self-serve、项目负责老师后台手改（明文一次性、下次登录强制改）| §5.1 |
 | **D10** | 学生注册 = 即 active vs 教师承認 pending | ✅ **即 active**（无需老师审批） | §5.1 |
 | **D11** | 担任 数据模型 | ✅ **单独表 `class_teacher_assignment`**（学年度更替時の audit 履歴保持 + 1 教師 → N 学年・組 対応）| §4.1 + §4.5 |
@@ -1332,12 +1332,12 @@ itsuki 拍板把演示账号从 opt-in 默认关改成 **默认启用**（`seed.
 
 | 日期 | 改订 | 担当 |
 |---|---|---|
-| 2026-04-30 | P0 初版 — auth + 出寮届 + 学習 + 点呼 + 邮件 + R1-R4 落地 | [Mac-轨道C] CC |
+| 2026-04-30 | P0 初版 — auth + 出寮届 + 晩自習 + 点呼 + 邮件 + R1-R4 落地 | [Mac-轨道C] CC |
 | 2026-05-27 | 5-27 醒后会话 backend 审查 9 处修复入档：(1) `deps.py` 加 `dorm_units_for_teacher` R4 helper（男寮 = unit 1+2 / 女寮 = unit 4 / 跨寮 4 类 = None）+ discipline / cleaning router 改用 `.in_(...)` 修过滤 bug。(2) `announcements.py` 补 `get_current_principal` import 修 NameError。(3) `models.py` 补 `Float` import 修 DemeritEvent NameError。(4) `schemas.py` `DemeritEventOut` 补 `revoked_by_teacher_id` 字段。(5) discipline 权限 5 类 → 4 类收窄对齐 cleaning + front_desk（`{寮監, 寮務部長, 寮務課長, 管理係}`）。(6) alembic c1d2e3f4 加 `demerit_event` + `cleaning_assignment` + `front_desk_item` 3 张表（完整 CHECK / FK / index / down_revision=b9c0d1e2f3a4）。(7) `rollcall.py` PATCH /events 实装 spec §11.4 改判扣分联动 12 类 transition（`_OVERRIDE_DEMERIT_MAP` + `_apply_override_demerit`）。(8) spec §7.5 自动扣分 3 处实装：rollcall late=1.0 / rollcall absent=2.0 / study_absent=1.5（常量 + DemeritEvent 直接 add）。(9) WebSocket `/api/v1/ws/teacher` 实装 — 新建 `ws_manager.py`（TeacherConnectionManager 单例 + asyncio.Lock + broadcast_sync）+ `routers/ws.py`（JWT query param 校验 + role check + teacher status check + WebSocketDisconnect cleanup）+ main.py 注册 + 4 处 broadcast 接入（rollcall create_checkin / rollcall PATCH override / applications create_application；_settle_absent broadcast 留 v1.1）。事件 schema: `{type:"checkin"/"override"/"outstay_new", ...}` 与 frontend `client.js LiveRollCall` 对齐。验证：uvicorn 真启动 → 49 HTTP endpoint + 1 WS endpoint 全注册 / openapi.json 通 / alembic offline SQL 通。8 commits（ddf3880..af8588c）全 local 未 push。| [MacBook-Pro-Opus 4.7 1M] CC |
 | 2026-05-28 | 宿舍申请表 5-28 实物规范落库（commit `c6ccee0`，codex gpt-5.5 xhigh 实装 + CC 审查）：(1) `applications` 加 6 实物字段（contact_phone / companion / dest_cities / receipt_submitted / is_long_vacation / meal_note）+ schema / router 读写。(2) `approver_role` + `teachers.role` + `deps.CROSS_DORM_ROLES` 加「校長」（帰国届 様式3-1 最终许可、抬头校長；itsuki 拍板「实物有校长就要校长」）。(3) `approval_chain.py` 按实物校正：外泊日本人 `("寮務課長","寮務部長","管理係")` 4 人 / 帰省日本人+留学生统一 4 人 / 帰国留学生 `("国際交流部長","寮務課長","寮務部長","管理係","校長")` / `PROVISIONAL_CHAINS` 只剩 `("帰国",False)`。(4) 新表 `study_online_requests`（在线学习申请 类型 A）。(5) 新表 4 张 §8.7：`dorm_event_proposals` / `dorm_schedule_changes`（提交者 = teachers）/ `fridge_purchase_requests` / `item_possession_requests`，v1.0 单状态字段 + decided_by 模式（不建多角色链表）。(6) 新路由 `study_online.py` + `dorm_life.py` + main.py 注册。(7) alembic `d2e3f4a5b6c7`（干净空库 10 迁移全链路 upgrade/downgrade 验证通过）。(8) 附带修：历史遗留坏测试（`StudyAttendanceRoster`→`StudyRoster` 等）+ starlette 422 弃用常量 + `on_event`→`lifespan` + SQLite 时区比较 bug（`rollcall.py _as_jst_aware`）+ 旧迁移 `a8b9c0d1e2f3` 改 batch 模式（SQLite 清库升级必须）。验证：70 测试通过（CC 独立重跑）。⚠️ 留待老师确认：日本人帰国实物表是否存在（`("帰国",False)` 暂定）。| [MacBook-Pro-Opus 4.7 1M] CC + codex |
 | 2026-05-31 | 修改届（PUT /applications/:id）接 iOS 真后端 + 多轮 Codex 5.5 xhigh 审查收敛（commit `5a8be64` / `0ee5546`）：(1) `ApplicationUpdateIn` 加 `amend_reason` 字段 — 修改理由写进 audit payload、**不覆盖**申请本身的 `reason`。(2) `update_application` 重建审批链后 `app.status = "pending"` 重置（修 approved_partial / returned 改完「链全 pending 但 status 没变」不一致）。(3) `returned`（老师退回）加入可编辑允许列表（spec §7.2.4-5）— ⚠️ **但 `decide_approval` 的 `_recompute_application_status` 目前无产出 `returned` 的路径**（老师「差戻」动作未实装），本次只做前向兼容、留独立 TODO。(4) 只有真改了业务字段才重置链 + 重发邮件（`changed = {k:v for k,v in update_data if getattr(app,k)!=v}`，空 body / 只填 amend_reason / 传相同值 → 422 `NO_CHANGES`，防反复无实质重置已部分承認的链 — 滥用面）；出寮日只在 `leave_date in changed` 时校验（防误拒只改帰寮 / 方法的旧届）。(5) `GET /{id}/audit` 加老师担当寮范围检查 `_teacher_can_view`（修任意老师读任意申请履历越权，越权面因 payload 新含 amend_reason 而扩大）。(6) `changed` 比较加 `_norm` datetime 归一化（请求带时区、SQLite 读回丢时区 → flight 时间同一时刻不被误判成改了；复用 rollcall `_as_jst_aware` 同款）。(7) 改了业务字段但没填修改理由 → 422 `AMEND_REASON_REQUIRED`（iOS 已强制、后端兜底）。测试 +8 `TestUpdateApplication`（no-op 422 / 传相同值 no-op 且已承认行不被清 / 没填理由 422 / audit 越权 403 / 跨寮老师可读 200 / reason 不覆盖 / 链全 pending）。5 轮 Codex 5.5 xhigh 审查（5a8be64 → 0ee5546 → 5b97b45）。验证：pytest 201 passed。| [Mac-Opus 4.8 1M] CC + codex |
 | 2026-06-02 | IX-008 第二阶段（Codex 5.5 xhigh + Claude 4 维对抗审查双路独立、结论一致）后端 2 处 + IX-008b 新端点：(1) `deps.py` `get_current_student` / `get_current_teacher` 给 `UUID(payload.get("sub"))` 补 `try/except (TypeError, ValueError)` → 畸形 sub 令牌返 401 不再 500（仿 `get_current_principal` 已有范本、两依赖一致；双审同时指出的依赖一致性缺口）。(2) **IX-008b** 新 `GET /api/v1/discipline/me/summary`（`get_current_student` 鉴权）= 当前学生当月扣分汇总：`MyDisciplineSummaryOut{month, total_points, late_count, absent_count}`，与 `/ranking` 同口径（`month == 当月 YYYY-MM` + 排除 `revoked_at`）；`total_points` = 当月全来源之和、`late/absent` 只数 `rollcall_late` / `rollcall_absent`；扣分按当月算（照系统已有约定，非新拍板）。测试 +4（畸形 sub 401 / 当月限定 / 排除撤销 / 拒老师 403）。验证：pytest 217 passed。iOS 接线（DisciplineAPI + loadMe 填统计）待 iOS 文件腾出再做。⚠️ 撞并发 `git add -A`：IX-008 iOS 5 修复落 `6142ef0`、IX-008b 后端落 `0f84be9`。| [Mac-Opus 4.8 1M] CC + codex |
-| 2026-06-02 | **IX-034** 学習欠席届当月计数接后端（commit `e0c150c`）：新 `GET /api/v1/study/absence-requests/me/summary`（`get_current_student` 鉴权）= 当前学生当月请假次数 `MyAbsenceSummaryOut{month, count}`。口径：按 `target_date`（请假针对日）落 JST 当月计数、数全部状态（pending/approved/rejected，学習欠席届无撤销机制 + 唯一约束每人每天最多一条）—— 与 iOS 现有「提交即 +1」行为一致。仿 IX-008b `/discipline/me/summary` 样板。测试 +3（401 / 老师 403 / 当月计数含 rejected 跨月排除）。验证：pytest 220 passed。⚠️ Codex 5.5 xhigh 审出 4 点待修（iOS 侧 submitStudyLeave 跨月仍 +1 + loadMe 令牌竞态；测试时区边界 + formatYMD 未固定 JST）—— 见交接 §7.1，过夜 GOAL 第一件事修。| [Mac-Opus 4.8 1M] CC + codex |
+| 2026-06-02 | **IX-034** 晩自習欠席届当月计数接后端（commit `e0c150c`）：新 `GET /api/v1/study/absence-requests/me/summary`（`get_current_student` 鉴权）= 当前学生当月请假次数 `MyAbsenceSummaryOut{month, count}`。口径：按 `target_date`（请假针对日）落 JST 当月计数、数全部状态（pending/approved/rejected，晩自習欠席届无撤销机制 + 唯一约束每人每天最多一条）—— 与 iOS 现有「提交即 +1」行为一致。仿 IX-008b `/discipline/me/summary` 样板。测试 +3（401 / 老师 403 / 当月计数含 rejected 跨月排除）。验证：pytest 220 passed。⚠️ Codex 5.5 xhigh 审出 4 点待修（iOS 侧 submitStudyLeave 跨月仍 +1 + loadMe 令牌竞态；测试时区边界 + formatYMD 未固定 JST）—— 见交接 §7.1，过夜 GOAL 第一件事修。| [Mac-Opus 4.8 1M] CC + codex |
 
 | 2026-06-03 | **出租车预约「タクシー予約」**：`applications` 加 `taxi_reservation_time`（`Time` / nullable，null = 不预约 / 有值 = 想坐车时刻），三种出寮届 + 外出共通。`models.py` 加列 / `schemas.py` 三处（`ApplicationBase`→三 Create 继承 + `ApplicationOut` + `ApplicationUpdateIn`）/ `routers/applications.py`（create app_kwargs 存 + `_to_application_out` 映射；PUT 修改届走 `model_dump`+`setattr` 自动）/ migration `a7b8c9d0e1f2`（down=`b2c3d4e5f6a1`；codex 审出初版编号 `e3f4a5b6c7d8` 撞既有 events 迁移、已换 + `alembic heads` 验证单 head）。自由 `Time` 字段后端不挑值。全套 223 测试绿（+2 taxi：带预约回显 / 不带默认 null）。| [Mac-Opus 4.8 1M] CC + codex |
 
