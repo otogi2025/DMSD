@@ -1144,6 +1144,7 @@ struct StayForm: View {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
         f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo") // 固定 JST：DatePicker 已固定东京时区，初值字符串按 JST 解读（codex 审出，同 ApplyFormSupport）
         return f.date(from: s)
     }
 
@@ -1159,6 +1160,7 @@ struct StayForm: View {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
         f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo") // 固定 JST，与 DatePicker / parseHM / combine 一致
         return f.string(from: d)
     }
 
@@ -1352,6 +1354,9 @@ private struct DateField: View {
         .labelsHidden()
         .datePickerStyle(.compact)
         .environment(\.locale, Locale(identifier: "ja_JP")) // itsuki 反馈: 月份要日语/数字 (西暦 2026年4月)
+        // 固定 JST 时区+日历：非 JST 设备也按日本时间存储，否则 combine 用东京日历提取会偏 1 小时（codex 审出，同 ApplyFormSupport）
+        .environment(\.timeZone, TimeZone(identifier: "Asia/Tokyo")!)
+        .environment(\.calendar, ApplyFormDate.tokyoCalendar)
         .frame(maxWidth: .infinity, minHeight: 42)
         .padding(.horizontal, 8)
         .background {
@@ -1370,6 +1375,9 @@ private struct TimeField: View {
             .labelsHidden()
             .datePickerStyle(.compact)
             .environment(\.locale, Locale(identifier: "ja_JP")) // itsuki 反馈: 月份/时刻要日语
+            // 固定 JST 时区+日历（同 DateField）：非 JST 设备也按日本时间，否则时刻偏移（codex 审出）
+            .environment(\.timeZone, TimeZone(identifier: "Asia/Tokyo")!)
+            .environment(\.calendar, ApplyFormDate.tokyoCalendar)
             .frame(maxWidth: .infinity, minHeight: 42)
             .padding(.horizontal, 8)
             .background {
@@ -1426,9 +1434,11 @@ struct StudyAbsenceForm: View {
 
     /// 可选日期范围：今天～14 天后
     private var dateRange: ClosedRange<Date> {
-        let now = Date()
-        let later = now.addingTimeInterval(60 * 60 * 24 * 14)
-        return now ... later
+        // 按 JST 算「今天～14 天后」，避免非 JST 设备范围边界偏一天（DatePicker 已固定东京时区）（codex 审出）
+        let cal = ApplyFormDate.tokyoCalendar
+        let today0 = cal.startOfDay(for: Date())
+        let later = cal.date(byAdding: .day, value: 14, to: today0) ?? today0
+        return today0 ... later
     }
 
     var body: some View {
@@ -1447,6 +1457,10 @@ struct StudyAbsenceForm: View {
                         )
                         .datePickerStyle(.compact)
                         .labelsHidden()
+                        .environment(\.locale, Locale(identifier: "ja_JP"))
+                        // 固定 JST 时区+日历：非 JST 设备 target_date 不偏（提交走 formatYMD 已固定 JST，输入端也要对齐）（codex 审出）
+                        .environment(\.timeZone, TimeZone(identifier: "Asia/Tokyo")!)
+                        .environment(\.calendar, ApplyFormDate.tokyoCalendar)
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background {
