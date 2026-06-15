@@ -249,35 +249,59 @@ def upload_contract(
             },
         )
 
-    contents = file.file.read()
     settings = get_settings()
-    if len(contents) == 0:
-        raise HTTPException(422, {"code": "EMPTY_FILE", "message": "ファイルが空です"})
-    if len(contents) > settings.contract_max_bytes:
-        mb = settings.contract_max_bytes // (1024 * 1024)
-        raise HTTPException(
-            422,
-            {
-                "code": "FILE_TOO_LARGE",
-                "message": f"契約書は {mb} MB 以下にしてください",
-            },
-        )
-
     contracts_dir = os.path.join(settings.upload_dir, "contracts")
     os.makedirs(contracts_dir, exist_ok=True)
     rel_path = os.path.join("contracts", f"{record.id}{ext}")
     abs_path = os.path.join(settings.upload_dir, rel_path)
 
+    # 流式分块读取 — 不把整份文件 read() 进内存，防超大上传导致 OOM。
+    # 策略：每次读 64 KB 块，累计字节数超限立即关闭文件并返回 422，
+    # 字节数为 0（空文件）返回 422。写入目标文件也同步分块写，减少峰值内存占用。
     # 先写新文件 → 提交 DB → 最后才删旧文件。任一步失败时旧文件 + 旧 DB 路径仍一致，
     # 不会出现 DB 指向已删文件的孤儿状态。
+    _CHUNK = 64 * 1024  # 每次读取块大小：64 KB
     old_rel = record.contract_file_path
-    with open(abs_path, "wb") as f:
-        f.write(contents)
+    total_bytes = 0
+    try:
+        with open(abs_path, "wb") as out_f:
+            while True:
+                chunk = file.file.read(_CHUNK)
+                if not chunk:
+                    break
+                total_bytes += len(chunk)
+                if total_bytes > settings.contract_max_bytes:
+                    # 超限：删掉已写的临时文件，立即拒绝
+                    out_f.close()
+                    if os.path.isfile(abs_path):
+                        os.remove(abs_path)
+                    mb = settings.contract_max_bytes // (1024 * 1024)
+                    raise HTTPException(
+                        status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        {
+                            "code": "FILE_TOO_LARGE",
+                            "message": f"契約書は {mb} MB 以下にしてください",
+                        },
+                    )
+                out_f.write(chunk)
+    except HTTPException:
+        raise
+    except OSError as exc:
+        # 磁盘写入失败（权限 / 满盘等）→ 500
+        raise HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            {"code": "STORAGE_ERROR", "message": "ファイルの保存に失敗しました"},
+        ) from exc
+
+    if total_bytes == 0:
+        if os.path.isfile(abs_path):
+            os.remove(abs_path)
+        raise HTTPException(422, {"code": "EMPTY_FILE", "message": "ファイルが空です"})
 
     record.contract_file_path = rel_path
     record.contract_file_name = _safe_filename(file.filename, ext)
     record.contract_mime = (file.content_type or "").lower()
-    record.contract_size = len(contents)
+    record.contract_size = total_bytes
     db.commit()
     db.refresh(record)
 

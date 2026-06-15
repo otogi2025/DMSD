@@ -23,7 +23,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import models, permissions, schemas
 from ..database import get_db
 from ..deps import (
     dorm_units_for_teacher,
@@ -32,15 +32,6 @@ from ..deps import (
 )
 
 router = APIRouter(prefix="/api/v1", tags=["student / profile"])
-
-# 有权查看指导履历块的角色（同 guidance.py）
-_GUIDANCE_ROLES = {
-    "寮務部長",
-    "寮務課長",
-    "寮監",
-    "寮務一般教師",
-    "管理係",
-}
 
 
 def _get_student_or_404(student_id: UUID, db: Session) -> models.Student:
@@ -241,14 +232,21 @@ def get_student_profile(
     else:
         actor_student = principal
 
-    # ---- 老师鉴权：只有寮務系才能查，且受寮边界限制 ----
+    # ---- 老师鉴权：需要 C_GUIDANCE VIEW 权限，且受寮边界限制 ----
     if actor_teacher is not None:
-        if actor_teacher.role not in _GUIDANCE_ROLES:
+        # 直接调用 permissions.has_permission 对已登录老师做权限判定：
+        # 用 effective_group（permission_group 优先、为空按职位回退）判该组是否持有 C_GUIDANCE / VIEW（MANAGE 蕴含 VIEW）。
+        # 比旧的 role in _GUIDANCE_ROLES 更准确 — 跟随 permission_group 体系，不硬编码职位字符串。
+        if not permissions.has_permission(
+            permissions.effective_group(actor_teacher),
+            permissions.C_GUIDANCE,
+            permissions.VIEW,
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail={
                     "code": "FORBIDDEN_ROLE",
-                    "message": "学生个人档案需要寮務系老师权限",
+                    "message": "学生个人档案の閲覧には指導履歴の閲覧権限が必要です",
                 },
             )
         # R4 寮边界：先取学生信息才能比对 dorm_unit
@@ -324,7 +322,11 @@ def get_student_profile(
     # 4. 指导履历（guidance_records 表）
     #    学生本人 → 空列表（C 案：默认不显示）
     #    寮務系老师 → 全部可见
-    if actor_teacher is not None and actor_teacher.role in _GUIDANCE_ROLES:
+    if actor_teacher is not None and permissions.has_permission(
+        permissions.effective_group(actor_teacher),
+        permissions.C_GUIDANCE,
+        permissions.VIEW,
+    ):
         guidance_records = db.scalars(
             select(models.GuidanceRecord)
             .where(

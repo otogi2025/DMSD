@@ -424,11 +424,24 @@ def mark_read(
         .first()
     )
     if already is None:
-        db.add(
-            models.NotificationRead(
-                notification_id=notification_id, teacher_id=teacher.id
-            )
-        )
+        # 多个老师同时点「既読」可能并发撞 uq_notif_read — 用 savepoint 兜底：
+        # 撞唯一约束时只回滚本条 savepoint，外层事务不受影响，接口正常返回。
+        try:
+            with db.begin_nested():
+                db.add(
+                    models.NotificationRead(
+                        notification_id=notification_id, teacher_id=teacher.id
+                    )
+                )
+                db.flush()
+        except IntegrityError as exc:
+            msg = str(getattr(exc, "orig", exc)).lower()
+            if "uq_notif_read" in msg or (
+                "unique" in msg and "notification_read" in msg
+            ):
+                pass  # 并发重复写 — 已读状态已存在，直接跳过
+            else:
+                raise
         db.commit()
     return schemas.NotificationUnreadCountOut(unread_count=_unread_count(db, teacher))
 
@@ -455,6 +468,22 @@ def mark_all_read(
     ]
     for nid in all_ids:
         if nid not in read_ids:
-            db.add(models.NotificationRead(notification_id=nid, teacher_id=teacher.id))
+            # 多老师同时点「全部既読」会并发撞 uq_notif_read — 每条用 savepoint 包起来：
+            # 撞唯一约束就跳过这条，外层事务继续，不让并发请求打出 500。
+            try:
+                with db.begin_nested():
+                    db.add(
+                        models.NotificationRead(
+                            notification_id=nid, teacher_id=teacher.id
+                        )
+                    )
+                    db.flush()
+            except IntegrityError as exc:
+                msg = str(getattr(exc, "orig", exc)).lower()
+                if "uq_notif_read" in msg or (
+                    "unique" in msg and "notification_read" in msg
+                ):
+                    continue  # 并发重复写 — 已读状态已存在，跳过
+                raise
     db.commit()
     return schemas.NotificationUnreadCountOut(unread_count=_unread_count(db, teacher))
