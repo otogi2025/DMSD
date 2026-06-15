@@ -25,6 +25,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import models, permissions, schemas
@@ -39,13 +40,9 @@ from ..deps import (
 
 router = APIRouter(prefix="/api/v1/discipline", tags=["discipline"])
 
-# itsuki 5-22 拍板的扣分阈值（4 清扫已随清扫功能删除）
-CURFEW_THRESHOLD = 8.0
-
-# 手动加扣分 / 撤销权限 — 跟 front_desk 对齐
-# 寮監 + 寮務部長 + 寮務課長 + 管理係
-# （学習担当的扣分由 study.py 自动加，不走手动；一般教师 + 国際交流系 不行）
-_ADMIN_ROLES = {"寮監", "寮務部長", "寮務課長", "管理係"}
+# itsuki 5-22 拍板的扣分阈值（2026-06-15 罚扫重做恢复 4 分阈值）
+CLEANING_THRESHOLD = 4.0  # ≥4 分 → 需要罚扫（清扫罚则）
+CURFEW_THRESHOLD = 8.0  # ≥8 分 → 外出禁止（禁足）
 
 
 @router.get("/ranking", response_model=schemas.DemeritRankingOut)
@@ -102,10 +99,14 @@ def get_ranking(
     all_students = db.scalars(student_stmt).all()
 
     entries: list[schemas.DemeritRankingEntryOut] = []
+    cleaning_n = 0
     curfew_n = 0
     for s in all_students:
         total = points_by_student.get(s.id, 0.0)
+        is_cleaning = total >= CLEANING_THRESHOLD
         is_curfew = total >= CURFEW_THRESHOLD
+        if is_cleaning:
+            cleaning_n += 1
         if is_curfew:
             curfew_n += 1
         # student_no = grade_code + class_code + seat_no 拼接
@@ -118,6 +119,7 @@ def get_ranking(
                 room_no=s.room_no,
                 dorm_unit=s.dorm_unit,
                 total_points=total,
+                is_cleaning_threshold=is_cleaning,
                 is_curfew_threshold=is_curfew,
             )
         )
@@ -127,6 +129,7 @@ def get_ranking(
     return schemas.DemeritRankingOut(
         month=month,
         entries=entries,
+        cleaning_threshold_count=cleaning_n,
         curfew_threshold_count=curfew_n,
     )
 
@@ -159,6 +162,8 @@ def get_my_discipline_summary(
         total_points=total_points,
         late_count=late_count,
         absent_count=absent_count,
+        # ≥4 分 → 需要罚扫（对称于 8 分外出禁止；到 8 分时 iOS 端按分档优先显示外出禁止）
+        needs_cleaning=total_points >= CLEANING_THRESHOLD,
     )
 
 
@@ -180,14 +185,18 @@ def search_students_for_demerit(
     """
     stmt = select(models.Student).where(demo_scope_for_teacher(teacher))
     if q:
-        like = f"%{q}%"
+        # E-低-04：转义用户输入里的 LIKE 通配符 % 和 _（与 admin_accounts.py 同款），
+        # 否则老师输入含 % 的查询会被当通配符匹配全部（功能性瑕疵，非注入——值已被
+        # SQLAlchemy 参数化）。escape='\\' 指定反斜杠为转义字符，先转义反斜杠自身再转义 % 和 _。
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        like = f"%{escaped}%"
         stmt = stmt.where(
-            models.Student.name.like(like)
+            models.Student.name.like(like, escape="\\")
             | (
                 models.Student.grade_code
                 + models.Student.class_code
                 + models.Student.seat_no
-            ).like(like)
+            ).like(like, escape="\\")
         )
     allowed = dorm_units_for_teacher(teacher)
     if allowed is not None:
@@ -233,19 +242,54 @@ def create_manual_demerit(
                 "message": "担当外の寮の学生への操作はできません",
             },
         )
+
+    # A-473 幂等防重：客户端带了 idempotency_key 时，先查这名学生是否已有同 key 的手动扣分行，
+    # 命中就直接返回那条、不再叠加（老师双击 / 网络重试场景）。
+    # 实现复用既有 source_event_id 列 + uq_demerit_source 唯一约束：手动扣分原本该列为空，
+    # 这里把客户端生成的 key（UUID）写进去，约束 (student_id, source_type, source_event_id)
+    # 就能在 DB 层挡住重复键，无需新增表字段。该列对自动扣分来源各有 source_type 隔离
+    # （rollcall_absent / study_absent 等），查询从不跨 source_type 取 manual 行，故不会冲突。
+    if body.idempotency_key is not None:
+        existing = db.scalars(
+            select(models.DemeritEvent).where(
+                models.DemeritEvent.student_id == body.student_id,
+                models.DemeritEvent.source_type == "manual",
+                models.DemeritEvent.source_event_id == body.idempotency_key,
+            )
+        ).first()
+        if existing is not None:
+            return schemas.DemeritEventOut.model_validate(existing)
+
     # BL-6 修复：月份归属用 JST，防跨月凌晨归错月（与 rollcall/study 保持一致）
     now = datetime.now(_JST)
     event = models.DemeritEvent(
         student_id=body.student_id,
         source_type="manual",
-        source_event_id=None,
+        # 带幂等键时把 key 存进 source_event_id 供唯一约束去重；不带时仍为空（原行为）
+        source_event_id=body.idempotency_key,
         points=body.points,
         reason=body.reason,
         month=now.strftime("%Y-%m"),
         created_by_teacher_id=teacher.id,
     )
     db.add(event)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # 并发重复提交：两个相同 key 的请求几乎同时到，先查都没命中、各自 add，
+        # 第二个 commit 撞 uq_demerit_source 唯一约束 → 回滚后重查已存行幂等返回（而非 500）。
+        db.rollback()
+        if body.idempotency_key is not None:
+            existing = db.scalars(
+                select(models.DemeritEvent).where(
+                    models.DemeritEvent.student_id == body.student_id,
+                    models.DemeritEvent.source_type == "manual",
+                    models.DemeritEvent.source_event_id == body.idempotency_key,
+                )
+            ).first()
+            if existing is not None:
+                return schemas.DemeritEventOut.model_validate(existing)
+        raise
     db.refresh(event)
     return schemas.DemeritEventOut.model_validate(event)
 
@@ -288,6 +332,21 @@ def revoke_demerit(
     event.revoked_at = datetime.now(timezone.utc)
     event.revoked_by_teacher_id = teacher.id
     event.revoke_reason = body.revoke_reason
+    # 撤销「清扫不通过」扣分要联动退回清扫单状态，否则 CleaningPage 仍显示
+    # 「不通过」与已撤销的扣分矛盾。仅 cleaning_failed 有父表回指
+    # （rollcall/study 是 forward-only，靠 ranking 过滤 revoked_at）。
+    if event.source_type == "cleaning_failed":
+        cleaning = db.scalar(
+            select(models.CleaningAssignment).where(
+                models.CleaningAssignment.demerit_event_id == event.id
+            )
+        )
+        if cleaning is not None:
+            cleaning.status = "assigned"
+            cleaning.failure_reason = None
+            cleaning.inspected_at = None
+            cleaning.inspected_by_teacher_id = None
+            cleaning.demerit_event_id = None
     db.commit()
     db.refresh(event)
     return schemas.DemeritEventOut.model_validate(event)

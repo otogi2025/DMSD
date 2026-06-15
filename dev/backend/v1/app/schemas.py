@@ -964,19 +964,11 @@ class StudentAccountCreateIn(BaseModel):
     # 老师在后台生成的 6 桁码（默认 5 分钟内有效，与 models StudentRegistrationCode TTL 一致）
     registration_code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
 
-    # B10：dorm_unit 的 3 由 Literal[1,2,4] 拦下，无需额外校验器
-
-    @model_validator(mode="after")
-    def _check_room_prefix(self) -> "StudentAccountCreateIn":
-        # C-8：房号前缀必须与寮号一致 — M*** 男寮（dorm_unit 1|2）/ W*** 女寮（dorm_unit 4）。
-        # 与 student_profile.py 学生自助改房号的交叉校验同款，防注册时落异寮房号。
-        prefix = self.room_no[:1].upper()
-        expected_prefix = "M" if self.dorm_unit in (1, 2) else "W"
-        if prefix != expected_prefix:
-            raise ValueError(
-                f"部屋番号 '{self.room_no}' は所属寮（{expected_prefix}***）と一致しません"
-            )
-        return self
+    # B10：dorm_unit 的 3 由 Literal[1,2,4] 拦下，无需额外校验器。
+    # C-8（房号前缀 ↔ dorm_unit/gender 交叉校验）不在本 schema 做 —— accounts.py 的
+    # _validate_room_dorm_match 已在 router 层校验并返回结构化 422 INVALID_ROOM_FORMAT
+    # （见 test_registration_code.py::test_create_account_room_dorm_mismatch）。改成 schema 层
+    # ValueError 会让该错误退化成 Pydantic 列表式 422、破坏既有错误契约，故 C-8 判定为误报不改。
 
 
 class StudentAccountCreateOut(BaseModel):
@@ -1110,6 +1102,7 @@ class DemeritEventOut(BaseModel):
     source_type: Literal[
         "rollcall_late",
         "rollcall_absent",
+        "cleaning_failed",
         "curfew_violation",
         "study_absent",
         "manual",
@@ -1136,7 +1129,8 @@ class DemeritRankingEntryOut(BaseModel):
     room_no: str
     dorm_unit: int
     total_points: float
-    # 阈值标记 — 8 禁足（4 清扫已随清扫功能删除）
+    # 阈值标记 — 4 清扫罚扫 / 8 禁足（2026-06-15 罚扫重做恢复 4 分阈值）
+    is_cleaning_threshold: bool  # total_points >= 4
     is_curfew_threshold: bool  # total_points >= 8
 
 
@@ -1145,6 +1139,7 @@ class DemeritRankingOut(BaseModel):
 
     month: str
     entries: list[DemeritRankingEntryOut]
+    cleaning_threshold_count: int  # >= 4 点的学生数（需要罚扫）
     curfew_threshold_count: int  # >= 8 点的学生数
 
 
@@ -1160,6 +1155,9 @@ class MyDisciplineSummaryOut(BaseModel):
     total_points: float
     late_count: int
     absent_count: int
+    # ≥4 分 → 需要罚扫（后端纯阈值 total_points>=CLEANING_THRESHOLD；
+    # 前端按 4-7 罚扫 / ≥8 外出禁止分档显示，到 8 分不再标罚扫）
+    needs_cleaning: bool
 
 
 class MyAbsenceSummaryOut(BaseModel):
@@ -1190,6 +1188,45 @@ class DemeritRevokeIn(BaseModel):
     """撤销扣分输入。"""
 
     revoke_reason: str = Field(..., min_length=1, max_length=2000)
+
+
+# ---------------------------------------------------------------
+# 清扫安排（罚则清扫）— spec §7.10 清扫审查 / 2026-06-15 罚扫功能重做
+# ---------------------------------------------------------------
+class CleaningAssignmentOut(BaseModel):
+    """清扫安排输出（老师列表 + 学生履历共用）。"""
+
+    id: UUID
+    student_id: UUID
+    area: str
+    scheduled_at: datetime
+    status: Literal["assigned", "done", "passed", "failed", "skipped"]
+    assigned_by_teacher_id: Optional[UUID]
+    assigned_at: datetime
+    done_at: Optional[datetime]
+    inspected_by_teacher_id: Optional[UUID]
+    inspected_at: Optional[datetime]
+    failure_reason: Optional[str]
+    demerit_event_id: Optional[UUID]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CleaningAssignmentCreateIn(BaseModel):
+    """老师分配清扫输入。area 自由文本，scheduled_at 带时区 datetime。"""
+
+    student_id: UUID
+    # 地点自由文本（旧版是 7 选 1 Literal 枚举，重做去枚举）
+    area: str = Field(..., min_length=1, max_length=32)
+    # 计划执行时刻（带时区 datetime，精确到几点）
+    scheduled_at: datetime
+
+
+class CleaningInspectIn(BaseModel):
+    """老师审核输入 — passed 通过 / failed 不通过 + 不通过原因。"""
+
+    result: Literal["passed", "failed"]
+    failure_reason: Optional[str] = Field(None, max_length=2000)
 
 
 # ---------------------------------------------------------------

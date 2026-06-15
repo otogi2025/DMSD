@@ -269,15 +269,16 @@ class Application(Base):
     companion: Mapped[Optional[str]] = mapped_column(Text)
     dest_cities: Mapped[Optional[str]] = mapped_column(Text)
     # A-485：nullable=False 杜绝三态（原 nullable=True 时 DB 可出 NULL，喂非 Optional 的
-    # ApplicationOut.receipt_submitted: bool 会 500）。配迁移 e1f2a3b4c5d6 回填存量 NULL→False。
+    # ApplicationOut.receipt_submitted: bool 会 500）。配迁移 f9a0b1c2d3e4 回填存量 NULL→False。
     receipt_submitted: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False
     )
 
     # 申請理由 (全 kind · spec §7.2.4-5 修改届で必須)
     reason: Mapped[Optional[str]] = mapped_column(Text)
+    # A-485：同 receipt_submitted —— nullable=False 杜绝三态，配迁移 f9a0b1c2d3e4 回填 NULL→False。
     is_long_vacation: Mapped[bool] = mapped_column(
-        Boolean, nullable=True, default=False
+        Boolean, nullable=False, default=False
     )
 
     # 帰国 only
@@ -1146,9 +1147,9 @@ class AnnouncementReply(Base):
 
 
 # ---------------------------------------------------------------
-# 扣分事件 — spec §7.5 規律処分 / 阈值 8 禁足（4 清扫已随清扫功能删除）
+# 扣分事件 — spec §7.5 規律処分 / 阈值 4 清扫罚扫 + 8 禁足（2026-06-15 罚扫重做恢复 4 分阈值）
 # ---------------------------------------------------------------
-# - source_type ENUM 5 值: rollcall_late / rollcall_absent /
+# - source_type ENUM 6 值: rollcall_late / rollcall_absent / cleaning_failed /
 #   curfew_violation / study_absent / manual
 # - points 默认: late=1.0 / absent=2.0 / curfew=5.0 / study_absent=1.5
 # - 类型 Float（允许 0.5 分）
@@ -1192,7 +1193,7 @@ class DemeritEvent(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "source_type IN ('rollcall_late','rollcall_absent','curfew_violation','study_absent','manual')",
+            "source_type IN ('rollcall_late','rollcall_absent','cleaning_failed','curfew_violation','study_absent','manual')",
             name="ck_demerit_source",
         ),
         # 自动扣分防重唯一约束 —— 并发结算（点呼 end / 学習 finalize 同时触发，
@@ -1209,6 +1210,61 @@ class DemeritEvent(Base):
         ),
         Index("idx_demerit_student_month", "student_id", "month"),
         Index("idx_demerit_month_active", "month", "revoked_at"),
+    )
+
+
+# ---------------------------------------------------------------
+# 清扫安排（罚则清扫）— spec §7.10 清扫审查 / 2026-06-15 罚扫功能重做恢复
+# ---------------------------------------------------------------
+# 相对 2026-06-10 删除前的旧版两处改动：
+# - scheduled_date(date) → scheduled_at(带时区 datetime)，排罚扫精确到几点。
+# - area 去掉固定枚举 CHECK（ck_cleaning_area），改老师自由文本。
+class CleaningAssignment(Base):
+    """清扫安排单（罚扫）。CleaningPage / 学生罚扫履历 用。"""
+
+    __tablename__ = "cleaning_assignment"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id"), nullable=False, index=True
+    )
+    # 清扫地点 —— 老师自由文本（旧版是 7 选 1 枚举，重建去枚举）
+    area: Mapped[str] = mapped_column(String(32), nullable=False)
+    # 计划执行时刻（带时区 datetime，精确到几点）
+    scheduled_at: Mapped[datetime] = mapped_column(
+        TZDateTime, nullable=False, index=True
+    )
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="assigned")
+
+    assigned_by_teacher_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    assigned_at: Mapped[datetime] = mapped_column(
+        TZDateTime, nullable=False, server_default=func.now()
+    )
+
+    # 学生上报扫完时刻（v1.0 不做「报告完成」按钮，恒 NULL；留字段不删）
+    done_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+
+    # 老师审核
+    inspected_by_teacher_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    inspected_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+    # 不通过时填写
+    failure_reason: Mapped[Optional[str]] = mapped_column(Text)
+    # 不通过时自动加的 DemeritEvent.id（关联，方便撤销时一并撤回扣分）
+    demerit_event_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("demerit_event.id")
+    )
+
+    __table_args__ = (
+        # 注意：旧版的 ck_cleaning_area 枚举约束已去掉（area 改自由文本）
+        CheckConstraint(
+            "status IN ('assigned','done','passed','failed','skipped')",
+            name="ck_cleaning_status",
+        ),
+        Index("idx_cleaning_student_scheduled", "student_id", "scheduled_at"),
     )
 
 

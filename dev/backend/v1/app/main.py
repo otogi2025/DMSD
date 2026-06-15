@@ -48,6 +48,7 @@ from .routers import (
     applications,
     auth,
     bus_routes,
+    cleaning,
     device_tokens,
     discipline,
     dorm_life,
@@ -304,6 +305,7 @@ app.include_router(dorm_life.router)
 app.include_router(rollcall.router)
 app.include_router(teachers.router)
 app.include_router(discipline.router)
+app.include_router(cleaning.router)
 app.include_router(front_desk.router)
 app.include_router(events.router)
 app.include_router(bus_routes.router)
