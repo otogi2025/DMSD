@@ -11,6 +11,13 @@ import { SELECTABLE_GROUPS, GROUP_DORM_ADMIN } from "../api/permissions";
 // 权限: backend 限「寮务部长 / 寮务课长 / 寮监 / 学习担当」(/teachers.py INVITE_ALLOWED_ROLES)
 //       前端不提前判 — 让 backend 返 403 时显示错误（避免角色 string 双写漂移）
 
+// 角色名「学習担当」对用户显示为「晩自習担当」。注意：数据库 / 接口里的 role 值仍是「学習担当」
+// —— 它是 teachers.role 的 CheckConstraint 合法取值之一，改值要动数据库迁移（已决定保留 key）。
+// 这里只做显示层映射，其余 7 个角色原样返回。
+function roleLabel(role: string): string {
+  return role === "学習担当" ? "晩自習担当" : role;
+}
+
 export function TeachersAdminPage({
   authToken,
   currentTeacherId,
@@ -254,7 +261,7 @@ export function TeachersAdminPage({
                 >
                   {t.email}
                 </div>
-                <div style={{ color: T.ink2 }}>{t.role}</div>
+                <div style={{ color: T.ink2 }}>{roleLabel(t.role)}</div>
                 <div style={{ color: T.ink2 }}>{dormLabel}</div>
                 <div style={{ textAlign: "right" }}>
                   <button
@@ -462,7 +469,7 @@ function TeachersAdminCreateModal({
           >
             {ROLES.map((r) => (
               <option key={r} value={r}>
-                {r}
+                {roleLabel(r)}
               </option>
             ))}
           </select>
