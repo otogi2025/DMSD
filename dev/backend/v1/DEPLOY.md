@@ -110,6 +110,19 @@ openssl rand -hex 32      # JWT_SECRET 用
 
 打开 `Caddyfile`，把 `api.tomoshibi.cc` 替换成 itsuki 实际买的域名。
 
+### H-7：`./static` 目录的来源（后端 stack 与个人网站耦合说明）
+
+`docker-compose.yml` 的 caddy 服务挂载了 `./static:/srv/static:ro`，`Caddyfile` 里
+`pj.tomoshibi.cc` 块从 `/srv/static/pj` serve 个人网站静态文件。**这个 `static/` 目录不在
+后端仓库里** —— 它是个人网站（pj.tomoshibi.cc）单独构建出来的产物，部署时由 itsuki 手动放到
+`dev/backend/v1/static/` 下（与 docker-compose 同级）。
+
+- **只部署后端 API、不部署个人网站时**：在 VPS 上建一个空的 `static/` 目录即可（`mkdir -p static`），
+  避免 caddy 因挂载源不存在而启动失败；`pj.tomoshibi.cc` 块会 404，不影响 `api.tomoshibi.cc`。
+- **要一起部署个人网站时**：把个人网站构建产物 rsync 到 `static/pj/`（含 `index.html` / `ogden/` / `iq/`）。
+- 后端 stack 本身只需要 `api.tomoshibi.cc` 这一段；`pj` / `iq` 两段是顺带在同一台 VPS 上托管个人网站，
+  与宿舍系统后端无业务依赖，将来要拆分时直接从 `Caddyfile` 删掉那两块 + 去掉 compose 的 static 挂载即可。
+
 ---
 
 ## 4. 启动 stack
@@ -228,7 +241,8 @@ docker compose up -d --build api    # 只重 build api、不动 db / caddy
 
 ### iOS app 真机连不上 prod URL
 - 真机连 4G（不是 Wi-Fi）测 — 排除家庭网络问题
-- Safari 打开 `https://api.tomoshibi.cc/docs`（FastAPI 自带 swagger）应该能看到 API 文档
+- Safari 打开 `https://api.tomoshibi.cc/healthz` 应返回 `{"status":"ok","db":"ok"}`（连通 + DB 都活）
+  - H-6 起生产关闭了 `/docs` `/redoc` `/openapi.json`（不无认证暴露 API 地图），连通性验证改用 `/healthz`
 
 ---
 

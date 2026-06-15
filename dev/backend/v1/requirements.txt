@@ -23,6 +23,10 @@ openpyxl>=3.1.5
 # sqlite 内蔵, psycopg は production deploy 時のみ
 psycopg[binary]>=3.2.0   # PostgreSQL 16+ (v1 production)
 
+# H-11：生产 WSGI server gunicorn 移进本文件统一锁版本，不再在 Dockerfile 内联裸 pip install
+# （psycopg[binary] 上面已声明，Dockerfile 那条重复 install 一并删）。沿用本文件 >= 约定。
+gunicorn>=23.0.0         # 生产用 uvicorn worker 进程管理
+
 # migration
 alembic>=1.13.0
 

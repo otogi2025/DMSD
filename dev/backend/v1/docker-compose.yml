@@ -61,6 +61,9 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # H-7：./static 不在仓库里 —— 是个人网站（pj.tomoshibi.cc）单独构建的产物，部署时手动放到
+      # dev/backend/v1/static/pj/（见 DEPLOY.md「./static 目录的来源」）。只部署后端 API 时
+      # 在 VPS 上 `mkdir -p static` 建空目录即可，否则 caddy 因挂载源不存在启动失败。
       - ./static:/srv/static:ro
       - caddy_data:/data
       - caddy_config:/config
