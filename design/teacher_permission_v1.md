@@ -79,6 +79,7 @@
 | 14 | 事案记录 | M | M | M | M | **V** |
 | 15 | 指导履历 | M | M | M | M | **V** |
 | 16 | 老师账号管理 | M | M | **V** | **V** | **V** |
+| 17 | 操作履历审计 | M | M | **V** | **✕** | **✕** |
 
 注：
 - 第 16 行老师账号管理对受限三组只给查看权（含登录账号名 `login_id`），itsuki 2026-06-11 拍板（理由：登录页方案 B 本就公开展示所有老师卡片，名字职位半公开）。
@@ -86,6 +87,7 @@
 - 第 13 行注册码管理对申請承認専用从 V 升 M（5 组全 M），并同时取消演示账号禁令（删除 `admin_registration_code.py` 中 4 处 `assert_not_demo_teacher`）：所有权限组 + 演示账号均可完整使用（生成 / 关闭 / 查看 / 历史）。itsuki 2026-06-14 拍板。该决定回退了 2026-06-08 commit `49176ff` 为注册码加的演示隔离闸 —— itsuki 在知情演示老师可用真码注册真实学生（`is_demo=False`）、污染真实点呼库的前提下，以演示便利为由选择放开。详见 decision_log。
 - 第 16 行老师账号管理**矩阵不动**（仍 op/寮管理者 MANAGE、其余三组 VIEW），但 2026-06-15 itsuki 拍板**取消演示账号禁令**（删除 `teachers.py` 中 4 处 `assert_not_demo_teacher`：招待発行 / 列老师 / 建老师 / 删老师）：演示账号现可列真实老师目录、且若在 MANAGE 组可增删真实老师账号。同样回退 6-08 commit `49176ff` 的演示隔离闸 —— itsuki 知情（演示账号可枚举真实老师 `login_id`/`email`、可操作真实人事）以演示便利为由放开。详见 decision_log。
 - 「寮过滤」（老师按 `assigned_dorm` 只能看/操作本寮学生）**已取消**（2026-06-14 落地，见 §11.2）：所有老师可查看/操作所有学生，「能不能用某功能」仅由本表（权限组）决定，不再叠加寮限制。`dorm_units_for_teacher` 现恒返回全寮 `[1,2,4]`。注：男女寮**分开显示**（R4 显示规则 — 出寮者一覧按 1·2 寮 / 4 寮 分组）是另一回事，与访问权限无关、保留不变。
+- 第 17 行操作履历审计（2026-06-16 新增）是本表唯一**只读**的功能簇：无任何角色可在该页产生写操作（页面只展示历史，记录由中间件自动落库），故矩阵最高也只到 M=管理而非真有"增删改"动作，对管理角色而言 M 与 V 等效。本簇也是少数用到 ✕（完全不可见）的一行——「一般宿管+晚自习」（寮監·学習担当）与「申請承認専用」（国際交流）看不到操作记录页，仅管理角色（op / 寮管理者 / 一般宿管）可查阅。理由：操作审计是管理职能，一线宿管无需也不宜查看全体老师的操作流水。
 
 ---
 
@@ -111,6 +113,9 @@
 | 事案记录 | `incidents.py` | create·patch·delete | list·{id} |
 | 指导履历 | `guidance.py` | 新建记录 | 查看记录 |
 | 老师账号管理 | `teachers.py` | register·create·delete | list·public·me |
+| 操作履历审计 | `audit_log.py` | （无写动作）| GET /admin/audit-logs |
+
+注：操作履历审计端点全为只读，无管理动作。`GET /api/v1/admin/audit-logs` 挂 `require_permission(C_AUDIT_LOG, VIEW)`，故对管理三组（op / 寮管理者 / 一般宿管，均 ≥V）放行、对其余两组（✕）拒绝。记录的产生不走任何老师端点，而是由 `audit.py` 的 `AuditLogMiddleware`（ASGI 中间件）拦截全部老师写请求（POST/PUT/PATCH/DELETE）自动落库，详见 `dev/backend/BACKEND_DESIGN_LOG.md`。
 
 ---
 
@@ -174,3 +179,12 @@ itsuki 2026-06-13 拍板：**取消老师寮过滤**。原话「所有老师都�
 - **不受影响（刻意保留）**：① 男女寮**分开显示**（R4 显示规则，出寮者一覧分组）；② 学生侧规则 —— 学生只看自己寮的点呼场次（`/rollcall/me/today`）、学生不能把自己房号改成异性寮（房号格式校验）；③ WebSocket 按寮广播；④ 演示/真实数据隔离（`is_demo`，与寮正交）。
 - **隐私权衡**：取消后男寮男老师能看到全部女生信息（房间号/出入/事案/扣分）。itsuki 已知悉并拍板接受（理由：学生信息本就对全体老师公开，约束在「改」不在「看」）。
 - **`student_profile`**：学生档案查看原按职位（`_GUIDANCE_ROLES`）判，随本轮一并放开到全寮。
+
+## 12. 第 17 功能簇追加（2026-06-16）— 操作履历审计
+
+itsuki 2026-06-16 拍板新增「操作履历审计」功能簇（第 17 簇 `C_AUDIT_LOG`），为老师网页提供「操作履歴」页：可按精确日期时间查看老师做过的写操作。功能簇总数由 16 增至 17。
+
+- **权限矩阵**（已并入 §5 第 17 行）：op=M / 寮管理者=M / 一般宿管=V / 一般宿管+晚自习=✕ / 申請承認専用=✕。即仅管理三组（op / 寮管理者 / 一般宿管 = 寮務部長·寮務課長·管理係）可查阅；寮監·学習担当（一般宿管+晚自习）与国際交流（申請承認専用）不可见。本簇是只读簇，无写动作。
+- **后端落地**：`app/permissions.py` 加 `C_AUDIT_LOG` 常量 + PRESET 第 17 行；`app/audit.py` 新增 `AuditLogMiddleware`（ASGI 中间件，拦截全部老师写请求自动落库，请求体脱敏后存 `audit_logs.payload`）；`app/routers/audit_log.py` 新增只读端点 `GET /api/v1/admin/audit-logs`（挂 `require_permission(C_AUDIT_LOG, VIEW)`、按 actor 的 `is_demo` 做演示隔离、支持分页与 actor/时间过滤）；`models.py` 的 `audit_logs` 表 `target_type`/`target_id` 改为可空、`action` 列宽 64→128；迁移 `a9b8c7d6e5f4`（down=`e7e15d3b2e33`）。
+- **老师网页落地**：新增 `src/components/AuditLogPage.tsx`（操作履歴页）；`Shell.tsx` 在「管理・設定」导航组加「操作履歴」菜单项，仅管理角色显示（`canViewAuditLog`，由 `App.tsx` 按权限组/职位计算，与后端 `C_AUDIT_LOG` 对齐）。
+- 端别实装详情见 `dev/backend/BACKEND_DESIGN_LOG.md` 与 `dev/teacher_web/WEB_DESIGN_LOG.md`。本簇是本表唯一在导航层面按权限隐藏的菜单（其余 16 簇人人至少有查看权、菜单全显），因为其矩阵对两组取 ✕（不可见）。

@@ -202,6 +202,29 @@ CHECK (
 
 audit log 表 = `audit_logs(id, actor_type, actor_id, action, target_type, target_id, payload, created_at)`，**append-only**（不允许 UPDATE/DELETE，DB 触发器拦）。
 
+#### 3.7.1 操作履历审计中间件 + 只读端点（2026-06-16 实装）
+
+itsuki 2026-06-16 拍板做「操作履歴」页：老师网页能按精确日期时间查看老师做过的写操作。此前 §3.7 只规定了「哪些操作必须 audit」的清单（语义级、由各路由显式写），本次补一层**统一的自动埋点**——老师全部写操作经中间件自动落 `audit_logs`，不依赖各路由逐处显式调用。
+
+- **写入侧 = `app/audit.py` 的 `AuditLogMiddleware`**（纯 ASGI 中间件，非 BaseHTTPMiddleware）：
+  - 在 `main.py` 用 `app.add_middleware(AuditLogMiddleware)` 注册为**最外层**中间件。
+  - 拦截全部老师写操作（POST/PUT/PATCH/DELETE），自动记一笔。`action` 存「METHOD + 归一化路径」，路径里的 UUID / 数字段归一成 `{id}`（如 `POST notifications/read-all`、`POST discipline/{id}/revoke`），便于聚合统计。
+  - 请求体 + 查询参数（`query`）均脱敏后连同 method / path / status 存进 `payload`（JSON）。脱敏 = 键名含 `password`/`pwd`/`secret`/`token`/`credential`/`api_key`/`authorization`/`cookie`/`otp` 的值替换为 `***`（审计场景宁可过度脱敏也不漏密钥）。请求体超 16KB 或非 JSON 不抓正文、留「省略」标记。
+  - **只记成功**（2xx/3xx）**且 actor 是老师**的请求；学生 / 匿名跳过。跳过 `/api/v1/sessions`（登录登出带密码、登录时也无 token）。
+  - **与既有语义级 audit 去重**：约 12 个路由端点内部已写自己的语义级 audit 行（`action` 形如 `registration_code.refresh`、`account.password_reset`，无方法前缀）。中间件**不跳过**它们、而是统一记一条「METHOD 路径」行；**读取端点只展示带方法前缀的中间件行**（见下），故操作记录页同一操作只出现一次、不与语义行重复（语义行仍留表里供各功能自用）。
+  - `actor_is_demo` 去规范化写到行上（取自 actor 的 `is_demo`），供读取侧做演示隔离、不依赖事后 join。
+  - 写库经线程池（`run_in_threadpool`），失败只 `warning`、不影响请求主流程。
+- **读取侧 = `app/routers/audit_log.py` 的 `GET /api/v1/admin/audit-logs`**（只读）：
+  - 权限闸 `require_permission(C_AUDIT_LOG, VIEW)`（仅管理角色，见 §3.8 / `teacher_permission_v1.md §5` 第 17 簇）。
+  - 只展示中间件行（`action` 以 `POST/PUT/PATCH/DELETE ` 开头）+ 显式 `actor_type='teacher'`。
+  - 演示隔离按行上的 `actor_is_demo` 列判（不依赖 join）；`actor_name` 用 **LEFT OUTER JOIN** `teachers` 取——**硬删老师后其历史操作行仍可见**、`actor_name` 为 NULL → 前端显示「削除済み」（codex 复审 M3 修复）。
+  - 支持 `limit`（默认 50 / 上限 200）+ `offset` 分页 + `actor_id`（UUID）/ `since` / `until` 过滤，返回 `items + total`。
+- **schema**：`schemas.py` 加 `AuditLogEntry` + `AuditLogListOut`。
+- **权限**：`permissions.py` 加第 17 个功能簇 `C_AUDIT_LOG = "操作履历审计"`，矩阵 op=M / 寮管理者=M / 一般宿管=V / 一般宿管+晚自习=NONE / 申請承認専用=NONE。
+- **表改动 + 迁移**：见 §4.9（`target_type` / `target_id` 改可空、`action` 64→128、迁移 `a9b8c7d6e5f4`；加 `actor_is_demo` 列、迁移 `c5d6e7f8a9b0`）。
+- **测试**：`tests/test_audit_log.py` 9 条全绿（埋点 / GET 不记 / 登录不记 / 403 / 演示隔离 / 脱敏 / 归一化 / 语义+学生行排除 / 硬删老师行仍可见），全量 487 passed。
+- **codex 复审**（gpt-5.5 / xhigh 只读，**3 轮收敛**）：第 1 轮 5 major + 4 minor + 1 建议，CC 逐条裁决——采纳 M1 query 脱敏 / M2 键扩充 / M4 actor_type 过滤 / M5 迁移 downgrade 回填 / m6 / m7 / s10，驳回 m8（前端角色名单核实无错配）、m9（点呼全组可见），并自查发现「与语义行重复」问题自修；第 2/3 轮修 M3（硬删老师行可见，去规范化 `actor_is_demo` + LEFT JOIN）→ **0 blocker / 0 major 收敛**。
+
 ---
 
 ### 3.8 教师权限分级（teacher_permission_v1 实装落地，2026-06-11）
@@ -572,9 +595,9 @@ CREATE TABLE audit_logs (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   actor_type      TEXT NOT NULL CHECK (actor_type IN ('student','teacher','system')),
   actor_id        UUID,                                     -- system 时 NULL
-  action          TEXT NOT NULL,                            -- 'application.approve' 等 dot-notation
-  target_type     TEXT NOT NULL,
-  target_id       UUID NOT NULL,
+  action          VARCHAR(128) NOT NULL,                    -- 'application.approve' / 'POST discipline/{id}/revoke' 等
+  target_type     TEXT,                                     -- 2026-06-16 改可空（中间件按路径记时不一定能解析出对象）
+  target_id       UUID,                                     -- 2026-06-16 改可空（详情看 payload）
   payload         JSONB,
   ip_address      INET,
   user_agent      TEXT,
@@ -584,6 +607,12 @@ CREATE INDEX idx_audit_target ON audit_logs (target_type, target_id, created_at)
 CREATE INDEX idx_audit_actor ON audit_logs (actor_type, actor_id, created_at);
 -- DB 触发器: 拒绝 UPDATE/DELETE
 ```
+
+> **2026-06-16 表改动（操作履历审计中间件落地，§3.7.1）**：
+> - `target_type` / `target_id` 从 `NOT NULL` 改为**可空** —— `AuditLogMiddleware` 按归一化路径自动记一笔写操作时，不一定能解析出具体的对象类型 / 主键（这类信息留在 `payload` 里看）。原有语义级 audit（各路由显式写、`action` 用 dot-notation）仍会填 target。
+> - `action` 列宽 64 → 128 —— 中间件存的「METHOD + 归一化路径」（如 `POST discipline/{id}/revoke`）比旧的 dot-notation 长。
+> - 迁移 `a9b8c7d6e5f4`（down_revision = `e7e15d3b2e33`），用 `batch_alter_table` 写、两库（PostgreSQL / SQLite）通用。
+> - **追加 `actor_is_demo` 列**（nullable Boolean，迁移 `c5d6e7f8a9b0`，down_revision = `a9b8c7d6e5f4`）—— 中间件写行时去规范化 actor 的 `is_demo` 到行上；操作记录页据此做演示隔离、不依赖事后 join `teachers`，硬删老师后其历史行仍可正确归属 / 可见（codex 复审 M3）。语义行 / 旧行该列为 `NULL`。
 
 ### 4.10 `student_registration_codes`（2026-05-03 itsuki 拍板、App Store 公開対策）
 
@@ -1352,6 +1381,7 @@ itsuki 拍板把演示账号从 opt-in 默认关改成 **默认启用**（`seed.
 | 2026-06-15 | **宅配件数 item_count + 选学生统一改造（后端段）**（6-14 设计讨论拍板、6-15 实装）：(1) `FrontDeskItem` 加 `item_count` Integer（`server_default="1"` 回填历史行、NOT NULL）；migration `0dee708c484e`（down=`b3c4d5e6f7a8`，upgrade/downgrade 往返验证通过）。delivery 时有意义、lost_and_found 恒 1 忽略。(2) `FrontDeskItemOut` + `FrontDeskItemCreateIn` 加 `item_count`（默认 1、`ge=1`）。(3) `FrontDeskItemCreateIn.description` 由必填 `min_length=1` 改 `Optional`：宅配可空（router 落库 `body.description or ""`，DB 列仍 NOT NULL）、失物招领仍必填（新增 `_lost_and_found_requires_description` model_validator + `_blank_description_to_none` 把纯空白归一成 None）—— 配合老师网页宅配弹窗「去配送業者 / 备注改可选」。(4) **扣分页搜学生接口**：扣分页新增「搜任意学生→手动加点」入口需要权限与扣分对齐的搜学生接口 → `discipline.py` 新增 `GET /discipline/students`（`C_DEMERIT`+VIEW，复用 `FrontDeskStudentBrief` 最小字段 + 同款 demo 隔离）。**刻意不复用 front-desk 的 `GET /students`**：那个要 `C_FRONTDESK` 权限，但能扣分的寮監 / 寮務未必有前台权限，复用会把他们锁在外面。测试 +8（item_count 默认/传值/`ge=1`·宅配 description 可空+缺省存空串/失物仍必填·扣分搜学生 200/q 空筛/学生令牌拒）。验证：全量 **392 passed**。Android 快递端读假数据（`HomeScreen` `MockData.DEFAULT_DELIVERY`）未接后端、本次不涉及。⏳ 老师网页步进器+三处接入 + iOS item_count 显示待接。| [Mac-Opus 4.8 1M] CC |
 | 2026-06-15 | **班车 purpose 用途字段 + 表单去種別便名**（commit `074b634`，itsuki 截图反馈拍板）：(1) `BusRoute` 加 `purpose` Text NULL（用途说明，学生 iOS 端日期头右上角每天显示一条）；migration `b7c8d9e0f1a2`（down=`0e1f2a3b4c5d`，加可空列、无需回填）。(2) `BusRouteCreateIn` 的 `kind`/`name` 由必填改 `Optional`：老师网页加便表单去掉「種別」「便名」两栏 → create 时 `kind` 缺省默认 `dorm_special`(寮特殊便) / `name` 缺省用 `direction`(区间) 回填（DB 列仍 NOT NULL，路由侧 `kind = body.kind or "dorm_special"` / `name = (body.name or "").strip() or body.direction`）。旧的平日通学便数据保留不动（itsuki 选「后端默认存特殊便」而非清掉旧数据）。(3) `BusRouteOut` + `BusRoutePatchIn` 加 `purpose`；patch 字段循环 + 审计 payload 补 `purpose`。测试 +2（缺省补全 kind=dorm_special·name=direction / purpose create·get·patch 往返），TestBusRoutes **13 passed**。⚠️ 与并发会话的 notify_students（同 `BusRoute`、不同字段）+ 清扫罚扫改动共用 models/schemas/test → 用 `git add -p` 逐 hunk 分拣 + `git diff --cached` 核对零污染后提交。| [Mac-Opus 4.8 1M] CC |
 | 2026-06-15 | **罚扫（罰則清掃）功能重做 — 后端段**（commit `e970c80`，推翻 6-10 删除，详见 `logs/decisions/decision_log.md` 同日）：重建 `CleaningAssignment` 表（`scheduled_at` 带时区 datetime 替代旧 `scheduled_date`；`area` 去 `ck_cleaning_area` 枚举改老师自由文本）+ 新建 `cleaning.py` 4 接口（GET 列未审核 / GET /me 学生履历 / POST 排罚扫 / POST /{id}/inspect 审核），鉴权对齐权限组 `require_permission(C_DEMERIT)`（旧版按职位集、已弃）；POST 加「不能排过去时间」422 校验；inspect failed 自动扣 2.5 分 `cleaning_failed`。`discipline.py`：加 `CLEANING_THRESHOLD=4.0` + ranking 恢复 `is_cleaning_threshold`/`cleaning_threshold_count` + summary 加 `needs_cleaning`(total>=4) + revoke 撤销 `cleaning_failed` 联动退回清扫单。新迁移 `472e0403ba4b`（重建表 + `ck_demerit_source` 加回 `cleaning_failed`；真 head `f9a0b1c2d3e4`，施工图猜的 d9e0f1a2b3c4 错、原拟 id 撞 5-30 迁移已换）。`test_cleaning.py` 18 测试。验证：迁移 downgrade/upgrade 往返健壮 + 全量 **484 passed**。⏳ 老师网页 + iOS 同批做、Android 不做记 TODO。| [Mac-Opus 4.8 1M] CC |
+| 2026-06-16 | **操作履历审计 / 老师操作记录页（后端段）**（§3.7.1）：itsuki 拍板做老师网页「操作履歴」页。(1) 新 `app/audit.py` `AuditLogMiddleware`（纯 ASGI 中间件，`main.py` `add_middleware` 注册为最外层）—— 老师全部写操作（POST/PUT/PATCH/DELETE）自动记一笔；`action` 存「METHOD + 归一化路径」（UUID/数字段归一成 `{id}`）；请求体脱敏（键名含 password/pwd/secret/token/credential → `***`）后连 method/path/status/query 存 `payload`；只记 2xx/3xx 且 actor 是老师的；跳过 `/sessions`（登录带密码）+ 注册码 refresh/close（已有语义级 audit、避免重复）；请求体 >16KB 或非 JSON 不抓正文；写库经 `run_in_threadpool`、失败只 warning 不影响请求。(2) 新 `app/routers/audit_log.py` 只读端点 `GET /api/v1/admin/audit-logs`（`require_permission(C_AUDIT_LOG, VIEW)` + 按 actor `is_demo` 演示隔离 + limit 默认50/上限200 + offset + actor_id/since/until 过滤，返回 items+total，`actor_name` join `teachers.name`）。(3) `permissions.py` 加第 17 簇 `C_AUDIT_LOG`（矩阵 op=M/寮管理者=M/一般宿管=V/+晚自习=NONE/申請承認専用=NONE）。(4) `schemas.py` 加 `AuditLogEntry` + `AuditLogListOut`。(5) `models.py` `audit_logs` 表 `target_type`/`target_id` 改可空、`action` 64→128；迁移 `a9b8c7d6e5f4`（down=`e7e15d3b2e33`，batch_alter_table 两库通用）。`tests/test_audit_log.py` 7 条全绿，全量 **484 passed**。| [Mac-Opus 4.8 1M] CC |
 | 2026-06-15 | **投稿通知開関 + 学生通知中心 feed**（commit `c0bb6b1`，§7.13.1）：老师投稿 公告/巴士/行事 勾 `notify_students` → 进学生通知 feed + 推送(stub)。(1) `Announcement`/`DormEvent`/`BusRoute` 各加 `notify_students` Bool(server_default false 回填存量) + 新表 `StudentNotificationRead`(复合主键 student_id+kind+ref_id, CHECK kind∈{bus,event}；公告已读复用既有 `announcement_reads`)。migration `c8d9e0f1a2b3`(down=`b7c8d9e0f1a2`)。(2) `schemas.py` 6 个 CreateIn/UpdateIn 加 notify_students + `StudentNotificationItem`/`FeedOut`/`ReadIn`。(3) `announcements`/`events`/`bus_routes` create+update 存字段 + 为 True 时 `student_audience.broadcast_push`(按可见范围群发、push stub)。(4) 新 `student_notifications.py`：`GET /api/v1/student/notifications`(聚合 notify_students=true 三类、按学生可见范围 scope/visible_to/全员过滤、时系列 desc、limit 50)+`POST /read`(标已读 204 幂等；公告写 announcement_reads / 巴士·行事写 student_notification_reads)。(5) 新 `student_audience.py`：可见范围单一真值(方向A 推送对象 + 方向B feed 过滤共用)。(6) main.py 注册。⚠️ **已知 demo 隔离缺口**：巴士/行事表无 `is_demo`，演示学生会看到真实巴士/行事通知（公告按 is_demo 隔离）→ 记 TODO 待 codex 审 + v1.1 彻底隔离。验证：pytest **431 passed**。⏳ iOS 接 feed(IOS_DESIGN_LOG §26，提交被罚扫会话撞车阻塞、代码已写完编译干净) / 老师网页勾选框已提交 `0ebd178` / Android 后送。| [Mac-Opus 4.8 1M] CC |
 
 ---
