@@ -209,7 +209,7 @@ def today_attendees(
                     room_no=s.room_no,
                     dorm_unit=s.dorm_unit,
                     expected_status="exempted_absence",
-                    exemption_reason="学習欠席届承認済",
+                    exemption_reason="晩自習欠席届承認済",
                     checkin=None,
                 )
             )
@@ -521,7 +521,7 @@ def bulk_finalize(
                         source_type="study_absent",
                         source_event_id=c.id,
                         points=STUDY_ABSENT_POINTS,
-                        reason=f"学習欠席（{today.isoformat()}）",
+                        reason=f"晩自習欠席（{today.isoformat()}）",
                         month=month,
                         created_by_teacher_id=teacher.id,
                     )
@@ -590,7 +590,9 @@ def patch_checkin(
         )
         if existing is not None:
             existing.points = STUDY_ABSENT_POINTS
-            existing.reason = f"学習欠席（{record.target_date.isoformat()}・手動修正）"
+            existing.reason = (
+                f"晩自習欠席（{record.target_date.isoformat()}・手動修正）"
+            )
             existing.month = month
             existing.created_by_teacher_id = teacher.id
             existing.revoked_at = None
@@ -603,7 +605,7 @@ def patch_checkin(
                     source_type="study_absent",
                     source_event_id=record.id,
                     points=STUDY_ABSENT_POINTS,
-                    reason=f"学習欠席（{record.target_date.isoformat()}・手動修正）",
+                    reason=f"晩自習欠席（{record.target_date.isoformat()}・手動修正）",
                     month=month,
                     created_by_teacher_id=teacher.id,
                 )
@@ -670,7 +672,7 @@ def submit_absence_request(
                 422,
                 {
                     "code": "LATE_SUBMISSION",
-                    "message": "学習欠席届の締切 (19:40) を過ぎています",
+                    "message": "晩自習欠席届の締切 (19:40) を過ぎています",
                 },
             )
 
@@ -878,7 +880,7 @@ def cancel_today(
                     target_date=today,
                     status="exempt",
                     recorded_by=teacher.id,
-                    override_reason="今日学習中止",
+                    override_reason="今日晩自習中止",
                 )
             )
             cancelled += 1
@@ -890,7 +892,7 @@ def cancel_today(
                 _revoke_study_absent_demerit(db, c, teacher.id)
             c.status = "exempt"
             c.overridden_by = teacher.id
-            c.override_reason = "今日学習中止"
+            c.override_reason = "今日晩自習中止"
             cancelled += 1
         # present / late：已真实出席，保留不动（不计入 cancelled）
 
@@ -1145,7 +1147,7 @@ def _revoke_study_absent_demerit(
     for ev in rows:
         ev.revoked_at = _now_jst()
         ev.revoked_by_teacher_id = teacher_id
-        ev.revoke_reason = "学習出席に変更され欠席扣分を撤销"
+        ev.revoke_reason = "晩自習出席に変更され欠席扣分を撤销"
 
 
 def _resolve_roster_student(

@@ -84,11 +84,11 @@ _MISC_KIND_LABEL = {
     "proxy_receipt": "代理受取",
 }
 
-# 第二批通知来源（阶段2）：8 类「学生提交、老师该知道」的申请表。
+# 第二批通知来源（阶段2）：7 类「学生提交、老师该知道」的申请表。
 # 每条配置一种表的同步参数，避免 8 段几乎一样的代码：
 #   model       该表的 ORM 模型类
 #   student_fk  关联学生的外键列（多数是 student_id，行事企画是 proposer_id）
-#   time_col    事件时间列（多数 submitted_at，开示申请 requested_at，杂项 created_at）
+#   time_col    事件时间列（多数 submitted_at，杂项 created_at）
 #   source_table 去重用的源表名（与 Notification.source_table 对应）
 #   category    通知分类（老师网页据此显示标签 + 决定点击跳哪页）
 #   title       通知标题（日语 UI）
@@ -111,7 +111,7 @@ _REQUEST_SOURCES = [
         "time_col": models.StudyAbsenceRequest.submitted_at,
         "source_table": "study_absence_requests",
         "category": "study_absence",
-        "title": "学習欠席届",
+        "title": "晩自習欠席届",
         "body": lambda r, s: (
             f"{s.name} さん：{r.target_date}（{_STUDY_PERIOD_LABEL.get(r.period, r.period)}）"
         ),
@@ -151,15 +151,6 @@ _REQUEST_SOURCES = [
         "category": "item",
         "title": "物品所持許可願",
         "body": lambda r, s: f"{s.name} さん：{r.item}",
-    },
-    {
-        "model": models.GuidanceDisclosureRequest,
-        "student_fk": models.GuidanceDisclosureRequest.student_id,
-        "time_col": models.GuidanceDisclosureRequest.requested_at,
-        "source_table": "guidance_disclosure_requests",
-        "category": "disclosure",
-        "title": "指導開示申請",
-        "body": lambda r, s: f"{s.name} さんが指導履歴の開示を申請しました",
     },
     {
         "model": models.MiscRequest,
@@ -321,8 +312,8 @@ def _sync_notifications(db: Session, *, is_demo: bool) -> None:
             )
         )
 
-    # ④ 第二批：8 类申请表（外出 / 学习缺席 / 在线学习 / 行事企划 /
-    #    冰箱购入 / 物品持有 / 指导开示 / 杂项）— 配置见 _REQUEST_SOURCES
+    # ④ 第二批：7 类申请表（外出 / 学习缺席 / 在线学习 / 行事企划 /
+    #    冰箱购入 / 物品持有 / 杂项）— 配置见 _REQUEST_SOURCES
     for cfg in _REQUEST_SOURCES:
         synced = _synced_source_ids(
             db, source_table=cfg["source_table"], is_demo=is_demo
