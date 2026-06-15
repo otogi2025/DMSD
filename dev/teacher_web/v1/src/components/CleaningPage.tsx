@@ -37,11 +37,20 @@ function modalInputStyle(T: RyoTokens): React.CSSProperties {
   };
 }
 
-// scheduled_at（ISO8601）→「M月D日 H時mm分」。后端带时区，new Date 按本地(JST)显示。
+// scheduled_at（ISO8601）→「M月D日 H時mm分」，显示锁 JST、不依赖浏览器时区（全链路 JST 契约）。
 function fmtCleaningWhen(iso: string): string {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
-  return `${d.getMonth() + 1}月${d.getDate()}日 ${d.getHours()}時${String(d.getMinutes()).padStart(2, "0")}分`;
+  const parts = new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(d);
+  const g = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return `${g("month")}月${g("day")}日 ${g("hour")}時${g("minute")}分`;
 }
 
 export function CleaningPage({ authToken }: { authToken: string }) {
@@ -369,11 +378,14 @@ export function CleaningPage({ authToken }: { authToken: string }) {
   );
 }
 
-// datetime-local 默认值：当前时刻 + 1 小时，截到分钟，格式 YYYY-MM-DDTHH:mm
+// datetime-local 默认值：当前时刻 + 1 小时，按 JST 生成（YYYY-MM-DDTHH:mm，不依赖浏览器时区）。
+// sv-SE 输出 ISO 风格「YYYY-MM-DD HH:mm:ss」(24 时制 00-23)，取前 16 位、空格换 T。
 function defaultDatetimeLocal(): string {
   const d = new Date(Date.now() + 60 * 60 * 1000);
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  return d
+    .toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" })
+    .slice(0, 16)
+    .replace(" ", "T");
 }
 
 // 清扫分配作成 modal —— body → { student_id, area, scheduled_at }
@@ -393,8 +405,9 @@ function CleaningCreateModal({
   // 改动1：日期+时间。datetime-local 的默认值给「现在的下一个整点」做提示
   const [when, setWhen] = React.useState(() => defaultDatetimeLocal());
   const student = selected[0] || null;
-  // 不能排到已过去时间（前端先拦一道，后端再兜底）
-  const isPast = !!when && new Date(when).getTime() < Date.now();
+  // 不能排到已过去时间（前端先拦一道，后端再兜底）。when 是 datetime-local 无时区串，
+  // 显式当 JST 解析（+09:00）再比，不依赖浏览器时区（与提交的 scheduled_at 口径一致）。
+  const isPast = !!when && new Date(`${when}:00+09:00`).getTime() < Date.now();
   const disabled = !student || !area.trim() || !when || isPast;
 
   return (
@@ -439,10 +452,9 @@ function CleaningCreateModal({
           onSubmit({
             student_id: student!.id,
             area: area.trim(),
-            // datetime-local 是「无时区本地时刻」字符串（YYYY-MM-DDTHH:mm）。
-            // new Date(localStr) 按浏览器本地时区解析 → toISOString() 转 UTC 的 ISO8601。
-            // 老师机器时区 = JST，后端按带时区 datetime 收，对齐 scheduled_at。
-            scheduled_at: new Date(when).toISOString(),
+            // datetime-local 是「无时区本地时刻」串（YYYY-MM-DDTHH:mm）。显式当 JST（+09:00）
+            // 解析 → toISOString() 转 UTC 的 ISO8601，不依赖浏览器时区，后端按带时区 datetime 收。
+            scheduled_at: new Date(`${when}:00+09:00`).toISOString(),
           })
         }
         disabled={disabled}

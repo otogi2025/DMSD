@@ -1221,20 +1221,20 @@ final class AppStore: ObservableObject {
         return f
     }()
 
-    /// H時（JST）— 「下次罚扫」小卡时刻
+    /// H時mm分（JST）— 「下次罚扫」小卡时刻（带分钟，老师可排 19:30）
     nonisolated static let jstHour: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "ja_JP")
-        f.dateFormat = "H時"
+        f.dateFormat = "H時mm分"
         f.timeZone = TimeZone(identifier: "Asia/Tokyo")
         return f
     }()
 
-    /// M月d日 H時（JST）— 罚扫履历行日期+时刻
+    /// M月d日 H時mm分（JST）— 罚扫履历行日期+时刻（带分钟）
     nonisolated static let jstDateTimeLabel: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "ja_JP")
-        f.dateFormat = "M月d日 H時"
+        f.dateFormat = "M月d日 H時mm分"
         f.timeZone = TimeZone(identifier: "Asia/Tokyo")
         return f
     }()

@@ -97,10 +97,12 @@ struct CleaningRecord: Hashable, Identifiable {
         return f.string(from: d)
     }
 
-    /// "19時" — 小卡/履历展示（取 HH:mm 的小时）
+    /// "19時30分" — 小卡/履历展示（HH:mm 带分钟，与正式版 jstHour 口径一致）
     var timeLabel: String {
-        let h = time.split(separator: ":").first.map(String.init) ?? time
-        return "\(Int(h) ?? 0)時"
+        let comps = time.split(separator: ":")
+        let h = comps.first.flatMap { Int($0) } ?? 0
+        let m = comps.count > 1 ? String(comps[1]) : "00"
+        return "\(h)時\(m)分"
     }
 }
 

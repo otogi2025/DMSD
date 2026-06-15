@@ -23,6 +23,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import models, permissions, schemas
@@ -207,6 +208,16 @@ def inspect_cleaning(
         db.flush()  # 拿到 demerit.id
         row.demerit_event_id = demerit.id
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # 并发兜底：两个 failed 审核同时进同一清扫单，都过了状态检查、各自建
+        # cleaning_failed 扣分行 → 第二个撞 uq_demerit_source 唯一约束。回滚后按
+        # 「已审核」返 409（与串行重复审核同语义），不抛 500。
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "ALREADY_INSPECTED", "message": "该安排已审核或跳过"},
+        )
     db.refresh(row)
     return schemas.CleaningAssignmentOut.model_validate(row)
