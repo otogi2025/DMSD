@@ -191,6 +191,25 @@ final class AppStore: ObservableObject {
         authToken = token // didSet 同步 APIClient + Keychain
     }
 
+    /// 集中处理「令牌过期 / 失效（401）」。
+    /// 多个 load 方法（loadMyPackages / loadSongs / loadLostFound / loadMyProfile）原本把 401 吞进通用 catch、
+    /// 不清令牌也不重登，用户卡在「取得に失敗」死循环。统一在它们的 catch 里先调本方法：
+    /// 若 error 是 401 → 清令牌（authToken=nil 触发 didSet 清 Keychain + currentUser，RootView 据此跳登录页）并返回 true，
+    /// 调用方据此直接 return、不再写失败态；否则返回 false，调用方按原逻辑处理非 401 错误。
+    /// 跟 loadMe 的 401 处理对齐同一套机制（清 authToken 触发统一登出）。
+    /// - Parameter tokenAtStart: 调用方进入时捕获的令牌，用于比对竞态 —— A 的旧请求在 A 登出、B 登录后才返 401 时，
+    ///   不能误清掉 B 刚拿到的令牌（跟 loadMe IX-034 修复②同口径）。
+    /// - Returns: true = 是 401（已尝试清令牌，调用方应 return）；false = 非 401，调用方继续原有错误处理。
+    @MainActor
+    @discardableResult
+    func handleIfUnauthorized(_ error: Error, tokenAtStart: String?) -> Bool {
+        guard case APIError.unauthorized = error else { return false }
+        // 401 也比对令牌 —— 只在仍是当初那个登录令牌时才清，防误踢已换上的新用户。
+        guard authToken == tokenAtStart else { return true }
+        authToken = nil // didSet 清 Keychain + currentUser，RootView 跳登录页
+        return true
+    }
+
     /// IX-008: 拉当前登录学生信息（GET /students/me）填到 currentUser。
     /// 登录成功后 + app 启动恢复令牌后调。拉不到就保持 nil（displayUser 回退 SEED 占位），不打断流程。
     @MainActor
@@ -1066,7 +1085,9 @@ final class AppStore: ObservableObject {
             guard authToken == tokenAtStart else { return }
             packages = items
         } catch {
-            // 拉失败不阻塞通知中心其他源 —— 静默，下次刷新再试。
+            // 401 令牌过期 → 集中清令牌触发重登（否则用户卡在静默失败、永远刷不出包裹）。
+            if handleIfUnauthorized(error, tokenAtStart: tokenAtStart) { return }
+            // 非 401（网络 / 解码失败）→ 不阻塞通知中心其他源，静默，下次刷新再试。
         }
     }
 
@@ -1086,6 +1107,8 @@ final class AppStore: ObservableObject {
             songRequests = items
             songsState = .loaded
         } catch {
+            // 401 令牌过期 → 集中清令牌触发重登（否则卡在「取得に失敗」死循环、重试也只会再 401）。
+            if handleIfUnauthorized(error, tokenAtStart: tokenAtStart) { return }
             guard authToken == tokenAtStart else { return }
             songsState = .failed(APIErrorPresenter.userMessage(for: error, fallback: "リクエスト曲の取得に失敗しました"))
         }
@@ -1107,6 +1130,8 @@ final class AppStore: ObservableObject {
             lostFound = items
             lostFoundState = .loaded
         } catch {
+            // 401 令牌过期 → 集中清令牌触发重登（否则卡在「取得に失敗」死循环、重试也只会再 401）。
+            if handleIfUnauthorized(error, tokenAtStart: tokenAtStart) { return }
             guard authToken == tokenAtStart else { return }
             lostFoundState = .failed(APIErrorPresenter.userMessage(for: error, fallback: "落とし物の取得に失敗しました"))
         }
@@ -1143,6 +1168,8 @@ final class AppStore: ObservableObject {
             myDemeritEvents = out.demerit_events
             profileState = .loaded
         } catch {
+            // 401 令牌过期 → 集中清令牌触发重登（否则点呼/减点页卡在「取得に失敗」死循环、重试也只会再 401）。
+            if handleIfUnauthorized(error, tokenAtStart: tokenAtStart) { return }
             guard authToken == tokenAtStart else { return }
             profileState = .failed(APIErrorPresenter.userMessage(for: error, fallback: "点呼・減点情報の取得に失敗しました"))
         }
