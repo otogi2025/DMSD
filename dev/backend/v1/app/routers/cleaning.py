@@ -205,19 +205,21 @@ def inspect_cleaning(
             created_by_teacher_id=teacher.id,
         )
         db.add(demerit)
-        db.flush()  # 拿到 demerit.id
+        # 并发兜底：flush 时 INSERT demerit，若两个 failed 审核并发都过了状态检查、
+        # 各自建 cleaning_failed 扣分行 → 第二个在此撞 uq_demerit_source 唯一约束
+        # （uq_demerit_source 冲突在 flush 这一刻抛，不是 commit；inspect 的数据已校验
+        # 合法，此处 flush 的 IntegrityError 只可能是该唯一约束）。回滚后按「已审核」返
+        # 409（与串行重复审核同语义），不抛 500。
+        try:
+            db.flush()  # 拿到 demerit.id；唯一约束冲突在此抛
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(
+                status_code=409,
+                detail={"code": "ALREADY_INSPECTED", "message": "该安排已审核或跳过"},
+            )
         row.demerit_event_id = demerit.id
 
-    try:
-        db.commit()
-    except IntegrityError:
-        # 并发兜底：两个 failed 审核同时进同一清扫单，都过了状态检查、各自建
-        # cleaning_failed 扣分行 → 第二个撞 uq_demerit_source 唯一约束。回滚后按
-        # 「已审核」返 409（与串行重复审核同语义），不抛 500。
-        db.rollback()
-        raise HTTPException(
-            status_code=409,
-            detail={"code": "ALREADY_INSPECTED", "message": "该安排已审核或跳过"},
-        )
+    db.commit()
     db.refresh(row)
     return schemas.CleaningAssignmentOut.model_validate(row)
