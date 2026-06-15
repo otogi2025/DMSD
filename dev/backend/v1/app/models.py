@@ -1340,7 +1340,10 @@ class BusRoute(Base):
     visible_to: Mapped[str] = mapped_column(
         String(16), nullable=False, default="all"
     )  # all / dorm_only / men / women
-    note: Mapped[Optional[str]] = mapped_column(Text)  # 备注
+    note: Mapped[Optional[str]] = mapped_column(Text)  # 备注（老师内部 / 运休等）
+    purpose: Mapped[Optional[str]] = mapped_column(
+        Text
+    )  # 用途说明 — 老师录入这趟班车干嘛用的，学生端日期头右上角展示
     deprecated: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_by_teacher_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("teachers.id"), nullable=False

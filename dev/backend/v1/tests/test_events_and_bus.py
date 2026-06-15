@@ -362,3 +362,43 @@ class TestBusRoutes:
         )
         assert res.status_code == 400
         assert res.json()["detail"]["code"] == "INVALID_KIND"
+
+    def test_create_defaults_kind_and_name(self, client, seed_data, edit_token):
+        """表单去掉「種別」「便名」后：只传 direction + schedule_at →
+        kind 默认 dorm_special、name 用 direction 回填。
+        """
+        res = client.post(
+            "/api/v1/bus/routes",
+            headers={"Authorization": f"Bearer {edit_token}"},
+            json={
+                "direction": "高校棟 → 岡山駅西口",
+                "schedule_at": "2026-05-30T07:30:00+09:00",
+            },
+        )
+        assert res.status_code == 201, res.text
+        body = res.json()
+        assert body["kind"] == "dorm_special"
+        assert body["name"] == "高校棟 → 岡山駅西口"
+
+    def test_purpose_roundtrip(self, client, seed_data, edit_token):
+        """用途说明 purpose 在 create / get / patch 全程往返。"""
+        bus = _make_bus(
+            client,
+            edit_token,
+            purpose="帰国届を提出する場合の空港送迎便です。",
+        )
+        assert bus["purpose"] == "帰国届を提出する場合の空港送迎便です。"
+
+        got = client.get(
+            f"/api/v1/bus/routes/{bus['id']}",
+            headers={"Authorization": f"Bearer {edit_token}"},
+        ).json()
+        assert got["purpose"] == "帰国届を提出する場合の空港送迎便です。"
+
+        patched = client.patch(
+            f"/api/v1/bus/routes/{bus['id']}",
+            headers={"Authorization": f"Bearer {edit_token}"},
+            json={"purpose": "買い物・帰省者向けの臨時便です。"},
+        )
+        assert patched.status_code == 200
+        assert patched.json()["purpose"] == "買い物・帰省者向けの臨時便です。"

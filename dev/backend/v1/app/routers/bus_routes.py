@@ -98,7 +98,11 @@ def create_bus_route(
 ):
     """役职老师新建巴士便。"""
     _require_edit_role(teacher)
-    if body.kind not in _VALID_KINDS:
+    # kind / name 缺省补全（2026-06-15 表单去掉「種別」「便名」两栏）：
+    # 表单不再传 kind → 默认 dorm_special（寮特殊便）；不再传 name → 用 direction 回填。
+    kind = body.kind or "dorm_special"
+    name = (body.name or "").strip() or body.direction
+    if kind not in _VALID_KINDS:
         raise HTTPException(
             status_code=400,
             detail={
@@ -115,13 +119,14 @@ def create_bus_route(
             },
         )
     row = models.BusRoute(
-        kind=body.kind,
-        name=body.name,
+        kind=kind,
+        name=name,
         direction=body.direction,
         schedule_at=body.schedule_at,
         arrival_at=body.arrival_at,
         visible_to=body.visible_to,
         note=body.note,
+        purpose=body.purpose,
         created_by_teacher_id=teacher.id,
         notify_students=body.notify_students,
     )
@@ -184,6 +189,7 @@ def patch_bus_route(
         "arrival_at",
         "visible_to",
         "note",
+        "purpose",
         "deprecated",
         "notify_students",
     ):
@@ -206,6 +212,7 @@ def patch_bus_route(
                     "direction",
                     "visible_to",
                     "note",
+                    "purpose",
                     "deprecated",
                 )
                 if getattr(body, k) is not None

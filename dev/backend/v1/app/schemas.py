@@ -1480,17 +1480,26 @@ class DormEventListOut(BaseModel):
 # 巴士时刻表 (spec §7.6)
 # ---------------------------------------------------------------
 class BusRouteCreateIn(BaseModel):
-    """POST /bus/routes — 老师新建巴士便。"""
+    """POST /bus/routes — 老师新建巴士便。
 
-    kind: str = Field(
-        ..., description="daily_commute=平日通学便 / dorm_special=寮特殊便"
+    kind / name 改为可选（2026-06-15 表单去掉「種別」「便名」两栏）：
+    - kind 缺省 → 路由侧默认 dorm_special（寮特殊便）；旧数据 / 显式传值仍兼容。
+    - name 缺省 → 路由侧用 direction（区间）回填（DB 列仍 NOT NULL）。
+    """
+
+    kind: Optional[str] = Field(
+        None,
+        description="daily_commute=平日通学便 / dorm_special=寮特殊便（缺省=寮特殊便）",
     )
-    name: str = Field(..., max_length=200)
+    name: Optional[str] = Field(None, max_length=200)
     direction: str = Field(..., max_length=200)
     schedule_at: datetime
     arrival_at: Optional[datetime] = None
     visible_to: str = Field(default="all", description="all / dorm_only / men / women")
     note: Optional[str] = Field(None, max_length=2000)
+    purpose: Optional[str] = Field(
+        None, max_length=2000, description="用途说明，学生端右上角展示"
+    )
     # 投稿时勾选「学生に通知する」→ True 才进学生通知 feed + 推送（§7.13.1）
     notify_students: bool = False
 
@@ -1505,6 +1514,7 @@ class BusRoutePatchIn(BaseModel):
     arrival_at: Optional[datetime] = None
     visible_to: Optional[str] = None
     note: Optional[str] = Field(None, max_length=2000)
+    purpose: Optional[str] = Field(None, max_length=2000)
     deprecated: Optional[bool] = None
     # 编辑时勾选「学生に通知する」(True) → 重新推送 + 进 feed（§7.13.1）
     notify_students: Optional[bool] = None
@@ -1521,6 +1531,7 @@ class BusRouteOut(ORMModel):
     arrival_at: Optional[datetime]
     visible_to: str
     note: Optional[str]
+    purpose: Optional[str]
     deprecated: bool
     created_by_teacher_id: UUID
     created_at: datetime
