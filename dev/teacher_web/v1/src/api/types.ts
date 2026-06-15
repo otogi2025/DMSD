@@ -291,6 +291,8 @@ export interface AnnouncementCreateIn {
   title: string;
   body: string;
   scope: AnnouncementScope;
+  // 6-15 §7.13.1: 勾选后进学生 app 通知中心 + 触发推送。可选 —— 后端缺省 false。
+  notify_students?: boolean;
 }
 
 // ── 学生登録码（admin）──
@@ -442,6 +444,8 @@ export interface EventCreateIn {
   start_at?: string;
   end_at?: string;
   description?: string;
+  // 6-15 §7.13.1: 勾选后进学生 app 通知中心 + 触发推送。可选 —— 后端缺省 false。
+  notify_students?: boolean;
 }
 
 // ── 巴士时刻表（对齐 BusRouteOut 1279-1293）──
@@ -476,6 +480,8 @@ export interface BusRouteCreateIn {
   visible_to?: string;
   note?: string;
   purpose?: string;
+  // 6-15 §7.13.1: 勾选后进学生 app 通知中心 + 触发推送。可选 —— 后端缺省 false。
+  notify_students?: boolean;
 }
 
 // ── 前台业务（对齐 FrontDeskItemOut 1126-1138）──

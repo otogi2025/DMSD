@@ -64,6 +64,7 @@ interface EventFormData {
   start_at: string | null;
   end_at: string | null;
   description: string | null;
+  notify_students: boolean;
 }
 
 // 巴士 modal 的提交 payload。6-15: kind/name 不再由表单收集（后端默认补全）。
@@ -74,6 +75,7 @@ interface BusRouteFormData {
   visible_to: string;
   note: string | null;
   purpose: string | null;
+  notify_students: boolean;
 }
 
 // 巴士告知ボードの行事項目（バックエンド非依存のローカル形式）。
@@ -199,10 +201,16 @@ export function InfoPage({
     title: string;
     body: string;
     scope: AnnouncementScope;
+    notify_students: boolean;
   }) => {
     if (!authToken) throw new Error("未登录");
     await api.createAnnouncement(
-      { title: input.title, body: input.body, scope: input.scope },
+      {
+        title: input.title,
+        body: input.body,
+        scope: input.scope,
+        notify_students: input.notify_students,
+      },
       authToken,
     );
     const data = await api.listAnnouncements(authToken);
@@ -213,7 +221,12 @@ export function InfoPage({
   // ── 編集保存 ──
   const handleUpdate = async (
     id: string,
-    input: { title: string; body: string; scope: AnnouncementScope },
+    input: {
+      title: string;
+      body: string;
+      scope: AnnouncementScope;
+      notify_students: boolean;
+    },
   ) => {
     if (!authToken) return;
     await api.updateAnnouncement(
@@ -222,6 +235,7 @@ export function InfoPage({
         title: input.title,
         body: input.body,
         scope: input.scope,
+        notify_students: input.notify_students,
       },
       authToken,
     );
@@ -743,6 +757,7 @@ function EditNoticeModal({
     title: string;
     body: string;
     scope: AnnouncementScope;
+    notify_students: boolean;
   }) => Promise<void>;
 }) {
   const T = RYO;
@@ -751,6 +766,8 @@ function EditNoticeModal({
   const [scope, setScope] = React.useState<AnnouncementScope>(
     initial.scope || "all",
   );
+  // 编辑时默认不勾选（改错字不该惊动全员，要重新通知再手动勾）
+  const [notifyStudents, setNotifyStudents] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState("");
   const handleSubmit = async () => {
@@ -758,7 +775,12 @@ function EditNoticeModal({
     setSubmitting(true);
     setErrorMsg("");
     try {
-      await onSubmit({ title: title.trim(), body: body.trim(), scope });
+      await onSubmit({
+        title: title.trim(),
+        body: body.trim(),
+        scope,
+        notify_students: notifyStudents,
+      });
     } catch (e) {
       setErrorMsg((e as Error)?.message || "保存に失敗しました");
       setSubmitting(false);
@@ -933,6 +955,25 @@ function EditNoticeModal({
               {errorMsg}
             </div>
           )}
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              fontSize: 13,
+              color: T.ink,
+              cursor: "pointer",
+              margin: "4px 0 0",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={notifyStudents}
+              onChange={(e) => setNotifyStudents(e.target.checked)}
+              style={{ width: 16, height: 16, cursor: "pointer" }}
+            />
+            学生に通知する（アプリの通知センターに表示）
+          </label>
         </div>
         <div
           style={{
@@ -1117,6 +1158,7 @@ function EventCalendar({
     start_at: fd.start_at ?? undefined,
     end_at: fd.end_at ?? undefined,
     description: fd.description ?? undefined,
+    notify_students: fd.notify_students,
   });
 
   return (
@@ -1536,6 +1578,8 @@ function EventComposeModal({
   const [description, setDescription] = React.useState(
     initial ? initial.description : "",
   );
+  // 新建默认勾选 / 编辑默认不勾（改错字不该惊动全员，要重新通知再手动勾）
+  const [notifyStudents, setNotifyStudents] = React.useState(!initial);
   const [submitting, setSubmitting] = React.useState(false);
   const [errMsg, setErrMsg] = React.useState("");
 
@@ -1557,6 +1601,7 @@ function EventComposeModal({
         start_at: toIso(date, time),
         end_at: toIso(date, endTime),
         description: description.trim() || null,
+        notify_students: notifyStudents,
       });
     } catch (e) {
       setErrMsg((e as Error).message || "保存に失敗しました");
@@ -1642,6 +1687,25 @@ function EventComposeModal({
           {errMsg}
         </div>
       )}
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          fontSize: 13,
+          color: T.ink,
+          cursor: "pointer",
+          margin: "4px 0 12px",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={notifyStudents}
+          onChange={(e) => setNotifyStudents(e.target.checked)}
+          style={{ width: 16, height: 16, cursor: "pointer" }}
+        />
+        学生に通知する（アプリの通知センターに表示）
+      </label>
       <Footer
         T={T}
         onClose={onClose}
@@ -1761,6 +1825,7 @@ export function BusSchedulePanel({
     visible_to: fd.visible_to,
     note: fd.note ?? undefined,
     purpose: fd.purpose ?? undefined,
+    notify_students: fd.notify_students,
   });
 
   // 时刻格式化：ISO → HH:MM
@@ -2055,6 +2120,8 @@ function BusRouteModal({
   const [purpose, setPurpose] = React.useState(
     initial ? initial.purpose || "" : "",
   );
+  // 新建默认勾选 / 编辑默认不勾（改错字不该惊动全员，要重新通知再手动勾）
+  const [notifyStudents, setNotifyStudents] = React.useState(!initial);
   const [submitting, setSubmitting] = React.useState(false);
   const [errMsg, setErrMsg] = React.useState("");
 
@@ -2073,6 +2140,7 @@ function BusRouteModal({
         visible_to: visibleTo,
         note: note.trim() || null,
         purpose: purpose.trim() || null,
+        notify_students: notifyStudents,
       });
     } catch (e) {
       setErrMsg((e as Error).message || "保存に失敗しました");
@@ -2186,6 +2254,25 @@ function BusRouteModal({
           {errMsg}
         </div>
       )}
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          fontSize: 13,
+          color: T.ink,
+          cursor: "pointer",
+          margin: "4px 0 12px",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={notifyStudents}
+          onChange={(e) => setNotifyStudents(e.target.checked)}
+          style={{ width: 16, height: 16, cursor: "pointer" }}
+        />
+        学生に通知する（アプリの通知センターに表示）
+      </label>
       <Footer
         T={T}
         onClose={onClose}
@@ -2675,6 +2762,7 @@ function ComposeNoticeModal({
     title: string;
     body: string;
     scope: AnnouncementScope;
+    notify_students: boolean;
   }) => Promise<void>;
 }) {
   const T = RYO;
@@ -2682,6 +2770,8 @@ function ComposeNoticeModal({
   const [body, setBody] = React.useState("");
   // 5-27: 配送 scope — backend AnnouncementCreateIn.scope: "all" | "male" | "female"
   const [scope, setScope] = React.useState<AnnouncementScope>("all");
+  // 新建默认勾选（发新公告默认通知全员）
+  const [notifyStudents, setNotifyStudents] = React.useState(true);
   const [submitting, setSubmitting] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState("");
   const handleSubmit = async () => {
@@ -2693,6 +2783,7 @@ function ComposeNoticeModal({
         title: title.trim(),
         body: body.trim(),
         scope,
+        notify_students: notifyStudents,
       });
     } catch (e) {
       setErrorMsg(
@@ -2873,9 +2964,31 @@ function ComposeNoticeModal({
               {errorMsg}
             </div>
           )}
-          <div style={{ fontSize: 11, color: T.ink3 }}>
-            投稿後、対象寮生の iOS・Android アプリにプッシュ通知が送信されます。
-          </div>
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              fontSize: 13,
+              color: T.ink,
+              cursor: "pointer",
+              margin: "4px 0 0",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={notifyStudents}
+              onChange={(e) => setNotifyStudents(e.target.checked)}
+              style={{ width: 16, height: 16, cursor: "pointer" }}
+            />
+            学生に通知する（アプリの通知センターに表示）
+          </label>
+          {notifyStudents && (
+            <div style={{ fontSize: 11, color: T.ink3 }}>
+              投稿後、対象寮生の iOS・Android
+              アプリにプッシュ通知が送信されます。
+            </div>
+          )}
         </div>
         <div
           style={{
