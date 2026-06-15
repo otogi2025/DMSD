@@ -1089,6 +1089,24 @@ itsuki 双击项目根启动脚本肉眼签收界面跟旧版一致 → 确认�
 
 `npm run build` 通过（tsc 0 错 + vite build）。主会话独立复验。
 
+## 20. 投稿通知開関「学生に通知する」（2026-06-15，§7.13.1，commit `0ebd178`）
+
+老师投稿/编辑 公告 / 巴士便 / 行事カレンダー 时勾「学生に通知する」(notify_students) → 该条进学生 app 通知中心 + 推送(stub)。
+
+### 20.1 改动（`InfoPage.tsx` + `api/types.ts`）
+- `types.ts`：`AnnouncementCreateIn` / `EventCreateIn` / `BusRouteCreateIn` 各加 `notify_students?: boolean`（可选，后端缺省 false）。create/update 函数直接转发 body，无需改 `client.ts`。
+- 四个投稿弹窗各加「学生に通知する（アプリの通知センターに表示）」勾选框 + 数据流接线：
+  - `ComposeNoticeModal`（公告新建）默认勾上(true)；底部「投稿後アプリに通知」固定文案改成**只在勾选时显示**（不勾不该再说"会推送"）。
+  - `EditNoticeModal`（公告编辑）默认不勾(false)。
+  - `EventComposeModal`（行事，单弹窗 `initial?` 区分）默认 `!initial`，经 `toEventCreateIn` 传。
+  - `BusRouteModal`（巴士，`initial` 区分）默认 `!initial`，经 `toBusRouteCreateIn` 传。
+- **默认值规则**：新建默认勾 / 编辑默认不勾（改错字不该惊动全员，老师想重新通知再手动勾）。
+
+### 20.2 验证
+`npm run build` 通过（tsc 0 错 + vite）。主会话独立核对 4 弹窗 state / 勾选框 / onSubmit 签名 / 提交传值 + 2 映射函数 + 2 数据流 handler 全接上 `notify_students`。
+
+端别：后端 BACKEND_DESIGN_LOG 改订履历 2026-06-15 / iOS IOS_DESIGN_LOG §26。
+
 ---
 
 **END** — 本档随 Web 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。

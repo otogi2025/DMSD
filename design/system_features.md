@@ -932,10 +932,31 @@ bus_reservations
 | **本日晩自習中止 → 学生(2026-04-30 後續 新増)** | 学生(対象のみ) | **iOS push** | push |
 | 房间号 一括分配 → 学生 | 学生 | push + in-app | push |
 | 学号变更(老师改)→ 学生 | 学生 | push + in-app | push |
-| お知らせ投稿 → 学生 | 学生 | push + in-app | push |
-| 巴士时刻表 更新 → 学生 | 学生 | push + in-app | push |
+| お知らせ投稿 → 学生 | 学生 | **投稿時に選択**(notify_students)→ in-app 通知中心 + push | §7.13.1 |
+| 巴士便 更新 → 学生 | 学生 | **投稿時に選択**(notify_students)→ in-app 通知中心 + push | §7.13.1 |
+| 行事カレンダー 更新 → 学生 | 学生 | **投稿時に選択**(notify_students)→ in-app 通知中心 + push | §7.13.1 |
 | 指導履歴 開示申請(学生发起)→ 寮務 | 寮務 | **邮件** R1(老师不会忘) | email |
 | 指導履歴 開示决定(寮務)→ 学生 | 学生 | push + in-app | push |
+
+#### 7.13.1 投稿通知開関と学生通知中心(2026-06-15 実装)
+
+教員が「お知らせ / バス便 / 行事カレンダー」を投稿・編集する際、「学生に通知する」(`notify_students`) を選択できる。
+
+- **選択時**: 当該投稿は学生アプリの通知中心 feed に表示され、プッシュ通知を送出する(プッシュは現在 stub、APNs/Firebase 鍵投入で自動有効化)。
+- **非選択時**: 通常公開のみ。通知中心に出ず、プッシュも送らない。
+- **既定値**: 新規投稿は選択あり(true)／編集は選択なし(false)。誤字修正で全員に再通知しないため。
+
+**学生通知中心 feed**: `notify_students=true` の お知らせ／バス／行事 を、当該学生の可視範囲(お知らせ=scope／バス=visible_to／行事=全員)で絞り、時系列降順に集約して返す。
+
+**既読管理**: お知らせは `announcement_reads`(公告詳細既読と同源)、バス／行事は `student_notification_reads`(本機能の新規テーブル、複合主キー student_id+kind+ref_id)。未読数がアプリのベル badge を駆動。
+
+**実装範囲(v1)**: バックエンド＋iOS＋教員 Web。Android は後送。点呼機は対象外。プッシュ実機配信は APNs/Firebase 鍵投入待ち(stub)。
+
+**API**:
+- `GET /api/v1/student/notifications` — 当該学生の通知 feed(`StudentNotificationFeedOut` = items[] + unread_count)。
+- `POST /api/v1/student/notifications/read` — 1 件既読化(`{kind, ref_id}`、冪等、204)。
+
+端別実装詳細: バックエンド = BACKEND_DESIGN_LOG 改訂履歴 2026-06-15 / iOS = IOS_DESIGN_LOG §26 / 教員 Web = WEB_DESIGN_LOG §20。
 
 ### 7.14 砍掉的功能(4-29 itsuki 拍板)
 
