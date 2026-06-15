@@ -736,7 +736,11 @@ class RollCallCheckinIn(BaseModel):
     card_uid: Optional[str] = Field(None, max_length=32)  # 路径 A
     student_id: Optional[UUID] = None  # 路径 B / 手動
     idempotency_key: Optional[str] = Field(None, max_length=64)  # 路径 B
-    status_source: str = "auto_nfc"  # auto_nfc / manual_checkin
+    # 与 models.RollCallEvent.status_source 的 CheckConstraint 取值一致 ——
+    # 用 Literal 让非法值在 schema 层就 422，而不是穿透到 DB 撞 CHECK 抛 500。
+    status_source: Literal[
+        "auto_nfc", "auto_settle", "manual_checkin", "teacher_override"
+    ] = "auto_nfc"
     ts_local: Optional[datetime] = None
     # A-020 (2026-05-21): client 显式标路径
     # - "A" = NFC 卡（必须有 card_uid）

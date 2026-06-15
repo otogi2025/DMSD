@@ -121,17 +121,10 @@ def today_sessions(
         models.RollCallSession.scheduled_window_start_at >= day_start,
         models.RollCallSession.scheduled_window_start_at < day_end,
     )
-    # R4 dorm filter
+    # 寮过滤已于 2026-06-13 全局取消（deps.dorm_units_for_teacher 恒返 [1,2,4]）——
+    # 原来这里有一段内联寮过滤（硬编码 4 个跨寮角色、且漏了「校長」），与全局取消的决定
+    # 冲突且口径不一致，已删除。所有老师看当日全部场次，功能权限仍由 require_permission 把关。
     sessions = db.scalars(stmt).all()
-    if teacher.assigned_dorm is not None and teacher.role not in {
-        "寮務部長",
-        "寮務課長",
-        "国際交流部長",
-        "国際交流課長",
-    }:
-        dorm_set = [1, 2] if teacher.assigned_dorm == 1 else [teacher.assigned_dorm]
-        sessions = [s for s in sessions if any(d in s.dorm_unit_set for d in dorm_set)]
-
     return [schemas.RollCallSessionOut.model_validate(s) for s in sessions]
 
 
@@ -164,7 +157,10 @@ def my_today_rollcall(
     # 故在 Python 侧按学生 dorm_unit 过滤（今日场次量很小，性能无虑）。
     mine = [s for s in sessions if student.dorm_unit in (s.dorm_unit_set or [])]
 
-    # 我在这些场次的签到事件（1 学生 1 场次最多 1 行，幂等保证）
+    # 我在这些场次的签到事件 —— event 是 append-only，同一场次同一学生可能有多条
+    # （首次 checkin + 老师 override 改判），所以按 checked_in_at 取最新那条，
+    # 口径与 board/summary 的 latest-per-student 一致（不能取「字典最后写入」那条 ——
+    # 那取决于查询返回顺序、不保证是最新）。
     events: dict = {}
     session_ids = [s.id for s in mine]
     if session_ids:
@@ -174,7 +170,10 @@ def my_today_rollcall(
                 models.RollCallEvent.student_id == student.id,
             )
         ).all()
-        events = {e.session_id: e for e in rows}
+        for e in rows:
+            cur = events.get(e.session_id)
+            if cur is None or e.checked_in_at > cur.checked_in_at:
+                events[e.session_id] = e
 
     out = []
     for s in mine:
@@ -236,16 +235,8 @@ def list_sessions_history(
     )
     sessions = db.scalars(stmt).all()
 
-    # R4 寮过滤 — 役职（跨寮 4 人）看全件，其他只看 assigned_dorm
-    if teacher.assigned_dorm is not None and teacher.role not in {
-        "寮務部長",
-        "寮務課長",
-        "国際交流部長",
-        "国際交流課長",
-    }:
-        dorm_set = [1, 2] if teacher.assigned_dorm == 1 else [teacher.assigned_dorm]
-        sessions = [s for s in sessions if any(d in s.dorm_unit_set for d in dorm_set)]
-
+    # 寮过滤已于 2026-06-13 全局取消（deps.dorm_units_for_teacher 恒返 [1,2,4]）——
+    # 同 today_sessions：原来这里有一段内联寮过滤（硬编码跨寮角色、漏「校長」），已删除。
     return [schemas.RollCallSessionOut.model_validate(s) for s in sessions]
 
 
@@ -497,8 +488,11 @@ def create_checkin(
     try:
         db.commit()
     except IntegrityError:
-        # rollcall-05: 路径 B 并发重复提交撞 uq_rce_idempotency 唯一约束
-        # → 回滚后用 idempotency_key 重查，返回已存事件（幂等而非 500）
+        # 并发重复提交撞唯一约束 → 回滚后重查已存事件，幂等返回（而非 500）。
+        # 两种来源：
+        #  - rollcall-05: 路径 B 同 idempotency_key 撞 uq_rce_idempotency
+        #  - uq_demerit_source: 同一学生本场迟到扣分被并发首签各插一条 → 第二条撞约束
+        # 两种都意味着「这名学生本场已有一条有效签到事件」，重查它返回即可。
         db.rollback()
         if body.idempotency_key:
             existing = db.scalars(
@@ -509,6 +503,16 @@ def create_checkin(
             ).first()
             if existing:
                 return schemas.RollCallEventOut.model_validate(existing)
+        # 无 idempotency_key（路径 A / manual）的并发首签：按 session + student + source 重查
+        existing = db.scalars(
+            select(models.RollCallEvent).where(
+                models.RollCallEvent.session_id == session_id,
+                models.RollCallEvent.student_id == student.id,
+                models.RollCallEvent.status_source.in_(["auto_nfc", "manual_checkin"]),
+            )
+        ).first()
+        if existing:
+            return schemas.RollCallEventOut.model_validate(existing)
         raise
     db.refresh(event)
 
@@ -697,12 +701,18 @@ def _apply_override_demerit(
 ) -> None:
     """改判扣分联动 — 把该生本场自动扣分「重算到当前状态对应的分」。
 
-    做法：先撤掉本场该生所有未撤销的自动扣分（rollcall_late / rollcall_absent），
+    做法：撤掉本场该生所有非目标类型的自动扣分（rollcall_late / rollcall_absent），
     再按 to_status 重记一条（present / exempt_range 不扣分）。
     老师反复改判（如 present→absent→late）也不会累积或算错 ——
     最终扣分永远等于当前状态该扣的分（迟到 0.5 / 缺席 1.0）。
     （旧实现按 delta 增减、负 delta 把整条旧扣分全撤，多步改判会算错 ——
     Codex 5.5 审查发现 + 2026-05-31 itsuki 确认按当前状态重算。）
+
+    与 uq_demerit_source 唯一约束（student_id + source_type + source_event_id）配合：
+    同一 (学生, 类型, 场次) 在 DB 层最多 1 行。旧实现「撤旧行 + 永远 INSERT 新行」会在
+    改判轨迹回到旧类型时（present→late→present→late）撞约束（被撤的旧 late 行还在、
+    再 INSERT 同键 late 行 500）。改为「按 source_event_id + source_type 精确定位既有行，
+    有则原地复活/更新、无则 INSERT」，既消除 500、又天然不重复扣分。
     """
     from datetime import datetime as _dt
     from datetime import timezone as _tz
@@ -710,35 +720,51 @@ def _apply_override_demerit(
     now_utc = _dt.now(_tz.utc)
     month = session.scheduled_window_start_at.strftime("%Y-%m")
 
-    # 1. 撤掉本场该生所有未撤销的自动扣分
-    prev = db.scalars(
+    # 本场该生的全部自动扣分行（含已撤销的 —— 唯一约束不区分 revoked，必须连撤销行一起取，
+    # 否则后面 INSERT 同键会撞约束）。按 source_type 索引、最多两类各一行。
+    rows = db.scalars(
         select(models.DemeritEvent).where(
             models.DemeritEvent.student_id == student_id,
             models.DemeritEvent.source_event_id == session.id,
-            models.DemeritEvent.revoked_at.is_(None),
             models.DemeritEvent.source_type.in_(["rollcall_late", "rollcall_absent"]),
         )
     ).all()
-    for ev in prev:
-        ev.revoked_at = now_utc
-        ev.revoked_by_teacher_id = teacher_id
-        ev.revoke_reason = f"教師改判 {from_status} → {to_status} 重算"
+    by_type = {ev.source_type: ev for ev in rows}
 
-    # 2. 按当前状态重记一条（present / exempt_range 不在表里 = 不扣分）
-    info = _STATUS_DEMERIT.get(to_status)
-    if info is not None:
-        points, source_type = info
-        db.add(
-            models.DemeritEvent(
-                student_id=student_id,
-                source_type=source_type,
-                source_event_id=session.id,
-                points=points,
-                reason=f"教師改判 → {to_status}（spec §11.4 重算）",
-                month=month,
-                created_by_teacher_id=teacher_id,
+    target = _STATUS_DEMERIT.get(to_status)  # None = present / exempt_range，不扣分
+    target_type = target[1] if target is not None else None
+
+    # 1. 撤掉所有「非目标类型」且当前未撤销的扣分
+    for ev in rows:
+        if ev.source_type != target_type and ev.revoked_at is None:
+            ev.revoked_at = now_utc
+            ev.revoked_by_teacher_id = teacher_id
+            ev.revoke_reason = f"教師改判 {from_status} → {to_status} 重算"
+
+    # 2. 目标类型：既有行原地复活/更新（避免撞唯一约束），无既有行才 INSERT
+    if target is not None:
+        points, source_type = target
+        existing = by_type.get(source_type)
+        if existing is not None:
+            existing.points = points
+            existing.reason = f"教師改判 → {to_status}（spec §11.4 重算）"
+            existing.month = month
+            existing.created_by_teacher_id = teacher_id
+            existing.revoked_at = None
+            existing.revoked_by_teacher_id = None
+            existing.revoke_reason = None
+        else:
+            db.add(
+                models.DemeritEvent(
+                    student_id=student_id,
+                    source_type=source_type,
+                    source_event_id=session.id,
+                    points=points,
+                    reason=f"教師改判 → {to_status}（spec §11.4 重算）",
+                    month=month,
+                    created_by_teacher_id=teacher_id,
+                )
             )
-        )
 
 
 # ---------------------------------------------------------------
@@ -1034,25 +1060,40 @@ def _settle_absent(db: Session, session: models.RollCallSession) -> None:
                     )
                 )
                 continue
-            db.add(
-                models.RollCallEvent(
-                    session_id=session.id,
-                    student_id=s.id,
-                    path_type="manual",
-                    base_status="absent",
-                    status_source="auto_settle",
-                    checked_in_at=_now_jst(),
-                )
-            )
-            # spec §7.5 缺席自动扣 1 点（§862 冻结值）；改判走 _apply_override_demerit 按当前状态重算
-            db.add(
-                models.DemeritEvent(
-                    student_id=s.id,
-                    source_type="rollcall_absent",
-                    source_event_id=session.id,
-                    points=ROLLCALL_ABSENT_POINTS,
-                    reason=f"点呼欠席（{session.session_type}）",
-                    month=month,
-                    created_by_teacher_id=None,
-                )
-            )
+            # spec §7.5 缺席自动扣 1 点（§862 冻结值）；改判走 _apply_override_demerit 按当前状态重算。
+            #
+            # check-then-act 竞态兜底：上面查 checked_ids 与这里写 absent 之间若有并发 checkin
+            # 插入，该学生既被结算 absent 又有真实 checkin —— 配合 uq_demerit_source 唯一约束
+            # （student_id + source_type + source_event_id），同一 (学生, rollcall_absent, 本场次)
+            # 只能存在 1 条扣分。重复结算（如 end_session 被并发触发两次）时第二条 INSERT 撞约束。
+            #
+            # 用 SAVEPOINT（begin_nested）把「这名学生的 absent event + 扣分」包成一个嵌套事务：
+            # 撞约束时只回滚这名学生这一步，不波及外层（session 状态已置 ended、前面已结算的学生）。
+            # 若直接 db.rollback() 会回滚整个会话事务、把 session.session_status='ended' 和之前
+            # 学生的结算全冲掉 —— 故必须用 SAVEPOINT 而非整事务回滚。
+            try:
+                with db.begin_nested():
+                    db.add(
+                        models.RollCallEvent(
+                            session_id=session.id,
+                            student_id=s.id,
+                            path_type="manual",
+                            base_status="absent",
+                            status_source="auto_settle",
+                            checked_in_at=_now_jst(),
+                        )
+                    )
+                    db.add(
+                        models.DemeritEvent(
+                            student_id=s.id,
+                            source_type="rollcall_absent",
+                            source_event_id=session.id,
+                            points=ROLLCALL_ABSENT_POINTS,
+                            reason=f"点呼欠席（{session.session_type}）",
+                            month=month,
+                            created_by_teacher_id=None,
+                        )
+                    )
+            except IntegrityError:
+                # 该生本场缺席扣分已存在（并发重复结算）→ SAVEPOINT 自动回滚，跳过该生继续结算其余学生
+                pass

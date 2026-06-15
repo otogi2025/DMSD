@@ -1162,6 +1162,18 @@ class DemeritEvent(Base):
             "source_type IN ('rollcall_late','rollcall_absent','curfew_violation','study_absent','manual')",
             name="ck_demerit_source",
         ),
+        # 自动扣分防重唯一约束 —— 并发结算（点呼 end / 学習 finalize 同时触发，
+        # 或同一接口被重复调用）时，靠这条约束保证同一 (学生, 来源类型, 来源事件)
+        # 在 DB 层最多 1 行，不会重复扣分。
+        # source_event_id 可空（手动扣分 manual 时为 NULL）；SQLite / PostgreSQL 均把
+        # NULL 视为「互不相等」，故唯一约束只约束 source_event_id 非空的自动扣分行，
+        # 手动扣分（NULL）不受限 —— 同一学生可被老师多次手动加扣。
+        UniqueConstraint(
+            "student_id",
+            "source_type",
+            "source_event_id",
+            name="uq_demerit_source",
+        ),
         Index("idx_demerit_student_month", "student_id", "month"),
         Index("idx_demerit_month_active", "month", "revoked_at"),
     )

@@ -337,6 +337,10 @@ def create_checkin(
             raise HTTPException(
                 409, {"code": "ALREADY_CHECKED_IN", "message": "既に出席記録済みです"}
             )
+        # absent → present/late：结算缺席后又来签到，要撤掉那条已记的缺席扣分（按本行 id 精确撤）。
+        # init → present/late 不涉及扣分（init 还没结算过）。
+        if existing.status == "absent":
+            _revoke_study_absent_demerit(db, existing, teacher.id)
         existing.checked_at = checked_at
         existing.status = determined_status
         existing.recorded_by = teacher.id
@@ -351,7 +355,21 @@ def create_checkin(
         )
         db.add(record)
 
-    db.commit()
+    # 并发兜底：existing 预查与 INSERT 之间若有并发请求先建了同 (student, date) 行，
+    # 本次 INSERT 撞 uq_sc_date 唯一约束 → 回滚后重查已存行幂等返回，不冒泡成 500。
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        again = db.scalars(
+            select(models.StudyCheckin).where(
+                models.StudyCheckin.student_id == body.student_id,
+                models.StudyCheckin.target_date == today,
+            )
+        ).first()
+        if again:
+            return schemas.StudyCheckinOut.model_validate(again)
+        raise
     db.refresh(record)
     return schemas.StudyCheckinOut.model_validate(record)
 
@@ -375,6 +393,29 @@ def bulk_finalize(
         )
 
     today = body.target_date or _today_jst()
+
+    # target_date 边界校验 —— 原来无边界，老师可对任意过去 / 未来日期补判缺席扣分。
+    # 上界：不能晚于今天（JST）—— 未来日期的「缺席」无意义。
+    # 下界：不早于 30 天前 —— 晚自习当天 / 隔天补结算是常态，给一个月窗口足够补漏，
+    #       再早就该当历史归档、不允许凭空补扣分（防误操作 / 滥用刷扣分）。
+    today_jst = _today_jst()
+    if today > today_jst:
+        raise HTTPException(
+            422,
+            {
+                "code": "TARGET_DATE_FUTURE",
+                "message": "未来の日付は結算できません",
+            },
+        )
+    if today < today_jst - timedelta(days=30):
+        raise HTTPException(
+            422,
+            {
+                "code": "TARGET_DATE_TOO_OLD",
+                "message": "30 日より前の日付は結算できません",
+            },
+        )
+
     term = _academic_term(today)
 
     # R4 寮边界：先拉全 roster，再按老师管辖寮过滤（跨寮角色 None → 不过滤）
@@ -432,46 +473,69 @@ def bulk_finalize(
         ).all()
     }
 
-    to_absent: list[UUID] = []
+    # 收 (student_id, 这名学生今日的 StudyCheckin 行) —— 扣分的 source_event_id 要指向这条
+    # checkin 的 id（不再是 None），后续 PATCH / 重新签到把 absent 改成 present/late 时，
+    # 才能按 source_event_id 精确撤销对应这条扣分、不误撤别天 / 别次的 study_absent。
+    to_absent: list[tuple[UUID, models.StudyCheckin]] = []
     for sid in roster_ids:
         if sid in exempt_ids:
             continue
         c = existing_map.get(sid)
         if c is None:
             # 新規 absent 行
-            db.add(
-                models.StudyCheckin(
-                    student_id=sid,
-                    target_date=today,
-                    status="absent",
-                    recorded_by=teacher.id,
-                )
+            c = models.StudyCheckin(
+                student_id=sid,
+                target_date=today,
+                status="absent",
+                recorded_by=teacher.id,
             )
-            to_absent.append(sid)
+            db.add(c)
+            to_absent.append((sid, c))
         elif c.status == "init":
             c.status = "absent"
             c.recorded_by = teacher.id
-            to_absent.append(sid)
+            to_absent.append((sid, c))
+
+    # 先 flush 让新建的 StudyCheckin 拿到自增主键 id（下面扣分要引用 c.id）。
+    # 新建 checkin 若撞 uq_sc_date（同学生同日已有行的并发竞态）→ 捕获回滚干净返回，
+    # 不让整批结算 500。
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            409,
+            {
+                "code": "FINALIZE_CONFLICT",
+                "message": "結算中に競合が発生しました。再度お試しください",
+            },
+        )
 
     # spec §7.5 学習欠席自动扣 1.5 点（propose §1.2 默认值）
     # finalize 老师 = created_by（不是 None — 老师按了「学習終了」是手动触发）
     month = today.strftime("%Y-%m")
-    for sid in to_absent:
-        db.add(
-            models.DemeritEvent(
-                student_id=sid,
-                source_type="study_absent",
-                source_event_id=None,
-                points=STUDY_ABSENT_POINTS,
-                reason=f"学習欠席（{today.isoformat()}）",
-                month=month,
-                created_by_teacher_id=teacher.id,
-            )
-        )
+    for sid, c in to_absent:
+        # 逐条 SAVEPOINT：撞 uq_demerit_source（该生本场 study_absent 扣分已存在 ——
+        # 并发重复结算 / 重新结算）时只回滚这条、跳过，不波及整批与已写的 checkin。
+        try:
+            with db.begin_nested():
+                db.add(
+                    models.DemeritEvent(
+                        student_id=sid,
+                        source_type="study_absent",
+                        source_event_id=c.id,
+                        points=STUDY_ABSENT_POINTS,
+                        reason=f"学習欠席（{today.isoformat()}）",
+                        month=month,
+                        created_by_teacher_id=teacher.id,
+                    )
+                )
+        except IntegrityError:
+            pass
 
     db.commit()
 
-    absent_students = [{"student_id": str(sid)} for sid in to_absent]
+    absent_students = [{"student_id": str(sid)} for sid, _ in to_absent]
     return schemas.StudyFinalizeOut(
         finalized_count=len(to_absent), absent_students=absent_students
     )
@@ -500,7 +564,35 @@ def patch_checkin(
         # 演示隔离：演示老师只能改演示学生记录、真老师只能改真实学生记录（否则 404）
         assert_student_demo_match(teacher, student)
         _assert_student_in_dorm(teacher, student)
-    record.status = body.status
+
+    old_status = record.status
+    new_status = body.status
+
+    # 扣分联动：手动修正改变出席状态时，study_absent 扣分要跟着撤 / 加（按本 checkin 行 id 精确定位）。
+    # - absent → present/late/exempt：撤掉这条 checkin 对应的缺席扣分。
+    # - 非 absent → absent：补记一条缺席扣分（如老师事后改判为缺席）；
+    #   用 SAVEPOINT 容忍 uq_demerit_source（已存在该行时跳过、不 500）。
+    if old_status == "absent" and new_status != "absent":
+        _revoke_study_absent_demerit(db, record, teacher.id)
+    elif old_status != "absent" and new_status == "absent":
+        month = record.target_date.strftime("%Y-%m")
+        try:
+            with db.begin_nested():
+                db.add(
+                    models.DemeritEvent(
+                        student_id=record.student_id,
+                        source_type="study_absent",
+                        source_event_id=record.id,
+                        points=STUDY_ABSENT_POINTS,
+                        reason=f"学習欠席（{record.target_date.isoformat()}・手動修正）",
+                        month=month,
+                        created_by_teacher_id=teacher.id,
+                    )
+                )
+        except IntegrityError:
+            pass
+
+    record.status = new_status
     record.overridden_by = teacher.id
     record.override_reason = body.override_reason
     db.commit()
@@ -557,7 +649,20 @@ def submit_absence_request(
         reason=body.reason,
     )
     db.add(record)
-    db.flush()
+
+    # 并发兜底：上面的重复预查与本次 INSERT 之间若有并发提交先建了同 (student, date) 行，
+    # 本次 INSERT 撞 uq_sar_date 唯一约束 → 回滚后干净返 409，不冒泡成 500。
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            409,
+            {
+                "code": "DUPLICATE_REQUEST",
+                "message": "この日の欠席届は既に提出済みです",
+            },
+        )
 
     # R1 メール → 学習担当
     _notify_absence_submitted(db, record, student)
@@ -969,6 +1074,31 @@ def remove_from_roster(
 # ---------------------------------------------------------------
 # 内部ユーティリティ
 # ---------------------------------------------------------------
+def _revoke_study_absent_demerit(
+    db: Session,
+    checkin: models.StudyCheckin,
+    teacher_id: UUID,
+) -> None:
+    """学習欠席扣分の撤销 —— 学生が absent 判定後に出席（present / late）へ変わった時に呼ぶ。
+
+    finalize 写缺席扣分时 source_event_id = 这条 StudyCheckin 的 id，故按 source_event_id
+    精确定位本场欠席扣分撤销，不会误撤别天 / 别次的 study_absent。软删（保留 revoked_*）。
+    一行 checkin 对应至多一条未撤销 study_absent 扣分，循环以防历史脏数据有多条。
+    """
+    rows = db.scalars(
+        select(models.DemeritEvent).where(
+            models.DemeritEvent.student_id == checkin.student_id,
+            models.DemeritEvent.source_type == "study_absent",
+            models.DemeritEvent.source_event_id == checkin.id,
+            models.DemeritEvent.revoked_at.is_(None),
+        )
+    ).all()
+    for ev in rows:
+        ev.revoked_at = _now_jst()
+        ev.revoked_by_teacher_id = teacher_id
+        ev.revoke_reason = "学習出席に変更され欠席扣分を撤销"
+
+
 def _resolve_roster_student(
     db: Session, body: schemas.StudyRosterAddIn
 ) -> Optional[models.Student]:
