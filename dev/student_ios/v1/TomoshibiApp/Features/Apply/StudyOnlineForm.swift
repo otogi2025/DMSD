@@ -64,7 +64,7 @@ struct StudyOnlineForm: View {
                     ApplyFormSectionLabel(n: "1", label: "期間")
                     Card(padding: 14) {
                         VStack(alignment: .leading, spacing: 12) {
-                            Field(label: "開始日", hint: "オンライン晩自習開始の 3 日前までに提出してください", required: true) {
+                            Field(label: "開始日", hint: "オンライン学習開始の 3 日前までに提出してください", required: true) {
                                 ApplyDateField(date: $periodFrom, minDate: ApplyFormDate.threeDaysLater)
                                     .environment(\.timeZone, TimeZone(identifier: "Asia/Tokyo") ?? .current) // 选日按 JST，跟 formatYMD 提交口径一致（非 JST 设备不偏天）
                                     .environment(\.calendar, ApplyFormDate.tokyoCalendar) // minDate/初值也按 JST 日历算（Codex 6-03）
@@ -160,7 +160,7 @@ struct StudyOnlineForm: View {
         HStack(spacing: 8) {
             Image(systemName: "info.circle")
                 .font(.system(size: 14, weight: .semibold))
-            Text("オンライン晩自習開始の 3 日前までに提出してください")
+            Text("オンライン学習開始の 3 日前までに提出してください")
                 .font(.system(size: 12))
         }
         .foregroundStyle(T.warnDeep)
