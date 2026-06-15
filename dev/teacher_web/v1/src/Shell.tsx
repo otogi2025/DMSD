@@ -117,7 +117,6 @@ export function Shell({
       title: "点呼業務",
       items: [
         ["roll-call", "点呼"],
-        ["proxy-application", "代録"],
         ["active-leaves", "出寮者一覧"],
         ["notifications", "通知", notifUnread || undefined],
       ],

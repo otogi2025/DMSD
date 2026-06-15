@@ -84,10 +84,13 @@ export function ApplicationsPage({
   onOpen,
   backendApplications,
   authToken,
+  onNav,
 }: {
   onOpen: (app: OutstayUiApp) => void;
   backendApplications: Application[] | null;
   authToken: string;
+  // 代録（代学生提交出寮届）入口跳转 — 低频功能，已从左侧导航移除，入口收到本页。
+  onNav: (view: string) => void;
 }) {
   const T = RYO;
   const [tab, setTab] = React.useState("outstay");
@@ -129,16 +132,45 @@ export function ApplicationsPage({
       >
         申請 &gt; {tabs.find((t) => t.k === tab)!.label}
       </div>
-      <h1
+      <div
         style={{
-          fontSize: 24,
-          fontWeight: 700,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
           margin: "4px 0 18px",
-          letterSpacing: -0.3,
+          gap: 12,
         }}
       >
-        申請センター
-      </h1>
+        <h1
+          style={{
+            fontSize: 24,
+            fontWeight: 700,
+            margin: 0,
+            letterSpacing: -0.3,
+          }}
+        >
+          申請センター
+        </h1>
+        {/* 代録（代学生提交出寮届）— 低频功能，从左侧导航移除后入口收到这里。 */}
+        <button
+          onClick={() => onNav("proxy-application")}
+          style={{
+            padding: "8px 16px",
+            background: T.surface,
+            color: T.cobaltDeep,
+            border: `1px solid ${T.cobalt}`,
+            borderRadius: 8,
+            fontFamily: "inherit",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+          }}
+        >
+          ＋ 代録（出寮届の代理提出）
+        </button>
+      </div>
 
       <div
         style={{
