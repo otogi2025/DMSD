@@ -1822,8 +1822,10 @@ struct LoginView: View {
     // JSX: 2-tab segmented control, bg T.pill, padding 3
     private var modeTab: some View {
         HStack(spacing: 0) {
-            tabBtn(title: "番号", active: mode == .number) { mode = .number; email = "" }
-            tabBtn(title: "メール", active: mode == .email) { mode = .email; acc = "" }
+            // 切标签只换 mode，不清空字段 —— 登录只读当前 mode 的字段（番号→acc，邮箱 mode 直接弹「未対応」不读 email），
+            // 清空对方字段没有任何功能作用，反而会抹掉 DEMO 预填 + 生产版用户切回时丢已输入内容（itsuki 2026-06-15 报）。
+            tabBtn(title: "番号", active: mode == .number) { mode = .number }
+            tabBtn(title: "メール", active: mode == .email) { mode = .email }
         }
         .padding(3)
         .background {
