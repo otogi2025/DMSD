@@ -124,9 +124,16 @@ def seed_dev(db) -> None:
         log.info("加担任: %s → %s%s", login_id, grade, klass)
     db.commit()
 
-    # 学习名簿
+    # 学习名簿（晚自习对象）
+    # demo 演示故意留 1 名演示学生（学号 980401，演示学生花子）不进名簿，演示「非晚自习对象」的
+    # 样子，不再让 demo 学生全员默认开 —— 更贴真实规则「中学全员 + 高中手动追加」。
+    study_roster_demo_exclude = {
+        "980401"
+    }  # 学号 980401 演示学生花子：演示「非晚自习对象」
     all_students = db.scalars(select(models.Student)).all()
     for student in all_students:
+        if student.student_no in study_roster_demo_exclude:
+            continue
         existing = db.scalars(
             select(models.StudyRoster).where(
                 models.StudyRoster.student_id == student.id,
