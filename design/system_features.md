@@ -768,6 +768,64 @@ bus_routes
 | 出寮届 提交时选巴士(特别便 / 平日便)#8 | 〇 ApplyForm 帰省方法 = bus 时 dropdown | — | apply 上加关联字段 | 学生 | (V1) |
 | 空港送迎特别便 显示(只在 帰国届时)| 〇 帰国届 ApplyForm | ✅ 同上 | `GET /bus/airport` filter | 学生 + 役职 | (V1) |
 
+#### 7.6.3 巴士座位预约系统(v1.1)
+
+> **定位**: §7.6.2 的巴士功能为纯展示 — 学生仅阅览班次时刻表,老师 CRUD 班次,不涉及座位。本节是 **v1.1 增量**: 在班次之上引入**座位预约**(容量上限 / 实时余席 / 候补 / 出寮届联动占座 / 司机名单)。**设计冻结、实装留 v1.1** — v1.0 巴士页面保持纯展示。来源: 2026-06-15 itsuki × CC brainstorm 拍板(决策记录见 `logs/decisions/decision_log.md` 同日)。
+
+**数据模型变更**
+
+bus_routes 新增 2 字段:
+
+```
+bus_routes (追加)
+├── capacity        INT NULL                    -- 座位上限(NULL = 不限座 / 纯展示班次,沿用旧行为)
+└── direction_type  ENUM('outbound','inbound')  -- 出程(出门)/ 帰程(回寮);供"同日同方向互斥"判定
+                                                 -- direction(自由文本)保留作显示,本字段供机器判定,录入班次时老师选
+```
+
+新建预约表:
+
+```
+bus_reservations
+├── id              UUID PK
+├── bus_route_id    UUID FK → bus_routes.id
+├── student_id      UUID FK → students.id
+├── status          ENUM('confirmed','waitlist','cancelled')  -- 占座 / 候补 / 已取消
+├── source          ENUM('direct','application')              -- 手机直约 / 出寮届联动
+├── application_id  UUID FK → applications.id NULL             -- source=application 时回指出寮届
+├── waitlist_pos    INT NULL                                  -- 候补序号(status=waitlist 时有效)
+├── created_at      TIMESTAMPTZ
+└── updated_at      TIMESTAMPTZ
+```
+
+**功能矩阵**
+
+| 功能 | 学生 iOS/Android | 老师 Web | 后端 API | 角色 | 版本 |
+|---|---|---|---|---|---|
+| 班次余席显示(残N席)| 〇 BusList 行展示真实余席 | — | `GET /bus/routes` 扩 capacity / 余席 | 学生 | v1.1 ⏳ |
+| 座位预约 | 〇 班次行 → 预约页 → 予約 | — | `POST /bus/reservations` | 学生 | v1.1 ⏳ |
+| 取消预约 | 〇 予約取消 / マイ予約一覧 | — | `DELETE /bus/reservations/{id}` | 学生 | v1.1 ⏳ |
+| 候补登录(満席时)| 〇 満席 → 候補登録 | — | `POST /bus/reservations` (status=waitlist) | 学生 | v1.1 ⏳ |
+| 我的预约一覧 | 〇 マイ予約 | — | `GET /bus/reservations/mine` | 学生 | v1.1 ⏳ |
+| 出寮届联动占座 | 〇 ApplyForm 选班次 → 自动 confirmed | — | apply 提交时 upsert reservation | 学生 | v1.1 ⏳ |
+| 班次乗客名簿(confirmed + waitlist 分列)| — | ✅ 班次 → 名簿 | `GET /bus/routes/{id}/reservations` | 役职 | v1.1 ⏳ |
+| 司机名单一键生成(仅 confirmed)| — | ✅ 班次 → 司机名单 | `GET /bus/routes/{id}/manifest` | 役职 | v1.1 ⏳ |
+
+**核心规则**
+
+1. **容量与余席**: 余席 = capacity − confirmed 数; capacity = NULL 视为不限座(纯展示班次,沿用旧行为)。
+2. **防超卖**: confirmed 写入须事务内对 bus_route 加锁(或对余席做原子校验),保证并发抢最后一席只成一笔。
+3. **同日同方向互斥**: 同一学生在「同一历日(schedule_at 的 JST 日期)+ 同一 direction_type」下,至多一笔 status ∈ {confirmed, waitlist}; **confirmed 与 waitlist 共享此名额**(候补也占名额)。
+4. **占座时机(出寮届联动)**: 学生在出寮届选班次的当下即写 confirmed(与手机直约一致); 出寮届被驳回 / 学生撤回 → 对应 reservation 置 cancelled、释放座位并触发候补递补。
+5. **候补递补**: confirmed 取消释放座 → 取该班次 waitlist_pos 最小者**自动转 confirmed** + 触发 push 通知(被补者无需操作); 该学生改主意可自行取消。
+6. **预约 / 取消截止**: schedule_at 前 30 分钟封锁,之后不可新约 / 取消 / 候补。
+7. **预约时间窗**: 凡 schedule_at 未过且 deprecated = FALSE 的班次均可约,不另设天数上限。
+8. **老师权限**: 仅查看名簿 + 生成司机名单; **不代学生预约 / 取消**(v1.1 范围)。
+9. **司机名单**: 仅列 confirmed(候补不上车,不入名单); 含人数 + 学生姓名(房号 / 学年视实装补)。
+10. **候补受截止与互斥约束**: 候补登录同样不得晚于第 6 条截止线; 且占用第 3 条互斥名额。
+
+**待实装期确认项**: ① 司机名单导出形态(网页可打印列表 vs `.xlsx` / PDF 文件) ② direction_type 对历史班次的回填策略 ③ 同日同方向互斥的具体落地(部分唯一索引 vs 应用层校验)。
+
 ### 7.7 食堂食数(Q7 答 — Excel 导出)
 
 > **Q7 答**: 估计是 excel 表格,要包含的数据是哪些学生不需要餐食、什么期间。要可以一键导出 excel。
@@ -1560,6 +1618,7 @@ item_possession_requests                    -- 物品所持許可願(様式2-1)
 | **2026-04-29 晚** | **大重写** — 老师 4-29 LINE 38 条要件 + Q1-12 答案 + R1-R4 硬约束 + itsuki 4 条砍/留 全反映。新章 §2(R1-R4)+ §3(5 角色 + 设备分布)+ §7.2-7.14(出寮届 / 学習 / 行事 / 巴士 / 食堂 / 出寮者一覧 / 指导履历 / 个人数据 / 砍掉功能)。RollCall_Spec.md §4-§5.6 修订参照。数据模型 §8 扩充(applications / study / events / bus / meals / teachers)+ R4 一致性 CHECK。**同时**:删掉文件级版本号(原 v0.1 / v0.2 标记,违反单源真值原则;改用 git history + 本节作为唯一改订记录)。中文骨架重写,只保留专有名词的日语 | itsuki + CC |
 | **2026-04-30** | **轨道 B · §9 8 条 + Q12 全部拍板**: (a) 罚则数值 hardcode 常量 + 不上线前确认 → §7.12 / (b) 学号变更老师 Web 全权 + 学生 read-only(首次注册除外)→ §4.2 + §6 + §7.1 + §7.13 / (c) 房间号 个室 model + M/A/W prefix 编码 → §5 新增编码规则 + §8.1 CHECK / (d) 指导履历 C 案 默认不显示 + 学生申请开示 → §7.10 + §7.13 + §8.6 新表 / (e) 寮監账号 网页任设备登 + 前台不允许自助注册 + 寮監之间互管 → §3.4 + §7.1 / (f) 晚自习名单 老师按按钮 reset + 7 tab 学生列表 + 双视图 + 学期前邮件提醒 → §7.3 大扩充 / (g) 寮物理关系 不影响系统 + 事实记录 (1+2 寮紧邻+全活动合并) → §3.3 表加列 / (h) 杭田 UI 不参考 close。§9 表格清空 | itsuki + [Mac-轨道B] CC |
 | **2026-04-30 後續** | **学習 NFC 化 + 出寮届修改 + 教师权限**(信息量大、第二轮 itsuki 拍板): (1) §7.2.4-5 出寮届修改届(状态可改条件 + 只非身份字段 + chain 重置 + audit log 可见性 = 学生自己 + chain 役职)(2) §7.3.3-10 学習大扩充: NFC 3 次碰(开始/中场/结束)+ 时间锁定(19:40-20:40 / 20:45-21:45)+ 自动开启 5 分前 + 状态机(緑/黄/红/异常)+ 学習欠席届 字段细化(范围 select 前半/后半/全)+ 月度计数 ≥3 次提醒 + 異常状态老师手动判 + 今日学習中止开关(仅学習担当)+ 主页 amber Card 三态(⚠️ DEMO-ONLY、v1.0 删)+ 名单变更通知 (3) §3.4 教师账号管理通用化(从仅寮監扩到全教师)+ 教师权限模型「按职责勾选」(出宿审查/朝点呼/夜点呼/学習担当/寮務/指导履歴/巴士行事 master)+ 旧教师辅助新教师注册 (4) §7.13 通知矩阵更新: 学習関連 = R1 邮件例外(学生 push + 老师 Web 通知中心)+ 出寮届修改触发 chain 全员邮件再送 (5) chain 矛盾 itsuki 拍板 (b) 实物表为准(已与 §7.2.2 一致、不用改)。**§8 数据模型扩充**(study_session / study_attendance / study_leave_request / application_audit_log / teacher_role_permissions / teacher_invitation 等表) **下个会话补**。 | itsuki + [Mac-主会话调配] CC |
+| **2026-06-15** | §7.6.3 **巴士座位预约系统 v1.1** 设计冻结(itsuki × CC brainstorm)— 容量上限 + 实时余席 + 候补自动递补 + 出寮届联动占座(选了即占,驳回/撤回释放)+ 同日同方向互斥 + 司机名单一键生成。新增 bus_reservations 表 + bus_routes 追加 capacity / direction_type。**v1.0 巴士页保持纯展示,实装留 v1.1**(待办见 admin/TODO.md §B)| itsuki + CC |
 
 ---
 

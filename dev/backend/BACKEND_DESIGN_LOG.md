@@ -631,6 +631,18 @@ hit なし → `INVALID_REGISTRATION_CODE` (422)。hit あり → 通過 + audit
 
 > ⚠️ **コードは「使用」しても無効化しない**（再利用可、集団登録対応 §7.16.6）。expires_at 経過 or 教師再生成で初めて失効。
 
+### 4.11 `bus_routes` 追加 + `bus_reservations`（v1.1 设计冻结，未实装）
+
+> **状态**: v1.1 设计已冻结、**后端未实装**。完整设计（功能矩阵 + 10 条核心规则）→ `design/system_features.md §7.6.3`；决策 → `logs/decisions/decision_log.md` 2026-06-15。本节仅留后端落地要点，实装时展开。
+
+巴士座位预约系统（v1.1）后端要点：
+- `bus_routes` 追加 `capacity INT NULL`（座位上限，NULL=不限座沿用旧行为）+ `direction_type ENUM('outbound','inbound')`（供同日同方向互斥判定；direction 自由文本保留作显示）。
+- 新建 `bus_reservations`（id / bus_route_id / student_id / status[confirmed,waitlist,cancelled] / source[direct,application] / application_id NULL / waitlist_pos NULL / created_at / updated_at）。
+- **防超卖**：confirmed 写入须事务内对 bus_route 加锁（或对余席原子校验），并发抢最后一席只成一笔 —— 与 §3.5 幂等同属并发正确性要点。
+- **出寮届联动**：apply 提交选班次 → upsert confirmed reservation（source=application、回指 application_id）；出寮届驳回 / 撤回 → 对应 reservation 置 cancelled + 候补递补。
+- **候补递补**：confirmed 取消 → waitlist_pos 最小者转 confirmed + 触发 push（§3.2 通知分流）。
+- API（v1.1）：`POST/DELETE /bus/reservations`、`GET /bus/reservations/mine`、`GET /bus/routes/{id}/reservations`（名簿）、`GET /bus/routes/{id}/manifest`（司机名单，仅 confirmed）。
+
 ---
 
 ## 5. API 列表 — P0
