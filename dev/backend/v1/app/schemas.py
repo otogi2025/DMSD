@@ -1173,10 +1173,15 @@ class MyAbsenceSummaryOut(BaseModel):
 
 
 class DemeritManualIn(BaseModel):
-    """手动加扣分输入（寮監权限）。"""
+    """手动设定学生本月扣分总分输入（寮監权限）。
+
+    B 方案（itsuki 2026-06-15 拍板）：老师输入目标绝对分 target_points，后端算
+    「目标 − 当前本月总分」的差值，记一条调整事件（可正可负）使该学生本月总分等于
+    target_points。不是加 / 减一个增量。target_points 取值 0~100（0 = 清零本月扣分）。
+    """
 
     student_id: UUID
-    points: float = Field(..., gt=0, le=100)
+    target_points: float = Field(..., ge=0, le=100)
     reason: str = Field(..., min_length=1, max_length=2000)
     # 幂等键（A-473）—— 客户端每次「加扣分」点击生成一个 UUID 随请求带上，
     # 老师双击 / 网络重试时同一个 key 会被后端识别为重复提交、不再叠加第二条扣分。

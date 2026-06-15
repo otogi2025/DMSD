@@ -51,10 +51,11 @@ def _create_cleaning(client, token, student_id, area="廊下 2F", when=None):
     )
 
 
-def _add_manual_demerit(client, token, student_id, points, reason="テスト加点"):
+def _set_manual_score(client, token, student_id, target, reason="テスト設定"):
+    """B 方案：把学生本月扣分总分设为绝对值 target（不是加增量）。"""
     return client.post(
         "/api/v1/discipline/manual",
-        json={"student_id": student_id, "points": points, "reason": reason},
+        json={"student_id": student_id, "target_points": target, "reason": reason},
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -307,16 +308,16 @@ def test_summary_needs_cleaning_threshold(
 
     # 初始 0 分 → 不需要罚扫
     assert summary()["needs_cleaning"] is False
-    # 加到 3.5 → 仍 False
-    _add_manual_demerit(client, teacher_token, sid, 3.5)
+    # 设到 3.5 → 仍 False
+    _set_manual_score(client, teacher_token, sid, 3.5)
     s = summary()
     assert s["total_points"] == 3.5
     assert s["needs_cleaning"] is False
-    # 再加 1.0 → 4.5 ≥4 → True
-    _add_manual_demerit(client, teacher_token, sid, 1.0)
+    # 设到 4.5 ≥4 → True
+    _set_manual_score(client, teacher_token, sid, 4.5)
     assert summary()["needs_cleaning"] is True
-    # 再加到 ≥8 → 仍 True（后端纯阈值，分档显示交给前端）
-    _add_manual_demerit(client, teacher_token, sid, 4.0)
+    # 设到 8.5 ≥8 → 仍 True（后端纯阈值，分档显示交给前端）
+    _set_manual_score(client, teacher_token, sid, 8.5)
     s = summary()
     assert s["total_points"] >= 8
     assert s["needs_cleaning"] is True
@@ -327,7 +328,7 @@ def test_summary_needs_cleaning_threshold(
 
 def test_ranking_cleaning_threshold(client, seed_data, teacher_token):
     sid = str(seed_data["student"].id)
-    _add_manual_demerit(client, teacher_token, sid, 5.0)  # ≥4 <8
+    _set_manual_score(client, teacher_token, sid, 5.0)  # ≥4 <8
     month = datetime.now(_JST).strftime("%Y-%m")
     res = client.get(
         f"/api/v1/discipline/ranking?month={month}",

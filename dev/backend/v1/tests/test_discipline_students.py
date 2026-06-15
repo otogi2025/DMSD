@@ -64,7 +64,7 @@ def test_manual_demerit_view_only_group_forbidden(client, seed_data):
     student_id = str(seed_data["student"].id)
     res = client.post(
         "/api/v1/discipline/manual",
-        json={"student_id": student_id, "points": 1.0, "reason": "テスト"},
+        json={"student_id": student_id, "target_points": 1.0, "reason": "テスト"},
         headers={"Authorization": f"Bearer {token}"},
     )
     assert res.status_code == 403, res.text
@@ -112,7 +112,7 @@ def test_manual_demerit_same_key_returns_existing(client, seed_data):
     key = str(uuid.uuid4())
     body = {
         "student_id": student_id,
-        "points": 2.0,
+        "target_points": 2.0,
         "reason": "幂等テスト",
         "idempotency_key": key,
     }
@@ -125,7 +125,7 @@ def test_manual_demerit_same_key_returns_existing(client, seed_data):
     assert r2.status_code in (200, 201), r2.text
     assert r1.json()["id"] == r2.json()["id"], "同 key 重复提交应返回同一条事件"
 
-    # /ranking 该学生累计点数只算一次（2.0），不是叠加的 4.0
+    # 幂等：同 key 第二次返回原事件、不新建 → 该学生当月总分仍是 target 2.0
     month = r1.json()["month"]
     rk = client.get(f"/api/v1/discipline/ranking?month={month}", headers=headers)
     assert rk.status_code == 200, rk.text
@@ -145,7 +145,7 @@ def test_manual_demerit_different_keys_create_two(client, seed_data):
         "/api/v1/discipline/manual",
         json={
             "student_id": student_id,
-            "points": 1.0,
+            "target_points": 1.0,
             "reason": "1回目",
             "idempotency_key": str(uuid.uuid4()),
         },
@@ -155,7 +155,7 @@ def test_manual_demerit_different_keys_create_two(client, seed_data):
         "/api/v1/discipline/manual",
         json={
             "student_id": student_id,
-            "points": 1.5,
+            "target_points": 1.5,
             "reason": "2回目",
             "idempotency_key": str(uuid.uuid4()),
         },
@@ -165,11 +165,11 @@ def test_manual_demerit_different_keys_create_two(client, seed_data):
     assert r2.status_code == 201, r2.text
     assert r1.json()["id"] != r2.json()["id"], "不同 key 应各建一条"
 
-    # 累计 = 1.0 + 1.5 = 2.5
+    # 两次设定绝对分（target 1.0 → 1.5），各记一条差值事件（+1.0 / +0.5），最终总分 = 最后一次 target 1.5
     month = r1.json()["month"]
     rk = client.get(f"/api/v1/discipline/ranking?month={month}", headers=headers)
     entry = next(e for e in rk.json()["entries"] if e["student_id"] == student_id)
-    assert entry["total_points"] == 2.5
+    assert entry["total_points"] == 1.5
 
 
 def test_manual_demerit_no_key_keeps_legacy_behavior(client, seed_data):
@@ -177,10 +177,41 @@ def test_manual_demerit_no_key_keeps_legacy_behavior(client, seed_data):
     token = _login_teacher(client, "ryomu_kachou")
     student_id = str(seed_data["student"].id)
     headers = {"Authorization": f"Bearer {token}"}
-    body = {"student_id": student_id, "points": 1.0, "reason": "キー無し"}
+    body = {"student_id": student_id, "target_points": 1.0, "reason": "キー無し"}
 
     r1 = client.post("/api/v1/discipline/manual", json=body, headers=headers)
     r2 = client.post("/api/v1/discipline/manual", json=body, headers=headers)
     assert r1.status_code == 201, r1.text
     assert r2.status_code == 201, r2.text
     assert r1.json()["id"] != r2.json()["id"], "无 key 时不应去重（原行为）"
+
+
+def test_manual_demerit_set_absolute_can_lower(client, seed_data):
+    """B 方案核心：设定绝对分能把已有扣分调低（不只是加）—— 记一条负差值事件。"""
+    token = _login_teacher(client, "ryomu_kachou")
+    student_id = str(seed_data["student"].id)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 先设到 6 分
+    r0 = client.post(
+        "/api/v1/discipline/manual",
+        json={"student_id": student_id, "target_points": 6.0, "reason": "初期設定"},
+        headers=headers,
+    )
+    assert r0.status_code == 201, r0.text
+    assert r0.json()["points"] == 6.0  # 学生本月 0 分起 → 差值 +6.0
+
+    # 再设到 2 分（调低）→ 应记一条 -4 的差值事件
+    r = client.post(
+        "/api/v1/discipline/manual",
+        json={"student_id": student_id, "target_points": 2.0, "reason": "減点修正"},
+        headers=headers,
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["points"] == -4.0, "调低应记负差值事件"
+
+    # 当月总分应恰为 2.0（不是 6 也不是 8）
+    month = r.json()["month"]
+    rk = client.get(f"/api/v1/discipline/ranking?month={month}", headers=headers)
+    entry = next(e for e in rk.json()["entries"] if e["student_id"] == student_id)
+    assert entry["total_points"] == 2.0, "设定绝对分后总分应等于 target"

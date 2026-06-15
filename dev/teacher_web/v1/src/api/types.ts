@@ -377,10 +377,10 @@ export interface DemeritEvent {
   revoke_reason: string | null;
 }
 
-// 对齐 DemeritManualIn(1074-1079)
+// 对齐 DemeritManualIn —— B 方案：target_points 是要设定的本月合计点（绝对值），后端算差值
 export interface ManualDemeritIn {
   student_id: string;
-  points: number;
+  target_points: number;
   reason: string;
 }
 

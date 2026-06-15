@@ -440,7 +440,7 @@ class TestDisciplineDormBoundary:
             "/api/v1/discipline/manual",
             json={
                 "student_id": student_id,
-                "points": 1.0,
+                "target_points": 1.0,
                 "reason": "テスト用手動扣分",
             },
             headers={"Authorization": f"Bearer {ryokan_token}"},
@@ -485,7 +485,7 @@ class TestDisciplineDormBoundary:
             "/api/v1/discipline/manual",
             json={
                 "student_id": student_id,
-                "points": 0.5,
+                "target_points": 0.5,
                 "reason": "跨寮役职测试",
             },
             headers={"Authorization": f"Bearer {token}"},

@@ -5,7 +5,7 @@ DisciplinePage 接 backend 的核心 endpoint。
 
 包含：
 - GET  /api/v1/discipline/ranking?month=YYYY-MM   — 月排名 + 阈值标记
-- POST /api/v1/discipline/manual                   — 手动加扣分 (寮監 / 寮務全员)
+- POST /api/v1/discipline/manual                   — 手动设定本月扣分总分(绝对值) (寮監 / 寮務全员)
 - POST /api/v1/discipline/{event_id}/revoke        — 撤销扣分 (寮監 / 寮務全员)
 
 待 itsuki 起床 review:
@@ -222,7 +222,7 @@ def create_manual_demerit(
         require_permission(permissions.C_DEMERIT, permissions.MANAGE)
     ),
 ):
-    """手动加扣分（扣分管理 M 权限）。"""
+    """手动设定学生本月扣分总分为绝对值（扣分管理 M 权限，B 方案差值记录）。"""
     # 校验学生存在
     student = db.get(models.Student, body.student_id)
     if not student:
@@ -262,14 +262,26 @@ def create_manual_demerit(
 
     # BL-6 修复：月份归属用 JST，防跨月凌晨归错月（与 rollcall/study 保持一致）
     now = datetime.now(_JST)
+    month = now.strftime("%Y-%m")
+    # B 方案（手动设定绝对分）：算「目标本月总分 − 当前本月总分」的差值，记一条调整事件。
+    # 当前总分口径与 /ranking、/me/summary 完全一致（同月 + 排除已撤销），保证设完后该学生
+    # 本月总分恰好等于 target_points。差值可正（加分）可负（降分）；0 = 清零本月扣分。
+    current_total = db.scalar(
+        select(func.coalesce(func.sum(models.DemeritEvent.points), 0.0)).where(
+            models.DemeritEvent.student_id == body.student_id,
+            models.DemeritEvent.month == month,
+            models.DemeritEvent.revoked_at.is_(None),
+        )
+    )
+    delta = body.target_points - (current_total or 0.0)
     event = models.DemeritEvent(
         student_id=body.student_id,
         source_type="manual",
         # 带幂等键时把 key 存进 source_event_id 供唯一约束去重；不带时仍为空（原行为）
         source_event_id=body.idempotency_key,
-        points=body.points,
+        points=delta,
         reason=body.reason,
-        month=now.strftime("%Y-%m"),
+        month=month,
         created_by_teacher_id=teacher.id,
     )
     db.add(event)

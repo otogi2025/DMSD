@@ -60,7 +60,8 @@ export function DisciplinePage({
   const [manualTarget, setManualTarget] = React.useState<{
     student_id: string;
     name: string;
-  } | null>(null); // {student_id, name}
+    current: number;
+  } | null>(null); // {student_id, name, current=当前本月合计点（预填用）}
   // 「任意の学生に手動加算」搜学生入口弹窗开关（2026-06-14，独立于排行榜行的旧入口）
   const [searchAddOpen, setSearchAddOpen] = React.useState(false);
   // 最近手动加扣分记录（用于即时撤销）
@@ -98,24 +99,27 @@ export function DisciplinePage({
     return loadRanking();
   }, [loadRanking]);
 
-  // 手动加扣分
+  // 手动设定本月合计点为绝对值（B 方案：后端算「目标 − 当前」差值记录）
   const handleManualSubmit = (
     studentId: string,
     name: string,
-    points: number,
+    targetPoints: number,
     reason: string,
   ) => {
     api
-      .createManualDemerit({ student_id: studentId, points, reason }, authToken)
+      .createManualDemerit(
+        { student_id: studentId, target_points: targetPoints, reason },
+        authToken,
+      )
       .then((ev) => {
         setLastEvent(ev);
-        setLastEventMsg(`${name} に ${points} 点を追加しました`);
+        setLastEventMsg(`${name} の今月の合計点を ${targetPoints} 点に設定しました`);
         setManualTarget(null);
         setSearchAddOpen(false);
         loadRanking();
       })
       .catch((e) => {
-        alert("手動加算に失敗しました：" + (e.message || JSON.stringify(e)));
+        alert("スコア設定に失敗しました：" + (e.message || JSON.stringify(e)));
       });
   };
 
@@ -502,6 +506,7 @@ export function DisciplinePage({
                         setManualTarget({
                           student_id: d.student_id,
                           name: d.name,
+                          current: d.total,
                         })
                       }
                       style={{
@@ -648,7 +653,7 @@ function modalInputStyle(T: RyoTokens): React.CSSProperties {
   };
 }
 
-// 手动加分 modal（本块私有子组件）
+// 手动设定合计点 modal（本块私有子组件，B 方案：设绝对值、后端算差值）
 function ManualDemeritModal({
   T,
   target,
@@ -656,30 +661,32 @@ function ManualDemeritModal({
   onSubmit,
 }: {
   T: RyoTokens;
-  target: { student_id: string; name: string };
+  target: { student_id: string; name: string; current: number };
   onClose: () => void;
-  onSubmit: (studentId: string, points: number, reason: string) => void;
+  onSubmit: (studentId: string, targetPoints: number, reason: string) => void;
 }) {
-  const [points, setPoints] = React.useState("1");
+  const [score, setScore] = React.useState(String(target.current));
   const [reason, setReason] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
-  const disabled = !reason.trim() || parseFloat(points) <= 0 || submitting;
+  const parsed = parseFloat(score);
+  const disabled =
+    !reason.trim() || score === "" || isNaN(parsed) || parsed < 0 || submitting;
   const handleSubmit = () => {
     if (disabled) return;
     setSubmitting(true);
     Promise.resolve(
-      onSubmit(target.student_id, parseFloat(points), reason.trim()),
+      onSubmit(target.student_id, parsed, reason.trim()),
     ).finally(() => setSubmitting(false));
   };
   return (
-    <ModalShell T={T} title={`手動加算：${target.name}`} onClose={onClose}>
-      <ModalField T={T} label="減点数">
+    <ModalShell T={T} title={`合計点を設定：${target.name}`} onClose={onClose}>
+      <ModalField T={T} label={`今月の合計点（現在 ${target.current} 点・絶対値で上書き）`}>
         <input
           type="number"
-          min="0.5"
+          min="0"
           step="0.5"
-          value={points}
-          onChange={(e) => setPoints(e.target.value)}
+          value={score}
+          onChange={(e) => setScore(e.target.value)}
           style={modalInputStyle(T)}
         />
       </ModalField>
@@ -701,7 +708,7 @@ function ManualDemeritModal({
   );
 }
 
-// 搜学生加分 modal（2026-06-14 新入口）—— StudentPicker(single) + 减点数 + 理由 一弹窗搞定。
+// 搜学生设定合计点 modal（2026-06-14 新入口）—— StudentPicker(single) + 合计点 + 理由 一弹窗搞定。
 // 用 searchDemeritStudents（C_DEMERIT 权限）而非 front-desk 的搜学生接口（权限簇不同）。
 function ManualDemeritSearchModal({
   T,
@@ -715,26 +722,32 @@ function ManualDemeritSearchModal({
   onSubmit: (
     studentId: string,
     name: string,
-    points: number,
+    targetPoints: number,
     reason: string,
   ) => void;
 }) {
   const [selected, setSelected] = React.useState<PickerStudent[]>([]);
-  const [points, setPoints] = React.useState("1");
+  const [score, setScore] = React.useState("0");
   const [reason, setReason] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const student = selected[0] || null;
+  const parsed = parseFloat(score);
   const disabled =
-    !student || !reason.trim() || parseFloat(points) <= 0 || submitting;
+    !student ||
+    !reason.trim() ||
+    score === "" ||
+    isNaN(parsed) ||
+    parsed < 0 ||
+    submitting;
   const handleSubmit = () => {
     if (disabled || !student) return;
     setSubmitting(true);
     Promise.resolve(
-      onSubmit(student.id, student.name, parseFloat(points), reason.trim()),
+      onSubmit(student.id, student.name, parsed, reason.trim()),
     ).finally(() => setSubmitting(false));
   };
   return (
-    <ModalShell T={T} title="任意の学生に手動加算" onClose={onClose}>
+    <ModalShell T={T} title="任意の学生の合計点を設定" onClose={onClose}>
       <ModalField T={T} label="学生（必須）">
         <StudentPicker
           mode="single"
@@ -746,13 +759,13 @@ function ManualDemeritSearchModal({
           placeholder="氏名 / 学籍番号で検索（クリックで一覧）"
         />
       </ModalField>
-      <ModalField T={T} label="減点数">
+      <ModalField T={T} label="今月の合計点（絶対値で設定・差分は自動記録）">
         <input
           type="number"
-          min="0.5"
+          min="0"
           step="0.5"
-          value={points}
-          onChange={(e) => setPoints(e.target.value)}
+          value={score}
+          onChange={(e) => setScore(e.target.value)}
           style={modalInputStyle(T)}
         />
       </ModalField>
