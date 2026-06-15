@@ -94,6 +94,12 @@ def calc_meals(
             and_(
                 models.Application.status == "approved",
                 models.Application.meals_skip.is_not(None),
+                # F-中-09：在 SQL 层按日期范围预筛，缩小候选集 —— meals_skip 条目只可能落在
+                # 该申请的 [leave_date, return_date] 出寮窗口内，与查询区间无重叠的申请直接排除，
+                # 不再全量 load approved 申请到内存逐条筛。重叠条件：窗口起点 <= 区间终点 且
+                # 窗口终点 >= 区间起点。
+                models.Application.leave_date <= range_to,
+                models.Application.return_date >= range_from,
                 demo_scope_for_teacher(teacher),
             )
         )
@@ -108,10 +114,15 @@ def calc_meals(
 
     for app, student in rows:
         for entry in app.meals_skip or []:
+            # F-中-08：entry 非 dict（脏数据 / 旧形式）时 entry['date'] 会抛 TypeError，
+            # 原 except 只 catch (KeyError, ValueError) 漏掉它 → 整个导出 500。
+            # 先 isinstance 判断跳过非 dict 条目，再处理键缺失 / 日期格式错。
+            if not isinstance(entry, dict):
+                continue
             try:
                 entry_date = date.fromisoformat(entry["date"])
                 meal = entry["meal"]
-            except (KeyError, ValueError):
+            except (KeyError, ValueError, TypeError):
                 continue
             if entry_date not in daily_map:
                 continue

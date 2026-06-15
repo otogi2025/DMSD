@@ -217,9 +217,14 @@ def delete_account_me(
     """B2 — 学生自己删除账号（App Store 审核规则 5.1.1(v) 强制要求）。
 
     设计选择：软删除（保留历史记录完整性）
-    - Student.status → 'deleted'（点呼历史 / 申请历史不物理删，保留审计用）
+    - Student.status → 'paused'（不存在 'deleted' 枚举值；点呼历史 / 申请历史不物理删，保留审计用）
     - Account 行保留但 password_hash 清空（防止继续登录）
-    - 写 AuditLog 留痕
+    - 写 AuditLog 留痕，action='account.delete_self' 区分"自删"语义
+
+    用 'paused' 而非 'deleted' 的原因：'deleted' 不在 ck_students_status
+    CHECK 枚举里，而 'paused' 已在枚举内。这里复用 'paused' 表示"账号已停用/自删"。
+    （已知局限：自删与管理员停用都落到 'paused'，状态层面无法区分，
+    要分辨自删需看 AuditLog 的 action='account.delete_self'。）
 
     Account.student_id 有 ondelete='CASCADE'，
     但物理删 Student 会连锁删 Account + 所有申请历史 — 违反审计完整性，

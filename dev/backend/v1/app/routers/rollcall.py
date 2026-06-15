@@ -284,6 +284,19 @@ def start_session(
             409, {"code": "NOT_YET_ALLOWED", "message": "開始時刻の 5 分前より早いです"}
         )
 
+    # A-503: 过期场次上界校验。原本只校验下界（太早不能开），没有上界 ——
+    # 昨天 cron 生成、没人开的 draft 场次今天仍能 start：started_at=今天 now，但判定用
+    # scheduled_on_time_end_at（昨天的时刻）→ 今天所有签到一律 now > on_time_end 被记 late，
+    # 或 end 时全员未签 → 全员 absent，造成批量误扣分。已过 scheduled_auto_end_at 的场次拒绝开始。
+    if now > _as_jst_aware(session.scheduled_auto_end_at):
+        raise HTTPException(
+            409,
+            {
+                "code": "SESSION_EXPIRED",
+                "message": "終了予定時刻を過ぎたセッションは開始できません",
+            },
+        )
+
     session.session_status = "running"
     session.started_at = now
     session.started_source = "teacher"
@@ -356,27 +369,11 @@ def create_checkin(
     ),
 ):
     session = _get_session_or_404(db, session_id)
-    if session.session_status != "running":
-        raise HTTPException(
-            409,
-            {
-                "code": "SESSION_NOT_RUNNING",
-                "message": "実行中の点呼セッションがありません",
-            },
-        )
 
-    # rollcall-12: 不再无条件信任客户端 ts_local — 仅在 server now 的容忍窗口内采纳，
-    # 超窗（未来时间 / 远古时间）回退 server time，防伪造 present/late 绕过迟到扣分
-    server_now = _now_jst()
-    now = server_now
-    if body.ts_local is not None:
-        ts = _as_jst_aware(body.ts_local)
-        if (
-            server_now - timedelta(minutes=10)
-            <= ts
-            <= server_now + timedelta(minutes=2)
-        ):
-            now = ts
+    # E-中-08: 学生解析 + 寮/demo 校验必须前置到 session_status 状态门（409）之前。
+    # 仿 patch_event（顶部先做 _assert_student_in_dorm + assert_student_demo_match）——
+    # 否则管辖外 / 演示老师能靠 409 SESSION_NOT_RUNNING vs 403/404 的返回差异，
+    # 对任意 session_id 探测真实场次是否存在 / 是否 running（Codex 5.5 审查同类发现）。
     student: Optional[models.Student] = None
 
     # A-020 (2026-05-21): path_hint 一致性校验（client 显式标路径时挡假数据）
@@ -430,6 +427,29 @@ def create_checkin(
     # 演示隔离：演示老师只能给演示学生签到、真老师只能给真实学生签到（跨 demo → 404）
     assert_student_demo_match(teacher, student)
 
+    # 寮/demo 通过后才查 session 状态 —— 探测者拿不到 running/draft 状态信息
+    if session.session_status != "running":
+        raise HTTPException(
+            409,
+            {
+                "code": "SESSION_NOT_RUNNING",
+                "message": "実行中の点呼セッションがありません",
+            },
+        )
+
+    # rollcall-12: 不再无条件信任客户端 ts_local — 仅在 server now 的容忍窗口内采纳，
+    # 超窗（未来时间 / 远古时间）回退 server time，防伪造 present/late 绕过迟到扣分
+    server_now = _now_jst()
+    now = server_now
+    if body.ts_local is not None:
+        ts = _as_jst_aware(body.ts_local)
+        if (
+            server_now - timedelta(minutes=10)
+            <= ts
+            <= server_now + timedelta(minutes=2)
+        ):
+            now = ts
+
     # A-011 (2026-05-21): 幂等 check 改成「先查 idempotency_key 命中」
     # 1. 如果 client 传了 idempotency_key → 用 (session_id, idempotency_key) 唯一定位
     # 2. 否则 fallback 到原逻辑（同 session + 同 student + 同 source）
@@ -480,7 +500,12 @@ def create_checkin(
                 source_event_id=session.id,
                 points=ROLLCALL_LATE_POINTS,
                 reason=f"点呼遅刻（{session.session_type}）",
-                month=session.scheduled_window_start_at.strftime("%Y-%m"),
+                # A-497: month 必须经 _as_jst_aware 再 strftime。SQLite 读回 TZDateTime 可能丢 tzinfo
+                # 或带 UTC，直接 strftime 在 JST 月初/月末（如 JST 7-01 00:30 = UTC 6-30 15:30）
+                # 会把本月扣分归到上月统计。统一按 JST 取归属月。
+                month=_as_jst_aware(session.scheduled_window_start_at).strftime(
+                    "%Y-%m"
+                ),
                 created_by_teacher_id=None,
             )
         )
@@ -563,12 +588,12 @@ def session_board(
             models.RollCallEvent.session_id == session_id
         )
     ).all()
+    # B-低-26: latest-per-student 加 id 次级键兜底。checked_in_at 毫秒级相同（如同时刻两次改判）
+    # 时仅比时间结果不确定；用 (checked_in_at, id) 元组比较，与 patch_event 的 order_by 口径一致。
     event_map: dict[UUID, models.RollCallEvent] = {}
     for e in events:
-        if (
-            e.student_id not in event_map
-            or e.checked_in_at > event_map[e.student_id].checked_in_at
-        ):
+        cur = event_map.get(e.student_id)
+        if cur is None or (e.checked_in_at, e.id) > (cur.checked_in_at, cur.id):
             event_map[e.student_id] = e
 
     # 杭田 2026-06-04 三-3/5: 出寮願（承認済 + 期间内）的学生在 live 板上先标 exempt_range，
@@ -643,13 +668,11 @@ def session_summary(
         .options(selectinload(models.RollCallEvent.session))
     ).all()
 
-    # latest per student
+    # latest per student（B-低-26: 加 id 次级键，毫秒级相同时间也确定取同一行，与 board/patch_event 一致）
     event_map: dict[UUID, models.RollCallEvent] = {}
     for e in events:
-        if (
-            e.student_id not in event_map
-            or e.checked_in_at > event_map[e.student_id].checked_in_at
-        ):
+        cur = event_map.get(e.student_id)
+        if cur is None or (e.checked_in_at, e.id) > (cur.checked_in_at, cur.id):
             event_map[e.student_id] = e
 
     absent: list[dict] = []
@@ -718,7 +741,8 @@ def _apply_override_demerit(
     from datetime import timezone as _tz
 
     now_utc = _dt.now(_tz.utc)
-    month = session.scheduled_window_start_at.strftime("%Y-%m")
+    # A-497: month 经 _as_jst_aware 再 strftime，避免 JST 月初/月末把扣分归错月（见 create_checkin 同处注释）
+    month = _as_jst_aware(session.scheduled_window_start_at).strftime("%Y-%m")
 
     # 本场该生的全部自动扣分行（含已撤销的 —— 唯一约束不区分 revoked，必须连撤销行一起取，
     # 否则后面 INSERT 同键会撞约束）。按 source_type 索引、最多两类各一行。
@@ -822,13 +846,20 @@ def patch_event(
     # event 是 append-only，旧行 base_status 永不变，直接用它会让重复 PATCH 同一条旧 event
     # 反复累积扣分、no-op 门也挡不住（Codex 5.5 审查发现）。
     # 口径与 board/summary 的 latest-per-student 一致：取 checked_in_at 最大那条。
+    # B-低-26: 排序加 id 次级键。若同一场次毫秒级连续两次改判 checked_in_at 相同，
+    # 仅按 checked_in_at 排 .first() 取谁不确定（latest 计算非确定性）。加 id.desc()
+    # 兜底保证返回行确定（id 是随机 UUID 非单调，无法判定真正最新，但消除不确定性，
+    # 让 patch_event / board / summary 对同一数据始终取同一行）。
     latest_event = db.scalars(
         select(models.RollCallEvent)
         .where(
             models.RollCallEvent.session_id == event.session_id,
             models.RollCallEvent.student_id == event.student_id,
         )
-        .order_by(models.RollCallEvent.checked_in_at.desc())
+        .order_by(
+            models.RollCallEvent.checked_in_at.desc(),
+            models.RollCallEvent.id.desc(),
+        )
     ).first()
     old_status = latest_event.base_status if latest_event else event.base_status
     new_status = body.to_status
@@ -909,16 +940,27 @@ def create_rollcall_report(
     """学生点呼上报 — 体调不适 / 当次缺席 / 其他问题（iOS 点呼界面三弹窗）。
 
     身份从登录令牌取（不信任客户端传 student_id）。
-    传了 session_id 就校验该点呼场次存在（不存在 → 404）。
+    传了 session_id 就校验该点呼场次：存在 + 覆盖本学生所属寮 + 正在进行中。
     """
     if body.session_id is not None:
         session = db.get(models.RollCallSession, body.session_id)
-        if session is None:
+        # F-中-13: 原本只校验场次存在，学生可对任意已知 session_id（含别寮 / 已结束 / 未来场次）
+        # 上报，造成数据噪声。现要求：① 场次覆盖本学生所属寮 ② 场次进行中（running）。
+        # 别寮场次与不存在一律返 404 —— 不泄露别寮场次的存在。
+        if session is None or student.dorm_unit not in session.dorm_unit_set:
             raise HTTPException(
                 404,
                 {
                     "code": "SESSION_NOT_FOUND",
                     "message": "点呼セッションが見つかりません",
+                },
+            )
+        if session.session_status != "running":
+            raise HTTPException(
+                409,
+                {
+                    "code": "SESSION_NOT_RUNNING",
+                    "message": "実行中の点呼セッションではありません",
                 },
             )
     report = models.RollCallReport(
@@ -1058,7 +1100,8 @@ def _settle_absent(db: Session, session: models.RollCallSession) -> None:
         ).all()
     )
 
-    month = session.scheduled_window_start_at.strftime("%Y-%m")
+    # A-497: month 经 _as_jst_aware 再 strftime，避免 JST 月初/月末把缺席扣分归错月
+    month = _as_jst_aware(session.scheduled_window_start_at).strftime("%Y-%m")
     for s in students:
         if s.id not in checked_ids:
             # BL-3：外宿/出寮届承认期间的学生打 exempt_range，不算缺席不扣分

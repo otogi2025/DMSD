@@ -45,7 +45,13 @@ async def teacher_ws(
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
-    teacher_id = UUID(payload["sub"])
+    # sub 缺失 / 非法 UUID 不能抛未捕获异常导致连接异常中断 —
+    # 仿 deps.get_current_teacher 的守卫，畸形 token 统一 WS_1008 优雅关闭
+    try:
+        teacher_id = UUID(payload.get("sub"))
+    except (TypeError, ValueError):
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
 
     # 拉 teacher.assigned_dorm 用于未来按 dorm 过滤推送
     # 用独立 SessionLocal（WebSocket 不走 FastAPI Depends 注入）

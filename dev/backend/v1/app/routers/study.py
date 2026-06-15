@@ -170,27 +170,19 @@ def today_attendees(
         ).all()
     }
 
-    # R4 dorm filter
-    dorm_filter: tuple[int, ...]
-    if teacher.assigned_dorm is None or teacher.role in {
-        "寮務部長",
-        "寮務課長",
-        "国際交流部長",
-        "国際交流課長",
-    }:
-        dorm_filter = (1, 2, 4)
-    elif teacher.assigned_dorm == 1:
-        dorm_filter = (1, 2)
-    else:
-        dorm_filter = (teacher.assigned_dorm,)
-
+    # 寮过滤已彻底取消（design/teacher_permission_v1.md §11.2，itsuki 2026-06-14 拍板：
+    # 所有老师可查看 / 操作所有学生，不再按男女宿舍隔开）。原来这里有一段内联的旧寮过滤
+    # （按 teacher.assigned_dorm + 硬编码跨寮角色集合算 dorm_filter，再在下面循环 continue 掉
+    # 管辖外学生），既没走全局 dorm_units_for_teacher helper、也没被「全放开」覆盖到，
+    # 导致男寮学習担当看不到女寮学生的晚自习名单，与现行决策冲突 → 整段删除。
+    # rollcall.py 的两处同款内联过滤已先行删除，本处补齐对齐。
     attendees: list[schemas.StudyAttendeeOut] = []
     outstay_cnt = 0
     absence_cnt = 0
 
     for sid in student_ids:
         s = student_map.get(sid)
-        if not s or s.dorm_unit not in dorm_filter:
+        if not s:
             continue
         if sid in outstay_ids:
             outstay_cnt += 1
@@ -243,11 +235,15 @@ def today_attendees(
     # 五十音 sort
     attendees.sort(key=lambda a: a.name)
 
+    # summary 四个桶必须互斥（前端老师网页 StudyAttendancePage 把 予定/出席/遅刻/欠席
+    # 当四张独立卡片并排显示，且期望 出席+遅刻+欠席 = 予定）。原来 present 把 late 也算进去、
+    # late 又单列 → 迟到的学生被同时计进「出席」和「遅刻」两张卡，求和超过予定、重复展示。
+    # 改为：checked_in 只数纯 present（不含 late）、late 单列、absent 单列 → 三桶互斥求和 = 予定。
     present = sum(
         1
         for a in attendees
         if a.checkin
-        and a.checkin["status"] in ("present", "late")
+        and a.checkin["status"] == "present"
         and a.expected_status == "expected"
     )
     late = sum(
@@ -558,12 +554,18 @@ def patch_checkin(
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "記録が見つかりません"}
         )
-    # R4 寮边界：通过 checkin 记录找到对应学生，校验老师管辖范围
+    # R4 寮边界：通过 checkin 记录找到对应学生，校验老师管辖范围。
+    # 原来用 `if student:` 守卫 —— 学生行缺失（外键悬空）时静默跳过演示隔离 / 寮校验直接放行，
+    # 方向反了（应「缺数据即拒绝」而非「缺数据即放行」）。改为 student 为 None 即 404 拒绝，
+    # 不让任何越权者借一条悬空的 checkin 绕过隔离边界改状态。
     student = db.get(models.Student, record.student_id)
-    if student:
-        # 演示隔离：演示老师只能改演示学生记录、真老师只能改真实学生记录（否则 404）
-        assert_student_demo_match(teacher, student)
-        _assert_student_in_dorm(teacher, student)
+    if not student:
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "学生が見つかりません"}
+        )
+    # 演示隔离：演示老师只能改演示学生记录、真老师只能改真实学生记录（否则 404）
+    assert_student_demo_match(teacher, student)
+    _assert_student_in_dorm(teacher, student)
 
     old_status = record.status
     new_status = body.status
@@ -610,6 +612,26 @@ def patch_checkin(
     record.status = new_status
     record.overridden_by = teacher.id
     record.override_reason = body.override_reason
+
+    # 手动修正写审计 —— 改学生出席状态会联动扣分增删，属敏感写操作，原来无任何留痕。
+    # 记下谁把哪条 checkin 从什么状态改成什么状态、理由，便于事后排查 / 追责。
+    db.add(
+        models.AuditLog(
+            actor_type="teacher",
+            actor_id=teacher.id,
+            action="study_checkin.patch",
+            target_type="study_checkin",
+            target_id=record.id,
+            payload={
+                "student_id": str(record.student_id),
+                "target_date": record.target_date.isoformat(),
+                "old_status": old_status,
+                "new_status": new_status,
+                "override_reason": body.override_reason,
+            },
+        )
+    )
+
     db.commit()
     db.refresh(record)
     return schemas.StudyCheckinOut.model_validate(record)
@@ -629,6 +651,17 @@ def submit_absence_request(
     student: models.Student = Depends(get_current_student),
 ):
     now = _now_jst()
+    # 过去日期校验：已经过去的日子不能再提交欠席届。原来只校验「当天提交是否过了 19:40 截止」，
+    # 过去日期完全没门禁。过去的学習已结算、欠席扣分也已确定，事后补提交欠席届来撤销扣分
+    # 不归这条路（那是 PATCH 手動修正的职责）→ 过去日期一律 422 拒绝。
+    if body.target_date < now.date():
+        raise HTTPException(
+            422,
+            {
+                "code": "PAST_DATE",
+                "message": "過去の日付の欠席届は提出できません",
+            },
+        )
     # 締切チェック: 当日 19:40 前
     if body.target_date == now.date():
         deadline = time(ABSENCE_DEADLINE_HOUR, ABSENCE_DEADLINE_MINUTE)
@@ -830,13 +863,15 @@ def cancel_today(
         ).all()
     }
 
+    # 只把「还没真实出席」的行改成 exempt（init / absent / 已有的 exempt），
+    # 不抹掉已记的真实出席 present / late —— 原来无条件把所有 roster 学生覆盖成 exempt，
+    # 会把学生已经签到的事实（present / late）连同 checked_at 一起抹掉、且不留原 status，
+    # 一旦误按「中止」就再也查不到谁其实来了。本次改为：保留真实出席记录，只豁免未出席者。
+    cancelled = 0
     for sid in roster_ids:
         c = existing_map.get(sid)
-        if c:
-            c.status = "exempt"
-            c.overridden_by = teacher.id
-            c.override_reason = "今日学習中止"
-        else:
+        if c is None:
+            # 没有任何 checkin 行 → 新建一条 exempt（这名学生本来就未签到）
             db.add(
                 models.StudyCheckin(
                     student_id=sid,
@@ -846,9 +881,21 @@ def cancel_today(
                     override_reason="今日学習中止",
                 )
             )
+            cancelled += 1
+        elif c.status in ("init", "absent", "exempt"):
+            # 未出席（init / absent）或已豁免（exempt）→ 置 exempt。
+            # absent → exempt：这名学生原本被判缺席并扣了分，现在整场学習中止、不该再扣，
+            # 按本行 id 精确撤销那条 study_absent 扣分（与 patch_checkin absent→非absent 同一处理）。
+            if c.status == "absent":
+                _revoke_study_absent_demerit(db, c, teacher.id)
+            c.status = "exempt"
+            c.overridden_by = teacher.id
+            c.override_reason = "今日学習中止"
+            cancelled += 1
+        # present / late：已真实出席，保留不动（不计入 cancelled）
 
     db.commit()
-    return {"cancelled_count": len(roster_ids), "target_date": str(today)}
+    return {"cancelled_count": cancelled, "target_date": str(today)}
 
 
 # ---------------------------------------------------------------
@@ -871,54 +918,40 @@ def list_roster(
 ):
     """当前学期名簿在籍者一览 — 给老师网页「学習対象名簿管理」页用。
 
-    口径：removed_at 为空（在籍中）+ 当前学期。带学生姓名 / 房间 / 寮，
-    并按 R4 寮边界过滤掉老师管辖外的学生（跨寮角色看全部）。
+    口径：removed_at 为空（在籍中）+ 当前学期。带学生姓名 / 房间 / 寮。
+    演示隔离在 SQL where 一次收口（真老师只看真实学生 / 演示老师只看演示学生）。
+    寮过滤已彻底取消（§11.2，2026-06-14）—— 所有老师可看全部学生，不再按寮过滤。
     """
     today = target_date or _today_jst()
     term = _academic_term(today)
 
-    roster_rows = db.scalars(
-        select(models.StudyRoster).where(
+    # 演示隔离下沉到 SQL：join Student + demo_scope_for_teacher 一次过滤，
+    # 与 today_attendees / bulk-finalize / cancel-today 同款写法。
+    # 原来是「先拉全 roster 行 → 单独查 Student → student_map 缺键就 continue」的隐式过滤，
+    # 跟其它接口靠 SQL where 显式过滤的口径不一致，且依赖「缺键即跳过」这种隐式行为。
+    rows = db.execute(
+        select(models.StudyRoster, models.Student)
+        .join(models.Student, models.Student.id == models.StudyRoster.student_id)
+        .where(
             models.StudyRoster.academic_term == term,
             models.StudyRoster.removed_at.is_(None),
-        )
-    ).all()
-    if not roster_rows:
-        return []
-
-    student_ids = [r.student_id for r in roster_rows]
-    # 演示隔离：真老师只取真实学生 / 演示老师只取演示学生。
-    # student_map 缺该学生时下面 for 循环 continue 跳过，等于把异 cohort 名簿行过滤掉。
-    students = db.scalars(
-        select(models.Student).where(
-            models.Student.id.in_(student_ids),
             demo_scope_for_teacher(teacher),
         )
     ).all()
-    student_map = {s.id: s for s in students}
 
-    # R4 寮边界：跨寮角色 dorm_units 为 None → 不过滤；dorm-scoped 角色只看管辖寮
-    allowed = dorm_units_for_teacher(teacher)
-
-    out: list[schemas.StudyRosterEntryOut] = []
-    for r in roster_rows:
-        s = student_map.get(r.student_id)
-        if not s:
-            continue
-        if allowed is not None and s.dorm_unit not in allowed:
-            continue
-        out.append(
-            schemas.StudyRosterEntryOut(
-                student_id=s.id,
-                student_no=s.student_no,
-                name=s.name,
-                room_no=s.room_no,
-                dorm_unit=s.dorm_unit,
-                academic_term=r.academic_term,
-                added_by=r.added_by,
-                added_at=r.added_at,
-            )
+    out = [
+        schemas.StudyRosterEntryOut(
+            student_id=s.id,
+            student_no=s.student_no,
+            name=s.name,
+            room_no=s.room_no,
+            dorm_unit=s.dorm_unit,
+            academic_term=r.academic_term,
+            added_by=r.added_by,
+            added_at=r.added_at,
         )
+        for r, s in rows
+    ]
     out.sort(key=lambda e: e.name)
     return out
 
@@ -946,13 +979,14 @@ def add_to_roster(
     today = _today_jst()
     term = _academic_term(today)
 
-    student = _resolve_roster_student(db, body)
+    student = _resolve_roster_student(db, body, teacher)
     if not student:
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "学生が見つかりません"}
         )
 
-    # 演示隔离：演示老师只能把演示学生加进名簿、真老师只能加真实学生（否则 404）
+    # 演示隔离：解析时已带 demo_scope（异 cohort 直接解析不到 → 404）；这里 assert 作为
+    # 二重防护（防将来 _resolve 改动遗漏过滤），真老师 / 演示老师行为均不变。
     assert_student_demo_match(teacher, student)
 
     # R4 寮边界：寮監等 dorm-scoped 角色不能给管辖外学生操作名簿
@@ -1115,16 +1149,26 @@ def _revoke_study_absent_demerit(
 
 
 def _resolve_roster_student(
-    db: Session, body: schemas.StudyRosterAddIn
+    db: Session, body: schemas.StudyRosterAddIn, teacher: models.Teacher
 ) -> Optional[models.Student]:
     """把名簿加入请求里的 student_id 或 student_no 解析成 Student 行。
 
     优先用 student_id（UUID 直查）；没有就按 student_no 6 位拆成
     年级 2 + 班级 2 + 座号 2 查（student_no 是 model 的 derived property 不是列，不能直接等值查）。
     解析不到返回 None（调用方转 404）。
+
+    演示隔离下沉到 SELECT：两个分支都带 demo_scope_for_teacher（真老师只解析真实学生 /
+    演示老师只解析演示学生），不再只靠调用方事后 assert_student_demo_match 兜底。
+    这样异 cohort 的学号 / UUID 直接解析不到（返 None → 404），与「学号不存在」同样的 404，
+    既不泄露异 cohort 学生是否存在、也不让将来漏写 assert 的调用点越权。
     """
     if body.student_id is not None:
-        return db.get(models.Student, body.student_id)
+        return db.scalars(
+            select(models.Student).where(
+                models.Student.id == body.student_id,
+                demo_scope_for_teacher(teacher),
+            )
+        ).first()
     no = (body.student_no or "").strip()
     if len(no) != 6:
         return None
@@ -1134,6 +1178,7 @@ def _resolve_roster_student(
             models.Student.grade_code == grade,
             models.Student.class_code == klass,
             models.Student.seat_no == seat,
+            demo_scope_for_teacher(teacher),
         )
     ).first()
 

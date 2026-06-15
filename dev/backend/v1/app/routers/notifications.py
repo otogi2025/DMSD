@@ -56,7 +56,11 @@ def send_test(
 # （降低与其它会话改后端文件的冲突面）。代价：通知在取 feed 时生成，非事件即时。
 # ---------------------------------------------------------------
 
-# 每张事件表每次同步最多扫的行数（小规模宿舍足够；防大表全扫）
+# 每张事件表每次同步最多生成的新通知数（漏斗速率，不是「只看最新 N 条」窗口）。
+# 旧实现是「按时间倒序取最新 200 条再内存去重」—— 一旦某表积压超过 200 条未同步事件，
+# 第 201 条往后的更早事件会被永远挡在窗口外、再也不会生成通知（codex F-codex-中-02）。
+# 现实现改成「只查该表里『还没有对应通知行』的事件、按时间正序（最旧优先）取 N 条」，
+# 于是每次轮询都从最旧的积压开始补，跨多次轮询把整段积压逐批排空，不会永久漏掉任何事件。
 _SYNC_SCAN_LIMIT = 200
 
 # 点呼上报 kind → 日语标题
@@ -202,33 +206,50 @@ def _insert_skip_conflicts(db: Session, rows: list[models.Notification]) -> None
             raise
 
 
+def _synced_source_ids(db: Session, *, source_table: str, is_demo: bool) -> set:
+    """取「本 realm 内、这张源表已生成过通知」的 source_id 集合。
+
+    旧实现一次把整张 notifications 表的 (source_table, source_id) 全量拉进内存、
+    且不按 realm 过滤（B-中-20）。这里改成按 source_table + is_demo 精确取，
+    每张源表的反查只拿自己这一表、自己这一 realm 的 source_id —— 集合更小、
+    且能直接喂给下面「只查未同步事件」的 NOT IN 反连接。
+    """
+    return {
+        sid
+        for (sid,) in db.query(models.Notification.source_id)
+        .filter(
+            models.Notification.source_table == source_table,
+            models.Notification.is_demo == is_demo,
+        )
+        .all()
+    }
+
+
 def _sync_notifications(db: Session, *, is_demo: bool) -> None:
     """把现有事件幂等同步成通知行（只处理与 realm[is_demo] 匹配的事件）。
 
-    按 (source_table, source_id) 去重，只插缺失的（source_id 是 UUID 全局唯一）。
-    内存去重挡掉单请求内的重复；并发请求间的竞争由 _insert_skip_conflicts
-    的 savepoint+跳过兜底（防撞 uq_notif_source 变 500）。
+    每张源表各自反查「本 realm 已同步过的 source_id」，再只查「还没同步」的事件、
+    按时间正序（最旧优先）取最多 _SYNC_SCAN_LIMIT 条 —— 跨多次轮询逐批排空积压，
+    不会像旧实现那样把超过窗口的更早事件永久漏掉。
+    并发请求间的竞争由 _insert_skip_conflicts 的 savepoint+跳过兜底
+    （防撞 uq_notif_source 变 500）。
     """
-    existing = {
-        (st, sid)
-        for st, sid in db.query(
-            models.Notification.source_table, models.Notification.source_id
-        ).all()
-    }
     new_rows: list[models.Notification] = []
 
     # ① 申请提交
+    synced_apps = _synced_source_ids(db, source_table="applications", is_demo=is_demo)
     apps = (
         db.query(models.Application, models.Student)
         .join(models.Student, models.Application.student_id == models.Student.id)
-        .filter(models.Student.is_demo == is_demo)
-        .order_by(models.Application.submitted_at.desc())
+        .filter(
+            models.Student.is_demo == is_demo,
+            models.Application.id.notin_(synced_apps) if synced_apps else True,
+        )
+        .order_by(models.Application.submitted_at.asc())
         .limit(_SYNC_SCAN_LIMIT)
         .all()
     )
     for app, stu in apps:
-        if ("applications", app.id) in existing:
-            continue
         new_rows.append(
             models.Notification(
                 category="application",
@@ -243,20 +264,20 @@ def _sync_notifications(db: Session, *, is_demo: bool) -> None:
         )
 
     # ② 扣分（未撤销）
+    synced_dem = _synced_source_ids(db, source_table="demerit_event", is_demo=is_demo)
     demerits = (
         db.query(models.DemeritEvent, models.Student)
         .join(models.Student, models.DemeritEvent.student_id == models.Student.id)
         .filter(
             models.Student.is_demo == is_demo,
             models.DemeritEvent.revoked_at.is_(None),
+            models.DemeritEvent.id.notin_(synced_dem) if synced_dem else True,
         )
-        .order_by(models.DemeritEvent.created_at.desc())
+        .order_by(models.DemeritEvent.created_at.asc())
         .limit(_SYNC_SCAN_LIMIT)
         .all()
     )
     for ev, stu in demerits:
-        if ("demerit_event", ev.id) in existing:
-            continue
         new_rows.append(
             models.Notification(
                 category="demerit",
@@ -271,17 +292,21 @@ def _sync_notifications(db: Session, *, is_demo: bool) -> None:
         )
 
     # ③ 点呼上报
+    synced_rep = _synced_source_ids(
+        db, source_table="rollcall_reports", is_demo=is_demo
+    )
     reports = (
         db.query(models.RollCallReport, models.Student)
         .join(models.Student, models.RollCallReport.student_id == models.Student.id)
-        .filter(models.Student.is_demo == is_demo)
-        .order_by(models.RollCallReport.created_at.desc())
+        .filter(
+            models.Student.is_demo == is_demo,
+            models.RollCallReport.id.notin_(synced_rep) if synced_rep else True,
+        )
+        .order_by(models.RollCallReport.created_at.asc())
         .limit(_SYNC_SCAN_LIMIT)
         .all()
     )
     for rep, stu in reports:
-        if ("rollcall_reports", rep.id) in existing:
-            continue
         label = _ROLLCALL_KIND_LABEL.get(rep.kind, "点呼の報告")
         new_rows.append(
             models.Notification(
@@ -299,17 +324,21 @@ def _sync_notifications(db: Session, *, is_demo: bool) -> None:
     # ④ 第二批：8 类申请表（外出 / 学习缺席 / 在线学习 / 行事企划 /
     #    冰箱购入 / 物品持有 / 指导开示 / 杂项）— 配置见 _REQUEST_SOURCES
     for cfg in _REQUEST_SOURCES:
+        synced = _synced_source_ids(
+            db, source_table=cfg["source_table"], is_demo=is_demo
+        )
         rows = (
             db.query(cfg["model"], models.Student)
             .join(models.Student, cfg["student_fk"] == models.Student.id)
-            .filter(models.Student.is_demo == is_demo)
-            .order_by(cfg["time_col"].desc())
+            .filter(
+                models.Student.is_demo == is_demo,
+                cfg["model"].id.notin_(synced) if synced else True,
+            )
+            .order_by(cfg["time_col"].asc())
             .limit(_SYNC_SCAN_LIMIT)
             .all()
         )
         for row, stu in rows:
-            if (cfg["source_table"], row.id) in existing:
-                continue
             new_rows.append(
                 models.Notification(
                     category=cfg["category"],

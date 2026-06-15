@@ -14,7 +14,7 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from .. import models, permissions, schemas
@@ -100,7 +100,9 @@ def list_my_event_proposals(
 def list_event_proposals(
     result_filter: str | None = Query("pending", alias="result"),
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_APPROVAL, permissions.VIEW)
+    ),
 ):
     stmt = select(models.DormEventProposal).order_by(
         models.DormEventProposal.submitted_at.asc()
@@ -129,12 +131,35 @@ def decide_event_proposal(
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "申請が見つかりません"}
         )
+    # 提出学生若已被删（proposer 关系悬空 None），不能直接读 None.is_demo（否则 500）。
+    # 学生缺失时当作申請不存在 404，与「缺数据即拒绝」方向一致。
+    if record.proposer is None:
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "申請が見つかりません"}
+        )
     assert_student_demo_match(teacher, record.proposer)
     _ensure_pending(record.result)
-    record.result = body.decision
-    record.decided_by = teacher.id
-    record.decided_at = _now_jst()
-    record.comment = body.comment
+    # 原子条件更新：只有 result 仍是 pending 才写决定。两老师并发审批同一申請时，
+    # 后写者命中 0 行 → 409，避免覆盖前者的 decided_by/comment（照 outings.py confirm 做法）。
+    affected = db.execute(
+        update(models.DormEventProposal)
+        .where(
+            models.DormEventProposal.id == proposal_id,
+            models.DormEventProposal.result == "pending",
+        )
+        .values(
+            result=body.decision,
+            decided_by=teacher.id,
+            decided_at=_now_jst(),
+            comment=body.comment,
+        )
+    )
+    if affected.rowcount != 1:
+        db.rollback()
+        raise HTTPException(
+            409,
+            {"code": "APPROVAL_ALREADY_DECIDED", "message": "既に決定済みです"},
+        )
     db.commit()
     db.refresh(record)
     return schemas.DormEventProposalOut.model_validate(record)
@@ -166,7 +191,9 @@ def create_schedule_change(
 def list_my_schedule_changes(
     status_filter: str | None = Query(None, alias="status"),
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_APPROVAL, permissions.VIEW)
+    ),
 ):
     stmt = (
         select(models.DormScheduleChange)
@@ -183,7 +210,9 @@ def list_my_schedule_changes(
 def list_schedule_changes(
     status_filter: str | None = Query("pending", alias="status"),
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_APPROVAL, permissions.VIEW)
+    ),
 ):
     stmt = select(models.DormScheduleChange).order_by(
         models.DormScheduleChange.submitted_at.asc()
@@ -219,15 +248,32 @@ def decide_schedule_change(
         )
     # 演示隔离 — 本申请由老师提交（无学生），故不能用 assert_student_demo_match（那个比学生 is_demo）。
     # 比申请老师（record.requester）与当前老师 is_demo：演示老师只能决定演示老师的申请，反之亦然。
-    if record.requester.is_demo != teacher.is_demo:
+    # 提交老师若已被删（requester 关系悬空 None），不能直接读 None.is_demo（否则 500），当作不存在 404。
+    if record.requester is None or record.requester.is_demo != teacher.is_demo:
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "申請が見つかりません"}
         )
     _ensure_pending(record.status)
-    record.status = body.decision
-    record.decided_by = teacher.id
-    record.decided_at = _now_jst()
-    record.comment = body.comment
+    # 原子条件更新：只有 status 仍是 pending 才写决定，防两老师并发审批互相覆盖（照 outings.py 做法）。
+    affected = db.execute(
+        update(models.DormScheduleChange)
+        .where(
+            models.DormScheduleChange.id == change_id,
+            models.DormScheduleChange.status == "pending",
+        )
+        .values(
+            status=body.decision,
+            decided_by=teacher.id,
+            decided_at=_now_jst(),
+            comment=body.comment,
+        )
+    )
+    if affected.rowcount != 1:
+        db.rollback()
+        raise HTTPException(
+            409,
+            {"code": "APPROVAL_ALREADY_DECIDED", "message": "既に決定済みです"},
+        )
     db.commit()
     db.refresh(record)
     return schemas.DormScheduleChangeOut.model_validate(record)
@@ -276,7 +322,9 @@ def list_my_fridge_purchases(
 def list_fridge_purchases(
     status_filter: str | None = Query("pending", alias="status"),
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_APPROVAL, permissions.VIEW)
+    ),
 ):
     stmt = select(models.FridgePurchaseRequest).order_by(
         models.FridgePurchaseRequest.submitted_at.asc()
@@ -305,6 +353,11 @@ def decide_fridge_purchase(
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "申請が見つかりません"}
         )
+    # 提出学生若已被删（student 关系悬空 None），不能直接读 None.is_demo（否则 500），当作不存在 404。
+    if record.student is None:
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "申請が見つかりません"}
+        )
     assert_student_demo_match(teacher, record.student)
     # 冷蔵庫購入届合法状态流转白名单：pending→ordered/rejected、ordered→delivered
     # 白名单外（ordered→rejected、已 delivered/rejected 再次决定、同状态重复覆盖等）一律拒绝
@@ -312,9 +365,11 @@ def decide_fridge_purchase(
         "pending": {"ordered", "rejected"},
         "ordered": {"delivered"},
     }
-    if body.decision not in _allowed_fridge_transitions.get(record.status, set()):
+    # 记下读到的当前状态 — 既校验白名单，又作为原子更新的 WHERE 条件防并发覆盖
+    current_status = record.status
+    if body.decision not in _allowed_fridge_transitions.get(current_status, set()):
         # pending 想直接跳 delivered 的情况用专用提示引导
-        if record.status == "pending" and body.decision == "delivered":
+        if current_status == "pending" and body.decision == "delivered":
             raise HTTPException(
                 409,
                 {"code": "CANNOT_DELIVER", "message": "注文済みの申請だけ引き渡せます"},
@@ -323,12 +378,30 @@ def decide_fridge_purchase(
             409,
             {"code": "APPROVAL_ALREADY_DECIDED", "message": "既に決定済みです"},
         )
-    record.status = body.decision
+    # 原子条件更新：WHERE status = 校验时读到的状态。若并发请求已把状态改掉（如已 ordered），
+    # 本次命中 0 行 → 409，避免两老师并发把同一申請推到冲突状态（照 outings.py 做法）。
+    values: dict = {
+        "status": body.decision,
+        "decided_by": teacher.id,
+        "decided_at": _now_jst(),
+        "comment": body.comment,
+    }
     if body.delivered_sign is not None:
-        record.delivered_sign = body.delivered_sign
-    record.decided_by = teacher.id
-    record.decided_at = _now_jst()
-    record.comment = body.comment
+        values["delivered_sign"] = body.delivered_sign
+    affected = db.execute(
+        update(models.FridgePurchaseRequest)
+        .where(
+            models.FridgePurchaseRequest.id == request_id,
+            models.FridgePurchaseRequest.status == current_status,
+        )
+        .values(**values)
+    )
+    if affected.rowcount != 1:
+        db.rollback()
+        raise HTTPException(
+            409,
+            {"code": "APPROVAL_ALREADY_DECIDED", "message": "既に決定済みです"},
+        )
     db.commit()
     db.refresh(record)
     return schemas.FridgePurchaseRequestOut.model_validate(record)
@@ -377,7 +450,9 @@ def list_my_item_possessions(
 def list_item_possessions(
     status_filter: str | None = Query("pending", alias="status"),
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_APPROVAL, permissions.VIEW)
+    ),
 ):
     stmt = select(models.ItemPossessionRequest).order_by(
         models.ItemPossessionRequest.submitted_at.asc()
@@ -406,12 +481,33 @@ def decide_item_possession(
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "申請が見つかりません"}
         )
+    # 提出学生若已被删（student 关系悬空 None），不能直接读 None.is_demo（否则 500），当作不存在 404。
+    if record.student is None:
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "申請が見つかりません"}
+        )
     assert_student_demo_match(teacher, record.student)
     _ensure_pending(record.status)
-    record.status = body.decision
-    record.decided_by = teacher.id
-    record.decided_at = _now_jst()
-    record.comment = body.comment
+    # 原子条件更新：只有 status 仍是 pending 才写决定，防两老师并发审批互相覆盖（照 outings.py 做法）。
+    affected = db.execute(
+        update(models.ItemPossessionRequest)
+        .where(
+            models.ItemPossessionRequest.id == request_id,
+            models.ItemPossessionRequest.status == "pending",
+        )
+        .values(
+            status=body.decision,
+            decided_by=teacher.id,
+            decided_at=_now_jst(),
+            comment=body.comment,
+        )
+    )
+    if affected.rowcount != 1:
+        db.rollback()
+        raise HTTPException(
+            409,
+            {"code": "APPROVAL_ALREADY_DECIDED", "message": "既に決定済みです"},
+        )
     db.commit()
     db.refresh(record)
     return schemas.ItemPossessionRequestOut.model_validate(record)

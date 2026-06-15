@@ -47,13 +47,9 @@ def _generate_code() -> str:
 def _to_out(row: models.StudentRegistrationCode) -> schemas.RegistrationCodeOut:
     """ORM row → 响应 DTO（剩余秒数 = 算出字段，给客户端做倒计时）。"""
     now = datetime.now(timezone.utc)
-    # SQLite 取出来的 datetime 没 tzinfo，补成 UTC 再算差
-    expires_at = (
-        row.expires_at
-        if row.expires_at.tzinfo is not None
-        else row.expires_at.replace(tzinfo=timezone.utc)
-    )
-    diff_seconds = (expires_at - now).total_seconds()
+    # expires_at 经 TZDateTime 类型层读回，必带时区（JST），与 now（带 UTC 时区）直接相减安全；
+    # 不再在此手动补 tzinfo（旧补丁是 TZDateTime 上线前的遗留，现已由类型层统一保证）。
+    diff_seconds = (row.expires_at - now).total_seconds()
     return schemas.RegistrationCodeOut(
         code=row.code,
         created_at=row.created_at,
@@ -184,8 +180,9 @@ def close_code(
     now = datetime.now(timezone.utc)
     # 只关「生效中（未过期）」的码 —— 与 /current 同口径（invalidated IS NULL + expires_at > now）。
     # 过期码 /current 本就返回 null → close 应 no-op、不记 audit（Codex 5.5 P3）。
-    # refresh 保证同时最多 1 个生效码，直接改 SELECT 出来的这一行；不用 bulk update().where(expires_at > now)，
-    # 否则 ORM 在 Python 端 evaluate 该 where 会撞 naive(SQLite 读回) / aware(now) datetime 比较 → TypeError。
+    # refresh 保证同时最多 1 个生效码，直接 SELECT 这一行再改：既能拿到 row 写 audit log，
+    # 也避开 bulk update().where(expires_at > now) 在 ORM Python 端 evaluate 时的额外开销。
+    # （时区比较本身已安全 —— expires_at 经 TZDateTime 读回必带时区，与 now 带 UTC 时区可直接比。）
     active = db.scalars(
         select(models.StudentRegistrationCode)
         .where(

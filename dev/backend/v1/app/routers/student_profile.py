@@ -194,7 +194,26 @@ def renew_my_number(
     try:
         db.commit()
     except IntegrityError:
+        # 并发抢同号：撤销本次事务（含上面 add 的「成功」AuditLog 与三段番号改动）。
         db.rollback()
+        # rollback 会把成功审计一并回滚，所以这次「学生尝试改番号但撞号失败」原本不留任何痕迹。
+        # A-491：补写一条失败审计（防探测他人番号占用），并在独立事务里 commit。
+        # rollback 后 session 可继续用、会自动开新事务，故直接 add+commit 即可。
+        db.add(
+            models.AuditLog(
+                actor_type="student",
+                actor_id=student.id,
+                action="student.renew_number_conflict",
+                target_type="student",
+                target_id=student.id,
+                payload={"attempted_student_no": new_no},
+            )
+        )
+        try:
+            db.commit()
+        except Exception:
+            # 失败审计本身写不进去也不能影响业务返回（撞号仍要正确返 422），吞掉并回滚。
+            db.rollback()
         raise HTTPException(
             status_code=422,
             detail={

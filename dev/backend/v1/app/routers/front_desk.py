@@ -20,7 +20,7 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, update
 from sqlalchemy.orm import Session
 
 from .. import models, permissions, schemas
@@ -49,9 +49,6 @@ def _assert_student_in_dorm(teacher: models.Teacher, student: models.Student) ->
 
 
 router = APIRouter(prefix="/api/v1/front-desk", tags=["front-desk"])
-
-# 登记 / 标取走权限 — 寮監 / 寮務 / 管理係
-_ADMIN_ROLES = {"寮監", "寮務部長", "寮務課長", "管理係"}
 
 # 默认过期时长
 DELIVERY_EXPIRES_DAYS = 7
@@ -144,14 +141,18 @@ def search_recipients(
     """
     stmt = select(models.Student).where(demo_scope_for_teacher(teacher))
     if q:
-        like = f"%{q}%"
+        # E-低-04：转义用户输入里的 LIKE 通配符 % 和 _（与 admin_accounts.py 同款），
+        # 否则老师输入含 % 的查询会被当通配符匹配全部（功能性瑕疵，非注入——值已被
+        # SQLAlchemy 参数化）。escape='\\' 指定反斜杠为转义字符，先转义反斜杠自身再转义 % 和 _。
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        like = f"%{escaped}%"
         stmt = stmt.where(
-            models.Student.name.like(like)
+            models.Student.name.like(like, escape="\\")
             | (
                 models.Student.grade_code
                 + models.Student.class_code
                 + models.Student.seat_no
-            ).like(like)
+            ).like(like, escape="\\")
         )
     allowed = dorm_units_for_teacher(teacher)
     if allowed is not None:
@@ -239,18 +240,32 @@ def notify_item(
     else:
         # 无主条目演示老师禁操作（改真实无主条目状态）→ 403
         assert_not_demo_teacher(teacher)
-    if row.status != "pending":
+    # 原子条件更新：只有 status 仍是 pending 才转 notified。
+    # 防两个老师并发点「已通知」/ 一人点通知一人点取走时都读到 pending、最后一次写覆盖前一次
+    # （与 outings.py confirm_outing 对齐的竞态修法）。rowcount != 1 说明已被别的请求改掉 → 409。
+    result = db.execute(
+        update(models.FrontDeskItem)
+        .where(
+            models.FrontDeskItem.id == item_id,
+            models.FrontDeskItem.status == "pending",
+        )
+        .values(status="notified", notified_at=datetime.now(timezone.utc))
+    )
+    if result.rowcount != 1:
+        db.rollback()
+        # 重新读当前状态拼进提示，便于老师网页判断为何失败
+        current = db.get(models.FrontDeskItem, item_id)
+        current_status = current.status if current else "unknown"
         raise HTTPException(
             status_code=409,
             detail={
                 "code": "WRONG_STATE",
-                "message": f"当前 status={row.status}，只能从 pending 转 notified",
+                "message": f"当前 status={current_status}，只能从 pending 转 notified",
             },
         )
-    row.status = "notified"
-    row.notified_at = datetime.now(timezone.utc)
     db.commit()
-    db.refresh(row)
+    # commit 后 ORM 对象已 expire，重新读拿转换后的最新状态返回
+    row = db.get(models.FrontDeskItem, item_id)
     return schemas.FrontDeskItemOut.model_validate(row)
 
 
@@ -278,16 +293,30 @@ def mark_picked_up(
     else:
         # 无主条目演示老师禁操作（改真实无主条目状态）→ 403
         assert_not_demo_teacher(teacher)
-    if row.status not in {"pending", "notified"}:
+    # 原子条件更新：只有 status 仍是 pending/notified 才转 picked_up。
+    # 防两个老师并发点「已取走」/ 一人点取走一人点通知时都读到旧状态、最后一次写覆盖前一次
+    # （与 outings.py confirm_outing 对齐的竞态修法）。rowcount != 1 说明已被别的请求改掉 → 409。
+    result = db.execute(
+        update(models.FrontDeskItem)
+        .where(
+            models.FrontDeskItem.id == item_id,
+            models.FrontDeskItem.status.in_(["pending", "notified"]),
+        )
+        .values(status="picked_up", picked_up_at=datetime.now(timezone.utc))
+    )
+    if result.rowcount != 1:
+        db.rollback()
+        # 重新读当前状态拼进提示，便于老师网页判断为何失败
+        current = db.get(models.FrontDeskItem, item_id)
+        current_status = current.status if current else "unknown"
         raise HTTPException(
             status_code=409,
             detail={
                 "code": "WRONG_STATE",
-                "message": f"当前 status={row.status}，不能转 picked_up",
+                "message": f"当前 status={current_status}，不能转 picked_up",
             },
         )
-    row.status = "picked_up"
-    row.picked_up_at = datetime.now(timezone.utc)
     db.commit()
-    db.refresh(row)
+    # commit 后 ORM 对象已 expire，重新读拿转换后的最新状态返回
+    row = db.get(models.FrontDeskItem, item_id)
     return schemas.FrontDeskItemOut.model_validate(row)

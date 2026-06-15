@@ -69,17 +69,21 @@ def list_misc_requests(
     ),
 ):
     """老师查杂项申请列表 — R4 寮过滤（男寮[1,2]/女寮[4]/跨寮看全部）。"""
-    rows = db.scalars(
-        select(models.MiscRequest).order_by(models.MiscRequest.created_at.desc())
-    ).all()
-    # R4 寮过滤 + 演示隔离：真老师看真实学生申请 / 演示老师看演示学生申请
-    # （跨寮老师 dorm_units=None 原先完全不过滤，演示数据会漏进真老师 — 改成总按 demo 过滤）
+    # R4 寮过滤 + 演示隔离直接在 SQL 里做：join 学生表后按 demo / dorm_unit 过滤，
+    # 让数据库走索引、只取该老师能看的行，避免先全表载入内存再 Python 端过滤
+    # （旧实现拉全表 + [r for r in rows if r.student_id in allowed_ids]，随申请量线性膨胀）。
+    # 真老师看真实学生申请 / 演示老师看演示学生申请；跨寮老师 dorm_units=全集则不加寮限制。
+    # 排序作用在已过滤的结果集上，将来加 limit 也是先过滤再截断、不会取数不足。
+    stmt = (
+        select(models.MiscRequest)
+        .join(models.Student, models.Student.id == models.MiscRequest.student_id)
+        .where(demo_scope_for_teacher(teacher))
+        .order_by(models.MiscRequest.created_at.desc())
+    )
     dorm_units = dorm_units_for_teacher(teacher)
-    student_q = select(models.Student.id).where(demo_scope_for_teacher(teacher))
     if dorm_units is not None:
-        student_q = student_q.where(models.Student.dorm_unit.in_(dorm_units))
-    allowed_ids = set(db.scalars(student_q).all())
-    rows = [r for r in rows if r.student_id in allowed_ids]
+        stmt = stmt.where(models.Student.dorm_unit.in_(dorm_units))
+    rows = db.scalars(stmt).all()
     return [schemas.MiscRequestOut.model_validate(r) for r in rows]
 
 

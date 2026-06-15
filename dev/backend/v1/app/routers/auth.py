@@ -18,7 +18,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from .. import models, schemas, security
@@ -35,7 +35,7 @@ router = APIRouter(prefix="/api/v1/sessions", tags=["auth"])
 TEACHER_LOCK_THRESHOLD = 3  # 3 次失败立锁
 TEACHER_LOCK_DURATION_MIN = 30  # 锁 30 分钟
 
-# B6：学生 login 锁定阈值（与教师对齐，5 次 → 锁 15 分钟）
+# B6：学生 login 锁定阈值（学生独立阈值：5 次失败锁 15 分；教师是 3 次 / 30 分，两端不一致）
 STUDENT_LOCK_THRESHOLD = 5
 STUDENT_LOCK_DURATION_MIN = 15
 
@@ -102,13 +102,32 @@ def login_student(
             },
         )
 
+    # E-低-09：锁定期满后清失败计数（防可用性 DoS）。
+    # 原本只有登录成功才清 failed_count；锁满后计数仍停在阈值（5），
+    # 攻击者只要再错 1 次就立刻把账号重新锁死，可长期拒绝服务。
+    # 这里在「曾经设过锁、现在已过期」时把计数与锁一起清零 = 滑动窗口起点重置，
+    # 让锁满后的失败重新从 0 计起。is_locked 已在上面拦截，能走到这里说明锁已过期。
+    if account and account.locked_until is not None:
+        account.failed_count = 0
+        account.locked_until = None
+        db.commit()
+
     # 密码校验失败 → 失败计数 + 触发锁
     # auth-account-09：无论账号是否存在都跑一次 bcrypt，等化响应耗时，防账号枚举。
     password_hash = account.password_hash if account else _DUMMY_PASSWORD_HASH
     password_ok = security.verify_password(body.password, password_hash)
     if not student or not account or not password_ok:
         if account:
-            account.failed_count = (account.failed_count or 0) + 1
+            # F-低-11：原子自增，避免并发失败请求各自读到旧值再 +1 导致丢更新。
+            # 直接发 UPDATE ... SET failed_count = failed_count + 1（数据库侧加值），
+            # 再 refresh 读回最新值判断是否达阈值。dev SQLite 串行掩盖了竞态，
+            # production PostgreSQL 下并发明显，故用 DB 端原子写。
+            db.execute(
+                update(models.Account)
+                .where(models.Account.id == account.id)
+                .values(failed_count=models.Account.failed_count + 1)
+            )
+            db.refresh(account)
             if account.failed_count >= STUDENT_LOCK_THRESHOLD:
                 # 写带时区的世界时 —— TZDateTime 写入侧统一转 UTC 存（与老师登录段口径一致）
                 account.locked_until = now + timedelta(
@@ -190,13 +209,28 @@ def login_teacher(
             },
         )
 
+    # E-低-09：锁定期满后清失败计数（防可用性 DoS）。
+    # 与学生段同理：原本锁满后 failed_count 仍停在阈值（3），攻击者再错 1 次即重新锁死。
+    # 在「曾经设过锁、现在已过期」时把计数与锁一起清零 = 滑动窗口起点重置。
+    # 上面已拦截仍在锁定中的情况，能走到这里说明锁已过期。
+    if teacher and teacher.locked_until is not None:
+        teacher.failed_count = 0
+        teacher.locked_until = None
+        db.commit()
+
     # 密码校验失败 → 失败计数 + 触发锁
     # auth-account-09：无论账号是否存在都跑一次 bcrypt，等化响应耗时，防账号枚举。
     password_hash = teacher.password_hash if teacher else _DUMMY_PASSWORD_HASH
     password_ok = security.verify_password(body.password, password_hash)
     if not teacher or not password_ok:
         if teacher:
-            teacher.failed_count = (teacher.failed_count or 0) + 1
+            # F-低-11：原子自增，避免并发失败请求丢更新（详见学生段同名注释）。
+            db.execute(
+                update(models.Teacher)
+                .where(models.Teacher.id == teacher.id)
+                .values(failed_count=models.Teacher.failed_count + 1)
+            )
+            db.refresh(teacher)
             if teacher.failed_count >= TEACHER_LOCK_THRESHOLD:
                 teacher.locked_until = now + timedelta(
                     minutes=TEACHER_LOCK_DURATION_MIN

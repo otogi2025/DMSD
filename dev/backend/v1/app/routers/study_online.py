@@ -88,6 +88,29 @@ def submit_online_request(
             },
         )
 
+    # 时间段重叠校验 — 同一学生不允许提交与现有 pending（审查中）/ approved（已许可）申请
+    # 时间段相交的新申请，否则会叠出多份生效期重叠的许可、审批端难判定谁覆盖谁。
+    # 两段 [a_from, a_to] 与 [b_from, b_to] 相交的充要条件：a_from <= b_to 且 b_from <= a_to
+    # （含端点重合，因为单日申请 period_from == period_to 也算占用当天）。
+    overlap_exists = db.scalar(
+        select(models.StudyOnlineRequest.id)
+        .where(
+            models.StudyOnlineRequest.student_id == student.id,
+            models.StudyOnlineRequest.status.in_(("pending", "approved")),
+            models.StudyOnlineRequest.period_from <= body.period_to,
+            models.StudyOnlineRequest.period_to >= body.period_from,
+        )
+        .limit(1)
+    )
+    if overlap_exists is not None:
+        raise HTTPException(
+            409,
+            {
+                "code": "ONLINE_REQUEST_OVERLAP",
+                "message": "同じ期間の申請が既に存在します",
+            },
+        )
+
     record = models.StudyOnlineRequest(
         student_id=student.id,
         reason=body.reason,
@@ -168,18 +191,21 @@ def decide_online_request(
 
     # R4 寮边界：寮監是 dorm-scoped 角色，只能审批本寮学生的在线申请
     student = db.get(models.Student, record.student_id)
-    if student:
-        # 演示写隔离：演示老师只能审批演示学生的申请，否则 404（防越权审批真实学生）
-        assert_student_demo_match(teacher, student)
-        allowed = dorm_units_for_teacher(teacher)
-        if allowed is not None and student.dorm_unit not in allowed:
-            raise HTTPException(
-                status_code=403,
-                detail={
-                    "code": "FORBIDDEN_DORM",
-                    "message": "担当外の寮の学生への操作はできません",
-                },
-            )
+    # 缺数据即拒绝（fail-closed）：student 行被删 / student_id 悬空时，演示与寮隔离
+    # 校验失去判定依据 —— 此时必须 404 拒绝，绝不能跳过校验直接放行审批操作。
+    if student is None:
+        raise HTTPException(404, {"code": "NOT_FOUND", "message": "届が見つかりません"})
+    # 演示写隔离：演示老师只能审批演示学生的申请，否则 404（防越权审批真实学生）
+    assert_student_demo_match(teacher, student)
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None and student.dorm_unit not in allowed:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "FORBIDDEN_DORM",
+                "message": "担当外の寮の学生への操作はできません",
+            },
+        )
 
     if body.decision == "revoked":
         if record.status != "approved":
@@ -348,15 +374,16 @@ def download_contract(
 
     if isinstance(principal, models.Teacher):
         student = db.get(models.Student, record.student_id)
+        # 缺数据即拒绝（fail-closed）：student 行被删 / student_id 悬空时，演示与寮隔离
+        # 校验失去判定依据 —— 此时必须 404 拒绝，绝不能跳过校验直接放行文件。
+        if student is None:
+            raise HTTPException(
+                404, {"code": "NOT_FOUND", "message": "契約書が見つかりません"}
+            )
         # 演示读隔离：演示老师只能下载演示学生的契約書，否则 404（防凭真实 request UUID 越权下载）
-        if student is not None:
-            assert_student_demo_match(principal, student)
+        assert_student_demo_match(principal, student)
         allowed = dorm_units_for_teacher(principal)
-        if (
-            allowed is not None
-            and student is not None
-            and student.dorm_unit not in allowed
-        ):
+        if allowed is not None and student.dorm_unit not in allowed:
             raise HTTPException(
                 403,
                 {

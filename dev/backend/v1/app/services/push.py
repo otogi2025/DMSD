@@ -163,13 +163,19 @@ def send_push(
         db.add(log)
         db.flush()  # log.id 确定
 
-        sent, error = _dispatch_one(
-            platform=dt.platform,
-            token=dt.token,
-            title=title,
-            body=body,
-            data=data,
-        )
+        # F-codex-低-01：把投递调用包进 try/except，兑现「失败不 raise，调用方业务不中断」
+        # 契约（见本函数 docstring）。_dispatch_one 内的 provider 抛意外异常（网络错 / SDK
+        # bug）时不再炸穿到调用方业务，而是当作本设备投递失败记 log 继续下一台设备。
+        try:
+            sent, error = _dispatch_one(
+                platform=dt.platform,
+                token=dt.token,
+                title=title,
+                body=body,
+                data=data,
+            )
+        except Exception as exc:  # noqa: BLE001 — 推送投递任何异常都不得中断业务
+            sent, error = False, f"dispatch raised: {exc}"
         log.attempts = 1
         if sent:
             log.status = "sent"

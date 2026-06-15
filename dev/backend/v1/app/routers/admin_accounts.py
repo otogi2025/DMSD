@@ -151,15 +151,19 @@ def list_students(
     if q:
         # 模糊搜 student_no（grade+class+seat 组合）或 name
         # SQLite LIKE 是 case-insensitive（ASCII range），中文姓名也能用 LIKE
-        like = f"%{q}%"
+        # B-低-27（2026-06-15 全维度审查）：转义用户输入里的 LIKE 通配符 % 和 _，
+        # 否则老师输入含 % 的查询会被当通配符匹配全部（功能性瑕疵，非注入——值已被
+        # SQLAlchemy 参数化）。escape='\\' 指定反斜杠为转义字符，先转义反斜杠自身再转义 % 和 _。
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        like = f"%{escaped}%"
         stmt = stmt.where(
-            (models.Student.name.like(like))
+            (models.Student.name.like(like, escape="\\"))
             | (
                 (
                     models.Student.grade_code
                     + models.Student.class_code
                     + models.Student.seat_no
-                ).like(like)
+                ).like(like, escape="\\")
             )
         )
     if dorm_unit is not None:
@@ -410,6 +414,19 @@ def teacher_renew_seat(
             detail={
                 "code": "FORBIDDEN_DORM",
                 "message": "担当寮外の学生は変更できません",
+            },
+        )
+    # 在籍校验：番号兜底改只对在籍（active）学生开放。
+    # 已毕业 / 転寮 / 停用 / 自删的学生不再属于宿舍管理范围，给他们改 grade/class/seat
+    # 并强行清 needs_renewal 语义错误（且可能撞用已重新分配给在籍学生的学号）。
+    # 与 student_promote.py renewal_start 的「只取 active 学生开闸」口径对齐。
+    # A-527（2026-06-15 全维度审查）：原实现漏此校验。
+    if student.status != "active":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "STUDENT_NOT_ACTIVE",
+                "message": "在籍中の学生のみ番号を変更できます",
             },
         )
     new_no = f"{body.grade_code}{body.class_code}{body.seat_no}"

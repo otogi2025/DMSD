@@ -33,50 +33,60 @@ router = APIRouter(prefix="/api/v1/incidents", tags=["incidents"])
 # 不再按职位拦（旧 _INCIDENT_ROLES 职位集已随权限分级改造移除）。寮边界仍在端点内单独校验。
 
 
+def _build_student_name_map(
+    db: Session, rows: list[models.IncidentRecord], teacher: models.Teacher
+) -> dict[str, str]:
+    """汇总多条事案的全部涉及学生 id，一次性批量查姓名，避免逐条 N+1 查询（B-中-21）。
+
+    返回 id 字符串 → 姓名 的映射。只收录当前老师 demo_scope 内能解析到的学生：
+    演示老师只解析到演示学生、真老师只解析到真实学生，超出范围的 id 不进 map。
+    """
+    uuids: set[UUID] = set()
+    for row in rows:
+        for s in row.involved_student_ids or []:
+            try:
+                uuids.add(UUID(str(s)))
+            except (ValueError, TypeError):
+                # 入库前已全转成合法 UUID 字符串，这里只是防御历史脏数据
+                pass
+    if not uuids:
+        return {}
+    students = db.scalars(
+        select(models.Student).where(
+            models.Student.id.in_(uuids),
+            demo_scope_for_teacher(teacher),
+        )
+    ).all()
+    return {str(stu.id): stu.name for stu in students}
+
+
 def _to_incident_out(
-    db: Session, row: models.IncidentRecord, teacher: models.Teacher
+    row: models.IncidentRecord, name_map: dict[str, str]
 ) -> schemas.IncidentRecordOut:
-    """ORM 事案行 → 输出 schema，并把 involved_student_ids 解析成带姓名的 list。
+    """ORM 事案行 → 输出 schema，用预先批量查好的 name_map 填涉及学生姓名。
 
-    杭田 2026-06-04 五-6: 前端要把涉及学生姓名做成可点击 chip 跳个人档案，
-    所以这里 join Student 取姓名。找不到的学生（已删等）标「（不明）」。
+    杭田 2026-06-04 五-6: 前端要把涉及学生姓名做成可点击 chip 跳个人档案，所以解析姓名。
 
-    演示隔离: 姓名解析查询叠加 demo_scope_for_teacher(teacher) —— 演示老师
-    只能解析到演示学生姓名，真老师只能解析到真实学生姓名；超出范围的 id
-    落到「（不明）」，防止演示老师通过事案涉及学生看到真实学生姓名。
+    演示隔离 + 计数防泄漏（B-低-20）: 只输出在 name_map 里能解析到姓名的学生 chip。
+    被 demo_scope 过滤掉（演示老师看真实学生、或学生已删）的 id 直接不出现 ——
+    既删掉了旧的恒真过滤死逻辑，也不再以「（不明）」占位泄漏「该事案有 N 名我看不到的学生」。
     """
     out = schemas.IncidentRecordOut.model_validate(row)
     raw_ids = [str(s) for s in (row.involved_student_ids or [])]
-    if raw_ids:
-        uuids = []
-        for s in raw_ids:
-            try:
-                uuids.append(UUID(s))
-            except (ValueError, TypeError):
-                pass
-        name_map = {}
-        if uuids:
-            students = db.scalars(
-                select(models.Student).where(
-                    models.Student.id.in_(uuids),
-                    demo_scope_for_teacher(teacher),
-                )
-            ).all()
-            name_map = {str(stu.id): stu.name for stu in students}
-        out.involved_students = [
-            schemas.IncidentStudentBrief(id=s, name=name_map.get(s, "（不明）"))
-            for s in raw_ids
-            if s in name_map or _is_uuid(s)
-        ]
+    out.involved_students = [
+        schemas.IncidentStudentBrief(id=s, name=name_map[s])
+        for s in raw_ids
+        if s in name_map
+    ]
     return out
 
 
-def _is_uuid(s: str) -> bool:
-    try:
-        UUID(s)
-        return True
-    except (ValueError, TypeError):
-        return False
+def _to_incident_out_single(
+    db: Session, row: models.IncidentRecord, teacher: models.Teacher
+) -> schemas.IncidentRecordOut:
+    """单条事案的 → 输出 schema（create / get / patch 用），内部批量查一次姓名后转换。"""
+    name_map = _build_student_name_map(db, [row], teacher)
+    return _to_incident_out(row, name_map)
 
 
 @router.post("", response_model=schemas.IncidentRecordOut, status_code=201)
@@ -128,7 +138,7 @@ def create_incident(
     )
     db.commit()
     db.refresh(row)
-    return _to_incident_out(db, row, teacher)
+    return _to_incident_out_single(db, row, teacher)
 
 
 @router.get("", response_model=schemas.IncidentRecordListOut)
@@ -151,8 +161,10 @@ def list_incidents(
         )
         .order_by(models.IncidentRecord.incident_date.desc())
     ).all()
+    # B-中-21: 先把全部事案涉及的学生 id 汇总，一次批量查姓名，再分发给各行，避免逐条 N+1
+    name_map = _build_student_name_map(db, list(rows), teacher)
     return schemas.IncidentRecordListOut(
-        items=[_to_incident_out(db, r, teacher) for r in rows]
+        items=[_to_incident_out(r, name_map) for r in rows]
     )
 
 
@@ -178,7 +190,7 @@ def get_incident(
             status_code=404,
             detail={"code": "INCIDENT_NOT_FOUND", "message": "事案不存在"},
         )
-    return _to_incident_out(db, row, teacher)
+    return _to_incident_out_single(db, row, teacher)
 
 
 @router.patch("/{incident_id}", response_model=schemas.IncidentRecordOut)
@@ -240,7 +252,7 @@ def patch_incident(
     )
     db.commit()
     db.refresh(row)
-    return _to_incident_out(db, row, teacher)
+    return _to_incident_out_single(db, row, teacher)
 
 
 @router.delete("/{incident_id}", status_code=204)

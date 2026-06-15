@@ -19,6 +19,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from .. import models, permissions, schemas
@@ -175,7 +176,8 @@ def create_disclosure_request(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"code": "FORBIDDEN", "message": "只能申请查看自己的指导履历"},
         )
-    # 已有 pending 申请时不重复提交
+    # 已有 pending 申请时不重复提交。这里的预查只是「快路径」给单线程的常见情况一个干净的
+    # 409，真正防并发的不变量靠 DB 部分唯一索引 uq_gdr_one_pending_per_student 兜底（见下）。
     existing = db.scalar(
         select(models.GuidanceDisclosureRequest).where(
             models.GuidanceDisclosureRequest.student_id == student_id,
@@ -204,7 +206,16 @@ def create_disclosure_request(
             payload={"student_id": str(student_id)},
         )
     )
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # 并发兜底：两个请求几乎同时到，预查都没命中、各自 add，第二个 commit 撞
+        # uq_gdr_one_pending_per_student 部分唯一索引 → 回滚后转 409（而非 500）。
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "ALREADY_PENDING", "message": "已有待处理的开示申请"},
+        ) from None
     db.refresh(row)
     # 手动加载 student relation 以满足 from_row 要求
     _ = row.student
@@ -319,6 +330,11 @@ def decide_disclosure(
         )
     )
     db.commit()
-    db.refresh(row)
-    _ = row.student  # 确保 relation 仍在 session 内
+    # commit 后 row 属性全部过期；refresh 时显式把 student relation 一并重新加载，
+    # 不再依赖随后 from_row 访问 row.student / row.student.student_no 时触发的隐式 lazy load
+    # （若将来 refresh 后 session 提前关闭，lazy load 会抛 DetachedInstanceError）。
+    db.refresh(row, attribute_names=["student"])
+    _ = (
+        row.student.student_no
+    )  # 顺带把 student 的标量列也加载进 session，from_row 直接用
     return schemas.GuidanceDisclosureRequestOut.from_row(row)

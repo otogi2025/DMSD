@@ -74,6 +74,53 @@ _JST = ZoneInfo("Asia/Tokyo")
 router = APIRouter(prefix="/api/v1/applications", tags=["applications"])
 
 
+def _build_application_kwargs(
+    body: schemas.ApplicationCreateIn, *, student_id: UUID
+) -> dict:
+    """提出体（帰省 / 外泊 / 帰国）から Application 行の kwargs を組み立てる。
+
+    学生本人 POST /applications と 老师代録 POST /by-teacher で完全に同じだった
+    約 80 行の構築ロジックを共通化（B-中-23）。共通フィールド + 種別固有フィールドを
+    一括で返す。status は呼出側で常に 'pending' なのでここで埋める。
+    """
+    app_kwargs = {
+        "student_id": student_id,
+        "kind": body.kind,
+        "reason": body.reason,
+        "leave_date": body.leave_date,
+        "leave_method": body.leave_method,
+        "leave_time": body.leave_time,
+        "return_date": body.return_date,
+        "return_method": body.return_method,
+        "return_time": body.return_time,
+        "contact_phone": body.contact_phone,
+        "meal_note": body.meal_note,
+        "taxi_reservation_time": body.taxi_reservation_time,
+        "status": "pending",
+    }
+    if isinstance(body, schemas.KisheiCreateIn):
+        app_kwargs.update(is_long_vacation=body.is_long_vacation)
+    elif isinstance(body, schemas.GaihakuCreateIn):
+        app_kwargs.update(
+            stay_locations=[loc.model_dump() for loc in body.stay_locations],
+            meals_skip=[e.model_dump(mode="json") for e in body.meals_skip] or None,
+            companion=body.companion,
+            dest_cities=body.dest_cities,
+        )
+    elif isinstance(body, schemas.KikokuCreateIn):
+        app_kwargs.update(
+            stay_locations=[loc.model_dump() for loc in body.stay_locations],
+            meals_skip=[e.model_dump(mode="json") for e in body.meals_skip] or None,
+            companion=body.companion,
+            dest_cities=body.dest_cities,
+            flight_dep_air=body.flight_dep_air,
+            flight_dep_at=body.flight_dep_at,
+            flight_arr_air=body.flight_arr_air,
+            flight_arr_at=body.flight_arr_at,
+        )
+    return app_kwargs
+
+
 # ---------------------------------------------------------------
 # POST /applications — #1 #2 #3 #4 + #6 メール送信
 # ---------------------------------------------------------------
@@ -115,41 +162,7 @@ def create_application(
     # (#1) 学生は自分の届しか出せない (deps から student 取れているので自動的に own)
     # → body に student_id を含めない設計、サーバ側で current student を bind
 
-    app_kwargs = {
-        "student_id": student.id,
-        "kind": body.kind,
-        "reason": body.reason,
-        "leave_date": body.leave_date,
-        "leave_method": body.leave_method,
-        "leave_time": body.leave_time,
-        "return_date": body.return_date,
-        "return_method": body.return_method,
-        "return_time": body.return_time,
-        "contact_phone": body.contact_phone,
-        "meal_note": body.meal_note,
-        "taxi_reservation_time": body.taxi_reservation_time,
-        "status": "pending",
-    }
-    if isinstance(body, schemas.KisheiCreateIn):
-        app_kwargs.update(is_long_vacation=body.is_long_vacation)
-    elif isinstance(body, schemas.GaihakuCreateIn):
-        app_kwargs.update(
-            stay_locations=[loc.model_dump() for loc in body.stay_locations],
-            meals_skip=[e.model_dump(mode="json") for e in body.meals_skip] or None,
-            companion=body.companion,
-            dest_cities=body.dest_cities,
-        )
-    elif isinstance(body, schemas.KikokuCreateIn):
-        app_kwargs.update(
-            stay_locations=[loc.model_dump() for loc in body.stay_locations],
-            meals_skip=[e.model_dump(mode="json") for e in body.meals_skip] or None,
-            companion=body.companion,
-            dest_cities=body.dest_cities,
-            flight_dep_air=body.flight_dep_air,
-            flight_dep_at=body.flight_dep_at,
-            flight_arr_air=body.flight_arr_air,
-            flight_arr_at=body.flight_arr_at,
-        )
+    app_kwargs = _build_application_kwargs(body, student_id=student.id)
 
     application = models.Application(**app_kwargs)
     application.student = student  # eager bind for chain build
@@ -160,19 +173,30 @@ def create_application(
     approval_chain.build_chain(db, application)
 
     # 邮件通知 (#6 R1)
+    # F-中-10 / F-codex-中-04: 通知の DB 書込み (NotificationLog) は SAVEPOINT で隔離する。
+    # メール送信自体は email_svc 内で例外を握り潰す (失败は status='failed' 記録、raise しない)
+    # ので、ここで raise しうるのは NotificationLog の flush だけ。SAVEPOINT で包めば、
+    # 通知行の書込みが失败しても届本体 + 審批链 + audit は残り commit される
+    # (通知の不整合で業務状態を巻き戻さない)。他の savepoint 兜底 (notifications.py / study.py) と同形。
     teachers, to_emails = approval_chain.collect_recipients(db, application)
-    notification_log = email_svc.send_application_submitted(
-        db,
-        application=application,
-        student=student,
-        teachers=teachers,
-        to_emails=to_emails,
-    )
+    notification_log = None
+    try:
+        with db.begin_nested():
+            notification_log = email_svc.send_application_submitted(
+                db,
+                application=application,
+                student=student,
+                teachers=teachers,
+                to_emails=to_emails,
+            )
+    except Exception:  # noqa: BLE001 — 通知書込み失败は届提出を止めない
+        notification_log = None
 
     # audit
     _submit_payload = {
         "kind": application.kind,
-        "notification_log_id": str(notification_log.id),
+        # 通知行の書込みが SAVEPOINT 内で失败した場合は None になる (ID を残せない)
+        "notification_log_id": str(notification_log.id) if notification_log else None,
     }
     # 把幂等 key 写进 audit payload，重复提交时靠它反查到这条届（见 _find_application_by_idempotency_key）
     if idempotency_key and idempotency_key.strip():
@@ -273,41 +297,7 @@ def create_application_by_teacher(
             },
         )
 
-    app_kwargs = {
-        "student_id": student.id,
-        "kind": body.kind,
-        "reason": body.reason,
-        "leave_date": body.leave_date,
-        "leave_method": body.leave_method,
-        "leave_time": body.leave_time,
-        "return_date": body.return_date,
-        "return_method": body.return_method,
-        "return_time": body.return_time,
-        "contact_phone": body.contact_phone,
-        "meal_note": body.meal_note,
-        "taxi_reservation_time": body.taxi_reservation_time,
-        "status": "pending",
-    }
-    if isinstance(body, schemas.KisheiCreateIn):
-        app_kwargs.update(is_long_vacation=body.is_long_vacation)
-    elif isinstance(body, schemas.GaihakuCreateIn):
-        app_kwargs.update(
-            stay_locations=[loc.model_dump() for loc in body.stay_locations],
-            meals_skip=[e.model_dump(mode="json") for e in body.meals_skip] or None,
-            companion=body.companion,
-            dest_cities=body.dest_cities,
-        )
-    elif isinstance(body, schemas.KikokuCreateIn):
-        app_kwargs.update(
-            stay_locations=[loc.model_dump() for loc in body.stay_locations],
-            meals_skip=[e.model_dump(mode="json") for e in body.meals_skip] or None,
-            companion=body.companion,
-            dest_cities=body.dest_cities,
-            flight_dep_air=body.flight_dep_air,
-            flight_dep_at=body.flight_dep_at,
-            flight_arr_air=body.flight_arr_air,
-            flight_arr_at=body.flight_arr_at,
-        )
+    app_kwargs = _build_application_kwargs(body, student_id=student.id)
 
     application = models.Application(**app_kwargs)
     application.student = student
@@ -315,19 +305,25 @@ def create_application_by_teacher(
     db.flush()
 
     approval_chain.build_chain(db, application)
+    # F-中-10 / F-codex-中-04: 通知の DB 書込みを SAVEPOINT で隔離（学生本人 POST と同形）。
     teachers, to_emails = approval_chain.collect_recipients(db, application)
-    notification_log = email_svc.send_application_submitted(
-        db,
-        application=application,
-        student=student,
-        teachers=teachers,
-        to_emails=to_emails,
-    )
+    notification_log = None
+    try:
+        with db.begin_nested():
+            notification_log = email_svc.send_application_submitted(
+                db,
+                application=application,
+                student=student,
+                teachers=teachers,
+                to_emails=to_emails,
+            )
+    except Exception:  # noqa: BLE001 — 通知書込み失败は届提出を止めない
+        notification_log = None
 
     _submit_payload = {
         "kind": application.kind,
         "student_id": str(student.id),
-        "notification_log_id": str(notification_log.id),
+        "notification_log_id": str(notification_log.id) if notification_log else None,
     }
     # 把幂等 key 写进 audit payload，重复提交时靠它反查到这条届（见 _find_application_by_idempotency_key）
     if idempotency_key and idempotency_key.strip():
@@ -593,7 +589,14 @@ def _resolve_actor(
             detail={"code": "INVALID_CREDENTIALS", "message": "トークンが無効"},
         )
     role = payload.get("role", "")
-    sub = UUID(payload["sub"])
+    # E-中-02: sub 缺失 / 非法 UUID は未捕获の 500 にせず 401 で返す（deps.py 各 get_current_* と同形）。
+    try:
+        sub = UUID(payload.get("sub"))
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "INVALID_CREDENTIALS", "message": "トークンが無効"},
+        )
     if role == "student":
         s = db.get(models.Student, sub)
         # 账号必须存在且 status=='active' — 停用 / 毕业 / 锁定 / 自删的学生哪怕手里还攥着
@@ -695,16 +698,25 @@ def update_application(
             422,
             {"code": "AMEND_REASON_REQUIRED", "message": "修正理由を入力してください"},
         )
-    for key, val in changed.items():
-        setattr(app, key, val)
+
+    # A-515: setattr の前に「合併後の値」で校验する（校验失败時に ORM 对象を污染しない）。
+    # 各フィールドは changed にあれば新值、無ければ現值 (getattr) を使う = create 時の
+    # _check_dates と同じく完全な届として整合性を見る。校验を全部通ってから下で setattr する。
+    def _merged(key):
+        return changed[key] if key in changed else getattr(app, key)
+
+    new_leave_date = _merged("leave_date")
+    new_return_date = _merged("return_date")
+    new_leave_time = _merged("leave_time")
+    new_return_time = _merged("return_time")
 
     # 出寮日校验：只校验真改了的出寮日（没改的旧届出寮日可能已过、不该被误拒）。
-    if "leave_date" in changed and changed["leave_date"] <= datetime.now(_JST).date():
+    if "leave_date" in changed and new_leave_date <= datetime.now(_JST).date():
         raise HTTPException(
             422, {"code": "LEAVE_DATE_NOT_FUTURE", "message": "出寮日は明日以降"}
         )
     # 帰寮日不能早于出寮日（修改届即使只传一个日期，也用合并后的值校验 — 与 create 时 _check_dates 对齐）
-    if app.return_date and app.leave_date and app.return_date < app.leave_date:
+    if new_return_date and new_leave_date and new_return_date < new_leave_date:
         raise HTTPException(
             422,
             {
@@ -712,6 +724,27 @@ def update_application(
                 "message": "帰寮日は出寮日以降にしてください",
             },
         )
+    # A-515: 同日 帰寮时刻 <= 出寮时刻 の倒挂を補う（create 側 _check_dates と同じ規則、
+    # PUT 側にはこれまで無かった）。日付が同じで時刻が逆転 / 同時なら 422。
+    if (
+        new_return_date
+        and new_leave_date
+        and new_return_date == new_leave_date
+        and new_return_time is not None
+        and new_leave_time is not None
+        and new_return_time <= new_leave_time
+    ):
+        raise HTTPException(
+            422,
+            {
+                "code": "RETURN_TIME_BEFORE_LEAVE",
+                "message": "同日の場合、帰寮時刻は出寮時刻より後にしてください",
+            },
+        )
+
+    # 全校验通过 → ここで初めて ORM 对象へ反映する。
+    for key, val in changed.items():
+        setattr(app, key, val)
 
     # chain リセット — 全 approvals 削除 → 再生成
     for row in app.approvals:
@@ -723,10 +756,19 @@ def update_application(
     app.status = "pending"
 
     # 再メール (chain 変わった可能性があるので再送)
+    # F-中-10 / F-codex-中-04: 通知の DB 書込みを SAVEPOINT で隔離（提出時と同形）。
     teachers, to_emails = approval_chain.collect_recipients(db, app)
-    email_svc.send_application_submitted(
-        db, application=app, student=student, teachers=teachers, to_emails=to_emails
-    )
+    try:
+        with db.begin_nested():
+            email_svc.send_application_submitted(
+                db,
+                application=app,
+                student=student,
+                teachers=teachers,
+                to_emails=to_emails,
+            )
+    except Exception:  # noqa: BLE001 — 通知書込み失败は修正届を止めない
+        pass
 
     db.add(
         models.AuditLog(
@@ -927,15 +969,22 @@ def decide_approval(
     # 杭田 2026-06-04 需求：审批走到终态（approved 通过 / rejected 却下）后，
     # 给提交者本人发邮件通知结果（要「残る」=留痕，不能用推送，推送会被划掉忘记）。
     # approved_partial（部分通过）/ pending（审批中）不通知。
+    # F-中-10: 通知の DB 書込み (NotificationLog) は SAVEPOINT で隔離する。
+    # この flush が万一失败しても、すでに書込んだ審批決定 (decision / status) を巻き戻さない。
+    # メール送信自体は email_svc 内で例外を握り潰すので、raise しうるのは flush だけ。
     if app.status in ("approved", "rejected") and app.student is not None:
-        email_svc.send_application_decided(
-            db,
-            application=app,
-            student=app.student,
-            result=app.status,
-            decided_role=teacher.role,
-            comment=body.comment,
-        )
+        try:
+            with db.begin_nested():
+                email_svc.send_application_decided(
+                    db,
+                    application=app,
+                    student=app.student,
+                    result=app.status,
+                    decided_role=teacher.role,
+                    comment=body.comment,
+                )
+        except Exception:  # noqa: BLE001 — 通知書込み失败は審批決定を巻き戻さない
+            pass
 
     db.add(
         models.AuditLog(

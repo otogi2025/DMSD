@@ -55,45 +55,52 @@ def seed_dev(db) -> None:
 
     pw_hash = security.hash_password(DEV_PASSWORD)
 
+    # B-低-22：DEV_STUDENTS / DEV_TEACHERS / homeroom_pairs 当前都是空列表（dev 纯 demo），
+    # 下面三段循环加 if 短路 —— 既明示「当前不执行」、又保留这些列表作为将来重新填真实
+    # 种子时的扩展点（直接往列表里加 dict 即可，无需重写循环体）。
     # 学生
-    for s_data in DEV_STUDENTS:
-        existing = db.scalars(
-            select(models.Student).where(
-                models.Student.grade_code == s_data["grade_code"],
-                models.Student.class_code == s_data["class_code"],
-                models.Student.seat_no == s_data["seat_no"],
-            )
-        ).first()
-        if existing:
-            log.info(
-                "跳过学生: %s%s%s 已存在",
-                s_data["grade_code"],
-                s_data["class_code"],
-                s_data["seat_no"],
-            )
-            continue
-        student = models.Student(**s_data)
-        db.add(student)
-        db.flush()
-        db.add(models.Account(student_id=student.id, password_hash=pw_hash))
-        log.info("加学生: %s (no=%s)", student.name, student.student_no)
+    if DEV_STUDENTS:
+        for s_data in DEV_STUDENTS:
+            existing = db.scalars(
+                select(models.Student).where(
+                    models.Student.grade_code == s_data["grade_code"],
+                    models.Student.class_code == s_data["class_code"],
+                    models.Student.seat_no == s_data["seat_no"],
+                )
+            ).first()
+            if existing:
+                log.info(
+                    "跳过学生: %s%s%s 已存在",
+                    s_data["grade_code"],
+                    s_data["class_code"],
+                    s_data["seat_no"],
+                )
+                continue
+            student = models.Student(**s_data)
+            db.add(student)
+            db.flush()
+            db.add(models.Account(student_id=student.id, password_hash=pw_hash))
+            log.info("加学生: %s (no=%s)", student.name, student.student_no)
 
     # 教师
-    for t_data in DEV_TEACHERS:
-        existing = db.scalars(
-            select(models.Teacher).where(models.Teacher.login_id == t_data["login_id"])
-        ).first()
-        if existing:
-            log.info("跳过教师: %s 已存在", t_data["login_id"])
-            continue
-        teacher = models.Teacher(**t_data, password_hash=pw_hash)
-        db.add(teacher)
-        log.info("加教师: %s (role=%s)", teacher.login_id, teacher.role)
+    if DEV_TEACHERS:
+        for t_data in DEV_TEACHERS:
+            existing = db.scalars(
+                select(models.Teacher).where(
+                    models.Teacher.login_id == t_data["login_id"]
+                )
+            ).first()
+            if existing:
+                log.info("跳过教师: %s 已存在", t_data["login_id"])
+                continue
+            teacher = models.Teacher(**t_data, password_hash=pw_hash)
+            db.add(teacher)
+            log.info("加教师: %s (role=%s)", teacher.login_id, teacher.role)
 
     db.commit()
 
     # 担任绑定
-    homeroom_pairs = []
+    homeroom_pairs: list[tuple[str, str, str]] = []
     for login_id, grade, klass in homeroom_pairs:
         teacher = db.scalars(
             select(models.Teacher).where(models.Teacher.login_id == login_id)
@@ -366,7 +373,9 @@ PROD_REVIEWER_STUDENT = dict(
     room_no="M999",
     dorm_unit=1,
     is_overseas=False,
-    email="reviewer@tomoshibi.cc",
+    # H-13：改走 env，默认 .example 占位（与 OP_EMAIL 同款）。原硬编码真实域名
+    # reviewer@tomoshibi.cc，审批通过会往真实邮箱发邮件 —— 部署时显式设 REVIEWER_EMAIL 才用真域名。
+    email=os.environ.get("REVIEWER_EMAIL", "reviewer@tomoshibi.example"),
     is_demo=True,  # 关键标志 — admin 学生列表 / 出席统计自动过滤
 )
 

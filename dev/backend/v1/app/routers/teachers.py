@@ -162,7 +162,10 @@ def register_teacher(
 # ---------------------------------------------------------------
 # GET /teachers — 教師一覧 (寮務部長 / 寮務課長 限定)
 # ---------------------------------------------------------------
-@router.get("/", response_model=list[schemas.TeacherOut])
+# 路径用 "" 而非 "/" — canonical path 不带尾斜杠（FastAPI 惯例，与本项目
+# 其余集合端点 bus_routes / announcements / events 等一致）。改前不带尾斜杠的
+# 客户端要靠 307 重定向才能到达，改后直达。
+@router.get("", response_model=list[schemas.TeacherOut])
 def list_teachers(
     role_filter: str | None = Query(None, alias="role"),
     db: Session = Depends(get_db),
@@ -222,7 +225,10 @@ def list_teachers_public(db: Session = Depends(get_db)):
 # 5-27 codex 审查 #2: 权限只给「老师账号管理」MANAGE 组（require_permission，防越权）
 # 5-27 codex 审查 #5: 唯一性预查 + IntegrityError 双重保护防并发 race
 # ---------------------------------------------------------------
-@router.post("/", response_model=schemas.TeacherOut, status_code=201)
+# 路径用 "" 而非 "/" — 与上面 GET 列表端点保持同一 canonical path（/api/v1/teachers，
+# 无尾斜杠）。若此处仍留 "/"，则 /api/v1/teachers/ 这个带尾斜杠路径会被 POST 占用，
+# 导致带尾斜杠的 GET 请求拿到 405（而非 FastAPI 的去尾斜杠重定向）→ 破坏老客户端。
+@router.post("", response_model=schemas.TeacherOut, status_code=201)
 def create_teacher(
     body: schemas.TeacherCreateIn,
     db: Session = Depends(get_db),
