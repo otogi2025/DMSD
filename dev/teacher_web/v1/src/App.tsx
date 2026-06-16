@@ -411,7 +411,7 @@ export function App() {
       });
     }
   };
-  // 2026-06-16 itsuki 拍板：登录后默认页统一为「点呼」（不再按角色分流到 申請 / 晩自習）。
+  // 2026-06-16 itsuki 拍板：登录后默认页统一为「点呼」（不再按角色分流到 申請 / 夜学習）。
   // 点呼是日常值班的核心操作，所有角色登录都先落在这里。参数保留以兼容现有两处调用点。
   const _roleHomePage = (_role: any) => "roll-call";
   const pickTeacher = (t: any) => {

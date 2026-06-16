@@ -120,7 +120,7 @@ export function Shell({
       title: "点呼業務",
       items: [
         ["roll-call", "点呼"],
-        ["study", "晩自習出席"],
+        ["study", "夜学習出席"],
         ["active-leaves", "出寮者一覧"],
         ["records", "点呼記録"],
         ["notifications", "通知", notifUnread || undefined],
@@ -163,7 +163,7 @@ export function Shell({
       cleaning: "清掃罰則",
       applications: "申請",
       "proxy-application": "代録",
-      study: "晩自習出席",
+      study: "夜学習出席",
       records: "点呼記録",
       "active-leaves": "出寮者一覧",
       info: "お知らせ",

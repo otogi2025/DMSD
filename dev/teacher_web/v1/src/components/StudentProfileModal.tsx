@@ -113,7 +113,7 @@ export function StudentProfileModal({
   const TABS = [
     ["basic", "基本情報"],
     ["applications", "出寮届"],
-    ["study", "晩自習出席"],
+    ["study", "夜学習出席"],
     ["online", "オンライン学習"],
     ["rollcall", "点呼"],
     ["guidance", "指導履歴"],
@@ -319,11 +319,11 @@ export function StudentProfileModal({
                 />
               )}
 
-              {/* 晩自習出席 tab */}
+              {/* 夜学習出席 tab */}
               {tab === "study" && (
                 <ProfileList
                   items={data.study_checkins}
-                  emptyMsg="晩自習出席の記録がありません"
+                  emptyMsg="夜学習出席の記録がありません"
                   cols={["対象日", "状態", "チェックイン"]}
                   render={(sc: ProfileStudyCheckinEntry) => [
                     sc.target_date,

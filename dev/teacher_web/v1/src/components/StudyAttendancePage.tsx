@@ -9,8 +9,8 @@ import type {
 } from "../api/types";
 
 // 源 index.html 14827-15786（study-attendance-page 块）。界面原样搬，仅作用域引用改写。
-// Task #17 晩自習出席页 — §11.1 P0 + §7.3 + iOS StudyAPI 对齐 (5-27)
-// 学習担当老师当天晩自習出席管理:
+// Task #17 夜学習出席页 — §11.1 P0 + §7.3 + iOS StudyAPI 对齐 (5-27)
+// 学習担当老师当天夜学習出席管理:
 //   - studyTodayAttendees 拉当天对象学生 + 状态 (init/present/late/absent)
 //   - absenceRequests 拉学生提交的请假 inbox + 一键 ✅/❌
 //   - studyCheckin 手动出席 (NFC 失败 fallback)
@@ -53,7 +53,7 @@ export function StudyAttendancePage({
         if (opts?.silent) return; // 静默自动刷新失败时不弹错误盖住界面，下次轮询再试
         const ex = e as { status?: number };
         if (ex && ex.status === 403) {
-          setErr("このページは「晩自習担当」権限が必要です");
+          setErr("このページは「夜学習担当」権限が必要です");
         } else if (ex && ex.status) {
           setErr(`サーバーエラー (${ex.status})`);
         } else {
@@ -99,7 +99,7 @@ export function StudyAttendancePage({
   const doFinalize = async () => {
     if (
       !window.confirm(
-        "晩自習を終了し、未チェックイン学生を欠席扱いにします。よろしいですか?",
+        "夜学習を終了し、未チェックイン学生を欠席扱いにします。よろしいですか?",
       )
     )
       return;
@@ -108,14 +108,14 @@ export function StudyAttendancePage({
       await refetch();
     } catch (e) {
       const ex = e as { status?: number };
-      setErr(`晩自習終了に失敗 (${(ex && ex.status) || "network"})`);
+      setErr(`夜学習終了に失敗 (${(ex && ex.status) || "network"})`);
     }
   };
 
   const doCancelToday = async () => {
     if (
       !window.confirm(
-        "今日の晩自習を中止します。学生にもプッシュ通知が送信されます。よろしいですか?",
+        "今日の夜学習を中止します。学生にもプッシュ通知が送信されます。よろしいですか?",
       )
     )
       return;
@@ -124,7 +124,7 @@ export function StudyAttendancePage({
       await refetch();
     } catch (e) {
       const ex = e as { status?: number };
-      setErr(`晩自習中止に失敗 (${(ex && ex.status) || "network"})`);
+      setErr(`夜学習中止に失敗 (${(ex && ex.status) || "network"})`);
     }
   };
 
@@ -154,7 +154,7 @@ export function StudyAttendancePage({
     } catch (e) {
       const ex = e as { status?: number };
       if (ex && ex.status === 403) {
-        setRosterErr("名簿管理は「晩自習担当 / 寮務」権限が必要です");
+        setRosterErr("名簿管理は「夜学習担当 / 寮務」権限が必要です");
       } else {
         setRosterErr(`名簿の取得に失敗 (${(ex && ex.status) || "network"})`);
       }
@@ -191,7 +191,7 @@ export function StudyAttendancePage({
 
   // 从学習对象名簿移出：DELETE /study/roster/{student_id}（软删）
   const doRemoveFromRoster = async (student_id: string, name: string) => {
-    if (!window.confirm(`${name} さんを晩自習対象名簿から外しますか?`)) return;
+    if (!window.confirm(`${name} さんを夜学習対象名簿から外しますか?`)) return;
     setActing((m) => ({ ...m, [student_id]: true }));
     try {
       await api.studyRosterRemove(student_id, authToken!);
@@ -244,7 +244,7 @@ export function StudyAttendancePage({
             margin: "4px 0 18px",
           }}
         >
-          晩自習出席
+          夜学習出席
         </h1>
         <div
           style={{
@@ -292,7 +292,7 @@ export function StudyAttendancePage({
               fontWeight: 600,
             }}
           >
-            晩自習担当 &gt;{" "}
+            夜学習担当 &gt;{" "}
             {view === "attendance"
               ? "出席"
               : view === "absence-inbox"
@@ -307,7 +307,7 @@ export function StudyAttendancePage({
               letterSpacing: -0.3,
             }}
           >
-            晩自習出席 {today && `· ${today.target_date}`}
+            夜学習出席 {today && `· ${today.target_date}`}
           </h1>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
@@ -446,7 +446,7 @@ export function StudyAttendancePage({
                 cursor: "pointer",
               }}
             >
-              晩自習終了（未出席を欠席に確定）
+              夜学習終了（未出席を欠席に確定）
             </button>
             <button
               onClick={doCancelToday}
@@ -462,7 +462,7 @@ export function StudyAttendancePage({
                 cursor: "pointer",
               }}
             >
-              今日の晩自習を中止
+              今日の夜学習を中止
             </button>
             <button
               onClick={() => refetch()}
