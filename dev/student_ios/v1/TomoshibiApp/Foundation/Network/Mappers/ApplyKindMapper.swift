@@ -11,7 +11,7 @@ enum ApplyKindMapper {
         "stay": "外泊",
         "holiday": "帰省",
         "returncountry": "帰国",
-        "studyAbsence": "晩自習欠席",
+        "studyAbsence": "夜学習欠席",
     ]
 
     /// backend 日语 → iOS 内部代码（GET 响应反序列化用）

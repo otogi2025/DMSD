@@ -27,7 +27,7 @@ private let APPLY_TYPES: [ApplyTypeMeta] = [
     .init(k: "repair", name: "修繕", icon: "wrench.and.screwdriver", desc: "部屋・設備の修繕依頼"),
     .init(k: "parcel", name: "代理受取", icon: "shippingbox", desc: "不在時の荷物代理受取"),
     .init(k: "guest", name: "来訪者", icon: "person.2", desc: "家族・友人の来訪"),
-    .init(k: "studyAbsence", name: "晩自習欠席", icon: "book.closed", desc: "晩自習の欠席届（前半・後半・両方）"),
+    .init(k: "studyAbsence", name: "夜学習欠席", icon: "book.closed", desc: "夜学習の欠席届（前半・後半・両方）"),
     .init(k: "studyOnline", name: "オンライン学習", icon: "laptopcomputer", desc: "自室でのオンライン学習"),
     .init(k: "event", name: "行事企画", icon: "sparkles", desc: "寮内イベントの企画申請"),
     .init(k: "fridge", name: "冷蔵庫購入", icon: "snowflake", desc: "指定冷蔵庫の購入届"),
@@ -746,12 +746,12 @@ struct StayForm: View {
 
                     // ── §6 食事不要期間（外泊 / 帰国 限定）─────────────────
                     if needSkipMeal {
-                        SectionLabel(n: "6", label: "寮食堂 食事申告")
+                        SectionLabel(n: "6", label: "寮食堂 食事の申し込み")
                         Card(padding: 14) {
                             VStack(alignment: .leading, spacing: 14) {
                                 if meIsOverseas {
                                     Toggle(isOn: $skipEnabled) {
-                                        Text("食事不要期間を申告する")
+                                        Text("食事不要期間を登録する")
                                             .font(.system(size: 13, weight: .semibold))
                                             .foregroundStyle(T.ink)
                                     }
@@ -777,7 +777,7 @@ struct StayForm: View {
                                                 ChipGroup(options: MEALS, value: $skipEndMeal)
                                             }
                                         }
-                                        Text("※ 上記の期間（開始の食事から終了の食事まで）は寮食堂の食事を不要とします")
+                                        Text("※ 上記の期間（開始の食事から終了の食事まで）は寮食堂の食事を停止します")
                                             .font(.system(size: 10.5))
                                             .foregroundStyle(T.inkMute)
                                     }
@@ -1418,7 +1418,7 @@ private struct MealCheckbox: View {
 // ============================================================================
 
 // ============================================================================
-// §2.5 StudyAbsenceForm — 晩自習欠席届（晚自习请假）· system_features §7.3.5
+// §2.5 StudyAbsenceForm — 夜学習欠席届（晚自习请假）· system_features §7.3.5
 // 4-30 後續 itsuki 拍板 — 字段：理由 textarea + 范围 select（前半/后半/両方）
 // ============================================================================
 
@@ -1443,7 +1443,7 @@ struct StudyAbsenceForm: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            PageHeader(title: "晩自習欠席届", level: 2)
+            PageHeader(title: "夜学習欠席届", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     // §1 缺席日期（DatePicker）
@@ -1711,7 +1711,7 @@ struct GenericApplyForm: View {
                     .padding(.bottom, 20)
 
                     if needsDest {
-                        Field(label: "行き先", required: true) {
+                        Field(label: "行先", required: true) {
                             TField(text: $dest, placeholder: "行き先を入力")
                         }.padding(.bottom, 14)
                     }
@@ -1819,7 +1819,7 @@ struct GenericApplyForm: View {
                     }
 
                     if needsGuardian {
-                        Field(label: "保証人連絡先") {
+                        Field(label: "保護者連絡先") {
                             TField(text: $emergency, placeholder: "保護者電話番号", keyboard: .phonePad)
                         }.padding(.bottom, 14)
 
@@ -1838,7 +1838,7 @@ struct GenericApplyForm: View {
                                     }
                                 }
                                 .padding(.top, 3)
-                                Text("外泊・帰省は保証人の同意が必要です。上記の保証人に連絡済み／同意を得ていることを確認します。")
+                                Text("外泊・帰省は保護者の同意が必要です。上記の保護者に連絡済み／同意を得ていることを確認します。")
                                     .font(.system(size: 12.5))
                                     .foregroundStyle(T.warnDeep)
                                     .multilineTextAlignment(.leading)
@@ -2062,8 +2062,8 @@ struct ApplyPreviewView: View {
         ]
         switch kind {
         case "outing": base += [("行き先", "新宿")]
-        case "stay": base += [("行き先", "実家"), ("期間", "2026-04-25 〜 04-26"), ("保証人", "同意済")]
-        case "holiday": base += [("行き先", "実家 福岡"), ("期間", "2026-04-28 〜 05-05"), ("保証人", "同意済")]
+        case "stay": base += [("行き先", "実家"), ("期間", "2026-04-25 〜 04-26"), ("保護者", "同意済")]
+        case "holiday": base += [("行き先", "実家 福岡"), ("期間", "2026-04-28 〜 05-05"), ("保護者", "同意済")]
         case "repair": base += [("場所", "自室"), ("依頼日", "2026-04-22")]
         case "parcel": base += [("荷物", "小包 1 件"), ("配達予定", "2026-04-23")]
         case "guest": base += [("来訪者", "山田 花子"), ("来訪日", "2026-04-25")]

@@ -23,7 +23,7 @@ struct User: Hashable {
     var grade: String = "高3"
     var classSuffix: String = "B"
     var seatNo: Int = 18
-    /// 晩自習対象学生 flag (system_features §7.3 — 中学全员 / 高中考试不合格者). demo seed = true 让所有学習 UI 可见
+    /// 夜学習対象学生 flag (system_features §7.3 — 中学全员 / 高中考试不合格者). demo seed = true 让所有学習 UI 可见
     var isStudyTarget: Bool = true
     /// 留学生 flag (system_features §8.1 / Q11 — 自己申报). 演示用户「リュウ イヒ」= 留学生（承认链为 5 个角色）
     var isOverseas: Bool = true
@@ -44,7 +44,7 @@ struct PointRecord: Hashable, Identifiable {
     }
 
     let date: String
-    let session: String // 朝点呼 / 晩点呼（保留日语原词）
+    let session: String // 朝点呼 / 夜点呼（保留日语原词）
     let kind: String // 遅刻 / 欠席（保留日语原词）
     let val: Double
 }
@@ -81,7 +81,7 @@ struct CleaningRecord: Hashable, Identifiable {
     let date: String // "2026-05-20"（yyyy-MM-dd）
     let time: String // "19:00"（HH:mm）— 改动1：罚扫带时刻
     let range: String // 地点（自由文本）
-    let status: String // 通過 / 退回 / 未完成 等（演示日语直接写）
+    let status: String // 状态值「通過」/「差し戻し」/「未完了」等（演示日语直接写）
     let score: Int?
     let rejected: Bool
     let comment: String?

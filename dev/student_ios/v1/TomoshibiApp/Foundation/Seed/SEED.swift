@@ -36,9 +36,9 @@ enum SEED {
         .init(date: "2026-04-05", session: "朝点呼", kind: "遅刻", val: 0.5),
         .init(date: "2026-04-07", session: "朝点呼", kind: "遅刻", val: 0.5),
         .init(date: "2026-04-12", session: "朝点呼", kind: "遅刻", val: 0.5),
-        .init(date: "2026-04-15", session: "晩点呼", kind: "欠席", val: 1.0),
+        .init(date: "2026-04-15", session: "夜点呼", kind: "欠席", val: 1.0),
         .init(date: "2026-04-18", session: "朝点呼", kind: "遅刻", val: 0.5),
-        .init(date: "2026-04-20", session: "晩点呼", kind: "欠席", val: 1.0),
+        .init(date: "2026-04-20", session: "夜点呼", kind: "欠席", val: 1.0),
         .init(date: "2026-04-21", session: "朝点呼", kind: "遅刻", val: 0.5),
     ]
 
@@ -46,16 +46,16 @@ enum SEED {
         let days = ["2026-04-21", "2026-04-20", "2026-04-19", "2026-04-18", "2026-04-17", "2026-04-16", "2026-04-15", "2026-04-14", "2026-04-13", "2026-04-12", "2026-04-11", "2026-04-10", "2026-04-09", "2026-04-08", "2026-04-07", "2026-04-06", "2026-04-05"]
         let specials: [String: String] = [
             "2026-04-21:朝": "遅刻",
-            "2026-04-20:晩": "欠席",
+            "2026-04-20:夜": "欠席",
             "2026-04-18:朝": "遅刻",
-            "2026-04-15:晩": "欠席",
+            "2026-04-15:夜": "欠席",
             "2026-04-12:朝": "遅刻",
             "2026-04-07:朝": "遅刻",
             "2026-04-05:朝": "遅刻",
         ]
         var arr: [RollcallEntry] = []
         for d in days {
-            for s in ["朝", "晩"] {
+            for s in ["朝", "夜"] {
                 let k = "\(d):\(s)"
                 let state = specials[k] ?? "時間内"
                 let method = state == "欠席" ? "―" : "NFC"
@@ -77,8 +77,8 @@ enum SEED {
         .init(date: "2026-05-20", time: "19:00", range: "玄関まわり", status: "未完成", score: nil, rejected: false, comment: nil),
         // 通過
         .init(date: "2026-04-19", time: "19:00", range: "部屋", status: "通過", score: 5, rejected: false, comment: nil),
-        // 退回（却下）
-        .init(date: "2026-04-05", time: "19:00", range: "共用エリア", status: "退回", score: nil, rejected: true, comment: "床が汚れている"),
+        // 状态「差し戻し」（即却下）
+        .init(date: "2026-04-05", time: "19:00", range: "共用エリア", status: "差し戻し", score: nil, rejected: true, comment: "床が汚れている"),
     ]
 
     static let packages: [PackageItem] = [
@@ -93,7 +93,7 @@ enum SEED {
     //   生产通知源 = 真公告（AppStore.announcementNotifications）+ 真 push。
     #if DEMO
         static let notifications: [NotificationItem] = [
-            .init(id: 1, type: "宅配", title: "荷物到着", time: "今日 14:20", body: "寮監室前で受取り", unread: true),
+            .init(id: 1, type: "宅配", title: "荷物到着", time: "今日 14:20", body: "寮監室前で受け取り", unread: true),
             .init(id: 2, type: "申請", title: "外泊申請が承認されました", time: "昨日 16:30", body: "承認されました", unread: true),
             .init(id: 3, type: "減点", title: "遅刻警告", time: "昨日 9:00", body: "今月の遅刻が 5 回に達しました", unread: false),
             .init(id: 4, type: "活動", title: "明日 18:00 誕生日会", time: "昨日", body: "カフェテリア集合", unread: true),
@@ -102,9 +102,9 @@ enum SEED {
     #endif
 
     static let applications: [ApplicationItem] = [
-        .init(id: "a1", type: "stay", status: "pending", date: "2026-04-20", summary: "東京 · 2 泊 3 日"),
-        .init(id: "a3", type: "holiday", status: "approved", date: "2026-04-15", summary: "茨城 · 帰省"),
-        .init(id: "a4", type: "outing", status: "approved", date: "2026-04-02", summary: "駅前 · 買い物"),
+        .init(id: "a1", type: "stay", status: "pending", date: "2026-04-20", summary: "東京・2泊3日"),
+        .init(id: "a3", type: "holiday", status: "approved", date: "2026-04-15", summary: "茨城・帰省"),
+        .init(id: "a4", type: "outing", status: "approved", date: "2026-04-02", summary: "駅前・買い物"),
     ]
 
     /// 実スクールバス時刻表（2026-04-29 水 GW外泊・帰省等 特別運行便パターン）
@@ -118,7 +118,7 @@ enum SEED {
 
     static let busNotice: (active: Bool, text: String) = (
         true,
-        "4/29(水) GW外泊・帰省・買い物 特別運行便 · 乗車名簿に事前チェック"
+        "4/29(水) GW外泊・帰省・買い物 特別運行便・乗車名簿に事前チェック"
     )
 
     /// 完整巴士日程（DMSD/design/bus_schedule_real.md 対応 · 日別グループ）
@@ -126,7 +126,7 @@ enum SEED {
         .init(
             date: "2026-04-29", weekday: "水",
             label: "GW外泊・帰省・買い物",
-            notice: "特別運行便 · 乗車名簿に事前チェック",
+            notice: "特別運行便・乗車名簿に事前チェック",
             lines: [
                 .init(time: "07:30", route: "高校棟 → 岡山駅西口", seats: "空きあり", next: true),
                 .init(time: "10:10", route: "高校棟 → 金川駅", seats: "空きあり", next: false),
@@ -164,7 +164,7 @@ enum SEED {
         .init(
             date: "2026-05-23", weekday: "土",
             label: "音楽と青空市（御津公民館）",
-            notice: "基本ボランティア用 · 時間帯注意",
+            notice: "基本ボランティア用・時間帯注意",
             lines: [
                 .init(time: "07:30", route: "岡山駅西口発", seats: "空きあり", next: false),
                 .init(time: "08:15", route: "高校棟発", seats: "空きあり", next: false),
@@ -193,8 +193,8 @@ enum SEED {
         .init(date: "2026-04-05", time: "08:30", title: "留4アクティビティ", place: "岡山城・後楽園", desc: "お花見弁当・岡山城見学・後楽園散策・さくらカーニバル。参加希望者は高野まで。"),
         .init(date: "2026-04-07", time: "15:33", title: "帰寮日", place: "金川駅・岡山駅西口", desc: "15:33 金川駅発 / 18:45 岡山駅西口発（寮行き）"),
         .init(date: "2026-04-08", time: "09:00", title: "始業式・新任式・高等部進級式", place: "本校", desc: ""),
-        .init(date: "2026-04-09", time: "09:00", title: "入学式", place: "本校", desc: "家庭学習日 2①②③"),
-        .init(date: "2026-04-10", time: "09:00", title: "春期課題考査", place: "本校", desc: "1〜③ + 新入生オリエンテーション"),
+        .init(date: "2026-04-09", time: "09:00", title: "入学式", place: "本校", desc: "家庭学習日"),
+        .init(date: "2026-04-10", time: "09:00", title: "春期課題考査", place: "本校", desc: "春期課題考査（1〜3限）+ 新入生オリエンテーション"),
         .init(date: "2026-04-11", time: "08:30", title: "みつ元気プロジェクト", place: "御津公民館", desc: "戦略会議 9:45〜。特別運行便あり。"),
         .init(date: "2026-04-23", time: "18:00", title: "誕生日会", place: "カフェテリア", desc: "夕食後、軽食と自己紹介タイム"),
         .init(date: "2026-04-25", time: "10:00", title: "避難訓練", place: "寮玄関前集合", desc: "全員参加必須"),
@@ -236,7 +236,7 @@ enum SEED {
         AnnouncementBrief(
             id: UUID(uuidString: "AAAA0001-0000-0000-0000-000000000001")!,
             title: "ごみの捨て方について",
-            bodySummary: "昨日の罰則清掃時に複数個所で飲みかけのペットボトル，缶が捨ててあり，コバエが飛んでいました。今後，特に飲食物を捨てる場合は全て空にした状態で…",
+            bodySummary: "昨日の罰則清掃時に複数個所で飲みかけのペットボトル、缶が捨ててあり、コバエが飛んでいました。今後、特に飲食物を捨てる場合は全て空にした状態で…",
             scope: "all",
             authorTeacherId: dormTeacherId, authorTeacherName: dormTeacherName,
             createdAt: Date().addingTimeInterval(-86400 * 1),
@@ -246,7 +246,7 @@ enum SEED {
         AnnouncementBrief(
             id: UUID(uuidString: "AAAA0002-0000-0000-0000-000000000002")!,
             title: "廊下のコンセントの利用について",
-            bodySummary: "①サッカー部 ・廊下のコンセントを使う場合は盗電扱いとなります。盗電は犯罪です。本日から廊下のコンセントの使用をなくし…",
+            bodySummary: "①サッカー部・廊下のコンセントを使う場合は盗電扱いとなります。盗電は犯罪です。本日から廊下のコンセントの使用をなくし…",
             scope: "all",
             authorTeacherId: dormTeacherId, authorTeacherName: dormTeacherName,
             createdAt: Date().addingTimeInterval(-86400 * 3),
@@ -256,7 +256,7 @@ enum SEED {
         AnnouncementBrief(
             id: UUID(uuidString: "AAAA0003-0000-0000-0000-000000000003")!,
             title: "男子寮防災訓練について",
-            bodySummary: "明日の学習時間に男子のみ防災訓練があります。男子生徒は学習に参加せず，寮での待機となります。…※女子は通常通り学習があります。",
+            bodySummary: "明日の学習時間に男子のみ防災訓練があります。男子生徒は学習に参加せず、寮での待機となります。…※女子は通常通り学習があります。",
             scope: "all",
             authorTeacherId: dormTeacherId, authorTeacherName: dormTeacherName,
             createdAt: Date().addingTimeInterval(-86400 * 3),
@@ -266,7 +266,7 @@ enum SEED {
         AnnouncementBrief(
             id: UUID(uuidString: "AAAA0004-0000-0000-0000-000000000004")!,
             title: "夜学習について",
-            bodySummary: "6月5日（金）は夜学習は自室学習となります。自由時間ではないので，必ず学習に取り組むように。",
+            bodySummary: "6月5日（金）は夜学習は自室学習となります。自由時間ではないので、必ず学習に取り組むように。",
             scope: "all",
             authorTeacherId: dormTeacherId, authorTeacherName: dormTeacherName,
             createdAt: Date().addingTimeInterval(-86400 * 8),
@@ -276,7 +276,7 @@ enum SEED {
         AnnouncementBrief(
             id: UUID(uuidString: "AAAA0005-0000-0000-0000-000000000005")!,
             title: "ホタル祭りについて",
-            bodySummary: "◯ホタル祭りに参加する寮生の注意事項 １．外出簿に記名し，鍵を提出すること。２．男子寮玄関前に20:00に集合し，指示に従うこと…",
+            bodySummary: "◯ホタル祭りに参加する寮生の注意事項 １．外出簿に記名し、鍵を提出すること。２．男子寮玄関前に20:00に集合し、指示に従うこと…",
             scope: "all",
             authorTeacherId: dormTeacherId, authorTeacherName: dormTeacherName,
             createdAt: Date().addingTimeInterval(-86400 * 13),
@@ -286,7 +286,7 @@ enum SEED {
         AnnouncementBrief(
             id: UUID(uuidString: "AAAA0006-0000-0000-0000-000000000006")!,
             title: "金銭のやり取りについて",
-            bodySummary: "寮生間での金銭のやり取りは禁止しています。金銭を渡して，雑用や課題（宿題）をしてもらうことは絶対してはいけません。",
+            bodySummary: "寮生間での金銭のやり取りは禁止しています。金銭を渡して、雑用や課題（宿題）をしてもらうことは絶対してはいけません。",
             scope: "all",
             authorTeacherId: dormTeacherId, authorTeacherName: dormTeacherName,
             createdAt: Date().addingTimeInterval(-86400 * 29),
@@ -299,17 +299,17 @@ enum SEED {
     static let announcementDetails: [String: AnnouncementDetail] = {
         let bodies: [String: String] = [
             "aaaa0001-0000-0000-0000-000000000001":
-                "昨日の罰則清掃時に複数個所で飲みかけのペットボトル，缶が捨ててあり，コバエが飛んでいました。\n今後，特に飲食物を捨てる場合は全て空にした状態で捨てるようにして下さい。\n寮内が臭くなり，不衛生となります。\n衛生環境を整えるように一人一人が意識して気を付けるようにして下さい。\nまた，清掃分担でゴミ捨ての担当者はゴミの状況を確認して早めに捨てるようにしましょう。",
+                "昨日の罰則清掃時に複数個所で飲みかけのペットボトル、缶が捨ててあり、コバエが飛んでいました。\n今後、特に飲食物を捨てる場合は全て空にした状態で捨てるようにしてください。\n寮内が臭くなり、不衛生となります。\n衛生環境を整えるように一人一人が意識して気を付けるようにしてください。\nまた、清掃分担でゴミ捨ての担当者はゴミの状況を確認して早めに捨てるようにしましょう。",
             "aaaa0002-0000-0000-0000-000000000002":
-                "①サッカー部\n・現状，サッカー部の靴乾燥機に使用している寮生が多いですが，廊下のコンセントを使う場合は盗電扱いとなります。盗電は犯罪です。譲歩策として本日から廊下のコンセントの使用をなくし，部屋のコンセントを使用して廊下に出して使用して下さい。\n※またはトレーニングルームで乾燥をするようにして下さい（現在相談中のため現時点では上記で乾燥をするように）。\n②一般生\n・一般生の中にも廊下のコンセントを使用している生徒がいます。本日より，使用しないようにして下さい。上記同様，盗電扱いです。\n③廊下のコンセント使用可能な場合の事例\n・普段の寮清掃時の掃除機等の使用（個人的使用は不可）\n・特別な許可を得ている場合（相談は新谷まで）\n・個室のコンセントの不具合等で使用ができない場合（代替措置）",
+                "①サッカー部\n・現状、サッカー部の靴乾燥機に使用している寮生が多いですが、廊下のコンセントを使う場合は盗電扱いとなります。盗電は犯罪です。譲歩策として本日から廊下のコンセントの使用をなくし、部屋のコンセントを使用して廊下に出して使用してください。\n※またはトレーニングルームで乾燥をするようにしてください（現在相談中のため現時点では上記で乾燥をするように）。\n②一般生\n・一般生の中にも廊下のコンセントを使用している生徒がいます。本日より、使用しないようにしてください。上記同様、盗電扱いです。\n③廊下のコンセント使用可能な場合の事例\n・普段の寮清掃時の掃除機等の使用（個人的使用は不可）\n・特別な許可を得ている場合（相談は新谷まで）\n・個室のコンセントの不具合等で使用ができない場合（代替措置）",
             "aaaa0003-0000-0000-0000-000000000003":
-                "明日の学習時間に男子のみ防災訓練があります。\n男子生徒は学習に参加せず，寮での待機となります。\nただし，全体が遅くなった場合は学習を行いますので，全員が速やかに避難できるように放送を注意して聞いてください。\nまた，イヤホンをしていて放送を聞いていない，お風呂に入っていたなどの理由で防災訓練に参加しなかった場合は指導の対象となります。\n※女子は通常通り学習があります。",
+                "明日の学習時間に男子のみ防災訓練があります。\n男子生徒は学習に参加せず、寮での待機となります。\nただし、全体が遅くなった場合は学習を行いますので、全員が速やかに避難できるように放送を注意して聞いてください。\nまた、イヤホンをしていて放送を聞いていない、お風呂に入っていたなどの理由で防災訓練に参加しなかった場合は指導の対象となります。\n※女子は通常通り学習があります。",
             "aaaa0004-0000-0000-0000-000000000004":
-                "6月5日（金）は夜学習は自室学習となります。\n自由時間ではないので，必ず学習に取り組むように。",
+                "6月5日（金）は夜学習は自室学習となります。\n自由時間ではないので、必ず学習に取り組むように。",
             "aaaa0005-0000-0000-0000-000000000005":
-                "◯ホタル祭りに参加する寮生の注意事項\n１．ホタル祭りに参加する生徒は外出簿に記名し，鍵を提出すること。\n２．ホタルの見学に参加する生徒は必ず男子寮玄関前に20:00に集合し，指示に従うこと。\n３．ホタル祭りに参加する生徒の最終門限は21:30として，その場で点呼（健康観察）。\n４．ホタル祭りに参加した生徒の入浴は23:00までとする（浴室のシャワー，個室のシャワーを使用すること）\n５．30日土曜日の清掃は自室の清掃をしっかりすること。\n◯ホタル祭りに参加しない生徒の注意事項\n１．通常の寮の休日時程に準ずる（門限は19:50，点呼は20:00）。\n２．30日土曜日の清掃は自室の清掃をしっかりすること。",
+                "◯ホタル祭りに参加する寮生の注意事項\n１．ホタル祭りに参加する生徒は外出簿に記名し、鍵を提出すること。\n２．ホタルの見学に参加する生徒は必ず男子寮玄関前に20:00に集合し、指示に従うこと。\n３．ホタル祭りに参加する生徒の最終門限は21:30として、その場で点呼（健康観察）。\n４．ホタル祭りに参加した生徒の入浴は23:00までとする（浴室のシャワー、個室のシャワーを使用すること）\n５．30日土曜日の清掃は自室の清掃をしっかりすること。\n◯ホタル祭りに参加しない生徒の注意事項\n１．通常の寮の休日時程に準ずる（門限は19:50、点呼は20:00）。\n２．30日土曜日の清掃は自室の清掃をしっかりすること。",
             "aaaa0006-0000-0000-0000-000000000006":
-                "寮生間での金銭のやり取りは禁止しています。\n金銭を渡して，雑用や課題（宿題）をしてもらうことは絶対してはいけません。\nそれ以外でも金銭が関わることについては絶対にしないように。",
+                "寮生間での金銭のやり取りは禁止しています。\n金銭を渡して、雑用や課題（宿題）をしてもらうことは絶対してはいけません。\nそれ以外でも金銭が関わることについては絶対にしないように。",
         ]
         var dict: [String: AnnouncementDetail] = [:]
         for a in announcements {

@@ -97,7 +97,7 @@ struct NotificationsView: View {
     @EnvironmentObject var app: AppStore
     @State private var filter: String = "すべて"
     /// 4-30 加「学習」(R1 例外的 push 通知种类)
-    private let filters = ["すべて", "申請", "減点", "晩自習", "宅配", "活動", "リクエスト曲"]
+    private let filters = ["すべて", "申請", "減点", "夜学習", "宅配", "活動", "リクエスト曲"]
 
     private var filtered: [NotificationItem] {
         // 数据源 = AppStore.allNotifications（push 模拟通知 + SEED.notifications）
@@ -269,7 +269,7 @@ extension PackageDisplay {
         self.init(
             id: b.id.uuidString,
             // 备注可空（6-14 起宅配备注改可选）→ 空时用件数当主标题，保证卡片有意义
-            title: b.description.isEmpty ? "荷物 \(b.itemCount)件" : b.description,
+            title: b.description.isEmpty ? "荷物\(b.itemCount)件" : b.description,
             dateLabel: pkgDateFmt.string(from: b.createdAt),
             arrivedLabel: pkgArrivedFmt.string(from: b.notifiedAt ?? b.createdAt),
             tracking: nil,
@@ -331,7 +331,7 @@ struct PackagesView: View {
                             pkgCard(p)
                         }
                         if list.isEmpty {
-                            EmptyState(icon: "shippingbox", title: "なし")
+                            EmptyState(icon: "shippingbox", title: tab == .wait ? "受取待ちの荷物はありません" : "受取済の荷物はありません")
                         }
                     }
                     .padding(.horizontal, 16)
@@ -482,7 +482,7 @@ struct PackageDetailView: View {
                             .padding(.top, 20)
                         #endif
                     } else {
-                        EmptyState(icon: "shippingbox", title: "宅配が見つかりません")
+                        EmptyState(icon: "shippingbox", title: "荷物が見つかりません")
                     }
                     Spacer().frame(height: 24)
                 }
@@ -606,7 +606,7 @@ struct LostView: View {
                     // 検索 box · padding '10 14' borderRadius 12 background T.pearl
                     HStack(spacing: 10) {
                         Ic.search(18).foregroundStyle(T.inkMute)
-                        TextField("検索...", text: $search)
+                        TextField("検索…", text: $search)
                             .font(.system(size: 14))
                             .foregroundStyle(T.ink)
                     }
@@ -761,12 +761,12 @@ struct LostNewView: View {
                     .padding(.bottom, 18)
 
                     Field(label: "品名", required: true) {
-                        TField(text: $itemName, placeholder: "傘 / 鍵 / 財布 ...")
+                        TField(text: $itemName, placeholder: "傘 / 鍵 / 財布 …")
                     }
                     .padding(.bottom, 18)
 
                     Field(label: "場所", required: true) {
-                        TField(text: $place, placeholder: "玄関 / 廊下 / ...")
+                        TField(text: $place, placeholder: "玄関 / 廊下 / …")
                     }
                     .padding(.bottom, 18)
 
@@ -1076,7 +1076,7 @@ struct MusicView: View {
                             case let .failed(msg):
                                 EmptyState(icon: "exclamationmark.triangle", title: "読み込みに失敗しました", message: msg)
                             default:
-                                EmptyState(icon: "music.note", title: "なし")
+                                EmptyState(icon: "music.note", title: "リクエストされた曲はまだありません")
                             }
                         }
                     }

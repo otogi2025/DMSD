@@ -260,10 +260,10 @@ struct HomeView: View {
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(T.primary)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("学籍番号の更新が必要です")
+                    Text("アカウント番号の更新が必要です")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(T.ink)
-                    Text("新学年の 学年・組・出席番号 を設定してください")
+                    Text("新学年の学年・組・出席番号を設定してください")
                         .font(.system(size: 12))
                         .foregroundStyle(T.inkMute)
                 }
@@ -318,7 +318,7 @@ struct HomeView: View {
 
             Group {
                 // ⚠️ DEMO-ONLY 三态切换 (system_features §7.3.8 — v1.0 删)
-                // 晩自習対象学生 + studyState in upcoming/active → study mode 优先
+                // 夜学習対象学生 + studyState in upcoming/active → study mode 优先
                 if app.displayUser.isStudyTarget && (app.studyState == .upcoming || app.studyState == .active) {
                     studyContent(deepBrown: deepBrown)
                 } else if app.rollState == .idle {
@@ -396,9 +396,9 @@ struct HomeView: View {
     // MARK: study content (4-30 後續 拍板 — ⚠️ DEMO-ONLY · v1.0 删)
 
     //
-    // 晩自習対象学生 + studyState upcoming/active 时 amber Card 显示这套:
+    // 夜学習対象学生 + studyState upcoming/active 时 amber Card 显示这套:
     // - 学習迟到倒计时（mm:ss）
-    // - 「請假」按钮 → 晩自習欠席届提交
+    // - 「欠席届」按钮 → 夜学習欠席届提交
 
     @ViewBuilder
     private func studyContent(deepBrown: Color) -> some View {
@@ -410,7 +410,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 0) {
             // header row — 标题 + 状态 pill
             HStack(alignment: .top) {
-                Text(isActive ? "晩自習中" : "晩自習開始まで")
+                Text(isActive ? "夜学習中" : "夜学習開始まで")
                     .font(.system(size: 11, weight: .bold))
                     .kerning(1.98)
                     .textCase(.uppercase)
@@ -519,7 +519,7 @@ struct HomeView: View {
         }
     }
 
-    /// active 时的操作 row — 「NFC で签到」+「請假」（无下一 tap 时显示「全 2 次完了」）
+    /// active 时的操作 row — 「NFC で签到」+「欠席届」（无下一 tap 时显示「全 2 次完了」）
     @ViewBuilder
     private func studyActionButtons(deepBrown: Color) -> some View {
         if let _ = app.nextStudyTap {
@@ -547,7 +547,7 @@ struct HomeView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "calendar.badge.exclamationmark")
                             .font(.system(size: 14, weight: .semibold))
-                        Text("請假")
+                        Text("欠席届")
                             .font(.system(size: 13.5, weight: .semibold))
                     }
                     .foregroundStyle(deepBrown)
@@ -569,7 +569,7 @@ struct HomeView: View {
             HStack(spacing: 8) {
                 Image(systemName: "checkmark.seal.fill")
                     .font(.system(size: 16, weight: .semibold))
-                Text("本日の晩自習出席は完了しました")
+                Text("本日の夜学習の出席が完了しました")
                     .font(.system(size: 13, weight: .bold))
             }
             .foregroundStyle(deepBrown)
@@ -728,7 +728,7 @@ struct HomeView: View {
                 heroBlock(
                     caption: "今回の点呼",
                     big: "遅刻",
-                    sub: "欠席申請または体調報告で判定を見直せます",
+                    sub: "欠席申請または体調報告で、判定の見直しを申請できます",
                     bigColor: T.danger,
                     captionColor: deepBrown.opacity(0.7),
                     subColor: deepBrown.opacity(0.8)
@@ -739,7 +739,7 @@ struct HomeView: View {
                 heroBlock(
                     caption: "点呼中 · 残り",
                     big: String(format: "%d:%02d", m, s),
-                    sub: "NFC にタッチでチェックイン",
+                    sub: "NFC にタッチしてチェックイン",
                     bigColor: deepBrown,
                     captionColor: deepBrown.opacity(0.7),
                     subColor: deepBrown.opacity(0.8),
@@ -748,7 +748,7 @@ struct HomeView: View {
             }
         case .absent:
             heroBlock(
-                caption: "欠席判定 · 要対応",
+                caption: "欠席判定・要連絡",
                 big: "欠席",
                 sub: "寮監室まで直接お越しください",
                 bigColor: .white,
@@ -845,7 +845,7 @@ struct HomeView: View {
                         )
                         .frame(width: w * pct, height: 8)
 
-                    // threshold 4 点（50% = 4/8）· 清掃罰則
+                    // threshold 4 点（50% = 4/8）· 罰則清掃
                     Rectangle()
                         .fill(deepBrown.opacity(0.4))
                         .frame(width: 2, height: 12)
@@ -1414,7 +1414,7 @@ struct RollcallSheet: View {
 
             // JSX: 14 inkSub / lineHeight 1.75 / marginBottom 24
             VStack(alignment: .leading, spacing: 4) {
-                Text("① 入口の NFC マークにスマホをかざす")
+                Text("① 入口の NFC マークにスマートフォンをかざす")
                 Text("② 画面が光ったら完了")
             }
             .font(.system(size: 14))
@@ -1771,8 +1771,8 @@ struct StudyCheckinSheet: View {
 
     private var stepLabel: String {
         switch nextTap {
-        case .start: return "晩自習開始のタップ"
-        case .end: return "晩自習終了のタップ"
+        case .start: return "夜学習開始のタップ"
+        case .end: return "夜学習終了のタップ"
         case .none: return "本日完了"
         }
     }
@@ -1849,7 +1849,7 @@ struct StudyCheckinSheet: View {
             .padding(.bottom, 18)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("① 自習室入口の NFC マークにスマホをかざす")
+                Text("① 自習室入口の NFC マークにスマートフォンをかざす")
                 Text("② 画面が光ったら完了")
             }
             .font(.system(size: 14))
@@ -1979,7 +1979,7 @@ struct StudyCheckinSheet: View {
                     .font(.system(size: 13))
                     .foregroundStyle(T.inkSub)
             } else {
-                Text("\(Self.fmtNow()) · 本日の晩自習出席 完了")
+                Text("\(Self.fmtNow()) · 本日の夜学習の出席が完了しました")
                     .font(.system(size: 13, weight: .bold))
                     .kerning(0.26)
                     .padding(.horizontal, 14).padding(.vertical, 6)
@@ -2003,8 +2003,8 @@ struct StudyCheckinSheet: View {
         // 记录后若还有下一次 tap 则给出提示
         let after = app.nextStudyTap
         switch after {
-        case .start: return ("晩自習開始", "19:35〜19:40")
-        case .end: return ("晩自習終了", "21:40〜21:50")
+        case .start: return ("夜学習開始", "19:35〜19:40")
+        case .end: return ("夜学習終了", "21:40〜21:50")
         case .none: return nil
         }
     }
@@ -2077,7 +2077,7 @@ struct StudyCheckinSheet: View {
                     let label = recordedTap?.label ?? "—"
                     app.closeSheet()
                     if app.nextStudyTap == nil {
-                        app.showToast("晩自習出席完了 · 全 2 回 タップ済み")
+                        app.showToast("夜学習出席完了 · 全 2 回 タップ済み")
                     } else {
                         app.showToast("\(label) 完了")
                     }
@@ -2156,8 +2156,8 @@ struct StudyCheckinSheet: View {
 private extension StudyTap {
     var label: String {
         switch self {
-        case .start: return "晩自習開始"
-        case .end: return "晩自習終了"
+        case .start: return "夜学習開始"
+        case .end: return "夜学習終了"
         }
     }
 }
@@ -2184,7 +2184,7 @@ struct FeedbackSheet: View {
               detail: "発熱・頭痛・その他の症状を先生に通知",
               kind: .health),
         .init(id: "absence", icon: "📝",
-              label: "今回欠席の申請",
+              label: "今回の欠席を申請",
               detail: "今回の点呼を欠席する理由を入力",
               kind: .absence),
         .init(id: "other", icon: "💬",
@@ -2382,7 +2382,7 @@ struct AbsenceSheet: View {
     var body: some View {
         GlassSheet(onClose: { app.closeSheet() }) {
             VStack(alignment: .leading, spacing: 18) {
-                Text("今回の点呼を欠席したい")
+                Text("今回の点呼を欠席する")
                     .font(.system(size: 20, weight: .heavy))
                     .foregroundStyle(T.ink)
 
@@ -2579,11 +2579,11 @@ struct RenewStudentNoSheet: View {
     var body: some View {
         GlassSheet(onClose: { app.closeSheet() }) {
             VStack(alignment: .leading, spacing: 18) {
-                Text("学籍番号の再設定")
+                Text("アカウント番号の再設定")
                     .font(.system(size: 20, weight: .heavy))
                     .foregroundStyle(T.ink)
 
-                Text("新学年の 学年・組・出席番号 を選んでください。学籍番号は自動で計算されます。")
+                Text("新学年の学年・組・出席番号を選んでください。アカウント番号は自動で計算されます。")
                     .font(.system(size: 13))
                     .foregroundStyle(T.inkSub)
 
@@ -2617,7 +2617,7 @@ struct RenewStudentNoSheet: View {
                 if !gradeCode.isEmpty, !classCode.isEmpty,
                    let s = seatNo, s >= 1, s <= 99
                 {
-                    Text("新しい学籍番号: \(gradeCode)\(classCode)\(String(format: "%02d", s))")
+                    Text("新しいアカウント番号: \(gradeCode)\(classCode)\(String(format: "%02d", s))")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(T.primary)
                 }
@@ -2659,7 +2659,7 @@ struct RenewStudentNoSheet: View {
             } catch {
                 // 撞号(422)「已有人设定」/ 网络错 → 弹后端日语提示，留在弹窗让学生改
                 submitting = false
-                app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "学籍番号の設定に失敗しました"))
+                app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "アカウント番号の設定に失敗しました"))
             }
         }
     }
@@ -3213,7 +3213,7 @@ struct AnnouncementDetailView: View {
 
                 // 回复输入框
                 HStack(spacing: 8) {
-                    TextField("返信を入力...", text: $replyText, axis: .vertical)
+                    TextField("返信を入力…", text: $replyText, axis: .vertical)
                         .lineLimit(1 ... 4)
                         .font(.system(size: 14))
                         .padding(.horizontal, 12)

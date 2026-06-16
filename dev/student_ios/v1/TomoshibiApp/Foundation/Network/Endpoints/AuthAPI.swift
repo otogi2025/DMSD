@@ -107,7 +107,7 @@ enum AnnouncementsAPI {
 // MARK: - 当前登录学生（GET /students/me，IX-008，替换 SEED.user 假数据）
 
 /// GET /students/me 响应 — 后端 StudentProfileBasic（学生基本信息）。
-/// 只含身份字段；统计（扣分/迟到/欠席）+ 晩自習対象 flag 不在这接口。
+/// 只含身份字段；统计（扣分/迟到/欠席）+ 夜学習対象 flag 不在这接口。
 struct StudentMeOut: Decodable {
     let id: String
     let student_no: String

@@ -123,7 +123,7 @@ struct MyLandingView: View {
                     // 2. ⭐ 主要状态 Card 群（学習 / 点呼 / 減点）
                     VStack(spacing: 10) {
                         // IX-008: 学習卡片入口始终显示（itsuki：UI 还是可以看得到），
-                        // 非晩自習対象点进去由学習详情页显「不需要晚自习」，不在这隐藏。
+                        // 非夜学習対象点进去由学習详情页显「不需要晚自习」，不在这隐藏。
                         studyStatusCard
                         rollcallStatusCard
                         pointsStatusCard
@@ -226,7 +226,7 @@ struct MyLandingView: View {
 
     #if !DEMO
         /// 生产版拉行事予定（ios⑦ 上线缺口）：仿 ScheduleView.load()。
-        /// 未登录不拉；拉失败保持空 loadedEvents → scheduleCard 自然显「当面の予定はありません」，不喂假行事让学生误事。
+        /// 未登录不拉；拉失败保持空 loadedEvents → scheduleCard 自然显「直近の予定はありません」，不喂假行事让学生误事。
         private func loadEvents() async {
             guard app.isAuthenticated else { return }
             eventsState = .loading
@@ -288,7 +288,7 @@ struct MyLandingView: View {
                             .foregroundStyle(T.inkMute)
                             .padding(.top, 12)
                     default:
-                        Text("当面の予定はありません")
+                        Text("直近の予定はありません")
                             .font(.system(size: 12))
                             .foregroundStyle(T.inkMute)
                             .padding(.top, 12)
@@ -344,7 +344,7 @@ struct MyLandingView: View {
         .padding(.vertical, 9)
     }
 
-    // MARK: ⭐ 晩自習ステータス Card
+    // MARK: ⭐ 夜学習ステータス Card
 
     private var studyStatusCard: some View {
         Button { router.go(.myStudy) } label: {
@@ -356,7 +356,7 @@ struct MyLandingView: View {
                     Text("📚").font(.system(size: 22))
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("晩自習ステータス")
+                    Text("夜学習ステータス")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(T.inkSub)
                     Text(studyStateText)
@@ -1030,7 +1030,7 @@ struct MyInfoEditView: View {
 struct RollcallDisplay: Identifiable {
     let id: String // 演示=RollcallEntry.id / 生产=event UUID 字符串
     let date: String // yyyy-MM-dd（分组键 + 展示）
-    let session: String // 朝点呼 / 晩点呼
+    let session: String // 朝点呼 / 夜点呼
     let state: String // 時間内 / 遅刻 / 欠席 / 免除
     let method: String // NFC / ―
     let checkinTime: String? // 生产=checked_in_at 的 HH:mm:ss（详情真打卡时刻）；演示=nil
@@ -1074,7 +1074,7 @@ extension RollcallDisplay {
         self.init(
             id: e.id.uuidString,
             date: rollcallDateFmt.string(from: e.checked_in_at),
-            session: e.session_type == "morning" ? "朝点呼" : "晩点呼",
+            session: e.session_type == "morning" ? "朝点呼" : "夜点呼",
             state: RollcallDisplay.stateLabel(e.base_status),
             method: e.status_source == "auto_nfc" ? "NFC" : "―",
             checkinTime: rollcallTimeFmt.string(from: e.checked_in_at),
@@ -1437,7 +1437,7 @@ private let pointsDateFmt: DateFormatter = {
 extension PointDisplay {
     /// 演示构建：从 SEED.points 映射。
     init(demo p: PointRecord) {
-        self.init(id: p.id, date: p.date, label: "\(p.session) · \(p.kind)", val: p.val)
+        self.init(id: p.id, date: p.date, label: "\(p.session)・\(p.kind)", val: p.val)
     }
 
     /// 生产构建：从后端 ProfileDemeritEntry 映射（标签用 reason）。
@@ -1567,7 +1567,7 @@ struct MyPointsView: View {
                                 .font(.system(size: 12))
                                 .foregroundStyle(T.inkSub)
                         }
-                        Text("月累計 4 点で清掃罰則 · 月累計 8 点で外出禁止")
+                        Text("月累計 4 点で罰則清掃、月累計 8 点で外出禁止")
                             .font(.system(size: 12))
                             .foregroundStyle(T.inkSub)
                             .padding(.top, 2)
@@ -1634,7 +1634,7 @@ struct MyPointsView: View {
                         ))
                         .frame(width: geo.size.width * CGFloat(ratio), height: 8)
 
-                    // Threshold marker 4 (清掃罰則 · warn 橙)
+                    // Threshold marker 4 (罰則清掃 · warn 橙)
                     Rectangle()
                         .fill(T.warn)
                         .frame(width: 2, height: 14)
@@ -1655,7 +1655,7 @@ struct MyPointsView: View {
                     .monospaced()
                     .foregroundStyle(T.inkMute)
                 Spacer()
-                Text("4 清掃罰則")
+                Text("4 罰則清掃")
                     .font(.system(size: 10))
                     .foregroundStyle(T.warnDeep)
                 Spacer()
@@ -1732,7 +1732,7 @@ struct MyPointsChartView: View {
                                     Rectangle()
                                         .fill(T.warn)
                                         .frame(width: 14, height: 2)
-                                    Text("清掃罰則閾値")
+                                    Text("罰則清掃閾値")
                                         .font(.system(size: 11))
                                         .foregroundStyle(T.inkSub)
                                 }
@@ -1805,7 +1805,7 @@ struct MyPointsChartView: View {
                     ctx.draw(text, at: CGPoint(x: 10, y: y), anchor: .leading)
                 }
 
-                // Threshold line 4 (warn · orange dashed) — 清掃罰則閾値
+                // Threshold line 4 (warn · orange dashed) — 罰則清掃閾値
                 var th4 = Path()
                 th4.move(to: CGPoint(x: left, y: yFor(4)))
                 th4.addLine(to: CGPoint(x: right, y: yFor(4)))
@@ -1876,7 +1876,7 @@ struct MyDisciplineView: View {
                     VStack(spacing: 10) {
                         Text("✨")
                             .font(.system(size: 48))
-                        Text("処分歴はまだありません")
+                        Text("処分履歴はまだありません")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(T.inkSub)
                     }
@@ -2052,15 +2052,15 @@ struct CleaningDisplay: Identifiable {
 }
 
 extension CleaningDisplay {
-    /// 演示构建：从 SEED.cleaning 映射（状态本就是日语「通過 / 退回 / 未完成」、带分数）。
+    /// 演示构建：从 SEED.cleaning 映射（状态本就是日语「通過 / 差し戻し / 未完成」、带分数）。
     init(demo c: CleaningRecord) {
         self.init(
             id: "\(c.date):\(c.range)",
             range: c.range,
             date: "\(c.dateLabel) \(c.timeLabel)", // 改动1：日付+時刻
             pillText: c.score.map { "\(c.status) · \($0)点" } ?? c.status,
-            // 通過→ok / 退回→danger / 未完成（及其余）→accent
-            tone: c.status == "通過" ? .ok : (c.status == "退回" ? .danger : .accent),
+            // 「通過」→ok /「差し戻し」→danger /「未完成」（及其余）→accent
+            tone: c.status == "通過" ? .ok : (c.status == "差し戻し" ? .danger : .accent),
             rejected: c.rejected,
             comment: c.comment
         )
@@ -2083,7 +2083,7 @@ extension CleaningDisplay {
     static func statusLabel(_ s: String) -> String {
         switch s {
         case "passed": return "通過"
-        case "failed": return "退回"
+        case "failed": return "差し戻し"
         case "done": return "提出済"
         case "assigned": return "未提出"
         case "skipped": return "免除"
@@ -2480,15 +2480,15 @@ struct MySettingsView: View {
                     .foregroundStyle(T.inkMute)
                 Card(padding: 0) {
                     VStack(spacing: 0) {
-                        pushDemoRow(label: "晩自習欠席届 → 承認") {
+                        pushDemoRow(label: "夜学習欠席届 → 承認") {
                             app.simulateStudyLeaveApproved()
                         }
                         Divider().background(T.hair)
-                        pushDemoRow(label: "晩自習欠席届 → 不承認") {
+                        pushDemoRow(label: "夜学習欠席届 → 不承認") {
                             app.simulateStudyLeaveRejected()
                         }
                         Divider().background(T.hair)
-                        pushDemoRow(label: "晩自習対象に追加された") {
+                        pushDemoRow(label: "夜学習対象に追加された") {
                             app.simulateStudyRosterAdded()
                         }
                         Divider().background(T.hair)
@@ -2613,7 +2613,7 @@ struct MyAboutView: View {
         .environmentObject(AppStore())
 }
 
-// MARK: - 晩自習履歴 (system_features §7.3.10) — isStudyTarget のみ
+// MARK: - 夜学習履歴 (system_features §7.3.10) — isStudyTarget のみ
 
 struct MyStudyView: View {
     @EnvironmentObject var app: AppStore
@@ -2649,8 +2649,8 @@ struct MyStudyView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            PageHeader(title: "晩自習履歴", level: 2)
-            // IX-008: 非晩自習対象（老师后台未指定）→ 点进来显「不需要晚自习」，不显履历
+            PageHeader(title: "夜学習履歴", level: 2)
+            // IX-008: 非夜学習対象（老师后台未指定）→ 点进来显「不需要晚自习」，不显履历
             // （itsuki：UI 入口可见、点进去显示他不需要晚自习）。
             if app.displayUser.isStudyTarget {
                 ScrollView {
@@ -2671,15 +2671,15 @@ struct MyStudyView: View {
         .background(T.pearl.ignoresSafeArea())
     }
 
-    /// 非晚自习对象学生点进「晩自習履歴」时看到的提示页。
+    /// 非晚自习对象学生点进「夜学習履歴」时看到的提示页。
     private var notStudyTargetNotice: some View {
         VStack(spacing: 14) {
             Spacer()
             Text("📚").font(.system(size: 44))
-            Text("晩自習対象外です")
+            Text("夜学習対象外です")
                 .font(.system(size: 17, weight: .heavy))
                 .foregroundStyle(T.ink)
-            Text("現在、晩自習の対象ではありません。\n晩自習担当の先生が対象に指定すると、ここに出席状況が表示されます。")
+            Text("現在、夜学習の対象ではありません。\n夜学習担当の先生が対象に指定すると、ここに出席状況が表示されます。")
                 .font(.system(size: 13))
                 .foregroundStyle(T.inkSub)
                 .multilineTextAlignment(.center)
@@ -2697,7 +2697,7 @@ struct MyStudyView: View {
         return Card(padding: 18) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Text("今月の晩自習出席")
+                    Text("今月の夜学習出席")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(T.inkSub).kerning(1.2)
                     Spacer()
@@ -2747,7 +2747,7 @@ struct MyStudyView: View {
                     Text("📝").font(.system(size: 22))
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("今月の晩自習欠席届")
+                    Text("今月の夜学習欠席届")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(T.inkSub)
                     HStack(alignment: .lastTextBaseline, spacing: 4) {
@@ -2876,10 +2876,10 @@ struct MyStudyView: View {
 
     private var helpInfoBox: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("ℹ 晩自習出席は NFC を 1 日 2 回タップ")
+            Text("ℹ 夜学習出席は NFC を 1 日 2 回タップ")
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(T.primaryDk)
-            Text("晩自習開始 (19:40) ／ 晩自習終了 (21:45)。2 回揃わない場合は異常扱いとなり、晩自習担当の先生が手動で判定します。")
+            Text("夜学習開始 (19:40) ／ 夜学習終了 (21:45)。2 回揃わない場合は異常扱いとなり、夜学習担当の先生が手動で判定します。")
                 .font(.system(size: 11.5))
                 .foregroundStyle(T.primaryDk.opacity(0.85))
                 .lineSpacing(3)

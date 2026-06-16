@@ -1029,7 +1029,7 @@ struct StayDetailView: View {
                 }
                 .padding(.bottom, 14)
                 if item.chain.isEmpty {
-                    Text("この種別の届は承認手続きの設定がありません。")
+                    Text("この届出には承認の手続きはありません。")
                         .font(.system(size: 12))
                         .foregroundStyle(T.inkMute)
                 } else {

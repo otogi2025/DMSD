@@ -70,7 +70,7 @@ struct DormEventProposalForm: View {
                             Field(label: "実施場所", required: true) {
                                 TField(text: $place, placeholder: "実施場所")
                             }
-                            Field(label: "予想参加人数", required: true) {
+                            Field(label: "参加予定人数", required: true) {
                                 TField(text: $expectedCountText, placeholder: "0", keyboard: .numberPad)
                             }
                             Field(label: "参加対象", required: true) {
@@ -99,7 +99,7 @@ struct DormEventProposalForm: View {
                             Field(label: "想定される問題点と対応策", required: true) {
                                 TArea(text: $riskSolution, placeholder: "予想される問題と対応策", rows: 5)
                             }
-                            Field(label: "予想経費", required: true) {
+                            Field(label: "概算経費", required: true) {
                                 TArea(text: $expectedCost, placeholder: "必要な費用・内訳", rows: 3)
                             }
                             Field(label: "その他") {
@@ -147,7 +147,7 @@ struct DormEventProposalForm: View {
 
     private func submit() {
         guard let count = expectedCount, count >= 0 else {
-            app.showToast("予想参加人数を入力してください")
+            app.showToast("参加予定人数を入力してください")
             return
         }
         Task { await submitAsync(expectedCount: count) }
@@ -352,7 +352,7 @@ struct FridgePurchaseForm: View {
                             noteLine("他の寮生との共用は禁止です")
                             noteLine("庫内の衛生と賞味期限を管理してください")
                             noteLine("コンセント周辺を整理し、防火に注意してください")
-                            noteLine("費用は原則として学生納付金から差し引かれます")
+                            noteLine("費用は原則として寮費から差し引かれます")
                         }
                     }
                     .padding(.bottom, 22)
@@ -582,7 +582,7 @@ struct ItemPossessionForm: View {
                     ApplyFormSectionLabel(n: "2", label: "確認事項")
                     Card(padding: 14) {
                         VStack(alignment: .leading, spacing: 8) {
-                            noteLine("寮の礼儀を守って使用してください")
+                            noteLine("寮のルールを守って使用してください")
                             noteLine("自分や他人の生活を妨げないようにしてください")
                             noteLine("故障・紛失などの事故は本人の責任となります")
                         }

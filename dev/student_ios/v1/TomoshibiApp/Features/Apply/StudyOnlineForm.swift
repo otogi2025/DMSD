@@ -1,5 +1,5 @@
 // StudyOnlineForm.swift
-// Features · Apply — 晩自習欠席届 类型 A「オンライン学習申請」
+// Features · Apply — 夜学習欠席届 类型 A「オンライン夜学習申請」
 
 import QuickLook // 契約書（图片 / PDF）的 .quickLookPreview 预览（A3）
 import SwiftUI
@@ -52,7 +52,7 @@ struct StudyOnlineForm: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            PageHeader(title: "オンライン学習申請", level: 2)
+            PageHeader(title: "オンライン夜学習申請", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     listButton
@@ -64,7 +64,7 @@ struct StudyOnlineForm: View {
                     ApplyFormSectionLabel(n: "1", label: "期間")
                     Card(padding: 14) {
                         VStack(alignment: .leading, spacing: 12) {
-                            Field(label: "開始日", hint: "オンライン学習開始の 3 日前までに提出してください", required: true) {
+                            Field(label: "開始日", hint: "オンライン夜学習開始の3日前までに提出してください", required: true) {
                                 ApplyDateField(date: $periodFrom, minDate: ApplyFormDate.threeDaysLater)
                                     .environment(\.timeZone, TimeZone(identifier: "Asia/Tokyo") ?? .current) // 选日按 JST，跟 formatYMD 提交口径一致（非 JST 设备不偏天）
                                     .environment(\.calendar, ApplyFormDate.tokyoCalendar) // minDate/初值也按 JST 日历算（Codex 6-03）
@@ -96,7 +96,7 @@ struct StudyOnlineForm: View {
                             }
                             Field(label: "補足説明", hint: "契約書の内容・受講証明・リンクなど（任意）") {
                                 TArea(text: $contractRef,
-                                      placeholder: "契約書や受講証明の内容・リンクを入力",
+                                      placeholder: "契約書や受講証明の内容・リンクを入力してください",
                                       rows: 3)
                             }
                         }
@@ -106,7 +106,7 @@ struct StudyOnlineForm: View {
                     ApplyFormSectionLabel(n: "4", label: "理由")
                     Field(label: "理由", required: true) {
                         TArea(text: $reason,
-                              placeholder: "オンライン学習を希望する理由を入力してください",
+                              placeholder: "オンライン夜学習を希望する理由を入力してください",
                               rows: 4)
                     }
                     .padding(.bottom, 22)
@@ -160,7 +160,7 @@ struct StudyOnlineForm: View {
         HStack(spacing: 8) {
             Image(systemName: "info.circle")
                 .font(.system(size: 14, weight: .semibold))
-            Text("オンライン学習開始の 3 日前までに提出してください")
+            Text("オンライン夜学習開始の3日前までに提出してください")
                 .font(.system(size: 12))
         }
         .foregroundStyle(T.warnDeep)
@@ -196,7 +196,7 @@ struct StudyOnlineForm: View {
 
             let slots = schedule[day] ?? []
             if slots.isEmpty {
-                Text("申請なし")
+                Text("設定なし")
                     .font(.system(size: 12))
                     .foregroundStyle(T.inkMute)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -320,7 +320,7 @@ struct StudyOnlineForm: View {
                     return
                 }
             }
-            app.showToast("オンライン学習申請を提出しました")
+            app.showToast("オンライン夜学習申請を提出しました")
             router.go(.applyDone(kind: "studyOnline"))
         } catch let APIError.unprocessable(msg) {
             app.showToast(msg)
@@ -330,7 +330,7 @@ struct StudyOnlineForm: View {
         } catch APIError.network {
             app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "オンライン学習申請の提出に失敗しました"))
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "オンライン夜学習申請の提出に失敗しました"))
         }
     }
 }
@@ -344,7 +344,7 @@ struct StudyOnlineRequestListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            PageHeader(title: "オンライン学習申請一覧", level: 2)
+            PageHeader(title: "オンライン夜学習申請一覧", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     Button {
@@ -401,7 +401,7 @@ struct StudyOnlineRequestListView: View {
         } catch APIError.network {
             app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "オンライン学習申請一覧の取得に失敗しました"))
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "オンライン夜学習申請一覧の取得に失敗しました"))
         }
         loading = false
     }
@@ -546,7 +546,7 @@ private func studyOnlineStatusPair(_ status: String) -> (label: String, tone: Pi
     switch status {
     case "approved": return ("許可", .ok)
     case "rejected": return ("却下", .danger)
-    case "revoked": return ("取り消し", .neutral)
+    case "revoked": return ("取消済み", .neutral)
     default: return ("審査中", .warn)
     }
 }

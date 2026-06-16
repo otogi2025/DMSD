@@ -866,12 +866,12 @@ struct RegisterStep1View: View {
                     // 3. 性別
                     Field(
                         label: "性別",
-                        hint: "性別により自動的に男寮 / 女寮に配属されます",
+                        hint: "性別に応じて自動的に男子寮・女子寮に振り分けられます",
                         required: true
                     ) {
                         HStack(spacing: 8) {
-                            inlineRadio(value: "male", label: "男")
-                            inlineRadio(value: "female", label: "女")
+                            inlineRadio(value: "male", label: "男性")
+                            inlineRadio(value: "female", label: "女性")
                         }
                     }
 
@@ -1913,7 +1913,7 @@ struct LoginView: View {
             app.showToast(msg.isEmpty ? "アカウントロック中です。しばらくしてからお試しください" : msg)
         } catch let APIError.server(403, msg) {
             // 账号停用（status != active）
-            app.showToast(msg.isEmpty ? "このアカウントは現在ご利用いただけません。寮監にお問い合わせください" : msg)
+            app.showToast(msg.isEmpty ? "このアカウントは現在ご利用いただけません。寮監に申し出てください" : msg)
         } catch let APIError.unprocessable(msg) {
             // 学号格式错（非 6 桁数字）等
             app.showToast(msg)
@@ -2184,7 +2184,7 @@ struct RegisterStep5View: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            RegisterHeader(title: "認証コード")
+            RegisterHeader(title: "登録コード")
             RegisterProgress(step: 5)
 
             ScrollView {
@@ -2205,7 +2205,7 @@ struct RegisterStep5View: View {
                             Text("ご注意ください")
                                 .font(.system(size: 12.5, weight: .bold))
                                 .foregroundStyle(T.warnDeep)
-                            Text("教員から発行された 6 桁の認証コードを入力してください。コードは発行から 5 分以内のみ有効です。")
+                            Text("教員から発行された6桁の登録コードを入力してください。コードは発行から5分以内のみ有効です。")
                                 .font(.system(size: 12.5))
                                 .foregroundStyle(T.warnDeep)
                                 .lineSpacing(3)
@@ -2226,7 +2226,7 @@ struct RegisterStep5View: View {
 
                     // 6 桁数字 input — 居中大字
                     VStack(spacing: 8) {
-                        Text("認証コード（6 桁）")
+                        Text("登録コード（6桁）")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(T.inkSub)
                             .frame(maxWidth: .infinity, alignment: .leading)

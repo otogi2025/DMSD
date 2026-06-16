@@ -243,7 +243,7 @@ final class AppStore: ObservableObject {
                     // （needs_cleaning 是 Bool?，防后端字段名敲定前 / 旧后端没返时整段 summary 解码失败）。
                     mapped.needsCleaning = summary.needs_cleaning ?? (summary.total_points >= 4)
                 }
-                // IX-034: 再拉当月晩自習欠席届次数（按月真实数，替代纯内存累加 —
+                // IX-034: 再拉当月夜学習欠席届次数（按月真实数，替代纯内存累加 —
                 //   重启 / 跨月不再丢失）。拉不到 nil 保持原值，不打断登录。
                 let absenceRevAtStart = absenceCountRevision
                 let absenceCount = (try? await StudyAPI.myAbsenceSummary())?.count
@@ -295,7 +295,7 @@ final class AppStore: ObservableObject {
 
     /// 后端 /me 响应（StudentMeOut）映射成 iOS User。/me 只给身份字段：
     /// - 统计（points / lateCount / absentCount）/me 没有 → 这里先填 0，loadMe 再拉 DisciplineAPI.mySummary 覆盖（IX-008b）
-    /// - isStudyTarget（晩自習対象）/me 没这 flag → 默认 false（只有老师后台设的才是；
+    /// - isStudyTarget（夜学習対象）/me 没这 flag → 默认 false（只有老师后台设的才是；
     ///   UI 入口仍显示、点进去由各页据此显「不需要晚自习」）
     private static func mapMeToUser(_ me: StudentMeOut) -> User {
         // 内联三元 / 可选解包先拆成局部变量 — 否则 20 参数的 User(...) 字面量类型检查会超时
@@ -863,7 +863,7 @@ final class AppStore: ObservableObject {
         studyCountdownSec -= 1
     }
 
-    /// 晩自習欠席届 提交（system_features §7.3.5）— 后端通过后 += 1、> 3 触发提醒
+    /// 夜学習欠席届 提交（system_features §7.3.5）— 后端通过后 += 1、> 3 触发提醒
     /// 接 POST /api/v1/study/absence-requests。target_date は呼び出し側が JST yyyy-MM-dd で指定。
     /// async throws，调用方负责 catch 错误（重复提交 / 401 等）。
     func submitStudyLeave(targetDate: String, reason: String, range: StudyLeaveRange) async throws {
@@ -899,9 +899,9 @@ final class AppStore: ObservableObject {
         // 不把完成提示 / 完成页写到登出态或下一个人；抛 CancellationError 让调用方静默中止导航。
         guard authToken == tokenAtStart else { throw CancellationError() }
         if isThisMonth, studyLeaveCountThisMonth > 3 {
-            showToast("今月はすでに \(studyLeaveCountThisMonth) 回お休みされていますね。体調にはくれぐれもお気をつけください。")
+            showToast("今月の欠席はすでに \(studyLeaveCountThisMonth) 回目です。体調管理に十分気をつけてください。")
         } else {
-            showToast("晩自習欠席届を提出しました")
+            showToast("夜学習欠席届を提出しました")
         }
     }
 
@@ -921,7 +921,7 @@ final class AppStore: ObservableObject {
         needsRenewal = false
         await loadMe()
         guard authToken == tokenAtStart else { throw CancellationError() }
-        showToast("学籍番号を更新しました")
+        showToast("アカウント番号を更新しました")
     }
 
     /// JST 今日的 "yyyy-MM-dd" 字符串
@@ -938,10 +938,10 @@ final class AppStore: ObservableObject {
         /// memory project_demo_scaffolds_to_remove_before_v1.md #15
         func cycleDemoStudyState() {
             switch studyState {
-            case .idle: studyState = .upcoming; studyCountdownSec = 600; showToast("Demo · 晩自習 10 分前 (残り 10:00)")
-            case .upcoming: studyState = .active; studyTaps = []; showToast("Demo · 晩自習進行中（NFC で 2 回タップ）")
-            case .active: studyState = .done; showToast("Demo · 晩自習終了")
-            case .done: studyState = .idle; studyTaps = []; showToast("Demo · 晩自習対象外")
+            case .idle: studyState = .upcoming; studyCountdownSec = 600; showToast("Demo · 夜学習 10 分前 (残り 10:00)")
+            case .upcoming: studyState = .active; studyTaps = []; showToast("Demo · 夜学習進行中（NFC で 2 回タップ）")
+            case .active: studyState = .done; showToast("Demo · 夜学習終了")
+            case .done: studyState = .idle; studyTaps = []; showToast("Demo · 夜学習対象外")
             }
         }
     #endif
@@ -951,7 +951,7 @@ final class AppStore: ObservableObject {
     /// 学习出席已达成的 tap 集合（2 种类: start / end）
     @Published var studyTaps: Set<StudyTap> = []
 
-    /// 現在の晩自習出席状態（studyTaps + studyState から導出）
+    /// 現在の夜学習出席状態（studyTaps + studyState から導出）
     var studyAttendance: StudyAttendance {
         // 按 start / end 两个 tap 集合判定状态（§7.3.6 异常表，删中场后）
         let s = studyTaps.contains(.start)
@@ -991,8 +991,8 @@ final class AppStore: ObservableObject {
         // 履歴 1 件追加（最新が先頭）
         let label: String = {
             switch next {
-            case .start: return "晩自習開始"
-            case .end: return "晩自習終了"
+            case .start: return "夜学習開始"
+            case .end: return "夜学習終了"
             }
         }()
         let entry = StudyHistoryEntry(
@@ -1006,7 +1006,7 @@ final class AppStore: ObservableObject {
         return next
     }
 
-    /// マイページ「晩自習履歴」用 — production 空、demo 加 fixture seed
+    /// マイページ「夜学習履歴」用 — production 空、demo 加 fixture seed
     /// TODO[backend]: 登录后从 GET /study/attendance/mine 拉真数据
     @Published var studyHistory: [StudyHistoryEntry] = {
         #if DEMO
@@ -1453,7 +1453,7 @@ final class AppStore: ObservableObject {
 
     /// APNs delegate 收到推送后调用 — 插入 1 条 push 通知
     /// - Parameters:
-    ///   - type: NotificationItem.type 字段（"申請" / "減点" / "晩自習" / "リクエスト曲" 等）
+    ///   - type: NotificationItem.type 字段（"申請" / "減点" / "夜学習" / "リクエスト曲" 等）
     ///   - title: 标题
     ///   - body: 正文
     func handleIncomingPush(type: String, title: String, body: String) {
@@ -1476,25 +1476,25 @@ final class AppStore: ObservableObject {
 
         func simulateStudyLeaveApproved() {
             handleIncomingPush(
-                type: "晩自習",
-                title: "晩自習欠席届が承認されました",
-                body: "本日の前半節について、晩自習担当の先生が承認しました。"
+                type: "夜学習",
+                title: "夜学習欠席届が承認されました",
+                body: "本日の前半節について、夜学習担当の先生が承認しました。"
             )
         }
 
         func simulateStudyLeaveRejected() {
             handleIncomingPush(
-                type: "晩自習",
-                title: "晩自習欠席届が不承認でした",
-                body: "本日の前半節は出席をお願いします。詳細は晩自習担当の先生にお尋ねください。"
+                type: "夜学習",
+                title: "夜学習欠席届が不承認でした",
+                body: "本日の前半節は出席をお願いします。詳細は夜学習担当の先生にお尋ねください。"
             )
         }
 
         func simulateStudyRosterAdded() {
             handleIncomingPush(
-                type: "晩自習",
-                title: "晩自習対象になりました",
-                body: "今日から晩自習の対象に追加されました。19:40 までに自習室へお越しください。"
+                type: "夜学習",
+                title: "夜学習対象になりました",
+                body: "今日から夜学習の対象に追加されました。19:40 までに自習室へお越しください。"
             )
         }
 
@@ -1527,12 +1527,12 @@ enum StudyAttendance: String {
     case excused // 缺席已获批准
 }
 
-/// マイページ 晩自習履歴 entry
+/// マイページ 夜学習履歴 entry
 struct StudyHistoryEntry: Hashable, Identifiable {
     let id: UUID
     let date: String // "2026-04-30"
     let tapKind: StudyTap
-    let tapLabel: String // 例："晩自習開始" / "晩自習終了"
+    let tapLabel: String // 例："夜学習開始" / "夜学習終了"
     let timeHM: String // "19:38"
     let note: String?
 
@@ -1545,13 +1545,13 @@ struct StudyHistoryEntry: Hashable, Identifiable {
         self.note = note
     }
 
-    /// マイページ 晩自習履歴 demo seed
+    /// マイページ 夜学習履歴 demo seed
     static var demoSeed: [StudyHistoryEntry] {
         [
-            .init(date: "2026-04-29", tapKind: .end, tapLabel: "晩自習終了", timeHM: "21:46", note: nil),
-            .init(date: "2026-04-29", tapKind: .start, tapLabel: "晩自習開始", timeHM: "19:37", note: nil),
-            .init(date: "2026-04-28", tapKind: .end, tapLabel: "晩自習終了", timeHM: "21:45", note: nil),
-            .init(date: "2026-04-28", tapKind: .start, tapLabel: "晩自習開始", timeHM: "19:42", note: "1 分遅刻"),
+            .init(date: "2026-04-29", tapKind: .end, tapLabel: "夜学習終了", timeHM: "21:46", note: nil),
+            .init(date: "2026-04-29", tapKind: .start, tapLabel: "夜学習開始", timeHM: "19:37", note: nil),
+            .init(date: "2026-04-28", tapKind: .end, tapLabel: "夜学習終了", timeHM: "21:45", note: nil),
+            .init(date: "2026-04-28", tapKind: .start, tapLabel: "夜学習開始", timeHM: "19:42", note: "1 分遅刻"),
         ]
     }
 }

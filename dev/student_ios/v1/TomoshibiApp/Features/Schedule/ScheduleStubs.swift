@@ -260,7 +260,7 @@ struct ScheduleView: View {
                         Text("予定なし")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(T.inkSub)
-                        Text("この日の活動はありません")
+                        Text("この日の予定はありません")
                             .font(.system(size: 12))
                             .foregroundStyle(T.inkMute)
                     }

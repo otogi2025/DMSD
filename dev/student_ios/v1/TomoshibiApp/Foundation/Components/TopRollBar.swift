@@ -58,7 +58,7 @@ struct TopRollBar: View {
 
     private var primaryText: String {
         switch app.rollState {
-        case .idle: return "次の点呼: 21:00"
+        case .idle: return "次の点呼 21:00"
         case .active:
             let m = app.rollCountdownSec / 60
             let s = app.rollCountdownSec % 60
@@ -72,8 +72,8 @@ struct TopRollBar: View {
 
     private var secondaryText: String {
         switch app.rollState {
-        case .idle: return "タップで体調報告 / 欠席申請"
-        case .active: return "タップで欠席申請 / 体調報告"
+        case .idle: return "タップで体調報告 / 欠席届"
+        case .active: return "タップで欠席届 / 体調報告"
         case .absent: return "寮監室までお越しください"
         case .done: return "お疲れさまでした"
         }
