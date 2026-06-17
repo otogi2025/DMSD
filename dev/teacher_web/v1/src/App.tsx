@@ -52,6 +52,8 @@ export function App() {
           // A1 修复: 把 role + assigned_dorm 带进 teacher，否则权限按钮(一括进级/行事/巴士增删改)永不显示
           role: _restoredAuth.profile.role,
           assigned_dorm: _restoredAuth.profile.assigned_dorm,
+          // 带上有效权限组，供 InfoPage / AccountsPage 用 canManage 判功能入口显隐（TW-001/048）
+          permission_group: _restoredAuth.profile.permission_group ?? null,
         }
       : null;
   const [route, setRoute] = React.useState(
@@ -404,6 +406,8 @@ export function App() {
         ...pickedTeacher,
         role: profile && profile.role,
         assigned_dorm: profile && profile.assigned_dorm,
+        // 带上有效权限组供 canManage 判功能入口显隐（TW-001/048）
+        permission_group: (profile && profile.permission_group) ?? null,
       });
       setLastTeacherId(pickedTeacher.id);
     }
@@ -1019,6 +1023,37 @@ export function App() {
                 msg: `申請を${a === "approved" ? "承認" : "却下"}しました · 学生へメール通知送信済み`,
               });
             }
+          }}
+          onReturn={async (reason) => {
+            // 差戻 —— 把届退回给学生修改重提（C42 老师侧）。
+            // 只有 backend 真实数据（_backend 有）才调接口；demo 数据只关弹窗。
+            const backendApp = outstayTarget._backend;
+            if (backendApp && authToken) {
+              try {
+                await api.returnApplication(backendApp.id, reason, authToken);
+                // 成功后 refetch pending list（该 application 会从待审列表消失）
+                try {
+                  const refreshed = await api.pendingForMe(authToken);
+                  setBackendApplications(refreshed);
+                } catch (_) {
+                  // refetch 失败忽略（UI 下次打开时会自愈）
+                }
+              } catch (err: any) {
+                console.warn("[App] returnApplication 失敗", err);
+                // 后端失败码：409 CANNOT_RETURN（非审查中）/ 403 APPROVAL_NOT_REQUIRED（非当前审批者）
+                setToast({
+                  type: "warn",
+                  msg: `申請を差戻できませんでした（${err.status || "通信エラー"}）。画面は閉じます。`,
+                });
+                setOutstayTarget(null);
+                return;
+              }
+            }
+            setOutstayTarget(null);
+            setToast({
+              type: "ok",
+              msg: "申請を差戻しました · 学生へメール通知送信済み",
+            });
           }}
         />
       )}

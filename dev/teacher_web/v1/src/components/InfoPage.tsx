@@ -2,6 +2,7 @@ import React from "react";
 import { RYO } from "../theme";
 import type { RyoTokens } from "../theme";
 import { api } from "../api/client";
+import { canManage, C_EVENT, C_BUS } from "../api/permissions";
 import { ModalShell, ModalField, ModalFooter } from "./shared";
 import type {
   TeacherProfile,
@@ -456,49 +457,55 @@ export function InfoPage({
                       </span>
                     )}
                     <div style={{ flex: 1 }} />
-                    {/* 編集ボタン（自分が投稿者の場合のみ — authProfile id チェックは省略し常時表示） */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const d = detailCache[p._id];
-                        setEditTarget({
-                          id: p._id,
-                          title: p.title,
-                          body: d ? d.body : p.body || "",
-                          scope: p.scope,
-                        });
-                      }}
-                      style={{
-                        padding: "3px 8px",
-                        background: T.surface,
-                        color: T.ink2,
-                        border: `1px solid ${T.lineStrong}`,
-                        borderRadius: 5,
-                        fontFamily: "inherit",
-                        fontSize: 11,
-                        cursor: "pointer",
-                      }}
-                    >
-                      編集
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(p._id);
-                      }}
-                      style={{
-                        padding: "3px 8px",
-                        background: T.surface,
-                        color: T.danger,
-                        border: `1px solid ${T.dangerBorder}`,
-                        borderRadius: 5,
-                        fontFamily: "inherit",
-                        fontSize: 11,
-                        cursor: "pointer",
-                      }}
-                    >
-                      削除
-                    </button>
+                    {/* 編集/削除 只对投稿者本人显示（TW-013）：后端 update/delete 都有
+                        author_teacher_id != teacher.id → 403 投稿者本人のみ。原来无条件常显，
+                        非作者点了必 403，把老师诱导进注定失败的操作流程。 */}
+                    {teacher && p.author_id === teacher.id && (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const d = detailCache[p._id];
+                            setEditTarget({
+                              id: p._id,
+                              title: p.title,
+                              body: d ? d.body : p.body || "",
+                              scope: p.scope,
+                            });
+                          }}
+                          style={{
+                            padding: "3px 8px",
+                            background: T.surface,
+                            color: T.ink2,
+                            border: `1px solid ${T.lineStrong}`,
+                            borderRadius: 5,
+                            fontFamily: "inherit",
+                            fontSize: 11,
+                            cursor: "pointer",
+                          }}
+                        >
+                          編集
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(p._id);
+                          }}
+                          style={{
+                            padding: "3px 8px",
+                            background: T.surface,
+                            color: T.danger,
+                            border: `1px solid ${T.dangerBorder}`,
+                            borderRadius: 5,
+                            fontFamily: "inherit",
+                            fontSize: 11,
+                            cursor: "pointer",
+                          }}
+                        >
+                          削除
+                        </button>
+                      </>
+                    )}
                     <span style={{ fontSize: 12, color: T.ink3 }}>
                       {isOpen ? "▲" : "▼"}
                     </span>
@@ -990,8 +997,11 @@ function EventCalendar({
   authToken: string | null;
 }) {
   const T = RYO;
-  const EDIT_ROLES = ["寮務部長", "寮務課長", "管理係"];
-  const canEdit = EDIT_ROLES.includes((teacher && teacher.role) || "");
+  // 按权限组判（与后端 events.py require_permission(C_EVENT, MANAGE) 同一真值），不再按
+  // 职位白名单。原来用 ["寮務部長","寮務課長","管理係"] 白名单，导致后端授予行事管理权的
+  // 其他 role（寮監/学習担当 等）看不到编辑入口（TW-001）。teacher 无 permission_group 时
+  // canManage 内部按职位回退。
+  const canEdit = canManage(teacher, C_EVENT);
 
   const today = new Date();
   const fmt = (d: Date) =>
@@ -1703,8 +1713,9 @@ export function BusSchedulePanel({
   authToken: string | null;
 }) {
   const T = RYO;
-  const EDIT_ROLES = ["寮務部長", "寮務課長", "管理係"];
-  const canEdit = EDIT_ROLES.includes((teacher && teacher.role) || "");
+  // 按权限组判（与后端 bus_routes.py require_permission(C_BUS, MANAGE) 同一真值），不再按
+  // 职位白名单，让后端授予巴士管理权的所有 role 都能看到编辑入口（TW-001）。
+  const canEdit = canManage(teacher, C_BUS);
 
   const [routes, setRoutes] = React.useState<BusRoute[]>([]);
   const [loading, setLoading] = React.useState(false);

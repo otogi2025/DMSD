@@ -9,6 +9,9 @@ export interface TeacherProfile {
   email: string;
   role: string;
   assigned_dorm: number | null;
+  // 有效权限组（后端登录返回 TeacherOut 含此字段）— 前端按权限组判功能入口显隐时读它
+  // （NULL = 未显式配组，按职位回退）。原类型缺此字段，权限判定靠 any 兜住（TW-025/119）。
+  permission_group?: string | null;
 }
 
 export interface TeacherLoginOut {

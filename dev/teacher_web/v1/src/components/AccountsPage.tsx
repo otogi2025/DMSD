@@ -1,6 +1,7 @@
 import React from "react";
 import { RYO, type RyoTokens } from "../theme";
 import { api } from "../api/client";
+import { canManage, C_STUDENT_ACCOUNT } from "../api/permissions";
 import { StudentProfileModal } from "./StudentProfileModal";
 import type {
   TeacherProfile,
@@ -59,9 +60,11 @@ export function AccountsPage({
     React.useState<RenewalProgressOut | null>(null);
 
   // 权限：仅寮務部長 / 寮務課長 / 管理係 可开闸 / 单件改番号
-  const PROMOTE_ROLES = ["寮務部長", "寮務課長", "管理係"];
-  const canPromote =
-    teacher && teacher.role && PROMOTE_ROLES.includes(teacher.role);
+  // 按权限组判（与后端 student_promote.py require_permission(C_STUDENT_ACCOUNT, MANAGE)
+  // 同一真值），不再按职位白名单。原来用 ["寮務部長","寮務課長","管理係"] 白名单，把后端
+  // 授予学年更新权的其他 role（寮監/寮務一般教師 等持 MANAGE）锁在「学年更新を開始」按钮外，
+  // 每年 4 月学年更新可能没人能在 UI 触发（TW-048）。teacher 无 permission_group 时按职位回退。
+  const canPromote = !!teacher && canManage(teacher, C_STUDENT_ACCOUNT);
 
   // 开闸（按钮「学年更新を開始」）：先 dry_run=true 预览（通知 N 人 + 毕业 M 人），确认后真执行
   const handlePromotePreview = () => {

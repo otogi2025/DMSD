@@ -23,7 +23,7 @@ export const SELECTABLE_GROUPS: { value: string; label: string }[] = [
   { value: GROUP_GENERAL_STUDY, label: "一般宿管＋夜学習" },
   {
     value: GROUP_APPROVAL,
-    label: "申請承認専用（審批中心＋公共情報、他は閲覧のみ）",
+    label: "申請承認専用（承認業務＋公共情報、他は閲覧のみ）",
   },
 ];
 
@@ -196,7 +196,10 @@ const ROLE_DEFAULT_GROUP: Record<string, string> = {
   国際交流課長: GROUP_APPROVAL,
   管理係: GROUP_GENERAL,
   寮監: GROUP_GENERAL_STUDY,
-  学習担当: GROUP_APPROVAL,
+  // 与后端 permissions.py ROLE_DEFAULT_GROUP 对齐（itsuki 2026-06-12 确认）：学習担当 默认
+  // 一般宿管+夜学習，不是申請承認専用 —— 否则前端按 APPROVAL 把晚自习管理入口置灰，而后端
+  // 按 GENERAL_STUDY 放行，前后端有效组对同一老师判出不同结果（TW-049/106）。
+  学習担当: GROUP_GENERAL_STUDY,
   寮務一般教師: GROUP_GENERAL,
 };
 
