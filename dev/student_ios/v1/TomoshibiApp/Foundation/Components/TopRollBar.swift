@@ -58,7 +58,10 @@ struct TopRollBar: View {
 
     private var primaryText: String {
         switch app.rollState {
-        case .idle: return "次の点呼 21:00"
+        // idle 时 RootView（RootView.swift:20 的 `app.rollState != .idle`）不挂载本 bar，
+        // 故 .idle 分支永不显示，仅为 switch 穷尽性占位。不写死「次の点呼 21:00」避免误导
+        // 维护者以为下次点呼固定 21:00（点呼时刻由后端 schedule 决定）。
+        case .idle: return ""
         case .active:
             let m = app.rollCountdownSec / 60
             let s = app.rollCountdownSec % 60
@@ -72,6 +75,7 @@ struct TopRollBar: View {
 
     private var secondaryText: String {
         switch app.rollState {
+        // 同 primaryText：idle 时本 bar 不挂载，.idle 分支仅为穷尽性占位、不会显示。
         case .idle: return "タップで体調報告・欠席届"
         case .active: return "タップで欠席届・体調報告"
         case .absent: return "寮監室までお越しください"

@@ -109,6 +109,9 @@ enum AnnouncementsAPI {
 /// GET /students/me 响应 — 后端 StudentProfileBasic（学生基本信息）。
 /// 只含身份字段；统计（扣分/迟到/欠席）+ 夜学習対象 flag 不在这接口。
 struct StudentMeOut: Decodable {
+    // 后端为 UUID、本网络层其余模型也一律用 UUID，此处故意用 String：
+    // 直接拼进 URL 路径 + 与后端 ownerId 做大小写敏感字符串比对（避免 Swift UUID 大写 uuidString 与后端小写不匹配），
+    // 故不改成 UUID 类型。
     let id: String
     let student_no: String
     let name: String

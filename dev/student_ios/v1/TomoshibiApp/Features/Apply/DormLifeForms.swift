@@ -9,7 +9,7 @@ struct DormEventProposalForm: View {
 
     @State private var teamName: String = ""
     @State private var title: String = ""
-    @State private var heldDate: Date = .init()
+    @State private var heldDate: Date = ApplyFormDate.today // JST 日历锚定，避免裸 Date() 随设备时区漂
     @State private var heldTime: Date = ApplyFormDate.parseHM("19:00")
     @State private var place: String = ""
     @State private var expectedCountText: String = ""
@@ -35,6 +35,8 @@ struct DormEventProposalForm: View {
             && !content.trimmed.isEmpty
             && !riskSolution.trimmed.isEmpty
             && !expectedCost.trimmed.isEmpty
+            // 実施日時 不得早于今天（JST 日历锚定）—— 与 ApplyDateField 的 minDate 下限一致，挡住过去日期
+            && heldDate >= ApplyFormDate.today
     }
 
     var body: some View {
@@ -63,7 +65,7 @@ struct DormEventProposalForm: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Field(label: "実施日時", required: true) {
                                 HStack(spacing: 10) {
-                                    ApplyDateField(date: $heldDate)
+                                    ApplyDateField(date: $heldDate, minDate: ApplyFormDate.today)
                                     ApplyTimeField(date: $heldTime)
                                 }
                             }

@@ -83,6 +83,17 @@ enum ApplyFormDate {
         return c
     }
 
+    /// 今天 0 点（JST 日历锚定）—— 行事企画「実施日時」的最早可选日，避免裸 Date() 随设备时区漂
+    static var today: Date {
+        tokyoCalendar.startOfDay(for: Date())
+    }
+
+    /// 明天 0 点（JST 日历锚定）
+    static var tomorrow: Date {
+        let cal = tokyoCalendar
+        return cal.date(byAdding: .day, value: 1, to: today) ?? today
+    }
+
     static var threeDaysLater: Date {
         let cal = tokyoCalendar
         let today0 = cal.startOfDay(for: Date())

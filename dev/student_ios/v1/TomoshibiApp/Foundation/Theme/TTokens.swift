@@ -97,15 +97,17 @@ extension Color {
 // MARK: - 版本号显示常量
 
 //
-// production 版 = "v0.15.0" / demo 版 = "v0.15.0-demo"
-// 集中管理避免散布，将来真正发布时改一处即可。
+// 版本号从 Bundle 的 CFBundleShortVersionString 读（= project.yml 的 MARKETING_VERSION），
+// 不再手写字符串，避免与工程配置漂移（原写死 "v0.15.0" 早已落后于 project.yml）。
+// production 版 = "v<版本>" / demo 版 = "v<版本>-demo"。
 
 enum AppVersionTag {
     static let full: String = {
+        let version = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "?"
         #if DEMO
-            return "v0.15.0-demo"
+            return "v\(version)-demo"
         #else
-            return "v0.15.0"
+            return "v\(version)"
         #endif
     }()
 }

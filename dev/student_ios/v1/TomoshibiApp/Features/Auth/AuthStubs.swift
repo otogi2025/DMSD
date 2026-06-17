@@ -1901,8 +1901,11 @@ struct LoginView: View {
             router.replace(.home)
         } catch APIError.unauthorized {
             // 学号 / 密码错（后端尚未锁）
-            app.recordLoginFailure() // 本地连续失败计数（纯 UX，锁定真值以后端 423 为准）
             #if DEMO
+                // 本地连续失败计数（纯 UX）只在演示版有消费方 —— 唯一读 loginFailCount 的是 LockoutView，
+                // 而进 LockoutView 的入口只有下面的 router.go(.lockout)（仅 DEMO）。生产分支永不读该计数，
+                // 故 recordLoginFailure 放进 #if DEMO，生产不再累加无人消费的副作用。锁定真值以后端 423 为准。
+                app.recordLoginFailure()
                 // 演示版保留本地锁定升级演出（30/60/300… 秒倒计时）
                 router.go(.lockout)
             #else

@@ -265,7 +265,7 @@ struct StudentAccountCreateBody: Encodable {
 
     /// A-019: 客户端 form 校验。返回 nil = OK，否则返回错误信息（日语 UI 显示用）
     /// IX-026: 原来只校验字段上限，漏了下限 — 补必填非空 / 长度下限 / 固定格式，对齐 backend
-    /// schemas.StudentAccountCreateIn 约束（name min 1 / room_no min 3 / grade·class·seat 各 2 位数字 /
+    /// schemas.StudentAccountCreateIn 约束（name min 1 / room_no min 2 / grade·class·seat 各 2 位数字 /
     /// registration_code 6 位数字 / gender·dorm_unit 枚举）。
     func validate() -> String? {
         // 氏名：backend min_length=1，先校非空再校上限

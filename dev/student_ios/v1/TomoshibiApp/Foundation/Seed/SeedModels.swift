@@ -3,7 +3,7 @@
 import Foundation
 
 struct User: Hashable {
-    var account: String // 年级码(2) + 出席番号(2) · 高3 18号 → "0618"
+    var account: String // 年级码(2) + 班组码(2) + 出席番号(2) · 高3 B組 18号 → "060218"
     var name: String
     var nameKana: String
     var birth: String

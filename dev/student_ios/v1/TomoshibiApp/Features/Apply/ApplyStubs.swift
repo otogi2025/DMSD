@@ -1,6 +1,6 @@
 // ApplyStubs.swift · Apply feature 13 views (v2 HTML-fidelity rewrite)
 // ⭐ Agent D · v2 · 1:1 对照 refs/phaseB_src/100ba570__ApplyListPage_ApplyNewPage_ApplyFormPage.js
-// 8 APPLY_TYPES · StayForm 8 section · GenericApplyForm · Detail workflow · Preview · Done
+// 12 种 APPLY_TYPES · StayForm 8 section · GenericApplyForm · Detail workflow · Preview · Done
 // 注意:
 //   - 日文字符串逐字照抄 JSX
 //   - 颜色全部走 T.* tokens
@@ -10,7 +10,7 @@
 
 import SwiftUI
 
-// MARK: - APPLY_TYPES (8 kind · 严格对照 JSX line 3-12)
+// MARK: - APPLY_TYPES (12 种)
 
 private struct ApplyTypeMeta {
     let k: String
@@ -2266,11 +2266,15 @@ struct ApplyDetailView: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
-    /// 找不到返回 nil（旧代码 `?? SEED.applications[0]` 退回第一条 → SEED 为空数组时下标越界崩溃）。
-    /// 改 optional，下面 steps / otherDetailBody 找不到时显示空状态。
-    private var item: ApplicationItem? {
-        SEED.applications.first(where: { $0.id == id })
-    }
+    #if DEMO
+        /// ⚠️ 仅 DEMO，生产严禁引用 —— item / steps / otherDetailBody 整组都读 SEED.applications（假种子）+ 编造步骤时间。
+        /// 生产路径（stayOrOtherBody 的 #else）只走真后端 StayDetailView(id)，不碰这三个成员。
+        /// 找不到返回 nil（旧代码 `?? SEED.applications[0]` 退回第一条 → SEED 为空数组时下标越界崩溃）。
+        /// 改 optional，下面 steps / otherDetailBody 找不到时显示空状态。
+        private var item: ApplicationItem? {
+            SEED.applications.first(where: { $0.id == id })
+        }
+    #endif
 
     fileprivate struct StepMeta {
         let k: String
@@ -2282,35 +2286,38 @@ struct ApplyDetailView: View {
         var activeNote: String? = nil // 进行中那一步显示的副标题（如审查中说明 / 确认中说明）
     }
 
-    fileprivate var steps: [StepMeta] {
-        guard let a = item else { return [] }
-        let submitTime = a.date + " 10:24"
-        // 外出申請（outing）= 一名老师确认即可，没有「審査」步骤 — itsuki 2026-06-04 拍板。
-        // 确认老师的名字本应从登录的老师账号自动记录（后端实装待做），
-        // 演示版先用代表性的「松本 先生」展示。
-        if a.type == "outing" {
-            let confirmed = a.status == "approved"
-            let confirmTime: String? = confirmed ? a.date + " 11:02" : nil
+    #if DEMO
+        /// ⚠️ 仅 DEMO，生产严禁引用 —— 读 item（SEED）+ 编造步骤时间，只被 otherDetailBody（亦 DEMO）消费。
+        fileprivate var steps: [StepMeta] {
+            guard let a = item else { return [] }
+            let submitTime = a.date + " 10:24"
+            // 外出申請（outing）= 一名老师确认即可，没有「審査」步骤 — itsuki 2026-06-04 拍板。
+            // 确认老师的名字本应从登录的老师账号自动记录（后端实装待做），
+            // 演示版先用代表性的「松本 先生」展示。
+            if a.type == "outing" {
+                let confirmed = a.status == "approved"
+                let confirmTime: String? = confirmed ? a.date + " 11:02" : nil
+                return [
+                    .init(k: "submit", label: "提出", done: true, active: false, time: submitTime, label2: nil),
+                    .init(k: "confirm",
+                          label: confirmed ? "確認" : "先生の確認待ち",
+                          done: confirmed, active: !confirmed, time: confirmTime,
+                          label2: confirmed ? "松本 先生" : nil,
+                          activeNote: "担当の先生が確認します"),
+                ]
+            }
+            let reviewDone = a.status == "approved" || a.status == "rejected"
+            let reviewActive = a.status == "pending"
+            let reviewTime: String? = reviewActive ? nil : a.date + " 11:02"
+            let finalDone = a.status == "approved" || a.status == "rejected"
+            let finalLabel2 = a.status == "rejected" ? "差し戻し" : "承認"
             return [
                 .init(k: "submit", label: "提出", done: true, active: false, time: submitTime, label2: nil),
-                .init(k: "confirm",
-                      label: confirmed ? "確認" : "先生の確認待ち",
-                      done: confirmed, active: !confirmed, time: confirmTime,
-                      label2: confirmed ? "松本 先生" : nil,
-                      activeNote: "担当の先生が確認します"),
+                .init(k: "review", label: "審査", done: reviewDone, active: reviewActive, time: reviewTime, label2: nil, activeNote: "担当者：松本 先生 · 審査中"),
+                .init(k: "final", label: "完了", done: finalDone, active: false, time: nil, label2: finalLabel2),
             ]
         }
-        let reviewDone = a.status == "approved" || a.status == "rejected"
-        let reviewActive = a.status == "pending"
-        let reviewTime: String? = reviewActive ? nil : a.date + " 11:02"
-        let finalDone = a.status == "approved" || a.status == "rejected"
-        let finalLabel2 = a.status == "rejected" ? "差し戻し" : "承認"
-        return [
-            .init(k: "submit", label: "提出", done: true, active: false, time: submitTime, label2: nil),
-            .init(k: "review", label: "審査", done: reviewDone, active: reviewActive, time: reviewTime, label2: nil, activeNote: "担当者：松本 先生 · 審査中"),
-            .init(k: "final", label: "完了", done: finalDone, active: false, time: nil, label2: finalLabel2),
-        ]
-    }
+    #endif
 
     var body: some View {
         if id.hasPrefix("outing:") {
@@ -2341,146 +2348,148 @@ struct ApplyDetailView: View {
         #endif
     }
 
-    /// 出寮届以外（修繕 / 来訪 / 代理受取 等）的 demo 3 步 workflow
-    @ViewBuilder
-    private var otherDetailBody: some View {
-        if let a = item {
-            let t = applyType(a.type)
-            let sp = statusPair(a.status)
-            VStack(spacing: 0) {
-                PageHeader(title: "申請詳細", level: 2)
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        // Header card
-                        Card(padding: 18) {
-                            VStack(alignment: .leading, spacing: 12) {
-                                HStack(spacing: 12) {
-                                    Image(systemName: t.icon)
-                                        .font(.system(size: 18))
-                                        .foregroundStyle(T.primary)
-                                        .frame(width: 44, height: 44)
-                                        .background {
-                                            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(T.pill)
+    #if DEMO
+        /// ⚠️ 仅 DEMO，生产严禁引用 —— 出寮届以外（修繕 / 来訪 / 代理受取 等）的 demo 3 步 workflow，读 item（SEED）。
+        @ViewBuilder
+        private var otherDetailBody: some View {
+            if let a = item {
+                let t = applyType(a.type)
+                let sp = statusPair(a.status)
+                VStack(spacing: 0) {
+                    PageHeader(title: "申請詳細", level: 2)
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            // Header card
+                            Card(padding: 18) {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: t.icon)
+                                            .font(.system(size: 18))
+                                            .foregroundStyle(T.primary)
+                                            .frame(width: 44, height: 44)
+                                            .background {
+                                                RoundedRectangle(cornerRadius: 12, style: .continuous).fill(T.pill)
+                                            }
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("\(t.name)申請")
+                                                .font(.system(size: 16, weight: .heavy))
+                                                .foregroundStyle(T.ink)
                                         }
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("\(t.name)申請")
-                                            .font(.system(size: 16, weight: .heavy))
-                                            .foregroundStyle(T.ink)
-                                    }
-                                    Spacer()
-                                    Pill(text: sp.label, tone: sp.tone)
-                                }
-
-                                // divider + fields
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        Text("日時").font(.system(size: 13)).foregroundStyle(T.inkSub)
                                         Spacer()
-                                        Text(a.date)
-                                            .font(.system(size: 13, weight: .semibold))
-                                            .foregroundStyle(T.ink)
+                                        Pill(text: sp.label, tone: sp.tone)
                                     }
-                                    HStack {
-                                        Text("内容").font(.system(size: 13)).foregroundStyle(T.inkSub)
-                                        Spacer()
-                                        Text(a.summary)
-                                            .font(.system(size: 13, weight: .semibold))
-                                            .foregroundStyle(T.ink)
+
+                                    // divider + fields
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        HStack {
+                                            Text("日時").font(.system(size: 13)).foregroundStyle(T.inkSub)
+                                            Spacer()
+                                            Text(a.date)
+                                                .font(.system(size: 13, weight: .semibold))
+                                                .foregroundStyle(T.ink)
+                                        }
+                                        HStack {
+                                            Text("内容").font(.system(size: 13)).foregroundStyle(T.inkSub)
+                                            Spacer()
+                                            Text(a.summary)
+                                                .font(.system(size: 13, weight: .semibold))
+                                                .foregroundStyle(T.ink)
+                                        }
+                                    }
+                                    .padding(.top, 12)
+                                    .overlay(alignment: .top) {
+                                        Rectangle().fill(T.hair).frame(height: 0.5)
                                     }
                                 }
-                                .padding(.top, 12)
-                                .overlay(alignment: .top) {
-                                    Rectangle().fill(T.hair).frame(height: 0.5)
-                                }
-                            }
-                        }
-                        .padding(.bottom, 16)
-
-                        // Progress workflow card (4-段 workflow: 担任 → 寮務課長 → 管理課長 → 国際交流部長)
-                        Card(padding: 18) {
-                            VStack(alignment: .leading, spacing: 0) {
-                                Text("進捗")
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundStyle(T.inkSub)
-                                    .kerning(1.2)
-                                    .padding(.bottom, 14)
-
-                                WorkflowStepsView(steps: steps)
-                            }
-                        }
-                        .padding(.bottom, 16)
-
-                        // Rejected banner
-                        if a.status == "rejected" {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("⚠ 差し戻し理由")
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundStyle(T.danger)
-                                Text("帰寮予定時刻が門限（22:00）を過ぎています。外泊申請として再提出してください。")
-                                    .font(.system(size: 13))
-                                    .foregroundStyle(T.ink)
-                                    .lineSpacing(3)
-                            }
-                            .padding(.horizontal, 16).padding(.vertical, 14)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background {
-                                RoundedRectangle(cornerRadius: 14, style: .continuous).fill(T.dangerBg)
-                            }
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .stroke(T.danger.opacity(0.25), lineWidth: 1)
                             }
                             .padding(.bottom, 16)
-                        }
 
-                        // Actions per status
-                        if a.status == "pending" {
-                            Button {
-                                app.showToast("申請を取り消しました")
-                                Task {
-                                    try? await Task.sleep(nanoseconds: 400_000_000)
-                                    await MainActor.run { router.replace(.apply) }
+                            // Progress workflow card (4-段 workflow: 担任 → 寮務課長 → 管理課長 → 国際交流部長)
+                            Card(padding: 18) {
+                                VStack(alignment: .leading, spacing: 0) {
+                                    Text("進捗")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundStyle(T.inkSub)
+                                        .kerning(1.2)
+                                        .padding(.bottom, 14)
+
+                                    WorkflowStepsView(steps: steps)
                                 }
-                            } label: {
-                                Text("申請を取り消し")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundStyle(T.danger)
-                                    .frame(maxWidth: .infinity, minHeight: 48)
-                                    .background {
-                                        RoundedRectangle(cornerRadius: 14, style: .continuous).fill(T.paper)
-                                    }
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                            .stroke(T.danger.opacity(0.25), lineWidth: 1.5)
-                                    }
                             }
-                            .buttonStyle(.plain)
-                        } else if a.status == "rejected" {
-                            PrimaryButton(title: "内容を修正して再提出") {
-                                router.go(.applyForm(kind: a.type))
+                            .padding(.bottom, 16)
+
+                            // Rejected banner
+                            if a.status == "rejected" {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("⚠ 差し戻し理由")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundStyle(T.danger)
+                                    Text("帰寮予定時刻が門限（22:00）を過ぎています。外泊申請として再提出してください。")
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(T.ink)
+                                        .lineSpacing(3)
+                                }
+                                .padding(.horizontal, 16).padding(.vertical, 14)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background {
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous).fill(T.dangerBg)
+                                }
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .stroke(T.danger.opacity(0.25), lineWidth: 1)
+                                }
+                                .padding(.bottom, 16)
+                            }
+
+                            // Actions per status
+                            if a.status == "pending" {
+                                Button {
+                                    app.showToast("申請を取り消しました")
+                                    Task {
+                                        try? await Task.sleep(nanoseconds: 400_000_000)
+                                        await MainActor.run { router.replace(.apply) }
+                                    }
+                                } label: {
+                                    Text("申請を取り消し")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundStyle(T.danger)
+                                        .frame(maxWidth: .infinity, minHeight: 48)
+                                        .background {
+                                            RoundedRectangle(cornerRadius: 14, style: .continuous).fill(T.paper)
+                                        }
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                                .stroke(T.danger.opacity(0.25), lineWidth: 1.5)
+                                        }
+                                }
+                                .buttonStyle(.plain)
+                            } else if a.status == "rejected" {
+                                PrimaryButton(title: "内容を修正して再提出") {
+                                    router.go(.applyForm(kind: a.type))
+                                }
                             }
                         }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 4).padding(.bottom, 24)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 4).padding(.bottom, 24)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(T.pearl)
+            } else {
+                // SEED 里没有该 id（正常不会发生，纯防御）。显示空状态，不再退回第一条假数据。
+                VStack(spacing: 12) {
+                    PageHeader(title: "申請詳細", level: 2)
+                    Spacer()
+                    Text("申請が見つかりません")
+                        .font(.system(size: 14))
+                        .foregroundStyle(T.inkSub)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(T.pearl)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(T.pearl)
-        } else {
-            // SEED 里没有该 id（正常不会发生，纯防御）。显示空状态，不再退回第一条假数据。
-            VStack(spacing: 12) {
-                PageHeader(title: "申請詳細", level: 2)
-                Spacer()
-                Text("申請が見つかりません")
-                    .font(.system(size: 14))
-                    .foregroundStyle(T.inkSub)
-                Spacer()
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(T.pearl)
         }
-    }
+    #endif
 }
 
 private struct WorkflowStepsView: View {

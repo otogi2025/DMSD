@@ -775,23 +775,9 @@ struct LostNewView: View {
                     }
                     .padding(.bottom, 18)
 
-                    // 拾得日時 · 固定文字（JSX 原样）
-                    Field(label: "拾得日時") {
-                        HStack {
-                            Text("2026-04-22 15:00")
-                                .font(.system(size: 15))
-                                .foregroundStyle(T.ink)
-                            Spacer()
-                        }
-                        .padding(.horizontal, 14)
-                        .frame(height: 48)
-                        .background(T.pearl)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(T.hair, lineWidth: 1)
-                        )
-                    }
-                    .padding(.bottom, 18)
+                    // 原有「拾得日時」栏写死过去日期「2026-04-22 15:00」、且不参与提交（submit 不读它），
+                    // 是 JSX 直译演示残留。生产页不应显示写死的过去日期，已删整栏。
+                    // 若日后要真实拾得日時，应改成日期选择器并加入 LostFoundBody 传后端。
 
                     PrimaryButton(title: "投稿する", enabled: canSubmit && !isSubmitting) {
                         submit()
@@ -1399,9 +1385,10 @@ struct EventDetailView: View {
                         .foregroundStyle(T.inkSub)
                         .padding(.bottom, 18)
 
-                    // desc card · JSX 加了固定后缀
+                    // desc card · 正文只显 event.desc（原 JSX 给所有活动写死追加「新入生の自己紹介…」后缀，
+                    // 对防灾演练/考试等任意活动都不合理，已删）
                     Card(padding: 16) {
-                        Text("\(event.desc)。新入生の自己紹介、在学生との交流タイム、軽食とドリンクをご用意します。")
+                        Text(event.desc)
                             .font(.system(size: 14))
                             .foregroundStyle(T.ink)
                             .lineSpacing(4)

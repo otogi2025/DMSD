@@ -824,8 +824,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 5) {
             GeometryReader { geo in
                 let w = geo.size.width
-                // 当前 4.5 点，但 JSX 固定画 50%（4/8）— 严格按 JSX 固定 50%
-                // 为避免硬编码失真，用 points/8 上限 1
+                // 为避免硬编码失真，进度按 points/8 动态算、上限 1
                 let pct = min(app.displayUser.points / 8.0, 1.0)
 
                 ZStack(alignment: .leading) {
@@ -1184,7 +1183,9 @@ struct LifeTab: View {
                     Text("宅配便 · \(pendingPkg) 件未受取")
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(T.ink)
-                    Text("本日到着")
+                    // 原写死「本日到着」会让学生误以为都是今天刚到的（实际可能前几天到）。
+                    // 这里只拿到未受取件数（pendingPkg），无逐件到达日，故用不绑定日期的中性文案。
+                    Text("未受取あり")
                         .font(.system(size: 12))
                         .foregroundStyle(T.inkSub)
                 }
