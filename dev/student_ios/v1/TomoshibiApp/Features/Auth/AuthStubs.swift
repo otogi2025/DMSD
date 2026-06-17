@@ -754,6 +754,17 @@ struct RegisterStep1View: View {
         return gradeCode + classCode + String(format: "%02d", n)
     }
 
+    /// B1 前置提示：房号字母前缀编码寮+性别（心智模型 §5.0，与后端 validate_room_dorm_match 同口径）——
+    /// W***=四寮(女)/ M***=一寮(男)/ A*=二寮(男)。性别与前缀矛盾时早提示，别等送后端才被 422 打回。
+    /// 只在前缀是明确矛盾的字母时报；纯数字 / 还没输前缀不报（让后端兜底，避免误挡）。
+    private var roomGenderMismatch: Bool {
+        guard gender == "male" || gender == "female",
+              let first = room.trimmingCharacters(in: .whitespaces).first?.uppercased()
+        else { return false }
+        if gender == "female" { return first == "M" || first == "A" } // 女生只住 W 寮
+        return first == "W" // 男生只住 M / A 寮
+    }
+
     private var canNext: Bool {
         // 必填检查 — 8 字段全部必选/必填才放行下一步
         // 防止用户跳过性别 / 学年 / 组别 / 出席番号 / 部屋番号导致提交假数据到 backend
@@ -764,6 +775,7 @@ struct RegisterStep1View: View {
             && (Int(seatNoStr) ?? 0) > 0
             && (Int(seatNoStr) ?? 0) <= 99 // backend seat_no 是 2 位数字码，>99 会被 ^\d{2}$ 校验打回
             && !room.trimmingCharacters(in: .whitespaces).isEmpty
+            && !roomGenderMismatch // B1：性别与房号寮前缀矛盾不放行
     }
 
     private var avatarLetter: String {
@@ -805,25 +817,9 @@ struct RegisterStep1View: View {
                             }
 
                             VStack(spacing: 8) {
-                                Button {
-                                    // demo — 不接真相册
-                                } label: {
-                                    Text("写真を選択")
-                                        .font(.system(size: 13))
-                                        .foregroundStyle(T.ink)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 38)
-                                        .background {
-                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                                .fill(T.pearl)
-                                        }
-                                        .overlay {
-                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                                .stroke(T.hair, lineWidth: 1)
-                                        }
-                                }
-                                .buttonStyle(.plain)
-
+                                // 注：原「写真を選択」按钮（从相册选照片）是接相册的死按钮 —— 后端无头像上传
+                                // 路径，点了什么都不发生。v1.0 移除，避免误导。头像走「デフォルトを使う」
+                                // （字母头像）或下方 AI 生成（iOS 18.2+）。相册上传留 v1.1（需后端头像存储）。
                                 Button {
                                     avatar = "default"
                                     generatedAvatarURL = nil // 清掉 AI 生成结果，退回字母 Avatar
@@ -947,7 +943,13 @@ struct RegisterStep1View: View {
                     }
 
                     // 8. 部屋番号
-                    Field(label: "部屋番号", required: true) {
+                    Field(
+                        label: "部屋番号",
+                        error: roomGenderMismatch
+                            ? "選択した性別と部屋番号が一致しません（女子寮はW・男子寮はM／Aで始まります）"
+                            : nil,
+                        required: true
+                    ) {
                         TField(text: $room, placeholder: "")
                     }
                     .onChangeCompat(of: room) { newVal in
@@ -1465,8 +1467,15 @@ struct RegisterStep4View: View {
         !pw.isEmpty && !pw2.isEmpty && pw != pw2
     }
 
+    /// A-395: 密码太短（不足 6 位）。后端 schema / validate 下限都是 6，
+    /// 之前 hint 写「8文字以上」但客户端不校验、6-7 位放行到最后一步才被后端笼统打回。
+    /// 三方（hint / canSubmit / 后端）统一到 6。
+    private var tooShort: Bool {
+        !pw.isEmpty && pw.count < 6
+    }
+
     private var canSubmit: Bool {
-        !pw.isEmpty && !pw2.isEmpty && !mismatch
+        !pw.isEmpty && !pw2.isEmpty && !mismatch && pw.count >= 6
     }
 
     var body: some View {
@@ -1513,7 +1522,8 @@ struct RegisterStep4View: View {
 
                     Field(
                         label: "パスワード",
-                        hint: "8文字以上",
+                        hint: "6文字以上",
+                        error: tooShort ? "パスワードは6文字以上で入力してください" : nil,
                         required: true
                     ) {
                         TField(text: $pw, placeholder: "", secure: true)
