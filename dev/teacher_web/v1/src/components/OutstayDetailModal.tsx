@@ -605,6 +605,27 @@ export function OutstayDetailModal({
           {/* 「質問あり（保留）」按钮已移除（TW-024）：后端 decide 只支持 approve/reject，
               保留无对应处理，点了会谎报「保留しました」但申请实际仍 pending、学生零通知。
               退回/保留是 v1.1 功能（需后端 returned 状态 + 通知），实装后再恢复入口。 */}
+          {/* 差戻 —— 中性/警示色（warn 系）。点击打开差戻理由输入弹窗（理由必填） */}
+          <button
+            onClick={() => {
+              setReturnReason("");
+              setReturnError(null);
+              setReturnOpen(true);
+            }}
+            style={{
+              padding: "10px 18px",
+              background: "transparent",
+              color: T.warn,
+              border: `1px solid ${T.warnBorder}`,
+              borderRadius: 8,
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            差戻
+          </button>
           <button
             onClick={() => setConfirm({ action: "rejected", label: "却下" })}
             style={{
@@ -652,6 +673,147 @@ export function OutstayDetailModal({
             setConfirm(null);
           }}
         />
+      )}
+
+      {/* 差戻理由入力弹窗 —— 参照 ConfirmModal 样式，但带必填 textarea。
+          理由必填（1〜1000 字），通过校验才调 onReturn。 */}
+      {returnOpen && (
+        <div
+          onClick={() => setReturnOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(20,23,31,.48)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 200,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 480,
+              background: T.surface,
+              borderRadius: 14,
+              boxShadow: T.shadowModal,
+              padding: "24px 28px",
+              fontFamily: T.font,
+            }}
+          >
+            <div style={{ fontSize: 17, fontWeight: 700 }}>
+              {applicantName} の{kindLabel}申請を差戻しますか？
+            </div>
+            <div
+              style={{
+                fontSize: 13,
+                color: T.ink3,
+                marginTop: 8,
+                lineHeight: 1.6,
+              }}
+            >
+              差戻すと申請は学生に返され、修正のうえ再提出できます。差戻理由は学生へメールで通知されます。
+            </div>
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                fontWeight: 600,
+                color: T.ink2,
+                margin: "16px 0 6px",
+              }}
+            >
+              差戻理由（必須）
+            </label>
+            <textarea
+              value={returnReason}
+              onChange={(e) => {
+                setReturnReason(e.target.value);
+                if (returnError) setReturnError(null);
+              }}
+              placeholder="例：出発時刻と帰舎時刻に矛盾があります。再確認のうえ修正してください。"
+              rows={3}
+              autoFocus
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                padding: "8px 10px",
+                border: `1px solid ${returnError ? T.danger : T.lineStrong}`,
+                borderRadius: 8,
+                fontFamily: "inherit",
+                fontSize: 13,
+                resize: "vertical",
+              }}
+            />
+            {returnError && (
+              <div
+                style={{
+                  fontSize: 12,
+                  color: T.danger,
+                  marginTop: 6,
+                }}
+              >
+                {returnError}
+              </div>
+            )}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: 8,
+                marginTop: 22,
+              }}
+            >
+              <button
+                onClick={() => setReturnOpen(false)}
+                style={{
+                  padding: "9px 18px",
+                  background: "transparent",
+                  color: T.ink,
+                  border: `1px solid ${T.lineStrong}`,
+                  borderRadius: 8,
+                  fontFamily: "inherit",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={() => {
+                  // 校验：理由必填、1〜1000 字（对齐后端约束）
+                  const reason = returnReason.trim();
+                  if (reason.length === 0) {
+                    setReturnError("差戻理由を入力してください。");
+                    return;
+                  }
+                  if (reason.length > 1000) {
+                    setReturnError(
+                      "差戻理由は 1000 字以内で入力してください。",
+                    );
+                    return;
+                  }
+                  onReturn(reason);
+                  setReturnOpen(false);
+                }}
+                style={{
+                  padding: "9px 18px",
+                  background: T.warn,
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  fontFamily: "inherit",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                差戻
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
