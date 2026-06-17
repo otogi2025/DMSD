@@ -1131,6 +1131,14 @@ itsuki 2026-06-16 拍板：老师网页要能查看老师做过的操作历史�
 
 端别：后端 BACKEND_DESIGN_LOG 改订履历 2026-06-16 / 权限矩阵 `design/teacher_permission_v1.md §5` 第 17 簇 + §12。
 
+## 22. v1.1 候补死代码登记（2026-06-17 itsuki 拍板「留着+登记」，全量审查 C87）
+
+> v1.0 用户**进不去**、但 v1.1 真要用的骨架。itsuki 拍板**保留不删**，在此登记以免日后审查/他人误当死代码清理。
+
+- **C87 `SelectTeacherScreen.tsx`（整文件约 675 行，当前不可达）** — `App.tsx` 已注释「保留作 v1.1 候补」。它是 v1.1「老师单独给某学生发私信 / 选老师」类功能的界面骨架，v1.0 无任何入口导航到它。**有意保留，非死代码漏删**。确认 v1.1 不用了再删。
+
+> 另：C42 出寮届「差戻」按钮（`OutstayDetailModal.tsx` + `client.ts returnApplication` + `App.tsx onReturn` 接线）由 2026-06-17 并发会话实装（混在其 teacher_web 审查批 commit 中），后端端点见 `BACKEND_DESIGN_LOG.md` 同日履历。
+
 ---
 
 **END** — 本档随 Web 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。

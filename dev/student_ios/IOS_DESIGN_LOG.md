@@ -1609,3 +1609,13 @@ itsuki 截图反馈：学生在班车页右上角看「这趟班车干嘛用的�
 
 ### §27.7 验证
 双 scheme BUILD SUCCEEDED（正式版 TomoshibiApp + 演示版 TomoshibiAppDemo，iPhone 17 Pro）。grep 全树复验：請假/晩自習/晩点呼/保証人/学籍番号/清掃罰則/認証コード/寮務課長(误改处)全部清零。SourceKit 跨文件「找不到符号」报错全为单文件解析误报（唯一真值是 xcodebuild）。
+
+## §28 v1.1 候补死代码登记（2026-06-17 itsuki 拍板「留着+登记」，全量审查 C69）
+
+> 审查发现 v1.0 用户**进不去**、但 v1.1 真要用的功能骨架。itsuki 拍板**保留不删**（删了 v1.1 还得重写），在此登记以免日后审查/他人误当 bug 清理。
+
+- **C69 夜学習打卡界面（约 600 行）** — 夜学習(学生端自习打卡)整套 UI 当前学生端无入口可达（夜学習出席录入在老师 iPad 侧 + 后端，学生端不打卡）。代码保留作 v1.1 学生端夜学習自助打卡候补。**当前不可达 = 有意保留，非 bug / 非待删 demo scaffold**。
+
+## §29 C42/C43 出寮届撤回 + 差戻重提 + 行事企画重提（2026-06-17，commit `552da64`）
+
+学生端对接后端新端点（详见 `BACKEND_DESIGN_LOG.md` 2026-06-17 履历）：出寮届详情 `StayDetailView` 加「申請を取り消し」(调 `ApplicationsAPI.withdraw`，捕 409) + `.returned` 态差戻提示条 + 编辑按钮改「修正して再提出」走既有 PUT；行事企画 `DormEventProposalForm` 加 `resubmitId` 再提出模式(从 /mine 拉回预填 + 调 `resubmitEventProposal`)，列表 Row 在 `result=='resubmit'` 显老师评语 + 重提入口。双 scheme BUILD SUCCEEDED。

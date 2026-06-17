@@ -288,6 +288,19 @@ itsuki 看 iOS 班车页反馈三点，拍板 iOS + Android + 共用规格全同
 - **未动（待 itsuki）**：`NfcScreen`/`RollCallSheet` v1.0 不可达双轨；`GenericApplyPreview/Done` 不可达死路径。见 TODO §A 2026-06-17 段。
 - **验证**：`./gradlew assembleDebug` BUILD SUCCESSFUL。
 
+## 13. v1.1 候补死代码登记 + C42/C43 学生端实装（2026-06-17）
+
+### 13.1 v1.1 候补死代码登记（itsuki 拍板「留着+登记」，全量审查 C36-39 + Android 代理发现）
+
+> v1.0 用户**进不去**、但 v1.1 真要用的骨架。itsuki 拍板**保留不删**，在此登记以免日后误当 bug / 死代码清理。
+
+- **C36-39 `NfcScreen` / `RollCallSheet` 点呼入口双轨** — v1.0 安卓学生端无点呼入口（点呼在点呼机硬件 + 后端），这套是 v1.1 手机点呼候补的不可达骨架。**有意保留，非 bug**。
+- **`GenericApplyPreview` / `Done` 不可达死路径** — `stage="preview"` 当前流程从不设置，预览/完成态走不到。保留作通用申请预览的 v1.1 候补。
+
+### 13.2 C42/C43 出寮届撤回 + 差戻重提 + 行事企画重提（commit `f131ade`）
+
+对接后端新端点（详见 `BACKEND_DESIGN_LOG.md` 2026-06-17 履历），与 iOS 语义对齐：`ApiClient.postNoBody` + `ApplicationsAPI.withdraw` + `DormLifeAPI.resubmitEventProposal`；`StayDetailScreen` 加「取消（撤回）」红按钮 + `returned` 态编辑按钮改「修正して再提出」；`DormEventListScreen` 在 `result=='resubmit'` 显老师评语 + 「再提出」按钮 + 补 `approved_conditional`/`resubmit` 状态徽章。`gradlew assembleDebug` BUILD SUCCESSFUL。注：`StayEditScreen` 重提编辑屏仍是既有 mock（历史 TODO）；行事重提暂用现有内容原样重提（无独立详情屏，与 iOS 一致）。
+
 ---
 
 **END** — 本档随实装进展持续更新。
