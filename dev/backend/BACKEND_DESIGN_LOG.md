@@ -1006,12 +1006,12 @@ req:
       "name": "リュウイヒ",
       "room_no": "M101",
       "dorm_unit": 1,
-      "expected_status": "expected",     // expected / exempted_outstay / exempted_absence_request
+      "expected_status": "expected",     // expected / exempted_outstay / exempted_online / exempted_absence / exempted_cancel
       "exemption_reason": null,
       "checkin": null                    // 如已签 → { checked_at, status }
     }, ...
   ],
-  "exempted_count": { "outstay": 3, "absence_request": 2 },
+  "exempted_count": { "outstay": 3, "online": 1, "absence_request": 2, "cancel": 0 },
   "summary": { "expected": 28, "checked_in": 0, "late": 0, "absent": 0 }
 }
 ```
@@ -1019,6 +1019,7 @@ req:
 业务规则:
 - **当天有效 study_roster**（中学全员 = 自动 + 高中手动）
 - **减去** `applications.status='approved'` 且 `target_date ∈ [leave_date, return_date]` 的人 (#14 出寮届控除)
+- **减去** `study_online_requests.status='approved'` 且 `target_date ∈ [period_from, period_to]` 的人（C20 在线学习控除 — 批了在线学习的学生不用上夜学習，按整段日期区间豁免、不按 weekly_schedule 逐星期细分，与出寮届同模型）
 - **减去** `study_absence_requests.status='approved'` 且 `target_date=今日` 的人 (#14 晩自習欠席届控除)
 - 按 `current_teacher.assigned_dorm` filter（R4）
 - name 五十音排序
@@ -1043,6 +1044,8 @@ req:
 
 req: `{ "target_date": "2026-04-30" }` (默认 today)
 res: `{ "finalized_count": 5, "absent_students": [...] }`
+
+豁免（不判缺席、不建 study_absent 扣分）：approved 晩自習欠席届 + approved 出寮届(期間内) + **approved 在线学习(期間内，C20)**。三者同进 `exempt_ids`。
 
 #### 5.4.4 `PATCH /study/checkins/:id` — 手动修正（#20 后续可改）
 

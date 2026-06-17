@@ -153,6 +153,20 @@ def today_attendees(
         ).all()
     )
 
+    # 在线学习 approved + 期間内 → 控除（学生申请用线上/校外自习代替夜学習，老师后台可见，不扣分）。
+    # 与出寮届一样按 [period_from, period_to] 整段日期区间豁免，不按 weekly_schedule 逐星期细分
+    # —— 出寮届也是整段日期免除、不查时刻；细到「仅排课日免除」留待 v1.1。
+    online_ids = set(
+        db.scalars(
+            select(models.StudyOnlineRequest.student_id).where(
+                models.StudyOnlineRequest.student_id.in_(student_ids),
+                models.StudyOnlineRequest.status == "approved",
+                models.StudyOnlineRequest.period_from <= today,
+                models.StudyOnlineRequest.period_to >= today,
+            )
+        ).all()
+    )
+
     # 学生詳細
     students = db.scalars(
         select(models.Student).where(models.Student.id.in_(student_ids))
@@ -178,6 +192,7 @@ def today_attendees(
     # rollcall.py 的两处同款内联过滤已先行删除，本处补齐对齐。
     attendees: list[schemas.StudyAttendeeOut] = []
     outstay_cnt = 0
+    online_cnt = 0
     absence_cnt = 0
     cancel_cnt = 0
 
@@ -196,6 +211,21 @@ def today_attendees(
                     dorm_unit=s.dorm_unit,
                     expected_status="exempted_outstay",
                     exemption_reason="出寮届承認済",
+                    checkin=None,
+                )
+            )
+            continue
+        if sid in online_ids:
+            online_cnt += 1
+            attendees.append(
+                schemas.StudyAttendeeOut(
+                    student_id=sid,
+                    student_no=s.student_no,
+                    name=s.name,
+                    room_no=s.room_no,
+                    dorm_unit=s.dorm_unit,
+                    expected_status="exempted_online",
+                    exemption_reason="オンライン学習承認済",
                     checkin=None,
                 )
             )
@@ -292,6 +322,7 @@ def today_attendees(
         expected_attendees=attendees,
         exempted_count={
             "outstay": outstay_cnt,
+            "online": online_cnt,
             "absence_request": absence_cnt,
             "cancel": cancel_cnt,
         },
@@ -491,6 +522,18 @@ def bulk_finalize(
         ).all()
     )
     exempt_ids.update(outstay_exempt)
+    # 在线学习 approved + 期間内 → finalize 対象外（批了在线学习的学生当晚不判缺席、不扣 1.5 分）。
+    # 与出寮届同模型按 [period_from, period_to] 整段日期区间豁免（见 today_attendees 同款注释）。
+    online_exempt = set(
+        db.scalars(
+            select(models.StudyOnlineRequest.student_id).where(
+                models.StudyOnlineRequest.status == "approved",
+                models.StudyOnlineRequest.period_from <= today,
+                models.StudyOnlineRequest.period_to >= today,
+            )
+        ).all()
+    )
+    exempt_ids.update(online_exempt)
 
     existing_map = {
         c.student_id: c

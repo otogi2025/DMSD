@@ -390,3 +390,82 @@ class TestPatchCheckinReabsentRevives:
         assert _count_study_absent_events(db_session, student.id, today) == 1, (
             "再缺席应复活扣分(不能被旧软删行的唯一键挡掉漏扣)"
         )
+
+
+def _add_approved_online_request(
+    db_session, student, teacher, target_date: date
+) -> models.StudyOnlineRequest:
+    """辅助函数：直接往 DB 写一条「已批准」的在线学习申请，覆盖 target_date。"""
+    req = models.StudyOnlineRequest(
+        student_id=student.id,
+        reason="校外オンライン講座のため",
+        period_from=target_date,
+        period_to=target_date,
+        weekly_schedule={"月": [{"start": "19:40", "end": "21:00"}]},
+        status="approved",
+        decided_by=teacher.id,
+    )
+    db_session.add(req)
+    db_session.commit()
+    return req
+
+
+class TestBulkFinalizeOnlineStudyExempt:
+    """C20（2026-06-17）：批准在线学习(StudyOnlineRequest approved)的学生当晚不上学习室，
+    bulk-finalize 不应判其缺席、不应扣 1.5 分（与出寮届同款日期区间豁免）。"""
+
+    def test_approved_online_student_not_marked_absent(
+        self, client, db_session, seed_data, study_teacher_token
+    ):
+        """名簿内、无签到、但有 approved 在线学习覆盖今天 → finalize 不扣分、不建 absent。"""
+        teacher = seed_data["teachers"]["ryomu_kachou"]
+        student = seed_data["student"]
+        today = date.today()
+
+        _add_to_roster(db_session, student, teacher)
+        _add_approved_online_request(db_session, student, teacher, today)
+
+        res = client.post(
+            "/api/v1/study/checkins/bulk-finalize",
+            json={},
+            headers={"Authorization": f"Bearer {study_teacher_token}"},
+        )
+        assert res.status_code == 200, res.text
+        # 该生被豁免 → 不计入 finalize 缺席结算
+        assert res.json()["finalized_count"] == 0
+
+        # 不应有任何 study_absent 扣分
+        assert _count_study_absent_events(db_session, student.id, today) == 0, (
+            "批准在线学习的学生不应被扣缺席分(C20)"
+        )
+        # 也不应被建成 absent checkin
+        checkin = db_session.scalar(
+            select(models.StudyCheckin).where(
+                models.StudyCheckin.student_id == student.id,
+                models.StudyCheckin.target_date == today,
+            )
+        )
+        assert checkin is None, "被豁免的学生不应被 finalize 建 absent 行"
+
+    def test_pending_online_student_still_marked_absent(
+        self, client, db_session, seed_data, study_teacher_token
+    ):
+        """仅 pending（未批准）的在线学习不豁免 → 仍按缺席扣分（防误把未批的也放掉）。"""
+        teacher = seed_data["teachers"]["ryomu_kachou"]
+        student = seed_data["student"]
+        today = date.today()
+
+        _add_to_roster(db_session, student, teacher)
+        req = _add_approved_online_request(db_session, student, teacher, today)
+        req.status = "pending"  # 改回未批准
+        db_session.commit()
+
+        res = client.post(
+            "/api/v1/study/checkins/bulk-finalize",
+            json={},
+            headers={"Authorization": f"Bearer {study_teacher_token}"},
+        )
+        assert res.status_code == 200, res.text
+        assert _count_study_absent_events(db_session, student.id, today) == 1, (
+            "未批准的在线学习不应豁免缺席扣分"
+        )

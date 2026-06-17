@@ -221,8 +221,12 @@ export function StudyAttendancePage({
   ): [string, string, string, string] | null => {
     if (e === "exempted_outstay")
       return ["外泊免除", T.ink2, T.graySoft, T.grayBorder];
+    if (e === "exempted_online")
+      return ["オンライン学習", T.cobaltDeep, T.cobaltSoft, T.infoBorder];
     if (e === "exempted_absence")
       return ["欠席承認済", T.cobaltDeep, T.cobaltSoft, T.infoBorder];
+    if (e === "exempted_cancel")
+      return ["中止・免除", T.ink2, T.graySoft, T.grayBorder];
     return null;
   };
 

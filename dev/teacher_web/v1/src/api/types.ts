@@ -107,7 +107,12 @@ export interface StudyAttendeeOut {
   name: string;
   room_no: string;
   dorm_unit: number;
-  expected_status: "expected" | "exempted_outstay" | "exempted_absence";
+  expected_status:
+    | "expected"
+    | "exempted_outstay"
+    | "exempted_online"
+    | "exempted_absence"
+    | "exempted_cancel";
   exemption_reason: string | null;
   checkin: { checked_at: string | null; status: string } | null;
 }
