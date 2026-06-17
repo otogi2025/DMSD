@@ -21,7 +21,7 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -179,6 +179,7 @@ def today_attendees(
     attendees: list[schemas.StudyAttendeeOut] = []
     outstay_cnt = 0
     absence_cnt = 0
+    cancel_cnt = 0
 
     for sid in student_ids:
         s = student_map.get(sid)
@@ -223,6 +224,24 @@ def today_attendees(
             continue
 
         c = checkin_map.get(sid)
+        # cancel-today（今日晩自習中止）把未出席学生置 exempt。这类学生不计入
+        # 予定/出席/遅刻/欠席 四桶（否则 予定 > 出席+遅刻+欠席 不自洽），单独标
+        # exempted_cancel，前端按「中止/免除」徽章渲染、不再显示「出席にする」按钮。
+        if c is not None and c.status == "exempt":
+            cancel_cnt += 1
+            attendees.append(
+                schemas.StudyAttendeeOut(
+                    student_id=sid,
+                    student_no=s.student_no,
+                    name=s.name,
+                    room_no=s.room_no,
+                    dorm_unit=s.dorm_unit,
+                    expected_status="exempted_cancel",
+                    exemption_reason="晩自習中止",
+                    checkin={"checked_at": c.checked_at, "status": c.status},
+                )
+            )
+            continue
         checkin_dict = None
         if c and c.status != "init":
             checkin_dict = {"checked_at": c.checked_at, "status": c.status}
@@ -271,7 +290,11 @@ def today_attendees(
         target_date=today,
         study_start_at=study_start,
         expected_attendees=attendees,
-        exempted_count={"outstay": outstay_cnt, "absence_request": absence_cnt},
+        exempted_count={
+            "outstay": outstay_cnt,
+            "absence_request": absence_cnt,
+            "cancel": cancel_cnt,
+        },
         summary={
             "expected": sum(1 for a in attendees if a.expected_status == "expected"),
             "checked_in": present,
@@ -820,15 +843,45 @@ def decide_absence_request(
         # 寮边界校验，与 create_checkin / patch_checkin / decide_online_request 对齐。
         # 当前 dorm_units_for_teacher 恒返全寮故 no-op，保留作寮边界恢复时的防御一致性。
         _assert_student_in_dorm(teacher, student)
-    if record.status != "pending":
+    # 原子条件更新：只有 status 仍是 pending 才写决定，防两老师并发审批互相覆盖
+    # （照 dorm_life.decide / outings.confirm 的 rowcount 守卫做法）。
+    affected = db.execute(
+        update(models.StudyAbsenceRequest)
+        .where(
+            models.StudyAbsenceRequest.id == request_id,
+            models.StudyAbsenceRequest.status == "pending",
+        )
+        .values(
+            status=body.decision,
+            decided_by=teacher.id,
+            decided_at=_now_jst(),
+            comment=body.comment,
+        )
+    )
+    if affected.rowcount != 1:
+        db.rollback()
         raise HTTPException(
             409,
             {"code": "APPROVAL_ALREADY_DECIDED", "message": "既に決定済みです"},
         )
-    record.status = body.decision
-    record.decided_by = teacher.id
-    record.decided_at = _now_jst()
-    record.comment = body.comment
+
+    # 若在「夜学習終了」结算之后才批准这张欠席届，该生当日的 StudyCheckin 可能已被
+    # bulk_finalize 记成 absent + 扣 1.5 点。批准请假后必须把那条缺席改判为 exempt 并
+    # 撤销对应扣分（与 patch_checkin / cancel_today 里 absent→非absent 的处理一致），
+    # 否则学生请假被批却仍背着缺席扣分、误触清扫线 / 禁足线。
+    if body.decision == "approved":
+        checkin = db.scalars(
+            select(models.StudyCheckin).where(
+                models.StudyCheckin.student_id == record.student_id,
+                models.StudyCheckin.target_date == record.target_date,
+            )
+        ).first()
+        if checkin is not None and checkin.status == "absent":
+            _revoke_study_absent_demerit(db, checkin, teacher.id)
+            checkin.status = "exempt"
+            checkin.overridden_by = teacher.id
+            checkin.override_reason = "晩自習欠席届承認"
+
     db.commit()
     db.refresh(record)
     return schemas.StudyAbsenceRequestOut.model_validate(record)

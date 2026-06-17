@@ -17,7 +17,7 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -340,12 +340,34 @@ def end_session(
     _assert_session_in_dorm(teacher, session)
 
     now = _now_jst()
-    session.session_status = "ended"
-    session.ended_at = now
-    session.ended_source = "teacher"
-    session.ended_by = teacher.id
+    # 原子领取：只有 session 仍是 running 才置 ended（带 where session_status=='running'）。
+    # 防两老师并发点「点呼結束」/ 重复点击 —— 后到者命中 0 行 → 409，不再二次跑
+    # _settle_absent（否则每个缺席学生会被 INSERT 两条 absent 事件行，污染审计/历史回放）。
+    claimed = db.execute(
+        update(models.RollCallSession)
+        .where(
+            models.RollCallSession.id == session_id,
+            models.RollCallSession.session_status == "running",
+        )
+        .values(
+            session_status="ended",
+            ended_at=now,
+            ended_source="teacher",
+            ended_by=teacher.id,
+        )
+    )
+    if claimed.rowcount != 1:
+        db.rollback()
+        raise HTTPException(
+            409,
+            {
+                "code": "SESSION_NOT_RUNNING",
+                "message": "実行中のセッションではありません",
+            },
+        )
+    db.refresh(session)
 
-    # 未チェックの学生を absent に
+    # 把未签到的学生结算成 absent（仅 claim 成功的唯一请求才跑结算）
     _settle_absent(db, session)
     db.commit()
     db.refresh(session)
@@ -691,8 +713,17 @@ def session_summary(
     late: list[dict] = []
     exempt_outstay: list[dict] = []
 
+    # 一次性批量取学生（照 session_board 的写法），避免在 event_map 循环里逐个 db.get
+    # 造成 N+1 查询 —— 整寮场次 event_map 可达上百条，逐条查库会拖慢点呼总结页。
+    student_map = {
+        s.id: s
+        for s in db.scalars(
+            select(models.Student).where(models.Student.id.in_(list(event_map.keys())))
+        ).all()
+    }
+
     for sid, e in event_map.items():
-        s = db.get(models.Student, sid)
+        s = student_map.get(sid)
         if not s:
             continue
         # 演示隔离：跳过跨 demo 学生（演示老师只看演示学生摘要 / 真老师只看真实学生）
@@ -838,10 +869,16 @@ def patch_event(
     # R4 寮边界：改判前先确认该学生属本老师管辖寮 —— 必须在任何状态探测（终态门）之前，
     # 否则管辖外老师能靠 409 SESSION_ENDED vs 403 FORBIDDEN_DORM 的差别探测场次状态（Codex 5.5 审查发现）
     student = db.get(models.Student, event.student_id)
-    if student:
-        _assert_student_in_dorm(teacher, student)
-        # 演示隔离：演示老师只能改判演示学生、真老师只能改判真实学生（跨 demo → 404）
-        assert_student_demo_match(teacher, student)
+    # fail-closed：student 行被删 / student_id 悬空时无法判 demo / 寮归属，直接 404，
+    # 不再跳过校验继续改判 + 扣分（与 study_online.decide_online_request 口径一致；
+    # 原 `if student:` 是 fail-open，悬空脏数据下演示老师可对真实记录改判 + 扣分）。
+    if student is None:
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "学生が見つかりません"}
+        )
+    _assert_student_in_dorm(teacher, student)
+    # 演示隔离：演示老师只能改判演示学生、真老师只能改判真实学生（跨 demo → 404）
+    assert_student_demo_match(teacher, student)
 
     # 终态约束：已结束(ended)的场次禁止改判（spec §11 结束后冻结）
     session = db.get(models.RollCallSession, event.session_id)
@@ -852,6 +889,18 @@ def patch_event(
                 "code": "SESSION_ENDED",
                 "message": "終了済みのセッションは改判できません",
             },
+        )
+
+    # 行锁串行化（TW-026）：并发改判同一 (场次, 学生) 时，先锁住 session 行，保证
+    # 「读最新状态 → 判 no-op → 追加 override 行 + 扣分联动」整段串行执行。否则两请求
+    # 都读到旧 old_status、各追加一条互相矛盾的 override 行，board/summary 取到的最终
+    # 生效状态不确定、可能与扣分 / 审计不一致。PostgreSQL（生产）靠行锁；SQLite（dev/
+    # test）单写者天然串行，with_for_update 是 no-op。口径同 applications.decide_approval。
+    if session is not None:
+        db.execute(
+            select(models.RollCallSession.id)
+            .where(models.RollCallSession.id == event.session_id)
+            .with_for_update()
         )
 
     # 改判起点用该学生在本场次的「当前最新状态」，不是被 PATCH 那条 event 的 base_status。

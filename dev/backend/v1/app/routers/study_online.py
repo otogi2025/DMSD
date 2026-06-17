@@ -15,7 +15,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -246,25 +246,34 @@ def decide_online_request(
             },
         )
 
-    if body.decision == "revoked":
-        if record.status != "approved":
+    # 原子条件更新：revoke 要求旧状态 approved，approve/reject 要求旧状态 pending。
+    # 两老师并发审批（或 approve 与 revoke 并发）时，后写者命中 0 行 → 409，避免覆盖
+    # 前者的 decided_by/decided_at/comment（照 dorm_life.decide / outings.confirm 做法）。
+    expected_status = "approved" if body.decision == "revoked" else "pending"
+    affected = db.execute(
+        update(models.StudyOnlineRequest)
+        .where(
+            models.StudyOnlineRequest.id == request_id,
+            models.StudyOnlineRequest.status == expected_status,
+        )
+        .values(
+            status=body.decision,
+            decided_by=teacher.id,
+            decided_at=_now_jst(),
+            comment=body.comment,
+        )
+    )
+    if affected.rowcount != 1:
+        db.rollback()
+        if body.decision == "revoked":
             raise HTTPException(
                 409,
-                {
-                    "code": "CANNOT_REVOKE",
-                    "message": "許可済みの申請だけ取り消せます",
-                },
+                {"code": "CANNOT_REVOKE", "message": "許可済みの申請だけ取り消せます"},
             )
-    elif record.status != "pending":
         raise HTTPException(
             409,
             {"code": "APPROVAL_ALREADY_DECIDED", "message": "既に決定済みです"},
         )
-
-    record.status = body.decision
-    record.decided_by = teacher.id
-    record.decided_at = _now_jst()
-    record.comment = body.comment
     db.commit()
     db.refresh(record)
     return schemas.StudyOnlineRequestOut.model_validate(record)
