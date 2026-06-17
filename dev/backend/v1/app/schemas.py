@@ -952,7 +952,10 @@ class StudentAccountCreateIn(BaseModel):
     class_code: str = Field(..., min_length=2, max_length=2, pattern=r"^\d{2}$")
     seat_no: str = Field(..., min_length=2, max_length=2, pattern=r"^\d{2}$")
     category: str = Field(default="一般寮生", max_length=32)
-    room_no: str = Field(..., min_length=3, max_length=8)
+    # min_length=2：2 寮房号最短是 A1〜A9（A + 1 位 = 2 字符，§5.0）；旧 min_length=3 会把
+    # A1〜A9 全部挡在 schema 校验外，2 寮学生无法注册。精确格式（M***/A*/W***）由
+    # accounts._validate_room_dorm_match 按 dorm_unit 用与 DB CHECK 同源的正则把关。
+    room_no: str = Field(..., min_length=2, max_length=8)
     # spec §5.0：寮号只有 1/2（男寮）、4（女寮）— 没有 3，与 models.py CHECK 约束对齐
     # B10：原来 ge=1, le=4 允许 3，DB CHECK 只接受 1/2/4，改为 Literal 精确限定
     dorm_unit: Literal[1, 2, 4]

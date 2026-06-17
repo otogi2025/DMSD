@@ -136,7 +136,9 @@ def _new_account_body(code: str, **overrides):
         "grade_code": "07",
         "class_code": "01",
         "seat_no": "05",
-        "room_no": "M205",
+        # 2 寮男生：房号 A 前缀（§5.0：A1〜A12），dorm_unit=2（旧默认 M205+dorm2 是非法组合，
+        # 靠当时后端 bug 蒙混过关；现已对齐 spec/DB CHECK，A 前缀才是 2 寮合法房号）
+        "room_no": "A5",
         "dorm_unit": 2,
         "is_overseas": False,
         "password": "test-password-12345",
@@ -192,7 +194,7 @@ def test_create_account_student_no_taken(client, seed_data, teacher_token):
 
 
 def test_create_account_room_dorm_mismatch(client, seed_data, teacher_token):
-    """room_no=W*** 但 dorm_unit=2（M+ male）→ 422 INVALID_ROOM_FORMAT。"""
+    """room_no=W*** 但 dorm_unit=2（应为 A 前缀 male）→ 422 INVALID_ROOM_FORMAT。"""
     code = client.post(
         "/api/v1/admin/registration-code/refresh",
         headers={"Authorization": f"Bearer {teacher_token}"},
@@ -200,10 +202,44 @@ def test_create_account_room_dorm_mismatch(client, seed_data, teacher_token):
 
     res = client.post(
         "/api/v1/accounts",
-        json=_new_account_body(code, room_no="W101"),  # 与 M + dorm 2 矛盾
+        json=_new_account_body(code, room_no="W101"),  # 与 dorm_unit=2（A 前缀）矛盾
     )
     assert res.status_code == 422
     assert res.json()["detail"]["code"] == "INVALID_ROOM_FORMAT"
+
+
+def test_create_account_2dorm_rejects_M_prefix(client, seed_data, teacher_token):
+    """回归守卫：2 寮（dorm_unit=2）必须 A 前缀房号；旧 bug 用 M205 也能过 → 现应 422。
+
+    起因：旧 _validate_room_dorm_match 对 dorm_unit∈{1,2} 一律期望 M 前缀，与 §5.0 +
+    §8.1 DB CHECK（2 寮要求 ^A[0-9]{1,2}$）矛盾，导致 2 寮 A 房号被拒、M 房号反被放行。
+    """
+    code = client.post(
+        "/api/v1/admin/registration-code/refresh",
+        headers={"Authorization": f"Bearer {teacher_token}"},
+    ).json()["code"]
+
+    # M205 + dorm_unit=2：旧实现误判通过，修复后应被 DB CHECK 同源正则拒绝
+    res = client.post(
+        "/api/v1/accounts",
+        json=_new_account_body(code, room_no="M205", dorm_unit=2),
+    )
+    assert res.status_code == 422, res.text
+    assert res.json()["detail"]["code"] == "INVALID_ROOM_FORMAT"
+
+
+def test_create_account_2dorm_A_prefix_success(client, seed_data, teacher_token):
+    """2 寮合法注册：A 前缀房号 + dorm_unit=2 + male → 201（修复前必被 422 拒，2 寮根本注册不了）。"""
+    code = client.post(
+        "/api/v1/admin/registration-code/refresh",
+        headers={"Authorization": f"Bearer {teacher_token}"},
+    ).json()["code"]
+
+    res = client.post(
+        "/api/v1/accounts",
+        json=_new_account_body(code, room_no="A12", dorm_unit=2),
+    )
+    assert res.status_code == 201, res.text
 
 
 def test_create_account_code_reusable_within_ttl(client, seed_data, teacher_token):

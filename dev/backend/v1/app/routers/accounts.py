@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -29,22 +30,36 @@ router = APIRouter(prefix="/api/v1/accounts", tags=["accounts"])
 # 限速器单例见 ..ratelimit（已在 import 区导入，与全后端共用计数）
 
 
-def _validate_room_dorm_match(room_no: str, dorm_unit: int, gender: str) -> None:
-    """校验 room_no 前缀和 dorm_unit / gender 是否一致（§5.0）。
+# §5.0 房号编码 ↔ dorm_unit ↔ gender（与 §8.1 DB CHECK 1426-1428 同源）：
+#   1 寮 = M[0-9]{3} (male) / 2 寮 = A[0-9]{1,2} (male) / 4 寮 = W[0-9]{3} (female)
+_ROOM_PATTERN_BY_DORM: dict[int, str] = {
+    1: r"^M[0-9]{3}$",
+    2: r"^A[0-9]{1,2}$",
+    4: r"^W[0-9]{3}$",
+}
 
-    规则：M*** = male & dorm_unit ∈ {1, 2}；W*** = female & dorm_unit = 4。
+
+def _validate_room_dorm_match(room_no: str, dorm_unit: int, gender: str) -> None:
+    """校验 room_no、dorm_unit、gender 三者一致（§5.0 房号编码 + §8.1 DB CHECK）。
+
+    1 寮 = M*** (male) / 2 寮 = A* (male) / 4 寮 = W*** (female)。
+    在应用层用与 DB CHECK 同源的正则提前挡掉非法组合，否则落到 DB 触发 IntegrityError → 500。
+    （旧实现对 2 寮一律期望 M 前缀，与 DB CHECK（2 寮要求 A 前缀）矛盾，导致 2 寮学生无法注册。）
     """
-    prefix = room_no[:1].upper()
-    expected_prefix = "M" if dorm_unit in (1, 2) else "W"
     expected_gender = "male" if dorm_unit in (1, 2) else "female"
-    if prefix != expected_prefix or gender != expected_gender:
+    pattern = _ROOM_PATTERN_BY_DORM.get(dorm_unit)
+    if (
+        pattern is None
+        or gender != expected_gender
+        or re.match(pattern, room_no) is None
+    ):
         raise HTTPException(
             status_code=422,
             detail={
                 "code": "INVALID_ROOM_FORMAT",
                 "message": (
                     f"room_no '{room_no}' と dorm_unit={dorm_unit} / gender={gender} "
-                    "が不整合です (M*** + dorm 1|2 + male / W*** + dorm 4 + female)"
+                    "が不整合です (1寮=M***+male / 2寮=A*+male / 4寮=W***+female)"
                 ),
             },
         )
