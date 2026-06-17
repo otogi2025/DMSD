@@ -97,34 +97,43 @@ export function StudyAttendancePage({
   };
 
   const doFinalize = async () => {
+    if (acting.__finalize) return; // TW-102：防慢网下二次点击重复 finalize
     if (
       !window.confirm(
         "夜学習を終了し、未チェックイン学生を欠席扱いにします。よろしいですか?",
       )
     )
       return;
+    setActing((m) => ({ ...m, __finalize: true }));
     try {
       await api.studyFinalize(authToken!);
       await refetch();
     } catch (e) {
       const ex = e as { status?: number };
       setErr(`夜学習終了に失敗 (${(ex && ex.status) || "network"})`);
+    } finally {
+      setActing((m) => ({ ...m, __finalize: false }));
     }
   };
 
   const doCancelToday = async () => {
+    if (acting.__cancel) return; // TW-102：防慢网下二次点击重复中止
     if (
-      !window.confirm(
-        "今日の夜学習を中止します。学生にもプッシュ通知が送信されます。よろしいですか?",
-      )
+      // TW-036：去掉「学生にもプッシュ通知が送信されます」—— 后端 cancel-today 只把未出席
+      // 学生置 exempt + 撤缺席扣分，不发任何推送 / 通知。原文案让老师误以为已通知学生今晚停学，
+      // 实际学生零通知。推送实装(v1.1)后再恢复该承诺。
+      !window.confirm("今日の夜学習を中止します。よろしいですか?")
     )
       return;
+    setActing((m) => ({ ...m, __cancel: true }));
     try {
       await api.cancelToday(authToken!);
       await refetch();
     } catch (e) {
       const ex = e as { status?: number };
       setErr(`夜学習中止に失敗 (${(ex && ex.status) || "network"})`);
+    } finally {
+      setActing((m) => ({ ...m, __cancel: false }));
     }
   };
 
@@ -438,6 +447,7 @@ export function StudyAttendancePage({
           <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
             <button
               onClick={doFinalize}
+              disabled={!!acting.__finalize}
               style={{
                 padding: "10px 18px",
                 background: T.cobalt,
@@ -447,13 +457,15 @@ export function StudyAttendancePage({
                 fontFamily: "inherit",
                 fontSize: 13,
                 fontWeight: 700,
-                cursor: "pointer",
+                cursor: acting.__finalize ? "not-allowed" : "pointer",
+                opacity: acting.__finalize ? 0.6 : 1,
               }}
             >
               夜学習終了（未出席を欠席に確定）
             </button>
             <button
               onClick={doCancelToday}
+              disabled={!!acting.__cancel}
               style={{
                 padding: "10px 18px",
                 background: T.surface,
@@ -463,7 +475,8 @@ export function StudyAttendancePage({
                 fontFamily: "inherit",
                 fontSize: 13,
                 fontWeight: 600,
-                cursor: "pointer",
+                cursor: acting.__cancel ? "not-allowed" : "pointer",
+                opacity: acting.__cancel ? 0.6 : 1,
               }}
             >
               今日の夜学習を中止

@@ -308,7 +308,7 @@ export function CommunityPage({
             {[
               ["all", "両方"],
               ["morning", "朝 ☀"],
-              ["evening", "晩 🌙"],
+              ["evening", "夜 🌙"],
             ].map(([k, l]) => (
               <button
                 key={k}
@@ -478,7 +478,7 @@ function PostCard({
     isSong && post.timeSlot === "morning"
       ? "朝 ☀"
       : isSong && post.timeSlot === "evening"
-        ? "晩 🌙"
+        ? "夜 🌙"
         : null;
   const songStatus = isSong ? post.songStatus || "pending" : null;
   const statusMap: Record<

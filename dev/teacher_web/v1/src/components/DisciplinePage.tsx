@@ -106,7 +106,10 @@ export function DisciplinePage({
     targetPoints: number,
     reason: string,
   ) => {
-    api
+    // TW-032：return 把 promise 交回 modal —— modal 的 submitting 防双击守卫靠
+    // Promise.resolve(onSubmit(...)).finally(setSubmitting(false))。原来本函数不 return、
+    // 返回 undefined，finally 在下一个微任务就复位 submitting，按钮在网络返回前复活、可连点。
+    return api
       .createManualDemerit(
         { student_id: studentId, target_points: targetPoints, reason },
         authToken,
@@ -129,7 +132,8 @@ export function DisciplinePage({
   const handleRevoke = (ev: DemeritEvent) => {
     const reason = prompt("取り消し理由を入力してください（必須）");
     if (!reason || !reason.trim()) return;
-    api
+    // TW-032：同 handleManualSubmit，return promise 让调用方的防双击守卫等真结果
+    return api
       .revokeDemerit(ev.id, { revoke_reason: reason.trim() }, authToken)
       .then(() => {
         setLastEvent(null);
