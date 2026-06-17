@@ -277,6 +277,17 @@ itsuki 看 iOS 班车页反馈三点，拍板 iOS + Android + 共用规格全同
 - **验证**：`./gradlew assembleDebug` BUILD SUCCESSFUL。
 - 共用规格 `system_features.md §7.6.2` 同步更新（只显示特別運行便 / 删类型 filter）。iOS 侧见 `IOS_DESIGN_LOG.md §19`。
 
+## 12. 全量审查修复批：中文漏出→日语 + 晩自習→夜学習 全端对齐 + 死代码清理（2026-06-17，commit `040e8b8`）
+
+本会话全项目审查的 Android 修复（详见 `admin/2026-06-17_全量审查报告.md`）：
+
+- **中文漏进日语 UI**（要上架、扎眼）：`StayEditScreen` / `StayDetailScreen`「修改/身份情報/役职」→「変更/個人情報/役職」，与 iOS `StayListStubs` 对齐；`StayDetailScreen` auditColor `contains("修改")` 同步改「変更」否则履历着色失效。
+- **晩自習/晚自习→夜学習 全端对齐**（しおり 官方用词，itsuki 6-16 拍板、iOS+teacher_web 先改、本批 Android 补齐）：用户可见串全改（ApplicationsScreen / MyStudyScreen / MyPageScreen / MySettingsScreen / StudyAbsenceForm / StudyCheckinSheet / Models.kt StudyTap START·END label）；英文 key + MockData.name 不动。
+- **对齐**：`ApiClient` Json 补 `explicitNulls = false`；`MyDisciplineSummaryOut` 补 `needs_cleaning`、`BusRouteOut` 补 `purpose`（与后端+iOS 对齐）。
+- **bug/死代码**：`ApplyNewScreen` 来訪者/代理受取补必填字段+canSubmit、48時間期限只对有出寮日类型显示、删 `APPLY_KINDS_7`；删孤儿屏 `SettingsScreen`/`community/StudyScreen`（含 NavGraph/Routes）；删 `ApplyKindMapper`；`LoginScreen` 写死 `v0.12.0`→`BuildConfig.VERSION_NAME`。
+- **未动（待 itsuki）**：`NfcScreen`/`RollCallSheet` v1.0 不可达双轨；`GenericApplyPreview/Done` 不可达死路径。见 TODO §A 2026-06-17 段。
+- **验证**：`./gradlew assembleDebug` BUILD SUCCESSFUL。
+
 ---
 
 **END** — 本档随实装进展持续更新。
