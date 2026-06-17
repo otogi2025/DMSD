@@ -289,6 +289,7 @@ struct DormEventProposalListView: View {
 
     @State private var items: [DormEventProposalOut] = []
     @State private var loading: Bool = true
+    @State private var loadError: String? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -320,6 +321,8 @@ struct DormEventProposalListView: View {
                             Skeleton(height: 74)
                             Skeleton(height: 74)
                         }
+                    } else if let loadError {
+                        listLoadErrorState(loadError) { Task { await load() } }
                     } else if items.isEmpty {
                         EmptyState(icon: "sparkles", title: "提出済みの企画はありません")
                             .frame(maxWidth: .infinity)
@@ -341,15 +344,15 @@ struct DormEventProposalListView: View {
 
     private func load() async {
         loading = true
+        loadError = nil
         do {
             items = try await DormLifeAPI.listMyEventProposals()
         } catch APIError.unauthorized {
             app.authToken = nil
             router.replace(.login)
-        } catch APIError.network {
-            app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "行事企画一覧の取得に失敗しました"))
+            // 网络 / 其他错误：显式错误态（区分「取得失敗」与「0件」），不再 toast 后退回假空态
+            loadError = APIErrorPresenter.userMessage(for: error, fallback: "行事企画一覧の取得に失敗しました")
         }
         loading = false
     }
@@ -574,6 +577,7 @@ struct FridgePurchaseListView: View {
 
     @State private var items: [FridgePurchaseRequestOut] = []
     @State private var loading: Bool = true
+    @State private var loadError: String? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -605,6 +609,8 @@ struct FridgePurchaseListView: View {
                             Skeleton(height: 74)
                             Skeleton(height: 74)
                         }
+                    } else if let loadError {
+                        listLoadErrorState(loadError) { Task { await load() } }
                     } else if items.isEmpty {
                         EmptyState(icon: "snowflake", title: "提出済みの届出はありません")
                             .frame(maxWidth: .infinity)
@@ -626,15 +632,15 @@ struct FridgePurchaseListView: View {
 
     private func load() async {
         loading = true
+        loadError = nil
         do {
             items = try await DormLifeAPI.listMyFridgePurchases()
         } catch APIError.unauthorized {
             app.authToken = nil
             router.replace(.login)
-        } catch APIError.network {
-            app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "冷蔵庫購入届一覧の取得に失敗しました"))
+            // 网络 / 其他错误：显式错误态（区分「取得失敗」与「0件」），不再 toast 后退回假空态
+            loadError = APIErrorPresenter.userMessage(for: error, fallback: "冷蔵庫購入届一覧の取得に失敗しました")
         }
         loading = false
     }
@@ -807,6 +813,7 @@ struct ItemPossessionListView: View {
 
     @State private var items: [ItemPossessionRequestOut] = []
     @State private var loading: Bool = true
+    @State private var loadError: String? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -838,6 +845,8 @@ struct ItemPossessionListView: View {
                             Skeleton(height: 74)
                             Skeleton(height: 74)
                         }
+                    } else if let loadError {
+                        listLoadErrorState(loadError) { Task { await load() } }
                     } else if items.isEmpty {
                         EmptyState(icon: "shippingbox", title: "提出済みの申請はありません")
                             .frame(maxWidth: .infinity)
@@ -859,15 +868,15 @@ struct ItemPossessionListView: View {
 
     private func load() async {
         loading = true
+        loadError = nil
         do {
             items = try await DormLifeAPI.listMyItemPossessions()
         } catch APIError.unauthorized {
             app.authToken = nil
             router.replace(.login)
-        } catch APIError.network {
-            app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "物品所持許可願一覧の取得に失敗しました"))
+            // 网络 / 其他错误：显式错误态（区分「取得失敗」与「0件」），不再 toast 后退回假空态
+            loadError = APIErrorPresenter.userMessage(for: error, fallback: "物品所持許可願一覧の取得に失敗しました")
         }
         loading = false
     }
@@ -893,6 +902,25 @@ private struct ItemPossessionRow: View {
             }
         }
     }
+}
+
+/// 列表加载失败错误态：错误文案 + 再試行。区分「取得失敗」与「0件」(块C 单点兜底 2026-06-17)，
+/// 不退回「○○はありません」假空态（断网时显假空态会让用户误以为自己没有任何届出）。
+/// 行事企画 / 冷蔵庫 / 物品所持 三个一覧共用。
+private func listLoadErrorState(_ message: String, retry: @escaping () -> Void) -> some View {
+    VStack(spacing: 14) {
+        EmptyState(icon: "exclamationmark.triangle", title: "読み込みに失敗しました", message: message)
+        Button(action: retry) {
+            Text("再試行")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 24)
+                .frame(height: 42)
+                .background { Capsule().fill(T.primary) }
+        }
+        .buttonStyle(.plain)
+    }
+    .frame(maxWidth: .infinity)
 }
 
 private func submitButton(title: String, canSubmit: Bool, action: @escaping () -> Void) -> some View {

@@ -346,6 +346,7 @@ struct StudyOnlineRequestListView: View {
 
     @State private var items: [StudyOnlineRequestOut] = []
     @State private var loading: Bool = true
+    @State private var loadError: String? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -377,6 +378,8 @@ struct StudyOnlineRequestListView: View {
                             Skeleton(height: 74)
                             Skeleton(height: 74)
                         }
+                    } else if let loadError {
+                        loadErrorState(loadError)
                     } else if items.isEmpty {
                         EmptyState(icon: "laptopcomputer", title: "提出済みの申請はありません")
                             .frame(maxWidth: .infinity)
@@ -398,17 +401,34 @@ struct StudyOnlineRequestListView: View {
 
     private func load() async {
         loading = true
+        loadError = nil
         do {
             items = try await StudyAPI.listMyOnlineRequests()
         } catch APIError.unauthorized {
             app.authToken = nil
             router.replace(.login)
-        } catch APIError.network {
-            app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "オンライン夜学習申請一覧の取得に失敗しました"))
+            // 网络 / 其他错误：显式错误态（区分「取得失敗」与「0件」），不再 toast 后退回假空态
+            loadError = APIErrorPresenter.userMessage(for: error, fallback: "オンライン夜学習申請一覧の取得に失敗しました")
         }
         loading = false
+    }
+
+    /// 加载失败错误态：错误文案 + 再試行（与 StayList / DormLife 一覧同款）。
+    private func loadErrorState(_ message: String) -> some View {
+        VStack(spacing: 14) {
+            EmptyState(icon: "exclamationmark.triangle", title: "読み込みに失敗しました", message: message)
+            Button { Task { await load() } } label: {
+                Text("再試行")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 24)
+                    .frame(height: 42)
+                    .background { Capsule().fill(T.primary) }
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 

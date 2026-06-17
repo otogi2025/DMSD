@@ -459,6 +459,10 @@ struct StayListView: View {
                         ProgressView()
                             .tint(T.primary)
                             .frame(maxWidth: .infinity, minHeight: 120)
+                    } else if let loadError {
+                        // 加载失败：显错误态 + 再試行，绝不退回「申請はありません」假空态
+                        // （断网时显假空态会让用户误以为自己没有任何申请 — 块C 单点兜底 2026-06-17）
+                        loadErrorState(loadError)
                     } else if items.isEmpty {
                         EmptyState(
                             icon: "tray",
@@ -520,6 +524,24 @@ struct StayListView: View {
             )
             apps = []
         }
+    }
+
+    /// 加载失败错误态：错误文案 + 再試行（下拉刷新外再给一个显式重试入口）。
+    /// 与 LostView / MusicView 的失败态同款（EmptyState + exclamationmark.triangle）。
+    private func loadErrorState(_ message: String) -> some View {
+        VStack(spacing: 14) {
+            EmptyState(icon: "exclamationmark.triangle", title: "読み込みに失敗しました", message: message)
+            Button { Task { await load() } } label: {
+                Text("再試行")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 24)
+                    .frame(height: 42)
+                    .background { Capsule().fill(T.primary) }
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private var filterTabs: some View {
