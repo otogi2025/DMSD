@@ -165,6 +165,79 @@ def decide_event_proposal(
     return schemas.DormEventProposalOut.model_validate(record)
 
 
+@router.post(
+    "/event-proposals/{proposal_id}/resubmit",
+    response_model=schemas.DormEventProposalOut,
+)
+def resubmit_event_proposal(
+    proposal_id: UUID,
+    body: schemas.DormEventProposalCreateIn,
+    db: Session = Depends(get_db),
+    student: models.Student = Depends(get_current_student),
+):
+    """提出学生本人が「再提出を求める(resubmit)」判定の企画を修正して再提出。
+
+    老师が result='resubmit' にした企画のみ再提出可。再提出すると内容を上書き +
+    result='pending' に戻し、decided_by/decided_at/comment をクリアして再審査に回す。
+    其他状态（pending 审查中 / approved / approved_conditional / rejected）不可重提。
+    """
+    record = db.get(models.DormEventProposal, proposal_id)
+    if not record:
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "申請が見つかりません"}
+        )
+    if record.proposer_id != student.id:
+        raise HTTPException(
+            403, {"code": "FORBIDDEN", "message": "他人の申請は再提出できません"}
+        )
+    if record.result != "resubmit":
+        raise HTTPException(
+            409,
+            {
+                "code": "CANNOT_RESUBMIT",
+                "message": "再提出を求められた申請のみ再提出できます",
+            },
+        )
+    # 原子条件更新：只有 result 仍是 'resubmit' 才写成功（防并发 / 重复重提覆盖）。
+    affected = db.execute(
+        update(models.DormEventProposal)
+        .where(
+            models.DormEventProposal.id == proposal_id,
+            models.DormEventProposal.result == "resubmit",
+        )
+        .values(
+            result="pending",
+            decided_by=None,
+            decided_at=None,
+            comment=None,
+            submitted_at=_now_jst(),
+            **body.model_dump(),
+        )
+    )
+    if affected.rowcount != 1:
+        db.rollback()
+        raise HTTPException(
+            409,
+            {
+                "code": "CANNOT_RESUBMIT",
+                "message": "再提出を求められた申請のみ再提出できます",
+            },
+        )
+    db.add(
+        models.AuditLog(
+            actor_type="student",
+            actor_id=student.id,
+            action="dorm_event_proposal.resubmit",
+            target_type="dorm_event_proposal",
+            target_id=proposal_id,
+            payload={"title": body.title},
+        )
+    )
+    db.commit()
+    db.refresh(record)
+    return schemas.DormEventProposalOut.model_validate(record)
+
+
 # ---------------------------------------------------------------
 # 寮日課変更願
 # ---------------------------------------------------------------

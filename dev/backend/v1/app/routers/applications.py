@@ -793,6 +793,56 @@ def update_application(
 
 
 # ---------------------------------------------------------------
+# POST /applications/{id}/withdraw — 学生本人撤回(取消)未确定的出寮届
+# ---------------------------------------------------------------
+@router.post("/{application_id}/withdraw", response_model=schemas.ApplicationOut)
+def withdraw_application(
+    application_id: UUID,
+    db: Session = Depends(get_db),
+    student: models.Student = Depends(get_current_student),
+):
+    """学生本人が未確定の届を取消(withdrawn)。
+
+    取消可能なのは pending / approved_partial / returned のみ。
+    既に approved / rejected / withdrawn の届は取消不可（終態 / 取消済）。
+    """
+    app = db.scalars(
+        select(models.Application)
+        .where(models.Application.id == application_id)
+        .options(selectinload(models.Application.student))
+    ).first()
+    if not app:
+        raise HTTPException(404, {"code": "NOT_FOUND", "message": "届が見つかりません"})
+    if app.student_id != student.id:
+        raise HTTPException(
+            403, {"code": "FORBIDDEN", "message": "他人の届は取り消せません"}
+        )
+    if app.status not in ("pending", "approved_partial", "returned"):
+        raise HTTPException(
+            409,
+            {
+                "code": "CANNOT_WITHDRAW",
+                "message": "承認済 / 拒否済 / 取消済の届は取り消せません",
+            },
+        )
+    app.status = "withdrawn"
+    app.withdrawn_at = datetime.now(_JST)
+    db.add(
+        models.AuditLog(
+            actor_type="student",
+            actor_id=student.id,
+            action="application.withdraw",
+            target_type="application",
+            target_id=app.id,
+            payload={},
+        )
+    )
+    db.commit()
+    db.refresh(app)
+    return _to_application_out(app)
+
+
+# ---------------------------------------------------------------
 # GET /applications/{id}/audit — 審査 audit ログ
 # ---------------------------------------------------------------
 @router.get("/{application_id}/audit", response_model=list[schemas.AuditLogOut])
@@ -877,6 +927,18 @@ def decide_approval(
             {
                 "code": "APPLICATION_FINALIZED",
                 "message": "この届はすでに確定 / 取消済みです",
+            },
+        )
+
+    # status='returned'（差戻中）= 等学生重新提交。老师不能在此期间继续审批
+    # （否则差戻后链里仍有 decision=None 行、当事老师能直接点「承認」绕过学生重提）。
+    # 学生重提(update_application)会重建审批链 + status 回 pending，之后才能再审批。
+    if app.status == "returned":
+        raise HTTPException(
+            409,
+            {
+                "code": "APPLICATION_RETURNED",
+                "message": "差戻し中の届です（学生の再提出をお待ちください）",
             },
         )
 
@@ -991,6 +1053,92 @@ def decide_approval(
             actor_type="teacher",
             actor_id=teacher.id,
             action=f"application.{body.decision}",
+            target_type="application",
+            target_id=app.id,
+            payload={"role": teacher.role, "comment": body.comment},
+        )
+    )
+    db.commit()
+    db.refresh(app)
+    return _to_application_out(app)
+
+
+# ---------------------------------------------------------------
+# POST /applications/{id}/return — 当前审批者把出寮届差戻(退回让学生重提)
+# ---------------------------------------------------------------
+@router.post("/{application_id}/return", response_model=schemas.ApplicationOut)
+def return_application(
+    application_id: UUID,
+    body: schemas.ApplicationReturnIn,
+    db: Session = Depends(get_db),
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_APPROVAL, permissions.MANAGE)
+    ),
+):
+    """現在の承認者が届を学生に差戻(returned) — 学生に修正再提出を求める。
+
+    差戻可能なのは pending / approved_partial（審査中）のみ。差戻後 status='returned'、
+    学生が update_application で修正再提出すると chain 再生成 + status='pending' に戻る。
+    """
+    app = db.scalars(
+        select(models.Application)
+        .where(models.Application.id == application_id)
+        .with_for_update()
+        .options(
+            selectinload(models.Application.approvals),
+            selectinload(models.Application.student),
+        )
+    ).first()
+    if not app:
+        raise HTTPException(404, {"code": "NOT_FOUND", "message": "届が見つかりません"})
+    if app.student is not None:
+        assert_student_demo_match(teacher, app.student)
+    if app.status not in ("pending", "approved_partial"):
+        raise HTTPException(
+            409,
+            {"code": "CANNOT_RETURN", "message": "審査中の届のみ差戻できます"},
+        )
+    # 「担任」这一步只有本班现役担任能差戻（与 decide_approval 同款 B5 闸）。
+    if teacher.role == "担任":
+        homeroom = (
+            approval_chain.resolve_homeroom_teacher(db, app.student)
+            if app.student is not None
+            else None
+        )
+        if homeroom is None or homeroom.id != teacher.id:
+            raise HTTPException(
+                403,
+                {
+                    "code": "NOT_HOMEROOM_TEACHER",
+                    "message": "この学生の担任ではありません",
+                },
+            )
+    # 要求该役職在链里有「待审批」行 — 不在链里的役職不能差戻（与 decide_approval 同闸）。
+    pending_row = next(
+        (
+            r
+            for r in app.approvals
+            if r.approver_role == teacher.role and r.decision is None
+        ),
+        None,
+    )
+    if not pending_row:
+        raise HTTPException(
+            403,
+            {
+                "code": "APPROVAL_NOT_REQUIRED",
+                "message": "この役職は対象の承認者ではありません",
+            },
+        )
+    app.status = "returned"
+    # 差戻理由记进当前待审批行 comment — 学生重提前能在审批履历 / audit 看到「为什么被退回」。
+    # 学生 update_application 重提时整条链会被删重建，该 comment 随之清掉，不残留。
+    pending_row.comment = body.comment
+    db.add(
+        models.AuditLog(
+            actor_type="teacher",
+            actor_id=teacher.id,
+            action="application.return",
             target_type="application",
             target_id=app.id,
             payload={"role": teacher.role, "comment": body.comment},

@@ -96,3 +96,83 @@ class TestDormEventProposalFlow:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 404, res.text
+
+
+class TestDormEventProposalResubmit:
+    """C43（2026-06-17）：老师判定「再提出を求める(resubmit)」后，学生修正重提端点。"""
+
+    def _create_and_set_resubmit(self, client, student_token, teacher_token) -> str:
+        """造一个被老师判 resubmit 的企划，返回 id。"""
+        res = client.post(
+            "/api/v1/dorm-life/event-proposals",
+            json=_proposal_payload(),
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 201, res.text
+        pid = res.json()["id"]
+        dec = client.post(
+            f"/api/v1/dorm-life/event-proposals/{pid}/decision",
+            json={"decision": "resubmit", "comment": "予算の内訳を追記してください"},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert dec.status_code == 200, dec.text
+        assert dec.json()["result"] == "resubmit"
+        return pid
+
+    def test_resubmit_after_decision_back_to_pending(
+        self, client, student_token, teacher_token, seed_data
+    ):
+        """resubmit 判定 → 学生改内容重提 → result 回 pending、决定字段清空、可再被审批。"""
+        pid = self._create_and_set_resubmit(client, student_token, teacher_token)
+        new_body = {
+            **_proposal_payload(),
+            "expected_cost": "2万円（内訳：飲食1万＋装飾1万）",
+        }
+        res = client.post(
+            f"/api/v1/dorm-life/event-proposals/{pid}/resubmit",
+            json=new_body,
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res.status_code == 200, res.text
+        body = res.json()
+        assert body["result"] == "pending"
+        assert body["expected_cost"] == "2万円（内訳：飲食1万＋装飾1万）"
+        assert body["decided_by"] is None
+        assert body["decided_at"] is None
+        # 重提后老师可再次审批
+        dec2 = client.post(
+            f"/api/v1/dorm-life/event-proposals/{pid}/decision",
+            json={"decision": "approved"},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert dec2.status_code == 200, dec2.text
+        assert dec2.json()["result"] == "approved"
+
+    def test_resubmit_pending_proposal_409(
+        self, client, student_token, teacher_token, seed_data
+    ):
+        """未被要求重提（pending 审查中）的企划不能重提。"""
+        res = client.post(
+            "/api/v1/dorm-life/event-proposals",
+            json=_proposal_payload(),
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        pid = res.json()["id"]
+        r = client.post(
+            f"/api/v1/dorm-life/event-proposals/{pid}/resubmit",
+            json=_proposal_payload(),
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert r.status_code == 409, r.text
+        assert r.json()["detail"]["code"] == "CANNOT_RESUBMIT"
+
+    def test_resubmit_requires_student_token(self, client, teacher_token, seed_data):
+        """老师 token 不能调学生重提端点。"""
+        import uuid
+
+        res = client.post(
+            f"/api/v1/dorm-life/event-proposals/{uuid.uuid4()}/resubmit",
+            json=_proposal_payload(),
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code in (401, 403), res.text

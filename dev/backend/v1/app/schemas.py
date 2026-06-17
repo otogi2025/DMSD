@@ -359,6 +359,13 @@ class ApprovalIn(BaseModel):
     comment: Optional[str] = Field(None, max_length=1000)
 
 
+class ApplicationReturnIn(BaseModel):
+    """POST /applications/:id/return — 役職が学生に差戻(再提出を求める)。"""
+
+    # 差戻理由必填 — 学生要知道改哪里。写进 audit + pending 承認行 comment 给学生看。
+    comment: str = Field(..., min_length=1, max_length=1000)
+
+
 class ApplicationUpdateIn(BaseModel):
     """PUT /applications/:id — 学生が承認前に内容修正 (chain リセット)。"""
 
