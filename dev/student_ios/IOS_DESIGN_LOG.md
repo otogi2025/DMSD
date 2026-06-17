@@ -1619,3 +1619,17 @@ itsuki 截图反馈：学生在班车页右上角看「这趟班车干嘛用的�
 ## §29 C42/C43 出寮届撤回 + 差戻重提 + 行事企画重提（2026-06-17，commit `552da64`）
 
 学生端对接后端新端点（详见 `BACKEND_DESIGN_LOG.md` 2026-06-17 履历）：出寮届详情 `StayDetailView` 加「申請を取り消し」(调 `ApplicationsAPI.withdraw`，捕 409) + `.returned` 态差戻提示条 + 编辑按钮改「修正して再提出」走既有 PUT；行事企画 `DormEventProposalForm` 加 `resubmitId` 再提出模式(从 /mine 拉回预填 + 调 `resubmitEventProposal`)，列表 Row 在 `result=='resubmit'` 显老师评语 + 重提入口。双 scheme BUILD SUCCEEDED。
+
+## §30 上架前剩余项收尾批（2026-06-17，6 commit `788ec63`/`4eea1d8`/`23b9b10`/`d427cb0`/`ef45f0f`/`57cf9e0`）
+
+承接接手件、子代理核实「还没修吗」后修的真 bug / 资源 / 流程项（a11y·注释·性能·夜学習 按 itsuki 拍板留 v1.1）：
+
+- **启动页 logo**：`SplashView` 的 `Image("TomoshibiFlame")` 旧红火苗 → 替换 `TomoshibiFlame.imageset/flame.png` 为最新蓝火苗（itsuki 提供 `assets/icons/tomoshibi-icon.png`），与 app 图标 `AppIcon.icon` 统一。纯资源替换。
+- **登出隐私**：`AppStore.authToken` didSet `#if !DEMO` 块补清 `pushNotifications`（feed/package 通知是派生计算属性、源已清自动空）。
+- **注册半登录兜底**：首页生活 tab `.task` 加「已登录但 currentUser==nil → 重拉 loadMe」（A-461）。
+- **注册页**（AuthStubs）：密码 hint「8」→「6」+ canSubmit 加 `pw>=6` + 长度错误提示，三方对齐后端下限 6（A-395）；移除「写真を選択」死按钮（后端无头像上传路径，留「デフォルト」+ AI 生成）；房号字母前缀↔性别前置校验（W=四寮女/M=一寮男/A=二寮男，`roomGenderMismatch` → canNext 不放行 + 房号框显错，B1）。
+- **個人情報**（MyPageStubs）：/me 不返生日时显「—」不显「(0歳)」；`MyRollcallDetailView` 查不到记录显「記録が見つかりません」空态，`record` 改可空、不伪造「時間内」（B-中-07）。
+- **导航**：`RouterStore.jump(toIndex:)` 按 breadcrumbChain 实际索引截断（免疫栈内重复 Route 跳错，B-中-13）；`PageHeader` 左键 Button+simultaneousGesture → `.onTapGesture`+`.onLongPressGesture`（互斥，消长按返回双触发，B8）+ 补 accessibilityLabel。
+- **ApplyStubs**：移除 StayForm/GenericApplyForm 两处「下書き保存」假动作（只弹 toast 不存）；`DateField` 加 `maxDate` + 食事不要終了日上限=帰寮日 + returnDate onChange 回钳（A-377）。
+
+双 scheme BUILD SUCCEEDED，未 push。剩余项（列表假空态 / 数据契约 / 仓库卫生+weak-link）拆接手 A/B 两并行会话。
