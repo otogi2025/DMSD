@@ -161,9 +161,25 @@ class TestUploadContract:
 
     def test_reject_too_large(self, client, student_token):
         rid = _create_request(client, student_token)
-        big = b"x" * (10 * 1024 * 1024 + 1)
+        # 带合法 PDF 文件头 → 先过 magic 校验，再触发大小上限（确保测的是「太大」而非「类型不符」）
+        big = b"%PDF-1.4\n" + b"x" * (10 * 1024 * 1024 + 1)
         res = _upload(client, student_token, rid, name="big.pdf", body=big)
         assert res.status_code == 422
+        assert res.json()["detail"]["code"] == "FILE_TOO_LARGE"
+
+    def test_reject_magic_mismatch(self, client, student_token):
+        """声明 image/jpeg 但内容是 PDF 字节 → 文件头 magic 校验拒绝（防伪造扩展名落盘成凭证）。"""
+        rid = _create_request(client, student_token)
+        res = _upload(
+            client,
+            student_token,
+            rid,
+            name="fake.jpg",
+            body=PDF_BYTES,
+            mime="image/jpeg",
+        )
+        assert res.status_code == 422, res.text
+        assert res.json()["detail"]["code"] == "UNSUPPORTED_FILE_TYPE"
 
     def test_reject_not_owner(self, client, student_token, second_student_token):
         rid = _create_request(client, student_token)
@@ -208,6 +224,9 @@ class TestDownloadContract:
         )
         assert res.status_code == 200
         assert res.content == PDF_BYTES
+        # 安全头：阻止浏览器 MIME 嗅探 + 强制以附件下载（不内联渲染）
+        assert res.headers.get("x-content-type-options") == "nosniff"
+        assert "attachment" in res.headers.get("content-disposition", "")
 
     def test_teacher_download(self, client, student_token, teacher_token):
         rid = _create_request(client, student_token)

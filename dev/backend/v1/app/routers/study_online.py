@@ -36,14 +36,49 @@ router = APIRouter(prefix="/api/v1/study/online-requests", tags=["study"])
 ONLINE_NOTICE_DAYS = 3
 
 # 契約書（合同）允许的文件类型 → 存盘扩展名。
-# 注意 content_type 由客户端发来、可被伪造；当前阶段（校内网 + 老师目视核对）白名单够用，
-# v1.1 可加文件头 magic bytes 二次校验。
+# content_type 由客户端发来、可被伪造，故除白名单外再用文件头 magic bytes 二次校验真实类型
+# （见 _magic_matches）—— 防止任意二进制伪装成 application/pdf / image/jpeg 落盘成「凭证」。
 ALLOWED_CONTRACT_MIME: dict[str, str] = {
     "image/jpeg": ".jpg",
     "image/png": ".png",
     "image/heic": ".heic",
     "application/pdf": ".pdf",
 }
+
+# ISO-BMFF（HEIC）major brand 白名单：前 4 字节为 box size，[4:8]='ftyp'，[8:12]=major brand
+_HEIF_BRANDS: frozenset[bytes] = frozenset(
+    {
+        b"heic",
+        b"heix",
+        b"heif",
+        b"hevc",
+        b"hevx",
+        b"mif1",
+        b"msf1",
+        b"heim",
+        b"heis",
+        b"hevm",
+        b"hevs",
+    }
+)
+
+
+def _magic_matches(head: bytes, mime: str) -> bool:
+    """用文件头 magic bytes 校验真实类型是否与声明的 content_type 一致。
+
+    head = 文件起始若干字节（取首个读取块即可，必含文件头）。
+    mime 已确认在 ALLOWED_CONTRACT_MIME 白名单内。任一不匹配 → 调用方按 422 拒绝。
+    """
+    if mime == "image/jpeg":
+        return head.startswith(b"\xff\xd8\xff")
+    if mime == "image/png":
+        return head.startswith(b"\x89PNG\r\n\x1a\n")
+    if mime == "application/pdf":
+        # PDF 规范要求 %PDF- 在文件最前，但容许极少量前导字节，放宽到前 1KB 内查找
+        return b"%PDF-" in head[:1024]
+    if mime == "image/heic":
+        return len(head) >= 12 and head[4:8] == b"ftyp" and head[8:12] in _HEIF_BRANDS
+    return False
 
 
 def _today_jst() -> date:
@@ -265,7 +300,8 @@ def upload_contract(
             },
         )
 
-    ext = ALLOWED_CONTRACT_MIME.get((file.content_type or "").lower())
+    declared_mime = (file.content_type or "").lower()
+    ext = ALLOWED_CONTRACT_MIME.get(declared_mime)
     if ext is None:
         raise HTTPException(
             422,
@@ -289,12 +325,28 @@ def upload_contract(
     old_rel = record.contract_file_path
     tmp_path = f"{abs_path}.tmp"
     total_bytes = 0
+    header_checked = False
     try:
         with open(tmp_path, "wb") as out_f:
             while True:
                 chunk = file.file.read(_CHUNK)
                 if not chunk:
                     break
+                if not header_checked:
+                    header_checked = True
+                    # magic bytes 二次校验：真实文件头与声明 content_type 不符即拒，
+                    # 防任意二进制伪造扩展名落盘成「已验证凭证」、绕过老师目视核对前提。
+                    if not _magic_matches(chunk, declared_mime):
+                        out_f.close()
+                        if os.path.isfile(tmp_path):
+                            os.remove(tmp_path)
+                        raise HTTPException(
+                            422,
+                            {
+                                "code": "UNSUPPORTED_FILE_TYPE",
+                                "message": "ファイルの内容が形式と一致しません（JPEG / PNG / HEIC / PDF）",
+                            },
+                        )
                 total_bytes += len(chunk)
                 if total_bytes > settings.contract_max_bytes:
                     out_f.close()
@@ -409,4 +461,7 @@ def download_contract(
         abs_path,
         media_type=record.contract_mime or "application/octet-stream",
         filename=record.contract_file_name or "contract",
+        # filename= 已带 Content-Disposition: attachment；再加 nosniff 阻止浏览器 MIME 嗅探，
+        # 避免存盘内容被当成非声明类型渲染（纵深加固，与上传 magic 校验配套）。
+        headers={"X-Content-Type-Options": "nosniff"},
     )
