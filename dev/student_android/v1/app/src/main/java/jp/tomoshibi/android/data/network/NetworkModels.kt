@@ -107,10 +107,10 @@ data class AuditLogOut(
 )
 
 // ============================================================
-// 学習（晚自习）
+// 学習（夜学习）
 // ============================================================
 
-// / 晩自習欠席届（POST /study/absence-requests 响应）
+// /「夜学習欠席届」（POST /study/absence-requests 响应）
 @Serializable
 data class StudyAbsenceRequestOut(
     val id: String,
@@ -222,6 +222,7 @@ data class BusRouteOut(
     @SerialName("arrival_at") val arrivalAt: String? = null, // 到达时刻（空港便等才有）
     @SerialName("visible_to") val visibleTo: String, // "all" | "dorm_only" | "men" | "women"
     val note: String? = null,
+    val purpose: String? = null, // 班车用途说明（老师录入，日期头右上角每天显示一条），对齐后端 + iOS
     val deprecated: Boolean,
     @SerialName("created_by_teacher_id") val createdByTeacherId: String,
     @SerialName("created_at") val createdAt: String,

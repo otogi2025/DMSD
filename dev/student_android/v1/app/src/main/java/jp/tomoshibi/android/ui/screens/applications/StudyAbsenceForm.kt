@@ -44,7 +44,7 @@ import jp.tomoshibi.android.ui.components.TArea
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
 
-// 晩自習欠席届（晚自习请假）— 対齐 iOS ApplyStubs.swift StudyAbsenceForm（规格 §3）
+// 「夜学習欠席届」（夜间学习请假）— 対齐 iOS ApplyStubs.swift StudyAbsenceForm（规格 §3）
 //   §1 欠席する日付（DateField，规格限今日～14 日后，演示不强制）
 //   §2 欠席する範囲（前半節 / 後半節 / 両方 三选一，RadioCard）
 //   §3 理由（必須，TArea）
@@ -79,14 +79,14 @@ fun StudyAbsenceForm(navController: NavHostController) {
     GlobalScaffold(activeTab = "apply", navController = navController) {
         Column(modifier = Modifier.fillMaxSize().background(t.pearl)) {
             PageHeader(
-                title = "晩自習欠席届",
+                title = "夜学習欠席届",
                 level = 2,
                 onLeft = { navController.popBackStack() },
             )
 
             when (stage) {
                 // ── 编辑态：表单字段 + 底部「確認する」 ──
-                "edit" ->
+                "edit" -> {
                     EditStage(
                         tokens = t,
                         targetDate = targetDate,
@@ -105,9 +105,10 @@ fun StudyAbsenceForm(navController: NavHostController) {
                             }
                         },
                     )
+                }
 
                 // ── 确认态：只读键值卡 + 「提出する」/「修正する」 ──
-                "preview" ->
+                "preview" -> {
                     PreviewStage(
                         tokens = t,
                         targetDate = targetDate,
@@ -116,16 +117,18 @@ fun StudyAbsenceForm(navController: NavHostController) {
                         onSubmit = { stage = "done" },
                         onEdit = { stage = "edit" },
                     )
+                }
 
                 // ── 完成态：绿勾 + 预想审查时间 + 「一覧に戻る」 ──
-                "done" ->
+                "done" -> {
                     DoneStage(
                         tokens = t,
                         onBack = {
-                            Toast.makeText(ctx, "晩自習欠席届を提出しました", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(ctx, "夜学習欠席届を提出しました", Toast.LENGTH_SHORT).show()
                             navController.popBackStack()
                         },
                     )
+                }
             }
         }
     }
@@ -262,7 +265,8 @@ private fun PreviewStage(
 
         // 「提出する」→ 完成；「修正する」→ 回编辑
         PrimaryButton(title = "提出する", onClick = onSubmit)
-        jp.tomoshibi.android.ui.components.GhostButton(title = "修正する", onClick = onEdit)
+        jp.tomoshibi.android.ui.components
+            .GhostButton(title = "修正する", onClick = onEdit)
         Spacer(Modifier.height(20.dp))
     }
 }
@@ -347,7 +351,7 @@ private fun DoneStage(
             style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold),
         )
         Text(
-            "晩自習欠席届を受け付けました。\n審査完了時に通知でお知らせします。",
+            "夜学習欠席届を受け付けました。\n審査完了時に通知でお知らせします。",
             color = tokens.inkSub,
             style = TextStyle(fontSize = 13.sp, lineHeight = 19.sp),
         )

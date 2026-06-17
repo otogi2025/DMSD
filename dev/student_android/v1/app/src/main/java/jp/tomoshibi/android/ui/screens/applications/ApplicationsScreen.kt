@@ -364,7 +364,7 @@ private val APPLY_TYPES =
         ApplyType("repair", "修繕", "部屋・設備の修繕依頼", SuzuIcons.Wrench),
         ApplyType("parcel", "代理受取", "不在時の荷物代理受取", SuzuIcons.Box),
         ApplyType("guest", "来訪者", "家族・友人の来訪", SuzuIcons.People),
-        ApplyType("studyAbsence", "学習欠席", "晚自习の欠席届（前半・後半・両方）", SuzuIcons.Book),
+        ApplyType("studyAbsence", "学習欠席", "夜学習の欠席届（前半・後半・両方）", SuzuIcons.Book),
         ApplyType("studyOnline", "オンライン学習", "自室でのオンライン学習", Icons.Outlined.Laptop),
         ApplyType("event", "行事企画", "寮内イベントの企画申請", SuzuIcons.Sparkle),
         ApplyType("fridge", "冷蔵庫購入", "指定冷蔵庫の購入届", Icons.Outlined.AcUnit),

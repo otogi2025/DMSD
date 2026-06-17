@@ -38,24 +38,6 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-// 7 类申请 — 对应 iOS APPLY_TYPES 前 7 个高頻 kind
-private data class ApplyKindMeta(
-    val key: String,
-    val name: String,
-    val sub: String,
-)
-
-private val APPLY_KINDS_7 =
-    listOf(
-        ApplyKindMeta("外出", "外出", "当日帰寮"),
-        ApplyKindMeta("外泊", "外泊", "寮外宿泊"),
-        ApplyKindMeta("帰省", "帰省", "実家帰省"),
-        ApplyKindMeta("帰国", "帰国", "一時帰国"),
-        ApplyKindMeta("早帰", "早帰", "門限前帰寮"),
-        ApplyKindMeta("修繕", "修繕", "設備修繕"),
-        ApplyKindMeta("学習", "学習", "学習関連"),
-    )
-
 private val DATE_FMT = DateTimeFormatter.ofPattern("yyyy/MM/dd")
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,7 +54,7 @@ fun ApplyNewScreen(
         }
 
         "学習欠席" -> {
-            StudyAbsenceForm(navController) // 晩自習欠席届
+            StudyAbsenceForm(navController) // 「夜学習欠席届」
             return
         }
 
@@ -111,18 +93,23 @@ fun ApplyNewScreen(
     var leaveTime by remember { mutableStateOf("18:00") }
     var returnTime by remember { mutableStateOf("20:00") }
 
-    // 申请期限：出発日 48 時間前 OR 出発日属週水曜 23:59、いずれか早い方
-    val now = LocalDateTime.now()
-    val depAtSix = leaveDate.atTime(18, 0)
-    val deadline48h = depAtSix.minusHours(48)
-    val pastDeadline = now.isAfter(deadline48h)
-
     // 字段 visibility（kind 切 → hide）
     val showLeaveDate = kind in listOf("外出", "外泊", "帰省", "帰国")
     val showReturnDate = kind in listOf("外泊", "帰省", "帰国")
     val showReturnDateOnly = kind == "早帰"
     val showRepairFields = kind == "修繕"
     val showStudyFields = kind == "学習"
+    val showGuestField = kind == "来訪者" // 来訪者必填「来訪者氏名」，対齐 iOS isGuest
+    val showParcelField = kind == "代理受取" // 代理受取必填「荷物の概要」，対齐 iOS isParcel
+
+    // 期限校验只对有出寮日的类型（外出/外泊/帰省/帰国/早帰）适用；
+    // 修繕/来訪者/代理受取 无出寮日，不显期限 banner、也不参与 pastDeadline 判断。
+    val hasLeaveDateDeadline = showLeaveDate || showReturnDateOnly
+    // 申请期限：出寮日 48 小时前 OR 出寮日所属周的周三 23:59，取更早的一个
+    val now = LocalDateTime.now()
+    val depAtSix = leaveDate.atTime(18, 0)
+    val deadline48h = depAtSix.minusHours(48)
+    val pastDeadline = hasLeaveDateDeadline && now.isAfter(deadline48h)
 
     // 出発日 picker dialog
     var showLeavePicker by remember { mutableStateOf(false) }
@@ -195,23 +182,25 @@ fun ApplyNewScreen(
                         .padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                // ── deadline warning banner ──
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(tokens.warnBg)
-                            .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("⚠", color = tokens.warnDeep, style = TextStyle(fontSize = 14.sp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        "出発日の 48 時間前まで、または週の水曜 23:59 までに提出してください",
-                        color = tokens.warnDeep,
-                        style = TextStyle(fontSize = 12.sp, lineHeight = 16.sp),
-                    )
+                // ── deadline warning banner ── 只对有出寮日的类型显示（修繕/来訪者/代理受取 无出寮日，隐藏）
+                if (hasLeaveDateDeadline) {
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(tokens.warnBg)
+                                .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("⚠", color = tokens.warnDeep, style = TextStyle(fontSize = 14.sp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "出発日の 48 時間前まで、または週の水曜 23:59 までに提出してください",
+                            color = tokens.warnDeep,
+                            style = TextStyle(fontSize = 12.sp, lineHeight = 16.sp),
+                        )
+                    }
                 }
 
                 // ── 申請者本人 read-only block ──
@@ -267,15 +256,26 @@ fun ApplyNewScreen(
                     if (showRepairFields) {
                         TextField2("修繕場所", dest, "M101 室・洗面所") { dest = it }
                     }
+                    if (showGuestField) {
+                        TextField2("来訪者氏名", dest, "来訪者氏名を入力") { dest = it }
+                    }
+                    if (showParcelField) {
+                        TextField2("荷物の概要", dest, "配送業者・個数") { dest = it }
+                    }
                     if (showStudyFields) {
-                        DateField("晩自習日", leaveDate.format(DATE_FMT)) { showLeavePicker = true }
+                        DateField("夜学習日", leaveDate.format(DATE_FMT)) { showLeavePicker = true }
                         TextField2("場所", dest, "図書室") { dest = it }
                     }
                     TextField2("理由", reason, "詳細を記入してください", multiline = true) { reason = it }
                 }
 
                 // ── submit ──
-                val canSubmit = !pastDeadline && reason.isNotBlank()
+                // 来訪者「来訪者氏名」/ 代理受取「荷物の概要」走 dest 字段，必填（trim 防只填空格），対齐 iOS canSubmit
+                val needsDestField = showGuestField || showParcelField
+                val canSubmit =
+                    !pastDeadline &&
+                        reason.isNotBlank() &&
+                        (!needsDestField || dest.trim().isNotEmpty())
                 Box(
                     modifier =
                         Modifier

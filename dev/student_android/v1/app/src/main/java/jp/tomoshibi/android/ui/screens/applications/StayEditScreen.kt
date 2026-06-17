@@ -47,12 +47,12 @@ import jp.tomoshibi.android.ui.components.TField
 import jp.tomoshibi.android.ui.theme.SuzuT
 
 // ─────────────────────────────────────────────────────────────────────
-// StayEditScreen —— 出寮届 修改届（编辑已提交的出寮届）
+// StayEditScreen —— 出寮届 变更届（编辑已提交的出寮届）
 // 1:1 对齐 iOS StayEditForm（StayListStubs.swift 行 1172-1786）。
 // 用 id 从 MockData.DEFAULT_STAY_APPLICATIONS 取那条做初值预填。
 // iOS 版接后端（PUT /applications/:id）；本屏只做本地 UI，提交后直接返回。
 // 区块顺序照 iOS body：警告横幅 → 申請者本人（变更不可）→ 出寮/帰寮日 → 移動方法
-//   →（外泊/帰国才有）宿泊先 → 修改の理由（必填）→ 提交行。
+//   →（外泊/帰国才有）宿泊先 →「変更の理由」（必填）→ 提交行。
 // ─────────────────────────────────────────────────────────────────────
 
 // 出寮方法（去程）选项 —— 跟 StayForm 的 LEAVE_METHODS 一致（iOS StayEditForm LEAVE_TRANSPORTS）
@@ -119,7 +119,7 @@ fun StayEditScreen(
     var destination by remember { mutableStateOf(original.destination ?: "") }
     var amendReason by remember { mutableStateOf("") }
 
-    // 可提交：修改理由非空 +（有帰寮日时）帰寮日不早于出寮日（对齐 iOS canSubmit）
+    // 可提交：变更理由非空 +（有帰寮日时）帰寮日不早于出寮日（对齐 iOS canSubmit）
     val canSubmit =
         amendReason.trim().isNotEmpty() &&
             (returnDate.isEmpty() || leaveDate.isEmpty() || returnDate >= leaveDate)
@@ -131,9 +131,9 @@ fun StayEditScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState()),
         ) {
-            // 标题「外泊届 修改届」（iOS：「\(kind)届 修改届」level 3）
+            // 标题「外泊届の変更」（iOS：「\(kind)届の変更」level 3）
             PageHeader(
-                title = "${original.kind}届 修改届",
+                title = "${original.kind}届の変更",
                 level = 3,
                 onLeft = { navController.popBackStack() },
             )
@@ -145,7 +145,7 @@ fun StayEditScreen(
                         .padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
-                // ── 警告横幅 ──「修改届を提出すると、承認の流れが最初からやり直しになります。」
+                // ── 警告横幅 ──「変更届を提出すると、承認の流れが最初からやり直しになります。」
                 WarningBanner()
 
                 // ── 申請者本人（変更不可）──
@@ -161,7 +161,7 @@ fun StayEditScreen(
                     }
                 }
                 Text(
-                    "※ 身份情報の変更は寮監にご連絡ください。修改届では変更できません。",
+                    "※ 個人情報の変更は寮監にご連絡ください。変更届では変更できません。",
                     color = t.inkMute,
                     style = TextStyle(fontSize = 11.sp),
                 )
@@ -233,9 +233,9 @@ fun StayEditScreen(
                     }
                 }
 
-                // ── 修改の理由（必填）──
+                // ── 「変更の理由」（必填）──
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    SectionLabel("修改の理由")
+                    SectionLabel("変更の理由")
                     Text(
                         " *",
                         color = t.danger,
@@ -245,16 +245,16 @@ fun StayEditScreen(
                 TArea(
                     value = amendReason,
                     onValueChange = { amendReason = it },
-                    placeholder = "修改の理由を入力してください",
+                    placeholder = "変更の理由を入力してください",
                     rows = 4,
                 )
                 Text(
-                    "※ 各役职の先生にこの理由が表示されます。",
+                    "※ 各役職の先生にこの理由が表示されます。",
                     color = t.inkMute,
                     style = TextStyle(fontSize = 11.sp),
                 )
 
-                // ── 提交行：キャンセル（次按钮）+ 修改届を提出（主按钮）──
+                // ── 提交行：「キャンセル」（次按钮）+「変更届を提出」（主按钮）──
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     GhostButton(
                         title = "キャンセル",
@@ -262,7 +262,7 @@ fun StayEditScreen(
                         onClick = { navController.popBackStack() },
                     )
                     PrimaryButton(
-                        title = "修改届を提出",
+                        title = "変更届を提出",
                         modifier = Modifier.weight(1f),
                         enabled = canSubmit,
                         // 本地无网络：点了直接返回。
@@ -277,7 +277,7 @@ fun StayEditScreen(
     }
 }
 
-// 警告横幅 —「修改届を提出すると、承認の流れが最初からやり直しになります。」（iOS warningBanner）
+// 警告横幅 —「変更届を提出すると、承認の流れが最初からやり直しになります。」（iOS warningBanner）
 @Composable
 private fun WarningBanner() {
     val t = SuzuT.current
@@ -296,7 +296,7 @@ private fun WarningBanner() {
         Text("⚠️", color = t.warnDeep, style = TextStyle(fontSize = 13.sp))
         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(
-                "修改届を提出すると、承認の流れが最初からやり直しになります。",
+                "変更届を提出すると、承認の流れが最初からやり直しになります。",
                 color = t.warnDeep,
                 style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
             )

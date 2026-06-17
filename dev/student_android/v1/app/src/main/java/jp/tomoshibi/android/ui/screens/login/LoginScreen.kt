@@ -262,10 +262,10 @@ fun LoginScreen(navController: NavHostController) {
         )
 
         Spacer(Modifier.weight(1f))
-        // 版本号脚注
+        // 版本号脚注 —— 读 BuildConfig.VERSION_NAME（跟 build.gradle.kts 的 versionName 走），不写死
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             Text(
-                text = "v0.12.0 · © Tomoshibi",
+                text = "v${BuildConfig.VERSION_NAME} · © Tomoshibi",
                 color = t.inkMute,
                 style = TextStyle(fontSize = 12.sp),
             )

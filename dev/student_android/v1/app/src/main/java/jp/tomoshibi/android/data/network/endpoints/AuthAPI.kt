@@ -37,7 +37,7 @@ data class TokenOut(
 )
 
 // / GET /students/me 响应 — 后端 StudentProfileBasic（学生基本信息）。
-// / 只含身份字段；统计（扣分/迟到/欠席）+ 晩自習対象 flag 不在这接口。
+// / 只含身份字段；统计（扣分/迟到/欠席）+ 夜学习对象 flag 不在这接口。
 @Serializable
 data class StudentMeOut(
     val id: String,
@@ -70,6 +70,10 @@ data class MyDisciplineSummaryOut(
     @SerialName("total_points") val totalPoints: Double,
     @SerialName("late_count") val lateCount: Int,
     @SerialName("absent_count") val absentCount: Int,
+    // 罚扫对象标记（≥4 分需罚扫）— 与 iOS Bool? 对齐。
+    // 可空兜底：分阶段部署时旧后端不发该字段，避免整个 summary 解码失败。
+    // 消费侧按 needsCleaning ?? (totalPoints >= 4) 兜底（对齐 AppStore.swift）。
+    @SerialName("needs_cleaning") val needsCleaning: Boolean? = null,
 )
 
 // ============================================================

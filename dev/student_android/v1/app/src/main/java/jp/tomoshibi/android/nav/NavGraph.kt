@@ -88,7 +88,6 @@ fun TomoshibiNavGraph(navController: NavHostController) {
         }
         composable(Route.Deduction.path) { DeductionScreen(navController) }
         composable(Route.RollCall.path) { RollCallScreen(navController) }
-        composable(Route.Settings.path) { SettingsScreen(navController) }
 
         // ── 个人页（「マイページ」）13 子页 ────
         composable(Route.MyInfo.path) { MyInfoScreen(navController) }
@@ -145,9 +144,8 @@ fun TomoshibiNavGraph(navController: NavHostController) {
             EventDetailScreen(navController, id)
         }
 
-        // ── community 6 屏 ────────
+        // ── community 5 屏 ────────
         composable(Route.Music.path) { MusicScreen(navController) }
-        composable(Route.Study.path) { StudyScreen(navController) }
         composable(Route.LostFound.path) { LostFoundScreen(navController) }
         composable(Route.Schedule.path) { ScheduleScreen(navController) }
         composable(Route.Bus.path) { BusScreen(navController) }

@@ -71,7 +71,7 @@ import kotlinx.coroutines.launch
 //   5) 操作履歴：auditLog 逐条 at / action / actor / detail（竖线串联的时间轴）
 // 数据从真后端 ApplicationsAPI.detail(id) 拉单条 ApplicationOut，再 .toStayApplication() 转本地模型。
 // 套三态外壳（加载中 / 失败 / 成功）；详情屏是单条，不需要 Empty 态，找不到 / 异常都走 FailedBox。
-// isEditable 为 true 时底部「修改届を提出」按钮 → 跳 StayEdit 路由。
+// isEditable 为 true 时底部「変更届を提出」按钮 → 跳 StayEdit 路由。
 // ─────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -152,10 +152,10 @@ fun StayDetailScreen(
 
                         HistoryCard(t, item)
 
-                        // 修改届可提交时露出底部按钮 → 跳编辑屏
+                        // 变更届可提交时露出底部按钮 → 跳编辑屏
                         if (item.isEditable) {
                             PrimaryButton(
-                                title = "修改届を提出",
+                                title = "変更届を提出",
                                 icon = SuzuIcons.Edit,
                                 onClick = { navController.navigate(Route.StayEdit(id).path) },
                             )
@@ -533,7 +533,7 @@ private fun AuditRow(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // action 值即 UI 文案（如「提出」「承認」「差戻」「修改届を提出」）
+                // action 值即 UI 文案（如「提出」「承認」「差戻」「変更届を提出」）
                 Text(entry.action, color = t.ink, style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold))
                 Spacer(Modifier.width(8.dp))
                 Text(
@@ -543,7 +543,7 @@ private fun AuditRow(
                 )
             }
             Text(entry.actor, color = t.inkSub, style = TextStyle(fontSize = 12.sp))
-            // detail（修改届理由 / 差戻理由）非空时灰底小框展示
+            // detail（变更届理由 / 差戻理由）非空时灰底小框展示
             if (!entry.detail.isNullOrBlank()) {
                 Box(
                     modifier =
@@ -613,9 +613,9 @@ private fun auditColor(
         action.contains("差戻") -> t.danger
 
         // 「差戻」红
-        action.contains("修改") -> t.warn
+        action.contains("変更") -> t.warn
 
-        // 「修改届を提出」橙
+        // 「変更届を提出」橙
         else -> primary // 其余（如「提出」）主色 teal
     }
 

@@ -26,10 +26,15 @@ object ApiClient {
     var token: String? = null
 
     // 共用 JSON 解析器：忽略未知字段（后端多返字段不报错）+ 序列化默认值
+    // explicitNulls = false：null 值字段不写进 JSON，对齐 ApplicationUpdateBody「只传改了的字段」设计前提
+    //   （iOS 用 encodeIfPresent 精确控制，这里靠 explicitNulls 达到同效）。
+    //   encodeDefaults=true 仍让 KiseiCreateBody.kind="帰省" 等带默认值的非 null 字段正常发出，
+    //   两者不冲突——explicitNulls 只影响 null 值字段。
     val json =
         Json {
             ignoreUnknownKeys = true
             encodeDefaults = true
+            explicitNulls = false
         }
 
     private const val TIMEOUT_MS = 15000

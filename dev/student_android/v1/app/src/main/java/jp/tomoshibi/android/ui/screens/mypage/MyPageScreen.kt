@@ -61,7 +61,7 @@ import kotlinx.coroutines.launch
 
 // ───────────────────────────────────────────────────────────────
 // MyPageScreen（個人页着陆页 L1）— 对齐 iOS MyLandingView（截图 11）
-// 从上到下 6 块：头像档案卡 / 行事予定卡 / 3 状态卡 / 履歴小标题 / 6 格宫格 / 设置 3 行
+// 从上到下 6 块：头像档案卡 / 行事予定卡 / 3 状态卡 / 履歴小标题 / 5 格宫格 / 设置 3 行
 // 加 LogoutSheet（登出弹窗）并入本文件
 // 数据全部从 MockData / 登录态 store 读，无网络层（跟 iOS 未接后端的屏一致）
 // ───────────────────────────────────────────────────────────────
@@ -111,7 +111,7 @@ fun MyPageScreen(navController: NavHostController) {
                 Spacer(Modifier.height(2.dp))
                 SectionHeader(title = "履歴")
 
-                // ── 2.5 履歴宫格（6 格 2 列）──
+                // ── 2.5 履歴宫格（5 格 2 列）──
                 HistoryGrid(navController)
 
                 // ── 2.6 设置列表（3 行）──
@@ -304,7 +304,7 @@ private fun StatusCardShell(
     }
 }
 
-// A. 晩自習ステータス卡 — isStudyTarget=false 时显「対象外（今日）」；入口始终显示
+// A.「夜学習ステータス」卡 — isStudyTarget=false 时显「対象外（今日）」；入口始终显示
 @Composable
 private fun StudyStatusCard(
     isStudyTarget: Boolean,
@@ -314,7 +314,7 @@ private fun StudyStatusCard(
     val primary = MaterialTheme.colorScheme.primary
     val statusText = if (isStudyTarget) "進行中" else "対象外（今日）"
     StatusCardShell(iconBg = primary.copy(alpha = 0.10f), emoji = "📚", onClick = onClick) {
-        Text("晩自習ステータス", color = t.inkSub, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold))
+        Text("夜学習ステータス", color = t.inkSub, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold))
         Text(statusText, color = t.ink, style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold))
         Text("履歴を見る →", color = primary, style = TextStyle(fontSize = 11.sp))
     }
@@ -392,7 +392,7 @@ private fun PointsStatusCard(
 // 分数格式化：整数去小数点（4.0→「4」），否则保留 1 位（4.5→「4.5」）
 private fun fmtPoints(p: Double): String = if (p % 1.0 == 0.0) p.toInt().toString() else p.toString()
 
-// ── 2.5 履歴宫格（6 格 2 列）── 格子标签 + 图标 + 目标路由（荷物受取履歴带红徽标「1」）
+// ── 2.5 履歴宫格（5 格 2 列）── 格子标签 + 图标 + 目标路由（荷物受取履歴带红徽标「1」）
 private data class GridBlock(
     val label: String,
     val icon: androidx.compose.ui.graphics.vector.ImageVector,

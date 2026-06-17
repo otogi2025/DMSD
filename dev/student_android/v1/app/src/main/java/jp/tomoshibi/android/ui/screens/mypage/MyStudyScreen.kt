@@ -38,9 +38,9 @@ import jp.tomoshibi.android.ui.components.PageHeader
 import jp.tomoshibi.android.ui.components.SuzuCard
 import jp.tomoshibi.android.ui.theme.SuzuT
 
-// 晩自習履歴（晩学習＝夜间学习的出席履歴）— 対齐 iOS MyStudyView（L2 子页）
+// 夜学习履历（夜间学习的出席履历）— 対齐 iOS MyStudyView（L2 子页）
 //   入口 = 着陆页学習卡。按 MockData.DEFAULT_USER.isStudyTarget 切两种界面：
-//   - false（当前假数据值）→ 居中「晩自習対象外です」空状态
+//   - false（当前假数据值）→ 居中「夜学習対象外です」空状态
 //   - true → 月度统计卡 / 当月欠席届卡 / 出席打卡履历卡 / 说明盒 四块竖排
 @Composable
 fun MyStudyScreen(navController: NavHostController) {
@@ -49,7 +49,7 @@ fun MyStudyScreen(navController: NavHostController) {
 
     GlobalScaffold(activeTab = "me", navController = navController) {
         Column(modifier = Modifier.fillMaxSize().background(t.pearl)) {
-            PageHeader(title = "晩自習履歴", level = 2, onLeft = { navController.popBackStack() })
+            PageHeader(title = "夜学習履歴", level = 2, onLeft = { navController.popBackStack() })
 
             if (isStudyTarget) {
                 StudyTargetBody()
@@ -60,7 +60,7 @@ fun MyStudyScreen(navController: NavHostController) {
     }
 }
 
-// 非晚自习对象：居中大 emoji + 标题 + 两行说明
+// 非夜学习对象：居中大 emoji + 标题 + 两行说明
 @Composable
 private fun NotStudyTargetNotice() {
     val t = SuzuT.current
@@ -72,14 +72,14 @@ private fun NotStudyTargetNotice() {
         Text("📚", style = TextStyle(fontSize = 44.sp))
         Spacer(Modifier.height(12.dp))
         Text(
-            "晩自習対象外です",
+            "夜学習対象外です",
             color = t.ink,
             style = TextStyle(fontSize = 17.sp, fontWeight = FontWeight.Bold),
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "あなたは現在、晩自習の対象ではありません。\n晩自習担当の先生が対象に指定すると、ここに出席状況が表示されます。",
+            "あなたは現在、夜学習の対象ではありません。\n夜学習担当の先生が対象に指定すると、ここに出席状況が表示されます。",
             color = t.inkSub,
             style = TextStyle(fontSize = 13.sp, lineHeight = 19.sp),
             textAlign = TextAlign.Center,
@@ -93,7 +93,7 @@ private data class DayGroup(
     val items: List<StudyHistoryEntry>,
 )
 
-// 晚自习对象：四块竖排（月度统计 / 欠席届 / 履历 / 说明盒）
+// 夜学习对象：四块竖排（月度统计 / 欠席届 / 履历 / 说明盒）
 @Composable
 private fun StudyTargetBody() {
     val history = MockData.DEFAULT_STUDY_HISTORY
@@ -146,7 +146,7 @@ private fun SummaryCard(
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "今月の晩自習出席",
+                    "今月の夜学習出席",
                     color = t.inkSub,
                     style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp),
                     modifier = Modifier.weight(1f),
@@ -216,7 +216,7 @@ private fun LeaveStatsCard(leaveCount: Int) {
                 Text("📝", style = TextStyle(fontSize = 22.sp))
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("今月の晩自習欠席届", color = t.inkSub, style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold))
+                Text("今月の夜学習欠席届", color = t.inkSub, style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold))
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         "$leaveCount",
@@ -365,12 +365,12 @@ private fun HelpInfoBox() {
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(
-            "ℹ 晩自習出席は NFC を 1 日 2 回タップ",
+            "ℹ 夜学習出席は NFC を 1 日 2 回タップ",
             color = primary,
             style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold),
         )
         Text(
-            "晩自習開始 (19:40) ／ 晩自習終了 (21:45)。2 回揃わない場合は異常扱いとなり、晩自習担当の先生が手動で判定します。",
+            "夜学習開始 (19:40) ／ 夜学習終了 (21:45)。2 回揃わない場合は異常扱いとなり、夜学習担当の先生が手動で判定します。",
             color = primary.copy(alpha = 0.85f),
             style = TextStyle(fontSize = 11.5.sp, lineHeight = 17.sp),
         )

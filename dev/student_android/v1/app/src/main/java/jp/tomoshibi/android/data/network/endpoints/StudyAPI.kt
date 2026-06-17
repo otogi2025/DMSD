@@ -7,10 +7,10 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 // StudyAPI.kt
-// data/network/endpoints — 学习（晚自习）相关 endpoint 包装。
+// data/network/endpoints — 学习（夜学习）相关 endpoint 包装。
 //
 // 1:1 对齐 iOS StudyAPI.swift。学生侧能用的：
-//   - POST /api/v1/study/absence-requests        学习请假条（日语申请名「晩自習欠席届」）提交
+//   - POST /api/v1/study/absence-requests        学习请假条（日语申请名「夜学習欠席届」）提交
 //   - POST /api/v1/study/online-requests         在线学习申请（日语申请名「学習オンライン申請」）提交
 //   - GET  /api/v1/study/online-requests/mine    我的在线学习申请列表
 //   - GET  /api/v1/study/absence-requests/me/summary  当月请假次数
@@ -27,7 +27,7 @@ import kotlinx.serialization.Serializable
 //   - StudyAbsenceRequestOut / StudyOnlineRequestOut 已在 NetworkModels.kt，这里直接引用。
 
 object StudyAPI {
-    // 学习请假条（「晩自習欠席届」）提交。
+    // 学习请假条（「夜学習欠席届」）提交。
     // 失败：422 → 同日重复提交 / target_date 超范围等；401 → 重新登录。
     suspend fun submitAbsenceRequest(
         targetDate: String,

@@ -125,10 +125,10 @@ fun MySettingsScreen(navController: NavHostController) {
                                 color = tokens.inkSub,
                                 style = TextStyle(fontSize = 12.sp, lineHeight = 17.sp),
                             )
-                            DemoPushRow("晩自習欠席届 → 承認", ctx)
-                            DemoPushRow("晩自習欠席届 → 不承認", ctx)
-                            DemoPushRow("晩自習対象に追加された", ctx)
-                            DemoPushRow("外泊届（修改届）が再承認された", ctx)
+                            DemoPushRow("夜学習欠席届 → 承認", ctx)
+                            DemoPushRow("夜学習欠席届 → 不承認", ctx)
+                            DemoPushRow("夜学習対象に追加された", ctx)
+                            DemoPushRow("外泊届（変更届）が再承認された", ctx)
                         }
                     }
                 }

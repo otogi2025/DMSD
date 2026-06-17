@@ -60,8 +60,6 @@ sealed class Route(
 
     data object RollCall : Route("rollcall")
 
-    data object Settings : Route("settings")
-
     // ── 个人页（「マイページ」）子页 (从 MyPage landing 进入) ──
     data object MyInfo : Route("my/info")
 
@@ -141,10 +139,8 @@ sealed class Route(
         }
     }
 
-    // ── community 6 屏 (从 Home 进入) ──
+    // ── community 5 屏 (从 Home 进入) ──
     data object Music : Route("music")
-
-    data object Study : Route("study")
 
     data object LostFound : Route("lostfound")
 

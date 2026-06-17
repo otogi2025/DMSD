@@ -56,11 +56,11 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 // ───────────────────────────────────────────────────────────────
-// StudyCheckinSheet — 晚自习 NFC「2 次签到」弹窗
+// StudyCheckinSheet — 夜学习 NFC「2 次签到」弹窗
 // 对齐 iOS Foundation/Features/Home/HomeStubs.swift 的 StudyCheckinSheet（simulate() 行 1805）。
 // 规格真值：内部对齐规格 第 2978–3003 行（③ 学習 NFC 2 次签到）。
 //
-// 机制：一次晚自习要碰 NFC 2 次 —— 晩自習開始（受付 19:35–19:40）+ 晩自習終了（受付 21:40–21:50）。
+// 机制：一次夜学习要碰 NFC 2 次 ——「夜学習開始」（受付 19:35–19:40）+「夜学習終了」（受付 21:40–21:50）。
 // 本文件用本地变量 tapIndex（1=开始 / 2=结束）演示「这是第几次签到」，每开一次只走一次签到。
 // 状态机 4 步 idle → scanning → success → fail，跟 RollCallSheet 同一套写法。
 // 本波纯 UI + 动画 mock —— 不真碰 NFC、不发网络、不写本地状态库。
@@ -78,14 +78,14 @@ fun StudyCheckinSheet(onDismiss: () -> Unit) {
 
     // 当前在哪一步（默认从 idle 开始）
     var step by remember { mutableStateOf(Step.Idle) }
-    // 这是本次晚自习的第几次签到 —— 1=晩自習開始 / 2=晩自習終了
+    // 这是本次夜学习的第几次签到 —— 1=「夜学習開始」/ 2=「夜学習終了」
     // 真实装时应由后端 / 本地状态库的「下一次未完成 tap」决定（对齐 iOS app.nextStudyTap），
     // 本波 mock 固定从 1 开始。
     var tapIndex by remember { mutableStateOf(1) }
 
     // 当前是第 1 次还是第 2 次签到的派生文案（随 tapIndex 变）
     val isStart = tapIndex == 1
-    val tapName = if (isStart) "晩自習開始" else "晩自習終了" // 这次签到的中性名（用在 toast / success 跳转语）
+    val tapName = if (isStart) "夜学習開始" else "夜学習終了" // 这次签到的中性名（用在 toast / success 跳转语）
     val timeWindow = if (isStart) "19:35〜19:40" else "21:40〜21:50" // 受付窗口
 
     // scanning 步：等 0.5 秒模拟扫卡完成 → success（对齐 iOS simulate() 0.5s 延时）
@@ -106,7 +106,7 @@ fun StudyCheckinSheet(onDismiss: () -> Unit) {
             // 全 2 次都做完（这次是第 2 次）→ 整段完成 toast，否则只报这一次完成
             val toastText =
                 if (tapIndex == 2) {
-                    "晩自習出席完了 · 全 2 回 タップ済み"
+                    "夜学習出席完了 · 全 2 回 タップ済み"
                 } else {
                     "$tapName 完了"
                 }
@@ -188,9 +188,9 @@ private fun IdleBody(
 
     Spacer(Modifier.height(6.dp))
 
-    // ② 大标题 —— 第 1 次=晩自習開始のタップ / 第 2 次=晩自習終了のタップ
+    // ② 大标题 —— 第 1 次=「夜学習開始のタップ」/ 第 2 次=「夜学習終了のタップ」
     Text(
-        text = if (isStart) "晩自習開始のタップ" else "晩自習終了のタップ",
+        text = if (isStart) "夜学習開始のタップ" else "夜学習終了のタップ",
         color = t.ink,
         style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Black),
         textAlign = TextAlign.Center,
@@ -371,13 +371,13 @@ private fun SuccessBody(
     if (tapIndex == 1) {
         // 第 1 次完成 → 提示下次什么时候来碰第 2 次
         Text(
-            text = "次は 晩自習終了 を 21:40〜21:50 に",
+            text = "次は 夜学習終了 を 21:40〜21:50 に",
             color = t.inkSub,
             style = TextStyle(fontSize = 13.sp),
             textAlign = TextAlign.Center,
         )
     } else {
-        // 第 2 次完成 → 整段晩自習出席完成，绿胶囊报当前时刻
+        // 第 2 次完成 → 整段夜学习出席完成，绿胶囊报当前时刻
         val now = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
         Row(
             modifier =
@@ -388,7 +388,7 @@ private fun SuccessBody(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "$now · 本日の晩自習出席は完了",
+                text = "$now · 本日の夜学習出席は完了",
                 color = t.okDeep,
                 style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold),
             )
