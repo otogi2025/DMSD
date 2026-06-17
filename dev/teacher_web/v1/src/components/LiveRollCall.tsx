@@ -37,6 +37,7 @@ export function LiveRollCall({
   onEnd,
   onOverride,
   onReset,
+  nfcSeq,
 }: {
   teacher: LiveTeacher;
   sessionName: string;
@@ -46,16 +47,13 @@ export function LiveRollCall({
   onEnd: () => void;
   onOverride: (s: SeatStudent) => void;
   onReset: () => void;
+  nfcSeq: number; // 来自 App.tsx 的 WebSocket checkin 计数：>0 表示已收到签到（C31）
 }) {
   const T = RYO;
   const [now, setNow] = React.useState(Date.now());
   const [showLegend, setShowLegend] = React.useState(false);
-  const [showConsole, setShowConsole] = React.useState(false);
-  const [lastSeq, setLastSeq] = React.useState(0);
-  const [nfcStatus, setNfcStatus] = React.useState<"idle" | "ok" | "error">(
-    "idle",
-  ); // 'idle' | 'ok' | 'error'
-  const lastBroadcastRef = React.useRef<unknown>(null);
+  // NFC 指示灯由 App.tsx 的 nfcSeq 驱动：收到过签到则「受信中」、否则「待機中」（C31）
+  const nfcStatus: "idle" | "ok" = nfcSeq > 0 ? "ok" : "idle";
 
   React.useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -87,19 +85,6 @@ export function LiveRollCall({
   const total = students.length;
   const inLatePhase = elapsed >= LATE_THRESHOLD_SEC;
   const secToLate = Math.max(0, LATE_THRESHOLD_SEC - elapsed);
-
-  const simCheckin = (s: SeatStudent) => {
-    const d = new Date();
-    const t = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
-    const isLate = elapsed >= LATE_THRESHOLD_SEC;
-    setStudents((list) =>
-      list.map((x) =>
-        x.key === s.key
-          ? { ...x, status: isLate ? "late" : "ok", checkinAt: t }
-          : x,
-      ),
-    );
-  };
 
   return (
     <div
@@ -173,7 +158,7 @@ export function LiveRollCall({
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <NfcIndicator status={nfcStatus} seq={lastSeq} />
+          <NfcIndicator status={nfcStatus} seq={nfcSeq} />
           <div style={{ textAlign: "right" }}>
             <div
               style={{
@@ -197,6 +182,22 @@ export function LiveRollCall({
               {hh}:{mm}:{ss}
             </div>
           </div>
+          <button
+            onClick={onReset}
+            style={{
+              padding: "11px 18px",
+              background: T.surface,
+              color: T.ink2,
+              border: `1px solid ${T.lineStrong}`,
+              borderRadius: 10,
+              fontFamily: "inherit",
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            座席を再取得
+          </button>
           <button
             onClick={onEnd}
             style={{

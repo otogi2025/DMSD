@@ -25,7 +25,12 @@ export function RecordsPage({
   authToken: string;
 }) {
   const T = RYO;
-  const date = (params && params.date) || "2026-04-21";
+  // 日付筛选默认值用今天（硬编码 "2026-04-21" 已过期）。
+  // 注：日付 / 点呼名筛选 UI 目前尚未接线，标「準備中」提示老师当前不生效（C82）。
+  const _today = new Date();
+  const date =
+    (params && params.date) ||
+    `${_today.getFullYear()}-${String(_today.getMonth() + 1).padStart(2, "0")}-${String(_today.getDate()).padStart(2, "0")}`;
 
   // 5-27 backend commit c0a22d1 — 拉过去 7 天点呼 session 历史
   const [backendHistory, setBackendHistory] = React.useState<
@@ -113,9 +118,12 @@ export function RecordsPage({
             fontSize: 13,
           }}
         >
-          <option>晩点呼・普通寮生</option>
+          <option>夜点呼・普通寮生</option>
           <option>朝点呼・普通寮生</option>
         </select>
+        <span style={{ fontSize: 11, color: T.ink3, marginLeft: 4 }}>
+          （絞り込みは準備中）
+        </span>
         <div style={{ flex: 1 }} />
         <button
           onClick={() => alert("この機能は準備中です")}

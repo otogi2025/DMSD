@@ -423,10 +423,11 @@ function CleaningCreateModal({
           placeholder="氏名 / 学籍番号で検索（クリックで一覧）"
         />
       </ModalField>
-      <ModalField T={T} label="担当エリア（自由入力）">
+      <ModalField T={T} label="担当エリア（自由入力・32文字以内）">
         <input
           value={area}
           onChange={(e) => setArea(e.target.value)}
+          maxLength={32}
           placeholder="例：1階トイレ / 共用キッチン / 玄関前"
           style={modalInputStyle(T)}
         />

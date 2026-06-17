@@ -295,11 +295,11 @@ export const api = {
   listTeachersPublic: () =>
     request<TeacherPublic[]>("GET", "/teachers/public", undefined),
   listTeachers: (token: string) =>
-    request<TeacherOut[]>("GET", "/teachers/", undefined, token),
+    request<TeacherOut[]>("GET", "/teachers", undefined, token),
   createInvitation: (body: InvitationIn, token: string) =>
     request<InvitationOut>("POST", "/teachers/invitations", body, token),
   createTeacher: (body: TeacherCreateIn, token: string) =>
-    request<TeacherOut>("POST", "/teachers/", body, token),
+    request<TeacherOut>("POST", "/teachers", body, token),
   deleteTeacher: (teacher_id: string, token: string) =>
     request<void>("DELETE", `/teachers/${teacher_id}`, undefined, token),
 

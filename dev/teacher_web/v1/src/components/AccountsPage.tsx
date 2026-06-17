@@ -1176,7 +1176,7 @@ function AcctStat({
           fontSize: 26,
           fontWeight: 700,
           color,
-          fontFamily: mono ? T.mono : T.mono,
+          fontFamily: mono ? T.mono : "inherit",
           margin: "4px 0",
         }}
       >
@@ -1908,7 +1908,7 @@ function buildActivityMock(a: StudentAccountListItem) {
       icon: "✓",
       color: T.ok,
       title: "点呼チェックイン",
-      body: "晩点呼 · 時間内 · NFC カード",
+      body: "夜点呼 · 時間内 · NFC カード",
       when: "04-22 19:30",
     },
     {

@@ -28,13 +28,17 @@ export function outstayDeadline(departStr: string): Date | null {
   if (!depart) return null;
   // (a) 出发 48 小时前
   const h48 = new Date(depart.getTime() - 48 * 3600 * 1000);
-  // (b) 出发日所在周的周三 23:59（周始 = 周一的 ISO 方式）
-  const wed = new Date(depart);
-  const dow = wed.getDay(); // 0=日, 1=月, ..., 3=水, ..., 6=土
+  // (b) 出发日所在周的周三 23:59（JST 固定，不依赖浏览器时区）。
+  // 把 UTC 瞬时 +9h 平移到「JST 墙钟」，用 UTC 取值器算星期/设时分，再 -9h 还原成真实瞬时，
+  // 这样海外浏览器（非 JST 时区）也算出同一个周三边界（C84）。
+  const JST = 9 * 3600 * 1000;
+  const wedJst = new Date(depart.getTime() + JST);
+  const dow = wedJst.getUTCDay(); // 0=日, 1=月, ..., 3=水, ..., 6=土（JST 墙钟）
   const isoDow = dow === 0 ? 6 : dow - 1; // 0=周一
   const delta = 2 - isoDow; // 到周三的差
-  wed.setDate(wed.getDate() + delta);
-  wed.setHours(23, 59, 59, 999);
+  wedJst.setUTCDate(wedJst.getUTCDate() + delta);
+  wedJst.setUTCHours(23, 59, 59, 999); // JST 墙钟 23:59
+  const wed = new Date(wedJst.getTime() - JST); // 还原成真实 UTC 瞬时
   return wed < h48 ? wed : h48;
 }
 

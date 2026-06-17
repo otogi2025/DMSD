@@ -942,9 +942,7 @@ function StudentCardRow({
             </span>
             <span style={{ fontSize: 10, color: T.ink3 }}>点</span>
           </div>
-          <div style={{ fontSize: 10, color: T.ink3, marginTop: 4 }}>
-            遅刻 {d.late} / 欠席 {d.absent}
-          </div>
+          {/* 迟到/缺席内訳后端 ranking 未提供（恒为 0、会误导），故不显示；合计点已由上方 total 展示（C28）。 */}
         </div>
       ))}
     </div>

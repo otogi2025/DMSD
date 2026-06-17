@@ -797,26 +797,3 @@ function hashColor(s: string, T: typeof RYO) {
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   return palette[h % palette.length];
 }
-
-function Row({ date, msg }: { date: string; msg: string }) {
-  const T = RYO;
-  return (
-    <div
-      style={{
-        display: "flex",
-        gap: 14,
-        padding: "12px 14px",
-        background: T.surface,
-        border: `1px solid ${T.line}`,
-        borderRadius: 10,
-        marginBottom: 8,
-        fontSize: 13,
-      }}
-    >
-      <span style={{ fontFamily: T.mono, color: T.ink3, minWidth: 100 }}>
-        {date}
-      </span>
-      <span>{msg}</span>
-    </div>
-  );
-}

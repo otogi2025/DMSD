@@ -289,14 +289,18 @@ export function ModalFooter({
 // 源 index.html 16293-16317（applications 块；ApplicationsPage + OutstayDetailModal 跨块共用）
 export function StateBadge({ s }: { s: string }) {
   const T = RYO;
+  // 未知 state 退化成灰底显示原始字符串，不崩页（C8 兜底）。
   const map = (
     {
       pending: [T.warn, T.warnSoft, T.warnBorder, "審査待ち"],
       approved: [T.ok, T.okSoft, T.okBorder, "承認済"],
       rejected: [T.danger, T.dangerSoft, T.dangerBorder, "却下"],
       question: [T.cobalt, T.cobaltSoft, T.infoBorder, "質問あり"],
+      withdrawn: [T.ink3, T.surfaceAlt, T.line, "撤回"],
+      confirmed: [T.ok, T.okSoft, T.okBorder, "確認済"],
+      revoked: [T.ink3, T.surfaceAlt, T.line, "取消"],
     } as Record<string, [string, string, string, string]>
-  )[s];
+  )[s] || [T.ink3, T.surfaceAlt, T.line, s];
   return (
     <span
       style={{

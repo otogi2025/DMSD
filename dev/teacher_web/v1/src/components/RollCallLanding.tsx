@@ -39,7 +39,7 @@ export function RollCallLanding({
   authToken: string;
 }) {
   const T = RYO;
-  const [name, setName] = React.useState("晩点呼 · 普通寮生");
+  const [name, setName] = React.useState("夜点呼 · 普通寮生");
   // 从后端取该寮学生人数（替代假名单 window.ROSTER_MEN/WOMEN）
   const [studentCount, setStudentCount] = React.useState<number | null>(null);
   React.useEffect(() => {
@@ -59,7 +59,7 @@ export function RollCallLanding({
     return () => {
       cancelled = true;
     };
-  }, [teacher.dorm, authToken]);
+  }, [teacher.assigned_dorm, authToken]);
   const today = new Date();
   const todayLabel = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}（${["日", "月", "火", "水", "木", "金", "土"][today.getDay()]}）`;
 
@@ -230,8 +230,8 @@ export function RollCallLanding({
                 outline: "none",
               }}
             >
-              <option>晩点呼 · 普通寮生</option>
-              <option>晩点呼 · 部活生</option>
+              <option>夜点呼 · 普通寮生</option>
+              <option>夜点呼 · 部活生</option>
               <option>朝点呼 · 普通寮生</option>
               <option>朝点呼 · 部活生</option>
             </select>
@@ -361,7 +361,7 @@ export function RollCallLanding({
           ],
           [
             "2026-04-20",
-            "晩点呼 · 普通寮生",
+            "夜点呼 · 普通寮生",
             "19:30",
             "19:37",
             "11/12",

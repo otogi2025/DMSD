@@ -51,7 +51,7 @@ function _adaptBackendAppsByKind(
     id: a.id,
     applicant: a.student ? a.student.name : "(unknown)",
     room: a.student ? a.student.room_no : "",
-    dorm: a.student && a.student.dorm_unit ? "men" : "women",
+    dorm: a.student && a.student.dorm_unit === 4 ? "women" : "men",
     depart: `${a.leave_date} ${a.leave_time}`,
     return_: `${a.return_date} ${a.return_time}`,
     city:

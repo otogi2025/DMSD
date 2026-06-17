@@ -363,31 +363,3 @@ export function ActiveLeavesPage({ authToken }: { authToken: string }) {
     </div>
   );
 }
-
-// 私有子组件 — 点呼状态徽章（源块里紧邻 ActiveLeavesPage 的 window.RecStatusBadge）。
-// 不 export，仅同文件复用。
-function RecStatusBadge({ s }: { s: string }) {
-  const T = RYO;
-  const map = (
-    {
-      ok: [T.ok, T.okSoft, "時間内"],
-      late: [T.late, T.lateSoft, "遅刻"],
-      absent: [T.danger, T.dangerSoft, "欠席"],
-      exempt: [T.info, T.infoSoft, "免除"],
-    } as Record<string, [string, string, string]>
-  )[s] || [T.ink3, T.surfaceAlt, "—"];
-  return (
-    <span
-      style={{
-        fontSize: 11,
-        fontWeight: 700,
-        padding: "2px 8px",
-        borderRadius: 4,
-        background: map[1],
-        color: map[0],
-      }}
-    >
-      {map[2]}
-    </span>
-  );
-}

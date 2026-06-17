@@ -19,8 +19,8 @@ export const GROUP_APPROVAL = "申請承認専用";
 // 账号创建可选的 4 个组（op 不在此 —— 系统运维账号只由后端 seed + 环境变量建）
 export const SELECTABLE_GROUPS: { value: string; label: string }[] = [
   { value: GROUP_DORM_ADMIN, label: "寮管理者（全権限・個人）" },
-  { value: GROUP_GENERAL, label: "一般宿管（日常運営全般、晚自習除く）" },
-  { value: GROUP_GENERAL_STUDY, label: "一般宿管＋晚自習" },
+  { value: GROUP_GENERAL, label: "一般宿管（日常運営全般、夜学習を除く）" },
+  { value: GROUP_GENERAL_STUDY, label: "一般宿管＋夜学習" },
   {
     value: GROUP_APPROVAL,
     label: "申請承認専用（審批中心＋公共情報、他は閲覧のみ）",
@@ -40,7 +40,7 @@ export const ROLE_LABELS = [
   "寮務一般教師",
 ];
 
-// 16 个功能簇（§5 矩阵行）
+// 17 个功能簇（§5 矩阵行）
 export const C_ROLLCALL = "点呼运营";
 export const C_APPROVAL = "申请审批";
 export const C_DEMERIT = "扣分管理";
@@ -57,6 +57,7 @@ export const C_REG_CODE = "注册码管理";
 export const C_INCIDENT = "事案记录";
 export const C_GUIDANCE = "指导履历";
 export const C_TEACHER_ACCOUNT = "老师账号管理";
+export const C_AUDIT_LOG = "操作履历审计"; // 第 17 簇：老师操作记录页（只读审计，与后端 byte-match）
 
 const M = MANAGE;
 const V = VIEW;
@@ -175,6 +176,13 @@ export const PRESET: Record<string, Record<string, Level>> = {
     [GROUP_GENERAL]: V,
     [GROUP_GENERAL_STUDY]: V,
     [GROUP_APPROVAL]: V,
+  },
+  [C_AUDIT_LOG]: {
+    [GROUP_OP]: M,
+    [GROUP_DORM_ADMIN]: M,
+    [GROUP_GENERAL]: V,
+    [GROUP_GENERAL_STUDY]: NONE,
+    [GROUP_APPROVAL]: NONE,
   },
 };
 

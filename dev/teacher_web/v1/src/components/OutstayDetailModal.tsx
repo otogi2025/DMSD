@@ -48,7 +48,7 @@ export function OutstayDetailModal({
   const [comment, setComment] = React.useState("");
   // backend 取来的完整 ApplicationOut
   const [detail, setDetail] = React.useState<Application | null>(null);
-  // 审计日志 —— 旧 UI 读 happened_at / event 等宽松字段，保持松类型不改渲染
+  // 审计日志 —— 后端返回 created_at / action 字段，保持松类型不改渲染
   const [auditLog, setAuditLog] = React.useState<any[]>([]);
   const [loadingDetail, setLoadingDetail] = React.useState(false);
   const [detailError, setDetailError] = React.useState<string | null>(null);
@@ -256,7 +256,11 @@ export function OutstayDetailModal({
                 <F label="部屋番号" mono>
                   {detail.student.room_no}
                 </F>
-                <F label="担当寮">{detail.student.dorm_unit || "—"}</F>
+                <F label="寮" mono>
+                  {detail.student.dorm_unit
+                    ? `${detail.student.dorm_unit}寮`
+                    : "—"}
+                </F>
               </>
             )}
             <F label="本人連絡先" mono>
@@ -518,8 +522,8 @@ export function OutstayDetailModal({
                         minWidth: 130,
                       }}
                     >
-                      {entry.happened_at
-                        ? new Date(entry.happened_at).toLocaleString("ja-JP")
+                      {entry.created_at
+                        ? new Date(entry.created_at).toLocaleString("ja-JP")
                         : "—"}
                     </span>
                     <span style={{ color: T.ink2 }}>

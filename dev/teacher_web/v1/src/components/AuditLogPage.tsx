@@ -44,7 +44,7 @@ const ACTION_LABELS: Record<string, string> = {
   "POST rollcall/sessions/{id}/start": "点呼を開始",
   "POST rollcall/sessions/{id}/end": "点呼を終了",
   "PATCH rollcall/events/{id}": "点呼判定を変更",
-  "POST student-promote": "学生を進級",
+  "POST students/renewal-start": "学年更新を開始",
 };
 
 function actionLabel(action: string): string {

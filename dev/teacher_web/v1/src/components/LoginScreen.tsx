@@ -431,7 +431,7 @@ export function LoginScreen({
             onPick={setPicked}
           />
           <LoginGroupColumn
-            label="一般宿管＋晚自習"
+            label="一般宿管＋夜学習"
             icon="習"
             accent={T.femaleAccent}
             soft={T.femaleSoft}

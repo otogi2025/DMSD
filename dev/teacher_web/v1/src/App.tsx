@@ -24,6 +24,7 @@ import { RegistrationCodePanel } from "./components/RegistrationCodePanel";
 import { TeachersAdminPage } from "./components/TeachersAdminPage";
 import { StudyAttendancePage } from "./components/StudyAttendancePage";
 import { AuditLogPage } from "./components/AuditLogPage";
+import { canView, C_AUDIT_LOG } from "./api/permissions";
 
 export function App() {
   const T = RYO;
@@ -76,6 +77,9 @@ export function App() {
   // 5-27 spec §11.8: WebSocket 连接状态 — connecting / connected / disconnected / failed
   // 非点呼会话进行中时为 null（不显示 banner）
   const [wsStatus, setWsStatus] = React.useState<string | null>(null);
+  // 实时大屏 NFC 接收指示灯计数 — 每收到一条 WebSocket checkin 事件 +1，
+  // 驱动 LiveRollCall 右上角指示灯由「待機中」变成「受信中」并显示序号（C31）。
+  const [nfcSeq, setNfcSeq] = React.useState(0);
   // Task #6 第 6 步: 申请 pending list (backend Application[]) - 担当教师宛て未承认
   const [backendApplications, setBackendApplications] =
     React.useState<any>(null);
@@ -305,6 +309,8 @@ export function App() {
         (event: any) => {
           // event.type: 'checkin' | 'outstay_new' | 'override' | ...
           if (event.type === "checkin" && event.student_id) {
+            // 收到一条签到 → 指示灯计数 +1（驱动大屏 NFC 指示灯，C31）
+            setNfcSeq((n) => n + 1);
             setStudents((list) => {
               // 生产：WebSocket 经由的 checkin 用日语名读上げ（从旧 demo poll 移植）
               const hit = list.find((s) => s.key === event.student_id);
@@ -481,12 +487,9 @@ export function App() {
   });
 
   const startSession = async (name: string) => {
-    // 从 name 判别 backend session: 「晩」→ evening / 「朝」→ morning
-    const wantType = name.includes("晩")
-      ? "evening"
-      : name.includes("朝")
-        ? "morning"
-        : null;
+    // 从 name 判别 backend session：含「朝」判 morning，其余（夜点呼等）判 evening。
+    // 非「朝」一律归 evening，这样不依赖晩/夜的表记差异也能正确判别（C32 修复）。
+    const wantType = name.includes("朝") ? "morning" : "evening";
     const sess =
       backendReachable &&
       wantType &&
@@ -762,6 +765,7 @@ export function App() {
           onEnd={endSession}
           onOverride={openOverride}
           onReset={resetLive}
+          nfcSeq={nfcSeq}
         />
         {overrideTarget && (
           <OverrideModal
@@ -907,23 +911,10 @@ export function App() {
       );
   }
 
-  // 操作履历审计页可见性 — 与后端 C_AUDIT_LOG 权限组对齐（op / 寮管理者 / 一般宿管）。
-  // permission_group 优先；为空时按职位回退（同后端 ROLE_DEFAULT_GROUP 思路）。仅控制菜单显隐，
+  // 操作履历审计页可见性 — 统一走 permissions.ts 权限矩阵（C_AUDIT_LOG 簇）。
+  // canView 内部已处理 permission_group 优先、为空按职位回退（ROLE_DEFAULT_GROUP）。仅控制菜单显隐，
   // 真正的访问控制在后端 require_permission（非管理角色直连接口仍 403）。
-  const _AUDIT_GROUPS = ["op", "寮管理者", "一般宿管"];
-  const _AUDIT_ROLES = [
-    "校長",
-    "寮務部長",
-    "寮務課長",
-    "管理係",
-    "寮務一般教師",
-  ];
-  const canViewAuditLog = !!(
-    authProfile &&
-    (authProfile.permission_group
-      ? _AUDIT_GROUPS.includes(authProfile.permission_group)
-      : _AUDIT_ROLES.includes(authProfile.role))
-  );
+  const canViewAuditLog = !!(authProfile && canView(authProfile, C_AUDIT_LOG));
 
   return (
     <>

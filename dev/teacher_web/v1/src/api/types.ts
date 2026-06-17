@@ -13,7 +13,9 @@ export interface TeacherProfile {
 
 export interface TeacherLoginOut {
   access_token: string;
-  teacher: TeacherProfile;
+  // 后端 POST /sessions/teacher 返回完整 TeacherOut（含 permission_group/status/created_at），
+  // 故这里用 TeacherOut 而非更窄的 TeacherProfile，与 wire 契约一致（C57/C80）。
+  teacher: TeacherOut;
 }
 
 // ── 申請（出寮届）──
@@ -302,6 +304,8 @@ export interface RegistrationCode {
   expires_at: string;
   expires_in_seconds: number;
 }
+// 注册码历史端点 GET /admin/registration-code/history 后端已实装（RegistrationCodeHistoryEntry / Out），
+// 前端 v1.0 暂不消费历史页；日后做历史页再补对应 interface（C59）。
 
 // ── 操作履历审计（操作记录页）2026-06-16 ──
 // 后端 schemas.AuditLogEntry / AuditLogListOut 对应。后端中间件自动记老师写操作。
