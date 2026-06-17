@@ -112,6 +112,11 @@ final class AppStore: ObservableObject {
                     announcementUnreadCount = 0
                     studentNotifications = []
                     studentNotificationUnreadCount = 0
+                    // IX-008 Batch 3: push 推送列表也要清 —— 否则 A 登出后 B 在同一进程登录，
+                    // 会在通知中心看到 A 收到的推送（含減点 / 申請隐私）。feedNotifications /
+                    // packageNotifications 是从 studentNotifications / packages 派生的计算属性，
+                    // 那两个源已清、它们自动空；只有 pushNotifications 是存储属性需显式清。
+                    pushNotifications = []
                     packages = []
                     studyLeaveCountThisMonth = 0
                     cleaningHistory = []

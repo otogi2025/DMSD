@@ -1026,6 +1026,10 @@ struct LifeTab: View {
             await app.loadAnnouncementUnreadCount()
             // 其余卡片：生产拉后端，演示直接读 SEED（不在这拉）
             #if !DEMO
+                // A-461 兜底：注册 / 登录时若 loadMe 因网络失败，currentUser 会停在 nil
+                // （displayUser 退占位「—」），原本要等用户进 MyPage 才重拉。首页出现时若已登录
+                // 却还没拿到本人资料，主动重拉一次，让半登录态自动恢复。
+                if app.currentUser == nil { await app.loadMe() }
                 await app.loadSongs()
                 await app.loadLostFound()
                 await loadHomeEventsAndBus()
