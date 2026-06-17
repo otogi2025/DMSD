@@ -102,7 +102,7 @@ v0.1 原版 2026-02-12；后续修订见 CHANGELOG + 本文件顶部。
 ### 11.1 请求参数（Query String）
 
 ```
-GET /api/v1/teacher/sessions?page=1&page_size=20&order_by=started_at&order=desc
+GET /api/v1/rollcall/sessions?page=1&page_size=20&order_by=started_at&order=desc
 ```
 
 | 参数 | 类型 | 默认 | 说明 |

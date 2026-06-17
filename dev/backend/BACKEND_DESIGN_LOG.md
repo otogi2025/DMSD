@@ -562,7 +562,7 @@ CREATE INDEX idx_notif_status ON notification_log (status, created_at) WHERE sta
 -- 一条老师通知（来源于某个事件，幂等去重）
 CREATE TABLE notifications (
   id                 UUID PRIMARY KEY,
-  category           TEXT NOT NULL,   -- application/demerit/rollcall_report/outing/study_absence/study_online/dorm_event/fridge/item/disclosure/misc
+  category           TEXT NOT NULL,   -- application/demerit/rollcall_report/outing/study_absence/study_online/dorm_event/fridge/item/misc（disclosure 已随開示申請删除）
   source_table       TEXT NOT NULL,   -- 来源事件表名
   source_id          UUID NOT NULL,   -- 来源事件主键（UUID 全局唯一）
   title              TEXT NOT NULL,
@@ -582,7 +582,7 @@ CREATE TABLE notification_reads (
 
 设计要点：
 - **填充方式 = 取 feed 时同步，不在各事件产生点写钩子**：`routers/notifications.py` 的 `_sync_notifications()` 在 GET /feed / GET /unread-count / POST /read-all 时扫现有事件表，按 `(source_table, source_id)` 幂等插缺失通知行。理由：只碰 models/schemas/notifications.py，不改各业务路由，降低多会话并发改后端的冲突面。代价：通知非事件即时生成。
-- **来源（阶段2 扩到 11 类）**：applications(出寮届) / demerit_event(扣分，滤 revoked) / rollcall_reports(点呼上报) + 8 张申请表（outings / study_absence_requests / study_online_requests / dorm_event_proposals / fridge_purchase_requests / item_possession_requests / guidance_disclosure_requests / misc_requests）。8 张表数据驱动配置 `_REQUEST_SOURCES`。注意非标准列名：DormEventProposal 用 `proposer_id`+`result`、GuidanceDisclosureRequest 用 `requested_at`、MiscRequest 用 `created_at`。
+- **来源（阶段2 扩到 10 类，開示申請删除后）**：applications(出寮届) / demerit_event(扣分，滤 revoked) / rollcall_reports(点呼上报) + 7 张申请表（outings / study_absence_requests / study_online_requests / dorm_event_proposals / fridge_purchase_requests / item_possession_requests / misc_requests）。7 张表数据驱动配置 `_REQUEST_SOURCES`。注意非标准列名：DormEventProposal 用 `proposer_id`+`result`、MiscRequest 用 `created_at`。
 - **已读未读**：各老师在 `notification_reads` 各记各的；未读数 = realm 内通知总数 − 本人已读数。
 - **realm 隔离**：`is_demo` 按学生 is_demo，演示老师只看演示、真老师只看真实。
 - **并发安全（阶段2 修）**：内存去重只单请求内有效，多请求并发会撞 `uq_notif_source`。`_insert_skip_conflicts()` 每条用 savepoint（`db.begin_nested`）包，**只**吞唯一约束冲突跳过、其余 IntegrityError 重抛（不掩盖外键/非空错误），避免变 500。
@@ -1126,6 +1126,8 @@ req: `{ "to_status": "late", "reason": "...", "evidence": "..." }`
 dev/staging 用，触发 `email_send` 验证 provider 联通。
 
 ### 5.7 WebSocket
+
+> ⚠️ **本节为早期分会话设计，已被 §5.8 的单一端点 `/api/v1/ws/teacher` 取代**（按 token 鉴权、按寮广播；见 `routers/ws.py`）。下列 `/ws/rollcall/:session_id`、`/ws/study/:date` 分会话路径未实装，保留作设计演化记录。
 
 `WS /ws/rollcall/:session_id` — 教师 iPad 订阅本场实时变化。message:
 ```json

@@ -873,9 +873,9 @@ bus_reservations
 
 > **老师 #32**: 学生個人数据显示(出寮願履歴 / 晩自習迟到欠席履歴 / 朝点呼迟到欠席履歴 / 夜点呼迟到欠席履歴 / 指導履歴 / 其他)
 >
-> **2026-04-30 拍板**: 指导履历的学生侧可见性走 **C 案 — 默认不直接显示 + 学生可"申请开示"**。学生在自己 マイページ(我的页面)看不到指导履历 tab,但有"自分の指導記録の開示を申請する"(申请查看自己的指导记录)按钮。学生提交申请 → 老师 Web 收到 → 老师决定「全部开示 / 拒绝 / 部分开示(限定时间或范围)」→ 学生收到结果通知。
+> **開示申請機能 已砍（2026-06-15 整删）** — 后端模型 / 迁移 / 老师网页全部删除（详见 `logs/decisions/decision_log.md` + `admin/TODO.md`）。下方原 C 案设计、本节相关矩阵行（指導履歴 開示申請 / 決定 / 開示後閲覧）、§7.13 通知行、数据模型 `guidance_disclosure_requests` 均已失效，仅保留作设计演化记录，**不再是 v1.0 范围**。当前实际：指导履历仅老师可见，学生侧无开示申请路径。
 >
-> **理由**: 1) 跟日本学校"开示请求"惯例一致(默认 confidential / 申请就开示)2) 老师写指导记录时不必担心学生当场看到 → 能直率写,有引继价值 3) 学生有"申请权"的存在感(透明性的弱保障)4) 法律上 — 个人情報保護法的"开示请求权"自然走这个路径,完全合规。
+> **原 C 案（已砍，2026-04-30 拍板，存档）**: 指导履历学生侧默认不直接显示 + 学生可"申请开示"。学生 マイページ 看不到指导履历 tab,但有"申请查看自己的指导记录"按钮 → 老师决定「全部开示 / 拒绝 / 部分开示」→ 学生收到结果通知。理由: 1) 跟日本学校"开示请求"惯例一致 2) 老师写指导记录不必担心学生当场看到 → 能直率写 3) 学生有"申请权"的存在感 4) 个人情報保護法的"开示请求权"路径合规。
 
 | 功能 | 学生 iOS | 老师 Web | 后端 API | 角色 | Demo/V1 |
 |---|---|---|---|---|---|
@@ -883,10 +883,8 @@ bus_reservations
 | 出寮願履歴 | 〇 マイページ「申請履歴」| ✅ tab | `GET /students/:id/applications` | 学生 + 寮務 | (V1) |
 | 晩自習迟到欠席履歴 | 〇 | ✅ tab | `GET /students/:id/study-attendance` | 学生 + 寮務 | (V1) |
 | 朝点呼 / 夜点呼 履历 | 〇 | ✅ tab | `GET /students/:id/rollcall-history` | 学生 + 寮務 | (V1) |
-| 指導履歴 — 学生侧默认**不显示**(C 案)| ❌ マイページ 不显示 tab | ✅ tab(全件) | `GET /students/:id/guidance` ⏳ | 寮務(only) | (V1) |
-| 指導履歴 開示申請(学生发起)| 〇 マイページ「指導記録の開示を申請する」按钮 + 申请理由(可空)+ 申请状态查看 | ✅ 申请受信箱 tab + 决定 modal(全部 / 拒绝 / 部分) | `POST /students/:id/guidance/disclosure-request` ⏳ | 学生(发起)| (V1) |
-| 指導履歴 開示申請の決定(老师)| 〇 通知接收(decision: 全部開示 / 拒绝 / 部分開示)| ✅ 决定 modal(理由 + 开示范围) | `PATCH /disclosure-requests/:id` ⏳ | 寮務 | (V1) |
-| 開示决定後の指導履歴閲覧 | 〇 マイページ tab(决定后才出现 / 部分开示时只显示范围内 / 老师设的 visible_until 后自动消失)| ✅ 同(读取 disclosure_requests 关联)| `GET /students/:id/guidance?disclosure_id=` ⏳ | 学生(申请通过后)| (V1) |
+| 指導履歴 — 学生侧**不显示**(開示申請已砍, 仅老师可见)| ❌ マイページ 不显示 tab | ✅ tab(全件) | `GET /students/:id/guidance` ⏳ | 寮務(only) | (V1) |
+| ~~指導履歴 開示申請 / 決定 / 開示後閲覧~~ | — | — | — | — | 🚫 已砍 2026-06-15 |
 
 ### 7.11 リクエスト曲管理(音乐功能 — 4-29 itsuki 拍板"留")
 
@@ -935,8 +933,6 @@ bus_reservations
 | お知らせ投稿 → 学生 | 学生 | **投稿時に選択**(notify_students)→ in-app 通知中心 + push | §7.13.1 |
 | 巴士便 更新 → 学生 | 学生 | **投稿時に選択**(notify_students)→ in-app 通知中心 + push | §7.13.1 |
 | 行事カレンダー 更新 → 学生 | 学生 | **投稿時に選択**(notify_students)→ in-app 通知中心 + push | §7.13.1 |
-| 指導履歴 開示申請(学生发起)→ 寮務 | 寮務 | **邮件** R1(老师不会忘) | email |
-| 指導履歴 開示决定(寮務)→ 学生 | 学生 | push + in-app | push |
 
 #### 7.13.1 投稿通知開関と学生通知中心(2026-06-15 実装)
 
@@ -1565,18 +1561,7 @@ guidance_logs                               -- 学生指导履历 #31
 ├── category        TEXT NULL               -- 类型(生活态度 / 点呼态度 / 同寮纠纷 等)
 └── confidential    BOOLEAN DEFAULT TRUE    -- 默认 confidential(学生看不到,§7.10 C 案)
 
-guidance_disclosure_requests                -- 指导履历 开示申请(2026-04-30 §7.10 C 案)
-├── id              UUID PK
-├── student_id      UUID FK → students.id   -- 申请人
-├── reason          TEXT NULL                -- 学生写的申请理由(可空)
-├── requested_at    TIMESTAMPTZ
-├── status          ENUM('pending','approved_full','approved_partial','rejected')
-├── decided_by      UUID FK → teachers.id NULL
-├── decided_at      TIMESTAMPTZ NULL
-├── decision_note   TEXT NULL                -- 老师写的决定理由
-├── visible_from    DATE NULL                -- 部分开示时:开示范围 from
-├── visible_until   DATE NULL                -- 部分开示时:开示范围 until / 全部开示時失效日
-└── revoked_at      TIMESTAMPTZ NULL         -- 老师事后撤销开示用(误开示对策)
+-- guidance_disclosure_requests 表已删除（開示申請機能 2026-06-15 整删，§7.10）
 
 incidents                                   -- 事案录入 #33(rich text + 名字 token)
 notifications                               -- 通知(email + push 两对应)
