@@ -487,6 +487,7 @@ export function App() {
   });
 
   const startSession = async (name: string) => {
+    setNfcSeq(0); // 新场次先清零 NFC 计数，否则指示灯继承上一场计数、未刷卡就显「受信 OK」（codex 复审 minor / C31 配套）
     // 从 name 判别 backend session：含「朝」判 morning，其余（夜点呼等）判 evening。
     // 非「朝」一律归 evening，这样不依赖晩/夜的表记差异也能正确判别（C32 修复）。
     const wantType = name.includes("朝") ? "morning" : "evening";
