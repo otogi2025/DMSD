@@ -65,7 +65,7 @@ struct BreadcrumbOverlay: View {
                     label: route.displayName,
                     showChev: false
                 ) {
-                    router.jump(to: route)
+                    router.jump(toIndex: idx)
                     close()
                 }
             }
