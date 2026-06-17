@@ -735,6 +735,19 @@ class RollCallSessionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class RollCallSessionHistoryOut(RollCallSessionOut):
+    """点呼履歴一覧（老师网页 RecordsPage）用 —— 在场次基础信息上附本场出席统计。
+
+    present_count / late_count / absent_count 按 latest-per-student 聚合。原 list 端点
+    返回纯 RollCallSessionOut（无这三个计数），前端读 present_count 等永远取不到、
+    历史页三列恒显「—」，历史出勤回看功能实际不可用（TW-040）。
+    """
+
+    present_count: int = 0
+    late_count: int = 0
+    absent_count: int = 0
+
+
 class MyRollCallTodaySession(BaseModel):
     """学生端「今日の自分の点呼」— GET /rollcall/me/today 的单条。
 

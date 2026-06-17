@@ -201,7 +201,7 @@ def my_today_rollcall(
 # 日期范围 from / to 是 YYYY-MM-DD，不指定时默认查过去 7 天（含今天）。
 # R4 寮过滤跟 today_sessions 同样逻辑：役职 4 人跨寮全件，其他按 assigned_dorm。
 # ---------------------------------------------------------------
-@router.get("/sessions", response_model=list[schemas.RollCallSessionOut])
+@router.get("/sessions", response_model=list[schemas.RollCallSessionHistoryOut])
 def list_sessions_history(
     from_: Optional[date] = None,
     to: Optional[date] = None,
@@ -237,7 +237,37 @@ def list_sessions_history(
 
     # 寮过滤已于 2026-06-13 全局取消（deps.dorm_units_for_teacher 恒返 [1,2,4]）——
     # 同 today_sessions：原来这里有一段内联寮过滤（硬编码跨寮角色、漏「校長」），已删除。
-    return [schemas.RollCallSessionOut.model_validate(s) for s in sessions]
+
+    # 各场次出席统计（present/late/absent）—— 一次性取这些场次的全部 event，按 (场次, 学生)
+    # 取 latest（与 board/summary 的 (checked_in_at, id) 口径一致）再按场次汇总，避免逐场次
+    # N 次查询。RecordsPage 三列统计靠这三个字段；不算则前端恒显「—」（TW-040）。
+    session_ids = [s.id for s in sessions]
+    counts: dict[UUID, dict[str, int]] = {sid: {} for sid in session_ids}
+    if session_ids:
+        events = db.scalars(
+            select(models.RollCallEvent).where(
+                models.RollCallEvent.session_id.in_(session_ids)
+            )
+        ).all()
+        latest: dict[tuple, models.RollCallEvent] = {}
+        for e in events:
+            key = (e.session_id, e.student_id)
+            cur = latest.get(key)
+            if cur is None or (e.checked_in_at, e.id) > (cur.checked_in_at, cur.id):
+                latest[key] = e
+        for (sid, _stu), e in latest.items():
+            bucket = counts[sid]
+            bucket[e.base_status] = bucket.get(e.base_status, 0) + 1
+
+    result = []
+    for s in sessions:
+        out = schemas.RollCallSessionHistoryOut.model_validate(s)
+        c = counts.get(s.id, {})
+        out.present_count = c.get("present", 0)
+        out.late_count = c.get("late", 0)
+        out.absent_count = c.get("absent", 0)
+        result.append(out)
+    return result
 
 
 # ---------------------------------------------------------------

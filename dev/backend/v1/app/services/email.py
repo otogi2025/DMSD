@@ -156,7 +156,11 @@ def _send_via_resend(
         method="POST",
     )
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        # timeout 3s（TW-019）：这次 urlopen 是同步阻塞，且调用方（applications 提交 /
+        # 审批）此时仍持有未提交事务的 DB 连接。Resend 慢时连接被占住，高峰并发提交会把
+        # 连接池（pool_size=5/overflow=10）占满拖慢全站。降到 3s 限定占用窗（原 10s）。
+        # 彻底解法是先 commit 业务数据再后台队列投递，需引入 task queue，留 v1.1。
+        with urllib.request.urlopen(req, timeout=3) as resp:
             code = resp.status
             # Resend 2xx = 受理(实际投递另算)
             ok = 200 <= code < 300

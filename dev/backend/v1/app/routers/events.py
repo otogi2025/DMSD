@@ -77,7 +77,19 @@ def list_events(
                 "message": "開始日は終了日以前にしてください",
             },
         )
-    stmt = select(models.DormEvent).order_by(models.DormEvent.event_date)
+    # 演示隔离：按创建者 is_demo 过滤 —— 演示老师 / 演示学生只看演示老师创建的行事，
+    # 真实侧只看真实老师创建的（与 student_audience 通知 feed 同口径）。原来列表端点不过滤，
+    # 演示账号打开行事页能读到真实运营行事，反之真实学生混入演示数据（TW-012）。
+    # created_by_teacher_id 非空（models 约束），inner join 不会漏掉合法行。
+    stmt = (
+        select(models.DormEvent)
+        .join(
+            models.Teacher,
+            models.Teacher.id == models.DormEvent.created_by_teacher_id,
+        )
+        .where(models.Teacher.is_demo == _principal.is_demo)
+        .order_by(models.DormEvent.event_date)
+    )
     if from_date:
         stmt = stmt.where(models.DormEvent.event_date >= from_date)
     if to_date:
@@ -161,6 +173,11 @@ def patch_event(
     final_start = body.start_at if body.start_at is not None else row.start_at
     final_end = body.end_at if body.end_at is not None else row.end_at
     _check_time_range(final_start, final_end)
+    # 用 exclude_unset 区分「字段没传=不动」与「字段显式传 null=清空」（TW-014）。
+    # 原来 `if val is not None` 把 null 也跳过，导致老师无法清空可选字段（start_at /
+    # end_at / description），把输入框清空保存后旧值仍留着。前端编辑路径会对显式清空
+    # 的字段发 null（而非 undefined），后端据 model_fields_set 落实清空。
+    provided = body.model_dump(exclude_unset=True)
     for field in (
         "title",
         "category",
@@ -170,9 +187,8 @@ def patch_event(
         "description",
         # notify_students 故意不在此 — 编辑路径不碰它（见下方注释，§7.13.1 修订 2026-06-16）
     ):
-        val = getattr(body, field)
-        if val is not None:
-            setattr(row, field, val)
+        if field in provided:
+            setattr(row, field, provided[field])
     row.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(row)

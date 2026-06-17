@@ -53,7 +53,18 @@ def list_bus_routes(
     """列巴士便 — kind 可选过滤（daily_commute / dorm_special）。学生+老师均可看。
     默认只返回有效便（deprecated=False）。
     """
-    stmt = select(models.BusRoute).order_by(models.BusRoute.schedule_at)
+    # 演示隔离：按创建者 is_demo 过滤 —— 演示账号只看演示老师创建的巴士便，真实侧只看
+    # 真实老师创建的（与 student_audience 通知 feed 同口径）。原列表端点不过滤，演示账号
+    # 打开巴士页能读到真实运营班次、反之真实学生混入演示数据（TW-012）。
+    stmt = (
+        select(models.BusRoute)
+        .join(
+            models.Teacher,
+            models.Teacher.id == models.BusRoute.created_by_teacher_id,
+        )
+        .where(models.Teacher.is_demo == _principal.is_demo)
+        .order_by(models.BusRoute.schedule_at)
+    )
     if not include_deprecated:
         stmt = stmt.where(models.BusRoute.deprecated.is_(False))
     if kind:
@@ -81,6 +92,13 @@ def get_bus_route(
     """取单条巴士便详情。学生+老师均可看。"""
     row = db.get(models.BusRoute, route_id)
     if not row:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "BUS_ROUTE_NOT_FOUND", "message": "巴士便が見つかりません"},
+        )
+    # 演示隔离：跨 demo 的便对当前主体隐藏存在性（fail-closed，与 list 同口径）。
+    creator = db.get(models.Teacher, row.created_by_teacher_id)
+    if creator is None or creator.is_demo != _principal.is_demo:
         raise HTTPException(
             status_code=404,
             detail={"code": "BUS_ROUTE_NOT_FOUND", "message": "巴士便が見つかりません"},
@@ -181,6 +199,10 @@ def patch_bus_route(
                 "message": f"visible_to 必须是 {_VALID_VISIBLE_TO} 之一",
             },
         )
+    # 用 exclude_unset 区分「字段没传=不动」与「字段显式传 null=清空」（TW-014）。原来
+    # `if val is not None` 把 null 也跳过，导致老师无法清空可选字段（arrival_at / note /
+    # purpose），输入框清空保存后旧值仍留着。前端编辑路径对显式清空的字段发 null。
+    provided = body.model_dump(exclude_unset=True)
     for field in (
         "kind",
         "name",
@@ -193,9 +215,8 @@ def patch_bus_route(
         "deprecated",
         # notify_students 故意不在此 — 编辑路径不碰它（见下方注释，§7.13.1 修订 2026-06-16）
     ):
-        val = getattr(body, field)
-        if val is not None:
-            setattr(row, field, val)
+        if field in provided:
+            setattr(row, field, provided[field])
     row.updated_at = datetime.now(timezone.utc)
     db.add(
         models.AuditLog(
