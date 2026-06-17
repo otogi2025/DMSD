@@ -22,7 +22,7 @@ enum APIErrorPresenter {
         case .network:
             return "通信エラーが発生しました。電波を確認してください。"
         case let .server(code, _):
-            return "サーバーエラー（コード: \(code)）。時間をおいて再度お試しください。"
+            return "サーバーエラー（コード \(code)）。時間をおいて再度お試しください。"
         case let .unprocessable(msg):
             // backend 返的具体校验错误 message（422 时是 backend 写好的日语提示）直接显示
             return msg

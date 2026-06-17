@@ -892,7 +892,7 @@ struct LostDetailView: View {
     /// 详情描述：演示用固定文案（SEED 无此字段）/ 生产显真 description。
     private var detailText: String {
         #if DEMO
-            return "玄関付近で拾いました。黒色のコンパクト傘、持ち手に小さな白い傷があります。心当たりのある方はご連絡ください。"
+            return "玄関付近で拾いました。黒色の折りたたみ傘で、持ち手に小さな白い傷があります。お心当たりのある方はご連絡ください。"
         #else
             return item?.detail ?? "（説明はありません）"
         #endif

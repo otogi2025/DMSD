@@ -64,16 +64,16 @@ struct TopRollBar: View {
             let s = app.rollCountdownSec % 60
             return String(format: "点呼中 · 遅刻まであと %d分%02d秒", m, s)
         case .absent:
-            return "欠席となりました · 寮監に直接ご連絡ください"
+            return "欠席になりました · 寮監まで直接ご連絡ください"
         case .done:
-            return "チェックイン済 \(app.checkinAt ?? "") · \(app.checkinKind ?? "")"
+            return "チェックイン済み \(app.checkinAt ?? "") · \(app.checkinKind ?? "")"
         }
     }
 
     private var secondaryText: String {
         switch app.rollState {
-        case .idle: return "タップで体調報告 / 欠席届"
-        case .active: return "タップで欠席届 / 体調報告"
+        case .idle: return "タップで体調報告・欠席届"
+        case .active: return "タップで欠席届・体調報告"
         case .absent: return "寮監室までお越しください"
         case .done: return "お疲れさまでした"
         }

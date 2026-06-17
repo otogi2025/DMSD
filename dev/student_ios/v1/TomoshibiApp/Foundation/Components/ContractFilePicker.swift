@@ -1,7 +1,7 @@
 // ContractFilePicker.swift
 // Foundation · Components — 契約書（合同 = 网课报名凭证）文件选择
 //
-// 点「添付」从屏幕底部弹三选项：「写真を撮る」（拍照）/「アルバムから選ぶ」（相册）/「ファイルを選ぶ」（选文件）。
+// 点「添付」从屏幕底部弹三选项：「写真を撮る」（拍照）/「写真から選ぶ」（相册）/「ファイルを選ぶ」（选文件）。
 // iPhone 拍照默认 HEIC，但老师网页（浏览器）显示 HEIC 兼容差 →
 // 这里把所有图片统一转成 JPEG 再交出去（顺带缩放压缩）；PDF 原样。
 
@@ -50,7 +50,7 @@ struct ContractFilePicker: View {
             if UIImagePickerController.isSourceTypeAvailable(.camera) {
                 Button("写真を撮る") { showCamera = true }
             }
-            Button("アルバムから選ぶ") { showPhotos = true }
+            Button("写真から選ぶ") { showPhotos = true }
             Button("ファイルを選ぶ") { showFileImporter = true }
             Button("キャンセル", role: .cancel) {}
         }
@@ -173,7 +173,7 @@ struct ContractFilePicker: View {
                let fileSize = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize,
                fileSize > ContractImage.maxBytes
             {
-                errorText = "ファイルが大きすぎます（10 MB 以下にしてください）"
+                errorText = "ファイルサイズが大きすぎます（10MB以下にしてください）"
                 return
             }
             guard let raw = try? Data(contentsOf: url) else {
@@ -195,7 +195,7 @@ struct ContractFilePicker: View {
     /// 统一落地 — 超 10 MB 拦在客户端（后端也会拦，这里给即时反馈）。
     private func setPicked(data: Data, fileName: String, mime: String) {
         if data.count > ContractImage.maxBytes {
-            errorText = "ファイルが大きすぎます（10 MB 以下にしてください）"
+            errorText = "ファイルサイズが大きすぎます（10MB以下にしてください）"
             return
         }
         picked = PickedContract(data: data, fileName: fileName, mime: mime)

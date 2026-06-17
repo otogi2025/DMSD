@@ -67,7 +67,7 @@ final class ST25DVWriter: NSObject, @unchecked Sendable {
             // ST25DV 是 NFC Type 5 / ISO15693 标签
             let s = NFCTagReaderSession(pollingOption: .iso15693, delegate: self, queue: nil)
             self.session = s
-            s?.alertMessage = "点呼機にタッチしてください"
+            s?.alertMessage = "点呼機にかざしてください"
             s?.begin()
             lock.unlock()
         }

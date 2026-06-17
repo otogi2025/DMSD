@@ -97,7 +97,7 @@ struct DormEventProposalForm: View {
                     Card(padding: 14) {
                         VStack(alignment: .leading, spacing: 12) {
                             Field(label: "想定される問題点と対応策", required: true) {
-                                TArea(text: $riskSolution, placeholder: "予想される問題と対応策", rows: 5)
+                                TArea(text: $riskSolution, placeholder: "想定される問題点と対応策", rows: 5)
                             }
                             Field(label: "概算経費", required: true) {
                                 TArea(text: $expectedCost, placeholder: "必要な費用・内訳", rows: 3)
@@ -478,7 +478,7 @@ struct FridgePurchaseListView: View {
                             Skeleton(height: 74)
                         }
                     } else if items.isEmpty {
-                        EmptyState(icon: "snowflake", title: "提出済みの届はありません")
+                        EmptyState(icon: "snowflake", title: "提出済みの届出はありません")
                             .frame(maxWidth: .infinity)
                     } else {
                         ForEach(items) { item in

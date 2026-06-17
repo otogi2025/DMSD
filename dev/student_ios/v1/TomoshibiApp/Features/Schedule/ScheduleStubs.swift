@@ -132,7 +132,7 @@ struct ScheduleView: View {
                 monthSwitcher
                 dayGrid
                 if eventsInMonth > 0 {
-                    Text("\(ym.month) 月：\(eventsInMonth) 件の予定")
+                    Text("\(ym.month)月：\(eventsInMonth)件の予定")
                         .font(.system(size: 11))
                         .foregroundStyle(T.inkMute)
                 }
