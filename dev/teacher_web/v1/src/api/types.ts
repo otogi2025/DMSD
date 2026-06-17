@@ -475,9 +475,10 @@ export interface EventCreateIn {
   title: string;
   category: string;
   event_date: string;
-  start_at?: string;
-  end_at?: string;
-  description?: string;
+  // null = 显式清空（编辑时清掉时刻/详情）；后端 PATCH 据此落实清空（TW-014）。
+  start_at?: string | null;
+  end_at?: string | null;
+  description?: string | null;
   // 6-15 §7.13.1: 勾选后进学生 app 通知中心 + 触发推送。可选 —— 后端缺省 false。
   notify_students?: boolean;
 }
@@ -510,10 +511,11 @@ export interface BusRouteCreateIn {
   name?: string;
   direction: string;
   schedule_at: string;
-  arrival_at?: string;
+  // null = 显式清空（编辑时清掉到着時刻/備考/用途）；后端 PATCH 据此落实清空（TW-014）。
+  arrival_at?: string | null;
   visible_to?: string;
-  note?: string;
-  purpose?: string;
+  note?: string | null;
+  purpose?: string | null;
   // 6-15 §7.13.1: 勾选后进学生 app 通知中心 + 触发推送。可选 —— 后端缺省 false。
   notify_students?: boolean;
 }

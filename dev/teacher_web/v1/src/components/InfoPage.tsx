@@ -1119,9 +1119,12 @@ function EventCalendar({
     title: fd.title,
     category: fd.category,
     event_date: fd.event_date,
-    start_at: fd.start_at ?? undefined,
-    end_at: fd.end_at ?? undefined,
-    description: fd.description ?? undefined,
+    // 空值发 null（不是 undefined）：undefined 会被 JSON.stringify 丢掉、PATCH 请求体里
+    // 没这个字段 → 后端 exclude_unset 当「不动」，老师清空可选字段保存后旧值还在（TW-014）。
+    // 发 null 让后端 PATCH 落实清空；create 端点对 null 也正常（字段 nullable）。
+    start_at: fd.start_at ?? null,
+    end_at: fd.end_at ?? null,
+    description: fd.description ?? null,
     notify_students: fd.notify_students,
   });
 
@@ -1790,10 +1793,11 @@ export function BusSchedulePanel({
   const toBusRouteCreateIn = (fd: BusRouteFormData) => ({
     direction: fd.direction,
     schedule_at: fd.schedule_at ?? "",
-    arrival_at: fd.arrival_at ?? undefined,
+    // 同 toEventCreateIn：空值发 null 让编辑可清空（TW-014），undefined 会被 JSON 丢掉。
+    arrival_at: fd.arrival_at ?? null,
     visible_to: fd.visible_to,
-    note: fd.note ?? undefined,
-    purpose: fd.purpose ?? undefined,
+    note: fd.note ?? null,
+    purpose: fd.purpose ?? null,
     notify_students: fd.notify_students,
   });
 

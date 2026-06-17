@@ -115,11 +115,18 @@ export function AccountsPage({
     if (!authToken) return;
     setLoading(true);
     setLoadError(null);
-    const params: { q?: string; dorm_unit?: number; status?: string } = {};
+    const params: {
+      q?: string;
+      dorm_unit?: number;
+      status?: string;
+      locked?: boolean;
+    } = {};
     if (query) params.q = query;
     // dormFilter が数字文字列 ("1"/"2"/"4") なら dorm_unit として渡す
     if (dormFilter === "locked") {
-      params.status = "locked";
+      // TW-011：锁定写在 account.locked_until（不是 student.status）→ 发 locked=true 让后端
+      // 按 locked_until>now 过滤。原来发 status=locked 过滤 student.status 永远查不到。
+      params.locked = true;
     } else if (dormFilter !== "all") {
       params.dorm_unit = Number(dormFilter);
     }
@@ -187,13 +194,13 @@ export function AccountsPage({
   };
 
   const handleSave = (patch: { id: string; name: string; room_no: string }) => {
-    // 編集可能項目（room_no 等）の保存は現在 backend 未実装 — フロント state のみ更新
-    setAccounts((list) =>
-      list.map((a) => (a.id === patch.id ? { ...a, ...patch } : a)),
-    );
+    // TW-126：room_no 等编辑项后端无对应更新端点。原来只改前端内存却弹「更新しました」绿色
+    // 成功提示，老师以为已保存，刷新 / 切过滤后改动消失（虚假成功 + 数据治理隐患）。改为
+    // 明确告知「未対応」、不改本地 state（避免造成已保存的错觉）。实装后端 PATCH /students/{id}
+    // （需校验 room_no↔dorm_unit↔gender 一致）后再恢复真保存。
     setToast({
-      type: "ok",
-      msg: `${patch.name} のアカウントを更新しました`,
+      type: "err",
+      msg: "この項目はまだ保存できません（バックエンド未対応）",
     });
     setDetailTarget(null);
   };

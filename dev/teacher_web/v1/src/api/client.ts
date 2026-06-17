@@ -96,8 +96,20 @@ async function request<T>(
     const wrapped: Record<string, unknown> = { status: res.status };
     // 后端响应统一信封: {error: {...}} | {detail: '...'} | raw
     const inner = err && (err.error || err.detail || err);
-    if (inner && typeof inner === "object") Object.assign(wrapped, inner);
-    else wrapped.message = inner;
+    if (Array.isArray(inner)) {
+      // Pydantic 默认校验失败时 detail 是数组 [{loc,msg,type}]。原来 typeof 数组==="object"
+      // → Object.assign 把数组下标(0/1/length)拷进 wrapped、message 留 undefined，组件
+      // alert(e.message || JSON.stringify(e)) 弹出原始 JSON 串给老师看（TW-015）。这里取
+      // 首条 msg 作可读提示，让所有走原生校验(EmailStr/Literal/长度等)的端点都显人话。
+      const first = inner[0] as { msg?: string; message?: string } | undefined;
+      wrapped.message =
+        (first && (first.msg || first.message)) || "入力内容に誤りがあります";
+      wrapped.detail = inner;
+    } else if (inner && typeof inner === "object") {
+      Object.assign(wrapped, inner);
+    } else {
+      wrapped.message = inner;
+    }
     // 401 全局拦截：通知 App 强制 logout
     if (res.status === 401 && onUnauthorized) {
       try {
@@ -460,7 +472,9 @@ export const api = {
 
   // ── Accounts（学生账号管理）──
   listStudents: (
-    params: { q?: string; dorm_unit?: number; status?: string } | undefined,
+    params:
+      | { q?: string; dorm_unit?: number; status?: string; locked?: boolean }
+      | undefined,
     token: string,
   ) => {
     const q: string[] = [];
@@ -469,6 +483,9 @@ export const api = {
       q.push(`dorm_unit=${encodeURIComponent(params.dorm_unit)}`);
     if (params && params.status)
       q.push(`status=${encodeURIComponent(params.status)}`);
+    // locked=true → 后端按 account.locked_until>now 过滤（TW-011：原来前端发 status=locked
+    // 过滤 student.status='locked' 永远查不到，锁定其实写在 account.locked_until）。
+    if (params && params.locked) q.push(`locked=true`);
     const qs = q.length ? `?${q.join("&")}` : "";
     return request<StudentAccountListOut>(
       "GET",
