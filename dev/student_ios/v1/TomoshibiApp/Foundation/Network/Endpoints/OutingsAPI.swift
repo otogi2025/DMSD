@@ -36,13 +36,14 @@ struct OutingOut: Decodable, Hashable, Identifiable {
     let taxi_reservation_time: String?
     let reason: String?
     let status: String // "pending" | "approved" | "withdrawn"
-    // 这几个时刻保 String：仅用于外出申请列表 / 详情的纯展示，不参与计算，直接显示后端原文。
-    // （后端已统一输出带 +09:00 日本时间 —— database.py 的 TZDateTime，dev/prod 一致。）
-    let submitted_at: String
-    let withdrawn_at: String?
+    // datetime 用 Date —— 对齐后端 schemas.OutingOut（submitted_at/withdrawn_at/confirmed_at 均 datetime）
+    // 与 NetworkModels 其它 datetime 字段同口径；后端统一输出带 +09:00 日本时间（TZDateTime），
+    // APIClient 全局 JSONDecoder 配 .custom(decodeISO8601Date) 直接解码（带/不带小数秒都兼容）。
+    let submitted_at: Date
+    let withdrawn_at: Date?
     let confirmed_by_teacher_id: UUID?
     let confirmed_by_name: String? // 确认老师的姓名（学生侧显示「確認 · ○○ 先生」）
-    let confirmed_at: String?
+    let confirmed_at: Date?
 }
 
 enum OutingsAPI {

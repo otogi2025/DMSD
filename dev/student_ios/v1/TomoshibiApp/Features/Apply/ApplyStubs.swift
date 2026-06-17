@@ -2691,12 +2691,14 @@ struct OutingDetailView: View {
         return parts.count >= 2 ? "\(parts[0]):\(parts[1])" : s
     }
 
-    /// datetime "2026-06-05T13:55:04[.xxx][+09:00]" → "2026-06-05 13:55"（兼容带/不带时区·小数秒）
-    private func fmtDateTime(_ iso: String) -> String {
-        let parts = iso.split(separator: "T", maxSplits: 1)
-        guard parts.count == 2 else { return iso }
-        let hmParts = parts[1].split(separator: ":")
-        return hmParts.count >= 2 ? "\(parts[0]) \(hmParts[0]):\(hmParts[1])" : String(parts[0])
+    /// 把 OutingOut 的 datetime（submitted_at / confirmed_at）显示成 JST "yyyy-MM-dd HH:mm"。
+    /// OutingOut 由 String 改 Date（对齐后端 datetime）后，弃用旧的字符串分割，改用标准格式化器。
+    private func fmtDateTime(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd HH:mm"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
+        return f.string(from: date)
     }
 
     /// 三态 → 2 步进度（提出 → 確認）。confirmed 时第 2 步显示确认老师名。
