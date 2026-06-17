@@ -296,7 +296,7 @@ struct MyLandingView: View {
                 } else {
                     // 近期活动列表（最多 3 条），条目之间用细分隔线
                     VStack(spacing: 0) {
-                        ForEach(Array(upcomingEvents.enumerated()), id: \.element.id) { i, e in
+                        ForEach(Array(upcomingEvents.enumerated()), id: \.offset) { i, e in
                             if i > 0 {
                                 Rectangle().fill(T.hair).frame(height: 0.5)
                             }
@@ -938,7 +938,7 @@ struct MyInfoEditView: View {
 
     private var helpInfoBox: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("ℹ アカウント番号・氏名・生年月日・性別の変更は寮監にご連絡ください。")
+            Text("ℹ アカウント番号・氏名・生年月日・性別の変更は、寮監にご連絡ください。")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(T.primaryDk)
             Text("変更履歴は次の画面で確認できます。")
@@ -1085,12 +1085,15 @@ extension RollcallDisplay {
     }
 
     /// 后端 base_status → 日语展示文案。
+    /// 取值与后端 schemas.py 对齐：init / present / late / absent / exempt_range。
     static func stateLabel(_ s: String) -> String {
         switch s {
         case "present": return "時間内"
         case "late": return "遅刻"
         case "absent": return "欠席"
         case "exempt_range": return "免除"
+        // init = 该点呼还没产生签到记录；缺这个分支时履历会把英文「init」原样显示给学生
+        case "init": return "記録なし"
         default: return s
         }
     }
@@ -1279,7 +1282,7 @@ struct MyRollcallDetailView: View {
                 .map(RollcallDisplay.init(real:))
         #endif
         return resolved ?? RollcallDisplay(
-            id: "—", date: "—", session: "朝点呼", state: "時間内", method: "―", checkinTime: nil,
+            id: "—", date: "―", session: "朝点呼", state: "時間内", method: "―", checkinTime: nil,
             windowStart: nil, onTimeEnd: nil
         )
     }
@@ -1958,6 +1961,7 @@ struct MyHealthView: View {
         /// 未登录不拉；拉失败设 .failed 显错误态而非空态，绝不退回 SEED.health 假病历。
         private func load() async {
             guard app.isAuthenticated else { return }
+            guard loadState != .loading else { return } // 重入防抖：「再読み込み」用裸 Task，连点会并发竞态覆盖
             loadState = .loading
             do {
                 let all = try await RollCallReportsAPI.listMine()

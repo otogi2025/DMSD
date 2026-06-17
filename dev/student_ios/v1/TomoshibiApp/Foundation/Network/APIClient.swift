@@ -73,7 +73,12 @@ final class APIClient {
             req.setValue("Bearer \(tok)", forHTTPHeaderField: "Authorization")
         }
         if let body {
-            req.httpBody = try JSONEncoder().encode(body)
+            // 与解码侧（decodeResponse 用 .custom ISO8601）对称：Date 字段编成 ISO8601 字符串，
+            // 而非 JSONEncoder 默认 .deferredToDate 的「2001 纪元秒数」。当前请求体均用手动格式化的
+            // String 日期、无 Date 字段，属潜伏防御 —— 防将来新增 Date 字段时编出后端无法解析的数字。
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            req.httpBody = try encoder.encode(body)
         }
 
         let data: Data

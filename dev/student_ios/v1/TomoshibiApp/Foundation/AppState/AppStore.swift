@@ -42,11 +42,13 @@ struct RegistrationDraft {
         return prefix + room_no_suffix
     }
 
-    /// 从 room_no_suffix 第一位 + gender 推 dorm_unit
-    /// 男生 1xx → 1 寮 / 2xx → 2 寮；女生不论房号都 4 寮
+    /// 从 room_no_suffix 前缀 + gender 推 dorm_unit（§5.0 房号编码）
+    /// 女生一律 4 寮；男生「A」前缀房号（A1〜A12）= 2 寮，其余数字房号 = 1 寮
     var computedDormUnit: Int {
         if gender == "female" { return 4 }
-        if let first = room_no_suffix.first, first == "2" { return 2 }
+        // 2 寮男生房号是 A 前缀（§5.0：A1〜A12），靠首字母判 —— 旧逻辑用「数字首位 == 2」永远推不出 2 寮，
+        // 导致 2 寮学生发 dorm_unit=1 + 不带 A 前缀的请求、被后端 422 拒绝（生产版整条注册流断）。
+        if room_no_suffix.first?.uppercased() == "A" { return 2 }
         return 1
     }
 
@@ -816,10 +818,13 @@ final class AppStore: ObservableObject {
             return
         #else
             let d = Self.decideRollState(sessions: todaySessions, now: Date())
-            rollState = d.rollState
-            checkinKind = d.checkinKind
-            checkinAt = d.checkedInAt.map { Self.jstHHmm.string(from: $0) }
-            if let sec = d.countdownSec { rollCountdownSec = sec }
+            // 每秒由 tickCountdown 调一次。@Published 即便赋同值也会触发 objectWillChange → 整树重绘，
+            // 故赋值前做相等判断：idle 态四值都不变 → 一次都不写 → 不重绘；active 态只 countdown 真递减。
+            if rollState != d.rollState { rollState = d.rollState }
+            if checkinKind != d.checkinKind { checkinKind = d.checkinKind }
+            let newCheckinAt = d.checkedInAt.map { Self.jstHHmm.string(from: $0) }
+            if checkinAt != newCheckinAt { checkinAt = newCheckinAt }
+            if let sec = d.countdownSec, rollCountdownSec != sec { rollCountdownSec = sec }
         #endif
     }
 
@@ -899,7 +904,7 @@ final class AppStore: ObservableObject {
         // 不把完成提示 / 完成页写到登出态或下一个人；抛 CancellationError 让调用方静默中止导航。
         guard authToken == tokenAtStart else { throw CancellationError() }
         if isThisMonth, studyLeaveCountThisMonth > 3 {
-            showToast("今月の欠席はすでに \(studyLeaveCountThisMonth) 回目です。体調管理に十分気をつけてください。")
+            showToast("今月の欠席はすでに\(studyLeaveCountThisMonth)回目です。体調管理に十分気をつけてください。")
         } else {
             showToast("夜学習欠席届を提出しました")
         }
@@ -1502,7 +1507,7 @@ final class AppStore: ObservableObject {
             handleIncomingPush(
                 type: "申請",
                 title: "外泊届（変更届）が承認されました",
-                body: "変更届の内容で寮務課長まで承認が進みました。残り 1 名の承認をお待ちください。"
+                body: "変更届の内容で寮務課長まで承認が進みました。残り1名の承認をお待ちください。"
             )
         }
     #endif

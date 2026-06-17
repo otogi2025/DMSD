@@ -73,6 +73,11 @@ struct StudyOnlineForm: View {
                                 ApplyDateField(date: $periodTo, minDate: periodFrom)
                                     .environment(\.timeZone, TimeZone(identifier: "Asia/Tokyo") ?? .current) // 选日按 JST，跟 formatYMD 提交口径一致
                                     .environment(\.calendar, ApplyFormDate.tokyoCalendar) // minDate/初值也按 JST 日历算（Codex 6-03）
+                                    // 开始日往后调时把越界的終了日钳回（minDate 只限选择器范围、不回钳已绑定值），
+                                    // 否则終了日 < 開始日，canSubmit 永远 false、提交键静默置灰无提示（同 StayForm 修复）
+                                    .onChangeCompat(of: periodFrom) {
+                                        if periodTo < periodFrom { periodTo = periodFrom }
+                                    }
                             }
                         }
                     }
@@ -315,7 +320,7 @@ struct StudyOnlineForm: View {
                     return
                 } catch {
                     // 申请已成立但合同没传上 — 不回退申请，提示用户稍后从一覧重新添付
-                    app.showToast("申請を受け付けましたが、契約書の添付に失敗しました。後で一覧から添付してください")
+                    app.showToast("申請は受け付けましたが、契約書の添付に失敗しました。後で一覧から再度添付してください")
                     router.go(.applyDone(kind: "studyOnline"))
                     return
                 }

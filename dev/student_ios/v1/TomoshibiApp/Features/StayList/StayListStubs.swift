@@ -771,7 +771,7 @@ struct StayDetailView: View {
                 loadedItem = item
                 loadedAuditLog = item.auditLog
             } else {
-                app.showToast("無効な申請 ID です")
+                app.showToast("申請が見つかりませんでした")
                 router.back()
             }
             return
@@ -792,8 +792,12 @@ struct StayDetailView: View {
                 #if DEBUG
                     print("[StayDetailView] audit 取得失败: \(error)")
                 #endif
-                entries = []
-                app.showToast("操作履歴の取得に失敗しました")
+                // 不要把已加载的真实履历擦成空（下拉刷新时 audit 抖动不该让履历消失）：
+                // 沿用上次拿到的履历；toast 只在「之前也没有履历可显示」时弹，刷新重试时静默。
+                entries = loadedAuditLog
+                if loadedAuditLog.isEmpty {
+                    app.showToast("操作履歴の取得に失敗しました")
+                }
             }
 
             item.auditLog = entries
@@ -1276,7 +1280,7 @@ struct StayEditForm: View {
                 loadedOriginal = item
                 initFields()
             } else {
-                app.showToast("無効な申請 ID です")
+                app.showToast("申請が見つかりませんでした")
                 router.back()
             }
             return

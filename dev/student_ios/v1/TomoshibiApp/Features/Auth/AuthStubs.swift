@@ -279,13 +279,13 @@ struct OnboardingView: View {
         // ④ AI 功能（翻译全机种 / 总结、头像需 Apple Intelligence 机种）
         Slide(
             sfSymbol: "sparkles",
-            title: "AI でもっと便利に",
+            title: "AIでもっと便利に",
             features: [
                 Feature(icon: "globe", label: "お知らせをワンタップ翻訳"),
                 Feature(icon: "list.bullet.rectangle", label: "お知らせをワンタップ要約"),
-                Feature(icon: "person.crop.circle.badge.plus", label: "アバターを AI で生成"),
+                Feature(icon: "person.crop.circle.badge.plus", label: "アバターを AIで生成"),
             ],
-            footnote: "※ AI 要約とアバター生成には iPhone 15 Pro 以降（Apple Intelligence 対応機種）が必要です",
+            footnote: "※AI要約とアバター生成にはiPhone 15 Pro以降（Apple Intelligence対応機種）が必要です",
             gradStart: 0xF0EBFB, gradEnd: 0xC9B8F0,
             fg: Color(hex: 0x7A5CC4)
         ),
@@ -1157,7 +1157,7 @@ private struct AIAvatarGenerateButton: View {
                     } else {
                         Image(systemName: "sparkles")
                             .font(.system(size: 12, weight: .semibold))
-                        Text("AI で生成")
+                        Text("AIで生成")
                             .font(.system(size: 13, weight: .semibold))
                     }
                 }
@@ -1513,7 +1513,7 @@ struct RegisterStep4View: View {
 
                     Field(
                         label: "パスワード",
-                        hint: "8 文字以上",
+                        hint: "8文字以上",
                         required: true
                     ) {
                         TField(text: $pw, placeholder: "", secure: true)
@@ -1631,7 +1631,7 @@ struct RegisterDoneView: View {
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)
 
-                Text("次回からはこの 6 桁の番号\nまたはメールアドレスと\nパスワードでログインしてください")
+                Text("次回からは、この6桁の番号\nまたはメールアドレスと\nパスワードでログインしてください")
                     .font(.system(size: 12))
                     .foregroundStyle(T.primaryDk.opacity(0.8))
                     .lineSpacing(3)
@@ -1858,6 +1858,7 @@ struct LoginView: View {
     ///  - DEMO 编译模式 + magic creds（acc=="060217" / pw=="12345678"）→ 跳过 API 直接进 home
     ///  - 其他全走 AuthAPI.loginStudent → 401 走 lockout / 其他 error 走 toast
     private func tryLogin() async {
+        guard !isLoading else { return } // 重入防抖：极快双击不发两次登录请求（与 Step5 submit 同套防护）
         isLoading = true
         defer { isLoading = false }
 
@@ -2093,7 +2094,7 @@ struct PwResetView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text("パスワードのリセットはアプリ内では行えません。寮監に直接お声がけください。寮監が管理画面で手動でリセットします。")
+                    Text("パスワードのリセットはアプリ内では行えません。寮監に直接お申し出ください。寮監が管理画面で手動でリセットします。")
                         .font(.system(size: 15))
                         .foregroundStyle(T.ink)
                         .lineSpacing(8) // 1.75 on 15 ≈ 11; per line extra ≈ 8

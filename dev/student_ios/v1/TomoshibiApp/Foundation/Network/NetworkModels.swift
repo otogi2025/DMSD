@@ -64,6 +64,8 @@ struct ApplicationOut: Decodable, Hashable, Identifiable {
     let taxi_reservation_time: String? // 出租车预约时刻 "HH:MM:SS"，nil = 不预约（itsuki 2026-06-03）
 
     // 仅外泊 / 帰国
+    // 后端已是结构化类型（schemas.py StayLocation / MealSkipEntry），此处仅透传不解析内部字段，
+    // 故保留松散 AnyJSON 兜底；若将来 iOS 要读内部字段，应改成对应 struct 对齐后端类型。
     let stay_locations: [[String: AnyJSON]]?
     let meals_skip: [[String: AnyJSON]]?
 
@@ -268,37 +270,39 @@ struct StudentAccountCreateBody: Encodable {
     func validate() -> String? {
         // 氏名：backend min_length=1，先校非空再校上限
         if name.isEmpty { return "氏名を入力してください" }
-        if name.count > 100 { return "氏名は 100 文字以内で入力してください" }
+        if name.count > 100 { return "氏名は100文字以内で入力してください" }
         if let nameKana = name_kana, nameKana.count > 100 {
-            return "氏名カナは 100 文字以内で入力してください"
+            return "フリガナは 100 文字以内で入力してください"
         }
         // 性别：backend Literal["male", "female"]
         if gender != "male", gender != "female" {
             return "性別を選択してください"
         }
         // 学年 / 班级 / 座位：backend 各 ^\d{2}$（恰好 2 位数字）
-        if !Self.isTwoDigits(grade_code) { return "学年は 2 桁の数字で入力してください" }
-        if !Self.isTwoDigits(class_code) { return "クラスは 2 桁の数字で入力してください" }
-        if !Self.isTwoDigits(seat_no) { return "出席番号は 2 桁の数字で入力してください" }
-        // 部屋番号：backend min_length=3, max_length=8
-        if room_no.count < 3 { return "部屋番号は 3 文字以上で入力してください" }
-        if room_no.count > 8 { return "部屋番号は 8 文字以内で入力してください" }
+        if !Self.isTwoDigits(grade_code) { return "学年は2桁の数字で入力してください" }
+        if !Self.isTwoDigits(class_code) { return "クラスは2桁の数字で入力してください" }
+        if !Self.isTwoDigits(seat_no) { return "出席番号は2桁の数字で入力してください" }
+        // 部屋番号：backend min_length=2（2 寮 A1〜A9 是 A+1 位 = 2 字符）, max_length=8；
+        // 精确格式（M***/A*/W***）由后端 _validate_room_dorm_match 按 dorm_unit 校验
+        if room_no.count < 2 { return "部屋番号を正しく入力してください" }
+        if room_no.count > 8 { return "部屋番号は8文字以内で入力してください" }
         // 寮号：backend Literal[1, 2, 4]（男寮 1/2、女寮 4，没有 3）
         if dorm_unit != 1, dorm_unit != 2, dorm_unit != 4 {
-            return "寮号が不正です"
+            // dorm_unit 由房号 + 性别推导（computedDormUnit），落到这里说明房号填错
+            return "部屋番号をご確認ください"
         }
         if let em = email, em.count > 200 {
-            return "メールアドレスは 200 文字以内で入力してください"
+            return "メールアドレスは200文字以内で入力してください"
         }
         if let ph = phone, ph.count > 32 {
-            return "電話番号は 32 文字以内で入力してください"
+            return "電話番号は32文字以内で入力してください"
         }
         if password.count < 6 || password.count > 128 {
-            return "パスワードは 6〜128 文字で入力してください"
+            return "パスワードは6〜128文字で入力してください"
         }
         // 注册码：backend ^\d{6}$（恰好 6 位数字）
         if registration_code.count != 6 || !registration_code.allSatisfy(\.isNumber) {
-            return "登録コードは 6 桁の数字で入力してください"
+            return "登録コードは6桁の数字で入力してください"
         }
         return nil
     }

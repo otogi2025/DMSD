@@ -14,7 +14,7 @@ struct ProfileRollCallEntry: Decodable, Identifiable, Hashable {
     let id: UUID
     let session_id: UUID
     let session_type: String // "morning" | "evening"
-    let base_status: String // "present" | "late" | "absent" | "exempt_range"
+    let base_status: String // "init" | "present" | "late" | "absent" | "exempt_range"（对齐后端 schemas.py；init = 还没签到，stateLabel 显示「記録なし」）
     let status_source: String // "auto_nfc" | ...
     let checked_in_at: Date // 派生展示日期 + 打卡时刻，需参与排序 → Date
     // R-1③：该场次窗口时刻（后端 join session 得），履历详情显真实開始/締切；旧数据可能 nil

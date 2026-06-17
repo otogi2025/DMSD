@@ -524,6 +524,16 @@ struct StayForm: View {
         applyType(kind)
     }
 
+    /// 出寮日 / 免餐开始日往后调时，把依赖它们、且已落在新下限之前的日期一并钳回。
+    /// SwiftUI 的 DateField(minDate:) 只限制选择器能选的范围，不会回钳「已绑定且越界」的旧值——
+    /// 否则用户先选好帰寮日、再把出寮日改到更晚，帰寮日仍停在旧值 < 出寮日，canSubmit 永远 false、
+    /// 提交键静默置灰且无任何提示（留学生完全不知卡在哪）。
+    private func clampDependentDates() {
+        if returnDate < leaveDate { returnDate = leaveDate }
+        if skipStartDate < leaveDate { skipStartDate = leaveDate }
+        if skipEndDate < skipStartDate { skipEndDate = skipStartDate }
+    }
+
     /// 是否可提交：必填项是否已填写
     private var canSubmit: Bool {
         if reason.isEmpty { return false }
@@ -577,7 +587,7 @@ struct StayForm: View {
                     } else if isReturnCountry {
                         kindBanner(text: "✈️ 帰国申請は航空券確定後に提出してください")
                     } else {
-                        kindBanner(text: "📝 外泊申請は出発 3 日前までに提出してください")
+                        kindBanner(text: "📝 外泊申請は出発の3日前までに提出してください")
                     }
 
                     // ── Header card（申请类型）──────────────────────────────
@@ -635,6 +645,7 @@ struct StayForm: View {
                                     .foregroundStyle(T.inkSub)
                                 HStack(spacing: 10) {
                                     DateField(date: $leaveDate, minDate: StayForm.tomorrow)
+                                        .onChangeCompat(of: leaveDate) { clampDependentDates() }
                                     TimeField(date: $leaveTime)
                                 }
                                 Text("※ 出寮日は明日以降のみ選択できます")
@@ -698,7 +709,7 @@ struct StayForm: View {
                                 // 帰国 时隐藏「行先（都市名）」—— 只填下面的「宿泊先」住所（itsuki 2026-06-03）
                                 if !isReturnCountry {
                                     Field(label: "行先（都市名）") {
-                                        TField(text: $destCities, placeholder: "例：東京 / 大阪 / ソウル")
+                                        TField(text: $destCities, placeholder: "例：東京・大阪・ソウル")
                                     }
                                 }
                                 VStack(alignment: .leading, spacing: 10) {
@@ -765,6 +776,9 @@ struct StayForm: View {
                                                 .foregroundStyle(T.inkSub)
                                             HStack(spacing: 8) {
                                                 DateField(date: $skipStartDate, minDate: leaveDate)
+                                                    .onChangeCompat(of: skipStartDate) {
+                                                        if skipEndDate < skipStartDate { skipEndDate = skipStartDate }
+                                                    }
                                                 ChipGroup(options: MEALS, value: $skipStartMeal)
                                             }
                                         }
@@ -784,7 +798,7 @@ struct StayForm: View {
 
                                     Field(label: "食事備考") {
                                         TArea(text: $mealNote,
-                                              placeholder: "例：8月10日朝食まで必要、8月20日夕食から必要",
+                                              placeholder: "例：8月10日の朝食まで必要、8月20日の夕食から必要",
                                               rows: 3)
                                     }
                                 } else {
@@ -2065,7 +2079,7 @@ struct ApplyPreviewView: View {
         case "stay": base += [("行き先", "実家"), ("期間", "2026-04-25 〜 04-26"), ("保護者", "同意済")]
         case "holiday": base += [("行き先", "実家 福岡"), ("期間", "2026-04-28 〜 05-05"), ("保護者", "同意済")]
         case "repair": base += [("場所", "自室"), ("依頼日", "2026-04-22")]
-        case "parcel": base += [("荷物", "小包 1 件"), ("配達予定", "2026-04-23")]
+        case "parcel": base += [("荷物", "小包1件"), ("配達予定", "2026-04-23")]
         case "guest": base += [("来訪者", "山田 花子"), ("来訪日", "2026-04-25")]
         case "return": base += [("日付", "2026-04-25"), ("帰寮時刻", "17:30")]
         default: break

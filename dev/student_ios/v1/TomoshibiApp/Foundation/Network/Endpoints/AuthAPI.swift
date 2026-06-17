@@ -177,6 +177,8 @@ enum StudentRenewalAPI {
 
     /// 学生自设番号 — 选新的 学年 / 组 / 出席番号。
     /// 撞号时后端返 422 → APIError.unprocessable(日语提示)，原样弹给学生。
+    /// 未开闸（needs_renewal=false）时后端返 409 RENEWAL_NOT_OPEN → 落 APIError.server(409, 日语 msg)，
+    ///   msg 仍可经 extractMessage 取出原样展示；正常 UI 只在 needs_renewal=true 时露出本入口，409 属边缘态。
     /// 成功返回更新后的 StudentMeOut（新 student_no + needs_renewal=false）。
     @MainActor
     static func renewNumber(

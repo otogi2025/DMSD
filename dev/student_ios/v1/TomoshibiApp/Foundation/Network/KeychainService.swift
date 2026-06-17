@@ -4,8 +4,8 @@
 // 为什么用 Keychain 不用 UserDefaults：
 //   - JWT token 是机密、UserDefaults 是明文 plist、设备越狱后能直接读
 //   - Keychain 是苹果系统加密的安全存储区
-//   - kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly = 设备首次解锁后可访问
-//     （锁屏后 background 也能用、但不解锁就不能读）
+//   - kSecAttrAccessibleWhenUnlockedThisDeviceOnly = 仅设备处于解锁态时可访问
+//     （锁屏后即不可读，比 AfterFirstUnlock 更严，token 不在后台锁屏态暴露）
 //     ThisDeviceOnly = 不进 iCloud/iTunes 备份、不随备份迁移到别的设备
 //     （防代刷场景：登录态不该被带到另一台设备）
 //
@@ -54,7 +54,7 @@ enum KeychainService {
         // SecItemAdd/Update 的返回状态码以前被丢弃 → 写失败时静默返回，
         // app 重启读不到 token、自动登录失效且无从定位（IX-037）。
         // 清单 #9 + 漏洞E：原来 DEBUG 下 assertionFailure 会中断运行 —— 但 Keychain 写失败多是环境性
-        //（模拟器 keychain 偶发不可用 / 首次解锁前不可写 / entitlement 缺 keychain-access-group），
+        // （模拟器 keychain 偶发不可用 / 首次解锁前不可写 / entitlement 缺 keychain-access-group），
         // 不是代码逻辑 bug，硬断言把外部存储失败伪装成代码崩溃、还打断 Preview / 单测。
         // 降级为可观测日志，且只在 DEBUG 输出（Release 不写日志，避免 OSStatus 进系统日志）。
         if status != errSecSuccess {

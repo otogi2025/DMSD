@@ -48,7 +48,7 @@ struct MyRollCallTodaySession: Decodable, Identifiable, Hashable {
     let scheduled_on_time_end_at: Date
     let scheduled_late_end_at: Date
     let scheduled_auto_end_at: Date
-    let my_status: String? // present/late/absent/exempt_range；nil = 还没签到
+    let my_status: String? // init/present/late/absent/exempt_range（对齐后端 schemas.py）；nil = 还没签到
     let my_checked_in_at: Date?
 
     var id: UUID {

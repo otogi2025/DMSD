@@ -416,7 +416,7 @@ struct HomeView: View {
                     .textCase(.uppercase)
                     .foregroundStyle(deepBrown.opacity(0.8))
                 Spacer()
-                Text(isActive ? "進行中" : "10 分前")
+                Text(isActive ? "進行中" : "開始前")
                     .font(.system(size: 11.5, weight: .bold))
                     .kerning(0.22)
                     .padding(.horizontal, 10).padding(.vertical, 3)
@@ -439,9 +439,6 @@ struct HomeView: View {
                                 .font(.system(size: 56, weight: .heavy, design: .monospaced))
                                 .kerning(-1.12)
                                 .foregroundStyle(deepBrown)
-                            Text("分:秒")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(deepBrown.opacity(0.75))
                         }
                         .padding(.bottom, 12)
                         Text("前半 19:40〜20:40 ／ 後半 20:45〜21:45")
@@ -990,7 +987,9 @@ struct LifeTab: View {
         #else
             let source = loadedBusRoutes
         #endif
-        let active = source.filter { !$0.deprecated }
+        // 只取寮生特別運行便，与点进去的 BusListView 口径一致（它只显示 .dormSpecial）——
+        // 否则「下一班」可能算出一班通学便，点进详情却找不到，首页与详情自相矛盾。
+        let active = source.filter { !$0.deprecated && $0.kind == .dormSpecial }
 
         // 今日且时刻未过的第一班（source 已按出发时刻排序）
         if let r = active.first(where: { $0.date == today && $0.scheduleAt > nowHM }) {
@@ -2077,7 +2076,7 @@ struct StudyCheckinSheet: View {
                     let label = recordedTap?.label ?? "—"
                     app.closeSheet()
                     if app.nextStudyTap == nil {
-                        app.showToast("夜学習出席完了 · 全 2 回 タップ済み")
+                        app.showToast("夜学習出席完了 · 全2回タップ済み")
                     } else {
                         app.showToast("\(label) 完了")
                     }
