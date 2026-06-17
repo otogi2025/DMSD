@@ -24,7 +24,7 @@ _JST = ZoneInfo("Asia/Tokyo")
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -344,14 +344,28 @@ def revoke_demerit(
                     "message": "担当外の寮の学生への操作はできません",
                 },
             )
-    if event.revoked_at is not None:
+    # 原子领取撤销权：只有 revoked_at 仍为 NULL 才标记撤销。两老师并发撤销同一扣分时，
+    # 后到者命中 0 行 → 409，避免「读到 None 都过 409 守卫」导致下面的清扫单退回联动被
+    # 执行两次（TW-029）。照 outings/dorm_life 的 rowcount 守卫做法。
+    claimed = db.execute(
+        update(models.DemeritEvent)
+        .where(
+            models.DemeritEvent.id == event_id,
+            models.DemeritEvent.revoked_at.is_(None),
+        )
+        .values(
+            revoked_at=datetime.now(timezone.utc),
+            revoked_by_teacher_id=teacher.id,
+            revoke_reason=body.revoke_reason,
+        )
+    )
+    if claimed.rowcount != 1:
+        db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={"code": "ALREADY_REVOKED", "message": "该事件已被撤销"},
         )
-    event.revoked_at = datetime.now(timezone.utc)
-    event.revoked_by_teacher_id = teacher.id
-    event.revoke_reason = body.revoke_reason
+    db.refresh(event)
     # 撤销「清扫不通过」扣分要联动退回清扫单状态，否则 CleaningPage 仍显示
     # 「不通过」与已撤销的扣分矛盾。仅 cleaning_failed 有父表回指
     # （rollcall/study 是 forward-only，靠 ranking 过滤 revoked_at）。

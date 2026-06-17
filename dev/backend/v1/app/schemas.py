@@ -153,8 +153,8 @@ class GaihakuCreateIn(ApplicationBase):
     """外泊届 (寮以外で泊まる)。+ 滞在先 + 食事不要リスト。"""
 
     kind: Literal["外泊"] = "外泊"
-    stay_locations: list[StayLocation] = Field(..., min_length=1)
-    meals_skip: list[MealSkipEntry] = Field(default_factory=list)
+    stay_locations: list[StayLocation] = Field(..., min_length=1, max_length=20)
+    meals_skip: list[MealSkipEntry] = Field(default_factory=list, max_length=200)
     companion: Optional[str] = Field(None, max_length=500)
     dest_cities: Optional[str] = Field(None, max_length=500)
 
@@ -163,8 +163,8 @@ class KikokuCreateIn(ApplicationBase):
     """帰国届 (国外帰省, 留学生がメイン)。+ 飛行機情報。"""
 
     kind: Literal["帰国"] = "帰国"
-    stay_locations: list[StayLocation] = Field(..., min_length=1)
-    meals_skip: list[MealSkipEntry] = Field(default_factory=list)
+    stay_locations: list[StayLocation] = Field(..., min_length=1, max_length=20)
+    meals_skip: list[MealSkipEntry] = Field(default_factory=list, max_length=200)
     companion: Optional[str] = Field(None, max_length=500)
     dest_cities: Optional[str] = Field(None, max_length=500)
     flight_dep_air: str = Field(..., max_length=64)
@@ -409,7 +409,8 @@ class StudyAttendeeOut(BaseModel):
     name: str
     room_no: str
     dorm_unit: int
-    expected_status: str  # 'expected' | 'exempted_outstay' | 'exempted_absence'
+    # 'expected' | 'exempted_outstay' | 'exempted_online' | 'exempted_absence' | 'exempted_cancel'
+    expected_status: str
     exemption_reason: Optional[str] = None
     checkin: Optional[dict[str, Any]] = None
 
@@ -900,9 +901,11 @@ class TeacherCreateIn(BaseModel):
     邀请码流程（POST /teachers/invitations + /register）保留 backend 但 v1.0 web 不实装 UI。"""
 
     login_id: str = Field(..., min_length=4, max_length=32, pattern=r"^[a-zA-Z0-9_-]+$")
-    name: str = Field(..., min_length=1)
+    # 对齐 TeacherRegisterIn 的长度约束 —— name 落库要有上界（防超长串撑变 UI / 占库），
+    # password 上界防超大字符串占请求体（bcrypt 截断风险已被 security._prep 的 SHA256 化解）。
+    name: str = Field(..., min_length=1, max_length=100)
     email: EmailStr
-    password: str = Field(..., min_length=8)
+    password: str = Field(..., min_length=8, max_length=128)
     # C-14：职位标签（仅显示，不参与鉴权）— 限定为 TEACHER_ROLES 9 值
     role: TeacherRoleLiteral
     # 权限组（teacher_permission_v1.md §3）— 决定该账号功能权限；省略则建账号后按职位回退默认组。
@@ -1385,8 +1388,9 @@ class FrontDeskItemCreateIn(BaseModel):
     # 失物招领=物品说明、必填；宅配=可选备注、可空（router 落库时缺省存空串，DB 列仍 NOT NULL）。
     description: Optional[str] = Field(None, max_length=2000)
     location: Optional[str] = Field(None, max_length=200)
-    # 宅配件数（delivery 用，老师登记几件）；lost_and_found 忽略、恒为 1。默认 1、下限 1。
-    item_count: int = Field(1, ge=1)
+    # 宅配件数（delivery 用，老师登记几件）；lost_and_found 忽略、恒为 1。默认 1、下限 1、
+    # 上限 999（一次宅配登记不会几百件以上，封死写入荒谬大数值撑坏前台板）。
+    item_count: int = Field(1, ge=1, le=999)
     # 默认 expires_in_days: delivery=7 / lost_and_found=30（router 层应用）
 
     @field_validator("student_id", mode="before")
@@ -1630,7 +1634,9 @@ class IncidentRecordCreateIn(BaseModel):
 
     title: str = Field(..., min_length=1, max_length=200)
     body: str = Field(..., min_length=1, max_length=100000)
-    involved_student_ids: list[UUID] = Field(default_factory=list)
+    # 上限 200：一个事案涉及人数有现实上界。无上限时巨型数组会在 router 里逐个 db.get
+    # 校验、放大成大量单行查询（认证后轻度 DoS）。
+    involved_student_ids: list[UUID] = Field(default_factory=list, max_length=200)
     incident_date: date
 
 
@@ -1639,7 +1645,7 @@ class IncidentRecordPatchIn(BaseModel):
 
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     body: Optional[str] = Field(None, min_length=1, max_length=100000)
-    involved_student_ids: Optional[list[UUID]] = None
+    involved_student_ids: Optional[list[UUID]] = Field(None, max_length=200)
     incident_date: Optional[date] = None
 
 

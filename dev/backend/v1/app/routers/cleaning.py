@@ -22,7 +22,7 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -171,27 +171,42 @@ def inspect_cleaning(
     if student:
         _assert_student_in_dorm(teacher, student)
         assert_student_demo_match(teacher, student)
-    if row.status in {"passed", "failed", "skipped"}:
+    # failed 必须带 failure_reason —— 在原子领取前校验，避免领取后才发现参数非法又回滚
+    if body.result == "failed" and not body.failure_reason:
         raise HTTPException(
-            status_code=409,
-            detail={"code": "ALREADY_INSPECTED", "message": "该安排已审核或跳过"},
+            status_code=400,
+            detail={
+                "code": "MISSING_REASON",
+                "message": "不通过必须填 failure_reason",
+            },
         )
 
     # 月份归属用 JST（与 discipline.py manual 扣分一致，防跨月凌晨归错月）
     now_jst = datetime.now(_JST)
-    row.status = body.result
-    row.inspected_by_teacher_id = teacher.id
-    row.inspected_at = datetime.now(timezone.utc)
+    # 原子领取审核权：只有还没审核（status 不在 passed/failed/skipped）才能写结果。
+    # 防两老师并发审核同一清扫单各写各的结果 —— passed 分支原本无任何唯一约束兜底
+    # （仅 failed 靠 uq_demerit_source 撞约束），passed 裸赋值会双写 status / inspected_by。
+    claimed = db.execute(
+        update(models.CleaningAssignment)
+        .where(
+            models.CleaningAssignment.id == cleaning_id,
+            models.CleaningAssignment.status.not_in(["passed", "failed", "skipped"]),
+        )
+        .values(
+            status=body.result,
+            inspected_by_teacher_id=teacher.id,
+            inspected_at=datetime.now(timezone.utc),
+        )
+    )
+    if claimed.rowcount != 1:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "ALREADY_INSPECTED", "message": "该安排已审核或跳过"},
+        )
+    db.refresh(row)
 
     if body.result == "failed":
-        if not body.failure_reason:
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "code": "MISSING_REASON",
-                    "message": "不通过必须填 failure_reason",
-                },
-            )
         row.failure_reason = body.failure_reason
         # 自动加 DemeritEvent（罚扫不通过扣 2.5 分），存 demerit_event_id 关联，
         # 撤销该扣分时 discipline.revoke 会联动把本清扫单退回 assigned。

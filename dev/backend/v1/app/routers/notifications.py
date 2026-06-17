@@ -5,6 +5,7 @@ POST /api/v1/notifications/test  — SendGrid 送達 smoke テスト (#6 完成�
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from uuid import NAMESPACE_URL, UUID, uuid5
 from zoneinfo import ZoneInfo
@@ -25,6 +26,8 @@ from ..services import email as email_svc
 from .discipline import CLEANING_THRESHOLD, CURFEW_THRESHOLD
 
 router = APIRouter(prefix="/api/v1/notifications", tags=["notifications"])
+
+_logger = logging.getLogger(__name__)
 
 
 @router.post("/test", response_model=schemas.NotificationTestOut)
@@ -428,7 +431,18 @@ def _alert_dorm_units(teacher: models.Teacher):
         return None  # 跨寮役职（寮務部長/課長 等）→ 所有寮的告警都收
     if d in (1, 2):
         return [1, 2]  # 男寮老师 → 收男寮（一寮/二寮）告警
-    return [d]  # 女寮(4)老师 → 收女寮告警
+    if d == 4:
+        return [4]  # 女寮老师 → 收女寮告警
+    # 宿舍只有 1/2/4。assigned_dorm 是非法值（如误配成 3/0/99 — 表上无 CHECK 约束）时，
+    # 原来 else 兜底 return [d] 会让该老师只匹配 target_dorm==[d]，而真实告警 target_dorm
+    # 恒为 1/2/4，导致该老师永久静默漏收所有告警。改为返回 None（宁可多收全寮告警也不
+    # 静默漏收）+ 记 warning 让非法配置可观测。根治应在 teachers.assigned_dorm 加取值约束。
+    _logger.warning(
+        "teacher %s assigned_dorm=%r 非法（应为 1/2/4），告警定向回退为全寮",
+        teacher.id,
+        d,
+    )
+    return None
 
 
 def _dorm_visibility_filter(teacher: models.Teacher):
