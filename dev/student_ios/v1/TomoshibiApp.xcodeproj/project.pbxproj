@@ -11,7 +11,6 @@
 		0D70EF6043AAE7D57114C6D2 /* AuthStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198EF6A8C6E10AE3DBF4B316 /* AuthStubs.swift */; };
 		106D9C75A679DE11CFCD0644 /* SongsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ADCD09C35CE74209B76A719 /* SongsAPI.swift */; };
 		11FF2BD4AC27376886104D2C /* ApplicationsCreateBodies.swift in Sources */ = {isa = PBXBuildFile; fileRef = 350CA686A2E4CE6284AA20D8 /* ApplicationsCreateBodies.swift */; };
-		12937C81977BB20921592E09 /* CACHEDIR.TAG in Resources */ = {isa = PBXBuildFile; fileRef = BA2858BE1F7C0F629E01ED97 /* CACHEDIR.TAG */; };
 		12D13D4914611D5D0DB127B8 /* BottomNav.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1692CD80AD61B3BFA74FE01D /* BottomNav.swift */; };
 		14CA30DFEF2523D29C1F9732 /* GlassSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AFBB7C7CB1B14AF649FFB7D /* GlassSheet.swift */; };
 		262922121023D44B3A752345 /* BusListStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = A51F55689BD2BD070068D34D /* BusListStubs.swift */; };
@@ -62,7 +61,6 @@
 		DC10F180648C72B3AFE7FC7A /* ApplyKindMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9F9195E1F96E80AEAC17364 /* ApplyKindMapper.swift */; };
 		E363F1F7E2C186333C36782E /* Field.swift in Sources */ = {isa = PBXBuildFile; fileRef = D734F5CB9CBD861BD4D82C41 /* Field.swift */; };
 		E4AB919291B8E27C9C51FCA0 /* CommunityStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F52CBEB752D76838E1AA05 /* CommunityStubs.swift */; };
-		EC8A7E8BFD3BA33F5F75B73D /* AppIcon-1024.png in Resources */ = {isa = PBXBuildFile; fileRef = E6E636DC711EF0EF5548AA0C /* AppIcon-1024.png */; };
 		F1F5E6C1E23B86A21B0EE849 /* APIErrorPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F9FAF40754D51FE50898CA8 /* APIErrorPresenter.swift */; };
 		F2032E9BF093EAA2F43FEDD8 /* PageHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2DAAF1321A2D7F362D8DAA1 /* PageHeader.swift */; };
 		F55F4FC9A7444F2E2004E521 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 889D1EB8DA1127DE3F18DDA2 /* GlassCard.swift */; };
@@ -93,7 +91,6 @@
 		17B7B19307005D8E2D07B44D /* StayListStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StayListStubs.swift; sourceTree = "<group>"; };
 		18F25536D77C2040621B8A7D /* TomoshibiAppTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TomoshibiAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		198EF6A8C6E10AE3DBF4B316 /* AuthStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStubs.swift; sourceTree = "<group>"; };
-		19E9B8643079E37AE47A07A4 /* .gitignore */ = {isa = PBXFileReference; path = .gitignore; sourceTree = "<group>"; };
 		284355530CF272CA953BF511 /* SEED.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SEED.swift; sourceTree = "<group>"; };
 		28E8541F23E43B67EBF8C833 /* StudyOnlineForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyOnlineForm.swift; sourceTree = "<group>"; };
 		335F10F844F1671107B5A65A /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
@@ -115,7 +112,6 @@
 		5802FFC4938B6F524F6703C5 /* TomoshibiApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = TomoshibiApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5ADCD09C35CE74209B76A719 /* SongsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SongsAPI.swift; sourceTree = "<group>"; };
 		6C029EB0842D846493CFE168 /* StudentProfileAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudentProfileAPI.swift; sourceTree = "<group>"; };
-		71453E806B7A27446A7B2BE3 /* 12865348558069377973 */ = {isa = PBXFileReference; path = 12865348558069377973; sourceTree = "<group>"; };
 		738D063BBD4F7D59CAA43BDB /* RollStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RollStateMachineTests.swift; sourceTree = "<group>"; };
 		7AFBB7C7CB1B14AF649FFB7D /* GlassSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassSheet.swift; sourceTree = "<group>"; };
 		7E749CA72863EC4E0022C7B6 /* MyPageStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyPageStubs.swift; sourceTree = "<group>"; };
@@ -132,7 +128,6 @@
 		A126A1C40F8EB5EEE3352EB1 /* PrimaryButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrimaryButton.swift; sourceTree = "<group>"; };
 		A51F55689BD2BD070068D34D /* BusListStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BusListStubs.swift; sourceTree = "<group>"; };
 		A652D7FC37C1A6417822DCAA /* Toast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Toast.swift; sourceTree = "<group>"; };
-		AA7AF5C9B2CC81DAB8E4646C /* 11634884981319087675 */ = {isa = PBXFileReference; path = 11634884981319087675; sourceTree = "<group>"; };
 		AE8464C86A7E2262CDCEA498 /* EventsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsAPI.swift; sourceTree = "<group>"; };
 		AF988C23F66A4E622622302F /* Ic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ic.swift; sourceTree = "<group>"; };
 		AFDFE87D987EF1A14F86E420 /* DormLifeAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DormLifeAPI.swift; sourceTree = "<group>"; };
@@ -140,7 +135,6 @@
 		B522E5E1E9C32585E0C4AF54 /* SheetKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SheetKind.swift; sourceTree = "<group>"; };
 		B6BED925E6CDEDFF9B146D29 /* RollCallAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RollCallAPI.swift; sourceTree = "<group>"; };
 		B6DD25F46AB2CD84E3B64879 /* CleaningAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleaningAPI.swift; sourceTree = "<group>"; };
-		BA2858BE1F7C0F629E01ED97 /* CACHEDIR.TAG */ = {isa = PBXFileReference; path = CACHEDIR.TAG; sourceTree = "<group>"; };
 		C4ADECD57FEC5CA168619042 /* SeedModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeedModels.swift; sourceTree = "<group>"; };
 		CDA09D5E1B32E11CFD9CD320 /* LostFoundAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LostFoundAPI.swift; sourceTree = "<group>"; };
 		D12E5F5519B6567648A2C5E0 /* RouterStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouterStore.swift; sourceTree = "<group>"; };
@@ -150,7 +144,6 @@
 		DBE936BE66DC8C3A710E9313 /* TomoshibiApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TomoshibiApp.entitlements; sourceTree = "<group>"; };
 		DCAE320FB742688FEDA8AD6A /* TTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTokens.swift; sourceTree = "<group>"; };
 		DD89B96B9E1EC056A73411B6 /* StudyAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyAPI.swift; sourceTree = "<group>"; };
-		E6E636DC711EF0EF5548AA0C /* AppIcon-1024.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "AppIcon-1024.png"; sourceTree = "<group>"; };
 		EE5E5F209C9022BFB61763C1 /* BreadcrumbOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreadcrumbOverlay.swift; sourceTree = "<group>"; };
 		F2DAAF1321A2D7F362D8DAA1 /* PageHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageHeader.swift; sourceTree = "<group>"; };
 		F5853681D4FAB97B68321735 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -242,15 +235,6 @@
 			path = Root;
 			sourceTree = "<group>";
 		};
-		2662A353229B79F0173BDDDB /* 0.15.13 */ = {
-			isa = PBXGroup;
-			children = (
-				AA7AF5C9B2CC81DAB8E4646C /* 11634884981319087675 */,
-				71453E806B7A27446A7B2BE3 /* 12865348558069377973 */,
-			);
-			path = 0.15.13;
-			sourceTree = "<group>";
-		};
 		2CE5CBA17D464ABF9A63CC0D /* Network */ = {
 			isa = PBXGroup;
 			children = (
@@ -339,11 +323,9 @@
 		9C2CA1F91680EB7292479047 /* TomoshibiApp */ = {
 			isa = PBXGroup;
 			children = (
-				EF0849B88A1204197E91FDE9 /* .ruff_cache */,
 				16A401D72828F09F8347CEEF /* Features */,
 				08F1A9DF117742AAD6C72579 /* Foundation */,
 				223E229399714838C48E1EDF /* Root */,
-				E6E636DC711EF0EF5548AA0C /* AppIcon-1024.png */,
 				B2FD432EFB4459068B330D99 /* AppIcon.icon */,
 				F5853681D4FAB97B68321735 /* Assets.xcassets */,
 				4A1DA47ECA99A6BC826597E0 /* PrivacyInfo.xcprivacy */,
@@ -429,16 +411,6 @@
 				C4ADECD57FEC5CA168619042 /* SeedModels.swift */,
 			);
 			path = Seed;
-			sourceTree = "<group>";
-		};
-		EF0849B88A1204197E91FDE9 /* .ruff_cache */ = {
-			isa = PBXGroup;
-			children = (
-				2662A353229B79F0173BDDDB /* 0.15.13 */,
-				19E9B8643079E37AE47A07A4 /* .gitignore */,
-				BA2858BE1F7C0F629E01ED97 /* CACHEDIR.TAG */,
-			);
-			path = .ruff_cache;
 			sourceTree = "<group>";
 		};
 		F527AD5E97BA571CFB100658 /* Icons */ = {
@@ -532,10 +504,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EC8A7E8BFD3BA33F5F75B73D /* AppIcon-1024.png in Resources */,
 				35A90981AB6BE0724887614C /* AppIcon.icon in Resources */,
 				901E949457B307E054D48669 /* Assets.xcassets in Resources */,
-				12937C81977BB20921592E09 /* CACHEDIR.TAG in Resources */,
 				8E5969F2E87A241C9B18B7FB /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -741,6 +711,12 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				OTHER_LDFLAGS = (
+					"-weak_framework",
+					FoundationModels,
+					"-weak_framework",
+					Translation,
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.itsuki.tomoshibi;
 				PRODUCT_NAME = TomoshibiApp;
 				SDKROOT = iphoneos;
@@ -836,6 +812,12 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"-weak_framework",
+					FoundationModels,
+					"-weak_framework",
+					Translation,
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.itsuki.tomoshibi.demo;
 				PRODUCT_NAME = TomoshibiApp;
@@ -959,6 +941,12 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"-weak_framework",
+					FoundationModels,
+					"-weak_framework",
+					Translation,
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.itsuki.tomoshibi;
 				PRODUCT_NAME = TomoshibiApp;

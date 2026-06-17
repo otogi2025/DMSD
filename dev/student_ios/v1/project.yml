@@ -40,6 +40,8 @@ targets:
       - path: TomoshibiApp
         excludes:
           - Assets.xcassets.empty
+          - AppIcon-1024.png        # 散落旧 PNG，与 AppIcon.icon/ 重复且未被引用 — 排除防再纳入工程（2026-06-17）
+          - .ruff_cache             # Python ruff 缓存误落 iOS 源树 — 排除防 xcodegen 扫进来（2026-06-17）
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.itsuki.tomoshibi      # 正式版 bundle id
@@ -63,6 +65,15 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: "YES"
         GENERATE_INFOPLIST_FILE: "YES"
         ENABLE_PREVIEWS: "YES"
+        # 弱链接（weak link）FoundationModels(iOS26) / Translation(iOS18) — 这两框架在 iOS16〜25 不存在。
+        # 代码里调用全有 if #available 守卫，但默认硬链接（LC_LOAD_DYLIB）会让旧系统启动时 dyld 找不到框架直接崩。
+        # -weak_framework 改成弱链接：框架缺席时不崩、符号延迟解析。每个框架名前各带一个 -weak_framework。
+        # ⚠️ iOS26 模拟器测不出旧系统崩溃 — 需在 iOS16~17 真机/模拟器回归确认（2026-06-17）。
+        OTHER_LDFLAGS:
+          - "-weak_framework"
+          - "FoundationModels"
+          - "-weak_framework"
+          - "Translation"
       configs:
         Demo:
           # 演示版：独立 bundle id（跟正式版不冲突、模拟器上可同时装两个）
