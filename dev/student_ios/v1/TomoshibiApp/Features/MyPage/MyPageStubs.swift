@@ -647,7 +647,9 @@ struct MyInfoView: View {
         return [
             ("氏名", u.name),
             ("フリガナ", u.nameKana),
-            ("生年月日", "\(u.birth) (\(u.age) 歳)"),
+            // 生产 /me 暂不返生日（u.birth 空 / u.age 0）→ 显「—」而非「(0 歳)」假年龄。
+            // 后端 /me 补生日字段后这里自然显真实值。
+            ("生年月日", u.birth.isEmpty ? "—" : "\(u.birth)（\(u.age) 歳）"),
             ("性別", u.gender),
             ("アカウント番号", u.account),
             ("学年・組・番号", "\(u.grade) \(u.classSuffix)組 \(u.seatNo)番"),
@@ -1271,20 +1273,16 @@ struct MyRollcallDetailView: View {
         self.entryId = entryId
     }
 
-    /// 实际渲染用的记录（演示 / 生产分别按 id 查，查不到退回占位）。
-    private var record: RollcallDisplay {
-        let resolved: RollcallDisplay?
+    /// 实际渲染用的记录（演示 / 生产分别按 id 查）。查不到返 nil ——
+    /// body 据此显「記録が見つかりません」空态，不再退回写死「時間内」假占位伪造正常状态（B-中-07）。
+    private var record: RollcallDisplay? {
         #if DEMO
-            resolved = SEED.rollcall.first(where: { $0.id == entryId }).map(RollcallDisplay.init(demo:))
+            return SEED.rollcall.first(where: { $0.id == entryId }).map(RollcallDisplay.init(demo:))
         #else
-            resolved = app.myRollcallEvents
+            return app.myRollcallEvents
                 .first(where: { $0.id.uuidString.caseInsensitiveCompare(entryId ?? "") == .orderedSame })
                 .map(RollcallDisplay.init(real:))
         #endif
-        return resolved ?? RollcallDisplay(
-            id: "—", date: "―", session: "朝点呼", state: "時間内", method: "―", checkinTime: nil,
-            windowStart: nil, onTimeEnd: nil
-        )
     }
 
     /// 标题行 "2026-04-21 朝点呼"
@@ -1353,50 +1351,66 @@ struct MyRollcallDetailView: View {
             PageHeader(title: "点呼セッション詳細", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    Card(padding: 18) {
-                        // 清单 #16：一次 body 求值只解析一次 record（O(n) 查找），下面各处复用 rec。
-                        let rec = record
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text(titleText(rec))
-                                .font(.system(size: 16, weight: .bold))
-                                .monospaced()
-                                .foregroundStyle(T.primary)
-                                .padding(.bottom, 2)
-                            Text("セッション ID: \(sessionID(rec))")
-                                .font(.system(size: 12))
-                                .foregroundStyle(T.inkMute)
-                                .padding(.bottom, 14)
-                            LazyVGrid(
-                                columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
-                                alignment: .leading,
-                                spacing: 12
-                            ) {
-                                ForEach(Array(kvPairs(rec).enumerated()), id: \.offset) { _, pair in
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        Text(pair.0)
-                                            .font(.system(size: 11))
-                                            .foregroundStyle(T.inkMute)
-                                        Text(pair.1)
-                                            .font(.system(size: 14, weight: .semibold))
-                                            .foregroundStyle(T.ink)
+                    // 清单 #16：一次 body 求值只解析一次 record（O(n) 查找）。
+                    // B-中-07：查到才渲染详情卡；查不到（深链失效 / 缓存未命中）显空态，不伪造「時間内」。
+                    if let rec = record {
+                        Card(padding: 18) {
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text(titleText(rec))
+                                    .font(.system(size: 16, weight: .bold))
+                                    .monospaced()
+                                    .foregroundStyle(T.primary)
+                                    .padding(.bottom, 2)
+                                Text("セッション ID: \(sessionID(rec))")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(T.inkMute)
+                                    .padding(.bottom, 14)
+                                LazyVGrid(
+                                    columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
+                                    alignment: .leading,
+                                    spacing: 12
+                                ) {
+                                    ForEach(Array(kvPairs(rec).enumerated()), id: \.offset) { _, pair in
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            Text(pair.0)
+                                                .font(.system(size: 11))
+                                                .foregroundStyle(T.inkMute)
+                                            Text(pair.1)
+                                                .font(.system(size: 14, weight: .semibold))
+                                                .foregroundStyle(T.ink)
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    // Info box
-                    Text("ℹ 判定の変更はされていません")
-                        .font(.system(size: 12))
-                        .foregroundStyle(T.primaryDk)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background {
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(T.primary.opacity(0.04))
+                        // Info box
+                        Text("ℹ 判定の変更はされていません")
+                            .font(.system(size: 12))
+                            .foregroundStyle(T.primaryDk)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background {
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(T.primary.opacity(0.04))
+                            }
+                            .padding(.top, 14)
+                    } else {
+                        Card(padding: 18) {
+                            VStack(spacing: 8) {
+                                Text("記録が見つかりません")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(T.ink)
+                                Text("この点呼記録は存在しないか、まだ読み込まれていません。")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(T.inkMute)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
                         }
-                        .padding(.top, 14)
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
