@@ -90,6 +90,7 @@ struct RootView: View {
         case let .applyDone(kind): ApplyDoneView(kind: kind)
         case let .applyDetail(id): ApplyDetailView(id: id)
         case .dormEventList: DormEventProposalListView()
+        case let .dormEventResubmit(id): DormEventProposalForm(resubmitId: id)
         case .studyOnlineList: StudyOnlineRequestListView()
         case .fridgeList: FridgePurchaseListView()
         case .itemList: ItemPossessionListView()

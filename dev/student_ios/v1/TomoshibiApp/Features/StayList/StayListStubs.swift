@@ -260,6 +260,26 @@ enum StayListMock {
         _store = arr
     }
 
+    /// 撤回（mock）—— 未登录 / reviewer 态本地把 status 改成 withdrawn + 追加履历。
+    /// 真实生产走 ApplicationsAPI.withdraw，不经此分支。
+    static func applyWithdraw(id: String) {
+        if _store == nil { _store = buildInitial() }
+        guard var arr = _store, let idx = arr.firstIndex(where: { $0.id == id }) else { return }
+        var item = arr[idx]
+        item.status = .withdrawn
+
+        let entry = AuditLogEntry(
+            at: nowJaString(),
+            action: "申請を取り消し",
+            actor: SEED.user.name,
+            detail: nil
+        )
+        item.auditLog.insert(entry, at: 0)
+
+        arr[idx] = item
+        _store = arr
+    }
+
     private static func buildInitial() -> [StayApplication] {
         SEED.applications.compactMap { item in
             let kind = ApplicationKind.fromSeedType(item.type)
@@ -685,6 +705,8 @@ struct StayDetailView: View {
     /// API 拉到的改动履历
     @State private var loadedAuditLog: [AuditLogEntry] = []
     @State private var isLoading: Bool = false
+    /// 撤回在途标志（防连点 + 按钮显示「取消中…」）
+    @State private var isWithdrawing: Bool = false
 
     enum DetailTab: Hashable { case detail, history }
 
@@ -721,8 +743,16 @@ struct StayDetailView: View {
                             if let last = item.chain.last(where: { $0.comment != nil }) {
                                 commentCard(last)
                             }
+                            // 差戻（要修正）状态：先显眼提示「修正して再提出」，再给编辑入口
+                            if item.status == .returned {
+                                returnedBanner
+                            }
                             if item.isEditable {
                                 editButton
+                            }
+                            // 撤回（pending / approved_partial / returned 状态可撤回，与后端 withdraw 条件一致）
+                            if item.isEditable {
+                                withdrawButton
                             }
                         } else {
                             headerCard
@@ -856,7 +886,8 @@ struct StayDetailView: View {
             HStack(spacing: 8) {
                 Image(systemName: "pencil")
                     .font(.system(size: 14, weight: .semibold))
-                Text("変更届を提出")
+                // 差戻 状态用「修正して再提出」更贴合语义；其余可编辑状态保持「変更届を提出」
+                Text(item.status == .returned ? "修正して再提出" : "変更届を提出")
                     .font(.system(size: 14, weight: .bold))
             }
             .foregroundStyle(.white)
@@ -867,6 +898,95 @@ struct StayDetailView: View {
             }
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: - 差戻（退回要修正）提示条（仅 returned 状态显示）
+
+    private var returnedBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "arrow.uturn.backward.circle.fill")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(T.danger)
+            Text("この届出は差し戻されました。内容を修正して再提出してください。")
+                .font(.system(size: 12.5))
+                .foregroundStyle(T.ink)
+                .lineSpacing(3)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 14, style: .continuous).fill(T.dangerBg)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(T.danger.opacity(0.25), lineWidth: 1)
+        }
+    }
+
+    // MARK: - 撤回按钮（pending / approved_partial / returned 状态显示）
+
+    private var withdrawButton: some View {
+        Button {
+            Task { await withdraw() }
+        } label: {
+            Text(isWithdrawing ? "取り消し中…" : "申請を取り消し")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(T.danger)
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .background {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous).fill(T.paper)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(T.danger.opacity(0.25), lineWidth: 1.5)
+                }
+        }
+        .buttonStyle(.plain)
+        .disabled(isWithdrawing)
+    }
+
+    /// 撤回出寮届。沿用 OutingDetailView.withdraw 的写法：
+    /// 未登录 / 非 UUID（reviewer / 开发态）→ 本地 mock 改状态；已登录 → 调 POST /applications/:id/withdraw。
+    /// 并发被老师处理时后端回 409（CANNOT_WITHDRAW）→ 重拉最新状态。
+    private func withdraw() async {
+        guard !isWithdrawing else { return }
+        isWithdrawing = true
+        defer { isWithdrawing = false }
+
+        // 未登录态 / 非 UUID id（reviewer / 开发态）→ mock 本地撤回（同 StayEditForm 的 mock 分支策略）
+        guard app.isAuthenticated, let uuid = UUID(uuidString: id) else {
+            StayListMock.applyWithdraw(id: id)
+            if let updated = StayListMock.find(id) {
+                loadedItem = updated
+            }
+            app.showToast("申請を取り消しました")
+            return
+        }
+
+        do {
+            let out = try await ApplicationsAPI.withdraw(id: uuid)
+            loadedItem = out.toStayApplication()
+            app.showToast("申請を取り消しました")
+            // 撤回后履历会新增一条 —— 重拉 audit（失败不致命，沿用 load 的容错）
+            if let auditOut = try? await ApplicationsAPI.audit(id: uuid) {
+                let entries = auditOut.map { $0.toAuditLogEntry() }
+                loadedItem?.auditLog = entries
+                loadedAuditLog = entries
+            }
+        } catch let APIError.unprocessable(msg) {
+            app.showToast(msg)
+        } catch APIError.server(409, _) {
+            app.showToast("この状態の申請は取り消せません")
+            await load()
+        } catch APIError.unauthorized {
+            app.authToken = nil
+            router.replace(.login)
+        } catch APIError.network {
+            app.showToast("通信エラーが発生しました。電波を確認してください")
+        } catch {
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "申請の取り消しに失敗しました"))
+        }
     }
 
     // MARK: - 履歴 card

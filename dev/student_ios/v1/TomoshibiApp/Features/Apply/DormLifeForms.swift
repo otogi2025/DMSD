@@ -4,6 +4,10 @@
 import SwiftUI
 
 struct DormEventProposalForm: View {
+    /// 非 nil = 再提出模式：用这个 id 拉回原企画预填，提交走 resubmit endpoint（仅 result==resubmit 的企画可重提）。
+    /// nil = 新规提出模式（默认）。
+    let resubmitId: String?
+
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
 
@@ -20,6 +24,19 @@ struct DormEventProposalForm: View {
     @State private var expectedCost: String = ""
     @State private var note: String = ""
     @State private var isSubmitting = false
+    /// 再提出模式：预填加载中标志（拉原企画时显示 ProgressView）
+    @State private var isPrefilling = false
+    /// 再提出模式：已预填守卫，防 task 重入覆盖用户已改的内容
+    @State private var didPrefill = false
+
+    init(resubmitId: String? = nil) {
+        self.resubmitId = resubmitId
+    }
+
+    /// 是否再提出模式
+    private var isResubmit: Bool {
+        resubmitId != nil
+    }
 
     private var expectedCount: Int? {
         Int(expectedCountText.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -41,11 +58,17 @@ struct DormEventProposalForm: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            PageHeader(title: "行事企画申請", level: 2)
+            PageHeader(title: isResubmit ? "行事企画 再提出" : "行事企画申請", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    listButton
-                        .padding(.bottom, 18)
+                    // 再提出模式不显示「提出済み一覧」入口（它是新规模式的导航），改显差戻提示条
+                    if isResubmit {
+                        resubmitBanner
+                            .padding(.bottom, 18)
+                    } else {
+                        listButton
+                            .padding(.bottom, 18)
+                    }
 
                     ApplyFormSectionLabel(n: "1", label: "企画")
                     Card(padding: 14) {
@@ -111,7 +134,7 @@ struct DormEventProposalForm: View {
                     }
                     .padding(.bottom, 22)
 
-                    submitButton(title: "提出する", canSubmit: canSubmit && !isSubmitting) {
+                    submitButton(title: isResubmit ? "再提出する" : "提出する", canSubmit: canSubmit && !isSubmitting && !isPrefilling) {
                         submit()
                     }
                     .padding(.bottom, 32)
@@ -122,6 +145,64 @@ struct DormEventProposalForm: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(T.pearl)
+        .task { await prefillIfNeeded() }
+    }
+
+    /// 再提出模式差戻提示条
+    private var resubmitBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "arrow.uturn.backward.circle.fill")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(T.danger)
+            Text("この企画は差し戻されました。内容を修正して再提出してください。")
+                .font(.system(size: 12.5))
+                .foregroundStyle(T.ink)
+                .lineSpacing(3)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14).padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(T.dangerBg)
+        }
+    }
+
+    /// 再提出模式：用 resubmitId 从 /mine 一览里找回原企画并预填各字段。
+    /// 单个企画后端没有 GET-by-id 接口，沿用 listMyEventProposals + 按 id 过滤（同 StayEditForm 拉详情的思路）。
+    private func prefillIfNeeded() async {
+        guard isResubmit, !didPrefill, let rid = resubmitId else { return }
+        // 未登录 / 非 UUID（reviewer / 开发态）—— 无真数据源，留空表单即可，不报错
+        guard app.isAuthenticated, UUID(uuidString: rid) != nil else { return }
+
+        isPrefilling = true
+        defer { isPrefilling = false }
+        do {
+            let all = try await DormLifeAPI.listMyEventProposals()
+            guard let item = all.first(where: { $0.id.uuidString.lowercased() == rid.lowercased() }) else {
+                app.showToast("企画が見つかりませんでした")
+                router.back()
+                return
+            }
+            teamName = item.team_name ?? ""
+            title = item.title
+            heldDate = item.held_at
+            heldTime = item.held_at
+            place = item.place
+            expectedCountText = String(item.expected_count)
+            target = item.target
+            purpose = item.purpose
+            content = item.content
+            riskSolution = item.risk_solution
+            expectedCost = item.expected_cost
+            note = item.note ?? ""
+            didPrefill = true
+        } catch APIError.unauthorized {
+            app.authToken = nil
+            router.replace(.login)
+        } catch {
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "企画の取得に失敗しました"))
+            router.back()
+        }
     }
 
     private var listButton: some View {
@@ -176,18 +257,28 @@ struct DormEventProposalForm: View {
         )
 
         do {
-            _ = try await DormLifeAPI.submitEventProposal(body: body)
-            app.showToast("行事企画申請を提出しました")
-            router.go(.applyDone(kind: "event"))
+            if let rid = resubmitId, let uuid = UUID(uuidString: rid) {
+                // 再提出：仅 result==resubmit 的企画后端接受，成功后 result 回 pending（失败 409 = CANNOT_RESUBMIT）
+                _ = try await DormLifeAPI.resubmitEventProposal(id: uuid, body: body)
+                app.showToast("行事企画を再提出しました")
+                router.go(.applyDone(kind: "event"))
+            } else {
+                _ = try await DormLifeAPI.submitEventProposal(body: body)
+                app.showToast("行事企画申請を提出しました")
+                router.go(.applyDone(kind: "event"))
+            }
         } catch let APIError.unprocessable(msg) {
             app.showToast(msg)
+        } catch APIError.server(409, _) {
+            app.showToast("この企画は再提出できません")
         } catch APIError.unauthorized {
             app.authToken = nil
             router.replace(.login)
         } catch APIError.network {
             app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "行事企画申請の提出に失敗しました"))
+            let fallback = isResubmit ? "行事企画の再提出に失敗しました" : "行事企画申請の提出に失敗しました"
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: fallback))
         }
     }
 }
@@ -266,6 +357,7 @@ struct DormEventProposalListView: View {
 
 private struct DormEventProposalRow: View {
     let item: DormEventProposalOut
+    @EnvironmentObject var router: RouterStore
 
     var body: some View {
         Card(padding: 14) {
@@ -290,6 +382,40 @@ private struct DormEventProposalRow: View {
                 }
                 .font(.system(size: 11, design: .monospaced))
                 .foregroundStyle(T.inkMute)
+
+                // 再提出（result == resubmit）：显示老师差戻意见 + 「再提出」入口
+                if item.result == "resubmit" {
+                    if let c = item.comment, !c.trimmed.isEmpty {
+                        Text("先生のコメント：\(c)")
+                            .font(.system(size: 12))
+                            .foregroundStyle(T.ink)
+                            .lineSpacing(3)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 10).padding(.vertical, 8)
+                            .background {
+                                RoundedRectangle(cornerRadius: 8, style: .continuous).fill(T.dangerBg)
+                            }
+                    }
+                    Button {
+                        router.go(.dormEventResubmit(id: item.id.uuidString.lowercased()))
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.uturn.up")
+                                .font(.system(size: 13, weight: .semibold))
+                            Text("修正して再提出")
+                                .font(.system(size: 13, weight: .bold))
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 11, weight: .bold))
+                        }
+                        .foregroundStyle(T.primary)
+                        .padding(.horizontal, 12).padding(.vertical, 10)
+                        .background {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous).fill(T.pill)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
     }

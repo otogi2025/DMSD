@@ -42,6 +42,7 @@ enum Route: Hashable {
     case applyDone(kind: String)
     case applyDetail(id: String)
     case dormEventList
+    case dormEventResubmit(id: String) // 行事企画 再提出（result == resubmit 时编辑内容→ POST /event-proposals/:id/resubmit）
     case studyOnlineList
     case fridgeList
     case itemList
@@ -103,6 +104,7 @@ enum Route: Hashable {
         case .applyDone: return "完了"
         case .applyDetail: return "詳細"
         case .dormEventList: return "行事企画一覧"
+        case .dormEventResubmit: return "再提出"
         case .studyOnlineList: return "オンライン学習申請一覧"
         case .fridgeList: return "冷蔵庫購入届一覧"
         case .itemList: return "物品所持許可願一覧"
@@ -140,7 +142,7 @@ enum Route: Hashable {
     var isApplyBranch: Bool {
         switch self {
         case .apply, .applyNew, .applyForm, .applyPreview, .applyDone, .applyDetail,
-             .dormEventList, .studyOnlineList, .fridgeList, .itemList:
+             .dormEventList, .dormEventResubmit, .studyOnlineList, .fridgeList, .itemList:
             return true
         default: return false
         }

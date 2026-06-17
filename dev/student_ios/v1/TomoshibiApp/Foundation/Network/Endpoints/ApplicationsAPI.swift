@@ -6,12 +6,12 @@
 //   - GET  /applications/mine          listMine
 //   - GET  /applications/:id           detail
 //   - PUT  /applications/:id           update（修改届）
+//   - POST /applications/:id/withdraw  withdraw（撤回）
 //   - GET  /applications/:id/audit     audit（改动履历）
 
 import Foundation
 
 enum ApplicationsAPI {
-
     /// 出寮届提交。body 是 KisheiCreateBody / GaihakuCreateBody / KikokuCreateBody 之一。
     /// backend 按 `kind` 字段 dispatch 到对应 Pydantic schema（discriminated union）。
     @MainActor
@@ -38,6 +38,15 @@ enum ApplicationsAPI {
     static func update(id: UUID, body: ApplicationUpdateBody) async throws -> ApplicationOut {
         let path = "/api/v1/applications/\(id.uuidString.lowercased())"
         return try await APIClient.shared.put(path: path, body: body)
+    }
+
+    /// 撤回出寮届（仅 pending / approved_partial / returned 状态可撤回，成功后 status 变 withdrawn）。
+    /// 无 body。失败 409 = CANNOT_WITHDRAW（状态不允许）。
+    @MainActor
+    static func withdraw(id: UUID) async throws -> ApplicationOut {
+        let path = "/api/v1/applications/\(id.uuidString.lowercased())/withdraw"
+        // 撤回无请求体 —— 传 nil（同 OutingsAPI.withdraw 的写法，APIClient.post 要求 Encodable，String? 满足）
+        return try await APIClient.shared.post(path: path, body: nil as String?)
     }
 
     /// 改动履历（提出 / 修改届 / 役职决定 全部按时序记录）

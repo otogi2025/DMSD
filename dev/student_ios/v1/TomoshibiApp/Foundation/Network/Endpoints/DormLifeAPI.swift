@@ -41,6 +41,14 @@ enum DormLifeAPI {
         return try await APIClient.shared.get(path: "/api/v1/dorm-life/event-proposals/mine")
     }
 
+    /// 行事企画 再提出（仅 result == "resubmit" 的企画可重提，成功后 result 回 pending）。
+    /// body 与 create 同（EventProposalBody 全字段）。失败 409 = CANNOT_RESUBMIT（状态不允许）。
+    @MainActor
+    static func resubmitEventProposal(id: UUID, body: EventProposalBody) async throws -> DormEventProposalOut {
+        let path = "/api/v1/dorm-life/event-proposals/\(id.uuidString.lowercased())/resubmit"
+        return try await APIClient.shared.post(path: path, body: body)
+    }
+
     @MainActor
     static func submitFridgePurchase(body: FridgePurchaseBody) async throws -> FridgePurchaseRequestOut {
         return try await APIClient.shared.post(path: "/api/v1/dorm-life/fridge-purchases", body: body)
