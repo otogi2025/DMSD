@@ -503,6 +503,20 @@ def bulk_finalize(
     else:
         roster_ids = all_roster_ids
 
+    # 与 decide_absence_request 串行化（codex M3）：先锁住今日全部欠席届行（不分状态），
+    # 让「finalize 读 exempt_ids 并结算」与「老师批准欠席届」二者必有明确先后 ——
+    #   批准先 → finalize 读到 approved、跳过该生，不记缺席；
+    #   finalize 先 → 它结算缺席后才轮到批准，批准的 TW-007 撤分逻辑会看到 checkin 已是
+    #     absent 并撤掉扣分 + 置 exempt。
+    # 否则存在竞态：finalize 读 exempt_ids 时届还 pending（不豁免）→ 批准抢先把状态改
+    # approved 但此刻 checkin 还没 absent（批准的撤分查不到）→ finalize 随后提交缺席 + 扣分，
+    # 学生「已批准却仍被扣 1.5 点」。PostgreSQL 靠行锁；SQLite 单写者天然串行。
+    db.execute(
+        select(models.StudyAbsenceRequest.id)
+        .where(models.StudyAbsenceRequest.target_date == today)
+        .with_for_update()
+    )
+
     # 承認済欠席届 → finalize 対象外
     exempt_ids = set(
         db.scalars(

@@ -255,7 +255,21 @@ def list_sessions_history(
             cur = latest.get(key)
             if cur is None or (e.checked_in_at, e.id) > (cur.checked_in_at, cur.id):
                 latest[key] = e
-        for (sid, _stu), e in latest.items():
+        # 演示隔离（codex M4）：统计只数与本老师 is_demo 一致的学生，否则演示老师会看到
+        # 真实学生的出勤聚合，且历史页数字与 board/summary（两者都按 demo 过滤）对不上。
+        # 批量取这些 event 的学生 is_demo（一次 IN 查询，不引 N+1）。
+        stu_ids = {stu for (_sess, stu) in latest.keys()}
+        demo_map = {
+            sid: is_demo
+            for sid, is_demo in db.execute(
+                select(models.Student.id, models.Student.is_demo).where(
+                    models.Student.id.in_(stu_ids)
+                )
+            ).all()
+        }
+        for (sid, stu), e in latest.items():
+            if demo_map.get(stu) != teacher.is_demo:
+                continue
             bucket = counts[sid]
             bucket[e.base_status] = bucket.get(e.base_status, 0) + 1
 
@@ -910,8 +924,22 @@ def patch_event(
     # 演示隔离：演示老师只能改判演示学生、真老师只能改判真实学生（跨 demo → 404）
     assert_student_demo_match(teacher, student)
 
-    # 终态约束：已结束(ended)的场次禁止改判（spec §11 结束后冻结）
     session = db.get(models.RollCallSession, event.session_id)
+    # 行锁串行化（TW-026 + codex M2）：先锁 session 行、再读 session_status，保证
+    # 「判终态 → 读最新状态 → 判 no-op → 追加 override 行 + 扣分联动」整段在锁内串行。
+    # 若像原来那样先判终态再加锁，end_session 可能在判定之后、加锁之前把 session 改成
+    # ended，本请求拿到锁后仍用旧 ORM 对象（显示 running）继续往已结束场次写改判。加锁后
+    # 必须 refresh，用锁内最新状态重判终态。PostgreSQL（生产）靠行锁串行；SQLite（dev/
+    # test）单写者天然串行，with_for_update 是 no-op。口径同 applications.decide_approval。
+    if session is not None:
+        db.execute(
+            select(models.RollCallSession.id)
+            .where(models.RollCallSession.id == event.session_id)
+            .with_for_update()
+        )
+        db.refresh(session)
+
+    # 终态约束：已结束(ended)的场次禁止改判（spec §11 结束后冻结）—— 锁内用刷新后的状态判
     if session is not None and session.session_status == "ended":
         raise HTTPException(
             409,
@@ -919,18 +947,6 @@ def patch_event(
                 "code": "SESSION_ENDED",
                 "message": "終了済みのセッションは改判できません",
             },
-        )
-
-    # 行锁串行化（TW-026）：并发改判同一 (场次, 学生) 时，先锁住 session 行，保证
-    # 「读最新状态 → 判 no-op → 追加 override 行 + 扣分联动」整段串行执行。否则两请求
-    # 都读到旧 old_status、各追加一条互相矛盾的 override 行，board/summary 取到的最终
-    # 生效状态不确定、可能与扣分 / 审计不一致。PostgreSQL（生产）靠行锁；SQLite（dev/
-    # test）单写者天然串行，with_for_update 是 no-op。口径同 applications.decide_approval。
-    if session is not None:
-        db.execute(
-            select(models.RollCallSession.id)
-            .where(models.RollCallSession.id == event.session_id)
-            .with_for_update()
         )
 
     # 改判起点用该学生在本场次的「当前最新状态」，不是被 PATCH 那条 event 的 base_status。

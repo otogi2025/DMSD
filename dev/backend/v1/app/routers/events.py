@@ -169,15 +169,17 @@ def patch_event(
                 "message": f"category 必须是 {_VALID_CATEGORIES} 之一",
             },
         )
-    # 时刻先后用合并后的值校验（只传一个时刻时，跟库里已有的另一个比 — 与 create 对齐）。
-    final_start = body.start_at if body.start_at is not None else row.start_at
-    final_end = body.end_at if body.end_at is not None else row.end_at
-    _check_time_range(final_start, final_end)
     # 用 exclude_unset 区分「字段没传=不动」与「字段显式传 null=清空」（TW-014）。
     # 原来 `if val is not None` 把 null 也跳过，导致老师无法清空可选字段（start_at /
     # end_at / description），把输入框清空保存后旧值仍留着。前端编辑路径会对显式清空
     # 的字段发 null（而非 undefined），后端据 model_fields_set 落实清空。
     provided = body.model_dump(exclude_unset=True)
+    # 时刻先后校验也走 provided（codex m1）：用 `body.x is not None` 判会把「显式传 null
+    # 清空」误当成「没传」、拿旧值比较，可能错误拒绝一个合法修改（清空 start_at + 改 end_at）。
+    # 改用 provided.get(field, 旧值)：传了(含 null)用新值、没传用旧值。
+    final_start = provided.get("start_at", row.start_at)
+    final_end = provided.get("end_at", row.end_at)
+    _check_time_range(final_start, final_end)
     for field in (
         "title",
         "category",

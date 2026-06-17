@@ -654,6 +654,10 @@ export function App() {
     );
     let backendOk = false;
     if (hasRealSession) {
+      // baselineCreated：init 学生的 POST 基线已落库（codex M1）。若随后 PATCH 失败，DB 里
+      // 已有一条 present/late 基线、与本地不一致 → catch 里要重拉 board 让 UI 对齐 DB，
+      // 不能简单报「失败」让老师以为啥都没改（实际学生已被标到场）。
+      let baselineCreated = false;
       try {
         let eventId = target.lastEventId;
         if (!eventId) {
@@ -665,6 +669,7 @@ export function App() {
             { student_id: target.key, status_source: "manual_checkin" },
             authToken,
           );
+          baselineCreated = true;
           eventId = created.id;
           // POST 按时刻判 present/late；与老师选的目标状态不一致时再 PATCH 修正
           // （一致则跳过，避免撞 PATCH 的 no-op 守卫 409）。
@@ -692,10 +697,30 @@ export function App() {
         console.warn("[App] saveOverride backend 失败", err);
         // TW-042：失败时不要乐观改色、不要报成功。原来失败也照走本地更新 + 末尾无条件
         // 「調整が反映されました」成功 toast，覆盖掉警告，让老师误以为改判成功（实际后端没变）。
-        setToast({
-          type: "error",
-          msg: "変更の保存に失敗しました。もう一度お試しください",
-        });
+        if (baselineCreated && session && session.sessionId) {
+          // codex M1：POST 基线已落库但 PATCH 失败 → DB 已记 present/late，与本地不一致。
+          // 重拉 board 让 UI 反映 DB 真实状态（学生此刻是「到场」基线），并提示老师再调整一次
+          // （此时该生已有 event，再次改判走 PATCH 路径即可）。避免「UI 说失败、DB 却记了到场」。
+          try {
+            const board = await api.rollcallBoard(session.sessionId, authToken);
+            setStudents(
+              (board.entries || []).map((e) =>
+                _boardEntryToStudent(e, teacher.dorm),
+              ),
+            );
+          } catch (_) {
+            /* board 重拉失败忽略，下次刷新自愈 */
+          }
+          setToast({
+            type: "warn",
+            msg: `${target.name} の基準は記録されましたが状態調整に失敗しました。もう一度調整してください`,
+          });
+        } else {
+          setToast({
+            type: "error",
+            msg: "変更の保存に失敗しました。もう一度お試しください",
+          });
+        }
         setOverrideTarget(null);
         return;
       }
