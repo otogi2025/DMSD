@@ -149,7 +149,7 @@ fun MyInfoScreen(navController: NavHostController) {
                         )
                         Spacer(Modifier.width(6.dp))
                         Text(
-                            "学年・組・番号・部屋を編集",
+                            "連絡先・部屋を編集",
                             color = MaterialTheme.colorScheme.primary,
                             style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
                         )
@@ -157,7 +157,7 @@ fun MyInfoScreen(navController: NavHostController) {
                 }
 
                 // D. info box（青绿 4% 底 + 描边圆角 12）
-                InfoBox("氏名・生年月日・性別・メール・電話などの変更は、寮監にご連絡ください。")
+                InfoBox("学年・組・番号・氏名・生年月日・性別の変更は、寮監にご連絡ください。")
 
                 Spacer(Modifier.height(20.dp))
             }

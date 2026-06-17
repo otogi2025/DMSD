@@ -692,13 +692,13 @@ struct MyInfoView: View {
                         }
                     }
 
-                    // 編集ボタン（学年・組・番号・部屋番号）
+                    // 编辑按钮：仅改联系方式 + 房号；学年/组/番号/姓名 由老师控制、学生只读
                     Button {
                         router.go(.myInfoEdit)
                     } label: {
                         HStack(spacing: 6) {
                             Text("✎")
-                            Text("学年・組・番号・部屋を編集")
+                            Text("連絡先・部屋を編集")
                         }
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(T.primary)
@@ -760,7 +760,7 @@ struct MyInfoView: View {
                     // Info box
                     HStack(alignment: .top, spacing: 4) {
                         Text("ℹ")
-                        Text(" 氏名・生年月日・性別・メール・電話などの変更は、寮監にご連絡ください。")
+                        Text(" 学年・組・番号・氏名・生年月日・性別の変更は、寮監にご連絡ください。")
                     }
                     .font(.system(size: 12.5))
                     .foregroundStyle(T.primaryDk)
@@ -938,7 +938,7 @@ struct MyInfoEditView: View {
 
     private var helpInfoBox: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("ℹ アカウント番号・氏名・生年月日・性別の変更は、寮監にご連絡ください。")
+            Text("ℹ アカウント番号・学年・組・番号・氏名・生年月日・性別の変更は、寮監にご連絡ください。")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(T.primaryDk)
             Text("変更履歴は次の画面で確認できます。")
