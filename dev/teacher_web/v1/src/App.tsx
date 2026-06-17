@@ -640,37 +640,63 @@ export function App() {
     })[s] || s;
   const saveOverride = async (patch: any) => {
     const target = overrideTarget;
-    // 真接 backend：有 lastEventId + authToken + sessionId 时调 PATCH
-    if (
-      target &&
-      target.lastEventId &&
+    const backendStatus = _frontStatusToBackend(patch.status);
+    // 真实 session（有 sessionId + authToken）= 走后端落库；否则是 demo 模式（纯本地）。
+    const hasRealSession = !!(
       authToken &&
       session &&
-      session.sessionId
-    ) {
+      session.sessionId &&
+      target
+    );
+    let backendOk = false;
+    if (hasRealSession) {
       try {
-        await api.patchRollcallEvent(
-          target.lastEventId,
-          {
-            to_status: _frontStatusToBackend(patch.status),
-            reason: patch.reason,
-          },
-          authToken,
-        );
+        let eventId = target.lastEventId;
+        if (!eventId) {
+          // init（未点呼）学生本场没有 event：先 POST 建一条手动基线 checkin 落库，再按需
+          // PATCH 到目标状态。原来这种情况直接跳过后端、只改前端，点呼结束 _settle_absent
+          // 会把这名「老师当面确认出席」的学生记成欠席 + 扣 1.0 分（TW-008，点呼最常见操作）。
+          const created = await api.rollcallCheckin(
+            session.sessionId,
+            { student_id: target.key, status_source: "manual_checkin" },
+            authToken,
+          );
+          eventId = created.id;
+          // POST 按时刻判 present/late；与老师选的目标状态不一致时再 PATCH 修正
+          // （一致则跳过，避免撞 PATCH 的 no-op 守卫 409）。
+          if (created.base_status !== backendStatus) {
+            await api.patchRollcallEvent(
+              eventId,
+              { to_status: backendStatus, reason: patch.reason },
+              authToken,
+            );
+          }
+        } else {
+          await api.patchRollcallEvent(
+            eventId,
+            { to_status: backendStatus, reason: patch.reason },
+            authToken,
+          );
+        }
+        backendOk = true;
         setToast({
           type: "ok",
           msg: `${target.name} の状態を「${_statusLabelJa(patch.status)}」に変更しました`,
         });
         // 注：backend 异步 WebSocket broadcast 也会回推 setStudents，这里乐观更新保证 UI 即时反映
       } catch (err) {
-        console.warn("[App] patchRollcallEvent 失败 → 仅本地更新", err);
+        console.warn("[App] saveOverride backend 失败", err);
+        // TW-042：失败时不要乐观改色、不要报成功。原来失败也照走本地更新 + 末尾无条件
+        // 「調整が反映されました」成功 toast，覆盖掉警告，让老师误以为改判成功（实际后端没变）。
         setToast({
-          type: "warn",
-          msg: "変更の保存に失敗しました。表示のみ更新します",
+          type: "error",
+          msg: "変更の保存に失敗しました。もう一度お試しください",
         });
+        setOverrideTarget(null);
+        return;
       }
     }
-    // 本地 state 同步（成功 / 失败 / demo 模式都更新一次，保证 UI 反应）
+    // 本地 state 同步：仅在 backend 成功、或 demo 模式（无真实 session）时更新。
     setStudents((list) =>
       list.map((s) =>
         s.key === overrideTarget.key
@@ -695,7 +721,10 @@ export function App() {
       ),
     );
     setOverrideTarget(null);
-    setToast({ type: "ok", msg: "調整が反映されました" });
+    // demo 模式（无真实 session）才在这里补一个成功 toast；真实 session 的成功 toast 上面已出。
+    if (!hasRealSession) {
+      setToast({ type: "ok", msg: "調整が反映されました" });
+    }
   };
   const resetLive = async () => {
     // 从后端重新拉 board，不再用假数据
@@ -981,10 +1010,15 @@ export function App() {
               }
             }
             setOutstayTarget(null);
-            setToast({
-              type: "ok",
-              msg: `申請を${a === "approved" ? "承認" : a === "rejected" ? "却下" : "保留"}しました${a === "approved" || a === "rejected" ? " · 学生へメール通知送信済み" : ""}`,
-            });
+            // 只有 approve/reject 真的落库 → 才报成功。其余动作（如「保留/質問あり」）后端
+            // 无对应处理，不能给成功 toast（TW-045：原来一律报「…しました」，让老师误以为
+            // 已处理，实际申请仍 pending、学生零通知）。「質問あり」按钮本身已在 Modal 移除。
+            if (a === "approved" || a === "rejected") {
+              setToast({
+                type: "ok",
+                msg: `申請を${a === "approved" ? "承認" : "却下"}しました · 学生へメール通知送信済み`,
+              });
+            }
           }}
         />
       )}

@@ -145,6 +145,15 @@ export const api = {
       { decision, comment },
       token,
     ),
+  // 差戻 —— 老师把审查中的届退回给学生修改重提（C42 老师侧）。
+  // comment 是差戻理由（必填，1-1000 字）。成功返回 status="returned" 的 Application。
+  returnApplication: (id: string, comment: string, token: string) =>
+    request<Application>(
+      "POST",
+      `/applications/${id}/return`,
+      { comment },
+      token,
+    ),
   getAuditLog: (id: string, token: string) =>
     request<AuditEntry[]>("GET", `/applications/${id}/audit`, undefined, token),
   // 出寮者一覧 — 当天在出寮期间内、已承认的届（按老师寮边界过滤）
@@ -278,6 +287,19 @@ export const api = {
       token,
     );
   },
+  // 老师手动签到（建一条点呼 event）— 用于给「未点呼(init)」学生先落一条基线 event，
+  // 再 PATCH 改判到目标状态（TW-008：否则对 init 学生的改判只改前端、不落库，结束时被结算成欠席）
+  rollcallCheckin: (
+    session_id: string,
+    body: { student_id: string; status_source: string },
+    token: string,
+  ) =>
+    request<RollCallEventOut>(
+      "POST",
+      `/rollcall/sessions/${session_id}/checkins`,
+      body,
+      token,
+    ),
   // 教师改判单条 event — OverrideModal 调（后端自动跑改判扣分联动 + WS broadcast）
   patchRollcallEvent: (
     event_id: string,

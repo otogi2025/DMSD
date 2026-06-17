@@ -32,11 +32,14 @@ export function OutstayDetailModal({
   app,
   onClose,
   onAction,
+  onReturn,
   authToken,
 }: {
   app: OutstayUiApp;
   onClose: () => void;
   onAction: (action: string, comment: string) => void;
+  // 差戻 —— 把届退回给学生修改重提。reason 是差戻理由（必填）。
+  onReturn: (reason: string) => void;
   authToken: string;
 }) {
   const T = RYO;
@@ -46,6 +49,10 @@ export function OutstayDetailModal({
   } | null>(null);
   // 杭田 2026-06-04 二-4：审批时给学生看的评论输入（补强旧 UI 弱点）
   const [comment, setComment] = React.useState("");
+  // 差戻理由输入弹窗的开关 / 输入内容 / 校验错误提示
+  const [returnOpen, setReturnOpen] = React.useState(false);
+  const [returnReason, setReturnReason] = React.useState("");
+  const [returnError, setReturnError] = React.useState<string | null>(null);
   // backend 取来的完整 ApplicationOut
   const [detail, setDetail] = React.useState<Application | null>(null);
   // 审计日志 —— 后端返回 created_at / action 字段，保持松类型不改渲染
@@ -379,9 +386,9 @@ export function OutstayDetailModal({
             <Section title="欠食">
               {detail.meals_skip.map((m: any, i) => (
                 <F key={i} label={String(m.date || i)} mono>
-                  {[m.breakfast && "朝", m.lunch && "昼", m.dinner && "夕"]
-                    .filter(Boolean)
-                    .join(" / ") || "—"}
+                  {/* 后端 MealSkipEntry = {date, meal}（meal 已是「朝食/昼食/夕食」）。
+                      原来读 m.breakfast/lunch/dinner 三个不存在的字段 → 每行恒显「—」（TW-116）。 */}
+                  {m.meal || "—"}
                 </F>
               ))}
               {detail.meal_note && <F label="食事備考">{detail.meal_note}</F>}
@@ -595,27 +602,9 @@ export function OutstayDetailModal({
             閉じる
           </button>
           <div style={{ flex: 1 }} />
-          <button
-            onClick={() =>
-              setConfirm({
-                action: "question",
-                label: "質問あり（保留）",
-              })
-            }
-            style={{
-              padding: "10px 18px",
-              background: "transparent",
-              color: T.warn,
-              border: `1px solid ${T.warnBorder}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
-            質問あり（保留）
-          </button>
+          {/* 「質問あり（保留）」按钮已移除（TW-024）：后端 decide 只支持 approve/reject，
+              保留无对应处理，点了会谎报「保留しました」但申请实际仍 pending、学生零通知。
+              退回/保留是 v1.1 功能（需后端 returned 状态 + 通知），实装后再恢复入口。 */}
           <button
             onClick={() => setConfirm({ action: "rejected", label: "却下" })}
             style={{

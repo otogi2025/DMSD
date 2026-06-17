@@ -59,16 +59,22 @@ function _adaptBackendAppsByKind(
       a.reason ||
       "",
     submitted: a.submitted_at,
+    // approved_partial（他役职已批、仍待当前役职决裁）归「未処理(pending)」：本列表数据源
+    // pending-for-me 只返回「待当前役职决裁」的届，故 approved_partial 在这里语义就是
+    // 「还等我处理」。原来把它和 approved 一起映成「承認済」，导致它从未処理徽章 + 默认
+    // 待审视图漏掉，多级审批链中段役职看不到自己的待决裁案件（TW-009）。
     state:
       a.status === "pending"
         ? "pending"
-        : a.status === "approved" || a.status === "approved_partial"
-          ? "approved"
-          : a.status === "rejected"
-            ? "rejected"
-            : a.status === "returned"
-              ? "question"
-              : a.status,
+        : a.status === "approved_partial"
+          ? "pending"
+          : a.status === "approved"
+            ? "approved"
+            : a.status === "rejected"
+              ? "rejected"
+              : a.status === "returned"
+                ? "question"
+                : a.status,
     _backend: a,
   }));
 }
@@ -349,7 +355,11 @@ function OutstayList({
   const T = RYO;
   // Task #6 第 6 步 + Task #16: apps prop 是 array 就一定用（空数组也显示空状态）。
   const apps = Array.isArray(appsProp) ? appsProp : [];
-  const subs = ["pending", "approved", "rejected", "question", "all"];
+  // 数据源是 pending-for-me（后端只返回「待当前役职决裁」的届：pending / approved_partial）。
+  // 已审结的届（批准 / 却下 / 退回质问）结构上永远不会进这个列表 → 移除这三个恒空子标签，
+  // 只留 pending（待审）+ all（全部）两个有意义的视图，不再给老师点开却永远空的死标签
+  // （TW-044）。历史查询需另建带状态过滤的老师端端点，本列表不承担。
+  const subs = ["pending", "all"];
   const subLabels: Record<string, string> = {
     pending: "審査待ち",
     approved: "承認済",
