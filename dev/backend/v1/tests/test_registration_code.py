@@ -211,7 +211,7 @@ def test_create_account_room_dorm_mismatch(client, seed_data, teacher_token):
 def test_create_account_2dorm_rejects_M_prefix(client, seed_data, teacher_token):
     """回归守卫：2 寮（dorm_unit=2）必须 A 前缀房号；旧 bug 用 M205 也能过 → 现应 422。
 
-    起因：旧 _validate_room_dorm_match 对 dorm_unit∈{1,2} 一律期望 M 前缀，与 §5.0 +
+    起因：旧 validate_room_dorm_match 对 dorm_unit∈{1,2} 一律期望 M 前缀，与 §5.0 +
     §8.1 DB CHECK（2 寮要求 ^A[0-9]{1,2}$）矛盾，导致 2 寮 A 房号被拒、M 房号反被放行。
     """
     code = client.post(

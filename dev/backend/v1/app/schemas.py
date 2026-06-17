@@ -831,7 +831,9 @@ class TeacherInvitationIn(BaseModel):
     target_email: EmailStr
     # C-14：限定为 TEACHER_ROLES 9 值，非法 role 在解析阶段 422 而非 DB CHECK 500
     target_role: TeacherRoleLiteral
-    target_dorm: Optional[int] = None
+    # 限定为 1/2/4（与 dorm_unit 一致）— 非法寮号（3/99 等）在解析阶段 422，
+    # 否则落到 register_teacher 建老师时撞 ck_teachers_dorm CHECK → 不透明 500。
+    target_dorm: Optional[Literal[1, 2, 4]] = None
 
 
 class TeacherInvitationOut(BaseModel):
@@ -905,7 +907,9 @@ class TeacherCreateIn(BaseModel):
     role: TeacherRoleLiteral
     # 权限组（teacher_permission_v1.md §3）— 决定该账号功能权限；省略则建账号后按职位回退默认组。
     permission_group: Optional[str] = None
-    assigned_dorm: Optional[int] = None
+    # 限定为 1/2/4（与 dorm_unit 一致）— 非法寮号在解析阶段 422，
+    # 否则 create_teacher 落库撞 ck_teachers_dorm CHECK，IntegrityError 被误报成 DUPLICATE。
+    assigned_dorm: Optional[Literal[1, 2, 4]] = None
 
 
 # ---------------------------------------------------------------
@@ -954,7 +958,7 @@ class StudentAccountCreateIn(BaseModel):
     category: str = Field(default="一般寮生", max_length=32)
     # min_length=2：2 寮房号最短是 A1〜A9（A + 1 位 = 2 字符，§5.0）；旧 min_length=3 会把
     # A1〜A9 全部挡在 schema 校验外，2 寮学生无法注册。精确格式（M***/A*/W***）由
-    # accounts._validate_room_dorm_match 按 dorm_unit 用与 DB CHECK 同源的正则把关。
+    # accounts.validate_room_dorm_match 按 dorm_unit 用与 DB CHECK 同源的正则把关。
     room_no: str = Field(..., min_length=2, max_length=8)
     # spec §5.0：寮号只有 1/2（男寮）、4（女寮）— 没有 3，与 models.py CHECK 约束对齐
     # B10：原来 ge=1, le=4 允许 3，DB CHECK 只接受 1/2/4，改为 Literal 精确限定
@@ -969,7 +973,7 @@ class StudentAccountCreateIn(BaseModel):
 
     # B10：dorm_unit 的 3 由 Literal[1,2,4] 拦下，无需额外校验器。
     # C-8（房号前缀 ↔ dorm_unit/gender 交叉校验）不在本 schema 做 —— accounts.py 的
-    # _validate_room_dorm_match 已在 router 层校验并返回结构化 422 INVALID_ROOM_FORMAT
+    # validate_room_dorm_match 已在 router 层校验并返回结构化 422 INVALID_ROOM_FORMAT
     # （见 test_registration_code.py::test_create_account_room_dorm_mismatch）。改成 schema 层
     # ValueError 会让该错误退化成 Pydantic 列表式 422、破坏既有错误契约，故 C-8 判定为误报不改。
 

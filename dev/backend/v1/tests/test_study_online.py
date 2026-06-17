@@ -181,6 +181,34 @@ class TestUploadContract:
         assert res.status_code == 422, res.text
         assert res.json()["detail"]["code"] == "UNSUPPORTED_FILE_TYPE"
 
+    def test_reject_pdf_magic_not_at_start(self, client, student_token):
+        """%PDF- 藏在文件中段而非开头 → 拒绝（startswith 而非 contains，codex 复审逮到的绕过）。"""
+        rid = _create_request(client, student_token)
+        res = _upload(
+            client,
+            student_token,
+            rid,
+            name="evil.pdf",
+            body=b"<html><!-- %PDF-1.4 --><script>x</script></html>",
+            mime="application/pdf",
+        )
+        assert res.status_code == 422, res.text
+        assert res.json()["detail"]["code"] == "UNSUPPORTED_FILE_TYPE"
+
+    def test_upload_forces_extension_to_validated_type(self, client, student_token):
+        """上传名 report.html 但内容是合法 PDF + 声明 pdf → 存盘文件名后缀强制 .pdf（不信原始后缀）。"""
+        rid = _create_request(client, student_token)
+        res = _upload(
+            client,
+            student_token,
+            rid,
+            name="report.html",
+            body=PDF_BYTES,
+            mime="application/pdf",
+        )
+        assert res.status_code == 200, res.text
+        assert res.json()["contract_file_name"] == "report.pdf"
+
     def test_reject_not_owner(self, client, student_token, second_student_token):
         rid = _create_request(client, student_token)
         res = _upload(client, second_student_token, rid)

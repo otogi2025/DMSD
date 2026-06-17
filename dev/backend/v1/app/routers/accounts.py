@@ -39,7 +39,7 @@ _ROOM_PATTERN_BY_DORM: dict[int, str] = {
 }
 
 
-def _validate_room_dorm_match(room_no: str, dorm_unit: int, gender: str) -> None:
+def validate_room_dorm_match(room_no: str, dorm_unit: int, gender: str) -> None:
     """校验 room_no、dorm_unit、gender 三者一致（§5.0 房号编码 + §8.1 DB CHECK）。
 
     1 寮 = M*** (male) / 2 寮 = A* (male) / 4 寮 = W*** (female)。
@@ -125,7 +125,7 @@ def create_account(
     code_row = _validate_registration_code(body.registration_code, db)
 
     # 2. 校验 room_no ↔ dorm_unit ↔ gender 一致
-    _validate_room_dorm_match(body.room_no, body.dorm_unit, body.gender)
+    validate_room_dorm_match(body.room_no, body.dorm_unit, body.gender)
 
     # 3. 学号查重
     existing_student = db.scalars(

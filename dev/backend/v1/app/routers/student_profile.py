@@ -30,6 +30,7 @@ from ..deps import (
     get_current_principal,
     get_current_student,
 )
+from .accounts import validate_room_dorm_match  # §5.0 房号校验单源，注册/改档共用
 
 router = APIRouter(prefix="/api/v1", tags=["student / profile"])
 
@@ -90,21 +91,11 @@ def update_my_profile(
                 },
             )
 
-    # room_no 改动校验前缀 ↔ 本人 dorm_unit 一致
+    # room_no 改动校验：复用注册接口同一套 §5.0 房号规则（M=1寮/A=2寮/W=4寮），不另维护一份。
+    # dorm_unit / gender 学生改不了 → 等价「同寮内换房间」，新房号必须仍符合本人寮的前缀+格式。
+    # （旧逻辑对 2 寮一律期望 M 前缀，与注册侧同 bug：2 寮学生改房号会被错误 422，M 房号反被放行。）
     if data.get("room_no"):
-        prefix = data["room_no"][:1].upper()
-        expected_prefix = "M" if student.dorm_unit in (1, 2) else "W"
-        if prefix != expected_prefix:
-            raise HTTPException(
-                status_code=422,
-                detail={
-                    "code": "INVALID_ROOM_FORMAT",
-                    "message": (
-                        f"部屋番号 '{data['room_no']}' は所属寮（{expected_prefix}***）"
-                        "と一致しません"
-                    ),
-                },
-            )
+        validate_room_dorm_match(data["room_no"], student.dorm_unit, student.gender)
 
     # 应用更新（只动白名单字段；空字符串视为清空联系方式）
     for field in ("email", "phone", "avatar_url", "room_no"):

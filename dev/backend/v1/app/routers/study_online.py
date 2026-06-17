@@ -74,8 +74,9 @@ def _magic_matches(head: bytes, mime: str) -> bool:
     if mime == "image/png":
         return head.startswith(b"\x89PNG\r\n\x1a\n")
     if mime == "application/pdf":
-        # PDF 规范要求 %PDF- 在文件最前，但容许极少量前导字节，放宽到前 1KB 内查找
-        return b"%PDF-" in head[:1024]
+        # PDF 规范要求 %PDF- 在文件最前（字节 0）。用 startswith 严格校验，不放宽到「前 1KB 内包含」——
+        # 否则 HTML 等任意文件只要前段藏一个 %PDF- 就能伪装通过（codex 复审逮到的绕过）。
+        return head.startswith(b"%PDF-")
     if mime == "image/heic":
         return len(head) >= 12 and head[4:8] == b"ftyp" and head[8:12] in _HEIF_BRANDS
     return False
@@ -99,7 +100,10 @@ def _safe_filename(name: str | None, ext: str) -> str:
         return f"contract{ext}"
     if len(cleaned) > 120:
         cleaned = cleaned[:120]
-    return cleaned
+    # 强制下载文件名后缀 = 校验后的真实类型 ext，不信原始文件名后缀
+    # （防 evil.html 声明成 pdf 通过校验后仍以 .html 名下发；纵深加固，与 magic 校验配套）
+    stem = cleaned.rsplit(".", 1)[0] if "." in cleaned else cleaned
+    return f"{stem}{ext}"
 
 
 @router.post(
