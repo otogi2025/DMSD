@@ -109,18 +109,21 @@ export function FrontDeskPage({
       );
   };
 
+  // 未受取/未返却 = 显式 pending || notified（TW-060）。原来用 `!= picked_up`，会把将来
+  // 可能出现的 expired / discarded 终态也算成「要対応」，误导老师。现阶段后端无这两个终态，
+  // 属潜伏 bug，先按语义显式化兜住。
   const delFiltered = deliveries.filter((d) =>
     filter === "all"
       ? true
       : filter === "unpicked"
-        ? d.status !== "picked_up"
+        ? d.status === "pending" || d.status === "notified"
         : d.status === "picked_up",
   );
   const lostFiltered = lostItems.filter((l) =>
     filter === "all"
       ? true
       : filter === "open"
-        ? l.status !== "picked_up"
+        ? l.status === "pending" || l.status === "notified"
         : l.status === "picked_up",
   );
 
@@ -134,7 +137,9 @@ export function FrontDeskPage({
     tab === "delivery"
       ? {
           total: deliveries.length,
-          unpicked: deliveries.filter((d) => d.status !== "picked_up").length,
+          unpicked: deliveries.filter(
+            (d) => d.status === "pending" || d.status === "notified",
+          ).length,
           today: deliveries.filter((d) =>
             (d.created_at || "").startsWith(todayIso),
           ).length,
@@ -142,7 +147,9 @@ export function FrontDeskPage({
         }
       : {
           total: lostItems.length,
-          open: lostItems.filter((l) => l.status !== "picked_up").length,
+          open: lostItems.filter(
+            (l) => l.status === "pending" || l.status === "notified",
+          ).length,
           returned: lostItems.filter((l) => l.status === "picked_up").length,
           archived: 0,
         };

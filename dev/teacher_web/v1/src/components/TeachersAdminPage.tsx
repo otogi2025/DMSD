@@ -347,7 +347,10 @@ function TeachersAdminCreateModal({
   const [submitting, setSubmitting] = React.useState(false);
   const [err, setErr] = React.useState("");
 
+  // 与后端 TeacherRoleLiteral(schemas.py)9 个职位对齐 —— 原来漏「校長」，导致校長账号无法
+  // 通过网页创建（TW-064）。职位仅作显示标签，实际权限由 permission_group 决定。
   const ROLES = [
+    "校長",
     "寮務部長",
     "寮務課長",
     "国際交流部長",
