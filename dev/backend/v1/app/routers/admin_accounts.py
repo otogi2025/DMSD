@@ -122,7 +122,10 @@ def list_students(
     q: str | None = Query(None, description="按学号或姓名模糊搜索"),
     dorm_unit: int | None = Query(None, description="寮号过滤 (1/2/4)"),
     student_status: str | None = Query(
-        None, alias="status", description="账号状态过滤 (active/locked/graduated 等)"
+        None, alias="status", description="账号状态过滤 (active/graduated 等)"
+    ),
+    locked: bool | None = Query(
+        None, description="只看当前被锁定的账号 (account.locked_until > now)"
     ),
     teacher: models.Teacher = Depends(
         require_permission(permissions.C_STUDENT_ACCOUNT, permissions.VIEW)
@@ -170,6 +173,19 @@ def list_students(
         stmt = stmt.where(models.Student.dorm_unit == dorm_unit)
     if student_status is not None:
         stmt = stmt.where(models.Student.status == student_status)
+    if locked:
+        # 「ロック中」过滤：账号锁定写在 account.locked_until（登录失败锁定），不是
+        # student.status。原前端 status=locked 过滤 Student.status=='locked' 永远查不到
+        # （无任何代码把 student.status 设成 'locked'），统计卡显示锁定数却点开列表为空、
+        # 自相矛盾（TW-011）。改为 JOIN accounts 按 locked_until>now 过滤；前端 is_locked
+        # 再过滤兜紧时区边界。
+        now_utc = datetime.now(timezone.utc)
+        stmt = stmt.join(
+            models.Account, models.Account.student_id == models.Student.id
+        ).where(
+            models.Account.locked_until.isnot(None),
+            models.Account.locked_until > now_utc,
+        )
 
     # 按学号排序（grade → class → seat）
     stmt = stmt.order_by(

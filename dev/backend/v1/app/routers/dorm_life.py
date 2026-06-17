@@ -176,7 +176,11 @@ def decide_event_proposal(
 def create_schedule_change(
     body: schemas.DormScheduleChangeCreateIn,
     db: Session = Depends(get_db),
-    teacher: models.Teacher = Depends(get_current_teacher),
+    # 补权限闸：与同资源 GET（list_my / list_schedule_changes 的 C_APPROVAL VIEW）口径一致，
+    # 不再裸用 get_current_teacher（原来任何老师令牌都能创建、绕过权限簇声明）。TW-071/110。
+    teacher: models.Teacher = Depends(
+        require_permission(permissions.C_APPROVAL, permissions.VIEW)
+    ),
 ):
     record = models.DormScheduleChange(requester_id=teacher.id, **body.model_dump())
     db.add(record)

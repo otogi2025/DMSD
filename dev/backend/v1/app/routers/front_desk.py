@@ -71,7 +71,7 @@ def list_items(
                 status_code=400,
                 detail={
                     "code": "INVALID_KIND",
-                    "message": "kind 必须是 delivery 或 lost_and_found",
+                    "message": "種別は delivery または lost_and_found のいずれかです",
                 },
             )
         stmt = stmt.where(models.FrontDeskItem.kind == kind)
@@ -79,18 +79,17 @@ def list_items(
     # R4 寮过滤：寮監等管辖男/女寮的老师只看关联学生属于自己男/女寮的条目。
     # itsuki 拍板「按男寮 / 女寮过滤、不细分到楼」—— dorm_units_for_teacher 返回的本就是
     # 男女寮粒度（男寮=[1,2] / 女寮=[4] / 跨寮角色=None=看全部）。
-    # 无关联学生的条目（如无主失物 student_id=NULL）对所有老师可见。
-    # 总 outerjoin Student：演示隔离（无主条目 student_id=NULL 对所有老师可见；
-    # 有主条目按 demo 隔离 — 真老师只看真实学生条目 / 演示老师只看演示学生条目）+ R4 寮过滤叠加。
+    # 演示隔离 + 无主条目可见性（TW-051/059）：有主条目按 demo 隔离（真老师看真实学生
+    # 条目 / 演示老师看演示学生条目）；无主条目（失物 student_id=NULL）写侧已限定只能由
+    # 真老师创建（演示老师禁建），故读侧也只对真老师可见 —— 演示账号不再读到真实无主失物
+    # 登记（原来无主条目对所有老师无条件可见，是读/写隔离不对称）。R4 寮过滤再叠加。
     allowed = dorm_units_for_teacher(teacher)
+    visibility_conds = [demo_scope_for_teacher(teacher)]
+    if not teacher.is_demo:
+        visibility_conds.append(models.FrontDeskItem.student_id.is_(None))
     stmt = stmt.outerjoin(
         models.Student, models.FrontDeskItem.student_id == models.Student.id
-    ).where(
-        or_(
-            models.FrontDeskItem.student_id.is_(None),
-            demo_scope_for_teacher(teacher),
-        )
-    )
+    ).where(or_(*visibility_conds))
     if allowed is not None:
         stmt = stmt.where(
             or_(
@@ -184,7 +183,7 @@ def create_item(
         if not student:
             raise HTTPException(
                 status_code=404,
-                detail={"code": "STUDENT_NOT_FOUND", "message": "学生不存在"},
+                detail={"code": "STUDENT_NOT_FOUND", "message": "学生が見つかりません"},
             )
         # 演示写隔离：有关联学生时演示老师只能挂演示学生 / 真老师只能挂真实学生
         assert_student_demo_match(teacher, student)
@@ -229,7 +228,7 @@ def notify_item(
     if not row:
         raise HTTPException(
             status_code=404,
-            detail={"code": "ITEM_NOT_FOUND", "message": "条目不存在"},
+            detail={"code": "ITEM_NOT_FOUND", "message": "項目が見つかりません"},
         )
     # 演示写隔离 + R4 寮边界：条目关联学生时校验
     if row.student_id:
@@ -260,7 +259,7 @@ def notify_item(
             status_code=409,
             detail={
                 "code": "WRONG_STATE",
-                "message": f"当前 status={current_status}，只能从 pending 转 notified",
+                "message": f"現在の状態（{current_status}）からは通知済みにできません",
             },
         )
     db.commit()
@@ -282,7 +281,7 @@ def mark_picked_up(
     if not row:
         raise HTTPException(
             status_code=404,
-            detail={"code": "ITEM_NOT_FOUND", "message": "条目不存在"},
+            detail={"code": "ITEM_NOT_FOUND", "message": "項目が見つかりません"},
         )
     # 演示写隔离 + R4 寮边界：条目关联学生时校验
     if row.student_id:
@@ -313,7 +312,7 @@ def mark_picked_up(
             status_code=409,
             detail={
                 "code": "WRONG_STATE",
-                "message": f"当前 status={current_status}，不能转 picked_up",
+                "message": f"現在の状態（{current_status}）からは受取済みにできません",
             },
         )
     db.commit()
