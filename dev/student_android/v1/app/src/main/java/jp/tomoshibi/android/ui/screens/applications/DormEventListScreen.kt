@@ -1,6 +1,8 @@
 package jp.tomoshibi.android.ui.screens.applications
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +24,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -38,6 +42,7 @@ import jp.tomoshibi.android.ui.components.LoadingBox
 import jp.tomoshibi.android.ui.components.PageHeader
 import jp.tomoshibi.android.ui.components.Pill
 import jp.tomoshibi.android.ui.components.PillTone
+import jp.tomoshibi.android.ui.components.PrimaryButton
 import jp.tomoshibi.android.ui.components.SuzuCard
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
@@ -111,7 +116,8 @@ fun DormEventListScreen(navController: NavHostController) {
 
                     is LoadState.Success -> {
                         s.value.forEach { item ->
-                            DormEventRow(item)
+                            // 再提出成功后重新拉一览（差戻条目状态会从「再提出」变回「審査中」）
+                            DormEventRow(item, onResubmitted = { scope.launch { load() } })
                         }
                     }
                 }
@@ -123,9 +129,17 @@ fun DormEventListScreen(navController: NavHostController) {
 
 // 单条行事企画卡 — 上半 title/place 竖排 + 状态 Pill；下半 开催日時 + 「N名」预想人数
 // item 为后端 DTO DormEventProposalOut（字段名跟旧本地模型不同：状态在 result 不在 status）
+// onResubmitted：再提出成功后通知一览刷新（差戻 → 重提 → 列表状态翻回审查中）
 @Composable
-private fun DormEventRow(item: DormEventProposalOut) {
+private fun DormEventRow(
+    item: DormEventProposalOut,
+    onResubmitted: () -> Unit,
+) {
     val t = SuzuT.current
+    val scope = rememberCoroutineScope()
+    // 再提出中标志（防重复点击 + 按钮禁用态）；失败把后端消息落到 actionError 给用户看
+    var resubmitting by remember(item.id) { mutableStateOf(false) }
+    var actionError by remember(item.id) { mutableStateOf<String?>(null) }
     SuzuCard(padding = 14) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -171,17 +185,89 @@ private fun DormEventRow(item: DormEventProposalOut) {
                     style = TextStyle(fontSize = 11.sp, fontFamily = FontFamily.Monospace),
                 )
             }
+
+            // ── 差戻（result=="resubmit"）专属区块 ──
+            // 老师退回要求重提：① 显示老师评语（如有）② 露出「再提出」按钮。
+            // 没有独立详细屏，所以直接拿 DTO 现有完整字段原样重提（POST .../resubmit），
+            // 内容沿用上次提交（学生若要改内容，当前版本暂走重新提交新企画；编辑流程留待详细屏实装）。
+            if (item.result == "resubmit") {
+                item.comment?.takeIf { it.isNotBlank() }?.let { comment ->
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(t.dangerBg)
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                "先生からのコメント",
+                                color = t.danger,
+                                style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold),
+                            )
+                            Text(
+                                comment,
+                                color = t.ink,
+                                style = TextStyle(fontSize = 12.sp, lineHeight = 18.sp),
+                            )
+                        }
+                    }
+                }
+                PrimaryButton(
+                    title = if (resubmitting) "再提出中…" else "再提出",
+                    icon = SuzuIcons.Edit,
+                    enabled = !resubmitting,
+                    onClick = {
+                        scope.launch {
+                            resubmitting = true
+                            actionError = null
+                            try {
+                                // 用 DTO 现有字段拼回提交 body（跟首次提交同形）
+                                DormLifeAPI.resubmitEventProposal(
+                                    id = item.id,
+                                    body =
+                                        DormLifeAPI.EventProposalBody(
+                                            teamName = item.teamName,
+                                            title = item.title,
+                                            heldAt = item.heldAt,
+                                            place = item.place,
+                                            expectedCount = item.expectedCount,
+                                            target = item.target,
+                                            purpose = item.purpose,
+                                            content = item.content,
+                                            riskSolution = item.riskSolution,
+                                            expectedCost = item.expectedCost,
+                                            note = item.note,
+                                        ),
+                                )
+                                onResubmitted()
+                            } catch (e: ApiError) {
+                                actionError = e.display
+                            } catch (e: Exception) {
+                                actionError = "再提出に失敗しました"
+                            } finally {
+                                resubmitting = false
+                            }
+                        }
+                    },
+                )
+                actionError?.let {
+                    Text(it, color = t.danger, style = TextStyle(fontSize = 12.sp))
+                }
+            }
         }
     }
 }
 
 // 后端 result → 徽章文字 + 色调（对齐 iOS eventResultPair）
-//   approved / approved_conditional → 「許可」绿
-//   rejected → 「却下」红
-//   pending / resubmit / 其他 → 「審査中」橙
+//   approved → 「許可」绿 / approved_conditional → 「条件付き許可」accent
+//   resubmit → 「再提出」橙 / rejected → 「却下」红 / pending / 其他 → 「審査中」橙
 private fun eventResultPair(result: String): Pair<String, PillTone> =
     when (result) {
-        "approved", "approved_conditional" -> "許可" to PillTone.Ok
+        "approved" -> "許可" to PillTone.Ok
+        "approved_conditional" -> "条件付き許可" to PillTone.Accent
+        "resubmit" -> "再提出" to PillTone.Warn
         "rejected" -> "却下" to PillTone.Danger
         else -> "審査中" to PillTone.Warn
     }

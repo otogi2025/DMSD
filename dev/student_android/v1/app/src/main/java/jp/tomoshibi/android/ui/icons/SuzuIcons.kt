@@ -18,8 +18,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 object SuzuIcons {
     // ── nav bar 5 icon ────────────────────
     val Home: ImageVector = Icons.Outlined.Home
-    val Doc: ImageVector = Icons.Outlined.Description       // 申请类比 doc
-    val Nfc: ImageVector = Icons.Outlined.Wifi              // NFC 没有现成 — 用 wifi 占位（视觉接近"信号"）
+    val Doc: ImageVector = Icons.Outlined.Description // 申请类比 doc
+    val Nfc: ImageVector = Icons.Outlined.Wifi // NFC 没有现成 — 用 wifi 占位（视觉接近"信号"）
     val Bell: ImageVector = Icons.Outlined.Notifications
     val User: ImageVector = Icons.Outlined.Person
 
@@ -36,6 +36,9 @@ object SuzuIcons {
     val Bus: ImageVector = Icons.Outlined.DirectionsBus
     val Music: ImageVector = Icons.Outlined.MusicNote
     val Edit: ImageVector = Icons.Outlined.Edit
+
+    // 取消 / 撤回操作用的「✕」图标（出寮届撤回按钮）— Material Outlined.Close 最贴近 iOS xmark
+    val Close: ImageVector = Icons.Outlined.Close
     val Check: ImageVector = Icons.Outlined.Check
     val CheckCirc: ImageVector = Icons.Outlined.CheckCircle
     val Plus: ImageVector = Icons.Filled.Add
@@ -55,6 +58,7 @@ object SuzuIcons {
     val Sparkles: ImageVector = Icons.Outlined.AutoAwesome
     val Pkg: ImageVector = Icons.Outlined.Inventory
     val Envelope: ImageVector = Icons.Outlined.Email
+
     // Shield = iOS shield.checkered（带勾的盾）— Material Icons 用 Filled.GppGood (盾 + ✓) 最接近
     val Shield: ImageVector = Icons.Filled.GppGood
     val Person: ImageVector = Icons.Outlined.Person

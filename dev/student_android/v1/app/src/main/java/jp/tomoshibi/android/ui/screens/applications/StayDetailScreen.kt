@@ -84,6 +84,10 @@ fun StayDetailScreen(
     // 三态：Loading / Failed(消息) / Success(映射后的 StayApplication)。详情单条不设 Empty。
     var ui by remember { mutableStateOf<LoadState<StayApplication>>(LoadState.Loading) }
 
+    // 撤回中标志（防重复点击 + 按钮显示禁用态）。撤回失败时把后端消息落到 actionError 给用户看。
+    var withdrawing by remember { mutableStateOf(false) }
+    var actionError by remember { mutableStateOf<String?>(null) }
+
     // 加载函数（重试也调它）。失败必须落 Failed，绝不退化成假数据。
     suspend fun load() {
         ui = LoadState.Loading
@@ -152,13 +156,56 @@ fun StayDetailScreen(
 
                         HistoryCard(t, item)
 
-                        // 变更届可提交时露出底部按钮 → 跳编辑屏
+                        // ── 底部操作区 ──
+                        // 编辑（变更届 / 再提出）可提交时露出。状态决定按钮文案：
+                        //   要修正（returned）→「修正して再提出」（差戻后改完重提，语义对齐 iOS）
+                        //   其余可编辑态（pending / approved_partial）→「変更届を提出」
+                        // 两者都走既有编辑流程（StayEdit → PUT /applications/:id，重提=改完回 pending）。
                         if (item.isEditable) {
+                            val isReturned = item.status == StayStatus.RETURNED.name
                             PrimaryButton(
-                                title = "変更届を提出",
+                                title = if (isReturned) "修正して再提出" else "変更届を提出",
                                 icon = SuzuIcons.Edit,
+                                enabled = !withdrawing,
                                 onClick = { navController.navigate(Route.StayEdit(id).path) },
                             )
+                        }
+
+                        // 撤回（取消）可执行时露出红色危险按钮 → POST /applications/:id/withdraw。
+                        // 仅 pending / approved_partial / returned 可撤回（跟后端 CANNOT_WITHDRAW 约束一致，
+                        // 复用 isEditable 的同一状态集合）。点击 → 调 withdraw → 成功后 reload 拉到 withdrawn 态。
+                        if (item.isEditable) {
+                            PrimaryButton(
+                                title = if (withdrawing) "取消中…" else "取消（撤回）",
+                                icon = SuzuIcons.Close,
+                                destructive = true,
+                                enabled = !withdrawing,
+                                onClick = {
+                                    scope.launch {
+                                        withdrawing = true
+                                        actionError = null
+                                        try {
+                                            ApplicationsAPI.withdraw(id)
+                                            // 撤回成功 → 重新拉详细（状态会变 取消済，按钮随之消失）
+                                            load()
+                                        } catch (e: ApiError) {
+                                            actionError = e.display
+                                        } catch (e: Exception) {
+                                            actionError = "取消に失敗しました"
+                                        } finally {
+                                            withdrawing = false
+                                        }
+                                    }
+                                },
+                            )
+                            // 撤回失败时把后端消息（如 409 的拒绝理由）显示在按钮下方
+                            actionError?.let {
+                                Text(
+                                    it,
+                                    color = t.danger,
+                                    style = TextStyle(fontSize = 12.sp),
+                                )
+                            }
                         }
 
                         Spacer(Modifier.height(40.dp))

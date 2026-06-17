@@ -85,6 +85,11 @@ object ApiClient {
         body: Req,
     ): Res = decode(requestRaw("POST", path, json.encodeToString(body)))
 
+    // POST 无 body → 解码成 Res（如出寮届撤回 /applications/:id/withdraw，后端不收 body）。
+    // bodyJson 传空对象 "{}" 而非 null：FastAPI 端点签名无 body 时空对象也接受，
+    // 同时让 doOutput=true 以确保 POST 方法被正确发出。
+    suspend inline fun <reified Res> postNoBody(path: String): Res = decode(requestRaw("POST", path, "{}"))
+
     // PUT body → 解码成 Res
     suspend inline fun <reified Req, reified Res> put(
         path: String,

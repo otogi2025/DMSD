@@ -43,4 +43,9 @@ object ApplicationsAPI {
 
     // 改动履历（提出 / 变更届 / 役职决定 全部按时序记录）
     suspend fun audit(id: String): List<AuditLogOut> = ApiClient.get("/api/v1/applications/$id/audit")
+
+    // 出寮届撤回（学生主动取消尚未走完流程的届）。无 body。
+    // 后端只在 pending / approved_partial / returned 状态接受，否则 409 CANNOT_WITHDRAW。
+    // 成功后返回 status 变 "withdrawn" 的 ApplicationOut；调用方据此刷新详细。
+    suspend fun withdraw(id: String): ApplicationOut = ApiClient.postNoBody("/api/v1/applications/$id/withdraw")
 }

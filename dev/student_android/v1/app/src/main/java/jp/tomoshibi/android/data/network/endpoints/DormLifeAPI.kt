@@ -62,6 +62,13 @@ object DormLifeAPI {
     // 我提交过的行事企画
     suspend fun listMyEventProposals(): List<DormEventProposalOut> = ApiClient.get("/api/v1/dorm-life/event-proposals/mine")
 
+    // 行事企画 再提出（老师差戻后学生重提）。body 是完整行事企画字段（跟首次提交同形）。
+    // 后端只在 result=="resubmit" 状态接受，否则 409 CANNOT_RESUBMIT；成功后 result 变 "pending"。
+    suspend fun resubmitEventProposal(
+        id: String,
+        body: EventProposalBody,
+    ): DormEventProposalOut = ApiClient.post("/api/v1/dorm-life/event-proposals/$id/resubmit", body)
+
     // 提交冷蔵庫購入届
     suspend fun submitFridgePurchase(body: FridgePurchaseBody): FridgePurchaseRequestOut =
         ApiClient.post("/api/v1/dorm-life/fridge-purchases", body)
