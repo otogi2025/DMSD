@@ -532,6 +532,10 @@ struct StayForm: View {
         if returnDate < leaveDate { returnDate = leaveDate }
         if skipStartDate < leaveDate { skipStartDate = leaveDate }
         if skipEndDate < skipStartDate { skipEndDate = skipStartDate }
+        // A-377: 免餐区间不能超出帰寮日 —— 帰寮日往前调时把越界的免餐起止回钳，
+        // 否则同样会出现「提交键静默置灰且无提示」。
+        if skipStartDate > returnDate { skipStartDate = returnDate }
+        if skipEndDate > returnDate { skipEndDate = returnDate }
     }
 
     /// 是否可提交：必填项是否已填写
@@ -684,6 +688,8 @@ struct StayForm: View {
                                     .foregroundStyle(T.inkSub)
                                 HStack(spacing: 10) {
                                     DateField(date: $returnDate, minDate: leaveDate)
+                                        // A-377: 帰寮日改早时回钳越界的免餐起止
+                                        .onChangeCompat(of: returnDate) { clampDependentDates() }
                                     TimeField(date: $returnTime)
                                 }
                             }
@@ -787,7 +793,8 @@ struct StayForm: View {
                                                 .font(.system(size: 11.5, weight: .semibold))
                                                 .foregroundStyle(T.inkSub)
                                             HStack(spacing: 8) {
-                                                DateField(date: $skipEndDate, minDate: skipStartDate)
+                                                // A-377: 終了日不能晚于帰寮日（免餐区间不能超出外泊期）
+                                                DateField(date: $skipEndDate, minDate: skipStartDate, maxDate: returnDate)
                                                 ChipGroup(options: MEALS, value: $skipEndMeal)
                                             }
                                         }
@@ -852,24 +859,9 @@ struct StayForm: View {
                         .padding(.bottom, 22)
 
                     // ── 提出 button row ─────────────────────────────────────
+                    // 注：原「下書き保存」按钮是假动作（只弹 toast、什么都不存，「下書き」tab 生产永远空）。
+                    // v1.0 移除，避免误导用户以为草稿已保存。本地草稿留 v1.1（需设计存储方案）。
                     HStack(spacing: 10) {
-                        Button {
-                            app.showToast("下書き保存しました")
-                        } label: {
-                            Text("下書き保存")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(T.inkSub)
-                                .frame(maxWidth: .infinity, minHeight: 52)
-                                .background {
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous).fill(T.paper)
-                                }
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .stroke(T.hair, lineWidth: 1.5)
-                                }
-                        }
-                        .buttonStyle(.plain)
-
                         Button {
                             submit()
                         } label: {
@@ -1357,11 +1349,17 @@ private struct FlowLayout: Layout {
 private struct DateField: View {
     @Binding var date: Date
     var minDate: Date? = nil // 老師反饋 #3: 出寮日 = 明日以降 → minDate = StayForm.tomorrow
+    var maxDate: Date? = nil // A-377: 食事不要 終了日 上限 = 帰寮日，免餐区间不能超出外泊期
     var body: some View {
         Group {
-            if let min = minDate {
+            switch (minDate, maxDate) {
+            case let (min?, max?):
+                DatePicker("", selection: $date, in: min ... max, displayedComponents: .date)
+            case let (min?, nil):
                 DatePicker("", selection: $date, in: min..., displayedComponents: .date)
-            } else {
+            case let (nil, max?):
+                DatePicker("", selection: $date, in: ...max, displayedComponents: .date)
+            case (nil, nil):
                 DatePicker("", selection: $date, displayedComponents: .date)
             }
         }
@@ -1871,23 +1869,8 @@ struct GenericApplyForm: View {
                         .padding(.bottom, 16)
                     }
 
+                    // 注：原「下書き保存」假按钮（只弹 toast 不存）已移除，同 StayForm。本地草稿留 v1.1。
                     HStack(spacing: 10) {
-                        Button {
-                            app.showToast("下書き保存しました")
-                        } label: {
-                            Text("下書き保存")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(T.inkSub)
-                                .frame(maxWidth: .infinity, minHeight: 52)
-                                .background {
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous).fill(T.paper)
-                                }
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(T.hair, lineWidth: 1.5)
-                                }
-                        }
-                        .buttonStyle(.plain)
-
                         Button {
                             // 外出 = 直接接 outings 后端（跳过演示确认页）；
                             // 修繕/来訪/代理(仅生产) = 直接接 misc-requests（确认页拿不到表单数据，必须在此提交）；
