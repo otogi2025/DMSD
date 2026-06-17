@@ -23,6 +23,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 import traceback
 import uuid
 from contextlib import asynccontextmanager
@@ -194,9 +195,8 @@ _docs_enabled = settings.app_env != "production"
 app = FastAPI(
     title="Tomoshibi Backend v1",
     description=(
-        "Tomoshibi (灯火 / ともしび) — 宿舍管理 v1.0 backend. \n"
-        "DMSD (Dormitory Management System Digitalization) 项目代号. \n"
-        "本 deployment 目前は P0 範囲 (出寮届 + メール + 食堂) のみ実装。"
+        "Tomoshibi（灯火 / ともしび）宿舍管理后端，项目代号 DMSD"
+        "（Dormitory Management System Digitalization）。功能模块见各 router 标签。"
     ),
     version=__version__,
     docs_url="/docs" if _docs_enabled else None,
@@ -245,13 +245,22 @@ app.add_middleware(
 )
 
 
-# H-22：请求关联 ID 中间件 —— 取客户端传的 X-Request-ID（若有），否则生成短 uuid；
+# C50：客户端传入的 X-Request-ID 必须匹配白名单 ^[A-Za-z0-9_-]{1,64}$，否则忽略改用自生成。
+# 防把任意可控值原样写进日志 / 回显进响应头（日志注入 / header 注入面收窄）。
+_REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+
+# H-22：请求关联 ID 中间件 —— 取客户端传的 X-Request-ID（若合法），否则生成短 uuid；
 # set 进 ContextVar 让本请求内所有日志带上同一 ID；并回写到响应头方便前端 / 网关串联。
 # 最后加 = 最外层 = 最早执行，保证后续中间件 / 路由 / 异常处理器都能看到 request_id。
 @app.middleware("http")
 async def _request_id_middleware(request: Request, call_next):
     incoming = request.headers.get("X-Request-ID")
-    request_id = incoming if incoming else uuid.uuid4().hex[:12]
+    request_id = (
+        incoming
+        if incoming and _REQUEST_ID_RE.match(incoming)
+        else uuid.uuid4().hex[:12]
+    )
     token = _request_id_ctx.set(request_id)
     try:
         response = await call_next(request)

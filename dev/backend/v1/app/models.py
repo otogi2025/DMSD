@@ -1660,7 +1660,9 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    # 类别：application=申请提交 / demerit=扣分 / rollcall_report=点呼上报
+    # 类别：固定 3 类（application 申请提交 / demerit 扣分 / rollcall_report 点呼上报）
+    # + demerit_alert（扣分自动告警）+ 数据驱动 7 类（见 routers/notifications.py 各同步分支
+    # 与 _REQUEST_SOURCES：outing / study_absence / study_online / dorm_event / fridge / item / misc）。
     category: Mapped[str] = mapped_column(String(32), nullable=False)
     # 来源事件定位（幂等同步去重用）— source_id 全局唯一（UUID），故跨 realm 不会撞
     source_table: Mapped[str] = mapped_column(String(48), nullable=False)

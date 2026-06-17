@@ -3,6 +3,7 @@
 - access_token: JWT HS256, 24h 期限
 - password: bcrypt cost 12
 """
+
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
@@ -52,9 +53,7 @@ def create_access_token(
     """
     settings = get_settings()
     now = datetime.now(timezone.utc)
-    exp = now + timedelta(
-        minutes=expire_minutes or settings.jwt_access_expire_min
-    )
+    exp = now + timedelta(minutes=expire_minutes or settings.jwt_access_expire_min)
     payload: dict[str, Any] = {
         "sub": str(subject),
         "role": role,
@@ -67,9 +66,20 @@ def create_access_token(
 
 
 def decode_token(token: str) -> dict[str, Any]:
-    """JWT decode + 期限校验。失败時 JWTError raise。"""
+    """JWT decode + 期限校验。失败時 JWTError raise。
+
+    options 显式要求 exp / sub claim 存在且校验过期：
+    防御纵深 — 缺 exp 的 token（历史脚本 / 测试夹具 / 误签发）一律拒，不靠默认行为兜底。
+    注：用的是 python-jose 的 require_exp / require_sub 布尔键写法
+    （不是 PyJWT 的 options={"require": [...]} 列表写法 —— 那种在 jose 3.5.0 里会被静默忽略，实测过）。
+    """
     settings = get_settings()
-    return jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+    return jwt.decode(
+        token,
+        settings.jwt_secret,
+        algorithms=[settings.jwt_algorithm],
+        options={"require_exp": True, "require_sub": True, "verify_exp": True},
+    )
 
 
 __all__ = [

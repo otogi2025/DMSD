@@ -343,6 +343,23 @@ def delete_teacher(
                 },
             )
 
-    db.delete(target)
+    # 软删而非物理 delete（与学生侧 accounts.py delete_account_me 同口径）：
+    # ① status → 'disabled'（ck_teachers_status CHECK 已允许该值）保留行本身供审计追溯；
+    # ② 清 password_hash 防被删老师再登录；③ 写 AuditLog 留痕。
+    # 物理 db.delete 在生产 PostgreSQL 会因 student_registration_codes.created_by /
+    # teacher_invitations.invited_by 等 nullable=False 无 ondelete 的外键抛 IntegrityError
+    # → 经 main.py 全局兜底变不透明 500，且 dev(SQLite 默认不强制外键)与 prod 行为分叉。
+    target.status = "disabled"
+    target.password_hash = ""  # 清空哈希，bcrypt 永远无法匹配
+    db.add(
+        models.AuditLog(
+            actor_type="teacher",
+            actor_id=teacher.id,
+            action="teacher.delete",
+            target_type="teacher",
+            target_id=target.id,
+            payload={"deleted_login_id": target.login_id},
+        )
+    )
     db.commit()
     return None

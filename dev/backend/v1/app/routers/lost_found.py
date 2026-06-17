@@ -48,6 +48,15 @@ def list_lost_found(
     principal: models.Student | models.Teacher = Depends(get_current_principal),
 ):
     """遗失物一览（新→旧）。学生 + 老师都能看。"""
+    # status 取值校验（照 bus_routes 做法）：传了非法状态直接 400，不静默返回空列表。
+    if status is not None and status not in ("open", "resolved"):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "INVALID_STATUS",
+                "message": "status 必须是 open / resolved",
+            },
+        )
     # 演示隔离：principal（学生 / 老师都有 is_demo）只看与自己同侧学生的投稿（双向防泄漏）
     stmt = (
         select(models.LostFoundPost)

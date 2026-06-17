@@ -201,6 +201,13 @@ def today_attendees(
             continue
         if sid in absence_ids:
             absence_cnt += 1
+            # 已批准欠席届的学生，若实际下了学习室且被打卡为 present/late，
+            # 把这条真实出席并入欠席届条目（让老师看到「申请了请假但实际来了」）。
+            # checkin_map 已在循环前（上方）构建好；无打卡 / 只有 init 时仍为 None。
+            ac = checkin_map.get(sid)
+            absence_checkin = None
+            if ac and ac.status in ("present", "late"):
+                absence_checkin = {"checked_at": ac.checked_at, "status": ac.status}
             attendees.append(
                 schemas.StudyAttendeeOut(
                     student_id=sid,
@@ -210,7 +217,7 @@ def today_attendees(
                     dorm_unit=s.dorm_unit,
                     expected_status="exempted_absence",
                     exemption_reason="晩自習欠席届承認済",
-                    checkin=None,
+                    checkin=absence_checkin,
                 )
             )
             continue
@@ -810,6 +817,9 @@ def decide_absence_request(
     student = db.get(models.Student, record.student_id)
     if student:
         assert_student_demo_match(teacher, student)
+        # 寮边界校验，与 create_checkin / patch_checkin / decide_online_request 对齐。
+        # 当前 dorm_units_for_teacher 恒返全寮故 no-op，保留作寮边界恢复时的防御一致性。
+        _assert_student_in_dorm(teacher, student)
     if record.status != "pending":
         raise HTTPException(
             409,

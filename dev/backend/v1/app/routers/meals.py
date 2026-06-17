@@ -1,7 +1,7 @@
-"""食堂 食数 (#7 / Q7) — 計算 + Excel 导出。
+"""食堂食数统计 (#7 / Q7) — 计算 + Excel 导出。
 
-GET /api/v1/meals/calc?from=&to=          — JSON (debug 用)
-GET /api/v1/meals/export?from=&to=        — .xlsx ダウンロード
+GET /api/v1/meals/calc?from=&to=          — JSON（debug 用）
+GET /api/v1/meals/export?from=&to=        — .xlsx 下载
 """
 
 from __future__ import annotations

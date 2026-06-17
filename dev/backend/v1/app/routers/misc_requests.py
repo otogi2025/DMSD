@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from .. import models, permissions, schemas
@@ -114,13 +114,26 @@ def confirm_misc_request(
                     "message": "担当外の寮の学生への操作はできません",
                 },
             )
-    if row.status != "pending":
+    # 原子条件更新：只有 status 仍是 pending 才确认成功（照 outings.py confirm_outing 做法）。
+    # 防两个老师并发确认 / 确认与撤回并发时都读到 pending、最后一次写覆盖前一次。
+    # rowcount != 1 说明已被别的请求改掉 → rollback + 409。
+    result = db.execute(
+        update(models.MiscRequest)
+        .where(
+            models.MiscRequest.id == request_id,
+            models.MiscRequest.status == "pending",
+        )
+        .values(
+            status="confirmed",
+            confirmed_by_teacher_id=teacher.id,
+            confirmed_at=datetime.now(timezone.utc),
+        )
+    )
+    if result.rowcount != 1:
+        db.rollback()
         raise HTTPException(
             409, {"code": "NOT_PENDING", "message": "確認待ち以外は確認できません"}
         )
-    row.status = "confirmed"
-    row.confirmed_by_teacher_id = teacher.id
-    row.confirmed_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(row)
     return schemas.MiscRequestOut.model_validate(row)
@@ -142,12 +155,21 @@ def withdraw_misc_request(
         raise HTTPException(
             403, {"code": "FORBIDDEN", "message": "他人の申請は取り消せません"}
         )
-    if row.status != "pending":
+    # 原子条件更新：只有 status 仍是 pending 才能撤回（照 outings.py withdraw_outing 做法，
+    # 防与老师确认并发互相覆盖）。rowcount != 1 → rollback + 409。
+    result = db.execute(
+        update(models.MiscRequest)
+        .where(
+            models.MiscRequest.id == request_id,
+            models.MiscRequest.status == "pending",
+        )
+        .values(status="withdrawn", withdrawn_at=datetime.now(timezone.utc))
+    )
+    if result.rowcount != 1:
+        db.rollback()
         raise HTTPException(
             409, {"code": "NOT_PENDING", "message": "確認待ち以外は取り消せません"}
         )
-    row.status = "withdrawn"
-    row.withdrawn_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(row)
     return schemas.MiscRequestOut.model_validate(row)

@@ -242,7 +242,7 @@ def get_student_profile(
     else:
         actor_student = principal
 
-    # ---- 老师鉴权：需要 C_GUIDANCE VIEW 权限，且受寮边界限制 ----
+    # ---- 老师鉴权：需要 C_GUIDANCE VIEW 权限（寮过滤已取消 §11.2，下方寮守卫恒不触发，保留仅为将来恢复）----
     if actor_teacher is not None:
         # 直接调用 permissions.has_permission 对已登录老师做权限判定：
         # 用 effective_group（permission_group 优先、为空按职位回退）判该组是否持有 C_GUIDANCE / VIEW（MANAGE 蕴含 VIEW）。
@@ -268,6 +268,7 @@ def get_student_profile(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail={"code": "STUDENT_NOT_FOUND", "message": "学生が見つかりません"},
             )
+        # 寮过滤已取消（§11.2），dorm_units_for_teacher 恒返全寮故此守卫恒不触发，保留仅为将来恢复。
         allowed = dorm_units_for_teacher(actor_teacher)
         if allowed is not None and _student_for_check.dorm_unit not in allowed:
             raise HTTPException(

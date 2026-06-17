@@ -107,7 +107,7 @@ def create_incident(
                 status_code=404,
                 detail={
                     "code": "STUDENT_NOT_FOUND",
-                    "message": f"涉及学生 {sid} 不存在",
+                    "message": "対象の学生が見つかりません",
                 },
             )
         # 演示隔离：演示老师不能把真实学生挂进事案、真老师不能挂演示学生（否则 404）
@@ -182,13 +182,19 @@ def get_incident(
     if not row or row.deleted_at is not None:
         raise HTTPException(
             status_code=404,
-            detail={"code": "INCIDENT_NOT_FOUND", "message": "事案不存在"},
+            detail={
+                "code": "INCIDENT_NOT_FOUND",
+                "message": "該当する事案が見つかりません",
+            },
         )
     # 演示隔离：演示老师只能看演示老师建的事案（按创建者 is_demo），否则当作不存在 404
-    if row.recorder.is_demo != teacher.is_demo:
+    if row.recorder is None or row.recorder.is_demo != teacher.is_demo:
         raise HTTPException(
             status_code=404,
-            detail={"code": "INCIDENT_NOT_FOUND", "message": "事案不存在"},
+            detail={
+                "code": "INCIDENT_NOT_FOUND",
+                "message": "該当する事案が見つかりません",
+            },
         )
     return _to_incident_out_single(db, row, teacher)
 
@@ -208,13 +214,19 @@ def patch_incident(
     if not row or row.deleted_at is not None:
         raise HTTPException(
             status_code=404,
-            detail={"code": "INCIDENT_NOT_FOUND", "message": "事案不存在"},
+            detail={
+                "code": "INCIDENT_NOT_FOUND",
+                "message": "該当する事案が見つかりません",
+            },
         )
     # 演示隔离：演示老师只能改演示老师建的事案（按创建者 is_demo），否则当作不存在 404
-    if row.recorder.is_demo != teacher.is_demo:
+    if row.recorder is None or row.recorder.is_demo != teacher.is_demo:
         raise HTTPException(
             status_code=404,
-            detail={"code": "INCIDENT_NOT_FOUND", "message": "事案不存在"},
+            detail={
+                "code": "INCIDENT_NOT_FOUND",
+                "message": "該当する事案が見つかりません",
+            },
         )
 
     if body.title is not None:
@@ -269,13 +281,19 @@ def delete_incident(
     if not row or row.deleted_at is not None:
         raise HTTPException(
             status_code=404,
-            detail={"code": "INCIDENT_NOT_FOUND", "message": "事案不存在"},
+            detail={
+                "code": "INCIDENT_NOT_FOUND",
+                "message": "該当する事案が見つかりません",
+            },
         )
     # 演示隔离：演示老师只能删演示老师建的事案（按创建者 is_demo），否则当作不存在 404
-    if row.recorder.is_demo != teacher.is_demo:
+    if row.recorder is None or row.recorder.is_demo != teacher.is_demo:
         raise HTTPException(
             status_code=404,
-            detail={"code": "INCIDENT_NOT_FOUND", "message": "事案不存在"},
+            detail={
+                "code": "INCIDENT_NOT_FOUND",
+                "message": "該当する事案が見つかりません",
+            },
         )
 
     row.deleted_at = datetime.now(timezone.utc)

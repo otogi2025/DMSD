@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -48,6 +48,13 @@ def list_song_requests(
     principal: models.Student | models.Teacher = Depends(get_current_principal),
 ):
     """点歌一览（投稿顺，新→旧）。学生 + 老师都能看；dorm 参数给老师男/女寮 tab 用。"""
+    # dorm 取值校验（照 bus_routes 做法）：传了非法寮号直接 400，
+    # 不静默返回空列表被误读为「真没投稿」。
+    if dorm is not None and dorm not in (1, 2, 4):
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "INVALID_DORM", "message": "dorm 必须是 1 / 2 / 4"},
+        )
     # 演示隔离：principal（学生 / 老师都有 is_demo）只看与自己同侧学生的投稿
     # —— 演示老师 / 演示学生只看演示投稿，真老师 / 真学生只看真实投稿（双向防泄漏）
     stmt = (

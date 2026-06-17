@@ -1,15 +1,15 @@
 """食堂食数计算 + Excel 导出 (#7 / Q7)。
 
-権威: system_features.md §7.7。
+权威: system_features.md §7.7。
 Q7 答え: 「Excel 表格、要包含的数据是哪些学生不需要餐食、什么期间。要可以一键导出 excel。」
 
-ロジック:
-1. status='approved' な applications で meals_skip が非空なものを取得。
-2. meals_skip = [{date, meal}, ...] 形式 — 1 エントリ = 1 食不要。
-3. 指定期間 [range_from, range_to] に含まれるエントリを日別集計。
-4. 出力 = 日別集計 + 学生別詳細 の 2 sheet
+逻辑:
+1. 取 status='approved' 且 meals_skip 非空的 applications。
+2. meals_skip = [{date, meal}, ...] 格式 — 1 条 = 1 餐不需要。
+3. 把落在指定期间 [range_from, range_to] 内的条目按日汇总。
+4. 输出 = 日别汇总 + 学生别详细 共 2 个 sheet。
 
-⚠️ 2026-05-02 形式変更: 旧 meals_skip_from/to datetime range → 新 [{date, meal}] リスト。
+⚠️ 2026-05-02 格式变更: 旧 meals_skip_from/to datetime range → 新 [{date, meal}] 列表。
 """
 
 from __future__ import annotations
@@ -65,7 +65,7 @@ class MealsCalcResult:
 
 
 # ---------------------------------------------------------------
-# 計算
+# 计算
 # ---------------------------------------------------------------
 def _date_range(d_from: date, d_to: date) -> Iterable[date]:
     cur = d_from
@@ -77,12 +77,12 @@ def _date_range(d_from: date, d_to: date) -> Iterable[date]:
 def calc_meals(
     db: Session, *, teacher: models.Teacher, range_from: date, range_to: date
 ) -> MealsCalcResult:
-    """[range_from, range_to] (両端含む) の食事不要数を計算。
+    """计算 [range_from, range_to]（含两端）期间内的不需餐食数。
 
-    meals_skip = [{date: '2026-05-01', meal: '朝食'}, ...] 形式を集計。
+    汇总 meals_skip = [{date: '2026-05-01', meal: '朝食'}, ...] 格式。
 
-    teacher の演示隔离: demo_scope_for_teacher(teacher) で
-    真老师只看真实学生 / 演示老师只看演示学生（防演示账号看到真实学生泄漏）。
+    teacher 的演示隔离: 用 demo_scope_for_teacher(teacher)
+    让真老师只看真实学生 / 演示老师只看演示学生（防演示账号看到真实学生泄漏）。
     """
     if range_to < range_from:
         raise ValueError("range_to must be >= range_from")
@@ -109,7 +109,7 @@ def calc_meals(
     daily_map: dict[date, DailyAggregate] = {
         d: DailyAggregate(target_date=d) for d in _date_range(range_from, range_to)
     }
-    # student_no → {date → StudentMealDetail} で重複を避ける
+    # 用 (student_no, date) → StudentMealDetail 去重，避免同一人同一天重复计
     detail_map: dict[tuple, StudentMealDetail] = {}
 
     for app, student in rows:

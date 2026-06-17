@@ -28,7 +28,8 @@ router = APIRouter(prefix="/api/v1", tags=["guidance"])
 
 # 有权录入指导记录 + 查看的角色
 # 指导履历的功能权限（C_GUIDANCE：管理动作 M / 查看动作 V）由各端点的 require_permission 闸判定，
-# 不再按职位拦（旧 _GUIDANCE_ROLES 职位集已随权限分级改造移除）。寮边界仍在端点内单独校验。
+# 不再按职位拦（旧 _GUIDANCE_ROLES 职位集已随权限分级改造移除）。
+# 寮过滤已取消（§11.2），dorm_units_for_teacher 恒返全寮故下方 FORBIDDEN_DORM 守卫恒不触发，保留仅为将来恢复。
 
 
 def _get_student_or_404(student_id: UUID, db: Session) -> models.Student:
@@ -36,7 +37,7 @@ def _get_student_or_404(student_id: UUID, db: Session) -> models.Student:
     if not student:
         raise HTTPException(
             status_code=404,
-            detail={"code": "STUDENT_NOT_FOUND", "message": "学生不存在"},
+            detail={"code": "STUDENT_NOT_FOUND", "message": "学生が見つかりません"},
         )
     return student
 
@@ -62,7 +63,7 @@ def create_guidance(
     # 演示写隔离：演示老师只能给演示学生写记录、真老师只能给真实学生写（否则 404 隐藏存在性）
     assert_student_demo_match(teacher, student)
 
-    # R4 寮边界：跨寮角色（返回 None）可写全部；其他老师只能写自己管辖寮的学生
+    # 寮过滤已取消（§11.2），dorm_units_for_teacher 恒返全寮故此守卫恒不触发，保留仅为将来恢复。
     allowed = dorm_units_for_teacher(teacher)
     if allowed is not None and student.dorm_unit not in allowed:
         raise HTTPException(
@@ -119,11 +120,10 @@ def list_guidance(
     if student.is_demo != teacher.is_demo:
         raise HTTPException(
             status_code=404,
-            detail={"code": "STUDENT_NOT_FOUND", "message": "学生不存在"},
+            detail={"code": "STUDENT_NOT_FOUND", "message": "学生が見つかりません"},
         )
 
-    # R4 寮边界：跨寮角色（dorm_units_for_teacher 返回 None）可查全部；
-    # 其他老师只能查自己管辖寮的学生
+    # 寮过滤已取消（§11.2），dorm_units_for_teacher 恒返全寮故此守卫恒不触发，保留仅为将来恢复。
     allowed = dorm_units_for_teacher(teacher)
     if allowed is not None and student.dorm_unit not in allowed:
         raise HTTPException(
