@@ -161,7 +161,7 @@ export function SearchPage({
                   room={s.room_no}
                   id={s.student_no}
                   name={s.name}
-                  dorm={String(s.dorm_unit)}
+                  dorm={s.dorm_unit === 4 ? "women" : "men"}
                 />
               ))}
             </div>
