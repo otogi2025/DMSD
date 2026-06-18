@@ -45,7 +45,7 @@ APPROVER_ROLE_CHECK_DOWN = (
 
 def upgrade() -> None:
     # applications 新字段；布尔字段保留 nullable，默认值用于新写入和既有行回填。
-    with op.batch_alter_table("applications", recreate="always") as batch_op:
+    with op.batch_alter_table("applications", recreate="auto") as batch_op:
         batch_op.add_column(sa.Column("contact_phone", sa.Text(), nullable=True))
         batch_op.add_column(sa.Column("companion", sa.Text(), nullable=True))
         batch_op.add_column(sa.Column("dest_cities", sa.Text(), nullable=True))
@@ -68,12 +68,12 @@ def upgrade() -> None:
         batch_op.add_column(sa.Column("meal_note", sa.Text(), nullable=True))
 
     # teachers.role 加「校長」，否则校長审批环无法由老师账号承接。
-    with op.batch_alter_table("teachers", recreate="always") as batch_op:
+    with op.batch_alter_table("teachers", recreate="auto") as batch_op:
         batch_op.drop_constraint("ck_teachers_role", type_="check")
         batch_op.create_check_constraint("ck_teachers_role", TEACHER_ROLE_CHECK)
 
     # application_approvals.approver_role 加「校長」。
-    with op.batch_alter_table("application_approvals", recreate="always") as batch_op:
+    with op.batch_alter_table("application_approvals", recreate="auto") as batch_op:
         batch_op.drop_constraint("ck_approval_role", type_="check")
         batch_op.create_check_constraint("ck_approval_role", APPROVER_ROLE_CHECK)
 
@@ -282,17 +282,17 @@ def downgrade() -> None:
     op.drop_index("idx_sor_student_status", table_name="study_online_requests")
     op.drop_table("study_online_requests")
 
-    with op.batch_alter_table("application_approvals", recreate="always") as batch_op:
+    with op.batch_alter_table("application_approvals", recreate="auto") as batch_op:
         batch_op.drop_constraint("ck_approval_role", type_="check")
         batch_op.create_check_constraint(
             "ck_approval_role", APPROVER_ROLE_CHECK_DOWN
         )
 
-    with op.batch_alter_table("teachers", recreate="always") as batch_op:
+    with op.batch_alter_table("teachers", recreate="auto") as batch_op:
         batch_op.drop_constraint("ck_teachers_role", type_="check")
         batch_op.create_check_constraint("ck_teachers_role", TEACHER_ROLE_CHECK_DOWN)
 
-    with op.batch_alter_table("applications", recreate="always") as batch_op:
+    with op.batch_alter_table("applications", recreate="auto") as batch_op:
         batch_op.drop_column("meal_note")
         batch_op.drop_column("is_long_vacation")
         batch_op.drop_column("receipt_submitted")
