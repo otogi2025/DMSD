@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO, dormLabel, APP_VERSION } from "../theme";
+import { RYO, APP_VERSION } from "../theme";
 import { api } from "../api/client";
 import type { TeacherProfile } from "../api/types";
 import {
@@ -44,13 +44,20 @@ export function LoginScreen({
   const [teachers, setTeachers] = React.useState<PickedTeacher[] | null>(null); // null=loading / []=失败 / [...]=真值
   const [loadErr, setLoadErr] = React.useState<string | null>(null);
   const [picked, setPicked] = React.useState<PickedTeacher | null>(null);
-  // 手动登录（「システム管理者ログイン」入口）—— op 运维账号不上墙，走输 login_id + 密码这条单独路
+  // 手动登录（「ログイン」入口）—— op / 临时账户不上墙，走输 login_id + 密码这条单独路
   const [manual, setManual] = React.useState(false);
   const [manualId, setManualId] = React.useState("");
   const [password, setPassword] = React.useState("");
+  // 登录时选今晚负责的寮（1=男子寮 / 4=女子寮）。除「申請承認専用」组外都要选，驱动后端寮过滤
+  const [selectedDorm, setSelectedDorm] = React.useState<1 | 4 | null>(null);
   const [err, setErr] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [fails, setFails] = React.useState(0);
+
+  // 该老师卡片是否需要选寮：申請承認専用组看全部、不用选；其他组要选
+  const cardNeedsDorm = picked
+    ? picked.permissionGroup !== GROUP_APPROVAL
+    : false;
 
   // 屏 1 加载老师列表
   React.useEffect(() => {
@@ -88,11 +95,13 @@ export function LoginScreen({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting || !picked || !password) return;
+    if (cardNeedsDorm && !selectedDorm) return; // 需选寮的组没选不放行
     setSubmitting(true);
     try {
       const data = await api.teacherLogin({
         teacher_id: picked.id,
         password,
+        ...(selectedDorm ? { selected_dorm: selectedDorm } : {}),
       });
       setFails(0);
       setErr("");
@@ -125,12 +134,13 @@ export function LoginScreen({
   // 手动登录提交（op 等不上墙的账号）—— 用 login_id + 密码，后端 POST /sessions/teacher 已支持 login_id
   const submitManual = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (submitting || !manualId || !password) return;
+    if (submitting || !manualId || !password || !selectedDorm) return;
     setSubmitting(true);
     try {
       const data = await api.teacherLogin({
         login_id: manualId.trim(),
         password,
+        selected_dorm: selectedDorm,
       });
       setFails(0);
       setErr("");
@@ -248,6 +258,7 @@ export function LoginScreen({
               onClick={() => {
                 setPicked(null);
                 setPassword("");
+                setSelectedDorm(null);
                 setErr("");
                 setFails(0);
               }}
@@ -293,11 +304,13 @@ export function LoginScreen({
                 <div style={{ fontSize: 18, fontWeight: 700 }}>
                   {picked.name} 先生
                 </div>
-                <div style={{ fontSize: 11, color: T.ink3, marginTop: 2 }}>
-                  {dormLabel(picked.dorm)} 担当
-                </div>
               </div>
             </div>
+
+            {/* 选今晚负责的寮（除「申請承認専用」组外）— 选的寮直接成为可见范围 */}
+            {cardNeedsDorm && (
+              <DormPicker value={selectedDorm} onChange={setSelectedDorm} />
+            )}
 
             <label style={{ display: "block", marginBottom: 14 }}>
               <div
@@ -351,18 +364,26 @@ export function LoginScreen({
 
             <button
               type="submit"
-              disabled={submitting || !password}
+              disabled={
+                submitting || !password || (cardNeedsDorm && !selectedDorm)
+              }
               style={{
                 width: "100%",
                 padding: "12px 16px",
-                background: submitting || !password ? T.lineStrong : T.cobalt,
+                background:
+                  submitting || !password || (cardNeedsDorm && !selectedDorm)
+                    ? T.lineStrong
+                    : T.cobalt,
                 color: "#fff",
                 border: "none",
                 borderRadius: 10,
                 fontFamily: "inherit",
                 fontSize: 14,
                 fontWeight: 600,
-                cursor: submitting || !password ? "not-allowed" : "pointer",
+                cursor:
+                  submitting || !password || (cardNeedsDorm && !selectedDorm)
+                    ? "not-allowed"
+                    : "pointer",
               }}
             >
               {submitting ? "認証中…" : "ログイン"}
@@ -383,7 +404,7 @@ export function LoginScreen({
     );
   }
 
-  // —————— 手动登录屏：「システム管理者ログイン」（op 等不上墙的账号，输 login_id + 密码） ——————
+  // —————— 手动登录屏：「ログイン」（op / 临时账户等不上墙的账号，输 login_id + 密码） ——————
   if (manual) {
     return (
       <div
@@ -416,6 +437,7 @@ export function LoginScreen({
                 setManual(false);
                 setManualId("");
                 setPassword("");
+                setSelectedDorm(null);
                 setErr("");
                 setFails(0);
               }}
@@ -434,10 +456,10 @@ export function LoginScreen({
               ← 先生一覧に戻る
             </button>
             <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>
-              システム管理者ログイン
+              ログイン
             </div>
             <div style={{ fontSize: 11, color: T.ink3, marginBottom: 18 }}>
-              管理 ID とパスワードを入力してください
+              ID とパスワードを入力してください
             </div>
 
             <label style={{ display: "block", marginBottom: 14 }}>
@@ -509,6 +531,9 @@ export function LoginScreen({
               />
             </label>
 
+            {/* 手动登录前不知权限组，一律让选寮；op / 承認组账号后端会忽略此选择 */}
+            <DormPicker value={selectedDorm} onChange={setSelectedDorm} />
+
             {err && (
               <div
                 style={{
@@ -527,12 +552,12 @@ export function LoginScreen({
 
             <button
               type="submit"
-              disabled={submitting || !manualId || !password}
+              disabled={submitting || !manualId || !password || !selectedDorm}
               style={{
                 width: "100%",
                 padding: "12px 16px",
                 background:
-                  submitting || !manualId || !password
+                  submitting || !manualId || !password || !selectedDorm
                     ? T.lineStrong
                     : T.cobalt,
                 color: "#fff",
@@ -542,7 +567,7 @@ export function LoginScreen({
                 fontSize: 14,
                 fontWeight: 600,
                 cursor:
-                  submitting || !manualId || !password
+                  submitting || !manualId || !password || !selectedDorm
                     ? "not-allowed"
                     : "pointer",
               }}
@@ -702,11 +727,69 @@ export function LoginScreen({
             cursor: "pointer",
           }}
         >
-          システム管理者ログイン
+          ログイン
         </button>
         <div style={{ fontSize: 11, color: T.ink3, marginTop: 10 }}>
           Tomoshibi {APP_VERSION}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// 私有子组件 —— 今晚负责寮选择器（男子寮 / 女子寮）。
+// 选的寮直接成为可见范围（申請承認専用 / op 组后端忽略此选择、看全部）。
+function DormPicker({
+  value,
+  onChange,
+}: {
+  value: 1 | 4 | null;
+  onChange: (d: 1 | 4) => void;
+}) {
+  const T = RYO;
+  const opts: { v: 1 | 4; label: string; accent: string; soft: string }[] = [
+    { v: 1, label: "男子寮", accent: T.maleAccent, soft: T.maleSoft },
+    { v: 4, label: "女子寮", accent: T.femaleAccent, soft: T.femaleSoft },
+  ];
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div
+        style={{
+          fontSize: 11,
+          color: T.ink2,
+          marginBottom: 6,
+          fontWeight: 600,
+        }}
+      >
+        今夜の担当
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        {opts.map((o) => {
+          const on = value === o.v;
+          return (
+            <button
+              key={o.v}
+              type="button"
+              onClick={() => onChange(o.v)}
+              style={{
+                flex: 1,
+                padding: "10px 12px",
+                background: on ? o.soft : T.surface,
+                color: on ? o.accent : T.ink2,
+                border: on
+                  ? `2px solid ${o.accent}`
+                  : `1px solid ${T.lineStrong}`,
+                borderRadius: 8,
+                fontFamily: "inherit",
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              {o.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -865,24 +948,9 @@ function LoginTeacherCard({
             fontSize: 16,
             fontWeight: 700,
             color: T.ink,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
           }}
         >
           {t.name} 先生
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 600,
-              color: t.dorm === "men" ? T.maleAccent : T.femaleAccent,
-              background: t.dorm === "men" ? T.maleSoft : T.femaleSoft,
-              padding: "2px 7px",
-              borderRadius: 999,
-            }}
-          >
-            {t.dorm === "men" ? "男子寮" : "女子寮"}
-          </span>
         </div>
         <div
           style={{

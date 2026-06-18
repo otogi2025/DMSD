@@ -133,6 +133,8 @@ export const api = {
     teacher_id?: string;
     login_id?: string;
     password: string;
+    // 登录时选的寮（1=男/4=女）— 驱动后端寮过滤；op/申請承認専用 组忽略
+    selected_dorm?: 1 | 4;
   }) => request<TeacherLoginOut>("POST", "/sessions/teacher", body),
 
   // ── Applications ──

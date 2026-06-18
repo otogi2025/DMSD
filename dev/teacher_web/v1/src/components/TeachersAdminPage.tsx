@@ -28,7 +28,10 @@ export function TeachersAdminPage({
   const T = RYO;
   const [list, setList] = React.useState<TeacherOut[] | null>(null); // null=加载中 / [] / [...]
   const [loadErr, setLoadErr] = React.useState<string | null>(null);
-  const [showCreateModal, setShowCreateModal] = React.useState(false);
+  // null=不开 / "normal"=新增正式教员 / "temp"=临时账户（带时限）
+  const [createMode, setCreateMode] = React.useState<"normal" | "temp" | null>(
+    null,
+  );
   const [confirmDelete, setConfirmDelete] = React.useState<TeacherOut | null>(
     null,
   );
@@ -72,9 +75,11 @@ export function TeachersAdminPage({
       await api.createTeacher(body, authToken);
       setToast({
         type: "ok",
-        msg: `${body.name} 先生を追加しました`,
+        msg: body.expires_at
+          ? `臨時アカウント「${body.name}」を追加しました`
+          : `${body.name} 先生を追加しました`,
       });
-      setShowCreateModal(false);
+      setCreateMode(null);
       refresh();
       return { ok: true };
     } catch (e: any) {
@@ -124,7 +129,24 @@ export function TeachersAdminPage({
         </div>
         <button
           type="button"
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => setCreateMode("temp")}
+          style={{
+            padding: "10px 18px",
+            background: "transparent",
+            color: T.cobalt,
+            border: `1px solid ${T.cobalt}`,
+            borderRadius: 10,
+            fontFamily: "inherit",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          + 臨時アカウントを追加
+        </button>
+        <button
+          type="button"
+          onClick={() => setCreateMode("normal")}
           style={{
             padding: "10px 18px",
             background: T.cobalt,
@@ -217,6 +239,17 @@ export function TeachersAdminPage({
                   ? "女子寮"
                   : "男子寮";
             const isSelf = t.id === currentTeacherId;
+            // 临时账户（有到期时间）：列里标「臨時 · 期限…」，过期的标红
+            const isTemp = t.expires_at != null;
+            const isExpired = isTemp && new Date(t.expires_at!) <= new Date();
+            const expiryLabel = isTemp
+              ? new Date(t.expires_at!).toLocaleString("ja-JP", {
+                  month: "2-digit",
+                  day: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "";
             return (
               <div
                 key={t.id}
@@ -231,7 +264,9 @@ export function TeachersAdminPage({
                   alignItems: "center",
                 }}
               >
-                <div style={{ fontWeight: 600 }}>
+                <div
+                  style={{ fontWeight: 600, color: isExpired ? T.ink3 : T.ink }}
+                >
                   {t.name}
                   {isSelf && (
                     <span
@@ -245,6 +280,20 @@ export function TeachersAdminPage({
                       }}
                     >
                       自分
+                    </span>
+                  )}
+                  {isTemp && (
+                    <span
+                      style={{
+                        marginLeft: 6,
+                        fontSize: 10,
+                        color: isExpired ? T.danger : T.cobalt,
+                        padding: "2px 6px",
+                        background: isExpired ? T.dangerSoft : T.cobaltSoft,
+                        borderRadius: 999,
+                      }}
+                    >
+                      {isExpired ? "期限切れ" : "臨時"}
                     </span>
                   )}
                 </div>
@@ -262,7 +311,9 @@ export function TeachersAdminPage({
                   {t.email}
                 </div>
                 <div style={{ color: T.ink2 }}>{roleLabel(t.role)}</div>
-                <div style={{ color: T.ink2 }}>{dormLabel}</div>
+                <div style={{ color: isExpired ? T.danger : T.ink2 }}>
+                  {isTemp ? `〜${expiryLabel}` : dormLabel}
+                </div>
                 <div style={{ textAlign: "right" }}>
                   <button
                     type="button"
@@ -289,9 +340,10 @@ export function TeachersAdminPage({
         </div>
       )}
 
-      {showCreateModal && (
+      {createMode && (
         <TeachersAdminCreateModal
-          onCancel={() => setShowCreateModal(false)}
+          mode={createMode}
+          onCancel={() => setCreateMode(null)}
           onSubmit={handleCreate}
         />
       )}
@@ -327,15 +379,18 @@ export function TeachersAdminPage({
   );
 }
 
-// 私有子组件：新增教员弹窗
+// 私有子组件：新增教员 / 临时账户弹窗（mode="temp" 时多出「时限」字段）
 function TeachersAdminCreateModal({
+  mode,
   onCancel,
   onSubmit,
 }: {
+  mode: "normal" | "temp";
   onCancel: () => void;
   onSubmit: (body: TeacherCreateIn) => Promise<{ ok: boolean; error?: string }>;
 }) {
   const T = RYO;
+  const isTemp = mode === "temp";
   const [name, setName] = React.useState("");
   const [loginId, setLoginId] = React.useState("");
   const [email, setEmail] = React.useState("");
@@ -344,8 +399,26 @@ function TeachersAdminCreateModal({
   const [permissionGroup, setPermissionGroup] =
     React.useState(GROUP_DORM_ADMIN);
   const [assignedDorm, setAssignedDorm] = React.useState("");
+  // 临时账户时限：预设档（today/3/7/30）或 custom（自定义到期日时）
+  const [expiryPreset, setExpiryPreset] = React.useState("today");
+  const [customExpiry, setCustomExpiry] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [err, setErr] = React.useState("");
+
+  // 把时限选择算成到期时间的 ISO 字符串（仅临时账户用）。null = 算不出（自定义没填）
+  const computeExpiresAt = (): string | null => {
+    if (expiryPreset === "custom") {
+      if (!customExpiry) return null;
+      return new Date(customExpiry).toISOString(); // datetime-local 按本地时间解释
+    }
+    if (expiryPreset === "today") {
+      const d = new Date();
+      d.setHours(23, 59, 0, 0); // 今天结束（本地 23:59）
+      return d.toISOString();
+    }
+    const days = Number(expiryPreset); // "3" / "7" / "30"
+    return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+  };
 
   // 与后端 TeacherRoleLiteral(schemas.py)9 个职位对齐 —— 原来漏「校長」，导致校長账号无法
   // 通过网页创建（TW-064）。职位仅作显示标签，实际权限由 permission_group 决定。
@@ -374,6 +447,15 @@ function TeachersAdminCreateModal({
       setErr("全項目を入力してください（パスワードは 8 文字以上）");
       return;
     }
+    let expiresAt: string | undefined;
+    if (isTemp) {
+      const computed = computeExpiresAt();
+      if (!computed) {
+        setErr("有効期限を指定してください");
+        return;
+      }
+      expiresAt = computed;
+    }
     setSubmitting(true);
     setErr("");
     const result = await onSubmit({
@@ -384,6 +466,7 @@ function TeachersAdminCreateModal({
       role,
       permission_group: permissionGroup,
       assigned_dorm: assignedDorm === "" ? undefined : Number(assignedDorm),
+      ...(expiresAt ? { expires_at: expiresAt } : {}),
     });
     setSubmitting(false);
     if (!result.ok) setErr(result.error || "");
@@ -420,10 +503,12 @@ function TeachersAdminCreateModal({
         }}
       >
         <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>
-          新規教員を追加
+          {isTemp ? "臨時アカウントを追加" : "新規教員を追加"}
         </div>
         <div style={{ fontSize: 12, color: T.ink3, marginBottom: 18 }}>
-          追加後、新しい先生はログイン画面で自分のカードを選びパスワードを入力できます
+          {isTemp
+            ? "代理の先生など期間限定のアカウント。期限を過ぎるとログインできなくなります。ログイン ID とパスワードを本人にお伝えください（ログイン画面の「ログイン」から入ります）。"
+            : "追加後、新しい先生はログイン画面で自分のカードを選びパスワードを入力できます"}
         </div>
 
         <AdminField label="氏名" value={name} onChange={setName} autoFocus />
@@ -514,37 +599,98 @@ function TeachersAdminCreateModal({
           </div>
         </label>
 
-        <label style={{ display: "block", marginBottom: 14 }}>
-          <div
-            style={{
-              fontSize: 11,
-              color: T.ink2,
-              marginBottom: 6,
-              fontWeight: 600,
-            }}
-          >
-            担当寮
-          </div>
-          <select
-            value={assignedDorm}
-            onChange={(e) => setAssignedDorm(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "10px 12px",
-              border: `1px solid ${T.lineStrong}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 14,
-              background: T.surface,
-              color: T.ink,
-            }}
-          >
-            <option value="">全寮（指定なし）</option>
-            <option value="1">一寮（男子）</option>
-            <option value="2">二寮（男子）</option>
-            <option value="4">四寮（女子）</option>
-          </select>
-        </label>
+        {/* 正式教员才有固定担当寮；临时账户登录时现选寮，所以不显示此项 */}
+        {!isTemp && (
+          <label style={{ display: "block", marginBottom: 14 }}>
+            <div
+              style={{
+                fontSize: 11,
+                color: T.ink2,
+                marginBottom: 6,
+                fontWeight: 600,
+              }}
+            >
+              担当寮
+            </div>
+            <select
+              value={assignedDorm}
+              onChange={(e) => setAssignedDorm(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                border: `1px solid ${T.lineStrong}`,
+                borderRadius: 8,
+                fontFamily: "inherit",
+                fontSize: 14,
+                background: T.surface,
+                color: T.ink,
+              }}
+            >
+              <option value="">全寮（指定なし）</option>
+              <option value="1">一寮（男子）</option>
+              <option value="2">二寮（男子）</option>
+              <option value="4">四寮（女子）</option>
+            </select>
+          </label>
+        )}
+
+        {/* 临时账户时限：预设档 + 自定义到期日时 */}
+        {isTemp && (
+          <label style={{ display: "block", marginBottom: 14 }}>
+            <div
+              style={{
+                fontSize: 11,
+                color: T.ink2,
+                marginBottom: 6,
+                fontWeight: 600,
+              }}
+            >
+              有効期限
+            </div>
+            <select
+              value={expiryPreset}
+              onChange={(e) => setExpiryPreset(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                border: `1px solid ${T.lineStrong}`,
+                borderRadius: 8,
+                fontFamily: "inherit",
+                fontSize: 14,
+                background: T.surface,
+                color: T.ink,
+              }}
+            >
+              <option value="today">今日中（本日 23:59 まで）</option>
+              <option value="3">3 日間</option>
+              <option value="7">7 日間</option>
+              <option value="30">30 日間</option>
+              <option value="custom">日時を指定</option>
+            </select>
+            {expiryPreset === "custom" && (
+              <input
+                type="datetime-local"
+                value={customExpiry}
+                onChange={(e) => setCustomExpiry(e.target.value)}
+                style={{
+                  width: "100%",
+                  marginTop: 8,
+                  padding: "10px 12px",
+                  border: `1px solid ${T.lineStrong}`,
+                  borderRadius: 8,
+                  fontFamily: "inherit",
+                  fontSize: 14,
+                  background: T.surface,
+                  color: T.ink,
+                  boxSizing: "border-box",
+                }}
+              />
+            )}
+            <div style={{ fontSize: 11, color: T.ink3, marginTop: 6 }}>
+              期限を過ぎると、このアカウントはログインできなくなります。
+            </div>
+          </label>
+        )}
 
         {err && (
           <div

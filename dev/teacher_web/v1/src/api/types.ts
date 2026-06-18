@@ -225,6 +225,8 @@ export interface TeacherOut {
   assigned_dorm: number | null;
   status: string;
   created_at: string;
+  // 临时账户到期时间（null = 永久正式账户）— 老师账户管理页显示「臨時 · 期限…」用
+  expires_at?: string | null;
 }
 
 export interface TeacherPublic {
@@ -244,6 +246,8 @@ export interface TeacherCreateIn {
   role: string; // 职位标签（仅显示）
   permission_group?: string | null; // 权限组（决定功能权限）
   assigned_dorm?: number;
+  // 临时账户到期时间（ISO 字符串；省略/null = 永久正式账户）。有值 = 临时账户、到期后登录被拒
+  expires_at?: string | null;
 }
 
 export interface InvitationIn {
