@@ -339,36 +339,32 @@ struct HomeView: View {
 
     /// 有未完成罚扫安排时显示；点进罚扫履历页。无安排则 body 里整张不渲染。
     private func nextCleaningCard(_ info: NextCleaningInfo) -> some View {
-        Button { router.go(.myClean) } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(Color(hex: 0xB07A28))
-                    .frame(width: 38, height: 38)
-                    .background(Circle().fill(Color(hex: 0xFDF4E1)))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("次の罰則清掃")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(T.inkSub)
-                    Text("\(info.dateText) \(info.timeText) · \(info.area)")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(T.ink)
-                }
-                Spacer()
-                Ic.chevR(14)
-                    .foregroundStyle(T.inkMute)
+        // 只展示日期时间，不显示地点、不可点击（无跳转、无箭头）
+        HStack(spacing: 12) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(Color(hex: 0xB07A28))
+                .frame(width: 38, height: 38)
+                .background(Circle().fill(Color(hex: 0xFDF4E1)))
+            VStack(alignment: .leading, spacing: 2) {
+                Text("次の罰則清掃")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(T.inkSub)
+                Text("\(info.dateText) \(info.timeText)")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(T.ink)
             }
-            .padding(14)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.white)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(T.hair, lineWidth: 1)
-            )
+            Spacer()
         }
-        .buttonStyle(.plain)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.white)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(T.hair, lineWidth: 1)
+        )
     }
 
     /// absent 时显红色渐变，其余情况显 amber
