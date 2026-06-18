@@ -207,6 +207,9 @@ def list_teachers_public(db: Session = Depends(get_db)):
         .order_by(models.Teacher.name)
     )
     teachers = db.scalars(stmt).all()
+    # op 运维账号不上墙（登录页 4 个权限组栏不含 op，本就不显示）—— 这里从源头剔除，
+    # 连 op 的姓名 / 最后登录时间也不半公开泄露。op 走「システム管理者ログイン」单独入口
+    # （前端输 login_id + 密码登录，不靠这个公开列表）。
     return [
         schemas.TeacherPublicOut(
             id=t.id,
@@ -216,6 +219,7 @@ def list_teachers_public(db: Session = Depends(get_db)):
             permission_group=permissions.effective_group(t),
         )
         for t in teachers
+        if permissions.effective_group(t) != permissions.GROUP_OP
     ]
 
 

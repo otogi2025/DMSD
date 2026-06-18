@@ -44,6 +44,9 @@ export function LoginScreen({
   const [teachers, setTeachers] = React.useState<PickedTeacher[] | null>(null); // null=loading / []=失败 / [...]=真值
   const [loadErr, setLoadErr] = React.useState<string | null>(null);
   const [picked, setPicked] = React.useState<PickedTeacher | null>(null);
+  // 手动登录（「システム管理者ログイン」入口）—— op 运维账号不上墙，走输 login_id + 密码这条单独路
+  const [manual, setManual] = React.useState(false);
+  const [manualId, setManualId] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [err, setErr] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
@@ -103,6 +106,54 @@ export function LoginScreen({
           setFails(0);
         } else {
           setErr(`パスワードが違います（残り ${3 - n} 回）`);
+        }
+        setPassword("");
+      } else if (err2 && err2.status === 423) {
+        setErr("アカウントロック中。30 分ほど待ってから再度お試しください。");
+      } else if (err2 && err2.status) {
+        setErr(`サーバーエラー (${err2.status})`);
+      } else {
+        setErr(
+          "サーバーに接続できません。しばらくしてから再度お試しください。",
+        );
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // 手动登录提交（op 等不上墙的账号）—— 用 login_id + 密码，后端 POST /sessions/teacher 已支持 login_id
+  const submitManual = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (submitting || !manualId || !password) return;
+    setSubmitting(true);
+    try {
+      const data = await api.teacherLogin({
+        login_id: manualId.trim(),
+        password,
+      });
+      setFails(0);
+      setErr("");
+      // 手动登录没有卡片可选，用返回的老师档案现搭一个 PickedTeacher 给 App 顶层
+      const t = data.teacher;
+      const pk: PickedTeacher = {
+        id: t.id,
+        name: t.name,
+        dorm: t.assigned_dorm === 4 ? "women" : "men",
+        permissionGroup: t.permission_group ?? null,
+        initial: (t.name || "?").charAt(0),
+        lastLoginMins: null,
+      };
+      onLogin(data.access_token, data.teacher, pk);
+    } catch (err2: any) {
+      if (err2 && err2.status === 401) {
+        const n = fails + 1;
+        setFails(n);
+        if (n >= 3) {
+          setErr("3 回失敗しました。30 分間ロックされます。");
+          setFails(0);
+        } else {
+          setErr(`ID またはパスワードが違います（残り ${3 - n} 回）`);
         }
         setPassword("");
       } else if (err2 && err2.status === 423) {
@@ -332,6 +383,188 @@ export function LoginScreen({
     );
   }
 
+  // —————— 手动登录屏：「システム管理者ログイン」（op 等不上墙的账号，输 login_id + 密码） ——————
+  if (manual) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: T.paper,
+          color: T.ink,
+          fontFamily: T.font,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 24,
+        }}
+      >
+        <div style={{ width: 420 }}>
+          {brandHeader}
+          <form
+            onSubmit={submitManual}
+            style={{
+              background: T.surface,
+              border: `1px solid ${T.line}`,
+              borderRadius: 14,
+              padding: "26px 28px 22px",
+              boxShadow: T.shadow2,
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setManual(false);
+                setManualId("");
+                setPassword("");
+                setErr("");
+                setFails(0);
+              }}
+              style={{
+                background: T.cobaltSoft,
+                color: T.cobalt,
+                border: "none",
+                borderRadius: 6,
+                padding: "8px 12px",
+                fontFamily: "inherit",
+                fontSize: 13,
+                cursor: "pointer",
+                marginBottom: 14,
+              }}
+            >
+              ← 先生一覧に戻る
+            </button>
+            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>
+              システム管理者ログイン
+            </div>
+            <div style={{ fontSize: 11, color: T.ink3, marginBottom: 18 }}>
+              管理 ID とパスワードを入力してください
+            </div>
+
+            <label style={{ display: "block", marginBottom: 14 }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: T.ink2,
+                  marginBottom: 6,
+                  fontWeight: 600,
+                }}
+              >
+                管理 ID
+              </div>
+              <input
+                type="text"
+                value={manualId}
+                autoFocus
+                autoComplete="username"
+                onChange={(e) => {
+                  setManualId(e.target.value);
+                  setErr("");
+                }}
+                style={{
+                  width: "100%",
+                  padding: "11px 12px",
+                  background: T.surface,
+                  border: `1px solid ${T.lineStrong}`,
+                  borderRadius: 8,
+                  fontFamily: "inherit",
+                  fontSize: 14,
+                  color: T.ink,
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+            </label>
+
+            <label style={{ display: "block", marginBottom: 14 }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: T.ink2,
+                  marginBottom: 6,
+                  fontWeight: 600,
+                }}
+              >
+                パスワード
+              </div>
+              <input
+                type="password"
+                value={password}
+                autoComplete="current-password"
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setErr("");
+                }}
+                style={{
+                  width: "100%",
+                  padding: "11px 12px",
+                  background: T.surface,
+                  border: `1px solid ${T.lineStrong}`,
+                  borderRadius: 8,
+                  fontFamily: "inherit",
+                  fontSize: 14,
+                  color: T.ink,
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+            </label>
+
+            {err && (
+              <div
+                style={{
+                  marginBottom: 12,
+                  padding: "8px 12px",
+                  fontSize: 12,
+                  background: T.dangerSoft,
+                  color: T.danger,
+                  border: `1px solid ${T.dangerBorder}`,
+                  borderRadius: 8,
+                }}
+              >
+                {err}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting || !manualId || !password}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                background:
+                  submitting || !manualId || !password
+                    ? T.lineStrong
+                    : T.cobalt,
+                color: "#fff",
+                border: "none",
+                borderRadius: 10,
+                fontFamily: "inherit",
+                fontSize: 14,
+                fontWeight: 600,
+                cursor:
+                  submitting || !manualId || !password
+                    ? "not-allowed"
+                    : "pointer",
+              }}
+            >
+              {submitting ? "認証中…" : "ログイン"}
+            </button>
+          </form>
+          <div
+            style={{
+              fontSize: 11,
+              color: T.ink3,
+              textAlign: "center",
+              marginTop: 14,
+            }}
+          >
+            Tomoshibi {APP_VERSION}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // —————— 屏 1：老师列表（按权限组分 4 栏；op 运维账号不上墙、走单独入口） ——————
   const tAll = teachers || [];
   const dormAdmin = tAll.filter((t) => t.permissionGroup === GROUP_DORM_ADMIN);
@@ -451,15 +684,29 @@ export function LoginScreen({
         </div>
       )}
 
-      <div
-        style={{
-          fontSize: 11,
-          color: T.ink3,
-          textAlign: "center",
-          marginTop: 36,
-        }}
-      >
-        Tomoshibi {APP_VERSION}
+      <div style={{ textAlign: "center", marginTop: 36 }}>
+        <button
+          type="button"
+          onClick={() => {
+            setManual(true);
+            setErr("");
+            setFails(0);
+          }}
+          style={{
+            background: "transparent",
+            border: "none",
+            color: T.ink3,
+            fontFamily: "inherit",
+            fontSize: 12,
+            textDecoration: "underline",
+            cursor: "pointer",
+          }}
+        >
+          システム管理者ログイン
+        </button>
+        <div style={{ fontSize: 11, color: T.ink3, marginTop: 10 }}>
+          Tomoshibi {APP_VERSION}
+        </div>
       </div>
     </div>
   );

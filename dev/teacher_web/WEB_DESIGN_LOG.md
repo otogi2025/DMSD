@@ -1141,4 +1141,20 @@ itsuki 2026-06-16 拍板：老师网页要能查看老师做过的操作历史�
 
 ---
 
+## 23. 版本号联动注入 + 系统管理者登录入口（2026-06-18）
+
+### 23.1 版本号不再写死，构建时从 CHANGELOG 注入
+
+登录页脚 `Tomoshibi vX.Y.Z` 原来读 `theme.ts` 里写死的 `APP_VERSION`，每次发版要手动改、结果漂到 v0.23.0（项目已 v0.24.8）。改成机制联动：
+
+- `vite.config.ts` 加 `readAppVersion()` —— 构建 / 启 dev server 时读仓库根 `CHANGELOG.md` 顶部第一条 `## [vX.Y.Z]`，通过 `define` 注入全局常量 `__APP_VERSION__`（类型声明在 `src/vite-env.d.ts`）。
+- `theme.ts` 的 `APP_VERSION = __APP_VERSION__`，不再写死。
+- 效果：版本号永远跟着 CHANGELOG（单源真值）走，发版重新构建网页即自动同步，杜绝漂移。version-bump 清单第 8 项里 teacher_web 这一处已从「手动同步」转为「自动注入」。
+
+### 23.2 「システム管理者ログイン」单独入口（op 不上墙）
+
+`LoginScreen.tsx` 登录页按 4 个权限组分栏（寮管理者 / 一般宿管 / 一般宿管+夜学習 / 申請承認専用），op 运维账号**不上墙**。新增页脚低调入口「システム管理者ログイン」→ 切到手动登录屏，输 `login_id` + 密码登录（后端 `POST /sessions/teacher` 早已支持 `login_id`，无需改后端）。成功后用返回的老师档案现搭 `PickedTeacher` 交给 App 顶层。配套后端把 op 从 `GET /teachers/public` 列表剔除（见 `BACKEND_DESIGN_LOG`），op 的姓名 / 最后登录时间不再半公开泄露。
+
+---
+
 **END** — 本档随 Web 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。

@@ -41,6 +41,10 @@ log = logging.getLogger("seed")
 
 DEV_PASSWORD = "123456"
 
+# dev 本机 op（系统最高运维账号）密码 —— 仅本机 SQLite 用，方便测「登录页系统管理者入口」。
+# ⚠️ 生产环境绝不用这个：seed_prod 仍只在 env OP_PASSWORD 设置时建 op，密码绝不入仓库（安全铁律）。
+DEV_OP_PASSWORD = "op123456"
+
 # dev 纯 demo：现在还没人注册，真实学生 / 老师一律不建种子，全走 _seed_demo_data 的演示数据
 # itsuki 拍板：删 shingu，dev 只留 demo 账号，学生名字之类的只放 demo
 DEV_STUDENTS = []
@@ -49,9 +53,25 @@ DEV_TEACHERS = []
 
 
 def seed_dev(db) -> None:
-    """dev dummy 数据 — 本机 SQLite 开发用（纯 demo：只建演示老师 + 演示学生）。"""
+    """dev dummy 数据 — 本机 SQLite 开发用（纯 demo：只建演示老师 + 演示学生 + op 运维账号）。"""
     # itsuki 拍板：dev 只留 demo 账号 → 先建演示数据，后面的学习名簿 / 校车便都挂到 demo 上
     _seed_demo_data(db)
+
+    # op 运维账号（最高权限，permission_group="op"）—— 登录页不上墙，走「システム管理者ログイン」
+    # 单独入口（输 login_id="op" + 密码登录）。dev 本机用已知密码方便测；幂等，重复跑不重建。
+    existing_op = db.scalars(
+        select(models.Teacher).where(models.Teacher.login_id == OP_TEACHER["login_id"])
+    ).first()
+    if existing_op:
+        log.info("op 账号已存在 — 跳过")
+    else:
+        db.add(
+            models.Teacher(
+                **OP_TEACHER, password_hash=security.hash_password(DEV_OP_PASSWORD)
+            )
+        )
+        log.info("加 op 账号 login_id=op（dev 密码 %s）", DEV_OP_PASSWORD)
+    db.commit()
 
     pw_hash = security.hash_password(DEV_PASSWORD)
 
@@ -327,8 +347,13 @@ def seed_dev(db) -> None:
 
     log.info("=" * 60)
     log.info("dev seed 完成（纯 demo）")
-    log.info("演示老师 login: demo / 演示学生 login: 980101 980201 980401")
-    log.info("password: demo123（演示账号共通）")
+    log.info(
+        "演示老师 login: demo / demo_general / demo_study / demo_approval（密码 demo123 共通）"
+    )
+    log.info("演示学生 login: 980101 980201 980401（密码 demo123）")
+    log.info(
+        "op 运维账号 login: op（密码 %s，走登录页系统管理者入口）", DEV_OP_PASSWORD
+    )
     log.info("=" * 60)
 
 
@@ -379,17 +404,51 @@ PROD_REVIEWER_STUDENT = dict(
     is_demo=True,  # 关键标志 — admin 学生列表 / 出席统计自动过滤
 )
 
-# 宿舍演示 / Apple 审核用「演示老师 + 演示学生」（is_demo=True，对真老师全隐身）
-# opt-in：仅当 env DEMO_TEACHER_PASSWORD 设置时建（缺失跳过，不破坏现有部署）
-DEMO_TEACHER = dict(
-    login_id="demo",
-    name="デモ",
-    email="demo-teacher@tomoshibi.example",
-    role="寮務部長",  # 跨寮 → 演示老师能看到所有演示寮（1/2/4）的演示学生
-    permission_group="寮管理者",  # 演示老师全功能可见（演示数据范围内）
-    assigned_dorm=None,
-    is_demo=True,
-)
+# 宿舍演示 / Apple 审核用「演示老师 + 演示学生」（is_demo=True，对真老师全隐身）。
+# itsuki 拍板：登录页每个权限组各放一个 demo 老师，方便演示 / 体验不同权限的界面。
+# 4 个权限组各一个（op 运维组不在登录页上墙、不建 demo —— op 走单独入口，见 seed_dev 的 op 段）。
+# 全部 is_demo=True、共用密码（取 env DEMO_TEACHER_PASSWORD，缺失用 "demo123"）。
+# 第 0 个 login_id="demo"（寮管理者）是主演示老师 —— 巴士便 / 演示公告都挂它名下（下面靠 login_id 查）。
+DEMO_TEACHERS = [
+    dict(
+        login_id="demo",
+        name="デモ",
+        email="demo-teacher@tomoshibi.example",
+        role="寮務部長",  # 跨寮 → 演示老师能看到所有演示寮（1/2/4）的演示学生
+        permission_group="寮管理者",  # 全功能可见（演示数据范围内）
+        assigned_dorm=None,
+        is_demo=True,
+    ),
+    dict(
+        login_id="demo_general",
+        name="デモ（一般）",
+        email="demo-general@tomoshibi.example",
+        role="管理係",  # 一般宿管 对应职位
+        permission_group="一般宿管",  # 受限：日常运营，无晚自习/学习管理
+        assigned_dorm=1,  # 男子寮
+        is_demo=True,
+    ),
+    dict(
+        login_id="demo_study",
+        name="デモ（夜学習）",
+        email="demo-study@tomoshibi.example",
+        role="寮監",  # 一般宿管+晚自习 对应职位
+        permission_group="一般宿管+晚自习",  # 存储值用「晚自习」，UI 显示「夜学習」
+        assigned_dorm=4,  # 女子寮（演示不同寮的样子）
+        is_demo=True,
+    ),
+    dict(
+        login_id="demo_approval",
+        name="デモ（承認）",
+        email="demo-approval@tomoshibi.example",
+        role="国際交流部長",  # 申請承認専用 对应职位
+        permission_group="申請承認専用",  # 以审批为核心，其余只读
+        assigned_dorm=None,
+        is_demo=True,
+    ),
+]
+# 主演示老师（巴士便 / 演示公告挂它名下）—— 第 0 个 = 寮管理者 login_id="demo"
+DEMO_TEACHER = DEMO_TEACHERS[0]
 # 演示学生学号用 98xxxx 段（避开真实学年 01-06 + reviewer 999999），覆盖男/女寮
 DEMO_STUDENTS = [
     dict(
@@ -680,17 +739,20 @@ def _seed_demo_data(db) -> None:
 
     demo_pw_hash = security.hash_password(demo_password)
 
-    # 演示老师（幂等）
-    existing_demo_teacher = db.scalars(
-        select(models.Teacher).where(
-            models.Teacher.login_id == DEMO_TEACHER["login_id"]
+    # 演示老师 —— 每个权限组各一个（幂等，逐个按 login_id 查重）
+    for t_data in DEMO_TEACHERS:
+        existing_demo_teacher = db.scalars(
+            select(models.Teacher).where(models.Teacher.login_id == t_data["login_id"])
+        ).first()
+        if existing_demo_teacher:
+            log.info("演示老师 %s 已存在 — 跳过", t_data["login_id"])
+            continue
+        db.add(models.Teacher(**t_data, password_hash=demo_pw_hash))
+        log.info(
+            "加演示老师 login_id=%s group=%s is_demo=True",
+            t_data["login_id"],
+            t_data["permission_group"],
         )
-    ).first()
-    if existing_demo_teacher:
-        log.info("演示老师已存在 — 跳过")
-    else:
-        db.add(models.Teacher(**DEMO_TEACHER, password_hash=demo_pw_hash))
-        log.info("加演示老师 login_id=%s is_demo=True", DEMO_TEACHER["login_id"])
 
     # 演示学生（幂等，各建 Account 共用演示密码）
     for s_data in DEMO_STUDENTS:
