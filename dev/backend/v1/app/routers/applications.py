@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from .. import models, permissions, schemas, ws_manager as _ws
 from ..database import get_db
+from ..deps import is_teacher_expired
 from ..deps import (
     assert_student_demo_match,
     demo_scope_for_teacher,
@@ -614,6 +615,15 @@ def _resolve_actor(
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail={"code": "ACCOUNT_INACTIVE", "message": "アカウント無効"},
+            )
+        # 临时账户过期也要拦（本路径自解 JWT、不走 deps.get_current_teacher）
+        if is_teacher_expired(t):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "ACCOUNT_EXPIRED",
+                    "message": "臨時アカウントの有効期限が切れています",
+                },
             )
         return t
     raise HTTPException(

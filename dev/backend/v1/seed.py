@@ -57,21 +57,33 @@ def seed_dev(db) -> None:
     # itsuki 拍板：dev 只留 demo 账号 → 先建演示数据，后面的学习名簿 / 校车便都挂到 demo 上
     _seed_demo_data(db)
 
-    # op 运维账号（最高权限，permission_group="op"）—— 登录页不上墙，走「システム管理者ログイン」
-    # 单独入口（输 login_id="op" + 密码登录）。dev 本机用已知密码方便测；幂等，重复跑不重建。
-    existing_op = db.scalars(
-        select(models.Teacher).where(models.Teacher.login_id == OP_TEACHER["login_id"])
-    ).first()
-    if existing_op:
-        log.info("op 账号已存在 — 跳过")
-    else:
-        db.add(
-            models.Teacher(
-                **OP_TEACHER, password_hash=security.hash_password(DEV_OP_PASSWORD)
-            )
+    # op 运维账号（最高权限，permission_group="op"）—— 登录页不上墙，走「ログイン」单独入口
+    # （输 login_id="op" + 密码登录）。dev 本机用已知密码方便测；幂等，重复跑不重建。
+    # ⚠️ 安全护栏：只在 SQLite 库（= 本机 dev）建这个已知密码 op，防 `python -m seed` 在
+    # 生产（Postgres）漏设 APP_ENV=production 时误走 dev 分支、建出 op123456 账户。生产 op
+    # 永远走 seed_prod 的 env OP_PASSWORD 路径。
+    from app.config import get_settings
+
+    if not get_settings().is_sqlite:
+        log.warning(
+            "非 SQLite 库（疑似生产）— 跳过 dev op 账号创建，op 应走 seed_prod + OP_PASSWORD"
         )
-        log.info("加 op 账号 login_id=op（dev 密码 %s）", DEV_OP_PASSWORD)
-    db.commit()
+    else:
+        existing_op = db.scalars(
+            select(models.Teacher).where(
+                models.Teacher.login_id == OP_TEACHER["login_id"]
+            )
+        ).first()
+        if existing_op:
+            log.info("op 账号已存在 — 跳过")
+        else:
+            db.add(
+                models.Teacher(
+                    **OP_TEACHER, password_hash=security.hash_password(DEV_OP_PASSWORD)
+                )
+            )
+            log.info("加 op 账号 login_id=op（dev 密码 %s）", DEV_OP_PASSWORD)
+        db.commit()
 
     pw_hash = security.hash_password(DEV_PASSWORD)
 

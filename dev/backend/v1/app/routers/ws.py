@@ -20,6 +20,7 @@ from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect, status
 
 from .. import models, security
 from ..database import SessionLocal
+from ..deps import is_teacher_expired
 from ..ws_manager import manager
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,10 @@ async def teacher_ws(
     with SessionLocal() as db:
         teacher = db.get(models.Teacher, teacher_id)
         if not teacher or teacher.status != "active":
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+        # 临时账户过期也拒连（本路径自解 JWT、不走 deps.get_current_teacher）
+        if is_teacher_expired(teacher):
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
         assigned_dorm = teacher.assigned_dorm

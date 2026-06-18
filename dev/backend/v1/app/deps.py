@@ -24,6 +24,17 @@ CROSS_DORM_ROLES = frozenset(
 )
 
 
+def is_teacher_expired(teacher: models.Teacher) -> bool:
+    """临时账户是否已过期（永久账户 expires_at=NULL → 永不过期）。
+
+    给所有「自己解 JWT、不走 get_current_teacher」的鉴权入口（ws / applications._resolve_actor /
+    announcements._resolve_actor）共用，避免过期临时账户拿没过期的令牌从这些旁路绕过。
+    """
+    return teacher.expires_at is not None and teacher.expires_at <= datetime.now(
+        timezone.utc
+    )
+
+
 def dorm_units_for_teacher(teacher: models.Teacher) -> Optional[list[int]]:
     """寮过滤 — 返回该教师能看到的 dorm_unit 列表（None = 不限制 / 看全部）。
 
@@ -172,9 +183,7 @@ def get_current_teacher(
             detail={"code": "ACCOUNT_INACTIVE", "message": "アカウントが利用不可です"},
         )
     # 临时账户到期：已签发令牌也要拦（防令牌活过账户，24h 令牌 vs「今天内」到期）
-    if teacher.expires_at is not None and teacher.expires_at <= datetime.now(
-        timezone.utc
-    ):
+    if is_teacher_expired(teacher):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={
@@ -234,9 +243,7 @@ def get_current_principal(
                     "message": "アカウントが利用不可です",
                 },
             )
-        if teacher.expires_at is not None and teacher.expires_at <= datetime.now(
-            timezone.utc
-        ):
+        if is_teacher_expired(teacher):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail={

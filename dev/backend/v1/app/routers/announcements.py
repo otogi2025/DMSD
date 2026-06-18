@@ -36,6 +36,7 @@ from ..deps import (
     _parse_bearer,
     get_current_principal,
     get_current_student,
+    is_teacher_expired,
     require_permission,
 )
 
@@ -101,6 +102,9 @@ def _resolve_actor(
     if role.startswith("teacher:"):
         actor = db.get(models.Teacher, actor_id)
         if not actor or actor.status != "active":
+            raise raise_unauth
+        # 临时账户过期也拦（本路径自解 JWT、不走 deps.get_current_teacher）
+        if is_teacher_expired(actor):
             raise raise_unauth
         return "teacher", actor_id, actor
     raise raise_unauth
