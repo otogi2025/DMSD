@@ -57,4 +57,6 @@ export const TIMEOUT_MS = 30 * 60 * 1000; // 30 分 — 无操作自动回登录
 export const TIMEOUT_WARN_MS = 25 * 60 * 1000; // 25 分 — 显示「あと 5 分」提示
 export const LATE_THRESHOLD_SEC = 180; // 3 分 — 迟到自动转换阈值
 export const API_BASE = "/api/v1"; // 同 origin 部署 + dev 走 vite proxy
-export const APP_VERSION = "v0.23.0";
+// 版本号不再写死：由 Vite 构建时从仓库根 CHANGELOG.md 顶部注入（见 vite.config.ts readAppVersion）。
+// 全局常量 __APP_VERSION__ 的类型声明在 src/vite-env.d.ts。发版重新构建网页即自动同步，不用手改。
+export const APP_VERSION = __APP_VERSION__;
