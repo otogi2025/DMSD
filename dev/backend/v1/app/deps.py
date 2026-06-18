@@ -8,6 +8,7 @@
 R4 寮過滤 helper — `dorm_units_for_teacher(teacher)` 是全 router 共用的过滤工具。
 """
 
+from datetime import datetime, timezone
 from typing import Annotated, Optional
 from uuid import UUID
 
@@ -26,16 +27,28 @@ CROSS_DORM_ROLES = frozenset(
 def dorm_units_for_teacher(teacher: models.Teacher) -> Optional[list[int]]:
     """寮过滤 — 返回该教师能看到的 dorm_unit 列表（None = 不限制 / 看全部）。
 
-    itsuki 2026-06-13 拍板**取消寮过滤**：所有老师可查看 / 操作所有学生，不再按
-    男女宿舍（dorm_unit 1,2=男 / 4=女）隔开 —— 功能权限仍由 require_permission 按
-    权限组把关。本函数因此返回全部寮 `[1, 2, 4]`（= 不限制）。
+    2026-06-18 itsuki 拍板**按登录时选的寮过滤**（取代 6-13 全局取消）：老师登录时选
+    今晚负责男子寮还是女子寮，这个选择写进令牌（claim `selected_dorm`），由
+    get_current_teacher / get_current_principal 挂到 teacher._selected_dorm 上，本函数据此过滤：
+
+    - op / 申請承認専用 组 → 永远看全部 `[1, 2, 4]`（承認组默认看所有男女生 + 所有申请）。
+    - 其他组按选的寮：选男（selected_dorm=1）→ `[1, 2]`；选女（=4）→ `[4]`。
+    - **未选**（旧令牌 / 非登录页客户端 / 测试夹具不带 selected_dorm）→ 不限制 `[1, 2, 4]`，
+      向后兼容（保持 6-13「看全部」行为，重新登录选寮后才生效过滤）。
 
     返回全集而非 None：有些调用点直接 `.in_(allowed)` 没有 `if allowed is not None`
-    守卫，返回 None 会让 SQL 的 `.in_(None)` 报错；返回全集则无论有无守卫都匹配到
-    全部学生。返回类型仍保留 Optional[list[int]]，便于将来恢复按寮过滤
-    （旧逻辑见 git 历史 / CROSS_DORM_ROLES 常量）。
+    守卫，返回 None 会让 SQL 的 `.in_(None)` 报错；返回全集则无论有无守卫都匹配到全部。
     """
-    return [1, 2, 4]
+    group = permissions.effective_group(teacher)
+    # op / 申請承認専用：永远看全部，忽略选寮
+    if group in (permissions.GROUP_OP, permissions.GROUP_APPROVAL):
+        return [1, 2, 4]
+    selected = getattr(teacher, "_selected_dorm", None)
+    if selected == 4:
+        return [4]  # 女子寮
+    if selected in (1, 2):
+        return [1, 2]  # 男子寮（1+2 寮）
+    return [1, 2, 4]  # 未选 → 不限制（向后兼容）
 
 
 def demo_scope_for_teacher(teacher: models.Teacher):
@@ -158,6 +171,19 @@ def get_current_teacher(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"code": "ACCOUNT_INACTIVE", "message": "アカウントが利用不可です"},
         )
+    # 临时账户到期：已签发令牌也要拦（防令牌活过账户，24h 令牌 vs「今天内」到期）
+    if teacher.expires_at is not None and teacher.expires_at <= datetime.now(
+        timezone.utc
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "ACCOUNT_EXPIRED",
+                "message": "臨時アカウントの有効期限が切れています",
+            },
+        )
+    # 把登录时选的寮（令牌 claim）挂到 teacher 上，供 dorm_units_for_teacher 读
+    teacher._selected_dorm = payload.get("selected_dorm")
     return teacher
 
 
@@ -208,6 +234,18 @@ def get_current_principal(
                     "message": "アカウントが利用不可です",
                 },
             )
+        if teacher.expires_at is not None and teacher.expires_at <= datetime.now(
+            timezone.utc
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "ACCOUNT_EXPIRED",
+                    "message": "臨時アカウントの有効期限が切れています",
+                },
+            )
+        # 同 get_current_teacher：挂登录时选的寮供 dorm_units_for_teacher 读
+        teacher._selected_dorm = payload.get("selected_dorm")
         return teacher
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,

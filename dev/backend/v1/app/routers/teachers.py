@@ -282,6 +282,8 @@ def create_teacher(
         role=body.role,
         permission_group=body.permission_group,
         assigned_dorm=body.assigned_dorm,
+        # 临时账户：有 expires_at = 到期后登录被拒；NULL = 永久正式账户
+        expires_at=body.expires_at,
         status="active",
     )
     db.add(new_teacher)

@@ -245,6 +245,15 @@ def login_teacher(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"code": "ACCOUNT_INACTIVE", "message": "アカウント停止中"},
         )
+    # 临时账户到期检查 — 过期则拒绝登录（永久账户 expires_at=NULL 不受影响）
+    if teacher.expires_at is not None and teacher.expires_at <= now:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "ACCOUNT_EXPIRED",
+                "message": "臨時アカウントの有効期限が切れています",
+            },
+        )
 
     settings = get_settings()
     token = security.create_access_token(
@@ -254,6 +263,12 @@ def login_teacher(
             "name": teacher.name,
             "teacher_role": teacher.role,
             "assigned_dorm": teacher.assigned_dorm,
+            # 登录时选的寮（1=男/4=女）写进令牌，驱动寮过滤；未选则不放（看全部，向后兼容）
+            **(
+                {"selected_dorm": body.selected_dorm}
+                if body.selected_dorm is not None
+                else {}
+            ),
         },
     )
     # 登录成功 → 清失败计数 + 清锁

@@ -136,6 +136,9 @@ class Teacher(Base):
     failed_count: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
     locked_until: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     last_login_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+    # 临时账户到期时间（NULL = 永久正式账户）。代班老师等用：到期后登录被拒、
+    # 已签发的令牌也在 deps.get_current_teacher 处按本字段拒绝（防令牌活过账户）。
+    expires_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
     status: Mapped[str] = mapped_column(Text, nullable=False, default="active")
     # demo 账号标志 — 演示老师，只看演示数据（is_demo=True 学生），真老师把演示数据过滤掉
     # 与 Student.is_demo（第 74 行）对称：真老师 False 看真实学生，演示老师 True 只看演示学生

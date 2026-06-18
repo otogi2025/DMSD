@@ -81,6 +81,10 @@ class TeacherLoginIn(BaseModel):
     login_id: Optional[str] = Field(default=None, max_length=32)
     teacher_id: Optional[UUID] = None
     password: str = Field(..., min_length=6, max_length=128)
+    # 登录时选今晚负责的寮：1=男子寮（→1+2 寮）/ 4=女子寮（→4 寮）。写进令牌驱动寮过滤
+    # （deps.dorm_units_for_teacher）。op / 申請承認専用 组忽略本值、永远看全部。前端登录页
+    # 除承認组外必选；不传（旧客户端 / 申請承認専用）则不限制、看全部（向后兼容）。
+    selected_dorm: Optional[Literal[1, 4]] = None
 
 
 class TokenOut(BaseModel):
@@ -896,6 +900,8 @@ class TeacherOut(BaseModel):
     assigned_dorm: Optional[int]
     status: str
     created_at: datetime
+    # 临时账户到期时间（NULL = 永久正式账户）— 老师账户管理页显示「臨時 · 期限…」用
+    expires_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -933,6 +939,9 @@ class TeacherCreateIn(BaseModel):
     # 限定为 1/2/4（与 dorm_unit 一致）— 非法寮号在解析阶段 422，
     # 否则 create_teacher 落库撞 ck_teachers_dorm CHECK，IntegrityError 被误报成 DUPLICATE。
     assigned_dorm: Optional[Literal[1, 2, 4]] = None
+    # 临时账户到期时间（NULL = 永久正式账户）。有值 = 临时账户：到期后登录被拒。
+    # 临时账户 assigned_dorm 一般留空（登录时选寮），功能组走 permission_group。
+    expires_at: Optional[datetime] = None
 
 
 # ---------------------------------------------------------------
