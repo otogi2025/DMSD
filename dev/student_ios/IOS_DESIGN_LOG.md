@@ -1633,3 +1633,13 @@ itsuki 截图反馈：学生在班车页右上角看「这趟班车干嘛用的�
 - **ApplyStubs**：移除 StayForm/GenericApplyForm 两处「下書き保存」假动作（只弹 toast 不存）；`DateField` 加 `maxDate` + 食事不要終了日上限=帰寮日 + returnDate onChange 回钳（A-377）。
 
 双 scheme BUILD SUCCEEDED，未 push。剩余项（列表假空态 / 数据契约 / 仓库卫生+weak-link）拆接手 A/B 两并行会话。
+
+## §31 主页「次の罰則清掃」小卡简化（2026-06-18，commit `97483cf`）
+
+itsuki 要求主页点数卡下方的「次の罰則清掃」小卡（`HomeStubs.nextCleaningCard`）只展示日期时间：
+
+- 去掉地点 `info.area`（玄関まわり）——文字从「日期 时间 · 地点」改为「日期 时间」。
+- 去掉右侧 `Ic.chevR` 箭头。
+- 移除 `Button { router.go(.myClean) }` 包裹，改为纯 `HStack`，**不再可点、不跳罚扫详情页**。
+
+`NextCleaningInfo.area` 字段保留（`MyPageStubs` 罚扫详情 + `AppStore` 构造仍在用），只是主页这张卡不再显示。双 scheme BUILD SUCCEEDED，未 push。
