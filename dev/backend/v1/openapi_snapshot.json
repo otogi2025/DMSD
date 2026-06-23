@@ -78,6 +78,11 @@
             "title": "Body",
             "type": "string"
           },
+          "notify_students": {
+            "default": false,
+            "title": "Notify Students",
+            "type": "boolean"
+          },
           "scope": {
             "enum": [
               "all",
@@ -274,6 +279,17 @@
             ],
             "title": "Body"
           },
+          "notify_students": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notify Students"
+          },
           "scope": {
             "anyOf": [
               {
@@ -456,8 +472,7 @@
             "anyOf": [
               {
                 "items": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/MealSkipEntry"
                 },
                 "type": "array"
               },
@@ -513,8 +528,7 @@
             "anyOf": [
               {
                 "items": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "$ref": "#/components/schemas/StayLocation"
                 },
                 "type": "array"
               },
@@ -583,6 +597,22 @@
           "status"
         ],
         "title": "ApplicationOut",
+        "type": "object"
+      },
+      "ApplicationReturnIn": {
+        "description": "POST /applications/:id/return — 役職が学生に差戻(再提出を求める)。",
+        "properties": {
+          "comment": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Comment",
+            "type": "string"
+          }
+        },
+        "required": [
+          "comment"
+        ],
+        "title": "ApplicationReturnIn",
         "type": "object"
       },
       "ApplicationUpdateIn": {
@@ -917,6 +947,138 @@
         "title": "ApprovalStepOut",
         "type": "object"
       },
+      "AuditLogEntry": {
+        "description": "一条操作记录。写入侧 = app/audit.py 中间件自动埋点 / 端点语义级埋点（注册码等）。\n\nactor_name = join teachers.name 得到的操作者姓名（系统记录 / 已删账号为 null）。\ntarget_type/target_id 中间件自动记时可能为空（详情看 payload）。",
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Id"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name"
+          },
+          "actor_type": {
+            "title": "Actor Type",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "ip_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ip Address"
+          },
+          "payload": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payload"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "target_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Type"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "actor_type",
+          "action"
+        ],
+        "title": "AuditLogEntry",
+        "type": "object"
+      },
+      "AuditLogListOut": {
+        "description": "GET /api/v1/admin/audit-logs 响应：操作记录一覧（新→旧）+ 分页信息。",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AuditLogEntry"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "AuditLogListOut",
+        "type": "object"
+      },
       "AuditLogOut": {
         "description": "GET /applications/:id/audit — 審査履歴エントリ。",
         "properties": {
@@ -986,7 +1148,7 @@
         "type": "object"
       },
       "BusRouteCreateIn": {
-        "description": "POST /bus/routes — 老师新建巴士便。",
+        "description": "POST /bus/routes — 老师新建巴士便。\n\nkind / name 改为可选（2026-06-15 表单去掉「種別」「便名」两栏）：\n- kind 缺省 → 路由侧默认 dorm_special（寮特殊便）；旧数据 / 显式传值仍兼容。\n- name 缺省 → 路由侧用 direction（区间）回填（DB 列仍 NOT NULL）。",
         "properties": {
           "arrival_at": {
             "anyOf": [
@@ -1006,14 +1168,28 @@
             "type": "string"
           },
           "kind": {
-            "description": "daily_commute=平日通学便 / dorm_special=寮特殊便",
-            "title": "Kind",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "daily_commute=平日通学便 / dorm_special=寮特殊便（缺省=寮特殊便）",
+            "title": "Kind"
           },
           "name": {
-            "maxLength": 200,
-            "title": "Name",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
           },
           "note": {
             "anyOf": [
@@ -1026,6 +1202,24 @@
               }
             ],
             "title": "Note"
+          },
+          "notify_students": {
+            "default": false,
+            "title": "Notify Students",
+            "type": "boolean"
+          },
+          "purpose": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "用途说明，学生端右上角展示",
+            "title": "Purpose"
           },
           "schedule_at": {
             "format": "date-time",
@@ -1040,8 +1234,6 @@
           }
         },
         "required": [
-          "kind",
-          "name",
           "direction",
           "schedule_at"
         ],
@@ -1122,6 +1314,17 @@
             ],
             "title": "Note"
           },
+          "purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purpose"
+          },
           "schedule_at": {
             "format": "date-time",
             "title": "Schedule At",
@@ -1153,6 +1356,7 @@
           "arrival_at",
           "visible_to",
           "note",
+          "purpose",
           "deprecated",
           "created_by_teacher_id",
           "created_at",
@@ -1234,6 +1438,29 @@
             ],
             "title": "Note"
           },
+          "notify_students": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notify Students"
+          },
+          "purpose": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purpose"
+          },
           "schedule_at": {
             "anyOf": [
               {
@@ -1259,6 +1486,191 @@
           }
         },
         "title": "BusRoutePatchIn",
+        "type": "object"
+      },
+      "CleaningAssignmentCreateIn": {
+        "description": "老师分配清扫输入。area 自由文本，scheduled_at 带时区 datetime。",
+        "properties": {
+          "area": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Area",
+            "type": "string"
+          },
+          "scheduled_at": {
+            "format": "date-time",
+            "title": "Scheduled At",
+            "type": "string"
+          },
+          "student_id": {
+            "format": "uuid",
+            "title": "Student Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "student_id",
+          "area",
+          "scheduled_at"
+        ],
+        "title": "CleaningAssignmentCreateIn",
+        "type": "object"
+      },
+      "CleaningAssignmentOut": {
+        "description": "清扫安排输出（老师列表 + 学生履历共用）。",
+        "properties": {
+          "area": {
+            "title": "Area",
+            "type": "string"
+          },
+          "assigned_at": {
+            "format": "date-time",
+            "title": "Assigned At",
+            "type": "string"
+          },
+          "assigned_by_teacher_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned By Teacher Id"
+          },
+          "demerit_event_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Demerit Event Id"
+          },
+          "done_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Done At"
+          },
+          "failure_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Reason"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "inspected_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inspected At"
+          },
+          "inspected_by_teacher_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inspected By Teacher Id"
+          },
+          "scheduled_at": {
+            "format": "date-time",
+            "title": "Scheduled At",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "assigned",
+              "done",
+              "passed",
+              "failed",
+              "skipped"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "student_id": {
+            "format": "uuid",
+            "title": "Student Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "student_id",
+          "area",
+          "scheduled_at",
+          "status",
+          "assigned_by_teacher_id",
+          "assigned_at",
+          "done_at",
+          "inspected_by_teacher_id",
+          "inspected_at",
+          "failure_reason",
+          "demerit_event_id"
+        ],
+        "title": "CleaningAssignmentOut",
+        "type": "object"
+      },
+      "CleaningInspectIn": {
+        "description": "老师审核输入 — passed 通过 / failed 不通过 + 不通过原因。",
+        "properties": {
+          "failure_reason": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Reason"
+          },
+          "result": {
+            "enum": [
+              "passed",
+              "failed"
+            ],
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "CleaningInspectIn",
         "type": "object"
       },
       "DemeritEventOut": {
@@ -1349,6 +1761,7 @@
             "enum": [
               "rollcall_late",
               "rollcall_absent",
+              "cleaning_failed",
               "curfew_violation",
               "study_absent",
               "manual"
@@ -1380,13 +1793,19 @@
         "type": "object"
       },
       "DemeritManualIn": {
-        "description": "手动加扣分输入（寮監权限）。",
+        "description": "手动设定学生本月扣分总分输入（寮監权限）。\n\nB 方案（itsuki 2026-06-15 拍板）：老师输入目标绝对分 target_points，后端算\n「目标 − 当前本月总分」的差值，记一条调整事件（可正可负）使该学生本月总分等于\ntarget_points。不是加 / 减一个增量。target_points 取值 0~100（0 = 清零本月扣分）。",
         "properties": {
-          "points": {
-            "exclusiveMinimum": 0.0,
-            "maximum": 100.0,
-            "title": "Points",
-            "type": "number"
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           },
           "reason": {
             "maxLength": 2000,
@@ -1398,11 +1817,17 @@
             "format": "uuid",
             "title": "Student Id",
             "type": "string"
+          },
+          "target_points": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Target Points",
+            "type": "number"
           }
         },
         "required": [
           "student_id",
-          "points",
+          "target_points",
           "reason"
         ],
         "title": "DemeritManualIn",
@@ -1414,6 +1839,10 @@
           "dorm_unit": {
             "title": "Dorm Unit",
             "type": "integer"
+          },
+          "is_cleaning_threshold": {
+            "title": "Is Cleaning Threshold",
+            "type": "boolean"
           },
           "is_curfew_threshold": {
             "title": "Is Curfew Threshold",
@@ -1448,6 +1877,7 @@
           "room_no",
           "dorm_unit",
           "total_points",
+          "is_cleaning_threshold",
           "is_curfew_threshold"
         ],
         "title": "DemeritRankingEntryOut",
@@ -1456,6 +1886,10 @@
       "DemeritRankingOut": {
         "description": "月排名响应 — top N + 阈值学生列表。",
         "properties": {
+          "cleaning_threshold_count": {
+            "title": "Cleaning Threshold Count",
+            "type": "integer"
+          },
           "curfew_threshold_count": {
             "title": "Curfew Threshold Count",
             "type": "integer"
@@ -1475,6 +1909,7 @@
         "required": [
           "month",
           "entries",
+          "cleaning_threshold_count",
           "curfew_threshold_count"
         ],
         "title": "DemeritRankingOut",
@@ -1588,6 +2023,11 @@
             "format": "date",
             "title": "Event Date",
             "type": "string"
+          },
+          "notify_students": {
+            "default": false,
+            "title": "Notify Students",
+            "type": "boolean"
           },
           "start_at": {
             "anyOf": [
@@ -1775,6 +2215,17 @@
               }
             ],
             "title": "Event Date"
+          },
+          "notify_students": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notify Students"
           },
           "start_at": {
             "anyOf": [
@@ -2467,6 +2918,7 @@
           },
           "item_count": {
             "default": 1,
+            "maximum": 999.0,
             "minimum": 1.0,
             "title": "Item Count",
             "type": "integer"
@@ -2735,6 +3187,7 @@
             "items": {
               "$ref": "#/components/schemas/MealSkipEntry"
             },
+            "maxItems": 200,
             "title": "Meals Skip",
             "type": "array"
           },
@@ -2769,6 +3222,7 @@
             "items": {
               "$ref": "#/components/schemas/StayLocation"
             },
+            "maxItems": 20,
             "minItems": 1,
             "title": "Stay Locations",
             "type": "array"
@@ -2796,227 +3250,6 @@
           "stay_locations"
         ],
         "title": "GaihakuCreateIn",
-        "type": "object"
-      },
-      "GuidanceDisclosureDecisionIn": {
-        "description": "老师决定开示申请。",
-        "properties": {
-          "decision": {
-            "enum": [
-              "approved_full",
-              "approved_partial",
-              "rejected"
-            ],
-            "title": "Decision",
-            "type": "string"
-          },
-          "decision_note": {
-            "anyOf": [
-              {
-                "maxLength": 2000,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Decision Note"
-          },
-          "visible_from": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Visible From"
-          },
-          "visible_until": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Visible Until"
-          }
-        },
-        "required": [
-          "decision"
-        ],
-        "title": "GuidanceDisclosureDecisionIn",
-        "type": "object"
-      },
-      "GuidanceDisclosureListOut": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/GuidanceDisclosureRequestOut"
-            },
-            "title": "Items",
-            "type": "array"
-          }
-        },
-        "required": [
-          "items"
-        ],
-        "title": "GuidanceDisclosureListOut",
-        "type": "object"
-      },
-      "GuidanceDisclosureRequestIn": {
-        "description": "学生提交开示申请（查看自己的指导履历）。",
-        "properties": {
-          "reason": {
-            "anyOf": [
-              {
-                "maxLength": 2000,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reason"
-          }
-        },
-        "title": "GuidanceDisclosureRequestIn",
-        "type": "object"
-      },
-      "GuidanceDisclosureRequestOut": {
-        "properties": {
-          "decided_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Decided At"
-          },
-          "decided_by": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Decided By"
-          },
-          "decision_note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Decision Note"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reason"
-          },
-          "requested_at": {
-            "format": "date-time",
-            "title": "Requested At",
-            "type": "string"
-          },
-          "revoked_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Revoked At"
-          },
-          "status": {
-            "enum": [
-              "pending",
-              "approved_full",
-              "approved_partial",
-              "rejected"
-            ],
-            "title": "Status",
-            "type": "string"
-          },
-          "student_id": {
-            "format": "uuid",
-            "title": "Student Id",
-            "type": "string"
-          },
-          "student_no": {
-            "title": "Student No",
-            "type": "string"
-          },
-          "visible_from": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Visible From"
-          },
-          "visible_until": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Visible Until"
-          }
-        },
-        "required": [
-          "id",
-          "student_id",
-          "student_no",
-          "reason",
-          "requested_at",
-          "status",
-          "decided_by",
-          "decided_at",
-          "decision_note",
-          "visible_from",
-          "visible_until",
-          "revoked_at"
-        ],
-        "title": "GuidanceDisclosureRequestOut",
         "type": "object"
       },
       "GuidanceRecordCreateIn": {
@@ -3185,6 +3418,7 @@
               "format": "uuid",
               "type": "string"
             },
+            "maxItems": 200,
             "title": "Involved Student Ids",
             "type": "array"
           },
@@ -3335,6 +3569,7 @@
                   "format": "uuid",
                   "type": "string"
                 },
+                "maxItems": 200,
                 "type": "array"
               },
               {
@@ -3636,6 +3871,7 @@
             "items": {
               "$ref": "#/components/schemas/MealSkipEntry"
             },
+            "maxItems": 200,
             "title": "Meals Skip",
             "type": "array"
           },
@@ -3670,6 +3906,7 @@
             "items": {
               "$ref": "#/components/schemas/StayLocation"
             },
+            "maxItems": 20,
             "minItems": 1,
             "title": "Stay Locations",
             "type": "array"
@@ -4232,6 +4469,10 @@
             "title": "Month",
             "type": "string"
           },
+          "needs_cleaning": {
+            "title": "Needs Cleaning",
+            "type": "boolean"
+          },
           "total_points": {
             "title": "Total Points",
             "type": "number"
@@ -4241,7 +4482,8 @@
           "month",
           "total_points",
           "late_count",
-          "absent_count"
+          "absent_count",
+          "needs_cleaning"
         ],
         "title": "MyDisciplineSummaryOut",
         "type": "object"
@@ -5119,6 +5361,7 @@
           "code": {
             "maxLength": 6,
             "minLength": 6,
+            "pattern": "^\\d{6}$",
             "title": "Code",
             "type": "string"
           },
@@ -5435,6 +5678,12 @@
           },
           "status_source": {
             "default": "auto_nfc",
+            "enum": [
+              "auto_nfc",
+              "auto_settle",
+              "manual_checkin",
+              "teacher_override"
+            ],
             "title": "Status Source",
             "type": "string"
           },
@@ -5669,6 +5918,109 @@
           "resolved_by_teacher_id"
         ],
         "title": "RollCallReportOut",
+        "type": "object"
+      },
+      "RollCallSessionHistoryOut": {
+        "description": "点呼履歴一覧（老师网页 RecordsPage）用 —— 在场次基础信息上附本场出席统计。\n\npresent_count / late_count / absent_count 按 latest-per-student 聚合。原 list 端点\n返回纯 RollCallSessionOut（无这三个计数），前端读 present_count 等永远取不到、\n历史页三列恒显「—」，历史出勤回看功能实际不可用（TW-040）。",
+        "properties": {
+          "absent_count": {
+            "default": 0,
+            "title": "Absent Count",
+            "type": "integer"
+          },
+          "day_type": {
+            "title": "Day Type",
+            "type": "string"
+          },
+          "dorm_unit_set": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Dorm Unit Set",
+            "type": "array"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "late_count": {
+            "default": 0,
+            "title": "Late Count",
+            "type": "integer"
+          },
+          "present_count": {
+            "default": 0,
+            "title": "Present Count",
+            "type": "integer"
+          },
+          "scheduled_auto_end_at": {
+            "format": "date-time",
+            "title": "Scheduled Auto End At",
+            "type": "string"
+          },
+          "scheduled_late_end_at": {
+            "format": "date-time",
+            "title": "Scheduled Late End At",
+            "type": "string"
+          },
+          "scheduled_on_time_end_at": {
+            "format": "date-time",
+            "title": "Scheduled On Time End At",
+            "type": "string"
+          },
+          "scheduled_window_start_at": {
+            "format": "date-time",
+            "title": "Scheduled Window Start At",
+            "type": "string"
+          },
+          "session_status": {
+            "title": "Session Status",
+            "type": "string"
+          },
+          "session_type": {
+            "title": "Session Type",
+            "type": "string"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          }
+        },
+        "required": [
+          "id",
+          "dorm_unit_set",
+          "session_type",
+          "day_type",
+          "session_status",
+          "started_at",
+          "ended_at",
+          "scheduled_window_start_at",
+          "scheduled_on_time_end_at",
+          "scheduled_late_end_at",
+          "scheduled_auto_end_at"
+        ],
+        "title": "RollCallSessionHistoryOut",
         "type": "object"
       },
       "RollCallSessionOut": {
@@ -6066,7 +6418,7 @@
           },
           "room_no": {
             "maxLength": 8,
-            "minLength": 3,
+            "minLength": 2,
             "title": "Room No",
             "type": "string"
           },
@@ -6288,6 +6640,98 @@
           "password"
         ],
         "title": "StudentLoginIn",
+        "type": "object"
+      },
+      "StudentNotificationFeedOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StudentNotificationItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "unread_count": {
+            "title": "Unread Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "unread_count"
+        ],
+        "title": "StudentNotificationFeedOut",
+        "type": "object"
+      },
+      "StudentNotificationItem": {
+        "description": "一条学生通知 = 某条 公告/巴士/行事（老师投稿时勾了「通知」）。",
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "is_read": {
+            "title": "Is Read",
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "announcement",
+              "bus",
+              "event"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "ref_id": {
+            "format": "uuid",
+            "title": "Ref Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "ref_id",
+          "title",
+          "body",
+          "created_at",
+          "is_read"
+        ],
+        "title": "StudentNotificationItem",
+        "type": "object"
+      },
+      "StudentNotificationReadIn": {
+        "description": "标记某条学生通知已读。",
+        "properties": {
+          "kind": {
+            "enum": [
+              "announcement",
+              "bus",
+              "event"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "ref_id": {
+            "format": "uuid",
+            "title": "Ref Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "ref_id"
+        ],
+        "title": "StudentNotificationReadIn",
         "type": "object"
       },
       "StudentProfileBasic": {
@@ -7113,7 +7557,15 @@
             "type": "string"
           },
           "weekly_schedule": {
-            "additionalProperties": true,
+            "additionalProperties": {
+              "items": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              "type": "array"
+            },
             "title": "Weekly Schedule",
             "type": "object"
           }
@@ -7277,6 +7729,11 @@
           "assigned_dorm": {
             "anyOf": [
               {
+                "enum": [
+                  1,
+                  2,
+                  4
+                ],
                 "type": "integer"
               },
               {
@@ -7290,6 +7747,18 @@
             "title": "Email",
             "type": "string"
           },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
           "login_id": {
             "maxLength": 32,
             "minLength": 4,
@@ -7298,11 +7767,13 @@
             "type": "string"
           },
           "name": {
+            "maxLength": 100,
             "minLength": 1,
             "title": "Name",
             "type": "string"
           },
           "password": {
+            "maxLength": 128,
             "minLength": 8,
             "title": "Password",
             "type": "string"
@@ -7319,6 +7790,17 @@
             "title": "Permission Group"
           },
           "role": {
+            "enum": [
+              "校長",
+              "寮務部長",
+              "寮務課長",
+              "国際交流部長",
+              "国際交流課長",
+              "管理係",
+              "寮監",
+              "学習担当",
+              "寮務一般教師"
+            ],
             "title": "Role",
             "type": "string"
           }
@@ -7338,6 +7820,11 @@
           "target_dorm": {
             "anyOf": [
               {
+                "enum": [
+                  1,
+                  2,
+                  4
+                ],
                 "type": "integer"
               },
               {
@@ -7352,6 +7839,17 @@
             "type": "string"
           },
           "target_role": {
+            "enum": [
+              "校長",
+              "寮務部長",
+              "寮務課長",
+              "国際交流部長",
+              "国際交流課長",
+              "管理係",
+              "寮監",
+              "学習担当",
+              "寮務一般教師"
+            ],
             "title": "Target Role",
             "type": "string"
           }
@@ -7419,6 +7917,21 @@
             "title": "Password",
             "type": "string"
           },
+          "selected_dorm": {
+            "anyOf": [
+              {
+                "enum": [
+                  1,
+                  4
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected Dorm"
+          },
           "teacher_id": {
             "anyOf": [
               {
@@ -7459,6 +7972,18 @@
           "email": {
             "title": "Email",
             "type": "string"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
           },
           "id": {
             "format": "uuid",
@@ -7741,7 +8266,7 @@
     }
   },
   "info": {
-    "description": "Tomoshibi (灯火 / ともしび) — 宿舍管理 v1.0 backend. \nDMSD (Dormitory Management System Digitalization) 项目代号. \n本 deployment 目前は P0 範囲 (出寮届 + メール + 食堂) のみ実装。",
+    "description": "Tomoshibi（灯火 / ともしび）宿舍管理后端，项目代号 DMSD（Dormitory Management System Digitalization）。功能模块见各 router 标签。",
     "title": "Tomoshibi Backend v1",
     "version": "0.1.0-v1-skeleton"
   },
@@ -7807,7 +8332,7 @@
     },
     "/api/v1/accounts/me": {
       "delete": {
-        "description": "B2 — 学生自己删除账号（App Store 审核规则 5.1.1(v) 强制要求）。\n\n设计选择：软删除（保留历史记录完整性）\n- Student.status → 'deleted'（点呼历史 / 申请历史不物理删，保留审计用）\n- Account 行保留但 password_hash 清空（防止继续登录）\n- 写 AuditLog 留痕\n\nAccount.student_id 有 ondelete='CASCADE'，\n但物理删 Student 会连锁删 Account + 所有申请历史 — 违反审计完整性，\n所以选软删而非 db.delete()。",
+        "description": "B2 — 学生自己删除账号（App Store 审核规则 5.1.1(v) 强制要求）。\n\n设计选择：软删除（保留历史记录完整性）\n- Student.status → 'paused'（不存在 'deleted' 枚举值；点呼历史 / 申请历史不物理删，保留审计用）\n- Account 行保留但 password_hash 清空（防止继续登录）\n- 写 AuditLog 留痕，action='account.delete_self' 区分\"自删\"语义\n\n用 'paused' 而非 'deleted' 的原因：'deleted' 不在 ck_students_status\nCHECK 枚举里，而 'paused' 已在枚举内。这里复用 'paused' 表示\"账号已停用/自删\"。\n（已知局限：自删与管理员停用都落到 'paused'，状态层面无法区分，\n要分辨自删需看 AuditLog 的 action='account.delete_self'。）\n\nAccount.student_id 有 ondelete='CASCADE'，\n但物理删 Student 会连锁删 Account + 所有申请历史 — 违反审计完整性，\n所以选软删而非 db.delete()。",
         "operationId": "delete_account_me_api_v1_accounts_me_delete",
         "parameters": [
           {
@@ -8035,6 +8560,136 @@
         "summary": "Unlock Account",
         "tags": [
           "admin / accounts"
+        ]
+      }
+    },
+    "/api/v1/admin/audit-logs": {
+      "get": {
+        "description": "操作记录一覧（新→旧）。\n\n- 演示隔离：只看与查看者同 is_demo 的老师 actor 的记录。\n- 过滤：actor_id（限定某老师）/ since–until（时间范围）。\n- 分页：limit + offset，附 total 便于前端显示总数 / 翻页。",
+        "operationId": "list_audit_logs_api_v1_admin_audit_logs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "限定某老师的操作（UUID）",
+            "in": "query",
+            "name": "actor_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "限定某老师的操作（UUID）",
+              "title": "Actor Id"
+            }
+          },
+          {
+            "description": "起始时间（含）",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "起始时间（含）",
+              "title": "Since"
+            }
+          },
+          {
+            "description": "结束时间（含）",
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "结束时间（含）",
+              "title": "Until"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLogListOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Audit Logs",
+        "tags": [
+          "admin / audit-logs"
         ]
       }
     },
@@ -8727,6 +9382,22 @@
         "parameters": [
           {
             "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          },
+          {
+            "in": "header",
             "name": "authorization",
             "required": false,
             "schema": {
@@ -8883,6 +9554,22 @@
               "format": "uuid",
               "title": "Student Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
             }
           },
           {
@@ -9412,6 +10099,136 @@
         ]
       }
     },
+    "/api/v1/applications/{application_id}/return": {
+      "post": {
+        "description": "現在の承認者が届を学生に差戻(returned) — 学生に修正再提出を求める。\n\n差戻可能なのは pending / approved_partial（審査中）のみ。差戻後 status='returned'、\n学生が update_application で修正再提出すると chain 再生成 + status='pending' に戻る。",
+        "operationId": "return_application_api_v1_applications__application_id__return_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationReturnIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Return Application",
+        "tags": [
+          "applications"
+        ]
+      }
+    },
+    "/api/v1/applications/{application_id}/withdraw": {
+      "post": {
+        "description": "学生本人が未確定の届を取消(withdrawn)。\n\n取消可能なのは pending / approved_partial / returned のみ。\n既に approved / rejected / withdrawn の届は取消不可（終態 / 取消済）。",
+        "operationId": "withdraw_application_api_v1_applications__application_id__withdraw_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Withdraw Application",
+        "tags": [
+          "applications"
+        ]
+      }
+    },
     "/api/v1/bus/routes": {
       "get": {
         "description": "列巴士便 — kind 可选过滤（daily_commute / dorm_special）。学生+老师均可看。\n默认只返回有效便（deprecated=False）。",
@@ -9725,9 +10542,245 @@
         ]
       }
     },
+    "/api/v1/cleaning": {
+      "get": {
+        "description": "列未审核（assigned/done）的清扫安排 — R4 寮过滤 + 演示隔离，按计划时刻升序。\n\n重做后罚扫带具体时刻（scheduled_at），老师工作流是「看待处理 → 审核」，\n故默认拉未结案项（不再按单日过滤）；已审核（passed/failed/skipped）不在此列。",
+        "operationId": "list_cleaning_api_v1_cleaning_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CleaningAssignmentOut"
+                  },
+                  "title": "Response List Cleaning Api V1 Cleaning Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Cleaning",
+        "tags": [
+          "cleaning"
+        ]
+      },
+      "post": {
+        "description": "老师新建清扫分配。area 自由文本，scheduled_at 不能排到已过去时间。",
+        "operationId": "create_cleaning_api_v1_cleaning_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CleaningAssignmentCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CleaningAssignmentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Cleaning",
+        "tags": [
+          "cleaning"
+        ]
+      }
+    },
+    "/api/v1/cleaning/me": {
+      "get": {
+        "description": "学生查自己的清扫罚扫履历（iOS 个人主页「罚扫履历」接真后端）。\n\n按计划时刻倒序返回本人全部清扫安排（含 assigned / passed / failed）。\n路由 /me 是字面段，放在带 query 的 GET \"\" 之后不冲突。",
+        "operationId": "list_my_cleaning_api_v1_cleaning_me_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CleaningAssignmentOut"
+                  },
+                  "title": "Response List My Cleaning Api V1 Cleaning Me Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List My Cleaning",
+        "tags": [
+          "cleaning"
+        ]
+      }
+    },
+    "/api/v1/cleaning/{cleaning_id}/inspect": {
+      "post": {
+        "description": "老师审核 — passed 通过 / failed 不通过（自动扣 2.5 分）。",
+        "operationId": "inspect_cleaning_api_v1_cleaning__cleaning_id__inspect_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cleaning_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Cleaning Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CleaningInspectIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CleaningAssignmentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Inspect Cleaning",
+        "tags": [
+          "cleaning"
+        ]
+      }
+    },
     "/api/v1/discipline/manual": {
       "post": {
-        "description": "手动加扣分（扣分管理 M 权限）。",
+        "description": "手动设定学生本月扣分总分为绝对值（扣分管理 M 权限，B 方案差值记录）。",
         "operationId": "create_manual_demerit_api_v1_discipline_manual_post",
         "parameters": [
           {
@@ -10294,6 +11347,76 @@
           }
         },
         "summary": "Decide Event Proposal",
+        "tags": [
+          "dorm-life"
+        ]
+      }
+    },
+    "/api/v1/dorm-life/event-proposals/{proposal_id}/resubmit": {
+      "post": {
+        "description": "提出学生本人が「再提出を求める(resubmit)」判定の企画を修正して再提出。\n\n老师が result='resubmit' にした企画のみ再提出可。再提出すると内容を上書き +\nresult='pending' に戻し、decided_by/decided_at/comment をクリアして再審査に回す。\n其他状态（pending 审查中 / approved / approved_conditional / rejected）不可重提。",
+        "operationId": "resubmit_event_proposal_api_v1_dorm_life_event_proposals__proposal_id__resubmit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DormEventProposalCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DormEventProposalOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resubmit Event Proposal",
         "tags": [
           "dorm-life"
         ]
@@ -11726,136 +12849,6 @@
         "summary": "Mark Picked Up",
         "tags": [
           "front-desk"
-        ]
-      }
-    },
-    "/api/v1/guidance/disclosure-requests": {
-      "get": {
-        "description": "老师查开示申请列表（按申请时间倒序）。\n默认过滤 revoked_at IS NULL（未撤销），include_revoked=true 可看全部。\nR4 寮过滤：跨寮角色看全部；其他老师只看自己管辖寮的学生的申请。",
-        "operationId": "list_disclosure_requests_api_v1_guidance_disclosure_requests_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "include_revoked",
-            "required": false,
-            "schema": {
-              "default": false,
-              "title": "Include Revoked",
-              "type": "boolean"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GuidanceDisclosureListOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "List Disclosure Requests",
-        "tags": [
-          "guidance"
-        ]
-      }
-    },
-    "/api/v1/guidance/disclosure-requests/{request_id}/decision": {
-      "post": {
-        "description": "老师决定开示：全部开示 / 部分开示 / 拒绝。",
-        "operationId": "decide_disclosure_api_v1_guidance_disclosure_requests__request_id__decision_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "request_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Request Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GuidanceDisclosureDecisionIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GuidanceDisclosureRequestOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Decide Disclosure",
-        "tags": [
-          "guidance"
         ]
       }
     },
@@ -13641,7 +14634,7 @@
         ]
       },
       "post": {
-        "description": "学生点呼上报 — 体调不适 / 当次缺席 / 其他问题（iOS 点呼界面三弹窗）。\n\n身份从登录令牌取（不信任客户端传 student_id）。\n传了 session_id 就校验该点呼场次存在（不存在 → 404）。",
+        "description": "学生点呼上报 — 体调不适 / 当次缺席 / 其他问题（iOS 点呼界面三弹窗）。\n\n身份从登录令牌取（不信任客户端传 student_id）。\n传了 session_id 就校验该点呼场次：存在 + 覆盖本学生所属寮 + 正在进行中。",
         "operationId": "create_rollcall_report_api_v1_rollcall_reports_post",
         "parameters": [
           {
@@ -13874,7 +14867,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/RollCallSessionOut"
+                    "$ref": "#/components/schemas/RollCallSessionHistoryOut"
                   },
                   "title": "Response List Sessions History Api V1 Rollcall Sessions Get",
                   "type": "array"
@@ -14513,6 +15506,119 @@
         ]
       }
     },
+    "/api/v1/student/notifications": {
+      "get": {
+        "description": "当前学生的通知 feed — 聚合老师勾了「通知」的 公告 / 巴士 / 行事（时系列 desc）。",
+        "operationId": "get_student_notification_feed_api_v1_student_notifications_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentNotificationFeedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Student Notification Feed",
+        "tags": [
+          "student-notifications"
+        ]
+      }
+    },
+    "/api/v1/student/notifications/read": {
+      "post": {
+        "description": "标记一条学生通知已读（幂等 — 已读再标不报错）。\n\n公告复用 announcement_reads（与公告详情已读同源）；巴士 / 行事 用 student_notification_reads。",
+        "operationId": "mark_student_notification_read_api_v1_student_notifications_read_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudentNotificationReadIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mark Student Notification Read",
+        "tags": [
+          "student-notifications"
+        ]
+      }
+    },
     "/api/v1/students": {
       "get": {
         "description": "学生列表 — 老师网页「账号管理页」挂载时调用。\n\n流程：\n    1. 构建基础 query（排除 is_demo）\n    2. 按参数追加 WHERE（模糊搜 / 寮号 / 状态）\n    3. JOIN accounts 取锁定状态和最后登录时间\n    4. 返回列表 + total",
@@ -14555,7 +15661,7 @@
             }
           },
           {
-            "description": "账号状态过滤 (active/locked/graduated 等)",
+            "description": "账号状态过滤 (active/graduated 等)",
             "in": "query",
             "name": "status",
             "required": false,
@@ -14568,8 +15674,26 @@
                   "type": "null"
                 }
               ],
-              "description": "账号状态过滤 (active/locked/graduated 等)",
+              "description": "账号状态过滤 (active/graduated 等)",
               "title": "Status"
+            }
+          },
+          {
+            "description": "只看当前被锁定的账号 (account.locked_until > now)",
+            "in": "query",
+            "name": "locked",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "只看当前被锁定的账号 (account.locked_until > now)",
+              "title": "Locked"
             }
           },
           {
@@ -15029,76 +16153,6 @@
           }
         },
         "summary": "Create Guidance",
-        "tags": [
-          "guidance"
-        ]
-      }
-    },
-    "/api/v1/students/{student_id}/guidance/disclosure-request": {
-      "post": {
-        "description": "学生提交查看自己指导履历的开示申请（只能申请自己的）。",
-        "operationId": "create_disclosure_request_api_v1_students__student_id__guidance_disclosure_request_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "student_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Student Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GuidanceDisclosureRequestIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GuidanceDisclosureRequestOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Create Disclosure Request",
         "tags": [
           "guidance"
         ]
@@ -16068,7 +17122,7 @@
     },
     "/api/v1/study/roster": {
       "get": {
-        "description": "当前学期名簿在籍者一览 — 给老师网页「学習対象名簿管理」页用。\n\n口径：removed_at 为空（在籍中）+ 当前学期。带学生姓名 / 房间 / 寮，\n并按 R4 寮边界过滤掉老师管辖外的学生（跨寮角色看全部）。",
+        "description": "当前学期名簿在籍者一览 — 给老师网页「学習対象名簿管理」页用。\n\n口径：removed_at 为空（在籍中）+ 当前学期。带学生姓名 / 房间 / 寮。\n演示隔离在 SQL where 一次收口（真老师只看真实学生 / 演示老师只看演示学生）。\n寮过滤已彻底取消（§11.2，2026-06-14）—— 所有老师可看全部学生，不再按寮过滤。",
         "operationId": "list_roster_api_v1_study_roster_get",
         "parameters": [
           {
@@ -16319,9 +17373,9 @@
         ]
       }
     },
-    "/api/v1/teachers/": {
+    "/api/v1/teachers": {
       "get": {
-        "operationId": "list_teachers_api_v1_teachers__get",
+        "operationId": "list_teachers_api_v1_teachers_get",
         "parameters": [
           {
             "in": "query",
@@ -16364,7 +17418,7 @@
                   "items": {
                     "$ref": "#/components/schemas/TeacherOut"
                   },
-                  "title": "Response List Teachers Api V1 Teachers  Get",
+                  "title": "Response List Teachers Api V1 Teachers Get",
                   "type": "array"
                 }
               }
@@ -16388,7 +17442,7 @@
         ]
       },
       "post": {
-        "operationId": "create_teacher_api_v1_teachers__post",
+        "operationId": "create_teacher_api_v1_teachers_post",
         "parameters": [
           {
             "in": "header",
