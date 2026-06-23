@@ -783,6 +783,9 @@ struct StayForm: View {
                                             HStack(spacing: 8) {
                                                 DateField(date: $skipStartDate, minDate: leaveDate)
                                                     .onChangeCompat(of: skipStartDate) {
+                                                        // CB-06: skipStartDate 主动往后拖时 clampDependentDates 不触发（只挂 leaveDate/returnDate），
+                                                        // 补钳「开始日不得晚于帰寮日」，否则下面 skipEndDate 的 DateField 会 min>max 运行期崩溃
+                                                        if skipStartDate > returnDate { skipStartDate = returnDate }
                                                         if skipEndDate < skipStartDate { skipEndDate = skipStartDate }
                                                     }
                                                 ChipGroup(options: MEALS, value: $skipStartMeal)
@@ -794,7 +797,8 @@ struct StayForm: View {
                                                 .foregroundStyle(T.inkSub)
                                             HStack(spacing: 8) {
                                                 // A-377: 終了日不能晚于帰寮日（免餐区间不能超出外泊期）
-                                                DateField(date: $skipEndDate, minDate: skipStartDate, maxDate: returnDate)
+                                                // CB-06: minDate 用 min(skipStartDate, returnDate) 兜底，防 skipStartDate>returnDate 时 min>max 崩溃
+                                                DateField(date: $skipEndDate, minDate: Swift.min(skipStartDate, returnDate), maxDate: returnDate)
                                                 ChipGroup(options: MEALS, value: $skipEndMeal)
                                             }
                                         }
@@ -1354,7 +1358,9 @@ private struct DateField: View {
         Group {
             switch (minDate, maxDate) {
             case let (min?, max?):
-                DatePicker("", selection: $date, in: min ... max, displayedComponents: .date)
+                // CB-06: min>max 会让 ClosedRange 崩溃（Range requires lowerBound<=upperBound）。
+                // 全局兜底：任何调用方倒挂时收紧成 min(min,max)...max，杜绝运行期崩溃。
+                DatePicker("", selection: $date, in: Swift.min(min, max) ... max, displayedComponents: .date)
             case let (min?, nil):
                 DatePicker("", selection: $date, in: min..., displayedComponents: .date)
             case let (nil, max?):
@@ -1441,7 +1447,8 @@ struct StudyAbsenceForm: View {
     @State private var reason: String = ""
     @State private var range: StudyLeaveRange = .first
     /// 请假日期。默认 = 今天。可选范围：今天起 14 天以内。
-    @State private var targetDate: Date = .init()
+    // CB-03: 初值用 ApplyFormDate.today（JST 日历锚定），与 dateRange/formatYMD 的 JST 口径统一，避免裸 Date() 随设备时区漂
+    @State private var targetDate: Date = ApplyFormDate.today
     @State private var isSubmitting = false
 
     /// 可选日期范围：今天～14 天后
@@ -1621,7 +1628,7 @@ struct GenericApplyForm: View {
     @State private var guardian: Bool = false
 
     // ── 外出（outing）専用 — 接 outings 后端（A1）。后端 OutingCreateIn.outing_date 必填，旧表单缺这些字段 ──
-    @State private var outingDate: Date = .init() // 外出日（今日以降）；后端拒过去日期
+    @State private var outingDate: Date = ApplyFormDate.today // 外出日（今日以降）；CB-02: 初值锚 JST 今天 + DateField 加 minDate 前置挡，不再仅靠后端拒
     @State private var outingLeaveTime: Date = StayForm.parseHM("13:00") ?? Date()
     @State private var outingReturnTime: Date = StayForm.parseHM("17:00") ?? Date()
     @State private var isSubmittingOuting: Bool = false
@@ -1730,7 +1737,8 @@ struct GenericApplyForm: View {
                     if isOuting {
                         // 外出是当天回寮 — 外出日（必填）+ 外出/回寮时刻。后端 OutingCreateIn 要 outing_date
                         Field(label: "外出日", required: true) {
-                            DateField(date: $outingDate)
+                            // CB-02: minDate=今天，DatePicker 直接挡过去日期，不再仅靠后端 422 拒
+                            DateField(date: $outingDate, minDate: ApplyFormDate.today)
                         }.padding(.bottom, 14)
                         Field(label: "外出時刻") {
                             TimeField(date: $outingLeaveTime)
@@ -2767,8 +2775,11 @@ struct OutingDetailView: View {
 /// 外出三态 → 状态 Pill（外出语义：確認待ち / 確認済 / 取消済）
 private func outingStatusPair(_ status: String) -> (label: String, tone: Pill.Tone) {
     switch status {
+    case "pending": return ("確認待ち", .warn)
     case "approved": return ("確認済", .ok)
     case "withdrawn": return ("取消済", .neutral)
-    default: return ("確認待ち", .warn)
+    // DC-01: 显式列出后端三值；未知值（后端将来新增 status）落「不明な状態」而非被误显成「確認待ち」（pending 标签）。
+    // 撤回 / 进度处用的是精确 == 比较，未知值本就不会被误判为某个已知状态。
+    default: return ("不明な状態", .neutral)
     }
 }
