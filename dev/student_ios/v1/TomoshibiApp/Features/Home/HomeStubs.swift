@@ -2345,7 +2345,9 @@ struct HealthSheet: View {
                     submitting = false
                     app.showToast(msg)
                 } catch APIError.unauthorized {
-                    // 本 sheet 无 router：与项目其它 401 处理（handleIfUnauthorized）一致，清令牌触发全局回登录，并关弹窗
+                    // 本 sheet 无 router：清令牌触发全局回登录，并关弹窗。
+                    // 先核对 tokenAtStart（竞态：旧请求的 401 可能在用户登出+重登后才到，不能清掉新 session 的 token＝把已重登用户强制登出，与 handleIfUnauthorized(tokenAtStart:) 同口径）
+                    guard app.authToken == tokenAtStart else { return }
                     app.authToken = nil
                     app.closeSheet()
                 } catch APIError.network {
@@ -2444,7 +2446,9 @@ struct AbsenceSheet: View {
                     submitting = false
                     app.showToast(msg)
                 } catch APIError.unauthorized {
-                    // 本 sheet 无 router：与项目其它 401 处理（handleIfUnauthorized）一致，清令牌触发全局回登录，并关弹窗
+                    // 本 sheet 无 router：清令牌触发全局回登录，并关弹窗。
+                    // 先核对 tokenAtStart（竞态：旧请求的 401 可能在用户登出+重登后才到，不能清掉新 session 的 token＝把已重登用户强制登出，与 handleIfUnauthorized(tokenAtStart:) 同口径）
+                    guard app.authToken == tokenAtStart else { return }
                     app.authToken = nil
                     app.closeSheet()
                 } catch APIError.network {
