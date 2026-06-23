@@ -818,9 +818,13 @@ def withdraw_application(
     取消可能なのは pending / approved_partial / returned のみ。
     既に approved / rejected / withdrawn の届は取消不可（終態 / 取消済）。
     """
+    # applications-2：读取时加行锁，与并发审批 / 差戻串行化（避免读到旧终态后覆盖）。
+    # SQLite(dev/test) 单写者本就串行、with_for_update 是 no-op；PostgreSQL(prod) 靠行锁。
+    # selectinload 是 post-load 二次查询，不与主表 FOR UPDATE 冲突。
     app = db.scalars(
         select(models.Application)
         .where(models.Application.id == application_id)
+        .with_for_update()
         .options(selectinload(models.Application.student))
     ).first()
     if not app:

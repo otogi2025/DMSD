@@ -92,6 +92,24 @@ class TestWithdraw:
         res = client.post(f"/api/v1/applications/{app_id}/withdraw")
         assert res.status_code in (401, 403), res.text
 
+    def test_withdraw_approved_terminal_409(self, client, student_token, db_session):
+        """approved（终态）届不能撤回 → 409。
+
+        applications-2：撤回读取行已加 .with_for_update()（PG 行锁、SQLite no-op）。
+        本测试走通「行锁查询 + selectinload(student) 组合」并落到终态守卫，
+        既证明该查询组合不抛错、又覆盖 CANNOT_WITHDRAW 路径。
+        """
+        app_id = _create_pending(client, student_token)
+        # 直接置终态 approved（绕过完整审批链）
+        app = db_session.get(models.Application, UUID(app_id))
+        app.status = "approved"
+        db_session.commit()
+        res = client.post(
+            f"/api/v1/applications/{app_id}/withdraw", headers=_auth(student_token)
+        )
+        assert res.status_code == 409, res.text
+        assert res.json()["detail"]["code"] == "CANNOT_WITHDRAW"
+
 
 class TestReturn:
     """老师差戻 — 设 status=returned + 差戻理由进 audit；差戻后审批被挡、学生可重提。"""
