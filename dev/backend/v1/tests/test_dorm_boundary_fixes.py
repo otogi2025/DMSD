@@ -74,6 +74,34 @@ class TestWsBroadcastDormFilter:
         c4.websocket.send_json.assert_called_once()
         cn.websocket.send_json.assert_called_once()
 
+    def test_broadcast_dorm1_reaches_dorm2_teacher(self):
+        """rollcall-1: dorm_unit=1 的事件，男寮另一栋老师（assigned_dorm=2）也应收到。
+
+        男寮跨两栋（1 寮 + 2 寮）是常态。修复前 allowed = (1,2) if ==1 else (2,)，
+        assigned_dorm=2 的老师 allowed=(2,) 收不到 1 寮事件 → 漏推。
+        """
+        mgr = TeacherConnectionManager()
+        c2 = self._make_conn(2)  # 男寮 2 栋老师
+        mgr._conns = [c2]
+        self._run(mgr.broadcast({"type": "checkin"}, dorm_unit=1))
+        c2.websocket.send_json.assert_called_once()
+
+    def test_broadcast_dorm2_reaches_dorm1_teacher(self):
+        """对称：dorm_unit=2 的事件，assigned_dorm=1 的男寮老师也收到（男寮全集 1+2）。"""
+        mgr = TeacherConnectionManager()
+        c1 = self._make_conn(1)  # 男寮 1 栋老师
+        mgr._conns = [c1]
+        self._run(mgr.broadcast({"type": "checkin"}, dorm_unit=2))
+        c1.websocket.send_json.assert_called_once()
+
+    def test_broadcast_dorm1_still_skips_dorm4(self):
+        """回归：男寮事件仍不推给女寮老师（assigned_dorm=4 不在男寮全集）。"""
+        mgr = TeacherConnectionManager()
+        c4 = self._make_conn(4)
+        mgr._conns = [c4]
+        self._run(mgr.broadcast({"type": "checkin"}, dorm_unit=1))
+        c4.websocket.send_json.assert_not_called()
+
 
 # ─────────────────────────────────────────────────────────────
 # 共用 fixture：男寮学生 + 女寮老师（越权场景）

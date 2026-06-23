@@ -118,10 +118,12 @@ class TeacherConnectionManager:
             # 演示隔离：事件涉及学生时按 is_demo 匹配过滤（演示数据不推给真老师，反之）
             if student_is_demo is not None and c.is_demo != student_is_demo:
                 continue
-            # 寮过滤：男寮老师(assigned_dorm=1)收 dorm_unit 1+2、女寮(4)收 4、跨寮(None)收全部
-            # 与 deps.dorm_units_for_teacher 映射一致（原精确比较 != 会漏推 dorm_unit=2 给男寮老师）
+            # 寮过滤：男寮老师(assigned_dorm 1 或 2)收 dorm_unit 1+2、女寮(4)收 4、跨寮(None)收全部
+            # 与 deps.dorm_units_for_teacher 映射一致。男寮跨两栋（1 寮 + 2 寮）是常态，
+            # assigned_dorm 既可能是 1 也可能是 2 —— 两者都要展开成男寮全集 (1, 2)，
+            # 否则 assigned_dorm=2 的男寮老师收不到 1 寮学生的实时推送（rollcall-1）。
             if dorm_unit is not None and c.assigned_dorm is not None:
-                allowed = (1, 2) if c.assigned_dorm == 1 else (c.assigned_dorm,)
+                allowed = (1, 2) if c.assigned_dorm in (1, 2) else (c.assigned_dorm,)
                 if dorm_unit not in allowed:
                     continue
             try:
