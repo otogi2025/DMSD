@@ -210,20 +210,29 @@ struct StudyOnlineForm: View {
                 // IX-032: 用每个时段 OnlineScheduleSlot.id 当列表项身份。
                 // 之前 id: \.self 用数组下标当身份，删中间一行时输入框内容 / 焦点会串到别行。
                 ForEach(slots) { slot in
-                    HStack(spacing: 8) {
-                        ApplyTimeField(date: slotStartBinding(day: day, id: slot.id))
-                        Text("〜")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(T.inkSub)
-                        ApplyTimeField(date: slotEndBinding(day: day, id: slot.id))
-                        Button {
-                            removeSlot(day: day, id: slot.id)
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .font(.system(size: 22))
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 8) {
+                            ApplyTimeField(date: slotStartBinding(day: day, id: slot.id))
+                            Text("〜")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(T.inkSub)
+                            ApplyTimeField(date: slotEndBinding(day: day, id: slot.id))
+                            Button {
+                                removeSlot(day: day, id: slot.id)
+                            } label: {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundStyle(T.danger)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        // CB-01: 时刻不能像日期那样简单回钳（end=start 仍不满足 >），
+                        // 故对 end<=start 的时段显示行内提示，避免提交键静默置灰让留学生不知卡在哪。
+                        if slot.end <= slot.start {
+                            Text("終了は開始より後の時刻にしてください")
+                                .font(.system(size: 11))
                                 .foregroundStyle(T.danger)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }
