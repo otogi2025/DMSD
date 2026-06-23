@@ -46,17 +46,12 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index("uq_demerit_source", table_name="demerit_event")
-    bind = op.get_bind()
-    if bind.dialect.name == "postgresql":
-        op.create_unique_constraint(
-            "uq_demerit_source",
-            "demerit_event",
-            ["student_id", "source_type", "source_event_id"],
-        )
-    else:
-        with op.batch_alter_table("demerit_event", recreate="auto") as batch_op:
-            batch_op.create_unique_constraint(
-                "uq_demerit_source",
-                ["student_id", "source_type", "source_event_id"],
-            )
+    # 不可无损降级（codex 审查 minor）：升级后业务允许同一
+    # (student_id, source_type, source_event_id) 同时存在「已撤销旧行 + 未撤销新行」
+    # （清扫 failed→撤销→再 failed）。降回全局唯一约束会因这些重复键冲突而失败。
+    # 软删行是审计数据、不能为了强行降级而擅自删除（违背 revoke 保留审计的设计意图）。
+    # 如确需降级：先人工归档/合并重复软删行，再手动重建全局 uq_demerit_source 唯一约束。
+    raise NotImplementedError(
+        "不可自动降级：demerit_source 部分唯一索引 → 全局唯一约束，"
+        "在存在『撤销后重判』数据时会键冲突。请先人工清理重复软删行再手动重建约束。"
+    )
