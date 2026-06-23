@@ -35,7 +35,7 @@ enum ApprovalDecision: String, Hashable {
         switch self {
         case .pending: return "審査中"
         case .approved: return "承認"
-        case .rejected: return "差戻"
+        case .rejected: return "差し戻し"
         }
     }
 
@@ -133,7 +133,7 @@ enum ApplicationStatus: String, Hashable {
         case .pending: return "審査中"
         case .approved_partial: return "一部承認"
         case .approved: return "承認済"
-        case .rejected: return "差戻"
+        case .rejected: return "差し戻し"
         case .returned: return "要修正"
         case .withdrawn: return "取消済"
         }
@@ -298,7 +298,7 @@ enum StayListMock {
                 detail: nil
             ))
             for step in steps where step.decision != .pending {
-                let actionLabel = step.decision == .approved ? "承認" : "差戻"
+                let actionLabel = step.decision == .approved ? "承認" : "差し戻し"
                 auditLog.append(AuditLogEntry(
                     at: step.decidedAt ?? item.date,
                     action: actionLabel,
@@ -443,7 +443,7 @@ struct StayListView: View {
         ("すべて", nil),
         ("審査中", .pending),
         ("承認済", .approved),
-        ("差戻", .rejected),
+        ("差し戻し", .rejected),
     ]
 
     var body: some View {
@@ -1087,7 +1087,7 @@ struct StayDetailView: View {
 
     private func auditColor(_ action: String) -> Color {
         if action.contains("承認") { return T.ok }
-        if action.contains("差戻") { return T.danger }
+        if action.contains("差し戻し") { return T.danger }
         if action.contains("変更") { return T.warn }
         return T.primary
     }
@@ -1362,8 +1362,13 @@ struct StayEditForm: View {
     }
 
     private var canSubmit: Bool {
-        !amendReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && returnDate >= leaveDate
+        guard !amendReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              returnDate >= leaveDate else { return false }
+        // CB-04: 仅当用户主动改了出寮日（与原届不同）时，才要求新出寮日不早于今天（JST，与提交口径同用 formatYMD）。
+        // 没改则保留原值合法 —— returned/rejected 旧届的原出寮日可能已过去，硬钳 minDate 会把原值顶坏（故不在 DatePicker 加下限）。
+        let newLeaveYMD = formatYMD(leaveDate)
+        if newLeaveYMD != original.leaveDate, newLeaveYMD < formatYMD(Date()) { return false }
+        return true
     }
 
     var body: some View {
@@ -1928,7 +1933,7 @@ extension AuditLogOut {
         case "application.submit": return "提出"
         case "application.amend", "application.update": return "変更届を提出"
         case "application.approve": return "承認"
-        case "application.reject": return "差戻"
+        case "application.reject": return "差し戻し"
         case "application.withdraw": return "取消"
         default: return raw
         }
