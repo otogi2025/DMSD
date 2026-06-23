@@ -36,6 +36,8 @@ struct OutingOut: Decodable, Hashable, Identifiable {
     let taxi_reservation_time: String?
     let reason: String?
     let status: String // "pending" | "approved" | "withdrawn"
+    // DC-01: 保留裸 String（与后端三值 Literal 一致、解码不会因新值崩溃）。显示侧 outingStatusPair 已对未知值
+    // 兜底成「不明な状態」，撤回 / 进度处用精确 == 比较 —— 后端将来新增 status 值都不会被误显成已知状态。
     // datetime 用 Date —— 对齐后端 schemas.OutingOut（submitted_at/withdrawn_at/confirmed_at 均 datetime）
     // 与 NetworkModels 其它 datetime 字段同口径；后端统一输出带 +09:00 日本时间（TZDateTime），
     // APIClient 全局 JSONDecoder 配 .custom(decodeISO8601Date) 直接解码（带/不带小数秒都兼容）。
