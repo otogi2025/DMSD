@@ -9,9 +9,11 @@
 
 差异通过 Swift `#if DEMO ... #endif` 编译时切换 — production binary 完全不含 demo 代码（反编译也看不到）。
 
+两个版本各有自己的 **scheme**，已在 `project.yml` 里定义好：`TomoshibiApp` = 生产；`TomoshibiAppDemo` = 演示（run config = Demo，自带 `DEMO` flag）。**不要再手动加 `SWIFT_ACTIVE_COMPILATION_CONDITIONS` —— 直接选对应 scheme 即可。**
+
 ## 命令行 build
 
-### Production（默认无 DEMO flag）
+### Production（scheme `TomoshibiApp`）
 
 ```bash
 cd dev/student_ios/v1
@@ -22,41 +24,29 @@ xcodebuild \
   build
 ```
 
-### Demo（加 DEMO flag）
+### Demo（scheme `TomoshibiAppDemo`）
 
 ```bash
 cd dev/student_ios/v1
 xcodebuild \
   -project TomoshibiApp.xcodeproj \
-  -scheme TomoshibiApp \
+  -scheme TomoshibiAppDemo \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
-  SWIFT_ACTIVE_COMPILATION_CONDITIONS="DEBUG DEMO" \
   build
 ```
 
-关键参数：`SWIFT_ACTIVE_COMPILATION_CONDITIONS="DEBUG DEMO"` — Xcode 默认 Debug build 自带 `DEBUG` flag，所以这里要把 `DEBUG` 也写进去保持原行为，再额外加 `DEMO`。
+`TomoshibiAppDemo` scheme 的 run config = Demo、已经带上 `DEMO` flag，命令行无需再传 `SWIFT_ACTIVE_COMPILATION_CONDITIONS`。
 
-## Xcode GUI 操作（推荐做法）
+## Xcode GUI 操作
 
-为了在 Xcode 里直接切换版本，建议 itsuki 配置一次：
+顶部 scheme 切换器直接选：
 
-### 方案 A — 加 Build Configuration
+- **TomoshibiApp** = production（无 demo 代码）
+- **TomoshibiAppDemo** = demo（含 SEED + demo hack）
 
-1. Xcode → 选 project（顶部蓝图标）→ Info tab → Configurations
-2. 点 ＋ → Duplicate "Debug" Configuration → 改名为 `Demo`
-3. 选 TomoshibiApp target → Build Settings tab → 搜「Active Compilation Conditions」
-4. 找到 `Demo` 那列 → 设置为 `DEBUG DEMO`
-5. Product → Scheme → Manage Schemes → 复制 TomoshibiApp scheme → 改名 `TomoshibiAppDemo` → Edit → Run → Build Configuration 选 `Demo`
+两个 scheme 都已在 `project.yml` 定义（xcodegen 生成工程时自动建好），不需要再手动建 Build Configuration 或 scheme。
 
-之后顶部 scheme 切换器选「TomoshibiApp」= production，选「TomoshibiAppDemo」= demo。
-
-### 方案 B — 让两版能并存装在 Simulator 上
-
-如果想同时看到两个版本（不互相覆盖），在 Demo configuration 改：
-- `PRODUCT_BUNDLE_IDENTIFIER` = `com.itsuki.tomoshibi.demo`（production = `com.itsuki.tomoshibi`）
-- `PRODUCT_NAME` = `Tomoshibi Demo`（production = `Tomoshibi`）
-
-这样 Simulator 上会有「Tomoshibi」+「Tomoshibi Demo」两个 icon。
+> ⚠️ 在 Xcode 里手动改的工程配置（新建 config / scheme / build setting / bundle id）必须写回 `project.yml`，否则 xcodegen 重新生成 pbxproj 时会被擦掉。两版能否并存装在 Simulator（各自 bundle id / product name）也由 `project.yml` 的 Demo config 决定。
 
 ## 验证 demo 代码确实被排除
 
@@ -82,7 +72,7 @@ strings build-prod/Build/Products/Debug-iphonesimulator/TomoshibiApp.app/Tomoshi
 | `Features/Home/HomeStubs.swift` | `DemoCardCycleGesture` modifier（amber Card 长按循环 5 态状态） |
 | `Features/MyPage/MyPageStubs.swift` | `pushDemoSection` + `pushDemoRow`（MySettings 底部「⚠️ Push 通知 デモ」section） |
 | `Features/Auth/AuthStubs.swift` | LoginView default `acc / email / pw` 预填 / RegisterStep4 default `pw / pw2` 预填 / `tryLogin()` 严格判定（demo magic `00 / demo1234`） |
-| `Foundation/Theme/TTokens.swift` | `AppVersionTag.full`（demo = `v0.12.0-demo` / production = `v0.12.0`） |
+| `Foundation/Theme/TTokens.swift` | `AppVersionTag.full` —— 从 `Bundle.main` 的 `CFBundleShortVersionString`（见 `project.yml` 的 `CFBundleShortVersionString`）动态读取，**不写死版本号**；demo 版自动加 `-demo` 后缀 |
 
 ## 待接 backend 的 stub 标记
 
