@@ -130,6 +130,9 @@ struct NotificationsView: View {
                         if filtered.isEmpty {
                             // NET-02: feed 拉取失败时显失败态，不再静默显「通知はありません」假空态
                             switch app.notificationsState {
+                            case .loading:
+                                // 加载中显骨架，避免冷启动那一两秒闪「通知はありません」假空态（codex 复审 minor）
+                                VStack(spacing: 8) { Skeleton(height: 72); Skeleton(height: 72); Skeleton(height: 72) }
                             case let .failed(msg):
                                 EmptyState(icon: "exclamationmark.triangle", title: "読み込みに失敗しました", message: msg)
                             default:
@@ -339,6 +342,9 @@ struct PackagesView: View {
                         if list.isEmpty {
                             // NET-01: 网络/解码失败时显失败态，不再静默显「荷物はありません」假空态
                             switch app.packagesState {
+                            case .loading:
+                                // 加载中显骨架，避免冷启动那一两秒闪「荷物はありません」假空态（codex 复审 minor）
+                                VStack(spacing: 10) { Skeleton(height: 72); Skeleton(height: 72) }
                             case let .failed(msg):
                                 EmptyState(icon: "exclamationmark.triangle", title: "読み込みに失敗しました", message: msg)
                             default:
