@@ -1207,17 +1207,22 @@ class DemeritEvent(Base):
             "source_type IN ('rollcall_late','rollcall_absent','cleaning_failed','curfew_violation','study_absent','manual')",
             name="ck_demerit_source",
         ),
-        # 自动扣分防重唯一约束 —— 并发结算（点呼 end / 学習 finalize 同时触发，
-        # 或同一接口被重复调用）时，靠这条约束保证同一 (学生, 来源类型, 来源事件)
-        # 在 DB 层最多 1 行，不会重复扣分。
-        # source_event_id 可空（手动扣分 manual 时为 NULL）；SQLite / PostgreSQL 均把
-        # NULL 视为「互不相等」，故唯一约束只约束 source_event_id 非空的自动扣分行，
-        # 手动扣分（NULL）不受限 —— 同一学生可被老师多次手动加扣。
-        UniqueConstraint(
+        # 自动扣分防重部分唯一索引（cleaning-1）—— 并发结算（点呼 end / 学習 finalize
+        # 同时触发，或同一接口被重复调用）时，靠它保证同一 (学生, 来源类型, 来源事件)
+        # 在【未撤销】状态下 DB 层最多 1 行，不会重复扣分。
+        # 加 WHERE revoked_at IS NULL：撤销是软删（revoked_at 非 NULL、行保留作审计），
+        # 撤销后旧行不再占唯一槽 → 同一来源事件可被重新判定（清扫 failed→撤销→再 failed）；
+        # 原全列唯一约束会让软删行永久占槽，再判时撞约束被误当并发重复 409（cleaning-1 bug）。
+        # source_event_id 可空（手动扣分 manual 时为 NULL）；NULL 不参与唯一性（SQL 标准），
+        # 手动扣分不受限 —— 同一学生可被老师多次手动加扣。
+        Index(
+            "uq_demerit_source",
             "student_id",
             "source_type",
             "source_event_id",
-            name="uq_demerit_source",
+            unique=True,
+            sqlite_where=text("revoked_at IS NULL"),
+            postgresql_where=text("revoked_at IS NULL"),
         ),
         Index("idx_demerit_student_month", "student_id", "month"),
         Index("idx_demerit_month_active", "month", "revoked_at"),

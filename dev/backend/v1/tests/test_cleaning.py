@@ -372,3 +372,53 @@ def test_revoke_cleaning_failed_reverts_assignment(
     assert cleaning.status == "assigned"
     assert cleaning.demerit_event_id is None
     assert cleaning.failure_reason is None
+
+
+def test_revoke_then_reinspect_failed_allowed(
+    client, seed_data, teacher_token, db_session
+):
+    """cleaning-1：清扫 failed → 撤销 → 再次 failed 应成功（不撞 uq_demerit_source）。
+
+    撤销是软删（revoked_at 非 NULL，旧扣分行保留作审计）。改部分唯一索引
+    （WHERE revoked_at IS NULL）后旧软删行不再占唯一槽，同一清扫单可被重新判 failed；
+    修复前第二次 failed 撞约束被 inspect 兜底误当并发重复 → 409，清扫单永远没法再罚扫。
+    """
+    sid = str(seed_data["student"].id)
+    cid = _create_cleaning(client, teacher_token, sid, area="廊下").json()["id"]
+    h = {"Authorization": f"Bearer {teacher_token}"}
+    # 1. 第一次 failed → 建 cleaning_failed 扣分
+    r1 = client.post(
+        f"/api/v1/cleaning/{cid}/inspect",
+        json={"result": "failed", "failure_reason": "未実施"},
+        headers=h,
+    )
+    assert r1.status_code == 200, r1.text
+    ev1 = r1.json()["demerit_event_id"]
+    assert ev1 is not None
+    # 2. 撤销那条扣分 → cleaning 退回 assigned
+    rev = client.post(
+        f"/api/v1/discipline/{ev1}/revoke",
+        json={"revoke_reason": "誤判定"},
+        headers=h,
+    )
+    assert rev.status_code == 200, rev.text
+    # 3. 再次 failed → 修复前 409，修复后应 200 + 新建一条扣分
+    r2 = client.post(
+        f"/api/v1/cleaning/{cid}/inspect",
+        json={"result": "failed", "failure_reason": "再度未実施"},
+        headers=h,
+    )
+    assert r2.status_code == 200, r2.text
+    ev2 = r2.json()["demerit_event_id"]
+    assert ev2 is not None
+    assert ev2 != ev1  # 新建了一条扣分（不是复用旧的）
+    # DB 校验：两条 cleaning_failed 行（一撤销一有效）、只 1 条未撤销
+    db_session.expire_all()
+    rows = (
+        db_session.query(models.DemeritEvent)
+        .filter_by(source_type="cleaning_failed")
+        .all()
+    )
+    assert len(rows) == 2
+    active = [r for r in rows if r.revoked_at is None]
+    assert len(active) == 1
