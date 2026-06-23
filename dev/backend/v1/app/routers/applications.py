@@ -227,6 +227,7 @@ def create_application(
             "return_date": application.return_date.isoformat(),
             "student_name": student.name,
         },
+        dorm_unit=student.dorm_unit,
         student_is_demo=student.is_demo,
     )
 
@@ -352,6 +353,7 @@ def create_application_by_teacher(
             "return_date": application.return_date.isoformat(),
             "student_name": student.name,
         },
+        dorm_unit=student.dorm_unit,
         student_is_demo=student.is_demo,
     )
 

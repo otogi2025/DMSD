@@ -854,3 +854,56 @@ class TestProxyCandidates:
         res = client.get(self.URL, headers={"Authorization": f"Bearer {teacher_token}"})
         assert res.status_code == 200, res.text
         assert str(demo.id) not in [r["id"] for r in res.json()]
+
+
+class TestOutstayBroadcastDormUnit:
+    """middleware-ws-1：outstay_new WS 广播必须带 dorm_unit。
+
+    缺 dorm_unit 时落到「推给全部老师连接」，男寮老师能实时看到女寮学生今晚几号
+    出寮回寮（事件体含 student_id / 姓名 / 日期）。两处广播（学生自助提出 +
+    老师代录）都要传 dorm_unit=student.dorm_unit。manager._loop 在测试里没注册，
+    broadcast_sync 本会静默跳过，故 monkeypatch 它直接捕获调用参数。
+    """
+
+    def test_student_submit_broadcast_has_dorm_unit(
+        self, client, student_token, seed_data, monkeypatch
+    ):
+        from app import ws_manager
+
+        captured = {}
+
+        def fake(event, dorm_unit=None, student_is_demo=None):
+            captured["event"] = event
+            captured["dorm_unit"] = dorm_unit
+
+        monkeypatch.setattr(ws_manager.manager, "broadcast_sync", fake)
+        r = client.post(
+            "/api/v1/applications",
+            json=_kisei_body(),
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert r.status_code == 201, r.text
+        assert captured["event"]["type"] == "outstay_new"
+        assert captured["dorm_unit"] == seed_data["student"].dorm_unit  # 男寮 = 1
+
+    def test_teacher_submit_broadcast_has_dorm_unit(
+        self, client, teacher_token, seed_data, monkeypatch
+    ):
+        from app import ws_manager
+
+        captured = {}
+
+        def fake(event, dorm_unit=None, student_is_demo=None):
+            captured["event"] = event
+            captured["dorm_unit"] = dorm_unit
+
+        monkeypatch.setattr(ws_manager.manager, "broadcast_sync", fake)
+        sid = str(seed_data["student"].id)
+        r = client.post(
+            f"/api/v1/applications/by-teacher?student_id={sid}",
+            json=_kisei_body(),
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert r.status_code == 201, r.text
+        assert captured["event"]["type"] == "outstay_new"
+        assert captured["dorm_unit"] == seed_data["student"].dorm_unit
