@@ -274,3 +274,49 @@ def test_create_account_after_refresh_old_code_fails(client, seed_data, teacher_
     res = client.post("/api/v1/accounts", json=_new_account_body(old_code))
     assert res.status_code == 422
     assert res.json()["detail"]["code"] == "INVALID_REGISTRATION_CODE"
+
+
+def test_create_account_integrity_fallback_student_no(
+    client, seed_data, teacher_token, monkeypatch
+):
+    """accounts-be-2 并发兜底：前置学号查重未命中（模拟并发窗口），但 DB 已有同学号
+    → commit 撞 uq_students_no → 兜底返 422 STUDENT_NO_TAKEN（而非不透明 500）。
+
+    单线程没法真并发，用 monkeypatch 把「学号前置查重」第一次短路成空结果，
+    模拟「查时对方还没提交、commit 时才撞」的竞态窗口。
+    """
+    from uuid import uuid4
+
+    from sqlalchemy import select
+    from sqlalchemy.orm import Session
+
+    from app import models
+
+    code = client.post(
+        "/api/v1/admin/registration-code/refresh",
+        headers={"Authorization": f"Bearer {teacher_token}"},
+    ).json()["code"]
+
+    # 先正常注册占用学号 07/01/05（_new_account_body 默认学号）
+    r1 = client.post("/api/v1/accounts", json=_new_account_body(code))
+    assert r1.status_code == 201, r1.text
+
+    # monkeypatch：让 create_account 的「学号前置查重」第一次返回空（模拟并发窗口）
+    real_scalars = Session.scalars
+    state = {"suppress": True}
+
+    def patched(self, statement, *a, **k):
+        sql = str(statement)
+        if state["suppress"] and "grade_code = :" in sql and "seat_no = :" in sql:
+            state["suppress"] = False
+            return real_scalars(
+                self, select(models.Student).where(models.Student.id == uuid4())
+            )
+        return real_scalars(self, statement, *a, **k)
+
+    monkeypatch.setattr(Session, "scalars", patched)
+
+    # 再次注册同学号 → 前置查重被短路 → insert+commit 撞 uq_students_no → 兜底 STUDENT_NO_TAKEN
+    r2 = client.post("/api/v1/accounts", json=_new_account_body(code))
+    assert r2.status_code == 422, r2.text
+    assert r2.json()["detail"]["code"] == "STUDENT_NO_TAKEN"

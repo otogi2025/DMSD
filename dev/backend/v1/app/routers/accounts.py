@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import models, schemas, security
@@ -178,31 +179,70 @@ def create_account(
         phone=body.phone,
     )
     db.add(student)
-    db.flush()
-    db.add(
-        models.Account(
-            student_id=student.id,
-            password_hash=security.hash_password(body.password),
+    # accounts-be-2：上面的学号/email 查重是 check-then-insert，两个并发请求可能都通过前置
+    # 查重、第二个写入时才撞 DB 约束。uq_students_no 撞约束在 flush（INSERT students）这一刻
+    # 抛 IntegrityError（不是 commit）→ 必须把 flush + 后续写入一起纳入兜底。捕获后回滚重查
+    # 判断撞因，返回与前置查重同样的 422 业务错误而非不透明 500（跨 SQLite/PG 一致，不依赖约束名）。
+    # 注：学号有 uq_students_no 唯一约束（并发会真撞，本兜底主目标）；Student.email 当前【无】
+    # DB 唯一约束（email 重复仅靠前置查重 best-effort），故 EMAIL_TAKEN 分支现不会被
+    # IntegrityError 触发，留作防御 —— 若日后给 Student.email 加唯一约束即自动生效。
+    try:
+        db.flush()  # INSERT students；uq_students_no 撞约束在此抛
+        db.add(
+            models.Account(
+                student_id=student.id,
+                password_hash=security.hash_password(body.password),
+            )
         )
-    )
-
-    # 6. 写 registration_code 使用 audit log（§4.10 末尾要求）
-    db.add(
-        models.AuditLog(
-            actor_type="student",
-            actor_id=student.id,
-            action="registration_code.use",
-            target_type="student_registration_code",
-            target_id=code_row.id,
-            payload={"student_no": student.student_no},
+        # 6. 写 registration_code 使用 audit log（§4.10 末尾要求）
+        db.add(
+            models.AuditLog(
+                actor_type="student",
+                actor_id=student.id,
+                action="registration_code.use",
+                target_type="student_registration_code",
+                target_id=code_row.id,
+                payload={"student_no": student.student_no},
+            )
         )
-    )
-
-    # B7 存疑：不改。spec §7.16.2 规则 5 明确「注册码本身可重用
-    # （有效期内多个学生可用同一码注册）」— 集团登记场景，设计是有意的多人共用 5 分钟窗口。
-    # invalidated_at 只在 /refresh 生成新码时由 admin_registration_code.py 设置，
-    # 注册成功本身不作废码，行为正确。
-    db.commit()
+        # B7 存疑：不改。spec §7.16.2 规则 5 明确「注册码本身可重用
+        # （有效期内多个学生可用同一码注册）」— 集团登记场景，设计是有意的多人共用 5 分钟窗口。
+        # invalidated_at 只在 /refresh 生成新码时由 admin_registration_code.py 设置，
+        # 注册成功本身不作废码，行为正确。
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        dup_student = db.scalars(
+            select(models.Student).where(
+                models.Student.grade_code == body.grade_code,
+                models.Student.class_code == body.class_code,
+                models.Student.seat_no == body.seat_no,
+            )
+        ).first()
+        if dup_student is not None:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "STUDENT_NO_TAKEN",
+                    "message": (
+                        f"学号 {body.grade_code}{body.class_code}{body.seat_no} "
+                        "は既に登録されています"
+                    ),
+                },
+            )
+        if body.email:
+            dup_email = db.scalars(
+                select(models.Student).where(models.Student.email == body.email)
+            ).first()
+            if dup_email is not None:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "code": "EMAIL_TAKEN",
+                        "message": f"email {body.email} は既に使われています",
+                    },
+                )
+        raise
     db.refresh(student)
 
     # 7. 发永久 session 用的 JWT（和 login 同等 = 86400 秒；IOS_DESIGN_LOG §3.5 永久 session）
