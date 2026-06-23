@@ -176,3 +176,98 @@ class TestDormEventProposalResubmit:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code in (401, 403), res.text
+
+
+# ---------------------------------------------------------------
+# H4：宿舍生活审批端点寮边界校验 — 选他寮的老师不能审批本寮外学生申请
+#   seed_data 的 student 是男寮（dorm_unit=1）；tannin(寮務一般教師 → 一般宿管组，
+#   对 C_APPROVAL 申请审批是 MANAGE，且受登录选寮限制) 登录选女寮后只看女寮(4)，
+#   操作男寮学生申请 → 403 FORBIDDEN_DORM。选男寮(1) → dorm_units=[1,2] → 放行。
+#   不传 selected_dorm 的老师 dorm_units 恒为全集 → 校验不触发（向后兼容，现有测试不受影响）。
+# ---------------------------------------------------------------
+def _login_dorm(client, login_id, selected_dorm=None):
+    body = {"login_id": login_id, "password": "test-password-12345"}
+    if selected_dorm is not None:
+        body["selected_dorm"] = selected_dorm
+    r = client.post("/api/v1/sessions/teacher", json=body)
+    assert r.status_code == 200, r.text
+    return r.json()["access_token"]
+
+
+class TestDormLifeApprovalDormBoundary:
+    """H4：decide_event_proposal / decide_fridge_purchase / decide_item_possession 寮越权 403。"""
+
+    def _create_proposal(self, client, student_token) -> str:
+        r = client.post(
+            "/api/v1/dorm-life/event-proposals",
+            json=_proposal_payload(),
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert r.status_code == 201, r.text
+        return r.json()["id"]
+
+    def test_event_proposal_wrong_dorm_403(self, client, student_token, seed_data):
+        pid = self._create_proposal(client, student_token)
+        tok = _login_dorm(client, "tannin", selected_dorm=4)  # 选女寮
+        r = client.post(
+            f"/api/v1/dorm-life/event-proposals/{pid}/decision",
+            json={"decision": "approved"},
+            headers={"Authorization": f"Bearer {tok}"},
+        )
+        assert r.status_code == 403, r.text
+        assert r.json()["detail"]["code"] == "FORBIDDEN_DORM"
+
+    def test_event_proposal_right_dorm_ok(self, client, student_token, seed_data):
+        pid = self._create_proposal(client, student_token)
+        tok = _login_dorm(client, "tannin", selected_dorm=1)  # 选男寮 → 看 [1,2]
+        r = client.post(
+            f"/api/v1/dorm-life/event-proposals/{pid}/decision",
+            json={"decision": "approved"},
+            headers={"Authorization": f"Bearer {tok}"},
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["result"] == "approved"
+
+    def test_fridge_purchase_wrong_dorm_403(self, client, seed_data, db_session):
+        from app import models
+
+        req = models.FridgePurchaseRequest(
+            student_id=seed_data["student"].id,
+            contact_phone="09012345678",
+            product="A",
+            status="pending",
+        )
+        db_session.add(req)
+        db_session.commit()
+        db_session.refresh(req)
+        tok = _login_dorm(client, "tannin", selected_dorm=4)  # 选女寮
+        r = client.post(
+            f"/api/v1/dorm-life/fridge-purchases/{req.id}/decision",
+            json={"decision": "ordered"},
+            headers={"Authorization": f"Bearer {tok}"},
+        )
+        assert r.status_code == 403, r.text
+        assert r.json()["detail"]["code"] == "FORBIDDEN_DORM"
+
+    def test_item_possession_wrong_dorm_403(self, client, seed_data, db_session):
+        from app import models
+
+        req = models.ItemPossessionRequest(
+            student_id=seed_data["student"].id,
+            room_no="M101",
+            item="電気ケトル",
+            reason="お湯を沸かすため",
+            guardian_name="保護者太郎",
+            status="pending",
+        )
+        db_session.add(req)
+        db_session.commit()
+        db_session.refresh(req)
+        tok = _login_dorm(client, "tannin", selected_dorm=4)  # 选女寮
+        r = client.post(
+            f"/api/v1/dorm-life/item-possessions/{req.id}/decision",
+            json={"decision": "approved"},
+            headers={"Authorization": f"Bearer {tok}"},
+        )
+        assert r.status_code == 403, r.text
+        assert r.json()["detail"]["code"] == "FORBIDDEN_DORM"

@@ -138,6 +138,16 @@ def decide_event_proposal(
             404, {"code": "NOT_FOUND", "message": "申請が見つかりません"}
         )
     assert_student_demo_match(teacher, record.proposer)
+    # R4 寮边界：限定单寮的老师不能审批他寮学生的申请（照 misc_requests.confirm，H4）
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None and record.proposer.dorm_unit not in allowed:
+        raise HTTPException(
+            403,
+            {
+                "code": "FORBIDDEN_DORM",
+                "message": "担当外の寮の学生への操作はできません",
+            },
+        )
     _ensure_pending(record.result)
     # 原子条件更新：只有 result 仍是 pending 才写决定。两老师并发审批同一申請时，
     # 后写者命中 0 行 → 409，避免覆盖前者的 decided_by/comment（照 outings.py confirm 做法）。
@@ -436,6 +446,16 @@ def decide_fridge_purchase(
             404, {"code": "NOT_FOUND", "message": "申請が見つかりません"}
         )
     assert_student_demo_match(teacher, record.student)
+    # R4 寮边界：限定单寮的老师不能审批他寮学生的申请（照 misc_requests.confirm，H4）
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None and record.student.dorm_unit not in allowed:
+        raise HTTPException(
+            403,
+            {
+                "code": "FORBIDDEN_DORM",
+                "message": "担当外の寮の学生への操作はできません",
+            },
+        )
     # 冷蔵庫購入届合法状态流转白名单：pending→ordered/rejected、ordered→delivered
     # 白名单外（ordered→rejected、已 delivered/rejected 再次决定、同状态重复覆盖等）一律拒绝
     _allowed_fridge_transitions: dict[str, set[str]] = {
@@ -564,6 +584,16 @@ def decide_item_possession(
             404, {"code": "NOT_FOUND", "message": "申請が見つかりません"}
         )
     assert_student_demo_match(teacher, record.student)
+    # R4 寮边界：限定单寮的老师不能审批他寮学生的申请（照 misc_requests.confirm，H4）
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None and record.student.dorm_unit not in allowed:
+        raise HTTPException(
+            403,
+            {
+                "code": "FORBIDDEN_DORM",
+                "message": "担当外の寮の学生への操作はできません",
+            },
+        )
     _ensure_pending(record.status)
     # 原子条件更新：只有 status 仍是 pending 才写决定，防两老师并发审批互相覆盖（照 outings.py 做法）。
     affected = db.execute(
