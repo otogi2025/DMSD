@@ -148,10 +148,15 @@ struct ContractFilePicker: View {
 
     private func handlePhotoItem(_ item: PhotosPickerItem) async {
         do {
-            guard let raw = try await item.loadTransferable(type: Data.self),
-                  let image = UIImage(data: raw),
-                  let jpeg = ContractImage.jpegData(image)
-            else {
+            guard let raw = try await item.loadTransferable(type: Data.self) else {
+                errorText = "画像の読み込みに失敗しました"
+                return
+            }
+            // CON-01: 解码 + 缩放 + JPEG 编码是几百毫秒级重活，放 detached task 出主线程，避免选图那一刻掉帧
+            let jpeg = await Task.detached(priority: .userInitiated) {
+                ContractImage.decodeAndCompress(raw)
+            }.value
+            guard let jpeg else {
                 errorText = "画像の読み込みに失敗しました"
                 return
             }
@@ -165,30 +170,51 @@ struct ContractFilePicker: View {
         switch result {
         case let .success(urls):
             guard let url = urls.first else { return }
+            // CON-01: 读盘 + 解码 + 压缩挪到 detached task，避免主线程同步读大文件 / 解码卡 UI
+            Task { await processPickedFile(url) }
+        case .failure:
+            errorText = "ファイルの選択に失敗しました"
+        }
+    }
+
+    /// CON-01: 文件读盘 + 图片解码压缩全程在 detached task 跑（安全作用域在同一 task 内保持有效），
+    /// 结果回到主线程（本方法属 @MainActor View）后再更新 picked / errorText。
+    private func processPickedFile(_ url: URL) async {
+        let outcome = await Task.detached(priority: .userInitiated) { () -> FileImportOutcome in
             let scoped = url.startAccessingSecurityScopedResource()
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            let isPdf = url.pathExtension.lowercased() == "pdf"
             // PDF 不压缩，原始大小即最终大小 → 先看文件大小属性，超 10 MB 直接拒，避免把超大 PDF 整包读进内存才校验。
-            // 图片不在这里硬拒：走下面「读取 → 压缩 → 压缩后校验」原路径，否则会误挡掉能压到 10 MB 以内的大图。
-            if url.pathExtension.lowercased() == "pdf",
+            // 图片不在这里硬拒：走「读取 → 压缩 → 压缩后校验」原路径，否则会误挡掉能压到 10 MB 以内的大图。
+            if isPdf,
                let fileSize = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize,
                fileSize > ContractImage.maxBytes
             {
-                errorText = "ファイルサイズが大きすぎます（10MB以下にしてください）"
-                return
+                return .tooLarge
             }
             guard let raw = try? Data(contentsOf: url) else {
-                errorText = "ファイルの読み込みに失敗しました"
-                return
+                return .readFailed
             }
-            if url.pathExtension.lowercased() == "pdf" {
-                setPicked(data: raw, fileName: url.lastPathComponent, mime: "application/pdf")
-            } else if let image = UIImage(data: raw), let jpeg = ContractImage.jpegData(image) {
-                setPicked(data: jpeg, fileName: "contract.jpg", mime: "image/jpeg")
+            if isPdf {
+                return .pdf(raw, url.lastPathComponent)
+            } else if let jpeg = ContractImage.decodeAndCompress(raw) {
+                return .image(jpeg)
             } else {
-                errorText = "対応していないファイル形式です"
+                return .unsupported
             }
-        case .failure:
-            errorText = "ファイルの選択に失敗しました"
+        }.value
+
+        switch outcome {
+        case .tooLarge:
+            errorText = "ファイルサイズが大きすぎます（10MB以下にしてください）"
+        case .readFailed:
+            errorText = "ファイルの読み込みに失敗しました"
+        case let .pdf(data, name):
+            setPicked(data: data, fileName: name, mime: "application/pdf")
+        case let .image(jpeg):
+            setPicked(data: jpeg, fileName: "contract.jpg", mime: "image/jpeg")
+        case .unsupported:
+            errorText = "対応していないファイル形式です"
         }
     }
 
@@ -203,16 +229,31 @@ struct ContractFilePicker: View {
     }
 }
 
+/// CON-01: 选文件解码结果 —— 在 detached task 内产出、跨回主线程，故需 Sendable。
+private enum FileImportOutcome {
+    case tooLarge
+    case readFailed
+    case pdf(Data, String)
+    case image(Data)
+    case unsupported
+}
+
 /// 图片 → JPEG（缩放 + 压缩），统一交后端 / 老师网页。
 enum ContractImage {
     static let maxBytes = 10 * 1024 * 1024
     private static let maxEdge: CGFloat = 2400
 
-    static func jpegData(_ image: UIImage) -> Data? {
+    /// CON-01: 原始字节 → 解码 + 缩放 + JPEG 编码。标 nonisolated，可在 detached task 出主线程跑（不碰 UI 状态）。
+    nonisolated static func decodeAndCompress(_ raw: Data) -> Data? {
+        guard let image = UIImage(data: raw) else { return nil }
+        return jpegData(image)
+    }
+
+    nonisolated static func jpegData(_ image: UIImage) -> Data? {
         downscale(image, maxEdge: maxEdge).jpegData(compressionQuality: 0.8)
     }
 
-    private static func downscale(_ image: UIImage, maxEdge: CGFloat) -> UIImage {
+    private nonisolated static func downscale(_ image: UIImage, maxEdge: CGFloat) -> UIImage {
         let w = image.size.width
         let h = image.size.height
         let longest = max(w, h)
