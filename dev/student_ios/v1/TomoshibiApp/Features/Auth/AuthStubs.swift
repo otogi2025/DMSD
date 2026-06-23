@@ -1204,9 +1204,9 @@ private struct AIAvatarGenerateButton: View {
 //
 // JSX:
 //   heading "あなたの点呼区分" fontSize:15, weight:700, marginBottom:14
-//   2 custom radio cards:
-//     regular : "一般寮生" + detail "平日: 朝 7:00 / 晩 21:00  ·  土日: 朝 8:00 / 晩 21:30"
-//     soccer  : "サッカー部" + detail "有早练  ·  平日: 朝 6:00 / 晩 21:00"
+//   2 custom radio cards：regular「一般寮生」/ soccer「サッカー部」
+//   ※ CC-02: 点呼时刻 detail 文案以下方 options 数组为唯一真值。
+//     旧 JSX 直译残留的固定时刻已与 options 漂移，故删除，避免再误导维护者。
 //   card: padding 18, radius 16, border selected: 1.5 T.primary + bg: T.primary08 + shadow
 //   radio visual: 22×22 circle, when selected: border 6 T.primary + bg #fff
 //   footer: 2 buttons（返回 / 下一步）gap:10
