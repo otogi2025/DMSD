@@ -2340,9 +2340,20 @@ struct HealthSheet: View {
                     guard app.authToken == tokenAtStart else { return } // 切账号 / 登出后不在新会话弹 toast
                     app.closeSheet()
                     app.showToast("先生に通知しました")
+                } catch let APIError.unprocessable(msg) {
+                    // NET-03: 后端 422 校验消息直显，不再统一吞成「送信に失敗しました」
+                    submitting = false
+                    app.showToast(msg)
+                } catch APIError.unauthorized {
+                    // 本 sheet 无 router：与项目其它 401 处理（handleIfUnauthorized）一致，清令牌触发全局回登录，并关弹窗
+                    app.authToken = nil
+                    app.closeSheet()
+                } catch APIError.network {
+                    submitting = false
+                    app.showToast("通信エラーが発生しました。電波を確認してください")
                 } catch {
                     submitting = false // 失败留在弹窗让学生重试
-                    app.showToast("送信に失敗しました")
+                    app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "送信に失敗しました"))
                 }
             }
         #endif
@@ -2428,9 +2439,20 @@ struct AbsenceSheet: View {
                     guard app.authToken == tokenAtStart else { return } // 切账号 / 登出后不在新会话弹 toast
                     app.closeSheet()
                     app.showToast("審査中です")
+                } catch let APIError.unprocessable(msg) {
+                    // NET-03: 后端 422 校验消息直显，不再统一吞成「送信に失敗しました」
+                    submitting = false
+                    app.showToast(msg)
+                } catch APIError.unauthorized {
+                    // 本 sheet 无 router：与项目其它 401 处理（handleIfUnauthorized）一致，清令牌触发全局回登录，并关弹窗
+                    app.authToken = nil
+                    app.closeSheet()
+                } catch APIError.network {
+                    submitting = false
+                    app.showToast("通信エラーが発生しました。電波を確認してください")
                 } catch {
                     submitting = false // 失败留在弹窗让学生重试
-                    app.showToast("送信に失敗しました")
+                    app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "送信に失敗しました"))
                 }
             }
         #endif
