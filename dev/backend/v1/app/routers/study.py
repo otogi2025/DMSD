@@ -966,17 +966,21 @@ def cancel_today(
     term = _academic_term(today)
 
     # 演示隔离：join Student 加 demo_scope — 真老师只取消真实学生、演示老师只取消演示学生
-    roster_ids = list(
-        db.scalars(
-            select(models.StudyRoster.student_id)
-            .join(models.Student, models.Student.id == models.StudyRoster.student_id)
-            .where(
-                models.StudyRoster.academic_term == term,
-                models.StudyRoster.removed_at.is_(None),
-                demo_scope_for_teacher(teacher),
-            )
-        ).all()
+    # R4 寮边界（study-1）：按登录选的寮裁剪 roster —— 否则选男寮的老师一键「今日中止」
+    # 会把女寮全体也中止 + 撤销其缺席扣分。照 bulk_finalize 同口径补 dorm_units 过滤。
+    roster_q = (
+        select(models.StudyRoster.student_id)
+        .join(models.Student, models.Student.id == models.StudyRoster.student_id)
+        .where(
+            models.StudyRoster.academic_term == term,
+            models.StudyRoster.removed_at.is_(None),
+            demo_scope_for_teacher(teacher),
+        )
     )
+    dorm_units = dorm_units_for_teacher(teacher)
+    if dorm_units is not None:
+        roster_q = roster_q.where(models.Student.dorm_unit.in_(dorm_units))
+    roster_ids = list(db.scalars(roster_q).all())
 
     existing_map = {
         c.student_id: c

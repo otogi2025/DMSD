@@ -511,3 +511,97 @@ class TestRoster:
         )
         assert res.status_code == 403, res.text
         assert res.json()["detail"]["code"] == "FORBIDDEN_ROLE"
+
+
+class TestCancelTodaySelectedDorm:
+    """study-1：cancel_today 按登录选寮裁剪 roster。
+
+    学習担当（→「一般宿管+晚自习」组，对 C_STUDY 是 MANAGE 且受选寮限制）选男寮
+    中止时不应波及女寮学生 + 撤销其缺席扣分；不选寮（向后兼容）仍中止全部。
+    """
+
+    def _setup(self, db_session, seed_data):
+        from app import security
+
+        today = date.today()
+        season = "spring" if today.month <= 8 else "fall"
+        term = f"{today.year}-{season}"
+        male = seed_data["student"]  # dorm_unit=1（男寮）
+        female = models.Student(
+            grade_code="05",
+            class_code="03",
+            seat_no="07",
+            name="女寮study生",
+            gender="female",
+            room_no="W403",
+            dorm_unit=4,
+            is_overseas=False,
+            email="joshi_study@test.jp",
+        )
+        db_session.add(female)
+        db_session.flush()
+        db_session.add(
+            models.Account(
+                student_id=female.id, password_hash=security.hash_password("x")
+            )
+        )
+        db_session.add(models.StudyRoster(student_id=male.id, academic_term=term))
+        db_session.add(models.StudyRoster(student_id=female.id, academic_term=term))
+        db_session.add(
+            models.Teacher(
+                login_id="study_tantou",
+                name="学習担当",
+                email="study_tantou@test.jp",
+                password_hash=security.hash_password("test-password-12345"),
+                role="学習担当",
+            )
+        )
+        db_session.commit()
+        return male, female
+
+    def _login(self, client, selected_dorm=None):
+        body = {"login_id": "study_tantou", "password": "test-password-12345"}
+        if selected_dorm is not None:
+            body["selected_dorm"] = selected_dorm
+        r = client.post("/api/v1/sessions/teacher", json=body)
+        assert r.status_code == 200, r.text
+        return r.json()["access_token"]
+
+    def _checkin_of(self, db_session, student_id):
+        from sqlalchemy import select
+
+        return db_session.scalars(
+            select(models.StudyCheckin).where(
+                models.StudyCheckin.student_id == student_id
+            )
+        ).first()
+
+    def test_cancel_today_selected_male_skips_female(
+        self, client, seed_data, db_session
+    ):
+        male, female = self._setup(db_session, seed_data)
+        tok = self._login(client, selected_dorm=1)  # 选男寮
+        r = client.post(
+            "/api/v1/study/cancel-today",
+            headers={"Authorization": f"Bearer {tok}"},
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["cancelled_count"] == 1  # 只男寮 1 人
+        db_session.expire_all()
+        male_ci = self._checkin_of(db_session, male.id)
+        female_ci = self._checkin_of(db_session, female.id)
+        assert male_ci is not None and male_ci.status == "exempt"
+        assert female_ci is None  # 女寮学生未被中止（不在男寮裁剪范围）
+
+    def test_cancel_today_no_selection_cancels_all(self, client, seed_data, db_session):
+        male, female = self._setup(db_session, seed_data)
+        tok = self._login(client)  # 不选寮 → 全集（向后兼容）
+        r = client.post(
+            "/api/v1/study/cancel-today",
+            headers={"Authorization": f"Bearer {tok}"},
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["cancelled_count"] == 2  # 男 + 女都中止
+        db_session.expire_all()
+        assert self._checkin_of(db_session, male.id).status == "exempt"
+        assert self._checkin_of(db_session, female.id).status == "exempt"
