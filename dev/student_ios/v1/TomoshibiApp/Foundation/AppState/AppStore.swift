@@ -129,6 +129,8 @@ final class AppStore: ObservableObject {
                     cleaningHistoryState = .idle
                     songsState = .idle
                     lostFoundState = .idle
+                    packagesState = .idle
+                    notificationsState = .idle
                 #endif
             }
         }
@@ -187,6 +189,8 @@ final class AppStore: ObservableObject {
     @Published var cleaningHistoryState: ListLoadState = .idle
     @Published var songsState: ListLoadState = .idle
     @Published var lostFoundState: ListLoadState = .idle
+    @Published var packagesState: ListLoadState = .idle // NET-01: 宅配（包裹）列表三态（idle/loading/loaded/failed）
+    @Published var notificationsState: ListLoadState = .idle // NET-02: 通知中心 feed 三态
 
     /// AppDelegate（push 回调）拿不到 SwiftUI 的 @StateObject 实例 —— 用单例共享同一个 AppStore。
     /// App 入口的 @StateObject 也指向 shared，保证 push 回调写的状态就是界面读的那个。
@@ -516,14 +520,19 @@ final class AppStore: ObservableObject {
             return // 演示构建用 SEED.notifications 撑叙事，不拉后端
         #else
             let tokenAtStart = authToken
+            notificationsState = .loading
             do {
                 let feed = try await StudentNotificationsAPI.feed()
                 guard authToken == tokenAtStart else { return }
                 studentNotifications = feed.items
                 studentNotificationUnreadCount = feed.unreadCount
+                notificationsState = .loaded
             } catch {
-                // 401 → 集中清令牌触发重登；非 401 静默，下次刷新再试（不阻塞通知中心其他源）。
+                // 401 → 集中清令牌触发重登；非 401 → 反映到 notificationsState 让通知中心显失败态。
                 if handleIfUnauthorized(error, tokenAtStart: tokenAtStart) { return }
+                guard authToken == tokenAtStart else { return } // 切用户/登出后不写回旧状态
+                // NET-02: feed 拉取失败时显失败态（代表 feed 源失败），不再静默吞成「通知はありません」假空态。
+                notificationsState = .failed(APIErrorPresenter.userMessage(for: error, fallback: "通知の取得に失敗しました"))
             }
         #endif
     }
@@ -1162,16 +1171,21 @@ final class AppStore: ObservableObject {
     @MainActor
     func loadMyPackages() async {
         let tokenAtStart = authToken
+        packagesState = .loading
         do {
             let items: [FrontDeskItemBrief] = try await APIClient.shared.get(
                 path: "/api/v1/front-desk/mine"
             )
             guard authToken == tokenAtStart else { return }
             packages = items
+            packagesState = .loaded
         } catch {
             // 401 令牌过期 → 集中清令牌触发重登（否则用户卡在静默失败、永远刷不出包裹）。
             if handleIfUnauthorized(error, tokenAtStart: tokenAtStart) { return }
-            // 非 401（网络 / 解码失败）→ 不阻塞通知中心其他源，静默，下次刷新再试。
+            guard authToken == tokenAtStart else { return } // 切用户/登出后不写回旧状态
+            // NET-01: 非 401（网络 / 解码失败）→ 反映到 packagesState 让宅配页显失败态，不再静默吞成假空态。
+            // 只动 packagesState、不碰通知中心其他源（refreshNotificationSources 复用本方法）。
+            packagesState = .failed(APIErrorPresenter.userMessage(for: error, fallback: "荷物の取得に失敗しました"))
         }
     }
 

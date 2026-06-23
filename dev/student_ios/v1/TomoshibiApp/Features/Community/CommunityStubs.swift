@@ -128,7 +128,13 @@ struct NotificationsView: View {
                             notifCard(n)
                         }
                         if filtered.isEmpty {
-                            EmptyState(icon: "bell", title: "通知はありません")
+                            // NET-02: feed 拉取失败时显失败态，不再静默显「通知はありません」假空态
+                            switch app.notificationsState {
+                            case let .failed(msg):
+                                EmptyState(icon: "exclamationmark.triangle", title: "読み込みに失敗しました", message: msg)
+                            default:
+                                EmptyState(icon: "bell", title: "通知はありません")
+                            }
                         }
                     }
                     .padding(.horizontal, 16)
@@ -331,7 +337,13 @@ struct PackagesView: View {
                             pkgCard(p)
                         }
                         if list.isEmpty {
-                            EmptyState(icon: "shippingbox", title: tab == .wait ? "受取待ちの荷物はありません" : "受取済の荷物はありません")
+                            // NET-01: 网络/解码失败时显失败态，不再静默显「荷物はありません」假空态
+                            switch app.packagesState {
+                            case let .failed(msg):
+                                EmptyState(icon: "exclamationmark.triangle", title: "読み込みに失敗しました", message: msg)
+                            default:
+                                EmptyState(icon: "shippingbox", title: tab == .wait ? "受取待ちの荷物はありません" : "受取済の荷物はありません")
+                            }
                         }
                     }
                     .padding(.horizontal, 16)
