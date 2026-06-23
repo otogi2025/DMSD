@@ -205,7 +205,9 @@ struct BusListView: View {
         fmt.dateFormat = "yyyy-MM-dd HH:mm"
         let now = Date()
         return filtered.first { row in
-            guard let depart = fmt.date(from: "\(row.date) \(row.scheduleAt)") else { return true }
+            // CC-03: 解析失败应跳过脏行（return false），不能把识别不出时刻的行错误高亮成「下一班」。
+            // 当前数据流下 date/scheduleAt 全由 DateFormatter 产出固定格式、解析必成功，这里是健壮性兜底。
+            guard let depart = fmt.date(from: "\(row.date) \(row.scheduleAt)") else { return false }
             return now <= depart
         }?.id
     }
