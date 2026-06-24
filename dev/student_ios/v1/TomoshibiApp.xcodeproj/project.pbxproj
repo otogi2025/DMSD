@@ -697,7 +697,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Tomoshibi;
-				INFOPLIST_KEY_CFBundleShortVersionString = 0.23.0;
+				INFOPLIST_KEY_CFBundleShortVersionString = 0.27.0;
 				INFOPLIST_KEY_CFBundleVersion = 1;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NFCReaderUsageDescription = "点呼の出席を点呼機に送信するために NFC を使用します";
@@ -799,7 +799,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Tomoshibi Demo";
-				INFOPLIST_KEY_CFBundleShortVersionString = 0.23.0;
+				INFOPLIST_KEY_CFBundleShortVersionString = 0.27.0;
 				INFOPLIST_KEY_CFBundleVersion = 1;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NFCReaderUsageDescription = "点呼の出席を点呼機に送信するために NFC を使用します";
@@ -928,7 +928,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Tomoshibi;
-				INFOPLIST_KEY_CFBundleShortVersionString = 0.23.0;
+				INFOPLIST_KEY_CFBundleShortVersionString = 0.27.0;
 				INFOPLIST_KEY_CFBundleVersion = 1;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NFCReaderUsageDescription = "点呼の出席を点呼機に送信するために NFC を使用します";
