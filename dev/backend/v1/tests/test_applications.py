@@ -907,3 +907,47 @@ class TestOutstayBroadcastDormUnit:
         assert r.status_code == 201, r.text
         assert captured["event"]["type"] == "outstay_new"
         assert captured["dorm_unit"] == seed_data["student"].dorm_unit
+
+    def test_broadcast_dorm_unit_reflects_female_student_not_hardcoded(
+        self, client, teacher_token, seed_data, db_session, monkeypatch
+    ):
+        """对称钉死：女寮学生（dorm_unit=4）代録时广播必须带 dorm_unit=4。
+
+        防硬编码漏洞：上面两个用例都用男寮学生（dorm_unit=1），若广播误写成
+        固定 dorm_unit=1（而非 student.dorm_unit），两个用例都察觉不到（1==1 仍过），
+        而女寮学生的出寮事件会被错误推给男寮老师（middleware-ws-1 隐私越权回归）。
+        本用例用女寮学生钉死「dorm_unit 随学生变、非硬编码」。
+        teacher_token = 寮務課長（跨寮 assigned_dorm=None），可代録任意寮学生。
+        """
+        from app import models, security, ws_manager
+
+        pw = security.hash_password("test-password-12345")
+        joshi = models.Student(
+            grade_code="05",
+            class_code="01",
+            seat_no="09",
+            name="女子 学生",
+            gender="female",
+            room_no="W101",  # W*** = 4寮（女）
+            dorm_unit=4,
+        )
+        db_session.add(joshi)
+        db_session.flush()
+        db_session.add(models.Account(student_id=joshi.id, password_hash=pw))
+        db_session.commit()
+
+        captured = {}
+
+        def fake(event, dorm_unit=None, student_is_demo=None):
+            captured["event"] = event
+            captured["dorm_unit"] = dorm_unit
+
+        monkeypatch.setattr(ws_manager.manager, "broadcast_sync", fake)
+        r = client.post(
+            f"/api/v1/applications/by-teacher?student_id={joshi.id}",
+            json=_kisei_body(),
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert r.status_code == 201, r.text
+        assert captured["event"]["type"] == "outstay_new"
+        assert captured["dorm_unit"] == 4  # 女寮 — 钉死随学生变，非硬编码 1
