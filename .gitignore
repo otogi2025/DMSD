@@ -151,3 +151,5 @@ secrets/
 ops/个人网站_pj部署运维.md
 # ── 个人机器迁移/恢复指南（含 iCloud 私人路径 + Claude memory 恢复流程），不公开（2026-06-13）─
 ops/MAC_MINI_SETUP.md
+# ── 点呼机采购截图（采购记录/开发日记，非软件本体，不公开；2026-06-30 全量审查发现 24 张在公开范围）─
+dev/rollcall_device/采购截图/
