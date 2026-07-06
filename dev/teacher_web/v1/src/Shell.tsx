@@ -139,7 +139,8 @@ export function Shell({
       items: [
         ["info", "お知らせ"],
         ["bus", "バス時刻表"],
-        ["community", "コミュニティ管理"],
+        // 「コミュニティ管理」= 冷冻中（页面未接后端，菜单摘除防空头承诺；
+        // App.tsx 路由 + CommunityPage 组件 + 后端 songs 接口原样保留，复活时恢复本行即可）
         ["front-desk", "フロント業務"],
       ],
     },
