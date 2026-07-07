@@ -54,7 +54,8 @@ def test_no_recreate_always_in_migrations():
 
 @pytest.mark.skipif(
     not os.environ.get("TEST_PG_URL"),
-    reason="无 PostgreSQL（设 TEST_PG_URL=postgresql://user:pw@host/db 启用）；"
+    reason="无 PostgreSQL（设 TEST_PG_URL=postgresql+psycopg://user:pw@host:5432/db 启用；"
+    "本项目驱动是 psycopg3，裸 postgresql:// 方言会去找不存在的 psycopg2）；"
     "C1 是 PG-only bug，SQLite 测不到，故此测试在无 PG 时明确 skip 而非假绿",
 )
 def test_migrations_base_to_head_on_postgresql(monkeypatch):

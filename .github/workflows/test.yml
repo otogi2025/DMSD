@@ -1,9 +1,15 @@
 # C-048 (2026-05-21): backend v1 自动跑 pytest
-# v1.0 上线前必跑 — PR / push 触发，37 case 全 pass 才能合
+# v1.0 上线前必跑 — PR / push 触发，全部 case pass 才能合（条数看 pytest 输出，此处不硬编码）
 #
 # 触发：
 #   - push 到 main 且改动了 dev/backend/v1/**
 #   - PR 改动了 dev/backend/v1/**
+#
+# 2026-07-07 C组测试有效性审计: 加 postgres 服务容器 + TEST_PG_URL —— 让
+# test_migration_smoke 的真 PostgreSQL 迁移链测试在 CI 真跑（假绿#1 闭环：
+# recreate=always 崩溃是 PG-only、SQLite 测不到；本机无 PG 时该测试诚实 skip，
+# CI 有容器就真验 base→head 全链）。注意驱动是 psycopg 3（requirements.txt），
+# URL 必须用 postgresql+psycopg:// 方言 —— 裸 postgresql:// 会去找不存在的 psycopg2。
 
 name: backend-tests
 
@@ -23,6 +29,22 @@ jobs:
   pytest:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci_migrate
+        ports:
+          - 5432:5432
+        # 等库健康后才开跑，防「容器还没起、测试先连」竞态
+        options: >-
+          --health-cmd "pg_isready -U ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     defaults:
       run:
@@ -56,4 +78,6 @@ jobs:
           DATABASE_URL: sqlite:///./ci_test.db
           JWT_SECRET: ci-test-secret-32-bytes-aaaaaaaa
           APP_ENV: dev
+          # 真 PG 迁移链测试（test_migration_smoke.py::test_migrations_base_to_head_on_postgresql）
+          TEST_PG_URL: postgresql+psycopg://ci:ci@localhost:5432/ci_migrate
         run: pytest tests/ -v
