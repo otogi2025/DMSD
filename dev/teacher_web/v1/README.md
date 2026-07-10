@@ -1,6 +1,6 @@
 # dev/teacher_web/v1/
 
-**老师 Web — React 18 + TypeScript + Vite**（2026-06-05 从 HTML 单文件迁来；界面 100% 冻结、逐页原样搬，吸取 5-26「不是我的 web」失败教训）
+**老师 Web — React 18 + TypeScript + Vite**（由 HTML 单文件版迁移而来，迁移时界面 100% 冻结、逐页原样搬）
 
 ## 怎么打开看效果
 
@@ -19,7 +19,7 @@ npm run build   # 产出 dist/（tsc 类型检查 + vite 打包）
 - **React 18 + TypeScript + Vite**（Vite = 构建工具，替掉以前浏览器内 Babel 现场编译）
 - 样式：内联 `style` + Ryō 配色（`theme.ts`），**不用 Tailwind**
 - 状态：React `useState` + Context，**不用 Zustand**
-- 入口链：根 `index.html` → `src/main.tsx` → `src/App.tsx`（鉴权 + 路由）→ `src/Shell.tsx`（侧栏 17 菜单）
+- 入口链：根 `index.html` → `src/main.tsx` → `src/App.tsx`（鉴权 + 路由）→ `src/Shell.tsx`（侧栏菜单，分组定义见其中 `NAV_GROUPS`）
 
 ## 开发命令
 
@@ -35,20 +35,19 @@ npm run preview  # 本地预览 dist
 - `main.tsx` / `App.tsx` / `Shell.tsx` —— 挂载 + 鉴权路由 + 外壳侧栏
 - `theme.ts`（RYO 配色 + 常量 + `API_BASE="/api/v1"`） / `utils.ts`（JST 日本时间助手）
 - `api/client.ts`（60+ 接口方法） + `api/types.ts`（对齐后端 `schemas.py`）
-- `components/` —— 26 个 `.tsx`（22 页 + 3 弹窗 OverrideModal/OutstayDetailModal/StudentProfileModal + `shared.tsx`）
+- `components/` —— 页面组件 + 弹窗组件 + `shared.tsx` 共用件（清单以目录本身为准；页面与侧栏菜单的对应关系见 `Shell.tsx` 路由）
 - `_assets/`（fonts.css 引用的字体） + `assets/`（图标） + `fonts.css` + `styles.css`
 - 配置：`vite.config.ts`（`base:"./"` + proxy /api→8000 + resolve.extensions .ts 优先） + `tsconfig.json` + `package.json`
 - 构建产物 `dist/` 已 gitignore（不提交，`npm run build` 现 build）
 
 ## 旧版（HTML 单文件）已归档
 
-2026-06-05 前是「29629 行 `index.html` + 浏览器内 Babel 编译 React + `react.development.js` 开发版」。旧版已整组归档，不在公开仓库（含旧 index.html / client.js / vendor / 打包脚本 / 33MB 自包含单文件版，可看旧版界面做对比）。迁移完整记录见 `../WEB_DESIGN_LOG.md` §16 + `../Vite迁移_施工清单.md`。
+迁移前是「29629 行 `index.html` + 浏览器内 Babel 编译 React + `react.development.js` 开发版」。旧版已整组归档，不在公开仓库（含旧 index.html / client.js / vendor / 打包脚本 / 自包含单文件版，可看旧版界面做对比）。迁移完整记录见 `../WEB_DESIGN_LOG.md` §16 + `../Vite迁移_施工清单.md`。
 
 ## 当前状态
 
-- UI 迁移完成：17 页 chrome 实测全渲染 + 27 接口全 200 + 真数据通；后端 311 测试全过
-- **仅剩 itsuki 肉眼签收 + push**
-- 已知遗留：`RollCallLanding`（点呼默认页）统计卡 / 趋势图是从旧版原样照搬的硬编码 demo 数据（带「DEMO」标记），接不接真后端待 itsuki 决策
+- Vite 迁移已完成并入 main（迁移后仍在持续迭代 — 各页现状以 `src/` 目录 + `../WEB_DESIGN_LOG.md` 为真值）
+- 已知遗留：`RollCallLanding`（点呼默认页）统计卡 / 趋势图是从旧版原样照搬的硬编码 demo 数据（带「DEMO」标记），接不接真后端待决策
 
 ## 设计权威
 

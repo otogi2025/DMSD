@@ -21,13 +21,24 @@ TomoshibiAppTests/
 - 5 端统一在 DMSD monorepo 内管理，版本 / commit 单一来源
 - iOS Swift 实装是 pixel-level fidelity 的真 SwiftUI 产出
 
-## 启动 Xcode
+## 构建（先看这段再动手）
+
+工程有 **两个 scheme**（scheme = Xcode 里的构建方案），已在 `project.yml` 定义好：
+
+| scheme | 用途 |
+|---|---|
+| `TomoshibiApp` | 正式版（不含任何 demo 代码）|
+| `TomoshibiAppDemo` | 演示版（自带 `DEMO` 编译 flag）— 要演示版直接选这个 scheme，**不要手动加 `SWIFT_ACTIVE_COMPILATION_CONDITIONS`** |
 
 ```bash
 # 打开本目录下的 TomoshibiApp.xcodeproj
-# 选 iPhone 17 Pro Simulator（iOS 26.0）
-# ▶ Run
+# 顶部 scheme 切换器选 TomoshibiApp（正式）或 TomoshibiAppDemo（演示）
+# 选 iPhone 17 Pro Simulator → ▶ Run
 ```
+
+命令行构建 / 双版本差异详见 `BUILD.md`。
+
+**工程配置的真值是 `project.yml`**（xcodegen 配置文件）— `.xcodeproj` 由 xcodegen 从它生成，在 Xcode 里手动改的工程配置会在下次 xcodegen 重新生成时被擦掉；改配置必须写进 `project.yml` 再重新生成。
 
 ## 设计权威
 

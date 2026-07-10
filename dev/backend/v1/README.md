@@ -1,155 +1,101 @@
 # dev/backend/v1/
 
-**v1.0 正式版后端 — P0 範囲 实装中** (2026-04-30 由 [Mac-会话B] 起手)。
+Tomoshibi v1.0 正式版后端 — FastAPI + SQLAlchemy 2.x + Alembic。本地开发用 SQLite（`tomoshibi_dev.db`），生产用 PostgreSQL（docker-compose）。
 
 ---
 
-## ⭐ 当前状态
+## 当前状态
 
-**P0 部分** (出寮届 + メール + 食堂 Excel) 起手版完成:
+实装进度以 `../BACKEND_DESIGN_LOG.md` 顶部「实装进度速查表」为真值，本文件不复述数字（历史证明硬编码必漂移）。
 
-| エンドポイント | 用途 | 状態 |
-|---|---|---|
-| `POST /api/v1/sessions/student` | 学生 login | ✅ |
-| `POST /api/v1/sessions/teacher` | 教师 login | ✅ |
-| `POST /api/v1/applications` | 出寮届 提出 (#2 + #6 メール) | ✅ |
-| `GET  /api/v1/applications/mine` | 自分の履歴 | ✅ |
-| `GET  /api/v1/applications/{id}` | #5 承认状态查询 | ✅ |
-| `GET  /api/v1/meals/calc` | #7 食数計算 (JSON) | ✅ |
-| `GET  /api/v1/meals/export` | #7 食数 Excel 导出 | ✅ |
-| `POST /api/v1/notifications/test` | SendGrid smoke | ✅ |
-
-**追加实装** (2026-05-12 校准):
-- 役职 承认 (#10-#13) — `applications.py:394-443` ✅
-- 学習出席 — `study.py` 已挂載 + alembic c3d4e5f6a7b8 加 period 字段 ✅
-- 点呼 — `rollcall.py` 已挂載 ⚠️（NFC 防作弊 card_uid 未真接 — 见 SOP Bug B4）
-- 公告 — `announcements.py` ✅
-- 学生注册码 — `admin_registration_code.py` ✅（5 分钟有效，App Store 上架对策）
-- 教师管理 — `teachers.py` ✅
-
-**仍 ⏳**: 巴士 / 行事 / 指導履歴 / 事案 / 食堂他データ / WebSocket + Redis / refresh_token rotation / 整点 session minute-5 bug。
-
-権威設計文書 → `../BACKEND_DESIGN_LOG.md` (P0 範囲は §2.1)。
+- 端点总表：看 `openapi_snapshot.json`，或启动后访问 `http://localhost:8000/docs`
+- 路由清单：以 `app/routers/` 目录为准（认证 / 申请 / 点呼 / 学习 / 扣分 / 清扫 / 前台 / 指导 / 事案 / 通知 / WebSocket 等）
+- 数据库迁移链：以 `alembic/versions/` 目录为准
+- 测试清单：以 `tests/` 目录为准
 
 ---
 
-## ⚡ 起動 (5 分で動かす)
+## 启动（本地开发）
 
 ```bash
 cd dev/backend/v1
 
-# 依存
+# 虚拟环境 + 依赖
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-# 設定 (SENDGRID_API_KEY を本物にすると 実 SendGrid に送信)
+# 配置
 cp .env.example .env
 
-# DB 初期化 + ダミーデータ投入
+# 数据库迁移（切分支 / 拉新代码后必跑 — 存量库表结构落后时接口会 500）
+.venv/bin/alembic upgrade head
+
+# 开发用假数据投入
 python -m seed
 
-# サーバ起動
+# 启动服务
 python -m app.main
-# → http://localhost:8000/docs で OpenAPI UI
+# → http://localhost:8000/docs 查看 OpenAPI UI
 ```
 
 ---
 
-## 🧪 テスト
+## 测试
 
 ```bash
-pytest -v
+cd dev/backend/v1
+.venv/bin/python -m pytest        # 全量约 3 分钟
 ```
 
-**カバー**:
-- 役职 chain (D4 实物表) — 留学生外泊 = 5 行 / 一般外泊 = 3 行 / 帰省・帰国 暫定 chain
-- POST /applications + メール トリガー (notification_log 行作成確認)
-- GET /applications/{id} (学生本人 / 他人 403 / 留学生帰省 chain 暫定)
-- GET /meals/calc + /meals/export (Excel バイナリ妥当性)
-- 認証エラーパス (401 / 403 / 422)
-- evidence pending な chain は `X-Approval-Chain-Provisional: true` header
+必须用项目自带虚拟环境（系统 Python 未装 fastapi，裸跑 `pytest` 必失败）。测试用独立测试库自动重建，不碰开发库。覆盖面以 `tests/` 目录下各测试文件为准（点呼 / 权限矩阵 / 演示隔离 / 迁移回归等）。
 
 ---
 
-## 🛠 SendGrid を実機接続する
+## 邮件服务（Resend）
 
-1. SendGrid アカウント作成 → API Key (Mail Send) 発行
-2. Sender Verification (single sender or domain)
-3. `.env` に:
-   ```
-   SENDGRID_API_KEY=SG.xxxxxxx
-   EMAIL_FROM=verified-sender@your-domain.jp
-   ```
-4. smoke test:
-   ```bash
-   # 1. 教师 login で token 取得
-   TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/sessions/teacher \
-     -H 'Content-Type: application/json' \
-     -d '{"login_id":"ryomu_kachou","password":"tomoshibi-dev-2026"}' \
-     | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
+邮件发送实现在 `app/services/email.py`，走 Resend HTTP API。
 
-   # 2. テストメール送信
-   curl -X POST http://localhost:8000/api/v1/notifications/test \
-     -H "Authorization: Bearer $TOKEN" \
-     -H 'Content-Type: application/json' \
-     -d '{"to":"itsuki@your-mail.jp","subject":"smoke","body_text":"テスト"}'
-   ```
+- `.env` 中 `RESEND_API_KEY` 留空 = 开发模式，只记日志不真发邮件
+- 填入真实密钥（`re_` 开头）= 实际发送
+- SendGrid 已弃用（`config.py` 中 `sendgrid_api_key` 仅为兼容旧 `.env` 保留，不再使用）
 
 ---
 
-## 📁 構成
+## 目录骨架
+
+只画一层骨架，文件级清单以目录本身为准：
 
 ```
 v1/
 ├── app/
-│   ├── main.py           # FastAPI app (lifespan + routers 登録)
-│   ├── config.py         # 設定 (BaseSettings)
-│   ├── database.py       # SQLAlchemy engine + Session
-│   ├── deps.py           # 依存注入 (current_student / current_teacher)
-│   ├── security.py       # JWT + bcrypt
-│   ├── models.py         # SQLAlchemy 2.x ORM (P0 8 表)
-│   ├── schemas.py        # Pydantic v2 (届 3 種 discriminator)
-│   ├── routers/
-│   │   ├── auth.py            # 学生/教师 login
-│   │   ├── applications.py    # #2 #5 #6
-│   │   ├── meals.py           # #7
-│   │   └── notifications.py   # SendGrid smoke
-│   └── services/
-│       ├── approval_chain.py  # D4 chain 生成 (provisional flag)
-│       ├── email.py           # SendGrid + notification_log
-│       └── meals.py           # 食数計算 + openpyxl Excel
-├── tests/
-│   ├── conftest.py
-│   └── test_smoke.py     # 17 ケース (chain / api / Excel)
-├── seed.py               # 役职 7 種網羅 + 担任 + 学生 (留学生 + 一般)
-├── requirements.txt
-├── .env.example
+│   ├── main.py                  # FastAPI 入口（lifespan + 路由注册 + 库结构自检）
+│   ├── config.py                # 设置（BaseSettings）
+│   ├── database.py              # SQLAlchemy engine + Session
+│   ├── deps.py                  # 依赖注入（当前学生 / 当前教师）
+│   ├── security.py              # JWT + bcrypt
+│   ├── models.py                # ORM 表定义
+│   ├── schemas.py               # Pydantic v2 输入输出模型
+│   ├── permissions.py           # 教师权限分级
+│   ├── audit.py                 # 审计日志
+│   ├── ratelimit.py             # 限流
+│   ├── ws_manager.py            # WebSocket 连接管理
+│   ├── routers/                 # 各功能路由（清单以本目录为准）
+│   └── services/                # 领域服务（审批链 / 邮件 / 食数 / 推送 / 学生受众）
+├── tests/                       # pytest 测试（清单以本目录为准）
+├── alembic/                     # 数据库迁移链（versions/ 为准）
+├── seed.py                      # 开发用假数据投入
+├── Dockerfile / docker-compose.yml / Caddyfile / DEPLOY.md   # 生产部署四件套
+├── openapi_snapshot.json        # 端点快照
+├── requirements.txt / pyproject.toml / .env.example
 └── README.md
 ```
 
 ---
 
-## ⚠️ 既知の制約 (P0 範囲外, 後続会話で実装)
+## 相关文档
 
-| ID | 項目 | 移送先 |
-|---|---|---|
-| - | Alembic migration | P0 後 (今は `Base.metadata.create_all`) |
-| - | async SQLAlchemy | P0 後 (今は同期、code 読みやすさ優先) |
-| - | Refresh token rotation | P1 |
-| - | 学生 lock_level 升級 (連続失敗 3 → 30s ...) | P1 |
-| - | 役职 承認・拒否 (#10-#13) `POST /applications/:id/approvals` | P1 (会話 続) |
-| - | コメント追加 (#13 杭田弱点) | P1 |
-| D4 evidence | 帰省 / 帰国 実物表 ×4 → chain 生成ロジック調整 | itsuki が次回老師に会った時に持ち帰る |
-| 食事時刻 | 朝 7:00 / 昼 12:00 / 夕 18:00 (暫定) | itsuki 確認後 services/meals.py 定数調整 |
-
-evidence 入手次第、`app/services/approval_chain.py` の `EXTERNAL_ROLES_BY_KIND` と `PROVISIONAL_CHAINS` を更新。
-
----
-
-## 📚 関連ドキュメント
-
-- 権威設計 → `../BACKEND_DESIGN_LOG.md`
-- 38 条要件（老師フィードバック backlog）→ 内部管理ドキュメント（公開リポジトリ対象外）
-- 実物表 evidence → `../BACKEND_DESIGN_LOG.md §10 D4` + `system_features.md §7.2.2`
-- demo 版 (4-28 管理員 demo, ロック中) → `../demo/`
+- 后端设计权威源：`../BACKEND_DESIGN_LOG.md`（含实装进度速查表）
+- 共用功能设计：`design/system_features.md`
+- 生产部署流程：`DEPLOY.md`
+- demo 版（管理员演示用，锁定不改）：`../demo/`

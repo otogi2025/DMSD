@@ -5,7 +5,7 @@ Tomoshibi 教師端の Web アプリ（React + TypeScript + Vite）。iPad ブ�
 | ファイル / ディレクトリ | 役割 |
 |---|---|
 | `WEB_DESIGN_LOG.md` | Web 専属の設計決定アーカイブ |
-| `DESIGN_BRIEF.md` | デザイン方針 |
+| `DESIGN_BRIEF.md` | デザイン方針（Vite 移行前の記述が多く、大半は歴史資料 — 現行の真値は `WEB_DESIGN_LOG.md`）|
 | `v1/` | React + TS + Vite 実装本体 |
 
 ## v1/src/ 構成
