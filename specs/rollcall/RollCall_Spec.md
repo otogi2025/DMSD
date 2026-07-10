@@ -7,19 +7,19 @@
 > **当前文件状态**：spec 主体已对齐 4-17 决策 + 4-29 增量；`.pages` 原稿仅作历史快照保留
 > **权威来源**：本 `.md` 是唯一真值，与字典四件套（ENUM/FIELD/ERROR_CODES/DEVICE_REGISTRY）相互引用
 > **命名**（2026-04-21 定名）：本 spec 描述的系统对外名为 **Tomoshibi**（灯火 / ともしび）；DMSD 是开发项目/仓库代号。
-> **上线姿态**（2026-04-19 G2 决策）：v1.0 一次性上线 = NFC 卡（路径 A）+ iOS（路径 B）+ Android（路径 C） — 不再分 Phase 1/2 阶段。
+> **上线姿态**（2026-06-09 范围冻结，取代 2026-04-19 G2「一次性上线」决策）：阶段发布 — 第一波 App Store 生活服务版（spec v1.0，点呼入口占位）→ 第二波真宿舍上线（spec v1.1：点呼 + 防作弊 + 硬件）。第二波内 NFC 卡（路径 A）+ iOS（路径 B）+ Android（路径 C）三路径同时开放。范围切分真值见 `specs/v1.0_范围冻结决策.md`（同目录 v1.1 / v1.2）。
 
 ---
 
 ## 1. 概述
 
-Tomoshibi 点呼系统支持 **三路径并存**（v1.0 同时上线，2026-04-19 G2 决策）：
+Tomoshibi 点呼系统支持 **三路径并存**（第二波真宿舍上线时三路径同时开放 — 上线姿态见文首表头，2026-06-09 拍板）：
 
 | 路径 | 触发方式 | 备注 |
 |---|---|---|
-| **路径 A — NFC 卡** | 学生把卡贴到点呼机的 PN532 读头 | v1.0 上线；无 App 学生默认走此路径 |
-| **路径 B — iOS Universal Link** | 学生 iPhone 读点呼机外贴的静态 NFC 标签 → 触发 iOS App | v1.0 上线 |
-| **路径 C — Android App Link** | 学生 Android 读点呼机外贴的静态 NFC 标签 → 触发 Android App | v1.0 上线（实现与路径 B 同型，`path_type=B` 复用见 ENUM_REGISTRY §13 path_type 注） |
+| **路径 A — NFC 卡** | 学生把卡贴到点呼机的 PN532 读头 | 第二波真宿舍上线开放；无 App 学生默认走此路径 |
+| **路径 B — iOS Universal Link** | 学生 iPhone 读点呼机外贴的静态 NFC 标签 → 触发 iOS App | 第二波真宿舍上线开放 |
+| **路径 C — Android App Link** | 学生 Android 读点呼机外贴的静态 NFC 标签 → 触发 Android App | 第二波真宿舍上线开放（实现与路径 B 同型，`path_type=B` 复用见 ENUM_REGISTRY §13 path_type 注） |
 
 三条路径都遵循同一个业务流程：
 
@@ -204,7 +204,7 @@ Tomoshibi 点呼系统支持 **三路径并存**（v1.0 同时上线，2026-04-1
                  └─ 失败 → 错误码 → 点呼机红灯 + 失败声音
 ```
 
-#### 5.1.2 路径 B — iOS Universal Link（与路径 A 共存，v1.0 同时上线）
+#### 5.1.2 路径 B — iOS Universal Link（与路径 A 共存，第二波同时开放）
 
 > 路径 C（Android App Link）实现同型，`path_type=B` 复用 — 详见 ENUM_REGISTRY §13 path_type 注。下文流程对 iOS / Android 通用。
 
@@ -593,7 +593,7 @@ settle_at = min(ended_at, scheduled_auto_end_at)
 
 - 早期 spec 假设 **学生用手机 App 触碰点呼机** 签到（即路径 B）
 - 4-12 临时决定先以 **NFC 卡 + 点呼机直读** 走 demo（无手机 App）
-- 后由 4-17 v0.2 主体改写为「双路径并存」 + 4-19 G2 拍板「v1.0 一次性上线三路径（A 卡 / B iOS / C Android）」收口，不再分阶段
+- 后由 4-17 v0.2 主体改写为「双路径并存」 + 4-19 G2 拍板「v1.0 一次性上线三路径（A 卡 / B iOS / C Android）」收口，不再分阶段（G2 决策其后又被 2026-06-09 阶段发布拍板取代 — 现行上线姿态见文首表头）
 
 ### A.2 早点呼祝休日 — 足球部时间（当前假设：故意如此，待 itsuki 最终确认）
 
