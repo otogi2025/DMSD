@@ -13,4 +13,5 @@ Tomoshibi 点呼机主程序入口
 
 # 实装时填充
 # 状态机: IDLE → SUBMITTING → SUCCESS / FAIL → IDLE
-# 后台线程: 每 10s 写 nonce 到 ST25DV16K
+# NFC 路径: PN532 轮询读卡 UID + 被动收手机写入 ST25DV16K 邮箱的身份数据
+# （nonce 10 秒刷新方案已随 2026-06-02 架构反转废弃 — 手机不联网、点呼机不再主动写贴纸）
