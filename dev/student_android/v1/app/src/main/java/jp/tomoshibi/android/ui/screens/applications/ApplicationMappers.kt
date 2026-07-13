@@ -26,6 +26,16 @@ fun mapApplicationStatus4(backend: String): ApplicationStatus =
         else -> ApplicationStatus.REJECTED // rejected / withdrawn
     }
 
+// ApplicationStatus 枚举 → 状态徽章（chip）文案。原散在 ApplicationStatusPill 的 when 里，抽出成纯函数可单测。
+// iOS rejected 标签是「差戻」（不是「却下」）—— 双端徽章文案对齐。
+fun applicationStatusLabel(status: ApplicationStatus): String =
+    when (status) {
+        ApplicationStatus.PENDING -> "審査中"
+        ApplicationStatus.APPROVED -> "承認済"
+        ApplicationStatus.RETURNED -> "要修正"
+        ApplicationStatus.REJECTED -> "差戻"
+    }
+
 // 后端 status 英语 → StayStatus（7 值，StayListScreen / StayDetailScreen 用）。
 fun mapStayStatus(backend: String): StayStatus =
     when (backend) {

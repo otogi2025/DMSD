@@ -24,6 +24,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.data.account.RoomCoding
 import jp.tomoshibi.android.data.model.User
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
@@ -79,12 +80,10 @@ private fun computedAccount(d: FormData): String {
     return gradeCode(d.grade) + classCode(d.classSuffix) + "%02d".format(n)
 }
 
-private fun fullRoom(d: FormData): String {
-    val prefix = if (d.gender == "male") "M" else "W"
-    return prefix + d.roomDigit
-}
+// 房号 / 寮名判定已抽到 data/account/RoomCoding（纯逻辑、可单测、跟 iOS/后端对齐）；这里只做 FormData 适配。
+private fun fullRoom(d: FormData): String = RoomCoding.fullRoom(d.gender, d.roomDigit)
 
-private fun dormName(d: FormData): String = if (d.gender == "male") "男寮" else "女寮"
+private fun dormName(d: FormData): String = RoomCoding.dormLabel(d.gender)
 
 private fun catName(d: FormData): String = if (d.cat == "soccer") "サッカー部" else "一般寮生"
 

@@ -441,16 +441,14 @@ private fun ApplyKindGrid(onPick: (String) -> Unit) {
 @Composable
 internal fun ApplicationStatusPill(status: ApplicationStatus) {
     val tokens = SuzuT.current
-    val (label, bg, fg) =
+    // 徽章文案抽到 ApplicationMappers.applicationStatusLabel（纯函数、可单测）；颜色仍就地取 token。
+    val label = applicationStatusLabel(status)
+    val (bg, fg) =
         when (status) {
-            ApplicationStatus.PENDING -> Triple("審査中", tokens.warnBg, tokens.warnDeep)
-
-            ApplicationStatus.APPROVED -> Triple("承認済", tokens.okBg, tokens.okDeep)
-
-            ApplicationStatus.RETURNED -> Triple("要修正", tokens.dangerBg, tokens.danger)
-
-            // iOS rejected 标签是「差戻」（不是「却下」）
-            ApplicationStatus.REJECTED -> Triple("差戻", tokens.dangerBg, tokens.danger)
+            ApplicationStatus.PENDING -> tokens.warnBg to tokens.warnDeep
+            ApplicationStatus.APPROVED -> tokens.okBg to tokens.okDeep
+            ApplicationStatus.RETURNED -> tokens.dangerBg to tokens.danger
+            ApplicationStatus.REJECTED -> tokens.dangerBg to tokens.danger
         }
     Box(
         modifier =

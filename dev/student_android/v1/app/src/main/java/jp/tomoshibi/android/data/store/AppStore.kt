@@ -29,8 +29,9 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
 private val APP_STATE_KEY = stringPreferencesKey("app_state_json")
 
 // 共享 JSON 编解码器。ignoreUnknownKeys = 解码时忽略 JSON 里有、但 AppState 已删掉的字段，
-// 这样删字段（如本次删匿名建議的 feedback 字段）后，老用户本地存档不会解析失败回落、丢掉其余本地数据
-private val appJson = Json { ignoreUnknownKeys = true }
+// 这样删字段（如本次删匿名建議的 feedback 字段）后，老用户本地存档不会解析失败回落、丢掉其余本地数据。
+// internal（非 private）：TokenRoundtripTest 直接用这份真配置做往返测试——配置将来变了测试跟着变，不测副本。
+internal val appJson = Json { ignoreUnknownKeys = true }
 
 class AppStore(
     private val context: Context,
