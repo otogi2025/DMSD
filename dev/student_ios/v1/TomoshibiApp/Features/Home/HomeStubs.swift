@@ -1400,9 +1400,22 @@ struct RollcallSheet: View {
         }
     }
 
-    // MARK: idle — 扫描准备完毕
+    // MARK: idle — 生产占位（spec v1.0 §2.2）/ 演示扫描
 
     private var idleView: some View {
+        // 第一波 App Store 上架（spec v1.0 §2.2「点呼签到入口置占位、不得呈现可签到假象」）：
+        // 生产构建点呼入口不启动 NFC、只显示「近日公開」占位；演示构建（DEMO）保留完整扫描准备界面 + 假扫描动画，宿舍管理员演示继续能跑。
+        // 第二波（spec v1.1 真宿舍上线）：把 #else 占位换回 demoScanIdle 即恢复真扫描入口 —— ST25DVWriter / simulate() / scanning-success-fail 三态视图全程未删。
+        #if DEMO
+            demoScanIdle
+        #else
+            comingSoonPlaceholder
+        #endif
+    }
+
+    // MARK: demoScanIdle — 扫描准备完毕（演示 · 假扫描入口）
+
+    private var demoScanIdle: some View {
         VStack(alignment: .leading, spacing: 0) {
             // JSX: 24 800 / letterSpacing -0.01em / lineHeight 1.3 / marginBottom 14
             Text("スキャンの準備が\nできました")
@@ -1511,6 +1524,65 @@ struct RollcallSheet: View {
             .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 4)
+    }
+
+    // MARK: comingSoonPlaceholder — 生产占位（spec v1.0 §2.2 · 第一波 App Store 不启动 NFC）
+
+    /// 第一波宿舍未装点呼机硬件 → 生产构建打开点呼弹窗只见「近日公開」占位，不显示扫描准备界面（那会构成可签到假象、踩苹果 4.2/2.1）。
+    private var comingSoonPlaceholder: some View {
+        VStack(spacing: 0) {
+            // 占位图标 —— 刻意不用 NFC 扫描图标，避免呈现可签到假象
+            ZStack {
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [T.accent.opacity(0.22), T.accent.opacity(0.05)],
+                            center: .center,
+                            startRadius: 0, endRadius: 60
+                        )
+                    )
+                    .frame(width: 120, height: 120)
+                    .overlay(Circle().stroke(T.accent.opacity(0.55), lineWidth: 2))
+                Image(systemName: "hourglass")
+                    .font(.system(size: 46, weight: .regular))
+                    .foregroundStyle(T.primary)
+            }
+            .padding(.top, 8)
+            .padding(.bottom, 24)
+
+            Text("点呼機能は\n近日公開予定です")
+                .multilineTextAlignment(.center)
+                .font(.system(size: 22, weight: .heavy))
+                .kerning(-0.22)
+                .lineSpacing(4)
+                .foregroundStyle(T.ink)
+                .padding(.bottom, 12)
+
+            Text("点呼のデジタル化は次の段階で提供予定です。\n現在は寮のこれまでの方法で点呼を行ってください。")
+                .multilineTextAlignment(.center)
+                .font(.system(size: 14))
+                .lineSpacing(4)
+                .foregroundStyle(T.inkSub)
+                .padding(.horizontal, 8)
+                .padding(.bottom, 28)
+
+            Button { cancel() } label: {
+                Text("閉じる")
+                    .font(.system(size: 16, weight: .bold))
+                    .kerning(0.64)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(T.rollBtnGrad)
+                    }
+                    .shadow(color: T.primary.opacity(0.32), radius: 18, x: 0, y: 6)
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity)
         .padding(.top, 4)
     }
 
@@ -1683,7 +1755,8 @@ struct RollcallSheet: View {
                 }
             }
         #else
-            // 生产版（ios① 上线缺口）：真用 CoreNFC 把学号写进墙上 ST25DV Mailbox（手机不联网，点呼机读走发后端）。
+            // 【第二波（spec v1.1）恢复用 · 第一波 App Store 生产不触达】真用 CoreNFC 把学号写进墙上 ST25DV Mailbox（手机不联网，点呼机读走发后端）。
+            // 第一波上架：idleView 已置占位（spec v1.0 §2.2），生产构建走 comingSoonPlaceholder、永不进本 NFC 分支（本段仅保留代码）；第二波把 idleView 的 #else 换回 demoScanIdle 即恢复入口。
             // 架构反转后手机不再 POST checkin，本地只做物理确认（做法 A）、不等后端结果。
             withAnimation(.easeOut(duration: 0.22)) { step = .scanning }
             let writer = ST25DVWriter()

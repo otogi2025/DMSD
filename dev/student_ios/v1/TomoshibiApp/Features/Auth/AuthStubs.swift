@@ -1832,10 +1832,11 @@ struct LoginView: View {
     // JSX: 2-tab segmented control, bg T.pill, padding 3
     private var modeTab: some View {
         HStack(spacing: 0) {
-            // 切标签只换 mode，不清空字段 —— 登录只读当前 mode 的字段（番号→acc，邮箱 mode 直接弹「未対応」不读 email），
-            // 清空对方字段没有任何功能作用，反而会抹掉 DEMO 预填 + 生产版用户切回时丢已输入内容（itsuki 2026-06-15 报）。
+            // v1.0 上架版：邮箱登录后端未实装（选「メール」点登录只会弹「ご利用いただけません」）→ 隐藏「メール」tab、只留学号（番号）登录。
+            // 两个 scheme 都隐藏（功能未实装、非 demo/生产差异）；邮箱输入字段 + tryLogin 里的 email 分支代码保留。
+            // 第二波接后端邮箱登录后恢复：在下面加回一个「メール」tab（active 判 mode == .email、动作 mode = .email）。
+            // 历史（保留说明）：原两 tab 切换只换 mode 不清空字段，避免抹掉 DEMO 预填 / 用户已输入内容（itsuki 2026-06-15 报）。
             tabBtn(title: "番号", active: mode == .number) { mode = .number }
-            tabBtn(title: "メール", active: mode == .email) { mode = .email }
         }
         .padding(3)
         .background {
