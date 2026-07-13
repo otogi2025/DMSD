@@ -301,6 +301,16 @@ itsuki 看 iOS 班车页反馈三点，拍板 iOS + Android + 共用规格全同
 
 对接后端新端点（详见 `BACKEND_DESIGN_LOG.md` 2026-06-17 履历），与 iOS 语义对齐：`ApiClient.postNoBody` + `ApplicationsAPI.withdraw` + `DormLifeAPI.resubmitEventProposal`；`StayDetailScreen` 加「取消（撤回）」红按钮 + `returned` 态编辑按钮改「修正して再提出」；`DormEventListScreen` 在 `result=='resubmit'` 显老师评语 + 「再提出」按钮 + 补 `approved_conditional`/`resubmit` 状态徽章。`gradlew assembleDebug` BUILD SUCCESSFUL。注：`StayEditScreen` 重提编辑屏仍是既有 mock（历史 TODO）；行事重提暂用现有内容原样重提（无独立详情屏，与 iOS 一致）。
 
+## 14. C2 测试批：data/ 纯逻辑层新建 + 点呼履历 JST 锁定（2026-07-13，commit `881aa52`）
+
+C 组质量体系 C2 清单 Android #13-20 落地。新建 `data/` 下三个纯逻辑文件（无 Android 依赖、JVM 可单测）：
+
+- `data/rollcall/RollStateMachine.kt` — 点呼时间窗判定，逐行移植 iOS `decideRollState`。⚠️ **尚无 UI 调用点**（Android 点呼屏仍走 mock）——是接真后端批次的预置基线，测试与 iOS 用同一组窗口数值钉双端判定一致，勿当已生效功能。
+- `data/account/RoomCoding.kt` — 房号前缀/寮名（从 AccountScreen 等价抽取）+ `validateRoomDormMatch`（对齐后端口径，未接线）。⚠️ **实测查出真双端差异**：房号「A5」iOS 原样保留（IX-014），Android 现行拼成「MA5」双前缀 → 已用测试锁定现状 + TODO 挂等拍板条，本批不擅改注册行为。
+- `data/format/JstDate.kt` — 点呼履历时刻格式化，时区从「跟随设备」改锁死 Asia/Tokyo（**本批唯一真实行为变更**，主会话签收：对齐全链路 JST 契约与 iOS，真实用户设备本就 JST 显示不变）。
+
+界面层等价接线：AccountScreen 房号/寮名委托 RoomCoding；ApplicationStatusPill 徽章文案抽 `applicationStatusLabel` 纯函数；RollCallScreen 履历时刻改用 JstDate。`AppStore.appJson` private→internal 供 token 往返测试测真身。测试 6 文件 30 条（含 auto_end 边界回落 IDLE / 多场次顺序无关）。验证：`testDebugUnitTest` 全绿 + `assembleDebug` BUILD SUCCESSFUL。未 push。
+
 ---
 
 **END** — 本档随实装进展持续更新。
