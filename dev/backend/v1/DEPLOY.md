@@ -171,7 +171,7 @@ docker compose exec api python -m seed
 输出会打印：
 ```
 admin login: admin / 密码: ChangeMe-2026-05（上线后立刻在 web 后台改）
-reviewer 学号: 060199 / 密码: Reviewer-2026
+reviewer 学号: 999999 / 密码来自: env REVIEWER_PASSWORD
 reviewer 注册码: 999999（2030 过期）
 ```
 
@@ -195,7 +195,7 @@ curl https://api.tomoshibi.cc/healthz
 
 ### 6.2 iOS app 真机连
 - iOS app 上架版 Release build 默认连 `https://api.tomoshibi.cc`
-- 装到真机 → 用 reviewer 学号 `060199` + 密码 `Reviewer-2026` 登录 → 进 home 即成功
+- 装到真机 → 用 reviewer 学号 `999999` + 密码（= 部署时 .env 里 REVIEWER_PASSWORD 的值，示例 `Reviewer-2026-强密码`）登录 → 进 home 即成功
 
 ### 6.3 监控（Apple 审核期间必须 100% 在线）
 - 注册 [UptimeRobot](https://uptimerobot.com) 免费账号（50 monitors）
