@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="dev/student_ios/v1/TomoshibiApp/AppIcon-1024.png" alt="Tomoshibi 灯火" width="160" height="160" />
+  <img src="design/assets/readme/tomoshibi-icon.png" alt="Tomoshibi 灯火" width="160" height="160" />
 </p>
 
 # DMSD → Tomoshibi（灯火）
@@ -32,6 +32,24 @@
 Tomoshibi 用 NFC 卡、学生手机 App、老师 Web、后端服务器和入口处的专用点呼机，把这个流程数字化。
 
 核心目标不是“做一个 App”，而是把宿舍管理里每天重复、容易出错的流程，变成一套可以实际运行的系统。
+
+---
+
+## 系统架构
+
+一次签到的数据流：学生手机 / NFC 卡 → 入口点呼机 → 后端 → 老师网页。
+
+```mermaid
+graph LR
+  A[学生 iOS<br>Swift / SwiftUI] -->|NFC 写入邮箱| E[点呼机<br>Pi 3A+ + PN532 + ST25DV]
+  B[学生 Android<br>Kotlin / Compose] -->|NFC 写入邮箱| E
+  C[NFC 卡 NTAG215] -->|贴卡读取| E
+  E -->|HTTPS POST| D[后端 FastAPI<br>PostgreSQL]
+  D -->|WebSocket 实时推送| F[老师网页<br>React + TypeScript]
+```
+
+- 学生 iOS / Android app 把签到身份数据**写入**点呼机的 ST25DV 邮箱芯片（手机不联网）；NFC 学生卡则直接贴点呼机的 PN532 读头。
+- 点呼机把签到上报后端；后端经 WebSocket 把座位状态实时推到老师网页。
 
 ---
 
