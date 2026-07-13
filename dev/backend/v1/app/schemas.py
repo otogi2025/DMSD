@@ -794,6 +794,8 @@ class RollCallCheckinIn(BaseModel):
     status_source: Literal[
         "auto_nfc", "auto_settle", "manual_checkin", "teacher_override"
     ] = "auto_nfc"
+    # 已不参与判定（7-06 拍板 server_now，见 API_CONVENTIONS §4）——判定/落库/广播时刻恒取
+    # 服务器收到请求的时刻。字段保留仅为接口兼容（旧 client 仍会上送，backend 静默忽略）。
     ts_local: Optional[datetime] = None
     # A-020 (2026-05-21): client 显式标路径
     # - "A" = NFC 卡（必须有 card_uid）

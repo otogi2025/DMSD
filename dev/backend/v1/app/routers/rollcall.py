@@ -515,18 +515,10 @@ def create_checkin(
             },
         )
 
-    # rollcall-12: 不再无条件信任客户端 ts_local — 仅在 server now 的容忍窗口内采纳，
-    # 超窗（未来时间 / 远古时间）回退 server time，防伪造 present/late 绕过迟到扣分
-    server_now = _now_jst()
-    now = server_now
-    if body.ts_local is not None:
-        ts = _as_jst_aware(body.ts_local)
-        if (
-            server_now - timedelta(minutes=10)
-            <= ts
-            <= server_now + timedelta(minutes=2)
-        ):
-            now = ts
+    # rollcall-12 (7-06 拍板 server_now，API_CONVENTIONS §4)：判定时刻恒 = 服务器收到该请求的时刻。
+    # 彻底不采纳客户端 ts_local——伪造未来/远古时间都无法绕过迟到扣分（present/late 判定、
+    # checked_in_at 落库、WS 广播 checked_at 三处统一喂这个 now）。ts_local 字段仍接收但不参与判定。
+    now = _now_jst()
 
     # A-011 (2026-05-21): 幂等 check 改成「先查 idempotency_key 命中」
     # 1. 如果 client 传了 idempotency_key → 用 (session_id, idempotency_key) 唯一定位

@@ -45,6 +45,37 @@ def rollcall_session(db_session, seed_data):
     return session
 
 
+def _make_running_session(db_session, *, on_time_offset_min: int):
+    """建一个 running 场次，on_time 截止 = now + on_time_offset_min 分钟（负数 = 已过窗）。
+
+    用于 ts_local 伪造测试：offset 负 → 服务器判定必然 late；offset 正 → present。
+    """
+    now = datetime.now(ZoneInfo("Asia/Tokyo"))
+    session = models.RollCallSession(
+        dorm_unit_set=[1, 2],
+        session_type="evening",
+        day_type="weekday",
+        session_status="running",
+        started_at=now,
+        scheduled_window_start_at=now - timedelta(minutes=30),
+        scheduled_on_time_end_at=now + timedelta(minutes=on_time_offset_min),
+        scheduled_late_end_at=now + timedelta(minutes=on_time_offset_min + 20),
+        scheduled_auto_end_at=now + timedelta(minutes=on_time_offset_min + 30),
+    )
+    db_session.add(session)
+    db_session.commit()
+    db_session.refresh(session)
+    return session
+
+
+def _parse_jst(iso: str) -> datetime:
+    """把响应里的 checked_in_at ISO 串解析成 JST-aware datetime（读回若丢 tz 则补 JST）。"""
+    dt = datetime.fromisoformat(iso)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=ZoneInfo("Asia/Tokyo"))
+    return dt
+
+
 class TestCheckin:
     """POST /rollcall/sessions/:id/checkins"""
 
@@ -180,6 +211,70 @@ class TestCheckin:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 422
+
+    def test_forged_ts_local_earlier_in_window_cannot_escape_late(
+        self, client, teacher_token, seed_data, db_session
+    ):
+        """7-06 拍板 server_now：伪造「早于真实、且落在旧容忍窗口内」的 ts_local 不能逃避迟到。
+
+        场次 on_time 截止已过 3 分钟 → 服务器判定必为 late。客户端伪造 ts_local = 真实时刻前
+        6 分钟（落在旧代码 [server_now-10min, +2min] 采纳窗内、且早于 on_time 截止）。旧逻辑会
+        采纳该值判成 present（漏扣迟到）；改为恒取 server_now 后必须仍是 late，且 checked_in_at
+        按服务器时间落库、不被伪造值带偏。
+        """
+        session = _make_running_session(db_session, on_time_offset_min=-3)
+        student_id = str(seed_data["student"].id)
+        server_ref = datetime.now(ZoneInfo("Asia/Tokyo"))
+        forged = server_ref - timedelta(minutes=6)
+        res = client.post(
+            f"/api/v1/rollcall/sessions/{session.id}/checkins",
+            json={
+                "student_id": student_id,
+                "status_source": "manual_checkin",
+                "path_hint": "manual",
+                "ts_local": forged.isoformat(),
+            },
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 201, res.text
+        data = res.json()
+        # 判定按服务器时间 → late（旧逻辑会被伪造成 present）
+        assert data["base_status"] == "late", data
+        # checked_in_at 贴服务器当前时刻，而非被伪造值（早 6 分钟）带偏
+        checked_in = _parse_jst(data["checked_in_at"])
+        assert abs((checked_in - server_ref).total_seconds()) < 120, checked_in
+        assert abs((checked_in - forged).total_seconds()) > 120, checked_in
+
+    def test_forged_ts_local_far_future_out_of_window_ignored(
+        self, client, teacher_token, seed_data, db_session
+    ):
+        """7-06 拍板 server_now：伪造「晚于真实、且落在旧窗口外」的 ts_local 同样被忽略。
+
+        场次 on_time 截止在 10 分钟后 → 服务器判定为 present。客户端伪造 ts_local = 真实时刻后
+        1 天（远超旧代码 +2min 采纳上限）。结果必须仍按服务器时间：present，且 checked_in_at
+        贴服务器当前时刻，绝不被写成未来的伪造值。
+        """
+        session = _make_running_session(db_session, on_time_offset_min=10)
+        student_id = str(seed_data["student"].id)
+        server_ref = datetime.now(ZoneInfo("Asia/Tokyo"))
+        forged = server_ref + timedelta(days=1)
+        res = client.post(
+            f"/api/v1/rollcall/sessions/{session.id}/checkins",
+            json={
+                "student_id": student_id,
+                "status_source": "manual_checkin",
+                "path_hint": "manual",
+                "ts_local": forged.isoformat(),
+            },
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 201, res.text
+        data = res.json()
+        assert data["base_status"] == "present", data
+        checked_in = _parse_jst(data["checked_in_at"])
+        assert abs((checked_in - server_ref).total_seconds()) < 120, checked_in
+        # 绝不被写成 1 天后的伪造未来时刻
+        assert abs((checked_in - forged).total_seconds()) > 3600, checked_in
 
 
 class TestSessionLifecycle:
