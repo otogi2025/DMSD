@@ -18,8 +18,8 @@ Tomoshibi 点呼系统支持 **三路径并存**（第二波真宿舍上线时�
 | 路径 | 触发方式 | 备注 |
 |---|---|---|
 | **路径 A — NFC 卡** | 学生把卡贴到点呼机的 PN532 读头 | 第二波真宿舍上线开放；无 App 学生默认走此路径 |
-| **路径 B — iOS Universal Link** | 学生 iPhone 读点呼机外贴的静态 NFC 标签 → 触发 iOS App | 第二波真宿舍上线开放 |
-| **路径 C — Android App Link** | 学生 Android 读点呼机外贴的静态 NFC 标签 → 触发 Android App | 第二波真宿舍上线开放（实现与路径 B 同型，`path_type=B` 复用见 ENUM_REGISTRY §13 path_type 注） |
+| **路径 B — iOS 写 ST25DV 邮箱** | 学生 iPhone 把身份数据写进点呼机外贴的 ST25DV 邮箱 → 点呼机 I²C 读走后代发后端（手机不联网） | 第二波真宿舍上线开放 |
+| **路径 C — Android 写 ST25DV 邮箱** | 学生 Android 把身份数据写进同一张 ST25DV 邮箱 → 点呼机 I²C 读走后代发后端 | 第二波真宿舍上线开放（实现与路径 B 同型，`path_type=B` 复用见 ENUM_REGISTRY §13 path_type 注） |
 
 三条路径都遵循同一个业务流程：
 
@@ -204,37 +204,40 @@ Tomoshibi 点呼系统支持 **三路径并存**（第二波真宿舍上线时�
                  └─ 失败 → 错误码 → 点呼机红灯 + 失败声音
 ```
 
-#### 5.1.2 路径 B — iOS Universal Link（与路径 A 共存，第二波同时开放）
+#### 5.1.2 路径 B — iOS 写 ST25DV 邮箱（与路径 A 共存，第二波同时开放）
 
-> 路径 C（Android App Link）实现同型，`path_type=B` 复用 — 详见 ENUM_REGISTRY §13 path_type 注。下文流程对 iOS / Android 通用。
+> 路径 C（Android）实现同型，`path_type=B` 复用 — 详见 ENUM_REGISTRY §13 path_type 注。下文流程对 iOS / Android 通用。
+> **2026-06-02 架构反转**：路径 B 从「iPhone 读贴纸拿 device_id、取一次性 nonce、本机 ECDSA 签名、自己联网 POST 后端」改为「iPhone 把身份数据写进点呼机的 ST25DV 邮箱、手机全程不联网、点呼机 I²C 读走后代发后端」。nonce 一次性随机码机制随之作废；ECDSA 签名降级为 v1.1 可选（防造假学号）。旧流程原文见 git 历史 + `design/flow_design.md §3`。
 
 ```
-学生 iPhone ──贴近──> 点呼机外贴静态 NFC 标签
+学生 iPhone ──贴近──> 点呼机外贴 ST25DV16K 标签（Mailbox 邮箱）
                        │
-                       ├─ 1. iPhone Core NFC 读到 device_id
+                       ├─ 1. App 唤起 CoreNFC 写入会话（学生开 App 点「签到」触发）
+                       ├─ 2. 把身份数据写进 ST25DV 的 Mailbox 邮箱
+                       │     数据 = student_id（+ v1.1 可选：本机私钥签名，防造假学号）
+                       │     手机全程不联网，写完即结束
                        ▼
-                    iPhone App
+                    ST25DV 被写入 → GPO 引脚跳变（硬件门铃）
                        │
-                       ├─ 2. App 取一次性 nonce（预取池或在线获取）
-                       ├─ 3. 用本机私钥 ECDSA 签名 (session_id || device_id || nonce || ...)
-                       ├─ 4. POST /api/v1/rollcall/sessions/{session_id}/checkins (WiFi/4G 自己发，不经过点呼机)
-                       │     {student_id, device_id, ts_local, signature, nonce, idempotency_key}（2026-05-22 修 FC-017：旧 /api/v1/checkin 已废）
+                       ├─ 3. 点呼机监听中断 → I²C 读走邮箱数据 → 复位邮箱
+                       ├─ 4. 点呼机 POST /api/v1/rollcall/sessions/{session_id}/checkins
+                       │     {device_id, student_id, ts_local}   ← 点呼机搬运，与路径 A 同一接口（2026-05-22 修 FC-017：旧 /api/v1/checkin 已废）
                        ▼
-                    后端
+                    后端（第 5-9 步与路径 A 相同）
                        │
-                       ├─ 5. 校验：签名 / nonce / device_active / session running / 时间窗
-                       ├─ 6. 判定：present/late/...
-                       ├─ 7. 写 attendance_event
+                       ├─ 5. 校验：device_active / session running / 时间窗
+                       ├─ 6. 判定：present/late/duplicate/timeout/...
+                       ├─ 7. 写 attendance_event (append-only)
                        ├─ 8. WS 推送 → 老师端座位点亮
                        └─ 9. WS 推回点呼机 → 播报"张三 准时" + 绿灯
                        ▼
-                    iPhone App 收到响应 → 本地展示结果
+                    iPhone App 本地显示「已写入点呼机」（不等后端结果，手机不联网）
 ```
 
 **关键差异**：
 - 路径 A 的 device 是 **主动通信节点**（带 PN532 + 树莓派），device_id 写在配置里
-- 路径 B 的 device 是 **被动 NFC 标签**，仅供 iPhone 读取拿 device_id；iPhone 自己发后端
-- 同一台树莓派可同时承载 A 卡读头 + B 静态标签 → `device_type = hybrid`（详见 `DEVICE_REGISTRY.md` §3.3）
+- 路径 B 的 device 是 **被动 ST25DV 邮箱标签**，供 iPhone 写入身份数据；点呼机 I²C 读走后代发后端（手机不联网 → 反转后 A/B 在「点呼机 → 后端」这段完全统一）
+- 同一台树莓派可同时承载 A 卡读头 + B ST25DV 邮箱标签 → `device_type = hybrid`（详见 `DEVICE_REGISTRY.md` §3.3）
 
 #### 5.1.3 防代签（永久人防补偿）
 
@@ -464,12 +467,12 @@ settle_at = min(ended_at, scheduled_auto_end_at)
 
 | 组件 | 负责 | 不负责 |
 |------|------|--------|
-| **学生 iOS App**（路径 B）| Core NFC 读静态标签拿 `device_id`；本机 P-256 ECDSA 签名；POST 发后端；展示结果与错误提示 | 颜色判定；最终结算；时间窗判定 |
-| **学生 Android App**（路径 C）| HCE / NDEF 读静态标签拿 `device_id`；本机 P-256 ECDSA 签名；POST 发后端；展示结果与错误提示（实现与路径 B 同型，`path_type=B` 复用） | 颜色判定；最终结算；时间窗判定 |
+| **学生 iOS App**（路径 B）| CoreNFC 把身份数据写进点呼机 ST25DV 邮箱（`student_id`，+ v1.1 可选本机 P-256 ECDSA 签名）；本地展示写入结果 | 颜色判定；最终结算；时间窗判定；不联网发后端（点呼机 I²C 读走后代发） |
+| **学生 Android App**（路径 C）| 系统 NFC 前台写入把身份数据写进同一张 ST25DV 邮箱（`student_id`，+ v1.1 可选签名）；本地展示写入结果（实现与路径 B 同型，`path_type=B` 复用） | 颜色判定；最终结算；时间窗判定；不联网发后端（点呼机 I²C 读走后代发） |
 | **老师端管理页面**（iPad）| 开始/结束点呼（按按钮触发 session_event）；查看座位颜色与统计；手动改判（reason 必填）；处理「申」审批；Device 注册管理 | 判定逻辑；自动结算逻辑 |
 | **点呼机：路径 A `card_reader`** | 读 NFC 卡 UID；HTTP 发后端；听 WebSocket；播报姓名/状态；亮灯 | 不保存学生身份；不查表；不判定准时/迟到 |
-| **点呼机：路径 B `iphone_tag`**（被动标签）| 把 `device_id` 暴露给 iPhone 读取 | 不通信；不参与流程 |
-| **点呼机：路径 A+B `hybrid`**（同台树莓派）| 同时承载卡读头（A）+ 静态标签（B）；卡通信由 PN532 负责，iPhone 通信不经过点呼机 | 同上 |
+| **点呼机：路径 B `iphone_tag`**（ST25DV 邮箱）| 提供 Mailbox 邮箱供手机写入；GPO 中断触发后 I²C 读走邮箱数据、复位、代发后端 | 不保存学生身份；不查表；不判定准时/迟到（判定仍全在后端） |
+| **点呼机：路径 A+B `hybrid`**（同台树莓派）| 同时承载卡读头（A，PN532）+ ST25DV 邮箱（B）；A 读卡 UID、B 从邮箱 I²C 读走手机写的身份数据，两路都由点呼机代发后端 | 同上 |
 | **服务器** | **唯一判定者**：session 是否 running / 时间窗内 / 准时/迟到 / 缺席<br>**唯一结算者**：到 `settle_at` 把符合条件的座位置为 `absent`<br>**唯一信息源**：老师端实时状态由服务器 WebSocket 推送<br>**Device 守门人**：所有 `device_id` 必须先在 `DEVICE_REGISTRY` 注册并 `device_active=true` | — |
 | **老师本人（人防）** | 防代签的关键：站点呼机旁监督；听播报对照人脸；异常时立即手动改判 | （非系统职责，但是 spec 永久硬约束）|
 
@@ -654,13 +657,13 @@ CC 整理时采用 **后段（详细版）**，因为它包含 `INIT` 且与 8.3
 
 ### A.7 「点呼机外贴 NFC 标签」的位置概念
 
-第 9 节里写「点呼机（NFC）负责提供 `reader_id` 或 `tag_id` 让手机碰一下触发签到」。
+第 9 节里写「点呼机（NFC）负责提供 ST25DV 邮箱让手机碰一下写入签到」。
 
-这与 4-15 讨论的路径 B 设计 **一致**：
-- 点呼机外贴静态 NFC 标签（含 `device_id`）
-- 学生 iPhone 读这个标签拿到 `device_id` → 自己用 WiFi/4G 发 `{student_id, device_id, ts, 签名}` 给后端
+路径 B 的现行设计（2026-06-02 架构反转后）：
+- 点呼机外贴 ST25DV 邮箱标签
+- 学生 iPhone 把身份数据 `{student_id, + v1.1 可选签名}` 写进邮箱 → 点呼机 I²C 读走 → 代发后端（手机不联网）
 
-✅ 这一项不是问题，只是确认 spec 与 4-15 架构是一致的。
+> 〔历史〕反转前（4-15 讨论）为「iPhone 读标签拿 `device_id` → 自己用 WiFi/4G 发 `{student_id, device_id, ts, 签名}` 给后端」；2026-06-02 手机「读」→「写」反转后此流程作废，详见 `design/flow_design.md §3`。
 
 ---
 

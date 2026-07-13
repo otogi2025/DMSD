@@ -31,16 +31,17 @@
 - **职责**：读 NFC 卡 UID + HTTP 发后端 + 听 WebSocket + 播报 + 亮灯
 - 4-15 决策"thin client / thick server"：**不做任何业务判断**
 
-### 3.2 `iphone_tag`（路径 B 的静态 NFC 标签）
+### 3.2 `iphone_tag`（路径 B 的 ST25DV 邮箱标签）
 
-- **物理形态**：贴在点呼机外壳上的静态 NFC tag（NTAG21x 等），写入固定的 `device_id`
-- **职责**：仅供学生 iPhone 读取拿到 `device_id`，不主动通信
-- 学生 iPhone 拿到 `device_id` 后**自己**用 WiFi/4G 发签到请求给后端
-- **成本**：~¥2/张
+> **2026-06-02 架构反转**：路径 B 从「静态 NFC 标签供手机读 `device_id`、手机自己联网发后端」改为「ST25DV16K 邮箱，手机写身份数据进邮箱、点呼机 I²C 读走后代发后端、手机全程不联网」。下方为反转后的现行形态；硬件选型 / BOM 以 `design/hardware_design.md §2.3` 为准。旧「静态 NTAG21x 供读取」形态作废。
+
+- **物理形态**：贴在点呼机外壳上的 ST25DV16K 动态标签，内含 Mailbox 邮箱（256 字节缓存 + GPO 中断引脚 + I²C 有线口），详见 `design/hardware_design.md §2.3`
+- **职责**：供学生手机隔空写入身份数据（`student_id`，+ v1.1 可选签名）；点呼机监听 GPO 中断 → I²C 读走邮箱 → 复位 → 代发后端
+- 手机全程不联网；`device_id` 由点呼机自身配置提供（不再由手机读取）
 
 ### 3.3 `hybrid`（同台树莓派同时承载 A 和 B）
 
-- **物理形态**：同一台树莓派，上面装 PN532 卡读头（路径 A） + 外贴静态 NFC 标签（路径 B）
+- **物理形态**：同一台树莓派，上面装 PN532 卡读头（路径 A） + 外贴 ST25DV 邮箱标签（路径 B）
 - 在 device 表里登记为一条 `hybrid` 记录，对应一个 `device_id`
 - ⚠️ **物理布局**（卡读头 vs 静态标签的相对位置）参见 `RollCall_Spec.md` 附录 C.4（Q4 待定）
 
@@ -64,7 +65,7 @@
 - 老师在后台 toggle `device_active`（true/false），`device_retired_at` 保持 null
 - `device_active=false` 时：
   - 路径 A：点呼机仍可工作（它本身只搬运），但后端会拒绝所有 `device_id=X` 的签到，返回 `DEVICE_NOT_ACTIVE`
-  - 路径 B：iPhone 读到该 `device_id` 发请求 → 同样返回 `DEVICE_NOT_ACTIVE`
+  - 路径 B：点呼机把手机写进邮箱的身份数据代发后端时 → 同样返回 `DEVICE_NOT_ACTIVE`
 - 所有 `device_active` 变更必须留档（参考 spec §11 改判审计字段）
 - 可反复 toggle（故障修好后设 true 恢复）
 

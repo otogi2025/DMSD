@@ -76,16 +76,16 @@
 ## 12. device_type（4-17 新增 — 来自 `DEVICE_REGISTRY.md`）
 
 - `card_reader`（路径 A 的卡读头：PN532 + 树莓派）
-- `iphone_tag`（路径 B 的静态 NFC 标签：用于 iPhone 读取 `device_id`）
-- `hybrid`（同台树莓派同时承载路径 A 卡读头 + 路径 B 静态标签）
+- `iphone_tag`（路径 B 的 ST25DV 邮箱标签：供手机写入身份数据、点呼机 I²C 读走）
+- `hybrid`（同台树莓派同时承载路径 A 卡读头 + 路径 B ST25DV 邮箱标签）
 
 ## 13. path_type（4-17 新增 — 来自 `rollcall_event`）
 
 - `A`（卡路径：卡 → 点呼机 PN532 → 后端）
-- `B`（手机路径：iPhone / Android 读静态标签 → 手机自己发后端）
+- `B`（手机路径：iPhone / Android 把身份数据写进 ST25DV 邮箱 → 点呼机 I²C 读走后代发后端）
 
 > **扩展性说明（2026-05-21 修订 — B-029 修复）**：
-> - **v1.0 范围**（2026-04-19 G2 决策）：A/B 两个取值。Android 实现与 iOS 同型（NDEF 读静态标签 + 本机签名 + 自发后端），共用 `path_type=B`。
+> - **v1.0 范围**（2026-04-19 G2 决策）：A/B 两个取值。Android 实现与 iOS 同型（把身份数据写进 ST25DV 邮箱、点呼机读走后代发；2026-06-02 架构反转后，旧「NDEF 读静态标签 + 本机签名 + 自发后端」作废），共用 `path_type=B`。
 > - **未来扩展**：如果未来引入 Android HCE 主动上报路径（NFC 主动通信，跟 iOS Core NFC 被动读不同），**新起独立取值 `C`**，不扩展 A/B 语义。保持单字母单义。当前 backlog（TODO §🛠️）暂留 `C` 占位不实装。
 
 ## 14. student_status（4-21 新增 — 对应 `RollCall_Spec.md` 附录 C.5）

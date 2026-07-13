@@ -716,7 +716,7 @@
 | 功能 | 学生 iOS | 老师 Web (iPad ★) | 后端 API | 角色 | Demo/V1 |
 |---|---|---|---|---|---|
 | NFC 签到(路径 A:卡)| — | — | `POST /checkin?no=XX` ✅ demo_server | 系统 | (D) |
-| NFC 签到(路径 B:iPhone BTR + Universal Link)| ⏳ V1.0 | — | 同上 | 学生 | (V1) |
+| NFC 签到(路径 B:iPhone 写 ST25DV 邮箱)| ⏳ V1.0 | — | 同上 | 学生 | (V1) |
 | 点呼開始 / 終了 ★ | — | ✅ live-roll-call.jsx(demo)| `POST /sessions` ⏳ | 寮監 | (D) |
 | 自动迟到判定(时刻过 → 黄)| — | ✅ live-roll-call.jsx | ⏳ | 系统 | (D) |
 | 「点呼総結」中层页(4 区块)§5.6 | — | ⏳ V1.0 新增 | `GET /sessions/:id/summary` ⏳ | 寮監 | (V1) |
