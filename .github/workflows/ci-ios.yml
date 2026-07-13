@@ -1,0 +1,53 @@
+# iOS CI — push / PR 改了 student_ios 后自动跑双 scheme 构建 + 单元测试（C 组质量体系 C2/§4.3，2026-07-13 建）
+# 公开仓库 macOS 运行机免费 — 本地「双 scheme BUILD SUCCEEDED」验证规矩搬进 CI。
+# 注意：push 到 GitHub 之前不生效；首次 push 后看 Actions 页签 —— 运行机镜像的 Xcode 版本 /
+# 可用模拟器机型跟本地不一定一致（本地用 iPhone 17 Pro），下面用「动态挑第一台可用 iPhone 模拟器」
+# 兜差异，红了优先查这两处再修。
+
+name: ios
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "dev/student_ios/**"
+      - ".github/workflows/ci-ios.yml"
+  pull_request:
+    paths:
+      - "dev/student_ios/**"
+      - ".github/workflows/ci-ios.yml"
+
+jobs:
+  build-and-test:
+    name: 双 scheme 构建 + 单元测试
+    runs-on: macos-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: dev/student_ios/v1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 选最新 Xcode（AppIcon.icon / Swift Testing 需要新版工具链）
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)" && xcodebuild -version
+
+      - name: xcodegen 重生成工程（验证 project.yml 是真值 — 手改 pbxproj 不写回 project.yml 会在此暴露）
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: 挑一台可用 iPhone 模拟器
+        id: sim
+        run: |
+          DEST_ID=$(xcrun simctl list devices available --json | python3 -c "import json,sys; d=json.load(sys.stdin); print(next(dev['udid'] for devs in d['devices'].values() for dev in devs if dev['isAvailable'] and 'iPhone' in dev['name']))")
+          echo "dest_id=$DEST_ID" >> "$GITHUB_OUTPUT"
+          xcrun simctl list devices available | head -20
+
+      - name: 生产 scheme 构建（TomoshibiApp）
+        run: xcodebuild -project TomoshibiApp.xcodeproj -scheme TomoshibiApp -destination "id=${{ steps.sim.outputs.dest_id }}" build
+
+      - name: 演示 scheme 构建（TomoshibiAppDemo）
+        run: xcodebuild -project TomoshibiApp.xcodeproj -scheme TomoshibiAppDemo -destination "id=${{ steps.sim.outputs.dest_id }}" build
+
+      - name: 单元测试（时间窗判定 / 房号前缀 / 映射解码）
+        run: xcodebuild -project TomoshibiApp.xcodeproj -scheme TomoshibiApp -destination "id=${{ steps.sim.outputs.dest_id }}" test
