@@ -256,7 +256,10 @@ final class APIClient {
 /// formatter 在函数内临时创建（不放全局 / 静态）：ISO8601DateFormatter 非 Sendable，
 /// 放全局会触发 Swift 6 并发安全报错；解码不在高频热路径，每次新建开销可忽略。
 /// 顶层函数天然不绑主线程，可直接传给 .custom 的 @Sendable 闭包参数。
-private func decodeISO8601Date(_ decoder: Decoder) throws -> Date {
+///
+/// internal（非 private）：单元测试 MappingDecodingTests 需用同一策略解 MyRollCallTodaySession /
+/// ISO8601 JST，直接复用生产解码路径而非拷贝一份（防测试与生产漂移）。可见性变化不改运行行为。
+func decodeISO8601Date(_ decoder: Decoder) throws -> Date {
     let container = try decoder.singleValueContainer()
     let raw = try container.decode(String.self)
 

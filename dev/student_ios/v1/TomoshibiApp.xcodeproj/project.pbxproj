@@ -26,6 +26,7 @@
 		4CC4A649A5CBA03229C7BF17 /* StudyOnlineForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28E8541F23E43B67EBF8C833 /* StudyOnlineForm.swift */; };
 		4EF492AEB1CA2FF4273DBCCF /* StayListStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B7B19307005D8E2D07B44D /* StayListStubs.swift */; };
 		514CAEBC12DA5C1D83417976 /* NetworkModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42E4AC21AB2A9B05C9FDAD19 /* NetworkModels.swift */; };
+		53B2C037E5B2B8FCDC16A9D5 /* RoomAssemblyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C4C477355A0D8BD42F238E /* RoomAssemblyTests.swift */; };
 		54242AB02A2AC7A97299C852 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56739ED2BA471039822C2E43 /* APIError.swift */; };
 		57B3CF57E92B931F3DD4D664 /* ApplicationsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4871E294F8315859BF244132 /* ApplicationsAPI.swift */; };
 		5ED1EEDC4A69AC06E29DAEA1 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 335F10F844F1671107B5A65A /* KeychainService.swift */; };
@@ -61,6 +62,7 @@
 		DC10F180648C72B3AFE7FC7A /* ApplyKindMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9F9195E1F96E80AEAC17364 /* ApplyKindMapper.swift */; };
 		E363F1F7E2C186333C36782E /* Field.swift in Sources */ = {isa = PBXBuildFile; fileRef = D734F5CB9CBD861BD4D82C41 /* Field.swift */; };
 		E4AB919291B8E27C9C51FCA0 /* CommunityStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F52CBEB752D76838E1AA05 /* CommunityStubs.swift */; };
+		E4C1958B49FF45489E64274B /* MappingDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1812C93A79A57A544D02857 /* MappingDecodingTests.swift */; };
 		F1F5E6C1E23B86A21B0EE849 /* APIErrorPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F9FAF40754D51FE50898CA8 /* APIErrorPresenter.swift */; };
 		F2032E9BF093EAA2F43FEDD8 /* PageHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2DAAF1321A2D7F362D8DAA1 /* PageHeader.swift */; };
 		F55F4FC9A7444F2E2004E521 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 889D1EB8DA1127DE3F18DDA2 /* GlassCard.swift */; };
@@ -126,6 +128,8 @@
 		993086C5D62807475E44116A /* TomoshibiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TomoshibiApp.swift; sourceTree = "<group>"; };
 		99F52CBEB752D76838E1AA05 /* CommunityStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityStubs.swift; sourceTree = "<group>"; };
 		A126A1C40F8EB5EEE3352EB1 /* PrimaryButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrimaryButton.swift; sourceTree = "<group>"; };
+		A1812C93A79A57A544D02857 /* MappingDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MappingDecodingTests.swift; sourceTree = "<group>"; };
+		A1C4C477355A0D8BD42F238E /* RoomAssemblyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomAssemblyTests.swift; sourceTree = "<group>"; };
 		A51F55689BD2BD070068D34D /* BusListStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BusListStubs.swift; sourceTree = "<group>"; };
 		A652D7FC37C1A6417822DCAA /* Toast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Toast.swift; sourceTree = "<group>"; };
 		AE8464C86A7E2262CDCEA498 /* EventsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsAPI.swift; sourceTree = "<group>"; };
@@ -307,7 +311,9 @@
 		6F79FEE4EFFC2462950D53D9 /* TomoshibiAppTests */ = {
 			isa = PBXGroup;
 			children = (
+				A1812C93A79A57A544D02857 /* MappingDecodingTests.swift */,
 				738D063BBD4F7D59CAA43BDB /* RollStateMachineTests.swift */,
+				A1C4C477355A0D8BD42F238E /* RoomAssemblyTests.swift */,
 			);
 			path = TomoshibiAppTests;
 			sourceTree = "<group>";
@@ -582,7 +588,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E4C1958B49FF45489E64274B /* MappingDecodingTests.swift in Sources */,
 				C95132AC0325A890FD2EF1AF /* RollStateMachineTests.swift in Sources */,
+				53B2C037E5B2B8FCDC16A9D5 /* RoomAssemblyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

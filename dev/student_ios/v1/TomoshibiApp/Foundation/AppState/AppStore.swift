@@ -31,24 +31,37 @@ struct RegistrationDraft {
     /// Step4 密码
     var password: String = ""
 
-    /// 拼 M/W 前缀 → 完整 room_no（backend §5.0 编码规则）
-    /// suffix 空 = 上层 UI 漏了校验，返回空字符串让 backend 拒绝（room_no 是必填字段）
+    /// 拼 M/W 前缀 → 完整 room_no（backend §5.0 编码规则）。
+    /// 判定逻辑抽到纯函数 assembleRoomNo（可单测，见 RoomAssemblyTests）；本属性只做参数转发。
     var computedRoomNo: String {
-        guard !room_no_suffix.isEmpty else { return "" }
-        // IX-014: 房号首位已是字母（如 "A5"）= 已含楼栋标识，不再加 M/W 前缀（否则变 "MA5"）；
-        // 数字房号（如 "101"）才加 M/W 前缀 → "M101"。前缀只在这一处加，避免双前缀。
-        if room_no_suffix.first?.isLetter == true { return room_no_suffix }
-        let prefix = (gender == "male") ? "M" : "W"
-        return prefix + room_no_suffix
+        RegistrationDraft.assembleRoomNo(suffix: room_no_suffix, gender: gender)
     }
 
-    /// 从 room_no_suffix 前缀 + gender 推 dorm_unit（§5.0 房号编码）
-    /// 女生一律 4 寮；男生「A」前缀房号（A1〜A12）= 2 寮，其余数字房号 = 1 寮
+    /// 从 room_no_suffix 前缀 + gender 推 dorm_unit（§5.0 房号编码）。
+    /// 判定逻辑抽到纯函数 dormUnit（可单测）；本属性只做参数转发。
     var computedDormUnit: Int {
+        RegistrationDraft.dormUnit(suffix: room_no_suffix, gender: gender)
+    }
+
+    /// 纯函数：房号数字后缀 + 性别 → 完整 room_no（§5.0 编码规则）。抽出便于单测，行为与旧 computedRoomNo 逐字一致。
+    /// - suffix 空 = 上层 UI 漏了校验 → 返回空串让 backend 拒绝（room_no 必填字段）。
+    /// - IX-014: suffix 首位已是字母（如 "A5"）= 已含楼栋标识，原样返回、不再加 M/W 前缀（否则变 "MA5"）。
+    ///   ⭐ A 前缀 = 2 寮，由字母编码，绝不能被性别覆盖（6-17 五处散布 bug 的根因：判寮看字母前缀，不看性别/数字）。
+    /// - 纯数字 suffix（如 "101"）才加前缀：male → "M"、其余（female）→ "W"。前缀只在这一处加，避免双前缀。
+    static func assembleRoomNo(suffix: String, gender: String) -> String {
+        guard !suffix.isEmpty else { return "" }
+        if suffix.first?.isLetter == true { return suffix }
+        let prefix = (gender == "male") ? "M" : "W"
+        return prefix + suffix
+    }
+
+    /// 纯函数：房号后缀 + 性别 → dorm_unit（§5.0）。抽出便于单测，行为与旧 computedDormUnit 逐字一致。
+    /// female → 4 寮；male 且 A 前缀房号（A1〜A12）→ 2 寮；其余 male → 1 寮。
+    /// ⭐ 判寮看字母前缀，不看性别/数字 —— 旧逻辑用「数字首位 == 2」永远推不出 2 寮，
+    /// 会导致 2 寮学生发 dorm_unit=1 + 不带 A 前缀的请求、被后端 422 拒绝（生产版整条注册流断）。
+    static func dormUnit(suffix: String, gender: String) -> Int {
         if gender == "female" { return 4 }
-        // 2 寮男生房号是 A 前缀（§5.0：A1〜A12），靠首字母判 —— 旧逻辑用「数字首位 == 2」永远推不出 2 寮，
-        // 导致 2 寮学生发 dorm_unit=1 + 不带 A 前缀的请求、被后端 422 拒绝（生产版整条注册流断）。
-        if room_no_suffix.first?.uppercased() == "A" { return 2 }
+        if suffix.first?.uppercased() == "A" { return 2 }
         return 1
     }
 

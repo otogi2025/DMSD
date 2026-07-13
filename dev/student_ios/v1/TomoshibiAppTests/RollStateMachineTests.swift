@@ -93,4 +93,93 @@ struct RollStateMachineTests {
         #expect(d.rollState == .absent)
         #expect(d.countdownSec == nil)
     }
+
+    // MARK: - C2 #1-5：时间窗精确边界（防 < / <= 漂移 + 与后端判定口径漂移）
+
+    // 说明：iOS「時間内 / 遅刻」的 checkinKind 由后端 my_status 决定（signed* 用例已覆盖），
+    // 不由 now 与 on_time_end 的比较推出。故未签到时 on_time_end 这个精确点在纯函数里唯一
+    // 主宰的是倒计时钳位 max(0, on_time_end - now)：countdown>0 = 「時間内」侧、==0 = 进入「遅刻」段。
+
+    @Test("#1 now == on_time_end 精确点：仍 active，倒计时恰好钳到 0（時間内↔遅刻 侧界）")
+    func atOnTimeEndCountdownClampsToZero() {
+        // on_time_end 前一秒：倒计时 == 1（「時間内」侧、仍 > 0）
+        let justBefore = AppStore.decideRollState(sessions: [makeSession()], now: base.addingTimeInterval(599))
+        #expect(justBefore.rollState == .active)
+        #expect(justBefore.countdownSec == 1)
+        // on_time_end 精确点：倒计时 == 0（进入「遅刻」段），状态仍 active（未过 late_end）
+        let atPoint = AppStore.decideRollState(sessions: [makeSession()], now: base.addingTimeInterval(600))
+        #expect(atPoint.rollState == .active)
+        #expect(atPoint.countdownSec == 0)
+    }
+
+    @Test("#2 now == late_end 精确点：active（含端点）；越过一秒 → absent")
+    func atLateEndBoundaryActiveVsAbsent() {
+        // late_end 精确点 900：判定用 now <= late_end → 仍 active（受付中含遅刻段末刻）
+        let atLateEnd = AppStore.decideRollState(sessions: [makeSession()], now: base.addingTimeInterval(900))
+        #expect(atLateEnd.rollState == .active)
+        #expect(atLateEnd.countdownSec == 0) // max(0, 600-900) 钳到 0
+        // late_end + 1 秒 901：越过迟到截止 → 欠席
+        let afterLateEnd = AppStore.decideRollState(sessions: [makeSession()], now: base.addingTimeInterval(901))
+        #expect(afterLateEnd.rollState == .absent)
+        #expect(afterLateEnd.countdownSec == nil)
+    }
+
+    @Test("#3 now == window_start 精确点：active（含端点）；前一秒 → idle 预告")
+    func atWindowStartBoundaryIdleVsActive() {
+        // window_start 前一秒 -1：属未来场次 → idle 预告
+        let justBefore = AppStore.decideRollState(sessions: [makeSession()], now: base.addingTimeInterval(-1))
+        #expect(justBefore.rollState == .idle)
+        // window_start 精确点 0：now >= window_start → 进行中场次 → active，倒计时满窗 600
+        let atStart = AppStore.decideRollState(sessions: [makeSession()], now: base)
+        #expect(atStart.rollState == .active)
+        #expect(atStart.countdownSec == 600)
+    }
+
+    @Test("#4 now == auto_end 端点 → absent；越过 auto_end → 回落 idle（不再 absent 挂死）")
+    func afterAutoEndFallsBackToIdle() {
+        // auto_end 精确点 1800：仍属当前场次（now <= auto_end），未签到已过 late_end → absent
+        let atAutoEnd = AppStore.decideRollState(sessions: [makeSession()], now: base.addingTimeInterval(1800))
+        #expect(atAutoEnd.rollState == .absent)
+        // auto_end + 1 秒 1801：场次已完全结束、又非未来场次 → 无当前/预告场次 → 回落 idle
+        let afterAutoEnd = AppStore.decideRollState(sessions: [makeSession()], now: base.addingTimeInterval(1801))
+        #expect(afterAutoEnd.rollState == .idle)
+        #expect(afterAutoEnd.countdownSec == nil)
+    }
+
+    @Test("#5 多场次并存（早点呼已结束 + 晚点呼进行中）→ 选中进行中场次，与数组顺序无关")
+    func multipleSessionsSelectsRunningOne() {
+        let now = base.addingTimeInterval(10000) // 取一个远离固定窗口的绝对时刻当「现在」
+        // 早场次 A：整段在 now 之前结束（auto_end 早于 now）→ 应被完全忽略（不是选它算 absent）
+        let ended = MyRollCallTodaySession(
+            session_id: UUID(),
+            session_type: "morning",
+            day_type: "weekday",
+            session_status: "ended",
+            scheduled_window_start_at: now.addingTimeInterval(-3600),
+            scheduled_on_time_end_at: now.addingTimeInterval(-3000),
+            scheduled_late_end_at: now.addingTimeInterval(-2700),
+            scheduled_auto_end_at: now.addingTimeInterval(-1800),
+            my_status: nil,
+            my_checked_in_at: nil
+        )
+        // 晚场次 B：now 落在窗口内、距 on_time_end 还有 300s、未签到 → 应被选中判 active/countdown=300
+        let running = MyRollCallTodaySession(
+            session_id: UUID(),
+            session_type: "evening",
+            day_type: "weekday",
+            session_status: "running",
+            scheduled_window_start_at: now.addingTimeInterval(-300),
+            scheduled_on_time_end_at: now.addingTimeInterval(300),
+            scheduled_late_end_at: now.addingTimeInterval(600),
+            scheduled_auto_end_at: now.addingTimeInterval(1500),
+            my_status: nil,
+            my_checked_in_at: nil
+        )
+        // 两种数组顺序都必须选中进行中的 B（若误选已结束的 A 会得到 absent，测试即红）
+        for sessions in [[ended, running], [running, ended]] {
+            let d = AppStore.decideRollState(sessions: sessions, now: now)
+            #expect(d.rollState == .active)
+            #expect(d.countdownSec == 300)
+        }
+    }
 }
