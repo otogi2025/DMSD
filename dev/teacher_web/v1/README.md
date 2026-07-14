@@ -42,7 +42,7 @@ npm run preview  # 本地预览 dist
 
 ## 旧版（HTML 单文件）已归档
 
-迁移前是「29629 行 `index.html` + 浏览器内 Babel 编译 React + `react.development.js` 开发版」。旧版已整组归档，不在公开仓库（含旧 index.html / client.js / vendor / 打包脚本 / 自包含单文件版，可看旧版界面做对比）。迁移完整记录见 `../WEB_DESIGN_LOG.md` §16 + `../Vite迁移_施工清单.md`。
+迁移前是「29629 行 `index.html` + 浏览器内 Babel 编译 React + `react.development.js` 开发版」。旧版已整组归档，不在公开仓库（含旧 index.html / client.js / vendor / 打包脚本 / 自包含单文件版，可看旧版界面做对比）。迁移完整记录见 `../WEB_DESIGN_LOG.md` §16（原 `Vite迁移_施工清单.md` 已归档，不在公开仓库）。
 
 ## 当前状态
 

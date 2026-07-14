@@ -510,7 +510,7 @@ round3/
 **代码 agent / 未来自己回来继续工作**，优先读这 3 个档：
 
 1. **本文件（WEB_DESIGN_LOG.md）** — 设计决策全归档 + §12 5-26 Vite 废弃 + polish 回滚事实记录
-2. `DESIGN_BRIEF.md` — 当前实装状态 + 真接口对接路线 D0-D6 + v1.0 关卡清单
+2. `DESIGN_BRIEF.md`（已归档 `archive/2026-07-14_公开区过期文件归档/`，历史资料）— 旧的实装状态 + 接口路线 D0-D6 记录，现行真值以本文件为准
 3. `v1/README.md` — 怎么打开 / CLI 用法
 
 **当前推进方式**：
@@ -518,7 +518,7 @@ round3/
 - 改 UI：编辑 `v1/src/index.html`（standalone HTML，所有 CSS/JS inline）— 改完浏览器 Cmd+R 刷新
 - 改 JSX 源后内联：`v1/rebuild.command`（把 `_legacy/*.jsx` 重新内联到 `index.html`）
 - 打包单文件 demo：`v1/打包单文件.command`（用 `build_single_file.py` 打包成可携带单 HTML）
-- 接真后端：参考 `v1/src/api/client.ts` 已定义的 26 个 endpoint — 内联到 standalone 时需要删 TS 类型导出 + 暴露到 `window.tomoshibiApi` namespace（详见 DESIGN_BRIEF §6）
+- 接真后端：参考 `v1/src/api/client.ts` 已定义的 26 个 endpoint — 内联到 standalone 时需要删 TS 类型导出 + 暴露到 `window.tomoshibiApi` namespace（原详见 DESIGN_BRIEF §6，该文件已归档）
 
 历史归档：原 `round2/` / `round3/` / `handoff/` / `round3_handoff/` 4 个子目录 + Vite + TS 实装版均已归档，不在公开仓库。Round 1-3 历史对话作 AC 素材保留。
 
@@ -995,7 +995,7 @@ itsuki 纠正 CC 两个错误前提：① 部署目标是**服务器**（多人�
 
 ### 16.7 剩余
 
-itsuki 双击项目根启动脚本肉眼签收界面跟旧版一致 → 确认后 push（CC 不自动 push）。完整施工记录见 `dev/teacher_web/Vite迁移_施工清单.md` §8。
+itsuki 双击项目根启动脚本肉眼签收界面跟旧版一致 → 确认后 push（CC 不自动 push）。完整施工记录见 `Vite迁移_施工清单.md` §8（已归档 `archive/2026-07-14_公开区过期文件归档/`）。
 
 ## 17. 选学生统一组件 StudentPicker + 宅配件数改造 — 2026-06-15
 
