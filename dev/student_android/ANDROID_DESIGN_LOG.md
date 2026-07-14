@@ -279,7 +279,7 @@ itsuki 看 iOS 班车页反馈三点，拍板 iOS + Android + 共用规格全同
 
 ## 12. 全量审查修复批：中文漏出→日语 + 晩自習→夜学習 全端对齐 + 死代码清理（2026-06-17，commit `040e8b8`）
 
-本会话全项目审查的 Android 修复（详见 `admin/2026-06-17_全量审查报告.md`）：
+本会话全项目审查的 Android 修复（详见 `archive/2026-07-14_admin报告群归档/2026-06-17_全量审查报告.md`）：
 
 - **中文漏进日语 UI**（要上架、扎眼）：`StayEditScreen` / `StayDetailScreen`「修改/身份情報/役职」→「変更/個人情報/役職」，与 iOS `StayListStubs` 对齐；`StayDetailScreen` auditColor `contains("修改")` 同步改「変更」否则履历着色失效。
 - **晩自習/晚自习→夜学習 全端对齐**（しおり 官方用词，itsuki 6-16 拍板、iOS+teacher_web 先改、本批 Android 补齐）：用户可见串全改（ApplicationsScreen / MyStudyScreen / MyPageScreen / MySettingsScreen / StudyAbsenceForm / StudyCheckinSheet / Models.kt StudyTap START·END label）；英文 key + MockData.name 不动。
