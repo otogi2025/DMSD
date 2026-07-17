@@ -101,19 +101,37 @@ object ApiClient {
         requestRaw("DELETE", path)
     }
 
-    // 字符串 → T 解码，失败包成 ApiError.Decode
+    // 字符串 → T 解码：先解成功信封 {ok,data} 再取 data
     inline fun <reified T> decode(text: String): T =
         try {
-            json.decodeFromString(text)
+            val envelope = json.decodeFromString<ApiEnvelope<T>>(text)
+            if (!envelope.ok) {
+                throw ApiError.Decode(IllegalStateException("成功路径收到 ok=false 信封"))
+            }
+            // data 可为 null（如「当前无注册码」）；若 T 非可空会在此抛
+            @Suppress("UNCHECKED_CAST")
+            envelope.data as T
+        } catch (e: ApiError) {
+            throw e
         } catch (e: Exception) {
             throw ApiError.Decode(e)
         }
 
-    // 抽取后端错误 detail（对齐 iOS DetailError）：
-    //   形态 1 {"detail":"字符串"} / 形态 2 {"detail":{"code":..,"message":".."}}
+    // 抽取后端错误提示（对齐 iOS DetailError）：
+    //   形态 1 新信封 {"ok":false,"error":{"code","message"}}
+    //   形态 2 旧 {"detail":"字符串"} / {"detail":{"code","message"}}
     fun extractDetail(text: String): String? =
         try {
-            when (val detail = json.parseToJsonElement(text).jsonObject["detail"]) {
+            val obj = json.parseToJsonElement(text).jsonObject
+            val err = obj["error"]
+            if (err is JsonObject) {
+                err["message"]
+                    ?.jsonPrimitive
+                    ?.contentOrNull
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let { return it }
+            }
+            when (val detail = obj["detail"]) {
                 is JsonObject -> detail["message"]?.jsonPrimitive?.contentOrNull
                 is JsonPrimitive -> detail.contentOrNull
                 else -> null
@@ -122,3 +140,10 @@ object ApiClient {
             null
         }
 }
+
+/** 后端成功响应信封（契约 API_CONVENTIONS §1）。 */
+@kotlinx.serialization.Serializable
+data class ApiEnvelope<T>(
+    val ok: Boolean,
+    val data: T? = null,
+)
