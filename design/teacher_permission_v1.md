@@ -188,3 +188,13 @@ itsuki 2026-06-16 拍板新增「操作履历审计」功能簇（第 17 簇 `C_
 - **后端落地**：`app/permissions.py` 加 `C_AUDIT_LOG` 常量 + PRESET 第 17 行；`app/audit.py` 新增 `AuditLogMiddleware`（ASGI 中间件，拦截全部老师写请求自动落库，请求体脱敏后存 `audit_logs.payload`）；`app/routers/audit_log.py` 新增只读端点 `GET /api/v1/admin/audit-logs`（挂 `require_permission(C_AUDIT_LOG, VIEW)`、按 actor 的 `is_demo` 做演示隔离、支持分页与 actor/时间过滤）；`models.py` 的 `audit_logs` 表 `target_type`/`target_id` 改为可空、`action` 列宽 64→128；迁移 `a9b8c7d6e5f4`（down=`e7e15d3b2e33`）。
 - **老师网页落地**：新增 `src/components/AuditLogPage.tsx`（操作履歴页）；`Shell.tsx` 在「管理・設定」导航组加「操作履歴」菜单项，仅管理角色显示（`canViewAuditLog`，由 `App.tsx` 按权限组/职位计算，与后端 `C_AUDIT_LOG` 对齐）。
 - 端别实装详情见 `dev/backend/BACKEND_DESIGN_LOG.md` 与 `dev/teacher_web/WEB_DESIGN_LOG.md`。本簇是本表唯一在导航层面按权限隐藏的菜单（其余 16 簇人人至少有查看权、菜单全显），因为其矩阵对两组取 ✕（不可见）。
+
+## 13. 寮边界分角色（2026-07-17 拍板 — 方向已定，实装待跨寮组清单确认）
+
+后端双会话审查（2026-07-17）发现 6-18「登录时选寮」机制两个洞：① `selected_dorm` 由老师登录时**自选**写进令牌、服务器不校验其与实际负责寮的关系，且不带该 claim 的令牌完全不受限（审查安-中-1）；② `applications` 未接选寮过滤（outings / front_desk 接了它漏了，审查逻-中-11）。itsuki 初判「男寮老师允许碰女寮数据」，经主会话提出「四寮 = 未成年女生，健康/处分记录敏感 + 合规风险」后改拍板 **C = 分角色寮边界**：
+
+- **跨寮层（高层）**：可查看 / 操作全部寮。具体哪些**权限组**属高层待 itsuki 确认——候选：`op` / `寮管理者`（职位默认映射 = 校長·寮務部長·寮務課長）；`申請承認専用` 是否维持 6-18 跨寮特例一并确认。
+- **本寮层（普通老师）**：只能查看 / 操作本寮（男寮 = 1·2 寮 / 女寮 = 4 寮）。寮归属改为**服务器侧校验**（按账号登记的负责寮），不再信登录时自报的 `selected_dorm`。
+- 决策链：6-13「所有老师看所有学生」（§11.2 寮过滤彻底取消）→ 6-18 部分重开「登录时选寮」→ **7-17 本拍板（分角色）取代前两者**。
+- 实装范围（大）：现有 24 处 `FORBIDDEN_DORM` 校验改按组分层 + `applications` 补过滤 + `selected_dorm` 服务器校验 + 约 35 个寮边界测试重写。
+- 时机：**非 v1.0 阻塞**（App Store 占位版无真实学生，寮边界暂无保护对象）——归第二波（真宿舍上线前）实装。
