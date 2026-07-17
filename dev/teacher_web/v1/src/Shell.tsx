@@ -285,9 +285,10 @@ export function Shell({
                 borderTop: gi === 0 ? "none" : `1px solid ${T.line}`,
               }}
             >
+              {/* 7-17 适老化拍板⑦：组标题 11px→12px、导航项 13.5px→15px — 主用户是年长宿管，老花眼基准上调 */}
               <div
                 style={{
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 800,
                   color: T.ink2,
                   letterSpacing: 1,
@@ -312,7 +313,7 @@ export function Shell({
                       background: isActive ? T.cobaltSoft : "transparent",
                       color: isActive ? T.cobaltDeep : T.ink2,
                       fontFamily: "inherit",
-                      fontSize: 13.5,
+                      fontSize: 15,
                       fontWeight: isActive ? 600 : 500,
                       border: "none",
                       borderRadius: 8,
