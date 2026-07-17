@@ -1100,7 +1100,7 @@ req:
 #### 5.5.6 `PATCH /rollcall/events/:id` — 老师改判（RollCall_Spec §11）
 
 req: `{ "to_status": "late", "reason": "...", "evidence": "..." }`
-约束: `reason` 必填；时限矩阵（§11.3）按教师 role + 距 session_started_at 时间检查。
+约束: `reason` 必填；无时限检查（2026-07-17 拍板：原 §11.3 时限矩阵废除，改判无时限，`ended` 场次同样可改——`SESSION_ENDED` 闸随代码批删除。时限矩阵与 `OVERRIDE_TIME_LIMIT` 实际从未实装）。
 副作用: ledger 自动 +/- 分（§11.4）+ audit_logs。
 
 #### 5.5.7 `GET /rollcall/me/today` — 学生查今日本人点呼（2026-06-11 新增 / R-1+R-2）
@@ -1180,7 +1180,7 @@ dev/staging 用，触发 `email_send` 验证 provider 联通。
 | `DUPLICATE_REQUEST` | 200 | (silently ignore + log) |
 | `UNKNOWN_CARD` | 422 | UID 全无记录 |
 | `UNREGISTERED_UID` | 422 | UID 有记录但 card/student inactive |
-| `OVERRIDE_TIME_LIMIT` | 403 | RollCall_Spec §11.3 时限超 |
+| ~~`OVERRIDE_TIME_LIMIT`~~ | — | 废除（2026-07-17 拍板改判无时限；此码代码从未实装过）|
 | `OVERRIDE_REASON_REQUIRED` | 422 | reason 空 |
 | `INVALID_REGISTRATION_CODE` | 422 | 注册コード不正 / expire / 無効化済（§4.10 + system_features §7.16）|
 | `STUDENT_NO_TAKEN` | 422 | 学号重複（§5.1.5）|
