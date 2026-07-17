@@ -22,9 +22,7 @@ def _feed(client, token):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert res.status_code == 200, res.text
-    return res.json()
-
-
+    return res.json()["data"]
 def _add_demerit(db_session, student, reason="遅刻", points=1.0):
     """给学生加一条扣分事件（通知同步的来源之一）。"""
     ev = models.DemeritEvent(
@@ -45,7 +43,7 @@ def test_feed_empty(client, seed_data, teacher_token):
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert res.status_code == 200, res.text
-    body = res.json()
+    body = res.json()["data"]
     assert body["items"] == []
     assert body["unread_count"] == 0
 
@@ -57,7 +55,7 @@ def test_feed_syncs_demerit_event(client, seed_data, teacher_token, db_session):
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert res.status_code == 200, res.text
-    body = res.json()
+    body = res.json()["data"]
     assert len(body["items"]) == 1
     item = body["items"][0]
     assert item["category"] == "demerit"
@@ -76,8 +74,8 @@ def test_sync_is_idempotent(client, seed_data, teacher_token, db_session):
         )
         assert res.status_code == 200
     # 多次同步同一事件只生成 1 条通知
-    assert len(res.json()["items"]) == 1
-    assert res.json()["unread_count"] == 1
+    assert len(res.json()["data"]["items"]) == 1
+    assert res.json()["data"]["unread_count"] == 1
 
 
 def test_mark_read(client, seed_data, teacher_token, db_session):
@@ -85,18 +83,18 @@ def test_mark_read(client, seed_data, teacher_token, db_session):
     feed = client.get(
         "/api/v1/notifications/feed",
         headers={"Authorization": f"Bearer {teacher_token}"},
-    ).json()
+    ).json()["data"]
     nid = feed["items"][0]["id"]
     res = client.post(
         f"/api/v1/notifications/{nid}/read",
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert res.status_code == 200, res.text
-    assert res.json()["unread_count"] == 0
+    assert res.json()["data"]["unread_count"] == 0
     feed2 = client.get(
         "/api/v1/notifications/feed",
         headers={"Authorization": f"Bearer {teacher_token}"},
-    ).json()
+    ).json()["data"]
     assert feed2["items"][0]["is_read"] is True
     assert feed2["unread_count"] == 0
 
@@ -113,7 +111,7 @@ def test_read_all(client, seed_data, teacher_token, db_session):
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert res.status_code == 200, res.text
-    assert res.json()["unread_count"] == 0
+    assert res.json()["data"]["unread_count"] == 0
 
 
 def test_unread_count_endpoint(client, seed_data, teacher_token, db_session):
@@ -123,7 +121,7 @@ def test_unread_count_endpoint(client, seed_data, teacher_token, db_session):
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert res.status_code == 200, res.text
-    assert res.json()["unread_count"] == 1
+    assert res.json()["data"]["unread_count"] == 1
 
 
 def test_feed_rejects_student_token(client, seed_data, student_token):
@@ -289,7 +287,7 @@ def _teacher_token(client, login_id):
         json={"login_id": login_id, "password": "test-password-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 def test_demerit_alert_fires_at_cleaning_line_and_dorm_filtered(

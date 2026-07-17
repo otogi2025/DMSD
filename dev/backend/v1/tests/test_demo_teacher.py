@@ -63,7 +63,7 @@ def demo_teacher_token(client, demo_data):
         json={"login_id": "demo", "password": "demo-pass-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 def test_demo_teacher_sees_only_demo_students(
@@ -75,7 +75,7 @@ def test_demo_teacher_sees_only_demo_students(
         headers={"Authorization": f"Bearer {demo_teacher_token}"},
     )
     assert res.status_code == 200, res.text
-    ids = {it["id"] for it in res.json()["items"]}
+    ids = {it["id"] for it in res.json()["data"]["items"]}
     assert str(demo_data["demo_student"].id) in ids  # 看到演示学生
     assert str(seed_data["student"].id) not in ids  # 看不到真实学生
 
@@ -89,7 +89,7 @@ def test_real_teacher_sees_only_real_students(
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert res.status_code == 200, res.text
-    ids = {it["id"] for it in res.json()["items"]}
+    ids = {it["id"] for it in res.json()["data"]["items"]}
     assert str(seed_data["student"].id) in ids  # 看到真实学生
     assert str(demo_data["demo_student"].id) not in ids  # 看不到演示学生
 
@@ -119,7 +119,7 @@ def test_demo_teacher_can_reset_demo_student(client, demo_teacher_token, demo_da
         headers={"Authorization": f"Bearer {demo_teacher_token}"},
     )
     assert res.status_code == 200, res.text
-    assert "temporary_password" in res.json()
+    assert "temporary_password" in res.json()["data"]
 
 
 def test_demo_teacher_cannot_view_real_student_profile(
@@ -193,21 +193,21 @@ def test_demo_teacher_announcement_isolated_from_real(
         json={"title": "demo-only", "body": "b", "scope": "all"},
     )
     assert res.status_code == 201, res.text
-    demo_ann_id = res.json()["id"]
+    demo_ann_id = res.json()["data"]["id"]
     # 演示老师 list 看得到自己发的演示公告
     res = client.get(
         "/api/v1/announcements",
         headers={"Authorization": f"Bearer {demo_teacher_token}"},
     )
     assert res.status_code == 200, res.text
-    assert demo_ann_id in {a["id"] for a in res.json()["items"]}
+    assert demo_ann_id in {a["id"] for a in res.json()["data"]["items"]}
     # 真老师 list 看不到这条演示公告（is_demo 隔离）
     res = client.get(
         "/api/v1/announcements",
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert res.status_code == 200, res.text
-    assert demo_ann_id not in {a["id"] for a in res.json()["items"]}
+    assert demo_ann_id not in {a["id"] for a in res.json()["data"]["items"]}
 
 
 def test_demo_teacher_cannot_create_event(client, demo_teacher_token):
@@ -218,7 +218,7 @@ def test_demo_teacher_cannot_create_event(client, demo_teacher_token):
         json={"title": "t", "category": "学校行事", "event_date": "2026-07-01"},
     )
     assert res.status_code == 403, res.text
-    assert res.json()["detail"]["code"] == "DEMO_FORBIDDEN", res.text
+    assert res.json()["error"]["code"] == "DEMO_FORBIDDEN", res.text
 
 
 def test_demo_teacher_cannot_create_bus_route(client, demo_teacher_token):
@@ -235,7 +235,7 @@ def test_demo_teacher_cannot_create_bus_route(client, demo_teacher_token):
         },
     )
     assert res.status_code == 403, res.text
-    assert res.json()["detail"]["code"] == "DEMO_FORBIDDEN", res.text
+    assert res.json()["error"]["code"] == "DEMO_FORBIDDEN", res.text
 
 
 def test_demo_teacher_cannot_send_test_email(client, demo_teacher_token):
@@ -246,7 +246,7 @@ def test_demo_teacher_cannot_send_test_email(client, demo_teacher_token):
         json={"to": "x@test.jp", "subject": "s", "body_text": "b"},
     )
     assert res.status_code == 403, res.text
-    assert res.json()["detail"]["code"] == "DEMO_FORBIDDEN", res.text
+    assert res.json()["error"]["code"] == "DEMO_FORBIDDEN", res.text
 
 
 def test_real_teacher_not_blocked_by_demo_guard(client, teacher_token):
@@ -276,7 +276,7 @@ def test_demo_teacher_cannot_reply_real_announcement(
         json={"title": "real", "body": "b", "scope": "all"},
     )
     assert res.status_code == 201, res.text
-    ann_id = res.json()["id"]
+    ann_id = res.json()["data"]["id"]
     # 演示老师试图回复这个真实公告 → 404（看不见，当不存在）
     res = client.post(
         f"/api/v1/announcements/{ann_id}/replies",
@@ -284,7 +284,7 @@ def test_demo_teacher_cannot_reply_real_announcement(
         json={"body": "demo reply"},
     )
     assert res.status_code == 404, res.text
-    assert res.json()["detail"]["code"] == "NOT_FOUND", res.text
+    assert res.json()["error"]["code"] == "NOT_FOUND", res.text
 
 
 def test_demo_teacher_cannot_delete_real_reply(
@@ -299,7 +299,7 @@ def test_demo_teacher_cannot_delete_real_reply(
         json={"title": "real", "body": "b", "scope": "all"},
     )
     assert res.status_code == 201, res.text
-    ann_id = res.json()["id"]
+    ann_id = res.json()["data"]["id"]
     # 真学生回复，产生一条真实回复
     res = client.post(
         f"/api/v1/announcements/{ann_id}/replies",
@@ -307,14 +307,14 @@ def test_demo_teacher_cannot_delete_real_reply(
         json={"body": "real reply"},
     )
     assert res.status_code == 201, res.text
-    reply_id = res.json()["id"]
+    reply_id = res.json()["data"]["id"]
     # 演示老师试图删这条真实回复 → 404（看不到真实公告，当不存在）
     res = client.delete(
         f"/api/v1/announcements/{ann_id}/replies/{reply_id}",
         headers={"Authorization": f"Bearer {demo_teacher_token}"},
     )
     assert res.status_code == 404, res.text
-    assert res.json()["detail"]["code"] == "NOT_FOUND", res.text
+    assert res.json()["error"]["code"] == "NOT_FOUND", res.text
 
 
 # ─────────────────────────────────────────────────────────────
@@ -331,7 +331,7 @@ def test_demo_teacher_cannot_create_unowned_frontdesk_item(client, demo_teacher_
         json={"kind": "lost_and_found", "description": "傘", "location": "ロビー"},
     )
     assert res.status_code == 403, res.text
-    assert res.json()["detail"]["code"] == "DEMO_FORBIDDEN", res.text
+    assert res.json()["error"]["code"] == "DEMO_FORBIDDEN", res.text
 
 
 def test_demo_teacher_cannot_see_real_song_requests(
@@ -348,7 +348,7 @@ def test_demo_teacher_cannot_see_real_song_requests(
         "/api/v1/songs", headers={"Authorization": f"Bearer {demo_teacher_token}"}
     )
     assert res.status_code == 200, res.text
-    assert "RealSong" not in {s["song_title"] for s in res.json()}
+    assert "RealSong" not in {s["song_title"] for s in res.json()["data"]}
 
 
 def test_demo_teacher_cannot_see_real_lost_found(
@@ -370,4 +370,4 @@ def test_demo_teacher_cannot_see_real_lost_found(
         "/api/v1/lost-found", headers={"Authorization": f"Bearer {demo_teacher_token}"}
     )
     assert res.status_code == 200, res.text
-    assert "RealWallet" not in {p["item_name"] for p in res.json()}
+    assert "RealWallet" not in {p["item_name"] for p in res.json()["data"]}

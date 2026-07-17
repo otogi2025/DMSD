@@ -34,7 +34,7 @@ def _login_teacher(client, login_id: str) -> str:
         json={"login_id": login_id, "password": "test-password-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 def _add_demerit(db_session, student, teacher, points: float) -> models.DemeritEvent:
@@ -61,9 +61,7 @@ def _get_ranking(client, token: str) -> dict:
         headers={"Authorization": f"Bearer {token}"},
     )
     assert res.status_code == 200, res.text
-    return res.json()
-
-
+    return res.json()["data"]
 def _find_entry(ranking_data: dict, student_id) -> dict | None:
     """在 ranking 结果的 entries 列表中按 student_id 找对应条目。"""
     sid_str = str(student_id)

@@ -17,7 +17,7 @@ def _login_teacher(client, login_id):
         json={"login_id": login_id, "password": "test-password-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 def _add_student(db, *, grade, klass, seat, name, gender, room, dorm, email=None):
@@ -54,7 +54,7 @@ def test_update_profile_email_phone(client, seed_data, student_token):
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 200, res.text
-    body = res.json()
+    body = res.json()["data"]
     assert body["email"] == "newmail@test.jp"
     assert body["phone"] == "090-1111-2222"
 
@@ -67,7 +67,7 @@ def test_update_profile_room_same_dorm(client, seed_data, student_token):
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 200, res.text
-    assert res.json()["room_no"] == "M205"
+    assert res.json()["data"]["room_no"] == "M205"
 
 
 def test_update_profile_room_cross_dorm_rejected(client, seed_data, student_token):
@@ -78,7 +78,7 @@ def test_update_profile_room_cross_dorm_rejected(client, seed_data, student_toke
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 422, res.text
-    assert res.json()["detail"]["code"] == "INVALID_ROOM_FORMAT"
+    assert res.json()["error"]["code"] == "INVALID_ROOM_FORMAT"
 
 
 def test_update_profile_email_taken(client, seed_data, student_token, db_session):
@@ -101,7 +101,7 @@ def test_update_profile_email_taken(client, seed_data, student_token, db_session
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 422, res.text
-    assert res.json()["detail"]["code"] == "EMAIL_TAKEN"
+    assert res.json()["error"]["code"] == "EMAIL_TAKEN"
 
 
 def test_update_profile_partial_keeps_others(client, seed_data, student_token):
@@ -112,7 +112,7 @@ def test_update_profile_partial_keeps_others(client, seed_data, student_token):
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 200, res.text
-    body = res.json()
+    body = res.json()["data"]
     assert body["phone"] == "080-0000-0000"
     assert body["email"] == "ryu@test.jp"  # 没传 → 保持 seed 原值
 
@@ -142,7 +142,7 @@ def test_create_report_health(client, seed_data, student_token):
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 201, res.text
-    body = res.json()
+    body = res.json()["data"]
     assert body["kind"] == "health"
     assert body["body"] == "頭痛がします"
     assert body["resolved_at"] is None
@@ -157,7 +157,7 @@ def test_create_report_absence_and_other(client, seed_data, student_token):
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 201, res.text
-        assert res.json()["kind"] == kind
+        assert res.json()["data"]["kind"] == kind
 
 
 def test_create_report_bad_kind_422(client, seed_data, student_token):
@@ -209,7 +209,7 @@ def test_my_reports_returns_own(client, seed_data, student_token):
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 200, res.text
-    assert len(res.json()) == 2
+    assert len(res.json()["data"]) == 2
 
 
 def test_teacher_list_reports_all_dorms(client, seed_data, db_session):
@@ -234,7 +234,7 @@ def test_teacher_list_reports_all_dorms(client, seed_data, db_session):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert res.status_code == 200, res.text
-    bodies = {r["body"] for r in res.json()}
+    bodies = {r["body"] for r in res.json()["data"]}
     assert "男寮上报" in bodies
     assert "女寮上报" in bodies  # 寮过滤取消后女寮上报也可见
 
@@ -243,7 +243,7 @@ def test_teacher_list_reports_all_dorms(client, seed_data, db_session):
         "/api/v1/rollcall/reports",
         headers={"Authorization": f"Bearer {token2}"},
     )
-    assert {"男寮上报", "女寮上报"} <= {r["body"] for r in res2.json()}
+    assert {"男寮上报", "女寮上报"} <= {r["body"] for r in res2.json()["data"]}
 
 
 def test_teacher_resolve_report(client, seed_data, db_session):
@@ -256,7 +256,7 @@ def test_teacher_resolve_report(client, seed_data, db_session):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert res.status_code == 200, res.text
-    assert res.json()["resolved_at"] is not None
+    assert res.json()["data"]["resolved_at"] is not None
     res2 = client.patch(
         f"/api/v1/rollcall/reports/{r.id}/resolve",
         headers={"Authorization": f"Bearer {token}"},
@@ -279,7 +279,7 @@ def test_teacher_list_only_unresolved(client, seed_data, db_session):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert res.status_code == 200, res.text
-    bodies = {r["body"] for r in res.json()}
+    bodies = {r["body"] for r in res.json()["data"]}
     assert "未処理" in bodies
     assert "処理済" not in bodies
 
@@ -295,7 +295,7 @@ def test_create_song_request(client, seed_data, student_token):
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 201, res.text
-    body = res.json()
+    body = res.json()["data"]
     assert body["song_title"] == "Lemon"
     assert body["dorm_unit"] == 1  # seed 学生是男寮
 
@@ -324,13 +324,13 @@ def test_list_songs_dorm_filter(client, seed_data, student_token, db_session):
         "/api/v1/songs?dorm=1", headers={"Authorization": f"Bearer {student_token}"}
     )
     assert res.status_code == 200, res.text
-    titles = {s["song_title"] for s in res.json()}
+    titles = {s["song_title"] for s in res.json()["data"]}
     assert "男寮曲" in titles
     assert "女寮曲" not in titles
     res2 = client.get(
         "/api/v1/songs", headers={"Authorization": f"Bearer {student_token}"}
     )
-    assert {"男寮曲", "女寮曲"} <= {s["song_title"] for s in res2.json()}
+    assert {"男寮曲", "女寮曲"} <= {s["song_title"] for s in res2.json()["data"]}
 
 
 def test_songs_teacher_can_view(client, seed_data, teacher_token):
@@ -358,7 +358,7 @@ def test_create_lost_found(client, seed_data, student_token):
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 201, res.text
-    assert res.json()["status"] == "open"
+    assert res.json()["data"]["status"] == "open"
 
 
 def test_lost_found_resolve_by_owner(client, seed_data, student_token):
@@ -368,13 +368,13 @@ def test_lost_found_resolve_by_owner(client, seed_data, student_token):
         json={"post_type": "lost", "item_name": "鍵"},
         headers={"Authorization": f"Bearer {student_token}"},
     )
-    pid = res.json()["id"]
+    pid = res.json()["data"]["id"]
     res2 = client.patch(
         f"/api/v1/lost-found/{pid}/resolve",
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res2.status_code == 200, res2.text
-    assert res2.json()["status"] == "resolved"
+    assert res2.json()["data"]["status"] == "resolved"
     res3 = client.patch(
         f"/api/v1/lost-found/{pid}/resolve",
         headers={"Authorization": f"Bearer {student_token}"},
@@ -421,8 +421,8 @@ def test_create_misc_request_kinds(client, seed_data, student_token):
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 201, res.text
-        assert res.json()["kind"] == kind
-        assert res.json()["status"] == "pending"
+        assert res.json()["data"]["kind"] == kind
+        assert res.json()["data"]["status"] == "pending"
 
 
 def test_misc_request_mine(client, seed_data, student_token):
@@ -437,7 +437,7 @@ def test_misc_request_mine(client, seed_data, student_token):
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 200, res.text
-    assert len(res.json()) == 1
+    assert len(res.json()["data"]) == 1
 
 
 def test_misc_teacher_confirm(client, seed_data, student_token, db_session):
@@ -455,7 +455,7 @@ def test_misc_teacher_confirm(client, seed_data, student_token, db_session):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert res.status_code == 200, res.text
-    assert res.json()["status"] == "confirmed"
+    assert res.json()["data"]["status"] == "confirmed"
     res2 = client.patch(
         f"/api/v1/misc-requests/{r.id}/confirm",
         headers={"Authorization": f"Bearer {token}"},
@@ -477,7 +477,7 @@ def test_misc_student_withdraw(client, seed_data, student_token, db_session):
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 200, res.text
-    assert res.json()["status"] == "withdrawn"
+    assert res.json()["data"]["status"] == "withdrawn"
 
 
 def test_misc_teacher_all_dorms(client, seed_data, db_session):
@@ -509,6 +509,6 @@ def test_misc_teacher_all_dorms(client, seed_data, db_session):
         "/api/v1/misc-requests", headers={"Authorization": f"Bearer {token}"}
     )
     assert res.status_code == 200, res.text
-    subjects = {r["subject"] for r in res.json()}
+    subjects = {r["subject"] for r in res.json()["data"]}
     assert "男寮申请" in subjects
     assert "女寮申请" in subjects  # 寮过滤取消后女寮申请也可见

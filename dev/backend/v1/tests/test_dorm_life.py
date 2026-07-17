@@ -39,7 +39,7 @@ class TestDormEventProposalFlow:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 201, res.text
-        proposal = res.json()
+        proposal = res.json()["data"]
         proposal_id = proposal["id"]
         assert proposal["result"] == "pending"
         assert proposal["title"] == "寮祭の出し物"
@@ -50,7 +50,7 @@ class TestDormEventProposalFlow:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert mine.status_code == 200, mine.text
-        assert any(p["id"] == proposal_id for p in mine.json())
+        assert any(p["id"] == proposal_id for p in mine.json()["data"])
 
         # 3. 老师查 pending 列表 — 也能看到
         pending = client.get(
@@ -58,7 +58,7 @@ class TestDormEventProposalFlow:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert pending.status_code == 200, pending.text
-        assert any(p["id"] == proposal_id for p in pending.json())
+        assert any(p["id"] == proposal_id for p in pending.json()["data"])
 
         # 4. 老师审批通过
         decide = client.post(
@@ -67,7 +67,7 @@ class TestDormEventProposalFlow:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert decide.status_code == 200, decide.text
-        assert decide.json()["result"] == "approved"
+        assert decide.json()["data"]["result"] == "approved"
 
         # 5. 再审一次 → 已决定，409（原子条件更新挡住）
         again = client.post(
@@ -109,14 +109,14 @@ class TestDormEventProposalResubmit:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 201, res.text
-        pid = res.json()["id"]
+        pid = res.json()["data"]["id"]
         dec = client.post(
             f"/api/v1/dorm-life/event-proposals/{pid}/decision",
             json={"decision": "resubmit", "comment": "予算の内訳を追記してください"},
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert dec.status_code == 200, dec.text
-        assert dec.json()["result"] == "resubmit"
+        assert dec.json()["data"]["result"] == "resubmit"
         return pid
 
     def test_resubmit_after_decision_back_to_pending(
@@ -134,7 +134,7 @@ class TestDormEventProposalResubmit:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 200, res.text
-        body = res.json()
+        body = res.json()["data"]
         assert body["result"] == "pending"
         assert body["expected_cost"] == "2万円（内訳：飲食1万＋装飾1万）"
         assert body["decided_by"] is None
@@ -146,7 +146,7 @@ class TestDormEventProposalResubmit:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert dec2.status_code == 200, dec2.text
-        assert dec2.json()["result"] == "approved"
+        assert dec2.json()["data"]["result"] == "approved"
 
     def test_resubmit_pending_proposal_409(
         self, client, student_token, teacher_token, seed_data
@@ -157,14 +157,14 @@ class TestDormEventProposalResubmit:
             json=_proposal_payload(),
             headers={"Authorization": f"Bearer {student_token}"},
         )
-        pid = res.json()["id"]
+        pid = res.json()["data"]["id"]
         r = client.post(
             f"/api/v1/dorm-life/event-proposals/{pid}/resubmit",
             json=_proposal_payload(),
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert r.status_code == 409, r.text
-        assert r.json()["detail"]["code"] == "CANNOT_RESUBMIT"
+        assert r.json()["error"]["code"] == "CANNOT_RESUBMIT"
 
     def test_resubmit_requires_student_token(self, client, teacher_token, seed_data):
         """老师 token 不能调学生重提端点。"""
@@ -191,7 +191,7 @@ def _login_dorm(client, login_id, selected_dorm=None):
         body["selected_dorm"] = selected_dorm
     r = client.post("/api/v1/sessions/teacher", json=body)
     assert r.status_code == 200, r.text
-    return r.json()["access_token"]
+    return r.json()["data"]["access_token"]
 
 
 class TestDormLifeApprovalDormBoundary:
@@ -204,7 +204,7 @@ class TestDormLifeApprovalDormBoundary:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert r.status_code == 201, r.text
-        return r.json()["id"]
+        return r.json()["data"]["id"]
 
     def test_event_proposal_wrong_dorm_403(self, client, student_token, seed_data):
         pid = self._create_proposal(client, student_token)
@@ -215,7 +215,7 @@ class TestDormLifeApprovalDormBoundary:
             headers={"Authorization": f"Bearer {tok}"},
         )
         assert r.status_code == 403, r.text
-        assert r.json()["detail"]["code"] == "FORBIDDEN_DORM"
+        assert r.json()["error"]["code"] == "FORBIDDEN_DORM"
 
     def test_event_proposal_right_dorm_ok(self, client, student_token, seed_data):
         pid = self._create_proposal(client, student_token)
@@ -226,7 +226,7 @@ class TestDormLifeApprovalDormBoundary:
             headers={"Authorization": f"Bearer {tok}"},
         )
         assert r.status_code == 200, r.text
-        assert r.json()["result"] == "approved"
+        assert r.json()["data"]["result"] == "approved"
 
     def test_fridge_purchase_wrong_dorm_403(self, client, seed_data, db_session):
         from app import models
@@ -247,7 +247,7 @@ class TestDormLifeApprovalDormBoundary:
             headers={"Authorization": f"Bearer {tok}"},
         )
         assert r.status_code == 403, r.text
-        assert r.json()["detail"]["code"] == "FORBIDDEN_DORM"
+        assert r.json()["error"]["code"] == "FORBIDDEN_DORM"
 
     def test_item_possession_wrong_dorm_403(self, client, seed_data, db_session):
         from app import models
@@ -270,4 +270,4 @@ class TestDormLifeApprovalDormBoundary:
             headers={"Authorization": f"Bearer {tok}"},
         )
         assert r.status_code == 403, r.text
-        assert r.json()["detail"]["code"] == "FORBIDDEN_DORM"
+        assert r.json()["error"]["code"] == "FORBIDDEN_DORM"

@@ -28,7 +28,7 @@ def _login_teacher(client, login_id, password="test-password-12345"):
         json={"login_id": login_id, "password": password},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 def _future_iso(days=1):
@@ -77,7 +77,7 @@ def test_create_cleaning_success(client, seed_data, teacher_token):
     sid = str(seed_data["student"].id)
     res = _create_cleaning(client, teacher_token, sid, area="廊下 2F")
     assert res.status_code == 201, res.text
-    data = res.json()
+    data = res.json()["data"]
     assert data["area"] == "廊下 2F"
     assert data["status"] == "assigned"
     assert data["student_id"] == sid
@@ -87,7 +87,7 @@ def test_create_cleaning_past_time_rejected(client, seed_data, teacher_token):
     sid = str(seed_data["student"].id)
     res = _create_cleaning(client, teacher_token, sid, when=_past_iso())
     assert res.status_code == 422, res.text
-    assert res.json()["detail"]["code"] == "SCHEDULED_IN_PAST"
+    assert res.json()["error"]["code"] == "SCHEDULED_IN_PAST"
 
 
 def test_create_cleaning_area_free_text(client, seed_data, teacher_token):
@@ -95,7 +95,7 @@ def test_create_cleaning_area_free_text(client, seed_data, teacher_token):
     sid = str(seed_data["student"].id)
     res = _create_cleaning(client, teacher_token, sid, area="3階の物置スペース")
     assert res.status_code == 201, res.text
-    assert res.json()["area"] == "3階の物置スペース"
+    assert res.json()["data"]["area"] == "3階の物置スペース"
 
 
 def test_create_cleaning_student_token_forbidden(client, seed_data, student_token):
@@ -169,7 +169,7 @@ def test_cleaning_mine_returns_own(client, seed_data, student_token, db_session)
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 200, res.text
-    data = res.json()
+    data = res.json()["data"]
     assert len(data) == 1
     assert data[0]["student_id"] == str(me.id)
 
@@ -195,7 +195,7 @@ def test_cleaning_mine_ordered_newest_first(
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 200, res.text
-    areas = [r["area"] for r in res.json()]
+    areas = [r["area"] for r in res.json()["data"]]
     assert areas == ["廊下", "浴室"]  # scheduled_at 倒序
 
 
@@ -217,15 +217,15 @@ def test_cleaning_mine_rejects_teacher(client, seed_data, teacher_token):
 
 def test_inspect_passed_no_demerit(client, seed_data, teacher_token, db_session):
     sid = str(seed_data["student"].id)
-    cid = _create_cleaning(client, teacher_token, sid).json()["id"]
+    cid = _create_cleaning(client, teacher_token, sid).json()["data"]["id"]
     res = client.post(
         f"/api/v1/cleaning/{cid}/inspect",
         json={"result": "passed"},
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert res.status_code == 200, res.text
-    assert res.json()["status"] == "passed"
-    assert res.json()["demerit_event_id"] is None
+    assert res.json()["data"]["status"] == "passed"
+    assert res.json()["data"]["demerit_event_id"] is None
     n = (
         db_session.query(models.DemeritEvent)
         .filter_by(source_type="cleaning_failed")
@@ -236,14 +236,14 @@ def test_inspect_passed_no_demerit(client, seed_data, teacher_token, db_session)
 
 def test_inspect_failed_adds_demerit(client, seed_data, teacher_token, db_session):
     sid = str(seed_data["student"].id)
-    cid = _create_cleaning(client, teacher_token, sid, area="浴室").json()["id"]
+    cid = _create_cleaning(client, teacher_token, sid, area="浴室").json()["data"]["id"]
     res = client.post(
         f"/api/v1/cleaning/{cid}/inspect",
         json={"result": "failed", "failure_reason": "床が汚い"},
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert res.status_code == 200, res.text
-    body = res.json()
+    body = res.json()["data"]
     assert body["status"] == "failed"
     assert body["demerit_event_id"] is not None
     ev = (
@@ -258,31 +258,31 @@ def test_inspect_failed_adds_demerit(client, seed_data, teacher_token, db_sessio
 
 def test_inspect_failed_missing_reason(client, seed_data, teacher_token):
     sid = str(seed_data["student"].id)
-    cid = _create_cleaning(client, teacher_token, sid).json()["id"]
+    cid = _create_cleaning(client, teacher_token, sid).json()["data"]["id"]
     res = client.post(
         f"/api/v1/cleaning/{cid}/inspect",
         json={"result": "failed"},
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert res.status_code == 400, res.text
-    assert res.json()["detail"]["code"] == "MISSING_REASON"
+    assert res.json()["error"]["code"] == "MISSING_REASON"
 
 
 def test_inspect_already_inspected_conflict(client, seed_data, teacher_token):
     sid = str(seed_data["student"].id)
-    cid = _create_cleaning(client, teacher_token, sid).json()["id"]
+    cid = _create_cleaning(client, teacher_token, sid).json()["data"]["id"]
     h = {"Authorization": f"Bearer {teacher_token}"}
     client.post(f"/api/v1/cleaning/{cid}/inspect", json={"result": "passed"}, headers=h)
     res2 = client.post(
         f"/api/v1/cleaning/{cid}/inspect", json={"result": "passed"}, headers=h
     )
     assert res2.status_code == 409, res2.text
-    assert res2.json()["detail"]["code"] == "ALREADY_INSPECTED"
+    assert res2.json()["error"]["code"] == "ALREADY_INSPECTED"
 
 
 def test_inspect_view_only_forbidden(client, seed_data, teacher_token):
     sid = str(seed_data["student"].id)
-    cid = _create_cleaning(client, teacher_token, sid).json()["id"]
+    cid = _create_cleaning(client, teacher_token, sid).json()["data"]["id"]
     view_token = _login_teacher(client, "kokukou_buchou")
     res = client.post(
         f"/api/v1/cleaning/{cid}/inspect",
@@ -304,8 +304,7 @@ def test_summary_needs_cleaning_threshold(
     def summary():
         r = client.get("/api/v1/discipline/me/summary", headers=h_stu)
         assert r.status_code == 200, r.text
-        return r.json()
-
+        return r.json()["data"]
     # 初始 0 分 → 不需要罚扫
     assert summary()["needs_cleaning"] is False
     # 设到 3.5 → 仍 False
@@ -335,7 +334,7 @@ def test_ranking_cleaning_threshold(client, seed_data, teacher_token):
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert res.status_code == 200, res.text
-    body = res.json()
+    body = res.json()["data"]
     assert body["cleaning_threshold_count"] >= 1
     me_entry = next(e for e in body["entries"] if e["student_id"] == sid)
     assert me_entry["is_cleaning_threshold"] is True
@@ -349,7 +348,7 @@ def test_revoke_cleaning_failed_reverts_assignment(
     client, seed_data, teacher_token, db_session
 ):
     sid = str(seed_data["student"].id)
-    cid = _create_cleaning(client, teacher_token, sid, area="玄関").json()["id"]
+    cid = _create_cleaning(client, teacher_token, sid, area="玄関").json()["data"]["id"]
     h = {"Authorization": f"Bearer {teacher_token}"}
     # inspect failed → 建 cleaning_failed 扣分
     insp = client.post(
@@ -358,7 +357,7 @@ def test_revoke_cleaning_failed_reverts_assignment(
         headers=h,
     )
     assert insp.status_code == 200, insp.text
-    event_id = insp.json()["demerit_event_id"]
+    event_id = insp.json()["data"]["demerit_event_id"]
     assert event_id is not None
     # 撤销那条扣分 → cleaning 单应退回 assigned + demerit_event_id 清空
     rev = client.post(
@@ -384,7 +383,7 @@ def test_revoke_then_reinspect_failed_allowed(
     修复前第二次 failed 撞约束被 inspect 兜底误当并发重复 → 409，清扫单永远没法再罚扫。
     """
     sid = str(seed_data["student"].id)
-    cid = _create_cleaning(client, teacher_token, sid, area="廊下").json()["id"]
+    cid = _create_cleaning(client, teacher_token, sid, area="廊下").json()["data"]["id"]
     h = {"Authorization": f"Bearer {teacher_token}"}
     # 1. 第一次 failed → 建 cleaning_failed 扣分
     r1 = client.post(
@@ -393,7 +392,7 @@ def test_revoke_then_reinspect_failed_allowed(
         headers=h,
     )
     assert r1.status_code == 200, r1.text
-    ev1 = r1.json()["demerit_event_id"]
+    ev1 = r1.json()["data"]["demerit_event_id"]
     assert ev1 is not None
     # 2. 撤销那条扣分 → cleaning 退回 assigned
     rev = client.post(
@@ -409,7 +408,7 @@ def test_revoke_then_reinspect_failed_allowed(
         headers=h,
     )
     assert r2.status_code == 200, r2.text
-    ev2 = r2.json()["demerit_event_id"]
+    ev2 = r2.json()["data"]["demerit_event_id"]
     assert ev2 is not None
     assert ev2 != ev1  # 新建了一条扣分（不是复用旧的）
     # DB 校验：两条 cleaning_failed 行（一撤销一有效）、只 1 条未撤销

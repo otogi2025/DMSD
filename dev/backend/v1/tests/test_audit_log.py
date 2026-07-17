@@ -42,7 +42,7 @@ def _login(client, login_id, password="test-password-12345"):
         json={"login_id": login_id, "password": password},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 def _make_demo_teacher(db_session):
@@ -91,7 +91,7 @@ def test_teacher_mutation_is_logged(client, seed_data, teacher_token):
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert logs.status_code == 200, logs.text
-    data = logs.json()
+    data = logs.json()["data"]
     entry = next(
         (e for e in data["items"] if e["action"] == "POST notifications/read-all"),
         None,
@@ -113,7 +113,7 @@ def test_get_and_login_not_logged(client, seed_data, teacher_token):
         "/api/v1/admin/audit-logs",
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
-    assert logs.json()["total"] == 0
+    assert logs.json()["data"]["total"] == 0
 
 
 # ---------------------------------------------------------------
@@ -155,7 +155,7 @@ def test_demo_isolation(client, seed_data, db_session):
         for e in client.get(
             "/api/v1/admin/audit-logs",
             headers={"Authorization": f"Bearer {real_token}"},
-        ).json()["items"]
+        ).json()["data"]["items"]
     }
     assert "POST discipline/manual" in real_actions
     assert "POST cleaning" not in real_actions  # 真老师看不到演示老师操作
@@ -165,7 +165,7 @@ def test_demo_isolation(client, seed_data, db_session):
         for e in client.get(
             "/api/v1/admin/audit-logs",
             headers={"Authorization": f"Bearer {demo_token}"},
-        ).json()["items"]
+        ).json()["data"]["items"]
     }
     assert "POST cleaning" in demo_actions
     assert "POST discipline/manual" not in demo_actions  # 演示老师看不到真老师操作
@@ -201,7 +201,7 @@ def test_semantic_and_student_rows_excluded(
         for e in client.get(
             "/api/v1/admin/audit-logs",
             headers={"Authorization": f"Bearer {teacher_token}"},
-        ).json()["items"]
+        ).json()["data"]["items"]
     ]
     assert "POST events" in actions
     assert "registration_code.refresh" not in actions  # 语义行排除
@@ -222,7 +222,7 @@ def test_deleted_teacher_row_still_shows(client, seed_data, teacher_token, db_se
     items = client.get(
         "/api/v1/admin/audit-logs",
         headers={"Authorization": f"Bearer {teacher_token}"},
-    ).json()["items"]
+    ).json()["data"]["items"]
     ghost = next((e for e in items if e["action"] == "POST discipline/manual"), None)
     assert ghost is not None, "硬删老师的操作行不应消失"
     assert ghost["actor_name"] is None  # 老师已删 → 名字为空（前端显示「削除済み」）

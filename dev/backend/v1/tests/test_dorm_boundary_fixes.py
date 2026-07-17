@@ -142,7 +142,7 @@ def joshi_token(client, cross_dorm_setup):
         json={"login_id": "joshi_tannin", "password": "test-password-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 # ─────────────────────────────────────────────────────────────
@@ -170,7 +170,7 @@ class TestGuidanceDormBoundary:
             "/api/v1/sessions/teacher",
             json={"login_id": "tannin", "password": "test-password-12345"},
         )
-        tannin_token = res.json()["access_token"]
+        tannin_token = res.json()["data"]["access_token"]
         student_id = str(cross_dorm_setup["student"].id)
         r = client.get(
             f"/api/v1/students/{student_id}/guidance",
@@ -195,7 +195,7 @@ class TestGuidanceDormBoundary:
             "/api/v1/sessions/teacher",
             json={"login_id": "ryomu_buchou", "password": "test-password-12345"},
         )
-        token = res.json()["access_token"]
+        token = res.json()["data"]["access_token"]
         student_id = str(cross_dorm_setup["student"].id)
         r = client.get(
             f"/api/v1/students/{student_id}/guidance",
@@ -218,7 +218,7 @@ class TestStudentProfileAuth:
             "/api/v1/sessions/teacher",
             json={"login_id": "kokukou_buchou", "password": "test-password-12345"},
         )
-        token = res.json()["access_token"]
+        token = res.json()["data"]["access_token"]
         student_id = str(cross_dorm_setup["student"].id)
         r = client.get(
             f"/api/v1/students/{student_id}/profile",
@@ -236,7 +236,7 @@ class TestStudentProfileAuth:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert r.status_code == 200, r.text
-        assert r.json()["guidance_records"] == []
+        assert r.json()["data"]["guidance_records"] == []
 
     def test_student_cannot_see_other_student_profile(
         self, client, cross_dorm_setup, seed_data, db_session
@@ -265,7 +265,7 @@ class TestStudentProfileAuth:
             "/api/v1/sessions/student",
             json={"student_no": "060218", "password": "test-password-12345"},
         )
-        token_a = res.json()["access_token"]
+        token_a = res.json()["data"]["access_token"]
 
         # 访问学生 B 的档案 → 应被拒绝
         r = client.get(
@@ -313,7 +313,7 @@ def ryokan_token(client, ryokan_teacher):
         json={"login_id": "joshi_ryokan", "password": "test-password-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 class TestStudyDormBoundary:
@@ -375,7 +375,7 @@ class TestStudyDormBoundary:
             "/api/v1/sessions/teacher",
             json={"login_id": "otoko_ryokan", "password": "test-password-12345"},
         )
-        token = res.json()["access_token"]
+        token = res.json()["data"]["access_token"]
 
         student_id = str(seed_data["student"].id)  # dorm_unit=1（男寮）
         r = client.post(
@@ -507,7 +507,7 @@ class TestDisciplineDormBoundary:
             "/api/v1/sessions/teacher",
             json={"login_id": "ryomu_kachou", "password": "test-password-12345"},
         )
-        token = res.json()["access_token"]
+        token = res.json()["data"]["access_token"]
         student_id = str(seed_data["student"].id)
         r = client.post(
             "/api/v1/discipline/manual",

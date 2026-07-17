@@ -94,7 +94,7 @@ class TestCheckin:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 201, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert data["student_id"] == student_id
         assert data["base_status"] == "present"
         assert data["status_source"] == "manual_checkin"
@@ -116,7 +116,7 @@ class TestCheckin:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res1.status_code == 201
-        event_id_1 = res1.json()["id"]
+        event_id_1 = res1.json()["data"]["id"]
 
         # 第二次相同 key
         res2 = client.post(
@@ -125,7 +125,7 @@ class TestCheckin:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res2.status_code in (200, 201)
-        assert res2.json()["id"] == event_id_1
+        assert res2.json()["data"]["id"] == event_id_1
 
     def test_idempotency_different_keys_same_student_reuse_row(
         self, client, teacher_token, seed_data, rollcall_session
@@ -149,7 +149,7 @@ class TestCheckin:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res1.status_code == 201, res1.text
-        event_id_1 = res1.json()["id"]
+        event_id_1 = res1.json()["data"]["id"]
 
         res2 = client.post(
             f"/api/v1/rollcall/sessions/{rollcall_session.id}/checkins",
@@ -163,7 +163,7 @@ class TestCheckin:
         )
         assert res2.status_code in (200, 201), res2.text
         # 关键断言：同学生同场次仍只一行（命中既有事件，不因换 key 而复制）
-        assert res2.json()["id"] == event_id_1, "同学生同场次换 key 不应建出第二条事件"
+        assert res2.json()["data"]["id"] == event_id_1, "同学生同场次换 key 不应建出第二条事件"
 
     def test_path_hint_a_requires_card_uid(
         self, client, teacher_token, seed_data, rollcall_session
@@ -181,7 +181,7 @@ class TestCheckin:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 422
-        assert res.json()["detail"]["code"] == "PATH_HINT_MISMATCH"
+        assert res.json()["error"]["code"] == "PATH_HINT_MISMATCH"
 
     def test_path_hint_b_requires_idempotency_key(
         self, client, teacher_token, seed_data, rollcall_session
@@ -199,7 +199,7 @@ class TestCheckin:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 422
-        assert res.json()["detail"]["code"] == "PATH_HINT_MISMATCH"
+        assert res.json()["error"]["code"] == "PATH_HINT_MISMATCH"
 
     def test_missing_identifier_returns_422(
         self, client, teacher_token, rollcall_session
@@ -237,7 +237,7 @@ class TestCheckin:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 201, res.text
-        data = res.json()
+        data = res.json()["data"]
         # 判定按服务器时间 → late（旧逻辑会被伪造成 present）
         assert data["base_status"] == "late", data
         # checked_in_at 贴服务器当前时刻，而非被伪造值（早 6 分钟）带偏
@@ -269,7 +269,7 @@ class TestCheckin:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 201, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert data["base_status"] == "present", data
         checked_in = _parse_jst(data["checked_in_at"])
         assert abs((checked_in - server_ref).total_seconds()) < 120, checked_in
@@ -292,7 +292,7 @@ class TestSessionLifecycle:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 200
-        assert isinstance(res.json(), list)
+        assert isinstance(res.json()["data"], list)
 
 
 class TestBoard:
@@ -326,7 +326,7 @@ class TestBoard:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 200
-        nos = {e.get("student_no") for e in res.json()["entries"]}
+        nos = {e.get("student_no") for e in res.json()["data"]["entries"]}
         # demo 学生（060299）必须被过滤掉
         assert demo.student_no not in nos, f"demo 学生未被过滤: {nos}"
         # 非 demo 的 seed 学生（060218）必须在板上 — 证明板非空、过滤没误杀正常学生
@@ -363,7 +363,7 @@ class TestBoard:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 200, res.text
-        entries = res.json()["entries"]
+        entries = res.json()["data"]["entries"]
         mine = next(
             (e for e in entries if e["student_no"] == seed_data["student"].student_no),
             None,
@@ -438,7 +438,7 @@ class TestPatchEvent:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert res.status_code == 201, res.text
-        return res.json()["id"]
+        return res.json()["data"]["id"]
 
     def test_override_present_to_late(
         self, client, teacher_token, seed_data, rollcall_session
@@ -452,7 +452,7 @@ class TestPatchEvent:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 200, res.text
-        assert res.json()["base_status"] == "late"
+        assert res.json()["data"]["base_status"] == "late"
 
     def test_repeat_patch_same_status_blocked(
         self, client, teacher_token, seed_data, rollcall_session
@@ -477,7 +477,7 @@ class TestPatchEvent:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res2.status_code == 409, res2.text
-        assert res2.json()["detail"]["code"] == "NO_OP_OVERRIDE"
+        assert res2.json()["error"]["code"] == "NO_OP_OVERRIDE"
 
     def test_patch_ended_session_blocked(
         self, client, teacher_token, seed_data, rollcall_session, db_session
@@ -494,7 +494,7 @@ class TestPatchEvent:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 409, res.text
-        assert res.json()["detail"]["code"] == "SESSION_ENDED"
+        assert res.json()["error"]["code"] == "SESSION_ENDED"
 
     def test_cross_dorm_teacher_hits_ended_gate(
         self, client, teacher_token, seed_data, rollcall_session, db_session
@@ -526,7 +526,7 @@ class TestPatchEvent:
             json={"login_id": "ryomu4", "password": "test-password-12345"},
         )
         assert login.status_code == 200, login.text
-        token4 = login.json()["access_token"]
+        token4 = login.json()["data"]["access_token"]
 
         res = client.patch(
             f"/api/v1/rollcall/events/{event_id}",
@@ -534,7 +534,7 @@ class TestPatchEvent:
             headers={"Authorization": f"Bearer {token4}"},
         )
         assert res.status_code == 409, res.text
-        assert res.json()["detail"]["code"] == "SESSION_ENDED"
+        assert res.json()["error"]["code"] == "SESSION_ENDED"
 
     def test_multistep_override_recomputes_demerit(
         self, client, teacher_token, seed_data, rollcall_session, db_session
@@ -675,7 +675,7 @@ class TestMyTodayRollCall:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 200, res.text
-        body = res.json()
+        body = res.json()["data"]
         assert len(body) == 1, body
         row = body[0]
         assert row["session_id"] == str(rollcall_session.id)
@@ -712,7 +712,7 @@ class TestMyTodayRollCall:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 200, res.text
-        row = res.json()[0]
+        row = res.json()["data"][0]
         assert row["my_status"] == "present"
         assert row["my_checked_in_at"] is not None
 
@@ -740,7 +740,7 @@ class TestMyTodayRollCall:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 200, res.text
-        body = res.json()
+        body = res.json()["data"]
         # 只返回我寮（[1,2]）那条，不含女寮 [4]
         assert len(body) == 1, body
         assert body[0]["session_id"] == str(rollcall_session.id)

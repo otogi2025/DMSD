@@ -23,7 +23,7 @@ def _make_reg_code(client, teacher_token: str) -> str:
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert res.status_code == 201, res.text
-    return res.json()["code"]
+    return res.json()["data"]["code"]
 
 
 _REGISTER_BASE = {
@@ -161,7 +161,7 @@ def test_b6_account_locked_after_threshold(client, seed_data, db_session):
         json={"student_no": "060218", "password": "wrong!!"},
     )
     assert res.status_code == 423
-    assert res.json()["detail"]["code"] == "ACCOUNT_LOCKED"
+    assert res.json()["error"]["code"] == "ACCOUNT_LOCKED"
 
 
 def test_b6_success_clears_failed_count(client, seed_data, db_session):
@@ -281,7 +281,7 @@ def _make_ryokan_token(client, db_session) -> str:
         json={"login_id": "ryokan_test", "password": "test-password-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 def test_b8_front_desk_create_cross_dorm_now_allowed(client, db_session, seed_data):
@@ -359,4 +359,4 @@ def test_ix008_me_malformed_sub_returns_401(client):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert res.status_code == 401, res.text
-    assert res.json()["detail"]["code"] == "INVALID_CREDENTIALS"
+    assert res.json()["error"]["code"] == "INVALID_CREDENTIALS"

@@ -45,7 +45,7 @@ def _create_pending(client, student_token, offset: int = 3) -> str:
         headers=_auth(student_token),
     )
     assert res.status_code == 201, res.text
-    return res.json()["id"]
+    return res.json()["data"]["id"]
 
 
 class TestWithdraw:
@@ -57,7 +57,7 @@ class TestWithdraw:
             f"/api/v1/applications/{app_id}/withdraw", headers=_auth(student_token)
         )
         assert res.status_code == 200, res.text
-        body = res.json()
+        body = res.json()["data"]
         assert body["status"] == "withdrawn"
         assert body["withdrawn_at"] is not None
 
@@ -70,7 +70,7 @@ class TestWithdraw:
             f"/api/v1/applications/{app_id}/withdraw", headers=_auth(student_token)
         )
         assert res.status_code == 409, res.text
-        assert res.json()["detail"]["code"] == "CANNOT_WITHDRAW"
+        assert res.json()["error"]["code"] == "CANNOT_WITHDRAW"
 
     def test_withdraw_returned_ok(self, client, student_token, teacher_token):
         """差戻中(returned)的届也可被学生撤回。"""
@@ -85,7 +85,7 @@ class TestWithdraw:
             f"/api/v1/applications/{app_id}/withdraw", headers=_auth(student_token)
         )
         assert res.status_code == 200, res.text
-        assert res.json()["status"] == "withdrawn"
+        assert res.json()["data"]["status"] == "withdrawn"
 
     def test_withdraw_requires_auth(self, client, student_token):
         app_id = _create_pending(client, student_token)
@@ -108,7 +108,7 @@ class TestWithdraw:
             f"/api/v1/applications/{app_id}/withdraw", headers=_auth(student_token)
         )
         assert res.status_code == 409, res.text
-        assert res.json()["detail"]["code"] == "CANNOT_WITHDRAW"
+        assert res.json()["error"]["code"] == "CANNOT_WITHDRAW"
 
 
 class TestReturn:
@@ -124,7 +124,7 @@ class TestReturn:
             headers=_auth(teacher_token),
         )
         assert res.status_code == 200, res.text
-        assert res.json()["status"] == "returned"
+        assert res.json()["data"]["status"] == "returned"
 
         log = (
             db_session.query(models.AuditLog)
@@ -166,7 +166,7 @@ class TestReturn:
             headers=_auth(teacher_token),
         )
         assert res.status_code == 409, res.text
-        assert res.json()["detail"]["code"] == "APPLICATION_RETURNED"
+        assert res.json()["error"]["code"] == "APPLICATION_RETURNED"
 
     def test_return_then_student_resubmit_back_to_pending(
         self, client, student_token, teacher_token
@@ -186,7 +186,7 @@ class TestReturn:
             headers=_auth(student_token),
         )
         assert res.status_code == 200, res.text
-        assert res.json()["status"] == "pending"
+        assert res.json()["data"]["status"] == "pending"
 
     def test_return_finalized_409(self, client, student_token, teacher_token):
         """已撤回(终态)的届不能差戻。"""
@@ -200,4 +200,4 @@ class TestReturn:
             headers=_auth(teacher_token),
         )
         assert res.status_code == 409, res.text
-        assert res.json()["detail"]["code"] == "CANNOT_RETURN"
+        assert res.json()["error"]["code"] == "CANNOT_RETURN"

@@ -13,7 +13,7 @@ def _login_teacher(client, login_id):
         json={"login_id": login_id, "password": "test-password-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 def test_demerit_student_search_works(client, seed_data):
@@ -24,10 +24,10 @@ def test_demerit_student_search_works(client, seed_data):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert res.status_code == 200, res.text
-    names = {s["name"] for s in res.json()}
+    names = {s["name"] for s in res.json()["data"]}
     assert seed_data["student"].name in names
     # 返回的是挑人最小字段（与 FrontDeskStudentBrief 同形）
-    sample = res.json()[0]
+    sample = res.json()["data"][0]
     assert {"id", "name", "room_no", "student_no", "dorm_unit"} <= set(sample.keys())
 
 
@@ -39,7 +39,7 @@ def test_demerit_student_search_filters_by_q(client, seed_data):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert res.status_code == 200, res.text
-    assert res.json() == []
+    assert res.json()["data"] == []
 
 
 def test_demerit_student_search_rejects_student_token(client, seed_data, student_token):
@@ -123,13 +123,13 @@ def test_manual_demerit_same_key_returns_existing(client, seed_data):
     r2 = client.post("/api/v1/discipline/manual", json=body, headers=headers)
     # 第二次仍成功响应、且是同一条事件（id 相同）
     assert r2.status_code in (200, 201), r2.text
-    assert r1.json()["id"] == r2.json()["id"], "同 key 重复提交应返回同一条事件"
+    assert r1.json()["data"]["id"] == r2.json()["data"]["id"], "同 key 重复提交应返回同一条事件"
 
     # 幂等：同 key 第二次返回原事件、不新建 → 该学生当月总分仍是 target 2.0
-    month = r1.json()["month"]
+    month = r1.json()["data"]["month"]
     rk = client.get(f"/api/v1/discipline/ranking?month={month}", headers=headers)
     assert rk.status_code == 200, rk.text
-    entry = next(e for e in rk.json()["entries"] if e["student_id"] == student_id)
+    entry = next(e for e in rk.json()["data"]["entries"] if e["student_id"] == student_id)
     assert entry["total_points"] == 2.0, "幂等失败：扣分被叠加了"
 
 
@@ -163,12 +163,12 @@ def test_manual_demerit_different_keys_create_two(client, seed_data):
     )
     assert r1.status_code == 201, r1.text
     assert r2.status_code == 201, r2.text
-    assert r1.json()["id"] != r2.json()["id"], "不同 key 应各建一条"
+    assert r1.json()["data"]["id"] != r2.json()["data"]["id"], "不同 key 应各建一条"
 
     # 两次设定绝对分（target 1.0 → 1.5），各记一条差值事件（+1.0 / +0.5），最终总分 = 最后一次 target 1.5
-    month = r1.json()["month"]
+    month = r1.json()["data"]["month"]
     rk = client.get(f"/api/v1/discipline/ranking?month={month}", headers=headers)
-    entry = next(e for e in rk.json()["entries"] if e["student_id"] == student_id)
+    entry = next(e for e in rk.json()["data"]["entries"] if e["student_id"] == student_id)
     assert entry["total_points"] == 1.5
 
 
@@ -183,7 +183,7 @@ def test_manual_demerit_no_key_keeps_legacy_behavior(client, seed_data):
     r2 = client.post("/api/v1/discipline/manual", json=body, headers=headers)
     assert r1.status_code == 201, r1.text
     assert r2.status_code == 201, r2.text
-    assert r1.json()["id"] != r2.json()["id"], "无 key 时不应去重（原行为）"
+    assert r1.json()["data"]["id"] != r2.json()["data"]["id"], "无 key 时不应去重（原行为）"
 
 
 def test_manual_demerit_set_absolute_can_lower(client, seed_data):
@@ -199,7 +199,7 @@ def test_manual_demerit_set_absolute_can_lower(client, seed_data):
         headers=headers,
     )
     assert r0.status_code == 201, r0.text
-    assert r0.json()["points"] == 6.0  # 学生本月 0 分起 → 差值 +6.0
+    assert r0.json()["data"]["points"] == 6.0  # 学生本月 0 分起 → 差值 +6.0
 
     # 再设到 2 分（调低）→ 应记一条 -4 的差值事件
     r = client.post(
@@ -208,10 +208,10 @@ def test_manual_demerit_set_absolute_can_lower(client, seed_data):
         headers=headers,
     )
     assert r.status_code == 201, r.text
-    assert r.json()["points"] == -4.0, "调低应记负差值事件"
+    assert r.json()["data"]["points"] == -4.0, "调低应记负差值事件"
 
     # 当月总分应恰为 2.0（不是 6 也不是 8）
-    month = r.json()["month"]
+    month = r.json()["data"]["month"]
     rk = client.get(f"/api/v1/discipline/ranking?month={month}", headers=headers)
-    entry = next(e for e in rk.json()["entries"] if e["student_id"] == student_id)
+    entry = next(e for e in rk.json()["data"]["entries"] if e["student_id"] == student_id)
     assert entry["total_points"] == 2.0, "设定绝对分后总分应等于 target"

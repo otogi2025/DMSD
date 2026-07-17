@@ -18,9 +18,7 @@ def _post_announcement(client, teacher_token, scope="all", title="公告 1", bod
         json={"title": title, "body": body, "scope": scope},
     )
     assert res.status_code == 201, res.text
-    return res.json()
-
-
+    return res.json()["data"]
 def test_post_and_list(client, seed_data, teacher_token, student_token):
     """老师发公告 → 学生列表能看到 + 未读 1 件。"""
     ann = _post_announcement(client, teacher_token, scope="all")
@@ -30,7 +28,7 @@ def test_post_and_list(client, seed_data, teacher_token, student_token):
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert list_res.status_code == 200
-    items = list_res.json()["items"]
+    items = list_res.json()["data"]["items"]
     assert len(items) == 1
     assert items[0]["id"] == ann["id"]
     assert items[0]["is_read"] is False
@@ -38,7 +36,7 @@ def test_post_and_list(client, seed_data, teacher_token, student_token):
     unread = client.get(
         "/api/v1/announcements/unread-count",
         headers={"Authorization": f"Bearer {student_token}"},
-    ).json()
+    ).json()["data"]
     assert unread["unread_count"] == 1
 
 
@@ -52,7 +50,7 @@ def test_scope_filter_excludes_other_gender(
     items = client.get(
         "/api/v1/announcements",
         headers={"Authorization": f"Bearer {student_token}"},
-    ).json()["items"]
+    ).json()["data"]["items"]
     titles = [it["title"] for it in items]
     assert "全员" in titles
     assert "女寮限定" not in titles  # scope 过滤生效
@@ -70,13 +68,13 @@ def test_detail_marks_read(client, seed_data, teacher_token, student_token):
     items = client.get(
         "/api/v1/announcements",
         headers={"Authorization": f"Bearer {student_token}"},
-    ).json()["items"]
+    ).json()["data"]["items"]
     assert items[0]["is_read"] is True
 
     unread = client.get(
         "/api/v1/announcements/unread-count",
         headers={"Authorization": f"Bearer {student_token}"},
-    ).json()
+    ).json()["data"]
     assert unread["unread_count"] == 0
 
 
@@ -92,7 +90,7 @@ def test_student_and_teacher_can_reply(
         json={"body": "学生回复"},
     )
     assert r1.status_code == 201
-    assert r1.json()["author_kind"] == "student"
+    assert r1.json()["data"]["author_kind"] == "student"
 
     r2 = client.post(
         f"/api/v1/announcements/{ann['id']}/replies",
@@ -100,12 +98,12 @@ def test_student_and_teacher_can_reply(
         json={"body": "老师回复"},
     )
     assert r2.status_code == 201
-    assert r2.json()["author_kind"] == "teacher"
+    assert r2.json()["data"]["author_kind"] == "teacher"
 
     detail = client.get(
         f"/api/v1/announcements/{ann['id']}",
         headers={"Authorization": f"Bearer {student_token}"},
-    ).json()
+    ).json()["data"]
     assert len(detail["replies"]) == 2
     assert [r["body"] for r in detail["replies"]] == ["学生回复", "老师回复"]
 
@@ -125,7 +123,7 @@ def test_soft_delete_hides_from_list(
     items = client.get(
         "/api/v1/announcements",
         headers={"Authorization": f"Bearer {student_token}"},
-    ).json()["items"]
+    ).json()["data"]["items"]
     assert len(items) == 0
 
 
@@ -139,7 +137,7 @@ def test_only_author_can_edit(client, seed_data, teacher_token):
         "/api/v1/sessions/teacher",
         json={"login_id": "ryomu_buchou", "password": "test-password-12345"},
     )
-    other_token = other_login.json()["access_token"]
+    other_token = other_login.json()["data"]["access_token"]
 
     res = client.patch(
         f"/api/v1/announcements/{ann['id']}",

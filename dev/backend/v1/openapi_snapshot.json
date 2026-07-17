@@ -8266,7 +8266,7 @@
     }
   },
   "info": {
-    "description": "Tomoshibi（灯火 / ともしび）宿舍管理后端，项目代号 DMSD（Dormitory Management System Digitalization）。功能模块见各 router 标签。",
+    "description": "Tomoshibi（灯火 / ともしび）宿舍管理后端，项目代号 DMSD（Dormitory Management System Digitalization）。功能模块见各 router 标签。\n\n**响应信封**：实际 HTTP 响应在本 schema 描述的模型外再包一层 `{ok, data}`（成功）或 `{ok, error}`（失败）；本 OpenAPI schema 描述的是 `data` 内部（或错误时的业务字段语义）。详见 specs/API_CONVENTIONS.md §1。",
     "title": "Tomoshibi Backend v1",
     "version": "1.0.0"
   },

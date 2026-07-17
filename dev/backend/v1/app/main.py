@@ -30,18 +30,26 @@ from contextlib import asynccontextmanager
 from contextvars import ContextVar
 
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import __version__
 from .audit import AuditLogMiddleware
 from .config import get_settings
 from .database import create_all
 from .ratelimit import limiter
+from .response_envelope import (
+    ResponseEnvelopeMiddleware,
+    build_error_body,
+    error_body_from_http_detail,
+)
 from .routers import (
     accounts,
     admin_accounts,
@@ -197,6 +205,9 @@ app = FastAPI(
     description=(
         "Tomoshibi（灯火 / ともしび）宿舍管理后端，项目代号 DMSD"
         "（Dormitory Management System Digitalization）。功能模块见各 router 标签。"
+        "\n\n**响应信封**：实际 HTTP 响应在本 schema 描述的模型外再包一层"
+        " `{ok, data}`（成功）或 `{ok, error}`（失败）；本 OpenAPI schema 描述的是"
+        " `data` 内部（或错误时的业务字段语义）。详见 specs/API_CONVENTIONS.md §1。"
     ),
     version=__version__,
     docs_url="/docs" if _docs_enabled else None,
@@ -215,11 +226,46 @@ app.add_middleware(SlowAPIMiddleware)
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
-# 全局兜底异常处理器 — 捕获所有未被路由层处理的异常
-# 返回统一 500 JSON，不把内部堆栈泄露给客户端，同时记 error 级别日志含 traceback
+# ── 失败信封：3 个异常处理器（契约 §1 / §14 / §15）──────────────────────────
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(
+    request: Request, exc: StarletteHTTPException
+) -> JSONResponse:
+    """业务 HTTPException → {ok:false, error:{code,message,detail}}。"""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=error_body_from_http_detail(exc.status_code, exc.detail),
+        headers=getattr(exc, "headers", None) or None,
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    """Pydantic 422 校验错误 → 同一信封（不再返回 detail 数组壳）。"""
+    # errors() 里可能带 ValueError 等不可 JSON 序列化对象，必须走 jsonable_encoder
+    errors = jsonable_encoder(exc.errors())
+    first_msg = "入力内容に誤りがあります"
+    if errors:
+        raw = errors[0].get("msg") or errors[0].get("message")
+        if raw:
+            first_msg = str(raw)
+    return JSONResponse(
+        status_code=422,
+        content=build_error_body(
+            code="INVALID_INPUT",
+            message=first_msg,
+            detail={"errors": errors},
+        ),
+    )
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    # 记完整堆栈到服务端日志，方便排查
+    """全局兜底 — 500，不把内部堆栈泄露给客户端。"""
     logger.error(
         "未捕获异常 [%s %s]: %s\n%s",
         request.method,
@@ -229,7 +275,10 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     )
     return JSONResponse(
         status_code=500,
-        content={"detail": "内部服务器错误，请稍后重试"},
+        content=build_error_body(
+            code="INTERNAL",
+            message="系统繁忙，请稍后重试",
+        ),
     )
 
 
@@ -269,6 +318,10 @@ async def _request_id_middleware(request: Request, call_next):
     response.headers["X-Request-ID"] = request_id
     return response
 
+
+# 成功响应信封中间件 — 2xx JSON 包成 {ok:true, data:...}（app/response_envelope.py）。
+# 必须在 AuditLog 内层（先 add = 内层）：审计记的是包壳后的最终响应。
+app.add_middleware(ResponseEnvelopeMiddleware)
 
 # 操作履历审计中间件 — 老师写操作全量自动记日志（app/audit.py）。
 # 放最外层（最后 add = 最外层）：直接拿 uvicorn 的 receive/send，稳妥捕获请求体 + 响应状态，

@@ -156,7 +156,7 @@ def student_token(client, seed_data):
         json={"student_no": "060218", "password": "test-password-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 @pytest.fixture
@@ -166,4 +166,4 @@ def teacher_token(client, seed_data):
         json={"login_id": "ryomu_kachou", "password": "test-password-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]

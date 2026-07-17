@@ -118,7 +118,7 @@ def _teacher_token(client, login_id: str) -> str:
         json={"login_id": login_id, "password": "test-password-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 # -----------------------------------------------------------------
@@ -154,7 +154,7 @@ class TestListStudents:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert res.status_code == 200, res.text
-        data = res.json()
+        data = res.json()["data"]
         # demo 学生（student_demo）を除く 2 人だけ
         assert data["total"] == 2
         student_nos = [item["student_no"] for item in data["items"]]
@@ -186,7 +186,7 @@ class TestListStudents:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert res.status_code == 200
-        data = res.json()
+        data = res.json()["data"]
         assert data["total"] == 1
         assert data["items"][0]["dorm_unit"] == 4
 
@@ -198,7 +198,7 @@ class TestListStudents:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert res.status_code == 200
-        data = res.json()
+        data = res.json()["data"]
         assert data["total"] == 1
         assert "花子" in data["items"][0]["name"]
 
@@ -210,7 +210,7 @@ class TestListStudents:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert res.status_code == 200
-        data = res.json()
+        data = res.json()["data"]
         assert all(item["status"] == "active" for item in data["items"])
 
     def test_response_fields(self, client, admin_seed):
@@ -221,7 +221,7 @@ class TestListStudents:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert res.status_code == 200
-        item = res.json()["items"][0]
+        item = res.json()["data"]["items"][0]
         for field in (
             "id",
             "student_no",
@@ -253,7 +253,7 @@ class TestListStudents:
         )
         assert res.status_code == 200
         item = next(
-            i for i in res.json()["items"] if i["student_no"] == student_a.student_no
+            i for i in res.json()["data"]["items"] if i["student_no"] == student_a.student_no
         )
         assert item["is_locked"] is True
 
@@ -314,7 +314,7 @@ class TestPasswordReset:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert res.status_code == 200, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert "temporary_password" in data
         pw = data["temporary_password"]
         assert len(pw) == 16
@@ -355,7 +355,7 @@ class TestPasswordReset:
             f"/api/v1/accounts/{sid}/password-reset",
             headers={"Authorization": f"Bearer {token}"},
         )
-        temp_pw = res.json()["temporary_password"]
+        temp_pw = res.json()["data"]["temporary_password"]
 
         # 新 PW でログイン
         login_res = client.post(
@@ -499,7 +499,7 @@ class TestUnlockAccount:
             headers={"Authorization": f"Bearer {token}"},
         )
         item = next(
-            i for i in res.json()["items"] if i["student_no"] == student_a.student_no
+            i for i in res.json()["data"]["items"] if i["student_no"] == student_a.student_no
         )
         assert item["is_locked"] is False
 
@@ -521,7 +521,7 @@ class TestTeacherRenewSeat:
             json={"grade_code": "05", "class_code": "03", "seat_no": "07"},
         )
         assert res.status_code == 200, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert data["grade_code"] == "05"
         assert data["class_code"] == "03"
         assert data["seat_no"] == "07"
@@ -549,7 +549,7 @@ class TestTeacherRenewSeat:
             json={"grade_code": "05", "class_code": "03", "seat_no": "07"},
         )
         assert res.status_code == 409, res.text
-        assert res.json()["detail"]["code"] == "STUDENT_NOT_ACTIVE"
+        assert res.json()["error"]["code"] == "STUDENT_NOT_ACTIVE"
 
         # 番号未被改动
         db_session.refresh(student_a)
@@ -576,7 +576,7 @@ class TestListStudentsLikeEscape:
         )
         assert res.status_code == 200, res.text
         # 若 % 未转义会被当通配符匹配全部 → 转义后应 0 命中
-        assert res.json()["total"] == 0
+        assert res.json()["data"]["total"] == 0
 
     def test_underscore_in_q_is_literal_not_wildcard(self, client, admin_seed):
         """q 含 _ → 当字面量处理，不匹配任意单字符（转义生效）。"""
@@ -587,7 +587,7 @@ class TestListStudentsLikeEscape:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert res.status_code == 200, res.text
-        assert res.json()["total"] == 0
+        assert res.json()["data"]["total"] == 0
 
     def test_normal_q_still_matches(self, client, admin_seed):
         """普通查询（不含通配符）→ 转义后照常命中（不回归正常搜索）。"""
@@ -598,6 +598,6 @@ class TestListStudentsLikeEscape:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert res.status_code == 200, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert data["total"] == 1
         assert "花子" in data["items"][0]["name"]

@@ -21,7 +21,7 @@ def edit_token(client, seed_data):
         json={"login_id": "ryomu_buchou", "password": "test-password-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 @pytest.fixture
@@ -32,7 +32,7 @@ def readonly_token(client, seed_data):
         json={"login_id": "tannin", "password": "test-password-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 # -----------------------------------------------------------------------
@@ -51,9 +51,7 @@ def _make_event(client, token, **kw):
         json=payload,
     )
     assert res.status_code == 201, res.text
-    return res.json()
-
-
+    return res.json()["data"]
 class TestDormEvents:
     def test_create_and_list(self, client, seed_data, edit_token):
         """创建行事予定 → 列表能查到。"""
@@ -64,7 +62,7 @@ class TestDormEvents:
             headers={"Authorization": f"Bearer {edit_token}"},
         )
         assert res.status_code == 200
-        items = res.json()["items"]
+        items = res.json()["data"]["items"]
         assert len(items) == 1
         assert items[0]["id"] == ev["id"]
         assert items[0]["title"] == "始業式"
@@ -79,7 +77,7 @@ class TestDormEvents:
             "/api/v1/events?from_date=2026-04-01&to_date=2026-04-30",
             headers={"Authorization": f"Bearer {edit_token}"},
         )
-        items = res.json()["items"]
+        items = res.json()["data"]["items"]
         assert len(items) == 1
         assert items[0]["title"] == "4 月行事"
 
@@ -95,7 +93,7 @@ class TestDormEvents:
             json={"title": "新タイトル", "event_date": "2026-04-10"},
         )
         assert res.status_code == 200
-        body = res.json()
+        body = res.json()["data"]
         assert body["title"] == "新タイトル"
         assert body["event_date"] == "2026-04-10"
         assert body["updated_at"] is not None
@@ -113,7 +111,7 @@ class TestDormEvents:
         items = client.get(
             "/api/v1/events",
             headers={"Authorization": f"Bearer {edit_token}"},
-        ).json()["items"]
+        ).json()["data"]["items"]
         assert len(items) == 0
 
     def test_create_403_no_permission(self, client, seed_data, readonly_token):
@@ -158,7 +156,7 @@ class TestDormEvents:
             json={"title": "不存在"},
         )
         assert res.status_code == 404
-        assert res.json()["detail"]["code"] == "EVENT_NOT_FOUND"
+        assert res.json()["error"]["code"] == "EVENT_NOT_FOUND"
 
     def test_delete_404_not_found(self, client, seed_data, edit_token):
         """DELETE 不存在的 id → 404。"""
@@ -182,7 +180,7 @@ class TestDormEvents:
             },
         )
         assert res.status_code == 400
-        assert res.json()["detail"]["code"] == "INVALID_CATEGORY"
+        assert res.json()["error"]["code"] == "INVALID_CATEGORY"
 
     def test_create_start_after_end_422(self, client, seed_data, edit_token):
         """开始时刻晚于结束时刻 → 422 INVALID_TIME_RANGE（A-575）。"""
@@ -198,7 +196,7 @@ class TestDormEvents:
             },
         )
         assert res.status_code == 422, res.text
-        assert res.json()["detail"]["code"] == "INVALID_TIME_RANGE"
+        assert res.json()["error"]["code"] == "INVALID_TIME_RANGE"
 
     def test_create_start_equals_end_ok(self, client, seed_data, edit_token):
         """开始时刻等于结束时刻 → 允许（边界值，瞬时行事）。"""
@@ -229,7 +227,7 @@ class TestDormEvents:
             json={"start_at": "2026-04-01T18:00:00+09:00"},
         )
         assert res.status_code == 422, res.text
-        assert res.json()["detail"]["code"] == "INVALID_TIME_RANGE"
+        assert res.json()["error"]["code"] == "INVALID_TIME_RANGE"
 
     def test_list_inverted_range_422(self, client, seed_data, edit_token):
         """from_date > to_date → 422 INVALID_DATE_RANGE，不静默返空（A-581）。"""
@@ -238,7 +236,7 @@ class TestDormEvents:
             headers={"Authorization": f"Bearer {edit_token}"},
         )
         assert res.status_code == 422, res.text
-        assert res.json()["detail"]["code"] == "INVALID_DATE_RANGE"
+        assert res.json()["error"]["code"] == "INVALID_DATE_RANGE"
 
 
 # -----------------------------------------------------------------------
@@ -258,9 +256,7 @@ def _make_bus(client, token, **kw):
         json=payload,
     )
     assert res.status_code == 201, res.text
-    return res.json()
-
-
+    return res.json()["data"]
 class TestBusRoutes:
     def test_create_and_list(self, client, seed_data, edit_token):
         """创建巴士便 → 列表能查到。"""
@@ -271,7 +267,7 @@ class TestBusRoutes:
             headers={"Authorization": f"Bearer {edit_token}"},
         )
         assert res.status_code == 200
-        items = res.json()["items"]
+        items = res.json()["data"]["items"]
         assert len(items) == 1
         assert items[0]["id"] == bus["id"]
         assert items[0]["deprecated"] is False
@@ -285,7 +281,7 @@ class TestBusRoutes:
             "/api/v1/bus/routes?kind=daily_commute",
             headers={"Authorization": f"Bearer {edit_token}"},
         )
-        items = res.json()["items"]
+        items = res.json()["data"]["items"]
         assert len(items) == 1
         assert items[0]["kind"] == "daily_commute"
 
@@ -297,7 +293,7 @@ class TestBusRoutes:
             headers={"Authorization": f"Bearer {edit_token}"},
         )
         assert res.status_code == 200
-        assert res.json()["id"] == bus["id"]
+        assert res.json()["data"]["id"] == bus["id"]
 
     def test_patch_bus(self, client, seed_data, edit_token):
         """PATCH 更新名称 + note。"""
@@ -309,7 +305,7 @@ class TestBusRoutes:
             json={"name": "新名称", "note": "備考テキスト"},
         )
         assert res.status_code == 200
-        body = res.json()
+        body = res.json()["data"]
         assert body["name"] == "新名称"
         assert body["note"] == "備考テキスト"
         assert body["updated_at"] is not None
@@ -328,14 +324,14 @@ class TestBusRoutes:
         items = client.get(
             "/api/v1/bus/routes",
             headers={"Authorization": f"Bearer {edit_token}"},
-        ).json()["items"]
+        ).json()["data"]["items"]
         assert len(items) == 0
 
         # include_deprecated=true 能看到
         items_all = client.get(
             "/api/v1/bus/routes?include_deprecated=true",
             headers={"Authorization": f"Bearer {edit_token}"},
-        ).json()["items"]
+        ).json()["data"]["items"]
         assert len(items_all) == 1
         assert items_all[0]["deprecated"] is True
 
@@ -381,7 +377,7 @@ class TestBusRoutes:
             headers={"Authorization": f"Bearer {edit_token}"},
         )
         assert res.status_code == 404
-        assert res.json()["detail"]["code"] == "BUS_ROUTE_NOT_FOUND"
+        assert res.json()["error"]["code"] == "BUS_ROUTE_NOT_FOUND"
 
     def test_patch_404_not_found(self, client, seed_data, edit_token):
         """PATCH 不存在的 id → 404。"""
@@ -417,7 +413,7 @@ class TestBusRoutes:
             },
         )
         assert res.status_code == 400
-        assert res.json()["detail"]["code"] == "INVALID_KIND"
+        assert res.json()["error"]["code"] == "INVALID_KIND"
 
     def test_create_defaults_kind_and_name(self, client, seed_data, edit_token):
         """表单去掉「種別」「便名」后：只传 direction + schedule_at →
@@ -432,7 +428,7 @@ class TestBusRoutes:
             },
         )
         assert res.status_code == 201, res.text
-        body = res.json()
+        body = res.json()["data"]
         assert body["kind"] == "dorm_special"
         assert body["name"] == "高校棟 → 岡山駅西口"
 
@@ -448,7 +444,7 @@ class TestBusRoutes:
         got = client.get(
             f"/api/v1/bus/routes/{bus['id']}",
             headers={"Authorization": f"Bearer {edit_token}"},
-        ).json()
+        ).json()["data"]
         assert got["purpose"] == "帰国届を提出する場合の空港送迎便です。"
 
         patched = client.patch(
@@ -457,4 +453,4 @@ class TestBusRoutes:
             json={"purpose": "買い物・帰省者向けの臨時便です。"},
         )
         assert patched.status_code == 200
-        assert patched.json()["purpose"] == "買い物・帰省者向けの臨時便です。"
+        assert patched.json()["data"]["purpose"] == "買い物・帰省者向けの臨時便です。"

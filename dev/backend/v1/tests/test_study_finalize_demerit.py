@@ -29,7 +29,7 @@ def _login_teacher(client, login_id: str) -> str:
         json={"login_id": login_id, "password": "test-password-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 def _add_to_roster(db_session, student, teacher) -> models.StudyRoster:
@@ -132,8 +132,7 @@ class TestBulkFinalizeBasic:
             headers={"Authorization": f"Bearer {study_teacher_token}"},
         )
         assert res.status_code == 200, res.text
-        data = res.json()
-
+        data = res.json()["data"]
         # 结算数应为 1（仅缺席者）
         assert data["finalized_count"] == 1
 
@@ -221,7 +220,7 @@ class TestBulkFinalizeIdempotency:
             headers={"Authorization": f"Bearer {study_teacher_token}"},
         )
         assert res1.status_code == 200, res1.text
-        assert res1.json()["finalized_count"] == 1
+        assert res1.json()["data"]["finalized_count"] == 1
 
         # 第二次 finalize（同一天）
         res2 = client.post(
@@ -231,7 +230,7 @@ class TestBulkFinalizeIdempotency:
         )
         assert res2.status_code == 200, res2.text
         # 第二次 finalized_count 应为 0（该生 absent checkin 已存在，不再算入 to_absent）
-        assert res2.json()["finalized_count"] == 0
+        assert res2.json()["data"]["finalized_count"] == 0
 
         # 整个 study_absent 扣分仍只有 1 条（唯一约束幂等）
         count = _count_study_absent_events(db_session, student.id, today)
@@ -252,7 +251,7 @@ class TestBulkFinalizeDateValidation:
             headers={"Authorization": f"Bearer {study_teacher_token}"},
         )
         assert res.status_code == 422, res.text
-        detail = res.json().get("detail", {})
+        detail = res.json().get("error", {})
         assert detail.get("code") == "TARGET_DATE_FUTURE"
 
     def test_target_date_40_days_ago_returns_422(
@@ -266,7 +265,7 @@ class TestBulkFinalizeDateValidation:
             headers={"Authorization": f"Bearer {study_teacher_token}"},
         )
         assert res.status_code == 422, res.text
-        detail = res.json().get("detail", {})
+        detail = res.json().get("error", {})
         assert detail.get("code") == "TARGET_DATE_TOO_OLD"
 
     def test_today_target_date_is_valid(self, client, seed_data, study_teacher_token):
@@ -325,7 +324,7 @@ class TestBulkFinalizeDemoIsolation:
             json={"login_id": "demo_teacher_test", "password": "test-password-12345"},
         )
         assert res_login.status_code == 200, res_login.text
-        demo_token = res_login.json()["access_token"]
+        demo_token = res_login.json()["data"]["access_token"]
 
         # 调 bulk-finalize → 应 403
         res = client.post(
@@ -334,7 +333,7 @@ class TestBulkFinalizeDemoIsolation:
             headers={"Authorization": f"Bearer {demo_token}"},
         )
         assert res.status_code == 403, res.text
-        detail = res.json().get("detail", {})
+        detail = res.json().get("error", {})
         assert detail.get("code") == "DEMO_READONLY"
 
 
@@ -432,7 +431,7 @@ class TestBulkFinalizeOnlineStudyExempt:
         )
         assert res.status_code == 200, res.text
         # 该生被豁免 → 不计入 finalize 缺席结算
-        assert res.json()["finalized_count"] == 0
+        assert res.json()["data"]["finalized_count"] == 0
 
         # 不应有任何 study_absent 扣分
         assert _count_study_absent_events(db_session, student.id, today) == 0, (

@@ -47,7 +47,7 @@ def low_role_teacher_token(client, seed_data):
         json={"login_id": "kanri", "password": "test-password-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 class TestStudyToday:
@@ -65,7 +65,7 @@ class TestStudyToday:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 200
-        data = res.json()
+        data = res.json()["data"]
         assert "expected_attendees" in data
         assert "summary" in data
         assert isinstance(data["expected_attendees"], list)
@@ -86,7 +86,7 @@ class TestAbsenceRequest:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code in (200, 201), res.text
-        data = res.json()
+        data = res.json()["data"]
         assert data["status"] == "pending"
         assert data["reason"] == "体調不良のため"
 
@@ -103,7 +103,7 @@ class TestAbsenceRequest:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res_create.status_code in (200, 201)
-        req_id = res_create.json()["id"]
+        req_id = res_create.json()["data"]["id"]
 
         # 教师承认
         res = client.post(
@@ -112,7 +112,7 @@ class TestAbsenceRequest:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 200, res.text
-        assert res.json()["status"] == "approved"
+        assert res.json()["data"]["status"] == "approved"
 
     def test_list_absence_requests_teacher(self, client, teacher_token):
         """教师拉欠席届一览 — 即使空也返回 200。"""
@@ -121,7 +121,7 @@ class TestAbsenceRequest:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 200
-        assert isinstance(res.json(), list)
+        assert isinstance(res.json()["data"], list)
 
 
 class TestMyAbsenceSummary:
@@ -197,7 +197,7 @@ class TestMyAbsenceSummary:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 200, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert data["count"] == 2
         assert data["month"] == "2026-06"
 
@@ -258,7 +258,7 @@ class TestMyAbsenceSummary:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 200, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert data["count"] == 2
         assert data["month"] == "2026-12"
 
@@ -281,7 +281,7 @@ class TestCheckin:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 403, res.text
-        assert res.json()["detail"]["code"] == "FORBIDDEN", res.text
+        assert res.json()["error"]["code"] == "FORBIDDEN", res.text
 
     def test_teacher_checkin_records(
         self, client, teacher_token, seed_data, study_roster
@@ -298,7 +298,7 @@ class TestCheckin:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 201, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert data["student_id"] == str(seed_data["student"].id)
         assert data["status"] in ("present", "late")
 
@@ -321,7 +321,7 @@ class TestCancelToday:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 200
-        assert "cancelled_count" in res.json()
+        assert "cancelled_count" in res.json()["data"]
 
 
 class TestRoster:
@@ -348,7 +348,7 @@ class TestRoster:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 201, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert data["student_id"] == str(seed_data["student"].id)
         # added_by 非空 = 老师手动加入（不是系统自动）
         assert data["added_by"] is not None
@@ -361,7 +361,7 @@ class TestRoster:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 201, res.text
-        assert res.json()["student_id"] == str(seed_data["student"].id)
+        assert res.json()["data"]["student_id"] == str(seed_data["student"].id)
 
     def test_add_no_identifier_422(self, client, teacher_token):
         """既不给 student_id 也不给 student_no → 422 请求体校验失败。"""
@@ -384,7 +384,7 @@ class TestRoster:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 200, res.text
-        ids = [e["student_id"] for e in res.json()]
+        ids = [e["student_id"] for e in res.json()["data"]]
         assert str(seed_data["student"].id) in ids
 
     def test_add_nonexistent_student_404(self, client, teacher_token):
@@ -395,7 +395,7 @@ class TestRoster:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 404, res.text
-        assert res.json()["detail"]["code"] == "NOT_FOUND"
+        assert res.json()["error"]["code"] == "NOT_FOUND"
 
     def test_add_duplicate_409(self, client, teacher_token, seed_data):
         """同学期同学生再加一次（已在籍）→ 409 ALREADY_IN_ROSTER。"""
@@ -410,7 +410,7 @@ class TestRoster:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 409, res.text
-        assert res.json()["detail"]["code"] == "ALREADY_IN_ROSTER"
+        assert res.json()["error"]["code"] == "ALREADY_IN_ROSTER"
 
     def test_remove_then_not_listed(self, client, teacher_token, seed_data):
         """加入 → 移出（软删）后，一览里不再返回这个学生。"""
@@ -424,13 +424,13 @@ class TestRoster:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res_del.status_code == 200, res_del.text
-        assert res_del.json()["removed"] is True
+        assert res_del.json()["data"]["removed"] is True
 
         res = client.get(
             "/api/v1/study/roster",
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
-        ids = [e["student_id"] for e in res.json()]
+        ids = [e["student_id"] for e in res.json()["data"]]
         assert str(seed_data["student"].id) not in ids
 
     def test_remove_soft_delete_keeps_row(
@@ -491,7 +491,7 @@ class TestRoster:
             "/api/v1/study/roster",
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
-        ids = [e["student_id"] for e in res_list.json()]
+        ids = [e["student_id"] for e in res_list.json()["data"]]
         assert sid in ids
 
     def test_remove_not_in_roster_404(self, client, teacher_token, seed_data):
@@ -501,7 +501,7 @@ class TestRoster:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 404, res.text
-        assert res.json()["detail"]["code"] == "NOT_IN_ROSTER"
+        assert res.json()["error"]["code"] == "NOT_IN_ROSTER"
 
     def test_remove_requires_role(self, client, low_role_teacher_token, seed_data):
         """名簿管理 gate 外的角色移出 → 403。"""
@@ -510,7 +510,7 @@ class TestRoster:
             headers={"Authorization": f"Bearer {low_role_teacher_token}"},
         )
         assert res.status_code == 403, res.text
-        assert res.json()["detail"]["code"] == "FORBIDDEN_ROLE"
+        assert res.json()["error"]["code"] == "FORBIDDEN_ROLE"
 
 
 class TestCancelTodaySelectedDorm:
@@ -565,7 +565,7 @@ class TestCancelTodaySelectedDorm:
             body["selected_dorm"] = selected_dorm
         r = client.post("/api/v1/sessions/teacher", json=body)
         assert r.status_code == 200, r.text
-        return r.json()["access_token"]
+        return r.json()["data"]["access_token"]
 
     def _checkin_of(self, db_session, student_id):
         from sqlalchemy import select
@@ -586,7 +586,7 @@ class TestCancelTodaySelectedDorm:
             headers={"Authorization": f"Bearer {tok}"},
         )
         assert r.status_code == 200, r.text
-        assert r.json()["cancelled_count"] == 1  # 只男寮 1 人
+        assert r.json()["data"]["cancelled_count"] == 1  # 只男寮 1 人
         db_session.expire_all()
         male_ci = self._checkin_of(db_session, male.id)
         female_ci = self._checkin_of(db_session, female.id)
@@ -601,7 +601,7 @@ class TestCancelTodaySelectedDorm:
             headers={"Authorization": f"Bearer {tok}"},
         )
         assert r.status_code == 200, r.text
-        assert r.json()["cancelled_count"] == 2  # 男 + 女都中止
+        assert r.json()["data"]["cancelled_count"] == 2  # 男 + 女都中止
         db_session.expire_all()
         assert self._checkin_of(db_session, male.id).status == "exempt"
         assert self._checkin_of(db_session, female.id).status == "exempt"

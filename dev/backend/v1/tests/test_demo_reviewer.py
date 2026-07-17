@@ -6,6 +6,7 @@
 - is_demo=True 学生不出现在老师点呼板 (rollcall.session_board)
 - _generate_code 范围排除 999999
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -16,15 +17,19 @@ from app import models, security
 # ---------- is_reviewer 注册码行为 ----------
 
 
-def test_reviewer_code_not_invalidated_by_refresh(client, db_session, seed_data, teacher_token):
+def test_reviewer_code_not_invalidated_by_refresh(
+    client, db_session, seed_data, teacher_token
+):
     """is_reviewer=True 永久码 — 老师按 refresh 生成新普通码后仍然 active。"""
     admin = seed_data["teachers"]["ryomu_kachou"]
-    db_session.add(models.StudentRegistrationCode(
-        code="999999",
-        created_by=admin.id,
-        expires_at=datetime(2099, 1, 1, tzinfo=timezone.utc),
-        is_reviewer=True,
-    ))
+    db_session.add(
+        models.StudentRegistrationCode(
+            code="999999",
+            created_by=admin.id,
+            expires_at=datetime(2099, 1, 1, tzinfo=timezone.utc),
+            is_reviewer=True,
+        )
+    )
     db_session.commit()
 
     # 老师生成新普通码
@@ -36,9 +41,9 @@ def test_reviewer_code_not_invalidated_by_refresh(client, db_session, seed_data,
 
     # reviewer 码应仍 active（invalidated_at=NULL）
     db_session.expire_all()
-    reviewer_code = db_session.query(models.StudentRegistrationCode).filter_by(
-        code="999999"
-    ).one()
+    reviewer_code = (
+        db_session.query(models.StudentRegistrationCode).filter_by(code="999999").one()
+    )
     assert reviewer_code.invalidated_at is None, "is_reviewer 码不应被普通 refresh 作废"
     assert reviewer_code.is_reviewer is True
 
@@ -46,41 +51,50 @@ def test_reviewer_code_not_invalidated_by_refresh(client, db_session, seed_data,
 def test_reviewer_code_can_register_account(client, db_session, seed_data):
     """is_reviewer=True 永久码 — 学生可正常用它跑 POST /accounts 注册。"""
     admin = seed_data["teachers"]["ryomu_kachou"]
-    db_session.add(models.StudentRegistrationCode(
-        code="999999",
-        created_by=admin.id,
-        expires_at=datetime(2099, 1, 1, tzinfo=timezone.utc),
-        is_reviewer=True,
-    ))
+    db_session.add(
+        models.StudentRegistrationCode(
+            code="999999",
+            created_by=admin.id,
+            expires_at=datetime(2099, 1, 1, tzinfo=timezone.utc),
+            is_reviewer=True,
+        )
+    )
     db_session.commit()
 
-    res = client.post("/api/v1/accounts", json={
-        "grade_code": "04",
-        "class_code": "01",
-        "seat_no": "05",
-        "name": "テスト 学生",
-        "name_kana": "テスト ガクセイ",
-        "gender": "male",
-        "category": "一般寮生",
-        "room_no": "M105",
-        "dorm_unit": 1,
-        "is_overseas": False,
-        "password": "TestPassword123!",
-        "registration_code": "999999",
-    })
+    res = client.post(
+        "/api/v1/accounts",
+        json={
+            "grade_code": "04",
+            "class_code": "01",
+            "seat_no": "05",
+            "name": "テスト 学生",
+            "name_kana": "テスト ガクセイ",
+            "gender": "male",
+            "category": "一般寮生",
+            "room_no": "M105",
+            "dorm_unit": 1,
+            "is_overseas": False,
+            "password": "TestPassword123!",
+            "registration_code": "999999",
+        },
+    )
     assert res.status_code == 201, res.text
-    assert "access_token" in res.json()
+    assert "access_token" in res.json()["data"]
 
 
-def test_reviewer_code_not_visible_in_current(client, db_session, seed_data, teacher_token):
+def test_reviewer_code_not_visible_in_current(
+    client, db_session, seed_data, teacher_token
+):
     """is_reviewer=True 码 — 老师 GET /current 看不到（防泄漏：老师面板不显示永久码）。"""
     admin = seed_data["teachers"]["ryomu_kachou"]
-    db_session.add(models.StudentRegistrationCode(
-        code="999999",
-        created_by=admin.id,
-        expires_at=datetime(2099, 1, 1, tzinfo=timezone.utc),
-        is_reviewer=True,
-    ))
+    db_session.add(
+        models.StudentRegistrationCode(
+            code="999999",
+            created_by=admin.id,
+            expires_at=datetime(2099, 1, 1, tzinfo=timezone.utc),
+            is_reviewer=True,
+        )
+    )
     db_session.commit()
 
     res = client.get(
@@ -88,14 +102,17 @@ def test_reviewer_code_not_visible_in_current(client, db_session, seed_data, tea
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert res.status_code == 200
-    assert res.json() is None, "is_reviewer 码不应出现在老师 current 面板"
+    assert res.json()["data"] is None, "is_reviewer 码不应出现在老师 current 面板"
 
 
 # ---------- is_demo 学生过滤 ----------
 
 
 def test_demo_student_excluded_from_session_board(
-    client, db_session, seed_data, teacher_token,
+    client,
+    db_session,
+    seed_data,
+    teacher_token,
 ):
     """is_demo=True 学生不应出现在老师点呼板（rollcall session_board）。"""
     pw = security.hash_password("test-password-12345")
@@ -139,15 +156,15 @@ def test_demo_student_excluded_from_session_board(
     )
     assert res.status_code == 200, res.text
 
-    entries = res.json()["entries"]
+    entries = res.json()["data"]["entries"]
     student_ids = [e["student_id"] for e in entries]
     # demo 学生不应出现
-    assert str(demo_student.id) not in student_ids, \
-        "is_demo=True 学生不应出现在点呼板"
+    assert str(demo_student.id) not in student_ids, "is_demo=True 学生不应出现在点呼板"
     # seed_data 的 normal 学生 060218 应该在（确认过滤是 demo-only 不是把所有人都过滤掉）
     seed_student = seed_data["student"]
-    assert str(seed_student.id) in student_ids, \
+    assert str(seed_student.id) in student_ids, (
         "is_demo=False 的正常学生应该出现在点呼板"
+    )
 
 
 # ---------- _generate_code 范围 ----------

@@ -47,9 +47,7 @@ def _create_outing(client, student_token, **over) -> dict:
     body.update(over)
     res = client.post("/api/v1/outings", json=body, headers=_auth(student_token))
     assert res.status_code == 201, res.text
-    return res.json()
-
-
+    return res.json()["data"]
 def _make_dorm4_teacher_token(client, db_session) -> str:
     """建一个女寮（dorm 4）的普通老师并登录，返回令牌 — 用于跨寮越权负例。"""
     t = models.Teacher(
@@ -67,7 +65,7 @@ def _make_dorm4_teacher_token(client, db_session) -> str:
         json={"login_id": "ryomu_dorm4", "password": "test-password-12345"},
     )
     assert login.status_code == 200, login.text
-    return login.json()["access_token"]
+    return login.json()["data"]["access_token"]
 
 
 class TestCreateOuting:
@@ -118,7 +116,7 @@ class TestListMine:
         _create_outing(client, student_token)
         res = client.get("/api/v1/outings/mine", headers=_auth(student_token))
         assert res.status_code == 200
-        assert len(res.json()) >= 1
+        assert len(res.json()["data"]) >= 1
 
 
 class TestPendingForMe:
@@ -129,7 +127,7 @@ class TestPendingForMe:
         _create_outing(client, student_token)
         res = client.get("/api/v1/outings/pending-for-me", headers=_auth(teacher_token))
         assert res.status_code == 200
-        assert len(res.json()) >= 1
+        assert len(res.json()["data"]) >= 1
 
     def test_pending_now_includes_other_dorm(self, client, student_token, db_session):
         """别寮（女寮 dorm 4）老师的待确认列表现在也含男寮学生的外出（寮过滤已取消 2026-06-13）。"""
@@ -137,7 +135,7 @@ class TestPendingForMe:
         token4 = _make_dorm4_teacher_token(client, db_session)
         res = client.get("/api/v1/outings/pending-for-me", headers=_auth(token4))
         assert res.status_code == 200
-        assert outing["id"] in [o["id"] for o in res.json()]
+        assert outing["id"] in [o["id"] for o in res.json()["data"]]
 
 
 class TestGetDetail:
@@ -177,7 +175,7 @@ class TestConfirm:
             f"/api/v1/outings/{outing['id']}/confirm", headers=_auth(teacher_token)
         )
         assert res.status_code == 200, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert data["status"] == "approved"
         # teacher_token = ryomu_kachou（寮務次郎）
         teacher = seed_data["teachers"]["ryomu_kachou"]
@@ -217,7 +215,7 @@ class TestConfirm:
         )
         assert res.status_code == 200, res.text
         teacher = seed_data["teachers"]["ryomu_kachou"]
-        assert res.json()["confirmed_by_teacher_id"] == str(teacher.id)
+        assert res.json()["data"]["confirmed_by_teacher_id"] == str(teacher.id)
 
     def test_confirm_cross_dorm_now_allowed(self, client, student_token, db_session):
         """别寮（女寮 dorm 4）老师确认男寮（dorm 1）学生的外出 → 现在允许（寮过滤已取消 2026-06-13）。"""
@@ -227,7 +225,7 @@ class TestConfirm:
             f"/api/v1/outings/{outing['id']}/confirm", headers=_auth(token4)
         )
         assert res.status_code == 200, res.text
-        assert res.json()["status"] == "approved"
+        assert res.json()["data"]["status"] == "approved"
 
 
 class TestWithdraw:
@@ -239,7 +237,7 @@ class TestWithdraw:
             f"/api/v1/outings/{outing['id']}/withdraw", headers=_auth(student_token)
         )
         assert res.status_code == 200
-        assert res.json()["status"] == "withdrawn"
+        assert res.json()["data"]["status"] == "withdrawn"
 
     def test_withdraw_after_confirm_conflict(
         self, client, student_token, teacher_token

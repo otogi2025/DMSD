@@ -42,7 +42,7 @@ def test_student_login(client, seed_data):
         json={"student_no": "060218", "password": "test-password-12345"},
     )
     assert res.status_code == 200
-    assert "access_token" in res.json()
+    assert "access_token" in res.json()["data"]
 
 
 def test_student_login_wrong_password(client, seed_data):
@@ -94,7 +94,7 @@ def test_post_gaihaku_overseas_chain_5(client, student_token, seed_data, db_sess
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 201, res.text
-    data = res.json()
+    data = res.json()["data"]
     chain = data["approval_chain"]
     roles = [c["approver_role"] for c in chain]
     assert roles == ["担任", "国際交流部長", "寮務課長", "寮務部長", "管理係"], roles
@@ -140,7 +140,7 @@ def test_post_application_leave_date_today_rejected(client, student_token, seed_
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 422
-    assert res.json()["detail"]["code"] == "LEAVE_DATE_NOT_FUTURE"
+    assert res.json()["error"]["code"] == "LEAVE_DATE_NOT_FUTURE"
 
 
 def test_post_application_no_auth_rejected(client, seed_data):
@@ -194,14 +194,14 @@ def test_get_application_status(client, student_token, seed_data):
         json=body,
         headers={"Authorization": f"Bearer {student_token}"},
     )
-    app_id = post.json()["id"]
+    app_id = post.json()["data"]["id"]
 
     get = client.get(
         f"/api/v1/applications/{app_id}",
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert get.status_code == 200
-    data = get.json()
+    data = get.json()["data"]
     assert data["id"] == app_id
     assert data["status"] == "pending"
     # 留学生 + 帰省 → 5-28 实物表确认的 4 行 chain
@@ -325,7 +325,7 @@ def test_meals_calc(client, teacher_token, seed_data, db_session):
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert res.status_code == 200, res.text
-    data = res.json()
+    data = res.json()["data"]
     # 期間 = 2 日 (leave + return)
     assert len(data["daily"]) == 2
     # 1 学生 × 3 食 × 2 日 = 6 食 skip
@@ -366,7 +366,7 @@ def test_meals_role_forbidden(client, seed_data, db_session):
     )
     assert res.status_code == 200
     # 一般教师は OK
-    tannin_token = res.json()["access_token"]
+    tannin_token = res.json()["data"]["access_token"]
     leave = _tomorrow()
     res = client.get(
         f"/api/v1/meals/calc?from={leave.isoformat()}&to={leave.isoformat()}",
@@ -385,7 +385,7 @@ def test_notifications_test_dev_mode(client, teacher_token, seed_data):
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert res.status_code == 200
-    data = res.json()
+    data = res.json()["data"]
     # SENDGRID_API_KEY 未設定 → sent=false + error 含 'not configured'
     assert data["sent"] is False
     assert "not configured" in (data["error"] or "")

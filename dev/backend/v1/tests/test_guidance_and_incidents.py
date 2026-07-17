@@ -22,7 +22,7 @@ def ryomu_token(client, seed_data):
         json={"login_id": "ryomu_kachou", "password": "test-password-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 @pytest.fixture
@@ -33,7 +33,7 @@ def tannin_token(client, seed_data):
         json={"login_id": "tannin", "password": "test-password-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 @pytest.fixture
@@ -44,7 +44,7 @@ def kokukou_token(client, seed_data):
         json={"login_id": "kokukou_buchou", "password": "test-password-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 def _student_id(seed_data) -> str:
@@ -70,7 +70,7 @@ class TestGuidanceRecords:
             },
         )
         assert res.status_code == 201, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert data["student_id"] == sid
         assert data["content"] == "授業中の態度について指導した"
         assert data["confidential"] is True
@@ -81,7 +81,7 @@ class TestGuidanceRecords:
             headers={"Authorization": f"Bearer {ryomu_token}"},
         )
         assert res2.status_code == 200
-        assert len(res2.json()["items"]) == 1
+        assert len(res2.json()["data"]["items"]) == 1
 
     def test_create_403_non_ryomu(self, client, seed_data, kokukou_token):
         """国際交流部長无权录入指导记录 → 403。"""
@@ -149,41 +149,41 @@ class TestIncidentRecords:
         """老师创建事案 → 列表能查到。"""
         res = self._create(client, ryomu_token, title="テスト事案")
         assert res.status_code == 201, res.text
-        inc_id = res.json()["id"]
+        inc_id = res.json()["data"]["id"]
 
         res2 = client.get(
             "/api/v1/incidents",
             headers={"Authorization": f"Bearer {ryomu_token}"},
         )
         assert res2.status_code == 200
-        ids = [i["id"] for i in res2.json()["items"]]
+        ids = [i["id"] for i in res2.json()["data"]["items"]]
         assert inc_id in ids
 
     def test_get_detail(self, client, seed_data, ryomu_token):
         """创建后按 ID 查详情。"""
-        inc_id = self._create(client, ryomu_token, title="詳細テスト").json()["id"]
+        inc_id = self._create(client, ryomu_token, title="詳細テスト").json()["data"]["id"]
         res = client.get(
             f"/api/v1/incidents/{inc_id}",
             headers={"Authorization": f"Bearer {ryomu_token}"},
         )
         assert res.status_code == 200
-        assert res.json()["title"] == "詳細テスト"
+        assert res.json()["data"]["title"] == "詳細テスト"
 
     def test_patch(self, client, seed_data, ryomu_token):
         """编辑事案标题。"""
-        inc_id = self._create(client, ryomu_token, title="旧タイトル").json()["id"]
+        inc_id = self._create(client, ryomu_token, title="旧タイトル").json()["data"]["id"]
         res = client.patch(
             f"/api/v1/incidents/{inc_id}",
             headers={"Authorization": f"Bearer {ryomu_token}"},
             json={"title": "新タイトル"},
         )
         assert res.status_code == 200
-        assert res.json()["title"] == "新タイトル"
-        assert res.json()["updated_at"] is not None
+        assert res.json()["data"]["title"] == "新タイトル"
+        assert res.json()["data"]["updated_at"] is not None
 
     def test_soft_delete(self, client, seed_data, ryomu_token):
         """软删后列表查不到，详情也 404。"""
-        inc_id = self._create(client, ryomu_token, title="削除テスト").json()["id"]
+        inc_id = self._create(client, ryomu_token, title="削除テスト").json()["data"]["id"]
 
         res_del = client.delete(
             f"/api/v1/incidents/{inc_id}",
@@ -196,7 +196,7 @@ class TestIncidentRecords:
             "/api/v1/incidents",
             headers={"Authorization": f"Bearer {ryomu_token}"},
         )
-        ids = [i["id"] for i in res_list.json()["items"]]
+        ids = [i["id"] for i in res_list.json()["data"]["items"]]
         assert inc_id not in ids
 
         # 详情 404
@@ -216,9 +216,9 @@ class TestIncidentRecords:
             involved_student_ids=[sid],
         )
         assert res.status_code == 201
-        assert sid in res.json()["involved_student_ids"]
+        assert sid in res.json()["data"]["involved_student_ids"]
         # 杭田 2026-06-04 五-6: involved_students 带姓名（前端做可点击跳个人档案的 chip）
-        involved = res.json()["involved_students"]
+        involved = res.json()["data"]["involved_students"]
         assert len(involved) == 1, involved
         assert involved[0]["id"] == sid
         assert involved[0]["name"], "涉及学生姓名应非空"
@@ -305,7 +305,7 @@ class TestGuidanceDormBoundary:
             json={"login_id": "joshi_tannin", "password": "test-password-12345"},
         )
         assert res.status_code == 200, res.text
-        return res.json()["access_token"]
+        return res.json()["data"]["access_token"]
 
     def test_create_guidance_cross_dorm_now_allowed(
         self, client, seed_data, joshi_token

@@ -51,7 +51,7 @@ class TestCreateApplication:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 201, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert data["kind"] == "帰省"
         assert data["status"] == "pending"
         # approval chain 应有 5 役职 step（留学生 → 国際 chain）
@@ -77,7 +77,7 @@ class TestCreateApplication:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 201, res.text
-        assert res.json()["taxi_reservation_time"] == "18:30:00"
+        assert res.json()["data"]["taxi_reservation_time"] == "18:30:00"
 
     def test_create_without_taxi_defaults_null(self, client, student_token):
         """不带出租车预约 → taxi_reservation_time 为 null。"""
@@ -87,7 +87,7 @@ class TestCreateApplication:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 201, res.text
-        assert res.json()["taxi_reservation_time"] is None
+        assert res.json()["data"]["taxi_reservation_time"] is None
 
 
 class TestListMine:
@@ -100,7 +100,7 @@ class TestListMine:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 200
-        assert res.json() == []
+        assert res.json()["data"] == []
 
     def test_list_mine_after_create(self, client, student_token):
         """学生提出后 → list 含 1 条。"""
@@ -116,7 +116,7 @@ class TestListMine:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 200
-        items = res.json()
+        items = res.json()["data"]
         assert len(items) == 1
         assert items[0]["kind"] == "帰省"
 
@@ -137,7 +137,7 @@ class TestPendingForMe:
         assert res.status_code == 200, (
             f"路由顺序 bug 复发 — A-013: {res.status_code} {res.text}"
         )
-        assert isinstance(res.json(), list)
+        assert isinstance(res.json()["data"], list)
 
     def test_pending_for_me_requires_teacher(self, client, student_token):
         """学生 token → 403（教师专用）。"""
@@ -158,14 +158,14 @@ class TestGetApplication:
             json=_kisei_body(),
             headers={"Authorization": f"Bearer {student_token}"},
         )
-        app_id = res_create.json()["id"]
+        app_id = res_create.json()["data"]["id"]
 
         res = client.get(
             f"/api/v1/applications/{app_id}",
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 200
-        assert res.json()["id"] == app_id
+        assert res.json()["data"]["id"] == app_id
 
     def test_get_invalid_uuid_returns_422(self, client, student_token):
         """非 UUID 路径 → 422（不是 'pending-for-me' 这种已 mount 的静态路径）。"""
@@ -186,14 +186,14 @@ class TestAudit:
             json=_kisei_body(),
             headers={"Authorization": f"Bearer {student_token}"},
         )
-        app_id = res_create.json()["id"]
+        app_id = res_create.json()["data"]["id"]
 
         res = client.get(
             f"/api/v1/applications/{app_id}/audit",
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 200
-        entries = res.json()
+        entries = res.json()["data"]
         assert isinstance(entries, list)
         # 至少有 submit action
         actions = [e.get("action", "") for e in entries]
@@ -216,7 +216,7 @@ class TestUpdateApplication:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert res.status_code == 201, res.text
-        return res.json()["id"]
+        return res.json()["data"]["id"]
 
     def test_update_records_amend_reason_in_audit(
         self, client, student_token, db_session
@@ -238,7 +238,7 @@ class TestUpdateApplication:
             f"/api/v1/applications/{app_id}/audit",
             headers={"Authorization": f"Bearer {student_token}"},
         )
-        entries = res_audit.json()
+        entries = res_audit.json()["data"]
         update_entries = [e for e in entries if e.get("action") == "application.update"]
         assert update_entries, f"没有 application.update 记录: {entries}"
         assert any(
@@ -269,7 +269,7 @@ class TestUpdateApplication:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 200, res.text
-        assert res.json()["status"] == "pending", res.text
+        assert res.json()["data"]["status"] == "pending", res.text
         # 审批链已全删重建：所有 approval 行都是未决（decision=None）
         db_session.expire_all()
         approvals = (
@@ -301,7 +301,7 @@ class TestUpdateApplication:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 200, res.text
-        assert res.json()["status"] == "pending", res.text
+        assert res.json()["data"]["status"] == "pending", res.text
 
     def test_update_noop_rejected(self, client, student_token):
         """没有真实字段变化（只填 amend_reason）→ 422 NO_CHANGES，不重置审批链。"""
@@ -312,7 +312,7 @@ class TestUpdateApplication:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 422, res.text
-        assert res.json()["detail"]["code"] == "NO_CHANGES", res.text
+        assert res.json()["error"]["code"] == "NO_CHANGES", res.text
 
     def test_audit_teacher_outside_dorm_now_allowed(
         self, client, student_token, seed_data, db_session
@@ -359,7 +359,7 @@ class TestUpdateApplication:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 422, res.text
-        assert res.json()["detail"]["code"] == "AMEND_REASON_REQUIRED", res.text
+        assert res.json()["error"]["code"] == "AMEND_REASON_REQUIRED", res.text
 
     def test_update_same_field_value_noop(self, client, student_token, db_session):
         """传与现值相同的业务字段（+理由）→ 422 NO_CHANGES，已承认的审批行不被清。"""
@@ -386,7 +386,7 @@ class TestUpdateApplication:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 422, res.text
-        assert res.json()["detail"]["code"] == "NO_CHANGES", res.text
+        assert res.json()["error"]["code"] == "NO_CHANGES", res.text
         # 同一审批行还在、decision 仍是 approve（没被删除重建）
         db_session.expire_all()
         appr2 = db_session.get(models.ApplicationApproval, appr_id)
@@ -407,7 +407,7 @@ class TestApprovalNotifiesStudent:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 201, res.text
-        return res.json()["id"]
+        return res.json()["data"]["id"]
 
     def test_reject_notifies_submitter_by_email(
         self, client, student_token, teacher_token, db_session
@@ -422,7 +422,7 @@ class TestApprovalNotifiesStudent:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 200, res.text
-        assert res.json()["status"] == "rejected", res.text
+        assert res.json()["data"]["status"] == "rejected", res.text
 
         logs = (
             db_session.query(models.NotificationLog)
@@ -449,7 +449,7 @@ class TestApprovalNotifiesStudent:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 200, res.text
-        st = res.json()["status"]
+        st = res.json()["data"]["status"]
         logs = (
             db_session.query(models.NotificationLog)
             .filter_by(template_key="application_decided")
@@ -492,7 +492,7 @@ class TestApprovalNotifiesStudent:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 200, res.text
-        assert res.json()["status"] == "approved", res.text
+        assert res.json()["data"]["status"] == "approved", res.text
 
         logs = (
             db_session.query(models.NotificationLog)
@@ -526,7 +526,7 @@ class TestActiveLeaves:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 201, res.text
-        app_id = res.json()["id"]
+        app_id = res.json()["data"]["id"]
         row = db_session.get(models.Application, UUID(app_id))
         row.status = "approved"
         row.leave_date = date.today() + timedelta(days=leave_delta)
@@ -544,7 +544,7 @@ class TestActiveLeaves:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 200, res.text
-        assert app_id in [a["id"] for a in res.json()]
+        assert app_id in [a["id"] for a in res.json()["data"]]
 
     def test_active_excludes_pending(
         self, client, student_token, teacher_token, db_session
@@ -555,13 +555,13 @@ class TestActiveLeaves:
             json=_kisei_body(),
             headers={"Authorization": f"Bearer {student_token}"},
         )
-        pid = res0.json()["id"]
+        pid = res0.json()["data"]["id"]
         res = client.get(
             "/api/v1/applications/active",
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 200, res.text
-        assert pid not in [a["id"] for a in res.json()]
+        assert pid not in [a["id"] for a in res.json()["data"]]
 
     def test_active_excludes_out_of_range(
         self, client, student_token, teacher_token, db_session
@@ -575,7 +575,7 @@ class TestActiveLeaves:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 200, res.text
-        assert app_id not in [a["id"] for a in res.json()]
+        assert app_id not in [a["id"] for a in res.json()["data"]]
 
     def test_active_cross_dorm_now_included(self, client, student_token, db_session):
         """dorm4 担任老师现在也能看到 dorm1 学生的出寮（寮过滤已取消 2026-06-13）。"""
@@ -598,7 +598,7 @@ class TestActiveLeaves:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert res.status_code == 200, res.text
-        assert app_id in [a["id"] for a in res.json()]
+        assert app_id in [a["id"] for a in res.json()["data"]]
 
     def test_active_requires_teacher(self, client, student_token):
         """学生 token 不能看出寮者一覧。"""
@@ -637,8 +637,8 @@ class TestApplicationByTeacher:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 201, res.text
-        assert res.json()["status"] == "pending"
-        assert res.json()["student_id"] == sid
+        assert res.json()["data"]["status"] == "pending"
+        assert res.json()["data"]["student_id"] == sid
 
     def test_teacher_dairoku_past_rejected(self, client, teacher_token, seed_data):
         """过去日仍禁（只放宽到当日）→ 422。"""
@@ -649,7 +649,7 @@ class TestApplicationByTeacher:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 422, res.text
-        assert res.json()["detail"]["code"] == "LEAVE_DATE_PAST"
+        assert res.json()["error"]["code"] == "LEAVE_DATE_PAST"
 
     def test_any_approval_role_allowed(self, client, seed_data):
         """职位纯标签化后：国際交流部長（有「申请审批」权限）也能代録 → 201。
@@ -752,7 +752,7 @@ class TestProxyCandidates:
         """寮務課長搜学生 → 200 + 含 seed 学生（精简字段）。"""
         res = client.get(self.URL, headers={"Authorization": f"Bearer {teacher_token}"})
         assert res.status_code == 200, res.text
-        rows = res.json()
+        rows = res.json()["data"]
         sid = str(seed_data["student"].id)
         hit = [r for r in rows if r["id"] == sid]
         assert hit, rows
@@ -774,7 +774,7 @@ class TestProxyCandidates:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 200, res.text
-        assert str(seed_data["student"].id) in [r["id"] for r in res.json()]
+        assert str(seed_data["student"].id) in [r["id"] for r in res.json()["data"]]
 
     def test_search_by_student_no(self, client, teacher_token, seed_data):
         """q=学号片段（grade+class+seat 拼接）→ 命中。"""
@@ -784,7 +784,7 @@ class TestProxyCandidates:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 200, res.text
-        assert str(seed_data["student"].id) in [r["id"] for r in res.json()]
+        assert str(seed_data["student"].id) in [r["id"] for r in res.json()["data"]]
 
     def test_ippan_kyoushi_allowed(self, client, seed_data):
         """寮務一般教師（admin GET /students 用不了的角色）→ 200。
@@ -832,7 +832,7 @@ class TestProxyCandidates:
         token = security.create_access_token(other.id, f"teacher:{other.role}")
         res = client.get(self.URL, headers={"Authorization": f"Bearer {token}"})
         assert res.status_code == 200, res.text
-        assert str(seed_data["student"].id) in [r["id"] for r in res.json()]
+        assert str(seed_data["student"].id) in [r["id"] for r in res.json()["data"]]
 
     def test_excludes_demo_student(self, client, teacher_token, db_session):
         """is_demo=True 的假数据学生不出现在选择器里。"""
@@ -853,7 +853,7 @@ class TestProxyCandidates:
         db_session.commit()
         res = client.get(self.URL, headers={"Authorization": f"Bearer {teacher_token}"})
         assert res.status_code == 200, res.text
-        assert str(demo.id) not in [r["id"] for r in res.json()]
+        assert str(demo.id) not in [r["id"] for r in res.json()["data"]]
 
 
 class TestOutstayBroadcastDormUnit:

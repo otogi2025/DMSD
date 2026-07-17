@@ -121,7 +121,7 @@ def _tok(client, login_id: str, password: str = "test-password-12345") -> str:
         json={"login_id": login_id, "password": password},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 def _student_tok(client, student_no: str, password: str = "test-password-12345") -> str:
@@ -130,7 +130,7 @@ def _student_tok(client, student_no: str, password: str = "test-password-12345")
         json={"student_no": student_no, "password": password},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 # -----------------------------------------------------------------------
@@ -146,7 +146,7 @@ class TestStudentProfile:
             headers={"Authorization": f"Bearer {tok}"},
         )
         assert res.status_code == 200, res.text
-        data = res.json()
+        data = res.json()["data"]
         # 基本信息
         assert data["student"]["student_no"] == "050101"
         assert data["student"]["grade_code"] == "05"
@@ -166,7 +166,7 @@ class TestStudentProfile:
             headers={"Authorization": f"Bearer {tok}"},
         )
         assert res.status_code == 200, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert data["student"]["student_no"] == "050101"
         # 指导履历返空（学生侧 C 案）
         assert data["guidance_records"] == []
@@ -271,7 +271,7 @@ class TestStudentProfile:
             headers={"Authorization": f"Bearer {tok}"},
         )
         assert res.status_code == 200, res.text
-        rc = res.json()["rollcall_events"]
+        rc = res.json()["data"]["rollcall_events"]
         assert len(rc) == 1, rc
         assert rc[0]["session_type"] == "morning", rc[0]
 
@@ -357,7 +357,7 @@ class TestRenewalStart:
             json={"dry_run": True},
         )
         assert res.status_code == 200, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert data["dry_run"] is True
         assert data["notify_count"] == 5  # 中1〜高2
         assert data["graduate_count"] == 1  # 高3
@@ -391,7 +391,7 @@ class TestRenewalStart:
             json={"dry_run": False},
         )
         assert res.status_code == 200, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert data["dry_run"] is False
         assert data["notify_count"] == 5
         assert data["graduate_count"] == 1
@@ -459,7 +459,7 @@ class TestStudentRenewNumber:
             json={"grade_code": "06", "class_code": "01", "seat_no": "30"},
         )
         assert res.status_code == 200, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert data["student_no"] == "060130"
         assert data["needs_renewal"] is False
 
@@ -491,7 +491,7 @@ class TestStudentRenewNumber:
             json={"grade_code": "06", "class_code": "01", "seat_no": "30"},
         )
         assert res.status_code == 422, res.text
-        assert res.json()["detail"]["code"] == "STUDENT_NO_TAKEN"
+        assert res.json()["error"]["code"] == "STUDENT_NO_TAKEN"
 
     def test_self_renew_ignores_body_student_id(self, client, seed_data, db_session):
         """身份从令牌取 — 请求体即使塞 student_id 也被忽略，只改本人。"""
@@ -522,7 +522,7 @@ class TestStudentRenewNumber:
         )
         assert res.status_code == 200, res.text
         # 本人（060218）被改成 060140
-        assert res.json()["student_no"] == "060140"
+        assert res.json()["data"]["student_no"] == "060140"
         # 他人完全没动
         db_session.expire_all()
         o = db_session.get(models.Student, other_id)
@@ -547,7 +547,7 @@ class TestStudentRenewNumber:
             json={"grade_code": "06", "class_code": "01", "seat_no": "30"},
         )
         assert res.status_code == 409, res.text
-        assert res.json()["detail"]["code"] == "RENEWAL_NOT_OPEN"
+        assert res.json()["error"]["code"] == "RENEWAL_NOT_OPEN"
 
     def test_self_renew_db_conflict_writes_failure_audit(
         self, client, seed_data, db_session, monkeypatch
@@ -594,7 +594,7 @@ class TestStudentRenewNumber:
         )
         # 业务行为不变：撞号仍正确返 422
         assert res.status_code == 422, res.text
-        assert res.json()["detail"]["code"] == "STUDENT_NO_TAKEN"
+        assert res.json()["error"]["code"] == "STUDENT_NO_TAKEN"
 
         # A-491 核心：失败尝试留下审计痕迹（action=student.renew_number_conflict）
         db_session.expire_all()
@@ -634,7 +634,7 @@ class TestRenewalProgress:
             headers={"Authorization": f"Bearer {tok}"},
         )
         assert res.status_code == 200, res.text
-        data = res.json()
+        data = res.json()["data"]
         # 中1~高2 共 5 人待更新（高3 毕业 / demo 排除）
         assert data["pending_count"] == 5
         assert len(data["items"]) == 5
@@ -649,7 +649,7 @@ class TestRenewalProgress:
             headers={"Authorization": f"Bearer {tok}"},
         )
         assert res.status_code == 200, res.text
-        assert res.json()["pending_count"] == 0
+        assert res.json()["data"]["pending_count"] == 0
 
     def test_progress_forbidden(self, client, promote_seed):
         """低权限老师（申請承認専用 组）→ 可查看学年更新进度（200）。
@@ -690,7 +690,7 @@ class TestTeacherRenewSeat:
             json={"grade_code": "01", "class_code": "01", "seat_no": "50"},
         )
         assert res.status_code == 200, res.text
-        assert res.json()["student_no"] == "010150"
+        assert res.json()["data"]["student_no"] == "010150"
 
         db_session.expire_all()
         s = db_session.get(models.Student, sid)
@@ -707,7 +707,7 @@ class TestTeacherRenewSeat:
             json={"grade_code": "02", "class_code": "01", "seat_no": "02"},
         )
         assert res.status_code == 422, res.text
-        assert res.json()["detail"]["code"] == "STUDENT_NO_TAKEN"
+        assert res.json()["error"]["code"] == "STUDENT_NO_TAKEN"
 
     def test_teacher_renew_forbidden(self, client, promote_seed, db_session):
         sid = self._s1_id(db_session).id
@@ -772,7 +772,7 @@ class TestRenewalDormBoundary:
             headers={"Authorization": f"Bearer {tok}"},
         )
         assert res.status_code == 200, res.text
-        nos = {i["student_no"] for i in res.json()["items"]}
+        nos = {i["student_no"] for i in res.json()["data"]["items"]}
         assert "050101" in nos  # 寮过滤取消后 dorm4 女寮生也进入 dorm1 管理係 视野
 
 
@@ -791,7 +791,7 @@ class TestStudentMe:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 200, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert data["student_no"] == "060218", data
         assert data["name"] == "リュウ イヒ"
         assert data["room_no"] == "M101"
@@ -815,7 +815,7 @@ class TestStudentMe:
         )
         assert res.status_code == 200, res.text
         # basic 响应（无 applications/study_checkins 等聚合块），区别于 /profile
-        assert "applications" not in res.json()
+        assert "applications" not in res.json()["data"]
 
 
 class TestMyDisciplineSummary:
@@ -903,7 +903,7 @@ class TestMyDisciplineSummary:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 200, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert data["month"] == this_month, data
         assert data["total_points"] == 4.0, data
         assert data["late_count"] == 2, data

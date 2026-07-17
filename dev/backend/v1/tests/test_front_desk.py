@@ -59,7 +59,7 @@ def test_mine_returns_own_deliveries(client, seed_data, student_token, db_sessio
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 200, res.text
-    data = res.json()
+    data = res.json()["data"]
     assert len(data) == 2
     assert {d["description"] for d in data} == {"Amazon の荷物", "郵便局の不在票"}
     assert all(d["kind"] == "delivery" for d in data)
@@ -83,7 +83,7 @@ def test_mine_excludes_lost_and_found(client, seed_data, student_token, db_sessi
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 200, res.text
-    assert res.json() == []
+    assert res.json()["data"] == []
 
 
 def test_mine_excludes_other_students(client, seed_data, student_token, db_session):
@@ -118,7 +118,7 @@ def test_mine_excludes_other_students(client, seed_data, student_token, db_sessi
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 200, res.text
-    data = res.json()
+    data = res.json()["data"]
     assert len(data) == 1
     assert data[0]["description"] == "自分の荷物"
 
@@ -140,7 +140,7 @@ def test_mine_includes_picked_up(client, seed_data, student_token, db_session):
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 200, res.text
-    data = res.json()
+    data = res.json()["data"]
     assert len(data) == 1
     assert data[0]["status"] == "picked_up"
 
@@ -170,7 +170,7 @@ def test_mine_ordered_newest_first(client, seed_data, student_token, db_session)
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert res.status_code == 200, res.text
-    assert [d["description"] for d in res.json()] == ["新しい", "古い"]
+    assert [d["description"] for d in res.json()["data"]] == ["新しい", "古い"]
 
 
 def test_mine_requires_auth(client):
@@ -194,7 +194,7 @@ def _login_teacher(client, login_id):
         json={"login_id": login_id, "password": "test-password-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 def test_list_now_shows_all_dorms(client, seed_data, db_session):
@@ -248,7 +248,7 @@ def test_list_now_shows_all_dorms(client, seed_data, db_session):
         headers={"Authorization": f"Bearer {male_token}"},
     )
     assert res.status_code == 200, res.text
-    descs = {i["description"] for i in res.json()}
+    descs = {i["description"] for i in res.json()["data"]}
     assert "男寮の荷物" in descs
     assert "無主の忘れ物" in descs
     assert "女寮の荷物" in descs  # 寮过滤取消后女寮条目也可见
@@ -260,7 +260,7 @@ def test_list_now_shows_all_dorms(client, seed_data, db_session):
         headers={"Authorization": f"Bearer {cross_token}"},
     )
     assert res2.status_code == 200, res2.text
-    descs2 = {i["description"] for i in res2.json()}
+    descs2 = {i["description"] for i in res2.json()["data"]}
     assert {"男寮の荷物", "女寮の荷物", "無主の忘れ物"} <= descs2
 
 
@@ -302,7 +302,7 @@ def test_search_recipients_ryokan_can_access_all_dorms(client, seed_data, db_ses
         headers={"Authorization": f"Bearer {token}"},
     )
     assert res.status_code == 200, res.text  # 核心：寮監不再 403
-    names = {s["name"] for s in res.json()}
+    names = {s["name"] for s in res.json()["data"]}
     assert seed_data["student"].name in names  # 男寮学生可见
     assert "女子 受取人" in names  # 寮过滤取消后女寮学生也可见
 
@@ -341,7 +341,7 @@ def test_create_delivery_default_item_count(client, seed_data):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert res.status_code == 201, res.text
-    assert res.json()["item_count"] == 1
+    assert res.json()["data"]["item_count"] == 1
 
 
 def test_create_delivery_with_item_count(client, seed_data):
@@ -357,7 +357,7 @@ def test_create_delivery_with_item_count(client, seed_data):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert res.status_code == 201, res.text
-    assert res.json()["item_count"] == 3
+    assert res.json()["data"]["item_count"] == 3
 
 
 def test_create_item_count_must_be_positive(client, seed_data):
@@ -387,7 +387,7 @@ def test_create_delivery_description_optional(client, seed_data):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert res.status_code == 201, res.text
-    assert res.json()["description"] == ""
+    assert res.json()["data"]["description"] == ""
 
 
 def test_create_lost_and_found_requires_description(client, seed_data):

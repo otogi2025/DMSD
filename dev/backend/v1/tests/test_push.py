@@ -60,7 +60,7 @@ def test_register_device_token_created(client, _engine):
         headers={"Authorization": f"Bearer {jwt}"},
     )
     assert res.status_code == 200, res.text
-    body = res.json()
+    body = res.json()["data"]
     assert body["created"] is True
     assert body["platform"] == "ios"
     assert "id" in body
@@ -85,7 +85,7 @@ def test_register_device_token_idempotent(client, _engine):
         )
         assert res.status_code == 200, res.text
 
-    body = res.json()
+    body = res.json()["data"]
     assert body["created"] is False  # 第 2 次应该是幂等更新
 
 
@@ -227,7 +227,7 @@ def test_device_token_ownership_transfer(client, _engine):
         headers={"Authorization": f"Bearer {jwt_a}"},
     )
     assert r1.status_code == 200, r1.text
-    assert r1.json()["created"] is True
+    assert r1.json()["data"]["created"] is True
 
     # 学生 B 用同一 token 注册 — 应该成功而不是 409/500
     r2 = client.post(
@@ -236,7 +236,7 @@ def test_device_token_ownership_transfer(client, _engine):
         headers={"Authorization": f"Bearer {jwt_b}"},
     )
     assert r2.status_code == 200, r2.text
-    body = r2.json()
+    body = r2.json()["data"]
     # 归属已转移给 B
     assert str(body["student_id"]) == str(sid_b)
 
@@ -273,6 +273,6 @@ def test_revoked_token_reregister_200(client, _engine):
         headers={"Authorization": f"Bearer {jwt}"},
     )
     assert res.status_code == 200, res.text
-    body = res.json()
+    body = res.json()["data"]
     # revoked_at 已被清空（复活），platform 正确
     assert body["platform"] == "ios"

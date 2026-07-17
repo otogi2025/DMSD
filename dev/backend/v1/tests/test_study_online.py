@@ -47,7 +47,7 @@ def _create_request(client, token, offset_days=5):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert res.status_code == 201, res.text
-    return res.json()["id"]
+    return res.json()["data"]["id"]
 
 
 def _upload(
@@ -84,7 +84,7 @@ def second_student_token(client, db_session, seed_data):
         json={"student_no": "060219", "password": "test-password-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 @pytest.fixture
@@ -106,7 +106,7 @@ def female_dorm_teacher_token(client, db_session, seed_data):
         json={"login_id": "onna_sensei", "password": "test-password-12345"},
     )
     assert res.status_code == 200, res.text
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]
 
 
 class TestUploadContract:
@@ -122,7 +122,7 @@ class TestUploadContract:
         rid = _create_request(client, student_token)
         res = _upload(client, student_token, rid)
         assert res.status_code == 200, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert data["contract_file_name"] == "contract.pdf"
         assert data["contract_mime"] == "application/pdf"
         assert data["contract_size"] == len(PDF_BYTES)
@@ -140,7 +140,7 @@ class TestUploadContract:
             mime="image/jpeg",
         )
         assert res.status_code == 200, res.text
-        assert res.json()["contract_mime"] == "image/jpeg"
+        assert res.json()["data"]["contract_mime"] == "image/jpeg"
 
     def test_reject_unsupported_type(self, client, student_token):
         rid = _create_request(client, student_token)
@@ -165,7 +165,7 @@ class TestUploadContract:
         big = b"%PDF-1.4\n" + b"x" * (10 * 1024 * 1024 + 1)
         res = _upload(client, student_token, rid, name="big.pdf", body=big)
         assert res.status_code == 422
-        assert res.json()["detail"]["code"] == "FILE_TOO_LARGE"
+        assert res.json()["error"]["code"] == "FILE_TOO_LARGE"
 
     def test_reject_magic_mismatch(self, client, student_token):
         """声明 image/jpeg 但内容是 PDF 字节 → 文件头 magic 校验拒绝（防伪造扩展名落盘成凭证）。"""
@@ -179,7 +179,7 @@ class TestUploadContract:
             mime="image/jpeg",
         )
         assert res.status_code == 422, res.text
-        assert res.json()["detail"]["code"] == "UNSUPPORTED_FILE_TYPE"
+        assert res.json()["error"]["code"] == "UNSUPPORTED_FILE_TYPE"
 
     def test_reject_pdf_magic_not_at_start(self, client, student_token):
         """%PDF- 藏在文件中段而非开头 → 拒绝（startswith 而非 contains，codex 复审逮到的绕过）。"""
@@ -193,7 +193,7 @@ class TestUploadContract:
             mime="application/pdf",
         )
         assert res.status_code == 422, res.text
-        assert res.json()["detail"]["code"] == "UNSUPPORTED_FILE_TYPE"
+        assert res.json()["error"]["code"] == "UNSUPPORTED_FILE_TYPE"
 
     def test_upload_forces_extension_to_validated_type(self, client, student_token):
         """上传名 report.html 但内容是合法 PDF + 声明 pdf → 存盘文件名后缀强制 .pdf（不信原始后缀）。"""
@@ -207,7 +207,7 @@ class TestUploadContract:
             mime="application/pdf",
         )
         assert res.status_code == 200, res.text
-        assert res.json()["contract_file_name"] == "report.pdf"
+        assert res.json()["data"]["contract_file_name"] == "report.pdf"
 
     def test_reject_not_owner(self, client, student_token, second_student_token):
         rid = _create_request(client, student_token)
@@ -238,8 +238,8 @@ class TestUploadContract:
             mime="image/jpeg",
         )
         assert res.status_code == 200, res.text
-        assert res.json()["contract_mime"] == "image/jpeg"
-        assert res.json()["contract_size"] == len(JPEG_BYTES)
+        assert res.json()["data"]["contract_mime"] == "image/jpeg"
+        assert res.json()["data"]["contract_size"] == len(JPEG_BYTES)
 
 
 class TestDownloadContract:
@@ -309,14 +309,14 @@ class TestListCrossDorm:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res_ok.status_code == 200, res_ok.text
-        assert any(r["id"] == rid for r in res_ok.json())
+        assert any(r["id"] == rid for r in res_ok.json()["data"])
         # 女寮（assigned_dorm=4）老师现在也能看到男寮学生的申请
         res_block = client.get(
             "/api/v1/study/online-requests",
             headers={"Authorization": f"Bearer {female_dorm_teacher_token}"},
         )
         assert res_block.status_code == 200, res_block.text
-        assert any(r["id"] == rid for r in res_block.json())
+        assert any(r["id"] == rid for r in res_block.json()["data"])
 
 
 class TestProfileIncludesOnline:
@@ -331,7 +331,7 @@ class TestProfileIncludesOnline:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         assert res.status_code == 200, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert "study_online_requests" in data
         assert len(data["study_online_requests"]) == 1
         entry = data["study_online_requests"][0]
@@ -360,7 +360,7 @@ class TestSubmitOverlap:
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert res.status_code == 409, res.text
-        assert res.json()["detail"]["code"] == "ONLINE_REQUEST_OVERLAP"
+        assert res.json()["error"]["code"] == "ONLINE_REQUEST_OVERLAP"
 
     def test_overlap_partial_range_rejected(self, client, student_token):
         # 第一份：第 5~8 天

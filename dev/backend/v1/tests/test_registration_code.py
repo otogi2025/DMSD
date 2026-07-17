@@ -33,7 +33,7 @@ def test_refresh_returns_6_digit_code(client, teacher_token):
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert res.status_code == 201, res.text
-    data = res.json()
+    data = res.json()["data"]
     assert "code" in data
     assert len(data["code"]) == 6
     assert data["code"].isdigit()
@@ -52,7 +52,7 @@ def test_current_returns_active_code(client, teacher_token):
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert current_res.status_code == 200
-    assert current_res.json()["code"] == refresh_res.json()["code"]
+    assert current_res.json()["data"]["code"] == refresh_res.json()["data"]["code"]
 
 
 def test_close_invalidates_current(client, teacher_token):
@@ -65,7 +65,7 @@ def test_close_invalidates_current(client, teacher_token):
         "/api/v1/admin/registration-code/current",
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
-    assert before.status_code == 200 and before.json() is not None
+    assert before.status_code == 200 and before.json()["data"] is not None
 
     close = client.post(
         "/api/v1/admin/registration-code/close",
@@ -78,7 +78,7 @@ def test_close_invalidates_current(client, teacher_token):
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert after.status_code == 200
-    assert after.json() is None
+    assert after.json()["data"] is None
 
 
 def test_close_requires_admin_role(client, student_token):
@@ -97,7 +97,7 @@ def test_current_null_when_no_active(client, teacher_token):
         headers={"Authorization": f"Bearer {teacher_token}"},
     )
     assert res.status_code == 200
-    assert res.json() is None
+    assert res.json()["data"] is None
 
 
 def test_refresh_invalidates_previous(client, teacher_token):
@@ -105,18 +105,18 @@ def test_refresh_invalidates_previous(client, teacher_token):
     first = client.post(
         "/api/v1/admin/registration-code/refresh",
         headers={"Authorization": f"Bearer {teacher_token}"},
-    ).json()
+    ).json()["data"]
     second = client.post(
         "/api/v1/admin/registration-code/refresh",
         headers={"Authorization": f"Bearer {teacher_token}"},
-    ).json()
+    ).json()["data"]
     # 两次 refresh 必产出不同 code（新 code 生成）。理论 1/百万 碰撞概率可忽略。
     assert first["code"] != second["code"]
 
     history = client.get(
         "/api/v1/admin/registration-code/history",
         headers={"Authorization": f"Bearer {teacher_token}"},
-    ).json()
+    ).json()["data"]
     # 历史按新→旧 — items[0] = second，items[1] = first
     assert history["items"][0]["code"] == second["code"]
     assert history["items"][0]["invalidated_at"] is None
@@ -152,7 +152,7 @@ def test_create_account_invalid_code(client, seed_data):
     """无效 code → 422 INVALID_REGISTRATION_CODE。"""
     res = client.post("/api/v1/accounts", json=_new_account_body("999999"))
     assert res.status_code == 422
-    assert res.json()["detail"]["code"] == "INVALID_REGISTRATION_CODE"
+    assert res.json()["error"]["code"] == "INVALID_REGISTRATION_CODE"
 
 
 def test_create_account_success(client, seed_data, teacher_token):
@@ -160,11 +160,11 @@ def test_create_account_success(client, seed_data, teacher_token):
     code = client.post(
         "/api/v1/admin/registration-code/refresh",
         headers={"Authorization": f"Bearer {teacher_token}"},
-    ).json()["code"]
+    ).json()["data"]["code"]
 
     res = client.post("/api/v1/accounts", json=_new_account_body(code))
     assert res.status_code == 201, res.text
-    data = res.json()
+    data = res.json()["data"]
     assert "access_token" in data
     assert data["expires_in"] > 0
     assert data["student"]["student_no"] == "070105"
@@ -176,7 +176,7 @@ def test_create_account_student_no_taken(client, seed_data, teacher_token):
     code = client.post(
         "/api/v1/admin/registration-code/refresh",
         headers={"Authorization": f"Bearer {teacher_token}"},
-    ).json()["code"]
+    ).json()["data"]["code"]
 
     res = client.post(
         "/api/v1/accounts",
@@ -190,7 +190,7 @@ def test_create_account_student_no_taken(client, seed_data, teacher_token):
         ),
     )
     assert res.status_code == 422
-    assert res.json()["detail"]["code"] == "STUDENT_NO_TAKEN"
+    assert res.json()["error"]["code"] == "STUDENT_NO_TAKEN"
 
 
 def test_create_account_room_dorm_mismatch(client, seed_data, teacher_token):
@@ -198,14 +198,14 @@ def test_create_account_room_dorm_mismatch(client, seed_data, teacher_token):
     code = client.post(
         "/api/v1/admin/registration-code/refresh",
         headers={"Authorization": f"Bearer {teacher_token}"},
-    ).json()["code"]
+    ).json()["data"]["code"]
 
     res = client.post(
         "/api/v1/accounts",
         json=_new_account_body(code, room_no="W101"),  # 与 dorm_unit=2（A 前缀）矛盾
     )
     assert res.status_code == 422
-    assert res.json()["detail"]["code"] == "INVALID_ROOM_FORMAT"
+    assert res.json()["error"]["code"] == "INVALID_ROOM_FORMAT"
 
 
 def test_create_account_2dorm_rejects_M_prefix(client, seed_data, teacher_token):
@@ -217,7 +217,7 @@ def test_create_account_2dorm_rejects_M_prefix(client, seed_data, teacher_token)
     code = client.post(
         "/api/v1/admin/registration-code/refresh",
         headers={"Authorization": f"Bearer {teacher_token}"},
-    ).json()["code"]
+    ).json()["data"]["code"]
 
     # M205 + dorm_unit=2：旧实现误判通过，修复后应被 DB CHECK 同源正则拒绝
     res = client.post(
@@ -225,7 +225,7 @@ def test_create_account_2dorm_rejects_M_prefix(client, seed_data, teacher_token)
         json=_new_account_body(code, room_no="M205", dorm_unit=2),
     )
     assert res.status_code == 422, res.text
-    assert res.json()["detail"]["code"] == "INVALID_ROOM_FORMAT"
+    assert res.json()["error"]["code"] == "INVALID_ROOM_FORMAT"
 
 
 def test_create_account_2dorm_A_prefix_success(client, seed_data, teacher_token):
@@ -233,7 +233,7 @@ def test_create_account_2dorm_A_prefix_success(client, seed_data, teacher_token)
     code = client.post(
         "/api/v1/admin/registration-code/refresh",
         headers={"Authorization": f"Bearer {teacher_token}"},
-    ).json()["code"]
+    ).json()["data"]["code"]
 
     res = client.post(
         "/api/v1/accounts",
@@ -247,7 +247,7 @@ def test_create_account_code_reusable_within_ttl(client, seed_data, teacher_toke
     code = client.post(
         "/api/v1/admin/registration-code/refresh",
         headers={"Authorization": f"Bearer {teacher_token}"},
-    ).json()["code"]
+    ).json()["data"]["code"]
 
     res1 = client.post("/api/v1/accounts", json=_new_account_body(code))
     assert res1.status_code == 201
@@ -264,7 +264,7 @@ def test_create_account_after_refresh_old_code_fails(client, seed_data, teacher_
     old_code = client.post(
         "/api/v1/admin/registration-code/refresh",
         headers={"Authorization": f"Bearer {teacher_token}"},
-    ).json()["code"]
+    ).json()["data"]["code"]
     # 再 refresh 一次 → old_code 被作废
     client.post(
         "/api/v1/admin/registration-code/refresh",
@@ -273,7 +273,7 @@ def test_create_account_after_refresh_old_code_fails(client, seed_data, teacher_
 
     res = client.post("/api/v1/accounts", json=_new_account_body(old_code))
     assert res.status_code == 422
-    assert res.json()["detail"]["code"] == "INVALID_REGISTRATION_CODE"
+    assert res.json()["error"]["code"] == "INVALID_REGISTRATION_CODE"
 
 
 def test_create_account_integrity_fallback_student_no(
@@ -295,7 +295,7 @@ def test_create_account_integrity_fallback_student_no(
     code = client.post(
         "/api/v1/admin/registration-code/refresh",
         headers={"Authorization": f"Bearer {teacher_token}"},
-    ).json()["code"]
+    ).json()["data"]["code"]
 
     # 先正常注册占用学号 07/01/05（_new_account_body 默认学号）
     r1 = client.post("/api/v1/accounts", json=_new_account_body(code))
@@ -319,4 +319,4 @@ def test_create_account_integrity_fallback_student_no(
     # 再次注册同学号 → 前置查重被短路 → insert+commit 撞 uq_students_no → 兜底 STUDENT_NO_TAKEN
     r2 = client.post("/api/v1/accounts", json=_new_account_body(code))
     assert r2.status_code == 422, r2.text
-    assert r2.json()["detail"]["code"] == "STUDENT_NO_TAKEN"
+    assert r2.json()["error"]["code"] == "STUDENT_NO_TAKEN"

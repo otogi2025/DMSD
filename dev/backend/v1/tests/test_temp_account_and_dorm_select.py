@@ -87,7 +87,7 @@ def _login(client, login_id, **extra):
     body = {"login_id": login_id, "password": "test-password-12345", **extra}
     r = client.post("/api/v1/sessions/teacher", json=body)
     assert r.status_code == 200, r.text
-    return r.json()["access_token"]
+    return r.json()["data"]["access_token"]
 
 
 # ---------------------------------------------------------------
@@ -102,7 +102,7 @@ def test_selected_dorm_filters_student_list(client, seed_data, db_session):
     tok = _login(client, "ryomu_kachou")
     r = client.get("/api/v1/students", headers={"Authorization": f"Bearer {tok}"})
     assert r.status_code == 200, r.text
-    dorms_all = {it["dorm_unit"] for it in r.json()["items"]}
+    dorms_all = {it["dorm_unit"] for it in r.json()["data"]["items"]}
     assert 1 in dorms_all and 4 in dorms_all
 
     # 选男 → 只男寮（1/2）
@@ -111,7 +111,7 @@ def test_selected_dorm_filters_student_list(client, seed_data, db_session):
         "/api/v1/students", headers={"Authorization": f"Bearer {tok_m}"}
     )
     assert rm.status_code == 200
-    items_m = rm.json()["items"]
+    items_m = rm.json()["data"]["items"]
     assert len(items_m) >= 1
     assert all(it["dorm_unit"] in (1, 2) for it in items_m)
 
@@ -121,7 +121,7 @@ def test_selected_dorm_filters_student_list(client, seed_data, db_session):
         "/api/v1/students", headers={"Authorization": f"Bearer {tok_f}"}
     )
     assert rf.status_code == 200
-    items_f = rf.json()["items"]
+    items_f = rf.json()["data"]["items"]
     assert len(items_f) >= 1
     assert all(it["dorm_unit"] == 4 for it in items_f)
 
@@ -152,7 +152,7 @@ def test_temp_account_expired_login_rejected(client, db_session):
         json={"login_id": "temp_expired", "password": "test-password-12345"},
     )
     assert r.status_code == 403
-    assert r.json()["detail"]["code"] == "ACCOUNT_EXPIRED"
+    assert r.json()["error"]["code"] == "ACCOUNT_EXPIRED"
 
 
 def test_temp_account_future_login_ok(client, db_session):
@@ -174,7 +174,7 @@ def test_issued_token_rejected_after_expiry(client, db_session):
     db_session.commit()
     r = client.get("/api/v1/students", headers={"Authorization": f"Bearer {tok}"})
     assert r.status_code == 403
-    assert r.json()["detail"]["code"] == "ACCOUNT_EXPIRED"
+    assert r.json()["error"]["code"] == "ACCOUNT_EXPIRED"
 
 
 # ---------------------------------------------------------------
@@ -196,4 +196,4 @@ def test_create_temp_account_with_expiry(client, teacher_token):
         },
     )
     assert r.status_code == 201, r.text
-    assert r.json()["expires_at"] is not None
+    assert r.json()["data"]["expires_at"] is not None
