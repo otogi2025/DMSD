@@ -4,13 +4,14 @@ Copyright (c) 2026 itsuki (otogi2025)
 
 ---
 
-## 当前授权状态（2026-04-20）
+## 当前授权状态
 
-本仓库目前是 **Private**（GitHub 私有仓库）+ **All Rights Reserved**（保留所有权利）：
+本仓库在 GitHub 上**公开可见**（public），但保持 **All Rights Reserved**（保留所有权利）——公开可见不等于授权使用：
 
 - ❌ 未授权任何人 fork / clone / redistribute
 - ❌ 未授权商业使用
 - ❌ 未授权在其他项目中引用 DMSD 代码 / 设计
+- ✅ 任何人可在 GitHub 上阅读本仓库
 - ✅ itsuki 本人及其授权的协作者（AI 工具 / 老师 / 同学）可以读写
 
 ## 将来的许可证选择
