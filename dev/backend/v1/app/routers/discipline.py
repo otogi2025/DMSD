@@ -266,6 +266,9 @@ def create_manual_demerit(
     # 并发保护（codex 复审 major）：锁住该学生行，串行化对同一学生的并发「设定绝对分」。
     # 否则两请求可能读到相同 current_total、各算 delta 都插入 → 最终总分 != target_points。
     # SQLite(dev/test) 单写者本就串行、with_for_update 是 no-op；PostgreSQL(prod) 靠行锁串行。
+    # 2026-07-17（审查逻-中-5）协议扩展：全部 DemeritEvent 写入方（rollcall 迟到/结算/改判、
+    # study 结算/手动修正/撤销、本文件撤销）写前都先锁同一学生行——保证下面「读总分→算差值
+    # →写回」期间没有其他扣分写入穿插，设完总分恰等于 target_points。
     db.execute(
         select(models.Student.id)
         .where(models.Student.id == body.student_id)
@@ -344,6 +347,13 @@ def revoke_demerit(
                     "message": "担当外の寮の学生への操作はできません",
                 },
             )
+    # 扣分写入协议（2026-07-17 审查逻-中-5）：撤销（改总分）前先锁该学生行，
+    # 与本文件「手动设定绝对分」互斥（SQLite no-op / PG 行锁）。
+    db.execute(
+        select(models.Student.id)
+        .where(models.Student.id == event.student_id)
+        .with_for_update()
+    )
     # 原子领取撤销权：只有 revoked_at 仍为 NULL 才标记撤销。两老师并发撤销同一扣分时，
     # 后到者命中 0 行 → 409，避免「读到 None 都过 409 守卫」导致下面的清扫单退回联动被
     # 执行两次（TW-029）。照 outings/dorm_life 的 rowcount 守卫做法。

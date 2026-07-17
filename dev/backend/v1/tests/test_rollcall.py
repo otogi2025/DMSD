@@ -163,7 +163,9 @@ class TestCheckin:
         )
         assert res2.status_code in (200, 201), res2.text
         # 关键断言：同学生同场次仍只一行（命中既有事件，不因换 key 而复制）
-        assert res2.json()["data"]["id"] == event_id_1, "同学生同场次换 key 不应建出第二条事件"
+        assert res2.json()["data"]["id"] == event_id_1, (
+            "同学生同场次换 key 不应建出第二条事件"
+        )
 
     def test_path_hint_a_requires_card_uid(
         self, client, teacher_token, seed_data, rollcall_session
@@ -479,10 +481,14 @@ class TestPatchEvent:
         assert res2.status_code == 409, res2.text
         assert res2.json()["error"]["code"] == "NO_OP_OVERRIDE"
 
-    def test_patch_ended_session_blocked(
+    def test_patch_ended_session_allowed(
         self, client, teacher_token, seed_data, rollcall_session, db_session
     ):
-        """终态门：session ended 后改判 → 409 SESSION_ENDED。"""
+        """改判无时限（2026-07-17 拍板③）：session ended 后照样可改判，扣分联动照常。
+
+        原「终态门：ended → 409 SESSION_ENDED」已删——结合拍板②「结束前一律迟到」，
+        老师点完「点呼終了」后发现误判必须能当场更正，否则错误扣分进台账无法修正。
+        """
         student_id = str(seed_data["student"].id)
         event_id = self._checkin(client, teacher_token, rollcall_session.id, student_id)
         sess = db_session.get(models.RollCallSession, rollcall_session.id)
@@ -493,14 +499,26 @@ class TestPatchEvent:
             json={"to_status": "late", "reason": "遅刻"},
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
-        assert res.status_code == 409, res.text
-        assert res.json()["error"]["code"] == "SESSION_ENDED"
+        assert res.status_code == 200, res.text
+        # 扣分联动照常：present→late 记一条 0.5 有效扣分
+        db_session.expire_all()
+        active = (
+            db_session.query(models.DemeritEvent)
+            .filter(
+                models.DemeritEvent.student_id == seed_data["student"].id,
+                models.DemeritEvent.source_event_id == rollcall_session.id,
+                models.DemeritEvent.revoked_at.is_(None),
+            )
+            .all()
+        )
+        assert len(active) == 1
+        assert active[0].points == 0.5
 
-    def test_cross_dorm_teacher_hits_ended_gate(
+    def test_cross_dorm_teacher_can_override_ended_session(
         self, client, teacher_token, seed_data, rollcall_session, db_session
     ):
-        """寮过滤已取消 2026-06-13：跨寮老师改判不再被 FORBIDDEN_DORM 挡，
-        改已结束场次直接命中 409 SESSION_ENDED（终态门）。"""
+        """寮过滤已取消 2026-06-13（7-17 拍板「分角色跨寮」第二波再收）：跨寮老师
+        改判不被 FORBIDDEN_DORM 挡；结合 7-17 拍板③改判无时限，改已结束场次也成功。"""
         from app import security
 
         student_id = str(seed_data["student"].id)  # 学生 dorm_unit=1
@@ -533,8 +551,7 @@ class TestPatchEvent:
             json={"to_status": "late", "reason": "遅刻"},
             headers={"Authorization": f"Bearer {token4}"},
         )
-        assert res.status_code == 409, res.text
-        assert res.json()["error"]["code"] == "SESSION_ENDED"
+        assert res.status_code == 200, res.text
 
     def test_multistep_override_recomputes_demerit(
         self, client, teacher_token, seed_data, rollcall_session, db_session

@@ -594,6 +594,13 @@ def create_checkin(
     # spec §7.5 自动扣分 — late 即扣 0.5 点（§862 冻结值）
     # 老师之后改判走 _apply_override_demerit 按当前状态重算
     if base_status == "late":
+        # 扣分写入协议（2026-07-17 审查逻-中-5）：写 DemeritEvent 前先锁学生行，与
+        # discipline「手动设定绝对分」互斥（SQLite no-op / PG 行锁），防设分期间穿插写入。
+        db.execute(
+            select(models.Student.id)
+            .where(models.Student.id == student.id)
+            .with_for_update()
+        )
         db.add(
             models.DemeritEvent(
                 student_id=student.id,
@@ -854,6 +861,14 @@ def _apply_override_demerit(
     # A-497: month 经 _as_jst_aware 再 strftime，避免 JST 月初/月末把扣分归错月（见 create_checkin 同处注释）
     month = _as_jst_aware(session.scheduled_window_start_at).strftime("%Y-%m")
 
+    # 扣分写入协议（2026-07-17 审查逻-中-5）：写/撤 DemeritEvent 前先锁学生行，
+    # 与 discipline「手动设定绝对分」互斥（SQLite no-op / PG 行锁）。
+    db.execute(
+        select(models.Student.id)
+        .where(models.Student.id == student_id)
+        .with_for_update()
+    )
+
     # 本场该生的全部自动扣分行（含已撤销的 —— 唯一约束不区分 revoked，必须连撤销行一起取，
     # 否则后面 INSERT 同键会撞约束）。按 source_type 索引、最多两类各一行。
     rows = db.scalars(
@@ -933,8 +948,7 @@ def patch_event(
             404, {"code": "NOT_FOUND", "message": "点呼イベントが見つかりません"}
         )
 
-    # R4 寮边界：改判前先确认该学生属本老师管辖寮 —— 必须在任何状态探测（终态门）之前，
-    # 否则管辖外老师能靠 409 SESSION_ENDED vs 403 FORBIDDEN_DORM 的差别探测场次状态（Codex 5.5 审查发现）
+    # R4 寮边界：改判前先确认该学生属本老师管辖寮（放在一切业务判定之前）
     student = db.get(models.Student, event.student_id)
     # fail-closed：student 行被删 / student_id 悬空时无法判 demo / 寮归属，直接 404，
     # 不再跳过校验继续改判 + 扣分（与 study_online.decide_online_request 口径一致；
@@ -948,12 +962,11 @@ def patch_event(
     assert_student_demo_match(teacher, student)
 
     session = db.get(models.RollCallSession, event.session_id)
-    # 行锁串行化（TW-026 + codex M2）：先锁 session 行、再读 session_status，保证
-    # 「判终态 → 读最新状态 → 判 no-op → 追加 override 行 + 扣分联动」整段在锁内串行。
-    # 若像原来那样先判终态再加锁，end_session 可能在判定之后、加锁之前把 session 改成
-    # ended，本请求拿到锁后仍用旧 ORM 对象（显示 running）继续往已结束场次写改判。加锁后
-    # 必须 refresh，用锁内最新状态重判终态。PostgreSQL（生产）靠行锁串行；SQLite（dev/
-    # test）单写者天然串行，with_for_update 是 no-op。口径同 applications.decide_approval。
+    # 行锁串行化（TW-026 + codex M2）：先锁 session 行再操作，与 end_session 结算互斥——
+    # 改判与结算并发时保证「读最新状态 → 判 no-op → 追加 override 行 + 扣分联动」整段
+    # 在锁内串行、不交错。PostgreSQL（生产）靠行锁；SQLite（dev/test）单写者天然串行 no-op。
+    # 原「ended → 409 SESSION_ENDED 终态门」2026-07-17 拍板③删除：改判无时限（含结束后、
+    # 月结后），reason 必填 + append-only 不变（RollCall_Spec §11.3 改写）。
     if session is not None:
         db.execute(
             select(models.RollCallSession.id)
@@ -961,16 +974,6 @@ def patch_event(
             .with_for_update()
         )
         db.refresh(session)
-
-    # 终态约束：已结束(ended)的场次禁止改判（spec §11 结束后冻结）—— 锁内用刷新后的状态判
-    if session is not None and session.session_status == "ended":
-        raise HTTPException(
-            409,
-            {
-                "code": "SESSION_ENDED",
-                "message": "終了済みのセッションは改判できません",
-            },
-        )
 
     # 改判起点用该学生在本场次的「当前最新状态」，不是被 PATCH 那条 event 的 base_status。
     # event 是 append-only，旧行 base_status 永不变，直接用它会让重复 PATCH 同一条旧 event
@@ -1258,6 +1261,13 @@ def _settle_absent(db: Session, session: models.RollCallSession) -> None:
             # 撞约束时只回滚这名学生这一步，不波及外层（session 状态已置 ended、前面已结算的学生）。
             # 若直接 db.rollback() 会回滚整个会话事务、把 session.session_status='ended' 和之前
             # 学生的结算全冲掉 —— 故必须用 SAVEPOINT 而非整事务回滚。
+            # 扣分写入协议（2026-07-17 审查逻-中-5）：写 DemeritEvent 前先锁该学生行，
+            # 与 discipline「手动设定绝对分」互斥（SQLite no-op / PG 行锁）。
+            db.execute(
+                select(models.Student.id)
+                .where(models.Student.id == s.id)
+                .with_for_update()
+            )
             try:
                 with db.begin_nested():
                     db.add(

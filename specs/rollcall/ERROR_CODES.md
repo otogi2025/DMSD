@@ -185,7 +185,7 @@
 | code | 废止时间 | 说明 |
 |---|---|---|
 | `TIMEOUT` | 2026-07-17 | 拍板②「迟到无截止」随 late_end 概念删除（`RollCall_Spec §5.3` 修订注）；结束后签到归 `SESSION_NOT_RUNNING`。后端已移除 |
-| `SESSION_ENDED` | 2026-07-17 | 拍板③「改判无时限」废止「结束后禁改判」闸（`RollCall_Spec §11.3`）。**代码中尚存 1 处**（rollcall.py 改判闸），代码批删除后消失 |
+| `SESSION_ENDED` | 2026-07-17 | 拍板③「改判无时限」废止「结束后禁改判」闸（`RollCall_Spec §11.3`）。后端已随代码批删除（同日） |
 | `UNAUTHORIZED` | 2026-07-17 | 从未被后端使用（审查 2-中-6）——鉴权失败一律 `INVALID_CREDENTIALS`，前端不必映射本码 |
 | `OVERRIDE_TIME_LIMIT` | 2026-07-17 | 只存在于设计日志、从未实装；随拍板③时限矩阵废除一并废止 |
 | `NOT_STARTED` / `ENDED` | 2026-04-17 | 语义被 `SESSION_NOT_RUNNING` 覆盖（4-17 修订记录保留） |

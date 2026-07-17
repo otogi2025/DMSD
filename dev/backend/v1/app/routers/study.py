@@ -598,6 +598,11 @@ def bulk_finalize(
     # finalize 老师 = created_by（不是 None — 老师按了「学習終了」是手动触发）
     month = today.strftime("%Y-%m")
     for sid, c in to_absent:
+        # 扣分写入协议（2026-07-17 审查逻-中-5）：写 DemeritEvent 前先锁该学生行，
+        # 与 discipline「手动设定绝对分」互斥（SQLite no-op / PG 行锁）。
+        db.execute(
+            select(models.Student.id).where(models.Student.id == sid).with_for_update()
+        )
         # 逐条 SAVEPOINT：撞 uq_demerit_source（该生本场 study_absent 扣分已存在 ——
         # 并发重复结算 / 重新结算）时只回滚这条、跳过，不波及整批与已写的 checkin。
         try:
@@ -668,6 +673,13 @@ def patch_checkin(
         # 有则复活（清 revoked_*）、无则 INSERT。否则「缺席→出席→再缺席」回归路径下，旧软删行还占着
         # 唯一键，直接 INSERT 会撞约束被静默吞掉、扣分漏记。
         month = record.target_date.strftime("%Y-%m")
+        # 扣分写入协议（2026-07-17 审查逻-中-5）：写 DemeritEvent 前先锁该学生行，
+        # 与 discipline「手动设定绝对分」互斥（SQLite no-op / PG 行锁）。
+        db.execute(
+            select(models.Student.id)
+            .where(models.Student.id == record.student_id)
+            .with_for_update()
+        )
         existing = db.scalar(
             select(models.DemeritEvent).where(
                 models.DemeritEvent.student_id == record.student_id,
@@ -1260,6 +1272,13 @@ def _revoke_study_absent_demerit(
     精确定位本场欠席扣分撤销，不会误撤别天 / 别次的 study_absent。软删（保留 revoked_*）。
     一行 checkin 对应至多一条未撤销 study_absent 扣分，循环以防历史脏数据有多条。
     """
+    # 扣分写入协议（2026-07-17 审查逻-中-5）：撤 DemeritEvent 前先锁该学生行，
+    # 与 discipline「手动设定绝对分」互斥（SQLite no-op / PG 行锁）。
+    db.execute(
+        select(models.Student.id)
+        .where(models.Student.id == checkin.student_id)
+        .with_for_update()
+    )
     rows = db.scalars(
         select(models.DemeritEvent).where(
             models.DemeritEvent.student_id == checkin.student_id,
