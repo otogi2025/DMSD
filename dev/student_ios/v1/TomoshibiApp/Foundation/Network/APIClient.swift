@@ -112,7 +112,14 @@ final class APIClient {
             do {
                 let decoder = JSONDecoder()
                 decoder.dateDecodingStrategy = .custom(decodeISO8601Date)
-                return try decoder.decode(Res.self, from: data)
+                // 成功信封 {ok:true, data:...} — 先解外壳再取 data
+                let envelope = try decoder.decode(APIEnvelope<Res>.self, from: data)
+                guard envelope.ok, let payload = envelope.data else {
+                    throw APIError.decode(EmptyBodyError())
+                }
+                return payload
+            } catch let error as APIError {
+                throw error
             } catch {
                 throw APIError.decode(error)
             }
@@ -297,12 +304,34 @@ func decodeISO8601Date(_ decoder: Decoder) throws -> Date {
 
 // MARK: - Helper types
 
-/// backend 的错误响应有 2 种形态，两种都要 decode 来抽取提示信息：
-///   1. `{"detail": "字符串"}` — FastAPI 自带 validation error
-///   2. `{"detail": {"code": "...", "message": "..."}}` — 自家 raise HTTPException(detail={...}) 形式
+/// 后端成功响应信封 `{ok, data}`（契约 API_CONVENTIONS §1）。
+private struct APIEnvelope<T: Decodable>: Decodable {
+    let ok: Bool
+    let data: T?
+}
+
+/// backend 的错误响应形态（按优先级尝试）：
+///   1. `{"ok":false,"error":{"code","message","detail"}}` — 统一信封（2026-07-17）
+///   2. `{"detail": {"code": "...", "message": "..."}}` — 旧 HTTPException 形态
+///   3. `{"detail": "字符串"}` — 旧 FastAPI 默认字符串
 private enum DetailError {
     static func extractMessage(from data: Data) -> String? {
-        // 先试形态 2（自家形式信息量更大）
+        // 形态 1：新信封
+        struct EnvelopeErr: Decodable {
+            struct Err: Decodable {
+                let code: String?
+                let message: String?
+            }
+
+            let ok: Bool?
+            let error: Err
+        }
+        if let env = try? JSONDecoder().decode(EnvelopeErr.self, from: data),
+           let msg = env.error.message, !msg.isEmpty
+        {
+            return msg
+        }
+        // 形态 2（旧自家形式）
         struct Nested: Decodable {
             struct Inner: Decodable {
                 let code: String?
@@ -316,7 +345,7 @@ private enum DetailError {
         {
             return msg
         }
-        // 退到形态 1（FastAPI 默认的字符串 detail）
+        // 形态 3（旧 FastAPI 字符串 detail）
         struct Flat: Decodable { let detail: String }
         if let flat = try? JSONDecoder().decode(Flat.self, from: data),
            !flat.detail.isEmpty
