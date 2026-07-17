@@ -134,7 +134,7 @@
 
 ### Notes
 - 区间含 `27fbf29`（v0.24.9~v0.27.0 结账的 CHANGELOG commit 本体，记账动作不单独成版本）+ `91d85c8`（结账计数笔误修正）+ `b12ad5c`（pbxproj 版本号同步 0.27.0 的 xcodegen 产物追认）。
-- 本批 60 commit 全部未 push。
+- push 状态（`git ls-remote` live 查证）：本批 60 commit 中 59 个已随日常推送在远程（origin/main 停在 `6b1574f`），仅批末 `762dcb5` 与本结账 commit 未 push。
 
 ## [0.27.0] - 2026-06-18（后端寮过滤改登录时选寮 + 临时账户到期机制）
 
