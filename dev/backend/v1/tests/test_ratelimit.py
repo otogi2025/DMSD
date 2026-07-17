@@ -25,10 +25,21 @@ def _make_request(headers: dict[str, str], client_host: str | None) -> Request:
     return Request(scope)
 
 
-def test_client_ip_prefers_xff_first_hop():
-    """带 XFF → 取第一跳（最靠近客户端的地址），忽略后续反代链。"""
+def test_client_ip_takes_rightmost_xff_hop():
+    """带 XFF → 取最右一跳（自家反代写入的对端地址），不信更左的自报值。
+
+    2026-07-17 审查安-中-2 修复：原实装取最左值 = 信客户端自报 IP，
+    攻击者每请求换一个伪造值即绕过登录 / 注册码爆破限速。
+    """
     req = _make_request({"x-forwarded-for": "203.0.113.7, 10.0.0.1"}, "10.0.0.1")
-    assert _client_ip(req) == "203.0.113.7"
+    assert _client_ip(req) == "10.0.0.1"
+
+
+def test_client_ip_ignores_spoofed_left_values():
+    """攻击者自带伪造 XFF：换多少个伪造值，分桶键都是反代确认的同一跳。"""
+    a = _make_request({"x-forwarded-for": "6.6.6.1, 198.51.100.20"}, "10.0.0.1")
+    b = _make_request({"x-forwarded-for": "6.6.6.2, 198.51.100.20"}, "10.0.0.1")
+    assert _client_ip(a) == _client_ip(b) == "198.51.100.20"
 
 
 def test_client_ip_strips_whitespace():

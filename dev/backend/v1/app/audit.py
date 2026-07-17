@@ -267,10 +267,11 @@ class AuditLogMiddleware:
             if body_obj is not None:
                 payload["body"] = body_obj
 
-            # client ip — 优先 X-Forwarded-For（反向代理后），否则 scope client
+            # client ip — X-Forwarded-For 取最右一跳（最左是客户端可伪造的自报值，
+            # 落审计会污染取证 — 2026-07-17 审查安-中-2，与 ratelimit._client_ip 同口径）
             xff = _header(scope, b"x-forwarded-for")
             if xff:
-                ip = xff.split(",")[0].strip()
+                ip = xff.split(",")[-1].strip()
             else:
                 client = scope.get("client")
                 ip = client[0] if client else None

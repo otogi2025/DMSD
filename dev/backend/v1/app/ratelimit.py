@@ -18,17 +18,20 @@ _rate_limit_enabled = get_settings().app_env in ("staging", "production")
 
 
 def _client_ip(request) -> str:
-    """限速分桶键 — 优先 X-Forwarded-For 第一跳（反向代理后的真实客户端 IP）。
+    """限速分桶键 — 取 X-Forwarded-For 最右一跳（自家反代确认的对端 IP）。
 
     生产是 Caddy 反向代理 → gunicorn，未配信任代理头时 request.client.host 对
     所有外部客户端都是 Caddy 的内网 IP，slowapi 默认的 get_remote_address 会让
     全站共享一个桶 —— 登录限速（学生 20/min、老师 10/min、注册码 10/hour）退化成
     桶级 DoS（一台机器打满共享桶，全体被 429 挡在登录外）。
-    照 audit.py 同口径取 XFF 第一个地址；无 XFF（本地直连 / 测试）回退 client.host。
+    取值必须用**最右**而非最左：XFF 左侧是客户端可自带的任意内容，取最左值等于
+    信攻击者自报 IP，每请求换一个伪造值即换一个新桶、限速整个失效；最右一跳无论
+    代理是「替换」还是「追加」模式都是自家代理写入的对端地址（2026-07-17 审查
+    安-中-2 修复，audit.py 同口径）。无 XFF（本地直连 / 测试）回退 client.host。
     """
     xff = request.headers.get("x-forwarded-for")
     if xff:
-        return xff.split(",")[0].strip()
+        return xff.split(",")[-1].strip()
     return get_remote_address(request)
 
 
