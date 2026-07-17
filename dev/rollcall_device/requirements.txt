@@ -1,28 +1,21 @@
-# Tomoshibi 点呼机 Python 依赖
-# 实装前依赖最终选型见 ROLLCALL_DEVICE_DESIGN_LOG.md §1.1 + §10
-# 占位草稿（待 itsuki 拍板 D1-D6 后定版）
+# Tomoshibi 点呼机运行依赖（树莓派 Raspberry Pi OS Bookworm / Python 3.11+）
+# 这些含硬件库，只在树莓派上装；Mac 开发/测试用 requirements-dev.txt。
+# 装法见 docs/部署SOP.md。
 
-# NFC 读卡（D1 拍板后选 1 个）
-# Adafruit-PN532
-# nfcpy
+# --- NFC 读卡（PN532，SPI）：设计日志 D1 拍板 —— nfcpy 不支持 SPI，只能用 Adafruit ---
+adafruit-circuitpython-pn532==1.4.16
+adafruit-blinka==8.51.0
 
-# I2C 通信（ST25DV nonce 写入 — D2 自写驱动用）
-# smbus2
+# --- ST25DV16K 邮箱 I2C（smbus2 自写驱动，设计日志 D2）---
+smbus2==0.5.0
 
-# GPIO 控制（LED）
-# gpiozero
+# --- LED / GPO 中断（gpiozero + lgpio，Bookworm 默认 pin factory）---
+gpiozero==2.0.1
+lgpio==0.2.2.0
 
-# HTTP / WebSocket
-# httpx
-# websockets
+# --- 后端通信 ---
+httpx==0.28.1
+websockets==15.0.1
 
-# 音频 / TTS（D3 拍板后选）
-# pygame  # 预录 wav 播放
-# pyttsx3  # 离线 TTS
-
-# 日志
-# structlog
-
-# 测试
-# pytest
-# pytest-asyncio
+# --- 设备认证：Ed25519 密钥 + 签名 ---
+cryptography==44.0.0

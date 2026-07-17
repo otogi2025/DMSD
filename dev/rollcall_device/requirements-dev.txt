@@ -1,0 +1,10 @@
+# Tomoshibi 点呼机开发/测试依赖（Mac 可装，不含硬件库）
+# 硬件层（adafruit / smbus2 / gpiozero / lgpio）由 import 守卫在无硬件时降级，
+# 测试用假实现，故本文件不含它们。
+
+httpx==0.28.1
+websockets==15.0.1
+cryptography==44.0.0
+
+pytest==8.3.4
+pytest-asyncio==0.25.2

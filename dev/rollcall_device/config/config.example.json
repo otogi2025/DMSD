@@ -1,0 +1,17 @@
+{
+  "device_id": "dorm-1-01",
+  "enroll_code": "部署时填后端返回的一次性激活码，首启激活后程序自动清空",
+  "server_url": "https://api.tomoshibi.cc",
+  "ws_url": "wss://api.tomoshibi.cc",
+  "key_path": "/var/lib/tomoshibi/device_key",
+  "data_dir": "/var/lib/tomoshibi",
+  "gpio": {
+    "led_red": 17,
+    "led_green": 27,
+    "led_blue": 22,
+    "led_white": 23,
+    "st25dv_gpo": 24
+  },
+  "audio_output": "plughw:1,0",
+  "fw_version": "rollcall-device-2026.07"
+}
