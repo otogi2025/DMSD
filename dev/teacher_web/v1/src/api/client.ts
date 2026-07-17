@@ -94,17 +94,35 @@ async function request<T>(
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
     const wrapped: Record<string, unknown> = { status: res.status };
-    // 后端响应统一信封: {error: {...}} | {detail: '...'} | raw
+    // 后端失败信封：{ok:false, error:{code,message,detail}}（契约 §1）
+    // 兼容旧形态 {detail:字符串|对象|数组}，联调期两边都能解析。
     const inner = err && (err.error || err.detail || err);
-    if (Array.isArray(inner)) {
-      // Pydantic 默认校验失败时 detail 是数组 [{loc,msg,type}]。原来 typeof 数组==="object"
-      // → Object.assign 把数组下标(0/1/length)拷进 wrapped、message 留 undefined，组件
-      // alert(e.message || JSON.stringify(e)) 弹出原始 JSON 串给老师看（TW-015）。这里取
-      // 首条 msg 作可读提示，让所有走原生校验(EmailStr/Literal/长度等)的端点都显人话。
-      const first = inner[0] as { msg?: string; message?: string } | undefined;
+    // 校验错误：新信封 errors 在 error.detail.errors；旧形态 detail 本身是数组
+    const validationList: unknown[] | null = Array.isArray(inner)
+      ? inner
+      : inner &&
+          typeof inner === "object" &&
+          Array.isArray(
+            (inner as { detail?: { errors?: unknown } }).detail?.errors,
+          )
+        ? ((inner as { detail: { errors: unknown[] } }).detail
+            .errors as unknown[])
+        : null;
+    if (validationList) {
+      // 取首条 msg 作可读提示（TW-015：别把数组下标拷进 wrapped 给老师看原始 JSON）
+      const first = validationList[0] as
+        | { msg?: string; message?: string }
+        | undefined;
+      const fromEnvelope =
+        inner && typeof inner === "object" && !Array.isArray(inner)
+          ? (inner as { message?: string; code?: string })
+          : undefined;
       wrapped.message =
-        (first && (first.msg || first.message)) || "入力内容に誤りがあります";
-      wrapped.detail = inner;
+        fromEnvelope?.message ||
+        (first && (first.msg || first.message)) ||
+        "入力内容に誤りがあります";
+      if (fromEnvelope?.code) wrapped.code = fromEnvelope.code;
+      wrapped.detail = validationList;
     } else if (inner && typeof inner === "object") {
       Object.assign(wrapped, inner);
     } else {
@@ -121,7 +139,17 @@ async function request<T>(
     throw wrapped;
   }
   if (res.status === 204) return undefined as T;
-  return res.json() as Promise<T>;
+  const payload = await res.json();
+  // 成功信封：{ok:true, data:...} — 解包后返回业务模型
+  if (
+    payload &&
+    typeof payload === "object" &&
+    (payload as { ok?: boolean }).ok === true &&
+    "data" in (payload as object)
+  ) {
+    return (payload as { data: T }).data;
+  }
+  return payload as T;
 }
 
 export const api = {
