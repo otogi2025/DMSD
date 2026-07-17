@@ -305,7 +305,8 @@ export function StudyAttendancePage({
               fontWeight: 600,
             }}
           >
-            夜学習担当 &gt;{" "}
+            {/* 7-17 适老化拍板⑤：眉头首段与左栏用词统一 — 原「夜学習担当」跟左栏「夜学習出席」对不上 */}
+            夜学習出席 &gt;{" "}
             {view === "attendance"
               ? "出席"
               : view === "absence-inbox"

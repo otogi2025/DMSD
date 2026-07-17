@@ -56,6 +56,7 @@ export function RecordsPage({
 
   return (
     <div style={{ padding: "28px 32px 48px" }}>
+      {/* 7-17 适老化拍板⑤：眉头小字与左栏用词统一 — 原「記録」跟左栏对不上（同物两名 = 双倍记忆负担） */}
       <div
         style={{
           fontSize: 11,
@@ -64,7 +65,7 @@ export function RecordsPage({
           fontWeight: 600,
         }}
       >
-        記録
+        点呼記録
       </div>
       <h1
         style={{
