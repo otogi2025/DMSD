@@ -234,8 +234,8 @@ GET /api/v1/rollcall/sessions?page=1&page_size=20&order_by=started_at&order=desc
 
 - **rate limiting**（每学生 1 秒最多 N 次签到请求 / 老师每分钟最多 M 次改判）
 - **CORS 策略**（学生 App 跨域 / 老师 Web 跨域）
-- **HTTPS / TLS 版本要求**（最低 TLS 1.2？mutual TLS？见 Device_Contract 骨架 OQ1）
-- **WebSocket 消息格式**（Device_Contract 骨架 §4 + RollCall_Spec 附录 B.17 🔄）
+- **HTTPS / TLS 版本要求**（点呼机↔后端的设备认证已定稿 = Ed25519 设备私钥 + 短期令牌，见 `rollcall/Device_Contract.md` §2；全局最低 TLS 版本仍待规约）
+- **WebSocket 消息格式**（设备通道已定稿 → `rollcall/Device_Contract.md` §5；老师通道格式仍散在实装，待统一规约）
 - **审计日志**的字段清单（审计对象 / 操作 / 前后值 / 操作者 / 时间戳 / IP）
 - **Webhook / 推送消息**（若有）
 - **API 废弃策略**（老版本多久停机）

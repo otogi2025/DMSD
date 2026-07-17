@@ -766,7 +766,9 @@ spec 说：到达 `scheduled_window_start` 仍未开始 → 系统自动开始�
 
 ---
 
-### 🟡 B.8 离线策略
+### 🟡 B.8 离线策略 — ✅ CLOSED 2026-07-17
+
+**结论**：2026-06-03 拍板「本地放行 + 缓存补传」（`design/flow_design.md §6` + `ROLLCALL_DEVICE_DESIGN_LOG.md §6.1`），2026-07-17 落成字段级契约 = `Device_Contract.md §6`（补传按 `swipe_time` 判定、老师手动优先）。本节原文保留作历史：
 
 WIP / TODO 已标注。spec 也没定。
 
@@ -878,9 +880,11 @@ spec 说 `schedule_mode` 必须在 session 开始前设置，老师可以改。
 
 ---
 
-### 🟢 B.17 WebSocket 协议未定义
+### 🟢 B.17 WebSocket 协议未定义 — ✅ 设备通道 CLOSED 2026-07-17
 
-第 9 节提到老师端实时状态由 WebSocket 推送。但消息格式、心跳、重连策略全没定。
+**设备通道（点呼机 ↔ 后端）已定稿** = `Device_Contract.md §5`（消息格式 / 心跳 30s / 指数退避重连）。老师通道格式仍散在实装（`ws_manager.py`），统一规约仍开放。
+
+〔历史原文〕第 9 节提到老师端实时状态由 WebSocket 推送。但消息格式、心跳、重连策略全没定。
 
 点呼机 → 老师端的播报反馈（路径 A），学生 App → 老师端的颜色更新（路径 B / C）都需要这条通道。
 
@@ -995,7 +999,7 @@ spec 说 `schedule_mode` 必须在 session 开始前设置，老师可以改。
 | B.5 学生 → session 归属 | ✅ | 附录 C.5 |
 | B.6 老师延后按开始钮 | ✅ | §5.5（`ALREADY_RUNNING`）|
 | B.7 学生比老师先到 UX | 🟡 | §7 边界返回 `SESSION_NOT_RUNNING`；点呼机灯/声音的"等待中"细分 🔄 v0.3 |
-| B.8 离线策略 | 🔄 | 需要 itsuki 拍板 |
+| B.8 离线策略 | ✅ | 6-03 拍板 + 7-17 契约化 `Device_Contract.md §6` |
 | B.9 改判扣分 + 修改时间窗 | ✅ | §11.3 + §11.4 |
 | B.10 免学生意外回来碰卡 | 🔄 | 需要 itsuki 拍板 |
 | B.11 申请审批流程细节 + 无 App 学生（仅持卡者）申请途径 | 🔄 | 需要 itsuki 决定代录入 / 口头报备协议 |
@@ -1004,8 +1008,8 @@ spec 说 `schedule_mode` 必须在 session 开始前设置，老师可以改。
 | B.14 `health_flag` 生命周期 | 🔄 | 待 itsuki 拍板 |
 | B.15 `evidence` 字段格式 | 🔄 | 待 itsuki 拍板 |
 | B.16 「点位 A 或 B」含义未明 | ✅ | §3.2 改为 `device_id` + `path_type`，含义明确 |
-| B.17 WebSocket 协议 | 🔄 | v0.3 写专门的 WebSocket spec |
-| B.18 幂等键 | 🟡 | §10.2 引入 `idempotency_key`，具体格式 🔄 v0.3 |
+| B.17 WebSocket 协议 | 🟡 | 设备通道 ✅ 7-17 `Device_Contract.md §5`；老师通道规约仍开放 |
+| B.18 幂等键 | ✅ | §10.2 + `API_CONVENTIONS.md §10` + 路径 B 载荷内嵌 key（`Device_Contract.md §7`）|
 
 ### D.3 v0.2 主体改写后仍开放的项目债
 
