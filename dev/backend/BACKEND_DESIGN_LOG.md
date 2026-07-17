@@ -451,6 +451,9 @@ CREATE TABLE study_roster (
   removed_at      TIMESTAMPTZ,                              -- 期末后 reset
   UNIQUE (student_id, academic_term)
 );
+-- ⚠️ 2026-07-17 拍板(审查逻-中-3 收口): 「学期」概念废除——名簿改持续名单、只随老师按钮重置。
+--    academic_term 自动切分(切换日名簿静默清空)在晚自习第二波实装前去掉;本表结构届时随之调整。
+--    详见 design/system_features.md §7.3 拍板注。
 
 CREATE TABLE study_absence_requests (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
