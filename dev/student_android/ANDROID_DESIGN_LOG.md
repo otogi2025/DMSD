@@ -313,4 +313,15 @@ C 组质量体系 C2 清单 Android #13-20 落地。新建 `data/` 下三个纯�
 
 ---
 
+## 全接口响应信封 {ok,data} 解码接入（2026-07-17，commit `37bfd4b`，派 cursor grok4.5 施工 + 主会话审查复验）
+
+后端所有成功响应改包一层 `{ok:true,data:...}`、失败响应统一 `{ok:false,error:{code,message,detail}}`（详见 `dev/backend/BACKEND_DESIGN_LOG.md` 同日条 + 契约真值 `specs/API_CONVENTIONS.md` §1）。Android 侧只改 `data/network/ApiClient.kt`：
+
+- `decode<T>` 先按 `ApiEnvelope<T>{ok,data}` 解外壳，`envelope.ok` 为假时抛 `ApiError.Decode`（不该走到这——成功状态码走这条路径），否则取 `envelope.data as T`。
+- `extractDetail`（对齐 iOS `DetailError`）加第 1 优先形态 `error.message`，旧形态 `detail` 字符串/对象仍兼容。
+
+验证：`./gradlew assembleDebug` BUILD SUCCESSFUL（主会话独立重新编译核对，非仅信自报；实际路径 `dev/student_android/v1/`，非施工提示词写的 `dev/student_android/`，按现状改）。无已知 latent。
+
+---
+
 **END** — 本档随实装进展持续更新。

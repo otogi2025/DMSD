@@ -1192,4 +1192,15 @@ commit `f66b812`，`npm run build` 通过。
 
 ---
 
+## 全接口响应信封 {ok,data} 解码接入（2026-07-17，commit `1766b64`，派 cursor grok4.5 施工 + 主会话审查复验）
+
+后端所有成功响应改包一层 `{ok:true,data:...}`、失败响应统一 `{ok:false,error:{code,message,detail}}`（详见 `dev/backend/BACKEND_DESIGN_LOG.md` 同日条 + 契约真值 `specs/API_CONVENTIONS.md` §1）。网页侧只改 `src/api/client.ts` 的 `request<T>`：
+
+- 成功路径：`res.json()` 后判定 `payload.ok===true && "data" in payload` 就解包返回 `payload.data`，否则原样返回（向后兼容尚未信封化的旧路径，虽然本批四端已全改）。
+- 失败路径：新信封的校验错误在 `error.detail.errors` 数组；旧形态（`detail` 本身是数组 / `{detail:{code,message}}`）仍识别，取首条 `msg` 显示人话提示（延续 TW-015 那条「别把数组下标当字段拷给老师看」的教训）。
+
+验证：`npm run build` 通过（主会话独立重跑核对，非仅信自报）。无已知 latent。
+
+---
+
 **END** — 本档随 Web 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。
