@@ -399,7 +399,7 @@ def list_pending_for_me(
     ),
 ):
     """当前役职 (teacher.role) が未決の application_approvals を持つ届を返す。"""
-    from sqlalchemy import and_
+    from sqlalchemy import and_, or_
 
     stmt = (
         select(models.Application)
@@ -426,6 +426,27 @@ def list_pending_for_me(
         )
         .order_by(models.Application.submitted_at.asc())
     )
+    if teacher.role == "担任":
+        # 担任只看本班（2026-07-17 审查逻-中-10 修复）：实际批（decide_approval）走
+        # approval_chain.resolve_homeroom_teacher 严校验本班，列表却只按 role 匹配，
+        # 导致别班申请进待办、点开 403、计数虚高。过滤条件照 resolve_homeroom_teacher。
+        on_date = datetime.now(ZoneInfo("Asia/Tokyo")).date()
+        academic_year = on_date.year if on_date.month >= 4 else on_date.year - 1
+        stmt = stmt.join(
+            models.ClassTeacherAssignment,
+            and_(
+                models.ClassTeacherAssignment.teacher_id == teacher.id,
+                models.ClassTeacherAssignment.grade_code == models.Student.grade_code,
+                models.ClassTeacherAssignment.class_code == models.Student.class_code,
+                models.ClassTeacherAssignment.academic_year == academic_year,
+                models.ClassTeacherAssignment.is_homeroom.is_(True),
+                models.ClassTeacherAssignment.effective_from <= on_date,
+                or_(
+                    models.ClassTeacherAssignment.effective_to.is_(None),
+                    models.ClassTeacherAssignment.effective_to >= on_date,
+                ),
+            ),
+        )
     # 寮过滤已取消（itsuki 2026-06-13）：所有老师看所有寮的待审申请。
     apps = db.scalars(stmt).all()
     return [_to_application_out(a) for a in apps]
@@ -656,6 +677,10 @@ def update_application(
     app = db.scalars(
         select(models.Application)
         .where(models.Application.id == application_id)
+        # 行锁（2026-07-17 审查逻-中-1 修复）：串行化对同一届的并发写——否则学生修改
+        # （下方会把 chain 重置回 pending）与老师终决并发时，已批准的届可被拉回 pending
+        # 打穿终态。SQLite(dev/test) 单写者本就串行、no-op；PostgreSQL(prod) 靠行锁。
+        .with_for_update()
         .options(
             selectinload(models.Application.approvals),
             selectinload(models.Application.student),
