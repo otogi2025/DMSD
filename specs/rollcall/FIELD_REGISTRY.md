@@ -87,14 +87,14 @@
 - 作废后 UID 可以重新绑定到新学生（毕业回收场景）
 
 ### 2.10 学生生命周期（**4-21 新增** — 对应 backlog S3 + `RollCall_Spec.md` 附录 C.5）
-- `student_status`（ENUM，取值见 `ENUM_REGISTRY.md §14 student_status`）
-- `student_status_changed_at`（最近一次变更时间）
-- `student_status_changed_by`（操作老师 `teacher_id`）
-- `student_status_change_reason`（自由文本）
+- `student_status`（ENUM，取值见 `ENUM_REGISTRY.md §14 student_status`。**2026-07-17 回写**（审查 2-中-4）：后端实装列名为 `students.status`，本 canonical 名保留为字典名）
+- `student_status_changed_at`（最近一次变更时间）⏳ 未实装
+- `student_status_changed_by`（操作老师 `teacher_id`）⏳ 未实装
+- `student_status_change_reason`（自由文本）⏳ 未实装
 
 **业务规则**（对应 spec 附录 C.5）：
 - 仅 `active` 学生进入 session 座位表；其他状态保留名单但不计入
-- 状态变更必须 audit（四个配套字段缺一不可）
+- 状态变更必须 audit（**2026-07-17 注**：3 个专用配套字段 Student 表尚不存在——当前由横切 `audit_logs`（AuditLogMiddleware 拦老师写操作自动落库）承接；专用字段实装与否第二波前定）
 - 毕业 / 转学学生数据永久保留（`student_status = graduated` / `transferred` 但 row 不删）
 
 ## 3. 禁止字段 —— 4-22 补来源（S20 + L10 修复）
