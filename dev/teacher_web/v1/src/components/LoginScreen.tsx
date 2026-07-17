@@ -48,6 +48,8 @@ export function LoginScreen({
   const [manual, setManual] = React.useState(false);
   const [manualId, setManualId] = React.useState("");
   const [password, setPassword] = React.useState("");
+  // 7-17 适老化拍板②：密码明文显示切换 — 年长用户打字慢易输错，盲打 + 3 次锁 30 分钟太凶
+  const [showPw, setShowPw] = React.useState(false);
   // 登录时选今晚负责的寮（1=男子寮 / 4=女子寮）。除「申請承認専用」组外都要选，驱动后端寮过滤
   const [selectedDorm, setSelectedDorm] = React.useState<1 | 4 | null>(null);
   const [err, setErr] = React.useState("");
@@ -258,6 +260,7 @@ export function LoginScreen({
               onClick={() => {
                 setPicked(null);
                 setPassword("");
+                setShowPw(false);
                 setSelectedDorm(null);
                 setErr("");
                 setFails(0);
@@ -323,27 +326,49 @@ export function LoginScreen({
               >
                 パスワード
               </div>
-              <input
-                type="password"
-                value={password}
-                autoFocus
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  setErr("");
-                }}
-                style={{
-                  width: "100%",
-                  padding: "11px 12px",
-                  background: T.surface,
-                  border: `1px solid ${T.lineStrong}`,
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 14,
-                  color: T.ink,
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              />
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showPw ? "text" : "password"}
+                  value={password}
+                  autoFocus
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setErr("");
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "11px 64px 11px 12px",
+                    background: T.surface,
+                    border: `1px solid ${T.lineStrong}`,
+                    borderRadius: 8,
+                    fontFamily: "inherit",
+                    fontSize: 14,
+                    color: T.ink,
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw((v) => !v)}
+                  style={{
+                    position: "absolute",
+                    right: 8,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "transparent",
+                    border: "none",
+                    color: T.cobalt,
+                    fontFamily: "inherit",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    padding: "4px 6px",
+                  }}
+                >
+                  {showPw ? "隠す" : "表示"}
+                </button>
+              </div>
             </label>
 
             {err && (
@@ -388,6 +413,19 @@ export function LoginScreen({
             >
               {submitting ? "認証中…" : "ログイン"}
             </button>
+            {/* 7-17 适老化拍板①：寮没选时按钮灰着却零解释，年长用户会以为系统坏了 — 补一行原因 */}
+            {cardNeedsDorm && !selectedDorm && (
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: 12,
+                  color: T.ink2,
+                  textAlign: "center",
+                }}
+              >
+                担当の寮を選んでください
+              </div>
+            )}
           </form>
           <div
             style={{
@@ -404,7 +442,7 @@ export function LoginScreen({
     );
   }
 
-  // —————— 手动登录屏：「ログイン」（op / 临时账户等不上墙的账号，输 login_id + 密码） ——————
+  // —————— 手动登录屏：「管理者ログイン」（op / 临时账户等不上墙的账号，输 login_id + 密码） ——————
   if (manual) {
     return (
       <div
@@ -437,6 +475,7 @@ export function LoginScreen({
                 setManual(false);
                 setManualId("");
                 setPassword("");
+                setShowPw(false);
                 setSelectedDorm(null);
                 setErr("");
                 setFails(0);
@@ -508,27 +547,49 @@ export function LoginScreen({
               >
                 パスワード
               </div>
-              <input
-                type="password"
-                value={password}
-                autoComplete="current-password"
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  setErr("");
-                }}
-                style={{
-                  width: "100%",
-                  padding: "11px 12px",
-                  background: T.surface,
-                  border: `1px solid ${T.lineStrong}`,
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 14,
-                  color: T.ink,
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              />
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showPw ? "text" : "password"}
+                  value={password}
+                  autoComplete="current-password"
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setErr("");
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "11px 64px 11px 12px",
+                    background: T.surface,
+                    border: `1px solid ${T.lineStrong}`,
+                    borderRadius: 8,
+                    fontFamily: "inherit",
+                    fontSize: 14,
+                    color: T.ink,
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw((v) => !v)}
+                  style={{
+                    position: "absolute",
+                    right: 8,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "transparent",
+                    border: "none",
+                    color: T.cobalt,
+                    fontFamily: "inherit",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    padding: "4px 6px",
+                  }}
+                >
+                  {showPw ? "隠す" : "表示"}
+                </button>
+              </div>
             </label>
 
             {/* 手动登录前不知权限组，一律让选寮；op / 承認组账号后端会忽略此选择 */}
@@ -574,6 +635,19 @@ export function LoginScreen({
             >
               {submitting ? "認証中…" : "ログイン"}
             </button>
+            {/* 7-17 适老化拍板①：手动登录屏同款 — 寮没选时说明按钮为什么灰着 */}
+            {!selectedDorm && (
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: 12,
+                  color: T.ink2,
+                  textAlign: "center",
+                }}
+              >
+                担当の寮を選んでください
+              </div>
+            )}
           </form>
           <div
             style={{
@@ -727,7 +801,8 @@ export function LoginScreen({
             cursor: "pointer",
           }}
         >
-          ログイン
+          {/* 7-17 适老化拍板④：整页都是登录页、裸链接叫「ログイン」没人懂 — 点明是管理者入口 */}
+          管理者ログイン
         </button>
         <div style={{ fontSize: 11, color: T.ink3, marginTop: 10 }}>
           Tomoshibi {APP_VERSION}
