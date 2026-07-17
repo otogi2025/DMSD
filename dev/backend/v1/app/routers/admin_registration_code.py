@@ -15,7 +15,7 @@
 
 from __future__ import annotations
 
-import random
+import secrets
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -40,8 +40,10 @@ REGISTRATION_CODE_TTL_MINUTES = 30
 def _generate_code() -> str:
     """生成 6 桁随机数字。理论碰撞概率 1/百万，实际靠应用层 retry 兜底。
     上限 999998 — '999999' 是审核员永久码 reserved（spec §7.16 例外条款）。
+    必须用 secrets（密码学随机）：注册码是换取真实学生账号的凭据，
+    random 的 Mersenne Twister 可由输出预测后续值（2026-07-17 审查安-中-3 修复）。
     """
-    return f"{random.randint(0, 999998):06d}"
+    return f"{secrets.randbelow(999999):06d}"
 
 
 def _to_out(row: models.StudentRegistrationCode) -> schemas.RegistrationCodeOut:
