@@ -111,42 +111,37 @@ export function Shell({
 
   // 职位退化为纯显示标签后，菜单不再按职位隐藏 —— 所有老师都能查看所有功能页，
   // 「增删改」的权限由后端权限闸（require_permission）按权限组把关。
-  // 6-14: 导航从 16 项平铺改为 4 组归类（信息架构优化）——
-  // 高频值班操作在上、偶尔用的管理项沉底，每组加灰色小标题方便「分块跳」。
+  // 7-17 适老化审查拍板（决策 2）：4 组「系统功能分类」改 3 组「宿管任务分类」——
+  // 宿管每晚必用的置顶（「今晩の業務」），翻记录类归一组（「記録を見る」），偶尔用的沉底（「管理・設定」）。
   // 徽章（通知未读 / 申请待审）随所属项保留。
   type NavItem = [string, string, number?];
   const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
     {
-      title: "点呼業務",
+      title: "今晩の業務",
       items: [
         ["roll-call", "点呼"],
         ["study", "夜学習出席"],
         ["active-leaves", "出寮者一覧"],
-        ["records", "点呼記録"],
+        ["applications", "申請", pendingApps || undefined],
         ["notifications", "通知", notifUnread || undefined],
       ],
     },
     {
-      title: "生活・指導",
+      title: "記録を見る",
       items: [
-        ["applications", "申請", pendingApps || undefined],
+        ["records", "点呼記録"],
         ["discipline", "減点・処分"],
         ["cleaning", "清掃罰則"],
       ],
     },
     {
-      title: "情報・発信",
+      title: "管理・設定",
       items: [
         ["info", "お知らせ"],
         ["bus", "バス時刻表"],
         // 「コミュニティ管理」= 冷冻中（页面未接后端，菜单摘除防空头承诺；
         // App.tsx 路由 + CommunityPage 组件 + 后端 songs 接口原样保留，复活时恢复本行即可）
         ["front-desk", "フロント業務"],
-      ],
-    },
-    {
-      title: "管理・設定",
-      items: [
         ["accounts", "学生アカウント管理"],
         ["admin-registration-code", "学生登録コード"],
         ["teachers-admin", "教員アカウント管理"],
