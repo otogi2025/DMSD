@@ -197,7 +197,8 @@ export function RollCallLanding({
               fontWeight: 600,
             }}
           >
-            SESSION
+            {/* 7-17 适老化拍板③：面向年长日本用户的界面不放裸英文标签 */}
+            点呼セッション
           </div>
           <div style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}>
             新しい点呼を開始
@@ -449,7 +450,8 @@ export function RollCallLanding({
 
 // 以下 3 个组件 4c2578f「删 demo 脚手架」commit 误删了定义（用法残留），从删之前版本恢复。
 // ⚠️ 上面 RollCallLanding 里的 Stat 统计卡 value 仍是硬编码假数据（本日実施 1/2 等），
-//    最近のセッション表格也是假数据 —— 待 itsuki 决策 v1 是删这些 demo 还是接真后端。
+//    「最近のセッション」表格也是假数据 —— 7-17 itsuki 已拍板（决策 5）：demo 账户显示假数据、
+//    真账户接真后端数据（is_demo 双轨），实装待后端统计接口就绪后做。
 
 // 当日统计卡
 function Stat({
