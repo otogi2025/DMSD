@@ -69,6 +69,17 @@ class Settings(BaseSettings):
     # 单个契約書文件大小上限（字节）— 10 MB。手机拍照 / PDF 一般 1-5 MB，10 MB 留余量。
     contract_max_bytes: int = 10 * 1024 * 1024
 
+    # 点呼机接入（device）— Device_Contract / RollCall_Spec §5.5 + 附录 C.5
+    # 场次自动保障后台任务开关。**默认关**：测试 / dev 交互都不跑（防搞挂 546 测试 + 免误建场次）；
+    # 生产按需在 .env 置 ROLLCALL_SCHEDULER_ENABLED=true 开启。
+    rollcall_scheduler_enabled: bool = False
+    # 后台任务轮询间隔（秒）
+    rollcall_scheduler_tick_seconds: int = 60
+    # auto_end = on_time_end + X 分钟（RollCall_Spec 附录 A.3 候选 5/10/15/30，本波取 15）
+    rollcall_auto_end_minutes: int = 15
+    # 后端点呼音频目录（运维放置预生成 wav；不存在则 manifest 返回空、播报降级通用提示音）
+    rollcall_audio_dir: str = "./var/rollcall_audio"
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

@@ -852,6 +852,175 @@ class RollCallEventPatch(BaseModel):
 
 
 # ---------------------------------------------------------------
+# 点呼机接入（device）— Device_Contract §2/§4
+# ---------------------------------------------------------------
+class DeviceCreateIn(BaseModel):
+    """POST /devices — 管理员创建设备记录（Device_Contract §2.2）。"""
+
+    device_id: str = Field(..., min_length=1, max_length=64)
+    device_type: Literal["card_reader", "iphone_tag", "hybrid"]
+    device_location: str = Field(..., min_length=1, max_length=200)
+    device_notes: Optional[str] = Field(None, max_length=500)
+
+
+class DeviceCreateOut(BaseModel):
+    """创建设备的响应 — enroll_code 明文仅此一次返回，后端只存哈希。"""
+
+    device_id: str
+    device_type: str
+    device_location: str
+    device_notes: Optional[str]
+    enroll_code: str
+    device_active: bool
+
+
+class DeviceOut(BaseModel):
+    """GET /devices 列表项 / PATCH 响应 — 不含 enroll_code / 哈希 / 公钥。"""
+
+    device_id: str
+    device_type: str
+    device_location: str
+    device_notes: Optional[str]
+    device_active: bool
+    enrolled_at: Optional[datetime]
+    retired_at: Optional[datetime]
+    last_seen_at: Optional[datetime]
+    fw_version: Optional[str]
+    registered_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DevicePatchIn(BaseModel):
+    """PATCH /devices/{device_id} — 临时停用/恢复 toggle + 永久注销。"""
+
+    device_active: Optional[bool] = None
+    # True = 永久注销（retired_at=now + device_active=false，之后禁止再激活；DEVICE_REGISTRY §5.2）
+    retire: Optional[bool] = None
+
+
+class DeviceResetEnrollOut(BaseModel):
+    """POST /devices/{device_id}/reset-enroll 响应 — 重发激活码（明文仅此一次）。"""
+
+    device_id: str
+    enroll_code: str
+
+
+class DeviceEnrollIn(BaseModel):
+    """POST /devices/{device_id}/enroll — 设备首启自助激活（Device_Contract §2.2）。"""
+
+    enroll_code: str = Field(..., min_length=1, max_length=128)
+    # Ed25519 公钥 = base64 原始 32 字节
+    public_key: str = Field(..., min_length=1, max_length=128)
+
+
+class DeviceEnrollOut(BaseModel):
+    device_id: str
+    enrolled_at: datetime
+
+
+class DeviceTokenIn(BaseModel):
+    """POST /devices/{device_id}/token — 挑战签名换令牌（Device_Contract §2.3）。
+
+    ts 保持 str（不解析成 datetime）— 验签用的是设备逐字节签名的原始串，
+    必须原样喂进 "{device_id}\\n{ts}\\n{nonce}"，不能被序列化改写。
+    """
+
+    ts: str = Field(..., min_length=1, max_length=64)
+    nonce: str = Field(..., min_length=1, max_length=64)
+    signature: str = Field(..., min_length=1, max_length=128)
+
+
+class DeviceTokenOut(BaseModel):
+    access_token: str
+    expires_at: datetime
+    token_type: str = "bearer"
+
+
+class DeviceHeartbeatIn(BaseModel):
+    """POST /devices/me/heartbeat — WS 不可用时的兜底心跳通道。"""
+
+    fw_version: Optional[str] = Field(None, max_length=32)
+
+
+class DeviceCheckinIn(BaseModel):
+    """POST /rollcall/device-checkins — 点呼机核心签到入口（Device_Contract §4.1）。"""
+
+    path_type: Literal["A", "B"]
+    card_uid: Optional[str] = Field(None, max_length=14)  # 路径 A
+    student_id: Optional[UUID] = None  # 路径 B
+    idempotency_key: Optional[UUID] = None  # 路径 B
+    # 设备 NTP 校准盖章时刻（判定基准，Device_Contract §3）
+    swipe_time: datetime
+
+
+class DeviceCheckinOut(BaseModel):
+    """签到响应 data（Device_Contract §4.1）。"""
+
+    student_id: UUID
+    student_number: str
+    student_name: str
+    base_status: str  # present / late
+    session_id: UUID
+    duplicate: bool
+    led: str  # green / yellow / red
+    audio_file: str
+    broadcast_text: str
+    # 离线补传冲突：命中老师改判 → true（设备丢弃、绿灯不重播；Device_Contract §6）
+    superseded_by_teacher: bool = False
+
+
+class NfcCardCreateIn(BaseModel):
+    """POST /cards — 绑卡（Device_Contract §5）。"""
+
+    card_uid: str = Field(..., min_length=14, max_length=14)
+    student_id: UUID
+
+
+class NfcCardRevokeIn(BaseModel):
+    """DELETE /cards/{card_uid} 可选正文 — 作废理由。"""
+
+    revoke_reason: Optional[str] = Field(None, max_length=200)
+
+
+class NfcCardOut(BaseModel):
+    card_uid: str
+    student_id: UUID
+    card_active: bool
+    issued_at: datetime
+    revoked_at: Optional[datetime]
+    revoke_reason: Optional[str]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DeviceRosterStudentOut(BaseModel):
+    student_id: UUID
+    student_number: str
+    name: str
+    card_uids: list[str]
+
+
+class DeviceRosterOut(BaseModel):
+    """GET /devices/me/roster — 离线兜底名单（Device_Contract §4.2）。"""
+
+    generated_at: datetime
+    students: list[DeviceRosterStudentOut]
+
+
+class DeviceAudioFileOut(BaseModel):
+    name: str
+    sha256: str
+    size: int
+
+
+class DeviceAudioManifestOut(BaseModel):
+    """GET /devices/me/audio-manifest（Device_Contract §4.3）。"""
+
+    files: list[DeviceAudioFileOut]
+
+
+# ---------------------------------------------------------------
 # 教師管理 (Teacher Invitation — §3.4)
 # ---------------------------------------------------------------
 class TeacherInvitationIn(BaseModel):

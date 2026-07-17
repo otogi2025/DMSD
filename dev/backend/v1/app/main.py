@@ -61,6 +61,7 @@ from .routers import (
     bus_routes,
     cleaning,
     device_tokens,
+    devices,
     discipline,
     dorm_life,
     events,
@@ -189,10 +190,22 @@ async def lifespan(app: FastAPI):
         _warn_if_db_schema_outdated()
 
     # WS 广播需要主 event loop 引用 — sync router 在 threadpool 线程靠它把协程提交回主 loop（rollcall-06）
+    from .ws_manager import device_manager as _device_manager
     from .ws_manager import manager as _ws_manager
 
-    _ws_manager.set_loop(asyncio.get_running_loop())
-    yield
+    _loop = asyncio.get_running_loop()
+    _ws_manager.set_loop(_loop)
+    _device_manager.set_loop(_loop)
+
+    # 点呼场次自动保障后台任务（默认关，settings.rollcall_scheduler_enabled 控制；见 rollcall_scheduler.py）
+    from .rollcall_scheduler import start_scheduler
+
+    _scheduler_task = start_scheduler()
+    try:
+        yield
+    finally:
+        if _scheduler_task is not None:
+            _scheduler_task.cancel()
 
 
 # H-6：生产环境关闭 /docs /redoc /openapi.json — 否则无认证就暴露完整 API 地图，
@@ -374,6 +387,7 @@ app.include_router(study.router)
 app.include_router(study_online.router)
 app.include_router(dorm_life.router)
 app.include_router(rollcall.router)
+app.include_router(devices.router)
 app.include_router(teachers.router)
 app.include_router(discipline.router)
 app.include_router(cleaning.router)

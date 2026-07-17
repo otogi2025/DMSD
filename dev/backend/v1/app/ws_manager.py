@@ -172,3 +172,73 @@ class TeacherConnectionManager:
 
 # 全局单例
 manager = TeacherConnectionManager()
+
+
+@dataclass
+class _DeviceConn:
+    device_id: str  # 设备短码（sub），不是 UUID 主键
+    websocket: WebSocket
+    send_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+
+
+class DeviceConnectionManager:
+    """点呼机（device）端 WebSocket 连接管理（Device_Contract §5）— 单进程内存版。
+
+    与老师通道并列、互不相通。server → device 广播 session_started / session_ended /
+    roster_updated / audio_updated。设备不 dorm-bound（附录 C.1）→ 系统级事件广播给全部设备连接。
+    """
+
+    def __init__(self) -> None:
+        self._conns: list[_DeviceConn] = []
+        self._lock = asyncio.Lock()
+        self._loop: asyncio.AbstractEventLoop | None = None
+
+    def set_loop(self, loop: asyncio.AbstractEventLoop) -> None:
+        self._loop = loop
+
+    async def connect(self, websocket: WebSocket, device_id: str) -> None:
+        await websocket.accept()
+        async with self._lock:
+            self._conns.append(_DeviceConn(device_id=device_id, websocket=websocket))
+        logger.info(
+            "WS device connected device_id=%s active=%d", device_id, len(self._conns)
+        )
+
+    async def disconnect(self, websocket: WebSocket) -> None:
+        async with self._lock:
+            self._conns = [c for c in self._conns if c.websocket is not websocket]
+        logger.info("WS device disconnected active=%d", len(self._conns))
+
+    async def broadcast(self, event: dict[str, Any]) -> None:
+        """推给全部活跃设备连接（系统级事件，不按 dorm 过滤）。失败连接自动剔除。"""
+        async with self._lock:
+            targets = list(self._conns)
+        dead: list[_DeviceConn] = []
+        for c in targets:
+            try:
+                async with c.send_lock:
+                    await c.websocket.send_json(event)
+            except Exception as e:
+                logger.warning("WS send failed device=%s err=%s", c.device_id, e)
+                dead.append(c)
+        if dead:
+            async with self._lock:
+                self._conns = [c for c in self._conns if c not in dead]
+
+    def broadcast_sync(self, event: dict[str, Any]) -> None:
+        """同步 router / 后台任务触发设备广播用（同 TeacherConnectionManager.broadcast_sync）。"""
+        loop = self._loop
+        if loop is None or not loop.is_running():
+            logger.debug("WS device broadcast_sync skipped: no running loop registered")
+            return
+        try:
+            future = asyncio.run_coroutine_threadsafe(self.broadcast(event), loop)
+            future.add_done_callback(_log_broadcast_future_exc)
+        except Exception:
+            logger.warning(
+                "WS device broadcast_sync failed (event dropped)", exc_info=True
+            )
+
+
+# 点呼机端全局单例
+device_manager = DeviceConnectionManager()

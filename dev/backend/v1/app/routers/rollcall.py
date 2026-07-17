@@ -100,6 +100,33 @@ def _as_jst_aware(value: datetime) -> datetime:
     return value.astimezone(jst)
 
 
+def _broadcast_device_session_started(session: models.RollCallSession) -> None:
+    """向点呼机通道广播 session_started（Device_Contract §5）。广播是副作用、失败不抛。"""
+    _ws.device_manager.broadcast_sync(
+        {
+            "type": "session_started",
+            "data": {
+                "session_id": str(session.id),
+                "session_type": session.session_type,
+                "scheduled_on_time_end_at": _as_jst_aware(
+                    session.scheduled_on_time_end_at
+                ).isoformat(),
+                # 7-17 拍板删 late_end 概念 → 契约 §5 改播 auto_end
+                "scheduled_auto_end_at": _as_jst_aware(
+                    session.scheduled_auto_end_at
+                ).isoformat(),
+            },
+        }
+    )
+
+
+def _broadcast_device_session_ended(session_id) -> None:
+    """向点呼机通道广播 session_ended（Device_Contract §5）。"""
+    _ws.device_manager.broadcast_sync(
+        {"type": "session_ended", "data": {"session_id": str(session_id)}}
+    )
+
+
 # ---------------------------------------------------------------
 # GET /rollcall/today/sessions
 # ---------------------------------------------------------------
@@ -347,6 +374,8 @@ def start_session(
     session.started_by = teacher.id
     db.commit()
     db.refresh(session)
+    # 点呼机通道广播（Device_Contract §5）— 手动开始也通知点呼机进入受理状态
+    _broadcast_device_session_started(session)
     return schemas.RollCallSessionOut.model_validate(session)
 
 
@@ -415,6 +444,8 @@ def end_session(
     _settle_absent(db, session)
     db.commit()
     db.refresh(session)
+    # 点呼机通道广播（Device_Contract §5）
+    _broadcast_device_session_ended(session.id)
     return schemas.RollCallSessionOut.model_validate(session)
 
 

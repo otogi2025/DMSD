@@ -1718,3 +1718,126 @@ class NotificationRead(Base):
         UniqueConstraint("notification_id", "teacher_id", name="uq_notif_read"),
         Index("idx_notif_read_teacher", "teacher_id"),
     )
+
+
+# ---------------------------------------------------------------
+# 点呼机接入 — 设备注册 / 卡绑定 / 令牌防重放
+#   权威契约：specs/rollcall/Device_Contract.md §2/§4/§5
+#           + DEVICE_REGISTRY.md（生命周期）+ FIELD_REGISTRY.md §2.8/§2.9
+# ---------------------------------------------------------------
+# device_type ENUM（ENUM_REGISTRY §12）
+DEVICE_TYPES = ("card_reader", "iphone_tag", "hybrid")
+
+
+class RollCallDevice(Base):
+    """点呼机（受信任边缘设备）注册表。
+
+    每台点呼机持一对 Ed25519 密钥（私钥存设备本地、不出设备）；本表存公钥（`public_key`，
+    base64 原始 32 字节）+ 一次性激活码哈希（`enroll_code_hash`，明文只在创建/重发时返回一次）。
+    生命周期（DEVICE_REGISTRY §5）：
+    - `device_active` = 临时启用/停用（维修/故障 toggle）。
+    - `retired_at` = 永久注销时刻。非 NULL 后禁止再把 `device_active` 置回 true（§5.2）。
+    """
+
+    __tablename__ = "rollcall_devices"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    # 设备短码（如 dorm-1-01）— JWT 的 sub、契约里 URL 段用的都是它，不是本行 UUID 主键
+    device_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    device_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    device_location: Mapped[str] = mapped_column(Text, nullable=False)
+    device_notes: Mapped[Optional[str]] = mapped_column(Text)
+    # Ed25519 公钥（base64 原始 32 字节）。NULL = 尚未 enroll（激活）。
+    public_key: Mapped[Optional[str]] = mapped_column(Text)
+    # 一次性激活码的 SHA-256 十六进制哈希。enroll 成功后置 NULL（作废激活码）。
+    enroll_code_hash: Mapped[Optional[str]] = mapped_column(String(128))
+    enrolled_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+    device_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # 注册人（管理员老师）
+    registered_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    registered_at: Mapped[datetime] = mapped_column(
+        TZDateTime, nullable=False, server_default=func.now()
+    )
+    # 永久注销时刻（DEVICE_REGISTRY §5.2）。非 NULL 后禁止再激活。
+    retired_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+    # 心跳 / heartbeat 最近一次上报时刻
+    last_seen_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+    fw_version: Mapped[Optional[str]] = mapped_column(String(32))
+
+    __table_args__ = (
+        CheckConstraint(
+            "device_type IN ('card_reader','iphone_tag','hybrid')",
+            name="ck_rollcall_device_type",
+        ),
+        Index("idx_rollcall_device_active", "device_active", "retired_at"),
+    )
+
+
+class NfcCard(Base):
+    """NFC 卡绑定表（路径 A 核心）— card_uid ↔ student 的绑定与作废审计。
+
+    `card_uid` = NTAG215 UID 7 字节，存为 14 位小写 hex 无分隔符（FIELD_REGISTRY §2.2）。
+    作废软删（`card_active=false` + `revoked_at`）；作废后允许把同一 UID 重新绑定给新学生
+    （毕业回收场景），部分唯一索引只约束「未作废」的行、故 UID 在同一时刻只绑一个 active 学生。
+    """
+
+    __tablename__ = "nfc_cards"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    card_uid: Mapped[str] = mapped_column(String(14), nullable=False)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id"), nullable=False, index=True
+    )
+    card_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    issued_at: Mapped[datetime] = mapped_column(
+        TZDateTime, nullable=False, server_default=func.now()
+    )
+    issued_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+    revoked_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+    revoke_reason: Mapped[Optional[str]] = mapped_column(Text)
+
+    student: Mapped["Student"] = relationship()
+
+    __table_args__ = (
+        # SQLite 不支持 regex CHECK，只能用 LENGTH；应用层 '^[0-9a-f]{14}$' 严格校验
+        CheckConstraint("LENGTH(card_uid) = 14", name="ck_nfc_card_uid_len"),
+        # 部分唯一索引（FIELD_REGISTRY §2.9）：同一 UID 只能绑一个未作废的学生。
+        # 作废行（revoked_at 非 NULL）不占唯一槽 → 作废后可重新绑定给新学生。
+        Index(
+            "uq_nfc_card_uid_active",
+            "card_uid",
+            unique=True,
+            sqlite_where=text("revoked_at IS NULL"),
+            postgresql_where=text("revoked_at IS NULL"),
+        ),
+        Index("idx_nfc_card_student", "student_id", "card_active"),
+    )
+
+
+class DeviceAuthNonce(Base):
+    """设备令牌换取（Device_Contract §2.3）的 nonce 防重放表。
+
+    每次 `POST /devices/{device_id}/token` 带一个随机 nonce；后端校验该 (device_id, nonce)
+    24 小时内未用过 → 通过后落一行占位。旧于 24h 的行由 token 端点顺手清理（也可由后台任务清）。
+    """
+
+    __tablename__ = "device_auth_nonces"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    device_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    nonce: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        TZDateTime, nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("device_id", "nonce", name="uq_device_auth_nonce"),
+        Index("idx_device_auth_nonce_created", "created_at"),
+    )

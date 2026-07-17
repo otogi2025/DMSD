@@ -13,6 +13,7 @@ from typing import Annotated, Optional
 from uuid import UUID
 
 from fastapi import Depends, Header, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from . import models, permissions, security
@@ -258,6 +259,49 @@ def get_current_principal(
         status_code=status.HTTP_403_FORBIDDEN,
         detail={"code": "FORBIDDEN", "message": "不明な token role"},
     )
+
+
+def get_current_device(
+    authorization: Annotated[str | None, Header()] = None,
+    db: Session = Depends(get_db),
+) -> models.RollCallDevice:
+    """设备主体鉴权（Device_Contract §2.4）— 仿 get_current_teacher。
+
+    JWT role="device"、sub=device_id（短码，不是本表 UUID 主键）。日常设备端点用它取当前设备。
+    - role 非 device → 403（老师 / 学生令牌不能调设备专属端点）。
+    - 设备不存在 → 401（UNKNOWN_DEVICE 归到「令牌无效」类，设备侧重新走 enroll/token）。
+    - 停用（device_active=false）或已永久注销（retired_at 非 NULL）→ 403 DEVICE_NOT_ACTIVE。
+    """
+    token = _parse_bearer(authorization)
+    try:
+        payload = security.decode_token(token)
+    except security.JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "INVALID_CREDENTIALS", "message": "トークンが無効です"},
+        )
+    if payload.get("role") != "device":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "FORBIDDEN", "message": "デバイス token が必要です"},
+        )
+    device_id = payload.get("sub")
+    device = db.scalar(
+        select(models.RollCallDevice).where(
+            models.RollCallDevice.device_id == device_id
+        )
+    )
+    if device is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "UNKNOWN_DEVICE", "message": "未登録のデバイスです"},
+        )
+    if not device.device_active or device.retired_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "DEVICE_NOT_ACTIVE", "message": "デバイスが停止中です"},
+        )
+    return device
 
 
 def require_permission(cluster: str, level: int):
