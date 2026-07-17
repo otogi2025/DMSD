@@ -48,7 +48,7 @@ v0.1 原版 2026-02-12；后续修订见 CHANGELOG + 本文件顶部。
 - 原 `effective_*` 字段族已彻底删除（详见 `rollcall/RollCall_Spec.md §5.4 / §7`）。
 
 ## 6. 倒计时公式（唯一）
-- `remaining_seconds = max(0, scheduled_late_end_at - server_now)`
+- `remaining_seconds = max(0, scheduled_on_time_end_at - server_now)`（2026-07-17 拍板删 `late_end` 概念，倒计时 = 距准时截止；见 `rollcall/RollCall_Spec.md §5.3` 修订注）
 - 禁止使用 `ended_at` 参与倒计时计算。
 
 ## 7. settle 规则（唯一）
@@ -180,7 +180,7 @@ GET /api/v1/rollcall/sessions?page=1&page_size=20&order_by=started_at&order=desc
 | `404 Not Found` | 资源不存在 | `NOT_FOUND` |
 | `409 Conflict` | 资源状态冲突 | `ALREADY_RUNNING` / `DUPLICATE_REQUEST`（某些场景）/ `SESSION_NOT_RUNNING` |
 | `410 Gone` | 资源已永久删除 / 注销 | `DEVICE_NOT_ACTIVE`（设备永久注销时）|
-| `422 Unprocessable Entity` | 请求格式正确但语义不合法 | `NO_ROLLCALL_FOR_TODAY` / `INVALID_SIGNATURE` / `UNKNOWN_CARD` / `UNREGISTERED_UID` / `UNKNOWN_DEVICE` / `TIMEOUT` |
+| `422 Unprocessable Entity` | 请求格式正确但语义不合法 | `NO_ROLLCALL_FOR_TODAY` / `INVALID_SIGNATURE` / `UNKNOWN_CARD` / `UNREGISTERED_UID` / `UNKNOWN_DEVICE` |
 | `500 Internal Server Error` | 服务器异常 | 兜底 `系统繁忙，请稍后重试` |
 
 **约束**：

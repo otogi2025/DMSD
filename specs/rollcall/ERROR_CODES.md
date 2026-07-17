@@ -1,6 +1,6 @@
 # DMSD v0.1 错误码字典
 
-更新时间：2026-04-22（4-22 修订：§1.3 `UNREGISTERED_UID` 描述修正 补 S4 遗漏面 + §3 加 `ok=true` 字段约定 S19 修复）
+更新时间：2026-07-17（7-17 修订：废止 `TIMEOUT` — itsuki 拍板「迟到无截止」，准时截止后到场次结束前一律 `late`，结束后的签到统一 `SESSION_NOT_RUNNING`，见 `RollCall_Spec.md §5.3` 修订注）
 
 ## 1. 全局最小集合（固定）
 
@@ -14,7 +14,6 @@
 - `SESSION_NOT_RUNNING`（session 不在 running 状态：还没开始 或 已结束）
 - `ALREADY_RUNNING`（session 已经在 running，重复开始无效）
 - `NO_ROLLCALL_FOR_TODAY`（**4-17 新增** — 时间窗表无对应组合，不创建 session）
-- `TIMEOUT`（已过迟到截止时刻仍想签到）
 - `NOT_YET_ALLOWED`（**5-12 补 — 4-29 决策遗漏面修复** — `RollCall_Spec.md §5.4 + §5.6 + 附录 A.4` 共 3 处引用但 ERROR_CODES 漏列。老师手动按"开始"但当前时刻早于 `on_time_end - 5min`（即未到老师允许手动开始窗口）→ 后端拒绝并返回此码。HTTP 状态 409 Conflict）
 
 ### 1.3 签到请求相关
@@ -37,7 +36,6 @@
 - `SESSION_NOT_RUNNING` -> `点呼还没开始 或 已结束`
 - `ALREADY_RUNNING` -> `点呼已在进行中`
 - `NO_ROLLCALL_FOR_TODAY` -> `今天没有点呼安排`
-- `TIMEOUT` -> `点呼已截止`
 - `NOT_YET_ALLOWED` -> `还没到可以开始点呼的时间`
 
 ### 2.3 签到请求
@@ -56,7 +54,7 @@
 - 接口失败时格式必须为：
 
 ```json
-{ "ok": false, "error": { "code": "TIMEOUT", "message": "..." } }
+{ "ok": false, "error": { "code": "SESSION_NOT_RUNNING", "message": "..." } }
 ```
 
 - **`ok=true` 时 `error` 字段**（**4-22 新增 — S19 修复**）：接口成功时响应 body **不包含** `error` 字段（不是写成 `"error": null`）。即：

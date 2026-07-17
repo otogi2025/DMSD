@@ -258,17 +258,18 @@ NFC 卡固有弱点：卡可被转交。技术不能完全防代签 → **必须
 
 ### 5.3 时间窗结构（写死规则）
 
-每场点呼有 4 个关键时刻：
+> **2026-07-17 修订（itsuki 拍板 — 后端双会话审查逻-高-1 收口）**：删除「迟到截止 `late_end`」概念。准时截止后到场次结束前，签到一律 `late`；缺席只在场次结束（老师手动「点呼終了」或 §5.5 系统兜底自动结束）时对未签到者判定。DB 列 `scheduled_late_end_at` 保留写入（兼容，值 = `on_time_end + 1 秒`）但**判定不读取**。
+
+每场点呼有 3 个关键时刻：
 
 ```
-window_start  →  on_time_end  →  late_end  →  auto_end_at
-（开始可签到）   （准时截止）    （迟到截止）   （系统兜底自动结束）
+window_start  →  on_time_end  →  auto_end_at
+（开始可签到）   （准时截止）    （系统兜底自动结束）
 ```
 
 约束：
 
-- `window_start < on_time_end < late_end ≤ auto_end_at`
-- `late_end = on_time_end + 1 秒`
+- `window_start < on_time_end < auto_end_at`
 - `auto_end_at = on_time_end + X 分钟`（X 待最终确定，详见附录 A.3）
 
 ### 5.4 老师手动开始 — 窗口固定（不平移）
@@ -282,7 +283,7 @@ window_start  →  on_time_end  →  late_end  →  auto_end_at
 - `started_at = server_now`
 - `started_source = teacher`
 - 整个时间窗 **保持 scheduled 不动**（不平移）：
-  - `window_start` / `on_time_end` / `late_end` / `auto_end_at` 全部按时间窗表写死
+  - `window_start` / `on_time_end` / `auto_end_at` 全部按时间窗表写死
 - 老师早按 = 激活签到通道（`SESSION_NOT_RUNNING` 解除），迟到时刻**不前移**
 
 #### 边界规则
@@ -386,7 +387,7 @@ window_start  →  on_time_end  →  late_end  →  auto_end_at
 ### 6.5 时间窗查找
 
 - 用三元组 `(session_type, day_type, student_group)` 查时间窗表
-- 得到该场的 `window_start` / `on_time_end` / `late_end` / `auto_end_at`
+- 得到该场的 `window_start` / `on_time_end` / `auto_end_at`
 
 ### 6.6 约束
 
@@ -408,15 +409,14 @@ window_start  →  on_time_end  →  late_end  →  auto_end_at
 | 判定 | 条件 |
 |------|------|
 | `present`（绿） | `scheduled_window_start_at ≤ t ≤ scheduled_on_time_end_at` |
-| `late`（黄） | `scheduled_on_time_end_at < t ≤ scheduled_late_end_at` |
-| `absent`（红） | 到结算时刻仍未签到（见第 8 节） |
+| `late`（黄） | `scheduled_on_time_end_at < t`，且场次尚未结束（离线补传按 `t ≤ ended_at`，见 `Device_Contract.md §6`）|
+| `absent`（红） | 场次结束（老师手动 / 系统兜底）时仍未签到（见第 8 节） |
 
 ### 边界情况
 
 > 所有错误码定义见 `ERROR_CODES.md`。
 
-- **`t > scheduled_late_end_at` 的签到**：返回 `TIMEOUT`，不改变座位结果，最终由结算置为缺席
-- **`started_at` 之前 / `ended_at` 之后的签到**：返回 `SESSION_NOT_RUNNING`（统一覆盖"还没开始"和"已结束"两种情况）
+- **`started_at` 之前 / `ended_at` 之后的签到**：返回 `SESSION_NOT_RUNNING`（统一覆盖"还没开始"和"已结束"两种情况。2026-07-17 拍板：原「`t > late_end` → `TIMEOUT`」边界随 late_end 概念一并删除，见 §5.3 修订注）
 - **session 已开始后老师再按"点呼開始"**（系统 `started_source=system` 自动开始后，老师 21:58 才注意并按按钮；或老师双击按钮）：返回 `ALREADY_RUNNING`，不变更 `started_at`（**4-22 修订 — S16 修复**：§5.5 约定此错误码，原 §7 边界列表漏列，现补入。ERROR_CODES 里对应条目已有）
 - **重复签到**（同一 `student_id` 在同一 session 内已签到）：返回 `DUPLICATE_REQUEST`，silently ignore（不变更状态、不重复播报，但记 audit log）
 - **未注册卡 / 陌生 UID**（路径 A，UID 在 `card_uid` 表里**完全没有记录** — 新卡 / 外部卡）：返回 `UNKNOWN_CARD`，点呼机红灯 + 失败声音 + 不播报姓名
@@ -436,7 +436,7 @@ window_start  →  on_time_end  →  late_end  →  auto_end_at
 settle_at = min(ended_at, scheduled_auto_end_at)
 ```
 
-到达 `settle_at` 时：
+结算动作在场次结束事件（老师手动「点呼終了」或 §5.5 系统兜底自动结束）时执行。此时：
 
 > **将仍为 `init` 且 `base_status ≠ exempt_range` 且不存在 `absence_request_pending` overlay 的座位，置为 `absent`。**
 
@@ -507,7 +507,7 @@ settle_at = min(ended_at, scheduled_auto_end_at)
 | `started_source` | enum | `teacher` / `system`（取值见 ENUM `session_event_source`）|
 | `ended_at` | timestamp | 实际结束时间 |
 | `ended_source` | enum | 同 `started_source` |
-| `scheduled_window_start_at` 等 4 个 | timestamp | 计划时间窗 — 判定 / 结算 / 查表都直接用这 4 个字段（2026-05-21 b1 决策：彻底删 `effective_*` 概念）|
+| `scheduled_window_start_at` 等 4 个 | timestamp | 计划时间窗 — 判定 / 结算 / 查表都直接用 `scheduled_*`（2026-05-21 b1 决策：彻底删 `effective_*` 概念）。`scheduled_late_end_at` 为非判定字段：保留写入、判定不读取（2026-07-17 拍板，见 §5.3）|
 | `settle_at` | timestamp | `min(ended_at, scheduled_auto_end_at)` |
 
 ### 10.2 `rollcall_event`（签到事件 — append-only）

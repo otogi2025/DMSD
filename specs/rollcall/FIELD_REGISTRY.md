@@ -34,7 +34,7 @@
 - `server_now`
 - `scheduled_window_start_at`
 - `scheduled_on_time_end_at`
-- `scheduled_late_end_at`
+- `scheduled_late_end_at`（**2026-07-17 修订** — 非判定字段：保留写入、判定不读取，见 `RollCall_Spec.md §5.3` 修订注）
 - `scheduled_auto_end_at`
 - `started_at`
 - `ended_at`

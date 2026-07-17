@@ -74,7 +74,7 @@
 1. 解析学生：路径 A 用 `card_uid` 查卡绑定表（无记录 → `UNKNOWN_CARD`；有记录但卡停用或学生非 `active` → `UNREGISTERED_UID`）；路径 B 直接用 `student_id`（无此人或非 `active` → `UNREGISTERED_UID`）。演示学生（`is_demo`）按 `UNREGISTERED_UID` 处理，不进真实考勤。
 2. 找该生 dorm 所属、`session_status=running` 的场次；无 → `SESSION_NOT_RUNNING`。
 3. 幂等：该生该场次已有签到 → 返回 200，`duplicate=true`，携带既存结果（设备**不重复播报**，绿灯即可）；`idempotency_key` 命中同理。
-4. 按 `swipe_time` 判定（RollCall_Spec §7 完整语义）：`≤ scheduled_on_time_end_at` → `present`；`≤ scheduled_late_end_at` → `late`；**之后 → `TIMEOUT`（不写出席事件）**。
+4. 按 `swipe_time` 判定（RollCall_Spec §7 完整语义；2026-07-17 拍板「迟到无截止」）：`≤ scheduled_on_time_end_at` → `present`；之后（场次结束前）→ `late`；`swipe_time` 晚于场次 `ended_at`（仅离线补传会出现，§6）→ `SESSION_NOT_RUNNING`（不写出席事件）。
 5. 写 `rollcall_event`（append-only，`device_id` = 调用设备，`status_source=auto_nfc`）→ 扣分联动 → WebSocket 推老师端。
 
 响应 `data`：
@@ -110,7 +110,7 @@ body `{fw_version}` → 后端记 `last_seen_at`。WS 心跳（§5）正常时�
 
 | 方向 | type | data | 用途 |
 |---|---|---|---|
-| server → device | `session_started` | `{session_id, session_type, scheduled_on_time_end_at, scheduled_late_end_at}` | 场次开始（老师手动或系统兜底）→ 设备进入受理状态提示 |
+| server → device | `session_started` | `{session_id, session_type, scheduled_on_time_end_at, scheduled_auto_end_at}` | 场次开始（老师手动或系统兜底）→ 设备进入受理状态提示（2026-07-17 拍板删 `late_end` 概念，字段随之替换） |
 | server → device | `session_ended` | `{session_id}` | 场次结束 |
 | server → device | `roster_updated` | `{}` | 通知重拉 §4.2 |
 | server → device | `audio_updated` | `{}` | 通知重拉 §4.3 |
@@ -126,7 +126,7 @@ body `{fw_version}` → 后端记 `last_seen_at`。WS 心跳（§5）正常时�
 4. 后端对补传事件按 `swipe_time` 正常判定（§3）。**冲突规则（老师优先）**：
    - 该生该场次已有 `teacher_override` 事件 → 丢弃补传（响应 `duplicate=true` + `superseded_by_teacher=true`，记审计）。
    - 已被结算置 `absent`（`auto_settle`）且补传 `swipe_time` 在窗内 → 采纳补传，追加事件覆盖结果并回退结算扣分（append-only，审计可溯）。
-   - `swipe_time` 超过 `scheduled_late_end_at` → `TIMEOUT`，出队不重试（记设备本地日志）。
+   - `swipe_time` 晚于场次 `ended_at`（结束后仍在本地受理的刷卡）→ 后端拒收 `SESSION_NOT_RUNNING`，出队不重试（记设备本地日志）。
 
 ## 7. ST25DV Mailbox 载荷格式（路径 B：手机 → 点呼机，双端共用）
 
@@ -153,8 +153,7 @@ body `{fw_version}` → 后端记 `last_seen_at`。WS 心跳（§5）正常时�
 | 成功 `duplicate=true` | 绿 | 静默 | 无（spec §7：重复签到不重复播报） |
 | `UNKNOWN_CARD` | 红 | 失败音 | 无（陌生卡不播身份） |
 | `UNREGISTERED_UID` | 红 | 失败音 | 无 |
-| `SESSION_NOT_RUNNING` | 黄 | 短提示音 | 无（「点呼未开始」等待态，区别于失败——RollCall_Spec 附录 B.7） |
-| `TIMEOUT` | 红 | 失败音 | 无（已过迟到截止） |
+| `SESSION_NOT_RUNNING` | 黄 | 短提示音 | 无（「点呼未开始 / 已结束」等待态，区别于失败——RollCall_Spec 附录 B.7。2026-07-17 拍板：原 `TIMEOUT` 行随 late_end 概念删除，结束后签到归本行） |
 | 网络失败（进离线队列） | 绿（roster 命中）/ 红（未命中） | 对应音 | roster 命中则播报 |
 | 鉴权类（`UNKNOWN_DEVICE` 等） | 白灯闪烁 | 静默 | 无（设备自身问题，记日志重试令牌） |
 
