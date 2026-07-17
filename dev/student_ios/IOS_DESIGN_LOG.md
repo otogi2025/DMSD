@@ -1646,6 +1646,8 @@ itsuki 要求主页点数卡下方的「次の罰則清掃」小卡（`HomeStubs
 
 ## §32 第一波上架改造：点呼入口生产占位 + 邮箱登录 tab 隐藏 + C2 测试批（2026-07-13，commit `3e7fdc5`/`e7c637e`）
 
+> ⚠️ **点呼入口占位已于 §34（2026-07-17）反转解除**（7-17 itsuki 拍板「点呼做成真功能当核心卖点」）；邮箱登录 tab 隐藏不受影响、仍有效。
+
 A3 上架清单 A-1/A-2 落地（spec v1.0 §2.2「点呼入口占位、不得呈现可签到假象」）：
 
 - **点呼入口占位**：`RollcallSheet.idleView` 拆成 `#if DEMO demoScanIdle #else comingSoonPlaceholder`。生产构建打开点呼弹窗只见占位（沙漏图标 + 「点呼機能は近日公開予定です」+ 现阶段按宿舍原有方式点呼的说明 + 閉じる），不启动 NFC；演示构建保留完整扫描准备界面 + 假扫描动画。`ST25DVWriter` / `simulate()` 生产真写分支一行未删——第二波把 `#else` 换回 `demoScanIdle` 即恢复入口。
@@ -1665,3 +1667,11 @@ A3 上架清单 A-1/A-2 落地（spec v1.0 §2.2「点呼入口占位、不得�
 验证：`TomoshibiApp` + `TomoshibiAppDemo` 双 scheme BUILD SUCCEEDED（主会话独立重新编译核对，非仅信自报）。
 
 ⚠️ **1 个 latent 记 TODO 待下次动到相关处顺手修**：若某接口的成功业务响应本身就是 `null`（`{ok:true,data:null}`，如「当前无注册码」这类查询），`decodeResponse` 的 `guard let payload = envelope.data` 会因 `data` 为 nil 而落进 `.decode` 分支，即便这是合法的空结果。现在项目里没有一个端点这样返回，加了才会踩；修法是把 `Res` 允许 Optional 时改判定逻辑（`envelope.ok` 通过就放行、`data` 允许为 nil）。
+
+## §34 点呼从占位改真 NFC 写入（2026-07-17，commit `67647f3`，依 7-17「点呼真功能」拍板 — 反转 §32 占位）
+
+- **解除占位**：`RollcallSheet.idleView` 两个 scheme 都显示扫描准备界面；`demoScanIdle` 改名 `scanIdle`；`comingSoonPlaceholder`「近日公開」占位视图整段删除。DEMO scheme 按钮 → 假扫描动画（管理员演示不变），生产 scheme 按钮 → 真 NFC 写入（`simulate()` 的 `#else` 分支）。
+- **ST25DVWriter 真实装**（载荷真值 = `specs/rollcall/Device_Contract.md §7`）：连接 ISO15693 标签后先 Read Dynamic Configuration（0xAD）读 MB_CTRL_Dyn，校验 MB_EN=1（邮箱使能）且 HOST_PUT_MSG=0（无未读宿主消息），再 Write Message（0xAA，参数 = [消息长度-1] + [34 字节载荷]，IC 厂商码 0x02 由 CoreNFC 自动插入——旧代码漏了长度字节，已修）。命令码 / 寄存器位集中进 `ST25DV` 常量枚举附 datasheet 出处；不确定处标「待硬件联调核实」（响应字节结构 / requestFlags 是否需 addressed / 是否加查 RF_PUT_MSG）。写失败细分 `tagLost / mailboxDisabled / mailboxBusy / commandRejected / unavailable` → 各配学生可读日语文案（`userMessageJP`）。
+- **载荷 34 字节**：`[0]=0x01 版本 [1]=类型（点呼 0x01 / 晚自习 0x02）[2..17]=student_id UUID [18..33]=idempotency_key UUID`（每次写入尝试新生成）。新增 `MailboxPayloadTests` 5 条锁字节序与长度。
+- **成功语义**：生产 toast「点呼機に送信しました」——做法 A 不等后端结果（手机不联网，flow_design §3），全流程无「出席確定」类误导字样。StudyCheckinSheet 维持 v1.1 DEMO-ONLY 形态，仅共用新载荷编译通过。
+- 验证：双 scheme BUILD SUCCEEDED + MailboxPayloadTests TEST SUCCEEDED（主会话独立重编译核对）。RF 命令层待硬件到货真机联调坐实。

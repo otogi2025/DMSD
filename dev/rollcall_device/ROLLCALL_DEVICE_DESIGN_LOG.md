@@ -13,8 +13,8 @@
 > |---|---|---|
 > | 设计文档（本文） | ✅ 100% | 226 行设计，含主循环 / 模块 / GPIO 草案 |
 > | 硬件采购 | ✅ 已下单 | 2026-06-04 日本本地三家（Amazon / Switch Science / 秋月電子）全部下单，订单截图存档于 `点呼机采购清单.html` + `采购截图/`。到货后接线 |
-> | `src/` 代码 | ⏳ 0% | `main.py` 是 9 行 placeholder；`nfc/` / `api/` / `led/` / `audio/` 全空 `__init__.py` |
-> | 端到端跑通 | ⏳ 0% | 依赖 Pi 实物 + 点呼机↔后端传输安全（ECDSA 验签降级 v1.1 可选，见 flow_design §5） |
+> | `src/` 代码 | ✅ 全实装（2026-07-17） | 全模块落地（读卡 / 邮箱驱动 / 认证 / 上报 / WS / 离线队列 / LED / 播报 / `--simulate`），75 条 pytest Mac 全绿（mock 硬件层）；模块指针见 §4 |
+> | 端到端跑通 | 🟡 软件链路已通 | 后端设备接入已实装（`Device_Contract.md` 契约 + `dev/backend/v1` devices 路由）；剩硬件到货联调（ST25DV 寄存器位 / PN532 跳线 / GPO 引脚 / 音频设备串——代码内已逐处标「待硬件联调核实」）|
 >
 > **agent 阅读顺序**（两层结构）：
 > 1. **共用层（必读）**：`design/system_features.md` —— 角色 / 数据模型 / R1-R4 硬约束
@@ -162,23 +162,28 @@ main.py:
 
 ---
 
-## 4. 模块设计（待实装）
+## 4. 模块设计（2026-07-17 全实装 — 本节改为实装指针）
 
-### 4.1 NFC 模块（§10-D1 + D2 拍板后写）
+### 4.1 NFC 模块
 
-⏳
+- `src/nfc/pn532_reader.py` — PN532 **SPI** 读 NTAG215 UID（7 字节 → 14 位小写 hex），import 守卫（无硬件库时可测）
+- `src/nfc/st25dv.py` — smbus2 自写 ST25DV16K 驱动：I2C 用户区 0x53 / 系统区 0x57，present 默认口令开安全会话 → MB_MODE=1 + GPO(RF_PUT_MSG) → 每会话 MB_CTRL_Dyn.MB_EN；GPO 中断 → 读 MB_LEN_Dyn + 邮箱 RAM(0x2008) → 自复位。寄存器常量集中附 datasheet DS12448 章节注释，不确定位标「待硬件联调核实」
+- `src/nfc/payload.py` — 34 字节载荷解析（`Device_Contract.md §7` 双端对齐）；`src/nfc/debounce.py` — 同 UID 2 秒防抖
 
-### 4.2 Audio 模块（§10-D3 拍板后写）
+### 4.2 Audio 模块
 
-⏳
+- `src/audio/player.py` — `aplay` 子进程播 `{学号}.wav`（缺失回退通用提示音；新声掐断老声）；内置提示音 `assets/tone_*.wav`（`tools/gen_tones.py` 纯标准库生成）
 
 ### 4.3 LED 状态机
 
-⏳
+- `src/led/controller.py` — gpiozero 低电平点亮（红17/绿27/蓝22/白23）；状态映射按契约 §9（黄灯无实灯 → 红+绿同亮近似）
 
 ### 4.4 API 客户端
 
-⏳
+- `src/api/auth.py` — Ed25519 密钥（0600）+ enroll + 令牌换取（契约 §2.3 签名串）+ 过半续期
+- `src/api/client.py` — httpx：device-checkins / roster / 音频 manifest 差量下载 / heartbeat；`src/api/envelope.py` — `{ok,data}` 信封解包
+- `src/api/ws.py` — websockets 长连接，指数退避 1s→60s，心跳 30s，4 类推送分派
+- 配套：`src/offline/queue.py`（SQLite 离线队列，契约 §6 补传语义）/ `src/roster.py`（断网本地放行名单）/ `src/feedback.py`（契约 §9 反馈纯函数）/ `src/events.py` / `src/timeutil.py`（JST）/ `src/config.py`（契约 §10）
 
 ---
 
@@ -233,7 +238,7 @@ WantedBy=multi-user.target
 
 ## 7. 测试
 
-⏳ pytest 用 mock 替换硬件层（PN532 / ST25DV / GPIO）+ 集成测试用真硬件
+✅ pytest 75 条（2026-07-17）：mock 硬件层（`src/nfc/interfaces.py` 抽象 + Fake 实现）+ httpx MockTransport，Mac 可全跑（`.venv` + `requirements-dev.txt`）。覆盖：载荷解析 / 认证签名串 / 离线队列补传语义 / 状态机主流程 / LED 对照表 / roster 放行 / 防抖 / WS 退避。集成测试用真硬件 ⏳ 等到货；无硬件联调后端用 `python -m src.main --simulate`（stdin 模拟刷卡）。
 
 ---
 
@@ -250,7 +255,10 @@ WantedBy=multi-user.target
 
 ## 9. 决策清单
 
-⏳ 实装中累积
+- **D1 落地（2026-07-17）**：PN532 库选 `adafruit-circuitpython-pn532` + Blinka——SPI 接法下 `nfcpy` 不支持 SPI，唯一可选项（硬约束，非偏好）
+- **D2 落地（2026-07-17）**：ST25DV 驱动走 (a) smbus2 自写——16-bit 内存地址用 `i2c_msg` + `i2c_rdwr` 原始事务
+- **黄灯硬件取舍（2026-07-17）**：无黄色 LED 实灯，`SESSION_NOT_RUNNING` 用红+绿同亮近似
+- **判定语义对齐（2026-07-17）**：`TIMEOUT` 随「迟到无截止」拍板（spec commit `dda0b3d`）删除——结束后签到归 `SESSION_NOT_RUNNING`，离线补传出队不重试
 
 ---
 
@@ -258,15 +266,16 @@ WantedBy=multi-user.target
 
 | # | 决策点 | 选项 | CC 倾向 |
 |---|---|---|---|
-| D1 | PN532 用什么 Python 库 | (a) `nfcpy`(社区)/ (b) `Adafruit-PN532`(更轻)| 🟡 (b) 更简单 |
-| D2 | ST25DV16K 驱动怎么解决 | (a) 自写 I2C / (b) port Arduino C++ 到 Python / (c) 干脆用 C 写一个 daemon Python 调 | 🟡 (a) 学习价值最高 |
+| D1 | PN532 用什么 Python 库 | ~~(a) `nfcpy` / (b) `Adafruit-PN532`~~ → **落地 (b)**（nfcpy 不支持 SPI，硬约束） | ✅ 已定（7-17，见 §9）|
+| D2 | ST25DV16K 驱动怎么解决 | ~~三选一~~ → **落地 (a) smbus2 自写** | ✅ 已定（7-17，见 §9 + §4.1）|
 | D3 | 日语播报怎么出声 | ~~(a) pyttsx3 本地 / (b) 云 TTS / (c) 预录~~ → **拍板：后端预生成 wav 下发，点呼机 `aplay` 播放** | ✅ 已定（6-03 — 512MB 跑不动本地 TTS；学号当文件名如 `10023.wav`）|
-| D4 | PN532 接 Pi 用 SPI 还是 I2C | (a) SPI 稳 / (b) I2C 占 GPIO 少但 Pi 上不稳 | 🟡 (a) SPI |
+| D4 | PN532 接 Pi 用 SPI 还是 I2C | ~~二选一~~ → **落地 (a) SPI**（实装如此，`board.D8`/CE0） | ✅ 已定（7-17）|
 | D5 | 点呼机↔后端用 HTTP 还是 WebSocket | ~~二选一~~ → **拍板：两个都用，各司其职** | ✅ 已定（6-03）— WebSocket 推指令 + HTTP 常规请求；**断线自动重连必写 → §6** |
-| D6 | 设备认证方式 | (a) 设备 ID + 密钥 / (b) JWT | 🟡 (a) 简单 |
+| D6 | 设备认证方式 | ~~(a) 设备 ID + 密钥 / (b) JWT~~ → **契约定稿 = Ed25519 设备私钥挑战签名换 12h JWT（a+b 合体）** | ✅ 已定（7-17，`specs/rollcall/Device_Contract.md §2` 唯一真值）|
 
 ---
 
 ## 11. 历史
 
 - 2026-05-08：itsuki 拍板「点呼机当第 5 端」+ 联动机制升级（4 端反向规则 + 点呼机加入 system-features 联动）+ 本档案骨架建成
+- 2026-07-17：软件从零全实装（`a0e1595`，依 itsuki /goal「点呼真实装」）——契约 `Device_Contract.md` 定稿 + src/ 全模块 + 75 条 pytest + systemd + 部署SOP；D1/D2/D4/D6 落地（§9/§10）；剩硬件到货联调
