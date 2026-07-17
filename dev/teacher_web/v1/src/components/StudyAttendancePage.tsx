@@ -527,6 +527,7 @@ export function StudyAttendancePage({
                 </div>
               ))}
             </div>
+            {/* 7-17 适老化拍板⑥：空状态不只报「没有」，还要指出下一步去哪 */}
             {attendees.length === 0 && (
               <div
                 style={{
@@ -536,7 +537,27 @@ export function StudyAttendancePage({
                   fontSize: 13,
                 }}
               >
-                対象学生がいません
+                <div>対象学生がいません</div>
+                <div style={{ marginTop: 8, fontSize: 12 }}>
+                  名簿管理から対象学生を登録してください
+                </div>
+                <button
+                  onClick={() => setView("roster")}
+                  style={{
+                    marginTop: 12,
+                    padding: "8px 16px",
+                    background: T.cobaltSoft,
+                    color: T.cobaltDeep,
+                    border: "none",
+                    borderRadius: 8,
+                    fontFamily: "inherit",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  名簿管理へ →
+                </button>
               </div>
             )}
             {attendees.map((a, i) => {
