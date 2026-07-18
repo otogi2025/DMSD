@@ -1671,7 +1671,7 @@ A3 上架清单 A-1/A-2 落地（spec v1.0 §2.2「点呼入口占位、不得�
 ## §34 点呼从占位改真 NFC 写入（2026-07-17，commit `67647f3`，依 7-17「点呼真功能」拍板 — 反转 §32 占位）
 
 - **解除占位**：`RollcallSheet.idleView` 两个 scheme 都显示扫描准备界面；`demoScanIdle` 改名 `scanIdle`；`comingSoonPlaceholder`「近日公開」占位视图整段删除。DEMO scheme 按钮 → 假扫描动画（管理员演示不变），生产 scheme 按钮 → 真 NFC 写入（`simulate()` 的 `#else` 分支）。
-- **ST25DVWriter 真实装**（载荷真值 = `specs/rollcall/Device_Contract.md §7`）：连接 ISO15693 标签后先 Read Dynamic Configuration（0xAD）读 MB_CTRL_Dyn，校验 MB_EN=1（邮箱使能）且 HOST_PUT_MSG=0（无未读宿主消息），再 Write Message（0xAA，参数 = [消息长度-1] + [34 字节载荷]，IC 厂商码 0x02 由 CoreNFC 自动插入——旧代码漏了长度字节，已修）。命令码 / 寄存器位集中进 `ST25DV` 常量枚举附 datasheet 出处；不确定处标「待硬件联调核实」（响应字节结构 / requestFlags 是否需 addressed / 是否加查 RF_PUT_MSG）。写失败细分 `tagLost / mailboxDisabled / mailboxBusy / commandRejected / unavailable` → 各配学生可读日语文案（`userMessageJP`）。
+- **ST25DVWriter 真实装**（载荷真值 = `specs/rollcall/Device_Contract.md §7`）：连接 ISO15693 标签后先 Read Dynamic Configuration（0xAD）读 MB_CTRL_Dyn，校验 MB_EN=1（邮箱使能）且 HOST_PUT_MSG=0（无未读宿主消息），再 Write Message（0xAA，参数 = [消息长度-1] + [34 字节载荷]，IC 厂商码 0x02 由 CoreNFC 自动插入——旧代码漏了长度字节，已修）。命令码 / 寄存器位集中进 `ST25DV` 常量枚举附 datasheet 出处；不确定处标「待硬件联调核实」（响应字节结构 / requestFlags 是否需 addressed）。**「是否加查 RF_PUT_MSG」这项已于 7-18 定案为「要查」并实装 → 见 §34.1**。写失败细分 `tagLost / mailboxDisabled / mailboxBusy / commandRejected / unavailable` → 各配学生可读日语文案（`userMessageJP`）。
 - **载荷 34 字节**：`[0]=0x01 版本 [1]=类型（点呼 0x01 / 晚自习 0x02）[2..17]=student_id UUID [18..33]=idempotency_key UUID`（每次写入尝试新生成）。新增 `MailboxPayloadTests` 5 条锁字节序与长度。
 - **成功语义**：生产 toast「点呼機に送信しました」——做法 A 不等后端结果（手机不联网，flow_design §3），全流程无「出席確定」类误导字样。StudyCheckinSheet 维持 v1.1 DEMO-ONLY 形态，仅共用新载荷编译通过。
 - 验证：双 scheme BUILD SUCCEEDED + MailboxPayloadTests TEST SUCCEEDED（主会话独立重编译核对）。RF 命令层待硬件到货真机联调坐实。

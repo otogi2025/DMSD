@@ -1280,10 +1280,12 @@ itsuki 拍板把演示账号从 opt-in 默认关改成 **默认启用**（`seed.
 上批实装后派 cursor 做只读审查（codex 因账号额度上限跑不了），后端相关 4 条经读代码核实属实并修复：
 
 - **场次定位改为纯按时间窗归属**（原「有 running 场次就直接用它」）：`_find_session_for_checkin` 现在一律判 `decision_time` 落在哪个场次的 `[下限, 上限]` 内 —— 下限 = `scheduled_window_start_at`（老师早于计划窗手动开场时取 `started_at` 兜底，不误伤真实签到），上限 = running 无上限 / ended 取 `ended_at`。**修的是什么坑**：早间场已 `auto_settle` 置 absent、晚间场正 running 时，队列里残留的早间刷卡会被记进晚间场（早间 `swipe_time` 远早于晚间准时截止 → 几乎必判 present），早间的缺席与扣分永不回退。顺带补上了窗口下限 —— 窗前刷卡不再被判 present（RollCall_Spec §7 要求 `window_start ≤ t`）。
-- **设备令牌加世代校验**：签发时把当次 `enrolled_at` 秒数写进 JWT 的 `enr` claim，`deps.get_current_device` 与库中当前值比对。老师走 `reset-enroll` 作废旧公钥后，旧令牌当场 401（`INVALID_CREDENTIALS`），不再能用满 12 小时 —— 契约 §2.2「旧公钥即刻作废」的安全意图要求设备身份同时失效。
+- **设备令牌加世代校验**：签发时把当次 `enrolled_at` 秒数写进 JWT 的 `enr` claim，与库中当前值比对。老师走 `reset-enroll` 作废旧公钥后，旧令牌当场 401（`INVALID_CREDENTIALS`），不再能用满 12 小时 —— 契约 §2.2「旧公钥即刻作废」的安全意图要求设备身份同时失效。
+  ⚠️ **两条设备入口都要校验**：首版只加在 `deps.get_current_device`（HTTP），WS 通道 `routers/ws.py:device_ws` 自解 JWT、不走 deps，于是作废的旧令牌仍能连上 WS 收 `roster_updated`（含学生名单）—— cursor 复审当场逮到。现改为共用 `deps.device_enr_token_claim()`（签发端算）+ `deps.device_enr_matches()`（两个校验端判），签发与校验口径单点化，WS 侧显式调用；这与同文件既有的 `is_teacher_expired`（专为「自己解 JWT 的旁路入口」共用而设）是同一模式。回归测试 HTTP / WS 各一条。
 - **路径 B 强制 `idempotency_key`**（契约 §4.1）：缺它就没法靠 `(session_id, idempotency_key)` 唯一约束挡并发重复，缺失 → 422 `INVALID_INPUT`。
 - **未来 `swipe_time` 钳制写审计**（契约 §3 明写「以 server_now 代之并写审计」）：落 `audit_logs`，`action=device.clock_skew_clamped`、`actor_type=system`（受 `ck_audit_actor_type` 约束限定，点呼机属系统组件）、`target_type=rollcall_device`，payload 记原始 `swipe_time` / `server_now` / 偏差秒数。走独立 session 写 —— 时钟异常这件事跟签到本身成不成功无关，签到后续若抛 409 回滚也要留痕。
-- 验证：新增 5 条回归测试（`TestReviewRegressions`），全量 **596 passed, 1 skipped**；改动文件 ruff 零报错。
+- **时钟异常审计限流**（cursor 复审建议）：每台设备每分钟至多写 1 条 —— NTP 坏掉的机器每次刷卡都命中钳制，不限流会把 `audit_logs` 灌满；要留的信息是「这台机器某段时间时钟不对」，不是每一次刷卡。
+- 验证：新增 7 条回归测试（`TestReviewRegressions`，含 WS 令牌失效 + 审计限流两条复审补的），全量 **598 passed, 1 skipped**；改动文件 ruff 零报错。
 - **未采纳 1 条**（cursor 标 major）：路径 A 无 `idempotency_key` 时并发双碰缺 DB 硬闸。后果是多一条重复 present 行而非判定出错（看板取每人最新、扣分有 `uq_demerit_source` 幂等），且真加「一学生一场次仅一行」唯一索引会与「补传行覆盖旧 `auto_settle` absent 行」的 append-only 设计冲突 —— 需先重新设计事件表语义，已记 `admin/TODO.md`。
 
 ---

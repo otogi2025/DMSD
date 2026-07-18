@@ -41,6 +41,7 @@ from ..deps import (
     assert_not_demo_teacher,
     assert_student_demo_match,
     demo_scope_for_teacher,
+    device_enr_token_claim,
     dorm_units_for_teacher,
     get_current_device,
     require_permission,
@@ -65,6 +66,8 @@ _NONCE_RETENTION_HOURS = 24
 _CARD_UID_RE = re.compile(r"^[0-9a-f]{14}$")
 # 音频文件名白名单（防路径穿越）
 _AUDIO_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]+\.wav$")
+# 设备时钟异常审计的 action 名（写入与限流查询共用，防两处写岔）
+_CLOCK_SKEW_ACTION = "device.clock_skew_clamped"
 
 _JST = ZoneInfo("Asia/Tokyo")
 
@@ -379,7 +382,7 @@ def device_token(
     token = create_access_token(
         device_id,
         "device",
-        extra={"enr": int(_as_jst_aware(device.enrolled_at).timestamp())},
+        extra={"enr": device_enr_token_claim(device)},
         expire_minutes=_DEVICE_TOKEN_MINUTES,
     )
     expires_at = _now_jst() + timedelta(minutes=_DEVICE_TOKEN_MINUTES)
@@ -396,16 +399,30 @@ def _audit_clock_skew(
 
     走独立 session：这条留痕跟签到本身成不成功无关（签到后续可能抛 409 回滚），
     时钟异常这件事本身就该记下来。写失败只 warning，不影响签到主流程。
+
+    **限流每台设备每分钟至多 1 条** —— 一台 NTP 坏掉的机器每次刷卡都会命中钳制，不限流
+    就会把 `audit_logs` 灌满（真正要留的信息是「这台机器某段时间时钟不对」，不是每一次刷卡）。
     """
     db = SessionLocal()
     try:
+        recent = db.scalar(
+            select(models.AuditLog.id)
+            .where(
+                models.AuditLog.action == _CLOCK_SKEW_ACTION,
+                models.AuditLog.target_id == device.id,
+                models.AuditLog.created_at >= server_now - timedelta(minutes=1),
+            )
+            .limit(1)
+        )
+        if recent is not None:
+            return
         db.add(
             models.AuditLog(
                 # actor_type 受 ck_audit_actor_type 约束限定为 student/teacher/system，
                 # 点呼机属系统组件 → system；具体是哪台机器看 target_id / payload。
                 actor_type="system",
                 actor_id=device.id,
-                action="device.clock_skew_clamped",
+                action=_CLOCK_SKEW_ACTION,
                 target_type="rollcall_device",
                 target_id=device.id,
                 payload={

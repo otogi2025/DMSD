@@ -11,6 +11,7 @@ R4 寮過滤 helper — `dorm_units_for_teacher(teacher)` 是全 router 共用�
 from datetime import datetime, timezone
 from typing import Annotated, Optional
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy import select
@@ -18,6 +19,8 @@ from sqlalchemy.orm import Session
 
 from . import models, permissions, security
 from .database import get_db
+
+_JST = ZoneInfo("Asia/Tokyo")
 
 # R4 — 跨寮角色能看全件
 CROSS_DORM_ROLES = frozenset(
@@ -261,6 +264,35 @@ def get_current_principal(
     )
 
 
+def device_enr_token_claim(device: models.RollCallDevice) -> int:
+    """设备令牌的世代标记 = 本次激活时刻的秒数（签发端用）。
+
+    与 `device_enr_matches` 必须同一口径 —— 两处各算各的正是这类漏洞的温床。
+    `enrolled_at` 是 `TZDateTime` 列，ORM 读出恒为带时区 JST，但这里仍显式归一，
+    防将来某条路径塞进 naive datetime 时按进程本地时区解释（生产机若是 UTC 会差 9
+    小时 → 全设备永久 401）。调用方须自行保证 `enrolled_at` 非空。
+    """
+    enrolled_at = device.enrolled_at
+    if enrolled_at.tzinfo is None:
+        enrolled_at = enrolled_at.replace(tzinfo=_JST)
+    return int(enrolled_at.timestamp())
+
+
+def device_enr_matches(device: models.RollCallDevice, token_enr: object) -> bool:
+    """令牌里的世代标记是否仍与设备当前激活状态相符（Device_Contract §2.2）。
+
+    老师走 reset-enroll 作废旧公钥后 `enrolled_at` 被清空（再次 enroll 则刷新）→ 旧令牌
+    的 enr 对不上，当场失效，不等 12 小时自然过期。
+
+    **HTTP 与 WebSocket 两条设备入口都必须调它** —— 2026-07-18 首版修复只加在
+    `get_current_device`（HTTP），WS 通道自解 JWT 绕过了校验，作废的旧令牌仍能连上收
+    名单推送（cursor 复审 major）。抽成共用函数就是防这种「补了一处漏了另一处」。
+    """
+    if device.enrolled_at is None:
+        return False
+    return token_enr == device_enr_token_claim(device)
+
+
 def get_current_device(
     authorization: Annotated[str | None, Header()] = None,
     db: Session = Depends(get_db),
@@ -301,13 +333,7 @@ def get_current_device(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"code": "DEVICE_NOT_ACTIVE", "message": "デバイスが停止中です"},
         )
-    # 令牌世代校验：签发时把当次 enrolled_at 秒数写进 enr claim。老师走 reset-enroll 作废旧
-    # 公钥后 enrolled_at 被清空（再次 enroll 则刷新）→ 旧令牌 enr 对不上，当场失效，不等
-    # 12 小时自然过期（Device_Contract §2.2「旧公钥即刻作废」，2026-07-18 cursor 审查 major 7）。
-    enrolled_at = device.enrolled_at
-    token_enr = payload.get("enr")
-    current_enr = int(enrolled_at.timestamp()) if enrolled_at is not None else None
-    if current_enr is None or token_enr != current_enr:
+    if not device_enr_matches(device, payload.get("enr")):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={

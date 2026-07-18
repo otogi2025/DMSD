@@ -22,7 +22,7 @@ from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect, status
 
 from .. import models, security
 from ..database import SessionLocal
-from ..deps import is_teacher_expired
+from ..deps import device_enr_matches, is_teacher_expired
 from ..ws_manager import device_manager, manager
 
 logger = logging.getLogger(__name__)
@@ -125,7 +125,9 @@ async def device_ws(
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
-    # 校验设备存在 + active + 未注销（自解 JWT、不走 deps.get_current_device）
+    # 校验设备存在 + active + 未注销 + 令牌世代未失效（自解 JWT、不走 deps.get_current_device，
+    # 故须显式调 device_enr_matches —— 漏了它，reset-enroll 作废的旧令牌仍能连上 WS 收学生
+    # 名单推送，与契约 §2.2「旧公钥即刻作废」矛盾）
     with SessionLocal() as db:
         device = (
             db.query(models.RollCallDevice)
@@ -133,6 +135,9 @@ async def device_ws(
             .one_or_none()
         )
         if device is None or not device.device_active or device.retired_at is not None:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+        if not device_enr_matches(device, payload.get("enr")):
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
 

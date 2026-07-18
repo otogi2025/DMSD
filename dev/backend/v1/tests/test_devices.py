@@ -988,3 +988,52 @@ class TestReviewRegressions:
         dead = client.get("/api/v1/devices/me/roster", headers=_h(device_token))
         assert dead.status_code == 401, dead.text
         assert dead.json()["error"]["code"] == "INVALID_CREDENTIALS"
+
+    def test_ws_rejects_token_after_reset_enroll(
+        self, client, teacher_token, device_token, seed_data, db_session
+    ):
+        """cursor 复审 major：令牌世代校验最初只加在 HTTP 上，WS 通道自解 JWT 绕过了它——
+        作废的旧令牌仍能连上收学生名单推送。这条锁住 WS 也校验。"""
+        # 重置前 WS 能连
+        with client.websocket_connect(f"/api/v1/ws/device?token={device_token}") as ws:
+            ws.send_text('{"type":"heartbeat","data":{}}')
+
+        res = client.post(
+            "/api/v1/devices/dorm-1-01/reset-enroll", headers=_h(teacher_token)
+        )
+        assert res.status_code == 200, res.text
+
+        # 重置后同一个旧令牌应被 WS 拒绝
+        from starlette.websockets import WebSocketDisconnect
+
+        with pytest.raises(WebSocketDisconnect):
+            with client.websocket_connect(
+                f"/api/v1/ws/device?token={device_token}"
+            ) as ws:
+                ws.receive_text()
+
+    def test_clock_skew_audit_is_rate_limited(
+        self, client, device_token, seed_data, db_session
+    ):
+        """cursor 复审建议：NTP 坏掉的设备每次刷卡都命中钳制，不限流会灌满 audit_logs。
+        每台设备每分钟至多一条。"""
+        _make_running_session(db_session, on_time_offset_min=10)
+        forged = datetime.now(_JST) + timedelta(days=1)
+        for i in range(3):
+            res = client.post(
+                "/api/v1/rollcall/device-checkins",
+                json={
+                    "path_type": "B",
+                    "student_id": str(seed_data["student"].id),
+                    "idempotency_key": f"aaaaaaa1-0000-0000-0000-00000000010{i}",
+                    "swipe_time": forged.isoformat(),
+                },
+                headers=_h(device_token),
+            )
+            assert res.status_code == 200, res.text
+        rows = (
+            db_session.query(models.AuditLog)
+            .filter(models.AuditLog.action == "device.clock_skew_clamped")
+            .all()
+        )
+        assert len(rows) == 1, f"三次钳制应只留一条审计（限流），实际 {len(rows)}"
