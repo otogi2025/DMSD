@@ -83,6 +83,11 @@ enum ST25DV {
     /// bit1 HOST_PUT_MSG：宿主（I2C 侧 = 点呼机）已写入一条消息且未被读走 = 邮箱被占。
     ///   RF 写入前应为 0，否则会覆盖点呼机尚未处理的消息。
     static let mbCtrlHostPutMsg: UInt8 = 1 << 1
+    /// bit2 RF_PUT_MSG：RF 侧（= 上一部手机）已写入一条消息、点呼机还没读走。
+    ///   排队场景现实存在：前一个学生刚写完、点呼机 I2C 还没取，此时直接写会覆盖掉
+    ///   他的签到（芯片不会拦，RF 侧有写入优先权）→ 必须软件侧自己挡。
+    ///   位号与点呼机 `st25dv.py` 的 `MB_CTRL_RF_PUT_MSG` 保持一致，硬件联调时一并坐实。
+    static let mbCtrlRFPutMsg: UInt8 = 1 << 2
 }
 
 enum ST25DVError: Error {
@@ -245,6 +250,13 @@ extension ST25DVWriter: NFCTagReaderSessionDelegate {
             if mbctrl & ST25DV.mbCtrlHostPutMsg != 0 {
                 // 邮箱被占：点呼机刚写入的消息还没被读走，此刻写会覆盖它。
                 session.invalidate(errorMessage: "点呼機が処理中です")
+                self.finish(.failure(ST25DVError.mailboxBusy))
+                return
+            }
+            if mbctrl & ST25DV.mbCtrlRFPutMsg != 0 {
+                // 前一个学生写入的签到点呼机还没读走 —— 现在写会把他的签到覆盖掉（他会
+                // 以为签到成功、实际丢了）。让本次失败重试，比静默吃掉别人的签到好。
+                session.invalidate(errorMessage: "前の人の処理中です。少し待ってからもう一度")
                 self.finish(.failure(ST25DVError.mailboxBusy))
                 return
             }
