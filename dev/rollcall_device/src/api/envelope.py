@@ -19,6 +19,24 @@ class NetworkError(Exception):
     """网络层失败（连接错误 / 超时 / 5xx）—— 触发离线降级。"""
 
 
+# 鉴权类错误码 —— 全设备唯一真值，反馈层（白灯闪烁）与离线队列（不出队、停补传刷令牌）
+# 必须认同一套，两边各存一份曾导致漏码丢签到（2026-07-18 cursor 审查 blocker 2）。
+#
+# `INVALID_CREDENTIALS` 是后端 deps.get_current_device 在 JWT 解码失败 / 令牌世代过期时
+# 实际返回的码（信封保留 detail.code，不会改写成 UNAUTHORIZED）—— 漏了它，令牌过期时
+# 攒了一晚的补传会被当成「终态业务错误」逐条出队丢光。
+AUTH_ERROR_CODES = frozenset(
+    {
+        "UNAUTHORIZED",
+        "INVALID_CREDENTIALS",
+        "FORBIDDEN",
+        "UNKNOWN_DEVICE",
+        "DEVICE_NOT_ACTIVE",
+        "INVALID_SIGNATURE",
+    }
+)
+
+
 @dataclass(frozen=True)
 class ApiResponse:
     """解包后的业务响应。"""

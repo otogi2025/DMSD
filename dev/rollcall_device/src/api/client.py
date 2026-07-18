@@ -13,12 +13,20 @@
 from __future__ import annotations
 
 import hashlib
+import logging
+import os
+import re
 from pathlib import Path
 
 import httpx
 
 from .auth import AuthManager
 from .envelope import ApiResponse, NetworkError, unwrap
+
+logger = logging.getLogger(__name__)
+
+# 音频文件名白名单 —— 与后端 devices.py 的 _AUDIO_NAME_RE 同款（防路径穿越，纵深防御）
+_AUDIO_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]+\.wav$")
 
 
 class ApiClient:
@@ -105,7 +113,16 @@ class ApiClient:
             want_sha = entry.get("sha256")
             if not name:
                 continue
+            # 设备侧独立校验文件名（纵深防御 — 后端已有同款白名单，但被攻破 / manifest 出错时
+            # 不能让 "../../etc/foo.wav" 写到缓存目录外。正则与后端 _AUDIO_NAME_RE 同款）
+            if not _AUDIO_NAME_RE.match(name):
+                logger.warning("[audio] manifest 含非法文件名，已跳过：%r", name)
+                continue
             local = cache_dir / name
+            # resolve 后再确认仍在 cache_dir 下（软链接 / 奇异路径的兜底）
+            if not str(local.resolve()).startswith(str(cache_dir.resolve()) + os.sep):
+                logger.warning("[audio] 文件名解析后越出缓存目录，已跳过：%r", name)
+                continue
             if local.exists() and want_sha and _sha256_file(local) == want_sha:
                 continue
             self.download_audio(name, local)

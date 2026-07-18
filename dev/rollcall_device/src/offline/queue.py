@@ -23,16 +23,9 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
-# 鉴权类错误码（契约 §2.3 / §9「白灯闪烁」类）—— 需刷新令牌，不出队
-AUTH_ERROR_CODES = frozenset(
-    {
-        "UNAUTHORIZED",
-        "FORBIDDEN",
-        "UNKNOWN_DEVICE",
-        "DEVICE_NOT_ACTIVE",
-        "INVALID_SIGNATURE",
-    }
-)
+# 鉴权类错误码（契约 §2.3 / §9「白灯闪烁」类）—— 需刷新令牌，不出队。
+# 单一真值在 api.envelope，反馈层用的是同一份（曾各存一份漏了 INVALID_CREDENTIALS）。
+from ..api.envelope import AUTH_ERROR_CODES
 
 
 class ReplayAction(Enum):

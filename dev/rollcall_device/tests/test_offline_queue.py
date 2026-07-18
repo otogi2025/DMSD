@@ -102,3 +102,29 @@ def test_persistence_across_reopen(tmp_path):
     q2 = OfflineQueue(path)  # 重新打开，数据还在（落盘）
     assert q2.count() == 1
     q2.close()
+
+
+def test_invalid_credentials_never_dequeues(tmp_path):
+    """2026-07-18 cursor 审查 blocker 2 的回归：INVALID_CREDENTIALS 是后端令牌过期时
+    实际返回的码。它若不在鉴权集合里，断网攒下的签到会被当终态业务错误逐条丢光。"""
+    q = OfflineQueue(tmp_path / "q.sqlite3")
+    for uid in ("aa", "bb", "cc"):
+        q.enqueue(_body(uid))
+
+    assert classify_replay_result(False, "INVALID_CREDENTIALS") is ReplayAction.STOP_AUTH
+    removed = q.replay(lambda body: (False, "INVALID_CREDENTIALS"))
+    assert removed == 0
+    assert q.count() == 3, "令牌失效时一条都不许出队"
+    q.close()
+
+
+def test_auth_codes_shared_with_feedback_layer():
+    """反馈层（白灯）与队列层（不出队）必须认同一套鉴权码 —— 两边各存一份就是
+    blocker 2 的成因，现在统一在 api.envelope，这条测试锁死它们不再分家。"""
+    from src.api.envelope import AUTH_ERROR_CODES as envelope_codes
+    from src.feedback import _AUTH_ERROR_CODES as feedback_codes
+    from src.offline.queue import AUTH_ERROR_CODES as queue_codes
+
+    assert queue_codes is envelope_codes
+    assert feedback_codes is envelope_codes
+    assert "INVALID_CREDENTIALS" in envelope_codes

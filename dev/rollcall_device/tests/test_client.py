@@ -158,3 +158,38 @@ def test_token_obtained_only_once_when_valid(tmp_path):
     api.post_checkin({"path_type": "A", "card_uid": "y", "swipe_time": "t"})
     # 12h 令牌未过半 → 只取一次
     assert calls["token"] == 1
+
+
+def test_sync_audio_rejects_traversal_filename(tmp_path):
+    """2026-07-18 cursor 审查 minor 9：manifest 里的文件名设备侧自己也要校验，
+    不能因为后端有白名单就直接拿来拼路径（纵深防御）。"""
+    downloaded_names = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/token"):
+            return _token_response()
+        if request.url.path.endswith("/audio-manifest"):
+            return httpx.Response(
+                200,
+                json={
+                    "ok": True,
+                    "data": {
+                        "files": [
+                            {"name": "../../evil.wav", "sha256": "x"},
+                            {"name": "sub/dir.wav", "sha256": "y"},
+                            {"name": "10023.wav", "sha256": "z"},
+                        ]
+                    },
+                },
+            )
+        downloaded_names.append(request.url.path.rsplit("/", 1)[-1])
+        return httpx.Response(200, content=b"RIFF-fake-wav")
+
+    api = _make_client(tmp_path, handler)
+    cache = tmp_path / "audio"
+    count = api.sync_audio(cache)
+
+    assert count == 1, "只有合法文件名该被下载"
+    assert downloaded_names == ["10023.wav"]
+    assert not (tmp_path.parent / "evil.wav").exists()
+    assert (cache / "10023.wav").exists()

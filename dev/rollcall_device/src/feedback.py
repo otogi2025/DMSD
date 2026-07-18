@@ -18,19 +18,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .api.envelope import AUTH_ERROR_CODES as _AUTH_ERROR_CODES
 from .audio.player import Tone
 from .led.controller import LedState
-
-# 鉴权类错误码 → 白灯闪烁 + 静默（设备自身问题，契约 §9 末行）
-_AUTH_ERROR_CODES = frozenset(
-    {
-        "UNAUTHORIZED",
-        "FORBIDDEN",
-        "UNKNOWN_DEVICE",
-        "DEVICE_NOT_ACTIVE",
-        "INVALID_SIGNATURE",
-    }
-)
 
 
 @dataclass(frozen=True)
