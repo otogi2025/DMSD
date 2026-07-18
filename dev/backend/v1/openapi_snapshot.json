@@ -1931,6 +1931,574 @@
         "title": "DemeritRevokeIn",
         "type": "object"
       },
+      "DeviceAudioFileOut": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          },
+          "size": {
+            "title": "Size",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "sha256",
+          "size"
+        ],
+        "title": "DeviceAudioFileOut",
+        "type": "object"
+      },
+      "DeviceAudioManifestOut": {
+        "description": "GET /devices/me/audio-manifest（Device_Contract §4.3）。",
+        "properties": {
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/DeviceAudioFileOut"
+            },
+            "title": "Files",
+            "type": "array"
+          }
+        },
+        "required": [
+          "files"
+        ],
+        "title": "DeviceAudioManifestOut",
+        "type": "object"
+      },
+      "DeviceCheckinIn": {
+        "description": "POST /rollcall/device-checkins — 点呼机核心签到入口（Device_Contract §4.1）。",
+        "properties": {
+          "card_uid": {
+            "anyOf": [
+              {
+                "maxLength": 14,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Card Uid"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          },
+          "path_type": {
+            "enum": [
+              "A",
+              "B"
+            ],
+            "title": "Path Type",
+            "type": "string"
+          },
+          "student_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student Id"
+          },
+          "swipe_time": {
+            "format": "date-time",
+            "title": "Swipe Time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path_type",
+          "swipe_time"
+        ],
+        "title": "DeviceCheckinIn",
+        "type": "object"
+      },
+      "DeviceCheckinOut": {
+        "description": "签到响应 data（Device_Contract §4.1）。",
+        "properties": {
+          "audio_file": {
+            "title": "Audio File",
+            "type": "string"
+          },
+          "base_status": {
+            "title": "Base Status",
+            "type": "string"
+          },
+          "broadcast_text": {
+            "title": "Broadcast Text",
+            "type": "string"
+          },
+          "duplicate": {
+            "title": "Duplicate",
+            "type": "boolean"
+          },
+          "led": {
+            "title": "Led",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "student_id": {
+            "format": "uuid",
+            "title": "Student Id",
+            "type": "string"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          },
+          "student_number": {
+            "title": "Student Number",
+            "type": "string"
+          },
+          "superseded_by_teacher": {
+            "default": false,
+            "title": "Superseded By Teacher",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "student_id",
+          "student_number",
+          "student_name",
+          "base_status",
+          "session_id",
+          "duplicate",
+          "led",
+          "audio_file",
+          "broadcast_text"
+        ],
+        "title": "DeviceCheckinOut",
+        "type": "object"
+      },
+      "DeviceCreateIn": {
+        "description": "POST /devices — 管理员创建设备记录（Device_Contract §2.2）。",
+        "properties": {
+          "device_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Device Id",
+            "type": "string"
+          },
+          "device_location": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Device Location",
+            "type": "string"
+          },
+          "device_notes": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Notes"
+          },
+          "device_type": {
+            "enum": [
+              "card_reader",
+              "iphone_tag",
+              "hybrid"
+            ],
+            "title": "Device Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "device_id",
+          "device_type",
+          "device_location"
+        ],
+        "title": "DeviceCreateIn",
+        "type": "object"
+      },
+      "DeviceCreateOut": {
+        "description": "创建设备的响应 — enroll_code 明文仅此一次返回，后端只存哈希。",
+        "properties": {
+          "device_active": {
+            "title": "Device Active",
+            "type": "boolean"
+          },
+          "device_id": {
+            "title": "Device Id",
+            "type": "string"
+          },
+          "device_location": {
+            "title": "Device Location",
+            "type": "string"
+          },
+          "device_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Notes"
+          },
+          "device_type": {
+            "title": "Device Type",
+            "type": "string"
+          },
+          "enroll_code": {
+            "title": "Enroll Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "device_id",
+          "device_type",
+          "device_location",
+          "device_notes",
+          "enroll_code",
+          "device_active"
+        ],
+        "title": "DeviceCreateOut",
+        "type": "object"
+      },
+      "DeviceEnrollIn": {
+        "description": "POST /devices/{device_id}/enroll — 设备首启自助激活（Device_Contract §2.2）。",
+        "properties": {
+          "enroll_code": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Enroll Code",
+            "type": "string"
+          },
+          "public_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Public Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enroll_code",
+          "public_key"
+        ],
+        "title": "DeviceEnrollIn",
+        "type": "object"
+      },
+      "DeviceEnrollOut": {
+        "properties": {
+          "device_id": {
+            "title": "Device Id",
+            "type": "string"
+          },
+          "enrolled_at": {
+            "format": "date-time",
+            "title": "Enrolled At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "device_id",
+          "enrolled_at"
+        ],
+        "title": "DeviceEnrollOut",
+        "type": "object"
+      },
+      "DeviceHeartbeatIn": {
+        "description": "POST /devices/me/heartbeat — WS 不可用时的兜底心跳通道。",
+        "properties": {
+          "fw_version": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fw Version"
+          }
+        },
+        "title": "DeviceHeartbeatIn",
+        "type": "object"
+      },
+      "DeviceOut": {
+        "description": "GET /devices 列表项 / PATCH 响应 — 不含 enroll_code / 哈希 / 公钥。",
+        "properties": {
+          "device_active": {
+            "title": "Device Active",
+            "type": "boolean"
+          },
+          "device_id": {
+            "title": "Device Id",
+            "type": "string"
+          },
+          "device_location": {
+            "title": "Device Location",
+            "type": "string"
+          },
+          "device_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Notes"
+          },
+          "device_type": {
+            "title": "Device Type",
+            "type": "string"
+          },
+          "enrolled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enrolled At"
+          },
+          "fw_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fw Version"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "registered_at": {
+            "format": "date-time",
+            "title": "Registered At",
+            "type": "string"
+          },
+          "retired_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retired At"
+          }
+        },
+        "required": [
+          "device_id",
+          "device_type",
+          "device_location",
+          "device_notes",
+          "device_active",
+          "enrolled_at",
+          "retired_at",
+          "last_seen_at",
+          "fw_version",
+          "registered_at"
+        ],
+        "title": "DeviceOut",
+        "type": "object"
+      },
+      "DevicePatchIn": {
+        "description": "PATCH /devices/{device_id} — 临时停用/恢复 toggle + 永久注销。",
+        "properties": {
+          "device_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Active"
+          },
+          "retire": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retire"
+          }
+        },
+        "title": "DevicePatchIn",
+        "type": "object"
+      },
+      "DeviceResetEnrollOut": {
+        "description": "POST /devices/{device_id}/reset-enroll 响应 — 重发激活码（明文仅此一次）。",
+        "properties": {
+          "device_id": {
+            "title": "Device Id",
+            "type": "string"
+          },
+          "enroll_code": {
+            "title": "Enroll Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "device_id",
+          "enroll_code"
+        ],
+        "title": "DeviceResetEnrollOut",
+        "type": "object"
+      },
+      "DeviceRosterOut": {
+        "description": "GET /devices/me/roster — 离线兜底名单（Device_Contract §4.2）。",
+        "properties": {
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "students": {
+            "items": {
+              "$ref": "#/components/schemas/DeviceRosterStudentOut"
+            },
+            "title": "Students",
+            "type": "array"
+          }
+        },
+        "required": [
+          "generated_at",
+          "students"
+        ],
+        "title": "DeviceRosterOut",
+        "type": "object"
+      },
+      "DeviceRosterStudentOut": {
+        "properties": {
+          "card_uids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Card Uids",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "student_id": {
+            "format": "uuid",
+            "title": "Student Id",
+            "type": "string"
+          },
+          "student_number": {
+            "title": "Student Number",
+            "type": "string"
+          }
+        },
+        "required": [
+          "student_id",
+          "student_number",
+          "name",
+          "card_uids"
+        ],
+        "title": "DeviceRosterStudentOut",
+        "type": "object"
+      },
+      "DeviceTokenIn": {
+        "description": "POST /devices/{device_id}/token — 挑战签名换令牌（Device_Contract §2.3）。\n\nts 保持 str（不解析成 datetime）— 验签用的是设备逐字节签名的原始串，\n必须原样喂进 \"{device_id}\\n{ts}\\n{nonce}\"，不能被序列化改写。",
+        "properties": {
+          "nonce": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Nonce",
+            "type": "string"
+          },
+          "signature": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Signature",
+            "type": "string"
+          },
+          "ts": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Ts",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ts",
+          "nonce",
+          "signature"
+        ],
+        "title": "DeviceTokenIn",
+        "type": "object"
+      },
+      "DeviceTokenOut": {
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "token_type": {
+            "default": "bearer",
+            "title": "Token Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "access_token",
+          "expires_at"
+        ],
+        "title": "DeviceTokenOut",
+        "type": "object"
+      },
       "DeviceTokenRegisterIn": {
         "description": "POST /api/v1/notifications/device-token 请求体。",
         "properties": {
@@ -4563,6 +5131,102 @@
           "scheduled_auto_end_at"
         ],
         "title": "MyRollCallTodaySession",
+        "type": "object"
+      },
+      "NfcCardCreateIn": {
+        "description": "POST /cards — 绑卡（Device_Contract §5）。",
+        "properties": {
+          "card_uid": {
+            "maxLength": 14,
+            "minLength": 14,
+            "title": "Card Uid",
+            "type": "string"
+          },
+          "student_id": {
+            "format": "uuid",
+            "title": "Student Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "card_uid",
+          "student_id"
+        ],
+        "title": "NfcCardCreateIn",
+        "type": "object"
+      },
+      "NfcCardOut": {
+        "properties": {
+          "card_active": {
+            "title": "Card Active",
+            "type": "boolean"
+          },
+          "card_uid": {
+            "title": "Card Uid",
+            "type": "string"
+          },
+          "issued_at": {
+            "format": "date-time",
+            "title": "Issued At",
+            "type": "string"
+          },
+          "revoke_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoke Reason"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "student_id": {
+            "format": "uuid",
+            "title": "Student Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "card_uid",
+          "student_id",
+          "card_active",
+          "issued_at",
+          "revoked_at",
+          "revoke_reason"
+        ],
+        "title": "NfcCardOut",
+        "type": "object"
+      },
+      "NfcCardRevokeIn": {
+        "description": "DELETE /cards/{card_uid} 可选正文 — 作废理由。",
+        "properties": {
+          "revoke_reason": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoke Reason"
+          }
+        },
+        "title": "NfcCardRevokeIn",
         "type": "object"
       },
       "NotificationFeedOut": {
@@ -10542,6 +11206,211 @@
         ]
       }
     },
+    "/api/v1/cards": {
+      "get": {
+        "description": "卡一览（Device_Contract §5）— 可按 student_id 过滤；R4 寮 + 演示隔离。",
+        "operationId": "list_cards_api_v1_cards_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "student_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Student Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/NfcCardOut"
+                  },
+                  "title": "Response List Cards Api V1 Cards Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Cards",
+        "tags": [
+          "devices"
+        ]
+      },
+      "post": {
+        "description": "绑卡（Device_Contract §5）— card_uid 14 位小写 hex；同 UID 只能绑一个未作废学生。",
+        "operationId": "create_card_api_v1_cards_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NfcCardCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NfcCardOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Card",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/cards/{card_uid}": {
+      "delete": {
+        "description": "作废卡（软删，Device_Contract §5）— 作废后同 UID 可重新绑给新学生。",
+        "operationId": "revoke_card_api_v1_cards__card_uid__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "card_uid",
+            "required": true,
+            "schema": {
+              "title": "Card Uid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/NfcCardRevokeIn"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NfcCardOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke Card",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
     "/api/v1/cleaning": {
       "get": {
         "description": "列未审核（assigned/done）的清扫安排 — R4 寮过滤 + 演示隔离，按计划时刻升序。\n\n重做后罚扫带具体时刻（scheduled_at），老师工作流是「看待处理 → 审核」，\n故默认拉未结案项（不再按单日过滤）；已审核（passed/failed/skipped）不在此列。",
@@ -10775,6 +11644,567 @@
         "summary": "Inspect Cleaning",
         "tags": [
           "cleaning"
+        ]
+      }
+    },
+    "/api/v1/devices": {
+      "get": {
+        "description": "设备一览（不含激活码 / 哈希 / 公钥）。",
+        "operationId": "list_devices_api_v1_devices_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DeviceOut"
+                  },
+                  "title": "Response List Devices Api V1 Devices Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Devices",
+        "tags": [
+          "devices"
+        ]
+      },
+      "post": {
+        "description": "创建设备记录（Device_Contract §2.2）— 返回一次性激活码明文，库里只存哈希。",
+        "operationId": "create_device_api_v1_devices_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceCreateOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Device",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/devices/me/audio-manifest": {
+      "get": {
+        "description": "音频清单（Device_Contract §4.3）— 目录不存在返回空 manifest。",
+        "operationId": "device_audio_manifest_api_v1_devices_me_audio_manifest_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceAudioManifestOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Device Audio Manifest",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/devices/me/audio/{file}": {
+      "get": {
+        "description": "取单个音频原文件（Device_Contract §4.3）— 文件名白名单防路径穿越。",
+        "operationId": "device_audio_file_api_v1_devices_me_audio__file__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "file",
+            "required": true,
+            "schema": {
+              "title": "File",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Device Audio File",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/devices/me/heartbeat": {
+      "post": {
+        "description": "WS 不可用时的兜底心跳（Device_Contract §4.4）→ 更新 last_seen_at。",
+        "operationId": "device_heartbeat_api_v1_devices_me_heartbeat_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceHeartbeatIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Device Heartbeat",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/devices/me/roster": {
+      "get": {
+        "description": "离线兜底名单（Device_Contract §4.2）— active 非演示学生 + 各自 active card_uids。\n\n设备不 dorm-bound（附录 C.1），返回全体在寮非演示学生。",
+        "operationId": "device_roster_api_v1_devices_me_roster_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceRosterOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Device Roster",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/devices/{device_id}": {
+      "patch": {
+        "description": "临时停用/恢复 toggle + 永久注销（DEVICE_REGISTRY §5）。\n\n永久注销（retire=true）后禁止再把 device_active 置回 true（§5.2）。",
+        "operationId": "patch_device_api_v1_devices__device_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "title": "Device Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevicePatchIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Device",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/devices/{device_id}/enroll": {
+      "post": {
+        "description": "设备首启激活（Device_Contract §2.2）— 激活码 + 公钥换「已激活」。",
+        "operationId": "enroll_device_api_v1_devices__device_id__enroll_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "title": "Device Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceEnrollIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceEnrollOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Enroll Device",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/devices/{device_id}/reset-enroll": {
+      "post": {
+        "description": "重发激活码 + 作废旧公钥（Device_Contract §3）— 重新激活须先走本端点。",
+        "operationId": "reset_device_enroll_api_v1_devices__device_id__reset_enroll_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "title": "Device Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceResetEnrollOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reset Device Enroll",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/devices/{device_id}/token": {
+      "post": {
+        "description": "挑战签名换 12h 令牌（Device_Contract §2.3）。\n\n签名串 = \"{device_id}\\n{ts}\\n{nonce}\"（UTF-8 逐字拼接）。\n校验：设备存在且 active 且已 enroll → |server_now − ts| ≤ 600s → nonce 24h 未用 → 验签。\n失败码：UNKNOWN_DEVICE / DEVICE_NOT_ACTIVE / INVALID_SIGNATURE（reason 细分）。",
+        "operationId": "device_token_api_v1_devices__device_id__token_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "title": "Device Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceTokenIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceTokenOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Device Token",
+        "tags": [
+          "devices"
         ]
       }
     },
@@ -14445,6 +15875,66 @@
         "summary": "Withdraw Outing",
         "tags": [
           "outings"
+        ]
+      }
+    },
+    "/api/v1/rollcall/device-checkins": {
+      "post": {
+        "description": "点呼机核心签到入口（Device_Contract §4.1 + §6）。",
+        "operationId": "device_checkin_api_v1_rollcall_device_checkins_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceCheckinIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceCheckinOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Device Checkin",
+        "tags": [
+          "devices"
         ]
       }
     },
