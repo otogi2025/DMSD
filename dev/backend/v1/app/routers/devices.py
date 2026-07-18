@@ -19,6 +19,7 @@ POST /sessions/{id}/checkins）维持 server_now、行为不变、本文件不�
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 import re
 from datetime import datetime, timedelta, timezone
@@ -35,7 +36,7 @@ from sqlalchemy.orm import Session
 from .. import device_auth, models, permissions, schemas
 from .. import ws_manager as _ws
 from ..config import get_settings
-from ..database import get_db
+from ..database import SessionLocal, get_db
 from ..deps import (
     assert_not_demo_teacher,
     assert_student_demo_match,
@@ -49,6 +50,8 @@ from .rollcall import (
     ROLLCALL_LATE_POINTS,
     _assert_student_in_dorm,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["devices"])
 
@@ -370,8 +373,14 @@ def device_token(
             },
         )
 
+    # enr claim = 本次激活的时刻戳。老师走 reset-enroll 重发激活码后 enrolled_at 被清空/刷新，
+    # 旧令牌的 enr 对不上 → deps.get_current_device 判 401（契约 §2.2「旧公钥即刻作废」的
+    # 安全意图要求旧设备身份同时失效，不能靠 12 小时自然过期）。
     token = create_access_token(
-        device_id, "device", expire_minutes=_DEVICE_TOKEN_MINUTES
+        device_id,
+        "device",
+        extra={"enr": int(_as_jst_aware(device.enrolled_at).timestamp())},
+        expire_minutes=_DEVICE_TOKEN_MINUTES,
     )
     expires_at = _now_jst() + timedelta(minutes=_DEVICE_TOKEN_MINUTES)
     return schemas.DeviceTokenOut(access_token=token, expires_at=expires_at)
@@ -380,16 +389,62 @@ def device_token(
 # ===============================================================
 # 3. 设备日常（device JWT）
 # ===============================================================
+def _audit_clock_skew(
+    device: models.RollCallDevice, raw_swipe: datetime, server_now: datetime
+) -> None:
+    """设备 swipe_time 落在未来被钳制时留一条审计（Device_Contract §3）。
+
+    走独立 session：这条留痕跟签到本身成不成功无关（签到后续可能抛 409 回滚），
+    时钟异常这件事本身就该记下来。写失败只 warning，不影响签到主流程。
+    """
+    db = SessionLocal()
+    try:
+        db.add(
+            models.AuditLog(
+                # actor_type 受 ck_audit_actor_type 约束限定为 student/teacher/system，
+                # 点呼机属系统组件 → system；具体是哪台机器看 target_id / payload。
+                actor_type="system",
+                actor_id=device.id,
+                action="device.clock_skew_clamped",
+                target_type="rollcall_device",
+                target_id=device.id,
+                payload={
+                    "device_id": device.device_id,
+                    "raw_swipe_time": raw_swipe.isoformat(),
+                    "server_now": server_now.isoformat(),
+                    "skew_seconds": round((raw_swipe - server_now).total_seconds(), 3),
+                },
+            )
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+        logger.warning(
+            "[device] 时钟异常审计写入失败 device_id=%s",
+            device.device_id,
+            exc_info=True,
+        )
+    finally:
+        db.close()
+
+
 def _find_session_for_checkin(
     db: Session, student: models.Student, decision_time: datetime
 ) -> Optional[models.RollCallSession]:
-    """定位该生该次签到应归属的场次。
+    """定位该生该次签到应归属的场次 —— 一律按 decision_time（=swipe_time）落在哪个场次的
+    时间窗内来判，不看「当下哪场在跑」。
 
-    - 主路径（在线）：该生所属寮当前 running 的场次（running = 已开始接受签到，spec §5.2）。
-    - 兜底路径（离线补传，Device_Contract §6）：无 running 场次时，找该生寮一个已结束、
-      且 swipe_time 落在 [window_start, ended_at] 内的场次 —— 用于「结算后补传覆盖」。
-      swipe_time 晚于 ended_at → 不命中 → SESSION_NOT_RUNNING（7-17 拍板删 late_end/TIMEOUT，
-      结束后的签到一律归 SESSION_NOT_RUNNING，见 RollCall_Spec §5.3 修订注）。
+    窗口 = [下限, 上限]：
+    - 下限 = `scheduled_window_start_at`；老师若早于计划窗手动开场（异常但不该拒真实签到），
+      取 `started_at` 作下限兜底。窗前刷卡不归任何场次 → SESSION_NOT_RUNNING（RollCall_Spec
+      §7：present 要求 `scheduled_window_start_at ≤ t`）。
+    - 上限 = running 场次无上限（还在接受签到）；ended 场次为 `ended_at`（7-17 拍板删
+      late_end/TIMEOUT，结束后的签到一律 SESSION_NOT_RUNNING，见 RollCall_Spec §5.3 修订注）。
+
+    为什么不能「有 running 就直接返回它」（2026-07-18 cursor 审查 blocker 1）：早间场次已
+    auto_settle 置 absent、晚间场次已 running 时，队列里残留的早间刷卡会被记到晚间场次
+    （早间 swipe_time 远早于晚间准时截止 → 误判 present），早间缺席与扣分永不回退。离线补传
+    必须按 swipe_time 归属（Device_Contract §6）。
     dorm_unit_set 是 JSON 列，跨库包含查询不可移植，故在 Python 侧按 dorm_unit 过滤。
     """
     rows = db.scalars(
@@ -398,20 +453,20 @@ def _find_session_for_checkin(
         )
     ).all()
     mine = [s for s in rows if student.dorm_unit in (s.dorm_unit_set or [])]
-    running = [s for s in mine if s.session_status == "running"]
-    if running:
-        return max(running, key=lambda s: s.scheduled_window_start_at)
-    ended_covering = [
-        s
-        for s in mine
-        if s.session_status == "ended"
-        and s.ended_at is not None
-        and _as_jst_aware(s.scheduled_window_start_at)
-        <= decision_time
-        <= _as_jst_aware(s.ended_at)
-    ]
-    if ended_covering:
-        return max(ended_covering, key=lambda s: s.scheduled_window_start_at)
+    covering = []
+    for s in mine:
+        lower = _as_jst_aware(s.scheduled_window_start_at)
+        if s.started_at is not None:
+            lower = min(lower, _as_jst_aware(s.started_at))
+        if decision_time < lower:
+            continue
+        if s.session_status == "ended":
+            if s.ended_at is None or decision_time > _as_jst_aware(s.ended_at):
+                continue
+        covering.append(s)
+    if covering:
+        # 理论上窗口不重叠；真重叠时取最晚开窗的那场（离 swipe_time 最近）
+        return max(covering, key=lambda s: s.scheduled_window_start_at)
     return None
 
 
@@ -514,6 +569,16 @@ def device_checkin(
                 "message": "path_type=B には student_id が必要です",
             },
         )
+    # 路径 B 的 idempotency_key 来自手机写入邮箱的载荷（每次新 UUID，Device_Contract §7），
+    # 缺它就没法靠 (session_id, idempotency_key) 唯一约束挡并发重复 → 必填（§4.1）。
+    if body.path_type == "B" and body.idempotency_key is None:
+        raise HTTPException(
+            422,
+            {
+                "code": "INVALID_INPUT",
+                "message": "path_type=B には idempotency_key が必要です",
+            },
+        )
 
     # 1. 解析学生
     card_uid_norm: Optional[str] = None
@@ -557,7 +622,12 @@ def device_checkin(
     # 2. 判定时刻（swipe_time；未来超 30 秒钳制为 server_now，Device_Contract §3）
     now = _now_jst()
     swipe = _as_jst_aware(body.swipe_time)
-    decision_time = now if swipe > now + timedelta(seconds=30) else swipe
+    if swipe > now + timedelta(seconds=30):
+        decision_time = now
+        # 契约 §3 要求钳制时写审计（设备时钟异常要留痕，事后能查是哪台机器 NTP 坏了）
+        _audit_clock_skew(device, swipe, now)
+    else:
+        decision_time = swipe
 
     # 3. 定位场次
     session = _find_session_for_checkin(db, student, decision_time)

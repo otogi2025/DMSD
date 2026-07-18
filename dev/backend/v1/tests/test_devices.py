@@ -852,3 +852,139 @@ class TestScheduler:
         assert types == ["evening", "morning"], f"应恰好两场，实际 {types}"
         for r in rows:
             assert r.dorm_unit_set == [1, 2, 4]
+
+
+# ===============================================================
+# 2026-07-18 cursor 审查发现的回归测试（blocker 1/2 + major 3/4/6/7）
+# ===============================================================
+class TestReviewRegressions:
+    """每条对应一个审查发现，防这些坑以后被改回去。"""
+
+    def test_replay_lands_on_ended_session_not_the_running_one(
+        self, client, device_token, seed_data, db_session
+    ):
+        """blocker 1：早间场已 ended（学生被判 absent）+ 晚间场正 running 时，
+        早间的离线补传必须回到早间那场，不能被记进晚间场。"""
+        now = datetime.now(_JST)
+        # 早间场：窗口 [now-5h, now-4h50m]，已结束
+        morning = models.RollCallSession(
+            dorm_unit_set=[1, 2],
+            session_type="morning",
+            day_type="weekday",
+            session_status="ended",
+            started_at=now - timedelta(hours=5),
+            ended_at=now - timedelta(hours=4, minutes=50),
+            ended_source="system",
+            scheduled_window_start_at=now - timedelta(hours=5),
+            scheduled_on_time_end_at=now - timedelta(hours=4, minutes=55),
+            scheduled_late_end_at=now - timedelta(hours=4, minutes=54),
+            scheduled_auto_end_at=now - timedelta(hours=4, minutes=50),
+        )
+        db_session.add(morning)
+        db_session.commit()
+        db_session.refresh(morning)
+        # 晚间场正在跑
+        evening = _make_running_session(db_session, on_time_offset_min=10)
+
+        # 早间窗内的刷卡现在才补传上来
+        swipe = now - timedelta(hours=4, minutes=58)
+        res = client.post(
+            "/api/v1/rollcall/device-checkins",
+            json={
+                "path_type": "B",
+                "student_id": str(seed_data["student"].id),
+                "idempotency_key": "aaaaaaa1-0000-0000-0000-000000000001",
+                "swipe_time": swipe.isoformat(),
+            },
+            headers=_h(device_token),
+        )
+        assert res.status_code == 200, res.text
+        data = res.json()["data"]
+        assert data["session_id"] == str(morning.id), (
+            f"补传应归早间场 {morning.id}，实际落到 {data['session_id']}"
+            f"（晚间场是 {evening.id}）"
+        )
+        assert data["base_status"] == "present"
+
+    def test_swipe_before_window_start_rejected(
+        self, client, device_token, seed_data, db_session
+    ):
+        """major 3：swipe_time 早于场次 window_start（不属于任何场次的时间窗）→
+        不能被记成该场的 present（RollCall_Spec §7 要求 window_start ≤ t）。"""
+        _make_running_session(db_session, on_time_offset_min=10)  # window_start = now-30min
+        swipe = datetime.now(_JST) - timedelta(hours=2)  # 远早于窗口下限
+        res = client.post(
+            "/api/v1/rollcall/device-checkins",
+            json={
+                "path_type": "B",
+                "student_id": str(seed_data["student"].id),
+                "idempotency_key": "aaaaaaa1-0000-0000-0000-000000000002",
+                "swipe_time": swipe.isoformat(),
+            },
+            headers=_h(device_token),
+        )
+        assert res.status_code == 409, res.text
+        assert res.json()["error"]["code"] == "SESSION_NOT_RUNNING"
+
+    def test_path_b_requires_idempotency_key(
+        self, client, device_token, seed_data, db_session
+    ):
+        """major 4：路径 B 的 idempotency_key 是必填（契约 §4.1）。"""
+        _make_running_session(db_session, on_time_offset_min=10)
+        res = client.post(
+            "/api/v1/rollcall/device-checkins",
+            json={
+                "path_type": "B",
+                "student_id": str(seed_data["student"].id),
+                "swipe_time": datetime.now(_JST).isoformat(),
+            },
+            headers=_h(device_token),
+        )
+        assert res.status_code == 422, res.text
+        assert res.json()["error"]["code"] == "INVALID_INPUT"
+
+    def test_future_swipe_writes_audit_row(
+        self, client, device_token, seed_data, db_session
+    ):
+        """major 6：未来 swipe_time 被钳制时要写审计（契约 §3）。"""
+        _make_running_session(db_session, on_time_offset_min=10)
+        forged = datetime.now(_JST) + timedelta(days=1)
+        res = client.post(
+            "/api/v1/rollcall/device-checkins",
+            json={
+                "path_type": "B",
+                "student_id": str(seed_data["student"].id),
+                "idempotency_key": "aaaaaaa1-0000-0000-0000-000000000003",
+                "swipe_time": forged.isoformat(),
+            },
+            headers=_h(device_token),
+        )
+        assert res.status_code == 200, res.text
+        rows = (
+            db_session.query(models.AuditLog)
+            .filter(models.AuditLog.action == "device.clock_skew_clamped")
+            .all()
+        )
+        assert len(rows) == 1, f"应恰好一条时钟异常审计，实际 {len(rows)}"
+        assert rows[0].payload["device_id"] == "dorm-1-01"
+        assert rows[0].payload["skew_seconds"] > 0
+
+    def test_old_token_dies_after_reset_enroll(
+        self, client, teacher_token, device_token, seed_data, db_session
+    ):
+        """major 7：老师重发激活码作废旧公钥后，旧设备令牌必须当场失效，
+        不能靠 12 小时自然过期（契约 §2.2）。"""
+        _make_running_session(db_session, on_time_offset_min=10)
+        # 重置前旧令牌可用
+        ok = client.get("/api/v1/devices/me/roster", headers=_h(device_token))
+        assert ok.status_code == 200, ok.text
+
+        res = client.post(
+            "/api/v1/devices/dorm-1-01/reset-enroll", headers=_h(teacher_token)
+        )
+        assert res.status_code == 200, res.text
+
+        # 重置后同一个旧令牌应被拒
+        dead = client.get("/api/v1/devices/me/roster", headers=_h(device_token))
+        assert dead.status_code == 401, dead.text
+        assert dead.json()["error"]["code"] == "INVALID_CREDENTIALS"

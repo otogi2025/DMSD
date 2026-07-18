@@ -301,6 +301,20 @@ def get_current_device(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"code": "DEVICE_NOT_ACTIVE", "message": "デバイスが停止中です"},
         )
+    # 令牌世代校验：签发时把当次 enrolled_at 秒数写进 enr claim。老师走 reset-enroll 作废旧
+    # 公钥后 enrolled_at 被清空（再次 enroll 则刷新）→ 旧令牌 enr 对不上，当场失效，不等
+    # 12 小时自然过期（Device_Contract §2.2「旧公钥即刻作废」，2026-07-18 cursor 审查 major 7）。
+    enrolled_at = device.enrolled_at
+    token_enr = payload.get("enr")
+    current_enr = int(enrolled_at.timestamp()) if enrolled_at is not None else None
+    if current_enr is None or token_enr != current_enr:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "code": "INVALID_CREDENTIALS",
+                "message": "トークンが無効です（再有効化が必要です）",
+            },
+        )
     return device
 
 
