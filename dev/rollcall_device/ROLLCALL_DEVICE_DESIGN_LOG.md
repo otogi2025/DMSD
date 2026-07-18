@@ -279,3 +279,7 @@ WantedBy=multi-user.target
 
 - 2026-05-08：itsuki 拍板「点呼机当第 5 端」+ 联动机制升级（4 端反向规则 + 点呼机加入 system-features 联动）+ 本档案骨架建成
 - 2026-07-17：软件从零全实装（`a0e1595`，依 itsuki /goal「点呼真实装」）——契约 `Device_Contract.md` 定稿 + src/ 全模块 + 75 条 pytest + systemd + 部署SOP；D1/D2/D4/D6 落地（§9/§10）；剩硬件到货联调
+- 2026-07-18：审查修复批（`9347a89`，cursor grok-4.5 只读审查 2 条采纳）——
+  ① **鉴权错误码集合合并到 `src/api/envelope.py` 单一真值**，并补上漏掉的 `INVALID_CREDENTIALS`。原来反馈层（`feedback.py`，决定白灯闪烁）和离线队列（`offline/queue.py`，决定不出队 + 停补传刷令牌）各存一份，都漏了这个码 —— 而它正是后端 `deps.get_current_device` 在令牌解码失败 / 世代过期时实际返回的码。**后果**：令牌一过期，断网攒下的整晚补传会被当成「终态业务错误」逐条出队丢光，现场还走红灯失败而不是白灯 + 刷新令牌。新增测试锁死三处引用的是同一个对象，防以后再分家。
+  ② `client.py` 的 `sync_audio` 对 manifest 文件名做设备侧白名单校验（正则与后端 `_AUDIO_NAME_RE` 同款）+ `resolve()` 后确认仍在缓存目录内 —— 后端被攻破 / manifest 出错时不至于把文件写到缓存目录外（纵深防御）。
+  验证：78 passed（原 75 + 新增 3）。

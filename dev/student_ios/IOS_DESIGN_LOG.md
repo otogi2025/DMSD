@@ -1675,3 +1675,13 @@ A3 上架清单 A-1/A-2 落地（spec v1.0 §2.2「点呼入口占位、不得�
 - **载荷 34 字节**：`[0]=0x01 版本 [1]=类型（点呼 0x01 / 晚自习 0x02）[2..17]=student_id UUID [18..33]=idempotency_key UUID`（每次写入尝试新生成）。新增 `MailboxPayloadTests` 5 条锁字节序与长度。
 - **成功语义**：生产 toast「点呼機に送信しました」——做法 A 不等后端结果（手机不联网，flow_design §3），全流程无「出席確定」类误导字样。StudyCheckinSheet 维持 v1.1 DEMO-ONLY 形态，仅共用新载荷编译通过。
 - 验证：双 scheme BUILD SUCCEEDED + MailboxPayloadTests TEST SUCCEEDED（主会话独立重编译核对）。RF 命令层待硬件到货真机联调坐实。
+
+### §34.1 补写入前的 RF_PUT_MSG 检查（2026-07-18，commit `da2f0b1`，cursor 审查采纳）
+
+上条列为「待硬件联调核实」的三个不确定点之一（是否加查 RF_PUT_MSG）经审查确认应当加，已实装：
+
+- **原来只挡 `HOST_PUT_MSG`（bit1）**——那是「点呼机侧写的消息还没被读走」。漏了 `RF_PUT_MSG`（bit2）= **上一部手机写的签到点呼机还没取走**。
+- **为什么是真问题**：排队签到时前一个学生刚贴完、点呼机 I2C 还没读，下一个人贴上去直接写就把他的签到覆盖了 —— 芯片不会拦（RF 侧对邮箱有写入优先权），只能软件自己挡。被覆盖的那位手机上还显示成功，实际签到丢了。
+- **做法**：`mbctrl & mbCtrlRFPutMsg != 0` → 返回 `mailboxBusy`，日语提示「前の人の処理中です。少し待ってからもう一度」，让本次失败重试。宁可让人多贴一次，也不静默吃掉别人的签到。
+- 位号 bit2 与点呼机 `src/nfc/st25dv.py` 的 `MB_CTRL_RF_PUT_MSG` 取值一致，硬件联调时两端一并坐实。
+- 验证：双 scheme BUILD SUCCEEDED。
