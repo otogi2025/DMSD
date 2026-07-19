@@ -49,7 +49,7 @@ fun NotificationsScreen(navController: NavHostController) {
     var filter by remember { mutableStateOf("すべて") }
 
     // 7 项筛选标签（对齐 iOS / 规格 §5.2 — 第 7 项是「リクエスト曲」而非「リクエスト」）
-    val chips = listOf("すべて", "申請", "減点", "学習", "宅配", "活動", "リクエスト曲")
+    val chips = listOf("すべて", "申請", "減点", "夜学習", "宅配", "活動", "リクエスト曲")
 
     // 按 tag 过滤；「すべて」直通不过滤
     val filtered =

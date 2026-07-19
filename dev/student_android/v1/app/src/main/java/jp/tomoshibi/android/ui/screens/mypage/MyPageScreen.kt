@@ -25,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,14 +42,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import jp.tomoshibi.android.data.model.EventItem
+import jp.tomoshibi.android.data.network.EventOut
+import jp.tomoshibi.android.data.network.endpoints.EventsAPI
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.nav.Route
 import jp.tomoshibi.android.ui.components.Avatar
 import jp.tomoshibi.android.ui.components.GhostButton
-import jp.tomoshibi.android.ui.components.GlobalScaffold
 import jp.tomoshibi.android.ui.components.GlassBottomSheet
+import jp.tomoshibi.android.ui.components.GlobalScaffold
 import jp.tomoshibi.android.ui.components.PageHeader
 import jp.tomoshibi.android.ui.components.Pill
 import jp.tomoshibi.android.ui.components.PillTone
@@ -58,6 +60,9 @@ import jp.tomoshibi.android.ui.components.SuzuCard
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 // ───────────────────────────────────────────────────────────────
 // MyPageScreen（個人页着陆页 L1）— 对齐 iOS MyLandingView（截图 11）
@@ -78,6 +83,31 @@ fun MyPageScreen(navController: NavHostController) {
 
     // 用户档案：优先读登录态，空则回落假数据
     val user = state.user
+
+    // 行事予定卡：今天起升序取前 3（对齐 iOS upcomingEvents）
+    var scheduleEvents by remember { mutableStateOf<List<EventOut>>(emptyList()) }
+    var scheduleLoading by remember { mutableStateOf(false) }
+    var scheduleFailed by remember { mutableStateOf(false) }
+    LaunchedEffect(state.authed, state.authToken) {
+        if (!state.authed || state.authToken.isNullOrEmpty()) return@LaunchedEffect
+        scheduleLoading = true
+        scheduleFailed = false
+        try {
+            val today = LocalDate.now(ZoneId.of("Asia/Tokyo"))
+            val to = "${today.year + 1}-12-31"
+            val raw = EventsAPI.listEvents(fromDate = today.toString(), toDate = to)
+            scheduleEvents =
+                raw
+                    .filter { it.eventDate >= today.toString() }
+                    .sortedBy { it.eventDate }
+                    .take(3)
+        } catch (_: Exception) {
+            scheduleEvents = emptyList()
+            scheduleFailed = true
+        } finally {
+            scheduleLoading = false
+        }
+    }
 
     GlobalScaffold(activeTab = "me", navController = navController) {
         Column(modifier = Modifier.fillMaxSize().background(t.pearl)) {
@@ -100,7 +130,11 @@ fun MyPageScreen(navController: NavHostController) {
                 ProfileCard(user.avatar, user.name, user.studentNo, user.dorm, user.room, user.category)
 
                 // ── 2.2 行事予定卡 ──
-                ScheduleCard(MockData.EVENTS_PREVIEW) { navController.navigate(Route.Schedule.path) }
+                ScheduleCard(
+                    events = scheduleEvents,
+                    loading = scheduleLoading,
+                    failed = scheduleFailed,
+                ) { navController.navigate(Route.Schedule.path) }
 
                 // ── 2.3 主要状态卡群（3 张竖排）──
                 StudyStatusCard(user.isStudyTarget) { navController.navigate(Route.MyStudy.path) }
@@ -189,10 +223,12 @@ private fun ProfileCard(
     }
 }
 
-// ── 2.2 行事予定卡：整卡可点去日程屏；列表取最近 3 条活动 ──
+// ── 2.2 行事予定卡：整卡可点去日程屏；今天起升序取最近 3 条 ──
 @Composable
 private fun ScheduleCard(
-    events: List<EventItem>,
+    events: List<EventOut>,
+    loading: Boolean,
+    failed: Boolean,
     onClick: () -> Unit,
 ) {
     val t = SuzuT.current
@@ -220,49 +256,62 @@ private fun ScheduleCard(
             ) {
                 Icon(SuzuIcons.Cal, contentDescription = null, tint = primary, modifier = Modifier.size(20.dp))
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Text("行事予定", color = t.ink, style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold))
-            Spacer(Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(1f))
             Text("すべて見る", color = primary, style = TextStyle(fontSize = 11.sp))
             Icon(SuzuIcons.ChevR, contentDescription = null, tint = primary, modifier = Modifier.size(14.dp))
         }
-        // 列表（最多 3 条）；空时显示「当面の予定はありません」
-        val shown = events.take(3)
-        if (shown.isEmpty()) {
-            Text("当面の予定はありません", color = t.inkMute, style = TextStyle(fontSize = 12.sp))
-        } else {
-            shown.forEachIndexed { i, ev ->
-                if (i > 0) HorizontalDivider(color = t.hair, thickness = 0.5.dp)
-                ScheduleRow(ev)
+        when {
+            loading -> {
+                Text("読み込み中…", color = t.inkMute, style = TextStyle(fontSize = 12.sp))
+            }
+
+            failed -> {
+                Text("読み込みに失敗しました", color = t.inkMute, style = TextStyle(fontSize = 12.sp))
+            }
+
+            events.isEmpty() -> {
+                Text("直近の予定はありません", color = t.inkMute, style = TextStyle(fontSize = 12.sp))
+            }
+
+            else -> {
+                events.forEachIndexed { i, ev ->
+                    if (i > 0) HorizontalDivider(color = t.hair, thickness = 0.5.dp)
+                    ScheduleRow(ev)
+                }
             }
         }
     }
 }
 
-// 行事予定 单行：左竖块「月 / 日」+ 竖线 + 右标题 / 时间
+// 行事予定 单行：左竖块「月 / 日」+ 竖线 + 右标题（生产版 place 恒空，不显副行）
 @Composable
-private fun ScheduleRow(ev: EventItem) {
+private fun ScheduleRow(ev: EventOut) {
     val t = SuzuT.current
     val primary = MaterialTheme.colorScheme.primary
-    // EventItem.date 形如 "04-05"，拆出「月 / 日」
-    val parts = ev.date.split("-")
-    val month = parts.getOrNull(0)?.trimStart('0').orEmpty()
-    val day = parts.getOrNull(1).orEmpty()
+    // eventDate 形如 "2026-04-05"，拆出「月 / 日」
+    val parts = ev.eventDate.split("-")
+    val month = parts.getOrNull(1)?.trimStart('0').orEmpty()
+    val day = parts.getOrNull(2).orEmpty()
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(
             modifier = Modifier.width(40.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("${month}月", color = primary, style = TextStyle(fontSize = 10.sp))
+            Text("${month}月", color = primary, style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Bold))
             Text(day, color = t.ink, style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold))
         }
-        Box(modifier = Modifier.width(1.dp).height(32.dp).background(t.hair))
-        Spacer(Modifier.width(12.dp))
+        Box(
+            modifier =
+                Modifier
+                    .width(1.dp)
+                    .height(32.dp)
+                    .background(t.hair),
+        )
+        Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(ev.title, color = t.ink, style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.Bold), maxLines = 1)
-            if (ev.time.isNotEmpty()) {
-                Text(ev.time, color = t.inkSub, style = TextStyle(fontSize = 11.sp), maxLines = 1)
-            }
         }
     }
 }

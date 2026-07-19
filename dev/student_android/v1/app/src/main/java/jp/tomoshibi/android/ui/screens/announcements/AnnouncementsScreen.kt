@@ -237,6 +237,44 @@ private fun AnnouncementRow(
     }
 }
 
-// ISO datetime（"2026-04-20T14:30:00+09:00"）→ 简洁显示「MM-dd HH:mm」。
-// 解析失败（后端格式变化 / 串太短）原样返回，避免显示崩溃。
-private fun fmtTime(iso: String): String = runCatching { "${iso.substring(5, 10)} ${iso.substring(11, 16)}" }.getOrDefault(iso)
+// ISO datetime → 相对时间（对齐 iOS formatRelative）：
+//   <60秒「たった今」/ <1小时「X分前」/ <24小时「X時間前」/ 否则「MM/dd」
+private fun fmtTime(iso: String): String {
+    val instant =
+        runCatching { java.time.Instant.parse(iso) }.getOrNull()
+            ?: runCatching {
+                java.time.OffsetDateTime
+                    .parse(iso)
+                    .toInstant()
+            }.getOrNull()
+            ?: return runCatching { "${iso.substring(5, 10)} ${iso.substring(11, 16)}" }.getOrDefault(iso)
+    val now = java.time.Instant.now()
+    val diffSec =
+        java.time.Duration
+            .between(instant, now)
+            .seconds
+    return when {
+        diffSec < 60 -> {
+            "たった今"
+        }
+
+        diffSec < 3600 -> {
+            "${diffSec / 60}分前"
+        }
+
+        diffSec < 86400 -> {
+            "${diffSec / 3600}時間前"
+        }
+
+        else -> {
+            runCatching {
+                java.time.OffsetDateTime
+                    .ofInstant(instant, java.time.ZoneId.of("Asia/Tokyo"))
+                    .format(
+                        java.time.format.DateTimeFormatter
+                            .ofPattern("MM/dd"),
+                    )
+            }.getOrDefault(iso)
+        }
+    }
+}

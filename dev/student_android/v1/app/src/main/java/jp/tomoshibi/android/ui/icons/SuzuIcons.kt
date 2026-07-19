@@ -13,10 +13,12 @@ import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ContactPage
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.DirectionsBus
@@ -42,6 +44,7 @@ import androidx.compose.material.icons.outlined.Mood
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.Public
@@ -99,6 +102,15 @@ object SuzuIcons {
     val Sparkles: ImageVector = Icons.Outlined.AutoAwesome
     val Pkg: ImageVector = Icons.Outlined.Inventory
     val Envelope: ImageVector = Icons.Outlined.Email
+
+    /** 公告卡 megaphone — Material Campaign 近似 iOS megaphone.fill */
+    val Megaphone: ImageVector = Icons.Outlined.Campaign
+
+    /** 学年更新横幅 — 近似 iOS person.text.rectangle */
+    val ContactCard: ImageVector = Icons.Outlined.ContactPage
+
+    /** 寮監に連絡 — phone.fill */
+    val Phone: ImageVector = Icons.Outlined.Phone
 
     // Shield = iOS shield.checkered（带勾的盾）— Material Icons 用 Filled.GppGood (盾 + ✓) 最接近
     val Shield: ImageVector = Icons.Filled.GppGood

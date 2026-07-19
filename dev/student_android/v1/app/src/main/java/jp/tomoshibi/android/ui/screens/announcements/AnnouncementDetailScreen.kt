@@ -284,5 +284,20 @@ private fun ReplyComposer(
     }
 }
 
-// ISO datetime（"2026-04-20T14:30:00+09:00"）→ 简洁显示「MM-dd HH:mm」。解析失败原样返回。
-private fun fmtTime(iso: String): String = runCatching { "${iso.substring(5, 10)} ${iso.substring(11, 16)}" }.getOrDefault(iso)
+// ISO datetime → 详情完整时刻「yyyy/MM/dd HH:mm」（对齐 iOS formatFull）
+private fun fmtTime(iso: String): String {
+    val instant =
+        runCatching { java.time.Instant.parse(iso) }.getOrNull()
+            ?: runCatching {
+                java.time.OffsetDateTime
+                    .parse(iso)
+                    .toInstant()
+            }.getOrNull()
+            ?: return runCatching { "${iso.substring(0, 10).replace('-', '/')} ${iso.substring(11, 16)}" }.getOrDefault(iso)
+    return java.time.OffsetDateTime
+        .ofInstant(instant, java.time.ZoneId.of("Asia/Tokyo"))
+        .format(
+            java.time.format.DateTimeFormatter
+                .ofPattern("yyyy/MM/dd HH:mm"),
+        )
+}

@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,14 +31,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import jp.tomoshibi.android.data.network.ApiErrorPresenter
+import jp.tomoshibi.android.data.network.endpoints.StudentRenewalAPI
+import jp.tomoshibi.android.data.store.LocalAppStore
+import jp.tomoshibi.android.data.store.SessionMapper
 import jp.tomoshibi.android.ui.theme.SuzuT
+import kotlinx.coroutines.launch
 
 // ───────────────────────────────────────────────────────────────
 // RenewStudentNoSheet — 学籍番号「再設定」弹窗
 // 对齐 iOS Features/Home/HomeStubs.swift 行 2163–2298（struct RenewStudentNoSheet）。
 // 用途：新学年开学时学生重新选「学年・組・出席番号」三段，系统自动拼出新学籍番号。
 // iOS 用 GlassSheet；Android 走 GlassBottomSheet 近似。
-// 本波纯 UI：三段选齐才实时预览新学号 + 「更新する」可点；真正的提交（POST + 撞号 422）待后端接线。
+// 提交：POST /students/me/renew-number；422 撞号原样弹后端日语提示。
 // ───────────────────────────────────────────────────────────────
 
 // 学年：中高一貫 6 年制（01→中1 … 06→高3），label 是 chip 上显示的文字
@@ -63,17 +69,21 @@ private val CLASSES =
 fun RenewStudentNoSheet(onDismiss: () -> Unit) {
     val t = SuzuT.current
     val cs = MaterialTheme.colorScheme
+    val store = LocalAppStore.current
+    val scope = rememberCoroutineScope()
 
     // 三段选择 state：学年 code / 组 code / 出席番号输入（字符串，只留数字）
     var gradeCode by remember { mutableStateOf("") }
     var classCode by remember { mutableStateOf("") }
     var seatInput by remember { mutableStateOf("") }
+    var submitting by remember { mutableStateOf(false) }
 
     // 出席番号转 Int（输入非法则为 null）
     val seatNo: Int? = seatInput.toIntOrNull()
     // 三段齐 + 出席番号在 1–99 才允许提交（对齐 iOS canSubmit）
     val canSubmit =
-        gradeCode.isNotEmpty() &&
+        !submitting &&
+            gradeCode.isNotEmpty() &&
             classCode.isNotEmpty() &&
             (seatNo != null && seatNo in 1..99)
 
@@ -149,15 +159,46 @@ fun RenewStudentNoSheet(onDismiss: () -> Unit) {
                 )
             }
 
-            // 7.「更新する」主按钮（三段齐才可点）
+            // 7.「更新する」主按钮（三段齐才可点）→ POST renew-number
             PrimaryButton(
-                title = "更新する",
+                title = if (submitting) "更新中…" else "更新する",
                 enabled = canSubmit,
             ) {
-                // TODO 真实装：此处应 POST 新学籍番号到后端（学年 code + 组 code + 出席番号 2 位）；
-                //   后端撞号会回 422「已有人设定」，需弹后端日语提示并留在弹窗让学生改，对齐 iOS submit()。
-                //   本波只关窗占位。
-                onDismiss()
+                val seat = seatNo ?: return@PrimaryButton
+                submitting = true
+                scope.launch {
+                    try {
+                        val me =
+                            StudentRenewalAPI.renewNumber(
+                                gradeCode = gradeCode,
+                                classCode = classCode,
+                                seatNo = "%02d".format(seat),
+                            )
+                        val mapped = SessionMapper.mapMeToUser(me)
+                        // 保留已有扣分统计（renew 响应不含 summary）
+                        store.update { cur ->
+                            cur.copy(
+                                user =
+                                    mapped.copy(
+                                        points = cur.user.points,
+                                        lateCount = cur.user.lateCount,
+                                        absentCount = cur.user.absentCount,
+                                        needsCleaning = cur.user.needsCleaning,
+                                    ),
+                                needsRenewal = me.needsRenewal ?: false,
+                                myStudentId = me.id,
+                            )
+                        }
+                        store.showToast("アカウント番号を更新しました")
+                        onDismiss()
+                    } catch (e: Exception) {
+                        store.showToast(
+                            ApiErrorPresenter.userMessage(e, fallback = "更新に失敗しました"),
+                        )
+                    } finally {
+                        submitting = false
+                    }
+                }
             }
         }
     }
