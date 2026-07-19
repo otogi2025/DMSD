@@ -43,8 +43,6 @@ import androidx.navigation.NavHostController
 import jp.tomoshibi.android.data.network.ApiError
 import jp.tomoshibi.android.data.network.EventOut
 import jp.tomoshibi.android.data.network.endpoints.EventsAPI
-import jp.tomoshibi.android.nav.Route
-import jp.tomoshibi.android.ui.components.EmptyState
 import jp.tomoshibi.android.ui.components.FailedBox
 import jp.tomoshibi.android.ui.components.GlobalScaffold
 import jp.tomoshibi.android.ui.components.LoadState
@@ -58,17 +56,24 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
 
 // 行事予定（カレンダー）— 对齐 iOS ScheduleView：
-//   月历卡（月切换头 + 7 列网格）+ 选中日详情。已接真后端 EventsAPI.listEvents()（spec §7.5，GET /api/v1/events）。
+//   月历卡（月切换头 + 7 列网格）+ 选中日详情。已接真后端 EventsAPI.listEvents(from/to)。
 //   后端 DTO 是 EventOut（id/title/category/event_date/start_at/...），按含义映射到日历显示项。
 //
-// ★ 接后端三态：外层包 LoadState（加载中 / 失败 / 空 / 成功），日历的月份/选中日状态在 Success 分支内根据真数据算。
-//   失败必走 FailedBox，绝不退化成空日历（否则学生会误以为「这段时间没有任何行事」）。
+// ★ 接后端三态：外层包 LoadState（加载中 / 失败 / 成功）。
+//   成功态即使 0 条也持续显示日历本体（对齐 iOS；空态落在选中日「予定なし」卡上）。
+//   失败必走 FailedBox，绝不退化成空日历。
 
-// 演示版「今天」固定值 — 对齐 iOS DEMO 构建 2026-04-23。
-// 仅用于日历高亮「今天」格 + 初始停在今天所在月，跟数据来源无关，故保留固定值。
-private val TODAY = LocalDate.parse("2026-04-23")
+// 生产版「今天」= 东京时区真实当天（对齐 iOS #else 分支；Android 无 DEMO 编译开关）
+private fun todayJst(): LocalDate = LocalDate.now(ZoneId.of("Asia/Tokyo"))
+
+// 一次取够的日期范围：去年 1/1 ～ 明年 12/31（对齐 iOS fetchRange）
+private fun fetchRange(today: LocalDate): Pair<String, String> {
+    val y = today.year
+    return "${y - 1}-01-01" to "${y + 1}-12-31"
+}
 
 // 曜日表头（日 月 火 水 木 金 土）— 周日=索引 0，对齐 iOS Calendar.weekday-1
 private val WEEKDAY_LABELS = listOf("日", "月", "火", "水", "木", "金", "土")
@@ -77,17 +82,19 @@ private val WEEKDAY_LABELS = listOf("日", "月", "火", "水", "木", "金", "�
 fun ScheduleScreen(navController: NavHostController) {
     val t = SuzuT.current
     val scope = rememberCoroutineScope()
-    // 三态：Loading / Failed(消息) / Empty / Success(后端 EventOut 列表)
+    // 三态：Loading / Failed(消息) / Success(后端 EventOut 列表，可为空)
+    // 不再用 LoadState.Empty —— 0 条也走 Success，日历持续显示（G7）
     var ui by remember { mutableStateOf<LoadState<List<EventOut>>>(LoadState.Loading) }
 
-    // 加载函数（重试也调它）。失败必须落 Failed，绝不退化成空列表 / 空日历。
-    // 不传 from_date / to_date = 后端返回全部行事（跟原 MockData 全量行为一致）。
+    // 加载函数（重试也调它）。失败必须落 Failed，绝不退化成假数据。
     suspend fun load() {
         ui = LoadState.Loading
         ui =
             try {
-                val items = EventsAPI.listEvents()
-                if (items.isEmpty()) LoadState.Empty else LoadState.Success(items)
+                val today = todayJst()
+                val (from, to) = fetchRange(today)
+                val items = EventsAPI.listEvents(fromDate = from, toDate = to)
+                LoadState.Success(items)
             } catch (e: ApiError) {
                 LoadState.Failed(e.display)
             } catch (e: Exception) {
@@ -116,13 +123,13 @@ fun ScheduleScreen(navController: NavHostController) {
                     FailedBox(s.message, onRetry = { scope.launch { load() } })
                 }
 
-                // 空态 —— 日历图标 SuzuIcons.Cal
+                // Empty 理论上不再出现；若旧路径残留，按成功空列表处理
                 LoadState.Empty -> {
-                    EmptyState(title = "行事予定はありません", icon = SuzuIcons.Cal)
+                    CalendarBody(events = emptyList())
                 }
 
                 is LoadState.Success -> {
-                    CalendarBody(navController = navController, events = s.value)
+                    CalendarBody(events = s.value)
                 }
             }
         }
@@ -130,26 +137,23 @@ fun ScheduleScreen(navController: NavHostController) {
 }
 
 // 日历主体 —— 拿到后端行事列表后才渲染（月切换 + 网格 + 选中日详情）。
-// 月份 / 选中日 state 全在这里 remember，依赖真数据 events 计算。
+// 月份 / 选中日 state 全在这里 remember；0 条时范围仅含今天所在月，仍可看月历。
 @Composable
-private fun CalendarBody(
-    navController: NavHostController,
-    events: List<EventOut>,
-) {
+private fun CalendarBody(events: List<EventOut>) {
     val t = SuzuT.current
     val teal = MaterialTheme.colorScheme.primary // 主色
     val accent = MaterialTheme.colorScheme.secondary // 圆点用强调色
+    val today = remember { todayJst() }
 
     // 全部行事按日期解析成 LocalDate（后端 event_date 是 ISO "2026-04-05"，直接 parse）
-    val eventDates = remember(events) { events.map { LocalDate.parse(it.eventDate) } }
+    val eventDates = remember(events) { events.mapNotNull { runCatching { LocalDate.parse(it.eventDate) }.getOrNull() } }
 
-    // 月份范围 = 最早行事月 ~ 最晚行事月，且强制含「今天」所在月
+    // 月份范围 = 最早行事月 ~ 最晚行事月，且强制含「今天」所在月；无行事时仅今天月
     val months =
-        remember(eventDates) {
-            val ymList = eventDates.map { YearMonth.from(it) } + YearMonth.from(TODAY)
+        remember(eventDates, today) {
+            val ymList = eventDates.map { YearMonth.from(it) } + YearMonth.from(today)
             val minYm = ymList.min()
             val maxYm = ymList.max()
-            // 从最早到最晚逐月列出，做切月边界判断
             val list = mutableListOf<YearMonth>()
             var cur = minYm
             while (!cur.isAfter(maxYm)) {
@@ -161,26 +165,38 @@ private fun CalendarBody(
 
     // 当前显示的月份索引 —— 初始停在「今天」所在月
     var monthIndex by remember {
-        mutableIntStateOf(months.indexOf(YearMonth.from(TODAY)).coerceAtLeast(0))
+        mutableIntStateOf(months.indexOf(YearMonth.from(today)).coerceAtLeast(0))
     }
-    val curMonth = months[monthIndex]
+    val safeMonthIndex = monthIndex.coerceIn(0, months.lastIndex.coerceAtLeast(0))
+    val curMonth = months[safeMonthIndex]
 
     // 当前选中的「日」（1 起）—— 初始选今天那一天（若不在当前月则选 1 号）
     var selectedDay by remember {
-        mutableIntStateOf(if (YearMonth.from(TODAY) == curMonth) TODAY.dayOfMonth else 1)
+        mutableIntStateOf(if (YearMonth.from(today) == curMonth) today.dayOfMonth else 1)
     }
     val selectedDate = curMonth.atDay(selectedDay.coerceIn(1, curMonth.lengthOfMonth()))
 
     // 当天行事（按 selectedDate 过滤，后端 event_date 解析比对）
-    val dayEvents = events.filter { LocalDate.parse(it.eventDate) == selectedDate }
+    val dayEvents = events.filter { it.eventDate == selectedDate.toString() }
+
+    // 当月事件数（汇总行用）
+    val eventsInMonth =
+        eventDates.count { YearMonth.from(it) == curMonth }
 
     // 切月：边界禁用 + 切完把选中日 clamp 到新月天数（防 5/31 切到没有 31 号的月）
     fun changeMonth(delta: Int) {
-        val next = monthIndex + delta
+        val next = safeMonthIndex + delta
         if (next < 0 || next > months.lastIndex) return
         monthIndex = next
         val newMonth = months[next]
-        selectedDay = selectedDay.coerceIn(1, newMonth.lengthOfMonth())
+        val clamped = selectedDay.coerceIn(1, newMonth.lengthOfMonth())
+        // 对齐 iOS：仅当原选中日被夹掉、且目标月是今天所在月时，复位到今天
+        selectedDay =
+            if (clamped != selectedDay && newMonth == YearMonth.from(today)) {
+                today.dayOfMonth
+            } else {
+                clamped
+            }
     }
 
     // ── 日历卡 ──
@@ -193,7 +209,7 @@ private fun CalendarBody(
             ) {
                 ArrowButton(
                     icon = SuzuIcons.ChevL,
-                    enabled = monthIndex > 0,
+                    enabled = safeMonthIndex > 0,
                     onClick = { changeMonth(-1) },
                 )
                 Spacer(Modifier.weight(1f))
@@ -206,7 +222,7 @@ private fun CalendarBody(
                 Spacer(Modifier.weight(1f))
                 ArrowButton(
                     icon = SuzuIcons.ChevR,
-                    enabled = monthIndex < months.lastIndex,
+                    enabled = safeMonthIndex < months.lastIndex,
                     onClick = { changeMonth(1) },
                 )
             }
@@ -222,11 +238,7 @@ private fun CalendarBody(
                         color =
                             when (i) {
                                 0 -> t.danger
-
-                                // 日
                                 6 -> teal
-
-                                // 土
                                 else -> t.inkMute
                             },
                         textAlign = TextAlign.Center,
@@ -242,7 +254,7 @@ private fun CalendarBody(
             val firstWeekday = curMonth.atDay(1).dayOfWeek.value % 7
             val daysInMonth = curMonth.lengthOfMonth()
             val totalCells = firstWeekday + daysInMonth
-            val rows = (totalCells + 6) / 7 // 向上取整成完整周行数
+            val rows = (totalCells + 6) / 7
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 for (rowIdx in 0 until rows) {
@@ -255,13 +267,11 @@ private fun CalendarBody(
                             val day = cellIndex - firstWeekday + 1
                             if (day in 1..daysInMonth) {
                                 val cellDate = curMonth.atDay(day)
-                                // 当天行事数（最多画 3 个圆点）
-                                val dotCount =
-                                    eventDates.count { it == cellDate }.coerceAtMost(3)
+                                val dotCount = eventDates.count { it == cellDate }.coerceAtMost(3)
                                 DayCell(
                                     day = day,
                                     isSelected = day == selectedDay,
-                                    isToday = cellDate == TODAY,
+                                    isToday = cellDate == today,
                                     dotCount = dotCount,
                                     teal = teal,
                                     accent = accent,
@@ -269,12 +279,21 @@ private fun CalendarBody(
                                     onClick = { selectedDay = day },
                                 )
                             } else {
-                                // 月初/月末空白格
                                 Spacer(Modifier.weight(1f).aspectRatio(1f))
                             }
                         }
                     }
                 }
+            }
+
+            // 当月事件数汇总行（仅 >0 时显示）— 对齐 iOS「○月：N件の予定」
+            if (eventsInMonth > 0) {
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "${curMonth.monthValue}月：${eventsInMonth}件の予定",
+                    color = t.inkMute,
+                    style = TextStyle(fontSize = 11.sp),
+                )
             }
         }
     }
@@ -282,18 +301,26 @@ private fun CalendarBody(
     Spacer(Modifier.height(16.dp))
 
     // ── 选中日详情 ──
-    // 标题「M 月 D 日（曜日）」+ 右「N 件」胶囊
+    // 标题拆两段：「M 月 D 日」(18 heavy) +「（曜日）」(13 inkSub)；「N 件」仅有行事时显示
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            "${selectedDate.monthValue} 月 ${selectedDate.dayOfMonth} 日（${WEEKDAY_LABELS[selectedDate.dayOfWeek.value % 7]}）",
+            "${selectedDate.monthValue} 月 ${selectedDate.dayOfMonth} 日",
             color = t.ink,
-            style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
+            style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Black),
+        )
+        Text(
+            "（${WEEKDAY_LABELS[selectedDate.dayOfWeek.value % 7]}）",
+            color = t.inkSub,
+            style = TextStyle(fontSize = 13.sp),
         )
         Spacer(Modifier.weight(1f))
-        Pill("${dayEvents.size} 件", tone = PillTone.Accent)
+        if (dayEvents.isNotEmpty()) {
+            Pill("${dayEvents.size} 件", tone = PillTone.Accent)
+        }
     }
 
     Spacer(Modifier.height(10.dp))
@@ -303,10 +330,10 @@ private fun CalendarBody(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (dayEvents.isEmpty()) {
-            // 无事件空态：Cal 图标 +「予定なし」+「この日の活動はありません」
-            SuzuCard(padding = 14) {
+            // 无事件空态：Cal 图标 +「予定なし」+「この日の予定はありません」
+            SuzuCard(padding = 24) {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -322,21 +349,16 @@ private fun CalendarBody(
                         style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
                     )
                     Text(
-                        "この日の活動はありません",
+                        "この日の予定はありません",
                         color = t.inkMute,
                         style = TextStyle(fontSize = 12.sp),
                     )
                 }
             }
         } else {
+            // 生产版：已登录拉真数据 → 不画 chevron、不可点（对齐 iOS showChevron:false）
             dayEvents.forEach { ev ->
-                EventRow(
-                    event = ev,
-                    teal = teal,
-                    // TODO 接后端：EventOut.id 是 String(UUID) 但 EventDetail 路由是 Int 且详情屏仍读 MockData，
-                    // toIntOrNull 失败会传 0、导航到错误详情，故暂禁用点击（对齐 EventsScreen），等详情屏接后端 + 路由改 String 再恢复。
-                    onClick = { },
-                )
+                EventRow(event = ev, teal = teal)
             }
         }
         Spacer(Modifier.height(20.dp))
@@ -391,9 +413,19 @@ private fun DayCell(
                 .clip(RoundedCornerShape(10.dp))
                 .then(
                     when {
-                        isSelected -> Modifier.background(teal)
-                        isToday -> Modifier.background(t.pill).border(1.dp, teal, RoundedCornerShape(10.dp))
-                        else -> Modifier
+                        isSelected -> {
+                            Modifier.background(teal)
+                        }
+
+                        isToday -> {
+                            Modifier
+                                .background(teal.copy(alpha = 0.12f))
+                                .border(1.5.dp, teal, RoundedCornerShape(10.dp))
+                        }
+
+                        else -> {
+                            Modifier
+                        }
                     },
                 ).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -413,11 +445,10 @@ private fun DayCell(
                 style =
                     TextStyle(
                         fontSize = 14.sp,
-                        fontFamily = FontFamily.Monospace, // 数字等宽
+                        fontFamily = FontFamily.Monospace,
                         fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal,
                     ),
             )
-            // 圆点行：有行事且非选中才画（选中态底已是主色，画点没意义）
             if (dotCount > 0 && !isSelected) {
                 Spacer(Modifier.height(2.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -436,73 +467,50 @@ private fun DayCell(
     }
 }
 
-// 行事一条 — Card(padding 14)：左 56 宽时刻（主色等宽）+ 1dp 竖分隔 + 标题加粗 +「カテゴリ」+ 右 ChevR
-// 后端 EventOut 字段映射：start_at（带时分时区，可空）→ 左侧时刻；title → 标题；
-//   原 EventItem.place（场所）后端 DTO 无对应字段 → 改用 category（行事区分，取值「学校行事」「寮行事」「外部」「その他」之一）填副行。
+// 行事一条 — Card(padding 14)：左 56 宽时刻（主色等宽，可空）+ 1dp 竖分隔 + 标题。
+// 生产版：place 恒空不显副行；不画 chevron、整行不可点（对齐 iOS EventMapper + eventRow）。
 @Composable
 private fun EventRow(
     event: EventOut,
     teal: Color,
-    onClick: () -> Unit,
 ) {
     val t = SuzuT.current
-    Box(modifier = Modifier.clickable(onClick = onClick)) {
-        SuzuCard(padding = 14) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // 左 56 宽时刻（主色等宽）。后端 start_at 是带时分时区的 datetime 字符串，可空。
-                // 截 "HH:mm" 显示；为 null（全天行事，无开始时刻）显「終日」。
+    SuzuCard(padding = 14) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // 左 56 宽时刻。start_at 为空 → 空白（不对齐「終日」占位）
+            Text(
+                fmtTime(event.startAt),
+                modifier = Modifier.width(56.dp),
+                color = teal,
+                textAlign = TextAlign.Center,
+                style =
+                    TextStyle(
+                        fontSize = 13.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                    ),
+            )
+            Box(
+                modifier =
+                    Modifier
+                        .width(1.dp)
+                        .height(38.dp)
+                        .background(t.hair),
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    fmtTime(event.startAt),
-                    modifier = Modifier.width(56.dp),
-                    color = teal,
-                    textAlign = TextAlign.Center,
-                    style =
-                        TextStyle(
-                            fontSize = 15.sp,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.SemiBold,
-                        ),
-                )
-                // 1dp 竖分隔
-                Box(
-                    modifier =
-                        Modifier
-                            .width(1.dp)
-                            .height(36.dp)
-                            .background(t.hair),
-                )
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        event.title,
-                        color = t.ink,
-                        style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
-                    )
-                    // 区分（category）非空才画，对应原 place 副行位置
-                    if (event.category.isNotEmpty()) {
-                        Spacer(Modifier.height(3.dp))
-                        Text(
-                            "📍 ${event.category}",
-                            color = t.inkSub,
-                            style = TextStyle(fontSize = 12.sp),
-                        )
-                    }
-                }
-                Spacer(Modifier.width(8.dp))
-                Icon(
-                    SuzuIcons.ChevR,
-                    contentDescription = null,
-                    tint = t.inkFaint,
-                    modifier = Modifier.size(18.dp),
+                    event.title,
+                    color = t.ink,
+                    style = TextStyle(fontSize = 14.5.sp, fontWeight = FontWeight.Bold),
                 )
             }
         }
     }
 }
 
-// 后端 start_at（"2026-04-23T08:30:00+09:00" 这类带时分时区的 datetime 字符串）→ 取「HH:mm」。
-// 为 null = 无开始时刻的全天行事，显「終日」。解析失败（格式异常 / 串太短）也回退「終日」，避免崩溃。
+// 后端 start_at（"2026-04-23T08:30:00+09:00"）→「HH:mm」；null / 解析失败 → 空串（对齐 iOS）
 private fun fmtTime(startAt: String?): String {
-    if (startAt == null) return "終日"
-    return runCatching { startAt.substring(11, 16) }.getOrDefault("終日")
+    if (startAt == null) return ""
+    return runCatching { startAt.substring(11, 16) }.getOrDefault("")
 }

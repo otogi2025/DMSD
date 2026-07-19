@@ -1,6 +1,7 @@
 package jp.tomoshibi.android.ui.screens.bus
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,10 +13,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -32,6 +35,7 @@ import jp.tomoshibi.android.ui.components.Pill
 import jp.tomoshibi.android.ui.components.PillTone
 import jp.tomoshibi.android.ui.components.TToggle
 import jp.tomoshibi.android.ui.icons.SuzuIcons
+import jp.tomoshibi.android.ui.theme.SuzuPrimaryDkLight
 import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
@@ -146,42 +150,45 @@ private fun BusListContent(
     ) {
         Spacer(Modifier.height(4.dp))
 
-        // 空港送迎案内 banner — 浅药丸底圆角卡，左「✈」+ 右两行
+        // 空港送迎案内 banner — 对齐 iOS headerNotice（✈ 14 bold primary + 标题 12.5 bold primary）
         Row(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .background(t.pill)
-                    .padding(14.dp),
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.Top,
         ) {
-            Text("✈", style = TextStyle(fontSize = 24.sp))
-            Spacer(Modifier.width(12.dp))
+            Text(
+                "✈",
+                color = cs.primary,
+                style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
+            )
+            Spacer(Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     "空港送迎便について",
-                    color = t.ink,
-                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                    color = cs.primary,
+                    style = TextStyle(fontSize = 12.5.sp, fontWeight = FontWeight.Bold),
                 )
-                Spacer(Modifier.height(3.dp))
+                Spacer(Modifier.height(2.dp))
                 Text(
-                    "帰国届を出す場合は、空港便にチェックを入れて選択してください。",
+                    "帰国許可願を提出する場合は、「空港送迎便のみ」をオンにして該当の便を選択してください。",
                     color = t.inkSub,
-                    style = TextStyle(fontSize = 12.sp, lineHeight = 17.sp),
+                    style = TextStyle(fontSize = 11.5.sp, lineHeight = 16.sp),
                 )
             }
         }
 
-        // 班次类型筛选条（原「すべて」「特別便」「通学便」三胶囊）已删 —— 本页只显示特別運行便。
-        // 仅保留下方开关 +「空港送迎便のみ」（开时文字变主色）
+        // 班次类型筛选条已删 —— 仅保留「空港送迎便のみ」开关（开时文字变主色）
         Row(verticalAlignment = Alignment.CenterVertically) {
             TToggle(checked = airportOnly, onCheckedChange = { airportOnly = it })
             Spacer(Modifier.width(8.dp))
             Text(
                 "空港送迎便のみ",
                 color = if (airportOnly) cs.primary else t.inkSub,
-                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium),
+                style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
             )
         }
 
@@ -194,14 +201,20 @@ private fun BusListContent(
             )
         }
 
-        // 日别分组列表 — 每组一张圆角卡
+        // 日别分组列表 — 每组一张圆角卡（含 purpose 用途说明）
         groups.forEach { (date, dayRoutes) ->
-            BusDayGroup(date = date, weekday = dayRoutes.first().weekday(), routes = dayRoutes, nextId = nextId)
+            BusDayGroup(
+                date = date,
+                weekday = dayRoutes.first().weekday(),
+                purpose = dayRoutes.firstOrNull()?.purpose?.takeIf { it.isNotBlank() },
+                routes = dayRoutes,
+                nextId = nextId,
+            )
         }
 
-        // 底部备注（弱字）
+        // 底部免责声明（逐字对齐 iOS）
         Text(
-            "※ 通常日のスクールバスは別途ご確認ください。特別便は乗車名簿への事前チェックが必要です。",
+            "※ 通常日のスクールバスは別途ご確認ください。特別便のご利用には、事前に届出（許可願）の提出が必要です。",
             color = t.inkMute,
             style = TextStyle(fontSize = 11.sp, lineHeight = 15.sp),
         )
@@ -249,49 +262,81 @@ private fun BusRouteOut.isAirport(): Boolean = name.contains("空港") || direct
 // TODO 接后端：缺 endpoint —— BusRouteOut 不含残席数，待后端加座席字段后填这里，现恒为 null（右侧弱字不显示）。
 private fun BusRouteOut.seats(): String? = null
 
-// 一个日别分组卡：组头（月/日 等宽 +「(曜日)」）+ 多行便
+// "yyyy-MM-dd" → "M/D"（年份无关，对齐 iOS monthDayLabel）
+private fun monthDayLabel(date: String): String {
+    val p = date.split("-")
+    if (p.size < 3) return date
+    val m = p[1].toIntOrNull() ?: return date
+    val d = p[2].toIntOrNull() ?: return date
+    return "$m/$d"
+}
+
+// 一个日别分组卡：组头（月/日 +「(曜日)」+ purpose）+ 边框阴影 + 多行便
 @Composable
 private fun BusDayGroup(
     date: String,
     weekday: String,
+    purpose: String?,
     routes: List<BusRouteOut>,
     nextId: String?,
 ) {
     val t = SuzuT.current
-    // "2026-05-06" → "05/06"
-    val monthDay = date.removePrefix("2026-").replace("-", "/")
+    val cs = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(14.dp)
+    val monthDay = monthDayLabel(date)
     Column(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(t.paper),
+                .shadow(
+                    elevation = 10.dp,
+                    shape = shape,
+                    ambientColor = t.ink.copy(alpha = 0.05f),
+                    spotColor = t.ink.copy(alpha = 0.05f),
+                ).clip(shape)
+                .background(t.paper)
+                .border(0.5.dp, t.hair, shape),
     ) {
-        // 组头（浅主色底）
+        // 组头：主色 5% 底 + primaryDk 日期色（对齐 iOS daySection）
         Row(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .background(t.pill)
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                    .background(cs.primary.copy(alpha = 0.05f))
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 monthDay,
-                color = t.ink,
-                style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace),
+                color = SuzuPrimaryDkLight,
+                style =
+                    TextStyle(
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.Monospace,
+                    ),
             )
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(10.dp))
             Text(
                 "($weekday)",
                 color = t.inkSub,
-                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium),
+                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
             )
+            if (purpose != null) {
+                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.weight(1f))
+                Text(
+                    purpose,
+                    color = t.inkSub,
+                    style = TextStyle(fontSize = 11.5.sp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         // 组内每行
         routes.forEachIndexed { index, route ->
             if (index > 0) {
-                // 行间分隔线（左缩进 58）
                 Box(
                     modifier =
                         Modifier
@@ -348,7 +393,7 @@ private fun BusRow(
                 Text(
                     route.time(),
                     color = t.ink,
-                    style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace),
+                    style = TextStyle(fontSize = 17.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace),
                 )
                 // 特別運行便 = Accent（本页只显示这类，恒为强调色）
                 Pill(kindLabel, tone = if (kindLabel == "特別運行便") PillTone.Accent else PillTone.Neutral)
@@ -360,7 +405,7 @@ private fun BusRow(
             Text(
                 route.direction,
                 color = t.inkSub,
-                style = TextStyle(fontSize = 12.sp),
+                style = TextStyle(fontSize = 11.5.sp),
             )
         }
 
