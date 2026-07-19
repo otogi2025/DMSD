@@ -47,10 +47,10 @@ import jp.tomoshibi.android.data.network.StayLocationBody
 import jp.tomoshibi.android.data.network.endpoints.ApplicationsAPI
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
+import jp.tomoshibi.android.ui.components.ApplyDoneBody
 import jp.tomoshibi.android.ui.components.ChipGroup
 import jp.tomoshibi.android.ui.components.DateField
 import jp.tomoshibi.android.ui.components.Field
-import jp.tomoshibi.android.ui.components.GhostButton
 import jp.tomoshibi.android.ui.components.GlobalScaffold
 import jp.tomoshibi.android.ui.components.PageHeader
 import jp.tomoshibi.android.ui.components.PrimaryButton
@@ -70,7 +70,7 @@ import java.time.temporal.ChronoUnit
 // StayForm —— 出寮届（外泊 / 帰省 / 帰国 三合一）
 // 对齐 iOS ApplyStubs.swift StayForm；提交走 ApplicationsAPI.create（Kishei/Gaihaku/Kikoku）。
 // kind 取「外泊」/「帰省」/「帰国」，按 kind 累积显隐区块。
-// 提交走「编辑(edit) → 确认(preview) → 完成(done)」三个内部 stage。
+// v1.0：单按钮「提出する」直接提交（已删「下書き保存」与确认页），成功进完成页。
 // ─────────────────────────────────────────────────────────────────────
 
 // 宿泊先一行（§5）—— 用稳定 id 当列表 key，删中间行不串内容
@@ -192,9 +192,10 @@ fun StayForm(
     // 类型名（PageHeader 标题 + Header 卡 + 完成页都用）
     val kindName = kind // 「外泊」/「帰省」/「帰国」本身就是日语显示名
 
-    // 三态流程：edit（填写）→ preview（确认）→ done（完成）
+    // edit（填写）→ done（完成）；无确认页（对齐 iOS v1.0）
     var stage by remember { mutableStateOf("edit") }
     var submitting by remember { mutableStateOf(false) }
+    val tomorrow = remember { LocalDate.now().plusDays(1).toString() }
 
     // ── §2 連絡先・届の区分 ──
     var contactPhone by remember { mutableStateOf("") }
@@ -388,19 +389,15 @@ fun StayForm(
 
     GlobalScaffold(activeTab = "apply", navController = navController) {
         Column(modifier = Modifier.fillMaxSize().background(t.pearl)) {
-            // PageHeader 标题按 kind：「外泊届」/「帰省届」/「帰国届」
             PageHeader(
                 title = "${kindName}届",
                 level = 2,
-                onLeft = {
-                    // 在 preview 阶段返回退回 edit；其它阶段直接出栈回列表
-                    if (stage == "preview") stage = "edit" else navController.popBackStack()
-                },
+                onLeft = { navController.popBackStack() },
             )
 
             when (stage) {
                 "done" -> {
-                    DoneBody(kindName = kindName) { navController.popBackStack() }
+                    ApplyDoneBody(kindName = kindName) { navController.popBackStack() }
                 }
 
                 else -> {
@@ -413,121 +410,77 @@ fun StayForm(
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         Spacer(Modifier.height(2.dp))
-
-                        if (stage == "edit") {
-                            EditBody(
-                                t = t,
-                                kind = kind,
-                                kindName = kindName,
-                                isHoliday = isHoliday,
-                                needPlaces = needPlaces,
-                                needDestCity = needDestCity,
-                                needMeal = needMeal,
-                                needFlight = needFlight,
-                                isOverseas = isOverseas,
-                                reasonSectionNo = reasonSectionNo,
-                                userStudentNo = user.studentNo,
-                                userName = user.name,
-                                userGradeClass = user.gradeClass,
-                                userDorm = user.dorm,
-                                userRoom = user.room,
-                                userCategory = user.category,
-                                userPhone = user.phone,
-                                contactPhone = contactPhone,
-                                onContactPhone = { contactPhone = it },
-                                isLongVacation = isLongVacation,
-                                onLongVacation = { isLongVacation = it },
-                                leaveDate = leaveDate,
-                                onLeaveDate = { leaveDate = it },
-                                leaveTime = leaveTime,
-                                onLeaveTime = { leaveTime = it },
-                                leaveMethod = leaveMethod,
-                                onLeaveMethod = { leaveMethod = it },
-                                taxiTime = taxiTime,
-                                onTaxiTime = { taxiTime = it },
-                                returnDate = returnDate,
-                                onReturnDate = { returnDate = it },
-                                returnTime = returnTime,
-                                onReturnTime = { returnTime = it },
-                                returnMethod = returnMethod,
-                                onReturnMethod = { returnMethod = it },
-                                companion = companion,
-                                onCompanion = { companion = it },
-                                destCity = destCity,
-                                onDestCity = { destCity = it },
-                                stayPlaces = stayPlaces,
-                                mealSkipOn = mealSkipOn,
-                                onMealSkipOn = { mealSkipOn = it },
-                                mealStartDate = mealStartDate,
-                                onMealStartDate = { mealStartDate = it },
-                                mealStartMeal = mealStartMeal,
-                                onMealStartMeal = { mealStartMeal = it },
-                                mealEndDate = mealEndDate,
-                                onMealEndDate = { mealEndDate = it },
-                                mealEndMeal = mealEndMeal,
-                                onMealEndMeal = { mealEndMeal = it },
-                                mealNote = mealNote,
-                                onMealNote = { mealNote = it },
-                                flightDepAir = flightDepAir,
-                                onFlightDepAir = { flightDepAir = it },
-                                flightDepTime = flightDepTime,
-                                onFlightDepTime = { flightDepTime = it },
-                                flightArrAir = flightArrAir,
-                                onFlightArrAir = { flightArrAir = it },
-                                flightArrTime = flightArrTime,
-                                onFlightArrTime = { flightArrTime = it },
-                                reason = reason,
-                                onReason = { reason = it },
-                                onBus = {
-                                    // 寮生特別運行の時刻表 —— 跳巴士时刻表页（已就绪路由）
-                                    navController.navigate(jp.tomoshibi.android.nav.Route.BusList.path)
-                                },
-                                onDraft = {
-                                    // 下書き保存：纯演示不真存（规格 §2.1-11）
-                                    store.showToast("下書き保存しました")
-                                },
-                                canSubmit = canSubmit,
-                                onConfirm = { stage = "preview" },
-                            )
-                        } else {
-                            // preview：只读键值卡列出已填内容 + 提出/修正按钮
-                            PreviewBody(
-                                t = t,
-                                kindName = kindName,
-                                isHoliday = isHoliday,
-                                needPlaces = needPlaces,
-                                needDestCity = needDestCity,
-                                needMeal = needMeal,
-                                needFlight = needFlight,
-                                isOverseas = isOverseas,
-                                contactPhone = contactPhone,
-                                isLongVacation = isLongVacation,
-                                leaveDate = leaveDate,
-                                leaveTime = leaveTime,
-                                leaveMethod = leaveMethod,
-                                taxiTime = taxiTime,
-                                returnDate = returnDate,
-                                returnTime = returnTime,
-                                returnMethod = returnMethod,
-                                companion = companion,
-                                destCity = destCity,
-                                stayPlaces = stayPlaces,
-                                mealSkipOn = mealSkipOn,
-                                mealStartDate = mealStartDate,
-                                mealStartMeal = mealStartMeal,
-                                mealEndDate = mealEndDate,
-                                mealEndMeal = mealEndMeal,
-                                mealNote = mealNote,
-                                flightDepAir = flightDepAir,
-                                flightDepTime = flightDepTime,
-                                flightArrAir = flightArrAir,
-                                flightArrTime = flightArrTime,
-                                reason = reason,
-                                onSubmit = { submitStay() },
-                                onEdit = { stage = "edit" },
-                            )
-                        }
-
+                        EditBody(
+                            t = t,
+                            kind = kind,
+                            kindName = kindName,
+                            isHoliday = isHoliday,
+                            needPlaces = needPlaces,
+                            needDestCity = needDestCity,
+                            needMeal = needMeal,
+                            needFlight = needFlight,
+                            isOverseas = isOverseas,
+                            reasonSectionNo = reasonSectionNo,
+                            tomorrow = tomorrow,
+                            userStudentNo = user.studentNo,
+                            userName = user.name,
+                            userGradeClass = user.gradeClass,
+                            userDorm = user.dorm,
+                            userRoom = user.room,
+                            userCategory = user.category,
+                            userPhone = user.phone,
+                            contactPhone = contactPhone,
+                            onContactPhone = { contactPhone = it },
+                            isLongVacation = isLongVacation,
+                            onLongVacation = { isLongVacation = it },
+                            leaveDate = leaveDate,
+                            onLeaveDate = { leaveDate = it },
+                            leaveTime = leaveTime,
+                            onLeaveTime = { leaveTime = it },
+                            leaveMethod = leaveMethod,
+                            onLeaveMethod = { leaveMethod = it },
+                            taxiTime = taxiTime,
+                            onTaxiTime = { taxiTime = it },
+                            returnDate = returnDate,
+                            onReturnDate = { returnDate = it },
+                            returnTime = returnTime,
+                            onReturnTime = { returnTime = it },
+                            returnMethod = returnMethod,
+                            onReturnMethod = { returnMethod = it },
+                            companion = companion,
+                            onCompanion = { companion = it },
+                            destCity = destCity,
+                            onDestCity = { destCity = it },
+                            stayPlaces = stayPlaces,
+                            mealSkipOn = mealSkipOn,
+                            onMealSkipOn = { mealSkipOn = it },
+                            mealStartDate = mealStartDate,
+                            onMealStartDate = { mealStartDate = it },
+                            mealStartMeal = mealStartMeal,
+                            onMealStartMeal = { mealStartMeal = it },
+                            mealEndDate = mealEndDate,
+                            onMealEndDate = { mealEndDate = it },
+                            mealEndMeal = mealEndMeal,
+                            onMealEndMeal = { mealEndMeal = it },
+                            mealNote = mealNote,
+                            onMealNote = { mealNote = it },
+                            flightDepAir = flightDepAir,
+                            onFlightDepAir = { flightDepAir = it },
+                            flightDepTime = flightDepTime,
+                            onFlightDepTime = { flightDepTime = it },
+                            flightArrAir = flightArrAir,
+                            onFlightArrAir = { flightArrAir = it },
+                            flightArrTime = flightArrTime,
+                            onFlightArrTime = { flightArrTime = it },
+                            reason = reason,
+                            onReason = { reason = it },
+                            onBus = {
+                                navController.navigate(jp.tomoshibi.android.nav.Route.BusList.path)
+                            },
+                            canSubmit = canSubmit && !submitting,
+                            submitting = submitting,
+                            onSubmit = { submitStay() },
+                        )
                         Spacer(Modifier.height(40.dp))
                     }
                 }
@@ -551,6 +504,7 @@ private fun EditBody(
     needFlight: Boolean,
     isOverseas: Boolean,
     reasonSectionNo: Int,
+    tomorrow: String,
     userStudentNo: String,
     userName: String,
     userGradeClass: String,
@@ -604,16 +558,16 @@ private fun EditBody(
     reason: String,
     onReason: (String) -> Unit,
     onBus: () -> Unit,
-    onDraft: () -> Unit,
     canSubmit: Boolean,
-    onConfirm: () -> Unit,
+    submitting: Boolean,
+    onSubmit: () -> Unit,
 ) {
     // ── 1. kind 提示横幅（黄色背景，圆角 12）—— 按 kind 三选一（§2.1-1）──
     val banner =
         when {
-            isHoliday -> "⏰ 帰省申請は毎週水曜日 18:00 が締切です"
+            isHoliday -> "⏰ 帰省申請の締切は毎週水曜日18:00です"
             needFlight -> "✈️ 帰国申請は航空券確定後に提出してください"
-            else -> "📝 外泊申請は出発 3 日前までに提出してください"
+            else -> "📝 外泊申請は出発の3日前までに提出してください"
         }
     Box(
         modifier =
@@ -673,7 +627,7 @@ private fun EditBody(
     // ── §1 申請者本人（只读 InfoRow 列表，6 行）（§2.1-3）──
     SectionLabel(t, "1", "申請者本人")
     SuzuCard(padding = 0) {
-        InfoRow(t, "学号", userStudentNo, mono = true, first = true)
+        InfoRow(t, "アカウント番号", userStudentNo, mono = true, first = true)
         InfoRow(t, "氏名", userName)
         InfoRow(t, "学年・組", userGradeClass)
         InfoRow(t, "寮・部屋", "$userDorm $userRoom")
@@ -721,7 +675,13 @@ private fun EditBody(
     SuzuCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                DateField(label = "出寮日", value = leaveDate, modifier = Modifier.weight(1f), onPick = onLeaveDate)
+                DateField(
+                    label = "出寮日",
+                    value = leaveDate,
+                    modifier = Modifier.weight(1f),
+                    minDate = tomorrow,
+                    onPick = onLeaveDate,
+                )
                 TimeField(label = "出寮時刻", value = leaveTime, modifier = Modifier.weight(1f), onPick = onLeaveTime)
             }
             Text(
@@ -746,7 +706,13 @@ private fun EditBody(
     SuzuCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                DateField(label = "帰寮日", value = returnDate, modifier = Modifier.weight(1f), onPick = onReturnDate)
+                DateField(
+                    label = "帰寮日",
+                    value = returnDate,
+                    modifier = Modifier.weight(1f),
+                    minDate = leaveDate.ifEmpty { tomorrow },
+                    onPick = onReturnDate,
+                )
                 TimeField(label = "帰寮時刻", value = returnTime, modifier = Modifier.weight(1f), onPick = onReturnTime)
             }
             Field(label = "帰寮方法") {
@@ -767,7 +733,7 @@ private fun EditBody(
                 // 仅 外泊（帰国隐藏）：行先（都市名）
                 if (needDestCity) {
                     Field(label = "行先（都市名）") {
-                        TField(value = destCity, onValueChange = onDestCity, placeholder = "例：東京 / 大阪 / ソウル")
+                        TField(value = destCity, onValueChange = onDestCity, placeholder = "例：東京・大阪・ソウル")
                     }
                 }
                 // 宿泊先：可增删的住所输入行列表（用稳定 id 当 key，删中间行不串内容）
@@ -800,7 +766,7 @@ private fun EditBody(
                         }
                     }
                 }
-                // 底部「地点を追加」蓝色加号按钮
+                // 底部「滞在先を追加」蓝色加号按钮
                 Row(
                     modifier =
                         Modifier
@@ -816,10 +782,10 @@ private fun EditBody(
                         modifier = Modifier.size(18.dp),
                     )
                     Spacer(Modifier.width(6.dp))
-                    Text("地点を追加", color = MaterialPrimary(), style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold))
+                    Text("滞在先を追加", color = MaterialPrimary(), style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold))
                 }
                 Text(
-                    "※ 複数の地点に滞在する場合はすべて入力してください",
+                    "※ 複数の場所に滞在する場合はすべて入力してください",
                     color = t.inkMute,
                     style = TextStyle(fontSize = 11.sp, lineHeight = 16.sp),
                 )
@@ -827,16 +793,16 @@ private fun EditBody(
         }
     }
 
-    // ── §6 寮食堂 食事申告（仅 外泊 / 帰国）（§2.1-8）——分留学生 / 日本人 ──
+    // ── §6 「寮食堂 食事の申し込み」（仅 外泊 / 帰国）（§2.1-8）——分留学生 / 日本人 ──
     if (needMeal) {
-        SectionLabel(t, "6", "寮食堂 食事申告")
+        SectionLabel(t, "6", "寮食堂 食事の申し込み")
         SuzuCard {
             if (isOverseas) {
-                // 留学生：开关「食事不要期間を申告する」+ 展开后的 開始 / 終了 + 食事備考
+                // 留学生：开关「食事不要期間を登録する」+ 展开后的开始/结束 + 食事备考
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            "食事不要期間を申告する",
+                            "食事不要期間を登録する",
                             color = t.ink,
                             modifier = Modifier.weight(1f),
                             style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium),
@@ -857,7 +823,7 @@ private fun EditBody(
                             }
                         }
                         Text(
-                            "※ 上記期間（開始の食事から終了の食事まで）の寮食堂を不要とします",
+                            "※ 上記の期間（開始の食事から終了の食事まで）は寮食堂の食事を停止します",
                             color = t.inkMute,
                             style = TextStyle(fontSize = 11.sp, lineHeight = 16.sp),
                         )
@@ -865,7 +831,7 @@ private fun EditBody(
                             TArea(
                                 value = mealNote,
                                 onValueChange = onMealNote,
-                                placeholder = "例：8月10日朝食まで必要、8月20日夕食から必要",
+                                placeholder = "例：8月10日の朝食まで必要、8月20日の夕食から必要",
                                 rows = 3,
                             )
                         }
@@ -916,11 +882,12 @@ private fun EditBody(
         }
     }
 
-    // ── 11. 底部双按钮行：下書き保存 + 確認する（§2.1-11，三态下右键改成「確認する」）──
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        GhostButton(title = "下書き保存", modifier = Modifier.weight(1f), onClick = onDraft)
-        PrimaryButton(title = "確認する", modifier = Modifier.weight(1f), enabled = canSubmit, onClick = onConfirm)
-    }
+    // ── 11. 底部单按钮「提出する」（v1.0 已删「下書き保存」与确认页）──
+    PrimaryButton(
+        title = if (submitting) "提出中…" else "提出する",
+        enabled = canSubmit,
+        onClick = onSubmit,
+    )
 
     // ── 12. 底部居中灰字（§2.1-12）──
     Text(
@@ -930,165 +897,6 @@ private fun EditBody(
         style = TextStyle(fontSize = 11.sp, lineHeight = 16.sp),
         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
     )
-}
-
-// ════════════════════════════════════════════════════════════════════
-// 确认态正文（preview）—— 只读键值卡 + 提出する / 修正する
-// ════════════════════════════════════════════════════════════════════
-@Composable
-private fun PreviewBody(
-    t: jp.tomoshibi.android.ui.theme.SuzuTokens,
-    kindName: String,
-    isHoliday: Boolean,
-    needPlaces: Boolean,
-    needDestCity: Boolean,
-    needMeal: Boolean,
-    needFlight: Boolean,
-    isOverseas: Boolean,
-    contactPhone: String,
-    isLongVacation: Boolean?,
-    leaveDate: String,
-    leaveTime: String,
-    leaveMethod: String?,
-    taxiTime: String,
-    returnDate: String,
-    returnTime: String,
-    returnMethod: String?,
-    companion: String,
-    destCity: String,
-    stayPlaces: androidx.compose.runtime.snapshots.SnapshotStateList<StayPlace>,
-    mealSkipOn: Boolean,
-    mealStartDate: String,
-    mealStartMeal: String?,
-    mealEndDate: String,
-    mealEndMeal: String?,
-    mealNote: String,
-    flightDepAir: String,
-    flightDepTime: String,
-    flightArrAir: String,
-    flightArrTime: String,
-    reason: String,
-    onSubmit: () -> Unit,
-    onEdit: () -> Unit,
-) {
-    // 蓝底信息条
-    Box(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(t.pill)
-                .padding(14.dp),
-    ) {
-        Text(
-            "ℹ 提出後は審査待ちとなります。承認されるまでは内容の変更が可能です。",
-            color = t.inkSub,
-            style = TextStyle(fontSize = 12.sp, lineHeight = 17.sp),
-        )
-    }
-
-    Text("申請内容の確認", color = t.ink, style = TextStyle(fontSize = 17.sp, fontWeight = FontWeight.Bold))
-
-    // 只读键值卡（按 kind 列不同行）
-    SuzuCard(padding = 0) {
-        KvRow(t, "種別", "${kindName}届", first = true)
-        if (isHoliday && isLongVacation != null) {
-            KvRow(t, "区分", if (isLongVacation) "長期休暇用" else "通常時用")
-        }
-        if (contactPhone.isNotBlank()) KvRow(t, "本人連絡先", contactPhone)
-        KvRow(t, if (isHoliday) "帰省方法" else "出寮方法", "${dash(leaveDate)} ${dash(leaveTime)}  ${dash(leaveMethod)}")
-        if (leaveMethod == "タクシー" && taxiTime.isNotBlank()) KvRow(t, "タクシー希望時刻", taxiTime)
-        KvRow(t, "帰寮", "${dash(returnDate)} ${dash(returnTime)}  ${dash(returnMethod)}")
-        if (needPlaces) {
-            if (companion.isNotBlank()) KvRow(t, "同行者", companion)
-            if (needDestCity && destCity.isNotBlank()) KvRow(t, "行先", destCity)
-            val places = stayPlaces.map { it.address.trim() }.filter { it.isNotEmpty() }
-            if (places.isNotEmpty()) KvRow(t, "宿泊先", places.joinToString("\n"))
-        }
-        if (needMeal) {
-            if (isOverseas && mealSkipOn) {
-                KvRow(t, "食事不要", "${dash(mealStartDate)} ${dash(mealStartMeal)} 〜 ${dash(mealEndDate)} ${dash(mealEndMeal)}")
-                if (mealNote.isNotBlank()) KvRow(t, "食事備考", mealNote)
-            } else if (!isOverseas) {
-                KvRow(t, "食事", "食事入力表でご記入ください")
-            }
-        }
-        if (needFlight) {
-            KvRow(t, "出発空港", "${dash(flightDepAir)} ${dash(flightDepTime)}")
-            KvRow(t, "到着空港", "${dash(flightArrAir)} ${dash(flightArrTime)}")
-        }
-        KvRow(t, "理由", reason)
-    }
-
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        GhostButton(title = "修正する", modifier = Modifier.weight(1f), onClick = onEdit)
-        PrimaryButton(title = "提出する", modifier = Modifier.weight(1f), onClick = onSubmit)
-    }
-}
-
-// ════════════════════════════════════════════════════════════════════
-// 完成态正文（done）—— 居中绿勾 + 大标题 + 预想审查时间卡 + 一覧に戻る
-// 対齐 iOS ApplyDoneView（§9）
-// ════════════════════════════════════════════════════════════════════
-@Composable
-private fun DoneBody(
-    kindName: String,
-    onBack: () -> Unit,
-) {
-    val t = SuzuT.current
-    Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Spacer(Modifier.height(40.dp))
-        // 居中绿勾 ✓（圆形渐变底 + 白勾）
-        Box(
-            modifier =
-                Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(percent = 50))
-                    .background(t.okBg),
-            contentAlignment = Alignment.Center,
-        ) {
-            androidx.compose.material3.Icon(
-                SuzuIcons.CheckCirc,
-                contentDescription = null,
-                tint = t.okDeep,
-                modifier = Modifier.size(48.dp),
-            )
-        }
-        Text("申請を提出しました", color = t.ink, style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold))
-        Text(
-            "${kindName}申請を受け付けました。\n審査完了時に通知でお知らせします。",
-            color = t.inkSub,
-            style = TextStyle(fontSize = 13.sp, lineHeight = 19.sp),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-        )
-        // 预想审查时间卡
-        SuzuCard {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                androidx.compose.material3.Icon(
-                    SuzuIcons.CalClock,
-                    contentDescription = null,
-                    tint = t.inkSub,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(10.dp))
-                Column {
-                    Text("審査時間の目安", color = t.inkSub, style = TextStyle(fontSize = 12.sp))
-                    Text("1〜2 時間", color = t.ink, style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.SemiBold))
-                }
-            }
-        }
-        Spacer(Modifier.height(8.dp))
-        PrimaryButton(title = "一覧に戻る", onClick = onBack)
-        Spacer(Modifier.height(40.dp))
-    }
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -1150,26 +958,6 @@ private fun InfoRow(
     }
 }
 
-// 确认页只读键值行（左标签 88 + 右值，支持多行）
-@Composable
-private fun KvRow(
-    t: jp.tomoshibi.android.ui.theme.SuzuTokens,
-    label: String,
-    value: String,
-    first: Boolean = false,
-) {
-    if (!first) {
-        Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(t.hair))
-    }
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Text(label, color = t.inkSub, modifier = Modifier.width(88.dp), style = TextStyle(fontSize = 12.sp))
-        Text(value, color = t.ink, modifier = Modifier.weight(1f), style = TextStyle(fontSize = 14.sp, lineHeight = 19.sp))
-    }
-}
-
 // 「寮生特別運行の時刻表を見る」链接按钮（§3 / §4 出寮・帰寮方法下方）
 @Composable
 private fun BusTimetableLink(
@@ -1202,6 +990,3 @@ private fun BusTimetableLink(
 // 主色短手（Header 卡 / 区块编号方块 / 链接 / 加号 用，避免每处都写 MaterialTheme.colorScheme.primary）
 @Composable
 private fun MaterialPrimary(): Color = androidx.compose.material3.MaterialTheme.colorScheme.primary
-
-// 预览空值占位（"" → "—"，null → "—"）
-private fun dash(s: String?): String = if (s.isNullOrBlank()) "—" else s

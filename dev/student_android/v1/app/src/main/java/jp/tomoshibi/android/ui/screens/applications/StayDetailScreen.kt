@@ -2,6 +2,7 @@ package jp.tomoshibi.android.ui.screens.applications
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,12 +17,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -62,19 +66,11 @@ import jp.tomoshibi.android.ui.theme.SuzuTokens
 import kotlinx.coroutines.launch
 
 // ─────────────────────────────────────────────────────────────────────
-// StayDetailScreen —— 「申請詳細」（申請内容 + 承認状況 timeline + 操作履歴）
-// 対齐 iOS StayDetailView（StayListStubs.swift 行 676-1171）。
-// iOS 原本带「詳細 / 履歴」分页切换；Android 端把三块铺在同一滚动列里（任务区块定义）：
-//   1) Header 卡：种类图标 +「<种类>届」+ 状态徽章
-//   2) 申請内容卡：出寮日 / 帰寮日 / 帰省方法 / 帰寮方法 / タクシー予約 / 宿泊先 / 提出日時 键值行
-//   3) 承認状況 timeline：chain 每环 役职名 + 决定 Pill + 担当者 + 时刻 + 审查中标记
-//   4) 差戻评语卡：chain 里最后一个带 comment 的环（红底警告）
-//   5) 操作履歴：auditLog 逐条 at / action / actor / detail（竖线串联的时间轴）
-// 数据从真后端 ApplicationsAPI.detail(id) 拉单条 ApplicationOut，再 .toStayApplication() 转本地模型。
-// 套三态外壳（加载中 / 失败 / 成功）；详情屏是单条，不需要 Empty 态，找不到 / 异常都走 FailedBox。
-// isEditable 为 true 时底部「変更届を提出」按钮 → 跳 StayEdit 路由。
+// StayDetailScreen —— 「申請詳細」（申請内容 + 承认链 + 操作履历）
+// 对齐 iOS StayDetailView：分段 tab「詳細」/「履歴 (N)」+ returnedBanner + audit 独立拉取。
 // ─────────────────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StayDetailScreen(
     navController: NavHostController,
@@ -83,26 +79,31 @@ fun StayDetailScreen(
     val t = SuzuT.current
     val store = LocalAppStore.current
     val scope = rememberCoroutineScope()
-    // 三态：Loading / Failed(消息) / Success(映射后的 StayApplication)。详情单条不设 Empty。
     var ui by remember { mutableStateOf<LoadState<StayApplication>>(LoadState.Loading) }
-
-    // 撤回中标志（防重复点击 + 按钮显示禁用态）。撤回失败时把后端消息落到 actionError 给用户看。
     var withdrawing by remember { mutableStateOf(false) }
     var actionError by remember { mutableStateOf<String?>(null) }
+    var tabIndex by remember { mutableIntStateOf(0) } // 0=詳細 / 1=履歴
+    var refreshing by remember { mutableStateOf(false) }
 
-    // 加载函数（重试也调它）。失败必须落 Failed，绝不退化成假数据。
-    suspend fun load() {
-        ui = LoadState.Loading
+    // silent=true：下拉刷新时保留现有内容，不闪全屏 Loading
+    suspend fun load(silent: Boolean = false) {
+        // 先记下上次履历，再切 Loading（audit 失败时沿用）
+        val prevAudit = (ui as? LoadState.Success)?.value?.auditLog.orEmpty()
+        if (!silent) ui = LoadState.Loading
         val tokenAtStart = store.snapshot().authToken
+        val studentName = store.snapshot().user.name
         ui =
             try {
-                // GET /applications/:id → ApplicationOut，经共享映射转成界面用的 StayApplication
-                val item = ApplicationsAPI.detail(id).toStayApplication()
-                LoadState.Success(item)
+                val base = ApplicationsAPI.detail(id).toStayApplication()
+                val audits =
+                    try {
+                        ApplicationsAPI.audit(id).map { it.toStayAuditEntry(studentName) }
+                    } catch (_: Exception) {
+                        prevAudit
+                    }
+                LoadState.Success(base.copy(auditLog = audits))
             } catch (e: ApiError) {
-                if (store.handleIfUnauthorized(e, tokenAtStart)) {
-                    return
-                }
+                if (store.handleIfUnauthorized(e, tokenAtStart)) return
                 LoadState.Failed(e.display)
             } catch (e: Exception) {
                 LoadState.Failed("読み込みに失敗しました")
@@ -111,114 +112,187 @@ fun StayDetailScreen(
     LaunchedEffect(Unit) { load() }
 
     GlobalScaffold(activeTab = "apply", navController = navController) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .background(t.pearl)
-                    .verticalScroll(rememberScrollState()),
+        PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = {
+                scope.launch {
+                    refreshing = true
+                    load(silent = true)
+                    refreshing = false
+                }
+            },
+            modifier = Modifier.fillMaxSize().background(t.pearl),
         ) {
-            PageHeader(
-                title = "申請詳細",
-                level = 2,
-                onLeft = { navController.popBackStack() },
-            )
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
+            ) {
+                PageHeader(
+                    title = "申請詳細",
+                    level = 2,
+                    onLeft = { navController.popBackStack() },
+                )
 
-            // 三态渲染（详情屏只有 Loading / Failed / Success）
-            when (val s = ui) {
-                LoadState.Loading -> {
-                    LoadingBox()
-                }
+                when (val s = ui) {
+                    LoadState.Loading -> {
+                        LoadingBox()
+                    }
 
-                is LoadState.Failed -> {
-                    FailedBox(s.message, onRetry = { scope.launch { load() } })
-                }
+                    is LoadState.Failed -> {
+                        FailedBox(s.message, onRetry = { scope.launch { load() } })
+                    }
 
-                // Empty 态详情屏用不到（detail 永远是单条），理论上不会进这分支；兜底当失败处理
-                LoadState.Empty -> {
-                    FailedBox("読み込みに失敗しました", onRetry = { scope.launch { load() } })
-                }
+                    LoadState.Empty -> {
+                        FailedBox("読み込みに失敗しました", onRetry = { scope.launch { load() } })
+                    }
 
-                is LoadState.Success -> {
-                    val item = s.value
-                    Column(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        Spacer(Modifier.height(2.dp))
-
-                        HeaderCard(t, item)
-                        FieldsCard(t, item)
-                        ChainCard(t, item)
-
-                        // chain 里最后一个带评语的环 → 差戻评语卡
-                        val lastComment = item.chain.lastOrNull { !it.comment.isNullOrBlank() }
-                        if (lastComment != null) {
-                            CommentCard(t, lastComment)
-                        }
-
-                        HistoryCard(t, item)
-
-                        // ── 底部操作区 ──
-                        // 编辑（变更届 / 再提出）可提交时露出。状态决定按钮文案：
-                        //   要修正（returned）→「修正して再提出」（差戻后改完重提，语义对齐 iOS）
-                        //   其余可编辑态（pending / approved_partial）→「変更届を提出」
-                        // 两者都走既有编辑流程（StayEdit → PUT /applications/:id，重提=改完回 pending）。
-                        if (item.isEditable) {
-                            val isReturned = item.status == StayStatus.RETURNED.name
-                            PrimaryButton(
-                                title = if (isReturned) "修正して再提出" else "変更届を提出",
-                                icon = SuzuIcons.Edit,
-                                enabled = !withdrawing,
-                                onClick = { navController.navigate(Route.StayEdit(id).path) },
+                    is LoadState.Success -> {
+                        val item = s.value
+                        Column(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            Spacer(Modifier.height(2.dp))
+                            DetailHistoryTabBar(
+                                selected = tabIndex,
+                                historyCount = item.auditLog.size,
+                                onSelect = { tabIndex = it },
                             )
-                        }
 
-                        // 撤回（取消）可执行时露出红色危险按钮 → POST /applications/:id/withdraw。
-                        // 仅 pending / approved_partial / returned 可撤回（跟后端 CANNOT_WITHDRAW 约束一致，
-                        // 复用 isEditable 的同一状态集合）。点击 → 调 withdraw → 成功后 reload 拉到 withdrawn 态。
-                        if (item.isEditable) {
-                            PrimaryButton(
-                                title = if (withdrawing) "取消中…" else "取消（撤回）",
-                                icon = SuzuIcons.Close,
-                                destructive = true,
-                                enabled = !withdrawing,
-                                onClick = {
-                                    scope.launch {
-                                        withdrawing = true
-                                        actionError = null
-                                        try {
-                                            ApplicationsAPI.withdraw(id)
-                                            // 撤回成功 → 重新拉详细（状态会变 取消済，按钮随之消失）
-                                            load()
-                                        } catch (e: ApiError) {
-                                            actionError = e.display
-                                        } catch (e: Exception) {
-                                            actionError = "取消に失敗しました"
-                                        } finally {
-                                            withdrawing = false
-                                        }
+                            if (tabIndex == 0) {
+                                HeaderCard(t, item)
+                                FieldsCard(t, item)
+                                ChainCard(t, item)
+                                val lastComment = item.chain.lastOrNull { !it.comment.isNullOrBlank() }
+                                if (lastComment != null) CommentCard(t, lastComment)
+                                if (item.status == StayStatus.RETURNED.name) {
+                                    ReturnedBanner()
+                                }
+                                if (item.isEditable) {
+                                    val isReturned = item.status == StayStatus.RETURNED.name
+                                    PrimaryButton(
+                                        title = if (isReturned) "修正して再提出" else "変更届を提出",
+                                        icon = SuzuIcons.Edit,
+                                        enabled = !withdrawing,
+                                        onClick = { navController.navigate(Route.StayEdit(id).path) },
+                                    )
+                                }
+                                if (item.isEditable) {
+                                    PrimaryButton(
+                                        title = if (withdrawing) "取り消し中…" else "申請を取り消し",
+                                        icon = SuzuIcons.Close,
+                                        destructive = true,
+                                        enabled = !withdrawing,
+                                        onClick = {
+                                            scope.launch {
+                                                withdrawing = true
+                                                actionError = null
+                                                val tokenAtStart = store.snapshot().authToken
+                                                try {
+                                                    ApplicationsAPI.withdraw(id)
+                                                    load(silent = true)
+                                                } catch (e: ApiError) {
+                                                    if (store.handleIfUnauthorized(e, tokenAtStart)) return@launch
+                                                    actionError =
+                                                        if (e is ApiError.Server && e.code == 409) {
+                                                            "この状態の申請は取り消せません"
+                                                        } else {
+                                                            e.display
+                                                        }
+                                                    if (e is ApiError.Server && e.code == 409) {
+                                                        load(silent = true)
+                                                    }
+                                                } catch (e: Exception) {
+                                                    actionError = "取消に失敗しました"
+                                                } finally {
+                                                    withdrawing = false
+                                                }
+                                            }
+                                        },
+                                    )
+                                    actionError?.let {
+                                        Text(it, color = t.danger, style = TextStyle(fontSize = 12.sp))
                                     }
-                                },
-                            )
-                            // 撤回失败时把后端消息（如 409 的拒绝理由）显示在按钮下方
-                            actionError?.let {
-                                Text(
-                                    it,
-                                    color = t.danger,
-                                    style = TextStyle(fontSize = 12.sp),
-                                )
+                                }
+                            } else {
+                                HistoryCard(t, item)
                             }
+                            Spacer(Modifier.height(40.dp))
                         }
-
-                        Spacer(Modifier.height(40.dp))
                     }
                 }
             }
         }
+    }
+}
+
+// 「詳細」/「履歴 (N)」分段胶囊（对齐 iOS tabBar）
+@Composable
+private fun DetailHistoryTabBar(
+    selected: Int,
+    historyCount: Int,
+    onSelect: (Int) -> Unit,
+) {
+    val t = SuzuT.current
+    val cs = MaterialTheme.colorScheme
+    val labels = listOf("詳細", "履歴 ($historyCount)")
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(percent = 50))
+                .background(t.pill)
+                .padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(0.dp),
+    ) {
+        labels.forEachIndexed { index, label ->
+            val on = selected == index
+            Box(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(percent = 50))
+                        .background(if (on) cs.primary else Color.Transparent)
+                        .clickable { onSelect(index) }
+                        .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    label,
+                    color = if (on) Color.White else t.inkSub,
+                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
+                )
+            }
+        }
+    }
+}
+
+// returned 态红底提醒横幅（独立于评语卡；对齐 iOS returnedBanner）
+@Composable
+private fun ReturnedBanner() {
+    val t = SuzuT.current
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(t.dangerBg)
+                .border(1.dp, t.danger.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Text("⚠", color = t.danger, style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold))
+        Text(
+            "この届出は差し戻されました。内容を修正して再提出してください。",
+            color = t.danger,
+            style = TextStyle(fontSize = 13.sp, lineHeight = 19.sp, fontWeight = FontWeight.SemiBold),
+        )
     }
 }
 
@@ -353,7 +427,7 @@ private fun ChainCard(
 
             if (item.chain.isEmpty()) {
                 Text(
-                    "この種別の届は承認手続きの設定がありません。",
+                    "この届出には承認の手続きはありません。",
                     color = t.inkMute,
                     style = TextStyle(fontSize = 12.sp),
                 )
@@ -663,9 +737,9 @@ private fun auditColor(
         action.contains("承認") -> t.ok
 
         // 「承認」绿
-        action.contains("差戻") -> t.danger
+        action.contains("差し戻し") || action.contains("差戻") -> t.danger
 
-        // 「差戻」红
+        // 「差し戻し」红（兼容旧「差戻」缩写）
         action.contains("変更") -> t.warn
 
         // 「変更届を提出」橙

@@ -343,7 +343,7 @@ object MockData {
                 submittedAt = "2026-05-07 19:40",
                 auditLog =
                     listOf(
-                        StayAuditEntry(at = "2026-05-08 14:30", action = "差戻", actor = "国際交流部長：鈴木", detail = "外泊先の連絡先を明記してください"),
+                        StayAuditEntry(at = "2026-05-08 14:30", action = "差し戻し", actor = "国際交流部長：鈴木", detail = "外泊先の連絡先を明記してください"),
                         StayAuditEntry(at = "2026-05-08 11:02", action = "承認", actor = "担任：佐藤"),
                         StayAuditEntry(at = "2026-05-07 19:40", action = "提出", actor = "リュウ イヒ"),
                     ),

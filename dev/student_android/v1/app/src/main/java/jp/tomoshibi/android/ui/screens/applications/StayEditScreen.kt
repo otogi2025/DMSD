@@ -55,6 +55,7 @@ import jp.tomoshibi.android.ui.components.TArea
 import jp.tomoshibi.android.ui.components.TField
 import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 // ─────────────────────────────────────────────────────────────────────
 // StayEditScreen —— 出寮届 变更届（编辑已提交的出寮届）
@@ -129,18 +130,21 @@ fun StayEditScreen(
                     LoadingBox()
                 }
             }
+
             is LoadState.Failed -> {
                 Column(modifier = Modifier.fillMaxSize().background(t.pearl)) {
                     PageHeader(title = "変更届", level = 3, onLeft = { navController.popBackStack() })
                     FailedBox(s.message, onRetry = { scope.launch { load() } })
                 }
             }
+
             LoadState.Empty -> {
                 Column(modifier = Modifier.fillMaxSize().background(t.pearl)) {
                     PageHeader(title = "変更届", level = 3, onLeft = { navController.popBackStack() })
                     FailedBox("読み込みに失敗しました", onRetry = { scope.launch { load() } })
                 }
             }
+
             is LoadState.Success -> {
                 StayEditFormBody(
                     navController = navController,
@@ -187,10 +191,14 @@ private fun StayEditFormBody(
     var amendReason by remember { mutableStateOf("") }
     var submitting by remember { mutableStateOf(false) }
 
+    val today = remember { LocalDate.now().toString() }
+    // CB-04：出寮日被主动改动时，新值不得早于今天
+    val leaveChanged = leaveDate.isNotEmpty() && leaveDate != original.leaveDate
     val canSubmit =
         amendReason.trim().isNotEmpty() &&
             !submitting &&
-            (returnDate.isEmpty() || leaveDate.isEmpty() || returnDate >= leaveDate)
+            (returnDate.isEmpty() || leaveDate.isEmpty() || returnDate >= leaveDate) &&
+            (!leaveChanged || leaveDate >= today)
 
     Column(
         modifier =
@@ -216,7 +224,7 @@ private fun StayEditFormBody(
             SectionLabel("申請者本人（変更不可）")
             SuzuCard(padding = 0) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    IdRow("学号", userStudentNo, isFirst = true)
+                    IdRow("アカウント番号", userStudentNo, isFirst = true)
                     IdRow("氏名", userName)
                     IdRow("学年・組", userGradeClass)
                     IdRow("寮・部屋", "$userDorm $userRoom")
@@ -233,9 +241,19 @@ private fun StayEditFormBody(
             SectionLabel("出寮 / 帰寮日")
             SuzuCard(padding = 14) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    DateField(label = "出寮日", value = leaveDate, onPick = { leaveDate = it })
+                    DateField(
+                        label = "出寮日",
+                        value = leaveDate,
+                        minDate = today,
+                        onPick = { leaveDate = it },
+                    )
                     original.leaveDate.takeIf { it != "—" }?.let { OriginalNote("原値", it) }
-                    DateField(label = "帰寮日", value = returnDate, onPick = { returnDate = it })
+                    DateField(
+                        label = "帰寮日",
+                        value = returnDate,
+                        minDate = leaveDate.ifEmpty { today },
+                        onPick = { returnDate = it },
+                    )
                     original.returnDate?.let { OriginalNote("原値", it) }
                 }
             }
@@ -327,6 +345,7 @@ private fun StayEditFormBody(
                             val tokenAtStart = store.snapshot().authToken
                             try {
                                 // 只发改过的字段 + amend_reason（对齐 iOS IX-004）
+                                // 只发改过的字段；宿泊先走 stay_locations（勿用 dest_cities）
                                 val body =
                                     ApplicationUpdateBody(
                                         amendReason = amendReason.trim(),
@@ -334,14 +353,6 @@ private fun StayEditFormBody(
                                         returnDate = returnDate.takeIf { it.isNotEmpty() && it != original.returnDate },
                                         leaveMethod = leaveMethod.takeIf { it != original.leaveMethod },
                                         returnMethod = returnMethod.takeIf { it != original.returnMethod },
-                                        destCities =
-                                            if (needsDestination) {
-                                                destination.trim().takeIf {
-                                                    it.isNotEmpty() && it != (original.destination ?: "")
-                                                }
-                                            } else {
-                                                null
-                                            },
                                         stayLocations =
                                             if (needsDestination && destination.trim().isNotEmpty() &&
                                                 destination.trim() != (original.destination ?: "")
@@ -378,7 +389,6 @@ private fun StayEditFormBody(
         }
     }
 }
-
 
 // 警告横幅 —「変更届を提出すると、承認の流れが最初からやり直しになります。」（iOS warningBanner）
 @Composable

@@ -34,9 +34,11 @@ import jp.tomoshibi.android.data.network.endpoints.OutingCreateBody
 import jp.tomoshibi.android.data.network.endpoints.OutingsAPI
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
+import jp.tomoshibi.android.ui.components.ChipGroup
 import jp.tomoshibi.android.ui.components.GlobalScaffold
 import jp.tomoshibi.android.ui.components.PageHeader
 import jp.tomoshibi.android.ui.components.PrimaryButton
+import jp.tomoshibi.android.ui.components.TToggle
 import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -44,6 +46,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 private val DATE_FMT = DateTimeFormatter.ofPattern("yyyy/MM/dd")
+private val OUTING_TRANSPORTS = listOf("電車", "バス", "車", "徒歩", "その他")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,13 +95,19 @@ fun ApplyNewScreen(
     val user = state.user
     var submitting by remember { mutableStateOf(false) }
 
-    val tomorrow = remember { LocalDate.now().plusDays(1) }
-    var leaveDate by remember { mutableStateOf(tomorrow) }
+    val today = remember { LocalDate.now() }
+    val tomorrow = remember { today.plusDays(1) }
+    val isOuting = kind == "外出"
+    // 外出可选今天；其余出寮日默认明天
+    var leaveDate by remember { mutableStateOf(if (isOuting) today else tomorrow) }
     var returnDate by remember { mutableStateOf(tomorrow.plusDays(1)) }
     var dest by remember { mutableStateOf("") }
     var reason by remember { mutableStateOf("") }
     var leaveTime by remember { mutableStateOf("18:00") }
     var returnTime by remember { mutableStateOf("20:00") }
+    var transport by remember { mutableStateOf<String?>(null) }
+    var taxiReserved by remember { mutableStateOf(false) }
+    var taxiTime by remember { mutableStateOf("18:00") }
 
     // 字段 visibility（kind 切 → hide）
     val showLeaveDate = kind in listOf("外出", "外泊", "帰省", "帰国")
@@ -109,13 +118,10 @@ fun ApplyNewScreen(
     val showGuestField = kind == "来訪者" // 来訪者必填「来訪者氏名」，対齐 iOS isGuest
     val showParcelField = kind == "代理受取" // 代理受取必填「荷物の概要」，対齐 iOS isParcel
     val showDestField = kind in listOf("外出", "外泊", "帰省", "帰国")
-    val isOuting = kind == "外出"
     val isMisc = kind in listOf("修繕", "来訪者", "代理受取")
 
-    // 期限校验只对有出寮日的类型（外出/外泊/帰省/帰国/早帰）适用；
-    // 修繕/来訪者/代理受取 无出寮日，不显期限 banner、也不参与 pastDeadline 判断。
-    val hasLeaveDateDeadline = showLeaveDate || showReturnDateOnly
-    // 申请期限：出寮日 48 小时前 OR 出寮日所属周的周三 23:59，取更早的一个
+    // 期限校验：外出无 48h 截止（当天回寮）；其余有出寮日的类型适用
+    val hasLeaveDateDeadline = !isOuting && (showLeaveDate || showReturnDateOnly)
     val now = LocalDateTime.now()
     val depAtSix = leaveDate.atTime(18, 0)
     val deadline48h = depAtSix.minusHours(48)
@@ -143,7 +149,7 @@ fun ApplyNewScreen(
                                 destination = dest.trim().takeIf { it.isNotEmpty() },
                                 leaveTime = leaveTime,
                                 returnTime = returnTime,
-                                taxiReservationTime = null,
+                                taxiReservationTime = if (taxiReserved) taxiTime else null,
                                 reason = reason.trim().takeIf { it.isNotEmpty() },
                             ),
                         )
@@ -289,7 +295,7 @@ fun ApplyNewScreen(
                 Column(
                     modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(tokens.paper),
                 ) {
-                    InfoRow("学号", user.studentNo, mono = true)
+                    InfoRow("アカウント番号", user.studentNo, mono = true)
                     Divider(color = tokens.hair, thickness = 0.5.dp)
                     InfoRow("氏名", user.name)
                     Divider(color = tokens.hair, thickness = 0.5.dp)
@@ -319,20 +325,52 @@ fun ApplyNewScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     if (showLeaveDate) {
-                        DateField("出寮日", leaveDate.format(DATE_FMT)) { showLeavePicker = true }
-                        Text(
-                            "※ 出寮日は明日以降のみ選択できます",
-                            color = tokens.inkMute,
-                            style = TextStyle(fontSize = 10.sp),
-                        )
-                        TimeChip("出寮時刻", leaveTime) { leaveTime = it }
+                        DateField(
+                            if (isOuting) "外出日" else "出寮日",
+                            leaveDate.format(DATE_FMT),
+                        ) { showLeavePicker = true }
+                        if (!isOuting) {
+                            Text(
+                                "※ 出寮日は明日以降のみ選択できます",
+                                color = tokens.inkMute,
+                                style = TextStyle(fontSize = 10.sp),
+                            )
+                        }
+                        TimeChip(if (isOuting) "外出時刻" else "出寮時刻", leaveTime) { leaveTime = it }
+                    }
+                    if (isOuting) {
+                        TimeChip("帰寮予定時刻", returnTime) { returnTime = it }
                     }
                     if (showReturnDate || showReturnDateOnly) {
                         DateField("帰寮日", returnDate.format(DATE_FMT)) { showReturnPicker = true }
                         TimeChip("帰寮時刻", returnTime) { returnTime = it }
                     }
                     if (showDestField) {
-                        TextField2("行先", dest, "行き先を入力") { dest = it }
+                        TextField2(if (isOuting) "行き先" else "行先", dest, "行き先を入力") { dest = it }
+                    }
+                    if (isOuting) {
+                        Text(
+                            "交通手段",
+                            color = tokens.inkSub,
+                            style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
+                        )
+                        ChipGroup(
+                            options = OUTING_TRANSPORTS,
+                            selected = transport,
+                            onSelect = { transport = it },
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "タクシーを予約する",
+                                color = tokens.ink,
+                                modifier = Modifier.weight(1f),
+                                style = TextStyle(fontSize = 13.sp),
+                            )
+                            TToggle(checked = taxiReserved, onCheckedChange = { taxiReserved = it })
+                        }
+                        if (taxiReserved) {
+                            TimeChip("タクシー希望時刻", taxiTime) { taxiTime = it }
+                        }
                     }
                     if (showRepairFields) {
                         TextField2("修繕場所", dest, "M101 室・洗面所") { dest = it }
@@ -416,7 +454,9 @@ fun ApplyNewScreen(
                                 .ofEpochMilli(it)
                                 .atZone(java.time.ZoneOffset.UTC)
                                 .toLocalDate()
-                        if (picked.isAfter(LocalDate.now())) leaveDate = picked
+                        // 外出：今天起可选；其余出寮日：明天起
+                        val ok = if (isOuting) !picked.isBefore(LocalDate.now()) else picked.isAfter(LocalDate.now())
+                        if (ok) leaveDate = picked
                     }
                     showLeavePicker = false
                 }) { Text("OK") }

@@ -377,6 +377,8 @@ private fun OutingDetailBody(
     onWithdraw: () -> Unit,
 ) {
     val status = mapApplicationStatus4(outing.status)
+    val confirmed = outing.status == "approved"
+    val withdrawn = outing.status == "withdrawn"
     Column(
         modifier =
             Modifier
@@ -404,6 +406,12 @@ private fun OutingDetailBody(
                 Text("外出", color = tokens.ink, style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold))
             }
             Spacer(Modifier.width(8.dp))
+            Text(
+                "外出申請",
+                color = tokens.ink,
+                style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.ExtraBold),
+            )
+            Spacer(Modifier.weight(1f))
             ApplicationStatusPill(status, kind = "外出")
         }
 
@@ -424,10 +432,44 @@ private fun OutingDetailBody(
             KvRow("理由", outing.reason ?: "—")
             Divider(color = tokens.hair, thickness = 0.5.dp)
             KvRow("提出日", outing.submittedAt)
-            if (outing.confirmedByName != null) {
-                Divider(color = tokens.hair, thickness = 0.5.dp)
-                KvRow("確認", outing.confirmedByName)
-            }
+        }
+
+        // G19：外出简化为「提出 → 先生確認」两步（对齐 iOS OutingDetailView.steps）
+        Section("進捗")
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(tokens.paper)
+                    .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            OutingProgressStep(
+                tokens = tokens,
+                label = "提出",
+                done = true,
+                active = false,
+                time = outing.submittedAt,
+                label2 = null,
+                activeNote = null,
+                isLast = false,
+            )
+            OutingProgressStep(
+                tokens = tokens,
+                label =
+                    when {
+                        confirmed -> "確認"
+                        withdrawn -> "取消"
+                        else -> "先生の確認待ち"
+                    },
+                done = confirmed,
+                active = !confirmed && !withdrawn,
+                time = outing.confirmedAt,
+                label2 = if (confirmed) outing.confirmedByName else null,
+                activeNote = if (!confirmed && !withdrawn) "担当の先生が確認します" else null,
+                isLast = true,
+            )
         }
 
         // 仅 pending 可撤（对齐 iOS OutingDetailView）
@@ -443,7 +485,7 @@ private fun OutingDetailBody(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    if (withdrawing) "取消中…" else "申請を撤回する",
+                    if (withdrawing) "取り消し中…" else "申請を取り消し",
                     color = tokens.danger,
                     style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
                 )
@@ -453,6 +495,58 @@ private fun OutingDetailBody(
             }
         }
         Spacer(Modifier.height(40.dp))
+    }
+}
+
+// 外出两步进度单行（提出 / 先生確認）
+@Composable
+private fun OutingProgressStep(
+    tokens: jp.tomoshibi.android.ui.theme.SuzuTokens,
+    label: String,
+    done: Boolean,
+    active: Boolean,
+    time: String?,
+    label2: String?,
+    activeNote: String?,
+    isLast: Boolean,
+) {
+    val dotColor =
+        when {
+            done -> tokens.ok
+            active -> tokens.warn
+            else -> tokens.inkFaint
+        }
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+        Column(
+            modifier = Modifier.width(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(
+                modifier = Modifier.size(14.dp).clip(CircleShape).background(dotColor),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (done) {
+                    Text("✓", color = Color.White, style = TextStyle(fontSize = 9.sp, fontWeight = FontWeight.Bold))
+                }
+            }
+            if (!isLast) {
+                Box(modifier = Modifier.height(28.dp).width(1.5.dp).background(tokens.hair))
+            }
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(label, color = tokens.ink, style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold))
+            label2?.let {
+                // 后端 confirmed_by_name 已是展示用姓名（对齐 iOS label2）
+                Text(it, color = tokens.inkSub, style = TextStyle(fontSize = 12.sp))
+            }
+            time?.let {
+                Text(it, color = tokens.inkMute, style = TextStyle(fontSize = 11.sp, fontFamily = FontFamily.Monospace))
+            }
+            activeNote?.let {
+                Text(it, color = tokens.warnDeep, style = TextStyle(fontSize = 12.sp))
+            }
+        }
     }
 }
 

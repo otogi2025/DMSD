@@ -256,7 +256,7 @@ enum class StayDecision(
 ) {
     PENDING("審査中"),
     APPROVED("承認"),
-    REJECTED("差戻"),
+    REJECTED("差し戻し"),
 }
 
 // 承認链一环（对应 iOS ApprovalStep）
@@ -273,9 +273,9 @@ data class StayApprovalStep(
 @Serializable
 data class StayAuditEntry(
     val at: String, // "2026-05-01 14:32"
-    val action: String, // 操作类型，值即 UI 文案：「提出」「修改届を提出」「差戻」「承認」
+    val action: String, // 操作类型，值即 UI 文案：「提出」「変更届を提出」「差し戻し」「承認」
     val actor: String, // 役职名+担当者 / 申請者本人
-    val detail: String? = null, // 修改届理由 / 差戻理由
+    val detail: String? = null, // 修改届理由 / 「差し戻し」理由
 )
 
 // 申請状态（7 值，对应 iOS ApplicationStatus）— label 是状态徽章文案
