@@ -322,6 +322,16 @@ C 组质量体系 C2 清单 Android #13-20 落地。新建 `data/` 下三个纯�
 
 验证：`./gradlew assembleDebug` BUILD SUCCESSFUL（主会话独立重新编译核对，非仅信自报；实际路径 `dev/student_android/v1/`，非施工提示词写的 `dev/student_android/`，按现状改）。无已知 latent。
 
+## 15. 邮箱登录接通（2026-07-19，与 iOS / 后端对齐）
+
+后端 `POST /api/v1/sessions/student` 已支持 `student_no` / `email` 二选一；iOS 同日恢复「メール」tab 并接通。Android 侧：
+
+- `AuthAPI`：拆成 `StudentLoginByNumberRequest` / `StudentLoginByEmailRequest` 两个独立请求体（避免编出 `null` 字段），新增 `loginStudentByEmail`。
+- `LoginScreen`：删掉邮箱 tab 死按钮早退；按 tab 调对应 API；邮箱 trim、密码不 trim；401 文案按 tab 分开；debug magic creds 仅番号 tab。
+- 注册 Step3 联络先 hint 改为「このメールアドレスはログインにも使えます。確認用のメールは送信されません」（对齐 iOS）。
+
+验证：`./gradlew assembleDebug` BUILD SUCCESSFUL。
+
 ---
 
 **END** — 本档随实装进展持续更新。

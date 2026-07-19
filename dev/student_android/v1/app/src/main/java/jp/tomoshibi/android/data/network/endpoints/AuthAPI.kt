@@ -81,14 +81,23 @@ data class MyDisciplineSummaryOut(
 // ============================================================
 
 object AuthAPI {
-    // / POST /api/v1/sessions/student 用的请求 body
+    // / POST /api/v1/sessions/student — 学号登录 body（只编 student_no，不发 email:null）
+    // / 不用「两个可空字段塞一个类」：kotlinx.serialization 默认会把 null 也编进 JSON，
+    // / 靠后端把 None 当「没传」能碰巧过，但不稳。对齐 iOS StudentLoginByNumberRequest。
     @Serializable
-    private data class StudentLoginRequest(
+    private data class StudentLoginByNumberRequest(
         @SerialName("student_no") val studentNo: String, // 6 桁学号 "060218"
         val password: String,
     )
 
-    // / 学生登录。成功返 TokenOut（access_token + token_type + expires_in）
+    // / POST /api/v1/sessions/student — 邮箱登录 body（只编 email，不发 student_no:null）
+    @Serializable
+    private data class StudentLoginByEmailRequest(
+        val email: String,
+        val password: String,
+    )
+
+    // / 学号登录。成功返 TokenOut（access_token + token_type + expires_in）
     // / 抛出：
     // /   - ApiError.Unauthorized — 学号 / 密码错（401）
     // /   - ApiError.Unprocessable — 学号格式错等（422）
@@ -97,7 +106,17 @@ object AuthAPI {
         studentNo: String,
         password: String,
     ): TokenOut {
-        val body = StudentLoginRequest(studentNo = studentNo, password = password)
+        val body = StudentLoginByNumberRequest(studentNo = studentNo, password = password)
+        return ApiClient.post("/api/v1/sessions/student", body)
+    }
+
+    // / 邮箱登录（与学号登录互斥，body 不含 student_no）。
+    // / Kotlin 不能靠参数名区分两个 (String, String) 重载，故单独命名 loginStudentByEmail。
+    suspend fun loginStudentByEmail(
+        email: String,
+        password: String,
+    ): TokenOut {
+        val body = StudentLoginByEmailRequest(email = email, password = password)
         return ApiClient.post("/api/v1/sessions/student", body)
     }
 }

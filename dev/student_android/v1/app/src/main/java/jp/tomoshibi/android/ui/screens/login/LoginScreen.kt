@@ -89,27 +89,36 @@ fun LoginScreen(navController: NavHostController) {
     val canSubmit = identifierFilled && passwordValid && !loading
 
     // 真后端登录（对齐 iOS AuthStubs.tryLogin）：
-    //   - 邮箱 tab → 后端未实装邮箱登录，提示切番号
-    //   - 番号 tab → 调 AuthAPI.loginStudent → set ApiClient.token + 持久化 DataStore → 进 home
-    //   - 演示版（debug 包）magic creds（060217 / 12345678）→ 跳过 API 直接进 home（无后端演示 / 离线场景）
+    //   - 番号 tab → AuthAPI.loginStudent(studentNo)
+    //   - 邮箱 tab → AuthAPI.loginStudentByEmail（标识 trim；密码不 trim）
+    //   - 演示版（debug 包）magic creds 仅番号 tab 生效 → 跳过 API 直接进 home
     //   - 401 → 失败累计到阈值跳锁定页；422 / 网络 → 原样弹后端 / 兜底文案
     val submit: () -> Unit = submit@{
         if (loading) return@submit
-        // 邮箱 tab：后端只支持学号登录，提示切番号（对齐 iOS）
-        if (!accountMode) {
-            Toast.makeText(context, "アカウント番号でログインしてください", Toast.LENGTH_SHORT).show()
-            return@submit
-        }
-        // 账号去首尾空白（学号是 6 桁数字、复制粘贴常带空格 / 换行）；密码不 trim（空格也算密码内容）
+        // 标识去首尾空白（复制粘贴常带空格 / 换行）；密码不 trim（空格也算密码内容）
         val trimmedAcc = accountNo.trim()
-        if (trimmedAcc.isEmpty() || password.isEmpty()) {
-            Toast.makeText(context, "アカウント番号とパスワードを入力してください", Toast.LENGTH_SHORT).show()
-            return@submit
+        val trimmedEmail = email.trim()
+        // 空值校验按 tab 分开（与上方 identifierFilled 同口径，提交时再 trim 一次）
+        if (accountMode) {
+            if (trimmedAcc.isEmpty() || password.isEmpty()) {
+                Toast.makeText(context, "アカウント番号とパスワードを入力してください", Toast.LENGTH_SHORT).show()
+                return@submit
+            }
+        } else {
+            if (trimmedEmail.isEmpty() || password.isEmpty()) {
+                Toast.makeText(context, "メールアドレスとパスワードを入力してください", Toast.LENGTH_SHORT).show()
+                return@submit
+            }
         }
         loading = true
         scope.launch {
-            // 演示版 magic creds：仅 debug 包生效，跳过 API 直接进 home（用于无后端演示 / 离线）
-            if (BuildConfig.DEBUG && trimmedAcc == DEMO_ACCOUNT_NO && password == DEMO_PASSWORD) {
+            // 演示版 magic creds：仅 debug + 番号 tab 生效，跳过 API 直接进 home（用于无后端演示 / 离线）
+            if (
+                accountMode &&
+                BuildConfig.DEBUG &&
+                trimmedAcc == DEMO_ACCOUNT_NO &&
+                password == DEMO_PASSWORD
+            ) {
                 failCount = 0
                 store.update { it.copy(authed = true) }
                 loading = false
@@ -118,9 +127,14 @@ fun LoginScreen(navController: NavHostController) {
                 }
                 return@launch
             }
-            // 真实 API 登录
+            // 真实 API 登录（按 tab 选学号 / 邮箱请求体）
             try {
-                val token = AuthAPI.loginStudent(trimmedAcc, password)
+                val token =
+                    if (accountMode) {
+                        AuthAPI.loginStudent(trimmedAcc, password)
+                    } else {
+                        AuthAPI.loginStudentByEmail(trimmedEmail, password)
+                    }
                 // set ApiClient.token：之后所有请求自动带 Authorization: Bearer
                 ApiClient.token = token.accessToken
                 failCount = 0
@@ -133,13 +147,21 @@ fun LoginScreen(navController: NavHostController) {
             } catch (e: ApiError) {
                 loading = false
                 when (e) {
-                    // 学号 / 密码错（401）→ 失败累计，到阈值跳锁定页
+                    // 学号或邮箱 / 密码错（401）→ 失败累计，到阈值跳锁定页
                     is ApiError.Unauthorized -> {
                         failCount += 1
                         if (failCount >= LOGIN_FAIL_THRESHOLD) {
                             navController.navigate(Route.Lockout.path)
                         } else {
-                            Toast.makeText(context, "アカウント番号またはパスワードが違います", Toast.LENGTH_SHORT).show()
+                            // 番号侧原为「…が違います」，与本页邮箱侧 +
+                            // iOS 生产版两处的「…が正しくありません」不一致（同一屏两种说法）→ 统一成后者。
+                            val msg =
+                                if (accountMode) {
+                                    "アカウント番号またはパスワードが正しくありません"
+                                } else {
+                                    "メールアドレスまたはパスワードが正しくありません"
+                                }
+                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                         }
                     }
 
