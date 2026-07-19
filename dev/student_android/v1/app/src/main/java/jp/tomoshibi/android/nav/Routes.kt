@@ -102,8 +102,9 @@ sealed class Route(
     // ── 杂项 / 公告 / 认证补全 ──
     data object BusList : Route("bus/list") // 特別運行便一覧
 
+    // id 用 String：对齐 iOS homePackageDetail(id: String) + 后端 FrontDeskItemOut.id（UUID）
     data class PackageDetail(
-        val id: Int,
+        val id: String,
     ) : Route("packages/$id") {
         companion object {
             const val PATH = "packages/{id}"
@@ -136,8 +137,9 @@ sealed class Route(
         }
     }
 
+    // id 用 String：对齐后端 EventOut.id（UUID）；行事详情接真后端时按 UUID 查
     data class EventDetail(
-        val id: Int,
+        val id: String,
     ) : Route("events/$id") {
         companion object {
             const val PATH = "events/{id}"
@@ -290,7 +292,7 @@ fun routeDisplayName(route: String): String {
             when {
                 base.contains("new") -> "投稿"
                 base.contains("detail") || parts.size > 1 -> "詳細"
-                else -> "落とし物"
+                else -> "遺失物"
             }
         }
 

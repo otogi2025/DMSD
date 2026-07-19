@@ -19,7 +19,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,26 +36,48 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import jp.tomoshibi.android.data.model.SongItem
-import jp.tomoshibi.android.data.seed.MockData
+import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.endpoints.SongRequestOut
+import jp.tomoshibi.android.data.network.endpoints.SongsAPI
+import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.nav.Route
+import jp.tomoshibi.android.ui.components.EmptyState
+import jp.tomoshibi.android.ui.components.FailedBox
 import jp.tomoshibi.android.ui.components.GlobalScaffold
+import jp.tomoshibi.android.ui.components.LoadState
+import jp.tomoshibi.android.ui.components.LoadingBox
 import jp.tomoshibi.android.ui.components.PageHeader
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
+import kotlinx.coroutines.launch
 
-// 点歌一覧屏「リクエスト曲」— 対齐 iOS MusicView（规格 §3.2 + §3.7）
-//   PageHeader「リクエスト曲」level 2 + 右上「+」按钮去投稿
-//   曲卡列表（按 id 降序）：左 44 紫渐变方块 + 中曲名/艺术家（点→详情）
-// 紫渐变方块用 React tokens 同色（A78BFA→7C3AED），不是主题色，故不走 SuzuT。
+// 点歌一覧「リクエスト曲」— 对齐 iOS MusicView 生产分支：
+//   PageHeader + 右上「+」投稿 + GET /songs 列表（后端已新→旧）
+//   曲卡：44 紫渐变（圆角 10）+ 曲名 + 仅艺术家（不显示投稿者）
 private val MusicGradient = Brush.linearGradient(listOf(Color(0xFFA78BFA), Color(0xFF7C3AED)))
 
 @Composable
 fun MusicScreen(navController: NavHostController) {
     val t = SuzuT.current
+    val store = LocalAppStore.current
+    val scope = rememberCoroutineScope()
+    var ui by remember { mutableStateOf<LoadState<List<SongRequestOut>>>(LoadState.Loading) }
 
-    // 一覧按 id 降序（新→旧）；MockData 已降序排好，这里再排一次保险
-    val songs = remember { MockData.DEFAULT_SONGS.sortedByDescending { it.id } }
+    suspend fun load() {
+        ui = LoadState.Loading
+        val tokenAtStart = store.snapshot().authToken
+        ui =
+            try {
+                val items = SongsAPI.list()
+                if (items.isEmpty()) LoadState.Empty else LoadState.Success(items)
+            } catch (e: ApiError) {
+                if (store.handleIfUnauthorized(e, tokenAtStart)) return
+                LoadState.Failed(e.display)
+            } catch (_: Exception) {
+                LoadState.Failed("読み込みに失敗しました")
+            }
+    }
+    LaunchedEffect(Unit) { load() }
 
     GlobalScaffold(activeTab = "", navController = navController) {
         Column(
@@ -59,7 +86,6 @@ fun MusicScreen(navController: NavHostController) {
                     .fillMaxSize()
                     .background(t.pearl),
         ) {
-            // ── 页头：标题 + 右上「+」去投稿 ──
             PageHeader(
                 title = "リクエスト曲",
                 level = 2,
@@ -84,37 +110,55 @@ fun MusicScreen(navController: NavHostController) {
                 },
             )
 
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Spacer(Modifier.height(4.dp))
+            when (val s = ui) {
+                LoadState.Loading -> {
+                    LoadingBox(useSpinner = true)
+                }
 
-                // ── 曲卡列表 ──
-                songs.forEach { song ->
-                    SongRow(
-                        song = song,
-                        onOpenDetail = { navController.navigate(Route.MusicDetail(song.id.toString()).path) },
+                is LoadState.Failed -> {
+                    FailedBox(s.message, onRetry = { scope.launch { load() } })
+                }
+
+                LoadState.Empty -> {
+                    EmptyState(
+                        icon = SuzuIcons.Music,
+                        title = "リクエストされた曲はまだありません",
                     )
                 }
 
-                Spacer(Modifier.height(20.dp))
+                is LoadState.Success -> {
+                    Column(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                                .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Spacer(Modifier.height(4.dp))
+                        s.value.forEach { song ->
+                            SongRow(
+                                song = song,
+                                onOpenDetail = {
+                                    navController.navigate(Route.MusicDetail(song.id).path)
+                                },
+                            )
+                        }
+                        Spacer(Modifier.height(20.dp))
+                    }
+                }
             }
         }
     }
 }
 
-// 曲卡单行：左 44 紫渐变方块（白 ♪ 图标，点→详情）+ 中曲名/艺术家（点→详情）
 @Composable
 private fun SongRow(
-    song: SongItem,
+    song: SongRequestOut,
     onOpenDetail: () -> Unit,
 ) {
     val t = SuzuT.current
+    val artist = song.artist.orEmpty()
     Row(
         modifier =
             Modifier
@@ -125,12 +169,12 @@ private fun SongRow(
                 .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // 左：44 紫渐变方块 + 白 Music 图标
+        // 紫渐变方块圆角 10（对齐 iOS 10pt，非 12）
         Box(
             modifier =
                 Modifier
                     .size(44.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .background(MusicGradient),
             contentAlignment = Alignment.Center,
         ) {
@@ -143,18 +187,18 @@ private fun SongRow(
         }
         Spacer(Modifier.width(12.dp))
 
-        // 中：曲名（加粗 1 行省略）+「アーティスト · by号」灰字
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                song.title,
+                song.songTitle,
                 color = t.ink,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold),
             )
             Spacer(Modifier.height(2.dp))
+            // 生产：仅艺术家，不显示投稿者
             Text(
-                "${song.artist} · ${song.by}",
+                artist,
                 color = t.inkSub,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

@@ -114,9 +114,9 @@ fun TomoshibiNavGraph(navController: NavHostController) {
         composable(Route.BusList.path) { BusListScreen(navController) }
         composable(
             route = Route.PackageDetail.PATH,
-            arguments = listOf(navArgument(Route.PackageDetail.ARG_ID) { type = NavType.IntType }),
+            arguments = listOf(navArgument(Route.PackageDetail.ARG_ID) { type = NavType.StringType }),
         ) { entry ->
-            val id = entry.arguments?.getInt(Route.PackageDetail.ARG_ID) ?: 0
+            val id = entry.arguments?.getString(Route.PackageDetail.ARG_ID) ?: ""
             PackageDetailScreen(navController, id)
         }
         composable(Route.Announcements.path) { AnnouncementsScreen(navController) }
@@ -138,9 +138,9 @@ fun TomoshibiNavGraph(navController: NavHostController) {
         }
         composable(
             route = Route.EventDetail.PATH,
-            arguments = listOf(navArgument(Route.EventDetail.ARG_ID) { type = NavType.IntType }),
+            arguments = listOf(navArgument(Route.EventDetail.ARG_ID) { type = NavType.StringType }),
         ) { entry ->
-            val id = entry.arguments?.getInt(Route.EventDetail.ARG_ID) ?: 0
+            val id = entry.arguments?.getString(Route.EventDetail.ARG_ID) ?: ""
             EventDetailScreen(navController, id)
         }
 

@@ -433,6 +433,11 @@ class AppStore(
         }
     }
 
+    /** 宅配屏拉到列表后写回缓存（避免重复请求）。 */
+    fun replacePackages(items: List<FrontDeskItemOut>) {
+        _packages.value = items
+    }
+
     /** 进入通知中心时刷新三源（feed + 包裹）。 */
     suspend fun refreshNotificationSources() {
         val tokenAtStart = snapshot().authToken
