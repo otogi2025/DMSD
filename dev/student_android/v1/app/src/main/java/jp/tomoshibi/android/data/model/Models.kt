@@ -62,11 +62,14 @@ data class Deduction(
 @Serializable
 data class Notification(
     val id: String,
-    val tag: String, // 点呼 / 申請 / お知らせ / 宅配 / 減点 / 活動 / リクエスト
+    val tag: String, // 筛选标签，如「申請」「宅配」「お知らせ」「バス」等
     val title: String,
     val body: String,
-    val ts: String, // 显示用文本（"今日 18:30"）
+    val ts: String, // 显示用文本（"今日 18:30" / "M/d HH:mm"）
     val read: Boolean = false,
+    // feed 来源才有：点卡片调 markRead 用；push / 宅配 为 null（对齐 iOS NotificationItem.kind/refId）
+    val kind: String? = null,
+    val refId: String? = null,
 )
 
 @Serializable

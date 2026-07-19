@@ -536,7 +536,7 @@ private fun SettingsCard(
                 .background(t.paper)
                 .border(0.5.dp, t.hair, RoundedCornerShape(16.dp)),
     ) {
-        SettingsRow("通知設定", onClick = onNotify)
+        SettingsRow("設定", onClick = onNotify)
         HorizontalDivider(color = t.hair, thickness = 0.5.dp)
         SettingsRow("Tomoshibi について", onClick = onAbout)
         HorizontalDivider(color = t.hair, thickness = 0.5.dp)

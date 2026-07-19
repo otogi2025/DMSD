@@ -1,6 +1,7 @@
 package jp.tomoshibi.android.ui.screens.announcements
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,13 +18,22 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,6 +56,9 @@ import jp.tomoshibi.android.data.network.AnnouncementReplyOut
 import jp.tomoshibi.android.data.network.ApiError
 import jp.tomoshibi.android.data.network.endpoints.AnnouncementsAPI
 import jp.tomoshibi.android.data.store.LocalAppStore
+import jp.tomoshibi.android.data.translate.AnnouncementTranslator
+import jp.tomoshibi.android.data.translate.TranslateLang
+import jp.tomoshibi.android.data.translate.TranslatePrefs
 import jp.tomoshibi.android.ui.components.FailedBox
 import jp.tomoshibi.android.ui.components.GlobalScaffold
 import jp.tomoshibi.android.ui.components.LoadState
@@ -57,7 +70,8 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
 
 // 公告详情（标题「お知らせ詳細」）— 接真后端 AnnouncementsAPI.detail(id)（规格 §5.4）。
-//   三态加载详情（访问时后端自动写已读）；底部回复输入栏真调 postReply，发送成功后清空 + 刷新带出新回复。
+//   三态加载详情；底部回复；「翻訳」用 ML Kit 设备端翻译（不做「AI要約」）。
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnnouncementDetailScreen(
     navController: NavHostController,
@@ -68,12 +82,18 @@ fun AnnouncementDetailScreen(
     val scope = rememberCoroutineScope()
     val store = LocalAppStore.current
 
-    // 三态：Loading / Failed / Success(单条公告详情)。详情屏单条，404 等异常一律走 Failed，不退化成假数据。
     var ui by remember { mutableStateOf<LoadState<AnnouncementDetail>>(LoadState.Loading) }
-    // 底部回复输入框本地 state
     var replyText by remember { mutableStateOf("") }
-    // 发送中标志，避免重复提交
     var sending by remember { mutableStateOf(false) }
+
+    // 翻译态（对齐 iOS AnnouncementDetailView）
+    var isTranslating by remember { mutableStateOf(false) }
+    var translateFailed by remember { mutableStateOf(false) }
+    var translatedText by remember { mutableStateOf<String?>(null) }
+    var translatedLabel by remember { mutableStateOf<String?>(null) }
+    var lastTargetLang by remember { mutableStateOf<TranslateLang?>(null) }
+    var showLangPicker by remember { mutableStateOf(false) }
+    var rememberAsDefault by remember { mutableStateOf(false) }
 
     suspend fun load() {
         ui = LoadState.Loading
@@ -92,6 +112,47 @@ fun AnnouncementDetailScreen(
     }
     LaunchedEffect(Unit) { load() }
 
+    fun resetToOriginal() {
+        translatedText = null
+        translatedLabel = null
+        translateFailed = false
+        isTranslating = false
+        lastTargetLang = null
+    }
+
+    fun startTranslate(
+        lang: TranslateLang,
+        body: String,
+    ) {
+        translatedText = null
+        translateFailed = false
+        isTranslating = true
+        translatedLabel = lang.shortLabel
+        lastTargetLang = lang
+        scope.launch {
+            try {
+                translatedText = AnnouncementTranslator.translate(body, lang)
+                translateFailed = false
+            } catch (_: Exception) {
+                translatedText = null
+                translateFailed = true
+            } finally {
+                isTranslating = false
+            }
+        }
+    }
+
+    fun onTapTranslate(body: String) {
+        val defaultCode = TranslatePrefs.getDefaultLang(ctx)
+        val lang = TranslateLang.fromCode(defaultCode)
+        if (lang != null) {
+            startTranslate(lang, body)
+        } else {
+            rememberAsDefault = false
+            showLangPicker = true
+        }
+    }
+
     GlobalScaffold(activeTab = "", navController = navController) {
         Column(modifier = Modifier.fillMaxSize().background(t.pearl)) {
             PageHeader(title = "お知らせ詳細", level = 2, onLeft = { navController.popBackStack() })
@@ -105,14 +166,13 @@ fun AnnouncementDetailScreen(
                     FailedBox(s.message, onRetry = { scope.launch { load() } })
                 }
 
-                // 单条详情无 Empty 态，兜底按失败处理避免崩溃。
                 LoadState.Empty -> {
                     FailedBox("読み込みに失敗しました", onRetry = { scope.launch { load() } })
                 }
 
                 is LoadState.Success -> {
                     val detail = s.value
-                    // 正文区：可滚动（占满除底部输入栏外的剩余高度）
+                    val displayBody = translatedText ?: detail.body
                     Column(
                         modifier =
                             Modifier
@@ -122,30 +182,37 @@ fun AnnouncementDetailScreen(
                                 .padding(horizontal = 16.dp),
                     ) {
                         Spacer(Modifier.height(4.dp))
-                        // 标题 20sp bold
                         Text(
                             detail.title,
                             color = t.ink,
                             style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold, lineHeight = 28.sp),
                         )
                         Spacer(Modifier.height(6.dp))
-                        // 作者 · 创建时刻（弱字）
                         Text(
                             "${detail.authorTeacherName} · ${fmtTime(detail.createdAt)}",
                             color = t.inkMute,
                             style = TextStyle(fontSize = 12.sp),
                         )
                         Spacer(Modifier.height(14.dp))
-                        // 正文（行高大，读着舒服）
                         Text(
-                            detail.body,
+                            displayBody,
                             color = t.ink,
                             style = TextStyle(fontSize = 15.sp, lineHeight = 24.sp),
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        TranslateActionChip(onClick = { onTapTranslate(detail.body) })
+                        Spacer(Modifier.height(8.dp))
+                        TranslateStatusBar(
+                            isTranslating = isTranslating,
+                            failed = translateFailed,
+                            label = translatedLabel,
+                            hasTranslation = translatedText != null,
+                            onRetry = { lastTargetLang?.let { startTranslate(it, detail.body) } },
+                            onReset = { resetToOriginal() },
                         )
                         Spacer(Modifier.height(18.dp))
                         HorizontalDivider(color = t.hair)
                         Spacer(Modifier.height(14.dp))
-                        // 回复区标题「返信 (N)」
                         Text(
                             "返信 (${detail.replies.size})",
                             color = t.inkSub,
@@ -155,7 +222,6 @@ fun AnnouncementDetailScreen(
                         if (detail.replies.isEmpty()) {
                             Text("まだ返信はありません", color = t.inkMute, style = TextStyle(fontSize = 13.sp))
                         } else {
-                            // 回复列表（后端按时序返回）
                             detail.replies.forEach { reply ->
                                 AnnouncementReplyRow(reply = reply)
                                 Spacer(Modifier.height(12.dp))
@@ -164,7 +230,6 @@ fun AnnouncementDetailScreen(
                         Spacer(Modifier.height(16.dp))
                     }
 
-                    // 底部固定回复输入栏 —— 真调 postReply 发送，成功后清空 + 刷新详情带出新回复。
                     ReplyComposer(
                         value = replyText,
                         sending = sending,
@@ -177,7 +242,7 @@ fun AnnouncementDetailScreen(
                                     try {
                                         AnnouncementsAPI.postReply(id, replyText)
                                         replyText = ""
-                                        load() // 刷新带出新回复
+                                        load()
                                     } catch (e: ApiError) {
                                         if (store.handleIfUnauthorized(e, tokenAtStart)) {
                                             return@launch
@@ -192,13 +257,231 @@ fun AnnouncementDetailScreen(
                             }
                         },
                     )
+
+                    if (showLangPicker) {
+                        TranslateLangPickerSheet(
+                            rememberAsDefault = rememberAsDefault,
+                            onRememberChange = { rememberAsDefault = it },
+                            onDismiss = { showLangPicker = false },
+                            onPick = { lang ->
+                                if (rememberAsDefault) {
+                                    TranslatePrefs.setDefaultLang(ctx, lang.code)
+                                }
+                                showLangPicker = false
+                                startTranslate(lang, detail.body)
+                            },
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-// 单条回复行（Slack 风）：作者名 + 教员蓝胶囊 + 时刻弱字 + 回复正文（reply 为后端 DTO AnnouncementReplyOut）
+@Composable
+private fun TranslateActionChip(onClick: () -> Unit) {
+    val primary = MaterialTheme.colorScheme.primary
+    Row(
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(percent = 50))
+                .background(primary.copy(alpha = 0.08f))
+                .clickable(onClick = onClick)
+                .padding(horizontal = 12.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Language,
+            contentDescription = null,
+            tint = primary,
+            modifier = Modifier.size(14.dp),
+        )
+        Text(
+            "翻訳",
+            color = primary,
+            style = TextStyle(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
+        )
+    }
+}
+
+@Composable
+private fun TranslateStatusBar(
+    isTranslating: Boolean,
+    failed: Boolean,
+    label: String?,
+    hasTranslation: Boolean,
+    onRetry: () -> Unit,
+    onReset: () -> Unit,
+) {
+    val t = SuzuT.current
+    val primary = MaterialTheme.colorScheme.primary
+    when {
+        isTranslating -> {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(14.dp),
+                    strokeWidth = 2.dp,
+                    color = primary,
+                )
+                Text("翻訳中…", color = t.inkSub, style = TextStyle(fontSize = 12.sp))
+            }
+        }
+
+        failed -> {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    Icons.Filled.Warning,
+                    contentDescription = null,
+                    tint = t.danger,
+                    modifier = Modifier.size(14.dp),
+                )
+                Text("翻訳に失敗しました", color = t.danger, style = TextStyle(fontSize = 12.sp))
+                Spacer(Modifier.weight(1f))
+                Text(
+                    "再試行",
+                    color = t.danger,
+                    style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
+                    modifier = Modifier.clickable(onClick = onRetry),
+                )
+            }
+        }
+
+        hasTranslation && label != null -> {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    Icons.Filled.Language,
+                    contentDescription = null,
+                    tint = primary,
+                    modifier = Modifier.size(14.dp),
+                )
+                Text(
+                    "$label に翻訳しました",
+                    color = primary,
+                    style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
+                )
+                Spacer(Modifier.weight(1f))
+                Text(
+                    "原文に戻す",
+                    color = primary,
+                    style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
+                    modifier = Modifier.clickable(onClick = onReset),
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TranslateLangPickerSheet(
+    rememberAsDefault: Boolean,
+    onRememberChange: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+    onPick: (TranslateLang) -> Unit,
+) {
+    val t = SuzuT.current
+    val primary = MaterialTheme.colorScheme.primary
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = t.paper,
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .padding(top = 4.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Filled.Language,
+                    contentDescription = null,
+                    tint = primary,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "翻訳する言語",
+                    color = primary,
+                    style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
+                )
+                Spacer(Modifier.weight(1f))
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Filled.Close, contentDescription = "閉じる", tint = t.inkMute)
+                }
+            }
+            TranslateLang.entries.forEachIndexed { idx, lang ->
+                if (idx > 0) {
+                    HorizontalDivider(color = t.hair)
+                }
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { onPick(lang) }
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        lang.pickerLabel,
+                        color = t.ink,
+                        style = TextStyle(fontSize = 15.sp),
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text("›", color = t.inkMute, style = TextStyle(fontSize = 16.sp))
+                }
+            }
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { onRememberChange(!rememberAsDefault) }
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(
+                    imageVector =
+                        if (rememberAsDefault) {
+                            Icons.Filled.CheckBox
+                        } else {
+                            Icons.Filled.CheckBoxOutlineBlank
+                        },
+                    contentDescription = null,
+                    tint = if (rememberAsDefault) primary else t.inkMute,
+                    modifier = Modifier.size(22.dp),
+                )
+                Text(
+                    "次回からこの言語に翻訳する",
+                    color = t.ink,
+                    style = TextStyle(fontSize = 13.sp),
+                )
+            }
+            Text(
+                "デフォルトの言語は設定画面でいつでも変更できます。",
+                color = t.inkMute,
+                style = TextStyle(fontSize = 11.sp),
+                modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 20.dp),
+            )
+        }
+    }
+}
+
 @Composable
 private fun AnnouncementReplyRow(reply: AnnouncementReplyOut) {
     val t = SuzuT.current
@@ -209,7 +492,6 @@ private fun AnnouncementReplyRow(reply: AnnouncementReplyOut) {
                 color = t.ink,
                 style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
             )
-            // 老师身份加「教員」蓝胶囊
             if (reply.authorKind == "teacher") {
                 Spacer(Modifier.width(6.dp))
                 Pill(text = "教員", tone = PillTone.Accent)
@@ -230,7 +512,6 @@ private fun AnnouncementReplyRow(reply: AnnouncementReplyOut) {
     }
 }
 
-// 底部固定回复输入栏：圆角多行输入框（1~4 行）+ 圆形发送按钮（有内容且不在发送中才可点）
 @Composable
 private fun ReplyComposer(
     value: String,
@@ -263,7 +544,6 @@ private fun ReplyComposer(
             minLines = 1,
             maxLines = 4,
         )
-        // 圆形发送按钮：可发送时主色，否则灰且禁用
         Box(
             modifier =
                 Modifier
@@ -284,7 +564,6 @@ private fun ReplyComposer(
     }
 }
 
-// ISO datetime → 详情完整时刻「yyyy/MM/dd HH:mm」（对齐 iOS formatFull）
 private fun fmtTime(iso: String): String {
     val instant =
         runCatching { java.time.Instant.parse(iso) }.getOrNull()
@@ -293,7 +572,9 @@ private fun fmtTime(iso: String): String {
                     .parse(iso)
                     .toInstant()
             }.getOrNull()
-            ?: return runCatching { "${iso.substring(0, 10).replace('-', '/')} ${iso.substring(11, 16)}" }.getOrDefault(iso)
+            ?: return runCatching {
+                "${iso.substring(0, 10).replace('-', '/')} ${iso.substring(11, 16)}"
+            }.getOrDefault(iso)
     return java.time.OffsetDateTime
         .ofInstant(instant, java.time.ZoneId.of("Asia/Tokyo"))
         .format(

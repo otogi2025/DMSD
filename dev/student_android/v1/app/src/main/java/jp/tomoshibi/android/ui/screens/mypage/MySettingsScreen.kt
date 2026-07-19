@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,20 +40,19 @@ import jp.tomoshibi.android.BuildConfig
 import jp.tomoshibi.android.data.model.ThemeMode
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
+import jp.tomoshibi.android.data.translate.TranslateLang
+import jp.tomoshibi.android.data.translate.TranslatePrefs
 import jp.tomoshibi.android.nav.Route
 import jp.tomoshibi.android.ui.components.GlobalScaffold
 import jp.tomoshibi.android.ui.components.PageHeader
-import jp.tomoshibi.android.ui.components.PillTone
 import jp.tomoshibi.android.ui.components.SectionHeader
 import jp.tomoshibi.android.ui.components.SuzuCard
 import jp.tomoshibi.android.ui.components.TToggle
 import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
 
-// 通知设定页（L2）— 对齐 iOS MySettingsView（规格 §11 / 第 11 节）：
-//   PageHeader「通知設定」level 2 + 5 行通知开关卡 + 暗色模式卡
-//   + 演示版限定的「Push 通知 デモ」段（BuildConfig.DEBUG 包住，上线包不可见）
-//   + 账号删除段（App Store 强制要求，Android 也保留）
+// 设定页（L2）— 对齐 iOS MySettingsView：
+//   PageHeader「設定」+ 「お知らせの翻訳」默认语言 + 通知开关 + 暗色模式 + 账号删除
 @Composable
 fun MySettingsScreen(navController: NavHostController) {
     val tokens = SuzuT.current
@@ -60,19 +60,27 @@ fun MySettingsScreen(navController: NavHostController) {
     val store = LocalAppStore.current
     val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
     val scope = rememberCoroutineScope()
+    val primary = MaterialTheme.colorScheme.primary
 
     // 5 个通知开关 — 纯 UI 本地态，默认全开（还没接后端，跟 iOS demo 屏一致）
-    var pointReminder by remember { mutableStateOf(true) } // 「点呼リマインダー」开关
-    var applResult by remember { mutableStateOf(true) } // 「申請結果」开关
-    var pkgArrival by remember { mutableStateOf(true) } // 「荷物到着」开关
-    var eventReminder by remember { mutableStateOf(true) } // 「活動リマインダー」开关
-    var pointWarning by remember { mutableStateOf(true) } // 「減点警告」开关
+    var pointReminder by remember { mutableStateOf(true) }
+    var applResult by remember { mutableStateOf(true) }
+    var pkgArrival by remember { mutableStateOf(true) }
+    var eventReminder by remember { mutableStateOf(true) }
+    var pointWarning by remember { mutableStateOf(true) }
 
-    var showDeleteDialog by remember { mutableStateOf(false) } // 账号删除确认框开关
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    // 默认翻译语言（空串 = 「毎回選択する」；与公告详情共用 TranslatePrefs）
+    var defaultTranslateLang by remember { mutableStateOf(TranslatePrefs.getDefaultLang(ctx)) }
+    val translateOptions =
+        remember {
+            listOf("" to "毎回選択する") + TranslateLang.entries.map { it.code to it.shortLabel }
+        }
 
     GlobalScaffold(activeTab = "me", navController = navController) {
         Column(modifier = Modifier.fillMaxSize().background(tokens.pearl)) {
-            PageHeader(title = "通知設定", level = 2, onLeft = { navController.popBackStack() })
+            PageHeader(title = "設定", level = 2, onLeft = { navController.popBackStack() })
 
             Column(
                 modifier =
@@ -84,7 +92,66 @@ fun MySettingsScreen(navController: NavHostController) {
             ) {
                 Spacer(Modifier.height(2.dp))
 
-                // ── 通知开关卡：5 行 TToggle，行间分隔线 ──
+                // ── 「お知らせの翻訳」默认语言（对齐 iOS translateSettingSection）──
+                Text(
+                    "お知らせの翻訳",
+                    color = tokens.inkMute,
+                    style =
+                        TextStyle(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.6.sp,
+                        ),
+                )
+                SuzuCard(padding = 0) {
+                    translateOptions.forEachIndexed { idx, (code, label) ->
+                        if (idx > 0) {
+                            RowDivider()
+                        }
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        defaultTranslateLang = code
+                                        TranslatePrefs.setDefaultLang(ctx, code)
+                                    }.padding(horizontal = 18.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                label,
+                                color = tokens.ink,
+                                modifier = Modifier.weight(1f),
+                                style = TextStyle(fontSize = 14.sp),
+                            )
+                            if (defaultTranslateLang == code) {
+                                Text(
+                                    "✓",
+                                    color = primary,
+                                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                                )
+                            }
+                        }
+                    }
+                }
+                Text(
+                    "お知らせ詳細の「翻訳」から、本文を選んだ言語に翻訳できます。",
+                    color = tokens.inkMute,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                    style = TextStyle(fontSize = 11.sp),
+                )
+
+                // ── 通知开关卡 ──
+                Text(
+                    "通知",
+                    color = tokens.inkMute,
+                    style =
+                        TextStyle(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.6.sp,
+                        ),
+                )
                 SuzuCard(padding = 0) {
                     ToggleRow("点呼リマインダー", pointReminder) { pointReminder = it }
                     RowDivider()
@@ -97,7 +164,7 @@ fun MySettingsScreen(navController: NavHostController) {
                     ToggleRow("減点警告", pointWarning) { pointWarning = it }
                 }
 
-                // ── 暗色模式卡（「ダークモード」）：单行 + TToggle 绑 themeMode ──
+                // ── 暗色模式卡 ──
                 SuzuCard(padding = 0) {
                     ToggleRow(
                         label = "ダークモード",
@@ -110,7 +177,6 @@ fun MySettingsScreen(navController: NavHostController) {
                     )
                 }
 
-                // ── 演示版限定的「Push 通知 デモ」段（BuildConfig.DEBUG 包住，上线包不编译进去）──
                 if (BuildConfig.DEBUG) {
                     SuzuCard {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -132,7 +198,6 @@ fun MySettingsScreen(navController: NavHostController) {
                     }
                 }
 
-                // ── 账号删除段 ──
                 SectionHeader("アカウント")
                 SuzuCard(padding = 0) {
                     Row(
@@ -164,15 +229,12 @@ fun MySettingsScreen(navController: NavHostController) {
         }
     }
 
-    // 账号删除确认框
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch {
-                        // 清本地登录态 + 令牌（DataStore + 内存 ApiClient.token）→ 跳登录页（清空返回栈）
-                        // 注：账号删除接真后端 AccountsAPI.deleteMyAccount() 留待 account 组接线
                         jp.tomoshibi.android.data.network.ApiClient.token = null
                         store.reset()
                         showDeleteDialog = false
@@ -194,7 +256,6 @@ fun MySettingsScreen(navController: NavHostController) {
     }
 }
 
-// 通知开关单行 — 左标题 + 右 TToggle
 @Composable
 private fun ToggleRow(
     label: String,
@@ -216,7 +277,6 @@ private fun ToggleRow(
     }
 }
 
-// 行间分隔线（卡内左右留 16dp 内缩）
 @Composable
 private fun RowDivider() {
     val t = SuzuT.current
@@ -227,7 +287,6 @@ private fun RowDivider() {
     )
 }
 
-// 演示段单行 — 🔔 铃铛 + 文案 + 「送信」按钮（点了弹 toast 即可）
 @Composable
 private fun DemoPushRow(
     label: String,
@@ -263,7 +322,7 @@ private fun DemoPushRow(
         ) {
             Text(
                 "送信",
-                color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.primary,
                 style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold),
             )
         }

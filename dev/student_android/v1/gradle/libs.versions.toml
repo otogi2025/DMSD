@@ -12,6 +12,8 @@ navCompose = "2.8.5"
 datastore = "1.1.1"
 serializationJson = "1.7.3"
 securityCrypto = "1.1.0-alpha06"
+mlkitTranslate = "17.0.3"
+coroutinesPlayServices = "1.9.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -34,6 +36,8 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serializationJson" }
+mlkit-translate = { group = "com.google.mlkit", name = "translate", version.ref = "mlkitTranslate" }
+kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutinesPlayServices" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

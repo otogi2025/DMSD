@@ -57,6 +57,9 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.security.crypto)
     implementation(libs.kotlinx.serialization.json)
+    // 公告详情设备端翻译（对齐 iOS Translation 框架；模型按需下载）
+    implementation(libs.mlkit.translate)
+    implementation(libs.kotlinx.coroutines.play.services)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

@@ -55,6 +55,7 @@ import jp.tomoshibi.android.data.network.endpoints.LostFoundOut
 import jp.tomoshibi.android.data.network.endpoints.NextCleaningInfo
 import jp.tomoshibi.android.data.network.endpoints.SongRequestOut
 import jp.tomoshibi.android.data.network.endpoints.SongsAPI
+import jp.tomoshibi.android.data.notifications.NotificationMapper
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.nav.Route
@@ -96,6 +97,10 @@ fun HomeScreen(navController: NavHostController) {
     val tokens = SuzuT.current
     val store = LocalAppStore.current
     val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
+    // 铃铛未読：push + feed + 包裹三源（对齐 iOS unreadNotificationCount）
+    val pushNotifs by store.pushNotifications.collectAsState()
+    val feedNotifs by store.studentNotifications.collectAsState()
+    val packageItems by store.packages.collectAsState()
 
     var showRenewSheet by remember { mutableStateOf(false) }
     var showAbsenceSheet by remember { mutableStateOf(false) }
@@ -180,7 +185,15 @@ fun HomeScreen(navController: NavHostController) {
                     .padding(top = 24.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            val unread = state.notifications.count { !it.read }
+            val unread =
+                remember(pushNotifs, feedNotifs, packageItems, state.studentNotificationUnreadCount) {
+                    NotificationMapper.unreadCount(
+                        push = pushNotifs,
+                        feed = feedNotifs,
+                        feedUnreadFallback = state.studentNotificationUnreadCount,
+                        packages = packageItems,
+                    )
+                }
             Row(verticalAlignment = Alignment.Top) {
                 Column(
                     modifier = Modifier.weight(1f),

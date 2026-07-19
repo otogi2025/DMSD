@@ -10,19 +10,25 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import jp.tomoshibi.android.data.model.AppState
+import jp.tomoshibi.android.data.model.Notification
 import jp.tomoshibi.android.data.model.RollState
 import jp.tomoshibi.android.data.model.User
 import jp.tomoshibi.android.data.network.ApiClient
 import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.StudentNotificationItem
 import jp.tomoshibi.android.data.network.endpoints.AnnouncementsAPI
 import jp.tomoshibi.android.data.network.endpoints.CleaningAPI
 import jp.tomoshibi.android.data.network.endpoints.DisciplineAPI
+import jp.tomoshibi.android.data.network.endpoints.FrontDeskAPI
+import jp.tomoshibi.android.data.network.endpoints.FrontDeskItemOut
 import jp.tomoshibi.android.data.network.endpoints.MyRollCallTodaySession
 import jp.tomoshibi.android.data.network.endpoints.RollCallAPI
 import jp.tomoshibi.android.data.network.endpoints.StudentMeOut
 import jp.tomoshibi.android.data.network.endpoints.StudentNotificationsAPI
 import jp.tomoshibi.android.data.network.endpoints.StudentsAPI
 import jp.tomoshibi.android.data.network.endpoints.StudyAPI
+import jp.tomoshibi.android.data.notifications.NotificationMapper
+import jp.tomoshibi.android.data.notifications.NotificationsLoadState
 import jp.tomoshibi.android.data.rollcall.RollSession
 import jp.tomoshibi.android.data.rollcall.RollStateMachine
 import jp.tomoshibi.android.data.seed.MockData
@@ -84,6 +90,40 @@ class AppStore(
     // ── 面包屑弹窗开关（对齐 iOS AppStore.breadcrumbOpen）──
     private val _breadcrumbOpen = MutableStateFlow(false)
     val breadcrumbOpen: StateFlow<Boolean> = _breadcrumbOpen.asStateFlow()
+
+    // ── 通知中心内存态（对齐 iOS @Published；不落 DataStore，防 SEED 假通知泄漏）──
+    private val _studentNotifications = MutableStateFlow<List<StudentNotificationItem>>(emptyList())
+    val studentNotifications: StateFlow<List<StudentNotificationItem>> = _studentNotifications.asStateFlow()
+
+    private val _packages = MutableStateFlow<List<FrontDeskItemOut>>(emptyList())
+    val packages: StateFlow<List<FrontDeskItemOut>> = _packages.asStateFlow()
+
+    // Android 暂无真实推送入库；预留空列表，聚合公式与 iOS 一致。
+    private val _pushNotifications = MutableStateFlow<List<Notification>>(emptyList())
+    val pushNotifications: StateFlow<List<Notification>> = _pushNotifications.asStateFlow()
+
+    private val _notificationsState =
+        MutableStateFlow<NotificationsLoadState>(NotificationsLoadState.Idle)
+    val notificationsState: StateFlow<NotificationsLoadState> = _notificationsState.asStateFlow()
+
+    /** 三源聚合快照（对齐 iOS allNotifications）。 */
+    fun currentAllNotifications(): List<Notification> =
+        NotificationMapper.allNotifications(
+            _pushNotifications.value,
+            _studentNotifications.value,
+            _packages.value,
+        )
+
+    /** 铃铛未読数快照（对齐 iOS unreadNotificationCount）。 */
+    suspend fun currentUnreadNotificationCount(): Int {
+        val fallback = snapshot().studentNotificationUnreadCount
+        return NotificationMapper.unreadCount(
+            _pushNotifications.value,
+            _studentNotifications.value,
+            fallback,
+            _packages.value,
+        )
+    }
 
     /** 显示全局 Toast；连续调用时旧定时器不会清掉新文案（代次令牌）。 */
     fun showToast(text: String) {
@@ -192,6 +232,11 @@ class AppStore(
                 checkinAt = null,
             )
         }
+        // 清通知中心内存态，防 A 登出 B 登入看到旧 feed
+        _studentNotifications.value = emptyList()
+        _packages.value = emptyList()
+        _pushNotifications.value = emptyList()
+        _notificationsState.value = NotificationsLoadState.Idle
     }
 
     /**
@@ -296,7 +341,8 @@ class AppStore(
 
             // 以下级联：各自吞非 401；401 统一清会话
             loadAnnouncementUnreadCount(tokenAtStart)
-            loadStudentNotificationUnread(tokenAtStart)
+            loadStudentNotifications(tokenAtStart, reflectFailure = false)
+            loadMyPackages(tokenAtStart, reflectFailure = false)
             loadTodayRollcall(tokenAtStart)
             loadCleaningHistoryQuiet(tokenAtStart)
         } catch (e: ApiError.Unauthorized) {
@@ -318,15 +364,106 @@ class AppStore(
         }
     }
 
-    private suspend fun loadStudentNotificationUnread(tokenAtStart: String?) {
+    /**
+     * 拉学生通知 feed（items + 未読数）。
+     * @param reflectFailure true = 写失败态给通知中心 UI；false = loadMe 级联静默（不打断首屏）。
+     */
+    suspend fun loadStudentNotifications(
+        tokenAtStart: String? = null,
+        reflectFailure: Boolean = true,
+    ) {
+        val token = tokenAtStart ?: snapshot().authToken
+        if (reflectFailure) {
+            _notificationsState.value = NotificationsLoadState.Loading
+        }
         try {
             val feed = StudentNotificationsAPI.feed()
-            if (snapshot().authToken != tokenAtStart) return
+            if (snapshot().authToken != token) return
+            _studentNotifications.value = feed.items
             update { it.copy(studentNotificationUnreadCount = feed.unreadCount) }
+            if (reflectFailure) {
+                _notificationsState.value = NotificationsLoadState.Loaded
+            }
+        } catch (e: ApiError.Unauthorized) {
+            handleIfUnauthorized(e, token)
+        } catch (e: ApiError) {
+            if (snapshot().authToken != token) return
+            if (reflectFailure) {
+                _notificationsState.value =
+                    NotificationsLoadState.Failed(e.display.ifBlank { "通知の取得に失敗しました" })
+            }
+        } catch (e: Exception) {
+            if (snapshot().authToken != token) return
+            if (reflectFailure) {
+                _notificationsState.value =
+                    NotificationsLoadState.Failed("通知の取得に失敗しました")
+            }
+        }
+    }
+
+    /**
+     * 拉当前学生包裹（通知中心「宅配」源）。
+     * @param reflectFailure 包裹失败不单独盖通知中心态（对齐 iOS：只动 packagesState）；
+     *   这里 Android 通知中心以 feed 态为准，包裹失败时保留旧缓存。
+     */
+    suspend fun loadMyPackages(
+        tokenAtStart: String? = null,
+        reflectFailure: Boolean = true,
+    ) {
+        val token = tokenAtStart ?: snapshot().authToken
+        try {
+            val items = FrontDeskAPI.listMine()
+            if (snapshot().authToken != token) return
+            _packages.value = items
+        } catch (e: ApiError.Unauthorized) {
+            handleIfUnauthorized(e, token)
+        } catch (_: Exception) {
+            // 包裹失败不盖写通知中心 feed 态；旧缓存保留
+            if (!reflectFailure) {
+                // loadMe 级联静默
+            }
+        }
+    }
+
+    /** 进入通知中心时刷新三源（feed + 包裹）。 */
+    suspend fun refreshNotificationSources() {
+        val tokenAtStart = snapshot().authToken
+        loadStudentNotifications(tokenAtStart, reflectFailure = true)
+        loadMyPackages(tokenAtStart, reflectFailure = true)
+    }
+
+    /**
+     * 点 feed 通知卡标已读：先调后端，成功后再翻本地（对齐 iOS markStudentNotificationRead）。
+     * 找不到 / 已读 → 不发请求。非 401 失败静默。
+     */
+    suspend fun markStudentNotificationRead(
+        kind: String,
+        refId: String,
+    ) {
+        val tokenAtStart = snapshot().authToken
+        val list = _studentNotifications.value
+        val idx = list.indexOfFirst { it.kind == kind && it.refId == refId }
+        if (idx < 0 || list[idx].isRead) return
+        try {
+            StudentNotificationsAPI.markRead(kind = kind, refId = refId)
+            if (snapshot().authToken != tokenAtStart) return
+            val latest = _studentNotifications.value
+            val i = latest.indexOfFirst { it.kind == kind && it.refId == refId }
+            if (i >= 0 && !latest[i].isRead) {
+                val copy = latest.toMutableList()
+                copy[i] = copy[i].copy(isRead = true)
+                _studentNotifications.value = copy
+                update {
+                    it.copy(
+                        studentNotificationUnreadCount =
+                            maxOf(0, it.studentNotificationUnreadCount - 1),
+                    )
+                }
+            }
         } catch (e: ApiError.Unauthorized) {
             handleIfUnauthorized(e, tokenAtStart)
         } catch (_: Exception) {
-            // 静默
+            // 非 401：静默，下次刷新 feed 带回真实已読态
         }
     }
 
