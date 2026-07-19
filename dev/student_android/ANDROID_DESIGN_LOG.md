@@ -6,15 +6,15 @@
 >
 > ⚠️ **单 repo 模式**（2026-05-06 退役独立 repo）：Android 代码直接在 `dev/student_android/v1/`，跟 backend / iOS / Web 全在 DMSD 单 repo 里。
 
-## ⚠️ 实装进度速查表（2026-05-21 A-029 加）
+## ⚠️ 实装进度速查表（2026-07-20 对齐马拉松后刷新）
 
 | 层 | 进度 | 说明 |
 |---|---|---|
-| 设计文档（本文） | ✅ 100% | 含 21 屏 route registry |
-| Compose UI | 🟡 部分 | 10+ 屏已对译；Auth / Application / RollCall 主 flow 可走 |
-| HTTP client | ⏳ 0% | **无 Retrofit / Ktor / OkHttp** — 全本地 mock（A-016 待主会话拍板）|
-| 字段对齐 backend | ⏳ 0% | `Models.kt` 全 camelCase 跟 backend snake_case 完全脱节（A-016） |
-| amber Card 三态 demo | 🟡 待删 | long-press cycleDemoRollState 残留（A-034 已修） |
+| 设计文档（本文） | ✅ 100% | 含 route registry（孤儿页清理后见 §16） |
+| Compose UI | ✅ 全屏对齐 iOS 生产版 | 见 §16 对齐马拉松（233 条差距清零） |
+| HTTP client | ✅ | `ApiClient`（HttpURLConnection + kotlinx.serialization，{ok,data} 信封 / multipart / 二进制下载 / 加密令牌存储） |
+| 字段对齐 backend | ✅ | `@SerialName` snake_case 对齐；端点路径逐条对照 iOS |
+| 未接线残留 | ⏳ 3 项等拍板 | FCM 推送注册 / demo 构建变体 / AI要約·头像（Apple Intelligence 专属） |
 
 ---
 
@@ -331,6 +331,51 @@ C 组质量体系 C2 清单 Android #13-20 落地。新建 `data/` 下三个纯�
 - 注册 Step3 联络先 hint 改为「このメールアドレスはログインにも使えます。確認用のメールは送信されません」（对齐 iOS）。
 
 验证：`./gradlew assembleDebug` BUILD SUCCESSFUL。
+
+---
+
+## 16. Android↔iOS 1:1 对齐马拉松（2026-07-19~20，14 工单 + 对账 + 三方对抗审查，共 17 commit）
+
+目标：Android 全面对齐 iOS 生产版（功能 / 页面 / 设计 / 日语文案逐字）。流程：14 切片差距盘点（233 条）→ 14 个串行工单派 cursor-agent（grok-4.5-high-fast）实装、主会话逐批独立验证（`--rerun-tasks` 强制重跑 + 文案端点色值对照 iOS）→ 覆盖对账（234 条逐条核对）→ 三方对抗审查（Opus 4.8 / Grok 4.5 / Fable 5 四轮跑到收敛）。
+
+### 16.1 工单批次（B01-B14，各一 commit）
+
+| 批 | commit | 内容 |
+|---|---|---|
+| B01 | 74e0c52 | 网络层扩建：9 端点封装 / EncryptedSharedPreferences 加密令牌存储（读旧→写新→删旧迁移）/ 生产域名 DEBUG 分流 / multipart 上传 + 二进制下载 / ApiErrorPresenter |
+| B02 | 1df492e | 会话链路：loadMe 级联（me→扣分→欠席数→未読→通知→今日点呼→罚扫，全程令牌竞态守卫）/ 401 统一清会话 / 令牌过期追踪 |
+| B03 | 2b5b793 | 设计系统：GlassSheet / SuzuToast / 底部导航胶囊动画 / 面包屑长按 / 触觉反馈 / 骨架屏 / 双层阴影 / Noto Sans JP（Google Fonts 运行时下载）/ 路由参数类型修正 |
+| B04 | 1c2016b | 登录注册：注册接真后端 / 房号字母前缀模型（M/A/W 定寮）/ 锁定页删除（iOS 生产 401 只 toast）/ 介绍页 4 页 / Splash 重做 |
+| B05 | bfcb36b | 主页：扣分卡 4 态 / 公告卡接线 / 学年更新横幅接 renew-number / 五卡 + 宅配接真数据 / amber 三段渐变 |
+| B06 | a19696b | 通知中心三源聚合（push+feed+包裹）+ markRead + 7 筛选 chip；公告翻訳：ML Kit 端上翻译 4 语言 + 记忆偏好 + 設定页语言区 |
+| B07 | e59dd0a | 点呼全链路：ST25DVWriter 真 NFC 邮箱写入（34 字节载荷对齐 Device_Contract §7，帧手拼厂商码标「待硬件联调核实」）/ 场次 ticker 状态机 / 欠席・体調・其他上报接真后端 |
+| B08 | 9e2b3bf | 申请中心：五类申请真提交 / 一览合并外出（`outing:` 前缀分流）/ 撤回 / 変更届 / 全屏新規选种页 / withdrawn 独立态 |
+| B09 | d448f44 | 申请表单群：行事企画・冷蔵庫・物品所持・夜学習欠席・オンライン夜学習接真后端 / 契約書拍照相册 PDF 上传 / 差戻再提出可编辑 / 完成页统一 |
+| B10 | dac7cf3 | 外泊帰省帰国 + 外出：StayForm 真提交 / 操作履歴 audit / stay_locations / 差し戻し文案统一 / 下拉刷新 |
+| B11 | 80a91af | 社区：遺失物三屏（本人 resolve）/ 点歌三屏 / 宅配（删自助确认）/ 行事详情 UUID / 路由 Int→String |
+| B12 | 034089c | マイページ：真资料 / 罰則清掃履歴新屏 / 体調履歴 / 変更履歴 / 账号删除 DELETE /accounts/me / 減点折线阈值虚线 / 夜学習卡 4 态 / 删重复减点屏 |
+| B13 | 84859f0 | 行事月历任意月 + 校车：JST 今天 / 空月历持续显示 / 空港 banner 逐字 / 分组头 purpose |
+| B14 | 0f11752 | 清尾：删 6 孤儿页（旧 NFC 模拟 / 旧点呼履历 / 旧巴士 / 旧日历×2 / 夜学習签到弹层）/ MockData 无引用假数据清理 / JstDate 统一 / 日志 gate 进 DEBUG |
+
+### 16.2 覆盖对账（commit 920d20a）
+
+4 个并行只读子代理把 14 份差距报告 234 条逐条到代码核实：228 绿；3 条为拍板区故意不修（FCM / demo 变体 / AI要約·头像）；1 条误报（`CheckinType.STUDY` 无调用点与 iOS 一致）；2 条真偏差当场修复——夜学習屏欠席次数接真值 + 履历对齐 iOS 生产空列表、三表单完成页「一覧へ」统一回申请列表根。
+
+### 16.3 三方对抗审查（commit 6cd33f1）
+
+Opus 4.8（high）/ Grok 4.5（high fast）/ Fable 5 主会话，R1 背对背独立审 → R2 互审裁决真错/误报 → R3 挑修复方案的刺 → 终审，三方零互相误报、终审全票通过。确认并修复 10 项：
+
+1. 申請履歴入口改跳对齐版 StayList；申请一览出寮届行详情改走 StayDetail（差戻横幅 + 詳細/履歴 tab + 操作履歴，对齐 iOS 全部出寮详情走 StayDetailView），外出行留原详情
+2. `approved_partial` 独立为 APPROVED_PARTIAL（「一部承認」，绿系配色，「承認済」tab 双状态收）——原折叠进 APPROVED 造成与 StayList 自相矛盾
+3. 5 个一覧屏（巴士/行事月历/行事企画/冷蔵庫/物品）401 补清会话
+4. 点呼 ticker 无变化不落盘 + 令牌同值不重加密（原每秒 AES-GCM 随机 IV 重存 = 每秒真实写盘；已知残留：ACTIVE 受付窗内倒计时秒变仍落盘，窗口数分钟/天）
+5. 冷蔵庫/物品完成页 navigate 补清栈；行事企画再提出预填令牌守卫改请求前捕获；外出拉取软失败不拖垮一览；出寮撤回文案「申請を取り消し」
+
+辩论全过程产物：会话 scratchpad `debate/R1~R3+FINAL` 共 10 份文件（临时目录，不入库）。
+
+### 16.4 遗留（等 itsuki 拍板，勿当漏项重报）
+
+① AI要約/アバター（Apple Intelligence 专属，Android 无对应）② demo 构建变体（iOS #if DEMO 双 scheme 的 Android 等价物）③ FCM 推送设备令牌注册（需 Firebase 项目凭证）④ ML Kit 翻译依赖较重，如嫌重可拍板回退。另：夜学習履歴列表两端都等后端 GET /study/attendance/mine。
 
 ---
 
