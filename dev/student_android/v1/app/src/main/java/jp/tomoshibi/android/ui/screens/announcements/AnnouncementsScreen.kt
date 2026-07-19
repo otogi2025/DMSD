@@ -38,6 +38,7 @@ import androidx.navigation.NavHostController
 import jp.tomoshibi.android.data.network.AnnouncementBrief
 import jp.tomoshibi.android.data.network.ApiError
 import jp.tomoshibi.android.data.network.endpoints.AnnouncementsAPI
+import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.nav.Route
 import jp.tomoshibi.android.ui.components.EmptyState
 import jp.tomoshibi.android.ui.components.FailedBox
@@ -61,17 +62,23 @@ import kotlinx.coroutines.launch
 fun AnnouncementsScreen(navController: NavHostController) {
     val t = SuzuT.current
     val scope = rememberCoroutineScope()
+    val store = LocalAppStore.current
     // 三态：Loading / Failed(消息) / Empty / Success(后端 AnnouncementBrief 列表)
     var ui by remember { mutableStateOf<LoadState<List<AnnouncementBrief>>>(LoadState.Loading) }
 
     // 加载函数（重试也调它）。失败必须落 Failed，绝不退化成空列表。
+    // 401 → AppStore 统一清令牌，TomoshibiApp 会话门跳登录页（对齐 iOS handleIfUnauthorized）。
     suspend fun load() {
         ui = LoadState.Loading
+        val tokenAtStart = store.snapshot().authToken
         ui =
             try {
                 val items = AnnouncementsAPI.list().items
                 if (items.isEmpty()) LoadState.Empty else LoadState.Success(items)
             } catch (e: ApiError) {
+                if (store.handleIfUnauthorized(e, tokenAtStart)) {
+                    return
+                }
                 LoadState.Failed(e.display)
             } catch (e: Exception) {
                 LoadState.Failed("読み込みに失敗しました")

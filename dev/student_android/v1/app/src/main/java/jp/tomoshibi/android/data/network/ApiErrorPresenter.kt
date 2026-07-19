@@ -16,18 +16,47 @@ object ApiErrorPresenter {
     ): String {
         val api = error as? ApiError ?: return fallback
         return when (api) {
-            is ApiError.Unauthorized -> "ログインが必要です。再度ログインしてください。"
+            is ApiError.Unauthorized -> {
+                "ログインが必要です。再度ログインしてください。"
+            }
 
-            is ApiError.Network -> "通信エラーが発生しました。電波を確認してください。"
+            is ApiError.Network -> {
+                "通信エラーが発生しました。電波を確認してください。"
+            }
 
-            is ApiError.Server -> "サーバーエラー（コード ${api.code}）。時間をおいて再度お試しください。"
+            is ApiError.Server -> {
+                when (api.code) {
+                    // 423 锁定 / 403 停用：后端日语文案是真值，原样显示（对齐 iOS AuthStubs）
+                    423 -> {
+                        api.msg.ifEmpty {
+                            "アカウントロック中です。しばらくしてからお試しください"
+                        }
+                    }
 
-            is ApiError.Unprocessable -> api.msg
+                    403 -> {
+                        api.msg.ifEmpty {
+                            "このアカウントは現在ご利用いただけません。寮監に申し出てください"
+                        }
+                    }
+
+                    else -> {
+                        "サーバーエラー（コード ${api.code}）。時間をおいて再度お試しください。"
+                    }
+                }
+            }
+
+            is ApiError.Unprocessable -> {
+                api.msg
+            }
 
             // 后端 422 日语提示原样显示
-            is ApiError.Decode -> "データの読み込みに失敗しました。"
+            is ApiError.Decode -> {
+                "データの読み込みに失敗しました。"
+            }
 
-            is ApiError.Unknown -> fallback
+            is ApiError.Unknown -> {
+                fallback
+            }
         }
     }
 }

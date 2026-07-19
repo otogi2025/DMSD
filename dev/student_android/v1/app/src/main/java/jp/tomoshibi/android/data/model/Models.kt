@@ -21,6 +21,11 @@ data class User(
     val birthDate: String = "2006-10-14", // 生年月日
     val gender: String = "男", // 性別
     val isStudyTarget: Boolean = false, // 夜学习对象，false=対象外
+    // 以下由 loadMe → DisciplineAPI.mySummary 填（/me 本身不含统计）
+    val points: Double = 0.0,
+    val lateCount: Int = 0,
+    val absentCount: Int = 0,
+    val needsCleaning: Boolean = false,
 )
 
 enum class ApplicationStatus { PENDING, APPROVED, RETURNED, REJECTED }
@@ -192,8 +197,26 @@ data class AppState(
     // 持久化由 AppStore → SecureTokenStore（EncryptedSharedPreferences）负责，DataStore JSON 不落明文。
     // null = 未登录 / 已登出。
     val authToken: String? = null,
+    // 令牌绝对过期时刻（epoch 毫秒）。非机密，可落 DataStore；启动时据此主动清过期令牌（对齐 iOS tokenExpiryKey）。
+    val tokenExpiresAtEpochMs: Long? = null,
     val onboarded: Boolean = false,
     val user: User = User(),
+    // GET /students/me 的 id —— 遗失物本人判断 / 拉个人 profile 用；登出清空。
+    val myStudentId: String? = null,
+    // 学年更新「待更新」标记（spec §4.2）— GET /students/me 的 needs_renewal。
+    val needsRenewal: Boolean = false,
+    // 当月夜学習欠席届次数（loadMe → StudyAPI.myAbsenceSummary）。
+    val studyLeaveCountThisMonth: Int = 0,
+    // 公告未読数 / 学生通知 feed 未読数（loadMe 级联拉取，供铃铛 badge；UI 接线归后续工单）。
+    val announcementUnreadCount: Int = 0,
+    val studentNotificationUnreadCount: Int = 0,
+    // 登录失败累计（DEBUG 演示阶梯用）。生产锁定真值以后端 423 为准，见 lockoutRemainingSec / lockoutMessage。
+    val loginFailCount: Int = 0,
+    // 后端 423 ACCOUNT_LOCKED 解析出的剩余秒数 + 原文案（LockoutScreen 读这两项，不本地写死阶梯）。
+    val lockoutRemainingSec: Int? = null,
+    val lockoutMessage: String? = null,
+    // 点呼签到种类标签（「時間内」/「遅刻」），由 loadMe → RollStateMachine 填。
+    val checkinKind: String? = null,
     val themeMode: ThemeMode = ThemeMode.LIGHT,
     val hueOffset: Int = 0,
     val fontScale: Float = 1.0f,

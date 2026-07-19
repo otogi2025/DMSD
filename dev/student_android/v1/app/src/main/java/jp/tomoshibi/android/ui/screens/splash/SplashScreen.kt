@@ -1,11 +1,22 @@
 package jp.tomoshibi.android.ui.screens.splash
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -17,34 +28,31 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import jp.tomoshibi.android.data.model.AppState
-import jp.tomoshibi.android.data.network.ApiClient
-import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.nav.Route
 import jp.tomoshibi.android.ui.theme.SuzuT
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun SplashScreen(navController: NavHostController) {
     val tokens = SuzuT.current
     val store = LocalAppStore.current
-    val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
 
-    // 1.4 秒后跳转 — 看 onboarded / authed flag 决定去哪
-    LaunchedEffect(state) {
-        // 自动登录：从持久化的 authToken 恢复 ApiClient.token（异步、不阻塞主线程；进 Home 前的任何请求都在这之后）。
-        state.authToken?.let { ApiClient.token = it }
-        delay(1400)
+    // 1.4 秒后：检查令牌过期 → 有效则恢复会话 + 后台 loadMe；过期则清令牌走登录
+    LaunchedEffect(Unit) {
+        delaySplash()
+        val restored = store.restoreSessionIfNeeded()
+        val snap = store.snapshot()
         val target =
             when {
-                // 必须 authed 且令牌非空才进 Home，避免旧档 authed=true/authToken=null 进去后全站请求 401。
-                state.authed && state.authToken != null -> Route.Home.path
-
-                state.onboarded -> Route.Login.path
-
+                restored -> Route.Home.path
+                snap.onboarded -> Route.Login.path
                 else -> Route.Onboarding.path
             }
+        if (restored) {
+            // 不阻塞导航；对齐 iOS init 里 Task { await loadMe() }
+            launch { store.loadMe() }
+        }
         navController.navigate(target) {
             popUpTo(Route.Splash.path) { inclusive = true }
         }
@@ -70,7 +78,6 @@ fun SplashScreen(navController: NavHostController) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            // 灯字 logo — 100dp 圆角 30dp（iOS Splash 视觉对齐）
             Box(
                 modifier =
                     Modifier
@@ -103,4 +110,8 @@ fun SplashScreen(navController: NavHostController) {
             )
         }
     }
+}
+
+private suspend fun delaySplash() {
+    kotlinx.coroutines.delay(1400)
 }

@@ -1,6 +1,7 @@
 package jp.tomoshibi.android.data.store
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.datastore.core.DataStore
@@ -9,6 +10,21 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import jp.tomoshibi.android.data.model.AppState
+import jp.tomoshibi.android.data.model.RollState
+import jp.tomoshibi.android.data.model.User
+import jp.tomoshibi.android.data.network.ApiClient
+import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.endpoints.AnnouncementsAPI
+import jp.tomoshibi.android.data.network.endpoints.CleaningAPI
+import jp.tomoshibi.android.data.network.endpoints.DisciplineAPI
+import jp.tomoshibi.android.data.network.endpoints.MyRollCallTodaySession
+import jp.tomoshibi.android.data.network.endpoints.RollCallAPI
+import jp.tomoshibi.android.data.network.endpoints.StudentMeOut
+import jp.tomoshibi.android.data.network.endpoints.StudentNotificationsAPI
+import jp.tomoshibi.android.data.network.endpoints.StudentsAPI
+import jp.tomoshibi.android.data.network.endpoints.StudyAPI
+import jp.tomoshibi.android.data.rollcall.RollSession
+import jp.tomoshibi.android.data.rollcall.RollStateMachine
 import jp.tomoshibi.android.data.seed.MockData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,13 +35,18 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.time.Instant
+import java.time.format.DateTimeFormatter
 
-// AppStore — 对应 React StoreProvider
+// AppStore — 对应 React StoreProvider + iOS AppStore 的会话层。
 // 把整个 AppState JSON 序列化存进 DataStore Preferences 一个 key
 // （比拆 30+ keys 简单，性能也够 — v1.0 数据量 < 100KB）
 //
 // 令牌例外：authToken 单独走 SecureTokenStore（EncryptedSharedPreferences），
 // DataStore JSON 不再落明文 JWT。对齐 iOS KeychainService。
+//
+// 会话方法（对齐 iOS AppStore.swift）：
+//   setAuthToken / clearSession / handleIfUnauthorized / loadMe / restoreSessionIfNeeded
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
     name = "tomoshibi-app-state-v1",
@@ -34,8 +55,8 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
 private val APP_STATE_KEY = stringPreferencesKey("app_state_json")
 
 // 共享 JSON 编解码器。ignoreUnknownKeys = 解码时忽略 JSON 里有、但 AppState 已删掉的字段，
-// 这样删字段（如本次删匿名建議的 feedback 字段）后，老用户本地存档不会解析失败回落、丢掉其余本地数据。
-// internal（非 private）：TokenRoundtripTest 直接用这份真配置做往返测试——配置将来变了测试跟着变，不测副本。
+// 这样删字段后老用户本地存档不会解析失败回落、丢掉其余本地数据。
+// internal（非 private）：TokenRoundtripTest 直接用这份真配置做往返测试。
 internal val appJson = Json { ignoreUnknownKeys = true }
 
 class AppStore(
@@ -80,12 +101,294 @@ class AppStore(
 
     suspend fun reset() {
         tokenStore.clear()
+        ApiClient.token = null
         context.dataStore.edit { it.remove(APP_STATE_KEY) }
     }
 
     suspend fun snapshot(): AppState {
         migratePlainTokenIfNeeded()
         return state.first()
+    }
+
+    // ── 会话：存令牌 + 过期时刻（对齐 iOS setAuthToken）────────────────
+
+    /** 登录 / 注册成功后调：写令牌、过期绝对时刻、同步 ApiClient。 */
+    suspend fun setAuthToken(
+        token: String,
+        expiresIn: Int,
+    ) {
+        val expiresAt = System.currentTimeMillis() + expiresIn * 1000L
+        ApiClient.token = token
+        update {
+            it.copy(
+                authed = true,
+                authToken = token,
+                tokenExpiresAtEpochMs = expiresAt,
+                // 新登录清掉上一轮锁定展示态
+                lockoutRemainingSec = null,
+                lockoutMessage = null,
+            )
+        }
+    }
+
+    /**
+     * 清会话（登出 / 401 / 令牌过期）。
+     * 对齐 iOS authToken=nil 的 didSet：清 Keychain + currentUser + 用户绑定字段。
+     */
+    suspend fun clearSession() {
+        ApiClient.token = null
+        update { current ->
+            current.copy(
+                authed = false,
+                authToken = null,
+                tokenExpiresAtEpochMs = null,
+                myStudentId = null,
+                needsRenewal = false,
+                studyLeaveCountThisMonth = 0,
+                announcementUnreadCount = 0,
+                studentNotificationUnreadCount = 0,
+                lockoutRemainingSec = null,
+                lockoutMessage = null,
+                checkinKind = null,
+                user = MockData.DEFAULT_USER,
+                rollState = RollState.IDLE,
+                rollCountdownSec = 170,
+                checkinAt = null,
+            )
+        }
+    }
+
+    /**
+     * 启动恢复会话：有令牌且未过期 → 同步 ApiClient 并返回 true；
+     * 已过期 → 清令牌不恢复，返回 false（对齐 iOS AppStore.init IX-036）。
+     * 没存过期时刻的旧令牌 → 保守恢复，由后续 401 兜底。
+     */
+    suspend fun restoreSessionIfNeeded(): Boolean {
+        migratePlainTokenIfNeeded()
+        val snap = snapshot()
+        val token = snap.authToken
+        if (token.isNullOrEmpty()) {
+            ApiClient.token = null
+            if (snap.authed) {
+                update { it.copy(authed = false) }
+            }
+            return false
+        }
+        val expiry = snap.tokenExpiresAtEpochMs
+        if (expiry != null && System.currentTimeMillis() >= expiry) {
+            clearSession()
+            return false
+        }
+        ApiClient.token = token
+        if (!snap.authed) {
+            update { it.copy(authed = true) }
+        }
+        return true
+    }
+
+    /**
+     * 集中处理 401：比对进入时令牌后清会话。
+     * @return true = 是 401（已尝试清令牌，调用方应 return）；false = 非 401。
+     */
+    suspend fun handleIfUnauthorized(
+        error: Throwable,
+        tokenAtStart: String?,
+    ): Boolean {
+        if (error !is ApiError.Unauthorized) return false
+        val current = snapshot().authToken
+        // 只在仍是当初那个登录令牌时才清，防误踢已换上的新用户（对齐 iOS IX-034）。
+        if (current == tokenAtStart) {
+            clearSession()
+        }
+        return true
+    }
+
+    // ── loadMe 级联（对齐 iOS AppStore.loadMe）────────────────────────
+
+    /**
+     * 登录成功 / 启动恢复令牌后调。
+     * GET /students/me → 扣分汇总 → 夜学習欠席次数 → 公告未読 → 学生通知 → 今日点呼 → 罚扫。
+     * 401 → 清令牌；其余错误静默（保留占位 user，不打断登录）。
+     */
+    suspend fun loadMe() {
+        val tokenAtStart = snapshot().authToken ?: return
+        try {
+            val me = StudentsAPI.me()
+            if (snapshot().authToken != tokenAtStart) return
+
+            var mapped = SessionMapper.mapMeToUser(me)
+
+            // 当月扣分汇总（拉不到保持 0，不打断）
+            try {
+                val summary = DisciplineAPI.mySummary()
+                if (snapshot().authToken != tokenAtStart) return
+                mapped =
+                    mapped.copy(
+                        points = summary.totalPoints,
+                        lateCount = summary.lateCount,
+                        absentCount = summary.absentCount,
+                        needsCleaning = summary.needsCleaning ?: (summary.totalPoints >= 4.0),
+                    )
+            } catch (e: ApiError.Unauthorized) {
+                handleIfUnauthorized(e, tokenAtStart)
+                return
+            } catch (_: Exception) {
+                // 静默
+            }
+
+            // 当月夜学習欠席届次数
+            var absenceCount: Int? = null
+            try {
+                absenceCount = StudyAPI.myAbsenceSummary().count
+            } catch (e: ApiError.Unauthorized) {
+                handleIfUnauthorized(e, tokenAtStart)
+                return
+            } catch (_: Exception) {
+                // 静默
+            }
+
+            if (snapshot().authToken != tokenAtStart) return
+
+            update { current ->
+                current.copy(
+                    user = mapped,
+                    myStudentId = me.id,
+                    needsRenewal = me.needsRenewal ?: false,
+                    studyLeaveCountThisMonth = absenceCount ?: current.studyLeaveCountThisMonth,
+                )
+            }
+
+            // 以下级联：各自吞非 401；401 统一清会话
+            loadAnnouncementUnreadCount(tokenAtStart)
+            loadStudentNotificationUnread(tokenAtStart)
+            loadTodayRollcall(tokenAtStart)
+            loadCleaningHistoryQuiet(tokenAtStart)
+        } catch (e: ApiError.Unauthorized) {
+            handleIfUnauthorized(e, tokenAtStart)
+        } catch (e: Exception) {
+            Log.w("AppStore", "loadMe /students/me 失败（保留占位）", e)
+        }
+    }
+
+    private suspend fun loadAnnouncementUnreadCount(tokenAtStart: String?) {
+        try {
+            val count = AnnouncementsAPI.unreadCount().unreadCount
+            if (snapshot().authToken != tokenAtStart) return
+            update { it.copy(announcementUnreadCount = count) }
+        } catch (e: ApiError.Unauthorized) {
+            handleIfUnauthorized(e, tokenAtStart)
+        } catch (_: Exception) {
+            // 静默
+        }
+    }
+
+    private suspend fun loadStudentNotificationUnread(tokenAtStart: String?) {
+        try {
+            val feed = StudentNotificationsAPI.feed()
+            if (snapshot().authToken != tokenAtStart) return
+            update { it.copy(studentNotificationUnreadCount = feed.unreadCount) }
+        } catch (e: ApiError.Unauthorized) {
+            handleIfUnauthorized(e, tokenAtStart)
+        } catch (_: Exception) {
+            // 静默
+        }
+    }
+
+    private suspend fun loadTodayRollcall(tokenAtStart: String?) {
+        try {
+            val sessions = RollCallAPI.myToday()
+            if (snapshot().authToken != tokenAtStart) return
+            applyRollDecision(sessions)
+        } catch (e: ApiError.Unauthorized) {
+            handleIfUnauthorized(e, tokenAtStart)
+        } catch (_: Exception) {
+            // 静默
+        }
+    }
+
+    private suspend fun loadCleaningHistoryQuiet(tokenAtStart: String?) {
+        // 本工单只确保级联调用通；履历列表字段 / UI 接线归后续工单。
+        try {
+            CleaningAPI.listMine()
+        } catch (e: ApiError.Unauthorized) {
+            handleIfUnauthorized(e, tokenAtStart)
+        } catch (_: Exception) {
+            // 静默
+        }
+    }
+
+    private suspend fun applyRollDecision(sessions: List<MyRollCallTodaySession>) {
+        val rollSessions =
+            sessions.mapNotNull { s ->
+                val windowStart = SessionMapper.parseInstantMillis(s.scheduledWindowStartAt) ?: return@mapNotNull null
+                val onTimeEnd = SessionMapper.parseInstantMillis(s.scheduledOnTimeEndAt) ?: return@mapNotNull null
+                val lateEnd = SessionMapper.parseInstantMillis(s.scheduledLateEndAt) ?: return@mapNotNull null
+                val autoEnd = SessionMapper.parseInstantMillis(s.scheduledAutoEndAt) ?: return@mapNotNull null
+                RollSession(
+                    windowStartMillis = windowStart,
+                    onTimeEndMillis = onTimeEnd,
+                    lateEndMillis = lateEnd,
+                    autoEndMillis = autoEnd,
+                    checkedInAtMillis = s.myCheckedInAt?.let { SessionMapper.parseInstantMillis(it) },
+                    myStatus = s.myStatus,
+                )
+            }
+        val decision = RollStateMachine.decide(rollSessions, System.currentTimeMillis())
+        val checkinAtText =
+            decision.checkedInAtMillis?.let { ms ->
+                DateTimeFormatter
+                    .ofPattern("HH:mm")
+                    .withZone(java.time.ZoneId.of("Asia/Tokyo"))
+                    .format(Instant.ofEpochMilli(ms))
+            }
+        update { current ->
+            if (current.rollState == decision.state &&
+                current.checkinKind == decision.checkinKind &&
+                current.checkinAt == checkinAtText &&
+                current.rollCountdownSec == (decision.countdownSec?.toInt() ?: current.rollCountdownSec)
+            ) {
+                current
+            } else {
+                current.copy(
+                    rollState = decision.state,
+                    checkinKind = decision.checkinKind,
+                    checkinAt = checkinAtText,
+                    rollCountdownSec = decision.countdownSec?.toInt() ?: current.rollCountdownSec,
+                )
+            }
+        }
+    }
+
+    // ── 登录锁定（DEBUG 阶梯 + 后端 423）────────────────────────────
+
+    /** DEBUG 演示：本地失败次数 +1（生产锁定真值走 applyBackendLockout）。 */
+    suspend fun recordLoginFailure() {
+        update { it.copy(loginFailCount = it.loginFailCount + 1) }
+    }
+
+    /** 登录成功 / 锁定页返回后重置本地失败计数。 */
+    suspend fun resetLoginFailures() {
+        update {
+            it.copy(
+                loginFailCount = 0,
+                lockoutRemainingSec = null,
+                lockoutMessage = null,
+            )
+        }
+    }
+
+    /**
+     * 后端 423 ACCOUNT_LOCKED：解析「残り約 N 分」写入剩余秒数 + 原文案。
+     * LockoutScreen 读这两项，不再本地写死「第 1 次 30 秒」。
+     */
+    suspend fun applyBackendLockout(message: String) {
+        val remainingSec = SessionMapper.parseLockoutRemainingSec(message)
+        update {
+            it.copy(
+                lockoutMessage = message,
+                lockoutRemainingSec = remainingSec,
+            )
+        }
     }
 
     // 读旧明文 → 写加密 → 删旧明文（幂等）
@@ -107,14 +410,83 @@ class AppStore(
         return try {
             appJson.decodeFromString<AppState>(json)
         } catch (e: Exception) {
-            android.util.Log.e("AppStore", "AppState 解析失败，回落 MockData（本地数据可能丢失）", e)
+            Log.e("AppStore", "AppState 解析失败，回落 MockData（本地数据可能丢失）", e)
             MockData.INITIAL_STATE
         }
     }
+}
 
-    // A-030 / A-034 (2026-05-21): cycleDemoRollState() 已删
-    // memory project_demo_scaffolds_to_remove_before_v1.md #1, #15
-    // 接 backend event 驱动后 rollState 由 server 推送，不再 demo 循环
+/**
+ * 纯函数：/me → User 映射 + 锁定文案解析。
+ * 抽出来方便单测，不依赖 Android Context。
+ */
+object SessionMapper {
+    fun mapMeToUser(me: StudentMeOut): User {
+        val genderLabel = if (me.gender == "female") "女" else "男"
+        val dormLabel = if (me.dormUnit == 4) "女寮" else "男寮"
+        val avatarChar = me.name.take(1).ifEmpty { "？" }
+        val seat = me.seatNo.toIntOrNull() ?: 0
+        val grade = gradeLabel(me.gradeCode)
+        val clazz = classLabel(me.classCode)
+        return User(
+            name = me.name,
+            kana = me.nameKana.orEmpty(),
+            email = me.email.orEmpty(),
+            dorm = dormLabel,
+            room = me.roomNo,
+            avatar = avatarChar,
+            studentNo = me.studentNo,
+            gradeClass = "$grade ${clazz}組 ${seat}番",
+            category = me.category,
+            phone = me.phone.orEmpty(),
+            birthDate = "",
+            gender = genderLabel,
+            isStudyTarget = false,
+            points = 0.0,
+            lateCount = 0,
+            absentCount = 0,
+            needsCleaning = false,
+        )
+    }
+
+    fun gradeLabel(code: String): String =
+        when (code) {
+            "01" -> "中1"
+            "02" -> "中2"
+            "03" -> "中3"
+            "04" -> "高1"
+            "05" -> "高2"
+            "06" -> "高3"
+            else -> code
+        }
+
+    fun classLabel(code: String): String {
+        val n = code.toIntOrNull() ?: return code
+        if (n !in 1..26) return code
+        return ('A' + n - 1).toString()
+    }
+
+    /** 从后端 423 日语文案解析剩余秒数。例：「アカウントロック中（残り約 15 分）」→ 900。 */
+    fun parseLockoutRemainingSec(message: String): Int? {
+        val match = Regex("""残り約\s*(\d+)\s*分""").find(message) ?: return null
+        val minutes = match.groupValues[1].toIntOrNull() ?: return null
+        return (minutes * 60).coerceAtLeast(1)
+    }
+
+    fun parseInstantMillis(iso: String): Long? =
+        try {
+            Instant.parse(iso).toEpochMilli()
+        } catch (_: Exception) {
+            try {
+                // 后端偶发无 Z 后缀的本地时间串 → 按 UTC 解析失败时再试 OffsetDateTime
+                java.time.OffsetDateTime
+                    .parse(iso)
+                    .toInstant()
+                    .toEpochMilli()
+            } catch (_: Exception) {
+                null
+            }
+        }
 }
 
 // CompositionLocal 让任何 Composable 通过 LocalAppStore.current 拿到 AppStore 实例

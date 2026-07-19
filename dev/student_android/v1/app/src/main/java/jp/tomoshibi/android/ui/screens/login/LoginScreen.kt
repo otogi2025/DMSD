@@ -18,7 +18,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -35,8 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import jp.tomoshibi.android.BuildConfig
-import jp.tomoshibi.android.data.network.ApiClient
 import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.ApiErrorPresenter
 import jp.tomoshibi.android.data.network.endpoints.AuthAPI
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
@@ -55,14 +54,10 @@ private const val DEMO_PASSWORD = "12345678"
 // 密码本地最小长度（itsuki 2026-06-05 拍板：五端统一 6 位）
 private const val PASSWORD_MIN_LEN = 6
 
-// 登录失败累计到这个次数 → 跳锁定页（401 锁定）
-private const val LOGIN_FAIL_THRESHOLD = 3
-
 @Composable
 fun LoginScreen(navController: NavHostController) {
     // 主题色 token（pearl 底色 / ink 主文字 / inkMute 浅灰等）
     val t = SuzuT.current
-    // 登录态 store：演示版校验通过后写 authed=true
     val store = LocalAppStore.current
     val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
     val scope = rememberCoroutineScope()
@@ -78,8 +73,6 @@ fun LoginScreen(navController: NavHostController) {
     var password by remember { mutableStateOf(if (BuildConfig.DEBUG) DEMO_PASSWORD else "") }
     // 加载态：点登录后按钮变「ログイン中…」并禁用，避免重复提交
     var loading by remember { mutableStateOf(false) }
-    // 登录失败累计计数（本地 state，到阈值跳锁定页）
-    var failCount by remember { mutableIntStateOf(0) }
 
     // 当前 tab 的标识输入是否非空（番号 tab 看 accountNo / 邮箱 tab 看 email）
     val identifierFilled = if (accountMode) accountNo.isNotBlank() else email.isNotBlank()
@@ -89,16 +82,14 @@ fun LoginScreen(navController: NavHostController) {
     val canSubmit = identifierFilled && passwordValid && !loading
 
     // 真后端登录（对齐 iOS AuthStubs.tryLogin）：
-    //   - 番号 tab → AuthAPI.loginStudent(studentNo)
-    //   - 邮箱 tab → AuthAPI.loginStudentByEmail（标识 trim；密码不 trim）
-    //   - 演示版（debug 包）magic creds 仅番号 tab 生效 → 跳过 API 直接进 home
-    //   - 401 → 失败累计到阈值跳锁定页；422 / 网络 → 原样弹后端 / 兜底文案
+    //   - 成功 → setAuthToken + loadMe + 进 Home
+    //   - 401 → DEBUG 走锁定阶梯页；RELEASE 只 toast（锁定真值以后端 423 为准）
+    //   - 423 → 写后端剩余秒数进 store → LockoutScreen
+    //   - 403 → toast（账号停用）
     val submit: () -> Unit = submit@{
         if (loading) return@submit
-        // 标识去首尾空白（复制粘贴常带空格 / 换行）；密码不 trim（空格也算密码内容）
         val trimmedAcc = accountNo.trim()
         val trimmedEmail = email.trim()
-        // 空值校验按 tab 分开（与上方 identifierFilled 同口径，提交时再 trim 一次）
         if (accountMode) {
             if (trimmedAcc.isEmpty() || password.isEmpty()) {
                 Toast.makeText(context, "アカウント番号とパスワードを入力してください", Toast.LENGTH_SHORT).show()
@@ -112,14 +103,14 @@ fun LoginScreen(navController: NavHostController) {
         }
         loading = true
         scope.launch {
-            // 演示版 magic creds：仅 debug + 番号 tab 生效，跳过 API 直接进 home（用于无后端演示 / 离线）
+            // 演示版 magic creds：仅 debug + 番号 tab 生效，跳过 API 直接进 home
             if (
                 accountMode &&
                 BuildConfig.DEBUG &&
                 trimmedAcc == DEMO_ACCOUNT_NO &&
                 password == DEMO_PASSWORD
             ) {
-                failCount = 0
+                store.resetLoginFailures()
                 store.update { it.copy(authed = true) }
                 loading = false
                 navController.navigate(Route.Home.path) {
@@ -127,7 +118,6 @@ fun LoginScreen(navController: NavHostController) {
                 }
                 return@launch
             }
-            // 真实 API 登录（按 tab 选学号 / 邮箱请求体）
             try {
                 val token =
                     if (accountMode) {
@@ -135,11 +125,10 @@ fun LoginScreen(navController: NavHostController) {
                     } else {
                         AuthAPI.loginStudentByEmail(trimmedEmail, password)
                     }
-                // set ApiClient.token：之后所有请求自动带 Authorization: Bearer
-                ApiClient.token = token.accessToken
-                failCount = 0
-                // 持久化令牌进 DataStore（authed + authToken），下次启动 MainActivity 自动恢复 = 自动登录
-                store.update { it.copy(authed = true, authToken = token.accessToken) }
+                // IX-036 对齐：一并写过期时刻，再级联拉真实资料
+                store.setAuthToken(token.accessToken, token.expiresIn)
+                store.resetLoginFailures()
+                store.loadMe()
                 loading = false
                 navController.navigate(Route.Home.path) {
                     popUpTo(0) { inclusive = true }
@@ -147,14 +136,13 @@ fun LoginScreen(navController: NavHostController) {
             } catch (e: ApiError) {
                 loading = false
                 when (e) {
-                    // 学号或邮箱 / 密码错（401）→ 失败累计，到阈值跳锁定页
                     is ApiError.Unauthorized -> {
-                        failCount += 1
-                        if (failCount >= LOGIN_FAIL_THRESHOLD) {
+                        if (BuildConfig.DEBUG) {
+                            // 演示：本地累计失败次数 → 锁定页读 store.loginFailCount 渲染阶梯
+                            store.recordLoginFailure()
                             navController.navigate(Route.Lockout.path)
                         } else {
-                            // 番号侧原为「…が違います」，与本页邮箱侧 +
-                            // iOS 生产版两处的「…が正しくありません」不一致（同一屏两种说法）→ 统一成后者。
+                            // 生产：不本地写死倒计时；凭证错只 toast（对齐 iOS 生产）
                             val msg =
                                 if (accountMode) {
                                     "アカウント番号またはパスワードが正しくありません"
@@ -165,9 +153,40 @@ fun LoginScreen(navController: NavHostController) {
                         }
                     }
 
-                    // 422（格式错，后端日语消息）/ 网络 / 解码 等 → 原样弹提示，不累计失败
+                    is ApiError.Server -> {
+                        when (e.code) {
+                            // 后端真锁（B6）→ 剩余秒数以后端文案为准
+                            423 -> {
+                                val msg =
+                                    e.msg.ifEmpty {
+                                        "アカウントロック中です。しばらくしてからお試しください"
+                                    }
+                                store.applyBackendLockout(msg)
+                                navController.navigate(Route.Lockout.path)
+                            }
+
+                            // 账号停用
+                            403 -> {
+                                val msg =
+                                    e.msg.ifEmpty {
+                                        "このアカウントは現在ご利用いただけません。寮監に申し出てください"
+                                    }
+                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                            }
+
+                            else -> {
+                                Toast.makeText(context, e.display, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+
                     else -> {
-                        Toast.makeText(context, e.display, Toast.LENGTH_SHORT).show()
+                        Toast
+                            .makeText(
+                                context,
+                                ApiErrorPresenter.userMessage(e, "ログインに失敗しました"),
+                                Toast.LENGTH_SHORT,
+                            ).show()
                     }
                 }
             }
@@ -182,8 +201,7 @@ fun LoginScreen(navController: NavHostController) {
                 .padding(horizontal = 28.dp)
                 .padding(top = 40.dp, bottom = 24.dp),
     ) {
-        // ── 顶部居中标题块（Tomoshibi + 灯火 · ログイン）─────────
-        Spacer(Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(40.dp))
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -193,17 +211,15 @@ fun LoginScreen(navController: NavHostController) {
                 color = MaterialTheme.colorScheme.primary,
                 style = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.12.sp),
             )
-            Spacer(Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 "灯火 · ログイン",
                 color = t.inkMute,
                 style = TextStyle(fontSize = 12.sp, letterSpacing = 1.sp),
             )
         }
-        Spacer(Modifier.height(36.dp))
+        Spacer(modifier = Modifier.height(36.dp))
 
-        // ── mode tab（2 段切换：番号 / メール）───────────────
-        // 容器底 pill 圆角 12 padding 3，激活 tab = paper 底 + primary 字 / 非激活 = 透明 + inkSub。
         Row(
             modifier =
                 Modifier
@@ -226,11 +242,9 @@ fun LoginScreen(navController: NavHostController) {
                 onClick = { accountMode = false },
             )
         }
-        Spacer(Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // ── 字段区：随 tab 切标识输入框 + 恒显密码 ───────────
         if (accountMode) {
-            // 番号 mode：アカウント番号（数字键盘）
             Field(label = "アカウント番号") {
                 TField(
                     value = accountNo,
@@ -240,7 +254,6 @@ fun LoginScreen(navController: NavHostController) {
                 )
             }
         } else {
-            // メール mode：メールアドレス（邮箱键盘）
             Field(label = "メールアドレス") {
                 TField(
                     value = email,
@@ -250,9 +263,8 @@ fun LoginScreen(navController: NavHostController) {
                 )
             }
         }
-        Spacer(Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-        // 密码（secure 遮码）；本地校验最少 6 位，不足时 Field 显示红字错误
         Field(
             label = "パスワード",
             error = if (password.isNotEmpty() && !passwordValid) "パスワードは 6 文字以上です" else null,
@@ -265,26 +277,21 @@ fun LoginScreen(navController: NavHostController) {
                 keyboard = KeyboardType.Password,
             )
         }
-        // 规格 §2.10：右侧「パスワードを忘れた」入口在 v1.0 上架版已隐藏（避免 Apple 死按钮被拒），
-        // Android 也不做这个链接 —— PwReset 屏作为路由保留备用，但登录页不给入口。
-        Spacer(Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // ── 登录主按钮（演示版本地校验 → 进主页）───────────
         PrimaryButton(
             title = if (loading) "ログイン中…" else "ログイン",
             enabled = canSubmit,
             onClick = submit,
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // ── 次按钮：新規登録（跳注册第 1 步）───────────────
         jp.tomoshibi.android.ui.components.GhostButton(
             title = "新規登録",
             onClick = { navController.navigate(Route.Account.path) },
         )
 
-        Spacer(Modifier.weight(1f))
-        // 版本号脚注 —— 读 BuildConfig.VERSION_NAME（跟 build.gradle.kts 的 versionName 走），不写死
+        Spacer(modifier = Modifier.weight(1f))
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             Text(
                 text = "v${BuildConfig.VERSION_NAME} · © Tomoshibi",
@@ -295,7 +302,6 @@ fun LoginScreen(navController: NavHostController) {
     }
 }
 
-// mode tab 单段：激活 = paper 底 + primary 字 + 加粗 / 非激活 = 透明 + inkSub。高 40。
 @Composable
 private fun ModeTab(
     title: String,

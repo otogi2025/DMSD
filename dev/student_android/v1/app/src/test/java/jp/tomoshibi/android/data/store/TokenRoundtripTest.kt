@@ -37,4 +37,28 @@ class TokenRoundtripTest {
         val restored = json.decodeFromString<AppState>(json.encodeToString(loggedOut))
         assertNull(restored.authToken)
     }
+
+    @Test
+    fun `会话字段 needsRenewal 与过期时刻往返不丢`() {
+        val original =
+            AppState(
+                authed = true,
+                authToken = "tok",
+                tokenExpiresAtEpochMs = 1_800_000_000_000L,
+                needsRenewal = true,
+                myStudentId = "uuid-abc",
+                studyLeaveCountThisMonth = 2,
+                loginFailCount = 3,
+                lockoutRemainingSec = 900,
+                lockoutMessage = "アカウントロック中（残り約 15 分）",
+            )
+        val restored = json.decodeFromString<AppState>(json.encodeToString(original))
+        assertEquals(1_800_000_000_000L, restored.tokenExpiresAtEpochMs)
+        assertTrue(restored.needsRenewal)
+        assertEquals("uuid-abc", restored.myStudentId)
+        assertEquals(2, restored.studyLeaveCountThisMonth)
+        assertEquals(3, restored.loginFailCount)
+        assertEquals(900, restored.lockoutRemainingSec)
+        assertEquals("アカウントロック中（残り約 15 分）", restored.lockoutMessage)
+    }
 }

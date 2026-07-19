@@ -46,6 +46,7 @@ import jp.tomoshibi.android.data.network.AnnouncementDetail
 import jp.tomoshibi.android.data.network.AnnouncementReplyOut
 import jp.tomoshibi.android.data.network.ApiError
 import jp.tomoshibi.android.data.network.endpoints.AnnouncementsAPI
+import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.ui.components.FailedBox
 import jp.tomoshibi.android.ui.components.GlobalScaffold
 import jp.tomoshibi.android.ui.components.LoadState
@@ -66,6 +67,7 @@ fun AnnouncementDetailScreen(
     val t = SuzuT.current
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
+    val store = LocalAppStore.current
 
     // 三态：Loading / Failed / Success(单条公告详情)。详情屏单条，404 等异常一律走 Failed，不退化成假数据。
     var ui by remember { mutableStateOf<LoadState<AnnouncementDetail>>(LoadState.Loading) }
@@ -76,10 +78,14 @@ fun AnnouncementDetailScreen(
 
     suspend fun load() {
         ui = LoadState.Loading
+        val tokenAtStart = store.snapshot().authToken
         ui =
             try {
                 LoadState.Success(AnnouncementsAPI.detail(id))
             } catch (e: ApiError) {
+                if (store.handleIfUnauthorized(e, tokenAtStart)) {
+                    return
+                }
                 LoadState.Failed(e.display)
             } catch (e: Exception) {
                 LoadState.Failed("読み込みに失敗しました")
@@ -168,11 +174,15 @@ fun AnnouncementDetailScreen(
                             if (!sending && replyText.isNotBlank()) {
                                 sending = true
                                 scope.launch {
+                                    val tokenAtStart = store.snapshot().authToken
                                     try {
                                         AnnouncementsAPI.postReply(id, replyText)
                                         replyText = ""
                                         load() // 刷新带出新回复
                                     } catch (e: ApiError) {
+                                        if (store.handleIfUnauthorized(e, tokenAtStart)) {
+                                            return@launch
+                                        }
                                         Toast.makeText(ctx, e.display, Toast.LENGTH_SHORT).show()
                                     } catch (e: Exception) {
                                         Toast.makeText(ctx, "送信に失敗しました", Toast.LENGTH_SHORT).show()
