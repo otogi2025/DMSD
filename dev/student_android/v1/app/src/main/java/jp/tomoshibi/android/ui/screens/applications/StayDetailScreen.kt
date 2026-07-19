@@ -45,6 +45,7 @@ import jp.tomoshibi.android.data.model.StayKind
 import jp.tomoshibi.android.data.model.StayStatus
 import jp.tomoshibi.android.data.network.ApiError
 import jp.tomoshibi.android.data.network.endpoints.ApplicationsAPI
+import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.nav.Route
 import jp.tomoshibi.android.ui.components.FailedBox
 import jp.tomoshibi.android.ui.components.GlobalScaffold
@@ -80,6 +81,7 @@ fun StayDetailScreen(
     id: String,
 ) {
     val t = SuzuT.current
+    val store = LocalAppStore.current
     val scope = rememberCoroutineScope()
     // 三态：Loading / Failed(消息) / Success(映射后的 StayApplication)。详情单条不设 Empty。
     var ui by remember { mutableStateOf<LoadState<StayApplication>>(LoadState.Loading) }
@@ -91,12 +93,16 @@ fun StayDetailScreen(
     // 加载函数（重试也调它）。失败必须落 Failed，绝不退化成假数据。
     suspend fun load() {
         ui = LoadState.Loading
+        val tokenAtStart = store.snapshot().authToken
         ui =
             try {
                 // GET /applications/:id → ApplicationOut，经共享映射转成界面用的 StayApplication
                 val item = ApplicationsAPI.detail(id).toStayApplication()
                 LoadState.Success(item)
             } catch (e: ApiError) {
+                if (store.handleIfUnauthorized(e, tokenAtStart)) {
+                    return
+                }
                 LoadState.Failed(e.display)
             } catch (e: Exception) {
                 LoadState.Failed("読み込みに失敗しました")

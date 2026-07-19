@@ -3,14 +3,31 @@ package jp.tomoshibi.android.ui.screens.applications
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,21 +38,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import jp.tomoshibi.android.data.model.Application
 import jp.tomoshibi.android.data.model.ApplicationStatus
 import jp.tomoshibi.android.data.network.ApiError
 import jp.tomoshibi.android.data.network.ApplicationOut
 import jp.tomoshibi.android.data.network.ApprovalStepOut
 import jp.tomoshibi.android.data.network.endpoints.ApplicationsAPI
+import jp.tomoshibi.android.data.network.endpoints.OutingOut
+import jp.tomoshibi.android.data.network.endpoints.OutingsAPI
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
+import jp.tomoshibi.android.nav.Route
 import jp.tomoshibi.android.ui.components.FailedBox
 import jp.tomoshibi.android.ui.components.GlobalScaffold
 import jp.tomoshibi.android.ui.components.LoadState
 import jp.tomoshibi.android.ui.components.LoadingBox
 import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 
 // 承認チェーン 1 步 — 役職 / 状态 / 时间戳
 private data class ChainStep(
@@ -44,6 +62,17 @@ private data class ChainStep(
     val ts: String?,
 )
 
+// 详情载荷：出寮届 ApplicationOut，或外出 OutingOut（列表 id 带 "outing:" 前缀）
+private sealed class DetailPayload {
+    data class App(
+        val dto: ApplicationOut,
+    ) : DetailPayload()
+
+    data class Outing(
+        val dto: OutingOut,
+    ) : DetailPayload()
+}
+
 @Composable
 fun ApplicationDetailScreen(
     navController: NavHostController,
@@ -51,31 +80,39 @@ fun ApplicationDetailScreen(
 ) {
     val tokens = SuzuT.current
     val store = LocalAppStore.current
-    // 登录学生信息（学号 / 氏名 / 区分 等）仍走本地 store —— 那是「申請者本人」卡 + 承認链推断要用的，不是本屏要接的申請数据。
     val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
     val scope = rememberCoroutineScope()
 
-    // 三态：Loading / Failed(消息) / Success(单条 Application)。详情屏是单条，不需要 Empty 态。
-    var ui by remember { mutableStateOf<LoadState<ApplicationOut>>(LoadState.Loading) }
+    var ui by remember { mutableStateOf<LoadState<DetailPayload>>(LoadState.Loading) }
+    var withdrawing by remember { mutableStateOf(false) }
+    var actionError by remember { mutableStateOf<String?>(null) }
 
-    // 加载函数（重试也调它）。调 ApplicationsAPI.detail(id) 拿 ApplicationOut，再 .toUiApplication() 转成界面用的本地 Application。
-    // 后端 404（找不到此申請）等异常一律走 Failed，绝不退化成空/假数据。
+    val isOuting = id.startsWith("outing:")
+    val rawOutingId = id.removePrefix("outing:")
+
     suspend fun load() {
         ui = LoadState.Loading
+        val tokenAtStart = store.snapshot().authToken
         ui =
             try {
-                LoadState.Success(ApplicationsAPI.detail(id))
+                if (isOuting) {
+                    LoadState.Success(DetailPayload.Outing(OutingsAPI.detail(rawOutingId)))
+                } else {
+                    LoadState.Success(DetailPayload.App(ApplicationsAPI.detail(id)))
+                }
             } catch (e: ApiError) {
+                if (store.handleIfUnauthorized(e, tokenAtStart)) {
+                    return
+                }
                 LoadState.Failed(e.display)
             } catch (e: Exception) {
                 LoadState.Failed("読み込みに失敗しました")
             }
     }
-    LaunchedEffect(Unit) { load() }
+    LaunchedEffect(id) { load() }
 
     GlobalScaffold(activeTab = "apply", navController = navController) {
         Column(modifier = Modifier.fillMaxSize().background(tokens.pearl)) {
-            // 顶部 ← + 标题
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 24.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -99,143 +136,326 @@ fun ApplicationDetailScreen(
                     FailedBox(s.message, onRetry = { scope.launch { load() } })
                 }
 
-                // 详情屏单条无 Empty 态，Empty 分支理论上不会发生，兜底也按失败处理避免崩溃。
                 LoadState.Empty -> {
                     FailedBox("読み込みに失敗しました", onRetry = { scope.launch { load() } })
                 }
 
                 is LoadState.Success -> {
-                    val dto = s.value
-                    // 基本字段用映射后的本地 Application；承認链单独用 DTO 的真实 approval_chain（见下方 chainFromBackend）。
-                    val app = dto.toUiApplication()
-                    Column(
-                        modifier =
-                            Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .verticalScroll(rememberScrollState())
-                                .padding(horizontal = 20.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                    ) {
-                        // ── 顶部状态卡 ──
-                        Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(tokens.paper)
-                                    .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(tokens.pill)
-                                        .padding(horizontal = 8.dp, vertical = 2.dp),
-                            ) {
-                                Text(
-                                    app.kind,
-                                    color = tokens.ink,
-                                    style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold),
-                                )
-                            }
-                            Spacer(Modifier.width(8.dp))
-                            ApplicationStatusPill(app.status)
-                            Spacer(Modifier.weight(1f))
-                            Text(
-                                "#${app.id}",
-                                color = tokens.inkMute,
-                                style = TextStyle(fontSize = 11.sp, fontFamily = FontFamily.Monospace),
+                    when (val payload = s.value) {
+                        is DetailPayload.Outing -> {
+                            OutingDetailBody(
+                                tokens = tokens,
+                                outing = payload.dto,
+                                withdrawing = withdrawing,
+                                actionError = actionError,
+                                onWithdraw = {
+                                    scope.launch {
+                                        withdrawing = true
+                                        actionError = null
+                                        val tokenAtStart = store.snapshot().authToken
+                                        try {
+                                            OutingsAPI.withdraw(rawOutingId)
+                                            load()
+                                        } catch (e: ApiError) {
+                                            if (store.handleIfUnauthorized(e, tokenAtStart)) return@launch
+                                            // 409 等：重拉最新状态，提示「確認待ちの申請のみ取り消せます」
+                                            actionError =
+                                                if (e is ApiError.Server && e.code == 409) {
+                                                    "確認待ちの申請のみ取り消せます"
+                                                } else {
+                                                    e.display
+                                                }
+                                            load()
+                                        } catch (e: Exception) {
+                                            actionError = "取消に失敗しました"
+                                        } finally {
+                                            withdrawing = false
+                                        }
+                                    }
+                                },
                             )
                         }
 
-                        // ── 申請者本人 ──
-                        Section("申請者本人")
-                        Column(
-                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(tokens.paper),
-                        ) {
-                            KvRow("学号", state.user.studentNo, mono = true)
-                            Divider(color = tokens.hair, thickness = 0.5.dp)
-                            KvRow("氏名", state.user.name)
-                            Divider(color = tokens.hair, thickness = 0.5.dp)
-                            KvRow("学年・組", state.user.gradeClass)
-                            Divider(color = tokens.hair, thickness = 0.5.dp)
-                            KvRow("寮・部屋", "${state.user.dorm} ${state.user.room}")
-                            Divider(color = tokens.hair, thickness = 0.5.dp)
-                            KvRow("区分", state.user.category)
-                        }
-
-                        // ── 申請内容 ──
-                        Section("申請内容")
-                        Column(
-                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(tokens.paper),
-                        ) {
-                            KvRow("種類", app.kind)
-                            Divider(color = tokens.hair, thickness = 0.5.dp)
-                            KvRow("行先", app.dest)
-                            Divider(color = tokens.hair, thickness = 0.5.dp)
-                            KvRow("期間", if (app.from == app.to) app.from else "${app.from} 〜 ${app.to}")
-                            Divider(color = tokens.hair, thickness = 0.5.dp)
-                            KvRow("理由", app.reason)
-                            Divider(color = tokens.hair, thickness = 0.5.dp)
-                            KvRow("提出日", app.createdAt)
-                        }
-
-                        // ── 承認チェーン ──
-                        Section("承認の流れ")
-                        val chain = chainFromBackend(dto.approvalChain)
-                        Column(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(tokens.paper)
-                                    .padding(vertical = 8.dp),
-                        ) {
-                            chain.forEachIndexed { idx, step ->
-                                ChainRow(step, isLast = idx == chain.lastIndex)
-                            }
-                        }
-
-                        // ── 撤回ボタン ──（仅 PENDING 且出寮日 24 時間前可撤回）
-                        val withdrawable = app.status == ApplicationStatus.PENDING && canWithdraw(app.from)
-                        if (withdrawable) {
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .height(48.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .border(1.5.dp, tokens.danger.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-                                        .clickable {
-                                            // TODO 接后端：撤回 endpoint（后端目前无撤回接口，先仅返回上一屏）
-                                            navController.popBackStack()
-                                        },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    "申請を撤回する",
-                                    color = tokens.danger,
-                                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
-                                )
-                            }
-                            Text(
-                                "※ 出寮日 24 時間前まで撤回可能です",
-                                color = tokens.inkMute,
-                                style = TextStyle(fontSize = 11.sp),
+                        is DetailPayload.App -> {
+                            ApplicationDetailBody(
+                                tokens = tokens,
+                                dto = payload.dto,
+                                userStudentNo = state.user.studentNo,
+                                userName = state.user.name,
+                                userGradeClass = state.user.gradeClass,
+                                userDorm = state.user.dorm,
+                                userRoom = state.user.room,
+                                userCategory = state.user.category,
+                                withdrawing = withdrawing,
+                                actionError = actionError,
+                                onEdit = { navController.navigate(Route.StayEdit(id).path) },
+                                onWithdraw = {
+                                    scope.launch {
+                                        withdrawing = true
+                                        actionError = null
+                                        val tokenAtStart = store.snapshot().authToken
+                                        try {
+                                            ApplicationsAPI.withdraw(id)
+                                            load()
+                                        } catch (e: ApiError) {
+                                            if (store.handleIfUnauthorized(e, tokenAtStart)) return@launch
+                                            actionError = e.display
+                                        } catch (e: Exception) {
+                                            actionError = "取消に失敗しました"
+                                        } finally {
+                                            withdrawing = false
+                                        }
+                                    }
+                                },
                             )
                         }
-                        Spacer(Modifier.height(40.dp))
-                    } // 申請内容主体 Column 结束
-                } // is LoadState.Success 分支结束
-            } // when (ui) 三态结束
+                    }
+                }
+            }
         }
     }
 }
 
-// 承認链：直接用后端返回的真实 approval_chain（每步真实役职名 + 决定 + 时刻），不再按 status 推断假审批人/时间。
-//   decision: "approve"→approved / "reject"→rejected / null（未决）→pending
+@Composable
+private fun ApplicationDetailBody(
+    tokens: jp.tomoshibi.android.ui.theme.SuzuTokens,
+    dto: ApplicationOut,
+    userStudentNo: String,
+    userName: String,
+    userGradeClass: String,
+    userDorm: String,
+    userRoom: String,
+    userCategory: String,
+    withdrawing: Boolean,
+    actionError: String?,
+    onEdit: () -> Unit,
+    onWithdraw: () -> Unit,
+) {
+    val app = dto.toUiApplication()
+    // 可编辑 / 可撤回：以后端裸 status 为准（pending / approved_partial / returned）
+    val actionable = dto.status in setOf("pending", "approved_partial", "returned")
+    val isStayKind = app.kind in setOf("外泊", "帰省", "帰国")
+
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(tokens.paper)
+                    .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(tokens.pill)
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
+            ) {
+                Text(
+                    app.kind,
+                    color = tokens.ink,
+                    style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold),
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+            ApplicationStatusPill(app.status, kind = app.kind)
+            Spacer(Modifier.weight(1f))
+            Text(
+                "#${app.id.take(8)}",
+                color = tokens.inkMute,
+                style = TextStyle(fontSize = 11.sp, fontFamily = FontFamily.Monospace),
+            )
+        }
+
+        Section("申請者本人")
+        Column(
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(tokens.paper),
+        ) {
+            KvRow("学号", userStudentNo, mono = true)
+            Divider(color = tokens.hair, thickness = 0.5.dp)
+            KvRow("氏名", userName)
+            Divider(color = tokens.hair, thickness = 0.5.dp)
+            KvRow("学年・組", userGradeClass)
+            Divider(color = tokens.hair, thickness = 0.5.dp)
+            KvRow("寮・部屋", "$userDorm $userRoom")
+            Divider(color = tokens.hair, thickness = 0.5.dp)
+            KvRow("区分", userCategory)
+        }
+
+        Section("申請内容")
+        Column(
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(tokens.paper),
+        ) {
+            KvRow("種類", app.kind)
+            Divider(color = tokens.hair, thickness = 0.5.dp)
+            KvRow("行先", app.dest)
+            Divider(color = tokens.hair, thickness = 0.5.dp)
+            KvRow("期間", if (app.from == app.to) app.from else "${app.from} 〜 ${app.to}")
+            Divider(color = tokens.hair, thickness = 0.5.dp)
+            KvRow("理由", app.reason)
+            Divider(color = tokens.hair, thickness = 0.5.dp)
+            KvRow("提出日", app.createdAt)
+        }
+
+        Section("承認の流れ")
+        val chain = chainFromBackend(dto.approvalChain)
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(tokens.paper)
+                    .padding(vertical = 8.dp),
+        ) {
+            chain.forEachIndexed { idx, step ->
+                ChainRow(step, isLast = idx == chain.lastIndex)
+            }
+        }
+
+        // 修改届入口（仅出寮三类 + 可编辑状态）
+        if (actionable && isStayKind) {
+            val editTitle = if (dto.status == "returned") "修正して再提出" else "変更届を提出"
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(tokens.ink)
+                        .clickable(enabled = !withdrawing, onClick = onEdit),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    editTitle,
+                    color = Color.White,
+                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                )
+            }
+        }
+
+        // 撤回：POST /applications/:id/withdraw
+        if (actionable) {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .border(1.5.dp, tokens.danger.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                        .clickable(enabled = !withdrawing, onClick = onWithdraw),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    if (withdrawing) "取消中…" else "申請を撤回する",
+                    color = tokens.danger,
+                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                )
+            }
+            actionError?.let {
+                Text(it, color = tokens.danger, style = TextStyle(fontSize = 12.sp))
+            }
+        }
+        Spacer(Modifier.height(40.dp))
+    }
+}
+
+@Composable
+private fun OutingDetailBody(
+    tokens: jp.tomoshibi.android.ui.theme.SuzuTokens,
+    outing: OutingOut,
+    withdrawing: Boolean,
+    actionError: String?,
+    onWithdraw: () -> Unit,
+) {
+    val status = mapApplicationStatus4(outing.status)
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(tokens.paper)
+                    .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(tokens.pill)
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
+            ) {
+                Text("外出", color = tokens.ink, style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold))
+            }
+            Spacer(Modifier.width(8.dp))
+            ApplicationStatusPill(status, kind = "外出")
+        }
+
+        Section("申請内容")
+        Column(
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(tokens.paper),
+        ) {
+            KvRow("外出日", outing.outingDate)
+            Divider(color = tokens.hair, thickness = 0.5.dp)
+            KvRow("行き先", outing.destination ?: "—")
+            Divider(color = tokens.hair, thickness = 0.5.dp)
+            KvRow("外出時刻", outing.leaveTime ?: "—")
+            Divider(color = tokens.hair, thickness = 0.5.dp)
+            KvRow("帰寮予定時刻", outing.returnTime ?: "—")
+            Divider(color = tokens.hair, thickness = 0.5.dp)
+            KvRow("タクシー予約", outing.taxiReservationTime ?: "なし")
+            Divider(color = tokens.hair, thickness = 0.5.dp)
+            KvRow("理由", outing.reason ?: "—")
+            Divider(color = tokens.hair, thickness = 0.5.dp)
+            KvRow("提出日", outing.submittedAt)
+            if (outing.confirmedByName != null) {
+                Divider(color = tokens.hair, thickness = 0.5.dp)
+                KvRow("確認", outing.confirmedByName)
+            }
+        }
+
+        // 仅 pending 可撤（对齐 iOS OutingDetailView）
+        if (outing.status == "pending") {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .border(1.5.dp, tokens.danger.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                        .clickable(enabled = !withdrawing, onClick = onWithdraw),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    if (withdrawing) "取消中…" else "申請を撤回する",
+                    color = tokens.danger,
+                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                )
+            }
+            actionError?.let {
+                Text(it, color = tokens.danger, style = TextStyle(fontSize = 12.sp))
+            }
+        }
+        Spacer(Modifier.height(40.dp))
+    }
+}
+
 private fun chainFromBackend(steps: List<ApprovalStepOut>): List<ChainStep> =
     steps.map { step ->
         val state =
@@ -257,14 +477,13 @@ private fun ChainRow(
         when (step.state) {
             "approved" -> t.ok to "承認"
             "pending" -> t.warn to "審査中"
-            "rejected" -> t.danger to "差戻"
+            "rejected" -> t.danger to "差し戻し"
             else -> t.inkFaint to "—"
         }
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // 圆点 + 连接线
         Column(
             modifier = Modifier.width(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -305,14 +524,6 @@ private fun ChainRow(
         }
     }
 }
-
-private fun canWithdraw(fromDate: String): Boolean =
-    try {
-        val d = LocalDate.parse(fromDate)
-        d.isAfter(LocalDate.now().plusDays(1))
-    } catch (e: Exception) {
-        true
-    }
 
 @Composable
 private fun Section(label: String) {

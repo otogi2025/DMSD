@@ -29,8 +29,11 @@ sealed class Route(
     data object MyPage : Route("mypage")
 
     // ── second-level (pushed from tab screens) ──
-    // ApplyNew 接受 ?kind= query 参数（外出/外泊/帰省/帰国/早帰/修繕/学習/代理受取/来訪者/その他）
-    // 默认 外泊（最常用）— 对齐 iOS 流程：list FAB → kind 选择 sheet → 该 kind 独立 form 标题
+    // ApplyNewSelect = 新規申請种类全屏选单（对齐 iOS ApplyNewView）；选完再进 ApplyNew?kind=
+    data object ApplyNewSelect : Route("applications/select")
+
+    // ApplyNew 接受 ?kind= query 参数（外出/外泊/帰省/帰国/修繕/夜学習欠席/代理受取/来訪者/…）
+    // 默认 外泊（最常用）— 对齐 iOS：list FAB → 种类全屏页 → 该 kind 独立 form
     data object ApplyNew : Route("applications/new?kind=外泊") {
         const val PATH = "applications/new?kind={kind}"
         const val ARG_KIND = "kind"

@@ -28,7 +28,8 @@ data class User(
     val needsCleaning: Boolean = false,
 )
 
-enum class ApplicationStatus { PENDING, APPROVED, RETURNED, REJECTED }
+// 5 值：比后端 7 态少 draft / approved_partial（后者并入 APPROVED）；withdrawn 独立，勿并入 REJECTED。
+enum class ApplicationStatus { PENDING, APPROVED, RETURNED, REJECTED, WITHDRAWN }
 
 @Serializable
 data class Application(
@@ -285,7 +286,7 @@ enum class StayStatus(
     PENDING("審査中"),
     APPROVED_PARTIAL("一部承認"),
     APPROVED("承認済"),
-    REJECTED("差戻"),
+    REJECTED("差し戻し"),
     RETURNED("要修正"),
     WITHDRAWN("取消済"),
 }

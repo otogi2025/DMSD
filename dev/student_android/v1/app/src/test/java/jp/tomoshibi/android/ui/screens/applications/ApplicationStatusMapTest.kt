@@ -6,9 +6,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 // 申请状态 → 显示 chip 映射测试（C2 Android #16）。
-// 守两条契约：① 后端 status 英语字符串 → UI 枚举（后端加/改状态时这里先炸）；② 枚举 → 徽章日语文案。
+// 守两条契约：① 后端 status 英语字符串 → UI 枚举；② 枚举 → 徽章日语文案。
 class ApplicationStatusMapTest {
-    // ── 后端 status 字符串 → ApplicationStatus（4 值，7→4 压缩）──
+    // ── 后端 status 字符串 → ApplicationStatus ──
 
     @Test
     fun `mapApplicationStatus4 全值正映射`() {
@@ -17,7 +17,7 @@ class ApplicationStatusMapTest {
         assertEquals(ApplicationStatus.APPROVED, mapApplicationStatus4("approved_partial")) // 一部承認也归 APPROVED
         assertEquals(ApplicationStatus.RETURNED, mapApplicationStatus4("returned"))
         assertEquals(ApplicationStatus.REJECTED, mapApplicationStatus4("rejected"))
-        assertEquals(ApplicationStatus.REJECTED, mapApplicationStatus4("withdrawn")) // 兜底归 REJECTED
+        assertEquals(ApplicationStatus.WITHDRAWN, mapApplicationStatus4("withdrawn")) // 独立「取消済」，勿并入 REJECTED
     }
 
     @Test
@@ -46,6 +46,14 @@ class ApplicationStatusMapTest {
         assertEquals("審査中", applicationStatusLabel(ApplicationStatus.PENDING))
         assertEquals("承認済", applicationStatusLabel(ApplicationStatus.APPROVED))
         assertEquals("要修正", applicationStatusLabel(ApplicationStatus.RETURNED))
-        assertEquals("差戻", applicationStatusLabel(ApplicationStatus.REJECTED)) // iOS 对齐：差戻 不是 却下
+        assertEquals("差し戻し", applicationStatusLabel(ApplicationStatus.REJECTED))
+        assertEquals("取消済", applicationStatusLabel(ApplicationStatus.WITHDRAWN))
+    }
+
+    @Test
+    fun `outingStatusLabel 三态文案`() {
+        assertEquals("確認待ち", outingStatusLabel(ApplicationStatus.PENDING))
+        assertEquals("確認済", outingStatusLabel(ApplicationStatus.APPROVED))
+        assertEquals("取消済", outingStatusLabel(ApplicationStatus.WITHDRAWN))
     }
 }

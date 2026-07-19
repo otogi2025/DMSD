@@ -26,6 +26,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +40,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.endpoints.DormLifeAPI
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.ui.components.Field
@@ -51,27 +54,26 @@ import jp.tomoshibi.android.ui.components.SuzuCard
 import jp.tomoshibi.android.ui.components.TField
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
+import kotlinx.coroutines.launch
 
 // ─────────────────────────────────────────────────────────────────────
 // FridgePurchaseForm —— 冷蔵庫購入届
-// 对齐 iOS Features/Apply/DormLifeForms.swift 第 290-429 行 struct FridgePurchaseForm。
-// 字段：§1 連絡先（携帯電話 必填 + WeChat 可选）/ §2 購入製品（A・B 二选一 RadioCard）/ §3 注意事項（只读 5 条）。
-// 本屏不接后端、不发网络：表单字段全用本地 state 收集，
-// 提交走「编辑(edit) → 确认(preview) → 完成(done)」三个内部 stage（不开新路由），结构对齐范本 StayForm.kt。
+// 对齐 iOS DormLifeForms.swift FridgePurchaseForm；提交走 DormLifeAPI.submitFridgePurchase。
 // ─────────────────────────────────────────────────────────────────────
 
 @Composable
 fun FridgePurchaseForm(navController: NavHostController) {
     val t = SuzuT.current
     val store = LocalAppStore.current
+    val scope = rememberCoroutineScope()
     val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
     val user = state.user
 
     // 三态流程：edit（填写）→ preview（确认）→ done（完成）
     var stage by remember { mutableStateOf("edit") }
+    var submitting by remember { mutableStateOf(false) }
 
     // ── §1 連絡先 ──
-    // 携帯電話预填本人电话（iOS 在 .onAppear 预填 displayUser.phone；本地无冷启动假人问题，直接用 user.phone 初值）
     var contactPhone by remember { mutableStateOf(user.phone) }
     var contactWechat by remember { mutableStateOf("") }
 
@@ -132,9 +134,30 @@ fun FridgePurchaseForm(navController: NavHostController) {
                                 contactWechat = contactWechat,
                                 product = product,
                                 onSubmit = {
-                                    // 提出する：本地完成（不发网络），切到 done。
-                                    // TODO: 接后端时这里走 DormLifeAPI submitFridgePurchase POST（对齐 iOS submitAsync）。
-                                    stage = "done"
+                                    if (submitting) return@PreviewBody
+                                    scope.launch {
+                                        submitting = true
+                                        val tokenAtStart = store.snapshot().authToken
+                                        try {
+                                            DormLifeAPI.submitFridgePurchase(
+                                                DormLifeAPI.FridgePurchaseBody(
+                                                    contactPhone = contactPhone.trim(),
+                                                    contactWechat = contactWechat.trim().takeIf { it.isNotEmpty() },
+                                                    product = product,
+                                                ),
+                                            )
+                                            if (store.snapshot().authToken != tokenAtStart) return@launch
+                                            store.showToast("冷蔵庫購入届を提出しました")
+                                            stage = "done"
+                                        } catch (e: ApiError) {
+                                            if (store.handleIfUnauthorized(e, tokenAtStart)) return@launch
+                                            store.showToast(e.display)
+                                        } catch (e: Exception) {
+                                            store.showToast("申請の提出に失敗しました")
+                                        } finally {
+                                            submitting = false
+                                        }
+                                    }
                                 },
                                 onEdit = { stage = "edit" },
                             )

@@ -1,34 +1,40 @@
 package jp.tomoshibi.android.ui.screens.applications
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AcUnit
-import androidx.compose.material.icons.outlined.Cottage
-import androidx.compose.material.icons.outlined.Laptop
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -36,6 +42,8 @@ import jp.tomoshibi.android.data.model.Application
 import jp.tomoshibi.android.data.model.ApplicationStatus
 import jp.tomoshibi.android.data.network.ApiError
 import jp.tomoshibi.android.data.network.endpoints.ApplicationsAPI
+import jp.tomoshibi.android.data.network.endpoints.OutingsAPI
+import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.nav.Route
 import jp.tomoshibi.android.ui.components.FailedBox
 import jp.tomoshibi.android.ui.components.GlobalScaffold
@@ -43,36 +51,42 @@ import jp.tomoshibi.android.ui.components.LoadState
 import jp.tomoshibi.android.ui.components.LoadingBox
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
-// 対齐 iOS ApplyListView (ApplyStubs.swift §57-145):
-//   头部 = 「⌂ 申し込み」（home 图标前缀，点击回首页）
-//   筛选 chip =「すべて」「審査中」「承認済」「下書き」，选中 primary 青底白字
-//   申请卡 = 左类型图标块 + 类型名 + 状态徽章 / 摘要 / 细线 + 日期（等宽）
-//   FAB = 右下浮 56dp 圆角 18 方形 primary 青 → 新規申請种类选择
-@OptIn(ExperimentalMaterial3Api::class)
+// 对齐 iOS ApplyListView：
+//   头部 = 「申し込み」+ home 图标；筛选 chip =「すべて」/「審査中」/「承認済」/「下書き」
+//   列表 = ApplicationsAPI.listMine + OutingsAPI.listMine 合并（外出 id 加 "outing:"）
+//   FAB → 独立全屏「新規申請」种类页（非底部弹层）
 @Composable
 fun ApplicationsScreen(navController: NavHostController) {
     val tokens = SuzuT.current
     val primary = MaterialTheme.colorScheme.primary
     val scope = rememberCoroutineScope()
+    val store = LocalAppStore.current
     var filter by remember { mutableStateOf("all") }
-    var kindSheetOpen by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    // 三态：Loading / Failed(消息) / Empty / Success(后端 ApplicationOut 映射成的本地 Application 列表)。
-    // 数据源从 AppStore.state.applications（假数据）换成真后端 ApplicationsAPI.listMine()。
     var ui by remember { mutableStateOf<LoadState<List<Application>>>(LoadState.Loading) }
 
-    // 加载函数（重试也调它）。失败必须落 Failed，绝不退化成空列表 / 假数据。
+    // 并行拉出寮届 + 外出，合并按提交时间倒序；401 → 清令牌跳登录。
     suspend fun load() {
         ui = LoadState.Loading
+        val tokenAtStart = store.snapshot().authToken
         ui =
             try {
-                // listMine() 返回 List<ApplicationOut>（后端 DTO），用共享映射 toUiApplication() 转成本地 Application。
-                val items = ApplicationsAPI.listMine().map { it.toUiApplication() }
-                if (items.isEmpty()) LoadState.Empty else LoadState.Success(items)
+                coroutineScope {
+                    val appsDeferred = async { ApplicationsAPI.listMine().map { it.toUiApplication() } }
+                    val outingsDeferred = async { OutingsAPI.listMine().map { it.toUiApplication() } }
+                    val items =
+                        (appsDeferred.await() + outingsDeferred.await())
+                            .sortedByDescending { it.createdAt }
+                    if (items.isEmpty()) LoadState.Empty else LoadState.Success(items)
+                }
             } catch (e: ApiError) {
+                if (store.handleIfUnauthorized(e, tokenAtStart)) {
+                    return
+                }
                 LoadState.Failed(e.display)
             } catch (e: Exception) {
                 LoadState.Failed("読み込みに失敗しました")
@@ -83,7 +97,6 @@ fun ApplicationsScreen(navController: NavHostController) {
     GlobalScaffold(activeTab = "apply", navController = navController) {
         Box(modifier = Modifier.fillMaxSize().background(tokens.pearl)) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // ── 头部：⌂ home 图标 +「申し込み」（对应 iOS PageHeader level=1）──
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 24.dp, bottom = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -115,7 +128,6 @@ fun ApplicationsScreen(navController: NavHostController) {
                     )
                 }
 
-                // ── 4 个筛选 chip（选中 primary 青底白字 / 未选 pill 淡青底 primary 字）──
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -144,10 +156,8 @@ fun ApplicationsScreen(navController: NavHostController) {
                     }
                 }
 
-                // ── 列表区（三态外壳只包这里；头部 + 筛选 chip + FAB 在外层不受影响）──
                 when (val s = ui) {
                     LoadState.Loading -> {
-                        // weight(1f) 让加载占位撑满列表区，转圈垂直居中
                         Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                             LoadingBox()
                         }
@@ -159,7 +169,6 @@ fun ApplicationsScreen(navController: NavHostController) {
                         }
                     }
 
-                    // 后端真返回空（一条申請都没有）—— 用本屏自带的「📋 申請はありません」空卡（带新規作成提示）
                     LoadState.Empty -> {
                         Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                             ApplicationsEmptyCard()
@@ -167,7 +176,6 @@ fun ApplicationsScreen(navController: NavHostController) {
                     }
 
                     is LoadState.Success -> {
-                        // 筛选逻辑作用在映射后的 List<Application> 上（与原假数据版完全一致）
                         val filtered =
                             s.value.filter { app ->
                                 when (filter) {
@@ -175,12 +183,11 @@ fun ApplicationsScreen(navController: NavHostController) {
 
                                     "pending" -> app.status == ApplicationStatus.PENDING
 
-                                    // 承認済 tab 同时收「承認済」与「一部承認」（iOS 一致）
+                                    // 「承認済」tab 同时收承認済与一部承認（映射后都是 APPROVED）
                                     "approved" -> app.status == ApplicationStatus.APPROVED
 
                                     "draft" -> false
 
-                                    // demo 暂无「下書き」状态（接后端后按 status==draft 过滤）
                                     else -> true
                                 }
                             }
@@ -194,7 +201,6 @@ fun ApplicationsScreen(navController: NavHostController) {
                                     .padding(horizontal = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            // 这里的空 = 「数据非空但筛选后无命中」（区别于上面后端整体为空的 LoadState.Empty）
                             if (filtered.isEmpty()) {
                                 ApplicationsEmptyCard()
                             }
@@ -213,7 +219,7 @@ fun ApplicationsScreen(navController: NavHostController) {
                 }
             }
 
-            // ── 右下浮 FAB（56dp 圆角 18 方形 + primary 青底，对齐 iOS）──
+            // FAB → 独立全屏「新規申請」种类页（对齐 iOS ApplyNewView）
             Box(
                 modifier =
                     Modifier
@@ -227,7 +233,7 @@ fun ApplicationsScreen(navController: NavHostController) {
                             ambientColor = primary.copy(alpha = 0.35f),
                         ).clip(RoundedCornerShape(18.dp))
                         .background(primary)
-                        .clickable { kindSheetOpen = true },
+                        .clickable { navController.navigate(Route.ApplyNewSelect.path) },
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -239,25 +245,8 @@ fun ApplicationsScreen(navController: NavHostController) {
             }
         }
     }
-
-    // ── 新規申請种类选择（TODO N-AND-01：iOS 是独立全屏页 ApplyNewView，此处暂用底部弹层）──
-    if (kindSheetOpen) {
-        ModalBottomSheet(
-            onDismissRequest = { kindSheetOpen = false },
-            sheetState = sheetState,
-            containerColor = tokens.paper,
-        ) {
-            ApplyKindGrid(
-                onPick = { picked ->
-                    kindSheetOpen = false
-                    navController.navigate(Route.ApplyNew.withKind(picked))
-                },
-            )
-        }
-    }
 }
 
-// 申请卡 — 左类型图标块 + 类型名 + 状态徽章 / 摘要 / 细线 + 日期（对齐 iOS ApplicationRow）
 @Composable
 private fun ApplicationRow(
     kind: String,
@@ -302,7 +291,7 @@ private fun ApplicationRow(
                         style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
                     )
                     Spacer(Modifier.width(8.dp))
-                    ApplicationStatusPill(status)
+                    ApplicationStatusPill(status, kind = kind)
                 }
                 Spacer(Modifier.height(3.dp))
                 Text(
@@ -323,8 +312,6 @@ private fun ApplicationRow(
     }
 }
 
-// 空态卡 —「📋 申請はありません」+ 新規作成提示。两处复用：
-//   1) 后端整体返回空（LoadState.Empty）  2) 数据非空但筛选后无命中（Success 分支内）
 @Composable
 private fun ApplicationsEmptyCard() {
     val tokens = SuzuT.current
@@ -347,108 +334,20 @@ private fun ApplicationsEmptyCard() {
     }
 }
 
-// 申请类型元数据 — 12 种，对齐 iOS APPLY_TYPES（key 英文路由用 / 名日语 / 副标题日语 / 图标）
-private data class ApplyType(
-    val key: String,
-    val name: String,
-    val sub: String,
-    val icon: ImageVector,
-)
-
-private val APPLY_TYPES =
-    listOf(
-        ApplyType("outing", "外出", "当日帰寮の外出", SuzuIcons.Cal),
-        ApplyType("stay", "外泊", "寮外での宿泊", SuzuIcons.House),
-        ApplyType("holiday", "帰省", "実家帰省・長期休暇", Icons.Outlined.Cottage),
-        ApplyType("returncountry", "帰国", "一時帰国（航空機利用）", SuzuIcons.Plane),
-        ApplyType("repair", "修繕", "部屋・設備の修繕依頼", SuzuIcons.Wrench),
-        ApplyType("parcel", "代理受取", "不在時の荷物代理受取", SuzuIcons.Box),
-        ApplyType("guest", "来訪者", "家族・友人の来訪", SuzuIcons.People),
-        ApplyType("studyAbsence", "学習欠席", "夜学習の欠席届（前半・後半・両方）", SuzuIcons.Book),
-        ApplyType("studyOnline", "オンライン学習", "自室でのオンライン学習", Icons.Outlined.Laptop),
-        ApplyType("event", "行事企画", "寮内イベントの企画申請", SuzuIcons.Sparkle),
-        ApplyType("fridge", "冷蔵庫購入", "指定冷蔵庫の購入届", Icons.Outlined.AcUnit),
-        ApplyType("item", "物品所持", "持込物品の許可願", SuzuIcons.Box),
-    )
-
-// 列表卡按类型日语名查图标（匹配不到取第 0 个 outing，对齐 iOS applyType 兜底）
-private fun iconForKind(kind: String): ImageVector = APPLY_TYPES.firstOrNull { it.name == kind }?.icon ?: SuzuIcons.Cal
-
 @Composable
-private fun ApplyKindGrid(onPick: (String) -> Unit) {
-    val t = SuzuT.current
-    val primary = MaterialTheme.colorScheme.primary
-    Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-        Text(
-            "申請の種類を選択してください",
-            color = t.inkSub,
-            style = TextStyle(fontSize = 13.sp),
-            modifier = Modifier.padding(start = 4.dp, bottom = 14.dp),
-        )
-        // 6 行 × 2 列 = 12 种
-        APPLY_TYPES.chunked(2).forEach { row ->
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                row.forEach { k ->
-                    Column(
-                        modifier =
-                            Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(t.pearl)
-                                .clickable { onPick(k.name) }
-                                .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .size(52.dp)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(t.pill),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                imageVector = k.icon,
-                                contentDescription = null,
-                                tint = primary,
-                                modifier = Modifier.size(22.dp),
-                            )
-                        }
-                        Spacer(Modifier.height(10.dp))
-                        Text(
-                            k.name,
-                            color = t.ink,
-                            style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
-                        )
-                        Spacer(Modifier.height(3.dp))
-                        Text(
-                            k.sub,
-                            color = t.inkMute,
-                            style = TextStyle(fontSize = 11.sp, lineHeight = 14.sp),
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                }
-                if (row.size == 1) Spacer(Modifier.weight(1f))
-            }
-        }
-    }
-}
-
-@Composable
-internal fun ApplicationStatusPill(status: ApplicationStatus) {
+internal fun ApplicationStatusPill(
+    status: ApplicationStatus,
+    kind: String = "",
+) {
     val tokens = SuzuT.current
-    // 徽章文案抽到 ApplicationMappers.applicationStatusLabel（纯函数、可单测）；颜色仍就地取 token。
-    val label = applicationStatusLabel(status)
+    val label = rowStatusLabel(kind, status)
     val (bg, fg) =
         when (status) {
             ApplicationStatus.PENDING -> tokens.warnBg to tokens.warnDeep
             ApplicationStatus.APPROVED -> tokens.okBg to tokens.okDeep
             ApplicationStatus.RETURNED -> tokens.dangerBg to tokens.danger
             ApplicationStatus.REJECTED -> tokens.dangerBg to tokens.danger
+            ApplicationStatus.WITHDRAWN -> tokens.pill to tokens.inkMute
         }
     Box(
         modifier =

@@ -59,6 +59,7 @@ fun TomoshibiNavGraph(navController: NavHostController) {
         composable(Route.MyPage.path) { MyPageScreen(navController) }
 
         // ── second-level ──────────
+        composable(Route.ApplyNewSelect.path) { ApplyNewSelectScreen(navController) }
         composable(
             route = Route.ApplyNew.PATH,
             arguments =

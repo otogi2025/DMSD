@@ -25,12 +25,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -38,6 +38,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.GaihakuCreateBody
+import jp.tomoshibi.android.data.network.KikokuCreateBody
+import jp.tomoshibi.android.data.network.KisheiCreateBody
+import jp.tomoshibi.android.data.network.MealSkipBody
+import jp.tomoshibi.android.data.network.StayLocationBody
+import jp.tomoshibi.android.data.network.endpoints.ApplicationsAPI
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.ui.components.ChipGroup
@@ -54,26 +61,81 @@ import jp.tomoshibi.android.ui.components.TToggle
 import jp.tomoshibi.android.ui.components.TimeField
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 // ─────────────────────────────────────────────────────────────────────
-// StayForm —— 出寮届（外泊 / 帰省 / 帰国 三合一，最复杂表单）
-// 内部对齐规格 §2（行 1782-1862）+ iOS ApplyStubs.swift StayForm。
-// kind 取「外泊」/「帰省」/「帰国」（从 NavGraph 传入的 ApplyNew kind 参数），
-// 按 kind 累积显隐区块（§2.2）：
-//   帰省 = §1 §2(含届区分) §3 §4 §8
-//   外泊 = 帰省全部 + §5(同行者/行先/宿泊先) + §6(食事)
-//   帰国 = 外泊全部，但 §5 隐藏「行先」，加 §7(飛行機)
-// 本屏不接后端、不发网络：表单字段全用本地 state 收集，
-// 提交走「编辑(edit) → 确认(preview) → 完成(done)」三个内部 state（不开新路由）。
+// StayForm —— 出寮届（外泊 / 帰省 / 帰国 三合一）
+// 对齐 iOS ApplyStubs.swift StayForm；提交走 ApplicationsAPI.create（Kishei/Gaihaku/Kikoku）。
+// kind 取「外泊」/「帰省」/「帰国」，按 kind 累积显隐区块。
+// 提交走「编辑(edit) → 确认(preview) → 完成(done)」三个内部 stage。
 // ─────────────────────────────────────────────────────────────────────
 
-// 宿泊先一行（§5）—— 用稳定 id 当列表 key，删中间行不串内容（规格 §2 提到 iOS IX-032 坑）
-// 注：本屏不发网络，日期由 DateField 组件内部以 ISO「yyyy-MM-dd」回传，无需本屏自己做 JST 格式化；
-//     真接后端时再按规格 §7 用 ZoneId.of("Asia/Tokyo") 格式化。
+// 宿泊先一行（§5）—— 用稳定 id 当列表 key，删中间行不串内容
 private data class StayPlace(
     val id: Long,
     var address: String,
 )
+
+private const val TAXI_METHOD = "タクシー"
+private val MEAL_ORDER = listOf("朝食", "昼食", "夕食")
+private val HMS_SUFFIX = ":00" // 后端 time 要 HH:mm:ss；TimeField 只给 HH:mm
+
+// 把「HH:mm」补成「HH:mm:ss」；已是 8 字符则原样返回
+private fun toHms(hm: String): String =
+    when {
+        hm.length == 5 -> hm + HMS_SUFFIX
+        else -> hm
+    }
+
+private fun nilIfBlank(s: String): String? = s.trim().takeIf { it.isNotEmpty() }
+
+// 日期 + 时刻 → 「yyyy-MM-ddTHH:mm:ss+09:00」（对齐 iOS formatISOWithTokyo）
+private fun formatIsoWithTokyo(
+    dateYmd: String,
+    timeHm: String,
+): String = "${dateYmd}T${toHms(timeHm)}+09:00"
+
+// 食事不要期間展开成 meals_skip 条目列表（对齐 iOS expandMealsSkip）
+private fun expandMealsSkip(
+    startDate: String,
+    startMeal: String,
+    endDate: String,
+    endMeal: String,
+): List<MealSkipBody> {
+    if (startDate.isBlank() || endDate.isBlank()) return emptyList()
+    val start =
+        try {
+            LocalDate.parse(startDate)
+        } catch (_: Exception) {
+            return emptyList()
+        }
+    val end =
+        try {
+            LocalDate.parse(endDate)
+        } catch (_: Exception) {
+            return emptyList()
+        }
+    if (end.isBefore(start)) return emptyList()
+    val result = mutableListOf<MealSkipBody>()
+    var current = start
+    while (!current.isAfter(end)) {
+        val isFirst = current == start
+        val isLast = current == end
+        val lo = if (isFirst) MEAL_ORDER.indexOf(startMeal).coerceAtLeast(0) else 0
+        val hi = if (isLast) MEAL_ORDER.indexOf(endMeal).let { if (it < 0) 2 else it } else 2
+        if (lo <= hi) {
+            val dateStr = current.format(DateTimeFormatter.ISO_LOCAL_DATE)
+            for (i in lo..hi) {
+                result.add(MealSkipBody(date = dateStr, meal = MEAL_ORDER[i]))
+            }
+        }
+        current = current.plus(1, ChronoUnit.DAYS)
+    }
+    return result
+}
 
 // 出寮方法选项（帰省 / 外泊・帰国 略有差异 —— 这里出寮段用同一套，规格 §3 列了 10 项）
 private val LEAVE_METHODS =
@@ -112,8 +174,8 @@ fun StayForm(
     kind: String,
 ) {
     val t = SuzuT.current
-    val ctx = LocalContext.current
     val store = LocalAppStore.current
+    val scope = rememberCoroutineScope()
     val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
     val user = state.user
 
@@ -132,6 +194,7 @@ fun StayForm(
 
     // 三态流程：edit（填写）→ preview（确认）→ done（完成）
     var stage by remember { mutableStateOf("edit") }
+    var submitting by remember { mutableStateOf(false) }
 
     // ── §2 連絡先・届の区分 ──
     var contactPhone by remember { mutableStateOf("") }
@@ -178,14 +241,15 @@ fun StayForm(
             else -> 5
         }
 
-    // 提交可否（规格 §2.3）：理由非空 + 帰寮晚于出寮 + 外泊/帰国宿泊先≥1 非空 + 帰国机场都非空
+    // 提交可否（规格 §2.3）：理由非空 + 出入寮方法已选 + 帰寮晚于出寮 + 外泊/帰国宿泊先≥1 非空 + 帰国机场都非空
     val canSubmit by remember {
         derivedStateOf {
             // 理由
             if (reason.trim().isEmpty()) return@derivedStateOf false
-            // 出寮 / 帰寮 日时必填
+            // 出寮 / 帰寮 日时 + 方法必填
             if (leaveDate.isEmpty() || leaveTime.isEmpty()) return@derivedStateOf false
             if (returnDate.isEmpty() || returnTime.isEmpty()) return@derivedStateOf false
+            if (leaveMethod == null || returnMethod == null) return@derivedStateOf false
             // 帰寮（日+時刻）必须晚于出寮（防同日时刻倒挂）
             val leaveAt = "$leaveDate $leaveTime"
             val returnAt = "$returnDate $returnTime"
@@ -197,6 +261,128 @@ fun StayForm(
                 return@derivedStateOf false
             }
             true
+        }
+    }
+
+    // 真提交：按 kind dispatch 到 Kishei/Gaihaku/Kikoku → ApplicationsAPI.create
+    fun submitStay() {
+        if (submitting) return
+        scope.launch {
+            submitting = true
+            val tokenAtStart = store.snapshot().authToken
+            try {
+                val leaveTimeStr = toHms(leaveTime)
+                val returnTimeStr = toHms(returnTime)
+                val contactPhoneValue = nilIfBlank(contactPhone)
+                val mealNoteValue = if (isOverseas) nilIfBlank(mealNote) else null
+                val companionValue = nilIfBlank(companion)
+                val destCitiesValue = nilIfBlank(destCity)
+                val taxiTimeValue =
+                    if (leaveMethod == TAXI_METHOD) toHms(taxiTime).takeIf { taxiTime.isNotBlank() } else null
+                val stayLocations =
+                    stayPlaces
+                        .map { it.address.trim() }
+                        .filter { it.isNotEmpty() }
+                        .map { StayLocationBody(kind = "その他", name = it, address = it, phone = null) }
+                val mealsSkip =
+                    if (needMeal && isOverseas && mealSkipOn) {
+                        val expanded =
+                            expandMealsSkip(
+                                mealStartDate,
+                                mealStartMeal ?: MEAL_ORDER.first(),
+                                mealEndDate,
+                                mealEndMeal ?: MEAL_ORDER.last(),
+                            )
+                        if (expanded.isEmpty()) {
+                            store.showToast("食事不要期間が指定されていません。開始と終了の食事の順序をご確認ください")
+                            return@launch
+                        }
+                        expanded
+                    } else {
+                        emptyList()
+                    }
+
+                when (kind) {
+                    "帰省" -> {
+                        ApplicationsAPI.create(
+                            KisheiCreateBody(
+                                reason = reason,
+                                contactPhone = contactPhoneValue,
+                                mealNote = mealNoteValue,
+                                isLongVacation = isLongVacation ?: false,
+                                leaveDate = leaveDate,
+                                leaveMethod = leaveMethod!!,
+                                leaveTime = leaveTimeStr,
+                                returnDate = returnDate,
+                                returnMethod = returnMethod!!,
+                                returnTime = returnTimeStr,
+                                taxiReservationTime = taxiTimeValue,
+                            ),
+                        )
+                    }
+
+                    "外泊" -> {
+                        ApplicationsAPI.create(
+                            GaihakuCreateBody(
+                                reason = reason,
+                                contactPhone = contactPhoneValue,
+                                mealNote = mealNoteValue,
+                                companion = companionValue,
+                                destCities = destCitiesValue,
+                                leaveDate = leaveDate,
+                                leaveMethod = leaveMethod!!,
+                                leaveTime = leaveTimeStr,
+                                returnDate = returnDate,
+                                returnMethod = returnMethod!!,
+                                returnTime = returnTimeStr,
+                                stayLocations = stayLocations,
+                                mealsSkip = mealsSkip,
+                                taxiReservationTime = taxiTimeValue,
+                            ),
+                        )
+                    }
+
+                    "帰国" -> {
+                        ApplicationsAPI.create(
+                            KikokuCreateBody(
+                                reason = reason,
+                                contactPhone = contactPhoneValue,
+                                mealNote = mealNoteValue,
+                                companion = companionValue,
+                                destCities = destCitiesValue,
+                                leaveDate = leaveDate,
+                                leaveMethod = leaveMethod!!,
+                                leaveTime = leaveTimeStr,
+                                returnDate = returnDate,
+                                returnMethod = returnMethod!!,
+                                returnTime = returnTimeStr,
+                                stayLocations = stayLocations,
+                                mealsSkip = mealsSkip,
+                                flightDepAir = flightDepAir.trim(),
+                                flightDepAt = formatIsoWithTokyo(leaveDate, flightDepTime.ifBlank { leaveTime }),
+                                flightArrAir = flightArrAir.trim(),
+                                flightArrAt = formatIsoWithTokyo(returnDate, flightArrTime.ifBlank { returnTime }),
+                                taxiReservationTime = taxiTimeValue,
+                            ),
+                        )
+                    }
+
+                    else -> {
+                        store.showToast("この種類の届には対応していません")
+                        return@launch
+                    }
+                }
+                if (store.snapshot().authToken != tokenAtStart) return@launch
+                store.showToast("${kindName}申請を提出しました")
+                stage = "done"
+            } catch (e: ApiError) {
+                if (store.handleIfUnauthorized(e, tokenAtStart)) return@launch
+                store.showToast(e.display)
+            } catch (e: Exception) {
+                store.showToast("申請の提出に失敗しました")
+            } finally {
+                submitting = false
+            }
         }
     }
 
@@ -337,11 +523,7 @@ fun StayForm(
                                 flightArrAir = flightArrAir,
                                 flightArrTime = flightArrTime,
                                 reason = reason,
-                                onSubmit = {
-                                    // 提出する：本地完成（不发网络），弹 toast 后进 done
-                                    store.showToast("${kindName}申請を提出しました")
-                                    stage = "done"
-                                },
+                                onSubmit = { submitStay() },
                                 onEdit = { stage = "edit" },
                             )
                         }

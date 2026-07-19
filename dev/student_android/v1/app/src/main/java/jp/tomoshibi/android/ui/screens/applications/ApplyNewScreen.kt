@@ -27,6 +27,11 @@ import androidx.navigation.NavHostController
 import jp.tomoshibi.android.data.model.Application
 import jp.tomoshibi.android.data.model.ApplicationStatus
 import jp.tomoshibi.android.data.model.User
+import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.endpoints.MiscRequestBody
+import jp.tomoshibi.android.data.network.endpoints.MiscRequestsAPI
+import jp.tomoshibi.android.data.network.endpoints.OutingCreateBody
+import jp.tomoshibi.android.data.network.endpoints.OutingsAPI
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.ui.components.GlobalScaffold
@@ -53,8 +58,9 @@ fun ApplyNewScreen(
             return
         }
 
-        "学習欠席" -> {
-            StudyAbsenceForm(navController) // 「夜学習欠席届」
+        "夜学習欠席", "学習欠席" -> {
+            // 「学習欠席」兼容旧路由；显示名以「夜学習欠席」为准（G9）
+            StudyAbsenceForm(navController)
             return
         }
 
@@ -84,6 +90,7 @@ fun ApplyNewScreen(
     val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
     val scope = rememberCoroutineScope()
     val user = state.user
+    var submitting by remember { mutableStateOf(false) }
 
     val tomorrow = remember { LocalDate.now().plusDays(1) }
     var leaveDate by remember { mutableStateOf(tomorrow) }
@@ -101,6 +108,9 @@ fun ApplyNewScreen(
     val showStudyFields = kind == "学習"
     val showGuestField = kind == "来訪者" // 来訪者必填「来訪者氏名」，対齐 iOS isGuest
     val showParcelField = kind == "代理受取" // 代理受取必填「荷物の概要」，対齐 iOS isParcel
+    val showDestField = kind in listOf("外出", "外泊", "帰省", "帰国")
+    val isOuting = kind == "外出"
+    val isMisc = kind in listOf("修繕", "来訪者", "代理受取")
 
     // 期限校验只对有出寮日的类型（外出/外泊/帰省/帰国/早帰）适用；
     // 修繕/来訪者/代理受取 无出寮日，不显期限 banner、也不参与 pastDeadline 判断。
@@ -118,6 +128,73 @@ fun ApplyNewScreen(
     // 通用表单内置 3 段（对齐 iOS edit → ApplyPreviewView → ApplyDoneView）
     var stage by remember { mutableStateOf("edit") }
 
+    // 外出 / 修繕 / 来訪者 / 代理受取 → 真后端提出
+    fun submitNetwork() {
+        if (submitting) return
+        scope.launch {
+            submitting = true
+            val tokenAtStart = store.snapshot().authToken
+            try {
+                when {
+                    isOuting -> {
+                        OutingsAPI.create(
+                            OutingCreateBody(
+                                outingDate = leaveDate.toString(),
+                                destination = dest.trim().takeIf { it.isNotEmpty() },
+                                leaveTime = leaveTime,
+                                returnTime = returnTime,
+                                taxiReservationTime = null,
+                                reason = reason.trim().takeIf { it.isNotEmpty() },
+                            ),
+                        )
+                        if (store.snapshot().authToken != tokenAtStart) return@launch
+                        store.showToast("外出申請を提出しました")
+                        stage = "done"
+                    }
+
+                    isMisc -> {
+                        val backendKind =
+                            when (kind) {
+                                "修繕" -> "repair"
+                                "来訪者" -> "guest"
+                                "代理受取" -> "proxy_receipt"
+                                else -> return@launch
+                            }
+                        val subject =
+                            when (kind) {
+                                "修繕" -> dest.trim().ifEmpty { kind }
+                                else -> dest.trim().ifEmpty { kind }
+                            }
+                        val targetDate = if (kind == "来訪者") leaveDate.toString() else null
+                        MiscRequestsAPI.create(
+                            MiscRequestBody(
+                                kind = backendKind,
+                                subject = subject,
+                                detail = reason.trim().takeIf { it.isNotEmpty() },
+                                targetDate = targetDate,
+                            ),
+                        )
+                        if (store.snapshot().authToken != tokenAtStart) return@launch
+                        store.showToast("${kind}申請を提出しました")
+                        stage = "done"
+                    }
+
+                    else -> {
+                        // 其它走确认页后本地完成（StudyAbsence 等已分派到专属表单）
+                        stage = "done"
+                    }
+                }
+            } catch (e: ApiError) {
+                if (store.handleIfUnauthorized(e, tokenAtStart)) return@launch
+                store.showToast(e.display)
+            } catch (e: Exception) {
+                store.showToast("申請の提出に失敗しました")
+            } finally {
+                submitting = false
+            }
+        }
+    }
+
     // 确认页 — 对齐 iOS ApplyPreviewView（键值确认卡 +「提出後は審査待ち」banner +「戻る」「提出する」按钮）
     if (stage == "preview") {
         GenericApplyPreview(
@@ -131,20 +208,24 @@ fun ApplyNewScreen(
             navController = navController,
             onBack = { stage = "edit" },
             onSubmit = {
-                scope.launch {
-                    val newApp =
-                        Application(
-                            id = "A-${System.currentTimeMillis() % 100000}",
-                            kind = kind,
-                            dest = dest.ifBlank { "—" },
-                            from = leaveDate.toString(),
-                            to = if (showReturnDate || showReturnDateOnly) returnDate.toString() else leaveDate.toString(),
-                            status = ApplicationStatus.PENDING,
-                            reason = reason,
-                            createdAt = LocalDate.now().toString(),
-                        )
-                    store.update { it.copy(applications = listOf(newApp) + it.applications) }
-                    stage = "done"
+                if (isOuting || isMisc) {
+                    submitNetwork()
+                } else {
+                    scope.launch {
+                        val newApp =
+                            Application(
+                                id = "A-${System.currentTimeMillis() % 100000}",
+                                kind = kind,
+                                dest = dest.ifBlank { "—" },
+                                from = leaveDate.toString(),
+                                to = if (showReturnDate || showReturnDateOnly) returnDate.toString() else leaveDate.toString(),
+                                status = ApplicationStatus.PENDING,
+                                reason = reason,
+                                createdAt = LocalDate.now().toString(),
+                            )
+                        store.update { it.copy(applications = listOf(newApp) + it.applications) }
+                        stage = "done"
+                    }
                 }
             },
         )
@@ -250,8 +331,8 @@ fun ApplyNewScreen(
                         DateField("帰寮日", returnDate.format(DATE_FMT)) { showReturnPicker = true }
                         TimeChip("帰寮時刻", returnTime) { returnTime = it }
                     }
-                    if (kind in listOf("外出", "外泊", "帰省", "帰国")) {
-                        TextField2("行先", dest, "実家（神戸市東灘区）") { dest = it }
+                    if (showDestField) {
+                        TextField2("行先", dest, "行き先を入力") { dest = it }
                     }
                     if (showRepairFields) {
                         TextField2("修繕場所", dest, "M101 室・洗面所") { dest = it }
@@ -270,10 +351,11 @@ fun ApplyNewScreen(
                 }
 
                 // ── submit ──
-                // 来訪者「来訪者氏名」/ 代理受取「荷物の概要」走 dest 字段，必填（trim 防只填空格），対齐 iOS canSubmit
-                val needsDestField = showGuestField || showParcelField
+                // 「行先」/「来訪者氏名」/「荷物の概要」必填（对齐 iOS canSubmit needsDest）
+                val needsDestField = showDestField || showGuestField || showParcelField || showRepairFields
                 val canSubmit =
                     !pastDeadline &&
+                        !submitting &&
                         reason.isNotBlank() &&
                         (!needsDestField || dest.trim().isNotEmpty())
                 Box(
@@ -284,26 +366,21 @@ fun ApplyNewScreen(
                             .clip(RoundedCornerShape(16.dp))
                             .background(if (canSubmit) tokens.ink else tokens.inkFaint)
                             .clickable(enabled = canSubmit) {
-                                scope.launch {
-                                    val newApp =
-                                        Application(
-                                            id = "A-${System.currentTimeMillis() % 100000}",
-                                            kind = kind,
-                                            dest = dest.ifBlank { "—" },
-                                            from = leaveDate.toString(),
-                                            to = if (showReturnDate || showReturnDateOnly) returnDate.toString() else leaveDate.toString(),
-                                            status = ApplicationStatus.PENDING,
-                                            reason = reason,
-                                            createdAt = LocalDate.now().toString(),
-                                        )
-                                    store.update { it.copy(applications = listOf(newApp) + it.applications) }
-                                    navController.popBackStack()
+                                if (isOuting || isMisc) {
+                                    // 外出 / 杂项：直接提后端（对齐 iOS GenericApplyForm 生产版）
+                                    submitNetwork()
+                                } else {
+                                    stage = "preview"
                                 }
                             },
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        if (pastDeadline) "提出期限を過ぎています" else "提出する",
+                        when {
+                            pastDeadline -> "提出期限を過ぎています"
+                            submitting -> "提出中…"
+                            else -> "提出する"
+                        },
                         color = if (canSubmit) Color.White else tokens.inkSub,
                         style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold),
                     )

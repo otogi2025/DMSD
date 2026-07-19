@@ -22,6 +22,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,6 +35,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.endpoints.DormLifeAPI
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.ui.components.Field
@@ -46,6 +49,7 @@ import jp.tomoshibi.android.ui.components.TArea
 import jp.tomoshibi.android.ui.components.TField
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
+import kotlinx.coroutines.launch
 
 // ─────────────────────────────────────────────────────────────────────
 // ItemPossessionForm —— 物品所持許可願（学生申请「持有某件物品」的许可）
@@ -60,11 +64,13 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 fun ItemPossessionForm(navController: NavHostController) {
     val t = SuzuT.current
     val store = LocalAppStore.current
+    val scope = rememberCoroutineScope()
     val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
     val user = state.user
 
-    // 三态流程：edit（填写）→ preview（确认）→ done（完成）—— 对齐 StayForm.kt 第 135 行
+    // 三态流程：edit（填写）→ preview（确认）→ done（完成）—— 对齐 StayForm.kt
     var stage by remember { mutableStateOf("edit") }
+    var submitting by remember { mutableStateOf(false) }
 
     // ── 申請内容 4 字段（对齐 iOS @State roomNo / item / reason / guardianName）──
     // 部屋番号：iOS 在 .onAppear 用当前用户房间号预填，这里同样用本地 user.room 预填
@@ -138,9 +144,31 @@ fun ItemPossessionForm(navController: NavHostController) {
                                 reason = reason,
                                 guardianName = guardianName,
                                 onSubmit = {
-                                    // 提出する：本地无网络，只切到 done 段
-                                    // TODO 真接后端时在此 POST（对齐 iOS DormLifeAPI.submitItemPossession）
-                                    stage = "done"
+                                    if (submitting) return@PreviewBody
+                                    scope.launch {
+                                        submitting = true
+                                        val tokenAtStart = store.snapshot().authToken
+                                        try {
+                                            DormLifeAPI.submitItemPossession(
+                                                DormLifeAPI.ItemPossessionBody(
+                                                    roomNo = roomNo.trim(),
+                                                    item = item.trim(),
+                                                    reason = reason.trim(),
+                                                    guardianName = guardianName.trim(),
+                                                ),
+                                            )
+                                            if (store.snapshot().authToken != tokenAtStart) return@launch
+                                            store.showToast("物品所持許可願を提出しました")
+                                            stage = "done"
+                                        } catch (e: ApiError) {
+                                            if (store.handleIfUnauthorized(e, tokenAtStart)) return@launch
+                                            store.showToast(e.display)
+                                        } catch (e: Exception) {
+                                            store.showToast("申請の提出に失敗しました")
+                                        } finally {
+                                            submitting = false
+                                        }
+                                    }
                                 },
                                 onEdit = { stage = "edit" },
                             )
