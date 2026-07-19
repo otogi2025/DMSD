@@ -226,136 +226,9 @@ def seed_dev(db) -> None:
     make_session("evening", 22, 0)
     db.commit()
 
-    # 巴士便（spec §7.6）— 寮生特別運行（dorm_special）+ 平日通学便（daily_commute）。
-    # 全挂到 demo 演示老师名下，作为 created_by_teacher_id（dev 已纯 demo，无 shingu）。
-    # iOS BusListView / 老师网页 都靠 GET /api/v1/bus/routes 读这批数据。
-    demo_teacher = db.scalars(
-        select(models.Teacher).where(models.Teacher.login_id == "demo")
-    ).first()
-    if demo_teacher:
-        # (kind, name, direction, 月, 日, 出发时, 出发分, 到达时, 到达分(无则 None), visible_to, note)
-        bus_rows = [
-            # ── 寮生特別運行便：外宿 / 回家 / 购物 / 回国机场接送 ──
-            (
-                "dorm_special",
-                "外泊・帰省 朝便",
-                "高校棟 → 岡山駅西口",
-                6,
-                13,
-                7,
-                30,
-                8,
-                25,
-                "dorm_only",
-                "6/13 外泊・帰省者向け特別運行便。",
-            ),
-            (
-                "dorm_special",
-                "外泊・帰省 金川便",
-                "高校棟 → 金川駅",
-                6,
-                13,
-                10,
-                10,
-                10,
-                35,
-                "dorm_only",
-                "6/13 買い物・帰省者向け。",
-            ),
-            (
-                "dorm_special",
-                "帰寮 夕便",
-                "金川駅 → 寮",
-                6,
-                15,
-                17,
-                31,
-                17,
-                55,
-                "dorm_only",
-                "6/15 帰寮日。乗車名簿への事前チェック必要。",
-            ),
-            (
-                "dorm_special",
-                "空港送迎便（帰国）",
-                "寮 → 岡山空港",
-                6,
-                20,
-                9,
-                0,
-                9,
-                50,
-                "dorm_only",
-                "帰国届提出者向け。空港送迎便。",
-            ),
-            # ── 平日上下学班车 ──
-            (
-                "daily_commute",
-                "西口登校便",
-                "岡山駅西口 → 高校棟",
-                6,
-                8,
-                7,
-                0,
-                7,
-                45,
-                "all",
-                None,
-            ),
-            (
-                "daily_commute",
-                "金川登校便",
-                "金川駅 → 高校棟",
-                6,
-                8,
-                7,
-                10,
-                7,
-                40,
-                "all",
-                None,
-            ),
-            (
-                "daily_commute",
-                "西口下校便",
-                "高校棟 → 岡山駅西口",
-                6,
-                8,
-                18,
-                45,
-                19,
-                30,
-                "all",
-                None,
-            ),
-        ]
-        for kind, name, direction, mo, d, sh, sm, ah, am, vis, note in bus_rows:
-            schedule_at = datetime(2026, mo, d, sh, sm, tzinfo=JST)
-            arrival_at = (
-                datetime(2026, mo, d, ah, am, tzinfo=JST) if ah is not None else None
-            )
-            existing = db.scalars(
-                select(models.BusRoute).where(
-                    models.BusRoute.name == name,
-                    models.BusRoute.schedule_at == schedule_at,
-                )
-            ).first()
-            if existing:
-                continue
-            db.add(
-                models.BusRoute(
-                    kind=kind,
-                    name=name,
-                    direction=direction,
-                    schedule_at=schedule_at,
-                    arrival_at=arrival_at,
-                    visible_to=vis,
-                    note=note,
-                    created_by_teacher_id=demo_teacher.id,
-                )
-            )
-            log.info("加巴士便: %s %s", name, schedule_at)
-        db.commit()
+    # 巴士便 + 行事日历 — 抽成共用函数（dev / production 都种，挂演示老师名下）
+    _seed_bus_routes(db)
+    _seed_dorm_events(db)
 
     log.info("=" * 60)
     log.info("dev seed 完成（纯 demo）")
@@ -721,6 +594,11 @@ def seed_prod(db) -> None:
     # 4. 演示数据（opt-in）— 演示老师 + 演示学生，全 is_demo=True，对真老师隐身
     _seed_demo_data(db)
 
+    # 4b. 演示巴士便 + 行事日历 — 同样挂演示老师名下（接口按创建者 is_demo 过滤），
+    # 审核员打开 バス / 行事 页不再空白；真实学生看不到这批数据
+    _seed_bus_routes(db)
+    _seed_dorm_events(db)
+
     log.info("=" * 60)
     log.info("production seed 完成（最小必要数据）")
     log.info(
@@ -818,6 +696,240 @@ def _seed_demo_data(db) -> None:
             )
             log.info("加演示公告「%s」is_demo=True", a_data["title"])
         db.commit()
+
+
+def _seed_bus_routes(db) -> None:
+    """巴士便种子（spec §7.6）— 寮生特別運行（dorm_special）+ 平日通学便（daily_commute）。
+
+    dev / production 共用：全挂 login_id="demo" 演示老师名下（created_by_teacher_id）。
+    bus_routes 表无 is_demo 列，隔离靠接口按创建者 is_demo 过滤（bus_routes.py）——
+    演示账号（含 Apple 审核员）可见、真实学生不可见。
+    幂等：按 name + schedule_at 查重跳过。数据内容与原 seed_dev 内联版一字未改。
+    iOS BusListView / 老师网页 都靠 GET /api/v1/bus/routes 读这批数据。
+    """
+    JST = timezone(timedelta(hours=9))
+    demo_teacher = db.scalars(
+        select(models.Teacher).where(models.Teacher.login_id == "demo")
+    ).first()
+    if demo_teacher:
+        # (kind, name, direction, 月, 日, 出发时, 出发分, 到达时, 到达分(无则 None), visible_to, note)
+        bus_rows = [
+            # ── 寮生特別運行便：外宿 / 回家 / 购物 / 回国机场接送 ──
+            (
+                "dorm_special",
+                "外泊・帰省 朝便",
+                "高校棟 → 岡山駅西口",
+                6,
+                13,
+                7,
+                30,
+                8,
+                25,
+                "dorm_only",
+                "6/13 外泊・帰省者向け特別運行便。",
+            ),
+            (
+                "dorm_special",
+                "外泊・帰省 金川便",
+                "高校棟 → 金川駅",
+                6,
+                13,
+                10,
+                10,
+                10,
+                35,
+                "dorm_only",
+                "6/13 買い物・帰省者向け。",
+            ),
+            (
+                "dorm_special",
+                "帰寮 夕便",
+                "金川駅 → 寮",
+                6,
+                15,
+                17,
+                31,
+                17,
+                55,
+                "dorm_only",
+                "6/15 帰寮日。乗車名簿への事前チェック必要。",
+            ),
+            (
+                "dorm_special",
+                "空港送迎便（帰国）",
+                "寮 → 岡山空港",
+                6,
+                20,
+                9,
+                0,
+                9,
+                50,
+                "dorm_only",
+                "帰国届提出者向け。空港送迎便。",
+            ),
+            # ── 平日上下学班车 ──
+            (
+                "daily_commute",
+                "西口登校便",
+                "岡山駅西口 → 高校棟",
+                6,
+                8,
+                7,
+                0,
+                7,
+                45,
+                "all",
+                None,
+            ),
+            (
+                "daily_commute",
+                "金川登校便",
+                "金川駅 → 高校棟",
+                6,
+                8,
+                7,
+                10,
+                7,
+                40,
+                "all",
+                None,
+            ),
+            (
+                "daily_commute",
+                "西口下校便",
+                "高校棟 → 岡山駅西口",
+                6,
+                8,
+                18,
+                45,
+                19,
+                30,
+                "all",
+                None,
+            ),
+        ]
+        for kind, name, direction, mo, d, sh, sm, ah, am, vis, note in bus_rows:
+            schedule_at = datetime(2026, mo, d, sh, sm, tzinfo=JST)
+            arrival_at = (
+                datetime(2026, mo, d, ah, am, tzinfo=JST) if ah is not None else None
+            )
+            existing = db.scalars(
+                select(models.BusRoute).where(
+                    models.BusRoute.name == name,
+                    models.BusRoute.schedule_at == schedule_at,
+                )
+            ).first()
+            if existing:
+                continue
+            db.add(
+                models.BusRoute(
+                    kind=kind,
+                    name=name,
+                    direction=direction,
+                    schedule_at=schedule_at,
+                    arrival_at=arrival_at,
+                    visible_to=vis,
+                    note=note,
+                    created_by_teacher_id=demo_teacher.id,
+                )
+            )
+            log.info("加巴士便: %s %s", name, schedule_at)
+        db.commit()
+
+
+# 演示行事日历（spec §7.5）— 合理假数据（itsuki 拍板：审核员打开行事页不空白即可）。
+# dorm_events 表无 is_demo 列，隔离靠接口按创建者 is_demo 过滤（events.py）——
+# 挂演示老师名下 → 演示账号（含审核员）可见、真实学生不可见。
+# id 用固定 UUID（bbbb 段，避开公告 aaaa 段），幂等按 id 查重。
+DEMO_EVENTS = [
+    dict(
+        id=uuid.UUID("bbbb0001-0000-0000-0000-000000000001"),
+        title="夏季休業前 大掃除",
+        category="寮行事",
+        event_date=date(2026, 7, 23),
+        description="帰省前の全体大掃除。分担表は各階の掲示板を確認すること。",
+    ),
+    dict(
+        id=uuid.UUID("bbbb0002-0000-0000-0000-000000000002"),
+        title="1学期終業式・帰省開始",
+        category="学校行事",
+        event_date=date(2026, 7, 24),
+        description="終業式後、帰省届提出者から順次帰省。",
+    ),
+    dict(
+        id=uuid.UUID("bbbb0003-0000-0000-0000-000000000003"),
+        title="帰寮日（夏季休業明け）",
+        category="寮行事",
+        event_date=date(2026, 8, 24),
+        description="21:00 までに帰寮し、点呼を受けること。",
+    ),
+    dict(
+        id=uuid.UUID("bbbb0004-0000-0000-0000-000000000004"),
+        title="防災訓練",
+        category="学校行事",
+        event_date=date(2026, 9, 1),
+        description="夜学習の時間帯に実施。放送の指示に従うこと。",
+    ),
+    dict(
+        id=uuid.UUID("bbbb0005-0000-0000-0000-000000000005"),
+        title="体育祭",
+        category="学校行事",
+        event_date=date(2026, 10, 10),
+        description=None,
+    ),
+    dict(
+        id=uuid.UUID("bbbb0006-0000-0000-0000-000000000006"),
+        title="寮祭",
+        category="寮行事",
+        event_date=date(2026, 11, 14),
+        description="実行委員は前日 19:00 から準備。",
+    ),
+    dict(
+        id=uuid.UUID("bbbb0007-0000-0000-0000-000000000007"),
+        title="冬季休業前 大掃除・帰省開始",
+        category="寮行事",
+        event_date=date(2026, 12, 22),
+        description=None,
+    ),
+    dict(
+        id=uuid.UUID("bbbb0008-0000-0000-0000-000000000008"),
+        title="帰寮日（冬季休業明け）",
+        category="寮行事",
+        event_date=date(2027, 1, 7),
+        description="21:00 までに帰寮し、点呼を受けること。",
+    ),
+]
+
+
+def _seed_dorm_events(db) -> None:
+    """行事日历种子（spec §7.5）— 演示假数据，dev / production 共用。
+
+    全部全天行事（start_at / end_at = NULL），notify_students=False（不触发推送）。
+    幂等：按固定 id 查重，重复跑不重建。
+    """
+    demo_teacher = db.scalars(
+        select(models.Teacher).where(models.Teacher.login_id == "demo")
+    ).first()
+    if not demo_teacher:
+        log.info("演示老师不存在 — 跳过行事种子")
+        return
+    for e in DEMO_EVENTS:
+        if db.get(models.DormEvent, e["id"]):
+            log.info("演示行事「%s」已存在 — 跳过", e["title"])
+            continue
+        db.add(
+            models.DormEvent(
+                id=e["id"],
+                title=e["title"],
+                category=e["category"],
+                event_date=e["event_date"],
+                description=e["description"],
+                created_by_teacher_id=demo_teacher.id,
+                notify_students=False,
+            )
+        )
+        log.info("加演示行事「%s」%s", e["title"], e["event_date"])
+    db.commit()
 
 
 # =============================================================
