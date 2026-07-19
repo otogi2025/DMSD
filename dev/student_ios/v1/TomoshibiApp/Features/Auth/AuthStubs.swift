@@ -1390,7 +1390,10 @@ struct RegisterStep3View: View {
                 VStack(spacing: 18) {
                     Field(
                         label: "メールアドレス",
-                        hint: "学校のメールアドレスでも、ご自身のメールアドレスでも登録できます。認証メールは送信されません（将来のパスワードリセット時の確認用です）",
+                        // 「確認用のメール」→「確認メール」（jp-reviewer 2026-07-19）：原文括号里的
+                        // 「将来のパスワードリセット時の確認用です」被删后，「確認用の」指代悬空、读者不知在确认什么。
+                        // 「確認メール」是日语网络服务固定说法（=验证邮箱地址那封信），自带语义不依赖上文。
+                        hint: "学校のメールアドレスでも、ご自身のメールアドレスでも登録できます。このメールアドレスはログインにも使えます。確認メールは送信されません",
                         required: true
                     ) {
                         TField(text: $email, placeholder: "example@email.com", keyboard: .emailAddress)
@@ -1706,7 +1709,7 @@ struct RegisterDoneView: View {
 //   row: 新规注册 (T.inkSub) ←→ 忘记密码 → (T.primary)
 //   footer mono: Tomoshibi v0.1.0-demo
 //   magic seed（仅 DEMO 编译 + 学号 mode）: acc=="060217" && pw=="12345678" → router.replace(.home)
-//   （邮箱 mode 暂不支持登录，只提示切换学号；真实账号走 AuthAPI / 401 → lockout）
+//   邮箱 / 学号均可登录（后端 POST /sessions/student 二选一）；401 → lockout
 
 struct LoginView: View {
     @EnvironmentObject var router: RouterStore
@@ -1832,11 +1835,10 @@ struct LoginView: View {
     // JSX: 2-tab segmented control, bg T.pill, padding 3
     private var modeTab: some View {
         HStack(spacing: 0) {
-            // v1.0 上架版：邮箱登录后端未实装（选「メール」点登录只会弹「ご利用いただけません」）→ 隐藏「メール」tab、只留学号（番号）登录。
-            // 两个 scheme 都隐藏（功能未实装、非 demo/生产差异）；邮箱输入字段 + tryLogin 里的 email 分支代码保留。
-            // 第二波接后端邮箱登录后恢复：在下面加回一个「メール」tab（active 判 mode == .email、动作 mode = .email）。
+            // 学号 / 邮箱两种登录都已接通后端（POST /sessions/student 二选一）。
             // 历史（保留说明）：原两 tab 切换只换 mode 不清空字段，避免抹掉 DEMO 预填 / 用户已输入内容（itsuki 2026-06-15 报）。
             tabBtn(title: "番号", active: mode == .number) { mode = .number }
+            tabBtn(title: "メール", active: mode == .email) { mode = .email }
         }
         .padding(3)
         .background {
@@ -1865,45 +1867,55 @@ struct LoginView: View {
     /// 登录尝试（async — 调 AuthAPI.loginStudent）
     ///
     /// 流程：
-    ///  - 邮箱 mode → backend 还没实装邮箱登录，提示用户切到学号
-    ///  - DEMO 编译模式 + magic creds（acc=="060217" / pw=="12345678"）→ 跳过 API 直接进 home
-    ///  - 其他全走 AuthAPI.loginStudent → 401 走 lockout / 其他 error 走 toast
+    ///  - 学号 mode：trim 后走 AuthAPI.loginStudent(studentNo:)；DEMO magic creds 可跳过 API
+    ///  - 邮箱 mode：trim 后走 AuthAPI.loginStudent(email:)（无 magic creds）
+    ///  - 401 走 lockout / 其他 error 走 toast
     private func tryLogin() async {
         guard !isLoading else { return } // 重入防抖：极快双击不发两次登录请求（与 Step5 submit 同套防护）
         isLoading = true
         defer { isLoading = false }
 
-        // 邮箱 mode 暂未支持（backend F6 注册流程未实装、邮箱登录后做）
-        if mode == .email {
-            app.showToast("メールでのログインは現在ご利用いただけません。アカウント番号でログインしてください")
-            return
-        }
-
-        // 账号去首尾空白：学号是 6 桁数字、空格永远非法，复制粘贴常带空格 / 换行
+        // 账号 / 邮箱去首尾空白：复制粘贴常带空格 / 换行
         //   → 用 .whitespacesAndNewlines 统一 trim（含换行符；原 .whitespaces 只去空格/制表符、漏换行）后再用
         // 密码不 trim：用户故意打的空格也算密码内容，原样发后端（后端只校验长度 6–128，schemas.py）
         let trimmedAcc = acc.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let pwBlank = pw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 
-        // 空字段检查：账号 / 密码任一空着就当场拦下，别拿空值去请求后端
+        // 空字段检查：标识符 / 密码任一空着就当场拦下，别拿空值去请求后端
         // （原来空着也直发请求，失败落到「通信错误」提示，跟「没填」对不上、误导用户 — itsuki 2026-06-04）
-        if trimmedAcc.isEmpty || pw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            app.showToast("アカウント番号とパスワードを入力してください")
-            return
+        if mode == .number {
+            if trimmedAcc.isEmpty || pwBlank {
+                app.showToast("アカウント番号とパスワードを入力してください")
+                return
+            }
+        } else {
+            if trimmedEmail.isEmpty || pwBlank {
+                app.showToast("メールアドレスとパスワードを入力してください")
+                return
+            }
         }
 
-        // DEMO 编译模式: magic creds 跳过 API（用于演示锁定升级 / 离线场景）
+        // DEMO 编译模式: magic creds 跳过 API（仅学号 mode；用于演示锁定升级 / 离线场景）
         #if DEMO
-            let isDemoMagic = (trimmedAcc == "060217") && (pw == "12345678")
-            if isDemoMagic {
-                app.resetLoginFailures()
-                router.replace(.home)
-                return
+            if mode == .number {
+                let isDemoMagic = (trimmedAcc == "060217") && (pw == "12345678")
+                if isDemoMagic {
+                    app.resetLoginFailures()
+                    router.replace(.home)
+                    return
+                }
             }
         #endif
 
         // 真实 API 调用
         do {
-            let token = try await AuthAPI.loginStudent(studentNo: trimmedAcc, password: pw)
+            let token: TokenOut
+            if mode == .number {
+                token = try await AuthAPI.loginStudent(studentNo: trimmedAcc, password: pw)
+            } else {
+                token = try await AuthAPI.loginStudent(email: trimmedEmail, password: pw)
+            }
             // IX-036: 走 setAuthToken 一并存过期时刻（原来直接赋 authToken 会跳过过期记录，
             // 登录得到的令牌启动时就判不了过期）。didSet 仍同步 APIClient.token + Keychain.save。
             app.setAuthToken(token.accessToken, expiresIn: token.expiresIn)
@@ -1911,7 +1923,7 @@ struct LoginView: View {
             app.resetLoginFailures()
             router.replace(.home)
         } catch APIError.unauthorized {
-            // 学号 / 密码错（后端尚未锁）
+            // 学号或邮箱 / 密码错（后端尚未锁）
             #if DEMO
                 // 本地连续失败计数（纯 UX）只在演示版有消费方 —— 唯一读 loginFailCount 的是 LockoutView，
                 // 而进 LockoutView 的入口只有下面的 router.go(.lockout)（仅 DEMO）。生产分支永不读该计数，
@@ -1921,7 +1933,11 @@ struct LoginView: View {
                 router.go(.lockout)
             #else
                 // 生产版不走本地写死倒计时的假 LockoutView，只提示凭证错误
-                app.showToast("アカウント番号またはパスワードが正しくありません")
+                if mode == .number {
+                    app.showToast("アカウント番号またはパスワードが正しくありません")
+                } else {
+                    app.showToast("メールアドレスまたはパスワードが正しくありません")
+                }
             #endif
         } catch let APIError.server(423, msg) {
             // 后端真锁（B6 学生连续失败锁）→ 显示后端日语文案（含「剩余约 X 分」），以后端为锁定真值

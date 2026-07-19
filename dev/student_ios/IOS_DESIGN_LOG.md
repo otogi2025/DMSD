@@ -132,11 +132,12 @@ Claude Design **必须**默认创建 00 号账户，seed 数据：
 
 ### 3.5 登录
 
-- 号码 + 密码 2 字段
+- 番号 / メール 两个 tab + 密码（`AuthAPI.loginStudent(studentNo:)` / `loginStudent(email:)` 分开发，body 不含另一字段的 null）
 - **永久保持**（直到主动 ログアウト）
 - 成功登录 → 错误 counter 清零（N3 ✅）
 - 首次启动 → 没 session → 注册 flow
 - 后续启动 → 有 session → Home
+- **2026-07-19**：恢复「メール」tab（原先 §32 因后端未实装而隐藏；现后端已支持邮箱登录）
 
 ### 3.6 密码锁定升级策略
 
@@ -1646,12 +1647,12 @@ itsuki 要求主页点数卡下方的「次の罰則清掃」小卡（`HomeStubs
 
 ## §32 第一波上架改造：点呼入口生产占位 + 邮箱登录 tab 隐藏 + C2 测试批（2026-07-13，commit `3e7fdc5`/`e7c637e`）
 
-> ⚠️ **点呼入口占位已于 §34（2026-07-17）反转解除**（7-17 itsuki 拍板「点呼做成真功能当核心卖点」）；邮箱登录 tab 隐藏不受影响、仍有效。
+> ⚠️ **点呼入口占位已于 §34（2026-07-17）反转解除**；**邮箱登录 tab 隐藏已于 2026-07-19 反转恢复**（后端实装邮箱登录后）。
 
 A3 上架清单 A-1/A-2 落地（spec v1.0 §2.2「点呼入口占位、不得呈现可签到假象」）：
 
 - **点呼入口占位**：`RollcallSheet.idleView` 拆成 `#if DEMO demoScanIdle #else comingSoonPlaceholder`。生产构建打开点呼弹窗只见占位（沙漏图标 + 「点呼機能は近日公開予定です」+ 现阶段按宿舍原有方式点呼的说明 + 閉じる），不启动 NFC；演示构建保留完整扫描准备界面 + 假扫描动画。`ST25DVWriter` / `simulate()` 生产真写分支一行未删——第二波把 `#else` 换回 `demoScanIdle` 即恢复入口。
-- **邮箱登录 tab 隐藏**：`LoginView.modeTab` 删「メール」tab 只留「番号」（后端无邮箱登录接口，点了只会弹不可用 toast）；两个 scheme 都隐藏（功能未实装、非 demo/生产差异），email 输入与处理分支代码保留待第二波接后端。
+- ~~**邮箱登录 tab 隐藏**~~ → **已恢复（2026-07-19）**：`LoginView.modeTab` 重新显示「メール」；`tryLogin` 删「ご利用いただけません」早退，走 `AuthAPI.loginStudent(email:)`。
 - **C2 测试批**（`e7c637e`）：`RollStateMachineTests` +5 时间窗四界精确边界；新增 `RoomAssemblyTests`（房号前缀纯函数，钉死「A 前缀 2 寮不被性别覆盖」6-17 根因）+ `MappingDecodingTests`（ApplyKind 映射 / TodaySession null 解码 / ISO8601 JST）；`AppStore.RegistrationDraft` 房号组装+寮推导抽 static 纯函数（逐字等价）；`decodeISO8601Date` private→internal 供测试测真身。
 
 验证：双 scheme BUILD SUCCEEDED + TEST SUCCEEDED 25 条；Release archive 实测 AppIcon 正常编入（A3 命门 3「图标构建断裂」证伪销案——`AppIcon.icon` 新格式已被 actool 接管，xcodegen 重生成逐字节一致无漂移）。未 push。
@@ -1685,3 +1686,10 @@ A3 上架清单 A-1/A-2 落地（spec v1.0 §2.2「点呼入口占位、不得�
 - **做法**：`mbctrl & mbCtrlRFPutMsg != 0` → 返回 `mailboxBusy`，日语提示「前の人の処理中です。少し待ってからもう一度」，让本次失败重试。宁可让人多贴一次，也不静默吃掉别人的签到。
 - 位号 bit2 与点呼机 `src/nfc/st25dv.py` 的 `MB_CTRL_RF_PUT_MSG` 取值一致，硬件联调时两端一并坐实。
 - 验证：双 scheme BUILD SUCCEEDED。
+
+## §35 恢复邮箱登录 tab + 接通后端（2026-07-19）
+
+- `LoginView.modeTab` 加回「メール」（反转 §32 隐藏）。
+- `tryLogin`：邮箱 mode 走 `AuthAPI.loginStudent(email:)`；空字段 toast「メールアドレスとパスワードを…」；生产 401 toast「メールアドレスまたはパスワードが正しくありません」。DEMO magic creds 仍仅学号 mode。
+- 注册联络先 hint 改为「このメールアドレスはログインにも使えます。確認用のメールは送信されません」。
+- `AuthAPI`：学号 / 邮箱两个独立 `Encodable` 请求体，避免编出 `null` 字段。

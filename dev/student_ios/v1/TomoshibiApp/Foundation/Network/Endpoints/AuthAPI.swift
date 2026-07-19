@@ -10,20 +10,33 @@ import Foundation
 enum AuthAPI {
     // MARK: - 学生登录
 
-    /// POST /api/v1/sessions/student 用的请求 body
-    struct StudentLoginRequest: Encodable {
+    /// POST /api/v1/sessions/student — 学号登录 body（只编 student_no，不发 email:null）
+    struct StudentLoginByNumberRequest: Encodable {
         let student_no: String // 6 桁学号 "060218"
         let password: String
     }
 
-    /// 学生登录。成功返 TokenOut（access_token + token_type + expires_in）
+    /// POST /api/v1/sessions/student — 邮箱登录 body（只编 email，不发 student_no:null）
+    struct StudentLoginByEmailRequest: Encodable {
+        let email: String
+        let password: String
+    }
+
+    /// 学号登录。成功返 TokenOut（access_token + token_type + expires_in）
     /// - Throws:
     ///   - APIError.unauthorized — 学号 / 密码错（401）
     ///   - APIError.unprocessable — 学号格式错等（422）
     ///   - APIError.network — 通信失败
     @MainActor
     static func loginStudent(studentNo: String, password: String) async throws -> TokenOut {
-        let body = StudentLoginRequest(student_no: studentNo, password: password)
+        let body = StudentLoginByNumberRequest(student_no: studentNo, password: password)
+        return try await APIClient.shared.post(path: "/api/v1/sessions/student", body: body)
+    }
+
+    /// 邮箱登录（大小写不敏感；与学号登录互斥，body 不含 student_no）
+    @MainActor
+    static func loginStudent(email: String, password: String) async throws -> TokenOut {
+        let body = StudentLoginByEmailRequest(email: email, password: password)
         return try await APIClient.shared.post(path: "/api/v1/sessions/student", body: body)
     }
 }
