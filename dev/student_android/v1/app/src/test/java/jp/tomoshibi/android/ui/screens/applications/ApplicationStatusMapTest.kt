@@ -14,7 +14,7 @@ class ApplicationStatusMapTest {
     fun `mapApplicationStatus4 全值正映射`() {
         assertEquals(ApplicationStatus.PENDING, mapApplicationStatus4("pending"))
         assertEquals(ApplicationStatus.APPROVED, mapApplicationStatus4("approved"))
-        assertEquals(ApplicationStatus.APPROVED, mapApplicationStatus4("approved_partial")) // 一部承認也归 APPROVED
+        assertEquals(ApplicationStatus.APPROVED_PARTIAL, mapApplicationStatus4("approved_partial")) // 一部承認独立（iOS ApplyStubs:48）
         assertEquals(ApplicationStatus.RETURNED, mapApplicationStatus4("returned"))
         assertEquals(ApplicationStatus.REJECTED, mapApplicationStatus4("rejected"))
         assertEquals(ApplicationStatus.WITHDRAWN, mapApplicationStatus4("withdrawn")) // 独立「取消済」，勿并入 REJECTED
@@ -45,6 +45,7 @@ class ApplicationStatusMapTest {
     fun `applicationStatusLabel 各态文案`() {
         assertEquals("審査中", applicationStatusLabel(ApplicationStatus.PENDING))
         assertEquals("承認済", applicationStatusLabel(ApplicationStatus.APPROVED))
+        assertEquals("一部承認", applicationStatusLabel(ApplicationStatus.APPROVED_PARTIAL))
         assertEquals("要修正", applicationStatusLabel(ApplicationStatus.RETURNED))
         assertEquals("差し戻し", applicationStatusLabel(ApplicationStatus.REJECTED))
         assertEquals("取消済", applicationStatusLabel(ApplicationStatus.WITHDRAWN))

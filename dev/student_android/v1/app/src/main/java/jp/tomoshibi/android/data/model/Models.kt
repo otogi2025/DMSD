@@ -28,8 +28,9 @@ data class User(
     val needsCleaning: Boolean = false,
 )
 
-// 5 值：比后端 7 态少 draft / approved_partial（后者并入 APPROVED）；withdrawn 独立，勿并入 REJECTED。
-enum class ApplicationStatus { PENDING, APPROVED, RETURNED, REJECTED, WITHDRAWN }
+// 6 值：后端集合 pending/approved_partial/approved/rejected/withdrawn/returned（models.py CHECK 无 draft）。
+// APPROVED_PARTIAL 独立显「一部承認」（iOS ApplyStubs:48）；withdrawn 独立，勿并入 REJECTED。
+enum class ApplicationStatus { PENDING, APPROVED, APPROVED_PARTIAL, RETURNED, REJECTED, WITHDRAWN }
 
 @Serializable
 data class Application(

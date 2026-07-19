@@ -217,7 +217,8 @@ class AppStore(
             // token 单独加密存；DataStore JSON 永不落明文
             if (next.authToken.isNullOrEmpty()) {
                 tokenStore.clear()
-            } else {
+            } else if (next.authToken != tokenStore.get()) {
+                // 值没变不重存——AES-GCM 随机 IV 会让同值重存也产生新密文、真实落盘（R1-Grok#5）。
                 tokenStore.save(next.authToken)
             }
             prefs[APP_STATE_KEY] = appJson.encodeToString(next.copy(authToken = null))
@@ -678,21 +679,25 @@ class AppStore(
         val decision = RollStateMachine.decide(cachedRollSessions, System.currentTimeMillis())
         val checkinAtText =
             decision.checkedInAtMillis?.let { ms -> JstDate.formatHm(ms) }
+        // 无变化直接返回、不进 update()——否则 idle 时段也每秒重存令牌 + 写 DataStore
+        // （加密存储 AES-GCM 随机 IV 让同值重存也真实落盘；三方审查 R1-Grok#5）。
+        // 已知残留：ACTIVE 受付窗内倒计时每秒真变，仍每秒落盘（窗口仅数分钟/天，可接受）。
+        val cur = snapshot()
+        val nextCountdown = decision.countdownSec?.toInt() ?: cur.rollCountdownSec
+        if (cur.rollState == decision.state &&
+            cur.checkinKind == decision.checkinKind &&
+            cur.checkinAt == checkinAtText &&
+            cur.rollCountdownSec == nextCountdown
+        ) {
+            return
+        }
         update { current ->
-            if (current.rollState == decision.state &&
-                current.checkinKind == decision.checkinKind &&
-                current.checkinAt == checkinAtText &&
-                current.rollCountdownSec == (decision.countdownSec?.toInt() ?: current.rollCountdownSec)
-            ) {
-                current
-            } else {
-                current.copy(
-                    rollState = decision.state,
-                    checkinKind = decision.checkinKind,
-                    checkinAt = checkinAtText,
-                    rollCountdownSec = decision.countdownSec?.toInt() ?: current.rollCountdownSec,
-                )
-            }
+            current.copy(
+                rollState = decision.state,
+                checkinKind = decision.checkinKind,
+                checkinAt = checkinAtText,
+                rollCountdownSec = decision.countdownSec?.toInt() ?: current.rollCountdownSec,
+            )
         }
     }
 

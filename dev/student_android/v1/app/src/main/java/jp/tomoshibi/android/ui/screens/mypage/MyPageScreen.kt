@@ -553,7 +553,8 @@ private fun HistoryGrid(
             GridBlock("個人情報", SuzuIcons.Person, Route.MyInfo.path),
             GridBlock("処分履歴", SuzuIcons.Warn, Route.MyDiscipline.path),
             GridBlock("体調報告履歴", SuzuIcons.Face, Route.MyHealth.path),
-            GridBlock("申請履歴", SuzuIcons.Doc, Route.Applications.path),
+            // 对齐 iOS MyPageStubs：申請履歴 → StayList（对齐版一覧，非申请中心）。
+            GridBlock("申請履歴", SuzuIcons.Doc, Route.StayList.path),
             GridBlock("罰則清掃 履歴", SuzuIcons.Sparkles, Route.MyClean.path),
             GridBlock("荷物受取履歴", SuzuIcons.Pkg, Route.MyPackages.path, badge = packagesBadge),
         )

@@ -43,6 +43,7 @@ import androidx.navigation.NavHostController
 import jp.tomoshibi.android.data.network.ApiError
 import jp.tomoshibi.android.data.network.EventOut
 import jp.tomoshibi.android.data.network.endpoints.EventsAPI
+import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.ui.components.FailedBox
 import jp.tomoshibi.android.ui.components.GlobalScaffold
 import jp.tomoshibi.android.ui.components.LoadState
@@ -85,10 +86,13 @@ fun ScheduleScreen(navController: NavHostController) {
     val scope = rememberCoroutineScope()
     // 三态：Loading / Failed(消息) / Success(后端 EventOut 列表，可为空)
     // 不再用 LoadState.Empty —— 0 条也走 Success，日历持续显示（G7）
+    val store = LocalAppStore.current
     var ui by remember { mutableStateOf<LoadState<List<EventOut>>>(LoadState.Loading) }
 
     // 加载函数（重试也调它）。失败必须落 Failed，绝不退化成假数据。
     suspend fun load() {
+        // 401 → 清会话（对齐 iOS：令牌已死不留失败态误导）。
+        val tokenAtStart = store.snapshot().authToken
         ui = LoadState.Loading
         ui =
             try {
@@ -97,6 +101,7 @@ fun ScheduleScreen(navController: NavHostController) {
                 val items = EventsAPI.listEvents(fromDate = from, toDate = to)
                 LoadState.Success(items)
             } catch (e: ApiError) {
+                if (store.handleIfUnauthorized(e, tokenAtStart)) return
                 LoadState.Failed(e.display)
             } catch (e: Exception) {
                 LoadState.Failed("読み込みに失敗しました")

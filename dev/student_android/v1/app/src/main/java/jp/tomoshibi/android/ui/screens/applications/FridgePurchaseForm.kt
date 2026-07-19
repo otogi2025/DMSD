@@ -102,7 +102,11 @@ fun FridgePurchaseForm(navController: NavHostController) {
             when (stage) {
                 "done" -> {
                     ApplyDoneBody(kindName = "冷蔵庫購入") {
-                        navController.navigate(jp.tomoshibi.android.nav.Route.Applications.path)
+                        // 对齐 iOS「一覧へ」= 回申请列表根并清栈（不清会残留完成页在返回栈）。
+                        navController.navigate(jp.tomoshibi.android.nav.Route.Applications.path) {
+                            popUpTo(jp.tomoshibi.android.nav.Route.Applications.path) { inclusive = false }
+                            launchSingleTop = true
+                        }
                     }
                 }
 

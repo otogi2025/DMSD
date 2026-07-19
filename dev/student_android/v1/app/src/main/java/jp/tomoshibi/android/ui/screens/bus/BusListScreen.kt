@@ -26,6 +26,7 @@ import jp.tomoshibi.android.data.format.JstDate
 import jp.tomoshibi.android.data.network.ApiError
 import jp.tomoshibi.android.data.network.BusRouteOut
 import jp.tomoshibi.android.data.network.endpoints.BusAPI
+import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.ui.components.EmptyState
 import jp.tomoshibi.android.ui.components.FailedBox
 import jp.tomoshibi.android.ui.components.GlobalScaffold
@@ -63,16 +64,20 @@ fun BusListScreen(navController: NavHostController) {
     val t = SuzuT.current
     val scope = rememberCoroutineScope()
     // 三态：Loading / Failed(消息) / Empty / Success(后端 BusRouteOut 列表)
+    val store = LocalAppStore.current
     var ui by remember { mutableStateOf<LoadState<List<BusRouteOut>>>(LoadState.Loading) }
 
     // 加载函数（重试也调它）。失败必须落 Failed，绝不退化成空列表。
+    // 401 → 清会话（对齐 iOS BusListStubs：令牌已死不留空列表误导）。
     suspend fun load() {
+        val tokenAtStart = store.snapshot().authToken
         ui = LoadState.Loading
         ui =
             try {
                 val items = BusAPI.listRoutes()
                 if (items.isEmpty()) LoadState.Empty else LoadState.Success(items)
             } catch (e: ApiError) {
+                if (store.handleIfUnauthorized(e, tokenAtStart)) return
                 LoadState.Failed(e.display)
             } catch (e: Exception) {
                 LoadState.Failed("読み込みに失敗しました")

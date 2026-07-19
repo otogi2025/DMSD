@@ -43,7 +43,7 @@ import kotlinx.coroutines.launch
 // 对齐 iOS Features/Home/HomeStubs.swift 行 2163–2298（struct RenewStudentNoSheet）。
 // 用途：新学年开学时学生重新选「学年・組・出席番号」三段，系统自动拼出新学籍番号。
 // iOS 用 GlassSheet；Android 走 GlassBottomSheet 近似。
-// 提交：POST /students/me/renew-number；422 撞号原样弹后端日语提示。
+// 提交：POST /api/v1/students/me/renew-number；422 撞号原样弹后端日语提示。
 // ───────────────────────────────────────────────────────────────
 
 // 学年：中高一貫 6 年制（01→中1 … 06→高3），label 是 chip 上显示的文字

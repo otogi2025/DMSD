@@ -78,8 +78,10 @@ fun ApplicationsScreen(navController: NavHostController) {
                 coroutineScope {
                     val appsDeferred = async { ApplicationsAPI.listMine().map { it.toUiApplication() } }
                     val outingsDeferred = async { OutingsAPI.listMine().map { it.toUiApplication() } }
+                    // 外出侧软失败（对齐 iOS ApplyStubs:127 try?）——外出接口挂了不拖垮出寮列表。
+                    val outings = runCatching { outingsDeferred.await() }.getOrDefault(emptyList())
                     val items =
-                        (appsDeferred.await() + outingsDeferred.await())
+                        (appsDeferred.await() + outings)
                             .sortedByDescending { it.createdAt }
                     if (items.isEmpty()) LoadState.Empty else LoadState.Success(items)
                 }
@@ -179,16 +181,27 @@ fun ApplicationsScreen(navController: NavHostController) {
                         val filtered =
                             s.value.filter { app ->
                                 when (filter) {
-                                    "all" -> true
+                                    "all" -> {
+                                        true
+                                    }
 
-                                    "pending" -> app.status == ApplicationStatus.PENDING
+                                    "pending" -> {
+                                        app.status == ApplicationStatus.PENDING
+                                    }
 
-                                    // 「承認済」tab 同时收承認済与一部承認（映射后都是 APPROVED）
-                                    "approved" -> app.status == ApplicationStatus.APPROVED
+                                    // 「承認済」tab 同时收承認済与一部承認（iOS ApplyStubs:87）
+                                    "approved" -> {
+                                        app.status == ApplicationStatus.APPROVED ||
+                                            app.status == ApplicationStatus.APPROVED_PARTIAL
+                                    }
 
-                                    "draft" -> false
+                                    "draft" -> {
+                                        false
+                                    }
 
-                                    else -> true
+                                    else -> {
+                                        true
+                                    }
                                 }
                             }
 
@@ -210,7 +223,15 @@ fun ApplicationsScreen(navController: NavHostController) {
                                     summary = app.dest,
                                     date = app.createdAt,
                                     status = app.status,
-                                    onClick = { navController.navigate("applications/${app.id}") },
+                                    onClick = {
+                                        // 对齐 iOS ApplyStubs:2338：出寮届详情一律走 StayDetailView（差戻横幅
+                                        // + 詳細/履歴 tab + 操作履歴）；外出仍走本地详情（其外出分支已对齐）。
+                                        if (app.id.startsWith("outing:")) {
+                                            navController.navigate("applications/${app.id}")
+                                        } else {
+                                            navController.navigate(Route.StayDetail(app.id).path)
+                                        }
+                                    },
                                 )
                             }
                             Spacer(Modifier.height(120.dp))
@@ -344,9 +365,16 @@ internal fun ApplicationStatusPill(
     val (bg, fg) =
         when (status) {
             ApplicationStatus.PENDING -> tokens.warnBg to tokens.warnDeep
+
             ApplicationStatus.APPROVED -> tokens.okBg to tokens.okDeep
+
+            // 一部承認同绿系（iOS ApplyStubs:48 .ok）
+            ApplicationStatus.APPROVED_PARTIAL -> tokens.okBg to tokens.okDeep
+
             ApplicationStatus.RETURNED -> tokens.dangerBg to tokens.danger
+
             ApplicationStatus.REJECTED -> tokens.dangerBg to tokens.danger
+
             ApplicationStatus.WITHDRAWN -> tokens.pill to tokens.inkMute
         }
     Box(

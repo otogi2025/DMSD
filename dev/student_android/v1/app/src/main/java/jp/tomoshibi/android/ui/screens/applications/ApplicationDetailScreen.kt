@@ -355,7 +355,7 @@ private fun ApplicationDetailBody(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    if (withdrawing) "取消中…" else "申請を撤回する",
+                    if (withdrawing) "取り消し中…" else "申請を取り消し",
                     color = tokens.danger,
                     style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
                 )

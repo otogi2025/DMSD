@@ -142,6 +142,8 @@ fun DormEventProposalForm(
         if (!isResubmit || didPrefill) return@LaunchedEffect
         val rid = resubmitId ?: return@LaunchedEffect
         prefilling = true
+        // 请求前捕获令牌——比对「进入时令牌」才能防误清刚换上的新会话（三方审查 R1-Grok#2）。
+        val tokenAtStart = store.snapshot().authToken
         try {
             val all = DormLifeAPI.listMyEventProposals()
             val item = all.firstOrNull { it.id.equals(rid, ignoreCase = true) }
@@ -165,7 +167,7 @@ fun DormEventProposalForm(
             note = item.note.orEmpty()
             didPrefill = true
         } catch (e: ApiError) {
-            if (store.handleIfUnauthorized(e, store.snapshot().authToken)) return@LaunchedEffect
+            if (store.handleIfUnauthorized(e, tokenAtStart)) return@LaunchedEffect
             store.showToast(e.display.ifBlank { "企画の取得に失敗しました" })
             navController.popBackStack()
         } catch (_: Exception) {

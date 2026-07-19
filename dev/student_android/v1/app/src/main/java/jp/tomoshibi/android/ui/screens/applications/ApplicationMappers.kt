@@ -26,10 +26,18 @@ import kotlinx.serialization.json.jsonPrimitive
 fun mapApplicationStatus4(backend: String): ApplicationStatus =
     when (backend) {
         "pending" -> ApplicationStatus.PENDING
-        "approved", "approved_partial" -> ApplicationStatus.APPROVED
+
+        "approved" -> ApplicationStatus.APPROVED
+
+        "approved_partial" -> ApplicationStatus.APPROVED_PARTIAL
+
         "returned" -> ApplicationStatus.RETURNED
+
         "withdrawn" -> ApplicationStatus.WITHDRAWN
+
         "rejected" -> ApplicationStatus.REJECTED
+
+        // 后端 CHECK 约束外的值不可达（含 draft）；iOS 会显原文，枚举模型下保守落 REJECTED。
         else -> ApplicationStatus.REJECTED
     }
 
@@ -38,6 +46,7 @@ fun applicationStatusLabel(status: ApplicationStatus): String =
     when (status) {
         ApplicationStatus.PENDING -> "審査中"
         ApplicationStatus.APPROVED -> "承認済"
+        ApplicationStatus.APPROVED_PARTIAL -> "一部承認"
         ApplicationStatus.RETURNED -> "要修正"
         ApplicationStatus.REJECTED -> "差し戻し"
         ApplicationStatus.WITHDRAWN -> "取消済"
