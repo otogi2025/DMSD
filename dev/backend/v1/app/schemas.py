@@ -68,8 +68,22 @@ class MealSkipEntry(BaseModel):
 # 認証
 # ---------------------------------------------------------------
 class StudentLoginIn(BaseModel):
-    student_no: Annotated[str, Field(pattern=r"^\d{6}$")]
+    """学生登录：student_no 或 email 必须且只能传一个（对齐 TeacherLoginIn「至少传一个」口径，
+    额外禁止两个都传，避免客户端歧义）。"""
+
+    student_no: Optional[Annotated[str, Field(pattern=r"^\d{6}$")]] = None
+    email: Optional[EmailStr] = None
     password: str = Field(..., min_length=6, max_length=128)
+
+    @model_validator(mode="after")
+    def _need_exactly_one_identifier(self) -> "StudentLoginIn":
+        has_no = bool(self.student_no)
+        has_email = bool(self.email)
+        if not has_no and not has_email:
+            raise ValueError("student_no or email is required")
+        if has_no and has_email:
+            raise ValueError("provide either student_no or email, not both")
+        return self
 
 
 class TeacherLoginIn(BaseModel):

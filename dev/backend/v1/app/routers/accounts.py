@@ -16,7 +16,7 @@ import re
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -149,9 +149,11 @@ def create_account(
         )
 
     # 4. email 查重（email 是 optional 字段）
+    # 大小写不敏感，与 login_student 邮箱查找口径一致；存库仍用客户端原样（不强制 lower）。
     if body.email:
+        email_key = body.email.strip().lower()
         existing_email = db.scalars(
-            select(models.Student).where(models.Student.email == body.email)
+            select(models.Student).where(func.lower(models.Student.email) == email_key)
         ).first()
         if existing_email:
             raise HTTPException(
@@ -231,8 +233,11 @@ def create_account(
                 },
             )
         if body.email:
+            email_key = body.email.strip().lower()
             dup_email = db.scalars(
-                select(models.Student).where(models.Student.email == body.email)
+                select(models.Student).where(
+                    func.lower(models.Student.email) == email_key
+                )
             ).first()
             if dup_email is not None:
                 raise HTTPException(

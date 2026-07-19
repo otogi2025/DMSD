@@ -312,7 +312,7 @@
 |---|---|---|---|---|---|
 | 学生注册(4 step + 学号 + 房间号 + 留学生 flag + **登録コード §7.16**)| 〇 | — | `POST /accounts` ⏳ | 学生 | (V1) |
 | 学生注册コード生成 / 配布 / 关闭(App Store 公開対策、§7.16)| — | ⏳ `/admin/registration-code` | `POST .../refresh` + `GET .../current` + `POST .../close` ⏳ | 寮務権限教師 | (V1) |
-| 学生登录(学号 + 密码)| ✅ Auth Stub | ✅ login.jsx | `POST /sessions` ⏳ | 学生 | (D) |
+| 学生登录(学号 **或** 邮箱 + 密码；邮箱大小写不敏感)| ✅ LoginView 番号/メール tab | ✅ login.jsx（学号）| `POST /sessions/student`（二选一）| 学生 | (D) 学号 / (V1) 邮箱 |
 | 教师登录(教师 ID + 密码,各 1 名独立 R3)| — | ⏳ teacher login | `POST /sessions/teacher` ⏳ | 全教师 | (V1) |
 | 密码重置(自助没有,宿管 Web 操作)| 〇 注册画面文案 | ✅ accounts.jsx | `POST /accounts/:id/password-reset` ⏳ | 寮務 | (D) |
 | 教师密码重置(项目负责老师经手)Q10 | — | ⏳ admin page | ⏳ | 项目负责 | (V1) |

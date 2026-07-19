@@ -18,7 +18,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from .. import models, schemas, security
@@ -58,15 +58,34 @@ def login_student(
     body: schemas.StudentLoginIn,
     db: Session = Depends(get_db),
 ):
-    grade, klass, seat = body.student_no[:2], body.student_no[2:4], body.student_no[4:6]
-
-    student = db.scalars(
-        select(models.Student).where(
-            models.Student.grade_code == grade,
-            models.Student.class_code == klass,
-            models.Student.seat_no == seat,
+    # 学号 / 邮箱二选一找学生。只改「怎么找到 student」这一段；
+    # 下面锁定 / 时序等化 / 原子自增 / 统一 401 一律原样保留。
+    student = None
+    if body.student_no:
+        grade, klass, seat = (
+            body.student_no[:2],
+            body.student_no[2:4],
+            body.student_no[4:6],
         )
-    ).first()
+        student = db.scalars(
+            select(models.Student).where(
+                models.Student.grade_code == grade,
+                models.Student.class_code == klass,
+                models.Student.seat_no == seat,
+            )
+        ).first()
+    else:
+        # 邮箱路径：大小写不敏感（注册查重同口径）。
+        # 历史数据可能存在大小写变体重复（Student.email 无 DB 唯一约束）——
+        # 命中多于 1 条时不要随便挑一条（会登错人），当作认证失败走下面 401
+        # （仍跑 bcrypt 时序等化，防「多条命中」本身变成可观测差异）。
+        email_key = body.email.strip().lower()
+        matches = db.scalars(
+            select(models.Student).where(func.lower(models.Student.email) == email_key)
+        ).all()
+        if len(matches) == 1:
+            student = matches[0]
+        # len != 1 → student 保持 None，与「邮箱不存在」同一条 401 路径
 
     # 先取 account（后面锁定逻辑需要），找不到学生也走到 401
     account = None

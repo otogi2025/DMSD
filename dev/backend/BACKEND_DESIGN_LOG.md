@@ -685,32 +685,39 @@ hit なし → `INVALID_REGISTRATION_CODE` (422)。hit あり → 通過 + audit
 
 #### 5.1.1 `POST /sessions/student` — 学生 login
 
-req:
+req（`student_no` / `email` **必须且只能传一个**）:
 ```json
 { "student_no": "060218", "password": "..." }
 ```
+或
+```json
+{ "email": "ryu@test.jp", "password": "..." }
+```
+
+**邮箱路径口径（2026-07-19）**：
+- 查找大小写不敏感（`func.lower(Student.email) == email.strip().lower()`）；注册查重同口径。
+- 存库仍用客户端原样，不强制改小写（避免改 MyInfo 显示 / 动存量数据）。
+- 命中多于 1 条（历史大小写变体重复）→ **当认证失败**走统一 401（不挑一条登录，防登错人）；仍跑 bcrypt 时序等化。
+- `Student.email` **无 DB 唯一约束**（仅前置查重 best-effort）— 已知缺口，本次不加迁移。
 
 res 200:
 ```json
 {
   "access_token": "...",
-  "refresh_token": "...",
-  "expires_in": 86400,
-  "student": { "id": "...", "name": "リュウイヒ", "dorm_unit": 1, "is_overseas": true, ... }
+  "token_type": "bearer",
+  "expires_in": 86400
 }
 ```
 
 err:
-- `INVALID_CREDENTIALS` (401) — 含 `failed_count` / 距下次锁定还差几次
-- `ACCOUNT_LOCKED` (423) — 含 `locked_until` / `lock_level`
+- `INVALID_CREDENTIALS` (401) — 学号/邮箱不存在、密码错、邮箱多条命中 **同一条码与文案**（防枚举）
+- `ACCOUNT_LOCKED` (423) — 失败 5 次锁 15 分（B6）
 - `ACCOUNT_INACTIVE` (403) — `status != 'active'`
+- 422 — 两个标识都不传 / 两个都传 / 学号非 6 桁 / 邮箱格式非法
 
-锁定判定（IOS_DESIGN_LOG §3.6）:
-- 连续 3 次错 → `lock_level=1, locked_until=now+30s` + 触发 `notification_log` (target_role=寮監)
-- 解锁后再错 1 次 → `lock_level += 1`，时长按表升级
-- 成功登录 → `failed_count=0, lock_level=0`
-
-> **⏳ §10-D5**: 「成功登录后 lock_level 是否清零」？CC 假设 = **是**（=「正常使用 1 次后过去的连错记录失效」）。否则 lock_level=5 的学生登一次就锁很久，反人类。
+锁定（B6 实装值，覆盖早期 §3.6 草稿表）:
+- 连续 5 次错 → `locked_until=now+15min`
+- 成功登录 → `failed_count=0, lock_level=0, locked_until=None`
 
 #### 5.1.2 `POST /sessions/teacher` — 教师 login
 

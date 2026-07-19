@@ -191,6 +191,106 @@ def test_b6_success_clears_failed_count(client, seed_data, db_session):
 
 
 # ─────────────────────────────────────────
+# 学生邮箱登录（学号 / 邮箱二选一）
+# ─────────────────────────────────────────
+
+
+def test_student_login_by_email_ok(client, seed_data):
+    """邮箱 + 正确密码 → 200 拿到 token。"""
+    res = client.post(
+        "/api/v1/sessions/student",
+        json={"email": "ryu@test.jp", "password": "test-password-12345"},
+    )
+    assert res.status_code == 200, res.text
+    assert "access_token" in res.json()["data"]
+
+
+def test_student_login_by_email_case_insensitive(client, seed_data):
+    """邮箱大小写不同也能登录（seed 存 ryu@test.jp，请求用 RYU@TEST.JP）。"""
+    res = client.post(
+        "/api/v1/sessions/student",
+        json={"email": "RYU@TEST.JP", "password": "test-password-12345"},
+    )
+    assert res.status_code == 200, res.text
+    assert "access_token" in res.json()["data"]
+
+
+def test_student_login_by_email_wrong_password_increments(
+    client, seed_data, db_session
+):
+    """邮箱存在但密码错 → 401，且 failed_count +1。"""
+    from app import models
+    from sqlalchemy import select
+
+    res = client.post(
+        "/api/v1/sessions/student",
+        json={"email": "ryu@test.jp", "password": "wrong-password!!"},
+    )
+    assert res.status_code == 401
+    assert res.json()["error"]["code"] == "INVALID_CREDENTIALS"
+
+    db_session.expire_all()
+    student = seed_data["student"]
+    account = db_session.scalars(
+        select(models.Account).where(models.Account.student_id == student.id)
+    ).first()
+    assert account.failed_count == 1
+
+
+def test_student_login_by_email_unknown_same_body_as_wrong_password(client, seed_data):
+    """邮箱不存在 → 401，返回体与「密码错」完全一致（防枚举）。"""
+    wrong_pw = client.post(
+        "/api/v1/sessions/student",
+        json={"email": "ryu@test.jp", "password": "wrong-password!!"},
+    )
+    unknown = client.post(
+        "/api/v1/sessions/student",
+        json={"email": "nobody@example.com", "password": "wrong-password!!"},
+    )
+    assert wrong_pw.status_code == 401
+    assert unknown.status_code == 401
+    assert wrong_pw.json() == unknown.json()
+
+
+def test_student_login_neither_identifier_422(client, seed_data):
+    """student_no / email 都不传 → 422。"""
+    res = client.post(
+        "/api/v1/sessions/student",
+        json={"password": "test-password-12345"},
+    )
+    assert res.status_code == 422
+
+
+def test_student_login_both_identifiers_422(client, seed_data):
+    """student_no / email 都传 → 422。"""
+    res = client.post(
+        "/api/v1/sessions/student",
+        json={
+            "student_no": "060218",
+            "email": "ryu@test.jp",
+            "password": "test-password-12345",
+        },
+    )
+    assert res.status_code == 422
+
+
+def test_student_login_by_email_locked_after_threshold(client, seed_data):
+    """邮箱路径连错 5 次 → 第 6 次 423 锁定。"""
+    for _ in range(5):
+        client.post(
+            "/api/v1/sessions/student",
+            json={"email": "ryu@test.jp", "password": "wrong!!"},
+        )
+
+    res = client.post(
+        "/api/v1/sessions/student",
+        json={"email": "ryu@test.jp", "password": "wrong!!"},
+    )
+    assert res.status_code == 423
+    assert res.json()["error"]["code"] == "ACCOUNT_LOCKED"
+
+
+# ─────────────────────────────────────────
 # B7 — 注册码一次性
 # ─────────────────────────────────────────
 
