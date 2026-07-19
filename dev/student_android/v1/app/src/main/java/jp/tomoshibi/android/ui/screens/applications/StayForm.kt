@@ -398,7 +398,13 @@ fun StayForm(
 
             when (stage) {
                 "done" -> {
-                    ApplyDoneBody(kindName = kindName) { navController.popBackStack() }
+                    ApplyDoneBody(kindName = kindName) {
+                        // 对齐 iOS「一覧へ」= 回申请列表根（不是上一页的选种页）。
+                        navController.navigate(jp.tomoshibi.android.nav.Route.Applications.path) {
+                            popUpTo(jp.tomoshibi.android.nav.Route.Applications.path) { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    }
                 }
 
                 else -> {

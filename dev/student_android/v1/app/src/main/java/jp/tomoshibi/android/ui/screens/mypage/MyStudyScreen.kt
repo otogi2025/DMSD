@@ -54,7 +54,7 @@ fun MyStudyScreen(navController: NavHostController) {
             PageHeader(title = "夜学習履歴", level = 2, onLeft = { navController.popBackStack() })
 
             if (isStudyTarget) {
-                StudyTargetBody()
+                StudyTargetBody(leaveCount = state.studyLeaveCountThisMonth)
             } else {
                 NotStudyTargetNotice()
             }
@@ -96,9 +96,11 @@ private data class DayGroup(
 )
 
 // 夜学习对象：四块竖排（月度统计 / 欠席届 / 履历 / 说明盒）
+// leaveCount = 当月夜学習欠席届次数（loadMe → StudyAPI.myAbsenceSummary 真值）。
 @Composable
-private fun StudyTargetBody() {
-    val history = MockData.DEFAULT_STUDY_HISTORY
+private fun StudyTargetBody(leaveCount: Int) {
+    // 对齐 iOS 生产版：studyHistory 生产恒空（假 seed 只进 DEMO），等后端 GET /study/attendance/mine 就绪再接。
+    val history = emptyList<StudyHistoryEntry>()
     // 按日期分组（保序）
     val grouped =
         buildList {
@@ -118,8 +120,6 @@ private fun StudyTargetBody() {
             abnormal++
         }
     }
-    val leaveCount = MockData.STUDY_LEAVE_COUNT
-
     Column(
         modifier =
             Modifier

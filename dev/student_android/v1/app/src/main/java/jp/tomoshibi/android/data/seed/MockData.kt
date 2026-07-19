@@ -86,19 +86,6 @@ object MockData {
             MusicRequest("M3", "Lemon", "米津玄師", 22),
         )
 
-    // 夜学习出席打卡履历假数据（MyStudyScreen 仍读这里；iOS 生产也是本地 NFC tap 记录，非 GET 列表）
-    val DEFAULT_STUDY_HISTORY: List<StudyHistoryEntry> =
-        listOf(
-            StudyHistoryEntry("sh1", "2026-05-10", StudyTap.START.name, "19:38"),
-            StudyHistoryEntry("sh2", "2026-05-10", StudyTap.END.name, "21:42"),
-            StudyHistoryEntry("sh3", "2026-05-09", StudyTap.START.name, "19:52", note = "遅刻"),
-            StudyHistoryEntry("sh4", "2026-05-09", StudyTap.END.name, "21:43"),
-            StudyHistoryEntry("sh5", "2026-05-08", StudyTap.START.name, "19:39"),
-        )
-
-    // 当月夜学习欠席届累计（MyStudyScreen 仍引用）
-    const val STUDY_LEAVE_COUNT = 2
-
     // 完整初始 AppState — fresh state（走完整 Onboarding → Account → Welcome → Login → Home）
     val INITIAL_STATE =
         AppState(
