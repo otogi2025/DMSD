@@ -3,7 +3,8 @@
 设计原则（照 email.py 的结构）：
 - 失败只写 notification_log，不中断业务流
 - 外部投递凭证（APNS_KEY / FCM_KEY）未配置时记 status='skipped_no_provider'，开发不受阻
-- 真实 APNs / FCM 调用处留明确 stub，等凭证备齐后替换
+- APNs 已真实装（provider token 缓存 + HTTP/2 投递 + rollcall 模板 Time Sensitive）；
+  FCM 仍是 stub（Android 不上 Google Play，走 APK 直装，推送优先级低）
 
 当前 status 枚举约定（notification_log.status）：
   pending           → 默认值
@@ -11,20 +12,21 @@
   failed            → 投递失败（网络 / provider 错误）
   skipped_no_provider → 凭证未配置（dev 环境正常状态）
 
-⚠️ 缺口（需 iOS/Android 工程师配合才能填）：
-  1. APNS_KEY（苹果推送私钥 .p8）+ APNS_KEY_ID + APNS_TEAM_ID + APNS_BUNDLE_ID
-  2. FCM_KEY（Firebase Server Key 或 Service Account JSON）
-  3. 客户端 App 启动时调 POST /api/v1/notifications/device-token 注册本机 token
-  4. 真实 HTTP 投递代码（本文件 _send_via_apns / _send_via_fcm stub 处）
+⚠️ 上线剩余缺口：
+  1. 生产 .env 填 APNS_KEY（苹果推送私钥 .p8）+ APNS_KEY_ID + APNS_TEAM_ID + APNS_BUNDLE_ID
+  2. FCM_KEY（Firebase Server Key 或 Service Account JSON）+ _send_via_fcm 实装
 """
 
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime, timezone
 from typing import Any, Optional
 from uuid import UUID
 
+import httpx
+import jwt as pyjwt
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -34,8 +36,43 @@ from ..config import get_settings
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------
-# Provider stubs（凭证备齐后在这里实现）
+# APNs 真实投递（spec §7.13）
 # ---------------------------------------------------------------
+
+# provider token 缓存 — 苹果要求 20 分钟~1 小时内复用同一 token，不许每条推送签新的。
+# 这里 50 分钟重签一次（留 10 分钟余量）。进程级缓存，多 worker 各自持有一份即可。
+_APNS_TOKEN_TTL_SECONDS = 50 * 60
+_apns_token_cache: dict[str, Any] = {"token": None, "issued_at": 0.0}
+
+# HTTP/2 连接复用 — 苹果明确要求保持长连接，别每条推送新建连接
+_apns_client: httpx.Client | None = None
+
+
+def _get_apns_provider_token(settings: Any) -> str:
+    """签发（或复用缓存的）APNs provider token — ES256 JWT。"""
+    now = time.time()
+    if (
+        _apns_token_cache["token"]
+        and now - _apns_token_cache["issued_at"] < _APNS_TOKEN_TTL_SECONDS
+    ):
+        return _apns_token_cache["token"]
+    token = pyjwt.encode(
+        {"iss": settings.apns_team_id, "iat": int(now)},
+        settings.apns_key,
+        algorithm="ES256",
+        headers={"kid": settings.apns_key_id},
+    )
+    _apns_token_cache["token"] = token
+    _apns_token_cache["issued_at"] = now
+    return token
+
+
+def _get_apns_client() -> httpx.Client:
+    """惰性建 HTTP/2 客户端并复用（连接池由 httpx 管理）。"""
+    global _apns_client
+    if _apns_client is None:
+        _apns_client = httpx.Client(http2=True, timeout=10.0)
+    return _apns_client
 
 
 def _send_via_apns(
@@ -43,27 +80,69 @@ def _send_via_apns(
     title: str,
     body: str,
     data: Optional[dict[str, Any]],
+    template_key: str = "generic",
 ) -> tuple[bool, str | None]:
-    """APNs HTTP/2 投递 stub。
+    """APNs HTTP/2 真实投递。
 
-    TODO: 实现步骤
-      1. 读 settings.apns_key（PEM 内容）/ settings.apns_key_id / settings.apns_team_id
-      2. 用 PyJWT 签 ES256 provider token（10 分钟有效期）
-      3. httpx.post("https://api.push.apple.com/3/device/{token}", ...) HTTP/2
-      4. 200 → (True, None)；4xx/5xx → (False, error_str)
-
-    需要的环境变量:
+    凭证（生产 .env 设置，任一缺失 → 返回 not configured，上层记 skipped_no_provider）:
       APNS_KEY        (完整 .p8 私钥内容，含 BEGIN PRIVATE KEY 行)
       APNS_KEY_ID     (10 位字符串，Apple 后台查)
       APNS_TEAM_ID    (10 位字符串，Apple Developer 账号)
-      APNS_BUNDLE_ID  (App Bundle Identifier，如 com.example.Tomoshibi)
+      APNS_BUNDLE_ID  (App Bundle Identifier，正式版 = com.itsuki.tomoshibi)
+
+    点呼相关模板（template_key 以 rollcall 开头）标记为 Time Sensitive 紧急通知 —
+    iOS 端 entitlements 已开 time-sensitive 能力，专注模式 / 静音下仍能立即送达。
     """
-    # ⚠️ stub — 凭证未配置，直接返回未实现
     settings = get_settings()
-    if not getattr(settings, "apns_key", None):
-        return False, "APNS_KEY not configured"
-    # 真实实现放这里 ↑ 上面 if 块之后
-    return False, "APNs send not implemented yet"
+    missing = [
+        name
+        for name, value in (
+            ("APNS_KEY", settings.apns_key),
+            ("APNS_KEY_ID", settings.apns_key_id),
+            ("APNS_TEAM_ID", settings.apns_team_id),
+            ("APNS_BUNDLE_ID", settings.apns_bundle_id),
+        )
+        if not value
+    ]
+    if missing:
+        return False, f"{'/'.join(missing)} not configured"
+
+    aps: dict[str, Any] = {
+        "alert": {"title": title, "body": body},
+        "sound": "default",
+    }
+    if template_key.startswith("rollcall"):
+        # 点呼提醒是分钟级紧急事项 — 苹果的 interruption-level 分级里
+        # time-sensitive 可穿透专注模式（勿扰以外），普通通知则不加
+        aps["interruption-level"] = "time-sensitive"
+    payload: dict[str, Any] = {"aps": aps}
+    if data:
+        payload.update(data)  # 自定义键放 aps 外层（苹果规范）
+
+    host = (
+        "https://api.sandbox.push.apple.com"
+        if settings.apns_use_sandbox
+        else "https://api.push.apple.com"
+    )
+    try:
+        provider_token = _get_apns_provider_token(settings)
+        resp = _get_apns_client().post(
+            f"{host}/3/device/{token}",
+            json=payload,
+            headers={
+                "authorization": f"bearer {provider_token}",
+                "apns-topic": settings.apns_bundle_id,
+                "apns-push-type": "alert",
+                "apns-priority": "10",
+            },
+        )
+    except Exception as exc:  # noqa: BLE001 — 网络层任何异常都转 (False, 错误串)
+        return False, f"APNs request error: {exc}"
+
+    if resp.status_code == 200:
+        return True, None
+    # 4xx/5xx — 苹果返回 JSON {"reason": "..."}，截前 200 字进 log 方便排查
+    return False, f"APNs {resp.status_code}: {resp.text[:200]}"
 
 
 def _send_via_fcm(
@@ -99,10 +178,11 @@ def _dispatch_one(
     title: str,
     body: str,
     data: Optional[dict[str, Any]],
+    template_key: str = "generic",
 ) -> tuple[bool, str | None]:
     """根据平台路由到对应 provider。返回 (sent, error)。"""
     if platform == "ios":
-        return _send_via_apns(token, title, body, data)
+        return _send_via_apns(token, title, body, data, template_key=template_key)
     elif platform == "android":
         return _send_via_fcm(token, title, body, data)
     return False, f"unknown platform: {platform}"
@@ -173,6 +253,7 @@ def send_push(
                 title=title,
                 body=body,
                 data=data,
+                template_key=template_key,
             )
         except Exception as exc:  # noqa: BLE001 — 推送投递任何异常都不得中断业务
             sent, error = False, f"dispatch raised: {exc}"

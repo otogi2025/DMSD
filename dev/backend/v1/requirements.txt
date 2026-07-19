@@ -29,6 +29,11 @@ psycopg[binary]>=3.2.0   # PostgreSQL 16+ (v1 production)
 # （psycopg[binary] 上面已声明，Dockerfile 那条重复 install 一并删）。沿用本文件 >= 约定。
 gunicorn>=23.0.0         # 生产用 uvicorn worker 进程管理
 
+# APNs 苹果推送真实装（spec §7.13，push.py）
+PyJWT>=2.9.0             # provider token 签名（ES256）— 与 python-jose 并存：jose 管登录 JWT，PyJWT 管 APNs
+httpx>=0.27.0            # 推送 HTTP 客户端（测试依赖里已有，生产运行时也需要 → 显式声明）
+h2>=4.1.0                # httpx 的 HTTP/2 支持（APNs 只接受 HTTP/2）
+
 # migration
 alembic>=1.13.0
 

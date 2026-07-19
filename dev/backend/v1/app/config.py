@@ -80,6 +80,17 @@ class Settings(BaseSettings):
     # 后端点呼音频目录（运维放置预生成 wav；不存在则 manifest 返回空、播报降级通用提示音）
     rollcall_audio_dir: str = "./var/rollcall_audio"
 
+    # APNs 苹果推送（spec §7.13）— 凭证全空 = dev 正常状态，push.py 记 skipped_no_provider
+    # 部署时在生产 .env 填真值：.p8 私钥从 developer.apple.com「Keys」页生成下载（只能下载一次）
+    apns_key: str = (
+        ""  # .p8 私钥完整 PEM 内容（含 BEGIN/END PRIVATE KEY 行，换行可用 \n 转义）
+    )
+    apns_key_id: str = ""  # 密钥 ID（10 位，.p8 下载页显示）
+    apns_team_id: str = ""  # Apple Developer Team ID（10 位）
+    apns_bundle_id: str = ""  # App 的 Bundle ID（正式版 = com.itsuki.tomoshibi）
+    # True 打苹果沙盒推送网关（Xcode 直装的开发构建用）；生产 / TestFlight / App Store 构建用 False
+    apns_use_sandbox: bool = False
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
