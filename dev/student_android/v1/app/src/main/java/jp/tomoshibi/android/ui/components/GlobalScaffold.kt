@@ -47,6 +47,7 @@ fun GlobalScaffold(
             RollStatusBar(
                 rollState = state.rollState,
                 checkinAt = state.checkinAt,
+                checkinKind = state.checkinKind,
                 countdownSec = state.rollCountdownSec,
                 modifier =
                     Modifier
@@ -65,13 +66,8 @@ fun GlobalScaffold(
             BottomTabs(
                 navController = navController,
                 active = activeTab,
-                // v1.0：点呼签到入口隐藏（NFC 写卡 / 签到属 v1.1，依赖硬件未就绪）。
-                // 点中央按钮提示「近日公開」，不弹 RollCallSheet、不呈现可签到假象。
-                // v1.1 恢复：把 onRollClick 改回 { rollSheetOpen = true } 即可。
-                onRollClick = {
-                    // G1 接线归别的工单；此处只换全局 Toast（本工单 G4）
-                    store.showToast("点呼機能は近日公開予定です")
-                },
+                // 7-17 解除占位（对齐 iOS）：中央按钮打开真扫描 RollCallSheet
+                onRollClick = { rollSheetOpen = true },
             )
         }
         // 点呼 sheet — 中央按钮触发后覆盖

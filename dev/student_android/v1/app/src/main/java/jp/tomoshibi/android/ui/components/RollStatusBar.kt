@@ -42,13 +42,13 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 //
 // 4 态：IDLE（不显示）/ ACTIVE（点呼中倒计时）/ ABSENT（欠席判定）/ DONE（签到完成）
 // 调用方只在 rollState != IDLE 时才 compose 本组件；本组件内部对 IDLE 再给一层安全兜底（返回空 Box）。
-// 当前阶段：纯 UI，整条点击只回调 onClick（由上层弹反馈弹窗 / 改本地状态），不真碰 NFC、不发网络。
 // ───────────────────────────────────────────────────────────────
 
 @Composable
 fun RollStatusBar(
     rollState: RollState,
     checkinAt: String?,
+    checkinKind: String?,
     countdownSec: Int,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
@@ -65,13 +65,7 @@ fun RollStatusBar(
     val min = countdownSec / 60
     val sec = countdownSec % 60
 
-    // ── 各态文案 + 配色，逐字照规格表（2926-2931 行）日语原文不动 ──
-    // icon            : 左侧图标
-    // iconTint        : 图标颜色（ACTIVE 用 alpha 脉冲，下面单独算 iconAlpha）
-    // primaryText     : 第一行 12sp semibold
-    // secondaryText   : 第二行 10sp 灰
-    // fg              : 文字前景色
-    // bg              : 整条背景色
+    // ── 各态文案 + 配色，逐字对照 iOS TopRollBar.swift ──
     val icon: ImageVector
     val iconTint: Color
     val primaryText: String
@@ -81,11 +75,11 @@ fun RollStatusBar(
 
     when (rollState) {
         RollState.ACTIVE -> {
-            // 点呼中：图标红圆点（脉冲），底浅橙，文字深橙
-            icon = SuzuIcons.CheckCirc // 红圆点等效（dot.circle.fill），用 tint 染红 + alpha 脉冲
+            // 点呼中：实心圆点（dot.circle.fill），底浅橙，文字深橙
+            icon = SuzuIcons.Dot
             iconTint = t.danger
-            primaryText = String.format("点呼中 · あと %d分%02d秒で遅刻判定", min, sec)
-            secondaryText = "タップで欠席申請 / 体調報告"
+            primaryText = String.format("点呼中 · 遅刻まであと %d分%02d秒", min, sec)
+            secondaryText = "タップで欠席届・体調報告"
             fg = t.warnDeep
             bg = t.warnBg
         }
@@ -94,17 +88,18 @@ fun RollStatusBar(
             // 欠席判定：警告三角白图标，整条实红底，文字纯白
             icon = SuzuIcons.Warn
             iconTint = Color.White
-            primaryText = "欠席判定 · 寮監に直接連絡"
+            primaryText = "欠席になりました · 寮監まで直接ご連絡ください"
             secondaryText = "寮監室までお越しください"
             fg = Color.White
             bg = t.danger
         }
 
         RollState.DONE -> {
-            // 签到完成：绿对钩，底浅绿，文字深绿；不画右箭头、点了无反应
+            // 签到完成：绿对钩；checkinKind 由后端 my_status 派生（不許写死「時間内」）
             icon = SuzuIcons.CheckCirc
             iconTint = t.ok
-            primaryText = "チェックイン済 ${checkinAt ?: ""} · 時間内"
+            val kind = checkinKind ?: ""
+            primaryText = "チェックイン済み ${checkinAt ?: ""} · $kind"
             secondaryText = "お疲れさまでした"
             fg = t.okDeep
             bg = t.okBg

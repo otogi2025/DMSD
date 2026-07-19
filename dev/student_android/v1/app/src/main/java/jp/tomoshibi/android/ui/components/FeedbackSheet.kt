@@ -57,16 +57,16 @@ fun FeedbackSheet(
                     .padding(bottom = 40.dp),
             horizontalAlignment = Alignment.Start,
         ) {
-            // 1. 标题（20sp heavy，ink，下 6）
+            // 1. 标题（20sp heavy，ink，下 6）— 逐字对照 iOS「報告・連絡を送る」
             Text(
-                text = "反馈を送る",
+                text = "報告・連絡を送る",
                 color = t.ink,
                 style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Black),
             )
             Spacer(Modifier.size(6.dp))
             // 2. 副标题（13sp，inkSub，下 18）
             Text(
-                text = "どの種類の反馈を送りますか？",
+                text = "どの種類の報告を送りますか？",
                 color = t.inkSub,
                 style = TextStyle(fontSize = 13.sp),
             )
@@ -84,11 +84,11 @@ fun FeedbackSheet(
                 },
             )
             Spacer(Modifier.size(10.dp))
-            // 📝 「今回欠席の申請」缺席申请 → "absence"
+            // 📝 本次欠席申请 → "absence"（逐字对照 iOS）
             FeedbackOptionRow(
                 emoji = "📝",
-                title = "今回欠席の申請",
-                subtitle = "今回の点呼を欠席したい理由を申請",
+                title = "今回の欠席を申請",
+                subtitle = "今回の点呼を欠席する理由を入力",
                 onClick = {
                     onSelect("absence")
                     onDismiss()
@@ -107,9 +107,6 @@ fun FeedbackSheet(
             )
         }
     }
-    // TODO 真实装：onSelect 的三个类型 health/absence/other 应分别打开
-    //   HealthSheet / AbsenceSheet / OtherSheet 三个表单弹窗（对齐 iOS .health/.absence/.other）。
-    //   本波只做分发框架 —— 调用方先用 Toast 占位，子表单等「申请/反馈」那块对齐时再接。
 }
 
 // 单个选项卡（Row：白底 + t.hair 0.5dp 描边 + 圆角 16 + 内边距 16×14；

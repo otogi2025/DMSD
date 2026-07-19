@@ -81,6 +81,12 @@ class AppStore(
     // UI 瞬时态（toast / 面包屑）用主线程 scope，不落盘
     private val uiScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
+    // 今日点呼场次缓存（对齐 iOS todaySessions）— 内存态，供每秒 tickCountdown 重算，不落盘
+    private var cachedRollSessions: List<RollSession> = emptyList()
+
+    // 每秒刷新点呼状态（对齐 iOS HomeView countdownTimer → tickCountdown）
+    private var rollTickJob: Job? = null
+
     // ── 全局 Toast（对齐 iOS AppStore.toast / showToast，2.2 秒自动清）──
     private val _toast = MutableStateFlow<String?>(null)
     val toast: StateFlow<String?> = _toast.asStateFlow()
@@ -214,6 +220,8 @@ class AppStore(
      * 对齐 iOS authToken=nil 的 didSet：清 Keychain + currentUser + 用户绑定字段。
      */
     suspend fun clearSession() {
+        stopRollTicker()
+        cachedRollSessions = emptyList()
         ApiClient.token = null
         update { current ->
             current.copy(
@@ -471,11 +479,14 @@ class AppStore(
         try {
             val sessions = RollCallAPI.myToday()
             if (snapshot().authToken != tokenAtStart) return
-            applyRollDecision(sessions)
+            cachedRollSessions = mapApiSessionsToRollSessions(sessions)
+            applyRollDecisionFromCache()
+            startRollTicker()
         } catch (e: ApiError.Unauthorized) {
             handleIfUnauthorized(e, tokenAtStart)
         } catch (_: Exception) {
-            // 静默
+            // 静默；仍开 ticker，用已有缓存（可能空）每秒重算
+            startRollTicker()
         }
     }
 
@@ -490,23 +501,48 @@ class AppStore(
         }
     }
 
-    private suspend fun applyRollDecision(sessions: List<MyRollCallTodaySession>) {
-        val rollSessions =
-            sessions.mapNotNull { s ->
-                val windowStart = SessionMapper.parseInstantMillis(s.scheduledWindowStartAt) ?: return@mapNotNull null
-                val onTimeEnd = SessionMapper.parseInstantMillis(s.scheduledOnTimeEndAt) ?: return@mapNotNull null
-                val lateEnd = SessionMapper.parseInstantMillis(s.scheduledLateEndAt) ?: return@mapNotNull null
-                val autoEnd = SessionMapper.parseInstantMillis(s.scheduledAutoEndAt) ?: return@mapNotNull null
-                RollSession(
-                    windowStartMillis = windowStart,
-                    onTimeEndMillis = onTimeEnd,
-                    lateEndMillis = lateEnd,
-                    autoEndMillis = autoEnd,
-                    checkedInAtMillis = s.myCheckedInAt?.let { SessionMapper.parseInstantMillis(it) },
-                    myStatus = s.myStatus,
-                )
+    /**
+     * 每秒由 rollTicker 调（对齐 iOS tickCountdown 生产分支）：
+     * 用缓存场次 + 当前时刻重算 rollState / checkinKind / 倒计时，驱动 idle→active→absent 自动流转。
+     */
+    suspend fun tickCountdown() {
+        applyRollDecisionFromCache()
+    }
+
+    private fun startRollTicker() {
+        if (rollTickJob?.isActive == true) return
+        rollTickJob =
+            migrateScope.launch {
+                while (true) {
+                    delay(1000)
+                    applyRollDecisionFromCache()
+                }
             }
-        val decision = RollStateMachine.decide(rollSessions, System.currentTimeMillis())
+    }
+
+    private fun stopRollTicker() {
+        rollTickJob?.cancel()
+        rollTickJob = null
+    }
+
+    private fun mapApiSessionsToRollSessions(sessions: List<MyRollCallTodaySession>): List<RollSession> =
+        sessions.mapNotNull { s ->
+            val windowStart = SessionMapper.parseInstantMillis(s.scheduledWindowStartAt) ?: return@mapNotNull null
+            val onTimeEnd = SessionMapper.parseInstantMillis(s.scheduledOnTimeEndAt) ?: return@mapNotNull null
+            val lateEnd = SessionMapper.parseInstantMillis(s.scheduledLateEndAt) ?: return@mapNotNull null
+            val autoEnd = SessionMapper.parseInstantMillis(s.scheduledAutoEndAt) ?: return@mapNotNull null
+            RollSession(
+                windowStartMillis = windowStart,
+                onTimeEndMillis = onTimeEnd,
+                lateEndMillis = lateEnd,
+                autoEndMillis = autoEnd,
+                checkedInAtMillis = s.myCheckedInAt?.let { SessionMapper.parseInstantMillis(it) },
+                myStatus = s.myStatus,
+            )
+        }
+
+    private suspend fun applyRollDecisionFromCache() {
+        val decision = RollStateMachine.decide(cachedRollSessions, System.currentTimeMillis())
         val checkinAtText =
             decision.checkedInAtMillis?.let { ms ->
                 DateTimeFormatter

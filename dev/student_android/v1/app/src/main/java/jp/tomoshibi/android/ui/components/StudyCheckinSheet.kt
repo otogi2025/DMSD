@@ -1,7 +1,5 @@
 package jp.tomoshibi.android.ui.components
 
-import jp.tomoshibi.android.data.store.LocalAppStore
-
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -41,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -50,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
 import java.time.LocalTime
@@ -387,34 +387,54 @@ private fun SuccessBody(
     Spacer(Modifier.height(8.dp))
 }
 
-// ── Step 4 · fail（与 RollCallSheet 一致：「失敗。もう一度」+ 失败说明 +「再試行」→ idle）──
+// ── Step 4 · fail（对齐 iOS failView：红圆+X +「読み取りに失敗しました」+「再試行」）──
 @Composable
 internal fun FailBody(onRetry: () -> Unit) {
     val t = SuzuT.current
 
     Spacer(Modifier.height(8.dp))
 
-    // 失败大标题（用 warn 系颜色）
+    // 88dp 红渐变圆 + 白 X（对齐 iOS 0xE88A80→0xC44848）
+    Box(
+        modifier =
+            Modifier
+                .size(88.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(Color(0xFFE88A80), Color(0xFFC44848)),
+                    ),
+                ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = SuzuIcons.Close,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(40.dp),
+        )
+    }
+
+    Spacer(Modifier.height(18.dp))
+
     Text(
-        text = "失敗。もう一度",
-        color = t.warnDeep,
-        style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold),
+        text = "読み取りに失敗しました",
+        color = t.ink,
+        style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold),
         textAlign = TextAlign.Center,
     )
 
-    Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(10.dp))
 
-    // 失败说明
     Text(
         text = "NFC を読み取れませんでした",
         color = t.inkSub,
-        style = TextStyle(fontSize = 14.sp),
+        style = TextStyle(fontSize = 13.sp),
         textAlign = TextAlign.Center,
     )
 
-    Spacer(Modifier.height(24.dp))
+    Spacer(Modifier.height(22.dp))
 
-    // 「再試行」按钮 → 回到 idle 重来
     Box(
         modifier =
             Modifier

@@ -42,7 +42,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import jp.tomoshibi.android.data.model.RollState
 import jp.tomoshibi.android.data.network.BusRouteOut
 import jp.tomoshibi.android.data.network.EventOut
 import jp.tomoshibi.android.data.network.endpoints.AnnouncementsAPI
@@ -67,7 +66,6 @@ import jp.tomoshibi.android.ui.components.SectionCard
 import jp.tomoshibi.android.ui.components.TopRollBar
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
-import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.OffsetDateTime
@@ -146,19 +144,7 @@ fun HomeScreen(navController: NavHostController) {
         }.onFailure { nextCleaning = null }
     }
 
-    // active 态倒计时每秒 -1（UI）；真点呼状态机刷新归 B07 / loadMe
-    LaunchedEffect(state.rollState) {
-        while (state.rollState == RollState.ACTIVE) {
-            delay(1000)
-            store.update { cur ->
-                if (cur.rollState != RollState.ACTIVE) {
-                    cur
-                } else {
-                    cur.copy(rollCountdownSec = (cur.rollCountdownSec - 1).coerceAtLeast(0))
-                }
-            }
-        }
-    }
+    // 点呼状态由 AppStore rollTicker 每秒重算（对齐 iOS tickCountdown）；此处不再本地 -1
 
     val deductionTotal = state.user.points
     val announcementSub =

@@ -5,6 +5,12 @@
     <!-- 网络层需要联网权限（对齐 iOS，真实联网时用）-->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- 点呼：手机写 ST25DV 邮箱（ISO15693 / NfcV）。feature 非强制——无 NFC 的机型仍可装，只是点呼写入会报「端末非対応」 -->
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-feature
+        android:name="android.hardware.nfc"
+        android:required="false" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"

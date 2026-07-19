@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,35 +31,67 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.ApiErrorPresenter
+import jp.tomoshibi.android.data.network.endpoints.RollCallReportsAPI
+import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.ui.theme.SuzuT
+import kotlinx.coroutines.launch
 
 // ───────────────────────────────────────────────────────────────
-// FeedbackSubSheets — 反馈三子表单（体调 / 缺席 / 其他）
-// 对齐 iOS Foundation/Features/Home/HomeStubs.swift 行 1947–2154：
-//   HealthSheet（1947）/ AbsenceSheet（2038）/ OtherSheet（2083）。
-// iOS 用 GlassSheet；Android 走 GlassBottomSheet（半透明 paper + ink@35% 遮罩近似）。
-// 入口：FeedbackSheet 分发后，按选中的类型 health/absence/other 打开对应子表单（接线归主会话）。
-// 本波纯 UI，无状态机、无网络。提交按钮点了只关窗（iOS 那边 closeSheet + showToast，Toast 由调用方接）。
-// ───────────────────────────────────────────────────────────────
-
-// ───────────────────────────────────────────────────────────────
-// HealthSheet · 体调不良报告（症状必填 + 体温任意 + 补足）
+// FeedbackSubSheets — 上报三子表单（体调 / 缺席 / 其他）
+// 对齐 iOS HomeStubs.swift：HealthSheet / AbsenceSheet / OtherSheet。
+// 生产版 POST /api/v1/rollcall/reports（RollCallReportsAPI），成功 toast + 错误分支对齐 iOS。
 // ───────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun HealthSheet(onDismiss: () -> Unit) {
     val t = SuzuT.current
+    val store = LocalAppStore.current
+    val scope = rememberCoroutineScope()
 
-    // 已选症状（空串 = 未选；非空才允许提交）
     var sym by remember { mutableStateOf("") }
-    // 体温（任意，数字键盘）
     var temp by remember { mutableStateOf("") }
-    // 补足说明（任意多行）
     var note by remember { mutableStateOf("") }
+    var submitting by remember { mutableStateOf(false) }
 
-    // 症状选项 —— 照抄 iOS symptoms 数组，「発熱」「頭痛」「腹痛」「吐き気」「風邪症状」「その他」
     val symptoms = listOf("発熱", "頭痛", "腹痛", "吐き気", "風邪症状", "その他")
+
+    fun submit() {
+        val lines = mutableListOf("症状：$sym")
+        val tVal = temp.trim()
+        if (tVal.isNotEmpty()) lines.add("体温：$tVal℃")
+        val nVal = note.trim()
+        if (nVal.isNotEmpty()) lines.add("補足：$nVal")
+        val bodyText = lines.joinToString("\n")
+        scope.launch {
+            val tokenAtStart = store.snapshot().authToken
+            submitting = true
+            try {
+                RollCallReportsAPI.create(kind = "health", body = bodyText)
+                if (store.snapshot().authToken != tokenAtStart) return@launch
+                onDismiss()
+                store.showToast("先生に通知しました")
+            } catch (e: ApiError.Unprocessable) {
+                submitting = false
+                store.showToast(e.msg)
+            } catch (e: ApiError.Unauthorized) {
+                if (store.snapshot().authToken == tokenAtStart) {
+                    store.clearSession()
+                    onDismiss()
+                }
+            } catch (e: ApiError.Network) {
+                submitting = false
+                store.showToast("通信エラーが発生しました。電波を確認してください")
+            } catch (e: Exception) {
+                submitting = false
+                store.showToast(
+                    ApiErrorPresenter.userMessage(e, fallback = "送信に失敗しました"),
+                )
+            }
+        }
+    }
 
     GlassBottomSheet(
         onDismissRequest = onDismiss,
@@ -74,14 +107,12 @@ fun HealthSheet(onDismiss: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(18.dp),
             horizontalAlignment = Alignment.Start,
         ) {
-            // 标题「体調不良を報告」（20sp heavy ink）
             Text(
                 text = "体調不良を報告",
                 color = t.ink,
                 style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Black),
             )
 
-            // 字段「症状」必填 —— radio chip 横向换行组
             Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 FieldLabel(label = "症状", required = true)
                 FlowRow(
@@ -95,7 +126,6 @@ fun HealthSheet(onDismiss: () -> Unit) {
                 }
             }
 
-            // 字段「体温（任意）」—— 数字键盘单行输入，placeholder「体温（℃）」
             Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 FieldLabel(label = "体温（任意）", required = false)
                 TField(
@@ -106,7 +136,6 @@ fun HealthSheet(onDismiss: () -> Unit) {
                 )
             }
 
-            // 字段「補足」—— 多行输入，placeholder「具体的な症状があれば教えてください」
             Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 FieldLabel(label = "補足", required = false)
                 TArea(
@@ -117,27 +146,54 @@ fun HealthSheet(onDismiss: () -> Unit) {
                 )
             }
 
-            // 「提出」—— 症状非空才可点
             PrimaryButton(
-                title = "提出",
-                enabled = sym.isNotEmpty(),
-                onClick = { onDismiss() },
+                title = if (submitting) "送信中…" else "提出",
+                enabled = sym.isNotEmpty() && !submitting,
+                onClick = { submit() },
             )
         }
     }
 }
 
-// ───────────────────────────────────────────────────────────────
-// AbsenceSheet · 缺席申请（理由必填多行）
-// ───────────────────────────────────────────────────────────────
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AbsenceSheet(onDismiss: () -> Unit) {
     val t = SuzuT.current
+    val store = LocalAppStore.current
+    val scope = rememberCoroutineScope()
 
-    // 缺席理由（必填，去掉首尾空白后非空才允许提交）
     var reason by remember { mutableStateOf("") }
+    var submitting by remember { mutableStateOf(false) }
+
+    fun submit() {
+        val bodyText = reason.trim()
+        scope.launch {
+            val tokenAtStart = store.snapshot().authToken
+            submitting = true
+            try {
+                RollCallReportsAPI.create(kind = "absence", body = bodyText)
+                if (store.snapshot().authToken != tokenAtStart) return@launch
+                onDismiss()
+                store.showToast("審査中です")
+            } catch (e: ApiError.Unprocessable) {
+                submitting = false
+                store.showToast(e.msg)
+            } catch (e: ApiError.Unauthorized) {
+                if (store.snapshot().authToken == tokenAtStart) {
+                    store.clearSession()
+                    onDismiss()
+                }
+            } catch (e: ApiError.Network) {
+                submitting = false
+                store.showToast("通信エラーが発生しました。電波を確認してください")
+            } catch (e: Exception) {
+                submitting = false
+                store.showToast(
+                    ApiErrorPresenter.userMessage(e, fallback = "送信に失敗しました"),
+                )
+            }
+        }
+    }
 
     GlassBottomSheet(
         onDismissRequest = onDismiss,
@@ -153,14 +209,13 @@ fun AbsenceSheet(onDismiss: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(18.dp),
             horizontalAlignment = Alignment.Start,
         ) {
-            // 标题「今回の点呼を欠席したい」（20sp heavy ink）
+            // 标题逐字对照 iOS「今回の点呼を欠席する」（陈述句，无「たい」）
             Text(
-                text = "今回の点呼を欠席したい",
+                text = "今回の点呼を欠席する",
                 color = t.ink,
                 style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Black),
             )
 
-            // 字段「理由」必填 —— 5 行多行输入，placeholder「欠席の理由をお書きください」
             Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 FieldLabel(label = "理由", required = true)
                 TArea(
@@ -171,32 +226,46 @@ fun AbsenceSheet(onDismiss: () -> Unit) {
                 )
             }
 
-            // 「提出」—— 理由去空白后非空才可点
             PrimaryButton(
-                title = "提出",
-                enabled = reason.trim().isNotEmpty(),
-                onClick = { onDismiss() },
+                title = if (submitting) "送信中…" else "提出",
+                enabled = reason.trim().isNotEmpty() && !submitting,
+                onClick = { submit() },
             )
         }
     }
 }
 
-// ───────────────────────────────────────────────────────────────
-// OtherSheet · 其他问题（分类必填 + 内容必填）
-// ───────────────────────────────────────────────────────────────
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun OtherSheet(onDismiss: () -> Unit) {
     val t = SuzuT.current
+    val store = LocalAppStore.current
+    val scope = rememberCoroutineScope()
 
-    // 已选分类（空串 = 未选）
     var cat by remember { mutableStateOf("") }
-    // 内容（必填，去空白后非空才允许提交）
     var content by remember { mutableStateOf("") }
+    var submitting by remember { mutableStateOf(false) }
 
-    // 分类选项 —— 照抄 iOS categories 数组，「遅刻理由」「外出中」「NFC 不具合」「その他」
     val categories = listOf("遅刻理由", "外出中", "NFC 不具合", "その他")
+
+    fun submit() {
+        val c = content.trim()
+        val bodyText = "分類：$cat\n内容：$c"
+        scope.launch {
+            val tokenAtStart = store.snapshot().authToken
+            submitting = true
+            try {
+                RollCallReportsAPI.create(kind = "other", body = bodyText)
+                if (store.snapshot().authToken != tokenAtStart) return@launch
+                onDismiss()
+                store.showToast("送信しました")
+            } catch (e: Exception) {
+                // iOS OtherSheet 生产分支失败统一「送信に失敗しました」（比 health/absence 粗）
+                submitting = false
+                store.showToast("送信に失敗しました")
+            }
+        }
+    }
 
     GlassBottomSheet(
         onDismissRequest = onDismiss,
@@ -212,14 +281,12 @@ fun OtherSheet(onDismiss: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(18.dp),
             horizontalAlignment = Alignment.Start,
         ) {
-            // 标题「その他の問題」（20sp heavy ink）
             Text(
                 text = "その他の問題",
                 color = t.ink,
                 style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Black),
             )
 
-            // 字段「分類」必填 —— radio chip 横向换行组
             Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 FieldLabel(label = "分類", required = true)
                 FlowRow(
@@ -233,7 +300,6 @@ fun OtherSheet(onDismiss: () -> Unit) {
                 }
             }
 
-            // 字段「内容」必填 —— 多行输入，placeholder「詳しく教えてください」
             Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 FieldLabel(label = "内容", required = true)
                 TArea(
@@ -244,21 +310,16 @@ fun OtherSheet(onDismiss: () -> Unit) {
                 )
             }
 
-            // 「提出」—— 分类非空 + 内容去空白后非空才可点
             PrimaryButton(
-                title = "提出",
-                enabled = cat.isNotEmpty() && content.trim().isNotEmpty(),
-                onClick = { onDismiss() },
+                title = if (submitting) "送信中…" else "提出",
+                enabled = cat.isNotEmpty() && content.trim().isNotEmpty() && !submitting,
+                onClick = { submit() },
             )
         }
     }
 }
 
-// ───────────────────────────────────────────────────────────────
-// 私有复用件
-// ───────────────────────────────────────────────────────────────
-
-// 字段标签 —— 13sp semibold inkSub + 必填时跟一个 danger 色「*」（对齐 iOS HStack(标签 + 红 *)）
+// 字段标签 —— 13sp semibold inkSub + 必填时跟一个 danger 色「*」
 @Composable
 private fun FieldLabel(
     label: String,
@@ -281,9 +342,7 @@ private fun FieldLabel(
     }
 }
 
-// radio 选项胶囊 —— 照抄 iOS radioChip：
-//   选中 = primary 描边 1.5dp + primary 6% 底 + primary 字（bold）
-//   未选 = t.hair 描边 1dp + t.pearl 底 + t.ink 字（medium）
+// radio 选项胶囊 —— 照抄 iOS radioChip
 @Composable
 private fun RadioChip(
     title: String,
