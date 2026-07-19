@@ -36,7 +36,6 @@ fun GlobalScaffold(
     val tokens = SuzuT.current
     val store = LocalAppStore.current
     val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
-    val context = androidx.compose.ui.platform.LocalContext.current
 
     Box(modifier = Modifier.fillMaxSize().background(tokens.pearl)) {
         // 内容层 — 留 92dp 底部空间给 BottomTabs（capsule 62 + 边距 16 + raised 凸起 22）
@@ -70,9 +69,8 @@ fun GlobalScaffold(
                 // 点中央按钮提示「近日公開」，不弹 RollCallSheet、不呈现可签到假象。
                 // v1.1 恢复：把 onRollClick 改回 { rollSheetOpen = true } 即可。
                 onRollClick = {
-                    android.widget.Toast
-                        .makeText(context, "点呼機能は近日公開予定です", android.widget.Toast.LENGTH_SHORT)
-                        .show()
+                    // G1 接线归别的工单；此处只换全局 Toast（本工单 G4）
+                    store.showToast("点呼機能は近日公開予定です")
                 },
             )
         }

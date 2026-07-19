@@ -1,6 +1,7 @@
 package jp.tomoshibi.android.ui.screens.community
 
-import android.widget.Toast
+import jp.tomoshibi.android.data.store.LocalAppStore
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,7 @@ fun PackageDetailScreen(
     navController: NavHostController,
     id: Int,
 ) {
+    val store = LocalAppStore.current
     val t = SuzuT.current
     val ctx = LocalContext.current
 
@@ -78,7 +80,7 @@ fun PackageDetailScreen(
 
                     // 「受取確認」→ 弹 toast 后返回上层
                     PrimaryButton(title = "受取確認") {
-                        Toast.makeText(ctx, "受取完了しました", Toast.LENGTH_SHORT).show()
+                        store.showToast("受取完了しました")
                         navController.popBackStack()
                     }
 

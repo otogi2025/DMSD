@@ -68,18 +68,32 @@ sealed interface LoadState<out T> {
     ) : LoadState<T>
 }
 
-// 加载中占位 —— 居中转圈（primary 青绿色）。padding 40 让它在列表区垂直居中显眼。
+// 加载中占位 —— 默认用骨架条（对齐 iOS Skeleton）；需要转圈时传 useSpinner=true。
 @Composable
-fun LoadingBox(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxWidth().padding(40.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        CircularProgressIndicator(
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(32.dp),
-        )
+fun LoadingBox(
+    modifier: Modifier = Modifier,
+    useSpinner: Boolean = false,
+) {
+    if (useSpinner) {
+        Column(
+            modifier = modifier.fillMaxWidth().padding(40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(32.dp),
+            )
+        }
+    } else {
+        Column(
+            modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            SuzuSkeleton(height = 72)
+            SuzuSkeleton(height = 72)
+            SuzuSkeleton(height = 48)
+        }
     }
 }
 

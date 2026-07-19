@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -37,7 +36,7 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 // RenewStudentNoSheet — 学籍番号「再設定」弹窗
 // 对齐 iOS Features/Home/HomeStubs.swift 行 2163–2298（struct RenewStudentNoSheet）。
 // 用途：新学年开学时学生重新选「学年・組・出席番号」三段，系统自动拼出新学籍番号。
-// iOS 用 GlassSheet（液态玻璃），Android 无玻璃组件 → 降级用 ModalBottomSheet（containerColor = t.paper）。
+// iOS 用 GlassSheet；Android 走 GlassBottomSheet 近似。
 // 本波纯 UI：三段选齐才实时预览新学号 + 「更新する」可点；真正的提交（POST + 撞号 422）待后端接线。
 // ───────────────────────────────────────────────────────────────
 
@@ -78,9 +77,8 @@ fun RenewStudentNoSheet(onDismiss: () -> Unit) {
             classCode.isNotEmpty() &&
             (seatNo != null && seatNo in 1..99)
 
-    ModalBottomSheet(
+    GlassBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = t.paper,
         sheetState = rememberModalBottomSheetState(),
     ) {
         Column(

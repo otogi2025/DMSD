@@ -1,6 +1,5 @@
 package jp.tomoshibi.android.ui.screens.login
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,7 +25,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -61,7 +59,6 @@ fun LoginScreen(navController: NavHostController) {
     val store = LocalAppStore.current
     val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
 
     // mode tab：true=番号 tab（默认，对齐 iOS 优先番号）/ false=邮箱 tab
     var accountMode by remember { mutableStateOf(true) }
@@ -92,12 +89,12 @@ fun LoginScreen(navController: NavHostController) {
         val trimmedEmail = email.trim()
         if (accountMode) {
             if (trimmedAcc.isEmpty() || password.isEmpty()) {
-                Toast.makeText(context, "アカウント番号とパスワードを入力してください", Toast.LENGTH_SHORT).show()
+                store.showToast("アカウント番号とパスワードを入力してください")
                 return@submit
             }
         } else {
             if (trimmedEmail.isEmpty() || password.isEmpty()) {
-                Toast.makeText(context, "メールアドレスとパスワードを入力してください", Toast.LENGTH_SHORT).show()
+                store.showToast("メールアドレスとパスワードを入力してください")
                 return@submit
             }
         }
@@ -149,7 +146,7 @@ fun LoginScreen(navController: NavHostController) {
                                 } else {
                                     "メールアドレスまたはパスワードが正しくありません"
                                 }
-                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                            store.showToast(msg)
                         }
                     }
 
@@ -171,22 +168,17 @@ fun LoginScreen(navController: NavHostController) {
                                     e.msg.ifEmpty {
                                         "このアカウントは現在ご利用いただけません。寮監に申し出てください"
                                     }
-                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                store.showToast(msg)
                             }
 
                             else -> {
-                                Toast.makeText(context, e.display, Toast.LENGTH_SHORT).show()
+                                store.showToast(e.display)
                             }
                         }
                     }
 
                     else -> {
-                        Toast
-                            .makeText(
-                                context,
-                                ApiErrorPresenter.userMessage(e, "ログインに失敗しました"),
-                                Toast.LENGTH_SHORT,
-                            ).show()
+                        store.showToast(ApiErrorPresenter.userMessage(e, "ログインに失敗しました"))
                     }
                 }
             }

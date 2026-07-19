@@ -1,6 +1,7 @@
 package jp.tomoshibi.android.ui.screens.applications
 
-import android.widget.Toast
+import jp.tomoshibi.android.data.store.LocalAppStore
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -62,6 +63,7 @@ private enum class StudyLeaveRange(
 
 @Composable
 fun StudyAbsenceForm(navController: NavHostController) {
+    val store = LocalAppStore.current
     val t = SuzuT.current
     val ctx = LocalContext.current
 
@@ -99,7 +101,7 @@ fun StudyAbsenceForm(navController: NavHostController) {
                         onConfirm = {
                             // 理由 trim 后非空才允许（否则提示，对齐 iOS 校验）
                             if (reason.trim().isEmpty()) {
-                                Toast.makeText(ctx, "理由を入力してください", Toast.LENGTH_SHORT).show()
+                                store.showToast("理由を入力してください")
                             } else {
                                 stage = "preview"
                             }
@@ -124,7 +126,7 @@ fun StudyAbsenceForm(navController: NavHostController) {
                     DoneStage(
                         tokens = t,
                         onBack = {
-                            Toast.makeText(ctx, "夜学習欠席届を提出しました", Toast.LENGTH_SHORT).show()
+                            store.showToast("夜学習欠席届を提出しました")
                             navController.popBackStack()
                         },
                     )

@@ -1,6 +1,7 @@
 package jp.tomoshibi.android.ui.components
 
-import android.widget.Toast
+import jp.tomoshibi.android.data.store.LocalAppStore
+
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -27,7 +28,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -72,6 +72,7 @@ internal enum class Step { Idle, Scanning, Success, Fail }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudyCheckinSheet(onDismiss: () -> Unit) {
+    val store = LocalAppStore.current
     val t = SuzuT.current
     val ctx = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -110,26 +111,14 @@ fun StudyCheckinSheet(onDismiss: () -> Unit) {
                 } else {
                     "$tapName 完了"
                 }
-            Toast.makeText(ctx, toastText, Toast.LENGTH_SHORT).show()
+            store.showToast(toastText)
             onDismiss()
         }
     }
 
-    ModalBottomSheet(
+    GlassBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = t.paper,
-        scrimColor = Color.Black.copy(alpha = 0.32f),
-        dragHandle = {
-            Box(
-                modifier =
-                    Modifier
-                        .padding(top = 10.dp, bottom = 16.dp)
-                        .size(width = 40.dp, height = 5.dp)
-                        .clip(CircleShape)
-                        .background(t.inkFaint),
-            )
-        },
     ) {
         Column(
             modifier =

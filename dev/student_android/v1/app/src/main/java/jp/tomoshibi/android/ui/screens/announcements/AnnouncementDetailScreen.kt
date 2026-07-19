@@ -1,6 +1,5 @@
 package jp.tomoshibi.android.ui.screens.announcements
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -183,9 +182,9 @@ fun AnnouncementDetailScreen(
                                         if (store.handleIfUnauthorized(e, tokenAtStart)) {
                                             return@launch
                                         }
-                                        Toast.makeText(ctx, e.display, Toast.LENGTH_SHORT).show()
+                                        store.showToast(e.display)
                                     } catch (e: Exception) {
-                                        Toast.makeText(ctx, "送信に失敗しました", Toast.LENGTH_SHORT).show()
+                                        store.showToast("送信に失敗しました")
                                     } finally {
                                         sending = false
                                     }

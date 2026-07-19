@@ -97,7 +97,7 @@ fun TomoshibiNavGraph(navController: NavHostController) {
             route = Route.MyRollcallDetail.PATH,
             arguments = listOf(navArgument(Route.MyRollcallDetail.ARG_ID) { type = NavType.StringType }),
         ) { entry ->
-            val id = entry.arguments?.getString(Route.MyRollcallDetail.ARG_ID) ?: ""
+            val id = Route.MyRollcallDetail.parseId(entry.arguments?.getString(Route.MyRollcallDetail.ARG_ID))
             MyRollcallDetailScreen(navController, id)
         }
         composable(Route.MyPoints.path) { MyPointsScreen(navController) }
@@ -131,9 +131,9 @@ fun TomoshibiNavGraph(navController: NavHostController) {
         composable(Route.MusicNew.path) { MusicNewScreen(navController) }
         composable(
             route = Route.MusicDetail.PATH,
-            arguments = listOf(navArgument(Route.MusicDetail.ARG_ID) { type = NavType.IntType }),
+            arguments = listOf(navArgument(Route.MusicDetail.ARG_ID) { type = NavType.StringType }),
         ) { entry ->
-            val id = entry.arguments?.getInt(Route.MusicDetail.ARG_ID) ?: 0
+            val id = entry.arguments?.getString(Route.MusicDetail.ARG_ID) ?: ""
             MusicDetailScreen(navController, id)
         }
         composable(

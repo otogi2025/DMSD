@@ -1,6 +1,5 @@
 package jp.tomoshibi.android.ui.screens.mypage
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -235,6 +234,7 @@ private fun DemoPushRow(
     ctx: android.content.Context,
 ) {
     val t = SuzuT.current
+    val store = LocalAppStore.current
     Row(
         modifier =
             Modifier
@@ -258,7 +258,7 @@ private fun DemoPushRow(
                 Modifier
                     .clip(RoundedCornerShape(99.dp))
                     .background(t.pill)
-                    .clickable { Toast.makeText(ctx, "送信しました", Toast.LENGTH_SHORT).show() }
+                    .clickable { store.showToast("送信しました") }
                     .padding(horizontal = 14.dp, vertical = 6.dp),
         ) {
             Text(

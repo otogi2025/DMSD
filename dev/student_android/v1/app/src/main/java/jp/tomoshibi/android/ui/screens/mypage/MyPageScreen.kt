@@ -22,7 +22,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -49,6 +48,7 @@ import jp.tomoshibi.android.nav.Route
 import jp.tomoshibi.android.ui.components.Avatar
 import jp.tomoshibi.android.ui.components.GhostButton
 import jp.tomoshibi.android.ui.components.GlobalScaffold
+import jp.tomoshibi.android.ui.components.GlassBottomSheet
 import jp.tomoshibi.android.ui.components.PageHeader
 import jp.tomoshibi.android.ui.components.Pill
 import jp.tomoshibi.android.ui.components.PillTone
@@ -532,10 +532,9 @@ private fun LogoutSheet(
     onLogout: () -> Unit,
 ) {
     val t = SuzuT.current
-    ModalBottomSheet(
+    GlassBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = t.paper,
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 32.dp),

@@ -1,6 +1,7 @@
 package jp.tomoshibi.android.ui.screens.community
 
-import android.widget.Toast
+import jp.tomoshibi.android.data.store.LocalAppStore
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -33,6 +34,7 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 //   PageHeader「宅配」level 2 + 待領/領済 segmented tab + 📦 卡列表（待領才显示「受取」按钮）
 @Composable
 fun DeliveryScreen(navController: NavHostController) {
+    val store = LocalAppStore.current
     val tokens = SuzuT.current
     val ctx = LocalContext.current
     var tab by remember { mutableStateOf("pending") } // pending=待領 / done=領済
@@ -81,7 +83,7 @@ fun DeliveryScreen(navController: NavHostController) {
                         showReceive = tab == "pending",
                         onReceive = {
                             received = received + pkg.id
-                            Toast.makeText(ctx, "受取しました", Toast.LENGTH_SHORT).show()
+                            store.showToast("受取しました")
                         },
                         onClick = { navController.navigate(Route.PackageDetail(pkg.id).path) },
                     )

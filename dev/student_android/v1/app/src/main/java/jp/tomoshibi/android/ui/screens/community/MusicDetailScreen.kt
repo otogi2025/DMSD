@@ -46,11 +46,11 @@ private val MusicGrad = Brush.linearGradient(listOf(Color(0xFFA78BFA), Color(0xF
 @Composable
 fun MusicDetailScreen(
     navController: NavHostController,
-    id: Int,
+    id: String,
 ) {
     val t = SuzuT.current
     // 从假数据里按 id 取曲（无后端）
-    val song: SongItem? = MockData.DEFAULT_SONGS.find { it.id == id }
+    val song: SongItem? = MockData.DEFAULT_SONGS.find { it.id.toString() == id }
 
     GlobalScaffold(activeTab = "", navController = navController) {
         Column(modifier = Modifier.fillMaxSize().background(t.pearl)) {

@@ -1,6 +1,5 @@
 package jp.tomoshibi.android.ui.screens.mypage
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import jp.tomoshibi.android.data.seed.MockData
+import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.nav.Route
 import jp.tomoshibi.android.ui.components.Field
 import jp.tomoshibi.android.ui.components.GlobalScaffold
@@ -57,6 +57,7 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 // §3 個人情報（L2）— 10 行键值信息表卡 + 編集按钮 + info box
 @Composable
 fun MyInfoScreen(navController: NavHostController) {
+    val store = LocalAppStore.current
     val t = SuzuT.current
     val u = MockData.DEFAULT_USER
 
@@ -168,6 +169,7 @@ fun MyInfoScreen(navController: NavHostController) {
 // §3 連絡先・部屋編集（L3）— read-only 头 + 部屋番号 / メール / 電話 + help box + 保存
 @Composable
 fun MyInfoEditScreen(navController: NavHostController) {
+    val store = LocalAppStore.current
     val t = SuzuT.current
     val ctx = LocalContext.current
     val u = MockData.DEFAULT_USER
@@ -271,7 +273,7 @@ fun MyInfoEditScreen(navController: NavHostController) {
                     enabled = canSave,
                     onClick = {
                         // 拼回前缀 + 数字 = 新房号（演示版仅弹 toast 不真持久化）
-                        Toast.makeText(ctx, "保存しました", Toast.LENGTH_SHORT).show()
+                        store.showToast("保存しました")
                         navController.popBackStack()
                     },
                 )

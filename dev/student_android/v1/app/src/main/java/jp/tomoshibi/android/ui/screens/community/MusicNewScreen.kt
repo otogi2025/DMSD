@@ -1,6 +1,7 @@
 package jp.tomoshibi.android.ui.screens.community
 
-import android.widget.Toast
+import jp.tomoshibi.android.data.store.LocalAppStore
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,7 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 //   纯本地：不接后端，提交后弹提示再返回上一页
 @Composable
 fun MusicNewScreen(navController: NavHostController) {
+    val store = LocalAppStore.current
     val tokens = SuzuT.current
     val ctx = LocalContext.current
 
@@ -95,7 +97,7 @@ fun MusicNewScreen(navController: NavHostController) {
                     title = "投稿する",
                     enabled = canSubmit,
                     onClick = {
-                        Toast.makeText(ctx, "投稿しました", Toast.LENGTH_SHORT).show()
+                        store.showToast("投稿しました")
                         navController.popBackStack()
                     },
                 )

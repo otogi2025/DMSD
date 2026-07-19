@@ -1,6 +1,7 @@
 package jp.tomoshibi.android.ui.screens.applications
 
-import android.widget.Toast
+import jp.tomoshibi.android.data.store.LocalAppStore
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -75,6 +76,7 @@ private const val DEFAULT_SLOT_END = "21:00"
 
 @Composable
 fun StudyOnlineForm(navController: NavHostController) {
+    val store = LocalAppStore.current
     val t = SuzuT.current
     val ctx = LocalContext.current
 
@@ -159,7 +161,7 @@ fun StudyOnlineForm(navController: NavHostController) {
                         onPickContract = {
                             // 文件选择 Android 暂不做真实 picker —— 点了弹提示 + 填假文件名占位
                             contractFileName = "contract.pdf"
-                            Toast.makeText(ctx, "ファイル選択は後日対応", Toast.LENGTH_SHORT).show()
+                            store.showToast("ファイル選択は後日対応")
                             // TODO 真实 ContractFilePicker（拍照/相册/PDF + HEIC→JPEG + 10MB 限制）待做 —— 见规格 §5
                         },
                         onRemoveContract = { contractFileName = null },
@@ -187,7 +189,7 @@ fun StudyOnlineForm(navController: NavHostController) {
                 "done" -> {
                     DoneBody(
                         onBack = {
-                            Toast.makeText(ctx, "オンライン学習申請を提出しました", Toast.LENGTH_SHORT).show()
+                            store.showToast("オンライン学習申請を提出しました")
                             navController.popBackStack()
                         },
                     )

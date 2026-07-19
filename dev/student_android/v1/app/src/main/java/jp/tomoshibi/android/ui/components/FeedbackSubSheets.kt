@@ -15,7 +15,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -37,7 +36,7 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 // FeedbackSubSheets — 反馈三子表单（体调 / 缺席 / 其他）
 // 对齐 iOS Foundation/Features/Home/HomeStubs.swift 行 1947–2154：
 //   HealthSheet（1947）/ AbsenceSheet（2038）/ OtherSheet（2083）。
-// iOS 用 GlassSheet（液态玻璃），Android 无玻璃组件 → 一律 ModalBottomSheet（containerColor=t.paper），既定降级方案。
+// iOS 用 GlassSheet；Android 走 GlassBottomSheet（半透明 paper + ink@35% 遮罩近似）。
 // 入口：FeedbackSheet 分发后，按选中的类型 health/absence/other 打开对应子表单（接线归主会话）。
 // 本波纯 UI，无状态机、无网络。提交按钮点了只关窗（iOS 那边 closeSheet + showToast，Toast 由调用方接）。
 // ───────────────────────────────────────────────────────────────
@@ -61,9 +60,8 @@ fun HealthSheet(onDismiss: () -> Unit) {
     // 症状选项 —— 照抄 iOS symptoms 数组，「発熱」「頭痛」「腹痛」「吐き気」「風邪症状」「その他」
     val symptoms = listOf("発熱", "頭痛", "腹痛", "吐き気", "風邪症状", "その他")
 
-    ModalBottomSheet(
+    GlassBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = t.paper,
         sheetState = rememberModalBottomSheetState(),
     ) {
         Column(
@@ -141,9 +139,8 @@ fun AbsenceSheet(onDismiss: () -> Unit) {
     // 缺席理由（必填，去掉首尾空白后非空才允许提交）
     var reason by remember { mutableStateOf("") }
 
-    ModalBottomSheet(
+    GlassBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = t.paper,
         sheetState = rememberModalBottomSheetState(),
     ) {
         Column(
@@ -201,9 +198,8 @@ fun OtherSheet(onDismiss: () -> Unit) {
     // 分类选项 —— 照抄 iOS categories 数组，「遅刻理由」「外出中」「NFC 不具合」「その他」
     val categories = listOf("遅刻理由", "外出中", "NFC 不具合", "その他")
 
-    ModalBottomSheet(
+    GlassBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = t.paper,
         sheetState = rememberModalBottomSheetState(),
     ) {
         Column(

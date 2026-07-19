@@ -67,12 +67,16 @@ sealed class Route(
 
     data object MyRollcall : Route("my/rollcall")
 
+    // id 可空：对齐 iOS myRollcallDetail(entryId: String?)；导航时 null → 省略段用 "_"
     data class MyRollcallDetail(
-        val id: String,
-    ) : Route("my/rollcall/$id") {
+        val id: String?,
+    ) : Route("my/rollcall/${id ?: "_"}") {
         companion object {
             const val PATH = "my/rollcall/{id}"
             const val ARG_ID = "id"
+
+            /** Nav 参数 → 可空 id（"_" / 空串视为 null） */
+            fun parseId(raw: String?): String? = raw?.takeIf { it.isNotEmpty() && it != "_" }
         }
     }
 
@@ -121,8 +125,9 @@ sealed class Route(
 
     data object MusicNew : Route("music/new") // 点歌投稿屏「曲を投稿」
 
+    // id 用 String：对齐 iOS homeMusicDetail(id: String) + 后端 SongRequestOut.id
     data class MusicDetail(
-        val id: Int,
+        val id: String,
     ) : Route("music/$id") {
         companion object {
             const val PATH = "music/{id}"
@@ -193,4 +198,137 @@ sealed class Route(
     }
 
     data object Events : Route("events") // 本周活动列表（对齐 iOS homeEvents）
+}
+
+/** 面包屑显示名 — 对齐 iOS Route.displayName（按 path 前缀匹配） */
+fun routeDisplayName(route: String): String {
+    val base = route.substringBefore("?").substringBefore("/{")
+    // 去掉动态段后的具体 id，取前两段做匹配
+    val parts = base.split("/").filter { it.isNotEmpty() }
+    val key = parts.take(2).joinToString("/")
+    return when {
+        base == "home" || parts.firstOrNull() == "home" && parts.size == 1 -> {
+            "ホーム"
+        }
+
+        key == "applications" && parts.size == 1 -> {
+            "申し込み"
+        }
+
+        key.startsWith("applications") -> {
+            "詳細"
+        }
+
+        key == "mypage" -> {
+            "マイページ"
+        }
+
+        key == "my/info" -> {
+            if (parts.getOrNull(2) == "edit") "個人情報編集" else "個人情報"
+        }
+
+        key == "my/rollcall" -> {
+            if (parts.size > 2) "詳細" else "点呼履歴"
+        }
+
+        key == "my/points" -> {
+            if (parts.getOrNull(2) == "chart") "グラフ" else "減点明細"
+        }
+
+        key == "my/discipline" -> {
+            "処分履歴"
+        }
+
+        key == "my/health" -> {
+            "体調報告履歴"
+        }
+
+        key == "my/packages" -> {
+            "宅配履歴"
+        }
+
+        key == "my/study" -> {
+            "夜学習履歴"
+        }
+
+        key == "my/settings" -> {
+            "設定"
+        }
+
+        key == "my/about" -> {
+            "Tomoshibi について"
+        }
+
+        key == "announcements" -> {
+            if (parts.size > 1) "お知らせ詳細" else "お知らせ"
+        }
+
+        key == "notifications" -> {
+            if (parts.size > 1) "詳細" else "通知"
+        }
+
+        key == "music" -> {
+            when {
+                parts.getOrNull(1) == "new" -> "投稿"
+                parts.size > 1 -> "詳細"
+                else -> "リクエスト曲"
+            }
+        }
+
+        key == "lostfound" || key.startsWith("lost") -> {
+            when {
+                base.contains("new") -> "投稿"
+                base.contains("detail") || parts.size > 1 -> "詳細"
+                else -> "落とし物"
+            }
+        }
+
+        key == "packages" -> {
+            "宅配詳細"
+        }
+
+        key == "events" -> {
+            if (parts.size > 1) "詳細" else "カレンダー"
+        }
+
+        key == "schedule" -> {
+            "行事予定"
+        }
+
+        key == "bus" || key == "bus/list" -> {
+            "特別運行便"
+        }
+
+        key == "stayhistory" -> {
+            when {
+                base.endsWith("/edit") -> "変更届"
+                parts.size > 1 -> "申請詳細"
+                else -> "申請履歴"
+            }
+        }
+
+        key == "applylist/events" -> {
+            "行事企画一覧"
+        }
+
+        key == "applylist/online" -> {
+            "オンライン学習申請一覧"
+        }
+
+        key == "applylist/fridge" -> {
+            "冷蔵庫購入届一覧"
+        }
+
+        key == "applylist/items" -> {
+            "物品所持許可願一覧"
+        }
+
+        key == "delivery" -> {
+            "宅配"
+        }
+
+        else -> {
+            parts.lastOrNull() ?: route
+        }
+    }
 }

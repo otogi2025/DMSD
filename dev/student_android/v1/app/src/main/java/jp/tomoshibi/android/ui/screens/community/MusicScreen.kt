@@ -98,7 +98,7 @@ fun MusicScreen(navController: NavHostController) {
                 songs.forEach { song ->
                     SongRow(
                         song = song,
-                        onOpenDetail = { navController.navigate(Route.MusicDetail(song.id).path) },
+                        onOpenDetail = { navController.navigate(Route.MusicDetail(song.id.toString()).path) },
                     )
                 }
 

@@ -642,6 +642,7 @@ private fun Step5Code(
     onChange: (FormData) -> Unit,
 ) {
     val t = SuzuT.current
+    val store = LocalAppStore.current
 
     // 倒计时秒数 — 进屏即从 60 倒数，到 0 才允许「再送信」（本地 state，不接后端）
     var remain by remember { mutableStateOf(60) }
@@ -762,9 +763,7 @@ private fun Step5Code(
                         Modifier.clickable {
                             // 演示版：本地重置倒计时 + toast（不真发码）
                             remain = 60
-                            android.widget.Toast
-                                .makeText(context, "認証コードを再送信しました", android.widget.Toast.LENGTH_SHORT)
-                                .show()
+                            store.showToast("認証コードを再送信しました")
                         }
                     } else {
                         Modifier

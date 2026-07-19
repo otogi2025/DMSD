@@ -207,7 +207,7 @@ private fun RollcallRow(
 @Composable
 fun MyRollcallDetailScreen(
     navController: NavHostController,
-    id: String,
+    id: String?,
 ) {
     val t = SuzuT.current
     val cs = MaterialTheme.colorScheme
@@ -215,7 +215,7 @@ fun MyRollcallDetailScreen(
     // 按 id 取那条；取不到给个兜底（防崩）
     val entry =
         MockData.DEFAULT_ROLLCALL.find { it.id == id }
-            ?: RollcallEntry(id, "―", "―", "―", "―")
+            ?: RollcallEntry(id ?: "―", "―", "―", "―", "―")
 
     // 朝场 / 晩场 → 开始 / 截止时刻
     val isMorning = entry.session == "朝点呼"

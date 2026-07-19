@@ -28,8 +28,13 @@ import jp.tomoshibi.android.data.rollcall.RollStateMachine
 import jp.tomoshibi.android.data.seed.MockData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -66,6 +71,42 @@ class AppStore(
 
     // 启动时异步：旧版 DataStore JSON 里若还有明文 authToken → 写入加密存储 → 删明文
     private val migrateScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    // UI 瞬时态（toast / 面包屑）用主线程 scope，不落盘
+    private val uiScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    // ── 全局 Toast（对齐 iOS AppStore.toast / showToast，2.2 秒自动清）──
+    private val _toast = MutableStateFlow<String?>(null)
+    val toast: StateFlow<String?> = _toast.asStateFlow()
+    private var toastGeneration: Int = 0
+    private var toastClearJob: Job? = null
+
+    // ── 面包屑弹窗开关（对齐 iOS AppStore.breadcrumbOpen）──
+    private val _breadcrumbOpen = MutableStateFlow(false)
+    val breadcrumbOpen: StateFlow<Boolean> = _breadcrumbOpen.asStateFlow()
+
+    /** 显示全局 Toast；连续调用时旧定时器不会清掉新文案（代次令牌）。 */
+    fun showToast(text: String) {
+        toastGeneration += 1
+        val gen = toastGeneration
+        _toast.value = text
+        toastClearJob?.cancel()
+        toastClearJob =
+            uiScope.launch {
+                delay(2200)
+                if (toastGeneration == gen) {
+                    _toast.value = null
+                }
+            }
+    }
+
+    fun openBreadcrumb() {
+        _breadcrumbOpen.value = true
+    }
+
+    fun closeBreadcrumb() {
+        _breadcrumbOpen.value = false
+    }
 
     init {
         migrateScope.launch {

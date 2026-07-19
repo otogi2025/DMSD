@@ -1,6 +1,7 @@
 package jp.tomoshibi.android.ui.screens.community
 
-import android.widget.Toast
+import jp.tomoshibi.android.data.store.LocalAppStore
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -44,6 +45,7 @@ fun EventDetailScreen(
     navController: NavHostController,
     id: Int,
 ) {
+    val store = LocalAppStore.current
     val t = SuzuT.current
     val ctx = LocalContext.current
     val event = MockData.DEFAULT_EVENTS.find { it.id == id }
@@ -140,7 +142,7 @@ fun EventDetailScreen(
                     // 「カレンダーに追加」按钮 → toast。Android 不能说 iPhone。
                     // TODO: 后续可接 Android 日历 Intent（ACTION_INSERT），本波最小版只弹 toast
                     PrimaryButton(title = "カレンダーに追加", icon = SuzuIcons.Cal) {
-                        Toast.makeText(ctx, "カレンダーに追加しました", Toast.LENGTH_SHORT).show()
+                        store.showToast("カレンダーに追加しました")
                     }
 
                     Spacer(Modifier.height(20.dp))

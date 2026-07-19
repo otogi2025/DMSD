@@ -12,7 +12,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -78,21 +77,9 @@ fun RollCallSheet(onDismiss: () -> Unit) {
         }
     }
 
-    ModalBottomSheet(
+    GlassBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = tokens.paper,
-        scrimColor = Color.Black.copy(alpha = 0.32f),
-        dragHandle = {
-            Box(
-                modifier =
-                    Modifier
-                        .padding(top = 10.dp, bottom = 16.dp)
-                        .size(width = 40.dp, height = 5.dp)
-                        .clip(CircleShape)
-                        .background(tokens.inkFaint),
-            )
-        },
     ) {
         Column(
             modifier =

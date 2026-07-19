@@ -1,6 +1,5 @@
 package jp.tomoshibi.android.ui.screens.applications
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -299,7 +298,7 @@ fun StayForm(
                                 },
                                 onDraft = {
                                     // 下書き保存：纯演示不真存（规格 §2.1-11）
-                                    Toast.makeText(ctx, "下書き保存しました", Toast.LENGTH_SHORT).show()
+                                    store.showToast("下書き保存しました")
                                 },
                                 canSubmit = canSubmit,
                                 onConfirm = { stage = "preview" },
@@ -340,7 +339,7 @@ fun StayForm(
                                 reason = reason,
                                 onSubmit = {
                                     // 提出する：本地完成（不发网络），弹 toast 后进 done
-                                    Toast.makeText(ctx, "${kindName}申請を提出しました", Toast.LENGTH_SHORT).show()
+                                    store.showToast("${kindName}申請を提出しました")
                                     stage = "done"
                                 },
                                 onEdit = { stage = "edit" },

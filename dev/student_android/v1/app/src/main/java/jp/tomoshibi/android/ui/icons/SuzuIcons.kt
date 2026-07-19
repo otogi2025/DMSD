@@ -1,19 +1,59 @@
 package jp.tomoshibi.android.ui.icons
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Undo
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Circle
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.GppGood
+import androidx.compose.material.icons.outlined.ArrowDownward
+import androidx.compose.material.icons.outlined.ArrowForward
+import androidx.compose.material.icons.outlined.ArrowUpward
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.DirectionsBus
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Flight
+import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Inventory
+import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowLeft
+import androidx.compose.material.icons.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.LibraryBooks
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Logout
+import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Mood
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.Scale
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.ShowChart
+import androidx.compose.material.icons.outlined.Warning
+import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.ui.graphics.vector.ImageVector
 
-// Suzu icon set — v1.0 阶段先用 Material Icons fallback 占位
-// 对应 React tokens.jsx 的 Ic 组件，但不像 React SVG path 能直接 inline，
-// Compose ImageVector DSL 写起来啰嗦 + path 数据来自 React 的 SVG 字符串需要解析。
-//
-// P1+ 切换方案：
-// (A) 把 React 32 个 SVG path 转 res/drawable/ic_*.xml VectorDrawable，用 painterResource(R.drawable.ic_xxx)
-// (B) 或者每个 icon 写一个 lazy ImageVector.Builder { path { moveTo... } } — 更"Compose native" 但代码量大
-//
-// 现在先用 Material Icons 让 nav 跑起来 — UI 还原度后续单独 PR 提升
+// Suzu icon set — 对齐 iOS Foundation/Components/Icons/Ic.swift
+// Material Icons 近似映射；UI 还原度后续可换自定义 VectorDrawable
 
 object SuzuIcons {
     // ── nav bar 5 icon ────────────────────
@@ -62,4 +102,45 @@ object SuzuIcons {
     // Shield = iOS shield.checkered（带勾的盾）— Material Icons 用 Filled.GppGood (盾 + ✓) 最接近
     val Shield: ImageVector = Icons.Filled.GppGood
     val Person: ImageVector = Icons.Outlined.Person
+
+    // ── G9：对齐 iOS Ic.swift 补齐的图标 ────────────────────
+
+    /** Ic.chevD — chevron.down */
+    val ChevD: ImageVector = Icons.Outlined.KeyboardArrowDown
+
+    /** Ic.dot — circle.fill */
+    val Dot: ImageVector = Icons.Filled.Circle
+
+    /** Ic.search — magnifyingglass */
+    val Search: ImageVector = Icons.Outlined.Search
+
+    /** Ic.camera — camera */
+    val Camera: ImageVector = Icons.Outlined.PhotoCamera
+
+    /** Ic.heart(filled:false) — heart */
+    val Heart: ImageVector = Icons.Outlined.FavoriteBorder
+
+    /** Ic.heart(filled:true) — heart.fill */
+    val HeartFilled: ImageVector = Icons.Filled.Favorite
+
+    /** Ic.flag — flag */
+    val Flag: ImageVector = Icons.Outlined.Flag
+
+    /** Ic.up — arrow.up */
+    val Up: ImageVector = Icons.Outlined.ArrowUpward
+
+    /** Ic.down — arrow.down */
+    val Down: ImageVector = Icons.Outlined.ArrowDownward
+
+    /** Ic.lock — lock */
+    val Lock: ImageVector = Icons.Outlined.Lock
+
+    /** Ic.myMoon — moon.stars */
+    val MyMoon: ImageVector = Icons.Outlined.DarkMode
+
+    /** 面包屑行用（对齐 iOS arrow.uturn.backward） */
+    val Undo: ImageVector = Icons.AutoMirrored.Outlined.Undo
+
+    /** 返回箭头（AutoMirrored，RTL 友好） */
+    val ArrowBack: ImageVector = Icons.AutoMirrored.Outlined.ArrowBack
 }

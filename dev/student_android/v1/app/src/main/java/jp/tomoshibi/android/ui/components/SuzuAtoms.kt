@@ -1,5 +1,6 @@
 package jp.tomoshibi.android.ui.components
 
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -69,6 +70,7 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 // ───────────────────────────────────────────────────────────────
 
 // 4.1 Card — 白卡片容器（padding 默认 14、圆角 16、双层柔阴影）
+// 双层对齐 iOS UIAtoms Card：radius14/y4@5% + radius2/y1@4%
 @Composable
 fun SuzuCard(
     modifier: Modifier = Modifier,
@@ -77,16 +79,25 @@ fun SuzuCard(
     content: @Composable () -> Unit,
 ) {
     val t = SuzuT.current
+    val shape = RoundedCornerShape(radius.dp)
     Column(
         modifier =
             modifier
                 .fillMaxWidth()
+                // 大范围软阴影
                 .shadow(
-                    elevation = 4.dp,
-                    shape = RoundedCornerShape(radius.dp),
-                    ambientColor = t.ink,
-                    spotColor = t.ink,
-                ).clip(RoundedCornerShape(radius.dp))
+                    elevation = 14.dp,
+                    shape = shape,
+                    ambientColor = t.ink.copy(alpha = 0.05f),
+                    spotColor = t.ink.copy(alpha = 0.05f),
+                )
+                // 小范围贴边阴影
+                .shadow(
+                    elevation = 2.dp,
+                    shape = shape,
+                    ambientColor = t.ink.copy(alpha = 0.04f),
+                    spotColor = t.ink.copy(alpha = 0.04f),
+                ).clip(shape)
                 .background(t.paper)
                 .padding(padding.dp),
     ) {
@@ -480,7 +491,7 @@ fun TToggle(
 }
 
 // 4.16 PageHeader — 子页统一头部（左键按 level 切 home/返回、标题 17 bold、长按弹面包屑）
-// 回调 hoisted：onLeft = level1 回首页 / level2+ 返回；onLongPress = 弹面包屑
+// onLongPress 默认：轻触觉 + 打开全局 BreadcrumbOverlay（对齐 iOS PageHeader 0.4s 长按）
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PageHeader(
@@ -488,10 +499,17 @@ fun PageHeader(
     modifier: Modifier = Modifier,
     level: Int = 2,
     onLeft: () -> Unit,
-    onLongPress: () -> Unit = {},
+    onLongPress: (() -> Unit)? = null,
     right: (@Composable () -> Unit)? = null,
 ) {
     val t = SuzuT.current
+    val store = jp.tomoshibi.android.data.store.LocalAppStore.current
+    val haptics = jp.tomoshibi.android.ui.haptics.rememberHaptics()
+    val longPressHandler =
+        onLongPress ?: {
+            haptics(jp.tomoshibi.android.ui.haptics.HapticKind.Light)
+            store.openBreadcrumb()
+        }
     Row(
         modifier =
             modifier
@@ -504,7 +522,7 @@ fun PageHeader(
             modifier =
                 Modifier
                     .size(36.dp)
-                    .combinedClickable(onClick = onLeft, onLongClick = onLongPress),
+                    .combinedClickable(onClick = onLeft, onLongClick = longPressHandler),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -515,9 +533,55 @@ fun PageHeader(
             )
         }
         Text(title, color = t.ink, style = TextStyle(fontSize = 17.sp, fontWeight = FontWeight.Bold))
-        Spacer(Modifier.weight(1f))
+        Spacer(modifier.weight(1f))
         if (right != null) right()
     }
+}
+
+// 4.19 Skeleton — 对齐 iOS UIAtoms Skeleton（圆角 6 + 1.4s 扫光）
+@Composable
+fun SuzuSkeleton(
+    modifier: Modifier = Modifier,
+    height: Int = 14,
+) {
+    val t = SuzuT.current
+    val transition =
+        androidx.compose.animation.core.rememberInfiniteTransition(label = "skeleton")
+    val shift by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec =
+            androidx.compose.animation.core.infiniteRepeatable(
+                animation =
+                    androidx.compose.animation.core.tween(
+                        durationMillis = 1400,
+                        easing = androidx.compose.animation.core.LinearEasing,
+                    ),
+            ),
+        label = "skeleton-shift",
+    )
+    val brush =
+        Brush.linearGradient(
+            colors = listOf(t.hair, t.hairSoft, t.hair),
+            start =
+                androidx.compose.ui.geometry.Offset(
+                    x = -200f + 400f * shift,
+                    y = 0f,
+                ),
+            end =
+                androidx.compose.ui.geometry.Offset(
+                    x = 200f + 400f * shift,
+                    y = 0f,
+                ),
+        )
+    Box(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(height.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(brush),
+    )
 }
 
 // 4.17 DateField — 日期选择字段（Field 包裹 + 点击弹 Material DatePicker，回传 ISO "yyyy-MM-dd"）
@@ -562,7 +626,11 @@ fun DateField(
                 TextButton(onClick = {
                     state.selectedDateMillis?.let { ms ->
                         // DatePicker 选中毫秒是 UTC 当天 0 点，按 UTC 取日历日避免偏移
-                        val d = java.time.Instant.ofEpochMilli(ms).atZone(java.time.ZoneOffset.UTC).toLocalDate()
+                        val d =
+                            java.time.Instant
+                                .ofEpochMilli(ms)
+                                .atZone(java.time.ZoneOffset.UTC)
+                                .toLocalDate()
                         onPick(d.toString())
                     }
                     open = false
