@@ -185,10 +185,25 @@ object AnnouncementsAPI {
 // 当前登录学生（GET /students/me，替换假数据）
 // ============================================================
 
+// / PATCH /students/me 请求体（对齐后端 StudentSelfUpdate）。
+// / 全 Optional —— ApiClient.json explicitNulls=false，只编码用户实际改了的字段。
+@Serializable
+data class StudentSelfUpdateBody(
+    val email: String? = null,
+    val phone: String? = null,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
+    @SerialName("room_no") val roomNo: String? = null,
+)
+
 object StudentsAPI {
     // / GET /students/me — 当前登录学生的基本信息。
     // / 仿 teachers/me；后端从令牌取学生，无需传 id。
     suspend fun me(): StudentMeOut = ApiClient.get("/api/v1/students/me")
+
+    // / PATCH /students/me — 学生自改联系方式 / 房号（只传非 null 字段）。
+    // /   撞别人邮箱 → 422 EMAIL_TAKEN；房号前缀跟本人寮不符 → 422 INVALID_ROOM_FORMAT。
+    // /   响应复用 StudentMeOut（后端多 registered_at，ignoreUnknownKeys 跳过）。
+    suspend fun updateMe(body: StudentSelfUpdateBody): StudentMeOut = ApiClient.patch("/api/v1/students/me", body)
 }
 
 // ============================================================

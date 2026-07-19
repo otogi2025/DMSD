@@ -8,51 +8,98 @@ import kotlinx.serialization.Serializable
 // data/network/endpoints — 点呼（roll call = 宿舍夜间点名）相关 endpoint 包装。
 //
 // 1:1 对齐 iOS RollCallAPI.swift。
-// 学生端只用 POST /checkins（路径 B = iPhone 静态标签 tap 触发 Universal Link 后提交签到）。
-// 其他 GET endpoint（today/sessions、board、summary）是老师端用，学生端不需要，故不包含。
 //
-// 注意：RollCallCheckinBody / RollCallEventOut 这两个 DTO 在 iOS 里也是写在 RollCallAPI.swift
-// 内（不在 NetworkModels），这里照搬同样布局，co-locate（跟端点放一起）在本文件。
-// 字段命名跟 backend schemas.py 的 RollCallCheckinIn / RollCallEventOut 对齐。
+// 注意：RollCallCheckinBody / RollCallEventOut / MyRollCallTodaySession /
+// RollCallReportBody / RollCallReportOut 在 iOS 里也写在 RollCallAPI.swift 内
+// （不在 NetworkModels），这里照搬同样布局。
 
 object RollCallAPI {
-    // POST /api/v1/rollcall/sessions/:id/checkins — 学生 BTR（Back-To-Room = 回房签到）tap 入口。
-    //
-    // 路径 B（iPhone 静态标签）流程：
-    //   - 用户 tap iPhone-BTR 标签触发 Android 深链
-    //   - app 拿到 nonce（一次性随机串；v1.1+ 起带 ECDSA 签名防伪造）
-    //   - 调本方法提交 checkin
-    //
-    // sessionId 是点呼场次的 UUID（用 String，跟 NetworkModels 日期方针一致 UUID 一律 String）。
+    // POST /api/v1/rollcall/sessions/:id/checkins — 学生签到入口。
+    // ⚠️ 架构反转后（2026-06-02）学生 app 弃用本方法：手机改写 ST25DV 邮箱，
+    // 由点呼机 POST 后端。保留代码（可能给老师代点 / 路径 A 补录用），勿删。
     suspend fun checkin(
         sessionId: String,
         body: RollCallCheckinBody,
     ): RollCallEventOut = ApiClient.post("/api/v1/rollcall/sessions/$sessionId/checkins", body)
+
+    // GET /api/v1/rollcall/me/today
+    // 学生查今天自己所属寮的点呼场次 + 自己在每场的签到状态。
+    // 四个 scheduled_* 时间窗喂给 RollStateMachine.decide；空数组 = 本日无我寮点呼。
+    suspend fun myToday(): List<MyRollCallTodaySession> = ApiClient.get("/api/v1/rollcall/me/today")
 }
 
+// GET /api/v1/rollcall/me/today 单条响应（对齐 backend MyRollCallTodaySession）。
+@Serializable
+data class MyRollCallTodaySession(
+    @SerialName("session_id") val sessionId: String,
+    @SerialName("session_type") val sessionType: String, // morning / evening
+    @SerialName("day_type") val dayType: String, // weekday / weekend_holiday
+    @SerialName("session_status") val sessionStatus: String, // draft / running / ended
+    @SerialName("scheduled_window_start_at") val scheduledWindowStartAt: String,
+    @SerialName("scheduled_on_time_end_at") val scheduledOnTimeEndAt: String,
+    @SerialName("scheduled_late_end_at") val scheduledLateEndAt: String,
+    @SerialName("scheduled_auto_end_at") val scheduledAutoEndAt: String,
+    @SerialName("my_status") val myStatus: String? = null, // nil = 还没签到
+    @SerialName("my_checked_in_at") val myCheckedInAt: String? = null,
+)
+
 // POST /api/v1/rollcall/sessions/:id/checkins 请求 body。
-//
-// 跟 backend RollCallCheckinIn 对齐（schemas.py）。
-// 字段命名保持 snake_case 跟 backend 逐字节对齐（同 NetworkModels.kt 风格）。
 @Serializable
 data class RollCallCheckinBody(
-    @SerialName("card_uid") val cardUid: String? = null, // 路径 A（NFC 卡 UID）；路径 B 时 null
-    @SerialName("student_id") val studentId: String? = null, // 路径 B / manual 时学生自身 ID（UUID 用 String）
-    @SerialName("idempotency_key") val idempotencyKey: String? = null, // 路径 B 客户端生成 UUID 防重复
+    @SerialName("card_uid") val cardUid: String? = null,
+    @SerialName("student_id") val studentId: String? = null,
+    @SerialName("idempotency_key") val idempotencyKey: String? = null,
     @SerialName("status_source") val statusSource: String, // "auto_nfc" / "manual_checkin"
-    @SerialName("ts_local") val tsLocal: String? = null, // 客户端时刻（日期一律 String）；null 由 backend 用服务器时间
+    @SerialName("ts_local") val tsLocal: String? = null,
     @SerialName("path_hint") val pathHint: String? = null, // "A" / "B" / "manual"
 )
 
 // POST /api/v1/rollcall/sessions/:id/checkins 响应。
-//
-// 跟 backend RollCallEventOut 对齐。
 @Serializable
 data class RollCallEventOut(
-    val id: String, // UUID 用 String
+    val id: String,
     @SerialName("student_id") val studentId: String,
-    @SerialName("base_status") val baseStatus: String, // "present" / "late" / "absent" / "exempt_range"
-    @SerialName("status_source") val statusSource: String, // "auto_nfc" / "manual_checkin" / "teacher_override" / "auto_settle"
-    @SerialName("checked_in_at") val checkedInAt: String, // datetime 一律 String
-    @SerialName("path_type") val pathType: String? = null, // "A" / "B" / "manual"
+    @SerialName("base_status") val baseStatus: String,
+    @SerialName("status_source") val statusSource: String,
+    @SerialName("checked_in_at") val checkedInAt: String,
+    @SerialName("path_type") val pathType: String? = null,
+)
+
+// ============================================================
+// 点呼时学生上报（体调不良 / 当次欠席 / 其他）— POST /rollcall/reports
+// ============================================================
+
+object RollCallReportsAPI {
+    // 点呼时上报。kind 区分 health / absence / other；sessionId 学生端无缓存 → 恒 null。
+    suspend fun create(
+        kind: String,
+        body: String,
+        sessionId: String? = null,
+    ): RollCallReportOut {
+        val payload = RollCallReportBody(kind = kind, body = body, sessionId = sessionId)
+        return ApiClient.post("/api/v1/rollcall/reports", payload)
+    }
+
+    // GET /api/v1/rollcall/reports/mine —— 自己提交过的全部上报（含三 kind，后端倒序）。
+    // 「体調報告履歴」只显示 health → 调用方自行 filter。
+    suspend fun listMine(): List<RollCallReportOut> = ApiClient.get("/api/v1/rollcall/reports/mine")
+}
+
+@Serializable
+data class RollCallReportBody(
+    val kind: String, // "health" | "absence" | "other"
+    val body: String, // 自由文本 1~2000 字
+    @SerialName("session_id") val sessionId: String? = null,
+)
+
+@Serializable
+data class RollCallReportOut(
+    val id: String,
+    @SerialName("student_id") val studentId: String,
+    @SerialName("session_id") val sessionId: String? = null,
+    val kind: String,
+    val body: String,
+    @SerialName("created_at") val createdAt: String,
+    @SerialName("resolved_at") val resolvedAt: String? = null,
+    @SerialName("resolved_by_teacher_id") val resolvedByTeacherId: String? = null,
 )

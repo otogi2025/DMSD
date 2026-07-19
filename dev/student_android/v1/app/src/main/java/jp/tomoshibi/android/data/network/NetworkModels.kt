@@ -69,8 +69,9 @@ data class ApplicationOut(
     @SerialName("meal_note") val mealNote: String? = null,
     val companion: String? = null,
     @SerialName("dest_cities") val destCities: String? = null,
-    @SerialName("receipt_submitted") val receiptSubmitted: Boolean? = null,
-    @SerialName("is_long_vacation") val isLongVacation: Boolean? = null,
+    // 后端 schemas 非 Optional、_to_application_out 用 bool(...) 强转，永不 null（对齐 iOS）
+    @SerialName("receipt_submitted") val receiptSubmitted: Boolean = false,
+    @SerialName("is_long_vacation") val isLongVacation: Boolean = false,
     // 日期、时刻：backend 用 date / time 类型 → 保 String
     @SerialName("leave_date") val leaveDate: String, // "2026-05-03"
     @SerialName("leave_method") val leaveMethod: String,
@@ -357,7 +358,8 @@ data class MealSkipBody(
 
 // / POST /api/v1/accounts 请求 body
 // / 跟 backend StudentAccountCreateIn 对齐（schemas.py）
-// / 字段约束（name 100 / name_kana 100 / email 200 / phone 32 / room_no min 3 max 8）由调用端 / 后端校验。
+// / 字段约束：name≤100 / name_kana≤100 / email≤200 / phone≤32 / room_no min 2 max 8
+// / （room_no min=2：2 寮 A1〜A9 是 A+1 位 = 2 字符，对齐 iOS / 后端）
 @Serializable
 data class StudentAccountCreateBody(
     val name: String,
@@ -368,13 +370,74 @@ data class StudentAccountCreateBody(
     @SerialName("class_code") val classCode: String, // 2 桁
     @SerialName("seat_no") val seatNo: String, // 2 桁
     val category: String, // "一般寮生" 等
-    @SerialName("room_no") val roomNo: String, // "M101" / "W205" 等
+    @SerialName("room_no") val roomNo: String, // "M101" / "W205" / "A1" 等
     @SerialName("dorm_unit") val dormUnit: Int, // 1 / 2 / 4
     @SerialName("is_overseas") val isOverseas: Boolean,
     val email: String? = null,
     val phone: String? = null,
     val password: String,
     @SerialName("registration_code") val registrationCode: String, // 6 桁数字（教师生成、5 分钟有效）
+) {
+    // 客户端 form 校验。返回 null = OK，否则返回日语错误信息（对齐 iOS validate()）。
+    // 9 条规则对齐后端 schemas.StudentAccountCreateIn，提交前先跑、省一次 422 往返。
+    fun validate(): String? {
+        if (name.isEmpty()) return "氏名を入力してください"
+        if (name.length > 100) return "氏名は100文字以内で入力してください"
+        if (nameKana != null && nameKana.length > 100) {
+            return "フリガナは 100 文字以内で入力してください"
+        }
+        if (gender != "male" && gender != "female") {
+            return "性別を選択してください"
+        }
+        if (!isTwoDigits(gradeCode)) return "学年は2桁の数字で入力してください"
+        if (!isTwoDigits(classCode)) return "クラスは2桁の数字で入力してください"
+        if (!isTwoDigits(seatNo)) return "出席番号は2桁の数字で入力してください"
+        // room_no：backend min_length=2（2 寮 A1〜A9），max_length=8
+        if (roomNo.length < 2) return "部屋番号を正しく入力してください"
+        if (roomNo.length > 8) return "部屋番号は8文字以内で入力してください"
+        // dorm_unit：Literal[1, 2, 4]（没有 3 寮）；由房号+性别推导，落到这里说明房号填错
+        if (dormUnit != 1 && dormUnit != 2 && dormUnit != 4) {
+            return "部屋番号をご確認ください"
+        }
+        if (email != null && email.length > 200) {
+            return "メールアドレスは200文字以内で入力してください"
+        }
+        if (phone != null && phone.length > 32) {
+            return "電話番号は32文字以内で入力してください"
+        }
+        if (password.length < 6 || password.length > 128) {
+            return "パスワードは6〜128文字で入力してください"
+        }
+        if (registrationCode.length != 6 || !registrationCode.all { it.isDigit() }) {
+            return "登録コードは6桁の数字で入力してください"
+        }
+        return null
+    }
+
+    private fun isTwoDigits(s: String): Boolean = s.length == 2 && s.all { it.isDigit() }
+}
+
+// ============================================================
+// 学生通知中心 feed（对齐 iOS NetworkModels StudentNotification*）
+// ============================================================
+
+// / 一条学生通知 = 某条 公告/巴士/行事（老师投稿时勾了「学生に通知する」）
+@Serializable
+data class StudentNotificationItem(
+    val kind: String, // "announcement" | "bus" | "event"
+    @SerialName("ref_id") val refId: String, // UUID
+    val title: String,
+    val body: String, // 摘要（后端截断到 80 字）
+    @SerialName("created_at") val createdAt: String,
+    // 乐观更新需可变 → 点卡片标已读后本地翻 true（对齐 iOS var isRead）
+    @SerialName("is_read") var isRead: Boolean,
+)
+
+// / GET /api/v1/student/notifications 响应
+@Serializable
+data class StudentNotificationFeedOut(
+    val items: List<StudentNotificationItem>,
+    @SerialName("unread_count") val unreadCount: Int, // 三类未读合计 → 驱动铃铛 badge
 )
 
 // ---- 帰省届（最简、不带滞在先和飞机）----

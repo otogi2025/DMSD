@@ -10,21 +10,12 @@ import kotlinx.serialization.Serializable
 // data/network/endpoints — 学习（夜学习）相关 endpoint 包装。
 //
 // 1:1 对齐 iOS StudyAPI.swift。学生侧能用的：
-//   - POST /api/v1/study/absence-requests        学习请假条（日语申请名「夜学習欠席届」）提交
-//   - POST /api/v1/study/online-requests         在线学习申请（日语申请名「学習オンライン申請」）提交
+//   - POST /api/v1/study/absence-requests        学习请假条提交
+//   - POST /api/v1/study/online-requests         在线学习申请提交
 //   - GET  /api/v1/study/online-requests/mine    我的在线学习申请列表
+//   - POST /api/v1/study/online-requests/{id}/contract  上传契約書（multipart）
+//   - GET  /api/v1/study/online-requests/{id}/contract  下载契約書（二进制）
 //   - GET  /api/v1/study/absence-requests/me/summary  当月请假次数
-//
-// 不在这里的（老师侧 endpoint，学生不会调）：老师批准 / 拒绝；学习出席 NFC tap 提交（backend 待实装）。
-//
-// 注意：iOS 的 uploadOnlineContract（上传契约书 = 网课报名凭证照片 / PDF）走 multipart/form-data，
-// 依赖 APIClient.upload。当前 Android ApiClient 只有 get/post/put/delete，没有 multipart 方法，
-// 故本端点暂不实装上传（需先给 ApiClient 加 multipart 能力，不在本文件职责内）。
-//
-// 请求 / 响应 DTO 说明：
-//   - AbsenceRequestBody / OnlineRequestBody / MyAbsenceSummaryOut 在 iOS 里也写在 StudyAPI.swift 内
-//     （不在 NetworkModels），这里照搬同样布局，co-locate（跟端点放一起）在本文件。
-//   - StudyAbsenceRequestOut / StudyOnlineRequestOut 已在 NetworkModels.kt，这里直接引用。
 
 object StudyAPI {
     // 学习请假条（「夜学習欠席届」）提交。
@@ -44,8 +35,26 @@ object StudyAPI {
     // 在线学习申请 我的列表。
     suspend fun listMyOnlineRequests(): List<StudyOnlineRequestOut> = ApiClient.get("/api/v1/study/online-requests/mine")
 
+    // 上传在线学习申请的契約書（合同 = 网课报名凭证）照片 / PDF。
+    // multipart/form-data；先提交申请拿到 id，再调本方法把文件传上去。
+    suspend fun uploadOnlineContract(
+        requestId: String,
+        fileData: ByteArray,
+        fileName: String,
+        mimeType: String,
+    ): StudyOnlineRequestOut =
+        ApiClient.upload(
+            path = "/api/v1/study/online-requests/$requestId/contract",
+            fileData = fileData,
+            fileName = fileName,
+            mimeType = mimeType,
+        )
+
+    // 下载在线学习申请的契約書文件（二进制：图片 / PDF）。
+    suspend fun downloadOnlineContract(requestId: String): ByteArray =
+        ApiClient.download("/api/v1/study/online-requests/$requestId/contract")
+
     // 当月学习请假条次数 — 当前登录学生（按 target_date 落当月计数）。
-    // 与后端 MyAbsenceSummaryOut 对齐。
     suspend fun myAbsenceSummary(): MyAbsenceSummaryOut = ApiClient.get("/api/v1/study/absence-requests/me/summary")
 }
 
@@ -63,13 +72,11 @@ data class OnlineRequestBody(
     val reason: String,
     @SerialName("period_from") val periodFrom: String,
     @SerialName("period_to") val periodTo: String,
-    // 形状已知：weekday → 一组 {start,end} 之类（跟 NetworkModels weeklySchedule 同结构）
     @SerialName("weekly_schedule") val weeklySchedule: Map<String, List<Map<String, String>>>,
     @SerialName("contract_ref") val contractRef: String? = null,
 )
 
 // GET /api/v1/study/absence-requests/me/summary 响应 — 当前学生当月请假次数。
-// 与后端 MyAbsenceSummaryOut 对齐。
 @Serializable
 data class MyAbsenceSummaryOut(
     val month: String,

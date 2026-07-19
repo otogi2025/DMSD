@@ -188,8 +188,9 @@ enum class StudyState { OFF, UPCOMING, ACTIVE }
 @Serializable
 data class AppState(
     val authed: Boolean = false,
-    // 登录令牌（后端颁发的 access_token）— 持久化进 DataStore，app 启动时恢复给 ApiClient.token
-    // 实现自动登录。null = 未登录 / 已登出。v1.0 非加密存储可接受，加密存储（EncryptedSharedPreferences）是 v1.1 加固。
+    // 登录令牌（后端颁发的 access_token）。内存态仍挂在 AppState 上供 UI 读写；
+    // 持久化由 AppStore → SecureTokenStore（EncryptedSharedPreferences）负责，DataStore JSON 不落明文。
+    // null = 未登录 / 已登出。
     val authToken: String? = null,
     val onboarded: Boolean = false,
     val user: User = User(),
