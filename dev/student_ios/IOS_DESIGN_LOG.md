@@ -372,7 +372,7 @@ itsuki 2026-05-03 拍板。App Store 上架 = 向全人类开放下载渠道。�
 **权威 spec**：`design/system_features.md §7.20` + 后端 schema `BACKEND_DESIGN_LOG §5.x.4`。
 
 **iOS 端涉及**（**无 UI 改动 / 无客户端字段改动**）：
-- LoginView：Apple 审核员 / 老师都用同一组凭证直接登录 → 学号 `999999` + 密码 `Tomoshibi-Reviewer-2026!`
+- LoginView：Apple 审核员 / 老师都用同一组凭证直接登录 → 学号 `999999` + Reviewer 密码（真值不入公开仓库，见本地 `admin/审核员账号真值.md`）
 - RegisterStep5：老师可选体验完整 6 步注册流程时输注册码 `999999`（is_reviewer=True 永久有效）— 但仅一次（第二次注册同学号会撞 `STUDENT_NO_TAKEN`）
 
 **iOS 端不需改的原因**：
@@ -384,7 +384,7 @@ itsuki 2026-05-03 拍板。App Store 上架 = 向全人类开放下载渠道。�
 - 5-08 上架冲刺 fork 直接塞 `999999` 永久码进 prod DB 出 5 个 bug（详见 §7.20 末尾历史教训），主 CC review 后重做 — backend schema 加 `is_demo` / `is_reviewer` flag 双层防御。**iOS 不动**，只是 server 行为升级
 
 **Reviewer Notes 文案**（Apple 提交时填）：
-- ✅ 学号 `999999` + 密码 `Tomoshibi-Reviewer-2026!`
+- ✅ 学号 `999999` + Reviewer 密码（真值见本地 `admin/审核员账号真值.md`）
 - ❌ 不写 `999999` 注册码（防 OCR 泄漏）
 
 ---

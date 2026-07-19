@@ -1268,7 +1268,7 @@ announcement_replies
 | 项 | 值 | 说明 |
 |---|---|---|
 | Reviewer 学号 | `999999` | grade=99/class=99/seat=99 — schema 允许，业务范围（高1-高3 = 04-06）外永不存在 |
-| Reviewer 密码 | `Tomoshibi-Reviewer-2026!` | Apple Reviewer Notes 给 + 老师卡片给 |
+| Reviewer 密码 | 真值不入公开仓库 — 见本地 `admin/审核员账号真值.md`（= 生产 .env `REVIEWER_PASSWORD`）| Apple Reviewer Notes 给 + 老师卡片给 |
 | Reviewer 注册码 | `999999` | `is_reviewer=True` 永久标志，仅做"完整 6 步注册流程"演示用 |
 | Admin 学号 | `admin` (login_id) | 教师 admin |
 | Admin 默认密码 | env `ADMIN_INITIAL_PASSWORD` | 上线必须设 env；fallback `ChangeMe-2026-05` 仅 dev 兜底 |
@@ -1276,7 +1276,7 @@ announcement_replies
 **两种使用路径**：
 
 1. **直接登录路径**（推荐 — 给 Apple 审核员 / 老师体验）：
-   - login 画面输 `999999` + `Tomoshibi-Reviewer-2026!` → 直接进 home
+   - login 画面输 `999999` + Reviewer 密码（真值见本地 `admin/审核员账号真值.md`）→ 直接进 home
    - 跳过 6 步注册 + 完整看 home / 公告 / 申请 / mypage UI
 
 2. **完整注册流程路径**（仅老师演示用）：
@@ -1285,7 +1285,7 @@ announcement_replies
    - Apple 审核员**不需要**跑这条 — Reviewer Notes 不写注册码
 
 **Reviewer Notes 文案规则**（Apple 提交时）：
-- ✅ 给：`学号 999999 + 密码 Tomoshibi-Reviewer-2026!` 直接登录
+- ✅ 给：学号 `999999` + Reviewer 密码（真值见本地 `admin/审核员账号真值.md`）直接登录
 - ❌ 不给：`999999` 注册码（避免 Apple 审核员 OCR 后泄漏到第三方）
 
 **与 §7.16 注册码 5 分钟 TTL 铁律的关系**：
