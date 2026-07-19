@@ -712,11 +712,9 @@ final class AppStore: ObservableObject {
 
     // MARK: - 点呼 NFC 签到记录
 
-    //
-    // TODO[backend]: 真 production 流程 = NFC sheet "NFC をかざす" tap
-    //   → core NFC delegate 拿到 tag UID → POST /checkins (uid, session_id, ts)
-    //   → 后端返回 checkin record → 这里更新 rollState / checkinAt / checkinKind
-    // 当前是接入前的 mock：直接本地记录，后端联通后改成 await api.postCheckin(...)。
+    // 生产版签到不经本类提交：iOS 只用 ST25DVWriter 把载荷写进墙上 ST25DV 邮箱，
+    // 点呼机读走后由它上报后端；本端签到状态一律由 my_checked_in_at 经
+    // refreshRollStateFromSessions 反向驱动（2026-06-02 架构反转）。下面仅演示版用。
 
     #if DEMO
         /// done 表示自动恢复 idle 的任务（避免重复持有）
