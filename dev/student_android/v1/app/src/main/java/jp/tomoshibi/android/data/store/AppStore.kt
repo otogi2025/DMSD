@@ -165,9 +165,6 @@ class AppStore(
                 authed = true,
                 authToken = token,
                 tokenExpiresAtEpochMs = expiresAt,
-                // 新登录清掉上一轮锁定展示态
-                lockoutRemainingSec = null,
-                lockoutMessage = null,
             )
         }
     }
@@ -188,8 +185,6 @@ class AppStore(
                 studyLeaveCountThisMonth = 0,
                 announcementUnreadCount = 0,
                 studentNotificationUnreadCount = 0,
-                lockoutRemainingSec = null,
-                lockoutMessage = null,
                 checkinKind = null,
                 user = MockData.DEFAULT_USER,
                 rollState = RollState.IDLE,
@@ -400,38 +395,6 @@ class AppStore(
         }
     }
 
-    // ── 登录锁定（DEBUG 阶梯 + 后端 423）────────────────────────────
-
-    /** DEBUG 演示：本地失败次数 +1（生产锁定真值走 applyBackendLockout）。 */
-    suspend fun recordLoginFailure() {
-        update { it.copy(loginFailCount = it.loginFailCount + 1) }
-    }
-
-    /** 登录成功 / 锁定页返回后重置本地失败计数。 */
-    suspend fun resetLoginFailures() {
-        update {
-            it.copy(
-                loginFailCount = 0,
-                lockoutRemainingSec = null,
-                lockoutMessage = null,
-            )
-        }
-    }
-
-    /**
-     * 后端 423 ACCOUNT_LOCKED：解析「残り約 N 分」写入剩余秒数 + 原文案。
-     * LockoutScreen 读这两项，不再本地写死「第 1 次 30 秒」。
-     */
-    suspend fun applyBackendLockout(message: String) {
-        val remainingSec = SessionMapper.parseLockoutRemainingSec(message)
-        update {
-            it.copy(
-                lockoutMessage = message,
-                lockoutRemainingSec = remainingSec,
-            )
-        }
-    }
-
     // 读旧明文 → 写加密 → 删旧明文（幂等）
     private suspend fun migratePlainTokenIfNeeded() {
         context.dataStore.edit { prefs ->
@@ -458,7 +421,7 @@ class AppStore(
 }
 
 /**
- * 纯函数：/me → User 映射 + 锁定文案解析。
+ * 纯函数：/me → User 映射。
  * 抽出来方便单测，不依赖 Android Context。
  */
 object SessionMapper {
@@ -505,13 +468,6 @@ object SessionMapper {
         val n = code.toIntOrNull() ?: return code
         if (n !in 1..26) return code
         return ('A' + n - 1).toString()
-    }
-
-    /** 从后端 423 日语文案解析剩余秒数。例：「アカウントロック中（残り約 15 分）」→ 900。 */
-    fun parseLockoutRemainingSec(message: String): Int? {
-        val match = Regex("""残り約\s*(\d+)\s*分""").find(message) ?: return null
-        val minutes = match.groupValues[1].toIntOrNull() ?: return null
-        return (minutes * 60).coerceAtLeast(1)
     }
 
     fun parseInstantMillis(iso: String): Long? =

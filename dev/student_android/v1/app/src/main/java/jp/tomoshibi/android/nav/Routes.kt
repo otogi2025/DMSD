@@ -9,7 +9,7 @@ sealed class Route(
     // ── auth flow ─────────────
     data object Splash : Route("splash")
 
-    data object Onboarding : Route("onboarding") // 内部 3 页用 page state 管理（不分 sub-route）
+    data object Onboarding : Route("onboarding") // 内部 4 页用 page state 管理（不分 sub-route）
 
     data object Account : Route("account") // 内部 4 step 用 step state 管理
 
@@ -119,9 +119,7 @@ sealed class Route(
         }
     }
 
-    data object Lockout : Route("lockout") // 登录失败锁定页
-
-    data object PwReset : Route("pwreset") // 找回密码说明
+    data object PwReset : Route("pwreset") // 找回密码说明（登录页无入口，屏体保留备用）
 
     data object MusicNew : Route("music/new") // 点歌投稿屏「曲を投稿」
 

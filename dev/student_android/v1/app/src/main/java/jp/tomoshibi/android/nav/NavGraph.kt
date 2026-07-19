@@ -126,7 +126,6 @@ fun TomoshibiNavGraph(navController: NavHostController) {
             val id = entry.arguments?.getString(Route.Announcement.ARG_ID) ?: ""
             AnnouncementDetailScreen(navController, id)
         }
-        composable(Route.Lockout.path) { LockoutScreen(navController) }
         composable(Route.PwReset.path) { PwResetScreen(navController) }
         composable(Route.MusicNew.path) { MusicNewScreen(navController) }
         composable(

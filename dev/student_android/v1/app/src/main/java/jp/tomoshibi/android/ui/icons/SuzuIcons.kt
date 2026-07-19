@@ -44,6 +44,7 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Scale
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Search
@@ -102,6 +103,7 @@ object SuzuIcons {
     // Shield = iOS shield.checkered（带勾的盾）— Material Icons 用 Filled.GppGood (盾 + ✓) 最接近
     val Shield: ImageVector = Icons.Filled.GppGood
     val Person: ImageVector = Icons.Outlined.Person
+    val Globe: ImageVector = Icons.Outlined.Public
 
     // ── G9：对齐 iOS Ic.swift 补齐的图标 ────────────────────
 

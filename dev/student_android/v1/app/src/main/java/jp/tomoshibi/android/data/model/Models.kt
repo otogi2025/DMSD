@@ -210,11 +210,6 @@ data class AppState(
     // 公告未読数 / 学生通知 feed 未読数（loadMe 级联拉取，供铃铛 badge；UI 接线归后续工单）。
     val announcementUnreadCount: Int = 0,
     val studentNotificationUnreadCount: Int = 0,
-    // 登录失败累计（DEBUG 演示阶梯用）。生产锁定真值以后端 423 为准，见 lockoutRemainingSec / lockoutMessage。
-    val loginFailCount: Int = 0,
-    // 后端 423 ACCOUNT_LOCKED 解析出的剩余秒数 + 原文案（LockoutScreen 读这两项，不本地写死阶梯）。
-    val lockoutRemainingSec: Int? = null,
-    val lockoutMessage: String? = null,
     // 点呼签到种类标签（「時間内」/「遅刻」），由 loadMe → RollStateMachine 填。
     val checkinKind: String? = null,
     val themeMode: ThemeMode = ThemeMode.LIGHT,

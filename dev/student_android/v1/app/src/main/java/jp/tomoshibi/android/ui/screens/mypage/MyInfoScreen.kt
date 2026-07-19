@@ -362,22 +362,17 @@ private fun ageFrom(birthDate: String): Int? {
     return if (age in 0..150) age else null
 }
 
-// 寮前缀字母：男寮→M / 女寮→W / 其它取原房号首个非数字字符（A5→A），都没有则取寮名首字
+// 寮前缀字母：先看房号字母前缀（A5→A），再按寮名性别兜底 M/W。
+// 旧逻辑先判「男寮→M」会把 2 寮 A 前缀误改成 M。
 private fun dormPrefixOf(
     dorm: String,
     room: String,
-): String =
-    when {
-        dorm.startsWith("男") -> {
-            "M"
-        }
-
-        dorm.startsWith("女") -> {
-            "W"
-        }
-
-        else -> {
-            val letter = room.firstOrNull { !it.isDigit() }
-            letter?.uppercaseChar()?.toString() ?: dorm.take(1)
-        }
+): String {
+    val fromRoom = room.firstOrNull { !it.isDigit() }
+    if (fromRoom != null) return fromRoom.uppercaseChar().toString()
+    return when {
+        dorm.startsWith("男") -> "M"
+        dorm.startsWith("女") -> "W"
+        else -> dorm.take(1)
     }
+}

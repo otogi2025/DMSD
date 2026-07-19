@@ -3,11 +3,10 @@ package jp.tomoshibi.android.data.store
 import jp.tomoshibi.android.data.network.endpoints.StudentMeOut
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-// SessionMapper 纯函数单测（B02：loadMe 映射 + 423 锁定文案解析）
+// SessionMapper 纯函数单测（/me → User 映射）
 class SessionMapperTest {
     @Test
     fun `mapMeToUser 年级班级性别寮映射正确`() {
@@ -64,17 +63,6 @@ class SessionMapperTest {
         assertEquals("女", u.gender)
         assertEquals("女寮", u.dorm)
         assertEquals("高2 A組 1番", u.gradeClass)
-    }
-
-    @Test
-    fun `parseLockoutRemainingSec 解析后端 423 文案`() {
-        val sec = SessionMapper.parseLockoutRemainingSec("アカウントロック中（残り約 15 分）")
-        assertEquals(900, sec)
-    }
-
-    @Test
-    fun `parseLockoutRemainingSec 无匹配返回 null`() {
-        assertNull(SessionMapper.parseLockoutRemainingSec("入力エラー"))
     }
 
     @Test
