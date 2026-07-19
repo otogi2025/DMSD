@@ -504,7 +504,9 @@ fun PageHeader(
 ) {
     val t = SuzuT.current
     val store = jp.tomoshibi.android.data.store.LocalAppStore.current
-    val haptics = jp.tomoshibi.android.ui.haptics.rememberHaptics()
+    val haptics =
+        jp.tomoshibi.android.ui.haptics
+            .rememberHaptics()
     val longPressHandler =
         onLongPress ?: {
             haptics(jp.tomoshibi.android.ui.haptics.HapticKind.Light)
@@ -546,7 +548,8 @@ fun SuzuSkeleton(
 ) {
     val t = SuzuT.current
     val transition =
-        androidx.compose.animation.core.rememberInfiniteTransition(label = "skeleton")
+        androidx.compose.animation.core
+            .rememberInfiniteTransition(label = "skeleton")
     val shift by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
@@ -585,6 +588,7 @@ fun SuzuSkeleton(
 }
 
 // 4.17 DateField — 日期选择字段（Field 包裹 + 点击弹 Material DatePicker，回传 ISO "yyyy-MM-dd"）
+// minDate / maxDate：可选下限 / 上限（yyyy-MM-dd），对齐 iOS ApplyDateField 的 minDate 硬限制。
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateField(
@@ -593,6 +597,8 @@ fun DateField(
     modifier: Modifier = Modifier,
     required: Boolean = false,
     placeholder: String = "日付を選択",
+    minDate: String? = null,
+    maxDate: String? = null,
     onPick: (String) -> Unit,
 ) {
     val t = SuzuT.current
@@ -619,28 +625,60 @@ fun DateField(
         }
     }
     if (open) {
-        val state = rememberDatePickerState()
-        DatePickerDialog(
-            onDismissRequest = { open = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    state.selectedDateMillis?.let { ms ->
-                        // DatePicker 选中毫秒是 UTC 当天 0 点，按 UTC 取日历日避免偏移
-                        val d =
-                            java.time.Instant
-                                .ofEpochMilli(ms)
-                                .atZone(java.time.ZoneOffset.UTC)
-                                .toLocalDate()
-                        onPick(d.toString())
-                    }
-                    open = false
-                }) { Text("OK", color = cs.primary) }
-            },
-            dismissButton = {
-                TextButton(onClick = { open = false }) { Text("キャンセル", color = t.inkSub) }
-            },
-        ) {
-            DatePicker(state = state)
+        // min/max 转 UTC 当天 0 点毫秒（跟 DatePicker 选中值同口径）
+        val minMillis =
+            minDate?.let {
+                runCatching {
+                    java.time.LocalDate
+                        .parse(it)
+                        .atStartOfDay(java.time.ZoneOffset.UTC)
+                        .toInstant()
+                        .toEpochMilli()
+                }.getOrNull()
+            }
+        val maxMillis =
+            maxDate?.let {
+                runCatching {
+                    java.time.LocalDate
+                        .parse(it)
+                        .atStartOfDay(java.time.ZoneOffset.UTC)
+                        .toInstant()
+                        .toEpochMilli()
+                }.getOrNull()
+            }
+        val selectable =
+            object : androidx.compose.material3.SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    if (minMillis != null && utcTimeMillis < minMillis) return false
+                    if (maxMillis != null && utcTimeMillis > maxMillis) return false
+                    return true
+                }
+            }
+        // key 住 min/max，避免范围变了还沿用旧 SelectableDates
+        androidx.compose.runtime.key(minDate, maxDate) {
+            val state = rememberDatePickerState(selectableDates = selectable)
+            DatePickerDialog(
+                onDismissRequest = { open = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        state.selectedDateMillis?.let { ms ->
+                            // DatePicker 选中毫秒是 UTC 当天 0 点，按 UTC 取日历日避免偏移
+                            val d =
+                                java.time.Instant
+                                    .ofEpochMilli(ms)
+                                    .atZone(java.time.ZoneOffset.UTC)
+                                    .toLocalDate()
+                            onPick(d.toString())
+                        }
+                        open = false
+                    }) { Text("OK", color = cs.primary) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { open = false }) { Text("キャンセル", color = t.inkSub) }
+                },
+            ) {
+                DatePicker(state = state)
+            }
         }
     }
 }

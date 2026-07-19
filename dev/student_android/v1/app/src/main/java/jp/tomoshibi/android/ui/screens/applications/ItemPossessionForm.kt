@@ -1,6 +1,7 @@
 package jp.tomoshibi.android.ui.screens.applications
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,6 +40,7 @@ import jp.tomoshibi.android.data.network.ApiError
 import jp.tomoshibi.android.data.network.endpoints.DormLifeAPI
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
+import jp.tomoshibi.android.ui.components.ApplyDoneBody
 import jp.tomoshibi.android.ui.components.Field
 import jp.tomoshibi.android.ui.components.GhostButton
 import jp.tomoshibi.android.ui.components.GlobalScaffold
@@ -56,8 +58,8 @@ import kotlinx.coroutines.launch
 // 1:1 对齐 iOS DormLifeForms.swift 第 525-838 行 struct ItemPossessionForm。
 // iOS 原版只有「填写 → POST → 跳独立完成页」一条线；本 Android 屏按范本 StayForm.kt
 // 的「内置三段」结构改写：edit（填写）→ preview（确认）→ done（完成），不开新路由。
-// 字段（对齐 iOS 第 553-564 行）：部屋番号 / 所持物品 / 希望所持理由 / 保護者氏名，4 项全必填。
-// 本屏不接后端、不发网络：提交只切到 done 段（真实 POST 待后端，见 onSubmit 处 TODO）。
+// 字段：部屋番号 / 所持物品 / 所持理由 / 保護者氏名，4 项全必填。
+// 提交走 DormLifeAPI.submitItemPossession。
 // ─────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -68,15 +70,15 @@ fun ItemPossessionForm(navController: NavHostController) {
     val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
     val user = state.user
 
-    // 三态流程：edit（填写）→ preview（确认）→ done（完成）—— 对齐 StayForm.kt
+    // 三态流程：edit（填写）→ preview（确认）→ done（完成）
     var stage by remember { mutableStateOf("edit") }
     var submitting by remember { mutableStateOf(false) }
 
-    // ── 申請内容 4 字段（对齐 iOS @State roomNo / item / reason / guardianName）──
-    // 部屋番号：iOS 在 .onAppear 用当前用户房间号预填，这里同样用本地 user.room 预填
+    // ── 申請内容 4 字段 ──
+    // 部屋番号：用本地 user.room 预填（对齐 iOS onAppear）
     var roomNo by remember { mutableStateOf(user.room) }
     var item by remember { mutableStateOf("") } // 所持物品
-    var reason by remember { mutableStateOf("") } // 希望所持理由
+    var reason by remember { mutableStateOf("") } // 所持理由
     var guardianName by remember { mutableStateOf("") } // 保護者氏名
 
     // 提交可否（对齐 iOS canSubmit 第 535-540 行）：4 项 trim 后全非空
@@ -103,9 +105,7 @@ fun ItemPossessionForm(navController: NavHostController) {
 
             when (stage) {
                 "done" -> {
-                    // 完成页：对齐 iOS ApplyDoneView，种类名「物品所持」
-                    DoneBody(kindName = "物品所持") {
-                        // 「一覧へ」：跳到申请一览屏
+                    ApplyDoneBody(kindName = "物品所持") {
                         navController.navigate(jp.tomoshibi.android.nav.Route.Applications.path)
                     }
                 }
@@ -133,6 +133,9 @@ fun ItemPossessionForm(navController: NavHostController) {
                                 guardianName = guardianName,
                                 onGuardianName = { guardianName = it },
                                 canSubmit = canSubmit,
+                                onList = {
+                                    navController.navigate(jp.tomoshibi.android.nav.Route.ItemList.path)
+                                },
                                 onConfirm = { stage = "preview" },
                             )
                         } else {
@@ -198,9 +201,42 @@ private fun EditBody(
     guardianName: String,
     onGuardianName: (String) -> Unit,
     canSubmit: Boolean,
+    onList: () -> Unit,
     onConfirm: () -> Unit,
 ) {
-    // ── §1 申請内容（4 字段全必填）（对齐 iOS 第 550-567 行）──
+    // ── 顶部「提出済み一覧」入口（对齐 iOS listButton）──
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(t.pill)
+                .clickable(onClick = onList)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        androidx.compose.material3.Icon(
+            SuzuIcons.Doc,
+            contentDescription = null,
+            tint = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(15.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            "提出済み一覧",
+            color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+            style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold),
+        )
+        Spacer(Modifier.weight(1f))
+        androidx.compose.material3.Icon(
+            SuzuIcons.ChevR,
+            contentDescription = null,
+            tint = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(14.dp),
+        )
+    }
+
+    // ── §1 申請内容（4 字段全必填）──
     SectionLabel(t, "1", "申請内容")
     SuzuCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -210,7 +246,7 @@ private fun EditBody(
             Field(label = "所持物品", required = true) {
                 TField(value = item, onValueChange = onItem, placeholder = "所持したい物品")
             }
-            Field(label = "希望所持理由", required = true) {
+            Field(label = "所持理由", required = true) {
                 TArea(value = reason, onValueChange = onReason, placeholder = "理由を入力してください", rows = 4)
             }
             Field(label = "保護者氏名", required = true) {
@@ -219,17 +255,16 @@ private fun EditBody(
         }
     }
 
-    // ── §2 確認事項（3 条勾选提示句，只读）（对齐 iOS 第 569-577 行）──
+    // ── §2 確認事項（3 条勾选提示句，只读）──
     SectionLabel(t, "2", "確認事項")
     SuzuCard {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            NoteLine(t, "寮の礼儀を守って使用してください")
+            NoteLine(t, "寮のルールを守って使用してください")
             NoteLine(t, "自分や他人の生活を妨げないようにしてください")
             NoteLine(t, "故障・紛失などの事故は本人の責任となります")
         }
     }
 
-    // ── 底部确认按钮（对齐 StayForm.kt 三态：edit 段右键是「確認する」，下一步进 preview）──
     PrimaryButton(title = "確認する", enabled = canSubmit, onClick = onConfirm)
 }
 
@@ -270,7 +305,7 @@ private fun PreviewBody(
         KvRow(t, "種別", "物品所持許可願", first = true)
         KvRow(t, "部屋番号", roomNo)
         KvRow(t, "所持物品", item)
-        KvRow(t, "希望所持理由", reason)
+        KvRow(t, "所持理由", reason)
         KvRow(t, "保護者氏名", guardianName)
     }
 
@@ -282,76 +317,9 @@ private fun PreviewBody(
 }
 
 // ════════════════════════════════════════════════════════════════════
-// 完成态正文（done）—— 居中绿勾 + 大标题 + 预想审查时间卡 + 一覧へ
-// 对齐 iOS ApplyDoneView
-// ════════════════════════════════════════════════════════════════════
-@Composable
-private fun DoneBody(
-    kindName: String,
-    onList: () -> Unit,
-) {
-    val t = SuzuT.current
-    val cs = androidx.compose.material3.MaterialTheme.colorScheme
-    Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Spacer(Modifier.height(40.dp))
-        // 居中绿勾徽章：圆形 青(ok)→accent 渐变底 + 白色 checkmark（对齐 iOS ApplyDoneView 徽章）
-        Box(
-            modifier =
-                Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(percent = 50))
-                    .background(Brush.linearGradient(colors = listOf(t.ok, cs.secondary))),
-            contentAlignment = Alignment.Center,
-        ) {
-            androidx.compose.material3.Icon(
-                SuzuIcons.Check,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(40.dp),
-            )
-        }
-        Text("申請を提出しました", color = t.ink, style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold))
-        Text(
-            "${kindName}申請を受け付けました。\n審査完了時に通知でお知らせします。",
-            color = t.inkSub,
-            style = TextStyle(fontSize = 13.sp, lineHeight = 19.sp),
-            textAlign = TextAlign.Center,
-        )
-        // 预想审查时间卡
-        SuzuCard {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                androidx.compose.material3.Icon(
-                    SuzuIcons.CalClock,
-                    contentDescription = null,
-                    tint = t.inkSub,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(10.dp))
-                Column {
-                    Text("予想審査時間", color = t.inkSub, style = TextStyle(fontSize = 12.sp))
-                    Text("1〜2 時間", color = t.ink, style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.SemiBold))
-                }
-            }
-        }
-        Spacer(Modifier.height(8.dp))
-        PrimaryButton(title = "一覧へ", onClick = onList)
-        Spacer(Modifier.height(40.dp))
-    }
-}
-
-// ════════════════════════════════════════════════════════════════════
-// 私有小组件（对齐 StayForm.kt 私有 SectionLabel / KvRow + iOS noteLine）
+// 私有小组件
 // ════════════════════════════════════════════════════════════════════
 
-// 区块编号标签（22×22 圆角 6 方块蓝底白字 + 区块名）—— 对齐 StayForm.kt SectionLabel
 @Composable
 private fun SectionLabel(
     t: jp.tomoshibi.android.ui.theme.SuzuTokens,
@@ -376,7 +344,6 @@ private fun SectionLabel(
     }
 }
 
-// 確認事項の 1 行（左侧 primary 勾 + 右侧 inkSub 说明句）—— 对齐 iOS noteLine 第 767-779 行
 @Composable
 private fun NoteLine(
     t: jp.tomoshibi.android.ui.theme.SuzuTokens,
@@ -397,7 +364,6 @@ private fun NoteLine(
     }
 }
 
-// 确认页只读键值行（左标签固定宽 100 + 右值，支持多行）—— 对齐题目 preview 规格
 @Composable
 private fun KvRow(
     t: jp.tomoshibi.android.ui.theme.SuzuTokens,

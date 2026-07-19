@@ -874,9 +874,9 @@ private fun EditBody(
             } else {
                 // 日本人：不显示开关，只显示提示
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("食事は食事入力表でご記入ください", color = t.ink, style = TextStyle(fontSize = 14.sp))
+                    Text("食事の変更は食事入力表にご記入ください", color = t.ink, style = TextStyle(fontSize = 14.sp))
                     Text(
-                        "※ 日本人生徒の食事変更は学校指定の食事入力表で扱います。",
+                        "※ 日本人生徒の食事の変更は、学校指定の食事入力表で行ってください。",
                         color = t.inkMute,
                         style = TextStyle(fontSize = 11.sp, lineHeight = 16.sp),
                     )
@@ -1080,7 +1080,7 @@ private fun DoneBody(
                 )
                 Spacer(Modifier.width(10.dp))
                 Column {
-                    Text("予想審査時間", color = t.inkSub, style = TextStyle(fontSize = 12.sp))
+                    Text("審査時間の目安", color = t.inkSub, style = TextStyle(fontSize = 12.sp))
                     Text("1〜2 時間", color = t.ink, style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.SemiBold))
                 }
             }

@@ -1,7 +1,5 @@
 package jp.tomoshibi.android.ui.screens.applications
 
-import jp.tomoshibi.android.data.store.LocalAppStore
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,16 +22,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.endpoints.StudyAPI
+import jp.tomoshibi.android.data.store.LocalAppStore
+import jp.tomoshibi.android.ui.components.ApplyDoneBody
 import jp.tomoshibi.android.ui.components.DateField
 import jp.tomoshibi.android.ui.components.Field
 import jp.tomoshibi.android.ui.components.GlobalScaffold
@@ -44,14 +46,17 @@ import jp.tomoshibi.android.ui.components.SuzuCard
 import jp.tomoshibi.android.ui.components.TArea
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
-// 「夜学習欠席届」（夜间学习请假）— 対齐 iOS ApplyStubs.swift StudyAbsenceForm（规格 §3）
-//   §1 欠席する日付（DateField，规格限今日～14 日后，演示不强制）
-//   §2 欠席する範囲（前半節 / 後半節 / 両方 三选一，RadioCard）
-//   §3 理由（必須，TArea）
-// 三态流程：edit（填写）→ preview（只读确认）→ done（完成）— 不开新路由，靠本地 stage 状态切换。
+// 「夜学習欠席届」— 对齐 iOS ApplyStubs.swift StudyAbsenceForm
+//   §1 欠席日期（今天〜14 日后，DateField min/max 硬限制）
+//   §2 欠席范围（前半节 / 后半节 / 両方）
+//   §3 理由（必填）
+// 提交走 StudyAPI.submitAbsenceRequest。
 
-// 欠席範囲：label = 日语显示文案；wire = 发后端的值（first_half / second_half / full）
 private enum class StudyLeaveRange(
     val label: String,
     val wire: String,
@@ -61,33 +66,45 @@ private enum class StudyLeaveRange(
     BOTH("両方", "full"),
 }
 
+private val JST = ZoneId.of("Asia/Tokyo")
+
 @Composable
 fun StudyAbsenceForm(navController: NavHostController) {
     val store = LocalAppStore.current
     val t = SuzuT.current
-    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
 
-    // 三态：edit=编辑 / preview=确认 / done=完成
     var stage by remember { mutableStateOf("edit") }
+    var submitting by remember { mutableStateOf(false) }
 
-    // 表单字段（本地 state 收集，不接后端）
-    var targetDate by remember { mutableStateOf("") } // ISO "yyyy-MM-dd"
+    var targetDate by remember { mutableStateOf("") }
     var range by remember { mutableStateOf<StudyLeaveRange?>(null) }
     var reason by remember { mutableStateOf("") }
 
-    // 必填齐全（理由 trim 后非空 + 日付已选 + 范围已选）才能进确认
-    val canSubmit = targetDate.isNotEmpty() && range != null && reason.trim().isNotEmpty()
+    val today = remember { LocalDate.now(JST).format(DateTimeFormatter.ISO_LOCAL_DATE) }
+    val maxDate =
+        remember {
+            LocalDate.now(JST).plusDays(14).format(DateTimeFormatter.ISO_LOCAL_DATE)
+        }
+
+    val canSubmit =
+        targetDate.isNotEmpty() &&
+            targetDate >= today &&
+            targetDate <= maxDate &&
+            range != null &&
+            reason.trim().isNotEmpty()
 
     GlobalScaffold(activeTab = "apply", navController = navController) {
         Column(modifier = Modifier.fillMaxSize().background(t.pearl)) {
             PageHeader(
                 title = "夜学習欠席届",
                 level = 2,
-                onLeft = { navController.popBackStack() },
+                onLeft = {
+                    if (stage == "preview") stage = "edit" else navController.popBackStack()
+                },
             )
 
             when (stage) {
-                // ── 编辑态：表单字段 + 底部「確認する」 ──
                 "edit" -> {
                     EditStage(
                         tokens = t,
@@ -95,11 +112,12 @@ fun StudyAbsenceForm(navController: NavHostController) {
                         range = range,
                         reason = reason,
                         canSubmit = canSubmit,
+                        today = today,
+                        maxDate = maxDate,
                         onPickDate = { targetDate = it },
                         onPickRange = { range = it },
                         onReasonChange = { reason = it },
                         onConfirm = {
-                            // 理由 trim 后非空才允许（否则提示，对齐 iOS 校验）
                             if (reason.trim().isEmpty()) {
                                 store.showToast("理由を入力してください")
                             } else {
@@ -109,34 +127,55 @@ fun StudyAbsenceForm(navController: NavHostController) {
                     )
                 }
 
-                // ── 确认态：只读键值卡 + 「提出する」/「修正する」 ──
                 "preview" -> {
                     PreviewStage(
                         tokens = t,
                         targetDate = targetDate,
                         range = range,
                         reason = reason,
-                        onSubmit = { stage = "done" },
+                        submitting = submitting,
+                        onSubmit = {
+                            val r = range ?: return@PreviewStage
+                            if (submitting) return@PreviewStage
+                            scope.launch {
+                                submitting = true
+                                val tokenAtStart = store.snapshot().authToken
+                                try {
+                                    StudyAPI.submitAbsenceRequest(
+                                        targetDate = targetDate,
+                                        period = r.wire,
+                                        reason = reason.trim(),
+                                    )
+                                    if (store.snapshot().authToken != tokenAtStart) return@launch
+                                    store.showToast("夜学習欠席届を提出しました")
+                                    stage = "done"
+                                } catch (e: ApiError) {
+                                    if (store.handleIfUnauthorized(e, tokenAtStart)) return@launch
+                                    store.showToast(e.display)
+                                } catch (_: Exception) {
+                                    store.showToast("申請の提出に失敗しました")
+                                } finally {
+                                    submitting = false
+                                }
+                            }
+                        },
                         onEdit = { stage = "edit" },
                     )
                 }
 
-                // ── 完成态：绿勾 + 预想审查时间 + 「一覧に戻る」 ──
                 "done" -> {
-                    DoneStage(
-                        tokens = t,
-                        onBack = {
-                            store.showToast("夜学習欠席届を提出しました")
-                            navController.popBackStack()
-                        },
-                    )
+                    ApplyDoneBody(
+                        kindName = "夜学習欠席",
+                        messageOverride = "夜学習欠席届を受け付けました。\n審査完了時に通知でお知らせします。",
+                    ) {
+                        navController.popBackStack()
+                    }
                 }
             }
         }
     }
 }
 
-// ───────────────────────────── 编辑态 ─────────────────────────────
 @Composable
 private fun EditStage(
     tokens: jp.tomoshibi.android.ui.theme.SuzuTokens,
@@ -144,6 +183,8 @@ private fun EditStage(
     range: StudyLeaveRange?,
     reason: String,
     canSubmit: Boolean,
+    today: String,
+    maxDate: String,
     onPickDate: (String) -> Unit,
     onPickRange: (StudyLeaveRange) -> Unit,
     onReasonChange: (String) -> Unit,
@@ -157,24 +198,23 @@ private fun EditStage(
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // §1 欠席する日付
         SuzuCard {
             DateField(
                 label = "欠席する日付",
                 value = targetDate,
                 required = true,
+                minDate = today,
+                maxDate = maxDate,
                 onPick = onPickDate,
             )
             Spacer(Modifier.height(7.dp))
-            // 规格：可选范围 = 今日～14 日后（演示不强制限制，仅文字说明）
             Text(
-                "※ 本日から 14 日後までの日付を選択してください",
+                "※本日から14日後までの日付を選択してください",
                 color = tokens.inkMute,
                 style = TextStyle(fontSize = 11.sp, lineHeight = 14.sp),
             )
         }
 
-        // §2 欠席する範囲（前半 / 後半 / 両方 三选一）
         SuzuCard {
             Text(
                 "欠席する範囲",
@@ -193,7 +233,6 @@ private fun EditStage(
             }
         }
 
-        // §3 理由（必須）
         SuzuCard {
             Field(label = "理由", required = true) {
                 TArea(
@@ -205,23 +244,18 @@ private fun EditStage(
             }
         }
 
-        // 底部主按钮：必填齐了才启用
-        PrimaryButton(
-            title = "確認する",
-            enabled = canSubmit,
-            onClick = onConfirm,
-        )
+        PrimaryButton(title = "確認する", enabled = canSubmit, onClick = onConfirm)
         Spacer(Modifier.height(20.dp))
     }
 }
 
-// ───────────────────────────── 确认态 ─────────────────────────────
 @Composable
 private fun PreviewStage(
     tokens: jp.tomoshibi.android.ui.theme.SuzuTokens,
     targetDate: String,
     range: StudyLeaveRange?,
     reason: String,
+    submitting: Boolean,
     onSubmit: () -> Unit,
     onEdit: () -> Unit,
 ) {
@@ -233,7 +267,6 @@ private fun PreviewStage(
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // 蓝底提示条：提出後は審査待ち（对齐 iOS 确认页）
         Box(
             modifier =
                 Modifier
@@ -258,22 +291,23 @@ private fun PreviewStage(
             }
         }
 
-        // 只读键值卡：列出已填内容
         SuzuCard {
             PreviewRow(tokens, "欠席する日付", targetDate.ifEmpty { "—" }, first = true)
             PreviewRow(tokens, "欠席する範囲", range?.label ?: "—")
             PreviewRow(tokens, "理由", reason.ifBlank { "—" })
         }
 
-        // 「提出する」→ 完成；「修正する」→ 回编辑
-        PrimaryButton(title = "提出する", onClick = onSubmit)
+        PrimaryButton(
+            title = if (submitting) "提出中…" else "提出する",
+            enabled = !submitting,
+            onClick = onSubmit,
+        )
         jp.tomoshibi.android.ui.components
             .GhostButton(title = "修正する", onClick = onEdit)
         Spacer(Modifier.height(20.dp))
     }
 }
 
-// 只读键值行：左标签固定宽 96 + 右值；非首行顶部细线分隔
 @Composable
 private fun PreviewRow(
     tokens: jp.tomoshibi.android.ui.theme.SuzuTokens,
@@ -309,86 +343,5 @@ private fun PreviewRow(
                 modifier = Modifier.weight(1f),
             )
         }
-    }
-}
-
-// ───────────────────────────── 完成态 ─────────────────────────────
-@Composable
-private fun DoneStage(
-    tokens: jp.tomoshibi.android.ui.theme.SuzuTokens,
-    onBack: () -> Unit,
-) {
-    Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Spacer(Modifier.height(40.dp))
-
-        // 居中绿勾
-        Box(
-            modifier =
-                Modifier
-                    .size(72.dp)
-                    .clip(RoundedCornerShape(percent = 50))
-                    .background(tokens.okBg),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                SuzuIcons.CheckCirc,
-                contentDescription = null,
-                tint = tokens.okDeep,
-                modifier = Modifier.size(44.dp),
-            )
-        }
-
-        // 大标题
-        Text(
-            "申請を提出しました",
-            color = tokens.ink,
-            style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold),
-        )
-        Text(
-            "夜学習欠席届を受け付けました。\n審査完了時に通知でお知らせします。",
-            color = tokens.inkSub,
-            style = TextStyle(fontSize = 13.sp, lineHeight = 19.sp),
-        )
-
-        Spacer(Modifier.height(4.dp))
-
-        // 预想审查时间卡
-        SuzuCard {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    SuzuIcons.CalClock,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp),
-                )
-                Spacer(Modifier.width(10.dp))
-                Column {
-                    Text(
-                        "予想審査時間",
-                        color = tokens.inkSub,
-                        style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
-                    )
-                    Text(
-                        "1〜2 時間",
-                        color = tokens.ink,
-                        style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold),
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.height(8.dp))
-
-        // 「一覧に戻る」→ 弹 toast 后回列表
-        PrimaryButton(title = "一覧に戻る", onClick = onBack)
-        Spacer(Modifier.height(20.dp))
     }
 }

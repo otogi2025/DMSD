@@ -180,6 +180,16 @@ sealed class Route(
     // ── 4 类型申請一覧（前缀 applylist 唯一）──
     data object DormEventList : Route("applylist/events") // 行事企画一覧
 
+    // 行事企画差戻再提出（可编辑表单，对齐 iOS .dormEventResubmit(id:)）
+    data class DormEventResubmit(
+        val id: String,
+    ) : Route("apply/event/resubmit/$id") {
+        companion object {
+            const val PATH = "apply/event/resubmit/{id}"
+            const val ARG_ID = "id"
+        }
+    }
+
     data object StudyOnlineList : Route("applylist/online") // 在线学习申請一覧
 
     data object FridgeList : Route("applylist/fridge") // 冷蔵庫購入一覧

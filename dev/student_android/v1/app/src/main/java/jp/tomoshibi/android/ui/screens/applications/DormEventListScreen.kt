@@ -116,8 +116,16 @@ fun DormEventListScreen(navController: NavHostController) {
 
                     is LoadState.Success -> {
                         s.value.forEach { item ->
-                            // 再提出成功后重新拉一览（差戻条目状态会从「再提出」变回「審査中」）
-                            DormEventRow(item, onResubmitted = { scope.launch { load() } })
+                            DormEventRow(
+                                item = item,
+                                onResubmit = {
+                                    navController.navigate(
+                                        jp.tomoshibi.android.nav.Route
+                                            .DormEventResubmit(item.id)
+                                            .path,
+                                    )
+                                },
+                            )
                         }
                     }
                 }
@@ -129,17 +137,13 @@ fun DormEventListScreen(navController: NavHostController) {
 
 // 单条行事企画卡 — 上半 title/place 竖排 + 状态 Pill；下半 开催日時 + 「N名」预想人数
 // item 为后端 DTO DormEventProposalOut（字段名跟旧本地模型不同：状态在 result 不在 status）
-// onResubmitted：再提出成功后通知一览刷新（差戻 → 重提 → 列表状态翻回审查中）
+// onResubmit：差戻条目跳可编辑再提出表单（对齐 iOS「修正して再提出」）
 @Composable
 private fun DormEventRow(
     item: DormEventProposalOut,
-    onResubmitted: () -> Unit,
+    onResubmit: () -> Unit,
 ) {
     val t = SuzuT.current
-    val scope = rememberCoroutineScope()
-    // 再提出中标志（防重复点击 + 按钮禁用态）；失败把后端消息落到 actionError 给用户看
-    var resubmitting by remember(item.id) { mutableStateOf(false) }
-    var actionError by remember(item.id) { mutableStateOf<String?>(null) }
     SuzuCard(padding = 14) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -187,9 +191,7 @@ private fun DormEventRow(
             }
 
             // ── 差戻（result=="resubmit"）专属区块 ──
-            // 老师退回要求重提：① 显示老师评语（如有）② 露出「再提出」按钮。
-            // 没有独立详细屏，所以直接拿 DTO 现有完整字段原样重提（POST .../resubmit），
-            // 内容沿用上次提交（学生若要改内容，当前版本暂走重新提交新企画；编辑流程留待详细屏实装）。
+            // 老师退回要求重提：① 显示老师评语（如有）② 「修正して再提出」跳可编辑表单
             if (item.result == "resubmit") {
                 item.comment?.takeIf { it.isNotBlank() }?.let { comment ->
                     Box(
@@ -202,59 +204,18 @@ private fun DormEventRow(
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
-                                "先生からのコメント",
+                                "先生のコメント：$comment",
                                 color = t.danger,
-                                style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold),
-                            )
-                            Text(
-                                comment,
-                                color = t.ink,
                                 style = TextStyle(fontSize = 12.sp, lineHeight = 18.sp),
                             )
                         }
                     }
                 }
                 PrimaryButton(
-                    title = if (resubmitting) "再提出中…" else "再提出",
+                    title = "修正して再提出",
                     icon = SuzuIcons.Edit,
-                    enabled = !resubmitting,
-                    onClick = {
-                        scope.launch {
-                            resubmitting = true
-                            actionError = null
-                            try {
-                                // 用 DTO 现有字段拼回提交 body（跟首次提交同形）
-                                DormLifeAPI.resubmitEventProposal(
-                                    id = item.id,
-                                    body =
-                                        DormLifeAPI.EventProposalBody(
-                                            teamName = item.teamName,
-                                            title = item.title,
-                                            heldAt = item.heldAt,
-                                            place = item.place,
-                                            expectedCount = item.expectedCount,
-                                            target = item.target,
-                                            purpose = item.purpose,
-                                            content = item.content,
-                                            riskSolution = item.riskSolution,
-                                            expectedCost = item.expectedCost,
-                                            note = item.note,
-                                        ),
-                                )
-                                onResubmitted()
-                            } catch (e: ApiError) {
-                                actionError = e.display
-                            } catch (e: Exception) {
-                                actionError = "再提出に失敗しました"
-                            } finally {
-                                resubmitting = false
-                            }
-                        }
-                    },
+                    onClick = onResubmit,
                 )
-                actionError?.let {
-                    Text(it, color = t.danger, style = TextStyle(fontSize = 12.sp))
-                }
             }
         }
     }

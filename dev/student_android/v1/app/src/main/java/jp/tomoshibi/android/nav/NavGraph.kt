@@ -170,6 +170,13 @@ fun TomoshibiNavGraph(navController: NavHostController) {
 
         // ── 4 类型申請一覧 ────
         composable(Route.DormEventList.path) { DormEventListScreen(navController) }
+        composable(
+            route = Route.DormEventResubmit.PATH,
+            arguments = listOf(navArgument(Route.DormEventResubmit.ARG_ID) { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString(Route.DormEventResubmit.ARG_ID) ?: ""
+            DormEventProposalForm(navController, resubmitId = id)
+        }
         composable(Route.StudyOnlineList.path) { StudyOnlineListScreen(navController) }
         composable(Route.FridgeList.path) { FridgeListScreen(navController) }
         composable(Route.ItemList.path) { ItemListScreen(navController) }

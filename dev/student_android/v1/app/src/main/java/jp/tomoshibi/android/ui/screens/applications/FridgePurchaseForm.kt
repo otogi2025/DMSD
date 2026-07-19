@@ -44,6 +44,7 @@ import jp.tomoshibi.android.data.network.ApiError
 import jp.tomoshibi.android.data.network.endpoints.DormLifeAPI
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
+import jp.tomoshibi.android.ui.components.ApplyDoneBody
 import jp.tomoshibi.android.ui.components.Field
 import jp.tomoshibi.android.ui.components.GhostButton
 import jp.tomoshibi.android.ui.components.GlobalScaffold
@@ -100,7 +101,9 @@ fun FridgePurchaseForm(navController: NavHostController) {
 
             when (stage) {
                 "done" -> {
-                    DoneBody(navController = navController)
+                    ApplyDoneBody(kindName = "冷蔵庫購入") {
+                        navController.navigate(jp.tomoshibi.android.nav.Route.Applications.path)
+                    }
                 }
 
                 else -> {
@@ -124,6 +127,9 @@ fun FridgePurchaseForm(navController: NavHostController) {
                                 product = product,
                                 onProduct = { product = it },
                                 canSubmit = canSubmit,
+                                onList = {
+                                    navController.navigate(jp.tomoshibi.android.nav.Route.FridgeList.path)
+                                },
                                 onConfirm = { stage = "preview" },
                             )
                         } else {
@@ -184,8 +190,31 @@ private fun EditBody(
     product: String,
     onProduct: (String) -> Unit,
     canSubmit: Boolean,
+    onList: () -> Unit,
     onConfirm: () -> Unit,
 ) {
+    // ── 顶部「提出済み一覧」入口（对齐 iOS listButton）──
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(t.pill)
+                .clickable(onClick = onList)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(SuzuIcons.Doc, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(15.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(
+            "提出済み一覧",
+            color = MaterialTheme.colorScheme.primary,
+            style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold),
+        )
+        Spacer(Modifier.weight(1f))
+        Icon(SuzuIcons.ChevR, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+    }
+
     // ── §1 連絡先（携帯電話 必填 + WeChat 可选）──
     SectionLabel(t, "1", "連絡先")
     SuzuCard {
@@ -215,7 +244,7 @@ private fun EditBody(
         )
         RadioCard(
             title = "B: Haier 2ドア 85L",
-            detail = "直冷式（JR-N85A-W）約 2 万円。A より小さな冷凍室があります",
+            detail = "直冷式（JR-N85A-W）約 2 万円。A にない小型冷凍室付き",
             selected = product == "B",
             onClick = { onProduct("B") },
         )
@@ -229,7 +258,7 @@ private fun EditBody(
             NoteLine(t, "他の寮生との共用は禁止です")
             NoteLine(t, "庫内の衛生と賞味期限を管理してください")
             NoteLine(t, "コンセント周辺を整理し、防火に注意してください")
-            NoteLine(t, "費用は原則として学生納付金から差し引かれます")
+            NoteLine(t, "費用は原則として寮費から差し引かれます")
         }
     }
 
@@ -280,67 +309,6 @@ private fun PreviewBody(
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         GhostButton(title = "戻る", modifier = Modifier.weight(1f), onClick = onEdit)
         PrimaryButton(title = "提出する", modifier = Modifier.weight(1f), onClick = onSubmit)
-    }
-}
-
-// ════════════════════════════════════════════════════════════════════
-// 完成态正文（done）—— 居中绿勾徽章 + 大标题 + 预想审查时间卡 + 一覧へ
-// 対齐 iOS ApplyDoneView
-// ════════════════════════════════════════════════════════════════════
-@Composable
-private fun DoneBody(navController: NavHostController) {
-    val t = SuzuT.current
-    val cs = MaterialTheme.colorScheme
-    Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 28.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        // 居中绿勾徽章（青 primary → accent secondary 对角渐变 + 白 checkmark），対齐 iOS check badge
-        Box(
-            modifier =
-                Modifier
-                    .size(96.dp)
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(
-                        Brush.linearGradient(colors = listOf(cs.primary, cs.secondary)),
-                    ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                SuzuIcons.CheckCirc,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(40.dp),
-            )
-        }
-        Spacer(Modifier.height(22.dp))
-        Text("申請を提出しました", color = t.ink, style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold))
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "冷蔵庫購入申請を受け付けました。\n審査完了時に通知でお知らせします。",
-            color = t.inkSub,
-            style = TextStyle(fontSize = 14.sp, lineHeight = 20.sp),
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(28.dp))
-        // 预想审查时间卡
-        SuzuCard {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("予想審査時間", color = t.inkSub, style = TextStyle(fontSize = 12.sp))
-                Spacer(Modifier.weight(1f))
-                Text("1〜2 時間", color = t.ink, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold))
-            }
-        }
-        Spacer(Modifier.height(28.dp))
-        // 「一覧へ」跳申請一覧（对齐 iOS router.replace(.apply)）
-        PrimaryButton(title = "一覧へ") {
-            navController.navigate(jp.tomoshibi.android.nav.Route.Applications.path)
-        }
     }
 }
 
