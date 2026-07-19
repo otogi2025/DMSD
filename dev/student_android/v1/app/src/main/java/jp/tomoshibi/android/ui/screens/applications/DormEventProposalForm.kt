@@ -36,6 +36,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.data.format.JstDate
 import jp.tomoshibi.android.data.network.ApiError
 import jp.tomoshibi.android.data.network.endpoints.DormLifeAPI
 import jp.tomoshibi.android.data.store.LocalAppStore
@@ -53,8 +54,6 @@ import jp.tomoshibi.android.ui.components.TimeField
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 // ─────────────────────────────────────────────────────────────────────
@@ -63,9 +62,7 @@ import java.time.format.DateTimeFormatter
 // 三段内部流程：edit → preview → done；提交走 DormLifeAPI。
 // ─────────────────────────────────────────────────────────────────────
 
-private val JST = ZoneId.of("Asia/Tokyo")
-
-private fun todayJst(): String = LocalDate.now(JST).format(DateTimeFormatter.ISO_LOCAL_DATE)
+private fun todayJst(): String = JstDate.today().format(DateTimeFormatter.ISO_LOCAL_DATE)
 
 private fun nilIfBlank(s: String): String? = s.trim().takeIf { it.isNotEmpty() }
 

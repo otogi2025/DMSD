@@ -16,11 +16,9 @@ import jp.tomoshibi.android.ui.screens.community.*
 import jp.tomoshibi.android.ui.screens.home.HomeScreen
 import jp.tomoshibi.android.ui.screens.login.*
 import jp.tomoshibi.android.ui.screens.mypage.*
-import jp.tomoshibi.android.ui.screens.nfc.NfcScreen
 import jp.tomoshibi.android.ui.screens.notifications.NotifDetailScreen
 import jp.tomoshibi.android.ui.screens.notifications.NotificationsScreen
 import jp.tomoshibi.android.ui.screens.onboarding.OnboardingScreen
-import jp.tomoshibi.android.ui.screens.rollcall.RollCallScreen
 import jp.tomoshibi.android.ui.screens.splash.SplashScreen
 import jp.tomoshibi.android.ui.screens.welcome.WelcomeScreen
 
@@ -45,15 +43,9 @@ fun TomoshibiNavGraph(navController: NavHostController) {
         composable(Route.Welcome.path) { WelcomeScreen(navController) }
         composable(Route.Login.path) { LoginScreen(navController) }
 
-        // ── core 5 tab ────────────
+        // ── core tabs（点呼走 GlobalScaffold 弹窗，无独立 Nfc 路由）────────────
         composable(Route.Home.path) { HomeScreen(navController) }
         composable(Route.Applications.path) { ApplicationsScreen(navController) }
-        composable(
-            route = Route.Nfc.path,
-            enterTransition = { slideInVertically(tween(320)) { it } + fadeIn(tween(280)) },
-            exitTransition = { fadeOut(tween(200)) },
-            popExitTransition = { slideOutVertically(tween(320)) { it } + fadeOut(tween(280)) },
-        ) { NfcScreen(navController) }
         composable(Route.Notifications.path) { NotificationsScreen(navController) }
         composable(Route.MyPage.path) { MyPageScreen(navController) }
 
@@ -88,7 +80,6 @@ fun TomoshibiNavGraph(navController: NavHostController) {
         }
         // 首页减点入口与个人页共用 MyPointsScreen（对齐 iOS router.go(.myPoints)）
         composable(Route.Deduction.path) { MyPointsScreen(navController) }
-        composable(Route.RollCall.path) { RollCallScreen(navController) }
 
         // ── 个人页子页 ────
         composable(Route.MyInfo.path) { MyInfoScreen(navController) }
@@ -137,19 +128,11 @@ fun TomoshibiNavGraph(navController: NavHostController) {
             val id = entry.arguments?.getString(Route.MusicDetail.ARG_ID) ?: ""
             MusicDetailScreen(navController, id)
         }
-        composable(
-            route = Route.EventDetail.PATH,
-            arguments = listOf(navArgument(Route.EventDetail.ARG_ID) { type = NavType.StringType }),
-        ) { entry ->
-            val id = entry.arguments?.getString(Route.EventDetail.ARG_ID) ?: ""
-            EventDetailScreen(navController, id)
-        }
 
-        // ── community 5 屏 ────────
+        // ── community（行事予定走 Schedule；旧 Events/Bus 孤儿页已删）────────
         composable(Route.Music.path) { MusicScreen(navController) }
         composable(Route.LostFound.path) { LostFoundScreen(navController) }
         composable(Route.Schedule.path) { ScheduleScreen(navController) }
-        composable(Route.Bus.path) { BusScreen(navController) }
         composable(Route.Delivery.path) { DeliveryScreen(navController) }
 
         // ── 申請履歴 family（老師38条#5）────
@@ -182,7 +165,7 @@ fun TomoshibiNavGraph(navController: NavHostController) {
         composable(Route.FridgeList.path) { FridgeListScreen(navController) }
         composable(Route.ItemList.path) { ItemListScreen(navController) }
 
-        // ── 遺失物投稿/詳細 + 本周活动列表 ────
+        // ── 遺失物投稿/詳細 ────
         composable(Route.LostNew.path) { LostNewScreen(navController) }
         composable(
             route = Route.LostDetail.PATH,
@@ -191,6 +174,5 @@ fun TomoshibiNavGraph(navController: NavHostController) {
             val id = entry.arguments?.getString(Route.LostDetail.ARG_ID) ?: ""
             LostDetailScreen(navController, id)
         }
-        composable(Route.Events.path) { EventsScreen(navController) }
     }
 }

@@ -280,7 +280,7 @@ private fun ApplicationDetailBody(
         Column(
             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(tokens.paper),
         ) {
-            KvRow("学号", userStudentNo, mono = true)
+            KvRow("アカウント番号", userStudentNo, mono = true)
             Divider(color = tokens.hair, thickness = 0.5.dp)
             KvRow("氏名", userName)
             Divider(color = tokens.hair, thickness = 0.5.dp)

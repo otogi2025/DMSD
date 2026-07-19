@@ -261,15 +261,11 @@ private fun formatIsoJst(
     pattern: String,
 ): String {
     val instant =
-        runCatching { java.time.Instant.parse(iso) }.getOrNull()
-            ?: runCatching {
-                java.time.OffsetDateTime
-                    .parse(iso)
-                    .toInstant()
-            }.getOrNull()
+        jp.tomoshibi.android.data.format.JstDate
+            .parseInstant(iso)
             ?: return iso.take(16).replace('T', ' ')
     return java.time.format.DateTimeFormatter
         .ofPattern(pattern)
-        .withZone(java.time.ZoneId.of("Asia/Tokyo"))
+        .withZone(jp.tomoshibi.android.data.format.JstDate.TOKYO)
         .format(instant)
 }

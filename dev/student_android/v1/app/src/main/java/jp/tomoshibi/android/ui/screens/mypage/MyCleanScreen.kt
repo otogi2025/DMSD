@@ -38,9 +38,6 @@ import jp.tomoshibi.android.ui.components.PillTone
 import jp.tomoshibi.android.ui.components.SuzuCard
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
-import java.time.OffsetDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 // 罚扫履历（L2）— 对齐 iOS MyCleanView：
 //   PageHeader「罰則清掃 履歴」+ 卡片（地点 / 日期时刻 / 状态 Pill + 却下理由）+ 三态空态
@@ -163,20 +160,6 @@ private fun statusTone(s: String): PillTone =
         else -> PillTone.Neutral
     }
 
-private val cleaningFmt: DateTimeFormatter =
-    DateTimeFormatter
-        .ofPattern("M月d日 H時mm分")
-        .withZone(ZoneId.of("Asia/Tokyo"))
-
 private fun formatCleaningDateTime(iso: String): String =
-    try {
-        val instant = OffsetDateTime.parse(iso).toInstant()
-        cleaningFmt.format(instant)
-    } catch (_: Exception) {
-        try {
-            val instant = java.time.Instant.parse(iso)
-            cleaningFmt.format(instant)
-        } catch (_: Exception) {
-            iso.take(16).replace('T', ' ')
-        }
-    }
+    jp.tomoshibi.android.data.format.JstDate
+        .formatCleaning(iso)

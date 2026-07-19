@@ -288,11 +288,6 @@ private fun LostCell(
 }
 
 /** created_at ISO →「MM-dd」（JST），对齐 iOS lostDateFmt */
-internal fun formatLostDate(iso: String): String {
-    val instant =
-        runCatching { Instant.parse(iso) }.getOrNull()
-            ?: runCatching { OffsetDateTime.parse(iso).toInstant() }.getOrNull()
-            ?: return iso.take(10).drop(5) // 兜底截 "YYYY-MM-DD" → "MM-DD"
-    val fmt = DateTimeFormatter.ofPattern("MM-dd").withZone(ZoneId.of("Asia/Tokyo"))
-    return fmt.format(instant)
-}
+internal fun formatLostDate(iso: String): String =
+    jp.tomoshibi.android.data.format.JstDate
+        .formatMmDd(iso)

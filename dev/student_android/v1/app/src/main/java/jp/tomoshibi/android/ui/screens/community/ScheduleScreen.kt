@@ -56,7 +56,6 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.ZoneId
 
 // 行事予定（カレンダー）— 对齐 iOS ScheduleView：
 //   月历卡（月切换头 + 7 列网格）+ 选中日详情。已接真后端 EventsAPI.listEvents(from/to)。
@@ -67,7 +66,9 @@ import java.time.ZoneId
 //   失败必走 FailedBox，绝不退化成空日历。
 
 // 生产版「今天」= 东京时区真实当天（对齐 iOS #else 分支；Android 无 DEMO 编译开关）
-private fun todayJst(): LocalDate = LocalDate.now(ZoneId.of("Asia/Tokyo"))
+private fun todayJst(): LocalDate =
+    jp.tomoshibi.android.data.format.JstDate
+        .today()
 
 // 一次取够的日期范围：去年 1/1 ～ 明年 12/31（对齐 iOS fetchRange）
 private fun fetchRange(today: LocalDate): Pair<String, String> {

@@ -54,10 +54,6 @@ import jp.tomoshibi.android.ui.components.TField
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-
 // 个人信息 + 联系方式/房间编辑 — 对齐 iOS MyInfoView / MyInfoEditView 生产分支
 
 @Composable
@@ -202,10 +198,8 @@ private fun ChangeLogRow(entry: ChangeLogEntry) {
     val t = SuzuT.current
     val primary = MaterialTheme.colorScheme.primary
     val timeText =
-        DateTimeFormatter
-            .ofPattern("yyyy/MM/dd HH:mm")
-            .withZone(ZoneId.of("Asia/Tokyo"))
-            .format(Instant.ofEpochMilli(entry.atEpochMs))
+        jp.tomoshibi.android.data.format.JstDate
+            .formatChangeLogEpoch(entry.atEpochMs)
     Column(
         modifier =
             Modifier

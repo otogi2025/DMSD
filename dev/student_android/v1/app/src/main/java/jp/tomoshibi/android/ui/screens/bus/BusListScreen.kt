@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.data.format.JstDate
 import jp.tomoshibi.android.data.network.ApiError
 import jp.tomoshibi.android.data.network.BusRouteOut
 import jp.tomoshibi.android.data.network.endpoints.BusAPI
@@ -40,8 +41,6 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 // 特別運行便一覧 — 接真后端 BusAPI.listRoutes()（spec §7.6，GET /api/v1/bus/routes）。
@@ -131,10 +130,7 @@ private fun BusListContent(
 
     // 「次便」判定：日本时区当前时刻拼成 "yyyy-MM-dd HH:mm"，
     // 在可见列表里取第一个「现在 <= 便发车时刻」的便 id
-    val now =
-        LocalDateTime
-            .now(ZoneId.of("Asia/Tokyo"))
-            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+    val now = JstDate.nowYmdHm()
     val nextId = visible.firstOrNull { now <= "${it.date()} ${it.time()}" }?.id
 
     // 按日期分组，组 key 升序排列

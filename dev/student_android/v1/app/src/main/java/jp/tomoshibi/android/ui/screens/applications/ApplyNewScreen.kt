@@ -24,6 +24,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.data.format.JstDate
 import jp.tomoshibi.android.data.model.Application
 import jp.tomoshibi.android.data.model.ApplicationStatus
 import jp.tomoshibi.android.data.model.User
@@ -95,7 +96,7 @@ fun ApplyNewScreen(
     val user = state.user
     var submitting by remember { mutableStateOf(false) }
 
-    val today = remember { LocalDate.now() }
+    val today = remember { JstDate.today() }
     val tomorrow = remember { today.plusDays(1) }
     val isOuting = kind == "外出"
     // 外出可选今天；其余出寮日默认明天
@@ -227,7 +228,7 @@ fun ApplyNewScreen(
                                 to = if (showReturnDate || showReturnDateOnly) returnDate.toString() else leaveDate.toString(),
                                 status = ApplicationStatus.PENDING,
                                 reason = reason,
-                                createdAt = LocalDate.now().toString(),
+                                createdAt = JstDate.today().toString(),
                             )
                         store.update { it.copy(applications = listOf(newApp) + it.applications) }
                         stage = "done"
@@ -237,7 +238,7 @@ fun ApplyNewScreen(
         )
         return
     }
-    // 完成页 — 对齐 iOS ApplyDoneView（绿勾 +「申請を提出しました」+「予想審査時間」卡 +「一覧へ」按钮）
+    // 完成页 — 对齐 iOS ApplyDoneView（绿勾 +「申請を提出しました」+「審査時間の目安」卡 +「一覧へ」按钮）
     if (stage == "done") {
         GenericApplyDone(kind = kind, navController = navController)
         return
@@ -455,7 +456,8 @@ fun ApplyNewScreen(
                                 .atZone(java.time.ZoneOffset.UTC)
                                 .toLocalDate()
                         // 外出：今天起可选；其余出寮日：明天起
-                        val ok = if (isOuting) !picked.isBefore(LocalDate.now()) else picked.isAfter(LocalDate.now())
+                        val todayJst = JstDate.today()
+                        val ok = if (isOuting) !picked.isBefore(todayJst) else picked.isAfter(todayJst)
                         if (ok) leaveDate = picked
                     }
                     showLeavePicker = false
@@ -750,7 +752,7 @@ private fun GenericApplyPreview(
     }
 }
 
-// ── 通用申请 完成页（对齐 iOS ApplyDoneView）——绿勾 +「申請を提出しました」+「予想審査時間」+「一覧へ」──
+// ── 通用申请 完成页（对齐 iOS ApplyDoneView）——绿勾 +「申請を提出しました」+「審査時間の目安」+「一覧へ」──
 @Composable
 private fun GenericApplyDone(
     kind: String,
@@ -789,7 +791,7 @@ private fun GenericApplyDone(
                 style = TextStyle(fontSize = 14.sp, lineHeight = 20.sp),
             )
             Spacer(Modifier.height(28.dp))
-            // 予想審査時間 卡
+            // 「審査時間の目安」卡（对齐 iOS ApplyDoneView）
             Row(
                 modifier =
                     Modifier
@@ -799,7 +801,7 @@ private fun GenericApplyDone(
                         .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("予想審査時間", color = t.inkSub, style = TextStyle(fontSize = 12.sp))
+                Text("審査時間の目安", color = t.inkSub, style = TextStyle(fontSize = 12.sp))
                 Spacer(Modifier.weight(1f))
                 Text("1〜2 時間", color = t.ink, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold))
             }

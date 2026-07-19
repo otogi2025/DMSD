@@ -1,11 +1,9 @@
 package jp.tomoshibi.android.data.notifications
 
+import jp.tomoshibi.android.data.format.JstDate
 import jp.tomoshibi.android.data.model.Notification
 import jp.tomoshibi.android.data.network.StudentNotificationItem
 import jp.tomoshibi.android.data.network.endpoints.FrontDeskItemOut
-import java.time.Instant
-import java.time.OffsetDateTime
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -15,12 +13,11 @@ import java.util.Locale
  * 纯函数，方便单测。
  */
 object NotificationMapper {
-    private val jst: ZoneId = ZoneId.of("Asia/Tokyo")
     private val timeFmt: DateTimeFormatter =
         DateTimeFormatter
             .ofPattern("M/d HH:mm")
             .withLocale(Locale.JAPAN)
-            .withZone(jst)
+            .withZone(JstDate.TOKYO)
 
     /** feed kind → 通知中心 UI 分类标签（对齐 iOS feedNotifType）。 */
     fun feedNotifType(kind: String): String =
@@ -32,10 +29,7 @@ object NotificationMapper {
 
     /** ISO 时刻 → JST「M/d HH:mm」。 */
     fun notifTimeLabel(iso: String): String {
-        val instant =
-            runCatching { Instant.parse(iso) }.getOrNull()
-                ?: runCatching { OffsetDateTime.parse(iso).toInstant() }.getOrNull()
-                ?: return iso
+        val instant = JstDate.parseInstant(iso) ?: return iso
         return timeFmt.format(instant)
     }
 

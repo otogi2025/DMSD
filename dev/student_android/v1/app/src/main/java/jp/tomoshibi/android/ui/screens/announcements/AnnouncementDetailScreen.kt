@@ -565,20 +565,15 @@ private fun ReplyComposer(
 }
 
 private fun fmtTime(iso: String): String {
-    val instant =
-        runCatching { java.time.Instant.parse(iso) }.getOrNull()
-            ?: runCatching {
-                java.time.OffsetDateTime
-                    .parse(iso)
-                    .toInstant()
-            }.getOrNull()
-            ?: return runCatching {
-                "${iso.substring(0, 10).replace('-', '/')} ${iso.substring(11, 16)}"
-            }.getOrDefault(iso)
-    return java.time.OffsetDateTime
-        .ofInstant(instant, java.time.ZoneId.of("Asia/Tokyo"))
-        .format(
-            java.time.format.DateTimeFormatter
-                .ofPattern("yyyy/MM/dd HH:mm"),
-        )
+    val formatted =
+        jp.tomoshibi.android.data.format.JstDate
+            .formatChangeLog(iso)
+    // formatChangeLog 解析失败时原样返回；旧兜底把日期改成 yyyy/MM/dd
+    return if (formatted == iso) {
+        runCatching {
+            "${iso.substring(0, 10).replace('-', '/')} ${iso.substring(11, 16)}"
+        }.getOrDefault(iso)
+    } else {
+        formatted
+    }
 }

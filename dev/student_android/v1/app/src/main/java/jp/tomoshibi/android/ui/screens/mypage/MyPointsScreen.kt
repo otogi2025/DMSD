@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.data.format.JstDate
 import jp.tomoshibi.android.data.model.ListLoadState
 import jp.tomoshibi.android.data.network.endpoints.ProfileDemeritEntry
 import jp.tomoshibi.android.data.seed.MockData
@@ -47,8 +48,6 @@ import jp.tomoshibi.android.ui.components.PageHeader
 import jp.tomoshibi.android.ui.components.SuzuCard
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
-import java.time.LocalDate
-import java.time.ZoneId
 
 // 减点明细 + 折线图 — 对齐 iOS MyPointsView / MyPointsChartView 生产分支
 
@@ -435,8 +434,7 @@ fun MyPointsChartScreen(navController: NavHostController) {
 }
 
 private fun monthlyChartData(events: List<ProfileDemeritEntry>): Pair<List<String>, List<Double>> {
-    val zone = ZoneId.of("Asia/Tokyo")
-    val now = LocalDate.now(zone)
+    val now = JstDate.today()
     val labels = mutableListOf<String>()
     val values = mutableListOf<Double>()
     for (offset in 11 downTo 0) {

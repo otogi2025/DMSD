@@ -42,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.data.format.JstDate
 import jp.tomoshibi.android.data.network.BusRouteOut
 import jp.tomoshibi.android.data.network.EventOut
 import jp.tomoshibi.android.data.network.endpoints.AnnouncementsAPI
@@ -69,7 +70,6 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.OffsetDateTime
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -80,7 +80,6 @@ private val MusicPurple = Color(0xFF7C3AED)
 private val LostFixedColor = Color(0xFF7C3AED)
 private val CleaningIconBg = Color(0xFFFDF4E1)
 private val CleaningIconFg = Color(0xFFB07A28)
-private val Jst = ZoneId.of("Asia/Tokyo")
 
 private data class UpcomingBus(
     val time: String,
@@ -132,7 +131,7 @@ fun HomeScreen(navController: NavHostController) {
             pendingPackages = pkgs.count { it.status == "pending" || it.status == "notified" }
         }.onFailure { pendingPackages = 0 }
         runCatching {
-            val today = LocalDate.now(Jst)
+            val today = JstDate.today()
             val to = "${today.year + 1}-12-31"
             homeEvents = EventsAPI.listEvents(fromDate = today.toString(), toDate = to)
         }.onFailure { homeEvents = emptyList() }
@@ -695,7 +694,7 @@ private fun BellButton(
 }
 
 private fun todayJstLabel(): String {
-    val today = LocalDate.now(Jst)
+    val today = JstDate.today()
     val fmt = DateTimeFormatter.ofPattern("yyyy 年 M 月 d 日（E）", Locale.JAPANESE)
     return today.format(fmt)
 }
@@ -706,8 +705,8 @@ private fun formatEventTime(startAt: String?): String {
 }
 
 private fun pickUpcomingBus(routes: List<BusRouteOut>): UpcomingBus? {
-    val today = LocalDate.now(Jst)
-    val nowHm = LocalTime.now(Jst).format(DateTimeFormatter.ofPattern("HH:mm"))
+    val today = JstDate.today()
+    val nowHm = JstDate.nowTime().format(DateTimeFormatter.ofPattern("HH:mm"))
     val active =
         routes
             .filter { !it.deprecated && it.kind == "dorm_special" }
@@ -756,7 +755,7 @@ private fun computeNextCleaning(history: List<jp.tomoshibi.android.data.network.
     val odt =
         runCatching { OffsetDateTime.parse(first.scheduledAt) }.getOrNull()
             ?: return null
-    val jst = odt.atZoneSameInstant(Jst)
+    val jst = odt.atZoneSameInstant(JstDate.TOKYO)
     return NextCleaningInfo(
         dateText = "%d月%d日".format(jst.monthValue, jst.dayOfMonth),
         timeText = "%d時%02d分".format(jst.hour, jst.minute),

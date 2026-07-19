@@ -42,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.data.format.JstDate
 import jp.tomoshibi.android.data.model.StudyState
 import jp.tomoshibi.android.data.network.EventOut
 import jp.tomoshibi.android.data.network.endpoints.EventsAPI
@@ -64,7 +65,6 @@ import jp.tomoshibi.android.ui.screens.community.isWaiting
 import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 // ───────────────────────────────────────────────────────────────
@@ -104,7 +104,7 @@ fun MyPageScreen(navController: NavHostController) {
         scheduleLoading = true
         scheduleFailed = false
         try {
-            val today = LocalDate.now(ZoneId.of("Asia/Tokyo"))
+            val today = JstDate.today()
             val to = "${today.year + 1}-12-31"
             val raw = EventsAPI.listEvents(fromDate = today.toString(), toDate = to)
             scheduleEvents =
@@ -413,7 +413,7 @@ private fun RollcallStatusCard(
 ) {
     val t = SuzuT.current
     val primary = MaterialTheme.colorScheme.primary
-    val monthPrefix = LocalDate.now(ZoneId.of("Asia/Tokyo")).format(DateTimeFormatter.ofPattern("yyyy-MM"))
+    val monthPrefix = JstDate.monthPrefix()
     var onTime = 0
     var late = 0
     var absent = 0
@@ -511,7 +511,7 @@ internal fun isoToYmd(iso: String): String =
             }
         DateTimeFormatter
             .ofPattern("yyyy-MM-dd")
-            .withZone(ZoneId.of("Asia/Tokyo"))
+            .withZone(JstDate.TOKYO)
             .format(instant)
     } catch (_: Exception) {
         iso.take(10)
@@ -529,7 +529,7 @@ internal fun isoToHms(iso: String): String? =
             }
         DateTimeFormatter
             .ofPattern("HH:mm:ss")
-            .withZone(ZoneId.of("Asia/Tokyo"))
+            .withZone(JstDate.TOKYO)
             .format(instant)
     } catch (_: Exception) {
         null

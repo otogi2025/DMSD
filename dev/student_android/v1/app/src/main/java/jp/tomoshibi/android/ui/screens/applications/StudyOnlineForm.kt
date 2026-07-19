@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.data.format.JstDate
 import jp.tomoshibi.android.data.network.ApiError
 import jp.tomoshibi.android.data.network.endpoints.OnlineRequestBody
 import jp.tomoshibi.android.data.network.endpoints.StudyAPI
@@ -57,14 +58,11 @@ import jp.tomoshibi.android.ui.components.TimeField
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 // 「オンライン夜学習申請」— 对齐 iOS StudyOnlineForm.swift
 // Android 保留 edit → preview → done 三段；提交走 StudyAPI。
 
-private val JST = ZoneId.of("Asia/Tokyo")
 private val WEEKDAYS = listOf("月", "火", "水", "木", "金")
 private const val DEFAULT_SLOT_START = "19:40"
 private const val DEFAULT_SLOT_END = "21:00"
@@ -88,7 +86,7 @@ fun StudyOnlineForm(navController: NavHostController) {
 
     val threeDaysLater =
         remember {
-            LocalDate.now(JST).plusDays(3).format(DateTimeFormatter.ISO_LOCAL_DATE)
+            JstDate.today().plusDays(3).format(DateTimeFormatter.ISO_LOCAL_DATE)
         }
 
     var periodFrom by remember { mutableStateOf(threeDaysLater) }

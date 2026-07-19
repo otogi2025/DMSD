@@ -9,6 +9,8 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import jp.tomoshibi.android.BuildConfig
+import jp.tomoshibi.android.data.format.JstDate
 import jp.tomoshibi.android.data.model.AppState
 import jp.tomoshibi.android.data.model.ChangeLogEntry
 import jp.tomoshibi.android.data.model.ListLoadState
@@ -55,7 +57,6 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.Instant
-import java.time.format.DateTimeFormatter
 
 // AppStore — 对应 React StoreProvider + iOS AppStore 的会话层。
 // 把整个 AppState JSON 序列化存进 DataStore Preferences 一个 key
@@ -401,7 +402,10 @@ class AppStore(
         } catch (e: ApiError.Unauthorized) {
             handleIfUnauthorized(e, tokenAtStart)
         } catch (e: Exception) {
-            Log.w("AppStore", "loadMe /students/me 失败（保留占位）", e)
+            // 生产包不打日志（对齐 iOS §22.2：Release 不把后端错误细节写进系统日志）
+            if (BuildConfig.DEBUG) {
+                Log.w("AppStore", "loadMe /students/me 失败（保留占位）", e)
+            }
         }
     }
 
@@ -673,12 +677,7 @@ class AppStore(
     private suspend fun applyRollDecisionFromCache() {
         val decision = RollStateMachine.decide(cachedRollSessions, System.currentTimeMillis())
         val checkinAtText =
-            decision.checkedInAtMillis?.let { ms ->
-                DateTimeFormatter
-                    .ofPattern("HH:mm")
-                    .withZone(java.time.ZoneId.of("Asia/Tokyo"))
-                    .format(Instant.ofEpochMilli(ms))
-            }
+            decision.checkedInAtMillis?.let { ms -> JstDate.formatHm(ms) }
         update { current ->
             if (current.rollState == decision.state &&
                 current.checkinKind == decision.checkinKind &&
@@ -716,7 +715,9 @@ class AppStore(
         return try {
             appJson.decodeFromString<AppState>(json)
         } catch (e: Exception) {
-            Log.e("AppStore", "AppState 解析失败，回落 MockData（本地数据可能丢失）", e)
+            if (BuildConfig.DEBUG) {
+                Log.e("AppStore", "AppState 解析失败，回落 MockData（本地数据可能丢失）", e)
+            }
             MockData.INITIAL_STATE
         }
     }

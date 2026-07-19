@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.data.format.JstDate
 import jp.tomoshibi.android.data.network.ApiError
 import jp.tomoshibi.android.data.network.endpoints.StudyAPI
 import jp.tomoshibi.android.data.store.LocalAppStore
@@ -47,8 +48,6 @@ import jp.tomoshibi.android.ui.components.TArea
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 // 「夜学習欠席届」— 对齐 iOS ApplyStubs.swift StudyAbsenceForm
@@ -66,8 +65,6 @@ private enum class StudyLeaveRange(
     BOTH("両方", "full"),
 }
 
-private val JST = ZoneId.of("Asia/Tokyo")
-
 @Composable
 fun StudyAbsenceForm(navController: NavHostController) {
     val store = LocalAppStore.current
@@ -81,10 +78,10 @@ fun StudyAbsenceForm(navController: NavHostController) {
     var range by remember { mutableStateOf<StudyLeaveRange?>(null) }
     var reason by remember { mutableStateOf("") }
 
-    val today = remember { LocalDate.now(JST).format(DateTimeFormatter.ISO_LOCAL_DATE) }
+    val today = remember { JstDate.today().format(DateTimeFormatter.ISO_LOCAL_DATE) }
     val maxDate =
         remember {
-            LocalDate.now(JST).plusDays(14).format(DateTimeFormatter.ISO_LOCAL_DATE)
+            JstDate.today().plusDays(14).format(DateTimeFormatter.ISO_LOCAL_DATE)
         }
 
     val canSubmit =

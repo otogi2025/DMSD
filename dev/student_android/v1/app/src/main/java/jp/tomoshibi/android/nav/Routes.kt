@@ -22,8 +22,6 @@ sealed class Route(
 
     data object Applications : Route("applications")
 
-    data object Nfc : Route("nfc")
-
     data object Notifications : Route("notifications")
 
     data object MyPage : Route("mypage")
@@ -59,9 +57,8 @@ sealed class Route(
         }
     }
 
+    // 兼容旧 path「deduction」→ 现复用 MyPointsScreen（对齐 iOS .myPoints）
     data object Deduction : Route("deduction")
-
-    data object RollCall : Route("rollcall")
 
     // ── 个人页（「マイページ」）子页 (从 MyPage landing 进入) ──
     data object MyInfo : Route("my/info")
@@ -139,24 +136,12 @@ sealed class Route(
         }
     }
 
-    // id 用 String：对齐后端 EventOut.id（UUID）；行事详情接真后端时按 UUID 查
-    data class EventDetail(
-        val id: String,
-    ) : Route("events/$id") {
-        companion object {
-            const val PATH = "events/{id}"
-            const val ARG_ID = "id"
-        }
-    }
-
-    // ── community 5 屏 (从 Home 进入) ──
+    // ── community（从 Home 进入）──
     data object Music : Route("music")
 
     data object LostFound : Route("lostfound")
 
     data object Schedule : Route("schedule")
-
-    data object Bus : Route("bus")
 
     data object Delivery : Route("delivery")
 
@@ -200,7 +185,7 @@ sealed class Route(
 
     data object ItemList : Route("applylist/items") // 物品所持一覧
 
-    // ── 遺失物投稿/详情 + 本周活动列表 ──
+    // ── 遺失物投稿/详情 ──
     data object LostNew : Route("lostnew") // 遺失物投稿屏
 
     data class LostDetail(
@@ -211,8 +196,6 @@ sealed class Route(
             const val ARG_ID = "id"
         }
     }
-
-    data object Events : Route("events") // 本周活动列表（对齐 iOS homeEvents）
 }
 
 /** 面包屑显示名 — 对齐 iOS Route.displayName（按 path 前缀匹配） */
@@ -304,10 +287,6 @@ fun routeDisplayName(route: String): String {
 
         key == "packages" -> {
             "宅配詳細"
-        }
-
-        key == "events" -> {
-            if (parts.size > 1) "詳細" else "カレンダー"
         }
 
         key == "schedule" -> {

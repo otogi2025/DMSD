@@ -38,6 +38,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.data.format.JstDate
 import jp.tomoshibi.android.data.network.ApiError
 import jp.tomoshibi.android.data.network.GaihakuCreateBody
 import jp.tomoshibi.android.data.network.KikokuCreateBody
@@ -195,7 +196,7 @@ fun StayForm(
     // edit（填写）→ done（完成）；无确认页（对齐 iOS v1.0）
     var stage by remember { mutableStateOf("edit") }
     var submitting by remember { mutableStateOf(false) }
-    val tomorrow = remember { LocalDate.now().plusDays(1).toString() }
+    val tomorrow = remember { JstDate.today().plusDays(1).toString() }
 
     // ── §2 連絡先・届の区分 ──
     var contactPhone by remember { mutableStateOf("") }

@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.data.format.JstDate
 import jp.tomoshibi.android.data.model.StayApplication
 import jp.tomoshibi.android.data.model.StayKind
 import jp.tomoshibi.android.data.network.ApiError
@@ -55,8 +56,6 @@ import jp.tomoshibi.android.ui.components.TArea
 import jp.tomoshibi.android.ui.components.TField
 import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-
 // ─────────────────────────────────────────────────────────────────────
 // StayEditScreen —— 出寮届 变更届（编辑已提交的出寮届）
 // 对齐 iOS StayEditForm：GET detail 预填 → PUT /applications/:id（ApplicationUpdateBody）。
@@ -191,7 +190,7 @@ private fun StayEditFormBody(
     var amendReason by remember { mutableStateOf("") }
     var submitting by remember { mutableStateOf(false) }
 
-    val today = remember { LocalDate.now().toString() }
+    val today = remember { JstDate.today().toString() }
     // CB-04：出寮日被主动改动时，新值不得早于今天
     val leaveChanged = leaveDate.isNotEmpty() && leaveDate != original.leaveDate
     val canSubmit =

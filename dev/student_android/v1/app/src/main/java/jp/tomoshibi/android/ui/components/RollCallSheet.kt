@@ -1,9 +1,16 @@
 package jp.tomoshibi.android.ui.components
 
 import android.app.Activity
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -27,7 +35,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -58,6 +70,10 @@ import java.util.UUID
 //   ⑤ 大圆 NFC 视觉
 //   ⑥ 「NFC をかざす」CTA → 真 NfcV 写 ST25DV Mailbox
 //   ⑦ 「キャンセル」按钮
+
+// 4 步状态机（原住 StudyCheckinSheet；该演示残留已删，枚举迁到现役点呼 sheet）
+private enum class Step { Idle, Scanning, Success, Fail }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RollCallSheet(onDismiss: () -> Unit) {
@@ -344,4 +360,170 @@ private fun RollSuccessBody(
     )
 
     Spacer(Modifier.height(8.dp))
+}
+
+
+// ── scanning（原 StudyCheckinSheet 共享组件，迁入现役点呼 sheet）──
+@Composable
+private fun ScanningBody() {
+    val t = SuzuT.current
+    Spacer(modifier = Modifier.height(8.dp))
+    Text(
+        text = "スキャン中…",
+        color = t.ink,
+        style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold),
+        textAlign = TextAlign.Center,
+    )
+    Spacer(modifier = Modifier.height(28.dp))
+    SpinnerRing()
+    Spacer(modifier = Modifier.height(28.dp))
+    Text(
+        text = "動かないでください",
+        color = t.inkSub,
+        style = TextStyle(fontSize = 14.sp),
+        textAlign = TextAlign.Center,
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+}
+
+// ── fail（原 StudyCheckinSheet 共享组件）──
+@Composable
+private fun FailBody(onRetry: () -> Unit) {
+    val t = SuzuT.current
+    Spacer(modifier = Modifier.height(8.dp))
+    Box(
+        modifier =
+            Modifier
+                .size(88.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(Color(0xFFE88A80), Color(0xFFC44848)),
+                    ),
+                ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = SuzuIcons.Close,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(40.dp),
+        )
+    }
+    Spacer(modifier = Modifier.height(18.dp))
+    Text(
+        text = "読み取りに失敗しました",
+        color = t.ink,
+        style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold),
+        textAlign = TextAlign.Center,
+    )
+    Spacer(modifier = Modifier.height(10.dp))
+    Text(
+        text = "NFC を読み取れませんでした",
+        color = t.inkSub,
+        style = TextStyle(fontSize = 13.sp),
+        textAlign = TextAlign.Center,
+    )
+    Spacer(modifier = Modifier.height(22.dp))
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(54.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(t.btnGrad)
+                .clickable { onRetry() },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = "再試行",
+            color = Color.White,
+            style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
+        )
+    }
+    Spacer(modifier = Modifier.height(8.dp))
+}
+
+// ── 脉冲圆（idle）──
+@Composable
+private fun PulseCircle() {
+    val t = SuzuT.current
+    val transition = rememberInfiniteTransition(label = "pulse")
+    val progress by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(durationMillis = 1400, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+        label = "pulseProgress",
+    )
+    Box(
+        modifier = Modifier.size(140.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        val ringSize = (90 + 50 * progress).dp
+        val ringAlpha = 0.35f * (1f - progress)
+        Box(
+            modifier =
+                Modifier
+                    .size(ringSize)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = ringAlpha)),
+        )
+        Box(
+            modifier =
+                Modifier
+                    .size(90.dp)
+                    .clip(CircleShape)
+                    .background(t.pill),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = SuzuIcons.PhoneNfc,
+                contentDescription = "NFC scan",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(48.dp),
+            )
+        }
+    }
+}
+
+// ── 旋转环（scanning）──
+@Composable
+private fun SpinnerRing() {
+    val transition = rememberInfiniteTransition(label = "spinner")
+    val angle by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(durationMillis = 1000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+        label = "spinnerAngle",
+    )
+    val arcColor = MaterialTheme.colorScheme.primary
+    val trackColor = SuzuT.current.pill
+    Canvas(modifier = Modifier.size(120.dp)) {
+        val stroke = 6.dp.toPx()
+        drawCircle(
+            color = trackColor,
+            radius = (size.minDimension - stroke) / 2f,
+            center = Offset(size.width / 2f, size.height / 2f),
+            style = Stroke(width = stroke),
+        )
+        drawArc(
+            color = arcColor,
+            startAngle = angle,
+            sweepAngle = 270f,
+            useCenter = false,
+            topLeft = Offset(stroke / 2f, stroke / 2f),
+            size =
+                androidx.compose.ui.geometry
+                    .Size(size.width - stroke, size.height - stroke),
+            style = Stroke(width = stroke, cap = StrokeCap.Round),
+        )
+    }
 }
