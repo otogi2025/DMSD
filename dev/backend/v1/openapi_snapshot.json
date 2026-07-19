@@ -7286,7 +7286,20 @@
         "type": "object"
       },
       "StudentLoginIn": {
+        "description": "学生登录：student_no 或 email 必须且只能传一个（对齐 TeacherLoginIn「至少传一个」口径，\n额外禁止两个都传，避免客户端歧义）。",
         "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "format": "email",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
           "password": {
             "maxLength": 128,
             "minLength": 6,
@@ -7294,13 +7307,19 @@
             "type": "string"
           },
           "student_no": {
-            "pattern": "^\\d{6}$",
-            "title": "Student No",
-            "type": "string"
+            "anyOf": [
+              {
+                "pattern": "^\\d{6}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student No"
           }
         },
         "required": [
-          "student_no",
           "password"
         ],
         "title": "StudentLoginIn",
