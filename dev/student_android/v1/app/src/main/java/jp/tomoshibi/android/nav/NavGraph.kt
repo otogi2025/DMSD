@@ -13,7 +13,6 @@ import jp.tomoshibi.android.ui.screens.announcements.*
 import jp.tomoshibi.android.ui.screens.applications.*
 import jp.tomoshibi.android.ui.screens.bus.BusListScreen
 import jp.tomoshibi.android.ui.screens.community.*
-import jp.tomoshibi.android.ui.screens.deduction.DeductionScreen
 import jp.tomoshibi.android.ui.screens.home.HomeScreen
 import jp.tomoshibi.android.ui.screens.login.*
 import jp.tomoshibi.android.ui.screens.mypage.*
@@ -87,10 +86,11 @@ fun TomoshibiNavGraph(navController: NavHostController) {
             val id = entry.arguments?.getString(Route.NotifDetail.ARG_ID) ?: ""
             NotifDetailScreen(navController, id)
         }
-        composable(Route.Deduction.path) { DeductionScreen(navController) }
+        // 首页减点入口与个人页共用 MyPointsScreen（对齐 iOS router.go(.myPoints)）
+        composable(Route.Deduction.path) { MyPointsScreen(navController) }
         composable(Route.RollCall.path) { RollCallScreen(navController) }
 
-        // ── 个人页（「マイページ」）13 子页 ────
+        // ── 个人页子页 ────
         composable(Route.MyInfo.path) { MyInfoScreen(navController) }
         composable(Route.MyInfoEdit.path) { MyInfoEditScreen(navController) }
         composable(Route.MyRollcall.path) { MyRollcallScreen(navController) }
@@ -105,6 +105,7 @@ fun TomoshibiNavGraph(navController: NavHostController) {
         composable(Route.MyPointsChart.path) { MyPointsChartScreen(navController) }
         composable(Route.MyDiscipline.path) { MyDisciplineScreen(navController) }
         composable(Route.MyHealth.path) { MyHealthScreen(navController) }
+        composable(Route.MyClean.path) { MyCleanScreen(navController) }
         composable(Route.MyPackages.path) { MyPackagesScreen(navController) }
         composable(Route.MyStudy.path) { MyStudyScreen(navController) }
         composable(Route.MySettings.path) { MySettingsScreen(navController) }

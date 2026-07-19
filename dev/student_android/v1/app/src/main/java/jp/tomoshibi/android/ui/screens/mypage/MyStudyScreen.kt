@@ -19,6 +19,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,19 +35,19 @@ import androidx.navigation.NavHostController
 import jp.tomoshibi.android.data.model.StudyHistoryEntry
 import jp.tomoshibi.android.data.model.StudyTap
 import jp.tomoshibi.android.data.seed.MockData
+import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.ui.components.GlobalScaffold
 import jp.tomoshibi.android.ui.components.PageHeader
 import jp.tomoshibi.android.ui.components.SuzuCard
 import jp.tomoshibi.android.ui.theme.SuzuT
 
-// 夜学习履历（夜间学习的出席履历）— 対齐 iOS MyStudyView（L2 子页）
-//   入口 = 着陆页学習卡。按 MockData.DEFAULT_USER.isStudyTarget 切两种界面：
-//   - false（当前假数据值）→ 居中「夜学習対象外です」空状态
-//   - true → 月度统计卡 / 当月欠席届卡 / 出席打卡履历卡 / 说明盒 四块竖排
+// 夜学习履历 — 对齐 iOS MyStudyView；isStudyTarget 读 state.user（loadMe 真值）
 @Composable
 fun MyStudyScreen(navController: NavHostController) {
     val t = SuzuT.current
-    val isStudyTarget = MockData.DEFAULT_USER.isStudyTarget
+    val store = LocalAppStore.current
+    val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
+    val isStudyTarget = state.user.isStudyTarget
 
     GlobalScaffold(activeTab = "me", navController = navController) {
         Column(modifier = Modifier.fillMaxSize().background(t.pearl)) {
@@ -79,7 +81,7 @@ private fun NotStudyTargetNotice() {
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "あなたは現在、夜学習の対象ではありません。\n夜学習担当の先生が対象に指定すると、ここに出席状況が表示されます。",
+            "現在、夜学習の対象ではありません。\n夜学習担当の先生が対象に指定すると、ここに出席状況が表示されます。",
             color = t.inkSub,
             style = TextStyle(fontSize = 13.sp, lineHeight = 19.sp),
             textAlign = TextAlign.Center,

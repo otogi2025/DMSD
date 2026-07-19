@@ -42,8 +42,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.data.model.StudyState
 import jp.tomoshibi.android.data.network.EventOut
 import jp.tomoshibi.android.data.network.endpoints.EventsAPI
+import jp.tomoshibi.android.data.network.endpoints.ProfileRollCallEntry
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.nav.Route
@@ -58,6 +60,7 @@ import jp.tomoshibi.android.ui.components.PrimaryButton
 import jp.tomoshibi.android.ui.components.SectionHeader
 import jp.tomoshibi.android.ui.components.SuzuCard
 import jp.tomoshibi.android.ui.icons.SuzuIcons
+import jp.tomoshibi.android.ui.screens.community.isWaiting
 import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -65,10 +68,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 // ───────────────────────────────────────────────────────────────
-// MyPageScreen（個人页着陆页 L1）— 对齐 iOS MyLandingView（截图 11）
-// 从上到下 6 块：头像档案卡 / 行事予定卡 / 3 状态卡 / 履歴小标题 / 5 格宫格 / 设置 3 行
-// 加 LogoutSheet（登出弹窗）并入本文件
-// 数据全部从 MockData / 登录态 store 读，无网络层（跟 iOS 未接后端的屏一致）
+// MyPageScreen（个人页着陆页 L1）— 对齐 iOS MyLandingView 方案 B 五块式
+// 头像档案 / 行事予定 / 3 状态卡 / 履歴 6 格 / 设置 3 行 + LogoutSheet
 // ───────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,12 +78,22 @@ fun MyPageScreen(navController: NavHostController) {
     val t = SuzuT.current
     val store = LocalAppStore.current
     val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
+    val packages by store.packages.collectAsState()
+    val rollcallEvents by store.myRollcallEvents.collectAsState()
+    val studyCountdown by store.studyCountdownSec.collectAsState()
     val scope = rememberCoroutineScope()
     var showLogoutSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
 
-    // 用户档案：优先读登录态，空则回落假数据
     val user = state.user
+    val placeholder = store.isProfilePlaceholder(state)
+
+    // 进入个人页补拉 profile（点呼/减点当月统计）+ 包裹徽标
+    LaunchedEffect(state.authed, state.authToken) {
+        if (!state.authed || state.authToken.isNullOrEmpty()) return@LaunchedEffect
+        store.loadMyProfile()
+        store.loadMyPackages(reflectFailure = false)
+    }
 
     // 行事予定卡：今天起升序取前 3（对齐 iOS upcomingEvents）
     var scheduleEvents by remember { mutableStateOf<List<EventOut>>(emptyList()) }
@@ -109,9 +120,11 @@ fun MyPageScreen(navController: NavHostController) {
         }
     }
 
+    val waitingBadge =
+        packages.count { it.isWaiting }.takeIf { it > 0 }?.toString()
+
     GlobalScaffold(activeTab = "me", navController = navController) {
         Column(modifier = Modifier.fillMaxSize().background(t.pearl)) {
-            // L1 头：左上 Home 图标，点回首页
             PageHeader(
                 title = "マイページ",
                 level = 1,
@@ -126,27 +139,30 @@ fun MyPageScreen(navController: NavHostController) {
                         .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // ── 2.1 头像档案卡 ──
                 ProfileCard(user.avatar, user.name, user.studentNo, user.dorm, user.room, user.category)
 
-                // ── 2.2 行事予定卡 ──
                 ScheduleCard(
                     events = scheduleEvents,
                     loading = scheduleLoading,
                     failed = scheduleFailed,
                 ) { navController.navigate(Route.Schedule.path) }
 
-                // ── 2.3 主要状态卡群（3 张竖排）──
-                StudyStatusCard(user.isStudyTarget) { navController.navigate(Route.MyStudy.path) }
-                RollcallStatusCard { navController.navigate(Route.MyRollcall.path) }
-                PointsStatusCard(state.deductions.sumOf { it.points }) { navController.navigate(Route.MyPoints.path) }
+                StudyStatusCard(
+                    studyState = state.studyState,
+                    countdownSec = studyCountdown,
+                ) { navController.navigate(Route.MyStudy.path) }
+                RollcallStatusCard(events = rollcallEvents) {
+                    navController.navigate(Route.MyRollcall.path)
+                }
+                PointsStatusCard(
+                    points = user.points,
+                    placeholder = placeholder,
+                ) { navController.navigate(Route.MyPoints.path) }
 
-                // ── 2.4 履歴 小标题 ──
                 Spacer(Modifier.height(2.dp))
                 SectionHeader(title = "履歴")
 
-                // ── 2.5 履歴宫格（5 格 2 列）──
-                HistoryGrid(navController)
+                HistoryGrid(navController, packagesBadge = waitingBadge)
 
                 // ── 2.6 设置列表（3 行）──
                 SettingsCard(
@@ -353,15 +369,35 @@ private fun StatusCardShell(
     }
 }
 
-// A.「夜学習ステータス」卡 — isStudyTarget=false 时显「対象外（今日）」；入口始终显示
+// A.「夜学習ステータス」卡 — 4 态（对齐 iOS studyStateText）
 @Composable
 private fun StudyStatusCard(
-    isStudyTarget: Boolean,
+    studyState: StudyState,
+    countdownSec: Int,
     onClick: () -> Unit,
 ) {
     val t = SuzuT.current
     val primary = MaterialTheme.colorScheme.primary
-    val statusText = if (isStudyTarget) "進行中" else "対象外（今日）"
+    val statusText =
+        when (studyState) {
+            StudyState.OFF -> {
+                "本日は対象外"
+            }
+
+            StudyState.UPCOMING -> {
+                val m = countdownSec / 60
+                val s = countdownSec % 60
+                "開始まで $m:${s.toString().padStart(2, '0')}"
+            }
+
+            StudyState.ACTIVE -> {
+                "進行中"
+            }
+
+            StudyState.DONE -> {
+                "本日完了"
+            }
+        }
     StatusCardShell(iconBg = primary.copy(alpha = 0.10f), emoji = "📚", onClick = onClick) {
         Text("夜学習ステータス", color = t.inkSub, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold))
         Text(statusText, color = t.ink, style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold))
@@ -369,16 +405,27 @@ private fun StudyStatusCard(
     }
 }
 
-// B. 今月の点呼卡 — 统计当月（2026-04）DEFAULT_ROLLCALL 的 時間内 / 遅刻 / 欠席 数
+// B.「今月の点呼」卡 — 按当月真 profile 事件统计
 @Composable
-private fun RollcallStatusCard(onClick: () -> Unit) {
+private fun RollcallStatusCard(
+    events: List<ProfileRollCallEntry>,
+    onClick: () -> Unit,
+) {
     val t = SuzuT.current
     val primary = MaterialTheme.colorScheme.primary
-    // 演示口径：固定「2026-04」前缀过滤（生产版取系统当前年月）
-    val thisMonth = MockData.DEFAULT_ROLLCALL.filter { it.date.startsWith("2026-04") }
-    val onTime = thisMonth.count { it.status == "時間内" }
-    val late = thisMonth.count { it.status == "遅刻" }
-    val absent = thisMonth.count { it.status == "欠席" }
+    val monthPrefix = LocalDate.now(ZoneId.of("Asia/Tokyo")).format(DateTimeFormatter.ofPattern("yyyy-MM"))
+    var onTime = 0
+    var late = 0
+    var absent = 0
+    events.forEach { e ->
+        val date = isoToYmd(e.checkedInAt)
+        if (!date.startsWith(monthPrefix)) return@forEach
+        when (rollcallStateLabel(e.baseStatus)) {
+            "時間内" -> onTime++
+            "遅刻" -> late++
+            "欠席" -> absent++
+        }
+    }
     StatusCardShell(iconBg = t.okBg, emoji = "📋", onClick = onClick) {
         Text("今月の点呼", color = t.inkSub, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -407,26 +454,27 @@ private fun RollcallStat(
     }
 }
 
-// C. 減点明細卡 — 分数 4.5（DEFAULT_DEDUCTIONS 合计）→ 4–7.9 档 = 橙 warn + Pill「注意」
+// C.「減点明細」卡 — 真 user.points；占位时显「—」
 @Composable
 private fun PointsStatusCard(
     points: Double,
+    placeholder: Boolean,
     onClick: () -> Unit,
 ) {
     val t = SuzuT.current
     val primary = MaterialTheme.colorScheme.primary
-    // 分数档：<4 良好(绿) / 4–7.9 注意(橙) / ≥8 禁足(红)
     val (iconBg, numColor, tier) =
         when {
-            points < 4.0 -> Triple(t.okBg, t.ok, PillTone.Ok to "良好")
-            points < 8.0 -> Triple(t.warnBg, t.warn, PillTone.Warn to "注意")
-            else -> Triple(t.dangerBg, t.danger, PillTone.Danger to "禁足")
+            placeholder -> Triple(t.pill, t.inkMute, PillTone.Neutral to "—")
+            points >= 8.0 -> Triple(t.dangerBg, t.danger, PillTone.Danger to "禁足")
+            points >= 4.0 -> Triple(t.warnBg, t.warn, PillTone.Warn to "注意")
+            else -> Triple(t.okBg, t.ok, PillTone.Ok to "良好")
         }
     StatusCardShell(iconBg = iconBg, emoji = "📉", onClick = onClick) {
         Text("減点明細", color = t.inkSub, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold))
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                fmtPoints(points),
+                if (placeholder) "—" else fmtPoints(points),
                 color = numColor,
                 style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace),
             )
@@ -441,7 +489,53 @@ private fun PointsStatusCard(
 // 分数格式化：整数去小数点（4.0→「4」），否则保留 1 位（4.5→「4.5」）
 private fun fmtPoints(p: Double): String = if (p % 1.0 == 0.0) p.toInt().toString() else p.toString()
 
-// ── 2.5 履歴宫格（5 格 2 列）── 格子标签 + 图标 + 目标路由（荷物受取履歴带红徽标「1」）
+internal fun rollcallStateLabel(baseStatus: String): String =
+    when (baseStatus) {
+        "present" -> "時間内"
+        "late" -> "遅刻"
+        "absent" -> "欠席"
+        "exempt_range" -> "免除"
+        "init" -> "記録なし"
+        else -> baseStatus
+    }
+
+internal fun isoToYmd(iso: String): String =
+    try {
+        val instant =
+            try {
+                java.time.OffsetDateTime
+                    .parse(iso)
+                    .toInstant()
+            } catch (_: Exception) {
+                java.time.Instant.parse(iso)
+            }
+        DateTimeFormatter
+            .ofPattern("yyyy-MM-dd")
+            .withZone(ZoneId.of("Asia/Tokyo"))
+            .format(instant)
+    } catch (_: Exception) {
+        iso.take(10)
+    }
+
+internal fun isoToHms(iso: String): String? =
+    try {
+        val instant =
+            try {
+                java.time.OffsetDateTime
+                    .parse(iso)
+                    .toInstant()
+            } catch (_: Exception) {
+                java.time.Instant.parse(iso)
+            }
+        DateTimeFormatter
+            .ofPattern("HH:mm:ss")
+            .withZone(ZoneId.of("Asia/Tokyo"))
+            .format(instant)
+    } catch (_: Exception) {
+        null
+    }
+
+// ── 履歴宫格（6 格 2 列）── 含罚扫履历；荷物徽标按待取件数动态算
 private data class GridBlock(
     val label: String,
     val icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -450,14 +544,18 @@ private data class GridBlock(
 )
 
 @Composable
-private fun HistoryGrid(navController: NavHostController) {
+private fun HistoryGrid(
+    navController: NavHostController,
+    packagesBadge: String?,
+) {
     val blocks =
         listOf(
             GridBlock("個人情報", SuzuIcons.Person, Route.MyInfo.path),
             GridBlock("処分履歴", SuzuIcons.Warn, Route.MyDiscipline.path),
             GridBlock("体調報告履歴", SuzuIcons.Face, Route.MyHealth.path),
             GridBlock("申請履歴", SuzuIcons.Doc, Route.Applications.path),
-            GridBlock("荷物受取履歴", SuzuIcons.Pkg, Route.MyPackages.path, badge = "1"),
+            GridBlock("罰則清掃 履歴", SuzuIcons.Sparkles, Route.MyClean.path),
+            GridBlock("荷物受取履歴", SuzuIcons.Pkg, Route.MyPackages.path, badge = packagesBadge),
         )
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         blocks.chunked(2).forEach { rowItems ->

@@ -20,8 +20,7 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 
 // 処分履歴（处分历史）一覧 — 对齐 iOS MyDisciplineView：
 //   PageHeader「処分履歴」level 2 + 整屏居中空状态（演示版永远空）
-//   规格 §7：居中「✨」48sp + 「処分歴はまだありません」14sp semibold inkSub，padding 40
-//   ✨ 用 Text 渲染（emoji，不是图标），所以不复用 EmptyState（那个用 Icon），自己排版
+//   居中「✨」48sp + 「処分履歴はまだありません」（逐字对齐 iOS）
 @Composable
 fun MyDisciplineScreen(navController: NavHostController) {
     val t = SuzuT.current
@@ -29,7 +28,6 @@ fun MyDisciplineScreen(navController: NavHostController) {
         Column(modifier = Modifier.fillMaxSize().background(t.pearl)) {
             PageHeader(title = "処分履歴", level = 2, onLeft = { navController.popBackStack() })
 
-            // 整屏居中空状态：撑满剩余空间，内边距 40
             Column(
                 modifier =
                     Modifier
@@ -40,7 +38,7 @@ fun MyDisciplineScreen(navController: NavHostController) {
             ) {
                 Text("✨", style = TextStyle(fontSize = 48.sp))
                 Text(
-                    "処分歴はまだありません",
+                    "処分履歴はまだありません",
                     color = t.inkSub,
                     style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
                 )

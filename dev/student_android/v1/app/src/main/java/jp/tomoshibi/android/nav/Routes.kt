@@ -91,6 +91,8 @@ sealed class Route(
 
     data object MyHealth : Route("my/health")
 
+    data object MyClean : Route("my/clean")
+
     data object MyPackages : Route("my/packages")
 
     data object MyStudy : Route("my/study")
@@ -254,6 +256,10 @@ fun routeDisplayName(route: String): String {
 
         key == "my/health" -> {
             "体調報告履歴"
+        }
+
+        key == "my/clean" -> {
+            "罰則清掃履歴"
         }
 
         key == "my/packages" -> {

@@ -21,7 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,8 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import jp.tomoshibi.android.BuildConfig
-import jp.tomoshibi.android.data.model.ThemeMode
-import jp.tomoshibi.android.data.seed.MockData
+import jp.tomoshibi.android.data.network.ApiErrorPresenter
+import jp.tomoshibi.android.data.network.endpoints.AccountsAPI
 import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.data.translate.TranslateLang
 import jp.tomoshibi.android.data.translate.TranslatePrefs
@@ -51,14 +50,12 @@ import jp.tomoshibi.android.ui.components.TToggle
 import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
 
-// 设定页（L2）— 对齐 iOS MySettingsView：
-//   PageHeader「設定」+ 「お知らせの翻訳」默认语言 + 通知开关 + 暗色模式 + 账号删除
+// 设定页（L2）— 对齐 iOS MySettingsView（已删暗色模式死开关）
 @Composable
 fun MySettingsScreen(navController: NavHostController) {
     val tokens = SuzuT.current
     val ctx = LocalContext.current
     val store = LocalAppStore.current
-    val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
     val scope = rememberCoroutineScope()
     val primary = MaterialTheme.colorScheme.primary
 
@@ -70,6 +67,9 @@ fun MySettingsScreen(navController: NavHostController) {
     var pointWarning by remember { mutableStateOf(true) }
 
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showDeleteFailed by remember { mutableStateOf(false) }
+    var deleteFailedMsg by remember { mutableStateOf("") }
+    var isDeleting by remember { mutableStateOf(false) }
 
     // 默认翻译语言（空串 = 「毎回選択する」；与公告详情共用 TranslatePrefs）
     var defaultTranslateLang by remember { mutableStateOf(TranslatePrefs.getDefaultLang(ctx)) }
@@ -164,19 +164,6 @@ fun MySettingsScreen(navController: NavHostController) {
                     ToggleRow("減点警告", pointWarning) { pointWarning = it }
                 }
 
-                // ── 暗色模式卡 ──
-                SuzuCard(padding = 0) {
-                    ToggleRow(
-                        label = "ダークモード",
-                        checked = state.themeMode == ThemeMode.DARK,
-                        onChange = { v ->
-                            scope.launch {
-                                store.update { it.copy(themeMode = if (v) ThemeMode.DARK else ThemeMode.LIGHT) }
-                            }
-                        },
-                    )
-                }
-
                 if (BuildConfig.DEBUG) {
                     SuzuCard {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -231,19 +218,41 @@ fun MySettingsScreen(navController: NavHostController) {
 
     if (showDeleteDialog) {
         AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
+            onDismissRequest = { if (!isDeleting) showDeleteDialog = false },
             confirmButton = {
-                TextButton(onClick = {
-                    scope.launch {
-                        jp.tomoshibi.android.data.network.ApiClient.token = null
-                        store.reset()
-                        showDeleteDialog = false
-                        navController.navigate(Route.Login.path) { popUpTo(0) { inclusive = true } }
-                    }
-                }) { Text("削除する", color = tokens.danger) }
+                TextButton(
+                    enabled = !isDeleting,
+                    onClick = {
+                        scope.launch {
+                            isDeleting = true
+                            val tokenAtStart = store.snapshot().authToken
+                            try {
+                                AccountsAPI.deleteMyAccount()
+                                if (store.snapshot().authToken != tokenAtStart) return@launch
+                                store.clearSession()
+                                showDeleteDialog = false
+                                navController.navigate(Route.Login.path) {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            } catch (e: Exception) {
+                                deleteFailedMsg =
+                                    ApiErrorPresenter.userMessage(e, "削除に失敗しました")
+                                showDeleteDialog = false
+                                showDeleteFailed = true
+                            } finally {
+                                isDeleting = false
+                            }
+                        }
+                    },
+                ) {
+                    Text(if (isDeleting) "削除中…" else "削除する", color = tokens.danger)
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("キャンセル") }
+                TextButton(
+                    enabled = !isDeleting,
+                    onClick = { showDeleteDialog = false },
+                ) { Text("キャンセル") }
             },
             title = { Text("アカウントを削除しますか？") },
             text = {
@@ -251,6 +260,18 @@ fun MySettingsScreen(navController: NavHostController) {
                     "削除すると元に戻せません。点呼履歴・申請履歴・プロフィール情報がすべて閲覧できなくなります。",
                 )
             },
+            containerColor = tokens.paper,
+        )
+    }
+
+    if (showDeleteFailed) {
+        AlertDialog(
+            onDismissRequest = { showDeleteFailed = false },
+            confirmButton = {
+                TextButton(onClick = { showDeleteFailed = false }) { Text("OK") }
+            },
+            title = { Text("削除に失敗しました") },
+            text = { Text(deleteFailedMsg) },
             containerColor = tokens.paper,
         )
     }

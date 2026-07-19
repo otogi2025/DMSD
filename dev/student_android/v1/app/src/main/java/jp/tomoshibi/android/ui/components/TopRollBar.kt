@@ -91,7 +91,7 @@ fun TopRollBar(
                     needsCleaning = needsCleaning,
                     countdownSec = countdownSec,
                     rollState = rollState,
-                    onDetail = { navController.navigate(Route.Deduction.path) },
+                    onDetail = { navController.navigate(Route.MyPoints.path) },
                     t = t,
                 )
             }
@@ -103,7 +103,7 @@ fun TopRollBar(
                     countdownSec = countdownSec,
                     checkinAt = checkinAt,
                     checkinKind = checkinKind,
-                    onDetail = { navController.navigate(Route.Deduction.path) },
+                    onDetail = { navController.navigate(Route.MyPoints.path) },
                     onAbsenceClick = onAbsenceClick,
                     onHealthClick = onHealthClick,
                     onContactSupervisor = onContactSupervisor,

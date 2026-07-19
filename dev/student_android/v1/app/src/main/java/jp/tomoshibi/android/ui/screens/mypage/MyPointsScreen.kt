@@ -16,9 +16,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,32 +36,54 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import jp.tomoshibi.android.data.model.Deduction
+import jp.tomoshibi.android.data.model.ListLoadState
+import jp.tomoshibi.android.data.network.endpoints.ProfileDemeritEntry
 import jp.tomoshibi.android.data.seed.MockData
+import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.nav.Route
+import jp.tomoshibi.android.ui.components.EmptyState
 import jp.tomoshibi.android.ui.components.GlobalScaffold
 import jp.tomoshibi.android.ui.components.PageHeader
 import jp.tomoshibi.android.ui.components.SuzuCard
+import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
+import java.time.LocalDate
+import java.time.ZoneId
 
-// ───────────────────────────────────────────────────────────────
-// MyPointsScreen / MyPointsChartScreen — 对齐 iOS MyPointsView（§6）+ MyPointsChartView（§6b）
-//   §6  減点明細：琥珀渐变总分卡 + 0→8 进度条 + 逐条明细 + 规则盒
-//   §6b 減点グラフ：過去 12 ヶ月 折线图（Canvas 自绘）+ 阈值线 + 图例
-// 数据全部来自 MockData.DEFAULT_DEDUCTIONS，无网络层（与 iOS 未接后端的屏一致）
-// ───────────────────────────────────────────────────────────────
+// 减点明细 + 折线图 — 对齐 iOS MyPointsView / MyPointsChartView 生产分支
 
-// §6 减点明细页（L2）
+private data class PointDisplay(
+    val id: String,
+    val date: String,
+    val label: String,
+    val valPoints: Double,
+)
+
+private fun ProfileDemeritEntry.toDisplay(): PointDisplay =
+    PointDisplay(
+        id = id,
+        date = isoToYmd(createdAt),
+        label = reason,
+        valPoints = points,
+    )
+
 @Composable
 fun MyPointsScreen(navController: NavHostController) {
     val t = SuzuT.current
     val primary = MaterialTheme.colorScheme.primary
+    val store = LocalAppStore.current
+    val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
+    val demerits by store.myDemeritEvents.collectAsState()
+    val profileState by store.profileState.collectAsState()
 
-    val deductions = MockData.DEFAULT_DEDUCTIONS
-    // 今月合計 = 逐条 points 求和（演示 = 4.5）
-    val total = deductions.sumOf { it.points }
-    // 进度比例：0→8 满刻度，封顶 1.0 防溢出
+    LaunchedEffect(Unit) {
+        store.loadMyProfile()
+    }
+
+    val placeholder = store.isProfilePlaceholder(state)
+    val total = state.user.points
     val ratio = (total / 8.0).coerceIn(0.0, 1.0).toFloat()
+    val rows = demerits.map { it.toDisplay() }
 
     GlobalScaffold(activeTab = "me", navController = navController) {
         Column(modifier = Modifier.fillMaxSize().background(t.pearl)) {
@@ -66,7 +92,6 @@ fun MyPointsScreen(navController: NavHostController) {
                 level = 2,
                 onLeft = { navController.popBackStack() },
                 right = {
-                    // 右上「グラフ →」青绿可点 → 减点グラフ页
                     Text(
                         "グラフ →",
                         color = primary,
@@ -90,42 +115,69 @@ fun MyPointsScreen(navController: NavHostController) {
             ) {
                 Spacer(Modifier.height(4.dp))
 
-                // ── 琥珀渐变总分卡（amberGrad 底，深棕字）──
-                AmberTotalCard(total = total)
-
-                // ── 进度条 0→8（8 处红标 + 下方刻度行）──
+                AmberTotalCard(total = total, placeholder = placeholder)
                 PointsProgressBar(ratio = ratio)
 
-                // ── 明细列表（逐条 DEFAULT_DEDUCTIONS，padding 0 的白卡）──
-                SuzuCard(padding = 0) {
-                    deductions.forEachIndexed { index, item ->
-                        DeductionRow(item)
-                        if (index != deductions.lastIndex) {
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .height(1.dp)
-                                        .background(t.hairSoft),
-                            )
+                Text(
+                    "減点履歴（全期間）",
+                    color = t.inkSub,
+                    style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
+                )
+
+                when {
+                    rows.isNotEmpty() -> {
+                        SuzuCard(padding = 0) {
+                            rows.forEachIndexed { index, item ->
+                                DeductionRow(item)
+                                if (index != rows.lastIndex) {
+                                    Box(
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .height(1.dp)
+                                                .background(t.hairSoft),
+                                    )
+                                }
+                            }
                         }
+                    }
+
+                    profileState is ListLoadState.Loading -> {
+                        CircularProgressIndicator(
+                            modifier =
+                                Modifier
+                                    .align(Alignment.CenterHorizontally)
+                                    .padding(vertical = 16.dp),
+                        )
+                    }
+
+                    profileState is ListLoadState.Failed -> {
+                        val msg = (profileState as ListLoadState.Failed).message
+                        EmptyState(
+                            icon = SuzuIcons.Warn,
+                            title = "読み込みに失敗しました",
+                            message = msg,
+                        )
+                    }
+
+                    else -> {
+                        EmptyState(icon = SuzuIcons.CheckCirc, title = "減点なし")
                     }
                 }
 
-                // ── 规则盒（pill 灰底）──
                 RuleBox()
-
                 Spacer(Modifier.height(20.dp))
             }
         }
     }
 }
 
-// 琥珀渐变总分卡：「今月合計」+ 大数字 + 「点」
 @Composable
-private fun AmberTotalCard(total: Double) {
+private fun AmberTotalCard(
+    total: Double,
+    placeholder: Boolean,
+) {
     val t = SuzuT.current
-    // 深棕字（对齐 iOS #5C3410），80% 透明给小标题
     val brown = Color(0xFF5C3410)
     Column(
         modifier =
@@ -143,7 +195,7 @@ private fun AmberTotalCard(total: Double) {
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
-                formatPoints(total),
+                if (placeholder) "—" else String.format("%.1f", total),
                 color = brown,
                 style =
                     TextStyle(
@@ -163,12 +215,10 @@ private fun AmberTotalCard(total: Double) {
     }
 }
 
-// 进度条：灰底胶囊 + amber→warn 渐变填充到 ratio + 8 红标 + 下方刻度行
 @Composable
 private fun PointsProgressBar(ratio: Float) {
     val t = SuzuT.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // 轨道（Box 叠层：灰底 → 填充 → 竖标）
         Box(
             modifier =
                 Modifier
@@ -177,7 +227,6 @@ private fun PointsProgressBar(ratio: Float) {
                     .clip(RoundedCornerShape(percent = 50))
                     .background(t.hair),
         ) {
-            // 填充：从左填到 points/8
             Box(
                 modifier =
                     Modifier
@@ -186,12 +235,22 @@ private fun PointsProgressBar(ratio: Float) {
                         .clip(RoundedCornerShape(percent = 50))
                         .background(t.warn),
             )
-            // 8 处红竖标（位于最右端 8/8 = 100%）
+            // 4 点橙标（中点）
             Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(12.dp),
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    modifier =
+                        Modifier
+                            .width(2.dp)
+                            .height(12.dp)
+                            .background(t.warn),
+                )
+            }
+            // 8 点红标（右端）
+            Box(
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.CenterEnd,
             ) {
                 Box(
@@ -204,11 +263,16 @@ private fun PointsProgressBar(ratio: Float) {
             }
         }
 
-        // 下方刻度行：0 / 8 外出禁止
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(
                 "0",
                 color = t.inkMute,
+                style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                "4 罰則清掃",
+                color = t.warn,
                 style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
             )
             Spacer(modifier = Modifier.weight(1f))
@@ -221,12 +285,10 @@ private fun PointsProgressBar(ratio: Float) {
     }
 }
 
-// 明细单行：日期（80 宽等宽）+ reason + 右「+{points}」
 @Composable
-private fun DeductionRow(item: Deduction) {
+private fun DeductionRow(item: PointDisplay) {
     val t = SuzuT.current
-    // ≥1 → danger 红 / <1 → warnDeep
-    val pointColor = if (item.points >= 1.0) t.danger else t.warnDeep
+    val pointColor = if (item.valPoints >= 1.0) t.danger else t.warnDeep
     Row(
         modifier =
             Modifier
@@ -240,23 +302,22 @@ private fun DeductionRow(item: Deduction) {
             style = TextStyle(fontSize = 12.sp, fontFamily = FontFamily.Monospace),
             modifier = Modifier.width(80.dp),
         )
-        Spacer(Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
-            item.reason,
+            item.label,
             color = t.ink,
             style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium),
             modifier = Modifier.weight(1f),
         )
-        Spacer(Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
-            "+${formatPoints(item.points)}",
+            "+${formatPoints(item.valPoints)}",
             color = pointColor,
             style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
         )
     }
 }
 
-// 规则盒：pill 灰底圆角 12
 @Composable
 private fun RuleBox() {
     val t = SuzuT.current
@@ -275,17 +336,24 @@ private fun RuleBox() {
             style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold, lineHeight = 18.sp),
         )
         Text(
-            "月累計 8 点で外出禁止",
+            "月累計 4 点で罰則清掃、月累計 8 点で外出禁止",
             color = t.inkSub,
             style = TextStyle(fontSize = 12.sp, lineHeight = 18.sp),
         )
     }
 }
 
-// §6b 减点グラフ页（L2）— 折线图外壳 + Canvas 本体
 @Composable
 fun MyPointsChartScreen(navController: NavHostController) {
     val t = SuzuT.current
+    val store = LocalAppStore.current
+    val demerits by store.myDemeritEvents.collectAsState()
+
+    LaunchedEffect(Unit) {
+        store.loadMyProfile()
+    }
+
+    val (labels, values) = monthlyChartData(demerits)
 
     GlobalScaffold(activeTab = "me", navController = navController) {
         Column(modifier = Modifier.fillMaxSize().background(t.pearl)) {
@@ -305,36 +373,59 @@ fun MyPointsChartScreen(navController: NavHostController) {
                 Spacer(Modifier.height(4.dp))
 
                 SuzuCard(padding = 20) {
-                    // 小标题
                     Text(
                         "過去 12 ヶ月",
                         color = t.inkSub,
-                        style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                        style = TextStyle(fontSize = 12.sp),
                     )
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                    // 折线图本体（高 200dp，y 轴 0→8）
-                    PointsLineChart()
-
-                    Spacer(Modifier.height(8.dp))
-
-                    // x 轴月份标签：5,6,7,8,9,10,11,12,1,2,3,4（共 12 个）
                     Row(modifier = Modifier.fillMaxWidth()) {
-                        chartMonths().forEach { m ->
-                            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        // y 轴数字标签 8/6/4/2/0
+                        Column(
+                            modifier =
+                                Modifier
+                                    .width(24.dp)
+                                    .height(200.dp),
+                            verticalArrangement = Arrangement.SpaceBetween,
+                            horizontalAlignment = Alignment.End,
+                        ) {
+                            listOf("8", "6", "4", "2", "0").forEach { n ->
                                 Text(
-                                    m.toString(),
+                                    n,
                                     color = t.inkMute,
                                     style = TextStyle(fontSize = 10.sp, fontFamily = FontFamily.Monospace),
                                 )
                             }
                         }
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            PointsLineChart(values = values)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                labels.forEach { m ->
+                                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                                        Text(
+                                            m,
+                                            color = t.inkMute,
+                                            style = TextStyle(fontSize = 10.sp, fontFamily = FontFamily.Monospace),
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
 
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                    // 图例：红线「外出禁止閾値」
-                    LegendRow(color = t.danger, label = "外出禁止閾値")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        LegendRow(color = t.warn, label = "罰則清掃閾値")
+                        Spacer(modifier = Modifier.width(16.dp))
+                        LegendRow(color = t.danger, label = "外出禁止閾値")
+                    }
                 }
 
                 Spacer(Modifier.height(20.dp))
@@ -343,14 +434,28 @@ fun MyPointsChartScreen(navController: NavHostController) {
     }
 }
 
-// 折线图 Canvas：青绿折线 + 节点圆点 + y=8 红线，y 轴 0→8 映射高度
+private fun monthlyChartData(events: List<ProfileDemeritEntry>): Pair<List<String>, List<Double>> {
+    val zone = ZoneId.of("Asia/Tokyo")
+    val now = LocalDate.now(zone)
+    val labels = mutableListOf<String>()
+    val values = mutableListOf<Double>()
+    for (offset in 11 downTo 0) {
+        val d = now.minusMonths(offset.toLong())
+        val key = String.format("%04d-%02d", d.year, d.monthValue)
+        val sum = events.filter { it.month == key }.sumOf { it.points }
+        labels.add("${d.monthValue}")
+        values.add(sum)
+    }
+    return labels to values
+}
+
 @Composable
-private fun PointsLineChart() {
+private fun PointsLineChart(values: List<Double>) {
     val t = SuzuT.current
     val primary = MaterialTheme.colorScheme.primary
-    // 演示数据（12 个月）
-    val data = listOf(0.0, 0.0, 1.0, 0.0, 0.5, 1.0, 0.0, 2.0, 0.0, 1.0, 2.0, 4.5)
-    val maxY = 8.0 // y 轴满刻度
+    val maxY = 8.0
+    val dashGrid = PathEffect.dashPathEffect(floatArrayOf(2f, 3f), 0f)
+    val dashThreshold = PathEffect.dashPathEffect(floatArrayOf(3f, 2f), 0f)
 
     Canvas(
         modifier =
@@ -361,45 +466,63 @@ private fun PointsLineChart() {
         val w = size.width
         val h = size.height
 
-        // y 值（0→8）映射到画布高度：0 在底、8 在顶
         fun yPx(v: Double): Float = (h - (v / maxY) * h).toFloat()
 
-        // x 均分到 12 个节点
-        fun xPx(i: Int): Float = if (data.size <= 1) w / 2f else (i.toFloat() / (data.size - 1)) * w
+        fun xPx(i: Int): Float =
+            if (values.size <= 1) {
+                w / 2f
+            } else {
+                (i.toFloat() / (values.size - 1)) * w
+            }
 
-        // y=8 红色实线阈值（外出禁止）
+        // y 轴 0/2/4/6/8 网格
+        listOf(0.0, 2.0, 4.0, 6.0, 8.0).forEach { v ->
+            drawLine(
+                color = t.hair,
+                start = Offset(0f, yPx(v)),
+                end = Offset(w, yPx(v)),
+                strokeWidth = 1f,
+                pathEffect = dashGrid,
+            )
+        }
+
+        // 4 / 8 阈值虚线
+        drawLine(
+            color = t.warn,
+            start = Offset(0f, yPx(4.0)),
+            end = Offset(w, yPx(4.0)),
+            strokeWidth = 1.5f,
+            pathEffect = dashThreshold,
+        )
         drawLine(
             color = t.danger,
             start = Offset(0f, yPx(8.0)),
             end = Offset(w, yPx(8.0)),
-            strokeWidth = 2f,
+            strokeWidth = 1.5f,
+            pathEffect = dashThreshold,
         )
 
-        // 青绿折线（逐段连线）
-        for (i in 0 until data.size - 1) {
+        for (i in 0 until values.size - 1) {
             drawLine(
                 color = primary,
-                start = Offset(xPx(i), yPx(data[i])),
-                end = Offset(xPx(i + 1), yPx(data[i + 1])),
-                strokeWidth = 3f,
+                start = Offset(xPx(i), yPx(values[i])),
+                end = Offset(xPx(i + 1), yPx(values[i + 1])),
+                strokeWidth = 2.5f,
+                cap = androidx.compose.ui.graphics.StrokeCap.Round,
             )
         }
 
-        // 节点圆点（白底 + 青绿描边）
-        data.forEachIndexed { i, v ->
+        values.forEachIndexed { i, v ->
             val center = Offset(xPx(i), yPx(v))
-            drawCircle(color = Color.White, radius = 5f, center = center)
-            drawCircle(
-                color = primary,
-                radius = 5f,
-                center = center,
-                style = Stroke(width = 2.5f),
-            )
+            val isLast = i == values.lastIndex
+            val radius = if (isLast) 5f else 3.5f
+            val color = if (isLast) t.warn else primary
+            drawCircle(color = Color.White, radius = radius, center = center)
+            drawCircle(color = color, radius = radius, center = center, style = Stroke(width = 2f))
         }
     }
 }
 
-// 图例单行：一截彩色短线 + 标签
 @Composable
 private fun LegendRow(
     color: Color,
@@ -410,22 +533,17 @@ private fun LegendRow(
         Box(
             modifier =
                 Modifier
-                    .width(18.dp)
-                    .height(3.dp)
-                    .clip(RoundedCornerShape(percent = 50))
+                    .width(14.dp)
+                    .height(2.dp)
                     .background(color),
         )
-        Spacer(Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(6.dp))
         Text(
             label,
             color = t.inkSub,
-            style = TextStyle(fontSize = 12.sp),
+            style = TextStyle(fontSize = 11.sp),
         )
     }
 }
 
-// 点数格式化：整数去掉「.0」（4.5 → "4.5" / 1.0 → "1"），对齐 iOS 显示
-private fun formatPoints(v: Double): String = if (v % 1.0 == 0.0) v.toInt().toString() else v.toString()
-
-// x 轴月份标签序列：5..12 然后 1..4（共 12 个月）
-private fun chartMonths(): List<Int> = (5..12).toList() + (1..4).toList()
+private fun formatPoints(v: Double): String = if (v % 1.0 == 0.0) v.toInt().toString() else String.format("%.1f", v)

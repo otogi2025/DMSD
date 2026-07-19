@@ -190,8 +190,35 @@ enum class ThemeMode { LIGHT, DARK }
 // 点呼状态机 — 对应 iOS HomeStubs.swift 的 4 态 hero
 enum class RollState { IDLE, ACTIVE, ABSENT, DONE }
 
-// 学習状态机 — 对应 iOS Home long-press 切换
-enum class StudyState { OFF, UPCOMING, ACTIVE }
+// 学習状态机 — 对齐 iOS StudyState（idle / upcoming / active / done）
+// OFF = iOS .idle（本日対象外）；DONE = 本日完了
+enum class StudyState { OFF, UPCOMING, ACTIVE, DONE }
+
+/** 账号字段变更履历一条（对齐 iOS ChangeLogEntry；MyInfo 编辑成功后 append） */
+data class ChangeLogEntry(
+    val id: String =
+        java.util.UUID
+            .randomUUID()
+            .toString(),
+    val atEpochMs: Long = System.currentTimeMillis(),
+    val field: String,
+    val label: String,
+    val before: String,
+    val after: String,
+)
+
+/** 列表加载三态（对齐 iOS AppStore.ListLoadState） */
+sealed class ListLoadState {
+    data object Idle : ListLoadState()
+
+    data object Loading : ListLoadState()
+
+    data object Loaded : ListLoadState()
+
+    data class Failed(
+        val message: String,
+    ) : ListLoadState()
+}
 
 // AppState — 对应 React StoreProvider state，整体序列化进 DataStore
 @Serializable

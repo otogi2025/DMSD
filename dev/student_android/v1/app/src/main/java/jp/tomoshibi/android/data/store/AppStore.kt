@@ -10,21 +10,29 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import jp.tomoshibi.android.data.model.AppState
+import jp.tomoshibi.android.data.model.ChangeLogEntry
+import jp.tomoshibi.android.data.model.ListLoadState
 import jp.tomoshibi.android.data.model.Notification
 import jp.tomoshibi.android.data.model.RollState
+import jp.tomoshibi.android.data.model.StudyState
 import jp.tomoshibi.android.data.model.User
 import jp.tomoshibi.android.data.network.ApiClient
 import jp.tomoshibi.android.data.network.ApiError
+import jp.tomoshibi.android.data.network.ApiErrorPresenter
 import jp.tomoshibi.android.data.network.StudentNotificationItem
 import jp.tomoshibi.android.data.network.endpoints.AnnouncementsAPI
 import jp.tomoshibi.android.data.network.endpoints.CleaningAPI
+import jp.tomoshibi.android.data.network.endpoints.CleaningAssignmentOut
 import jp.tomoshibi.android.data.network.endpoints.DisciplineAPI
 import jp.tomoshibi.android.data.network.endpoints.FrontDeskAPI
 import jp.tomoshibi.android.data.network.endpoints.FrontDeskItemOut
 import jp.tomoshibi.android.data.network.endpoints.MyRollCallTodaySession
+import jp.tomoshibi.android.data.network.endpoints.ProfileDemeritEntry
+import jp.tomoshibi.android.data.network.endpoints.ProfileRollCallEntry
 import jp.tomoshibi.android.data.network.endpoints.RollCallAPI
 import jp.tomoshibi.android.data.network.endpoints.StudentMeOut
 import jp.tomoshibi.android.data.network.endpoints.StudentNotificationsAPI
+import jp.tomoshibi.android.data.network.endpoints.StudentProfileAPI
 import jp.tomoshibi.android.data.network.endpoints.StudentsAPI
 import jp.tomoshibi.android.data.network.endpoints.StudyAPI
 import jp.tomoshibi.android.data.notifications.NotificationMapper
@@ -111,6 +119,35 @@ class AppStore(
     private val _notificationsState =
         MutableStateFlow<NotificationsLoadState>(NotificationsLoadState.Idle)
     val notificationsState: StateFlow<NotificationsLoadState> = _notificationsState.asStateFlow()
+
+    // ── 个人页：点呼/减点聚合、罚扫履历、变更履历（内存态，对齐 iOS @Published）──
+    private val _myRollcallEvents = MutableStateFlow<List<ProfileRollCallEntry>>(emptyList())
+    val myRollcallEvents: StateFlow<List<ProfileRollCallEntry>> = _myRollcallEvents.asStateFlow()
+
+    private val _myDemeritEvents = MutableStateFlow<List<ProfileDemeritEntry>>(emptyList())
+    val myDemeritEvents: StateFlow<List<ProfileDemeritEntry>> = _myDemeritEvents.asStateFlow()
+
+    private val _profileState = MutableStateFlow<ListLoadState>(ListLoadState.Idle)
+    val profileState: StateFlow<ListLoadState> = _profileState.asStateFlow()
+
+    private val _cleaningHistory = MutableStateFlow<List<CleaningAssignmentOut>>(emptyList())
+    val cleaningHistory: StateFlow<List<CleaningAssignmentOut>> = _cleaningHistory.asStateFlow()
+
+    private val _cleaningHistoryState = MutableStateFlow<ListLoadState>(ListLoadState.Idle)
+    val cleaningHistoryState: StateFlow<ListLoadState> = _cleaningHistoryState.asStateFlow()
+
+    private val _changeLog = MutableStateFlow<List<ChangeLogEntry>>(emptyList())
+    val changeLog: StateFlow<List<ChangeLogEntry>> = _changeLog.asStateFlow()
+
+    /** 夜学习 upcoming 倒计时秒数（对齐 iOS studyCountdownSec；默认 10 分） */
+    private val _studyCountdownSec = MutableStateFlow(600)
+    val studyCountdownSec: StateFlow<Int> = _studyCountdownSec.asStateFlow()
+
+    /**
+     * 生产没拉到 /me 时占位（对齐 iOS profileIsPlaceholder）。
+     * 已登录但 myStudentId 仍空 → 点数等应显「—」而非假 0。
+     */
+    fun isProfilePlaceholder(snap: AppState): Boolean = snap.authed && snap.myStudentId == null
 
     /** 三源聚合快照（对齐 iOS allNotifications）。 */
     fun currentAllNotifications(): List<Notification> =
@@ -238,13 +275,21 @@ class AppStore(
                 rollState = RollState.IDLE,
                 rollCountdownSec = 170,
                 checkinAt = null,
+                studyState = StudyState.OFF,
             )
         }
-        // 清通知中心内存态，防 A 登出 B 登入看到旧 feed
+        // 清通知中心 / 个人页内存态，防 A 登出 B 登入看到旧数据
         _studentNotifications.value = emptyList()
         _packages.value = emptyList()
         _pushNotifications.value = emptyList()
         _notificationsState.value = NotificationsLoadState.Idle
+        _myRollcallEvents.value = emptyList()
+        _myDemeritEvents.value = emptyList()
+        _profileState.value = ListLoadState.Idle
+        _cleaningHistory.value = emptyList()
+        _cleaningHistoryState.value = ListLoadState.Idle
+        _changeLog.value = emptyList()
+        _studyCountdownSec.value = 600
     }
 
     /**
@@ -496,13 +541,92 @@ class AppStore(
     }
 
     private suspend fun loadCleaningHistoryQuiet(tokenAtStart: String?) {
-        // 本工单只确保级联调用通；履历列表字段 / UI 接线归后续工单。
+        // loadMe 级联：静默填缓存，不写失败态（个人页进入时再 loadCleaningHistory 显三态）
         try {
-            CleaningAPI.listMine()
+            val items = CleaningAPI.listMine()
+            if (snapshot().authToken != tokenAtStart) return
+            _cleaningHistory.value = items
+            _cleaningHistoryState.value = ListLoadState.Loaded
         } catch (e: ApiError.Unauthorized) {
             handleIfUnauthorized(e, tokenAtStart)
         } catch (_: Exception) {
             // 静默
+        }
+    }
+
+    /**
+     * 拉本人点呼 + 减点聚合（GET /students/{id}/profile）。
+     * 对齐 iOS loadMyProfile：冷启动 myStudentId 为空时先补 loadMe。
+     */
+    suspend fun loadMyProfile() {
+        val tokenAtStart = snapshot().authToken
+        _profileState.value = ListLoadState.Loading
+        if (snapshot().myStudentId == null) {
+            loadMe()
+            if (snapshot().authToken != tokenAtStart) return
+        }
+        val sid = snapshot().myStudentId
+        if (sid == null) {
+            _profileState.value = ListLoadState.Failed("学生情報の取得に失敗しました")
+            return
+        }
+        try {
+            val out = StudentProfileAPI.profile(studentId = sid)
+            if (snapshot().authToken != tokenAtStart) return
+            _myRollcallEvents.value = out.rollcallEvents
+            _myDemeritEvents.value = out.demeritEvents
+            _profileState.value = ListLoadState.Loaded
+        } catch (e: ApiError.Unauthorized) {
+            handleIfUnauthorized(e, tokenAtStart)
+        } catch (e: Exception) {
+            if (snapshot().authToken != tokenAtStart) return
+            _profileState.value =
+                ListLoadState.Failed(
+                    ApiErrorPresenter.userMessage(e, "点呼・減点情報の取得に失敗しました"),
+                )
+        }
+    }
+
+    /** 拉罚扫履历（对齐 iOS loadCleaningHistory；写三态给个人页）。 */
+    suspend fun loadCleaningHistory() {
+        val tokenAtStart = snapshot().authToken
+        _cleaningHistoryState.value = ListLoadState.Loading
+        try {
+            val items = CleaningAPI.listMine()
+            if (snapshot().authToken != tokenAtStart) return
+            _cleaningHistory.value = items
+            _cleaningHistoryState.value = ListLoadState.Loaded
+        } catch (e: ApiError.Unauthorized) {
+            handleIfUnauthorized(e, tokenAtStart)
+        } catch (e: Exception) {
+            if (snapshot().authToken != tokenAtStart) return
+            _cleaningHistoryState.value =
+                ListLoadState.Failed(
+                    ApiErrorPresenter.userMessage(e, "罰則清掃の取得に失敗しました"),
+                )
+        }
+    }
+
+    /** 记录字段变更（before == after 则跳过；新记录插到最前）。 */
+    fun appendChange(
+        field: String,
+        label: String,
+        before: String,
+        after: String,
+    ) {
+        if (before == after) return
+        val entry = ChangeLogEntry(field = field, label = label, before = before, after = after)
+        _changeLog.value = listOf(entry) + _changeLog.value
+    }
+
+    /** 本地刷新当前用户房间/邮箱/电话（PATCH 成功后）。 */
+    suspend fun applyLocalUserContact(
+        room: String,
+        email: String,
+        phone: String,
+    ) {
+        update { current ->
+            current.copy(user = current.user.copy(room = room, email = email, phone = phone))
         }
     }
 
