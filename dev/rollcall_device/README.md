@@ -2,7 +2,7 @@
 
 > **作用**：宿舍点呼机的 Python 程序代码 + 部署。跑在 **Raspberry Pi 3 Model A+** 上,接 PN532 NFC 读卡器（读学生 NTAG215 卡）+ ST25DV16K 动态贴纸（学生手机把身份数据写入贴纸 Mailbox 邮箱,点呼机经 I2C 被动读取）+ LED 状态灯 + USB 小音响（日语播报）。
 >
-> **当前状态**：骨架阶段（目录 + 设计文档建成,代码未实装）— 进度以 `ROLLCALL_DEVICE_DESIGN_LOG.md` 顶部「实装进度速查表」为真值
+> **当前状态**：软件全实装（2026-07-17）,Mac 上 78 条 pytest 全绿（mock 硬件层）;硬件已到货未组装,真机联调未做 — 进度以 `ROLLCALL_DEVICE_DESIGN_LOG.md` 顶部「实装进度速查表」为真值
 >
 > **角色定位**：thin client / thick server — 本机只搬运数据（读卡 → 调后端 → 接收响应 → 反馈）,业务判断全在后端。
 
@@ -16,15 +16,23 @@ dev/rollcall_device/
 ├── ROLLCALL_DEVICE_DESIGN_LOG.md   软件设计权威源（程序架构 / GPIO 分配 / 启动 / 错误处理）
 ├── 点呼机接线说明.md                针脚接线对照（PN532 / ST25DV / LED / 音响）
 ├── 点呼机采购清单.html              硬件采购清单
-├── requirements.txt                Python 依赖（依赖行当前全部注释 — 选型待拍板,装依赖前先看文件内说明）
-├── src/                            源代码
-│   ├── main.py                     入口（启动主循环）
-│   ├── nfc/                        PN532 SPI 读卡 + ST25DV I2C 读 Mailbox 邮箱（手机写入,点呼机被动读）驱动封装
+├── requirements.txt                树莓派运行依赖（含硬件库）
+├── requirements-dev.txt            Mac 开发 / 测试依赖（不含硬件库）
+├── src/                            源代码（24 文件）
+│   ├── main.py                     入口 — 双线程主循环 + `--simulate` 无硬件模式
+│   ├── config.py                   配置加载 / events.py 事件类型 / feedback.py 反馈编排
+│   ├── timeutil.py                 时间口径（swipe_time 生成,判定归后端）
+│   ├── roster.py                   本地名簿缓存（断网时放行判断）
+│   ├── nfc/                        PN532 SPI 读卡 + ST25DV I2C 读 Mailbox 邮箱（手机写入,点呼机被动读）+ 载荷解析 + 去抖
 │   ├── audio/                      播报队列（后端预生成 wav 下发,本机只播放）
 │   ├── led/                        LED 状态机（待机 / 成功 / 失败 / 错误）
-│   └── api/                        调 backend HTTP / WebSocket 客户端
-├── config/                         systemd unit / boot config / 环境变量
-└── docs/                           部署 SOP / 装系统步骤 / 接线图
+│   ├── api/                        调 backend HTTP / WebSocket + Ed25519 设备认证 + 响应信封解包
+│   └── offline/                    断网离线队列（SQLite,恢复后补传）
+├── tests/                          pytest（78 条,Mac 上 mock 硬件层跑）
+├── tools/                          gen_tones.py — 生成内置提示音
+├── assets/                         内置提示音 wav（成功 / 失败 / 等待）
+├── config/                         config.example.json + systemd unit
+└── docs/                           部署 SOP
 ```
 
 ## 上游 / 下游
@@ -38,14 +46,17 @@ dev/rollcall_device/
   - `dev/backend/` — 调后端 API（认证 / 签到 / 时间窗判定）
   - `dev/student_ios/` + `dev/student_android/` — 间接联动（学生 app 把身份数据写入点呼机贴纸的 Mailbox 邮箱,点呼机读出后上报后端）
 
-## 启动（开发期暂未实装）
+## 启动
 
 ```bash
-# 装依赖（注意：requirements.txt 依赖行当前全部注释,此步暂无实际效果,待选型拍板后启用）
+# 装依赖（含硬件库,只在树莓派上装；Mac 开发测试用 requirements-dev.txt）
 pip install -r requirements.txt
 
-# 启动主程序（开发期）
-python src/main.py
+# 树莓派上正常启动（注意是 -m src.main,不是 python src/main.py——后者会 ImportError）
+.venv/bin/python -m src.main --config config/config.json --log-level INFO
+
+# Mac 上无硬件试跑：stdin 模拟刷卡,LED / 音频降级成控制台打印
+.venv/bin/python -m src.main --config config/config.json --simulate
 ```
 
-部署 SOP（systemd 服务 / 开机自启）见 `docs/`(待写)。
+部署 SOP（systemd 服务 / 开机自启 / 接线后首次上电）见 `docs/部署SOP.md`。
