@@ -1,7 +1,8 @@
 """点呼场次自动保障后台任务 — RollCall_Spec §5.5 + 附录 C.5 落地。
 
 职责（每 tick，默认 60 秒）：
-1. 按时刻表确保当日 morning / evening 场次存在（不存在则建 draft）。
+1. 按时刻表确保当日 morning / evening 场次存在（不存在则建 draft，写 dedupe_key 防重）。
+1.5 错过整个启动窗口仍 draft → 置 ended 但不结算（不记缺席；审查 backend#15）。
 2. 到 on_time_end − 3min 仍 draft → 自动 start（started_source=system）。
 3. 到 scheduled_auto_end_at 仍 running → 自动 end + 结算（ended_source=system，复用 _settle_absent）。
 start/end 同时向点呼机广播 session_started / session_ended（Device_Contract §5）。
@@ -22,6 +23,7 @@ from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 from starlette.concurrency import run_in_threadpool
 
 from . import models
@@ -143,16 +145,74 @@ def _run_tick() -> None:
                     scheduled_on_time_end_at=on_time_end,
                     scheduled_late_end_at=late_end,
                     scheduled_auto_end_at=auto_end,
+                    # 审查 backend#17：防重键从源头局部变量算（today 是 date 对象），
+                    # 配合 uq_rcs_dedupe_key 唯一索引挡「同日同类型同寮集合」双场
+                    dedupe_key=models.rollcall_dedupe_key(
+                        today, session_type, _DORM_UNIT_SET
+                    ),
                 )
                 db.add(existing)
-                db.commit()
-                db.refresh(existing)
-                logger.info(
-                    "[scheduler] 建 draft 场次 type=%s day=%s id=%s",
-                    session_type,
-                    day_type,
-                    existing.id,
+                try:
+                    db.commit()
+                except IntegrityError:
+                    # 并发 tick（多 worker / 与 seed 撞车）先插成功 → 撞唯一索引。
+                    # 良性去重：回滚后重查已存场次续用，不能让异常炸掉整个 tick。
+                    db.rollback()
+                    existing = db.scalars(
+                        select(models.RollCallSession).where(
+                            models.RollCallSession.dedupe_key
+                            == models.rollcall_dedupe_key(
+                                today, session_type, _DORM_UNIT_SET
+                            )
+                        )
+                    ).first()
+                    if existing is None:
+                        # 撞的不是 dedupe_key（极端情形）→ 本 tick 放弃该场次，下 tick 重试
+                        continue
+                else:
+                    db.refresh(existing)
+                    logger.info(
+                        "[scheduler] 建 draft 场次 type=%s day=%s id=%s",
+                        session_type,
+                        day_type,
+                        existing.id,
+                    )
+
+            # 1.5 错过整个窗口仍 draft → 置 ended 但【不结算】（审查 backend#15）。
+            # 场景：服务器在 [auto_start, auto_end] 全程没跑（宕机/傍晚才重启），场次
+            # 从未 running，学生想签也签不了 —— 全员记缺席+扣分是拿系统故障罚学生，
+            # 故不跑 _settle_absent。ended_at 用计划值 scheduled_auto_end_at 而非 now：
+            # 设备离线补传按 [scheduled_window_start_at, ended_at] 收口，用 now 会把
+            # 补传窗拉长到重启时刻。started_at 保持 NULL = 「从未开跑」标记（设备侧
+            # _find_session_for_checkin 对 NULL 已有守卫）。这样的空壳 ended 场次仍能
+            # 接住宕机期间学生在点呼机上真实刷卡的离线补传（记 present/late），比
+            # 「不建场」直接丢补传强。
+            if existing.session_status == "draft" and now > auto_end:
+                claimed = db.execute(
+                    update(models.RollCallSession)
+                    .where(
+                        models.RollCallSession.id == existing.id,
+                        models.RollCallSession.session_status == "draft",
+                    )
+                    .values(
+                        session_status="ended",
+                        ended_at=auto_end,
+                        ended_source="system",
+                    )
                 )
+                if claimed.rowcount == 1:
+                    db.commit()
+                    db.refresh(existing)
+                    logger.warning(
+                        "[scheduler] 场次错过启动窗口，置 ended 不结算（不记缺席）"
+                        " type=%s id=%s auto_end=%s",
+                        session_type,
+                        existing.id,
+                        auto_end.isoformat(),
+                    )
+                else:
+                    db.rollback()
+                continue  # 本场已收口，跳过 start/end 分支
 
             # 2. 到 on_time_end − 3min 仍 draft → 自动 start（原子领取防并发）
             auto_start_at = on_time_end - _AUTO_START_LEAD

@@ -218,6 +218,8 @@ def seed_dev(db) -> None:
                 scheduled_on_time_end_at=window_start + timedelta(minutes=10),
                 scheduled_late_end_at=window_start + timedelta(minutes=20),
                 scheduled_auto_end_at=window_start + timedelta(minutes=30),
+                # 审查 backend#17：防重键（uq_rcs_dedupe_key 唯一索引）
+                dedupe_key=models.rollcall_dedupe_key(today_jst, session_type, [1, 2]),
             )
         )
         log.info("加 rollcall session: %s %s", session_type, window_start)

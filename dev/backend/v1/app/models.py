@@ -813,6 +813,17 @@ class ItemPossessionRequest(Base):
 # ---------------------------------------------------------------
 # 点呼 (Roll Call)
 # ---------------------------------------------------------------
+def rollcall_dedupe_key(d, session_type: str, dorm_unit_set: list) -> str:
+    """场次防重键（审查 backend#17）："JST日期:类型:排序寮集合"。
+
+    调用方（scheduler / seed）持有的是源头 date 对象与局部寮集合变量，
+    直接从它们算 —— 不从 DB 读回 TZDateTime 再取日期（会踩 UTC 存储
+    把早点呼算到前一天的坑，A-497 同族）。
+    """
+    dorms = ",".join(str(u) for u in sorted(dorm_unit_set or []))
+    return f"{d.isoformat()}:{session_type}:{dorms}"
+
+
 class RollCallSession(Base):
     """点呼セッション — 1 回の点呼 = 1 行 (cron で自動生成 + 教師手動開始)。"""
 
@@ -855,6 +866,10 @@ class RollCallSession(Base):
     scheduled_late_end_at: Mapped[datetime] = mapped_column(TZDateTime, nullable=False)
     scheduled_auto_end_at: Mapped[datetime] = mapped_column(TZDateTime, nullable=False)
     settle_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+    # 审查 backend#17：防重键 "JST日期:类型:排序寮集合"（rollcall_dedupe_key() 算）。
+    # nullable —— NULL 不参与唯一性，测试直建场次不用管它；scheduler/seed 建场必写，
+    # 由 uq_rcs_dedupe_key 唯一索引挡「同日同类型同寮集合」重复建场。
+    dedupe_key: Mapped[Optional[str]] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(
         TZDateTime, nullable=False, server_default=func.now()
     )
@@ -864,6 +879,7 @@ class RollCallSession(Base):
     )
 
     __table_args__ = (
+        Index("uq_rcs_dedupe_key", "dedupe_key", unique=True),
         CheckConstraint("session_type IN ('morning','evening')", name="ck_rcs_type"),
         CheckConstraint(
             "schedule_mode IN ('split','merged_normal')", name="ck_rcs_mode"
@@ -878,7 +894,14 @@ class RollCallSession(Base):
 
 
 class RollCallEvent(Base):
-    """点呼イベント — append-only。1 学生 1 セッション 1 行 (幂等制御)。"""
+    """点呼イベント — append-only 纠错履历。
+
+    同生同场**合法多行**：auto_settle 结算行（absent/exempt_range）+ 事后离线
+    补传的 auto_nfc 行 + 多条 teacher_override 改判行可以共存，board/summary/
+    patch_event 一律取 checked_in_at 最新行为当前状态。唯一的「每生每场至多
+    一条」不变量只作用于**真实签到行**（auto_nfc/manual_checkin），由部分唯一
+    索引 uq_rce_real_checkin 在 DB 层保证（审查 backend#1：原先只有应用层
+    先查后插，并发可双插 present/late）。"""
 
     __tablename__ = "rollcall_events"
 
@@ -928,6 +951,19 @@ class RollCallEvent(Base):
         # A-011 (2026-05-21): idempotency_key 同 session 内必须唯一
         # client 用同一 key 重试 → DB 层挡住 + router 先查 key 命中返已存事件
         UniqueConstraint("session_id", "idempotency_key", name="uq_rce_idempotency"),
+        # 审查 backend#1/#4：真实签到行（auto_nfc/manual_checkin）每生每场至多一条。
+        # 路径 A / 手动代签 idempotency_key 恒 NULL，uq_rce_idempotency 挡不住并发
+        # 双插 —— 这条部分唯一索引是 DB 层兜底（SQLite 上 with_for_update 是 no-op，
+        # 它就是 dev 库的唯一真防线）。谓词绝不能扩到 auto_settle/teacher_override：
+        # 会把「结算 absent 后离线补传 present」的合法共存挡死（见类 docstring）。
+        Index(
+            "uq_rce_real_checkin",
+            "session_id",
+            "student_id",
+            unique=True,
+            sqlite_where=text("status_source IN ('auto_nfc','manual_checkin')"),
+            postgresql_where=text("status_source IN ('auto_nfc','manual_checkin')"),
+        ),
     )
 
 
