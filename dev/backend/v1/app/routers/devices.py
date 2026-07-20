@@ -654,6 +654,20 @@ def device_checkin(
             {"code": "SESSION_NOT_RUNNING", "message": "点呼が開始されていません"},
         )
 
+    # 审查 backend#4/#5 族（Q2）：读 events 前先锁该学生行，锁持有到 commit ——
+    # 与 _settle_absent 的「学生行锁内重查」配对，闭合「设备签到读旧快照 vs end 结算」
+    # 双向竞态：本请求先拿锁则结算重查看得见新签到；结算先拿锁则本请求等到 end 事务
+    # 提交后才读 events，能看见 absent 行走 was_settled_absent 撤扣分。故意只锁学生行
+    # 不锁 session 行（点呼高峰几十人连刷，锁 session 会全场串行化；设备路径永不
+    # FOR UPDATE session 行，与 end/代签/改判的 session→student 锁序不成环、无死锁）。
+    # 这个锁同时覆盖下游 _add_late_demerit / _revoke_settle_absent_demerit 的
+    # 扣分写入协议（逻-中-5）学生行锁要求。
+    db.execute(
+        select(models.Student.id)
+        .where(models.Student.id == student.id)
+        .with_for_update()
+    )
+
     # 4. 幂等 + 离线补传冲突（Device_Contract §4.1 步骤 3 / §6）
     events = db.scalars(
         select(models.RollCallEvent).where(
@@ -749,6 +763,21 @@ def device_checkin(
                 return _checkin_response(
                     student, session.id, existing.base_status, duplicate=True
                 )
+        # 审查 backend#4：路径 A 无 idempotency_key（恒 NULL），并发双刷撞的是
+        # uq_rce_real_checkin 部分唯一索引 —— 按 session+student+真实签到 source
+        # 重查已存事件，按契约 §4.1 返回 duplicate=true（对齐 rollcall.py 同款兜底），
+        # 不再把并发第二刷炸成 500。
+        existing = db.scalar(
+            select(models.RollCallEvent).where(
+                models.RollCallEvent.session_id == session.id,
+                models.RollCallEvent.student_id == student.id,
+                models.RollCallEvent.status_source.in_(["auto_nfc", "manual_checkin"]),
+            )
+        )
+        if existing is not None:
+            return _checkin_response(
+                student, session.id, existing.base_status, duplicate=True
+            )
         raise
     db.refresh(event)
 

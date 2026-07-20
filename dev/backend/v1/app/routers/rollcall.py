@@ -536,6 +536,18 @@ def create_checkin(
             {"code": "NOT_FOUND", "message": "対象の点呼セッションが見つかりません"},
         )
 
+    # 审查 backend#5：代签与 end_session 结算竞态 —— 先对 session 行加锁再重读状态
+    # （复制 patch_event 的 TW-026 模式；PG 行锁 / SQLite 单写者 no-op）。锁持有到
+    # commit：end 的原子领取 UPDATE 会被挡住 → 代签先到则结算看得见新事件；end 先到
+    # 则这里重读到 ended → 409，不会再出现「出勤事件与缺席扣分同时留下」。
+    # 锁放在寮/demo 校验（404/403）之后、状态门之前：探测顺序不变（E-中-08），锁段最短。
+    db.execute(
+        select(models.RollCallSession.id)
+        .where(models.RollCallSession.id == session_id)
+        .with_for_update()
+    )
+    db.refresh(session)
+
     # 寮/demo 通过后才查 session 状态 —— 探测者拿不到 running/draft 状态信息
     if session.session_status != "running":
         raise HTTPException(
@@ -579,12 +591,15 @@ def create_checkin(
     scheduled_on_time_end = _as_jst_aware(session.scheduled_on_time_end_at)
     base_status = "present" if now <= scheduled_on_time_end else "late"
 
+    # 审查 backend#6：status_source 服务端按路径推导，不信客户端 —— 与 path_type 同款
+    # 口径（有 card_uid = NFC 签到，其余 = 手动代签）。auto_settle 只能出自 _settle_absent、
+    # teacher_override 只能出自 PATCH /events，本接口不接受（schema Literal 已收紧成 422）。
     event = models.RollCallEvent(
         session_id=session_id,
         student_id=student.id,
         path_type="A" if body.card_uid else ("B" if body.idempotency_key else "manual"),
         base_status=base_status,
-        status_source=body.status_source,
+        status_source="auto_nfc" if body.card_uid else "manual_checkin",
         checked_in_at=now,
         idempotency_key=body.idempotency_key,
         card_uid=body.card_uid,
@@ -1233,10 +1248,36 @@ def _settle_absent(db: Session, session: models.RollCallSession) -> None:
         ).all()
     )
 
+    # 不变量（辩论裁决 2026-07-20）：_settle_absent 全库只有两个触发点 ——
+    # end_session（原子领取 UPDATE where running）与 scheduler 自动 end（同款领取），
+    # running→ended 只能领取成功一次，故同一场次结算只会跑一遍；auto_settle 行
+    # 「每生每场至多一条」由这个结构保证，不额外上唯一索引。
+    #
     # A-497: month 经 _as_jst_aware 再 strftime，避免 JST 月初/月末把缺席扣分归错月
     month = _as_jst_aware(session.scheduled_window_start_at).strftime("%Y-%m")
     for s in students:
         if s.id not in checked_ids:
+            # 审查 backend#4/#5 族（Q2 配套）：checked_ids 是循环前的陈旧快照，设备
+            # 签到可能在快照之后已提交（设备路径先持学生行锁再写入）。所以两个分支
+            # 统一「先锁该生行 → 锁内重查该生已有出席/免点行 → 有则跳过」。
+            # 这个锁同时是扣分写入协议（2026-07-17 审查逻-中-5）要求的学生行锁，
+            # 与 discipline「手动设定绝对分」互斥（SQLite no-op / PG 行锁）。
+            db.execute(
+                select(models.Student.id)
+                .where(models.Student.id == s.id)
+                .with_for_update()
+            )
+            fresh = db.scalars(
+                select(models.RollCallEvent.id).where(
+                    models.RollCallEvent.session_id == session.id,
+                    models.RollCallEvent.student_id == s.id,
+                    models.RollCallEvent.base_status.in_(
+                        ["present", "late", "exempt_range"]
+                    ),
+                )
+            ).first()
+            if fresh is not None:
+                continue
             # BL-3：外宿/出寮届承认期间的学生打 exempt_range，不算缺席不扣分
             if s.id in outstay_ids:
                 db.add(
@@ -1252,22 +1293,15 @@ def _settle_absent(db: Session, session: models.RollCallSession) -> None:
                 continue
             # spec §7.5 缺席自动扣 1 点（§862 冻结值）；改判走 _apply_override_demerit 按当前状态重算。
             #
-            # check-then-act 竞态兜底：上面查 checked_ids 与这里写 absent 之间若有并发 checkin
-            # 插入，该学生既被结算 absent 又有真实 checkin —— 配合 uq_demerit_source 唯一约束
-            # （student_id + source_type + source_event_id），同一 (学生, rollcall_absent, 本场次)
-            # 只能存在 1 条扣分。重复结算（如 end_session 被并发触发两次）时第二条 INSERT 撞约束。
+            # 竞态防线两层：主防线 = 上面「学生行锁内重查」（并发 checkin 已提交则跳过）；
+            # 兜底 = uq_demerit_source 唯一约束（student_id + source_type + source_event_id），
+            # 同一 (学生, rollcall_absent, 本场次) 只能存在 1 条扣分，撞约束走 SAVEPOINT。
             #
             # 用 SAVEPOINT（begin_nested）把「这名学生的 absent event + 扣分」包成一个嵌套事务：
             # 撞约束时只回滚这名学生这一步，不波及外层（session 状态已置 ended、前面已结算的学生）。
             # 若直接 db.rollback() 会回滚整个会话事务、把 session.session_status='ended' 和之前
             # 学生的结算全冲掉 —— 故必须用 SAVEPOINT 而非整事务回滚。
-            # 扣分写入协议（2026-07-17 审查逻-中-5）：写 DemeritEvent 前先锁该学生行，
-            # 与 discipline「手动设定绝对分」互斥（SQLite no-op / PG 行锁）。
-            db.execute(
-                select(models.Student.id)
-                .where(models.Student.id == s.id)
-                .with_for_update()
-            )
+            # 学生行锁已在循环顶部拿过（同时满足扣分写入协议 逻-中-5），此处不重复加锁。
             try:
                 with db.begin_nested():
                     db.add(

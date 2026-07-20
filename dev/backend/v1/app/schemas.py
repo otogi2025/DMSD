@@ -803,11 +803,11 @@ class RollCallCheckinIn(BaseModel):
     card_uid: Optional[str] = Field(None, max_length=32)  # 路径 A
     student_id: Optional[UUID] = None  # 路径 B / 手動
     idempotency_key: Optional[str] = Field(None, max_length=64)  # 路径 B
-    # 与 models.RollCallEvent.status_source 的 CheckConstraint 取值一致 ——
-    # 用 Literal 让非法值在 schema 层就 422，而不是穿透到 DB 撞 CHECK 抛 500。
-    status_source: Literal[
-        "auto_nfc", "auto_settle", "manual_checkin", "teacher_override"
-    ] = "auto_nfc"
+    # 审查 backend#6：只留两个「真实签到」值 —— auto_settle 只能由结算写入、
+    # teacher_override 只能走 PATCH /events，客户端自选这俩会污染审计口径，
+    # schema 层直接 422。落库值服务端按路径推导（router 不信本字段），字段保留
+    # 仅为接口兼容。model 层 CheckConstraint 仍是 4 值（内部写入者用）。
+    status_source: Literal["auto_nfc", "manual_checkin"] = "auto_nfc"
     # 已不参与判定（7-06 拍板 server_now，见 API_CONVENTIONS §4）——判定/落库/广播时刻恒取
     # 服务器收到请求的时刻。字段保留仅为接口兼容（旧 client 仍会上送，backend 静默忽略）。
     ts_local: Optional[datetime] = None

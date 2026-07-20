@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -139,6 +139,25 @@ def register_teacher(
             },
         )
 
+    # 审查 backend#7：条件更新原子占用令牌 —— 上面的 used_at 预查只是快速失败，
+    # 并发两请求同 token 都能过；真正防线是这句「UPDATE … WHERE used_at IS NULL」，
+    # DB 层保证只有一个请求占用成功，后到者 rowcount=0 → 409。占用与建账号同事务：
+    # 后续任何失败整体回滚，令牌不白烧。
+    claimed = db.execute(
+        update(models.TeacherInvitation)
+        .where(
+            models.TeacherInvitation.id == invitation.id,
+            models.TeacherInvitation.used_at.is_(None),
+        )
+        .values(used_at=now)
+    )
+    if claimed.rowcount != 1:
+        db.rollback()
+        raise HTTPException(
+            409,
+            {"code": "TOKEN_USED", "message": "この招待トークンは既に使用済みです"},
+        )
+
     new_teacher = models.Teacher(
         login_id=body.login_id,
         name=body.name,
@@ -150,8 +169,7 @@ def register_teacher(
     db.add(new_teacher)
     db.flush()
 
-    # トークンを消費済みにする
-    invitation.used_at = now
+    # used_by 要等新账号 flush 出 id 才能写（占用本身已在上面原子完成）
     invitation.used_by = new_teacher.id
 
     db.commit()

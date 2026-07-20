@@ -413,18 +413,32 @@ def create_checkin(
         db.add(record)
 
     # 并发兜底：existing 预查与 INSERT 之间若有并发请求先建了同 (student, date) 行，
-    # 本次 INSERT 撞 uq_sc_date 唯一约束 → 回滚后重查已存行幂等返回，不冒泡成 500。
+    # 本次 INSERT 撞 uq_sc_date 唯一约束 → 回滚后重查已存行处理，不冒泡成 500。
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
+        # 审查 backend#8：重查加行锁（防重查到二次 commit 之间再交错），且不再无条件
+        # 原样返回 —— 若撞进来的是 bulk_finalize 刚写的 absent 行，直接返回等于把
+        # 「签到成功」的壳套在缺席记录上，学生仍被记缺席+扣分。按正常路径口径处理：
+        # init/absent → 升级成本次判定 + absent 先撤扣分；已是 present/late → 幂等返回。
         again = db.scalars(
-            select(models.StudyCheckin).where(
+            select(models.StudyCheckin)
+            .where(
                 models.StudyCheckin.student_id == body.student_id,
                 models.StudyCheckin.target_date == today,
             )
+            .with_for_update()
         ).first()
         if again:
+            if again.status in ("init", "absent"):
+                if again.status == "absent":
+                    _revoke_study_absent_demerit(db, again, teacher.id)
+                again.checked_at = checked_at
+                again.status = determined_status
+                again.recorded_by = teacher.id
+                db.commit()
+                db.refresh(again)
             return schemas.StudyCheckinOut.model_validate(again)
         raise
     db.refresh(record)

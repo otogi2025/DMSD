@@ -224,6 +224,8 @@ def get_history(
     「使用侧」view（哪个学生用了哪个码注册）= 单独 endpoint，v1.1 再做。
     """
     # 2026-06-14 itsuki 拍板：演示账号同样可读注册码历史（取消 assert_not_demo_teacher 闸）。
+    # 审查 backend#2：排除审核员永久码 —— current/refresh/close 三端点都显式过滤
+    # is_reviewer，唯独 history 漏了，老师打开履历就能看到审核员码原文。补齐口径。
     rows = db.execute(
         select(
             models.StudentRegistrationCode,
@@ -233,6 +235,7 @@ def get_history(
             models.Teacher,
             models.StudentRegistrationCode.created_by == models.Teacher.id,
         )
+        .where(models.StudentRegistrationCode.is_reviewer.is_(False))
         .order_by(models.StudentRegistrationCode.created_at.desc())
         .limit(limit)
     ).all()
