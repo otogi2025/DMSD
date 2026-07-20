@@ -14,6 +14,7 @@ import type {
   TeacherLoginOut,
   Application,
   AuditEntry,
+  ContentReportOut,
   StudentBrief,
   ApplicationCreateBody,
   StudyTodayOut,
@@ -729,6 +730,21 @@ export const api = {
   ) => request<IncidentDetail>("PATCH", `/incidents/${id}`, body, token),
   deleteIncident: (id: string, token: string) =>
     request<void>("DELETE", `/incidents/${id}`, undefined, token),
+
+  // ── 投稿通報（App Store UGC 治理 — itsuki 2026-07-20 拍板 A 方案）──
+  listContentReports: (status: string | null, token: string) =>
+    request<ContentReportOut[]>(
+      "GET",
+      `/reports${status ? `?status=${status}` : ""}`,
+      undefined,
+      token,
+    ),
+  handleContentReport: (id: string, token: string) =>
+    request<ContentReportOut>("PATCH", `/reports/${id}`, undefined, token),
+  deleteSongRequest: (id: string, token: string) =>
+    request<void>("DELETE", `/songs/${id}`, undefined, token),
+  deleteLostFoundPost: (id: string, token: string) =>
+    request<void>("DELETE", `/lost-found/${id}`, undefined, token),
 
   // ── 学年更新 / 学生自设番号（6-05 学生自设方案，推翻 5-30 老师代改）──
   // 开闸：中1~高2 打 needs_renewal 标记 + 高3 毕业，不直接改番号。body={dry_run}

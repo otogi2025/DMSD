@@ -141,6 +141,8 @@ export function Shell({
         ["bus", "バス時刻表"],
         // 「コミュニティ管理」= 冷冻中（页面未接后端，菜单摘除防空头承诺；
         // App.tsx 路由 + CommunityPage 组件 + 后端 songs 接口原样保留，复活时恢复本行即可）
+        // 投稿通報一覧（App Store UGC 治理 — itsuki 2026-07-20 拍板 A 方案）
+        ["reports", "投稿の通報"],
         ["front-desk", "フロント業務"],
         ["accounts", "学生アカウント管理"],
         ["admin-registration-code", "学生登録コード"],

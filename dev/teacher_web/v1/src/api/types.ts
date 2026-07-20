@@ -795,3 +795,19 @@ export interface NotificationFeedOut {
 export interface NotificationUnreadCountOut {
   unread_count: number;
 }
+
+// ── 投稿通報（App Store UGC 治理 — itsuki 2026-07-20 拍板 A 方案）──
+export interface ContentReportOut {
+  id: string;
+  // song=リクエスト曲 / announcement_reply=お知らせ返信 / lost_found=落とし物
+  content_type: "song" | "announcement_reply" | "lost_found";
+  content_id: string;
+  reporter_student_id: string;
+  reason: string | null;
+  status: "open" | "handled";
+  created_at: string;
+  handled_at: string | null;
+  handled_by_teacher_id: string | null;
+  content_preview: string | null;
+  content_parent_id: string | null; // 公告回复的父公告 id（删回复接口用）；其他类型 null
+}

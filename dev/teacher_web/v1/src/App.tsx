@@ -13,6 +13,7 @@ import { OutstayDetailModal } from "./components/OutstayDetailModal";
 import { DisciplinePage } from "./components/DisciplinePage";
 import { CleaningPage } from "./components/CleaningPage";
 import { FrontDeskPage } from "./components/FrontDeskPage";
+import { ReportsPage } from "./components/ReportsPage";
 import { RecordsPage } from "./components/RecordsPage";
 import { ActiveLeavesPage } from "./components/ActiveLeavesPage";
 import { SearchPage } from "./components/SearchPage";
@@ -932,6 +933,9 @@ export function App() {
       break;
     case "front-desk":
       body = <FrontDeskPage teacher={teacher} authToken={authToken} />;
+      break;
+    case "reports":
+      body = <ReportsPage authToken={authToken} />;
       break;
     case "accounts":
       body = <AccountsPage teacher={teacher} authToken={authToken} />;
