@@ -1240,6 +1240,8 @@ commit `f66b812`，`npm run build` 通过。
 
 验证：`npm run build` + `npx tsc --noEmit` 零错误；`approveLeave`/'19:22' 全库 grep 零残留；后端全量 pytest 637 passed。
 
+终审补丁（`d5fba97`）：四家终审两条共同保留意见落地——`theme.ts` 死常量 `LATE_THRESHOLD_SEC` 删除（止血后无引用，注释「迟到自动转换阈值」会误导后来人）+ `ALREADY_RUNNING` 重进场次时经过时间改用后端真实 `started_at`（原来从重进瞬间起算，「経過」显示是错的）。
+
 ---
 
 **END** — 本档随 Web 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。

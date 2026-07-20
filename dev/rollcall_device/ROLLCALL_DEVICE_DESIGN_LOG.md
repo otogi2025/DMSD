@@ -292,3 +292,4 @@ WantedBy=multi-user.target
   ④ **device#1 GPO 兜底轮询**：邮箱读取原来把 GPO 边沿当唯一读条件，漏一个边沿（抖动/上电时序/回调丢失）路径 B 签到就永久漏读。现在未见触发也按 1 秒间隔走 I²C 确认（`monotonic` 计时防 NTP 阶跃），GPO 降级为「加速唤醒」。
   ⑤ **device#8 systemd 对时依赖补全**：`Wants` 加 `time-sync.target`（原来只写 `After` 不进启动事务，排序空转）。不用 `Requires`——对时单元异常不该拖死离线点呼。运维注意：Pi 镜像需确认 `systemd-timesyncd` 已启用，否则该行无实际保障。
   验证：88 passed（原 79 + 新增 9：AuthError 捕获 / 重试链 4 分支 / 补传自愈 2 / GPO 门控 4，既有白灯测试按新语义更新）。
+  ⑥ **终审阻断修复（`d5fba97`，四家终审中 Fable 5 high 抓出）**：`AuthManager.obtain_token`/`enroll` 原来裸调 httpx——主状态机重试链直接调 `ensure_token` 时若网络恰好断掉，抛的传输层异常（`httpx.ConnectError` 等）既不是 `NetworkError` 也不是 `AuthError`，穿透重试段捕获冒到消费线程，签到丢失 + LED 卡处理中（①要治的原病在重试路径复现）。修法取根治版：`auth.py` 新增 `_post_raw` 统一把传输层异常转 `NetworkError`（enroll 的同型潜洞一并堵上），上层自然走离线入队。回归 +2（auth 层异常转换 / 刷新令牌撞网络断走离线），全量 90 passed。教训：桩对象（StubAuth）只会抛测试作者想到的异常类型，模拟不出真实现的第三种异常——异常契约要在源头收窄，别指望调用方枚举。
