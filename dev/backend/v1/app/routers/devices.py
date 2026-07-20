@@ -659,7 +659,10 @@ def device_checkin(
     # 双向竞态：本请求先拿锁则结算重查看得见新签到；结算先拿锁则本请求等到 end 事务
     # 提交后才读 events，能看见 absent 行走 was_settled_absent 撤扣分。故意只锁学生行
     # 不锁 session 行（点呼高峰几十人连刷，锁 session 会全场串行化；设备路径永不
-    # FOR UPDATE session 行，与 end/代签/改判的 session→student 锁序不成环、无死锁）。
+    # FOR UPDATE session 行，与 end/代签/改判的 session→student 锁序在显式锁层面不成环。
+    # 严格说 PG 下仍有一条极窄隐式环：INSERT rollcall_events 会对被引用 session 行拿
+    # FOR KEY SHARE，与代签持有的 session FOR UPDATE 冲突——同一学生同一瞬间「设备刷卡
+    # × 老师代签」才可能互等，PG 死锁检测 ~1s 会砍掉一边报错，重试即恢复，可接受。
     # 这个锁同时覆盖下游 _add_late_demerit / _revoke_settle_absent_demerit 的
     # 扣分写入协议（逻-中-5）学生行锁要求。
     db.execute(
