@@ -73,6 +73,7 @@ from .routers import (
     misc_requests,
     notifications,
     outings,
+    reports,
     rollcall,
     songs,
     student_notifications,
@@ -398,6 +399,7 @@ app.include_router(guidance.router)
 app.include_router(incidents.router)
 app.include_router(songs.router)
 app.include_router(lost_found.router)
+app.include_router(reports.router)
 app.include_router(misc_requests.router)
 app.include_router(student_notifications.router)
 app.include_router(student_profile.router)

@@ -1532,6 +1532,35 @@ class LostFoundOut(BaseModel):
 
 
 # ---------------------------------------------------------------
+# 投稿通報（App Store UGC 治理 — itsuki 2026-07-20 拍板 A 方案）
+# ---------------------------------------------------------------
+class ContentReportCreateIn(BaseModel):
+    """学生通報投稿输入。content_id 指向被通報的投稿。"""
+
+    content_type: Literal["song", "announcement_reply", "lost_found"]
+    content_id: UUID
+    reason: Optional[str] = Field(None, max_length=500)
+
+
+class ContentReportOut(BaseModel):
+    id: UUID
+    content_type: Literal["song", "announcement_reply", "lost_found"]
+    content_id: UUID
+    reporter_student_id: UUID
+    reason: Optional[str]
+    status: Literal["open", "handled"]
+    created_at: datetime
+    handled_at: Optional[datetime]
+    handled_by_teacher_id: Optional[UUID]
+    # 老师一覧用：被通報投稿的内容摘要（歌名 / 回复正文前 80 字等）；投稿已被删则为 None
+    content_preview: Optional[str] = None
+    # 老师一覧用：公告回复的父公告 id（删回复接口要 announcement_id + reply_id 两段路径）；其他类型 None
+    content_parent_id: Optional[UUID] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ---------------------------------------------------------------
 # 杂项申请（修繕 / 来訪者 / 代理受取）— IX iOS 申请页接真后端
 # ---------------------------------------------------------------
 class MiscRequestCreateIn(BaseModel):

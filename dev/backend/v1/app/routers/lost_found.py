@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import get_current_principal, get_current_student
+from ..deps import get_current_principal, get_current_student, get_current_teacher
 
 router = APIRouter(prefix="/api/v1/lost-found", tags=["lost-found"])
 
@@ -61,7 +61,10 @@ def list_lost_found(
     stmt = (
         select(models.LostFoundPost)
         .join(models.Student, models.LostFoundPost.student_id == models.Student.id)
-        .where(models.Student.is_demo == principal.is_demo)
+        .where(
+            models.Student.is_demo == principal.is_demo,
+            models.LostFoundPost.deleted_at.is_(None),
+        )
         .order_by(models.LostFoundPost.created_at.desc())
     )
     if status is not None:
@@ -78,7 +81,7 @@ def resolve_lost_found(
 ):
     """投稿者本人标记自己的投稿为已解决（已认领 / 已找回）。"""
     row = db.get(models.LostFoundPost, post_id)
-    if not row:
+    if not row or row.deleted_at is not None:
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "投稿が見つかりません"}
         )
@@ -95,3 +98,19 @@ def resolve_lost_found(
     db.commit()
     db.refresh(row)
     return schemas.LostFoundOut.model_validate(row)
+
+
+@router.delete("/{post_id}", status_code=204)
+def delete_lost_found(
+    post_id: UUID,
+    teacher: models.Teacher = Depends(get_current_teacher),
+    db: Session = Depends(get_db),
+):
+    """老师软删一条遗失物投稿（App Store UGC 治理 — 通報处理用）。"""
+    row = db.get(models.LostFoundPost, post_id)
+    if not row or row.deleted_at is not None:
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "投稿が見つかりません"}
+        )
+    row.deleted_at = datetime.now(timezone.utc)
+    db.commit()

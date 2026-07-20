@@ -1571,6 +1571,8 @@ class SongRequest(Base):
     created_at: Mapped[datetime] = mapped_column(
         TZDateTime, nullable=False, server_default=func.now()
     )
+    # 老师软删（App Store UGC 治理 itsuki 2026-07-20 拍板 A 方案）：非 NULL = 已删除，一览不再显示
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
 
     __table_args__ = (Index("idx_song_dorm_created", "dorm_unit", "created_at"),)
 
@@ -1599,11 +1601,51 @@ class LostFoundPost(Base):
         TZDateTime, nullable=False, server_default=func.now()
     )
     resolved_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+    # 老师软删（App Store UGC 治理 itsuki 2026-07-20 拍板 A 方案）：非 NULL = 已删除，一览不再显示
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
 
     __table_args__ = (
         CheckConstraint("post_type IN ('found','lost')", name="ck_lfp_type"),
         CheckConstraint("status IN ('open','resolved')", name="ck_lfp_status"),
         Index("idx_lfp_status_created", "status", "created_at"),
+    )
+
+
+# ---------------------------------------------------------------
+# 投稿通報（App Store 审核指南 1.2 UGC 治理 — itsuki 2026-07-20 拍板 A 方案）
+# 学生对互见投稿（点歌 / 公告回复 / 遗失物）按「通報」→ 老师在通報一覧确认 → 删投稿或标处理完。
+# 注意：这是 7-20 新最小设计，跟 6-13 拍板删除的旧「通报+累计封禁+自动解禁」体系无关（不含封禁）。
+# ---------------------------------------------------------------
+class ContentReport(Base):
+    """学生投稿通報记录。content_type + content_id 指向被通報的投稿。"""
+
+    __tablename__ = "content_reports"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    # song 点歌 / announcement_reply 公告回复 / lost_found 遗失物
+    content_type: Mapped[str] = mapped_column(String(24), nullable=False)
+    content_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
+    reporter_student_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("students.id"), nullable=False, index=True
+    )
+    reason: Mapped[Optional[str]] = mapped_column(Text)  # 通報理由（任意）
+    # open 未处理 / handled 老师已处理（删投稿或判定无问题都算）
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="open")
+    created_at: Mapped[datetime] = mapped_column(
+        TZDateTime, nullable=False, server_default=func.now()
+    )
+    handled_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+    handled_by_teacher_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("teachers.id")
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "content_type IN ('song','announcement_reply','lost_found')",
+            name="ck_creport_type",
+        ),
+        CheckConstraint("status IN ('open','handled')", name="ck_creport_status"),
+        Index("idx_creport_status_created", "status", "created_at"),
     )
 
 

@@ -1,12 +1,15 @@
-"""点歌（UI「リクエスト曲」）endpoint — spec §7.11（投稿 + 一览）。
+"""点歌（UI「リクエスト曲」）endpoint — spec §7.11（投稿 + 一览 + 老师删除）。
 
 itsuki 2026-06-06 拍板：学生投稿 + 学生/老师按男女寮看一览。
 （原通报 + 累计封禁 + 自动解禁 cron + 老师管理页设计 itsuki 2026-06-13 拍板彻底删除，不再降 v1.1）
+2026-07-20 拍板 A 方案（App Store UGC 治理）：加回最小治理 = 通報（reports.py）+ 老师软删本文件。
 """
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
@@ -14,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import get_current_principal, get_current_student
+from ..deps import get_current_principal, get_current_student, get_current_teacher
 
 router = APIRouter(prefix="/api/v1/songs", tags=["songs"])
 
@@ -60,10 +63,29 @@ def list_song_requests(
     stmt = (
         select(models.SongRequest)
         .join(models.Student, models.SongRequest.student_id == models.Student.id)
-        .where(models.Student.is_demo == principal.is_demo)
+        .where(
+            models.Student.is_demo == principal.is_demo,
+            models.SongRequest.deleted_at.is_(None),
+        )
         .order_by(models.SongRequest.created_at.desc())
     )
     if dorm is not None:
         stmt = stmt.where(models.SongRequest.dorm_unit == dorm)
     rows = db.scalars(stmt).all()
     return [schemas.SongRequestOut.model_validate(r) for r in rows]
+
+
+@router.delete("/{song_id}", status_code=204)
+def delete_song_request(
+    song_id: UUID,
+    teacher: models.Teacher = Depends(get_current_teacher),
+    db: Session = Depends(get_db),
+):
+    """老师软删一条点歌投稿（App Store UGC 治理 — 通報处理用）。"""
+    row = db.get(models.SongRequest, song_id)
+    if not row or row.deleted_at is not None:
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "投稿が見つかりません"}
+        )
+    row.deleted_at = datetime.now(timezone.utc)
+    db.commit()
