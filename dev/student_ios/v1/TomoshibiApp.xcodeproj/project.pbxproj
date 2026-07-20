@@ -33,6 +33,7 @@
 		6576C9A5CB4190A65A486233 /* ApplyFormSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0075F4B1C56BD52A9D418086 /* ApplyFormSupport.swift */; };
 		65F3DFA2C1CECD436BCAD03F /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BFEC1BD19A61E61CD73B258 /* APIClient.swift */; };
 		686B91E579379AA4571D92D4 /* LostFoundAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA09D5E1B32E11CFD9CD320 /* LostFoundAPI.swift */; };
+		691A274F05A44BEB2C3CCA56 /* ReportsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13ABF064D048FE4C070B9F6A /* ReportsAPI.swift */; };
 		717A2649DF90EC3426200B6D /* SeedModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4ADECD57FEC5CA168619042 /* SeedModels.swift */; };
 		72E6FABAE44A6BCEEF2FE168 /* StudentProfileAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C029EB0842D846493CFE168 /* StudentProfileAPI.swift */; };
 		83662A6DA84382DFF1A101D8 /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45EEA8DBC6162B90B9119E85 /* AppStore.swift */; };
@@ -89,6 +90,7 @@
 		05C054666A54A77C6971A7BD /* Route.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Route.swift; sourceTree = "<group>"; };
 		05F5108D87904D498A8215B0 /* TopRollBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopRollBar.swift; sourceTree = "<group>"; };
 		10726DB63CDE8E0313B1EB95 /* IOSStatusBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSStatusBar.swift; sourceTree = "<group>"; };
+		13ABF064D048FE4C070B9F6A /* ReportsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportsAPI.swift; sourceTree = "<group>"; };
 		153F3098DCB9936D8021790F /* ApplyStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplyStubs.swift; sourceTree = "<group>"; };
 		1692CD80AD61B3BFA74FE01D /* BottomNav.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomNav.swift; sourceTree = "<group>"; };
 		17B7B19307005D8E2D07B44D /* StayListStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StayListStubs.swift; sourceTree = "<group>"; };
@@ -169,6 +171,7 @@
 				CDA09D5E1B32E11CFD9CD320 /* LostFoundAPI.swift */,
 				4FE1BD23BC071D9183656B2B /* MiscRequestsAPI.swift */,
 				492E8FE746273F00BC46D772 /* OutingsAPI.swift */,
+				13ABF064D048FE4C070B9F6A /* ReportsAPI.swift */,
 				B6BED925E6CDEDFF9B146D29 /* RollCallAPI.swift */,
 				5ADCD09C35CE74209B76A719 /* SongsAPI.swift */,
 				3DDADF6E6A307FDC44A24B71 /* StudentNotificationsAPI.swift */,
@@ -563,6 +566,7 @@
 				C75ED6393B19EBBEE7CA1A15 /* OutingsAPI.swift in Sources */,
 				F2032E9BF093EAA2F43FEDD8 /* PageHeader.swift in Sources */,
 				9F98E4CC9626DDB3E7C20C57 /* PrimaryButton.swift in Sources */,
+				691A274F05A44BEB2C3CCA56 /* ReportsAPI.swift in Sources */,
 				8F6D452D51998868F8DCCD0C /* RollCallAPI.swift in Sources */,
 				37152F10D001AABE5A28885B /* RootView.swift in Sources */,
 				B61FB76EA851BC80A2FBBE39 /* Route.swift in Sources */,

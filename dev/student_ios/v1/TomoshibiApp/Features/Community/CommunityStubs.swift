@@ -879,6 +879,57 @@ struct LostNewView: View {
 
 // MARK: - §6 LostDetailView · 遺失物詳細
 
+/// 投稿通報按钮（App Store 审核指南 1.2 UGC 治理 — itsuki 2026-07-20 拍板 A 方案）。
+/// 详情页右下角的小按钮：点击 → 确认弹窗 → POST /api/v1/reports → toast 反馈。
+/// 演示版只弹 toast（SEED 假数据无 UUID）；生产版真调后端。
+struct ReportFlagButton: View {
+    let contentType: String // "song" / "announcement_reply" / "lost_found"
+    let contentId: String
+    @EnvironmentObject var app: AppStore
+    @State private var confirming = false
+
+    var body: some View {
+        Button {
+            confirming = true
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "exclamationmark.bubble")
+                    .font(.system(size: 12))
+                Text("通報する")
+                    .font(.system(size: 12))
+            }
+            .foregroundStyle(T.inkMute)
+        }
+        .frame(maxWidth: .infinity, alignment: .trailing)
+        .confirmationDialog(
+            "この投稿を通報しますか？",
+            isPresented: $confirming,
+            titleVisibility: .visible
+        ) {
+            Button("通報する", role: .destructive) { submit() }
+            Button("キャンセル", role: .cancel) {}
+        } message: {
+            Text("不適切な内容として寮の教職員に報告します。")
+        }
+    }
+
+    private func submit() {
+        #if DEMO
+            app.showToast("通報しました")
+        #else
+            guard let uuid = UUID(uuidString: contentId) else { return }
+            Task {
+                do {
+                    _ = try await ReportsAPI.report(contentType: contentType, contentId: uuid)
+                    app.showToast("通報しました。ご協力ありがとうございます")
+                } catch {
+                    app.showToast("通報に失敗しました")
+                }
+            }
+        #endif
+    }
+}
+
 struct LostDetailView: View {
     let id: String
     @EnvironmentObject var app: AppStore
@@ -966,6 +1017,8 @@ struct LostDetailView: View {
                                     }
                                 }
                             #endif
+                            ReportFlagButton(contentType: "lost_found", contentId: l.id)
+                                .padding(.top, 14)
                         }
                         .padding(20)
                     } else {
@@ -1326,7 +1379,12 @@ struct MusicDetailView: View {
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         }
-                        .padding(.bottom, 18)
+                        .padding(.bottom, 12)
+
+                        if let s = song {
+                            ReportFlagButton(contentType: "song", contentId: s.id)
+                                .padding(.bottom, 18)
+                        }
                     }
                     .padding(20)
                 }

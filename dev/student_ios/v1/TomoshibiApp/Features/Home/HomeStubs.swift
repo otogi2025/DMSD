@@ -3605,6 +3605,9 @@ struct AnnouncementDetailView: View {
 
 private struct AnnouncementReplyRow: View {
     let reply: AnnouncementReplyOut
+    @EnvironmentObject var app: AppStore
+    /// 通報确认弹窗（App Store UGC 治理 — 长按回复行弹「通報する」菜单）
+    @State private var reportConfirming = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -3637,6 +3640,35 @@ private struct AnnouncementReplyRow: View {
         .padding(.horizontal, 12)
         .background {
             RoundedRectangle(cornerRadius: 10).fill(T.paper.opacity(0.6))
+        }
+        .contextMenu {
+            Button(role: .destructive) {
+                reportConfirming = true
+            } label: {
+                Label("通報する", systemImage: "exclamationmark.bubble")
+            }
+        }
+        .confirmationDialog(
+            "この返信を通報しますか？",
+            isPresented: $reportConfirming,
+            titleVisibility: .visible
+        ) {
+            Button("通報する", role: .destructive) { submitReport() }
+            Button("キャンセル", role: .cancel) {}
+        } message: {
+            Text("不適切な内容として寮の教職員に報告します。")
+        }
+    }
+
+    /// 通報这条回复 → POST /api/v1/reports（回复数据只在生产数据流出现，无需演示分支）。
+    private func submitReport() {
+        Task {
+            do {
+                _ = try await ReportsAPI.report(contentType: "announcement_reply", contentId: reply.id)
+                app.showToast("通報しました。ご協力ありがとうございます")
+            } catch {
+                app.showToast("通報に失敗しました")
+            }
         }
     }
 
