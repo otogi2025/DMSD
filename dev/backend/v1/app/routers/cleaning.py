@@ -75,14 +75,25 @@ def list_cleaning(
         .order_by(models.CleaningAssignment.scheduled_at)
     )
     rows = db.scalars(stmt).all()
-    # R4 寮过滤 + 演示隔离：真老师看真实学生 / 演示老师看演示学生
+    # R4 寮过滤 + 演示隔离：真老师看真实学生 / 演示老师看演示学生。
+    # 顺带整行取 Student —— 输出要带学生摘要（姓名/学号/房号），老师卡片
+    # 原来只能显 UUID 前 8 位、审核时认不出对象是谁
     dorm_units = dorm_units_for_teacher(teacher)
-    student_q = select(models.Student.id).where(demo_scope_for_teacher(teacher))
+    student_q = select(models.Student).where(demo_scope_for_teacher(teacher))
     if dorm_units is not None:
         student_q = student_q.where(models.Student.dorm_unit.in_(dorm_units))
-    allowed_ids = set(db.scalars(student_q).all())
-    rows = [r for r in rows if r.student_id in allowed_ids]
-    return [schemas.CleaningAssignmentOut.model_validate(r) for r in rows]
+    allowed = {s.id: s for s in db.scalars(student_q).all()}
+    out = []
+    for r in rows:
+        student = allowed.get(r.student_id)
+        if student is None:
+            continue
+        item = schemas.CleaningAssignmentOut.model_validate(r)
+        item.student_name = student.name
+        item.student_no = student.student_no
+        item.room_no = student.room_no
+        out.append(item)
+    return out
 
 
 @router.get("/me", response_model=list[schemas.CleaningAssignmentOut])

@@ -134,6 +134,38 @@ def test_create_cleaning_cross_dorm_now_allowed(client, seed_data, db_session):
     assert res.status_code == 201, res.text
 
 
+# ---------------- 老师列表带学生摘要（审查 S2 web#3 回归）----------------
+
+
+def test_teacher_list_includes_student_summary(
+    client, seed_data, teacher_token, student_token
+):
+    """老师列表每条带 student_name/student_no/room_no（原来只有 UUID 认不出人）；
+    学生 /me 自查这三个字段保持 null。"""
+    sid = str(seed_data["student"].id)
+    res = _create_cleaning(client, teacher_token, sid, area="廊下 2F")
+    assert res.status_code == 201
+
+    res = client.get(
+        "/api/v1/cleaning",
+        headers={"Authorization": f"Bearer {teacher_token}"},
+    )
+    assert res.status_code == 200
+    items = [i for i in res.json()["data"] if i["student_id"] == sid]
+    assert items, "老师列表应含刚建的清扫安排"
+    assert items[0]["student_name"] == seed_data["student"].name
+    assert items[0]["student_no"] == seed_data["student"].student_no
+    assert items[0]["room_no"] == seed_data["student"].room_no
+
+    res_me = client.get(
+        "/api/v1/cleaning/me",
+        headers={"Authorization": f"Bearer {student_token}"},
+    )
+    assert res_me.status_code == 200
+    mine = res_me.json()["data"]
+    assert mine and mine[0]["student_name"] is None  # 本人自查不填摘要
+
+
 # ---------------- GET /cleaning/me 学生履历 ----------------
 
 
@@ -305,6 +337,7 @@ def test_summary_needs_cleaning_threshold(
         r = client.get("/api/v1/discipline/me/summary", headers=h_stu)
         assert r.status_code == 200, r.text
         return r.json()["data"]
+
     # 初始 0 分 → 不需要罚扫
     assert summary()["needs_cleaning"] is False
     # 设到 3.5 → 仍 False

@@ -849,8 +849,10 @@ def list_absence_requests(
 ):
     # 演示隔离：join Student 加 demo_scope，让真老师只看真实学生的欠席届 /
     # 演示老师只看演示学生的欠席届（否则演示老师能读到真实学生提交的欠席届）。
+    # Student 整行一起取 —— 输出带学生摘要（姓名/学号/房号），老师列表原来只回
+    # student_id，界面上认不出「谁请哪天假」就能点承認/却下
     stmt = (
-        select(models.StudyAbsenceRequest)
+        select(models.StudyAbsenceRequest, models.Student)
         .join(
             models.Student,
             models.Student.id == models.StudyAbsenceRequest.student_id,
@@ -862,8 +864,14 @@ def list_absence_requests(
         stmt = stmt.where(models.StudyAbsenceRequest.target_date == target_date)
     if status_filter:
         stmt = stmt.where(models.StudyAbsenceRequest.status == status_filter)
-    rows = db.scalars(stmt).all()
-    return [schemas.StudyAbsenceRequestOut.model_validate(r) for r in rows]
+    out = []
+    for req, student in db.execute(stmt).all():
+        item = schemas.StudyAbsenceRequestOut.model_validate(req)
+        item.student_name = student.name
+        item.student_no = student.student_no
+        item.room_no = student.room_no
+        out.append(item)
+    return out
 
 
 # ---------------------------------------------------------------

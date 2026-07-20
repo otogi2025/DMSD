@@ -123,6 +123,35 @@ class TestAbsenceRequest:
         assert res.status_code == 200
         assert isinstance(res.json()["data"], list)
 
+    def test_list_includes_student_summary_and_status_filter(
+        self, client, student_token, teacher_token
+    ):
+        """审查 S2 web#6 回归：一览每条带学生摘要（老师原来认不出「谁请哪天假」
+        就能点承認/却下），status=pending 过滤生效。"""
+        res_create = client.post(
+            "/api/v1/study/absence-requests",
+            json={
+                "target_date": str(date.today() + timedelta(days=1)),
+                "period": "full",
+                "reason": "体調不良のため",
+            },
+            headers={"Authorization": f"Bearer {student_token}"},
+        )
+        assert res_create.status_code in (200, 201)
+
+        res = client.get(
+            "/api/v1/study/absence-requests?status=pending",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 200
+        data = res.json()["data"]
+        assert data, "pending 过滤应含刚提交的欠席届"
+        first = data[0]
+        assert first["status"] == "pending"
+        assert first["student_name"]  # 摘要三件套非空
+        assert first["student_no"]
+        assert first["room_no"]
+
 
 class TestMyAbsenceSummary:
     """GET /study/absence-requests/me/summary — 当前学生当月请假次数（IX-034）。"""

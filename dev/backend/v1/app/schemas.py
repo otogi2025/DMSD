@@ -511,6 +511,11 @@ class StudyAbsenceRequestOut(BaseModel):
     decided_by: Optional[UUID]
     decided_at: Optional[datetime]
     comment: Optional[str]
+    # 学生摘要 — 老师欠席届列表用（原来只回 student_id，老师无法辨认「谁请哪天假」
+    # 就能点承認/却下）。老师端点填充；学生自查等场景保持 None
+    student_name: Optional[str] = None
+    student_no: Optional[str] = None
+    room_no: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -1437,6 +1442,11 @@ class CleaningAssignmentOut(BaseModel):
     inspected_at: Optional[datetime]
     failure_reason: Optional[str]
     demerit_event_id: Optional[UUID]
+    # 学生摘要 — 老师列表用（原来卡片只能显 UUID 前 8 位，老师认不出是谁）。
+    # 仅老师列表端点填充；学生 /me 自查保持 None（本人不需要）
+    student_name: Optional[str] = None
+    student_no: Optional[str] = None
+    room_no: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
