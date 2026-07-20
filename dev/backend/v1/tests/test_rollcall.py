@@ -761,3 +761,110 @@ class TestMyTodayRollCall:
         # 只返回我寮（[1,2]）那条，不含女寮 [4]
         assert len(body) == 1, body
         assert body[0]["session_id"] == str(rollcall_session.id)
+
+
+class TestRealCheckinPartialUnique:
+    """审查 backend#1：uq_rce_real_checkin 部分唯一索引行为。"""
+
+    def test_double_real_checkin_blocked_by_db(
+        self, db_session, seed_data, rollcall_session
+    ):
+        """同生同场第二条真实签到行（无 idempotency_key）被 DB 层挡住。
+
+        路径 A / 手动代签 idempotency_key 恒 NULL，uq_rce_idempotency 挡不住——
+        这正是并发双插 present 的根因，部分唯一索引是唯一的 DB 层防线。
+        """
+        from sqlalchemy.exc import IntegrityError as IE
+
+        student = seed_data["student"]
+        db_session.add(
+            models.RollCallEvent(
+                session_id=rollcall_session.id,
+                student_id=student.id,
+                path_type="manual",
+                base_status="present",
+                status_source="manual_checkin",
+            )
+        )
+        db_session.commit()
+
+        db_session.add(
+            models.RollCallEvent(
+                session_id=rollcall_session.id,
+                student_id=student.id,
+                path_type="manual",
+                base_status="late",
+                status_source="auto_nfc",
+            )
+        )
+        with pytest.raises(IE):
+            db_session.commit()
+        db_session.rollback()
+
+    def test_settle_row_and_real_checkin_coexist(
+        self, db_session, seed_data, rollcall_session
+    ):
+        """结算 absent 行（auto_settle）+ 离线补传真实签到行合法共存 —— 索引谓词
+        只圈 auto_nfc/manual_checkin，不能挡 append-only 纠错履历（补传回归）。"""
+        from sqlalchemy import select
+
+        student = seed_data["student"]
+        db_session.add(
+            models.RollCallEvent(
+                session_id=rollcall_session.id,
+                student_id=student.id,
+                path_type="manual",
+                base_status="absent",
+                status_source="auto_settle",
+            )
+        )
+        db_session.commit()
+
+        db_session.add(
+            models.RollCallEvent(
+                session_id=rollcall_session.id,
+                student_id=student.id,
+                path_type="A",
+                base_status="present",
+                status_source="auto_nfc",
+            )
+        )
+        db_session.commit()  # 不抛 = 共存成立
+
+        rows = db_session.scalars(
+            select(models.RollCallEvent).where(
+                models.RollCallEvent.session_id == rollcall_session.id,
+                models.RollCallEvent.student_id == student.id,
+            )
+        ).all()
+        assert len(rows) == 2
+
+
+class TestStatusSourceServerDerived:
+    """审查 backend#6：status_source 服务端推导、不信客户端。"""
+
+    def test_client_cannot_send_teacher_override(
+        self, client, teacher_token, seed_data, rollcall_session
+    ):
+        """客户端自选 teacher_override / auto_settle → schema 层 422（改判只走 PATCH /events）。"""
+        student_id = str(seed_data["student"].id)
+        for forged in ("teacher_override", "auto_settle"):
+            res = client.post(
+                f"/api/v1/rollcall/sessions/{rollcall_session.id}/checkins",
+                json={"student_id": student_id, "status_source": forged},
+                headers={"Authorization": f"Bearer {teacher_token}"},
+            )
+            assert res.status_code == 422, f"{forged} 应被 422 拒绝: {res.text}"
+
+    def test_no_card_uid_stored_as_manual_even_if_client_says_auto_nfc(
+        self, client, teacher_token, seed_data, rollcall_session
+    ):
+        """无 card_uid 的签到即使客户端声称 auto_nfc，落库也是 manual_checkin（服务端推导）。"""
+        student_id = str(seed_data["student"].id)
+        res = client.post(
+            f"/api/v1/rollcall/sessions/{rollcall_session.id}/checkins",
+            json={"student_id": student_id, "status_source": "auto_nfc"},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 201, res.text
+        assert res.json()["data"]["status_source"] == "manual_checkin"

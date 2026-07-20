@@ -320,3 +320,48 @@ def test_create_account_integrity_fallback_student_no(
     r2 = client.post("/api/v1/accounts", json=_new_account_body(code))
     assert r2.status_code == 422, r2.text
     assert r2.json()["error"]["code"] == "STUDENT_NO_TAKEN"
+
+
+# ---------- 审查 backend#2：履历排除审核员码 ----------
+
+
+def test_history_excludes_reviewer_code(client, teacher_token, db_session):
+    """审核员永久码（is_reviewer=True）不得出现在 history —— 与 current/refresh/close 同口径。
+
+    审查 backend#2：三个端点都显式过滤 is_reviewer，唯独 get_history 漏了，
+    任何有注册码 VIEW 权限的老师打开履历就能看到审核员码原文。
+    """
+    from datetime import datetime, timedelta, timezone
+
+    from sqlalchemy import select
+
+    from app import models
+
+    teacher = db_session.scalars(
+        select(models.Teacher).where(models.Teacher.login_id == "ryomu_kachou")
+    ).first()
+    db_session.add(
+        models.StudentRegistrationCode(
+            code="777777",
+            created_by=teacher.id,
+            expires_at=datetime.now(timezone.utc) + timedelta(days=3650),
+            is_reviewer=True,
+        )
+    )
+    db_session.commit()
+
+    # 再发一个普通码，确认「普通码出现、审核员码不出现」两个方向都断言到
+    refresh = client.post(
+        "/api/v1/admin/registration-code/refresh",
+        headers={"Authorization": f"Bearer {teacher_token}"},
+    )
+    normal_code = refresh.json()["data"]["code"]
+
+    res = client.get(
+        "/api/v1/admin/registration-code/history",
+        headers={"Authorization": f"Bearer {teacher_token}"},
+    )
+    assert res.status_code == 200, res.text
+    codes = [item["code"] for item in res.json()["data"]["items"]]
+    assert normal_code in codes
+    assert "777777" not in codes, "审核员永久码泄漏进履历（backend#2 回归）"

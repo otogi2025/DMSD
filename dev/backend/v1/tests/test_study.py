@@ -605,3 +605,94 @@ class TestCancelTodaySelectedDorm:
         db_session.expire_all()
         assert self._checkin_of(db_session, male.id).status == "exempt"
         assert self._checkin_of(db_session, female.id).status == "exempt"
+
+
+class TestCheckinIntegrityErrorFallback:
+    """审查 backend#8：签到与 finalize 撞 uq_sc_date 时的兜底不再原样返回 absent。"""
+
+    def test_race_with_finalize_upgrades_absent_and_revokes_demerit(
+        self, client, db_session, teacher_token, seed_data, study_roster, monkeypatch
+    ):
+        """模拟并发窗口：预查扑空 → INSERT 撞 uq_sc_date → 兜底重查到 finalize 刚写的
+        absent 行 → 必须升级成 present/late 并撤销缺席扣分，而不是原样返回 absent。
+
+        手法沿用本仓库既有先例（test_registration_code 的学号并发测试）：
+        monkeypatch Session.scalars 让「既存レコード確認」预查第一次返回空。
+        """
+        from datetime import datetime
+        from uuid import uuid4
+        from zoneinfo import ZoneInfo
+
+        from sqlalchemy import select
+        from sqlalchemy.orm import Session
+
+        from app import models
+
+        student = seed_data["student"]
+        teacher = seed_data["teachers"]["ryomu_kachou"]
+        today = datetime.now(ZoneInfo("Asia/Tokyo")).date()
+
+        # 先落一条 finalize 形状的 absent 行 + 配套 study_absent 扣分
+        absent_row = models.StudyCheckin(
+            student_id=student.id,
+            target_date=today,
+            status="absent",
+            recorded_by=teacher.id,
+        )
+        db_session.add(absent_row)
+        db_session.flush()
+        db_session.add(
+            models.DemeritEvent(
+                student_id=student.id,
+                source_type="study_absent",
+                source_event_id=absent_row.id,
+                points=1.5,
+                reason="学習欠席（テスト）",
+                month=today.strftime("%Y-%m"),
+                created_by_teacher_id=None,
+            )
+        )
+        db_session.commit()
+        absent_row_id = absent_row.id
+
+        # 预查扑空一次 → 端点走 INSERT 路径 → 撞 uq_sc_date → IntegrityError 兜底
+        real_scalars = Session.scalars
+        state = {"suppress": True}
+
+        def patched(self, statement, *a, **k):
+            sql = str(statement)
+            if state["suppress"] and "study_checkins" in sql and "target_date" in sql:
+                state["suppress"] = False
+                return real_scalars(
+                    self,
+                    select(models.StudyCheckin).where(
+                        models.StudyCheckin.id == uuid4()
+                    ),
+                )
+            return real_scalars(self, statement, *a, **k)
+
+        monkeypatch.setattr(Session, "scalars", patched)
+
+        res = client.post(
+            "/api/v1/study/checkins",
+            json={"student_id": str(student.id)},
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 201, res.text
+        data = res.json()["data"]
+        assert data["status"] in ("present", "late"), (
+            "兜底把 finalize 的 absent 原样返回了（backend#8 回归）"
+        )
+
+        # 同一行被升级（不是另插一行），缺席扣分被撤销
+        db_session.expire_all()
+        row = db_session.get(models.StudyCheckin, absent_row_id)
+        assert row.status in ("present", "late")
+        dem = db_session.scalars(
+            select(models.DemeritEvent).where(
+                models.DemeritEvent.student_id == student.id,
+                models.DemeritEvent.source_type == "study_absent",
+                models.DemeritEvent.source_event_id == absent_row_id,
+            )
+        ).first()
+        assert dem is not None and dem.revoked_at is not None, "缺席扣分未撤销"
