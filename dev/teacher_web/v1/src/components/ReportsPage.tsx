@@ -60,37 +60,45 @@ export function ReportsPage({ authToken }: { authToken: string | null }) {
   };
 
   // 「投稿を削除」— 删投稿本体（学生 app 一览立即消失），随后自动标通報处理完。
-  const deleteContent = (r: ContentReportOut) => {
+  // 失败时不刷新一覧（load 开头会清 error，刷新会把错误红字抹掉）。
+  const deleteContent = async (r: ContentReportOut) => {
     if (!authToken) return;
     if (
       !confirm("この投稿を削除しますか？学生のアプリからも非表示になります。")
     )
       return;
     setBusyId(r.id);
-    const del =
-      r.content_type === "song"
-        ? api.deleteSongRequest(r.content_id, authToken)
-        : r.content_type === "lost_found"
-          ? api.deleteLostFoundPost(r.content_id, authToken)
-          : r.content_parent_id
-            ? api.deleteAnnouncementReply(
-                r.content_parent_id,
-                r.content_id,
-                authToken,
-              )
-            : Promise.reject(new Error("parent missing"));
-    del
-      // 投稿可能已被删（404）→ 不拦流程，照样把通報标处理完
-      .catch((e: any) => {
+    try {
+      try {
+        if (r.content_type === "song") {
+          await api.deleteSongRequest(r.content_id, authToken);
+        } else if (r.content_type === "lost_found") {
+          await api.deleteLostFoundPost(r.content_id, authToken);
+        } else if (r.content_parent_id) {
+          await api.deleteAnnouncementReply(
+            r.content_parent_id,
+            r.content_id,
+            authToken,
+          );
+        } else {
+          throw new Error("parent missing");
+        }
+      } catch (e: any) {
+        // 投稿可能已被删（404）→ 不拦流程，照样把通報标处理完
         if (!e || e.status !== 404) throw e;
-      })
-      .then(() => api.handleContentReport(r.id, authToken))
-      .catch((e: any) => {
+      }
+      try {
+        await api.handleContentReport(r.id, authToken);
+      } catch (e: any) {
         // 通報已被别的老师标过（409）不算失败
-        if (!e || e.status !== 409) setError("削除に失敗しました。");
-      })
-      .then(() => load())
-      .finally(() => setBusyId(null));
+        if (!e || e.status !== 409) throw e;
+      }
+      load();
+    } catch {
+      setError("削除に失敗しました。");
+    } finally {
+      setBusyId(null);
+    }
   };
 
   const filterBtn = (key: "open" | "handled" | "all", label: string) => (
