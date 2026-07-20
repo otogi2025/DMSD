@@ -281,3 +281,25 @@ def test_preview_none_after_delete(
     mine = [r for r in res.json()["data"] if r["id"] == report_id]
     assert len(mine) == 1
     assert mine[0]["content_preview"] is None
+
+
+def test_real_teacher_cannot_delete_demo_song(
+    client, seed_data, teacher_token, demo_pair
+):
+    """反向：真老师拿演示投稿 UUID 删 → 404（隔离是双向的，grok 二轮指出只测了单向）。"""
+    res = client.post(
+        "/api/v1/sessions/student",
+        json={"student_no": "970101", "password": "demo-pass-12345"},
+    )
+    assert res.status_code == 200, res.text
+    demo_student_token = res.json()["data"]["access_token"]
+    res = client.post(
+        "/api/v1/songs",
+        json={"song_title": "デモ側の曲"},
+        headers=_auth(demo_student_token),
+    )
+    song_id = res.json()["data"]["id"]
+    res = client.delete(f"/api/v1/songs/{song_id}", headers=_auth(teacher_token))
+    assert res.status_code == 404
+    res = client.get("/api/v1/songs", headers=_auth(demo_student_token))
+    assert song_id in [r["id"] for r in res.json()["data"]]
