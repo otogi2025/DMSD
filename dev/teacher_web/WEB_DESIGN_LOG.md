@@ -1219,4 +1219,10 @@ commit `f66b812`，`npm run build` 通过。
 
 ---
 
+## 2026-07-20 — 「投稿の通報」一覧页（App Store UGC 治理，itsuki 拍板 A 方案）
+
+新组件 `ReportsPage.tsx`，导航挂「管理・設定」组（「バス時刻表」和「フロント業務」之间）。学生 app 通報的互见投稿（「リクエスト曲」「お知らせ返信」「落とし物」）集中处理：未対応/対応済み/すべて筛选；「投稿を削除」按类型分流（song/lost-found 直删、公告回复用 content_parent_id 拼两段路径删）→ 目标已删 404 容忍 → 自动标通報 handled（他师已标 409 容忍）；「問題なし」只标处理完不动投稿。`client.ts` 加 4 函数、`types.ts` 加 `ContentReportOut`、操作履历页 3 个新操作名映射。样式循 RYO token（cobalt 主色 / danger 红），不动冻结的 CommunityPage。每步 `npm run build` 绿。commit `38ca410`。
+
+---
+
 **END** — 本档随 Web 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。

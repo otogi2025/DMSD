@@ -1693,3 +1693,13 @@ A3 上架清单 A-1/A-2 落地（spec v1.0 §2.2「点呼入口占位、不得�
 - `tryLogin`：邮箱 mode 走 `AuthAPI.loginStudent(email:)`；空字段 toast「メールアドレスとパスワードを…」；生产 401 toast「メールアドレスまたはパスワードが正しくありません」。DEMO magic creds 仍仅学号 mode。
 - 注册联络先 hint 改为「このメールアドレスはログインにも使えます。確認用のメールは送信されません」。
 - `AuthAPI`：学号 / 邮箱两个独立 `Encodable` 请求体，避免编出 `null` 字段。
+
+## §34 投稿通報（2026-07-20 · App Store UGC 治理 itsuki 拍板 A 方案）
+
+审核指南 1.2 要求学生互见投稿有举报机制 → 三处接线：
+
+- 新 `Endpoints/ReportsAPI.swift`：`POST /api/v1/reports`（content_type + content_id + reason 任意）。老师侧一覧/处理接口归老师网页，学生 app 只封装 POST。
+- 共用组件 `ReportFlagButton`（CommunityStubs.swift）：右对齐小按钮「通報する」→ confirmationDialog 确认 →（生产）真调 ReportsAPI，成功 toast「通報しました。ご協力ありがとうございます」、失败 toast「通報に失敗しました」；（演示）只 toast — SEED 假数据无 UUID。接入位置：曲詳細（投稿理由卡下方）+ 遺失物詳細（解决按钮下方）。
+- 公告回复行（HomeStubs.swift `AnnouncementReplyRow`）：长按弹「通報する」context menu → 同款确认弹窗 → `announcement_reply` 类型通報；回复数据只在生产数据流出现，不设演示分支。
+
+验证：双 scheme BUILD SUCCEEDED。commit `9ecb68f`。
