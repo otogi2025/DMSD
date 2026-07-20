@@ -525,7 +525,13 @@ export function App() {
           _boardEntryToStudent(e, teacher.dorm),
         );
         setStudents(students);
-        setSession({ name, sessionId: sess.id, startedAt: Date.now() });
+        // 经过时间基准：重进已在跑的场次（ALREADY_RUNNING 路径）用后端真实开始
+        // 时刻，否则大屏「経過」从重进瞬间起算是错的；新开场次列表快照里
+        // started_at 还是 null → 用当前时刻
+        const startedAtMs = sess.started_at
+          ? new Date(sess.started_at).getTime()
+          : Date.now();
+        setSession({ name, sessionId: sess.id, startedAt: startedAtMs });
         setLiveMode(true);
         setToast({
           type: "ok",

@@ -3,9 +3,10 @@ import { RYO, dormLabel } from "../theme";
 import tomoshibiIcon from "../assets/tomoshibi-icon.png";
 
 // 源 index.html 12368-13008（components/live-roll-call.jsx 块）。
-// 实时点呼大屏：迟到状态 + 预测条 + 演示控制台 + 座席网格。
+// 实时点呼大屏：经过时间条 + 座席网格（本地自动迟到转换已随审查 web#4 止血删除，
+// 迟到/欠席判定以后端为准）。
 // 界面原样搬，仅作用域引用方式改写（window.RYO→RYO / window.dormLabel→dormLabel /
-// window.LATE_THRESHOLD_SEC→LATE_THRESHOLD_SEC / 图标用 Vite import）。
+// 图标用 Vite import）。
 // fabBtn / NfcIndicator / Metric / SeatCard / Badge / LegendPanel 是本块私有子组件，同文件不 export。
 
 // 座席学生（本组件本地演示状态，非后端类型）

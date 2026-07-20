@@ -26,7 +26,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from ..timeutil import now_jst, now_jst_iso, parse_iso
-from .envelope import ApiResponse, unwrap
+from .envelope import ApiResponse, NetworkError, unwrap
 
 
 class AuthError(Exception):
@@ -113,10 +113,20 @@ class AuthManager:
         """用一次性激活码登记公钥（契约 §2.2 步骤 3）。"""
         url = f"{self._base_url}/api/v1/devices/{self._device_id}/enroll"
         body = {"enroll_code": enroll_code, "public_key": self._key.public_key_base64()}
-        resp = unwrap(self._http.post(url, json=body))
+        resp = unwrap(self._post_raw(url, body))
         if not resp.ok:
             raise AuthError(f"enroll 失败：{resp.error_code}")
         return resp
+
+    def _post_raw(self, url: str, body: dict) -> httpx.Response:
+        # 传输层异常统一转 NetworkError —— 本类被 main 直接调用（不经 ApiClient
+        # 的转换层），裸 httpx 异常会穿透调用方的 (AuthError, NetworkError) 捕获、
+        # 冒到消费线程笼统 except 卡死 LED（S2 终审 Fable 5 high 抓出的逃逸路径）。
+        # 语义：取令牌/enroll 时网络断 = 网络失败，AuthError 只留给后端明确拒绝
+        try:
+            return self._http.post(url, json=body)
+        except httpx.HTTPError as exc:
+            raise NetworkError(str(exc)) from exc
 
     # --------------------------- token ---------------------------
 
@@ -128,7 +138,7 @@ class AuthManager:
         signature = self._key.sign_base64(signing_string)
         url = f"{self._base_url}/api/v1/devices/{self._device_id}/token"
         body = {"ts": ts, "nonce": nonce, "signature": signature}
-        resp = unwrap(self._http.post(url, json=body))
+        resp = unwrap(self._post_raw(url, body))
         if not resp.ok:
             raise AuthError(f"取令牌失败：{resp.error_code}")
         data = resp.data or {}

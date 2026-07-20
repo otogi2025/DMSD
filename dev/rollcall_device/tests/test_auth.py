@@ -46,3 +46,28 @@ def test_signature_verifies_with_public_key(tmp_path):
     pub = Ed25519PublicKey.from_public_bytes(base64.b64decode(key.public_key_base64()))
     # verify 不抛异常即通过
     pub.verify(base64.b64decode(sig_b64), message.encode("utf-8"))
+
+
+def test_transport_error_becomes_network_error(tmp_path):
+    """S2 终审阻断修复回归：取令牌 / enroll 时网络断 → NetworkError。
+
+    原来 obtain_token/enroll 裸调 httpx，传输层异常（ConnectError 等）既非
+    AuthError 也非 NetworkError，会穿透 main 重试链的捕获、冒到消费线程
+    笼统 except 卡死 LED。修后统一转 NetworkError，上层走离线降级。
+    """
+    import httpx
+    import pytest
+
+    from src.api.auth import AuthManager
+    from src.api.envelope import NetworkError
+
+    class BoomHttp:
+        def post(self, url, json=None):
+            raise httpx.ConnectError("network down")
+
+    key = DeviceKey.load_or_create(tmp_path / "key.pem")
+    auth = AuthManager("dorm-1-01", key, "https://x.test", BoomHttp())
+    with pytest.raises(NetworkError):
+        auth.obtain_token()
+    with pytest.raises(NetworkError):
+        auth.enroll("CODE123")

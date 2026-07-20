@@ -324,6 +324,20 @@ class TestAuthCodeRetryChain:
         assert queue.count() == 1
         assert auth.invalidated == 2  # 判码时 + except 里
 
+    def test_ensure_token_network_error_goes_offline(self, tmp_path, monkeypatch):
+        # 终审阻断修复回归：重试链里刷新令牌撞网络断（auth 层已转 NetworkError）
+        # → 走离线入队，不冒泡卡灯
+        _fast_feedback(monkeypatch)
+        api = StubApi(lambda body: _err("UNAUTHORIZED"))
+        auth = StubAuth(ensure_raises=NetworkError("down"))
+        dev, led, _, queue = _device(tmp_path, api, auth=auth)
+        dev._handle_checkin(CardEvent(card_uid="04a1", swipe_time="t"))
+
+        assert len(api.posted) == 1  # 没有第二发
+        assert queue.count() == 1  # 离线入队
+        assert LedState.FAIL in led.states  # 空名单未命中 → 红灯（离线反馈）
+        assert led.states[-1] is LedState.STANDBY
+
     def test_retry_network_error_goes_offline(self, tmp_path, monkeypatch):
         _fast_feedback(monkeypatch)
         calls = {"n": 0}
