@@ -917,7 +917,11 @@ struct ReportFlagButton: View {
         #if DEMO
             app.showToast("通報しました")
         #else
-            guard let uuid = UUID(uuidString: contentId) else { return }
+            guard let uuid = UUID(uuidString: contentId) else {
+                // 理论上只有演示假数据混进生产路径才会走到 — 静默吞掉会让用户以为通報成功
+                app.showToast("通報に失敗しました")
+                return
+            }
             Task {
                 do {
                     _ = try await ReportsAPI.report(contentType: contentType, contentId: uuid)

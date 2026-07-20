@@ -3660,16 +3660,22 @@ private struct AnnouncementReplyRow: View {
         }
     }
 
-    /// 通報这条回复 → POST /api/v1/reports（回复数据只在生产数据流出现，无需演示分支）。
+    /// 通報这条回复 → POST /api/v1/reports。
+    /// 演示分支只弹 toast（当前 SEED 回复恒为空长按不到，但守卫跟 ReportFlagButton 保持一致，
+    /// 防未来 SEED 加回复数据后演示版打真接口）。
     private func submitReport() {
-        Task {
-            do {
-                _ = try await ReportsAPI.report(contentType: "announcement_reply", contentId: reply.id)
-                app.showToast("通報しました。ご協力ありがとうございます")
-            } catch {
-                app.showToast("通報に失敗しました")
+        #if DEMO
+            app.showToast("通報しました")
+        #else
+            Task {
+                do {
+                    _ = try await ReportsAPI.report(contentType: "announcement_reply", contentId: reply.id)
+                    app.showToast("通報しました。ご協力ありがとうございます")
+                } catch {
+                    app.showToast("通報に失敗しました")
+                }
             }
-        }
+        #endif
     }
 
     private func formatTime(_ date: Date) -> String {
