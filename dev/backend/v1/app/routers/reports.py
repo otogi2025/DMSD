@@ -63,7 +63,12 @@ def _preview(db: Session, content_type: str, content_id: UUID) -> Optional[str]:
 
 
 def _parent_id(db: Session, content_type: str, content_id: UUID) -> Optional[UUID]:
-    """公告回复的父公告 id（删回复接口路径要两段）；其他类型 None。"""
+    """公告回复的父公告 id（删回复接口路径要两段）；其他类型 None。
+
+    ⚠️ 本函数与 _preview 自身不做演示侧过滤 — 安全性完全依赖调用方已保证
+    「通報属于同侧」（POST 经 _load_target 挡跨侧创建 / GET·PATCH 按 reporter 侧过滤）。
+    若未来改动削弱了 POST 的跨侧闸，这两个函数会跟着泄漏对面内容，须同步加闸。
+    """
     if content_type != "announcement_reply":
         return None
     row = db.get(models.AnnouncementReply, content_id)
