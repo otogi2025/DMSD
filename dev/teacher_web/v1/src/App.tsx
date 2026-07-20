@@ -140,11 +140,18 @@ export function App() {
       if (idle > TIMEOUT_MS) {
         // 5-27 拍板：超时返回 login 第 1 屏（旧 select-teacher 中间页砍）
         // sessionStorage 不清 — lastTeacherId 保留可让卡片高亮「前回」
+        // 点呼 session/students/nfcSeq 也要清（与 401 回调 / logout 对齐）——原来
+        // 不清导致再登录后顶栏假显「点呼実施中」、恢复会带过期 session 进大屏。
+        // session 置 null 会让 WS effect 自动断开连接。不调 rollcallEnd：running
+        // 场次由后端调度器到 auto_end 自动结算，前端不替不在场的老师提前记欠席
         setRoute("login");
         setTeacher(null);
         setAuthToken(null);
         setAuthProfile(null);
         setLiveMode(false);
+        setSession(null);
+        setStudents([]);
+        setNfcSeq(0);
         try {
           sessionStorage.removeItem("tomoshibi_auth");
         } catch (e) {
@@ -503,7 +510,16 @@ export function App() {
 
     if (sess && authToken) {
       try {
-        await api.rollcallStart(sess.id, authToken);
+        try {
+          await api.rollcallStart(sess.id, authToken);
+        } catch (startErr: any) {
+          // 場次已在跑（空闲超时清了本地状态 / 别的端已开始）→ 不是失败，
+          // 直接拉 board 重进 live。不识别这个码的话老师会被挡在「開始できません」
+          // 外面，而后端场次还在跑、点呼机还在收
+          if (!startErr || startErr.code !== "ALREADY_RUNNING") {
+            throw startErr;
+          }
+        }
         const board = await api.rollcallBoard(sess.id, authToken);
         const students = (board.entries || []).map((e) =>
           _boardEntryToStudent(e, teacher.dorm),
@@ -549,6 +565,7 @@ export function App() {
 
     // 有 backend session 就调终了 API + 取 summary (失败也让 UI 关闭)
     let backendSummary = null;
+    let endFailed = false; // 终了保存失败标志 — 末尾据此决定弹成功还是保留失败警告
     if (session.sessionId && authToken) {
       try {
         await api.rollcallEnd(session.sessionId, authToken);
@@ -563,6 +580,7 @@ export function App() {
         }
       } catch (err) {
         console.warn("[App] rollcallEnd 失敗 (UI 側は終了処理続行)", err);
+        endFailed = true;
         setToast({
           type: "warn",
           msg: "点呼終了の保存に失敗しました（画面は閉じます）",
@@ -620,10 +638,10 @@ export function App() {
     setSession(null);
     // Task #13 spec §5.6: 终了后自动迁移到「点呼総結」中层页
     setPage("summary");
-    // backend session 终了时如果上面没出 warn，就出 ok 的 toast
-    if (!(session.sessionId && authToken)) {
-      setToast({ type: "ok", msg: "点呼が保存されました" });
-    } else {
+    // 终了保存失败时保留 catch 里的失败警告——原来这里的 if/else 两分支完全相同、
+    // 都无条件弹成功 toast，把「保存に失敗しました」覆盖成「保存されました」，
+    // 老师以为落库了实际没有
+    if (!endFailed) {
       setToast({ type: "ok", msg: "点呼が保存されました" });
     }
   };
@@ -741,7 +759,9 @@ export function App() {
                 reason: patch.reason,
                 by: teacher.name + " 先生",
               },
-              pending: patch.approveLeave ? null : s.pending,
+              // pending 不在这里清 — 弹层里的假「承認/却下」已删（审批走申请页
+              // 真接口），标记保持到审批完成后刷新
+              pending: s.pending,
               exemptReason:
                 patch.status === "exempt"
                   ? s.exemptReason || patch.reason
@@ -821,7 +841,6 @@ export function App() {
           sessionName={session.name}
           startedAt={session.startedAt}
           students={students}
-          setStudents={setStudents}
           onEnd={endSession}
           onOverride={openOverride}
           onReset={resetLive}

@@ -242,12 +242,15 @@ export const api = {
       {},
       token,
     ),
-  absenceRequests: (token: string, target_date?: string) =>
+  absenceRequests: (token: string, target_date?: string, status?: string) =>
     request<StudyAbsenceRequestOut[]>(
       "GET",
-      `/study/absence-requests${
-        target_date ? `?target_date=${target_date}` : ""
-      }`,
+      `/study/absence-requests${(() => {
+        const q: string[] = [];
+        if (target_date) q.push(`target_date=${target_date}`);
+        if (status) q.push(`status=${status}`);
+        return q.length ? `?${q.join("&")}` : "";
+      })()}`,
       undefined,
       token,
     ),

@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO, dormLabel, LATE_THRESHOLD_SEC } from "../theme";
+import { RYO, dormLabel } from "../theme";
 import tomoshibiIcon from "../assets/tomoshibi-icon.png";
 
 // 源 index.html 12368-13008（components/live-roll-call.jsx 块）。
@@ -33,7 +33,6 @@ export function LiveRollCall({
   sessionName,
   startedAt,
   students,
-  setStudents,
   onEnd,
   onOverride,
   onReset,
@@ -43,7 +42,6 @@ export function LiveRollCall({
   sessionName: string;
   startedAt: number;
   students: SeatStudent[];
-  setStudents: React.Dispatch<React.SetStateAction<SeatStudent[]>>;
   onEnd: () => void;
   onOverride: (s: SeatStudent) => void;
   onReset: () => void;
@@ -65,16 +63,10 @@ export function LiveRollCall({
   const mm = String(Math.floor(elapsed / 60) % 60).padStart(2, "0");
   const ss = String(elapsed % 60).padStart(2, "0");
 
-  // ⭐ 自动迟到转换
-  React.useEffect(() => {
-    if (elapsed >= LATE_THRESHOLD_SEC) {
-      setStudents((list) =>
-        list.map((s) =>
-          s.status === "unknown" && !s.pending ? { ...s, status: "late" } : s,
-        ),
-      );
-    }
-  }, [elapsed >= LATE_THRESHOLD_SEC]); // eslint-disable-line
+  // 「自动迟到转换」已删（审查 web#4 止血）：原来 3 分钟后把未刷卡学生本地改成
+  // 「遅刻（未チェックイン）」，但后端结算把从未签到的记「欠席」——大屏显遅刻、
+  // 结果是欠席，误导老师。未刷卡保持「未点呼」；真正的迟到判定以后端为准
+  // （打卡时刻超窗才是 late）。阈值语义对齐留点呼状态四端契约族一起做（S3）
 
   const cnt = students.reduce<Record<string, number>>((a, s) => {
     a[s.status] = (a[s.status] || 0) + 1;
@@ -83,8 +75,6 @@ export function LiveRollCall({
   const done =
     (cnt.ok || 0) + (cnt.absent || 0) + (cnt.exempt || 0) + (cnt.late || 0);
   const total = students.length;
-  const inLatePhase = elapsed >= LATE_THRESHOLD_SEC;
-  const secToLate = Math.max(0, LATE_THRESHOLD_SEC - elapsed);
 
   return (
     <div
@@ -217,13 +207,15 @@ export function LiveRollCall({
         </div>
       </header>
 
-      {/* 预测条 */}
+      {/* 经过时间条 — 原「遅刻判定開始」倒计时随本地自动迟到转换一起删（审查
+          web#4 止血）：转换不存在了还宣告「未チェックイン者は自動的に遅刻になります」
+          就是对老师撒谎。迟到判定以后端为准，这里只显示中性的经过时间 */}
       <div
         style={{
           padding: "8px 28px",
-          background: inLatePhase ? T.lateSoft : T.cobaltSoft,
-          borderBottom: `1px solid ${inLatePhase ? T.lateBorder : T.infoBorder}`,
-          color: inLatePhase ? T.late : T.cobaltDeep,
+          background: T.cobaltSoft,
+          borderBottom: `1px solid ${T.infoBorder}`,
+          color: T.cobaltDeep,
           fontSize: 12,
           fontWeight: 600,
           display: "flex",
@@ -231,10 +223,8 @@ export function LiveRollCall({
           gap: 10,
         }}
       >
-        <span style={{ fontSize: 13 }}>{inLatePhase ? "⚠" : "⏱"}</span>
-        {inLatePhase
-          ? `遅刻判定中 · 未チェックイン者は自動的に遅刻になります（${Math.floor(elapsed / 60)}分${elapsed % 60}秒経過）`
-          : `あと ${Math.floor(secToLate / 60)}分${secToLate % 60}秒 で遅刻判定開始（閾値 ${LATE_THRESHOLD_SEC / 60} 分）`}
+        <span style={{ fontSize: 13 }}>⏱</span>
+        {`経過 ${Math.floor(elapsed / 60)}分${elapsed % 60}秒 · 遅刻・欠席の確定はサーバー集計に基づきます`}
       </div>
 
       {/* 座席网格 */}
@@ -434,7 +424,7 @@ function SeatCard({ s, onClick }: { s: SeatStudent; onClick: () => void }) {
       : s.status === "late"
         ? s.checkinAt
           ? `遅刻 · ${s.checkinAt}`
-          : "遅刻（未チェックイン）"
+          : "遅刻"
         : s.status === "absent"
           ? "欠席"
           : s.status === "exempt"
@@ -509,7 +499,7 @@ function SeatCard({ s, onClick }: { s: SeatStudent; onClick: () => void }) {
             </Badge>
           )}
           {s.pending && (
-            <Badge c={T.warn} title="欠席届 審査中">
+            <Badge c={T.warn} title="申請 審査中">
               ?
             </Badge>
           )}
@@ -672,7 +662,7 @@ function LegendPanel({ onClose }: { onClose: () => void }) {
           <Badge c={T.danger}>＋</Badge> 体調報告
         </div>
         <div>
-          <Badge c={T.warn}>?</Badge> 欠席届 審査中
+          <Badge c={T.warn}>?</Badge> 申請 審査中
         </div>
         <div>
           <Badge c={T.ink2}>M</Badge> 手動調整痕跡

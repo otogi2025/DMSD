@@ -110,6 +110,45 @@ export function InfoPage({
     body: string;
     scope: AnnouncementScope;
   } | null>(null);
+  // 正在为編集拉全文的公告 id（防连点：拉取中忽略再次点击）
+  const [editLoading, setEditLoading] = React.useState<string | null>(null);
+
+  // ── 編集打开（先保证有全文）──
+  // 列表项 body 是后端截 80 字的摘要（_summarize），直接当编辑初始值保存会把
+  // 完整正文永久覆盖成摘要（审查 web#2 数据丢失）。缓存未命中就先拉详情，
+  // 拉不到不开弹层
+  const handleEditOpen = async (p: NoticeRow) => {
+    if (editLoading) return;
+    const cached = detailCache[p._id];
+    if (cached) {
+      setEditTarget({
+        id: p._id,
+        title: p.title,
+        body: cached.body,
+        scope: p.scope,
+      });
+      return;
+    }
+    if (!authToken) return;
+    setEditLoading(p._id);
+    try {
+      const det = await api.getAnnouncement(p._id, authToken);
+      setDetailCache((c) => ({ ...c, [p._id]: det }));
+      setEditTarget({
+        id: p._id,
+        title: p.title,
+        body: det.body,
+        scope: p.scope,
+      });
+    } catch (e) {
+      alert(
+        "お知らせの内容を取得できませんでした。編集を開けません：" +
+          ((e as Error).message || JSON.stringify(e)),
+      );
+    } finally {
+      setEditLoading(null);
+    }
+  };
 
   // ── 一覧 adapt ──
   const adaptList = (data: { items?: AnnouncementBrief[] }): NoticeRow[] => {
@@ -465,13 +504,7 @@ export function InfoPage({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            const d = detailCache[p._id];
-                            setEditTarget({
-                              id: p._id,
-                              title: p.title,
-                              body: d ? d.body : p.body || "",
-                              scope: p.scope,
-                            });
+                            handleEditOpen(p);
                           }}
                           style={{
                             padding: "3px 8px",

@@ -31,7 +31,6 @@ interface OverrideStudent {
 interface OverrideSavePayload {
   status: string;
   reason: string;
-  approveLeave: boolean;
 }
 
 export function OverrideModal({
@@ -48,7 +47,6 @@ export function OverrideModal({
     student.status === "unknown" ? "ok" : student.status,
   );
   const [reason, setReason] = React.useState<string>("");
-  const [approveLeave, setApproveLeave] = React.useState<boolean>(false);
   const needsReason = status !== student.status || student.pending;
   const canSave = !needsReason || reason.trim().length > 0;
 
@@ -151,7 +149,9 @@ export function OverrideModal({
         </div>
 
         <div style={{ padding: "18px 24px" }}>
-          {/* 提出された欠席届の展開 */}
+          {/* 提出済み申請の只読展開 — 原来这里有假的「承認/却下」按钮 + 「保存で
+              確定し学生にプッシュ通知」的伪成功文案，实际从不调审批接口也不发通知
+              （审查 web#5）。审批走申请页的真接口（带审批权限校验），这里只提示 */}
           {student.pending && (
             <div
               style={{
@@ -171,57 +171,25 @@ export function OverrideModal({
                   marginBottom: 6,
                 }}
               >
-                提出された欠席届
+                提出された申請
               </div>
               <div style={{ fontSize: 13, color: T.ink, marginBottom: 8 }}>
                 {student.pending.reason}
               </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: T.ink3,
-                  fontFamily: T.mono,
-                  marginBottom: 10,
-                }}
-              >
-                提出：{student.pending.submittedAt || "19:22"}
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  onClick={() => setApproveLeave(true)}
+              {student.pending.submittedAt && (
+                <div
                   style={{
-                    padding: "7px 14px",
-                    background: approveLeave ? T.ok : T.surface,
-                    color: approveLeave ? "#fff" : T.ok,
-                    border: `1px solid ${T.okBorder}`,
-                    borderRadius: 8,
-                    fontFamily: "inherit",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
+                    fontSize: 11,
+                    color: T.ink3,
+                    fontFamily: T.mono,
+                    marginBottom: 10,
                   }}
                 >
-                  {approveLeave ? "✓ 承認予定" : "承認"}
-                </button>
-                <button
-                  onClick={() => setApproveLeave(false)}
-                  style={{
-                    padding: "7px 14px",
-                    background: "transparent",
-                    color: T.danger,
-                    border: `1px solid ${T.dangerBorder}`,
-                    borderRadius: 8,
-                    fontFamily: "inherit",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  却下
-                </button>
-              </div>
-              <div style={{ fontSize: 10, color: T.ink3, marginTop: 8 }}>
-                ※「保存して反映」を押すと承認・却下が確定し、学生にプッシュ通知が送信されます。
+                  提出：{student.pending.submittedAt}
+                </div>
+              )}
+              <div style={{ fontSize: 11, color: T.ink3 }}>
+                ※承認・却下は「申請」ページで行ってください。
               </div>
             </div>
           )}
@@ -449,7 +417,7 @@ export function OverrideModal({
           </button>
           <button
             disabled={!canSave}
-            onClick={() => onSave({ status, reason, approveLeave })}
+            onClick={() => onSave({ status, reason })}
             style={{
               padding: "9px 20px",
               background: canSave ? T.cobalt : T.lineStrong,

@@ -278,16 +278,32 @@ export function CleaningPage({ authToken }: { authToken: string }) {
                     {item.area}
                   </span>
                 </div>
+                {/* 主信息 = 姓名（房号）— 原来只显 UUID 前 8 位，老师审核时认不出
+                    对象是谁（审查 web#3）。后端旧数据无摘要时退回显示短 ID */}
                 <div
                   style={{
-                    fontSize: 11,
-                    color: T.ink3,
-                    fontFamily: T.mono,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: T.ink,
                     marginBottom: 4,
                   }}
                 >
-                  学生ID：{String(item.student_id).slice(0, 8)}…
+                  {item.student_name
+                    ? `${item.student_name}（${item.room_no || "部屋不明"}）`
+                    : `学生ID：${String(item.student_id).slice(0, 8)}…`}
                 </div>
+                {item.student_no && (
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: T.ink3,
+                      fontFamily: T.mono,
+                      marginBottom: 4,
+                    }}
+                  >
+                    学籍番号：{item.student_no}
+                  </div>
+                )}
                 <div
                   style={{
                     fontSize: 11,

@@ -151,6 +151,10 @@ export interface StudyAbsenceRequestOut {
   decided_by: string | null;
   decided_at: string | null;
   comment: string | null;
+  // 学生摘要（老师一览端点填充）— 老师原来只见 student_id 认不出「谁请哪天假」
+  student_name: string | null;
+  student_no: string | null;
+  room_no: string | null;
 }
 
 // 学習対象名簿 在籍者
@@ -355,6 +359,10 @@ export interface CleaningItem {
   inspected_at: string | null;
   failure_reason: string | null;
   demerit_event_id: string | null;
+  // 学生摘要（老师列表端点填充；学生 /me 自查为 null）— 卡片原来只显 UUID 前 8 位
+  student_name: string | null;
+  student_no: string | null;
+  room_no: string | null;
 }
 
 // 老师排罚扫提交体

@@ -43,12 +43,31 @@ export function StudyAttendancePage({
       if (!opts?.silent) setLoading(true);
       setErr("");
       try {
-        const [todayData, absList] = await Promise.all([
-          api.studyTodayAttendees(authToken),
-          api.absenceRequests(authToken),
-        ]);
+        const todayData = await api.studyTodayAttendees(authToken);
         setToday(todayData);
-        setAbsenceList(absList || []);
+        // 欠席届两路拉取（审查 web#6）：status=pending 全量（只拉今天会漏
+        // 「今天提交、対象日=明天」的待审）+ 対象日=今天含已决（当日上下文）。
+        // 「今天」用后端 target_date 的 JST 口径，不用浏览器本地时区。
+        // allSettled 各自容错——一路失败不拖垮另一路（web#121 同构教训）
+        const [pendRes, todaysRes] = await Promise.allSettled([
+          api.absenceRequests(authToken, undefined, "pending"),
+          api.absenceRequests(authToken, todayData.target_date),
+        ]);
+        const merged: StudyAbsenceRequestOut[] = [];
+        const seen = new Set<string>();
+        for (const res of [pendRes, todaysRes]) {
+          if (res.status !== "fulfilled") continue;
+          for (const a of res.value || []) {
+            if (seen.has(a.id)) continue;
+            seen.add(a.id);
+            merged.push(a);
+          }
+        }
+        if (pendRes.status === "rejected" && todaysRes.status === "rejected") {
+          throw pendRes.reason;
+        }
+        merged.sort((x, y) => x.submitted_at.localeCompare(y.submitted_at));
+        setAbsenceList(merged);
       } catch (e) {
         if (opts?.silent) return; // 静默自动刷新失败时不弹错误盖住界面，下次轮询再试
         const ex = e as { status?: number };
@@ -694,7 +713,7 @@ export function StudyAttendancePage({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 100px 140px 200px",
+              gridTemplateColumns: "170px 100px 64px 1fr 90px 140px 170px",
               background: T.surfaceAlt,
               color: T.ink2,
               fontSize: 11,
@@ -703,11 +722,13 @@ export function StudyAttendancePage({
               borderBottom: `1px solid ${T.line}`,
             }}
           >
-            {["理由", "状態", "提出時刻", "操作"].map((h) => (
-              <div key={h} style={{ padding: "10px 14px" }}>
-                {h}
-              </div>
-            ))}
+            {["学生", "対象日", "期間", "理由", "状態", "提出時刻", "操作"].map(
+              (h) => (
+                <div key={h} style={{ padding: "10px 14px" }}>
+                  {h}
+                </div>
+              ),
+            )}
           </div>
           {(absenceList || []).length === 0 && (
             <div
@@ -726,12 +747,53 @@ export function StudyAttendancePage({
               key={a.id}
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 100px 140px 200px",
+                gridTemplateColumns: "170px 100px 64px 1fr 90px 140px 170px",
                 borderTop: i > 0 ? `1px solid ${T.line}` : "none",
                 alignItems: "center",
                 fontSize: 13,
               }}
             >
+              {/* 学生 / 対象日 / 期間 — 原来这三列都没有，老师看不到「谁请
+                  哪天哪一段的假」就能点承認/却下（审查 web#6 误批风险） */}
+              <div style={{ padding: "10px 14px" }}>
+                {a.student_name ? (
+                  <>
+                    <div style={{ fontWeight: 600 }}>{a.student_name}</div>
+                    {a.student_no && (
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: T.ink3,
+                          fontFamily: T.mono,
+                        }}
+                      >
+                        {a.student_no}
+                        {a.room_no ? ` · ${a.room_no}` : ""}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <span style={{ fontFamily: T.mono, fontSize: 11 }}>
+                    {String(a.student_id).slice(0, 8)}…
+                  </span>
+                )}
+              </div>
+              <div
+                style={{
+                  padding: "10px 14px",
+                  fontFamily: T.mono,
+                  fontSize: 12,
+                }}
+              >
+                {a.target_date}
+              </div>
+              <div style={{ padding: "10px 14px", fontSize: 12 }}>
+                {a.period === "first_half"
+                  ? "前半"
+                  : a.period === "second_half"
+                    ? "後半"
+                    : "全日"}
+              </div>
               <div style={{ padding: "10px 14px" }}>{a.reason}</div>
               <div style={{ padding: "10px 14px" }}>
                 <span
