@@ -57,6 +57,12 @@ def upgrade() -> None:
             name="ck_creport_type",
         ),
         sa.CheckConstraint("status IN ('open','handled')", name="ck_creport_status"),
+        sa.UniqueConstraint(
+            "content_type",
+            "content_id",
+            "reporter_student_id",
+            name="uq_creport_target_reporter",
+        ),
     )
     op.create_index("ix_content_reports_content_id", "content_reports", ["content_id"])
     op.create_index(

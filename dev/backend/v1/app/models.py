@@ -1682,6 +1682,13 @@ class ContentReport(Base):
         ),
         CheckConstraint("status IN ('open','handled')", name="ck_creport_status"),
         Index("idx_creport_status_created", "status", "created_at"),
+        # 同一学生对同一投稿只留一条通報 — 应用层 check-then-insert 的并发兜底
+        UniqueConstraint(
+            "content_type",
+            "content_id",
+            "reporter_student_id",
+            name="uq_creport_target_reporter",
+        ),
     )
 
 

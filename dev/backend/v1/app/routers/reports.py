@@ -13,6 +13,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -22,28 +23,43 @@ from ..deps import get_current_student, get_current_teacher
 router = APIRouter(prefix="/api/v1/reports", tags=["reports"])
 
 
-def _load_target(db: Session, content_type: str, content_id: UUID):
-    """取被通報的投稿行；不存在或已删返回 None。"""
+def _load_target(db: Session, content_type: str, content_id: UUID, is_demo: bool):
+    """取被通報的投稿行；不存在 / 已删 / 与通報人不同演示侧 返回 None。
+
+    演示写隔离（对齐 deps.assert_student_demo_match 的威胁模型）：
+    演示学生只能通報演示侧投稿、真实学生只能通報真实侧 — 跨侧当作不存在，
+    防跨侧通報把对面内容摘要带进错误侧老师的通報一覧（信息泄漏 + 连锁误删）。
+    """
     if content_type == "song":
         row = db.get(models.SongRequest, content_id)
-        return row if row and row.deleted_at is None else None
+        if not row or row.deleted_at is not None:
+            return None
+        author = db.get(models.Student, row.student_id)
+        return row if author and author.is_demo == is_demo else None
     if content_type == "announcement_reply":
         row = db.get(models.AnnouncementReply, content_id)
-        return row if row and row.deleted_at is None else None
+        if not row or row.deleted_at is not None:
+            return None
+        # 回复的侧别跟着父公告走（照 announcements.py 删回复的既有隔离写法）
+        parent = db.get(models.Announcement, row.announcement_id)
+        return row if parent and parent.is_demo == is_demo else None
     row = db.get(models.LostFoundPost, content_id)
-    return row if row and row.deleted_at is None else None
+    if not row or row.deleted_at is not None:
+        return None
+    author = db.get(models.Student, row.student_id)
+    return row if author and author.is_demo == is_demo else None
 
 
 def _preview(db: Session, content_type: str, content_id: UUID) -> Optional[str]:
-    """老师一覧用的内容摘要（前 80 字）。投稿已被删/不存在返回 None。"""
+    """老师一覧用的内容摘要（前 80 字）。投稿已被删/不存在返回 None（软删后一覧显「已删除」占位）。"""
     if content_type == "song":
         row = db.get(models.SongRequest, content_id)
-        return row.song_title[:80] if row else None
+        return row.song_title[:80] if row and row.deleted_at is None else None
     if content_type == "announcement_reply":
         row = db.get(models.AnnouncementReply, content_id)
-        return row.body[:80] if row else None
+        return row.body[:80] if row and row.deleted_at is None else None
     row = db.get(models.LostFoundPost, content_id)
-    return row.item_name[:80] if row else None
+    return row.item_name[:80] if row and row.deleted_at is None else None
 
 
 def _parent_id(db: Session, content_type: str, content_id: UUID) -> Optional[UUID]:
@@ -60,8 +76,8 @@ def create_report(
     student: models.Student = Depends(get_current_student),
     db: Session = Depends(get_db),
 ):
-    """学生通報一条投稿。目标不存在 / 已被删 → 404。"""
-    if _load_target(db, body.content_type, body.content_id) is None:
+    """学生通報一条投稿。目标不存在 / 已被删 / 跨演示侧 → 404。"""
+    if _load_target(db, body.content_type, body.content_id, student.is_demo) is None:
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "対象の投稿が見つかりません"}
         )
@@ -82,7 +98,21 @@ def create_report(
         reason=body.reason,
     )
     db.add(row)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # 并发双击撞上唯一约束 uq_creport_target_reporter → 回滚后返回既有记录（幂等语义不变）
+        db.rollback()
+        existing = db.scalars(
+            select(models.ContentReport).where(
+                models.ContentReport.content_type == body.content_type,
+                models.ContentReport.content_id == body.content_id,
+                models.ContentReport.reporter_student_id == student.id,
+            )
+        ).first()
+        if existing:
+            return schemas.ContentReportOut.model_validate(existing)
+        raise
     db.refresh(row)
     return schemas.ContentReportOut.model_validate(row)
 
@@ -129,6 +159,12 @@ def handle_report(
     """老师标记通報处理完（删了投稿、或判定无问题都算处理完）。"""
     row = db.get(models.ContentReport, report_id)
     if not row:
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "通報が見つかりません"}
+        )
+    # 演示写隔离：通報跟着通報人的侧别走，跨侧当作不存在 404（防拿到 UUID 就能标对面通報）
+    reporter = db.get(models.Student, row.reporter_student_id)
+    if reporter is None or reporter.is_demo != teacher.is_demo:
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "通報が見つかりません"}
         )

@@ -17,7 +17,12 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..deps import get_current_principal, get_current_student, get_current_teacher
+from ..deps import (
+    assert_student_demo_match,
+    get_current_principal,
+    get_current_student,
+    get_current_teacher,
+)
 
 router = APIRouter(prefix="/api/v1/songs", tags=["songs"])
 
@@ -87,5 +92,12 @@ def delete_song_request(
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "投稿が見つかりません"}
         )
+    # 演示写隔离：演示老师只能删演示学生的投稿（反之亦然），跨侧当作不存在 404
+    author = db.get(models.Student, row.student_id)
+    if author is None:
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "投稿が見つかりません"}
+        )
+    assert_student_demo_match(teacher, author)
     row.deleted_at = datetime.now(timezone.utc)
     db.commit()
