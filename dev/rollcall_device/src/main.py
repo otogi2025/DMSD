@@ -28,7 +28,7 @@ import httpx
 from . import config as config_mod
 from .api.auth import AuthError, AuthManager, DeviceKey
 from .api.client import ApiClient
-from .api.envelope import ApiResponse, NetworkError
+from .api.envelope import AUTH_ERROR_CODES, ApiResponse, NetworkError
 from .api.ws import WsClient
 from .audio.player import Tone
 from .config import Config
@@ -117,6 +117,8 @@ class RollCallDevice:
         self._stop = threading.Event()
         self._debouncer = UidDebouncer(window=2.0)
         self._threads: list[threading.Thread] = []
+        # 补传中是否撞到鉴权失败（_replay_once 置位，_try_replay_queue 据此刷令牌重试）
+        self._replay_saw_auth = False
 
     # --------------------------- 生命周期 ---------------------------
 
@@ -316,14 +318,49 @@ class RollCallDevice:
             logger.warning("上报网络失败，转离线队列：%s", exc)
             self._handle_offline(event, body)
             return
+        except AuthError as exc:
+            # 取令牌被后端明确拒绝（enroll 失效 / 设备停用等）。签到还没发出去，
+            # 入队保数据（swipe_time 已盖在 body 里），令牌恢复后由补传送达。
+            # 不捕的话异常冒到 _consume_loop 笼统 except → LED 卡 PROCESSING、签到丢失
+            logger.warning("取令牌被拒，签到已入队待补传：%s", exc)
+            self._auth.invalidate()
+            self._handle_auth_deferred(body)
+            return
+        if not resp.ok and (resp.error_code or "") in AUTH_ERROR_CODES:
+            # 契约 §9 鉴权类「记日志重试令牌」：刷新令牌后同 body 重发一次，仍失败
+            # 则入队——鉴权失败永不丢签到。整段自捕 AuthError/NetworkError：重试
+            # 路径里 ensure_token / 重发的 auth_header 同样会抛 AuthError，任何一步
+            # 都不得冒泡出本方法
+            self._auth.invalidate()
+            try:
+                self._auth.ensure_token()
+                resp = self._api.post_checkin(body)
+            except NetworkError as exc:
+                logger.warning("鉴权重试遇网络失败，转离线队列：%s", exc)
+                self._handle_offline(event, body)
+                return
+            except AuthError as exc:
+                logger.warning("刷新令牌仍被拒，签到已入队待补传：%s", exc)
+                self._auth.invalidate()
+                self._handle_auth_deferred(body)
+                return
+            if not resp.ok and (resp.error_code or "") in AUTH_ERROR_CODES:
+                logger.warning(
+                    "重试后仍鉴权失败（%s），签到已入队待补传", resp.error_code
+                )
+                self._auth.invalidate()
+                self._handle_auth_deferred(body)
+                return
         fb = for_response(resp.ok, resp.data, resp.error_code)
         self._apply_feedback(fb)
-        if fb.led == LedState.AUTH_ERROR:
-            # 令牌被拒 → 作废，下次调用自动换新
-            self._auth.invalidate()
-        else:
-            # 在线成功一次 → 顺手补传离线队列
-            self._try_replay_queue()
+        # 鉴权码已在上方全部消化，走到这里的都是成功 / 业务错误 → 顺手补传离线队列
+        self._try_replay_queue()
+
+    def _handle_auth_deferred(self, body: dict) -> None:
+        # 鉴权失败的兜底：入队保签到 + 白灯（契约 §9 鉴权类反馈——设备自身问题，
+        # 不给绿灯：设备被停用时绿灯会让学生误以为签到成功）
+        self._queue.enqueue(body)
+        self._apply_feedback(Feedback(led=LedState.AUTH_ERROR, tone=None))
 
     def _handle_offline(self, event: CheckinEvent, body: dict) -> None:
         # 契约 §6.1：POST 失败一律入队（含原始 swipe_time）
@@ -357,19 +394,40 @@ class RollCallDevice:
     def _try_replay_queue(self) -> None:
         if self._queue.count() == 0:
             return
+        removed = self._replay_once()
+        # 补传中撞鉴权失败（STOP_AUTH 停轮、条目保留）→ 刷新令牌后再补一轮，
+        # 仅一次：令牌反复被拒（设备停用等）时不能变成重放风暴。刷新失败则
+        # 保留队列，等下次在线成功再触发
+        if self._replay_saw_auth:
+            self._auth.invalidate()
+            try:
+                self._auth.ensure_token()
+            except (AuthError, NetworkError) as exc:
+                logger.warning("补传刷新令牌失败，本轮放弃：%s", exc)
+                return
+            removed += self._replay_once()
+        if removed:
+            logger.info(
+                "离线队列补传成功 %d 条，剩 %d 条", removed, self._queue.count()
+            )
+
+    def _replay_once(self) -> int:
+        self._replay_saw_auth = False
 
         def sender(body: dict):
             try:
                 resp = self._api.post_checkin(body)
             except NetworkError:
                 return None  # 网络未通 → 停止本轮
+            except AuthError:
+                # 补传中取令牌被拒：语义同鉴权失败 → 标记后停轮（条目保留）
+                self._replay_saw_auth = True
+                return None
+            if not resp.ok and (resp.error_code or "") in AUTH_ERROR_CODES:
+                self._replay_saw_auth = True
             return resp.ok, resp.error_code
 
-        removed = self._queue.replay(sender)
-        if removed:
-            logger.info(
-                "离线队列补传成功 %d 条，剩 %d 条", removed, self._queue.count()
-            )
+        return self._queue.replay(sender)
 
     # --------------------------- 名单 / 音频刷新 ---------------------------
 

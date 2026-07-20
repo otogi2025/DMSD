@@ -191,18 +191,28 @@ class ST25DV(MailboxReader):
             pass
 
 
+# GPO 漏边沿兜底轮询间隔（秒）—— 未见触发标志时也按此间隔走一次 I²C 确认。
+# GPO 只是「加速唤醒」，不能作唯一读条件：边沿抖动 / 上电时序 / gpiozero 回调丢失 /
+# 接触不良时漏一个下降沿，邮箱载荷就永久漏读（路径 B 签到静默丢失、现场难排障）
+GPO_FALLBACK_POLL_S = 1.0
+
+
 class MailboxGpoReader(MailboxReader):
     """GPO 中断 + I²C 读取组合。
 
     GPO 引脚是开漏「门铃」：手机写入邮箱时被拉低。用 gpiozero 监听下降沿设标志位，
-    `poll()` 见到标志才走 I²C 读，避免高频空转 I²C 总线。接线说明 §3：外部 10kΩ 上拉到
-    3.3V + 代码内部上拉（PUD_UP）兜底。
+    `poll()` 见到标志立即走 I²C 读；未见标志时按 GPO_FALLBACK_POLL_S 间隔低频兜底
+    确认（I²C 从主循环 20Hz 降到 1Hz，仍避免高频空转总线）。接线说明 §3：外部
+    10kΩ 上拉到 3.3V + 代码内部上拉（PUD_UP）兜底。
     """
 
     def __init__(self, st25dv: ST25DV, gpo_pin: int) -> None:
         self._st25dv = st25dv
         self._triggered = False
         self._button = None
+        # monotonic 时刻（不用墙钟：NTP 对时完成时墙钟会阶跃，打乱间隔计算）。
+        # 初值 0 → 启动后首次 poll 即兜底一次，扫掉上电前滞留在邮箱里的载荷
+        self._last_i2c = 0.0
         try:
             from gpiozero import Button  # type: ignore
 
@@ -218,10 +228,13 @@ class MailboxGpoReader(MailboxReader):
 
     def poll(self) -> bytes | None:
         if self._button is not None:
-            if not self._triggered:
+            now = time.monotonic()
+            if self._triggered:
+                self._triggered = False
+            elif now - self._last_i2c < GPO_FALLBACK_POLL_S:
                 return None
-            self._triggered = False
-        # GPO 触发（或无 GPIO 时每次都试）→ 走 I²C 确认并读取
+            self._last_i2c = now
+        # GPO 触发 / 到达兜底时刻（或无 GPIO 时每次都试）→ 走 I²C 确认并读取
         return self._st25dv.poll()
 
     def close(self) -> None:

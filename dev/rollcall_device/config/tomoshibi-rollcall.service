@@ -5,9 +5,12 @@
 
 [Unit]
 Description=Tomoshibi 点呼机主程序
-# 等网络就绪 + 系统时钟对时完成（swipe_time 判定依赖 NTP 校准，契约 §3）
+# 等网络就绪 + 系统时钟对时完成（swipe_time 判定依赖 NTP 校准，契约 §3）。
+# time-sync.target 必须同时进 Wants：只写 After 而不把它拉进启动事务的话，
+# 排序是空转的（target 不被拉起就谈不上「排在它后面」）。不用 Requires——
+# 对时单元异常不该拖死离线点呼这个核心能力
 After=network-online.target time-sync.target
-Wants=network-online.target
+Wants=network-online.target time-sync.target
 
 [Service]
 Type=simple
