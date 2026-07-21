@@ -150,7 +150,9 @@ def create_account(
         )
 
     # 4. email 查重（email 是 optional 字段）
-    # 大小写不敏感，与 login_student 邮箱查找口径一致；存库仍用客户端原样（不强制 lower）。
+    # 查重键 strip + lower（大小写不敏感，与 login_student 邮箱查找口径一致）；
+    # 存库同样 strip（见下方 email=body.email.strip()）但不 lower —— 保留客户端大小写，
+    # 靠 lower(email) 唯一索引兜大小写重复。strip 存/查两侧一致，防带空白值绕过索引（backend#20）。
     if body.email:
         email_key = body.email.strip().lower()
         existing_email = db.scalars(

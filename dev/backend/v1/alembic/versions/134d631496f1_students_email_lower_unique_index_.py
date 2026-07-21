@@ -27,10 +27,13 @@ def upgrade() -> None:
     ⚠️ 若生产库已存在大小写重合的重复 email,本迁移会因唯一冲突失败——部署前需先清理重复。
     NULL 值不受唯一约束(lower(NULL)=NULL),多个空邮箱允许并存。
     """
-    # 审查 backend#20：空串邮箱 '' 不是 NULL，lower('')='' 会互相冲突 → 历史遗留多条 email=''
-    # 的行会让下面建唯一索引直接失败。建索引前先把空串归一成 NULL（与应用层「空 email 存 NULL」
-    # 口径一致），既免冲突又让多个「没填邮箱」的学生合法并存。
-    op.execute("UPDATE students SET email = NULL WHERE email = ''")
+    # 审查 backend#20：空串 / 纯空白邮箱不是 NULL，lower('')='' / lower('  ')='  ' 会让同值行
+    # 互相冲突 → 历史遗留多条这类行会让下面建唯一索引直接失败。建索引前先把「trim 后为空」的
+    # 邮箱归一成 NULL（与应用层「空 email 存 NULL」口径一致；trim() 跨 SQLite/PG 都支持），
+    # 既免冲突又让多个「没填邮箱」的学生合法并存。终审 minor：从 email='' 扩到 trim(email)='' 兜纯空白。
+    op.execute(
+        "UPDATE students SET email = NULL WHERE email IS NOT NULL AND trim(email) = ''"
+    )
     op.create_index(
         "uq_students_email_lower",
         "students",
