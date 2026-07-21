@@ -1662,8 +1662,8 @@ struct RollcallSheet: View {
                 .foregroundStyle(T.ink)
                 .padding(.bottom, 10)
 
-            // ios#45：架构已从「读 NFC」改为「写 ST25DV」，失败文案跟进
-            Text("NFC への書き込みに失敗しました")
+            // ios#45：架构已从「读 NFC」改为「写 ST25DV」，失败文案跟进；副标题给操作指引不重复标题（jp-reviewer）
+            Text("もう一度カードをかざしてください")
                 .font(.system(size: 13))
                 .foregroundStyle(T.inkSub)
                 .padding(.bottom, 22)
@@ -2063,8 +2063,8 @@ struct StudyCheckinSheet: View {
                 .foregroundStyle(T.ink)
                 .padding(.bottom, 10)
 
-            // ios#45：架构已从「读 NFC」改为「写 ST25DV」，失败文案跟进
-            Text("NFC への書き込みに失敗しました")
+            // ios#45：架构已从「读 NFC」改为「写 ST25DV」，失败文案跟进；副标题给操作指引不重复标题（jp-reviewer）
+            Text("もう一度カードをかざしてください")
                 .font(.system(size: 13))
                 .foregroundStyle(T.inkSub)
                 .padding(.bottom, 22)
