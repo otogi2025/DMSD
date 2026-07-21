@@ -1737,3 +1737,13 @@ A3 上架清单 A-1/A-2 落地（spec v1.0 §2.2「点呼入口占位、不得�
 **复审（grok+opus 双票 + jp-reviewer）**：grok 只读复审判 0 阻塞；1 重大 + 1 次要均为 iOS 表单 401 分支缺 `tokenAtStart` 竞态守卫——经核实属既有全端 ~9 处同款模式、不在 568 清单、非 S6 引入，记 TODO §B「401 竞态守卫全端统一」专项、不 piecemeal 修。jp-reviewer 审 10 条新增日语 0 硬错误 0 违反已拍板，确认「却下/差し戻し/要修正」三分法 + 「利用停止」软删表述自然，采纳 1 润色（#45 副标题）。
 
 验证：双 scheme BUILD SUCCEEDED（生产 #else + 演示 #if DEMO 两条分支）+ 32 tests 4 套件 passed。
+
+## §38 审查 S12 iOS low 65 条（2026-07-22，commit `b2aa157` + `751a519`）
+
+五端 568 条修复计划第 12 场。7 代理并行只读分类 66 候选 = 65 LIVE / 1 已修（ios#40）。6 批 grok-4.5-high 文件不相交并行下笔 + 主控裁决验证。
+
+**分组**：过时注释订正（多处「mock/未実装/后端 B 未到位」指向现已接真 API 的路径、旧行号/角色名/枚举值 未完了→未完成 / 8→12 APPLY_TYPES / SEED.user→app.displayUser、串行误标「并行」）；死代码/死参数删除（roleBg/roleFg、MealCheckbox、未用图标、rail prevDone、Array subscript(safe:)、popupRow showChev、StudyAttendance.yellow/.excused 等零引用）；重复 helper 合并（kindIcon→ApplicationKind.icon、ApplicationStatus.fromSeed→fromBackend、radioChip→HomeRadioChip、DateFormatter 提 static）；JST（nowJaString/fmtNow/logFormatter/notifTimeFormatter 加 Asia/Tokyo、StudyAPI uuidString.lowercased()）；逻辑守卫（提交按钮 isSubmitting+「送信中…」、reason/机场/邮箱 trim 判空、upload unauthorized 补 picked=nil、authToken 清 nil 同步 removeObject(tokenExpiry)、view body 顶部计算一次求值再派生）；**ios#93 AppStore.loadMe 6 路拉取串行→`async let` 并发**（@MainActor 隔离无数据竞争、令牌代次守卫 3 处保留、单路失败不拖垮）。
+
+**双票对抗复审（grok+opus 背对背只读）**：均 0 阻塞 0 重大。opus 详验 async let（@MainActor 状态写入串行化、只网络 await 段并发、令牌守卫 line 265/284/320 全保留、两批 async let 全消费无悬挂）+ 死码删除+helper 合并逐一确认行为等价。仅 2 处注释次要：ApplyStubs misc 注释「后端仅 create 缺 list/detail」不准（实有 GET /misc-requests/mine 一览、只缺单条 detail）、ApplyFormSupport parseHM 注释引用已删的 StayForm.parseHM——均改准（`751a519`）。裁决修 grok 编译错：CommunityStubs lostCell 加 let 后 some View 须显式 return。defer：ios#10 ApplyFormSupport.ApplyDateField 补 maxDate 后才能彻底收敛 DateField 去重（跨文件低价值 DRY，记 carry-forward）。
+
+验证：xcodebuild 双 scheme（TomoshibiApp + TomoshibiAppDemo，iPhone 17 Pro）均 BUILD SUCCEEDED。
