@@ -154,9 +154,16 @@ def login_student(
                 )
                 account.lock_level = (account.lock_level or 0) + 1
             db.commit()
+        # 只按登录方式分文案（学号登录 vs 邮箱登录），不按「哪个字段错」分——防账号枚举侧信道。
+        # 学号显示词统一用「アカウント番号」（6-16 拍板，iOS AuthStubs / Android LoginScreen 已用同款），
+        # backend 这条原写「学籍番号」是拍板前旧词，与两端对齐改过来。
+        if body.student_no:
+            fail_message = "アカウント番号またはパスワードが正しくありません"
+        else:
+            fail_message = "メールアドレスまたはパスワードが正しくありません"
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "INVALID_CREDENTIALS", "message": "学号 or 密码が違います"},
+            detail={"code": "INVALID_CREDENTIALS", "message": fail_message},
         )
 
     if student.status != "active":
@@ -257,7 +264,10 @@ def login_teacher(
             db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "INVALID_CREDENTIALS", "message": "ID or 密码が違います"},
+            detail={
+                "code": "INVALID_CREDENTIALS",
+                "message": "IDまたはパスワードが正しくありません",
+            },
         )
     if teacher.status != "active":
         raise HTTPException(

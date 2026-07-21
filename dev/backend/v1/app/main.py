@@ -35,7 +35,6 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -236,11 +235,25 @@ app.state.limiter = limiter
 # slowapi 中间件：拦截超限请求、触发 RateLimitExceeded 异常
 app.add_middleware(SlowAPIMiddleware)
 
-# 限速超限 → 统一 429 JSON 响应（slowapi 内置处理器）
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# ── 失败信封：异常处理器（契约 §1 / §14 / §15）──────────────────────────────
 
 
-# ── 失败信封：3 个异常处理器（契约 §1 / §14 / §15）──────────────────────────
+@app.exception_handler(RateLimitExceeded)
+def rate_limit_exceeded_handler(
+    request: Request, exc: RateLimitExceeded
+) -> JSONResponse:
+    """限速超限 → 统一信封 429（替代 slowapi 默认英文非信封体）。"""
+    response = JSONResponse(
+        status_code=429,
+        content=build_error_body(
+            code="RATE_LIMITED",
+            message="リクエストが多すぎます。しばらくしてから再度お試しください",
+        ),
+    )
+    # 保留 slowapi 注入的限流响应头（含 Retry-After）
+    return request.app.state.limiter._inject_headers(
+        response, getattr(request.state, "view_rate_limit", None)
+    )
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -291,7 +304,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         status_code=500,
         content=build_error_body(
             code="INTERNAL",
-            message="系统繁忙，请稍后重试",
+            message="システムが混み合っています。しばらくしてから再度お試しください",
         ),
     )
 

@@ -228,7 +228,7 @@ def create_manual_demerit(
     if not student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "STUDENT_NOT_FOUND", "message": "学生不存在"},
+            detail={"code": "STUDENT_NOT_FOUND", "message": "学生が見つかりません"},
         )
     # 演示写隔离：演示老师只能给演示学生扣分（真老师反之），否则 404
     assert_student_demo_match(teacher, student)
@@ -331,7 +331,7 @@ def revoke_demerit(
     if not event:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "EVENT_NOT_FOUND", "message": "扣分事件不存在"},
+            detail={"code": "EVENT_NOT_FOUND", "message": "減点記録が見つかりません"},
         )
     # R4 寮边界：通过扣分事件找对应学生，寮監只能撤销本寮学生的扣分
     student = db.get(models.Student, event.student_id)
@@ -373,7 +373,10 @@ def revoke_demerit(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail={"code": "ALREADY_REVOKED", "message": "该事件已被撤销"},
+            detail={
+                "code": "ALREADY_REVOKED",
+                "message": "この記録は既に取り消し済みです",
+            },
         )
     db.refresh(event)
     # 撤销「清扫不通过」扣分要联动退回清扫单状态，否则 CleaningPage 仍显示
