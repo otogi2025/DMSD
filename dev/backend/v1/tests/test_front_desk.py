@@ -201,6 +201,10 @@ def test_list_now_shows_all_dorms(client, seed_data, db_session):
     """GET /front-desk 寮过滤已取消 2026-06-13：所有老师看全部寮的条目。
     - 男寮 scope 老师（tannin assigned_dorm=1）现在也能看到女寮学生的条目
     - 跨寮老师（寮務課長 assigned_dorm=None）看全部（不变）
+
+    注：下方前两段用「不带 selected_dorm 的令牌」= 未选寮兼容路径（dorm_units 恒返全集），
+    锁不住 6-18 选寮过滤本身；末尾另加带 selected_dorm=4 的令牌验证选寮真把视图缩到该寮
+    （审查 backend#61）。选寮是「今晚负责哪个寮」的视图缩放，200 过滤、不是 403 权限门。
     """
     male_student = seed_data["student"]  # dorm_unit=1（男寮）
     teacher = seed_data["teachers"]["ryomu_kachou"]  # 登记人
@@ -262,6 +266,29 @@ def test_list_now_shows_all_dorms(client, seed_data, db_session):
     assert res2.status_code == 200, res2.text
     descs2 = {i["description"] for i in res2.json()["data"]}
     assert {"男寮の荷物", "女寮の荷物", "無主の忘れ物"} <= descs2
+
+    # 审查 backend#61：带 selected_dorm=4 的令牌（老师登录时选「今晚负责女寮」）→ 视图缩到
+    # 寮4。女寮条目 + 无主条目可见，男寮条目被缩放过滤掉。这锁的是 6-18 选寮过滤的真实行为
+    # （200 过滤、非 403 权限门；跨寮的 A 方案角色限制属第二波、本处不测）。
+    res_login = client.post(
+        "/api/v1/sessions/teacher",
+        json={
+            "login_id": "tannin",
+            "password": "test-password-12345",
+            "selected_dorm": 4,
+        },
+    )
+    assert res_login.status_code == 200, res_login.text
+    scoped_token = res_login.json()["data"]["access_token"]
+    res3 = client.get(
+        "/api/v1/front-desk",
+        headers={"Authorization": f"Bearer {scoped_token}"},
+    )
+    assert res3.status_code == 200, res3.text
+    descs3 = {i["description"] for i in res3.json()["data"]}
+    assert "女寮の荷物" in descs3  # 选中的女寮条目可见
+    assert "無主の忘れ物" in descs3  # 无主条目不受选寮影响,仍可见
+    assert "男寮の荷物" not in descs3  # 选女寮后男寮条目被缩放过滤掉
 
 
 def test_search_recipients_ryokan_can_access_all_dorms(client, seed_data, db_session):

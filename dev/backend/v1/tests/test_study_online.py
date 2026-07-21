@@ -286,7 +286,12 @@ class TestDownloadContract:
     def test_cross_dorm_teacher_now_allowed(
         self, client, student_token, female_dorm_teacher_token
     ):
-        """寮过滤已取消 2026-06-13：女寮老师下载男寮学生的契約書 → 现在允许。"""
+        """寮过滤已取消 2026-06-13：女寮老师【未选寮】下载男寮学生的契約書 → 现在允许。
+
+        注：female_dorm_teacher_token 登录不带 selected_dorm → dorm_units 恒返全集（None）=
+        未选寮兼容路径，只测到「全局取消寮过滤」，锁不住 6-18 选寮过滤本身。选寮后的 enforce
+        由下方 test_cross_dorm_teacher_selected_dorm_403 覆盖（审查 backend#59）。
+        """
         rid = _create_request(client, student_token)
         _upload(client, student_token, rid)
         res = client.get(
@@ -294,6 +299,35 @@ class TestDownloadContract:
             headers={"Authorization": f"Bearer {female_dorm_teacher_token}"},
         )
         assert res.status_code == 200, res.text
+
+    def test_cross_dorm_teacher_selected_dorm_403(
+        self, client, student_token, female_dorm_teacher_token
+    ):
+        """审查 backend#59：女寮老师【登录时选了女寮 selected_dorm=4】下载男寮学生契約書 → 403。
+
+        与上面 test_cross_dorm_teacher_now_allowed（未选寮=兼容路径 dorm_units 全集→200）对照：
+        选寮后 dorm_units_for_teacher 缩到 [4]，download_contract 的寮检查命中 FORBIDDEN_DORM。
+        锁的是 6-18 选寮过滤在单资源下载上的真实 enforce（视图缩放的选寮，非第二波 A 方案角色限制）。
+        """
+        # female_dorm_teacher_token fixture 已建 onna_sensei（assigned_dorm=4）；这里带 selected_dorm 重登
+        rid = _create_request(client, student_token)  # 男寮（dorm_unit=1）学生的申请
+        _upload(client, student_token, rid)
+        relogin = client.post(
+            "/api/v1/sessions/teacher",
+            json={
+                "login_id": "onna_sensei",
+                "password": "test-password-12345",
+                "selected_dorm": 4,
+            },
+        )
+        assert relogin.status_code == 200, relogin.text
+        scoped = relogin.json()["data"]["access_token"]
+        res = client.get(
+            f"/api/v1/study/online-requests/{rid}/contract",
+            headers={"Authorization": f"Bearer {scoped}"},
+        )
+        assert res.status_code == 403, res.text
+        assert res.json()["error"]["code"] == "FORBIDDEN_DORM"
 
 
 class TestListCrossDorm:
