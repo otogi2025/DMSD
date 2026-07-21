@@ -406,6 +406,8 @@ enum EventMapper {
     /// - time：有 start_at 就按日本时区格式成 "HH:mm"，没有就空字符串（日历行不显示时刻）。
     /// - place：后端 EventOut 没有「场所」字段，统一留空（详情页里也不会画场所行）。
     /// - desc：用后端 description，空则空串。
+    /// - id：直接用后端 `EventOut.id.uuidString`（ios#67：EventItem 现有稳定 id 字段，
+    ///   不再用 date+title 当 id，避免同日同名事件碰撞）。
     static func map(_ outs: [EventOut]) -> [EventItem] {
         let timeFmt = DateFormatter()
         timeFmt.locale = Locale(identifier: "en_US_POSIX")
@@ -414,6 +416,7 @@ enum EventMapper {
 
         return outs.map { o in
             EventItem(
+                id: o.id.uuidString,
                 date: o.event_date,
                 time: o.start_at.map { timeFmt.string(from: $0) } ?? "",
                 title: o.title,

@@ -451,17 +451,59 @@ struct StudentNotificationFeedOut: Decodable {
 
 /// backend 用 `dict[str, Any]` 返的字段用的薄 Codable wrapper。
 /// stay_locations / meals_skip / audit payload 等形状松散的字段在用。
-/// 比较用：保留原值字符串化后的内容。
+/// 对象/数组递归保留子树（不再塌成空串）；`.value` 对标量返回字符串、对对象/数组返回 JSON 片段，兼容现有 `?.value` 消费方。
 struct AnyJSON: Decodable, Hashable {
-    let value: String
+    enum Storage: Hashable {
+        case string(String)
+        case int(Int)
+        case double(Double)
+        case bool(Bool)
+        case object([String: AnyJSON])
+        case array([AnyJSON])
+        case null
+    }
+
+    let storage: Storage
+
+    /// 标量 → 字符串；null → ""；对象/数组 → JSON 片段字符串（兼容 StayList 等现有 `.value` 读法）
+    var value: String {
+        switch storage {
+        case let .string(s): return s
+        case let .int(i): return String(i)
+        case let .double(d): return String(d)
+        case let .bool(b): return String(b)
+        case .null: return ""
+        case .object, .array:
+            let obj = jsonObject
+            guard JSONSerialization.isValidJSONObject(obj),
+                  let data = try? JSONSerialization.data(withJSONObject: obj, options: [.sortedKeys]),
+                  let s = String(data: data, encoding: .utf8) else { return "" }
+            return s
+        }
+    }
+
+    /// 给 JSONSerialization 用的 Foundation 对象树
+    private var jsonObject: Any {
+        switch storage {
+        case let .string(s): return s
+        case let .int(i): return i
+        case let .double(d): return d
+        case let .bool(b): return b
+        case .null: return NSNull()
+        case let .object(o): return o.mapValues { $0.jsonObject }
+        case let .array(a): return a.map { $0.jsonObject }
+        }
+    }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.singleValueContainer()
-        if let s = try? c.decode(String.self) { value = s }
-        else if let i = try? c.decode(Int.self) { value = String(i) }
-        else if let d = try? c.decode(Double.self) { value = String(d) }
-        else if let b = try? c.decode(Bool.self) { value = String(b) }
-        else if c.decodeNil() { value = "" }
-        else { value = "" }
+        if let s = try? c.decode(String.self) { storage = .string(s) }
+        else if let i = try? c.decode(Int.self) { storage = .int(i) }
+        else if let d = try? c.decode(Double.self) { storage = .double(d) }
+        else if let b = try? c.decode(Bool.self) { storage = .bool(b) }
+        else if c.decodeNil() { storage = .null }
+        else if let o = try? c.decode([String: AnyJSON].self) { storage = .object(o) }
+        else if let a = try? c.decode([AnyJSON].self) { storage = .array(a) }
+        else { storage = .null }
     }
 }

@@ -1,7 +1,7 @@
 // MappingDecodingTests.swift
 // 映射与解码 单测（C2 #9-12）
 //
-// #9  ApplyKindMapper 全 kind 正映射（iOS 代码 ↔ backend 日语一一对应）
+// #9  ApplyKindMapper 出寮届 3 kind 正映射（iOS 代码 ↔ backend 日语一一对应；studyAbsence 不在本表）
 // #10 未知 kind 走默认分支不崩（后端先行加新申请类时旧版 App 不崩）
 // #11 MyRollCallTodaySession 解码：my_status / my_checked_in_at 为 null → 解码成功、可选字段 nil
 // #12 关键日期字段 ISO8601 解析（含 JST 时区）→ Date 值精确
@@ -16,13 +16,13 @@ import Testing
 struct MappingDecodingTests {
     // MARK: - #9 ApplyKindMapper 全 kind 正映射
 
-    @Test("#9 4 个申请 kind iOS 代码 ↔ backend 日语一一对应且可往返")
+    @Test("#9 3 个出寮届 kind iOS 代码 ↔ backend 日语一一对应且可往返")
     func applyKindMapperRoundTrips() {
+        // 仅 ApplicationsAPI 出寮届三种；studyAbsence 走 StudyAPI，不在本表（ios#102）
         let pairs: [(ios: String, backend: String)] = [
             ("stay", "外泊"),
             ("holiday", "帰省"),
             ("returncountry", "帰国"),
-            ("studyAbsence", "夜学習欠席"),
         ]
         for p in pairs {
             #expect(ApplyKindMapper.encode(p.ios) == p.backend) // iOS → backend
@@ -30,8 +30,8 @@ struct MappingDecodingTests {
             #expect(ApplyKindMapper.decode(ApplyKindMapper.encode(p.ios)) == p.ios) // 往返回到自身
         }
         // 映射表本身不缺项（后端新增 kind 忘了补 iOS 侧时这里会红）
-        #expect(ApplyKindMapper.toBackend.count == 4)
-        #expect(ApplyKindMapper.fromBackend.count == 4)
+        #expect(ApplyKindMapper.toBackend.count == 3)
+        #expect(ApplyKindMapper.fromBackend.count == 3)
     }
 
     // MARK: - #10 未知 kind 不崩（走默认分支原样返回）

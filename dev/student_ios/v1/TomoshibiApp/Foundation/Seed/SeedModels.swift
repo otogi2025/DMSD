@@ -160,15 +160,23 @@ struct BusDaySchedule: Hashable, Identifiable {
 }
 
 struct EventItem: Hashable, Identifiable {
-    var id: String {
-        date + title
-    }
-
+    let id: String
     let date: String
     let time: String
     let title: String
     let place: String
     let desc: String
+
+    /// ios#67：默认 id = date+title（SEED 种子数据无 id 时兜底）；后端映射(EventMapper)传入真实
+    /// EventOut.id.uuidString，保证同日同名事件不碰撞。保留 date/title 兜底让所有既有 EventItem(...) 调用不变。
+    init(id: String? = nil, date: String, time: String, title: String, place: String, desc: String) {
+        self.id = id ?? (date + title)
+        self.date = date
+        self.time = time
+        self.title = title
+        self.place = place
+        self.desc = desc
+    }
 }
 
 struct LostItem: Hashable, Identifiable {

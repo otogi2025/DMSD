@@ -7,11 +7,11 @@ import Foundation
 
 enum ApplyKindMapper {
     /// iOS 内部代码 → backend 日语（POST /applications body 的 kind 字段）
+    /// 仅 ApplicationsAPI 出寮届三种；夜学習欠席走 StudyAPI，不进本表（ios#102）
     static let toBackend: [String: String] = [
         "stay": "外泊",
         "holiday": "帰省",
         "returncountry": "帰国",
-        "studyAbsence": "夜学習欠席",
     ]
 
     /// backend 日语 → iOS 内部代码（GET 响应反序列化用）

@@ -176,6 +176,25 @@ struct BusListView: View {
     private var filtered: [SpecialBusRoute] {
         // 本页只显示寮生特別運行便，隐藏平日通学便（itsuki 2026-06-13）
         var arr = routes.filter { $0.kind == .dormSpecial }
+        // ios#28：按 visibleTo 过滤（取值 all / dorm_only / men / women）。
+        // 口径对齐后端 bus_visible_to_for_student：all + dorm_only 全员可见；
+        // men / women 只对本性别。dorm_only 与 all 等价（无通学生字段）。
+        // ⚠️ gender 有两套约定：真实 User 用 "male"/"female"（英文，AppStore.User.gender），
+        // SEED 演示用户用「男」/「女」（SEED.swift）。displayUser 生产=真实用户(英文)/演示=SEED(日语)，
+        // 故两套都认，否则生产下 men/women 班次对谁都不显示。未解析(占位)时男女限定一律不显（防异性看见）。
+        let gender = app.displayUser.gender
+        let isMale = (gender == "male" || gender == "男")
+        let isFemale = (gender == "female" || gender == "女")
+        arr = arr.filter { route in
+            switch route.visibleTo {
+            case .all, .dormOnly:
+                return true
+            case .men:
+                return isMale
+            case .women:
+                return isFemale
+            }
+        }
         if airportOnly {
             arr = arr.filter { $0.isAirport }
         }

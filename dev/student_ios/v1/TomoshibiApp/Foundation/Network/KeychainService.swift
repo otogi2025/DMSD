@@ -22,9 +22,12 @@ enum KeychainService {
     private static let service = "jp.tomoshibi.cc"
     private static let account = "student.jwt"
 
-    /// token 保存（已存在就覆盖）
-    static func save(token: String) {
-        guard let data = token.data(using: .utf8) else { return }
+    /// token 保存（已存在就覆盖）。
+    /// ios#103: 返回是否写入成功（true=已持久化）。以前返回 Void、写失败仅 DEBUG 打印，
+    /// 调用方误以为已保存、重启后自动登录静默失效、无从察觉。现在返回 Bool 让登录路径能提示用户。
+    @discardableResult
+    static func save(token: String) -> Bool {
+        guard let data = token.data(using: .utf8) else { return false }
 
         // 匹配用的 query（class + service + account 唯一定位这条）
         let baseQuery: [String: Any] = [
@@ -62,7 +65,9 @@ enum KeychainService {
                 let detail = SecCopyErrorMessageString(status, nil) as String? ?? ""
                 print("KeychainService.save 失败：OSStatus=\(status) \(detail)")
             #endif
+            return false
         }
+        return true
     }
 
     /// token 读取（不存在时 nil）

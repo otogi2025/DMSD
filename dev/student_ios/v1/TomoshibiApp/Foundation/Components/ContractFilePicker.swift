@@ -59,7 +59,8 @@ struct ContractFilePicker: View {
             CameraPicker(
                 onCapture: { image in
                     showCamera = false
-                    handleImage(image)
+                    // ios#90: 与相册/选文件同路径，JPEG 编码出主线程
+                    Task { await handleImage(image) }
                 },
                 onCancel: { showCamera = false }
             )
@@ -138,15 +139,26 @@ struct ContractFilePicker: View {
 
     // MARK: - 处理选中结果
 
-    private func handleImage(_ image: UIImage?) {
-        guard let image, let data = ContractImage.jpegData(image) else {
+    /// ios#90: 相机原图常 12MP，缩放+JPEG 编码挪到 detached（对照 handlePhotoItem / processPickedFile）
+    private func handleImage(_ image: UIImage?) async {
+        guard let image else {
             errorText = "画像の読み込みに失敗しました"
             return
         }
-        setPicked(data: data, fileName: "contract.jpg", mime: "image/jpeg")
+        let jpeg = await Task.detached(priority: .userInitiated) {
+            ContractImage.jpegData(image)
+        }.value
+        guard let jpeg else {
+            errorText = "画像の読み込みに失敗しました"
+            return
+        }
+        setPicked(data: jpeg, fileName: "contract.jpg", mime: "image/jpeg")
     }
 
     private func handlePhotoItem(_ item: PhotosPickerItem) async {
+        // ios#91: 处理完复位，否则删图后再选同一张 PhotosPickerItem 值不变 → onChange 不触发
+        // 防重入：上方 onChangeCompat 已 `guard let newItem else { return }`，置 nil 时直接短路
+        defer { photoItem = nil }
         do {
             guard let raw = try await item.loadTransferable(type: Data.self) else {
                 errorText = "画像の読み込みに失敗しました"

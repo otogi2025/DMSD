@@ -1,12 +1,12 @@
 // GlassCard.swift
-// ⭐ Foundation · iOS 26 原生 Liquid Glass wrapper
+// ⭐ Foundation · Liquid Glass 内容容器
 //
-// 依据 itsuki 2026-04-22 Q2 决策: 必须用 iOS 26 `.glassEffect()`，不降级
-// Xcode 26 + iOS 26 SDK 完整支持
+// 最低支持 iOS 16.0（project.yml deploymentTarget，itsuki 2026-06-05 拍板）。
+// iOS 26+ 走原生 `.glassEffect()`；iOS 16.0〜25.x 走 `.ultraThinMaterial` fallback（活代码，不能删）。
 
 import SwiftUI
 
-/// Liquid Glass 内容容器（iOS 26 原生）
+/// Liquid Glass 内容容器（iOS 26+ 原生 glass；更早系统用材质兜底）
 struct GlassCard<Content: View>: View {
     var radius: CGFloat = T.Radius.lg
     var intensity: GlassIntensity = .regular
@@ -23,7 +23,7 @@ struct GlassCard<Content: View>: View {
     @ViewBuilder
     private var glassBackground: some View {
         if #available(iOS 26.0, *) {
-            // iOS 26 原生 Liquid Glass
+            // iOS 26+ 原生 Liquid Glass
             switch intensity {
             case .regular:
                 Color.clear.glassEffect(.regular, in: .rect(cornerRadius: radius))
@@ -33,7 +33,7 @@ struct GlassCard<Content: View>: View {
                 Color.clear.glassEffect(.regular.tint(T.accent.opacity(0.1)), in: .rect(cornerRadius: radius))
             }
         } else {
-            // iOS 25- fallback (不应命中，deploymentTarget 26)
+            // iOS 16.0〜25.x 活代码：最低部署目标是 16，真机会走这里，勿当死代码删
             RoundedRectangle(cornerRadius: radius, style: .continuous)
                 .fill(.ultraThinMaterial)
         }

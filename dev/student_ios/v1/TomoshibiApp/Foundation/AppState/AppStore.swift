@@ -106,7 +106,11 @@ final class AppStore: ObservableObject {
         didSet {
             APIClient.shared.token = authToken
             if let t = authToken {
-                KeychainService.save(token: t)
+                // ios#103: save 现返回是否成功；写失败（keychain 不可用等）时提示用户，
+                // 否则用户以为已登录、重启后自动登录静默失效、无从察觉。
+                if !KeychainService.save(token: t) {
+                    showToast("ログイン情報の保存に失敗しました。次回起動時に再度ログインが必要です。")
+                }
             } else {
                 KeychainService.delete()
                 // IX-008: 登出 / 令牌失效 → 清当前用户 + SEED.user 复位演示默认，

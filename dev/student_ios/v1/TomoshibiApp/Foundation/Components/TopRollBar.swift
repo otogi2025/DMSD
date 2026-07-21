@@ -63,9 +63,15 @@ struct TopRollBar: View {
         // 维护者以为下次点呼固定 21:00（点呼时刻由后端 schedule 决定）。
         case .idle: return ""
         case .active:
-            let m = app.rollCountdownSec / 60
-            let s = app.rollCountdownSec % 60
-            return String(format: "点呼中 · 遅刻まであと %d分%02d秒", m, s)
+            // 時間内受付段：countdownSec > 0 → 距「遅刻」还有多久
+            // 遅刻受付段：countdownSec == 0 但仍 active → 已进遅刻宽限，催尽快签到（ios#88）
+            if app.rollCountdownSec > 0 {
+                let m = app.rollCountdownSec / 60
+                let s = app.rollCountdownSec % 60
+                return String(format: "点呼中 · 遅刻まであと %d分%02d秒", m, s)
+            } else {
+                return "遅刻受付中・早めにチェックインを"
+            }
         case .absent:
             return "欠席になりました · 寮監まで直接ご連絡ください"
         case .done:

@@ -1139,60 +1139,68 @@ private struct AIAvatarGenerateButton: View {
     var body: some View {
         // 设备不支持（机种旧 / Apple Intelligence 没开）→ 整颗按钮不出现，UX 跟不支持机种一致
         if supportsImagePlayground {
-            Button {
-                isLoading = true
-                showSheet = true
-                loadGeneration += 1
-                let gen = loadGeneration
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5.5) {
-                    guard gen == loadGeneration else { return }
-                    isLoading = false
-                }
-            } label: {
-                HStack(spacing: 6) {
-                    if isLoading {
-                        ProgressView()
-                            .controlSize(.small)
-                            .tint(.white)
-                        Text("準備中…")
-                            .font(.system(size: 13, weight: .semibold))
-                    } else {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 12, weight: .semibold))
-                        Text("AIで生成")
-                            .font(.system(size: 13, weight: .semibold))
+            // ios#25：AI 头像只写本地 @State，不进 draft / 注册提交；如实标注，功能保留可见
+            VStack(alignment: .leading, spacing: 4) {
+                Button {
+                    isLoading = true
+                    showSheet = true
+                    loadGeneration += 1
+                    let gen = loadGeneration
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5.5) {
+                        guard gen == loadGeneration else { return }
+                        isLoading = false
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        if isLoading {
+                            ProgressView()
+                                .controlSize(.small)
+                                .tint(.white)
+                            Text("準備中…")
+                                .font(.system(size: 13, weight: .semibold))
+                        } else {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 12, weight: .semibold))
+                            Text("AIで生成")
+                                .font(.system(size: 13, weight: .semibold))
+                        }
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 38)
+                    .background {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(isLoading ? T.accent.opacity(0.7) : T.accent)
                     }
                 }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 38)
-                .background {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(isLoading ? T.accent.opacity(0.7) : T.accent)
+                .buttonStyle(.plain)
+                .disabled(isLoading)
+                .onChange(of: showSheet) { _, isShown in
+                    // 清单 #7：浮层被取消时 onCompletion 不会触发、isPresented 自动变 false。
+                    // 这里在浮层关闭且没拿到生成结果（取消场景）时立刻复位 isLoading，
+                    // 不再让按钮假死到 5.5 秒兜底。代次自增使遗留兜底任务作废（见上）。
+                    if !isShown, generatedAvatarURL == nil {
+                        loadGeneration += 1
+                        isLoading = false
+                    }
                 }
+                .imagePlaygroundSheet(
+                    isPresented: $showSheet,
+                    concept: "学生 アバター \(name) 笑顔 cute",
+                    onCompletion: { url in
+                        // onCompletion 拿到的 url 是 iOS 系统给的临时文件路径（v1.x 上传后端时改存远程 URL）
+                        generatedAvatarURL = url
+                        avatar = url.absoluteString
+                        loadGeneration += 1
+                        isLoading = false
+                    }
+                )
+
+                Text("本機プレビューのみ・保存されません")
+                    .font(.system(size: 11))
+                    .foregroundStyle(T.inkMute)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .buttonStyle(.plain)
-            .disabled(isLoading)
-            .onChange(of: showSheet) { _, isShown in
-                // 清单 #7：浮层被取消时 onCompletion 不会触发、isPresented 自动变 false。
-                // 这里在浮层关闭且没拿到生成结果（取消场景）时立刻复位 isLoading，
-                // 不再让按钮假死到 5.5 秒兜底。代次自增使遗留兜底任务作废（见上）。
-                if !isShown, generatedAvatarURL == nil {
-                    loadGeneration += 1
-                    isLoading = false
-                }
-            }
-            .imagePlaygroundSheet(
-                isPresented: $showSheet,
-                concept: "学生 アバター \(name) 笑顔 cute",
-                onCompletion: { url in
-                    // onCompletion 拿到的 url 是 iOS 系统给的临时文件路径（v1.x 上传后端时改存远程 URL）
-                    generatedAvatarURL = url
-                    avatar = url.absoluteString
-                    loadGeneration += 1
-                    isLoading = false
-                }
-            )
         }
     }
 }
