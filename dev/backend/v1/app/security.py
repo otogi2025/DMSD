@@ -50,18 +50,30 @@ def create_access_token(
         subject: 主体 ID (学生 uuid or 教师 uuid を str 化したもの)
         role: 'student' | 'teacher:<role>' (例 'teacher:寮務部長')
         extra: 追加 claim (例 dorm_unit / is_overseas / assigned_dorm)
+            不得覆盖保留键；即使误传也会被下方强制写回抹掉。
     """
     settings = get_settings()
     now = datetime.now(timezone.utc)
     exp = now + timedelta(minutes=expire_minutes or settings.jwt_access_expire_min)
+    # 本函数权威值（保留 claim）—— sub/role/iat/exp 一律由参数与本函数计算，
+    # 禁止被 extra 覆盖（backend#21）。本函数不发 typ / token_type 等其它标准键。
+    sub_claim = str(subject)
+    role_claim = role
+    iat_claim = int(now.timestamp())
+    exp_claim = int(exp.timestamp())
     payload: dict[str, Any] = {
-        "sub": str(subject),
-        "role": role,
-        "iat": int(now.timestamp()),
-        "exp": int(exp.timestamp()),
+        "sub": sub_claim,
+        "role": role_claim,
+        "iat": iat_claim,
+        "exp": exp_claim,
     }
     if extra:
         payload.update(extra)
+        # 保留键强制写回：业务字段（dorm_unit / enr / name …）仍允许 extra 自由加
+        payload["sub"] = sub_claim
+        payload["role"] = role_claim
+        payload["iat"] = iat_claim
+        payload["exp"] = exp_claim
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
