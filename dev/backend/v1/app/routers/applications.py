@@ -271,7 +271,14 @@ def create_application_by_teacher(
     """
     # 幂等：同 create_application — 老师重复 POST（重试 / 双击）同一 key 时返回已存届，
     # 不重复建届 + 审批链 + 邮件。这里幂等以老师为 actor（actor_type=teacher）。
+    # 审查 backend#25(终审)：镜像学生路径——先锁老师行串行化同老师并发同 key 补录，
+    # 否则老师双击仍会建两条届 + 两条审批链 + 双份邮件（PG 行锁；SQLite no-op）。
     if idempotency_key and idempotency_key.strip():
+        db.execute(
+            select(models.Teacher.id)
+            .where(models.Teacher.id == teacher.id)
+            .with_for_update()
+        )
         existing = _find_application_by_idempotency_key(
             db,
             actor_type="teacher",

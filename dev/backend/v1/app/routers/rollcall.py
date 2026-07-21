@@ -518,6 +518,16 @@ def create_checkin(
             )
         )
         if active_card is not None:
+            # 审查 backend#37(终审 minor)：卡命中的学生与老师显式传的 student_id 不一致时，
+            # 不静默按卡签（会签错人），要求老师明确二选一。
+            if body.student_id and active_card.student_id != body.student_id:
+                raise HTTPException(
+                    422,
+                    {
+                        "code": "CARD_STUDENT_MISMATCH",
+                        "message": "カードと指定された学生が一致しません",
+                    },
+                )
             student = db.get(models.Student, active_card.student_id)
         elif body.student_id:
             # 卡表未命中时仍允许老师手传 student_id 代签（兼容未发卡 / 旧前端）
@@ -543,7 +553,16 @@ def create_checkin(
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "学生が見つかりません"}
         )
-    # 审查 backend#38：代签只允许在籍（active）学生；locked/paused/graduated 一律拒
+
+    # R4 寮边界：寮監等寮 scoped 角色不能给管辖外寮学生签到
+    _assert_student_in_dorm(teacher, student)
+
+    # 演示隔离：演示老师只能给演示学生签到、真老师只能给真实学生签到（跨 demo → 404）
+    assert_student_demo_match(teacher, student)
+
+    # 审查 backend#38：代签只允许在籍（active）学生；locked/paused/graduated 一律拒。
+    # 终审 minor：放在寮/demo 校验之后——否则管辖外/演示老师能靠 422(STUDENT_NOT_ACTIVE)
+    # vs 404 的差异探测「某 student_id/card 是真实但已停用学生」（逆 E-中-08 统一 404 防探测）。
     if student.status != "active":
         raise HTTPException(
             422,
@@ -552,12 +571,6 @@ def create_checkin(
                 "message": "在籍中の学生のみ点呼できます",
             },
         )
-
-    # R4 寮边界：寮監等寮 scoped 角色不能给管辖外寮学生签到
-    _assert_student_in_dorm(teacher, student)
-
-    # 演示隔离：演示老师只能给演示学生签到、真老师只能给真实学生签到（跨 demo → 404）
-    assert_student_demo_match(teacher, student)
 
     # codex 复审（2026-06-15）：student-session 寮匹配校验。create_rollcall_report 已校验
     # 「学生属于该 session 覆盖的寮」(dorm_unit_set)，但老师代签 create_checkin 漏了同款校验
@@ -637,7 +650,9 @@ def create_checkin(
         status_source="auto_nfc" if body.card_uid else "manual_checkin",
         checked_in_at=now,
         idempotency_key=body.idempotency_key,
-        card_uid=body.card_uid,
+        # 审查 backend#37(终审)：存归一化小写 card_uid，与 devices.py 设备路径同口径，
+        # 免得将来按 card_uid 关联审计漏掉大写记录。
+        card_uid=(body.card_uid.lower() if body.card_uid else None),
     )
     db.add(event)
 
