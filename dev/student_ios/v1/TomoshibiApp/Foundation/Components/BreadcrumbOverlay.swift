@@ -43,8 +43,7 @@ struct BreadcrumbOverlay: View {
             // 主页快捷入口
             popupRow(
                 icon: AnyView(Ic.home(16)),
-                label: "ホームへ戻る",
-                showChev: false
+                label: "ホームへ戻る"
             ) {
                 router.replace(.home)
                 close()
@@ -62,8 +61,7 @@ struct BreadcrumbOverlay: View {
                         Image(systemName: "arrow.uturn.backward")
                             .font(.system(size: 13, weight: .medium))
                     ),
-                    label: route.displayName,
-                    showChev: false
+                    label: route.displayName
                 ) {
                     router.jump(toIndex: idx)
                     close()
@@ -86,7 +84,6 @@ struct BreadcrumbOverlay: View {
     private func popupRow(
         icon: AnyView,
         label: String,
-        showChev: Bool,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
@@ -99,9 +96,6 @@ struct BreadcrumbOverlay: View {
                     .foregroundStyle(T.ink)
                     .lineLimit(1)
                 Spacer(minLength: 0)
-                if showChev {
-                    Ic.chevR(12).foregroundStyle(T.inkMute)
-                }
             }
             .padding(.horizontal, 14).padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)

@@ -1,8 +1,9 @@
 // HomeStubs.swift · Home feature v2 · HTML 1:1 fidelity rewrite
 // Agent B v2 · 对等 phaseB_src 364061ea__HomePage_RollcallSheet_FeedbackSheet.js
 //
-// Views: HomeView / LifeTab / CommunityTab / NotifTab
-//      + RollcallSheet / FeedbackSheet / HealthSheet / AbsenceSheet / OtherSheet
+// Views: HomeView / LifeTab
+//      + RollcallSheet / StudyCheckinSheet / FeedbackSheet / HealthSheet / AbsenceSheet / OtherSheet / RenewStudentNoSheet
+//      + AnnouncementListView / AnnouncementDetailView / AnnouncementListCard 等 Announcement*
 //
 // 设计原则：
 //   - 日本語文案逐字照抄 JSX，不翻译不润色
@@ -337,7 +338,7 @@ struct HomeView: View {
 
     // MARK: 「下次罚扫」小卡（amber 卡之外、下方）
 
-    /// 有未完成罚扫安排时显示；点进罚扫履历页。无安排则 body 里整张不渲染。
+    /// 有未完成罚扫安排时显示；只展示日期时间、不可点击。无安排则 body 里整张不渲染。
     private func nextCleaningCard(_ info: NextCleaningInfo) -> some View {
         // 只展示日期时间，不显示地点、不可点击（无跳转、无箭头）
         HStack(spacing: 12) {
@@ -894,45 +895,18 @@ struct HomeView: View {
 
     // MARK: 点呼状态 pill 文字/颜色（amber card 右上）
 
-    // 老师点开始点呼前 = 点呼開始前（普通提示）
-    // 点呼中 = 剩余 XX:XX 遅刻判定（warn orange）
-    // 遅刻（倒计时归零未签到）= 遅刻（danger red）
-    // 已签到 = 时间内签到（ok green）
+    // 仅 idleContent（rollState==.idle）引用；active/absent/done 走别处 UI，此处写 idle 常量。
 
     private var pointsPillText: String {
-        switch app.rollState {
-        case .idle:
-            return "点呼開始前"
-        case .active:
-            if app.rollCountdownSec <= 0 {
-                return "遅刻"
-            }
-            let m = app.rollCountdownSec / 60
-            let s = app.rollCountdownSec % 60
-            return String(format: "点呼中 · %d:%02d", m, s)
-        case .absent:
-            return "欠席 · 要連絡"
-        case .done:
-            return "時間内にチェックイン"
-        }
+        "点呼開始前"
     }
 
     private func pointsPillFg(deepBrown: Color) -> Color {
-        switch app.rollState {
-        case .idle: return deepBrown
-        case .active: return app.rollCountdownSec <= 0 ? .white : Color(hex: 0x7A4A0E)
-        case .absent: return .white
-        case .done: return Color(hex: 0x2C6048)
-        }
+        deepBrown
     }
 
     private var pointsPillBg: Color {
-        switch app.rollState {
-        case .idle: return Color.white.opacity(0.45)
-        case .active: return app.rollCountdownSec <= 0 ? T.danger : Color(hex: 0xFDF4E1)
-        case .absent: return T.danger
-        case .done: return Color(hex: 0xE3F1EA)
-        }
+        Color.white.opacity(0.45)
     }
 }
 
@@ -2182,6 +2156,7 @@ struct StudyCheckinSheet: View {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
         f.locale = Locale(identifier: "ja_JP")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
         return f.string(from: Date())
     }
 }
@@ -2315,7 +2290,7 @@ struct HealthSheet: View {
                         // JSX: Radio row layout, wrap
                         FlowLayout(spacing: 8) {
                             ForEach(symptoms, id: \.self) { s in
-                                radioChip(title: s, selected: sym == s) { sym = s }
+                                HomeRadioChip(title: s, selected: sym == s) { sym = s }
                             }
                         }
                     }
@@ -2392,25 +2367,6 @@ struct HealthSheet: View {
                 }
             }
         #endif
-    }
-
-    /// JSX Radio option chip · selected: primary outline + pill tint
-    private func radioChip(title: String, selected: Bool, onTap: @escaping () -> Void) -> some View {
-        Button(action: onTap) {
-            Text(title)
-                .font(.system(size: 14, weight: selected ? .bold : .medium))
-                .foregroundStyle(selected ? T.primary : T.ink)
-                .padding(.horizontal, 16).padding(.vertical, 10)
-                .background {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(selected ? T.primary.opacity(0.06) : T.pearl)
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(selected ? T.primary : T.hair, lineWidth: selected ? 1.5 : 1)
-                }
-        }
-        .buttonStyle(.plain)
     }
 }
 
@@ -2526,7 +2482,7 @@ struct OtherSheet: View {
                     }
                     FlowLayout(spacing: 8) {
                         ForEach(categories, id: \.self) { c in
-                            radioChip(title: c, selected: cat == c) { cat = c }
+                            HomeRadioChip(title: c, selected: cat == c) { cat = c }
                         }
                     }
                 }
@@ -2593,24 +2549,6 @@ struct OtherSheet: View {
             }
         #endif
     }
-
-    private func radioChip(title: String, selected: Bool, onTap: @escaping () -> Void) -> some View {
-        Button(action: onTap) {
-            Text(title)
-                .font(.system(size: 14, weight: selected ? .bold : .medium))
-                .foregroundStyle(selected ? T.primary : T.ink)
-                .padding(.horizontal, 16).padding(.vertical, 10)
-                .background {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(selected ? T.primary.opacity(0.06) : T.pearl)
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(selected ? T.primary : T.hair, lineWidth: selected ? 1.5 : 1)
-                }
-        }
-        .buttonStyle(.plain)
-    }
 }
 
 // ───────────────────────────────────────────────────────────
@@ -2662,7 +2600,7 @@ struct RenewStudentNoSheet: View {
                 fieldLabel("学年")
                 FlowLayout(spacing: 8) {
                     ForEach(grades, id: \.code) { g in
-                        radioChip(title: g.label, selected: gradeCode == g.code) {
+                        HomeRadioChip(title: g.label, selected: gradeCode == g.code) {
                             gradeCode = g.code
                         }
                     }
@@ -2671,7 +2609,7 @@ struct RenewStudentNoSheet: View {
                 fieldLabel("組")
                 FlowLayout(spacing: 8) {
                     ForEach(classes, id: \.code) { c in
-                        radioChip(title: c.label, selected: classCode == c.code) {
+                        HomeRadioChip(title: c.label, selected: classCode == c.code) {
                             classCode = c.code
                         }
                     }
@@ -2735,10 +2673,20 @@ struct RenewStudentNoSheet: View {
             }
         }
     }
+}
 
-    private func radioChip(
-        title: String, selected: Bool, onTap: @escaping () -> Void
-    ) -> some View {
+// ───────────────────────────────────────────────────────────
+// MARK: - HomeRadioChip · 单选 chip（Health / Other / Renew 共用）
+
+// ───────────────────────────────────────────────────────────
+
+/// JSX Radio option chip · selected: primary outline + pill tint
+private struct HomeRadioChip: View {
+    let title: String
+    let selected: Bool
+    let onTap: () -> Void
+
+    var body: some View {
         Button(action: onTap) {
             Text(title)
                 .font(.system(size: 14, weight: selected ? .bold : .medium))
@@ -2868,9 +2816,8 @@ private struct FlowLayout: Layout {
 //   - AnnouncementListView: GET /announcements 列表（新→旧、scope 已 backend 过滤）
 //   - AnnouncementDetailView: GET /announcements/:id 详情 + 回复 + 发回复
 //
+// 已实装：首页入口 announcementCard（LifeTab）+ 详情翻訳 / AI 要約
 // 后送（v1.1）：
-//   - HomeView 顶部嵌 AnnouncementCard（最新 1 件 + 红点 N，§7.15.3）
-//   - AI 要約 (Foundation Models, iOS 26)、翻译 (Translation, iOS 17.4+)
 //   - push 通知
 
 // MARK: - 列表 view
@@ -3013,16 +2960,20 @@ private struct AnnouncementListCard: View {
     }
 
     /// "X 分前 / X 時間前 / MM/dd" 简化日期格式（UI 字符串日语保留）
+    private static let mmddFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MM/dd"
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
+        return f
+    }()
+
     private func formatRelative(_ date: Date) -> String {
         let now = Date()
         let diff = Int(now.timeIntervalSince(date))
         if diff < 60 { return "たった今" }
         if diff < 3600 { return "\(diff / 60) 分前" }
         if diff < 86400 { return "\(diff / 3600) 時間前" }
-        let f = DateFormatter()
-        f.dateFormat = "MM/dd"
-        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
-        return f.string(from: date)
+        return Self.mmddFormatter.string(from: date)
     }
 }
 
@@ -3034,7 +2985,7 @@ private struct AnnouncementListCard: View {
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // 两个能力分别走 Apple 的两套系统框架，机种门槛不同：
-//   - 翻訳   : Translation 框架（iOS 17.4+，全机种、设备端、免费、不联网）→ .translationPresentation 弹系统浮层
+//   - 翻訳   : iOS 18+ 程序化 TranslationSession 原地替换正文，语言选择走自定义 sheet
 //   - AI 要約: FoundationModels 框架（iOS 26+ 且 Apple Intelligence 机种）→ 直接调本地 3B 模型生成要点
 // 留学生看不懂日文公告时一键翻成母语 / 公告太长时一键提炼要点 —— 都在设备本地跑，不上传任何内容。
 
@@ -3630,11 +3581,15 @@ struct AnnouncementDetailView: View {
         }
     }
 
-    private func formatFull(_ date: Date) -> String {
+    private static let ymdHmFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "yyyy/MM/dd HH:mm"
         f.timeZone = TimeZone(identifier: "Asia/Tokyo")
-        return f.string(from: date)
+        return f
+    }()
+
+    private func formatFull(_ date: Date) -> String {
+        Self.ymdHmFormatter.string(from: date)
     }
 }
 
@@ -3713,10 +3668,14 @@ private struct AnnouncementReplyRow: View {
         #endif
     }
 
-    private func formatTime(_ date: Date) -> String {
+    private static let hmFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
         f.timeZone = TimeZone(identifier: "Asia/Tokyo")
-        return f.string(from: date)
+        return f
+    }()
+
+    private func formatTime(_ date: Date) -> String {
+        Self.hmFormatter.string(from: date)
     }
 }

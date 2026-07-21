@@ -308,7 +308,7 @@ struct PackagesView: View {
     enum PkgTab: Hashable { case wait, done }
 
     /// 全部包裹（演示=SEED 假数据 / 生产=后端真数据，靠 #if DEMO 守卫）。
-    private var allRows: [PackageDisplay] {
+    private var allRowsSource: [PackageDisplay] {
         #if DEMO
             return SEED.packages.map(PackageDisplay.init(demo:))
         #else
@@ -316,19 +316,11 @@ struct PackagesView: View {
         #endif
     }
 
-    private var waitCount: Int {
-        allRows.filter { $0.isWaiting }.count
-    }
-
-    private var doneCount: Int {
-        allRows.filter { !$0.isWaiting }.count
-    }
-
-    private var list: [PackageDisplay] {
-        allRows.filter { tab == .wait ? $0.isWaiting : !$0.isWaiting }
-    }
-
     var body: some View {
+        let allRows = allRowsSource
+        let waitCount = allRows.filter { $0.isWaiting }.count
+        let doneCount = allRows.filter { !$0.isWaiting }.count
+        let list = allRows.filter { tab == .wait ? $0.isWaiting : !$0.isWaiting }
         VStack(spacing: 0) {
             PageHeader(title: "宅配", level: 2)
             ScrollView {
@@ -580,7 +572,7 @@ struct LostView: View {
     @State private var search: String = ""
 
     /// 全部遗失物（演示=SEED 假数据 / 生产=后端真数据，靠 #if DEMO 守卫，归一成 LostDisplay）。
-    private var allRows: [LostDisplay] {
+    private var allRowsSource: [LostDisplay] {
         #if DEMO
             return SEED.lost.map(LostDisplay.init(demo:))
         #else
@@ -588,19 +580,15 @@ struct LostView: View {
         #endif
     }
 
-    /// IX-030 修复：按搜索词过滤：标题 / 拾得场所 / 日期任一命中即保留，大小写不敏感。
-    /// 搜索词为空时返回全部。
-    private var filteredLost: [LostDisplay] {
+    var body: some View {
+        let allRows = allRowsSource
+        // IX-030：按搜索词过滤标题 / 拾得场所 / 日期，大小写不敏感；空词返回全部
         let q = search.trimmingCharacters(in: .whitespacesAndNewlines)
-        if q.isEmpty { return allRows }
-        return allRows.filter {
+        let filteredLost: [LostDisplay] = q.isEmpty ? allRows : allRows.filter {
             $0.title.localizedCaseInsensitiveContains(q)
                 || $0.place.localizedCaseInsensitiveContains(q)
                 || $0.date.localizedCaseInsensitiveContains(q)
         }
-    }
-
-    var body: some View {
         VStack(spacing: 0) {
             // 遺失物只有寮監可投稿 → 学生端右上无 + 按钮（仅浏览）
             PageHeader(title: "遺失物", level: 2)
@@ -691,13 +679,15 @@ struct LostView: View {
 
     private func lostCell(_ l: LostDisplay) -> some View {
         // 对等 JSX: aspectRatio 1 · gradient `${color}aa → ${color}44`
-        Button { router.go(.homeLostDetail(id: l.id)) } label: {
+        let base = colorFromHex(l.colorHex)
+        // 函数体现在含 let 语句、非单表达式，须显式 return（否则 some View 推断不出返回类型）
+        return Button { router.go(.homeLostDetail(id: l.id)) } label: {
             VStack(alignment: .leading, spacing: 0) {
                 ZStack {
                     LinearGradient(
                         colors: [
-                            colorFromHex(l.colorHex).opacity(2.0 / 3.0), // aa ≈ 0.67
-                            colorFromHex(l.colorHex).opacity(0.27), // 44 ≈ 0.27
+                            base.opacity(2.0 / 3.0), // aa ≈ 0.67
+                            base.opacity(0.27), // 44 ≈ 0.27
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -988,11 +978,12 @@ struct LostDetailView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     if let l = item {
                         // aspectRatio 1.3 · gradient · fontSize 80 emoji
+                        let base = colorFromHex(l.colorHex)
                         ZStack {
                             LinearGradient(
                                 colors: [
-                                    colorFromHex(l.colorHex).opacity(2.0 / 3.0),
-                                    colorFromHex(l.colorHex).opacity(0.27),
+                                    base.opacity(2.0 / 3.0),
+                                    base.opacity(0.27),
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -1124,7 +1115,7 @@ struct MusicView: View {
     @EnvironmentObject var app: AppStore
 
     /// 演示=SEED 假数据(新→旧) / 生产=后端真数据(后端已新→旧)，靠 #if DEMO 守卫，归一成 SongDisplay。
-    private var rows: [SongDisplay] {
+    private var rowsSource: [SongDisplay] {
         #if DEMO
             return SEED.songs.sorted { $0.id > $1.id }.map(SongDisplay.init(demo:))
         #else
@@ -1133,6 +1124,7 @@ struct MusicView: View {
     }
 
     var body: some View {
+        let rows = rowsSource
         VStack(spacing: 0) {
             PageHeader(
                 title: "リクエスト曲",

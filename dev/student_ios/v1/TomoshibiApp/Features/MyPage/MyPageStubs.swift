@@ -672,6 +672,7 @@ struct MyInfoView: View {
     private static let logFormatter: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "ja_JP")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
         f.dateFormat = "yyyy-MM-dd HH:mm"
         return f
     }()
@@ -1651,52 +1652,68 @@ struct MyPointsView: View {
     }
 
     /// 进度条 0 → 8 with threshold markers at 4 (清掃) / 8 (外出禁止)
+    @ViewBuilder
     private var progressBar: some View {
-        let maxVal: Double = 8
-        let v = min(app.displayUser.points, maxVal)
-        let ratio = v / maxVal
-        return VStack(alignment: .leading, spacing: 6) {
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(T.hair)
-                        .frame(height: 8)
-                    Capsule()
-                        .fill(LinearGradient(
-                            colors: [Color(hex: 0xF4C677), T.warn],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        ))
-                        .frame(width: geo.size.width * CGFloat(ratio), height: 8)
+        // ios#64：占位资料时 totalText 已显「—」，进度条也不能按 points=0 画成「零减点」
+        if app.profileIsPlaceholder {
+            VStack(alignment: .leading, spacing: 6) {
+                Capsule()
+                    .fill(T.hair)
+                    .frame(height: 8)
+                HStack {
+                    Text("—")
+                        .font(.system(size: 10))
+                        .foregroundStyle(T.inkMute)
+                    Spacer()
+                }
+            }
+        } else {
+            let maxVal: Double = 8
+            let v = min(app.displayUser.points, maxVal)
+            let ratio = v / maxVal
+            VStack(alignment: .leading, spacing: 6) {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(T.hair)
+                            .frame(height: 8)
+                        Capsule()
+                            .fill(LinearGradient(
+                                colors: [Color(hex: 0xF4C677), T.warn],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            ))
+                            .frame(width: geo.size.width * CGFloat(ratio), height: 8)
 
-                    // Threshold marker 4 (罰則清掃 · warn 橙)
-                    Rectangle()
-                        .fill(T.warn)
-                        .frame(width: 2, height: 14)
-                        .offset(x: geo.size.width * CGFloat(4.0 / maxVal) - 1, y: 0)
-                    // Threshold marker 8 (外出禁止 · danger 赤，far right small cap)
-                    Rectangle()
-                        .fill(T.danger)
-                        .frame(width: 2, height: 14)
-                        .offset(x: geo.size.width - 2, y: 0)
+                        // Threshold marker 4 (罰則清掃 · warn 橙)
+                        Rectangle()
+                            .fill(T.warn)
+                            .frame(width: 2, height: 14)
+                            .offset(x: geo.size.width * CGFloat(4.0 / maxVal) - 1, y: 0)
+                        // Threshold marker 8 (外出禁止 · danger 赤，far right small cap)
+                        Rectangle()
+                            .fill(T.danger)
+                            .frame(width: 2, height: 14)
+                            .offset(x: geo.size.width - 2, y: 0)
+                    }
+                    .frame(height: 14)
                 }
                 .frame(height: 14)
-            }
-            .frame(height: 14)
 
-            HStack {
-                Text("0")
-                    .font(.system(size: 10))
-                    .monospaced()
-                    .foregroundStyle(T.inkMute)
-                Spacer()
-                Text("4 罰則清掃")
-                    .font(.system(size: 10))
-                    .foregroundStyle(T.warnDeep)
-                Spacer()
-                Text("8 外出禁止")
-                    .font(.system(size: 10))
-                    .foregroundStyle(T.danger)
+                HStack {
+                    Text("0")
+                        .font(.system(size: 10))
+                        .monospaced()
+                        .foregroundStyle(T.inkMute)
+                    Spacer()
+                    Text("4 罰則清掃")
+                        .font(.system(size: 10))
+                        .foregroundStyle(T.warnDeep)
+                    Spacer()
+                    Text("8 外出禁止")
+                        .font(.system(size: 10))
+                        .foregroundStyle(T.danger)
+                }
             }
         }
     }
@@ -1994,7 +2011,11 @@ struct MyHealthView: View {
         /// 生产版拉本人体调上报历史。后端 /reports/mine 返回全 kind → 这里只留 health。
         /// 未登录不拉；拉失败设 .failed 显错误态而非空态，绝不退回 SEED.health 假病历。
         private func load() async {
-            guard app.isAuthenticated else { return }
+            guard app.isAuthenticated else {
+                // ios#68：未登录时 .idle 会永远转圈；改成可退出的失败态（有「再読み込み」）
+                loadState = .failed("再度ログインしてください")
+                return
+            }
             guard loadState != .loading else { return } // 重入防抖：「再読み込み」用裸 Task，连点会并发竞态覆盖
             loadState = .loading
             do {

@@ -1,7 +1,7 @@
 // StayListStubs.swift · 申请履历 列表 + 承认 chain 详情
 // ⭐ 会话 C · 老師 38 条 #5「提交后给提交者展示承认状态」
 //
-// API 对应（B 未到位 → mock）:
+// 已接真 API；StayListMock 仅未登录 / 开发态兜底:
 //   GET /applications/mine    → StayListView         (BACKEND_DESIGN_LOG §5.2.2)
 //   GET /applications/:id     → StayDetailView       (BACKEND_DESIGN_LOG §5.2.3)
 //
@@ -122,6 +122,16 @@ enum ApplicationKind: String, Hashable {
         default: return .other
         }
     }
+
+    /// SF Symbol 名（列表行 / 详情头共用）
+    var icon: String {
+        switch self {
+        case .stay: return "house"
+        case .holiday: return "house.lodge"
+        case .return: return "airplane"
+        case .other: return "doc.text"
+        }
+    }
 }
 
 enum ApplicationStatus: String, Hashable {
@@ -153,8 +163,9 @@ enum ApplicationStatus: String, Hashable {
         }
     }
 
+    /// SEED / backend 的 status 字符串 → enum。未知值 fallback 到 pending。
     static func fromSeed(_ s: String) -> ApplicationStatus {
-        ApplicationStatus(rawValue: s) ?? .pending
+        fromBackend(s)
     }
 
     /// backend 的 status 字符串（6 个值）→ enum 转换。未知值就 fallback 到 pending。
@@ -194,7 +205,7 @@ enum ApprovalChainBuilder {
     }
 }
 
-// MARK: - mock 数据（后端 B 未到位 → 扩展 SEED.applications）
+// MARK: - mock 数据（仅未登录 / 开发态兜底 → 扩展 SEED.applications）
 
 @MainActor
 enum StayListMock {
@@ -332,6 +343,7 @@ enum StayListMock {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd HH:mm"
         f.locale = Locale(identifier: "ja_JP")
+        f.timeZone = TimeZone(identifier: "Asia/Tokyo") // 固定 JST，与 formatYMD / addDays 一致
         return f.string(from: Date())
     }
 
@@ -579,7 +591,7 @@ private struct StayRow: View {
             VStack(alignment: .leading, spacing: 10) {
                 // 1 段目: kind icon + 種別 + 期間 + status pill
                 HStack(spacing: 12) {
-                    Image(systemName: kindIcon(item.kind))
+                    Image(systemName: item.kind.icon)
                         .font(.system(size: 17))
                         .foregroundStyle(T.primary)
                         .frame(width: 40, height: 40)
@@ -688,31 +700,6 @@ private struct StayRow: View {
         case .pending: return T.inkFaint
         }
     }
-
-    private func roleBg(_ d: ApprovalDecision) -> Color {
-        switch d {
-        case .approved: return T.okBg
-        case .rejected: return T.dangerBg
-        case .pending: return T.hairSoft
-        }
-    }
-
-    private func roleFg(_ d: ApprovalDecision) -> Color {
-        switch d {
-        case .approved: return T.okDeep
-        case .rejected: return T.danger
-        case .pending: return T.inkSub
-        }
-    }
-
-    private func kindIcon(_ k: ApplicationKind) -> String {
-        switch k {
-        case .stay: return "house"
-        case .holiday: return "house.lodge"
-        case .return: return "airplane"
-        case .other: return "doc.text"
-        }
-    }
 }
 
 // ============================================================================
@@ -801,7 +788,7 @@ struct StayDetailView: View {
     /// 详情加载（2026-05-27 codex 审查后改 — 拆 guard + 401 清 token + audit 失败容错 + helper）
     /// 1. 未登录 → 走 mock（Apple reviewer / 开发态看 UI）
     /// 2. 非 UUID id（mock id 如 "a1"）→ 走 mock，找不到就 toast 区分「无效 ID」
-    /// 3. UUID → detail + audit 并行（audit 失败不致命）
+    /// 3. UUID → 先 detail 再 audit（串行；audit 失败不致命）
     /// 4. catch 401 清 token 触发跳登录；其他 catch 走 helper 统一文案
     private func load() async {
         isLoading = true
@@ -1106,7 +1093,7 @@ struct StayDetailView: View {
         Card(padding: 18) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 12) {
-                    Image(systemName: kindIcon(item.kind))
+                    Image(systemName: item.kind.icon)
                         .font(.system(size: 18))
                         .foregroundStyle(T.primary)
                         .frame(width: 44, height: 44)
@@ -1224,15 +1211,6 @@ struct StayDetailView: View {
     private var approvedCount: Int {
         item.chain.filter { $0.decision == .approved }.count
     }
-
-    private func kindIcon(_ k: ApplicationKind) -> String {
-        switch k {
-        case .stay: return "house"
-        case .holiday: return "house.lodge"
-        case .return: return "airplane"
-        case .other: return "doc.text"
-        }
-    }
 }
 
 // MARK: - 承認 chain 縦 timeline
@@ -1244,7 +1222,7 @@ private struct ChainTimelineView: View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(chain.enumerated()), id: \.offset) { i, step in
                 HStack(alignment: .top, spacing: 14) {
-                    rail(step: step, isLast: i == chain.count - 1, prevDone: i > 0 && chain[i - 1].decision == .approved)
+                    rail(step: step, isLast: i == chain.count - 1)
                     body(step: step, isLast: i == chain.count - 1)
                     Spacer(minLength: 0)
                 }
@@ -1252,7 +1230,7 @@ private struct ChainTimelineView: View {
         }
     }
 
-    private func rail(step: ApprovalStep, isLast: Bool, prevDone _: Bool) -> some View {
+    private func rail(step: ApprovalStep, isLast: Bool) -> some View {
         VStack(spacing: 0) {
             ZStack {
                 Circle()
@@ -1323,7 +1301,7 @@ private struct ChainTimelineView: View {
 // MARK: - StayEditForm · 出寮届 修改届（system_features §7.2.4-5）
 
 //
-// 提出条件: original.isEditable == true（status ∈ {pending, returned}）
+// 提出条件: original.isEditable == true（status ∈ {pending, approved_partial, returned}）
 // 提出後: chain 全員 reset to pending + auditLog append + status = pending
 // 身份字段（学号/姓名/学年・組/寮・部屋/区分/携帯）read-only
 // 修改理由 必填（chain 重新审批时向各 approver 展示）
@@ -1631,17 +1609,17 @@ struct StayEditForm: View {
             Button {
                 submit()
             } label: {
-                Text("変更届を提出")
+                Text(isSubmitting ? "送信中…" : "変更届を提出")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity, minHeight: 52)
                     .background {
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(canSubmit ? T.primary : T.inkFaint)
+                            .fill(canSubmit && !isSubmitting ? T.primary : T.inkFaint)
                     }
             }
             .buttonStyle(.plain)
-            .disabled(!canSubmit)
+            .disabled(!canSubmit || isSubmitting)
         }
     }
 

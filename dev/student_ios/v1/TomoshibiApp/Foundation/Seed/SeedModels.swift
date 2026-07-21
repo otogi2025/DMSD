@@ -72,7 +72,7 @@ struct HealthRecord: Hashable, Identifiable {
 }
 
 /// 罚扫（罰則清掃）演示假数据行（#if DEMO 时 SEED.cleaning 用）。
-/// 改动1：罚扫带时刻 → 加 time 字段；dateLabel/timeLabel 把 "2026-05-20"+"19:00" → "5月20日"/"19時"。
+/// 改动1：罚扫带时刻 → 加 time 字段；dateLabel/timeLabel 把 "2026-05-20"+"19:00" → "5月20日"/"19時00分"。
 struct CleaningRecord: Hashable, Identifiable {
     var id: String {
         "\(date):\(range)"
@@ -81,7 +81,7 @@ struct CleaningRecord: Hashable, Identifiable {
     let date: String // "2026-05-20"（yyyy-MM-dd）
     let time: String // "19:00"（HH:mm）— 改动1：罚扫带时刻
     let range: String // 地点（自由文本）
-    let status: String // 状态值「通過」/「差し戻し」/「未完了」等（演示日语直接写）
+    let status: String // 状态值「通過」/「差し戻し」/「未完成」等（演示日语直接写）
     let score: Int?
     let rejected: Bool
     let comment: String?
@@ -97,7 +97,7 @@ struct CleaningRecord: Hashable, Identifiable {
         return f.string(from: d)
     }
 
-    /// "19時30分" — 小卡/履历展示（HH:mm 带分钟，与正式版 jstHour 口径一致）
+    /// "19時00分" / "19時30分" — 小卡/履历展示（H時mm分，与正式版 jstHour 口径一致）
     var timeLabel: String {
         let comps = time.split(separator: ":")
         let h = comps.first.flatMap { Int($0) } ?? 0

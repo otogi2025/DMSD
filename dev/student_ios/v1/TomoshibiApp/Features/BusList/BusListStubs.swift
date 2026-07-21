@@ -1,8 +1,8 @@
 // BusListStubs.swift · 寮生专用特别运行班次一览
 // ⭐ 会话 C · 老师 38 条 #8「寮生专用特别运行班次一览（参考用 + 外出申请表选择回家方式时确认）」
 //
-// API 对应（后端 B 尚未到位 → 使用 mock 数据）:
-//   GET /buses                → BusListView         (system_features §7.6)
+// API 对应（已登录拉 GET /api/v1/bus/routes；未登录用 BusListMock；已登录失败只报错不喂假时刻表）:
+//   GET /api/v1/bus/routes    → BusListView         (system_features §7.6)
 //
 // system_features.md §7.6.1 的数据模型对应:
 //   bus_routes
@@ -18,6 +18,15 @@
 //   - 本 BusListView = 可按班次类型过滤（特别班 / 通学班）+ 突出显示机场接送 + 申请入口
 
 import SwiftUI
+
+/// nextVisibleId 热路径复用：locale / JST / 格式固定，禁止每次 new DateFormatter()
+private let busNextDepartFormatter: DateFormatter = {
+    let f = DateFormatter()
+    f.locale = Locale(identifier: "en_US_POSIX")
+    f.timeZone = TimeZone(identifier: "Asia/Tokyo") ?? .current
+    f.dateFormat = "yyyy-MM-dd HH:mm"
+    return f
+}()
 
 // MARK: - 数据模型
 
@@ -56,7 +65,8 @@ struct SpecialBusRoute: Hashable, Identifiable {
     let visibleTo: BusVisibility
     let isAirport: Bool // 机场接送班次（对归国届申请尤为重要）
     let purpose: String? // 如 "GW外泊・帰省・買い物" — 用途标签
-    let seatsLabel: String // 如 "空きあり" / "残 3" 等
+    /// 空席文案；后端 BusRouteOut 无空席字段 → 真/假两侧一律空串，busRow 对空串隐藏该 Text
+    let seatsLabel: String
     let isNext: Bool // 最近班次高亮标记
     let deprecated: Bool
 }
@@ -85,7 +95,7 @@ enum BusListMock {
                     visibleTo: .all,
                     isAirport: isAirport,
                     purpose: sched.label,
-                    seatsLabel: line.seats,
+                    seatsLabel: "", // 后端无空席字段，mock 也不展示，与真数据两侧一致（ios#29）
                     isNext: line.next,
                     deprecated: false
                 ))
@@ -204,34 +214,33 @@ struct BusListView: View {
         }
     }
 
-    /// 按日期分组
-    private var grouped: [(date: String, weekday: String, purpose: String?, items: [SpecialBusRoute])] {
-        let groups = Dictionary(grouping: filtered, by: { $0.date })
+    /// 按日期分组（入参 = 已算好的 filtered，避免 body 多次触发再扫一遍）
+    private func grouped(from arr: [SpecialBusRoute]) -> [(date: String, weekday: String, purpose: String?, items: [SpecialBusRoute])] {
+        let groups = Dictionary(grouping: arr, by: { $0.date })
         let keys = groups.keys.sorted()
         return keys.compactMap { date in
-            guard let arr = groups[date], let first = arr.first else { return nil }
-            return (date: date, weekday: first.weekday, purpose: first.purpose, items: arr)
+            guard let items = groups[date], let first = items.first else { return nil }
+            return (date: date, weekday: first.weekday, purpose: first.purpose, items: items)
         }
     }
 
     /// 当前筛选结果里「下一班」（第一个出发时刻 ≥ 现在）的 id —— 按筛选后的可见列表实时算。
     /// date("yyyy-MM-dd") + scheduleAt("HH:mm") 解析回 Date(JST) 再比较时间先后，不依赖零填充字典序。
-    private var nextVisibleId: String? {
-        let jst = TimeZone(identifier: "Asia/Tokyo") ?? .current
-        let fmt = DateFormatter()
-        fmt.locale = Locale(identifier: "en_US_POSIX")
-        fmt.timeZone = jst
-        fmt.dateFormat = "yyyy-MM-dd HH:mm"
+    private func nextVisibleId(from arr: [SpecialBusRoute]) -> String? {
         let now = Date()
-        return filtered.first { row in
+        return arr.first { row in
             // CC-03: 解析失败应跳过脏行（return false），不能把识别不出时刻的行错误高亮成「下一班」。
             // 当前数据流下 date/scheduleAt 全由 DateFormatter 产出固定格式、解析必成功，这里是健壮性兜底。
-            guard let depart = fmt.date(from: "\(row.date) \(row.scheduleAt)") else { return false }
+            guard let depart = busNextDepartFormatter.date(from: "\(row.date) \(row.scheduleAt)") else { return false }
             return now <= depart
         }?.id
     }
 
     var body: some View {
+        // ios#30：filtered / grouped / nextVisibleId 各求值一次后复用，避免 body 热路径重复 filter+sort
+        let f = filtered
+        let g = grouped(from: f)
+        let nextId = nextVisibleId(from: f)
         VStack(spacing: 0) {
             PageHeader(title: "特別運行便", level: 2)
             ScrollView {
@@ -249,7 +258,7 @@ struct BusListView: View {
                             message: err
                         )
                         .frame(maxWidth: .infinity)
-                    } else if grouped.isEmpty {
+                    } else if g.isEmpty {
                         EmptyState(
                             icon: "bus",
                             title: "該当する便はありません",
@@ -257,8 +266,7 @@ struct BusListView: View {
                         )
                         .frame(maxWidth: .infinity)
                     } else {
-                        let nextId = nextVisibleId
-                        ForEach(grouped, id: \.date) { group in
+                        ForEach(g, id: \.date) { group in
                             daySection(group, nextId: nextId)
                         }
                     }
@@ -279,7 +287,7 @@ struct BusListView: View {
         .task { await load() }
     }
 
-    // MARK: 数据加载（已登录拉真后端 / 未登录或失败回退 mock）
+    // MARK: 数据加载（已登录拉真后端 / 未登录回退 mock）
 
     /// 未登录 → 回退 BusListMock（开发无 backend / Apple reviewer 没真账号也能看效果）。
     /// 已登录 → GET /api/v1/bus/routes 真数据，按时刻映射成 SpecialBusRoute。
@@ -379,7 +387,8 @@ struct BusListView: View {
             .background(T.primary.opacity(0.05))
 
             VStack(spacing: 0) {
-                ForEach(Array(g.items.enumerated()), id: \.offset) { i, route in
+                // ios#33：用稳定 id，不用行号 offset（筛选/刷新时防 SwiftUI 按错行复用）
+                ForEach(Array(g.items.enumerated()), id: \.element.id) { i, route in
                     busRow(route, isNext: route.id == nextId)
                     if i < g.items.count - 1 {
                         Rectangle().fill(T.hair).frame(height: 0.5)
@@ -429,9 +438,12 @@ struct BusListView: View {
                 if isNext {
                     Pill(text: "次便", tone: .accent)
                 }
-                Text(r.seatsLabel)
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(T.inkMute)
+                // 后端无空席字段 → seatsLabel 恒空；空串隐藏，避免真数据空白占位（ios#29）
+                if !r.seatsLabel.isEmpty {
+                    Text(r.seatsLabel)
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(T.inkMute)
+                }
             }
         }
         .padding(.horizontal, 14).padding(.vertical, 11)

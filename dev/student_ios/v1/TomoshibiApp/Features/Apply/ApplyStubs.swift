@@ -301,7 +301,7 @@ private struct ApplicationRow: View {
 }
 
 // ============================================================================
-// §2.2 ApplyNewView — L2 · 8 APPLY_TYPES grid 2 col
+// §2.2 ApplyNewView — L2 · 12 APPLY_TYPES grid 2 col
 // ============================================================================
 
 struct ApplyNewView: View {
@@ -458,34 +458,34 @@ struct StayForm: View {
     @State private var mealNote: String = ""
 
     // ── §7.2 共通字段（帰省 / 外泊 / 帰国 三种类型通用）────────────────────────
-    @State private var leaveDate: Date = StayForm.tomorrow
-    @State private var leaveTime: Date = StayForm.parseHM("18:00") ?? Date()
+    @State private var leaveDate: Date = ApplyFormDate.tomorrow
+    @State private var leaveTime: Date = ApplyFormDate.parseHM("18:00")
     @State private var leaveMethod: String = "JR"
-    @State private var returnDate: Date = StayForm.tomorrow
-    @State private var returnTime: Date = StayForm.parseHM("20:00") ?? Date()
+    @State private var returnDate: Date = ApplyFormDate.tomorrow
+    @State private var returnTime: Date = ApplyFormDate.parseHM("20:00")
     @State private var returnMethod: String = "JR"
 
     // ── 仅外泊 / 帰国 ────────────────────────────────────────────────────
     // 滞在先 1 件 = 稳定 id + 地址。用 id 当列表项身份（不用数组下标），
     // 删中间一行时输入框内容 / 焦点不会串到别行（IX-032）。
     @State private var stayPlaces: [StayPlaceItem] = [StayPlaceItem()] // 外泊地点(可多个)
-    @State private var skipStartDate: Date = StayForm.tomorrow
+    @State private var skipStartDate: Date = ApplyFormDate.tomorrow
     @State private var skipStartMeal: String = "夕食" // 朝食 / 昼食 / 夕食
-    @State private var skipEndDate: Date = StayForm.tomorrow
+    @State private var skipEndDate: Date = ApplyFormDate.tomorrow
     @State private var skipEndMeal: String = "朝食"
     @State private var skipEnabled: Bool = true // 是否申告免餐期间
 
     // ── 仅帰国 ───────────────────────────────────────────────────────────
     @State private var departAirport: String = ""
-    @State private var departFlightTime: Date = StayForm.parseHM("10:00") ?? Date()
+    @State private var departFlightTime: Date = ApplyFormDate.parseHM("10:00")
     @State private var arriveAirport: String = ""
-    @State private var arriveFlightTime: Date = StayForm.parseHM("14:00") ?? Date()
+    @State private var arriveFlightTime: Date = ApplyFormDate.parseHM("14:00")
 
     /// ── 共通: 理由 ────────────────────────────────────────────────────────
     @State private var reason: String = ""
 
     /// ── 出租车预约「タクシー予約」— 出寮方法选了「タクシー」时想坐车的时刻（itsuki 2026-06-04：废止独立开关，改成出寮方法连动）──
-    @State private var taxiTime: Date = StayForm.parseHM("18:00") ?? Date()
+    @State private var taxiTime: Date = ApplyFormDate.parseHM("18:00")
     @State private var isSubmitting = false
 
     /// 出租车这个移动方式的字面量 —— 出寮方法选了它才出预约时刻选择器。
@@ -532,7 +532,7 @@ struct StayForm: View {
     }
 
     /// 出寮日 / 免餐开始日往后调时，把依赖它们、且已落在新下限之前的日期一并钳回。
-    /// SwiftUI 的 DateField(minDate:) 只限制选择器能选的范围，不会回钳「已绑定且越界」的旧值——
+    /// SwiftUI 的 ApplyDateField(minDate:) 只限制选择器能选的范围，不会回钳「已绑定且越界」的旧值——
     /// 否则用户先选好帰寮日、再把出寮日改到更晚，帰寮日仍停在旧值 < 出寮日，canSubmit 永远 false、
     /// 提交键静默置灰且无任何提示（留学生完全不知卡在哪）。
     private func clampDependentDates() {
@@ -545,9 +545,9 @@ struct StayForm: View {
         if skipEndDate > returnDate { skipEndDate = returnDate }
     }
 
-    /// 是否可提交：必填项是否已填写
+    /// 是否可提交：必填项是否已填写（reason / 机场名 trim 后判空，与 stayPlaces 口径一致）
     private var canSubmit: Bool {
-        if reason.isEmpty { return false }
+        if reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return false }
         // IX-018: 把离校 / 返校都按「日期 + 时刻」合成成完整时间再比较。
         // 同一天 20:00 离校 → 08:00 返校 这种时刻倒挂也能拦下来。
         if StayForm.combine(date: returnDate, time: returnTime)
@@ -562,7 +562,11 @@ struct StayForm: View {
             }
         }
         if needFlight {
-            if departAirport.isEmpty || arriveAirport.isEmpty { return false }
+            if departAirport.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || arriveAirport.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            {
+                return false
+            }
             // ios#8: 帰国航班到着必须晚于出发（与后端 KikokuCreateIn 一致）；倒挂/相等 → 置灰
             if StayForm.combine(date: returnDate, time: arriveFlightTime)
                 <= StayForm.combine(date: leaveDate, time: departFlightTime)
@@ -611,7 +615,7 @@ struct StayForm: View {
                     headerCard
                         .padding(.bottom, 20)
 
-                    // ── §1 申請者本人 · SEED.user 自動 (#1 学生只能提交自己的) ──
+                    // ── §1 申請者本人 = app.displayUser（生产 currentUser / 演示或未登录回退 SEED 占位）──
                     SectionLabel(n: "1", label: "申請者本人")
                     Card(padding: 0) {
                         VStack(spacing: 0) {
@@ -661,9 +665,9 @@ struct StayForm: View {
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(T.inkSub)
                                 HStack(spacing: 10) {
-                                    DateField(date: $leaveDate, minDate: StayForm.tomorrow)
+                                    ApplyDateField(date: $leaveDate, minDate: ApplyFormDate.tomorrow)
                                         .onChangeCompat(of: leaveDate) { clampDependentDates() }
-                                    TimeField(date: $leaveTime)
+                                    ApplyTimeField(date: $leaveTime)
                                 }
                                 Text("※ 出寮日は明日以降のみ選択できます")
                                     .font(.system(size: 10.5))
@@ -684,7 +688,7 @@ struct StayForm: View {
                                     Text("タクシー希望時刻")
                                         .font(.system(size: 12, weight: .semibold))
                                         .foregroundStyle(T.inkSub)
-                                    TimeField(date: $taxiTime)
+                                    ApplyTimeField(date: $taxiTime)
                                 }
                             }
                         }
@@ -700,10 +704,10 @@ struct StayForm: View {
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(T.inkSub)
                                 HStack(spacing: 10) {
-                                    DateField(date: $returnDate, minDate: leaveDate)
+                                    ApplyDateField(date: $returnDate, minDate: leaveDate)
                                         // A-377: 帰寮日改早时回钳越界的免餐起止
                                         .onChangeCompat(of: returnDate) { clampDependentDates() }
-                                    TimeField(date: $returnTime)
+                                    ApplyTimeField(date: $returnTime)
                                 }
                             }
                             VStack(alignment: .leading, spacing: 6) {
@@ -794,7 +798,7 @@ struct StayForm: View {
                                                 .font(.system(size: 11.5, weight: .semibold))
                                                 .foregroundStyle(T.inkSub)
                                             HStack(spacing: 8) {
-                                                DateField(date: $skipStartDate, minDate: leaveDate)
+                                                ApplyDateField(date: $skipStartDate, minDate: leaveDate)
                                                     .onChangeCompat(of: skipStartDate) {
                                                         // CB-06: skipStartDate 主动往后拖时 clampDependentDates 不触发（只挂 leaveDate/returnDate），
                                                         // 补钳「开始日不得晚于帰寮日」，否则下面 skipEndDate 的 DateField 会 min>max 运行期崩溃
@@ -850,7 +854,7 @@ struct StayForm: View {
                                     Text("出発時刻")
                                         .font(.system(size: 12, weight: .semibold))
                                         .foregroundStyle(T.inkSub)
-                                    TimeField(date: $departFlightTime)
+                                    ApplyTimeField(date: $departFlightTime)
                                 }
                                 Field(label: "到着空港", required: true) {
                                     TField(text: $arriveAirport, placeholder: "到着空港名")
@@ -859,7 +863,7 @@ struct StayForm: View {
                                     Text("到着時刻")
                                         .font(.system(size: 12, weight: .semibold))
                                         .foregroundStyle(T.inkSub)
-                                    TimeField(date: $arriveFlightTime)
+                                    ApplyTimeField(date: $arriveFlightTime)
                                 }
                             }
                         }
@@ -996,16 +1000,16 @@ struct StayForm: View {
 
         // 共通字段（backend time 要 "HH:mm:ss" 格式、append :00）
         let backendKind = ApplyKindMapper.encode(kind)
-        let leaveDateStr = StayForm.formatYMD(leaveDate)
-        let leaveTimeStr = StayForm.formatHM(leaveTime) + ":00"
-        let returnDateStr = StayForm.formatYMD(returnDate)
-        let returnTimeStr = StayForm.formatHM(returnTime) + ":00"
-        let contactPhoneValue = StayForm.nilIfBlank(contactPhone)
-        let mealNoteValue = meIsOverseas ? StayForm.nilIfBlank(mealNote) : nil
-        let companionValue = StayForm.nilIfBlank(companion)
-        let destCitiesValue = StayForm.nilIfBlank(destCities)
+        let leaveDateStr = ApplyFormDate.formatYMD(leaveDate)
+        let leaveTimeStr = ApplyFormDate.formatHM(leaveTime) + ":00"
+        let returnDateStr = ApplyFormDate.formatYMD(returnDate)
+        let returnTimeStr = ApplyFormDate.formatHM(returnTime) + ":00"
+        let contactPhoneValue = ApplyFormDate.nilIfBlank(contactPhone)
+        let mealNoteValue = meIsOverseas ? ApplyFormDate.nilIfBlank(mealNote) : nil
+        let companionValue = ApplyFormDate.nilIfBlank(companion)
+        let destCitiesValue = ApplyFormDate.nilIfBlank(destCities)
         // 出租车预约：出寮方法选了「タクシー」→ "HH:MM:SS"；选别的 → nil（不预约）
-        let taxiTimeValue: String? = leaveMethod == StayForm.TAXI_METHOD ? StayForm.formatHM(taxiTime) + ":00" : nil
+        let taxiTimeValue: String? = leaveMethod == StayForm.TAXI_METHOD ? ApplyFormDate.formatHM(taxiTime) + ":00" : nil
 
         // F2: stay_locations object 数组（外泊 / 帰国届用、帰省届不带）
         // IX-010: UI 输入框标的是「滞在先住所」（地址），所以写进 address 字段。
@@ -1042,7 +1046,7 @@ struct StayForm: View {
             switch backendKind {
             case "帰省":
                 let body = KisheiCreateBody(
-                    reason: reason,
+                    reason: reason.trimmingCharacters(in: .whitespacesAndNewlines),
                     contact_phone: contactPhoneValue,
                     meal_note: mealNoteValue,
                     is_long_vacation: isLongVacation,
@@ -1057,7 +1061,7 @@ struct StayForm: View {
                 _ = try await ApplicationsAPI.create(body)
             case "外泊":
                 let body = GaihakuCreateBody(
-                    reason: reason,
+                    reason: reason.trimmingCharacters(in: .whitespacesAndNewlines),
                     contact_phone: contactPhoneValue,
                     meal_note: mealNoteValue,
                     companion: companionValue,
@@ -1075,7 +1079,7 @@ struct StayForm: View {
                 _ = try await ApplicationsAPI.create(body)
             case "帰国":
                 let body = KikokuCreateBody(
-                    reason: reason,
+                    reason: reason.trimmingCharacters(in: .whitespacesAndNewlines),
                     contact_phone: contactPhoneValue,
                     meal_note: mealNoteValue,
                     companion: companionValue,
@@ -1088,13 +1092,13 @@ struct StayForm: View {
                     return_time: returnTimeStr,
                     stay_locations: stayLocations,
                     meals_skip: mealsSkip,
-                    flight_dep_air: departAirport,
-                    // IX-005: TimeField 只有时刻，底层日期停在 2000-01-01。
+                    flight_dep_air: departAirport.trimmingCharacters(in: .whitespacesAndNewlines),
+                    // IX-005: ApplyTimeField 只有时刻，底层日期停在 2000-01-01。
                     // 出发跟出寮日合成、到着跟帰寮日合成，凑成完整 datetime，
                     // 用带 +09:00 的 ISO 字符串发出去（bare ISO8601 会变成 UTC 的 Z，跟 backend 期望不符）。
-                    flight_dep_at: StayForm.formatISOWithTokyo(date: leaveDate, time: departFlightTime),
-                    flight_arr_air: arriveAirport,
-                    flight_arr_at: StayForm.formatISOWithTokyo(date: returnDate, time: arriveFlightTime),
+                    flight_dep_at: ApplyFormDate.combineDateAndTimeISO(date: leaveDate, time: departFlightTime),
+                    flight_arr_air: arriveAirport.trimmingCharacters(in: .whitespacesAndNewlines),
+                    flight_arr_at: ApplyFormDate.combineDateAndTimeISO(date: returnDate, time: arriveFlightTime),
                     taxi_reservation_time: taxiTimeValue
                 )
                 _ = try await ApplicationsAPI.create(body)
@@ -1138,7 +1142,7 @@ struct StayForm: View {
             let lo = isFirst ? (mealOrder.firstIndex(of: startMeal) ?? 0) : 0
             let hi = isLast ? (mealOrder.firstIndex(of: endMeal) ?? 2) : 2
             if lo <= hi {
-                let dateStr = formatYMD(current)
+                let dateStr = ApplyFormDate.formatYMD(current)
                 for i in lo ... hi {
                     result.append(["date": dateStr, "meal": mealOrder[i]])
                 }
@@ -1149,52 +1153,12 @@ struct StayForm: View {
         return result
     }
 
-    // MARK: - helpers (parse / format date · 静的)
-
-    /// 明日 0:00 — 用作 DatePicker 的 minDate（#3）
-    static var tomorrow: Date {
-        let cal = ApplyFormDate.tokyoCalendar // 固定 JST：出寮日 minDate「明天」按日本时间算，非 JST 设备不偏天（codex 审出）
-        let today0 = cal.startOfDay(for: Date())
-        return cal.date(byAdding: .day, value: 1, to: today0) ?? today0
-    }
-
-    static func parseYMD(_ s: String) -> Date? {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.timeZone = TimeZone(identifier: "Asia/Tokyo") // IX-034 修复④：固定 JST，跟 formatYMD 配对、保证日期串往返恒等
-        return f.date(from: s)
-    }
-
-    static func parseHM(_ s: String) -> Date? {
-        let f = DateFormatter()
-        f.dateFormat = "HH:mm"
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.timeZone = TimeZone(identifier: "Asia/Tokyo") // 固定 JST：DatePicker 已固定东京时区，初值字符串按 JST 解读（codex 审出，同 ApplyFormSupport）
-        return f.date(from: s)
-    }
-
-    static func formatYMD(_ d: Date) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.timeZone = TimeZone(identifier: "Asia/Tokyo") // IX-034 修复④：固定 JST，否则非 JST 设备 target_date / 出寮日口径偏一天
-        return f.string(from: d)
-    }
-
-    static func formatHM(_ d: Date) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "HH:mm"
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.timeZone = TimeZone(identifier: "Asia/Tokyo") // 固定 JST，与 DatePicker / parseHM / combine 一致
-        return f.string(from: d)
-    }
+    // MARK: - helpers（日期合成；parse/format 统一走 ApplyFormDate）
 
     /// 把一个日期的年月日 + 一个时刻的时分合成成一个 Date。
-    /// TimeField 只带时刻、底层日期是 2000-01-01，所以要跟对应的日期组合起来用。
+    /// ApplyTimeField 只带时刻、底层日期是 2000-01-01，所以要跟对应的日期组合起来用。
     static func combine(date: Date, time: Date) -> Date {
-        var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = TimeZone(identifier: "Asia/Tokyo") ?? .current
+        let cal = ApplyFormDate.tokyoCalendar
         let d = cal.dateComponents([.year, .month, .day], from: date)
         let t = cal.dateComponents([.hour, .minute], from: time)
         var c = DateComponents()
@@ -1205,23 +1169,6 @@ struct StayForm: View {
         c.minute = t.minute
         c.second = 0
         return cal.date(from: c) ?? date
-    }
-
-    /// 把日期 + 时刻合成后输出带 +09:00 的 ISO 8601 字符串。
-    /// backend 的 flight_dep_at / flight_arr_at 期望 "2026-05-03T18:00:00+09:00" 这种格式。
-    /// bare ISO8601DateFormatter 会输出 UTC（末尾带 Z），所以这里显式指定日本时间偏移。
-    static func formatISOWithTokyo(date: Date, time: Date) -> String {
-        let combined = combine(date: date, time: time)
-        let f = ISO8601DateFormatter()
-        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
-        f.formatOptions = [.withInternetDateTime] // 保留 +09:00 偏移
-        return f.string(from: combined)
-    }
-
-    /// 仅含空白的输入不发送到后端
-    static func nilIfBlank(_ s: String) -> String? {
-        let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
     }
 }
 
@@ -1368,7 +1315,7 @@ private struct FlowLayout: Layout {
 
 private struct DateField: View {
     @Binding var date: Date
-    var minDate: Date? = nil // 老師反饋 #3: 出寮日 = 明日以降 → minDate = StayForm.tomorrow
+    var minDate: Date? = nil // 仅 skipEndDate 仍用本组件（需 maxDate；ApplyDateField 尚无 maxDate）
     var maxDate: Date? = nil // A-377: 食事不要 終了日 上限 = 帰寮日，免餐区间不能超出外泊期
     var body: some View {
         Group {
@@ -1402,54 +1349,6 @@ private struct DateField: View {
     }
 }
 
-private struct TimeField: View {
-    @Binding var date: Date
-    var body: some View {
-        DatePicker("", selection: $date, displayedComponents: .hourAndMinute)
-            .labelsHidden()
-            .datePickerStyle(.compact)
-            .environment(\.locale, Locale(identifier: "ja_JP")) // itsuki 反馈: 月份/时刻要日语
-            // 固定 JST 时区+日历（同 DateField）：非 JST 设备也按日本时间，否则时刻偏移（codex 审出）
-            .environment(\.timeZone, TimeZone(identifier: "Asia/Tokyo")!)
-            .environment(\.calendar, ApplyFormDate.tokyoCalendar)
-            .frame(maxWidth: .infinity, minHeight: 42)
-            .padding(.horizontal, 8)
-            .background {
-                RoundedRectangle(cornerRadius: 10, style: .continuous).fill(T.paper)
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(T.hair, lineWidth: 1)
-            }
-    }
-}
-
-private struct MealCheckbox: View {
-    let isOn: Bool
-    let toggle: () -> Void
-    var body: some View {
-        Button(action: toggle) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(isOn ? T.primary : T.hair, lineWidth: 1.5)
-                    .background {
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(isOn ? T.primary : T.paper)
-                    }
-                    .frame(width: 28, height: 28)
-                if isOn {
-                    Text("✕")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(.white)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-// ============================================================================
-// §2.5 GenericApplyForm — 通用表单 (outing / return / repair / parcel / guest / other)
-// ============================================================================
 
 // ============================================================================
 // §2.5 StudyAbsenceForm — 夜学習欠席届（晚自习请假）· system_features §7.3.5
@@ -1584,7 +1483,7 @@ struct StudyAbsenceForm: View {
                             let tokenAtStart = app.authToken
                             do {
                                 try await app.submitStudyLeave(
-                                    targetDate: StayForm.formatYMD(targetDate),
+                                    targetDate: ApplyFormDate.formatYMD(targetDate),
                                     reason: reason,
                                     range: range
                                 )
@@ -1631,6 +1530,8 @@ struct StudyAbsenceForm: View {
 }
 
 // ============================================================================
+// §2.6 GenericApplyForm — 通用表单 (outing / repair / parcel / guest)
+// ============================================================================
 
 struct GenericApplyForm: View {
     let kind: String
@@ -1639,43 +1540,33 @@ struct GenericApplyForm: View {
 
     @State private var dest: String = ""
     @State private var reason: String = ""
-    @State private var date: Date = StayForm.tomorrow
-    @State private var endDate: Date = ApplyFormDate.tokyoCalendar.date(byAdding: .day, value: 1, to: StayForm.tomorrow) ?? StayForm.tomorrow // 固定 JST 日历（统一时区口径）
-    @State private var time: Date = StayForm.parseHM("18:00") ?? Date()
+    @State private var date: Date = ApplyFormDate.tomorrow
+    @State private var time: Date = ApplyFormDate.parseHM("18:00")
     @State private var contact: String = ""
     @State private var didPrefillContact: Bool = false
-    // 出租车预约「タクシー予約」（itsuki 2026-06-03）— 外出也能预约；外出表单是纯演示桩未接后端，仅 UI 展示
+    // 出租车预约「タクシー予約」（itsuki 2026-06-03）— 外出也能预约
     @State private var taxiReserved: Bool = false
-    @State private var taxiTime: Date = StayForm.parseHM("18:00") ?? Date()
-    @State private var emergency: String = ""
+    @State private var taxiTime: Date = ApplyFormDate.parseHM("18:00")
     @State private var transport: String = "電車"
     @State private var repairPlace: String = "自室"
-    @State private var guardian: Bool = false
 
-    // ── 外出（outing）専用 — 接 outings 后端（A1）。后端 OutingCreateIn.outing_date 必填，旧表单缺这些字段 ──
-    @State private var outingDate: Date = ApplyFormDate.today // 外出日（今日以降）；CB-02: 初值锚 JST 今天 + DateField 加 minDate 前置挡，不再仅靠后端拒
-    @State private var outingLeaveTime: Date = StayForm.parseHM("13:00") ?? Date()
-    @State private var outingReturnTime: Date = StayForm.parseHM("17:00") ?? Date()
+    // ── 外出（outing）専用 — 接 outings 后端（A1）。后端 OutingCreateIn.outing_date 必填 ──
+    @State private var outingDate: Date = ApplyFormDate.today // 外出日（今日以降）；CB-02: 初值锚 JST 今天 + ApplyDateField minDate 前置挡
+    @State private var outingLeaveTime: Date = ApplyFormDate.parseHM("13:00")
+    @State private var outingReturnTime: Date = ApplyFormDate.parseHM("17:00")
     @State private var isSubmittingOuting: Bool = false
 
     private var type: ApplyTypeMeta {
         applyType(kind)
     }
 
+    /// GenericApplyForm 只承接 outing/repair/parcel/guest；stay/holiday/returncountry 走 StayForm
     private var needsDest: Bool {
-        ["outing", "stay", "holiday"].contains(kind)
-    }
-
-    private var needsEnd: Bool {
-        ["stay", "holiday"].contains(kind)
-    }
-
-    private var needsGuardian: Bool {
-        ["stay", "holiday"].contains(kind)
+        kind == "outing"
     }
 
     private var needsTransport: Bool {
-        ["outing", "stay", "holiday"].contains(kind)
+        kind == "outing"
     }
 
     private var isRepair: Bool {
@@ -1688,10 +1579,6 @@ struct GenericApplyForm: View {
 
     private var isGuest: Bool {
         kind == "guest"
-    }
-
-    private var isReturn: Bool {
-        kind == "return"
     }
 
     private var isOuting: Bool {
@@ -1779,13 +1666,13 @@ struct GenericApplyForm: View {
                         // 外出是当天回寮 — 外出日（必填）+ 外出/回寮时刻。后端 OutingCreateIn 要 outing_date
                         Field(label: "外出日", required: true) {
                             // CB-02: minDate=今天，DatePicker 直接挡过去日期，不再仅靠后端 422 拒
-                            DateField(date: $outingDate, minDate: ApplyFormDate.today)
+                            ApplyDateField(date: $outingDate, minDate: ApplyFormDate.today)
                         }.padding(.bottom, 14)
                         Field(label: "外出時刻") {
-                            TimeField(date: $outingLeaveTime)
+                            ApplyTimeField(date: $outingLeaveTime)
                         }.padding(.bottom, 14)
                         Field(label: "帰寮予定時刻") {
-                            TimeField(date: $outingReturnTime)
+                            ApplyTimeField(date: $outingReturnTime)
                         }.padding(.bottom, 14)
                     }
                     if isGuest {
@@ -1799,21 +1686,14 @@ struct GenericApplyForm: View {
                         }.padding(.bottom, 14)
                     }
 
-                    if !isRepair && !isParcel && !isOuting {
-                        Field(label: isReturn ? "日付" : (needsEnd ? "開始日" : "日付"), required: true) {
-                            DateField(date: $date, minDate: StayForm.tomorrow)
+                    // guest：来訪日 + 帰寮予定時刻（outing 自有外出日字段；repair/parcel 无日期）
+                    if isGuest {
+                        Field(label: "日付", required: true) {
+                            ApplyDateField(date: $date, minDate: ApplyFormDate.tomorrow)
                         }
                         .padding(.bottom, 14)
-                    }
-                    if needsEnd {
-                        Field(label: "終了日", required: true) {
-                            DateField(date: $endDate, minDate: date)
-                        }
-                        .padding(.bottom, 14)
-                    }
-                    if !needsEnd && !isRepair && !isParcel && !isOuting {
                         Field(label: "帰寮予定時刻", required: true) {
-                            TimeField(date: $time)
+                            ApplyTimeField(date: $time)
                         }
                         .padding(.bottom, 14)
                     }
@@ -1834,7 +1714,7 @@ struct GenericApplyForm: View {
                                 }
                                 .tint(T.primary)
                                 if taxiReserved {
-                                    TimeField(date: $taxiTime)
+                                    ApplyTimeField(date: $taxiTime)
                                 }
                             }
                         }.padding(.bottom, 14)
@@ -1879,44 +1759,6 @@ struct GenericApplyForm: View {
                         }.padding(.bottom, 14)
                     }
 
-                    if needsGuardian {
-                        Field(label: "保護者連絡先") {
-                            TField(text: $emergency, placeholder: "保護者電話番号", keyboard: .phonePad)
-                        }.padding(.bottom, 14)
-
-                        Button { guardian.toggle() } label: {
-                            HStack(alignment: .top, spacing: 10) {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                        .stroke(guardian ? T.warnDeep : T.inkFaint, lineWidth: 1.5)
-                                        .frame(width: 18, height: 18)
-                                    if guardian {
-                                        RoundedRectangle(cornerRadius: 4, style: .continuous).fill(T.warnDeep)
-                                            .frame(width: 18, height: 18)
-                                        Image(systemName: "checkmark")
-                                            .font(.system(size: 11, weight: .bold))
-                                            .foregroundStyle(.white)
-                                    }
-                                }
-                                .padding(.top, 3)
-                                Text("外泊・帰省は保護者の同意が必要です。上記の保護者に連絡済み／同意を得ていることを確認します。")
-                                    .font(.system(size: 12.5))
-                                    .foregroundStyle(T.warnDeep)
-                                    .multilineTextAlignment(.leading)
-                                    .lineSpacing(2)
-                                Spacer(minLength: 0)
-                            }
-                            .padding(.horizontal, 14).padding(.vertical, 12)
-                            .background {
-                                RoundedRectangle(cornerRadius: 12, style: .continuous).fill(T.warnBg)
-                            }
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(T.warn.opacity(0.25), lineWidth: 1)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.bottom, 16)
-                    }
 
                     // 注：原「下書き保存」假按钮（只弹 toast 不存）已移除，同 StayForm。本地草稿留 v1.1。
                     HStack(spacing: 10) {
@@ -1987,11 +1829,11 @@ struct GenericApplyForm: View {
             let trimmedDest = dest.trimmingCharacters(in: .whitespacesAndNewlines)
             let trimmedReason = reason.trimmingCharacters(in: .whitespacesAndNewlines)
             let body = OutingCreateBody(
-                outing_date: StayForm.formatYMD(outingDate),
+                outing_date: ApplyFormDate.formatYMD(outingDate),
                 destination: trimmedDest.isEmpty ? nil : trimmedDest,
-                leave_time: StayForm.formatHM(outingLeaveTime),
-                return_time: StayForm.formatHM(outingReturnTime),
-                taxi_reservation_time: taxiReserved ? StayForm.formatHM(taxiTime) : nil,
+                leave_time: ApplyFormDate.formatHM(outingLeaveTime),
+                return_time: ApplyFormDate.formatHM(outingReturnTime),
+                taxi_reservation_time: taxiReserved ? ApplyFormDate.formatHM(taxiTime) : nil,
                 reason: trimmedReason.isEmpty ? nil : trimmedReason
             )
             let tokenAtStart = app.authToken
@@ -2043,7 +1885,7 @@ struct GenericApplyForm: View {
             targetDate = nil
         case "guest":
             subject = trimmedDest.isEmpty ? type.name : trimmedDest
-            targetDate = StayForm.formatYMD(date)
+            targetDate = ApplyFormDate.formatYMD(date)
         default: // parcel
             subject = trimmedDest.isEmpty ? type.name : trimmedDest
             targetDate = nil
@@ -2373,9 +2215,9 @@ struct ApplyDetailView: View {
                 otherDetailBody
             }
         #else
-            // 生产（IX-007 Option A）：后端只支持出寮届系（帰省/外泊/帰国），全部走真后端 StayDetailView(id)。
-            // 修繕/来訪/代理受取 后端零实装、生产不存在这类申请；显式直连真后端，
-            // 不再依赖「item 落到 SEED.applications[0] 恰好是 stay 型」的巧合、也不会退回 SEED 显假人。
+            // 生产（IX-007 Option A）：出寮届系走真后端 StayDetailView(id)。
+            // misc-requests 后端仅实装 create、缺 list/detail，故生产提交后暂无法在 app 内检索详情，
+            // 详情页统一走 StayDetailView；补齐 misc list/detail 检索见 TODO Y-10。
             StayDetailView(id: id)
         #endif
     }

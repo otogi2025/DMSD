@@ -33,17 +33,16 @@ struct ScheduleView: View {
     @State private var loadError: String? = nil // 已登录拉取失败时的报错（不喂假数据，见 load）
     /// true = 当前数据源是 SEED 兜底（未登录）。决定点击行事行能否跳 SEED 下标制的详情页。
     @State private var usingMock: Bool = false
+    /// events 变化时预分组缓存（key = yyyy-MM-dd），dayCell / selectedDaySection 查表用（ios#69）
+    @State private var eventsByDate: [String: [EventItem]] = [:]
+    /// events 变化时一次算好的月份可滚范围（ios#69）
+    @State private var cachedMonthRange: ClosedRange<YearMonth>? = nil
 
     private var monthRange: ClosedRange<YearMonth> {
-        let all = events.compactMap { YearMonth(from: $0.date) }
-        guard let lo = all.min(), let hi = all.max() else {
-            // 还没数据（加载中 / 空）时给个含「今天」的安全范围，月份切换按钮不会全灰
-            let now = ScheduleView.initialYearMonth()
-            return now ... now
-        }
-        // 确保「今天」所在月一定在范围内（即使该月无行事，也能停在今天那一页）
+        if let cached = cachedMonthRange { return cached }
+        // 还没数据（加载中 / 空）时给个含「今天」的安全范围，月份切换按钮不会全灰
         let now = ScheduleView.initialYearMonth()
-        return min(lo, now) ... max(hi, now)
+        return now ... now
     }
 
     var body: some View {
@@ -78,7 +77,7 @@ struct ScheduleView: View {
         .task { await load() }
     }
 
-    // MARK: 数据加载（已登录拉真后端 / 未登录或失败回退 SEED）
+    // MARK: 数据加载（已登录拉真后端 / 未登录回退 SEED；已登录失败不回退）
 
     /// 未登录 → 回退 SEED.events（开发无 backend / Apple 审核员没真账号也能看日历效果）。
     /// 已登录 → GET /api/v1/events 真数据，映射成 EventItem。
@@ -89,31 +88,42 @@ struct ScheduleView: View {
         isLoading = true
         defer { isLoading = false }
         guard app.isAuthenticated else {
-            events = SEED.events
-            usingMock = true
+            applyEvents(SEED.events, usingMock: true)
             return
         }
         loadError = nil
         let (from, to) = ScheduleView.fetchRange()
         do {
             let raw = try await EventsAPI.listEvents(fromDate: from, toDate: to)
-            events = EventMapper.map(raw)
-            usingMock = false
+            applyEvents(EventMapper.map(raw), usingMock: false)
         } catch APIError.unauthorized {
             // token 失效：清登录态（令牌已死）+ 明确提示重登。
             // 不留空列表让用户误以为「没有行事」，也不退回 SEED 假数据。
             app.authToken = nil
             loadError = "セッションの有効期限が切れました。再度ログインしてください。"
-            events = []
-            usingMock = false
+            applyEvents([], usingMock: false)
         } catch {
             loadError = APIErrorPresenter.userMessage(
                 for: error,
                 fallback: "行事予定の取得に失敗しました"
             )
-            events = []
-            usingMock = false
+            applyEvents([], usingMock: false)
         }
+    }
+
+    /// 写入 events 并同步按日字典 + 月份范围缓存（ios#69）
+    private func applyEvents(_ newEvents: [EventItem], usingMock mock: Bool) {
+        events = newEvents
+        usingMock = mock
+        eventsByDate = Dictionary(grouping: newEvents, by: { $0.date })
+        let all = newEvents.compactMap { YearMonth(from: $0.date) }
+        guard let lo = all.min(), let hi = all.max() else {
+            cachedMonthRange = nil
+            return
+        }
+        // 确保「今天」所在月一定在范围内（即使该月无行事，也能停在今天那一页）
+        let now = ScheduleView.initialYearMonth()
+        cachedMonthRange = min(lo, now) ... max(hi, now)
     }
 
     /// 点击某行事 → 跳详情页。
@@ -346,7 +356,10 @@ struct ScheduleView: View {
     }
 
     private var eventsInMonth: Int {
-        events.filter { isInMonth($0.date) }.count
+        eventsByDate.reduce(0) { sum, pair in
+            guard isInMonth(pair.key) else { return sum }
+            return sum + pair.value.count
+        }
     }
 
     private func isInMonth(_ s: String) -> Bool {
@@ -356,7 +369,7 @@ struct ScheduleView: View {
 
     private func eventsForDay(_ day: Int) -> [EventItem] {
         let dateStr = String(format: "%d-%02d-%02d", ym.year, ym.month, day)
-        return events.filter { $0.date == dateStr }
+        return eventsByDate[dateStr] ?? []
     }
 
     private func weekdayColor(_ d: String) -> Color {
@@ -390,7 +403,7 @@ struct ScheduleView: View {
         today.day
     }
 
-    /// 一次取够的日期范围：今年 1 月 1 日 到 明年 12 月 31 日。
+    /// 一次取够的日期范围：去年 1 月 1 日 到 明年 12 月 31 日。
     /// 覆盖整个学年 + 跨年，月份切换不必二次请求后端。返回 ("yyyy-MM-dd", "yyyy-MM-dd")。
     private static func fetchRange() -> (from: String, to: String) {
         let y = today.year

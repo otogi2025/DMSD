@@ -34,6 +34,6 @@ enum CleaningAPI {
 /// AppStore.nextCleaning 计算后给 HomeStubs 的 nextCleaningCard 渲染。
 struct NextCleaningInfo: Equatable {
     let dateText: String // "5月20日"
-    let timeText: String // "19時"
+    let timeText: String // "19時00分"（与 AppStore.jstHour 的 H時mm分 口径一致）
     let area: String // "廊下 2F"
 }

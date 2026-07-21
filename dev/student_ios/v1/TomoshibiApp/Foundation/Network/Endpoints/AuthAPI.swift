@@ -166,7 +166,7 @@ enum StudentsAPI {
     }
 
     /// PATCH /students/me — 学生自改联系方式 / 房号（只传非 nil 字段）。
-    /// - 撞别人邮箱 → 422 EMAIL_TAKEN；房号前缀跟本人寮不符（男 M*** / 女 W***）→ 422 INVALID_ROOM_FORMAT。
+    /// - 撞别人邮箱 → 422 EMAIL_TAKEN；房号按字母前缀校验 dorm_unit（如 2 寮为 A*，见后端 accounts.validate_room_dorm_match）→ 422 INVALID_ROOM_FORMAT。
     ///   两种 422 的日语提示由 APIError.unprocessable 原样带出，直接弹给学生。
     /// - 响应是后端 StudentProfileBasic（比 StudentMeOut 多 registered_at）；
     ///   Decodable 默认忽略多余字段 → 直接复用 StudentMeOut 解码。

@@ -100,12 +100,20 @@ enum ApplyFormDate {
         return cal.date(byAdding: .day, value: 3, to: today0) ?? today0
     }
 
+    /// 解析「HH:mm」为 JST 时刻。
+    /// ios#13: 解析失败不再静默吞掉 —— DEBUG/断言打信号；调用方仍拿 Date（当前全传写死合法串）。
+    /// 与 StayForm.parseHM 的 Date? 口径未完全对齐，是因调用方不在本批改动白名单，避免破坏编译。
     static func parseHM(_ s: String) -> Date {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
         f.locale = Locale(identifier: "en_US_POSIX")
         f.timeZone = TimeZone(identifier: "Asia/Tokyo") // 固定 JST：DatePicker 已固定东京时区，初值字符串也按 JST 解读，否则偏移
-        return f.date(from: s) ?? Date()
+        if let d = f.date(from: s) { return d }
+        assertionFailure("ApplyFormDate.parseHM 解析失败: \(s)")
+        #if DEBUG
+            print("[ApplyFormDate.parseHM] 解析失败: \(s)，回退当前时刻")
+        #endif
+        return Date()
     }
 
     static func formatYMD(_ d: Date) -> String {

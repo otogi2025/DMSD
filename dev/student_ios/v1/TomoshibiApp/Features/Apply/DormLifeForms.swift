@@ -185,7 +185,8 @@ struct DormEventProposalForm: View {
             }
             teamName = item.team_name ?? ""
             title = item.title
-            heldDate = item.held_at
+            // ios#20: 再提出时原企画 held_at 可能已过；钳到今天，否则 canSubmit 恒 false 且选择器不含该值
+            heldDate = max(item.held_at, ApplyFormDate.today)
             heldTime = item.held_at
             place = item.place
             expectedCountText = String(item.expected_count)
@@ -206,26 +207,9 @@ struct DormEventProposalForm: View {
     }
 
     private var listButton: some View {
-        Button {
+        ApplyListEntryButton(title: "提出済み一覧", icon: "list.bullet.rectangle", showsChevron: true) {
             router.go(.dormEventList)
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "list.bullet.rectangle")
-                    .font(.system(size: 15, weight: .semibold))
-                Text("提出済み一覧")
-                    .font(.system(size: 13, weight: .bold))
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
-            }
-            .foregroundStyle(T.primary)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background {
-                RoundedRectangle(cornerRadius: 12, style: .continuous).fill(T.pill)
-            }
         }
-        .buttonStyle(.plain)
     }
 
     private func submit() {
@@ -296,24 +280,9 @@ struct DormEventProposalListView: View {
             PageHeader(title: "行事企画一覧", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    Button {
+                    ApplyListEntryButton(title: "新しく提出", icon: "plus.circle") {
                         router.go(.applyForm(kind: "event"))
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "plus.circle")
-                                .font(.system(size: 15, weight: .semibold))
-                            Text("新しく提出")
-                                .font(.system(size: 13, weight: .bold))
-                            Spacer()
-                        }
-                        .foregroundStyle(T.primary)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .background {
-                            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(T.pill)
-                        }
                     }
-                    .buttonStyle(.plain)
 
                     if loading {
                         VStack(spacing: 10) {
@@ -517,26 +486,9 @@ struct FridgePurchaseForm: View {
     }
 
     private var listButton: some View {
-        Button {
+        ApplyListEntryButton(title: "提出済み一覧", icon: "list.bullet.rectangle", showsChevron: true) {
             router.go(.fridgeList)
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "list.bullet.rectangle")
-                    .font(.system(size: 15, weight: .semibold))
-                Text("提出済み一覧")
-                    .font(.system(size: 13, weight: .bold))
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
-            }
-            .foregroundStyle(T.primary)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background {
-                RoundedRectangle(cornerRadius: 12, style: .continuous).fill(T.pill)
-            }
         }
-        .buttonStyle(.plain)
     }
 
     private func submit() {
@@ -584,24 +536,9 @@ struct FridgePurchaseListView: View {
             PageHeader(title: "冷蔵庫購入届一覧", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    Button {
+                    ApplyListEntryButton(title: "新しく提出", icon: "plus.circle") {
                         router.go(.applyForm(kind: "fridge"))
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "plus.circle")
-                                .font(.system(size: 15, weight: .semibold))
-                            Text("新しく提出")
-                                .font(.system(size: 13, weight: .bold))
-                            Spacer()
-                        }
-                        .foregroundStyle(T.primary)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .background {
-                            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(T.pill)
-                        }
                     }
-                    .buttonStyle(.plain)
 
                     if loading {
                         VStack(spacing: 10) {
@@ -752,26 +689,9 @@ struct ItemPossessionForm: View {
     }
 
     private var listButton: some View {
-        Button {
+        ApplyListEntryButton(title: "提出済み一覧", icon: "list.bullet.rectangle", showsChevron: true) {
             router.go(.itemList)
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "list.bullet.rectangle")
-                    .font(.system(size: 15, weight: .semibold))
-                Text("提出済み一覧")
-                    .font(.system(size: 13, weight: .bold))
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
-            }
-            .foregroundStyle(T.primary)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background {
-                RoundedRectangle(cornerRadius: 12, style: .continuous).fill(T.pill)
-            }
         }
-        .buttonStyle(.plain)
     }
 
     private func submit() {
@@ -820,24 +740,9 @@ struct ItemPossessionListView: View {
             PageHeader(title: "物品所持許可願一覧", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    Button {
+                    ApplyListEntryButton(title: "新しく提出", icon: "plus.circle") {
                         router.go(.applyForm(kind: "item"))
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "plus.circle")
-                                .font(.system(size: 15, weight: .semibold))
-                            Text("新しく提出")
-                                .font(.system(size: 13, weight: .bold))
-                            Spacer()
-                        }
-                        .foregroundStyle(T.primary)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .background {
-                            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(T.pill)
-                        }
                     }
-                    .buttonStyle(.plain)
 
                     if loading {
                         VStack(spacing: 10) {
@@ -901,6 +806,37 @@ private struct ItemPossessionRow: View {
                 Pill(text: pair.label, tone: pair.tone)
             }
         }
+    }
+}
+
+/// 行事企画 / 冷蔵庫 / 物品所持 共用的一覧入口与「新しく提出」条。
+private struct ApplyListEntryButton: View {
+    let title: String
+    let icon: String
+    var showsChevron: Bool = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .semibold))
+                Text(title)
+                    .font(.system(size: 13, weight: .bold))
+                Spacer()
+                if showsChevron {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .bold))
+                }
+            }
+            .foregroundStyle(T.primary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background {
+                RoundedRectangle(cornerRadius: 12, style: .continuous).fill(T.pill)
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
 

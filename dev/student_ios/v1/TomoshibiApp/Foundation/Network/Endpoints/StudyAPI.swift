@@ -62,7 +62,7 @@ enum StudyAPI {
         mimeType: String
     ) async throws -> StudyOnlineRequestOut {
         return try await APIClient.shared.upload(
-            path: "/api/v1/study/online-requests/\(requestId.uuidString)/contract",
+            path: "/api/v1/study/online-requests/\(requestId.uuidString.lowercased())/contract",
             fileData: fileData,
             fileName: fileName,
             mimeType: mimeType
@@ -77,7 +77,7 @@ enum StudyAPI {
     @MainActor
     static func downloadOnlineContract(requestId: UUID) async throws -> Data {
         return try await APIClient.shared.download(
-            path: "/api/v1/study/online-requests/\(requestId.uuidString)/contract"
+            path: "/api/v1/study/online-requests/\(requestId.uuidString.lowercased())/contract"
         )
     }
 

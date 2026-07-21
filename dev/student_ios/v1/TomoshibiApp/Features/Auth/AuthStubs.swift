@@ -3,7 +3,7 @@
 // 对等 refs/phaseB_src/c13988a3__SplashPage_OnboardingPage_RegisterDonePage.js
 // 9 个 struct View（+ private helpers）:
 //   1. SplashView            — 火焰 wordmark · 2s fadeIn · → .onboarding
-//   2. OnboardingView        — 3 slide TabView + 跳过按钮 · → .login
+//   2. OnboardingView        — 4 页・必须看完・无跳过 · → .login
 //   3. RegisterStep1View     — 姓名 / 生年月日 / 性别 / 头像
 //   4. RegisterStep2View     — 点呼区分 radio（普通寮生 / 足球部）
 //   5. RegisterStep3View     — 邮箱 / 电话
@@ -17,7 +17,7 @@
 //   - 日文字符串逐字照抄 JSX（JSX 的 "晚" 按 v2 HTML 规约替换为 "晩"）
 //   - fontSize / padding / spacing 严格对照 JSX inline style
 //   - 颜色 = T.* tokens（JSX 独立 hex 用 Color(hex:) inline override）
-//   - 自绘 icon（flame / check / lock / phoneTap / mail / calendar）不用 SF Symbols
+//   - icon：资源图 / SF Symbols / 自绘均可（Splash 用资产图，Onboarding 用 SF Symbols，Check/Lock/Back 仍自绘）
 //   - 动画: fadeIn 0.2s → .easeIn(0.2) · zoom 0.22s → .easeOut(0.22) · slideUp 0.34s → spring
 //   - 无 NavigationStack · 无 .sheet() · Route 驱动
 //   - Liquid Glass 仅 .glassEffect 许可 — Auth 流程不用 glass（bg = T.pearl / paper / gradient）
@@ -46,7 +46,7 @@ struct SplashView: View {
     @EnvironmentObject var app: AppStore
     @State private var appear: Bool = false
     /// 「介绍页看过没」标记 — @AppStorage 自动读写 UserDefaults（手机本地小仓库）。
-    /// 首次安装本机没这条记录 → 默认 false → 走一次介绍页；OnboardingView 看完/跳过置 true，以后再不弹。
+    /// 首次安装本机没这条记录 → 默认 false → 走一次介绍页；OnboardingView 看完 4 页置 true，以后再不弹。
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
 
     var body: some View {
@@ -94,22 +94,22 @@ struct SplashView: View {
         }
         .onAppear {
             withAnimation(.easeIn(duration: 0.6)) { appear = true }
-            Task {
-                try? await Task.sleep(nanoseconds: 2_200_000_000)
-                await MainActor.run {
-                    // 启动跳转逻辑：
-                    //   - Keychain 已恢复 token → 自动登录跳 home（老用户不看介绍页）
-                    //   - 没 token + 本机没看过介绍 → 走一次介绍页（首次安装的新用户）
-                    //   - 没 token + 已看过介绍 → 跳 login（老用户再登录 / 新用户在 login 点「新規登録」注册）
-                    // 介绍页只在首次安装看一次（hasSeenOnboarding 标记），不每次启动都弹（2026-05-07 itsuki 拍板「太烦」）
-                    if app.authToken != nil {
-                        router.replace(.home)
-                    } else if !hasSeenOnboarding {
-                        router.replace(.onboarding)
-                    } else {
-                        router.replace(.login)
-                    }
-                }
+        }
+        // .task 随视图消失自动取消，避免 onAppear 重复排队多个 replace
+        .task {
+            try? await Task.sleep(nanoseconds: 2_200_000_000)
+            guard !Task.isCancelled else { return }
+            // 启动跳转逻辑（睡醒后再读一次 auth / 介绍页标记，防等待期间状态已变）:
+            //   - Keychain 已恢复 token → 自动登录跳 home（老用户不看介绍页）
+            //   - 没 token + 本机没看过介绍 → 走一次介绍页（首次安装的新用户）
+            //   - 没 token + 已看过介绍 → 跳 login（老用户再登录 / 新用户在 login 点「新規登録」注册）
+            // 介绍页只在首次安装看一次（hasSeenOnboarding 标记），不每次启动都弹（2026-05-07 itsuki 拍板「太烦」）
+            if app.authToken != nil {
+                router.replace(.home)
+            } else if !hasSeenOnboarding {
+                router.replace(.onboarding)
+            } else {
+                router.replace(.login)
             }
         }
     }
@@ -119,81 +119,6 @@ struct SplashView: View {
     SplashView()
         .environmentObject(RouterStore())
         .environmentObject(AppStore())
-}
-
-/// 自绘 Tomoshibi 火焰 logo（红橙外焰 + 黄色灯芯 · Image #29 样式）
-private struct TomoshibiFlameLogo: View {
-    var body: some View {
-        GeometryReader { geo in
-            let w = geo.size.width
-            let h = geo.size.height
-            ZStack {
-                // 外焰（红橙渐变，描边样式）
-                FlameShape()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(hex: 0xFF6A3D), // 橙红 top
-                                Color(hex: 0xE23A1F), // 深红 bottom
-                            ],
-                            startPoint: .top, endPoint: .bottom
-                        )
-                    )
-                    .overlay(
-                        FlameShape()
-                            .stroke(Color(hex: 0x3A1008), lineWidth: 1.5)
-                    )
-
-                // 黄色灯芯（底部中央圆）
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [Color(hex: 0xFFF3A8), Color(hex: 0xFFD24D)],
-                            center: .center,
-                            startRadius: 0,
-                            endRadius: w * 0.2
-                        )
-                    )
-                    .overlay(
-                        Circle().stroke(Color(hex: 0x3A1008), lineWidth: 1.2)
-                    )
-                    .frame(width: w * 0.32, height: w * 0.32)
-                    .offset(y: h * 0.18)
-            }
-        }
-    }
-}
-
-private struct FlameShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var p = Path()
-        let w = rect.width
-        let h = rect.height
-        // teardrop-ish flame
-        p.move(to: CGPoint(x: w * 0.5, y: 0))
-        p.addCurve(
-            to: CGPoint(x: w, y: h * 0.62),
-            control1: CGPoint(x: w * 0.95, y: h * 0.22),
-            control2: CGPoint(x: w, y: h * 0.42)
-        )
-        p.addCurve(
-            to: CGPoint(x: w * 0.5, y: h),
-            control1: CGPoint(x: w, y: h * 0.88),
-            control2: CGPoint(x: w * 0.78, y: h)
-        )
-        p.addCurve(
-            to: CGPoint(x: 0, y: h * 0.62),
-            control1: CGPoint(x: w * 0.22, y: h),
-            control2: CGPoint(x: 0, y: h * 0.88)
-        )
-        p.addCurve(
-            to: CGPoint(x: w * 0.5, y: 0),
-            control1: CGPoint(x: 0, y: h * 0.34),
-            control2: CGPoint(x: w * 0.2, y: h * 0.18)
-        )
-        p.closeSubpath()
-        return p
-    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -252,7 +177,7 @@ struct OnboardingView: View {
     }
 
     private let slides: [Slide] = [
-        // ① 点呼 — 用"触碰"泛指（不提卡 / 不提手机，因为这是 iPhone app、卡跟它无关；v1.0 也不支持手机签到）
+        // ① 点呼 — app 路径：学生用 iPhone 碰点呼机（NFC 写入身份）；不提卡（卡路径不经本 app）
         Slide(
             sfSymbol: "wave.3.right.circle.fill",
             title: "タッチで点呼",
@@ -409,91 +334,8 @@ struct OnboardingView: View {
 }
 
 // ───────────────────────────── Inline Icon paths ──────────────────────────────
-// 对等 phaseB_src Ic.phoneTap / mail / calendar / check / lock 的 SVG d 属性
-
-private struct PhoneTapIcon: View {
-    var size: CGFloat = 40
-    var body: some View {
-        Canvas { ctx, _ in
-            let scale = size / 48.0
-            // <rect x="16" y="10" width="16" height="28" rx="3"/>
-            let phoneRect = Path(roundedRect: CGRect(x: 16 * scale, y: 10 * scale, width: 16 * scale, height: 28 * scale), cornerRadius: 3 * scale)
-            ctx.stroke(phoneRect, with: .foreground, style: StrokeStyle(lineWidth: 1.8 * scale, lineCap: .round, lineJoin: .round))
-            // <path d="M22 33h4"/>
-            var home = Path()
-            home.move(to: CGPoint(x: 22 * scale, y: 33 * scale))
-            home.addLine(to: CGPoint(x: 26 * scale, y: 33 * scale))
-            ctx.stroke(home, with: .foreground, style: StrokeStyle(lineWidth: 1.8 * scale, lineCap: .round, lineJoin: .round))
-            // wave arc 1: M35 18c1.8 1.5 3 3.6 3 6s-1.2 4.5-3 6
-            var wave1 = Path()
-            wave1.move(to: CGPoint(x: 35 * scale, y: 18 * scale))
-            wave1.addCurve(
-                to: CGPoint(x: 35 * scale, y: 30 * scale),
-                control1: CGPoint(x: 36.8 * scale, y: 19.5 * scale),
-                control2: CGPoint(x: 38 * scale, y: 21.6 * scale)
-            )
-            ctx.stroke(wave1, with: .foreground, style: StrokeStyle(lineWidth: 1.8 * scale, lineCap: .round, lineJoin: .round))
-            // wave arc 2: M39 14c3 2.5 5 6 5 10s-2 7.5-5 10  (opacity .8)
-            var wave2 = Path()
-            wave2.move(to: CGPoint(x: 39 * scale, y: 14 * scale))
-            wave2.addCurve(
-                to: CGPoint(x: 39 * scale, y: 34 * scale),
-                control1: CGPoint(x: 42 * scale, y: 16.5 * scale),
-                control2: CGPoint(x: 44 * scale, y: 20 * scale)
-            )
-            ctx.opacity = 0.8
-            ctx.stroke(wave2, with: .foreground, style: StrokeStyle(lineWidth: 1.8 * scale, lineCap: .round, lineJoin: .round))
-        }
-        .frame(width: size, height: size)
-    }
-}
-
-private struct MailIcon: View {
-    var size: CGFloat = 40
-    var body: some View {
-        Canvas { ctx, _ in
-            let scale = size / 24.0
-            // <rect x="3" y="5" width="18" height="14" rx="2.4"/>
-            let env = Path(roundedRect: CGRect(x: 3 * scale, y: 5 * scale, width: 18 * scale, height: 14 * scale), cornerRadius: 2.4 * scale)
-            ctx.stroke(env, with: .foreground, style: StrokeStyle(lineWidth: 1.6 * scale, lineCap: .round, lineJoin: .round))
-            // <path d="m3.6 6.4 8.4 7 8.4-7"/>
-            var flap = Path()
-            flap.move(to: CGPoint(x: 3.6 * scale, y: 6.4 * scale))
-            flap.addLine(to: CGPoint(x: 12 * scale, y: 13.4 * scale))
-            flap.addLine(to: CGPoint(x: 20.4 * scale, y: 6.4 * scale))
-            ctx.stroke(flap, with: .foreground, style: StrokeStyle(lineWidth: 1.6 * scale, lineCap: .round, lineJoin: .round))
-        }
-        .frame(width: size, height: size)
-    }
-}
-
-private struct CalendarIcon: View {
-    var size: CGFloat = 40
-    var body: some View {
-        Canvas { ctx, _ in
-            let scale = size / 24.0
-            // <rect x="3.5" y="5" width="17" height="15" rx="2.4"/>
-            let frame = Path(roundedRect: CGRect(x: 3.5 * scale, y: 5 * scale, width: 17 * scale, height: 15 * scale), cornerRadius: 2.4 * scale)
-            ctx.stroke(frame, with: .foreground, style: StrokeStyle(lineWidth: 1.6 * scale, lineCap: .round, lineJoin: .round))
-            // M3.5 10h17
-            var top = Path()
-            top.move(to: CGPoint(x: 3.5 * scale, y: 10 * scale))
-            top.addLine(to: CGPoint(x: 20.5 * scale, y: 10 * scale))
-            ctx.stroke(top, with: .foreground, style: StrokeStyle(lineWidth: 1.6 * scale, lineCap: .round, lineJoin: .round))
-            // M8 3v4
-            var peg1 = Path()
-            peg1.move(to: CGPoint(x: 8 * scale, y: 3 * scale))
-            peg1.addLine(to: CGPoint(x: 8 * scale, y: 7 * scale))
-            ctx.stroke(peg1, with: .foreground, style: StrokeStyle(lineWidth: 1.6 * scale, lineCap: .round, lineJoin: .round))
-            // M16 3v4
-            var peg2 = Path()
-            peg2.move(to: CGPoint(x: 16 * scale, y: 3 * scale))
-            peg2.addLine(to: CGPoint(x: 16 * scale, y: 7 * scale))
-            ctx.stroke(peg2, with: .foreground, style: StrokeStyle(lineWidth: 1.6 * scale, lineCap: .round, lineJoin: .round))
-        }
-        .frame(width: size, height: size)
-    }
-}
+// 自绘 check / lock / back chevron（仍在用）；flame / phoneTap / mail / calendar
+// 已改用资源图或 SF Symbols，对应死代码已删
 
 private struct CheckIcon: View {
     var size: CGFloat = 28
@@ -781,12 +623,6 @@ struct RegisterStep1View: View {
     private var avatarLetter: String {
         name.first.map { String($0) } ?? "リ"
     }
-
-    private static let birthFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"
-        return f
-    }()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1389,6 +1225,27 @@ struct RegisterStep3View: View {
         #endif
     }()
 
+    /// 去首尾空白后的邮箱 / 电话（判空与写入 draft 共用）
+    private var trimmedEmail: String {
+        email.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedPhone: String {
+        phone.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// 基础邮箱形态：非空 + 含 @ + @ 后还有字符（不拦完整 RFC，只挡纯空白 / 明显假值）
+    private var emailLooksOk: Bool {
+        guard let at = trimmedEmail.firstIndex(of: "@") else { return false }
+        let local = trimmedEmail[..<at]
+        let domain = trimmedEmail[trimmedEmail.index(after: at)...]
+        return !local.isEmpty && domain.contains(".")
+    }
+
+    private var contactReady: Bool {
+        emailLooksOk && !trimmedPhone.isEmpty
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             RegisterHeader(title: "連絡先")
@@ -1421,13 +1278,12 @@ struct RegisterStep3View: View {
             }
 
             footerDouble(
-                // 邮箱 / 电话 两个字段都标 required（必填），空值不应能进下一步
-                nextEnabled: !email.isEmpty && !phone.isEmpty,
+                // 邮箱 / 电话 都必填：trim 后判空 + 基础邮箱形态，写入也存 trim 后的值
+                nextEnabled: contactReady,
                 onBack: { router.go(.registerStep2) },
                 onNext: {
-                    // 2026-05-04 加: 累积 email / phone 到 draft（任意字段，空则传 nil）
-                    app.registrationDraft.email = email.isEmpty ? nil : email
-                    app.registrationDraft.phone = phone.isEmpty ? nil : phone
+                    app.registrationDraft.email = trimmedEmail.isEmpty ? nil : trimmedEmail
+                    app.registrationDraft.phone = trimmedPhone.isEmpty ? nil : trimmedPhone
                     router.go(.registerStep4)
                 }
             )

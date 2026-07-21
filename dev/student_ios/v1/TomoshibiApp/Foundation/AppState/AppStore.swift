@@ -113,6 +113,8 @@ final class AppStore: ObservableObject {
                 }
             } else {
                 KeychainService.delete()
+                // ios#94: 登出 / 401 清令牌时同步删过期时刻，防 UserDefaults 滞留
+                UserDefaults.standard.removeObject(forKey: Self.tokenExpiryKey)
                 // IX-008: 登出 / 令牌失效 → 清当前用户 + SEED.user 复位演示默认，
                 // 防上一个真实用户的姓名 / 房号等残留到登录页 / 下一个人。
                 currentUser = nil
@@ -262,8 +264,12 @@ final class AppStore: ObservableObject {
                 // await 之后确认还是同一个登录令牌 —— 防 await 期间已登出 / 换了人。
                 guard authToken == tokenAtStart else { return }
                 var mapped = Self.mapMeToUser(me)
-                // IX-008b: 再拉当月扣分汇总填统计（拉不到保持 0，不打断登录）。
-                if let summary = try? await DisciplineAPI.mySummary() {
+                // ios#93: 扣分汇总与欠席次数互不依赖 → 并发拉，总延迟取较大 RTT。
+                let absenceRevAtStart = absenceCountRevision
+                async let summaryTask = DisciplineAPI.mySummary()
+                async let absenceTask = StudyAPI.myAbsenceSummary()
+                // IX-008b: 当月扣分汇总填统计（拉不到保持 0，不打断登录）。
+                if let summary = try? await summaryTask {
                     mapped.points = summary.total_points
                     mapped.lateCount = summary.late_count
                     mapped.absentCount = summary.absent_count
@@ -271,10 +277,9 @@ final class AppStore: ObservableObject {
                     // （needs_cleaning 是 Bool?，防后端字段名敲定前 / 旧后端没返时整段 summary 解码失败）。
                     mapped.needsCleaning = summary.needs_cleaning ?? (summary.total_points >= 4)
                 }
-                // IX-034: 再拉当月夜学習欠席届次数（按月真实数，替代纯内存累加 —
+                // IX-034: 当月夜学習欠席届次数（按月真实数，替代纯内存累加 —
                 //   重启 / 跨月不再丢失）。拉不到 nil 保持原值，不打断登录。
-                let absenceRevAtStart = absenceCountRevision
-                let absenceCount = (try? await StudyAPI.myAbsenceSummary())?.count
+                let absenceCount = (try? await absenceTask)?.count
                 // summary / absence 都有 await，写回前再确认还是同一个令牌。
                 guard authToken == tokenAtStart else { return }
                 currentUser = mapped
@@ -290,20 +295,23 @@ final class AppStore: ObservableObject {
                 // 安全网：同时写回 SEED.user，覆盖那些没法用 app.displayUser 的站点
                 // （@State 默认值 / 纯 mock 数据 / 静态 helper）。
                 SEED.user = mapped
+                // ios#93: 以下拉取彼此独立且各自带令牌守卫 → 并发发起，总延迟取最大 RTT。
                 // IX-009：登录 / 启动即拉公告未読数，让 Home 铃铛 badge 首屏就准
                 // （announcements 列表是懒加载、首屏可能空；这里只拉轻量 count）。
-                await loadAnnouncementUnreadCount()
+                async let unreadCountTask: Void = loadAnnouncementUnreadCount()
                 // §7.13.1：登录 / 启动即拉学生通知 feed，让 Home 铃铛 badge 首屏含通知未読数
-                // （feed 是进通知中心才刷的，不在这拉则首屏 badge 漏掉巴士/行事/通知公告的未読）。
-                await loadStudentNotifications()
+                // （feed 是进通知中心才刷的、不在这拉则首屏 badge 漏掉巴士/行事/通知公告的未読）。
+                async let notificationsTask: Void = loadStudentNotifications()
                 // IX-009：登录 / 启动即拉包裹，让 Home 铃铛 badge 首屏含包裹未読。
-                await loadMyPackages()
+                async let packagesTask: Void = loadMyPackages()
                 // IX-009：补报启动时还没登录就拿到的 APNs deviceToken。
-                await flushDeviceTokenIfPossible()
+                async let deviceTokenTask: Void = flushDeviceTokenIfPossible()
                 // R-1/R-2：拉今日点呼场次，驱动首页点呼卡真实状态（idle/进行中/時間内/遅刻/欠席）
-                await loadTodayRollcall()
+                async let rollcallTask: Void = loadTodayRollcall()
                 // 罚扫：拉本人罚扫安排，驱动主页「下次罚扫」小卡 + 履历页首屏
-                await loadCleaningHistory()
+                async let cleaningTask: Void = loadCleaningHistory()
+                _ = await (unreadCountTask, notificationsTask, packagesTask,
+                           deviceTokenTask, rollcallTask, cleaningTask)
             } catch APIError.unauthorized {
                 // 令牌过期 / 失效（401）→ 清令牌强制重登（didSet 会清 currentUser + 复位 SEED.user），
                 // 不再默默回退到演示假人身份。
@@ -1426,13 +1434,17 @@ final class AppStore: ObservableObject {
         }
     }
 
-    /// 通知卡时刻显示：JST「M/d HH:mm」。
-    private static func notifTimeLabel(_ d: Date) -> String {
+    /// 通知卡时刻显示：JST「M/d HH:mm」（ios#98: 复用 static formatter，与 jstHHmm 同款）
+    private static let notifTimeFormatter: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "ja_JP")
         f.timeZone = TimeZone(identifier: "Asia/Tokyo")
         f.dateFormat = "M/d HH:mm"
-        return f.string(from: d)
+        return f
+    }()
+
+    private static func notifTimeLabel(_ d: Date) -> String {
+        notifTimeFormatter.string(from: d)
     }
 
     /// 进入通知中心时刷新通知来源。生产拉学生通知 feed + 包裹；演示构建不动（用 SEED）。
@@ -1455,8 +1467,9 @@ final class AppStore: ObservableObject {
             let feedUnread = studentNotifications.isEmpty
                 ? studentNotificationUnreadCount
                 : studentNotifications.filter { !$0.isRead }.count
+            // ios#97: 包裹未読直接在 packages 上按 status 计数，避免为 badge 重建并格式化整组通知卡
             return pushNotifications.filter { $0.unread }.count + feedUnread
-                + packageNotifications.filter { $0.unread }.count
+                + packages.filter { $0.status == "pending" || $0.status == "notified" }.count
         #endif
     }
 
@@ -1577,15 +1590,14 @@ enum StudyTap: String, Hashable, CaseIterable {
 }
 
 /// 出席状态（在 amber Card / 个人页里显示）
+/// ios#99: 删掉从未派生/消费的 yellow（迟到）/ excused（批准缺席）—— studyAttendance 只产出 idle/none/progressing/green/red/abnormal
 enum StudyAttendance: String {
     case idle // 学习时间外
     case none // 进行中但 0 次 tap
     case progressing // 已 tap 1 次（正常进行中）
     case green // 两次 tap 均完成 = 时间内
-    case yellow // 迟到
     case red // 缺席
     case abnormal // 前后不一致 = 异常，须老师手动判定
-    case excused // 缺席已获批准
 }
 
 /// マイページ 夜学習履歴 entry

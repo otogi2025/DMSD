@@ -1,5 +1,5 @@
 // Route.swift
-// ⭐ Foundation · 全 App route 定义 · 32 case 对等 phaseB_src _template.html
+// ⭐ Foundation · 全 App route 定义 · 与 RootView switch 一一对应
 
 import Foundation
 
@@ -73,7 +73,7 @@ enum Route: Hashable {
     /// Breadcrumb 显示名（日本語）
     var displayName: String {
         switch self {
-        case .splash: return "Splash"
+        case .splash: return "起動"
         case .onboarding: return "紹介"
         case .registerStep1: return "基本情報"
         case .registerStep2: return "点呼区分"
@@ -159,7 +159,7 @@ enum Route: Hashable {
         }
     }
 
-    /// 是否应隐藏 BottomNav（所有 auth flow + form preview/done 都隐藏）
+    /// 是否应隐藏 BottomNav（仅 auth flow：启动 / 介绍 / 注册 / 登录 / 锁定 / 密码重置）
     var hidesBottomNav: Bool {
         switch self {
         case .splash, .onboarding,

@@ -67,14 +67,11 @@ struct StudyOnlineForm: View {
                     Card(padding: 14) {
                         VStack(alignment: .leading, spacing: 12) {
                             Field(label: "開始日", hint: "オンライン夜学習開始の3日前までに提出してください", required: true) {
+                                // JST 由 ApplyDateField 内部保证（外层 environment 会被内层覆盖，叠了也无效）
                                 ApplyDateField(date: $periodFrom, minDate: ApplyFormDate.threeDaysLater)
-                                    .environment(\.timeZone, TimeZone(identifier: "Asia/Tokyo") ?? .current) // 选日按 JST，跟 formatYMD 提交口径一致（非 JST 设备不偏天）
-                                    .environment(\.calendar, ApplyFormDate.tokyoCalendar) // minDate/初值也按 JST 日历算（Codex 6-03）
                             }
                             Field(label: "終了日", required: true) {
                                 ApplyDateField(date: $periodTo, minDate: periodFrom)
-                                    .environment(\.timeZone, TimeZone(identifier: "Asia/Tokyo") ?? .current) // 选日按 JST，跟 formatYMD 提交口径一致
-                                    .environment(\.calendar, ApplyFormDate.tokyoCalendar) // minDate/初值也按 JST 日历算（Codex 6-03）
                                     // 开始日往后调时把越界的終了日钳回（minDate 只限选择器范围、不回钳已绑定值），
                                     // 否则終了日 < 開始日，canSubmit 永远 false、提交键静默置灰无提示（同 StayForm 修复）
                                     .onChangeCompat(of: periodFrom) {
@@ -306,7 +303,7 @@ struct StudyOnlineForm: View {
         defer { isSubmitting = false }
 
         let body = StudyAPI.OnlineRequestBody(
-            reason: reason,
+            reason: reason.trimmingCharacters(in: .whitespacesAndNewlines),
             period_from: ApplyFormDate.formatYMD(periodFrom),
             period_to: ApplyFormDate.formatYMD(periodTo),
             weekly_schedule: weeklySchedulePayload,
@@ -550,7 +547,9 @@ private struct StudyOnlineRequestRow: View {
             app.showToast(msg)
             picked = nil
         } catch APIError.unauthorized {
+            // 与其它错误分支一致：清 picked，便于登录后重选同一文件再传
             app.authToken = nil
+            picked = nil
         } catch APIError.network {
             app.showToast("通信エラーが発生しました。電波を確認してください")
             picked = nil
@@ -587,12 +586,6 @@ private func studyOnlineStatusPair(_ status: String) -> (label: String, tone: Pi
     case "rejected": return ("却下", .danger)
     case "revoked": return ("取消済み", .neutral)
     default: return ("審査中", .warn)
-    }
-}
-
-private extension Array {
-    subscript(safe index: Index) -> Element? {
-        indices.contains(index) ? self[index] : nil
     }
 }
 

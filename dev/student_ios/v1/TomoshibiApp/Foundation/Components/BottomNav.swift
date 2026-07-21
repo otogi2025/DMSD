@@ -1,7 +1,8 @@
 // BottomNav.swift · 3 tab + 中央 ⭐点呼 action button
 // iOS 26 Liquid Glass morph 效果 (itsuki 2026-05-01 反馈):
-//   选中的 tab 叠加高光玻璃，切换到别的 tab 时 capsule 平滑滑动 morph。
-//   通过 `GlassEffectContainer` + `glassEffectID` + `.interactive()` 实现。
+//   bar 整体用 .glassEffect(.regular)；选中 tab 背后叠半透明 Capsule，
+//   用 matchedGeometryEffect(id: "active-nav") 在切换时滑动 morph。
+//   （不用 glassEffectID / .interactive —— 会遮住 icon+label）
 //   iOS < 26 使用旧版回退方案（无玻璃效果，active 仅简单 tint）。
 
 import SwiftUI
