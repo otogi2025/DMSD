@@ -64,32 +64,35 @@ export function CleaningPage({ authToken }: { authToken: string }) {
   const [rejectTarget, setRejectTarget] = React.useState<CleaningItem | null>(
     null,
   );
+  // web#63：请求号守卫 — 直接调用 loadItems 时也能作废旧请求，卸载时 bump 防 setState
+  const loadGenRef = React.useRef(0);
 
   const loadItems = React.useCallback(() => {
     if (!authToken) return;
-    let cancelled = false;
+    const gen = ++loadGenRef.current;
     setLoading(true);
     setFetchError(null);
     api
       .listCleaning(authToken)
       .then((data) => {
-        if (!cancelled) setItems(Array.isArray(data) ? data : []);
+        if (gen !== loadGenRef.current) return;
+        setItems(Array.isArray(data) ? data : []);
       })
       .catch((e) => {
-        if (cancelled) return;
+        if (gen !== loadGenRef.current) return;
         console.warn("[CleaningPage] listCleaning 失败", e);
         setFetchError(e.message || "データ取得に失敗しました");
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (gen === loadGenRef.current) setLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
   }, [authToken]);
 
   React.useEffect(() => {
-    return loadItems();
+    loadItems();
+    return () => {
+      loadGenRef.current++;
+    };
   }, [loadItems]);
 
   const handleInspect = (
@@ -418,7 +421,7 @@ function CleaningCreateModal({
 }) {
   const [selected, setSelected] = React.useState<PickerStudent[]>([]);
   const [area, setArea] = React.useState(""); // 改动2：自由文本，不再是枚举
-  // 改动1：日期+时间。datetime-local 的默认值给「现在的下一个整点」做提示
+  // 改动1：日期+时间。datetime-local 的默认值给「当前时刻 + 1 小时」做提示
   const [when, setWhen] = React.useState(() => defaultDatetimeLocal());
   const student = selected[0] || null;
   // 不能排到已过去时间（前端先拦一道，后端再兜底）。when 是 datetime-local 无时区串，

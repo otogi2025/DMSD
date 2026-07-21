@@ -116,7 +116,7 @@ export function LiveRollCall({
                 fontWeight: 600,
               }}
             >
-              LIVE SESSION
+              リアルタイム点呼
             </div>
             <div style={{ fontSize: 16, fontWeight: 700, marginTop: 1 }}>
               {sessionName}{" "}
@@ -257,9 +257,6 @@ export function LiveRollCall({
           zIndex: 10,
         }}
       >
-        {/* DEMO-ONLY scaffold（§7.3.8 + project_demo_scaffolds_to_remove_before_v1）：
-            URL ?demo=1 时显示、生产模式（默认）下隐藏。
-            itsuki memory「v1.0 上线前必删」用 URL 参数门控安全保留。 */}
         {showLegend && <LegendPanel onClose={() => setShowLegend(false)} />}
         <div style={{ display: "flex", gap: 8 }}>
           <button
@@ -289,40 +286,29 @@ const fabBtn = (T: typeof RYO, active: boolean) => ({
 });
 
 // NFC 接收状态指示灯（私有子组件）
-function NfcIndicator({ status, seq }: { status: string; seq: number }) {
+// web#95: status 仅 idle|ok（由 nfcSeq 派生），无 error 态
+function NfcIndicator({ status, seq }: { status: "idle" | "ok"; seq: number }) {
   const T = RYO;
-  const map = {
-    idle: {
-      fg: T.ink3,
-      bg: T.surfaceAlt,
-      bd: T.line,
-      icon: "📡",
-      label: "NFC 待機中",
-    },
-    ok: {
-      fg: T.ok,
-      bg: T.okSoft,
-      bd: T.okBorder,
-      icon: "✓",
-      label: "受信 OK",
-    },
-    error: {
-      fg: T.danger,
-      bg: T.dangerSoft,
-      bd: T.dangerBorder,
-      icon: "⚠",
-      label: "不明な番号",
-    },
-  }[status] || {
-    fg: T.ink3,
-    bg: T.surfaceAlt,
-    bd: T.line,
-    icon: "📡",
-    label: "NFC",
-  };
+  const map =
+    status === "ok"
+      ? {
+          fg: T.ok,
+          bg: T.okSoft,
+          bd: T.okBorder,
+          icon: "✓",
+          label: "受信 OK",
+        }
+      : {
+          fg: T.ink3,
+          bg: T.surfaceAlt,
+          bd: T.line,
+          icon: "📡",
+          label: "NFC 待機中",
+        };
   return (
     <div
-      title={`seq=${seq} · iPhone 快捷指令 POST /checkin?no=XX で座席更新`}
+      // web#97: 与现网链路一致（点呼机签到 → WS → App nfcSeq），不再提过时快捷指令路径
+      title={`seq=${seq} · 点呼機のチェックインを WebSocket で受信し座席を更新`}
       style={{
         display: "flex",
         alignItems: "center",

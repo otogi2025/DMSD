@@ -29,6 +29,8 @@ export function Shell({
   wsStatus,
   authToken,
   canViewAuditLog,
+  // web#51: 待审申请数由 App 单一数据源下传（backendApplications.length），不再本组件 pendingForMe
+  pendingAppsCount = null,
 }: {
   teacher: ShellTeacher | null;
   active: string;
@@ -47,6 +49,8 @@ export function Shell({
   authToken: string | null;
   // 操作履历审计页只给管理角色显示（与后端 C_AUDIT_LOG 权限闸一致）。
   canViewAuditLog: boolean;
+  // web#51: App 下传的待审申请数（null=尚未拉到）
+  pendingAppsCount?: number | null;
 }) {
   const T = RYO;
   // Task #6 (5-27): 删 WebSocket demo 模拟，按 backendReachable 真实状态切指示灯。
@@ -55,9 +59,8 @@ export function Shell({
   const [q, setQ] = React.useState("");
   const [focused, setFocused] = React.useState(false);
   const [nowLabel, setNowLabel] = React.useState(() => formatNowJa());
-  // 侧栏徽章真实数字（替代写死的 7 / 3）— 通知未读数 + 待审申请数
+  // 侧栏通知未读数（申请待审改由 App 下传 pendingAppsCount）
   const [notifUnread, setNotifUnread] = React.useState<number | null>(null);
-  const [pendingApps, setPendingApps] = React.useState<number | null>(null);
   // 顶栏实时时钟
   React.useEffect(() => {
     const id = setInterval(() => setNowLabel(formatNowJa()), 30000);
@@ -75,9 +78,9 @@ export function Shell({
     return () => window.removeEventListener("keydown", h);
   }, []);
 
-  // 侧栏徽章数字 — authToken 来了就拉（通知未读数 + 待审申请数）。
-  // 阶段2-C：每 60 秒自动重拉一次，事件产生后侧栏数字会自己更新，老师不用手动刷新。
-  // 周期取 60 秒（不是更短）：unread-count 接口每次会触发后端扫现有事件表做懒同步，
+  // 侧栏通知未读徽章 — authToken 来了就拉；每 60 秒重拉。
+  // 申请待审徽章改用 App 下传的 pendingAppsCount（web#51），去掉本组件重复 pendingForMe。
+  // 周期取 60 秒：unread-count 接口每次会触发后端扫现有事件表做懒同步，
   // 频率越高后端越费 —— codex 审查指出这点，小宿舍规模 60 秒足够、又不浪费。
   // （真·WebSocket 瞬时推 + 后端增量水位线同步留 v1.1 — 见 TODO；现有老师 WS 只在点呼会话时连。）
   React.useEffect(() => {
@@ -91,14 +94,6 @@ export function Shell({
         })
         .catch(() => {
           if (!cancelled) setNotifUnread(null);
-        });
-      api
-        .pendingForMe(authToken)
-        .then((list) => {
-          if (!cancelled) setPendingApps((list || []).length);
-        })
-        .catch(() => {
-          if (!cancelled) setPendingApps(null);
         });
     };
     refresh();
@@ -122,7 +117,7 @@ export function Shell({
         ["roll-call", "点呼"],
         ["study", "夜学習出席"],
         ["active-leaves", "出寮者一覧"],
-        ["applications", "申請", pendingApps || undefined],
+        ["applications", "申請", pendingAppsCount || undefined],
         ["notifications", "通知", notifUnread || undefined],
       ],
     },

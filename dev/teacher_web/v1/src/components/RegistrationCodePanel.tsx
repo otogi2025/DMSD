@@ -23,11 +23,25 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
   const [now, setNow] = React.useState(Date.now());
   const [confirm, setConfirm] = React.useState(false);
   const [copyToast, setCopyToast] = React.useState(false);
+  // web#113：复制成功 toast 的定时器 — 用 ref 存 id，卸载时清掉，避免已卸载 setState
+  const copyToastTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   // 倒计时刷新 — 每秒重算 expiresAt - now
   React.useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
+  }, []);
+
+  // 卸载时清掉复制 toast 定时器
+  React.useEffect(() => {
+    return () => {
+      if (copyToastTimerRef.current != null) {
+        clearTimeout(copyToastTimerRef.current);
+        copyToastTimerRef.current = null;
+      }
+    };
   }, []);
 
   // 30 秒一次 polling — 检测其他老师在另一终端重新生成的情况（§11.9.1 拍板）
@@ -102,7 +116,13 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
     try {
       await navigator.clipboard.writeText(code);
       setCopyToast(true);
-      setTimeout(() => setCopyToast(false), 1500);
+      if (copyToastTimerRef.current != null) {
+        clearTimeout(copyToastTimerRef.current);
+      }
+      copyToastTimerRef.current = setTimeout(() => {
+        setCopyToast(false);
+        copyToastTimerRef.current = null;
+      }, 1500);
     } catch (e) {
       setErr("コピー失敗（手動で番号をコピーしてください）");
     }
@@ -366,7 +386,7 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
           桁コードが生成されます（前のコードは即座に無効になります）
         </div>
         <div>② 学生にコードを伝達（口頭 / 黒板 / LINE）</div>
-        <div>③ 学生は登録 flow の最終 step でコードを入力</div>
+        <div>③ 学生は登録手続きの最後の画面でコードを入力します</div>
         <div>④ コードは 5 分間有効です</div>
         <div>
           ⑤ 集団登録（新入生説明会など）では同じコードで複数人が登録できます

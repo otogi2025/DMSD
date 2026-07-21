@@ -32,31 +32,34 @@ export function App() {
   // route: 'login' | 'select-teacher' | 'app'
   // Task #15 §11.5 W5: 把 JWT 存进 sessionStorage —— F5 刷新后恢复 / Safari 关闭时自动清空
   // sessionStorage 用「tomoshibi_auth」键保存 {token, profile} 的 JSON。
-  const _restoredAuth = (() => {
+  // web#42: useMemo 只算一次，避免每次渲染都 sessionStorage.getItem + JSON.parse
+  const { _restoredAuth, _restoredTeacher } = React.useMemo(() => {
+    let auth: any = null;
     try {
       const raw = sessionStorage.getItem("tomoshibi_auth");
-      return raw ? JSON.parse(raw) : null;
+      auth = raw ? JSON.parse(raw) : null;
     } catch (e) {
-      return null;
+      auth = null;
     }
-  })();
-  // 5-27 拍板：实名账户登录后直接进 app（旧 select-teacher 中间页砍）。
-  // 从 backend TeacherOut.profile 派生 UI 用 teacher 字段 — assigned_dorm: 4=女寮 / 其他=男寮。
-  const _restoredTeacher =
-    _restoredAuth && _restoredAuth.profile
-      ? {
-          id: _restoredAuth.profile.id,
-          name: _restoredAuth.profile.name,
-          dorm: _restoredAuth.profile.assigned_dorm === 4 ? "women" : "men",
-          initial: (_restoredAuth.profile.name || "?").charAt(0),
-          lastLoginMins: null,
-          // A1 修复: 把 role + assigned_dorm 带进 teacher，否则权限按钮(一括进级/行事/巴士增删改)永不显示
-          role: _restoredAuth.profile.role,
-          assigned_dorm: _restoredAuth.profile.assigned_dorm,
-          // 带上有效权限组，供 InfoPage / AccountsPage 用 canManage 判功能入口显隐（TW-001/048）
-          permission_group: _restoredAuth.profile.permission_group ?? null,
-        }
-      : null;
+    // 5-27 拍板：实名账户登录后直接进 app（旧 select-teacher 中间页砍）。
+    // 从 backend TeacherOut.profile 派生 UI 用 teacher 字段 — assigned_dorm: 4=女寮 / 其他=男寮。
+    const teacher =
+      auth && auth.profile
+        ? {
+            id: auth.profile.id,
+            name: auth.profile.name,
+            dorm: auth.profile.assigned_dorm === 4 ? "women" : "men",
+            initial: (auth.profile.name || "?").charAt(0),
+            lastLoginMins: null,
+            // A1 修复: 把 role + assigned_dorm 带进 teacher，否则权限按钮(一括进级/行事/巴士增删改)永不显示
+            role: auth.profile.role,
+            assigned_dorm: auth.profile.assigned_dorm,
+            // 带上有效权限组，供 InfoPage / AccountsPage 用 canManage 判功能入口显隐（TW-001/048）
+            permission_group: auth.profile.permission_group ?? null,
+          }
+        : null;
+    return { _restoredAuth: auth, _restoredTeacher: teacher };
+  }, []);
   const [route, setRoute] = React.useState(
     _restoredAuth && _restoredAuth.token ? "app" : "login",
   );
@@ -105,19 +108,13 @@ export function App() {
   const [overrideTarget, setOverrideTarget] = React.useState<any>(null);
   const [outstayTarget, setOutstayTarget] = React.useState<any>(null);
 
-  // Trend demo
-  const trend = [
-    { date: "2026-04-15", late: 1, absent: 0 },
-    { date: "2026-04-16", late: 0, absent: 0 },
-    { date: "2026-04-17", late: 2, absent: 1 },
-    { date: "2026-04-18", late: 1, absent: 0 },
-    { date: "2026-04-19", late: 0, absent: 0 },
-    { date: "2026-04-20", late: 1, absent: 0 },
-    { date: "2026-04-21", late: 0, absent: 1 },
-  ];
+  // web#45: 无 trend 后端端点 → 删假趋势数据（不再传给 RollCallLanding）
 
   // Auto-logout 30min with 25min warning
   const lastActivity = React.useRef(Date.now());
+  // web#43: students 的 ref 镜像，供 WS checkin 回调里查姓名朗读（不放进 setStudents updater）
+  const studentsRef = React.useRef(students);
+  studentsRef.current = students;
   // web#11: warned 用 ref 存——活动 bump 时复位，否则 25 分警告后动一下再空闲只会到 30 分直接踢、不再警告
   const idleWarned = React.useRef(false);
   React.useEffect(() => {
@@ -200,7 +197,7 @@ export function App() {
       .catch((err) => {
         if (cancelled) return;
         console.warn(
-          "[App] rollcallTodaySessions 失敗 → demo seed fallback",
+          "[App] rollcallTodaySessions 失敗 → backendReachable=false",
           err,
         );
         setTodaySessions([]);
@@ -288,21 +285,23 @@ export function App() {
           if (event.type === "checkin" && event.student_id) {
             // 收到一条签到 → 指示灯计数 +1（驱动大屏 NFC 指示灯，C31）
             setNfcSeq((n) => n + 1);
-            setStudents((list) => {
-              // 生产：WebSocket 经由的 checkin 用日语名读上げ（从旧 demo poll 移植）
-              const hit = list.find((s) => s.key === event.student_id);
-              if (hit && hit.name && window.speechSynthesis) {
-                try {
-                  window.speechSynthesis.cancel();
-                  const u = new SpeechSynthesisUtterance(hit.name);
-                  u.lang = "ja-JP";
-                  u.rate = 0.95;
-                  window.speechSynthesis.speak(u);
-                } catch (e) {
-                  /* 读上げ失败忽略 */
-                }
+            // web#43: 朗读移出 setStudents updater（StrictMode 开发模式 updater 双调用会重复朗读）
+            const hit = studentsRef.current.find(
+              (s) => s.key === event.student_id,
+            );
+            if (hit && hit.name && window.speechSynthesis) {
+              try {
+                window.speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance(hit.name);
+                u.lang = "ja-JP";
+                u.rate = 0.95;
+                window.speechSynthesis.speak(u);
+              } catch (e) {
+                /* 读上げ失败忽略 */
               }
-              return list.map((s) =>
+            }
+            setStudents((list) =>
+              list.map((s) =>
                 s.key === event.student_id
                   ? {
                       ...s,
@@ -314,8 +313,8 @@ export function App() {
                       lastEventId: event.event_id || s.lastEventId,
                     }
                   : s,
-              );
-            });
+              ),
+            );
           } else if (event.type === "outstay_new" && event.student_id) {
             setStudents((list) =>
               list.map((s) =>
@@ -464,9 +463,9 @@ export function App() {
     // 从 name 判别 backend session：含「朝」判 morning，其余（夜点呼等）判 evening。
     // 非「朝」一律归 evening，这样不依赖晩/夜的表记差异也能正确判别（C32 修复）。
     const wantType = name.includes("朝") ? "morning" : "evening";
+    // web#44: wantType 必非空，「wantType &&」永真无过滤 → 直接按 session_type 找
     const sess =
       backendReachable &&
-      wantType &&
       (todaySessions || []).find((s: any) => s.session_type === wantType);
 
     if (sess && authToken) {
@@ -797,7 +796,7 @@ export function App() {
   }
   // 5-27 拍板：旧 route === "select-teacher" 中间页砍 —
   // LoginScreen 内部已合并「列表 + 密码」2 屏，登录成功直接进 app。
-  // window.SelectTeacherScreen 组件保留（10531 行附近）作为 v1.1 候补 — 暂不使用。
+  // SelectTeacherScreen 组件保留在 src/components/SelectTeacherScreen.tsx，作为 v1.1 候补 — 暂不使用。
   // app
   if (liveMode && session) {
     return (
@@ -837,7 +836,6 @@ export function App() {
           onStart={startSession}
           lastEnded={lastEnded}
           onNav={nav}
-          trend={trend}
           authToken={authToken}
           onShowSummary={lastSummary ? () => setPage("summary") : undefined}
         />
@@ -858,7 +856,6 @@ export function App() {
         <ApplicationsPage
           onOpen={setOutstayTarget}
           backendApplications={backendApplications}
-          authToken={authToken}
           onNav={nav}
         />
       );
@@ -868,44 +865,23 @@ export function App() {
       body = <ProxyApplicationPage authToken={authToken} />;
       break;
     case "discipline":
-      body = (
-        <DisciplinePage teacher={teacher} onNav={nav} authToken={authToken} />
-      );
+      body = <DisciplinePage teacher={teacher} authToken={authToken} />;
       break;
     case "cleaning":
       body = <CleaningPage authToken={authToken} />;
       break;
     case "records":
-      body = (
-        <RecordsPage
-          teacher={teacher}
-          params={pageParams}
-          onNav={nav}
-          authToken={authToken}
-        />
-      );
+      body = <RecordsPage params={pageParams} authToken={authToken} />;
       break;
     case "active-leaves":
       // 2026-06-04 杭田需求「四、出寮者一覧」— 纯只读出寮中寮生表
       body = <ActiveLeavesPage authToken={authToken} />;
       break;
     case "search":
-      body = (
-        <SearchPage
-          teacher={teacher}
-          query={searchQuery}
-          authToken={authToken}
-        />
-      );
+      body = <SearchPage query={searchQuery} authToken={authToken} />;
       break;
     case "notifications":
-      body = (
-        <NotificationsPage
-          teacher={teacher}
-          onNav={nav}
-          authToken={authToken}
-        />
-      );
+      body = <NotificationsPage onNav={nav} authToken={authToken} />;
       break;
     case "info":
       body = <InfoPage teacher={teacher} authToken={authToken} />;
@@ -917,7 +893,7 @@ export function App() {
       body = <CommunityPage teacher={teacher} />;
       break;
     case "front-desk":
-      body = <FrontDeskPage teacher={teacher} authToken={authToken} />;
+      body = <FrontDeskPage authToken={authToken} />;
       break;
     case "reports":
       body = <ReportsPage authToken={authToken} />;
@@ -940,7 +916,7 @@ export function App() {
       break;
     case "study":
       // Task #17: 学習出席页 (§11.1 P0 + §7.3)
-      body = <StudyAttendancePage teacher={teacher} authToken={authToken} />;
+      body = <StudyAttendancePage authToken={authToken} />;
       break;
     case "audit-log":
       // 2026-06-16: 操作履历审计页（操作记录）— 只读，后端 C_AUDIT_LOG 权限把关
@@ -953,7 +929,6 @@ export function App() {
           onStart={startSession}
           lastEnded={lastEnded}
           onNav={nav}
-          trend={trend}
           authToken={authToken}
         />
       );
@@ -978,6 +953,13 @@ export function App() {
         wsStatus={wsStatus}
         authToken={authToken}
         canViewAuditLog={canViewAuditLog}
+        // web#51: 待审申请数由 App 单一数据源下传（pendingForMe 结果里 status===pending）
+        pendingAppsCount={
+          Array.isArray(backendApplications)
+            ? backendApplications.filter((a: any) => a.status === "pending")
+                .length
+            : null
+        }
         onSwitchTeacher={() => {
           // 5-27 拍板：切替＝ログアウト相当（实名账户 = 必須再認証）。
           // sessionStorage 不清 — lastTeacherId 保留可让 LoginScreen 卡片高亮「前回」

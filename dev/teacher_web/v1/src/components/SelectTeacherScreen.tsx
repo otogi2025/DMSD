@@ -5,6 +5,8 @@ import { dormLabel } from "../theme";
 import { ConfirmModal } from "./shared";
 import tomoshibiIcon from "../assets/tomoshibi-icon.png";
 
+// ⚠️ 当前未接线，v1.1 候补 — 全仓库无 import/渲染（仅 App.tsx / LoginScreen 注释提及）。
+//    常规审查排除；接线前勿当活页面验。保留整份供 v1.1 担当者选择流复用。
 // 源 index.html 10645-11295（components/select-teacher.jsx 块）。
 // 页面：/login/select-teacher — 从「男性寮 / 女性寮」两栏里选今天值班的老师卡片。
 // 编辑模式：可删除 + 追加老师；所在栏决定老师的担当寮。
@@ -119,7 +121,6 @@ export function SelectTeacherScreen({
           icon="M"
           accent={T.maleAccent}
           soft={T.maleSoft}
-          dorm="men"
           teachers={men}
           lastTeacherId={lastTeacherId}
           edit={edit}
@@ -132,7 +133,6 @@ export function SelectTeacherScreen({
           icon="F"
           accent={T.femaleAccent}
           soft={T.femaleSoft}
-          dorm="women"
           teachers={women}
           lastTeacherId={lastTeacherId}
           edit={edit}
@@ -224,7 +224,6 @@ function DormColumn({
   icon,
   accent,
   soft,
-  dorm,
   teachers,
   lastTeacherId,
   edit,
@@ -236,7 +235,6 @@ function DormColumn({
   icon: string;
   accent: string;
   soft: string;
-  dorm: "men" | "women";
   teachers: TeacherVM[];
   lastTeacherId: string | null;
   edit: boolean;
@@ -312,14 +310,28 @@ function TeacherCard({
   onDelete: (t: TeacherVM) => void;
 }) {
   const T = RYO;
+  // 距日本时间今日 0 点的分钟数（用于区分「今日已登」与「本日未ログイン」）
+  const minsSinceJstMidnight = (() => {
+    const parts = new Intl.DateTimeFormat("ja-JP", {
+      timeZone: "Asia/Tokyo",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(new Date());
+    const hour = Number(parts.find((p) => p.type === "hour")?.value ?? 0);
+    const minute = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
+    return hour * 60 + minute;
+  })();
   const loginText =
     t.lastLoginMins == null
       ? "初回ログイン"
-      : t.lastLoginMins < 60
-        ? `${t.lastLoginMins} 分前にログイン`
-        : t.lastLoginMins < 60 * 24
-          ? `${Math.floor(t.lastLoginMins / 60)} 時間前にログイン`
-          : "本日未ログイン";
+      : t.lastLoginMins >= 60 * 24
+        ? `${Math.floor(t.lastLoginMins / (60 * 24))} 日前にログイン`
+        : t.lastLoginMins >= minsSinceJstMidnight
+          ? "本日未ログイン"
+          : t.lastLoginMins < 60
+            ? `${t.lastLoginMins} 分前にログイン`
+            : `${Math.floor(t.lastLoginMins / 60)} 時間前にログイン`;
 
   return (
     <div style={{ position: "relative" }}>
@@ -475,7 +487,7 @@ function PencilIcon() {
   );
 }
 
-// 追加老师弹窗：填写氏名 + ふりがな，担当寮由所在栏自动判定
+// 追加老师弹窗：填写氏名，担当寮由所在栏自动判定
 function AddTeacherModal({
   dorm,
   onCancel,
@@ -487,7 +499,6 @@ function AddTeacherModal({
 }) {
   const T = RYO;
   const [name, setName] = React.useState("");
-  const [furigana, setFurigana] = React.useState("");
   const ok = name.trim().length > 0;
   return (
     <div
@@ -538,35 +549,6 @@ function AddTeacherModal({
           onChange={setName}
           autoFocus
         />
-        <div style={{ marginBottom: 4 }}>
-          <div
-            style={{
-              fontSize: 11,
-              color: T.ink2,
-              marginBottom: 6,
-              fontWeight: 600,
-            }}
-          >
-            ふりがな（検索用・任意）
-          </div>
-          <input
-            value={furigana}
-            onChange={(e) => setFurigana(e.target.value)}
-            placeholder="たなか たろう"
-            style={{
-              width: "100%",
-              padding: "11px 12px",
-              background: T.surface,
-              border: `1px solid ${T.lineStrong}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 14,
-              color: T.ink,
-              outline: "none",
-              boxSizing: "border-box",
-            }}
-          />
-        </div>
         <div style={{ fontSize: 11, color: T.ink3, marginTop: 12 }}>
           担当寮：<b style={{ color: T.ink2 }}>{dormLabel(dorm)}</b>
           （カラム位置で自動判定）
@@ -621,11 +603,10 @@ function AddTeacherModal({
 }
 
 // 带标签的输入框（氏名输入用）。
-// ⚠️ 原 index.html 单文件源里 AddTeacherModal 引用了 <LField>，但全仓库（含所有 babel 块）
-//    都没有 LField 的定义 —— 这是原始单文件里就存在的悬空引用（打开追加弹窗会运行时报错）。
-//    迁移时按原样把该缺失组件补成本文件私有子组件：界面取与同源签名一致的 AdminField
-//    （label / value / onChange / autoFocus，源 index.html 14770-14810）的样式，以恢复
-//    原本「氏名 (必須)」输入框应有的渲染。详见返回的 notes。
+// ⚠️ 与 TeachersAdminPage.AdminField 几乎同构；抽 shared 需改 TeachersAdminPage
+//    + 新建模块，超出本批允许文件范围，暂留本文件私有副本（web#120 待主控抽共享）。
+//    原 index.html 单文件源里 AddTeacherModal 引用了 <LField> 却无定义——迁移时按
+//    AdminField 样式补出，以恢复「氏名 (必須)」输入框应有的渲染。
 function LField({
   label,
   value,

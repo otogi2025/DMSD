@@ -828,14 +828,16 @@ export function OutstayDetailModal({
 // 用到的 outstayDeadline / parseJst / isLateSubmission / formatJstDeadline 从 ../utils import。
 function DeadlineSection({ app }: { app: OutstayUiApp }) {
   const T = RYO;
-  const deadline = outstayDeadline ? outstayDeadline(app.depart) : null;
-  const submittedDt = parseJst ? parseJst(app.submitted) : null;
-  const late = isLateSubmission
-    ? isLateSubmission(app.depart, app.submitted)
-    : false;
-  const fmt = formatJstDeadline || (() => "—");
+  // 四个函数均为命名 import，恒可用——不再套旧 window 全局时代的 truthy 守卫
+  const deadline = outstayDeadline(app.depart);
+  const submittedDt = parseJst(app.submitted);
+  const late = isLateSubmission(app.depart, app.submitted);
+  // 仅两端都解析成功时才算差分文，避免 null→0→「0.0 時間」与「—」矛盾
+  const hasDiff = deadline != null && submittedDt != null;
   const diffMs =
-    deadline && submittedDt ? submittedDt.getTime() - deadline.getTime() : 0;
+    deadline != null && submittedDt != null
+      ? submittedDt.getTime() - deadline.getTime()
+      : 0;
   const diffHours = Math.abs(diffMs) / 3600000;
   const diffText =
     diffHours >= 48
@@ -904,11 +906,13 @@ function DeadlineSection({ app }: { app: OutstayUiApp }) {
               ✓ 期限内
             </span>
           )}
-          <span style={{ fontSize: 12, color: T.ink2 }}>
-            {late
-              ? `期限の ${diffText} 後に提出`
-              : `期限の ${diffText} 前に提出`}
-          </span>
+          {hasDiff && (
+            <span style={{ fontSize: 12, color: T.ink2 }}>
+              {late
+                ? `期限の ${diffText} 後に提出`
+                : `期限の ${diffText} 前に提出`}
+            </span>
+          )}
         </div>
         <div
           style={{
@@ -920,11 +924,11 @@ function DeadlineSection({ app }: { app: OutstayUiApp }) {
         >
           <div style={{ color: T.ink3, fontSize: 12 }}>提出期限</div>
           <div style={{ fontFamily: T.mono, color: T.ink }}>
-            {fmt(deadline)}
+            {formatJstDeadline(deadline)}
           </div>
           <div style={{ color: T.ink3, fontSize: 12 }}>実際の提出時刻</div>
           <div style={{ fontFamily: T.mono, color: late ? T.danger : T.ink }}>
-            {fmt(submittedDt)}
+            {formatJstDeadline(submittedDt)}
           </div>
         </div>
         {late && (

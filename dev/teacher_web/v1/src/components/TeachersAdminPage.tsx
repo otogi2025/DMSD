@@ -8,8 +8,8 @@ import { SELECTABLE_GROUPS, GROUP_DORM_ADMIN } from "../api/permissions";
 // /teachers-admin — 教员账号管理（2026-05-27 拍板）
 // §3.4「前台不允许自助注册任何教师账号 / 必须先用现有教师账号登录 → 加 / 删」
 // 接 backend: GET /teachers (list) / POST /teachers (创建) / DELETE /teachers/{id}
-// 权限: backend 限「寮务部长 / 寮务课长 / 寮监 / 学习担当」(/teachers.py INVITE_ALLOWED_ROLES)
-//       前端不提前判 — 让 backend 返 403 时显示错误（避免角色 string 双写漂移）
+// 权限: 需老师账号管理权限组 C_TEACHER_ACCOUNT/MANAGE；前端不预判，403 时提示
+//       （backend 走 require_permission，不再用职位白名单 INVITE_ALLOWED_ROLES）
 
 // 角色名「学習担当」对用户显示为「夜学習担当」。注意：数据库 / 接口里的 role 值仍是「学習担当」
 // —— 它是 teachers.role 的 CheckConstraint 合法取值之一，改值要动数据库迁移（已决定保留 key）。
@@ -39,6 +39,8 @@ export function TeachersAdminPage({
     type: "ok" | "warn";
     msg: string;
   } | null>(null);
+  // web#129：删除请求 in-flight 守卫（与 CreateModal.submitting 同思路）
+  const deletingRef = React.useRef(false);
 
   const refresh = React.useCallback(() => {
     setList(null);
@@ -93,6 +95,9 @@ export function TeachersAdminPage({
   };
 
   const handleDelete = async (t: TeacherOut) => {
+    // web#129：in-flight 守卫，慢网双击不发两次 DELETE
+    if (deletingRef.current) return;
+    deletingRef.current = true;
     try {
       await api.deleteTeacher(t.id, authToken);
       setToast({ type: "ok", msg: `${t.name} 先生を削除しました` });
@@ -106,6 +111,8 @@ export function TeachersAdminPage({
           : `削除に失敗しました (${e && e.status ? e.status : "?"})`;
       setToast({ type: "warn", msg });
       setConfirmDelete(null);
+    } finally {
+      deletingRef.current = false;
     }
   };
 
@@ -232,18 +239,24 @@ export function TeachersAdminPage({
             </div>
           )}
           {list.map((t) => {
+            // web#128：列表寮列与创建表单一致（一寮/二寮/四寮/全寮）
             const dormLabel =
               t.assigned_dorm == null
-                ? "—"
-                : t.assigned_dorm === 4
-                  ? "女子寮"
-                  : "男子寮";
+                ? "全寮"
+                : t.assigned_dorm === 1
+                  ? "一寮（男子）"
+                  : t.assigned_dorm === 2
+                    ? "二寮（男子）"
+                    : t.assigned_dorm === 4
+                      ? "四寮（女子）"
+                      : "—";
             const isSelf = t.id === currentTeacherId;
-            // 临时账户（有到期时间）：列里标「臨時 · 期限…」，过期的标红
+            // 临时账户（有到期时间）：氏名旁标「臨時 · 期限…」，过期的标红
             const isTemp = t.expires_at != null;
             const isExpired = isTemp && new Date(t.expires_at!) <= new Date();
             const expiryLabel = isTemp
               ? new Date(t.expires_at!).toLocaleString("ja-JP", {
+                  timeZone: "Asia/Tokyo",
                   month: "2-digit",
                   day: "2-digit",
                   hour: "2-digit",
@@ -282,6 +295,7 @@ export function TeachersAdminPage({
                       自分
                     </span>
                   )}
+                  {/* web#130：期限挂在氏名旁徽章，寮列始终显示担当寮 */}
                   {isTemp && (
                     <span
                       style={{
@@ -293,7 +307,7 @@ export function TeachersAdminPage({
                         borderRadius: 999,
                       }}
                     >
-                      {isExpired ? "期限切れ" : "臨時"}
+                      {isExpired ? "期限切れ" : `臨時 · 〜${expiryLabel}`}
                     </span>
                   )}
                 </div>
@@ -311,8 +325,8 @@ export function TeachersAdminPage({
                   {t.email}
                 </div>
                 <div style={{ color: T.ink2 }}>{roleLabel(t.role)}</div>
-                <div style={{ color: isExpired ? T.danger : T.ink2 }}>
-                  {isTemp ? `〜${expiryLabel}` : dormLabel}
+                <div style={{ color: isExpired ? T.ink3 : T.ink2 }}>
+                  {dormLabel}
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <button
@@ -763,9 +777,20 @@ function TeachersAdminConfirmDelete({
 }: {
   teacher: TeacherOut;
   onCancel: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
 }) {
   const T = RYO;
+  // web#129：与 CreateModal.submitting 一致 — 确认后 disabled，请求结束再关弹窗
+  const [deleting, setDeleting] = React.useState(false);
+  const handleConfirm = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      await onConfirm();
+    } finally {
+      setDeleting(false);
+    }
+  };
   return (
     <div
       style={{
@@ -781,7 +806,9 @@ function TeachersAdminConfirmDelete({
         zIndex: 1000,
         padding: 24,
       }}
-      onClick={onCancel}
+      onClick={() => {
+        if (!deleting) onCancel();
+      }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -810,6 +837,7 @@ function TeachersAdminConfirmDelete({
           <button
             type="button"
             onClick={onCancel}
+            disabled={deleting}
             style={{
               padding: "10px 18px",
               background: "transparent",
@@ -818,27 +846,28 @@ function TeachersAdminConfirmDelete({
               borderRadius: 8,
               fontFamily: "inherit",
               fontSize: 13,
-              cursor: "pointer",
+              cursor: deleting ? "not-allowed" : "pointer",
             }}
           >
             キャンセル
           </button>
           <button
             type="button"
-            onClick={onConfirm}
+            onClick={handleConfirm}
+            disabled={deleting}
             style={{
               padding: "10px 18px",
-              background: T.danger,
+              background: deleting ? T.lineStrong : T.danger,
               color: "#fff",
               border: "none",
               borderRadius: 8,
               fontFamily: "inherit",
               fontSize: 13,
               fontWeight: 600,
-              cursor: "pointer",
+              cursor: deleting ? "not-allowed" : "pointer",
             }}
           >
-            削除する
+            {deleting ? "削除中…" : "削除する"}
           </button>
         </div>
       </div>

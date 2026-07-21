@@ -15,6 +15,8 @@ type CommunityPost = {
   cat: string; // "board" | "song"
   author?: string;
   room?: string;
+  // 寮编号：1=一寮(男) / 2=二寮(男) / 4=四寮(女) — 与全站 dorm_unit 一致，弃用房号字母前缀
+  dorm_unit?: number;
   date?: string;
   time?: string;
   title?: string;
@@ -44,11 +46,21 @@ export function CommunityPage({
   const [dormFilter, setDormFilter] = React.useState(
     teacher && teacher.dorm ? teacher.dorm : "men",
   ); // song tab 専用: men / women / all（默认是负责的寮）
+  // web#64：按 dorm_unit 数字判寮（1/2→men、4→women），与全站统一；不再用房号字母前缀
   const dormOf = (p: CommunityPost) =>
-    p && p.room && p.room.charAt(0) === "M" ? "men" : "women";
+    p.dorm_unit === 4
+      ? "women"
+      : p.dorm_unit === 1 || p.dorm_unit === 2
+        ? "men"
+        : "men"; // 缺省按男寮（与 LoginScreen assigned_dorm=null→men 约定一致）
 
   const handleDelete = (id: string | number) => {
-    if (confirm("この投稿を削除しますか？学生のアプリからも非表示になります。"))
+    // web#67：未接后端前不声称「学生アプリからも非表示」——仅本地列表隐藏
+    if (
+      confirm(
+        "この投稿を一覧から非表示にしますか？（※サーバー未接続のため学生アプリには反映されません）",
+      )
+    )
       setPosts(posts.map((p) => (p.id === id ? { ...p, deleted: true } : p)));
   };
   const handlePin = (id: string | number) =>
@@ -60,7 +72,13 @@ export function CommunityPage({
           ? {
               ...p,
               songStatus: decision,
-              decidedAt: new Date().toTimeString().slice(0, 5),
+              // web#68：时刻统一 Asia/Tokyo，不用浏览器本地 toTimeString
+              decidedAt: new Intl.DateTimeFormat("ja-JP", {
+                timeZone: "Asia/Tokyo",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              }).format(new Date()),
               decidedBy: teacher ? `${teacher.name} 先生` : "担当 先生",
             }
           : p,
@@ -118,9 +136,20 @@ export function CommunityPage({
     });
   });
 
+  // web#65：本日投稿按 JST 当天 MM-DD 动态匹配（不再写死 04-22）
+  const todayMMDD = (() => {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Tokyo",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date());
+    const month = parts.find((p) => p.type === "month")?.value ?? "01";
+    const day = parts.find((p) => p.type === "day")?.value ?? "01";
+    return `${month}-${day}`;
+  })();
   const stats = {
     total: posts.filter((p) => !p.deleted).length,
-    today: posts.filter((p) => !p.deleted && p.date === "04-22").length,
+    today: posts.filter((p) => !p.deleted && p.date === todayMMDD).length,
     deleted: posts.filter((p) => p.deleted).length,
   };
 
@@ -158,7 +187,11 @@ export function CommunityPage({
         <div style={{ fontSize: 11, color: T.ink3 }}>
           担当寮：
           <b style={{ color: T.ink }}>
-            {teacher && teacher.dorm === "men" ? "男子寮" : "女子寮"}
+            {teacher?.dorm === "women"
+              ? "女子寮"
+              : teacher?.dorm === "men"
+                ? "男子寮"
+                : "未設定"}
           </b>
         </div>
       </div>
@@ -180,7 +213,7 @@ export function CommunityPage({
         <StatCard
           label="本日投稿"
           value={stats.today}
-          note="04-22"
+          note={todayMMDD}
           color={T.cobalt}
         />
         <StatCard
@@ -641,7 +674,7 @@ function PostCard({
                 letterSpacing: 1,
               }}
             >
-              PIN
+              ピン
             </span>
           )}
         </div>

@@ -41,7 +41,7 @@ export function LoginScreen({
   lastTeacherId: string | null;
 }) {
   const T = RYO;
-  const [teachers, setTeachers] = React.useState<PickedTeacher[] | null>(null); // null=loading / []=失败 / [...]=真值
+  const [teachers, setTeachers] = React.useState<PickedTeacher[] | null>(null); // null=loading / []=空或失败（用 loadErr 区分） / [...]=真值
   const [loadErr, setLoadErr] = React.useState<string | null>(null);
   const [picked, setPicked] = React.useState<PickedTeacher | null>(null);
   // 手动登录（「ログイン」入口）—— op / 临时账户不上墙，走输 login_id + 密码这条单独路
@@ -81,6 +81,7 @@ export function LoginScreen({
               )
             : null,
         }));
+        setLoadErr(null);
         setTeachers(adapted);
       })
       .catch((e) => {
@@ -714,25 +715,30 @@ export function LoginScreen({
             maxWidth: 480,
             margin: "0 auto",
             padding: "20px 24px",
-            background: T.dangerSoft,
-            color: T.danger,
-            border: `1px solid ${T.dangerBorder}`,
+            // web#98: 失败用危险色；成功空列表用中性提示
+            background: loadErr ? T.dangerSoft : T.surfaceAlt,
+            color: loadErr ? T.danger : T.ink2,
+            border: `1px solid ${loadErr ? T.dangerBorder : T.line}`,
             borderRadius: 12,
             fontSize: 13,
             textAlign: "center",
           }}
         >
-          先生一覧を取得できません {loadErr || ""}
-          <div
-            style={{
-              fontSize: 11,
-              color: T.ink3,
-              marginTop: 8,
-              fontFamily: T.mono,
-            }}
-          >
-            サーバーに接続できません。管理者にお問い合わせください。
-          </div>
+          {loadErr
+            ? `先生一覧を取得できません ${loadErr}`
+            : "先生が登録されていません"}
+          {loadErr && (
+            <div
+              style={{
+                fontSize: 11,
+                color: T.ink3,
+                marginTop: 8,
+                fontFamily: T.mono,
+              }}
+            >
+              サーバーに接続できません。管理者にお問い合わせください。
+            </div>
+          )}
         </div>
       )}
 
@@ -971,7 +977,7 @@ function LoginTeacherCard({
         ? `${t.lastLoginMins} 分前にログイン`
         : t.lastLoginMins < 60 * 24
           ? `${Math.floor(t.lastLoginMins / 60)} 時間前にログイン`
-          : "本日未ログイン";
+          : `${Math.floor(t.lastLoginMins / 60 / 24)} 日前にログイン`;
   return (
     <button
       type="button"

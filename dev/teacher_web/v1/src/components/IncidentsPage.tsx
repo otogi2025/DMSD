@@ -31,6 +31,8 @@ export function IncidentsPage({
   const [confirmDelete, setConfirmDelete] = React.useState<IncidentItem | null>(
     null,
   ); // 软删除确认对象
+  // web#85: 软删除进行中锁，防确认按钮连点再发同一 deleteIncident
+  const [deleting, setDeleting] = React.useState(false);
   // 杭田 2026-06-04 五-6: 涉及学生姓名 chip 点击 → 开个人档案弹窗
   const [profileTarget, setProfileTarget] = React.useState<{
     id: string;
@@ -49,24 +51,34 @@ export function IncidentsPage({
   const [fSubmitting, setFSubmitting] = React.useState(false);
   const [fError, setFError] = React.useState<string | null>(null);
 
+  // web#83: 与 ActiveLeavesPage 一致 — 返回清理函数，卸载/authToken 变时取消晚到的 setState
   const fetchIncidents = React.useCallback(() => {
     if (!authToken) return;
+    let cancelled = false;
     setLoading(true);
     setLoadError(null);
     api
       .listIncidents(authToken)
       .then((res) => {
+        if (cancelled) return;
         setIncidents(res.items || []);
         setLoading(false);
       })
       .catch((e) => {
+        if (cancelled) return;
         setLoadError(e.message || "事案リストの取得に失敗しました");
         setLoading(false);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [authToken]);
 
   React.useEffect(() => {
-    fetchIncidents();
+    const cancel = fetchIncidents();
+    return () => {
+      cancel?.();
+    };
   }, [fetchIncidents]);
 
   React.useEffect(() => {
@@ -168,17 +180,20 @@ export function IncidentsPage({
   };
 
   const softDelete = (inc: IncidentItem) => {
+    // web#85: 先关弹窗 + in-flight 锁，防连点对同一 id 再发 delete
+    if (deleting) return;
+    setDeleting(true);
+    setConfirmDelete(null);
     api
       .deleteIncident(inc.id, authToken)
       .then(() => {
         setIncidents((list) => list.filter((i) => i.id !== inc.id));
         setToast({ type: "ok", msg: `「${inc.title}」を削除しました` });
-        setConfirmDelete(null);
       })
       .catch((e) => {
         setToast({ type: "err", msg: e.message || "削除失敗" });
-        setConfirmDelete(null);
-      });
+      })
+      .finally(() => setDeleting(false));
   };
 
   return (
@@ -255,7 +270,7 @@ export function IncidentsPage({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "120px 1fr 120px 100px 80px",
+            gridTemplateColumns: "120px 1fr 120px 100px 150px",
             background: T.surfaceAlt,
             fontSize: 11,
             color: T.ink2,
@@ -264,7 +279,7 @@ export function IncidentsPage({
             borderBottom: `1px solid ${T.line}`,
           }}
         >
-          {["日付", "タイトル / 概要", "登録日時", "関係学生数", "操作"].map(
+          {["日付", "タイトル / 概要", "登録日時", "関係学生", "操作"].map(
             (h) => (
               <div key={h} style={{ padding: "10px 12px" }}>
                 {h}
@@ -302,7 +317,7 @@ export function IncidentsPage({
               key={inc.id}
               style={{
                 display: "grid",
-                gridTemplateColumns: "120px 1fr 120px 100px 80px",
+                gridTemplateColumns: "120px 1fr 120px 100px 150px",
                 borderTop: i > 0 ? `1px solid ${T.line}` : "none",
                 fontSize: 12.5,
                 alignItems: "center",
@@ -472,6 +487,7 @@ export function IncidentsPage({
               <input
                 value={fTitle}
                 onChange={(e) => setFTitle(e.target.value)}
+                maxLength={200}
                 placeholder="事案のタイトル（最大 200 文字）"
                 style={{
                   width: "100%",
@@ -525,6 +541,7 @@ export function IncidentsPage({
                 value={fBody}
                 onChange={(e) => setFBody(e.target.value)}
                 rows={6}
+                maxLength={100000}
                 placeholder="事案の詳細内容を記入（最大 100000 文字）"
                 style={{
                   width: "100%",

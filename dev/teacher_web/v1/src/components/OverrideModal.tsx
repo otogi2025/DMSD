@@ -2,15 +2,15 @@ import React from "react";
 import { RYO } from "../theme";
 
 // 源 index.html 13014-13450（components/override-modal.jsx 块）。界面原样搬，仅 window.RYO→RYO。
-// 手動調整モーダル — 欠席届承認 / 体調報告 / 調整履歴を統合表示。
+// 手动调整弹窗 — 整合显示欠席届审批 / 健康报告 / 调整历史。
 
-// 提出された欠席届の形
+// 已提交欠席届的形状
 interface PendingLeave {
   reason: string;
   submittedAt?: string;
 }
 
-// 過去の調整履歴の形
+// 过去调整历史的形状
 interface OverrideRecord {
   by: string;
   reason: string;
@@ -18,7 +18,7 @@ interface OverrideRecord {
   at?: string;
 }
 
-// このモーダルが受け取る学生のビューモデル（バックエンド型ではなく画面ローカルの形）
+// 本弹窗接收的学生视图模型（画面本地形，非后端型）
 interface OverrideStudent {
   id: string;
   name: string;
@@ -29,7 +29,7 @@ interface OverrideStudent {
   override?: OverrideRecord | null;
 }
 
-// 保存時に親へ返す値
+// 保存时回传给父组件的值
 interface OverrideSavePayload {
   status: string;
   reason: string;
@@ -196,7 +196,7 @@ export function OverrideModal({
             </div>
           )}
 
-          {/* 体調報告の展開 */}
+          {/* 健康报告展开 */}
           {student.health && (
             <div
               style={{
@@ -227,7 +227,7 @@ export function OverrideModal({
             </div>
           )}
 
-          {/* 調整履歴 */}
+          {/* 调整历史 */}
           {student.override && (
             <div
               style={{

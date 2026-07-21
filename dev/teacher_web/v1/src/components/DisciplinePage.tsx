@@ -26,13 +26,12 @@ import type {
 type DisciplineTeacher = TeacherProfile & { dorm: string };
 
 // 排行表整形后的行数据（由后端 DisciplineRankingEntry 派生）
+// late/absent 后端 ranking 未提供，不写入行（避免恒 0 误导）
 interface RankRow {
   room: string;
   id: string;
   student_id: string;
   name: string;
-  late: number;
-  absent: number;
   total: number;
   is_cleaning_threshold: boolean;
   is_curfew_threshold: boolean;
@@ -40,18 +39,25 @@ interface RankRow {
 
 export function DisciplinePage({
   teacher,
-  onNav,
   authToken,
 }: {
   teacher: DisciplineTeacher;
-  onNav: (view: string) => void;
   authToken: string;
 }) {
   const T = RYO;
   const dorm = teacher.dorm;
 
-  const today = new Date();
-  const month = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+  // 本月键 YYYY-MM，锁 Asia/Tokyo（勿用浏览器本地 getMonth）
+  const month = (() => {
+    const parts = new Intl.DateTimeFormat("ja-JP", {
+      timeZone: "Asia/Tokyo",
+      year: "numeric",
+      month: "2-digit",
+    }).formatToParts(new Date());
+    const y = parts.find((p) => p.type === "year")?.value ?? "1970";
+    const m = parts.find((p) => p.type === "month")?.value ?? "01";
+    return `${y}-${m}`;
+  })();
   const [backendRanking, setBackendRanking] =
     React.useState<DisciplineRankingOut | null>(null);
   const [loadingBackend, setLoadingBackend] = React.useState(false);
@@ -153,8 +159,6 @@ export function DisciplinePage({
       id: e.student_no,
       student_id: e.student_id,
       name: e.name,
-      late: 0,
-      absent: 0,
       total: e.total_points,
       is_cleaning_threshold: e.is_cleaning_threshold,
       is_curfew_threshold: e.is_curfew_threshold,

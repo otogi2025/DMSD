@@ -54,14 +54,16 @@ export function isLateSubmission(
 }
 
 // 格式化日本时间 → "2026-06-05（金） 17:30"。
+// 与 outstayDeadline 同法：+9h 平移到 JST 墙钟，再用 getUTC* 取值，避免浏览器非 JST 时偏一天。
 export function formatJst(d: Date | null): string {
   if (!d) return "—";
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  const jaDow = ["日", "月", "火", "水", "木", "金", "土"][d.getDay()];
+  const j = new Date(d.getTime() + 9 * 3600 * 1000);
+  const y = j.getUTCFullYear();
+  const m = String(j.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(j.getUTCDate()).padStart(2, "0");
+  const hh = String(j.getUTCHours()).padStart(2, "0");
+  const mm = String(j.getUTCMinutes()).padStart(2, "0");
+  const jaDow = ["日", "月", "火", "水", "木", "金", "土"][j.getUTCDay()];
   return `${y}-${m}-${day}（${jaDow}） ${hh}:${mm}`;
 }
 

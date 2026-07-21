@@ -2,7 +2,6 @@ import React from "react";
 import { RYO } from "../theme";
 import { api } from "../api/client";
 import type {
-  TeacherProfile,
   StudyTodayOut,
   StudyAbsenceRequestOut,
   StudyRosterItem,
@@ -12,15 +11,14 @@ import type {
 // Task #17 夜学習出席页 — §11.1 P0 + §7.3 + iOS StudyAPI 对齐 (5-27)
 // 学習担当老师当天夜学習出席管理:
 //   - studyTodayAttendees 拉当天对象学生 + 状态 (init/present/late/absent)
-//   - absenceRequests 拉学生提交的请假 inbox + 一键 ✅/❌
-//   - studyCheckin 手动出席 (NFC 失败 fallback)
+//   - absenceRequests 拉学生提交的请假一览 + 一键 ✅/❌
+//   - studyCheckin 手动出席（NFC 失败时的人工补签）
 //   - studyFinalize 学習結束 (没碰 NFC 的统一标 absent)
 //   - cancelToday 「今日学習中止」开关 (学習担当權限)
 // 对齐: backend study.py + iOS StudyAPI.swift (3 次 NFC 出席) + spec §7.3.10
 export function StudyAttendancePage({
   authToken,
 }: {
-  teacher: TeacherProfile;
   authToken: string | null;
 }) {
   const T = RYO;
@@ -160,6 +158,7 @@ export function StudyAttendancePage({
     id: string,
     decision: "approved" | "rejected",
   ) => {
+    if (acting[id]) return; // 与 doFinalize / doCancelToday 一致：防双击窗口重复批准/驳回
     setActing((m) => ({ ...m, [id]: true }));
     try {
       await api.decideAbsence(id, decision, undefined, authToken!);
@@ -241,7 +240,10 @@ export function StudyAttendancePage({
     if (s.status === "late") return ["遅刻", T.late, T.lateSoft, T.lateBorder];
     if (s.status === "absent")
       return ["欠席", T.danger, T.dangerSoft, T.dangerBorder];
-    return [s.status, T.ink3, T.graySoft, T.grayBorder];
+    // cancel-today 后 checkin.status 可为 exempt（予定列对应「中止・免除」）
+    if (s.status === "exempt")
+      return ["免除", T.ink2, T.graySoft, T.grayBorder];
+    return ["—", T.ink3, T.graySoft, T.grayBorder];
   };
 
   const expectedBadge = (

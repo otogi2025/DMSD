@@ -33,7 +33,7 @@ function modalInputStyle(T: RyoTokens): React.CSSProperties {
   };
 }
 
-// 公告一覧の UI 内部形式（adaptList の戻り値）。
+// 公告列表的 UI 内部结构（adaptList 的返回值）。
 interface NoticeRow {
   date: string;
   title: string;
@@ -45,7 +45,7 @@ interface NoticeRow {
   _id: string;
 }
 
-// 行事一覧の UI 内部形式（adapt の戻り値）。
+// 行事列表的 UI 内部结构（adapt 的返回值）。
 interface EventRow {
   _id: string;
   date: string;
@@ -57,7 +57,7 @@ interface EventRow {
   end_at: string | null;
 }
 
-// 行事 modal の編集対象 / 提交 payload。
+// 行事 modal 的编辑对象 / 提交 payload。
 interface EventFormData {
   title: string;
   category: string;
@@ -308,9 +308,16 @@ export function InfoPage({
     try {
       await api.postAnnouncementReply(announcementId, { body }, authToken);
       setReplyInput((r) => ({ ...r, [announcementId]: "" }));
-      // 詳細キャッシュ更新
+      // 详情缓存更新 + 卡片 reply_count 与详情同步
       const det = await api.getAnnouncement(announcementId, authToken);
       setDetailCache((c) => ({ ...c, [announcementId]: det }));
+      setPosts((prev) =>
+        prev.map((p) =>
+          p._id === announcementId
+            ? { ...p, reply_count: det.replies?.length ?? 0 }
+            : p,
+        ),
+      );
     } catch (e) {
       alert(
         "返信に失敗しました：" + ((e as Error).message || JSON.stringify(e)),
@@ -325,6 +332,13 @@ export function InfoPage({
       await api.deleteAnnouncementReply(announcementId, replyId, authToken);
       const det = await api.getAnnouncement(announcementId, authToken);
       setDetailCache((c) => ({ ...c, [announcementId]: det }));
+      setPosts((prev) =>
+        prev.map((p) =>
+          p._id === announcementId
+            ? { ...p, reply_count: det.replies?.length ?? 0 }
+            : p,
+        ),
+      );
     } catch (e) {
       alert(
         "返信の削除に失敗しました：" +
@@ -805,7 +819,7 @@ export function InfoPage({
           onSubmit={handlePost}
         />
       )}
-      {/* 編集 modal — ComposeNoticeModal を初期値付きで流用 */}
+      {/* 编辑 modal — 共用 NoticeModal，初始值来自 editTarget */}
       {editTarget && (
         <EditNoticeModal
           initial={editTarget}
@@ -817,20 +831,38 @@ export function InfoPage({
   );
 }
 
-// 公告編集 modal — ComposeNoticeModal と同構造、初期値あり版
-function EditNoticeModal({
+type NoticeSubmitInput = {
+  title: string;
+  body: string;
+  scope: AnnouncementScope;
+  notify_students: boolean;
+};
+
+// 公告新建/编辑共用 modal（Compose / Edit 只传不同 props）
+function NoticeModal({
+  heading,
   initial,
+  showNotifyCheckbox,
+  defaultNotify = false,
+  titlePlaceholder,
+  bodyPlaceholder,
+  submitLabel,
+  submittingLabel,
+  fallbackError,
   onClose,
   onSubmit,
 }: {
+  heading: string;
   initial: { title: string; body: string; scope: AnnouncementScope };
+  showNotifyCheckbox: boolean;
+  defaultNotify?: boolean;
+  titlePlaceholder?: string;
+  bodyPlaceholder?: string;
+  submitLabel: string;
+  submittingLabel: string;
+  fallbackError: string;
   onClose: () => void;
-  onSubmit: (input: {
-    title: string;
-    body: string;
-    scope: AnnouncementScope;
-    notify_students: boolean;
-  }) => Promise<void>;
+  onSubmit: (input: NoticeSubmitInput) => Promise<void>;
 }) {
   const T = RYO;
   const [title, setTitle] = React.useState(initial.title || "");
@@ -838,9 +870,9 @@ function EditNoticeModal({
   const [scope, setScope] = React.useState<AnnouncementScope>(
     initial.scope || "all",
   );
-  // 编辑路径不碰通知（§7.13.1 修订 2026-06-16）：后端编辑接口已忽略 notify_students，
-  // 不再展示勾选框；onSubmit 仍传 false 满足类型、后端忽略（编辑不影响 feed 成员）。
-  const notifyStudents = false;
+  const [notifyStudents, setNotifyStudents] = React.useState(
+    showNotifyCheckbox ? defaultNotify : false,
+  );
   const [submitting, setSubmitting] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState("");
   const handleSubmit = async () => {
@@ -852,10 +884,10 @@ function EditNoticeModal({
         title: title.trim(),
         body: body.trim(),
         scope,
-        notify_students: notifyStudents,
+        notify_students: showNotifyCheckbox ? notifyStudents : false,
       });
     } catch (e) {
-      setErrorMsg((e as Error)?.message || "保存に失敗しました");
+      setErrorMsg((e as Error)?.message || fallbackError);
       setSubmitting(false);
     }
   };
@@ -896,7 +928,7 @@ function EditNoticeModal({
             alignItems: "center",
           }}
         >
-          <div style={{ fontSize: 15, fontWeight: 700 }}>お知らせを編集</div>
+          <div style={{ fontSize: 15, fontWeight: 700 }}>{heading}</div>
           <button
             onClick={onClose}
             style={{
@@ -935,6 +967,7 @@ function EditNoticeModal({
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              placeholder={titlePlaceholder}
               style={{
                 width: "100%",
                 padding: "10px 12px",
@@ -961,6 +994,7 @@ function EditNoticeModal({
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
+              placeholder={bodyPlaceholder}
               rows={12}
               style={{
                 width: "100%",
@@ -1028,6 +1062,35 @@ function EditNoticeModal({
               {errorMsg}
             </div>
           )}
+          {showNotifyCheckbox && (
+            <>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 13,
+                  color: T.ink,
+                  cursor: "pointer",
+                  margin: "4px 0 0",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={notifyStudents}
+                  onChange={(e) => setNotifyStudents(e.target.checked)}
+                  style={{ width: 16, height: 16, cursor: "pointer" }}
+                />
+                学生に通知する（アプリの通知センターに表示）
+              </label>
+              {notifyStudents && (
+                <div style={{ fontSize: 11, color: T.ink3 }}>
+                  投稿後、対象寮生の iOS・Android
+                  アプリにプッシュ通知が送信されます。
+                </div>
+              )}
+            </>
+          )}
         </div>
         <div
           style={{
@@ -1051,7 +1114,7 @@ function EditNoticeModal({
               fontFamily: "inherit",
               fontSize: 13,
               fontWeight: 600,
-              cursor: "pointer",
+              cursor: submitting ? "not-allowed" : "pointer",
             }}
           >
             キャンセル
@@ -1071,7 +1134,7 @@ function EditNoticeModal({
               cursor: !title.trim() || submitting ? "not-allowed" : "pointer",
             }}
           >
-            {submitting ? "保存中..." : "保存"}
+            {submitting ? submittingLabel : submitLabel}
           </button>
         </div>
       </div>
@@ -1079,9 +1142,33 @@ function EditNoticeModal({
   );
 }
 
+// 公告编辑 modal — 共用 NoticeModal；编辑不显示通知勾选（后端忽略 notify_students）
+function EditNoticeModal({
+  initial,
+  onClose,
+  onSubmit,
+}: {
+  initial: { title: string; body: string; scope: AnnouncementScope };
+  onClose: () => void;
+  onSubmit: (input: NoticeSubmitInput) => Promise<void>;
+}) {
+  return (
+    <NoticeModal
+      heading="お知らせを編集"
+      initial={initial}
+      showNotifyCheckbox={false}
+      submitLabel="保存"
+      submittingLabel="保存中..."
+      fallbackError="保存に失敗しました"
+      onClose={onClose}
+      onSubmit={onSubmit}
+    />
+  );
+}
+
 // 行事カレンダー — 真后端数据版（5-30 改造）
 // 后端字段: id / title / category / event_date / start_at? / end_at? / description?
-// 权限：寮務部長 / 寮務課長 / 管理係 才显示增删改按钮
+// 权限：按 canManage(C_EVENT) 显隐增删改按钮
 function EventCalendar({
   teacher,
   authToken,
@@ -1127,9 +1214,10 @@ function EventCalendar({
     end_at: item.end_at,
   });
 
-  // 拉取当前月前后各1个月范围的行事（保证翻月不闪）
+  // 只拉 cursor 所在当前月（from=月初 to=月末）
   const loadEvents = React.useCallback(() => {
     if (!authToken) return;
+    let cancelled = false;
     const y = cursor.getFullYear();
     const m = cursor.getMonth();
     const from = `${y}-${String(m + 1).padStart(2, "0")}-01`;
@@ -1139,13 +1227,24 @@ function EventCalendar({
     setEvtError(null);
     api
       .listEvents(authToken, from, to)
-      .then((data) => setList((data.items || []).map(adapt)))
-      .catch((e) => setEvtError(e.message || "行事の取得に失敗しました"))
-      .finally(() => setLoadingEvt(false));
+      .then((data) => {
+        if (cancelled) return;
+        setList((data.items || []).map(adapt));
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setEvtError(e.message || "行事の取得に失敗しました");
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingEvt(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [authToken, cursor]);
 
   React.useEffect(() => {
-    loadEvents();
+    return loadEvents();
   }, [loadEvents]);
 
   const y = cursor.getFullYear();
@@ -1816,7 +1915,7 @@ export function BusPage({
 
 // 巴士时刻表面板 — 真后端数据版（5-30 改造）
 // 后端字段: id / kind / name / direction / schedule_at / arrival_at? / visible_to / note? / purpose? / deprecated
-// 权限：寮務部長 / 寮務課長 / 管理係 才显示增删改
+// 权限：按 canManage(C_BUS) 显隐增删改
 export function BusSchedulePanel({
   teacher,
   authToken,
@@ -2369,289 +2468,27 @@ function BusRouteModal({
   );
 }
 
+// 公告新建 modal — 共用 NoticeModal；默认勾选通知学生
 function ComposeNoticeModal({
   onClose,
   onSubmit,
 }: {
   onClose: () => void;
-  onSubmit: (input: {
-    title: string;
-    body: string;
-    scope: AnnouncementScope;
-    notify_students: boolean;
-  }) => Promise<void>;
+  onSubmit: (input: NoticeSubmitInput) => Promise<void>;
 }) {
-  const T = RYO;
-  const [title, setTitle] = React.useState("");
-  const [body, setBody] = React.useState("");
-  // 5-27: 配送 scope — backend AnnouncementCreateIn.scope: "all" | "male" | "female"
-  const [scope, setScope] = React.useState<AnnouncementScope>("all");
-  // 新建默认勾选（发新公告默认通知全员）
-  const [notifyStudents, setNotifyStudents] = React.useState(true);
-  const [submitting, setSubmitting] = React.useState(false);
-  const [errorMsg, setErrorMsg] = React.useState("");
-  const handleSubmit = async () => {
-    if (!title.trim() || submitting) return;
-    setSubmitting(true);
-    setErrorMsg("");
-    try {
-      await onSubmit({
-        title: title.trim(),
-        body: body.trim(),
-        scope,
-        notify_students: notifyStudents,
-      });
-    } catch (e) {
-      setErrorMsg(
-        (e as Error)?.message ||
-          "お知らせの送信に失敗しました。サーバーに接続できないか、権限が不足している可能性があります。しばらくしてから再度お試しください。",
-      );
-      setSubmitting(false);
-    }
-  };
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(20,23,31,0.55)",
-        zIndex: 90,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 20,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: T.surface,
-          borderRadius: 14,
-          width: 680,
-          maxWidth: "100%",
-          maxHeight: "90vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: T.shadowModal,
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            padding: "16px 20px",
-            borderBottom: `1px solid ${T.line}`,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div style={{ fontSize: 15, fontWeight: 700 }}>新規お知らせ投稿</div>
-          <button
-            onClick={onClose}
-            style={{
-              background: "transparent",
-              border: "none",
-              fontSize: 20,
-              color: T.ink3,
-              cursor: "pointer",
-            }}
-          >
-            ×
-          </button>
-        </div>
-        <div
-          style={{
-            padding: 20,
-            display: "flex",
-            flexDirection: "column",
-            gap: 14,
-            overflowY: "auto",
-            flex: 1,
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: 11,
-                color: T.ink3,
-                fontWeight: 600,
-                letterSpacing: 1,
-                marginBottom: 6,
-              }}
-            >
-              タイトル
-            </div>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="例：今週金曜の清掃検査について"
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                border: `1px solid ${T.lineStrong}`,
-                borderRadius: 8,
-                fontSize: 14,
-                fontFamily: "inherit",
-                boxSizing: "border-box",
-              }}
-            />
-          </div>
-          <div>
-            <div
-              style={{
-                fontSize: 11,
-                color: T.ink3,
-                fontWeight: 600,
-                letterSpacing: 1,
-                marginBottom: 6,
-              }}
-            >
-              本文
-            </div>
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="詳細をここに記入..."
-              rows={12}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                border: `1px solid ${T.lineStrong}`,
-                borderRadius: 8,
-                fontSize: 13,
-                fontFamily: "inherit",
-                boxSizing: "border-box",
-                resize: "vertical",
-                lineHeight: 1.6,
-              }}
-            />
-          </div>
-          <div>
-            <div
-              style={{
-                fontSize: 11,
-                color: T.ink3,
-                fontWeight: 600,
-                letterSpacing: 1,
-                marginBottom: 6,
-              }}
-            >
-              配信対象
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              {[
-                { k: "all", label: "全寮生" },
-                { k: "male", label: "男子寮のみ" },
-                { k: "female", label: "女子寮のみ" },
-              ].map((o) => (
-                <button
-                  key={o.k}
-                  onClick={() => setScope(o.k as AnnouncementScope)}
-                  style={{
-                    flex: 1,
-                    padding: "8px 12px",
-                    background: scope === o.k ? T.cobalt : T.surface,
-                    color: scope === o.k ? "#fff" : T.ink2,
-                    border: `1px solid ${scope === o.k ? T.cobalt : T.lineStrong}`,
-                    borderRadius: 8,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    fontFamily: "inherit",
-                    cursor: "pointer",
-                  }}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          {errorMsg && (
-            <div
-              style={{
-                padding: "8px 12px",
-                background: T.dangerSoft,
-                color: T.danger,
-                border: `1px solid ${T.danger}`,
-                borderRadius: 8,
-                fontSize: 12,
-              }}
-            >
-              {errorMsg}
-            </div>
-          )}
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              fontSize: 13,
-              color: T.ink,
-              cursor: "pointer",
-              margin: "4px 0 0",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={notifyStudents}
-              onChange={(e) => setNotifyStudents(e.target.checked)}
-              style={{ width: 16, height: 16, cursor: "pointer" }}
-            />
-            学生に通知する（アプリの通知センターに表示）
-          </label>
-          {notifyStudents && (
-            <div style={{ fontSize: 11, color: T.ink3 }}>
-              投稿後、対象寮生の iOS・Android
-              アプリにプッシュ通知が送信されます。
-            </div>
-          )}
-        </div>
-        <div
-          style={{
-            padding: "12px 20px",
-            background: T.surfaceAlt,
-            borderTop: `1px solid ${T.line}`,
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 8,
-          }}
-        >
-          <button
-            onClick={onClose}
-            disabled={submitting}
-            style={{
-              padding: "8px 16px",
-              background: T.surface,
-              color: T.ink2,
-              border: `1px solid ${T.lineStrong}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: submitting ? "not-allowed" : "pointer",
-            }}
-          >
-            キャンセル
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!title.trim() || submitting}
-            style={{
-              padding: "8px 16px",
-              background: !title.trim() || submitting ? T.line : T.cobalt,
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: !title.trim() || submitting ? "not-allowed" : "pointer",
-            }}
-          >
-            {submitting ? "送信中..." : "投稿"}
-          </button>
-        </div>
-      </div>
-    </div>
+    <NoticeModal
+      heading="新規お知らせ投稿"
+      initial={{ title: "", body: "", scope: "all" }}
+      showNotifyCheckbox
+      defaultNotify
+      titlePlaceholder="例：今週金曜の清掃検査について"
+      bodyPlaceholder="詳細をここに記入..."
+      submitLabel="投稿"
+      submittingLabel="送信中..."
+      fallbackError="お知らせの送信に失敗しました。サーバーに接続できないか、権限が不足している可能性があります。しばらくしてから再度お試しください。"
+      onClose={onClose}
+      onSubmit={onSubmit}
+    />
   );
 }

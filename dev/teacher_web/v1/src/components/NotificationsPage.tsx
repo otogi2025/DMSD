@@ -1,28 +1,36 @@
 import React from "react";
 import { RYO } from "../theme";
 import { api } from "../api/client";
-import type { TeacherProfile, NotificationItem } from "../api/types";
+import type { NotificationItem } from "../api/types";
 
 // 通知中心（UI「通知センター」）— 阶段1（itsuki 2026-06-13）。
 // 2 张卡用现成接口算真数字（待审申请 / 警告人数）；最近通知流来自后端
 // GET /notifications/feed（取时扫现有事件同步）；点一条标记已读 +「すべて既読にする」按钮。
 // 通報卡已删（通報功能 2026-06-13 彻底删除）。
 
-// 当月 YYYY-MM（给扣分 ranking 接口）
+// 当月 YYYY-MM（JST，给扣分 ranking 接口）— web#102：不用浏览器本地 getFullYear/getMonth
 function currentMonth(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const parts = new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(new Date());
+  const y = parts.find((p) => p.type === "year")?.value ?? "";
+  const m = parts.find((p) => p.type === "month")?.value ?? "";
+  return `${y}-${m}`;
 }
 
-// event_at（ISO）→ "MM-DD HH:mm"
+// event_at（ISO）→ JST 本地化时刻 — web#101
 function formatTime(iso: string): string {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
-  return `${mm}-${dd} ${hh}:${mi}`;
+  return d.toLocaleString("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 // category → 标签 + 颜色
@@ -72,7 +80,7 @@ export function NotificationsPage({
   onNav,
   authToken,
 }: {
-  teacher: TeacherProfile;
+  // web#103：删死 prop teacher（组件全程未用；App.tsx 传入处由主控统一删）
   onNav: (view: string) => void;
   authToken: string;
 }) {

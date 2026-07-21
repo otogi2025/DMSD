@@ -334,7 +334,7 @@ export interface AuditLogEntry {
   action: string; // "METHOD 归一化路径"，如 "POST notifications/read-all"
   target_type: string | null;
   target_id: string | null;
-  payload: Record<string, any> | null;
+  payload: Record<string, unknown> | null;
   ip_address: string | null;
 }
 
@@ -770,6 +770,8 @@ export interface ApplicationCreateBody {
   flight_arr_at?: string | null;
   taxi_reservation_time?: string | null;
   bus_route_id?: string | null;
+  // 帰省専用（后端 KiseiCreateIn）：长假返乡标记，其它 kind 不带（web#109）
+  is_long_vacation?: boolean;
 }
 
 // ── WebSocket helper ──

@@ -157,6 +157,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
   }, [q, authToken]);
 
   // 食事不要期间展开成 [{date, meal}]（照抄 iOS StayForm.expandMealsSkip）
+  // 日期按 Asia/Tokyo 日历日解释与步进，不依赖浏览器本地时区
   function expandMealsSkip(
     startDate: string,
     startMeal: string,
@@ -166,21 +167,20 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
     const order = ["朝食", "昼食", "夕食"];
     const result: MealSkip[] = [];
     const fmt = (d: Date) =>
-      new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-        .toISOString()
-        .slice(0, 10);
-    let cur = new Date(startDate + "T00:00:00");
-    const end = new Date(endDate + "T00:00:00");
-    while (cur <= end) {
-      const isFirst = fmt(cur) === startDate;
-      const isLast = fmt(cur) === endDate;
+      new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo" }).format(d);
+    let cur = new Date(startDate + "T00:00:00+09:00");
+    const end = new Date(endDate + "T00:00:00+09:00");
+    while (cur.getTime() <= end.getTime()) {
+      const curStr = fmt(cur);
+      const isFirst = curStr === startDate;
+      const isLast = curStr === endDate;
       const lo = isFirst ? order.indexOf(startMeal) : 0;
       const hi = isLast ? order.indexOf(endMeal) : 2;
       if (lo <= hi) {
         for (let i = lo; i <= hi; i++)
-          result.push({ date: fmt(cur), meal: order[i] as MealSkip["meal"] });
+          result.push({ date: curStr, meal: order[i] as MealSkip["meal"] });
       }
-      cur.setDate(cur.getDate() + 1);
+      cur = new Date(cur.getTime() + 24 * 60 * 60 * 1000);
     }
     return result;
   }
@@ -213,7 +213,8 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
       return;
     }
     // 宿泊先单行上限 200（后端 StayLocation.name max_length=200，前端先拦给提示）
-    if (stayRaw.some((s) => s.length > 200)) {
+    // 仅外泊/帰国校验；帰省不展示该字段，切 kind 后残留长文本不得误拦
+    if (needStay && stayRaw.some((s) => s.length > 200)) {
       setMsg({
         type: "err",
         text: "宿泊先は1行200文字以内で入力してください",
@@ -263,12 +264,11 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
     };
     let body: ApplicationCreateBody;
     if (kind === "帰省") {
-      // is_long_vacation 是后端 KiseiCreateIn(schemas.py:127) 的字段，但 types.ts 的
-      // ApplicationCreateBody 暂未列入 → 断言带上，运行时负载与源一致（待 types.ts 补字段）
+      // is_long_vacation 是后端 KiseiCreateIn 的帰省専用字段，types.ts 已列入可选字段（web#109）
       body = {
         ...base,
         is_long_vacation: isLongVacation,
-      } as ApplicationCreateBody;
+      };
     } else if (kind === "外泊") {
       body = {
         ...base,

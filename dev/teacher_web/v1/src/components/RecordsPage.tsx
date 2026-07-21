@@ -1,7 +1,7 @@
 import React from "react";
 import { RYO } from "../theme";
 import { api } from "../api/client";
-import type { TeacherProfile, RollCallSessionOut } from "../api/types";
+import type { RollCallSessionOut } from "../api/types";
 
 // 源 index.html 18892-19119（pages-records 块 RecordsPage）。
 // 界面原样搬，仅 window.RYO→RYO / window.tomoshibiApi→api / 日语注释翻成中文。
@@ -19,9 +19,7 @@ export function RecordsPage({
   params,
   authToken,
 }: {
-  teacher: TeacherProfile;
   params?: { date?: string };
-  onNav: (view: string) => void;
   authToken: string;
 }) {
   const T = RYO;
@@ -276,6 +274,7 @@ export function RecordsPage({
               >
                 {s.started_at
                   ? new Date(s.started_at).toLocaleString("ja-JP", {
+                      timeZone: "Asia/Tokyo",
                       month: "2-digit",
                       day: "2-digit",
                       hour: "2-digit",

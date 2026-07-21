@@ -33,8 +33,8 @@ export function AccountsPage({
   authToken: string;
 }) {
   const T = RYO;
-  // accounts は後端から取得した StudentAccountListItem[] を保持する。
-  // loading=true の間はスケルトン表示、error 時はエラーバナー表示。
+  // accounts 存后端拉到的 StudentAccountListItem[]。
+  // loading=true 时骨架屏，error 时错误横幅。
   const [accounts, setAccounts] = React.useState<StudentAccountListItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
@@ -135,7 +135,7 @@ export function AccountsPage({
       locked?: boolean;
     } = {};
     if (debouncedQuery) params.q = debouncedQuery;
-    // dormFilter が数字文字列 ("1"/"2"/"4") なら dorm_unit として渡す
+    // dormFilter 为数字字符串 ("1"/"2"/"4") 时作为 dorm_unit 传给后端
     if (dormFilter === "locked") {
       // TW-011：锁定写在 account.locked_until（不是 student.status）→ 发 locked=true 让后端
       // 按 locked_until>now 过滤。原来发 status=locked 过滤 student.status 永远查不到。
@@ -211,10 +211,11 @@ export function AccountsPage({
   };
   const CLASS_LABEL: Record<string, string> = { "01": "A組", "02": "B組" };
 
-  // フィルタ: locked だけ追加でフロント側絞り込み（後端 status=locked と二重になるが安全）
+  // 过滤: locked 时前端再按 is_locked 二重筛选
+  // （后端已用 locked=true 按 locked_until 筛过，前端 is_locked 是安全网）
   let visible = accounts;
   if (dormFilter === "locked") visible = accounts.filter((a) => a.is_locked);
-  // 後端検索済みなのでフロント側の追加テキスト絞り込みは不要
+  // 后端已按搜索条件筛过，前端无需再做文本过滤
 
   // 按 学年码 → 组码 分组，组内保持后端给的 seat 顺序
   const gradeClassGroups = React.useMemo(() => {
@@ -375,7 +376,7 @@ export function AccountsPage({
           <button
             onClick={() =>
               alert(
-                `新規登録は iOS App から本人入力（番号 = 学年 2 桁 + 組 2 桁 + 番号 2 桁、例：高 3 B 18 = 060218）。老師側追加未対応`,
+                `新規登録は iOS App から本人入力（番号 = 学年 2 桁 + 組 2 桁 + 番号 2 桁、例：高 3 B 18 = 060218）。教師側での追加は未対応`,
               )
             }
             style={{
@@ -659,7 +660,7 @@ export function AccountsPage({
         }}
       >
         <AcctStat
-          label="総アカウント"
+          label="表示中/検索結果"
           value={loading ? "…" : stats.total}
           note="サーバーから取得"
           color={T.ink}
@@ -1922,6 +1923,6 @@ function buildActivityMock(a: StudentAccountListItem) {
       body: "ログイン失敗によるロック",
       when: loginWhen,
     });
-  // newest first
+  // 按时间字符串降序（新的在前）
   return base.sort((x, y) => y.when.localeCompare(x.when)).slice(0, 10);
 }

@@ -1,11 +1,7 @@
 import React from "react";
 import { RYO, type RyoTokens } from "../theme";
 import { api } from "../api/client";
-import type {
-  TeacherProfile,
-  FrontDeskItem,
-  FrontDeskCreateIn,
-} from "../api/types";
+import type { FrontDeskItem, FrontDeskCreateIn } from "../api/types";
 import {
   ModalShell,
   ModalField,
@@ -15,7 +11,7 @@ import {
 } from "./shared";
 
 // 源 index.html 17884-18885（front-desk 块）。界面原样搬，仅作用域引用方式改造。
-// フロント業務页 —— 宅配通知 + 忘れ物（コミュニティから拆分）
+// 前台业务页——从社区拆出的宅配通知 + 失物登记
 
 // 撰写弹窗回调要提交的内容（部屋番号/発見場所 可空；宅配带收件学生 student_id）
 type ComposeBody = {
@@ -25,25 +21,40 @@ type ComposeBody = {
   item_count?: number; // 宅配件数（2026-06-14）；失物不传、后端默认 1
 };
 
-export function FrontDeskPage({
-  teacher: _teacher,
-  authToken,
-}: {
-  teacher: TeacherProfile;
-  authToken: string | null;
-}) {
+/** 失物是否超 1 月未返却（长期保管）：expires_at 日期早于今日 JST，且未受取/未处分 */
+function isArchivedLost(l: FrontDeskItem, todayIso: string): boolean {
+  const expDate = (l.expires_at || "").slice(0, 10);
+  if (!expDate || expDate >= todayIso) return false;
+  return (
+    l.status === "pending" || l.status === "notified" || l.status === "expired"
+  );
+}
+
+export function FrontDeskPage({ authToken }: { authToken: string | null }) {
   const T = RYO;
   const [tab, setTab] = React.useState<"delivery" | "lost">("delivery");
   const [items, setItems] = React.useState<FrontDeskItem[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const [refreshing, setRefreshing] = React.useState(false);
   const [fetchError, setFetchError] = React.useState<string | null>(null);
   const [filter, setFilter] = React.useState("all");
   const [composing, setComposing] = React.useState(false);
+  // 进行中的通知/受取请求 id，防连点触发后端 409
+  const [pendingActionIds, setPendingActionIds] = React.useState<Set<string>>(
+    () => new Set(),
+  );
+  const itemsRef = React.useRef(items);
+  itemsRef.current = items;
 
   const loadItems = React.useCallback(() => {
     if (!authToken) return;
     let cancelled = false;
-    setLoading(true);
+    // 首载（或列表仍空）才盖「読み込み中」；后续静默刷新不卸掉列表
+    if (itemsRef.current.length === 0) {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+    }
     setFetchError(null);
     api
       .listFrontDesk(authToken)
@@ -56,7 +67,10 @@ export function FrontDeskPage({
         setFetchError(e.message || "データ取得に失敗しました");
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       });
     return () => {
       cancelled = true;
@@ -67,30 +81,40 @@ export function FrontDeskPage({
     return loadItems();
   }, [loadItems]);
 
-  // 后端 status → 表示用 boolean
-  // delivery: pending/notified = 未受取、picked_up = 受取済
-  // lost_and_found: pending/notified = open、picked_up = returned
-  const deliveries = items.filter((i) => i.kind === "delivery");
-  const lostItems = items.filter((i) => i.kind === "lost_and_found");
-
   const handleNotify = (id: string) => {
-    if (!authToken) return;
+    if (!authToken || pendingActionIds.has(id)) return;
+    setPendingActionIds((prev) => new Set(prev).add(id));
     api
       .notifyFrontDesk(id, authToken)
       .then(() => loadItems())
       .catch((e) =>
         alert("通知処理に失敗しました：" + (e.message || JSON.stringify(e))),
-      );
+      )
+      .finally(() => {
+        setPendingActionIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      });
   };
 
   const handlePickup = (id: string) => {
-    if (!authToken) return;
+    if (!authToken || pendingActionIds.has(id)) return;
+    setPendingActionIds((prev) => new Set(prev).add(id));
     api
       .pickupFrontDesk(id, authToken)
       .then(() => loadItems())
       .catch((e) =>
         alert("受取処理に失敗しました：" + (e.message || JSON.stringify(e))),
-      );
+      )
+      .finally(() => {
+        setPendingActionIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      });
   };
 
   // location 空时按原逻辑提交 null（后端接受 null）；FrontDeskCreateIn.location 类型为 string?，故此处 cast
@@ -109,50 +133,68 @@ export function FrontDeskPage({
       );
   };
 
-  // 未受取/未返却 = 显式 pending || notified（TW-060）。原来用 `!= picked_up`，会把将来
-  // 可能出现的 expired / discarded 终态也算成「要対応」，误导老师。现阶段后端无这两个终态，
-  // 属潜伏 bug，先按语义显式化兜住。
-  const delFiltered = deliveries.filter((d) =>
-    filter === "all"
-      ? true
-      : filter === "unpicked"
-        ? d.status === "pending" || d.status === "notified"
-        : d.status === "picked_up",
-  );
-  const lostFiltered = lostItems.filter((l) =>
-    filter === "all"
-      ? true
-      : filter === "open"
-        ? l.status === "pending" || l.status === "notified"
-        : l.status === "picked_up",
-  );
-
   // 「本日」按日本时区算 —— 后端时间统一是 +09:00 日本时间；用 UTC 会在日本凌晨 00-09 时算成昨天。
   // sv-SE 区域设置输出 ISO 格式 "YYYY-MM-DD"。
   const todayIso = new Date().toLocaleDateString("sv-SE", {
     timeZone: "Asia/Tokyo",
   });
-  // 两个标签页统计字段不同 —— 用 Record 统一类型，避免联合后各字段变 number|undefined
-  const stats: Record<string, number> =
-    tab === "delivery"
-      ? {
-          total: deliveries.length,
-          unpicked: deliveries.filter(
-            (d) => d.status === "pending" || d.status === "notified",
-          ).length,
-          today: deliveries.filter((d) =>
-            (d.created_at || "").startsWith(todayIso),
-          ).length,
-          picked: deliveries.filter((d) => d.status === "picked_up").length,
+
+  // 一次遍历累加统计 + 筛选，包进 useMemo 避免无关 state 变更时重算
+  const { deliveries, lostItems, delFiltered, lostFiltered, stats } =
+    React.useMemo(() => {
+      const deliveries: FrontDeskItem[] = [];
+      const lostItems: FrontDeskItem[] = [];
+      const delAcc = { total: 0, unpicked: 0, today: 0, picked: 0 };
+      const lostAcc = { total: 0, open: 0, returned: 0, archived: 0 };
+
+      for (const i of items) {
+        if (i.kind === "delivery") {
+          deliveries.push(i);
+          delAcc.total++;
+          if (i.status === "pending" || i.status === "notified")
+            delAcc.unpicked++;
+          if ((i.created_at || "").startsWith(todayIso)) delAcc.today++;
+          if (i.status === "picked_up") delAcc.picked++;
+        } else if (i.kind === "lost_and_found") {
+          lostItems.push(i);
+          lostAcc.total++;
+          if (i.status === "pending" || i.status === "notified") lostAcc.open++;
+          if (i.status === "picked_up") lostAcc.returned++;
+          if (isArchivedLost(i, todayIso)) lostAcc.archived++;
         }
-      : {
-          total: lostItems.length,
-          open: lostItems.filter(
-            (l) => l.status === "pending" || l.status === "notified",
-          ).length,
-          returned: lostItems.filter((l) => l.status === "picked_up").length,
-          archived: 0,
-        };
+      }
+
+      // 未受取/未返却 = 显式 pending || notified（TW-060）。原来用 `!= picked_up`，会把将来
+      // 可能出现的 expired / discarded 终态也算成「要対応」，误导老师。现阶段后端无这两个终态，
+      // 属潜伏 bug，先按语义显式化兜住。
+      const delFiltered = deliveries.filter((d) =>
+        filter === "all"
+          ? true
+          : filter === "unpicked"
+            ? d.status === "pending" || d.status === "notified"
+            : d.status === "picked_up",
+      );
+      const lostFiltered = lostItems.filter((l) =>
+        filter === "all"
+          ? true
+          : filter === "open"
+            ? l.status === "pending" || l.status === "notified"
+            : filter === "archived"
+              ? isArchivedLost(l, todayIso)
+              : l.status === "picked_up",
+      );
+
+      return {
+        deliveries,
+        lostItems,
+        delFiltered,
+        lostFiltered,
+        stats: (tab === "delivery" ? delAcc : lostAcc) as Record<
+          string,
+          number
+        >,
+      };
+    }, [items, tab, filter, todayIso]);
 
   return (
     <div style={{ padding: "28px 32px 48px" }}>
@@ -263,7 +305,7 @@ export function FrontDeskPage({
             <FdStat
               label="本日受付"
               value={stats.today}
-              note={todayShort()}
+              note={todayShort(todayIso)}
               color={T.cobalt}
             />
             <FdStat
@@ -299,6 +341,7 @@ export function FrontDeskPage({
               value={stats.archived}
               note="1ヶ月経過"
               color={T.ink3}
+              onClick={stats.archived > 0 ? () => setFilter("archived") : null}
             />
           </>
         )}
@@ -379,6 +422,7 @@ export function FrontDeskPage({
                 ["all", "全て"],
                 ["open", "未返却"],
                 ["returned", "返却済"],
+                ["archived", "長期保管"],
               ] as [string, string][]
             ).map(([k, l]) => (
               <button
@@ -389,16 +433,21 @@ export function FrontDeskPage({
                 {l}
               </button>
             ))}
+        {refreshing && (
+          <span style={{ marginLeft: 8, fontSize: 11, color: T.ink3 }}>
+            更新中…
+          </span>
+        )}
       </div>
 
-      {/* 加载中 */}
+      {/* 加载中（仅首载） */}
       {loading && (
         <div style={{ padding: 24, color: T.ink3, fontSize: 13 }}>
           読み込み中…
         </div>
       )}
 
-      {/* 列表 */}
+      {/* 列表——刷新时不卸掉 */}
       {!loading &&
         (tab === "delivery" ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -408,6 +457,7 @@ export function FrontDeskPage({
                 key={d.id}
                 d={d}
                 T={T}
+                pending={pendingActionIds.has(d.id)}
                 onNotify={handleNotify}
                 onPickup={handlePickup}
               />
@@ -417,7 +467,13 @@ export function FrontDeskPage({
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {lostFiltered.length === 0 && <EmptyRow T={T} />}
             {lostFiltered.map((l) => (
-              <LostItemRow key={l.id} l={l} T={T} onPickup={handlePickup} />
+              <LostItemRow
+                key={l.id}
+                l={l}
+                T={T}
+                pending={pendingActionIds.has(l.id)}
+                onPickup={handlePickup}
+              />
             ))}
           </div>
         ))}
@@ -500,11 +556,13 @@ function FdStat({
 function DeliveryRow({
   d,
   T,
+  pending,
   onNotify,
   onPickup,
 }: {
   d: FrontDeskItem;
   T: RyoTokens;
+  pending: boolean;
   onNotify: (id: string) => void;
   onPickup: (id: string) => void;
 }) {
@@ -536,6 +594,7 @@ function DeliveryRow({
         background: T.surface,
         border: `1px solid ${isClosed ? T.line : T.warnBorder}`,
         borderRadius: 10,
+        opacity: pending ? 0.7 : 1,
       }}
     >
       <span
@@ -608,12 +667,28 @@ function DeliveryRow({
         </span>
       )}
       {!isClosed && !isNotified && (
-        <button onClick={() => onNotify(d.id)} style={actionBtn(T, "ghost")}>
+        <button
+          disabled={pending}
+          onClick={() => onNotify(d.id)}
+          style={{
+            ...actionBtn(T, "ghost"),
+            cursor: pending ? "not-allowed" : "pointer",
+            opacity: pending ? 0.5 : 1,
+          }}
+        >
           通知済に
         </button>
       )}
       {!isClosed && (
-        <button onClick={() => onPickup(d.id)} style={actionBtn(T, "ok")}>
+        <button
+          disabled={pending}
+          onClick={() => onPickup(d.id)}
+          style={{
+            ...actionBtn(T, "ok"),
+            cursor: pending ? "not-allowed" : "pointer",
+            opacity: pending ? 0.5 : 1,
+          }}
+        >
           受取済に
         </button>
       )}
@@ -623,20 +698,31 @@ function DeliveryRow({
 
 // LostItemRow —— 对齐后端 FrontDeskItemOut
 // status: "pending"|"notified" → 未返却 / "picked_up" → 返却済
+// expired / discarded 同 DeliveryRow 作终态防御
 function LostItemRow({
   l,
   T,
+  pending,
   onPickup,
 }: {
   l: FrontDeskItem;
   T: RyoTokens;
+  pending: boolean;
   onPickup: (id: string) => void;
 }) {
   const isReturned = l.status === "picked_up";
-  const col = isReturned ? T.ok : T.warn;
-  const bg = isReturned ? T.okSoft : T.warnSoft;
-  const bd = isReturned ? T.okBorder : T.warnBorder;
-  const lbl = isReturned ? "返却済" : "未返却";
+  const isClosed =
+    isReturned || l.status === "expired" || l.status === "discarded";
+  const statusLabel = isReturned
+    ? "返却済"
+    : l.status === "expired"
+      ? "期限切れ"
+      : l.status === "discarded"
+        ? "処分済"
+        : "未返却";
+  const col = isReturned ? T.ok : isClosed ? T.ink3 : T.warn;
+  const bg = isReturned ? T.okSoft : isClosed ? T.surfaceAlt : T.warnSoft;
+  const bd = isReturned ? T.okBorder : isClosed ? T.line : T.warnBorder;
   const dateStr = l.created_at ? l.created_at.slice(5, 10) : "—";
   return (
     <div
@@ -648,6 +734,7 @@ function LostItemRow({
         background: T.surface,
         border: `1px solid ${bd}`,
         borderRadius: 10,
+        opacity: pending ? 0.7 : 1,
       }}
     >
       <span
@@ -665,7 +752,7 @@ function LostItemRow({
           textAlign: "center",
         }}
       >
-        {lbl}
+        {statusLabel}
       </span>
       <span
         style={{
@@ -690,8 +777,16 @@ function LostItemRow({
           {l.picked_up_at.slice(5, 16).replace("T", " ")} 返却
         </span>
       )}
-      {!isReturned && (
-        <button onClick={() => onPickup(l.id)} style={actionBtn(T, "ok")}>
+      {!isClosed && (
+        <button
+          disabled={pending}
+          onClick={() => onPickup(l.id)}
+          style={{
+            ...actionBtn(T, "ok"),
+            cursor: pending ? "not-allowed" : "pointer",
+            opacity: pending ? 0.5 : 1,
+          }}
+        >
           返却済に
         </button>
       )}
@@ -722,6 +817,7 @@ function DeliveryComposeModal({
   const [note, setNote] = React.useState(""); // 備考（任意）
   const student = selected[0] || null;
   const disabled = !student;
+  const atMax = itemCount >= 999;
 
   const stepBtn: React.CSSProperties = {
     width: 36,
@@ -776,14 +872,25 @@ function DeliveryComposeModal({
           </div>
           <button
             type="button"
-            onClick={() => setItemCount((n) => n + 1)}
-            style={{ ...stepBtn, borderRadius: "0 8px 8px 0" }}
+            disabled={atMax}
+            onClick={() => setItemCount((n) => Math.min(999, n + 1))}
+            style={{
+              ...stepBtn,
+              borderRadius: "0 8px 8px 0",
+              opacity: atMax ? 0.4 : 1,
+              cursor: atMax ? "not-allowed" : "pointer",
+            }}
           >
             ＋
           </button>
           <span style={{ marginLeft: 10, fontSize: 13, color: T.ink3 }}>
             件
           </span>
+          {atMax && (
+            <span style={{ marginLeft: 8, fontSize: 11, color: T.ink3 }}>
+              （上限 999）
+            </span>
+          )}
         </div>
       </ModalField>
       <ModalField T={T} label="部屋番号（受取人から自動）">
@@ -907,13 +1014,9 @@ function chipStyle(T: RyoTokens, on: boolean): React.CSSProperties {
     cursor: "pointer",
   };
 }
-function actionBtn(
-  T: RyoTokens,
-  kind: "ok" | "danger" | "ghost",
-): React.CSSProperties {
-  const map: Record<string, [string, string]> = {
+function actionBtn(T: RyoTokens, kind: "ok" | "ghost"): React.CSSProperties {
+  const map: Record<"ok" | "ghost", [string, string]> = {
     ok: [T.ok, T.okBorder],
-    danger: [T.danger, T.dangerBorder],
     ghost: [T.ink3, T.lineStrong],
   };
   const [col, bd] = map[kind];
@@ -944,8 +1047,7 @@ function inputStyle(T: RyoTokens): React.CSSProperties {
   };
 }
 
-// 日期助手
-function todayShort(): string {
-  const d = new Date();
-  return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+// 日期助手 —— 从 JST 的 todayIso（YYYY-MM-DD）截取 MM-DD，与「本日受付」计数同源
+function todayShort(todayIso: string): string {
+  return todayIso.slice(5);
 }

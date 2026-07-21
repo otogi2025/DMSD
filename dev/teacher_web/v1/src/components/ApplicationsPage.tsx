@@ -49,7 +49,7 @@ function _adaptBackendAppsByKind(
   if (filtered.length === 0) return null;
   return filtered.map((a) => ({
     id: a.id,
-    applicant: a.student ? a.student.name : "(unknown)",
+    applicant: a.student ? a.student.name : "（削除済み）",
     room: a.student ? a.student.room_no : "",
     dorm: a.student && a.student.dorm_unit === 4 ? "women" : "men",
     depart: `${a.leave_date} ${a.leave_time}`,
@@ -79,22 +79,13 @@ function _adaptBackendAppsByKind(
   }));
 }
 
-// 向后兼容 alias（旧 _adaptBackendOutstay 调用还在的话）
-function _adaptBackendOutstay(
-  apps: Application[] | null | undefined,
-): OutstayUiApp[] | null {
-  return _adaptBackendAppsByKind(apps, "外泊");
-}
-
 export function ApplicationsPage({
   onOpen,
   backendApplications,
-  authToken,
   onNav,
 }: {
   onOpen: (app: OutstayUiApp) => void;
   backendApplications: Application[] | null;
-  authToken: string;
   // 代録（代学生提交出寮届）入口跳转 — 低频功能，已从左侧导航移除，入口收到本页。
   onNav: (view: string) => void;
 }) {
@@ -369,9 +360,6 @@ function OutstayList({
   const subs = ["pending", "all"];
   const subLabels: Record<string, string> = {
     pending: "審査待ち",
-    approved: "承認済",
-    rejected: "却下",
-    question: "質問あり",
     all: "全て",
   };
   const filtered = sub === "all" ? apps : apps.filter((a) => a.state === sub);

@@ -3,12 +3,9 @@ import { RYO, dormLabel } from "../theme";
 import { api } from "../api/client";
 import type { StudentAccountListOut } from "../api/types";
 
-// 7 日迟到/缺席趋势图数据点
-type TrendPoint = { date: string; late: number; absent: number };
-
 // 源 index.html 11940-12361（components/roll-call-landing.jsx 块）。
 // 界面 100% 冻结，仅做作用域引用替换：window.RYO→RYO / window.tomoshibiApi→api / window.dormLabel→dormLabel。
-// 点呼着陆页 + 7 日趋势图 + 点呼类型选择（4 种）。
+// 点呼着陆页 + 趋势图占位（web#45 去假数据）+ 点呼类型选择（4 种）。
 
 // 主组件入参类型 —— 从源解构签名推。
 // 注意：源里既用 teacher.assigned_dorm 又用 teacher.dorm（源自身字段不一致），界面冻结照搬，故 teacher 类型同时带两者。
@@ -17,7 +14,6 @@ export function RollCallLanding({
   onStart,
   lastEnded,
   onNav,
-  trend,
   onShowSummary,
   authToken,
 }: {
@@ -34,7 +30,6 @@ export function RollCallLanding({
     | null
     | undefined;
   onNav: (view: string, payload?: { date?: string }) => void;
-  trend: TrendPoint[];
   onShowSummary?: () => void;
   authToken: string;
 }) {
@@ -45,6 +40,9 @@ export function RollCallLanding({
   React.useEffect(() => {
     if (!authToken) return;
     let cancelled = false;
+    // TODO(web#114)：client.listStudents 入参无 limit，后端默认 limit=1000 且
+    // res.total === items.length（同被封顶），超 1000 人会截断。本批禁改 client.ts，
+    // 真寮规模远低于 1000，暂用 items.length；要修需给 listStudents 加 limit 或真分页/count。
     api
       .listStudents(
         teacher.assigned_dorm ? { dorm_unit: teacher.assigned_dorm } : {},
@@ -296,11 +294,21 @@ export function RollCallLanding({
         />
       </div>
 
-      {/* ⭐ 趋势图 */}
-      <TrendChart
-        trend={trend}
-        onBarClick={(d) => onNav("records", { date: d })}
-      />
+      {/* web#45: 无 trend 后端端点 → 假趋势图改为準備中占位 */}
+      <div
+        style={{
+          background: T.surface,
+          border: `1px solid ${T.line}`,
+          borderRadius: 12,
+          padding: "18px 22px",
+          boxShadow: T.shadow1,
+        }}
+      >
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>
+          最近 7 日 遅刻・欠席トレンド
+        </div>
+        <div style={{ fontSize: 13, color: T.ink3 }}>準備中</div>
+      </div>
 
       {/* 最近的点呼会话 */}
       <div
@@ -523,172 +531,5 @@ function Stat({
         <div style={{ fontSize: 11, color: T.ink3, marginTop: 4 }}>{note}</div>
       )}
     </button>
-  );
-}
-
-// 7 日迟到/缺席趋势图
-function TrendChart({
-  trend,
-  onBarClick,
-}: {
-  trend: TrendPoint[];
-  onBarClick: (date: string) => void;
-}) {
-  const T = RYO;
-  const max = Math.max(3, ...trend.map((d) => d.late + d.absent));
-  const [hover, setHover] = React.useState<number | null>(null);
-  return (
-    <div
-      style={{
-        background: T.surface,
-        border: `1px solid ${T.line}`,
-        borderRadius: 12,
-        padding: "18px 22px",
-        boxShadow: T.shadow1,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          gap: 10,
-          marginBottom: 14,
-        }}
-      >
-        <div style={{ fontSize: 14, fontWeight: 700 }}>
-          最近 7 日 遅刻・欠席トレンド
-        </div>
-        <div style={{ fontSize: 11, color: T.ink3 }}>
-          バーをクリックで該当日の記録へ
-        </div>
-        <div style={{ flex: 1 }} />
-        <Legend c={T.late} label="遅刻" />
-        <Legend c={T.danger} label="欠席" />
-      </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${trend.length}, 1fr)`,
-          gap: 10,
-          alignItems: "end",
-          height: 140,
-          position: "relative",
-        }}
-      >
-        {trend.map((d, i) => {
-          const total = d.late + d.absent;
-          const h = total === 0 ? 6 : (total / max) * 120;
-          const lateH = total === 0 ? 0 : (d.late / max) * 120;
-          const absH = total === 0 ? 0 : (d.absent / max) * 120;
-          return (
-            <button
-              key={i}
-              onMouseEnter={() => setHover(i)}
-              onMouseLeave={() => setHover(null)}
-              onClick={() => onBarClick(d.date)}
-              style={{
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "flex-end",
-                padding: 0,
-                fontFamily: "inherit",
-                position: "relative",
-                height: "100%",
-              }}
-            >
-              {hover === i && (
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: h + 10,
-                    background: T.ink,
-                    color: "#fff",
-                    fontSize: 11,
-                    padding: "5px 9px",
-                    borderRadius: 6,
-                    whiteSpace: "nowrap",
-                    fontFamily: T.mono,
-                    zIndex: 2,
-                  }}
-                >
-                  {d.date} · 遅刻 {d.late} / 欠席 {d.absent}
-                </div>
-              )}
-              <div
-                style={{
-                  width: "72%",
-                  maxWidth: 40,
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                {d.absent > 0 && (
-                  <div
-                    style={{
-                      height: absH,
-                      background: T.danger,
-                      borderTopLeftRadius: 3,
-                      borderTopRightRadius: 3,
-                    }}
-                  />
-                )}
-                {d.late > 0 && (
-                  <div
-                    style={{
-                      height: lateH,
-                      background: T.late,
-                      borderTopLeftRadius: d.absent === 0 ? 3 : 0,
-                      borderTopRightRadius: d.absent === 0 ? 3 : 0,
-                    }}
-                  />
-                )}
-                {total === 0 && (
-                  <div
-                    style={{
-                      height: 4,
-                      background: T.line,
-                      borderRadius: 2,
-                    }}
-                  />
-                )}
-              </div>
-              <div
-                style={{
-                  fontSize: 10,
-                  color: T.ink3,
-                  marginTop: 6,
-                  fontFamily: T.mono,
-                }}
-              >
-                {d.date.slice(5)}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// 趋势图图例
-function Legend({ c, label }: { c: string; label: string }) {
-  const T = RYO;
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        fontSize: 11,
-        color: T.ink2,
-      }}
-    >
-      <span style={{ width: 10, height: 10, background: c, borderRadius: 2 }} />
-      {label}
-    </span>
   );
 }

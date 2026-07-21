@@ -43,7 +43,7 @@ export function ActiveLeavesPage({ authToken }: { authToken: string }) {
   }, [authToken, date, reloadTick]);
 
   // 拼「行先」字符串：外泊先（stay_locations）或帰国都市（dest_cities），都没有就「—」。
-  // stay_locations 是 dict 数组（含 name 等），dest_cities 可能是逗号分隔字符串，两种都兼容。
+  // stay_locations 是含 name 等的对象数组；dest_cities 类型为 string | null（可逗号分隔）。
   const formatDestination = (app: Application) => {
     const locs = app.stay_locations;
     if (Array.isArray(locs) && locs.length > 0) {
@@ -53,11 +53,12 @@ export function ActiveLeavesPage({ authToken }: { authToken: string }) {
         .join("、");
     }
     const cities = app.dest_cities;
-    if (Array.isArray(cities) && cities.length > 0) {
-      return cities.filter(Boolean).join("、");
-    }
     if (typeof cities === "string" && cities.trim()) {
-      return cities.trim();
+      return cities
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .join("、");
     }
     return "—";
   };

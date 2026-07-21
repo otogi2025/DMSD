@@ -1,15 +1,13 @@
 import React from "react";
 import { RYO, dormLabel } from "../theme";
 import { api } from "../api/client";
-import type { TeacherProfile, StudentAccountListItem } from "../api/types";
+import type { StudentAccountListItem } from "../api/types";
 
 // 源 index.html 20425-20810（pages-records-search-etc 块）。界面原样搬，仅作用域引用方式改写。
 export function SearchPage({
-  teacher,
   query,
   authToken,
 }: {
-  teacher: TeacherProfile;
   query: string;
   authToken: string;
 }) {

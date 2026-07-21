@@ -1,8 +1,12 @@
 import React from "react";
-import { RYO, type RyoTokens } from "../theme";
+import { RYO, dormLabel, type RyoTokens } from "../theme";
 
 // 跨多个页面复用的小组件 —— 从旧 index.html 各块原样搬（界面冻结）。
-// ConfirmModal / DormBadge 自带 RYO；ModalShell / ModalField / ModalFooter 沿用原 props 的 T 参数（调用方传 RYO）。
+// ConfirmModal / DormBadge / StateBadge / StudentPicker 自带 RYO（内部 const T=RYO，不接收 T 参数）；
+// ModalShell / ModalField / ModalFooter 沿用原 props 的 T 参数（调用方传 RYO）。
+//
+// web#139：ConfirmModal 与 ModalShell 共用同一套「全屏遮罩 + 点背景关闭 + 内容区 stopPropagation」
+// 行为（仅 zIndex / 宽度 / 内头不同）。改无障碍 / Esc / 滚动锁定时两处必须同步改。
 
 // 源 index.html 11065-11154（select-teacher 块）
 export function ConfirmModal({
@@ -22,6 +26,7 @@ export function ConfirmModal({
 }) {
   const T = RYO;
   return (
+    // web#139：遮罩行为须与下方 ModalShell 同步（点背景关闭 / 内容 stopPropagation）
     <div
       onClick={onCancel}
       style={{
@@ -120,7 +125,7 @@ export function DormBadge({ dorm }: { dorm: string }) {
         border: `1px solid ${isMen ? T.maleAccent : T.femaleAccent}33`,
       }}
     >
-      {isMen ? "男子寮" : "女子寮"}
+      {dormLabel(dorm)}
     </span>
   );
 }
@@ -138,6 +143,7 @@ export function ModalShell({
   children: React.ReactNode;
 }) {
   return (
+    // web#139：遮罩行为须与上方 ConfirmModal 同步（点背景关闭 / 内容 stopPropagation）
     <div
       onClick={onClose}
       style={{
@@ -330,7 +336,10 @@ export function StateBadge({ s }: { s: string }) {
 //                       不用 position:absolute 浮层、避免被表单 modal 的 overflow 裁掉）。
 // searchApi 由调用方传入 → 适配三个权限不同的后端接口（前台 C_FRONTDESK / 账号管理
 //   C_STUDENT_ACCOUNT / 扣分 C_DEMERIT），组件本身不绑死某个接口。
-// 打开即拉一页学生（空查询，后端返前 ~20 条）→ 不打字也能滚动点选；想筛再打字（250ms 防抖）。
+// 打开即拉学生（空查询也发）→ 不打字也能滚动点选；想筛再打字（250ms 防抖）。
+// 展示上限由组件截断（最多 50 条），防空查询后端返管辖全量时 DOM 膨胀。
+const PICKER_RESULT_LIMIT = 50;
+
 export type PickerStudent = {
   id: string;
   name: string;
@@ -380,10 +389,18 @@ export function StudentPicker({
 
   // 展开 / 改搜索词 → 拉学生（250ms 防抖）。空查询也拉 → 打开即列表。
   React.useEffect(() => {
-    if (!open || !authToken) return;
+    // web#137：打开但无令牌 → 明示会话失效，别显示「該当なし」
+    if (!open) return;
+    if (!authToken) {
+      setLoading(false);
+      setResults([]);
+      setError("セッションが切れました");
+      return;
+    }
     let cancelled = false;
-    setLoading(true);
+    // web#132：loading 只在防抖到期、真正发请求前才置 true，打字期间保留上一批结果
     const timer = setTimeout(() => {
+      setLoading(true);
       searchApiRef
         .current(query.trim(), authToken)
         .then((rows) => {
@@ -400,8 +417,10 @@ export function StudentPicker({
         });
     }, 250);
     return () => {
+      // web#133：cleanup 统一复位 loading，避免 cancelled 早返回把面板卡在「読み込み中…」
       cancelled = true;
       clearTimeout(timer);
+      setLoading(false);
     };
   }, [open, query, authToken]);
 
@@ -419,6 +438,8 @@ export function StudentPicker({
   };
 
   const sub = (s: PickerStudent) => `${s.room_no}号室 · ${s.student_no}`;
+  // web#136：组件侧截断展示上限
+  const displayResults = results.slice(0, PICKER_RESULT_LIMIT);
 
   return (
     <div ref={boxRef}>
@@ -470,6 +491,7 @@ export function StudentPicker({
             {selected.map((s) => (
               <span
                 key={s.id}
+                onClick={(e) => e.stopPropagation()}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -564,7 +586,7 @@ export function StudentPicker({
                 ⚠️ {error}
               </div>
             )}
-            {!loading && !error && results.length === 0 && (
+            {!loading && !error && displayResults.length === 0 && (
               <div
                 style={{
                   padding: 16,
@@ -578,7 +600,7 @@ export function StudentPicker({
             )}
             {!loading &&
               !error &&
-              results.map((s) => {
+              displayResults.map((s) => {
                 const on = isSelected(s.id);
                 return (
                   <div

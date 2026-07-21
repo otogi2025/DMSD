@@ -21,6 +21,28 @@ function todayJstDate(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Tokyo" });
 }
 
+// web#126：学生账号状态 → 日语（对齐 AccountsPage active→正常；未知回退原文）
+function studentStatusJa(status: string): string {
+  return (
+    (
+      {
+        active: "正常",
+        locked: "ロック",
+        paused: "休止",
+        graduated: "卒業",
+        transferred: "転学",
+      } as Record<string, string>
+    )[status] || status
+  );
+}
+
+// web#127：gender 显式分支，空/其它显示「—」
+function genderJa(gender: string): string {
+  if (gender === "male") return "男";
+  if (gender === "female") return "女";
+  return "—";
+}
+
 export function StudentProfileModal({
   studentId,
   studentName,
@@ -282,7 +304,7 @@ export function StudentProfileModal({
                     ["学籍番号", s.student_no],
                     ["氏名", s.name],
                     ["ふりがな", s.name_kana || "—"],
-                    ["性別", s.gender === "male" ? "男" : "女"],
+                    ["性別", genderJa(s.gender)],
                     ["学年", s.grade_code],
                     ["組", s.class_code],
                     ["出席番号", s.seat_no],
@@ -291,7 +313,7 @@ export function StudentProfileModal({
                     ["留学生", s.is_overseas ? "はい" : "いいえ"],
                     ["メール", s.email || "—"],
                     ["電話", s.phone || "—"],
-                    ["状態", s.status],
+                    ["状態", studentStatusJa(s.status)],
                     [
                       "登録日時",
                       s.registered_at ? s.registered_at.slice(0, 10) : "—",
