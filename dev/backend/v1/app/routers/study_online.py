@@ -127,6 +127,15 @@ def submit_online_request(
             },
         )
 
+    # 审查 backend#51：重叠校验是「先 SELECT 再 INSERT」，无排他约束时两请求并发都
+    # 能通过预查并都插入。先锁本学生行再查再插，串行化同学生并发提交
+    # （PG 行锁生效；SQLite 单写者天然串行，with_for_update 为 no-op）。
+    db.execute(
+        select(models.Student.id)
+        .where(models.Student.id == student.id)
+        .with_for_update()
+    )
+
     # 时间段重叠校验 — 同一学生不允许提交与现有 pending（审查中）/ approved（已许可）申请
     # 时间段相交的新申请，否则会叠出多份生效期重叠的许可、审批端难判定谁覆盖谁。
     # 两段 [a_from, a_to] 与 [b_from, b_to] 相交的充要条件：a_from <= b_to 且 b_from <= a_to

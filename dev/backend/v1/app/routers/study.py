@@ -143,6 +143,8 @@ def today_attendees(
     )
 
     # 学習欠席届 approved 当日 → 欠席控除
+    # 已知缺陷 backend#48：此处未按 period(前半/后半/全天)细分，任何 approved 欠席届都当全天豁免；
+    # 点呼模型为每晚单次点呼、无半场概念，真分段出席留第二波（届时需重定义点呼窗口粒度）。
     absence_ids = set(
         db.scalars(
             select(models.StudyAbsenceRequest.student_id).where(
@@ -532,6 +534,8 @@ def bulk_finalize(
     )
 
     # 承認済欠席届 → finalize 対象外
+    # 已知缺陷 backend#48：此处未按 period(前半/后半/全天)细分，任何 approved 欠席届都当全天豁免；
+    # 点呼模型为每晚单次点呼、无半场概念，真分段出席留第二波（届时需重定义点呼窗口粒度）。
     exempt_ids = set(
         db.scalars(
             select(models.StudyAbsenceRequest.student_id).where(
@@ -712,17 +716,34 @@ def patch_checkin(
             existing.revoked_by_teacher_id = None
             existing.revoke_reason = None
         else:
-            db.add(
-                models.DemeritEvent(
-                    student_id=record.student_id,
-                    source_type="study_absent",
-                    source_event_id=record.id,
-                    points=STUDY_ABSENT_POINTS,
-                    reason=f"晩自習欠席（{record.target_date.isoformat()}・手動修正）",
-                    month=month,
-                    created_by_teacher_id=teacher.id,
-                )
-            )
+            # SAVEPOINT 容忍 uq_demerit_source：与 finalize 并发 / 两请求同时首次补扣分时，
+            # 第二个 INSERT 撞唯一键只回滚本 savepoint、跳过，不把整请求打成 500。
+            # 只吞 uq_demerit_source；其它 IntegrityError（外键等）原样抛出。
+            try:
+                with db.begin_nested():
+                    db.add(
+                        models.DemeritEvent(
+                            student_id=record.student_id,
+                            source_type="study_absent",
+                            source_event_id=record.id,
+                            points=STUDY_ABSENT_POINTS,
+                            reason=(
+                                f"夜学習欠席（{record.target_date.isoformat()}・手動修正）"
+                            ),
+                            month=month,
+                            created_by_teacher_id=teacher.id,
+                        )
+                    )
+                    db.flush()
+            except IntegrityError as err:
+                # 照 rollcall._apply_override_demerit：跨方言匹配约束名 / UNIQUE+列名
+                msg = str(getattr(err, "orig", err)).lower()
+                if "uq_demerit_source" not in msg and not (
+                    "unique" in msg
+                    and "source_type" in msg
+                    and "source_event_id" in msg
+                ):
+                    raise
 
     record.status = new_status
     record.overridden_by = teacher.id
@@ -928,12 +949,17 @@ def decide_absence_request(
     if not record:
         raise HTTPException(404, {"code": "NOT_FOUND", "message": "届が見つかりません"})
     # 演示隔离：审批间接关联学生 → 取届对应学生判 demo（演示老师只能审演示学生的届）
+    # 缺数据即拒绝（fail-closed）：student 行缺失 / student_id 悬空时，演示与寮隔离
+    # 失去判定依据 —— 必须 404，绝不能跳过校验继续审批（与 patch_checkin 口径一致）。
     student = db.get(models.Student, record.student_id)
-    if student:
-        assert_student_demo_match(teacher, student)
-        # 寮边界校验，与 create_checkin / patch_checkin / decide_online_request 对齐。
-        # 当前 dorm_units_for_teacher 恒返全寮故 no-op，保留作寮边界恢复时的防御一致性。
-        _assert_student_in_dorm(teacher, student)
+    if not student:
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "学生が見つかりません"}
+        )
+    assert_student_demo_match(teacher, student)
+    # 寮边界校验，与 create_checkin / patch_checkin / decide_online_request 对齐。
+    # 当前 dorm_units_for_teacher 恒返全寮故 no-op，保留作寮边界恢复时的防御一致性。
+    _assert_student_in_dorm(teacher, student)
     # 原子条件更新：只有 status 仍是 pending 才写决定，防两老师并发审批互相覆盖
     # （照 dorm_life.decide / outings.confirm 的 rowcount 守卫做法）。
     affected = db.execute(
@@ -1361,17 +1387,29 @@ def _notify_absence_submitted(
     record: models.StudyAbsenceRequest,
     student: models.Student,
 ) -> None:
-    """学習欠席届提出 → 学習担当 email (R1)。失敗しても業務ブロックしない。"""
+    """学習欠席届提出 → 有晚自习管理权的老师 email (R1)。失敗しても業務ブロックしない。"""
     try:
         # 演示隔离：按欠席届学生 is_demo 选老师 — 演示学生通知演示老师、真实学生通知真老师
+        # 收件人按权限组判定（effective_group + has_permission），不再硬筛职位「学習担当」——
+        # 鉴权已改权限组，有 C_STUDY MANAGE 但职位不叫学習担当的老师也应收提交通知。
+        # SQL 无法表达 effective_group 回退 → 取 active 同 cohort 老师，Python 侧过滤
+        # （照 teachers.py 删管理员时「取 active 再 has_permission」写法）。
         teachers = db.scalars(
             select(models.Teacher).where(
-                models.Teacher.role == "学習担当",
                 models.Teacher.status == "active",
                 models.Teacher.is_demo == student.is_demo,
             )
         ).all()
-        to_emails = [t.email for t in teachers if t.email]
+        to_emails = [
+            t.email
+            for t in teachers
+            if t.email
+            and permissions.has_permission(
+                permissions.effective_group(t),
+                permissions.C_STUDY,
+                permissions.MANAGE,
+            )
+        ]
         if to_emails:
             log = models.NotificationLog(
                 channel="email",
