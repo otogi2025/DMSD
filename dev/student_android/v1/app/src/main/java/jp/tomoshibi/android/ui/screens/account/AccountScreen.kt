@@ -131,6 +131,14 @@ fun AccountScreen(navController: NavHostController) {
     var errorMsg by remember { mutableStateOf<String?>(null) }
 
     val roomMismatch = RoomCoding.roomGenderMismatch(data.room, data.gender)
+    // android#5: Step1 即跑逐寮正则（与后端 validate_room_dorm_match 同源），非法房号禁用「次へ」
+    val roomFormatOk =
+        data.room.isNotBlank() &&
+            RoomCoding.validateRoomDormMatch(
+                assembledRoom(data),
+                RoomCoding.dormUnit(data.room, data.gender),
+                data.gender,
+            )
     val seatOk = (data.seatNo.toIntOrNull() ?: 0) in 1..99
 
     val canNext: Boolean =
@@ -142,7 +150,8 @@ fun AccountScreen(navController: NavHostController) {
                     data.classSuffix.isNotEmpty() &&
                     seatOk &&
                     data.room.isNotBlank() &&
-                    !roomMismatch
+                    !roomMismatch &&
+                    roomFormatOk
             }
 
             2 -> {
@@ -212,7 +221,13 @@ fun AccountScreen(navController: NavHostController) {
                 } catch (e: ApiError.Unprocessable) {
                     errorMsg = e.msg
                     submitting = false
-                } catch (_: Exception) {
+                } catch (e: Exception) {
+                    // android#24: 协程取消必须重抛，勿吞成假「通信エラー」；重抛前复位 submitting，
+                    // 防取消时界面仍在导致主按钮永停在「提交中」（审查补强）
+                    if (e is kotlinx.coroutines.CancellationException) {
+                        submitting = false
+                        throw e
+                    }
                     errorMsg = "通信エラーが発生しました。もう一度お試しください。"
                     submitting = false
                 }
@@ -309,7 +324,7 @@ fun AccountScreen(navController: NavHostController) {
         ) {
             when (step) {
                 1 -> {
-                    Step1Basic(data, roomMismatch) { data = it }
+                    Step1Basic(data, roomMismatch, roomFormatOk) { data = it }
                 }
 
                 2 -> {
@@ -347,6 +362,7 @@ fun AccountScreen(navController: NavHostController) {
 private fun Step1Basic(
     d: FormData,
     roomMismatch: Boolean,
+    roomFormatOk: Boolean,
     onChange: (FormData) -> Unit,
 ) {
     val t = SuzuT.current
@@ -424,10 +440,20 @@ private fun Step1Basic(
         value = d.room,
         placeholder = "",
         errorText =
-            if (roomMismatch) {
-                "選択した性別と部屋番号が一致しません（女子寮はW・男子寮はM／Aで始まります）"
-            } else {
-                null
+            when {
+                // 性别/前缀矛盾优先提示
+                roomMismatch -> {
+                    "選択した性別と部屋番号が一致しません（女子寮はW・男子寮はM／Aで始まります）"
+                }
+
+                // android#5: 格式非法提示与后端 body.validate() / iOS 一致
+                d.room.isNotBlank() && !roomFormatOk -> {
+                    "部屋番号を正しく入力してください"
+                }
+
+                else -> {
+                    null
+                }
             },
     ) {
         onChange(d.copy(room = it.filter { c -> c.isLetterOrDigit() }.uppercase().take(4)))

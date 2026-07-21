@@ -535,7 +535,8 @@ fun PageHeader(
             )
         }
         Text(title, color = t.ink, style = TextStyle(fontSize = 17.sp, fontWeight = FontWeight.Bold))
-        Spacer(modifier.weight(1f))
+        // android#22: Spacer 必须用独立 Modifier，勿复用入参 modifier（已套在外层 Row 上）
+        Spacer(Modifier.weight(1f))
         if (right != null) right()
     }
 }
@@ -654,9 +655,26 @@ fun DateField(
                     return true
                 }
             }
-        // key 住 min/max，避免范围变了还沿用旧 SelectableDates
-        androidx.compose.runtime.key(minDate, maxDate) {
-            val state = rememberDatePickerState(selectableDates = selectable)
+        // android#23: value 非空时解析为 UTC 当天 0 点毫秒，让日历高亮已选日
+        val initialSelectedMillis =
+            if (value.isNotBlank()) {
+                runCatching {
+                    java.time.LocalDate
+                        .parse(value)
+                        .atStartOfDay(java.time.ZoneOffset.UTC)
+                        .toInstant()
+                        .toEpochMilli()
+                }.getOrNull()
+            } else {
+                null
+            }
+        // key 住 min/max/value，避免范围或已选日变了还沿用旧 state
+        androidx.compose.runtime.key(minDate, maxDate, value) {
+            val state =
+                rememberDatePickerState(
+                    initialSelectedDateMillis = initialSelectedMillis,
+                    selectableDates = selectable,
+                )
             DatePickerDialog(
                 onDismissRequest = { open = false },
                 confirmButton = {
@@ -718,7 +736,22 @@ fun TimeField(
         }
     }
     if (open) {
-        val state = rememberTimePickerState(is24Hour = true)
+        // android#2: 从已有 "HH:mm" 解析初始时分，避免默认 00:00 覆盖已填时刻
+        val (initialHour, initialMinute) =
+            runCatching {
+                val parts = value.split(":")
+                require(parts.size == 2)
+                val h = parts[0].toInt()
+                val m = parts[1].toInt()
+                require(h in 0..23 && m in 0..59)
+                h to m
+            }.getOrElse { 0 to 0 }
+        val state =
+            rememberTimePickerState(
+                initialHour = initialHour,
+                initialMinute = initialMinute,
+                is24Hour = true,
+            )
         AlertDialog(
             onDismissRequest = { open = false },
             confirmButton = {
