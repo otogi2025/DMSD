@@ -814,10 +814,15 @@ final class AppStore: ObservableObject {
             .filter { now < $0.scheduled_window_start_at }
             .min { $0.scheduled_window_start_at < $1.scheduled_window_start_at }
         guard let s = current ?? upcoming else {
-            // 本日我寮无点呼 → 安全落 idle（点呼卡显减点预告、不显假倒计时）
-            // ⏸ ios#89 留 itsuki 拍板：审查建议「已结束未签到场次保留 absent 态」，但与既有故意决定冲突——
-            //   RollStateMachineTests #4「越过 auto_end → 回落 idle（不再 absent 挂死）」是特意把永久 absent 改成 idle。
-            //   两种 UX 对撞（警示条静默消失 vs absent 挂死），非机械 bug，暂保持现状（idle），待拍板。
+            // 本日我寮无进行中/预告点呼 → 一般落 idle（点呼卡显减点预告、不显假倒计时）。
+            // ios#89（折中方案 C）：但若今天有【被后端明确结算为欠席】(my_status=="absent") 的已过场次，
+            //   保留 absent 提示，避免「被判欠席却在 auto_end 后静默消失、学生全然不知」。
+            //   只认后端定论的 absent，绝不对「过点未结算」(my_status==nil) 挂 absent，
+            //   故不违反 RollStateMachineTests #4/#5「未结算已过场次回落 idle」的既有决定；
+            //   且 todaySessions 每日刷新，absent 仅当日显示、隔日自动清除（天然时限性）。
+            if sessions.contains(where: { now > $0.scheduled_auto_end_at && $0.my_status == "absent" }) {
+                return RollStateDecision(rollState: .absent, checkinKind: nil, checkedInAt: nil, countdownSec: nil)
+            }
             return RollStateDecision(rollState: .idle, checkinKind: nil, checkedInAt: nil, countdownSec: nil)
         }
         // 已签到/已结算 → 按后端 my_status 完整映射（ios#101 契约收口）。

@@ -160,10 +160,23 @@ struct RollStateMachineTests {
         // auto_end 精确点 1800：仍属当前场次（now <= auto_end），未签到已过 late_end → absent
         let atAutoEnd = AppStore.decideRollState(sessions: [makeSession()], now: base.addingTimeInterval(1800))
         #expect(atAutoEnd.rollState == .absent)
-        // auto_end + 1 秒 1801：场次已完全结束、又非未来场次 → 无当前/预告场次 → 回落 idle
+        // auto_end + 1 秒 1801：场次已完全结束、又非未来场次、且【未被结算】→ 无当前/预告场次 → 回落 idle
         let afterAutoEnd = AppStore.decideRollState(sessions: [makeSession()], now: base.addingTimeInterval(1801))
         #expect(afterAutoEnd.rollState == .idle)
         #expect(afterAutoEnd.countdownSec == nil)
+    }
+
+    @Test("ios#89：auto_end 后被后端结算欠席（my_status=absent）→ 保留 absent，不静默回落 idle")
+    func afterAutoEndSettledAbsentStaysAbsent() {
+        // 已完全过 auto_end（1801），且后端已明确结算欠席（my_status=absent、带 checked_in_at）。
+        // 折中方案 C：保留 absent 提示，避免「被判欠席却在 auto_end 后静默消失、学生不知情」。
+        // 与 #4/#5「未结算已过场次回落 idle」不冲突——那两条的场次 my_status==nil（未结算）。
+        let settled = makeSession(checkedInAt: base.addingTimeInterval(1800), myStatus: "absent")
+        let d = AppStore.decideRollState(sessions: [settled], now: base.addingTimeInterval(1801))
+        #expect(d.rollState == .absent)
+        #expect(d.checkinKind == nil)
+        #expect(d.checkedInAt == nil)
+        #expect(d.countdownSec == nil)
     }
 
     @Test("#5 多场次并存（早点呼已结束 + 晚点呼进行中）→ 选中进行中场次，与数组顺序无关")
