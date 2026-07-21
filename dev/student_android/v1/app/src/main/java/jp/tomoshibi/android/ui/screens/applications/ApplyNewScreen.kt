@@ -185,8 +185,9 @@ fun ApplyNewScreen(
                     }
 
                     else -> {
-                        // 早帰/学習等本地造条目已废弃（一覧只读后端）；StudyAbsence 等已分派专属表单
-                        stage = "done"
+                        // 早帰/学習等有专属表单分派，正常流程到不了这里；深链/异常 kind 落到 else 不假报成功
+                        // （复审 android#13：原 stage="done" 会让未对接后端的 kind 显示「提出しました」但一覧无记录）
+                        store.showToast("この申請種別は未対応です")
                     }
                 }
             } catch (e: ApiError) {

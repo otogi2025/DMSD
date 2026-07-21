@@ -84,18 +84,30 @@ class WsClient:
         self._thread.start()
 
     def stop(self) -> None:
-        """置停机标志，并主动关闭当前连接 / 唤醒异步等待，让 shutdown 毫秒级生效。"""
+        """置停机标志 + 唤醒异步停机事件（即时打断 _session 的收/等待）+ 主动关闭当前连接。
+
+        _async_stop 一置位，_session 里与 recv 并行等待的 stop_task 立刻完成 → 收消息循环即时退出，
+        不依赖 _conn 是否已赋值（消除 device#6 复审指出的「connect 成功但 _conn 未写入」竞态窗口）。
+        conn.close() 是额外的连接层收尾。
+        """
         self._stop.set()
         loop = self._loop
         async_stop = self._async_stop
         conn = self._conn
         if loop is None or not loop.is_running():
             return
-        if async_stop is not None:
-            loop.call_soon_threadsafe(async_stop.set)
-        if conn is not None:
-            # close() 打断 _session 里的 async for，以及连接上下文
-            asyncio.run_coroutine_threadsafe(conn.close(), loop)
+        # 复审次-1：is_running() 与下面两步之间事件循环可能已关闭（_session 收到消息看到 _stop 而
+        # break → _run_loop 退出 → asyncio.run 收尾关 loop），此时 call_soon_threadsafe /
+        # run_coroutine_threadsafe 会抛 RuntimeError。吞掉，别让它冒出 stop()→shutdown() 跳过后续
+        # 线程 join / 资源 close / http.close。
+        try:
+            if async_stop is not None:
+                loop.call_soon_threadsafe(async_stop.set)
+            if conn is not None:
+                # close() 额外收尾连接层（_session 主要靠 _async_stop 即时打断）
+                asyncio.run_coroutine_threadsafe(conn.close(), loop)
+        except RuntimeError:
+            pass
 
     def join(self, timeout: float | None = None) -> None:
         if self._thread is not None:
@@ -141,10 +153,30 @@ class WsClient:
                 self._conn = None
 
     async def _session(self, conn) -> None:
-        """一次连接生命周期：并行跑心跳发送 + 消息接收。"""
+        """一次连接生命周期：并行跑心跳发送 + 消息接收。
+
+        收消息（recv）与停机事件（_async_stop）并行等待，谁先到谁触发：停机事件先到就即时退出，
+        不必等下一条消息或对端断连（device#6 复审：消除「_conn 尚未赋值」竞态窗口）。
+        """
         hb_task = asyncio.create_task(self._heartbeat_loop(conn))
         try:
-            async for raw in conn:
+            while not self._stop.is_set():
+                recv_task = asyncio.ensure_future(conn.recv())
+                stop_task = asyncio.ensure_future(self._async_stop.wait())
+                done, pending = await asyncio.wait(
+                    {recv_task, stop_task}, return_when=asyncio.FIRST_COMPLETED
+                )
+                for task in pending:
+                    task.cancel()
+                # 回收被取消的任务，避免 "Task was destroyed but it is pending" 告警
+                if pending:
+                    await asyncio.gather(*pending, return_exceptions=True)
+                if stop_task in done:
+                    break  # 停机事件置位 → 即时打断，不等下条消息/断线
+                try:
+                    raw = recv_task.result()
+                except Exception:  # noqa: BLE001 —— 连接关闭/异常 → 退出本次会话交外层重连
+                    break
                 parsed = parse_ws_message(raw)
                 if parsed is not None:
                     kind, data = parsed
@@ -152,8 +184,6 @@ class WsClient:
                         self._on_event(kind, data)
                     except Exception:  # noqa: BLE001 —— 回调异常不断连接
                         pass
-                if self._stop.is_set():
-                    break
         finally:
             hb_task.cancel()
 
