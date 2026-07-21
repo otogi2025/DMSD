@@ -19,7 +19,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -79,9 +79,10 @@ def update_my_profile(
         if not data["email"]:
             data["email"] = None
         else:
+            # 大小写不敏感查重（与 accounts.py 注册侧 + uq_students_email_lower 唯一索引同口径）
             dup = db.scalars(
                 select(models.Student).where(
-                    models.Student.email == data["email"],
+                    func.lower(models.Student.email) == data["email"].lower(),
                     models.Student.id != student.id,
                 )
             ).first()
@@ -115,7 +116,16 @@ def update_my_profile(
             payload={"fields": sorted(data.keys())},
         )
     )
-    db.commit()
+    # 审查 backend#20：并发 / 不同大小写漏过上面 best-effort 查重时,uq_students_email_lower
+    # 唯一索引会在 commit 抛 IntegrityError → 转 422 EMAIL_TAKEN（而非不透明 500）。
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "EMAIL_TAKEN", "message": "email は既に使われています"},
+        )
     db.refresh(student)
     return schemas.StudentProfileBasic.model_validate(student)
 

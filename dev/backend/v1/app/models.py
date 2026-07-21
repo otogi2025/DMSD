@@ -94,6 +94,10 @@ class Student(Base):
         Index("idx_students_dorm", "dorm_unit", "status"),
         Index("idx_students_is_demo", "is_demo"),
         Index("idx_students_needs_renewal", "needs_renewal"),
+        # 审查 backend#20：email 大小写不敏感唯一（与 accounts.py 注册侧 func.lower 查重同口径）。
+        # 应用层查重有 TOCTOU 竞态,并发可写重复邮箱;DB 表达式唯一索引兜底。NULL 多值允许
+        # （lower(NULL)=NULL,SQL 唯一索引不约束 NULL 值）。SQLite/PostgreSQL 均支持表达式索引。
+        Index("uq_students_email_lower", text("lower(email)"), unique=True),
     )
 
     @property
