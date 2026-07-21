@@ -161,7 +161,7 @@ def broadcast_push(
                 db.flush()  # log.id 确定
 
                 try:
-                    sent, error = push._dispatch_one(
+                    sent, error, token_dead = push._dispatch_one(
                         platform=dt.platform,
                         token=dt.token,
                         title=title,
@@ -170,7 +170,7 @@ def broadcast_push(
                         template_key=template_key,
                     )
                 except Exception as exc:  # noqa: BLE001 — 推送投递任何异常都不得中断业务
-                    sent, error = False, f"dispatch raised: {exc}"
+                    sent, error, token_dead = False, f"dispatch raised: {exc}", False
 
                 log.attempts = 1
                 if sent:
@@ -195,6 +195,14 @@ def broadcast_push(
                         dt.id,
                         error,
                     )
+                    # backend#117：APNs 恒久失效令牌置 revoked_at，避免下次仍被拾取（与 send_push 一致）
+                    if token_dead:
+                        dt.revoked_at = datetime.now(timezone.utc)
+                        logger.info(
+                            "broadcast_push: revoked dead device token id=%s (platform=%s)",
+                            dt.id,
+                            dt.platform,
+                        )
         except Exception:  # noqa: BLE001 — 推送是副作用，绝不能拖垮投稿
             logger.warning(
                 "broadcast_push 单学生失败 student=%s", stu.id, exc_info=True

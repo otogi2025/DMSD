@@ -275,6 +275,21 @@ def mark_student_notification_read(
     公告复用 announcement_reads（与公告详情已读同源）；巴士 / 行事 用 student_notification_reads。
     """
     if body.kind == "announcement":
+        # backend#110（一致性）：插入前确认公告存在且对该生可见（scope + 演示隔离 + 未软删），
+        # 防越 scope / 演示公告被写成已读（与 bus/event 分支同口径；FK 已挡不存在 id）。
+        # 不含 notify_students —— 比 feed 更松，保证 feed 里的公告一定通过、不会误 404。
+        ann = db.get(models.Announcement, body.ref_id)
+        ann_scopes = student_audience.announcement_scopes_for_student(student)
+        if (
+            ann is None
+            or ann.deleted_at is not None
+            or ann.is_demo != student.is_demo
+            or ann.scope not in ann_scopes
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"code": "NOT_FOUND", "message": "通知が見つかりません"},
+            )
         exists = db.get(
             models.AnnouncementRead,
             {"announcement_id": body.ref_id, "student_id": student.id},
