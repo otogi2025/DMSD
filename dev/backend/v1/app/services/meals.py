@@ -141,15 +141,21 @@ def calc_meals(
                     dinner_skip=False,
                 )
             det = detail_map[key]
+            # 日别合计与明细同口径：同一 (学号, 日期, 餐次) 只计一次。
+            # 明细靠 detail_map 按 (学号, 日期) 去重后再设 bool；合计也须在 bool
+            # 从 False→True 时才 +1，否则跨申请/重复条目会二重计上。
             if meal == "朝食":
+                if not det.breakfast_skip:
+                    agg.breakfast_skip += 1
                 det.breakfast_skip = True
-                agg.breakfast_skip += 1
             elif meal == "昼食":
+                if not det.lunch_skip:
+                    agg.lunch_skip += 1
                 det.lunch_skip = True
-                agg.lunch_skip += 1
             elif meal == "夕食":
+                if not det.dinner_skip:
+                    agg.dinner_skip += 1
                 det.dinner_skip = True
-                agg.dinner_skip += 1
 
     return MealsCalcResult(
         range_from=range_from,

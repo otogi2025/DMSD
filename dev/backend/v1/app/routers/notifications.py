@@ -11,7 +11,7 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func, or_, true
+from sqlalchemy import exists, func, or_, select, true
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -220,13 +220,27 @@ def _insert_skip_conflicts(db: Session, rows: list[models.Notification]) -> None
             raise
 
 
+def _not_yet_synced(source_id_col, *, source_table: str, is_demo: bool):
+    """SQL 层反连接：排除本 realm 已同步过的 source_id。
+
+    等价于旧「先拉全量 source_id 进 Python 再 notin_(巨型列表)」——结果集相同，
+    但不把 id 列表搬进绑定参数（避 PostgreSQL 参数上限 / 膨胀触顶 500）。
+    """
+    return ~exists(
+        select(models.Notification.id).where(
+            models.Notification.source_table == source_table,
+            models.Notification.is_demo == is_demo,
+            models.Notification.source_id == source_id_col,
+        )
+    )
+
+
 def _synced_source_ids(db: Session, *, source_table: str, is_demo: bool) -> set:
     """取「本 realm 内、这张源表已生成过通知」的 source_id 集合。
 
-    旧实现一次把整张 notifications 表的 (source_table, source_id) 全量拉进内存、
-    且不按 realm 过滤（B-中-20）。这里改成按 source_table + is_demo 精确取，
-    每张源表的反查只拿自己这一表、自己这一 realm 的 source_id —— 集合更小、
-    且能直接喂给下面「只查未同步事件」的 NOT IN 反连接。
+    仅留给 demerit_alert：告警的 source_id 在 Python 里用 uuid5 算出来，
+    无法用外键列做 SQL 关联反连接，只能先拉集合再 `in` 判断。
+    其它源表已改走 `_not_yet_synced`（NOT EXISTS）。
     """
     return {
         sid
@@ -239,25 +253,30 @@ def _synced_source_ids(db: Session, *, source_table: str, is_demo: bool) -> set:
     }
 
 
-def _sync_notifications(db: Session, *, is_demo: bool) -> None:
+def _sync_notifications(db: Session, *, is_demo: bool) -> bool:
     """把现有事件幂等同步成通知行（只处理与 realm[is_demo] 匹配的事件）。
 
-    每张源表各自反查「本 realm 已同步过的 source_id」，再只查「还没同步」的事件、
+    每张源表用 SQL NOT EXISTS 排除已同步 source_id，再只查「还没同步」的事件、
     按时间正序（最旧优先）取最多 _SYNC_SCAN_LIMIT 条 —— 跨多次轮询逐批排空积压，
     不会像旧实现那样把超过窗口的更早事件永久漏掉。
     并发请求间的竞争由 _insert_skip_conflicts 的 savepoint+跳过兜底
     （防撞 uq_notif_source 变 500）。
+
+    审查 backend#35：返回本次是否新增了通知行——调用方（只读 GET）据此只在真有
+    新行时才 commit，稳态无新事件时省掉每请求一次的写 commit（减多老师轮询写压力）。
+    不引入延迟、同步结果与原来完全一致（区别于节流方案会让新通知最多晚 N 秒可见）。
     """
     new_rows: list[models.Notification] = []
 
     # ① 申请提交
-    synced_apps = _synced_source_ids(db, source_table="applications", is_demo=is_demo)
     apps = (
         db.query(models.Application, models.Student)
         .join(models.Student, models.Application.student_id == models.Student.id)
         .filter(
             models.Student.is_demo == is_demo,
-            models.Application.id.notin_(synced_apps) if synced_apps else True,
+            _not_yet_synced(
+                models.Application.id, source_table="applications", is_demo=is_demo
+            ),
         )
         .order_by(models.Application.submitted_at.asc())
         .limit(_SYNC_SCAN_LIMIT)
@@ -278,14 +297,15 @@ def _sync_notifications(db: Session, *, is_demo: bool) -> None:
         )
 
     # ② 扣分（未撤销）
-    synced_dem = _synced_source_ids(db, source_table="demerit_event", is_demo=is_demo)
     demerits = (
         db.query(models.DemeritEvent, models.Student)
         .join(models.Student, models.DemeritEvent.student_id == models.Student.id)
         .filter(
             models.Student.is_demo == is_demo,
             models.DemeritEvent.revoked_at.is_(None),
-            models.DemeritEvent.id.notin_(synced_dem) if synced_dem else True,
+            _not_yet_synced(
+                models.DemeritEvent.id, source_table="demerit_event", is_demo=is_demo
+            ),
         )
         .order_by(models.DemeritEvent.created_at.asc())
         .limit(_SYNC_SCAN_LIMIT)
@@ -306,15 +326,16 @@ def _sync_notifications(db: Session, *, is_demo: bool) -> None:
         )
 
     # ③ 点呼上报
-    synced_rep = _synced_source_ids(
-        db, source_table="rollcall_reports", is_demo=is_demo
-    )
     reports = (
         db.query(models.RollCallReport, models.Student)
         .join(models.Student, models.RollCallReport.student_id == models.Student.id)
         .filter(
             models.Student.is_demo == is_demo,
-            models.RollCallReport.id.notin_(synced_rep) if synced_rep else True,
+            _not_yet_synced(
+                models.RollCallReport.id,
+                source_table="rollcall_reports",
+                is_demo=is_demo,
+            ),
         )
         .order_by(models.RollCallReport.created_at.asc())
         .limit(_SYNC_SCAN_LIMIT)
@@ -338,15 +359,16 @@ def _sync_notifications(db: Session, *, is_demo: bool) -> None:
     # ④ 第二批：7 类申请表（外出 / 学习缺席 / 在线学习 / 行事企划 /
     #    冰箱购入 / 物品持有 / 杂项）— 配置见 _REQUEST_SOURCES
     for cfg in _REQUEST_SOURCES:
-        synced = _synced_source_ids(
-            db, source_table=cfg["source_table"], is_demo=is_demo
-        )
         rows = (
             db.query(cfg["model"], models.Student)
             .join(models.Student, cfg["student_fk"] == models.Student.id)
             .filter(
                 models.Student.is_demo == is_demo,
-                cfg["model"].id.notin_(synced) if synced else True,
+                _not_yet_synced(
+                    cfg["model"].id,
+                    source_table=cfg["source_table"],
+                    is_demo=is_demo,
+                ),
             )
             .order_by(cfg["time_col"].asc())
             .limit(_SYNC_SCAN_LIMIT)
@@ -416,6 +438,7 @@ def _sync_notifications(db: Session, *, is_demo: bool) -> None:
 
     if new_rows:
         _insert_skip_conflicts(db, new_rows)
+    return bool(new_rows)
 
 
 def _alert_dorm_units(teacher: models.Teacher):
@@ -496,8 +519,9 @@ def get_feed(
     teacher: models.Teacher = Depends(get_current_teacher),
 ):
     """通知中心「最近の通知」流 + 未读数。任意已登录老师可看自己 realm 的通知。"""
-    _sync_notifications(db, is_demo=teacher.is_demo)
-    db.commit()
+    # 只读路径：只在真同步出新行时才 commit（省稳态无事件时的空 commit；审查 backend#35）
+    if _sync_notifications(db, is_demo=teacher.is_demo):
+        db.commit()
 
     read_ids = {
         nid
@@ -538,8 +562,9 @@ def get_unread_count(
     teacher: models.Teacher = Depends(get_current_teacher),
 ):
     """侧栏「通知」徽章用 — 当前老师未读数（顺带同步新事件）。"""
-    _sync_notifications(db, is_demo=teacher.is_demo)
-    db.commit()
+    # 只读路径：只在真同步出新行时才 commit（审查 backend#35）
+    if _sync_notifications(db, is_demo=teacher.is_demo):
+        db.commit()
     return schemas.NotificationUnreadCountOut(unread_count=_unread_count(db, teacher))
 
 
