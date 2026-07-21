@@ -1302,10 +1302,12 @@ struct MyRollcallDetailView: View {
     /// 状態行文字：迟到/缺席带扣分点数，时间内/免除不带点数
     private func stateText(_ rec: RollcallDisplay) -> String {
         switch rec.state {
+        case "時間内", "present": return "時間内"
         case "遅刻": return "遅刻 0.5 点"
         case "欠席": return "欠席 1.0 点"
         case "免除": return "免除"
-        default: return "時間内"
+        case "記録なし": return "記録なし"
+        default: return rec.state // 未知态原样回显，不再兜底「時間内」（ios#58）
         }
     }
 

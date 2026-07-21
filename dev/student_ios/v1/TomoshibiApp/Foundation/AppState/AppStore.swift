@@ -780,7 +780,8 @@ final class AppStore: ObservableObject {
                 todaySessions = rows
                 refreshRollStateFromSessions()
             } catch {
-                // 拉不到保持现状（不显假数据）；打日志便于开发期发现字段漂移
+                if handleIfUnauthorized(error, tokenAtStart: tokenAtStart) { return }
+                // 非 401：保持现状（不显假数据）；打日志便于开发期发现字段漂移
                 #if DEBUG
                     print("[loadTodayRollcall] /rollcall/me/today 拉取失败：\(error)")
                 #endif
@@ -810,14 +811,25 @@ final class AppStore: ObservableObject {
             // 本日我寮无点呼 → 安全落 idle（点呼卡显减点预告、不显假倒计时）
             return RollStateDecision(rollState: .idle, checkinKind: nil, checkedInAt: nil, countdownSec: nil)
         }
-        // 已签到 → done，带真实签到时刻 + 真实判定（「時間内」/「遅刻」）
+        // 已签到/已结算 → 按后端 my_status 完整映射（ios#101 契约收口）。
+        // 后端自动结算/老师改判会给 absent/exempt_range 也写 checked_in_at（rollcall.py _settle），
+        // 故不能只凭 my_checked_in_at 非空就当"按时签到"。「時間内」只留给 present。
         if let at = s.my_checked_in_at {
-            return RollStateDecision(
-                rollState: .done,
-                checkinKind: (s.my_status == "late") ? "遅刻" : "時間内",
-                checkedInAt: at,
-                countdownSec: nil
-            )
+            switch s.my_status {
+            case "present":
+                return RollStateDecision(rollState: .done, checkinKind: "時間内", checkedInAt: at, countdownSec: nil)
+            case "late":
+                return RollStateDecision(rollState: .done, checkinKind: "遅刻", checkedInAt: at, countdownSec: nil)
+            case "absent":
+                // 被结算欠席：显欠席态，不是签到、不显时刻
+                return RollStateDecision(rollState: .absent, checkinKind: nil, checkedInAt: nil, countdownSec: nil)
+            case "exempt_range":
+                // 承認済出寮願免除：良性完了，复用 done 但文案「免除」、不显假签到时刻
+                return RollStateDecision(rollState: .done, checkinKind: "免除", checkedInAt: nil, countdownSec: nil)
+            default:
+                // 未知状态：保守显 done 但不猜判定文案（绝不兜底「時間内」），仍显真实时刻
+                return RollStateDecision(rollState: .done, checkinKind: nil, checkedInAt: at, countdownSec: nil)
+            }
         }
         // 未签到，按时间窗判定
         if now < s.scheduled_window_start_at {

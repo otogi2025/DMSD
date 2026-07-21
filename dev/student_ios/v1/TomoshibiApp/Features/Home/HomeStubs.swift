@@ -1600,12 +1600,23 @@ struct RollcallSheet: View {
 
             // JSX: Pill tone=ok / 13 / padding 6 14
             // ios-home-07：nil 兜底用中性占位（原写死假时刻 21:02）
-            Text("\(app.checkinAt ?? "--:--") · \(app.checkinKind ?? "時間内")")
-                .font(.system(size: 13, weight: .bold))
-                .kerning(0.26)
-                .padding(.horizontal, 14).padding(.vertical, 6)
-                .foregroundStyle(T.okDeep)
-                .background(Capsule().fill(T.okBg))
+            #if DEMO
+                Text("\(app.checkinAt ?? "--:--") · \(app.checkinKind ?? "時間内")")
+                    .font(.system(size: 13, weight: .bold))
+                    .kerning(0.26)
+                    .padding(.horizontal, 14).padding(.vertical, 6)
+                    .foregroundStyle(T.okDeep)
+                    .background(Capsule().fill(T.okBg))
+            #else
+                // 生产：手机只把学号写进墙上点呼机（不联网、不判定），此刻还没有出席判定，
+                // 不显「時間内」避免把"写到点呼机"误报成"已判定按时签到"（ios#44）
+                Text("点呼機に送信しました")
+                    .font(.system(size: 13, weight: .bold))
+                    .kerning(0.26)
+                    .padding(.horizontal, 14).padding(.vertical, 6)
+                    .foregroundStyle(T.okDeep)
+                    .background(Capsule().fill(T.okBg))
+            #endif
 
             Text("お疲れさまでした")
                 .font(.system(size: 13))

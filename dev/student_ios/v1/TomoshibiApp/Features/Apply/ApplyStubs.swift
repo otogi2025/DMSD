@@ -1465,6 +1465,12 @@ struct StudyAbsenceForm: View {
             PageHeader(title: "夜学習欠席届", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    // 生产一览无 studyAbsence 列表：提交前告知不会进一览（ios#0）
+                    Text("※提出後は一覧に表示されません（受付は完了します）")
+                        .font(.system(size: 11))
+                        .foregroundStyle(T.inkMute)
+                        .padding(.horizontal, 16)
+
                     // §1 缺席日期（DatePicker）
                     VStack(alignment: .leading, spacing: 8) {
                         SectionLabel(n: "1", label: "欠席する日付")
@@ -1728,6 +1734,14 @@ struct GenericApplyForm: View {
                         RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(T.primary.opacity(0.12), lineWidth: 1)
                     }
                     .padding(.bottom, 20)
+
+                    // repair / parcel / guest 无学生端列表：提交前告知不会进一览（ios#0）；outing 会进一览，不显
+                    if isMiscKind {
+                        Text("※提出後は一覧に表示されません（受付は完了します）")
+                            .font(.system(size: 11))
+                            .foregroundStyle(T.inkMute)
+                            .padding(.bottom, 14)
+                    }
 
                     if needsDest {
                         Field(label: "行先", required: true) {

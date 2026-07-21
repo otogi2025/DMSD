@@ -86,6 +86,26 @@ struct RollStateMachineTests {
         #expect(d.checkinKind == "遅刻")
     }
 
+    @Test("已签到但被结算欠席（my_status=absent）→ absent，不显 done/時間内/时刻")
+    func settledAbsentIsAbsentNotDone() {
+        let now = base.addingTimeInterval(300)
+        let session = makeSession(checkedInAt: now, myStatus: "absent")
+        let d = AppStore.decideRollState(sessions: [session], now: now)
+        #expect(d.rollState == .absent)
+        #expect(d.checkinKind == nil)
+        #expect(d.checkedInAt == nil)
+    }
+
+    @Test("承認済出寮願免除（my_status=exempt_range）→ done+「免除」，不显假签到时刻")
+    func exemptRangeIsDoneMenjo() {
+        let now = base.addingTimeInterval(300)
+        let session = makeSession(checkedInAt: now, myStatus: "exempt_range")
+        let d = AppStore.decideRollState(sessions: [session], now: now)
+        #expect(d.rollState == .done)
+        #expect(d.checkinKind == "免除")
+        #expect(d.checkedInAt == nil)
+    }
+
     @Test("过迟到截止仍未签到 → absent")
     func pastLateEndUnsignedIsAbsent() {
         let now = base.addingTimeInterval(1000) // late_end(900) < now <= auto_end(1800)
