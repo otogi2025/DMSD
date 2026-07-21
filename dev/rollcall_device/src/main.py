@@ -451,11 +451,14 @@ class RollCallDevice:
         gen = 启动本计时器时的世代号。若期间被新签到 / 新反馈抢占（世代已 +1），
         本回调作废，不得把已切换的 PROCESSING / 新反馈灯态打回待机（device#5 回归修复）。
         """
+        # 世代校验与改灯必须在同一临界区：否则「校验通过后放锁 → 新签到抢占切
+        # PROCESSING → 本回调锁外补写 STANDBY」的 TOCTOU 窗口会把处理中灯打回待机。
+        # _led.set 不回调 feedback 计时代码，持锁期间写 LED 无锁序反转（GPIO 写极快）。
         with self._feedback_timer_lock:
             if gen != self._feedback_gen:
                 return
-        if not self._stop.is_set():
-            self._led.set(LedState.STANDBY)
+            if not self._stop.is_set():
+                self._led.set(LedState.STANDBY)
 
     def _apply_feedback(self, fb: Feedback) -> None:
         self._led.set(fb.led)

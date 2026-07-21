@@ -295,7 +295,7 @@ WantedBy=multi-user.target
   ⑥ **终审阻断修复（`d5fba97`，四家终审中 Fable 5 high 抓出）**：`AuthManager.obtain_token`/`enroll` 原来裸调 httpx——主状态机重试链直接调 `ensure_token` 时若网络恰好断掉，抛的传输层异常（`httpx.ConnectError` 等）既不是 `NetworkError` 也不是 `AuthError`，穿透重试段捕获冒到消费线程，签到丢失 + LED 卡处理中（①要治的原病在重试路径复现）。修法取根治版：`auth.py` 新增 `_post_raw` 统一把传输层异常转 `NetworkError`（enroll 的同型潜洞一并堵上），上层自然走离线入队。回归 +2（auth 层异常转换 / 刷新令牌撞网络断走离线），全量 90 passed。教训：桩对象（StubAuth）只会抛测试作者想到的异常类型，模拟不出真实现的第三种异常——异常契约要在源头收窄，别指望调用方枚举。
 - 2026-07-21：审查 S9 修复批（五端 568 条修复计划 S9 场，点呼机 medium 5 条 + 双票复审 grok/opus 背对背只读审收敛）——
   ① **device#4 控制事件与签到解耦**：WS 推来的名单/音频刷新原走同一签到队列、由消费线程串行处理，其同步网络 I/O 会堵住后续刷卡上报（队头阻塞）。改为独立 `_control_queue` + `control` 线程消费；`Roster` 内部已有锁、音频写走 tmp+replace 原子替换，跨线程读写无竞态（复审确认）。
-  ② **device#5 反馈灯回待机改非阻塞**：原 `_apply_feedback` 用 `_stop.wait(1.5)` 硬等，离线回补时每条叠加 1.5s。改用 `threading.Timer` 到期切待机、消费线程立即处理下一条。**复审（grok 判重大）抓出回归**：新计时器会在下一条签到处理期间触发、把 PROCESSING 灯打回待机——补 `_handle_checkin` 抢占时先取消旧计时 + 世代号守卫（`cancel()` 挡不住已 fire 的回调，靠世代号作废）。
+  ② **device#5 反馈灯回待机改非阻塞**：原 `_apply_feedback` 用 `_stop.wait(1.5)` 硬等，离线回补时每条叠加 1.5s。改用 `threading.Timer` 到期切待机、消费线程立即处理下一条。**复审（grok 判重大）抓出回归**：新计时器会在下一条签到处理期间触发、把 PROCESSING 灯打回待机——补 `_handle_checkin` 抢占时先取消旧计时 + 世代号守卫（`cancel()` 挡不住已 fire 的回调，靠世代号作废）。**第二轮双票复审（grok+opus 各自独立同指）再抓 TOCTOU**：`_restore_standby` 世代校验在锁内、`_led.set(STANDBY)` 在锁外——校验通过后放锁、新签到抢占切 PROCESSING、旧回调锁外补写 STANDBY 打回待机。修：世代校验与改灯挪进同一 `with _feedback_timer_lock` 临界区，check+act 原子化。
   ③ **device#7 HTTP 心跳兜底**：WS 长期断线无心跳、设备被误判离线——新增 30s HTTP 心跳线程。**复审抓出启动空窗**：原 `wait(30)` 后才首发、启动后前 30s 无兜底——改先发一次再进等待循环。
   ④ **device#9 非标 UID 丢弃**：读到长度 ≠14 hex（非 NTAG215 7 字节）的卡打警告返回 None，不上报、不占防抖窗口。
   ⑤ **device#10 音频 sha256 校验**：`download_audio` 落盘前校验 sha256，不匹配删临时文件抛错；`sync_audio` 捕获后跳过不计入 downloaded，截断/损坏内容不落成正式缓存。
