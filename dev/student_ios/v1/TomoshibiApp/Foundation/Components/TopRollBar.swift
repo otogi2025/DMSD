@@ -69,7 +69,15 @@ struct TopRollBar: View {
         case .absent:
             return "欠席になりました · 寮監まで直接ご連絡ください"
         case .done:
-            return "チェックイン済み \(app.checkinAt ?? "") · \(app.checkinKind ?? "")"
+            // 契约收口：exempt_range→done+无时刻 是新可达态；「チェックイン済み」只留给真签到(present/late)
+            switch app.checkinKind {
+            case "時間内", "遅刻":
+                return "チェックイン済み \(app.checkinAt ?? "") · \(app.checkinKind ?? "")"
+            case "免除":
+                return "点呼免除 · 本日は点呼対象外です"
+            default:
+                return "点呼記録を確認しました"
+            }
         }
     }
 

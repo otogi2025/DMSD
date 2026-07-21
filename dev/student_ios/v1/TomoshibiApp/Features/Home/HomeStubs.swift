@@ -749,13 +749,14 @@ struct HomeView: View {
                 subColor: Color.white.opacity(0.95)
             )
         case .done:
-            // R-1②：判定不再写死「時間内」，按后端 my_status 派生的 checkinKind 显（遅刻 → 赤）
+            // R-1②/契约收口：checkinKind 按后端 my_status 派生（遅刻→赤）；exempt 无签到时刻→隐藏时刻占位、
+            // default(未知态)不再兜底「時間内」避免误报
             let isLate = app.checkinKind == "遅刻"
+            let isExempt = app.checkinKind == "免除"
             heroBlock(
-                // ios-home-07：checkinAt 为 nil（罕见竞态）时不显写死假时刻 21:02，用中性占位
-                caption: "\(app.checkinAt ?? "--:--")",
-                big: app.checkinKind ?? "時間内",
-                sub: "今回の点呼は完了しました",
+                caption: isExempt ? "" : "\(app.checkinAt ?? "--:--")",
+                big: app.checkinKind ?? "記録あり",
+                sub: isExempt ? "本日は点呼免除です" : "今回の点呼は完了しました",
                 bigColor: isLate ? T.danger : Color(hex: 0x2C6048),
                 captionColor: deepBrown.opacity(0.7),
                 subColor: deepBrown.opacity(0.8)
