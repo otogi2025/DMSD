@@ -100,6 +100,8 @@ def resolve_homeroom_teacher(
             # 演示隔离：演示学生的担任只解析到演示老师，真实学生只解析到真实老师
             # （否则跨 cohort 担任绑定时，演示学生的通知邮件会发给真实老师）
             models.Teacher.is_demo == student.is_demo,
+            # 审查 backend#52：停用老师不得再被解析为担任（与 resolve_teachers_by_role 同口径）
+            models.Teacher.status == "active",
         )
         .limit(1)
     )

@@ -65,6 +65,14 @@ def list_bus_routes(
         .where(models.Teacher.is_demo == _principal.is_demo)
         .order_by(models.BusRoute.schedule_at)
     )
+    # 审查 backend#3：学生按 visible_to 过滤（复用 bus_visible_to_for_student）；
+    # 老师/管理端看全量（仍受演示隔离约束）。
+    if isinstance(_principal, models.Student):
+        stmt = stmt.where(
+            models.BusRoute.visible_to.in_(
+                student_audience.bus_visible_to_for_student(_principal)
+            )
+        )
     if not include_deprecated:
         stmt = stmt.where(models.BusRoute.deprecated.is_(False))
     if kind:
@@ -103,6 +111,18 @@ def get_bus_route(
             status_code=404,
             detail={"code": "BUS_ROUTE_NOT_FOUND", "message": "巴士便が見つかりません"},
         )
+    # 审查 backend#3：学生不可用直链读到异性专属班次（与 list 同口径，404 隐藏存在）。
+    if isinstance(_principal, models.Student):
+        if row.visible_to not in student_audience.bus_visible_to_for_student(
+            _principal
+        ):
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "code": "BUS_ROUTE_NOT_FOUND",
+                    "message": "巴士便が見つかりません",
+                },
+            )
     return schemas.BusRouteOut.model_validate(row)
 
 

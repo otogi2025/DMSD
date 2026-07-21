@@ -19,7 +19,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .. import models, permissions, schemas
@@ -113,14 +113,20 @@ def refresh_code(
 
     # 1. 把所有现存 active 码作废（§7.16.2 规则 3 — 同时只能 1 个有效）
     #    审核员永久码（is_reviewer=True）不作废 — spec §7.16 例外条款
-    db.execute(
-        update(models.StudentRegistrationCode)
-        .where(
-            models.StudentRegistrationCode.invalidated_at.is_(None),
-            models.StudentRegistrationCode.is_reviewer.is_(False),
-        )
-        .values(invalidated_at=now)
+    # 审查 backend#23：先对目标 active 行加行锁，再作废 + 插入，防并发 refresh
+    # 留下多条同时有效码。SQLite 上 with_for_update 是 no-op；PostgreSQL 生效。
+    active_rows = list(
+        db.scalars(
+            select(models.StudentRegistrationCode)
+            .where(
+                models.StudentRegistrationCode.invalidated_at.is_(None),
+                models.StudentRegistrationCode.is_reviewer.is_(False),
+            )
+            .with_for_update()
+        ).all()
     )
+    for row in active_rows:
+        row.invalidated_at = now
 
     # 2. 生成新码（5 次 retry — 全部碰撞实际概率为零，仅作兜底）
     code = ""

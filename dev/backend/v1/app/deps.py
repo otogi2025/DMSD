@@ -11,7 +11,6 @@ R4 寮過滤 helper — `dorm_units_for_teacher(teacher)` 是全 router 共用�
 from datetime import datetime, timezone
 from typing import Annotated, Optional
 from uuid import UUID
-from zoneinfo import ZoneInfo
 
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy import select
@@ -19,8 +18,6 @@ from sqlalchemy.orm import Session
 
 from . import models, permissions, security
 from .database import get_db
-
-_JST = ZoneInfo("Asia/Tokyo")
 
 # R4 — 跨寮角色能看全件
 CROSS_DORM_ROLES = frozenset(
@@ -269,12 +266,13 @@ def device_enr_token_claim(device: models.RollCallDevice) -> int:
 
     与 `device_enr_matches` 必须同一口径 —— 两处各算各的正是这类漏洞的温床。
     `enrolled_at` 是 `TZDateTime` 列，ORM 读出恒为带时区 JST，但这里仍显式归一，
-    防将来某条路径塞进 naive datetime 时按进程本地时区解释（生产机若是 UTC 会差 9
-    小时 → 全设备永久 401）。调用方须自行保证 `enrolled_at` 非空。
+    防将来某条路径塞进 naive datetime 时口径漂移。审查 backend#13：naive 按 UTC
+    解释（与 `TZDateTime.process_bind_param` 写入口径一致）；旧写法按 JST 会与
+    UTC 存入口径差 9 小时 → 设备永久 401。调用方须自行保证 `enrolled_at` 非空。
     """
     enrolled_at = device.enrolled_at
     if enrolled_at.tzinfo is None:
-        enrolled_at = enrolled_at.replace(tzinfo=_JST)
+        enrolled_at = enrolled_at.replace(tzinfo=timezone.utc)
     return int(enrolled_at.timestamp())
 
 

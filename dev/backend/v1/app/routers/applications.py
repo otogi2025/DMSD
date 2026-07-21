@@ -140,7 +140,14 @@ def create_application(
     # 幂等：客户端传了 Idempotency-Key 且这个 key 之前提交过 → 直接返回那条届，
     # 不重复建届 / 审批链 / 发邮件（重试、双击会触发同 key 的重复 POST）。
     # 没传 key 就跳过、保持原行为（与改动前一致，不强制客户端必须传）。
+    # 审查 backend#25：幂等 key 只写在 AuditLog.payload，Application 无唯一约束；
+    # 先锁本学生行再查插，串行化同学生并发同 key 请求（PG 行锁；SQLite 为 no-op）。
     if idempotency_key and idempotency_key.strip():
+        db.execute(
+            select(models.Student.id)
+            .where(models.Student.id == student.id)
+            .with_for_update()
+        )
         existing = _find_application_by_idempotency_key(
             db,
             actor_type="student",
