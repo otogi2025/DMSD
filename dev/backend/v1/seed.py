@@ -169,7 +169,10 @@ def seed_dev(db) -> None:
     study_roster_demo_exclude = {
         "980401"
     }  # 学号 980401 演示学生花子：演示「非晚自习对象」
-    all_students = db.scalars(select(models.Student)).all()
+    # 只给演示学生建名簿，防误跑到含真实学生的库时污染真实学生
+    all_students = db.scalars(
+        select(models.Student).where(models.Student.is_demo == True)  # noqa: E712
+    ).all()
     for student in all_students:
         if student.student_no in study_roster_demo_exclude:
             continue
@@ -940,15 +943,25 @@ def _seed_dorm_events(db) -> None:
 
 
 def main() -> None:
-    create_all()
+    from app.config import get_settings
+
+    # 只在本机 SQLite 建表；生产/staging 表由 alembic 迁移建，seed 不碰（防与 alembic_version 漂移）
+    if get_settings().is_sqlite:
+        create_all()
     db = SessionLocal()
     try:
         env = os.environ.get("APP_ENV", "dev").lower()
         log.info("APP_ENV=%s", env)
         if env == "production":
             seed_prod(db)
-        else:
+        elif env in ("dev", "development", "local", "test"):
             seed_dev(db)
+        else:
+            # 未知环境（含 staging）拒绝执行，防误种演示数据
+            log.error("未知 APP_ENV=%s，拒绝执行 seed（防 staging 误种演示数据）", env)
+            raise SystemExit(
+                f"未知 APP_ENV={env}，拒绝执行 seed（防 staging 误种演示数据）"
+            )
     finally:
         db.close()
 
