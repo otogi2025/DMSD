@@ -1604,6 +1604,17 @@
             ],
             "title": "Inspected By Teacher Id"
           },
+          "room_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room No"
+          },
           "scheduled_at": {
             "format": "date-time",
             "title": "Scheduled At",
@@ -1624,6 +1635,28 @@
             "format": "uuid",
             "title": "Student Id",
             "type": "string"
+          },
+          "student_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student Name"
+          },
+          "student_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student No"
           }
         },
         "required": [
@@ -1671,6 +1704,155 @@
           "result"
         ],
         "title": "CleaningInspectIn",
+        "type": "object"
+      },
+      "ContentReportCreateIn": {
+        "description": "学生通報投稿输入。content_id 指向被通報的投稿。",
+        "properties": {
+          "content_id": {
+            "format": "uuid",
+            "title": "Content Id",
+            "type": "string"
+          },
+          "content_type": {
+            "enum": [
+              "song",
+              "announcement_reply",
+              "lost_found"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "content_type",
+          "content_id"
+        ],
+        "title": "ContentReportCreateIn",
+        "type": "object"
+      },
+      "ContentReportOut": {
+        "properties": {
+          "content_id": {
+            "format": "uuid",
+            "title": "Content Id",
+            "type": "string"
+          },
+          "content_parent_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Parent Id"
+          },
+          "content_preview": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Preview"
+          },
+          "content_type": {
+            "enum": [
+              "song",
+              "announcement_reply",
+              "lost_found"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "handled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handled At"
+          },
+          "handled_by_teacher_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handled By Teacher Id"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "reporter_student_id": {
+            "format": "uuid",
+            "title": "Reporter Student Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "handled"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "content_type",
+          "content_id",
+          "reporter_student_id",
+          "reason",
+          "status",
+          "created_at",
+          "handled_at",
+          "handled_by_teacher_id"
+        ],
+        "title": "ContentReportOut",
         "type": "object"
       },
       "DemeritEventOut": {
@@ -6344,9 +6526,7 @@
             "default": "auto_nfc",
             "enum": [
               "auto_nfc",
-              "auto_settle",
-              "manual_checkin",
-              "teacher_override"
+              "manual_checkin"
             ],
             "title": "Status Source",
             "type": "string"
@@ -7803,6 +7983,17 @@
             "title": "Reason",
             "type": "string"
           },
+          "room_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room No"
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -7811,6 +8002,28 @@
             "format": "uuid",
             "title": "Student Id",
             "type": "string"
+          },
+          "student_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student Name"
+          },
+          "student_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student No"
           },
           "submitted_at": {
             "format": "date-time",
@@ -14718,6 +14931,59 @@
         ]
       }
     },
+    "/api/v1/lost-found/{post_id}": {
+      "delete": {
+        "description": "老师软删一条遗失物投稿（App Store UGC 治理 — 通報处理用）。",
+        "operationId": "delete_lost_found_api_v1_lost_found__post_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "post_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Post Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Lost Found",
+        "tags": [
+          "lost-found"
+        ]
+      }
+    },
     "/api/v1/lost-found/{post_id}/resolve": {
       "patch": {
         "description": "投稿者本人标记自己的投稿为已解决（已认领 / 已找回）。",
@@ -15897,6 +16163,196 @@
         ]
       }
     },
+    "/api/v1/reports": {
+      "get": {
+        "description": "老师看通報一覧（新→旧）。演示隔离：只看与自己同侧（is_demo）学生发的通報。",
+        "operationId": "list_reports_api_v1_reports_get",
+        "parameters": [
+          {
+            "description": "open / handled；不传=全部",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "open / handled；不传=全部",
+              "title": "Status"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ContentReportOut"
+                  },
+                  "title": "Response List Reports Api V1 Reports Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Reports",
+        "tags": [
+          "reports"
+        ]
+      },
+      "post": {
+        "description": "学生通報一条投稿。目标不存在 / 已被删 / 跨演示侧 → 404。",
+        "operationId": "create_report_api_v1_reports_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContentReportCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentReportOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Report",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/reports/{report_id}": {
+      "patch": {
+        "description": "老师标记通報处理完（删了投稿、或判定无问题都算处理完）。",
+        "operationId": "handle_report_api_v1_reports__report_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Report Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentReportOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Handle Report",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
     "/api/v1/rollcall/device-checkins": {
       "post": {
         "description": "点呼机核心签到入口（Device_Contract §4.1 + §6）。",
@@ -17010,6 +17466,59 @@
           }
         },
         "summary": "Create Song Request",
+        "tags": [
+          "songs"
+        ]
+      }
+    },
+    "/api/v1/songs/{song_id}": {
+      "delete": {
+        "description": "老师软删一条点歌投稿（App Store UGC 治理 — 通報处理用）。",
+        "operationId": "delete_song_request_api_v1_songs__song_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "song_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Song Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Song Request",
         "tags": [
           "songs"
         ]
