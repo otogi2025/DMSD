@@ -30,6 +30,7 @@ function formatTime(iso: string): string {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false, // 复审：钉死 24 小时制，避免 ja-JP 出「午前/午後」，与 CommunityPage decidedAt 一致
   });
 }
 

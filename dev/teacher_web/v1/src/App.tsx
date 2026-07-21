@@ -244,22 +244,29 @@ export function App() {
       return;
     }
     let cancelled = false;
-    api
-      .pendingForMe(authToken)
-      .then((apps) => {
-        if (cancelled) return;
-        setBackendApplications(apps);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        console.warn(
-          "[App] pendingForMe 失敗 → window.OUTSTAY_APPS fallback",
-          err,
-        );
-        setBackendApplications([]);
-      });
+    const fetchApps = () => {
+      api
+        .pendingForMe(authToken)
+        .then((apps) => {
+          if (cancelled) return;
+          setBackendApplications(apps);
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          console.warn(
+            "[App] pendingForMe 失敗 → window.OUTSTAY_APPS fallback",
+            err,
+          );
+          setBackendApplications([]);
+        });
+    };
+    fetchApps();
+    // 复审 W2：侧栏「申請」徽章 60 秒自动重拉（旧 Shell 内 60s 轮询迁到 App 单一数据源后漏了 liveness）。
+    // 别的学生新提交一份需本人审的届时，老师停在任意页也能看到徽章更新、不用手动刷新。
+    const timer = setInterval(fetchApps, 60000);
     return () => {
       cancelled = true;
+      clearInterval(timer);
     };
   }, [authToken]);
 
@@ -953,12 +960,11 @@ export function App() {
         wsStatus={wsStatus}
         authToken={authToken}
         canViewAuditLog={canViewAuditLog}
-        // web#51: 待审申请数由 App 单一数据源下传（pendingForMe 结果里 status===pending）
+        // web#51: 待审申请数由 App 单一数据源下传。pendingForMe 已按「待我审」筛好
+        // （后端 status ∈ {pending, approved_partial}——多级审批链里前序角色批过仍等本人批的也算），
+        // 故直接取长度，别再按 status===pending 收窄（复审 W1：否则 approved_partial 件漏计、数字偏少）。
         pendingAppsCount={
-          Array.isArray(backendApplications)
-            ? backendApplications.filter((a: any) => a.status === "pending")
-                .length
-            : null
+          Array.isArray(backendApplications) ? backendApplications.length : null
         }
         onSwitchTeacher={() => {
           // 5-27 拍板：切替＝ログアウト相当（实名账户 = 必須再認証）。

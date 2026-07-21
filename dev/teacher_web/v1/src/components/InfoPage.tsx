@@ -1183,7 +1183,13 @@ function EventCalendar({
   // canManage 内部按职位回退。
   const canEdit = canManage(teacher, C_EVENT);
 
-  const today = new Date();
+  // 复审：日历基准日用 JST（Asia/Tokyo）——非 JST 浏览器月末/跨日时，初始月与「今日」高亮
+  // 及 loadEvents 的 from/to 区间都不再错位（cursor/todayKey 都由此派生）。
+  const jstYmd = new Date().toLocaleDateString("en-CA", {
+    timeZone: "Asia/Tokyo",
+  });
+  const [jstY, jstMo, jstD] = jstYmd.split("-").map(Number);
+  const today = new Date(jstY, jstMo - 1, jstD);
   const fmt = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const todayKey = fmt(today);

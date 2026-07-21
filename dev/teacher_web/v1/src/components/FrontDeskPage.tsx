@@ -81,8 +81,13 @@ export function FrontDeskPage({ authToken }: { authToken: string | null }) {
     return loadItems();
   }, [loadItems]);
 
+  // 复审：同步 ref 守卫防双击（React state 异步，两个近乎同时的点击读同一旧快照各发一次
+  // → 后端 409 / 状态打架）；pendingActionIds state 仅供渲染按钮 disabled。参照 TeachersAdminPage deletingRef。
+  const pendingActionRef = React.useRef<Set<string>>(new Set());
+
   const handleNotify = (id: string) => {
-    if (!authToken || pendingActionIds.has(id)) return;
+    if (!authToken || pendingActionRef.current.has(id)) return;
+    pendingActionRef.current.add(id);
     setPendingActionIds((prev) => new Set(prev).add(id));
     api
       .notifyFrontDesk(id, authToken)
@@ -91,6 +96,7 @@ export function FrontDeskPage({ authToken }: { authToken: string | null }) {
         alert("通知処理に失敗しました：" + (e.message || JSON.stringify(e))),
       )
       .finally(() => {
+        pendingActionRef.current.delete(id);
         setPendingActionIds((prev) => {
           const next = new Set(prev);
           next.delete(id);
@@ -100,7 +106,8 @@ export function FrontDeskPage({ authToken }: { authToken: string | null }) {
   };
 
   const handlePickup = (id: string) => {
-    if (!authToken || pendingActionIds.has(id)) return;
+    if (!authToken || pendingActionRef.current.has(id)) return;
+    pendingActionRef.current.add(id);
     setPendingActionIds((prev) => new Set(prev).add(id));
     api
       .pickupFrontDesk(id, authToken)
@@ -109,6 +116,7 @@ export function FrontDeskPage({ authToken }: { authToken: string | null }) {
         alert("受取処理に失敗しました：" + (e.message || JSON.stringify(e))),
       )
       .finally(() => {
+        pendingActionRef.current.delete(id);
         setPendingActionIds((prev) => {
           const next = new Set(prev);
           next.delete(id);

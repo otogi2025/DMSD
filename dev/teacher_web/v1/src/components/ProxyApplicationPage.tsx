@@ -37,9 +37,11 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
     "その他",
   ];
   const MEALS = ["朝食", "昼食", "夕食"];
-  const todayStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 10);
+  // 复审：默认出寮/帰寮日用 JST（Asia/Tokyo），与本文件 expandMealsSkip 的日本日历口径一致，
+  // 不用浏览器本地时区（sv-SE 稳定产出 YYYY-MM-DD）
+  const todayStr = new Date().toLocaleDateString("sv-SE", {
+    timeZone: "Asia/Tokyo",
+  });
 
   // ── 学生选择 ──
   const [q, setQ] = React.useState("");

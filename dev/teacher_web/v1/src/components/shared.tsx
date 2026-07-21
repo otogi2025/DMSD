@@ -387,10 +387,15 @@ export function StudentPicker({
     return () => document.removeEventListener("mousedown", h);
   }, [open]);
 
+  // 复审：区分「首次打开」与「打字」——首次立即显 loading（不闪空态），打字保留旧结果
+  const loadedOnceRef = React.useRef(false);
   // 展开 / 改搜索词 → 拉学生（250ms 防抖）。空查询也拉 → 打开即列表。
   React.useEffect(() => {
+    if (!open) {
+      loadedOnceRef.current = false; // 关闭后重置，下次打开重新显 loading
+      return;
+    }
     // web#137：打开但无令牌 → 明示会话失效，别显示「該当なし」
-    if (!open) return;
     if (!authToken) {
       setLoading(false);
       setResults([]);
@@ -398,13 +403,16 @@ export function StudentPicker({
       return;
     }
     let cancelled = false;
-    // web#132：loading 只在防抖到期、真正发请求前才置 true，打字期间保留上一批结果
+    // web#132 + 复审：打字期间保留上一批结果、不闪 spinner；但首次打开立即置 loading，
+    // 避免防抖 250ms 内先闪「該当なし」空态。
+    if (!loadedOnceRef.current) setLoading(true);
     const timer = setTimeout(() => {
-      setLoading(true);
+      if (!loadedOnceRef.current) setLoading(true);
       searchApiRef
         .current(query.trim(), authToken)
         .then((rows) => {
           if (cancelled) return;
+          loadedOnceRef.current = true;
           setResults(rows);
           setError(null);
           setLoading(false);
