@@ -99,6 +99,10 @@ export function InfoPage({
   const [detailCache, setDetailCache] = React.useState<
     Record<string, AnnouncementDetail>
   >({});
+  // web#28: 详情拉取失败标记 { [id]: 错误文案 }，与「読み込み中」区分
+  const [detailError, setDetailError] = React.useState<Record<string, string>>(
+    {},
+  );
   // 返信入力: { [id]: string }
   const [replyInput, setReplyInput] = React.useState<Record<string, string>>(
     {},
@@ -197,14 +201,33 @@ export function InfoPage({
     return loadList();
   }, [loadList]);
 
-  // ── 詳細 fetch (展開時) ──
+  // ── 詳細 fetch（可重试；openDetail / 再試行 共用）──
+  const fetchDetail = (id: string) => {
+    if (!authToken) return;
+    // web#28: 进入加载前清掉该 id 的错误标记
+    setDetailError((errs) => {
+      const n = { ...errs };
+      delete n[id];
+      return n;
+    });
+    api
+      .getAnnouncement(id, authToken)
+      .then((det) => setDetailCache((c) => ({ ...c, [id]: det })))
+      .catch((e) => {
+        // web#28: 详情拉取失败写错误标记，展开区展示重试，不再假「読み込み中」
+        console.warn("[InfoPage] getAnnouncement 失败", e);
+        setDetailError((errs) => ({
+          ...errs,
+          [id]: (e as Error).message || "詳細の取得に失敗しました",
+        }));
+      });
+  };
+
+  // ── 詳細展開切換 ──
   const openDetail = (id: string) => {
     setOpenId((prev) => (prev === id ? null : id));
     if (!detailCache[id] && authToken) {
-      api
-        .getAnnouncement(id, authToken)
-        .then((det) => setDetailCache((c) => ({ ...c, [id]: det })))
-        .catch((e) => console.warn("[InfoPage] getAnnouncement 失败", e));
+      fetchDetail(id);
     }
   };
 
@@ -258,6 +281,8 @@ export function InfoPage({
       return n;
     });
     setEditTarget(null);
+    // web#27: 删缓存后收起展开，否则 openId 仍指向该卡而 det=undefined → 永久「読み込み中」
+    setOpenId(null);
     loadList();
   };
 
@@ -718,6 +743,41 @@ export function InfoPage({
                           </button>
                         </div>
                       </>
+                    ) : detailError[p._id] ? (
+                      // web#28: 失败态 — 展示错误 + 再試行，与「読み込み中」区分
+                      <div
+                        style={{
+                          padding: "12px 0",
+                          color: T.danger,
+                          fontSize: 12,
+                        }}
+                      >
+                        <div style={{ marginBottom: 8 }}>
+                          詳細の取得に失敗しました
+                          {detailError[p._id]
+                            ? `（${detailError[p._id]}）`
+                            : ""}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            fetchDetail(p._id);
+                          }}
+                          style={{
+                            padding: "6px 12px",
+                            background: "transparent",
+                            color: T.cobalt,
+                            border: `1px solid ${T.lineStrong}`,
+                            borderRadius: 7,
+                            fontFamily: "inherit",
+                            fontSize: 12,
+                            cursor: "pointer",
+                          }}
+                        >
+                          再試行
+                        </button>
+                      </div>
                     ) : (
                       <div
                         style={{
@@ -1114,7 +1174,17 @@ function EventCalendar({
   const monthJa = `${y}年${m + 1}月`;
 
   const dowLabels = ["日", "月", "火", "水", "木", "金", "土"];
-  const navMonth = (delta: number) => setCursor(new Date(y, m + delta, 1));
+  // web#29: 翻月时 selected 跟随新月，避免右栏仍指旧月日期而 list 已换新月 → 空提示假象
+  const navMonth = (delta: number) => {
+    const next = new Date(y, m + delta, 1);
+    setCursor(next);
+    const ny = next.getFullYear();
+    const nm = next.getMonth();
+    const todayInMonth = today.getFullYear() === ny && today.getMonth() === nm;
+    setSelected(
+      todayInMonth ? todayKey : `${ny}-${String(nm + 1).padStart(2, "0")}-01`,
+    );
+  };
 
   // 新增：提交到后端后刷新列表
   const handleCreate = async (formData: EventFormData) => {
@@ -1122,7 +1192,13 @@ function EventCalendar({
     await api.createEvent(toEventCreateIn(formData), authToken);
     setComposing(false);
     setSelected(formData.event_date);
-    loadEvents();
+    // web#29: 新建行事若不在当前 cursor 月，先移 cursor 到该月（useEffect 会重拉）；同月则直接 loadEvents
+    const [ey, em] = formData.event_date.split("-").map(Number);
+    if (ey !== y || em - 1 !== m) {
+      setCursor(new Date(ey, em - 1, 1));
+    } else {
+      loadEvents();
+    }
   };
 
   // 编辑：提交到后端后刷新

@@ -36,9 +36,14 @@ export function RecordsPage({
   const [backendHistory, setBackendHistory] = React.useState<
     RecordsSessionRow[] | null
   >(null);
+  // web#36: 独立错误态 — catch 不再把 history 置 null（与「加载中」同值无法区分）
+  const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [reloadKey, setReloadKey] = React.useState(0);
   React.useEffect(() => {
     if (!authToken) return;
     let cancelled = false;
+    setLoadError(null);
+    setBackendHistory(null);
     api
       .rollcallSessionsHistory(authToken)
       .then((rows) => {
@@ -47,12 +52,14 @@ export function RecordsPage({
       .catch((e) => {
         if (cancelled) return;
         console.warn("[RecordsPage] rollcallSessionsHistory 失败", e);
-        setBackendHistory(null);
+        // web#36: 记错误，不把 history 置回 null（否则永久显示加载中）
+        setLoadError(e?.message || "点呼記録の取得に失敗しました");
+        setBackendHistory([]);
       });
     return () => {
       cancelled = true;
     };
-  }, [authToken]);
+  }, [authToken, reloadKey]);
 
   return (
     <div style={{ padding: "28px 32px 48px" }}>
@@ -158,8 +165,38 @@ export function RecordsPage({
         </button>
       </div>
 
-      {/* 点呼 session 历史列表 — 来自后端 rollcallSessionsHistory */}
-      {backendHistory === null ? (
+      {/* web#36: 错误 / 加载中 / 空 / 列表 四态分离 */}
+      {loadError ? (
+        <div
+          style={{
+            padding: "32px 0",
+            textAlign: "center",
+            color: T.ink3,
+            fontSize: 13,
+            background: T.surface,
+            border: `1px solid ${T.line}`,
+            borderRadius: 12,
+          }}
+        >
+          <div style={{ marginBottom: 12 }}>{loadError}</div>
+          <button
+            onClick={() => setReloadKey((k) => k + 1)}
+            style={{
+              padding: "6px 14px",
+              background: T.cobalt,
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              fontFamily: "inherit",
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            再試行
+          </button>
+        </div>
+      ) : backendHistory === null ? (
         <div
           style={{
             padding: "32px 0",

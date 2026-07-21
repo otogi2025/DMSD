@@ -12,7 +12,7 @@ import type {
 } from "../api/types";
 
 // 源 index.html 24967-26830（accounts.jsx 块，只搬 AccountsPage + 私有子组件
-// AcctStat / AccountDetailModal / Field / EditField + 私有助手 buildActivityMock）。
+// AcctStat / AccountDetailModal / Field + 私有助手 buildActivityMock）。
 // 界面冻结：JSX 结构 + 内联 style 一字不改，仅改作用域引用
 // （window.RYO→RYO / window.tomoshibiApi→api / window.StudentProfileModal→StudentProfileModal）。
 
@@ -39,6 +39,8 @@ export function AccountsPage({
   const [loading, setLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [query, setQuery] = React.useState("");
+  // web#15：搜索防抖 — input 即时更新 query，300ms 后才写入 debouncedQuery 触发拉取
+  const [debouncedQuery, setDebouncedQuery] = React.useState("");
   const [dormFilter, setDormFilter] = React.useState("all"); // all / 1 / 2 / 4 / locked
   const [detailTarget, setDetailTarget] =
     React.useState<StudentAccountListItem | null>(null);
@@ -110,9 +112,20 @@ export function AccountsPage({
       .catch(() => setRenewalProgress(null));
   }, [authToken]);
 
-  // 後端からリスト取得 — query / dormFilter が変わるたびに再取得
+  // web#15：query → debouncedQuery（300ms）
+  React.useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  // web#15：所有列表拉取（本回调手动刷新 + 下方 effect）共用一个递增请求号，
+  // 只有最后发起的那次才允许写 state——手动刷新与搜索变更交错时，慢请求不得盖掉新结果
+  const reqIdRef = React.useRef(0);
+
+  // 从后端拉学生列表 — debouncedQuery / dormFilter 变化时由下方 effect 再取
   const fetchAccounts = React.useCallback(() => {
     if (!authToken) return;
+    const myId = ++reqIdRef.current;
     setLoading(true);
     setLoadError(null);
     const params: {
@@ -121,7 +134,7 @@ export function AccountsPage({
       status?: string;
       locked?: boolean;
     } = {};
-    if (query) params.q = query;
+    if (debouncedQuery) params.q = debouncedQuery;
     // dormFilter が数字文字列 ("1"/"2"/"4") なら dorm_unit として渡す
     if (dormFilter === "locked") {
       // TW-011：锁定写在 account.locked_until（不是 student.status）→ 发 locked=true 让后端
@@ -133,18 +146,52 @@ export function AccountsPage({
     api
       .listStudents(params, authToken)
       .then((res) => {
+        if (myId !== reqIdRef.current) return; // web#15：非最新请求丢弃
         setAccounts(res.items || []);
         setLoading(false);
       })
       .catch((e) => {
+        if (myId !== reqIdRef.current) return; // web#15
         setLoadError(e.message || "学生リストの取得に失敗しました");
         setLoading(false);
       });
-  }, [authToken, query, dormFilter]);
+  }, [authToken, debouncedQuery, dormFilter]);
 
+  // web#15：竞态守卫 — cleanup 时 cancelled，慢请求不得覆盖新搜索/寮过滤结果
   React.useEffect(() => {
-    fetchAccounts();
-  }, [fetchAccounts]);
+    if (!authToken) return;
+    let cancelled = false;
+    const myId = ++reqIdRef.current; // web#15：与 fetchAccounts 共用请求号，最后发起者胜
+    setLoading(true);
+    setLoadError(null);
+    const params: {
+      q?: string;
+      dorm_unit?: number;
+      status?: string;
+      locked?: boolean;
+    } = {};
+    if (debouncedQuery) params.q = debouncedQuery;
+    if (dormFilter === "locked") {
+      params.locked = true;
+    } else if (dormFilter !== "all") {
+      params.dorm_unit = Number(dormFilter);
+    }
+    api
+      .listStudents(params, authToken)
+      .then((res) => {
+        if (cancelled || myId !== reqIdRef.current) return;
+        setAccounts(res.items || []);
+        setLoading(false);
+      })
+      .catch((e) => {
+        if (cancelled || myId !== reqIdRef.current) return;
+        setLoadError(e.message || "学生リストの取得に失敗しました");
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authToken, debouncedQuery, dormFilter]);
 
   React.useEffect(() => {
     fetchRenewalProgress();
@@ -193,17 +240,8 @@ export function AccountsPage({
     locked: accounts.filter((a) => a.is_locked).length,
   };
 
-  const handleSave = (patch: { id: string; name: string; room_no: string }) => {
-    // TW-126：room_no 等编辑项后端无对应更新端点。原来只改前端内存却弹「更新しました」绿色
-    // 成功提示，老师以为已保存，刷新 / 切过滤后改动消失（虚假成功 + 数据治理隐患）。改为
-    // 明确告知「未対応」、不改本地 state（避免造成已保存的错觉）。实装后端 PATCH /students/{id}
-    // （需校验 room_no↔dorm_unit↔gender 一致）后再恢复真保存。
-    setToast({
-      type: "err",
-      msg: "この項目はまだ保存できません（バックエンド未対応）",
-    });
-    setDetailTarget(null);
-  };
+  // web#17：PATCH /students/{id} 未落地前不再提供「点保存必失败」的误导交互；
+  // 房间号在详情弹窗改为只读 +「保存未対応」标注（见 AccountDetailModal）。
 
   // 密码重置 — 后端返回 temporary_password，只在前端内存显示一次
   const handlePasswordReset = (account: StudentAccountListItem) => {
@@ -986,7 +1024,6 @@ export function AccountsPage({
         <AccountDetailModal
           account={detailTarget}
           onClose={() => setDetailTarget(null)}
-          onSave={handleSave}
           onPasswordReset={handlePasswordReset}
           onUnlock={handleUnlock}
           onRenewSeat={handleTeacherRenewSeat}
@@ -1200,14 +1237,12 @@ function AcctStat({
 function AccountDetailModal({
   account,
   onClose,
-  onSave,
   onPasswordReset,
   onUnlock,
   onRenewSeat,
 }: {
   account: StudentAccountListItem;
   onClose: () => void;
-  onSave: (patch: { id: string; name: string; room_no: string }) => void;
   onPasswordReset: (account: StudentAccountListItem) => void;
   onUnlock: (account: StudentAccountListItem) => void;
   onRenewSeat: (
@@ -1217,9 +1252,7 @@ function AccountDetailModal({
 }) {
   const T = RYO;
   const [tab, setTab] = React.useState("profile");
-  // 後端の StudentAccountListItem には email / phone がないため空文字で初期化
-  const [room, setRoom] = React.useState(account.room_no || "");
-  const dirty = room !== (account.room_no || "");
+  // web#17：房间号保存端点未落地 — 不再维护可编辑 room / dirty（原 EditField+保存必失败已撤）
   // 学籍番号 单件改（兜底）— 学年/组/出席番号 三选择，预填当前值
   const [rnGrade, setRnGrade] = React.useState(account.grade_code || "");
   const [rnClass, setRnClass] = React.useState(account.class_code || "");
@@ -1235,7 +1268,7 @@ function AccountDetailModal({
 
   const genderLabel = { male: "男性", female: "女性" }[account.gender] || "—";
 
-  // アクティビティ履歴 — 後端 API 未実装につきモック
+  // web#16：活动时间轴 — 只保留 last_login_at 真登录条目，删写死点呼假数据
   const activities = buildActivityMock(account);
 
   return (
@@ -1433,9 +1466,23 @@ function AccountDetailModal({
                 marginBottom: 10,
                 paddingBottom: 6,
                 borderBottom: `1px solid ${T.line}`,
+                display: "flex",
+                alignItems: "baseline",
+                gap: 10,
               }}
             >
-              § 編集可能項目
+              {/* web#17：PATCH 未落地 — 区块旁写清「保存未対応」 */}
+              <span>§ 編集可能項目</span>
+              <span
+                style={{
+                  letterSpacing: 0,
+                  fontWeight: 600,
+                  color: T.warn || T.danger,
+                  fontSize: 11,
+                }}
+              >
+                保存未対応（バックエンド PATCH 未実装）
+              </span>
             </div>
             <div
               style={{
@@ -1445,12 +1492,10 @@ function AccountDetailModal({
                 marginBottom: 24,
               }}
             >
-              <EditField
-                label="部屋番号"
-                value={room}
-                onChange={setRoom}
-                mono
-              />
+              {/* web#17：房间号改只读，避免「改完点保存必失败」误导 */}
+              <Field label="部屋番号" mono>
+                {account.room_no || "—"}
+              </Field>
               <div />
             </div>
 
@@ -1672,6 +1717,21 @@ function AccountDetailModal({
 
         {tab === "activity" && (
           <div style={{ padding: "22px 28px" }}>
+            {/* web#16：诚实标注 — 活动时间轴后端未实装，勿把样本当真 */}
+            <div
+              style={{
+                marginBottom: 14,
+                padding: "10px 12px",
+                background: T.warnSoft,
+                border: `1px solid ${T.warnBorder}`,
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                color: T.ink,
+              }}
+            >
+              この機能は未実装です（サンプル表示）
+            </div>
             <div
               style={{
                 fontSize: 11,
@@ -1753,7 +1813,8 @@ function AccountDetailModal({
                 textAlign: "center",
               }}
             >
-              過去 30 日分表示 ·
+              {/* web#16：不再声称「過去 30 日分表示」——仅 last_login_at 等已知字段 */}
+              ログイン時刻など既知フィールドのみ表示 ·
               全履歴は「点呼記録」「減点・処分」「申請」で個別に確認できます
             </div>
           </div>
@@ -1786,31 +1847,7 @@ function AccountDetailModal({
           >
             閉じる
           </button>
-          {tab === "profile" && (
-            <button
-              disabled={!dirty}
-              onClick={() =>
-                onSave({
-                  id: account.id,
-                  name: account.name,
-                  room_no: room,
-                })
-              }
-              style={{
-                padding: "9px 20px",
-                background: dirty ? T.cobalt : T.lineStrong,
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                fontFamily: "inherit",
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: dirty ? "pointer" : "not-allowed",
-              }}
-            >
-              保存
-            </button>
-          )}
+          {/* web#17：隐藏房间号「保存」按钮 — PATCH 落地前点了必失败，误导已撤 */}
         </div>
       </div>
     </div>
@@ -1853,59 +1890,12 @@ function Field({
   );
 }
 
-function EditField({
-  label,
-  value,
-  onChange,
-  type = "text",
-  mono,
-}: {
-  label: React.ReactNode;
-  value: string;
-  onChange: (v: string) => void;
-  type?: string;
-  mono?: boolean;
-}) {
-  const T = RYO;
-  return (
-    <div>
-      <div
-        style={{
-          fontSize: 10,
-          color: T.ink3,
-          fontWeight: 600,
-          letterSpacing: 1,
-          marginBottom: 5,
-        }}
-      >
-        {label}
-      </div>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={{
-          width: "100%",
-          padding: "8px 10px",
-          background: T.surface,
-          border: `1px solid ${T.lineStrong}`,
-          borderRadius: 6,
-          fontFamily: mono ? T.mono : "inherit",
-          fontSize: 13,
-          color: T.ink,
-          outline: "none",
-          boxSizing: "border-box",
-        }}
-      />
-    </div>
-  );
-}
-
-// アクティビティ履歴は後端 API 未実装 — 後端の last_login_at だけ使い、残りはモック表示。
+// web#17：EditField 组件随房号编辑撤除而删（其唯一调用点房号编辑已改只读）
+// web#16：活动时间轴 API 未实装 — 只渲染 last_login_at 真登录 + 锁定状态，删写死点呼假条目
 function buildActivityMock(a: StudentAccountListItem) {
   const T = RYO;
   const loginWhen = a.last_login_at ? a.last_login_at.slice(5, 16) : "—";
-  // 一条履歴的形：图标 / 颜色 / 标题 / 正文 / 时间 — 显式标类型避免数组被推断成两种固定颜色的联合
+  // 一条履历条目的形：图标 / 颜色 / 标题 / 正文 / 时间 — 显式标类型避免数组被推断成两种固定颜色的联合
   type Activity = {
     icon: string;
     color: string;
@@ -1913,22 +1903,17 @@ function buildActivityMock(a: StudentAccountListItem) {
     body: string;
     when: string;
   };
-  const base: Activity[] = [
-    {
-      icon: "✓",
-      color: T.ok,
-      title: "点呼チェックイン",
-      body: "夜点呼 · 時間内 · NFC カード",
-      when: "04-22 19:30",
-    },
-    {
+  const base: Activity[] = [];
+  // 仅当有真 last_login_at 时追加登录条目（无假「04-22 点呼」）
+  if (a.last_login_at) {
+    base.push({
       icon: "📋",
       color: T.cobalt,
       title: "ログイン",
-      body: "iOS App",
+      body: "最終ログイン（last_login_at）",
       when: loginWhen,
-    },
-  ];
+    });
+  }
   if (a.is_locked)
     base.push({
       icon: "🔒",

@@ -514,6 +514,7 @@ function CleaningRejectModal({
         onClose={onClose}
         onSubmit={() => !disabled && onSubmit(reason.trim())}
         disabled={disabled}
+        submitLabel="却下"
       />
     </ModalShell>
   );

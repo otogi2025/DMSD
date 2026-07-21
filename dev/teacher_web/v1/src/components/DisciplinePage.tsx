@@ -393,8 +393,9 @@ export function DisciplinePage({
               読み込み中…
             </div>
           ) : fetchError && !backendRanking ? (
+            // web#22: 拉取失败 ≠ 空数据 — 明确失败文案（上方已有错误横幅 +「再試行」）
             <div style={{ padding: 24, color: T.ink3, fontSize: 13 }}>
-              まだデータがありません
+              取得に失敗しました
             </div>
           ) : (
             <div
@@ -712,6 +713,7 @@ function ManualDemeritModal({
         onClose={onClose}
         onSubmit={handleSubmit}
         disabled={disabled}
+        submitLabel="設定"
       />
     </ModalShell>
   );
@@ -791,6 +793,7 @@ function ManualDemeritSearchModal({
         onClose={onClose}
         onSubmit={handleSubmit}
         disabled={disabled}
+        submitLabel="設定"
       />
     </ModalShell>
   );

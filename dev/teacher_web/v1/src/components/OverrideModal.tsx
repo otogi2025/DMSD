@@ -14,6 +14,8 @@ interface PendingLeave {
 interface OverrideRecord {
   by: string;
   reason: string;
+  // web#31：ISO 时间；缺省时界面显示「—」，不再硬编码假时刻
+  at?: string;
 }
 
 // このモーダルが受け取る学生のビューモデル（バックエンド型ではなく画面ローカルの形）
@@ -254,7 +256,14 @@ export function OverrideModal({
                   fontFamily: T.mono,
                 }}
               >
-                {student.override.by} · 19:35
+                {/* web#31：有 at 则按日语本地时刻格式化，无则「—」（不再写死 19:35） */}
+                {student.override.by} ·{" "}
+                {student.override.at
+                  ? new Date(student.override.at).toLocaleTimeString("ja-JP", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "—"}
               </div>
               <div style={{ fontSize: 12, color: T.ink }}>
                 {student.override.reason}

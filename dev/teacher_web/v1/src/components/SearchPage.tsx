@@ -23,25 +23,36 @@ export function SearchPage({
   const [searching, setSearching] = React.useState(false);
   const [searchError, setSearchError] = React.useState<string | null>(null);
 
-  // q 每次变化都走后端检索（空白则不检索）
+  // web#39：防抖 + cancelled 守卫，防快打字慢请求覆盖新结果 / 卸载后 setState
   React.useEffect(() => {
     if (!q.trim()) {
       setResults(null);
+      setSearching(false);
+      setSearchError(null);
       return;
     }
     if (!authToken) return;
+    let cancelled = false;
     setSearching(true);
     setSearchError(null);
-    api
-      .listStudents({ q: q.trim() }, authToken)
-      .then((res) => {
-        setResults(res.items || []);
-        setSearching(false);
-      })
-      .catch((e) => {
-        setSearchError(e.message || "検索に失敗しました");
-        setSearching(false);
-      });
+    const timer = setTimeout(() => {
+      api
+        .listStudents({ q: q.trim() }, authToken)
+        .then((res) => {
+          if (cancelled) return;
+          setResults(res.items || []);
+          setSearching(false);
+        })
+        .catch((e) => {
+          if (cancelled) return;
+          setSearchError(e.message || "検索に失敗しました");
+          setSearching(false);
+        });
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [q, authToken]);
 
   return (
@@ -335,11 +346,19 @@ function StudentDossier({
 
 function DateSearchBody() {
   const T = RYO;
+  // web#40：日期默认用 JST 今天（Asia/Tokyo，sv-SE→YYYY-MM-DD，与本批其它日期修复同口径）；
+  // 聚合接口未接前诚实标「準備中」，不展示假统计
+  const todayStr = new Date().toLocaleDateString("sv-SE", {
+    timeZone: "Asia/Tokyo",
+  });
+  const [date, setDate] = React.useState(todayStr);
+
   return (
     <div>
       <input
         type="date"
-        defaultValue="2026-04-21"
+        value={date}
+        onChange={(e) => setDate(e.target.value)}
         style={{
           padding: "11px 14px",
           border: `1px solid ${T.lineStrong}`,
@@ -359,44 +378,23 @@ function DateSearchBody() {
         }}
       >
         <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>
-          2026-04-21 全寮集計
+          {date} 全寮集計
         </div>
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 14,
+            padding: "28px 12px",
+            textAlign: "center",
+            color: T.ink3,
+            fontSize: 13,
+            lineHeight: 1.7,
+            border: `1px dashed ${T.lineStrong}`,
+            borderRadius: 8,
           }}
         >
-          {[
-            ["点呼", "23/24"],
-            ["欠席", "1"],
-            ["体調異常", "1"],
-            ["申請処理", "3"],
-          ].map(([l, v], i) => (
-            <div key={i}>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: T.ink3,
-                  letterSpacing: 1.2,
-                  fontWeight: 600,
-                }}
-              >
-                {l}
-              </div>
-              <div
-                style={{
-                  fontSize: 26,
-                  fontWeight: 700,
-                  fontFamily: T.mono,
-                  marginTop: 4,
-                }}
-              >
-                {v}
-              </div>
-            </div>
-          ))}
+          準備中
+          <div style={{ fontSize: 11, marginTop: 6, color: T.muted }}>
+            日付集計 API 接続後に表示されます
+          </div>
         </div>
       </div>
     </div>

@@ -212,20 +212,25 @@ export function Shell({
     };
   }, [q, authToken]);
   const studentSuggestions = backendSuggestions;
+  // web#14: 「本日/昨日」点呼建议按 JST 当天/前一天动态生成（硬编码 2026-04-22/21 会标错日）
+  const jstYmd = (d: Date) =>
+    d.toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" });
+  const todayYmd = jstYmd(new Date());
+  const yesterdayYmd = jstYmd(new Date(Date.now() - 86400000));
   const extraSuggestions =
     q.length > 0
       ? [
           {
-            label: "2026-04-22",
+            label: todayYmd,
             meta: "点呼記録 · 本日",
             kind: "date",
-            hay: "2026-04-22",
+            hay: todayYmd,
           },
           {
-            label: "2026-04-21",
+            label: yesterdayYmd,
             meta: "点呼記録 · 昨日",
             kind: "date",
-            hay: "2026-04-21",
+            hay: yesterdayYmd,
           },
         ].filter((s) => s.hay.includes(qn))
       : [];

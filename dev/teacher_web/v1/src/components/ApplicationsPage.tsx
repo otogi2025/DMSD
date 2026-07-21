@@ -233,12 +233,14 @@ export function ApplicationsPage({
 
       {/* Task #16: 外泊 / 帰国 / 帰省 3 tab 共用 OutstayList (UI shape 相同)。
           taxi tab 也走 OutstayList（filter 出含タクシー预约的申请）。*/}
+      {/* web#20: DeadlineBadge 仅外泊规则 — 只在 outstay tab 传 showDeadline */}
       {tab === "outstay" && (
         <OutstayList
           sub={sub}
           setSub={setSub}
           onOpen={onOpen}
           apps={outstayApps}
+          showDeadline
         />
       )}
       {tab === "return" && (
@@ -247,6 +249,7 @@ export function ApplicationsPage({
           setSub={setSub}
           onOpen={onOpen}
           apps={returnApps}
+          showDeadline={false}
         />
       )}
       {tab === "home" && (
@@ -255,6 +258,7 @@ export function ApplicationsPage({
           setSub={setSub}
           onOpen={onOpen}
           apps={homeApps}
+          showDeadline={false}
         />
       )}
       {tab === "taxi" && (
@@ -263,6 +267,7 @@ export function ApplicationsPage({
           setSub={setSub}
           onOpen={onOpen}
           apps={taxiApps}
+          showDeadline={false}
         />
       )}
     </div>
@@ -346,11 +351,13 @@ function OutstayList({
   setSub,
   onOpen,
   apps: appsProp,
+  showDeadline = false, // web#20: 仅外泊 tab 显示期限徽章
 }: {
   sub: string;
   setSub: (s: string) => void;
   onOpen: (app: OutstayUiApp) => void;
   apps: OutstayUiApp[];
+  showDeadline?: boolean;
 }) {
   const T = RYO;
   // Task #6 第 6 步 + Task #16: apps prop 是 array 就一定用（空数组也显示空状态）。
@@ -499,7 +506,12 @@ function OutstayList({
               {a.submitted}
             </div>
             <div style={{ padding: "10px 12px" }}>
-              <DeadlineBadge depart={a.depart} submitted={a.submitted} />
+              {/* web#20: 非外泊不用外泊期限规则，列显示「—」防误标 */}
+              {showDeadline ? (
+                <DeadlineBadge depart={a.depart} submitted={a.submitted} />
+              ) : (
+                "—"
+              )}
             </div>
             <div style={{ padding: "10px 12px" }}>
               <StateBadge s={a.state} />

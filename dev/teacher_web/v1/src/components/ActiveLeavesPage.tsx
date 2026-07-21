@@ -9,12 +9,12 @@ import type { Application, StudentBrief } from "../api/types";
 // 編集不可 / 削除不可 — 防误删；老师只能看 + 印刷 + 更新（重新拉取）。
 export function ActiveLeavesPage({ authToken }: { authToken: string }) {
   const T = RYO;
-  // 日期选择器初值 = 今天（YYYY-MM-DD，本地时区）
-  const todayStr = () => {
-    const d = new Date();
-    const p = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-  };
+  // web#18: 用 Asia/Tokyo 格式化当日，避免非 JST 浏览器日界附近查错日
+  // en-CA → YYYY-MM-DD
+  const todayStr = () =>
+    new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo" }).format(
+      new Date(),
+    );
   const [date, setDate] = React.useState(todayStr());
   // 三态：null=加载中 / Error 对象=拉取失败 / 数组=真值（可空数组 = 0 件）
   const [rows, setRows] = React.useState<Application[] | null>(null);
@@ -198,6 +198,13 @@ export function ActiveLeavesPage({ authToken }: { authToken: string }) {
   const womenRows = Array.isArray(rows)
     ? rows.filter((a) => a.student && a.student.dorm_unit === 4)
     : [];
+  // web#19: 不落入男/女寮的行（dorm_unit=3/null 或 student 空）收容到兜底块，避免静默丢弃
+  const otherRows = Array.isArray(rows)
+    ? rows.filter((a) => {
+        const u = a.student && a.student.dorm_unit;
+        return !(u === 1 || u === 2 || u === 4);
+      })
+    : [];
 
   return (
     <div style={{ padding: "28px 32px 48px" }}>
@@ -358,6 +365,8 @@ export function ActiveLeavesPage({ authToken }: { authToken: string }) {
         <>
           {renderBlock("一寮・二寮（男子寮）", menRows)}
           {renderBlock("四寮（女子寮）", womenRows)}
+          {/* web#19: その他・未分類 — 有行才显示，避免空兜底块噪音 */}
+          {otherRows.length > 0 && renderBlock("その他・未分類", otherRows)}
         </>
       )}
     </div>

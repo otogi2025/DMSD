@@ -40,8 +40,9 @@ export function IncidentsPage({
   // 表单字段（新规 / 编辑 兼用）
   const [fTitle, setFTitle] = React.useState("");
   const [fBody, setFBody] = React.useState("");
+  // web#23: JST 当日 YYYY-MM-DD（toISOString 是 UTC，日本凌晨会填成前一天）
   const [fDate, setFDate] = React.useState(
-    new Date().toISOString().slice(0, 10),
+    new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" }),
   );
   // 关系学生：用共用 StudentPicker（multi）多选，存 PickerStudent[]
   const [fStudents, setFStudents] = React.useState<PickerStudent[]>([]);
@@ -79,7 +80,10 @@ export function IncidentsPage({
     setEditTarget(null);
     setFTitle("");
     setFBody("");
-    setFDate(new Date().toISOString().slice(0, 10));
+    // web#23: 新建时也用 JST 当天（与 FrontDeskPage 一致）
+    setFDate(
+      new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" }),
+    );
     setFStudents([]);
     setFError(null);
     setShowForm(true);

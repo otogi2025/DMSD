@@ -60,7 +60,7 @@ export function App() {
   const [route, setRoute] = React.useState(
     _restoredAuth && _restoredAuth.token ? "app" : "login",
   );
-  const [teachers, setTeachers] = React.useState<any>(null); // null=未取得(loading)，后端拉取，失败显错误态不显假老师
+  // web#13: 删死代码 teachers/setTeachers（无渲染路径、无 prop 传出；TeachersAdminPage 自行拉列表）
   const [teacher, setTeacher] = React.useState<any>(_restoredTeacher);
   const [lastTeacherId, setLastTeacherId] = React.useState<any>(
     _restoredTeacher ? _restoredTeacher.id : null,
@@ -86,9 +86,7 @@ export function App() {
   // Task #6 第 6 步: 申请 pending list (backend Application[]) - 担当教师宛て未承认
   const [backendApplications, setBackendApplications] =
     React.useState<any>(null);
-  // Task #10 (5-27): 从 backend listTeachers 取得的教师一览 (SelectTeacherScreen 用)
-  // null = 未取得 / [] = backend 不可达 → window.TEACHERS fallback / [...] = 真值
-  const [backendTeachers, setBackendTeachers] = React.useState<any>(null);
+  // web#13: 删死代码 backendTeachers（全 App 无读取渲染路径；listTeachers effect 一并删）
   const [page, setPage] = React.useState("roll-call");
   const [pageParams, setPageParams] = React.useState<any>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -120,9 +118,12 @@ export function App() {
 
   // Auto-logout 30min with 25min warning
   const lastActivity = React.useRef(Date.now());
+  // web#11: warned 用 ref 存——活动 bump 时复位，否则 25 分警告后动一下再空闲只会到 30 分直接踢、不再警告
+  const idleWarned = React.useRef(false);
   React.useEffect(() => {
     const bump = () => {
       lastActivity.current = Date.now();
+      idleWarned.current = false; // web#11: 有操作则重置警告，下次空闲可再弹 25 分提醒
     };
     ["mousemove", "keydown", "click", "touchstart"].forEach((e) =>
       window.addEventListener(e, bump),
@@ -134,7 +135,6 @@ export function App() {
   }, []);
   React.useEffect(() => {
     if (route !== "app") return;
-    let warned = false;
     const id = setInterval(() => {
       const idle = Date.now() - lastActivity.current;
       if (idle > TIMEOUT_MS) {
@@ -152,6 +152,7 @@ export function App() {
         setSession(null);
         setStudents([]);
         setNfcSeq(0);
+        idleWarned.current = false; // web#11: 踢回登录后清警告标记
         try {
           sessionStorage.removeItem("tomoshibi_auth");
         } catch (e) {
@@ -161,8 +162,8 @@ export function App() {
           type: "warn",
           msg: "操作がないため再ログイン画面に戻りました",
         });
-      } else if (!warned && idle > TIMEOUT_WARN_MS) {
-        warned = true;
+      } else if (!idleWarned.current && idle > TIMEOUT_WARN_MS) {
+        idleWarned.current = true; // web#11
         setToast({
           type: "warn",
           msg: "あと5分でログイン画面に戻ります",
@@ -234,41 +235,7 @@ export function App() {
     return () => api.setOnUnauthorized(null);
   }, []);
 
-  // Task #10 (5-27): authToken 来了就 fetch backend listTeachers
-  // 把 backend TeacherOut {id, login_id, name, role, assigned_dorm, ...}
-  // adapt 成 UI 用的 {id, name, dorm, initial, lastLoginMins}。
-  // assigned_dorm: 1 (一寮) → men, 2 (二寮) → women (跟 spec 的 dorm_unit 命名一致，
-  // 从 dorm_unit 数值映射为暂定方案。多寮支持留到 v1.1)。
-  React.useEffect(() => {
-    if (!authToken) {
-      setBackendTeachers(null);
-      return;
-    }
-    let cancelled = false;
-    api
-      .listTeachers(authToken)
-      .then((rows) => {
-        if (cancelled) return;
-        // 5-27 codex 审查 #12 修：backend assigned_dorm 4=女寮 / 1+2=男寮（一寮+二寮）/ null=跨寮
-        // 之前误写 `=== 2 ? women : men` 把男二寮老师映射到女寮列
-        const adapted = (rows || []).map((t) => ({
-          id: t.id,
-          name: t.name,
-          dorm: t.assigned_dorm === 4 ? "women" : "men",
-          initial: (t.name || "?").charAt(0),
-          lastLoginMins: null, // backend 本字段未提供，UI 显示 fallback
-        }));
-        setBackendTeachers(adapted);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        console.warn("[App] listTeachers 失敗 → window.TEACHERS fallback", err);
-        setBackendTeachers([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [authToken]);
+  // web#13: 删 listTeachers effect（结果只写进死状态 backendTeachers，无消费方）
 
   // Task #6 第 6 步: authToken 来了就 fetch 申请 pending list
   // (api.pendingForMe(token) → Application[])。
@@ -343,6 +310,8 @@ export function App() {
                       checkinAt:
                         event.checked_at ||
                         new Date().toTimeString().slice(0, 8),
+                      // web#12: WS 若带 event_id 则回写 lastEventId（后端当前 checkin 广播未推该字段，有则用、无则保留）
+                      lastEventId: event.event_id || s.lastEventId,
                     }
                   : s,
               );
@@ -374,6 +343,8 @@ export function App() {
                         reason: event.override_reason || event.reason || "",
                         by: event.by || "別端末",
                       },
+                      // web#12: WS override 若带 event_id 则回写（后端当前未推，有则用）
+                      lastEventId: event.event_id || s.lastEventId,
                     }
                   : s,
               ),
@@ -432,17 +403,7 @@ export function App() {
   // 2026-06-16 itsuki 拍板：登录后默认页统一为「点呼」（不再按角色分流到 申請 / 夜学習）。
   // 点呼是日常值班的核心操作，所有角色登录都先落在这里。参数保留以兼容现有两处调用点。
   const _roleHomePage = (_role: any) => "roll-call";
-  const pickTeacher = (t: any) => {
-    setTeacher(t);
-    setLastTeacherId(t.id);
-    setRoute("app");
-    const home = _roleHomePage(authProfile && authProfile.role);
-    setPage(home);
-    setToast({
-      type: "ok",
-      msg: `${t.name} 先生でログインしました・${dormLabel(t.dorm)}担当`,
-    });
-  };
+  // web#13: 删死代码 pickTeacher（无调用点；登录走 loginOk）
   // Task #15 W5 拍板: backend revoke + frontend clear 两边都做
   // backend 失败也让 frontend 必定 clear (防 UI 锁死)
   const logout = async () => {
@@ -678,6 +639,8 @@ export function App() {
       target
     );
     let backendOk = false;
+    // web#12: 成功后要把 eventId 写回学生 lastEventId，否则同生第二次改判仍走 POST
+    let resolvedEventId: string | null = target ? target.lastEventId : null;
     if (hasRealSession) {
       // baselineCreated：init 学生的 POST 基线已落库（codex M1）。若随后 PATCH 失败，DB 里
       // 已有一条 present/late 基线、与本地不一致 → catch 里要重拉 board 让 UI 对齐 DB，
@@ -712,6 +675,7 @@ export function App() {
             authToken,
           );
         }
+        resolvedEventId = eventId; // web#12: POST/PATCH 成功后的 event id
         backendOk = true;
         setToast({
           type: "ok",
@@ -757,6 +721,8 @@ export function App() {
           ? {
               ...s,
               status: patch.status,
+              // web#12: 回写 lastEventId，避免同生二次改判仍当 init 走 POST
+              lastEventId: resolvedEventId || s.lastEventId,
               checkinAt:
                 patch.status === "ok"
                   ? s.checkinAt || new Date().toTimeString().slice(0, 8)
@@ -817,13 +783,7 @@ export function App() {
     setPage("search");
   };
 
-  const onTeacherDelete = (id: any) =>
-    setTeachers((list: any[]) => list.filter((t) => t.id !== id));
-  const onTeacherAdd = (data: any) =>
-    setTeachers((list: any[]) => [
-      ...list,
-      { ...data, id: "t" + Date.now(), lastLoginMins: null },
-    ]);
+  // web#13: 删死代码 onTeacherDelete / onTeacherAdd（仅互相引用 setTeachers，从不作 prop 传出）
 
   // --- RENDER ---
 
@@ -1010,7 +970,9 @@ export function App() {
         teacher={teacher}
         active={page === "search" ? "search" : page}
         onNav={nav}
-        sessionActive={session && !liveMode}
+        // web#10: sessionActive=session&&!liveMode 永不可达（startSession 总 setLiveMode(true)；
+        // 所有 setLiveMode(false) 同时清 session）→ 恒传 false，关掉「点呼実施中」假入口
+        sessionActive={false}
         onLogout={logout}
         backendReachable={backendReachable}
         wsStatus={wsStatus}
@@ -1022,7 +984,8 @@ export function App() {
           logout();
         }}
         onSearch={search}
-        onResumeLive={() => session && setLiveMode(true)}
+        // web#10: onResumeLive 假入口一并废掉（无可达 sessionActive 路径）
+        onResumeLive={() => {}}
       >
         {body}
       </Shell>
@@ -1080,7 +1043,7 @@ export function App() {
           }}
           onReturn={async (reason) => {
             // 差戻 —— 把届退回给学生修改重提（C42 老师侧）。
-            // 只有 backend 真实数据（_backend 有）才调接口；demo 数据只关弹窗。
+            // web#9: 只有 backend 真实数据才调接口并报成功；demo 不报「送信済み」
             const backendApp = outstayTarget._backend;
             if (backendApp && authToken) {
               try {
@@ -1092,22 +1055,30 @@ export function App() {
                 } catch (_) {
                   // refetch 失败忽略（UI 下次打开时会自愈）
                 }
+                setOutstayTarget(null);
+                // web#9: 成功 toast 只在 backend 成功分支内
+                setToast({
+                  type: "ok",
+                  msg: "申請を差戻しました · 学生へメール通知送信済み",
+                });
               } catch (err: any) {
                 console.warn("[App] returnApplication 失敗", err);
                 // 后端失败码：409 CANNOT_RETURN（非审查中）/ 403 APPROVAL_NOT_REQUIRED（非当前审批者）
+                // web#9：失败用 error 红色（web#8 已引入 danger 配色），与「デモ未保存」黄 warn 区分
                 setToast({
-                  type: "warn",
+                  type: "error",
                   msg: `申請を差戻できませんでした（${err.status || "通信エラー"}）。画面は閉じます。`,
                 });
                 setOutstayTarget(null);
-                return;
               }
+            } else {
+              // web#9: demo / 无 _backend — 只关弹窗并诚实提示，不许假报「送信済み」
+              setOutstayTarget(null);
+              setToast({
+                type: "warn",
+                msg: "デモデータのため保存されません",
+              });
             }
-            setOutstayTarget(null);
-            setToast({
-              type: "ok",
-              msg: "申請を差戻しました · 学生へメール通知送信済み",
-            });
           }}
         />
       )}
@@ -1119,10 +1090,13 @@ export function App() {
 function ToastSlot({ toast }: { toast: { type: string; msg: string } | null }) {
   const T = RYO;
   if (!toast) return null;
+  // web#8: error 用红色 danger；原先非 ok 一律黄 warn，失败 toast 看起来像警告
   const c =
     toast.type === "ok"
       ? [T.ok, T.okSoft, T.okBorder]
-      : [T.warn, T.warnSoft, T.warnBorder];
+      : toast.type === "error"
+        ? [T.danger, T.dangerSoft, T.dangerBorder]
+        : [T.warn, T.warnSoft, T.warnBorder];
   return (
     <div
       style={{

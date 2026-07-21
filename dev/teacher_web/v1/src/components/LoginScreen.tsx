@@ -54,7 +54,7 @@ export function LoginScreen({
   const [selectedDorm, setSelectedDorm] = React.useState<1 | 4 | null>(null);
   const [err, setErr] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
-  const [fails, setFails] = React.useState(0);
+  // web#33：去掉本地 fails 假锁计数 — 真锁只认服务器 423；剩余次数拿不到就不显
 
   // 该老师卡片是否需要选寮：申請承認専用组看全部、不用选；其他组要选
   const cardNeedsDorm = picked
@@ -94,6 +94,44 @@ export function LoginScreen({
     };
   }, []);
 
+  // web#33 / web#34：统一登录失败文案 — 423 为唯一已锁依据；401 不显假剩余次数；403 按 code 说明
+  function loginFailMessage(
+    err2: { status?: number; message?: string; code?: string } | null,
+    wrongPwFallback: string,
+  ): string {
+    if (!err2) {
+      return "サーバーに接続できません。しばらくしてから再度お試しください。";
+    }
+    if (err2.status === 401) {
+      // web#33：只显后端 message / 密码错误，不数本地次数、不报假锁
+      return err2.message || wrongPwFallback;
+    }
+    if (err2.status === 423) {
+      return (
+        err2.message ||
+        "アカウントロック中。30 分ほど待ってから再度お試しください。"
+      );
+    }
+    if (err2.status === 403) {
+      // web#34：inactive / 临时账号过期给日语说明
+      if (err2.code === "ACCOUNT_INACTIVE") {
+        return (
+          err2.message ||
+          "このアカウントは停止中です。管理者にお問い合わせください。"
+        );
+      }
+      if (err2.code === "ACCOUNT_EXPIRED") {
+        return err2.message || "臨時アカウントの有効期限が切れています。";
+      }
+      return err2.message || "アクセスが拒否されました。";
+    }
+    if (err2.status) {
+      // web#34：优先显示后端 message
+      return err2.message || `サーバーエラー (${err2.status})`;
+    }
+    return "サーバーに接続できません。しばらくしてから再度お試しください。";
+  }
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting || !picked || !password) return;
@@ -105,29 +143,12 @@ export function LoginScreen({
         password,
         ...(selectedDorm ? { selected_dorm: selectedDorm } : {}),
       });
-      setFails(0);
       setErr("");
       onLogin(data.access_token, data.teacher, picked);
     } catch (err2: any) {
-      if (err2 && err2.status === 401) {
-        const n = fails + 1;
-        setFails(n);
-        if (n >= 3) {
-          setErr("3 回失敗しました。30 分間ロックされます。");
-          setFails(0);
-        } else {
-          setErr(`パスワードが違います（残り ${3 - n} 回）`);
-        }
-        setPassword("");
-      } else if (err2 && err2.status === 423) {
-        setErr("アカウントロック中。30 分ほど待ってから再度お試しください。");
-      } else if (err2 && err2.status) {
-        setErr(`サーバーエラー (${err2.status})`);
-      } else {
-        setErr(
-          "サーバーに接続できません。しばらくしてから再度お試しください。",
-        );
-      }
+      // web#33 / web#34
+      setErr(loginFailMessage(err2, "パスワードが違います"));
+      if (err2 && err2.status === 401) setPassword("");
     } finally {
       setSubmitting(false);
     }
@@ -144,7 +165,6 @@ export function LoginScreen({
         password,
         selected_dorm: selectedDorm,
       });
-      setFails(0);
       setErr("");
       // 手动登录没有卡片可选，用返回的老师档案现搭一个 PickedTeacher 给 App 顶层
       const t = data.teacher;
@@ -158,25 +178,9 @@ export function LoginScreen({
       };
       onLogin(data.access_token, data.teacher, pk);
     } catch (err2: any) {
-      if (err2 && err2.status === 401) {
-        const n = fails + 1;
-        setFails(n);
-        if (n >= 3) {
-          setErr("3 回失敗しました。30 分間ロックされます。");
-          setFails(0);
-        } else {
-          setErr(`ID またはパスワードが違います（残り ${3 - n} 回）`);
-        }
-        setPassword("");
-      } else if (err2 && err2.status === 423) {
-        setErr("アカウントロック中。30 分ほど待ってから再度お試しください。");
-      } else if (err2 && err2.status) {
-        setErr(`サーバーエラー (${err2.status})`);
-      } else {
-        setErr(
-          "サーバーに接続できません。しばらくしてから再度お試しください。",
-        );
-      }
+      // web#33 / web#34（手动登录同口径）
+      setErr(loginFailMessage(err2, "ID またはパスワードが違います"));
+      if (err2 && err2.status === 401) setPassword("");
     } finally {
       setSubmitting(false);
     }
@@ -263,7 +267,6 @@ export function LoginScreen({
                 setShowPw(false);
                 setSelectedDorm(null);
                 setErr("");
-                setFails(0);
               }}
               style={{
                 background: T.cobaltSoft,
@@ -478,7 +481,6 @@ export function LoginScreen({
                 setShowPw(false);
                 setSelectedDorm(null);
                 setErr("");
-                setFails(0);
               }}
               style={{
                 background: T.cobaltSoft,
@@ -789,7 +791,6 @@ export function LoginScreen({
           onClick={() => {
             setManual(true);
             setErr("");
-            setFails(0);
           }}
           style={{
             background: "transparent",

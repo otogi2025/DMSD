@@ -234,11 +234,13 @@ export function ModalFooter({
   onClose,
   onSubmit,
   disabled,
+  submitLabel, // web#41: 「却下」「設定」等场景可覆盖默认「登録」
 }: {
   T: RyoTokens;
   onClose: () => void;
   onSubmit: () => void;
   disabled?: boolean;
+  submitLabel?: string;
 }) {
   return (
     <div
@@ -280,7 +282,8 @@ export function ModalFooter({
           cursor: disabled ? "not-allowed" : "pointer",
         }}
       >
-        登録
+        {/* web#41 */}
+        {submitLabel || "登録"}
       </button>
     </div>
   );

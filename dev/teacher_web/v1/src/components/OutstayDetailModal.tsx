@@ -362,7 +362,12 @@ export function OutstayDetailModal({
               <F label="行先都市">{(detail && detail.dest_cities) || "—"}</F>
             )}
             <F label="長期休暇区分">
-              {detail && detail.is_long_vacation ? "長期休暇" : "通常外出"}
+              {/* web#35: detail 未就绪时不假装「通常外出」——避免老师误判 */}
+              {detail
+                ? detail.is_long_vacation
+                  ? "長期休暇"
+                  : "通常外出"
+                : "—"}
             </F>
             {detail && detail.reason && (
               <div

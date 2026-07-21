@@ -16,6 +16,11 @@ import type {
 // 屏内提示条（toast）的形状
 type Toast = { type: "ok" | "danger"; msg: string };
 
+// web#24：日本时间（JST）今日 YYYY-MM-DD — 不用 toISOString（UTC，早 0–8 点会变成昨天）
+function todayJstDate(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Tokyo" });
+}
+
 export function StudentProfileModal({
   studentId,
   studentName,
@@ -36,28 +41,34 @@ export function StudentProfileModal({
   const [showGuidanceForm, setShowGuidanceForm] = React.useState(false);
   const [gContent, setGContent] = React.useState("");
   const [gCategory, setGCategory] = React.useState("");
-  const [gDate, setGDate] = React.useState(
-    new Date().toISOString().slice(0, 10),
-  );
+  // web#24：「指導日」默认用日本时间今天
+  const [gDate, setGDate] = React.useState(todayJstDate);
   const [gConfidential, setGConfidential] = React.useState(true);
   const [gSubmitting, setGSubmitting] = React.useState(false);
   const [gError, setGError] = React.useState<string | null>(null);
   const [toast, setToast] = React.useState<Toast | null>(null);
 
+  // web#26：竞态守卫 — 快切学生时丢弃过期响应，避免标题已换、内容仍是上一人
   React.useEffect(() => {
     if (!authToken || !studentId) return;
+    let cancelled = false;
     setLoading(true);
     setError(null);
     api
       .getStudentProfile(studentId, authToken)
       .then((d) => {
+        if (cancelled) return;
         setData(d);
         setLoading(false);
       })
       .catch((e) => {
+        if (cancelled) return;
         setError(e.message || "個人データの取得に失敗しました");
         setLoading(false);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [studentId, authToken]);
 
   React.useEffect(() => {
@@ -98,7 +109,7 @@ export function StudentProfileModal({
         );
         setGContent("");
         setGCategory("");
-        setGDate(new Date().toISOString().slice(0, 10));
+        setGDate(todayJstDate()); // web#24：与初始默认共用 JST helper
         setGConfidential(true);
         setShowGuidanceForm(false);
         setGSubmitting(false);
@@ -382,20 +393,22 @@ export function StudentProfileModal({
               {/* 指導履歴 tab */}
               {tab === "guidance" && (
                 <div>
-                  {data.guidance_records.length === 0 && !showGuidanceForm && (
-                    <div
-                      style={{
-                        color: T.ink3,
-                        fontSize: 13,
-                        marginBottom: 16,
-                      }}
-                    >
-                      指導履歴がありません（または権限なし）
-                    </div>
-                  )}
-                  {data.guidance_records.length > 0 && (
+                  {/* web#25：权限不足时后端可能省略/置空 guidance_records，与 online tab 同样兜底 */}
+                  {(data.guidance_records || []).length === 0 &&
+                    !showGuidanceForm && (
+                      <div
+                        style={{
+                          color: T.ink3,
+                          fontSize: 13,
+                          marginBottom: 16,
+                        }}
+                      >
+                        指導履歴がありません（または権限なし）
+                      </div>
+                    )}
+                  {(data.guidance_records || []).length > 0 && (
                     <div style={{ marginBottom: 16 }}>
-                      {data.guidance_records.map((gr) => (
+                      {(data.guidance_records || []).map((gr) => (
                         <div
                           key={gr.id}
                           style={{

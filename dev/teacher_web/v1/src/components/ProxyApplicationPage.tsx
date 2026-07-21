@@ -94,6 +94,37 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
   } | null>(null);
 
   const isOverseas = !!(picked && picked.is_overseas);
+  // web#37：食事不要期間只在外泊/帰国生效（帰省与 iOS ApplyStubs 对齐，只留 meal_note）
+  const needStay = kind === "外泊" || kind === "帰国";
+  const mealsSkipUiEnabled = isOverseas && needStay;
+
+  // web#38：全部申請字段归初始值（选新学生 /「選び直す」/ 提交成功共用）
+  function resetForm() {
+    setLeaveDate(todayStr);
+    setLeaveMethod("JR");
+    setLeaveTime("17:00");
+    setReturnDate(todayStr);
+    setReturnMethod("JR");
+    setReturnTime("18:00");
+    setContactPhone("");
+    setReason("");
+    setTaxiResvTime("17:00");
+    setIsLongVacation(false);
+    setCompanion("");
+    setDestCities("");
+    setStayText("");
+    setDepartAirport("");
+    setDepartFlightTime("10:00");
+    setArriveAirport("");
+    setArriveFlightTime("12:00");
+    setMealNote("");
+    setSkipEnabled(false);
+    setSkipStartDate(todayStr);
+    setSkipStartMeal("夕食");
+    setSkipEndDate(todayStr);
+    setSkipEndMeal("朝食");
+    setMsg(null);
+  }
 
   // 搜学生（输入 250ms 后再查，避免每个字都打后端）
   React.useEffect(() => {
@@ -173,7 +204,6 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
       });
       return;
     }
-    const needStay = kind === "外泊" || kind === "帰国";
     const stayRaw = stayText
       .split("\n")
       .map((s) => s.trim())
@@ -200,7 +230,8 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
     const taxiTimeValue = leaveMethod === "タクシー" ? hms(taxiResvTime) : null;
 
     let mealsSkip: MealSkip[] = [];
-    if (isOverseas && skipEnabled) {
+    // web#37：食事不要期間校验/展开仅外泊·帰国（帰省不传 meals_skip）
+    if (isOverseas && skipEnabled && needStay) {
       mealsSkip = expandMealsSkip(
         skipStartDate,
         skipStartMeal,
@@ -279,22 +310,11 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
     setMsg(null);
     try {
       await api.createByTeacher(picked.id, body, authToken);
-      setMsg({
-        type: "ok",
-        text: picked.name + " さんの" + kind + "届を代録しました（承認待ち）",
-      });
-      // 重置申請内容（保留已选学生，方便连续代録）— 含飞机 / 食事日期 / 出租车时刻
-      setReason("");
-      setCompanion("");
-      setDestCities("");
-      setStayText("");
-      setSkipEnabled(false);
-      setMealNote("");
-      setSkipStartDate(todayStr);
-      setSkipEndDate(todayStr);
-      setDepartFlightTime("10:00");
-      setArriveFlightTime("12:00");
-      setTaxiResvTime("17:00");
+      // web#38：先记下成功文案再 reset（resetForm 会清 msg）
+      const okText =
+        picked.name + " さんの" + kind + "届を代録しました（承認待ち）";
+      resetForm();
+      setMsg({ type: "ok", text: okText });
     } catch (e) {
       // client.js 的 request 把后端 {detail:{code,message}} 铺平到错误对象
       // 顶层 → e.code / e.message / e.status（不是 e.body.detail.code）
@@ -412,7 +432,11 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
               </div>
             </div>
             <button
-              onClick={() => setPicked(null)}
+              onClick={() => {
+                // web#38：重选学生时清掉上一学生的申請字段，防串号
+                resetForm();
+                setPicked(null);
+              }}
               style={{
                 padding: "5px 12px",
                 background: "transparent",
@@ -461,11 +485,9 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
                   <div
                     key={c.id}
                     onClick={() => {
-                      // 选新学生时重置日期回今天，避免上一个学生的日期残留误提
+                      // web#38：选新学生时统一 resetForm，避免上一学生联系方式/同行者等残留
+                      resetForm();
                       setPicked(c);
-                      setMsg(null);
-                      setLeaveDate(todayStr);
-                      setReturnDate(todayStr);
                     }}
                     style={{
                       padding: "9px 12px",
@@ -794,79 +816,84 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
                 style={inputStyle}
               />
             </div>
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontSize: 13,
-                color: T.ink2,
-                cursor: "pointer",
-                marginBottom: skipEnabled ? 14 : 0,
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={skipEnabled}
-                onChange={(e) => setSkipEnabled(e.target.checked)}
-              />
-              食事不要期間を申請する
-            </label>
-            {skipEnabled ? (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 12,
-                }}
-              >
-                <div>
-                  <label style={labelStyle}>不要 開始日</label>
+            {/* web#37：食事不要期間勾选/展开仅外泊·帰国；帰省留学生只留 meal_note */}
+            {mealsSkipUiEnabled ? (
+              <>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    fontSize: 13,
+                    color: T.ink2,
+                    cursor: "pointer",
+                    marginBottom: skipEnabled ? 14 : 0,
+                  }}
+                >
                   <input
-                    type="date"
-                    value={skipStartDate}
-                    onChange={(e) => setSkipStartDate(e.target.value)}
-                    style={dateInputStyle}
+                    type="checkbox"
+                    checked={skipEnabled}
+                    onChange={(e) => setSkipEnabled(e.target.checked)}
                   />
-                </div>
-                <div>
-                  <label style={labelStyle}>開始の食事</label>
-                  <select
-                    value={skipStartMeal}
-                    onChange={(e) => setSkipStartMeal(e.target.value)}
-                    style={inputStyle}
+                  食事不要期間を申請する
+                </label>
+                {skipEnabled ? (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: 12,
+                    }}
                   >
-                    {MEALS.map((m) => (
-                      <option key={m} value={m}>
-                        {m}から不要
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label style={labelStyle}>不要 終了日</label>
-                  <input
-                    type="date"
-                    value={skipEndDate}
-                    onChange={(e) => setSkipEndDate(e.target.value)}
-                    style={dateInputStyle}
-                  />
-                </div>
-                <div>
-                  <label style={labelStyle}>終了の食事</label>
-                  <select
-                    value={skipEndMeal}
-                    onChange={(e) => setSkipEndMeal(e.target.value)}
-                    style={inputStyle}
-                  >
-                    {MEALS.map((m) => (
-                      <option key={m} value={m}>
-                        {m}まで不要
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+                    <div>
+                      <label style={labelStyle}>不要 開始日</label>
+                      <input
+                        type="date"
+                        value={skipStartDate}
+                        onChange={(e) => setSkipStartDate(e.target.value)}
+                        style={dateInputStyle}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>開始の食事</label>
+                      <select
+                        value={skipStartMeal}
+                        onChange={(e) => setSkipStartMeal(e.target.value)}
+                        style={inputStyle}
+                      >
+                        {MEALS.map((m) => (
+                          <option key={m} value={m}>
+                            {m}から不要
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={labelStyle}>不要 終了日</label>
+                      <input
+                        type="date"
+                        value={skipEndDate}
+                        onChange={(e) => setSkipEndDate(e.target.value)}
+                        style={dateInputStyle}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>終了の食事</label>
+                      <select
+                        value={skipEndMeal}
+                        onChange={(e) => setSkipEndMeal(e.target.value)}
+                        style={inputStyle}
+                      >
+                        {MEALS.map((m) => (
+                          <option key={m} value={m}>
+                            {m}まで不要
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                ) : null}
+              </>
             ) : null}
           </div>
         ) : (

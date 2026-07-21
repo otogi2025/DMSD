@@ -72,11 +72,14 @@ export function AuditLogPage({ authToken }: { authToken: string | null }) {
   // 翻页快照边界：首次加载时固定「現在」，后续翻页都带同一 until，
   // 这样翻页期间新增的操作记录不会让 offset 错位（漏/重）。
   const untilRef = React.useRef<string | null>(null);
+  // web#21: 递增请求号 — token 变化 / 连点翻页时旧响应不得覆盖 state
+  const requestIdRef = React.useRef(0);
 
   const load = React.useCallback(
     (offset: number) => {
       if (!authToken) return;
       if (offset === 0) untilRef.current = new Date().toISOString();
+      const requestId = ++requestIdRef.current;
       setLoading(true);
       setError(null);
       api
@@ -85,16 +88,21 @@ export function AuditLogPage({ authToken }: { authToken: string | null }) {
           authToken,
         )
         .then((res) => {
+          // web#21: 仅最新请求写 state
+          if (requestId !== requestIdRef.current) return;
           setItems((prev) =>
             offset === 0 ? res.items : [...prev, ...res.items],
           );
           setTotal(res.total);
         })
         .catch((e: any) => {
+          if (requestId !== requestIdRef.current) return;
           if (e && e.status === 403) setForbidden(true);
           else setError("操作記録の取得に失敗しました。");
         })
-        .finally(() => setLoading(false));
+        .finally(() => {
+          if (requestId === requestIdRef.current) setLoading(false);
+        });
     },
     [authToken],
   );
