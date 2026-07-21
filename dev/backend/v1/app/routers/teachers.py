@@ -173,15 +173,33 @@ def register_teacher(
         invitation.used_by = new_teacher.id
         db.commit()
     except IntegrityError:
-        # 审查 backend#50：预查只挡友好错误，并发同 login_id 仍可能撞唯一约束 → 409
+        # 审查 backend#50：预查只挡友好错误，并发仍可能撞唯一约束 → 409。
+        # login_id 与 email（= invitation.target_email）都是唯一列，回滚后重查判因，
+        # 返回对应错误码；原来一律报 DUPLICATE_LOGIN_ID 会在 email 撞时误导。
         db.rollback()
-        raise HTTPException(
-            409,
-            {
-                "code": "DUPLICATE_LOGIN_ID",
-                "message": "このログインIDは既に使用されています",
-            },
-        )
+        if db.scalars(
+            select(models.Teacher).where(models.Teacher.login_id == body.login_id)
+        ).first():
+            code, message = (
+                "DUPLICATE_LOGIN_ID",
+                "このログインIDは既に使用されています",
+            )
+        elif db.scalars(
+            select(models.Teacher).where(
+                models.Teacher.email == invitation.target_email
+            )
+        ).first():
+            code, message = (
+                "DUPLICATE_EMAIL",
+                "このメールアドレスは既に使用されています",
+            )
+        else:
+            # 两者都查不到（罕见：竞争方已回滚 / 别的唯一列）→ 落回 login_id 兜底
+            code, message = (
+                "DUPLICATE_LOGIN_ID",
+                "このログインIDは既に使用されています",
+            )
+        raise HTTPException(409, {"code": code, "message": message})
     db.refresh(new_teacher)
     return schemas.TeacherOut.model_validate(new_teacher)
 

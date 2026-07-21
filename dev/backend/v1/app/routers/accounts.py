@@ -178,7 +178,9 @@ def create_account(
         room_no=body.room_no,
         dorm_unit=body.dorm_unit,
         is_overseas=body.is_overseas,
-        email=body.email,
+        # 存前 strip：查重键用 body.email.strip().lower()，若存原始带空白值（" Foo@x "）
+        # 则 lower(email) 索引算出带空白的键、绕过唯一约束 → 存值与查重口径必须一致（审查 backend#20）。
+        email=body.email.strip() if body.email else None,
         phone=body.phone,
     )
     db.add(student)
@@ -186,9 +188,9 @@ def create_account(
     # 查重、第二个写入时才撞 DB 约束。uq_students_no 撞约束在 flush（INSERT students）这一刻
     # 抛 IntegrityError（不是 commit）→ 必须把 flush + 后续写入一起纳入兜底。捕获后回滚重查
     # 判断撞因，返回与前置查重同样的 422 业务错误而非不透明 500（跨 SQLite/PG 一致，不依赖约束名）。
-    # 注：学号有 uq_students_no 唯一约束（并发会真撞，本兜底主目标）；Student.email 当前【无】
-    # DB 唯一约束（email 重复仅靠前置查重 best-effort），故 EMAIL_TAKEN 分支现不会被
-    # IntegrityError 触发，留作防御 —— 若日后给 Student.email 加唯一约束即自动生效。
+    # 注：学号有 uq_students_no 唯一约束、email 有大小写不敏感表达式唯一索引
+    # uq_students_email_lower（审查 backend#20 已加）→ 并发撞任一约束都会在 flush 抛
+    # IntegrityError，下面 except 里 STUDENT_NO_TAKEN / EMAIL_TAKEN 两条分支现均可能被触发。
     try:
         db.flush()  # INSERT students；uq_students_no 撞约束在此抛
         db.add(

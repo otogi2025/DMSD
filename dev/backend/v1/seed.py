@@ -952,16 +952,18 @@ def main() -> None:
     try:
         env = os.environ.get("APP_ENV", "dev").lower()
         log.info("APP_ENV=%s", env)
+        # 审查 backend#11：env 只可能是 dev/staging/production —— 上面 get_settings() 已用
+        # config.app_env（Literal["dev","staging","production"]）校验过，别的值在那一步就
+        # 抛 ValidationError、到不了这里。原白名单里的 development/local/test 是够不到的死分支，
+        # 收窄成只认 dev，避免「看起来支持其实永远进不来」的误导。
         if env == "production":
             seed_prod(db)
-        elif env in ("dev", "development", "local", "test"):
+        elif env == "dev":
             seed_dev(db)
         else:
-            # 未知环境（含 staging）拒绝执行，防误种演示数据
-            log.error("未知 APP_ENV=%s，拒绝执行 seed（防 staging 误种演示数据）", env)
-            raise SystemExit(
-                f"未知 APP_ENV={env}，拒绝执行 seed（防 staging 误种演示数据）"
-            )
+            # staging（唯一能到这里的非 dev/prod 值）拒绝执行，防误种演示数据
+            log.error("APP_ENV=%s 不允许 seed（防 staging 误种演示数据）", env)
+            raise SystemExit(f"APP_ENV={env} 不允许 seed（防 staging 误种演示数据）")
     finally:
         db.close()
 
