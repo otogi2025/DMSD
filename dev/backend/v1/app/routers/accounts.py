@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import re
+import secrets
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -278,7 +279,8 @@ def delete_account_me(
 
     设计选择：软删除（保留历史记录完整性）
     - Student.status → 'paused'（不存在 'deleted' 枚举值；点呼历史 / 申请历史不物理删，保留审计用）
-    - Account 行保留但 password_hash 清空（防止继续登录）
+    - Account 行保留但 password_hash 换成随机不可用口令的合法 bcrypt 哈希（防止继续登录，
+      且登录校验仍走完整 bcrypt 耗时，避免空哈希时序侧信道——审查 backend#18）
     - 写 AuditLog 留痕，action='account.delete_self' 区分"自删"语义
 
     用 'paused' 而非 'deleted' 的原因：'deleted' 不在 ck_students_status
@@ -297,12 +299,14 @@ def delete_account_me(
     # 所以用 paused 表示"账号已停用/自删"，保留所有历史行
     student.status = "paused"
 
-    # Account：清密码哈希防止继续登录，保留行本身（历史审计用）
+    # Account：换成随机不可用口令的合法 bcrypt 哈希，防止继续登录；
+    # 保留行本身（历史审计用）。不用空串——空哈希会让 bcrypt 瞬间失败，
+    # 形成时序侧信道（审查 backend#18）。
     account = db.scalars(
         select(models.Account).where(models.Account.student_id == student.id)
     ).first()
     if account:
-        account.password_hash = ""  # 清空哈希，bcrypt 永远无法匹配
+        account.password_hash = security.hash_password(secrets.token_urlsafe(32))
 
     # 审计日志
     db.add(

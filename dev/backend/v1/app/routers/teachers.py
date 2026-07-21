@@ -167,12 +167,21 @@ def register_teacher(
         assigned_dorm=invitation.target_dorm,
     )
     db.add(new_teacher)
-    db.flush()
-
-    # used_by 要等新账号 flush 出 id 才能写（占用本身已在上面原子完成）
-    invitation.used_by = new_teacher.id
-
-    db.commit()
+    try:
+        db.flush()
+        # used_by 要等新账号 flush 出 id 才能写（占用本身已在上面原子完成）
+        invitation.used_by = new_teacher.id
+        db.commit()
+    except IntegrityError:
+        # 审查 backend#50：预查只挡友好错误，并发同 login_id 仍可能撞唯一约束 → 409
+        db.rollback()
+        raise HTTPException(
+            409,
+            {
+                "code": "DUPLICATE_LOGIN_ID",
+                "message": "この login ID は既に使用されています",
+            },
+        )
     db.refresh(new_teacher)
     return schemas.TeacherOut.model_validate(new_teacher)
 
@@ -369,12 +378,14 @@ def delete_teacher(
 
     # 软删而非物理 delete（与学生侧 accounts.py delete_account_me 同口径）：
     # ① status → 'disabled'（ck_teachers_status CHECK 已允许该值）保留行本身供审计追溯；
-    # ② 清 password_hash 防被删老师再登录；③ 写 AuditLog 留痕。
+    # ② password_hash 换成随机不可用口令的合法 bcrypt 哈希，防被删老师再登录
+    #    （不用空串——空哈希会让 bcrypt 瞬间失败，形成时序侧信道；审查 backend#18）；
+    # ③ 写 AuditLog 留痕。
     # 物理 db.delete 在生产 PostgreSQL 会因 student_registration_codes.created_by /
     # teacher_invitations.invited_by 等 nullable=False 无 ondelete 的外键抛 IntegrityError
     # → 经 main.py 全局兜底变不透明 500，且 dev(SQLite 默认不强制外键)与 prod 行为分叉。
     target.status = "disabled"
-    target.password_hash = ""  # 清空哈希，bcrypt 永远无法匹配
+    target.password_hash = hash_password(secrets.token_urlsafe(32))
     db.add(
         models.AuditLog(
             actor_type="teacher",

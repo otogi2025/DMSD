@@ -80,7 +80,7 @@ def test_b1_logout_teacher_token_204(client, teacher_token, seed_data):
 
 
 def test_b2_delete_account_ok(client, student_token, seed_data, db_session):
-    """成功软删：Student.status → 'deleted'，Account.password_hash 清空。"""
+    """成功软删：Student.status → 'paused'，Account.password_hash 换成随机不可用哈希。"""
     from app import models
 
     res = client.delete(
@@ -102,7 +102,10 @@ def test_b2_delete_account_ok(client, student_token, seed_data, db_session):
         select(models.Account).where(models.Account.student_id == student.id)
     ).first()
     assert account is not None  # 行保留（历史用）
-    assert account.password_hash == ""  # 密码清空
+    # 审查 backend#18：不再置空串（空哈希会让 bcrypt 瞬间失败=时序侧信道），
+    # 改成对随机不可用口令的合法 bcrypt 哈希——非空且以 $2 开头，登录校验仍走完整耗时
+    assert account.password_hash != ""
+    assert account.password_hash.startswith("$2")
 
     # AuditLog 写入
     log = db_session.scalars(

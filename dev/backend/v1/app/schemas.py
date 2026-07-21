@@ -1968,10 +1968,19 @@ class StudentSelfUpdateIn(BaseModel):
     （M*** + 男寮 1|2 / W*** + 女寮 4），防换到异性寮 / 错号段。
     """
 
-    email: Optional[str] = None
+    # EmailStr：非法格式在 schema 层 422；空串 before 归一成 None（审查 backend#42）
+    email: Optional[EmailStr] = None
     phone: Optional[str] = None
     avatar_url: Optional[str] = None
     room_no: Optional[str] = Field(None, max_length=8)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _blank_email_to_none(cls, v):
+        # 空串 / 纯空白 → None，避免写成空串绕过查重、也让「清空邮箱」语义落到 NULL
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
 
 
 class ProfileApplicationEntry(BaseModel):

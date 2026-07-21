@@ -74,22 +74,25 @@ def update_my_profile(
     """
     data = body.model_dump(exclude_unset=True)
 
-    # email 改动查重（排除自己）
-    if data.get("email"):
-        dup = db.scalars(
-            select(models.Student).where(
-                models.Student.email == data["email"],
-                models.Student.id != student.id,
-            )
-        ).first()
-        if dup:
-            raise HTTPException(
-                status_code=422,
-                detail={
-                    "code": "EMAIL_TAKEN",
-                    "message": f"email {data['email']} は既に使われています",
-                },
-            )
+    # email：空串归一成 NULL（不写空串）；非空走查重（排除自己）— 审查 backend#42
+    if "email" in data:
+        if not data["email"]:
+            data["email"] = None
+        else:
+            dup = db.scalars(
+                select(models.Student).where(
+                    models.Student.email == data["email"],
+                    models.Student.id != student.id,
+                )
+            ).first()
+            if dup:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "code": "EMAIL_TAKEN",
+                        "message": f"email {data['email']} は既に使われています",
+                    },
+                )
 
     # room_no 改动校验：复用注册接口同一套 §5.0 房号规则（M=1寮/A=2寮/W=4寮），不另维护一份。
     # dorm_unit / gender 学生改不了 → 等价「同寮内换房间」，新房号必须仍符合本人寮的前缀+格式。
@@ -97,7 +100,7 @@ def update_my_profile(
     if data.get("room_no"):
         validate_room_dorm_match(data["room_no"], student.dorm_unit, student.gender)
 
-    # 应用更新（只动白名单字段；空字符串视为清空联系方式）
+    # 应用更新（只动白名单字段；email 空串已归一成 None；phone/avatar 空串仍视为清空）
     for field in ("email", "phone", "avatar_url", "room_no"):
         if field in data:
             setattr(student, field, data[field])
