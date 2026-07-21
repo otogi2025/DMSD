@@ -178,6 +178,13 @@ def _run_tick() -> None:
                         existing.id,
                     )
 
+            # 审查 backend#16：自动 start/end 判定与结算一律用场次行已存 scheduled_*，
+            # 不用本 tick _schedule_times 重算值（防配置变更后库内窗口与结算分叉）。
+            # 新建 draft 时才写入公式结果（见上方）。无独立 scheduled_auto_start_at，
+            # 自动 start 时刻由 scheduled_on_time_end_at − 3min 推导。
+            stored_on_time_end = existing.scheduled_on_time_end_at
+            stored_auto_end = existing.scheduled_auto_end_at
+
             # 1.5 错过整个窗口仍 draft → 置 ended 但【不结算】（审查 backend#15）。
             # 场景：服务器在 [auto_start, auto_end] 全程没跑（宕机/傍晚才重启），场次
             # 从未 running，学生想签也签不了 —— 全员记缺席+扣分是拿系统故障罚学生，
@@ -187,7 +194,7 @@ def _run_tick() -> None:
             # _find_session_for_checkin 对 NULL 已有守卫）。这样的空壳 ended 场次仍能
             # 接住宕机期间学生在点呼机上真实刷卡的离线补传（记 present/late），比
             # 「不建场」直接丢补传强。
-            if existing.session_status == "draft" and now > auto_end:
+            if existing.session_status == "draft" and now > stored_auto_end:
                 claimed = db.execute(
                     update(models.RollCallSession)
                     .where(
@@ -196,7 +203,7 @@ def _run_tick() -> None:
                     )
                     .values(
                         session_status="ended",
-                        ended_at=auto_end,
+                        ended_at=stored_auto_end,
                         ended_source="system",
                     )
                 )
@@ -208,15 +215,20 @@ def _run_tick() -> None:
                         " type=%s id=%s auto_end=%s",
                         session_type,
                         existing.id,
-                        auto_end.isoformat(),
+                        stored_auto_end.isoformat(),
                     )
                 else:
                     db.rollback()
                 continue  # 本场已收口，跳过 start/end 分支
 
             # 2. 到 on_time_end − 3min 仍 draft → 自动 start（原子领取防并发）
-            auto_start_at = on_time_end - _AUTO_START_LEAD
-            if existing.session_status == "draft" and auto_start_at <= now <= auto_end:
+            # 审查 backend#14：上界改互斥 now < auto_end，避免 now==auto_end 同 tick
+            # 先 start 再立刻 end+结算、全员误记缺席。
+            auto_start_at = stored_on_time_end - _AUTO_START_LEAD
+            if (
+                existing.session_status == "draft"
+                and auto_start_at <= now < stored_auto_end
+            ):
                 claimed = db.execute(
                     update(models.RollCallSession)
                     .where(
@@ -238,7 +250,7 @@ def _run_tick() -> None:
                     db.rollback()
 
             # 3. 到 auto_end 仍 running → 自动 end + 结算（原子领取防与老师端并发双结算）
-            if existing.session_status == "running" and now >= auto_end:
+            if existing.session_status == "running" and now >= stored_auto_end:
                 claimed = db.execute(
                     update(models.RollCallSession)
                     .where(
