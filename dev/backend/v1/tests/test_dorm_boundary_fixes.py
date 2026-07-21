@@ -307,34 +307,43 @@ def ryokan_teacher(db_session, seed_data):
 
 @pytest.fixture
 def ryokan_token(client, ryokan_teacher):
-    """女寮寮監的登录令牌。"""
+    """女寮寮監的登录令牌（登录时选女寮 selected_dorm=4，触发选寮过滤）。
+
+    未传 selected_dorm 时 dorm_units 恒为全集 [1,2,4]（兼容路径），测不出跨寮 403。
+    对齐 test_dorm_life.py：选了女寮后只能操作 4 寮，碰男寮学生 → FORBIDDEN_DORM。
+    """
     res = client.post(
         "/api/v1/sessions/teacher",
-        json={"login_id": "joshi_ryokan", "password": "test-password-12345"},
+        json={
+            "login_id": "joshi_ryokan",
+            "password": "test-password-12345",
+            "selected_dorm": 4,
+        },
     )
     assert res.status_code == 200, res.text
     return res.json()["data"]["access_token"]
 
 
 class TestStudyDormBoundary:
-    """study.py 寮边界补齐 — 女寮寮監操作男寮学生 → 403。"""
+    """study.py 寮边界补齐 — 选了女寮的寮監操作男寮学生 → 403。"""
 
-    def test_create_checkin_wrong_dorm_now_allowed(
+    def test_create_checkin_wrong_dorm_forbidden(
         self, client, ryokan_token, seed_data, db_session
     ):
-        """女寮寮監给男寮学生（dorm_unit=1）登出席记录 → 现在允许（寮过滤已取消 2026-06-13）。"""
+        """选女寮(selected_dorm=4)的寮監给男寮学生（dorm_unit=1）登出席 → 403 FORBIDDEN_DORM。"""
         student_id = str(seed_data["student"].id)  # dorm_unit=1（男寮）
         res = client.post(
             "/api/v1/study/checkins",
             json={"student_id": student_id},
             headers={"Authorization": f"Bearer {ryokan_token}"},
         )
-        assert res.status_code == 201, res.text
+        assert res.status_code == 403, res.text
+        assert res.json()["error"]["code"] == "FORBIDDEN_DORM"
 
-    def test_patch_checkin_wrong_dorm_now_allowed(
+    def test_patch_checkin_wrong_dorm_forbidden(
         self, client, ryokan_token, seed_data, db_session
     ):
-        """女寮寮監修改男寮学生的出席记录 → 现在允许（寮过滤已取消 2026-06-13）。"""
+        """选女寮的寮監修改男寮学生的出席记录 → 403 FORBIDDEN_DORM。"""
         from datetime import date
 
         # 直接在 DB 建 checkin 行（StudyCheckinOut 没有 id 字段，不能从 API 取）
@@ -347,13 +356,13 @@ class TestStudyDormBoundary:
         db_session.commit()
         db_session.refresh(checkin)
 
-        # 女寮寮監来改 → 跨寮现已放开，应成功
         patch_res = client.patch(
             f"/api/v1/study/checkins/{checkin.id}",
             json={"status": "absent", "override_reason": "テスト"},
             headers={"Authorization": f"Bearer {ryokan_token}"},
         )
-        assert patch_res.status_code == 200, patch_res.text
+        assert patch_res.status_code == 403, patch_res.text
+        assert patch_res.json()["error"]["code"] == "FORBIDDEN_DORM"
 
     def test_create_checkin_own_dorm_ok(self, client, seed_data, db_session):
         """男寮寮監（assigned_dorm=1）给男寮学生（dorm_unit=1）登出席 → 正常。"""
@@ -388,7 +397,7 @@ class TestStudyDormBoundary:
 
 
 class TestRollcallSessionDormBoundary:
-    """rollcall.py start/end session 寮边界 — 女寮寮監操作男寮 session → 403。"""
+    """rollcall.py start/end session 寮边界 — 选了女寮的寮監操作男寮 session → 403。"""
 
     @pytest.fixture
     def male_dorm_session(self, db_session):
@@ -435,34 +444,36 @@ class TestRollcallSessionDormBoundary:
         db_session.refresh(session)
         return session
 
-    def test_start_session_wrong_dorm_now_allowed(
+    def test_start_session_wrong_dorm_forbidden(
         self, client, ryokan_token, male_dorm_session
     ):
-        """女寮寮監开男寮 session → 现在允许（寮过滤已取消 2026-06-13）。"""
+        """选女寮的寮監开男寮 session（dorm_unit_set=[1,2]）→ 403 FORBIDDEN_DORM。"""
         res = client.post(
             f"/api/v1/rollcall/sessions/{male_dorm_session.id}/start",
             headers={"Authorization": f"Bearer {ryokan_token}"},
         )
-        assert res.status_code == 200, res.text
+        assert res.status_code == 403, res.text
+        assert res.json()["error"]["code"] == "FORBIDDEN_DORM"
 
-    def test_end_session_wrong_dorm_now_allowed(
+    def test_end_session_wrong_dorm_forbidden(
         self, client, ryokan_token, running_male_dorm_session
     ):
-        """女寮寮監结束男寮 running session → 现在允许（寮过滤已取消 2026-06-13）。"""
+        """选女寮的寮監结束男寮 running session → 403 FORBIDDEN_DORM。"""
         res = client.post(
             f"/api/v1/rollcall/sessions/{running_male_dorm_session.id}/end",
             headers={"Authorization": f"Bearer {ryokan_token}"},
         )
-        assert res.status_code == 200, res.text
+        assert res.status_code == 403, res.text
+        assert res.json()["error"]["code"] == "FORBIDDEN_DORM"
 
 
 class TestDisciplineDormBoundary:
-    """discipline.py 手动加扣分 / 撤销 寮边界 — 女寮寮監操作男寮学生 → 403。"""
+    """discipline.py 手动加扣分 / 撤销 寮边界 — 选了女寮的寮監操作男寮学生 → 403。"""
 
-    def test_create_manual_demerit_wrong_dorm_now_allowed(
+    def test_create_manual_demerit_wrong_dorm_forbidden(
         self, client, ryokan_token, seed_data
     ):
-        """女寮寮監给男寮学生手动加扣分 → 现在允许（寮过滤已取消 2026-06-13）。"""
+        """选女寮的寮監给男寮学生手动加扣分 → 403 FORBIDDEN_DORM。"""
         student_id = str(seed_data["student"].id)  # dorm_unit=1（男寮）
         res = client.post(
             "/api/v1/discipline/manual",
@@ -473,12 +484,13 @@ class TestDisciplineDormBoundary:
             },
             headers={"Authorization": f"Bearer {ryokan_token}"},
         )
-        assert res.status_code == 201, res.text
+        assert res.status_code == 403, res.text
+        assert res.json()["error"]["code"] == "FORBIDDEN_DORM"
 
-    def test_revoke_demerit_wrong_dorm_now_allowed(
+    def test_revoke_demerit_wrong_dorm_forbidden(
         self, client, ryokan_token, seed_data, db_session
     ):
-        """女寮寮監撤销男寮学生的扣分记录 → 现在允许（寮过滤已取消 2026-06-13）。"""
+        """选女寮的寮監撤销男寮学生的扣分记录 → 403 FORBIDDEN_DORM。"""
         from datetime import datetime
         from zoneinfo import ZoneInfo
 
@@ -499,7 +511,8 @@ class TestDisciplineDormBoundary:
             json={"revoke_reason": "テスト撤销"},
             headers={"Authorization": f"Bearer {ryokan_token}"},
         )
-        assert res.status_code == 200, res.text
+        assert res.status_code == 403, res.text
+        assert res.json()["error"]["code"] == "FORBIDDEN_DORM"
 
     def test_cross_dorm_role_can_add_demerit(self, client, seed_data):
         """跨寮役职（寮務課長）给任意学生手动加扣分 → 正常（不受寮限）。"""

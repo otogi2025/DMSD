@@ -48,8 +48,16 @@ def _create_outing(client, student_token, **over) -> dict:
     res = client.post("/api/v1/outings", json=body, headers=_auth(student_token))
     assert res.status_code == 201, res.text
     return res.json()["data"]
-def _make_dorm4_teacher_token(client, db_session) -> str:
-    """建一个女寮（dorm 4）的普通老师并登录，返回令牌 — 用于跨寮越权负例。"""
+
+
+def _make_dorm4_teacher_token(
+    client, db_session, *, selected_dorm: int | None = None
+) -> str:
+    """建一个女寮（dorm 4）的普通老师并登录，返回令牌 — 用于跨寮越权负例。
+
+    selected_dorm：登录时选寮（写进 JWT）。传 4 = 只看女寮，才能测出跨男寮 403 / 列表过滤。
+    不传 = 兼容路径 dorm_units 全集，跨寮校验不触发（测不出 enforce）。
+    """
     t = models.Teacher(
         login_id="ryomu_dorm4",
         name="女寮先生",
@@ -60,10 +68,10 @@ def _make_dorm4_teacher_token(client, db_session) -> str:
     )
     db_session.add(t)
     db_session.commit()
-    login = client.post(
-        "/api/v1/sessions/teacher",
-        json={"login_id": "ryomu_dorm4", "password": "test-password-12345"},
-    )
+    body: dict = {"login_id": "ryomu_dorm4", "password": "test-password-12345"}
+    if selected_dorm is not None:
+        body["selected_dorm"] = selected_dorm
+    login = client.post("/api/v1/sessions/teacher", json=body)
     assert login.status_code == 200, login.text
     return login.json()["data"]["access_token"]
 
@@ -129,13 +137,18 @@ class TestPendingForMe:
         assert res.status_code == 200
         assert len(res.json()["data"]) >= 1
 
-    def test_pending_now_includes_other_dorm(self, client, student_token, db_session):
-        """别寮（女寮 dorm 4）老师的待确认列表现在也含男寮学生的外出（寮过滤已取消 2026-06-13）。"""
+    def test_pending_excludes_other_dorm_when_selected(
+        self, client, student_token, db_session
+    ):
+        """选女寮(selected_dorm=4)的老师待确认列表不含男寮学生外出（列表端过滤，非 403）。
+
+        对齐 6-18 选寮过滤：未选寮=兼容看全部；选了女寮后 dorm_units=[4]，男寮外出被滤掉。
+        """
         outing = _create_outing(client, student_token)  # 学生 dorm_unit=1
-        token4 = _make_dorm4_teacher_token(client, db_session)
+        token4 = _make_dorm4_teacher_token(client, db_session, selected_dorm=4)
         res = client.get("/api/v1/outings/pending-for-me", headers=_auth(token4))
         assert res.status_code == 200
-        assert outing["id"] in [o["id"] for o in res.json()["data"]]
+        assert outing["id"] not in [o["id"] for o in res.json()["data"]]
 
 
 class TestGetDetail:
@@ -155,12 +168,15 @@ class TestGetDetail:
         )
         assert res.status_code == 200
 
-    def test_other_dorm_teacher_now_allowed(self, client, student_token, db_session):
-        """别寮老师看男寮学生的外出详情 → 现在允许（寮过滤已取消 2026-06-13）。"""
+    def test_other_dorm_teacher_forbidden_when_selected(
+        self, client, student_token, db_session
+    ):
+        """选女寮的老师看男寮学生的外出详情 → 403。"""
         outing = _create_outing(client, student_token)
-        token4 = _make_dorm4_teacher_token(client, db_session)
+        token4 = _make_dorm4_teacher_token(client, db_session, selected_dorm=4)
         res = client.get(f"/api/v1/outings/{outing['id']}", headers=_auth(token4))
-        assert res.status_code == 200, res.text
+        assert res.status_code == 403, res.text
+        assert res.json()["error"]["code"] == "FORBIDDEN"
 
 
 class TestConfirm:
@@ -217,15 +233,17 @@ class TestConfirm:
         teacher = seed_data["teachers"]["ryomu_kachou"]
         assert res.json()["data"]["confirmed_by_teacher_id"] == str(teacher.id)
 
-    def test_confirm_cross_dorm_now_allowed(self, client, student_token, db_session):
-        """别寮（女寮 dorm 4）老师确认男寮（dorm 1）学生的外出 → 现在允许（寮过滤已取消 2026-06-13）。"""
+    def test_confirm_cross_dorm_forbidden_when_selected(
+        self, client, student_token, db_session
+    ):
+        """选女寮的老师确认男寮（dorm 1）学生的外出 → 403。"""
         outing = _create_outing(client, student_token)  # 学生 dorm_unit=1
-        token4 = _make_dorm4_teacher_token(client, db_session)
+        token4 = _make_dorm4_teacher_token(client, db_session, selected_dorm=4)
         res = client.patch(
             f"/api/v1/outings/{outing['id']}/confirm", headers=_auth(token4)
         )
-        assert res.status_code == 200, res.text
-        assert res.json()["data"]["status"] == "approved"
+        assert res.status_code == 403, res.text
+        assert res.json()["error"]["code"] == "FORBIDDEN"
 
 
 class TestWithdraw:

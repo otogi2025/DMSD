@@ -1,7 +1,7 @@
 """限速器 key_func 单元测试（H1）— 按真实客户端 IP 分桶。
 
 生产反代后 request.client.host 恒为反代内网 IP，限速会退化成全站共享一个桶。
-_client_ip 优先读 X-Forwarded-For 第一跳，保证不同客户端各自独立计数。
+_client_ip 取 X-Forwarded-For 最右一跳(rightmost hop，防客户端伪造 XFF)，保证不同客户端各自独立计数。
 限速本体在 dev/test 环境是关闭的（见 ratelimit._rate_limit_enabled），
 故这里直接单元测 key_func 的取值逻辑，不依赖 limiter 真正触发 429。
 """
