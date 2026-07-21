@@ -29,7 +29,7 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Response
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -170,6 +170,13 @@ def list_devices(
     ),
 ):
     """设备一览（不含激活码 / 哈希 / 公钥）。"""
+    # 审查 backend#32：设备表（RollCallDevice）无 is_demo / demo 归属字段——真实硬件是
+    # 全局基础设施，不属于演示沙盒。create/patch/reset-enroll 已用 assert_not_demo_teacher
+    # 挡住演示老师写；本 GET 对称：演示老师一律返回空列表，看不到真实点呼机资产。
+    # （对照 list_cards 靠 Student.is_demo + demo_scope_for_teacher 过滤；设备无对等字段，
+    #  故不能走同款 where，只能空列表。）
+    if teacher.is_demo:
+        return []
     rows = db.scalars(
         select(models.RollCallDevice).order_by(models.RollCallDevice.registered_at)
     ).all()
@@ -257,7 +264,8 @@ def enroll_device(
         raise HTTPException(
             403, {"code": "DEVICE_NOT_ACTIVE", "message": "デバイスが停止中です"}
         )
-    # 重复 enroll → INVALID_INPUT（重新激活须管理员先 reset-enroll）
+    # 快速失败（已激活）— 真正防并发覆盖靠下方条件 UPDATE（审查 backend#31）。
+    # 错误码保持原契约 422 INVALID_INPUT（点呼机客户端 + 测试依赖，#31 只闭合竞态不改契约）。
     if device.enrolled_at is not None:
         raise HTTPException(
             422,
@@ -278,9 +286,31 @@ def enroll_device(
                 "message": "公開鍵の形式が不正です（base64 32 バイト）",
             },
         )
-    device.public_key = body.public_key
-    device.enrolled_at = _now_utc()
-    device.enroll_code_hash = None  # 作废激活码
+    # 审查 backend#31：条件 UPDATE 原子占用（镜像 teachers 令牌占用 / rollcall start_session）
+    # —— 只有 enrolled_at IS NULL 才写入公钥；并发两首启只有一个 rowcount=1，后到者 409。
+    enrolled_at = _now_utc()
+    claimed = db.execute(
+        update(models.RollCallDevice)
+        .where(
+            models.RollCallDevice.id == device.id,
+            models.RollCallDevice.enrolled_at.is_(None),
+        )
+        .values(
+            public_key=body.public_key,
+            enrolled_at=enrolled_at,
+            enroll_code_hash=None,  # 作废激活码
+        )
+    )
+    if claimed.rowcount != 1:
+        # 并发另一请求已抢先占用（rowcount=0）→ 与上方预检同契约 422 INVALID_INPUT
+        db.rollback()
+        raise HTTPException(
+            422,
+            {
+                "code": "INVALID_INPUT",
+                "message": "既に有効化済みです（再有効化は管理者へ）",
+            },
+        )
     db.commit()
     db.refresh(device)
     return schemas.DeviceEnrollOut(
@@ -462,28 +492,40 @@ def _find_session_for_checkin(
     auto_settle 置 absent、晚间场次已 running 时，队列里残留的早间刷卡会被记到晚间场次
     （早间 swipe_time 远早于晚间准时截止 → 误判 present），早间缺席与扣分永不回退。离线补传
     必须按 swipe_time 归属（Device_Contract §6）。
-    dorm_unit_set 是 JSON 列，跨库包含查询不可移植，故在 Python 侧按 dorm_unit 过滤。
+
+    审查 backend#33：时间窗条件下推到 SQL（等价于原 Python 的 lower/upper 判定），避免
+    ended 行随运营天数全表加载。dorm_unit_set 是 JSON 列，跨库包含查询不可移植，故寮
+    过滤仍在 Python 侧（与 rollcall.my_today_rollcall 同款）；候选集已被时间窗大幅收窄。
     """
+    # SQL 等价条件（对照原 Python）：
+    # - lower = min(scheduled_window_start_at, started_at or scheduled…)
+    #   → decision_time >= lower ⇔ start_at≤t OR (started_at IS NOT NULL AND started_at≤t)
+    # - ended 上限：decision_time ≤ ended_at（ended_at 非空）；running 无上限
     rows = db.scalars(
         select(models.RollCallSession).where(
-            models.RollCallSession.session_status.in_(["running", "ended"])
+            models.RollCallSession.session_status.in_(["running", "ended"]),
+            or_(
+                models.RollCallSession.scheduled_window_start_at <= decision_time,
+                and_(
+                    models.RollCallSession.started_at.is_not(None),
+                    models.RollCallSession.started_at <= decision_time,
+                ),
+            ),
+            or_(
+                models.RollCallSession.session_status == "running",
+                and_(
+                    models.RollCallSession.session_status == "ended",
+                    models.RollCallSession.ended_at.is_not(None),
+                    models.RollCallSession.ended_at >= decision_time,
+                ),
+            ),
         )
     ).all()
     mine = [s for s in rows if student.dorm_unit in (s.dorm_unit_set or [])]
-    covering = []
-    for s in mine:
-        lower = _as_jst_aware(s.scheduled_window_start_at)
-        if s.started_at is not None:
-            lower = min(lower, _as_jst_aware(s.started_at))
-        if decision_time < lower:
-            continue
-        if s.session_status == "ended":
-            if s.ended_at is None or decision_time > _as_jst_aware(s.ended_at):
-                continue
-        covering.append(s)
-    if covering:
+    if mine:
         # 理论上窗口不重叠；真重叠时取最晚开窗的那场（离 swipe_time 最近）
-        return max(covering, key=lambda s: s.scheduled_window_start_at)
+        # （原 covering 循环在 SQL 已等价过滤，此处 mine 即 covering）
+        return max(mine, key=lambda s: s.scheduled_window_start_at)
     return None
 
 
@@ -494,6 +536,14 @@ def _add_late_demerit(
 
     与老师代签 create_checkin / _apply_override_demerit 的迟到分口径一致（0.5 分，spec §862）。
     """
+    # 审查 backend#30：写 DemeritEvent 前锁学生行（照抄 discipline.create_manual_demerit /
+    # revoke_demerit）。SQLite no-op / PG 行锁；与「手动设定绝对分」互斥，防穿插打乱总分。
+    # （device_checkin 外层已持同学生行锁；函数内再锁一次保证本函数单独被调时也遵守协议。）
+    db.execute(
+        select(models.Student.id)
+        .where(models.Student.id == student_id)
+        .with_for_update()
+    )
     existing = db.scalar(
         select(models.DemeritEvent).where(
             models.DemeritEvent.student_id == student_id,
@@ -526,6 +576,12 @@ def _revoke_settle_absent_demerit(
     db: Session, student_id: UUID, session: models.RollCallSession
 ) -> None:
     """离线补传覆盖 auto_settle absent → 撤销那条自动缺席扣分（回退结算扣分，Device_Contract §6）。"""
+    # 审查 backend#30：撤扣分前锁学生行（照抄 discipline.revoke_demerit）
+    db.execute(
+        select(models.Student.id)
+        .where(models.Student.id == student_id)
+        .with_for_update()
+    )
     absent_dem = db.scalar(
         select(models.DemeritEvent).where(
             models.DemeritEvent.student_id == student_id,
