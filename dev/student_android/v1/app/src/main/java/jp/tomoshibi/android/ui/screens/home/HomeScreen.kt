@@ -67,6 +67,9 @@ import jp.tomoshibi.android.ui.components.SectionCard
 import jp.tomoshibi.android.ui.components.TopRollBar
 import jp.tomoshibi.android.ui.icons.SuzuIcons
 import jp.tomoshibi.android.ui.theme.SuzuT
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.OffsetDateTime
@@ -115,32 +118,51 @@ fun HomeScreen(navController: NavHostController) {
     // 拉取首页卡片数据
     LaunchedEffect(state.authed, state.authToken) {
         if (!state.authed || state.authToken.isNullOrEmpty()) return@LaunchedEffect
-        // 公告列表（副标题用最新标题）+ 未读数已由 loadMe 写入 state
-        runCatching {
-            val list = AnnouncementsAPI.list()
-            latestAnnouncementTitle = list.items.firstOrNull()?.title
-            val unread = AnnouncementsAPI.unreadCount().unreadCount
-            store.update { it.copy(announcementUnreadCount = unread) }
+        // android#69: 七个接口并行请求（各自 runCatching 容错），缩短首屏等待
+        coroutineScope {
+            listOf(
+                async {
+                    // 公告列表（副标题用最新标题）+ 未读数
+                    runCatching {
+                        val list = AnnouncementsAPI.list()
+                        latestAnnouncementTitle = list.items.firstOrNull()?.title
+                        val unread = AnnouncementsAPI.unreadCount().unreadCount
+                        store.update { it.copy(announcementUnreadCount = unread) }
+                    }
+                },
+                async {
+                    runCatching {
+                        val routes = BusAPI.listRoutes()
+                        upcomingBus = pickUpcomingBus(routes)
+                    }.onFailure { upcomingBus = null }
+                },
+                async {
+                    runCatching {
+                        val pkgs = FrontDeskAPI.listMine()
+                        pendingPackages = pkgs.count { it.status == "pending" || it.status == "notified" }
+                    }.onFailure { pendingPackages = 0 }
+                },
+                async {
+                    runCatching {
+                        val today = JstDate.today()
+                        val to = "${today.year + 1}-12-31"
+                        homeEvents = EventsAPI.listEvents(fromDate = today.toString(), toDate = to)
+                    }.onFailure { homeEvents = emptyList() }
+                },
+                async {
+                    runCatching { songs = SongsAPI.list() }.onFailure { songs = emptyList() }
+                },
+                async {
+                    runCatching { lostItems = LostFoundAPI.list() }.onFailure { lostItems = emptyList() }
+                },
+                async {
+                    runCatching {
+                        val history = CleaningAPI.listMine()
+                        nextCleaning = computeNextCleaning(history)
+                    }.onFailure { nextCleaning = null }
+                },
+            ).awaitAll()
         }
-        runCatching {
-            val routes = BusAPI.listRoutes()
-            upcomingBus = pickUpcomingBus(routes)
-        }.onFailure { upcomingBus = null }
-        runCatching {
-            val pkgs = FrontDeskAPI.listMine()
-            pendingPackages = pkgs.count { it.status == "pending" || it.status == "notified" }
-        }.onFailure { pendingPackages = 0 }
-        runCatching {
-            val today = JstDate.today()
-            val to = "${today.year + 1}-12-31"
-            homeEvents = EventsAPI.listEvents(fromDate = today.toString(), toDate = to)
-        }.onFailure { homeEvents = emptyList() }
-        runCatching { songs = SongsAPI.list() }.onFailure { songs = emptyList() }
-        runCatching { lostItems = LostFoundAPI.list() }.onFailure { lostItems = emptyList() }
-        runCatching {
-            val history = CleaningAPI.listMine()
-            nextCleaning = computeNextCleaning(history)
-        }.onFailure { nextCleaning = null }
     }
 
     // 点呼状态由 AppStore rollTicker 每秒重算（对齐 iOS tickCountdown）；此处不再本地 -1
@@ -185,7 +207,15 @@ fun HomeScreen(navController: NavHostController) {
                     verticalArrangement = Arrangement.spacedBy(3.dp),
                 ) {
                     Text(
-                        text = "おかえり、${state.user.name.ifEmpty { "リュウイヒ" }} さん",
+                        // android#112 相邻: 原 ifEmpty 兜底值是硬编码演示名「リュウイヒ」、且 DEFAULT_USER.name 非空恒不触发
+                        //   → loadMe 未完成/失败时首页问候演示假人姓名(真人 PII 泄漏)。与 Welcome 同门闩：
+                        //   myStudentId!=null(真资料已加载)才显真名，否则中性问候「おかえりなさい」，不泄漏演示假人。
+                        text =
+                            if (state.myStudentId != null) {
+                                "おかえり、${state.user.name} さん"
+                            } else {
+                                "おかえりなさい"
+                            },
                         color = tokens.ink,
                         style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.2.sp),
                     )
@@ -252,7 +282,7 @@ fun HomeScreen(navController: NavHostController) {
                 onClick = { navController.navigate(Route.Delivery.path) },
             )
 
-            // 今週の活動 → Schedule
+            // 活動 → Schedule（标题已去「今週」，与拉取范围一致）
             EventsCard(
                 events = homeEvents,
                 onClick = { navController.navigate(Route.Schedule.path) },
@@ -545,7 +575,8 @@ private fun EventsCard(
             }
             Spacer(modifier = Modifier.width(10.dp))
             Text(
-                text = "今週の活動 · ${events.size} 件",
+                // android#68: 对齐 iOS「活動 · N件」——数据范围是今天到明年年底，不写「今週」
+                text = "活動 · ${events.size} 件",
                 color = t.ink,
                 style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
                 modifier = Modifier.weight(1f),

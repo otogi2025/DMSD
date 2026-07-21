@@ -39,7 +39,9 @@ fun GlobalScaffold(
 
     Box(modifier = Modifier.fillMaxSize().background(tokens.pearl)) {
         // 内容层 — 留 92dp 底部空间给 BottomTabs（capsule 62 + 边距 16 + raised 凸起 22）
-        Box(modifier = Modifier.fillMaxSize().padding(bottom = 92.dp)) {
+        // android#26: 非 IDLE 时顶部让位（状态条约 56dp + 上下 margin 8dp），对齐 iOS safeAreaInset，避免盖住问候语
+        val contentTopPad = if (state.rollState != RollState.IDLE) 64.dp else 0.dp
+        Box(modifier = Modifier.fillMaxSize().padding(top = contentTopPad, bottom = 92.dp)) {
             content()
         }
         // 顶部点呼状态条 — 仅 rollState != IDLE（点呼中 / 欠席 / 已签到）时浮在顶部
