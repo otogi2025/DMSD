@@ -247,9 +247,16 @@ object ApiClient {
             if (!envelope.ok) {
                 throw ApiError.Decode(IllegalStateException("成功路径收到 ok=false 信封"))
             }
-            // data 可为 null（如「当前无注册码」）；若 T 非可空会在此抛
+            // android#77: JVM 对 null 的 CHECKCAST 一律放行，as T 不会抛；
+            // 非空 T 静默拿到 null 会泄漏到上层 NPE —— 此处显式判空并报 Decode
+            val d = envelope.data
+            if (d == null) {
+                @Suppress("UNCHECKED_CAST")
+                if (T::class == Unit::class) return Unit as T
+                throw ApiError.Decode(IllegalStateException("成功路径收到 data=null"))
+            }
             @Suppress("UNCHECKED_CAST")
-            envelope.data as T
+            d as T
         } catch (e: ApiError) {
             throw e
         } catch (e: Exception) {

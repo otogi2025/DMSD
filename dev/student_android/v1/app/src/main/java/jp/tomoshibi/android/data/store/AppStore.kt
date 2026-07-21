@@ -42,6 +42,7 @@ import jp.tomoshibi.android.data.notifications.NotificationsLoadState
 import jp.tomoshibi.android.data.rollcall.RollSession
 import jp.tomoshibi.android.data.rollcall.RollStateMachine
 import jp.tomoshibi.android.data.seed.MockData
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -86,6 +87,10 @@ class AppStore(
 
     // 启动时异步：旧版 DataStore JSON 里若还有明文 authToken → 写入加密存储 → 删明文
     private val migrateScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    // android#79: 明文 token 迁移一次性门控；snapshot() 高频调用，避免每次白开 DataStore 写事务
+    @Volatile
+    private var tokenMigrated = false
 
     // UI 瞬时态（toast / 面包屑）用主线程 scope，不落盘
     private val uiScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -402,6 +407,11 @@ class AppStore(
             loadCleaningHistoryQuiet(tokenAtStart)
         } catch (e: ApiError.Unauthorized) {
             handleIfUnauthorized(e, tokenAtStart)
+        } catch (e: CancellationException) {
+            // 协程取消（含 SplashScreen #71 的 withTimeoutOrNull 超时）必须重抛，不能被下面的
+            // catch(Exception) 吞掉——否则 8s 软超时失效、慢网下闪屏会挂到各请求 socket 超时才放行。
+            // 对齐 #24/#70 在 AccountScreen/LoginScreen 已修的同一取消处理 pattern。
+            throw e
         } catch (e: Exception) {
             // 生产包不打日志（对齐 iOS §22.2：Release 不把后端错误细节写进系统日志）
             if (BuildConfig.DEBUG) {
@@ -443,7 +453,13 @@ class AppStore(
                 _notificationsState.value = NotificationsLoadState.Loaded
             }
         } catch (e: ApiError.Unauthorized) {
+            // handleIfUnauthorized：true=确是 401（token 未变才 clearSession）；false=非 401
             handleIfUnauthorized(e, token)
+            // android#25: token 已换时 handleIfUnauthorized 不 clearSession，reflectFailure 写入的 Loading 会永卡。
+            // 注意 Idle 与 Loading 都渲染骨架（NotificationsScreen），复位成 Idle 视觉上仍在转圈 → 用 Failed 跳出骨架。
+            if (reflectFailure && _notificationsState.value == NotificationsLoadState.Loading) {
+                _notificationsState.value = NotificationsLoadState.Failed("通知の取得に失敗しました")
+            }
         } catch (e: ApiError) {
             if (snapshot().authToken != token) return
             if (reflectFailure) {
@@ -703,6 +719,8 @@ class AppStore(
 
     // 读旧明文 → 写加密 → 删旧明文（幂等）
     private suspend fun migratePlainTokenIfNeeded() {
+        // android#79: 已确认无明文 / 已迁移成功则跳过，防 snapshot() 每次开无谓写事务
+        if (tokenMigrated) return
         context.dataStore.edit { prefs ->
             val current = decodePrefs(prefs)
             val plain = current.authToken
@@ -713,6 +731,8 @@ class AppStore(
                 prefs[APP_STATE_KEY] = appJson.encodeToString(current.copy(authToken = null))
             }
         }
+        // 成功跑完（含「确认无明文」）后置位；@Volatile + 迁移本身幂等，并发多进一次也安全
+        tokenMigrated = true
     }
 
     private fun decodePrefs(prefs: Preferences): AppState {

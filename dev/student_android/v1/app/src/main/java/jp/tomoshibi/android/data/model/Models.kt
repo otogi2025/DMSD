@@ -154,37 +154,9 @@ data class SpecialBusRoute(
     val seats: String? = null, // 座席说明，可空（如「残り 8 席」）
 )
 
-// 老师公告列表项（对应 iOS AnnouncementBrief）
-@Serializable
-data class AnnouncementBrief(
-    val id: String,
-    val title: String,
-    val summary: String, // 摘要（列表显 2 行）
-    val author: String, // 老师名
-    val time: String, // 相对时间显示文本（如「2 時間前」）
-    val isRead: Boolean = false, // 是否已读
-    val replyCount: Int = 0, // 回复数
-)
-
-// 公告回复单条（对应 iOS AnnouncementReplyOut）
-@Serializable
-data class AnnouncementReply(
-    val authorName: String,
-    val authorKind: String, // "teacher" / "student"（teacher 显示「教員」徽章）
-    val createdAt: String, // "2026/04/20 16:00"
-    val body: String,
-)
-
-// 公告详情（对应 iOS AnnouncementDetail）
-@Serializable
-data class AnnouncementDetail(
-    val id: String,
-    val title: String,
-    val body: String,
-    val author: String, // 老师名
-    val createdAt: String, // "2026/04/20 14:30"
-    val replies: List<AnnouncementReply> = emptyList(),
-)
+// android#81: data.model 的 AnnouncementBrief / AnnouncementReply / AnnouncementDetail 已成死代码
+//   —— 所有 UI/API 都用 data.network 同名 DTO（各文件均 import data.network.Announcement*），
+//   此处三类无任何引用，删除以消除跨包同名歧义、防未来误引错版本。
 
 enum class ThemeMode { LIGHT, DARK }
 
@@ -357,22 +329,7 @@ data class StayApplication(
                 )
 }
 
-// 行事企画 申請（对应 iOS DormEventProposalOut）
-@Serializable
-data class DormEventProposal(
-    val id: String,
-    val teamName: String? = null, // 企画团队名
-    val title: String, // 企画名
-    val heldAt: String, // 开催日時 "2026-05-10 18:00"
-    val place: String,
-    val expectedCount: Int, // 预想参加人数
-    val target: String, // 对象
-    val purpose: String,
-    val content: String,
-    val riskSolution: String, // 风险对策
-    val expectedCost: String, // 预想费用
-    val status: String = "pending", // pending / approved / rejected
-)
+// android#81: data.model 的 DormEventProposal 已成死代码（UI 用 data.network.DormEventProposalOut），删除。
 
 // 在线学习申請（对应 iOS StudyOnlineRequestOut）
 @Serializable
