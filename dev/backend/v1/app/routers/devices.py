@@ -287,7 +287,7 @@ def enroll_device(
             },
         )
     # 审查 backend#31：条件 UPDATE 原子占用（镜像 teachers 令牌占用 / rollcall start_session）
-    # —— 只有 enrolled_at IS NULL 才写入公钥；并发两首启只有一个 rowcount=1，后到者 409。
+    # —— 只有 enrolled_at IS NULL 才写入公钥；并发两首启只有一个 rowcount=1，后到者 422（同预检契约）。
     enrolled_at = _now_utc()
     claimed = db.execute(
         update(models.RollCallDevice)

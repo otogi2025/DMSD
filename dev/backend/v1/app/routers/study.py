@@ -708,7 +708,7 @@ def patch_checkin(
         if existing is not None:
             existing.points = STUDY_ABSENT_POINTS
             existing.reason = (
-                f"晩自習欠席（{record.target_date.isoformat()}・手動修正）"
+                f"夜学習欠席（{record.target_date.isoformat()}・手動修正）"
             )
             existing.month = month
             existing.created_by_teacher_id = teacher.id
