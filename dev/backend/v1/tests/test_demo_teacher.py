@@ -42,7 +42,7 @@ def demo_data(db_session, seed_data):
         name_kana="デモイチロウ",
         gender="male",
         category="一般寮生",
-        room_no="D101",
+        room_no="M199",
         dorm_unit=1,
         is_overseas=False,
         email="demo-s1@test.jp",

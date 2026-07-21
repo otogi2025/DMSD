@@ -171,8 +171,8 @@ def test_demo_student_excluded_from_session_board(
 
 
 def test_generate_code_never_returns_999999():
-    """_generate_code random 范围排除 999999（reviewer 码 reserved）。
-    跑 1000 次抽样验证；理论上 random.randint(0, 999998) 永不返回 999999。
+    """_generate_code 范围排除 999999（reviewer 码 reserved）。
+    跑 1000 次抽样验证；理论上 secrets.randbelow(999999)（0..999998）永不返回 999999。
     """
     from app.routers.admin_registration_code import _generate_code
 

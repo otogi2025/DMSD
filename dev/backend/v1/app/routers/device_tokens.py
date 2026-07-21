@@ -131,7 +131,7 @@ def register_device_token(
         ).first()
         if existing is None:
             raise
-        _claim_existing_token(
+        created = _claim_existing_token(
             existing,
             student_id=student.id,
             platform=body.platform,
@@ -143,7 +143,7 @@ def register_device_token(
             id=existing.id,
             student_id=existing.student_id,
             platform=existing.platform,
-            created=False,
+            created=created,
         )
     db.refresh(dt)
 

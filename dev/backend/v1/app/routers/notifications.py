@@ -1,6 +1,7 @@
-"""通知 (admin / dev) endpoint。
+"""通知路由 — 老师通知中心 + 发信冒烟测试。
 
-POST /api/v1/notifications/test  — SendGrid 送達 smoke テスト (#6 完成定義)
+- POST /api/v1/notifications/test — Resend 发信冒烟测试（admin / 开发用）
+- GET  /feed · /unread-count · POST /{id}/read · /read-all — 通知中心取 feed / 已读
 """
 
 from __future__ import annotations

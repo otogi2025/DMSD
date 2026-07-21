@@ -78,11 +78,11 @@ router = APIRouter(prefix="/api/v1/applications", tags=["applications"])
 def _build_application_kwargs(
     body: schemas.ApplicationCreateIn, *, student_id: UUID
 ) -> dict:
-    """提出体（帰省 / 外泊 / 帰国）から Application 行の kwargs を組み立てる。
+    """从提出体（帰省 / 外泊 / 帰国）组装 Application 行的 kwargs。
 
-    学生本人 POST /applications と 老师代録 POST /by-teacher で完全に同じだった
-    約 80 行の構築ロジックを共通化（B-中-23）。共通フィールド + 種別固有フィールドを
-    一括で返す。status は呼出側で常に 'pending' なのでここで埋める。
+    学生本人 POST /applications 与老师代録 POST /by-teacher 原先各有约 80 行
+    完全相同的构建逻辑，抽到此处共用（B-中-23）。返回公共字段 + 种别固有字段；
+    status 由调用方恒设为 'pending'，故在此一并填入。
     """
     app_kwargs = {
         "student_id": student_id,
@@ -528,7 +528,7 @@ def list_proxy_candidates(
 
     刻意不复用 admin 的 GET /students：那个还暴露账号锁定信息。这里权限与代録
     对齐（都需「申请审批」权限），只回精简字段（学号 / 姓名 / 寮 / 是否留学生 /
-    房间），并按 R4 寮边界过滤——老师只能搜到自己管辖寮的学生。
+    房间）。寮过滤已取消（2026-06-13）：全寮可搜，仅按演示账号隔离。
     """
     stmt = select(models.Student).where(demo_scope_for_teacher(teacher))
 

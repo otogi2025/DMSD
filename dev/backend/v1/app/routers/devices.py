@@ -66,6 +66,8 @@ _NONCE_RETENTION_HOURS = 24
 _CARD_UID_RE = re.compile(r"^[0-9a-f]{14}$")
 # 音频文件名白名单（防路径穿越）
 _AUDIO_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]+\.wav$")
+# 音频 sha256 缓存：(绝对路径, mtime_ns, size) → hex digest；内容未变复用，避免每次全读全算
+_audio_sha256_cache: dict[tuple[str, int, int], str] = {}
 # 设备时钟异常审计的 action 名（写入与限流查询共用，防两处写岔）
 _CLOCK_SKEW_ACTION = "device.clock_skew_clamped"
 
@@ -525,7 +527,7 @@ def _find_session_for_checkin(
     if mine:
         # 理论上窗口不重叠；真重叠时取最晚开窗的那场（离 swipe_time 最近）
         # （原 covering 循环在 SQL 已等价过滤，此处 mine 即 covering）
-        return max(mine, key=lambda s: s.scheduled_window_start_at)
+        return max(mine, key=lambda s: _as_jst_aware(s.scheduled_window_start_at))
     return None
 
 
@@ -931,12 +933,17 @@ def device_audio_manifest(
         fpath = audio_dir / entry
         if not fpath.is_file():
             continue
-        raw = fpath.read_bytes()
+        st = fpath.stat()
+        cache_key = (str(fpath.resolve()), st.st_mtime_ns, st.st_size)
+        digest = _audio_sha256_cache.get(cache_key)
+        if digest is None:
+            digest = hashlib.sha256(fpath.read_bytes()).hexdigest()
+            _audio_sha256_cache[cache_key] = digest
         files.append(
             schemas.DeviceAudioFileOut(
                 name=entry,
-                sha256=hashlib.sha256(raw).hexdigest(),
-                size=len(raw),
+                sha256=digest,
+                size=st.st_size,
             )
         )
     return schemas.DeviceAudioManifestOut(files=files)

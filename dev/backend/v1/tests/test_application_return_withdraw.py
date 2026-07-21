@@ -18,20 +18,7 @@ from uuid import UUID
 
 from app import models
 
-
-def _kisei_body(leave_offset_days: int = 3) -> dict:
-    leave = date.today() + timedelta(days=leave_offset_days)
-    ret = leave + timedelta(days=2)
-    return {
-        "kind": "帰省",
-        "leave_date": leave.isoformat(),
-        "leave_method": "新幹線",
-        "leave_time": "19:00:00",
-        "return_date": ret.isoformat(),
-        "return_method": "新幹線",
-        "return_time": "20:00:00",
-        "reason": "帰省",
-    }
+from tests.helpers_applications import _kisei_body
 
 
 def _auth(token: str) -> dict:

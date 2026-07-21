@@ -48,18 +48,19 @@ PROVISIONAL_CHAINS: frozenset[tuple[str, bool]] = frozenset(
 
 
 def is_provisional(kind: str, is_overseas: bool) -> bool:
-    """この (kind, is_overseas) chain が evidence 待ちかどうか。
+    """该 (kind, is_overseas) chain 是否仍在等 evidence。
 
-    呼出側で response header / log に "X-Approval-Chain-Provisional: true" を付ける用。
+    调用侧用它决定要不要在 response header / log 加
+    "X-Approval-Chain-Provisional: true"。
     """
     return (kind, is_overseas) in PROVISIONAL_CHAINS
 
 
 def get_chain_roles(kind: str, is_overseas: bool) -> tuple[str, ...]:
-    """届の種類 + 留学生フラグから chain 役职 list を返す。
+    """按届种类 + 是否留学生，返回 chain 役职列表。
 
-    返り値は **担任 を先頭に含む完全な順序** (担任 → ... → 管理係)。
-    DB に行を作る順番でもあり、UI 表示順でもある。
+    返回值是 **以担任开头的完整顺序**（担任 → ... → 管理係）。
+    既是写进 DB 的行顺序，也是 UI 显示顺序。
     """
     if kind not in {"帰省", "外泊", "帰国"}:
         raise ValueError(f"unknown application kind: {kind}")
@@ -68,7 +69,7 @@ def get_chain_roles(kind: str, is_overseas: bool) -> tuple[str, ...]:
 
 
 # ---------------------------------------------------------------
-# 担任 解決
+# 担任解析
 # ---------------------------------------------------------------
 def resolve_homeroom_teacher(
     db: Session,
@@ -76,7 +77,7 @@ def resolve_homeroom_teacher(
     *,
     on_date: date | None = None,
 ) -> models.Teacher | None:
-    """学生 X の担任 (現役 = effective_to IS NULL) を返す。"""
+    """返回学生 X 的现任担任（effective_to IS NULL = 仍有效）。"""
     if on_date is None:
         on_date = datetime.now(ZoneInfo("Asia/Tokyo")).date()
     academic_year = on_date.year if on_date.month >= 4 else on_date.year - 1
@@ -109,7 +110,7 @@ def resolve_homeroom_teacher(
 
 
 # ---------------------------------------------------------------
-# 役职 → 教師 list 解決 (邮件送信先計算用)
+# 役职 → 教师 list 解析（算邮件收件人用）
 # ---------------------------------------------------------------
 def resolve_teachers_by_role(
     db: Session,
@@ -117,9 +118,9 @@ def resolve_teachers_by_role(
     *,
     student: models.Student | None = None,
 ) -> list[models.Teacher]:
-    """指定 role の現役教師を全員返す。
+    """返回指定 role 的全部现役教师。
 
-    担任の場合は student から resolve_homeroom_teacher を呼ぶ。
+    role=担任 时从 student 调 resolve_homeroom_teacher。
     """
     if role == "担任":
         if not student:
@@ -147,9 +148,9 @@ def build_chain(
     db: Session,
     application: models.Application,
 ) -> list[models.ApplicationApproval]:
-    """application 行に紐づく approval 行を chain 順で作って return (まだ commit しない)。
+    """按 chain 顺序为 application 建 approval 行并返回（尚未 commit）。
 
-    呼出側 (POST /applications) が flush + 邮件送信 + commit をまとめる。
+    调用侧（POST /applications）统一做 flush + 发邮件 + commit。
     """
     student = application.student or db.get(models.Student, application.student_id)
     if not student:
@@ -172,13 +173,13 @@ def build_chain(
 
 
 # ---------------------------------------------------------------
-# 邮件 recipients 計算 (#6 R1)
+# 邮件 recipients 计算 (#6 R1)
 # ---------------------------------------------------------------
 def collect_recipients(
     db: Session,
     application: models.Application,
 ) -> tuple[list[models.Teacher], list[str]]:
-    """届 1 件に対する 邮件送信先 全教师 list + ユニーク email list を返す。"""
+    """对 1 件届，返回全部收件教师 list + 去重后的 email list。"""
     student = application.student or db.get(models.Student, application.student_id)
     if not student:
         return [], []

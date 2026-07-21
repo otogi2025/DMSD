@@ -29,7 +29,8 @@ router = APIRouter(prefix="/api/v1", tags=["guidance"])
 # 有权录入指导记录 + 查看的角色
 # 指导履历的功能权限（C_GUIDANCE：管理动作 M / 查看动作 V）由各端点的 require_permission 闸判定，
 # 不再按职位拦（旧 _GUIDANCE_ROLES 职位集已随权限分级改造移除）。
-# 寮过滤已取消（§11.2），dorm_units_for_teacher 恒返全寮故下方 FORBIDDEN_DORM 守卫恒不触发，保留仅为将来恢复。
+# 寮守卫：dorm_units_for_teacher 按令牌 selected_dorm 返回可见寮
+# （选男→[1,2] / 选女→[4] / 未选或 op·承認组→[1,2,4]）；学生不在可见寮内时触发 FORBIDDEN_DORM。
 
 
 def _get_student_or_404(student_id: UUID, db: Session) -> models.Student:
@@ -63,7 +64,7 @@ def create_guidance(
     # 演示写隔离：演示老师只能给演示学生写记录、真老师只能给真实学生写（否则 404 隐藏存在性）
     assert_student_demo_match(teacher, student)
 
-    # 寮过滤已取消（§11.2），dorm_units_for_teacher 恒返全寮故此守卫恒不触发，保留仅为将来恢复。
+    # 选寮老师：学生不在令牌可见寮内 → FORBIDDEN_DORM；未选寮看全部则放行
     allowed = dorm_units_for_teacher(teacher)
     if allowed is not None and student.dorm_unit not in allowed:
         raise HTTPException(
@@ -123,7 +124,7 @@ def list_guidance(
             detail={"code": "STUDENT_NOT_FOUND", "message": "学生が見つかりません"},
         )
 
-    # 寮过滤已取消（§11.2），dorm_units_for_teacher 恒返全寮故此守卫恒不触发，保留仅为将来恢复。
+    # 选寮老师：学生不在令牌可见寮内 → FORBIDDEN_DORM；未选寮看全部则放行
     allowed = dorm_units_for_teacher(teacher)
     if allowed is not None and student.dorm_unit not in allowed:
         raise HTTPException(

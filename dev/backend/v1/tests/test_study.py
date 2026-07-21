@@ -23,16 +23,16 @@ import pytest
 
 from app import models
 from app.routers import study
+from app.routers.study import _academic_term
 
 
 @pytest.fixture
 def study_roster(db_session, seed_data):
     """060218 学生加学習名簿（晩学習対象者）。"""
     today = date.today()
-    season = "spring" if today.month <= 8 else "fall"
     roster = models.StudyRoster(
         student_id=seed_data["student"].id,
-        academic_term=f"{today.year}-{season}",
+        academic_term=_academic_term(today),
     )
     db_session.add(roster)
     db_session.commit()
@@ -85,7 +85,7 @@ class TestAbsenceRequest:
             },
             headers={"Authorization": f"Bearer {student_token}"},
         )
-        assert res.status_code in (200, 201), res.text
+        assert res.status_code == 201, res.text
         data = res.json()["data"]
         assert data["status"] == "pending"
         assert data["reason"] == "体調不良のため"
@@ -102,7 +102,7 @@ class TestAbsenceRequest:
             },
             headers={"Authorization": f"Bearer {student_token}"},
         )
-        assert res_create.status_code in (200, 201)
+        assert res_create.status_code == 201
         req_id = res_create.json()["data"]["id"]
 
         # 教师承认
@@ -137,7 +137,7 @@ class TestAbsenceRequest:
             },
             headers={"Authorization": f"Bearer {student_token}"},
         )
-        assert res_create.status_code in (200, 201)
+        assert res_create.status_code == 201
 
         res = client.get(
             "/api/v1/study/absence-requests?status=pending",
@@ -480,8 +480,7 @@ class TestRoster:
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
         today = date.today()
-        season = "spring" if today.month <= 8 else "fall"
-        term = f"{today.year}-{season}"
+        term = _academic_term(today)
         rows = (
             db_session.query(models.StudyRoster)
             .filter(
@@ -553,8 +552,7 @@ class TestCancelTodaySelectedDorm:
         from app import security
 
         today = date.today()
-        season = "spring" if today.month <= 8 else "fall"
-        term = f"{today.year}-{season}"
+        term = _academic_term(today)
         male = seed_data["student"]  # dorm_unit=1（男寮）
         female = models.Student(
             grade_code="05",

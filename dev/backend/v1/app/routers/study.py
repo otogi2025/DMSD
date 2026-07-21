@@ -122,11 +122,17 @@ def today_attendees(
     roster_rows = db.scalars(roster_stmt).all()
     student_ids = [r.student_id for r in roster_rows]
     if not student_ids:
+        # 与正常路径 exempted_count 四键对齐，避免前端读 .online / .cancel 得到 undefined
         return schemas.StudyTodayOut(
             target_date=today,
             study_start_at=study_start,
             expected_attendees=[],
-            exempted_count={"outstay": 0, "absence_request": 0},
+            exempted_count={
+                "outstay": 0,
+                "online": 0,
+                "absence_request": 0,
+                "cancel": 0,
+            },
             summary={"expected": 0, "checked_in": 0, "late": 0, "absent": 0},
         )
 
@@ -1086,12 +1092,10 @@ def cancel_today(
 
 # ---------------------------------------------------------------
 # 学習対象名簿 管理（杭田 2026-06-04 需求「五-2」）
-# GET    /study/roster        — 当前名簿在籍者一览（学習担当 / 寮務管理）
+# GET    /study/roster        — 当前名簿在籍者一览（鉴权 = require_permission C_STUDY）
 # POST   /study/roster        — 把一名学生加入名簿（added_by = 当前老师）
 # DELETE /study/roster/{sid}  — 把一名学生移出名簿（软删 removed_at = now）
 # ---------------------------------------------------------------
-# 名簿管理角色 gate — 跟 bulk-finalize / 欠席届承認 同一组（学習担当 + 寮務管理层）
-_ROSTER_ROLES = ("学習担当", "寮務部長", "寮務課長", "寮監")
 
 
 @router.get("/roster", response_model=list[schemas.StudyRosterEntryOut])

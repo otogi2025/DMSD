@@ -273,18 +273,15 @@ async def request_validation_exception_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
     """Pydantic 422 校验错误 → 同一信封（不再返回 detail 数组壳）。"""
-    # errors() 里可能带 ValueError 等不可 JSON 序列化对象，必须走 jsonable_encoder
+    # errors() 里可能带 ValueError 等不可 JSON 序列化对象，必须走 jsonable_encoder。
+    # message 固定日语兜底：pydantic 内置校验 msg 是英文，不能直接回给客户端。
+    # 完整英文 errors 放进 detail.errors，前端 / 调试仍能看字段级细节。
     errors = jsonable_encoder(exc.errors())
-    first_msg = "入力内容に誤りがあります"
-    if errors:
-        raw = errors[0].get("msg") or errors[0].get("message")
-        if raw:
-            first_msg = str(raw)
     return JSONResponse(
         status_code=422,
         content=build_error_body(
             code="INVALID_INPUT",
-            message=first_msg,
+            message="入力内容に誤りがあります",
             detail={"errors": errors},
         ),
     )
@@ -328,7 +325,10 @@ _REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
 # H-22：请求关联 ID 中间件 —— 取客户端传的 X-Request-ID（若合法），否则生成短 uuid；
 # set 进 ContextVar 让本请求内所有日志带上同一 ID；并回写到响应头方便前端 / 网关串联。
-# 最后加 = 最外层 = 最早执行，保证后续中间件 / 路由 / 异常处理器都能看到 request_id。
+# 注意：用 @app.middleware 注册，而下方 AuditLog / ResponseEnvelope 用 add_middleware（prepend）。
+# 真实外→内顺序是 AuditLog → ResponseEnvelope → request_id，故 request_id 在内层；
+# 外层两个中间件的日志拿不到 ContextVar 里的 request_id。若要真最外层，应改成
+# add_middleware 且在 AuditLog 之后再加（最后 add = 最外层）。
 @app.middleware("http")
 async def _request_id_middleware(request: Request, call_next):
     incoming = request.headers.get("X-Request-ID")

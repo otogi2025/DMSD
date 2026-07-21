@@ -3,7 +3,7 @@
 老师端 (`/api/v1/ws/teacher`) 连过来后 register 到 manager；
 rollcall / applications 等业务 router 在事件发生时调 broadcast() 推给所有活跃老师连接。
 
-事件 schema (frontend client.js LiveRollCall 期待):
+事件 schema（老师端 React：LiveRollCall.tsx / api/client.ts 期待）:
   { type: "checkin",     student_id, status, checked_at, name?, room_no? }
   { type: "outstay_new", application_id, student_id, kind, leave_date }
   { type: "override",    student_id, status, override_reason }
@@ -199,7 +199,16 @@ class DeviceConnectionManager:
     async def connect(self, websocket: WebSocket, device_id: str) -> None:
         await websocket.accept()
         async with self._lock:
+            # 一设备一活跃连接：同 device_id 旧连接先移除并关闭，防异常断线/重复握手残留多推
+            stale = [c for c in self._conns if c.device_id == device_id]
+            if stale:
+                self._conns = [c for c in self._conns if c.device_id != device_id]
             self._conns.append(_DeviceConn(device_id=device_id, websocket=websocket))
+        for old in stale:
+            try:
+                await old.websocket.close()
+            except Exception:
+                pass
         logger.info(
             "WS device connected device_id=%s active=%d", device_id, len(self._conns)
         )

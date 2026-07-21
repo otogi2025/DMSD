@@ -4,7 +4,7 @@
 - B1  DELETE /api/v1/sessions/current — 登出端点
 - B2  DELETE /api/v1/accounts/me — 学生自删账号
 - B6  学生登录失败计数 + 锁定
-- B7  注册码一次性（用后 invalidated_at 标废）
+- B7：TTL 内可复用（集团登记）；invalidated_at 仅在 /refresh 换新码时设置
 - B10 dorm_unit=3 拒绝（Literal[1,2,4]）
 """
 
@@ -149,7 +149,7 @@ def test_b6_failed_count_increments(client, seed_data, db_session):
 
 
 def test_b6_account_locked_after_threshold(client, seed_data, db_session):
-    """5 回失败 → 423 ACCOUNT_LOCKED が返る。"""
+    """连续失败 5 次 → 返回 423 ACCOUNT_LOCKED。"""
 
     # 连续失败 5 次（阈值 = 5）
     for _ in range(5):
@@ -158,7 +158,7 @@ def test_b6_account_locked_after_threshold(client, seed_data, db_session):
             json={"student_no": "060218", "password": "wrong!!"},
         )
 
-    # 6 回目 → 423
+    # 第 6 次 → 423
     res = client.post(
         "/api/v1/sessions/student",
         json={"student_no": "060218", "password": "wrong!!"},
@@ -168,7 +168,7 @@ def test_b6_account_locked_after_threshold(client, seed_data, db_session):
 
 
 def test_b6_success_clears_failed_count(client, seed_data, db_session):
-    """失败 2 回後に正しい密码 → failed_count=0 にリセット。"""
+    """失败 2 次后用正确密码登录 → failed_count 重置为 0。"""
     from app import models
     from sqlalchemy import select
 
@@ -294,7 +294,7 @@ def test_student_login_by_email_locked_after_threshold(client, seed_data):
 
 
 # ─────────────────────────────────────────
-# B7 — 注册码一次性
+# B7 — 注册码 TTL 内可复用（集团登记）
 # ─────────────────────────────────────────
 
 
@@ -343,7 +343,7 @@ def test_b7_code_reusable_within_ttl(client, teacher_token, seed_data, db_sessio
 
 
 def test_b10_dorm_unit_3_rejected(client, teacher_token, seed_data):
-    """dorm_unit=3 は DB CHECK 違反なので 422 で拒否される。"""
+    """dorm_unit=3 违反 DB CHECK → 422 拒绝。"""
     code = _make_reg_code(client, teacher_token)
     res = _register(
         client, code, overrides={"dorm_unit": 3, "gender": "male", "room_no": "M501"}
@@ -352,7 +352,7 @@ def test_b10_dorm_unit_3_rejected(client, teacher_token, seed_data):
 
 
 def test_b10_dorm_unit_valid_values(client, teacher_token, seed_data):
-    """dorm_unit=1 は通る（2/4 は別テストで seed 重複を避けるため省略）。"""
+    """dorm_unit=1 可通过（2/4 另测，避免与 seed 学号冲突）。"""
     code = _make_reg_code(client, teacher_token)
     res = _register(client, code, overrides={"dorm_unit": 1})
     assert res.status_code == 201, res.text
@@ -364,7 +364,7 @@ def test_b10_dorm_unit_valid_values(client, teacher_token, seed_data):
 
 
 def _make_ryokan_token(client, db_session) -> str:
-    """女寮担当の寮監 token を作って返す。seed_data の学生は dorm_unit=1 (男寮)。"""
+    """造女寮担当的寮監 token 并返回。seed_data 学生是 dorm_unit=1（男寮）。"""
     from app import models, security
 
     pw = security.hash_password("test-password-12345")
@@ -388,7 +388,7 @@ def _make_ryokan_token(client, db_session) -> str:
 
 
 def test_b8_front_desk_create_cross_dorm_now_allowed(client, db_session, seed_data):
-    """女寮監が男寮学生 (dorm_unit=1) に宅配登记 → 现在允许（寮过滤已取消 2026-06-13）。"""
+    """女寮監给男寮学生（dorm_unit=1）登记宅配 → 现在允许（寮过滤已取消 2026-06-13）。"""
     ryokan_token = _make_ryokan_token(client, db_session)
     student_id = str(seed_data["student"].id)
 
@@ -405,7 +405,7 @@ def test_b8_front_desk_create_cross_dorm_now_allowed(client, db_session, seed_da
 
 
 def test_b8_rollcall_checkin_cross_dorm_now_allowed(client, db_session, seed_data):
-    """女寮監が男寮学生 (dorm_unit=1) に点呼签到 → 现在允许（寮过滤已取消 2026-06-13）。"""
+    """女寮監给男寮学生（dorm_unit=1）点呼签到 → 现在允许（寮过滤已取消 2026-06-13）。"""
     from datetime import datetime, timedelta
     from zoneinfo import ZoneInfo
 

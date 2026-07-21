@@ -47,6 +47,13 @@ class _FakeResponse:
         self.status_code = status_code
         self.text = text
 
+    def json(self):
+        # 忠实模拟 httpx.Response.json()：解析 text 里的 JSON（APNs 4xx 返回
+        # {"reason":"..."}），供 push._send_via_apns 判恒久失败（backend#117）
+        import json
+
+        return json.loads(self.text)
+
 
 class _FakeClient:
     """记录 post 调用参数、按预设返回响应（或抛异常）。"""
@@ -83,7 +90,9 @@ def test_apns_send_success(monkeypatch):
     client = _FakeClient(_FakeResponse(200))
     _patch(monkeypatch, _FakeSettings(), client)
 
-    sent, error = push_svc._send_via_apns("device-token-001", "タイトル", "本文", None)
+    sent, error, _ = push_svc._send_via_apns(
+        "device-token-001", "タイトル", "本文", None
+    )
     assert sent is True
     assert error is None
 
@@ -106,10 +115,13 @@ def test_apns_send_4xx_failed(monkeypatch):
     client = _FakeClient(_FakeResponse(400, '{"reason":"BadDeviceToken"}'))
     _patch(monkeypatch, _FakeSettings(), client)
 
-    sent, error = push_svc._send_via_apns("bad-token", "t", "b", None)
+    sent, error, permanent = push_svc._send_via_apns("bad-token", "t", "b", None)
     assert sent is False
     assert "400" in error
     assert "BadDeviceToken" in error
+    assert (
+        permanent is True
+    )  # backend#117：BadDeviceToken 属恒久失败，send_push 据此撤销死令牌
 
 
 # ---------------------------------------------------------------
@@ -124,7 +136,7 @@ def test_apns_missing_credentials(monkeypatch):
         client,
     )
 
-    sent, error = push_svc._send_via_apns("token", "t", "b", None)
+    sent, error, _ = push_svc._send_via_apns("token", "t", "b", None)
     assert sent is False
     assert "not configured" in error
     assert "APNS_KEY_ID" in error
@@ -173,7 +185,7 @@ def test_apns_network_error(monkeypatch):
     client = _FakeClient(raise_exc=ConnectionError("connection refused"))
     _patch(monkeypatch, _FakeSettings(), client)
 
-    sent, error = push_svc._send_via_apns("token", "t", "b", None)
+    sent, error, _ = push_svc._send_via_apns("token", "t", "b", None)
     assert sent is False
     assert "APNs request error" in error
     assert "connection refused" in error

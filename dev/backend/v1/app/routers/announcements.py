@@ -27,6 +27,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy import func as sa_func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import models, permissions, schemas, security
@@ -169,16 +170,23 @@ def list_announcements(
             ).all()
         )
 
-    # 每个公告的回复数（announcement_id → count）
-    reply_counts_raw = db.execute(
-        select(
-            models.AnnouncementReply.announcement_id,
-            sa_func.count(models.AnnouncementReply.id),
-        )
-        .where(models.AnnouncementReply.deleted_at.is_(None))
-        .group_by(models.AnnouncementReply.announcement_id)
-    ).all()
-    reply_counts = {aid: cnt for aid, cnt in reply_counts_raw}
+    # 每个公告的回复数（announcement_id → count）— 只聚合本页 rows，避免全表扫
+    page_ann_ids = [ann.id for ann, _ in rows]
+    if page_ann_ids:
+        reply_counts_raw = db.execute(
+            select(
+                models.AnnouncementReply.announcement_id,
+                sa_func.count(models.AnnouncementReply.id),
+            )
+            .where(
+                models.AnnouncementReply.deleted_at.is_(None),
+                models.AnnouncementReply.announcement_id.in_(page_ann_ids),
+            )
+            .group_by(models.AnnouncementReply.announcement_id)
+        ).all()
+        reply_counts = {aid: cnt for aid, cnt in reply_counts_raw}
+    else:
+        reply_counts = {}
 
     items = [
         schemas.AnnouncementBrief(
@@ -281,7 +289,11 @@ def get_announcement_detail(
                     student_id=principal.id,
                 )
             )
-            db.commit()
+            try:
+                db.commit()
+            except IntegrityError:
+                # 并发：另一请求已插同一已读行 → 复合主键冲突，回滚即可（已读幂等）
+                db.rollback()
 
     # 回复列表（旧→新，§7.15.6 Slack 风）
     reply_rows = db.scalars(

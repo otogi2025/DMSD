@@ -2,7 +2,7 @@
 
 覆盖：
 - #1  WS broadcast dorm_unit 过滤（单元测试：直接测 manager.broadcast 行为）
-- #2  guidance list_guidance 寮过滤（越权场景 403）
+- #2  guidance list_guidance 跨寮现允许（200；寮过滤已取消）
 - #3  student_profile get_current_principal 鉴权（学生 token 看他人 → 403）
 """
 
@@ -149,7 +149,7 @@ def joshi_token(client, cross_dorm_setup):
 # #2  guidance 寮过滤越权测试
 # ─────────────────────────────────────────────────────────────
 class TestGuidanceDormBoundary:
-    """女寮老师查男寮学生指导履历 → 403。"""
+    """guidance 寮过滤已取消 — 女寮老师查男寮学生指导履历 → 200。"""
 
     def _create_guidance(self, client, student_id, token):
         return client.post(
@@ -181,7 +181,7 @@ class TestGuidanceDormBoundary:
     def test_list_guidance_other_dorm_now_allowed(
         self, client, cross_dorm_setup, joshi_token
     ):
-        """女寮老師が男寮学生の指導履歴を見る → 現在許可（寮過滤已取消 2026-06-13）。"""
+        """女寮老师看男寮学生的指导履历 → 现已允许（2026-06-13 取消 guidance 寮过滤）。"""
         student_id = str(cross_dorm_setup["student"].id)
         r = client.get(
             f"/api/v1/students/{student_id}/guidance",
@@ -190,7 +190,7 @@ class TestGuidanceDormBoundary:
         assert r.status_code == 200, r.text
 
     def test_cross_dorm_role_can_see_any(self, client, cross_dorm_setup, seed_data):
-        """跨寮役职（寮務部長、assigned_dorm=None）は男女どちらの学生も見れる。"""
+        """跨寮权限组老师（寮務部長、assigned_dorm=None）可看男女任一寮学生的指导履历。"""
         res = client.post(
             "/api/v1/sessions/teacher",
             json={"login_id": "ryomu_buchou", "password": "test-password-12345"},
@@ -252,7 +252,7 @@ class TestStudentProfileAuth:
             seat_no="01",
             name="別の学生",
             gender="female",
-            room_no="F101",
+            room_no="W101",
             dorm_unit=4,
         )
         db_session.add(student_b)
@@ -392,8 +392,8 @@ class TestStudyDormBoundary:
             json={"student_id": student_id},
             headers={"Authorization": f"Bearer {token}"},
         )
-        # 201 = 新建 / 409 = 已存在 — 都不是 403
-        assert r.status_code != 403, r.text
+        # 201 = 新建 / 409 = 已存在 — 白名单显式断言，避免 500/422 假绿
+        assert r.status_code in (201, 409), r.text
 
 
 class TestRollcallSessionDormBoundary:

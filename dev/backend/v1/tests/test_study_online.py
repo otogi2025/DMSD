@@ -2,7 +2,9 @@
 
 覆盖：
 - POST /study/online-requests/{id}/contract — 学生上传合同（照片 / PDF）
-- GET  /study/online-requests/{id}/contract — 本人 / 老师下载（含 R4 寮边界）
+- GET  /study/online-requests/{id}/contract — 本人 / 老师下载（寮过滤由令牌 selected_dorm 驱动：
+  未选寮兼容看全部 → test_cross_dorm_teacher_now_allowed；
+  选 selected_dorm=4 拦跨寮 → test_cross_dorm_teacher_selected_dorm_403）
 - GET  /students/{id}/profile               — 老师档案页含在线学习申请 + 合同信息
 
 跑：
@@ -89,7 +91,9 @@ def second_student_token(client, db_session, seed_data):
 
 @pytest.fixture
 def female_dorm_teacher_token(client, db_session, seed_data):
-    """女寮（assigned_dorm=4）老师 token — 测寮边界：看不到男寮（dorm_unit=1）学生的合同。"""
+    """女寮（assigned_dorm=4）老师 token — 登录不带 selected_dorm 时兼容看全部寮；
+    选 selected_dorm=4 后才被 FORBIDDEN_DORM 拦跨寮（见 test_cross_dorm_teacher_selected_dorm_403）。
+    """
     pw = security.hash_password("test-password-12345")
     t = models.Teacher(
         login_id="onna_sensei",
@@ -344,13 +348,13 @@ class TestListCrossDorm:
         )
         assert res_ok.status_code == 200, res_ok.text
         assert any(r["id"] == rid for r in res_ok.json()["data"])
-        # 女寮（assigned_dorm=4）老师现在也能看到男寮学生的申请
-        res_block = client.get(
+        # 女寮（assigned_dorm=4）老师未选寮时也能看到男寮学生的申请
+        res_female = client.get(
             "/api/v1/study/online-requests",
             headers={"Authorization": f"Bearer {female_dorm_teacher_token}"},
         )
-        assert res_block.status_code == 200, res_block.text
-        assert any(r["id"] == rid for r in res_block.json()["data"])
+        assert res_female.status_code == 200, res_female.text
+        assert any(r["id"] == rid for r in res_female.json()["data"])
 
 
 class TestProfileIncludesOnline:

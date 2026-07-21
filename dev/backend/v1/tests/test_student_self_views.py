@@ -2,6 +2,10 @@
 
 覆盖：
 - PATCH /api/v1/students/me      学生改自己的联系方式 / 房间号
+- POST/GET /api/v1/rollcall/reports  点呼上报（体调/欠席/其他）+ 老师处理
+- POST/GET /api/v1/songs             点歌（最小版）
+- POST /api/v1/lost-found            遗失物投稿 + 本人 resolve
+- POST/GET /api/v1/misc-requests     杂项申请 + 老师确认 / 学生撤回
 """
 
 from __future__ import annotations

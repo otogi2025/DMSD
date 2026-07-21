@@ -19,7 +19,7 @@ NONE = 0  # ✕ 不可见
 VIEW = 1  # V 仅查看（只读）
 MANAGE = 2  # M 管理（增删改 + 蕴含查看）
 
-_LEVEL_NAME = {NONE: "✕", VIEW: "V（査看）", MANAGE: "M（管理）"}
+_LEVEL_NAME = {NONE: "✕", VIEW: "V（查看）", MANAGE: "M（管理）"}
 
 
 def level_name(level: int) -> str:

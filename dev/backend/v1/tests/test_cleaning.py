@@ -2,7 +2,7 @@
 
 覆盖:
 - POST /cleaning 排罚扫: 成功 / 过去时间 422 / area 自由文本 / 学生 token 拒绝 /
-  VIEW 权限拒绝 / 跨寮拒绝
+  VIEW 权限拒绝 / 跨寮允许（寮过滤已取消，锁定现状；见 test_create_cleaning_cross_dorm_now_allowed）
 - GET /cleaning/me 学生履历: 只返本人 / 倒序 / 鉴权
 - POST /cleaning/{id}/inspect 审核: passed 不扣分 / failed 扣 2.5 / 缺 reason 400 /
   重复 409 / VIEW 权限拒绝

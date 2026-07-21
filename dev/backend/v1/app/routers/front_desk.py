@@ -33,6 +33,7 @@ from ..deps import (
     get_current_student,
     require_permission,
 )
+from ..services.student_picker import query_students_for_picker
 
 
 def _assert_student_in_dorm(teacher: models.Teacher, student: models.Student) -> None:
@@ -138,35 +139,7 @@ def search_recipients(
     为什么单独建此端点、不复用账号管理的 GET /students：那是「学生账号管理」功能簇，
     会暴露账号锁定 / 最后登录时间等敏感字段，前台挑人不需要、权限级别也不同。
     """
-    stmt = select(models.Student).where(demo_scope_for_teacher(teacher))
-    if q:
-        # E-低-04：转义用户输入里的 LIKE 通配符 % 和 _（与 admin_accounts.py 同款），
-        # 否则老师输入含 % 的查询会被当通配符匹配全部（功能性瑕疵，非注入——值已被
-        # SQLAlchemy 参数化）。escape='\\' 指定反斜杠为转义字符，先转义反斜杠自身再转义 % 和 _。
-        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        like = f"%{escaped}%"
-        stmt = stmt.where(
-            models.Student.name.like(like, escape="\\")
-            | (
-                models.Student.grade_code
-                + models.Student.class_code
-                + models.Student.seat_no
-            ).like(like, escape="\\")
-        )
-    allowed = dorm_units_for_teacher(teacher)
-    if allowed is not None:
-        stmt = stmt.where(models.Student.dorm_unit.in_(allowed))
-    stmt = stmt.order_by(models.Student.room_no).limit(20)
-    return [
-        schemas.FrontDeskStudentBrief(
-            id=s.id,
-            name=s.name,
-            room_no=s.room_no,
-            student_no=f"{s.grade_code}{s.class_code}{s.seat_no}",
-            dorm_unit=s.dorm_unit,
-        )
-        for s in db.scalars(stmt).all()
-    ]
+    return query_students_for_picker(db, teacher, q)
 
 
 @router.post("", response_model=schemas.FrontDeskItemOut, status_code=201)

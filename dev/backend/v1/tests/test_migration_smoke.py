@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 import pathlib
+import re
 
 import pytest
 
@@ -41,10 +42,12 @@ def test_no_recreate_always_in_migrations():
     确有必要用 always 时：在此显式豁免该文件名 + 人工确认目标表无外键依赖、PG 不崩。
     """
     versions = pathlib.Path(__file__).resolve().parent.parent / "alembic" / "versions"
+    # 允许 recreate = "always" / recreate='always'（等号两侧可有空白）；变量/跨行仍漏，够挡住常见写法
+    _recreate_always = re.compile(r"recreate\s*=\s*['\"]always['\"]")
     offenders = []
     for f in versions.glob("*.py"):
         text = f.read_text(encoding="utf-8")
-        if 'recreate="always"' in text or "recreate='always'" in text:
+        if _recreate_always.search(text):
             offenders.append(f.name)
     assert offenders == [], (
         f"以下迁移使用了 recreate='always'（PG 上对被外键引用的表会崩，见 C1）：{offenders}。"

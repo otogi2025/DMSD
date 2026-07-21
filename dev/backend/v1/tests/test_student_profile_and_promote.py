@@ -4,7 +4,7 @@
 - GET /api/v1/students/{id}/profile
   - 寮務系老师：200 含全块（含指导履历）
   - 学生本人：200 指导履历返空（C 案）
-  - 非寮務老师：403
+  - 申請承認専用组对 C_GUIDANCE 有 VIEW→可看 profile
   - 他の学生 token：403
   - 不存在学生：404
 
@@ -651,7 +651,7 @@ class TestRenewalProgress:
         assert res.status_code == 200, res.text
         assert res.json()["data"]["pending_count"] == 0
 
-    def test_progress_forbidden(self, client, promote_seed):
+    def test_progress_approval_group_can_view(self, client, promote_seed):
         """低权限老师（申請承認専用 组）→ 可查看学年更新进度（200）。
 
         权限分级改造（teacher_permission_v1.md §5 第 12 行「学生账号管理」5 组全部至少 V）后，

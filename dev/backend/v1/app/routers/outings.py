@@ -187,7 +187,59 @@ def _load_outing(db: Session, outing_id: UUID) -> models.Outing:
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "NOT_FOUND", "message": "外出申請が見つかりません"},
         )
+    # 学生已删/悬空：后续 demo/寮校验会碰 outing.student → AttributeError→500；
+    # 与 rollcall.patch_event 同口径 fail-closed 404。
+    if outing.student is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "外出申請が見つかりません"},
+        )
     return outing
+
+
+def _transition_outing(
+    db: Session,
+    outing_id: UUID,
+    *,
+    from_status: str,
+    values: dict,
+    audit_action: str,
+    actor_type: str,
+    actor_id: UUID,
+    audit_payload: dict,
+    conflict_message: str,
+) -> models.Outing:
+    """pending→目标状态的原子条件更新 + 审计 + 重载。
+
+    竞态：rowcount != 1 说明已被别的请求改掉 → rollback + 409。
+    confirm_outing / withdraw_outing 共用，避免两端各写一套同构逻辑。
+    """
+    result = db.execute(
+        update(models.Outing)
+        .where(models.Outing.id == outing_id, models.Outing.status == from_status)
+        .values(**values)
+    )
+    if result.rowcount != 1:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "OUTING_NOT_PENDING",
+                "message": conflict_message,
+            },
+        )
+    db.add(
+        models.AuditLog(
+            actor_type=actor_type,
+            actor_id=actor_id,
+            action=audit_action,
+            target_type="outing",
+            target_id=outing_id,
+            payload=audit_payload,
+        )
+    )
+    db.commit()
+    return _load_outing(db, outing_id)
 
 
 # ---------------------------------------------------------------
@@ -249,38 +301,23 @@ def confirm_outing(
     # 原子条件更新：只有 status 仍是 pending 才确认成功。
     # 防两个老师并发确认 / 确认与撤回并发时都读到 pending、最后一次写覆盖前一次
     # （codex 2026-06-04 审查指出的竞态）。rowcount != 1 说明已被别的请求改掉 → 409。
-    result = db.execute(
-        update(models.Outing)
-        .where(models.Outing.id == outing_id, models.Outing.status == "pending")
-        .values(
-            status="approved",
-            confirmed_by_teacher_id=teacher.id,
-            confirmed_at=datetime.now(timezone.utc),
-        )
-    )
-    if result.rowcount != 1:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={
-                "code": "OUTING_NOT_PENDING",
-                "message": "確認待ちの申請ではありません",
+    return _to_outing_out(
+        _transition_outing(
+            db,
+            outing_id,
+            from_status="pending",
+            values={
+                "status": "approved",
+                "confirmed_by_teacher_id": teacher.id,
+                "confirmed_at": datetime.now(timezone.utc),
             },
-        )
-
-    db.add(
-        models.AuditLog(
+            audit_action="outing.confirm",
             actor_type="teacher",
             actor_id=teacher.id,
-            action="outing.confirm",
-            target_type="outing",
-            target_id=outing_id,
-            payload={"teacher_name": teacher.name},
+            audit_payload={"teacher_name": teacher.name},
+            conflict_message="確認待ちの申請ではありません",
         )
     )
-    db.commit()
-    # commit 后对象已 expire，重新查（带 selectinload）拿确认后的最新状态 + 确认老师姓名
-    return _to_outing_out(_load_outing(db, outing_id))
 
 
 # ---------------------------------------------------------------
@@ -299,30 +336,19 @@ def withdraw_outing(
             detail={"code": "FORBIDDEN", "message": "他人の申請は取消できません"},
         )
     # 原子条件更新：只有 status 仍是 pending 才能撤回（防与老师确认并发互相覆盖）
-    result = db.execute(
-        update(models.Outing)
-        .where(models.Outing.id == outing_id, models.Outing.status == "pending")
-        .values(status="withdrawn", withdrawn_at=datetime.now(timezone.utc))
-    )
-    if result.rowcount != 1:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={
-                "code": "OUTING_NOT_PENDING",
-                "message": "確認待ちの申請のみ取消できます",
+    return _to_outing_out(
+        _transition_outing(
+            db,
+            outing_id,
+            from_status="pending",
+            values={
+                "status": "withdrawn",
+                "withdrawn_at": datetime.now(timezone.utc),
             },
-        )
-
-    db.add(
-        models.AuditLog(
+            audit_action="outing.withdraw",
             actor_type="student",
             actor_id=student.id,
-            action="outing.withdraw",
-            target_type="outing",
-            target_id=outing_id,
-            payload={},
+            audit_payload={},
+            conflict_message="確認待ちの申請のみ取消できます",
         )
     )
-    db.commit()
-    return _to_outing_out(_load_outing(db, outing_id))

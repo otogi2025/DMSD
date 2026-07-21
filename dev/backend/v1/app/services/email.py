@@ -33,7 +33,7 @@ def render_application_submitted(
 ) -> tuple[str, str]:
     """件名 + 本文 (text)。"""
     subject = f"[Tomoshibi] 出寮届 提出: {student.name} ({application.kind})"
-    body = f"""出寮届が提出されました。承认をお願いします。
+    body = f"""出寮届が提出されました。承認をお願いします。
 
 ----------
 学生:        {student.name} (学号 {student.student_no})
@@ -46,7 +46,7 @@ def render_application_submitted(
 帰寮方法:    {application.return_method}
 ----------
 
-老師 Web 「出寮届承认」ページから承认 / 不承认 を行ってください。
+老師 Web 「出寮届承認」ページから承認 / 不承認 を行ってください。
 
 — Tomoshibi (灯火) システム
 """

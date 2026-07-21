@@ -272,7 +272,7 @@ def get_student_profile(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail={
                     "code": "FORBIDDEN_ROLE",
-                    "message": "学生个人档案の閲覧には指導履歴の閲覧権限が必要です",
+                    "message": "学生プロフィールの閲覧には指導履歴の閲覧権限が必要です",
                 },
             )
         # R4 寮边界：先取学生信息才能比对 dorm_unit

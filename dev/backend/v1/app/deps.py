@@ -5,7 +5,7 @@
 - 教師 (sub = teachers.id)
 を Student / Teacher ORM オブジェクトで返す。
 
-R4 寮過滤 helper — `dorm_units_for_teacher(teacher)` 是全 router 共用的过滤工具。
+寮过滤 helper — `dorm_units_for_teacher(teacher)` 是全 router 共用的过滤工具。
 """
 
 from datetime import datetime, timezone
@@ -18,11 +18,6 @@ from sqlalchemy.orm import Session
 
 from . import models, permissions, security
 from .database import get_db
-
-# R4 — 跨寮角色能看全件
-CROSS_DORM_ROLES = frozenset(
-    {"校長", "寮務部長", "寮務課長", "国際交流部長", "国際交流課長"}
-)
 
 
 def is_teacher_expired(teacher: models.Teacher) -> bool:
@@ -132,7 +127,7 @@ def get_current_student(
     if payload.get("role") != "student":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail={"code": "FORBIDDEN", "message": "学生 token が必要です"},
+            detail={"code": "FORBIDDEN", "message": "生徒トークンが必要です"},
         )
     # sub 缺失 / 非法 UUID 不能抛未捕获异常变成 500 — 仿 get_current_principal 统一返回 401
     try:
@@ -167,7 +162,7 @@ def get_current_teacher(
     if not role.startswith("teacher:"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail={"code": "FORBIDDEN", "message": "教師 token が必要です"},
+            detail={"code": "FORBIDDEN", "message": "教師トークンが必要です"},
         )
     # sub 缺失 / 非法 UUID 不能抛未捕获异常变成 500 — 仿 get_current_principal 统一返回 401
     try:
@@ -257,7 +252,7 @@ def get_current_principal(
         return teacher
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
-        detail={"code": "FORBIDDEN", "message": "不明な token role"},
+        detail={"code": "FORBIDDEN", "message": "不明なトークンロール"},
     )
 
 
@@ -313,7 +308,7 @@ def get_current_device(
     if payload.get("role") != "device":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail={"code": "FORBIDDEN", "message": "デバイス token が必要です"},
+            detail={"code": "FORBIDDEN", "message": "デバイストークンが必要です"},
         )
     device_id = payload.get("sub")
     device = db.scalar(

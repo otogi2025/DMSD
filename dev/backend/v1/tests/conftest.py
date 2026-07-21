@@ -48,15 +48,12 @@ def _engine():
 
 @pytest.fixture(autouse=True)
 def _truncate_tables(_engine):
-    """各テスト前に全テーブルを空に — テスト間でデータが漏れないように。"""
-    from sqlalchemy import text
-
+    """每个测试前清空全部表，避免用例间数据泄漏。"""
     with _engine.begin() as conn:
-        # 外部キーを一旦無効化 (SQLite 専用)
-        conn.execute(text("PRAGMA foreign_keys=OFF"))
+        # 靠 reversed(sorted_tables) 删除顺序清表（子表先删），不在事务内开 PRAGMA
+        # foreign_keys=OFF（SQLite 事务内该 PRAGMA 为空操作）。
         for table in reversed(Base.metadata.sorted_tables):
             conn.execute(table.delete())
-        conn.execute(text("PRAGMA foreign_keys=ON"))
     yield
 
 
@@ -90,7 +87,7 @@ def client(_engine):
 
 @pytest.fixture
 def seed_data(db_session):
-    """テスト用 minimal seed — 役职 5 人 + 担任 1 + 学生 (留学生)。"""
+    """测试用最小 seed：役职 5 人 + 担任 1 + 学生（留学生）。"""
     from datetime import date
 
     pw = security.hash_password("test-password-12345")

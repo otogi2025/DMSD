@@ -70,8 +70,8 @@ def upgrade() -> None:
             name="ck_demerit_source",
         ),
     )
-    op.create_index("ix_demerit_event_student_id", "demerit_event", ["student_id"])
-    op.create_index("ix_demerit_event_month", "demerit_event", ["month"])
+    # migrations#3：ix_demerit_event_student_id / ix_demerit_event_month 两个单列索引
+    # 已被下面复合索引以最左前缀覆盖（models.py 对应列同步去 index=True），删冗余
     op.create_index(
         "idx_demerit_student_month", "demerit_event", ["student_id", "month"]
     )
@@ -207,6 +207,4 @@ def downgrade() -> None:
 
     op.drop_index("idx_demerit_month_active", table_name="demerit_event")
     op.drop_index("idx_demerit_student_month", table_name="demerit_event")
-    op.drop_index("ix_demerit_event_month", table_name="demerit_event")
-    op.drop_index("ix_demerit_event_student_id", table_name="demerit_event")
     op.drop_table("demerit_event")

@@ -80,9 +80,9 @@ class StudentLoginIn(BaseModel):
         has_no = bool(self.student_no)
         has_email = bool(self.email)
         if not has_no and not has_email:
-            raise ValueError("student_no or email is required")
+            raise ValueError("学号またはメールアドレスのいずれかを入力してください")
         if has_no and has_email:
-            raise ValueError("provide either student_no or email, not both")
+            raise ValueError("学号とメールは同時に入力できません")
         return self
 
 
@@ -805,7 +805,8 @@ class RollCallCheckinIn(BaseModel):
     避免「同时有 card_uid + idempotency_key 时 backend 推断错路径」。
     """
 
-    card_uid: Optional[str] = Field(None, max_length=32)  # 路径 A
+    # 与 DeviceCheckinIn / NfcCardCreateIn 对齐：卡 UID 固定 14 字符，非法长度 422
+    card_uid: Optional[str] = Field(None, min_length=14, max_length=14)  # 路径 A
     student_id: Optional[UUID] = None  # 路径 B / 手動
     idempotency_key: Optional[str] = Field(None, max_length=64)  # 路径 B
     # 审查 backend#6：只留两个「真实签到」值 —— auto_settle 只能由结算写入、

@@ -69,26 +69,26 @@ def list_cleaning(
     重做后罚扫带具体时刻（scheduled_at），老师工作流是「看待处理 → 审核」，
     故默认拉未结案项（不再按单日过滤）；已审核（passed/failed/skipped）不在此列。
     """
+    # 寮过滤 + 演示隔离下推 SQL：JOIN Student 一次取回已过滤行 + 学生摘要，
+    # 避免先全表载入再 Python 端 continue 过滤。
     stmt = (
-        select(models.CleaningAssignment)
-        .where(models.CleaningAssignment.status.in_(("assigned", "done")))
+        select(models.CleaningAssignment, models.Student)
+        .join(
+            models.Student,
+            models.Student.id == models.CleaningAssignment.student_id,
+        )
+        .where(
+            models.CleaningAssignment.status.in_(("assigned", "done")),
+            demo_scope_for_teacher(teacher),
+        )
         .order_by(models.CleaningAssignment.scheduled_at)
     )
-    rows = db.scalars(stmt).all()
-    # R4 寮过滤 + 演示隔离：真老师看真实学生 / 演示老师看演示学生。
-    # 顺带整行取 Student —— 输出要带学生摘要（姓名/学号/房号），老师卡片
-    # 原来只能显 UUID 前 8 位、审核时认不出对象是谁
     dorm_units = dorm_units_for_teacher(teacher)
-    student_q = select(models.Student).where(demo_scope_for_teacher(teacher))
     if dorm_units is not None:
-        student_q = student_q.where(models.Student.dorm_unit.in_(dorm_units))
-    allowed = {s.id: s for s in db.scalars(student_q).all()}
+        stmt = stmt.where(models.Student.dorm_unit.in_(dorm_units))
     out = []
-    for r in rows:
-        student = allowed.get(r.student_id)
-        if student is None:
-            continue
-        item = schemas.CleaningAssignmentOut.model_validate(r)
+    for assignment, student in db.execute(stmt).all():
+        item = schemas.CleaningAssignmentOut.model_validate(assignment)
         item.student_name = student.name
         item.student_no = student.student_no
         item.room_no = student.room_no

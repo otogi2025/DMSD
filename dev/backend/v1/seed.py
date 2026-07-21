@@ -82,7 +82,7 @@ def seed_dev(db) -> None:
                     **OP_TEACHER, password_hash=security.hash_password(DEV_OP_PASSWORD)
                 )
             )
-            log.info("加 op 账号 login_id=op（dev 密码 %s）", DEV_OP_PASSWORD)
+            log.info("加 op 账号 login_id=op（密码见 seed.py 常量 DEV_OP_PASSWORD）")
         db.commit()
 
     pw_hash = security.hash_password(DEV_PASSWORD)
@@ -198,21 +198,30 @@ def seed_dev(db) -> None:
         ZoneInfo("Asia/Tokyo")
     ).date()  # 机器时区无关，始终取日本日期
 
-    def make_session(session_type: str, h: int, m: int) -> None:
+    def make_session(
+        session_type: str, h: int, m: int, dorm_unit_set: list[int]
+    ) -> None:
         window_start = datetime(
             today_jst.year, today_jst.month, today_jst.day, h, m, tzinfo=JST
         )
+        # 按 dedupe_key 判重（同窗不同寮集合是两条场次，不能只比 window_start）
+        key = models.rollcall_dedupe_key(today_jst, session_type, dorm_unit_set)
         existing = db.scalars(
             select(models.RollCallSession).where(
-                models.RollCallSession.scheduled_window_start_at == window_start,
+                models.RollCallSession.dedupe_key == key,
             )
         ).first()
         if existing:
-            log.info("跳过 rollcall session: %s %s 已存在", session_type, window_start)
+            log.info(
+                "跳过 rollcall session: %s %s dorm=%s 已存在",
+                session_type,
+                window_start,
+                dorm_unit_set,
+            )
             return
         db.add(
             models.RollCallSession(
-                dorm_unit_set=[1, 2],
+                dorm_unit_set=dorm_unit_set,
                 session_type=session_type,
                 schedule_mode="split",
                 day_type="weekday",
@@ -222,13 +231,21 @@ def seed_dev(db) -> None:
                 scheduled_late_end_at=window_start + timedelta(minutes=20),
                 scheduled_auto_end_at=window_start + timedelta(minutes=30),
                 # 审查 backend#17：防重键（uq_rcs_dedupe_key 唯一索引）
-                dedupe_key=models.rollcall_dedupe_key(today_jst, session_type, [1, 2]),
+                dedupe_key=key,
             )
         )
-        log.info("加 rollcall session: %s %s", session_type, window_start)
+        log.info(
+            "加 rollcall session: %s %s dorm=%s",
+            session_type,
+            window_start,
+            dorm_unit_set,
+        )
 
-    make_session("morning", 6, 30)
-    make_session("evening", 22, 0)
+    # 男寮 [1,2] + 女寮 [4] 各一条，与 DEMO_STUDENTS / demo_study assigned_dorm=4 对齐
+    make_session("morning", 6, 30, [1, 2])
+    make_session("morning", 6, 30, [4])
+    make_session("evening", 22, 0, [1, 2])
+    make_session("evening", 22, 0, [4])
     db.commit()
 
     # 巴士便 + 行事日历 — 抽成共用函数（dev / production 都种，挂演示老师名下）
@@ -242,7 +259,7 @@ def seed_dev(db) -> None:
     )
     log.info("演示学生 login: 980101 980201 980401（密码 demo123）")
     log.info(
-        "op 运维账号 login: op（密码 %s，走登录页系统管理者入口）", DEV_OP_PASSWORD
+        "op 运维账号 login: op（密码见 seed.py 常量 DEV_OP_PASSWORD，走登录页系统管理者入口）"
     )
     log.info("=" * 60)
 

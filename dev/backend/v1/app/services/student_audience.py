@@ -53,16 +53,32 @@ def students_for_announcement(db, ann: models.Announcement) -> list[models.Stude
     return stu
 
 
-def _creator_is_demo(db, teacher_id) -> bool:
-    """创建者老师的 is_demo（巴士 / 行事无自身 is_demo 列 → 按创建老师隔离，与公告 ann.is_demo 对称）。"""
+def _creator_is_demo(db, teacher_id) -> bool | None:
+    """创建者老师的 is_demo（巴士 / 行事无自身 is_demo 列 → 按创建老师隔离，与公告 ann.is_demo 对称）。
+
+    返回值：
+    - True / False：按创建老师隔离选受众
+    - None：teacher_id 有值但老师行已不存在（硬删）→ 调用方应跳过推送，避免误推真实学生
+    - teacher_id 为 None：无创建者记录，按真实内容（False）处理（历史数据兼容）
+    """
     if teacher_id is None:
         return False
     teacher = db.get(models.Teacher, teacher_id)
-    return bool(teacher.is_demo) if teacher is not None else False
+    if teacher is None:
+        return None
+    return bool(teacher.is_demo)
 
 
 def students_for_bus(db, bus: models.BusRoute) -> list[models.Student]:
-    stu = _active_students(db, is_demo=_creator_is_demo(db, bus.created_by_teacher_id))
+    is_demo = _creator_is_demo(db, bus.created_by_teacher_id)
+    if is_demo is None:
+        logger.warning(
+            "巴士创建者老师已不存在，跳过推送受众 bus_id=%s teacher_id=%s",
+            getattr(bus, "id", None),
+            bus.created_by_teacher_id,
+        )
+        return []
+    stu = _active_students(db, is_demo=is_demo)
     if bus.visible_to == "men":
         stu = [s for s in stu if s.gender == "male"]
     elif bus.visible_to == "women":
@@ -78,18 +94,25 @@ def students_for_bus(db, bus: models.BusRoute) -> list[models.Student]:
 
 
 def students_for_event(db, event: models.DormEvent) -> list[models.Student]:
-    return _active_students(
-        db, is_demo=_creator_is_demo(db, event.created_by_teacher_id)
-    )
+    is_demo = _creator_is_demo(db, event.created_by_teacher_id)
+    if is_demo is None:
+        logger.warning(
+            "行事创建者老师已不存在，跳过推送受众 event_id=%s teacher_id=%s",
+            getattr(event, "id", None),
+            event.created_by_teacher_id,
+        )
+        return []
+    return _active_students(db, is_demo=is_demo)
 
 
 def broadcast_push(
     db, *, students: list[models.Student], title: str, body: str
 ) -> None:
-    """给一批学生发推送（push 当面 stub 空跑、不真发、不 raise）。
+    """给一批学生发推送（会调 push._dispatch_one 投递）。
 
-    best-effort：单个学生推送失败只记日志，不中断（投稿主业务已先 commit、不受影响）。
-    调用方负责在之后 db.commit() 持久化 notification_log。
+    - 有 APNs 凭证时真发 iOS；无凭证 / FCM 未实装 → status=skipped_no_provider
+    - best-effort：单个学生异常只记日志，不 raise，不拖垮投稿主业务
+    - 调用方负责在之后 db.commit() 持久化 notification_log
 
     backend#54：一次 IN 查出全部目标学生的有效设备令牌，再按 student_id 分组投递，
     避免「每个学生单独查 device_tokens」的 N+1。

@@ -1,6 +1,6 @@
-"""认证 ヘルパー — JWT + bcrypt。
+"""认证辅助 — JWT + bcrypt。
 
-- access_token: JWT HS256, 24h 期限
+- access_token: JWT HS256，过期时间取 settings.jwt_access_expire_min（默认 24h）
 - password: bcrypt cost 12
 """
 
@@ -13,15 +13,15 @@ from jose import JWTError, jwt
 
 from .config import get_settings
 
-# bcrypt は 72 バイト超で例外を出す → SHA256 で前段ハッシュして固定 32 バイト化
-# (一般的なベストプラクティス。72 byte 超えのパスワードでも切り詰めなしで安全)
+# bcrypt 对超过 72 字节的输入会抛异常 → 先用 SHA256 做前段哈希，固定成 32 字节
+# （常见最佳实践：即使密码超过 72 字节也不会被截断，仍安全）
 import hashlib
 
 _BCRYPT_ROUNDS = 12
 
 
 def _prep(plain: str) -> bytes:
-    """bcrypt 入力前処理 — SHA256 → 32 バイト で 72 バイト制限回避。"""
+    """bcrypt 输入前处理 — SHA256 → 32 字节，规避 72 字节上限。"""
     return hashlib.sha256(plain.encode("utf-8")).digest()
 
 
@@ -44,12 +44,12 @@ def create_access_token(
     extra: dict[str, Any] | None = None,
     expire_minutes: int | None = None,
 ) -> str:
-    """JWT 生成。
+    """生成 JWT。
 
     Args:
-        subject: 主体 ID (学生 uuid or 教师 uuid を str 化したもの)
-        role: 'student' | 'teacher:<role>' (例 'teacher:寮務部長')
-        extra: 追加 claim (例 dorm_unit / is_overseas / assigned_dorm)
+        subject: 主体 ID（学生 uuid 或教师 uuid 转成 str）
+        role: 'student' | 'teacher:<role>'（例 'teacher:寮務部長'）
+        extra: 追加 claim（例 dorm_unit / is_overseas / assigned_dorm）
             不得覆盖保留键；即使误传也会被下方强制写回抹掉。
     """
     settings = get_settings()
@@ -78,7 +78,7 @@ def create_access_token(
 
 
 def decode_token(token: str) -> dict[str, Any]:
-    """JWT decode + 期限校验。失败時 JWTError raise。
+    """JWT decode + 过期校验。失败时 raise JWTError。
 
     options 显式要求 exp / sub claim 存在且校验过期：
     防御纵深 — 缺 exp 的 token（历史脚本 / 测试夹具 / 误签发）一律拒，不靠默认行为兜底。

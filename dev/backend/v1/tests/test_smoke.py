@@ -1,10 +1,10 @@
-"""smoke + integration tests — 4 エンドポイント完成確認。
+"""smoke + integration 测试 — 4 个端点完成确认。
 
-完成定義:
-- POST /applications (提出 + 邮件 trigger)
-- GET /applications/:id (#5 承认状态)
-- GET /meals/export (Excel)
-- 表创建 + 役职 seed + SendGrid 発信ロジック動作 (実 API 叩かない、log 確認のみ)
+完成定义:
+- POST /applications（提出 + 邮件 trigger）
+- GET /applications/:id（#5 承认状态）
+- GET /meals/export（Excel）
+- 表创建 + 役职 seed + Resend 发信逻辑动作（不真打 API，只确认 log）
 """
 
 from __future__ import annotations
@@ -100,11 +100,11 @@ def test_post_gaihaku_overseas_chain_5(client, student_token, seed_data, db_sess
     roles = [c["approver_role"] for c in chain]
     assert roles == ["担任", "国際交流部長", "寮務課長", "寮務部長", "管理係"], roles
     assert data["status"] == "pending"
-    # provisional header は外泊では立たない (実物表 evidence あり)
+    # provisional header 在外泊不立（实物表 evidence 已有）
     assert res.headers.get("X-Approval-Chain-Provisional") != "true"
 
 
-def test_post_kisei_provisional_header(client, student_token, seed_data):
+def test_post_kisei_no_provisional_header(client, student_token, seed_data):
     """帰省 = 5-28 实物表确认 → 不再返回 provisional header。"""
     body = {
         "kind": "帰省",
@@ -152,7 +152,7 @@ def test_post_application_no_auth_rejected(client, seed_data):
 def test_application_creates_notification_log(
     client, student_token, seed_data, db_session
 ):
-    """#6 — 提交 → notification_log 行作成 (SendGrid 未設定なので status=pending)。"""
+    """#6 — 提交 → notification_log 行作成（RESEND_API_KEY 未设定所以 status=pending）。"""
     from app import models
 
     body = {
@@ -175,8 +175,10 @@ def test_application_creates_notification_log(
     logs = db_session.query(models.NotificationLog).all()
     assert len(logs) >= 1
     assert logs[-1].template_key == "application_submitted"
-    # 5 役职 chain → 5 emails (SendGrid 未設定 → status='pending')
-    assert "@" in (logs[-1].target_email or "")
+    # 1 条 log、target_email 含 chain 收件人（RESEND_API_KEY 未设定 → status='pending'）
+    recipients = [e for e in (logs[-1].target_email or "").split(",") if e]
+    assert len(recipients) >= 1
+    assert all("@" in e for e in recipients)
 
 
 # ---------------------------------------------------------------
@@ -215,10 +217,10 @@ def test_get_application_status(client, student_token, seed_data):
 def test_get_application_other_student_forbidden(
     client, student_token, seed_data, db_session
 ):
-    """他学生の届は学生から見えない。"""
+    """其他学生的申请，本学生看不到。"""
     from app import models
 
-    # 別の学生作成 (一般)
+    # 另建一个学生（一般）
     from app import security as sec
 
     other = models.Student(
@@ -291,7 +293,7 @@ def test_chain_provisional_only_kikoku_general():
 # #7 食堂 GET /meals/calc + /meals/export
 # ---------------------------------------------------------------
 def _make_approved_application(db_session, student, *, leave_d, return_d):
-    """テスト用の承认済み外泊届 (食事不要期間付き)。"""
+    """测试用的已承认外泊届（含食事不要期间）。"""
     from app import models
 
     app = models.Application(
@@ -385,7 +387,7 @@ def test_meals_general_teacher_allowed(client, seed_data, db_session):
 
 
 # ---------------------------------------------------------------
-# #6 SendGrid smoke (実 API 叩かない, dev mode = pending)
+# #6 Resend smoke（不真打 API，dev mode = pending）
 # ---------------------------------------------------------------
 def test_notifications_test_dev_mode(client, teacher_token, seed_data):
     res = client.post(
@@ -395,6 +397,6 @@ def test_notifications_test_dev_mode(client, teacher_token, seed_data):
     )
     assert res.status_code == 200
     data = res.json()["data"]
-    # SENDGRID_API_KEY 未設定 → sent=false + error 含 'not configured'
+    # RESEND_API_KEY 未设定 → sent=false + error 含 'not configured'
     assert data["sent"] is False
     assert "not configured" in (data["error"] or "")

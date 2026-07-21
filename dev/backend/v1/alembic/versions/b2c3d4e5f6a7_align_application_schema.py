@@ -1,9 +1,9 @@
 """align_application_schema
 
-2026-05-02: iOS ↔ backend フィールド対齐 (F2/F3/F5/Q1)
+2026-05-02: iOS ↔ backend 字段对齐 (F2/F3/F5/Q1)
   - Application.reason 列追加 (F5)
   - meals_skip_from / meals_skip_to 削除 + meals_skip JSON 列追加 (F3)
-  - status CHECK に "returned" 追加 (Q1)
+  - status CHECK 追加 "returned" (Q1)
 
 Revision ID: b2c3d4e5f6a7
 Revises: 7a15771bdc7b
@@ -24,16 +24,16 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # SQLite は ALTER TABLE で CHECK 制約変更不可 → batch_alter_table でテーブル再作成
+    # SQLite 无法用 ALTER TABLE 改 CHECK 约束 → 用 batch_alter_table 重建表
     with op.batch_alter_table("applications", recreate="auto") as batch_op:
-        # F5: reason 列追加
+        # F5: 追加 reason 列
         batch_op.add_column(sa.Column("reason", sa.Text(), nullable=True))
-        # F3: meals_skip JSON 列追加
+        # F3: 追加 meals_skip JSON 列
         batch_op.add_column(sa.Column("meals_skip", sa.JSON(), nullable=True))
-        # F3: 旧 meals_skip_from / meals_skip_to 削除
+        # F3: 删除旧 meals_skip_from / meals_skip_to
         batch_op.drop_column("meals_skip_from")
         batch_op.drop_column("meals_skip_to")
-        # Q1: status CHECK に "returned" 追加
+        # Q1: status CHECK 追加 "returned"
         batch_op.drop_constraint("ck_app_status", type_="check")
         batch_op.create_check_constraint(
             "ck_app_status",

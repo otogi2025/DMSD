@@ -61,6 +61,7 @@ def test_resend_posts_to_api_when_key_set(monkeypatch):
     def fake_urlopen(req, timeout=None):
         captured["url"] = req.full_url
         captured["auth"] = req.get_header("Authorization")
+        captured["content_type"] = req.get_header("Content-type")
         captured["body"] = json.loads(req.data.decode("utf-8"))
         return _Resp()
 
@@ -73,6 +74,8 @@ def test_resend_posts_to_api_when_key_set(monkeypatch):
     assert err is None
     assert captured["url"] == "https://api.resend.com/emails"
     assert captured["auth"] == "Bearer re_test"
+    assert captured["content_type"] == "application/json"
     assert captured["body"]["to"] == ["a@b.com"]
     assert captured["body"]["subject"] == "件名"
     assert captured["body"]["from"] == "Tomoshibi 通知 <noreply@tomoshibi.example.jp>"
+    assert captured["body"]["text"] == "本文"

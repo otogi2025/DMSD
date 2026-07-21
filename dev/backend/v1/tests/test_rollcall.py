@@ -124,7 +124,7 @@ class TestCheckin:
             json=body,
             headers={"Authorization": f"Bearer {teacher_token}"},
         )
-        assert res2.status_code in (200, 201)
+        assert res2.status_code == 201
         assert res2.json()["data"]["id"] == event_id_1
 
     def test_idempotency_different_keys_same_student_reuse_row(
@@ -340,11 +340,12 @@ class TestBoard:
         """杭田 2026-06-04 三-3/5: 有 approved 出寮願覆盖今天的学生，live 板预标 exempt_range。
 
         无点呼 event 也要显示成「外泊免除」，让寮監一眼看到不用管，不必等结算。
+        leave/return 用 JST 日期，与 board 按 session.scheduled_window_start_at 的 JST 日口径一致。
         """
-        from datetime import date, datetime, time, timedelta, timezone
+        from datetime import datetime, time, timedelta, timezone
 
         sid = seed_data["student"].id
-        today = date.today()
+        today = datetime.now(ZoneInfo("Asia/Tokyo")).date()
         app = models.Application(
             student_id=sid,
             kind="帰省",
@@ -423,10 +424,10 @@ class TestPatchEvent:
     """PATCH /rollcall/events/{id} — 教师改判。
 
     Codex 5.5 审查补回归（此端点此前 0 覆盖）：
-    - rollcall-07 终态门：ended 场次禁止改判
+    - 改判无时限（7-17 拍板③）：ended 场次仍可改判，原终态门已取消
     - rollcall-07 no-op 门 + 防重复刷扣分：old_status 取「当前最新状态」，
       重复 PATCH 同一旧 event 到同状态会被挡（旧实现用被 PATCH 行的 base_status，挡不住）
-    - 授权顺序：寮边界检查必须在终态探测之前（管辖外老师得 403，不泄露场次状态）
+    - 寮过滤已取消（6-13）：未选 selected_dorm 时跨寮老师也可改判（含已结束场次）
     """
 
     def _checkin(self, client, token, session_id, student_id):

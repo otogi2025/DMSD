@@ -1,11 +1,11 @@
 """SQLAlchemy 2.x 同步 engine + session.
 
-设计权威 BACKEND_DESIGN_LOG.md §1.1 は async を推奨だが、本実装は同期版で起手:
-- itsuki がコード読みやすい
-- FastAPI の sync route で十分パフォーマンス出る
-- async 化は後で `Session` → `AsyncSession` 置換でいける
+设计权威 BACKEND_DESIGN_LOG.md §1.1 推荐 async，本实现先用同步版起手:
+- itsuki 读代码更轻松
+- FastAPI 的 sync route 性能已够用
+- 以后要 async 化，把 Session → AsyncSession 替换即可
 
-dev = SQLite ファイル (auto-create), prod = PostgreSQL 16+。
+dev = SQLite 文件 (auto-create), prod = PostgreSQL 16+。
 """
 
 from collections.abc import Generator
@@ -62,12 +62,12 @@ class TZDateTime(TypeDecorator):
 
 
 class Base(DeclarativeBase):
-    """全 ORM model 的 base (declarative 2.x スタイル)。"""
+    """全 ORM model 的 base（declarative 2.x 风格）。"""
 
     pass
 
 
-# SQLite では check_same_thread=False が必要 (FastAPI worker 跨スレッド対応)
+# SQLite 需要 check_same_thread=False（FastAPI worker 跨线程）
 _connect_args = {"check_same_thread": False} if settings.is_sqlite else {}
 
 # H-12：连接池调优。原来只设 pool_pre_ping，长连接被 DB / 中间网关掐断后才靠 ping 重连。
@@ -91,7 +91,7 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
 def get_db() -> Generator[Session, None, None]:
-    """FastAPI 依存注入用 — request スコープで session を払い出す。"""
+    """FastAPI 依赖注入用 — 按 request 作用域发放 session。"""
     db = SessionLocal()
     try:
         yield db
@@ -100,8 +100,8 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def create_all() -> None:
-    """开发用 — 启动时全表自动建立。production は Alembic migration へ。"""
-    # models を import すると Base.metadata に登録される (循環参照避けで関数内 import)
+    """开发用 — 启动时全表自动建立。production 走 Alembic migration。"""
+    # 在函数内 import models，触发 Base.metadata 注册（避免循环引用）
     from . import models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)

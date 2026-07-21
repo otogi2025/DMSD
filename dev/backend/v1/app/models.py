@@ -7,7 +7,7 @@
 - JSON = `JSON` (SQLAlchemy 抽象, SQLite 用 TEXT, PG 用 JSONB)
 - TIMESTAMPTZ → 自定义 `TZDateTime`（见 database.py）：存世界时、读出带 +09:00 日本时间，
   dev(SQLite)/prod(PG) 输出一致，客户端不用猜时区
-- 一部 PG 専用 CHECK (CURRENT_DATE 比較等) は app 層で再校验, DB layer は最低限
+- 部分 PG 专用 CHECK（CURRENT_DATE 比较等）在 app 层再校验，DB 层只做最低限度
 
 decision IDs (BACKEND_DESIGN_LOG §10):
 - D4 实物表 chain (外泊 一般 = 3 / 留学生 = 5)
@@ -898,7 +898,7 @@ class RollCallSession(Base):
 
 
 class RollCallEvent(Base):
-    """点呼イベント — append-only 纠错履历。
+    """点呼事件 — append-only 纠错履历。
 
     同生同场**合法多行**：auto_settle 结算行（absent/exempt_range）+ 事后离线
     补传的 auto_nfc 行 + 多条 teacher_override 改判行可以共存，board/summary/
@@ -919,10 +919,10 @@ class RollCallEvent(Base):
     device_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid)
     path_type: Mapped[Optional[str]] = mapped_column(
         String(8)
-    )  # 'A' (NFC カード) | 'B' (iPhone tap) | 'manual'
+    )  # 'A'（NFC 卡）| 'B'（iPhone tap）| 'manual'
     base_status: Mapped[str] = mapped_column(
         String(24), nullable=False
-    )  # present / late / absent / exempt_range
+    )  # init / present / late / absent / exempt_range
     status_source: Mapped[str] = mapped_column(
         String(24), nullable=False
     )  # auto_nfc / auto_settle / manual_checkin / teacher_override
@@ -934,11 +934,11 @@ class RollCallEvent(Base):
     )
     idempotency_key: Mapped[Optional[str]] = mapped_column(
         Text
-    )  # 路径 B 用 (client が送る UUID)
+    )  # 路径 B 用（client 传来的 UUID）
     card_uid: Mapped[Optional[str]] = mapped_column(
         String(32)
     )  # 路径 A 用 (NFC UID hex)
-    reason: Mapped[Optional[str]] = mapped_column(Text)  # override 時必填
+    reason: Mapped[Optional[str]] = mapped_column(Text)  # override 时必填
 
     session: Mapped["RollCallSession"] = relationship(back_populates="events")
 
@@ -983,9 +983,10 @@ class RollCallReport(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     student_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("students.id"), nullable=False, index=True
+        Uuid, ForeignKey("students.id"), nullable=False
     )
     # 关联当次点呼场次（可空 — 学生非点呼时段也能上报体调）
+    # backend#72：student_id 单列索引由 idx_rcr_student_created(student_id,created_at) 覆盖，去 index=True
     session_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid, ForeignKey("rollcall_sessions.id")
     )
@@ -1225,8 +1226,9 @@ class DemeritEvent(Base):
     __tablename__ = "demerit_event"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    # backend#72：student_id / month 单列索引由 idx_demerit_student_month / idx_demerit_month_active 覆盖，去 index=True
     student_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("students.id"), nullable=False, index=True
+        Uuid, ForeignKey("students.id"), nullable=False
     )
 
     # 扣分事件来源类型
@@ -1238,7 +1240,7 @@ class DemeritEvent(Base):
     reason: Mapped[str] = mapped_column(Text, nullable=False)
 
     # 月份汇总用，避免每次 GROUP BY 算 (YYYY-MM 格式)
-    month: Mapped[str] = mapped_column(String(7), nullable=False, index=True)
+    month: Mapped[str] = mapped_column(String(7), nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
         TZDateTime, nullable=False, server_default=func.now()
@@ -1294,8 +1296,9 @@ class CleaningAssignment(Base):
     __tablename__ = "cleaning_assignment"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    # backend#72：student_id 单列索引由 idx_cleaning_student_scheduled 覆盖，去 index=True
     student_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("students.id"), nullable=False, index=True
+        Uuid, ForeignKey("students.id"), nullable=False
     )
     # 清扫地点 —— 老师自由文本（旧版是 7 选 1 枚举，重建去枚举）
     area: Mapped[str] = mapped_column(String(32), nullable=False)
@@ -1720,8 +1723,9 @@ class MiscRequest(Base):
     __tablename__ = "misc_requests"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    # backend#72：student_id 单列索引由 idx_misc_student_status 覆盖，去 index=True
     student_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("students.id"), nullable=False, index=True
+        Uuid, ForeignKey("students.id"), nullable=False
     )
     # repair 修繕 / guest 来訪者 / proxy_receipt 代理受取
     kind: Mapped[str] = mapped_column(String(16), nullable=False)
@@ -1889,8 +1893,9 @@ class NfcCard(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     card_uid: Mapped[str] = mapped_column(String(14), nullable=False)
+    # backend#72：student_id 单列索引由 idx_nfc_card_student 覆盖，去 index=True
     student_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("students.id"), nullable=False, index=True
+        Uuid, ForeignKey("students.id"), nullable=False
     )
     card_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     issued_at: Mapped[datetime] = mapped_column(

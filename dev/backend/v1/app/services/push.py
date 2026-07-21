@@ -81,8 +81,11 @@ def _send_via_apns(
     body: str,
     data: Optional[dict[str, Any]],
     template_key: str = "generic",
-) -> tuple[bool, str | None]:
+) -> tuple[bool, str | None, bool]:
     """APNs HTTP/2 真实投递。
+
+    返回 (成功, 错误信息, 令牌已永久失效)。
+    永久失效 = APNs reason 为 Unregistered / BadDeviceToken，上层应置 revoked_at。
 
     凭证（生产 .env 设置，任一缺失 → 返回 not configured，上层记 skipped_no_provider）:
       APNS_KEY        (完整 .p8 私钥内容，含 BEGIN PRIVATE KEY 行)
@@ -105,7 +108,7 @@ def _send_via_apns(
         if not value
     ]
     if missing:
-        return False, f"{'/'.join(missing)} not configured"
+        return False, f"{'/'.join(missing)} not configured", False
 
     aps: dict[str, Any] = {
         "alert": {"title": title, "body": body},
@@ -137,12 +140,18 @@ def _send_via_apns(
             },
         )
     except Exception as exc:  # noqa: BLE001 — 网络层任何异常都转 (False, 错误串)
-        return False, f"APNs request error: {exc}"
+        return False, f"APNs request error: {exc}", False
 
     if resp.status_code == 200:
-        return True, None
+        return True, None, False
     # 4xx/5xx — 苹果返回 JSON {"reason": "..."}，截前 200 字进 log 方便排查
-    return False, f"APNs {resp.status_code}: {resp.text[:200]}"
+    reason = ""
+    try:
+        reason = resp.json().get("reason", "") or ""
+    except Exception:  # noqa: BLE001 — 响应体非 JSON 时忽略，仍记原始 text
+        reason = ""
+    permanent = reason in ("Unregistered", "BadDeviceToken")
+    return False, f"APNs {resp.status_code}: {resp.text[:200]}", permanent
 
 
 def _send_via_fcm(
@@ -150,7 +159,7 @@ def _send_via_fcm(
     title: str,
     body: str,
     data: Optional[dict[str, Any]],
-) -> tuple[bool, str | None]:
+) -> tuple[bool, str | None, bool]:
     """FCM HTTP v1 投递 stub。
 
     TODO: 实现步骤
@@ -164,8 +173,8 @@ def _send_via_fcm(
     """
     settings = get_settings()
     if not getattr(settings, "fcm_key", None):
-        return False, "FCM_KEY not configured"
-    return False, "FCM send not implemented yet"
+        return False, "FCM_KEY not configured", False
+    return False, "FCM send not implemented yet", False
 
 
 # ---------------------------------------------------------------
@@ -179,13 +188,13 @@ def _dispatch_one(
     body: str,
     data: Optional[dict[str, Any]],
     template_key: str = "generic",
-) -> tuple[bool, str | None]:
-    """根据平台路由到对应 provider。返回 (sent, error)。"""
+) -> tuple[bool, str | None, bool]:
+    """根据平台路由到对应 provider。返回 (sent, error, token_permanently_invalid)。"""
     if platform == "ios":
         return _send_via_apns(token, title, body, data, template_key=template_key)
     elif platform == "android":
         return _send_via_fcm(token, title, body, data)
-    return False, f"unknown platform: {platform}"
+    return False, f"unknown platform: {platform}", False
 
 
 # ---------------------------------------------------------------
@@ -247,7 +256,7 @@ def send_push(
         # 契约（见本函数 docstring）。_dispatch_one 内的 provider 抛意外异常（网络错 / SDK
         # bug）时不再炸穿到调用方业务，而是当作本设备投递失败记 log 继续下一台设备。
         try:
-            sent, error = _dispatch_one(
+            sent, error, token_dead = _dispatch_one(
                 platform=dt.platform,
                 token=dt.token,
                 title=title,
@@ -256,7 +265,7 @@ def send_push(
                 template_key=template_key,
             )
         except Exception as exc:  # noqa: BLE001 — 推送投递任何异常都不得中断业务
-            sent, error = False, f"dispatch raised: {exc}"
+            sent, error, token_dead = False, f"dispatch raised: {exc}", False
         log.attempts = 1
         if sent:
             log.status = "sent"
@@ -277,6 +286,14 @@ def send_push(
                 dt.id,
                 error,
             )
+            # 死令牌（APNs Unregistered / BadDeviceToken）→ 置 revoked_at，避免下次仍被拾取
+            if token_dead:
+                dt.revoked_at = datetime.now(timezone.utc)
+                logger.info(
+                    "send_push: revoked dead device token id=%s (platform=%s)",
+                    dt.id,
+                    dt.platform,
+                )
         logs.append(log)
 
     return logs

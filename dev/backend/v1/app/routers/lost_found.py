@@ -59,7 +59,7 @@ def list_lost_found(
             status_code=400,
             detail={
                 "code": "INVALID_STATUS",
-                "message": "status 必须是 open / resolved",
+                "message": "status は open / resolved のいずれかです",
             },
         )
     # 演示隔离：principal（学生 / 老师都有 is_demo）只看与自己同侧学生的投稿（双向防泄漏）

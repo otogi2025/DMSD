@@ -1,13 +1,14 @@
 """巴士时刻表 endpoint (spec §7.6)。
 
 端点:
-- GET  /api/v1/bus/routes               — 列巴士便（老师都可看）
+- GET  /api/v1/bus/routes               — 列巴士便（学生+老师均可看）
 - GET  /api/v1/bus/routes/{id}          — 详情
-- POST /api/v1/bus/routes               — 役职老师新建
-- PATCH /api/v1/bus/routes/{id}         — 役职老师编辑
-- DELETE /api/v1/bus/routes/{id}        — 役职老师删除（标 deprecated）
+- POST /api/v1/bus/routes               — 有 C_BUS·MANAGE 的老师新建
+- PATCH /api/v1/bus/routes/{id}         — 有 C_BUS·MANAGE 的老师编辑
+- DELETE /api/v1/bus/routes/{id}        — 有 C_BUS·MANAGE 的老师删除（标 deprecated）
 
-权限: GET 全老师可看 / 增删改限役职（寮務部長 / 寮務課長 / 管理係）
+权限: GET 学生+老师均可看 / 增删改靠 require_permission(C_BUS, MANAGE)（权限组判定）
+      + assert_not_demo_teacher（演示老师禁写，防污染真实班次）
 """
 
 from __future__ import annotations
@@ -30,17 +31,8 @@ from ..deps import (
 
 router = APIRouter(prefix="/api/v1/bus/routes", tags=["bus"])
 
-# 增删改权限 — 役职老师
-_EDIT_ROLES = {"寮務部長", "寮務課長", "管理係"}
-
 _VALID_KINDS = {"daily_commute", "dorm_special"}
 _VALID_VISIBLE_TO = {"all", "dorm_only", "men", "women"}
-
-
-def _require_edit_role(teacher: models.Teacher) -> None:
-    # 演示老师禁增删改全局巴士便（巴士无 is_demo，会污染真实学生看到的班次）→ 403。
-    # 权限组判定（巴士路线 = M）已上移到端点的 require_permission 闸；此处只剩演示隔离。
-    assert_not_demo_teacher(teacher)
 
 
 @router.get("", response_model=schemas.BusRouteListOut)
@@ -81,7 +73,7 @@ def list_bus_routes(
                 status_code=400,
                 detail={
                     "code": "INVALID_KIND",
-                    "message": "kind 必须是 daily_commute 或 dorm_special",
+                    "message": "kind は daily_commute または dorm_special を指定してください",
                 },
             )
         stmt = stmt.where(models.BusRoute.kind == kind)
@@ -134,8 +126,10 @@ def create_bus_route(
         require_permission(permissions.C_BUS, permissions.MANAGE)
     ),
 ):
-    """役职老师新建巴士便。"""
-    _require_edit_role(teacher)
+    """有 C_BUS·MANAGE 的老师新建巴士便。"""
+    # 演示老师禁增删改全局巴士便（巴士无 is_demo，会污染真实学生看到的班次）→ 403。
+    # 权限组判定已在端点 require_permission 闸；此处只剩演示隔离。
+    assert_not_demo_teacher(teacher)
     # kind / name 缺省补全（2026-06-15 表单去掉「種別」「便名」两栏）：
     # 表单不再传 kind → 默认 dorm_special（寮特殊便）；不再传 name → 用 direction 回填。
     kind = body.kind or "dorm_special"
@@ -145,7 +139,7 @@ def create_bus_route(
             status_code=400,
             detail={
                 "code": "INVALID_KIND",
-                "message": "kind 必须是 daily_commute 或 dorm_special",
+                "message": "kind は daily_commute または dorm_special を指定してください",
             },
         )
     if body.visible_to not in _VALID_VISIBLE_TO:
@@ -153,7 +147,7 @@ def create_bus_route(
             status_code=400,
             detail={
                 "code": "INVALID_VISIBLE_TO",
-                "message": f"visible_to 必须是 {_VALID_VISIBLE_TO} 之一",
+                "message": "visible_to は all/dorm_only/men/women のいずれかです",
             },
         )
     row = models.BusRoute(
@@ -192,11 +186,11 @@ def patch_bus_route(
         require_permission(permissions.C_BUS, permissions.MANAGE)
     ),
 ):
-    """役职老师编辑巴士便（部分更新）。
+    """有 C_BUS·MANAGE 的老师编辑巴士便（部分更新）。
     A9 审查结论：deprecated 软删可逆 — spec §7.6 无不可逆条款，
-    DELETE 只是标 deprecated=True，PATCH 允许役职老师改回 deprecated=False（恢复便）。
+    DELETE 只是标 deprecated=True，PATCH 允许改回 deprecated=False（恢复便）。
     """
-    _require_edit_role(teacher)
+    assert_not_demo_teacher(teacher)
     row = db.get(models.BusRoute, route_id)
     if not row:
         raise HTTPException(
@@ -208,7 +202,7 @@ def patch_bus_route(
             status_code=400,
             detail={
                 "code": "INVALID_KIND",
-                "message": "kind 必须是 daily_commute 或 dorm_special",
+                "message": "kind は daily_commute または dorm_special を指定してください",
             },
         )
     if body.visible_to is not None and body.visible_to not in _VALID_VISIBLE_TO:
@@ -216,7 +210,7 @@ def patch_bus_route(
             status_code=400,
             detail={
                 "code": "INVALID_VISIBLE_TO",
-                "message": f"visible_to 必须是 {_VALID_VISIBLE_TO} 之一",
+                "message": "visible_to は all/dorm_only/men/women のいずれかです",
             },
         )
     # 用 exclude_unset 区分「字段没传=不动」与「字段显式传 null=清空」（TW-014）。原来
@@ -276,8 +270,8 @@ def delete_bus_route(
         require_permission(permissions.C_BUS, permissions.MANAGE)
     ),
 ):
-    """役职老师停用巴士便（标 deprecated=True，不物理删除）。"""
-    _require_edit_role(teacher)
+    """有 C_BUS·MANAGE 的老师停用巴士便（标 deprecated=True，不物理删除）。"""
+    assert_not_demo_teacher(teacher)
     row = db.get(models.BusRoute, route_id)
     if not row:
         raise HTTPException(

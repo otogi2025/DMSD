@@ -13,15 +13,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from zoneinfo import ZoneInfo
 
 import pytest
 
 from app import models
 
-
-# 日本时区常量（与 discipline.py 保持一致）
-_JST = ZoneInfo("Asia/Tokyo")
 
 # 测试月份：使用固定月份字符串，不随系统时间飘（避免跨月失效）
 _TEST_MONTH = "2026-06"
@@ -62,6 +58,8 @@ def _get_ranking(client, token: str) -> dict:
     )
     assert res.status_code == 200, res.text
     return res.json()["data"]
+
+
 def _find_entry(ranking_data: dict, student_id) -> dict | None:
     """在 ranking 结果的 entries 列表中按 student_id 找对应条目。"""
     sid_str = str(student_id)

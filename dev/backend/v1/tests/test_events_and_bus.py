@@ -25,8 +25,8 @@ def edit_token(client, seed_data):
 
 
 @pytest.fixture
-def readonly_token(client, seed_data):
-    """寮務一般教師 token — 只有读权限（无增删改）。"""
+def general_teacher_token(client, seed_data):
+    """寮務一般教師 token — 行事/巴士功能簇人人可管（可增删改）。"""
     res = client.post(
         "/api/v1/sessions/teacher",
         json={"login_id": "tannin", "password": "test-password-12345"},
@@ -52,6 +52,8 @@ def _make_event(client, token, **kw):
     )
     assert res.status_code == 201, res.text
     return res.json()["data"]
+
+
 class TestDormEvents:
     def test_create_and_list(self, client, seed_data, edit_token):
         """创建行事予定 → 列表能查到。"""
@@ -114,15 +116,17 @@ class TestDormEvents:
         ).json()["data"]["items"]
         assert len(items) == 0
 
-    def test_create_403_no_permission(self, client, seed_data, readonly_token):
-        """一般教师 → 可创建行事（201）。
+    def test_general_teacher_can_create_event(
+        self, client, seed_data, general_teacher_token
+    ):
+        """一般教师 → 可创建行事（201）。人人可管。
 
         权限分级改造（teacher_permission_v1.md §5 第 7 行「行事·活动」5 组全部 M）后，
-        旧「一般教师不在编辑角色集 → 403」废弃：该功能簇人人可管。仅演示老师另被隔离闸拦截。
+        旧「一般教师不在编辑角色集 → 403」废弃。仅演示老师另被隔离闸拦截。
         """
         res = client.post(
             "/api/v1/events",
-            headers={"Authorization": f"Bearer {readonly_token}"},
+            headers={"Authorization": f"Bearer {general_teacher_token}"},
             json={
                 "title": "始業式",
                 "category": "学校行事",
@@ -131,17 +135,17 @@ class TestDormEvents:
         )
         assert res.status_code == 201
 
-    def test_patch_403_no_permission(
-        self, client, seed_data, edit_token, readonly_token
+    def test_general_teacher_can_patch_event(
+        self, client, seed_data, edit_token, general_teacher_token
     ):
-        """一般教师 → 可编辑行事（200）。
+        """一般教师 → 可编辑行事（200）。人人可管。
 
-        同 create：teacher_permission_v1.md §5 第 7 行「行事·活动」5 组全部 M，人人可管。
+        同 create：teacher_permission_v1.md §5 第 7 行「行事·活动」5 组全部 M。
         """
         ev = _make_event(client, edit_token)
         res = client.patch(
             f"/api/v1/events/{ev['id']}",
-            headers={"Authorization": f"Bearer {readonly_token}"},
+            headers={"Authorization": f"Bearer {general_teacher_token}"},
             json={"title": "改名"},
         )
         assert res.status_code == 200
@@ -257,6 +261,8 @@ def _make_bus(client, token, **kw):
     )
     assert res.status_code == 201, res.text
     return res.json()["data"]
+
+
 class TestBusRoutes:
     def test_create_and_list(self, client, seed_data, edit_token):
         """创建巴士便 → 列表能查到。"""
@@ -335,15 +341,17 @@ class TestBusRoutes:
         assert len(items_all) == 1
         assert items_all[0]["deprecated"] is True
 
-    def test_create_403_no_permission(self, client, seed_data, readonly_token):
-        """一般教师 → 可创建巴士便（201）。
+    def test_general_teacher_can_create_bus(
+        self, client, seed_data, general_teacher_token
+    ):
+        """一般教师 → 可创建巴士便（201）。人人可管。
 
         权限分级改造（teacher_permission_v1.md §5 第 6 行「巴士路线」5 组全部 M）后，
-        旧「一般教师不在编辑角色集 → 403」废弃：该功能簇人人可管。仅演示老师另被隔离闸拦截。
+        旧「一般教师不在编辑角色集 → 403」废弃。仅演示老师另被隔离闸拦截。
         """
         res = client.post(
             "/api/v1/bus/routes",
-            headers={"Authorization": f"Bearer {readonly_token}"},
+            headers={"Authorization": f"Bearer {general_teacher_token}"},
             json={
                 "kind": "daily_commute",
                 "name": "朝便",
@@ -353,17 +361,17 @@ class TestBusRoutes:
         )
         assert res.status_code == 201
 
-    def test_patch_403_no_permission(
-        self, client, seed_data, edit_token, readonly_token
+    def test_general_teacher_can_patch_bus(
+        self, client, seed_data, edit_token, general_teacher_token
     ):
-        """一般教师 → 可编辑巴士便（200）。
+        """一般教师 → 可编辑巴士便（200）。人人可管。
 
-        同 create：teacher_permission_v1.md §5 第 6 行「巴士路线」5 组全部 M，人人可管。
+        同 create：teacher_permission_v1.md §5 第 6 行「巴士路线」5 组全部 M。
         """
         bus = _make_bus(client, edit_token)
         res = client.patch(
             f"/api/v1/bus/routes/{bus['id']}",
-            headers={"Authorization": f"Bearer {readonly_token}"},
+            headers={"Authorization": f"Bearer {general_teacher_token}"},
             json={"name": "改名"},
         )
         assert res.status_code == 200

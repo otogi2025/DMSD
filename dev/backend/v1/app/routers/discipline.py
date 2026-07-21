@@ -37,6 +37,7 @@ from ..deps import (
     get_current_student,
     require_permission,
 )
+from ..services.student_picker import query_students_for_picker
 
 router = APIRouter(prefix="/api/v1/discipline", tags=["discipline"])
 
@@ -55,8 +56,9 @@ def get_ranking(
 ):
     """月排名 — month 是 YYYY-MM 字符串。
 
-    R4 寮过滤：跨寮役职 (寮務部長 / 寮務課長 / 国際交流部長 / 国際交流課長) 看全员，
-    其他教师按 assigned_dorm 过滤。
+    R4 寮过滤：走 deps.dorm_units_for_teacher（登录选寮 + 权限组）。
+    op / 申請承認専用 组看全部；其他组按令牌 selected_dorm（男→[1,2] / 女→[4]）；
+    职位不参与鉴权。
     """
     # month 格式校验 — 错误格式不能静默返回空榜单（否则老师会误以为本月没人扣分）
     try:
@@ -183,35 +185,8 @@ def search_students_for_demerit(
     返回字段复用 FrontDeskStudentBrief（挑人最小字段），老师网页 StudentPicker 统一消费。
     同样按老师管辖男/女寮过滤 + 演示隔离。
     """
-    stmt = select(models.Student).where(demo_scope_for_teacher(teacher))
-    if q:
-        # E-低-04：转义用户输入里的 LIKE 通配符 % 和 _（与 admin_accounts.py 同款），
-        # 否则老师输入含 % 的查询会被当通配符匹配全部（功能性瑕疵，非注入——值已被
-        # SQLAlchemy 参数化）。escape='\\' 指定反斜杠为转义字符，先转义反斜杠自身再转义 % 和 _。
-        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        like = f"%{escaped}%"
-        stmt = stmt.where(
-            models.Student.name.like(like, escape="\\")
-            | (
-                models.Student.grade_code
-                + models.Student.class_code
-                + models.Student.seat_no
-            ).like(like, escape="\\")
-        )
-    allowed = dorm_units_for_teacher(teacher)
-    if allowed is not None:
-        stmt = stmt.where(models.Student.dorm_unit.in_(allowed))
-    stmt = stmt.order_by(models.Student.room_no).limit(20)
-    return [
-        schemas.FrontDeskStudentBrief(
-            id=s.id,
-            name=s.name,
-            room_no=s.room_no,
-            student_no=f"{s.grade_code}{s.class_code}{s.seat_no}",
-            dorm_unit=s.dorm_unit,
-        )
-        for s in db.scalars(stmt).all()
-    ]
+    # backend#104：查询本体与 front_desk.search_recipients 逐行相同，共用 student_picker
+    return query_students_for_picker(db, teacher, q)
 
 
 @router.post("/manual", response_model=schemas.DemeritEventOut, status_code=201)

@@ -1,10 +1,10 @@
-"""学生账号管理 admin 端点（限定寮务管理 role）。
+"""学生账号管理 admin 端点。
 
 权威 spec：
 - system_features.md §7.1（学生账号管理）
 - BACKEND_DESIGN_LOG.md §5.x
 
-角色 gate：寮務部長 / 寮務課長 / 管理係
+鉴权：require_permission(permissions.C_STUDENT_ACCOUNT, ...)。
 """
 
 from __future__ import annotations
@@ -33,9 +33,6 @@ router = APIRouter(
     prefix="/api/v1",
     tags=["admin / accounts"],
 )
-
-# §3.4 寮务管理 3 个角色
-ADMIN_ROLES = ("寮務部長", "寮務課長", "管理係")
 
 # 临时密码：16 桁英数字混合（大文字 + 小文字 + 数字 — 猜测难度足够，不用特殊符号避免输错）
 _TEMP_PW_LENGTH = 16
@@ -78,19 +75,24 @@ def _get_student_or_404(
     return student
 
 
-def _assert_student_in_dorm(teacher: models.Teacher, student: models.Student) -> None:
+def _assert_student_in_dorm(
+    teacher: models.Teacher,
+    student: models.Student,
+    *,
+    message: str = "担当寮外の学生は操作できません",
+) -> None:
     """R4 寮边界 — 分寮老师只能操作本人管辖寮的学生，跨寮 → 403 FORBIDDEN_DORM。
 
-    跨寮角色 / NULL 寮 allowed=None 不限。语义与同文件 teacher_renew_seat 一致。
+    dorm_units_for_teacher 返回可见 dorm_unit 列表；未选寮/跨寮组为 [1,2,4]。
     2026-06-12 codex 审查 F1：权限分级把改密码/解锁放给分寮操作组后，补此寮校验防跨寮写。
     """
     allowed = dorm_units_for_teacher(teacher)
-    if allowed is not None and student.dorm_unit not in allowed:
+    if student.dorm_unit not in allowed:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={
                 "code": "FORBIDDEN_DORM",
-                "message": "担当寮外の学生は操作できません",
+                "message": message,
             },
         )
 
@@ -150,12 +152,11 @@ def list_students(
     # 1. 基础 query — 演示隔离（真老师看真实学生 / 演示老师看演示学生）
     stmt = select(models.Student).where(demo_scope_for_teacher(teacher))
 
-    # R4 寮边界：分寮老师只看本人管辖寮的学生（跨寮角色 / NULL 寮 allowed=None 看全部）。
+    # R4 寮边界：dorm_units_for_teacher 返回可见 dorm_unit 列表；未选寮/跨寮组为 [1,2,4]。
     # 与下面的 dorm_unit 查询参数（用户主动筛选）叠加 AND，安全过滤优先。
     # 2026-06-12 codex 审查 F1：权限分级把名单查看放给分寮组后，补此寮过滤。
     allowed = dorm_units_for_teacher(teacher)
-    if allowed is not None:
-        stmt = stmt.where(models.Student.dorm_unit.in_(allowed))
+    stmt = stmt.where(models.Student.dorm_unit.in_(allowed))
 
     # 2. 可选过滤条件
     if q:
@@ -396,10 +397,9 @@ def renewal_progress(
         models.Student.needs_renewal.is_(True),
         demo_scope_for_teacher(teacher),
     )
-    # R4 寮边界：分寮管理係只看本人管辖寮的未更新名单（跨寮角色 allowed=None 看全部）
+    # R4 寮边界：dorm_units_for_teacher 返回可见 dorm_unit 列表；未选寮/跨寮组为 [1,2,4]
     allowed = dorm_units_for_teacher(teacher)
-    if allowed is not None:
-        stmt = stmt.where(models.Student.dorm_unit.in_(allowed))
+    stmt = stmt.where(models.Student.dorm_unit.in_(allowed))
     students = db.scalars(
         stmt.order_by(
             models.Student.grade_code,
@@ -443,16 +443,8 @@ def teacher_renew_seat(
 ):
     """老师单件改某学生番号（兜底 — 学生不会操作 / 填错时）。"""
     student = _get_student_or_404(student_id, db, teacher)
-    # R4 寮边界：分寮管理係只能改本人管辖寮的学生（跨寮角色 allowed=None 不限）
-    allowed = dorm_units_for_teacher(teacher)
-    if allowed is not None and student.dorm_unit not in allowed:
-        raise HTTPException(
-            status_code=403,
-            detail={
-                "code": "FORBIDDEN_DORM",
-                "message": "担当寮外の学生は変更できません",
-            },
-        )
+    # R4 寮边界：dorm_units_for_teacher 返回可见 dorm_unit 列表；未选寮/跨寮组为 [1,2,4]
+    _assert_student_in_dorm(teacher, student, message="担当寮外の学生は変更できません")
     # 在籍校验：番号兜底改只对在籍（active）学生开放。
     # 已毕业 / 転寮 / 停用 / 自删的学生不再属于宿舍管理范围，给他们改 grade/class/seat
     # 并强行清 needs_renewal 语义错误（且可能撞用已重新分配给在籍学生的学号）。

@@ -107,9 +107,7 @@ def test_selected_dorm_filters_student_list(client, seed_data, db_session):
 
     # 选男 → 只男寮（1/2）
     tok_m = _login(client, "ryomu_kachou", selected_dorm=1)
-    rm = client.get(
-        "/api/v1/students", headers={"Authorization": f"Bearer {tok_m}"}
-    )
+    rm = client.get("/api/v1/students", headers={"Authorization": f"Bearer {tok_m}"})
     assert rm.status_code == 200
     items_m = rm.json()["data"]["items"]
     assert len(items_m) >= 1
@@ -117,9 +115,7 @@ def test_selected_dorm_filters_student_list(client, seed_data, db_session):
 
     # 选女 → 只女寮（4）
     tok_f = _login(client, "ryomu_kachou", selected_dorm=4)
-    rf = client.get(
-        "/api/v1/students", headers={"Authorization": f"Bearer {tok_f}"}
-    )
+    rf = client.get("/api/v1/students", headers={"Authorization": f"Bearer {tok_f}"})
     assert rf.status_code == 200
     items_f = rf.json()["data"]["items"]
     assert len(items_f) >= 1
@@ -196,4 +192,11 @@ def test_create_temp_account_with_expiry(client, teacher_token):
         },
     )
     assert r.status_code == 201, r.text
-    assert r.json()["data"]["expires_at"] is not None
+    got = r.json()["data"]["expires_at"]
+    assert got is not None
+    # 返回值须与提交的 future 一致（至少同日同时段；接口忽略入参 / 写错时区会在此失败）
+    got_dt = datetime.fromisoformat(got.replace("Z", "+00:00"))
+    expected = datetime.fromisoformat(future.replace("Z", "+00:00"))
+    # got_dt/expected 都是 tz-aware（返回值 +09:00 JST、提交值 +00:00 UTC 是同一时刻），
+    # 直接比瞬时差断言「返回==提交」；别拿裸 .hour / .date() 比（跨时区必错）
+    assert abs((got_dt - expected).total_seconds()) < 60

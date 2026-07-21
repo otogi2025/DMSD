@@ -199,7 +199,7 @@ def my_today_rollcall(
         ).all()
         for e in rows:
             cur = events.get(e.session_id)
-            if cur is None or e.checked_in_at > cur.checked_in_at:
+            if cur is None or (e.checked_in_at, e.id) > (cur.checked_in_at, cur.id):
                 events[e.session_id] = e
 
     out = []
@@ -226,7 +226,7 @@ def my_today_rollcall(
 # GET /rollcall/sessions?from=&to=  — 历史列表 (教师 Web RecordsPage 用)
 # 5-27 新增：从已有 RollCallSession model 派生 SELECT 查询，不需要新 schema。
 # 日期范围 from / to 是 YYYY-MM-DD，不指定时默认查过去 7 天（含今天）。
-# R4 寮过滤跟 today_sessions 同样逻辑：役职 4 人跨寮全件，其他按 assigned_dorm。
+# 寮过滤已于 2026-06-13 全局取消（dorm_units_for_teacher 恒返全集），本端点不再按寮裁剪。
 # ---------------------------------------------------------------
 @router.get("/sessions", response_model=list[schemas.RollCallSessionHistoryOut])
 def list_sessions_history(
@@ -496,7 +496,7 @@ def create_checkin(
             422,
             {
                 "code": "PATH_HINT_MISMATCH",
-                "message": "path_hint=A 必须有 card_uid",
+                "message": "path_hint=A の場合は card_uid が必要です",
             },
         )
     if body.path_hint == "B" and not body.idempotency_key:
@@ -504,7 +504,7 @@ def create_checkin(
             422,
             {
                 "code": "PATH_HINT_MISMATCH",
-                "message": "path_hint=B 必须有 idempotency_key",
+                "message": "path_hint=B の場合は idempotency_key が必要です",
             },
         )
 
@@ -1129,8 +1129,8 @@ def patch_event(
             "from_status": old_status,
             "override_reason": body.reason,
         },
-        dorm_unit=student.dorm_unit if student else None,
-        student_is_demo=student.is_demo if student else None,
+        dorm_unit=student.dorm_unit,
+        student_is_demo=student.is_demo,
     )
 
     return schemas.RollCallEventOut.model_validate(override_event)
@@ -1155,7 +1155,7 @@ def create_rollcall_report(
         # F-中-13: 原本只校验场次存在，学生可对任意已知 session_id（含别寮 / 已结束 / 未来场次）
         # 上报，造成数据噪声。现要求：① 场次覆盖本学生所属寮 ② 场次进行中（running）。
         # 别寮场次与不存在一律返 404 —— 不泄露别寮场次的存在。
-        if session is None or student.dorm_unit not in session.dorm_unit_set:
+        if session is None or student.dorm_unit not in (session.dorm_unit_set or []):
             raise HTTPException(
                 404,
                 {

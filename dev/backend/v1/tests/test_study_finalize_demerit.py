@@ -292,8 +292,8 @@ class TestBulkFinalizeDateValidation:
 
 # ---------------------------------------------------------------
 # demo 隔离测试 — 注：seed_data 中没有 is_demo=True 的老师，
-# 需要构造演示老师才能测。bulk-finalize 对 is_demo=True 的老师
-# 直接返回 403 DEMO_READONLY（study.py 第 389 行），不走到学生过滤。
+# 需要构造演示老师才能测。bulk_finalize 入口对 is_demo=True 的老师
+# 走 is_demo→DEMO_READONLY 分支直接 403，不走到学生过滤。
 # 这里只测「演示老师被拒绝」这一行为（不测演示学生隔离逻辑，
 # 因为 seed_data 没有演示学生，构造成本过高）。
 # ---------------------------------------------------------------

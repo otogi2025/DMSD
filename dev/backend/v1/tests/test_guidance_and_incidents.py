@@ -1,9 +1,9 @@
 """指導履歴 + 事案録入 测试 (spec §7.9)。
 
 覆盖：
-- 指导记录: POST 创建 / GET 列表 / 403 非寮務老师 / 404 学生不存在
+- 指导记录: POST 创建 403（无 M）/ GET 列表 200（有 V）/ 404 学生不存在
 - 事案: POST 创建 / GET 列表 / GET 详情 / PATCH 编辑 / DELETE 软删
-- 事案 403 非寮務 / 404 不存在
+- 事案 创建 403（无 M）/ 列表 200（有 V）/ 404 不存在
 """
 
 from __future__ import annotations
@@ -26,19 +26,8 @@ def ryomu_token(client, seed_data):
 
 
 @pytest.fixture
-def tannin_token(client, seed_data):
-    """寮務一般教師 token — 也有指导履历 + 事案权限（同属寮務系）。"""
-    res = client.post(
-        "/api/v1/sessions/teacher",
-        json={"login_id": "tannin", "password": "test-password-12345"},
-    )
-    assert res.status_code == 200, res.text
-    return res.json()["data"]["access_token"]
-
-
-@pytest.fixture
 def kokukou_token(client, seed_data):
-    """国際交流部長 token — 不在 _GUIDANCE_ROLES / _INCIDENT_ROLES，应 403。"""
+    """国際交流部長 token — 默认映射申請承認専用：指导/事案仅 V，创建需 M→创建403/列表200。"""
     res = client.post(
         "/api/v1/sessions/teacher",
         json={"login_id": "kokukou_buchou", "password": "test-password-12345"},
@@ -161,7 +150,9 @@ class TestIncidentRecords:
 
     def test_get_detail(self, client, seed_data, ryomu_token):
         """创建后按 ID 查详情。"""
-        inc_id = self._create(client, ryomu_token, title="詳細テスト").json()["data"]["id"]
+        inc_id = self._create(client, ryomu_token, title="詳細テスト").json()["data"][
+            "id"
+        ]
         res = client.get(
             f"/api/v1/incidents/{inc_id}",
             headers={"Authorization": f"Bearer {ryomu_token}"},
@@ -171,7 +162,9 @@ class TestIncidentRecords:
 
     def test_patch(self, client, seed_data, ryomu_token):
         """编辑事案标题。"""
-        inc_id = self._create(client, ryomu_token, title="旧タイトル").json()["data"]["id"]
+        inc_id = self._create(client, ryomu_token, title="旧タイトル").json()["data"][
+            "id"
+        ]
         res = client.patch(
             f"/api/v1/incidents/{inc_id}",
             headers={"Authorization": f"Bearer {ryomu_token}"},
@@ -183,7 +176,9 @@ class TestIncidentRecords:
 
     def test_soft_delete(self, client, seed_data, ryomu_token):
         """软删后列表查不到，详情也 404。"""
-        inc_id = self._create(client, ryomu_token, title="削除テスト").json()["data"]["id"]
+        inc_id = self._create(client, ryomu_token, title="削除テスト").json()["data"][
+            "id"
+        ]
 
         res_del = client.delete(
             f"/api/v1/incidents/{inc_id}",
@@ -280,9 +275,9 @@ class TestIncidentRecords:
 # #2 major — guidance 写操作寮边界测试
 # -----------------------------------------------------------------------
 class TestGuidanceDormBoundary:
-    """create_guidance 对跨寮老师应返回 403。
+    """跨寮录入现允许（未选 selected_dorm 兼容路径）。
 
-    场景：学生在 dorm_unit=1（男寮），女寮老师（assigned_dorm=4）无权操作。
+    场景：学生在 dorm_unit=1（男寮），女寮老师（assigned_dorm=4）仍可录入。
     """
 
     @pytest.fixture

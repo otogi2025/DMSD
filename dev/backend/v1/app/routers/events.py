@@ -2,11 +2,11 @@
 
 端点:
 - GET  /api/v1/events?from_date=&to_date=  — 列日期范围内行事（老师+学生都可看）
-- POST /api/v1/events                       — 役职老师新建
-- PATCH /api/v1/events/{id}                 — 役职老师编辑
-- DELETE /api/v1/events/{id}                — 役职老师删除
+- POST /api/v1/events                       — 有 C_EVENT MANAGE 的老师新建
+- PATCH /api/v1/events/{id}                 — 有 C_EVENT MANAGE 的老师编辑
+- DELETE /api/v1/events/{id}                — 有 C_EVENT MANAGE 的老师删除
 
-权限: GET 全老师可看 / 增删改限役职（寮務部長 / 寮務課長 / 管理係）
+权限: GET 已登录学生/老师可看 / 增删改需 C_EVENT MANAGE（权限组判定，不看职位）
 """
 
 from __future__ import annotations
@@ -28,9 +28,6 @@ from ..deps import (
 )
 
 router = APIRouter(prefix="/api/v1/events", tags=["events"])
-
-# 增删改权限 — 役职老师
-_EDIT_ROLES = {"寮務部長", "寮務課長", "管理係"}
 
 # 合法 category 值
 _VALID_CATEGORIES = {"学校行事", "寮行事", "外部", "その他"}

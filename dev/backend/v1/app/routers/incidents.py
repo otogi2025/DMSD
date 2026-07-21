@@ -241,7 +241,7 @@ def patch_incident(
                     status_code=404,
                     detail={
                         "code": "STUDENT_NOT_FOUND",
-                        "message": f"涉及学生 {sid} 不存在",
+                        "message": "対象の学生が見つかりません",
                     },
                 )
             # 演示隔离：替换涉及学生时同样禁止跨 demo 边界挂学生（否则 404）

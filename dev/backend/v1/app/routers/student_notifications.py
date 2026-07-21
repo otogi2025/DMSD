@@ -16,7 +16,7 @@ demo 隔离（2026-06-16 codex 复审修）：巴士 / 行事 表无自身 is_de
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import exists, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -37,6 +37,46 @@ _SUMMARY_LEN = 80
 def _summarize(text: str) -> str:
     text = (text or "").strip()
     return text if len(text) <= _SUMMARY_LEN else text[:_SUMMARY_LEN] + "…"
+
+
+def _assert_bus_or_event_visible(
+    db: Session, student: models.Student, kind: str, ref_id
+) -> None:
+    """确认巴士 / 行事存在且对该生可见（与 feed 同口径），否则 404。"""
+    if kind == "bus":
+        bus_vis = student_audience.bus_visible_to_for_student(student)
+        visible = db.scalar(
+            select(models.BusRoute.id)
+            .join(
+                models.Teacher,
+                models.BusRoute.created_by_teacher_id == models.Teacher.id,
+            )
+            .where(
+                models.BusRoute.id == ref_id,
+                models.BusRoute.notify_students.is_(True),
+                models.BusRoute.deprecated.is_(False),
+                models.BusRoute.visible_to.in_(bus_vis),
+                models.Teacher.is_demo == student.is_demo,
+            )
+        )
+    else:  # event
+        visible = db.scalar(
+            select(models.DormEvent.id)
+            .join(
+                models.Teacher,
+                models.DormEvent.created_by_teacher_id == models.Teacher.id,
+            )
+            .where(
+                models.DormEvent.id == ref_id,
+                models.DormEvent.notify_students.is_(True),
+                models.Teacher.is_demo == student.is_demo,
+            )
+        )
+    if visible is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "通知が見つかりません"},
+        )
 
 
 @router.get("", response_model=schemas.StudentNotificationFeedOut)
@@ -251,11 +291,13 @@ def mark_student_notification_read(
                 # 并发：另一请求已插同一已读行 → 复合主键冲突，回滚即可（幂等，仍返 204）。
                 db.rollback()
     else:  # bus / event（schema Literal 已限定取值）
-        exists = db.get(
+        exists_row = db.get(
             models.StudentNotificationRead,
             {"student_id": student.id, "kind": body.kind, "ref_id": body.ref_id},
         )
-        if exists is None:
+        if exists_row is None:
+            # 插入前确认资源存在且对该生可见（防任意 UUID 幂等写成已读）
+            _assert_bus_or_event_visible(db, student, body.kind, body.ref_id)
             db.add(
                 models.StudentNotificationRead(
                     student_id=student.id, kind=body.kind, ref_id=body.ref_id

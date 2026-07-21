@@ -27,6 +27,13 @@ _EXCLUDED_PATHS = frozenset(
     }
 )
 
+# 已知大 JSON payload 端点 — 走字节拼接包装，避免整包 json.loads/dumps 双倍峰值内存
+_STREAM_WRAP_PATHS = frozenset(
+    {
+        "/api/v1/devices/me/roster",
+    }
+)
+
 # HTTP 状态 → 兜底错误码（detail 为纯字符串时用；§14）
 _STATUS_CODE_FALLBACK: dict[int, str] = {
     400: "INVALID_INPUT",
@@ -36,7 +43,7 @@ _STATUS_CODE_FALLBACK: dict[int, str] = {
     409: "DUPLICATE_REQUEST",
     410: "DEVICE_NOT_ACTIVE",
     422: "INVALID_INPUT",
-    429: "INVALID_INPUT",
+    429: "RATE_LIMITED",
     500: "INTERNAL",
 }
 
@@ -139,7 +146,11 @@ class ResponseEnvelopeMiddleware:
                 # body 收齐 → 包信封后发出
                 assert start_message is not None
                 raw = b"".join(body_chunks)
-                wrapped_bytes = _wrap_json_body(raw)
+                # 大列表端点：不整包反序列化，直接拼 {ok,data}（这些端点不会预包信封）
+                if path in _STREAM_WRAP_PATHS:
+                    wrapped_bytes = _wrap_json_body_stream(raw)
+                else:
+                    wrapped_bytes = _wrap_json_body(raw)
                 headers = [
                     (k, v)
                     for k, v in start_message.get("headers", [])
@@ -171,6 +182,21 @@ class ResponseEnvelopeMiddleware:
         await self.app(scope, receive, send_wrapper)
 
 
+def _is_already_envelope(payload: Any) -> bool:
+    """强判定：已是 {ok:true/false, data|error} 信封（避免业务 JSON 恰含 ok 键被误跳过）。"""
+    if not isinstance(payload, dict):
+        return False
+    ok = payload.get("ok")
+    return (ok is True or ok is False) and ("data" in payload or "error" in payload)
+
+
+def _wrap_json_body_stream(raw: bytes) -> bytes:
+    """大 payload 流式包装：不 json.loads/dumps，字节拼接信封，降低峰值内存。"""
+    if not raw:
+        return raw
+    return b'{"ok":true,"data":' + raw + b"}"
+
+
 def _wrap_json_body(raw: bytes) -> bytes:
     """把原始 JSON body 包成 {ok:true, data:...}；已是信封或非 JSON 则原样。"""
     if not raw:
@@ -179,10 +205,7 @@ def _wrap_json_body(raw: bytes) -> bytes:
         payload = json.loads(raw)
     except (json.JSONDecodeError, UnicodeDecodeError):
         return raw
-    if isinstance(payload, dict) and "ok" in payload:
+    if _is_already_envelope(payload):
         return raw
-    return json.dumps(
-        {"ok": True, "data": payload},
-        ensure_ascii=False,
-        separators=(",", ":"),
-    ).encode("utf-8")
+    # 已确认 raw 是合法 JSON：字节拼接包装，避免对大对象再 dumps
+    return b'{"ok":true,"data":' + raw + b"}"

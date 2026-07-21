@@ -16,23 +16,7 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
-
-
-def _kisei_body(leave_offset_days: int = 3) -> dict:
-    """生成 帰省届 body — 出寮日 = 明日 + offset。"""
-    leave = date.today() + timedelta(days=leave_offset_days)
-    ret = leave + timedelta(days=2)
-    return {
-        "kind": "帰省",
-        "leave_date": leave.isoformat(),
-        "leave_method": "新幹線",
-        "leave_time": "19:00:00",
-        "return_date": ret.isoformat(),
-        "return_method": "新幹線",
-        "return_time": "20:00:00",
-        "reason": "帰省",
-    }
+from tests.helpers_applications import _kisei_body
 
 
 class TestCreateApplication:
@@ -54,8 +38,8 @@ class TestCreateApplication:
         data = res.json()["data"]
         assert data["kind"] == "帰省"
         assert data["status"] == "pending"
-        # approval chain 应有 5 役职 step（留学生 → 国際 chain）
-        assert len(data["approval_chain"]) >= 3
+        # 帰省链 = 4 役职（担任 / 寮務課長 / 寮務部長 / 管理係；与 is_overseas 无关）
+        assert len(data["approval_chain"]) == 4
 
     def test_create_today_leave_rejected(self, client, student_token):
         """出寮日 = 今日 → 422（必须明天以后）。"""
@@ -743,7 +727,7 @@ class TestApplicationByTeacher:
 class TestProxyCandidates:
     """杭田 2026-06-04 五-3: 代録表单的学生选择器 GET /applications/proxy-candidates。
 
-    权限对齐代録（5 角色），不复用 admin 的 GET /students（只 3 角色）。
+    权限对齐代録（需 C_APPROVAL VIEW），不复用 admin 的 GET /students。
     """
 
     URL = "/api/v1/applications/proxy-candidates"
