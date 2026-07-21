@@ -1703,3 +1703,17 @@ A3 上架清单 A-1/A-2 落地（spec v1.0 §2.2「点呼入口占位、不得�
 - 公告回复行（HomeStubs.swift `AnnouncementReplyRow`）：长按弹「通報する」context menu → 同款确认弹窗 → `announcement_reply` 类型通報；回复数据只在生产数据流出现，不设演示分支。
 
 验证：双 scheme BUILD SUCCEEDED。commit `9ecb68f`。
+
+## §36 审查S3 点呼状态契约收口 + iOS 高危 5 条（2026-07-21）
+
+后端 `_settle_absent`（老师提前 end / scheduler 自动 end）对未签到学生也写 event 且带 `checked_in_at=_now_jst()`——absent 与 exempt_range 事件均非空。客户端原「`my_checked_in_at` 非空即已签到 + `my_status != late` 一律時間内」的假设把被结算欠席/免除误报成按时签到（与减点挂钩的纪律事实）。
+
+- **判定层（ios#101）**：`decideRollState` 已签到分支改 `switch my_status` 完整映射——present→done+時間内 / late→done+遅刻 / absent→absent 态不显时刻 / exempt_range→done+「免除」不显假时刻 / 未知→done 不猜文案不兜底時間内。补 `RollStateMachineTests` 2 例（absent / exempt_range）。
+- **ios#44**：`successView` 生产版改中性「点呼機に送信しました」（`#if DEMO/#else`）——手机写卡成功此刻后端未判定，不显「時間内」。
+- **ios#58**：`MyRollcallDetailView.stateText` 加 present/記録なし 显式分支，`default` 回显 `rec.state` 不兜底「時間内」。
+- **ios#0**：repair/parcel/guest（MiscRequestsAPI 仅 create）+ studyAbsence 提交后一览查无此单 → `GenericApplyForm`（`isMiscKind`）+ `StudyAbsenceForm` 加「※提出後は一覧に表示されません（受付は完了します）」。
+- **ios#87**：`loadTodayRollcall` catch 加 `handleIfUnauthorized`，401 统一登出对齐其他 loadXxx。
+
+**展示层收口（四家终审 fable-5-high 抓阻断）**：第一批 exempt_range→done+无签到时刻使「done 态无时刻」首次可达，`TopRollBar`/`HomeStubs` done 分支假设必有时刻、对 exempt 显畸形「チェックイン済み　· 免除」（误报已签到，生产可达=承認済出寮届+老师窗口内提前 end 场次）。第二批：`TopRollBar` switch checkinKind（免除→「点呼免除・本日は点呼対象外です」/ 未知→「点呼記録を確認しました」）、`HomeStubs` 英雄卡 exempt 隐藏时刻占位 + 未知态 big 中性化「記録あり」（jp-reviewer 采纳，原「点呼完了」仍暗示完成）。fable 复核 PASS。
+
+验证：双 scheme BUILD/TEST SUCCEEDED，32 tests passed（含新补 4 例）。commit `18b6fce` / `d407ccb`。

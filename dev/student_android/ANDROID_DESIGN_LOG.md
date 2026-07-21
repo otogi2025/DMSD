@@ -377,6 +377,19 @@ Opus 4.8（high）/ Grok 4.5（high fast）/ Fable 5 主会话，R1 背对背独
 
 ① AI要約/アバター（Apple Intelligence 专属，Android 无对应）② demo 构建变体（iOS #if DEMO 双 scheme 的 Android 等价物）③ FCM 推送设备令牌注册（需 Firebase 项目凭证）④ ML Kit 翻译依赖较重，如嫌重可拍板回退。另：夜学習履歴列表两端都等后端 GET /study/attendance/mine。
 
+### 16.5 审查S3 点呼状态契约收口 + Android 高危（2026-07-21）
+
+与 iOS 逐行对齐（同后端契约：absent/exempt_range 事件带 checked_in_at）。
+
+- **判定层（android#1）**：`RollStateMachine` 已签到分支改 `when(myStatus)` 完整映射（与 iOS `decideRollState` 逐行对应），absent→ABSENT 不显时刻、exempt_range→DONE+「免除」不显假时刻、未知→不兜底時間内。补测 2 例。
+- **android#4**：`AccountScreen.FormData` 演示 PII 默认值（リュウイヒ/male/M101/demo1234）改空/中性，仅 `BuildConfig.DEBUG` 注入 `demoFormData()`（对齐 LoginScreen），release 空表单。
+- **android#0**：删号假删已在 commit 034089c 修复（真调 `AccountsAPI.deleteMyAccount` + token 世代守卫 + clearSession），本场仅核对。
+- **展示层收口（终审 fable 抓阻断 + iOS 对端对齐）**：`RollStatusBar`/`TopRollBar` done 态对齐 iOS（exempt 不显畸形「チェックイン済み・免除」、未知态不兜底時間内、big 中性化「記録あり」）；`RollCallSheet.RollSuccessBody` 生产写卡成功（checkinKind=null）显中性「点呼機に送信しました」（ios#44 Android 对端，Android 已接真 NFC 写卡、非模拟）；`MyRollcallScreen` 详情 statusText default 回显不兜底時間内（ios#58 Android 对端）。fable 复核 PASS。
+
+验证：assembleDebug + testDebugUnitTest BUILD SUCCESSFUL。commit `6ba271a` / `c678a59`。
+
+保留意见（fable 复核，留后续场，勿当漏项重报）：① 履歴详情对「免除」记录仍显「チェックイン <结算时刻>」行（iOS/Android 对称，同屏 Pill 已明示「免除」）② 「今月の減点」pill 的 done 分支硬编码「時間内にチェックイン」是死代码（仅 IDLE 态挂载，done 永不渲染）。
+
 ---
 
 **END** — 本档随实装进展持续更新。

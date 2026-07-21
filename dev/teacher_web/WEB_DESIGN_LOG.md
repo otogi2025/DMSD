@@ -1242,6 +1242,8 @@ commit `f66b812`，`npm run build` 通过。
 
 终审补丁（`d5fba97`）：四家终审两条共同保留意见落地——`theme.ts` 死常量 `LATE_THRESHOLD_SEC` 删除（止血后无引用，注释「迟到自动转换阈值」会误导后来人）+ `ALREADY_RUNNING` 重进场次时经过时间改用后端真实 `started_at`（原来从重进瞬间起算，「経過」显示是错的）。
 
+**审查S3 web#4 契约收口**（2026-07-21）：S2 已止血本地伪 late 转换，本场 `LiveRollCall.tsx` 仅更新过时注释——前端不再本地按阈值判 late（全看后端 board status），说明四端点呼状态语义一致（present/ok=按时 / late=遅刻 / absent=欠席 / exempt=免除 / 未签到=未点呼，无兜底积极态）。web#4 补勾（S2 遗留的契约族条目本场收口）。commit `7ad051f`。
+
 ---
 
 **END** — 本档随 Web 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。
