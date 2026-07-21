@@ -6485,7 +6485,8 @@
           "card_uid": {
             "anyOf": [
               {
-                "maxLength": 32,
+                "maxLength": 14,
+                "minLength": 14,
                 "type": "string"
               },
               {
@@ -7831,6 +7832,7 @@
           "email": {
             "anyOf": [
               {
+                "format": "email",
                 "type": "string"
               },
               {
@@ -9228,7 +9230,7 @@
     },
     "/api/v1/accounts/me": {
       "delete": {
-        "description": "B2 — 学生自己删除账号（App Store 审核规则 5.1.1(v) 强制要求）。\n\n设计选择：软删除（保留历史记录完整性）\n- Student.status → 'paused'（不存在 'deleted' 枚举值；点呼历史 / 申请历史不物理删，保留审计用）\n- Account 行保留但 password_hash 清空（防止继续登录）\n- 写 AuditLog 留痕，action='account.delete_self' 区分\"自删\"语义\n\n用 'paused' 而非 'deleted' 的原因：'deleted' 不在 ck_students_status\nCHECK 枚举里，而 'paused' 已在枚举内。这里复用 'paused' 表示\"账号已停用/自删\"。\n（已知局限：自删与管理员停用都落到 'paused'，状态层面无法区分，\n要分辨自删需看 AuditLog 的 action='account.delete_self'。）\n\nAccount.student_id 有 ondelete='CASCADE'，\n但物理删 Student 会连锁删 Account + 所有申请历史 — 违反审计完整性，\n所以选软删而非 db.delete()。",
+        "description": "B2 — 学生自己删除账号（App Store 审核规则 5.1.1(v) 强制要求）。\n\n设计选择：软删除（保留历史记录完整性）\n- Student.status → 'paused'（不存在 'deleted' 枚举值；点呼历史 / 申请历史不物理删，保留审计用）\n- Account 行保留但 password_hash 换成随机不可用口令的合法 bcrypt 哈希（防止继续登录，\n  且登录校验仍走完整 bcrypt 耗时，避免空哈希时序侧信道——审查 backend#18）\n- 写 AuditLog 留痕，action='account.delete_self' 区分\"自删\"语义\n\n用 'paused' 而非 'deleted' 的原因：'deleted' 不在 ck_students_status\nCHECK 枚举里，而 'paused' 已在枚举内。这里复用 'paused' 表示\"账号已停用/自删\"。\n（已知局限：自删与管理员停用都落到 'paused'，状态层面无法区分，\n要分辨自删需看 AuditLog 的 action='account.delete_self'。）\n\nAccount.student_id 有 ondelete='CASCADE'，\n但物理删 Student 会连锁删 Account + 所有申请历史 — 违反审计完整性，\n所以选软删而非 db.delete()。",
         "operationId": "delete_account_me_api_v1_accounts_me_delete",
         "parameters": [
           {
@@ -10667,7 +10669,7 @@
     },
     "/api/v1/applications/proxy-candidates": {
       "get": {
-        "description": "老师代録出寮届时的学生选择器数据源（杭田五-3「老师可代学生当日补录」）。\n\n刻意不复用 admin 的 GET /students：那个还暴露账号锁定信息。这里权限与代録\n对齐（都需「申请审批」权限），只回精简字段（学号 / 姓名 / 寮 / 是否留学生 /\n房间），并按 R4 寮边界过滤——老师只能搜到自己管辖寮的学生。",
+        "description": "老师代録出寮届时的学生选择器数据源（杭田五-3「老师可代学生当日补录」）。\n\n刻意不复用 admin 的 GET /students：那个还暴露账号锁定信息。这里权限与代録\n对齐（都需「申请审批」权限），只回精简字段（学号 / 姓名 / 寮 / 是否留学生 /\n房间）。寮过滤已取消（2026-06-13）：全寮可搜，仅按演示账号隔离。",
         "operationId": "list_proxy_candidates_api_v1_applications_proxy_candidates_get",
         "parameters": [
           {
@@ -11201,7 +11203,7 @@
         ]
       },
       "post": {
-        "description": "役职老师新建巴士便。",
+        "description": "有 C_BUS·MANAGE 的老师新建巴士便。",
         "operationId": "create_bus_route_api_v1_bus_routes_post",
         "parameters": [
           {
@@ -11261,7 +11263,7 @@
     },
     "/api/v1/bus/routes/{route_id}": {
       "delete": {
-        "description": "役职老师停用巴士便（标 deprecated=True，不物理删除）。",
+        "description": "有 C_BUS·MANAGE 的老师停用巴士便（标 deprecated=True，不物理删除）。",
         "operationId": "delete_bus_route_api_v1_bus_routes__route_id__delete",
         "parameters": [
           {
@@ -11370,7 +11372,7 @@
         ]
       },
       "patch": {
-        "description": "役职老师编辑巴士便（部分更新）。\nA9 审查结论：deprecated 软删可逆 — spec §7.6 无不可逆条款，\nDELETE 只是标 deprecated=True，PATCH 允许役职老师改回 deprecated=False（恢复便）。",
+        "description": "有 C_BUS·MANAGE 的老师编辑巴士便（部分更新）。\nA9 审查结论：deprecated 软删可逆 — spec §7.6 无不可逆条款，\nDELETE 只是标 deprecated=True，PATCH 允许改回 deprecated=False（恢复便）。",
         "operationId": "patch_bus_route_api_v1_bus_routes__route_id__patch",
         "parameters": [
           {
@@ -12552,7 +12554,7 @@
     },
     "/api/v1/discipline/ranking": {
       "get": {
-        "description": "月排名 — month 是 YYYY-MM 字符串。\n\nR4 寮过滤：跨寮役职 (寮務部長 / 寮務課長 / 国際交流部長 / 国際交流課長) 看全员，\n其他教师按 assigned_dorm 过滤。",
+        "description": "月排名 — month 是 YYYY-MM 字符串。\n\nR4 寮过滤：走 deps.dorm_units_for_teacher（登录选寮 + 权限组）。\nop / 申請承認専用 组看全部；其他组按令牌 selected_dorm（男→[1,2] / 女→[4]）；\n职位不参与鉴权。",
         "operationId": "get_ranking_api_v1_discipline_ranking_get",
         "parameters": [
           {
@@ -17639,7 +17641,7 @@
     },
     "/api/v1/students": {
       "get": {
-        "description": "学生列表 — 老师网页「账号管理页」挂载时调用。\n\n流程：\n    1. 构建基础 query（排除 is_demo）\n    2. 按参数追加 WHERE（模糊搜 / 寮号 / 状态）\n    3. JOIN accounts 取锁定状态和最后登录时间\n    4. 返回列表 + total",
+        "description": "学生列表 — 老师网页「账号管理页」挂载时调用。\n\n流程：\n    1. 构建基础 query（排除 is_demo）\n    2. 按参数追加 WHERE（模糊搜 / 寮号 / 状态）\n    3. JOIN accounts 取锁定状态和最后登录时间\n    4. SQL 侧 limit/offset 切片后返回列表 + total（完整分页 UI 留第二波）",
         "operationId": "list_students_api_v1_students_get",
         "parameters": [
           {
@@ -17712,6 +17714,32 @@
               ],
               "description": "只看当前被锁定的账号 (account.locked_until > now)",
               "title": "Locked"
+            }
+          },
+          {
+            "description": "一次最多返回条数（SQL 侧上限兜底，默认 1000）",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 1000,
+              "description": "一次最多返回条数（SQL 侧上限兜底，默认 1000）",
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "跳过前 N 条（SQL 侧 offset，默认 0）",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "跳过前 N 条（SQL 侧 offset，默认 0）",
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
             }
           },
           {
