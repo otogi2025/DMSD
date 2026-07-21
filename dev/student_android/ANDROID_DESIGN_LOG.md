@@ -390,6 +390,18 @@ Opus 4.8（high）/ Grok 4.5（high fast）/ Fable 5 主会话，R1 背对背独
 
 保留意见（fable 复核，留后续场，勿当漏项重报）：① 履歴详情对「免除」记录仍显「チェックイン <结算时刻>」行（iOS/Android 对称，同屏 Pill 已明示「免除」）② 「今月の減点」pill 的 done 分支硬编码「時間内にチェックイン」是死代码（仅 IDLE 态挂载，done 永不渲染）。
 
+## 17. 审查 S7：Android medium 60 条（2026-07-21，commit `d940fd1` + `8f54136`..`de9f6eb`）
+
+「五端 568 条修复」campaign 第 7 场。**开场只读工作流核实颠覆计划数**：60 条 medium 里真活 23 + 死代码 1(#81) + 早已被 B01-B14 改造修掉 29 + 文件已删 7（#9/10/11/12/50/52/72，功能已搬 ScheduleScreen/BusListScreen/MyPointsScreen 等各有条目）。侦察自报「23 活」数字碰巧对但成员偏差（把已修 #78 当活、漏真活 #49），逐条独立核实挡住。故 S7+S8 合并一次做完，实际动手 24 条。
+
+分工=Opus 规划裁决+逐 diff 亲验 / grok-4.5-high 下笔 17 条（5 批文件不相交并行）/ 主控自改 7 条。逐 diff 抓修 grok 真问题：#112 只门闩已登录路径（isProfilePlaceholder=authed&&myStudentId==null）漏了「注册后跳 Welcome」「登出后 user=DEFAULT_USER」两条 authed=false 仍泄漏演示假人的路径 → 改判据 `myStudentId != null`（真资料加载才显真人）覆盖全路径。
+
+**双票背对背对抗审查（grok-4.5-high + opus）**：opus 判 0 阻塞/0 重大、24 条全对；grok 抓 2 条 opus 漏的真 bug——(a) 首页问候语 `ifEmpty { "リュウイヒ" }` 兜底值本身是硬编码演示名、且 `DEFAULT_USER.name` 非空恒不触发 → loadMe 未完成时首页问候真人 PII，补同门闩；(b) `#25` 复位成 `Idle` 无效——`Idle` 与 `Loading` 都渲染骨架，改复位成 `Failed` 才跳出「一直转圈」。opus 反过来把 grok 对 `#71` 超时的「重大」定级纠正为「次要·既存」（loadMe 级联多处 `catch(Exception)` 吞 `CancellationException` 是既存 pattern，socket 超时兜底不会卡死，超时只「软」生效），补 loadMe 外层重抛取消对齐 #24/#70。
+
+代表性修复：#6 routeDisplayName 详情/编辑判定改用完整模板 `hasId`/`isEdit`（原 `substringBefore("/{")` 把动态段与 `/edit` 一并砍掉致详情/変更届被误标列表级）；#15 删 NotifDetail 孤儿路由（无 navigate 调用 + 读脱节 MockData + iOS 无对应）；#69 首页七接口串行→`async`+`awaitAll` 并行；#77 decode `data==null` 显式判空防静默 NPE；#30 学籍番号→アカウント番号 全屏统一对齐 iOS。验证：assembleDebug BUILD SUCCESSFUL。同场落地 ios#89（S6 遗留拍板，折中方案 C：点呼结束保留后端已结算 absent，双 scheme + 33 测试绿）。
+
+保留意见（留 S14，勿当漏项重报）：① MyPage ProfileCard 未门闩（authed transient 窗口显 DEFAULT_USER，review 新发现非 60 条之一）② breadcrumb `applications/select`·`new`·`resubmit` 标签既存非 #6 引入、无确定 iOS Route 参照 ③ loadMe 级联多处 `catch` 吞 `CancellationException`（既存 pattern，#71 超时只软生效）④ #69 并行放大过期写入窗口（token 世代号，与 iOS 401 竞态同族已在 TODO）⑤ #8 分类型截止对齐 iOS（帰省水曜18:00 / 外泊出発3日前）需其他申请类型的产品规则。
+
 ---
 
 **END** — 本档随实装进展持续更新。
