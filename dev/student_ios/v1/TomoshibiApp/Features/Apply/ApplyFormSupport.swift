@@ -102,7 +102,7 @@ enum ApplyFormDate {
 
     /// 解析「HH:mm」为 JST 时刻。
     /// ios#13: 解析失败不再静默吞掉 —— DEBUG/断言打信号；调用方仍拿 Date（当前全传写死合法串）。
-    /// 与 StayForm.parseHM 的 Date? 口径未完全对齐，是因调用方不在本批改动白名单，避免破坏编译。
+    /// 返回 Date（非 Date?）：调用方当前全传写死合法串；原 StayForm.parseHM 已删、口径统一到本函数。
     static func parseHM(_ s: String) -> Date {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"

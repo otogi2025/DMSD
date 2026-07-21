@@ -1349,7 +1349,6 @@ private struct DateField: View {
     }
 }
 
-
 // ============================================================================
 // §2.5 StudyAbsenceForm — 夜学習欠席届（晚自习请假）· system_features §7.3.5
 // 4-30 後續 itsuki 拍板 — 字段：理由 textarea + 范围 select（前半/后半/両方）
@@ -1758,7 +1757,6 @@ struct GenericApplyForm: View {
                             TField(text: $contact, keyboard: .phonePad)
                         }.padding(.bottom, 14)
                     }
-
 
                     // 注：原「下書き保存」假按钮（只弹 toast 不存）已移除，同 StayForm。本地草稿留 v1.1。
                     HStack(spacing: 10) {
@@ -2216,8 +2214,8 @@ struct ApplyDetailView: View {
             }
         #else
             // 生产（IX-007 Option A）：出寮届系走真后端 StayDetailView(id)。
-            // misc-requests 后端仅实装 create、缺 list/detail，故生产提交后暂无法在 app 内检索详情，
-            // 详情页统一走 StayDetailView；补齐 misc list/detail 检索见 TODO Y-10。
+            // misc-requests 后端有 create + /mine 一览、缺单条 detail 端点；学生 app 暂未接一览页，
+            // 故生产提交后暂无法在 app 内检索单条详情，详情页统一走 StayDetailView；补齐见 TODO Y-10。
             StayDetailView(id: id)
         #endif
     }
