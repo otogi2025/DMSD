@@ -14,7 +14,11 @@
 
 from __future__ import annotations
 
+import logging
+
 from .interfaces import CardReader
+
+logger = logging.getLogger(__name__)
 
 try:
     # Blinka 在非树莓派环境 import 即抛错，用守卫拦住
@@ -55,7 +59,16 @@ class Pn532CardReader(CardReader):
         uid = self._pn532.read_passive_target(timeout=timeout)
         if uid is None:
             return None
-        return uid_to_hex(bytes(uid))
+        hex_uid = uid_to_hex(bytes(uid))
+        # device#9: 非 NTAG215（须 7 字节 → 14 位 hex）不上报，避免占防抖窗口、现场难排障
+        if len(hex_uid) != 14:
+            logger.warning(
+                "读到非标 UID 长度（%d 位 hex），已丢弃不上报：%s",
+                len(hex_uid),
+                hex_uid,
+            )
+            return None
+        return hex_uid
 
 
 def build_card_reader(cs_pin_name: str = "D8") -> CardReader:

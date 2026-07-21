@@ -87,8 +87,14 @@ class ApiClient:
             raise NetworkError(f"拉音频清单失败：{resp.error_code}")
         return (resp.data or {}).get("files", []) or []
 
-    def download_audio(self, file_name: str, dest: Path) -> None:
-        """下载单个音频文件到 dest（契约 §4.3；音频原文件不走信封，直接是 wav 字节）。"""
+    def download_audio(
+        self, file_name: str, dest: Path, want_sha: str | None = None
+    ) -> None:
+        """下载单个音频文件到 dest（契约 §4.3；音频原文件不走信封，直接是 wav 字节）。
+
+        want_sha 非空时：落盘前校验临时文件 sha256，不匹配则删临时文件并抛 NetworkError，
+        避免截断/损坏内容被当成合法 wav 缓存（device#10）。
+        """
         try:
             resp = self._http.get(
                 f"{self._base_url}/api/v1/devices/me/audio/{file_name}",
@@ -101,6 +107,18 @@ class ApiClient:
         dest.parent.mkdir(parents=True, exist_ok=True)
         tmp = dest.with_suffix(dest.suffix + ".tmp")
         tmp.write_bytes(resp.content)
+        # device#10: 下载后立刻校验 sha256；不匹配则删临时文件，不 replace 成正式缓存
+        # 仅当 want_sha 是合法 64 位 hex 才验（manifest 真值形态；避免占位短串误伤）
+        if want_sha and _is_sha256_hex(want_sha):
+            got_sha = _sha256_file(tmp)
+            if got_sha != want_sha:
+                try:
+                    tmp.unlink(missing_ok=True)
+                except OSError:
+                    pass
+                raise NetworkError(
+                    f"音频 {file_name} sha256 不匹配（期望 {want_sha}，实际 {got_sha}）"
+                )
         tmp.replace(dest)
 
     def sync_audio(self, cache_dir: Path) -> int:
@@ -125,7 +143,12 @@ class ApiClient:
                 continue
             if local.exists() and want_sha and _sha256_file(local) == want_sha:
                 continue
-            self.download_audio(name, local)
+            # device#10: 传入 want_sha；校验失败不计入 downloaded，记警告后跳过该条
+            try:
+                self.download_audio(name, local, want_sha=want_sha)
+            except NetworkError as exc:
+                logger.warning("[audio] 下载或校验失败，已跳过 %s：%s", name, exc)
+                continue
             downloaded += 1
         return downloaded
 
@@ -144,3 +167,14 @@ def _sha256_file(path: Path) -> str:
         for chunk in iter(lambda: fh.read(65536), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def _is_sha256_hex(value: str) -> bool:
+    """判断是否为标准 sha256 十六进制摘要（64 位）。"""
+    if len(value) != 64:
+        return False
+    try:
+        int(value, 16)
+        return True
+    except ValueError:
+        return False

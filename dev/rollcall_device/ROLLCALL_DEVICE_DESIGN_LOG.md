@@ -293,3 +293,10 @@ WantedBy=multi-user.target
   ⑤ **device#8 systemd 对时依赖补全**：`Wants` 加 `time-sync.target`（原来只写 `After` 不进启动事务，排序空转）。不用 `Requires`——对时单元异常不该拖死离线点呼。运维注意：Pi 镜像需确认 `systemd-timesyncd` 已启用，否则该行无实际保障。
   验证：88 passed（原 79 + 新增 9：AuthError 捕获 / 重试链 4 分支 / 补传自愈 2 / GPO 门控 4，既有白灯测试按新语义更新）。
   ⑥ **终审阻断修复（`d5fba97`，四家终审中 Fable 5 high 抓出）**：`AuthManager.obtain_token`/`enroll` 原来裸调 httpx——主状态机重试链直接调 `ensure_token` 时若网络恰好断掉，抛的传输层异常（`httpx.ConnectError` 等）既不是 `NetworkError` 也不是 `AuthError`，穿透重试段捕获冒到消费线程，签到丢失 + LED 卡处理中（①要治的原病在重试路径复现）。修法取根治版：`auth.py` 新增 `_post_raw` 统一把传输层异常转 `NetworkError`（enroll 的同型潜洞一并堵上），上层自然走离线入队。回归 +2（auth 层异常转换 / 刷新令牌撞网络断走离线），全量 90 passed。教训：桩对象（StubAuth）只会抛测试作者想到的异常类型，模拟不出真实现的第三种异常——异常契约要在源头收窄，别指望调用方枚举。
+- 2026-07-21：审查 S9 修复批（五端 568 条修复计划 S9 场，点呼机 medium 5 条 + 双票复审 grok/opus 背对背只读审收敛）——
+  ① **device#4 控制事件与签到解耦**：WS 推来的名单/音频刷新原走同一签到队列、由消费线程串行处理，其同步网络 I/O 会堵住后续刷卡上报（队头阻塞）。改为独立 `_control_queue` + `control` 线程消费；`Roster` 内部已有锁、音频写走 tmp+replace 原子替换，跨线程读写无竞态（复审确认）。
+  ② **device#5 反馈灯回待机改非阻塞**：原 `_apply_feedback` 用 `_stop.wait(1.5)` 硬等，离线回补时每条叠加 1.5s。改用 `threading.Timer` 到期切待机、消费线程立即处理下一条。**复审（grok 判重大）抓出回归**：新计时器会在下一条签到处理期间触发、把 PROCESSING 灯打回待机——补 `_handle_checkin` 抢占时先取消旧计时 + 世代号守卫（`cancel()` 挡不住已 fire 的回调，靠世代号作废）。
+  ③ **device#7 HTTP 心跳兜底**：WS 长期断线无心跳、设备被误判离线——新增 30s HTTP 心跳线程。**复审抓出启动空窗**：原 `wait(30)` 后才首发、启动后前 30s 无兜底——改先发一次再进等待循环。
+  ④ **device#9 非标 UID 丢弃**：读到长度 ≠14 hex（非 NTAG215 7 字节）的卡打警告返回 None，不上报、不占防抖窗口。
+  ⑤ **device#10 音频 sha256 校验**：`download_audio` 落盘前校验 sha256，不匹配删临时文件抛错；`sync_audio` 捕获后跳过不计入 downloaded，截断/损坏内容不落成正式缓存。
+  验证：90 passed（无回归）。保留（记 TODO，非阻塞）：`_apply_feedback` 末 `if FEEDBACK_HOLD_S<0.1` 测试专用分支（生产恒 inert，清理需改十余处测试断言点）；HTTP 心跳 AuthError 只警告不刷新令牌（既有约束、非本场引入）。

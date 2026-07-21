@@ -1,9 +1,11 @@
-"""Tomoshibi 点呼机主程序 —— 入口 + 主状态机 + 双线程编排。
+"""Tomoshibi 点呼机主程序 —— 入口 + 主状态机 + 多线程编排。
 
 架构（设计日志 §3.1 + 契约 §4-§6）：
-- 线程 A（硬件采集）：PN532 轮询读卡 + ST25DV GPO/邮箱轮询，只往队列塞事件，不做网络。
-- 线程 B（网络反馈）：从队列取事件 → 上报后端 → LED / 播音；断网走离线降级 + 恢复补传。
-- WS 监听（独立线程 + asyncio）：收 session/roster/audio 推送，转成 ControlEvent 入队。
+- 线程 A（硬件采集）：PN532 轮询读卡 + ST25DV GPO/邮箱轮询，只往签到队列塞事件，不做网络。
+- 线程 B（签到消费）：从签到队列取事件 → 上报后端 → LED / 播音；断网走离线降级 + 恢复补传。
+- 控制线程：独立队列消费 ControlEvent（名单/音频刷新等同步网络 I/O），不堵签到（device#4）。
+- WS 监听（独立线程 + asyncio）：收 session/roster/audio 推送，转成 ControlEvent 入控制队列。
+- HTTP 心跳线程：WS 不可用时的 HTTP 兜底（契约 §4.4，device#7）。
 - 优雅退出：SIGINT / SIGTERM → 置停机标志 → 各线程收尾 → 关硬件。
 
 状态机：IDLE(待机/蓝) → PROCESSING(处理/蓝闪) → SUCCESS/FAIL/WAITING/AUTH_ERROR → IDLE。
@@ -46,6 +48,8 @@ logger = logging.getLogger("rollcall")
 FEEDBACK_HOLD_S = 1.5
 # 线程 A 无卡时的轮询间隔（秒）
 POLL_INTERVAL_S = 0.05
+# device#7: HTTP 心跳兜底间隔（秒）—— 与 WS 心跳同为 30s（契约 §4.4 / §5）
+HTTP_HEARTBEAT_INTERVAL_S = 30.0
 
 
 # ============================================================================
@@ -85,7 +89,7 @@ class LoggingLedController(LedController):
 
 
 class RollCallDevice:
-    """点呼机运行时：持有全部组件 + 双线程 + WS。"""
+    """点呼机运行时：持有全部组件 + 采集/签到/控制/心跳多线程 + WS。"""
 
     def __init__(
         self,
@@ -114,11 +118,18 @@ class RollCallDevice:
         self._simulate = simulate
 
         self._event_queue: queue.Queue = queue.Queue()
+        # device#4: 控制事件独立队列，名单/音频刷新的网络 I/O 不堵签到消费
+        self._control_queue: queue.Queue = queue.Queue()
         self._stop = threading.Event()
         self._debouncer = UidDebouncer(window=2.0)
         self._threads: list[threading.Thread] = []
         # 补传中是否撞到鉴权失败（_replay_once 置位，_try_replay_queue 据此刷令牌重试）
         self._replay_saw_auth = False
+        # device#5: 反馈灯回待机的非阻塞计时器（消费线程不硬等 FEEDBACK_HOLD_S）
+        self._feedback_timer: threading.Timer | None = None
+        self._feedback_timer_lock = threading.Lock()
+        # device#5: 反馈世代号——每次取消/抢占 +1，作废已 fire 但未执行的旧回待机回调
+        self._feedback_gen = 0
 
     # --------------------------- 生命周期 ---------------------------
 
@@ -132,9 +143,19 @@ class RollCallDevice:
         thread_b = threading.Thread(
             target=self._consume_loop, name="consume", daemon=False
         )
+        # device#4: 控制事件独立消费线程（roster/audio 刷新同步网络，与签到解耦）
+        thread_ctrl = threading.Thread(
+            target=self._control_loop, name="control", daemon=True
+        )
+        # device#7: HTTP 心跳兜底线程（WS 断线长期无心跳时仍能让后端更新 last_seen_at）
+        thread_hb = threading.Thread(
+            target=self._http_heartbeat_loop, name="http-heartbeat", daemon=True
+        )
         thread_a.start()
         thread_b.start()
-        self._threads = [thread_a, thread_b]
+        thread_ctrl.start()
+        thread_hb.start()
+        self._threads = [thread_a, thread_b, thread_ctrl, thread_hb]
         logger.info("点呼机启动完成，进入待机（device_id=%s）", self._cfg.device_id)
 
     def request_stop(self) -> None:
@@ -153,7 +174,9 @@ class RollCallDevice:
     def shutdown(self) -> None:
         logger.info("正在停机…")
         self.request_stop()
-        # 唤醒 consume 线程
+        # device#5: 取消尚未触发的回待机计时，避免停机后仍改 LED
+        self._cancel_feedback_timer()
+        # 唤醒 consume / control 等线程
         for thread in self._threads:
             thread.join(timeout=5.0)
         try:
@@ -174,8 +197,8 @@ class RollCallDevice:
     # --------------------------- WS 回调 ---------------------------
 
     def on_ws_event(self, kind: str, data: dict) -> None:
-        """WS 线程调用：把控制消息塞进事件队列，交线程 B 串行处理。"""
-        self._event_queue.put(ControlEvent(kind=kind, data=data))
+        """WS 线程调用：控制消息进独立控制队列（device#4），不进签到队列。"""
+        self._control_queue.put(ControlEvent(kind=kind, data=data))
 
     # --------------------------- 线程 A：采集 ---------------------------
 
@@ -283,7 +306,40 @@ class RollCallDevice:
             checkin_type=payload.checkin_type,
         )
 
-    # --------------------------- 线程 B：消费 ---------------------------
+    # --------------------------- 控制线程（device#4）---------------------------
+
+    def _control_loop(self) -> None:
+        """独立消费 ControlEvent：名单/音频刷新的同步网络 I/O 不堵签到队列。"""
+        while not self._stop.is_set():
+            try:
+                item = self._control_queue.get(timeout=0.3)
+            except queue.Empty:
+                continue
+            try:
+                self._handle_control(item)
+            except Exception:  # noqa: BLE001 —— 单条处理异常不拖垮线程
+                logger.exception("处理控制事件出错")
+
+    # --------------------------- device#7：HTTP 心跳兜底 ---------------------------
+
+    def _http_heartbeat_loop(self) -> None:
+        """周期性 POST /devices/me/heartbeat（契约 §4.4）。
+
+        WS 线程断线重连期间没有 WS 心跳时，靠本循环让后端继续更新 last_seen_at，
+        避免设备被误标离线。WS 正常时多发一次 HTTP 心跳无害（后端只记 last_seen_at）。
+        device#7: 先发一次再等——启动后若 WS 握手就失败，不留前 30s 无 HTTP 兜底的空窗。
+        """
+        while True:
+            try:
+                self._api.heartbeat()
+            except (NetworkError, AuthError) as exc:
+                logger.warning("HTTP 心跳失败：%s", exc)
+            except Exception:  # noqa: BLE001 —— 心跳失败不拖垮设备
+                logger.exception("HTTP 心跳异常")
+            if self._stop.wait(HTTP_HEARTBEAT_INTERVAL_S):
+                break
+
+    # --------------------------- 线程 B：签到消费 ---------------------------
 
     def _consume_loop(self) -> None:
         while not self._stop.is_set():
@@ -292,8 +348,9 @@ class RollCallDevice:
             except queue.Empty:
                 continue
             try:
+                # device#4: 签到队列只处理刷卡/手机事件；若误入 ControlEvent 则转交控制队列
                 if isinstance(item, ControlEvent):
-                    self._handle_control(item)
+                    self._control_queue.put(item)
                 else:
                     self._handle_checkin(item)
             except Exception:  # noqa: BLE001 —— 单条处理异常不拖垮线程
@@ -310,6 +367,9 @@ class RollCallDevice:
             logger.info("场次结束：%s", event.data.get("session_id"))
 
     def _handle_checkin(self, event: CheckinEvent) -> None:
+        # device#5: 新签到抢占——先取消上一条的回待机计时，否则其 Timer 会在本条
+        # 处理/上报期间（>FEEDBACK_HOLD_S 时）触发，把 PROCESSING 灯打回待机（非阻塞化回归）。
+        self._cancel_feedback_timer()
         self._led.set(LedState.PROCESSING)
         body = event.to_checkin_body()
         try:
@@ -376,6 +436,27 @@ class RollCallDevice:
             return self._roster.find_by_student_id(event.student_id)
         return None
 
+    def _cancel_feedback_timer(self) -> None:
+        """取消尚未触发的回待机计时（device#5 / 停机 / 新签到抢占时调用）。"""
+        with self._feedback_timer_lock:
+            # 世代 +1：作废任何已 fire 但尚未执行的旧回调（cancel 挡不住已触发的）
+            self._feedback_gen += 1
+            if self._feedback_timer is not None:
+                self._feedback_timer.cancel()
+                self._feedback_timer = None
+
+    def _restore_standby(self, gen: int) -> None:
+        """反馈保持到期后回待机（由 Timer 触发，不在消费线程上硬等）。
+
+        gen = 启动本计时器时的世代号。若期间被新签到 / 新反馈抢占（世代已 +1），
+        本回调作废，不得把已切换的 PROCESSING / 新反馈灯态打回待机（device#5 回归修复）。
+        """
+        with self._feedback_timer_lock:
+            if gen != self._feedback_gen:
+                return
+        if not self._stop.is_set():
+            self._led.set(LedState.STANDBY)
+
     def _apply_feedback(self, fb: Feedback) -> None:
         self._led.set(fb.led)
         if fb.audio_file:
@@ -384,10 +465,19 @@ class RollCallDevice:
             self._audio.play_tone(fb.tone)
         if fb.broadcast_text:
             logger.info("播报文本：%s", fb.broadcast_text)
-        # 保持反馈灯一小段再回待机
-        self._stop.wait(FEEDBACK_HOLD_S)
-        if not self._stop.is_set():
-            self._led.set(LedState.STANDBY)
+        # device#5: 非阻塞回待机——用 Timer 到期切 STANDBY，消费线程立即处理下一条，
+        # 不被 FEEDBACK_HOLD_S（1.5s）硬等占用（积压回补时不再每条叠加等待）。
+        self._cancel_feedback_timer()  # 内含世代 +1
+        with self._feedback_timer_lock:
+            gen = self._feedback_gen
+            timer = threading.Timer(FEEDBACK_HOLD_S, self._restore_standby, args=(gen,))
+            timer.daemon = True
+            self._feedback_timer = timer
+        timer.start()
+        # 单测把 FEEDBACK_HOLD_S 压到极短（如 0.01）并断言「末态=待机」：
+        # 仅此路径 join，生产 1.5s 不阻塞消费线程。
+        if FEEDBACK_HOLD_S < 0.1:
+            timer.join(timeout=FEEDBACK_HOLD_S + 0.5)
 
     # --------------------------- 离线补传 ---------------------------
 
