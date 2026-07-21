@@ -1069,6 +1069,19 @@ class StudentRegistrationCode(Base):
         CheckConstraint("LENGTH(code) = 6", name="ck_src_code_len"),
         Index("idx_src_code_active", "code", "invalidated_at"),
         Index("idx_src_is_reviewer", "is_reviewer", "invalidated_at"),
+        # 审查 backend#23：部分唯一索引兜底「同时只能 1 个 active 非审核员码」。
+        # refresh 的 SELECT FOR UPDATE 只锁到已存在的 active 行，锁不住「零 active 行并发
+        # 各插一条」和 PostgreSQL EvalPlanQual 窗口（锁等待后只重查被锁行、看不到别事务新插的行）
+        # → 两个并发 refresh 仍可能留下两条 active 码。谓词把范围限在 invalidated_at IS NULL
+        # AND is_reviewer=false，唯一列取 is_reviewer（此范围内恒为 false）→ 至多一行。
+        # SQLite 布尔存 0/1、PostgreSQL 存 true/false，谓词各写一份。审核员永久码不受约束。
+        Index(
+            "uq_src_one_active",
+            "is_reviewer",
+            unique=True,
+            sqlite_where=text("invalidated_at IS NULL AND is_reviewer = 0"),
+            postgresql_where=text("invalidated_at IS NULL AND is_reviewer = false"),
+        ),
     )
 
 

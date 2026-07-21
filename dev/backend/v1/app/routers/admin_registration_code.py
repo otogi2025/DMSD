@@ -20,6 +20,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import models, permissions, schemas
@@ -113,8 +114,10 @@ def refresh_code(
 
     # 1. 把所有现存 active 码作废（§7.16.2 规则 3 — 同时只能 1 个有效）
     #    审核员永久码（is_reviewer=True）不作废 — spec §7.16 例外条款
-    # 审查 backend#23：先对目标 active 行加行锁，再作废 + 插入，防并发 refresh
-    # 留下多条同时有效码。SQLite 上 with_for_update 是 no-op；PostgreSQL 生效。
+    # 审查 backend#23：先对目标 active 行加行锁，缩小并发 refresh 撞车窗口；但行锁挡不住
+    # 「零 active 行时并发各插一条」和 PostgreSQL EvalPlanQual 窗口 → 真正防线是
+    # models 的部分唯一索引 uq_src_one_active（同时至多 1 个 active 非审核员码），
+    # 下面插入撞该索引时抛 IntegrityError → 回滚 + 409（后到者重试即拿到最新码）。
     active_rows = list(
         db.scalars(
             select(models.StudentRegistrationCode)
@@ -154,7 +157,19 @@ def refresh_code(
         expires_at=now + timedelta(minutes=REGISTRATION_CODE_TTL_MINUTES),
     )
     db.add(row)
-    db.flush()
+    try:
+        db.flush()  # 撞 uq_src_one_active（已有 active 非审核员码）在此抛
+    except IntegrityError:
+        # 审查 backend#23：并发 refresh 已有一方胜出并留下 active 码 → 整体回滚，
+        # 让后到者 409 重试（重试会读到胜方的最新码），绝不留下第二条 active 码。
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "CODE_REFRESH_CONFLICT",
+                "message": "登録コードの更新が競合しました。もう一度お試しください",
+            },
+        )
 
     # 4. audit log（§4.10 末尾要求）
     db.add(

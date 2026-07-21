@@ -7,6 +7,13 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
+import pytest
+from sqlalchemy.exc import IntegrityError
+
+from app import models
+
 
 # ---------- /admin/registration-code/* ----------
 
@@ -290,8 +297,6 @@ def test_create_account_integrity_fallback_student_no(
     from sqlalchemy import select
     from sqlalchemy.orm import Session
 
-    from app import models
-
     code = client.post(
         "/api/v1/admin/registration-code/refresh",
         headers={"Authorization": f"Bearer {teacher_token}"},
@@ -331,7 +336,6 @@ def test_history_excludes_reviewer_code(client, teacher_token, db_session):
     审查 backend#2：三个端点都显式过滤 is_reviewer，唯独 get_history 漏了，
     任何有注册码 VIEW 权限的老师打开履历就能看到审核员码原文。
     """
-    from datetime import datetime, timedelta, timezone
 
     from sqlalchemy import select
 
@@ -365,3 +369,47 @@ def test_history_excludes_reviewer_code(client, teacher_token, db_session):
     codes = [item["code"] for item in res.json()["data"]["items"]]
     assert normal_code in codes
     assert "777777" not in codes, "审核员永久码泄漏进履历（backend#2 回归）"
+
+
+# ---------- 部分唯一索引 uq_src_one_active（审查 backend#23）----------
+
+
+def _mk_code(teacher_id, code, *, is_reviewer=False, invalidated_at=None):
+    """构造一条 StudentRegistrationCode（测试直插 DB 用）。"""
+    now = datetime.now(timezone.utc)
+    return models.StudentRegistrationCode(
+        code=code,
+        created_by=teacher_id,
+        created_at=now,
+        expires_at=now + timedelta(minutes=5),
+        invalidated_at=invalidated_at,
+        is_reviewer=is_reviewer,
+    )
+
+
+def test_partial_index_rejects_two_active_codes(db_session, seed_data):
+    """审查 backend#23：部分唯一索引兜底「同时至多 1 个 active 非审核员码」。
+
+    直接 DB 层插两条 active（invalidated_at=None + is_reviewer=False）→ 第二条撞
+    uq_src_one_active 抛 IntegrityError。这是 refresh 行锁挡不住的零行/EvalPlanQual
+    并发窗口的真正防线（比走 HTTP 端点更直接地锁死约束本身）。
+    """
+    tid = seed_data["teachers"]["ryomu_kachou"].id
+    db_session.add(_mk_code(tid, "100001"))
+    db_session.flush()
+    db_session.add(_mk_code(tid, "100002"))
+    with pytest.raises(IntegrityError):
+        db_session.flush()
+    db_session.rollback()
+
+
+def test_partial_index_allows_reviewer_and_invalidated(db_session, seed_data):
+    """审核员永久码 + 已作废码不进部分索引（谓词排除），可与 active 非审核员码并存。"""
+    tid = seed_data["teachers"]["ryomu_kachou"].id
+    now = datetime.now(timezone.utc)
+    db_session.add(_mk_code(tid, "200001"))  # active 非审核员 — 唯一占位
+    db_session.add(_mk_code(tid, "200002", is_reviewer=True))  # 审核员永久码
+    db_session.add(_mk_code(tid, "200003", invalidated_at=now))  # 已作废
+    # 不应抛 —— 三条只有第一条落进部分索引
+    db_session.flush()
+    db_session.rollback()
