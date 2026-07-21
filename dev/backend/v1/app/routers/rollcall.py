@@ -368,12 +368,29 @@ def start_session(
             },
         )
 
-    session.session_status = "running"
-    session.started_at = now
-    session.started_source = "teacher"
-    session.started_by = teacher.id
-    db.commit()
+    # 原子领取：只有 session 仍是 draft 才置 running（带 where session_status=='draft'）。
+    # 镜像 end_session —— 防两老师并发点「開始」/ 重复点击：后到者命中 0 行 → 409，
+    # 不再二次写 started_* 字段、也不重复广播点呼机。
+    claimed = db.execute(
+        update(models.RollCallSession)
+        .where(
+            models.RollCallSession.id == session_id,
+            models.RollCallSession.session_status == "draft",
+        )
+        .values(
+            session_status="running",
+            started_at=now,
+            started_source="teacher",
+            started_by=teacher.id,
+        )
+    )
+    if claimed.rowcount != 1:
+        db.rollback()
+        raise HTTPException(
+            409, {"code": "ALREADY_RUNNING", "message": "既に開始済みです"}
+        )
     db.refresh(session)
+    db.commit()
     # 点呼机通道广播（Device_Contract §5）— 手动开始也通知点呼机进入受理状态
     _broadcast_device_session_started(session)
     return schemas.RollCallSessionOut.model_validate(session)
@@ -492,18 +509,27 @@ def create_checkin(
         )
 
     if body.card_uid:
-        # 路径 A: NFC カード UID で学生特定
-        # card_uid は student.card_uid に紐付け (将来 NFC_CARD テーブルで管理予定)
-        # 今は student テーブルに card_uid カラムなし → 暫定で手動 student_id fallback
-        if not body.student_id:
+        # 路径 A: 用 NfcCard 表按 card_uid 解析学生（镜像 devices.py 设备签到）
+        card_uid_norm = body.card_uid.lower()
+        active_card = db.scalar(
+            select(models.NfcCard).where(
+                models.NfcCard.card_uid == card_uid_norm,
+                models.NfcCard.revoked_at.is_(None),
+            )
+        )
+        if active_card is not None:
+            student = db.get(models.Student, active_card.student_id)
+        elif body.student_id:
+            # 卡表未命中时仍允许老师手传 student_id 代签（兼容未发卡 / 旧前端）
+            student = db.get(models.Student, body.student_id)
+        else:
             raise HTTPException(
                 422,
                 {
                     "code": "UNKNOWN_CARD",
-                    "message": "カード UID に対応する学生が見つかりません (P1 実装待ち)",
+                    "message": "カード UID に対応する学生が見つかりません",
                 },
             )
-        student = db.get(models.Student, body.student_id)
     elif body.student_id:
         # 路径 B / 手動
         student = db.get(models.Student, body.student_id)
@@ -516,6 +542,15 @@ def create_checkin(
     if not student:
         raise HTTPException(
             404, {"code": "NOT_FOUND", "message": "学生が見つかりません"}
+        )
+    # 审查 backend#38：代签只允许在籍（active）学生；locked/paused/graduated 一律拒
+    if student.status != "active":
+        raise HTTPException(
+            422,
+            {
+                "code": "STUDENT_NOT_ACTIVE",
+                "message": "在籍中の学生のみ点呼できます",
+            },
         )
 
     # R4 寮边界：寮監等寮 scoped 角色不能给管辖外寮学生签到
@@ -927,7 +962,17 @@ def _apply_override_demerit(
                         )
                     )
                     db.flush()
-            except IntegrityError:
+            except IntegrityError as err:
+                # 审查 backend#36：只吞 uq_demerit_source 唯一约束冲突（并发首次改判撞车）；
+                # 外键 / NOT NULL 等其它完整性错误原样抛出，避免扣分没写成却继续提交改判。
+                # 跨方言匹配：PostgreSQL 报约束名；SQLite 报 UNIQUE constraint failed + 列名。
+                msg = str(getattr(err, "orig", err)).lower()
+                if "uq_demerit_source" not in msg and not (
+                    "unique" in msg
+                    and "source_type" in msg
+                    and "source_event_id" in msg
+                ):
+                    raise
                 existing = db.scalar(
                     select(models.DemeritEvent).where(
                         models.DemeritEvent.student_id == student_id,
@@ -1184,10 +1229,15 @@ def resolve_rollcall_report(
         )
     # R4 寮边界：通过上报学生校验老师管辖寮
     student = db.get(models.Student, report.student_id)
-    if student:
-        _assert_student_in_dorm(teacher, student)
-        # 演示隔离：演示老师只能处理演示学生上报、真老师只能处理真实学生上报（跨 demo → 404）
-        assert_student_demo_match(teacher, student)
+    # fail-closed：student 行被删 / student_id 悬空时无法判 demo / 寮归属，直接 404，
+    # 不再跳过校验继续标记已处理（镜像 patch_event 同口径）。
+    if student is None:
+        raise HTTPException(
+            404, {"code": "NOT_FOUND", "message": "学生が見つかりません"}
+        )
+    _assert_student_in_dorm(teacher, student)
+    # 演示隔离：演示老师只能处理演示学生上报、真老师只能处理真实学生上报（跨 demo → 404）
+    assert_student_demo_match(teacher, student)
     if report.resolved_at is not None:
         raise HTTPException(
             409, {"code": "ALREADY_RESOLVED", "message": "この報告は既に処理済みです"}
