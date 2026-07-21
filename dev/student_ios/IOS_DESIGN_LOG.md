@@ -1717,3 +1717,23 @@ A3 上架清单 A-1/A-2 落地（spec v1.0 §2.2「点呼入口占位、不得�
 **展示层收口（四家终审 fable-5-high 抓阻断）**：第一批 exempt_range→done+无签到时刻使「done 态无时刻」首次可达，`TopRollBar`/`HomeStubs` done 分支假设必有时刻、对 exempt 显畸形「チェックイン済み　· 免除」（误报已签到，生产可达=承認済出寮届+老师窗口内提前 end 场次）。第二批：`TopRollBar` switch checkinKind（免除→「点呼免除・本日は点呼対象外です」/ 未知→「点呼記録を確認しました」）、`HomeStubs` 英雄卡 exempt 隐藏时刻占位 + 未知态 big 中性化「記録あり」（jp-reviewer 采纳，原「点呼完了」仍暗示完成）。fable 复核 PASS。
 
 验证：双 scheme BUILD/TEST SUCCEEDED，32 tests passed（含新补 4 例）。commit `18b6fce` / `d407ccb`。
+
+## §37 审查S6 iOS medium 44 条（2026-07-21，commit `9d3574c` / `7b2e056` / `bfbddb1`）
+
+568 修复计划第 6 场。分工 = Opus 规划裁决 + grok-4.5-high 下笔（按文件不相交分 8 批两波并行）+ Opus 逐 diff 亲验；敏感/跨文件 4 条（房号装配不变量 ios#113/#114、AppState ios#86、Keychain 签名变更 ios#103）由主控自处理。
+
+- **申请表单（Apply）**：ios#5 提交成功守卫 `tokenAtStart`（StayForm/StudyAbsenceForm，防切号后在新会话弹旧完成页）/ ios#6 「下書き」tab 生产隐藏（`#if DEMO`，草稿功能已删、闭包构造避 Swift 不许 `#if` 入数组字面量）/ ios#7 外出帰寮时刻须 ≥ 外出时刻、ios#8 帰国航班到着须晚于出发，`canSubmit` 增时刻比较对齐后端 422 / ios#14 夜学習オンライン 409 单独 catch 显后端 message / ios#15 开始日 ≥ 今日+3 天客户端校验。
+- **通知/社区（Community）**：ios#34 筛选 chip 对齐生产 feed 类型（お知らせ/バス/カレンダー/宅配），push-only 类型 `#if DEMO` 隐藏 / ios#35 宅配 statusText 复用精确 statusLabel（不把期限切れ/処分済 二值化成受取済）/ ios#36 失物投稿生产 `#if false` 禁 POST（学生只浏览、投稿留第二波）/ ios#37 canSubmit 对齐必填、画像去 required / ios#38 点歌 Apple Music URL 生产隐藏（submit 从不用、后端无字段）/ ios#39 宅配卡「受取」→「詳細」（无自助领取）。
+- **首页/点呼（Home）**：ios#43 LifeTab 补 `loadMyPackages` / ios#45 写卡失败文案改写入语义 + 副标题给操作指引「もう一度カードをかざしてください」（jp-reviewer）/ ios#46 0 件不显「未受取あり」/ ios#47 「今週の活動」去误导（数据跨约两年）/ ios#48 OtherSheet 四支错误处理（422/401 带 tokenAtStart 守卫/network/其它）/ ios#49 点呼时间外禁用主按钮。
+- **我的页（MyPage）**：ios#59 MyLandingGridBlock id 用语义 key 不用每次新建 UUID / ios#60 包裹空列表按 `packagesState` 分 loading/failed / ios#61 删号文案改「利用停止」（后端软删 paused 非物理删）/ ios#62 仅记真变字段进变更履历 / ios#63 loadEvents 401 清令牌对齐兄弟 / ios#65 图表 yFor `min(v,maxVal)` 防画出图外 / ios#66 夜学習当月统计按东京时区 yyyy-MM 过滤（studyHistory 无 loader 属已知限制、二波补后端接口）。
+- **外泊/帰省（StayList）**：ios#72 撤回 audit 重拉失败回填旧履历不清空 / ios#73 补 `application.return`→差し戻し + auditColor 警示色 / ios#74 rejected.label 改「却下」、筛选 tab 改「却下・要修正」（差し戻し 留给 returned；jp-reviewer 确认三分法正确）/ ios#75 修改届宿泊先非空校验 / ios#76 未知役职→`.unknown`「不明」不默认管理係。
+- **状态机/组件/网络（Foundation）**：ios#86 loadAnnouncementUnreadCount catch 补 `handleIfUnauthorized` / ios#88 遅刻宽限段（countdownSec==0 仍 active）文案改「遅刻受付中・早めにチェックインを」/ ios#90 相机路径 jpegData 移 Task.detached 出主线程、ios#91 handlePhotoItem `defer photoItem=nil` 修删后重选同图不触发 / ios#95 GlassCard 注释纠正（最低 iOS 16、fallback 是 16-25 活代码）/ ios#102 删 ApplyKindMapper studyAbsence 死映射（走 StudyAPI 不出本表）+ 测试 count 3 / ios#103 KeychainService.save 返 Bool、写失败时 AppStore didSet toast 提示（否则重启自动登录静默失效）/ ios#104 AnyJSON Storage 枚举递归保留对象/数组子树、`.value` 对标量返字符串兼容旧消费方 / ios#25 AI 头像加「本機プレビューのみ・保存されません」诚实标注（完整持久化留二波）/ ios#28 BusList 按性别过滤 men/women 班次（双认 male/男、female/女 两套值）/ ios#67 EventItem 加稳定 id 字段用 EventOut.id.uuidString。
+- **房号装配（RoomAssembly，主控自处理）**：ios#113 测试文首「判寮不被性别覆盖」不变量收窄——只对 assembleRoomNo 前缀拼接 + male 1/2 寮区分成立，dormUnit 对 female 短路返 4 是有意行为 / ios#114 走 (B)：注释写明生产 room_no 在 UI 输入层已 `.uppercased()`（AuthStubs:958），assembleRoomNo 刻意不重复规范化，不动敏感纯函数。
+
+**主控逐 diff 抓修 grok 3 真问题**：ApplyStubs #6 `#if` 入数组字面量编译阻断（改闭包构造）/ BusList #28 性别过滤只认「男/女」漏生产的「male/female」（真实 User 英文、SEED 演示日语两套值，否则生产对谁都不显）/ Schedule #67 用零宽字符编码 UUID 塞进 title 的 hack（换成 SeedModels 真 id 字段）。
+
+**⏸ ios#89 撤回留 itsuki 拍板**：审查建议「点呼已结束（now>auto_end）未签到保留 absent 警示」，与既有故意决定 `RollStateMachineTests #4「越过 auto_end → 回落 idle（不再 absent 挂死）」` 直接冲突。两种 UX 对撞、非机械 bug，不以审查发现覆盖既有决定，恢复 idle 并留注释待拍板。
+
+**复审（grok+opus 双票 + jp-reviewer）**：grok 只读复审判 0 阻塞；1 重大 + 1 次要均为 iOS 表单 401 分支缺 `tokenAtStart` 竞态守卫——经核实属既有全端 ~9 处同款模式、不在 568 清单、非 S6 引入，记 TODO §B「401 竞态守卫全端统一」专项、不 piecemeal 修。jp-reviewer 审 10 条新增日语 0 硬错误 0 违反已拍板，确认「却下/差し戻し/要修正」三分法 + 「利用停止」软删表述自然，采纳 1 润色（#45 副标题）。
+
+验证：双 scheme BUILD SUCCEEDED（生产 #else + 演示 #if DEMO 两条分支）+ 32 tests 4 套件 passed。
