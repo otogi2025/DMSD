@@ -1256,6 +1256,16 @@ commit `f66b812`，`npm run build` 通过。
 
 验证：`npm run build` 零错误。commit 见 git log（S9 场）。
 
+## 2026-07-22 — 审查 S11：老师网页 low 95 条修复（五端 568 条修复计划第 11 场）
+
+8 代理并行只读分类 97 候选 = 95 LIVE / 2 已修 / 0 moot。grok 7 批文件不相交并行下笔 89 条（含从组件定义删死 prop）+ grok 批8 串行做 App.tsx（自身 6 条 + 死 prop 调用方删除 + web#45 假 trend 跨 App/RollCallLanding + web#51 Shell 徽章接线）+ 主控自补 web#109（types.ts 加 is_long_vacation 去 as 断言）。修 93 条，defer 2（web#114 studentCount>1000 理论上限需改 client.ts / web#120 LField-AdminField 去重需新共享模块）。
+
+**分组**：JST 时区（formatJst +9h 平移 getUTC*、formatTime/currentMonth/month/started_at/decidedAt/todayShort/expandMealsSkip 改 Intl Asia/Tokyo，弃浏览器本地 getMonth/getDate）；React 竞态守卫（loadEvents/fetchIncidents/loadItems/copyToast/StudentPicker 加 cancelled/请求号/AbortController）；防双击 in-flight；假数据止血（App.tsx 假 trend 删→RollCallLanding「準備中」占位、FrontDeskPage archived 用 expires_at 真算、DisciplinePage late/absent 恒 0 噪音删）；死 prop（7 组件 + App.tsx 调用方两侧删 teacher/onNav/authToken/dorm）；死码/死分支；日语 UI（LIVE SESSION→リアルタイム点呼、exempt→免除、老師→教師、flow/step→日语等）+ 注释日→中 + 过时职位名单注释→按 canManage/权限组。
+
+**双票对抗复审（grok+opus 背对背只读）异构互补**：opus 抓出 grok 漏的 2 重大（均在 web#51 侧栏「申請」徽章）——W1 `pendingAppsCount` 按 `status==="pending"` 收窄漏掉 `approved_partial`（多级审批链前序批过、仍等本人批的件也算待我审）→改 `backendApplications.length`；W2 web#51 删 Shell 60s 轮询后 App 未补→徽章丢自动刷新，App 加 60s interval 重拉。grok 抓出：ProxyApplicationPage todayStr 本地时区→JST、InfoPage 日历基准日 new Date()→JST、FrontDesk 双击守卫 state→同步 ref、StudentPicker 首开 250ms 闪空态→loadedOnceRef、formatTime 加 hour12:false。次要 defer：IncidentsPage/StudyAttendance 双击守卫用 state（opus 判 disabled 已兜、可接受）。
+
+验证：`npm run build` ✓ built（多轮）。commit `3d72243`（本体）+ `29f0320`（复审）。
+
 ---
 
 **END** — 本档随 Web 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。
