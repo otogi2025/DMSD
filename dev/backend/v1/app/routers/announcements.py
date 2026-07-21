@@ -535,6 +535,17 @@ def update_announcement(
     db.commit()
     db.refresh(ann)
 
+    # 与 GET 列表同一口径：未软删回复数（勿写死 0，否则前端就地更新会清零）
+    reply_count = (
+        db.scalar(
+            select(sa_func.count(models.AnnouncementReply.id)).where(
+                models.AnnouncementReply.announcement_id == ann.id,
+                models.AnnouncementReply.deleted_at.is_(None),
+            )
+        )
+        or 0
+    )
+
     return schemas.AnnouncementBrief(
         id=ann.id,
         title=ann.title,
@@ -545,7 +556,7 @@ def update_announcement(
         created_at=ann.created_at,
         updated_at=ann.updated_at,
         is_read=False,
-        reply_count=0,
+        reply_count=reply_count,
     )
 
 

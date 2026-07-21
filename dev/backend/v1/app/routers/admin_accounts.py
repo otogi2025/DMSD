@@ -127,6 +127,13 @@ def list_students(
     locked: bool | None = Query(
         None, description="只看当前被锁定的账号 (account.locked_until > now)"
     ),
+    # 完整分页 UI（前端翻页 + total 计数）留第二波；本次只做 SQL 侧上限兜底，
+    # 防宿舍规模变大后一次 .all() 把全表学生拉进内存。响应体仍是原来的
+    # StudentAccountListOut（total + items list），不改形状以免破坏老师网页契约。
+    limit: int = Query(
+        1000, ge=1, description="一次最多返回条数（SQL 侧上限兜底，默认 1000）"
+    ),
+    offset: int = Query(0, ge=0, description="跳过前 N 条（SQL 侧 offset，默认 0）"),
     teacher: models.Teacher = Depends(
         require_permission(permissions.C_STUDENT_ACCOUNT, permissions.VIEW)
     ),
@@ -138,7 +145,7 @@ def list_students(
         1. 构建基础 query（排除 is_demo）
         2. 按参数追加 WHERE（模糊搜 / 寮号 / 状态）
         3. JOIN accounts 取锁定状态和最后登录时间
-        4. 返回列表 + total
+        4. SQL 侧 limit/offset 切片后返回列表 + total（完整分页 UI 留第二波）
     """
     # 1. 基础 query — 演示隔离（真老师看真实学生 / 演示老师看演示学生）
     stmt = select(models.Student).where(demo_scope_for_teacher(teacher))
@@ -194,7 +201,8 @@ def list_students(
         models.Student.seat_no,
     )
 
-    students = db.scalars(stmt).all()
+    # SQL 侧切片：默认 limit=1000 兜住全表扫描；完整分页 UI 留第二波。
+    students = db.scalars(stmt.limit(limit).offset(offset)).all()
 
     # 3. 批量取 account 信息（一次 IN query，避免 N+1）
     student_ids = [s.id for s in students]
@@ -262,6 +270,19 @@ def password_reset(
     # 1. 查学生（含演示隔离）+ 寮边界校验（分寮老师不能改别寮学生密码）
     student = _get_student_or_404(student_id, db, teacher)
     _assert_student_in_dorm(teacher, student)
+    # 在籍校验：密码重置只对在籍（active）学生开放。
+    # 已自删(paused) / 毕业(graduated) / 锁定(locked) 等非在籍账号不应被重置出可登录密码
+    # （等于复活不该能登录的账号）。错误码/状态码与同文件 teacher_renew_seat 一致（409 /
+    # STUDENT_NOT_ACTIVE），但 message 按本端点语义写「重置密码」而非「番号変更」。
+    # backend#19（2026-07-20 五端双队全量审查）。
+    if student.status != "active":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "STUDENT_NOT_ACTIVE",
+                "message": "在籍中の学生のみパスワードをリセットできます",
+            },
+        )
 
     # 2. 查 account
     account = _get_account_or_404(student_id, db)

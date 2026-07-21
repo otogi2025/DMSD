@@ -131,7 +131,17 @@ def renewal_start(
     # 4. 真改：按 student_id 一个个 update
     student_map: dict[UUID, models.Student] = {s.id: s for s in students}
 
+    # backend#41：重复开闸不得把已完成改番号的学生重新打 True。
+    # 选型理由：无「本学年是否已开闸」字段可依赖；方案 (a)「只更新 False」在重复开闸时
+    # 反而只会打到已完成者（极性反了）。故用软幂等守卫：目标集合里若已有人
+    # needs_renewal=True，视为本轮已开过闸 → 通知类一律不覆盖（已完成保持 False，
+    # 未完成保持 True）；全员仍为 False 时才是首次开闸，正常打标。改动最小且满足关键约束。
+    cohort_already_open = any(
+        student_map[e.student_id].needs_renewal for e in notify_entries
+    )
     for entry in notify_entries:
+        if cohort_already_open:
+            continue
         student_map[entry.student_id].needs_renewal = True
 
     for entry in graduate_entries:
