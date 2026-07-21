@@ -591,7 +591,9 @@ final class AppStore: ObservableObject {
                 guard authToken == tokenAtStart else { return }
                 announcementUnreadCount = res.unreadCount
             } catch {
-                // 拉失败不阻塞主页其他功能 — 静默忽略，下次刷新再试
+                // ios#86：401 也要走统一登出，跟七处兄弟 load 口径一致（原本吞进静默 catch，用户卡失效会话）。
+                if handleIfUnauthorized(error, tokenAtStart: tokenAtStart) { return }
+                // 非 401：拉失败不阻塞主页其他功能 — 静默忽略，下次刷新再试
             }
         #endif
     }
@@ -809,6 +811,9 @@ final class AppStore: ObservableObject {
             .min { $0.scheduled_window_start_at < $1.scheduled_window_start_at }
         guard let s = current ?? upcoming else {
             // 本日我寮无点呼 → 安全落 idle（点呼卡显减点预告、不显假倒计时）
+            // ⏸ ios#89 留 itsuki 拍板：审查建议「已结束未签到场次保留 absent 态」，但与既有故意决定冲突——
+            //   RollStateMachineTests #4「越过 auto_end → 回落 idle（不再 absent 挂死）」是特意把永久 absent 改成 idle。
+            //   两种 UX 对撞（警示条静默消失 vs absent 挂死），非机械 bug，暂保持现状（idle），待拍板。
             return RollStateDecision(rollState: .idle, checkinKind: nil, checkedInAt: nil, countdownSec: nil)
         }
         // 已签到/已结算 → 按后端 my_status 完整映射（ios#101 契约收口）。

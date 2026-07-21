@@ -96,11 +96,18 @@ private struct HeaderPlusButton: View {
 struct NotificationsView: View {
     @EnvironmentObject var app: AppStore
     @State private var filter: String = "すべて"
-    /// 4-30 加「学習」(R1 例外的 push 通知种类)
-    private let filters = ["すべて", "申請", "減点", "夜学習", "宅配", "活動", "リクエスト曲"]
+    // 筛选 chip 与生产通知源对齐（ios#34）。
+    // 生产 allNotifications = push + feedNotifications + packageNotifications；
+    // feed 类型真值 = AppStore.feedNotifType：announcement→「お知らせ」/ bus→「バス」/ event→「カレンダー」；
+    // 包裹映射 type「宅配」。申請/減点/夜学習/活動/リクエスト曲 只来自 push/SEED，APNs 接通前点了恒空 → 仅 DEMO 保留。
+    #if DEMO
+        private let filters = ["すべて", "申請", "減点", "夜学習", "宅配", "活動", "リクエスト曲"]
+    #else
+        private let filters = ["すべて", "お知らせ", "バス", "カレンダー", "宅配"]
+    #endif
 
     private var filtered: [NotificationItem] {
-        // 数据源 = AppStore.allNotifications（push 模拟通知 + SEED.notifications）
+        // 数据源 = AppStore.allNotifications（生产=push+feed+包裹 / 演示=push+SEED）
         if filter == "すべて" { return app.allNotifications }
         return app.allNotifications.filter { $0.type == filter }
     }
@@ -225,8 +232,9 @@ struct PackageDisplay: Identifiable {
     let itemCount: Int // 宅配件数（后端 item_count；演示默认 1）
     let isWaiting: Bool // true=待取（状态 pending/notified）/ false=已取（picked_up 等终态）
     let statusLabel: String // 详情「状態」行用：精确到 5 状态（picked_up/expired/discarded 各自文案，不一律「受取済」）
+    /// 列表 Pill 等处用。直接复用 statusLabel，避免把 期限切れ/処分済 二值化成「受取済」（ios#35）。
     var statusText: String {
-        isWaiting ? "受取待ち" : "受取済"
+        statusLabel
     }
 }
 
@@ -385,9 +393,10 @@ struct PackagesView: View {
                             .foregroundStyle(T.inkMute)
                     }
                     Spacer()
-                    // 待領 only：受取 button · height 36 padding '0 16' fontSize 13
+                    // 待領 only：右侧文案按钮 · height 36 padding '0 16' fontSize 13
+                    // ios#39：整张卡只是进详情，生产无学生自助受取 → 文案用「詳細」，避免看起来像「点一下就领完」
                     if p.isWaiting {
-                        Text("受取")
+                        Text("詳細")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 16)
@@ -741,9 +750,11 @@ struct LostNewView: View {
     @State private var feature: String = ""
     @State private var isSubmitting = false
 
-    /// 品名必填（后端 item_name 必填）。
+    /// 与 UI 红星必填对齐：品名 / 場所 / 特徴（ios#37）。画像未实装、不参与校验。
     private var canSubmit: Bool {
         !itemName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !place.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !feature.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     var body: some View {
@@ -751,8 +762,8 @@ struct LostNewView: View {
             PageHeader(title: "遺失物を投稿", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    // 画像 field · required
-                    Field(label: "画像", required: true) {
+                    // 画像：PhotosPicker 未实装 → 不标 required（ios#37）
+                    Field(label: "画像") {
                         VStack(spacing: 6) {
                             Ic.camera(28).foregroundStyle(T.primary)
                             Text("写真を追加")
@@ -830,7 +841,7 @@ struct LostNewView: View {
         .buttonStyle(.plain)
     }
 
-    /// 投稿提交 —— 演示版假 toast / 生产版 POST /lost-found。
+    /// 投稿提交 —— 仅演示构建可走假 toast；生产构建学生只浏览、不投稿（ios#36，投稿留第二波）。
     private func submit() {
         // 防连点：提交在途再点直接忽略，避免重复提交
         guard !isSubmitting else { return }
@@ -845,28 +856,33 @@ struct LostNewView: View {
                 }
             }
         #else
-            let loc = place.trimmingCharacters(in: .whitespacesAndNewlines)
-            let desc = feature.trimmingCharacters(in: .whitespacesAndNewlines)
-            let body = LostFoundBody(
-                post_type: postType,
-                item_name: itemName.trimmingCharacters(in: .whitespacesAndNewlines),
-                description: desc.isEmpty ? nil : desc,
-                location: loc.isEmpty ? nil : loc
-            )
-            let tokenAtStart = app.authToken
-            Task {
-                defer { isSubmitting = false }
-                do {
-                    _ = try await LostFoundAPI.create(body)
-                    guard app.authToken == tokenAtStart else { return } // 切账号 / 登出后不在新会话刷新 / 弹 toast
-                    await app.loadLostFound() // 投稿后刷新一览
-                    guard app.authToken == tokenAtStart else { return } // loadLostFound 也有 await → 二次确认再 toast/导航
-                    app.showToast("投稿しました")
-                    router.go(.homeLost)
-                } catch {
-                    app.showToast("投稿に失敗しました")
+            // 生产：学生只浏览遗失物，不发 POST（与 LostView「一覧は寮監が管理」叙事一致）。
+            // 下方原 POST /lost-found 逻辑用 #if false 整段保留，第二波开投稿时去掉门控即可恢复。
+            isSubmitting = false
+            #if false // 第二波学生投稿：删本行门控，恢复下方 POST
+                let loc = place.trimmingCharacters(in: .whitespacesAndNewlines)
+                let desc = feature.trimmingCharacters(in: .whitespacesAndNewlines)
+                let body = LostFoundBody(
+                    post_type: postType,
+                    item_name: itemName.trimmingCharacters(in: .whitespacesAndNewlines),
+                    description: desc.isEmpty ? nil : desc,
+                    location: loc.isEmpty ? nil : loc
+                )
+                let tokenAtStart = app.authToken
+                Task {
+                    defer { isSubmitting = false }
+                    do {
+                        _ = try await LostFoundAPI.create(body)
+                        guard app.authToken == tokenAtStart else { return } // 切账号 / 登出后不在新会话刷新 / 弹 toast
+                        await app.loadLostFound() // 投稿后刷新一览
+                        guard app.authToken == tokenAtStart else { return } // loadLostFound 也有 await → 二次确认再 toast/导航
+                        app.showToast("投稿しました")
+                        router.go(.homeLost)
+                    } catch {
+                        app.showToast("投稿に失敗しました")
+                    }
                 }
-            }
+            #endif
         #endif
     }
 }
@@ -1207,7 +1223,9 @@ struct MusicView: View {
 struct MusicNewView: View {
     @EnvironmentObject var router: RouterStore
     @EnvironmentObject var app: AppStore
-    @State private var url: String = ""
+    #if DEMO
+        @State private var url: String = ""
+    #endif
     @State private var title: String = ""
     @State private var artist: String = ""
     @State private var reason: String = ""
@@ -1218,10 +1236,13 @@ struct MusicNewView: View {
             PageHeader(title: "曲を投稿", level: 2)
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    Field(label: "Apple Music URL", hint: "曲情報を自動取得します") {
-                        TField(text: $url, placeholder: "https://music.apple.com/...")
-                    }
-                    .padding(.bottom, 18)
+                    // ios#38：生产 submit 从不读 url、后端无 url 字段 → 生产隐藏；仅 DEMO 保留自动取得占位栏
+                    #if DEMO
+                        Field(label: "Apple Music URL", hint: "曲情報を自動取得します") {
+                            TField(text: $url, placeholder: "https://music.apple.com/...")
+                        }
+                        .padding(.bottom, 18)
+                    #endif
 
                     Field(label: "曲名", required: true) {
                         TField(text: $title)

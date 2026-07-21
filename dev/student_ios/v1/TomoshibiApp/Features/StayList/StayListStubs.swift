@@ -22,6 +22,8 @@ enum ApprovalRole: String, CaseIterable, Hashable {
     case intlChief = "国際交流課長"
     case management = "管理係"
     case principal = "校長"
+    /// 后端返回未收录役职时用（不要静默落成「管理係」）
+    case unknown = "不明"
 
     var label: String {
         rawValue
@@ -35,7 +37,7 @@ enum ApprovalDecision: String, Hashable {
         switch self {
         case .pending: return "審査中"
         case .approved: return "承認"
-        case .rejected: return "差し戻し"
+        case .rejected: return "却下" // 终态「却下」；「差し戻し」留给 returned / application.return
         }
     }
 
@@ -133,7 +135,7 @@ enum ApplicationStatus: String, Hashable {
         case .pending: return "審査中"
         case .approved_partial: return "一部承認"
         case .approved: return "承認済"
-        case .rejected: return "差し戻し"
+        case .rejected: return "却下" // 终态「却下」；returned 仍用「要修正」（见 ios#74）
         case .returned: return "要修正"
         case .withdrawn: return "取消済"
         }
@@ -298,7 +300,7 @@ enum StayListMock {
                 detail: nil
             ))
             for step in steps where step.decision != .pending {
-                let actionLabel = step.decision == .approved ? "承認" : "差し戻し"
+                let actionLabel = step.decision.label // 承認 / 却下（与 ApprovalDecision.label 单源一致）
                 auditLog.append(AuditLogEntry(
                     at: step.decidedAt ?? item.date,
                     action: actionLabel,
@@ -443,7 +445,9 @@ struct StayListView: View {
         ("すべて", nil),
         ("審査中", .pending),
         ("承認済", .approved),
-        ("差し戻し", .rejected),
+        // ios#74：该 tab 经 expandStatus 实际过滤 [.rejected(却下), .returned(要修正)] 两态，
+        // 「差し戻し」已改留给 returned，故标签改为覆盖两态、与列表 status.label 一致（按 .value 匹配、非字符串）。
+        ("却下・要修正", .rejected),
     ]
 
     var body: some View {
@@ -988,14 +992,18 @@ struct StayDetailView: View {
 
         do {
             let out = try await ApplicationsAPI.withdraw(id: uuid)
-            loadedItem = out.toStayApplication()
+            var item = out.toStayApplication() // auditLog 固定 []，须另行填充
             app.showToast("申請を取り消しました")
-            // 撤回后履历会新增一条 —— 重拉 audit（失败不致命，沿用 load 的容错）
+            // 撤回后履历会新增一条 —— 重拉 audit（失败不致命，对照 load()：回填之前的 loadedAuditLog）
             if let auditOut = try? await ApplicationsAPI.audit(id: uuid) {
                 let entries = auditOut.map { $0.toAuditLogEntry() }
-                loadedItem?.auditLog = entries
+                item.auditLog = entries
                 loadedAuditLog = entries
+            } else {
+                // 重拉失败：不要用空数组覆盖已有履历（ios#72）
+                item.auditLog = loadedAuditLog
             }
+            loadedItem = item
         } catch let APIError.unprocessable(msg) {
             app.showToast(msg)
         } catch APIError.server(409, _) {
@@ -1087,7 +1095,9 @@ struct StayDetailView: View {
 
     private func auditColor(_ action: String) -> Color {
         if action.contains("承認") { return T.ok }
-        if action.contains("差し戻し") { return T.danger }
+        if action.contains("却下") { return T.danger } // 终态「却下」= 危险色
+        // 「差し戻し」/「要修正」= 可再提出，用警示色（T.warn），不用删除类危险色（ios#73）
+        if action.contains("差し戻し") || action.contains("要修正") { return T.warn }
         if action.contains("変更") { return T.warn }
         return T.primary
     }
@@ -1368,6 +1378,11 @@ struct StayEditForm: View {
         // 没改则保留原值合法 —— returned/rejected 旧届的原出寮日可能已过去，硬钳 minDate 会把原值顶坏（故不在 DatePicker 加下限）。
         let newLeaveYMD = formatYMD(leaveDate)
         if newLeaveYMD != original.leaveDate, newLeaveYMD < formatYMD(Date()) { return false }
+        // ios#75: 外泊/帰国 须「宿泊先」非空（对照 StayForm.canSubmit 的 needPlaces 校验）
+        if needsDestination {
+            let trimmedDest = destination.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmedDest.isEmpty { return false }
+        }
         return true
     }
 
@@ -1856,7 +1871,8 @@ extension ApplicationOut {
 
         // chain 转换
         let steps: [ApprovalStep] = approval_chain.map { stepOut in
-            let role = ApprovalRole(rawValue: stepOut.approver_role) ?? .management
+            // 未知役职 → .unknown「不明」，不静默落成「管理係」（ios#76）
+            let role = ApprovalRole(rawValue: stepOut.approver_role) ?? .unknown
             let decision: ApprovalDecision
             switch stepOut.decision {
             case "approve": decision = .approved
@@ -1933,7 +1949,8 @@ extension AuditLogOut {
         case "application.submit": return "提出"
         case "application.amend", "application.update": return "変更届を提出"
         case "application.approve": return "承認"
-        case "application.reject": return "差し戻し"
+        case "application.reject": return "却下" // 终态「却下」（与 ApplicationStatus.rejected.label 对齐）
+        case "application.return": return "差し戻し" // 可再提出的「差し戻し」（ios#73）
         case "application.withdraw": return "取消"
         default: return raw
         }

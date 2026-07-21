@@ -46,6 +46,8 @@ struct StudyOnlineForm: View {
     private var canSubmit: Bool {
         !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && periodTo >= periodFrom
+            // ios#15: 开始日须 ≥ 今天+3天（与 DateField minDate / 后端 ONLINE_REQUEST_TOO_LATE 对齐；跨日开着表单时挡住过期开始日）
+            && periodFrom >= ApplyFormDate.threeDaysLater
             && hasAnySlot
             && allSlotsValid
     }
@@ -338,6 +340,9 @@ struct StudyOnlineForm: View {
             router.go(.applyDone(kind: "studyOnline"))
         } catch let APIError.unprocessable(msg) {
             app.showToast(msg)
+        } catch let APIError.server(409, msg) {
+            // ios#14: 期间重叠 409 — 优先展示后端 message（勿落通用 catch 被 Presenter 吞成「サーバーエラー」）
+            app.showToast(msg.isEmpty ? "同じ期間の申請が既に存在します" : msg)
         } catch APIError.unauthorized {
             app.authToken = nil
             router.replace(.login)

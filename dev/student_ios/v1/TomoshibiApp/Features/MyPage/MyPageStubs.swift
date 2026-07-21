@@ -56,7 +56,11 @@ private enum MyPageMonthUtil {
 
 /// MyLanding 顶部 2-col grid block · 对等 JSX blocks map
 private struct MyLandingGridBlock: Identifiable {
-    let id = UUID()
+    /// 稳定 id：用语义 key（blocks 是计算属性，每次访问新建数组；UUID 会破坏 SwiftUI diff）
+    var id: String {
+        key
+    }
+
     let key: String // "info" / "rollcall" / ...
     let label: String
     let icon: String // SF Symbol 名（苹果系统线条图标）
@@ -238,6 +242,11 @@ struct MyLandingView: View {
                 let raw = try await EventsAPI.listEvents(fromDate: from, toDate: to)
                 loadedEvents = EventMapper.map(raw)
                 eventsState = .loaded
+            } catch APIError.unauthorized {
+                // ios#63：对齐 MyHealthView.load / ScheduleView.load — 401 清登录态，不滞留已失效令牌
+                app.authToken = nil
+                loadedEvents = []
+                eventsState = .failed("セッションの有効期限が切れました。再度ログインしてください。")
             } catch {
                 // codex M-4: 拉失败设 .failed 而非静默空，scheduleCard 显失败态而非误报「无活动」
                 loadedEvents = []
@@ -1003,9 +1012,16 @@ struct MyInfoEditView: View {
 
     /// 本地状态更新 —— 演示 / 生产成功后共用：记变更历史 + 刷新 currentUser + 安全网 SEED.user。
     private func applyLocalChanges(newRoom: String, before u0: User) {
-        app.appendChange(field: "room", label: "部屋番号", before: u0.room, after: newRoom)
-        app.appendChange(field: "email", label: "メール", before: u0.email, after: email)
-        app.appendChange(field: "phone", label: "電話", before: u0.phone, after: phone)
+        // ios#62：只记真改过的字段，避免 before==after 污染「変更履歴」
+        if newRoom != u0.room {
+            app.appendChange(field: "room", label: "部屋番号", before: u0.room, after: newRoom)
+        }
+        if email != u0.email {
+            app.appendChange(field: "email", label: "メール", before: u0.email, after: email)
+        }
+        if phone != u0.phone {
+            app.appendChange(field: "phone", label: "電話", before: u0.phone, after: phone)
+        }
 
         // IX-008: 更新当前用户（已迁移到 displayUser 的站点响应式刷新）+ 安全网 SEED.user（未迁移站点仍读它）
         if var u = app.currentUser {
@@ -1797,8 +1813,10 @@ struct MyPointsChartView: View {
                 let innerW = right - left
                 let innerH = bottom - top
 
+                // ios#65：单月合计可 > maxVal(8)，绘图前夹紧，避免折线/圆点画出图外被裁切
+                // （同文件 gauge 已有 min(points, maxVal) 写法）
                 let yFor: (Double) -> CGFloat = { v in
-                    bottom - innerH * CGFloat(v / self.maxVal)
+                    bottom - innerH * CGFloat(min(v, self.maxVal) / self.maxVal)
                 }
                 let xFor: (Int) -> CGFloat = { i in
                     left + innerW * CGFloat(i) / CGFloat(max(values.count - 1, 1))
@@ -2248,7 +2266,15 @@ struct MyPackagesView: View {
                         .buttonStyle(.plain)
                     }
                     if rows.isEmpty {
-                        EmptyState(icon: "shippingbox", title: "なし")
+                        // ios#60：对齐本文件 MyCleanView / Community PackagesView — 空列表时按 packagesState 区分
+                        switch app.packagesState {
+                        case .loading:
+                            ProgressView().frame(maxWidth: .infinity).padding(.vertical, 16)
+                        case let .failed(msg):
+                            EmptyState(icon: "exclamationmark.triangle", title: "読み込みに失敗しました", message: msg)
+                        default:
+                            EmptyState(icon: "shippingbox", title: "なし")
+                        }
                     }
                 }
                 .padding(.horizontal, 20)
@@ -2417,7 +2443,8 @@ struct MySettingsView: View {
                 Task { await performDelete() }
             }
         } message: {
-            Text("削除すると元に戻せません。点呼履歴・申請履歴・プロフィール情報がすべて閲覧できなくなります。")
+            // ios#61：后端 DELETE /accounts/me 实为 soft-delete（status=paused），不是物理真删
+            Text("アカウントは利用停止になり、再ログインできなくなります。点呼履歴・申請履歴・プロフィール情報は管理側に残りますが、本人は閲覧できなくなります。")
         }
         .alert("削除に失敗しました", isPresented: .constant(deleteError != nil)) {
             Button("OK") { deleteError = nil }
@@ -2458,7 +2485,7 @@ struct MySettingsView: View {
                 .buttonStyle(.plain)
                 .disabled(deleting)
             }
-            Text("削除すると元に戻せません。")
+            Text("アカウントは利用停止になります。再ログインはできなくなります。")
                 .font(.system(size: 11))
                 .foregroundStyle(T.inkMute)
                 .padding(.top, 4)
@@ -2466,7 +2493,7 @@ struct MySettingsView: View {
         }
     }
 
-    /// 调用后端 DELETE /api/v1/accounts/me 真删账号，成功后清 token 跳登录
+    /// 调用后端 DELETE /api/v1/accounts/me（服务端软删为 paused），成功后清 token 跳登录
     private func performDelete() async {
         deleting = true
         defer { deleting = false }
@@ -2638,9 +2665,15 @@ struct MyAboutView: View {
 struct MyStudyView: View {
     @EnvironmentObject var app: AppStore
 
-    /// 当月（demo: 全件）の出席状況サマリ
+    /// 当月出席情况汇总（ios#66：必须按东京时区当月 yyyy-MM 前缀过滤；标题写「今月」）
     private var thisMonthStats: (present: Int, late: Int, abnormal: Int, absentExcused: Int) {
-        let entries = app.studyHistory
+        // 参照 monthRollcallStats / MyPageMonthUtil.currentMonthPrefix — 演示种子全是 2026-04
+        #if DEMO
+            let monthPrefix = "2026-04"
+        #else
+            let monthPrefix = MyPageMonthUtil.currentMonthPrefix()
+        #endif
+        let entries = app.studyHistory.filter { $0.date.hasPrefix(monthPrefix) }
         // 按日期分组 → 当天 tap 种类齐全(= StudyTap 全部 2 种) = present / 缺一种 = abnormal / 0 = absent
         let dates = Set(entries.map { $0.date })
         var present = 0, late = 0, abnormal = 0
@@ -2689,6 +2722,13 @@ struct MyStudyView: View {
             }
         }
         .background(T.pearl.ignoresSafeArea())
+        .task {
+            #if !DEMO
+                // ios#66：进页拉一次。studyHistory 后端 GET /study/attendance/mine 仍是 AppStore TODO，
+                // 尚无专用 load；先调 loadMe 刷新 studyLeaveCountThisMonth（汇总卡「欠席届」同源）。
+                await app.loadMe()
+            #endif
+        }
     }
 
     /// 非晚自习对象学生点进「夜学習履歴」时看到的提示页。

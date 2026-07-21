@@ -68,12 +68,19 @@ struct ApplyListView: View {
     @State private var loadError: String? = nil
     @State private var hasLoaded: Bool = false // codex: 防切 tab / 重入时重复拉
 
-    private let tabs: [(String, String)] = [
-        ("all", "すべて"),
-        ("pending", "審査中"),
-        ("approved", "承認済"),
-        ("draft", "下書き"),
-    ]
+    // ios#6: 「下書き」tab 生产恒空（草稿保存已删、后端无 draft）——仅 DEMO 保留，生产隐藏。
+    // 注：Swift 不允许 #if 直接出现在数组字面量元素位，故用闭包构造 + append 条件加入。
+    private let tabs: [(String, String)] = {
+        var t: [(String, String)] = [
+            ("all", "すべて"),
+            ("pending", "審査中"),
+            ("approved", "承認済"),
+        ]
+        #if DEMO
+            t.append(("draft", "下書き"))
+        #endif
+        return t
+    }()
 
     private var filtered: [ApplicationItem] {
         items.filter { matchesTab($0.status) }
@@ -556,6 +563,12 @@ struct StayForm: View {
         }
         if needFlight {
             if departAirport.isEmpty || arriveAirport.isEmpty { return false }
+            // ios#8: 帰国航班到着必须晚于出发（与后端 KikokuCreateIn 一致）；倒挂/相等 → 置灰
+            if StayForm.combine(date: returnDate, time: arriveFlightTime)
+                <= StayForm.combine(date: leaveDate, time: departFlightTime)
+            {
+                return false
+            }
         }
         return true
     }
@@ -1022,6 +1035,8 @@ struct StayForm: View {
             mealsSkip = []
         }
 
+        // ios#5: 提交前抓令牌；成功后若已切号/登出则不再 toast/导航（同 submitOuting）
+        let tokenAtStart = app.authToken
         do {
             // 按 kind dispatch 到 3 个 typed Encodable body
             switch backendKind {
@@ -1088,6 +1103,7 @@ struct StayForm: View {
                 return
             }
             // 提交成功
+            guard app.authToken == tokenAtStart else { return } // 切账号 / 登出后不在新会话弹 toast / 导航
             app.showToast("\(type.name)申請を提出しました")
             router.go(.applyDone(kind: kind))
         } catch let APIError.unprocessable(msg) {
@@ -1564,12 +1580,15 @@ struct StudyAbsenceForm: View {
                         isSubmitting = true
                         Task {
                             defer { isSubmitting = false }
+                            // ios#5: 提交前抓令牌；成功后若已切号/登出则不再导航（同 submitOuting）
+                            let tokenAtStart = app.authToken
                             do {
                                 try await app.submitStudyLeave(
                                     targetDate: StayForm.formatYMD(targetDate),
                                     reason: reason,
                                     range: range
                                 )
+                                guard app.authToken == tokenAtStart else { return } // 切账号 / 登出后不在新会话弹 toast / 导航
                                 router.go(.applyDone(kind: "studyAbsence"))
                             } catch let APIError.unprocessable(msg) {
                                 // 同日重复提交 / target_date 范围超过 等
@@ -1699,6 +1718,14 @@ struct GenericApplyForm: View {
         if needsDest && dest.trimmingCharacters(in: .whitespaces).isEmpty { return false } // 外出: 去的地方「行き先」必填（trim 防只填空格）
         // 来訪者(guest)「来訪者氏名」/ 代理受取(parcel)「荷物の概要」也走 dest 字段、标了必填 → 同样 trim 后必须非空（codex 复审 minor-1）
         if (isGuest || isParcel) && dest.trimmingCharacters(in: .whitespaces).isEmpty { return false }
+        // ios#7: 外出 — 帰寮时刻须 ≥ 外出时刻（同日 combine；倒挂时置灰，对齐后端 OutingCreateIn）
+        if isOuting {
+            if StayForm.combine(date: outingDate, time: outingReturnTime)
+                < StayForm.combine(date: outingDate, time: outingLeaveTime)
+            {
+                return false
+            }
+        }
         return true
     }
 

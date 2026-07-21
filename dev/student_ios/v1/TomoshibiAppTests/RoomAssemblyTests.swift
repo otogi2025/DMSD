@@ -5,8 +5,12 @@
 //   —— 从 AppStore.swift 里 computedRoomNo / computedDormUnit 抽出的纯函数（行为逐字不变）。
 //
 // §5.0 房号编码规则：字母前缀编码楼栋 —— M = 1 寮男 / A = 2 寮男 / W = 4 寮女。
-// ⭐ 核心不变量（#7）：判寮/前缀看房号字母前缀，绝不能被性别或数字覆盖。
-//   这是 6-17「五处散布 bug」的根因场景 —— 2 寮男生房号是 A 前缀，用性别或「数字首位」永远推不出 2 寮。
+// ⭐ 核心不变量（#7）：在「男生房号」里，判寮/前缀看字母前缀（A→2 寮 / 非 A→1 寮），
+//   绝不能被「数字首位」覆盖 —— 这是 6-17「五处散布 bug」的根因（2 寮男生房号是 A 前缀，
+//   用「数字首位==2」永远推不出 2 寮）。
+// ⚠️ 该不变量的边界（ios#113 修正原注释的过度概括）：「不被性别覆盖」只对 assembleRoomNo 的前缀拼接成立；
+//   dormUnit 对 female 会先短路返回 4 寮（line 63 `if gender=="female"`，见 #43 的 A1+female==4 用例）。
+//   这不是矛盾：4 寮=女生寮、A 前缀本就是男生 2 寮，female+A 属非法输入、默认落 4 是有意行为，非违反不变量。
 
 import Foundation
 import Testing
@@ -33,7 +37,12 @@ struct RoomAssemblyTests {
         #expect(RegistrationDraft.assembleRoomNo(suffix: "A12", gender: "male") == "A12")
         // 就算性别字段传成 female，A 前缀依旧不被 "W" 覆盖（前缀由字母编码、非性别）
         #expect(RegistrationDraft.assembleRoomNo(suffix: "A1", gender: "female") == "A1")
-        // 小写 a 同样是字母 → 原样保留（isLetter 判定）
+        // 小写 a 同样是字母 → assembleRoomNo 原样保留（isLetter 判定，不做大小写规范化）。
+        // ⚠️ 契约说明（ios#113/#114）：后端 §5.0 room_no 正则大小写敏感、只收大写
+        //   （accounts.py validate_room_dorm_match 用 re.match 无 IGNORECASE），小写 room_no 会被 422 拒。
+        //   但生产注册流在 UI 输入处已 `.uppercased()`（AuthStubs.swift:958 onChangeCompat 过滤+转大写写回），
+        //   小写永远到不了 assembleRoomNo；此处小写用例仅测纯函数容错，不代表生产会发出小写房号。
+        //   规范化的唯一真值 = UI 输入层；assembleRoomNo 刻意不重复规范化（保持纯函数行为单一、防回归）。
         #expect(RegistrationDraft.assembleRoomNo(suffix: "a3", gender: "male") == "a3")
     }
 

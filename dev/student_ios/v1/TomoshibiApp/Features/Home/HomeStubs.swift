@@ -1029,6 +1029,8 @@ struct LifeTab: View {
                 if app.currentUser == nil { await app.loadMe() }
                 await app.loadSongs()
                 await app.loadLostFound()
+                // ios#43：快递卡读 app.packages，须在首页拉一次，否则冷启动件数恒 0
+                await app.loadMyPackages()
                 await loadHomeEventsAndBus()
             #endif
         }
@@ -1186,9 +1188,12 @@ struct LifeTab: View {
                         .foregroundStyle(T.ink)
                     // 原写死「本日到着」会让学生误以为都是今天刚到的（实际可能前几天到）。
                     // 这里只拿到未受取件数（pendingPkg），无逐件到达日，故用不绑定日期的中性文案。
-                    Text("未受取あり")
-                        .font(.system(size: 12))
-                        .foregroundStyle(T.inkSub)
+                    // ios#46：0 件时不写「未受取あり」，避免与标题「0 件未受取」矛盾
+                    if pendingPkg > 0 {
+                        Text("未受取あり")
+                            .font(.system(size: 12))
+                            .foregroundStyle(T.inkSub)
+                    }
                 }
                 Spacer(minLength: 0)
                 Ic.chevR(16).foregroundStyle(T.inkMute)
@@ -1215,7 +1220,8 @@ struct LifeTab: View {
                                 .frame(width: 32, height: 32)
                             Ic.calendar(18).foregroundStyle(T.primary)
                         }
-                        Text("今週の活動 · \(events.count) 件")
+                        // ios#47：生产拉取跨度可达约两年，「今週」误导 → 中性文案
+                        Text("活動 · \(events.count) 件")
                             .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(T.ink)
                     }
@@ -1490,6 +1496,7 @@ struct RollcallSheet: View {
             .padding(.bottom, 24)
 
             // JSX: h 54 / radius 16 / btnGradRadial / 16 700 / letterSpacing 0.04em / shadow
+            // ios#49：点呼时间外禁用主按钮，避免走完整写入却被当成已点呼
             Button { simulate() } label: {
                 Text("NFC をかざす")
                     .font(.system(size: 16, weight: .bold))
@@ -1504,6 +1511,7 @@ struct RollcallSheet: View {
                     .shadow(color: T.primary.opacity(0.32), radius: 18, x: 0, y: 6)
             }
             .buttonStyle(.plain)
+            .disabled(app.rollState != .active)
             .padding(.bottom, 10)
 
             // JSX: h 48 / radius 16 / ink.06 bg / inkSub 15 600
@@ -1649,12 +1657,13 @@ struct RollcallSheet: View {
             }
             .padding(.bottom, 18)
 
-            Text("読み取りに失敗しました")
+            Text("書き込みに失敗しました")
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(T.ink)
                 .padding(.bottom, 10)
 
-            Text("NFC を読み取れませんでした")
+            // ios#45：架构已从「读 NFC」改为「写 ST25DV」，失败文案跟进
+            Text("NFC への書き込みに失敗しました")
                 .font(.system(size: 13))
                 .foregroundStyle(T.inkSub)
                 .padding(.bottom, 22)
@@ -2049,12 +2058,13 @@ struct StudyCheckinSheet: View {
             }
             .padding(.bottom, 18)
 
-            Text("読み取りに失敗しました")
+            Text("書き込みに失敗しました")
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(T.ink)
                 .padding(.bottom, 10)
 
-            Text("NFC を読み取れませんでした")
+            // ios#45：架构已从「读 NFC」改为「写 ST25DV」，失败文案跟进
+            Text("NFC への書き込みに失敗しました")
                 .font(.system(size: 13))
                 .foregroundStyle(T.inkSub)
                 .padding(.bottom, 22)
@@ -2563,9 +2573,22 @@ struct OtherSheet: View {
                     guard app.authToken == tokenAtStart else { return } // 切账号 / 登出后不在新会话弹 toast
                     app.closeSheet()
                     app.showToast("送信しました")
+                } catch let APIError.unprocessable(msg) {
+                    // ios#48：照 HealthSheet/AbsenceSheet — 422 直显后端校验消息
+                    submitting = false
+                    app.showToast(msg)
+                } catch APIError.unauthorized {
+                    // 本 sheet 无 router：清令牌触发全局回登录，并关弹窗。
+                    // 先核对 tokenAtStart（竞态：旧请求的 401 可能在用户登出+重登后才到，不能清掉新 session 的 token＝把已重登用户强制登出，与 handleIfUnauthorized(tokenAtStart:) 同口径）
+                    guard app.authToken == tokenAtStart else { return }
+                    app.authToken = nil
+                    app.closeSheet()
+                } catch APIError.network {
+                    submitting = false
+                    app.showToast("通信エラーが発生しました。電波を確認してください")
                 } catch {
                     submitting = false // 失败留在弹窗让学生重试
-                    app.showToast("送信に失敗しました")
+                    app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "送信に失敗しました"))
                 }
             }
         #endif
