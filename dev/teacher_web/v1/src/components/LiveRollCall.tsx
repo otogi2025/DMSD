@@ -64,10 +64,11 @@ export function LiveRollCall({
   const mm = String(Math.floor(elapsed / 60) % 60).padStart(2, "0");
   const ss = String(elapsed % 60).padStart(2, "0");
 
-  // 「自动迟到转换」已删（审查 web#4 止血）：原来 3 分钟后把未刷卡学生本地改成
+  // 「自动迟到转换」已删（审查 web#4 契约收口）：原来 3 分钟后把未刷卡学生本地改成
   // 「遅刻（未チェックイン）」，但后端结算把从未签到的记「欠席」——大屏显遅刻、
-  // 结果是欠席，误导老师。未刷卡保持「未点呼」；真正的迟到判定以后端为准
-  // （打卡时刻超窗才是 late）。阈值语义对齐留点呼状态四端契约族一起做（S3）
+  // 结果是欠席，误导老师。改后未刷卡保持「未点呼」，遅刻/欠席/免除全部以后端 board
+  // 状态为准（前端不再本地按阈值判定 late），与 iOS/Android 点呼状态语义一致：
+  // present/ok=按时 late=遅刻 absent=欠席 exempt=免除 未签到=未点呼，没有兜底成积极态。
 
   const cnt = students.reduce<Record<string, number>>((a, s) => {
     a[s.status] = (a[s.status] || 0) + 1;
