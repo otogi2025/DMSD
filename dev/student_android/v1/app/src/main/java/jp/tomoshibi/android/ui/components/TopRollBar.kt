@@ -370,12 +370,13 @@ private fun HeroStatus(
         }
 
         RollState.DONE -> {
-            val kind = checkinKind ?: "時間内"
-            val isLate = kind == "遅刻"
+            // 契约收口（对齐 iOS Home 英雄卡）：exempt 无签到时刻→隐藏占位、default 不兜底「時間内」
+            val isLate = checkinKind == "遅刻"
+            val isExempt = checkinKind == "免除"
             HeroBlock(
-                caption = checkinAt ?: "--:--",
-                big = kind,
-                sub = "今回の点呼は完了しました",
+                caption = if (isExempt) "" else (checkinAt ?: "--:--"),
+                big = checkinKind ?: "記録あり",
+                sub = if (isExempt) "本日は点呼免除です" else "今回の点呼は完了しました",
                 bigColor = if (isLate) t.danger else Color(0xFF2C6048),
                 captionColor = DeepBrown.copy(alpha = 0.7f),
                 subColor = DeepBrown.copy(alpha = 0.8f),

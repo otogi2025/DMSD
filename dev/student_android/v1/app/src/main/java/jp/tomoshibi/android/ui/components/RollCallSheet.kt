@@ -276,8 +276,8 @@ fun RollCallSheet(onDismiss: () -> Unit) {
 
                 Step.Success -> {
                     RollSuccessBody(
-                        checkinAt = state.checkinAt ?: "--:--",
-                        checkinKind = state.checkinKind ?: "時間内",
+                        checkinAt = state.checkinAt,
+                        checkinKind = state.checkinKind,
                     )
                 }
 
@@ -292,8 +292,8 @@ fun RollCallSheet(onDismiss: () -> Unit) {
 // ── Step 3 · success（点呼专属：绿圆 pop-in +「チェックイン完了」+ 时刻 pill）──
 @Composable
 private fun RollSuccessBody(
-    checkinAt: String,
-    checkinKind: String,
+    checkinAt: String?,
+    checkinKind: String?,
 ) {
     val t = SuzuT.current
 
@@ -344,7 +344,9 @@ private fun RollSuccessBody(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "$checkinAt · $checkinKind",
+            // 生产写卡成功此刻后端还没判定(checkinKind=null)→显中性，不兜底「時間内」(对齐 iOS successView ios#44)；
+            // 演示版有本地判定值时才显判定
+            text = if (checkinKind != null) "${checkinAt ?: "--:--"} · $checkinKind" else "点呼機に送信しました",
             color = t.okDeep,
             style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold),
         )
@@ -361,7 +363,6 @@ private fun RollSuccessBody(
 
     Spacer(Modifier.height(8.dp))
 }
-
 
 // ── scanning（原 StudyCheckinSheet 共享组件，迁入现役点呼 sheet）──
 @Composable

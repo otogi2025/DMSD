@@ -95,11 +95,16 @@ fun RollStatusBar(
         }
 
         RollState.DONE -> {
-            // 签到完成：绿对钩；checkinKind 由后端 my_status 派生（不許写死「時間内」）
+            // 契约收口（对齐 iOS TopRollBar）：exempt_range→done+无时刻 是新可达态；
+            // 「チェックイン済み」只留给真签到(present/late)，免除/未知态不说已签到
             icon = SuzuIcons.CheckCirc
             iconTint = t.ok
-            val kind = checkinKind ?: ""
-            primaryText = "チェックイン済み ${checkinAt ?: ""} · $kind"
+            primaryText =
+                when (checkinKind) {
+                    "時間内", "遅刻" -> "チェックイン済み ${checkinAt ?: ""} · $checkinKind"
+                    "免除" -> "点呼免除 · 本日は点呼対象外です"
+                    else -> "点呼記録を確認しました"
+                }
             secondaryText = "お疲れさまでした"
             fg = t.okDeep
             bg = t.okBg

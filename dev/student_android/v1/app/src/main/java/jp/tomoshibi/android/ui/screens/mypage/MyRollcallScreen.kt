@@ -263,10 +263,12 @@ fun MyRollcallDetailScreen(
                 } else {
                     val statusText =
                         when (record.state) {
+                            "時間内", "present" -> "時間内"
                             "遅刻" -> "遅刻 0.5 点"
                             "欠席" -> "欠席 1.0 点"
                             "免除" -> "免除"
-                            else -> "時間内"
+                            "記録なし" -> "記録なし"
+                            else -> record.state // 未知态原样回显，不再兜底「時間内」（ios#58 对端）
                         }
                     val datePart = record.date.filter { it.isDigit() }
                     val sessionId = "RC-$datePart-${if (record.isMorning) "AM" else "PM"}"
