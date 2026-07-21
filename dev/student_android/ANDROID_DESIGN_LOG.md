@@ -402,6 +402,16 @@ Opus 4.8（high）/ Grok 4.5（high fast）/ Fable 5 主会话，R1 背对背独
 
 保留意见（留 S14，勿当漏项重报）：① MyPage ProfileCard 未门闩（authed transient 窗口显 DEFAULT_USER，review 新发现非 60 条之一）② breadcrumb `applications/select`·`new`·`resubmit` 标签既存非 #6 引入、无确定 iOS Route 参照 ③ loadMe 级联多处 `catch` 吞 `CancellationException`（既存 pattern，#71 超时只软生效）④ #69 并行放大过期写入窗口（token 世代号，与 iOS 401 竞态同族已在 TODO）⑤ #8 分类型截止对齐 iOS（帰省水曜18:00 / 外泊出発3日前）需其他申请类型的产品规则。
 
+## 审查 S13 安卓 low 39 条（2026-07-22，commit `0915dd0` + `1cbfc0a`）
+
+五端 568 条修复计划第 13 场安卓部分。7 代理并行只读分类 60 候选（连同点呼机共 72）= 40 android LIVE / 大量已修 moot（NfcScreen/DeductionScreen/StudyCheckinSheet 等锚定文件已删）。修 39 条，defer 3（android#84 R8 上架配置、android#101/#48 dedup）。
+
+**分组**：注释订正（myStatus 完整枚举、组件编号连续、KisheiCreateBody→KiseiCreateBody 留 typealias、Routes 去「22 个」硬编码、英文注释中文化）；死代码/死参数删除（Dimens.kt、ExampleUnitTest+ExampleInstrumentedTest 模板测试、SuzuIcons 死 import、DemoPushRow ctx、BusListContent navController、TopRollBar 死分支）；dedup（RadioChip/FieldLabel 提 FeedbackSubSheets 同包 internal，RenewStudentNoSheet 删私有副本 + FieldLabel 补 required=true 保留必填「*」；Sparkle/Sparkles 合并、SystemMono 改名）；日语 UI（demo 文案全日语、RollCallSheet contentDescription「NFC スキャン」、MusicNewScreen URL hint「任意」去假承诺、AccountScreen 删无动作头像按钮+生日 JST 上限）；竞态/逻辑（SuzuToast remember 缓存末次文案退场带字、breadcrumb 过滤 root entry、postReply 追加 replies 不整页 reload、StayEditScreen leaveMethod 默认 "" 修「默认 JR 误发变更」真 bug）。
+
+**双票复审（grok+opus 背对背）**：grok 报 2 重大、**opus 判 0 重大（均降次要）**。取 substantive 项修（`1cbfc0a`）：android#83 MainActivity `map{themeMode}` 未 remember→每重组 new 冷流使 collectAsState 重启订阅回落浅色闪一帧（opus 判琐碎，remember 固定实例是干净改进）；android#13 ApplyNew submitNetwork else 分支（opus 证 12 种 APPLY_TYPES 全分派、此为不可达死码）改错误提示不假报「提出しました」。裁决抓修 grok 编译错：RenewStudentNoSheet RadioChip 同签名重载冲突（删私有副本用共享）。
+
+验证：`gradlew assembleDebug` BUILD SUCCESSFUL（多轮）。
+
 ---
 
 **END** — 本档随实装进展持续更新。

@@ -300,3 +300,11 @@ WantedBy=multi-user.target
   ④ **device#9 非标 UID 丢弃**：读到长度 ≠14 hex（非 NTAG215 7 字节）的卡打警告返回 None，不上报、不占防抖窗口。
   ⑤ **device#10 音频 sha256 校验**：`download_audio` 落盘前校验 sha256，不匹配删临时文件抛错；`sync_audio` 捕获后跳过不计入 downloaded，截断/损坏内容不落成正式缓存。
   验证：90 passed（无回归）。保留（记 TODO，非阻塞）：`_apply_feedback` 末 `if FEEDBACK_HOLD_S<0.1` 测试专用分支（生产恒 inert，清理需改十余处测试断言点）；HTTP 心跳 AuthError 只警告不刷新令牌（既有约束、非本场引入）。
+- 2026-07-22：审查 S13 修复批（五端 568 条修复计划 S13 场，点呼机 low 10 条 + 双票复审 grok/opus 背对背，commit `a5fbe92` + 复审 `1cbfc0a`）——
+  ① **device#6 WS 停机即时打断**：`_session` 原 `async for raw in conn` 只在收到下条消息后才看 `_stop`，停机靠 `conn.close()` 打断、且有「connect 成功但 `_conn` 未赋值」竞态窗口关不到连接。改为 `recv_task` 与 `stop_task(=_async_stop.wait)` 用 `asyncio.wait(FIRST_COMPLETED)` 并行等待——停机事件一置位即时退出，不依赖 `_conn`；pending 任务 cancel + `gather(return_exceptions=True)` 回收。`stop()` 的 `call_soon/run_coroutine_threadsafe` 加 `try/except RuntimeError`（复审 opus 次-1：`is_running()` 检查后事件循环可能已关，抛错会冒出 stop→shutdown 跳过后续 join/close）。
+  ② **device#14 令牌锁竞态**：`obtain_token`/`ensure_token` 判断+取令牌并入同锁 + 入口双检 `_needs_renewal`，消除两线程各发一次 `POST /token`（保留意见：POST 在锁内、令牌 12h 半衰期刷新极少、两审判影响低）。
+  ③ **device#16 http.close**：`RollCallDevice` 持有共享 `httpx.Client`，`shutdown` 补 `self._http.close()` 释放连接池。
+  ④ **device#17 删死字段**：`Feedback.enqueue` 无生产读取（入队恒由 `_handle_offline`/`_handle_auth_deferred` 无条件做），删字段 + 测试断言。
+  ⑤ **device#20/#21 提示音淡出对称**：`gen_tones` 淡出改 `i>=total-fade` + 系数 `(total-1-i)/fade` 使末样本精确归零（原 `1/fade` 非零→爆音）；`fade=min(fade,total//2)` 防淡入淡出区重叠。
+  ⑥ **device#13/#15/#18/#19 收尾**：gpio int() 包 try/except 抛 ConfigError；queue 死列 swipe_time/enqueued_at；停机注释订正；白灯鉴权测试遍历 AUTH_ERROR_CODES 补 INVALID_CREDENTIALS。
+  验证：pytest 90 passed。双票复审 grok 报 device#6 重大、opus 判次要，取 substantive 硬化（并行等待即时打断 + stop RuntimeError 兜底）。
