@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.data.model.User
 import jp.tomoshibi.android.data.seed.MockData
 import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.nav.Route
@@ -53,10 +54,21 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 fun WelcomeScreen(navController: NavHostController) {
     val tokens = SuzuT.current
     val store = LocalAppStore.current
-    val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
-    // 失败/断网时显「—」，不泄漏演示假人
-    val name = state.user.name.ifEmpty { "—" }
-    val studentNo = state.user.studentNo.ifEmpty { "—" }
+    // android#112: 初值不用 INITIAL_STATE/DEFAULT_USER（其 name/studentNo 非空，ifEmpty{"—"} 成死代码）
+    val state by store.state.collectAsState(
+        initial = MockData.INITIAL_STATE.copy(user = User(name = "", studentNo = "")),
+    )
+    // android#112: 仅当真实资料已加载（myStudentId 非空 = loadMe 成功）才显真人，否则一律空占位显「—」。
+    //   注：不能用 isProfilePlaceholder（authed && myStudentId==null）——它只覆盖「已登录未加载」，
+    //   漏了「注册后跳 Welcome」「登出后 user=DEFAULT_USER」两条 authed=false 却仍泄漏演示假人的路径。
+    val displayUser =
+        if (state.myStudentId != null) {
+            state.user
+        } else {
+            User(name = "", studentNo = "")
+        }
+    val name = displayUser.name.ifEmpty { "—" }
+    val studentNo = displayUser.studentNo.ifEmpty { "—" }
 
     var appeared by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { appeared = true }

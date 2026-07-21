@@ -39,7 +39,7 @@ import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.nav.Route
 import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 // 启动闪屏 — 对齐 iOS SplashView：白→#F4F7F8 渐变 + 白卡片火焰图 + 一次性 fadeIn
 @Composable
@@ -64,8 +64,12 @@ fun SplashScreen(navController: NavHostController) {
                 snap.onboarded -> Route.Login.path
                 else -> Route.Onboarding.path
             }
+        // android#71：恢复会话须 await loadMe 再跳转，避免首页先闪种子 DEFAULT_USER
         if (restored) {
-            launch { store.loadMe() }
+            withTimeoutOrNull(8_000L) {
+                runCatching { store.loadMe() }
+            }
+            // 超时/失败仍进首页，不卡死在闪屏
         }
         navController.navigate(target) {
             popUpTo(Route.Splash.path) { inclusive = true }

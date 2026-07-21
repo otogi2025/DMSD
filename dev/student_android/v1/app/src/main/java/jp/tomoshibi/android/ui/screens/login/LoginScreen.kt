@@ -43,6 +43,7 @@ import jp.tomoshibi.android.ui.components.Field
 import jp.tomoshibi.android.ui.components.PrimaryButton
 import jp.tomoshibi.android.ui.components.TField
 import jp.tomoshibi.android.ui.theme.SuzuT
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 // 演示版预填值（对齐 iOS DEMO：番号 060217 / 邮箱 demo@example.com / 密码 12345678）
@@ -91,21 +92,20 @@ fun LoginScreen(navController: NavHostController) {
         }
         loading = true
         scope.launch {
-            // debug 包 magic creds：番号 tab 跳过 API 直接进 home
-            if (
-                accountMode &&
-                BuildConfig.DEBUG &&
-                trimmedAcc == DEMO_ACCOUNT_NO &&
-                password == DEMO_PASSWORD
-            ) {
-                store.update { it.copy(authed = true) }
-                loading = false
-                navController.navigate(Route.Home.path) {
-                    popUpTo(0) { inclusive = true }
-                }
-                return@launch
-            }
             try {
+                // debug 包 magic creds：番号 tab 跳过 API 直接进 home
+                if (
+                    accountMode &&
+                    BuildConfig.DEBUG &&
+                    trimmedAcc == DEMO_ACCOUNT_NO &&
+                    password == DEMO_PASSWORD
+                ) {
+                    store.update { it.copy(authed = true) }
+                    navController.navigate(Route.Home.path) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                    return@launch
+                }
                 val token =
                     if (accountMode) {
                         AuthAPI.loginStudent(trimmedAcc, password)
@@ -114,12 +114,13 @@ fun LoginScreen(navController: NavHostController) {
                     }
                 store.setAuthToken(token.accessToken, token.expiresIn)
                 store.loadMe()
-                loading = false
                 navController.navigate(Route.Home.path) {
                     popUpTo(0) { inclusive = true }
                 }
+            } catch (e: CancellationException) {
+                // android#70：取消异常必须重抛，不能吞进通用 catch
+                throw e
             } catch (e: ApiError) {
-                loading = false
                 when (e) {
                     is ApiError.Unauthorized -> {
                         val msg =
@@ -167,6 +168,12 @@ fun LoginScreen(navController: NavHostController) {
                         store.showToast(e.display)
                     }
                 }
+            } catch (e: Exception) {
+                // android#70：非 ApiError（解析错/NPE 等）兜底，避免 loading 卡死在 true
+                store.showToast("ログインに失敗しました。もう一度お試しください")
+            } finally {
+                // android#70：无论成功/失败都复位 loading，杜绝「ログイン中…」永停
+                loading = false
             }
         }
     }

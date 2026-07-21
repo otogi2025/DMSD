@@ -694,7 +694,8 @@ private fun LogoutSheet(
                 style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold),
             )
             Text(
-                "次回起動時はアカウント番号と\nパスワードが必要です",
+                // android#74: 登录支持账号或邮箱，登出说明补上邮箱，勿只提账号
+                "次回起動時はアカウント番号またはメールアドレスと\nパスワードが必要です",
                 color = t.inkSub,
                 style = TextStyle(fontSize = 13.sp, lineHeight = 19.sp),
             )

@@ -56,7 +56,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 // 对齐 iOS ApplyListView：
-//   头部 = 「申し込み」+ home 图标；筛选 chip =「すべて」/「審査中」/「承認済」/「下書き」
+//   头部 = 「申し込み」+ home 图标；筛选 chip =「すべて」/「審査中」/「承認済」
+//   （android#31：后端尚无草稿状态，已移除恒空的「下書き」筛选项）
 //   列表 = ApplicationsAPI.listMine + OutingsAPI.listMine 合并（外出 id 加 "outing:"）
 //   FAB → 独立全屏「新規申請」种类页（非底部弹层）
 @Composable
@@ -134,11 +135,11 @@ fun ApplicationsScreen(navController: NavHostController) {
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    // android#31：去掉「下書き」chip——后端无草稿状态，原分支恒 false 只会显空卡
                     listOf(
                         "all" to "すべて",
                         "pending" to "審査中",
                         "approved" to "承認済",
-                        "draft" to "下書き",
                     ).forEach { (k, l) ->
                         val active = filter == k
                         Box(
@@ -193,10 +194,6 @@ fun ApplicationsScreen(navController: NavHostController) {
                                     "approved" -> {
                                         app.status == ApplicationStatus.APPROVED ||
                                             app.status == ApplicationStatus.APPROVED_PARTIAL
-                                    }
-
-                                    "draft" -> {
-                                        false
                                     }
 
                                     else -> {

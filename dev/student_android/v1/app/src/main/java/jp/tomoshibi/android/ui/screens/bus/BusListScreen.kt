@@ -134,9 +134,14 @@ private fun BusListContent(
         }
 
     // 「次便」判定：日本时区当前时刻拼成 "yyyy-MM-dd HH:mm"，
-    // 在可见列表里取第一个「现在 <= 便发车时刻」的便 id
+    // 在可见列表里取时间最早的「现在 <= 便发车时刻」的便 id（不假设后端/filter 已按时刻排序）
     val now = JstDate.nowYmdHm()
-    val nextId = visible.firstOrNull { now <= "${it.date()} ${it.time()}" }?.id
+    // android#115: firstOrNull 依赖列表顺序会误标更晚班次；改为按发车时刻取最早未来便
+    val nextId =
+        visible
+            .filter { now <= "${it.date()} ${it.time()}" }
+            .minByOrNull { "${it.date()} ${it.time()}" }
+            ?.id
 
     // 按日期分组，组 key 升序排列
     val groups = visible.groupBy { it.date() }.toSortedMap()

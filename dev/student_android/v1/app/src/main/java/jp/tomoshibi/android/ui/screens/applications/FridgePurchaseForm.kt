@@ -143,10 +143,12 @@ fun FridgePurchaseForm(navController: NavHostController) {
                                 contactPhone = contactPhone,
                                 contactWechat = contactWechat,
                                 product = product,
+                                submitting = submitting,
                                 onSubmit = {
                                     if (submitting) return@PreviewBody
+                                    // android#46：launch 前同步置 true，堵住协程调度窗口的重复点击
+                                    submitting = true
                                     scope.launch {
-                                        submitting = true
                                         val tokenAtStart = store.snapshot().authToken
                                         try {
                                             DormLifeAPI.submitFridgePurchase(
@@ -280,6 +282,7 @@ private fun PreviewBody(
     contactPhone: String,
     contactWechat: String,
     product: String,
+    submitting: Boolean, // android#46：提交中禁用按钮并显示「提出中…」
     onSubmit: () -> Unit,
     onEdit: () -> Unit,
 ) {
@@ -309,10 +312,15 @@ private fun PreviewBody(
         KvRow(t, "購入製品", productText(product))
     }
 
-    // 底部双按钮：戻る + 提出する
+    // 底部双按钮：「戻る」+「提出する」（android#46：提交中禁用并显示加载态）
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         GhostButton(title = "戻る", modifier = Modifier.weight(1f), onClick = onEdit)
-        PrimaryButton(title = "提出する", modifier = Modifier.weight(1f), onClick = onSubmit)
+        PrimaryButton(
+            title = if (submitting) "提出中…" else "提出する",
+            enabled = !submitting,
+            modifier = Modifier.weight(1f),
+            onClick = onSubmit,
+        )
     }
 }
 

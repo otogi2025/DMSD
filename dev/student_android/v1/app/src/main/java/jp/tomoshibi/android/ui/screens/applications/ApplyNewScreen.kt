@@ -284,7 +284,11 @@ fun ApplyNewScreen(
                         Text("⚠", color = tokens.warnDeep, style = TextStyle(fontSize = 14.sp))
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            "出発日の 48 時間前まで、または週の水曜 23:59 までに提出してください",
+                            // android#8: 原文案承诺「または週の水曜 23:59」但代码只算 48h（deadline48h），
+                            // 两者矛盾 → 横幅改成与代码实际口径一致（出発 48 時間前）。
+                            // TODO(S14 前评估): 分类型截止对齐 iOS（帰省=毎週水曜18:00 / 外泊=出発3日前）
+                            // 需其它类型（早帰/学習等 iOS 未覆盖）的产品规则，另立跨端截止对齐项。
+                            "出発日の 48 時間前までに提出してください",
                             color = tokens.warnDeep,
                             style = TextStyle(fontSize = 12.sp, lineHeight = 16.sp),
                         )

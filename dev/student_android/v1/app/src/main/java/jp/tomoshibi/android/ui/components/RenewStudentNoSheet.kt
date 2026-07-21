@@ -39,9 +39,10 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
 
 // ───────────────────────────────────────────────────────────────
-// RenewStudentNoSheet — 学籍番号「再設定」弹窗
+// RenewStudentNoSheet — 账号「再設定」弹窗
 // 对齐 iOS Features/Home/HomeStubs.swift 行 2163–2298（struct RenewStudentNoSheet）。
-// 用途：新学年开学时学生重新选「学年・組・出席番号」三段，系统自动拼出新学籍番号。
+// 用途：新学年开学时学生重新选「学年・組・出席番号」三段，系统自动拼出新账号。
+// android#30: 全屏用词统一为「アカウント番号」，对齐 iOS（iOS 标题「アカウント番号の再設定」、toast「アカウント番号を更新しました」）。
 // iOS 用 GlassSheet；Android 走 GlassBottomSheet 近似。
 // 提交：POST /api/v1/students/me/renew-number；422 撞号原样弹后端日语提示。
 // ───────────────────────────────────────────────────────────────
@@ -102,14 +103,14 @@ fun RenewStudentNoSheet(onDismiss: () -> Unit) {
         ) {
             // 1. 标题「学籍番号の再設定」（20sp heavy，ink）
             Text(
-                text = "学籍番号の再設定",
+                text = "アカウント番号の再設定",
                 color = t.ink,
                 style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Black),
             )
 
             // 2. 说明「新学年の 学年・組・出席番号 を選んでください。学籍番号は自動で計算されます。」（13sp，inkSub）
             Text(
-                text = "新学年の 学年・組・出席番号 を選んでください。学籍番号は自動で計算されます。",
+                text = "新学年の 学年・組・出席番号 を選んでください。アカウント番号は自動で計算されます。",
                 color = t.inkSub,
                 style = TextStyle(fontSize = 13.sp),
             )
@@ -153,7 +154,7 @@ fun RenewStudentNoSheet(onDismiss: () -> Unit) {
             // 6. 实时预览新学号（三段齐了才显示）「新しい学籍番号: {学年}{组}{出席番号2位}」primary 色
             if (gradeCode.isNotEmpty() && classCode.isNotEmpty() && seatNo != null && seatNo in 1..99) {
                 Text(
-                    text = "新しい学籍番号: %s%s%02d".format(gradeCode, classCode, seatNo),
+                    text = "新しいアカウント番号: %s%s%02d".format(gradeCode, classCode, seatNo),
                     color = cs.primary,
                     style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
                 )
