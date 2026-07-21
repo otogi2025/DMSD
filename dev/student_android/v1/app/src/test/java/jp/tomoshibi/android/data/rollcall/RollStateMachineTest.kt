@@ -101,6 +101,24 @@ class RollStateMachineTest {
     }
 
     @Test
+    fun `已签到但被结算欠席 myStatus absent 归 ABSENT 不显 DONE 時間内 时刻`() {
+        val now = base + 300_000
+        val d = RollStateMachine.decide(listOf(makeSession(checkedInAtMillis = now, myStatus = "absent")), nowMillis = now)
+        assertEquals(RollState.ABSENT, d.state)
+        assertNull(d.checkinKind)
+        assertNull(d.checkedInAtMillis)
+    }
+
+    @Test
+    fun `承認済出寮願免除 myStatus exempt_range 归 DONE 免除 不显假签到时刻`() {
+        val now = base + 300_000
+        val d = RollStateMachine.decide(listOf(makeSession(checkedInAtMillis = now, myStatus = "exempt_range")), nowMillis = now)
+        assertEquals(RollState.DONE, d.state)
+        assertEquals("免除", d.checkinKind)
+        assertNull(d.checkedInAtMillis)
+    }
+
+    @Test
     fun `多场次并存 选中进行中场次判定 与数组顺序无关`() {
         val ended =
             RollSession(

@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.BuildConfig
 import jp.tomoshibi.android.data.account.RoomCoding
 import jp.tomoshibi.android.data.network.ApiError
 import jp.tomoshibi.android.data.network.StudentAccountCreateBody
@@ -64,22 +65,35 @@ import java.time.ZoneOffset
 // 提交走 AccountsAPI.createAccount 真后端（对齐 iOS 2318-2342）
 
 private data class FormData(
-    val name: String = "リュウイヒ",
-    val gender: String = "male",
+    val name: String = "",
+    val gender: String = "", // canNext 已要求 male/female，空串强制用户选（女生防误带 male）
     val isOverseas: Boolean = false,
-    val birth: LocalDate = LocalDate.of(2006, 10, 14),
-    val grade: String = "高3",
+    val birth: LocalDate = LocalDate.of(2008, 1, 1), // 中性占位
+    val grade: String = "高3", // 选择器默认（非 PII，保留）
     val classSuffix: String = "B",
-    val seatNo: String = "18",
-    // 完整房号（含字母前缀 M/A/W），对齐 iOS 直接输入模型
-    val room: String = "M101",
+    val seatNo: String = "",
+    val room: String = "",
     val cat: String = "regular",
-    val email: String = "demo@example.com",
-    val phone: String = "090-0000-0000",
-    val pw: String = "demo1234",
-    val pw2: String = "demo1234",
+    val email: String = "",
+    val phone: String = "",
+    val pw: String = "",
+    val pw2: String = "",
     val code: String = "",
 )
+
+// 演示预填（对齐 LoginScreen 的 BuildConfig.DEBUG 门控）— 仅 DEBUG 包注入，release 空表单
+private fun demoFormData() =
+    FormData(
+        name = "リュウイヒ",
+        gender = "male",
+        birth = LocalDate.of(2006, 10, 14),
+        seatNo = "18",
+        room = "M101",
+        email = "demo@example.com",
+        phone = "090-0000-0000",
+        pw = "demo1234",
+        pw2 = "demo1234",
+    )
 
 private val GRADES = listOf("中1", "中2", "中3", "高1", "高2", "高3")
 
@@ -112,7 +126,7 @@ fun AccountScreen(navController: NavHostController) {
     val store = LocalAppStore.current
     val scope = rememberCoroutineScope()
     var step by remember { mutableStateOf(1) }
-    var data by remember { mutableStateOf(FormData()) }
+    var data by remember { mutableStateOf(if (BuildConfig.DEBUG) demoFormData() else FormData()) }
     var submitting by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
 

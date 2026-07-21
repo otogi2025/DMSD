@@ -56,13 +56,23 @@ object RollStateMachine {
                 ?: // 本日我寮无点呼 → 安全落 idle
                 return RollDecision(state = RollState.IDLE)
 
-        // 已签到 → done，带真实签到时刻 + 真实判定（「時間内」/「遅刻」）
+        // 已签到/已结算 → 按后端 myStatus 完整映射（android#1 契约收口，与 iOS decideRollState 逐行对齐）。
+        // 后端 _settle 给 absent/exempt_range 也写 checked_in_at，故不能只凭 checkedInAtMillis 非空就当签到。
         s.checkedInAtMillis?.let { at ->
-            return RollDecision(
-                state = RollState.DONE,
-                checkinKind = if (s.myStatus == "late") "遅刻" else "時間内",
-                checkedInAtMillis = at,
-            )
+            return when (s.myStatus) {
+                "present" -> RollDecision(state = RollState.DONE, checkinKind = "時間内", checkedInAtMillis = at)
+
+                "late" -> RollDecision(state = RollState.DONE, checkinKind = "遅刻", checkedInAtMillis = at)
+
+                // 被结算欠席：欠席态，不显时刻
+                "absent" -> RollDecision(state = RollState.ABSENT)
+
+                // 承認済出寮願免除：良性完了，复用 DONE 但文案「免除」、不显假签到时刻
+                "exempt_range" -> RollDecision(state = RollState.DONE, checkinKind = "免除")
+
+                // 未知：保守 DONE 但不猜文案（绝不兜底時間内），仍显真实时刻
+                else -> RollDecision(state = RollState.DONE, checkinKind = null, checkedInAtMillis = at)
+            }
         }
 
         // 未签到，按时间窗判定（比较符与 iOS 完全一致）
