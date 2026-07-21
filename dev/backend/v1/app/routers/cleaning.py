@@ -127,7 +127,7 @@ def create_cleaning(
     if not student:
         raise HTTPException(
             status_code=404,
-            detail={"code": "STUDENT_NOT_FOUND", "message": "学生不存在"},
+            detail={"code": "STUDENT_NOT_FOUND", "message": "学生が見つかりません"},
         )
     # R4 寮边界：寮監等寮 scoped 角色不能给管辖外寮学生派清扫
     _assert_student_in_dorm(teacher, student)
@@ -175,7 +175,10 @@ def inspect_cleaning(
     if not row:
         raise HTTPException(
             status_code=404,
-            detail={"code": "CLEANING_NOT_FOUND", "message": "清扫安排不存在"},
+            detail={
+                "code": "CLEANING_NOT_FOUND",
+                "message": "掃除当番の予定が見つかりません",
+            },
         )
     # R4 寮边界 + 演示隔离：审核前确认学生属本老师管辖寮 / demo 一致
     student = db.get(models.Student, row.student_id)
@@ -188,7 +191,7 @@ def inspect_cleaning(
             status_code=400,
             detail={
                 "code": "MISSING_REASON",
-                "message": "不通过必须填 failure_reason",
+                "message": "不合格の場合は理由を入力してください",
             },
         )
 
@@ -213,7 +216,10 @@ def inspect_cleaning(
         db.rollback()
         raise HTTPException(
             status_code=409,
-            detail={"code": "ALREADY_INSPECTED", "message": "该安排已审核或跳过"},
+            detail={
+                "code": "ALREADY_INSPECTED",
+                "message": "この予定は既に確認済み、またはスキップ済みです",
+            },
         )
     db.refresh(row)
 
@@ -226,7 +232,7 @@ def inspect_cleaning(
             source_type="cleaning_failed",
             source_event_id=row.id,
             points=CLEANING_FAILED_POINTS,
-            reason=f"清扫不通过（{row.area}）：{body.failure_reason}",
+            reason=f"掃除不合格（{row.area}）：{body.failure_reason}",
             month=now_jst.strftime("%Y-%m"),
             created_by_teacher_id=teacher.id,
         )
@@ -242,7 +248,10 @@ def inspect_cleaning(
             db.rollback()
             raise HTTPException(
                 status_code=409,
-                detail={"code": "ALREADY_INSPECTED", "message": "该安排已审核或跳过"},
+                detail={
+                    "code": "ALREADY_INSPECTED",
+                    "message": "この予定は既に確認済み、またはスキップ済みです",
+                },
             )
         row.demerit_event_id = demerit.id
 
