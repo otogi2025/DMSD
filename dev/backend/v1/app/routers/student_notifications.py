@@ -6,19 +6,18 @@
 已读：
 - 公告 → 复用 announcement_reads（与公告详情已读同源，两处一致）。
 - 巴士 / 行事 → student_notification_reads（本功能新表）。
-未读数 = 三类未读合计，驱动 app 铃铛 badge。
+未读数 = 三类各自独立 COUNT（不经 limit）再相加，驱动 app 铃铛 badge。
+feed items 仍每类 .limit 后合并截断；角标与列表分页解耦（backend#43）。
 
 demo 隔离（2026-06-16 codex 复审修）：巴士 / 行事 表无自身 is_demo 列 → feed 查询 join teachers
 按「创建老师 is_demo == 当前学生 is_demo」过滤（公告则按 ann.is_demo）。演示学生只看演示老师内容、
 真实学生只看真实老师内容，两侧（feed + 推送）口径一致。
-
-⚠️ 已知限制：每类 .limit(50) 是各类独立取，某类未读超 50 时 unread_count 仍会低估（dorm 规模够用，记 TODO）。
 """
 
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Response, status
-from sqlalchemy import select
+from sqlalchemy import exists, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -149,10 +148,79 @@ def get_student_notification_feed(
         )
 
     items.sort(key=lambda x: x.created_at, reverse=True)
-    # unread_count 用切片前的全量算（badge 真值）—— 不能从 items[:limit] 推导，
-    # 否则未读条数超过一页(limit)时 badge 会低估（codex 复审 2026-06-16）。
-    unread_count = sum(1 for i in items if not i.is_read)
     items = items[:limit]
+
+    # unread_count：三类独立 COUNT（不 limit），条件与上面 is_read 判定一致
+    # 公告未读 = 可见通知公告 且 announcement_reads 无本学生行
+    ann_unread = (
+        db.scalar(
+            select(func.count())
+            .select_from(models.Announcement)
+            .where(
+                models.Announcement.notify_students.is_(True),
+                models.Announcement.deleted_at.is_(None),
+                models.Announcement.is_demo == student.is_demo,
+                models.Announcement.scope.in_(ann_scopes),
+                ~exists(
+                    select(models.AnnouncementRead.announcement_id).where(
+                        models.AnnouncementRead.announcement_id
+                        == models.Announcement.id,
+                        models.AnnouncementRead.student_id == student.id,
+                    )
+                ),
+            )
+        )
+        or 0
+    )
+    # 巴士未读 = 可见通知巴士 且 student_notification_reads 无 (bus, id)
+    bus_unread = (
+        db.scalar(
+            select(func.count())
+            .select_from(models.BusRoute)
+            .join(
+                models.Teacher,
+                models.BusRoute.created_by_teacher_id == models.Teacher.id,
+            )
+            .where(
+                models.BusRoute.notify_students.is_(True),
+                models.BusRoute.deprecated.is_(False),
+                models.BusRoute.visible_to.in_(bus_vis),
+                models.Teacher.is_demo == student.is_demo,
+                ~exists(
+                    select(models.StudentNotificationRead.ref_id).where(
+                        models.StudentNotificationRead.student_id == student.id,
+                        models.StudentNotificationRead.kind == "bus",
+                        models.StudentNotificationRead.ref_id == models.BusRoute.id,
+                    )
+                ),
+            )
+        )
+        or 0
+    )
+    # 行事未读 = 通知行事 且 student_notification_reads 无 (event, id)
+    event_unread = (
+        db.scalar(
+            select(func.count())
+            .select_from(models.DormEvent)
+            .join(
+                models.Teacher,
+                models.DormEvent.created_by_teacher_id == models.Teacher.id,
+            )
+            .where(
+                models.DormEvent.notify_students.is_(True),
+                models.Teacher.is_demo == student.is_demo,
+                ~exists(
+                    select(models.StudentNotificationRead.ref_id).where(
+                        models.StudentNotificationRead.student_id == student.id,
+                        models.StudentNotificationRead.kind == "event",
+                        models.StudentNotificationRead.ref_id == models.DormEvent.id,
+                    )
+                ),
+            )
+        )
+        or 0
+    )
+    unread_count = ann_unread + bus_unread + event_unread
     return schemas.StudentNotificationFeedOut(items=items, unread_count=unread_count)
 
 
