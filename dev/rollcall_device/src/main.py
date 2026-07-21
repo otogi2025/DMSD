@@ -103,6 +103,7 @@ class RollCallDevice:
         offline_queue: OfflineQueue,
         roster,
         ws: WsClient | None,
+        http: httpx.Client,
         simulate: bool = False,
     ) -> None:
         self._cfg = cfg
@@ -115,6 +116,7 @@ class RollCallDevice:
         self._queue = offline_queue
         self._roster = roster
         self._ws = ws
+        self._http = http
         self._simulate = simulate
 
         self._event_queue: queue.Queue = queue.Queue()
@@ -176,7 +178,7 @@ class RollCallDevice:
         self.request_stop()
         # device#5: 取消尚未触发的回待机计时，避免停机后仍改 LED
         self._cancel_feedback_timer()
-        # 唤醒 consume / control 等线程
+        # 等待 consume/control 在超时取队列后自行退出
         for thread in self._threads:
             thread.join(timeout=5.0)
         try:
@@ -192,6 +194,7 @@ class RollCallDevice:
         self._queue.close()
         if self._ws is not None:
             self._ws.join(timeout=2.0)
+        self._http.close()
         logger.info("已停机")
 
     # --------------------------- WS 回调 ---------------------------
@@ -652,6 +655,7 @@ def bootstrap(cfg: Config, simulate: bool, config_path: str) -> RollCallDevice:
         offline_queue=offline_queue,
         roster=roster,
         ws=None,
+        http=http,
         simulate=simulate,
     )
     # WS 需要 device.on_ws_event 回调，故最后构造

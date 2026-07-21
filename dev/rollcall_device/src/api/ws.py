@@ -71,6 +71,10 @@ class WsClient:
         self._fw_version = fw_version
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
+        # 当前连接 + 所属事件循环：stop() 时 close 打断 async for / sleep
+        self._conn = None
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._async_stop: asyncio.Event | None = None
 
     def start(self) -> None:
         """起独立线程跑 WS 循环。"""
@@ -80,7 +84,18 @@ class WsClient:
         self._thread.start()
 
     def stop(self) -> None:
+        """置停机标志，并主动关闭当前连接 / 唤醒异步等待，让 shutdown 毫秒级生效。"""
         self._stop.set()
+        loop = self._loop
+        async_stop = self._async_stop
+        conn = self._conn
+        if loop is None or not loop.is_running():
+            return
+        if async_stop is not None:
+            loop.call_soon_threadsafe(async_stop.set)
+        if conn is not None:
+            # close() 打断 _session 里的 async for，以及连接上下文
+            asyncio.run_coroutine_threadsafe(conn.close(), loop)
 
     def join(self, timeout: float | None = None) -> None:
         if self._thread is not None:
@@ -99,18 +114,31 @@ class WsClient:
     async def _run_loop(self) -> None:
         import websockets  # 延迟导入：无 websockets 库也不影响其余模块
 
+        self._loop = asyncio.get_running_loop()
+        self._async_stop = asyncio.Event()
+        if self._stop.is_set():
+            self._async_stop.set()
+
         backoff = BACKOFF_INITIAL_S
         while not self._stop.is_set():
             try:
                 url = self._url_with_token()
                 async with websockets.connect(url) as conn:
+                    self._conn = conn
                     backoff = BACKOFF_INITIAL_S  # 连上即复位退避
                     await self._session(conn)
             except Exception:  # noqa: BLE001 —— 断线 / 握手失败都退避重连
                 if self._stop.is_set():
                     break
-                await asyncio.sleep(backoff)
+                # 退避 sleep 与停机事件并行等待，stop() 可立刻打断
+                try:
+                    await asyncio.wait_for(self._async_stop.wait(), timeout=backoff)
+                    break  # 停机事件已置位
+                except TimeoutError:
+                    pass
                 backoff = next_backoff(backoff)
+            finally:
+                self._conn = None
 
     async def _session(self, conn) -> None:
         """一次连接生命周期：并行跑心跳发送 + 消息接收。"""
@@ -131,7 +159,20 @@ class WsClient:
 
     async def _heartbeat_loop(self, conn) -> None:
         while not self._stop.is_set():
-            await asyncio.sleep(HEARTBEAT_INTERVAL_S)
+            # 心跳间隔也可被停机事件打断
+            async_stop = self._async_stop
+            if async_stop is not None:
+                try:
+                    await asyncio.wait_for(
+                        async_stop.wait(), timeout=HEARTBEAT_INTERVAL_S
+                    )
+                    break
+                except TimeoutError:
+                    pass
+            else:
+                await asyncio.sleep(HEARTBEAT_INTERVAL_S)
+            if self._stop.is_set():
+                break
             msg = {
                 "type": "heartbeat",
                 "data": {"ts": now_jst_iso(), "fw_version": self._fw_version},

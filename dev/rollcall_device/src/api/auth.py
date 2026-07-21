@@ -131,7 +131,18 @@ class AuthManager:
     # --------------------------- token ---------------------------
 
     def obtain_token(self) -> None:
-        """签名换取新令牌（契约 §2.3）。"""
+        """签名换取新令牌（契约 §2.3）。
+
+        判断与取令牌放同一临界区：入口双检，他线程已刷新则直接返回，
+        避免多线程同时判 need=True 各发一次 POST /token。
+        """
+        with self._lock:
+            if not self._needs_renewal():
+                return
+            self._fetch_and_store_token_unlocked()
+
+    def _fetch_and_store_token_unlocked(self) -> None:
+        """实际 POST /token 并写字段；调用方须已持有 self._lock。"""
         ts = now_jst_iso()
         nonce = secrets.token_hex(16)  # 随机 16 字节的 hex
         signing_string = build_token_signing_string(self._device_id, ts, nonce)
@@ -142,12 +153,11 @@ class AuthManager:
         if not resp.ok:
             raise AuthError(f"取令牌失败：{resp.error_code}")
         data = resp.data or {}
-        with self._lock:
-            self._access_token = data.get("access_token")
-            self._expires_at = (
-                parse_iso(data["expires_at"]) if data.get("expires_at") else None
-            )
-            self._issued_at = now_jst()
+        self._access_token = data.get("access_token")
+        self._expires_at = (
+            parse_iso(data["expires_at"]) if data.get("expires_at") else None
+        )
+        self._issued_at = now_jst()
 
     def _needs_renewal(self) -> bool:
         """令牌缺失或剩余寿命过半 → 需换新（契约 §2.3）。"""
@@ -162,10 +172,8 @@ class AuthManager:
     def ensure_token(self) -> str:
         """返回可用令牌，必要时自动续期。"""
         with self._lock:
-            need = self._needs_renewal()
-        if need:
-            self.obtain_token()
-        with self._lock:
+            if self._needs_renewal():
+                self._fetch_and_store_token_unlocked()
             if self._access_token is None:
                 raise AuthError("无可用令牌")
             return self._access_token

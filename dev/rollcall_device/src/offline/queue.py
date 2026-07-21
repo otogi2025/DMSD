@@ -77,20 +77,42 @@ class OfflineQueue:
                 """
                 CREATE TABLE IF NOT EXISTS offline_checkins (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    body_json TEXT NOT NULL,
-                    swipe_time TEXT NOT NULL,
-                    enqueued_at TEXT NOT NULL DEFAULT (datetime('now'))
+                    body_json TEXT NOT NULL
                 )
                 """
             )
+            # 旧表曾有 swipe_time / enqueued_at 死列（从未 SELECT / 排序）；
+            # swipe_time 已冗余在 body_json 内。有则重建去掉，保证新 INSERT 兼容。
+            cols = {
+                row[1]
+                for row in self._conn.execute(
+                    "PRAGMA table_info(offline_checkins)"
+                ).fetchall()
+            }
+            if "swipe_time" in cols or "enqueued_at" in cols:
+                self._conn.execute(
+                    """
+                    CREATE TABLE offline_checkins_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        body_json TEXT NOT NULL
+                    )
+                    """
+                )
+                self._conn.execute(
+                    "INSERT INTO offline_checkins_new (id, body_json) "
+                    "SELECT id, body_json FROM offline_checkins"
+                )
+                self._conn.execute("DROP TABLE offline_checkins")
+                self._conn.execute(
+                    "ALTER TABLE offline_checkins_new RENAME TO offline_checkins"
+                )
 
     def enqueue(self, body: dict) -> int:
         """入队一条签到请求体，返回行 id。"""
-        swipe_time = str(body.get("swipe_time", ""))
         with self._lock, self._conn:
             cur = self._conn.execute(
-                "INSERT INTO offline_checkins (body_json, swipe_time) VALUES (?, ?)",
-                (json.dumps(body, ensure_ascii=False), swipe_time),
+                "INSERT INTO offline_checkins (body_json) VALUES (?)",
+                (json.dumps(body, ensure_ascii=False),),
             )
             return int(cur.lastrowid)
 

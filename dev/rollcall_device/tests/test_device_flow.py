@@ -4,6 +4,8 @@
 离线入队。不起真实线程，直接调处理函数（线程 B 的核心逻辑）。
 """
 
+import httpx
+
 import src.main as main_mod
 from src.api.auth import AuthError
 from src.api.envelope import ApiResponse, NetworkError
@@ -108,6 +110,7 @@ def _device(tmp_path, api, roster=None, auth=None):
         offline_queue=queue,
         roster=roster or Roster(),
         ws=None,
+        http=httpx.Client(),
         simulate=True,
     )
     return dev, led, audio, queue

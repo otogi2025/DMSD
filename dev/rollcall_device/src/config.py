@@ -107,12 +107,19 @@ def parse_config(data: dict) -> Config:
     gpio_raw = data.get("gpio", {})
     if not isinstance(gpio_raw, dict):
         raise ConfigError("gpio 字段必须是对象")
+
+    def _gpio_int(field: str, default: int) -> int:
+        try:
+            return int(gpio_raw.get(field, default))
+        except (TypeError, ValueError) as exc:
+            raise ConfigError(f"gpio.{field} 必须是整数") from exc
+
     gpio = GpioConfig(
-        led_red=int(gpio_raw.get("led_red", 17)),
-        led_green=int(gpio_raw.get("led_green", 27)),
-        led_blue=int(gpio_raw.get("led_blue", 22)),
-        led_white=int(gpio_raw.get("led_white", 23)),
-        st25dv_gpo=int(gpio_raw.get("st25dv_gpo", 24)),
+        led_red=_gpio_int("led_red", 17),
+        led_green=_gpio_int("led_green", 27),
+        led_blue=_gpio_int("led_blue", 22),
+        led_white=_gpio_int("led_white", 23),
+        st25dv_gpo=_gpio_int("st25dv_gpo", 24),
     )
 
     return Config(

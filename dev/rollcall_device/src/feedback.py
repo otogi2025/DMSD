@@ -31,7 +31,7 @@ class Feedback:
     tone: Tone | None  # None = 静默
     audio_file: str | None = None  # 学生姓名 wav；非空时优先于 tone（播名字）
     broadcast_text: str | None = None  # 播报文本（记日志 / 未来 TTS 用）
-    enqueue: bool = False  # 是否要写离线队列（仅网络失败路径为 True）
+    # 入队职责不在此：离线路径由 main._handle_offline 无条件 self._queue.enqueue
 
 
 def for_response(ok: bool, data: dict | None, error_code: str | None) -> Feedback:
@@ -67,7 +67,7 @@ def for_offline(student: dict | None) -> Feedback:
     """网络失败走离线队列时的即时反馈（契约 §6.2）。
 
     `student` = 本地 roster 命中的学生记录（含 student_number / name）或 None（未命中）。
-    无论命中与否都 `enqueue=True`（契约 §6.1：POST 失败一律入队，后端恢复后正常判定）。
+    入队由上层 `_handle_offline` 负责（契约 §6.1：POST 失败一律入队）；本函数只出 LED/音/播报。
     """
     if student is not None:
         audio_file = None
@@ -79,7 +79,6 @@ def for_offline(student: dict | None) -> Feedback:
             tone=Tone.SUCCESS,
             audio_file=audio_file,
             broadcast_text=student.get("name"),
-            enqueue=True,
         )
-    # 未命中：红灯拒绝（但仍入队，后端恢复后按 UNKNOWN_CARD 等处理并出队）
-    return Feedback(led=LedState.FAIL, tone=Tone.FAIL, enqueue=True)
+    # 未命中：红灯拒绝（入队仍由上层处理，后端恢复后按 UNKNOWN_CARD 等处理并出队）
+    return Feedback(led=LedState.FAIL, tone=Tone.FAIL)

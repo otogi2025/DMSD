@@ -65,13 +65,10 @@ def test_unknown_business_error_red_fail():
 
 
 def test_auth_errors_white_blink_silent():
-    for code in (
-        "UNKNOWN_DEVICE",
-        "DEVICE_NOT_ACTIVE",
-        "INVALID_SIGNATURE",
-        "UNAUTHORIZED",
-        "FORBIDDEN",
-    ):
+    # 遍历信封单一真值，避免漏码（如 INVALID_CREDENTIALS）无白灯回归覆盖
+    from src.api.envelope import AUTH_ERROR_CODES
+
+    for code in AUTH_ERROR_CODES:
         fb = for_response(False, None, code)
         assert fb.led is LedState.AUTH_ERROR, code
         assert fb.tone is None, code
@@ -83,11 +80,10 @@ def test_offline_hit_green_broadcast_and_enqueue():
     assert fb.tone is Tone.SUCCESS
     assert fb.audio_file == "10023.wav"
     assert fb.broadcast_text == "山田太郎"
-    assert fb.enqueue is True
 
 
 def test_offline_miss_red_but_still_enqueue():
     fb = for_offline(None)
     assert fb.led is LedState.FAIL
     assert fb.tone is Tone.FAIL
-    assert fb.enqueue is True  # 契约 §6.1：POST 失败一律入队
+    # device#17：入队职责归主流程 _handle_offline，Feedback.enqueue 字段已删（原断言随之移除）

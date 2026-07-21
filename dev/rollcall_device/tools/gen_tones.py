@@ -24,13 +24,16 @@ def _tone(freq: float, duration_s: float) -> list[float]:
     """单频正弦，带首尾淡入淡出（5ms）防爆音。"""
     total = int(SAMPLE_RATE * duration_s)
     fade = max(1, int(SAMPLE_RATE * 0.005))
+    # total < 2*fade 时收缩窗口，避免淡入淡出区间重叠
+    if total >= 2:
+        fade = min(fade, total // 2)
     samples: list[float] = []
     for i in range(total):
         value = math.sin(2 * math.pi * freq * (i / SAMPLE_RATE))
-        if i < fade:
-            value *= i / fade
-        elif i > total - fade:
-            value *= (total - i) / fade
+        # 淡入×淡出各自相乘（非 if/elif 互斥）；末样本 (total-1-i)/fade → 精确归零，与淡入镜像
+        fade_in = (i / fade) if i < fade else 1.0
+        fade_out = ((total - 1 - i) / fade) if i >= total - fade else 1.0
+        value *= fade_in * fade_out
         samples.append(value * AMPLITUDE)
     return samples
 
