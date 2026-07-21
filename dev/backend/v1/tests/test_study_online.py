@@ -460,12 +460,16 @@ class TestDownloadOrphanStudent:
         _upload(client, student_token, rid)
         # 直接把这条申请的 student_id 改成不存在的 UUID（模拟 student 行被删 / 悬空）。
         # 先关外键约束再改，避免 SQLite 拒绝写入。
+        # 必须 try/finally 恢复 ON：连接回池后若仍 OFF，会污染后续测例外键行为。
         from sqlalchemy import text
 
         db_session.execute(text("PRAGMA foreign_keys=OFF"))
-        rec = db_session.get(models.StudyOnlineRequest, _uuid.UUID(rid))
-        rec.student_id = _uuid.uuid4()
-        db_session.commit()
+        try:
+            rec = db_session.get(models.StudyOnlineRequest, _uuid.UUID(rid))
+            rec.student_id = _uuid.uuid4()
+            db_session.commit()
+        finally:
+            db_session.execute(text("PRAGMA foreign_keys=ON"))
         res = client.get(
             f"/api/v1/study/online-requests/{rid}/contract",
             headers={"Authorization": f"Bearer {teacher_token}"},
@@ -496,10 +500,11 @@ class TestReuploadKeepsOldContract:
         with open(old_abs, "rb") as f:
             assert f.read() == PDF_BYTES
 
-        # 2. 再传超大 → 422
-        big = b"x" * (10 * 1024 * 1024 + 1)
+        # 2. 再传超大 → 422（必须带合法 PDF 头，否则被 magic 校验先拦，测不到大小上限分支）
+        big = b"%PDF-1.4\n" + b"x" * (10 * 1024 * 1024 + 1)
         r2 = _upload(client, student_token, rid, name="big.pdf", body=big)
         assert r2.status_code == 422, r2.text
+        assert r2.json()["error"]["code"] == "FILE_TOO_LARGE"
 
         # 3. 旧合同必须完好（没被截断、没被删）
         assert os.path.isfile(old_abs), "重传失败不应删旧合同"

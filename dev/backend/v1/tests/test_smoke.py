@@ -6,6 +6,7 @@
 - GET /meals/export (Excel)
 - 表创建 + 役职 seed + SendGrid 発信ロジック動作 (実 API 叩かない、log 確認のみ)
 """
+
 from __future__ import annotations
 
 from datetime import date, datetime, time, timedelta, timezone
@@ -148,7 +149,9 @@ def test_post_application_no_auth_rejected(client, seed_data):
     assert res.status_code == 401
 
 
-def test_application_creates_notification_log(client, student_token, seed_data, db_session):
+def test_application_creates_notification_log(
+    client, student_token, seed_data, db_session
+):
     """#6 — 提交 → notification_log 行作成 (SendGrid 未設定なので status=pending)。"""
     from app import models
 
@@ -209,12 +212,15 @@ def test_get_application_status(client, student_token, seed_data):
     assert roles == ["担任", "寮務課長", "寮務部長", "管理係"], roles
 
 
-def test_get_application_other_student_forbidden(client, student_token, seed_data, db_session):
+def test_get_application_other_student_forbidden(
+    client, student_token, seed_data, db_session
+):
     """他学生の届は学生から見えない。"""
     from app import models
 
     # 別の学生作成 (一般)
     from app import security as sec
+
     other = models.Student(
         grade_code="06",
         class_code="01",
@@ -358,14 +364,17 @@ def test_meals_export_xlsx(client, teacher_token, seed_data, db_session):
     assert "学生別詳細" in wb.sheetnames
 
 
-def test_meals_role_forbidden(client, seed_data, db_session):
-    """寮監 (= role 外) は食堂データ見れない。"""
+def test_meals_general_teacher_allowed(client, seed_data, db_session):
+    """寮務一般教師（tannin → 默认权限组「一般宿管」）对 C_MEAL 有 MANAGE，可查看食数 calc。
+
+    权限矩阵（permissions.PRESET）里 C_MEAL 五组皆 MANAGE，不存在「某组禁看食数」的拒绝路径。
+    本用例锁「一般宿管可看」口径；旧名 test_meals_role_forbidden /「寮監見れない」与实装不符已废弃。
+    """
     res = client.post(
         "/api/v1/sessions/teacher",
-        json={"login_id": "tannin", "password": "test-password-12345"},  # tannin = 寮務一般教師, 認可 OK
+        json={"login_id": "tannin", "password": "test-password-12345"},
     )
     assert res.status_code == 200
-    # 一般教师は OK
     tannin_token = res.json()["data"]["access_token"]
     leave = _tomorrow()
     res = client.get(

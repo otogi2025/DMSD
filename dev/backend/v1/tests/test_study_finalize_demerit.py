@@ -13,13 +13,13 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import timedelta
 
 import pytest
 from sqlalchemy import select
 
 from app import models
-from app.routers.study import STUDY_ABSENT_POINTS, _academic_term
+from app.routers.study import STUDY_ABSENT_POINTS, _academic_term, _today_jst
 
 
 def _login_teacher(client, login_id: str) -> str:
@@ -34,7 +34,7 @@ def _login_teacher(client, login_id: str) -> str:
 
 def _add_to_roster(db_session, student, teacher) -> models.StudyRoster:
     """辅助函数：直接往 DB 写名簿记录，避免通过 HTTP 绕权限逻辑。"""
-    today = date.today()
+    today = _today_jst()
     term = _academic_term(today)
     roster = models.StudyRoster(
         student_id=student.id,
@@ -122,7 +122,7 @@ class TestBulkFinalizeBasic:
         _add_to_roster(db_session, student_absent, teacher)
 
         # 给「到场」那名学生写 present checkin
-        today = date.today()
+        today = _today_jst()
         _mark_checkin_present(db_session, student_present, teacher, today)
 
         # 执行 bulk-finalize（不传 target_date → 默认今天 JST）
@@ -167,7 +167,7 @@ class TestBulkFinalizeBasic:
 
         _add_to_roster(db_session, student, teacher)
 
-        today = date.today()
+        today = _today_jst()
         res = client.post(
             "/api/v1/study/checkins/bulk-finalize",
             json={},
@@ -211,7 +211,7 @@ class TestBulkFinalizeIdempotency:
 
         _add_to_roster(db_session, student, teacher)
 
-        today = date.today()
+        today = _today_jst()
 
         # 第一次 finalize
         res1 = client.post(
@@ -244,7 +244,7 @@ class TestBulkFinalizeDateValidation:
         self, client, seed_data, study_teacher_token
     ):
         """target_date 传明天（未来日期）→ 422，code=TARGET_DATE_FUTURE。"""
-        tomorrow = (date.today() + timedelta(days=1)).isoformat()
+        tomorrow = (_today_jst() + timedelta(days=1)).isoformat()
         res = client.post(
             "/api/v1/study/checkins/bulk-finalize",
             json={"target_date": tomorrow},
@@ -258,7 +258,7 @@ class TestBulkFinalizeDateValidation:
         self, client, seed_data, study_teacher_token
     ):
         """target_date 传 40 天前（超出 30 天窗口）→ 422，code=TARGET_DATE_TOO_OLD。"""
-        old_date = (date.today() - timedelta(days=40)).isoformat()
+        old_date = (_today_jst() - timedelta(days=40)).isoformat()
         res = client.post(
             "/api/v1/study/checkins/bulk-finalize",
             json={"target_date": old_date},
@@ -270,7 +270,7 @@ class TestBulkFinalizeDateValidation:
 
     def test_today_target_date_is_valid(self, client, seed_data, study_teacher_token):
         """target_date 传今天 → 不报 422（合法边界值）。"""
-        today = date.today().isoformat()
+        today = _today_jst().isoformat()
         res = client.post(
             "/api/v1/study/checkins/bulk-finalize",
             json={"target_date": today},
@@ -281,7 +281,7 @@ class TestBulkFinalizeDateValidation:
 
     def test_30_days_ago_is_valid(self, client, seed_data, study_teacher_token):
         """target_date 传恰好 30 天前 → 不报 422（边界内）。"""
-        boundary = (date.today() - timedelta(days=30)).isoformat()
+        boundary = (_today_jst() - timedelta(days=30)).isoformat()
         res = client.post(
             "/api/v1/study/checkins/bulk-finalize",
             json={"target_date": boundary},
@@ -346,7 +346,7 @@ class TestPatchCheckinReabsentRevives:
     ):
         teacher = seed_data["teachers"]["ryomu_kachou"]
         student = seed_data["student"]
-        today = date.today()
+        today = _today_jst()
         _add_to_roster(db_session, student, teacher)
 
         # 1. finalize → 学生缺席 → 1 条 study_absent 扣分
@@ -419,7 +419,7 @@ class TestBulkFinalizeOnlineStudyExempt:
         """名簿内、无签到、但有 approved 在线学习覆盖今天 → finalize 不扣分、不建 absent。"""
         teacher = seed_data["teachers"]["ryomu_kachou"]
         student = seed_data["student"]
-        today = date.today()
+        today = _today_jst()
 
         _add_to_roster(db_session, student, teacher)
         _add_approved_online_request(db_session, student, teacher, today)
@@ -452,7 +452,7 @@ class TestBulkFinalizeOnlineStudyExempt:
         """仅 pending（未批准）的在线学习不豁免 → 仍按缺席扣分（防误把未批的也放掉）。"""
         teacher = seed_data["teachers"]["ryomu_kachou"]
         student = seed_data["student"]
-        today = date.today()
+        today = _today_jst()
 
         _add_to_roster(db_session, student, teacher)
         req = _add_approved_online_request(db_session, student, teacher, today)
