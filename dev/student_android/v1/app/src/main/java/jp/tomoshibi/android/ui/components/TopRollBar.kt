@@ -89,8 +89,6 @@ fun TopRollBar(
                     late = late,
                     absent = absent,
                     needsCleaning = needsCleaning,
-                    countdownSec = countdownSec,
-                    rollState = rollState,
                     onDetail = { navController.navigate(Route.MyPoints.path) },
                     t = t,
                 )
@@ -120,8 +118,6 @@ private fun IdleContent(
     late: Int,
     absent: Int,
     needsCleaning: Boolean,
-    countdownSec: Int,
-    rollState: RollState,
     onDetail: () -> Unit,
     t: SuzuTokens,
 ) {
@@ -143,7 +139,8 @@ private fun IdleContent(
                     ),
                 modifier = Modifier.weight(1f),
             )
-            PointsPill(rollState = rollState, countdownSec = countdownSec, t = t)
+            // IDLE 专用 pill（仅在 RollState.IDLE 分支进入本函数）
+            PointsPill()
         }
         Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.Bottom) {
@@ -442,45 +439,21 @@ private fun RollActionButton(
     }
 }
 
-/** 右上点呼状态 pill（按 rollState，不是按减点档）。 */
+/** 右上点呼状态 pill —— 仅 IdleContent（RollState.IDLE）使用。 */
 @Composable
-private fun PointsPill(
-    rollState: RollState,
-    countdownSec: Int,
-    t: SuzuTokens,
-) {
-    val (label, fg, bg) =
-        when (rollState) {
-            RollState.IDLE -> {
-                Triple("点呼開始前", DeepBrown, Color.White.copy(alpha = 0.45f))
-            }
-
-            RollState.ACTIVE -> {
-                if (countdownSec <= 0) {
-                    Triple("遅刻", Color.White, t.danger)
-                } else {
-                    val m = countdownSec / 60
-                    val s = countdownSec % 60
-                    Triple("点呼中 · %d:%02d".format(m, s), Color(0xFF7A4A0E), Color(0xFFFDF4E1))
-                }
-            }
-
-            RollState.ABSENT -> {
-                Triple("欠席 · 要連絡", Color.White, t.danger)
-            }
-
-            RollState.DONE -> {
-                Triple("時間内にチェックイン", Color(0xFF2C6048), Color(0xFFE3F1EA))
-            }
-        }
+private fun PointsPill() {
     Box(
         modifier =
             Modifier
                 .clip(RoundedCornerShape(99.dp))
-                .background(bg)
+                .background(Color.White.copy(alpha = 0.45f))
                 .padding(horizontal = 10.dp, vertical = 3.dp),
     ) {
-        Text(label, color = fg, style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold))
+        Text(
+            "点呼開始前",
+            color = DeepBrown,
+            style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold),
+        )
     }
 }
 

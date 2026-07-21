@@ -483,7 +483,7 @@ private fun PulseCircle() {
         ) {
             Icon(
                 imageVector = SuzuIcons.PhoneNfc,
-                contentDescription = "NFC scan",
+                contentDescription = "NFC スキャン",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(48.dp),
             )

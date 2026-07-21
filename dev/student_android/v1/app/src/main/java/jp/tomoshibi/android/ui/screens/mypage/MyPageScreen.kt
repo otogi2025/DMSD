@@ -309,7 +309,7 @@ private fun ScheduleRow(ev: EventOut) {
     // eventDate 形如 "2026-04-05"，拆出「月 / 日」
     val parts = ev.eventDate.split("-")
     val month = parts.getOrNull(1)?.trimStart('0').orEmpty()
-    val day = parts.getOrNull(2).orEmpty()
+    val day = parts.getOrNull(2)?.trimStart('0').orEmpty()
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(
             modifier = Modifier.width(40.dp),
@@ -486,8 +486,8 @@ private fun PointsStatusCard(
     }
 }
 
-// 分数格式化：整数去小数点（4.0→「4」），否则保留 1 位（4.5→「4.5」）
-private fun fmtPoints(p: Double): String = if (p % 1.0 == 0.0) p.toInt().toString() else p.toString()
+// 分数格式化：整数去小数点（4.0→「4」），否则保留 1 位（4.5→「4.5」；4.55→「4.6」）
+private fun fmtPoints(p: Double): String = if (p % 1.0 == 0.0) p.toInt().toString() else String.format(java.util.Locale.US, "%.1f", p)
 
 internal fun rollcallStateLabel(baseStatus: String): String =
     when (baseStatus) {

@@ -58,7 +58,7 @@ import kotlinx.coroutines.launch
 // 承認チェーン 1 步 — 役職 / 状态 / 时间戳
 private data class ChainStep(
     val role: String,
-    val state: String /* approved/pending/idle */,
+    val state: String /* approved/pending/rejected */,
     val ts: String?,
 )
 

@@ -1,6 +1,6 @@
 package jp.tomoshibi.android.nav
 
-// 22 个 route 完整列表 — 对应 Tomoshibi App.html SCREENS object (line 110-134)
+// 全部导航路由 — 见下方 sealed Route 定义（含带参 data class）；早期对照 Tomoshibi App.html SCREENS
 // 用 sealed class 而不是 enum 因为部分 route 带参数（如 detail 屏需要 id）
 
 sealed class Route(

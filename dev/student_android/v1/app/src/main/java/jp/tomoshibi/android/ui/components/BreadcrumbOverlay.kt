@@ -55,7 +55,8 @@ fun BreadcrumbOverlay(
     val t = SuzuT.current
 
     // breadcrumbChain = 除当前页外的栈（对齐 iOS router.breadcrumbChain）
-    val chain = backStack.dropLast(1)
+    // 过滤 NavHost 合成的根 NavGraph entry（route=null），避免空文字可点击行
+    val chain = backStack.dropLast(1).filter { it.destination.route != null }
 
     AnimatedVisibility(
         visible = open,

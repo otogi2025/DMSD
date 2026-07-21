@@ -173,14 +173,14 @@ fun MySettingsScreen(navController: NavHostController) {
                                 style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
                             )
                             Text(
-                                "この section は demo 版限定です（production では非表示）。",
+                                "このセクションはデモ版限定です（本番環境では非表示）。",
                                 color = tokens.inkSub,
                                 style = TextStyle(fontSize = 12.sp, lineHeight = 17.sp),
                             )
-                            DemoPushRow("夜学習欠席届 → 承認", ctx)
-                            DemoPushRow("夜学習欠席届 → 不承認", ctx)
-                            DemoPushRow("夜学習対象に追加された", ctx)
-                            DemoPushRow("外泊届（変更届）が再承認された", ctx)
+                            DemoPushRow("夜学習欠席届 → 承認")
+                            DemoPushRow("夜学習欠席届 → 不承認")
+                            DemoPushRow("夜学習対象に追加された")
+                            DemoPushRow("外泊届（変更届）が再承認された")
                         }
                     }
                 }
@@ -309,10 +309,7 @@ private fun RowDivider() {
 }
 
 @Composable
-private fun DemoPushRow(
-    label: String,
-    ctx: android.content.Context,
-) {
+private fun DemoPushRow(label: String) {
     val t = SuzuT.current
     val store = LocalAppStore.current
     Row(

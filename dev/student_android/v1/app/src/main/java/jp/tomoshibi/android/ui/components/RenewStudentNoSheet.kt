@@ -116,7 +116,7 @@ fun RenewStudentNoSheet(onDismiss: () -> Unit) {
             )
 
             // 3.「学年」必填 radio chips（中1..高3）
-            FieldLabel("学年")
+            FieldLabel("学年", required = true)
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -128,7 +128,7 @@ fun RenewStudentNoSheet(onDismiss: () -> Unit) {
             }
 
             // 4.「組」必填 radio chips（A組 / B組）
-            FieldLabel("組")
+            FieldLabel("組", required = true)
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -140,7 +140,7 @@ fun RenewStudentNoSheet(onDismiss: () -> Unit) {
             }
 
             // 5.「出席番号」必填 — 数字键盘，只留数字、最多 2 桁
-            FieldLabel("出席番号")
+            FieldLabel("出席番号", required = true)
             TField(
                 value = seatInput,
                 onValueChange = { raw ->
@@ -205,46 +205,5 @@ fun RenewStudentNoSheet(onDismiss: () -> Unit) {
     }
 }
 
-// 字段标签：13sp semibold inkSub + 红色「*」必填记号（对齐 iOS fieldLabel）
-@Composable
-private fun FieldLabel(text: String) {
-    val t = SuzuT.current
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(text, color = t.inkSub, style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold))
-        Text(" *", color = t.danger, style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold))
-    }
-}
-
-// 单选 chip（对齐 iOS radioChip）：
-//   选中 = primary 文字 bold + primary 描边 1.5 + primary 6% 底
-//   未选 = ink 文字 medium + hair 描边 1 + pearl 底
-@Composable
-private fun RadioChip(
-    title: String,
-    selected: Boolean,
-    onTap: () -> Unit,
-) {
-    val t = SuzuT.current
-    val cs = MaterialTheme.colorScheme
-    Row(
-        modifier =
-            Modifier
-                .clip(RoundedCornerShape(12.dp))
-                .background(if (selected) cs.primary.copy(alpha = 0.06f) else t.pearl)
-                .border(
-                    BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) cs.primary else t.hair),
-                    RoundedCornerShape(12.dp),
-                ).clickable(onClick = onTap)
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-    ) {
-        Text(
-            text = title,
-            color = if (selected) cs.primary else t.ink,
-            style =
-                TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                ),
-        )
-    }
-}
+// android#18：FieldLabel / RadioChip 已提取到 FeedbackSubSheets.kt 的同包 internal 共享版，
+// 本文件不再各写私有副本（避免 RadioChip 同签名重载冲突）。FieldLabel 用 required=true 保留必填「*」。

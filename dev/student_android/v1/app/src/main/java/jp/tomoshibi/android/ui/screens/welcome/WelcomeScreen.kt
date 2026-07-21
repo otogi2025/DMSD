@@ -155,7 +155,7 @@ fun WelcomeScreen(navController: NavHostController) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "あなたのアカウント番号".uppercase(),
+                text = "あなたのアカウント番号",
                 color = Color(0xFF0E3840),
                 style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp),
             )

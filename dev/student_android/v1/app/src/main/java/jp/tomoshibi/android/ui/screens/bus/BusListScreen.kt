@@ -108,7 +108,7 @@ fun BusListScreen(navController: NavHostController) {
                 }
 
                 is LoadState.Success -> {
-                    BusListContent(navController = navController, routes = s.value)
+                    BusListContent(routes = s.value)
                 }
             }
         }
@@ -117,10 +117,7 @@ fun BusListScreen(navController: NavHostController) {
 
 // 成功内容：原本整屏的筛选 / 分组 / 次便逻辑搬到这里，吃后端 routes（List<BusRouteOut>）。
 @Composable
-private fun BusListContent(
-    navController: NavHostController,
-    routes: List<BusRouteOut>,
-) {
+private fun BusListContent(routes: List<BusRouteOut>) {
     val t = SuzuT.current
     val cs = MaterialTheme.colorScheme
 

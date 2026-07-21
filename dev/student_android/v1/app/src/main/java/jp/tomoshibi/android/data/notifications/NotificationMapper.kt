@@ -33,7 +33,7 @@ object NotificationMapper {
         return timeFmt.format(instant)
     }
 
-    /** 把后端 feed 映射成通知卡（id 用负数，与 push 正数 / 包裹大负数不相撞）。 */
+    /** 把后端 feed 映射成通知卡（id 为 "-N"；与包裹 "-10000000+idx"、push 生产空/Mock "N1"…"N5" 各自取值不重叠）。 */
     fun feedNotifications(items: List<StudentNotificationItem>): List<Notification> =
         items.mapIndexed { idx, n ->
             Notification(

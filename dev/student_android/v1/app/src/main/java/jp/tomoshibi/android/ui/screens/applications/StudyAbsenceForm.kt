@@ -114,13 +114,8 @@ fun StudyAbsenceForm(navController: NavHostController) {
                         onPickDate = { targetDate = it },
                         onPickRange = { range = it },
                         onReasonChange = { reason = it },
-                        onConfirm = {
-                            if (reason.trim().isEmpty()) {
-                                store.showToast("理由を入力してください")
-                            } else {
-                                stage = "preview"
-                            }
-                        },
+                        // canSubmit 已含 reason 非空门控，此处无需再判空 toast
+                        onConfirm = { stage = "preview" },
                     )
                 }
 

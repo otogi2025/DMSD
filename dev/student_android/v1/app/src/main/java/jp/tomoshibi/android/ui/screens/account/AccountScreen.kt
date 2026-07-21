@@ -57,6 +57,7 @@ import jp.tomoshibi.android.nav.Route
 import jp.tomoshibi.android.ui.theme.SuzuT
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.ZoneOffset
 
 // 5 步注册 — 对齐 iOS AuthStubs.swift RegisterStep1-5
@@ -369,24 +370,20 @@ private fun Step1Basic(
     val primary = MaterialTheme.colorScheme.primary
 
     FieldLabel("アバター")
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-        Box(
-            modifier =
-                Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(t.pill),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                d.name.firstOrNull()?.toString() ?: "リ",
-                color = t.ink,
-                style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold),
-            )
-        }
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            SoftBtn("デフォルトを使う") { /* 默认头像即字母占位，无需动作 */ }
-        }
+    // 正式包：默认头像即姓名首字母占位；「デフォルトを使う」空按钮会误导，待真头像选择再启用
+    Box(
+        modifier =
+            Modifier
+                .size(64.dp)
+                .clip(CircleShape)
+                .background(t.pill),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            d.name.firstOrNull()?.toString() ?: "リ",
+            color = t.ink,
+            style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold),
+        )
     }
 
     LabeledTextField("氏名", required = true, value = d.name, placeholder = "") {
@@ -516,9 +513,19 @@ private fun BirthField(
         )
     }
     if (open) {
+        // 生日不可晚于今天（JST）；年范围 1990..当前年
+        val todayJst = LocalDate.now(ZoneId.of("Asia/Tokyo"))
+        val todayUtcMillis =
+            todayJst.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        val selectable =
+            object : androidx.compose.material3.SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean = utcTimeMillis <= todayUtcMillis
+            }
         val state =
             rememberDatePickerState(
                 initialSelectedDateMillis = birth.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+                yearRange = IntRange(1990, todayJst.year),
+                selectableDates = selectable,
             )
         DatePickerDialog(
             onDismissRequest = { open = false },
@@ -983,30 +990,6 @@ private fun ChoiceChip(
                     fontSize = 14.sp,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                 ),
-        )
-    }
-}
-
-@Composable
-private fun SoftBtn(
-    label: String,
-    onClick: () -> Unit,
-) {
-    val t = SuzuT.current
-    Box(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .height(38.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(t.pill)
-                .clickable { onClick() },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            label,
-            color = t.ink,
-            style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
         )
     }
 }

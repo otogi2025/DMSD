@@ -15,7 +15,7 @@ import jp.tomoshibi.android.data.model.RollState
 //   lateEnd       迟到截止   scheduled_late_end_at
 //   autoEnd       自动结束   scheduled_auto_end_at
 //   checkedInAt   我已签到时刻（null = 未签到）
-//   myStatus      后端判定（"late" = 遅刻，其余 = 時間内）
+//   myStatus      后端判定（null=未签到；present→時間内；late→遅刻；absent→欠席；exempt_range→免除；其它保守 DONE 不猜文案）
 
 // / 一个「我寮今日点呼场次」的时间窗 + 我方签到状态（对齐 iOS MyRollCallTodaySession 判定所需字段）。
 data class RollSession(

@@ -320,10 +320,11 @@ fun OtherSheet(onDismiss: () -> Unit) {
 }
 
 // 字段标签 —— 13sp semibold inkSub + 必填时跟一个 danger 色「*」
+// 同包共享（internal）：RenewStudentNoSheet 等应复用本份，勿再各写 private 副本
 @Composable
-private fun FieldLabel(
+internal fun FieldLabel(
     label: String,
-    required: Boolean,
+    required: Boolean = false,
 ) {
     val t = SuzuT.current
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -342,9 +343,9 @@ private fun FieldLabel(
     }
 }
 
-// radio 选项胶囊 —— 照抄 iOS radioChip
+// radio 选项胶囊 —— 照抄 iOS radioChip；同包共享，见上方 FieldLabel 注释
 @Composable
-private fun RadioChip(
+internal fun RadioChip(
     title: String,
     selected: Boolean,
     onTap: () -> Unit,

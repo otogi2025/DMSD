@@ -240,9 +240,19 @@ fun AnnouncementDetailScreen(
                                 scope.launch {
                                     val tokenAtStart = store.snapshot().authToken
                                     try {
-                                        AnnouncementsAPI.postReply(id, replyText)
+                                        val sentBody = replyText
+                                        val newReply = AnnouncementsAPI.postReply(id, sentBody)
                                         replyText = ""
-                                        load()
+                                        // 静默追加回复，不调 load() 避免整页闪 Loading
+                                        val cur = ui
+                                        if (cur is LoadState.Success) {
+                                            ui =
+                                                LoadState.Success(
+                                                    cur.value.copy(
+                                                        replies = cur.value.replies + newReply,
+                                                    ),
+                                                )
+                                        }
                                     } catch (e: ApiError) {
                                         if (store.handleIfUnauthorized(e, tokenAtStart)) {
                                             return@launch

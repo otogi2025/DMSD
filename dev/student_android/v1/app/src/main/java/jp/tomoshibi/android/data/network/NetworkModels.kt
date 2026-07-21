@@ -27,7 +27,7 @@ import kotlinx.serialization.json.JsonObject
 // 学生
 // ============================================================
 
-// / 申请里嵌入的学生简易信息（GET /applications/:id 响应内）
+// 申请里嵌入的学生简易信息（GET /applications/:id 响应内）
 @Serializable
 data class StudentBrief(
     val id: String,
@@ -42,7 +42,7 @@ data class StudentBrief(
 // 申请
 // ============================================================
 
-// / 承认 chain 的 1 步（每个役职的决定状态）
+// 承认 chain 的 1 步（每个役职的决定状态）
 @Serializable
 data class ApprovalStepOut(
     @SerialName("approver_role") val approverRole: String, // "担任" / "寮務課長" / "管理係" / 等
@@ -52,12 +52,12 @@ data class ApprovalStepOut(
     @SerialName("approver_id") val approverId: String? = null,
 )
 
-// / 出寮届详细（POST /applications / GET /applications/:id 响应）
-// /
-// / 按 kind 分字段：
-// /   - 帰省: stay_locations / meals_skip / flight_* 全 null
-// /   - 外泊: stay_locations / meals_skip 有值，flight_* 全 null
-// /   - 帰国: 全字段都有值
+// 出寮届详细（POST /applications / GET /applications/:id 响应）
+//
+// 按 kind 分字段：
+//   - 帰省: stay_locations / meals_skip / flight_* 全 null
+//   - 外泊: stay_locations / meals_skip 有值，flight_* 全 null
+//   - 帰国: 全字段都有值
 @Serializable
 data class ApplicationOut(
     val id: String,
@@ -96,7 +96,7 @@ data class ApplicationOut(
     @SerialName("approval_chain") val approvalChain: List<ApprovalStepOut>,
 )
 
-// / 改动履历 entry（GET /applications/:id/audit）
+// 改动履历 entry（GET /applications/:id/audit）
 @Serializable
 data class AuditLogOut(
     val id: String,
@@ -111,7 +111,7 @@ data class AuditLogOut(
 // 学習（夜学习）
 // ============================================================
 
-// /「夜学習欠席届」（POST /study/absence-requests 响应）
+// 「夜学習欠席届」（POST /study/absence-requests 响应）
 @Serializable
 data class StudyAbsenceRequestOut(
     val id: String,
@@ -126,7 +126,7 @@ data class StudyAbsenceRequestOut(
     val comment: String? = null,
 )
 
-// / 学習オンライン申請（POST /study/online-requests 响应）
+// 学習オンライン申請（POST /study/online-requests 响应）
 @Serializable
 data class StudyOnlineRequestOut(
     val id: String,
@@ -152,7 +152,7 @@ data class StudyOnlineRequestOut(
 // 宿舍生活类申請
 // ============================================================
 
-// / 寮生行事企画申請書（POST /dorm-life/event-proposals 响应）
+// 寮生行事企画申請書（POST /dorm-life/event-proposals 响应）
 @Serializable
 data class DormEventProposalOut(
     val id: String,
@@ -175,7 +175,7 @@ data class DormEventProposalOut(
     val comment: String? = null,
 )
 
-// / 冷蔵庫購入届（POST /dorm-life/fridge-purchases 响应）
+// 冷蔵庫購入届（POST /dorm-life/fridge-purchases 响应）
 @Serializable
 data class FridgePurchaseRequestOut(
     val id: String,
@@ -191,7 +191,7 @@ data class FridgePurchaseRequestOut(
     val comment: String? = null,
 )
 
-// / 物品所持許可願（POST /dorm-life/item-possessions 响应）
+// 物品所持許可願（POST /dorm-life/item-possessions 响应）
 @Serializable
 data class ItemPossessionRequestOut(
     val id: String,
@@ -211,8 +211,8 @@ data class ItemPossessionRequestOut(
 // 巴士便（寮生特別運行 / 平日上下学班车）
 // ============================================================
 
-// / 巴士便响应体（GET /api/v1/bus/routes 列表里的单条）。spec §7.6。
-// / kind: "daily_commute"=平日上下学班车 / "dorm_special"=寮生特別運行
+// 巴士便响应体（GET /api/v1/bus/routes 列表里的单条）。spec §7.6。
+// kind: "daily_commute"=平日上下学班车 / "dorm_special"=寮生特別運行
 @Serializable
 data class BusRouteOut(
     val id: String,
@@ -230,7 +230,7 @@ data class BusRouteOut(
     @SerialName("updated_at") val updatedAt: String? = null,
 )
 
-// / GET /api/v1/bus/routes 列表包装
+// GET /api/v1/bus/routes 列表包装
 @Serializable
 data class BusRouteListOut(
     val items: List<BusRouteOut>,
@@ -240,8 +240,8 @@ data class BusRouteListOut(
 // 行事预定（日历「行事予定」页）
 // ============================================================
 
-// / 行事预定响应体（GET /api/v1/events 列表里的单条）。spec §7.5。
-// / category 取值之一：「学校行事」「寮行事」「外部」「その他」。
+// 行事预定响应体（GET /api/v1/events 列表里的单条）。spec §7.5。
+// category 取值之一：「学校行事」「寮行事」「外部」「その他」。
 @Serializable
 data class EventOut(
     val id: String,
@@ -256,7 +256,7 @@ data class EventOut(
     @SerialName("updated_at") val updatedAt: String? = null,
 )
 
-// / GET /api/v1/events 列表包装
+// GET /api/v1/events 列表包装
 @Serializable
 data class EventListOut(
     val items: List<EventOut>,
@@ -266,8 +266,8 @@ data class EventListOut(
 // 学生新规注册（POST /accounts）
 // ============================================================
 
-// / POST /api/v1/accounts 响应（成功 201）
-// / 跟 backend StudentAccountCreateOut 对齐
+// POST /api/v1/accounts 响应（成功 201）
+// 跟 backend StudentAccountCreateOut 对齐
 @Serializable
 data class StudentAccountCreateResponse(
     @SerialName("access_token") val accessToken: String,
@@ -280,7 +280,7 @@ data class StudentAccountCreateResponse(
 // 老师公告（spec system_features.md §7.15）
 // ============================================================
 
-// / 列表 view 用 — 本文摘要 + 已读状态 + 回复数
+// 列表 view 用 — 本文摘要 + 已读状态 + 回复数
 @Serializable
 data class AnnouncementBrief(
     val id: String,
@@ -295,13 +295,13 @@ data class AnnouncementBrief(
     @SerialName("reply_count") val replyCount: Int,
 )
 
-// / GET /announcements 响应
+// GET /announcements 响应
 @Serializable
 data class AnnouncementListResponse(
     val items: List<AnnouncementBrief>,
 )
 
-// / 回复条目
+// 回复条目
 @Serializable
 data class AnnouncementReplyOut(
     val id: String,
@@ -312,7 +312,7 @@ data class AnnouncementReplyOut(
     @SerialName("created_at") val createdAt: String,
 )
 
-// / 详情 view — 本文全文 + 回复列表
+// 详情 view — 本文全文 + 回复列表
 @Serializable
 data class AnnouncementDetail(
     val id: String,
@@ -326,7 +326,7 @@ data class AnnouncementDetail(
     val replies: List<AnnouncementReplyOut>,
 )
 
-// / GET /announcements/unread-count 响应
+// GET /announcements/unread-count 响应
 @Serializable
 data class AnnouncementUnreadCount(
     @SerialName("unread_count") val unreadCount: Int,
@@ -338,7 +338,7 @@ data class AnnouncementUnreadCount(
 
 // ---- 共通子模型 ----
 
-// / 滞在先（外泊 / 帰国届的 stay_locations 元素）
+// 滞在先（外泊 / 帰国届的 stay_locations 元素）
 @Serializable
 data class StayLocationBody(
     val kind: String, // "ホテル" / "親戚宅" / "自宅" 等
@@ -347,7 +347,7 @@ data class StayLocationBody(
     val phone: String? = null,
 )
 
-// / 食堂跳过的 1 顿（外泊 / 帰国届的 meals_skip 元素）
+// 食堂跳过的 1 顿（外泊 / 帰国届的 meals_skip 元素）
 @Serializable
 data class MealSkipBody(
     val date: String, // "2026-05-03"
@@ -356,10 +356,10 @@ data class MealSkipBody(
 
 // ---- 学生新规注册请求 body ----
 
-// / POST /api/v1/accounts 请求 body
-// / 跟 backend StudentAccountCreateIn 对齐（schemas.py）
-// / 字段约束：name≤100 / name_kana≤100 / email≤200 / phone≤32 / room_no min 2 max 8
-// / （room_no min=2：2 寮 A1〜A9 是 A+1 位 = 2 字符，对齐 iOS / 后端）
+// POST /api/v1/accounts 请求 body
+// 跟 backend StudentAccountCreateIn 对齐（schemas.py）
+// 字段约束：name≤100 / name_kana≤100 / email≤200 / phone≤32 / room_no min 2 max 8
+// （room_no min=2：2 寮 A1〜A9 是 A+1 位 = 2 字符，对齐 iOS / 后端）
 @Serializable
 data class StudentAccountCreateBody(
     val name: String,
@@ -421,7 +421,7 @@ data class StudentAccountCreateBody(
 // 学生通知中心 feed（对齐 iOS NetworkModels StudentNotification*）
 // ============================================================
 
-// / 一条学生通知 = 某条 公告/巴士/行事（老师投稿时勾了「学生に通知する」）
+// 一条学生通知 = 某条 公告/巴士/行事（老师投稿时勾了「学生に通知する」）
 @Serializable
 data class StudentNotificationItem(
     val kind: String, // "announcement" | "bus" | "event"
@@ -429,11 +429,11 @@ data class StudentNotificationItem(
     val title: String,
     val body: String, // 摘要（后端截断到 80 字）
     @SerialName("created_at") val createdAt: String,
-    // 乐观更新需可变 → 点卡片标已读后本地翻 true（对齐 iOS var isRead）
-    @SerialName("is_read") var isRead: Boolean,
+    // 已读态不可变；乐观更新用 copy(isRead=true) 生成新列表赋 StateFlow，禁止原地改
+    @SerialName("is_read") val isRead: Boolean,
 )
 
-// / GET /api/v1/student/notifications 响应
+// GET /api/v1/student/notifications 响应
 @Serializable
 data class StudentNotificationFeedOut(
     val items: List<StudentNotificationItem>,
@@ -442,8 +442,9 @@ data class StudentNotificationFeedOut(
 
 // ---- 帰省届（最简、不带滞在先和飞机）----
 
+// 帰省届创建 body（罗马字 Kisei）。旧拼写 KisheiCreateBody 保留 typealias，兼容 StayForm 等引用。
 @Serializable
-data class KisheiCreateBody(
+data class KiseiCreateBody(
     val kind: String = "帰省", // discriminated union 的判定字段
     val reason: String? = null,
     @SerialName("contact_phone") val contactPhone: String? = null,
@@ -457,6 +458,8 @@ data class KisheiCreateBody(
     @SerialName("return_time") val returnTime: String,
     @SerialName("taxi_reservation_time") val taxiReservationTime: String? = null, // null = 不预约
 )
+
+typealias KisheiCreateBody = KiseiCreateBody
 
 // ---- 外泊届（带滞在先 + 食事跳过）----
 
@@ -506,11 +509,11 @@ data class KikokuCreateBody(
 
 // ---- 修改届（PUT /applications/:id 用、全字段 Optional）----
 
-// / IX-004: 全字段默认 null，修改届只改了几个字段就只传那几个（其余 null 不发，
-// / 后端 model_dump(exclude_none=True) 只更新非 null 的）。
-// / 注意：要让 null 字段不被序列化进 JSON，调用端用本类的 ApiClient.put 时
-// / 依赖 Json 配置 explicitNulls=false（ApiClient 共用 json 未设则 null 会被发出，
-// / 端点 agent 接入时需确认该配置 — 见 ApiClient.json）。
+// IX-004: 全字段默认 null，修改届只改了几个字段就只传那几个（其余 null 不发，
+// 后端 model_dump(exclude_none=True) 只更新非 null 的）。
+// 注意：要让 null 字段不被序列化进 JSON，调用端用本类的 ApiClient.put 时
+// 依赖 Json 配置 explicitNulls=false（ApiClient 共用 json 未设则 null 会被发出，
+// 端点 agent 接入时需确认该配置 — 见 ApiClient.json）。
 @Serializable
 data class ApplicationUpdateBody(
     val reason: String? = null,

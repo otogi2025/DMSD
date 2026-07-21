@@ -32,7 +32,8 @@ val NotoSansJp: FontFamily =
         Font(googleFont = notoSansJpGoogle, fontProvider = googleFontProvider, weight = FontWeight.Black),
     )
 
-val RobotoMono: FontFamily = FontFamily.Monospace // 数字用（减点 4.5 / 时间 09:20）
+/** 系统等宽回落（未拉 Google Fonts Roboto Mono；与 WelcomeScreen 的 FontFamily.Monospace 一致） */
+val SystemMono: FontFamily = FontFamily.Monospace // 数字用（减点 4.5 / 时间 09:20）
 
 // Material 3 Typography — 12 个 type role
 // 数值参照 React tokens.jsx + iOS 系统体感 (display 大号，body 16sp，caption 12sp)
@@ -153,10 +154,10 @@ val TomoshibiTypography =
             ),
     )
 
-// 数字专用样式（Roboto Mono，用于减点 4.5、bus time 09:20、account No 060218）
+// 数字专用样式（系统等宽，用于减点 4.5、bus time 09:20、account No 060218）
 val MonoNumeralStyle =
     TextStyle(
-        fontFamily = RobotoMono,
+        fontFamily = SystemMono,
         fontWeight = FontWeight.SemiBold,
         fontSize = 56.sp,
         lineHeight = 64.sp,

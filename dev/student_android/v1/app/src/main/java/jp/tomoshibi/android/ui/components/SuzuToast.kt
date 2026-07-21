@@ -14,6 +14,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +51,11 @@ fun SuzuToastView(text: String) {
 fun SuzuToastHost(modifier: Modifier = Modifier) {
     val store = LocalAppStore.current
     val toast by store.toast.collectAsState()
+    // 缓存最后一次非空文案：toast 置 null 触发 exit 时 content 仍能带文字滑出
+    var lastToastText by remember { mutableStateOf<String?>(null) }
+    if (toast != null) {
+        lastToastText = toast
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         AnimatedVisibility(
@@ -59,7 +67,7 @@ fun SuzuToastHost(modifier: Modifier = Modifier) {
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 100.dp),
         ) {
-            val text = toast
+            val text = lastToastText
             if (text != null) {
                 SuzuToastView(text = text)
             }

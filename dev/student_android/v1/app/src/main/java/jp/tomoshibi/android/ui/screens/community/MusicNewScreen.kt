@@ -62,7 +62,7 @@ fun MusicNewScreen(navController: NavHostController) {
                         .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
-                Field(label = "Apple Music URL", hint = "曲情報を自動取得します") {
+                Field(label = "Apple Music URL", hint = "任意") {
                     TField(
                         value = url,
                         onValueChange = { url = it },

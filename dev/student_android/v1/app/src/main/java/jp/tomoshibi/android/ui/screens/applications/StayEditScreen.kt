@@ -184,8 +184,9 @@ private fun StayEditFormBody(
 
     var leaveDate by remember(original.id) { mutableStateOf(original.leaveDate.takeIf { it != "—" } ?: "") }
     var returnDate by remember(original.id) { mutableStateOf(original.returnDate ?: (original.leaveDate.takeIf { it != "—" } ?: "")) }
-    var leaveMethod by remember(original.id) { mutableStateOf(original.leaveMethod ?: "JR") }
-    var returnMethod by remember(original.id) { mutableStateOf(original.returnMethod ?: "JR") }
+    // original 为 null 时用空串（无选中），勿用 "JR" 兜底——否则未改也会当变更发出
+    var leaveMethod by remember(original.id) { mutableStateOf(original.leaveMethod ?: "") }
+    var returnMethod by remember(original.id) { mutableStateOf(original.returnMethod ?: "") }
     var destination by remember(original.id) { mutableStateOf(original.destination ?: "") }
     var amendReason by remember { mutableStateOf("") }
     var submitting by remember { mutableStateOf(false) }
@@ -350,8 +351,14 @@ private fun StayEditFormBody(
                                         amendReason = amendReason.trim(),
                                         leaveDate = leaveDate.takeIf { it.isNotEmpty() && it != original.leaveDate },
                                         returnDate = returnDate.takeIf { it.isNotEmpty() && it != original.returnDate },
-                                        leaveMethod = leaveMethod.takeIf { it != original.leaveMethod },
-                                        returnMethod = returnMethod.takeIf { it != original.returnMethod },
+                                        leaveMethod =
+                                            leaveMethod.takeIf {
+                                                it.isNotEmpty() && it != original.leaveMethod
+                                            },
+                                        returnMethod =
+                                            returnMethod.takeIf {
+                                                it.isNotEmpty() && it != original.returnMethod
+                                            },
                                         stayLocations =
                                             if (needsDestination && destination.trim().isNotEmpty() &&
                                                 destination.trim() != (original.destination ?: "")

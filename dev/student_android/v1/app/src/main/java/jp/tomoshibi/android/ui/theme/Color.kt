@@ -36,7 +36,7 @@ val SuzuAmberBLight = Color(0xFFF4C677)
 val SuzuAmberCLight = Color(0xFFD99F3E)
 
 // ─── Suzu Dark ────────────────────────────────────────────────
-val SuzuPrimaryDark = Color(0xFF5FBEC8) // brighter teal pops on dark
+val SuzuPrimaryDark = Color(0xFF5FBEC8) // 深色模式下更亮的 teal，对比更醒目
 val SuzuPrimaryDkDark = Color(0xFF0E3840)
 val SuzuAccentDark = Color(0xFF7ED0D8)
 val SuzuAccentSoftDark = Color(0xFF1C4248)

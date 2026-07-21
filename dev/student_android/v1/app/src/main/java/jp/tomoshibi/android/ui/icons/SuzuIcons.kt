@@ -89,7 +89,10 @@ object SuzuIcons {
     val ChevR: ImageVector = Icons.Outlined.KeyboardArrowRight
     val ChevL: ImageVector = Icons.Outlined.KeyboardArrowLeft
     val ArrowR: ImageVector = Icons.Outlined.ArrowForward
-    val Sparkle: ImageVector = Icons.Outlined.AutoAwesome
+
+    // 主名 Sparkles；Sparkle 为同底图别名（ApplyTypes / Onboarding 等仍用旧名）
+    val Sparkles: ImageVector = Icons.Outlined.AutoAwesome
+    val Sparkle: ImageVector get() = Sparkles
     val Graph: ImageVector = Icons.Outlined.ShowChart
     val Logout: ImageVector = Icons.Outlined.Logout
     val Menu: ImageVector = Icons.Outlined.Menu
@@ -99,7 +102,6 @@ object SuzuIcons {
     val Info: ImageVector = Icons.Outlined.Info
     val Warn: ImageVector = Icons.Outlined.Warning
     val PhoneNfc: ImageVector = Icons.Outlined.PhoneAndroid
-    val Sparkles: ImageVector = Icons.Outlined.AutoAwesome
     val Pkg: ImageVector = Icons.Outlined.Inventory
     val Envelope: ImageVector = Icons.Outlined.Email
 

@@ -25,8 +25,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import jp.tomoshibi.android.data.format.JstDate
-import jp.tomoshibi.android.data.model.Application
-import jp.tomoshibi.android.data.model.ApplicationStatus
 import jp.tomoshibi.android.data.model.User
 import jp.tomoshibi.android.data.network.ApiError
 import jp.tomoshibi.android.data.network.endpoints.MiscRequestBody
@@ -187,7 +185,7 @@ fun ApplyNewScreen(
                     }
 
                     else -> {
-                        // 其它走确认页后本地完成（StudyAbsence 等已分派到专属表单）
+                        // 早帰/学習等本地造条目已废弃（一覧只读后端）；StudyAbsence 等已分派专属表单
                         stage = "done"
                     }
                 }
@@ -215,25 +213,8 @@ fun ApplyNewScreen(
             navController = navController,
             onBack = { stage = "edit" },
             onSubmit = {
-                if (isOuting || isMisc) {
-                    submitNetwork()
-                } else {
-                    scope.launch {
-                        val newApp =
-                            Application(
-                                id = "A-${System.currentTimeMillis() % 100000}",
-                                kind = kind,
-                                dest = dest.ifBlank { "—" },
-                                from = leaveDate.toString(),
-                                to = if (showReturnDate || showReturnDateOnly) returnDate.toString() else leaveDate.toString(),
-                                status = ApplicationStatus.PENDING,
-                                reason = reason,
-                                createdAt = JstDate.today().toString(),
-                            )
-                        store.update { it.copy(applications = listOf(newApp) + it.applications) }
-                        stage = "done"
-                    }
-                }
+                // 外出/杂项走真后端；其余（早帰/学習等）不再写 store.applications（一覧从不读本地）
+                submitNetwork()
             },
         )
         return

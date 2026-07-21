@@ -81,16 +81,16 @@ data class MyDisciplineSummaryOut(
 // ============================================================
 
 object AuthAPI {
-    // / POST /api/v1/sessions/student — 学号登录 body（只编 student_no，不发 email:null）
-    // / 不用「两个可空字段塞一个类」：kotlinx.serialization 默认会把 null 也编进 JSON，
-    // / 靠后端把 None 当「没传」能碰巧过，但不稳。对齐 iOS StudentLoginByNumberRequest。
+    // POST /api/v1/sessions/student — 学号登录 body（只编 student_no）
+    // 拆两个 Request 类：编译期互斥字段 + 可读性（对齐 iOS StudentLoginByNumberRequest）。
+    // 共用 ApiClient.json 已 explicitNulls=false，可空 null 本就不会写出；本两类字段全非空。
     @Serializable
     private data class StudentLoginByNumberRequest(
         @SerialName("student_no") val studentNo: String, // 6 桁学号 "060218"
         val password: String,
     )
 
-    // / POST /api/v1/sessions/student — 邮箱登录 body（只编 email，不发 student_no:null）
+    // POST /api/v1/sessions/student — 邮箱登录 body（只编 email）
     @Serializable
     private data class StudentLoginByEmailRequest(
         val email: String,

@@ -800,10 +800,12 @@ object SessionMapper {
 
     fun parseInstantMillis(iso: String): Long? =
         try {
+            // Instant.parse：只吃带 Z 的 UTC 瞬间串
             Instant.parse(iso).toEpochMilli()
         } catch (_: Exception) {
             try {
-                // 后端偶发无 Z 后缀的本地时间串 → 按 UTC 解析失败时再试 OffsetDateTime
+                // OffsetDateTime：吃带显式偏移（如 +09:00）但无 Z 的串
+                // 二者都不处理无偏移本地串；后端 TZDateTime 保证输出永远 ...+09:00，故不补 LocalDateTime
                 java.time.OffsetDateTime
                     .parse(iso)
                     .toInstant()
