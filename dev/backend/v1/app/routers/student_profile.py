@@ -91,7 +91,7 @@ def update_my_profile(
                     status_code=422,
                     detail={
                         "code": "EMAIL_TAKEN",
-                        "message": f"email {data['email']} は既に使われています",
+                        "message": "このメールアドレスは既に使用されています",
                     },
                 )
 
@@ -124,7 +124,10 @@ def update_my_profile(
         db.rollback()
         raise HTTPException(
             status_code=422,
-            detail={"code": "EMAIL_TAKEN", "message": "email は既に使われています"},
+            detail={
+                "code": "EMAIL_TAKEN",
+                "message": "このメールアドレスは既に使用されています",
+            },
         )
     db.refresh(student)
     return schemas.StudentProfileBasic.model_validate(student)
@@ -174,7 +177,7 @@ def renew_my_number(
             status_code=422,
             detail={
                 "code": "STUDENT_NO_TAKEN",
-                "message": f"学号 {new_no} は既に他の人が設定しています",
+                "message": f"学籍番号 {new_no} は既に他の人が設定しています",
             },
         )
 
@@ -222,7 +225,7 @@ def renew_my_number(
             status_code=422,
             detail={
                 "code": "STUDENT_NO_TAKEN",
-                "message": f"学号 {new_no} は既に他の人が設定しています",
+                "message": f"学籍番号 {new_no} は既に他の人が設定しています",
             },
         )
 

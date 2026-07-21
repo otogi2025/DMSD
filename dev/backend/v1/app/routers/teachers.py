@@ -135,7 +135,7 @@ def register_teacher(
             409,
             {
                 "code": "DUPLICATE_LOGIN_ID",
-                "message": "この login ID は既に使用されています",
+                "message": "このログインIDは既に使用されています",
             },
         )
 
@@ -179,7 +179,7 @@ def register_teacher(
             409,
             {
                 "code": "DUPLICATE_LOGIN_ID",
-                "message": "この login ID は既に使用されています",
+                "message": "このログインIDは既に使用されています",
             },
         )
     db.refresh(new_teacher)

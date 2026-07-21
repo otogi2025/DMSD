@@ -115,7 +115,7 @@ def create_event(
             status_code=400,
             detail={
                 "code": "INVALID_CATEGORY",
-                "message": f"有効な分類：{', '.join(sorted(_VALID_CATEGORIES))}",
+                "message": f"有効な分類：{'、'.join(sorted(_VALID_CATEGORIES))}",
             },
         )
     _check_time_range(body.start_at, body.end_at)
@@ -166,7 +166,7 @@ def patch_event(
             status_code=400,
             detail={
                 "code": "INVALID_CATEGORY",
-                "message": f"有効な分類：{', '.join(sorted(_VALID_CATEGORIES))}",
+                "message": f"有効な分類：{'、'.join(sorted(_VALID_CATEGORIES))}",
             },
         )
     # 用 exclude_unset 区分「字段没传=不动」与「字段显式传 null=清空」（TW-014）。
