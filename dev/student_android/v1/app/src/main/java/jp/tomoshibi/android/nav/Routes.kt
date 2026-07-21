@@ -48,14 +48,8 @@ sealed class Route(
         }
     }
 
-    data class NotifDetail(
-        val id: String,
-    ) : Route("notifications/$id") {
-        companion object {
-            const val PATH = "notifications/{id}"
-            const val ARG_ID = "id"
-        }
-    }
+    // android#15: 通知详情 NotifDetail 路由已删除——孤儿路由（无任何 navigate 调用）、
+    //   数据源读脱节的 MockData，且 iOS 无对应详情屏；通知点击仅标已读不跳详情（对齐 iOS）。
 
     // 兼容旧 path「deduction」→ 现复用 MyPointsScreen（对齐 iOS .myPoints）
     data object Deduction : Route("deduction")
@@ -200,8 +194,13 @@ sealed class Route(
 
 /** 面包屑显示名 — 对齐 iOS Route.displayName（按 path 前缀匹配） */
 fun routeDisplayName(route: String): String {
-    val base = route.substringBefore("?").substringBefore("/{")
-    // 去掉动态段后的具体 id，取前两段做匹配
+    val clean = route.substringBefore("?")
+    // android#6: 详情/编辑级判定改用【完整模板】——原来只 substringBefore("/{") 会把
+    //   X/{id}、X/{id}/edit 的动态段与结尾 /edit 一并砍掉，导致 announcements/{id}、
+    //   stayhistory/{id}/edit、applications/{id} 等被误显成列表级标签（「お知らせ」「申請履歴」「申し込み」）。
+    val hasId = clean.contains("/{") // 含动态段 = 详情/实例级路由
+    val isEdit = clean.endsWith("/edit") // 结尾 /edit = 编辑级路由
+    val base = clean.substringBefore("/{") // 前缀静态段（砍掉 /{id}… 之后全部）
     val parts = base.split("/").filter { it.isNotEmpty() }
     val key = parts.take(2).joinToString("/")
     return when {
@@ -210,7 +209,7 @@ fun routeDisplayName(route: String): String {
         }
 
         key == "applications" && parts.size == 1 -> {
-            "申し込み"
+            if (hasId) "詳細" else "申し込み"
         }
 
         key.startsWith("applications") -> {
@@ -222,11 +221,11 @@ fun routeDisplayName(route: String): String {
         }
 
         key == "my/info" -> {
-            if (parts.getOrNull(2) == "edit") "個人情報編集" else "個人情報"
+            if (isEdit) "個人情報編集" else "個人情報"
         }
 
         key == "my/rollcall" -> {
-            if (parts.size > 2) "詳細" else "点呼履歴"
+            if (hasId) "詳細" else "点呼履歴"
         }
 
         key == "my/points" -> {
@@ -262,27 +261,31 @@ fun routeDisplayName(route: String): String {
         }
 
         key == "announcements" -> {
-            if (parts.size > 1) "お知らせ詳細" else "お知らせ"
+            if (hasId) "お知らせ詳細" else "お知らせ"
         }
 
         key == "notifications" -> {
-            if (parts.size > 1) "詳細" else "通知"
+            "通知" // android#15: 通知详情 NotifDetail 已删，仅剩列表
+        }
+
+        key == "music/new" -> {
+            "投稿"
         }
 
         key == "music" -> {
-            when {
-                parts.getOrNull(1) == "new" -> "投稿"
-                parts.size > 1 -> "詳細"
-                else -> "リクエスト曲"
-            }
+            if (hasId) "詳細" else "リクエスト曲"
         }
 
-        key == "lostfound" || key.startsWith("lost") -> {
-            when {
-                base.contains("new") -> "投稿"
-                base.contains("detail") || parts.size > 1 -> "詳細"
-                else -> "遺失物"
-            }
+        key == "lostnew" -> {
+            "投稿"
+        }
+
+        key == "lostdetail" -> {
+            "詳細"
+        }
+
+        key == "lostfound" -> {
+            "遺失物"
         }
 
         key == "packages" -> {
@@ -299,8 +302,8 @@ fun routeDisplayName(route: String): String {
 
         key == "stayhistory" -> {
             when {
-                base.endsWith("/edit") -> "変更届"
-                parts.size > 1 -> "申請詳細"
+                isEdit -> "変更届"
+                hasId -> "申請詳細"
                 else -> "申請履歴"
             }
         }

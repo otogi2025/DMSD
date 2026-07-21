@@ -16,7 +16,6 @@ import jp.tomoshibi.android.ui.screens.community.*
 import jp.tomoshibi.android.ui.screens.home.HomeScreen
 import jp.tomoshibi.android.ui.screens.login.*
 import jp.tomoshibi.android.ui.screens.mypage.*
-import jp.tomoshibi.android.ui.screens.notifications.NotifDetailScreen
 import jp.tomoshibi.android.ui.screens.notifications.NotificationsScreen
 import jp.tomoshibi.android.ui.screens.onboarding.OnboardingScreen
 import jp.tomoshibi.android.ui.screens.splash.SplashScreen
@@ -71,13 +70,7 @@ fun TomoshibiNavGraph(navController: NavHostController) {
             val id = entry.arguments?.getString(Route.ApplicationDetail.ARG_ID) ?: ""
             ApplicationDetailScreen(navController, id)
         }
-        composable(
-            route = Route.NotifDetail.PATH,
-            arguments = listOf(navArgument(Route.NotifDetail.ARG_ID) { type = NavType.StringType }),
-        ) { entry ->
-            val id = entry.arguments?.getString(Route.NotifDetail.ARG_ID) ?: ""
-            NotifDetailScreen(navController, id)
-        }
+        // android#15: 通知详情 NotifDetail composable 已删除（孤儿路由 + 脱节 MockData + iOS 无对应）
         // 首页减点入口与个人页共用 MyPointsScreen（对齐 iOS router.go(.myPoints)）
         composable(Route.Deduction.path) { MyPointsScreen(navController) }
 
