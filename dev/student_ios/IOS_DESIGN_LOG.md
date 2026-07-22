@@ -1820,3 +1820,19 @@ itsuki 拍板把外出申请从「事前审批」改成「事后确认」：学�
 **进度条缺失败态**。`WorkflowStepsView` 只有 `done`（绿勾）和 `active`（黄色进行中）两种，却下时两个都不占，渲染成灰圈数字 —— 看着像「这一步还没轮到」，把终局状态显示成了半路状态，跟 Android 的红色失败态也对不上。新增 `failed` 字段（红圈白叉），默认 `false`，只有外出却下时置真，出寮届那侧渲染完全不变。
 
 验证：xcodebuild 双 scheme（TomoshibiApp + TomoshibiAppDemo，iPhone 17 Pro）均 BUILD SUCCEEDED。
+
+## §44 首次上传 App Store 的三处阻断（2026-07-22，commit `207e51e`）
+
+首次 Archive → Validate App 连撞三关。三关都不是代码问题，是工程配置与苹果账号状态，编译和测试全绿也照撞。
+
+**关一：开发者协议未同意**（账号侧，非代码）。报 `Unable to process request - PLA Update available` + `No signing certificate "iOS Distribution" found`。第二条是第一条的派生 —— 协议未签则账号无权访问 membership resource，自动签名建不出发布证书。去 developer.apple.com 同意最新 Program License Agreement 后两条同时消失。
+
+**关二：设备族声明与意图不符**（错误码 90474）。校验器判 `UISupportedInterfaceOrientations` 只给 Portrait 不满足 iPad 多任务要求。根因不在方向而在设备族：`project.yml` 顶层 `settings.base` 写的 `TARGETED_DEVICE_FAMILY: "1"` 被 xcodegen 为 target 生成的默认值 `1,2` 覆盖，`xcodebuild -showBuildSettings` 实测生效值确为 `1,2` —— 注释写着「iPhone only」但从未生效，app 一直对苹果声称支持 iPad。该设置移入 target 的 `settings.base` 后生效值为 `1`。同时把方向键改用 `INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone`（带设备后缀者只约束 iPhone，通用名会被按 iPad 规则检查）。
+
+> 该项若不修，除校验失败外还会触发 App Store Connect 要求补交整套 iPad 尺寸截图。
+
+**关三：NFC entitlement 含 NDEF**（错误码 90778）。`com.apple.developer.nfc.readersession.formats` 声明 `NDEF` + `TAG` 两格式；iOS 26 SDK 起 `NDEF` 与最低版本 iOS 16 不兼容（`NDEF is disallowed`）。核查 `ST25DVWriter.swift`：全程 `NFCTagReaderSession` + `NFCISO15693Tag`，无一处 `NFCNDEFReaderSession`，`NDEF` 属冗余声明，删除后功能无影响。
+
+**教训**：`project.yml` 的 `settings.base`（工程级）会被 target 级默认值覆盖，凡「必须生效」的构建设置应写在 target 的 `settings.base` 内，并以 `xcodebuild -showBuildSettings` 核对生效值 —— 注释与配置声明都不构成生效证明。
+
+验证：xcodegen 重生成后 `-showBuildSettings` 复核两项生效值正确；双 scheme 均 BUILD SUCCEEDED；Xcode Validate App 通过（`0.27.0 (1) validated`）。
