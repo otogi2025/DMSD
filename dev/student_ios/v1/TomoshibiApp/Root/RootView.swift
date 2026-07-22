@@ -42,10 +42,10 @@ struct RootView: View {
         }
         // 全局令牌守卫（ios⑤ 上线缺口）：登录令牌变 nil（登出 / 静默恢复里过期 / 各处 401 清空）统一踢回登录页。
         // authToken 的 didSet 只清状态不导航；各 feature 散落手写 replace(.login) 易漏（StayList 曾 3 处漏跳 / 只 back）。
-        // 守卫 splash/login 阶段不重复 replace（splash 启动 token 本就 nil、有自己的跳转动画，别打断）。
+        // 守卫 login 阶段不重复 replace。
         // 用单参 onChange = iOS 16 兼容写法（部署目标 16.0，双参 oldValue/newValue 签名要 iOS 17）。
         .onChange(of: app.authToken) { newValue in
-            if newValue == nil, router.current != .login, router.current != .splash {
+            if newValue == nil, router.current != .login {
                 router.replace(.login)
             }
         }
@@ -54,8 +54,7 @@ struct RootView: View {
     @ViewBuilder
     private func content(for route: Route) -> some View {
         switch route {
-        // §0 认证 / 启动 — Agent A 实装
-        case .splash: SplashView()
+        // §0 认证 / 启动 — Agent A 实装（启动闪屏 .splash 2026-07-22 删除）
         case .onboarding: OnboardingView()
         case .registerStep1: RegisterStep1View()
         case .registerStep2: RegisterStep2View()

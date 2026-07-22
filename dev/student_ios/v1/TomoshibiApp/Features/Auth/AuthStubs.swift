@@ -2,7 +2,7 @@
 //
 // 对等 refs/phaseB_src/c13988a3__SplashPage_OnboardingPage_RegisterDonePage.js
 // 9 个 struct View（+ private helpers）:
-//   1. SplashView            — 火焰 wordmark · 2s fadeIn · → .onboarding
+//   （原 1. SplashView 启动闪屏 2026-07-22 删除 —— 详见下方 §0.1 注释）
 //   2. OnboardingView        — 4 页・必须看完・无跳过 · → .login
 //   3. RegisterStep1View     — 姓名 / 生年月日 / 性别 / 头像
 //   4. RegisterStep2View     — 点呼区分 radio（普通寮生 / 足球部）
@@ -17,7 +17,7 @@
 //   - 日文字符串逐字照抄 JSX（JSX 的 "晚" 按 v2 HTML 规约替换为 "晩"）
 //   - fontSize / padding / spacing 严格对照 JSX inline style
 //   - 颜色 = T.* tokens（JSX 独立 hex 用 Color(hex:) inline override）
-//   - icon：资源图 / SF Symbols / 自绘均可（Splash 用资产图，Onboarding 用 SF Symbols，Check/Lock/Back 仍自绘）
+//   - icon：资源图 / SF Symbols / 自绘均可（Onboarding 用 SF Symbols，Check/Lock/Back 仍自绘）
 //   - 动画: fadeIn 0.2s → .easeIn(0.2) · zoom 0.22s → .easeOut(0.22) · slideUp 0.34s → spring
 //   - 无 NavigationStack · 无 .sheet() · Route 驱动
 //   - Liquid Glass 仅 .glassEffect 许可 — Auth 流程不用 glass（bg = T.pearl / paper / gradient）
@@ -29,97 +29,13 @@ import SwiftUI
 import ImagePlayground
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MARK: - §0.1 Splash
+// MARK: - §0.1 Splash（2026-07-22 删除）
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //
-// JSX 对等:
-//   background: radial-gradient(ellipse at 50% 42%, #e8f4f6 0%, #eff2f3 60%, #e4ebec 100%)
-//   logo 160×160, boxShadow 0 20px 60px rgba(31,107,116,0.2), borderRadius 36
-//   wordmark "Tomoshibi · 灯火"  fontSize:15, fontWeight:700, letterSpacing 0.12em
-//   version  "v0.1.0-demo"        fontSize:11, mono
-//   fadeIn 1s（JSX）— 以 iOS 感觉 0.8s fadeIn + 2s 总停留
-//   → router.replace(.onboarding)  (assignment override, JSX 走 /login)
-
-struct SplashView: View {
-    @EnvironmentObject var router: RouterStore
-    @EnvironmentObject var app: AppStore
-    @State private var appear: Bool = false
-    /// 「介绍页看过没」标记 — @AppStorage 自动读写 UserDefaults（手机本地小仓库）。
-    /// 首次安装本机没这条记录 → 默认 false → 走一次介绍页；OnboardingView 看完 4 页置 true，以后再不弹。
-    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
-
-    var body: some View {
-        ZStack {
-            // 白/极浅灰 bg（Image #29 效果）
-            LinearGradient(
-                colors: [Color.white, Color(hex: 0xF4F7F8)],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                Spacer()
-
-                // 白色 rounded square card · 含火焰 logo
-                ZStack {
-                    RoundedRectangle(cornerRadius: 32, style: .continuous)
-                        .fill(Color.white)
-                        .shadow(color: Color.black.opacity(0.08), radius: 20, x: 0, y: 10)
-                        .shadow(color: Color.black.opacity(0.04), radius: 2, x: 0, y: 1)
-
-                    Image("TomoshibiFlame")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 120, height: 120)
-                }
-                .frame(width: 168, height: 168)
-
-                Spacer().frame(height: 36)
-
-                VStack(spacing: 8) {
-                    Text("Tomoshibi · 灯火")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(T.primaryDk)
-                        .kerning(2.2)
-                    Text(AppVersionTag.full)
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(T.inkMute)
-                }
-
-                Spacer()
-                Spacer()
-            }
-            .opacity(appear ? 1 : 0)
-        }
-        .onAppear {
-            withAnimation(.easeIn(duration: 0.6)) { appear = true }
-        }
-        // .task 随视图消失自动取消，避免 onAppear 重复排队多个 replace
-        .task {
-            try? await Task.sleep(nanoseconds: 2_200_000_000)
-            guard !Task.isCancelled else { return }
-            // 启动跳转逻辑（睡醒后再读一次 auth / 介绍页标记，防等待期间状态已变）:
-            //   - Keychain 已恢复 token → 自动登录跳 home（老用户不看介绍页）
-            //   - 没 token + 本机没看过介绍 → 走一次介绍页（首次安装的新用户）
-            //   - 没 token + 已看过介绍 → 跳 login（老用户再登录 / 新用户在 login 点「新規登録」注册）
-            // 介绍页只在首次安装看一次（hasSeenOnboarding 标记），不每次启动都弹（2026-05-07 itsuki 拍板「太烦」）
-            if app.authToken != nil {
-                router.replace(.home)
-            } else if !hasSeenOnboarding {
-                router.replace(.onboarding)
-            } else {
-                router.replace(.login)
-            }
-        }
-    }
-}
-
-#Preview("Splash") {
-    SplashView()
-        .environmentObject(RouterStore())
-        .environmentObject(AppStore())
-}
+// 原 SplashView = 打开 app 先停 2.2 秒的启动画面（火焰 logo + Tomoshibi·灯火 + 版本号），
+// 停完再判断跳 home / 介绍页 / 登录页。itsuki 2026-07-22 拍板「太丑也没必要」→ 整个删掉。
+// 启动落点判断已挪到 RouterStore.launchRoute()，打开 app 直接落在该去的页面上。
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MARK: - §0.2 Onboarding
@@ -140,8 +56,11 @@ struct SplashView: View {
 
 struct OnboardingView: View {
     @EnvironmentObject var router: RouterStore
-    // 看完标记 — 置 true 后 SplashView 不再走介绍页（与 SplashView 同一个 @AppStorage key）
-    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
+    @EnvironmentObject var app: AppStore
+    /// 「介绍页看过没」标记 — @AppStorage 自动读写 UserDefaults（手机本地小仓库）。
+    /// 正式版：看完 4 页置 true，以后启动不再弹（RouterStore.launchRoute() 读同一个键）。
+    /// 演示版：launchRoute() 根本不读这个键（每次打开都从介绍页开始），所以标记写不写都无所谓。
+    @AppStorage(RouterStore.onboardingSeenKey) private var hasSeenOnboarding = false
     @State private var idx: Int = 0
 
     /// 介绍页一行功能（仅 AI 页用，每行一个小图标 + 一句话）
@@ -216,11 +135,12 @@ struct OnboardingView: View {
         ),
     ]
 
-    /// 看完（最后一页「始める」）→ 标记已看，跳登录页（新用户在登录页点「新規登録」进注册）
+    /// 看完（最后一页「始める」）→ 标记已看，跳下一页。
+    /// 已登录（演示版重开时上次的登录还在）→ 直接进主页；没登录 → 登录页（新用户在登录页点「新規登録」进注册）。
     /// 无跳过按钮 — itsuki 拍板所有人首次必须看完 4 页
     private func finish() {
         hasSeenOnboarding = true
-        router.replace(.login)
+        router.replace(app.authToken != nil ? .home : .login)
     }
 
     var body: some View {

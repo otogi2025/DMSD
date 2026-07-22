@@ -10,7 +10,26 @@ final class RouterStore: ObservableObject {
     @Published private(set) var current: Route
     @Published private(set) var stack: [Route]
 
-    init(initial: Route = .splash) {
+    /// 「介绍页看过没」标记在手机本地小仓库（UserDefaults）里的键名 —— OnboardingView 的 @AppStorage 共用同一个键
+    static let onboardingSeenKey = "hasSeenOnboarding"
+
+    /// app 打开时的第一个页面。
+    /// 原来先放 2.2 秒启动闪屏（.splash）再由它判断跳哪 —— 2026-07-22 itsuki 拍板「太丑也没必要」，
+    /// 闪屏整个删掉，判断挪到这里，打开 app 直接落在该去的页面上。
+    ///
+    /// 演示版（Demo scheme）：永远从介绍页开始 —— itsuki 拿它给人演示，每次打开都要能完整走一遍新用户流程。
+    /// 正式版：已登录 → 主页；没登录且本机没看过介绍 → 介绍页；否则 → 登录页（跟原闪屏里的判断一模一样）。
+    static func launchRoute() -> Route {
+        #if DEMO
+            return .onboarding
+        #else
+            if AppStore.shared.authToken != nil { return .home }
+            if !UserDefaults.standard.bool(forKey: onboardingSeenKey) { return .onboarding }
+            return .login
+        #endif
+    }
+
+    init(initial: Route = RouterStore.launchRoute()) {
         current = initial
         stack = [initial]
     }

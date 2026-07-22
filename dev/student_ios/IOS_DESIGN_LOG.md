@@ -1751,3 +1751,17 @@ A3 上架清单 A-1/A-2 落地（spec v1.0 §2.2「点呼入口占位、不得�
 ## §39 设置页加隐私政策 + 利用規約入口（2026-07-22，commit `54339fc`，上架审查 A3 阻断项）
 
 苹果 5.1.1(i) 要求隐私政策 app 内可访问 — 7-19 上架材料审查标为提交阻断级（A3），全量 grep 确认此前 app 内零链接。`MySettingsView`（マイページ→設定）新增「規約・ポリシー」分组：プライバシーポリシー / 利用規約 两行，`@Environment(\.openURL)` 外部浏览器打开 github.io 页面。行样式照抄同页 accountDeletionSection（去红色危险配色），位置在通知分组之后、アカウント削除之前；不带 `#if DEMO` 守卫（双版本都要有）。派 sonnet5 施工、主会话读 diff + 独立重跑 TomoshibiApp scheme 验证，双 scheme 均 BUILD SUCCEEDED。注：利用規約网址在 tomoshibi-pages 仓库 push 前仍 404，上架前上线。
+
+## §40 启动闪屏删除 + 演示版每次重开走介绍页 + 版本号读取修复（2026-07-22）
+
+itsuki 截图指出启动闪屏「太丑也没必要」，同时要求演示版每次重开都回到介绍页（原来只在首次安装显示一次）。
+
+**闪屏删除**：`SplashView`（火焰 logo + wordmark + 版本号，停留 2.2 秒后判断跳转）整体删除，连带 `Route.splash` case 及其 displayName / hidesTopBar / hidesBottomNav 三处登记、`RootView` 的 switch 分支与 `onChange(of: authToken)` 里的 splash 例外守卫。原闪屏内的启动落点判断上移为 `RouterStore.launchRoute()`，`init(initial:)` 默认值由 `.splash` 改为该函数返回值 —— app 打开即落在目标页，中间无过渡页。系统级 LaunchScreen 仍由 `INFOPLIST_KEY_UILaunchScreen_Generation` 生成（空白底），不受影响。
+
+**演示版每次重开走介绍页**：`launchRoute()` 内 `#if DEMO` 直接返回 `.onboarding`，不读 `hasSeenOnboarding` 标记；正式版 `#else` 分支保持 §18.1 原判断（有令牌→home / 本机没看过→onboarding / 否则→login），避免重新踩 §13 记录的「每次强制 onboarding → 苹果审核 reject 风险」。`hasSeenOnboarding` 的键名提为 `RouterStore.onboardingSeenKey` 常量，OnboardingView 的 `@AppStorage` 引用同一常量。`OnboardingView.finish()` 增加令牌判断（演示版重开时上次登录仍在 → 看完介绍直接进 home，不再退回登录页）。
+
+**版本号读取修复**：闪屏截图显示 `v?-demo`，根因是 `project.yml` 用了不存在的设置名 `INFOPLIST_KEY_CFBundleShortVersionString` / `INFOPLIST_KEY_CFBundleVersion` —— 苹果 `GENERATE_INFOPLIST_FILE` 机制只认 `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION`，生成的 Info.plist 中版本号字段缺失，`AppVersionTag.full` 读到 nil 回落 "?"。改用正确设置名后构建产物 `CFBundleShortVersionString = 0.27.0` 实测确认。该显示同样出现在 マイページ→アプリについて，删闪屏不能替代此修复。version-bump skill 第 8 项联动的字段名已同步订正。
+
+验证：`xcodegen generate` 后 xcodebuild 双 scheme（TomoshibiApp + TomoshibiAppDemo，iPhone 17 Pro）均 BUILD SUCCEEDED；模拟器实跑三态截图确认 —— 演示版首次启动直落介绍页、演示版将 `hasSeenOnboarding` 置 true 后重开仍落介绍页、正式版同标记下落登录页。
+
+**跨端待办**：Android 端 `SplashScreen.kt` 是对齐 iOS 写的同款闪屏，本次未动（待 itsuki 决定是否同步删）。

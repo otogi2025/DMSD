@@ -710,11 +710,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = TomoshibiApp/TomoshibiApp.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Tomoshibi;
-				INFOPLIST_KEY_CFBundleShortVersionString = 0.27.0;
-				INFOPLIST_KEY_CFBundleVersion = 1;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NFCReaderUsageDescription = "点呼の出席を点呼機に送信するために NFC を使用します";
 				INFOPLIST_KEY_NSCameraUsageDescription = "オンライン学習の契約書を撮影するためにカメラを使用します";
@@ -727,6 +726,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 0.27.0;
 				OTHER_LDFLAGS = (
 					"-weak_framework",
 					FoundationModels,
@@ -812,11 +812,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = TomoshibiApp/TomoshibiApp.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Tomoshibi Demo";
-				INFOPLIST_KEY_CFBundleShortVersionString = 0.27.0;
-				INFOPLIST_KEY_CFBundleVersion = 1;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NFCReaderUsageDescription = "点呼の出席を点呼機に送信するために NFC を使用します";
 				INFOPLIST_KEY_NSCameraUsageDescription = "オンライン学習の契約書を撮影するためにカメラを使用します";
@@ -829,6 +828,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 0.27.0;
 				OTHER_LDFLAGS = (
 					"-weak_framework",
 					FoundationModels,
@@ -941,11 +941,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = TomoshibiApp/TomoshibiApp.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Tomoshibi;
-				INFOPLIST_KEY_CFBundleShortVersionString = 0.27.0;
-				INFOPLIST_KEY_CFBundleVersion = 1;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NFCReaderUsageDescription = "点呼の出席を点呼機に送信するために NFC を使用します";
 				INFOPLIST_KEY_NSCameraUsageDescription = "オンライン学習の契約書を撮影するためにカメラを使用します";
@@ -958,6 +957,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 0.27.0;
 				OTHER_LDFLAGS = (
 					"-weak_framework",
 					FoundationModels,

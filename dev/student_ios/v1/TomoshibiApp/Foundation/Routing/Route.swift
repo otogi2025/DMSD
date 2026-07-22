@@ -5,7 +5,8 @@ import Foundation
 
 enum Route: Hashable {
     // §0 认证 / 启动
-    case splash
+    // ⚠️ 启动闪屏（原 .splash）2026-07-22 itsuki 拍板删除 —— 打开 app 直接进该去的页面，
+    //    启动落点判断移到 RouterStore.launchRoute()
     case onboarding
     case registerStep1, registerStep2, registerStep3, registerStep4
     case registerStep5 // 注册码输入（2026-05-04 加，App Store 上架对策）
@@ -73,7 +74,6 @@ enum Route: Hashable {
     /// Breadcrumb 显示名（日本語）
     var displayName: String {
         switch self {
-        case .splash: return "起動"
         case .onboarding: return "紹介"
         case .registerStep1: return "基本情報"
         case .registerStep2: return "点呼区分"
@@ -159,10 +159,10 @@ enum Route: Hashable {
         }
     }
 
-    /// 是否应隐藏 BottomNav（仅 auth flow：启动 / 介绍 / 注册 / 登录 / 锁定 / 密码重置）
+    /// 是否应隐藏 BottomNav（仅 auth flow：介绍 / 注册 / 登录 / 锁定 / 密码重置）
     var hidesBottomNav: Bool {
         switch self {
-        case .splash, .onboarding,
+        case .onboarding,
              .registerStep1, .registerStep2, .registerStep3, .registerStep4, .registerStep5,
              .registerDone,
              .login, .lockout, .pwreset:
@@ -174,7 +174,7 @@ enum Route: Hashable {
     /// 是否应隐藏 TopRollBar（auth flow 隐藏）
     var hidesTopBar: Bool {
         switch self {
-        case .splash, .onboarding,
+        case .onboarding,
              .registerStep1, .registerStep2, .registerStep3, .registerStep4, .registerStep5,
              .registerDone,
              .login, .lockout, .pwreset:
