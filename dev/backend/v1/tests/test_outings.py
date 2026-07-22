@@ -476,6 +476,25 @@ class TestForMe:
         assert rejected["id"] in ids
         assert kept["id"] not in ids
 
+    def test_for_me_withdrawn_filter(self, client, student_token, teacher_token):
+        """status=withdrawn → 只出学生自己取消的那条。
+
+        老师网页第 4 个页签「取消済」用这个筛选值（itsuki 2026-07-22 拍板加），
+        学生撤回的件老师端此前完全看不到。
+        """
+        kept = _create_outing(client, student_token)
+        gone = _create_outing(client, student_token)
+        client.patch(
+            f"/api/v1/outings/{gone['id']}/withdraw", headers=_auth(student_token)
+        )
+        res = client.get(
+            "/api/v1/outings/for-me?status=withdrawn", headers=_auth(teacher_token)
+        )
+        assert res.status_code == 200, res.text
+        ids = [o["id"] for o in res.json()["data"]]
+        assert gone["id"] in ids
+        assert kept["id"] not in ids
+
     def test_for_me_cross_dorm_filtered(self, client, student_token, db_session):
         """选女寮的老师看不到男寮学生的外出（R4 寮边界过滤）。"""
         outing = _create_outing(client, student_token)

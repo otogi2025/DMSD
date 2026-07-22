@@ -45,8 +45,6 @@ function formatDateTime(iso: string | null | undefined): string {
 }
 
 // 状态 → [标签, 文字色, 底色, 边框色]
-// withdrawn（学生自己取消）三个筛选 tab 都拉不到，这里仍留一条兜底分支：
-// 万一后端返回它，界面不会显示成空白徽章。
 function statusMeta(
   s: OutingStatus,
   T: typeof RYO,
@@ -70,6 +68,7 @@ const FILTERS: Array<[OutingStatus, string]> = [
   ["pending", "確認待ち"],
   ["approved", "確認済"],
   ["rejected", "却下済"],
+  ["withdrawn", "取消済"],
 ];
 
 // 表格列宽 —— 表头和数据行共用同一个字符串，改列宽只改这一处
@@ -326,11 +325,8 @@ export function OutingsPage({ authToken }: { authToken: string | null }) {
               fontSize: 13,
             }}
           >
-            {filter === "pending"
-              ? "確認待ちの外出申請はありません"
-              : filter === "approved"
-                ? "確認済の外出申請はありません"
-                : "却下した外出申請はありません"}
+            {/* 空状态文案直接复用 FILTERS 里的页签名，加页签时不用再改这里 */}
+            {`${FILTERS.find(([v]) => v === filter)?.[1] ?? ""}の外出申請はありません`}
           </div>
         )}
 
