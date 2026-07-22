@@ -44,6 +44,11 @@ services:
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD}
       REVIEWER_PASSWORD: ${REVIEWER_PASSWORD}
       REVIEWER_REGISTRATION_CODE: ${REVIEWER_REGISTRATION_CODE}
+      # 2026-07-22 部署缺口修复：这两个变量此前没传进容器 — seed 在容器里读不到，
+      # 演示老师密码会静默回落公开默认值 demo123（演示账号能读真实全局注册码，7-17 拍板要求生产必须非公开值）；
+      # op 账号会静默跳过不建。.env 里设了就传，没设保持原语义（demo 回落默认 / op 跳过）。
+      OP_PASSWORD: ${OP_PASSWORD:-}
+      DEMO_TEACHER_PASSWORD: ${DEMO_TEACHER_PASSWORD:-}
     depends_on:
       postgres:
         condition: service_healthy
