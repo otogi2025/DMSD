@@ -64,7 +64,7 @@ fun outingStatusLabel(status: ApplicationStatus): String =
         else -> applicationStatusLabel(status)
     }
 
-// 列表卡按 kind 选文案：外出走 outing 三态，其余走出寮届 statusPair。
+// 列表卡按 kind 选文案：外出走 outing 四态（承認不要/確認済/却下/取消済），其余走出寮届 statusPair。
 fun rowStatusLabel(
     kind: String,
     status: ApplicationStatus,
