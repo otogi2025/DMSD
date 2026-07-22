@@ -412,6 +412,28 @@ Opus 4.8（high）/ Grok 4.5（high fast）/ Fable 5 主会话，R1 背对背独
 
 验证：`gradlew assembleDebug` BUILD SUCCESSFUL（多轮）。
 
+## 18. 外出申请改事后确认制 + 8 分禁足挡入口（2026-07-22，commit `140a3b8`）
+
+itsuki 拍板把外出申请从「事前审批」改成「事后确认」：学生提交那一刻就能出门，老师的「確認」只是事后留记录、不是放行开关。安卓跟 iOS `fd82164` 同日 1:1 对齐，同样只有演示版有外出（生产版还没接 `/api/v1/outings`）。
+
+**状态文案**：`ApplicationMappers.kt` 的 `outingStatusLabel` 里 PENDING 从「確認待ち」改成「承認不要」，并**显式**补 REJECTED →「却下」。这里有个坑：原来的 `else` 兜底分支会把 rejected 兜到出寮届那套的「差し戻し」上去 —— 不显式加这一条不会报错，但会静默显示成完全不同的另一个状态。所以这不是「补映射」，是「覆盖错误兜底」。
+
+**详情页**：`ApplicationDetailScreen.kt` 进度第 2 步改「先生の記録待ち」+ 说明句「確認は記録のためで、外出は可能です」；新增 rejected 分支（红点 + ×，处理老师的前缀按 status 分「確認 ·」/「却下 ·」）；却下时出一张卡片显示理由 + 固定句「※ 詳しくは寮監に確認してください」。
+
+**8 分禁足闸（三层）**：`ApplyNewSelectScreen.kt` 把外出卡片置灰（正常路径）+ `ApplyNewScreen.kt` 把提交按钮置灰（深链绕过选择页时兜底）+ 后端 422 `OUTING_BANNED`（第三层，`ApiClient.extractDetail` 本来就能解 `{"detail":{code,message}}`，直接把后端那句日语弹出来，不用另写代码）。阈值等常量收在 `ApplyTypes.kt`：`OUTING_BAN_POINTS` / `OUTING_BAN_NOTICE` / `OUTING_KIND`。
+
+**⚠️ `OUTING_KIND = "外出"` 是日语显示名，不是英文 key**：安卓全程用日语名判断申请类型（共 8 处），路由参数传的也是 `ApplyType.name`；英文 key `"outing"` 只躺在 `ApplyType.key` 字段里、全项目没有任何一处拿它做判断。照 iOS 的写法写成 `"outing"` 会静默失效 —— 编译过、测试过、运行时永远不命中。
+
+**测试跟改 2 个**：`ApplicationStatusMapTest` 原断言把旧文案「確認待ち」硬钉死了（不改就红）；`ModelDecodeTest` 补 `rejectReason` 断言 + 却下解码用例。
+
+**网络层**：`OutingsAPI.kt` 的 `OutingOut` 加 `rejectReason`（映射后端 `reject_reason`），status 注释改成 4 值，`confirmed_*` 三字段补「処理した先生」语义说明。
+
+验证：主会话独立跑 `./gradlew assembleDebug` + `testDebugUnitTest` 均 BUILD SUCCESSFUL —— 不采信子代理自报。
+
+**待 itsuki 定的两处**：① `ApplicationDetailScreen.kt:164` 还写着「確認待ちの申請のみ取り消せます」，但徽章已经改成「承認不要」了，两句话对不上 —— 根子是「提交即生效之后，学生撤回还有没有意义」这个问题没定；② 「却下について」是子代理造的日语，没对照过宿舍手册用词。
+
+**跨端对齐**：iOS 见 `IOS_DESIGN_LOG.md` §41。共用层语义 → `design/system_features.md` §7.2.7。
+
 ---
 
 **END** — 本档随实装进展持续更新。
