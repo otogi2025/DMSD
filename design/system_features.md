@@ -522,7 +522,7 @@
 - 后端（事后确认制改造）：✅ 2026-07-22 实装 — 迁移 `d2c4b6a8e0f3`（status 扩到 4 值 + 加 `reject_reason`；SQLite 改不了 CHECK 约束，用 `batch_alter_table` 重建表）+ `POST /outings` 的外出禁止闸 + `PATCH /{id}/reject` + `GET /for-me` + 却下通知 2 路 + 减分合计共用函数 `discipline.current_month_total_points`。测试 33 条全绿。
 - iOS 演示版（事后确认制文案）：✅ 2026-07-22 —— `ApplyStubs.swift` 状态文案 + 进度第 2 步 + 却下卡片，`ApplyNewView` 外出入口按 8 分置灰。
 - Android 演示版（事后确认制文案）：✅ 2026-07-22 —— `ApplicationMappers.kt` / `ApplicationDetailScreen.kt` / `ApplyNewSelectScreen.kt` 同上对齐。
-- iOS / Android 生产版接后端：⏳ 待做（现外出客户端只有演示版，要新接 `/api/v1/outings` 系列接口）
+- iOS / Android 生产版接后端：✅ **早已接通**（2026-07-22 核查订正 —— 此前本行长期写着「⏳ 待做」是过期信息）。两端各 4 个学生接口全在调：提出 `POST /outings` / 列表 `GET /outings/mine` / 详情 `GET /outings/{id}` / 撤回 `PATCH /{id}/withdraw`。iOS 在 `ApplyStubs.swift` 的 `#else` 生产分支内，Android 无 DEMO 编译开关、业务数据一律走真接口。事后确认制的新语义（8 分闸 / 422 `OUTING_BANNED` / 却下卡片 / 四态文案）也都落在生产路径上，不在演示分支里。
 - 老师网页：✅ 2026-07-22 实装 —— `OutingsPage.tsx`（列表 + **四态**筛选 `pending` / `approved` / `rejected` / `withdrawn` + 详情弹窗 + 确认 / 却下带理由输入）。
 
 ### 7.3 晩自習(晚自习) — 中学全员 / 高中手动名单(Q2 Q3 答 + 2026-04-30 (f) 拍板)
