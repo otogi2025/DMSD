@@ -306,11 +306,18 @@ private struct ApplicationRow: View {
 
 struct ApplyNewView: View {
     @EnvironmentObject var router: RouterStore
+    @EnvironmentObject var app: AppStore
 
     private let cols: [GridItem] = [
         GridItem(.flexible(), spacing: 10),
         GridItem(.flexible(), spacing: 10),
     ]
+
+    /// 外出禁止（当月扣分 ≥8 = 禁足）—— 只置灰「外出」这一张卡，其余 11 种申请照常可点。
+    /// 阈值 8 与主页减点卡（HomeStubs.cleaningFlagRow）同一口径。
+    private var outingBanned: Bool {
+        app.displayUser.points >= 8
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -323,8 +330,33 @@ struct ApplyNewView: View {
                         .padding(.horizontal, 4)
                         .padding(.bottom, 14)
 
+                    // 禁足中 → 说明为什么「外出」那张卡是灰的、点不动
+                    if outingBanned {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "exclamationmark.octagon.fill")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(T.danger)
+                            Text("外出禁止中のため申請できません。特別な事情がある場合は寮監に相談してください")
+                                .font(.system(size: 12.5))
+                                .foregroundStyle(T.ink)
+                                .lineSpacing(3)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 14).padding(.vertical, 12)
+                        .background {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous).fill(T.dangerBg)
+                        }
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(T.danger.opacity(0.25), lineWidth: 1)
+                        }
+                        .padding(.bottom, 14)
+                    }
+
                     LazyVGrid(columns: cols, spacing: 10) {
                         ForEach(APPLY_TYPES, id: \.k) { t in
+                            let disabled = t.k == "outing" && outingBanned
                             Button {
                                 router.go(.applyForm(kind: t.k))
                             } label: {
@@ -352,6 +384,8 @@ struct ApplyNewView: View {
                                 }
                             }
                             .buttonStyle(.plain)
+                            .disabled(disabled)
+                            .opacity(disabled ? 0.4 : 1) // 置灰：整张卡（图标 / 名称 / 说明）一起淡出
                         }
                     }
                 }
@@ -1584,6 +1618,14 @@ struct GenericApplyForm: View {
         kind == "outing"
     }
 
+    /// 外出禁止（当月扣分 ≥8 = 禁足）—— 只挡外出，修繕 / 代理受取 / 来訪者 不受影响。
+    /// 阈值 8 与主页减点卡（HomeStubs.cleaningFlagRow）同一口径，别另发明一套。
+    /// 分数来自 app.displayUser.points（登录时 loadMe 从减点接口填）；没拉到时是 0 → 闸不生效，
+    /// 由后端 POST 的 422（code=OUTING_BANNED）兜底，学生会看到同一句禁止说明的 toast。
+    private var isOutingBanned: Bool {
+        isOuting && app.displayUser.points >= 8
+    }
+
     /// 修繕 / 来訪者 / 代理受取（iOS「parcel」）三类 → 接 misc-requests 后端（功能⑥）。
     private var isMiscKind: Bool {
         ["repair", "guest", "parcel"].contains(kind)
@@ -1600,6 +1642,7 @@ struct GenericApplyForm: View {
     }
 
     private var canSubmit: Bool {
+        if isOutingBanned { return false } // 禁足中不让提交外出（其他申请种类不受影响）
         guard !reason.isEmpty else { return false }
         if needsDest && dest.trimmingCharacters(in: .whitespaces).isEmpty { return false } // 外出: 去的地方「行き先」必填（trim 防只填空格）
         // 来訪者(guest)「来訪者氏名」/ 代理受取(parcel)「荷物の概要」也走 dest 字段、标了必填 → 同样 trim 后必须非空（codex 复审 minor-1）
@@ -1647,6 +1690,30 @@ struct GenericApplyForm: View {
                         RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(T.primary.opacity(0.12), lineWidth: 1)
                     }
                     .padding(.bottom, 20)
+
+                    // 禁足中（当月扣分 ≥8）→ 顶部红框说明为什么提交按钮点不动
+                    if isOutingBanned {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "exclamationmark.octagon.fill")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(T.danger)
+                            Text("外出禁止中のため申請できません。特別な事情がある場合は寮監に相談してください")
+                                .font(.system(size: 12.5))
+                                .foregroundStyle(T.ink)
+                                .lineSpacing(3)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 14).padding(.vertical, 12)
+                        .background {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous).fill(T.dangerBg)
+                        }
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(T.danger.opacity(0.25), lineWidth: 1)
+                        }
+                        .padding(.bottom, 16)
+                    }
 
                     // repair / parcel / guest 无学生端列表：提交前告知不会进一览（ios#0）；outing 会进一览，不显
                     if isMiscKind {
@@ -1814,10 +1881,12 @@ struct GenericApplyForm: View {
         #endif
     }
 
-    /// A1：外出申请直接接 outings 后端提出（pending → 等老师确认）。
+    /// A1：外出申请直接接 outings 后端提出。
+    /// 事后确认制 —— 提交即生效可以出门，pending 只是「先生の記録待ち」不是等放行。
     /// 演示构建不连后端、直接跳完成页讲叙事。
     private func submitOuting() async {
         guard !isSubmittingOuting else { return }
+        guard !isOutingBanned else { return } // 禁足中兜底（按钮本就置灰、这里防将来改动漏掉）
         isSubmittingOuting = true
         defer { isSubmittingOuting = false }
         #if DEMO
@@ -2438,8 +2507,10 @@ private struct WorkflowStepsView: View {
 // ============================================================================
 // §2.14 OutingDetailView — 外出申请详情（接 outings 后端 · 2 步进度）A1
 //
-// 外出是独立 outings 表（不是出寮届 applications）：不过夜 / 一名老师确认即可。
-// 三态映射 2 步进度：pending=先生確認待ち / approved=確認済（显示确认老师名）/ withdrawn=取消。
+// 外出是独立 outings 表（不是出寮届 applications）：不过夜 / 一名老师处理即可。
+// itsuki 2026-07-22 拍板事后确认制 —— 提交即生效，老师的「確認」是留记录不是放行开关。
+// 四态映射 2 步进度：pending=「先生の記録待ち」（外出已可成行）/ approved=「確認済」（显示确认老师名）/
+// rejected=「却下」（显示却下老师名 + 却下理由卡，但不要求立刻回寮）/ withdrawn=「取消済」。
 // 只在生产被调（ApplyListView 给外出 id 加了 "outing:" 前缀），演示版外出仍走 SEED otherDetailBody。
 // ============================================================================
 
@@ -2536,6 +2607,36 @@ struct OutingDetailView: View {
                 }
             }
 
+            // 却下通知（仅 rejected）—— 事后确认制下却下只是记录 + 通知，不要求学生立刻回寮，
+            // 所以这里不写「すぐ帰寮してください」，只给理由（老师填了才有）+ 固定的问询指引。
+            if o.status == "rejected" {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("⚠ 却下されました")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(T.danger)
+                    if let reason = o.reject_reason?.trimmingCharacters(in: .whitespacesAndNewlines),
+                       !reason.isEmpty
+                    {
+                        Text(reason)
+                            .font(.system(size: 13))
+                            .foregroundStyle(T.ink)
+                            .lineSpacing(3)
+                    }
+                    Text("※ 詳しくは寮監に確認してください")
+                        .font(.system(size: 12))
+                        .foregroundStyle(T.inkSub)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16).padding(.vertical, 14)
+                .background {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous).fill(T.dangerBg)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(T.danger.opacity(0.25), lineWidth: 1)
+                }
+            }
+
             // 撤回（仅 pending）
             if o.status == "pending" {
                 Button {
@@ -2590,21 +2691,37 @@ struct OutingDetailView: View {
         return f.string(from: date)
     }
 
-    /// 三态 → 2 步进度（提出 → 確認）。confirmed 时第 2 步显示确认老师名。
+    /// 四态 → 2 步进度（提出 → 記録）。
+    /// 事后确认制：第 2 步不是放行闸，只是老师事后留记录 —— 所以 pending 的文案是「先生の記録待ち」不是「確認待ち」。
+    /// 处理老师名（confirmed_by_name）在 approved / rejected 两态都显示，按状态分别拼成「確認 · ○○」/「却下 · ○○」。
     private func steps(_ o: OutingOut) -> [ApplyDetailView.StepMeta] {
         let confirmed = o.status == "approved"
+        let rejected = o.status == "rejected"
         let withdrawn = o.status == "withdrawn"
         let submitTime = fmtDateTime(o.submitted_at)
-        let confirmTime = o.confirmed_at.map { fmtDateTime($0) }
+        // 后端 confirmed_at 是「処理時刻」——approved 是确认时刻、rejected 是却下时刻，两态共用
+        let processedTime = o.confirmed_at.map { fmtDateTime($0) }
+        let secondLabel: String
+        if confirmed {
+            secondLabel = "確認"
+        } else if rejected {
+            secondLabel = "却下"
+        } else if withdrawn {
+            secondLabel = "取消"
+        } else {
+            secondLabel = "先生の記録待ち"
+        }
+        let isOpen = !confirmed && !rejected && !withdrawn // 还没被老师处理、也没被自己取消
         return [
             .init(k: "submit", label: "提出", done: true, active: false, time: submitTime, label2: nil),
             .init(k: "confirm",
-                  label: confirmed ? "確認" : (withdrawn ? "取消" : "先生の確認待ち"),
+                  label: secondLabel,
+                  // 却下不打绿勾（WorkflowStepsView 的 done 是绿勾，用在「却下」上会给错信号）
                   done: confirmed,
-                  active: !confirmed && !withdrawn,
-                  time: confirmTime,
-                  label2: confirmed ? o.confirmed_by_name : nil,
-                  activeNote: confirmed || withdrawn ? nil : "担当の先生が確認します"),
+                  active: isOpen,
+                  time: processedTime,
+                  label2: confirmed || rejected ? o.confirmed_by_name : nil,
+                  activeNote: isOpen ? "確認は記録のためで、外出は可能です" : nil),
         ]
     }
 
@@ -2653,13 +2770,17 @@ struct OutingDetailView: View {
     }
 }
 
-/// 外出三态 → 状态 Pill（外出语义：確認待ち / 確認済 / 取消済）
+/// 外出四态 → 状态 Pill（事后确认制语义：承認不要 / 確認済 / 却下 / 取消済）
+///
+/// pending 用 .accent（品牌色）不用 .warn（琥珀警示色）—— 事后确认制下「提交即生效」不是等待放行的警示态，
+/// 琥珀色会让学生误以为还不能出门。
 private func outingStatusPair(_ status: String) -> (label: String, tone: Pill.Tone) {
     switch status {
-    case "pending": return ("確認待ち", .warn)
+    case "pending": return ("承認不要", .accent)
     case "approved": return ("確認済", .ok)
+    case "rejected": return ("却下", .danger)
     case "withdrawn": return ("取消済", .neutral)
-    // DC-01: 显式列出后端三值；未知值（后端将来新增 status）落「不明な状態」而非被误显成「確認待ち」（pending 标签）。
+    // DC-01: 显式列出后端四值；未知值（后端将来新增 status）落「不明な状態」而非被误显成「承認不要」（pending 标签）。
     // 撤回 / 进度处用的是精确 == 比较，未知值本就不会被误判为某个已知状态。
     default: return ("不明な状態", .neutral)
     }
