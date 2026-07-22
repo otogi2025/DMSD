@@ -51,10 +51,13 @@ class ApplicationStatusMapTest {
         assertEquals("取消済", applicationStatusLabel(ApplicationStatus.WITHDRAWN))
     }
 
+    // 外出 2026-07-22 起是事后确认制：提交即生效不用等老师，
+    // 所以 pending 是「承認不要」不是「確認待ち」，却下是「却下」不是出寮届那套「差し戻し」。
     @Test
-    fun `outingStatusLabel 三态文案`() {
-        assertEquals("確認待ち", outingStatusLabel(ApplicationStatus.PENDING))
+    fun `outingStatusLabel 四态文案`() {
+        assertEquals("承認不要", outingStatusLabel(ApplicationStatus.PENDING))
         assertEquals("確認済", outingStatusLabel(ApplicationStatus.APPROVED))
+        assertEquals("却下", outingStatusLabel(ApplicationStatus.REJECTED))
         assertEquals("取消済", outingStatusLabel(ApplicationStatus.WITHDRAWN))
     }
 }

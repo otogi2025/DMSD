@@ -205,6 +205,37 @@ class ModelDecodeTest {
         assertEquals("2026-06-05", out.outingDate)
         assertEquals("pending", out.status)
         assertNull(out.student)
+        assertNull(out.rejectReason)
+    }
+
+    // 事后确认制新增的却下形态：status=rejected + reject_reason + 处理老师三字段
+    // （confirmed_* 三个字段在 rejected 时装的是却下者，不是确认者）。
+    @Test
+    fun `OutingOut 却下解码`() {
+        val body =
+            """
+            {
+              "id": "o2",
+              "student_id": "s1",
+              "outing_date": "2026-07-22",
+              "destination": "駅前",
+              "leave_time": "14:00",
+              "return_time": "18:00",
+              "taxi_reservation_time": null,
+              "reason": "買い物",
+              "status": "rejected",
+              "submitted_at": "2026-07-22T10:00:00+09:00",
+              "withdrawn_at": null,
+              "confirmed_by_teacher_id": "t1",
+              "confirmed_by_name": "山田",
+              "confirmed_at": "2026-07-22T12:00:00+09:00",
+              "reject_reason": "行き先が不明確です"
+            }
+            """.trimIndent()
+        val out = json.decodeFromString<OutingOut>(body)
+        assertEquals("rejected", out.status)
+        assertEquals("行き先が不明確です", out.rejectReason)
+        assertEquals("山田", out.confirmedByName)
     }
 
     @Test

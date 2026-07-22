@@ -19,6 +19,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +30,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import jp.tomoshibi.android.data.seed.MockData
+import jp.tomoshibi.android.data.store.LocalAppStore
 import jp.tomoshibi.android.nav.Route
 import jp.tomoshibi.android.ui.components.GlobalScaffold
 import jp.tomoshibi.android.ui.components.PageHeader
@@ -39,6 +43,11 @@ import jp.tomoshibi.android.ui.theme.SuzuT
 fun ApplyNewSelectScreen(navController: NavHostController) {
     val t = SuzuT.current
     val primary = MaterialTheme.colorScheme.primary
+    val store = LocalAppStore.current
+    val state by store.state.collectAsState(initial = MockData.INITIAL_STATE)
+    // 外出禁止（禁足）— 当月扣分 ≥8 分时「外出」这张卡置灰不可点，
+    // 提交页 ApplyNewScreen 还有一道同口径的闸（深链绕过卡片时兜底）。
+    val outingBanned = state.user.points >= OUTING_BAN_POINTS
     GlobalScaffold(activeTab = "apply", navController = navController) {
         Column(
             modifier =
@@ -59,19 +68,42 @@ fun ApplyNewSelectScreen(navController: NavHostController) {
                     style = TextStyle(fontSize = 13.sp),
                     modifier = Modifier.padding(start = 4.dp, bottom = 14.dp),
                 )
+                // 禁足中的说明 — 跟置灰的「外出」卡片配套，不然学生只看到卡点不动不知道为什么
+                if (outingBanned) {
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(t.dangerBg)
+                                .padding(12.dp),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        Text("⚠", color = t.danger, style = TextStyle(fontSize = 14.sp))
+                        Spacer(Modifier.size(8.dp))
+                        Text(
+                            OUTING_BAN_NOTICE,
+                            color = t.danger,
+                            style = TextStyle(fontSize = 12.sp, lineHeight = 17.sp),
+                        )
+                    }
+                }
                 APPLY_TYPES.chunked(2).forEach { row ->
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         row.forEach { k ->
+                            // 只有「外出」这一张卡会被禁足闸置灰，其余类型照常可点
+                            val disabled = outingBanned && k.name == OUTING_KIND
                             Column(
                                 modifier =
                                     Modifier
                                         .weight(1f)
                                         .clip(RoundedCornerShape(16.dp))
-                                        .background(t.paper)
-                                        .clickable {
+                                        .background(if (disabled) t.pill else t.paper)
+                                        .clickable(enabled = !disabled) {
                                             navController.navigate(Route.ApplyNew.withKind(k.name))
                                         }.padding(16.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -87,20 +119,20 @@ fun ApplyNewSelectScreen(navController: NavHostController) {
                                     Icon(
                                         imageVector = k.icon,
                                         contentDescription = null,
-                                        tint = primary,
+                                        tint = if (disabled) t.inkFaint else primary,
                                         modifier = Modifier.size(22.dp),
                                     )
                                 }
                                 Spacer(Modifier.height(10.dp))
                                 Text(
                                     k.name,
-                                    color = t.ink,
+                                    color = if (disabled) t.inkFaint else t.ink,
                                     style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
                                 )
                                 Spacer(Modifier.height(3.dp))
                                 Text(
                                     k.sub,
-                                    color = t.inkMute,
+                                    color = if (disabled) t.inkFaint else t.inkMute,
                                     style = TextStyle(fontSize = 11.sp, lineHeight = 14.sp),
                                     textAlign = TextAlign.Center,
                                 )

@@ -379,6 +379,7 @@ private fun OutingDetailBody(
     val status = mapApplicationStatus4(outing.status)
     val confirmed = outing.status == "approved"
     val withdrawn = outing.status == "withdrawn"
+    val rejected = outing.status == "rejected"
     Column(
         modifier =
             Modifier
@@ -434,7 +435,10 @@ private fun OutingDetailBody(
             KvRow("提出日", outing.submittedAt)
         }
 
-        // G19：外出简化为「提出 → 先生確認」两步（对齐 iOS OutingDetailView.steps）
+        // G19：外出简化为「提出」→ 老师记录 两步（对齐 iOS OutingDetailView.steps）
+        // 2026-07-22 事后确认制：第 2 步不再是放行闸，学生提交后就能出门。
+        // 所以第 2 步标题由「先生の確認待ち」改成「先生の記録待ち」，
+        // 说明文由「担当の先生が確認します」改成「確認は記録のためで、外出は可能です」。
         Section("進捗")
         Column(
             modifier =
@@ -460,16 +464,60 @@ private fun OutingDetailBody(
                 label =
                     when {
                         confirmed -> "確認"
+                        rejected -> "却下"
                         withdrawn -> "取消"
-                        else -> "先生の確認待ち"
+                        else -> "先生の記録待ち"
                     },
                 done = confirmed,
-                active = !confirmed && !withdrawn,
+                failed = rejected,
+                active = !confirmed && !withdrawn && !rejected,
                 time = outing.confirmedAt,
-                label2 = if (confirmed) outing.confirmedByName else null,
-                activeNote = if (!confirmed && !withdrawn) "担当の先生が確認します" else null,
+                // confirmed_by_name 是「処理した先生」，approved / rejected 共用同一字段，
+                // 所以前缀必须按 status 分支，不能一律写「確認 · ○○ 先生」。
+                label2 =
+                    outing.confirmedByName?.let { name ->
+                        when {
+                            confirmed -> "確認 · $name"
+                            rejected -> "却下 · $name"
+                            else -> null
+                        }
+                    },
+                activeNote =
+                    if (!confirmed && !withdrawn && !rejected) {
+                        "確認は記録のためで、外出は可能です"
+                    } else {
+                        null
+                    },
                 isLast = true,
             )
+        }
+
+        // 却下卡片 — 却下只是通知 + 留记录，不要求学生立刻回寮。
+        // reject_reason 是老师填的理由，老师没填就是 null；末尾固定加一句让学生找宿管确认的提示。
+        if (rejected) {
+            Section("却下について")
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(tokens.dangerBg)
+                        .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                outing.rejectReason?.takeIf { it.isNotBlank() }?.let {
+                    Text(
+                        it,
+                        color = tokens.danger,
+                        style = TextStyle(fontSize = 13.sp, lineHeight = 19.sp, fontWeight = FontWeight.SemiBold),
+                    )
+                }
+                Text(
+                    "※ 詳しくは寮監に確認してください",
+                    color = tokens.danger,
+                    style = TextStyle(fontSize = 12.sp, lineHeight = 17.sp),
+                )
+            }
         }
 
         // 仅 pending 可撤（对齐 iOS OutingDetailView）
@@ -498,7 +546,8 @@ private fun OutingDetailBody(
     }
 }
 
-// 外出两步进度单行（提出 / 先生確認）
+// 外出两步进度单行（提出 / 老师记录）
+// failed = 该步被却下 → 红点 + 「×」标记（跟 done 的绿点 +「✓」区分）。
 @Composable
 private fun OutingProgressStep(
     tokens: jp.tomoshibi.android.ui.theme.SuzuTokens,
@@ -509,10 +558,12 @@ private fun OutingProgressStep(
     label2: String?,
     activeNote: String?,
     isLast: Boolean,
+    failed: Boolean = false,
 ) {
     val dotColor =
         when {
             done -> tokens.ok
+            failed -> tokens.danger
             active -> tokens.warn
             else -> tokens.inkFaint
         }
@@ -527,6 +578,8 @@ private fun OutingProgressStep(
             ) {
                 if (done) {
                     Text("✓", color = Color.White, style = TextStyle(fontSize = 9.sp, fontWeight = FontWeight.Bold))
+                } else if (failed) {
+                    Text("×", color = Color.White, style = TextStyle(fontSize = 9.sp, fontWeight = FontWeight.Bold))
                 }
             }
             if (!isLast) {
@@ -537,7 +590,7 @@ private fun OutingProgressStep(
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(label, color = tokens.ink, style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold))
             label2?.let {
-                // 后端 confirmed_by_name 已是展示用姓名（对齐 iOS label2）
+                // 调用方已按 status 拼好前缀（「確認 · ○○」/「却下 · ○○」），这里只负责渲染
                 Text(it, color = tokens.inkSub, style = TextStyle(fontSize = 12.sp))
             }
             time?.let {

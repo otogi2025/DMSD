@@ -96,7 +96,8 @@ fun ApplyNewScreen(
 
     val today = remember { JstDate.today() }
     val tomorrow = remember { today.plusDays(1) }
-    val isOuting = kind == "外出"
+    // 注意 kind 是日语显示名（「外出」），不是 ApplyType.key 那个英文 "outing"
+    val isOuting = kind == OUTING_KIND
     // 外出可选今天；其余出寮日默认明天
     var leaveDate by remember { mutableStateOf(if (isOuting) today else tomorrow) }
     var returnDate by remember { mutableStateOf(tomorrow.plusDays(1)) }
@@ -118,6 +119,13 @@ fun ApplyNewScreen(
     val showParcelField = kind == "代理受取" // 代理受取必填「荷物の概要」，対齐 iOS isParcel
     val showDestField = kind in listOf("外出", "外泊", "帰省", "帰国")
     val isMisc = kind in listOf("修繕", "来訪者", "代理受取")
+
+    // 外出禁止（禁足）闸 — itsuki 2026-07-22 拍板：当月扣分 ≥8 分的学生不能提外出申请。
+    // 8 分口径跟 TopRollBar.CleaningFlagRow 那条「外出禁止」标签同一套（user.points 由
+    // AppStore.loadMe → DisciplineAPI.mySummary 填），别另发明阈值。
+    // 这里只是客户端提前拦；真正的把关在后端 POST /outings（422 OUTING_BANNED），
+    // 学生分数刚变化本地还没刷新时由后端兜底。
+    val outingBanned = isOuting && user.points >= OUTING_BAN_POINTS
 
     // 期限校验：外出无 48h 截止（当天回寮）；其余有出寮日的类型适用
     val hasLeaveDateDeadline = !isOuting && (showLeaveDate || showReturnDateOnly)
@@ -252,6 +260,27 @@ fun ApplyNewScreen(
                         .padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
+                // ── 外出禁止 banner ── 当月扣分 ≥8 分时置顶显示，下面提交按钮同时置灰
+                if (outingBanned) {
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(tokens.dangerBg)
+                                .padding(12.dp),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        Text("⚠", color = tokens.danger, style = TextStyle(fontSize = 14.sp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            OUTING_BAN_NOTICE,
+                            color = tokens.danger,
+                            style = TextStyle(fontSize = 12.sp, lineHeight = 17.sp),
+                        )
+                    }
+                }
+
                 // ── deadline warning banner ── 只对有出寮日的类型显示（修繕/来訪者/代理受取 无出寮日，隐藏）
                 if (hasLeaveDateDeadline) {
                     Row(
@@ -380,6 +409,7 @@ fun ApplyNewScreen(
                 val needsDestField = showDestField || showGuestField || showParcelField || showRepairFields
                 val canSubmit =
                     !pastDeadline &&
+                        !outingBanned &&
                         !submitting &&
                         reason.isNotBlank() &&
                         (!needsDestField || dest.trim().isNotEmpty())

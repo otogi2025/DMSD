@@ -11,6 +11,10 @@ import kotlinx.serialization.Serializable
 // 对齐 iOS Endpoints/OutingsAPI.swift。
 // 后端路由 app/routers/outings.py（prefix /api/v1/outings）。
 // 跟出寮届（applications）的区别：不过夜 / 没有多级审查 / 一名老师点「確認」即可。
+//
+// 2026-07-22 起改事后确认制：学生提交即生效可直接出门，老师点「確認」只是事后留记录、
+// 不是放行开关；老师仍可「却下」（只发通知 + 留记录，不要求学生立刻回寮）。
+// 提交侧新增闸：当月扣分 ≥8 分（外出禁止 / 禁足）的学生 POST 会被后端挡回 422 OUTING_BANNED。
 
 object OutingsAPI {
     // 外出申请提出。
@@ -50,10 +54,16 @@ data class OutingOut(
     @SerialName("return_time") val returnTime: String? = null,
     @SerialName("taxi_reservation_time") val taxiReservationTime: String? = null,
     val reason: String? = null,
-    val status: String, // "pending" | "approved" | "withdrawn"
+    val status: String, // "pending" | "approved" | "rejected" | "withdrawn"
     @SerialName("submitted_at") val submittedAt: String,
     @SerialName("withdrawn_at") val withdrawnAt: String? = null,
+    // confirmed_* 三个字段语义是「処理した先生 / 処理時刻」——
+    // status=approved 时是确认者、status=rejected 时是却下者（后端 schemas.OutingOut 同一套字段共用）。
+    // 所以显示文案必须按 status 分支（approved →「確認 · ○○ 先生」/ rejected →「却下 · ○○ 先生」），
+    // 不能一律写「確認 · ○○ 先生」。
     @SerialName("confirmed_by_teacher_id") val confirmedByTeacherId: String? = null,
-    @SerialName("confirmed_by_name") val confirmedByName: String? = null, // 「確認 · ○○ 先生」
+    @SerialName("confirmed_by_name") val confirmedByName: String? = null,
     @SerialName("confirmed_at") val confirmedAt: String? = null,
+    // 却下理由 — 只在 status=rejected 时可能有值；老师没填理由时仍是 null。
+    @SerialName("reject_reason") val rejectReason: String? = null,
 )

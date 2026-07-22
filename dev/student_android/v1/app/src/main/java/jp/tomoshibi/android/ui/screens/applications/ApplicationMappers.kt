@@ -52,11 +52,14 @@ fun applicationStatusLabel(status: ApplicationStatus): String =
         ApplicationStatus.WITHDRAWN -> "取消済"
     }
 
-// 外出三态徽章文案（对齐 iOS outingStatusPair：「確認待ち」/「確認済」/「取消済」）。
+// 外出四态徽章文案（对齐 iOS outingStatusPair）。
+// 2026-07-22 事后确认制：提交即生效不用等老师，所以 pending 不再写「確認待ち」（会让学生以为要等），
+// 改成「承認不要」；老师事后点確認 →「確認済」、事后却下 →「却下」（不是出寮届那套「差し戻し」）。
 fun outingStatusLabel(status: ApplicationStatus): String =
     when (status) {
-        ApplicationStatus.PENDING -> "確認待ち"
+        ApplicationStatus.PENDING -> "承認不要"
         ApplicationStatus.APPROVED -> "確認済"
+        ApplicationStatus.REJECTED -> "却下"
         ApplicationStatus.WITHDRAWN -> "取消済"
         else -> applicationStatusLabel(status)
     }

@@ -33,3 +33,16 @@ internal val APPLY_TYPES =
 
 // 列表卡按类型日语名查图标（匹配不到取第 0 个 outing，对齐 iOS applyType 兜底）
 internal fun iconForKind(kind: String): ImageVector = APPLY_TYPES.firstOrNull { it.name == kind }?.icon ?: SuzuIcons.Cal
+
+// ── 外出禁止（禁足）闸 ── itsuki 2026-07-22 拍板
+// 当月扣分到这个分数就不能再提外出申请。阈值跟 TopRollBar 那条「外出禁止」标签、
+// 后端 discipline.CURFEW_THRESHOLD 是同一个数，改的时候三处一起改。
+internal const val OUTING_BAN_POINTS = 8.0
+
+// 被禁足时给学生看的说明，跟后端 422 OUTING_BANNED 的 message 一字不差
+// （本地闸和后端兜底闸提示同一句话，学生不会看到两种说法）。
+internal const val OUTING_BAN_NOTICE = "外出禁止中のため申請できません。特別な事情がある場合は寮監に相談してください"
+
+// 申请类型日语显示名 —— 注意本包内判断类型一律用这个日语名（例如 kind == OUTING_KIND），
+// 不是 ApplyType.key 那个英文 key（"outing"）。路由参数传的也是日语名。
+internal const val OUTING_KIND = "外出"
