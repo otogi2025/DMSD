@@ -158,16 +158,18 @@ fun ApplicationDetailScreen(
                                             load()
                                         } catch (e: ApiError) {
                                             if (store.handleIfUnauthorized(e, tokenAtStart)) return@launch
-                                            // 409 等：重拉最新状态，提示「確認待ちの申請のみ取り消せます」
+                                            // 409 = 提交后老师已经确认 / 却下了。事后确认制下老师一般是学生回来后
+                                            // 才批量处理，撞上这里多半意味着这次外出已经过去了；万一是老师手快，
+                                            // 学生仍需要一条出路 → 指向寮監（文案跟 iOS ApplyStubs.withdraw 逐字对齐）。
                                             actionError =
                                                 if (e is ApiError.Server && e.code == 409) {
-                                                    "確認待ちの申請のみ取り消せます"
+                                                    "先生が処理した後は取りやめできません。寮監に直接お伝えください"
                                                 } else {
                                                     e.display
                                                 }
                                             load()
                                         } catch (e: Exception) {
-                                            actionError = "取消に失敗しました"
+                                            actionError = "外出の取りやめに失敗しました"
                                         } finally {
                                             withdrawing = false
                                         }
@@ -520,7 +522,9 @@ private fun OutingDetailBody(
             }
         }
 
-        // 仅 pending 可撤（对齐 iOS OutingDetailView）
+        // 仅 pending 可撤（对齐 iOS OutingDetailView）。事后确认制下语义是「我不去了」，
+        // 不是「撤回一张待批的申请」，所以文案对象是「外出」本身而不是「申請」
+        // （itsuki 2026-07-22 拍板 A）。出寮届那侧仍是事前审批，保持「申請を取り消し」不动。
         if (outing.status == "pending") {
             Box(
                 modifier =
@@ -533,7 +537,7 @@ private fun OutingDetailBody(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    if (withdrawing) "取り消し中…" else "申請を取り消し",
+                    if (withdrawing) "取りやめ中…" else "外出を取りやめる",
                     color = tokens.danger,
                     style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
                 )

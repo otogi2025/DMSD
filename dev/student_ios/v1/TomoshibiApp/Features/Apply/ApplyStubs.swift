@@ -2232,19 +2232,20 @@ struct ApplyDetailView: View {
         fileprivate var steps: [StepMeta] {
             guard let a = item else { return [] }
             let submitTime = a.date + " 10:24"
-            // 外出申請（outing）= 一名老师确认即可，没有「審査」步骤 — itsuki 2026-06-04 拍板。
-            // 确认老师的名字本应从登录的老师账号自动记录（后端实装待做），
-            // 演示版先用代表性的「松本 先生」展示。
+            // 外出申請（outing）= 事后确认制，没有「審査」步骤（itsuki 2026-06-04 定 2 步 /
+            // 2026-07-22 改事后确认）。第 2 步不是放行闸、只是老师事后留记录，所以文案跟生产路径
+            // 的 OutingDetailView.steps 逐字对齐 —— 演示版给宿管看的就是真实语义，不能停在旧文案。
+            // 确认老师名演示版用代表性的「松本 先生」（生产读后端 confirmed_by_name）。
             if a.type == "outing" {
                 let confirmed = a.status == "approved"
                 let confirmTime: String? = confirmed ? a.date + " 11:02" : nil
                 return [
                     .init(k: "submit", label: "提出", done: true, active: false, time: submitTime, label2: nil),
                     .init(k: "confirm",
-                          label: confirmed ? "確認" : "先生の確認待ち",
+                          label: confirmed ? "確認" : "先生の記録待ち",
                           done: confirmed, active: !confirmed, time: confirmTime,
                           label2: confirmed ? "松本 先生" : nil,
-                          activeNote: "担当の先生が確認します"),
+                          activeNote: "確認は記録のためで、外出は可能です"),
                 ]
             }
             let reviewDone = a.status == "approved" || a.status == "rejected"
@@ -2295,7 +2296,10 @@ struct ApplyDetailView: View {
         private var otherDetailBody: some View {
             if let a = item {
                 let t = applyType(a.type)
-                let sp = statusPair(a.status)
+                // 外出走事后确认制自己那套四态文案（approved→「確認済」而非出寮届的「承認済」）。
+                // 列表页 ApplyListView 早就按 type 分流了，这里漏了 → 演示版点开详情会显示成
+                // 出寮届的措辞，跟同一屏列表里的徽章对不上（2026-07-22 补）。
+                let sp = a.type == "outing" ? outingStatusPair(a.status) : statusPair(a.status)
                 VStack(spacing: 0) {
                     PageHeader(title: "申請詳細", level: 2)
                     ScrollView {
@@ -2637,12 +2641,14 @@ struct OutingDetailView: View {
                 }
             }
 
-            // 撤回（仅 pending）
+            // 撤回（仅 pending）——事后确认制下语义是「我不去了」，不是「撤回一张待批的申请」，
+            // 所以文案对象是「外出」本身而不是「申請」（itsuki 2026-07-22 拍板 A）。出寮届那侧
+            // 仍是事前审批，保持「申請を取り消し」不动。
             if o.status == "pending" {
                 Button {
                     Task { await withdraw(o) }
                 } label: {
-                    Text(isWithdrawing ? "取り消し中…" : "申請を取り消し")
+                    Text(isWithdrawing ? "取りやめ中…" : "外出を取りやめる")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(T.danger)
                         .frame(maxWidth: .infinity, minHeight: 48)
@@ -2753,11 +2759,13 @@ struct OutingDetailView: View {
         defer { isWithdrawing = false }
         do {
             loaded = try await OutingsAPI.withdraw(id: o.id)
-            app.showToast("申請を取り消しました")
+            app.showToast("外出を取りやめました")
         } catch let APIError.unprocessable(msg) {
             app.showToast(msg)
         } catch APIError.server(409, _) {
-            app.showToast("確認待ちの申請のみ取り消せます")
+            // 409 = 提交后老师已经确认 / 却下了。事后确认制下老师一般是学生回来后才批量处理，
+            // 撞上这里多半意味着这次外出已经过去了；万一是老师手快，学生仍需要一条出路 → 指向寮監。
+            app.showToast("先生が処理した後は取りやめできません。寮監に直接お伝えください")
             await load()
         } catch APIError.unauthorized {
             app.authToken = nil
@@ -2765,7 +2773,7 @@ struct OutingDetailView: View {
         } catch APIError.network {
             app.showToast("通信エラーが発生しました。電波を確認してください")
         } catch {
-            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "申請の取り消しに失敗しました"))
+            app.showToast(APIErrorPresenter.userMessage(for: error, fallback: "外出の取りやめに失敗しました"))
         }
     }
 }
