@@ -2127,6 +2127,13 @@ struct ApplyDoneView: View {
         applyType(kind)
     }
 
+    /// 外出是事后确认制（2026-07-22）：提交完就能走，没有「審査」这一步。这一屏是学生按下
+    /// 提出后看到的第一个界面，原来的通用文案写「審査完了時に通知でお知らせします」+
+    /// 「審査時間の目安 1〜2 時間」，等于当面推翻上一屏刚说过的「承認不要」，所以外出走自己一套。
+    private var isOuting: Bool {
+        kind == "outing"
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
@@ -2151,31 +2158,39 @@ struct ApplyDoneView: View {
                     .foregroundStyle(T.ink)
                     .padding(.bottom, 8)
 
-                Text("\(type.name)申請を受け付けました。\n審査完了時に通知でお知らせします。")
-                    .font(.system(size: 14))
-                    .foregroundStyle(T.inkSub)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(4)
-                    .padding(.bottom, 28)
+                // 外出的第二句直接复用详情页那句已定稿的说明，不另造日语。
+                Text(
+                    isOuting
+                        ? "外出申請を受け付けました。\n確認は記録のためで、外出は可能です"
+                        : "\(type.name)申請を受け付けました。\n審査完了時に通知でお知らせします。"
+                )
+                .font(.system(size: 14))
+                .foregroundStyle(T.inkSub)
+                .multilineTextAlignment(.center)
+                .lineSpacing(4)
+                .padding(.bottom, 28)
 
                 // Info card
                 // IX-006: 原来这里显示写死的假申请号「A-240422-07」。后端 ApplicationOut 只有
                 // UUID、没有人类可读的申请号，所以去掉这行假数据，只留预想审查时间。
-                VStack(spacing: 4) {
-                    HStack {
-                        Text("審査時間の目安").font(.system(size: 12)).foregroundStyle(T.inkSub)
-                        Spacer()
-                        Text("1〜2 時間")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(T.ink)
+                // 外出没有审查这一步 → 整张卡不出现（写「0 時間」之类反而更让人误会要等）。
+                if !isOuting {
+                    VStack(spacing: 4) {
+                        HStack {
+                            Text("審査時間の目安").font(.system(size: 12)).foregroundStyle(T.inkSub)
+                            Spacer()
+                            Text("1〜2 時間")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(T.ink)
+                        }
                     }
+                    .padding(.horizontal, 16).padding(.vertical, 14)
+                    .frame(maxWidth: .infinity)
+                    .background {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous).fill(T.pearl)
+                    }
+                    .padding(.bottom, 28)
                 }
-                .padding(.horizontal, 16).padding(.vertical, 14)
-                .frame(maxWidth: .infinity)
-                .background {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous).fill(T.pearl)
-                }
-                .padding(.bottom, 28)
 
                 // IX-006: 原来左边还有个「詳細を見る」按钮跳 .applyDetail(id: "A-240422-07") 假 id，
                 // 而且详情页现在还读 SEED 假数据、传真 id 也查不到。先去掉这个按钮，

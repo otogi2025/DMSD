@@ -800,28 +800,39 @@ private fun GenericApplyDone(
             Spacer(Modifier.height(22.dp))
             Text("申請を提出しました", color = t.ink, style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold))
             Spacer(Modifier.height(8.dp))
+            // 外出是事后确认制（2026-07-22）：提交完就能走，没有「審査」这一步。这一屏是学生
+            // 按下提出后看到的第一个界面，原来的通用文案写「審査完了時に通知でお知らせします」+
+            // 「審査時間の目安 1〜2 時間」，等于当面推翻上一屏刚说过的「承認不要」。第二句直接
+            // 复用详情页那句已定稿的说明，不另造日语（跟 iOS ApplyDoneView 逐字对齐）。
+            val isOuting = kind == OUTING_KIND
             Text(
-                "${kind}申請を受け付けました。\n審査完了時に通知でお知らせします。",
+                if (isOuting) {
+                    "外出申請を受け付けました。\n確認は記録のためで、外出は可能です"
+                } else {
+                    "${kind}申請を受け付けました。\n審査完了時に通知でお知らせします。"
+                },
                 color = t.inkSub,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 style = TextStyle(fontSize = 14.sp, lineHeight = 20.sp),
             )
             Spacer(Modifier.height(28.dp))
-            // 「審査時間の目安」卡（对齐 iOS ApplyDoneView）
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(t.pearl)
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("審査時間の目安", color = t.inkSub, style = TextStyle(fontSize = 12.sp))
-                Spacer(Modifier.weight(1f))
-                Text("1〜2 時間", color = t.ink, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold))
+            // 「審査時間の目安」卡（对齐 iOS ApplyDoneView）—— 外出没有审查这一步，整张卡不出现
+            if (!isOuting) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(t.pearl)
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("審査時間の目安", color = t.inkSub, style = TextStyle(fontSize = 12.sp))
+                    Spacer(Modifier.weight(1f))
+                    Text("1〜2 時間", color = t.ink, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold))
+                }
+                Spacer(Modifier.height(28.dp))
             }
-            Spacer(Modifier.height(28.dp))
             PrimaryButton(
                 title = "一覧へ",
                 modifier = Modifier.fillMaxWidth(),
