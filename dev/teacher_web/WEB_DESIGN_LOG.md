@@ -1266,6 +1266,24 @@ commit `f66b812`，`npm run build` 通过。
 
 验证：`npm run build` ✓ built（多轮）。commit `3d72243`（本体）+ `29f0320`（复审）。
 
+## 2026-07-22 — 外出申请「確認 / 却下」页新建（事后确认制老师端，commit `e63c7e4`）
+
+itsuki 拍板外出申请改事后确认制：学生提交即生效可出门，老师这边的操作**只是事后留记录**，不是放行开关。老师端此前完全没有外出页面（后端接口 6-04 就有了，网页一直空着，`admin/TODO.md` 挂了两条），本次一次做全。
+
+**新文件 `OutingsPage.tsx`（793 行）**：列表 + 三态页签筛选（確認待ち / 確認済 / 却下済）+ 详情弹窗 + 确认按钮 + 却下（带理由输入框，理由可以留空）。风格照现有页面：纯 inline style + `theme.ts` 的 `T` 令牌，不引 Tailwind。
+
+**接线 4 处**：`api/client.ts` 加 5 个方法（`outingsForMe` / `outingsPendingForMe` / `getOuting` / `confirmOuting` / `rejectOuting`）；`api/types.ts` 加 `OutingStatus` / `OutingOut`；`App.tsx` 加 `case "outings"`；`Shell.tsx` 左栏加入口；`NotificationsPage.tsx` 的 `NAV_TARGET` 把 outing 类通知指到本页。
+
+**后端要新开一个接口才做得成**：原有的 `pending-for-me` 把 `status == "pending"` 写死在查询里，只出待处理的、看不到历史 —— 三态筛选根本查不出「確認済」和「却下済」。所以后端同批加了 `GET /outings/for-me?status=`，跟 `pending-for-me` 共用同一套演示数据隔离 + R4 寮边界过滤逻辑（见 `BACKEND_DESIGN_LOG.md` §7.7）。
+
+**并发安全靠后端**：确认 / 却下都走后端 `_transition_outing` 的原子条件更新，两个老师同时点同一条时后一个拿 409 `OUTING_NOT_PENDING`，前端照常显示错误即可，不用自己做锁。
+
+验证：`npm run build` 通过（主会话自己跑，不采信子代理自报）。
+
+**已知缺口（待办）**：三个页签只覆盖 `pending` / `approved` / `rejected`，**学生自己撤回的 `withdrawn` 老师端完全看不到**。后端 `for-me` 接口支持这个筛选值，缺的是页签。已记进 `admin/TODO.md`。
+
+**跨端对齐**：学生端同日改文案（iOS `IOS_DESIGN_LOG.md` §41 / Android `ANDROID_DESIGN_LOG.md` §18）。共用层语义 → `design/system_features.md` §7.2.7。
+
 ---
 
 **END** — 本档随 Web 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。
