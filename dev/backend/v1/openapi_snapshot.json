@@ -5643,7 +5643,7 @@
         "type": "object"
       },
       "OutingOut": {
-        "description": "外出申请查询返回。confirmed_by_name = 确认老师的姓名（学生侧显示「確認 · ○○ 先生」）。",
+        "description": "外出申请查询返回。\n\nconfirmed_by_teacher_id / confirmed_by_name / confirmed_at 是「処理した先生」——\nstatus=approved 时是确认者、status=rejected 时是却下者（2026-07-22 事后确认制起共用），\n客户端显示文案要按 status 分支，不能一律写「確認 · ○○ 先生」。\nreject_reason 只在 status=rejected 时可能有值（老师没填理由时仍为 null）。",
         "properties": {
           "confirmed_at": {
             "anyOf": [
@@ -5724,6 +5724,17 @@
             ],
             "title": "Reason"
           },
+          "reject_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reject Reason"
+          },
           "return_time": {
             "anyOf": [
               {
@@ -5740,6 +5751,7 @@
             "enum": [
               "pending",
               "approved",
+              "rejected",
               "withdrawn"
             ],
             "title": "Status",
@@ -5798,6 +5810,25 @@
           "submitted_at"
         ],
         "title": "OutingOut",
+        "type": "object"
+      },
+      "OutingRejectIn": {
+        "description": "PATCH /outings/{id}/reject — 老师却下外出申请（2026-07-22 事后确认制）。\n\nreason 可选：itsuki 拍板「老师填拒绝理由不强制」。填了就带进学生收到的通知正文。\n请求体整体也可省略（不传 body = 不填理由）。",
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "title": "OutingRejectIn",
         "type": "object"
       },
       "PasswordResetOut": {
@@ -15866,6 +15897,77 @@
         ]
       }
     },
+    "/api/v1/outings/for-me": {
+      "get": {
+        "operationId": "list_for_me_api_v1_outings_for_me_get",
+        "parameters": [
+          {
+            "description": "pending（確認待ち）/ approved（確認済）/ rejected（却下済）/ withdrawn（学生取消）；不传 = 全部",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "pending（確認待ち）/ approved（確認済）/ rejected（却下済）/ withdrawn（学生取消）；不传 = 全部",
+              "title": "Status"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OutingOut"
+                  },
+                  "title": "Response List For Me Api V1 Outings For Me Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List For Me",
+        "tags": [
+          "outings"
+        ]
+      }
+    },
     "/api/v1/outings/mine": {
       "get": {
         "operationId": "list_mine_api_v1_outings_mine_get",
@@ -16101,6 +16203,82 @@
           }
         },
         "summary": "Confirm Outing",
+        "tags": [
+          "outings"
+        ]
+      }
+    },
+    "/api/v1/outings/{outing_id}/reject": {
+      "patch": {
+        "operationId": "reject_outing_api_v1_outings__outing_id__reject_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "outing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Outing Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/OutingRejectIn"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutingOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reject Outing",
         "tags": [
           "outings"
         ]

@@ -291,8 +291,24 @@ class OutingCreateIn(BaseModel):
         return self
 
 
+class OutingRejectIn(BaseModel):
+    """PATCH /outings/{id}/reject — 老师却下外出申请（2026-07-22 事后确认制）。
+
+    reason 可选：itsuki 拍板「老师填拒绝理由不强制」。填了就带进学生收到的通知正文。
+    请求体整体也可省略（不传 body = 不填理由）。
+    """
+
+    reason: Optional[str] = Field(None, max_length=500)
+
+
 class OutingOut(BaseModel):
-    """外出申请查询返回。confirmed_by_name = 确认老师的姓名（学生侧显示「確認 · ○○ 先生」）。"""
+    """外出申请查询返回。
+
+    confirmed_by_teacher_id / confirmed_by_name / confirmed_at 是「処理した先生」——
+    status=approved 时是确认者、status=rejected 时是却下者（2026-07-22 事后确认制起共用），
+    客户端显示文案要按 status 分支，不能一律写「確認 · ○○ 先生」。
+    reject_reason 只在 status=rejected 时可能有值（老师没填理由时仍为 null）。
+    """
 
     id: UUID
     student_id: UUID
@@ -303,12 +319,13 @@ class OutingOut(BaseModel):
     return_time: Optional[time] = None
     taxi_reservation_time: Optional[time] = None
     reason: Optional[str] = None
-    status: Literal["pending", "approved", "withdrawn"]
+    status: Literal["pending", "approved", "rejected", "withdrawn"]
     submitted_at: datetime
     withdrawn_at: Optional[datetime] = None
     confirmed_by_teacher_id: Optional[UUID] = None
     confirmed_by_name: Optional[str] = None
     confirmed_at: Optional[datetime] = None
+    reject_reason: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

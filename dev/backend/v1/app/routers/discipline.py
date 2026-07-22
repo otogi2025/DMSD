@@ -46,6 +46,30 @@ CLEANING_THRESHOLD = 4.0  # ≥4 分 → 需要罚扫（清扫罚则）
 CURFEW_THRESHOLD = 8.0  # ≥8 分 → 外出禁止（禁足）
 
 
+def current_month_total_points(
+    db: Session, student_id: UUID, *, month: str | None = None
+) -> float:
+    """某学生指定月份（默认 JST 当月）的有效扣分总分。
+
+    口径与 /ranking、/me/summary、手动设定绝对分完全一致：
+    同月（DemeritEvent.month == 'YYYY-MM'）+ 排除已撤销（revoked_at IS NULL）。
+    月份归属统一用 JST，防跨月凌晨归错月。
+
+    抽成函数是为了让「≥8 分外出禁止」这类阈值判定（routers/outings.py 提交拦截）
+    跟排行榜共用同一套算法，不各写一遍 SUM 导致口径漂移。
+    """
+    if month is None:
+        month = datetime.now(_JST).strftime("%Y-%m")
+    total = db.scalar(
+        select(func.coalesce(func.sum(models.DemeritEvent.points), 0.0)).where(
+            models.DemeritEvent.student_id == student_id,
+            models.DemeritEvent.month == month,
+            models.DemeritEvent.revoked_at.is_(None),
+        )
+    )
+    return float(total or 0.0)
+
+
 @router.get("/ranking", response_model=schemas.DemeritRankingOut)
 def get_ranking(
     month: str,
@@ -252,14 +276,8 @@ def create_manual_demerit(
     # B 方案（手动设定绝对分）：算「目标本月总分 − 当前本月总分」的差值，记一条调整事件。
     # 当前总分口径与 /ranking、/me/summary 完全一致（同月 + 排除已撤销），保证设完后该学生
     # 本月总分恰好等于 target_points。差值可正（加分）可负（降分）；0 = 清零本月扣分。
-    current_total = db.scalar(
-        select(func.coalesce(func.sum(models.DemeritEvent.points), 0.0)).where(
-            models.DemeritEvent.student_id == body.student_id,
-            models.DemeritEvent.month == month,
-            models.DemeritEvent.revoked_at.is_(None),
-        )
-    )
-    delta = body.target_points - (current_total or 0.0)
+    current_total = current_month_total_points(db, body.student_id, month=month)
+    delta = body.target_points - current_total
     event = models.DemeritEvent(
         student_id=body.student_id,
         source_type="manual",

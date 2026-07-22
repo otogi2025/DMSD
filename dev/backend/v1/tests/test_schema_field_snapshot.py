@@ -79,6 +79,8 @@ EXPECTED_FIELDS: dict[str, set[str]] = {
         "confirmed_by_teacher_id",
         "confirmed_by_name",
         "confirmed_at",
+        # 却下理由（2026-07-22 外出事后确认制加）— status=rejected 时才可能有值
+        "reject_reason",
     },
     "StudyOnlineRequestOut": {
         "id",

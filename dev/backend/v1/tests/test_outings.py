@@ -1,12 +1,17 @@
-"""外出申请 (outings) endpoint tests — 2026-06-04 单一老师确认功能。
+"""外出申请 (outings) endpoint tests — 2026-06-04 单一老师确认功能
++ 2026-07-22 事后确认制改造。
 
 覆盖：
 - POST /outings — 学生提出（今天 OK / 过去日期 422 / 出租车预约回显）
+  + 外出禁止闸（当月扣分 ≥8 分不能提交 / 已撤销和上月的分不算）
 - GET /outings/mine — 学生看自己的
 - GET /outings/pending-for-me — 老师看待确认（R4 寮过滤）
+- GET /outings/for-me — 老师看全状态列表（三态筛选 + R4 寮过滤）
 - GET /outings/:id — 权限校验（学生本人 / 老师）
 - PATCH /outings/:id/confirm — 老师确认（确认者从令牌自动记录 + 学生不能确认 +
   别寮老师 403 + 不能重复确认）
+- PATCH /outings/:id/reject — 老师却下（理由可选 + 学生不能却下 + 别寮 403 +
+  非 pending 409 + 给学生发通知）
 - PATCH /outings/:id/withdraw — 学生撤回自己 pending 的
 
 跑：
@@ -16,7 +21,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from app import models, security
@@ -269,3 +274,212 @@ class TestWithdraw:
             f"/api/v1/outings/{outing['id']}/withdraw", headers=_auth(student_token)
         )
         assert res.status_code == 409
+
+
+# =================================================================
+# 2026-07-22 事后确认制改造（itsuki 拍板）
+# =================================================================
+
+
+def _give_points(db_session, student, points: float, *, month_offset: int = 0) -> None:
+    """给学生记一条扣分。month_offset=-1 → 记到上个月（测跨月归零）。"""
+    now = datetime.now(_JST)
+    month = now.strftime("%Y-%m")
+    if month_offset:
+        y, m = now.year, now.month + month_offset
+        while m < 1:
+            y, m = y - 1, m + 12
+        month = f"{y:04d}-{m:02d}"
+    db_session.add(
+        models.DemeritEvent(
+            student_id=student.id,
+            source_type="manual",
+            points=points,
+            reason="テスト",
+            month=month,
+        )
+    )
+    db_session.commit()
+
+
+class TestOutingBanned:
+    """POST /outings 的外出禁止闸 — 当月扣分 ≥8 分（CURFEW_THRESHOLD）禁止提交。"""
+
+    def test_over_threshold_blocked(self, client, student_token, seed_data, db_session):
+        """当月 8 分 → 422 OUTING_BANNED（边界值本身就要被挡）。"""
+        _give_points(db_session, seed_data["student"], 8.0)
+        res = client.post(
+            "/api/v1/outings", json=_outing_body(), headers=_auth(student_token)
+        )
+        assert res.status_code == 422, res.text
+        assert res.json()["error"]["code"] == "OUTING_BANNED"
+
+    def test_under_threshold_allowed(
+        self, client, student_token, seed_data, db_session
+    ):
+        """当月 7.5 分 → 仍可提交（阈值以下不挡）。"""
+        _give_points(db_session, seed_data["student"], 7.5)
+        res = client.post(
+            "/api/v1/outings", json=_outing_body(), headers=_auth(student_token)
+        )
+        assert res.status_code == 201, res.text
+
+    def test_revoked_points_not_counted(
+        self, client, student_token, seed_data, db_session
+    ):
+        """已撤销的扣分不计入 → 撤销后能重新提交（口径与排行榜一致）。"""
+        _give_points(db_session, seed_data["student"], 10.0)
+        blocked = client.post(
+            "/api/v1/outings", json=_outing_body(), headers=_auth(student_token)
+        )
+        assert blocked.status_code == 422
+        event = db_session.query(models.DemeritEvent).first()
+        event.revoked_at = datetime.now(timezone.utc)
+        db_session.commit()
+        res = client.post(
+            "/api/v1/outings", json=_outing_body(), headers=_auth(student_token)
+        )
+        assert res.status_code == 201, res.text
+
+    def test_last_month_points_not_counted(
+        self, client, student_token, seed_data, db_session
+    ):
+        """上个月的扣分不计入（扣分按月归零，不是历史累计）。"""
+        _give_points(db_session, seed_data["student"], 10.0, month_offset=-1)
+        res = client.post(
+            "/api/v1/outings", json=_outing_body(), headers=_auth(student_token)
+        )
+        assert res.status_code == 201, res.text
+
+
+class TestReject:
+    """PATCH /outings/:id/reject — 老师却下（事后确认制：只发通知 + 留记录）。"""
+
+    def test_reject_records_teacher_and_reason(
+        self, client, student_token, teacher_token, seed_data
+    ):
+        """却下 → rejected + 处理老师从令牌记录 + 理由回显。"""
+        outing = _create_outing(client, student_token)
+        res = client.patch(
+            f"/api/v1/outings/{outing['id']}/reject",
+            json={"reason": "行き先が不明確です"},
+            headers=_auth(teacher_token),
+        )
+        assert res.status_code == 200, res.text
+        data = res.json()["data"]
+        assert data["status"] == "rejected"
+        assert data["reject_reason"] == "行き先が不明確です"
+        teacher = seed_data["teachers"]["ryomu_kachou"]
+        assert data["confirmed_by_teacher_id"] == str(teacher.id)
+        assert data["confirmed_at"] is not None
+
+    def test_reject_without_reason(self, client, student_token, teacher_token):
+        """理由不填也能却下（itsuki 拍板：不强制老师写理由）— 连请求体都省略。"""
+        outing = _create_outing(client, student_token)
+        res = client.patch(
+            f"/api/v1/outings/{outing['id']}/reject", headers=_auth(teacher_token)
+        )
+        assert res.status_code == 200, res.text
+        assert res.json()["data"]["status"] == "rejected"
+        assert res.json()["data"]["reject_reason"] is None
+
+    def test_reject_requires_teacher(self, client, student_token):
+        """学生 token 不能却下 → 403。"""
+        outing = _create_outing(client, student_token)
+        res = client.patch(
+            f"/api/v1/outings/{outing['id']}/reject", headers=_auth(student_token)
+        )
+        assert res.status_code == 403
+
+    def test_reject_after_confirm_conflict(self, client, student_token, teacher_token):
+        """已确认的不能再却下 → 409（原子条件更新防两老师并发）。"""
+        outing = _create_outing(client, student_token)
+        client.patch(
+            f"/api/v1/outings/{outing['id']}/confirm", headers=_auth(teacher_token)
+        )
+        res = client.patch(
+            f"/api/v1/outings/{outing['id']}/reject", headers=_auth(teacher_token)
+        )
+        assert res.status_code == 409
+
+    def test_reject_twice_conflict(self, client, student_token, teacher_token):
+        """重复却下 → 409。"""
+        outing = _create_outing(client, student_token)
+        first = client.patch(
+            f"/api/v1/outings/{outing['id']}/reject", headers=_auth(teacher_token)
+        )
+        assert first.status_code == 200
+        second = client.patch(
+            f"/api/v1/outings/{outing['id']}/reject", headers=_auth(teacher_token)
+        )
+        assert second.status_code == 409
+
+    def test_reject_cross_dorm_forbidden(self, client, student_token, db_session):
+        """选女寮的老师却下男寮学生的外出 → 403（R4 寮边界与 confirm 同级）。"""
+        outing = _create_outing(client, student_token)
+        token4 = _make_dorm4_teacher_token(client, db_session, selected_dorm=4)
+        res = client.patch(
+            f"/api/v1/outings/{outing['id']}/reject", headers=_auth(token4)
+        )
+        assert res.status_code == 403, res.text
+        assert res.json()["error"]["code"] == "FORBIDDEN"
+
+    def test_reject_writes_notification(
+        self, client, student_token, teacher_token, db_session
+    ):
+        """却下后给学生写通知记录（邮件那一路 — 学生端没有 app 内通知表）。"""
+        outing = _create_outing(client, student_token)
+        res = client.patch(
+            f"/api/v1/outings/{outing['id']}/reject",
+            json={"reason": "テスト"},
+            headers=_auth(teacher_token),
+        )
+        assert res.status_code == 200, res.text
+        logs = (
+            db_session.query(models.NotificationLog)
+            .filter(models.NotificationLog.template_key == "outing_rejected")
+            .all()
+        )
+        assert len(logs) == 1
+        assert logs[0].channel == "email"
+
+
+class TestForMe:
+    """GET /outings/for-me — 老师端全状态列表（老师网页三态筛选用）。"""
+
+    def test_for_me_includes_processed(self, client, student_token, teacher_token):
+        """不传 status → 含已处理的（pending-for-me 看不到这些）。"""
+        outing = _create_outing(client, student_token)
+        client.patch(
+            f"/api/v1/outings/{outing['id']}/reject", headers=_auth(teacher_token)
+        )
+        pending = client.get(
+            "/api/v1/outings/pending-for-me", headers=_auth(teacher_token)
+        )
+        assert all(o["id"] != outing["id"] for o in pending.json()["data"])
+        res = client.get("/api/v1/outings/for-me", headers=_auth(teacher_token))
+        assert res.status_code == 200, res.text
+        assert any(o["id"] == outing["id"] for o in res.json()["data"])
+
+    def test_for_me_status_filter(self, client, student_token, teacher_token):
+        """status=rejected → 只出却下的那条。"""
+        kept = _create_outing(client, student_token)
+        rejected = _create_outing(client, student_token)
+        client.patch(
+            f"/api/v1/outings/{rejected['id']}/reject", headers=_auth(teacher_token)
+        )
+        res = client.get(
+            "/api/v1/outings/for-me?status=rejected", headers=_auth(teacher_token)
+        )
+        assert res.status_code == 200, res.text
+        ids = [o["id"] for o in res.json()["data"]]
+        assert rejected["id"] in ids
+        assert kept["id"] not in ids
+
+    def test_for_me_cross_dorm_filtered(self, client, student_token, db_session):
+        """选女寮的老师看不到男寮学生的外出（R4 寮边界过滤）。"""
+        outing = _create_outing(client, student_token)
+        token4 = _make_dorm4_teacher_token(client, db_session, selected_dorm=4)
+        res = client.get("/api/v1/outings/for-me", headers=_auth(token4))
+        assert res.status_code == 200, res.text
+        assert all(o["id"] != outing["id"] for o in res.json()["data"])

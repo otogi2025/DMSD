@@ -388,9 +388,14 @@ class Outing(Base):
     """外出申请 — 当天回寮的短时间外出（车站前 / 买东西 等）。
 
     跟出寮届（Application 模型）的区别：不过夜 / 没有多级审查 /
-    只要一名老师点「確認」。确认的老师从确认时的登录令牌自动记录到
+    只要一名老师点「確認」。处理的老师从处理时的登录令牌自动记录到
     confirmed_by_teacher_id，不信任客户端传入的值。
     见 system_features §7.2.7 + IOS_DESIGN_LOG §14.20。
+
+    2026-07-22 itsuki 拍板：语义从「事前审批制」改成「事后确认制」——
+    学生提交后立刻生效可以出门，老师点「確認」只是留记录、不是放行开关。
+    老师仍可「却下」（现实中很少用），却下只发通知 + 留记录，不要求学生立刻回寮。
+    另外扣分 ≥8 分（外出禁止 / 禁足）的学生在提交时就被挡住（见 routers/outings.py）。
     """
 
     __tablename__ = "outings"
@@ -409,18 +414,24 @@ class Outing(Base):
     taxi_reservation_time: Mapped[Optional[time]] = mapped_column(Time)
     reason: Mapped[Optional[str]] = mapped_column(Text)
 
-    # 状态：pending（等待老师确认）/ approved（已确认）/ withdrawn（学生取消）
+    # 状态：pending（已生效，等老师事后确认）/ approved（老师已确认）/
+    #       rejected（老师却下 — 2026-07-22 加）/ withdrawn（学生取消）
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
     submitted_at: Mapped[datetime] = mapped_column(
         TZDateTime, nullable=False, server_default=func.now()
     )
     withdrawn_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
 
-    # 确认（单一老师）— 确认的老师从登录令牌记录，不信任客户端传入
+    # 处理（单一老师）— 处理的老师从登录令牌记录，不信任客户端传入。
+    # 列名保留历史的 confirmed_* 前缀，但语义是「処理した先生 / 処理時刻」：
+    # 确认（status=approved）和却下（status=rejected）都写这两列。外出是单人一次性
+    # 终态处理，不存在「先确认再却下」，所以配合 status 读就没有歧义，不再多开两列。
     confirmed_by_teacher_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid, ForeignKey("teachers.id")
     )
     confirmed_at: Mapped[Optional[datetime]] = mapped_column(TZDateTime)
+    # 却下理由（老师可选填；空 = 没写理由也能却下）。命名对齐 DemeritEvent.revoke_reason
+    reject_reason: Mapped[Optional[str]] = mapped_column(Text)
 
     # 关系（不设 back_populates — 不改 Student / Teacher 那边）
     student: Mapped["Student"] = relationship()
@@ -428,7 +439,8 @@ class Outing(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "status IN ('pending','approved','withdrawn')", name="ck_outing_status"
+            "status IN ('pending','approved','rejected','withdrawn')",
+            name="ck_outing_status",
         ),
         Index("idx_outing_student", "student_id", "status"),
         Index("idx_outing_status_date", "status", "outing_date"),

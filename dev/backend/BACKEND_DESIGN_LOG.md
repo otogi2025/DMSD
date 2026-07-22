@@ -1295,6 +1295,19 @@ itsuki 拍板把演示账号从 opt-in 默认关改成 **默认启用**（`seed.
 - 验证：新增 7 条回归测试（`TestReviewRegressions`，含 WS 令牌失效 + 审计限流两条复审补的），全量 **598 passed, 1 skipped**；改动文件 ruff 零报错。
 - **未采纳 1 条**（cursor 标 major）：路径 A 无 `idempotency_key` 时并发双碰缺 DB 硬闸。后果是多一条重复 present 行而非判定出错（看板取每人最新、扣分有 `uq_demerit_source` 幂等），且真加「一学生一场次仅一行」唯一索引会与「补传行覆盖旧 `auto_settle` absent 行」的 append-only 设计冲突 —— 需先重新设计事件表语义，已记 `admin/TODO.md`。
 
+### 7.7 外出申请「事后确认制」改造（2026-07-22 itsuki 拍板）
+
+外出申请（`outings`，当天回寮的短时外出）语义从**事前审批**改成**事后确认**：学生提交即生效可以出门，老师的「確認」是事后留记录而不是放行开关。出寮届（`applications`）的多级审批**一行不动**。设计层面的完整语义见 `design/system_features.md` §7.2.7。
+
+- **数据模型**（迁移 `d2c4b6a8e0f3`）：`ck_outing_status` 三值 → 四值加 `'rejected'`；新增可空列 `reject_reason`（Text）。SQLite 改不了 CHECK 约束，用 `batch_alter_table(recreate="auto")` —— PG 走原生 ALTER 不重建表（无条件重建在 PG 会因外键 CASCADE 崩，`test_migration_smoke` 有静态守卫），SQLite 按需重建。降级前先把存量 `rejected` 行归并成 `withdrawn`（同属「没生效的终态」），否则三值约束重建时冲突、降级直接失败。**升降往返在开发库上实跑验证过**（含插一条 rejected 行验证归并逻辑）。
+  - ⚠️ 施工中真踩到的坑：初版迁移文件的 revision id 挑了 `a1b2c3d4e5f6`，跟 2026-05-30 的设备令牌迁移**撞号**，`alembic current` 直接报「Cycle is detected」整条链瘫痪。测试用 `create_all` 建表，**测不出这个** —— 只有真跑一次 alembic 才暴露。新增迁移必须先 `grep` 确认 revision id 没被占用。
+- **`confirmed_by_teacher_id` / `confirmed_at` 复用不新增**，语义扩大成「処理した先生 / 処理時刻」：`approved` 时是确认者、`rejected` 时是却下者。外出是单人一次性终态处理，不存在「先确认再却下」，配合 `status` 读没有歧义，故不另开 `rejected_by_*` 两列。
+- **`POST /outings` 外出禁止闸**：当月扣分 ≥ `CURFEW_THRESHOLD`（8.0）→ 422 `OUTING_BANNED`。分数口径**抽成公共函数** `discipline.current_month_total_points(db, student_id, month=None)`（JST 当月 + 排除已撤销），`create_manual_demerit` 原地重构成调用它 —— 防「排行榜说禁足、提交却放行」的口径漂移。判定时点 = 提交那一刻，不追溯。
+- **`PATCH /{id}/reject`**：权限 `require_permission(C_APPROVAL, MANAGE)`、R4 寮边界、演示数据隔离 `assert_student_demo_match` 与 confirm 完全同级；走同一个 `_transition_outing` 原子条件更新（非 pending → 409 `OUTING_NOT_PENDING`，防两老师并发）。却下理由可选，请求体本身也可省略。
+- **却下通知 2 路**：邮件（`email.render_outing_rejected` / `send_outing_rejected`，形状对齐 `send_application_decided`）+ 推送（`push.send_push`，`template_key="outing_rejected"`）。**学生端没有「app 内通知」表** —— `models.Notification` 是老师通知中心专用（`is_demo` realm 隔离 + 已读按老师各记各的），学生看不到，所以只有这 2 路。两路各包一层 `db.begin_nested()` SAVEPOINT 单独隔离，与 `applications.py` / `notifications.py` / `study.py` 的兜底同形：通知写失败不回滚已成立的却下，一路失败也不牵连另一路。
+- **`GET /for-me?status=`**（新）：老师端全状态列表，给老师网页三态筛选（確認待ち / 確認済 / 却下済）用。原 `pending-for-me` 只出待处理、看不到历史。两者共用 `_teacher_scoped_outings()`，演示隔离 + 寮边界单点化，防两个接口各写一套过滤逻辑导致边界漂移。
+- 验证：`tests/test_outings.py` 33 条全绿（原 20 + 新增 13：外出禁止闸 4 条含「已撤销不计入」「上月不计入」、却下 7 条含跨寮 403 / 409 冲突 / 通知落库、for-me 列表 3 条）+ alembic 升降往返实跑 + 全量 pytest。
+
 ---
 
 ## 8. 测试要求

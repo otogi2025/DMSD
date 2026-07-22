@@ -96,6 +96,37 @@ def render_application_decided(
     return subject, body
 
 
+def render_outing_rejected(
+    *,
+    outing: models.Outing,
+    student: models.Student,
+    teacher_name: str,
+    reason: str | None,
+) -> tuple[str, str]:
+    """外出申请被却下时发给本人的邮件 标题 + 正文。
+
+    itsuki 2026-07-22 拍板（事后确认制）：外出提交那一刻就已生效，所以却下不是
+    「立刻回寮」的指示，只是记录 + 通知。老师的评论是可选输入，正文末尾固定加上
+    「※ 詳しくは寮監に確認してください」（日语 UI 文案，保持原文）。
+    """
+    subject = f"[Tomoshibi] 外出申請 却下: {student.name}"
+    reason_block = f"先生のコメント: {reason}\n" if reason else ""
+    body = f"""外出申請が却下されました。
+
+----------
+学生:        {student.name} (学号 {student.student_no})
+外出日:      {outing.outing_date}
+行き先:      {outing.destination or "（未記入）"}
+処理した先生: {teacher_name}
+{reason_block}----------
+
+※ 詳しくは寮監に確認してください
+
+— Tomoshibi (灯火) システム
+"""
+    return subject, body
+
+
 def render_test_email(*, body_text: str) -> str:
     return body_text
 
@@ -274,6 +305,67 @@ def send_application_decided(
     log = models.NotificationLog(
         channel="email",
         template_key="application_decided",
+        target_type="student",
+        target_id=student.id,
+        target_email=to_email,
+        payload=payload,
+        status="pending",
+        attempts=0,
+    )
+    db.add(log)
+    db.flush()  # log.id 確定
+
+    if not to_email:
+        log.status = "failed"
+        log.last_error = "提出者本人に email 登録なし"
+        log.attempts = 0
+        return log
+
+    sent, status_code, error = _send_via_resend(
+        to_emails=[to_email], subject=subject, body_text=body
+    )
+    log.attempts = 1
+    if sent:
+        log.status = "sent"
+        log.sent_at = datetime.now(timezone.utc)
+    else:
+        if error and "not configured" in error:
+            log.status = "pending"
+            log.last_error = "dev mode: Resend API key not configured (skipped)"
+        else:
+            log.status = "failed"
+            log.last_error = (error or f"HTTP {status_code}")[:500]
+    return log
+
+
+def send_outing_rejected(
+    db: Session,
+    *,
+    outing: models.Outing,
+    student: models.Student,
+    teacher_name: str,
+    reason: str | None,
+) -> models.NotificationLog:
+    """把外出申请的却下结果邮件通知给学生本人（2026-07-22 事后确认制）。
+
+    形状跟 send_application_decided 完全一致：往 notification_log 写 1 行
+    （template_key='outing_rejected'）；学生没登记邮箱就只记一条 failed，业务不中断。
+    """
+    subject, body = render_outing_rejected(
+        outing=outing, student=student, teacher_name=teacher_name, reason=reason
+    )
+    to_email = student.email
+    payload = {
+        "subject": subject,
+        "to": [to_email] if to_email else [],
+        "student_id": str(student.id),
+        "outing_id": str(outing.id),
+        "result": "rejected",
+    }
+
+    log = models.NotificationLog(
+        channel="email",
+        template_key="outing_rejected",
         target_type="student",
         target_id=student.id,
         target_email=to_email,
