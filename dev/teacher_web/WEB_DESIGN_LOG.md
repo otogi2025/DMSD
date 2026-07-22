@@ -1280,7 +1280,7 @@ itsuki 拍板外出申请改事后确认制：学生提交即生效可出门，�
 
 验证：`npm run build` 通过（主会话自己跑，不采信子代理自报）。
 
-**已知缺口（待办）**：三个页签只覆盖 `pending` / `approved` / `rejected`，**学生自己撤回的 `withdrawn` 老师端完全看不到**。后端 `for-me` 接口支持这个筛选值，缺的是页签。已记进 `admin/TODO.md`。
+**当日追加第 4 个页签「取消済」（commit `fc77dd3`，itsuki 拍板 A）**：初版只做了 `pending`/`approved`/`rejected` 三个页签，学生自己撤回的件老师端完全点不进去 —— 页面本身其实是 withdrawn-aware 的（状态徽章「取消済」、详情弹窗「取消時刻」初版就写好了），后端 `for-me` 也支持这个筛选值，唯独少一个页签。顺手把空状态文案从三层嵌套三元表达式改成直接复用 `FILTERS` 里的页签名拼串（以后再加页签不用改那处）。后端补了 `test_for_me_withdrawn_filter` —— 这个页签是 `status=withdrawn` 这个筛选值的第一个真实使用方。
 
 **跨端对齐**：学生端同日改文案（iOS `IOS_DESIGN_LOG.md` §41 / Android `ANDROID_DESIGN_LOG.md` §18）。共用层语义 → `design/system_features.md` §7.2.7。
 

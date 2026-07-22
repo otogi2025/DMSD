@@ -523,7 +523,7 @@
 - iOS 演示版（事后确认制文案）：✅ 2026-07-22 —— `ApplyStubs.swift` 状态文案 + 进度第 2 步 + 却下卡片，`ApplyNewView` 外出入口按 8 分置灰。
 - Android 演示版（事后确认制文案）：✅ 2026-07-22 —— `ApplicationMappers.kt` / `ApplicationDetailScreen.kt` / `ApplyNewSelectScreen.kt` 同上对齐。
 - iOS / Android 生产版接后端：⏳ 待做（现外出客户端只有演示版，要新接 `/api/v1/outings` 系列接口）
-- 老师网页：✅ 2026-07-22 实装 —— `OutingsPage.tsx`（列表 + 三态筛选 + 详情弹窗 + 确认 / 却下带理由输入）。**注意：三个页签只覆盖 `pending` / `approved` / `rejected`，学生自己撤回的 `withdrawn` 老师端看不到**（待办，见 `admin/TODO.md`）。
+- 老师网页：✅ 2026-07-22 实装 —— `OutingsPage.tsx`（列表 + **四态**筛选 `pending` / `approved` / `rejected` / `withdrawn` + 详情弹窗 + 确认 / 却下带理由输入）。
 
 ### 7.3 晩自習(晚自习) — 中学全员 / 高中手动名单(Q2 Q3 答 + 2026-04-30 (f) 拍板)
 
