@@ -15,7 +15,7 @@ import type { OutingOut, OutingStatus } from "../api/types";
 //      不要求学生立刻回寮；却下理由可以不填
 //
 // 后端契约（dev/backend/v1/app/routers/outings.py）：
-//   GET   /outings/for-me?status=  三态筛选，提交时刻倒序
+//   GET   /outings/for-me?status=  四态筛选（pending/approved/rejected/withdrawn），提交时刻倒序
 //   PATCH /outings/{id}/confirm    无请求体
 //   PATCH /outings/{id}/reject     请求体 {reason} 可选、整体也可省略
 //   已处理过的再点 → 409 OUTING_NOT_PENDING（两个老师同时点会撞到）
@@ -761,8 +761,12 @@ function OutingDetailModal({
             </>
           ) : (
             <div style={{ display: "flex", alignItems: "center" }}>
+              {/* 取消済＝学生自己按了「取りやめる」，老师根本没经手，写「処理済み」会让老师
+                  以为是自己或同事处理过的 */}
               <div style={{ fontSize: 12, color: T.ink3 }}>
-                この申請は既に処理済みです
+                {outing.status === "withdrawn"
+                  ? "この外出は学生本人が取りやめました"
+                  : "この申請は既に処理済みです"}
               </div>
               <button
                 onClick={onClose}

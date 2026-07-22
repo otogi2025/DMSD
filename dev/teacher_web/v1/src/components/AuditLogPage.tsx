@@ -18,6 +18,7 @@ const ACTION_LABELS: Record<string, string> = {
   "POST applications/by-teacher": "代理で出寮届を登録",
   "PUT applications/{id}": "出寮届を修正",
   "PATCH outings/{id}/confirm": "外出を確認",
+  "PATCH outings/{id}/reject": "外出を却下",
   "POST announcements": "お知らせを投稿",
   "PATCH announcements/{id}": "お知らせを編集",
   "DELETE announcements/{id}": "お知らせを削除",
