@@ -1747,3 +1747,7 @@ A3 上架清单 A-1/A-2 落地（spec v1.0 §2.2「点呼入口占位、不得�
 **双票对抗复审（grok+opus 背对背只读）**：均 0 阻塞 0 重大。opus 详验 async let（@MainActor 状态写入串行化、只网络 await 段并发、令牌守卫 line 265/284/320 全保留、两批 async let 全消费无悬挂）+ 死码删除+helper 合并逐一确认行为等价。仅 2 处注释次要：ApplyStubs misc 注释「后端仅 create 缺 list/detail」不准（实有 GET /misc-requests/mine 一览、只缺单条 detail）、ApplyFormSupport parseHM 注释引用已删的 StayForm.parseHM——均改准（`751a519`）。裁决修 grok 编译错：CommunityStubs lostCell 加 let 后 some View 须显式 return。defer：ios#10 ApplyFormSupport.ApplyDateField 补 maxDate 后才能彻底收敛 DateField 去重（跨文件低价值 DRY，记 carry-forward）。
 
 验证：xcodebuild 双 scheme（TomoshibiApp + TomoshibiAppDemo，iPhone 17 Pro）均 BUILD SUCCEEDED。
+
+## §39 设置页加隐私政策 + 利用規約入口（2026-07-22，commit `54339fc`，上架审查 A3 阻断项）
+
+苹果 5.1.1(i) 要求隐私政策 app 内可访问 — 7-19 上架材料审查标为提交阻断级（A3），全量 grep 确认此前 app 内零链接。`MySettingsView`（マイページ→設定）新增「規約・ポリシー」分组：プライバシーポリシー / 利用規約 两行，`@Environment(\.openURL)` 外部浏览器打开 github.io 页面。行样式照抄同页 accountDeletionSection（去红色危险配色），位置在通知分组之后、アカウント削除之前；不带 `#if DEMO` 守卫（双版本都要有）。派 sonnet5 施工、主会话读 diff + 独立重跑 TomoshibiApp scheme 验证，双 scheme 均 BUILD SUCCEEDED。注：利用規約网址在 tomoshibi-pages 仓库 push 前仍 404，上架前上线。
