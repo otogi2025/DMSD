@@ -360,19 +360,31 @@ internal fun ApplicationStatusPill(
     val tokens = SuzuT.current
     val label = rowStatusLabel(kind, status)
     val (bg, fg) =
-        when (status) {
-            ApplicationStatus.PENDING -> tokens.warnBg to tokens.warnDeep
+        when {
+            // 外出的 pending 徽章写的是「承認不要」，不是「在等老师」。琥珀 warn 色是「注意 /
+            // 等待中」的视觉语言，配上这个文案自相矛盾 —— iOS 已经改成 accent 系并经 itsuki
+            // 拍板保留，安卓这边一直没跟上。accent 系配色逐一对应 iOS Pill.Tone .accent
+            // （前景 T.primary / 背景 T.pill）。
+            kind == OUTING_KIND && status == ApplicationStatus.PENDING -> {
+                tokens.pill to MaterialTheme.colorScheme.primary
+            }
 
-            ApplicationStatus.APPROVED -> tokens.okBg to tokens.okDeep
+            else -> {
+                when (status) {
+                    ApplicationStatus.PENDING -> tokens.warnBg to tokens.warnDeep
 
-            // 一部承認同绿系（iOS ApplyStubs:48 .ok）
-            ApplicationStatus.APPROVED_PARTIAL -> tokens.okBg to tokens.okDeep
+                    ApplicationStatus.APPROVED -> tokens.okBg to tokens.okDeep
 
-            ApplicationStatus.RETURNED -> tokens.dangerBg to tokens.danger
+                    // 一部承認同绿系（iOS ApplyStubs:48 .ok）
+                    ApplicationStatus.APPROVED_PARTIAL -> tokens.okBg to tokens.okDeep
 
-            ApplicationStatus.REJECTED -> tokens.dangerBg to tokens.danger
+                    ApplicationStatus.RETURNED -> tokens.dangerBg to tokens.danger
 
-            ApplicationStatus.WITHDRAWN -> tokens.pill to tokens.inkMute
+                    ApplicationStatus.REJECTED -> tokens.dangerBg to tokens.danger
+
+                    ApplicationStatus.WITHDRAWN -> tokens.pill to tokens.inkMute
+                }
+            }
         }
     Box(
         modifier =
