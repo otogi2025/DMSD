@@ -452,6 +452,20 @@ itsuki 拍板把外出申请从「事前审批」改成「事后确认」：学�
 
 **跨端对齐**：iOS 见 `IOS_DESIGN_LOG.md` §42。共用层语义 → `design/system_features.md` §7.2.7。
 
+## 20. 上线前只读审查的收尾修复（2026-07-22，commit `a2a4b15` / `68ddc37`）
+
+上线前派 grok4.5 只读审查，抓到 §18/§19 漏的两处 —— 都属于「改了详情页文案，忘了别的屏也在讲同一件事」。
+
+**提交完成页仍在叫学生等审查**（`a2a4b15`）。`ApplyNewScreen.kt` 的 `GenericApplyDone` 是所有申请类型共用的完成屏，文案写「審査完了時に通知でお知らせします」+ 一行「審査時間の目安 1〜2 時間」。学生上一屏刚看完「承認不要」，下一屏当面推翻。按 `kind == OUTING_KIND` 分流：外出显示「外出申請を受け付けました。確認は記録のためで、外出は可能です」（直接复用详情页那句已定稿的日语，不另造），「審査時間の目安」那一行整行不出现。跟 iOS `ApplyDoneView` 逐字对齐。
+
+**pending 徽章还是琥珀色「等待中」**（`68ddc37`）。`ApplicationStatusPill` 只按 `status` 上色，外出的 pending 于是拿到跟出寮届「審査中」一样的琥珀警示色 —— 文字写着「承認不要」、颜色喊着「你在等」，自相矛盾。改成先判 `kind == OUTING_KIND && status == PENDING` 走中性 `pill` 底 + 主色字，其余状态原样落到既有 `when` 分支。三个调用点（ApplicationsScreen 一处、ApplicationDetailScreen 两处）本来就已经在传 `kind`，不用改签名。
+
+**注释订正**：`ApplicationMappers.kt` 的「外出走 outing 三态」改四态（含 rejected / withdrawn）。
+
+验证：主会话独立跑 `./gradlew assembleDebug` + `testDebugUnitTest` 均 BUILD SUCCESSFUL。
+
+**跨端对齐**：iOS 见 `IOS_DESIGN_LOG.md` §43。
+
 ---
 
 **END** — 本档随实装进展持续更新。

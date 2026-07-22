@@ -1284,6 +1284,8 @@ itsuki 拍板外出申请改事后确认制：学生提交即生效可出门，�
 
 **跨端对齐**：学生端同日改文案（iOS `IOS_DESIGN_LOG.md` §41 / Android `ANDROID_DESIGN_LOG.md` §18）。共用层语义 → `design/system_features.md` §7.2.7。
 
+**上线前审查的收尾修复（commit `553581b`，grok4.5 只读审查发现）**：详情弹窗底部对所有非 `pending` 状态一律写「この申請は既に処理済みです」。但 `withdrawn` 是学生自己按了「取りやめる」，老师根本没经手 —— 从「取消済」页签点进去看到「已处理」，会让老师以为是自己或同事操作过的。改成按状态分流：`withdrawn` 显示「この外出は学生本人が取りやめました」，`approved`/`rejected` 才叫処理済み。同批给 `AuditLogPage.tsx` 的 `ACTION_LABELS` 补上 `PATCH outings/{id}/reject` → 「外出を却下」—— 初版只映射了 confirm，却下记录在操作履历里只显示原始接口路径。
+
 ---
 
 **END** — 本档随 Web 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。
