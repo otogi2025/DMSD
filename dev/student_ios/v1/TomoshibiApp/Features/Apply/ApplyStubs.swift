@@ -250,7 +250,7 @@ private struct ApplicationRow: View {
 
     var body: some View {
         let t = applyType(item.type)
-        // 外出是独立 outings 表、三态语义不同（確認待ち/確認済/取消済），别套出寮届的「審査中/承認済」
+        // 外出是独立 outings 表、四态语义不同（承認不要/確認済/却下/取消済），别套出寮届的「審査中/承認済」
         let sp = item.type == "outing" ? outingStatusPair(item.status) : statusPair(item.status)
         Card(padding: 14) {
             VStack(alignment: .leading, spacing: 0) {
@@ -2240,6 +2240,9 @@ struct ApplyDetailView: View {
         let time: String?
         let label2: String?
         var activeNote: String? = nil // 进行中那一步显示的副标题（如审查中说明 / 确认中说明）
+        /// 这一步以「失败」告终（外出被却下）。done 打绿勾、active 是黄色进行中，
+        /// 两个都不占的话只剩灰圈数字＝看着像还没轮到，把终局状态显示成了半路状态。
+        var failed: Bool = false
     }
 
     #if DEMO
@@ -2252,15 +2255,33 @@ struct ApplyDetailView: View {
             // 的 OutingDetailView.steps 逐字对齐 —— 演示版给宿管看的就是真实语义，不能停在旧文案。
             // 确认老师名演示版用代表性的「松本 先生」（生产读后端 confirmed_by_name）。
             if a.type == "outing" {
+                // 四态各走各的，别只分 approved / 非 approved —— 那样 rejected 和 withdrawn
+                // 会显示成「先生の記録待ち」+「外出は可能です」，等于告诉学生一次被却下 / 自己
+                // 取消掉的外出还能去（分支逻辑跟生产 OutingDetailView.steps 一一对应）。
                 let confirmed = a.status == "approved"
-                let confirmTime: String? = confirmed ? a.date + " 11:02" : nil
+                let rejected = a.status == "rejected"
+                let withdrawn = a.status == "withdrawn"
+                let isOpen = !confirmed && !rejected && !withdrawn
+                let secondLabel: String
+                if confirmed {
+                    secondLabel = "確認"
+                } else if rejected {
+                    secondLabel = "却下"
+                } else if withdrawn {
+                    secondLabel = "取消"
+                } else {
+                    secondLabel = "先生の記録待ち"
+                }
+                let processedTime: String? = isOpen ? nil : a.date + " 11:02"
                 return [
                     .init(k: "submit", label: "提出", done: true, active: false, time: submitTime, label2: nil),
                     .init(k: "confirm",
-                          label: confirmed ? "確認" : "先生の記録待ち",
-                          done: confirmed, active: !confirmed, time: confirmTime,
-                          label2: confirmed ? "松本 先生" : nil,
-                          activeNote: "確認は記録のためで、外出は可能です"),
+                          label: secondLabel,
+                          // 却下不打绿勾（绿勾=办成了，用在却下上给错信号），改用 failed 出红叉
+                          done: confirmed, active: isOpen, time: processedTime,
+                          label2: confirmed || rejected ? "松本 先生" : nil,
+                          activeNote: isOpen ? "確認は記録のためで、外出は可能です" : nil,
+                          failed: rejected),
                 ]
             }
             let reviewDone = a.status == "approved" || a.status == "rejected"
@@ -2379,15 +2400,25 @@ struct ApplyDetailView: View {
                             .padding(.bottom, 16)
 
                             // Rejected banner
+                            // 外出走的是事后确认制：却下只是「老师记了一笔 + 通知你」，既不要求立刻回寮、
+                            // 也没有「改一改再交一次」这条路，所以跟出寮届的「差し戻し（打回重交）」不是一回事，
+                            // 文案照抄生产 OutingDetailView 的却下卡。出寮届仍是事前审批，原样不动。
                             if a.status == "rejected" {
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text("⚠ 差し戻し理由")
+                                    Text(a.type == "outing" ? "⚠ 却下されました" : "⚠ 差し戻し理由")
                                         .font(.system(size: 12, weight: .bold))
                                         .foregroundStyle(T.danger)
-                                    Text("帰寮予定時刻が門限（22:00）を過ぎています。外泊申請として再提出してください。")
-                                        .font(.system(size: 13))
-                                        .foregroundStyle(T.ink)
-                                        .lineSpacing(3)
+                                    if a.type == "outing" {
+                                        // 生产版这里显示老师填的却下理由（没填就不显示），演示版没有这个字段
+                                        Text("※ 詳しくは寮監に確認してください")
+                                            .font(.system(size: 12))
+                                            .foregroundStyle(T.inkSub)
+                                    } else {
+                                        Text("帰寮予定時刻が門限（22:00）を過ぎています。外泊申請として再提出してください。")
+                                            .font(.system(size: 13))
+                                            .foregroundStyle(T.ink)
+                                            .lineSpacing(3)
+                                    }
                                 }
                                 .padding(.horizontal, 16).padding(.vertical, 14)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -2402,15 +2433,17 @@ struct ApplyDetailView: View {
                             }
 
                             // Actions per status
+                            // 外出的「取消」语义是「我不去了」（itsuki 2026-07-22 拍板 A），不是撤回一张待批的申请，
+                            // 所以文案对象是外出本身；跟生产 OutingDetailView 的按钮逐字一致。
                             if a.status == "pending" {
                                 Button {
-                                    app.showToast("申請を取り消しました")
+                                    app.showToast(a.type == "outing" ? "外出を取りやめました" : "申請を取り消しました")
                                     Task {
                                         try? await Task.sleep(nanoseconds: 400_000_000)
                                         await MainActor.run { router.replace(.apply) }
                                     }
                                 } label: {
-                                    Text("申請を取り消し")
+                                    Text(a.type == "outing" ? "外出を取りやめる" : "申請を取り消し")
                                         .font(.system(size: 14, weight: .bold))
                                         .foregroundStyle(T.danger)
                                         .frame(maxWidth: .infinity, minHeight: 48)
@@ -2423,7 +2456,9 @@ struct ApplyDetailView: View {
                                         }
                                 }
                                 .buttonStyle(.plain)
-                            } else if a.status == "rejected" {
+                            } else if a.status == "rejected", a.type != "outing" {
+                                // 外出没有「改一改再交一次」——却下只是记录，学生要么直接再提一次新外出，
+                                // 要么去问寮監，所以这个按钮不给外出出。
                                 PrimaryButton(title: "内容を修正して再提出") {
                                     router.go(.applyForm(kind: a.type))
                                 }
@@ -2462,9 +2497,13 @@ private struct WorkflowStepsView: View {
                     // rail with circle + line
                     VStack(spacing: 0) {
                         ZStack {
-                            Circle().fill(s.done ? T.ok : (s.active ? T.warn : T.pill))
+                            Circle().fill(s.failed ? T.danger : (s.done ? T.ok : (s.active ? T.warn : T.pill)))
                                 .frame(width: 24, height: 24)
-                            if s.done {
+                            if s.failed {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(.white)
+                            } else if s.done {
                                 Image(systemName: "checkmark")
                                     .font(.system(size: 11, weight: .bold))
                                     .foregroundStyle(.white)
@@ -2737,12 +2776,13 @@ struct OutingDetailView: View {
             .init(k: "submit", label: "提出", done: true, active: false, time: submitTime, label2: nil),
             .init(k: "confirm",
                   label: secondLabel,
-                  // 却下不打绿勾（WorkflowStepsView 的 done 是绿勾，用在「却下」上会给错信号）
+                  // 却下不打绿勾（WorkflowStepsView 的 done 是绿勾，用在「却下」上会给错信号），改走 failed 出红叉
                   done: confirmed,
                   active: isOpen,
                   time: processedTime,
                   label2: confirmed || rejected ? o.confirmed_by_name : nil,
-                  activeNote: isOpen ? "確認は記録のためで、外出は可能です" : nil),
+                  activeNote: isOpen ? "確認は記録のためで、外出は可能です" : nil,
+                  failed: rejected),
         ]
     }
 
