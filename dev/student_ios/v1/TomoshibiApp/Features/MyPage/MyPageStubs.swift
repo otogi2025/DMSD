@@ -2323,6 +2323,7 @@ struct MyPackagesView: View {
 struct MySettingsView: View {
     @EnvironmentObject var app: AppStore
     @EnvironmentObject var router: RouterStore // IX-002: 删账号成功后跳登录页用
+    @Environment(\.openURL) private var openURL // 隐私政策/利用规约用外部浏览器打开
 
     // 通知偏好开关 — 用 @AppStorage 本地持久化（跟暗色模式 isDark 同一套机制、存进 UserDefaults）。
     // 苹果审核 5.1.1: push 通知必须可被用户拒绝 → 各类开关要记住状态、重启不丢。
@@ -2449,6 +2450,9 @@ struct MySettingsView: View {
                         pushDemoSection
                     #endif
 
+                    // 隐私政策/利用规约入口（App Store 5.1.1(i) 强制要求隐私政策 app 内可访问）
+                    legalSection
+
                     // 账号删除入口（App Store 5.1.1(v) 强制要求）
                     accountDeletionSection
                 }
@@ -2472,6 +2476,54 @@ struct MySettingsView: View {
         } message: {
             Text(deleteError ?? "")
         }
+    }
+
+    /// 法律条款 section（隐私政策 + 利用规约 —— App Store 5.1.1(i) 强制要求隐私政策 app 内可访问，A3 阻断项）
+    private var legalSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("規約・ポリシー")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(T.inkMute)
+                .kerning(0.6)
+                .padding(.top, 14)
+            Card(padding: 0) {
+                VStack(spacing: 0) {
+                    legalLinkRow(
+                        label: "プライバシーポリシー",
+                        urlString: "https://otogi2025.github.io/tomoshibi-pages/privacy_policy"
+                    )
+                    Divider().background(T.hair)
+                    // 利用規約网址目前仍是 404（网页仓库待 push）——上架前会上线，不影响本次实装
+                    legalLinkRow(
+                        label: "利用規約",
+                        urlString: "https://otogi2025.github.io/tomoshibi-pages/terms"
+                    )
+                }
+            }
+        }
+    }
+
+    /// 法律条款单行 —— 用外部浏览器打开链接，样式照抄 accountDeletionSection 的行结构（非危险操作故不用红色）
+    private func legalLinkRow(label: String, urlString: String) -> some View {
+        Button {
+            if let url = URL(string: urlString) {
+                openURL(url)
+            }
+        } label: {
+            HStack {
+                Text(label)
+                    .font(.system(size: 14))
+                    .foregroundStyle(T.ink)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(T.inkMute)
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     /// 账号删除入口 section（设置页末尾、危险操作走红色系）
