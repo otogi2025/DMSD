@@ -1765,3 +1765,19 @@ itsuki 截图指出启动闪屏「太丑也没必要」，同时要求演示版�
 验证：`xcodegen generate` 后 xcodebuild 双 scheme（TomoshibiApp + TomoshibiAppDemo，iPhone 17 Pro）均 BUILD SUCCEEDED；模拟器实跑三态截图确认 —— 演示版首次启动直落介绍页、演示版将 `hasSeenOnboarding` 置 true 后重开仍落介绍页、正式版同标记下落登录页。
 
 **跨端待办**：Android 端 `SplashScreen.kt` 是对齐 iOS 写的同款闪屏，本次未动（待 itsuki 决定是否同步删）。
+
+## §41 外出申请改事后确认制 + 8 分禁足挡入口（2026-07-22，commit `fd82164`）
+
+itsuki 拍板把外出申请从「事前审批」改成「事后确认」：学生提交那一刻就能出门，老师的「確認」只是事后留记录、不是放行开关。iOS 这边只有演示版有外出（生产版还没接 `/api/v1/outings`），所以本次改的是演示版的文案与入口闸，不涉及网络层。
+
+**状态文案**：`ApplyStubs.swift` 的 `outingStatusPair` 里 `pending` 从「確認待ち」改成「承認不要」—— 原文案暗示「要等批准」，跟新语义直接冲突。同时补 `rejected` →「却下」。`OutingDetailView` 进度第 2 步从「先生の確認」改成「先生の記録待ち」，下面补一句说明「確認は記録のためで、外出は可能です」，让学生一眼看懂不用等。却下时另出一张红色卡片，显示却下理由（老师可以不写）+ 固定句「※ 詳しくは寮監に確認してください」。
+
+**8 分禁足闸**：`GenericApplyForm` 加 `isOutingBanned = isOuting && app.displayUser.points >= 8`，`ApplyNewView` 里外出那张卡片按同一条件置灰并显示理由文案。这是两层里的第一层 —— 后端 `POST /outings` 会返回 422 `OUTING_BANNED` 兜底，但入口就该灰掉，不能让学生填完一整张表才被弹回来。
+
+**只动外出，不碰出寮届**：`applications` 那套多级审批链（§7.2.2）语义不变，本次改动全部锁在外出路径上。
+
+验证：主会话自己跑 xcodebuild 双 scheme（TomoshibiApp + TomoshibiAppDemo，iPhone 17 Pro）均 BUILD SUCCEEDED —— 不采信子代理自报。提交前 `git diff` 逐行核对 `ApplyStubs.swift` 只含外出相关行（当时另一个会话正在并发改 iOS 的路由/闪屏文件，用显式文件路径提交隔开）。
+
+**待 itsuki 定的两处**：① 子代理自作主张把 pending 徽章颜色从 `.warn` 改成了 `.accent`（理由说得通：不再是「警告等待」了，但这是没授权的视觉改动）；② 却下卡片标题「⚠ 却下されました」是子代理造的日语，没对照过宿舍手册用词。
+
+**跨端对齐**：Android 同日同步（见 ANDROID_DESIGN_LOG）。共用层语义 → `design/system_features.md` §7.2.7。
