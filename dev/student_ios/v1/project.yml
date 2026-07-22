@@ -46,6 +46,11 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.itsuki.tomoshibi      # 正式版 bundle id
         PRODUCT_NAME: TomoshibiApp
+        # ⚠️ 必须写在 target 这一层 —— 写在文件顶部 settings.base 会被 xcodegen 给 target 生成的
+        # 默认值 "1,2"（iPhone+iPad）覆盖，导致 app 对苹果声称支持 iPad：既触发 iPad 多任务
+        # 方向校验（错误码 90474），又会被要求补交一整套 iPad 截图。
+        # （2026-07-22 首次上传 App Store 校验失败时用 xcodebuild -showBuildSettings 查实）
+        TARGETED_DEVICE_FAMILY: "1"                          # iPhone only
         # 相机权限说明 — 在线学习申请拍摄契約書（合同）照片用；不声明会闪退
         INFOPLIST_KEY_NSCameraUsageDescription: "オンライン学習の契約書を撮影するためにカメラを使用します"
         # NFC 用途说明（iosnfc-③ 上线缺口）— 手机点呼把学号写进点呼机 NFC 芯片时系统弹的提示；不声明 CoreNFC 一调就闪退
@@ -58,7 +63,11 @@ targets:
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: "YES"
         INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
         INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleDefault
-        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        # ⚠️ 必须用带 _iPhone 后缀的设置名 —— 通用名 UISupportedInterfaceOrientations 会被苹果上传
+        # 校验器按 iPad 多任务规则检查，只写 Portrait 一个方向直接判 Invalid bundle（错误码 90474），
+        # 哪怕 TARGETED_DEVICE_FAMILY 已经是 iPhone only 也拦。加后缀 = 只约束 iPhone，绕开该检查。
+        # （2026-07-22 首次上传 App Store 校验失败实测确认）
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_CFBundleDisplayName: Tomoshibi
         # ⚠️ 版本号必须用 MARKETING_VERSION / CURRENT_PROJECT_VERSION 这两个名字 —— 苹果的
         # GENERATE_INFOPLIST_FILE 机制只认它们来填 Info.plist 的 CFBundleShortVersionString /

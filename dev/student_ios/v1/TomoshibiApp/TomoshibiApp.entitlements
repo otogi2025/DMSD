@@ -2,10 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- NFC 卡读取（NDEF + TAG 两种格式都支持）-->
+    <!-- NFC 卡读取（TAG 格式）
+         ⚠️ 只能写 TAG，不能加 NDEF —— iOS 26 SDK 起苹果禁止 NDEF 与 iOS 16 最低版本共存，
+         上传 App Store 会被判 Invalid entitlement（错误码 90778）。
+         本 app 的 NFC 代码（ST25DVWriter.swift）全程只用 NFCTagReaderSession，
+         从未使用 NFCNDEFReaderSession，删掉 NDEF 不影响任何功能。
+         （2026-07-22 首次上传 App Store 校验失败实测确认）-->
     <key>com.apple.developer.nfc.readersession.formats</key>
     <array>
-        <string>NDEF</string>
         <string>TAG</string>
     </array>
 
