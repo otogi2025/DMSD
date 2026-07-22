@@ -8,6 +8,7 @@ import { OverrideModal } from "./components/OverrideModal";
 import { RollCallLanding } from "./components/RollCallLanding";
 import { RollCallSummary } from "./components/RollCallSummary";
 import { ApplicationsPage } from "./components/ApplicationsPage";
+import { OutingsPage } from "./components/OutingsPage";
 import { ProxyApplicationPage } from "./components/ProxyApplicationPage";
 import { OutstayDetailModal } from "./components/OutstayDetailModal";
 import { DisciplinePage } from "./components/DisciplinePage";
@@ -866,6 +867,11 @@ export function App() {
           onNav={nav}
         />
       );
+      break;
+    case "outings":
+      // 2026-07-22 itsuki 拍板「事后确认制」— 外出申请（当天回寮）的老师侧管理页。
+      // 跟上面的 applications（出寮届 / 过夜 / 多级审批）是两套东西，别合并。
+      body = <OutingsPage authToken={authToken} />;
       break;
     case "proxy-application":
       // 2026-06-05 杭田需求「五-3」— 老师代録出寮届表单

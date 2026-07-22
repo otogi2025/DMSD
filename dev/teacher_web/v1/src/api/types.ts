@@ -821,3 +821,33 @@ export interface ContentReportOut {
   content_preview: string | null;
   content_parent_id: string | null; // 公告回复的父公告 id（删回复接口用）；其他类型 null
 }
+
+// ── 外出申请（当天回寮的短时间外出）— 对齐后端 schemas.py OutingOut ──
+//
+// 跟「出寮届」（过夜、多级审批的 applications）是两套东西：外出不过夜、一名老师处理即可。
+// itsuki 2026-07-22 拍板改成「事后确认制」：学生提交那一刻外出就已生效、可以直接出门，
+// 老师点「確認」是事后留记录、不是放行开关；老师仍可「却下」，却下只发通知 + 留记录，
+// 不要求学生立刻回寮。
+export type OutingStatus = "pending" | "approved" | "rejected" | "withdrawn";
+
+export interface OutingOut {
+  id: string;
+  student_id: string;
+  student: StudentBrief | null;
+  outing_date: string; // 外出日 YYYY-MM-DD
+  destination: string | null; // 去向
+  leave_time: string | null; // 外出时刻 HH:MM:SS
+  return_time: string | null; // 回寮预定时刻（同一天）
+  taxi_reservation_time: string | null; // 出租车预约时刻；null = 不预约
+  reason: string | null;
+  status: OutingStatus;
+  submitted_at: string;
+  withdrawn_at: string | null;
+  // ⚠️ confirmed_* 三个字段是「処理した先生 / 処理時刻」——
+  // status=approved 时是确认者、status=rejected 时是却下者（后端两条路径共用同一组列）。
+  // 显示文案必须按 status 分支，不能一律写「確認」。
+  confirmed_by_teacher_id: string | null;
+  confirmed_by_name: string | null;
+  confirmed_at: string | null;
+  reject_reason: string | null; // 只有 status=rejected 才可能有值（老师没填理由时仍是 null）
+}

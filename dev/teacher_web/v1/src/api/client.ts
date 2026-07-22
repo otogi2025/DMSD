@@ -17,6 +17,7 @@ import type {
   ContentReportOut,
   StudentBrief,
   ApplicationCreateBody,
+  OutingOut,
   StudyTodayOut,
   StudyCheckinOut,
   StudyAbsenceRequestOut,
@@ -227,6 +228,37 @@ export const api = {
       "POST",
       "/applications/by-teacher?student_id=" + encodeURIComponent(student_id),
       body,
+      token,
+    ),
+
+  // ── Outings 外出申请（当天回寮 / 事后确认制）──
+  // 跟 applications（出寮届、过夜、多级审批）是两套接口，别混用。
+  // itsuki 2026-07-22 拍板：学生提交即生效，老师这边只做「確認」和「却下」两个动作。
+  //
+  // 全状态列表（提交时刻倒序）。status 不传 = 全部；
+  // 传 pending = 待处理「確認待ち」/ approved = 已确认「確認済」/
+  // rejected = 已却下「却下済」/ withdrawn = 学生自己取消 筛选。
+  outingsForMe: (token: string, status?: string) =>
+    request<OutingOut[]>(
+      "GET",
+      `/outings/for-me${status ? `?status=${encodeURIComponent(status)}` : ""}`,
+      undefined,
+      token,
+    ),
+  // 只出待处理的（提交时刻正序，老的排前面）— 徽章计数 / 待办队列用
+  outingsPendingForMe: (token: string) =>
+    request<OutingOut[]>("GET", "/outings/pending-for-me", undefined, token),
+  getOuting: (id: string, token: string) =>
+    request<OutingOut>("GET", `/outings/${id}`, undefined, token),
+  // 確認 —— 事后留记录，无请求体。已处理过的再点 → 409 OUTING_NOT_PENDING
+  confirmOuting: (id: string, token: string) =>
+    request<OutingOut>("PATCH", `/outings/${id}/confirm`, {}, token),
+  // 却下 —— reason 可选（后端 body 整体都可省略）。同样已处理过再点 → 409
+  rejectOuting: (id: string, reason: string | undefined, token: string) =>
+    request<OutingOut>(
+      "PATCH",
+      `/outings/${id}/reject`,
+      { reason: reason || null },
       token,
     ),
 

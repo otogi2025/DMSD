@@ -66,7 +66,7 @@ function categoryMeta(category: string, T: typeof RYO) {
 }
 
 // category → 点击通知跳转的目标页。
-// 老师网页有对应审查页的才跳；其余（外出 / 行事企画 / 冰箱 / 物品 / 杂项）
+// 老师网页有对应审查页的才跳；其余（行事企画 / 冰箱 / 物品 / 杂项）
 // 当前没有审查页 → 不跳、仅标已读。
 const NAV_TARGET: Record<string, string> = {
   application: "applications",
@@ -75,6 +75,8 @@ const NAV_TARGET: Record<string, string> = {
   rollcall_report: "records",
   study_absence: "study",
   study_online: "study",
+  // 外出申请管理页 2026-07-22 新建 —— 此前 outing 类通知点了没地方去，只能标已读
+  outing: "outings",
 };
 
 export function NotificationsPage({

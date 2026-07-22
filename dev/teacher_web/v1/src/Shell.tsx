@@ -118,6 +118,9 @@ export function Shell({
         ["study", "夜学習出席"],
         ["active-leaves", "出寮者一覧"],
         ["applications", "申請", pendingAppsCount || undefined],
+        // 外出申請 = 当天回寮的短时间外出（事后确认制，itsuki 2026-07-22 拍板）。
+        // 跟上面「申請」（出寮届 / 过夜 / 多级审批）是两套东西，所以单列一项。
+        ["outings", "外出申請"],
         ["notifications", "通知", notifUnread || undefined],
       ],
     },
@@ -155,6 +158,7 @@ export function Shell({
       discipline: "減点・処分",
       cleaning: "清掃罰則",
       applications: "申請",
+      outings: "外出申請",
       "proxy-application": "代録",
       study: "夜学習出席",
       records: "点呼記録",
