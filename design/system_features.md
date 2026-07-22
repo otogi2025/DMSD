@@ -469,34 +469,61 @@
 
 **理由**：节点风格更直观传达「已通过 N 个 / 总共 N 个」+ 不被役职名长度差异污染视觉（「担任」2 字 vs 「国際交流部長」7 字 chip 宽度悬殊）。详细 tap 弹出役职名即可，列表卡片不需要 inline 显示。
 
-#### 7.2.7 外出申請（当日帰寮の短時間外出）— 単一先生確認（itsuki 2026-06-04 拍板）
+#### 7.2.7 外出申請（当日帰寮の短時間外出）— 事後確認制（itsuki 2026-07-22 拍板 / 原 2026-06-04 単一先生確認）
 
 > **背景**: itsuki 实机看 iOS 演示版「申請詳細」，发现外出申請的进度被做成「提出 → 審査 → 完了・承認」三步，跟出寮届一样走多级审批。拍板：外出是当天就回宿舍的短时外出（駅前办事 / 买东西 / 出租车出门等），风险低，**不需要多级审批链、不需要「審査」阶段，一名老师点「確認」即可**。
+>
+> **2026-07-22 二次拍板**：进一步取消「事前审批」语义 —— 学生提交后**立刻生效可以出门**，不需要等老师同意。老师的「確認」是**事后留记录，不是放行开关**。现实依据：外出本来就是低风险的日常行为，让学生站在门口等老师点按钮不符合实际宿舍运作。
 
 **与出寮届（§7.2）的区别**:
 
 | 项 | 出寮届（帰省 / 外泊 / 帰国）| 外出申請（当日帰寮）|
 |---|---|---|
 | 过夜 | 是（不在宿舍过夜）| 否（当天回宿舍）|
-| 审批 | 多级审批链 4–6 人（§7.2.2）| **単一先生の確認 1 人** |
+| 审批 | 多级审批链 4–6 人（§7.2.2）| **事后确认 — 提交那一刻就生效** |
 | 「審査」阶段 | 有 | **无** |
-| 进度显示 | 节点链 chainDots（§7.2.6）| **2 步：提出 → 先生確認** |
+| 进度显示 | 节点链 chainDots（§7.2.6）| **2 步：提出 → 先生の記録待ち** |
+| 老师不同意时 | 差戻し / 却下 → 出不去 | **却下 = 通知 + 记录**，不强制学生回寮 |
+
+**事后确认制怎么运作（itsuki 2026-07-22 拍板）**:
+- 学生提交 = 当场就能出门，不用等老师操作。
+- 老师点「確認」只是留记录。学生端状态徽章写 `承認不要`，进度第 2 步写 `先生の記録待ち`，说明文写 `確認は記録のためで、外出は可能です`。
+- 老师也能「却下」（现实中几乎不会用）。却下**不强制学生回寮** —— 只是留下通知和记录。通知末尾固定加一句 `※ 詳しくは寮監に確認してください`。
+- **却下理由可以不写**（不写也能却下）。写了就出现在给学生的通知正文里。
+
+**外出禁止（禁足）学生挡在提交这一步（itsuki 2026-07-22 拍板）**:
+- **当月**减分合计 **≥ 8 分**（§8 `CURFEW_THRESHOLD`）的学生**不能提交**外出申请。事后确认制下提交即生效，老师没有人工拦截的余地 → 只能在提交那一刻由服务端弹回。
+- 报错：HTTP 422 / `OUTING_BANNED` / 提示语 `外出禁止中のため申請できません。特別な事情がある場合は寮監に相談してください`
+- 判定时点 = **按下提交那一瞬间**的分数（提交时 7 分、外出当天涨到 8 分的情况不追溯）。
+- 分数口径跟排行榜 / `/me/summary` 走**同一个函数**（当月 + 排除已撤回），不各写各的 SUM。
+- 学生端也要把申请入口的卡片本身置灰并显示同一句理由，不只靠服务端弹回。
 
 **确认者自动记录（itsuki 2026-06-04 拍板）**:
 - 老师在自己账号下点「確認」时，系统**从登录的老师账号自动记下是哪个老师确认的**（`confirmed_by_teacher_id` + 姓名），不需要老师手填。
 - 学生在「申請詳細」看到确认结果时，显示**确认老师的姓名**（例：「確認 · 松本 先生」）。
 - 按账号区分 — 不同老师确认，记录和显示的姓名不同。
+- **2026-07-22 起 `confirmed_*` 三列的语义扩大为「処理した先生 / 処理時刻」** —— `status=approved` 时是确认者、`status=rejected` 时是却下者。外出是单人一次性终态处理，不存在「先确认再却下」，配合 `status` 读没有歧义，故不再另开 `rejected_by_*` 两列。客户端显示时必须按 `status` 分支（「確認 · ○○ 先生」/「却下 · ○○ 先生」）。
 
 **数据模型（✅ 2026-06-04 后端实装）**:
 - 决策：外出**单独建一张 `outings` 表**，不塞进 `applications`。原因：`applications` 是为出寮届设计的，回寮日期/方式/时刻都必填还绑 7 级审批链，外出（当天回、单人确认）硬塞会污染并削弱出寮届模型的字段约束（itsuki 2026-06-04 拍板选「单独建表」）。
-- `outings` 表字段：`student_id` / `outing_date`（外出当天，单日期）/ `destination`（去向）/ `leave_time` / `return_time`（同日回寮）/ `taxi_reservation_time` / `reason` / `status`（pending / approved / withdrawn）/ `submitted_at` / `withdrawn_at` / `confirmed_by_teacher_id`（外键 → teachers）/ `confirmed_at`。
+- `outings` 表字段：`student_id` / `outing_date`（外出当天，单日期）/ `destination`（去向）/ `leave_time` / `return_time`（同日回寮）/ `taxi_reservation_time` / `reason` / `status`（pending / approved / **rejected** / withdrawn）/ `submitted_at` / `withdrawn_at` / `confirmed_by_teacher_id`（外键 → teachers）/ `confirmed_at` / **`reject_reason`**（却下理由 Text 可空 — 2026-07-22 加；命名对齐 `DemeritEvent.revoke_reason`）。
 - 确认接口 `PATCH /api/v1/outings/{id}/confirm`：确认者 teacher_id **从登录老师令牌取，不信任客户端传入**（请求体不含 teacher_id）。寮过滤 **2026-06-18 改「登录时选寮」重开**（部分推翻 6-14 取消，见 decision_log 2026-06-18）：选了寮的老师只能确认该寮学生的外出，「申請承認専用」/op 组仍可任意寮。
+- **却下接口 `PATCH /api/v1/outings/{id}/reject`（2026-07-22 加）**：请求体 `{"reason": "..."}` 全部可选（body 本身也可省略）。权限 / 寮边界 / 演示数据隔离与 confirm 完全同级，同样走 `_transition_outing` 的原子条件更新（`pending` 以外 → 409 `OUTING_NOT_PENDING`，防两个老师并发处理同一条）。
+- **老师端全状态列表 `GET /api/v1/outings/for-me?status=`（2026-07-22 加）**：老师网页三态筛选（確認待ち / 確認済 / 却下済）用。原有 `pending-for-me` 只出待处理、看不到历史，故另开此接口；两者共用同一套演示隔离 + R4 寮边界过滤逻辑。
+
+**却下后怎么通知学生（2026-07-22）**:
+- 走 2 路：邮件（`services/email.py` 的 `outing_rejected` 模板）+ 推送（`services/push.send_push`）。
+- 学生端**没有**「应用内通知」表 —— `models.Notification` 是老师通知中心专用的（用 `is_demo` 做演示/生产隔离，已读状态按老师各算一份），学生根本看不到。所以只有上面 2 路。
+- 两路各自用 SAVEPOINT 隔离（跟 `applications.py` / `notifications.py` / `study.py` 的兜底同一写法）：通知写失败**不能把已经成立的却下回滚掉**，一路失败也不能把另一路带走。
 
 **实装位置**:
 - iOS 演示版：`ApplyStubs.swift` `steps`（外出走 2 步 + 显示确认老师名）✅ 2026-06-04 落地
 - 后端：✅ 2026-06-04 实装 — `models.py` Outing 表 + `schemas.py` OutingCreateIn/OutingOut + 迁移 `e1f2a3b4c5d6` + 路由 `outings.py`（提出 / 自己列表 / 待确认列表 / 详情 / 确认 / 撤回 6 接口）+ 14 个测试。详见 `BACKEND_DESIGN_LOG.md`。
-- iOS 生产版接后端：⏳ 待做（现外出客户端只有演示版，要新接 `/api/v1/outings` 系列接口）
-- 老师网页：⏳ 待实装（老师点「確認」按钮 → 调 `PATCH /outings/{id}/confirm`）
+- 后端（事后确认制改造）：✅ 2026-07-22 实装 — 迁移 `d2c4b6a8e0f3`（status 扩到 4 值 + 加 `reject_reason`；SQLite 改不了 CHECK 约束，用 `batch_alter_table` 重建表）+ `POST /outings` 的外出禁止闸 + `PATCH /{id}/reject` + `GET /for-me` + 却下通知 2 路 + 减分合计共用函数 `discipline.current_month_total_points`。测试 33 条全绿。
+- iOS 演示版（事后确认制文案）：✅ 2026-07-22 —— `ApplyStubs.swift` 状态文案 + 进度第 2 步 + 却下卡片，`ApplyNewView` 外出入口按 8 分置灰。
+- Android 演示版（事后确认制文案）：✅ 2026-07-22 —— `ApplicationMappers.kt` / `ApplicationDetailScreen.kt` / `ApplyNewSelectScreen.kt` 同上对齐。
+- iOS / Android 生产版接后端：⏳ 待做（现外出客户端只有演示版，要新接 `/api/v1/outings` 系列接口）
+- 老师网页：✅ 2026-07-22 实装 —— `OutingsPage.tsx`（列表 + 三态筛选 + 详情弹窗 + 确认 / 却下带理由输入）。**注意：三个页签只覆盖 `pending` / `approved` / `rejected`，学生自己撤回的 `withdrawn` 老师端看不到**（待办，见 `admin/TODO.md`）。
 
 ### 7.3 晩自習(晚自习) — 中学全员 / 高中手动名单(Q2 Q3 答 + 2026-04-30 (f) 拍板)
 
