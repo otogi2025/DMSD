@@ -49,7 +49,7 @@ _MAX_BODY_BYTES = 16 * 1024  # 超 16KB 的请求体不入 payload（文件上�
 # 键名含这些词的值脱敏（密码 / 令牌 / 密钥 / 凭据 / cookie 等绝不入库）
 # 审计场景过度脱敏（误伤普通字段）远比漏脱敏安全 —— 宁可多 *** 也不让密钥落库。
 _SENSITIVE_KEY_RE = re.compile(
-    r"pass|pwd|secret|token|credential|api[_-]?key|apikey|authorization|cookie|otp",
+    r"pass|pwd|secret|token|ticket|credential|api[_-]?key|apikey|authorization|cookie|otp",
     re.IGNORECASE,
 )
 _UUID_RE = re.compile(
