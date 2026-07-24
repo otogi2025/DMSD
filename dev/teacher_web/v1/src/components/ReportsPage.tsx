@@ -29,9 +29,12 @@ export function ReportsPage({ authToken }: { authToken: string | null }) {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
+  // 递增请求号 — 快速切换过滤器时旧响应不得覆盖新列表（照 AuditLogPage requestIdRef 做法）
+  const requestIdRef = React.useRef(0);
 
   const load = React.useCallback(() => {
     if (!authToken) return;
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     api
@@ -39,9 +42,18 @@ export function ReportsPage({ authToken }: { authToken: string | null }) {
         statusFilter === "all" ? null : statusFilter,
         authToken,
       )
-      .then(setItems)
-      .catch(() => setError("通報一覧の取得に失敗しました。"))
-      .finally(() => setLoading(false));
+      .then((res) => {
+        // 仅最新请求写 state — 迟到的旧过滤响应丢弃
+        if (requestId !== requestIdRef.current) return;
+        setItems(res);
+      })
+      .catch(() => {
+        if (requestId !== requestIdRef.current) return;
+        setError("通報一覧の取得に失敗しました。");
+      })
+      .finally(() => {
+        if (requestId === requestIdRef.current) setLoading(false);
+      });
   }, [authToken, statusFilter]);
 
   React.useEffect(() => {
