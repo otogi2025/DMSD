@@ -293,11 +293,12 @@ export function ActiveLeavesPage({ authToken }: { authToken: string }) {
             const pad = (n: number) => String(n).padStart(2, "0");
             const fmt = (d: Date) =>
               `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-            const start = new Date();
-            const end = new Date();
-            end.setDate(end.getDate() + 31);
+            // 起止日按 JST 计算，避免非 JST 浏览器日界附近整体平移一天（与 todayStr 同源）
+            const start = todayStr();
+            const [sy, sm, sd] = start.split("-").map(Number);
+            const end = fmt(new Date(sy, sm - 1, sd + 31));
             try {
-              await api.downloadMealsExport(fmt(start), fmt(end), authToken);
+              await api.downloadMealsExport(start, end, authToken);
             } catch (e) {
               window.alert(
                 `食数表の取得に失敗しました (${(e && (e as { status?: number }).status) || "network"})`,
