@@ -949,6 +949,7 @@ export function App() {
       // 5-27 拍板: 教員アカウント管理 (§3.4「前台不允许自助注册 / 现教师后台加删」)
       body = (
         <TeachersAdminPage
+          teacher={teacher}
           authToken={authToken}
           currentTeacherId={authProfile && authProfile.id}
         />

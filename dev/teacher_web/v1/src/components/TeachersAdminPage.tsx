@@ -1,8 +1,13 @@
 import React from "react";
 import { RYO } from "../theme";
 import { api } from "../api/client";
-import type { TeacherOut, TeacherCreateIn } from "../api/types";
-import { SELECTABLE_GROUPS, GROUP_DORM_ADMIN } from "../api/permissions";
+import type { TeacherOut, TeacherCreateIn, TeacherProfile } from "../api/types";
+import {
+  SELECTABLE_GROUPS,
+  GROUP_DORM_ADMIN,
+  canManage,
+  C_TEACHER_ACCOUNT,
+} from "../api/permissions";
 
 // 源 index.html 14147-14813（components/teachers-admin-page.jsx 块）。界面原样搬，仅作用域引用改写。
 // /teachers-admin — 教员账号管理（2026-05-27 拍板）
@@ -19,13 +24,19 @@ function roleLabel(role: string): string {
 }
 
 export function TeachersAdminPage({
+  teacher,
   authToken,
   currentTeacherId,
 }: {
+  teacher: TeacherProfile;
   authToken: string;
   currentTeacherId: string;
 }) {
   const T = RYO;
+  // 权限：C_TEACHER_ACCOUNT 簇里一般宿管/一般宿管+晚自习/申請承認専用 三组只有 VIEW，
+  // 后端 routers/teachers.py 创建/删除均 require_permission(C_TEACHER_ACCOUNT, MANAGE)。
+  // 无 MANAGE 时隐藏新建/删除入口，避免点了必被 403（与 AccountsPage/InfoPage 同款门控）。
+  const canManageAccount = !!teacher && canManage(teacher, C_TEACHER_ACCOUNT);
   const [list, setList] = React.useState<TeacherOut[] | null>(null); // null=加载中 / [] / [...]
   const [loadErr, setLoadErr] = React.useState<string | null>(null);
   // null=不开 / "normal"=新增正式教员 / "temp"=临时账户（带时限）
@@ -134,40 +145,44 @@ export function TeachersAdminPage({
             新しい宿監が来た時に追加・退任時に削除します（§3.4）
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setCreateMode("temp")}
-          style={{
-            padding: "10px 18px",
-            background: "transparent",
-            color: T.cobalt,
-            border: `1px solid ${T.cobalt}`,
-            borderRadius: 10,
-            fontFamily: "inherit",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          + 臨時アカウントを追加
-        </button>
-        <button
-          type="button"
-          onClick={() => setCreateMode("normal")}
-          style={{
-            padding: "10px 18px",
-            background: T.cobalt,
-            color: "#fff",
-            border: "none",
-            borderRadius: 10,
-            fontFamily: "inherit",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          + 新規教員を追加
-        </button>
+        {canManageAccount && (
+          <button
+            type="button"
+            onClick={() => setCreateMode("temp")}
+            style={{
+              padding: "10px 18px",
+              background: "transparent",
+              color: T.cobalt,
+              border: `1px solid ${T.cobalt}`,
+              borderRadius: 10,
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            + 臨時アカウントを追加
+          </button>
+        )}
+        {canManageAccount && (
+          <button
+            type="button"
+            onClick={() => setCreateMode("normal")}
+            style={{
+              padding: "10px 18px",
+              background: T.cobalt,
+              color: "#fff",
+              border: "none",
+              borderRadius: 10,
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            + 新規教員を追加
+          </button>
+        )}
       </div>
 
       {list === null && (
@@ -329,24 +344,26 @@ export function TeachersAdminPage({
                   {dormLabel}
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <button
-                    type="button"
-                    disabled={isSelf}
-                    onClick={() => !isSelf && setConfirmDelete(t)}
-                    title={isSelf ? "自分自身は削除できません" : ""}
-                    style={{
-                      padding: "6px 12px",
-                      background: isSelf ? T.surfaceAlt : T.dangerSoft,
-                      color: isSelf ? T.ink3 : T.danger,
-                      border: `1px solid ${isSelf ? T.line : T.dangerBorder}`,
-                      borderRadius: 8,
-                      fontFamily: "inherit",
-                      fontSize: 12,
-                      cursor: isSelf ? "not-allowed" : "pointer",
-                    }}
-                  >
-                    削除
-                  </button>
+                  {canManageAccount && (
+                    <button
+                      type="button"
+                      disabled={isSelf}
+                      onClick={() => !isSelf && setConfirmDelete(t)}
+                      title={isSelf ? "自分自身は削除できません" : ""}
+                      style={{
+                        padding: "6px 12px",
+                        background: isSelf ? T.surfaceAlt : T.dangerSoft,
+                        color: isSelf ? T.ink3 : T.danger,
+                        border: `1px solid ${isSelf ? T.line : T.dangerBorder}`,
+                        borderRadius: 8,
+                        fontFamily: "inherit",
+                        fontSize: 12,
+                        cursor: isSelf ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      削除
+                    </button>
+                  )}
                 </div>
               </div>
             );
