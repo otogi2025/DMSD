@@ -109,6 +109,9 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
       fetchGenRef.current++;
       const data: RegistrationCode =
         await api.refreshRegistrationCode(authToken);
+      // 写回前再 bump 一次 — 等待窗内新起飞的轮询（入口自取了更新代次）若慢返回
+      // 且携带服务端未刷新的旧码，会盖掉下面写入的新码停留到下轮轮询；这里作废它
+      fetchGenRef.current++;
       setCode(data.code);
       setExpiresAt(new Date(data.expires_at).getTime());
       setCreatedAt(data.created_at);
