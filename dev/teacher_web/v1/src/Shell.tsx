@@ -129,7 +129,7 @@ export function Shell({
       items: [
         ["records", "点呼記録"],
         ["discipline", "減点・処分"],
-        ["cleaning", "清掃罰則"],
+        ["cleaning", "罰則清掃"],
       ],
     },
     {
@@ -156,7 +156,7 @@ export function Shell({
       "roll-call": "点呼",
       notifications: "通知",
       discipline: "減点・処分",
-      cleaning: "清掃罰則",
+      cleaning: "罰則清掃",
       applications: "申請",
       outings: "外出申請",
       "proxy-application": "代理提出",

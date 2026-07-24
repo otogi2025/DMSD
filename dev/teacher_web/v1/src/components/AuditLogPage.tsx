@@ -23,7 +23,7 @@ const ACTION_LABELS: Record<string, string> = {
   "PATCH announcements/{id}": "お知らせを編集",
   "DELETE announcements/{id}": "お知らせを削除",
   "POST announcements/{id}/archive": "お知らせをアーカイブ",
-  "POST cleaning": "清掃罰則を割当",
+  "POST cleaning": "罰則清掃を割当",
   "POST cleaning/{id}/inspect": "清掃を検査",
   "POST events": "行事を作成",
   "PATCH events/{id}": "行事を編集",
