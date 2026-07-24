@@ -142,7 +142,7 @@ export function TeachersAdminPage({
             教員アカウント管理
           </div>
           <div style={{ fontSize: 12, color: T.ink3, marginTop: 4 }}>
-            新しい宿監が来た時に追加・退任時に削除します（§3.4）
+            新しい寮監が来た時に追加・退任時に削除します（§3.4）
           </div>
         </div>
         {canManageAccount && (
