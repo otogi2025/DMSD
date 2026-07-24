@@ -1140,7 +1140,7 @@ dev/staging 用，触发 `email_send` 验证 provider 联通。
 
 ### 5.7 WebSocket
 
-> ⚠️ **本节为早期分会话设计，已被 §5.8 的单一端点 `/api/v1/ws/teacher` 取代**（按 token 鉴权、按寮广播；见 `routers/ws.py`）。下列 `/ws/rollcall/:session_id`、`/ws/study/:date` 分会话路径未实装，保留作设计演化记录。
+> ⚠️ **本节为早期分会话设计，已被 §5.8 的单一端点 `/api/v1/ws/teacher` 取代**（按 60 秒 TTL 短时票据鉴权——`POST /sessions/ws-ticket` 换取，2026-07-24 C20 起不再直收老师 JWT；按寮广播；见 `routers/ws.py`）。下列 `/ws/rollcall/:session_id`、`/ws/study/:date` 分会话路径未实装，保留作设计演化记录。
 
 `WS /ws/rollcall/:session_id` — 教师 iPad 订阅本场实时变化。message:
 ```json
@@ -1463,6 +1463,7 @@ itsuki 拍板把演示账号从 opt-in 默认关改成 **默认启用**（`seed.
 
 | 2026-07-24 | **在线学习申请老师列表补学生摘要**（grok 三方对齐审查发现老师网页从未接线在线学习审批 → itsuki 拍板补齐；7-21 审查 S2 给欠席届/清扫补 `student_name` 时漏了在线学习，本次补齐同一模式）：`StudyOnlineRequestOut` 加 `student_name/student_no/room_no` 三个 Optional 字段（默认 None——iOS Codable 忽略未知键、Android `ignoreUnknownKeys`，学生 `/mine` 端点不填，旧客户端零影响）；`list_online_requests` 端点 select 从只取 `StudyOnlineRequest` 改整行一起取 `Student`（本就为演示隔离 join 了）顺手填摘要，无 N+1。回归测试 `test_list_includes_student_summary` 1 件；test_study_online 27 passed。前端接线（申請ページ加「オンライン学習」审查 tab）见 `WEB_DESIGN_LOG.md` 同日条。| [Mac-Opus 4.8 1M] CC |
 | 2026-07-24 | **点呼学生上报老师列表补学生摘要**（grok 三方对齐审查第 2 处漏接线：`GET /rollcall/reports` 老师查看接口早已实装、网页从未接线 → itsuki「交给你」补齐）：`RollCallReportOut` 加 `student_name/student_no/room_no` 三个 `Optional=None` 字段（学生自查 `/reports/mine` 保持 None、老师端点填充，旧客户端零影响同上）；`list_rollcall_reports` 从 `select(RollCallReport)` + python 侧 `allowed_student_ids` 过滤改 `select(RollCallReport, Student).join(...).where(demo_scope_for_teacher)` + dorm_units where + 循环填摘要（语义等价、无 N+1）。回归测试 `test_teacher_list_reports_includes_student_summary` 1 件；test_student_self_views 29 passed。前端接线（点呼着陆页入口 + 新 `RollCallReportsPage`）见 `WEB_DESIGN_LOG.md` 同日条。| [Mac-Opus 4.8 1M] CC |
+| 2026-07-24 | **老师 WS 鉴权改短时票据（体检 C20）+ 外出广播补字段（C27）+ 审计脱敏补 ticket**：① `/api/v1/ws/teacher` 不再直收老师 JWT query 参数（1 年期令牌会原样落 uvicorn/nginx 访问日志长期驻留）——新增 `POST /sessions/ws-ticket` 用老师 JWT 换 60 秒 TTL、purpose=teacher_ws 的短时票据，WS 只收 `?ticket=`；票据为无状态 JWT、无单次消费机制（60 秒窗口内可重放），不实装消费存储的权衡理由记录于 `routers/ws.py` 校验处（能实时读日志者已有服务器权限可自签令牌）。WS 侧 `_load_teacher_for_ws` 二次校验存在性/active/有效期不变（JWT 旁路入口清单不变）。测试 `test_ws_ticket.py` 6 件含过期票据拒绝专测。② 两处 `outstay_new` 广播体补 `reason`/`submitted_at`（此前前端读这两键恒 undefined，徽章显示占位文案+收到推送的时刻），学生自助/老师代提两路径测试均断言。③ `audit.py` 脱敏正则补 `ticket` 关键字（前瞻——现 WS 不走审计中间件）。④ `openapi_snapshot.json` 重导 + `test_schema_field_snapshot` 期望集补在线学习学生摘要三字段（上一条会话遗漏）。前端接线见 `WEB_DESIGN_LOG.md` 同日「全面体检修复战役」条。| [Mac-Fable 5] CC |
 
 ---
 
