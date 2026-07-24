@@ -104,10 +104,11 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
     setRefreshing(true);
     setErr("");
     try {
+      // 先作废在飞的旧轮询响应再发请求 — bump 放 await 之后的话，等待期间返回的
+      // 旧轮询仍会短暂写回旧码（最终态虽对，界面会闪一下）
+      fetchGenRef.current++;
       const data: RegistrationCode =
         await api.refreshRegistrationCode(authToken);
-      // 让此刻仍在飞的旧轮询响应作废，防其用已失效旧码盖掉下面写入的新码
-      fetchGenRef.current++;
       setCode(data.code);
       setExpiresAt(new Date(data.expires_at).getTime());
       setCreatedAt(data.created_at);
@@ -298,7 +299,9 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
               >
                 生成時刻:{" "}
                 <span style={{ fontFamily: T.mono }}>
-                  {new Date(createdAt).toLocaleString("ja-JP")}
+                  {new Date(createdAt).toLocaleString("ja-JP", {
+                    timeZone: "Asia/Tokyo",
+                  })}
                 </span>
               </div>
             )}
