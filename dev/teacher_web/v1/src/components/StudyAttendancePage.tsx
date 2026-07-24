@@ -852,7 +852,9 @@ export function StudyAttendancePage({
                   color: T.ink3,
                 }}
               >
-                {new Date(a.submitted_at).toLocaleString("ja-JP")}
+                {new Date(a.submitted_at).toLocaleString("ja-JP", {
+                  timeZone: "Asia/Tokyo",
+                })}
               </div>
               <div style={{ padding: "10px 14px", display: "flex", gap: 6 }}>
                 {canWrite && a.status === "pending" && (

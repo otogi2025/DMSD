@@ -307,7 +307,9 @@ export function OutstayDetailModal({
               </F>
               <F label="出発日時" mono>
                 {detail.flight_dep_at
-                  ? new Date(detail.flight_dep_at).toLocaleString("ja-JP")
+                  ? new Date(detail.flight_dep_at).toLocaleString("ja-JP", {
+                      timeZone: "Asia/Tokyo",
+                    })
                   : "—"}
               </F>
               <F label="到着空港" mono>
@@ -315,7 +317,9 @@ export function OutstayDetailModal({
               </F>
               <F label="到着日時" mono>
                 {detail.flight_arr_at
-                  ? new Date(detail.flight_arr_at).toLocaleString("ja-JP")
+                  ? new Date(detail.flight_arr_at).toLocaleString("ja-JP", {
+                      timeZone: "Asia/Tokyo",
+                    })
                   : "—"}
               </F>
             </Section>
@@ -469,6 +473,7 @@ export function OutstayDetailModal({
                             >
                               {new Date(step.decided_at).toLocaleString(
                                 "ja-JP",
+                                { timeZone: "Asia/Tokyo" },
                               )}
                             </div>
                           )}
@@ -535,7 +540,9 @@ export function OutstayDetailModal({
                       }}
                     >
                       {entry.created_at
-                        ? new Date(entry.created_at).toLocaleString("ja-JP")
+                        ? new Date(entry.created_at).toLocaleString("ja-JP", {
+                            timeZone: "Asia/Tokyo",
+                          })
                         : "—"}
                     </span>
                     <span style={{ color: T.ink2 }}>
@@ -736,7 +743,7 @@ export function OutstayDetailModal({
                 setReturnReason(e.target.value);
                 if (returnError) setReturnError(null);
               }}
-              placeholder="例：出発時刻と帰寮時刻に矛盾があります。再確認のうえ修正してください。"
+              placeholder="例：出発時刻と帰寮予定時刻に矛盾があります。再確認のうえ修正してください。"
               rows={3}
               autoFocus
               style={{
