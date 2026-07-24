@@ -869,6 +869,11 @@ class TestOutstayBroadcastDormUnit:
         assert r.status_code == 201, r.text
         assert captured["event"]["type"] == "outstay_new"
         assert captured["dorm_unit"] == seed_data["student"].dorm_unit  # 男寮 = 1
+        # C27：广播体必须带 reason + submitted_at，否则老师端座席徽章落到占位文案 +
+        # 收到推送的当前时刻（而非真提交时刻）。reason 取申请理由原文（_kisei_body = "帰省"）。
+        assert captured["event"]["reason"] == "帰省"
+        assert "submitted_at" in captured["event"]
+        assert captured["event"]["submitted_at"]  # ISO 串（JST 口径），非空
 
     def test_teacher_submit_broadcast_has_dorm_unit(
         self, client, teacher_token, seed_data, monkeypatch

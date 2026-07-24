@@ -233,6 +233,10 @@ def create_application(
             "leave_date": application.leave_date.isoformat(),
             "return_date": application.return_date.isoformat(),
             "student_name": student.name,
+            # C27：老师端座席徽章要显示申请理由与真实提交时刻，缺这两个字段前端会落到
+            # 占位文案「外泊申請」+ 收到推送的当前时刻（而非真提交时刻），故一并广播。
+            "reason": application.reason,
+            "submitted_at": application.submitted_at.isoformat(),
         },
         dorm_unit=student.dorm_unit,
         student_is_demo=student.is_demo,
@@ -366,6 +370,9 @@ def create_application_by_teacher(
             "leave_date": application.leave_date.isoformat(),
             "return_date": application.return_date.isoformat(),
             "student_name": student.name,
+            # C27：同学生自助提出路径 —— 座席徽章要显示理由与真实提交时刻。
+            "reason": application.reason,
+            "submitted_at": application.submitted_at.isoformat(),
         },
         dorm_unit=student.dorm_unit,
         student_is_demo=student.is_demo,
