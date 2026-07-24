@@ -1,6 +1,6 @@
 # Changelog
 
-> **最后更新**: 2026-07-17（**v0.27.1 — v0.27.0 后 60 commit 结账清算（6-18~7-17 多会话累积）：上线前审查修复清账（iOS CB/CC/NET/CON/DC/JP 系列 + 后端寮边界/并发/限速/WS 广播/迁移批 + 点呼判定恒用 server_now + iOS 上架占位「近日公開」）+ 运维合规文档群 E1/E2（故障手册/纸质降级/监控/备份 SOP/隐私政策/同意流程/利用規約）+ 两端 C2 高杠杆测试与 CI（iOS 12 + Android 8 条、CI 起 postgres 真跑迁移链、iOS/Android 工作流）+ コミュニティ管理页冷冻 + 文档大治理（7 份 README/spec 残留/公开区脱敏）；分类 fix 27 / docs 20 / test 5 / chore 5 / ci 2 / release 1、无 feat 级新功能 → 单个 patch，三端客户端版本号攒未动（仍 0.27.0），当前版本 v0.27.1**）。早些：2026-06-18（**v0.24.9 ~ v0.27.0 — 上线前全量审查修复 campaign（5 端 bug/日语/校验/对齐）+ C42/C43 出寮届撤回·差戻重提 4 端 + 后端 PostgreSQL 部署修复 + 老师网页 demo 登录分权限组与版本号构建自动注入 + 后端寮过滤改登录选寮·临时账户到期；v0.24.8 之后多会话并行 51 commit 回溯切 3 patch + 3 minor + 补打先前漏建的 v0.24.8 tag，三端客户端版本号同步 0.27.0，当前版本 v0.27.0**）。早些：2026-06-16（**v0.24.8 — iOS 日语 UI 自然度全量审查施工：以真实宿舍《2026年度生徒寮のしおり》为基准全量复审，13 代理并行改 16+ 文件 149 处（晩自習→夜学習 74 / 退回→差し戻し / 学籍番号→アカウント番号 / 保証人→保護者 / 認証コード→登録コード / 罰則清掃词序 / 半角排版），双 scheme BUILD SUCCEEDED，commit `a0e7d9a`，patch、三端客户端版本号攒未动，当前版本 v0.24.8**。早些：**v0.24.7 — iOS 登录切标签不清空字段（patch，1 commit `74e0618`）**。早些：**v0.24.0~v0.24.6 — 多会话 22 commit 回溯切版本（1 minor + 6 patch），v0.24.6**：后端安全/并发硬化 minor v0.24.0（DemeritEvent 唯一约束+迁移 / slowapi 限速 / 审批行锁串行化 / 上传流式防 OOM / 鉴权对齐权限组 + 测试补全）+ iOS 假数据泄漏·401·时区全链 JST patch v0.24.1~3 + teacher_web 代録入口 patch v0.24.4 + 演示账号放开 patch v0.24.5（知情决策、回退 6-08 隔离）+ iOS 日语母语复审 patch v0.24.6。7 个 annotated tag 已建（指向各历史 commit、日期回填）。三端客户端版本号本批未同步 — 回溯切版本撞并发会话占用工作树（两次冲掉本次编辑），避让、待串行后补（记 TODO §B）。详见下方各版本段 + 「2026-06-15 回溯切版本说明」banner）。早些更新：2026-06-15（**v0.23.11 — 选学生统一组件 StudentPicker + 快递件数 item_count 跨三端，当前版本 v0.23.11**：6-14 拍板设计、6-15 凭设计文档实装。后端加 item_count 字段+迁移 `0dee708c484e` + 新增 `GET /discipline/students`（C_DEMERIT，扣分搜学生，不复用前台接口因权限簇不同）；老师网页 `shared.tsx` 新建共用 `StudentPicker`（single/multi + searchApi prop）接三处 + 宅配弹窗件数步进器+房号自动+备注可选+删配送業者 + 扣分页新增搜学生入口；iOS 显示件数。后端 392 passed + 网页 tsc+build + iOS 双 scheme BUILD SUCCEEDED。单功能簇 patch、三端客户端版本号可攒未动。3 commit `b946489`/`affeac2`/`0261228` 未 push）。早些更新：2026-06-14（**v0.23.10 — iOS 上线前审查 Tier2/Tier3 修复批，当前版本 v0.23.10**：工作流（12 agent 并行分析 + 对抗核验）重定位漂移行号、CC 逐簇落地 6 簇 86 处：A=JST 时区选择性 10 处（生日 date-only / 全局 dateEncodingStrategy 经核验未碰）+ B=枚举仅安全收 Bool?→Bool（其余 5 项改 enum 会多文件连锁+改运行时行为、UI 已有守卫，记 TODO）+ C=日语「明显」措辞自然化 30 + D=其他 bug 11（toast 代次令牌 / 点呼详情 O(n)→单次解析 / 月历切月智能复位 / 头像取消即复位 / 锁定计时器迟到 Task 守卫 / 健康履历吞 401 改清登录态 / 未读 badge 同源 / Keychain 写失败降级日志不再 DEBUG 崩）+ E=漏洞中低纵深 6（Keychain 访问级别 WhenUnlocked / baseURL 环境变量仅 DEBUG / 4 处 print 仅 DEBUG）+ F=Tier3 润色 26 + 小 bug 3（班车 Date(JST) 比较 / 登录切 tab 清字段 / ApplyKindMapper 死键修复）。双 scheme（E 簇加 Release 档验 #else 分支）全绿，6 commit，patch、三端客户端版本号攒未动；命名故事 AC 叙事 + 称呼归属 + 演示姓名汉字 3 项搁置待 itsuki）。早些更新：2026-06-14（**v0.23.9 — iOS 上线前审查 Tier1 修复批，当前版本 v0.23.9**：第2簇防抖 8 表单 + 第3簇 NFC 生产不再本地伪置 done（recordCheckin 整段包 #if DEMO、状态全由后端 my_checked_in_at 驱动，消除被每秒覆盖的竞态）+ 默认日期改未来 + 第4簇中危漏洞 4 类（合同下载走统一 APIClient / 16 处错误文案不暴露内部 / PDF 先验大小防内存崩 / 上传不吞 401）+ codex 复审两轮收敛（补强 422 口径 + PDF 预检限 PDF）。双 scheme BUILD SUCCEEDED，5 commit，patch、三端客户端版本号攒未动）。早些更新：2026-06-14（**v0.23.8 — iOS+Android 班车「特別運行便」一覧只显示特別便 + 運航→運行 汉字统一，当前版本 v0.23.8**：itsuki 截图反馈，两端班车页只显示寮生特別運行便（隐藏平日通学便）+ 删「すべて/特別便/通学便」类型筛选条（留空港开关）+ 徽章用全称「特別運行便」；itsuki 凭母语级日语直觉纠对代码错字「運航」（专指船/飞机）→ 巴士标准「運行」，全项目 13+ 处简繁運航/运航统一成運行/运行；共用规格 §7.6.2 同步。iOS 双 scheme + Android assembleDebug 通过，5 commit。单功能簇 patch，三端客户端版本号可攒未动）。早些更新：2026-06-13（**v0.23.7 — 公告补 is_demo 隔离 + 对齐 iOS 演示公告，当前版本 v0.23.7**：`Announcement` 加 is_demo 字段+索引+迁移 `a2b3c4d5e6f7`；6 端点按 is_demo 隔离（演示老师/学生只看演示公告、碰真实公告返 404），解除演示老师禁发/禁回复改成 demo 沙盒内可操作；seed 种 6 条演示公告（固定 UUID 对齐 iOS SEED.swift）；根治 BACKEND_DESIGN_LOG §7.5.1 记的 v1.1 公告读侧隔离债。公告+demo 26 测试全绿（专属库避多会话并发污染）。单功能簇 patch，三端客户端版本号可攒未动）。早些更新：2026-06-13（**v0.23.6 — 后端启动 schema 落后自检，当前版本 v0.23.6**：`main.py` lifespan 加 `_warn_if_db_schema_outdated()`，dev 启动比对库 alembic 版本 vs head，落后打 WARNING（`current=None` 全新库静默不误报）。背景：teachers/public 500 根因是本地 dev 库缺 6-12 alembic 迁移 `f1a2b3c4d5e6`（`teachers.permission_group` 列）。pytest 371 passed）。早些更新：2026-06-12（**v0.23.5 — iOS 公告翻訳重做（原地翻译），当前版本 v0.23.5**：把公告翻译从弹系统浮层改成正文原地翻成母语（`TranslationSession` 程序化接口 iOS18+）+ 语言选择窗 英/简中/泰/越 + 默认语言记忆 + 「通知設定」升级综合「設定」页；`@preconcurrency` 解决 Swift6 完全并发「sending session」报错。双 scheme BUILD SUCCEEDED。单功能簇 patch，三端客户端版本号 patch 可攒未动）。早些更新：2026-06-12（**v0.23.4 — 老师权限分级 codex 审查四项修复，当前版本 v0.23.4**：4 个补丁（F1~F5 中 4 个被采纳）经 codex 二次审查 + CC 独立核实前提后修复，pytest 371 passed 全程保持，复审收敛 blocker 0 / major 0）。早些更新：2026-06-11 深夜（**v0.23.0 — iOS 体验功能批次 + 首批单元测试 + 管理基建搭车，当前版本 v0.23.0**：收尾「版本当场结账」新机制首战 — v0.22.3 之后 28 commit 一次结清。驱动者 = iOS 功能批次（介绍页重做 4 页 / 公告 AI 翻译+要約 / 图标换 Tomoshibi-icon-1 / 首页活动+巴士卡接真 M-1 / AI 头像启用）+ iOS 首批 7 条单元测试（点呼时间窗状态机，test target 从零建立）；管理基建（老师网页 CI / 后端 142 接口总表 / 文件清单生成器 / raw 迁 iCloud / 启动收尾流程改版）按规矩不驱动版本号、随段记录。三端客户端版本号同步 0.23.0）。早些更新：2026-06-11（**插空细分 + 新段补标 — v0.3.3~v0.14.8 共 70 个补丁插空 + v0.20.0~v0.22.3 新打，当前版本 v0.22.3**：按「一个 bug 一个补丁号」给老段号位空隙里的 70 个 fix commit 逐个补打补丁标签（已 push 的 67 个旧标签与 commit 全部未动、历史未重写，新标签日期回填 commit 当天）；3 个号位死区内 13 个 fix 在对应版本段「死区注记」逐条列出；v0.19.3 之后 76 个 commit 按同标准切 3 minor + 3 patch。详见下方「2026-06-11 插空细分说明」banner）。早些更新：2026-06-09（**v0.15.1 ~ v0.19.3 重排补打 32 个标签** — v0.15.0 之后 95 个 commit（6-05~6-09、全本地未 push）按 itsuki 拍板「一个 bug 一个补丁号 / 连续 feat 批次合成次版本号」重排，当前版本 **v0.19.3**；远程 origin 最后 push 停在 v0.8.0 故重排安全；详见下方「2026-06-09 重排说明」banner + 各版本段。深度审查 19 条 findings 记 `00_admin/TODO.md` §🔍 不在本次修）。早些更新：2026-06-05（**v0.12.1 patch + v0.13.0 ~ v0.15.0 三连 minor** — 6-03/6-04/6-05 三天 80 commit 按真实 commit 顺序切：v0.12.1（6-03 纯修复段：删寮ウォール收尾 + iOS 既存 bug + 点呼机文档）/ v0.13.0 出租车予約 4 端 + 文件联动 / v0.14.0 杭田 6-04 需求批 + 外出申請 + 契約書 / v0.15.0 老师网页迁 Vite + Android 对齐 + 学年更新 + Resend，**当前版本 v0.15.0**；三端客户端版本号同步到 0.15.0）。早些更新：2026-06-03（**v0.8.1 ~ v0.12.0 回溯补标** — 5-11 ~ 6-02 一个多月连续施工的 236 commit 一次性按语义化版本（SemVer）规范回溯补 6 个版本标签 + CHANGELOG 条目；详见下方各版本段顶部「回溯补标说明」banner）。早些更新：2026-05-02 晚（**v0.8.0 close** — 5 端代码层全启动（含点呼机骨架）：Android Compose bootstrap + 10 屏 / iOS 网络层完整建设 + AppStore 切真后端 / teacher_web v1 TS+Vite+Zustand 升级 + 5 page / backend rollcall+study+teachers routers + Alembic 框架 / iOS↔backend 字段对齐 F1-F5+Q1）。早些更新：v0.7.0 close（三轨 A+B+C 同日完成 38 条老师反馈 + 实物表 evidence 推翻 LINE 文字推测 + 沟通规则 #6 + SOP §8.5 版本路线图）；v0.6.0 close（老师 4-29 LINE 38 条受领 + RollCall_Spec 5 处时序修订 + system_features 中文骨架大重写）；v0.4.0 + v0.5.0 双 minor 闭合；**版本管理 SOP 建立**
+> **最后更新**: 2026-07-24（**v0.28.0 ~ v0.35.0 — v0.27.1 后 175 commit 结账（7-17~7-24、全本地未 push）按「细粒度」切 8 minor + 3 patch**：{ok,data} 信封 4 端 + Device_Contract 契约（v0.28.0）/ 7-17 拍板批 spec 落地 + 老师网页适老化（v0.29.0）/ **点呼三端真实装 = 全项目最大结构块收口**（v0.30.0）/ 设备令牌世代校验修复（v0.30.1）/ 邮箱登录三端 + APNs 真推送（v0.31.0）/ **Android 对齐马拉松 B01-B14**（v0.32.0）/ UGC 投稿通報治理 4 端（v0.33.0）/ 五端 568 条上线前全量审查修复 S1-S13（v0.33.1）/ 外出申请改事后确认制 4 端（v0.34.0）/ **iOS 首次提交 App Store 上传三关修复**（v0.34.1）/ 老师网页补齐在线学习审批入口（v0.35.0）。11 个 annotated tag 日期回填各段末 commit 当天、历史未改写；Android 客户端版本号同步 0.35.0，iOS 待拍板（正处上架流程中）。当前版本 v0.35.0**）。早些：2026-07-17（**v0.27.1 — v0.27.0 后 60 commit 结账清算（6-18~7-17 多会话累积）：上线前审查修复清账（iOS CB/CC/NET/CON/DC/JP 系列 + 后端寮边界/并发/限速/WS 广播/迁移批 + 点呼判定恒用 server_now + iOS 上架占位「近日公開」）+ 运维合规文档群 E1/E2（故障手册/纸质降级/监控/备份 SOP/隐私政策/同意流程/利用規約）+ 两端 C2 高杠杆测试与 CI（iOS 12 + Android 8 条、CI 起 postgres 真跑迁移链、iOS/Android 工作流）+ コミュニティ管理页冷冻 + 文档大治理（7 份 README/spec 残留/公开区脱敏）；分类 fix 27 / docs 20 / test 5 / chore 5 / ci 2 / release 1、无 feat 级新功能 → 单个 patch，三端客户端版本号攒未动（仍 0.27.0），当前版本 v0.27.1**）。早些：2026-06-18（**v0.24.9 ~ v0.27.0 — 上线前全量审查修复 campaign（5 端 bug/日语/校验/对齐）+ C42/C43 出寮届撤回·差戻重提 4 端 + 后端 PostgreSQL 部署修复 + 老师网页 demo 登录分权限组与版本号构建自动注入 + 后端寮过滤改登录选寮·临时账户到期；v0.24.8 之后多会话并行 51 commit 回溯切 3 patch + 3 minor + 补打先前漏建的 v0.24.8 tag，三端客户端版本号同步 0.27.0，当前版本 v0.27.0**）。早些：2026-06-16（**v0.24.8 — iOS 日语 UI 自然度全量审查施工：以真实宿舍《2026年度生徒寮のしおり》为基准全量复审，13 代理并行改 16+ 文件 149 处（晩自習→夜学習 74 / 退回→差し戻し / 学籍番号→アカウント番号 / 保証人→保護者 / 認証コード→登録コード / 罰則清掃词序 / 半角排版），双 scheme BUILD SUCCEEDED，commit `a0e7d9a`，patch、三端客户端版本号攒未动，当前版本 v0.24.8**。早些：**v0.24.7 — iOS 登录切标签不清空字段（patch，1 commit `74e0618`）**。早些：**v0.24.0~v0.24.6 — 多会话 22 commit 回溯切版本（1 minor + 6 patch），v0.24.6**：后端安全/并发硬化 minor v0.24.0（DemeritEvent 唯一约束+迁移 / slowapi 限速 / 审批行锁串行化 / 上传流式防 OOM / 鉴权对齐权限组 + 测试补全）+ iOS 假数据泄漏·401·时区全链 JST patch v0.24.1~3 + teacher_web 代録入口 patch v0.24.4 + 演示账号放开 patch v0.24.5（知情决策、回退 6-08 隔离）+ iOS 日语母语复审 patch v0.24.6。7 个 annotated tag 已建（指向各历史 commit、日期回填）。三端客户端版本号本批未同步 — 回溯切版本撞并发会话占用工作树（两次冲掉本次编辑），避让、待串行后补（记 TODO §B）。详见下方各版本段 + 「2026-06-15 回溯切版本说明」banner）。早些更新：2026-06-15（**v0.23.11 — 选学生统一组件 StudentPicker + 快递件数 item_count 跨三端，当前版本 v0.23.11**：6-14 拍板设计、6-15 凭设计文档实装。后端加 item_count 字段+迁移 `0dee708c484e` + 新增 `GET /discipline/students`（C_DEMERIT，扣分搜学生，不复用前台接口因权限簇不同）；老师网页 `shared.tsx` 新建共用 `StudentPicker`（single/multi + searchApi prop）接三处 + 宅配弹窗件数步进器+房号自动+备注可选+删配送業者 + 扣分页新增搜学生入口；iOS 显示件数。后端 392 passed + 网页 tsc+build + iOS 双 scheme BUILD SUCCEEDED。单功能簇 patch、三端客户端版本号可攒未动。3 commit `b946489`/`affeac2`/`0261228` 未 push）。早些更新：2026-06-14（**v0.23.10 — iOS 上线前审查 Tier2/Tier3 修复批，当前版本 v0.23.10**：工作流（12 agent 并行分析 + 对抗核验）重定位漂移行号、CC 逐簇落地 6 簇 86 处：A=JST 时区选择性 10 处（生日 date-only / 全局 dateEncodingStrategy 经核验未碰）+ B=枚举仅安全收 Bool?→Bool（其余 5 项改 enum 会多文件连锁+改运行时行为、UI 已有守卫，记 TODO）+ C=日语「明显」措辞自然化 30 + D=其他 bug 11（toast 代次令牌 / 点呼详情 O(n)→单次解析 / 月历切月智能复位 / 头像取消即复位 / 锁定计时器迟到 Task 守卫 / 健康履历吞 401 改清登录态 / 未读 badge 同源 / Keychain 写失败降级日志不再 DEBUG 崩）+ E=漏洞中低纵深 6（Keychain 访问级别 WhenUnlocked / baseURL 环境变量仅 DEBUG / 4 处 print 仅 DEBUG）+ F=Tier3 润色 26 + 小 bug 3（班车 Date(JST) 比较 / 登录切 tab 清字段 / ApplyKindMapper 死键修复）。双 scheme（E 簇加 Release 档验 #else 分支）全绿，6 commit，patch、三端客户端版本号攒未动；命名故事 AC 叙事 + 称呼归属 + 演示姓名汉字 3 项搁置待 itsuki）。早些更新：2026-06-14（**v0.23.9 — iOS 上线前审查 Tier1 修复批，当前版本 v0.23.9**：第2簇防抖 8 表单 + 第3簇 NFC 生产不再本地伪置 done（recordCheckin 整段包 #if DEMO、状态全由后端 my_checked_in_at 驱动，消除被每秒覆盖的竞态）+ 默认日期改未来 + 第4簇中危漏洞 4 类（合同下载走统一 APIClient / 16 处错误文案不暴露内部 / PDF 先验大小防内存崩 / 上传不吞 401）+ codex 复审两轮收敛（补强 422 口径 + PDF 预检限 PDF）。双 scheme BUILD SUCCEEDED，5 commit，patch、三端客户端版本号攒未动）。早些更新：2026-06-14（**v0.23.8 — iOS+Android 班车「特別運行便」一覧只显示特別便 + 運航→運行 汉字统一，当前版本 v0.23.8**：itsuki 截图反馈，两端班车页只显示寮生特別運行便（隐藏平日通学便）+ 删「すべて/特別便/通学便」类型筛选条（留空港开关）+ 徽章用全称「特別運行便」；itsuki 凭母语级日语直觉纠对代码错字「運航」（专指船/飞机）→ 巴士标准「運行」，全项目 13+ 处简繁運航/运航统一成運行/运行；共用规格 §7.6.2 同步。iOS 双 scheme + Android assembleDebug 通过，5 commit。单功能簇 patch，三端客户端版本号可攒未动）。早些更新：2026-06-13（**v0.23.7 — 公告补 is_demo 隔离 + 对齐 iOS 演示公告，当前版本 v0.23.7**：`Announcement` 加 is_demo 字段+索引+迁移 `a2b3c4d5e6f7`；6 端点按 is_demo 隔离（演示老师/学生只看演示公告、碰真实公告返 404），解除演示老师禁发/禁回复改成 demo 沙盒内可操作；seed 种 6 条演示公告（固定 UUID 对齐 iOS SEED.swift）；根治 BACKEND_DESIGN_LOG §7.5.1 记的 v1.1 公告读侧隔离债。公告+demo 26 测试全绿（专属库避多会话并发污染）。单功能簇 patch，三端客户端版本号可攒未动）。早些更新：2026-06-13（**v0.23.6 — 后端启动 schema 落后自检，当前版本 v0.23.6**：`main.py` lifespan 加 `_warn_if_db_schema_outdated()`，dev 启动比对库 alembic 版本 vs head，落后打 WARNING（`current=None` 全新库静默不误报）。背景：teachers/public 500 根因是本地 dev 库缺 6-12 alembic 迁移 `f1a2b3c4d5e6`（`teachers.permission_group` 列）。pytest 371 passed）。早些更新：2026-06-12（**v0.23.5 — iOS 公告翻訳重做（原地翻译），当前版本 v0.23.5**：把公告翻译从弹系统浮层改成正文原地翻成母语（`TranslationSession` 程序化接口 iOS18+）+ 语言选择窗 英/简中/泰/越 + 默认语言记忆 + 「通知設定」升级综合「設定」页；`@preconcurrency` 解决 Swift6 完全并发「sending session」报错。双 scheme BUILD SUCCEEDED。单功能簇 patch，三端客户端版本号 patch 可攒未动）。早些更新：2026-06-12（**v0.23.4 — 老师权限分级 codex 审查四项修复，当前版本 v0.23.4**：4 个补丁（F1~F5 中 4 个被采纳）经 codex 二次审查 + CC 独立核实前提后修复，pytest 371 passed 全程保持，复审收敛 blocker 0 / major 0）。早些更新：2026-06-11 深夜（**v0.23.0 — iOS 体验功能批次 + 首批单元测试 + 管理基建搭车，当前版本 v0.23.0**：收尾「版本当场结账」新机制首战 — v0.22.3 之后 28 commit 一次结清。驱动者 = iOS 功能批次（介绍页重做 4 页 / 公告 AI 翻译+要約 / 图标换 Tomoshibi-icon-1 / 首页活动+巴士卡接真 M-1 / AI 头像启用）+ iOS 首批 7 条单元测试（点呼时间窗状态机，test target 从零建立）；管理基建（老师网页 CI / 后端 142 接口总表 / 文件清单生成器 / raw 迁 iCloud / 启动收尾流程改版）按规矩不驱动版本号、随段记录。三端客户端版本号同步 0.23.0）。早些更新：2026-06-11（**插空细分 + 新段补标 — v0.3.3~v0.14.8 共 70 个补丁插空 + v0.20.0~v0.22.3 新打，当前版本 v0.22.3**：按「一个 bug 一个补丁号」给老段号位空隙里的 70 个 fix commit 逐个补打补丁标签（已 push 的 67 个旧标签与 commit 全部未动、历史未重写，新标签日期回填 commit 当天）；3 个号位死区内 13 个 fix 在对应版本段「死区注记」逐条列出；v0.19.3 之后 76 个 commit 按同标准切 3 minor + 3 patch。详见下方「2026-06-11 插空细分说明」banner）。早些更新：2026-06-09（**v0.15.1 ~ v0.19.3 重排补打 32 个标签** — v0.15.0 之后 95 个 commit（6-05~6-09、全本地未 push）按 itsuki 拍板「一个 bug 一个补丁号 / 连续 feat 批次合成次版本号」重排，当前版本 **v0.19.3**；远程 origin 最后 push 停在 v0.8.0 故重排安全；详见下方「2026-06-09 重排说明」banner + 各版本段。深度审查 19 条 findings 记 `00_admin/TODO.md` §🔍 不在本次修）。早些更新：2026-06-05（**v0.12.1 patch + v0.13.0 ~ v0.15.0 三连 minor** — 6-03/6-04/6-05 三天 80 commit 按真实 commit 顺序切：v0.12.1（6-03 纯修复段：删寮ウォール收尾 + iOS 既存 bug + 点呼机文档）/ v0.13.0 出租车予約 4 端 + 文件联动 / v0.14.0 杭田 6-04 需求批 + 外出申請 + 契約書 / v0.15.0 老师网页迁 Vite + Android 对齐 + 学年更新 + Resend，**当前版本 v0.15.0**；三端客户端版本号同步到 0.15.0）。早些更新：2026-06-03（**v0.8.1 ~ v0.12.0 回溯补标** — 5-11 ~ 6-02 一个多月连续施工的 236 commit 一次性按语义化版本（SemVer）规范回溯补 6 个版本标签 + CHANGELOG 条目；详见下方各版本段顶部「回溯补标说明」banner）。早些更新：2026-05-02 晚（**v0.8.0 close** — 5 端代码层全启动（含点呼机骨架）：Android Compose bootstrap + 10 屏 / iOS 网络层完整建设 + AppStore 切真后端 / teacher_web v1 TS+Vite+Zustand 升级 + 5 page / backend rollcall+study+teachers routers + Alembic 框架 / iOS↔backend 字段对齐 F1-F5+Q1）。早些更新：v0.7.0 close（三轨 A+B+C 同日完成 38 条老师反馈 + 实物表 evidence 推翻 LINE 文字推测 + 沟通规则 #6 + SOP §8.5 版本路线图）；v0.6.0 close（老师 4-29 LINE 38 条受领 + RollCall_Spec 5 处时序修订 + system_features 中文骨架大重写）；v0.4.0 + v0.5.0 双 minor 闭合；**版本管理 SOP 建立**
 >
 > **2026-05-19 注**: v0.8 之后累积 15+ commit 实质推进（5-04 文件联动工具 / 5-08 硬件全定稿 / 5-10 ac-radar / 5-11 cc-comm-rules + graphify / 5-13 文件大整理 / 5-14 anti-ai-flavor / 5-16 跨项目大修 / 5-19 project-overview 大改造 + 防漂 C 方案 / 5-20+ 131 条 bug findings 修复），未到 bump 触发线，详见 WIP + progress_overview。
 >
@@ -19,7 +19,7 @@
 
 ---
 
-## 全版本一览（v0.0.1 → v0.27.1）
+## 全版本一览（v0.0.1 → v0.35.0）
 
 > 一行一个版本快速定位，技术细节见下方对应 `## [x.y.z]` 段。
 > **版本号单一真值 = 本文件（CHANGELOG.md）**。
@@ -99,7 +99,18 @@
 | v0.25.2 | 2026-06-18 | 补丁：后端迁移 d2e3 batch recreate=always→auto，修生产 PostgreSQL 部署崩 |
 | v0.26.0 | 2026-06-18 | minor：老师网页 demo 登录分权限组（每组 demo 老师 + op 账号 + 系统管理者入口）+ 版本号构建时从 CHANGELOG 自动注入 |
 | v0.27.0 | 2026-06-18 | minor：后端寮过滤改登录时选寮重开 + 临时账户到期机制（后端+老师网页 3 端）|
-| **v0.27.1** | **2026-07-17** | **补丁：60 commit 结账 — 上线前审查修复清账（iOS/后端审查批 + server_now 判定 + 上架占位）+ 运维合规文档群 E1/E2 + 两端 C2 测试与 CI + コミュニティ冷冻 + 文档大治理 ← 当前版本** |
+| v0.27.1 | 2026-07-17 | 补丁：60 commit 结账 — 上线前审查修复清账（iOS/后端审查批 + server_now 判定 + 上架占位）+ 运维合规文档群 E1/E2 + 两端 C2 测试与 CI + コミュニティ冷冻 + 文档大治理 |
+| v0.28.0 | 2026-07-17 | minor：{ok,data} 响应信封 4 端统一 + Device_Contract v1.0 契约草案落地 |
+| v0.29.0 | 2026-07-17 | minor：7-17 拍板批 spec 落地（迟到无截止/改判时限废除/晚自习废除/并行会签/寮边界分角色）+ 老师网页适老化 |
+| v0.30.0 | 2026-07-17 | minor：点呼三端真实装（后端 Ed25519 设备接入 + iOS 真 NFC 写入 + 点呼机软件从零）— 全项目最大结构块收口 + 错误码字典扩 107 码 |
+| v0.30.1 | 2026-07-18 | 补丁：设备令牌世代校验 cursor 审查修复（WS 补世代校验）+ 寮边界跨寮权限组落定 A 方案 |
+| v0.31.0 | 2026-07-19 | minor：邮箱登录三端 + APNs 真推送 + 点呼机组装联调文档 |
+| v0.32.0 | 2026-07-20 | minor：Android 对齐马拉松 B01-B14 — 14 工单 233 条差距清零，功能/页面/文案与 iOS 1:1 |
+| v0.33.0 | 2026-07-20 | minor：UGC 投稿通報治理 4 端（新表 content_reports）+ iOS 隐私清单补报 |
+| v0.33.1 | 2026-07-22 | 补丁：五端 568 条上线前全量审查修复 S1-S13（三方对抗审查收敛）|
+| v0.34.0 | 2026-07-22 | minor：外出申请改事后确认制 4 端 + iOS 上架准备（隐私政策入口/启动闪屏）|
+| v0.34.1 | 2026-07-22 | 补丁：iOS 首次提交 App Store — 上传撞三关修复（90474 设备族×2 + 90778 NDEF）|
+| **v0.35.0** | **2026-07-24** | **minor：老师网页补齐在线学习审批入口（后端接口早已实装但从未接线，grok 三方对齐审查发现）← 当前版本** |
 | v1.0.0 | 目标 2026 底~2027 初 | 宿舍正式上线 |
 
 ---
@@ -109,6 +120,143 @@
 > **【2026-06-15 回溯切版本说明 · v0.24.0 ~ v0.24.6】** v0.23.11 之后多会话累积 22 个 commit（后端硬化批 / iOS 时区与假数据修复批 / teacher_web 调整 / 演示账号放开 / iOS 日语复审），单一会话无法在产生时即时结账。按「version-bump §2 决策树 + 一个 bug 一个补丁号 + 连续新基建/feat 批合成 minor」回溯切为 1 个 minor（v0.24.0 后端，命中迁移 schema 变更 + 新基建限速阈值）+ 6 个 patch。7 个 annotated tag 已建、日期回填各段末 commit 当天，commit 与历史均未改写（v0.23.11 起所有 commit 未 push，回溯安全）。⚠️ 三端客户端版本号本应在 minor 处同步至 0.24.6，但回溯切版本期间并发会话正占用工作树并两次冲掉本次编辑，故避让、客户端版本号暂攒未动（待工作树串行后补同步，已记 TODO §B）。
 
 > **【2026-06-18 回溯切版本说明 · v0.24.9 ~ v0.27.0】** v0.24.8 之后多会话累积 51 个 commit（6-16~6-18：上线前全量审查修复 campaign 跨 5 端 + C42/C43 出寮届撤回·差戻重提新功能 + 后端 PostgreSQL 部署修复 + 老师网页 demo 登录与版本号机制 + 后端寮过滤改登录选寮·临时账户到期），多会话并行无法在产生时即时结账。按 version-bump §2 决策树 +「连续 feat 批合成 minor / bug 修复批 patch」回溯切为 3 patch（v0.24.9 / v0.25.1 / v0.25.2）+ 3 minor（v0.25.0 / v0.26.0 / v0.27.0）。同时补打先前漏建的 **v0.24.8 tag**（release commit `423b07c` 已存在但当时未打 tag）。7 个 annotated tag 日期回填各段末 commit 当天，commit 与历史均未改写（v0.24.8 之后所有 commit 未 push，回溯安全）。深夜批（v0.25.0）因 teacher_web 审查修复、C42/C43 feat、iOS 审查批由多会话并行交错提交，无法线性拆分，合并为单一 minor 如实记录。三端客户端版本号本批同步至 0.27.0（iOS `project.yml` / Android `build.gradle.kts`；老师网页自 v0.26.0 起构建时从本文件自动注入、无需手改）。⚠️ 本次结账时另一会话仍在并行提交功能 commit（结账前 HEAD 从 `fcab4ee` 推进到 `4eb503a`），本批以结账时刻 HEAD=`4eb503a` 为界，之后新提交留待下次结账。
+
+> **【2026-07-24 回溯切版本说明 · v0.28.0 ~ v0.35.0】** v0.27.1（7-17 结账）之后累积 175 个 commit（7-17~7-24，itsuki 发令结账），按 version-bump §2 决策树 +「一个 bug 一个补丁号 / 连续 feat 批合成 minor」+ itsuki 拍板「细粒度」切为 8 minor（v0.28.0 / v0.29.0 / v0.30.0 / v0.31.0 / v0.32.0 / v0.33.0 / v0.34.0 / v0.35.0）+ 3 patch（v0.30.1 / v0.33.1 / v0.34.1）。11 个 annotated tag 指向各段末 commit、日期回填 commit 当天，commit 与历史均未改写（v0.27.1 之后所有 commit 未 push，origin/main 停在 `6b1574f`，回溯安全）。7-17 单日 30 commit 内部按主题时序切 3 minor（信封+契约 / spec 拍板批+适老化 / 点呼三端真实装）；交错主题（如 UGC 治理审查修复与五端审查 S1、iOS 上架准备与外出确认制）按 commit 先后就近归属、各段标题标主线。末尾 v0.35.0 为 7-24 另一会话补的老师网页在线学习审批入口（`feat`，独立主题、独立日期，单独成 minor）。三端客户端版本号：Android `versionName` 同步 0.35.0；iOS `MARKETING_VERSION` 因正处 App Store 首次提交流程（构建版本 `1 (0.27.0)` 已上传通过校验）暂不动，待 itsuki 拍板是否同步。
+
+## [0.35.0] - 2026-07-24（老师网页补齐在线学习审批入口）
+
+> 起因：grok-4.5 三方对齐审查（前端调用 ↔ 仓库后端 ↔ 洛杉矶线上后端三方对比）发现——后端在线学习申请老师审批接口（`GET /study/online-requests` 待审列表 + `POST /{id}/decision` 承認却下）早已实装，但老师网页从未接线，学生提交后老师端无处审批。
+
+### Added
+- 老师网页 `ApplicationsPage` 加第 5 个 tab「オンライン学習」，自拉自审（`api.onlineRequests` / `decideOnlineRequest`）；落点定在申請ページ而非夜学習ページ——审批权限是 `C_APPROVAL`（申請承認専用，与外泊/帰国/帰省同组），夜学習页需 `C_STUDY` 权限、负责审批的老师可能进不去；为此给该页加 `authToken` prop（`App.tsx` 透传）（`1f7e9b7`）。
+
+### Changed
+- 后端 `StudyOnlineRequestOut` 加 `student_name` / `student_no` / `room_no`（默认 None，旧客户端零影响），`list_online_requests` 端点整行取 Student 顺手填——补齐 7-21 审查 S2 给欠席届/清扫补学生摘要时漏掉的在线学习（`1f7e9b7`）。
+
+### Notes
+- 验证：老师网页 `npm run build` ✓ 803ms；后端 `pytest test_study_online` 28 passed（含新增 `test_list_includes_student_summary`）。
+
+## [0.34.1] - 2026-07-22（iOS 首次提交 App Store — 上传撞三关修复）
+
+> 起因：iOS 7-22 首次向 App Store 提交，Archive 上传连挂三关校验，逐一查因修复。核心教训：本地编译绿 ≠ 能上架，上传校验是独立一关、只给错误码，查因须用 `xcodebuild -showBuildSettings` 看构建系统实际生效值。
+
+### Fixed
+- 设备族声明（90474）：顶层 `TARGETED_DEVICE_FAMILY` 被 xcodegen 给 target 生成的默认值 `"1,2"` 覆盖（注释写 iPhone only 未生效），苹果判「声称支持 iPad」触发 iPad 多任务方向校验 → 移到 target 层写死 `"1"`（`207e51e`）。
+- 屏幕方向（同 90474）：改用带 `_iPhone` 后缀的 `INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone`，不带后缀的通用名会被按 iPad 多任务规则检查。
+- NFC entitlement（90778）：`TomoshibiApp.entitlements` 的 NFC formats 删 `NDEF` — iOS 26 SDK 起禁止 NDEF 与 iOS 16 最低版本共存；代码全程只用 `NFCTagReaderSession`，删 NDEF 无功能影响（`207e51e`）。
+
+### Notes
+- 三处修法均属「看似笔误、删掉无违和感」，成因注释已入库并记 IOS_DESIGN_LOG §44 + `settings.base` 层级教训（`a1b9937`）。
+
+## [0.34.0] - 2026-07-22（外出申请改事后确认制 4 端 + iOS 上架准备）
+
+> 起因：外出申请从「老师审批制」改为「事后确认制」——学生提交即生效可出门、老师「確認」只留记录不阻断、≥8 分禁足挡提交。4 端同步落地。区间另夹入 iOS 上架准备与后端部署修复（按 commit 时序就近归属本段）。
+
+### Added
+- 外出事后确认制：后端提交即生效 + 新增却下接口 + ≥8 分外出禁止提交（`7d6f92f`）/ iOS 徽章「承認不要」+ 进度「先生の記録待ち」+ 却下状态显示（`fd82164`）/ 老师网页从零新建外出申请管理页（三态筛选 + 详情弹窗 + 確認/却下，此前老师端完全看不到外出申请）+ 补第 4 个「取消済」页签（学生自撤回件老师端此前不可见）（`e63c7e4` / `fc77dd3`）/ Android 文案改造对齐 iOS 与后端（`140a3b8`）。
+- 撤回语义定案 A「我不去了」文案统一 + 补演示版漏掉的事后确认制文案（`186060a`）。
+- iOS 设置页加隐私政策 + 利用規約 app 内入口（上架审查 A3 阻断项，苹果 5.1.1(i)，`54339fc`）。
+
+### Fixed
+- 外出文案一致性批：提交完成页误叫学生等审查 / 安卓 pending 徽章仍琥珀「等待中」色 / iOS 演示版详情页误当出寮届处理 / 网页取消件详情「既に処理済み」误导老师（`a2a4b15` / `68ddc37` / `b7141ca` / `553581b`）。
+- iOS 删启动闪屏直接进页面 + 演示版每次重开走介绍页（`#if DEMO`）+ 修版本号显示 `v?`（`59a3f24`）。
+- 后端 docker-compose 补传 `OP_PASSWORD` + `DEMO_TEACHER_PASSWORD` 进容器，演示老师密码不再静默回落公开 `demo123`（`a121284`）。
+
+## [0.33.1] - 2026-07-22（五端 568 条上线前全量审查修复 S1-S13）
+
+> 起因：7-20 五端双队全量代码审查产出 568 条 findings（Opus 4.8 + grok-4.5-high 背对背 + gpt-5.6 评估），按 itsuki「分三波门禁」拍板落地，S1-S13 分批修复，每批多方对抗复审收敛。异构互补多次发生（S10 grok 抓 opus 漏的生产推送崩溃 / S11 opus 抓 grok 漏的徽章语义）。
+
+### Fixed
+- S1 后端高危 10 条：点呼 DB 层防线三迁移 + 调度器兜底 + 路由层竞态六连修 + 回归测试 9 件（`91ace73` / `8b2145c` / `121a44f`）。
+- S2 高危：老师网页 8 条 + 点呼机鉴权失败不丢签到 5 条 + auth 传输层异常收窄终审阻断（`cab8aeb` / `b840878` / `d5fba97`）。
+- S3 点呼状态契约收口三端逐行对齐（`18b6fce` / `6ba271a` / `d407ccb` / `c678a59`）。
+- S4 后端 28 条：账号族时序侧信道 + 点呼代签原子化 + 寮边界测试真覆盖 + 邮箱大小写不敏感唯一索引 + composer 复审补强（`4758e49` ~ `9bf7594`）。
+- S5 后端 27 条：错误信封统一 + 学习族 fail-closed + 设备端并发 + 点呼调度边界互斥（`eec5680` ~ `842d17c`）。
+- S6/S7 iOS + Android medium 104 条：申请守卫 / AI 头像诚实标注 / 巴士性别过滤 / 各屏对齐（`9d3574c` ~ `06d3ac3`）。
+- S9-S13 low 300+ 条：点呼机 medium/low + 后端 low 100 + 网页 low 95 + iOS low 65 + 安卓 low 39，各批双票复审收敛（`e2a70cf` ~ `fa2cf4d`）。
+- 附 UGC 治理审查修复（与 S1 交错）：3 条 P1 演示隔离 + 通報唯一约束 + 反向隔离回归（`552c2ea` / `ad5714f`）。
+
+## [0.33.0] - 2026-07-20（UGC 投稿通報治理 4 端）
+
+> 起因：itsuki 7-20 拍板 A 方案，为用户生成内容（点歌 / 遺失物 / 公告回复）加「投稿举报」治理机制。
+
+### Added
+- 后端：新表 `content_reports` + POST/GET/PATCH `/reports`（学生通報幂等 / 老师一览含摘要与父公告 id / 演示隔离）+ songs/lost-found 老师软删 DELETE + 迁移 `a1c2e3f4b5d6` + 测试 7 条（`4ba596f`）。
+- 老师网页：新增「投稿の通報」一览页（未対応/対応済み 筛选 + 投稿削除 + 問題なし 标处理）（`38ca410`）。
+- iOS：新 ReportsAPI + 共用 ReportFlagButton 接曲詳細 / 遺失物詳細 / 公告回复长按菜单（`9ecb68f`）。
+
+### Fixed
+- iOS 隐私清单补报健康（体調症状体温）/ 実際の住所（外泊届）/ その他ユーザーコンテンツ（点歌·公告回复）3 类（7-19 gpt-5.6 审查漏报发现，`56df24c`）。
+
+## [0.32.0] - 2026-07-20（Android 对齐马拉松 B01-B14）
+
+> 起因：Android 端功能 / 页面 / 设计 / 文案全面对齐 iOS，14 工单 233 条差距清零 + 三方对抗审查收敛，此前「偏早 / 真后端接入待续」状态清零。详见 ANDROID_DESIGN_LOG §16。
+
+### Added
+- 网络层扩建 + 全局会话链路（loadMe 级联 / 401 统一登出 / 令牌过期清理）（`74e0c52` / `1df492e`）。
+- 设计系统组件（玻璃弹层 / 全局 Toast / 底部导航胶囊动画 / 骨架屏 / 触觉反馈 / NotoSansJP）（`2b5b793`）。
+- 登录注册 + 主页 + 通知中心（ML Kit 端上翻译 4 语言）+ 点呼全链路（真 NFC ST25DV 邮箱写入 34 字节载荷对齐 Device_Contract §7）（`1c2016b` ~ `e59dd0a`）。
+- 申请中心主链路 + 表单群 + 外泊帰省帰国 + 社区三件套 + マイページ + 行事月历校车（`9e2b3bf` ~ `84859f0`）。
+- 清尾删 6 孤儿残留页 + 对账 + 三方对抗审查修复（`0f11752` ~ `6cd33f1`）。
+
+## [0.31.0] - 2026-07-19（邮箱登录三端 + APNs 真推送 + 点呼机组装文档）
+
+> 起因：学生登录增加邮箱方式（反转上架期隐藏），APNs 推送从 stub 变真投递。
+
+### Added
+- 邮箱登录：后端学号/邮箱二选一、大小写不敏感、多条命中当认证失败（`7f2a624`）+ iOS 恢复「メール」tab 接通（`12fea97`）+ Android「メール」tab 从死按钮变可用（`c23e2fd`）。
+- APNs 从 stub 变真投递：ES256 token 缓存 + HTTP/2 + 点呼模板 Time Sensitive + 7 条 mock 测试（`7e02bea`）。
+- 种子巴士便共用函数 dev/prod 都种 + 8 条演示行事（`462a443`）。
+
+### Changed
+- 点呼机文档（硬件 7-19 到货未组装）：README 三处过期描述修正 + 组装联调清单（拆快递到首次刷卡 5 阶段）+ 硬件下单结果补录（`ed2a9f9` / `e26019b` / `874a089`）。
+- 审核员账号三处密码改指向本地真值文件，公开文档不再写明文（`5457ee7`）。
+
+## [0.30.1] - 2026-07-18（设备令牌世代校验修复 + 寮边界权限组落定）
+
+> 起因：点呼三端接入后的 7-18 cursor 审查修复批。
+
+### Fixed
+- 后端设备签到：补传按 swipe_time 归属场次 + 令牌世代校验 + 路径 B 幂等键必填 + 时钟钳制审计（cursor blocker1/major3/4/6/7，`01abd90`）。
+- WS 通道补令牌世代校验——上一版只盖 HTTP，作废令牌仍能连 WS 收名单（cursor 复审 major，`30c5cf6`）。
+- 点呼机令牌失效码不再丢补传 + 音频文件名设备侧校验（`9347a89`）/ iOS 邮箱写入前查 RF_PUT_MSG，不覆盖前一学生未读走的签到（`da2f0b1`）。
+
+### Changed
+- 寮边界跨寮权限组清单落定 A 方案（op / 寮管理者 / 申請承認専用 跨寮，一般宿管两组本寮，`ae4e03e`）。
+
+## [0.30.0] - 2026-07-17（点呼三端真实装 — 全项目最大结构块收口）
+
+> 起因：点呼从「模拟 / 占位」直接跳到「三端真实装」（7-17 `/goal` 指令），后端设备接入 + iOS 真 NFC 写入 + 点呼机软件从零，本地端到端联调通过。这是 `admin/项目心智模型.md` 标注的「全项目最大结构块」收口。
+
+### Added
+- 点呼机软件从零实装全套：PN532 SPI 读卡 + ST25DV I2C 邮箱驱动（GPO 中断 / 34 字节载荷）+ 双线程主循环 + `--simulate` 模拟模式 + Ed25519 设备认证 + httpx 上报 + websockets 断线重连 + SQLite 离线队列 + LED 四色 + aplay 播报；75 条 pytest 全绿（Mac mock 硬件层）（`a0e1595`）。
+- iOS 真 NFC 写入：解除占位（`comingSoonPlaceholder` 删除）+ ST25DVWriter 真命令序列 + 载荷升 34 字节含 idempotency_key（Device_Contract §7）+ MailboxPayloadTests 5 条锁字节序（`67647f3`）。
+- 后端点呼机接入：设备 Ed25519 认证（enroll 激活码 + 挑战签名换 12h 令牌 + nonce 防重放）+ `rollcall_devices` / `nfc_cards` / `device_auth_nonces` 三表迁移 `d3f7a1b9c2e4` + device-checkins 按 swipe_time 判定 + WS 设备通道 + 场次自动保障调度器（默认关）；590 passed（`c666c80`）。
+
+### Changed
+- 错误码字典 v0.1 点呼域 15 码扩为全项目 107 码（`f425d5b`）。
+
+### Fixed
+- 7-17 尾声安全/审批批：X-Forwarded-For 取最右跳防伪造 IP 绕过限速（`27fff92`）+ 注册码 `random.randint` 改 `secrets.randbelow`（`22995cc`）+ 审批 PUT 加行锁 + 待办列表担任只看本班（`3e9ce0f`）+ 点呼改判删 ended 终态闸 + 全扣分写入方统一学生行锁（`a464003`）。
+
+## [0.29.0] - 2026-07-17（7-17 拍板批 spec 落地 + 老师网页适老化）
+
+> 起因：7-17 密集拍板一批 spec / design 决策落地 + 老师网页按适老化审查重组。
+
+### Changed
+- spec / design 拍板落地：点呼判定迟到无截止（`dda0b3d`）/ 改判时限废除角色×时间矩阵（`dba834a`）/ 晚自习学期概念废除（`8fda0f8`）/ 审批链并行会签落档（`9841bef`）/ 寮边界分角色跨寮方向落档（`0cff5ba`）。
+- 老师网页适老化（7-17 决策 2/4）：左栏 4 组功能分类改 3 组宿管任务分类（`c7e91af`）+ 登录页说明按钮为何灰着 / 密码切换 / 管理者入口改名（`40ec56e`）+ 左栏字号上调 + 面包屑与左栏用词统一 + 夜学習出席空状态指引（`9de8322` / `d1cca18` / `b755ee8` / `208ba21`）。
+
+## [0.28.0] - 2026-07-17（{ok,data} 响应信封 4 端 + Device_Contract 契约）
+
+> 起因：统一 4 端响应格式为 `{ok,data}` / `{ok,error}` 信封（契约级），并落定点呼机设备接入契约草案。
+
+### Added
+- {ok,data} 响应信封 4 端实装：后端 ResponseEnvelopeMiddleware + 3 异常处理器 / iOS APIEnvelope 解外壳（含 1 个 latent）/ 老师网页 client.ts 解包 / Android ApiClient.kt 解包，均补主会话独立复验（`f470e28` / `1766b64` / `02662ee` / `37bfd4b`）。
+- Device_Contract v1.0 契约草案：设备 Ed25519 认证（enroll + 短期令牌）+ device-checkins 按 swipe_time 判定 + 离线补传老师优先 + WS 设备通道 + ST25DV 邮箱 34 字节载荷双端格式（`ef514b5`）。
+
+### Changed
+- 契约收口指针：API_CONVENTIONS §16 两条指向新契约 + DEVICE_REGISTRY §7 三项标已定稿 + RollCall_Spec B.8/B.17/B.18 收口标注 + flow_design §5 补传输安全已定稿指针（`56a2f23`）。
 
 ## [0.27.1] - 2026-07-17（60 commit 结账 — 上线前审查修复清账 + 运维合规文档群 + 两端高杠杆测试与 CI）
 
