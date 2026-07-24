@@ -73,7 +73,7 @@ targets:
         # GENERATE_INFOPLIST_FILE 机制只认它们来填 Info.plist 的 CFBundleShortVersionString /
         # CFBundleVersion。原来写成 INFOPLIST_KEY_CFBundleShortVersionString 属于不存在的设置名，
         # 生成的 Info.plist 里根本没有版本号 → app 内显示 "v?-demo"（2026-07-22 itsuki 截图发现）。
-        MARKETING_VERSION: "0.35.0"          # = App Store 版本号（app 内 AppVersionTag 读的就是它）
+        MARKETING_VERSION: "0.36.2"          # = App Store 版本号（app 内 AppVersionTag 读的就是它）
         CURRENT_PROJECT_VERSION: "1"         # = 构建号（同一版本号重复上传时递增）
         SWIFT_EMIT_LOC_STRINGS: "YES"
         GENERATE_INFOPLIST_FILE: "YES"
