@@ -307,7 +307,7 @@ export function CleaningPage({
                 >
                   {item.student_name
                     ? `${item.student_name}（${item.room_no || "部屋不明"}）`
-                    : `学生ID：${String(item.student_id).slice(0, 8)}…`}
+                    : `寮生ID：${String(item.student_id).slice(0, 8)}…`}
                 </div>
                 {item.student_no && (
                   <div
@@ -445,7 +445,7 @@ function CleaningCreateModal({
 
   return (
     <ModalShell T={T} title="清掃を割り当て" onClose={onClose}>
-      <ModalField T={T} label="学生（必須）">
+      <ModalField T={T} label="寮生（必須）">
         <StudentPicker
           mode="single"
           autoOpen

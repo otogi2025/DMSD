@@ -619,7 +619,7 @@ export function StudentProfileModal({
                           checked={gConfidential}
                           onChange={(e) => setGConfidential(e.target.checked)}
                         />
-                        機密扱い（学生本人に非表示）
+                        機密扱い（寮生本人に非表示）
                       </label>
                       {gError && (
                         <div

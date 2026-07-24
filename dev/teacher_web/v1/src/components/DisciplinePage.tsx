@@ -415,7 +415,7 @@ export function DisciplinePage({
                   cursor: "pointer",
                 }}
               >
-                ＋ 任意の学生に手動加算
+                ＋ 任意の寮生に手動加算
               </button>
             </div>
           )}
@@ -454,7 +454,7 @@ export function DisciplinePage({
               >
                 {[
                   "順位",
-                  "学生",
+                  "寮生",
                   "部屋",
                   "減点合計",
                   "清掃まで残り",
@@ -649,7 +649,7 @@ export function DisciplinePage({
                 lineHeight: 1.7,
               }}
             >
-              学生の今月の累計減点が清掃ライン（4点）または外出禁止ライン（8点）に達すると、その学生が所属する寮の担当教員へ自動的に通知（通知センター）が送られます。各ラインにつき月1回まで。
+              寮生の今月の累計減点が清掃ライン（4点）または外出禁止ライン（8点）に達すると、その寮生が所属する寮の担当教員へ自動的に通知（通知センター）が送られます。各ラインにつき月1回まで。
             </div>
           </div>
 
@@ -815,8 +815,8 @@ function ManualDemeritSearchModal({
     ).finally(() => setSubmitting(false));
   };
   return (
-    <ModalShell T={T} title="任意の学生の合計点を設定" onClose={onClose}>
-      <ModalField T={T} label="学生（必須）">
+    <ModalShell T={T} title="任意の寮生の合計点を設定" onClose={onClose}>
+      <ModalField T={T} label="寮生（必須）">
         <StudentPicker
           mode="single"
           autoOpen

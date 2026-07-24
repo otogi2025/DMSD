@@ -142,8 +142,8 @@ export function Shell({
         // 投稿通報一覧（App Store UGC 治理 — itsuki 2026-07-20 拍板 A 方案）
         ["reports", "投稿の通報"],
         ["front-desk", "フロント業務"],
-        ["accounts", "学生アカウント管理"],
-        ["admin-registration-code", "学生登録コード"],
+        ["accounts", "寮生アカウント管理"],
+        ["admin-registration-code", "寮生登録コード"],
         ["teachers-admin", "教員アカウント管理"],
         // 操作履歴 = 操作记录审计页，只给管理角色显示（后端 C_AUDIT_LOG 把关）。
         ...(canViewAuditLog ? ([["audit-log", "操作履歴"]] as NavItem[]) : []),
@@ -167,8 +167,8 @@ export function Shell({
       bus: "バス時刻表",
       community: "コミュニティ管理",
       "front-desk": "フロント業務",
-      accounts: "学生アカウント管理",
-      "admin-registration-code": "学生登録コード",
+      accounts: "寮生アカウント管理",
+      "admin-registration-code": "寮生登録コード",
       "teachers-admin": "教員アカウント管理",
       "audit-log": "操作履歴",
       summary: "点呼集計",
@@ -479,7 +479,7 @@ export function Shell({
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && q.trim()) onSearch(q.trim());
                 }}
-                placeholder="学生名・部屋番号・日付で検索…"
+                placeholder="寮生名・部屋番号・日付で検索…"
                 style={{
                   flex: 1,
                   border: "none",

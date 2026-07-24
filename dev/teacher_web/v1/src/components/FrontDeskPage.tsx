@@ -935,7 +935,7 @@ function DeliveryComposeModal({
             color: student ? T.ink : T.ink3,
           }}
         >
-          {student ? student.room_no : "学生を選択すると自動入力されます"}
+          {student ? student.room_no : "寮生を選択すると自動入力されます"}
         </div>
       </ModalField>
       <ModalField T={T} label="備考（任意）">

@@ -419,7 +419,7 @@ export function StudentPicker({
         })
         .catch((e) => {
           if (cancelled) return;
-          setError(e.message || "学生リストの取得に失敗しました");
+          setError(e.message || "寮生リストの取得に失敗しました");
           setResults([]);
           setLoading(false);
         });
@@ -472,7 +472,7 @@ export function StudentPicker({
         {mode === "single" ? (
           selected.length === 0 ? (
             <span style={{ fontSize: 13, color: T.ink3 }}>
-              {placeholder || "学生を選択（クリックで一覧）"}
+              {placeholder || "寮生を選択（クリックで一覧）"}
             </span>
           ) : (
             <span style={{ fontSize: 13, color: T.ink }}>
@@ -493,7 +493,7 @@ export function StudentPicker({
           <>
             {selected.length === 0 && (
               <span style={{ fontSize: 13, color: T.ink3 }}>
-                {placeholder || "学生を選択（クリックで一覧）"}
+                {placeholder || "寮生を選択（クリックで一覧）"}
               </span>
             )}
             {selected.map((s) => (
@@ -603,7 +603,7 @@ export function StudentPicker({
                   fontSize: 12,
                 }}
               >
-                該当する学生がいません
+                該当する寮生がいません
               </div>
             )}
             {!loading &&

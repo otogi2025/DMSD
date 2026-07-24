@@ -76,7 +76,7 @@ export function ReportsPage({ authToken }: { authToken: string | null }) {
   const deleteContent = async (r: ContentReportOut) => {
     if (!authToken) return;
     if (
-      !confirm("この投稿を削除しますか？学生のアプリからも非表示になります。")
+      !confirm("この投稿を削除しますか？寮生のアプリからも非表示になります。")
     )
       return;
     setBusyId(r.id);
@@ -139,7 +139,7 @@ export function ReportsPage({ authToken }: { authToken: string | null }) {
         投稿の通報
       </div>
       <div style={{ fontSize: 12.5, color: T.ink3, marginBottom: 16 }}>
-        学生から通報された投稿（リクエスト曲・お知らせ返信・落とし物）を確認し、削除または対応済みにします。
+        寮生から通報された投稿（リクエスト曲・お知らせ返信・落とし物）を確認し、削除または対応済みにします。
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>

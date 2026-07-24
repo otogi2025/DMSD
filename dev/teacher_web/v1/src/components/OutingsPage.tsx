@@ -246,7 +246,7 @@ export function OutingsPage({ authToken }: { authToken: string | null }) {
           marginBottom: 16,
         }}
       >
-        外出申請は、学生が提出した時点で有効になります。先生の「確認」は事後の記録であり、外出を許可するためのスイッチではありません。
+        外出申請は、寮生が提出した時点で有効になります。先生の「確認」は事後の記録であり、外出を許可するためのスイッチではありません。
         <br />
         内容に問題がある場合のみ「却下」してください（却下しても、その場で帰寮させる指示にはなりません）。
       </div>
@@ -289,7 +289,7 @@ export function OutingsPage({ authToken }: { authToken: string | null }) {
           }}
         >
           {[
-            "学生",
+            "寮生",
             "外出日",
             "行き先",
             "外出～帰寮",
@@ -678,7 +678,7 @@ function OutingDetailModal({
                   fontWeight: 600,
                 }}
               >
-                却下理由（任意・却下する場合のみ学生へ通知されます）
+                却下理由（任意・却下する場合のみ寮生へ通知されます）
               </div>
               <textarea
                 value={rejectReason}
@@ -765,7 +765,7 @@ function OutingDetailModal({
                   以为是自己或同事处理过的 */}
               <div style={{ fontSize: 12, color: T.ink3 }}>
                 {outing.status === "withdrawn"
-                  ? "この外出は学生本人が取りやめました"
+                  ? "この外出は寮生本人が取りやめました"
                   : "この申請は既に処理済みです"}
               </div>
               <button

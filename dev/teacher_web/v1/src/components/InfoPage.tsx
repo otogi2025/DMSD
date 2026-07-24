@@ -1103,7 +1103,7 @@ function NoticeModal({
                   onChange={(e) => setNotifyStudents(e.target.checked)}
                   style={{ width: 16, height: 16, cursor: "pointer" }}
                 />
-                学生に通知する（アプリの通知センターに表示）
+                寮生に通知する（アプリの通知センターに表示）
               </label>
               {notifyStudents && (
                 <div style={{ fontSize: 11, color: T.ink3 }}>
@@ -1910,7 +1910,7 @@ function EventComposeModal({
             onChange={(e) => setNotifyStudents(e.target.checked)}
             style={{ width: 16, height: 16, cursor: "pointer" }}
           />
-          学生に通知する（アプリの通知センターに表示）
+          寮生に通知する（アプリの通知センターに表示）
         </label>
       )}
       <Footer
@@ -2431,7 +2431,7 @@ function BusRouteModal({
           <option value="women">女子寮</option>
         </select>
       </Field>
-      <Field T={T} label="用途・説明（学生に表示）">
+      <Field T={T} label="用途・説明（寮生に表示）">
         <textarea
           value={purpose}
           onChange={(e) => setPurpose(e.target.value)}
@@ -2483,7 +2483,7 @@ function BusRouteModal({
             onChange={(e) => setNotifyStudents(e.target.checked)}
             style={{ width: 16, height: 16, cursor: "pointer" }}
           />
-          学生に通知する（アプリの通知センターに表示）
+          寮生に通知する（アプリの通知センターに表示）
         </label>
       )}
       <Footer

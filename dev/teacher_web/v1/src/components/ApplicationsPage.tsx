@@ -364,7 +364,7 @@ export function ApplicationsPage({
               }}
             >
               {[
-                "学生",
+                "寮生",
                 "期間",
                 "理由",
                 "契約書",

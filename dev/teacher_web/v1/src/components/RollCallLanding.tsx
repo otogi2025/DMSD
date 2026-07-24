@@ -105,7 +105,7 @@ export function RollCallLanding({
           }}
         >
           <span style={{ color: T.warn, fontWeight: 600 }}>
-            新学年です。「学生アカウント管理」から学年更新を開始してください。
+            新学年です。「寮生アカウント管理」から学年更新を開始してください。
           </span>
           {onNav && (
             <button
@@ -123,7 +123,7 @@ export function RollCallLanding({
                 whiteSpace: "nowrap",
               }}
             >
-              学生管理へ
+              寮生管理へ
             </button>
           )}
         </div>
@@ -317,7 +317,7 @@ export function RollCallLanding({
         >
           <div>
             <div style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>
-              学生からの報告
+              寮生からの報告
             </div>
             <div style={{ fontSize: 12, color: T.ink3, marginTop: 3 }}>
               点呼時に提出された体調不良・欠席などの報告を確認・対応します

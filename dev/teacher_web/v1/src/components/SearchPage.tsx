@@ -90,7 +90,7 @@ export function SearchPage({
         }}
       >
         {[
-          ["student", "学生から"],
+          ["student", "寮生から"],
           ["date", "日付から"],
         ].map(([k, l]) => (
           <button
@@ -181,7 +181,7 @@ export function SearchPage({
             </div>
           )}
           {!searching && results !== null && results.length === 0 && (
-            <EmptyState msg={`「${q}」に一致する学生はいません`} />
+            <EmptyState msg={`「${q}」に一致する寮生はいません`} />
           )}
           {!searching && results === null && (
             <EmptyState msg="氏名・学籍番号を入力してください" />

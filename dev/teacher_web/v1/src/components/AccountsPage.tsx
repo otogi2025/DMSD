@@ -155,7 +155,7 @@ export function AccountsPage({
       })
       .catch((e) => {
         if (myId !== reqIdRef.current) return; // web#15
-        setLoadError(e.message || "学生リストの取得に失敗しました");
+        setLoadError(e.message || "寮生リストの取得に失敗しました");
         setLoading(false);
       });
   }, [authToken, debouncedQuery, dormFilter]);
@@ -188,7 +188,7 @@ export function AccountsPage({
       })
       .catch((e) => {
         if (cancelled || myId !== reqIdRef.current) return;
-        setLoadError(e.message || "学生リストの取得に失敗しました");
+        setLoadError(e.message || "寮生リストの取得に失敗しました");
         setLoading(false);
       });
     return () => {
@@ -350,7 +350,7 @@ export function AccountsPage({
           fontWeight: 600,
         }}
       >
-        学生管理
+        寮生管理
       </div>
       <div
         style={{
@@ -363,7 +363,7 @@ export function AccountsPage({
         }}
       >
         <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.3 }}>
-          学生アカウント管理
+          寮生アカウント管理
         </h1>
         <div style={{ display: "flex", gap: 8 }}>
           {canPromote && (
@@ -456,7 +456,7 @@ export function AccountsPage({
             </h2>
             <p style={{ fontSize: 13, color: T.ink3, marginBottom: 16 }}>
               中1〜高2 に番号の再設定を依頼し、高3
-              を卒業にします。学籍番号は学生本人が App
+              を卒業にします。学籍番号は寮生本人が App
               で設定します。確認してから「実行」してください。
             </p>
             <div
@@ -1637,7 +1637,7 @@ function AccountDetailModal({
                 </button>
               </div>
               <div style={{ fontSize: 11, color: T.ink3, marginTop: 6 }}>
-                ※ 通常は学生本人が App
+                ※ 通常は寮生本人が App
                 で設定します。本人ができない・誤入力時の補助です。
               </div>
             </div>
@@ -1768,7 +1768,7 @@ function AccountDetailModal({
                 marginBottom: 12,
               }}
             >
-              § この学生の最近のアクティビティ
+              § この寮生の最近のアクティビティ
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {activities.map((act, i) => (

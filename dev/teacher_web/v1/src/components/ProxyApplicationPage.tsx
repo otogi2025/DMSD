@@ -189,7 +189,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
 
   async function submit() {
     if (!picked) {
-      setMsg({ type: "err", text: "学生を選択してください" });
+      setMsg({ type: "err", text: "寮生を選択してください" });
       return;
     }
     // 时刻补秒：网页 time 输入是 "HH:mm"，后端要 "HH:mm:ss"
@@ -391,12 +391,12 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
         代録（出寮届）
       </h1>
       <p style={{ fontSize: 12, color: T.ink3, marginBottom: 18 }}>
-        学生に代わって帰省・外泊・帰国届を提出します（当日も可）。提出後は通常の承認フローに乗ります。
+        寮生に代わって帰省・外泊・帰国届を提出します（当日も可）。提出後は通常の承認フローに乗ります。
       </p>
 
       {/* ① 学生选择 */}
       <div style={cardStyle}>
-        <div style={sectionTitle}>① 対象の学生</div>
+        <div style={sectionTitle}>① 対象の寮生</div>
         {picked ? (
           <div
             style={{
@@ -480,7 +480,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
                 </div>
               ) : candidates.length === 0 ? (
                 <div style={{ padding: 12, fontSize: 12, color: T.muted }}>
-                  該当する学生がいません
+                  該当する寮生がいません
                 </div>
               ) : (
                 candidates.map((c) => (

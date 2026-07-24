@@ -288,7 +288,7 @@ export function IncidentsPage({
             borderBottom: `1px solid ${T.line}`,
           }}
         >
-          {["日付", "タイトル / 概要", "登録日時", "関係学生", "操作"].map(
+          {["日付", "タイトル / 概要", "登録日時", "関係寮生", "操作"].map(
             (h) => (
               <div key={h} style={{ padding: "10px 12px" }}>
                 {h}
@@ -577,7 +577,7 @@ export function IncidentsPage({
                   marginBottom: 4,
                 }}
               >
-                関係学生（任意・複数選択可）
+                関係寮生（任意・複数選択可）
               </div>
               <StudentPicker
                 mode="multi"

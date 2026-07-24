@@ -559,7 +559,7 @@ export function OutstayDetailModal({
               marginBottom: 6,
             }}
           >
-            学生へのコメント（任意・承認/却下時に学生へメールで通知されます）
+            寮生へのコメント（任意・承認/却下時に寮生へメールで通知されます）
           </label>
           <textarea
             value={comment}
@@ -669,7 +669,7 @@ export function OutstayDetailModal({
       {confirm && (
         <ConfirmModal
           title={`${applicantName} の${kindLabel}申請を${confirm.label}しますか？`}
-          desc="承認・却下の結果は学生へメールで通知されます（入力したコメントも一緒に届きます）。"
+          desc="承認・却下の結果は寮生へメールで通知されます（入力したコメントも一緒に届きます）。"
           danger={confirm.action === "rejected"}
           confirmLabel={confirm.label}
           onCancel={() => setConfirm(null)}
@@ -717,7 +717,7 @@ export function OutstayDetailModal({
                 lineHeight: 1.6,
               }}
             >
-              差戻すと申請は学生に返され、修正のうえ再提出できます。差戻理由は学生へメールで通知されます。
+              差戻すと申請は寮生に返され、修正のうえ再提出できます。差戻理由は寮生へメールで通知されます。
             </div>
             <label
               style={{

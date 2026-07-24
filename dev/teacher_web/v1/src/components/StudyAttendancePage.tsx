@@ -125,7 +125,7 @@ export function StudyAttendancePage({
     if (acting.__finalize) return; // TW-102：防慢网下二次点击重复 finalize
     if (
       !window.confirm(
-        "夜学習を終了し、未チェックイン学生を欠席扱いにします。よろしいですか?",
+        "夜学習を終了し、未チェックイン寮生を欠席扱いにします。よろしいですか?",
       )
     )
       return;
@@ -215,7 +215,7 @@ export function StudyAttendancePage({
     } catch (e) {
       const ex = e as { status?: number };
       if (ex && ex.status === 404) {
-        setRosterErr(`学籍番号 ${no} の学生が見つかりません`);
+        setRosterErr(`学籍番号 ${no} の寮生が見つかりません`);
       } else if (ex && ex.status === 409) {
         setRosterErr(`学籍番号 ${no} は既に名簿に登録済みです`);
       } else {
@@ -570,9 +570,9 @@ export function StudyAttendancePage({
                   fontSize: 13,
                 }}
               >
-                <div>対象学生がいません</div>
+                <div>対象寮生がいません</div>
                 <div style={{ marginTop: 8, fontSize: 12 }}>
-                  名簿管理から対象学生を登録してください
+                  名簿管理から対象寮生を登録してください
                 </div>
                 <button
                   onClick={() => setView("roster")}
@@ -736,7 +736,7 @@ export function StudyAttendancePage({
               borderBottom: `1px solid ${T.line}`,
             }}
           >
-            {["学生", "対象日", "期間", "理由", "状態", "提出時刻", "操作"].map(
+            {["寮生", "対象日", "期間", "理由", "状態", "提出時刻", "操作"].map(
               (h) => (
                 <div key={h} style={{ padding: "10px 14px" }}>
                   {h}
@@ -971,7 +971,7 @@ export function StudyAttendancePage({
                     cursor: "pointer",
                   }}
                 >
-                  学生追加
+                  寮生追加
                 </button>
               </>
             )}
@@ -1042,7 +1042,7 @@ export function StudyAttendancePage({
                   fontSize: 13,
                 }}
               >
-                名簿に登録された学生がいません
+                名簿に登録された寮生がいません
               </div>
             )}
             {(roster || []).map((r, i) => (

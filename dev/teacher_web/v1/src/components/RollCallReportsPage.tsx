@@ -63,7 +63,7 @@ export function RollCallReportsPage({
     } catch (e) {
       const ex = e as { status?: number };
       if (ex && ex.status === 403) {
-        setErr("学生からの報告の閲覧には「点呼」権限が必要です");
+        setErr("寮生からの報告の閲覧には「点呼」権限が必要です");
       } else {
         setErr(`報告の取得に失敗 (${(ex && ex.status) || "network"})`);
       }
@@ -108,10 +108,10 @@ export function RollCallReportsPage({
       >
         <div>
           <h2 style={{ margin: 0, fontSize: 20, color: T.ink }}>
-            学生からの報告
+            寮生からの報告
           </h2>
           <div style={{ fontSize: 12, color: T.ink3, marginTop: 4 }}>
-            点呼時に学生が提出した体調・欠席などの報告を確認し、対応済みにできます
+            点呼時に寮生が提出した体調・欠席などの報告を確認し、対応済みにできます
           </div>
         </div>
         <button
@@ -196,7 +196,7 @@ export function RollCallReportsPage({
             borderBottom: `1px solid ${T.line}`,
           }}
         >
-          {["学生", "種別", "内容", "提出時刻", "状態", "操作"].map((h) => (
+          {["寮生", "種別", "内容", "提出時刻", "状態", "操作"].map((h) => (
             <div key={h} style={{ padding: "10px 14px" }}>
               {h}
             </div>

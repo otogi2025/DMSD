@@ -1059,7 +1059,7 @@ export function App() {
             if (a === "approved" || a === "rejected") {
               setToast({
                 type: "ok",
-                msg: `申請を${a === "approved" ? "承認" : "却下"}しました · 学生へメール通知送信済み`,
+                msg: `申請を${a === "approved" ? "承認" : "却下"}しました · 寮生へメール通知送信済み`,
               });
             }
           }}
@@ -1081,7 +1081,7 @@ export function App() {
                 // web#9: 成功 toast 只在 backend 成功分支内
                 setToast({
                   type: "ok",
-                  msg: "申請を差戻しました · 学生へメール通知送信済み",
+                  msg: "申請を差戻しました · 寮生へメール通知送信済み",
                 });
               } catch (err: any) {
                 console.warn("[App] returnApplication 失敗", err);

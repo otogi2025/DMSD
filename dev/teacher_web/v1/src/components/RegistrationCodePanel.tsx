@@ -150,7 +150,7 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
             fontWeight: 600,
           }}
         >
-          寮務 &gt; 学生登録コード
+          寮務 &gt; 寮生登録コード
         </div>
         <h1
           style={{
@@ -189,7 +189,7 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
           fontWeight: 600,
         }}
       >
-        寮務 &gt; 学生登録コード
+        寮務 &gt; 寮生登録コード
       </div>
       <h1
         style={{
@@ -199,7 +199,7 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
           letterSpacing: -0.3,
         }}
       >
-        学生登録コード
+        寮生登録コード
       </h1>
       <div style={{ color: T.ink3, fontSize: 13, marginBottom: 22 }}>
         App Store 公開後の登録ゲート
@@ -396,8 +396,8 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
           ① ボタンを押すと新しい 6
           桁コードが生成されます（前のコードは即座に無効になります）
         </div>
-        <div>② 学生にコードを伝達（口頭 / 黒板 / LINE）</div>
-        <div>③ 学生は登録手続きの最後の画面でコードを入力します</div>
+        <div>② 寮生にコードを伝達（口頭 / 黒板 / LINE）</div>
+        <div>③ 寮生は登録手続きの最後の画面でコードを入力します</div>
         <div>④ コードは 5 分間有効です</div>
         <div>
           ⑤ 集団登録（新入生説明会など）では同じコードで複数人が登録できます
