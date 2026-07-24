@@ -5,7 +5,9 @@ import type {
   StudyTodayOut,
   StudyAbsenceRequestOut,
   StudyRosterItem,
+  TeacherProfile,
 } from "../api/types";
+import { canManage, C_STUDY } from "../api/permissions";
 
 // 源 index.html 14827-15786（study-attendance-page 块）。界面原样搬，仅作用域引用改写。
 // Task #17 夜学習出席页 — §11.1 P0 + §7.3 + iOS StudyAPI 对齐 (5-27)
@@ -17,11 +19,17 @@ import type {
 //   - cancelToday 「今日学習中止」开关 (学習担当權限)
 // 对齐: backend study.py + iOS StudyAPI.swift (3 次 NFC 出席) + spec §7.3.10
 export function StudyAttendancePage({
+  teacher,
   authToken,
 }: {
+  teacher: TeacherProfile | null;
   authToken: string | null;
 }) {
   const T = RYO;
+  // 权限：C_STUDY 簇里「一般宿管」「申請承認専用」两组只有 VIEW，后端 routers/study.py 的
+  // 手动出席/结束确定/当日中止/欠席承认/名簿增删全 require_permission(C_STUDY, MANAGE)。
+  // 无 MANAGE 时隐藏全部写按钮，避免点了必被 403（与 AccountsPage/InfoPage 同款门控）。
+  const canWrite = !!teacher && canManage(teacher, C_STUDY);
   const [view, setView] = React.useState("attendance"); // attendance / absence-inbox / roster
   const [today, setToday] = React.useState<StudyTodayOut | null>(null); // studyTodayAttendees 返
   const [absenceList, setAbsenceList] = React.useState<
@@ -467,42 +475,46 @@ export function StudyAttendancePage({
           </div>
 
           <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-            <button
-              onClick={doFinalize}
-              disabled={!!acting.__finalize}
-              style={{
-                padding: "10px 18px",
-                background: T.cobalt,
-                color: "#fff",
-                border: "none",
-                borderRadius: 10,
-                fontFamily: "inherit",
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: acting.__finalize ? "not-allowed" : "pointer",
-                opacity: acting.__finalize ? 0.6 : 1,
-              }}
-            >
-              夜学習終了（未出席を欠席に確定）
-            </button>
-            <button
-              onClick={doCancelToday}
-              disabled={!!acting.__cancel}
-              style={{
-                padding: "10px 18px",
-                background: T.surface,
-                color: T.warn,
-                border: `1px solid ${T.warnBorder}`,
-                borderRadius: 10,
-                fontFamily: "inherit",
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: acting.__cancel ? "not-allowed" : "pointer",
-                opacity: acting.__cancel ? 0.6 : 1,
-              }}
-            >
-              今日の夜学習を中止
-            </button>
+            {canWrite && (
+              <button
+                onClick={doFinalize}
+                disabled={!!acting.__finalize}
+                style={{
+                  padding: "10px 18px",
+                  background: T.cobalt,
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 10,
+                  fontFamily: "inherit",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: acting.__finalize ? "not-allowed" : "pointer",
+                  opacity: acting.__finalize ? 0.6 : 1,
+                }}
+              >
+                夜学習終了（未出席を欠席に確定）
+              </button>
+            )}
+            {canWrite && (
+              <button
+                onClick={doCancelToday}
+                disabled={!!acting.__cancel}
+                style={{
+                  padding: "10px 18px",
+                  background: T.surface,
+                  color: T.warn,
+                  border: `1px solid ${T.warnBorder}`,
+                  borderRadius: 10,
+                  fontFamily: "inherit",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: acting.__cancel ? "not-allowed" : "pointer",
+                  opacity: acting.__cancel ? 0.6 : 1,
+                }}
+              >
+                今日の夜学習を中止
+              </button>
+            )}
             <button
               onClick={() => refetch()}
               style={{
@@ -673,7 +685,7 @@ export function StudyAttendancePage({
                     )}
                   </div>
                   <div style={{ padding: "10px 14px" }}>
-                    {canCheckin && (
+                    {canWrite && canCheckin && (
                       <button
                         onClick={() => doManualCheckin(a.student_id)}
                         disabled={acting[a.student_id]}
@@ -843,7 +855,7 @@ export function StudyAttendancePage({
                 {new Date(a.submitted_at).toLocaleString("ja-JP")}
               </div>
               <div style={{ padding: "10px 14px", display: "flex", gap: 6 }}>
-                {a.status === "pending" && (
+                {canWrite && a.status === "pending" && (
                   <>
                     <button
                       onClick={() => doDecideAbsence(a.id, "approved")}
@@ -919,44 +931,50 @@ export function StudyAttendancePage({
               boxShadow: T.shadow1,
             }}
           >
-            <label style={{ fontSize: 12, color: T.ink2, fontWeight: 600 }}>
-              学籍番号で追加
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              placeholder="例：060218"
-              value={addNo}
-              onChange={(e) => setAddNo(e.target.value.replace(/[^\d]/g, ""))}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") doAddToRoster();
-              }}
-              style={{
-                width: 140,
-                padding: "8px 12px",
-                border: `1px solid ${T.lineStrong}`,
-                borderRadius: 8,
-                fontFamily: T.mono,
-                fontSize: 13,
-              }}
-            />
-            <button
-              onClick={doAddToRoster}
-              style={{
-                padding: "8px 16px",
-                background: T.cobalt,
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                fontFamily: "inherit",
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              学生追加
-            </button>
+            {canWrite && (
+              <>
+                <label style={{ fontSize: 12, color: T.ink2, fontWeight: 600 }}>
+                  学籍番号で追加
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="例：060218"
+                  value={addNo}
+                  onChange={(e) =>
+                    setAddNo(e.target.value.replace(/[^\d]/g, ""))
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") doAddToRoster();
+                  }}
+                  style={{
+                    width: 140,
+                    padding: "8px 12px",
+                    border: `1px solid ${T.lineStrong}`,
+                    borderRadius: 8,
+                    fontFamily: T.mono,
+                    fontSize: 13,
+                  }}
+                />
+                <button
+                  onClick={doAddToRoster}
+                  style={{
+                    padding: "8px 16px",
+                    background: T.cobalt,
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    fontFamily: "inherit",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  学生追加
+                </button>
+              </>
+            )}
             <button
               onClick={refetchRoster}
               style={{
@@ -1061,23 +1079,27 @@ export function StudyAttendancePage({
                   {r.dorm_unit}
                 </div>
                 <div style={{ padding: "10px 14px" }}>
-                  <button
-                    onClick={() => doRemoveFromRoster(r.student_id, r.name)}
-                    disabled={acting[r.student_id]}
-                    style={{
-                      padding: "4px 12px",
-                      background: T.surface,
-                      color: T.danger,
-                      border: `1px solid ${T.dangerBorder}`,
-                      borderRadius: 6,
-                      fontFamily: "inherit",
-                      fontSize: 11,
-                      fontWeight: 700,
-                      cursor: acting[r.student_id] ? "not-allowed" : "pointer",
-                    }}
-                  >
-                    名簿から外す
-                  </button>
+                  {canWrite && (
+                    <button
+                      onClick={() => doRemoveFromRoster(r.student_id, r.name)}
+                      disabled={acting[r.student_id]}
+                      style={{
+                        padding: "4px 12px",
+                        background: T.surface,
+                        color: T.danger,
+                        border: `1px solid ${T.dangerBorder}`,
+                        borderRadius: 6,
+                        fontFamily: "inherit",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: acting[r.student_id]
+                          ? "not-allowed"
+                          : "pointer",
+                      }}
+                    >
+                      名簿から外す
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

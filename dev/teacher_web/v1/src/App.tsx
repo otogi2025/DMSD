@@ -957,7 +957,7 @@ export function App() {
       break;
     case "study":
       // Task #17: 学習出席页 (§11.1 P0 + §7.3)
-      body = <StudyAttendancePage authToken={authToken} />;
+      body = <StudyAttendancePage teacher={teacher} authToken={authToken} />;
       break;
     case "audit-log":
       // 2026-06-16: 操作履历审计页（操作记录）— 只读，后端 C_AUDIT_LOG 权限把关
