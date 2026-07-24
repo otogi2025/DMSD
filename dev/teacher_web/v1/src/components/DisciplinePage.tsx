@@ -178,6 +178,17 @@ export function DisciplinePage({
     }));
   }
 
+  // 学生 → 本月合计点 的查表（供搜学生弹窗预填/展示当前分）。
+  // ranking 已按同一「demo 隔离 + 寮过滤」口径拉全员（即使 0 点也列出），
+  // 而搜学生接口 query_students_for_picker 用完全相同的过滤，故搜到的学生必在此表内。
+  const pointsByStudent = React.useMemo(() => {
+    const m: Record<string, number> = {};
+    if (backendRanking?.entries) {
+      for (const e of backendRanking.entries) m[e.student_id] = e.total_points;
+    }
+    return m;
+  }, [backendRanking]);
+
   const banList = data.filter((d) => d.is_curfew_threshold);
   // ≥4 分罚扫名单；≥8 分只进禁足名单、不重复标罚扫（已 approve 设计第 6 条）
   const cleaningList = data.filter(
@@ -658,6 +669,7 @@ export function DisciplinePage({
             <ManualDemeritSearchModal
               T={T}
               authToken={authToken}
+              pointsByStudent={pointsByStudent}
               onClose={() => setSearchAddOpen(false)}
               onSubmit={handleManualSubmit}
             />
@@ -755,11 +767,13 @@ function ManualDemeritModal({
 function ManualDemeritSearchModal({
   T,
   authToken,
+  pointsByStudent,
   onClose,
   onSubmit,
 }: {
   T: RyoTokens;
   authToken: string;
+  pointsByStudent: Record<string, number>;
   onClose: () => void;
   onSubmit: (
     studentId: string,
@@ -777,6 +791,14 @@ function ManualDemeritSearchModal({
   // 成功即随弹窗关闭弃用。
   const idemKey = React.useRef(crypto.randomUUID()).current;
   const student = selected[0] || null;
+  // 选中学生的当前本月合计点（从排行榜查表取；查不到按 0）。
+  const currentPoints = student ? (pointsByStudent[student.id] ?? 0) : null;
+  // C8：选中学生后把输入框预填为其当前合计点，与排行榜行入口 ManualDemeritModal 对齐。
+  // 后端 /discipline/manual 是绝对值覆盖，默认「0」+ 不显示当前分会让老师误提交 0 清零本月扣分。
+  React.useEffect(() => {
+    if (student) setScore(String(pointsByStudent[student.id] ?? 0));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [student?.id]);
   const parsed = parseFloat(score);
   const disabled =
     !student ||
@@ -805,7 +827,14 @@ function ManualDemeritSearchModal({
           placeholder="氏名 / 学籍番号で検索（クリックで一覧）"
         />
       </ModalField>
-      <ModalField T={T} label="今月の合計点（絶対値で設定・差分は自動記録）">
+      <ModalField
+        T={T}
+        label={
+          student
+            ? `今月の合計点（現在 ${currentPoints ?? 0} 点・絶対値で上書き）`
+            : "今月の合計点（絶対値で設定・差分は自動記録）"
+        }
+      >
         <input
           type="number"
           min="0"
