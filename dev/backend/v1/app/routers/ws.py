@@ -1,14 +1,16 @@
 """WebSocket endpoint — 老师端实时事件流。
 
-GET /api/v1/ws/teacher?ticket=<一次性短时票据>
+GET /api/v1/ws/teacher?ticket=<短时票据（60秒TTL，无单次消费机制）>
   → frontend client.ts openTeacherWS 调用
   → LiveRollCall 收 checkin / override 事件实时刷新座席表
   → ApplicationsPage 收 outstay_new 推送实时刷新 pending 计数
 
 设计:
-  - 老师 JWT 换一次性短时票据（POST /sessions/ws-ticket）再走 query param
+  - 老师 JWT 换短时票据（POST /sessions/ws-ticket）再走 query param
     连 WS（C20：WebSocket 不能带 Authorization header，长期 JWT 直接进 URL
-    会落进访问日志、长期驻留，故换 60 秒 TTL 的一次性票据）
+    会落进访问日志、长期驻留，故换 60 秒 TTL 的短时票据）。注：票据是无状态
+    JWT，不做单次消费（无 jti、无「已用」存储），60 秒窗口内可重放 —— 详见下方
+    teacher_ws 票据校验处对残余风险的说明
   - 进入 ConnectionManager 后被动等事件
   - frontend disconnect / 心跳超时 → 自动 cleanup
   - 同步 SQLAlchemy 一律经 run_in_threadpool 跑，避免阻塞 asyncio 事件循环
@@ -95,18 +97,25 @@ def _touch_device_last_seen(device_id: str, fw_version: str | None) -> None:
 async def teacher_ws(
     websocket: WebSocket,
     ticket: str = Query(
-        ..., description="一次性短时 WS 票据 — 由 POST /sessions/ws-ticket 换取"
+        ...,
+        description="短时 WS 票据（60秒TTL，无单次消费机制）— 由 POST /sessions/ws-ticket 换取",
     ),
 ):
     """老师端 WebSocket — 收 rollcall / outstay 实时事件。
 
-    鉴权改用一次性短时票据（C20）：老师 JWT 若直接以 query 参数载在 WS
+    鉴权改用短时票据（C20）：老师 JWT 若直接以 query 参数载在 WS
     URL 上，会原样落进 uvicorn / nginx 访问日志、长期驻留。故先用老师 JWT
-    换 60 秒 TTL 的一次性票据（POST /sessions/ws-ticket）再连 WS。
+    换 60 秒 TTL 的短时票据（POST /sessions/ws-ticket）再连 WS。
     本路径自解 JWT、不走 deps —— 除 purpose 校验外，仍靠 _load_teacher_for_ws
     二次确认存在性 / active / 有效期，一项不能少。
     """
     # 票据验证 — JWT decode + purpose + role 检查
+    #
+    # 残余风险与理由（勿把票据理解成「一次性消费」）：本票据是无状态 JWT，靠 60 秒
+    # exp 限窗，不做单次消费——没有 jti、没有「已用票据」存储，故同一张票据在 60 秒
+    # 窗口内可被重放。之所以不实装消费存储：能实时读到访问日志、在 60 秒内截走票据的
+    # 攻击者，本就有服务器 / 日志读取权限，也就能直接读到 jwt_secret 自行签发任意令牌
+    # ——加一张已用票据表并不抬高其攻击门槛。故这是权衡（60 秒窗口足够小）不是疏漏。
     try:
         payload = security.decode_token(ticket)
     except security.JWTError:

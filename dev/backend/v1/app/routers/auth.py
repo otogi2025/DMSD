@@ -319,11 +319,15 @@ def login_teacher(
 def issue_ws_ticket(
     teacher: models.Teacher = Depends(get_current_teacher),
 ):
-    """老师 WS 一次性短时票据发行（C20）。
+    """老师 WS 短时票据发行（C20）。
 
     老师 JWT 若以 query 参数形式载在 WS 握手 URL 上，会原样落进 uvicorn /
-    nginx 的访问日志、长期驻留。这里用老师 JWT 换一张 60 秒 TTL 的一次性
+    nginx 的访问日志、长期驻留。这里用老师 JWT 换一张 60 秒 TTL 的短时
     票据，WS 只收票据、不再收长期令牌。
+
+    注：票据是无状态 JWT，靠 60 秒 exp 限窗，不做单次消费（无 jti、无「已用」
+    存储），故 60 秒窗口内可重放。不实装消费存储是权衡而非疏漏——理由见
+    routers/ws.py teacher_ws 票据校验处的说明。
 
     get_current_teacher 已把存在性 / active / 临时账户有效期全部校验过 ——
     票据里只封 purpose=teacher_ws 与身份（sub/role），WS 侧再用
@@ -334,7 +338,7 @@ def issue_ws_ticket(
         teacher.id,
         f"teacher:{teacher.role}",
         extra={"purpose": "teacher_ws"},
-        # 60 秒 TTL —— 只够立刻拿去连一次 WS，泄漏进日志也几乎无窗口
+        # 60 秒 TTL —— 只够立刻拿去连 WS，把泄漏进日志的可重放窗口压到 60 秒内
         expire_minutes=1,
     )
     return schemas.WSTicketOut(ticket=ticket, expires_in=60)

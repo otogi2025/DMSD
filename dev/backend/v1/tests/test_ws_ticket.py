@@ -1,17 +1,25 @@
-"""C20 老师 WS 一次性短时票据 —— 鉴权路径回归测试。
+"""C20 老师 WS 短时票据（60秒TTL，无单次消费机制）—— 鉴权路径回归测试。
 
 老师 JWT 不再直接作为 WS 的 query 参数（会原样落进 uvicorn / nginx 访问日志），
-改为先用老师 JWT 换 60 秒 TTL 的一次性票据、WS 只收票据。本文件锁住：
+改为先用老师 JWT 换 60 秒 TTL 的短时票据、WS 只收票据。票据是无状态 JWT、靠
+exp 限窗（不做单次消费、无 jti），故本文件除正向 / 反向鉴权外，还钉死「过期票据被拒」。
+本文件锁住：
   - 票据发行需老师 JWT：无令牌 401 / 学生令牌 403
   - WS 收有效票据可连
   - WS 拒绝普通登录 JWT（purpose 缺失）—— 防旧契约令牌直连绕过 purpose 校验
   - WS 缺 ticket 参数（含旧 ?token= 契约）被拒
+  - WS 拒绝已过期票据（exp 在过去）—— 钉死 60 秒 TTL 真的过期即失效
 """
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 import pytest
+from jose import jwt
 from starlette.websockets import WebSocketDisconnect
+
+from app.config import get_settings
 
 
 def _ws_ticket(client, token: str) -> str:
@@ -63,4 +71,27 @@ class TestWSTicket:
         # 旧契约 ?token= —— 缺必填 ticket 参数，握手被拒
         with pytest.raises(WebSocketDisconnect):
             with client.websocket_connect("/api/v1/ws/teacher?token=whatever") as ws:
+                ws.receive_text()
+
+    def test_ws_rejects_expired_ticket(self, client, seed_data):
+        # 用 jwt_secret 手工签一张 exp 在过去、purpose=teacher_ws 的合法票据 ——
+        # 除过期外身份 / purpose 全对，钉死 60 秒 TTL 真的过期即失效（decode_token
+        # verify_exp=True 会拒），而不是靠别的校验碰巧兜住。
+        teacher = seed_data["teachers"]["ryomu_kachou"]
+        settings = get_settings()
+        now = datetime.now(timezone.utc)
+        expired = jwt.encode(
+            {
+                "sub": str(teacher.id),
+                "role": f"teacher:{teacher.role}",
+                "purpose": "teacher_ws",
+                "iat": int((now - timedelta(minutes=5)).timestamp()),
+                # exp 落在过去 → 已过期
+                "exp": int((now - timedelta(minutes=1)).timestamp()),
+            },
+            settings.jwt_secret,
+            algorithm=settings.jwt_algorithm,
+        )
+        with pytest.raises(WebSocketDisconnect):
+            with client.websocket_connect(f"/api/v1/ws/teacher?ticket={expired}") as ws:
                 ws.receive_text()

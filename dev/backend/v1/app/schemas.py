@@ -115,8 +115,9 @@ class TeacherTokenOut(BaseModel):
 
 
 class WSTicketOut(BaseModel):
-    # 老师 WS 一次性短时票据（C20）— 不把老师 JWT 放进 WS 的 query 参数，
-    # 改为换成 60 秒 TTL 的一次性票据来握手。
+    # 老师 WS 短时票据（60秒TTL，无单次消费机制）（C20）— 不把老师 JWT 放进 WS
+    # 的 query 参数，改为换成 60 秒 TTL 的短时票据来握手（票据是无状态 JWT、不做
+    # 单次消费，60 秒窗口内可重放，理由见 routers/ws.py teacher_ws 校验处）。
     ticket: str
     expires_in: int
 

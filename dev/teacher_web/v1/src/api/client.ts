@@ -883,7 +883,9 @@ export const api = {
       if (closedByUser) return;
       setStatus("connecting");
       // C20：不把老师 JWT 直接放进 WS URL（会落进访问日志），先用 JWT 换一张
-      // 60 秒 TTL 的一次性票据、再拿票据连 WS。每次重连都取新票据（旧的早过期）。
+      // 60 秒 TTL 的短时票据、再拿票据连 WS。每次重连都取新票据（旧的早过期）。
+      // 注：票据是无状态 JWT，不做单次消费（无 jti），60 秒窗口内可重放 —— 见后端
+      // routers/ws.py teacher_ws 校验处对残余风险的说明。
       void (async () => {
         let ticket: string;
         try {
