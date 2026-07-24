@@ -107,6 +107,10 @@ export function InfoPage({
   const [replyInput, setReplyInput] = React.useState<Record<string, string>>(
     {},
   );
+  // 返信提交中: { [id]: true } — 锁定进行中的返信，防止重复投稿
+  const [replySubmitting, setReplySubmitting] = React.useState<
+    Record<string, boolean>
+  >({});
   // 編集対象: null | { id, title, body, scope }
   const [editTarget, setEditTarget] = React.useState<{
     id: string;
@@ -304,7 +308,9 @@ export function InfoPage({
   // ── 返信投稿 ──
   const handleReply = async (announcementId: string) => {
     const body = (replyInput[announcementId] || "").trim();
-    if (!body || !authToken) return;
+    // 提交中守卫：拦截连按回车 / 双击送信导致的重复投稿
+    if (!body || !authToken || replySubmitting[announcementId]) return;
+    setReplySubmitting((s) => ({ ...s, [announcementId]: true }));
     try {
       await api.postAnnouncementReply(announcementId, { body }, authToken);
       setReplyInput((r) => ({ ...r, [announcementId]: "" }));
@@ -322,6 +328,12 @@ export function InfoPage({
       alert(
         "返信に失敗しました：" + ((e as Error).message || JSON.stringify(e)),
       );
+    } finally {
+      setReplySubmitting((s) => {
+        const next = { ...s };
+        delete next[announcementId];
+        return next;
+      });
     }
   };
 
@@ -736,24 +748,31 @@ export function InfoPage({
                           />
                           <button
                             onClick={() => handleReply(p._id)}
-                            disabled={!(replyInput[p._id] || "").trim()}
+                            disabled={
+                              !(replyInput[p._id] || "").trim() ||
+                              !!replySubmitting[p._id]
+                            }
                             style={{
                               padding: "8px 14px",
-                              background: (replyInput[p._id] || "").trim()
-                                ? T.cobalt
-                                : T.line,
+                              background:
+                                (replyInput[p._id] || "").trim() &&
+                                !replySubmitting[p._id]
+                                  ? T.cobalt
+                                  : T.line,
                               color: "#fff",
                               border: "none",
                               borderRadius: 7,
                               fontFamily: "inherit",
                               fontSize: 12,
                               fontWeight: 700,
-                              cursor: (replyInput[p._id] || "").trim()
-                                ? "pointer"
-                                : "not-allowed",
+                              cursor:
+                                (replyInput[p._id] || "").trim() &&
+                                !replySubmitting[p._id]
+                                  ? "pointer"
+                                  : "not-allowed",
                             }}
                           >
-                            送信
+                            {replySubmitting[p._id] ? "送信中..." : "送信"}
                           </button>
                         </div>
                       </>
