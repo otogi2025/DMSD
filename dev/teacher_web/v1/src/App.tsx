@@ -901,7 +901,7 @@ export function App() {
       body = <OutingsPage authToken={authToken} />;
       break;
     case "proxy-application":
-      // 2026-06-05 杭田需求「五-3」— 老师代録出寮届表单
+      // 2026-06-05 杭田需求「五-3」— 老师代理提出出寮届表单
       body = <ProxyApplicationPage authToken={authToken} />;
       break;
     case "discipline":

@@ -9,7 +9,7 @@ import type {
 } from "../api/types";
 
 // 源 index.html 19128-20031（pages-records-search-etc 块）。界面原样搬，仅作用域引用改写。
-// 代録（出寮届）页 — 老师代学生提交帰省 / 外泊 / 帰国届。
+// 代理提出（出寮届）页 — 老师代学生提交帰省 / 外泊 / 帰国届。
 export function ProxyApplicationPage({ authToken }: { authToken: string }) {
   const T = RYO;
 
@@ -314,7 +314,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
       await api.createByTeacher(picked.id, body, authToken);
       // web#38：先记下成功文案再 reset（resetForm 会清 msg）
       const okText =
-        picked.name + " さんの" + kind + "届を代録しました（承認待ち）";
+        picked.name + " さんの" + kind + "届を代理提出しました（承認待ち）";
       resetForm();
       setMsg({ type: "ok", text: okText });
     } catch (e) {
@@ -326,7 +326,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
         code === "FORBIDDEN_DORM"
           ? "担当外の寮の学生です"
           : code === "FORBIDDEN_ROLE"
-            ? "代録権限がありません"
+            ? "代理提出権限がありません"
             : code === "LEAVE_DATE_PAST"
               ? "出寮日は本日以降を指定してください"
               : (err && err.message) ||
@@ -388,7 +388,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
           letterSpacing: -0.3,
         }}
       >
-        代録（出寮届）
+        代理提出（出寮届）
       </h1>
       <p style={{ fontSize: 12, color: T.ink3, marginBottom: 18 }}>
         寮生に代わって帰省・外泊・帰国届を提出します（当日も可）。提出後は通常の承認フローに乗ります。
@@ -942,7 +942,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
           marginBottom: 40,
         }}
       >
-        {submitting ? "提出中…" : kind + "届を代録する"}
+        {submitting ? "提出中…" : kind + "届を代理提出する"}
       </button>
     </div>
   );

@@ -159,7 +159,7 @@ export function Shell({
       cleaning: "清掃罰則",
       applications: "申請",
       outings: "外出申請",
-      "proxy-application": "代録",
+      "proxy-application": "代理提出",
       study: "夜学習出席",
       records: "点呼記録",
       "active-leaves": "出寮者一覧",

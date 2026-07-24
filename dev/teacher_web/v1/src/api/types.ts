@@ -791,7 +791,7 @@ export interface TeacherRenewSeatIn {
   seat_no: string;
 }
 
-// ── 代録（老师代学生提出寮届）请求体 ──
+// ── 代理提出（老师代学生提出寮届）请求体 ──
 // 跟学生侧一样的 kind 分型结构（帰省 / 外泊 / 帰国）
 export interface ApplicationCreateBody {
   kind: "帰省" | "外泊" | "帰国";

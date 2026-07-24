@@ -88,7 +88,7 @@ export function ApplicationsPage({
 }: {
   onOpen: (app: OutstayUiApp) => void;
   backendApplications: Application[] | null;
-  // 代録（代学生提交出寮届）入口跳转 — 低频功能，已从左侧导航移除，入口收到本页。
+  // 代理提出（代学生提交出寮届）入口跳转 — 低频功能，已从左侧导航移除，入口收到本页。
   onNav: (view: string) => void;
   // 在线学习申请 tab 自给自足拉取 + 审批要用（不走 backendApplications 统一流）
   authToken: string | null;
@@ -209,7 +209,7 @@ export function ApplicationsPage({
         >
           申請センター
         </h1>
-        {/* 代録（代学生提交出寮届）— 低频功能，从左侧导航移除后入口收到这里。 */}
+        {/* 代理提出（代学生提交出寮届）— 低频功能，从左侧导航移除后入口收到这里。 */}
         <button
           onClick={() => onNav("proxy-application")}
           style={{
@@ -226,7 +226,7 @@ export function ApplicationsPage({
             flexShrink: 0,
           }}
         >
-          ＋ 代録（出寮届の代理提出）
+          ＋ 代理提出（出寮届）
         </button>
       </div>
 

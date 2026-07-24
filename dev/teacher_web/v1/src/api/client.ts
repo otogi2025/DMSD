@@ -211,7 +211,7 @@ export const api = {
       undefined,
       token,
     ),
-  // 代録 — 搜可代録的学生（按老师寮边界 + 限代録 5 角色）
+  // 代理提出 — 搜可代理提出的学生（按老师寮边界 + 限代理提出 5 角色）
   proxyCandidates: (token: string, q?: string) =>
     request<StudentBrief[]>(
       "GET",
@@ -220,7 +220,7 @@ export const api = {
       undefined,
       token,
     ),
-  // 代録 — 提交老师代学生的出寮届
+  // 代理提出 — 提交老师代学生的出寮届
   createByTeacher: (
     student_id: string,
     body: ApplicationCreateBody,
