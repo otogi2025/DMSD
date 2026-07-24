@@ -1,12 +1,14 @@
 """WebSocket endpoint — 老师端实时事件流。
 
-GET /api/v1/ws/teacher?token=<JWT>
-  → frontend client.js openTeacherWS 调用
+GET /api/v1/ws/teacher?ticket=<一次性短时票据>
+  → frontend client.ts openTeacherWS 调用
   → LiveRollCall 收 checkin / override 事件实时刷新座席表
   → ApplicationsPage 收 outstay_new 推送实时刷新 pending 计数
 
 设计:
-  - token 走 query param (WebSocket 不能带 Authorization header)
+  - 老师 JWT 换一次性短时票据（POST /sessions/ws-ticket）再走 query param
+    连 WS（C20：WebSocket 不能带 Authorization header，长期 JWT 直接进 URL
+    会落进访问日志、长期驻留，故换 60 秒 TTL 的一次性票据）
   - 进入 ConnectionManager 后被动等事件
   - frontend disconnect / 心跳超时 → 自动 cleanup
   - 同步 SQLAlchemy 一律经 run_in_threadpool 跑，避免阻塞 asyncio 事件循环
@@ -92,13 +94,27 @@ def _touch_device_last_seen(device_id: str, fw_version: str | None) -> None:
 @router.websocket("/teacher")
 async def teacher_ws(
     websocket: WebSocket,
-    token: str = Query(..., description="教师 JWT — query param 形式"),
+    ticket: str = Query(
+        ..., description="一次性短时 WS 票据 — 由 POST /sessions/ws-ticket 换取"
+    ),
 ):
-    """老师端 WebSocket — 收 rollcall / outstay 实时事件。"""
-    # token 验证 — JWT decode + role 检查
+    """老师端 WebSocket — 收 rollcall / outstay 实时事件。
+
+    鉴权改用一次性短时票据（C20）：老师 JWT 若直接以 query 参数载在 WS
+    URL 上，会原样落进 uvicorn / nginx 访问日志、长期驻留。故先用老师 JWT
+    换 60 秒 TTL 的一次性票据（POST /sessions/ws-ticket）再连 WS。
+    本路径自解 JWT、不走 deps —— 除 purpose 校验外，仍靠 _load_teacher_for_ws
+    二次确认存在性 / active / 有效期，一项不能少。
+    """
+    # 票据验证 — JWT decode + purpose + role 检查
     try:
-        payload = security.decode_token(token)
+        payload = security.decode_token(ticket)
     except security.JWTError:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
+    # purpose 校验 —— 只接受专为 WS 握手签发的票据，普通登录 JWT / 其它用途令牌一律拒
+    if payload.get("purpose") != "teacher_ws":
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 

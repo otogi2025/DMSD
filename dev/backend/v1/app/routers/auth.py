@@ -24,7 +24,10 @@ from sqlalchemy.orm import Session
 from .. import models, schemas, security
 from ..config import get_settings
 from ..database import get_db
-from ..deps import get_current_principal  # B1 登出端点用（老师 + 学生都能调）
+from ..deps import (
+    get_current_principal,  # B1 登出端点用（老师 + 学生都能调）
+    get_current_teacher,  # C20 WS 票据发行用（只老师可调）
+)
 from ..ratelimit import limiter
 
 router = APIRouter(prefix="/api/v1/sessions", tags=["auth"])
@@ -310,6 +313,31 @@ def login_teacher(
         expires_in=settings.jwt_access_expire_min * 60,
         teacher=schemas.TeacherOut.model_validate(teacher),
     )
+
+
+@router.post("/ws-ticket", response_model=schemas.WSTicketOut)
+def issue_ws_ticket(
+    teacher: models.Teacher = Depends(get_current_teacher),
+):
+    """老师 WS 一次性短时票据发行（C20）。
+
+    老师 JWT 若以 query 参数形式载在 WS 握手 URL 上，会原样落进 uvicorn /
+    nginx 的访问日志、长期驻留。这里用老师 JWT 换一张 60 秒 TTL 的一次性
+    票据，WS 只收票据、不再收长期令牌。
+
+    get_current_teacher 已把存在性 / active / 临时账户有效期全部校验过 ——
+    票据里只封 purpose=teacher_ws 与身份（sub/role），WS 侧再用
+    _load_teacher_for_ws 二次确认存在性 / active / 有效期，并取回
+    assigned_dorm / is_demo（本路径自解 JWT、不走 deps，校验一项不能少）。
+    """
+    ticket = security.create_access_token(
+        teacher.id,
+        f"teacher:{teacher.role}",
+        extra={"purpose": "teacher_ws"},
+        # 60 秒 TTL —— 只够立刻拿去连一次 WS，泄漏进日志也几乎无窗口
+        expire_minutes=1,
+    )
+    return schemas.WSTicketOut(ticket=ticket, expires_in=60)
 
 
 @router.delete("/current", status_code=status.HTTP_204_NO_CONTENT)

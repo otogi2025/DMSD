@@ -859,8 +859,6 @@ export const api = {
       const proto = location.protocol === "https:" ? "wss:" : "ws:";
       wsUrl = `${proto}//${location.host}${API_BASE}/ws/teacher`;
     }
-    const fullUrl = `${wsUrl}?token=${encodeURIComponent(token)}`;
-
     const MAX_ATTEMPTS = 8;
     const BACKOFF_MS = [1000, 2000, 4000, 8000, 16000, 30000, 30000, 30000];
 
@@ -884,35 +882,56 @@ export const api = {
     const connect = () => {
       if (closedByUser) return;
       setStatus("connecting");
-      try {
-        ws = new WebSocket(fullUrl);
-      } catch (e) {
-        console.error("[tomoshibiApi WS] new WebSocket throw", e);
-        scheduleReconnect();
-        return;
-      }
-      ws.addEventListener("open", () => {
-        attempt = 0;
-        setStatus("connected");
-      });
-      ws.addEventListener("message", (ev: MessageEvent) => {
+      // C20：不把老师 JWT 直接放进 WS URL（会落进访问日志），先用 JWT 换一张
+      // 60 秒 TTL 的一次性票据、再拿票据连 WS。每次重连都取新票据（旧的早过期）。
+      void (async () => {
+        let ticket: string;
         try {
-          onMessage(JSON.parse(ev.data));
+          const res = await request<{ ticket: string; expires_in: number }>(
+            "POST",
+            "/sessions/ws-ticket",
+            undefined,
+            token,
+          );
+          ticket = res.ticket;
         } catch (e) {
-          console.error("[tomoshibiApi WS] parse error", e, ev.data);
+          console.warn("[tomoshibiApi WS] 票据取得失败 → reconnect", e);
+          scheduleReconnect();
+          return;
         }
-      });
-      ws.addEventListener("error", (e) => {
-        console.warn("[tomoshibiApi WS] error", e);
-      });
-      ws.addEventListener("close", (ev: CloseEvent) => {
+        // 取票据是异步的 —— 期间用户可能已 close()，此时不再建连
         if (closedByUser) return;
-        console.warn(
-          `[tomoshibiApi WS] closed code=${ev.code} reason=${ev.reason} → reconnect`,
-        );
-        setStatus("disconnected");
-        scheduleReconnect();
-      });
+        const fullUrl = `${wsUrl}?ticket=${encodeURIComponent(ticket)}`;
+        try {
+          ws = new WebSocket(fullUrl);
+        } catch (e) {
+          console.error("[tomoshibiApi WS] new WebSocket throw", e);
+          scheduleReconnect();
+          return;
+        }
+        ws.addEventListener("open", () => {
+          attempt = 0;
+          setStatus("connected");
+        });
+        ws.addEventListener("message", (ev: MessageEvent) => {
+          try {
+            onMessage(JSON.parse(ev.data));
+          } catch (e) {
+            console.error("[tomoshibiApi WS] parse error", e, ev.data);
+          }
+        });
+        ws.addEventListener("error", (e) => {
+          console.warn("[tomoshibiApi WS] error", e);
+        });
+        ws.addEventListener("close", (ev: CloseEvent) => {
+          if (closedByUser) return;
+          console.warn(
+            `[tomoshibiApi WS] closed code=${ev.code} reason=${ev.reason} → reconnect`,
+          );
+          setStatus("disconnected");
+          scheduleReconnect();
+        });
+      })();
     };
 
     const scheduleReconnect = () => {

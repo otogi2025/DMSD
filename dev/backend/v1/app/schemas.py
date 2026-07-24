@@ -114,6 +114,13 @@ class TeacherTokenOut(BaseModel):
     teacher: "TeacherOut"
 
 
+class WSTicketOut(BaseModel):
+    # 老师 WS 一次性短时票据（C20）— 不把老师 JWT 放进 WS 的 query 参数，
+    # 改为换成 60 秒 TTL 的一次性票据来握手。
+    ticket: str
+    expires_in: int
+
+
 # ---------------------------------------------------------------
 # 学生 (出寮届で参照)
 # ---------------------------------------------------------------
