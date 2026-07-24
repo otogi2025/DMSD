@@ -908,7 +908,7 @@ export function App() {
       body = <DisciplinePage teacher={teacher} authToken={authToken} />;
       break;
     case "cleaning":
-      body = <CleaningPage authToken={authToken} />;
+      body = <CleaningPage teacher={teacher} authToken={authToken} />;
       break;
     case "records":
       body = <RecordsPage params={pageParams} authToken={authToken} />;

@@ -13,7 +13,9 @@ import type {
   CleaningItem,
   CleaningCreateIn,
   CleaningInspectIn,
+  TeacherProfile,
 } from "../api/types";
+import { canManage, C_DEMERIT } from "../api/permissions";
 
 // /cleaning — 清扫确认：未完了の清掃割り当て一覧 + 割り当て modal + 却下理由 modal。
 // 旧版（71d9200）原样恢复，套 3 处改动：
@@ -53,8 +55,18 @@ function fmtCleaningWhen(iso: string): string {
   return `${g("month")}月${g("day")}日 ${g("hour")}時${g("minute")}分`;
 }
 
-export function CleaningPage({ authToken }: { authToken: string }) {
+export function CleaningPage({
+  teacher,
+  authToken,
+}: {
+  teacher: TeacherProfile | null;
+  authToken: string;
+}) {
   const T = RYO;
+  // 权限：清扫罚则归 C_DEMERIT 簇，「申請承認専用」组只有 VIEW，后端清扫写端点均
+  // require_permission(C_DEMERIT, MANAGE)。无 MANAGE 时隐藏分配/承认/却下写按钮，
+  // 避免点了必被 403（与 AccountsPage/InfoPage 同款门控）。
+  const canWrite = !!teacher && canManage(teacher, C_DEMERIT);
 
   const [items, setItems] = React.useState<CleaningItem[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -145,23 +157,25 @@ export function CleaningPage({ authToken }: { authToken: string }) {
         }}
       >
         <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>清掃確認</h1>
-        <button
-          onClick={() => setComposing(true)}
-          style={{
-            marginLeft: "auto",
-            padding: "8px 16px",
-            background: T.cobalt,
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            fontFamily: "inherit",
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
-        >
-          ＋ 清掃を割り当て
-        </button>
+        {canWrite && (
+          <button
+            onClick={() => setComposing(true)}
+            style={{
+              marginLeft: "auto",
+              padding: "8px 16px",
+              background: T.cobalt,
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            ＋ 清掃を割り当て
+          </button>
+        )}
       </div>
       <div style={{ color: T.ink3, fontSize: 13, marginBottom: 20 }}>
         未完了の清掃割り当て一覧
@@ -328,7 +342,7 @@ export function CleaningPage({ authToken }: { authToken: string }) {
                     却下理由：{item.failure_reason}
                   </div>
                 )}
-                {canInspect && (
+                {canWrite && canInspect && (
                   <div style={{ display: "flex", gap: 6 }}>
                     <button
                       onClick={() => handleInspect(item.id, "passed")}
