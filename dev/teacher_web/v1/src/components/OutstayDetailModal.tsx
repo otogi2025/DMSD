@@ -285,13 +285,13 @@ export function OutstayDetailModal({
               {detail ? String(detail.leave_time) : "—"}
             </F>
             <F label="出発方法">{detail ? detail.leave_method : "—"}</F>
-            <F label="帰舎予定日" mono>
+            <F label="帰寮予定日" mono>
               {detail ? String(detail.return_date) : app.return_}
             </F>
-            <F label="帰舎予定時刻" mono>
+            <F label="帰寮予定時刻" mono>
               {detail ? String(detail.return_time) : "—"}
             </F>
-            <F label="帰舎方法">{detail ? detail.return_method : "—"}</F>
+            <F label="帰寮方法">{detail ? detail.return_method : "—"}</F>
             <F label="タクシー予約">
               {detail && detail.taxi_reservation_time
                 ? String(detail.taxi_reservation_time)
@@ -736,7 +736,7 @@ export function OutstayDetailModal({
                 setReturnReason(e.target.value);
                 if (returnError) setReturnError(null);
               }}
-              placeholder="例：出発時刻と帰舎時刻に矛盾があります。再確認のうえ修正してください。"
+              placeholder="例：出発時刻と帰寮時刻に矛盾があります。再確認のうえ修正してください。"
               rows={3}
               autoFocus
               style={{
