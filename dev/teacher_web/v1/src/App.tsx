@@ -457,7 +457,13 @@ export function App() {
           : e.base_status === "init"
             ? "unknown"
             : e.base_status, // late / absent 原样保留
-    checkinAt: e.checked_in_at,
+    // 后端 checked_in_at 是完整 ISO 串，归一成 JST 的 HH:MM:SS，与 WS checkin 路径显示一致
+    checkinAt: e.checked_in_at
+      ? new Date(e.checked_in_at).toLocaleTimeString("en-GB", {
+          timeZone: "Asia/Tokyo",
+          hour12: false,
+        })
+      : e.checked_in_at,
     // 5-27: 该学生最新 RollCallEvent.id — OverrideModal 调 PATCH /events/{id} 用
     // init 状态学生没 event = null（OverrideModal 收到 null 走 demo 路径）
     lastEventId: e.last_event_id || null,
