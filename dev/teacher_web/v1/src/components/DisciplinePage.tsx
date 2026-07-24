@@ -381,7 +381,7 @@ export function DisciplinePage({
               <RulePill label="遅刻" value="0.5 点" color={T.late} />
               <RulePill label="欠席" value="1.0 点" color={T.danger} />
               <RulePill
-                label="清掃罰則の適用"
+                label="罰則清掃の適用"
                 value="月累計 ≥ 4 点"
                 color={T.warn}
               />
@@ -572,7 +572,7 @@ export function DisciplinePage({
 
           <SectionH
             n="2"
-            title="清掃罰則リスト（来月対象）"
+            title="罰則清掃リスト（来月対象）"
             note={`${cleaningList.length} 名`}
           />
           <StudentCardRow
@@ -791,14 +791,22 @@ function ManualDemeritSearchModal({
   // 成功即随弹窗关闭弃用。
   const idemKey = React.useRef(crypto.randomUUID()).current;
   const student = selected[0] || null;
-  // 选中学生的当前本月合计点（从排行榜查表取；查不到按 0）。
-  const currentPoints = student ? (pointsByStudent[student.id] ?? 0) : null;
+  // 选中学生的当前本月合计点。ranking「加载中/拉取失败」时 pointsByStudent 为空 → 查表得
+  // undefined = 未知（不能按 0 处理，否则预填 0 + 显示「現在 0 点」会诱导老师提交把真实扣分清零）。
+  // 未知时 currentPoints=null，供 label 显示「取得できません」+ 保持 score 为空挡提交。
+  const currentPoints: number | null =
+    student && pointsByStudent[student.id] !== undefined
+      ? pointsByStudent[student.id]
+      : null;
   // C8：选中学生后把输入框预填为其当前合计点，与排行榜行入口 ManualDemeritModal 对齐。
-  // 后端 /discipline/manual 是绝对值覆盖，默认「0」+ 不显示当前分会让老师误提交 0 清零本月扣分。
+  // 后端 /discipline/manual 是绝对值覆盖，默认「0」+ 不显示当前分会让老师误提交 0 清零本月扣分，
+  // 故未知（ranking 未到）时预填空字符串，由下方 disabled 守卫挡提交；ranking 到达后
+  // pointsByStudent 变化 → 本 effect 重跑自动补预填并刷新 label。
   React.useEffect(() => {
-    if (student) setScore(String(pointsByStudent[student.id] ?? 0));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [student?.id]);
+    if (!student) return;
+    const cur = pointsByStudent[student.id];
+    setScore(cur !== undefined ? String(cur) : "");
+  }, [student, pointsByStudent]);
   const parsed = parseFloat(score);
   const disabled =
     !student ||
@@ -830,9 +838,11 @@ function ManualDemeritSearchModal({
       <ModalField
         T={T}
         label={
-          student
-            ? `今月の合計点（現在 ${currentPoints ?? 0} 点・絶対値で上書き）`
-            : "今月の合計点（絶対値で設定・差分は自動記録）"
+          !student
+            ? "今月の合計点（絶対値で設定・差分は自動記録）"
+            : currentPoints !== null
+              ? `今月の合計点（現在 ${currentPoints} 点・絶対値で上書き）`
+              : "今月の合計点（現在の点数を取得できません）"
         }
       >
         <input
