@@ -247,7 +247,7 @@ export function DisciplinePage({
 
       {tab === "incidents" ? (
         <div style={{ marginTop: 20 }}>
-          <IncidentsPage authToken={authToken} embedded />
+          <IncidentsPage teacher={teacher} authToken={authToken} embedded />
         </div>
       ) : (
         <>

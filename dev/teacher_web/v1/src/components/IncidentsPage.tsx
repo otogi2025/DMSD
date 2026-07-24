@@ -3,7 +3,8 @@ import { RYO } from "../theme";
 import { api } from "../api/client";
 import { ConfirmModal, StudentPicker, type PickerStudent } from "./shared";
 import { StudentProfileModal } from "./StudentProfileModal";
-import type { IncidentItem } from "../api/types";
+import type { IncidentItem, TeacherProfile } from "../api/types";
+import { canManage, C_INCIDENT } from "../api/permissions";
 
 // 源 index.html 27700-28342（accounts.jsx 块的 IncidentsPage）。界面原样搬，
 // 仅作用域引用方式改写：window.RYO→RYO / window.tomoshibiApi→api /
@@ -13,15 +14,21 @@ import type { IncidentItem } from "../api/types";
 type Toast = { type: "ok" | "err"; msg: string };
 
 export function IncidentsPage({
+  teacher,
   authToken,
   embedded = false,
 }: {
+  teacher: TeacherProfile | null;
   authToken: string;
   // embedded = 嵌入到「減点・処分」页的标签页里时为 true：去掉自带外层 padding 与
   // eyebrow / h1 标题（外层 tab 已标「事案記録」），只保留「＋新規登録」按钮靠右。
   embedded?: boolean;
 }) {
   const T = RYO;
+  // 权限：C_INCIDENT 簇里「申請承認専用」组只有 VIEW，后端事案写端点均
+  // require_permission(C_INCIDENT, MANAGE)。无 MANAGE 时隐藏新建/编辑/删除入口，
+  // 避免点了必被 403（与 AccountsPage/InfoPage 同款门控）。
+  const canWrite = !!teacher && canManage(teacher, C_INCIDENT);
   const [incidents, setIncidents] = React.useState<IncidentItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
@@ -223,22 +230,24 @@ export function IncidentsPage({
             事案記録
           </h1>
         )}
-        <button
-          onClick={openNew}
-          style={{
-            padding: "9px 18px",
-            background: T.cobalt,
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            fontFamily: "inherit",
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
-        >
-          ＋ 新規登録
-        </button>
+        {canWrite && (
+          <button
+            onClick={openNew}
+            style={{
+              padding: "9px 18px",
+              background: T.cobalt,
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            ＋ 新規登録
+          </button>
+        )}
       </div>
 
       {loadError && (
@@ -402,38 +411,42 @@ export function IncidentsPage({
                   gap: 4,
                 }}
               >
-                <button
-                  onClick={() => openEdit(inc)}
-                  style={{
-                    padding: "4px 10px",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    background: "transparent",
-                    color: T.cobalt,
-                    border: `1px solid ${T.cobalt}`,
-                    borderRadius: 6,
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                  }}
-                >
-                  編集
-                </button>
-                <button
-                  onClick={() => setConfirmDelete(inc)}
-                  style={{
-                    padding: "4px 10px",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    background: "transparent",
-                    color: T.danger,
-                    border: `1px solid ${T.dangerBorder}`,
-                    borderRadius: 6,
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                  }}
-                >
-                  削除
-                </button>
+                {canWrite && (
+                  <button
+                    onClick={() => openEdit(inc)}
+                    style={{
+                      padding: "4px 10px",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      background: "transparent",
+                      color: T.cobalt,
+                      border: `1px solid ${T.cobalt}`,
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    編集
+                  </button>
+                )}
+                {canWrite && (
+                  <button
+                    onClick={() => setConfirmDelete(inc)}
+                    style={{
+                      padding: "4px 10px",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      background: "transparent",
+                      color: T.danger,
+                      border: `1px solid ${T.dangerBorder}`,
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    削除
+                  </button>
+                )}
               </div>
             </div>
           ))}
