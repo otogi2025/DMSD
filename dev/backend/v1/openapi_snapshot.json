@@ -9257,6 +9257,24 @@
         ],
         "title": "ValidationError",
         "type": "object"
+      },
+      "WSTicketOut": {
+        "properties": {
+          "expires_in": {
+            "title": "Expires In",
+            "type": "integer"
+          },
+          "ticket": {
+            "title": "Ticket",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticket",
+          "expires_in"
+        ],
+        "title": "WSTicketOut",
+        "type": "object"
       }
     }
   },
@@ -17582,6 +17600,56 @@
           }
         },
         "summary": "Login Teacher",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/sessions/ws-ticket": {
+      "post": {
+        "description": "老师 WS 短时票据发行（C20）。\n\n老师 JWT 若以 query 参数形式载在 WS 握手 URL 上，会原样落进 uvicorn /\nnginx 的访问日志、长期驻留。这里用老师 JWT 换一张 60 秒 TTL 的短时\n票据，WS 只收票据、不再收长期令牌。\n\n注：票据是无状态 JWT，靠 60 秒 exp 限窗，不做单次消费（无 jti、无「已用」\n存储），故 60 秒窗口内可重放。不实装消费存储是权衡而非疏漏——理由见\nrouters/ws.py teacher_ws 票据校验处的说明。\n\nget_current_teacher 已把存在性 / active / 临时账户有效期全部校验过 ——\n票据里只封 purpose=teacher_ws 与身份（sub/role），WS 侧再用\n_load_teacher_for_ws 二次确认存在性 / active / 有效期，并取回\nassigned_dorm / is_demo（本路径自解 JWT、不走 deps，校验一项不能少）。",
+        "operationId": "issue_ws_ticket_api_v1_sessions_ws_ticket_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WSTicketOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Issue Ws Ticket",
         "tags": [
           "auth"
         ]
