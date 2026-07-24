@@ -470,7 +470,9 @@ export function ApplicationsPage({
                     color: T.ink3,
                   }}
                 >
-                  {new Date(o.submitted_at).toLocaleString("ja-JP")}
+                  {new Date(o.submitted_at).toLocaleString("ja-JP", {
+                    timeZone: "Asia/Tokyo",
+                  })}
                 </div>
                 <div style={{ padding: "10px 14px", display: "flex", gap: 6 }}>
                   <button
