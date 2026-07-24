@@ -14,6 +14,11 @@ export function SearchPage({
   const T = RYO;
   const [tab, setTab] = React.useState("student");
   const [q, setQ] = React.useState(query || "");
+  // C11: 已在检索页时从顶栏再次检索，page 不变、组件不重挂，useState 初值不会重跑，
+  // 内部 q 会停在旧值导致二次检索静默失效。同步 query prop → 内部 q。
+  React.useEffect(() => {
+    setQ(query || "");
+  }, [query]);
   // 后端检索结果 — null=未检索 / []=0 件 / [...]
   const [results, setResults] = React.useState<StudentAccountListItem[] | null>(
     null,
