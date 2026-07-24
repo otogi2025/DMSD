@@ -15,6 +15,7 @@ import type {
   DisciplineRankingOut,
   DemeritEvent,
 } from "../api/types";
+import { canManage, C_DEMERIT } from "../api/permissions";
 
 // 源 index.html 17197-17882（components/discipline.jsx 块）。
 // 界面原样搬，仅 window.RYO→RYO / window.tomoshibiApi→api / window.dormLabel→dormLabel /
@@ -46,6 +47,10 @@ export function DisciplinePage({
 }) {
   const T = RYO;
   const dorm = teacher.dorm;
+  // 权限：C_DEMERIT 簇里「申請承認専用」组只有 VIEW，后端 routers/discipline.py 的
+  // 手动设分/取消均 require_permission(C_DEMERIT, MANAGE)。无 MANAGE 时隐藏写入口，
+  // 避免点了必被 403（与 AccountsPage/InfoPage 同款门控）。
+  const canWrite = !!teacher && canManage(teacher, C_DEMERIT);
 
   // 本月键 YYYY-MM，锁 Asia/Tokyo（勿用浏览器本地 getMonth）
   const month = (() => {
@@ -302,21 +307,23 @@ export function DisciplinePage({
               }}
             >
               <span style={{ flex: 1 }}>{lastEventMsg}</span>
-              <button
-                onClick={() => handleRevoke(lastEvent)}
-                style={{
-                  padding: "4px 12px",
-                  background: "transparent",
-                  color: T.danger,
-                  border: `1px solid ${T.dangerBorder}`,
-                  borderRadius: 6,
-                  fontFamily: "inherit",
-                  fontSize: 12,
-                  cursor: "pointer",
-                }}
-              >
-                取り消し
-              </button>
+              {canWrite && (
+                <button
+                  onClick={() => handleRevoke(lastEvent)}
+                  style={{
+                    padding: "4px 12px",
+                    background: "transparent",
+                    color: T.danger,
+                    border: `1px solid ${T.dangerBorder}`,
+                    borderRadius: 6,
+                    fontFamily: "inherit",
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  取り消し
+                </button>
+              )}
               <button
                 onClick={() => {
                   setLastEvent(null);
@@ -375,30 +382,32 @@ export function DisciplinePage({
             </div>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              marginBottom: 12,
-            }}
-          >
-            <button
-              onClick={() => setSearchAddOpen(true)}
+          {canWrite && (
+            <div
               style={{
-                padding: "9px 16px",
-                background: T.cobalt,
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                fontFamily: "inherit",
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: "pointer",
+                display: "flex",
+                justifyContent: "flex-end",
+                marginBottom: 12,
               }}
             >
-              ＋ 任意の学生に手動加算
-            </button>
-          </div>
+              <button
+                onClick={() => setSearchAddOpen(true)}
+                style={{
+                  padding: "9px 16px",
+                  background: T.cobalt,
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  fontFamily: "inherit",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                ＋ 任意の学生に手動加算
+              </button>
+            </div>
+          )}
           <SectionH n="1" title="今月全員ランキング" />
           {loadingBackend ? (
             <div style={{ padding: 24, color: T.ink3, fontSize: 13 }}>
@@ -520,28 +529,30 @@ export function DisciplinePage({
                     {Math.max(0, 8 - d.total).toFixed(1)} 点
                   </div>
                   <div style={{ padding: "6px 12px" }}>
-                    <button
-                      onClick={() =>
-                        setManualTarget({
-                          student_id: d.student_id,
-                          name: d.name,
-                          current: d.total,
-                        })
-                      }
-                      style={{
-                        padding: "4px 10px",
-                        background: "transparent",
-                        color: T.cobalt,
-                        border: `1px solid ${T.cobalt}`,
-                        borderRadius: 5,
-                        fontFamily: "inherit",
-                        fontSize: 11,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                      }}
-                    >
-                      手動加算
-                    </button>
+                    {canWrite && (
+                      <button
+                        onClick={() =>
+                          setManualTarget({
+                            student_id: d.student_id,
+                            name: d.name,
+                            current: d.total,
+                          })
+                        }
+                        style={{
+                          padding: "4px 10px",
+                          background: "transparent",
+                          color: T.cobalt,
+                          border: `1px solid ${T.cobalt}`,
+                          borderRadius: 5,
+                          fontFamily: "inherit",
+                          fontSize: 11,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                        }}
+                      >
+                        手動加算
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
