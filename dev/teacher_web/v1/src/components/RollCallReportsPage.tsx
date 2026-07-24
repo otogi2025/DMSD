@@ -1,7 +1,8 @@
 import React from "react";
 import { RYO } from "../theme";
 import { api } from "../api/client";
-import type { RollCallReportOut } from "../api/types";
+import type { RollCallReportOut, TeacherProfile } from "../api/types";
+import { canManage, C_ROLLCALL } from "../api/permissions";
 
 // 点呼「学生からの報告」处理页 —— 老师看学生在点呼时上报的问题（身体不适 / 当日缺席 / 其他）
 // 并标记「対応済み」。后端 GET /rollcall/reports（C_ROLLCALL VIEW）+ PATCH /reports/{id}/resolve
@@ -41,13 +42,19 @@ function kindMeta(
 const GRID = "180px 100px 1fr 160px 96px 140px";
 
 export function RollCallReportsPage({
+  teacher,
   authToken,
   onBack,
 }: {
+  teacher: TeacherProfile | null;
   authToken: string;
   onBack: () => void;
 }) {
   const T = RYO;
+  // 权限：C_ROLLCALL 簇里「申請承認専用」组只有 VIEW，后端 routers/rollcall.py 的
+  // PATCH /reports/{id}/resolve 是 require_permission(C_ROLLCALL, MANAGE)。无 MANAGE 时
+  // 隐藏「対応済みにする」写按钮，避免点了必被 403（与 StudyAttendancePage 同款门控）。列表照常可读。
+  const canWrite = !!teacher && canManage(teacher, C_ROLLCALL);
   const [list, setList] = React.useState<RollCallReportOut[] | null>(null);
   const [err, setErr] = React.useState("");
   // 防双击窗口：同一条上报处理中禁止再次点击
@@ -302,7 +309,9 @@ export function RollCallReportsPage({
                   color: T.ink3,
                 }}
               >
-                {new Date(r.created_at).toLocaleString("ja-JP")}
+                {new Date(r.created_at).toLocaleString("ja-JP", {
+                  timeZone: "Asia/Tokyo",
+                })}
               </div>
               {/* 状態 */}
               <div style={{ padding: "10px 14px" }}>
@@ -322,7 +331,7 @@ export function RollCallReportsPage({
               </div>
               {/* 操作 */}
               <div style={{ padding: "10px 14px" }}>
-                {resolved ? (
+                {resolved || !canWrite ? (
                   <span style={{ color: T.ink3, fontSize: 12 }}>—</span>
                 ) : (
                   <button

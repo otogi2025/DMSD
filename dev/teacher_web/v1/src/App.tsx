@@ -29,6 +29,14 @@ import { StudyAttendancePage } from "./components/StudyAttendancePage";
 import { AuditLogPage } from "./components/AuditLogPage";
 import { canView, C_AUDIT_LOG } from "./api/permissions";
 
+// 后端 checked_at / checked_in_at 是完整 ISO 串，归一成 JST 的 HH:MM:SS 供座席卡显示。
+// board 初始快照与 WS checkin 实时事件共用同一口径，避免两路径显示不一致（撑破座席卡）。
+const _isoToJstHms = (iso: string) =>
+  new Date(iso).toLocaleTimeString("en-GB", {
+    timeZone: "Asia/Tokyo",
+    hour12: false,
+  });
+
 export function App() {
   const T = RYO;
   // route: 'login' | 'select-teacher' | 'app'
@@ -321,9 +329,11 @@ export function App() {
                   ? {
                       ...s,
                       status: event.status === "late" ? "late" : "ok",
-                      checkinAt:
-                        event.checked_at ||
-                        new Date().toTimeString().slice(0, 8),
+                      // 后端 checked_at 恒为完整 ISO 串，非空时归一成 JST 的 HH:MM:SS
+                      // （与 board 快照口径一致），否则回退当前本地时刻。原来原样入 state 会撑破座席卡。
+                      checkinAt: event.checked_at
+                        ? _isoToJstHms(event.checked_at)
+                        : new Date().toTimeString().slice(0, 8),
                       // web#12: WS 若带 event_id 则回写 lastEventId（后端当前 checkin 广播未推该字段，有则用、无则保留）
                       lastEventId: event.event_id || s.lastEventId,
                     }
@@ -338,9 +348,18 @@ export function App() {
                       ...s,
                       pending: {
                         reason: event.reason || "外泊申請",
-                        submittedAt:
-                          event.submitted_at ||
-                          new Date().toTimeString().slice(0, 5),
+                        // 后端现真发完整 ISO 串（1ce902c）→ 归一成 JST 的 HH:MM，否则
+                        // OverrideModal 的「提出」徽章会显示整条长时间戳。fallback 保持原样。
+                        submittedAt: event.submitted_at
+                          ? new Date(event.submitted_at).toLocaleTimeString(
+                              "en-GB",
+                              {
+                                timeZone: "Asia/Tokyo",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )
+                          : new Date().toTimeString().slice(0, 5),
                       },
                     }
                   : s,
@@ -468,10 +487,7 @@ export function App() {
             : e.base_status, // late / absent 原样保留
     // 后端 checked_in_at 是完整 ISO 串，归一成 JST 的 HH:MM:SS，与 WS checkin 路径显示一致
     checkinAt: e.checked_in_at
-      ? new Date(e.checked_in_at).toLocaleTimeString("en-GB", {
-          timeZone: "Asia/Tokyo",
-          hour12: false,
-        })
+      ? _isoToJstHms(e.checked_in_at)
       : e.checked_in_at,
     // 5-27: 该学生最新 RollCallEvent.id — OverrideModal 调 PATCH /events/{id} 用
     // init 状态学生没 event = null（OverrideModal 收到 null 走 demo 路径）
@@ -880,6 +896,7 @@ export function App() {
       // 点呼「学生からの報告」处理页 —— 从着陆页入口进（onNav），点「戻る」回点呼首页。
       body = (
         <RollCallReportsPage
+          teacher={teacher}
           authToken={authToken}
           onBack={() => setPage("roll-call")}
         />
