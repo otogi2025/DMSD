@@ -151,6 +151,9 @@ export function App() {
         setSession(null);
         setStudents([]);
         setNfcSeq(0);
+        // C4: 清上一场点呼结果，防同浏览器换老师登录串号看到前一位的点呼结果
+        setLastEnded(null);
+        setLastSummary(null);
         idleWarned.current = false; // web#11: 踢回登录后清警告标记
         try {
           sessionStorage.removeItem("tomoshibi_auth");
@@ -225,6 +228,9 @@ export function App() {
       setAuthProfile(null);
       setLiveMode(false);
       setSession(null);
+      // C4: 清上一场点呼结果，防同浏览器换老师登录串号看到前一位的点呼结果
+      setLastEnded(null);
+      setLastSummary(null);
       setToast({
         type: "warn",
         msg: "セッションが切れました。再度ログインしてください。",
@@ -436,6 +442,9 @@ export function App() {
     setAuthProfile(null);
     setLiveMode(false);
     setSession(null);
+    // C4: 清上一场点呼结果，防同浏览器换老师登录串号看到前一位的点呼结果
+    setLastEnded(null);
+    setLastSummary(null);
   };
 
   // Task #6 真接口对接: 调 rollcallStart + rollcallBoard 在 backend 起动 session。
