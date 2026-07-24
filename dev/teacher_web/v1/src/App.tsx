@@ -933,7 +933,7 @@ export function App() {
       body = <CommunityPage teacher={teacher} />;
       break;
     case "front-desk":
-      body = <FrontDeskPage authToken={authToken} />;
+      body = <FrontDeskPage teacher={teacher} authToken={authToken} />;
       break;
     case "reports":
       body = <ReportsPage authToken={authToken} />;

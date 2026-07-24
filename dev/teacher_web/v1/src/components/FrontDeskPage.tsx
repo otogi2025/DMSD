@@ -1,7 +1,12 @@
 import React from "react";
 import { RYO, type RyoTokens } from "../theme";
 import { api } from "../api/client";
-import type { FrontDeskItem, FrontDeskCreateIn } from "../api/types";
+import type {
+  FrontDeskItem,
+  FrontDeskCreateIn,
+  TeacherProfile,
+} from "../api/types";
+import { canManage, C_FRONTDESK } from "../api/permissions";
 import {
   ModalShell,
   ModalField,
@@ -30,8 +35,18 @@ function isArchivedLost(l: FrontDeskItem, todayIso: string): boolean {
   );
 }
 
-export function FrontDeskPage({ authToken }: { authToken: string | null }) {
+export function FrontDeskPage({
+  teacher,
+  authToken,
+}: {
+  teacher: TeacherProfile | null;
+  authToken: string | null;
+}) {
   const T = RYO;
+  // 权限：C_FRONTDESK 簇里「申請承認専用」组只有 VIEW，后端 routers/front_desk.py 的
+  // 追加/通知/受取均 require_permission(C_FRONTDESK, MANAGE)。无 MANAGE 时隐藏写按钮，
+  // 避免点了必被 403（与 AccountsPage/InfoPage 同款门控）。
+  const canWrite = !!teacher && canManage(teacher, C_FRONTDESK);
   const [tab, setTab] = React.useState<"delivery" | "lost">("delivery");
   const [items, setItems] = React.useState<FrontDeskItem[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -229,23 +244,25 @@ export function FrontDeskPage({ authToken }: { authToken: string | null }) {
         <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.3 }}>
           フロント業務
         </h1>
-        <button
-          onClick={() => setComposing(true)}
-          style={{
-            padding: "8px 16px",
-            background: T.cobalt,
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            fontFamily: "inherit",
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: "pointer",
-            boxShadow: T.shadow1,
-          }}
-        >
-          ＋ {tab === "delivery" ? "宅配通知を追加" : "忘れ物を登録"}
-        </button>
+        {canWrite && (
+          <button
+            onClick={() => setComposing(true)}
+            style={{
+              padding: "8px 16px",
+              background: T.cobalt,
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: "pointer",
+              boxShadow: T.shadow1,
+            }}
+          >
+            ＋ {tab === "delivery" ? "宅配通知を追加" : "忘れ物を登録"}
+          </button>
+        )}
       </div>
       <div style={{ fontSize: 12, color: T.ink3, marginBottom: 18 }}>
         寮の受付窓口での代行記録です。宅配便の到着通知と、館内で見つかった忘れ物を管理します。
@@ -465,6 +482,7 @@ export function FrontDeskPage({ authToken }: { authToken: string | null }) {
                 key={d.id}
                 d={d}
                 T={T}
+                canWrite={canWrite}
                 pending={pendingActionIds.has(d.id)}
                 onNotify={handleNotify}
                 onPickup={handlePickup}
@@ -479,6 +497,7 @@ export function FrontDeskPage({ authToken }: { authToken: string | null }) {
                 key={l.id}
                 l={l}
                 T={T}
+                canWrite={canWrite}
                 pending={pendingActionIds.has(l.id)}
                 onPickup={handlePickup}
               />
@@ -564,12 +583,14 @@ function FdStat({
 function DeliveryRow({
   d,
   T,
+  canWrite,
   pending,
   onNotify,
   onPickup,
 }: {
   d: FrontDeskItem;
   T: RyoTokens;
+  canWrite: boolean;
   pending: boolean;
   onNotify: (id: string) => void;
   onPickup: (id: string) => void;
@@ -674,7 +695,7 @@ function DeliveryRow({
           {d.picked_up_at.slice(5, 16).replace("T", " ")} 受取
         </span>
       )}
-      {!isClosed && !isNotified && (
+      {canWrite && !isClosed && !isNotified && (
         <button
           disabled={pending}
           onClick={() => onNotify(d.id)}
@@ -687,7 +708,7 @@ function DeliveryRow({
           通知済に
         </button>
       )}
-      {!isClosed && (
+      {canWrite && !isClosed && (
         <button
           disabled={pending}
           onClick={() => onPickup(d.id)}
@@ -710,11 +731,13 @@ function DeliveryRow({
 function LostItemRow({
   l,
   T,
+  canWrite,
   pending,
   onPickup,
 }: {
   l: FrontDeskItem;
   T: RyoTokens;
+  canWrite: boolean;
   pending: boolean;
   onPickup: (id: string) => void;
 }) {
@@ -785,7 +808,7 @@ function LostItemRow({
           {l.picked_up_at.slice(5, 16).replace("T", " ")} 返却
         </span>
       )}
-      {!isClosed && (
+      {canWrite && !isClosed && (
         <button
           disabled={pending}
           onClick={() => onPickup(l.id)}
