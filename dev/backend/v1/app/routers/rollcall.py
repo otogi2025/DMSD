@@ -1210,22 +1210,33 @@ def list_rollcall_reports(
     只看本人管辖寮学生的上报（跨寮役职看全部）。
     only_unresolved=True 只返回还没标处理的。
     """
-    stmt = select(models.RollCallReport).order_by(
-        models.RollCallReport.created_at.desc()
+    # R4 寮过滤（男寮 1→[1,2] / 女寮 4→[4] / 跨寮 → None 看全部）
+    # + 演示隔离：真老师只看真实学生上报 / 演示老师只看演示学生上报
+    # （原先跨寮 dorm_units=None 时完全不过滤，演示学生上报会漏进真老师列表 — 一并修掉）。
+    # join Student：既做 demo/寮过滤，又顺手取姓名/学号/房号填进返回（老师认得出「谁上报了
+    # 体调不适」再处理）。inner join 天然排除 student 悬空的孤儿上报，等价原 allowed_student_ids。
+    stmt = (
+        select(models.RollCallReport, models.Student)
+        .join(
+            models.Student,
+            models.RollCallReport.student_id == models.Student.id,
+        )
+        .where(demo_scope_for_teacher(teacher))
+        .order_by(models.RollCallReport.created_at.desc())
     )
     if only_unresolved:
         stmt = stmt.where(models.RollCallReport.resolved_at.is_(None))
-    rows = db.scalars(stmt).all()
-    # R4 寮过滤（男寮 1→[1,2] / 女寮 4→[4] / 跨寮 → None 看全部）
-    # + 演示隔离：真老师只看真实学生上报 / 演示老师只看演示学生上报
-    # （原先跨寮 dorm_units=None 时完全不过滤，演示学生上报会漏进真老师列表 — 一并修掉）
     dorm_units = dorm_units_for_teacher(teacher)
-    student_q = select(models.Student.id).where(demo_scope_for_teacher(teacher))
     if dorm_units is not None:
-        student_q = student_q.where(models.Student.dorm_unit.in_(dorm_units))
-    allowed_student_ids = set(db.scalars(student_q).all())
-    rows = [r for r in rows if r.student_id in allowed_student_ids]
-    return [schemas.RollCallReportOut.model_validate(r) for r in rows]
+        stmt = stmt.where(models.Student.dorm_unit.in_(dorm_units))
+    out = []
+    for report, student in db.execute(stmt).all():
+        item = schemas.RollCallReportOut.model_validate(report)
+        item.student_name = student.name
+        item.student_no = student.student_no
+        item.room_no = student.room_no
+        out.append(item)
+    return out
 
 
 @router.patch("/reports/{report_id}/resolve", response_model=schemas.RollCallReportOut)

@@ -27,6 +27,7 @@ import type {
   RollCallBoardOut,
   RollCallSummaryOut,
   RollCallEventOut,
+  RollCallReportOut,
   TeacherOut,
   TeacherPublic,
   TeacherCreateIn,
@@ -339,6 +340,21 @@ export const api = {
     ),
 
   // ── Rollcall ──
+  // 点呼学生上报 — 老师查列表（onlyUnresolved=只看未处理）+ 标记已处理。
+  rollcallReports: (token: string, onlyUnresolved?: boolean) =>
+    request<RollCallReportOut[]>(
+      "GET",
+      `/rollcall/reports${onlyUnresolved ? "?only_unresolved=true" : ""}`,
+      undefined,
+      token,
+    ),
+  resolveRollcallReport: (id: string, token: string) =>
+    request<RollCallReportOut>(
+      "PATCH",
+      `/rollcall/reports/${id}/resolve`,
+      undefined,
+      token,
+    ),
   rollcallTodaySessions: (token: string) =>
     request<RollCallSessionOut[]>(
       "GET",

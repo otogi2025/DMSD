@@ -1310,6 +1310,16 @@ itsuki 拍板：角丸版（A 案）採用。参照 4 箇所は同一アセッ�
 
 検証：`npm run build` ✓ built 769ms（主会話自跑）。
 
+## 2026-07-24 — 点呼「学生からの報告」処理ページ新設（RollCallReportsPage）
+
+grok-4.5 三方对齐审查发现的第 2 处漏接线：学生在点呼时上报的问题（`POST /rollcall/reports`，iOS 点呼界面三个弹窗 = 体調不良 / 当日欠席 / その他）后端早已实装老师侧查看接口（`GET /rollcall/reports` 列表 + `PATCH /rollcall/reports/{id}/resolve` 标记対応済），但老师网页从未接线 —— 学生上报后老师端无处处理。itsuki 拍板「交给你」，接上。
+
+**独立中层页（不进侧边栏）**：新建 `RollCallReportsPage.tsx`，从点呼着陆页（`RollCallLanding`）入口进、点「戻る」回点呼首页，仿 `RollCallSummary` 的中层页模式，不占主导航。着陆页在当日统计卡下方加一条「学生からの報告」入口横条（`onNav("rollcall-reports")`）；`App.tsx` 加 `case "rollcall-reports"`。默认只看未対応、可切「すべて」看历史；表格样式照在线学习收件箱。403 → 提示需「点呼」权限，409（别的老师已先处理）→ 静默 refetch 让它从未対応列表消失。
+
+**后端同批补学生摘要**：`GET /rollcall/reports` 原来只回 `student_id`（UUID），老师认不出「谁上报」。给 `RollCallReportOut` 加 `student_name/student_no/room_no`（`Optional=None`，学生自查 `/reports/mine` 保持 None、老师端点 join Student 填充），旧客户端不受影响。详见 `BACKEND_DESIGN_LOG.md` 同日条。
+
+検証：`npm run build` ✓ built 770ms（主会話自跑）。
+
 ---
 
 **END** — 本档随 Web 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。

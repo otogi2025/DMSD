@@ -294,6 +294,41 @@ export function RollCallLanding({
         />
       </div>
 
+      {/* 学生からの報告 入口 —— 点呼时学生上报的体调/欠席等，老师在这里处理。
+          后端 GET /rollcall/reports 早已实装、此前网页无入口（grok 三方对齐审查发现）。 */}
+      {onNav && (
+        <button
+          onClick={() => onNav("rollcall-reports")}
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            background: T.surface,
+            border: `1px solid ${T.line}`,
+            borderRadius: 12,
+            padding: "14px 20px",
+            marginBottom: 20,
+            fontFamily: "inherit",
+            cursor: "pointer",
+            boxShadow: T.shadow1,
+            textAlign: "left",
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>
+              学生からの報告
+            </div>
+            <div style={{ fontSize: 12, color: T.ink3, marginTop: 3 }}>
+              点呼時に提出された体調不良・欠席などの報告を確認・対応します
+            </div>
+          </div>
+          <span style={{ color: T.cobalt, fontSize: 14, fontWeight: 700 }}>
+            確認する →
+          </span>
+        </button>
+      )}
+
       {/* web#45: 无 trend 后端端点 → 假趋势图改为準備中占位 */}
       <div
         style={{

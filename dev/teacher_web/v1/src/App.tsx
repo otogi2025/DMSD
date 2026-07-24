@@ -15,6 +15,7 @@ import { DisciplinePage } from "./components/DisciplinePage";
 import { CleaningPage } from "./components/CleaningPage";
 import { FrontDeskPage } from "./components/FrontDeskPage";
 import { ReportsPage } from "./components/ReportsPage";
+import { RollCallReportsPage } from "./components/RollCallReportsPage";
 import { RecordsPage } from "./components/RecordsPage";
 import { ActiveLeavesPage } from "./components/ActiveLeavesPage";
 import { SearchPage } from "./components/SearchPage";
@@ -855,6 +856,15 @@ export function App() {
         <RollCallSummary
           summary={lastSummary}
           lastEnded={lastEnded}
+          onBack={() => setPage("roll-call")}
+        />
+      );
+      break;
+    case "rollcall-reports":
+      // 点呼「学生からの報告」处理页 —— 从着陆页入口进（onNav），点「戻る」回点呼首页。
+      body = (
+        <RollCallReportsPage
+          authToken={authToken}
           onBack={() => setPage("roll-call")}
         />
       );

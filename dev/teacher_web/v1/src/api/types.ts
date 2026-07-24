@@ -240,6 +240,24 @@ export interface RollCallEventOut {
   path_type: string | null;
 }
 
+// GET /rollcall/reports（老师查上报）/ /reports/mine（学生自查）返回，对齐后端 RollCallReportOut。
+// 学生点呼时上报的问题，kind 三种：health（身体不适）/ absence（当次缺席）/ other（其他）。
+// student_name / student_no / room_no 仅老师端点填充（学生自查为 null，老师端点用于「认得出
+// 是谁上报」）。
+export interface RollCallReportOut {
+  id: string;
+  student_id: string;
+  session_id: string | null;
+  kind: "health" | "absence" | "other";
+  body: string;
+  created_at: string;
+  resolved_at: string | null;
+  resolved_by_teacher_id: string | null;
+  student_name: string | null;
+  student_no: string | null;
+  room_no: string | null;
+}
+
 // ── 教员账户 ──
 export interface TeacherOut {
   id: string;

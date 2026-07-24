@@ -250,6 +250,22 @@ def test_teacher_list_reports_all_dorms(client, seed_data, db_session):
     assert {"男寮上报", "女寮上报"} <= {r["body"] for r in res2.json()["data"]}
 
 
+def test_teacher_list_reports_includes_student_summary(client, seed_data, db_session):
+    """老师上报列表带学生摘要（姓名/学号/房号）— 老师认得出「谁上报」再处理。"""
+    me = seed_data["student"]
+    _add_report(db_session, student_id=me.id, body="体調不良の報告")
+    token = _login_teacher(client, "ryomu_kachou")
+    res = client.get(
+        "/api/v1/rollcall/reports",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 200, res.text
+    row = next(r for r in res.json()["data"] if r["body"] == "体調不良の報告")
+    assert row["student_name"] == me.name
+    assert row["student_no"] == me.student_no
+    assert row["room_no"] == me.room_no
+
+
 def test_teacher_resolve_report(client, seed_data, db_session):
     """老师标记处理 → resolved_at 非空；重复处理 → 409。"""
     me = seed_data["student"]

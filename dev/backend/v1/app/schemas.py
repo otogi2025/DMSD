@@ -1511,6 +1511,11 @@ class RollCallReportOut(BaseModel):
     created_at: datetime
     resolved_at: Optional[datetime]
     resolved_by_teacher_id: Optional[UUID]
+    # 学生摘要 — 老师上报列表用（原来只回 student_id，老师认不出「谁上报了体调不适」就没法
+    # 处理）。老师端点 list_rollcall_reports 填充；学生自查 /reports/mine 保持 None
+    student_name: Optional[str] = None
+    student_no: Optional[str] = None
+    room_no: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
