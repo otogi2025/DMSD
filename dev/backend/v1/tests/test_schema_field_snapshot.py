@@ -98,6 +98,10 @@ EXPECTED_FIELDS: dict[str, set[str]] = {
         "decided_by",
         "decided_at",
         "comment",
+        # 学生摘要三字段 — 老师在线学习申请列表辨认「谁申请」用，学生自查场景为 None
+        "student_name",
+        "student_no",
+        "room_no",
     },
     "RegistrationCodeOut": {
         "code",
