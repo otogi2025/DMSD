@@ -60,6 +60,8 @@ export function AccountsPage({
   // 详情弹窗内写操作（密码初期化 / 学籍番号更新 / 解锁）进行中标志。
   // 防慢网络下双击并发提交——尤其密码初期化两次响应乱序会导致弹窗展示的临时密码与后端落库不一致。
   const [detailActionLoading, setDetailActionLoading] = React.useState(false);
+  // setState 是异步的，双击第二下可能赶在重渲染前穿过 state 守卫——ref 当场生效，作同步锁
+  const detailActionRef = React.useRef(false);
   // 进度：还没自设番号的学生（needs_renewal=true）。{pending_count, items[]} | null
   const [renewalProgress, setRenewalProgress] =
     React.useState<RenewalProgressOut | null>(null);
@@ -250,7 +252,8 @@ export function AccountsPage({
   // 密码重置 — 后端返回 temporary_password，只在前端内存显示一次
   const handlePasswordReset = (account: StudentAccountListItem) => {
     // 进行中守卫：拦截双击并发，避免两次响应乱序导致弹窗临时密码与落库不一致
-    if (detailActionLoading) return;
+    if (detailActionRef.current) return;
+    detailActionRef.current = true;
     setDetailActionLoading(true);
     api
       .resetStudentPassword(account.id, authToken)
@@ -275,7 +278,10 @@ export function AccountsPage({
           msg: `パスワードの初期化に失敗しました：${e.message || "エラー"}`,
         });
       })
-      .finally(() => setDetailActionLoading(false));
+      .finally(() => {
+        detailActionRef.current = false;
+        setDetailActionLoading(false);
+      });
   };
 
   // 老师单件改某学生番号（兜底 — 学生不会操作 / 填错时）。撞号后端返 422。
@@ -284,7 +290,8 @@ export function AccountsPage({
     body: TeacherRenewSeatIn,
   ) => {
     // 进行中守卫：拦截双击并发，避免重复写入 + 双条 audit_logs
-    if (detailActionLoading) return;
+    if (detailActionRef.current) return;
+    detailActionRef.current = true;
     setDetailActionLoading(true);
     api
       .teacherRenewSeat(account.id, body, authToken)
@@ -300,13 +307,17 @@ export function AccountsPage({
           msg: e.message || "学籍番号の更新に失敗しました",
         });
       })
-      .finally(() => setDetailActionLoading(false));
+      .finally(() => {
+        detailActionRef.current = false;
+        setDetailActionLoading(false);
+      });
   };
 
   // 解锁 — 成功后刷新该行 is_locked 状态
   const handleUnlock = (account: StudentAccountListItem) => {
     // 进行中守卫：拦截双击并发
-    if (detailActionLoading) return;
+    if (detailActionRef.current) return;
+    detailActionRef.current = true;
     setDetailActionLoading(true);
     api
       .unlockStudentAccount(account.id, authToken)
@@ -328,7 +339,10 @@ export function AccountsPage({
           msg: `ロック解除に失敗しました：${e.message || "エラー"}`,
         });
       })
-      .finally(() => setDetailActionLoading(false));
+      .finally(() => {
+        detailActionRef.current = false;
+        setDetailActionLoading(false);
+      });
   };
 
   React.useEffect(() => {
