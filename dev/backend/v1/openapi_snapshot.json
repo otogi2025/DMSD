@@ -6765,6 +6765,17 @@
             ],
             "title": "Resolved By Teacher Id"
           },
+          "room_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room No"
+          },
           "session_id": {
             "anyOf": [
               {
@@ -6781,6 +6792,28 @@
             "format": "uuid",
             "title": "Student Id",
             "type": "string"
+          },
+          "student_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student Name"
+          },
+          "student_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student No"
           }
         },
         "required": [
@@ -8465,6 +8498,17 @@
             "title": "Reason",
             "type": "string"
           },
+          "room_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room No"
+          },
           "status": {
             "enum": [
               "pending",
@@ -8479,6 +8523,28 @@
             "format": "uuid",
             "title": "Student Id",
             "type": "string"
+          },
+          "student_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student Name"
+          },
+          "student_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student No"
           },
           "submitted_at": {
             "format": "date-time",
