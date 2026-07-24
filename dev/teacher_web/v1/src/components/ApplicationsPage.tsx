@@ -109,7 +109,11 @@ export function ApplicationsPage({
   >({});
 
   const refetchOnline = React.useCallback(async () => {
-    if (!authToken) return;
+    // C9: 无令牌也要让 onlineList 从 null 收敛，否则永远卡「読み込み中…」
+    if (!authToken) {
+      setOnlineList([]);
+      return;
+    }
     setOnlineErr("");
     try {
       const list = await api.onlineRequests(authToken, "pending");
@@ -121,6 +125,8 @@ export function ApplicationsPage({
       } else {
         setOnlineErr(`申請の取得に失敗 (${(ex && ex.status) || "network"})`);
       }
+      // C9: 失败时也让加载态收敛（null→[]），否则 spinner 与错误红条同时永久显示
+      setOnlineList([]);
     }
   }, [authToken]);
 
