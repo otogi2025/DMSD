@@ -57,6 +57,9 @@ export function AccountsPage({
   const [promoteModal, setPromoteModal] = React.useState<PromoteModal>(null);
   const [promoteLoading, setPromoteLoading] = React.useState(false);
   const [promoteError, setPromoteError] = React.useState<string | null>(null);
+  // 详情弹窗内写操作（密码初期化 / 学籍番号更新 / 解锁）进行中标志。
+  // 防慢网络下双击并发提交——尤其密码初期化两次响应乱序会导致弹窗展示的临时密码与后端落库不一致。
+  const [detailActionLoading, setDetailActionLoading] = React.useState(false);
   // 进度：还没自设番号的学生（needs_renewal=true）。{pending_count, items[]} | null
   const [renewalProgress, setRenewalProgress] =
     React.useState<RenewalProgressOut | null>(null);
@@ -246,6 +249,9 @@ export function AccountsPage({
 
   // 密码重置 — 后端返回 temporary_password，只在前端内存显示一次
   const handlePasswordReset = (account: StudentAccountListItem) => {
+    // 进行中守卫：拦截双击并发，避免两次响应乱序导致弹窗临时密码与落库不一致
+    if (detailActionLoading) return;
+    setDetailActionLoading(true);
     api
       .resetStudentPassword(account.id, authToken)
       .then((res) => {
@@ -268,7 +274,8 @@ export function AccountsPage({
           type: "err",
           msg: `パスワードの初期化に失敗しました：${e.message || "エラー"}`,
         });
-      });
+      })
+      .finally(() => setDetailActionLoading(false));
   };
 
   // 老师单件改某学生番号（兜底 — 学生不会操作 / 填错时）。撞号后端返 422。
@@ -276,6 +283,9 @@ export function AccountsPage({
     account: StudentAccountListItem,
     body: TeacherRenewSeatIn,
   ) => {
+    // 进行中守卫：拦截双击并发，避免重复写入 + 双条 audit_logs
+    if (detailActionLoading) return;
+    setDetailActionLoading(true);
     api
       .teacherRenewSeat(account.id, body, authToken)
       .then(() => {
@@ -289,11 +299,15 @@ export function AccountsPage({
           type: "err",
           msg: e.message || "学籍番号の更新に失敗しました",
         });
-      });
+      })
+      .finally(() => setDetailActionLoading(false));
   };
 
   // 解锁 — 成功后刷新该行 is_locked 状态
   const handleUnlock = (account: StudentAccountListItem) => {
+    // 进行中守卫：拦截双击并发
+    if (detailActionLoading) return;
+    setDetailActionLoading(true);
     api
       .unlockStudentAccount(account.id, authToken)
       .then(() => {
@@ -313,7 +327,8 @@ export function AccountsPage({
           type: "err",
           msg: `ロック解除に失敗しました：${e.message || "エラー"}`,
         });
-      });
+      })
+      .finally(() => setDetailActionLoading(false));
   };
 
   React.useEffect(() => {
@@ -1028,6 +1043,7 @@ export function AccountsPage({
           onPasswordReset={handlePasswordReset}
           onUnlock={handleUnlock}
           onRenewSeat={handleTeacherRenewSeat}
+          actionLoading={detailActionLoading}
         />
       )}
 
@@ -1241,6 +1257,7 @@ function AccountDetailModal({
   onPasswordReset,
   onUnlock,
   onRenewSeat,
+  actionLoading,
 }: {
   account: StudentAccountListItem;
   onClose: () => void;
@@ -1250,6 +1267,7 @@ function AccountDetailModal({
     account: StudentAccountListItem,
     body: TeacherRenewSeatIn,
   ) => void;
+  actionLoading: boolean;
 }) {
   const T = RYO;
   const [tab, setTab] = React.useState("profile");
@@ -1586,7 +1604,7 @@ function AccountDetailModal({
                   />
                 </label>
                 <button
-                  disabled={!rnDirty || !rnValid}
+                  disabled={!rnDirty || !rnValid || actionLoading}
                   onClick={() =>
                     onRenewSeat &&
                     onRenewSeat(account, {
@@ -1597,14 +1615,20 @@ function AccountDetailModal({
                   }
                   style={{
                     padding: "8px 14px",
-                    background: !rnDirty || !rnValid ? T.lineStrong : T.cobalt,
+                    background:
+                      !rnDirty || !rnValid || actionLoading
+                        ? T.lineStrong
+                        : T.cobalt,
                     color: "#fff",
                     border: "none",
                     borderRadius: 8,
                     fontFamily: "inherit",
                     fontSize: 13,
                     fontWeight: 700,
-                    cursor: !rnDirty || !rnValid ? "not-allowed" : "pointer",
+                    cursor:
+                      !rnDirty || !rnValid || actionLoading
+                        ? "not-allowed"
+                        : "pointer",
                   }}
                 >
                   番号を更新 → {rnGrade}
@@ -1648,6 +1672,7 @@ function AccountDetailModal({
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button
+                disabled={actionLoading}
                 onClick={() => {
                   if (
                     confirm(
@@ -1658,20 +1683,21 @@ function AccountDetailModal({
                 }}
                 style={{
                   padding: "9px 18px",
-                  background: T.warn,
+                  background: actionLoading ? T.lineStrong : T.warn,
                   color: "#fff",
                   border: "none",
                   borderRadius: 8,
                   fontFamily: "inherit",
                   fontSize: 13,
                   fontWeight: 700,
-                  cursor: "pointer",
+                  cursor: actionLoading ? "not-allowed" : "pointer",
                 }}
               >
                 🔑 パスワード初期化・仮発行
               </button>
               {account.is_locked && (
                 <button
+                  disabled={actionLoading}
                   onClick={() => {
                     if (
                       confirm(
@@ -1682,14 +1708,14 @@ function AccountDetailModal({
                   }}
                   style={{
                     padding: "9px 18px",
-                    background: T.danger,
+                    background: actionLoading ? T.lineStrong : T.danger,
                     color: "#fff",
                     border: "none",
                     borderRadius: 8,
                     fontFamily: "inherit",
                     fontSize: 13,
                     fontWeight: 700,
-                    cursor: "pointer",
+                    cursor: actionLoading ? "not-allowed" : "pointer",
                   }}
                 >
                   🔓 ロック解除
