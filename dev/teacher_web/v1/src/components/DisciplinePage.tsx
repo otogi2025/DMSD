@@ -111,13 +111,21 @@ export function DisciplinePage({
     name: string,
     targetPoints: number,
     reason: string,
+    idempotencyKey?: string,
   ) => {
     // TW-032：return 把 promise 交回 modal —— modal 的 submitting 防双击守卫靠
     // Promise.resolve(onSubmit(...)).finally(setSubmitting(false))。原来本函数不 return、
     // 返回 undefined，finally 在下一个微任务就复位 submitting，按钮在网络返回前复活、可连点。
+    // idempotencyKey：submitting 守卫只挡「响应回来前连点」；这个键补的是「响应丢失后老师
+    // 手动重试」——同一次设定意图带同一 key，后端（A-473）识别重复不叠加第二条扣分。
     return api
       .createManualDemerit(
-        { student_id: studentId, target_points: targetPoints, reason },
+        {
+          student_id: studentId,
+          target_points: targetPoints,
+          reason,
+          idempotency_key: idempotencyKey,
+        },
         authToken,
       )
       .then((ev) => {
@@ -629,8 +637,8 @@ export function DisciplinePage({
               T={T}
               target={manualTarget}
               onClose={() => setManualTarget(null)}
-              onSubmit={(sid, pts, rsn) =>
-                handleManualSubmit(sid, manualTarget.name, pts, rsn)
+              onSubmit={(sid, pts, rsn, key) =>
+                handleManualSubmit(sid, manualTarget.name, pts, rsn, key)
               }
             />
           )}
@@ -674,20 +682,28 @@ function ManualDemeritModal({
   T: RyoTokens;
   target: { student_id: string; name: string; current: number };
   onClose: () => void;
-  onSubmit: (studentId: string, targetPoints: number, reason: string) => void;
+  onSubmit: (
+    studentId: string,
+    targetPoints: number,
+    reason: string,
+    idempotencyKey: string,
+  ) => void;
 }) {
   const [score, setScore] = React.useState(String(target.current));
   const [reason, setReason] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
+  // A-473 幂等键：本弹窗一次「設定」意图固定一个 key，失败重试复用同一 key，成功即随弹窗关闭
+  // 弃用；重开弹窗 = 新意图 = 新 key。
+  const idemKey = React.useRef(crypto.randomUUID()).current;
   const parsed = parseFloat(score);
   const disabled =
     !reason.trim() || score === "" || isNaN(parsed) || parsed < 0 || submitting;
   const handleSubmit = () => {
     if (disabled) return;
     setSubmitting(true);
-    Promise.resolve(onSubmit(target.student_id, parsed, reason.trim())).finally(
-      () => setSubmitting(false),
-    );
+    Promise.resolve(
+      onSubmit(target.student_id, parsed, reason.trim(), idemKey),
+    ).finally(() => setSubmitting(false));
   };
   return (
     <ModalShell T={T} title={`合計点を設定：${target.name}`} onClose={onClose}>
@@ -739,12 +755,16 @@ function ManualDemeritSearchModal({
     name: string,
     targetPoints: number,
     reason: string,
+    idempotencyKey: string,
   ) => void;
 }) {
   const [selected, setSelected] = React.useState<PickerStudent[]>([]);
   const [score, setScore] = React.useState("0");
   const [reason, setReason] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
+  // A-473 幂等键：失败重试复用同一 key（后端按「学生 + key」去重，中途改选别的学生也安全）；
+  // 成功即随弹窗关闭弃用。
+  const idemKey = React.useRef(crypto.randomUUID()).current;
   const student = selected[0] || null;
   const parsed = parseFloat(score);
   const disabled =
@@ -758,7 +778,7 @@ function ManualDemeritSearchModal({
     if (disabled || !student) return;
     setSubmitting(true);
     Promise.resolve(
-      onSubmit(student.id, student.name, parsed, reason.trim()),
+      onSubmit(student.id, student.name, parsed, reason.trim(), idemKey),
     ).finally(() => setSubmitting(false));
   };
   return (

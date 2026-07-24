@@ -235,7 +235,7 @@ export interface RollCallEventOut {
   id: string;
   student_id: string;
   base_status: string; // init/present/late/absent/exempt_range
-  status_source: string; // auto_nfc / manual
+  status_source: string; // auto_nfc / manual_checkin（后端 Literal，manual = 旧笔误）
   checked_in_at: string;
   path_type: string | null;
 }
@@ -451,6 +451,9 @@ export interface ManualDemeritIn {
   student_id: string;
   target_points: number;
   reason: string;
+  // A-473 幂等键：一次「設定」意图生成一个 UUID，双击 / 弱网重试时同 key 后端识别为重复、
+  // 不再叠加第二条扣分。可空（不传退回原行为，兼容旧调用）。
+  idempotency_key?: string;
 }
 
 // ── 学生账号管理（对齐 StudentAccountListItem 1157-1178）──
