@@ -295,7 +295,7 @@ export function InfoPage({
   // ── 削除 ──
   const handleDelete = async (id: string) => {
     if (!authToken) return;
-    if (!confirm("この公告を削除しますか？")) return;
+    if (!confirm("このお知らせを削除しますか？")) return;
     try {
       await api.deleteAnnouncement(id, authToken);
       setPosts((prev) => prev.filter((p) => p._id !== id));
