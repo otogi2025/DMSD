@@ -163,8 +163,10 @@ export function InfoPage({
     const items = (data && data.items) || [];
     return items.map((a) => {
       const d = new Date(a.created_at);
+      // 卡片日期按 JST 归一，避免非 JST 浏览器跨日显示错日（与 EventCalendar 同源）
+      const ymd = d.toLocaleDateString("en-CA", { timeZone: "Asia/Tokyo" });
       return {
-        date: `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
+        date: ymd.slice(5),
         title: a.title,
         body: a.body_summary,
         author: a.author_teacher_name,
@@ -684,6 +686,7 @@ export function InfoPage({
                                   >
                                     {new Date(r.created_at).toLocaleString(
                                       "ja-JP",
+                                      { timeZone: "Asia/Tokyo" },
                                     )}
                                   </span>
                                   <div
