@@ -802,8 +802,10 @@ function ManualDemeritSearchModal({
   // 后端 /discipline/manual 是绝对值覆盖，默认「0」+ 不显示当前分会让老师误提交 0 清零本月扣分，
   // 故未知（ranking 未到）时预填空字符串，由下方 disabled 守卫挡提交；ranking 到达后
   // pointsByStudent 变化 → 本 effect 重跑自动补预填并刷新 label。
+  // 老师手输过分数后排行榜才迟到时，不许预填盖掉手输值 — 换学生时恢复预填
+  const scoreTouchedRef = React.useRef(false);
   React.useEffect(() => {
-    if (!student) return;
+    if (!student || scoreTouchedRef.current) return;
     const cur = pointsByStudent[student.id];
     setScore(cur !== undefined ? String(cur) : "");
   }, [student, pointsByStudent]);
@@ -830,7 +832,10 @@ function ManualDemeritSearchModal({
           autoOpen
           searchApi={(q, token) => api.searchDemeritStudents(q, token)}
           selected={selected}
-          onChange={setSelected}
+          onChange={(sel) => {
+            scoreTouchedRef.current = false;
+            setSelected(sel);
+          }}
           authToken={authToken}
           placeholder="氏名 / 学籍番号で検索（クリックで一覧）"
         />
@@ -850,7 +855,10 @@ function ManualDemeritSearchModal({
           min="0"
           step="0.5"
           value={score}
-          onChange={(e) => setScore(e.target.value)}
+          onChange={(e) => {
+            scoreTouchedRef.current = true;
+            setScore(e.target.value);
+          }}
           style={modalInputStyle(T)}
         />
       </ModalField>
