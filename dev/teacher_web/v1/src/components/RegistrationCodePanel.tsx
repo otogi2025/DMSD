@@ -27,6 +27,8 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
   const copyToastTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  // 请求代次守卫 — 防迟到的轮询响应用已失效旧码覆盖 doRefresh 刚生成的新码
+  const fetchGenRef = React.useRef(0);
 
   // 倒计时刷新 — 每秒重算 expiresAt - now
   React.useEffect(() => {
@@ -47,11 +49,14 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
   // 30 秒一次 polling — 检测其他老师在另一终端重新生成的情况（§11.9.1 拍板）
   const fetchCurrent = React.useCallback(async () => {
     if (!authToken) return;
+    const gen = ++fetchGenRef.current;
     setLoading(true);
     setErr("");
     try {
       const data: RegistrationCode | null =
         await api.getRegistrationCodeCurrent(authToken);
+      // 代次落后（doRefresh 已生成新码 / 已卸载）→ 丢弃这次迟到响应，不覆盖
+      if (gen !== fetchGenRef.current) return;
       if (!data) {
         setCode(null);
         setExpiresAt(null);
@@ -63,6 +68,7 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
       }
       setForbidden(false);
     } catch (e: any) {
+      if (gen !== fetchGenRef.current) return;
       if (e && e.status === 403) {
         setForbidden(true);
       } else if (e && e.status) {
@@ -71,14 +77,17 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
         setErr("サーバーに接続できません");
       }
     } finally {
-      setLoading(false);
+      if (gen === fetchGenRef.current) setLoading(false);
     }
   }, [authToken]);
 
   React.useEffect(() => {
     fetchCurrent();
     const id = setInterval(fetchCurrent, 30000);
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      fetchGenRef.current++; // 卸载/重订阅时作废在飞请求，防已卸载 setState
+    };
   }, [fetchCurrent]);
 
   const remainSec =
@@ -97,6 +106,8 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
     try {
       const data: RegistrationCode =
         await api.refreshRegistrationCode(authToken);
+      // 让此刻仍在飞的旧轮询响应作废，防其用已失效旧码盖掉下面写入的新码
+      fetchGenRef.current++;
       setCode(data.code);
       setExpiresAt(new Date(data.expires_at).getTime());
       setCreatedAt(data.created_at);
