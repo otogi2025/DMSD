@@ -1286,6 +1286,18 @@ itsuki 拍板外出申请改事后确认制：学生提交即生效可出门，�
 
 **上线前审查的收尾修复（commit `553581b`，grok4.5 只读审查发现）**：详情弹窗底部对所有非 `pending` 状态一律写「この申請は既に処理済みです」。但 `withdrawn` 是学生自己按了「取りやめる」，老师根本没经手 —— 从「取消済」页签点进去看到「已处理」，会让老师以为是自己或同事操作过的。改成按状态分流：`withdrawn` 显示「この外出は学生本人が取りやめました」，`approved`/`rejected` 才叫処理済み。同批给 `AuditLogPage.tsx` 的 `ACTION_LABELS` 补上 `PATCH outings/{id}/reject` → 「外出を却下」—— 初版只映射了 confirm，却下记录在操作履历里只显示原始接口路径。
 
+## 2026-07-24 — 申請ページに「オンライン学習」審査 tab 追加（在线学习申请老师审批入口）
+
+grok-4.5 三方对齐审查（前端调用 ↔ 仓库后端 ↔ 洛杉矶线上后端）发现：后端在线学习申请的老师审批接口（`GET /study/online-requests` 待审列表 + `POST /{id}/decision` 承認/却下）早已实装，但老师网页从未接线 —— 学生提交在线学习申请后老师端无处审批（此前只有学生档案弹窗能看状态 + 下合同）。itsuki 拍板：漏做的 bug，接上。
+
+**落点定在申請ページ而非夜学習ページ**：审批权限是 `C_APPROVAL`（申請承認専用，后端 `permissions.py` 注释明写「含在线学习审批」），跟外泊/帰国/帰省同组；夜学習ページ要 `C_STUDY` 权限，放那里负责审批的老师可能进不去。故在 `ApplicationsPage.tsx` 加第 5 个 tab「オンライン学習」（初版误判要放夜学習ページ，查权限体系后纠正）。
+
+**自给自足 tab（不走 backendApplications 统一流）**：在线学习申请数据结构独立（period_from/to、weekly_schedule、契約書），套不进外泊的 `_adaptBackendAppsByKind`。新 tab 自己调 `api.onlineRequests("pending")` 拉列表 + `decideOnlineRequest` 承認/却下，审批后 refetch（端点只回 pending，处理完即从列表消失）；badge 显示待审数。收件箱表格样式照夜学習ページの欠席届一覧。为此给 `ApplicationsPage` 加 `authToken` prop（`App.tsx` 透传）——该页原本纯展示、数据由 App 拉好传入，在线学习是首个自拉自审的 tab。
+
+**后端同批补学生摘要**：`GET /study/online-requests` 原来只回 `student_id`（UUID），老师认不出「谁申请」就得点承認/却下（与 7-21 审查 S2 给欠席届/清扫补 `student_name` 同一动机，当时漏了在线学习，本次补齐）。详见 `BACKEND_DESIGN_LOG.md` 同日条。
+
+验证：`npm run build` ✓ built 803ms（主会话自跑）。
+
 ---
 
 **END** — 本档随 Web 设计新决策累积更新。下次重大变动时加一条"时间线"记录 + 对应 section。

@@ -613,6 +613,11 @@ class StudyOnlineRequestOut(BaseModel):
     decided_by: Optional[UUID]
     decided_at: Optional[datetime]
     comment: Optional[str]
+    # 学生摘要 — 老师在线学习申请列表用（原来只回 student_id，老师无法辨认「谁申请
+    # 哪段在线学习」就能点承認/却下）。老师端点填充；学生自查等场景保持 None
+    student_name: Optional[str] = None
+    student_no: Optional[str] = None
+    room_no: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

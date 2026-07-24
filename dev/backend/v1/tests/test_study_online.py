@@ -356,6 +356,22 @@ class TestListCrossDorm:
         assert res_female.status_code == 200, res_female.text
         assert any(r["id"] == rid for r in res_female.json()["data"])
 
+    def test_list_includes_student_summary(
+        self, client, student_token, teacher_token, seed_data
+    ):
+        """老师待审列表带学生摘要（姓名/学号/房号）— 老师认得出「谁申请」再审批。"""
+        rid = _create_request(client, student_token)
+        res = client.get(
+            "/api/v1/study/online-requests",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 200, res.text
+        row = next(r for r in res.json()["data"] if r["id"] == rid)
+        student = seed_data["student"]
+        assert row["student_name"] == student.name
+        assert row["student_no"] == student.student_no
+        assert row["room_no"] == student.room_no
+
 
 class TestProfileIncludesOnline:
     def test_profile_has_online_with_contract(

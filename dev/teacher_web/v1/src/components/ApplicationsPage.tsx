@@ -2,7 +2,8 @@ import React from "react";
 import { RYO } from "../theme";
 import { DormBadge, StateBadge } from "./shared";
 import { isLateSubmission } from "../utils";
-import type { Application } from "../api/types";
+import type { Application, StudyOnlineRequestOut } from "../api/types";
+import { api } from "../api/client";
 
 // 源 index.html 15790-16408（components/applications.jsx 块）。
 // /applications 落地页 + 外泊详情弹窗（按真实表单数字化）。
@@ -83,15 +84,66 @@ export function ApplicationsPage({
   onOpen,
   backendApplications,
   onNav,
+  authToken,
 }: {
   onOpen: (app: OutstayUiApp) => void;
   backendApplications: Application[] | null;
   // 代録（代学生提交出寮届）入口跳转 — 低频功能，已从左侧导航移除，入口收到本页。
   onNav: (view: string) => void;
+  // 在线学习申请 tab 自给自足拉取 + 审批要用（不走 backendApplications 统一流）
+  authToken: string | null;
 }) {
   const T = RYO;
   const [tab, setTab] = React.useState("outstay");
   const [sub, setSub] = React.useState("pending");
+
+  // 在线学习申请（UI 上的「オンライン学習」tab）— 独立端点 /study/online-requests，
+  // 权限 C_APPROVAL（与外泊等同属「申請」页，但数据结构独立、不走 pendingForMe）。
+  // 本 tab 自己拉待审列表 + 承認/却下，审批后刷新（照夜学習页欠席届收件箱做法）。
+  const [onlineList, setOnlineList] = React.useState<
+    StudyOnlineRequestOut[] | null
+  >(null);
+  const [onlineErr, setOnlineErr] = React.useState("");
+  const [onlineActing, setOnlineActing] = React.useState<
+    Record<string, boolean>
+  >({});
+
+  const refetchOnline = React.useCallback(async () => {
+    if (!authToken) return;
+    setOnlineErr("");
+    try {
+      const list = await api.onlineRequests(authToken, "pending");
+      setOnlineList(list || []);
+    } catch (e) {
+      const ex = e as { status?: number };
+      if (ex && ex.status === 403) {
+        setOnlineErr("オンライン学習申請の審査は「承認」権限が必要です");
+      } else {
+        setOnlineErr(`申請の取得に失敗 (${(ex && ex.status) || "network"})`);
+      }
+    }
+  }, [authToken]);
+
+  React.useEffect(() => {
+    refetchOnline();
+  }, [refetchOnline]);
+
+  const doDecideOnline = async (
+    id: string,
+    decision: "approved" | "rejected",
+  ) => {
+    if (onlineActing[id]) return; // 防双击窗口重复承認/却下
+    setOnlineActing((m) => ({ ...m, [id]: true }));
+    try {
+      await api.decideOnlineRequest(id, decision, undefined, authToken!);
+      await refetchOnline();
+    } catch (e) {
+      const ex = e as { status?: number };
+      setOnlineErr(`申請処理に失敗 (${(ex && ex.status) || "network"})`);
+    } finally {
+      setOnlineActing((m) => ({ ...m, [id]: false }));
+    }
+  };
 
   // Task #16: 3 kind 全部 backend → UI shape 适配
   const adaptedOutstay = _adaptBackendAppsByKind(backendApplications, "外泊");
@@ -110,11 +162,14 @@ export function ApplicationsPage({
     (a) => a._backend && a._backend.taxi_reservation_time,
   );
   const taxiPending = taxiApps.filter((a) => a.state === "pending").length;
+  // 列表只拉 status=pending，故全部即待审数
+  const onlinePending = (onlineList || []).length;
   const tabs = [
     { k: "outstay", label: "外泊", badge: outstayPending },
     { k: "return", label: "帰国", badge: returnPending },
     { k: "home", label: "帰省", badge: homePending },
     { k: "taxi", label: "タクシー", badge: taxiPending },
+    { k: "online", label: "オンライン学習", badge: onlinePending },
   ];
 
   return (
@@ -260,6 +315,203 @@ export function ApplicationsPage({
           apps={taxiApps}
           showDeadline={false}
         />
+      )}
+
+      {/* オンライン学習申請 収件箱 — 独立端点，收件箱样式照夜学習页欠席届一览。
+          只拉 status=pending，承認/却下后从列表消失（下一次 refetchOnline 只回 pending）。*/}
+      {tab === "online" && (
+        <>
+          {onlineErr && (
+            <div
+              style={{
+                padding: 12,
+                background: T.dangerSoft,
+                color: T.danger,
+                border: `1px solid ${T.dangerBorder}`,
+                borderRadius: 8,
+                fontSize: 12,
+                marginBottom: 14,
+              }}
+            >
+              {onlineErr}
+            </div>
+          )}
+          <div
+            style={{
+              background: T.surface,
+              border: `1px solid ${T.line}`,
+              borderRadius: 12,
+              overflow: "hidden",
+              boxShadow: T.shadow1,
+            }}
+          >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "180px 160px 1fr 80px 90px 150px 160px",
+                background: T.surfaceAlt,
+                color: T.ink2,
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: 1,
+                borderBottom: `1px solid ${T.line}`,
+              }}
+            >
+              {[
+                "学生",
+                "期間",
+                "理由",
+                "契約書",
+                "状態",
+                "提出時刻",
+                "操作",
+              ].map((h) => (
+                <div key={h} style={{ padding: "10px 14px" }}>
+                  {h}
+                </div>
+              ))}
+            </div>
+            {onlineList === null && (
+              <div
+                style={{
+                  padding: 40,
+                  textAlign: "center",
+                  color: T.ink3,
+                  fontSize: 13,
+                }}
+              >
+                読み込み中…
+              </div>
+            )}
+            {onlineList !== null && onlineList.length === 0 && (
+              <div
+                style={{
+                  padding: 40,
+                  textAlign: "center",
+                  color: T.ink3,
+                  fontSize: 13,
+                }}
+              >
+                審査待ちのオンライン学習申請はありません
+              </div>
+            )}
+            {(onlineList || []).map((o, i) => (
+              <div
+                key={o.id}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "180px 160px 1fr 80px 90px 150px 160px",
+                  borderTop: i > 0 ? `1px solid ${T.line}` : "none",
+                  alignItems: "center",
+                  fontSize: 13,
+                }}
+              >
+                {/* 学生摘要（姓名/学号/房号）— 老师端点填充，认得出「谁申请」再审批 */}
+                <div style={{ padding: "10px 14px" }}>
+                  {o.student_name ? (
+                    <>
+                      <div style={{ fontWeight: 600 }}>{o.student_name}</div>
+                      {o.student_no && (
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: T.ink3,
+                            fontFamily: T.mono,
+                          }}
+                        >
+                          {o.student_no}
+                          {o.room_no ? ` · ${o.room_no}` : ""}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <span style={{ fontFamily: T.mono, fontSize: 11 }}>
+                      {String(o.student_id).slice(0, 8)}…
+                    </span>
+                  )}
+                </div>
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    fontFamily: T.mono,
+                    fontSize: 12,
+                  }}
+                >
+                  {o.period_from} 〜 {o.period_to}
+                </div>
+                <div style={{ padding: "10px 14px" }}>{o.reason}</div>
+                <div style={{ padding: "10px 14px", fontSize: 12 }}>
+                  {o.contract_file_name ? (
+                    <span style={{ color: T.ok, fontWeight: 600 }}>あり</span>
+                  ) : (
+                    <span style={{ color: T.ink3 }}>なし</span>
+                  )}
+                </div>
+                <div style={{ padding: "10px 14px" }}>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: "2px 8px",
+                      borderRadius: 4,
+                      background: T.warnSoft,
+                      color: T.warn,
+                      border: `1px solid ${T.warnBorder}`,
+                    }}
+                  >
+                    審査待ち
+                  </span>
+                </div>
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    fontFamily: T.mono,
+                    fontSize: 11,
+                    color: T.ink3,
+                  }}
+                >
+                  {new Date(o.submitted_at).toLocaleString("ja-JP")}
+                </div>
+                <div style={{ padding: "10px 14px", display: "flex", gap: 6 }}>
+                  <button
+                    onClick={() => doDecideOnline(o.id, "approved")}
+                    disabled={onlineActing[o.id]}
+                    style={{
+                      padding: "4px 12px",
+                      background: T.ok,
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 6,
+                      fontFamily: "inherit",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: onlineActing[o.id] ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    承認
+                  </button>
+                  <button
+                    onClick={() => doDecideOnline(o.id, "rejected")}
+                    disabled={onlineActing[o.id]}
+                    style={{
+                      padding: "4px 12px",
+                      background: T.surface,
+                      color: T.danger,
+                      border: `1px solid ${T.dangerBorder}`,
+                      borderRadius: 6,
+                      fontFamily: "inherit",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: onlineActing[o.id] ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    却下
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

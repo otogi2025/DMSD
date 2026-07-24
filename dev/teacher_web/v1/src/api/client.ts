@@ -21,6 +21,7 @@ import type {
   StudyTodayOut,
   StudyCheckinOut,
   StudyAbsenceRequestOut,
+  StudyOnlineRequestOut,
   StudyRosterItem,
   RollCallSessionOut,
   RollCallBoardOut,
@@ -315,6 +316,27 @@ export const api = {
   ) => request<StudyRosterItem>("POST", "/study/roster", body, token),
   studyRosterRemove: (student_id: string, token: string) =>
     request<void>("DELETE", `/study/roster/${student_id}`, undefined, token),
+  // 在线学习申请 — 老师看待审列表（默认 status=pending）
+  onlineRequests: (token: string, status?: string) =>
+    request<StudyOnlineRequestOut[]>(
+      "GET",
+      `/study/online-requests${status ? `?status=${status}` : ""}`,
+      undefined,
+      token,
+    ),
+  // 在线学习申请 — 老师承認/却下/取消许可（decision = approved/rejected/revoked）
+  decideOnlineRequest: (
+    id: string,
+    decision: "approved" | "rejected" | "revoked",
+    comment: string | undefined,
+    token: string,
+  ) =>
+    request<StudyOnlineRequestOut>(
+      "POST",
+      `/study/online-requests/${id}/decision`,
+      { decision, comment },
+      token,
+    ),
 
   // ── Rollcall ──
   rollcallTodaySessions: (token: string) =>

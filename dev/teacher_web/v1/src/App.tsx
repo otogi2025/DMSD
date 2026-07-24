@@ -865,6 +865,7 @@ export function App() {
           onOpen={setOutstayTarget}
           backendApplications={backendApplications}
           onNav={nav}
+          authToken={authToken}
         />
       );
       break;

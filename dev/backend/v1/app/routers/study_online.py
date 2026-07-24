@@ -200,8 +200,10 @@ def list_online_requests(
 ):
     # 总是 join Student：演示隔离过滤（demo_scope_for_teacher）必须对全部角色生效，
     # 否则全寮角色（dorm_units_for_teacher 返回 None）的演示老师会看到真实学生申请。
+    # Student 整行一起取 —— 输出带学生摘要（姓名/学号/房号），老师列表原来只回
+    # student_id，界面上认不出「谁申请在线学习」就能点承認/却下（照 study.list_absence_requests）
     stmt = (
-        select(models.StudyOnlineRequest)
+        select(models.StudyOnlineRequest, models.Student)
         .join(
             models.Student,
             models.Student.id == models.StudyOnlineRequest.student_id,
@@ -217,8 +219,14 @@ def list_online_requests(
     allowed = dorm_units_for_teacher(teacher)
     if allowed is not None:
         stmt = stmt.where(models.Student.dorm_unit.in_(allowed))
-    rows = db.scalars(stmt).all()
-    return [schemas.StudyOnlineRequestOut.model_validate(row) for row in rows]
+    out = []
+    for req, student in db.execute(stmt).all():
+        item = schemas.StudyOnlineRequestOut.model_validate(req)
+        item.student_name = student.name
+        item.student_no = student.student_no
+        item.room_no = student.room_no
+        out.append(item)
+    return out
 
 
 @router.post(

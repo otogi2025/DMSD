@@ -157,6 +157,29 @@ export interface StudyAbsenceRequestOut {
   room_no: string | null;
 }
 
+// 学生的在线学习申请 — 老师审批列表用（GET /study/online-requests，对齐 schemas.py StudyOnlineRequestOut）
+export interface StudyOnlineRequestOut {
+  id: string;
+  student_id: string;
+  reason: string;
+  period_from: string; // 申请起始日 YYYY-MM-DD
+  period_to: string; // 申请结束日 YYYY-MM-DD
+  weekly_schedule: Record<string, Record<string, string>[]>; // 每周时刻表（收件箱不展开细节）
+  contract_ref: string | null;
+  contract_file_name: string | null; // 非空 = 已上传契約書
+  contract_mime: string | null;
+  contract_size: number | null;
+  submitted_at: string;
+  status: "pending" | "approved" | "rejected" | "revoked";
+  decided_by: string | null;
+  decided_at: string | null;
+  comment: string | null;
+  // 学生摘要 — 老师列表端点填充（学生自查场景为 null）
+  student_name: string | null;
+  student_no: string | null;
+  room_no: string | null;
+}
+
 // 学習対象名簿 在籍者
 export interface StudyRosterItem {
   student_id: string;
