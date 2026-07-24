@@ -896,6 +896,11 @@ class TestOutstayBroadcastDormUnit:
         assert r.status_code == 201, r.text
         assert captured["event"]["type"] == "outstay_new"
         assert captured["dorm_unit"] == seed_data["student"].dorm_unit
+        # C27：老师代録路径的广播体同样必须带 reason + submitted_at（镜像学生自助路径），
+        # 否则老师端座席徽章落到占位文案 + 收到推送的当前时刻（而非真提交时刻）。
+        assert captured["event"]["reason"] == "帰省"
+        assert "submitted_at" in captured["event"]
+        assert captured["event"]["submitted_at"]  # ISO 串（JST 口径），非空
 
     def test_broadcast_dorm_unit_reflects_female_student_not_hardcoded(
         self, client, teacher_token, seed_data, db_session, monkeypatch
