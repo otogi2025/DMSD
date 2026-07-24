@@ -324,7 +324,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
       const code = err && err.code;
       const text =
         code === "FORBIDDEN_DORM"
-          ? "担当外の寮の学生です"
+          ? "担当外の寮生です"
           : code === "FORBIDDEN_ROLE"
             ? "代理提出権限がありません"
             : code === "LEAVE_DATE_PAST"
