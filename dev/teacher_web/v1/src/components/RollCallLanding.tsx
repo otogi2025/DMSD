@@ -84,7 +84,7 @@ export function RollCallLanding({
         <span style={{ fontSize: 12, color: T.ink3 }}>{todayLabel}</span>
       </div>
       <div style={{ color: T.ink2, fontSize: 13, marginBottom: 22 }}>
-        対象 {studentCount ?? "—"} 名 · {dormLabel(teacher.dorm)} · 舎監{" "}
+        対象 {studentCount ?? "—"} 名 · {dormLabel(teacher.dorm)} · 寮監{" "}
         {teacher.name} 先生
       </div>
 
