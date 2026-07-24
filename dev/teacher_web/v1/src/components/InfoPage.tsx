@@ -111,6 +111,8 @@ export function InfoPage({
   const [replySubmitting, setReplySubmitting] = React.useState<
     Record<string, boolean>
   >({});
+  // setState 是异步的，按住回车的连发可能赶在重渲染前穿过 state 守卫——ref 当场生效，作同步锁
+  const replySubmittingRef = React.useRef<Record<string, boolean>>({});
   // 編集対象: null | { id, title, body, scope }
   const [editTarget, setEditTarget] = React.useState<{
     id: string;
@@ -311,7 +313,9 @@ export function InfoPage({
   const handleReply = async (announcementId: string) => {
     const body = (replyInput[announcementId] || "").trim();
     // 提交中守卫：拦截连按回车 / 双击送信导致的重复投稿
-    if (!body || !authToken || replySubmitting[announcementId]) return;
+    if (!body || !authToken || replySubmittingRef.current[announcementId])
+      return;
+    replySubmittingRef.current[announcementId] = true;
     setReplySubmitting((s) => ({ ...s, [announcementId]: true }));
     try {
       await api.postAnnouncementReply(announcementId, { body }, authToken);
@@ -331,6 +335,7 @@ export function InfoPage({
         "返信に失敗しました：" + ((e as Error).message || JSON.stringify(e)),
       );
     } finally {
+      delete replySubmittingRef.current[announcementId];
       setReplySubmitting((s) => {
         const next = { ...s };
         delete next[announcementId];
