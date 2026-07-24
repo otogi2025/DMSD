@@ -523,14 +523,15 @@ export function App() {
         });
         return;
       } catch (err) {
-        console.warn(
-          "[App] rollcallStart/Board 失敗 → demo seed fallback",
-          err,
-        );
+        // C5: 无演示继续逻辑，旧「デモ表示で継続」warn 文案撒谎且会被下方 error toast 覆盖。
+        // rollcallStart 可能已让后端场次起动（点呼机已在收卡），board 拉取才失败——
+        // 此时再点一次会走上面的 ALREADY_RUNNING 分支救回，故提示为可重试的准确文案并 return。
+        console.warn("[App] rollcallStart/Board 失敗", err);
         setToast({
-          type: "warn",
-          msg: "サーバーに接続できないため、デモ表示で継続します",
+          type: "error",
+          msg: "通信に失敗しました。点呼は開始されている可能性があります。もう一度お試しください。",
         });
+        return;
       }
     }
 
