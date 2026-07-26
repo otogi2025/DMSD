@@ -762,6 +762,42 @@ systemctl status tomoshibi-rollcall</pre></div>
     cb.addEventListener('click',function(e){e.stopPropagation();});
   });
   count();
+  /* 每个阶段标题右侧「全勾 / 全清」按钮 —— 清点这类批量确认的活，不用手点几十下 */
+  SECS.forEach(function(s){
+    var cnt=document.getElementById('cnt-'+s); if(!cnt)return;
+    var head=cnt.parentNode;
+    var boxes=document.querySelectorAll('input.ck[data-sec="'+s+'"]');
+    if(!boxes.length)return;
+    var btn=document.createElement('button');
+    btn.type='button';
+    btn.style.cssText='margin-left:.5rem;flex:0 0 auto;font:inherit;font-size:.7rem;font-weight:700;padding:.2rem .5rem;border-radius:999px;border:1.5px solid currentColor;background:transparent;color:var(--muted);cursor:pointer;line-height:1.3';
+    function label(){
+      var all=true; boxes.forEach(function(c){if(!c.checked)all=false;});
+      btn.textContent=all?'全清':'全勾';
+      return all;
+    }
+    label();
+    btn.addEventListener('click',function(){
+      var allChecked=label();
+      boxes.forEach(function(c){
+        c.checked=!allChecked;
+        localStorage.setItem('rc-'+c.id,c.checked?'1':'0');
+      });
+      count(); label();
+    });
+    head.appendChild(btn);
+  });
+  /* 全勾按钮的文字要随手动勾选变化 */
+  document.querySelectorAll('input.ck[data-sec]').forEach(function(cb){
+    cb.addEventListener('change',function(){
+      var s=cb.getAttribute('data-sec');
+      var cnt=document.getElementById('cnt-'+s); if(!cnt)return;
+      var btn=cnt.parentNode.querySelector('button'); if(!btn)return;
+      var all=true;
+      document.querySelectorAll('input.ck[data-sec="'+s+'"]').forEach(function(c){if(!c.checked)all=false;});
+      btn.textContent=all?'全清':'全勾';
+    });
+  });
   /* 命令复制按钮 */
   document.querySelectorAll('.cmd').forEach(function(box){
     var pre=box.querySelector('pre'); if(!pre)return;
