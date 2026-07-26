@@ -1,0 +1,779 @@
+<title>点呼机组装指南</title>
+<style>
+  :root{
+    --bg:#faf9f7;--card:#ffffff;--ink:#1c1a18;--muted:#8a8680;--border:#eceae6;
+    --red:#e8442e;--red-soft:#fdf0ee;--red-bd:#f5c9c2;
+    --amber:#c77c1e;--amber-soft:#fbf4e9;--amber-bd:#ecd9b8;
+    --blue:#3b7ea1;--blue-soft:#eef5f9;--blue-bd:#c8dfeb;
+    --gray:#8a8680;--gray-soft:#f4f3f1;--gray-bd:#e0deda;
+    --violet:#7b68a6;--violet-soft:#f2eff7;--violet-bd:#d8d0e6;
+    --ok:#2a9d5c;--ok-soft:#eaf6ef;--ok-bd:#bfe3cd;
+    --track:#edebe7;
+    --solder:#9aa0a8;--solder-hi:#dfe3e8;--pin-metal:#c9a13b;--pcb:#3f7a53;--pad:#d3a63e;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --bg:#151311;--card:#201d1a;--ink:#f2efe9;--muted:#9b968e;--border:#332f2a;
+    --red:#ff6a4d;--red-soft:#33201b;--red-bd:#57312a;
+    --amber:#f0a04a;--amber-soft:#2f2619;--amber-bd:#514027;
+    --blue:#6db3d6;--blue-soft:#1c272e;--blue-bd:#2f4552;
+    --gray:#9b968e;--gray-soft:#262421;--gray-bd:#3a3733;
+    --violet:#a795d4;--violet-soft:#272231;--violet-bd:#413756;
+    --ok:#4fc586;--ok-soft:#1c2b22;--ok-bd:#2e4d3a;
+    --track:#302d29;
+    --solder:#8d939c;--solder-hi:#c3c9d1;--pin-metal:#d9b354;--pcb:#356847;--pad:#c9a13b;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#151311;--card:#201d1a;--ink:#f2efe9;--muted:#9b968e;--border:#332f2a;
+    --red:#ff6a4d;--red-soft:#33201b;--red-bd:#57312a;
+    --amber:#f0a04a;--amber-soft:#2f2619;--amber-bd:#514027;
+    --blue:#6db3d6;--blue-soft:#1c272e;--blue-bd:#2f4552;
+    --gray:#9b968e;--gray-soft:#262421;--gray-bd:#3a3733;
+    --violet:#a795d4;--violet-soft:#272231;--violet-bd:#413756;
+    --ok:#4fc586;--ok-soft:#1c2b22;--ok-bd:#2e4d3a;
+    --track:#302d29;
+    --solder:#8d939c;--solder-hi:#c3c9d1;--pin-metal:#d9b354;--pcb:#356847;--pad:#c9a13b;
+  }
+  :root[data-theme="light"]{
+    --bg:#faf9f7;--card:#ffffff;--ink:#1c1a18;--muted:#8a8680;--border:#eceae6;
+    --red:#e8442e;--red-soft:#fdf0ee;--red-bd:#f5c9c2;
+    --amber:#c77c1e;--amber-soft:#fbf4e9;--amber-bd:#ecd9b8;
+    --blue:#3b7ea1;--blue-soft:#eef5f9;--blue-bd:#c8dfeb;
+    --gray:#8a8680;--gray-soft:#f4f3f1;--gray-bd:#e0deda;
+    --violet:#7b68a6;--violet-soft:#f2eff7;--violet-bd:#d8d0e6;
+    --ok:#2a9d5c;--ok-soft:#eaf6ef;--ok-bd:#bfe3cd;
+    --track:#edebe7;
+    --solder:#9aa0a8;--solder-hi:#dfe3e8;--pin-metal:#c9a13b;--pcb:#3f7a53;--pad:#d3a63e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Noto Sans CJK JP",sans-serif;font-size:16.5px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:44rem;margin:0 auto;padding:1.4rem 1rem 4rem}
+  a{color:var(--blue);text-decoration:none} a:hover{text-decoration:underline}
+  code{font-family:ui-monospace,"SF Mono",Menlo,monospace;background:var(--gray-soft);padding:.08em .35em;border-radius:5px;font-size:.82em}
+  b{font-weight:700}
+
+  .top h1{font-size:1.15rem;margin:0;letter-spacing:.02em}
+  .top .sub{font-size:.74rem;color:var(--muted);margin-top:.15rem;line-height:1.6}
+
+  /* 进度总览 */
+  .prog{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:.85rem 1.1rem;margin:1rem 0 1.4rem}
+  .pg{display:grid;grid-template-columns:6.4rem 1fr 3.4rem;align-items:center;gap:.7rem;padding:.26rem 0}
+  .pg .nm{font-size:.82rem;font-weight:700;white-space:nowrap}
+  .pg .bar{height:9px;background:var(--track);border-radius:99px;overflow:hidden}
+  .pg .bar i{display:block;height:100%;width:0;border-radius:99px;transition:width .35s ease;background:var(--c,var(--gray))}
+  .pg .ct{font-size:.78rem;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .pg.all{border-top:1px solid var(--border);margin-top:.3rem;padding-top:.55rem}
+  .pg.all .bar{height:11px}
+
+  /* 阶段区块 */
+  .sec{margin-top:1.9rem}
+  .shead{display:flex;align-items:baseline;gap:.55rem;margin:0 .15rem .5rem}
+  .shead .dot{width:.62rem;height:.62rem;border-radius:50%;flex:0 0 auto;align-self:center;background:var(--c)}
+  .shead .nm{font-size:1.14rem;font-weight:800;color:var(--c)}
+  .shead .cnt{font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+  .shead .est{font-size:.72rem;color:var(--muted);margin-left:auto;white-space:nowrap}
+  .card{background:var(--card);border:1.5px solid var(--cbd,var(--border));border-radius:16px;overflow:hidden}
+  .sec>.intro{font-size:.85rem;color:var(--muted);margin:.1rem .15rem .55rem;line-height:1.65}
+
+  .gsub{display:flex;align-items:center;gap:.5rem;padding:.6rem .95rem .35rem;font-size:.8rem;font-weight:800;color:var(--muted);letter-spacing:.03em}
+  .row + .gsub,.grow + .gsub{border-top:1px solid var(--border)}
+  .brand{display:inline-block;font-size:.68rem;font-weight:700;color:#fff;border-radius:99px;padding:.05rem .55rem}
+  .b-aki{background:#c8102e}.b-ss{background:#1a73e8}.b-amz{background:#b46a00}
+
+  .row{margin:0;border:0;border-radius:0;background:none}
+  .row + .row{border-top:1px solid var(--border)}
+  summary{list-style:none;cursor:pointer}
+  summary::-webkit-details-marker{display:none}
+  .line{display:flex;align-items:flex-start;gap:.7rem;padding:.72rem .95rem}
+  .tx{flex:1 1 auto;min-width:0}
+  .t{font-weight:650;font-size:.97rem}
+  .hint{display:block;font-size:.78rem;color:var(--muted);margin-top:.05rem;font-weight:500}
+  .arr{flex:0 0 auto;color:var(--muted);font-size:.75rem;margin-top:.3rem;transition:transform .15s}
+  details[open]>summary .arr{transform:rotate(90deg)}
+
+  input.ck{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:24px;height:24px;margin:.05rem 0 0;border:2px solid var(--muted);border-radius:50%;cursor:pointer;position:relative;background:var(--card)}
+  input.ck:checked{background:var(--c,var(--ok));border-color:var(--c,var(--ok))}
+  input.ck:checked::before{content:"";position:absolute;left:6.5px;top:3px;width:5px;height:10px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(43deg)}
+  input.ck:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  input.ck:checked ~ .tx .t{text-decoration:line-through;color:var(--muted);font-weight:500}
+
+  .note{padding:.15rem .95rem 1rem 2.9rem;font-size:.87rem}
+  .note p{margin:.4rem 0}
+  .note .dim{color:var(--muted)}
+  @media (max-width:520px){.note{padding-left:.95rem}}
+
+  .okline{margin:.5rem 0 .2rem;padding:.45rem .7rem;border-radius:9px;background:var(--ok-soft);border:1px solid var(--ok-bd);font-size:.84rem}
+  .okline b{color:var(--ok)}
+  .stuck{margin:.5rem 0 .2rem;padding:.45rem .7rem;border-radius:9px;background:var(--gray-soft);border:1px solid var(--gray-bd);font-size:.84rem}
+  .warn{margin:.5rem 0 .2rem;padding:.45rem .7rem;border-radius:9px;background:var(--red-soft);border:1px solid var(--red-bd);font-size:.84rem}
+  .warn b{color:var(--red)}
+  .tip{margin:.5rem 0 .2rem;padding:.45rem .7rem;border-radius:9px;background:var(--blue-soft);border:1px solid var(--blue-bd);font-size:.84rem}
+
+  .chip{display:inline-block;font-size:.68rem;font-weight:700;padding:.06rem .5rem;border-radius:99px;background:var(--gray-soft);color:var(--muted);white-space:nowrap;vertical-align:.1em;margin-left:.3rem}
+  .chip.c-red{background:var(--red-soft);color:var(--red);border:1px solid var(--red-bd)}
+  .chip.c-amb{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-bd)}
+  .chip.c-ok{background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok-bd)}
+
+  /* 命令块 */
+  .cmd{position:relative;margin:.45rem 0}
+  .cmd pre{margin:0;background:#22201c;color:#e8e4dc;border-radius:10px;padding:.65rem 3.4rem .65rem .85rem;overflow-x:auto;font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:.76rem;line-height:1.65;white-space:pre}
+  :root[data-theme="dark"] .cmd pre{background:#0f0e0c}
+  @media (prefers-color-scheme:dark){.cmd pre{background:#0f0e0c}}
+  :root[data-theme="light"] .cmd pre{background:#22201c}
+  .cmd pre .c{color:#8f8a80}
+  .cmd .cp{position:absolute;top:.4rem;right:.4rem;font-size:.68rem;font-weight:700;border:1px solid #57534a;background:#33302a;color:#d9d4ca;border-radius:7px;padding:.15rem .55rem;cursor:pointer}
+  .cmd .cp:hover{background:#3f3b34}
+  .cmd .cp.done{color:#7fd6a4;border-color:#3f6b52}
+
+  table{width:100%;border-collapse:collapse;font-size:.82rem;margin:.4rem 0}
+  th,td{text-align:left;padding:.4rem .55rem;border-bottom:1px solid var(--border);vertical-align:top}
+  th{font-size:.72rem;color:var(--muted);font-weight:700;white-space:nowrap}
+  td.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:.78rem;white-space:nowrap}
+  .scrollx{overflow-x:auto;max-width:100%}
+
+  /* GPIO 针脚图 */
+  .pinbox{background:var(--card);border:1.5px solid var(--cbd,var(--border));border-radius:16px;padding:.9rem .6rem;margin:.6rem 0}
+  .pingrid{display:grid;grid-template-columns:minmax(8.5rem,1fr) 2rem 2rem minmax(8.5rem,1fr);gap:2px 4px;min-width:22rem;font-size:.68rem;line-height:1.3}
+  .pinwrap{overflow-x:auto}
+  .pl,.pr{align-self:center;padding:.14rem .35rem;border-radius:6px;color:var(--muted)}
+  .pl{text-align:right}
+  .pn{align-self:stretch;display:flex;align-items:center;justify-content:center;background:var(--gray-soft);border:1px solid var(--gray-bd);border-radius:5px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--muted);min-height:1.55rem}
+  .u .pl,.u .pr{color:var(--ink);font-weight:650}
+  .f5v{background:var(--red-soft);border:1px solid var(--red-bd);color:var(--red)!important;font-weight:700}
+  .f33{background:var(--amber-soft);border:1px solid var(--amber-bd);color:var(--amber)!important;font-weight:700}
+  .fgnd{background:var(--gray-soft);border:1px solid var(--gray-bd);color:var(--ink)!important;font-weight:700}
+  .fspi{background:var(--blue-soft);border:1px solid var(--blue-bd);color:var(--blue)!important;font-weight:700}
+  .fi2c{background:var(--violet-soft);border:1px solid var(--violet-bd);color:var(--violet)!important;font-weight:700}
+  .fled{background:var(--ok-soft);border:1px solid var(--ok-bd);color:var(--ok)!important;font-weight:700}
+  .pn.on5{background:var(--red-soft);border-color:var(--red-bd);color:var(--red)}
+  .pn.on3{background:var(--amber-soft);border-color:var(--amber-bd);color:var(--amber)}
+  .pn.ong{background:var(--gray-soft);border-color:var(--muted);color:var(--ink)}
+  .pn.ons{background:var(--blue-soft);border-color:var(--blue-bd);color:var(--blue)}
+  .pn.oni{background:var(--violet-soft);border-color:var(--violet-bd);color:var(--violet)}
+  .pn.onl{background:var(--ok-soft);border-color:var(--ok-bd);color:var(--ok)}
+  .legend{display:flex;flex-wrap:wrap;gap:.35rem .5rem;margin:.6rem .2rem 0;font-size:.68rem}
+  .legend span{padding:.1rem .5rem;border-radius:99px}
+
+  figure{margin:.6rem 0}
+  figure svg{display:block;max-width:100%;height:auto}
+  figcaption{font-size:.75rem;color:var(--muted);margin-top:.25rem}
+  .sj4{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:.6rem;margin:.5rem 0}
+  .sj{border:1px solid var(--border);border-radius:12px;padding:.5rem .55rem;background:var(--bg)}
+  .sj .lb{font-size:.78rem;font-weight:750;margin:.2rem 0 .05rem}
+  .sj .lb.good{color:var(--ok)} .sj .lb.bad{color:var(--red)}
+  .sj .ds{font-size:.72rem;color:var(--muted);line-height:1.5}
+
+  .foot{margin-top:2.4rem;padding:.8rem .2rem 0;border-top:1px solid var(--border);color:var(--muted);font-size:.72rem;line-height:1.8}
+  @media (prefers-reduced-motion:reduce){.arr,.pg .bar i{transition:none}}
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <h1>🔌 点呼机组装指南</h1>
+    <div class="sub">从拆快递到第一次刷卡成功 · 勾选进度自动存在这台设备的浏览器里 · 分两三天做，别想一天干完</div>
+  </div>
+
+  <!-- 进度总览 -->
+  <div class="prog">
+    <div class="pg" style="--c:var(--red)"><span class="nm" style="color:var(--red)">0 开工前</span><span class="bar"><i id="bar-a0"></i></span><span class="ct" id="ct-a0">–</span></div>
+    <div class="pg" style="--c:var(--gray)"><span class="nm" style="color:var(--gray)">1 清点零件</span><span class="bar"><i id="bar-a1"></i></span><span class="ct" id="ct-a1">–</span></div>
+    <div class="pg" style="--c:var(--blue)"><span class="nm" style="color:var(--blue)">2 软件先通</span><span class="bar"><i id="bar-a2"></i></span><span class="ct" id="ct-a2">–</span></div>
+    <div class="pg" style="--c:var(--amber)"><span class="nm" style="color:var(--amber)">3 焊接</span><span class="bar"><i id="bar-a3"></i></span><span class="ct" id="ct-a3">–</span></div>
+    <div class="pg" style="--c:var(--violet)"><span class="nm" style="color:var(--violet)">4 接线</span><span class="bar"><i id="bar-a4"></i></span><span class="ct" id="ct-a4">–</span></div>
+    <div class="pg" style="--c:var(--ok)"><span class="nm" style="color:var(--ok)">5 真签到</span><span class="bar"><i id="bar-a5"></i></span><span class="ct" id="ct-a5">–</span></div>
+    <div class="pg" style="--c:var(--gray)"><span class="nm" style="color:var(--gray)">回填收尾</span><span class="bar"><i id="bar-ax"></i></span><span class="ct" id="ct-ax">–</span></div>
+    <div class="pg all" style="--c:var(--ok)"><span class="nm">全部</span><span class="bar"><i id="bar-all"></i></span><span class="ct" id="ct-all">–</span></div>
+  </div>
+
+  <!-- ════════ 阶段 0 ════════ -->
+  <div class="sec" style="--c:var(--red);--cbd:var(--red-bd)">
+    <div class="shead"><span class="dot"></span><span class="nm">阶段 0 · 开工前</span><span class="cnt" id="cnt-a0">–</span><span class="est">10 分钟</span></div>
+    <div class="intro">先把三条保命规则读进脑子，再把三样自己家里的东西找出来。时间预估：软件段 1–2 小时 / 焊接段 2–3 小时 / 接线段约 2 小时。</div>
+    <div class="card">
+      <div class="gsub">三条保命规则（每条读懂了再打勾）</div>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a0-1" data-sec="a0"><span class="tx"><span class="t">规则一：接线、拔线之前，一律先拔掉树莓派的电源</span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p>带电插拔可能瞬间烧坏板子。养成肌肉记忆：手要碰针脚 = 先拔电源线。</p></div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a0-2" data-sec="a0"><span class="tx"><span class="t">规则二：一次只接一个模块，接完立刻验收，过了再接下一个</span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p>一次全接上，出了问题你分不清是哪根线的锅。同理：排查时一次只改一个地方，改一处、测一次。</p></div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a0-3" data-sec="a0"><span class="tx"><span class="t">规则三：红线（正极）绝对不能插反</span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p>尤其风扇那个 2 针小接头 —— 红线必须对准 5V 针，插反可能烧。</p></div>
+      </details>
+      <div class="gsub">今天要自己找出来的三样（采购清单里没买）</div>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a0-4" data-sec="a0"><span class="tx"><span class="t">microSD 卡（小指甲盖大的存储卡）</span><span class="hint">系统要烧在这上面，建议 16GB 以上</span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p>你原来就有一张，翻出来。卡里的旧内容烧系统时会被<b>全部清空</b>，里面有要留的东西先拷走。</p></div>
+      </details>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a0-5" data-sec="a0"><span class="tx"><span class="t">microSD 读卡器（把卡插进 Mac 用的转接器）</span><span class="hint">Mac 没有卡槽，没有读卡器就烧不了卡</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a0-6" data-sec="a0"><span class="tx"><span class="t">耐热垫（焊接时垫在桌上，protect 桌面不被烫坏）</span><span class="hint">没有专用垫就找一块不怕烫的板子 / 瓷砖代替</span></span></label></div>
+    </div>
+  </div>
+
+  <!-- ════════ 阶段 1 ════════ -->
+  <div class="sec" style="--c:var(--gray);--cbd:var(--gray-bd)">
+    <div class="shead"><span class="dot"></span><span class="nm">阶段 1 · 清点零件</span><span class="cnt" id="cnt-a1">–</span><span class="est">30 分钟 · 不碰工具</span></div>
+    <div class="intro">三家的箱子拆开，见一样勾一样。缺了哪个要心里有数 —— 有几样缺了后面会卡死。</div>
+    <div class="card">
+      <div class="gsub"><span class="brand b-aki">秋月電子</span> 的包裹（12 样）</div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a1-1" data-sec="a1"><span class="tx"><span class="t">Raspberry Pi 3 Model A+ 主板</span><span class="hint">机器的大脑，一块巴掌大的小电脑</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a1-2" data-sec="a1"><span class="tx"><span class="t">AC 适配器 5V3A（microUSB 口）</span><span class="hint">给树莓派供电的电源</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a1-3" data-sec="a1"><span class="tx"><span class="t">红色 LED</span><span class="hint">签到失败灯</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a1-4" data-sec="a1"><span class="tx"><span class="t">绿色 LED（OSPG5111A）</span><span class="hint">签到成功灯 —— 最重要的一颗</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a1-5" data-sec="a1"><span class="tx"><span class="t">蓝色 LED（10 个装）</span><span class="hint">待机灯</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a1-6" data-sec="a1"><span class="tx"><span class="t">白色 LED（10 个装）</span><span class="hint">启动中灯</span></span></label></div>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a1-7" data-sec="a1"><span class="tx"><span class="t">220Ω 电阻（100 根装）<span class="chip c-red">必须和 10kΩ 分袋</span></span><span class="hint">保护 LED 不被烧掉的「限流电阻」</span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p><b>两种电阻长得几乎一模一样</b>，混在一起就完了。现在就分成两袋、袋子上写上阻值。</p><p class="dim">分不清哪袋是哪袋：万用表拨到电阻档（Ω），两支表笔各碰电阻一头 —— 显示约 220 的是 220Ω，显示约 10.0k（一万）的是 10kΩ。</p></div>
+      </details>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a1-8" data-sec="a1"><span class="tx"><span class="t">10kΩ 电阻（100 根装）<span class="chip c-red">必须和 220Ω 分袋</span></span><span class="hint">ST25DV 门铃线专用，接错阻值不管用</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a1-9" data-sec="a1"><span class="tx"><span class="t">杜邦线 母-母 15cm（10 根装）</span><span class="hint">连接模块和树莓派针脚的线</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a1-10" data-sec="a1"><span class="tx"><span class="t">杜邦线 母-母 20cm（40 根连排）</span><span class="hint">同上，两种都买了当备用</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a1-11" data-sec="a1"><span class="tx"><span class="t">5V 小风扇（30mm，带 2 针接头）</span><span class="hint">给树莓派散热</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a1-12" data-sec="a1"><span class="tx"><span class="t">万用表 MAS830L</span><span class="hint">量电压 / 测通断的测量仪，全程排查故障靠它</span></span></label></div>
+
+      <div class="gsub"><span class="brand b-ss">Switch Science</span> 的包裹（1 样）</div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a1-13" data-sec="a1"><span class="tx"><span class="t">ST25DV16K 模块 ×4 <span class="chip c-ok">有 4 个 = 焊坏了还有备份</span></span><span class="hint">手机「碰一下」的那张智能贴纸（路径 B）</span></span></label></div>
+
+      <div class="gsub"><span class="brand b-amz">Amazon</span> 的包裹（6 样）</div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a1-14" data-sec="a1"><span class="tx"><span class="t">PN532 V3 读卡器套件 <span class="chip c-red">只有 1 个，无备份</span></span><span class="hint">读学生卡的读卡器（路径 A），自带排针 + 杜邦线 + 测试卡</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a1-15" data-sec="a1"><span class="tx"><span class="t">NTAG215 白卡 ×10</span><span class="hint">学生卡本体</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a1-16" data-sec="a1"><span class="tx"><span class="t">Lazos USB 喇叭（L-SK-B）</span><span class="hint">播日语姓名用</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a1-17" data-sec="a1"><span class="tx"><span class="t">排针套装（60 根）</span><span class="hint">要焊到模块板子上的小金属针，多的拿来练手</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a1-18" data-sec="a1"><span class="tx"><span class="t">面包板 ×2 + 跳线</span><span class="hint">不用焊、插上就通电的试验插板</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a1-19" data-sec="a1"><span class="tx"><span class="t">烙铁 14 合 1 套装（60W 可调温）</span><span class="hint">含焊锡丝 / 烙铁架 / 海绵 / 吸锡器 / 镊子</span></span></label></div>
+
+      <div class="gsub">清点完顺便做</div>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a1-20" data-sec="a1"><span class="tx"><span class="t">给 PN532 和 ST25DV 拍正反面清晰照片</span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p>把板子上印的小字（丝印 = 印在板上的针脚名）拍清楚。后面接线要靠这些字认脚，<b>实物跟文档可能有出入，一律以实物为准</b>。照片发给 CC 一起核对更稳。</p></div>
+      </details>
+    </div>
+  </div>
+
+  <!-- ════════ 阶段 2 ════════ -->
+  <div class="sec" style="--c:var(--blue);--cbd:var(--blue-bd)">
+    <div class="shead"><span class="dot"></span><span class="nm">阶段 2 · 软件先跑通</span><span class="cnt" id="cnt-a2">–</span><span class="est">1–2 小时 · 一根线都不接</span></div>
+    <div class="intro">先把软件跑通的好处：以后接线出问题，就能确定「一定是硬件的锅」，排查范围小一半。命令块右上角都有「复制」按钮。</div>
+    <div class="card">
+      <div class="gsub">2.1 烧系统卡 + 远程登录</div>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a2-1" data-sec="a2"><span class="tx"><span class="t">Mac 上安装 Raspberry Pi Imager（官方烧卡工具）</span><span class="hint">⚠️ 必须用这个，不能用 balenaEtcher 等别的烧卡工具</span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p>「烧卡」= 把树莓派的操作系统写进 microSD 卡。</p><div class="warn"><b>为什么只能用 Pi Imager：</b>它能在烧卡时预先写入 Wi-Fi 密码、SSH 开关、主机名这些设置。这台 Pi 3A+ 没有网线口、唯一的 USB 口要留给喇叭、不插键盘鼠标 —— <b>预置漏了，这台机器你就永远登不进去</b>，只能重烧。别的烧卡工具没有预置功能。</p><p class="dim">下载：raspberrypi.com 官网 → Software → Raspberry Pi Imager（macOS 版）。</p></div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a2-2" data-sec="a2"><span class="tx"><span class="t">烧卡：选对系统 + 高级设置 5 项一个都不能漏</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <p>把 microSD 卡经读卡器插进 Mac，打开 Imager：</p>
+          <p>① 系统选 <b>Raspberry Pi OS (64-bit)</b>（代号 Bookworm）<br>② 烧录前点<b>齿轮图标</b>（高级设置），逐项填：</p>
+          <table><tbody>
+            <tr><td>主机名</td><td class="mono">rollcall-1</td><td>以后就用这个名字登录</td></tr>
+            <tr><td>SSH</td><td><b>打开</b>（密码登录即可）</td><td>SSH = 从 Mac 远程进入树莓派命令行的方式</td></tr>
+            <tr><td>用户名</td><td class="mono">pi</td><td>必须是 pi —— 开机自启配置里写死了这个名字</td></tr>
+            <tr><td>Wi-Fi 名 + 密码</td><td>宿舍 / 家里的网</td><td>一个字都不能错，错了登不进去只能重烧</td></tr>
+            <tr><td>时区</td><td class="mono">Asia/Tokyo</td><td>点呼判定全按日本时间</td></tr>
+          </tbody></table>
+          <p>③ 点烧录，等它写完 + 校验完。卡里旧内容会被全部清空。</p>
+        </div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a2-3" data-sec="a2"><span class="tx"><span class="t">卡插进 Pi、上电、等 1–2 分钟联网</span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p>microSD 卡槽在 Pi 板子背面。插好卡 → 插电源线。第一次开机它要自己完成初始化 + 连 Wi-Fi，耐心等 1–2 分钟。</p></div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a2-4" data-sec="a2"><span class="tx"><span class="t">从 Mac SSH 登录进树莓派</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <p>在 Mac 上打开「终端」（Terminal，一个输命令的黑窗口，在 应用程序 → 实用工具 里，或用 Spotlight 搜「终端」），敲：</p>
+          <div class="cmd"><pre>ssh pi@rollcall-1.local</pre></div>
+          <p class="dim">第一次连会问 “Are you sure you want to continue connecting?” → 输 <code>yes</code> 回车，再输烧卡时设的密码（输密码时屏幕不显示任何字，是正常的，输完直接回车）。</p>
+          <div class="okline"><b>验收：</b>提示符变成 <code>pi@rollcall-1:~ $</code> —— 说明你已经「在树莓派里」了，之后敲的命令都是在 Pi 上跑。</div>
+          <div class="stuck"><b>卡住了：</b>连不上 → 先看路由器管理页面里有没有出现这台设备。有 = Wi-Fi 密码对、SSH 那边有问题；没有 = Wi-Fi 名或密码填错了，重烧卡。</div>
+        </div>
+      </details>
+
+      <div class="gsub">2.2 打开两个通信开关</div>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a2-5" data-sec="a2"><span class="tx"><span class="t">raspi-config 里开 SPI、开 I²C、音频切 3.5mm</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <p>SPI 和 I²C 是两种「芯片之间说话」的通信方式（读卡器走 SPI、贴纸走 I²C），树莓派默认全关着。在 SSH 里敲：</p>
+          <div class="cmd"><pre>sudo raspi-config</pre></div>
+          <p>出来一个蓝色菜单（方向键移动、回车确认、Esc 返回）：</p>
+          <p>① <code>Interface Options → SPI → Yes</code><br>② <code>Interface Options → I2C → Yes</code><br>③ <code>System Options → Audio → Headphones</code>（把声音从 HDMI 切到 3.5mm 圆孔，不切喇叭不出声）</p>
+          <p>改完退出，重启：</p>
+          <div class="cmd"><pre>sudo reboot</pre></div>
+          <p class="dim">重启会把 SSH 断开，等 1 分钟再重新 <code>ssh pi@rollcall-1.local</code>。</p>
+        </div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a2-6" data-sec="a2"><span class="tx"><span class="t">核对两个开关真的开了</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <div class="cmd"><pre>ls /dev/spidev*
+ls /dev/i2c-*</pre></div>
+          <div class="okline"><b>验收：</b>第一行打出 <code>/dev/spidev0.0</code>，第二行打出 <code>/dev/i2c-1</code>。</div>
+          <p class="dim">现在还没接任何模块，所以先别跑 <code>i2cdetect</code> —— 那条留到阶段 4.3 接上贴纸后用。</p>
+        </div>
+      </details>
+
+      <div class="gsub">2.3 装代码和依赖</div>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a2-7" data-sec="a2"><span class="tx"><span class="t">把点呼机代码从 Mac 拷进树莓派</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <p>这条命令在 <b>Mac 的终端</b>上跑（新开一个终端窗口，别在 SSH 里面敲）：</p>
+          <div class="cmd"><pre>scp -r ~/dev/DMSD/dev/rollcall_device pi@rollcall-1.local:/home/pi/rollcall_device</pre></div>
+          <p class="dim">scp = 隔着网络拷文件的命令。会再问一次密码。拷完回到 SSH 窗口继续。</p>
+        </div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a2-8" data-sec="a2"><span class="tx"><span class="t">装系统包 + 建 Python 虚拟环境 + 装依赖</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <p>回到 SSH（树莓派）里，一段一段贴：</p>
+          <div class="cmd"><pre>cd /home/pi/rollcall_device
+sudo apt update
+sudo apt install -y python3-venv python3-dev libgpiod2 i2c-tools</pre></div>
+          <div class="cmd"><pre>python3 -m venv .venv
+.venv/bin/pip install --upgrade pip
+.venv/bin/pip install -r requirements.txt</pre></div>
+          <p class="dim"><code>cd</code> = 进入某个文件夹；venv = Python 虚拟环境，把本项目的依赖库跟系统隔开互不污染。最后一步要下载不少东西，几分钟正常。</p>
+          <div class="stuck"><b>卡住了：</b><code>lgpio</code> 或 <code>adafruit-blinka</code> 装报错 → 多半缺系统包，补一句 <code>sudo apt install -y python3-libgpiod</code> 再重试。</div>
+        </div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a2-9" data-sec="a2"><span class="tx"><span class="t">生成内置提示音</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <div class="cmd"><pre>.venv/bin/python tools/gen_tones.py</pre></div>
+          <div class="okline"><b>验收：</b>不报错，提示音文件写进了 <code>assets/</code>。</div>
+        </div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a2-10" data-sec="a2"><span class="tx"><span class="t">复制一份配置文件（先不用改内容）</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <div class="cmd"><pre>cp config/config.example.json config/config.json</pre></div>
+          <p class="dim">配置里的字段（设备编号、激活码、后端地址）留到阶段 5 再真正填。现在只是让程序有文件可读。</p>
+        </div>
+      </details>
+
+      <div class="gsub">2.4 空跑模拟模式（软件段终点）</div>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a2-11" data-sec="a2"><span class="tx"><span class="t">用键盘假装刷卡，确认程序能转起来</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <div class="cmd"><pre>.venv/bin/python -m src.main --config config/config.json --simulate</pre></div>
+          <div class="warn"><b>注意：</b>是 <code>python -m src.main</code>，不是 <code>python src/main.py</code> —— 后者会报 ImportError。这是 Python 包的运行方式，不是代码有 bug。</p></div>
+          <p>跑起来后直接打字模拟：</p>
+          <div class="cmd"><pre>card 04a1b2c3d4e5f6   <span class="c"># 假装刷了一张卡（路径 A）</span>
+phone 某个uuid         <span class="c"># 假装手机碰了贴纸（路径 B）</span>
+quit                  <span class="c"># 干净退出</span></pre></div>
+          <div class="okline"><b>验收：</b>打 <code>card ...</code> 有反应、打 <code>quit</code> 能干净退出。<b>报网络错误是正常的</b>（后端还没配）—— 你要看的是程序本身跑起来了、状态机在转。</div>
+          <p><b>到这里的意义：</b>软件这层已经证明没问题。后面出任何故障，都可以先怀疑硬件。</p>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <!-- ════════ 阶段 3 ════════ -->
+  <div class="sec" style="--c:var(--amber);--cbd:var(--amber-bd)">
+    <div class="shead"><span class="dot"></span><span class="nm">阶段 3 · 焊接</span><span class="cnt" id="cnt-a3">–</span><span class="est">第一次约 2–3 小时</span></div>
+    <div class="intro">人生第一次拿烙铁。焊接的本质一句话：<b>用熔化的锡把金属针和板子上的金属圈粘在一起，让电能通过</b>。要焊两块板：PN532 焊一条排针、ST25DV 焊 6 根排针。分练习和实战，别跳练习。</div>
+    <div class="card">
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a3-1" data-sec="a3"><span class="tx"><span class="t">摆好场地：耐热垫、湿海绵、通风、烙铁调 350℃</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <p>① 耐热垫铺桌上，烙铁架放稳（烙铁头 350℃，碰到什么烫坏什么）<br>② 套装里的海绵沾水拧半干 —— 烙铁头脏了在上面蹭一下就干净<br>③ 开窗或开风扇 —— 焊锡的烟别对着脸吸<br>④ 烙铁插电，温度旋钮调到 <b>约 350℃</b>，等 2–3 分钟到温</p>
+          <div class="warn"><b>安全：</b>烙铁不用时必须放回架子上；拿烙铁只握手柄；焊完的焊点几十秒内还是烫的，别用手摸。</div>
+        </div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a3-2" data-sec="a3"><span class="tx"><span class="t">先在废排针上练 10 个焊点，练到稳定出「光亮小锥形」</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <p>排针买了 60 根，掰几根「牺牲品」插在面包板上练。<b>四个基本动作</b>，每个焊点都是这套：</p>
+          <p><b>① 加热</b> —— 烙铁头<b>同时碰住</b>针和板上的金属圈，停约 2 秒<br>
+          <b>② 送锡</b> —— 焊锡丝送到<b>针和金属圈的接缝处</b>（不是送到烙铁头上！），锡会自己熔化流进去<br>
+          <b>③ 先撤锡丝，再撤烙铁</b><br>
+          <b>④ 别吹气</b> —— 让它自然冷 2 秒（吹凉会产生裂纹）</p>
+          <p>焊完对照下面四张图判断好坏：</p>
+          <div class="sj4">
+            <div class="sj">
+              <svg viewBox="0 0 120 90" role="img" aria-label="好焊点：光亮的锥形">
+                <rect x="10" y="62" width="100" height="10" rx="2" fill="var(--pcb)"/>
+                <rect x="42" y="58" width="36" height="6" rx="2" fill="var(--pad)"/>
+                <rect x="56" y="12" width="8" height="58" rx="1.5" fill="var(--pin-metal)"/>
+                <path d="M44 62 C50 48 54 40 58 34 L62 34 C66 40 70 48 76 62 Z" fill="var(--solder)"/>
+                <path d="M58 38 C55 44 52 50 49 58" stroke="var(--solder-hi)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+              </svg>
+              <div class="lb good">✅ 好焊点</div>
+              <div class="ds">锥形小山、表面光亮、锡把针和金属圈都包住</div>
+            </div>
+            <div class="sj">
+              <svg viewBox="0 0 120 90" role="img" aria-label="冷焊：灰暗粗糙">
+                <rect x="10" y="62" width="100" height="10" rx="2" fill="var(--pcb)"/>
+                <rect x="42" y="58" width="36" height="6" rx="2" fill="var(--pad)"/>
+                <rect x="56" y="12" width="8" height="58" rx="1.5" fill="var(--pin-metal)"/>
+                <path d="M46 62 C47 52 51 46 55 44 L58 40 63 44 C68 45 72 52 74 62 Z" fill="var(--solder)" opacity=".55"/>
+                <circle cx="52" cy="53" r="1.6" fill="var(--ink)" opacity=".35"/><circle cx="60" cy="49" r="1.4" fill="var(--ink)" opacity=".35"/><circle cx="66" cy="55" r="1.7" fill="var(--ink)" opacity=".35"/><circle cx="57" cy="57" r="1.2" fill="var(--ink)" opacity=".35"/>
+              </svg>
+              <div class="lb bad">❌ 冷焊</div>
+              <div class="ds">灰暗、粗糙、像磨砂 —— 温度不够或焊时动了。重焊</div>
+            </div>
+            <div class="sj">
+              <svg viewBox="0 0 120 90" role="img" aria-label="虚焊：圆球和板子之间有缝">
+                <rect x="10" y="62" width="100" height="10" rx="2" fill="var(--pcb)"/>
+                <rect x="42" y="58" width="36" height="6" rx="2" fill="var(--pad)"/>
+                <rect x="56" y="12" width="8" height="58" rx="1.5" fill="var(--pin-metal)"/>
+                <circle cx="60" cy="38" r="13" fill="var(--solder)"/>
+                <path d="M46 56 L74 56" stroke="var(--red)" stroke-width="2" stroke-dasharray="3 3"/>
+                <text x="80" y="59" font-size="10" fill="var(--red)">缝!</text>
+              </svg>
+              <div class="lb bad">❌ 虚焊</div>
+              <div class="ds">锡成圆球挂在针上、跟板子之间有明显缝 —— 没粘上板子。重焊</div>
+            </div>
+            <div class="sj">
+              <svg viewBox="0 0 120 90" role="img" aria-label="短路：两个针连成一片">
+                <rect x="10" y="62" width="100" height="10" rx="2" fill="var(--pcb)"/>
+                <rect x="22" y="58" width="28" height="6" rx="2" fill="var(--pad)"/>
+                <rect x="70" y="58" width="28" height="6" rx="2" fill="var(--pad)"/>
+                <rect x="32" y="12" width="8" height="58" rx="1.5" fill="var(--pin-metal)"/>
+                <rect x="80" y="12" width="8" height="58" rx="1.5" fill="var(--pin-metal)"/>
+                <path d="M24 62 C30 46 38 40 44 40 L76 40 C82 40 90 46 96 62 Z" fill="var(--solder)"/>
+              </svg>
+              <div class="lb bad">❌ 短路</div>
+              <div class="ds">两根针之间被锡连成一片 —— 用吸锡器吸掉重来</div>
+            </div>
+          </div>
+          <p class="dim">10 个里能连着做出 5 个「光亮锥形」就算出师，去焊真板子。</p>
+        </div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a3-3" data-sec="a3"><span class="tx"><span class="t">先焊 ST25DV（板底 6 孔焊 6 根排针）<span class="chip c-ok">有 4 个备份，先拿它实战</span></span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <p><b>为什么先焊它</b>：ST25DV 买了 4 个，焊坏一个还有 3 个；PN532 只有 1 个。先在有备份的板子上实战。</p>
+          <p>做法：6 根排针从板底孔插入（塑料条在板底一侧），先焊两端各 1 针固定、确认排针垂直不歪，再焊中间 4 针。每针就是练习时那四个动作。</p>
+        </div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a3-4" data-sec="a3"><span class="tx"><span class="t">万用表验收 ST25DV 的 6 个焊点</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <p>焊完<b>别靠肉眼</b>，用万用表拨到<b>通断档</b>（表盘上有 🔊 蜂鸣器图标那一档，两点相通会「哔」）：</p>
+          <p>① <b>每个焊点对自己要通</b>：一支表笔碰针尖、另一支碰板上这根针对应的焊盘/走线 → 应该<b>响</b>。不响 = 虚焊，重焊<br>
+          ② <b>相邻两针之间要不通</b>：表笔碰相邻两根针 → 应该<b>不响</b>。响了 = 短路，吸锡重来</p>
+          <div class="okline"><b>验收：</b>6 根针全部「对自己通、对邻居不通」。这步不过关就往下走，后面会出各种莫名其妙的读不到卡，且极难排查。</div>
+        </div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a3-5" data-sec="a3"><span class="tx"><span class="t">再焊 PN532 的排针 <span class="chip c-red">只有 1 个，慢慢来</span></span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p>套件自带排针，焊到板边那排孔上。手感已经有了，不着急，一针一针来。歪了就先熔开两端定位针调正。</p></div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a3-6" data-sec="a3"><span class="tx"><span class="t">万用表验收 PN532 的每个焊点</span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p>方法跟 ST25DV 一样：每针「对自己通、对邻居不通」，全过才算焊接阶段完工。</p></div>
+      </details>
+    </div>
+  </div>
+
+  <!-- ════════ 阶段 4 ════════ -->
+  <div class="sec" style="--c:var(--violet);--cbd:var(--violet-bd)">
+    <div class="shead"><span class="dot"></span><span class="nm">阶段 4 · 逐个模块接线</span><span class="cnt" id="cnt-a4">–</span><span class="est">约 2 小时</span></div>
+    <div class="intro">顺序：LED → PN532 → ST25DV → 风扇/喇叭（LED 不用焊、接错也烧不了，先拿它练数针脚）。<b>每接一个模块前先拔电源，接完再上电。</b></div>
+
+    <div class="tip" style="margin:.2rem 0 .6rem"><b>先搞懂两套针脚编号，这是全场最容易搞死人的地方：</b><br>
+    ① <b>物理 pin 号</b>（1–40）= 针在板子上的<b>位置</b>，数针脚时用它；<br>
+    ② <b>GPIO 编号</b>（又叫 BCM 编号）= 这根针在<b>代码里的名字</b>。<br>
+    两套数字<b>互不相等</b>：比如「GPIO11」在物理 pin 23 的位置，而「物理 pin 11」其实是 GPIO17。下面所有表格两个号都标了 —— <b>动手数针脚永远看「物理 pin」列</b>。</div>
+
+    <div class="pinbox">
+      <div style="font-size:.85rem;font-weight:750;margin:0 .3rem .5rem">树莓派 40 针总图（左右两列 = 两排针；本机要用的针已上色）</div>
+      <div class="pinwrap">
+      <div class="pingrid">
+        <span class="pl f33">3.3V · ST25DV电源+上拉</span><span class="pn on3">1</span><span class="pn on5">2</span><span class="pr f5v">5V · LED 电源轨</span>
+        <span class="pl fi2c">SDA · ST25DV</span><span class="pn oni">3</span><span class="pn on5">4</span><span class="pr f5v">5V · 风扇红线</span>
+        <span class="pl fi2c">SCL · ST25DV</span><span class="pn oni">5</span><span class="pn ong">6</span><span class="pr fgnd">GND · 风扇黑线</span>
+        <span class="pl">GPIO4</span><span class="pn">7</span><span class="pn">8</span><span class="pr">GPIO14</span>
+        <span class="pl fgnd">GND · ST25DV</span><span class="pn ong">9</span><span class="pn">10</span><span class="pr">GPIO15</span>
+        <span class="pl fled">GPIO17 · 红LED短腿</span><span class="pn onl">11</span><span class="pn">12</span><span class="pr">GPIO18</span>
+        <span class="pl fled">GPIO27 · 绿LED短腿</span><span class="pn onl">13</span><span class="pn ong">14</span><span class="pr fgnd">GND · PN532（建议）</span>
+        <span class="pl fled">GPIO22 · 蓝LED短腿</span><span class="pn onl">15</span><span class="pn onl">16</span><span class="pr fled">GPIO23 · 白LED短腿</span>
+        <span class="pl f33">3.3V · PN532 电源</span><span class="pn on3">17</span><span class="pn oni">18</span><span class="pr fi2c">GPIO24 · GPO门铃 ⏳</span>
+        <span class="pl fspi">GPIO10 MOSI · PN532</span><span class="pn ons">19</span><span class="pn ong">20</span><span class="pr fgnd">GND（备用）</span>
+        <span class="pl fspi">GPIO9 MISO · PN532</span><span class="pn ons">21</span><span class="pn">22</span><span class="pr">GPIO25</span>
+        <span class="pl fspi">GPIO11 SCLK · PN532</span><span class="pn ons">23</span><span class="pn ons">24</span><span class="pr fspi">GPIO8 CE0 · PN532 SS</span>
+        <span class="pl fgnd">GND（备用）</span><span class="pn ong">25</span><span class="pn">26</span><span class="pr">GPIO7</span>
+        <span class="pl">预留</span><span class="pn">27</span><span class="pn">28</span><span class="pr">预留</span>
+        <span class="pl">GPIO5</span><span class="pn">29</span><span class="pn ong">30</span><span class="pr fgnd">GND（备用）</span>
+        <span class="pl">GPIO6</span><span class="pn">31</span><span class="pn">32</span><span class="pr">GPIO12</span>
+        <span class="pl">GPIO13</span><span class="pn">33</span><span class="pn ong">34</span><span class="pr fgnd">GND（备用）</span>
+        <span class="pl">GPIO19</span><span class="pn">35</span><span class="pn">36</span><span class="pr">GPIO16</span>
+        <span class="pl">GPIO26</span><span class="pn">37</span><span class="pn">38</span><span class="pr">GPIO20</span>
+        <span class="pl fgnd">GND（备用）</span><span class="pn ong">39</span><span class="pn">40</span><span class="pr">GPIO21</span>
+      </div>
+      </div>
+      <div class="legend">
+        <span class="f5v">5V 电源</span><span class="f33">3.3V 电源</span><span class="fgnd">GND 接地</span><span class="fspi">PN532（SPI）</span><span class="fi2c">ST25DV（I²C）</span><span class="fled">LED</span>
+      </div>
+      <div style="font-size:.74rem;color:var(--muted);margin:.55rem .3rem 0;line-height:1.7">
+        怎么找 pin 1：靠近 microSD 卡槽那一端就是 pin 1 / pin 2 那头；拿不准看板子<b>背面</b> —— pin 1 的焊盘是<b>方形</b>的，其他都是圆的。<br>
+        GND（接地）针有很多根，<b>互相完全等价</b>，哪根方便接哪根 —— 但所有模块都必须接到某根 GND（叫「共地」，少接一个电路就不通）。<br>
+        ⚠️ 文档里 PN532 的 GND 写的是 pin 6，但风扇接头会把 pin 4+6 整个占掉 —— 所以图上建议 PN532 的 GND 改接 pin 14（任一 GND 都行）。
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="gsub">4.1 LED ×4（不用焊、烧不坏，先练基本功）</div>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a4-1" data-sec="a4"><span class="tx"><span class="t">拔掉电源，把 4 个 LED 经面包板接好</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <p><b>先认 LED 的两条腿</b>（LED 有方向，接反不亮）：</p>
+          <figure>
+            <svg viewBox="0 0 340 150" role="img" aria-label="LED 长短腿接法示意">
+              <path d="M60 20 a26 26 0 0 1 52 0 v30 h-52 Z" fill="var(--red)" opacity=".8"/>
+              <rect x="54" y="50" width="64" height="8" rx="2" fill="var(--red)" opacity=".55"/>
+              <line x1="74" y1="58" x2="74" y2="130" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+              <line x1="98" y1="58" x2="98" y2="104" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+              <text x="40" y="146" font-size="12" fill="var(--ink)" font-weight="700">长腿＋</text>
+              <text x="92" y="122" font-size="12" fill="var(--muted)">短腿−</text>
+              <path d="M74 130 h60" stroke="var(--red)" stroke-width="3" fill="none"/>
+              <rect x="140" y="122" width="44" height="16" rx="4" fill="var(--amber-soft)" stroke="var(--amber)"/>
+              <text x="145" y="134" font-size="11" fill="var(--amber)" font-weight="700">220Ω</text>
+              <path d="M184 130 h44" stroke="var(--red)" stroke-width="3" fill="none"/>
+              <rect x="230" y="118" width="100" height="24" rx="6" fill="var(--red-soft)" stroke="var(--red)"/>
+              <text x="238" y="134" font-size="11.5" fill="var(--red)" font-weight="700">5V（pin 2）</text>
+              <path d="M98 104 h130" stroke="var(--blue)" stroke-width="3" fill="none"/>
+              <rect x="230" y="92" width="100" height="24" rx="6" fill="var(--blue-soft)" stroke="var(--blue)"/>
+              <text x="236" y="108" font-size="11.5" fill="var(--blue)" font-weight="700">GPIO 信号针</text>
+            </svg>
+            <figcaption>每颗 LED：长腿（正极）→ 串 1 个 220Ω 电阻 → 5V；短腿（负极）→ 各自的 GPIO 信号针</figcaption>
+          </figure>
+          <div class="scrollx"><table>
+            <thead><tr><th>颜色</th><th>含义</th><th>短腿接到（物理 pin）</th><th>GPIO 编号</th></tr></thead>
+            <tbody>
+              <tr><td>蓝</td><td>待机</td><td class="mono">pin 15</td><td class="mono">GPIO22</td></tr>
+              <tr><td>绿</td><td>签到成功</td><td class="mono">pin 13</td><td class="mono">GPIO27</td></tr>
+              <tr><td>红</td><td>失败</td><td class="mono">pin 11</td><td class="mono">GPIO17</td></tr>
+              <tr><td>白</td><td>启动中</td><td class="mono">pin 16</td><td class="mono">GPIO23</td></tr>
+            </tbody>
+          </table></div>
+          <p><b>5V 针不够 4 颗 LED 分怎么办</b>：用面包板 —— 一根杜邦线把 pin 2（5V）引到面包板的电源轨（红色长条），4 颗 LED 的长腿各自串好 220Ω 后都插到这条轨上。</p>
+          <div class="tip"><b>为什么是「低电平 = 亮」：</b>电流从 5V 流进 LED，GPIO 信号针在「放电流出去」的一端 —— 代码把信号针拉到 0V（低电平），电路才通、灯才亮；拉到 3.3V（高电平）灯灭。跟直觉相反，但这是接法决定的，<b>代码里已经处理好了</b>，你只管照表接。</div>
+        </div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a4-2" data-sec="a4"><span class="tx"><span class="t">上电跑主程序，看白灯 → 蓝灯</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <div class="cmd"><pre>.venv/bin/python -m src.main --config config/config.json --log-level INFO</pre></div>
+          <div class="okline"><b>验收：</b>启动瞬间亮<b>白灯</b>（启动中），进待机后变<b>蓝灯</b>。（后端没配报网络错仍是正常的，看灯就行。）</div>
+          <div class="stuck"><b>卡住了：</b>某颗完全不亮 → 十有八九长短腿接反了，拔下来调头。4 颗全不亮 → 拔电源，用万用表电压档量 pin 2（5V）和任一 GND 之间是不是约 5V。开机瞬间 LED 微亮一下是正常的（程序启动第一件事就是把灯全灭）。</div>
+        </div>
+      </details>
+
+      <div class="gsub">4.2 PN532 读卡器（路径 A：刷学生卡）</div>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a4-3" data-sec="a4"><span class="tx"><span class="t">先把板上的模式开关切到 SPI <span class="chip c-red">不切，接线全对也读不到卡</span></span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p>PN532 V3 板上有<b>拨码开关或跳线帽</b>，出厂默认可能是 I²C 模式。对照它自带说明书或板上丝印，切到 <b>SPI</b> 模式。切完拍张照留档。</p></div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a4-4" data-sec="a4"><span class="tx"><span class="t">拔电源，按表接 6 根线</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <div class="scrollx"><table>
+            <thead><tr><th>PN532 板上印的字</th><th>接 Pi 的哪根针</th><th>物理 pin</th><th>GPIO 编号</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">SCK</td><td>SCLK（时钟）</td><td class="mono">pin 23</td><td class="mono">GPIO11</td></tr>
+              <tr><td class="mono">MISO</td><td>MISO（它→Pi）</td><td class="mono">pin 21</td><td class="mono">GPIO9</td></tr>
+              <tr><td class="mono">MOSI</td><td>MOSI（Pi→它）</td><td class="mono">pin 19</td><td class="mono">GPIO10</td></tr>
+              <tr><td class="mono">SS / NSS</td><td>CE0（片选）</td><td class="mono">pin 24</td><td class="mono">GPIO8</td></tr>
+              <tr><td class="mono">VCC</td><td><b>3.3V</b>（走 SPI 时它是 3.3V 逻辑）</td><td class="mono">pin 17</td><td>—</td></tr>
+              <tr><td class="mono">GND</td><td>接地（任一 GND）</td><td class="mono">pin 14 建议</td><td>—</td></tr>
+            </tbody>
+          </table></div>
+          <p class="dim">文档原表 GND 写 pin 6，但 pin 6 之后要被风扇接头占掉，GND 全等价 → 建议直接接 pin 14。板上丝印跟表不一致时以实物为准（拍照问 CC）。</p>
+        </div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a4-5" data-sec="a4"><span class="tx"><span class="t">上电，刷卡看日志打出卡号</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <p>跑起主程序，把套件自带的测试卡或一张 NTAG215 白卡贴到 PN532 上。</p>
+          <div class="okline"><b>验收：</b>日志里打出一串 14 位十六进制卡号（形如 <code>04a1b2c3d4e5f6</code>）。</div>
+          <div class="stuck"><b>卡住了：</b>按顺序查 —— ① 模式开关真切到 SPI 了吗 ② <code>ls /dev/spidev*</code> 有 <code>/dev/spidev0.0</code> 吗 ③ SS 线真接在 pin 24（CE0）吗 ④ 还不行看文末故障对照表「PN532 读卡无反应」。</div>
+        </div>
+      </details>
+
+      <div class="gsub">4.3 ST25DV 贴纸（路径 B：手机碰）—— 全项目最难关</div>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a4-6" data-sec="a4"><span class="tx"><span class="t">拔电源，接 4 根线 + 门铃线串 10kΩ 上拉</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <div class="scrollx"><table>
+            <thead><tr><th>ST25DV 板上印的字</th><th>接 Pi 的哪根针</th><th>物理 pin</th><th>GPIO 编号</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">SDA</td><td>SDA（I²C 数据）</td><td class="mono">pin 3</td><td class="mono">GPIO2</td></tr>
+              <tr><td class="mono">SCL</td><td>SCL（I²C 时钟）</td><td class="mono">pin 5</td><td class="mono">GPIO3</td></tr>
+              <tr><td class="mono">VCC</td><td>3.3V</td><td class="mono">pin 1</td><td>—</td></tr>
+              <tr><td class="mono">GND</td><td>接地</td><td class="mono">pin 9</td><td>—</td></tr>
+              <tr><td class="mono">GPO</td><td>门铃线（见下）</td><td class="mono">pin 18 ⏳</td><td class="mono">GPIO24 ⏳</td></tr>
+            </tbody>
+          </table></div>
+          <p><b>GPO 门铃线是什么</b>：手机把数据写进贴纸后，贴纸靠这根线「按门铃」通知树莓派「有新东西了，快来读」。</p>
+          <div class="warn"><b>门铃线必须串一个 10kΩ 电阻「上拉」到 3.3V：</b>在面包板上，GPO 那格 → 插一根 10kΩ 电阻 → 电阻另一头接到 3.3V（pin 1 引过来的轨）。同一格再引一根线去 pin 18。<b>别错拿 220Ω</b>（阻值不对不管用）—— 用万用表量一下再插。</div>
+          <p class="dim">⏳ GPO 用哪个 GPIO 是配置里定的（默认 GPIO24 = pin 18），标了「待硬件联调核实」—— 如果实测要换针，配置文件 <code>gpio.st25dv_gpo</code> 要同步改。</p>
+        </div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a4-7" data-sec="a4"><span class="tx"><span class="t">验收第一步：i2cdetect 能看到芯片</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <div class="cmd"><pre>i2cdetect -y 1</pre></div>
+          <div class="okline"><b>验收：</b>打出的表里有 <code>53</code> 和 <code>57</code> 两个地址。</div>
+          <div class="stuck"><b>卡住了：</b>看不到 = 接线或焊点问题 —— 回阶段 3 用万用表把 6 个焊点重新过一遍通断。</div>
+        </div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a4-8" data-sec="a4"><span class="tx"><span class="t">验收第二步：iPhone 碰贴纸，日志解析出学生身份</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <p>跑起主程序，用 iPhone 打开 Tomoshibi App 点签到，手机贴到 ST25DV 天线上。</p>
+          <div class="okline"><b>验收：</b>日志打出解析到的学生 UUID（一串带横杠的编号）。</div>
+          <div class="warn"><b>这一步出问题不一定是你接错了。</b>这里是全项目代码里标「待硬件联调核实」最多的地方 —— ST25DV 的寄存器位号、GPO 引脚行为都是照芯片说明书写的、从没被实物验证过。折腾 20 分钟没进展就停手，把日志（<code>journalctl -u tomoshibi-rollcall -n 50</code> 或前台跑的输出）整段发给 CC，对着芯片手册一起查。</div>
+        </div>
+      </details>
+
+      <div class="gsub">4.4 风扇 + 喇叭</div>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a4-9" data-sec="a4"><span class="tx"><span class="t">拔电源，风扇接头直插 pin 4 + pin 6 <span class="chip c-red">红线对 5V · 绝不接 GPIO</span></span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <p>风扇的 2 针接头刚好套到 <b>pin 4（5V）+ pin 6（GND）</b>上，<b>红线那头对准 pin 4</b>。</p>
+          <div class="warn"><b>风扇绝对不能接 GPIO 信号针</b> —— 信号针最大 16mA，风扇要 100mA，会烧板子。它只吃 5V 和 GND 两根电源针。</div>
+          <div class="okline"><b>验收：</b>上电风扇转。</div>
+        </div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a4-10" data-sec="a4"><span class="tx"><span class="t">喇叭：3.5mm 音频线插 Pi 圆孔，USB 线取电</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <p>Lazos 喇叭两根线：<b>3.5mm 那根</b>插 Pi 的圆形音频口；<b>USB 那根只是取电</b>。</p>
+          <p class="dim">⏳ USB 取电插哪：两份文档说法不一 —— 采购清单（较新）说插<b>单独的 5V 充电头</b>、不占 Pi 唯一的 USB 口；接线说明写的是插 Pi 的 USB 口。到时候实物确认：有闲置充电头就用充电头，Pi 的 USB 口能省则省。两种接法都不危险。</p>
+        </div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a4-11" data-sec="a4"><span class="tx"><span class="t">声音验收：刷卡有播报声</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <div class="okline"><b>验收：</b>刷一张卡，喇叭出声（现在还没绑学生，播提示音 / 报错音都算「出声」）。</div>
+          <div class="stuck"><b>卡住了：</b>没声先想起阶段 2.2 —— 音频切到 Headphones（3.5mm）了吗？没切就 <code>sudo raspi-config</code> 补切。这不是喇叭坏了。</div>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <!-- ════════ 阶段 5 ════════ -->
+  <div class="sec" style="--c:var(--ok);--cbd:var(--ok-bd)">
+    <div class="shead"><span class="dot"></span><span class="nm">阶段 5 · 端到端第一次真签到</span><span class="cnt" id="cnt-a5">–</span><span class="est">连上真后端</span></div>
+    <div class="intro">前面全通了，现在把机器接到真后端，走一次完整的「刷卡 → 后端 → 老师网页」。</div>
+    <div class="card">
+      <div class="gsub">先把设备在后端「注册上户口」</div>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a5-1" data-sec="a5"><span class="tx"><span class="t">让后端建这台设备的记录，拿到一次性激活码</span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p>管理员在后端给这台设备建记录后，会得到一个<b>一次性激活码（enroll_code）</b>。这步在电脑上做 —— 到时候叫 CC 一起弄。激活码只能用一次，用过就作废。</p></div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a5-2" data-sec="a5"><span class="tx"><span class="t">在 Pi 上建数据目录</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <p>程序要有个能写的地方存密钥和本地名单：</p>
+          <div class="cmd"><pre>sudo mkdir -p /var/lib/tomoshibi && sudo chown pi:pi /var/lib/tomoshibi</pre></div>
+        </div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a5-3" data-sec="a5"><span class="tx"><span class="t">把 config.json 的字段填成真的</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <div class="cmd"><pre>nano config/config.json</pre></div>
+          <p class="dim">nano = 命令行里的文本编辑器：方向键移动，改完 <code>Ctrl+O</code> 回车保存、<code>Ctrl+X</code> 退出。</p>
+          <div class="scrollx"><table>
+            <thead><tr><th>字段</th><th>填什么</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">device_id</td><td>这台机器的编号，如 <code>dorm-1-01</code></td></tr>
+              <tr><td class="mono">enroll_code</td><td>上一步拿到的一次性激活码（激活成功后程序自动清空它）</td></tr>
+              <tr><td class="mono">server_url / ws_url</td><td><code>https://api.tomoshibi.cc</code> / <code>wss://api.tomoshibi.cc</code></td></tr>
+              <tr><td class="mono">key_path / data_dir</td><td>保持默认 <code>/var/lib/tomoshibi/*</code>（上一步已建好）</td></tr>
+              <tr><td class="mono">gpio.st25dv_gpo</td><td>保持 24；除非 4.3 实测换了针才改</td></tr>
+              <tr><td class="mono">audio_output</td><td>先跑 <code>aplay -l</code> 看喇叭的 card 和 device 号，填成 <code>plughw:卡号,设备号</code></td></tr>
+            </tbody>
+          </table></div>
+          <div class="cmd"><pre>aplay -l</pre></div>
+        </div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a5-4" data-sec="a5"><span class="tx"><span class="t">前台跑一次：激活 + 拉名单 + 进待机</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <div class="cmd"><pre>.venv/bin/python -m src.main --config config/config.json --log-level INFO</pre></div>
+          <p>首次启动会自动走完：生成设备密钥 → 用激活码激活 → 换 12 小时令牌 → 拉学生名单 + 同步语音 → 进待机。</p>
+          <div class="okline"><b>验收：</b>蓝灯待机、日志无报错。<code>Ctrl+C</code> 可以随时优雅退出。</div>
+          <div class="stuck"><b>卡住了：</b>白灯闪烁 = 激活/令牌问题 → 查故障对照表「白灯闪烁」；黄灯（红+绿同亮）= 点呼时段没开始，是正常等待不是故障。</div>
+        </div>
+      </details>
+
+      <div class="gsub">完整验收清单（六条全过 = 第一次刷卡成功 🎉）</div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a5-5" data-sec="a5"><span class="tx"><span class="t">开机自动亮白灯 → 转蓝灯待机</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a5-6" data-sec="a5"><span class="tx"><span class="t">路径 A：刷 NTAG215 学生卡 → 绿灯 + 喇叭播日语姓名</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a5-7" data-sec="a5"><span class="tx"><span class="t">路径 B：iPhone 碰贴纸 → 绿灯 + 播姓名</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="a5-8" data-sec="a5"><span class="tx"><span class="t">老师网页上实时看到这条签到</span></span></label></div>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a5-9" data-sec="a5"><span class="tx"><span class="t">断网再刷卡 → 仍绿灯，恢复网络后自动补传</span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p>把 Wi-Fi 断掉（路由器上踢掉这台设备或关热点）再刷已绑定的卡：本地名单命中照样绿灯。恢复网络后，这条记录自动补传到后端 —— 老师网页上应该能看到它出现。</p></div>
+      </details>
+      <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a5-10" data-sec="a5"><span class="tx"><span class="t">装开机自启，重启后不用手动启动</span></span><span class="arr">▶</span></span></summary>
+        <div class="note">
+          <p>systemd = Linux 的开机自启机制，装好后断电重启机器都会自己爬起来干活：</p>
+          <div class="cmd"><pre>sudo cp config/tomoshibi-rollcall.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now tomoshibi-rollcall
+systemctl status tomoshibi-rollcall</pre></div>
+          <div class="okline"><b>验收：</b>status 显示 <code>active (running)</code>。然后 <code>sudo reboot</code> 重启 → 不碰键盘，机器自己白灯 → 蓝灯。</div>
+          <p class="dim">以后看实时日志用：<code>journalctl -u tomoshibi-rollcall -f</code>（Ctrl+C 退出看日志，不影响程序）。</p>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <!-- ════════ 故障对照表 ════════ -->
+  <div class="sec" style="--c:var(--red);--cbd:var(--border)">
+    <div class="shead"><span class="dot" style="background:var(--red)"></span><span class="nm" style="color:var(--ink)">故障对照表</span><span class="cnt">现象点开看排查法</span></div>
+    <div class="card">
+      <details class="row"><summary><span class="line"><span class="tx"><span class="t">ST25DV 读不到（i2cdetect 里没有 0x53 / 0x57）</span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p>检查 I²C 四根线（SDA/SCL/VCC/GND）+ raspi-config 里 I²C 真开了；GPO 线接对针脚且串了 10kΩ 上拉。还不行 → 回阶段 3 复测焊点通断。</p></div>
+      </details>
+      <details class="row"><summary><span class="line"><span class="tx"><span class="t">PN532 读卡无反应</span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p>① 板上跳线切到 <b>SPI 模式</b>了吗 ② <code>/dev/spidev0.0</code> 存在吗 ③ SS 线接的是 CE0（pin 24 / GPIO8）吗。</p></div>
+      </details>
+      <details class="row"><summary><span class="line"><span class="tx"><span class="t">刷卡有反应但没声音</span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p>raspi-config 把音频切到 3.5mm（Headphones）；再 <code>aplay -l</code> 核对 config 里 <code>audio_output</code> 的设备串填对了。</p></div>
+      </details>
+      <details class="row"><summary><span class="line"><span class="tx"><span class="t">白灯闪烁（认证错误）</span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p>令牌或激活问题：确认 <code>enroll_code</code> 正确且没被用过、这台设备在后端是启用状态（device_active = true）。看日志定位。</p></div>
+      </details>
+      <details class="row"><summary><span class="line"><span class="tx"><span class="t">黄灯（红 + 绿同时亮）</span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p>= 点呼时段还没开始（SESSION_NOT_RUNNING），<b>正常等待态，不是故障</b>。</p></div>
+      </details>
+      <details class="row"><summary><span class="line"><span class="tx"><span class="t">断网时刷卡什么表现才算对</span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p>本地名单里有这张卡 → 绿灯；没有 → 红灯。恢复网络后自动补传，不用人管。</p></div>
+      </details>
+      <details class="row"><summary><span class="line"><span class="tx"><span class="t">开机瞬间 LED 微微亮一下</span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p>正常。程序启动的第一件事就是把 4 颗 LED 全部置灭。</p></div>
+      </details>
+      <details class="row"><summary><span class="line"><span class="tx"><span class="t">要换机器 / 换密钥</span></span><span class="arr">▶</span></span></summary>
+        <div class="note"><p>管理员先在后端重发激活码（reset-enroll），Pi 上删掉本地密钥文件（<code>key_path</code> 指的那个）后重启，走一遍重新激活。</p></div>
+      </details>
+      <div class="row"><div class="line"><span class="tx"><span class="hint" style="font-size:.82rem">表里没有的：把三样东西发给 CC —— ① 现象（灯什么颜色 / 有没有声）② 日志 <code>journalctl -u tomoshibi-rollcall -n 50</code> ③ 你上一步动了什么。<b>别一次改好几个地方再上电</b> —— 改一处、测一次。</span></span></div></div>
+    </div>
+  </div>
+
+  <!-- ════════ 回填收尾 ════════ -->
+  <div class="sec" style="--c:var(--gray);--cbd:var(--gray-bd)">
+    <div class="shead"><span class="dot"></span><span class="nm" style="color:var(--ink)">走完之后要回来改的</span><span class="cnt" id="cnt-ax">–</span><span class="est">跟 CC 一起做</span></div>
+    <div class="intro">代码里好几处写着「待硬件联调核实」的假设值，真机走通后要改成实测值、去掉标记 —— 这些勾着 CC 一起收。</div>
+    <div class="card">
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="ax-1" data-sec="ax"><span class="tx"><span class="t">st25dv.py：寄存器常量、邮箱控制位改成实测值</span><span class="hint">src/nfc/st25dv.py</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="ax-2" data-sec="ax"><span class="tx"><span class="t">config 的 st25dv_gpo 确认 / 改成实际接的引脚号</span><span class="hint">config/config.json（默认 GPIO24）</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="ax-3" data-sec="ax"><span class="tx"><span class="t">config 的 audio_output 换成 aplay -l 查到的真实设备串</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="ax-4" data-sec="ax"><span class="tx"><span class="t">iPhone 侧 ST25DVWriter.swift 的字节结构假设核实</span><span class="hint">dev/student_ios/.../ST25DVWriter.swift</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="ax-5" data-sec="ax"><span class="tx"><span class="t">接线说明顶部状态行从「⏳ 待到货实测」改成实测确认</span><span class="hint">点呼机接线说明.md</span></span></label></div>
+      <div class="row"><label class="line"><input class="ck" type="checkbox" id="ax-6" data-sec="ax"><span class="tx"><span class="t">组装联调清单每阶段标 ✅ + 补真实踩的坑</span><span class="hint">第二台机器组装时能省一半时间</span></span></label></div>
+    </div>
+  </div>
+
+  <p class="foot">真值来源（有出入以这些文件 + 实物为准）：<code>dev/rollcall_device/docs/组装联调清单.md</code>（路线图）· <code>docs/部署SOP.md</code>（命令）· <code>点呼机接线说明.md</code>（接线）· <code>点呼机采购清单.html</code>（零件）。<br>文档矛盾已按最新决定处理：ST25DV 走「焊排针」（旧写法 Qwiic 免焊已废）；喇叭 USB 取电两处说法不一 → 页内标 ⏳ 实物确认。<br>勾选进度只存在当前浏览器（localStorage），换设备不同步。</p>
+</div>
+
+<script>
+(function(){
+  var SECS=['a0','a1','a2','a3','a4','a5','ax'];
+  function count(){
+    var total=0,done=0;
+    SECS.forEach(function(s){
+      var all=document.querySelectorAll('input.ck[data-sec="'+s+'"]');
+      var d=0; all.forEach(function(c){if(c.checked)d++;});
+      total+=all.length; done+=d;
+      var pct=all.length?Math.round(d/all.length*100):0;
+      var bar=document.getElementById('bar-'+s); if(bar)bar.style.width=pct+'%';
+      var ct=document.getElementById('ct-'+s); if(ct)ct.textContent=d+'/'+all.length;
+      var cnt=document.getElementById('cnt-'+s); if(cnt)cnt.textContent=d+'/'+all.length;
+    });
+    document.getElementById('bar-all').style.width=(total?Math.round(done/total*100):0)+'%';
+    document.getElementById('ct-all').textContent=done+'/'+total;
+  }
+  document.querySelectorAll('input.ck[data-sec]').forEach(function(cb){
+    if(localStorage.getItem('rc-'+cb.id)==='1'){cb.checked=true;}
+    cb.addEventListener('change',function(){
+      localStorage.setItem('rc-'+cb.id,cb.checked?'1':'0');
+      count();
+    });
+    cb.addEventListener('click',function(e){e.stopPropagation();});
+  });
+  count();
+  /* 命令复制按钮 */
+  document.querySelectorAll('.cmd').forEach(function(box){
+    var pre=box.querySelector('pre'); if(!pre)return;
+    var btn=document.createElement('button');
+    btn.type='button'; btn.className='cp'; btn.textContent='复制';
+    btn.addEventListener('click',function(){
+      var text=pre.innerText.split('\n').map(function(l){return l.replace(/\s*#.*$/,'');}).join('\n').replace(/\n{2,}/g,'\n').trim();
+      function ok(){btn.textContent='已复制 ✓';btn.classList.add('done');setTimeout(function(){btn.textContent='复制';btn.classList.remove('done');},1600);}
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(ok);}
+      else{var ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);ok();}
+    });
+    box.appendChild(btn);
+  });
+})();
+</script>
