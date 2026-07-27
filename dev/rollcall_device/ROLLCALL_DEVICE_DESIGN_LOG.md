@@ -199,8 +199,8 @@ After=network.target
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/rollcall_device
+User=rollcall-1
+WorkingDirectory=/home/rollcall-1/rollcall_device
 ExecStart=/usr/bin/python3 src/main.py
 Restart=on-failure
 RestartSec=5

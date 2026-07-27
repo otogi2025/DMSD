@@ -25,7 +25,9 @@
 3. 烧录前点齿轮（高级设置）预置：
    - 主机名：如 `rollcall-1`
    - 开 **SSH**（用密码或公钥登录）
-   - 用户名固定 **`pi`**（systemd 单元里写死 `User=pi` + 家目录 `/home/pi`）
+   - 用户名：本机实际用的是 **`rollcall-1`**。用户名不是必须叫 `pi`，但烧卡时填的
+     名字必须跟 `config/tomoshibi-rollcall.service` 里的 `User=` 和另外两处路径
+     （`WorkingDirectory` / `ExecStart`）一致——三处不一致开机自启会起不来。
    - Wi-Fi 名 + 密码（宿舍网）
    - 地区/时区 **Asia/Tokyo**（全链路 JST，契约 §12）
 4. 写卡 → 插 Pi → 上电 → 等 1-2 分钟联网。
@@ -53,11 +55,11 @@ i2cdetect -y 1       # ST25DV 接好后应见 0x53 与 0x57 两个地址
 
 ## 3. 装代码 + venv 装依赖
 
-把 `dev/rollcall_device/` 整个目录拷到 Pi 的 `/home/pi/rollcall_device`（scp 或 git clone
+把 `dev/rollcall_device/` 整个目录拷到 Pi 的 `/home/rollcall-1/rollcall_device`（scp 或 git clone
 后取该子目录）。然后：
 
 ```bash
-cd /home/pi/rollcall_device
+cd /home/rollcall-1/rollcall_device
 sudo apt update
 sudo apt install -y python3-venv python3-dev libgpiod2 i2c-tools
 python3 -m venv .venv
