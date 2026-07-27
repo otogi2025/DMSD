@@ -66,7 +66,7 @@ Tomoshibi 点呼系统的硬件体系由 4 类物理设备构成：
 | USB | 1 个 USB 2.0 |
 | GPIO | 40-pin（I²C / SPI / UART / PWM 全支持）|
 | 音频 | **3.5mm 模拟音频口**（直接接小喇叭）|
-| 操作系统 | Raspberry Pi OS (Debian based) |
+| 操作系统 | Raspberry Pi OS (Legacy, 64-bit) **Lite** — Debian 12 Bookworm（2026-07-27 实机烧卡确认，Python 3.11.2）|
 | 开发语言 | Python 3 |
 | 尺寸 | 65×56 mm |
 | 采购价 | **¥6480 日元（日本 Amazon，demo 1 台）** / **估 ¥180 RMB（淘宝，部署 3 台）** |

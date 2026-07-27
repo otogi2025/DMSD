@@ -45,7 +45,7 @@
 | 层 | 选型 | 出处 |
 |---|---|---|
 | 语言 | **Python 3.11+** | itsuki 学习路径 + Pi OS 默认 |
-| OS | **Raspberry Pi OS (Bookworm,64-bit)** | 🟡 CC 推荐（官方默认 + 最新 Debian base）|
+| OS | **Raspberry Pi OS (Legacy, 64-bit) Lite**（Bookworm）| ✅ 2026-07-27 实机烧卡确认（Debian 12 / aarch64 / Python 3.11.2）。选 Lite = Pi 3A+ 只有 512MB 且无显示器；选 Legacy = Imager 第一屏已换成新一代 Trixie，Legacy 这条才是本项目声明的目标环境 Bookworm |
 | NFC 读卡（PN532） | `nfcpy` 或 `Adafruit-PN532` 库 | ⏳ §10-D1 待 itsuki 决定 |
 | ST25DV 读 Mailbox 邮箱 | `smbus2` Python 库 + 自写底层 I2C | ⏳ §10-D2（无现成库；2026-06-03 反转：从「写 nonce」改「读手机写进来的邮箱数据」）|
 | HTTP 调后端 | `httpx`（async）| ✅ 已定 — 常规请求：上报签到 / 下载音频 wav / 历史查询 |
