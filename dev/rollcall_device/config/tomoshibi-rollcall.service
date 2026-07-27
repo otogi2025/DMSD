@@ -25,6 +25,10 @@ WorkingDirectory=/home/rollcall-1/rollcall_device
 ExecStart=/home/rollcall-1/rollcall_device/.venv/bin/python -m src.main --config /home/rollcall-1/rollcall_device/config/config.json
 Restart=on-failure
 RestartSec=5
+# 退出码 3 = 硬件初始化失败（接线 / SPI·I2C 开关 / 依赖库），重启多少次都不会自己好。
+# 不拦的话现场看到的是「服务每 5 秒重启一次」，真正的报错被刷屏淹没；拦掉后
+# 服务停在 failed 状态，systemctl status 第一屏就是那句排查提示。
+RestartPreventExitStatus=3
 # 数据目录（密钥 / 名单 / 离线队列 / 音频缓存）需可写
 StateDirectory=tomoshibi
 

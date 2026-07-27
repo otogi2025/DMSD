@@ -571,10 +571,32 @@ def _looks_like_uuid(text: str) -> bool:
         return False
 
 
+class HardwareInitError(RuntimeError):
+    """硬件初始化失败 —— 带「哪块硬件挂了 + 现场该查什么」的人话提示。
+
+    组装现场排错用（device#2）：不带提示直接抛栈，看到的只有一堆调用栈 +
+    systemd 每 5 秒重启一次，判断不出是哪根线插错。
+    """
+
+    def __init__(self, part: str, hint: str, cause: BaseException) -> None:
+        super().__init__(f"{part} 初始化失败：{cause}")
+        self.part = part
+        self.hint = hint
+
+
+def _init_part(part: str, hint: str, factory):
+    """跑一个硬件构造函数，失败就换成带排查提示的 HardwareInitError 抛出。"""
+    try:
+        return factory()
+    except Exception as exc:  # noqa: BLE001 — 各驱动抛什么异常不统一，全接住换成人话
+        raise HardwareInitError(part, hint, exc) from exc
+
+
 def build_hardware(cfg: Config, simulate: bool):
     """构造硬件层：真实 or 假实现（simulate / 无硬件降级）。
 
     返回 (card_reader, mailbox_reader, led, audio)。
+    真实硬件任一块起不来 → 抛 HardwareInitError（含排查提示），由 main 打印后退出。
     """
     if simulate:
         card_reader: CardReader = FakeCardReader()
@@ -584,22 +606,53 @@ def build_hardware(cfg: Config, simulate: bool):
         return card_reader, mailbox_reader, led, audio
 
     # 真实硬件（仅树莓派可用，import 守卫兜底）
-    from .audio.player import AudioPlayer as RealAudio
-    from .led.controller import build_led_controller
-    from .nfc.pn532_reader import build_card_reader
-    from .nfc.st25dv import build_mailbox_reader
+    try:
+        from .audio.player import AudioPlayer as RealAudio
+        from .led.controller import build_led_controller
+        from .nfc.pn532_reader import build_card_reader
+        from .nfc.st25dv import build_mailbox_reader
+    except Exception as exc:  # noqa: BLE001 — board/busio 在非树莓派上 import 即抛
+        raise HardwareInitError(
+            "硬件驱动库",
+            "缺少 GPIO / NFC 依赖库，或不在树莓派上运行。检查："
+            "① 是否在树莓派上跑；② 虚拟环境里是否装过 requirements.txt。",
+            exc,
+        ) from exc
 
-    card_reader = build_card_reader()
-    mailbox_reader = build_mailbox_reader(gpo_pin=cfg.gpio.st25dv_gpo)
-    led = build_led_controller(
-        {
-            "red": cfg.gpio.led_red,
-            "green": cfg.gpio.led_green,
-            "blue": cfg.gpio.led_blue,
-            "white": cfg.gpio.led_white,
-        }
+    card_reader = _init_part(
+        "PN532 读卡器（SPI）",
+        "检查：① sudo raspi-config → Interface Options → SPI 是否已启用；"
+        "② PN532 板上的拨码开关是否拨到 SPI 模式；"
+        "③ SCK / MOSI / MISO / CE0 四根线是否插在对应针脚上。",
+        build_card_reader,
     )
-    audio = RealAudio(audio_output=cfg.audio_output, cache_dir=cfg.audio_cache_dir)
+    mailbox_reader = _init_part(
+        "ST25DV 手机贴芯片（I²C）",
+        "检查：① sudo raspi-config → Interface Options → I2C 是否已启用；"
+        "② SDA / SCL 两根线是否插对；"
+        "③ 跑 i2cdetect -y 1 看能不能扫到芯片地址。",
+        lambda: build_mailbox_reader(gpo_pin=cfg.gpio.st25dv_gpo),
+    )
+    led = _init_part(
+        "LED 指示灯（GPIO）",
+        f"检查：① 配置文件 gpio 段的针脚号（红{cfg.gpio.led_red} / 绿{cfg.gpio.led_green} / "
+        f"蓝{cfg.gpio.led_blue} / 白{cfg.gpio.led_white}）有没有跟别的功能冲突；"
+        "② 当前用户是否在 gpio 组里。",
+        lambda: build_led_controller(
+            {
+                "red": cfg.gpio.led_red,
+                "green": cfg.gpio.led_green,
+                "blue": cfg.gpio.led_blue,
+                "white": cfg.gpio.led_white,
+            }
+        ),
+    )
+    audio = _init_part(
+        "音频输出",
+        f"检查：① 配置文件 audio_output（现在填的是 {cfg.audio_output}）跟 aplay -l "
+        "列出的设备是否对得上；② 功放 / 喇叭的线是否接好。",
+        lambda: RealAudio(audio_output=cfg.audio_output, cache_dir=cfg.audio_cache_dir),
+    )
     return card_reader, mailbox_reader, led, audio
 
 
@@ -692,6 +745,13 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         device = bootstrap(cfg, simulate=args.simulate, config_path=str(args.config))
+    except HardwareInitError as exc:
+        # 组装现场最常见的失败（device#2）：打清楚是哪块硬件 + 该查什么，
+        # 退 3 让 systemd 认定不可自愈、停止重启（RestartPreventExitStatus=3）。
+        logger.error("启动失败：%s", exc)
+        logger.error("排查提示：%s", exc.hint)
+        logger.error("只想先验证程序和网络（不接硬件）→ 加 --simulate 参数再跑一次。")
+        return 3
     except (AuthError, config_mod.ConfigError) as exc:
         logger.error("启动装配失败：%s", exc)
         return 1

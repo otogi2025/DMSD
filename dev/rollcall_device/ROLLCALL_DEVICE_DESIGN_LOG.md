@@ -308,3 +308,6 @@ WantedBy=multi-user.target
   ⑤ **device#20/#21 提示音淡出对称**：`gen_tones` 淡出改 `i>=total-fade` + 系数 `(total-1-i)/fade` 使末样本精确归零（原 `1/fade` 非零→爆音）；`fade=min(fade,total//2)` 防淡入淡出区重叠。
   ⑥ **device#13/#15/#18/#19 收尾**：gpio int() 包 try/except 抛 ConfigError；queue 死列 swipe_time/enqueued_at；停机注释订正；白灯鉴权测试遍历 AUTH_ERROR_CODES 补 INVALID_CREDENTIALS。
   验证：pytest 90 passed。双票复审 grok 报 device#6 重大、opus 判次要，取 substantive 硬化（并行等待即时打断 + stop RuntimeError 兜底）。
+- 2026-07-27：上机前检查修复（TF 卡烧录期间的最后一道软件检查，CC 端到端真跑 + cursor grok-4.5 只读审背对背，itsuki 当场拍板只修这一条）——
+  **硬件初始化失败给人话提示、systemd 不再无限重启**：原 `main()` 只捕 `AuthError`/`ConfigError`，硬件层抛的 `RuntimeError`/`OSError` 直接冒出去崩栈；叠加 `Restart=on-failure`+`RestartSec=5`，组装现场看到的是「服务每 5 秒重启一次」，真正的报错被刷屏淹没、判断不出是哪根线插错。改为：新增 `HardwareInitError`（带 `part` 哪块硬件 + `hint` 该查什么），`_init_part()` 逐块包住 PN532/ST25DV/LED/音频四处构造与驱动库 import，把各驱动不统一的异常统一翻译；`main()` 捕获后打三行中文（是哪块 / 查哪几项 / 不接硬件请加 `--simulate`）退出码 **3**，service 补 `RestartPreventExitStatus=3` 让 systemd 认定不可自愈、停在 failed 状态，`systemctl status` 第一屏即排查提示。验证：pytest 93 passed（新增 3 条）；Mac 上真跑非 simulate 模式确认三行提示与退出码 3。
+  同批检查确认能跑通、未改动：设备 enroll→token→名单→刷卡→重复刷→路径B→未知卡→心跳→WS→断网本地放行→恢复补传，13 项端到端全通，接口契约与后端逐字段对上。挂 TODO 未修 6 条见 `admin/TODO.md`（后端从不推 `roster_updated`/`audio_updated` 为其中最重）。
