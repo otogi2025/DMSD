@@ -162,6 +162,29 @@
   .sj .lb.good{color:var(--ok)} .sj .lb.bad{color:var(--red)}
   .sj .ds{font-size:.72rem;color:var(--muted);line-height:1.5}
 
+  /* 全流程鸟瞰 */
+  .ov{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:1rem 1.1rem .9rem;margin:0 0 .5rem}
+  .ov .ovh{font-size:.95rem;font-weight:800;margin:0 0 .35rem}
+  .ov .lead{font-size:.84rem;line-height:1.75;margin:0 0 .9rem;color:var(--ink)}
+  .ov .lead b{color:var(--ink)}
+  .st{display:flex;gap:.7rem;position:relative;padding:.42rem 0}
+  .st .no{flex:0 0 auto;width:1.75rem;height:1.75rem;border-radius:50%;background:var(--sc,var(--gray));color:#fff;font-weight:800;font-size:.78rem;display:flex;align-items:center;justify-content:center;z-index:1}
+  .st:not(:last-child)::before{content:"";position:absolute;left:.85rem;top:2.3rem;bottom:-.45rem;width:2px;background:var(--track)}
+  .st .stx{flex:1 1 auto;min-width:0;padding-top:.08rem}
+  .st .sn{font-weight:750;font-size:.92rem}
+  .st .sn a{color:inherit}
+  .st .sd{font-size:.78rem;color:var(--muted);line-height:1.65;margin-top:.06rem}
+  .st .sw{font-size:.74rem;color:var(--red);line-height:1.6;margin-top:.06rem}
+  .st .meta{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.22rem}
+  .st .mchip{font-size:.66rem;font-weight:700;padding:.06rem .5rem;border-radius:99px;background:var(--gray-soft);color:var(--muted);white-space:nowrap}
+  .st .mchip.done{background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok-bd)}
+  .st .herepill{display:none;font-size:.66rem;font-weight:800;background:var(--ok);color:#fff;border-radius:99px;padding:.1rem .55rem;margin-left:.4rem;vertical-align:.14em}
+  .st.here .herepill{display:inline-block}
+  .st.here .no{outline:3px solid var(--ok-soft)}
+  .st.done-st .sn,.st.done-st .sd,.st.done-st .sw{color:var(--muted)}
+  .st.done-st .no{opacity:.5}
+  .st.done-st .sn::after{content:" ✅";font-size:.8em}
+
   .foot{margin-top:2.4rem;padding:.8rem .2rem 0;border-top:1px solid var(--border);color:var(--muted);font-size:.72rem;line-height:1.8}
   @media (prefers-reduced-motion:reduce){.arr,.pg .bar i{transition:none}}
 </style>
@@ -169,7 +192,7 @@
 <div class="wrap">
   <div class="top">
     <h1>🔌 点呼机组装指南</h1>
-    <div class="sub">从拆快递到第一次刷卡成功 · 勾选进度自动存在这台设备的浏览器里 · 分两三天做，别想一天干完</div>
+    <div class="sub">从拆快递到第一次刷卡成功 · 先看下面的鸟瞰图把流程过一遍脑子，再动手 · 勾选进度自动存在这台设备的浏览器里 · 每天干哪段照 <a href="https://claude.ai/code/artifact/9d0b4497-3850-48de-b57d-fb2aac95b87a">主线板</a> 日程走</div>
   </div>
 
   <!-- 进度总览 -->
@@ -184,8 +207,80 @@
     <div class="pg all" style="--c:var(--ok)"><span class="nm">全部</span><span class="bar"><i id="bar-all"></i></span><span class="ct" id="ct-all">–</span></div>
   </div>
 
+  <!-- ════════ 全流程鸟瞰 ════════ -->
+  <div class="ov">
+    <div class="ovh">🗺️ 全流程鸟瞰 —— 动手前先把这 7 站在脑子里过一遍</div>
+    <p class="lead">这台机器最终干的事：学生<b>刷卡</b>（路径 A · PN532 读卡器）或<b>手机碰贴纸</b>（路径 B · ST25DV），机器认出是谁 → 报给后端 → <b>绿灯亮 + 喇叭用日语报姓名 + 老师网页实时打勾</b>。下面 7 站，就是把一堆零件变成这台机器的全过程。每站点名字可跳到对应章节；「你在这」跟着你的打勾自动走。</p>
+
+    <div class="st" id="ov-a0" style="--sc:var(--red)">
+      <span class="no">0</span>
+      <div class="stx">
+        <div class="sn"><a href="#sec-a0">开工前</a><span class="herepill">← 你在这</span></div>
+        <div class="sd">把 3 条保命规则读进脑子（碰线先拔电 / 一次只接一个模块 / 红线不插反），再找齐自己家的 3 样东西。</div>
+        <div class="meta"><span class="mchip">10 分钟</span><span class="mchip done">✅ 7/26 已完成</span></div>
+      </div>
+    </div>
+
+    <div class="st" id="ov-a1" style="--sc:var(--gray)">
+      <span class="no">1</span>
+      <div class="stx">
+        <div class="sn"><a href="#sec-a1">清点零件</a><span class="herepill">← 你在这</span></div>
+        <div class="sd">三家包裹 19 样对单收货 + 给两块 NFC 板拍正反面照片（以后接线认脚全靠板上小字）。</div>
+        <div class="meta"><span class="mchip">30 分钟</span><span class="mchip done">✅ 7/26 已完成 · 全数核过</span></div>
+      </div>
+    </div>
+
+    <div class="st" id="ov-a2" style="--sc:var(--blue)">
+      <span class="no">2</span>
+      <div class="stx">
+        <div class="sn"><a href="#sec-a2">软件先跑通</a><span class="herepill">← 你在这</span></div>
+        <div class="sd">一根线都不接：烧系统卡 → 从 Mac 远程登录 → 打开两个通信开关 → 装代码 → 用键盘假装刷卡把程序跑起来。<b>意义：以后出任何毛病，都能断定是硬件的锅</b>，排查范围小一半。</div>
+        <div class="sw">⚠️ 最危险一步：烧卡时 5 个预置项漏一个，这台机器就永远登不进去，只能重烧。</div>
+        <div class="meta"><span class="mchip">1–2 小时 · 拆 3 天</span><span class="mchip">日程：7/27 烧卡+登录 → 7/29 开关+装依赖 → 7/30 模拟跑通</span></div>
+      </div>
+    </div>
+
+    <div class="st" id="ov-a3" style="--sc:var(--amber)">
+      <span class="no">3</span>
+      <div class="stx">
+        <div class="sn"><a href="#sec-a3">焊接</a><span class="herepill">← 你在这</span></div>
+        <div class="sd">给两块 NFC 板装「腿」（排针），装了腿才能插线。顺序有讲究：先拿废排针练 10 个焊点 → 先焊<b>有 4 块备份</b>的 ST25DV 实战 → 手熟了才碰<b>全场只有 1 块</b>的 PN532。每根针焊完都用万用表验收。</div>
+        <div class="sw">⚠️ 最危险一步：PN532 没有备份 —— 所以它排最后，且前一天焊点全过才动它。</div>
+        <div class="meta"><span class="mchip">2–3 小时</span><span class="mchip">日程：8/01 上午 ST25DV → 8/02 上午 PN532</span></div>
+      </div>
+    </div>
+
+    <div class="st" id="ov-a4" style="--sc:var(--violet)">
+      <span class="no">4</span>
+      <div class="stx">
+        <div class="sn"><a href="#sec-a4">逐个模块接线</a><span class="herepill">← 你在这</span></div>
+        <div class="sd">照速查表把器官一个个接到大脑上：LED（不怕接错，先练数针脚）→ PN532 读卡器 → ST25DV 贴纸 → 风扇和喇叭。<b>接一个、验一个，过了才接下一个。</b></div>
+        <div class="sw">⚠️ 两个坑：物理 pin 号 ≠ GPIO 号（数针脚永远看「物理 pin」列）；ST25DV 手机写入是全项目最难关，卡 20 分钟就停手找 CC。</div>
+        <div class="meta"><span class="mchip">约 2 小时 · 拆几天</span><span class="mchip">日程：8/02 下午接线 → 8/03–8/06 逐模块联调</span></div>
+      </div>
+    </div>
+
+    <div class="st" id="ov-a5" style="--sc:var(--ok)">
+      <span class="no">5</span>
+      <div class="stx">
+        <div class="sn"><a href="#sec-a5">端到端真签到</a><span class="herepill">← 你在这</span></div>
+        <div class="sd">接入真后端：给设备上户口拿激活码 → 配置填真值 → 刷卡。<b>绿灯 + 日语姓名 + 老师网页实时出现记录 = 机器活了 🎉</b>，最后装上开机自启。</div>
+        <div class="meta"><span class="mchip">半天</span><span class="mchip">日程：8/07 上午</span></div>
+      </div>
+    </div>
+
+    <div class="st" id="ov-ax" style="--sc:var(--gray)">
+      <span class="no">✔</span>
+      <div class="stx">
+        <div class="sn"><a href="#sec-ax">回填收尾</a><span class="herepill">← 你在这</span></div>
+        <div class="sd">代码里几处「待硬件联调核实」的假设值，用真机实测值改掉 —— 跟 CC 一起收，第二台机器组装时省一半时间。</div>
+        <div class="meta"><span class="mchip">日程：8/07 之后顺手</span></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ════════ 阶段 0 ════════ -->
-  <div class="sec" style="--c:var(--red);--cbd:var(--red-bd)">
+  <div class="sec" id="sec-a0" style="--c:var(--red);--cbd:var(--red-bd)">
     <div class="shead"><span class="dot"></span><span class="nm">阶段 0 · 开工前</span><span class="cnt" id="cnt-a0">–</span><span class="est">10 分钟</span></div>
     <div class="intro">先把三条保命规则读进脑子，再把三样自己家里的东西找出来。时间预估：软件段 1–2 小时 / 焊接段 2–3 小时 / 接线段约 2 小时。</div>
     <div class="card">
@@ -209,7 +304,7 @@
   </div>
 
   <!-- ════════ 阶段 1 ════════ -->
-  <div class="sec" style="--c:var(--gray);--cbd:var(--gray-bd)">
+  <div class="sec" id="sec-a1" style="--c:var(--gray);--cbd:var(--gray-bd)">
     <div class="shead"><span class="dot"></span><span class="nm">阶段 1 · 清点零件</span><span class="cnt" id="cnt-a1">–</span><span class="est">30 分钟 · 不碰工具</span></div>
     <div class="intro">三家的箱子拆开，见一样勾一样。缺了哪个要心里有数 —— 有几样缺了后面会卡死。</div>
     <div class="card">
@@ -248,7 +343,7 @@
   </div>
 
   <!-- ════════ 阶段 2 ════════ -->
-  <div class="sec" style="--c:var(--blue);--cbd:var(--blue-bd)">
+  <div class="sec" id="sec-a2" style="--c:var(--blue);--cbd:var(--blue-bd)">
     <div class="shead"><span class="dot"></span><span class="nm">阶段 2 · 软件先跑通</span><span class="cnt" id="cnt-a2">–</span><span class="est">1–2 小时 · 一根线都不接</span></div>
     <div class="intro">先把软件跑通的好处：以后接线出问题，就能确定「一定是硬件的锅」，排查范围小一半。命令块右上角都有「复制」按钮。</div>
     <div class="card">
@@ -355,7 +450,7 @@ quit                  <span class="c"># 干净退出</span></pre></div>
   </div>
 
   <!-- ════════ 阶段 3 ════════ -->
-  <div class="sec" style="--c:var(--amber);--cbd:var(--amber-bd)">
+  <div class="sec" id="sec-a3" style="--c:var(--amber);--cbd:var(--amber-bd)">
     <div class="shead"><span class="dot"></span><span class="nm">阶段 3 · 焊接</span><span class="cnt" id="cnt-a3">–</span><span class="est">第一次约 2–3 小时</span></div>
     <div class="intro">人生第一次拿烙铁。焊接的本质一句话：<b>用熔化的锡把金属针和板子上的金属圈粘在一起，让电能通过</b>。要焊两块板：PN532 焊一条排针、ST25DV 焊 6 根排针。分练习和实战，别跳练习。</div>
     <div class="card">
@@ -448,7 +543,7 @@ quit                  <span class="c"># 干净退出</span></pre></div>
   </div>
 
   <!-- ════════ 阶段 4 ════════ -->
-  <div class="sec" style="--c:var(--violet);--cbd:var(--violet-bd)">
+  <div class="sec" id="sec-a4" style="--c:var(--violet);--cbd:var(--violet-bd)">
     <div class="shead"><span class="dot"></span><span class="nm">阶段 4 · 逐个模块接线</span><span class="cnt" id="cnt-a4">–</span><span class="est">约 2 小时</span></div>
     <div class="intro">顺序：LED → PN532 → ST25DV → 风扇/喇叭（LED 不用焊、接错也烧不了，先拿它练数针脚）。<b>每接一个模块前先拔电源，接完再上电。</b></div>
 
@@ -624,7 +719,7 @@ quit                  <span class="c"># 干净退出</span></pre></div>
   </div>
 
   <!-- ════════ 阶段 5 ════════ -->
-  <div class="sec" style="--c:var(--ok);--cbd:var(--ok-bd)">
+  <div class="sec" id="sec-a5" style="--c:var(--ok);--cbd:var(--ok-bd)">
     <div class="shead"><span class="dot"></span><span class="nm">阶段 5 · 端到端第一次真签到</span><span class="cnt" id="cnt-a5">–</span><span class="est">连上真后端</span></div>
     <div class="intro">前面全通了，现在把机器接到真后端，走一次完整的「刷卡 → 后端 → 老师网页」。</div>
     <div class="card">
@@ -720,7 +815,7 @@ systemctl status tomoshibi-rollcall</pre></div>
   </div>
 
   <!-- ════════ 回填收尾 ════════ -->
-  <div class="sec" style="--c:var(--gray);--cbd:var(--gray-bd)">
+  <div class="sec" id="sec-ax" style="--c:var(--gray);--cbd:var(--gray-bd)">
     <div class="shead"><span class="dot"></span><span class="nm" style="color:var(--ink)">走完之后要回来改的</span><span class="cnt" id="cnt-ax">–</span><span class="est">跟 CC 一起做</span></div>
     <div class="intro">代码里好几处写着「待硬件联调核实」的假设值，真机走通后要改成实测值、去掉标记 —— 这些勾着 CC 一起收。</div>
     <div class="card">
@@ -733,12 +828,25 @@ systemctl status tomoshibi-rollcall</pre></div>
     </div>
   </div>
 
-  <p class="foot">真值来源（有出入以这些文件 + 实物为准）：<code>dev/rollcall_device/docs/组装联调清单.md</code>（路线图）· <code>docs/部署SOP.md</code>（命令）· <code>点呼机接线说明.md</code>（接线）· <code>点呼机采购清单.html</code>（零件）。<br>文档矛盾已按最新决定处理：ST25DV 走「焊排针」（旧写法 Qwiic 免焊已废）；喇叭 USB 取电两处说法不一 → 页内标 ⏳ 实物确认。<br>勾选进度只存在当前浏览器（localStorage），换设备不同步。</p>
+  <p class="foot">真值来源（有出入以这些文件 + 实物为准）：<code>dev/rollcall_device/docs/组装联调清单.md</code>（路线图）· <code>docs/部署SOP.md</code>（命令）· <code>点呼机接线说明.md</code>（接线）· <code>点呼机采购清单.html</code>（零件）。<br>文档矛盾已按最新决定处理：ST25DV 走「焊排针」（旧写法 Qwiic 免焊已废）；喇叭 USB 取电两处说法不一 → 页内标 ⏳ 实物确认。<br>勾选进度只存在当前浏览器（localStorage），换设备不同步。<br>哪天干哪段 → 看 <a href="https://claude.ai/code/artifact/9d0b4497-3850-48de-b57d-fb2aac95b87a">出願主线板</a> 的逐日日程（7/27 起点呼机活全排进每天下午块）。</p>
 </div>
 
 <script>
 (function(){
   var SECS=['a0','a1','a2','a3','a4','a5','ax'];
+  /* 鸟瞰图「你在这」：第一个没勾完的阶段 = 当前站；勾完的站打 ✅ 变灰 */
+  function updateMap(){
+    var found=false;
+    SECS.forEach(function(s){
+      var el=document.getElementById('ov-'+s); if(!el)return;
+      var all=document.querySelectorAll('input.ck[data-sec="'+s+'"]');
+      var d=0; all.forEach(function(c){if(c.checked)d++;});
+      var full=all.length&&d===all.length;
+      el.classList.toggle('done-st',full);
+      if(!found&&!full){el.classList.add('here');found=true;}
+      else{el.classList.remove('here');}
+    });
+  }
   function count(){
     var total=0,done=0;
     SECS.forEach(function(s){
@@ -752,6 +860,7 @@ systemctl status tomoshibi-rollcall</pre></div>
     });
     document.getElementById('bar-all').style.width=(total?Math.round(done/total*100):0)+'%';
     document.getElementById('ct-all').textContent=done+'/'+total;
+    updateMap();
   }
   document.querySelectorAll('input.ck[data-sec]').forEach(function(cb){
     if(localStorage.getItem('rc-'+cb.id)==='1'){cb.checked=true;}
