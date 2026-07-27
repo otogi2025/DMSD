@@ -3,7 +3,12 @@
 # 装法见 docs/部署SOP.md。
 
 # --- NFC 读卡（PN532，SPI）：设计日志 D1 拍板 —— nfcpy 不支持 SPI，只能用 Adafruit ---
-adafruit-circuitpython-pn532==1.4.16
+# ⚠️ 2026-07-27 首次真机安装修正：原钉死的 1.4.16 在 PyPI 上不存在（该库真实版本是
+# 1.0.1，之后直接跳到 2.0.0～2.4.9，没有 1.4.x 这一支），软件是硬件到货前写的、
+# 从未真机装过，装到第一个包就失败。改用 2.4.9 并在 Pi 3A+ 实测过代码用到的全部
+# 3 个 API：import PN532_SPI ✅ / SAM_configuration ✅ / read_passive_target ✅，
+# 两个签名也对得上（构造 (spi, cs_pin, *, debug=False)、读卡 (card_baud=0, timeout=1)）。
+adafruit-circuitpython-pn532==2.4.9
 adafruit-blinka==8.51.0
 
 # --- ST25DV16K 邮箱 I2C（smbus2 自写驱动，设计日志 D2）---
