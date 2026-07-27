@@ -355,7 +355,7 @@
         <div class="note">
           <p>把 microSD 卡经读卡器插进 Mac，打开 Imager：</p>
           <p>① 系统选 <b>Raspberry Pi OS (Legacy, 64-bit) Lite</b>（约 420MB）—— 它不在第一屏，要点进最下面的 <b>Raspberry Pi OS (other)</b> 才能找到<br>② 烧录前进 <b>Customisation</b>（自定义设置），逐项填：</p>
-          <div class="warn"><b>为什么是这个而不是第一屏推荐的那个（2026-07-27 实操确认）：</b>① 要 <b>Lite</b> —— 带 <code>Desktop</code> 字样的版本自带图形桌面，而这台机器不插显示器键鼠，桌面白吃掉 Pi 3A+ 仅有的 512MB 内存；② 要 <b>Legacy</b> —— Legacy 才是 Debian Bookworm，<code>requirements.txt</code> 里钉死的那 8 个依赖包就是照 Bookworm + Python 3.11 测的；第一屏那几个已经是新一代的 Trixie，自带更新的 Python，老版本依赖包可能装不上。<b>名字只差一个词的陷阱</b>：<code>(Legacy, 64-bit)</code> 和 <code>(Legacy, 64-bit) Lite</code> 是两个不同选项，前者带桌面（1.1GB），别点错。</div>
+          <div class="warn"><b>为什么是这个而不是第一屏推荐的那个（2026-07-27 实操确认）：</b>① 要 <b>Lite</b> —— 带 <code>Desktop</code> 字样的版本自带图形桌面，而这台机器不插显示器键鼠，桌面白吃掉 Pi 3A+ 仅有的 512MB 内存；② 要 <b>Legacy</b> —— Legacy 这条才是 Debian Bookworm 系统，<code>requirements.txt</code> 顶部注释写明的目标环境就是「Bookworm / Python 3.11+」；第一屏那几个已经是新一代的 Trixie，自带更新的 Python。<b>说清楚这里的证据强度</b>：Bookworm 上装依赖这件事 2026-07-27 已实测跑通（Python 3.11.2，8 个包全装上）；而「Trixie 上会不会装不上」<b>没有测过</b>，只是「照文档写明的目标环境走更保险」，不是已证实的不兼容。<b>名字只差一个词的陷阱</b>：<code>(Legacy, 64-bit)</code> 和 <code>(Legacy, 64-bit) Lite</code> 是两个不同选项，前者带桌面（1.1GB），别点错。</div>
           <table><tbody>
             <tr><td>主机名</td><td class="mono">rollcall-1</td><td>以后就用这个名字登录</td></tr>
             <tr><td>SSH</td><td><b>打开</b>（密码登录即可）</td><td>SSH = 从 Mac 远程进入树莓派命令行的方式</td></tr>
@@ -731,7 +731,8 @@ quit                  <span class="c"># 干净退出</span></pre></div>
       <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a5-2" data-sec="a5"><span class="tx"><span class="t">在 Pi 上建数据目录</span></span><span class="arr">▶</span></span></summary>
         <div class="note">
           <p>程序要有个能写的地方存密钥和本地名单：</p>
-          <div class="cmd"><pre>sudo mkdir -p /var/lib/tomoshibi && sudo chown pi:pi /var/lib/tomoshibi</pre></div>
+          <div class="cmd"><pre>sudo mkdir -p /var/lib/tomoshibi && sudo chown "$USER:$USER" /var/lib/tomoshibi</pre></div>
+          <p class="note"><code>$USER</code> 是「当前登录的用户名」的自动替身——你现在登录的是 rollcall-1，它就自动变成 rollcall-1。这样写换台机器也不用改。</p>
         </div>
       </details>
       <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a5-3" data-sec="a5"><span class="tx"><span class="t">把 config.json 的字段填成真的</span></span><span class="arr">▶</span></span></summary>

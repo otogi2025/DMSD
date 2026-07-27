@@ -11,7 +11,7 @@
 | 名词 | 是什么 |
 |---|---|
 | 烧卡 | 把树莓派操作系统镜像写进 microSD 卡 |
-| SSH | 远程登录树莓派命令行的方式（Mac 终端敲 `ssh pi@<树莓派IP>`）|
+| SSH | 远程登录树莓派命令行的方式（Mac 终端敲 `ssh <用户名>@<树莓派IP>`）|
 | venv | Python 虚拟环境，把本项目依赖跟系统 Python 隔开，互不污染 |
 | systemd | Linux 的开机自启 / 服务守护机制，让点呼机断电重启后自动跑起来 |
 | enroll | 设备激活：把设备公钥登记到后端，换一次性激活码（契约 §2.2）|
@@ -21,7 +21,12 @@
 ## 1. 烧系统卡
 
 1. Mac 装 **Raspberry Pi Imager**（官方烧录工具）。
-2. 选 **Raspberry Pi OS (64-bit)**（Bookworm）。
+2. 选 **Raspberry Pi OS (Legacy, 64-bit) Lite**。路径：主列表选 `Raspberry Pi OS (other)`
+   → 往下找到带 **Legacy** 且带 **Lite** 字样的那条。
+   - 要 **Lite** 是因为 Pi 3A+ 只有 512MB 内存，桌面版跑起来白占内存，点呼机也用不上桌面。
+   - 要 **Legacy** 是因为 Imager 第一屏推的已经是新一代 Trixie 系统；带 Legacy 的这条才是
+     Bookworm，也就是 `requirements.txt` 顶部注释写明的目标环境（Python 3.11）。
+   - ⚠️ `Legacy, 64-bit` 和 `Legacy, 64-bit Lite` 是相邻两条，容易点错，认准带 Lite 的。
 3. 烧录前点齿轮（高级设置）预置：
    - 主机名：如 `rollcall-1`
    - 开 **SSH**（用密码或公钥登录）
@@ -31,7 +36,8 @@
    - Wi-Fi 名 + 密码（宿舍网）
    - 地区/时区 **Asia/Tokyo**（全链路 JST，契约 §12）
 4. 写卡 → 插 Pi → 上电 → 等 1-2 分钟联网。
-5. Mac 终端 `ssh pi@rollcall-1.local`（或路由器查到的 IP）登录。
+5. Mac 终端 `ssh rollcall-1@rollcall-1.local`（或路由器查到的 IP）登录。用户名部分要跟
+   上一步烧卡时填的一致，不是固定叫 `pi`。
 
 ## 2. 开 SPI / I2C + 音频切 3.5mm
 
@@ -89,7 +95,8 @@ nano config/config.json
 - `server_url` / `ws_url`：生产后端地址（`https://api.tomoshibi.cc` / `wss://api.tomoshibi.cc`）
 - `key_path` / `data_dir`：默认 `/var/lib/tomoshibi/*`，需可写：
   ```bash
-  sudo mkdir -p /var/lib/tomoshibi && sudo chown pi:pi /var/lib/tomoshibi
+  # $USER 会自动展开成当前登录的用户名，换台机器换个用户名也不用改这行
+  sudo mkdir -p /var/lib/tomoshibi && sudo chown "$USER:$USER" /var/lib/tomoshibi
   ```
 - `gpio.st25dv_gpo`：默认 GPIO24（⏳ 契约 §10 待硬件联调核实，接线后如改动同步三处）
 - `audio_output`：aplay 设备串。用 `aplay -l` 查小音响的 card/device，填 `plughw:<card>,<device>`。

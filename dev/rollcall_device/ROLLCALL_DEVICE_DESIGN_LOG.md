@@ -191,19 +191,26 @@ main.py:
 
 ### 5.1 systemd unit（草稿）
 
+> ⚠️ 下面只是设计阶段的示意骨架，**实际投产的单元文件以 `config/tomoshibi-rollcall.service` 为准**
+> （那份多了对时依赖 `time-sync.target`、`RestartPreventExitStatus=3`、`StateDirectory=tomoshibi`）。
+
 ```ini
 # /etc/systemd/system/tomoshibi-rollcall.service
 [Unit]
 Description=Tomoshibi 点呼机主程序
-After=network.target
+After=network-online.target time-sync.target
+Wants=network-online.target time-sync.target
 
 [Service]
 Type=simple
 User=rollcall-1
 WorkingDirectory=/home/rollcall-1/rollcall_device
-ExecStart=/usr/bin/python3 src/main.py
+# 走 venv 里的 python，用 -m 跑 src 包（相对 import 需要）
+ExecStart=/home/rollcall-1/rollcall_device/.venv/bin/python -m src.main --config /home/rollcall-1/rollcall_device/config/config.json
 Restart=on-failure
 RestartSec=5
+RestartPreventExitStatus=3
+StateDirectory=tomoshibi
 
 [Install]
 WantedBy=multi-user.target
