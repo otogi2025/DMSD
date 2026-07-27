@@ -419,6 +419,7 @@ sudo apt install -y python3-venv python3-dev libgpiod2 i2c-tools</pre></div>
 .venv/bin/pip install -r requirements.txt</pre></div>
           <p class="dim"><code>cd</code> = 进入某个文件夹；venv = Python 虚拟环境，把本项目的依赖库跟系统隔开互不污染。最后一步要下载不少东西，几分钟正常。</p>
           <div class="stuck"><b>卡住了：</b><code>lgpio</code> 或 <code>adafruit-blinka</code> 装报错 → 多半缺系统包，补一句 <code>sudo apt install -y python3-libgpiod</code> 再重试。</div>
+          <div class="warn"><b>2026-07-27 实机真踩到的坑（已修，留作参考）：</b>第一个包就报 <code>Could not find a version that satisfies the requirement adafruit-circuitpython-pn532==1.4.16</code> —— 这个版本号<b>在人家仓库里根本不存在</b>（真实版本是 1.0.1 之后直接跳 2.0.0，从没有过 1.4.x）。根因：这套软件写于硬件到货前，依赖清单<b>从没在任何真机上装过一次</b>。<b>看到「找不到版本」这类报错，先怀疑版本号本身是不是编的，别怀疑自己网络或系统</b>。改完版本号还没完 —— 跨大版本函数名可能变，要把代码里真正用到的几个功能挨个 <code>import</code> 出来验一遍，<b>「装上了」和「能用」是两回事</b>。</div>
         </div>
       </details>
       <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a2-9" data-sec="a2"><span class="tx"><span class="t">生成内置提示音</span></span><span class="arr">▶</span></span></summary>
