@@ -354,11 +354,12 @@
       <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a2-2" data-sec="a2"><span class="tx"><span class="t">烧卡：选对系统 + 高级设置 5 项一个都不能漏</span></span><span class="arr">▶</span></span></summary>
         <div class="note">
           <p>把 microSD 卡经读卡器插进 Mac，打开 Imager：</p>
-          <p>① 系统选 <b>Raspberry Pi OS (64-bit)</b>（代号 Bookworm）<br>② 烧录前点<b>齿轮图标</b>（高级设置），逐项填：</p>
+          <p>① 系统选 <b>Raspberry Pi OS (Legacy, 64-bit) Lite</b>（约 420MB）—— 它不在第一屏，要点进最下面的 <b>Raspberry Pi OS (other)</b> 才能找到<br>② 烧录前进 <b>Customisation</b>（自定义设置），逐项填：</p>
+          <div class="warn"><b>为什么是这个而不是第一屏推荐的那个（2026-07-27 实操确认）：</b>① 要 <b>Lite</b> —— 带 <code>Desktop</code> 字样的版本自带图形桌面，而这台机器不插显示器键鼠，桌面白吃掉 Pi 3A+ 仅有的 512MB 内存；② 要 <b>Legacy</b> —— Legacy 才是 Debian Bookworm，<code>requirements.txt</code> 里钉死的那 8 个依赖包就是照 Bookworm + Python 3.11 测的；第一屏那几个已经是新一代的 Trixie，自带更新的 Python，老版本依赖包可能装不上。<b>名字只差一个词的陷阱</b>：<code>(Legacy, 64-bit)</code> 和 <code>(Legacy, 64-bit) Lite</code> 是两个不同选项，前者带桌面（1.1GB），别点错。</div>
           <table><tbody>
             <tr><td>主机名</td><td class="mono">rollcall-1</td><td>以后就用这个名字登录</td></tr>
             <tr><td>SSH</td><td><b>打开</b>（密码登录即可）</td><td>SSH = 从 Mac 远程进入树莓派命令行的方式</td></tr>
-            <tr><td>用户名</td><td class="mono">pi</td><td>必须是 pi —— 开机自启配置里写死了这个名字</td></tr>
+            <tr><td>用户名</td><td class="mono">rollcall-1</td><td>不一定非叫这个，但<b>必须跟 <code>config/tomoshibi-rollcall.service</code> 里 <code>User=</code> 那行完全一致</b> —— 不一致开机自启起不来。改了这里就要连着改那个文件的 3 处（<code>User=</code> / <code>WorkingDirectory</code> / <code>ExecStart</code>）</td></tr>
             <tr><td>Wi-Fi 名 + 密码</td><td>宿舍 / 家里的网</td><td>一个字都不能错，错了登不进去只能重烧</td></tr>
             <tr><td>时区</td><td class="mono">Asia/Tokyo</td><td>点呼判定全按日本时间</td></tr>
           </tbody></table>
@@ -371,9 +372,9 @@
       <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a2-4" data-sec="a2"><span class="tx"><span class="t">从 Mac SSH 登录进树莓派</span></span><span class="arr">▶</span></span></summary>
         <div class="note">
           <p>在 Mac 上打开「终端」（Terminal，一个输命令的黑窗口，在 应用程序 → 实用工具 里，或用 Spotlight 搜「终端」），敲：</p>
-          <div class="cmd"><pre>ssh pi@rollcall-1.local</pre></div>
+          <div class="cmd"><pre>ssh rollcall-1@rollcall-1.local</pre></div>
           <p class="dim">第一次连会问 “Are you sure you want to continue connecting?” → 输 <code>yes</code> 回车，再输烧卡时设的密码（输密码时屏幕不显示任何字，是正常的，输完直接回车）。</p>
-          <div class="okline"><b>验收：</b>提示符变成 <code>pi@rollcall-1:~ $</code> —— 说明你已经「在树莓派里」了，之后敲的命令都是在 Pi 上跑。</div>
+          <div class="okline"><b>验收：</b>提示符变成 <code>rollcall-1@rollcall-1:~ $</code> —— 说明你已经「在树莓派里」了，之后敲的命令都是在 Pi 上跑。</div>
           <div class="stuck"><b>卡住了：</b>连不上 → 先看路由器管理页面里有没有出现这台设备。有 = Wi-Fi 密码对、SSH 那边有问题；没有 = Wi-Fi 名或密码填错了，重烧卡。</div>
         </div>
       </details>
@@ -387,7 +388,7 @@
           <p>① <code>Interface Options → SPI → Yes</code><br>② <code>Interface Options → I2C → Yes</code><br>③ <code>System Options → Audio → Headphones</code>（把声音从 HDMI 切到 3.5mm 圆孔，不切喇叭不出声）</p>
           <p>改完退出，重启：</p>
           <div class="cmd"><pre>sudo reboot</pre></div>
-          <p class="dim">重启会把 SSH 断开，等 1 分钟再重新 <code>ssh pi@rollcall-1.local</code>。</p>
+          <p class="dim">重启会把 SSH 断开，等 1 分钟再重新 <code>ssh rollcall-1@rollcall-1.local</code>。</p>
         </div>
       </details>
       <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a2-6" data-sec="a2"><span class="tx"><span class="t">核对两个开关真的开了</span></span><span class="arr">▶</span></span></summary>
@@ -403,14 +404,14 @@ ls /dev/i2c-*</pre></div>
       <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a2-7" data-sec="a2"><span class="tx"><span class="t">把点呼机代码从 Mac 拷进树莓派</span></span><span class="arr">▶</span></span></summary>
         <div class="note">
           <p>这条命令在 <b>Mac 的终端</b>上跑（新开一个终端窗口，别在 SSH 里面敲）：</p>
-          <div class="cmd"><pre>scp -r ~/dev/DMSD/dev/rollcall_device pi@rollcall-1.local:/home/pi/rollcall_device</pre></div>
+          <div class="cmd"><pre>scp -r ~/dev/DMSD/dev/rollcall_device rollcall-1@rollcall-1.local:/home/rollcall-1/rollcall_device</pre></div>
           <p class="dim">scp = 隔着网络拷文件的命令。会再问一次密码。拷完回到 SSH 窗口继续。</p>
         </div>
       </details>
       <details class="row"><summary><span class="line"><input class="ck" type="checkbox" id="a2-8" data-sec="a2"><span class="tx"><span class="t">装系统包 + 建 Python 虚拟环境 + 装依赖</span></span><span class="arr">▶</span></span></summary>
         <div class="note">
           <p>回到 SSH（树莓派）里，一段一段贴：</p>
-          <div class="cmd"><pre>cd /home/pi/rollcall_device
+          <div class="cmd"><pre>cd /home/rollcall-1/rollcall_device
 sudo apt update
 sudo apt install -y python3-venv python3-dev libgpiod2 i2c-tools</pre></div>
           <div class="cmd"><pre>python3 -m venv .venv
