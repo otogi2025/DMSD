@@ -158,7 +158,11 @@ class RollCallDevice:
         thread_ctrl.start()
         thread_hb.start()
         self._threads = [thread_a, thread_b, thread_ctrl, thread_hb]
-        logger.info("点呼机启动完成，进入待机（device_id=%s）", self._cfg.device_id)
+        # 启动 / 停机 / 签到这几行日文 —— 点呼机放在日本宿舍，看终端的是宿管老师，
+        # 且拍苹果审核演示视频时镜头会扫到这个终端。其余内部调试日志仍是中文。
+        logger.info(
+            "点呼機の起動が完了しました。待機中（device_id=%s）", self._cfg.device_id
+        )
 
     def request_stop(self) -> None:
         self._stop.set()
@@ -174,7 +178,7 @@ class RollCallDevice:
             self.request_stop()
 
     def shutdown(self) -> None:
-        logger.info("正在停机…")
+        logger.info("停止処理中…")
         self.request_stop()
         # device#5: 取消尚未触发的回待机计时，避免停机后仍改 LED
         self._cancel_feedback_timer()
@@ -195,7 +199,7 @@ class RollCallDevice:
         if self._ws is not None:
             self._ws.join(timeout=2.0)
         self._http.close()
-        logger.info("已停机")
+        logger.info("停止しました")
 
     # --------------------------- WS 回调 ---------------------------
 
@@ -470,7 +474,9 @@ class RollCallDevice:
         elif fb.tone is not None:
             self._audio.play_tone(fb.tone)
         if fb.broadcast_text:
-            logger.info("播报文本：%s", fb.broadcast_text)
+            # 这一行是签到成功时唯一会滚出来的可读信息，日文 —— 点呼机将来放在日本宿舍，
+            # 运维它的是宿管老师；拍苹果审核演示视频时镜头也会扫到这个终端。
+            logger.info("点呼確認：%s さん", fb.broadcast_text)
         # device#5: 非阻塞回待机——用 Timer 到期切 STANDBY，消费线程立即处理下一条，
         # 不被 FEEDBACK_HOLD_S（1.5s）硬等占用（积压回补时不再每条叠加等待）。
         self._cancel_feedback_timer()  # 内含世代 +1
@@ -626,8 +632,8 @@ def build_hardware(cfg: Config, simulate: bool, skip_card_reader: bool = False):
     if skip_card_reader:
         # 假读头永远返回 None —— 只是「读不到卡」，不会伪造出刷卡事件污染考勤。
         logger.warning(
-            "⚠️ --skip-card-reader 生效：跳过 PN532，实体卡刷卡不可用，"
-            "只有「手机碰 ST25DV」这条路能签到。正式运行不要带这个参数。"
+            "⚠️ --skip-card-reader 指定：ICカードリーダー（PN532）は無効です。"
+            "スマートフォンのNFCタッチのみ受け付けます。"
         )
         card_reader = FakeCardReader()
     else:
@@ -788,7 +794,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     def _signal_handler(signum, _frame):
-        logger.info("收到信号 %s，准备停机", signum)
+        logger.info("シグナル %s を受信、停止します", signum)
         device.request_stop()
 
     signal.signal(signal.SIGINT, _signal_handler)
