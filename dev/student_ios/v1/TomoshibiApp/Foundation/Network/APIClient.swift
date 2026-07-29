@@ -10,12 +10,16 @@ import Foundation
 
 // MARK: - 配置
 
-// 上架版：DEBUG（Xcode Run）→ localhost / RELEASE（Archive 上架）→ VPS 生产
-#if DEBUG
-    private let DEFAULT_BASE_URL = "http://localhost:8000"
-#else
-    private let DEFAULT_BASE_URL = "https://api.tomoshibi.cc"
-#endif
+/// 默认地址一律指向生产 VPS —— Debug / Release 都是它。
+///
+/// ⚠️ 原来 DEBUG 分支默认 `http://localhost:8000`，在真机上是个陷阱：iPhone 上的
+/// localhost 指 iPhone 自己，那儿没有后端，Xcode Run 装到真机后登录必然报
+/// 「通信エラー」，且错误面看不出是地址问题（2026-07-29 真机实测踩到）。
+/// 顺带这个默认值还要求 ATS 明文 HTTP 例外与局域网权限，真机上坑叠坑。
+///
+/// 本地后端开发照旧：Edit Scheme → Run → Arguments → Environment Variables 加
+/// TOMOSHIBI_API_URL=http://localhost:8000 显式覆盖（仅 DEBUG 构建读环境变量）。
+private let DEFAULT_BASE_URL = "https://api.tomoshibi.cc"
 
 // MARK: - 响应类型
 
