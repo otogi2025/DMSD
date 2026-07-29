@@ -130,7 +130,26 @@ struct BottomNav: View {
         Button {
             let fb = UIImpactFeedbackGenerator(style: .medium)
             fb.impactOccurred()
-            app.openSheet(.rollcall)
+            #if DEMO
+                // 演示版：没有真 NFC 可碰，开自制假动画弹窗给宿舍管理员看流程
+                app.openSheet(.rollcall)
+            #else
+                // 生产版「一按就扫」：按下去直接开 CoreNFC，苹果系统 NFC 面板负责全部提示，
+                // 中间不再插我们自己画的弹窗（2026-07-29 itsuki 真机实测后拍板）。
+                // ios#49：点呼时间外不开扫描 —— 真写进点呼机却不会被判成按时签到，等于骗学生。
+                //   原来靠弹窗里那个禁用的按钮拦，弹窗删掉后改成轻提示条。
+                guard app.rollState == .active else {
+                    // 已签到完还去按按钮时，说「点呼時間外」是错的（明明在点呼时间内），
+                    // 会让人以为刚才那次白签了 —— 分开给话。
+                    if app.rollState == .done {
+                        app.showToast("本日の点呼はすでに完了しています")
+                    } else {
+                        app.showToast("点呼時間外です。点呼開始まで少々お待ちください")
+                    }
+                    return
+                }
+                NFCCheckinLauncher.start(type: .rollcall, app: app)
+            #endif
         } label: {
             VStack(spacing: 2) {
                 ZStack {

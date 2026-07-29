@@ -433,6 +433,10 @@ final class AppStore: ObservableObject {
     /// 点呼倒计时（active 时，秒数）· Demo 期初始 180 秒
     @Published var rollCountdownSec: Int = 180
 
+    /// 「時間内」截止钟点（HH:mm・JST，active 时用）— 过了这个时刻签到就判「遅刻」。
+    /// 生产版由 refreshRollStateFromSessions 从后端场次 scheduled_on_time_end_at 写入；拿不到则 nil。
+    @Published var rollDeadlineAt: String? = nil
+
     /// 已签到时刻（done 时用）
     @Published var checkinAt: String? = nil
 
@@ -779,6 +783,11 @@ final class AppStore: ObservableObject {
             // 生产版（R-1/R-2）：按今日真实点呼场次 + 当前时刻重算状态，
             // idle→进行中→欠席 自动流转、倒计时按「時間内」截止真实递减，不再本地写死。
             refreshRollStateFromSessions()
+            // 兜底重拉：refreshRollStateFromSessions 只是拿本地缓存的 todaySessions 重算，
+            // 缓存本身不会自己变新。签到结果晚到时（点呼机重试 / 网络抖动，超出下面
+            // confirmCheckinAfterNFCWrite 的 7 秒快速确认窗）没有这层兜底，首页会一直停在
+            // 「点呼中」直到重启 app —— 首页没有下拉刷新，用户没有别的自救手段。
+            maybeRefetchTodayRollcall()
         #endif
     }
 
@@ -803,12 +812,101 @@ final class AppStore: ObservableObject {
         #endif
     }
 
+    #if !DEMO
+
+        // MARK: - NFC 写入后的签到确认（2026-07-29 真机实测后加）
+
+        //
+        // 背景：手机这一侧的「签到」只做到把载荷写进墙上 ST25DV 芯片的邮箱就收工了，
+        //   后面还有两跳 —— 点呼机（树莓派）通过 I²C（两根线的芯片间通信总线）轮询把邮箱读走
+        //   → 点呼机再 POST /rollcall/device-checkins 报给后端。
+        //   这两跳完成之前，本机缓存的 todaySessions 里 my_status 仍是 nil，
+        //   refreshRollStateFromSessions 算出来还是 .active，首页卡片就一直显示「点呼中」，
+        //   看起来跟没签到一模一样（7-29 真机复现：后端已 200、首页纹丝不动）。
+        // 对策：写入成功后主动重拉 /rollcall/me/today，把后端的定论取回来驱动界面。
+
+        /// 快速确认轮询是否在跑（连按两次按钮不叠出两串轮询）。
+        private var isConfirmingCheckin = false
+
+        /// 兜底重拉是否有一次请求在途（tickCountdown 每秒调一次，必须防叠加）。
+        private var isRefetchingTodayRollcall = false
+
+        /// 上一次发起兜底重拉的时刻（节流用）。
+        private var lastRollcallRefetchAt: Date?
+
+        /// 当前进行中场次上、后端记下的我的状态（present / late / absent / exempt_range）。
+        /// nil = 后端还没有我这一场的点呼事件。选场次口径跟 decideRollState 保持一致。
+        private var currentSessionMyStatus: String? {
+            let now = Date()
+            return todaySessions.first {
+                now >= $0.scheduled_window_start_at && now <= $0.scheduled_auto_end_at
+            }?.my_status
+        }
+
+        /// NFC 写入成功后调：向后端确认这次签到是否已经被点呼机报上去，拿到结果就切完成态。
+        ///
+        /// 节奏：先等 1 秒（给「点呼机读邮箱 + 上报后端」留时间，7-29 实测这两跳几乎在同一秒内完成），
+        /// 之后最多拉 4 次、每次间隔 1.5 秒，一旦后端有定论立刻停。
+        /// 最坏情况纯等待 1.0 + 1.5×3 = 5.5 秒，加上 4 次请求往返仍在 7 秒以内。
+        func confirmCheckinAfterNFCWrite() async {
+            guard !isConfirmingCheckin else { return }
+            isConfirmingCheckin = true
+            defer { isConfirmingCheckin = false }
+
+            let tokenAtStart = authToken
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+
+            for attempt in 1 ... 4 {
+                guard authToken == tokenAtStart else { return } // 中途登出 / 换人 → 丢弃这串轮询
+                await loadTodayRollcall() // 复用现成拉取：内部已写回 todaySessions + 重算状态
+                if let status = currentSessionMyStatus {
+                    // 后端已有定论 —— 首页卡片 / 顶部状态条此刻已经被 loadTodayRollcall 切过去了，
+                    // 这里只补一条提示 + 一次成功震动，让用户不用盯着卡片也知道成了。
+                    UINotificationFeedbackGenerator().notificationOccurred(
+                        status == "absent" ? .warning : .success
+                    )
+                    switch status {
+                    case "present": showToast("チェックイン完了 · 時間内")
+                    case "late": showToast("チェックイン完了 · 遅刻")
+                    case "absent": showToast("欠席と記録されています · 寮監までご連絡ください")
+                    default: showToast("点呼記録を確認しました")
+                    }
+                    return
+                }
+                if attempt < 4 {
+                    try? await Task.sleep(nanoseconds: 1_500_000_000)
+                }
+            }
+
+            // 4 次都没等到：不当失败报错 —— 载荷确实已经写进芯片了，数据很可能只是还在路上。
+            // 换成「已送出 · 正在确认」的说法，剩下的交给 maybeRefetchTodayRollcall 继续追。
+            showToast("送信しました · 反映を待っています")
+        }
+
+        /// 兜底重拉：点呼进行中且后端还没记下我时，每 20 秒重拉一次今日场次。
+        /// 由 tickCountdown 每秒调用（仅首页在屏时才跑，离开首页自然停），
+        /// 快速确认窗超时后靠它让界面最终追上后端，不需要用户做任何操作。
+        private func maybeRefetchTodayRollcall() {
+            // isConfirmingCheckin 期间不插手：那 7 秒里快速确认自己在高频拉，兜底再拉是白费请求。
+            guard isAuthenticated, rollState == .active,
+                  !isRefetchingTodayRollcall, !isConfirmingCheckin else { return }
+            if let last = lastRollcallRefetchAt, Date().timeIntervalSince(last) < 20 { return }
+            lastRollcallRefetchAt = Date()
+            isRefetchingTodayRollcall = true
+            Task { @MainActor in
+                await loadTodayRollcall()
+                isRefetchingTodayRollcall = false
+            }
+        }
+    #endif
+
     /// 时间窗状态机的纯判定结果（不碰 @Published / 时钟 / 格式化 — 方便单测）。
     struct RollStateDecision: Equatable {
         var rollState: RollState
         var checkinKind: String? // 「時間内」/「遅刻」/ nil
         var checkedInAt: Date? // 已签到时刻原始值（格式化留给调用方）；未签到 nil
         var countdownSec: Int? // active 时到「時間内」截止的倒计时秒；其余状态 nil（不改原值）
+        var onTimeEndAt: Date? // active 时「時間内」截止时刻原始值（格式化留给调用方）；其余状态 nil
     }
 
     /// 纯函数：从场次列表 + 注入的「现在」派生点呼状态。无副作用、不读真实时钟 → 可单测（R-1/R-2 时间窗状态机）。
@@ -862,7 +960,8 @@ final class AppStore: ObservableObject {
                 rollState: .active,
                 checkinKind: nil,
                 checkedInAt: nil,
-                countdownSec: max(0, Int(s.scheduled_on_time_end_at.timeIntervalSince(now)))
+                countdownSec: max(0, Int(s.scheduled_on_time_end_at.timeIntervalSince(now))),
+                onTimeEndAt: s.scheduled_on_time_end_at
             )
         } else {
             // 超过迟到截止仍未签到 → 欠席
@@ -884,7 +983,19 @@ final class AppStore: ObservableObject {
             let newCheckinAt = d.checkedInAt.map { Self.jstHHmm.string(from: $0) }
             if checkinAt != newCheckinAt { checkinAt = newCheckinAt }
             if let sec = d.countdownSec, rollCountdownSec != sec { rollCountdownSec = sec }
+            // 截止钟点跟倒计时不同：非 active 状态要真清成 nil，避免上一场的旧钟点残留到下一场
+            let newDeadline = d.onTimeEndAt.map { Self.jstHHmm.string(from: $0) }
+            if rollDeadlineAt != newDeadline { rollDeadlineAt = newDeadline }
         #endif
+    }
+
+    /// 卡片 / 顶部条显示用的「時間内」截止钟点（HH:mm・JST）。
+    /// 生产版直接用后端场次给的钟点；演示版没有真实场次（refreshRollStateFromSessions 早退），
+    /// 就用「当前时刻 + 剩余秒数」反推出同一个钟点。两条路都拿不到时返回 nil，调用方回退显示倒计时。
+    var rollOnTimeDeadlineText: String? {
+        if let t = rollDeadlineAt { return t }
+        guard rollState == .active, rollCountdownSec > 0 else { return nil }
+        return Self.jstHHmm.string(from: Date().addingTimeInterval(TimeInterval(rollCountdownSec)))
     }
 
     /// HH:mm（JST）— 点呼签到时刻显示用

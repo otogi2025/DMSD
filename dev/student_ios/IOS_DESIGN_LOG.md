@@ -73,6 +73,17 @@ Home 包含 **除了 申し込み 和 マイページ 之外的所有功能**：
 | ③ 成功 | 绿色大勾 ✅ + 判定 badge（時間内 / 遅刻）+ 3 秒退场 |
 | ④ 失败 | 红 ❌ + 原因 + 再試行 |
 
+> ⚠️ **上表自 2026-07-29 起只适用于演示版（DEMO scheme）**。生产版改成「一按就扫」：
+> 首页按钮按下去 → 直接 `session.begin()` 开 CoreNFC → **苹果系统自己的 NFC 面板**接管全部提示
+> （成功 = `alertMessage` +绿勾 / 失败 = `invalidate(errorMessage:)` 红叉 + 日语原因）→ 面板自动消失。
+> 中间不再有我们自己画的任何弹窗；失败重试 = 再按一次首页按钮。
+> **理由**（itsuki 真机实测）：原流程要按两次（先弹自制 sheet、再按 sheet 里的「NFC をかざす」），
+> 而且苹果面板启动后会盖在自制 sheet 上 —— 两层界面重叠、上面那层还是我们画的假界面，纯属多余。
+> 实装：`Foundation/Network/NFC/NFCCheckinLauncher.swift`（生产）/
+> `Features/Home/HomeCheckinDemoSheets.swift`（演示版留的原 4 态弹窗，整文件 `#if DEMO`）。
+> 「点呼時間外不许开扫描」（ios#49）原来靠自制 sheet 里那个禁用按钮拦，现改由 `BottomNav` 按下时判 `rollState` + 轻提示条拦。
+> 夜学習 2 次打卡按钮同批改（同一套流程，同一套自制弹窗）。
+
 ### 2.5 导航规则
 
 | 层级 | 左上 icon |
@@ -1836,3 +1847,32 @@ itsuki 拍板把外出申请从「事前审批」改成「事后确认」：学�
 **教训**：`project.yml` 的 `settings.base`（工程级）会被 target 级默认值覆盖，凡「必须生效」的构建设置应写在 target 的 `settings.base` 内，并以 `xcodebuild -showBuildSettings` 核对生效值 —— 注释与配置声明都不构成生效证明。
 
 验证：xcodegen 重生成后 `-showBuildSettings` 复核两项生效值正确；双 scheme 均 BUILD SUCCEEDED；Xcode Validate App 通过（`0.27.0 (1) validated`）。
+
+## §45 NFC 写入后主动向后端确认签到结果（2026-07-29）
+
+**症状**（当晚真机实测）：手机贴上点呼机，苹果 NFC 面板显示绿勾「送信しました」，首页飘出轻提示条「点呼機に送信しました」，随后首页金色卡片仍然停在「点呼中」。同一时刻点呼机日志显示 `POST /api/v1/rollcall/device-checkins 200 OK` 并已播报学生姓名 —— **后端早已签到成功，只有 App 不知道**。
+
+**根因**：客户端的「签到」只做到把载荷写进墙上 ST25DV 芯片的邮箱。其后还有两跳（点呼机经 I²C 轮询读走邮箱 → 点呼机 POST 上报后端），而 App 写完即收工，从不回头查询结果。本机缓存的 `todaySessions` 中 `my_status` 保持 `nil`，`decideRollState` 据此持续判定 `.active`，界面因而永远停在「点呼中」。既有的每秒 `tickCountdown` 只是拿同一份陈旧缓存重算，无法自愈；首页亦无下拉刷新，用户没有任何自救手段。
+
+**对策 — 写入成功后主动拉取确认**（`AppStore.confirmCheckinAfterNFCWrite()`，仅生产 scheme）：
+
+- 触发点 `NFCCheckinLauncher`，仅 `type == .rollcall`（夜学習不属于 `/rollcall/me/today` 的场次范畴）。以独立 `Task` 发起而非 `await`，避免 `isRunning` 互斥锁被确认过程占住数秒、期间按钮无响应。
+- 节奏：先静默等待 1 秒，随后最多拉取 4 次、间隔 1.5 秒，一旦 `my_status` 非空立即停止。纯等待上限 5.5 秒，含请求往返仍在 7 秒内。
+- 复用既有 `loadTodayRollcall()`，不另起网络请求；该方法内部已写回 `todaySessions` 并调用 `refreshRollStateFromSessions()`，故首页卡片与顶部 `TopRollBar` 同时切换到完成态。
+- 停止条件取 `my_status`：后端 `RollCallEvent.checked_in_at` 为 `NOT NULL`，故 `my_status` 非空与 `my_checked_in_at` 非空等价，不存在「轮询停了但界面没切」的中间态。
+- 确认成功追加一次 `UINotificationFeedbackGenerator` 成功震动 + 结论提示条（`チェックイン完了 · 時間内` / `遅刻`）。后端若已结算为欠席则给警告震动 + 联系寮監的指引。
+
+**兜底重拉**（`maybeRefetchTodayRollcall()`）：确认窗超时后，由 `tickCountdown` 在「点呼进行中且后端尚无我的记录」期间每 20 秒重拉一次今日场次。仅首页在屏时运行，`.done` / `.absent` 后自动停止，确认窗进行中不重复发起。此项使「送信しました · 反映を待っています」这句提示成为可兑现的承诺 —— 晚到的签到最终会自行反映到界面，无需用户操作。
+
+**超时不报错**：4 次拉取仍无结果时不弹错误。载荷确已写入芯片，多半只是数据还在路上，报失败会诱导用户重复签到。提示文案由「送信しました」改为「送信しました · 反映を待っています」，如实描述「已送出、正在确认」。
+
+**完成态可辨识性同批加强**（itsuki 原话「画面没有变成成功，没有变成绿色」）。原完成态仅将大字染成深绿，卡片底色仍是琥珀色，与点呼中几乎无差别：
+
+- 卡片渐变新增绿色分支（`HomeStubs.cardGradient`），与 `absent` 转红同属一套设计语言 —— 状态变化从底色即可辨认，无需读字。仅「時間内」「免除」转绿；「遅刻」不是成功，保持琥珀底 + 红色大字。
+- 大字左侧增加 `checkmark.circle.fill` 打勾圆章（`heroBlock` 新增可选 `bigIcon` 参数），为不读日语者（App Store 审核员）提供可辨识信号。「遅刻」不给勾。
+- 卡片墨色随底色切换为深绿 `#17452F`，避免深褐字压在绿底上发脏。
+- `BottomNav` 在已完成状态下再次按点呼按钮，提示由「点呼時間外です」改为「本日の点呼はすでに完了しています」—— 原文案在点呼时间内出现属自相矛盾，会让人误以为刚才那次签到无效。
+
+演示版（DEMO scheme）逻辑一字未动：无后端可查询，仍走本地假状态机；上述卡片配色属共用显示层，两 scheme 一致。
+
+验证：双 scheme（TomoshibiApp + TomoshibiAppDemo，iPhone 17 Pro）均 BUILD SUCCEEDED，无新增警告；`RollStateMachineTests` 15 项全通过（`decideRollState` 本身未改动）。

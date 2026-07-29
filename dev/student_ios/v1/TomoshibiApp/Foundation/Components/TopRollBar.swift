@@ -63,9 +63,13 @@ struct TopRollBar: View {
         // 维护者以为下次点呼固定 21:00（点呼时刻由后端 schedule 决定）。
         case .idle: return ""
         case .active:
-            // 時間内受付段：countdownSec > 0 → 距「遅刻」还有多久
+            // 時間内受付段：countdownSec > 0 → 显「几点之后算遅刻」的钟点（跟首页卡片同口径，不让学生心算）；
+            //   钟点取不到时回退成原来的「あと N 分 M 秒」。
             // 遅刻受付段：countdownSec == 0 但仍 active → 已进遅刻宽限，催尽快签到（ios#88）
             if app.rollCountdownSec > 0 {
+                if let deadline = app.rollOnTimeDeadlineText {
+                    return "点呼中 · \(deadline) を過ぎると遅刻"
+                }
                 let m = app.rollCountdownSec / 60
                 let s = app.rollCountdownSec % 60
                 return String(format: "点呼中 · 遅刻まであと %d分%02d秒", m, s)

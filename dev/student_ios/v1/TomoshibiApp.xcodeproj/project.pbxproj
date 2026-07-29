@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		01A670CB8B7B467739C7EA58 /* Toast.swift in Sources */ = {isa = PBXBuildFile; fileRef = A652D7FC37C1A6417822DCAA /* Toast.swift */; };
+		099DFD635A1A28309E295DAD /* HomeCheckinDemoSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F0A4203C9C467937423B7F /* HomeCheckinDemoSheets.swift */; };
 		0D70EF6043AAE7D57114C6D2 /* AuthStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198EF6A8C6E10AE3DBF4B316 /* AuthStubs.swift */; };
 		106D9C75A679DE11CFCD0644 /* SongsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ADCD09C35CE74209B76A719 /* SongsAPI.swift */; };
 		11FF2BD4AC27376886104D2C /* ApplicationsCreateBodies.swift in Sources */ = {isa = PBXBuildFile; fileRef = 350CA686A2E4CE6284AA20D8 /* ApplicationsCreateBodies.swift */; };
@@ -26,6 +27,7 @@
 		4CC4A649A5CBA03229C7BF17 /* StudyOnlineForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28E8541F23E43B67EBF8C833 /* StudyOnlineForm.swift */; };
 		4EF492AEB1CA2FF4273DBCCF /* StayListStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B7B19307005D8E2D07B44D /* StayListStubs.swift */; };
 		514CAEBC12DA5C1D83417976 /* NetworkModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42E4AC21AB2A9B05C9FDAD19 /* NetworkModels.swift */; };
+		524BE91C44C6A93543563A41 /* NFCCheckinLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30DCE3722E2D04CCF0EE986E /* NFCCheckinLauncher.swift */; };
 		53B2C037E5B2B8FCDC16A9D5 /* RoomAssemblyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C4C477355A0D8BD42F238E /* RoomAssemblyTests.swift */; };
 		54242AB02A2AC7A97299C852 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56739ED2BA471039822C2E43 /* APIError.swift */; };
 		57B3CF57E92B931F3DD4D664 /* ApplicationsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4871E294F8315859BF244132 /* ApplicationsAPI.swift */; };
@@ -94,11 +96,13 @@
 		153F3098DCB9936D8021790F /* ApplyStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplyStubs.swift; sourceTree = "<group>"; };
 		1692CD80AD61B3BFA74FE01D /* BottomNav.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomNav.swift; sourceTree = "<group>"; };
 		17B7B19307005D8E2D07B44D /* StayListStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StayListStubs.swift; sourceTree = "<group>"; };
+		18F0A4203C9C467937423B7F /* HomeCheckinDemoSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeCheckinDemoSheets.swift; sourceTree = "<group>"; };
 		18F25536D77C2040621B8A7D /* TomoshibiAppTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TomoshibiAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		198EF6A8C6E10AE3DBF4B316 /* AuthStubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStubs.swift; sourceTree = "<group>"; };
 		26722AF18C0B2F3B71C54E4C /* MailboxPayloadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailboxPayloadTests.swift; sourceTree = "<group>"; };
 		284355530CF272CA953BF511 /* SEED.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SEED.swift; sourceTree = "<group>"; };
 		28E8541F23E43B67EBF8C833 /* StudyOnlineForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyOnlineForm.swift; sourceTree = "<group>"; };
+		30DCE3722E2D04CCF0EE986E /* NFCCheckinLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFCCheckinLauncher.swift; sourceTree = "<group>"; };
 		335F10F844F1671107B5A65A /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
 		34F1E4B79C3FBE44EA30BC5A /* UIAtoms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIAtoms.swift; sourceTree = "<group>"; };
 		350CA686A2E4CE6284AA20D8 /* ApplicationsCreateBodies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationsCreateBodies.swift; sourceTree = "<group>"; };
@@ -206,6 +210,7 @@
 		10C4DC5A316E036B6F489087 /* NFC */ = {
 			isa = PBXGroup;
 			children = (
+				30DCE3722E2D04CCF0EE986E /* NFCCheckinLauncher.swift */,
 				8B225E3570526D88F978C444 /* ST25DVWriter.swift */,
 			);
 			path = NFC;
@@ -297,6 +302,7 @@
 		5F87026CA26B67689D4998A7 /* Home */ = {
 			isa = PBXGroup;
 			children = (
+				18F0A4203C9C467937423B7F /* HomeCheckinDemoSheets.swift */,
 				89293A7DB55301A3F1DDE5EE /* HomeStubs.swift */,
 			);
 			path = Home;
@@ -555,6 +561,7 @@
 				F55F4FC9A7444F2E2004E521 /* GlassCard.swift in Sources */,
 				14CA30DFEF2523D29C1F9732 /* GlassSheet.swift in Sources */,
 				F67686555C566AF6C807A839 /* GlobalOverlays.swift in Sources */,
+				099DFD635A1A28309E295DAD /* HomeCheckinDemoSheets.swift in Sources */,
 				CB5C431AB69BF972FFB160CB /* HomeStubs.swift in Sources */,
 				86DDCC58FA0CF1176A9BDA4A /* IOSStatusBar.swift in Sources */,
 				B97F2CD7088F960531EFF66B /* Ic.swift in Sources */,
@@ -562,6 +569,7 @@
 				686B91E579379AA4571D92D4 /* LostFoundAPI.swift in Sources */,
 				FD707A891E88A4D9A233DEE0 /* MiscRequestsAPI.swift in Sources */,
 				D802FA046E6B50B968F5826F /* MyPageStubs.swift in Sources */,
+				524BE91C44C6A93543563A41 /* NFCCheckinLauncher.swift in Sources */,
 				514CAEBC12DA5C1D83417976 /* NetworkModels.swift in Sources */,
 				C75ED6393B19EBBEE7CA1A15 /* OutingsAPI.swift in Sources */,
 				F2032E9BF093EAA2F43FEDD8 /* PageHeader.swift in Sources */,
