@@ -8,8 +8,9 @@ datasheet **DS12448（ST25DV04K / ST25DV16K / ST25DV64K）** 编写。
 
 --------------------------------------------------------------------------------
 工作流程（对齐契约 §7 + 硬件设计 §2.3 核心工作模式）：
-1. 启动：开 I²C 安全会话（present 默认口令 8 字节全 0x00）
-2. 置 MB_MODE=1（静态系统寄存器，允许邮箱功能）+ 配 GPO 寄存器 RF_PUT_MSG 中断使能
+1. 启动：开 I²C 安全会话（present 默认口令 8 字节全 0x00）并校验 SSO 位真的开了
+2. 关 MB_WDG 看门狗超时（否则没及时读走的消息会被芯片自己丢掉）
+   + 置 MB_MODE=1（静态系统寄存器，允许邮箱功能）+ 配 GPO 寄存器 RF_PUT_MSG 中断使能
 3. 每次会话动态置 MB_CTRL_Dyn.MB_EN=1
 4. 手机写入 → GPO 引脚拉低（硬件门铃）→ 读 MB_LEN_Dyn 取长度 → 从邮箱 RAM（0x2008）
    读消息 → 读完自动复位（读满长度即清 RF_PUT_MSG）
@@ -42,6 +43,7 @@ I2C_ADDR_SYSTEM = 0x57  # 系统配置寄存器（改前须开安全会话）
 # --- 系统配置寄存器（16-bit 地址，走 I2C_ADDR_SYSTEM，改前须开会话）。datasheet §7.4 表 ---
 REG_GPO = 0x0000  # GPO 配置（哪些事件驱动 GPO 引脚）
 REG_MB_MODE = 0x000D  # 邮箱模式：bit0=1 允许邮箱功能（静态使能）
+REG_MB_WDG = 0x000E  # 邮箱看门狗：写 0x00 = 关闭超时（见下方 MB_WDG_DISABLED）
 REG_I2C_PWD = 0x0900  # I²C 口令（present / write password），datasheet §7.5 "I2C security session"
 
 # --- 动态寄存器（16-bit 地址，走 I2C_ADDR_USER，无需会话）。datasheet §7.6 表 ---
@@ -57,6 +59,16 @@ MAILBOX_SIZE = 256
 # 待硬件联调核实：位序以 datasheet Table 为准，此处按常见 ST25DV 定义。
 GPO_RF_PUT_MSG_EN = 1 << 4  # RF 写入邮箱（手机→邮箱）触发 GPO
 GPO_EN = 1 << 7  # GPO 输出总使能
+
+# --- MB_WDG（邮箱看门狗，datasheet §7.4 MB_WDG register）---
+# 出厂默认 = 0x07（非 0 即启用）：手机把消息写进邮箱后，若 I²C 侧没在超时窗口内读走，
+# 芯片会自己清掉 RF_PUT_MSG 标志位并丢弃消息 —— 表现为「学生碰了、点呼机什么都没看到」。
+# 本驱动靠 `message_pending()` 查 RF_PUT_MSG 判断有无新消息，标志被清 = 消息永久静默丢失。
+# 采集线程只要偶发卡顿（I²C 忙 / 网络回调阻塞 / GPO 漏边沿走 1s 兜底轮询）就会撞上。
+# → 写 0x00 关闭超时，消息一直留在邮箱里直到被读走。
+# 代价：若程序崩溃时邮箱里正压着一条消息，它不会自动消失；开机首次 poll 会兜底扫掉
+# （见 MailboxGpoReader._last_i2c 初值 0 的注释），故不会卡住下一个学生。
+MB_WDG_DISABLED = 0x00
 
 # --- MB_CTRL_Dyn 位（datasheet §7.6 MB_CTRL_Dyn）---
 MB_CTRL_MB_EN = 1 << 0  # 邮箱动态使能
@@ -114,8 +126,19 @@ class ST25DV(MailboxReader):
     # --------------------------- 初始化流程 ---------------------------
 
     def begin(self) -> None:
-        """启动初始化：开会话 → 置 MB_MODE → 配 GPO → 动态开 MB_EN。"""
+        """启动初始化：开会话 → 关看门狗 → 置 MB_MODE → 配 GPO → 动态开 MB_EN。
+
+        会话没开时，后面三个系统寄存器（MB_WDG / MB_MODE / GPO）会被芯片静默拒写 ——
+        程序照样起来，现场却是「碰了没反应」，极难排查。故 present 之后立刻校验 SSO 位，
+        不通就报错退出（上层转 HardwareInitError）。
+        """
         self.present_password(self._password)
+        if not self.session_open():
+            raise RuntimeError(
+                "ST25DV I²C 安全会话未打开（present password 失败）。"
+                "芯片口令可能已被改过 —— 系统寄存器会被静默拒写，邮箱功能不会工作。"
+            )
+        self._disable_mailbox_watchdog()
         self._enable_mailbox_static()
         self._configure_gpo()
         self.enable_mailbox_dynamic()
@@ -132,6 +155,16 @@ class ST25DV(MailboxReader):
     def session_open(self) -> bool:
         """查 I2C_SSO_Dyn.bit0 判断安全会话是否已开。"""
         return bool(self._read_reg(I2C_ADDR_USER, REG_I2C_SSO_DYN) & 0x01)
+
+    def _disable_mailbox_watchdog(self) -> None:
+        """关闭邮箱看门狗超时（写 MB_WDG = 0x00，需已开会话）。
+
+        必须在 MB_MODE 使能之前写：MB_WDG 是系统配置寄存器（EEPROM），只在值有变化时
+        才写回，避免每次开机都磨一次 EEPROM 寿命。
+        """
+        current = self._read_reg(I2C_ADDR_SYSTEM, REG_MB_WDG)
+        if current != MB_WDG_DISABLED:
+            self._write(I2C_ADDR_SYSTEM, REG_MB_WDG, bytes([MB_WDG_DISABLED]))
 
     def _enable_mailbox_static(self) -> None:
         """置系统寄存器 MB_MODE.bit0 = 1，允许邮箱功能（需已开会话）。"""
