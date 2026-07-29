@@ -142,7 +142,7 @@ class ST25DVWriter(
 
     /**
      * 发 Read Dynamic Configuration（0xAD）读 MB_CTRL_Dyn。
-     * 帧：[Flags][0xAD][厂商码 0x02][寄存器指针 0x06]
+     * 帧：[Flags][0xAD][厂商码 0x02][寄存器指针 0x0D]（RF 侧指针，不是 I²C 的 0x2006）
      * 待硬件联调核实：响应是否含 flags 字节；用 last 取值兼容两种结构（对齐 iOS response.last）。
      */
     private fun readMailboxControl(nfcV: NfcV): Int {

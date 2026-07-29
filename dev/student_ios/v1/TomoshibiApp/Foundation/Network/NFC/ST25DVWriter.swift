@@ -72,8 +72,13 @@ enum ST25DV {
 
     // MARK: - 动态寄存器指针（datasheet「Dynamic registers」节）
 
-    /// MB_CTRL_Dyn：邮箱控制动态寄存器，读写用指针 0x06。
-    static let regMBCtrlDyn: UInt8 = 0x06
+    /// MB_CTRL_Dyn：邮箱控制动态寄存器。
+    /// ⚠️ **RF 侧指针 ≠ I²C 侧地址，别照抄点呼机的常量**：同一个寄存器，I²C（点呼机
+    ///   `st25dv.py`）走 `0x2006`，RF（本文件的 Read Dynamic Configuration）走 `0x0D`。
+    ///   datasheet 的「Dynamic registers」表把两列并排，取错列会读到另一个寄存器，
+    ///   于是邮箱状态判断全错、写入被无条件拒绝。原写成 `0x06`（= I²C 地址的低字节），
+    ///   2026-07-29 真机联调前由异构审查按手册抓出并订正。
+    static let regMBCtrlDyn: UInt8 = 0x0D
 
     // MARK: - MB_CTRL_Dyn 位定义（datasheet MB_CTRL_Dyn 寄存器表）
 
