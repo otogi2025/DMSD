@@ -318,3 +318,8 @@ WantedBy=multi-user.target
 - 2026-07-27：上机前检查修复（TF 卡烧录期间的最后一道软件检查，CC 端到端真跑 + cursor grok-4.5 只读审背对背，itsuki 当场拍板只修这一条）——
   **硬件初始化失败给人话提示、systemd 不再无限重启**：原 `main()` 只捕 `AuthError`/`ConfigError`，硬件层抛的 `RuntimeError`/`OSError` 直接冒出去崩栈；叠加 `Restart=on-failure`+`RestartSec=5`，组装现场看到的是「服务每 5 秒重启一次」，真正的报错被刷屏淹没、判断不出是哪根线插错。改为：新增 `HardwareInitError`（带 `part` 哪块硬件 + `hint` 该查什么），`_init_part()` 逐块包住 PN532/ST25DV/LED/音频四处构造与驱动库 import，把各驱动不统一的异常统一翻译；`main()` 捕获后打三行中文（是哪块 / 查哪几项 / 不接硬件请加 `--simulate`）退出码 **3**，service 补 `RestartPreventExitStatus=3` 让 systemd 认定不可自愈、停在 failed 状态，`systemctl status` 第一屏即排查提示。验证：pytest 93 passed（新增 3 条）；Mac 上真跑非 simulate 模式确认三行提示与退出码 3。
   同批检查确认能跑通、未改动：设备 enroll→token→名单→刷卡→重复刷→路径B→未知卡→心跳→WS→断网本地放行→恢复补传，13 项端到端全通，接口契约与后端逐字段对上。挂 TODO 未修 6 条见 `admin/TODO.md`（后端从不推 `roster_updated`/`audio_updated` 为其中最重）。
+- 2026-07-29：新增 `--skip-card-reader`，支持分阶段硬件验收——
+  **动因**：ST25DV16K 已焊通并经 `i2cdetect` 验证（7-28），PN532 尚未焊接且为全项目唯一无备份零件。App Store 审核 Guideline 2.1 要求的演示视频只涉及路径 B（手机写邮箱），不依赖读卡器；但 `build_hardware()` 中 PN532 的构造顺序早于 ST25DV，读卡器缺席会使整机在启动阶段即抛 `HardwareInitError` 退出码 3，路径 B 无从验证。为在动用不可逆零件之前先探明 RF 侧链路，需要一条「允许读卡器缺席」的降级路径。
+  **实装**：`build_hardware()` / `bootstrap()` 新增 `skip_card_reader` 形参，命令行开关 `--skip-card-reader` 贯通至装配层。启用时读卡器整块不构造、替换为 `FakeCardReader`（`read_uid` 恒返回 `None`，只表现为「读不到卡」，不会伪造刷卡事件污染考勤），同时打印 WARNING 声明实体卡路径失效。
+  **默认关闭的理由**：缺件仍能静默启动属上线事故风险，降级须由操作者显式声明，故不做自动探测、不改变既有「硬件缺一不可」的默认语义。
+  验证：pytest 95 passed（新增 2 条——跳过分支下首个失败部件由 PN532 变为 ST25DV，证明读卡器整块未被构造；命令行开关贯通至装配层且缺省为 `False`）。

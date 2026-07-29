@@ -32,6 +32,64 @@ def test_真硬件在非树莓派上起不来时抛带提示的异常(tmp_path):
         raise AssertionError("非树莓派上构造真实硬件竟然没报错")
 
 
+def test_跳过读卡器后PN532不再被构造(tmp_path, monkeypatch):
+    """`--skip-card-reader`（组装期 PN532 未焊）：读卡器整块不碰，第一块挂的变成 ST25DV。
+
+    伪造 pn532_reader 模块有两个作用：① 让非树莓派上的 import 守卫放行，跑得到跳过分支；
+    ② 一旦跳过失效、真去构造读卡器，就当场炸出断言错误。
+    """
+    import sys
+    import types
+
+    fake = types.ModuleType("src.nfc.pn532_reader")
+
+    def _must_not_be_called():
+        raise AssertionError("skip_card_reader=True 时不该构造 PN532")
+
+    fake.build_card_reader = _must_not_be_called
+    monkeypatch.setitem(sys.modules, "src.nfc.pn532_reader", fake)
+
+    try:
+        main_mod.build_hardware(_cfg(tmp_path), simulate=False, skip_card_reader=True)
+    except main_mod.HardwareInitError as exc:
+        # 开发机没有 I²C 总线 —— 挂在 ST25DV 恰好证明 PN532 那步被整块跳过了
+        assert exc.part == "ST25DV 手机贴芯片（I²C）"
+    else:
+        raise AssertionError("开发机上构造真实 ST25DV 竟然没报错")
+
+
+def test_跳过读卡器的开关从命令行传得到装配层(tmp_path, monkeypatch):
+    """开关接线检查：`--skip-card-reader` 必须一路传到 bootstrap，中途丢了等于没做。"""
+    cfg_path = tmp_path / "config.json"
+    cfg_path.write_text(
+        json.dumps(
+            {
+                "device_id": "test-dev",
+                "server_url": "http://127.0.0.1:1",
+                "ws_url": "ws://127.0.0.1:1",
+                "key_path": str(tmp_path / "key"),
+                "data_dir": str(tmp_path / "data"),
+                "audio_output": "plughw:1,0",
+            }
+        ),
+        encoding="utf-8",
+    )
+    captured: dict[str, bool] = {}
+
+    def _capture(_cfg_arg, simulate, config_path, skip_card_reader=False):
+        captured["skip"] = skip_card_reader
+        raise main_mod.HardwareInitError("停在这里就够了", "无", RuntimeError("stop"))
+
+    monkeypatch.setattr(main_mod, "bootstrap", _capture)
+
+    assert main_mod.main(["--config", str(cfg_path), "--skip-card-reader"]) == 3
+    assert captured["skip"] is True
+
+    captured.clear()
+    assert main_mod.main(["--config", str(cfg_path)]) == 3
+    assert captured["skip"] is False  # 不带参数时必须保持「硬件缺一不可」的默认
+
+
 def test_模拟模式不受影响(tmp_path):
     card, mailbox, led, audio = main_mod.build_hardware(_cfg(tmp_path), simulate=True)
     assert card is not None and mailbox is not None

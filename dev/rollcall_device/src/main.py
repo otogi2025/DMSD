@@ -592,11 +592,15 @@ def _init_part(part: str, hint: str, factory):
         raise HardwareInitError(part, hint, exc) from exc
 
 
-def build_hardware(cfg: Config, simulate: bool):
+def build_hardware(cfg: Config, simulate: bool, skip_card_reader: bool = False):
     """构造硬件层：真实 or 假实现（simulate / 无硬件降级）。
 
     返回 (card_reader, mailbox_reader, led, audio)。
     真实硬件任一块起不来 → 抛 HardwareInitError（含排查提示），由 main 打印后退出。
+
+    `skip_card_reader`（`--skip-card-reader`）= 组装期分阶段验收用：PN532 还没焊上时，
+    跳过它、只起 ST25DV，先单独验证路径 B（手机碰一下）。默认 False —— 缺零件却闷头
+    跑起来是上线事故，降级必须由人显式声明。
     """
     if simulate:
         card_reader: CardReader = FakeCardReader()
@@ -619,13 +623,21 @@ def build_hardware(cfg: Config, simulate: bool):
             exc,
         ) from exc
 
-    card_reader = _init_part(
-        "PN532 读卡器（SPI）",
-        "检查：① sudo raspi-config → Interface Options → SPI 是否已启用；"
-        "② PN532 板上的拨码开关是否拨到 SPI 模式；"
-        "③ SCK / MOSI / MISO / CE0 四根线是否插在对应针脚上。",
-        build_card_reader,
-    )
+    if skip_card_reader:
+        # 假读头永远返回 None —— 只是「读不到卡」，不会伪造出刷卡事件污染考勤。
+        logger.warning(
+            "⚠️ --skip-card-reader 生效：跳过 PN532，实体卡刷卡不可用，"
+            "只有「手机碰 ST25DV」这条路能签到。正式运行不要带这个参数。"
+        )
+        card_reader = FakeCardReader()
+    else:
+        card_reader = _init_part(
+            "PN532 读卡器（SPI）",
+            "检查：① sudo raspi-config → Interface Options → SPI 是否已启用；"
+            "② PN532 板上的拨码开关是否拨到 SPI 模式；"
+            "③ SCK / MOSI / MISO / CE0 四根线是否插在对应针脚上。",
+            build_card_reader,
+        )
     mailbox_reader = _init_part(
         "ST25DV 手机贴芯片（I²C）",
         "检查：① sudo raspi-config → Interface Options → I2C 是否已启用；"
@@ -656,10 +668,16 @@ def build_hardware(cfg: Config, simulate: bool):
     return card_reader, mailbox_reader, led, audio
 
 
-def bootstrap(cfg: Config, simulate: bool, config_path: str) -> RollCallDevice:
+def bootstrap(
+    cfg: Config,
+    simulate: bool,
+    config_path: str,
+    skip_card_reader: bool = False,
+) -> RollCallDevice:
     """完整装配：认证 → 首次拉名单/音频 → 硬件 → 双线程设备。
 
     `config_path` = 配置文件路径，首启 enroll 成功后据此清除一次性激活码。
+    `skip_card_reader` = 见 `build_hardware`（组装期只验路径 B 时用）。
     """
     from .roster import load_roster, save_roster
 
@@ -694,7 +712,9 @@ def bootstrap(cfg: Config, simulate: bool, config_path: str) -> RollCallDevice:
     except (NetworkError, AuthError) as exc:
         logger.warning("首次同步音频失败：%s", exc)
 
-    card_reader, mailbox_reader, led, audio = build_hardware(cfg, simulate)
+    card_reader, mailbox_reader, led, audio = build_hardware(
+        cfg, simulate, skip_card_reader=skip_card_reader
+    )
     offline_queue = OfflineQueue(cfg.queue_db_path)
 
     device = RollCallDevice(
@@ -729,6 +749,12 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="无硬件模拟模式：stdin 模拟刷卡，LED/音频降级为控制台打印",
     )
+    parser.add_argument(
+        "--skip-card-reader",
+        action="store_true",
+        help="跳过 PN532 读卡器（组装期分阶段验收：PN532 还没焊上时，"
+        "只起 ST25DV 验证手机碰一下这条路）。实体卡刷卡会失效，正式运行别带。",
+    )
     parser.add_argument("--log-level", default="INFO", help="日志级别（默认 INFO）")
     args = parser.parse_args(argv)
 
@@ -744,7 +770,12 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        device = bootstrap(cfg, simulate=args.simulate, config_path=str(args.config))
+        device = bootstrap(
+            cfg,
+            simulate=args.simulate,
+            config_path=str(args.config),
+            skip_card_reader=args.skip_card_reader,
+        )
     except HardwareInitError as exc:
         # 组装现场最常见的失败（device#2）：打清楚是哪块硬件 + 该查什么，
         # 退 3 让 systemd 认定不可自愈、停止重启（RestartPreventExitStatus=3）。
