@@ -54,17 +54,26 @@ export function App() {
     }
     // 5-27 拍板：实名账户登录后直接进 app（旧 select-teacher 中间页砍）。
     // 从 backend TeacherOut.profile 派生 UI 用 teacher 字段 — assigned_dorm: 4=女寮 / 其他=男寮。
+    // 当班寮：优先用登录时选的（H9，随 auth 一起存进 sessionStorage），
+    // 老会话 / 没选的情况回落档案里的固有寮。F5 刷新走这条路径恢复。
+    const restoredDorm =
+      auth && auth.selected_dorm != null
+        ? auth.selected_dorm
+        : auth && auth.profile
+          ? auth.profile.assigned_dorm
+          : null;
     const teacher =
       auth && auth.profile
         ? {
             id: auth.profile.id,
             name: auth.profile.name,
-            dorm: auth.profile.assigned_dorm === 4 ? "women" : "men",
+            dorm: restoredDorm === 4 ? "women" : "men",
             initial: (auth.profile.name || "?").charAt(0),
             lastLoginMins: null,
             // A1 修复: 把 role + assigned_dorm 带进 teacher，否则权限按钮(一括进级/行事/巴士增删改)永不显示
             role: auth.profile.role,
-            assigned_dorm: auth.profile.assigned_dorm,
+            assigned_dorm: restoredDorm,
+            profile_dorm: auth.profile.assigned_dorm ?? null,
             // 带上有效权限组，供 InfoPage / AccountsPage 用 canManage 判功能入口显隐（TW-001/048）
             permission_group: auth.profile.permission_group ?? null,
           }
@@ -401,13 +410,26 @@ export function App() {
   // 5-27 拍板：实名账户登录 — LoginScreen 内一次性拿 token + profile + pickedTeacher
   // pickedTeacher = LoginScreen 屏 1 选中的卡片 {id, name, dorm, initial} （从 GET /teachers/public 派生）
   // 直接进 app，跳过旧 select-teacher 中间页。
-  const loginOk = (token: any, profile: any, pickedTeacher: any) => {
+  // selectedDorm = 登录时选的当班寮（1=男/4=女）。上线前审查 H9：
+  // 后端 deps.py:34-58 按令牌里的这个值算可见范围，但前端原来把它丢了，
+  // 页面一律用老师档案里固定的 assigned_dorm —— 代班老师（档案男寮、今晚选女寮）会
+  // 看到错性别的徽章，查人数时前端按男寮问、后端按女寮答，交集为空返回 0。
+  // 登录响应不回显这个值（TeacherLoginOut 只有 access_token + teacher），所以前端自己记。
+  const loginOk = (
+    token: any,
+    profile: any,
+    pickedTeacher: any,
+    selectedDorm?: number | null,
+  ) => {
     setAuthToken(token);
     setAuthProfile(profile);
+    // 当班寮：老师选了就用选的，没选（op / 申請承認専用 等跨寮组不显示选择器）回落档案值
+    const activeDorm =
+      selectedDorm ?? (profile && profile.assigned_dorm) ?? null;
     try {
       sessionStorage.setItem(
         "tomoshibi_auth",
-        JSON.stringify({ token, profile }),
+        JSON.stringify({ token, profile, selected_dorm: activeDorm }),
       );
     } catch (e) {
       // private mode 等情况下失败也让 login 继续 (state 里还留着)
@@ -417,8 +439,12 @@ export function App() {
       // A1 修复: 把 profile 的 role + assigned_dorm 合进 teacher（pickedTeacher 卡片只有 id/name/dorm/initial）
       setTeacher({
         ...pickedTeacher,
+        // 当班寮覆盖卡片上的固定寮 —— 徽章 / 人数查询都跟着今晚实际当值的寮走
+        dorm: activeDorm === 4 ? "women" : "men",
         role: profile && profile.role,
-        assigned_dorm: profile && profile.assigned_dorm,
+        assigned_dorm: activeDorm,
+        // 档案上的固有寮另存，需要区分「档案寮 vs 今晚当班寮」时用
+        profile_dorm: (profile && profile.assigned_dorm) ?? null,
         // 带上有效权限组供 canManage 判功能入口显隐（TW-001/048）
         permission_group: (profile && profile.permission_group) ?? null,
       });
@@ -430,7 +456,8 @@ export function App() {
     if (pickedTeacher) {
       setToast({
         type: "ok",
-        msg: `${pickedTeacher.name} 先生でログインしました・${dormLabel(pickedTeacher.dorm)}担当`,
+        // 担当寮也显示今晚实际当班的寮（pickedTeacher.dorm 是卡片上的档案固定寮，代班时会说错）
+        msg: `${pickedTeacher.name} 先生でログインしました・${dormLabel(activeDorm === 4 ? "women" : "men")}担当`,
       });
     }
   };

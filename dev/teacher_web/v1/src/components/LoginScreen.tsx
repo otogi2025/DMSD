@@ -17,7 +17,9 @@ import tomoshibiIcon from "../assets/tomoshibi-icon.png";
 //   屏 1 = 老师卡片列表（男寮 / 女寮 2 列，GET /teachers/public 无认证拿）
 //   屏 2 = 选中老师后输该老师密码（teacher_id + password 调 POST /sessions/teacher）
 // 旧 SelectTeacherScreen 中间页砍 —— 登录成功直接进 app。
-// onLogin(token, profile, pickedTeacher) —— App 顶层一次性设 authToken+authProfile+teacher。
+// onLogin(token, profile, pickedTeacher, selectedDorm) —— App 顶层一次性设 authToken+authProfile+teacher。
+// 第 4 个 selectedDorm = 这次登录选的当班寮（后端按它算可见范围，前端必须一起记住，
+// 否则代班老师页面仍按档案里的固定寮显示 / 查询，跟后端范围对不上）。
 
 // 屏 1 加载老师列表后派生出的本地卡片形状（id/name/dorm/initial/lastLoginMins）
 interface PickedTeacher {
@@ -37,6 +39,7 @@ export function LoginScreen({
     token: string,
     profile: TeacherProfile,
     pickedTeacher: PickedTeacher,
+    selectedDorm: 1 | 4 | null,
   ) => void;
   lastTeacherId: string | null;
 }) {
@@ -145,7 +148,8 @@ export function LoginScreen({
         ...(selectedDorm ? { selected_dorm: selectedDorm } : {}),
       });
       setErr("");
-      onLogin(data.access_token, data.teacher, picked);
+      // 第 4 参：不需选寮的组（本寮固定）传 null，App 侧会回落到档案里的 assigned_dorm
+      onLogin(data.access_token, data.teacher, picked, selectedDorm);
     } catch (err2: any) {
       // web#33 / web#34
       setErr(loginFailMessage(err2, "パスワードが違います"));
@@ -177,7 +181,7 @@ export function LoginScreen({
         initial: (t.name || "?").charAt(0),
         lastLoginMins: null,
       };
-      onLogin(data.access_token, data.teacher, pk);
+      onLogin(data.access_token, data.teacher, pk, selectedDorm);
     } catch (err2: any) {
       // web#33 / web#34（手动登录同口径）
       setErr(loginFailMessage(err2, "ID またはパスワードが違います"));
