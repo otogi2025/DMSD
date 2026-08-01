@@ -28,7 +28,7 @@ from starlette.concurrency import run_in_threadpool
 
 from .. import models, security
 from ..database import SessionLocal
-from ..deps import device_enr_matches, is_teacher_expired
+from ..deps import device_enr_matches, dorm_units_for_teacher, is_teacher_expired
 from ..ws_manager import device_manager, manager
 
 logger = logging.getLogger(__name__)
@@ -36,10 +36,25 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/ws", tags=["websocket"])
 
 
-def _load_teacher_for_ws(teacher_id: UUID) -> tuple[int | None, bool] | None:
+def _load_teacher_for_ws(
+    teacher_id: UUID, selected_dorm: int | None = None
+) -> tuple[int | None, bool] | None:
     """同步查教师鉴权信息 — Session 仅在本函数（线程池工作线程）内新开。
 
-    返回 (assigned_dorm, is_demo)；教师不存在 / 非 active / 已过期 → None（由 async 侧关连接）。
+    返回 (广播过滤用的寮值, is_demo)；教师不存在 / 非 active / 已过期 → None（由 async 侧关连接）。
+
+    **寮值不是档案里的 assigned_dorm，是「当班寮」**（2026-08-01 上线前复审 F1）：
+    老师登录时选今晚负责哪个寮，选择随票据传进来。直接用档案上的固定 assigned_dorm，
+    代班老师（档案男寮、今晚选女寮）会收不到当班寮的签到、反而收到本不该看的另一个寮。
+
+    口径统一走 `deps.dorm_units_for_teacher()`（REST 接口用的是同一个函数），它把
+    op / 申請承認専用 组恒定放行、男寮选 1 或 2 都展开成 [1,2] 这些规则都算好了；
+    这里再把它返回的列表折回 `ws_manager` 认识的单一寮值：
+
+        [1, 2, 4] → None（不限制，收全部） / [1, 2] → 1（男寮） / [4] → 4（女寮）
+
+    折回而不是把列表直接塞进 `_TeacherConn`，是为了不动 ws_manager 的字段和既有的
+    6 个广播过滤测试 —— 上线前把改动面锁死在这两个文件里。
     """
     with SessionLocal() as db:
         teacher = db.get(models.Teacher, teacher_id)
@@ -48,8 +63,17 @@ def _load_teacher_for_ws(teacher_id: UUID) -> tuple[int | None, bool] | None:
         # 临时账户过期也拒连（本路径自解 JWT、不走 deps.get_current_teacher）
         if is_teacher_expired(teacher):
             return None
+        # dorm_units_for_teacher 读的就是这个属性（deps.get_current_teacher 平时替它挂）
+        teacher._selected_dorm = selected_dorm
+        units = dorm_units_for_teacher(teacher)
+        if 1 in units and 4 in units:
+            broadcast_dorm = None  # 全集 → 不限制
+        elif 4 in units:
+            broadcast_dorm = 4  # 女子寮
+        else:
+            broadcast_dorm = 1  # 男子寮（1 寮 + 2 寮，ws_manager 侧会展开成 (1, 2)）
         # 标量拷出后再关 Session，避免 ORM 对象出线程
-        return (teacher.assigned_dorm, teacher.is_demo)
+        return (broadcast_dorm, teacher.is_demo)
 
 
 def _device_ws_auth_ok(device_id: str, enr: object) -> bool:
@@ -140,17 +164,22 @@ async def teacher_ws(
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
-    # 拉 teacher.assigned_dorm 用于未来按 dorm 过滤推送
+    # 当班寮 —— 老师登录时选的那个寮，由 POST /sessions/ws-ticket 透传进票据。
+    # 票据里没有（未选寮 / 旧客户端）→ None，_load_teacher_for_ws 里回落到看全部。
+    raw_selected = payload.get("selected_dorm")
+    selected_dorm = raw_selected if isinstance(raw_selected, int) else None
+
+    # 算这条连接的广播过滤寮（当班寮优先于档案寮，口径同 REST 接口）
     # 同步 DB 委托线程池，Session 在 _load_teacher_for_ws 内新开（不跨线程）
-    loaded = await run_in_threadpool(_load_teacher_for_ws, teacher_id)
+    loaded = await run_in_threadpool(_load_teacher_for_ws, teacher_id, selected_dorm)
     if loaded is None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
-    assigned_dorm, is_demo = (
+    broadcast_dorm, is_demo = (
         loaded  # is_demo = 演示隔离 — 连接带 is_demo，broadcast 按它过滤
     )
 
-    await manager.connect(websocket, teacher_id, assigned_dorm, is_demo)
+    await manager.connect(websocket, teacher_id, broadcast_dorm, is_demo)
     try:
         while True:
             # frontend 不主动发消息（被动接收）— 仅处理 ping/pong / 心跳

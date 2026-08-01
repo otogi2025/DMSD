@@ -330,14 +330,28 @@ def issue_ws_ticket(
     routers/ws.py teacher_ws 票据校验处的说明。
 
     get_current_teacher 已把存在性 / active / 临时账户有效期全部校验过 ——
-    票据里只封 purpose=teacher_ws 与身份（sub/role），WS 侧再用
+    票据里封 purpose=teacher_ws、身份（sub/role）与登录时选的当班寮，WS 侧再用
     _load_teacher_for_ws 二次确认存在性 / active / 有效期，并取回
-    assigned_dorm / is_demo（本路径自解 JWT、不走 deps，校验一项不能少）。
+    is_demo（本路径自解 JWT、不走 deps，校验一项不能少）。
+
+    **selected_dorm 必须透传**（2026-08-01 上线前复审 F1）：老师登录时选今晚
+    负责哪个寮，这个选择只在登录令牌里。此处不透传的话，WS 侧就只剩数据库里
+    档案上的固定 assigned_dorm 可用 —— 档案男寮、今晚代班女寮的老师，连接显示
+    正常却一条女寮签到都收不到，反而收男寮的，点呼大屏形同虚设。
     """
     ticket = security.create_access_token(
         teacher.id,
         f"teacher:{teacher.role}",
-        extra={"purpose": "teacher_ws"},
+        extra={
+            "purpose": "teacher_ws",
+            # 当班寮（get_current_teacher 从登录令牌解出后挂在 teacher 上）；
+            # 未选寮时不放这个键，与登录令牌的写法一致（WS 侧回落到看全部）
+            **(
+                {"selected_dorm": getattr(teacher, "_selected_dorm", None)}
+                if getattr(teacher, "_selected_dorm", None) is not None
+                else {}
+            ),
+        },
         # 60 秒 TTL —— 只够立刻拿去连 WS，把泄漏进日志的可重放窗口压到 60 秒内
         expire_minutes=1,
     )

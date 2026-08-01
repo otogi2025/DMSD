@@ -95,3 +95,69 @@ class TestWSTicket:
         with pytest.raises(WebSocketDisconnect):
             with client.websocket_connect(f"/api/v1/ws/teacher?ticket={expired}") as ws:
                 ws.receive_text()
+
+
+class TestWSTicketCarriesSelectedDorm:
+    """当班寮必须一路传到 WS 广播过滤（2026-08-01 上线前复审 F1）。
+
+    老师登录时选今晚负责哪个寮，这个选择进登录令牌、REST 接口按它算可见范围。
+    此前换 WS 票据时该选择被丢弃、WS 改读老师档案里的固定 assigned_dorm ——
+    档案男寮、今晚代班女寮的老师，点呼大屏显示已连接却收不到一条女寮签到，
+    反而收到男寮的。本组钉死三段链路：票据带上它 / 建连按它算 / 未选时看全部。
+    """
+
+    def _login(self, client, login_id: str, selected_dorm: int | None) -> str:
+        body: dict = {"login_id": login_id, "password": "test-password-12345"}
+        if selected_dorm is not None:
+            body["selected_dorm"] = selected_dorm
+        res = client.post("/api/v1/sessions/teacher", json=body)
+        assert res.status_code == 200, res.text
+        return res.json()["data"]["access_token"]
+
+    def test_ticket_carries_selected_dorm(self, client, seed_data):
+        """登录选女寮 → 换来的 WS 票据里必须带 selected_dorm=4（不带 = F1 的根因）。"""
+        ticket = _ws_ticket(client, self._login(client, "tannin", 4))
+        settings = get_settings()
+        payload = jwt.decode(
+            ticket, settings.jwt_secret, algorithms=[settings.jwt_algorithm]
+        )
+        assert payload["purpose"] == "teacher_ws"
+        assert payload["selected_dorm"] == 4
+
+    def test_ticket_omits_dorm_when_not_selected(self, client, seed_data):
+        """未选寮登录 → 票据里不放这个键（回落到看全部，向后兼容旧客户端）。"""
+        ticket = _ws_ticket(client, self._login(client, "tannin", None))
+        settings = get_settings()
+        payload = jwt.decode(
+            ticket, settings.jwt_secret, algorithms=[settings.jwt_algorithm]
+        )
+        assert "selected_dorm" not in payload
+
+    def test_load_teacher_prefers_selected_over_profile(self, seed_data):
+        """核心逻辑单测：广播过滤寮取当班寮，不取档案里的 assigned_dorm。"""
+        from app.routers.ws import _load_teacher_for_ws
+
+        teacher = seed_data["teachers"]["tannin"]
+        assert teacher.assigned_dorm == 1, "前提：这个老师档案上是男寮"
+
+        # 代班女寮 → 按女寮过滤（不是档案里的 1）
+        assert _load_teacher_for_ws(teacher.id, 4)[0] == 4
+        # 选男寮 → 男寮（ws_manager 侧会把 1 展开成 1+2 两栋）
+        assert _load_teacher_for_ws(teacher.id, 1)[0] == 1
+        assert _load_teacher_for_ws(teacher.id, 2)[0] == 1
+        # 未选 → None = 不限制，看全部（向后兼容）
+        assert _load_teacher_for_ws(teacher.id, None)[0] is None
+
+    def test_ws_connection_registers_selected_dorm(self, client, seed_data):
+        """端到端：档案男寮的老师选女寮代班，建立的连接按女寮注册。"""
+        from app.ws_manager import manager
+
+        teacher = seed_data["teachers"]["tannin"]
+        ticket = _ws_ticket(client, self._login(client, "tannin", 4))
+        with client.websocket_connect(f"/api/v1/ws/teacher?ticket={ticket}") as ws:
+            ws.send_text("ping")
+            mine = [c for c in manager._conns if c.teacher_id == teacher.id]
+            assert len(mine) == 1, "连接应已注册"
+            assert mine[0].assigned_dorm == 4, (
+                "连接按当班寮(4)注册，不是档案里的固定寮(1)"
+            )
