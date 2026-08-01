@@ -658,6 +658,8 @@ export function DisciplinePage({
             <ManualDemeritModal
               T={T}
               target={manualTarget}
+              authToken={authToken}
+              month={month}
               onClose={() => setManualTarget(null)}
               onSubmit={(sid, pts, rsn, key) =>
                 handleManualSubmit(sid, manualTarget.name, pts, rsn, key)
@@ -669,6 +671,7 @@ export function DisciplinePage({
             <ManualDemeritSearchModal
               T={T}
               authToken={authToken}
+              month={month}
               pointsByStudent={pointsByStudent}
               onClose={() => setSearchAddOpen(false)}
               onSubmit={handleManualSubmit}
@@ -695,52 +698,238 @@ function modalInputStyle(T: RyoTokens): React.CSSProperties {
   };
 }
 
+// 从排行榜接口取单个学生的当月合计点（无单学生接口，只能整表拉再取）
+async function fetchStudentMonthPoints(
+  authToken: string,
+  month: string,
+  studentId: string,
+): Promise<number> {
+  const r = await api.getDisciplineRanking(authToken, month);
+  const entry = r.entries.find((e) => e.student_id === studentId);
+  if (!entry) {
+    throw new Error("この寮生の点数が見つかりませんでした");
+  }
+  return entry.total_points;
+}
+
+// 弹窗内：分数刚变过的提示条
+function ScoreChangedBanner({
+  T,
+  from,
+  to,
+}: {
+  T: RyoTokens;
+  from: number;
+  to: number;
+}) {
+  return (
+    <div
+      style={{
+        padding: "8px 12px",
+        background: T.warnSoft,
+        border: `1px solid ${T.warn}`,
+        borderRadius: 8,
+        color: T.warn,
+        fontSize: 12,
+        lineHeight: 1.5,
+        marginBottom: 12,
+      }}
+    >
+      注意：ページ表示時点から点数が変わりました（{from} → {to}{" "}
+      点）。自動減点などが反映されています。
+    </div>
+  );
+}
+
 // 手动设定合计点 modal（本块私有子组件，B 方案：设绝对值、后端算差值）
+// 打开瞬间重拉当前分预填 —— 禁止用页面挂载时的排行榜快照（会静默抹掉期间的自动扣分）
 function ManualDemeritModal({
   T,
   target,
+  authToken,
+  month,
   onClose,
   onSubmit,
 }: {
   T: RyoTokens;
   target: { student_id: string; name: string; current: number };
+  authToken: string;
+  month: string;
   onClose: () => void;
   onSubmit: (
     studentId: string,
     targetPoints: number,
     reason: string,
     idempotencyKey: string,
-  ) => void;
+  ) => void | Promise<unknown>;
 }) {
-  const [score, setScore] = React.useState(String(target.current));
+  // score 初始空：加载完成前不给旧快照，避免老师对着过期数字操作
+  const [score, setScore] = React.useState("");
   const [reason, setReason] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
+  const [fetchState, setFetchState] = React.useState<
+    "loading" | "ready" | "error"
+  >("loading");
+  const [freshCurrent, setFreshCurrent] = React.useState<number | null>(null);
+  const [fetchError, setFetchError] = React.useState<string | null>(null);
+  // 打开时拉到的「現在点」——提交前再比对，挡住填表期间又变了的情况
+  const openedCurrentRef = React.useRef<number | null>(null);
+  // 请求世代号：重试 / 卸载时丢弃过期响应，防竞态把旧结果写回
+  const fetchGenRef = React.useRef(0);
   // A-473 幂等键：本弹窗一次「設定」意图固定一个 key，失败重试复用同一 key，成功即随弹窗关闭
   // 弃用；重开弹窗 = 新意图 = 新 key。
   const idemKey = React.useRef(crypto.randomUUID()).current;
+
+  const reloadCurrent = React.useCallback(() => {
+    const gen = ++fetchGenRef.current;
+    setFetchState("loading");
+    setFetchError(null);
+    setScore("");
+    setFreshCurrent(null);
+    openedCurrentRef.current = null;
+    fetchStudentMonthPoints(authToken, month, target.student_id)
+      .then((pts) => {
+        if (gen !== fetchGenRef.current) return;
+        setFreshCurrent(pts);
+        openedCurrentRef.current = pts;
+        setScore(String(pts));
+        setFetchState("ready");
+      })
+      .catch((e: { message?: string }) => {
+        if (gen !== fetchGenRef.current) return;
+        // 不许静默 fallback 回旧快照
+        setFetchError(e?.message || "現在の点数の取得に失敗しました");
+        setFetchState("error");
+      });
+  }, [authToken, month, target.student_id]);
+
+  React.useEffect(() => {
+    reloadCurrent();
+    return () => {
+      fetchGenRef.current += 1; // 卸载：作废进行中的响应
+    };
+  }, [reloadCurrent]);
+
   const parsed = parseFloat(score);
   const disabled =
-    !reason.trim() || score === "" || isNaN(parsed) || parsed < 0 || submitting;
+    fetchState !== "ready" ||
+    freshCurrent === null ||
+    !reason.trim() ||
+    score === "" ||
+    isNaN(parsed) ||
+    parsed < 0 ||
+    submitting;
+
   const handleSubmit = () => {
-    if (disabled) return;
+    if (disabled || freshCurrent === null) return;
     setSubmitting(true);
-    Promise.resolve(
-      onSubmit(target.student_id, parsed, reason.trim(), idemKey),
-    ).finally(() => setSubmitting(false));
+    // 保险：提交前再拉一次；打开后填表期间又变了 → 必须老师确认
+    fetchStudentMonthPoints(authToken, month, target.student_id)
+      .then((latest) => {
+        const opened = openedCurrentRef.current;
+        if (opened !== null && latest !== opened) {
+          const ok = window.confirm(
+            `設定画面を開いてから点数が変わりました（${opened} → ${latest} 点）。\nこのまま ${parsed} 点に設定しますか？`,
+          );
+          if (!ok) {
+            setFreshCurrent(latest);
+            openedCurrentRef.current = latest;
+            return;
+          }
+          setFreshCurrent(latest);
+          openedCurrentRef.current = latest;
+        }
+        return onSubmit(target.student_id, parsed, reason.trim(), idemKey);
+      })
+      .catch((e) => {
+        alert(
+          "最新の点数の確認に失敗しました。設定を中止しました：" +
+            (e?.message || JSON.stringify(e)),
+        );
+      })
+      .finally(() => setSubmitting(false));
   };
+
+  const scoreLabel =
+    fetchState === "loading"
+      ? "今月の合計点（現在の点数を取得中…）"
+      : fetchState === "error"
+        ? "今月の合計点（現在の点数を取得できません）"
+        : `今月の合計点（現在 ${freshCurrent} 点・絶対値で上書き）`;
+
+  const snapshotChanged =
+    fetchState === "ready" &&
+    freshCurrent !== null &&
+    freshCurrent !== target.current;
+
   return (
     <ModalShell T={T} title={`合計点を設定：${target.name}`} onClose={onClose}>
-      <ModalField
-        T={T}
-        label={`今月の合計点（現在 ${target.current} 点・絶対値で上書き）`}
-      >
+      {fetchState === "loading" && (
+        <div
+          style={{
+            padding: "8px 0 12px",
+            color: T.ink3,
+            fontSize: 13,
+          }}
+        >
+          現在の点数を取得中…
+        </div>
+      )}
+      {fetchState === "error" && (
+        <div
+          style={{
+            padding: "10px 12px",
+            background: "#fff0f0",
+            border: "1px solid #f5c6cb",
+            borderRadius: 8,
+            color: T.danger,
+            fontSize: 12,
+            lineHeight: 1.5,
+            marginBottom: 12,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <span style={{ flex: 1 }}>
+            現在の点数の取得に失敗しました
+            {fetchError ? `：${fetchError}` : ""}
+            。古い点数での設定はできません。
+          </span>
+          <button
+            type="button"
+            onClick={() => reloadCurrent()}
+            style={{
+              padding: "4px 12px",
+              background: "transparent",
+              color: T.danger,
+              border: "1px solid #f5c6cb",
+              borderRadius: 6,
+              fontFamily: "inherit",
+              fontSize: 12,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            再試行
+          </button>
+        </div>
+      )}
+      {snapshotChanged && freshCurrent !== null && (
+        <ScoreChangedBanner T={T} from={target.current} to={freshCurrent} />
+      )}
+      <ModalField T={T} label={scoreLabel}>
         <input
           type="number"
           min="0"
           step="0.5"
           value={score}
+          disabled={fetchState !== "ready"}
           onChange={(e) => setScore(e.target.value)}
-          style={modalInputStyle(T)}
+          style={{
+            ...modalInputStyle(T),
+            opacity: fetchState === "ready" ? 1 : 0.6,
+          }}
         />
       </ModalField>
       <ModalField T={T} label="理由（必須）">
@@ -748,6 +937,7 @@ function ManualDemeritModal({
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           placeholder="例：消灯後廊下で騒いでいた"
+          disabled={fetchState !== "ready"}
           style={modalInputStyle(T)}
         />
       </ModalField>
@@ -764,15 +954,18 @@ function ManualDemeritModal({
 
 // 搜学生设定合计点 modal（2026-06-14 新入口）—— StudentPicker(single) + 合计点 + 理由 一弹窗搞定。
 // 用 searchDemeritStudents（C_DEMERIT 权限）而非 front-desk 的搜学生接口（权限簇不同）。
+// 选中学生时重拉当前分 —— 与 ManualDemeritModal 同根因，禁止用页面挂载时的 pointsByStudent 快照。
 function ManualDemeritSearchModal({
   T,
   authToken,
+  month,
   pointsByStudent,
   onClose,
   onSubmit,
 }: {
   T: RyoTokens;
   authToken: string;
+  month: string;
   pointsByStudent: Record<string, number>;
   onClose: () => void;
   onSubmit: (
@@ -781,49 +974,153 @@ function ManualDemeritSearchModal({
     targetPoints: number,
     reason: string,
     idempotencyKey: string,
-  ) => void;
+  ) => void | Promise<unknown>;
 }) {
   const [selected, setSelected] = React.useState<PickerStudent[]>([]);
-  const [score, setScore] = React.useState("0");
+  const [score, setScore] = React.useState("");
   const [reason, setReason] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
+  const [fetchState, setFetchState] = React.useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
+  const [freshCurrent, setFreshCurrent] = React.useState<number | null>(null);
+  const [fetchError, setFetchError] = React.useState<string | null>(null);
+  const openedCurrentRef = React.useRef<number | null>(null);
+  const fetchGenRef = React.useRef(0);
   // A-473 幂等键：失败重试复用同一 key（后端按「学生 + key」去重，中途改选别的学生也安全）；
   // 成功即随弹窗关闭弃用。
   const idemKey = React.useRef(crypto.randomUUID()).current;
   const student = selected[0] || null;
-  // 选中学生的当前本月合计点。ranking「加载中/拉取失败」时 pointsByStudent 为空 → 查表得
-  // undefined = 未知（不能按 0 处理，否则预填 0 + 显示「現在 0 点」会诱导老师提交把真实扣分清零）。
-  // 未知时 currentPoints=null，供 label 显示「取得できません」+ 保持 score 为空挡提交。
-  const currentPoints: number | null =
+  // 页面挂载时的快照（仅用于「刚变过」提示，绝不作预填/提交依据）
+  const snapshotPoints =
     student && pointsByStudent[student.id] !== undefined
       ? pointsByStudent[student.id]
       : null;
-  // C8：选中学生后把输入框预填为其当前合计点，与排行榜行入口 ManualDemeritModal 对齐。
-  // 后端 /discipline/manual 是绝对值覆盖，默认「0」+ 不显示当前分会让老师误提交 0 清零本月扣分，
-  // 故未知（ranking 未到）时预填空字符串，由下方 disabled 守卫挡提交；ranking 到达后
-  // pointsByStudent 变化 → 本 effect 重跑自动补预填并刷新 label。
-  // 老师手输过分数后排行榜才迟到时，不许预填盖掉手输值 — 换学生时恢复预填
+  // 老师手输过分数后，换学生才恢复自动预填；同学生重拉成功时仍覆盖（重拉 = 新真值）
   const scoreTouchedRef = React.useRef(false);
+
   React.useEffect(() => {
-    if (!student || scoreTouchedRef.current) return;
-    const cur = pointsByStudent[student.id];
-    setScore(cur !== undefined ? String(cur) : "");
-  }, [student, pointsByStudent]);
+    if (!student) {
+      fetchGenRef.current += 1;
+      setFetchState("idle");
+      setFreshCurrent(null);
+      openedCurrentRef.current = null;
+      setFetchError(null);
+      setScore("");
+      return;
+    }
+    const gen = ++fetchGenRef.current;
+    setFetchState("loading");
+    setFetchError(null);
+    setFreshCurrent(null);
+    openedCurrentRef.current = null;
+    if (!scoreTouchedRef.current) setScore("");
+    fetchStudentMonthPoints(authToken, month, student.id)
+      .then((pts) => {
+        if (gen !== fetchGenRef.current) return;
+        setFreshCurrent(pts);
+        openedCurrentRef.current = pts;
+        if (!scoreTouchedRef.current) setScore(String(pts));
+        setFetchState("ready");
+      })
+      .catch((e: { message?: string }) => {
+        if (gen !== fetchGenRef.current) return;
+        setFetchError(e?.message || "現在の点数の取得に失敗しました");
+        setFetchState("error");
+        if (!scoreTouchedRef.current) setScore("");
+      });
+    return () => {
+      fetchGenRef.current += 1;
+    };
+  }, [student, authToken, month]);
+
+  const retryFetch = () => {
+    if (!student) return;
+    const gen = ++fetchGenRef.current;
+    scoreTouchedRef.current = false;
+    setFetchState("loading");
+    setFetchError(null);
+    setScore("");
+    setFreshCurrent(null);
+    openedCurrentRef.current = null;
+    fetchStudentMonthPoints(authToken, month, student.id)
+      .then((pts) => {
+        if (gen !== fetchGenRef.current) return;
+        setFreshCurrent(pts);
+        openedCurrentRef.current = pts;
+        setScore(String(pts));
+        setFetchState("ready");
+      })
+      .catch((e: { message?: string }) => {
+        if (gen !== fetchGenRef.current) return;
+        setFetchError(e?.message || "現在の点数の取得に失敗しました");
+        setFetchState("error");
+      });
+  };
+
   const parsed = parseFloat(score);
   const disabled =
     !student ||
+    fetchState !== "ready" ||
+    freshCurrent === null ||
     !reason.trim() ||
     score === "" ||
     isNaN(parsed) ||
     parsed < 0 ||
     submitting;
+
   const handleSubmit = () => {
-    if (disabled || !student) return;
+    if (disabled || !student || freshCurrent === null) return;
     setSubmitting(true);
-    Promise.resolve(
-      onSubmit(student.id, student.name, parsed, reason.trim(), idemKey),
-    ).finally(() => setSubmitting(false));
+    fetchStudentMonthPoints(authToken, month, student.id)
+      .then((latest) => {
+        const opened = openedCurrentRef.current;
+        if (opened !== null && latest !== opened) {
+          const ok = window.confirm(
+            `設定画面を開いてから点数が変わりました（${opened} → ${latest} 点）。\nこのまま ${parsed} 点に設定しますか？`,
+          );
+          if (!ok) {
+            setFreshCurrent(latest);
+            openedCurrentRef.current = latest;
+            return;
+          }
+          setFreshCurrent(latest);
+          openedCurrentRef.current = latest;
+        }
+        return onSubmit(
+          student.id,
+          student.name,
+          parsed,
+          reason.trim(),
+          idemKey,
+        );
+      })
+      .catch((e) => {
+        alert(
+          "最新の点数の確認に失敗しました。設定を中止しました：" +
+            (e?.message || JSON.stringify(e)),
+        );
+      })
+      .finally(() => setSubmitting(false));
   };
+
+  const scoreLabel = !student
+    ? "今月の合計点（絶対値で設定・差分は自動記録）"
+    : fetchState === "loading"
+      ? "今月の合計点（現在の点数を取得中…）"
+      : fetchState === "error"
+        ? "今月の合計点（現在の点数を取得できません）"
+        : fetchState === "ready" && freshCurrent !== null
+          ? `今月の合計点（現在 ${freshCurrent} 点・絶対値で上書き）`
+          : "今月の合計点（現在の点数を取得できません）";
+
+  const snapshotChanged =
+    student &&
+    fetchState === "ready" &&
+    freshCurrent !== null &&
+    snapshotPoints !== null &&
+    freshCurrent !== snapshotPoints;
+
   return (
     <ModalShell T={T} title="任意の寮生の合計点を設定" onClose={onClose}>
       <ModalField T={T} label="寮生（必須）">
@@ -840,26 +1137,75 @@ function ManualDemeritSearchModal({
           placeholder="氏名 / 学籍番号で検索（クリックで一覧）"
         />
       </ModalField>
-      <ModalField
-        T={T}
-        label={
-          !student
-            ? "今月の合計点（絶対値で設定・差分は自動記録）"
-            : currentPoints !== null
-              ? `今月の合計点（現在 ${currentPoints} 点・絶対値で上書き）`
-              : "今月の合計点（現在の点数を取得できません）"
-        }
-      >
+      {student && fetchState === "loading" && (
+        <div
+          style={{
+            padding: "4px 0 12px",
+            color: T.ink3,
+            fontSize: 13,
+          }}
+        >
+          現在の点数を取得中…
+        </div>
+      )}
+      {student && fetchState === "error" && (
+        <div
+          style={{
+            padding: "10px 12px",
+            background: "#fff0f0",
+            border: "1px solid #f5c6cb",
+            borderRadius: 8,
+            color: T.danger,
+            fontSize: 12,
+            lineHeight: 1.5,
+            marginBottom: 12,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <span style={{ flex: 1 }}>
+            現在の点数の取得に失敗しました
+            {fetchError ? `：${fetchError}` : ""}
+            。古い点数での設定はできません。
+          </span>
+          <button
+            type="button"
+            onClick={retryFetch}
+            style={{
+              padding: "4px 12px",
+              background: "transparent",
+              color: T.danger,
+              border: "1px solid #f5c6cb",
+              borderRadius: 6,
+              fontFamily: "inherit",
+              fontSize: 12,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            再試行
+          </button>
+        </div>
+      )}
+      {snapshotChanged && freshCurrent !== null && snapshotPoints !== null && (
+        <ScoreChangedBanner T={T} from={snapshotPoints} to={freshCurrent} />
+      )}
+      <ModalField T={T} label={scoreLabel}>
         <input
           type="number"
           min="0"
           step="0.5"
           value={score}
+          disabled={!student || fetchState !== "ready"}
           onChange={(e) => {
             scoreTouchedRef.current = true;
             setScore(e.target.value);
           }}
-          style={modalInputStyle(T)}
+          style={{
+            ...modalInputStyle(T),
+            opacity: student && fetchState === "ready" ? 1 : 0.6,
+          }}
         />
       </ModalField>
       <ModalField T={T} label="理由（必須）">
@@ -867,6 +1213,7 @@ function ManualDemeritSearchModal({
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           placeholder="例：消灯後廊下で騒いでいた"
+          disabled={!student || fetchState !== "ready"}
           style={modalInputStyle(T)}
         />
       </ModalField>
