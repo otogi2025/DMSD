@@ -107,6 +107,11 @@ export function App() {
   // 断线重连成功后会静默补拉一次座席，那次补拉要是失败了，断线期间的签到就补不回来；
   // 而此时连接状态已经是 connected、断线横幅不再渲染，屏幕上一点异常迹象都没有。
   const [boardSyncFailed, setBoardSyncFailed] = React.useState(false);
+  // 座席重拉的请求世代号 —— 后台静默补拉和老师主动点「座席を再取得」**共用**这一个计数器
+  // （第二轮复审 G2）。原来世代号只存在于 WebSocket 那个 effect 里、主动重取根本不参与，
+  // 于是「先发的静默补拉慢一步才失败」时，它仍能通过自己的守卫，把主动重取刚清掉的
+  // 故障横幅重新点亮 —— 座席其实是好的，老师却看到红字。放组件级 ref 里两边都能 ++。
+  const boardGenRef = React.useRef(0);
   // 实时大屏 NFC 接收指示灯计数 — 每收到一条 WebSocket checkin 事件 +1，
   // 驱动 LiveRollCall 右上角指示灯由「待機中」变成「受信中」并显示序号（C31）。
   const [nfcSeq, setNfcSeq] = React.useState(0);
@@ -318,14 +323,15 @@ export function App() {
     // （快照查的时候还没刷，WS 还没连上就推不过来）→ 座席永远停在未点呼。
     // 断线重连同理：断开期间的签到只在服务器有，重连后不补拉就永远看不到。
     // 首连也会触发一次（多一次请求，换掉那个空档）。
-    let boardGen = 0; // 请求世代号：只让最后一次发起的重拉落地，防慢响应覆盖新响应
+    // 请求世代号：只让最后一次发起的重拉落地，防慢响应覆盖新响应。
+    // 计数器在组件级的 boardGenRef 上（G2），老师主动点「座席を再取得」也会 ++ 它。
     let effectAlive = true;
     const refreshBoardQuietly = async () => {
       if (!session || !session.sessionId || !authToken) return;
-      const myGen = ++boardGen;
+      const myGen = ++boardGenRef.current;
       try {
         const board = await api.rollcallBoard(session.sessionId, authToken);
-        if (!effectAlive || myGen !== boardGen) return;
+        if (!effectAlive || myGen !== boardGenRef.current) return;
         const fresh = (board.entries || []).map((e) =>
           _boardEntryToStudent(e, teacher && teacher.dorm),
         );
@@ -334,7 +340,7 @@ export function App() {
         setBoardSyncFailed(false);
       } catch (err) {
         console.warn("[App] WS 接続後の board 補完取得失敗", err);
-        if (!effectAlive || myGen !== boardGen) return;
+        if (!effectAlive || myGen !== boardGenRef.current) return;
         // 上线前复审 F5：这里原来只写控制台就算完，理由是「连接横幅已经在提示了」——
         // 但走到这一步时状态已经是 connected、横幅根本不渲染。于是断线期间的签到
         // 补不回来、屏幕上又没有任何异常迹象，老师会当成学生真的没来。
@@ -901,8 +907,11 @@ export function App() {
   const resetLive = async () => {
     // 从后端重新拉 board，不再用假数据
     if (session && session.sessionId && authToken) {
+      // 跟后台静默补拉共用世代号（G2）：两条路都在重拉同一份座席，谁后发起谁作数。
+      const myGen = ++boardGenRef.current;
       try {
         const board = await api.rollcallBoard(session.sessionId, authToken);
+        if (myGen !== boardGenRef.current) return;
         const fresh = (board.entries || []).map((e) =>
           _boardEntryToStudent(e, teacher.dorm),
         );
