@@ -38,6 +38,7 @@ export function LiveRollCall({
   onOverride,
   onReset,
   nfcSeq,
+  wsStatus,
 }: {
   teacher: LiveTeacher;
   sessionName: string;
@@ -47,6 +48,11 @@ export function LiveRollCall({
   onOverride: (s: SeatStudent) => void;
   onReset: () => void;
   nfcSeq: number; // 来自 App.tsx 的 WebSocket checkin 计数：>0 表示已收到签到（C31）
+  // 实时连接状态（connecting / connected / disconnected / failed / null=demo 不连）。
+  // 上线前审查 H10：Shell 里那条断线横幅在大屏上永远不渲染 —— App.tsx 的
+  // `if (liveMode && session)` 分支直接返回 LiveRollCall，整个绕过 Shell。
+  // 结果是 7-29 上线后 WebSocket 一直连不上，大屏零迹象，老师以为学生没刷卡。
+  wsStatus: string | null;
 }) {
   const T = RYO;
   const [now, setNow] = React.useState(Date.now());
@@ -208,6 +214,43 @@ export function LiveRollCall({
           </button>
         </div>
       </header>
+
+      {/* 实时接続の切断バナー（大屏专用 — 审查 H10）。
+          Shell 的同类横幅在大屏上渲染不到（大屏分支绕过 Shell），而大屏恰恰是
+          最依赖实时推送的界面：连接断了就再也收不到签到，座席永远停在「未点呼」。
+          大屏离老师有距离 → 字号 / 高度都比 Shell 那条大一档 */}
+      {wsStatus && wsStatus !== "connected" && (
+        <div
+          style={{
+            padding: "12px 28px",
+            background: wsStatus === "failed" ? T.dangerSoft : T.warnSoft,
+            borderBottom: `2px solid ${wsStatus === "failed" ? T.danger : T.warnBorder}`,
+            color: wsStatus === "failed" ? T.danger : T.warn,
+            fontSize: 16,
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <span
+            style={{
+              width: 12,
+              height: 12,
+              borderRadius: 6,
+              flexShrink: 0,
+              background: wsStatus === "failed" ? T.danger : T.warn,
+              animation: wsStatus === "failed" ? "none" : "pulse 1.2s infinite",
+            }}
+          />
+          {wsStatus === "connecting" &&
+            "リアルタイム接続中… 打刻がまだ届きません"}
+          {wsStatus === "disconnected" &&
+            "リアルタイム再接続中… この間の打刻は画面に反映されません。「座席を再取得」で最新状態を確認できます"}
+          {wsStatus === "failed" &&
+            "リアルタイム接続に失敗しました。打刻が画面に反映されません。「座席を再取得」を押すか、ページを再読み込みしてください"}
+        </div>
+      )}
 
       {/* 经过时间条 — 原「遅刻判定開始」倒计时随本地自动迟到转换一起删（审查
           web#4 止血）：转换不存在了还宣告「未チェックイン者は自動的に遅刻になります」

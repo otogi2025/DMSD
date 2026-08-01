@@ -879,6 +879,7 @@ export function App() {
           onOverride={openOverride}
           onReset={resetLive}
           nfcSeq={nfcSeq}
+          wsStatus={wsStatus}
         />
         {overrideTarget && (
           <OverrideModal
