@@ -72,7 +72,9 @@ const NAV_TARGET: Record<string, string> = {
   application: "applications",
   demerit: "discipline",
   demerit_alert: "discipline",
-  rollcall_report: "records",
+  // 点呼上报要跳「学生からの報告」处理页（App.tsx case "rollcall-reports"），
+  // 不是查历史场次的 records —— 跳错页 + 通知已被标已读 = 上报永远没人处理。
+  rollcall_report: "rollcall-reports",
   study_absence: "study",
   study_online: "study",
   // 外出申请管理页 2026-07-22 新建 —— 此前 outing 类通知点了没地方去，只能标已读
