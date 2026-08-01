@@ -24,13 +24,105 @@ from ..database import get_db
 from ..deps import (
     assert_student_demo_match,
     demo_scope_for_teacher,
+    dorm_units_for_teacher,
     require_permission,
 )
 
 router = APIRouter(prefix="/api/v1/incidents", tags=["incidents"])
 
 # 事案记录的功能权限（C_INCIDENT：管理动作 M / 查看动作 V）由各端点的 require_permission 闸判定，
-# 不再按职位拦（旧 _INCIDENT_ROLES 职位集已随权限分级改造移除）。寮边界仍在端点内单独校验。
+# 不再按职位拦（旧 _INCIDENT_ROLES 职位集已随权限分级改造移除）。
+# 寮守卫：dorm_units_for_teacher 按令牌 selected_dorm 返回可见寮
+# （选男→[1,2] / 选女→[4] / 未选或 op·承認组→[1,2,4]）；
+# 涉及学生有任一不在可见寮 → FORBIDDEN_DORM（与 guidance / discipline 同口径）。
+
+
+def _parse_involved_uuids(row: models.IncidentRecord) -> list[UUID]:
+    """从事案的 involved_student_ids 抽出合法 UUID 列表（脏数据跳过）。"""
+    uuids: list[UUID] = []
+    for s in row.involved_student_ids or []:
+        try:
+            uuids.append(UUID(str(s)))
+        except (ValueError, TypeError):
+            # 入库前已全转成合法 UUID 字符串，这里只是防御历史脏数据
+            pass
+    return uuids
+
+
+def _assert_student_in_dorm(teacher: models.Teacher, student: models.Student) -> None:
+    """寮边界写校验 — 单个学生不在老师可见寮 → 403（照 discipline / guidance）。"""
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None and student.dorm_unit not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "FORBIDDEN_DORM",
+                "message": "担当外の寮の学生への操作はできません",
+            },
+        )
+
+
+def _assert_incident_in_dorm(
+    db: Session, teacher: models.Teacher, row: models.IncidentRecord
+) -> None:
+    """寮边界读/写校验 — 事案涉及学生必须全部在可见寮内，否则 403。
+
+    判定口径见下方「全部可见」：正文是自由文本，可能写有真名；只要有一名
+    不可见寮学生，放行整条就会泄漏其姓名/情节。无涉及学生 → 放行。
+    """
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is None:
+        return
+    uuids = _parse_involved_uuids(row)
+    if not uuids:
+        return
+    students = db.scalars(
+        select(models.Student).where(models.Student.id.in_(uuids))
+    ).all()
+    by_id = {stu.id: stu for stu in students}
+    for sid in uuids:
+        student = by_id.get(sid)
+        # 学生已删 / 找不到，或 dorm_unit 不在可见寮 → 一律拦（fail closed）
+        if student is None or student.dorm_unit not in allowed:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "FORBIDDEN_DORM",
+                    "message": "担当外の寮の事案への操作はできません",
+                },
+            )
+
+
+def _filter_incidents_by_dorm(
+    db: Session, rows: list[models.IncidentRecord], teacher: models.Teacher
+) -> list[models.IncidentRecord]:
+    """列表寮过滤 — 只保留「涉及学生全部在可见寮」的事案（批量查，避免逐条 N+1）。
+
+    与 _assert_incident_in_dorm 同一口径；无涉及学生的事案保留。
+    """
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is None:
+        return rows
+    uuids: set[UUID] = set()
+    for row in rows:
+        uuids.update(_parse_involved_uuids(row))
+    if not uuids:
+        return rows
+    students = db.scalars(
+        select(models.Student).where(models.Student.id.in_(uuids))
+    ).all()
+    dorm_by_id = {stu.id: stu.dorm_unit for stu in students}
+    visible: list[models.IncidentRecord] = []
+    for row in rows:
+        involved = _parse_involved_uuids(row)
+        if not involved:
+            visible.append(row)
+            continue
+        if all(
+            (d := dorm_by_id.get(sid)) is not None and d in allowed for sid in involved
+        ):
+            visible.append(row)
+    return visible
 
 
 def _build_student_name_map(
@@ -38,25 +130,23 @@ def _build_student_name_map(
 ) -> dict[str, str]:
     """汇总多条事案的全部涉及学生 id，一次性批量查姓名，避免逐条 N+1 查询（B-中-21）。
 
-    返回 id 字符串 → 姓名 的映射。只收录当前老师 demo_scope 内能解析到的学生：
+    返回 id 字符串 → 姓名 的映射。只收录当前老师 demo_scope + 可见寮内能解析到的学生：
     演示老师只解析到演示学生、真老师只解析到真实学生，超出范围的 id 不进 map。
     """
     uuids: set[UUID] = set()
     for row in rows:
-        for s in row.involved_student_ids or []:
-            try:
-                uuids.add(UUID(str(s)))
-            except (ValueError, TypeError):
-                # 入库前已全转成合法 UUID 字符串，这里只是防御历史脏数据
-                pass
+        uuids.update(_parse_involved_uuids(row))
     if not uuids:
         return {}
-    students = db.scalars(
-        select(models.Student).where(
-            models.Student.id.in_(uuids),
-            demo_scope_for_teacher(teacher),
-        )
-    ).all()
+    stmt = select(models.Student).where(
+        models.Student.id.in_(uuids),
+        demo_scope_for_teacher(teacher),
+    )
+    # 防御性寮过滤：即使列表/详情已按寮裁剪，姓名 chip 也不回传可见寮外学生真名
+    allowed = dorm_units_for_teacher(teacher)
+    if allowed is not None:
+        stmt = stmt.where(models.Student.dorm_unit.in_(allowed))
+    students = db.scalars(stmt).all()
     return {str(stu.id): stu.name for stu in students}
 
 
@@ -112,6 +202,8 @@ def create_incident(
             )
         # 演示隔离：演示老师不能把真实学生挂进事案、真老师不能挂演示学生（否则 404）
         assert_student_demo_match(teacher, student)
+        # 寮边界：不许给不可见寮的学生建事案
+        _assert_student_in_dorm(teacher, student)
 
     row = models.IncidentRecord(
         title=body.title,
@@ -161,6 +253,8 @@ def list_incidents(
         )
         .order_by(models.IncidentRecord.incident_date.desc())
     ).all()
+    # 寮过滤：只返回涉及学生全部在可见寮内的事案
+    rows = _filter_incidents_by_dorm(db, list(rows), teacher)
     # B-中-21: 先把全部事案涉及的学生 id 汇总，一次批量查姓名，再分发给各行，避免逐条 N+1
     name_map = _build_student_name_map(db, list(rows), teacher)
     return schemas.IncidentRecordListOut(
@@ -196,6 +290,8 @@ def get_incident(
                 "message": "該当する事案が見つかりません",
             },
         )
+    # 寮边界：涉及学生有不在可见寮的 → 403（与 student_profile 同口径，明示越权）
+    _assert_incident_in_dorm(db, teacher, row)
     return _to_incident_out_single(db, row, teacher)
 
 
@@ -228,6 +324,8 @@ def patch_incident(
                 "message": "該当する事案が見つかりません",
             },
         )
+    # 寮边界：先拦对不可见寮事案的编辑
+    _assert_incident_in_dorm(db, teacher, row)
 
     if body.title is not None:
         row.title = body.title
@@ -246,6 +344,8 @@ def patch_incident(
                 )
             # 演示隔离：替换涉及学生时同样禁止跨 demo 边界挂学生（否则 404）
             assert_student_demo_match(teacher, student)
+            # 寮边界：不许把不可见寮学生挂进事案
+            _assert_student_in_dorm(teacher, student)
         row.involved_student_ids = [str(s) for s in body.involved_student_ids]
     if body.incident_date is not None:
         row.incident_date = body.incident_date
@@ -295,6 +395,8 @@ def delete_incident(
                 "message": "該当する事案が見つかりません",
             },
         )
+    # 寮边界：不许删不可见寮的事案
+    _assert_incident_in_dorm(db, teacher, row)
 
     row.deleted_at = datetime.now(timezone.utc)
 
