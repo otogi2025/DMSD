@@ -103,6 +103,10 @@ export function App() {
   // 5-27 spec §11.8: WebSocket 连接状态 — connecting / connected / disconnected / failed
   // 非点呼会话进行中时为 null（不显示 banner）
   const [wsStatus, setWsStatus] = React.useState<string | null>(null);
+  // 「实时连接是通的，但座席快照没同步上」——上线前复审 F5。
+  // 断线重连成功后会静默补拉一次座席，那次补拉要是失败了，断线期间的签到就补不回来；
+  // 而此时连接状态已经是 connected、断线横幅不再渲染，屏幕上一点异常迹象都没有。
+  const [boardSyncFailed, setBoardSyncFailed] = React.useState(false);
   // 实时大屏 NFC 接收指示灯计数 — 每收到一条 WebSocket checkin 事件 +1，
   // 驱动 LiveRollCall 右上角指示灯由「待機中」变成「受信中」并显示序号（C31）。
   const [nfcSeq, setNfcSeq] = React.useState(0);
@@ -325,10 +329,17 @@ export function App() {
         const fresh = (board.entries || []).map((e) =>
           _boardEntryToStudent(e, teacher && teacher.dorm),
         );
-        setStudents((prev) => _mergeBoardSnapshot(prev, fresh));
+        // 后台补拉 → 保留本地徽章（老师没要求刷新，抹掉刚推来的是倒退）
+        setStudents((prev) => _mergeBoardSnapshot(prev, fresh, true));
+        setBoardSyncFailed(false);
       } catch (err) {
-        // 静默：这是后台补拉，失败不打扰老师（连接横幅已经在提示了）
         console.warn("[App] WS 接続後の board 補完取得失敗", err);
+        if (!effectAlive || myGen !== boardGen) return;
+        // 上线前复审 F5：这里原来只写控制台就算完，理由是「连接横幅已经在提示了」——
+        // 但走到这一步时状态已经是 connected、横幅根本不渲染。于是断线期间的签到
+        // 补不回来、屏幕上又没有任何异常迹象，老师会当成学生真的没来。
+        // 故单独立一个标记，让横幅在「连上了但座席没同步成功」时也能出来。
+        setBoardSyncFailed(true);
       }
     };
     let handle: any;
@@ -560,7 +571,20 @@ export function App() {
   //   ② 快照请求飞行的几百毫秒里 WS 刚推到的签到，快照是查询早于入库的旧值「未点呼」，
   //      落地会把已经刷过卡的学生退回未点呼
   // 所以：状态以服务器为准，但快照说「未点呼」而本地已有签到时刻时保留本地。
-  const _mergeBoardSnapshot = (prev: any[], fresh: any[]) => {
+  //
+  // keepLocalMeta（2026-08-01 上线前复审 F6）—— 上面 ① 那四个字段保不保留，两种场景要分开：
+  //   true（后台静默补拉，如断线重连）：保留。此时老师没要求刷新，抹掉刚推来的徽章
+  //         纯属倒退。
+  //   false（老师主动点「座席を再取得」）：不保留。因为 board 不返回这四个字段、
+  //         `old.X ?? f.X` 会让它们永远清不掉 —— 申请在别的终端批完了，座席还挂着
+  //         「審査中」，老师按几次刷新都消不掉。他主动刷新就是想看服务器的真实状态。
+  // 根治办法是让 board 接口把这四个字段一起返回（后端新工作，已进 TODO），
+  // 那之后这个参数就可以删掉。
+  const _mergeBoardSnapshot = (
+    prev: any[],
+    fresh: any[],
+    keepLocalMeta: boolean,
+  ) => {
     const prevByKey = new Map(prev.map((s: any) => [s.key, s]));
     return fresh.map((f: any) => {
       const old: any = prevByKey.get(f.key);
@@ -571,10 +595,12 @@ export function App() {
         status: keepLocalCheckin ? old.status : f.status,
         checkinAt: keepLocalCheckin ? old.checkinAt : f.checkinAt,
         lastEventId: keepLocalCheckin ? old.lastEventId : f.lastEventId,
-        pending: old.pending ?? f.pending,
-        override: old.override ?? f.override,
-        health: old.health ?? f.health,
-        exemptReason: old.exemptReason ?? f.exemptReason,
+        pending: keepLocalMeta ? (old.pending ?? f.pending) : f.pending,
+        override: keepLocalMeta ? (old.override ?? f.override) : f.override,
+        health: keepLocalMeta ? (old.health ?? f.health) : f.health,
+        exemptReason: keepLocalMeta
+          ? (old.exemptReason ?? f.exemptReason)
+          : f.exemptReason,
       };
     });
   };
@@ -878,8 +904,11 @@ export function App() {
           _boardEntryToStudent(e, teacher.dorm),
         );
         // 同 H11：走合并，否则老师每按一次「座席を再取得」就把 WS 推来的
-        // 外宿申请徽章 / 他端调整理由抹掉一次（board 接口不返回这几个字段）
-        setStudents((prev) => _mergeBoardSnapshot(prev, fresh));
+        // 签到状态抹回未点呼一次。
+        // 但这里传 false（复审 F6）：老师是主动要求刷新的，本地累积的申请徽章 /
+        // 调整理由该以服务器为准清一遍，否则别的终端把申请批完了这边永远挂着「審査中」。
+        setStudents((prev) => _mergeBoardSnapshot(prev, fresh, false));
+        setBoardSyncFailed(false);
         setToast({ type: "warn", msg: "点呼をリセットしました" });
       } catch (err) {
         console.warn("[App] resetLive board 再取得失敗", err);
@@ -935,6 +964,7 @@ export function App() {
           onReset={resetLive}
           nfcSeq={nfcSeq}
           wsStatus={wsStatus}
+          boardSyncFailed={boardSyncFailed}
         />
         {overrideTarget && (
           <OverrideModal

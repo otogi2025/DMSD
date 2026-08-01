@@ -39,6 +39,7 @@ export function LiveRollCall({
   onReset,
   nfcSeq,
   wsStatus,
+  boardSyncFailed,
 }: {
   teacher: LiveTeacher;
   sessionName: string;
@@ -53,6 +54,9 @@ export function LiveRollCall({
   // `if (liveMode && session)` 分支直接返回 LiveRollCall，整个绕过 Shell。
   // 结果是 7-29 上线后 WebSocket 一直连不上，大屏零迹象，老师以为学生没刷卡。
   wsStatus: string | null;
+  // 连接是通的、但重连后补拉座席快照失败（复审 F5）。此时上面那条断线横幅
+  // 已经消失，缺的签到没有任何提示 —— 单独出一条让老师知道要按「座席を再取得」。
+  boardSyncFailed: boolean;
 }) {
   const T = RYO;
   const [now, setNow] = React.useState(Date.now());
@@ -249,6 +253,37 @@ export function LiveRollCall({
             "リアルタイム再接続中… この間の打刻は画面に反映されません。「座席を再取得」で最新状態を確認できます"}
           {wsStatus === "failed" &&
             "リアルタイム接続に失敗しました。打刻が画面に反映されません。「座席を再取得」を押すか、ページを再読み込みしてください"}
+        </div>
+      )}
+
+      {/* 「连接恢复了，但座席没同步上」— 复审 F5。
+          上面那条断线横幅在状态变成 connected 时就消失了，所以重连后紧接着的
+          座席补拉要是失败，断线期间的签到仍然缺着、屏幕上却一点异常都看不到
+          （老师会当成学生真的没来）。 */}
+      {wsStatus === "connected" && boardSyncFailed && (
+        <div
+          style={{
+            padding: "12px 28px",
+            background: T.warnSoft,
+            borderBottom: `2px solid ${T.warnBorder}`,
+            color: T.warn,
+            fontSize: 16,
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <span
+            style={{
+              width: 12,
+              height: 12,
+              borderRadius: 6,
+              flexShrink: 0,
+              background: T.warn,
+            }}
+          />
+          接続は復旧しましたが、座席の最新状態を取得できませんでした。切断中の打刻が反映されていない可能性があります。「座席を再取得」を押してください
         </div>
       )}
 
