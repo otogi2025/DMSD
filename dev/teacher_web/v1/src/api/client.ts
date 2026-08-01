@@ -549,8 +549,11 @@ export const api = {
       undefined,
       token,
     ),
-  createManualDemerit: (body: ManualDemeritIn, token: string) =>
-    request<DemeritEvent>("POST", "/discipline/manual", body, token),
+  // expected_current_points：乐观锁（老师核对时看到的当前分）；可空兼容老调用
+  createManualDemerit: (
+    body: ManualDemeritIn & { expected_current_points?: number | null },
+    token: string,
+  ) => request<DemeritEvent>("POST", "/discipline/manual", body, token),
   revokeDemerit: (
     event_id: string,
     body: { revoke_reason: string },

@@ -277,6 +277,23 @@ def create_manual_demerit(
     # 当前总分口径与 /ranking、/me/summary 完全一致（同月 + 排除已撤销），保证设完后该学生
     # 本月总分恰好等于 target_points。差值可正（加分）可负（降分）；0 = 清零本月扣分。
     current_total = current_month_total_points(db, body.student_id, month=month)
+    # 乐观锁：堵住「前端再 GET → POST 到达」之间的空档。行锁只保护 POST 内部；
+    # 老师核对时看到的分数随 expected_current_points 传来，锁内不一致则拒绝，
+    # 避免自动扣分被「设成旧目标」静默抵消。不传（None）= 老客户端行为不变。
+    if (
+        body.expected_current_points is not None
+        and body.expected_current_points != current_total
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "POINTS_CHANGED",
+                "message": (
+                    f"点数が変わったため設定を中止しました"
+                    f"（期待 {body.expected_current_points} 点 → 実際 {current_total} 点）"
+                ),
+            },
+        )
     delta = body.target_points - current_total
     event = models.DemeritEvent(
         student_id=body.student_id,

@@ -1447,6 +1447,9 @@ class DemeritManualIn(BaseModel):
     # 老师双击 / 网络重试时同一个 key 会被后端识别为重复提交、不再叠加第二条扣分。
     # 可空：不传时退回原行为（不去重），保持对老客户端兼容。
     idempotency_key: Optional[UUID] = None
+    # 乐观锁：老师提交前核对到的「当前本月总分」。后端在行锁内比对，不一致则 409
+    # POINTS_CHANGED，避免 GET→POST 空档里自动扣分被静默抵消。可空 = 老客户端行为不变。
+    expected_current_points: float | None = None
 
 
 class DemeritRevokeIn(BaseModel):

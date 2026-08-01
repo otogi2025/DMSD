@@ -117,12 +117,14 @@ export function DisciplinePage({
     targetPoints: number,
     reason: string,
     idempotencyKey?: string,
+    expectedCurrentPoints?: number,
   ) => {
     // TW-032：return 把 promise 交回 modal —— modal 的 submitting 防双击守卫靠
     // Promise.resolve(onSubmit(...)).finally(setSubmitting(false))。原来本函数不 return、
     // 返回 undefined，finally 在下一个微任务就复位 submitting，按钮在网络返回前复活、可连点。
     // idempotencyKey：submitting 守卫只挡「响应回来前连点」；这个键补的是「响应丢失后老师
     // 手动重试」——同一次设定意图带同一 key，后端（A-473）识别重复不叠加第二条扣分。
+    // expectedCurrentPoints：乐观锁，提交前再 GET 到的当前分，后端锁内比对防 TOCTOU。
     return api
       .createManualDemerit(
         {
@@ -130,6 +132,7 @@ export function DisciplinePage({
           target_points: targetPoints,
           reason,
           idempotency_key: idempotencyKey,
+          expected_current_points: expectedCurrentPoints,
         },
         authToken,
       )
@@ -142,7 +145,13 @@ export function DisciplinePage({
         setSearchAddOpen(false);
         loadRanking();
       })
-      .catch((e) => {
+      .catch((e: { status?: number; code?: string; message?: string }) => {
+        // 409 POINTS_CHANGED：分数在 GET→POST 空档变了，中止并让 modal 刷新当前分后重填
+        if (e?.status === 409 && e?.code === "POINTS_CHANGED") {
+          alert("点数が変わったので設定を中止しました");
+          loadRanking();
+          throw e;
+        }
         alert("スコア設定に失敗しました：" + (e.message || JSON.stringify(e)));
       });
   };
@@ -661,8 +670,15 @@ export function DisciplinePage({
               authToken={authToken}
               month={month}
               onClose={() => setManualTarget(null)}
-              onSubmit={(sid, pts, rsn, key) =>
-                handleManualSubmit(sid, manualTarget.name, pts, rsn, key)
+              onSubmit={(sid, pts, rsn, key, expected) =>
+                handleManualSubmit(
+                  sid,
+                  manualTarget.name,
+                  pts,
+                  rsn,
+                  key,
+                  expected,
+                )
               }
             />
           )}
@@ -761,6 +777,7 @@ function ManualDemeritModal({
     targetPoints: number,
     reason: string,
     idempotencyKey: string,
+    expectedCurrentPoints: number,
   ) => void | Promise<unknown>;
 }) {
   // score 初始空：加载完成前不给旧快照，避免老师对着过期数字操作
@@ -839,7 +856,23 @@ function ManualDemeritModal({
           setFreshCurrent(latest);
           openedCurrentRef.current = latest;
         }
-        return onSubmit(target.student_id, parsed, reason.trim(), idemKey);
+        // latest 一并传给后端做乐观锁，堵住 GET→POST 空档
+        return Promise.resolve(
+          onSubmit(target.student_id, parsed, reason.trim(), idemKey, latest),
+        ).catch((e: { status?: number; code?: string }) => {
+          // 父层已弹「中止」提示；这里刷新当前分，让老师重新填
+          if (e?.status === 409 && e?.code === "POINTS_CHANGED") {
+            return fetchStudentMonthPoints(
+              authToken,
+              month,
+              target.student_id,
+            ).then((pts) => {
+              setFreshCurrent(pts);
+              openedCurrentRef.current = pts;
+              setScore(String(pts));
+            });
+          }
+        });
       })
       .catch((e) => {
         alert(
@@ -974,6 +1007,7 @@ function ManualDemeritSearchModal({
     targetPoints: number,
     reason: string,
     idempotencyKey: string,
+    expectedCurrentPoints: number,
   ) => void | Promise<unknown>;
 }) {
   const [selected, setSelected] = React.useState<PickerStudent[]>([]);
@@ -1072,7 +1106,9 @@ function ManualDemeritSearchModal({
   const handleSubmit = () => {
     if (disabled || !student || freshCurrent === null) return;
     setSubmitting(true);
-    fetchStudentMonthPoints(authToken, month, student.id)
+    const submittingStudentId = student.id;
+    const submittingStudentName = student.name;
+    fetchStudentMonthPoints(authToken, month, submittingStudentId)
       .then((latest) => {
         const opened = openedCurrentRef.current;
         if (opened !== null && latest !== opened) {
@@ -1087,13 +1123,29 @@ function ManualDemeritSearchModal({
           setFreshCurrent(latest);
           openedCurrentRef.current = latest;
         }
-        return onSubmit(
-          student.id,
-          student.name,
-          parsed,
-          reason.trim(),
-          idemKey,
-        );
+        // latest 一并传给后端做乐观锁；学生 id/name 用点击瞬间快照，防飞行中换人选
+        return Promise.resolve(
+          onSubmit(
+            submittingStudentId,
+            submittingStudentName,
+            parsed,
+            reason.trim(),
+            idemKey,
+            latest,
+          ),
+        ).catch((e: { status?: number; code?: string }) => {
+          if (e?.status === 409 && e?.code === "POINTS_CHANGED") {
+            return fetchStudentMonthPoints(
+              authToken,
+              month,
+              submittingStudentId,
+            ).then((pts) => {
+              setFreshCurrent(pts);
+              openedCurrentRef.current = pts;
+              setScore(String(pts));
+            });
+          }
+        });
       })
       .catch((e) => {
         alert(
@@ -1124,18 +1176,27 @@ function ManualDemeritSearchModal({
   return (
     <ModalShell T={T} title="任意の寮生の合計点を設定" onClose={onClose}>
       <ModalField T={T} label="寮生（必須）">
-        <StudentPicker
-          mode="single"
-          autoOpen
-          searchApi={(q, token) => api.searchDemeritStudents(q, token)}
-          selected={selected}
-          onChange={(sel) => {
-            scoreTouchedRef.current = false;
-            setSelected(sel);
+        {/* submitting 期间禁止换学生：组件本身无禁用态，用 pointer-events + onChange 早退 */}
+        <div
+          style={{
+            pointerEvents: submitting ? "none" : "auto",
+            opacity: submitting ? 0.6 : 1,
           }}
-          authToken={authToken}
-          placeholder="氏名 / 学籍番号で検索（クリックで一覧）"
-        />
+        >
+          <StudentPicker
+            mode="single"
+            autoOpen
+            searchApi={(q, token) => api.searchDemeritStudents(q, token)}
+            selected={selected}
+            onChange={(sel) => {
+              if (submitting) return;
+              scoreTouchedRef.current = false;
+              setSelected(sel);
+            }}
+            authToken={authToken}
+            placeholder="氏名 / 学籍番号で検索（クリックで一覧）"
+          />
+        </div>
       </ModalField>
       {student && fetchState === "loading" && (
         <div
