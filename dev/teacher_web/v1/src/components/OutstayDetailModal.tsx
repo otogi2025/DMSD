@@ -56,6 +56,15 @@ export function OutstayDetailModal({
   // 同片其他操作面（OutingsPage / StudyAttendancePage / ApplicationsPage）都有这道锁，
   // 偏偏最重的这个没有。
   const [acting, setActing] = React.useState(false);
+  // 处理中一律不许关弹窗（2026-08-01 上线前复审 F3）：只锁三个操作按钮不够 ——
+  // 请求还在飞的时候点背景 / 点「閉じる」，组件卸载、锁跟着没了；待审列表要等第一笔
+  // 请求返回才刷新，所以还能从旧列表里重开同一份申请点相反的操作。两笔相反请求都到后端，
+  // 后端只让一笔成功，但后返回的失败提示会盖掉先返回的成功提示 ——
+  // 老师从界面上根本判断不出这份申请到底是批准了还是退回了。
+  const closeIfIdle = () => {
+    if (acting) return;
+    onClose();
+  };
   // 杭田 2026-06-04 二-4：审批时给学生看的评论输入（补强旧 UI 弱点）
   const [comment, setComment] = React.useState("");
   // 差戻理由输入弹窗的开关 / 输入内容 / 校验错误提示
@@ -169,7 +178,7 @@ export function OutstayDetailModal({
 
   return (
     <div
-      onClick={onClose}
+      onClick={closeIfIdle}
       style={{
         position: "fixed",
         inset: 0,
@@ -609,7 +618,8 @@ export function OutstayDetailModal({
           }}
         >
           <button
-            onClick={onClose}
+            onClick={closeIfIdle}
+            disabled={acting}
             style={{
               padding: "10px 18px",
               background: "transparent",
@@ -619,7 +629,8 @@ export function OutstayDetailModal({
               fontFamily: "inherit",
               fontSize: 13,
               fontWeight: 600,
-              cursor: "pointer",
+              cursor: acting ? "not-allowed" : "pointer",
+              opacity: acting ? 0.5 : 1,
             }}
           >
             閉じる
