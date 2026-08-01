@@ -336,7 +336,7 @@ export function App() {
           _boardEntryToStudent(e, teacher && teacher.dorm),
         );
         // 后台补拉 → 保留本地徽章（老师没要求刷新，抹掉刚推来的是倒退）
-        setStudents((prev) => _mergeBoardSnapshot(prev, fresh, true));
+        setStudents((prev) => _mergeBoardSnapshot(prev, fresh));
         setBoardSyncFailed(false);
       } catch (err) {
         console.warn("[App] WS 接続後の board 補完取得失敗", err);
@@ -581,19 +581,18 @@ export function App() {
   //      落地会把已经刷过卡的学生退回未点呼
   // 所以：状态以服务器为准，但快照说「未点呼」而本地已有签到时刻时保留本地。
   //
-  // keepLocalMeta（2026-08-01 上线前复审 F6）—— 上面 ① 那四个字段保不保留，两种场景要分开：
-  //   true（后台静默补拉，如断线重连）：保留。此时老师没要求刷新，抹掉刚推来的徽章
-  //         纯属倒退。
-  //   false（老师主动点「座席を再取得」）：不保留。因为 board 不返回这四个字段、
-  //         `old.X ?? f.X` 会让它们永远清不掉 —— 申请在别的终端批完了，座席还挂着
-  //         「審査中」，老师按几次刷新都消不掉。他主动刷新就是想看服务器的真实状态。
-  // 根治办法是让 board 接口把这四个字段一起返回（后端新工作，已进 TODO），
-  // 那之后这个参数就可以删掉。
-  const _mergeBoardSnapshot = (
-    prev: any[],
-    fresh: any[],
-    keepLocalMeta: boolean,
-  ) => {
+  // 那四个字段一律保留本地值，两条重拉路径（后台静默补拉 / 老师主动「座席を再取得」）
+  // 用同一套规则 —— 2026-08-01 第三轮复审推翻了当天早些时候的分场景做法，理由如下：
+  //   · 服务器对这四个字段**没有任何说法**（board 接口不返回，映射里恒 null），
+  //     所以「以服务器为准清一遍」清掉的不是过期值，是纯粹的信息销毁，换不来任何准确性。
+  //   · 「審査中」徽章只由 WS 的 outstay_new 事件产生，而后端**没有任何一个事件**
+  //     会在申请被批准 / 退回时通知老师端（查实：老师 WS 只推 checkin / override /
+  //     outstay_new 三种）。所以徽章要变陈旧，必须是「同一场点呼期间、别的终端把这份
+  //     申请批完了」——很窄的窗口；而清掉它的代价是老师看不出这名学生已经交了申请，
+  //     会去追一个本来有正当理由的学生。两害相权，宁可留着旧徽章。
+  //   · 附带查实：`health` 这个字段全项目没有任何地方写入过非空值，实际是死字段。
+  // 根治办法仍是让 board 接口把这四个字段一起返回（后端新工作，已进 `admin/TODO.md`）。
+  const _mergeBoardSnapshot = (prev: any[], fresh: any[]) => {
     const prevByKey = new Map(prev.map((s: any) => [s.key, s]));
     return fresh.map((f: any) => {
       const old: any = prevByKey.get(f.key);
@@ -604,12 +603,10 @@ export function App() {
         status: keepLocalCheckin ? old.status : f.status,
         checkinAt: keepLocalCheckin ? old.checkinAt : f.checkinAt,
         lastEventId: keepLocalCheckin ? old.lastEventId : f.lastEventId,
-        pending: keepLocalMeta ? (old.pending ?? f.pending) : f.pending,
-        override: keepLocalMeta ? (old.override ?? f.override) : f.override,
-        health: keepLocalMeta ? (old.health ?? f.health) : f.health,
-        exemptReason: keepLocalMeta
-          ? (old.exemptReason ?? f.exemptReason)
-          : f.exemptReason,
+        pending: old.pending ?? f.pending,
+        override: old.override ?? f.override,
+        health: old.health ?? f.health,
+        exemptReason: old.exemptReason ?? f.exemptReason,
       };
     });
   };
@@ -916,10 +913,9 @@ export function App() {
           _boardEntryToStudent(e, teacher.dorm),
         );
         // 同 H11：走合并，否则老师每按一次「座席を再取得」就把 WS 推来的
-        // 签到状态抹回未点呼一次。
-        // 但这里传 false（复审 F6）：老师是主动要求刷新的，本地累积的申请徽章 /
-        // 调整理由该以服务器为准清一遍，否则别的终端把申请批完了这边永远挂着「審査中」。
-        setStudents((prev) => _mergeBoardSnapshot(prev, fresh, false));
+        // 签到状态抹回未点呼一次。申请徽章那几个字段也照样保留 —— 服务器压根不返回
+        // 它们，清掉换不来准确性，只会让老师看不出这名学生已经交过申请（见合并函数注释）。
+        setStudents((prev) => _mergeBoardSnapshot(prev, fresh));
         setBoardSyncFailed(false);
         setToast({ type: "warn", msg: "点呼をリセットしました" });
       } catch (err) {
