@@ -309,6 +309,28 @@ export function App() {
     // present / late / absent / exempt_range — 映射回 frontend ok / late / absent / exempt
     const _backendStatusToFront = (s: string) =>
       s === "present" ? "ok" : s === "exempt_range" ? "exempt" : s; // late / absent 原样
+    // 上线前审查 H11：连上之后补拉一次座席快照。
+    // 原来「拉快照 → 建连接」中间有个空档，这期间学生刷的卡两头都收不到
+    // （快照查的时候还没刷，WS 还没连上就推不过来）→ 座席永远停在未点呼。
+    // 断线重连同理：断开期间的签到只在服务器有，重连后不补拉就永远看不到。
+    // 首连也会触发一次（多一次请求，换掉那个空档）。
+    let boardGen = 0; // 请求世代号：只让最后一次发起的重拉落地，防慢响应覆盖新响应
+    let effectAlive = true;
+    const refreshBoardQuietly = async () => {
+      if (!session || !session.sessionId || !authToken) return;
+      const myGen = ++boardGen;
+      try {
+        const board = await api.rollcallBoard(session.sessionId, authToken);
+        if (!effectAlive || myGen !== boardGen) return;
+        const fresh = (board.entries || []).map((e) =>
+          _boardEntryToStudent(e, teacher && teacher.dorm),
+        );
+        setStudents((prev) => _mergeBoardSnapshot(prev, fresh));
+      } catch (err) {
+        // 静默：这是后台补拉，失败不打扰老师（连接横幅已经在提示了）
+        console.warn("[App] WS 接続後の board 補完取得失敗", err);
+      }
+    };
     let handle: any;
     try {
       handle = api.openTeacherWS(
@@ -394,13 +416,18 @@ export function App() {
             );
           }
         },
-        (status) => setWsStatus(status),
+        (status) => {
+          setWsStatus(status);
+          // 首连 + 每次重连成功都补一次（H11）
+          if (status === "connected") refreshBoardQuietly();
+        },
       );
     } catch (err) {
       console.warn("[App] WebSocket 连接失败", err);
       setWsStatus("failed");
     }
     return () => {
+      effectAlive = false;
       if (handle && typeof handle.close === "function") handle.close();
       setWsStatus(null);
     };
@@ -525,6 +552,32 @@ export function App() {
     override: null,
     exemptReason: null,
   });
+
+  // 服务器快照 → 座席 state 的合并（上线前审查 H11 配套）。
+  // 直接 setStudents(快照) 会抹掉两类只有本地才有的信息：
+  //   ① board 接口不返回 pending / override / health / exemptReason（上面映射里恒 null），
+  //      覆盖后 WS 推来的外宿申请徽章、他端调整的理由全部消失
+  //   ② 快照请求飞行的几百毫秒里 WS 刚推到的签到，快照是查询早于入库的旧值「未点呼」，
+  //      落地会把已经刷过卡的学生退回未点呼
+  // 所以：状态以服务器为准，但快照说「未点呼」而本地已有签到时刻时保留本地。
+  const _mergeBoardSnapshot = (prev: any[], fresh: any[]) => {
+    const prevByKey = new Map(prev.map((s: any) => [s.key, s]));
+    return fresh.map((f: any) => {
+      const old: any = prevByKey.get(f.key);
+      if (!old) return f;
+      const keepLocalCheckin = f.status === "unknown" && old.checkinAt;
+      return {
+        ...f,
+        status: keepLocalCheckin ? old.status : f.status,
+        checkinAt: keepLocalCheckin ? old.checkinAt : f.checkinAt,
+        lastEventId: keepLocalCheckin ? old.lastEventId : f.lastEventId,
+        pending: old.pending ?? f.pending,
+        override: old.override ?? f.override,
+        health: old.health ?? f.health,
+        exemptReason: old.exemptReason ?? f.exemptReason,
+      };
+    });
+  };
 
   const startSession = async (name: string) => {
     setNfcSeq(0); // 新场次先清零 NFC 计数，否则指示灯继承上一场计数、未刷卡就显「受信 OK」（codex 复审 minor / C31 配套）
@@ -824,7 +877,9 @@ export function App() {
         const fresh = (board.entries || []).map((e) =>
           _boardEntryToStudent(e, teacher.dorm),
         );
-        setStudents(fresh);
+        // 同 H11：走合并，否则老师每按一次「座席を再取得」就把 WS 推来的
+        // 外宿申请徽章 / 他端调整理由抹掉一次（board 接口不返回这几个字段）
+        setStudents((prev) => _mergeBoardSnapshot(prev, fresh));
         setToast({ type: "warn", msg: "点呼をリセットしました" });
       } catch (err) {
         console.warn("[App] resetLive board 再取得失敗", err);
