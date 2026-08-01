@@ -441,6 +441,9 @@ export function App() {
       effectAlive = false;
       if (handle && typeof handle.close === "function") handle.close();
       setWsStatus(null);
+      // 连同「座席没同步上」的标记一起清（F5 配套）：不清的话，这场点呼失败过一次，
+      // 下一场刚连上的那两百毫秒里横幅会先闪一下红字，等补拉成功才消失 —— 老师会被吓到。
+      setBoardSyncFailed(false);
     };
   }, [session, authToken]);
 
