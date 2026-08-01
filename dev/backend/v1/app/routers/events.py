@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -31,6 +32,23 @@ router = APIRouter(prefix="/api/v1/events", tags=["events"])
 
 # 合法 category 值
 _VALID_CATEGORIES = {"学校行事", "寮行事", "外部", "その他"}
+
+# 日本时区 — 前端 datetime-local 发来的是无时区墙钟，语义是 JST
+_JST = ZoneInfo("Asia/Tokyo")
+
+
+def _coerce_jst(value: datetime | None) -> datetime | None:
+    """请求体里的 datetime：无时区按 JST 解读；已带时区原样保留；None 跳过。
+
+    老师网页 datetime-local 发出的是无时区串（如 2026-08-01T18:00:00），本意是日本时间。
+    TZDateTime 入库规则会把无时区当成 UTC，导致学生端看到晚 9 小时——此处在存库前补上 JST。
+    写法对齐 cleaning.py 对 scheduled_at 的处理。
+    """
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=_JST)
+    return value
 
 
 def _require_edit_role(teacher: models.Teacher) -> None:
@@ -115,13 +133,15 @@ def create_event(
                 "message": f"有効な分類：{'、'.join(sorted(_VALID_CATEGORIES))}",
             },
         )
-    _check_time_range(body.start_at, body.end_at)
+    start_at = _coerce_jst(body.start_at)
+    end_at = _coerce_jst(body.end_at)
+    _check_time_range(start_at, end_at)
     row = models.DormEvent(
         title=body.title,
         category=body.category,
         event_date=body.event_date,
-        start_at=body.start_at,
-        end_at=body.end_at,
+        start_at=start_at,
+        end_at=end_at,
         description=body.description,
         created_by_teacher_id=teacher.id,
         notify_students=body.notify_students,
@@ -171,6 +191,11 @@ def patch_event(
     # end_at / description），把输入框清空保存后旧值仍留着。前端编辑路径会对显式清空
     # 的字段发 null（而非 undefined），后端据 model_fields_set 落实清空。
     provided = body.model_dump(exclude_unset=True)
+    # 无时区 datetime 补成 JST（与 create 同口径）；显式 null 清空时 _coerce_jst 原样返回 None
+    if "start_at" in provided:
+        provided["start_at"] = _coerce_jst(provided["start_at"])
+    if "end_at" in provided:
+        provided["end_at"] = _coerce_jst(provided["end_at"])
     # 时刻先后校验也走 provided（codex m1）：用 `body.x is not None` 判会把「显式传 null
     # 清空」误当成「没传」、拿旧值比较，可能错误拒绝一个合法修改（清空 start_at + 改 end_at）。
     # 改用 provided.get(field, 旧值)：传了(含 null)用新值、没传用旧值。

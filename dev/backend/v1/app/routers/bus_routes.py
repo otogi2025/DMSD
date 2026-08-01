@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -33,6 +34,23 @@ router = APIRouter(prefix="/api/v1/bus/routes", tags=["bus"])
 
 _VALID_KINDS = {"daily_commute", "dorm_special"}
 _VALID_VISIBLE_TO = {"all", "dorm_only", "men", "women"}
+
+# 日本时区 — 前端 datetime-local 发来的是无时区墙钟，语义是 JST
+_JST = ZoneInfo("Asia/Tokyo")
+
+
+def _coerce_jst(value: datetime | None) -> datetime | None:
+    """请求体里的 datetime：无时区按 JST 解读；已带时区原样保留；None 跳过。
+
+    老师网页 datetime-local 发出的是无时区串（如 2026-08-01T18:00:00），本意是日本时间。
+    TZDateTime 入库规则会把无时区当成 UTC，导致学生端看到晚 9 小时——此处在存库前补上 JST。
+    写法对齐 cleaning.py 对 scheduled_at 的处理。
+    """
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=_JST)
+    return value
 
 
 @router.get("", response_model=schemas.BusRouteListOut)
@@ -154,8 +172,8 @@ def create_bus_route(
         kind=kind,
         name=name,
         direction=body.direction,
-        schedule_at=body.schedule_at,
-        arrival_at=body.arrival_at,
+        schedule_at=_coerce_jst(body.schedule_at),
+        arrival_at=_coerce_jst(body.arrival_at),
         visible_to=body.visible_to,
         note=body.note,
         purpose=body.purpose,
@@ -217,6 +235,11 @@ def patch_bus_route(
     # `if val is not None` 把 null 也跳过，导致老师无法清空可选字段（arrival_at / note /
     # purpose），输入框清空保存后旧值仍留着。前端编辑路径对显式清空的字段发 null。
     provided = body.model_dump(exclude_unset=True)
+    # 无时区 datetime 补成 JST（与 create 同口径）；显式 null 清空时 _coerce_jst 原样返回 None
+    if "schedule_at" in provided:
+        provided["schedule_at"] = _coerce_jst(provided["schedule_at"])
+    if "arrival_at" in provided:
+        provided["arrival_at"] = _coerce_jst(provided["arrival_at"])
     for field in (
         "kind",
         "name",
