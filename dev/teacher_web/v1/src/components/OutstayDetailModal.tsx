@@ -37,9 +37,10 @@ export function OutstayDetailModal({
 }: {
   app: OutstayUiApp;
   onClose: () => void;
-  onAction: (action: string, comment: string) => void;
+  // 返回 Promise 时会被 await —— 期间三个操作按钮禁用（见 acting）。
+  onAction: (action: string, comment: string) => void | Promise<unknown>;
   // 差戻 —— 把届退回给学生修改重提。reason 是差戻理由（必填）。
-  onReturn: (reason: string) => void;
+  onReturn: (reason: string) => void | Promise<unknown>;
   authToken: string;
 }) {
   const T = RYO;
@@ -47,6 +48,14 @@ export function OutstayDetailModal({
     action: string;
     label: string;
   } | null>(null);
+  // 上线前审查 H8：承認 / 却下 / 差戻 三个按钮原来没有处理中锁。
+  // 二次确认弹窗点完就关，但本详情弹窗还开着、三个按钮仍可点，要等 App 那边
+  // 两个请求都回来才关 —— 慢网下这个窗口有一两秒。老师觉得没反应再点一次：
+  //   · 第二次撞后端 409 → 界面报「保存できませんでした」，但第一次其实已落库、已发邮件
+  //   · 先「承認」再「差戻」→ 同一份申请既留下批准记录又被打回给学生
+  // 同片其他操作面（OutingsPage / StudyAttendancePage / ApplicationsPage）都有这道锁，
+  // 偏偏最重的这个没有。
+  const [acting, setActing] = React.useState(false);
   // 杭田 2026-06-04 二-4：审批时给学生看的评论输入（补强旧 UI 弱点）
   const [comment, setComment] = React.useState("");
   // 差戻理由输入弹窗的开关 / 输入内容 / 校验错误提示
@@ -566,7 +575,9 @@ export function OutstayDetailModal({
               marginBottom: 6,
             }}
           >
-            寮生へのコメント（任意・承認/却下時に寮生へメールで通知されます）
+            {/* 上线前审查 H7：审批链有 4~5 环，后端只在最终 approved/rejected 时发信，
+                中段承認（approved_partial）不发 —— 措辞要点明「最終決定時」*/}
+            寮生へのコメント（任意・最終決定時に寮生へメールで通知されます）
           </label>
           <textarea
             value={comment}
@@ -619,7 +630,9 @@ export function OutstayDetailModal({
               退回/保留是 v1.1 功能（需后端 returned 状态 + 通知），实装后再恢复入口。 */}
           {/* 差戻 —— 中性/警示色（warn 系）。点击打开差戻理由输入弹窗（理由必填） */}
           <button
+            disabled={acting}
             onClick={() => {
+              if (acting) return;
               setReturnReason("");
               setReturnError(null);
               setReturnOpen(true);
@@ -633,13 +646,18 @@ export function OutstayDetailModal({
               fontFamily: "inherit",
               fontSize: 13,
               fontWeight: 700,
-              cursor: "pointer",
+              cursor: acting ? "not-allowed" : "pointer",
+              opacity: acting ? 0.5 : 1,
             }}
           >
             差戻
           </button>
           <button
-            onClick={() => setConfirm({ action: "rejected", label: "却下" })}
+            disabled={acting}
+            onClick={() => {
+              if (acting) return;
+              setConfirm({ action: "rejected", label: "却下" });
+            }}
             style={{
               padding: "10px 18px",
               background: "transparent",
@@ -649,13 +667,18 @@ export function OutstayDetailModal({
               fontFamily: "inherit",
               fontSize: 13,
               fontWeight: 700,
-              cursor: "pointer",
+              cursor: acting ? "not-allowed" : "pointer",
+              opacity: acting ? 0.5 : 1,
             }}
           >
             却下
           </button>
           <button
-            onClick={() => setConfirm({ action: "approved", label: "承認" })}
+            disabled={acting}
+            onClick={() => {
+              if (acting) return;
+              setConfirm({ action: "approved", label: "承認" });
+            }}
             style={{
               padding: "10px 20px",
               background: T.cobalt,
@@ -665,10 +688,11 @@ export function OutstayDetailModal({
               fontFamily: "inherit",
               fontSize: 13,
               fontWeight: 700,
-              cursor: "pointer",
+              cursor: acting ? "not-allowed" : "pointer",
+              opacity: acting ? 0.5 : 1,
             }}
           >
-            承認
+            {acting ? "処理中…" : "承認"}
           </button>
         </div>
       </div>
@@ -676,13 +700,20 @@ export function OutstayDetailModal({
       {confirm && (
         <ConfirmModal
           title={`${applicantName} の${kindLabel}申請を${confirm.label}しますか？`}
-          desc="承認・却下の結果は寮生へメールで通知されます（入力したコメントも一緒に届きます）。"
+          desc="承認経路の最終決定時に、結果が寮生へメールで通知されます（入力したコメントも一緒に届きます）。次の承認者が残っている場合、この時点では寮生へ通知されません。"
           danger={confirm.action === "rejected"}
           confirmLabel={confirm.label}
           onCancel={() => setConfirm(null)}
           onConfirm={() => {
-            onAction(confirm.action, comment);
+            if (acting) return;
+            const action = confirm.action;
             setConfirm(null);
+            // 请求跑完之前锁住三个按钮。App 侧成功/失败都会关掉本弹窗，
+            // 所以正常路径下这个 acting 不需要复位；异常路径靠 finally 兜底。
+            setActing(true);
+            Promise.resolve(onAction(action, comment)).finally(() =>
+              setActing(false),
+            );
           }}
         />
       )}
@@ -724,7 +755,10 @@ export function OutstayDetailModal({
                 lineHeight: 1.6,
               }}
             >
-              差戻すと申請は寮生に返され、修正のうえ再提出できます。差戻理由は寮生へメールで通知されます。
+              {/* 上线前审查 H6：后端差戻路径不发任何邮件 / 推送，只改状态 + 写审计。
+                  原文案说「メールで通知されます」是假的 —— 学生不主动开 app 就不知道被退回。*/}
+              差戻すと申請は寮生に返され、修正のうえ再提出できます。差戻理由はメールでは届きません
+              — 寮生はアプリの申請履歴で確認します。
             </div>
             <label
               style={{
@@ -793,7 +827,9 @@ export function OutstayDetailModal({
                 キャンセル
               </button>
               <button
+                disabled={acting}
                 onClick={() => {
+                  if (acting) return;
                   // 校验：理由必填、1〜1000 字（对齐后端约束）
                   const reason = returnReason.trim();
                   if (reason.length === 0) {
@@ -806,8 +842,11 @@ export function OutstayDetailModal({
                     );
                     return;
                   }
-                  onReturn(reason);
                   setReturnOpen(false);
+                  setActing(true);
+                  Promise.resolve(onReturn(reason)).finally(() =>
+                    setActing(false),
+                  );
                 }}
                 style={{
                   padding: "9px 18px",
@@ -818,10 +857,11 @@ export function OutstayDetailModal({
                   fontFamily: "inherit",
                   fontSize: 13,
                   fontWeight: 700,
-                  cursor: "pointer",
+                  cursor: acting ? "not-allowed" : "pointer",
+                  opacity: acting ? 0.5 : 1,
                 }}
               >
-                差戻
+                {acting ? "処理中…" : "差戻"}
               </button>
             </div>
           </div>

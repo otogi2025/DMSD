@@ -1,6 +1,7 @@
 import React from "react";
 import { RYO, dormLabel, API_BASE, TIMEOUT_MS, TIMEOUT_WARN_MS } from "./theme";
 import { api } from "./api/client";
+import type { AppStatus } from "./api/types";
 import { Shell } from "./Shell";
 import { LoginScreen } from "./components/LoginScreen";
 import { LiveRollCall } from "./components/LiveRollCall";
@@ -1039,6 +1040,10 @@ export function App() {
             // a='approved'/'rejected' → map 成 backend 'approve'/'reject'。
             // a='pending' (保留) 在 backend decide 里没有所以 skip (只关 UI)。
             const backendApp = outstayTarget._backend;
+            // 后端返回的最终状态 —— 决定 toast 能不能说「已通知学生」。
+            // 后端 applications.py:1099 只在 status ∈ {approved, rejected} 时才发邮件；
+            // 多级审批链的中段承認（approved_partial）不发，所以不能一律报「送信済み」。
+            let decidedStatus: AppStatus | null = null;
             if (
               backendApp &&
               authToken &&
@@ -1046,12 +1051,13 @@ export function App() {
             ) {
               const decision = a === "approved" ? "approve" : "reject";
               try {
-                await api.decide(
+                const decided = await api.decide(
                   backendApp.id,
                   decision,
                   comment || undefined,
                   authToken,
                 );
+                decidedStatus = decided?.status ?? null;
                 // 成功时 refetch pending list (该 application 会消失)
                 try {
                   const refreshed = await api.pendingForMe(authToken);
@@ -1074,9 +1080,20 @@ export function App() {
             // 无对应处理，不能给成功 toast（TW-045：原来一律报「…しました」，让老师误以为
             // 已处理，实际申请仍 pending、学生零通知）。「質問あり」按钮本身已在 Modal 移除。
             if (a === "approved" || a === "rejected") {
+              const actionLabel = a === "approved" ? "承認" : "却下";
+              // 「送信済み」只在后端真的发了信时才说。审批链 4~5 人，前几位承認后
+              // status 是 approved_partial，后端不发信 —— 此时报「已通知」会让老师
+              // 以为学生已收到结果，实际学生零通知（上线前审查 H7）。
+              const mailSent =
+                decidedStatus === "approved" || decidedStatus === "rejected";
+              const isPartial = decidedStatus === "approved_partial";
               setToast({
                 type: "ok",
-                msg: `申請を${a === "approved" ? "承認" : "却下"}しました · 寮生へメール通知送信済み`,
+                msg: mailSent
+                  ? `申請を${actionLabel}しました · 寮生へメール通知送信済み`
+                  : isPartial
+                    ? `申請を${actionLabel}しました · 次の承認者の審査待ち（寮生への通知は最終決定後）`
+                    : `申請を${actionLabel}しました`,
               });
             }
           }}
@@ -1096,9 +1113,12 @@ export function App() {
                 }
                 setOutstayTarget(null);
                 // web#9: 成功 toast 只在 backend 成功分支内
+                // 上线前审查 H6：后端 return_application 只改 status + 写审计行，
+                // 一封邮件都不发（email_svc 只在提出通知和最终決定通知两处被调）。
+                // 所以这里不能说「送信済み」—— 学生只能自己开 app 看申請履歴。
                 setToast({
                   type: "ok",
-                  msg: "申請を差戻しました · 寮生へメール通知送信済み",
+                  msg: "申請を差戻しました · 寮生はアプリの申請履歴で差戻理由を確認できます",
                 });
               } catch (err: any) {
                 console.warn("[App] returnApplication 失敗", err);
