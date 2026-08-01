@@ -532,3 +532,288 @@ class TestDisciplineDormBoundary:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert r.status_code == 201, r.text
+
+
+# ─────────────────────────────────────────────────────────────
+# incidents.py 事案记录 寮边界测试 —— 该 router 此前是唯一完全没有寮过滤的
+# router（男寮当值老师能读到女生事案全文+真名），本组补齐边界测试。
+# 判定口径：涉及学生须「全部」在可见寮内，否则 403 FORBIDDEN_DORM（与
+# discipline / study / rollcall 同款）；无涉及学生的事案不受寮限制。
+# ─────────────────────────────────────────────────────────────
+class TestIncidentDormBoundary:
+    """incidents.py 寮边界补齐测试。
+
+    男寮学生用 seed_data["student"]（dorm_unit=1），女寮学生用本类的 female_student
+    夹具新建（dorm_unit=4）。otoko_token = 选了男寮（selected_dorm=1）的老师令牌，
+    与 discipline/study/rollcall 已用的 ryokan_token（选女寮）对称。跨寮基准数据
+    用 conftest.py 的 teacher_token（寮務課長、未选寮 → dorm_units_for_teacher
+    返回全集 [1,2,4]）来建，因为它不受寮过滤，男女学生都能挂。
+    """
+
+    @pytest.fixture
+    def female_student(self, db_session, seed_data):
+        """女寮学生（dorm_unit=4）—— seed_data 默认只有男寮学生，跨寮测试需要一个女寮对照。"""
+        student = models.Student(
+            grade_code="05",
+            class_code="03",
+            seat_no="12",
+            name="鈴木花子",
+            gender="female",
+            room_no="W301",
+            dorm_unit=4,
+        )
+        db_session.add(student)
+        db_session.commit()
+        db_session.refresh(student)
+        return student
+
+    @pytest.fixture
+    def otoko_token(self, client, seed_data):
+        """男寮担当老师（tannin，assigned_dorm=1）登录时选男寮 selected_dorm=1 的令牌。
+
+        必须显式选寮才会触发 dorm_units_for_teacher 的过滤 —— 未选寮时该函数
+        向后兼容恒返回全集 [1,2,4]，测不出边界（对齐文件里已有的 ryokan_token 写法）。
+        """
+        res = client.post(
+            "/api/v1/sessions/teacher",
+            json={
+                "login_id": "tannin",
+                "password": "test-password-12345",
+                "selected_dorm": 1,
+            },
+        )
+        assert res.status_code == 200, res.text
+        return res.json()["data"]["access_token"]
+
+    def _create(self, client, token, involved_student_ids, title="テスト事案"):
+        """建事案的公共 helper —— 不预判状态码（201 / 403 都可能），留给调用方断言。"""
+        return client.post(
+            "/api/v1/incidents",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "title": title,
+                "body": "<p>テスト用の事案内容です。</p>",
+                "involved_student_ids": [str(s) for s in involved_student_ids],
+                "incident_date": "2026-05-30",
+            },
+        )
+
+    # ── POST /incidents（建）──────────────────────────────
+
+    def test_create_wrong_dorm_forbidden(self, client, otoko_token, female_student):
+        """选男寮的老师建事案挂女寮学生 → 403 FORBIDDEN_DORM。"""
+        res = self._create(client, otoko_token, [female_student.id])
+        assert res.status_code == 403, res.text
+        assert res.json()["error"]["code"] == "FORBIDDEN_DORM"
+
+    def test_create_own_dorm_ok(self, client, otoko_token, seed_data):
+        """选男寮的老师建事案挂男寮学生 → 201 正常（不能误伤）。"""
+        student_id = seed_data["student"].id  # dorm_unit=1（男寮）
+        res = self._create(client, otoko_token, [student_id])
+        assert res.status_code == 201, res.text
+
+    def test_create_no_students_ok(self, client, otoko_token):
+        """无涉及学生的事案 —— 不受寮限制，选了寮的老师也能正常建。"""
+        res = self._create(client, otoko_token, [])
+        assert res.status_code == 201, res.text
+
+    # ── GET /incidents（列表）─────────────────────────────
+
+    def test_list_hides_other_dorm_incident(
+        self, client, otoko_token, teacher_token, female_student
+    ):
+        """只涉及女寮学生的事案（跨寮老师建）—— 对选了男寮的老师隐藏，列表里看不到。"""
+        female_inc = self._create(
+            client, teacher_token, [female_student.id], title="女子寮の事案"
+        ).json()["data"]["id"]
+
+        res = client.get(
+            "/api/v1/incidents",
+            headers={"Authorization": f"Bearer {otoko_token}"},
+        )
+        assert res.status_code == 200, res.text
+        ids = [i["id"] for i in res.json()["data"]["items"]]
+        assert female_inc not in ids
+
+    def test_list_shows_own_dorm_incident(
+        self, client, otoko_token, teacher_token, seed_data
+    ):
+        """只涉及男寮学生的事案 —— 对选了男寮的老师可见（不能误伤）。"""
+        male_inc = self._create(
+            client, teacher_token, [seed_data["student"].id], title="男子寮の事案"
+        ).json()["data"]["id"]
+
+        res = client.get(
+            "/api/v1/incidents",
+            headers={"Authorization": f"Bearer {otoko_token}"},
+        )
+        assert res.status_code == 200, res.text
+        ids = [i["id"] for i in res.json()["data"]["items"]]
+        assert male_inc in ids
+
+    def test_list_shows_no_student_incident(self, client, otoko_token, teacher_token):
+        """无涉及学生的事案 —— 对选了寮的老师仍可见（不属于任何寮，不误拦）。"""
+        no_student_inc = self._create(
+            client, teacher_token, [], title="対象学生なしの事案"
+        ).json()["data"]["id"]
+
+        res = client.get(
+            "/api/v1/incidents",
+            headers={"Authorization": f"Bearer {otoko_token}"},
+        )
+        assert res.status_code == 200, res.text
+        ids = [i["id"] for i in res.json()["data"]["items"]]
+        assert no_student_inc in ids
+
+    def test_list_unrestricted_teacher_sees_both(
+        self, client, teacher_token, female_student, seed_data
+    ):
+        """未选寮（寮務課長、向后兼容路径）的老师 —— 男寮女寮事案都能看到。"""
+        female_inc = self._create(
+            client, teacher_token, [female_student.id], title="女子寮の事案2"
+        ).json()["data"]["id"]
+        male_inc = self._create(
+            client, teacher_token, [seed_data["student"].id], title="男子寮の事案2"
+        ).json()["data"]["id"]
+
+        res = client.get(
+            "/api/v1/incidents",
+            headers={"Authorization": f"Bearer {teacher_token}"},
+        )
+        assert res.status_code == 200, res.text
+        ids = [i["id"] for i in res.json()["data"]["items"]]
+        assert female_inc in ids
+        assert male_inc in ids
+
+    # ── GET /incidents/{id}（详情）────────────────────────
+
+    def test_get_detail_wrong_dorm_forbidden(
+        self, client, otoko_token, teacher_token, female_student
+    ):
+        """选男寮的老师查女寮事案详情 → 403 FORBIDDEN_DORM。"""
+        female_inc = self._create(
+            client, teacher_token, [female_student.id], title="女子寮の事案詳細"
+        ).json()["data"]["id"]
+
+        res = client.get(
+            f"/api/v1/incidents/{female_inc}",
+            headers={"Authorization": f"Bearer {otoko_token}"},
+        )
+        assert res.status_code == 403, res.text
+        assert res.json()["error"]["code"] == "FORBIDDEN_DORM"
+
+    def test_get_detail_own_dorm_ok(self, client, otoko_token, seed_data):
+        """选男寮的老师查男寮事案详情 → 200 正常。"""
+        male_inc = self._create(
+            client, otoko_token, [seed_data["student"].id], title="男子寮の事案詳細"
+        ).json()["data"]["id"]
+
+        res = client.get(
+            f"/api/v1/incidents/{male_inc}",
+            headers={"Authorization": f"Bearer {otoko_token}"},
+        )
+        assert res.status_code == 200, res.text
+
+    # ── PATCH /incidents/{id}（编辑）──────────────────────
+
+    def test_patch_wrong_dorm_forbidden(
+        self, client, otoko_token, teacher_token, female_student
+    ):
+        """选男寮的老师改女寮事案（哪怕只改标题）→ 403 FORBIDDEN_DORM。"""
+        female_inc = self._create(
+            client, teacher_token, [female_student.id], title="女子寮の事案（改前）"
+        ).json()["data"]["id"]
+
+        res = client.patch(
+            f"/api/v1/incidents/{female_inc}",
+            headers={"Authorization": f"Bearer {otoko_token}"},
+            json={"title": "改後タイトル"},
+        )
+        assert res.status_code == 403, res.text
+        assert res.json()["error"]["code"] == "FORBIDDEN_DORM"
+
+    def test_patch_add_wrong_dorm_student_forbidden(
+        self, client, otoko_token, seed_data, female_student
+    ):
+        """选男寮的老师把男寮事案改成挂女寮学生 → 403 FORBIDDEN_DORM（新学生也要在可见寮内）。"""
+        male_inc = self._create(
+            client,
+            otoko_token,
+            [seed_data["student"].id],
+            title="男子寮の事案（学生変更）",
+        ).json()["data"]["id"]
+
+        res = client.patch(
+            f"/api/v1/incidents/{male_inc}",
+            headers={"Authorization": f"Bearer {otoko_token}"},
+            json={"involved_student_ids": [str(female_student.id)]},
+        )
+        assert res.status_code == 403, res.text
+        assert res.json()["error"]["code"] == "FORBIDDEN_DORM"
+
+    # ── DELETE /incidents/{id}（软删）─────────────────────
+
+    def test_delete_wrong_dorm_forbidden(
+        self, client, otoko_token, teacher_token, female_student
+    ):
+        """选男寮的老师删女寮事案 → 403 FORBIDDEN_DORM。"""
+        female_inc = self._create(
+            client, teacher_token, [female_student.id], title="女子寮の事案（削除用）"
+        ).json()["data"]["id"]
+
+        res = client.delete(
+            f"/api/v1/incidents/{female_inc}",
+            headers={"Authorization": f"Bearer {otoko_token}"},
+        )
+        assert res.status_code == 403, res.text
+        assert res.json()["error"]["code"] == "FORBIDDEN_DORM"
+
+    def test_delete_own_dorm_ok(self, client, otoko_token, seed_data):
+        """选男寮的老师删男寮事案 → 204 正常。"""
+        male_inc = self._create(
+            client,
+            otoko_token,
+            [seed_data["student"].id],
+            title="男子寮の事案（削除用）",
+        ).json()["data"]["id"]
+
+        res = client.delete(
+            f"/api/v1/incidents/{male_inc}",
+            headers={"Authorization": f"Bearer {otoko_token}"},
+        )
+        assert res.status_code == 204, res.text
+
+    # ── 姓名 chip 防泄漏（_build_student_name_map 的防御性寮过滤）───
+
+    def test_name_map_excludes_out_of_dorm_student(
+        self, db_session, seed_data, female_student
+    ):
+        """白盒测试 _build_student_name_map：直接在 DB 建一条跨寮混合事案（绕开
+        _assert_incident_in_dorm / _filter_incidents_by_dorm 的可见性闸——这两者在
+        当前实现下是「全员在寮内才可见」，正常 API 流程走不到「事案可见但涉及学生
+        部分不可见」这种状态），验证姓名 map 本身的防御性寮过滤单独生效：
+        选了男寮的老师解析姓名时，只认男寮学生，女寮学生不出现在 map 里。
+        """
+        from datetime import date
+
+        from app.routers.incidents import _build_student_name_map
+
+        row = models.IncidentRecord(
+            title="混合寮事案（白盒テスト）",
+            body="<p>テスト用の事案内容です。</p>",
+            involved_student_ids=[
+                str(seed_data["student"].id),  # 男寮 dorm_unit=1
+                str(female_student.id),  # 女寮 dorm_unit=4
+            ],
+            recorded_by=seed_data["teachers"]["tannin"].id,
+            incident_date=date(2026, 5, 30),
+        )
+        db_session.add(row)
+        db_session.commit()
+
+        tannin = seed_data["teachers"]["tannin"]
+        tannin._selected_dorm = 1  # 手动模拟登录选男寮（不经 JWT/HTTP）
+        name_map = _build_student_name_map(db_session, [row], tannin)
+
+        assert str(seed_data["student"].id) in name_map
+        assert str(female_student.id) not in name_map
