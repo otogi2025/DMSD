@@ -1064,7 +1064,14 @@ export function App() {
       body = <ActiveLeavesPage authToken={authToken} />;
       break;
     case "search":
-      body = <SearchPage query={searchQuery} authToken={authToken} />;
+      // isDemo：日付集計那块也走演示 / 真账户双轨（同 RollCallLanding 的规则）
+      body = (
+        <SearchPage
+          query={searchQuery}
+          authToken={authToken}
+          isDemo={teacher?.is_demo === true}
+        />
+      );
       break;
     case "notifications":
       body = <NotificationsPage onNav={nav} authToken={authToken} />;

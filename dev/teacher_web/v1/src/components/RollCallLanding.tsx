@@ -5,13 +5,14 @@ import type { StudentAccountListOut } from "../api/types";
 
 // 源 index.html 11940-12361（components/roll-call-landing.jsx 块）。
 // 界面 100% 冻结，仅做作用域引用替换：window.RYO→RYO / window.tomoshibiApi→api / window.dormLabel→dormLabel。
-// 点呼着陆页 + 统计/最近点呼双轨（demo 演示数据 / 真账户「準備中」）+ 点呼类型选择（朝/夜 2 种）。
+// 点呼着陆页 + 统计/趋势图/最近点呼三块双轨（demo 演示数据 / 真账户「準備中」）+ 点呼类型选择（朝/夜 2 种）。
 //
 // 【双轨规则 —— itsuki 7-17 决策 5，8-02 实装】
-// 「本日の統計」和「最近の点呼」两块没有对应的后端统计端点，数据只能是假的。
+// 「本日の統計」「遅刻・欠席トレンド」「最近の点呼」这三块没有对应的后端统计端点，数据只能是假的。
 // 但假数据不该一刀切删掉：演示账号（App Store 审核员 / 给管理员看的 demo）需要看到
 // 有内容的界面，真宿管老师则一个假数字都不能看到。所以按 teacher.is_demo 分轨：
-//   is_demo === true  → 显示演示数据（下面 DEMO_STATS / DEMO_RECENT）
+//   is_demo === true  → 显示演示数据（统计卡和最近点呼表格直接内联在 JSX 里，
+//                       趋势图数据见下面的 demoTrend）
 //   否则（含取不到）  → 显示「準備中」占位
 // 真接口做出来之后，真账户这一侧换成真数据，演示侧保持不变。
 // ⚠️ 别再把演示数据整块删掉改成占位 —— 8-01 上线前审查干过一次，等于推翻 7-17 的决定。
@@ -52,6 +53,31 @@ export function RollCallLanding({
   // 是不是演示账号 —— 决定「本日の統計」和「最近の点呼」显示演示数据还是「準備中」。
   // 取不到时按 false（真账户）处理：宁可少显示，也不能让真宿管老师看到编出来的数字。
   const isDemo = teacher.is_demo === true;
+  // 演示用的 7 日趋势数据 —— 只在 isDemo 时渲染。
+  // 日期按 JST 今天倒推 7 天动态生成，不写死具体日期：写死的话演示账号过几个月看到的
+  // 就是一张停在旧月份的图（iOS 演示数据已经踩过这个坑）。数值固定，保证演示画面每次一样。
+  const demoTrend = React.useMemo(() => {
+    const counts = [
+      { late: 1, absent: 0 },
+      { late: 0, absent: 0 },
+      { late: 2, absent: 1 },
+      { late: 1, absent: 0 },
+      { late: 0, absent: 0 },
+      { late: 1, absent: 0 },
+      { late: 0, absent: 1 },
+    ];
+    // 以 JST 当天为最后一根柱子，往前推 6 天。用 UTC 毫秒减法避免夏令时/时区跳变。
+    const todayJst = new Date().toLocaleDateString("sv-SE", {
+      timeZone: "Asia/Tokyo",
+    });
+    const base = new Date(`${todayJst}T00:00:00Z`).getTime();
+    return counts.map((c, i) => ({
+      date: new Date(base - (counts.length - 1 - i) * 86400000)
+        .toISOString()
+        .slice(0, 10),
+      ...c,
+    }));
+  }, []);
   // 选项文字须含「朝」才被 App.tsx startSession 判为 morning；「夜点呼」不含 → evening。
   // 后端只有 morning/evening 两种场次，部活生不是独立场次（勿再加回）。
   const [name, setName] = React.useState("夜点呼");
@@ -364,21 +390,29 @@ export function RollCallLanding({
         </button>
       )}
 
-      {/* web#45: 无 trend 后端端点 → 假趋势图改为準備中占位 */}
-      <div
-        style={{
-          background: T.surface,
-          border: `1px solid ${T.line}`,
-          borderRadius: 12,
-          padding: "18px 22px",
-          boxShadow: T.shadow1,
-        }}
-      >
-        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>
-          最近 7 日 遅刻・欠席トレンド
+      {/* 遅刻・欠席トレンド（双轨，见文件头注释）：演示账号看演示柱状图，真账户看「準備中」。
+          web#45 当初把整个图删成占位，等于连演示侧一起砍了 —— 8-02 按双轨规则补回演示侧。*/}
+      {isDemo ? (
+        <TrendChart
+          trend={demoTrend}
+          onBarClick={(d) => onNav("records", { date: d })}
+        />
+      ) : (
+        <div
+          style={{
+            background: T.surface,
+            border: `1px solid ${T.line}`,
+            borderRadius: 12,
+            padding: "18px 22px",
+            boxShadow: T.shadow1,
+          }}
+        >
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>
+            最近 7 日 遅刻・欠席トレンド
+          </div>
+          <div style={{ fontSize: 13, color: T.ink3 }}>準備中</div>
         </div>
-        <div style={{ fontSize: 13, color: T.ink3 }}>準備中</div>
-      </div>
+      )}
 
       {/* 最近的点呼会话（双轨，见文件头注释）：演示账号看演示表格，真账户看「準備中」。
           注意演示表格第一行是 lastEnded —— 那是本次刚结束的真场次，不是假数据。*/}
@@ -601,4 +635,174 @@ function Stat({
     </button>
   );
 }
-// 接真数据需后端新增统计接口后再做；本文件不再放硬编码假数字。
+
+// 一天的迟到 / 缺席条数
+type TrendPoint = { date: string; late: number; absent: number };
+
+// 7 日迟到/缺席趋势图 —— 只在演示账号下渲染（真账户走「準備中」占位，见文件头双轨规则）。
+// 后端出统计接口后，真账户这一侧改成把真数据传进同一个组件即可，组件本身不用改。
+function TrendChart({
+  trend,
+  onBarClick,
+}: {
+  trend: TrendPoint[];
+  onBarClick: (date: string) => void;
+}) {
+  const T = RYO;
+  const max = Math.max(3, ...trend.map((d) => d.late + d.absent));
+  const [hover, setHover] = React.useState<number | null>(null);
+  return (
+    <div
+      style={{
+        background: T.surface,
+        border: `1px solid ${T.line}`,
+        borderRadius: 12,
+        padding: "18px 22px",
+        boxShadow: T.shadow1,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          gap: 10,
+          marginBottom: 14,
+        }}
+      >
+        <div style={{ fontSize: 14, fontWeight: 700 }}>
+          最近 7 日 遅刻・欠席トレンド
+        </div>
+        <div style={{ fontSize: 11, color: T.ink3 }}>
+          バーをクリックで該当日の記録へ
+        </div>
+        <div style={{ flex: 1 }} />
+        <Legend c={T.late} label="遅刻" />
+        <Legend c={T.danger} label="欠席" />
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${trend.length}, 1fr)`,
+          gap: 10,
+          alignItems: "end",
+          height: 140,
+          position: "relative",
+        }}
+      >
+        {trend.map((d, i) => {
+          const total = d.late + d.absent;
+          const h = total === 0 ? 6 : (total / max) * 120;
+          const lateH = total === 0 ? 0 : (d.late / max) * 120;
+          const absH = total === 0 ? 0 : (d.absent / max) * 120;
+          return (
+            <button
+              key={d.date}
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover(null)}
+              onClick={() => onBarClick(d.date)}
+              style={{
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                padding: 0,
+                fontFamily: "inherit",
+                position: "relative",
+                height: "100%",
+              }}
+            >
+              {hover === i && (
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: h + 10,
+                    background: T.ink,
+                    color: "#fff",
+                    fontSize: 11,
+                    padding: "5px 9px",
+                    borderRadius: 6,
+                    whiteSpace: "nowrap",
+                    fontFamily: T.mono,
+                    zIndex: 2,
+                  }}
+                >
+                  {d.date} · 遅刻 {d.late} / 欠席 {d.absent}
+                </div>
+              )}
+              <div
+                style={{
+                  width: "72%",
+                  maxWidth: 40,
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                {d.absent > 0 && (
+                  <div
+                    style={{
+                      height: absH,
+                      background: T.danger,
+                      borderTopLeftRadius: 3,
+                      borderTopRightRadius: 3,
+                    }}
+                  />
+                )}
+                {d.late > 0 && (
+                  <div
+                    style={{
+                      height: lateH,
+                      background: T.late,
+                      borderTopLeftRadius: d.absent === 0 ? 3 : 0,
+                      borderTopRightRadius: d.absent === 0 ? 3 : 0,
+                    }}
+                  />
+                )}
+                {total === 0 && (
+                  <div
+                    style={{
+                      height: 4,
+                      background: T.line,
+                      borderRadius: 2,
+                    }}
+                  />
+                )}
+              </div>
+              <div
+                style={{
+                  fontSize: 10,
+                  color: T.ink3,
+                  marginTop: 6,
+                  fontFamily: T.mono,
+                }}
+              >
+                {d.date.slice(5)}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// 趋势图图例（色块 + 文字）
+function Legend({ c, label }: { c: string; label: string }) {
+  const T = RYO;
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        fontSize: 11,
+        color: T.ink2,
+      }}
+    >
+      <span style={{ width: 10, height: 10, background: c, borderRadius: 2 }} />
+      {label}
+    </span>
+  );
+}

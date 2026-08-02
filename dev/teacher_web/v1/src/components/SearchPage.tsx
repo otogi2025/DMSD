@@ -4,12 +4,19 @@ import { api } from "../api/client";
 import type { StudentAccountListItem } from "../api/types";
 
 // 源 index.html 20425-20810（pages-records-search-etc 块）。界面原样搬，仅作用域引用方式改写。
+//
+// 【双轨规则 —— itsuki 7-17 决策 5，8-02 实装】
+// 「日付検索」标签页的全寮集計没有对应的后端聚合端点，数字只能是假的。按 teacher.is_demo 分轨：
+// 演示账号看演示集計，真账户看「準備中」。同一规则见 RollCallLanding.tsx 文件头。
 export function SearchPage({
   query,
   authToken,
+  isDemo,
 }: {
   query: string;
   authToken: string;
+  // 是不是演示账号（App.tsx 从 teacher.is_demo 传下来，取不到按 false = 真账户处理）
+  isDemo: boolean;
 }) {
   const T = RYO;
   const [tab, setTab] = React.useState("student");
@@ -188,7 +195,7 @@ export function SearchPage({
           )}
         </>
       ) : (
-        <DateSearchBody />
+        <DateSearchBody isDemo={isDemo} />
       )}
     </div>
   );
@@ -347,14 +354,33 @@ function StudentDossier({
   );
 }
 
-function DateSearchBody() {
+// 演示用的全寮集計 —— 只在演示账号下渲染（真账户走「準備中」，见文件头双轨规则）。
+// 数字对得上：各寮「出席 + 遅刻 + 欠席 + 外泊 = 対象」，合計行 = 三寮相加。
+// 选日期不改数字（没有后端接口，按日变化只会是编出来的第二层假象）。
+const DEMO_DATE_SUMMARY = [
+  { dorm: "一寮（男子）", target: 42, present: 39, late: 1, absent: 1, out: 1 },
+  { dorm: "二寮（男子）", target: 38, present: 36, late: 0, absent: 1, out: 1 },
+  { dorm: "四寮（女子）", target: 35, present: 34, late: 0, absent: 0, out: 1 },
+];
+
+function DateSearchBody({ isDemo }: { isDemo: boolean }) {
   const T = RYO;
-  // web#40：日期默认用 JST 今天（Asia/Tokyo，sv-SE→YYYY-MM-DD，与本批其它日期修复同口径）；
-  // 聚合接口未接前诚实标「準備中」，不展示假统计
+  // web#40：日期默认用 JST 今天（Asia/Tokyo，sv-SE→YYYY-MM-DD，与本批其它日期修复同口径）
   const todayStr = new Date().toLocaleDateString("sv-SE", {
     timeZone: "Asia/Tokyo",
   });
   const [date, setDate] = React.useState(todayStr);
+  // 合計行：三寮各列求和，不写死，改上面的演示数据就自动跟着变
+  const total = DEMO_DATE_SUMMARY.reduce(
+    (acc, r) => ({
+      target: acc.target + r.target,
+      present: acc.present + r.present,
+      late: acc.late + r.late,
+      absent: acc.absent + r.absent,
+      out: acc.out + r.out,
+    }),
+    { target: 0, present: 0, late: 0, absent: 0, out: 0 },
+  );
 
   return (
     <div>
@@ -383,22 +409,122 @@ function DateSearchBody() {
         <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>
           {date} 全寮集計
         </div>
-        <div
-          style={{
-            padding: "28px 12px",
-            textAlign: "center",
-            color: T.ink3,
-            fontSize: 13,
-            lineHeight: 1.7,
-            border: `1px dashed ${T.lineStrong}`,
-            borderRadius: 8,
-          }}
-        >
-          準備中
-          <div style={{ fontSize: 11, marginTop: 6, color: T.muted }}>
-            日付集計 API 接続後に表示されます
+        {isDemo ? (
+          <div style={{ overflowX: "auto" }}>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                fontSize: 13,
+              }}
+            >
+              <thead>
+                <tr style={{ color: T.ink3, fontSize: 11 }}>
+                  <th style={{ textAlign: "left", padding: "6px 8px" }}>寮</th>
+                  <th style={{ textAlign: "right", padding: "6px 8px" }}>
+                    対象
+                  </th>
+                  <th style={{ textAlign: "right", padding: "6px 8px" }}>
+                    出席
+                  </th>
+                  <th style={{ textAlign: "right", padding: "6px 8px" }}>
+                    遅刻
+                  </th>
+                  <th style={{ textAlign: "right", padding: "6px 8px" }}>
+                    欠席
+                  </th>
+                  <th style={{ textAlign: "right", padding: "6px 8px" }}>
+                    外泊
+                  </th>
+                </tr>
+              </thead>
+              <tbody style={{ fontFamily: T.mono }}>
+                {DEMO_DATE_SUMMARY.map((r) => (
+                  <tr key={r.dorm} style={{ borderTop: `1px solid ${T.line}` }}>
+                    <td
+                      style={{
+                        padding: "8px",
+                        fontFamily: "inherit",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {r.dorm}
+                    </td>
+                    <td style={{ textAlign: "right", padding: "8px" }}>
+                      {r.target}
+                    </td>
+                    <td style={{ textAlign: "right", padding: "8px" }}>
+                      {r.present}
+                    </td>
+                    <td
+                      style={{
+                        textAlign: "right",
+                        padding: "8px",
+                        color: r.late > 0 ? T.late : T.ink3,
+                      }}
+                    >
+                      {r.late}
+                    </td>
+                    <td
+                      style={{
+                        textAlign: "right",
+                        padding: "8px",
+                        color: r.absent > 0 ? T.danger : T.ink3,
+                      }}
+                    >
+                      {r.absent}
+                    </td>
+                    <td style={{ textAlign: "right", padding: "8px" }}>
+                      {r.out}
+                    </td>
+                  </tr>
+                ))}
+                <tr
+                  style={{
+                    borderTop: `2px solid ${T.lineStrong}`,
+                    fontWeight: 700,
+                  }}
+                >
+                  <td style={{ padding: "8px", fontFamily: "inherit" }}>
+                    合計
+                  </td>
+                  <td style={{ textAlign: "right", padding: "8px" }}>
+                    {total.target}
+                  </td>
+                  <td style={{ textAlign: "right", padding: "8px" }}>
+                    {total.present}
+                  </td>
+                  <td style={{ textAlign: "right", padding: "8px" }}>
+                    {total.late}
+                  </td>
+                  <td style={{ textAlign: "right", padding: "8px" }}>
+                    {total.absent}
+                  </td>
+                  <td style={{ textAlign: "right", padding: "8px" }}>
+                    {total.out}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </div>
+        ) : (
+          <div
+            style={{
+              padding: "28px 12px",
+              textAlign: "center",
+              color: T.ink3,
+              fontSize: 13,
+              lineHeight: 1.7,
+              border: `1px dashed ${T.lineStrong}`,
+              borderRadius: 8,
+            }}
+          >
+            準備中
+            <div style={{ fontSize: 11, marginTop: 6, color: T.muted }}>
+              日付集計 API 接続後に表示されます
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
