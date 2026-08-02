@@ -1977,6 +1977,17 @@
       "DemeritManualIn": {
         "description": "手动设定学生本月扣分总分输入（寮監权限）。\n\nB 方案（itsuki 2026-06-15 拍板）：老师输入目标绝对分 target_points，后端算\n「目标 − 当前本月总分」的差值，记一条调整事件（可正可负）使该学生本月总分等于\ntarget_points。不是加 / 减一个增量。target_points 取值 0~100（0 = 清零本月扣分）。",
         "properties": {
+          "expected_current_points": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Current Points"
+          },
           "idempotency_key": {
             "anyOf": [
               {
@@ -8984,6 +8995,11 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "is_demo": {
+            "default": false,
+            "title": "Is Demo",
+            "type": "boolean"
           },
           "login_id": {
             "title": "Login Id",
@@ -17607,7 +17623,7 @@
     },
     "/api/v1/sessions/ws-ticket": {
       "post": {
-        "description": "老师 WS 短时票据发行（C20）。\n\n老师 JWT 若以 query 参数形式载在 WS 握手 URL 上，会原样落进 uvicorn /\nnginx 的访问日志、长期驻留。这里用老师 JWT 换一张 60 秒 TTL 的短时\n票据，WS 只收票据、不再收长期令牌。\n\n注：票据是无状态 JWT，靠 60 秒 exp 限窗，不做单次消费（无 jti、无「已用」\n存储），故 60 秒窗口内可重放。不实装消费存储是权衡而非疏漏——理由见\nrouters/ws.py teacher_ws 票据校验处的说明。\n\nget_current_teacher 已把存在性 / active / 临时账户有效期全部校验过 ——\n票据里只封 purpose=teacher_ws 与身份（sub/role），WS 侧再用\n_load_teacher_for_ws 二次确认存在性 / active / 有效期，并取回\nassigned_dorm / is_demo（本路径自解 JWT、不走 deps，校验一项不能少）。",
+        "description": "老师 WS 短时票据发行（C20）。\n\n老师 JWT 若以 query 参数形式载在 WS 握手 URL 上，会原样落进 uvicorn /\nnginx 的访问日志、长期驻留。这里用老师 JWT 换一张 60 秒 TTL 的短时\n票据，WS 只收票据、不再收长期令牌。\n\n注：票据是无状态 JWT，靠 60 秒 exp 限窗，不做单次消费（无 jti、无「已用」\n存储），故 60 秒窗口内可重放。不实装消费存储是权衡而非疏漏——理由见\nrouters/ws.py teacher_ws 票据校验处的说明。\n\nget_current_teacher 已把存在性 / active / 临时账户有效期全部校验过 ——\n票据里封 purpose=teacher_ws、身份（sub/role）与登录时选的当班寮，WS 侧再用\n_load_teacher_for_ws 二次确认存在性 / active / 有效期，并取回\nis_demo（本路径自解 JWT、不走 deps，校验一项不能少）。\n\n**selected_dorm 必须透传**（2026-08-01 上线前复审 F1）：老师登录时选今晚\n负责哪个寮，这个选择只在登录令牌里。此处不透传的话，WS 侧就只剩数据库里\n档案上的固定 assigned_dorm 可用 —— 档案男寮、今晚代班女寮的老师，连接显示\n正常却一条女寮签到都收不到，反而收男寮的，点呼大屏形同虚设。",
         "operationId": "issue_ws_ticket_api_v1_sessions_ws_ticket_post",
         "parameters": [
           {
