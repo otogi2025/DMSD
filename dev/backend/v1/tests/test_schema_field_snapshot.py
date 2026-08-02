@@ -62,6 +62,9 @@ EXPECTED_FIELDS: dict[str, set[str]] = {
         "created_at",
         # 临时账户到期时间（2026-06-18 加）— 仅老师网页消费，iOS/Android 学生端不解码 TeacherOut
         "expires_at",
+        # 演示账号标志 — 老师网页据此决定给不给看演示内容（demo 看演示数据、真账户看真数据
+        # 或「準備中」）。同样仅老师网页消费，学生端不解码 TeacherOut（加字段时已复查确认）
+        "is_demo",
     },
     "OutingOut": {
         "id",

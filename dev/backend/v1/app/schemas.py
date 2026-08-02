@@ -1123,6 +1123,10 @@ class TeacherOut(BaseModel):
     created_at: datetime
     # 临时账户到期时间（NULL = 永久正式账户）— 老师账户管理页显示「臨時 · 期限…」用
     expires_at: Optional[datetime] = None
+    # 演示账号标志 —— 前端据此决定给不给看演示内容（itsuki 7-17 决策 5：
+    # demo 账户显示演示数据、真账户显示真数据或「準備中」，两者共存）。
+    # 只是显示开关，不承担隔离职责 —— 真正的数据隔离在后端（真老师查不到 is_demo 学生）。
+    is_demo: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 

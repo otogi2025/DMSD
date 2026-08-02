@@ -5,7 +5,16 @@ import type { StudentAccountListOut } from "../api/types";
 
 // 源 index.html 11940-12361（components/roll-call-landing.jsx 块）。
 // 界面 100% 冻结，仅做作用域引用替换：window.RYO→RYO / window.tomoshibiApi→api / window.dormLabel→dormLabel。
-// 点呼着陆页 + 趋势图/统计/最近点呼占位（去假数据）+ 点呼类型选择（朝/夜 2 种）。
+// 点呼着陆页 + 统计/最近点呼双轨（demo 演示数据 / 真账户「準備中」）+ 点呼类型选择（朝/夜 2 种）。
+//
+// 【双轨规则 —— itsuki 7-17 决策 5，8-02 实装】
+// 「本日の統計」和「最近の点呼」两块没有对应的后端统计端点，数据只能是假的。
+// 但假数据不该一刀切删掉：演示账号（App Store 审核员 / 给管理员看的 demo）需要看到
+// 有内容的界面，真宿管老师则一个假数字都不能看到。所以按 teacher.is_demo 分轨：
+//   is_demo === true  → 显示演示数据（下面 DEMO_STATS / DEMO_RECENT）
+//   否则（含取不到）  → 显示「準備中」占位
+// 真接口做出来之后，真账户这一侧换成真数据，演示侧保持不变。
+// ⚠️ 别再把演示数据整块删掉改成占位 —— 8-01 上线前审查干过一次，等于推翻 7-17 的决定。
 
 // 主组件入参类型 —— 从源解构签名推。
 // 注意：源里既用 teacher.assigned_dorm 又用 teacher.dorm（源自身字段不一致），界面冻结照搬，故 teacher 类型同时带两者。
@@ -17,7 +26,13 @@ export function RollCallLanding({
   onShowSummary,
   authToken,
 }: {
-  teacher: { name: string; assigned_dorm: number | null; dorm: string };
+  teacher: {
+    name: string;
+    assigned_dorm: number | null;
+    dorm: string;
+    // 演示账号标志（可空 = 旧会话存储恢复的老师对象可能没有，按 false 处理）
+    is_demo?: boolean;
+  };
   onStart: (name: string) => void;
   lastEnded:
     | {
@@ -34,6 +49,9 @@ export function RollCallLanding({
   authToken: string;
 }) {
   const T = RYO;
+  // 是不是演示账号 —— 决定「本日の統計」和「最近の点呼」显示演示数据还是「準備中」。
+  // 取不到时按 false（真账户）处理：宁可少显示，也不能让真宿管老师看到编出来的数字。
+  const isDemo = teacher.is_demo === true;
   // 选项文字须含「朝」才被 App.tsx startSession 判为 morning；「夜点呼」不含 → evening。
   // 后端只有 morning/evening 两种场次，部活生不是独立场次（勿再加回）。
   const [name, setName] = React.useState("夜点呼");
@@ -254,22 +272,62 @@ export function RollCallLanding({
         </button>
       </div>
 
-      {/* 当日统计：无统计后端端点 → 假数字改为「準備中」占位（与下方趋势图同款）*/}
-      <div
-        style={{
-          background: T.surface,
-          border: `1px solid ${T.line}`,
-          borderRadius: 12,
-          padding: "18px 22px",
-          boxShadow: T.shadow1,
-          marginBottom: 20,
-        }}
-      >
-        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>
-          本日の統計
+      {/* 当日统计（双轨，见文件头注释）：演示账号看 4 张演示卡，真账户看「準備中」*/}
+      {isDemo ? (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: 12,
+            marginBottom: 20,
+          }}
+        >
+          <Stat
+            label="本日実施"
+            value="1"
+            suffix="/ 2"
+            note="朝点呼 完了"
+            onClick={() => onNav("records")}
+          />
+          <Stat
+            label="欠席者"
+            value="2"
+            color={T.danger}
+            note="昨日は 1 名"
+            onClick={() => onNav("records")}
+          />
+          <Stat
+            label="審査待ち申請"
+            value="3"
+            color={T.cobalt}
+            note="外泊 2 · 免除 1"
+            onClick={() => onNav("applications")}
+          />
+          <Stat
+            label="警告リスト"
+            value="4"
+            color={T.warn}
+            note="今月累計"
+            onClick={() => onNav("discipline")}
+          />
         </div>
-        <div style={{ fontSize: 13, color: T.ink3 }}>準備中</div>
-      </div>
+      ) : (
+        <div
+          style={{
+            background: T.surface,
+            border: `1px solid ${T.line}`,
+            borderRadius: 12,
+            padding: "18px 22px",
+            boxShadow: T.shadow1,
+            marginBottom: 20,
+          }}
+        >
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>
+            本日の統計
+          </div>
+          <div style={{ fontSize: 13, color: T.ink3 }}>準備中</div>
+        </div>
+      )}
 
       {/* 学生からの報告 入口 —— 点呼时学生上报的体调/欠席等，老师在这里处理。
           后端 GET /rollcall/reports 早已实装、此前网页无入口（grok 三方对齐审查发现）。 */}
@@ -322,25 +380,225 @@ export function RollCallLanding({
         <div style={{ fontSize: 13, color: T.ink3 }}>準備中</div>
       </div>
 
-      {/* 最近的点呼会话：无历史列表后端端点 → 假行改为「準備中」占位（与趋势图同款）*/}
-      <div
-        style={{
-          background: T.surface,
-          border: `1px solid ${T.line}`,
-          borderRadius: 12,
-          padding: "18px 22px",
-          boxShadow: T.shadow1,
-          marginTop: 22,
-        }}
-      >
-        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>
-          最近の点呼
+      {/* 最近的点呼会话（双轨，见文件头注释）：演示账号看演示表格，真账户看「準備中」。
+          注意演示表格第一行是 lastEnded —— 那是本次刚结束的真场次，不是假数据。*/}
+      {isDemo ? (
+        <>
+          <div
+            style={{
+              fontSize: 12,
+              letterSpacing: 1.5,
+              color: T.ink3,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              marginBottom: 10,
+              marginTop: 22,
+            }}
+          >
+            最近の点呼
+          </div>
+          <div
+            style={{
+              background: T.surface,
+              border: `1px solid ${T.line}`,
+              borderRadius: 12,
+              overflow: "hidden",
+              boxShadow: T.shadow1,
+            }}
+          >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "110px 1fr 110px 110px 110px 90px",
+                background: T.surfaceAlt,
+                color: T.ink2,
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: 1,
+                borderBottom: `1px solid ${T.line}`,
+              }}
+            >
+              {["日付", "名称", "開始", "終了", "出席率", ""].map((h) => (
+                <div key={h} style={{ padding: "10px 14px" }}>
+                  {h}
+                </div>
+              ))}
+            </div>
+            {[
+              lastEnded && [
+                "2026-04-21",
+                lastEnded.name,
+                lastEnded.start,
+                lastEnded.end,
+                lastEnded.rate,
+                "詳細",
+              ],
+              ["2026-04-21", "朝点呼", "07:00", "07:08", "12/12", "詳細"],
+              ["2026-04-20", "夜点呼", "19:30", "19:37", "11/12", "詳細"],
+              ["2026-04-20", "朝点呼", "07:00", "07:09", "12/12", "詳細"],
+            ]
+              .filter((row): row is string[] => Boolean(row))
+              .map(([d, n, s, e, r, a], i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "110px 1fr 110px 110px 110px 90px",
+                    borderTop: i > 0 ? `1px solid ${T.line}` : "none",
+                    fontSize: 13,
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "10px 14px",
+                      fontFamily: T.mono,
+                      color: T.ink3,
+                    }}
+                  >
+                    {d}
+                  </div>
+                  <div style={{ padding: "10px 14px", fontWeight: 500 }}>
+                    {n}
+                  </div>
+                  <div
+                    style={{
+                      padding: "10px 14px",
+                      fontFamily: T.mono,
+                      color: T.ink2,
+                    }}
+                  >
+                    {s}
+                  </div>
+                  <div
+                    style={{
+                      padding: "10px 14px",
+                      fontFamily: T.mono,
+                      color: T.ink2,
+                    }}
+                  >
+                    {e}
+                  </div>
+                  <div
+                    style={{
+                      padding: "10px 14px",
+                      fontFamily: T.mono,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {r}
+                  </div>
+                  <button
+                    onClick={() => onNav("records", { date: d })}
+                    style={{
+                      padding: "10px 14px",
+                      color: T.cobalt,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      background: "transparent",
+                      border: "none",
+                      fontFamily: "inherit",
+                      textAlign: "left",
+                    }}
+                  >
+                    {a} →
+                  </button>
+                </div>
+              ))}
+          </div>
+        </>
+      ) : (
+        <div
+          style={{
+            background: T.surface,
+            border: `1px solid ${T.line}`,
+            borderRadius: 12,
+            padding: "18px 22px",
+            boxShadow: T.shadow1,
+            marginTop: 22,
+          }}
+        >
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>
+            最近の点呼
+          </div>
+          <div style={{ fontSize: 13, color: T.ink3 }}>準備中</div>
         </div>
-        <div style={{ fontSize: 13, color: T.ink3 }}>準備中</div>
-      </div>
+      )}
     </div>
   );
 }
 
-// 「本日の統計」/「最近の点呼」/「トレンド」均已改为「準備中」占位（无对应统计/历史后端端点）。
+// 当日统计卡 —— 只在演示账号下渲染（见文件头「双轨规则」）。
+// 数值是硬编码演示数据，真账户走「準備中」分支，看不到这个组件。
+function Stat({
+  label,
+  value,
+  suffix,
+  color,
+  note,
+  onClick,
+}: {
+  label: string;
+  value: string;
+  suffix?: string;
+  color?: string;
+  note?: string;
+  onClick?: () => void;
+}) {
+  const T = RYO;
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: T.surface,
+        border: `1px solid ${T.line}`,
+        borderRadius: 12,
+        padding: "14px 16px",
+        boxShadow: T.shadow1,
+        textAlign: "left",
+        fontFamily: "inherit",
+        cursor: onClick ? "pointer" : "default",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 11,
+          color: T.ink3,
+          letterSpacing: 1.2,
+          fontWeight: 600,
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          gap: 6,
+          marginTop: 6,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 30,
+            fontWeight: 700,
+            color: color || T.ink,
+            fontFamily: T.mono,
+          }}
+        >
+          {value}
+        </span>
+        {suffix && (
+          <span style={{ fontSize: 13, color: T.ink3, fontFamily: T.mono }}>
+            {suffix}
+          </span>
+        )}
+      </div>
+      {note && (
+        <div style={{ fontSize: 11, color: T.ink3, marginTop: 4 }}>{note}</div>
+      )}
+    </button>
+  );
+}
 // 接真数据需后端新增统计接口后再做；本文件不再放硬编码假数字。

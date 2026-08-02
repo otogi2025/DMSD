@@ -76,6 +76,10 @@ export function App() {
             profile_dorm: auth.profile.assigned_dorm ?? null,
             // 带上有效权限组，供 InfoPage / AccountsPage 用 canManage 判功能入口显隐（TW-001/048）
             permission_group: auth.profile.permission_group ?? null,
+            // 演示账号标志 —— 决定页面给不给看演示内容。刷新页面走这条恢复路径时，
+            // 旧会话存储里可能没有这个字段（后端新加的），回落 false 当真账户处理，
+            // 宁可少显示演示数据也不能让真老师看到假数字。
+            is_demo: auth.profile.is_demo ?? false,
           }
         : null;
     return { _restoredAuth: auth, _restoredTeacher: teacher };
@@ -494,6 +498,9 @@ export function App() {
         profile_dorm: (profile && profile.assigned_dorm) ?? null,
         // 带上有效权限组供 canManage 判功能入口显隐（TW-001/048）
         permission_group: (profile && profile.permission_group) ?? null,
+        // 演示账号标志 —— 决定页面给不给看演示内容（itsuki 7-17 决策 5）。
+        // 取不到时按 false 处理：宁可少显示演示数据，也不能让真老师看到假数字。
+        is_demo: (profile && profile.is_demo) ?? false,
       });
       setLastTeacherId(pickedTeacher.id);
     }

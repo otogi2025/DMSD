@@ -272,6 +272,9 @@ export interface TeacherOut {
   created_at: string;
   // 临时账户到期时间（null = 永久正式账户）— 老师账户管理页显示「臨時 · 期限…」用
   expires_at?: string | null;
+  // 演示账号标志 — 界面据此决定给不给看演示内容（demo 看假数据、真账户看真数据或「準備中」）。
+  // 可空是为了兼容旧后端 / 旧会话存储里没有这个字段的老师对象，取值时按 false 处理。
+  is_demo?: boolean;
 }
 
 export interface TeacherPublic {
