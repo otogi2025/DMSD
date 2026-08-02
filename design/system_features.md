@@ -1307,6 +1307,7 @@ announcement_replies
 |---|---|---|
 | 学生层 | `students.is_demo: bool` | True → admin 学生列表 / 出席统计 / 老师待审申请列表自动过滤 |
 | 注册码层 | `student_registration_codes.is_reviewer: bool` | True → 老师 `/current` 面板不可见 + 普通 `/refresh` 不作废 + 永久有效（spec §7.16 例外条款） |
+| 老师层 | `teachers.is_demo: bool`（经 `TeacherOut` 下发老师网页）| True → 点呼首页显示演示统计数据；False / 取不到 → 显示「準備中」占位。**只是显示开关，不承担隔离职责** —— 数据隔离仍在学生层（真老师查不到 `is_demo` 学生）|
 
 **Production seed 凭证**（`dev/backend/v1/seed.py` `APP_ENV=production` 模式）：
 
