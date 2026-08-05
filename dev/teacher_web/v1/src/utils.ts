@@ -69,3 +69,12 @@ export function formatJst(d: Date | null): string {
 
 // 旧 index.html 里 window.formatJstDeadline 是 formatJst 的别名。
 export const formatJstDeadline = formatJst;
+
+// 老师名字后面补「先生」，但名字本身已经带了就不再补。
+// 老师账号是人工建的，名字栏填成「○○ 先生」很自然，界面再补一个就成了「先生 先生」
+//（2026-08-05 演示前在大屏上真撞到）。
+export function teacherLabel(name: string | null | undefined): string {
+  const n = (name ?? "").trim();
+  if (!n) return "—";
+  return n.endsWith("先生") ? n : `${n} 先生`;
+}

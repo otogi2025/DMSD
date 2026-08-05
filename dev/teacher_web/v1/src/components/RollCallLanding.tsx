@@ -2,6 +2,7 @@ import React from "react";
 import { RYO, dormLabel } from "../theme";
 import { api } from "../api/client";
 import type { StudentAccountListOut } from "../api/types";
+import { teacherLabel } from "../utils";
 
 // 源 index.html 11940-12361（components/roll-call-landing.jsx 块）。
 // 界面 100% 冻结，仅做作用域引用替换：window.RYO→RYO / window.tomoshibiApi→api / window.dormLabel→dormLabel。
@@ -130,7 +131,7 @@ export function RollCallLanding({
       </div>
       <div style={{ color: T.ink2, fontSize: 13, marginBottom: 22 }}>
         対象 {studentCount ?? "—"} 名 · {dormLabel(teacher.dorm)} · 寮監{" "}
-        {teacher.name} 先生
+        {teacherLabel(teacher.name)}
       </div>
 
       {/* 学年更新 4 月提醒 —— 每年 4 月，提示从「学生账号管理」开始（spec §4.2）*/}

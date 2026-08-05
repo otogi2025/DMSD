@@ -2,6 +2,7 @@ import React from "react";
 import { RYO } from "./theme";
 import { api } from "./api/client";
 import { DormBadge } from "./components/shared";
+import { teacherLabel } from "./utils";
 import tomoshibiIcon from "./assets/tomoshibi-icon.png";
 
 // Shell — 左侧导航 + 顶栏（全局搜索 + WebSocket 状态指示灯 + 登出）。
@@ -397,7 +398,7 @@ export function Shell({
                 textOverflow: "ellipsis",
               }}
             >
-              {teacher ? teacher.name : "—"} 先生
+              {teacherLabel(teacher?.name)}
             </div>
             <div style={{ marginTop: 2 }}>
               <DormBadge dorm={teacher ? teacher.dorm : "men"} />

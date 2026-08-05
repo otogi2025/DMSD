@@ -1,5 +1,6 @@
 import React from "react";
 import { RYO, dormLabel } from "../theme";
+import { teacherLabel } from "../utils";
 import tomoshibiIcon from "../assets/tomoshibi-icon.png";
 
 // 源 index.html 12368-13008（components/live-roll-call.jsx 块）。
@@ -104,14 +105,28 @@ export function LiveRollCall({
           background: T.surface,
           borderBottom: `1px solid ${T.line}`,
           padding: "14px 28px",
-          display: "grid",
-          gridTemplateColumns: "auto 1fr auto",
+          // 2026-08-05 从 grid「auto 1fr auto」改成 flex + wrap。
+          // 原来三列横排，窗口一窄，中间那组统计数字会优先保住自己的最小宽度，
+          // 把左右两列挤到只剩一个字符宽 —— 日文没有词边界，一个字符宽就是竖着排，
+          // 标题「夜点呼・男子寮・管理者 先生」和右边两个按钮全部竖成一条。
+          // 改成 flex-wrap 后放不下是整块掉到下一行，永远不会被压扁。
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "space-between",
           alignItems: "center",
           gap: 20,
           boxShadow: T.shadow1,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            flexShrink: 0, // 标题绝不参与压缩，宁可让中间那组换行
+            whiteSpace: "nowrap",
+          }}
+        >
           <img
             src={tomoshibiIcon}
             alt=""
@@ -131,13 +146,22 @@ export function LiveRollCall({
             <div style={{ fontSize: 16, fontWeight: 700, marginTop: 1 }}>
               {sessionName}{" "}
               <span style={{ color: T.ink3, fontSize: 13, fontWeight: 500 }}>
-                · {dormLabel(teacher.dorm)} · {teacher.name} 先生
+                · {dormLabel(teacher.dorm)} · {teacherLabel(teacher.name)}
               </span>
             </div>
           </div>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "center", gap: 30 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            flexWrap: "wrap", // 极窄时数字们自己换行，不去挤两边
+            flex: "1 1 auto",
+            minWidth: 0, // 不写这行，这一块会拿最小内容宽度当地板，照样挤扁两边
+            gap: 30,
+          }}
+        >
           <Metric
             label="進捗"
             value={`${done}`}
@@ -159,7 +183,15 @@ export function LiveRollCall({
           />
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            flexShrink: 0, // 「座席を再取得」「点呼を終了」两个按钮同样不许被压成竖排
+            whiteSpace: "nowrap",
+          }}
+        >
           <NfcIndicator status={nfcStatus} seq={nfcSeq} />
           <div style={{ textAlign: "right" }}>
             <div
