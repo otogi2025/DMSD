@@ -22,7 +22,12 @@ Type=simple
 User=rollcall-1
 WorkingDirectory=/home/rollcall-1/rollcall_device
 # 走 venv 里的 python，跑 src 包的 main 模块（相对 import 需 -m 方式）
-ExecStart=/home/rollcall-1/rollcall_device/.venv/bin/python -m src.main --config /home/rollcall-1/rollcall_device/config/config.json
+# ⚠️ --skip-card-reader 是 PN532 未焊期间的临时参数：不带它开机自启会走真实 PN532
+# 初始化 → HardwareInitError → 退出码 3 → 撞下面的 RestartPreventExitStatus=3，服务
+# 停在 failed，手机碰 ST25DV 那条路（路径 B）也一起没了。带上后跳过读卡器初始化，
+# 只跑路径 B。
+# ⛔ PN532 焊好并验收后必须删掉这个参数，否则实体卡永远不会被读取（路径 A 静默失效）。
+ExecStart=/home/rollcall-1/rollcall_device/.venv/bin/python -m src.main --config /home/rollcall-1/rollcall_device/config/config.json --skip-card-reader
 Restart=on-failure
 RestartSec=5
 # 退出码 3 = 硬件初始化失败（接线 / SPI·I2C 开关 / 依赖库），重启多少次都不会自己好。
