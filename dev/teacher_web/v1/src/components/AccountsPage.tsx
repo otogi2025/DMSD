@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO, type RyoTokens } from "../theme";
+import { RYO, S, type RyoTokens } from "../theme";
 import { api } from "../api/client";
 import { canManage, C_STUDENT_ACCOUNT } from "../api/permissions";
 import { StudentProfileModal } from "./StudentProfileModal";
@@ -384,17 +384,14 @@ export function AccountsPage({
             <button
               onClick={handlePromotePreview}
               disabled={promoteLoading}
+              className="t-btn"
               style={{
+                ...S.btnPrimary,
                 padding: "8px 14px",
                 // 源用 T.amber || "#f59e0b"；theme.ts 无 amber 字段，运行时恒为 #f59e0b，保留同等行为
                 background:
                   (T as RyoTokens & { amber?: string }).amber || "#f59e0b",
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                fontFamily: "inherit",
-                fontSize: 13,
-                fontWeight: 700,
+                boxShadow: "none",
                 cursor: promoteLoading ? "not-allowed" : "pointer",
                 opacity: promoteLoading ? 0.6 : 1,
               }}
@@ -408,31 +405,23 @@ export function AccountsPage({
                 `新規登録は iOS App から本人入力（番号 = 学年 2 桁 + 組 2 桁 + 番号 2 桁、例：高 3 B 18 = 060218）。教師側での追加は未対応`,
               )
             }
+            className="t-btn"
             style={{
+              ...S.btnGhost,
               padding: "8px 14px",
-              background: "transparent",
               color: T.cobalt,
               border: `1px solid ${T.cobalt}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: "pointer",
             }}
           >
             ＋ 新規追加
           </button>
           <button
             onClick={() => alert("CSV 出力 · 未対応")}
+            className="t-btn"
             style={{
+              ...S.btnGhost,
               padding: "8px 14px",
-              background: "transparent",
               color: T.ink3,
-              border: `1px solid ${T.lineStrong}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              cursor: "pointer",
             }}
           >
             CSV 出力
@@ -444,25 +433,19 @@ export function AccountsPage({
       {promoteModal && promoteModal.phase === "preview" && (
         <div
           style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.45)",
+            ...S.backdrop,
             zIndex: 1000,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
           }}
         >
           <div
+            className="t-scale-in"
             style={{
-              background: T.surface,
-              borderRadius: 12,
+              ...S.modal,
               padding: "28px 32px",
               width: 540,
               maxWidth: "90vw",
               maxHeight: "80vh",
               overflowY: "auto",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
             }}
           >
             <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
@@ -495,7 +478,7 @@ export function AccountsPage({
                     background:
                       T.surfaceAlt ||
                       (T as RyoTokens & { bgStrong?: string }).bgStrong,
-                    borderRadius: 8,
+                    borderRadius: 10,
                     padding: "10px 14px",
                     textAlign: "center",
                   }}
@@ -518,7 +501,7 @@ export function AccountsPage({
                 maxHeight: 240,
                 overflowY: "auto",
                 border: `1px solid ${T.lineStrong}`,
-                borderRadius: 8,
+                borderRadius: 10,
                 marginBottom: 16,
               }}
             >
@@ -558,6 +541,7 @@ export function AccountsPage({
                   {promoteModal.preview.entries.map((e) => (
                     <tr
                       key={e.student_id}
+                      className="t-row"
                       style={{
                         borderTop: `1px solid ${T.line}`,
                       }}
@@ -589,7 +573,7 @@ export function AccountsPage({
                   padding: "8px 12px",
                   background: T.dangerSoft,
                   color: T.danger,
-                  borderRadius: 6,
+                  borderRadius: 8,
                   fontSize: 13,
                   marginBottom: 12,
                 }}
@@ -609,14 +593,10 @@ export function AccountsPage({
                   setPromoteModal(null);
                   setPromoteError(null);
                 }}
+                className="t-btn"
                 style={{
+                  ...S.btnGhost,
                   padding: "8px 18px",
-                  background: "transparent",
-                  border: `1px solid ${T.lineStrong}`,
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  cursor: "pointer",
                 }}
               >
                 キャンセル
@@ -624,15 +604,10 @@ export function AccountsPage({
               <button
                 onClick={handlePromoteConfirm}
                 disabled={promoteLoading}
+                className="t-btn"
                 style={{
+                  ...S.btnDanger,
                   padding: "8px 18px",
-                  background: T.danger,
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  fontWeight: 700,
                   cursor: promoteLoading ? "not-allowed" : "pointer",
                   opacity: promoteLoading ? 0.6 : 1,
                 }}
@@ -651,7 +626,7 @@ export function AccountsPage({
             padding: "10px 14px",
             background: T.dangerSoft,
             border: `1px solid ${T.dangerBorder}`,
-            borderRadius: 8,
+            borderRadius: 10,
             color: T.danger,
             fontSize: 13,
             marginBottom: 16,
@@ -668,7 +643,7 @@ export function AccountsPage({
             padding: "10px 14px",
             background: T.warnSoft,
             border: `1px solid ${T.warnBorder}`,
-            borderRadius: 8,
+            borderRadius: 10,
             color: T.warn,
             fontSize: 13,
             fontWeight: 600,
@@ -723,16 +698,12 @@ export function AccountsPage({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="番号・氏名で検索"
+          className="t-input"
           style={{
+            ...S.input,
             flex: 1,
             minWidth: 280,
-            padding: "10px 14px",
-            background: T.surface,
             border: `1px solid ${T.lineStrong}`,
-            borderRadius: 10,
-            fontFamily: "inherit",
-            fontSize: 13,
-            outline: "none",
             boxSizing: "border-box",
           }}
         />
@@ -776,20 +747,18 @@ export function AccountsPage({
 
       <div
         style={{
-          background: T.surface,
-          border: `1px solid ${T.line}`,
-          borderRadius: 12,
+          ...S.card,
           overflow: "hidden",
-          boxShadow: T.shadow1,
         }}
       >
+        {/* 表格页保守：表头 padding「10px 12px」比 S.tableHead 小，只换颜色 */}
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "110px 160px 80px 60px 80px 130px 110px 90px",
             background: T.surfaceAlt,
             fontSize: 11,
-            color: T.ink2,
+            color: T.ink3,
             fontWeight: 600,
             letterSpacing: 1,
             borderBottom: `1px solid ${T.line}`,
@@ -861,10 +830,10 @@ export function AccountsPage({
                   {groupPending > 0 && (
                     <span
                       style={{
+                        ...S.pill,
                         fontSize: 11,
                         fontWeight: 700,
                         padding: "1px 8px",
-                        borderRadius: 8,
                         background: T.warnSoft,
                         color: T.warn,
                       }}
@@ -877,6 +846,7 @@ export function AccountsPage({
                   group.rows.map((a, i) => (
                     <div
                       key={a.id}
+                      className="t-row"
                       onClick={() => setDetailTarget(a)}
                       style={{
                         display: "grid",
@@ -886,14 +856,7 @@ export function AccountsPage({
                         fontSize: 12.5,
                         alignItems: "center",
                         cursor: "pointer",
-                        transition: "background .1s",
                       }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.background = T.surfaceAlt)
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.background = "transparent")
-                      }
                     >
                       <div
                         style={{
@@ -943,10 +906,10 @@ export function AccountsPage({
                         {a.is_locked ? (
                           <span
                             style={{
+                              ...S.pill,
                               fontSize: 11,
                               fontWeight: 700,
                               padding: "2px 8px",
-                              borderRadius: 4,
                               background: T.dangerSoft,
                               color: T.danger,
                               border: `1px solid ${T.dangerBorder}`,
@@ -957,10 +920,10 @@ export function AccountsPage({
                         ) : a.status === "active" ? (
                           <span
                             style={{
+                              ...S.pill,
                               fontSize: 11,
                               fontWeight: 700,
                               padding: "2px 8px",
-                              borderRadius: 4,
                               background: T.okSoft,
                               color: T.ok,
                               border: `1px solid ${T.okBorder}`,
@@ -971,10 +934,10 @@ export function AccountsPage({
                         ) : (
                           <span
                             style={{
+                              ...S.pill,
                               fontSize: 11,
                               fontWeight: 700,
                               padding: "2px 8px",
-                              borderRadius: 4,
                               background: T.warnSoft,
                               color: T.warn,
                               border: `1px solid ${T.warnBorder}`,
@@ -997,16 +960,15 @@ export function AccountsPage({
                             e.stopPropagation();
                             setDetailTarget(a);
                           }}
+                          className="t-btn"
                           style={{
+                            ...S.btnSmall,
                             padding: "4px 9px",
                             fontSize: 11,
                             fontWeight: 700,
                             background: "transparent",
                             color: T.cobalt,
                             border: `1px solid ${T.cobalt}`,
-                            borderRadius: 6,
-                            cursor: "pointer",
-                            fontFamily: "inherit",
                           }}
                         >
                           詳細
@@ -1016,16 +978,15 @@ export function AccountsPage({
                             e.stopPropagation();
                             setProfileTarget({ id: a.id, name: a.name });
                           }}
+                          className="t-btn"
                           style={{
+                            ...S.btnSmall,
                             padding: "4px 9px",
                             fontSize: 11,
                             fontWeight: 700,
                             background: "transparent",
                             color: T.ink2,
                             border: `1px solid ${T.lineStrong}`,
-                            borderRadius: 6,
-                            cursor: "pointer",
-                            fontFamily: "inherit",
                           }}
                         >
                           記録
@@ -1076,23 +1037,17 @@ export function AccountsPage({
         <div
           onClick={() => setTempPwModal(null)}
           style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(20,23,31,.55)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            ...S.backdrop,
             zIndex: 200,
             fontFamily: T.font,
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
+            className="t-scale-in"
             style={{
+              ...S.modal,
               width: 420,
-              background: T.surface,
-              borderRadius: 14,
-              boxShadow: T.shadowModal,
               padding: "28px 28px 20px",
             }}
           >
@@ -1126,7 +1081,7 @@ export function AccountsPage({
                 gap: 8,
                 background: T.surfaceAlt,
                 border: `1px solid ${T.lineStrong}`,
-                borderRadius: 8,
+                borderRadius: 10,
                 padding: "10px 14px",
                 marginBottom: 20,
               }}
@@ -1149,16 +1104,12 @@ export function AccountsPage({
                     .writeText(tempPwModal.pw)
                     .then(() => setToast({ type: "ok", msg: "コピーしました" }))
                 }
+                className="t-btn"
                 style={{
+                  ...S.btnPrimary,
                   padding: "5px 12px",
-                  background: T.cobalt,
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 6,
-                  fontFamily: "inherit",
                   fontSize: 12,
-                  fontWeight: 700,
-                  cursor: "pointer",
+                  borderRadius: 8,
                 }}
               >
                 コピー
@@ -1167,16 +1118,10 @@ export function AccountsPage({
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <button
                 onClick={() => setTempPwModal(null)}
+                className="t-btn"
                 style={{
+                  ...S.btnPrimary,
                   padding: "8px 20px",
-                  background: T.cobalt,
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: "pointer",
                 }}
               >
                 確認・閉じる
@@ -1231,11 +1176,10 @@ function AcctStat({
   return (
     <div
       onClick={onClick || undefined}
+      className={onClick ? "t-card" : undefined}
       style={{
+        ...S.card,
         padding: "14px 16px",
-        background: T.surface,
-        border: `1px solid ${T.line}`,
-        borderRadius: 10,
         cursor: onClick ? "pointer" : "default",
       }}
     >
@@ -1308,12 +1252,7 @@ function AccountDetailModal({
     <div
       onClick={onClose}
       style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(20,23,31,.55)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        ...S.backdrop,
         zIndex: 100,
         fontFamily: T.font,
         padding: 20,
@@ -1321,13 +1260,12 @@ function AccountDetailModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="t-scale-in"
         style={{
+          ...S.modal,
           width: 820,
           maxHeight: "94vh",
           overflow: "auto",
-          background: T.surface,
-          borderRadius: 14,
-          boxShadow: T.shadowModal,
           color: T.ink,
         }}
       >
@@ -1336,7 +1274,7 @@ function AccountDetailModal({
             padding: "20px 28px 16px",
             borderBottom: `1px solid ${T.line}`,
             background: T.surfaceAlt,
-            borderRadius: "14px 14px 0 0",
+            borderRadius: "20px 20px 0 0",
             display: "flex",
             alignItems: "center",
             gap: 16,
@@ -1346,7 +1284,7 @@ function AccountDetailModal({
             style={{
               width: 56,
               height: 56,
-              borderRadius: 28,
+              borderRadius: 20,
               background: T.cobaltSoft,
               color: T.cobaltDeep,
               fontSize: 22,
@@ -1373,11 +1311,11 @@ function AccountDetailModal({
               {account.is_locked && (
                 <span
                   style={{
+                    ...S.pill,
                     fontSize: 10,
                     padding: "2px 8px",
                     background: T.danger,
                     color: "#fff",
-                    borderRadius: 4,
                     fontWeight: 700,
                     letterSpacing: 1,
                   }}
@@ -1560,14 +1498,14 @@ function AccountDetailModal({
                   <select
                     value={rnGrade}
                     onChange={(e) => setRnGrade(e.target.value)}
+                    className="t-input"
                     style={{
+                      ...S.input,
                       display: "block",
                       marginTop: 4,
                       padding: "6px 8px",
-                      borderRadius: 6,
+                      borderRadius: 8,
                       border: `1px solid ${T.lineStrong}`,
-                      fontFamily: "inherit",
-                      fontSize: 13,
                     }}
                   >
                     <option value="01">中1</option>
@@ -1583,14 +1521,14 @@ function AccountDetailModal({
                   <select
                     value={rnClass}
                     onChange={(e) => setRnClass(e.target.value)}
+                    className="t-input"
                     style={{
+                      ...S.input,
                       display: "block",
                       marginTop: 4,
                       padding: "6px 8px",
-                      borderRadius: 6,
+                      borderRadius: 8,
                       border: `1px solid ${T.lineStrong}`,
-                      fontFamily: "inherit",
-                      fontSize: 13,
                     }}
                   >
                     <option value="01">A組</option>
@@ -1605,15 +1543,16 @@ function AccountDetailModal({
                       setRnSeat(e.target.value.replace(/\D/g, "").slice(0, 2))
                     }
                     placeholder="18"
+                    className="t-input"
                     style={{
+                      ...S.input,
                       display: "block",
                       marginTop: 4,
                       padding: "6px 8px",
                       width: 60,
-                      borderRadius: 6,
+                      borderRadius: 8,
                       border: `1px solid ${T.lineStrong}`,
                       fontFamily: T.mono,
-                      fontSize: 13,
                     }}
                   />
                 </label>
@@ -1627,18 +1566,18 @@ function AccountDetailModal({
                       seat_no: rnSeat,
                     })
                   }
+                  className="t-btn"
                   style={{
+                    ...S.btnPrimary,
                     padding: "8px 14px",
                     background:
                       !rnDirty || !rnValid || actionLoading
                         ? T.lineStrong
-                        : T.cobalt,
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 8,
-                    fontFamily: "inherit",
-                    fontSize: 13,
-                    fontWeight: 700,
+                        : undefined,
+                    boxShadow:
+                      !rnDirty || !rnValid || actionLoading
+                        ? "none"
+                        : undefined,
                     cursor:
                       !rnDirty || !rnValid || actionLoading
                         ? "not-allowed"
@@ -1673,7 +1612,7 @@ function AccountDetailModal({
               style={{
                 background: T.warnSoft,
                 border: `1px solid ${T.warnBorder}`,
-                borderRadius: 8,
+                borderRadius: 10,
                 padding: "12px 14px",
                 marginBottom: 12,
                 fontSize: 12,
@@ -1695,15 +1634,14 @@ function AccountDetailModal({
                   )
                     onPasswordReset(account);
                 }}
+                className="t-btn"
                 style={{
+                  ...S.btnPrimary,
                   padding: "9px 18px",
                   background: actionLoading ? T.lineStrong : T.warn,
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  fontWeight: 700,
+                  boxShadow: actionLoading
+                    ? "none"
+                    : "0 2px 8px rgba(169,118,44,.24)",
                   cursor: actionLoading ? "not-allowed" : "pointer",
                 }}
               >
@@ -1720,15 +1658,12 @@ function AccountDetailModal({
                     )
                       onUnlock(account);
                   }}
+                  className="t-btn"
                   style={{
+                    ...S.btnDanger,
                     padding: "9px 18px",
-                    background: actionLoading ? T.lineStrong : T.danger,
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 8,
-                    fontFamily: "inherit",
-                    fontSize: 13,
-                    fontWeight: 700,
+                    background: actionLoading ? T.lineStrong : undefined,
+                    boxShadow: actionLoading ? "none" : undefined,
                     cursor: actionLoading ? "not-allowed" : "pointer",
                   }}
                 >
@@ -1739,15 +1674,11 @@ function AccountDetailModal({
                 onClick={() =>
                   alert("アカウント無効化 · 未対応（卒業・退寮時に使用）")
                 }
+                className="t-btn"
                 style={{
+                  ...S.btnGhost,
                   padding: "9px 18px",
-                  background: "transparent",
                   color: T.ink3,
-                  border: `1px solid ${T.lineStrong}`,
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  cursor: "pointer",
                 }}
               >
                 アカウント無効化
@@ -1765,7 +1696,7 @@ function AccountDetailModal({
                 padding: "10px 12px",
                 background: T.warnSoft,
                 border: `1px solid ${T.warnBorder}`,
-                borderRadius: 8,
+                borderRadius: 10,
                 fontSize: 12,
                 fontWeight: 600,
                 color: T.ink,
@@ -1788,20 +1719,22 @@ function AccountDetailModal({
               {activities.map((act, i) => (
                 <div
                   key={i}
+                  className="t-fade-up"
                   style={{
                     display: "flex",
                     gap: 12,
                     padding: "12px 14px",
                     background: T.surface,
                     border: `1px solid ${T.line}`,
-                    borderRadius: 10,
+                    borderRadius: 12,
+                    ...(i < 12 ? { animationDelay: `${i * 40}ms` } : null),
                   }}
                 >
                   <div
                     style={{
                       width: 28,
                       height: 28,
-                      borderRadius: 14,
+                      borderRadius: 16,
                       background: act.color + "1a",
                       color: act.color,
                       display: "flex",
@@ -1869,21 +1802,15 @@ function AccountDetailModal({
             display: "flex",
             justifyContent: "flex-end",
             gap: 8,
-            borderRadius: "0 0 14px 14px",
+            borderRadius: "0 0 20px 20px",
           }}
         >
           <button
             onClick={onClose}
+            className="t-btn"
             style={{
+              ...S.btnGhost,
               padding: "9px 18px",
-              background: "transparent",
-              color: T.ink,
-              border: `1px solid ${T.lineStrong}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: "pointer",
             }}
           >
             閉じる

@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
+import { RYO, S } from "../theme";
 import type { RyoTokens } from "../theme";
 import { api } from "../api/client";
 import {
@@ -24,18 +24,14 @@ import { canManage, C_DEMERIT } from "../api/permissions";
 //   改动3：学生 ID 裸输入 → StudentPicker 单选（searchDemeritStudents）。
 // list 口径：后端不带参数，直接拉所有未审核（assigned/done）的安排，按 scheduled_at 升序。
 
-// 清扫输入框样式（源 front-desk 块 inputStyle 的本地副本）
+// 清扫输入框样式 — 套 S.input，保留原 padding / 边框强度
 function modalInputStyle(T: RyoTokens): React.CSSProperties {
   return {
+    ...S.input,
     width: "100%",
     padding: "9px 12px",
     border: `1px solid ${T.lineStrong}`,
-    borderRadius: 8,
-    fontSize: 13,
-    fontFamily: "inherit",
     boxSizing: "border-box",
-    background: T.surface,
-    color: T.ink,
   };
 }
 
@@ -160,17 +156,11 @@ export function CleaningPage({
         {canWrite && (
           <button
             onClick={() => setComposing(true)}
+            className="t-btn"
             style={{
+              ...S.btnPrimary,
               marginLeft: "auto",
               padding: "8px 16px",
-              background: T.cobalt,
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: "pointer",
             }}
           >
             ＋ 清掃を割り当て
@@ -188,7 +178,7 @@ export function CleaningPage({
             padding: "10px 16px",
             background: "#fff0f0",
             border: "1px solid #f5c6cb",
-            borderRadius: 8,
+            borderRadius: 10,
             color: T.danger,
             fontSize: 13,
             marginBottom: 16,
@@ -200,15 +190,14 @@ export function CleaningPage({
           <span style={{ flex: 1 }}>{fetchError}</span>
           <button
             onClick={loadItems}
+            className="t-btn"
             style={{
+              ...S.btnGhost,
               padding: "4px 12px",
-              background: "transparent",
+              fontSize: 12,
               color: T.danger,
               border: "1px solid #f5c6cb",
-              borderRadius: 6,
-              fontFamily: "inherit",
-              fontSize: 12,
-              cursor: "pointer",
+              borderRadius: 8,
             }}
           >
             再試行
@@ -231,7 +220,7 @@ export function CleaningPage({
             fontSize: 13,
             background: T.surface,
             border: `1px dashed ${T.lineStrong}`,
-            borderRadius: 10,
+            borderRadius: 12,
           }}
         >
           まだデータがありません
@@ -246,7 +235,7 @@ export function CleaningPage({
             gap: 14,
           }}
         >
-          {items.map((item) => {
+          {items.map((item, i) => {
             const [col, bg, bd, lbl] =
               statusColors[item.status] || statusColors.assigned;
             const canInspect =
@@ -254,12 +243,11 @@ export function CleaningPage({
             return (
               <div
                 key={item.id}
+                className="t-fade-up"
                 style={{
-                  background: T.surface,
-                  border: `1px solid ${T.line}`,
-                  borderRadius: 12,
+                  ...S.card,
                   padding: 14,
-                  boxShadow: T.shadow1,
+                  ...(i < 12 ? { animationDelay: `${i * 40}ms` } : null),
                 }}
               >
                 <div
@@ -272,10 +260,10 @@ export function CleaningPage({
                 >
                   <span
                     style={{
+                      ...S.pill,
                       fontSize: 10,
                       fontWeight: 700,
                       padding: "2px 8px",
-                      borderRadius: 4,
                       background: bg,
                       color: col,
                       border: `1px solid ${bd}`,
@@ -346,34 +334,28 @@ export function CleaningPage({
                   <div style={{ display: "flex", gap: 6 }}>
                     <button
                       onClick={() => handleInspect(item.id, "passed")}
+                      className="t-btn"
                       style={{
+                        ...S.btnPrimary,
                         flex: 1,
                         padding: "7px",
-                        background: T.cobalt,
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: 6,
                         fontSize: 12,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        fontFamily: "inherit",
+                        borderRadius: 8,
                       }}
                     >
                       承認
                     </button>
                     <button
                       onClick={() => setRejectTarget(item)}
+                      className="t-btn"
                       style={{
+                        ...S.btnGhost,
                         flex: 1,
                         padding: "7px",
-                        background: "transparent",
                         color: T.danger,
                         border: `1px solid ${T.dangerBorder}`,
-                        borderRadius: 6,
                         fontSize: 12,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        fontFamily: "inherit",
+                        borderRadius: 8,
                       }}
                     >
                       却下
@@ -462,6 +444,7 @@ function CleaningCreateModal({
           onChange={(e) => setArea(e.target.value)}
           maxLength={32}
           placeholder="例：1階トイレ / 共用キッチン / 玄関前"
+          className="t-input"
           style={modalInputStyle(T)}
         />
       </ModalField>
@@ -470,6 +453,7 @@ function CleaningCreateModal({
           type="datetime-local"
           value={when}
           onChange={(e) => setWhen(e.target.value)}
+          className="t-input"
           style={modalInputStyle(T)}
         />
         {isPast && (
@@ -519,6 +503,7 @@ function CleaningRejectModal({
           onChange={(e) => setReason(e.target.value)}
           rows={3}
           placeholder="例：清掃が不十分でした"
+          className="t-input"
           style={{
             ...modalInputStyle(T),
             resize: "vertical",

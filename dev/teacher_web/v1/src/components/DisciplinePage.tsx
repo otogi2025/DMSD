@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO, dormLabel } from "../theme";
+import { RYO, S, dormLabel } from "../theme";
 import type { RyoTokens } from "../theme";
 import { api } from "../api/client";
 import { IncidentsPage } from "./IncidentsPage";
@@ -282,7 +282,7 @@ export function DisciplinePage({
                 padding: "10px 16px",
                 background: "#fff0f0",
                 border: "1px solid #f5c6cb",
-                borderRadius: 8,
+                borderRadius: 10,
                 color: T.danger,
                 fontSize: 13,
                 marginBottom: 16,
@@ -294,15 +294,14 @@ export function DisciplinePage({
               <span style={{ flex: 1 }}>{fetchError}</span>
               <button
                 onClick={loadRanking}
+                className="t-btn"
                 style={{
+                  ...S.btnGhost,
                   padding: "4px 12px",
-                  background: "transparent",
+                  fontSize: 12,
                   color: T.danger,
                   border: "1px solid #f5c6cb",
-                  borderRadius: 6,
-                  fontFamily: "inherit",
-                  fontSize: 12,
-                  cursor: "pointer",
+                  borderRadius: 8,
                 }}
               >
                 再試行
@@ -317,7 +316,7 @@ export function DisciplinePage({
                 padding: "10px 16px",
                 background: "#f0fff4",
                 border: "1px solid #b7ebc8",
-                borderRadius: 8,
+                borderRadius: 10,
                 color: T.ok,
                 fontSize: 13,
                 marginBottom: 16,
@@ -330,15 +329,14 @@ export function DisciplinePage({
               {canWrite && (
                 <button
                   onClick={() => handleRevoke(lastEvent)}
+                  className="t-btn"
                   style={{
+                    ...S.btnGhost,
                     padding: "4px 12px",
-                    background: "transparent",
+                    fontSize: 12,
                     color: T.danger,
                     border: `1px solid ${T.dangerBorder}`,
-                    borderRadius: 6,
-                    fontFamily: "inherit",
-                    fontSize: 12,
-                    cursor: "pointer",
+                    borderRadius: 8,
                   }}
                 >
                   取り消し
@@ -365,11 +363,8 @@ export function DisciplinePage({
           {/* 规则卡 */}
           <div
             style={{
-              background: T.surface,
-              border: `1px solid ${T.line}`,
-              borderRadius: 12,
+              ...S.card,
               padding: "18px 22px",
-              boxShadow: T.shadow1,
               marginBottom: 20,
             }}
           >
@@ -412,16 +407,10 @@ export function DisciplinePage({
             >
               <button
                 onClick={() => setSearchAddOpen(true)}
+                className="t-btn"
                 style={{
+                  ...S.btnPrimary,
                   padding: "9px 16px",
-                  background: T.cobalt,
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: "pointer",
                 }}
               >
                 ＋ 任意の寮生に手動加算
@@ -441,21 +430,19 @@ export function DisciplinePage({
           ) : (
             <div
               style={{
-                background: T.surface,
-                border: `1px solid ${T.line}`,
-                borderRadius: 12,
+                ...S.card,
                 overflow: "hidden",
-                boxShadow: T.shadow1,
                 marginBottom: 24,
               }}
             >
+              {/* 表格页保守：表头 padding「10px 12px」比 S.tableHead 小，只换颜色 */}
               <div
                 style={{
                   display: "grid",
                   gridTemplateColumns: "50px 1fr 90px 90px 120px 120px 130px",
                   background: T.surfaceAlt,
                   fontSize: 11,
-                  color: T.ink2,
+                  color: T.ink3,
                   fontWeight: 600,
                   letterSpacing: 1,
                   borderBottom: `1px solid ${T.line}`,
@@ -489,6 +476,7 @@ export function DisciplinePage({
               {data.map((d, i) => (
                 <div
                   key={d.id}
+                  className="t-row"
                   style={{
                     display: "grid",
                     gridTemplateColumns: "50px 1fr 90px 90px 120px 120px 130px",
@@ -558,16 +546,14 @@ export function DisciplinePage({
                             current: d.total,
                           })
                         }
+                        className="t-btn"
                         style={{
+                          ...S.btnSmall,
                           padding: "4px 10px",
+                          fontSize: 11,
                           background: "transparent",
                           color: T.cobalt,
                           border: `1px solid ${T.cobalt}`,
-                          borderRadius: 5,
-                          fontFamily: "inherit",
-                          fontSize: 11,
-                          fontWeight: 600,
-                          cursor: "pointer",
                         }}
                       >
                         手動加算
@@ -621,7 +607,7 @@ export function DisciplinePage({
               marginTop: 30,
               background: T.surface,
               border: `1px dashed ${T.lineStrong}`,
-              borderRadius: 12,
+              borderRadius: 16,
               padding: "18px 20px",
               opacity: 0.85,
             }}
@@ -639,12 +625,12 @@ export function DisciplinePage({
               </div>
               <span
                 style={{
+                  ...S.pill,
                   fontSize: 10,
                   fontWeight: 700,
                   color: T.warn,
                   background: T.warnSoft,
                   padding: "2px 8px",
-                  borderRadius: 4,
                   letterSpacing: 1,
                 }}
               >
@@ -699,18 +685,14 @@ export function DisciplinePage({
   );
 }
 
-// 手动加分输入框样式（源 front-desk 块 inputStyle / window.modalInputStyle 的本地副本）
+// 手动加分输入框样式 — 套 S.input，保留原 padding / 边框强度
 function modalInputStyle(T: RyoTokens): React.CSSProperties {
   return {
+    ...S.input,
     width: "100%",
     padding: "9px 12px",
     border: `1px solid ${T.lineStrong}`,
-    borderRadius: 8,
-    fontSize: 13,
-    fontFamily: "inherit",
     boxSizing: "border-box",
-    background: T.surface,
-    color: T.ink,
   };
 }
 
@@ -744,7 +726,7 @@ function ScoreChangedBanner({
         padding: "8px 12px",
         background: T.warnSoft,
         border: `1px solid ${T.warn}`,
-        borderRadius: 8,
+        borderRadius: 10,
         color: T.warn,
         fontSize: 12,
         lineHeight: 1.5,
@@ -914,7 +896,7 @@ function ManualDemeritModal({
             padding: "10px 12px",
             background: "#fff0f0",
             border: "1px solid #f5c6cb",
-            borderRadius: 8,
+            borderRadius: 10,
             color: T.danger,
             fontSize: 12,
             lineHeight: 1.5,
@@ -932,15 +914,14 @@ function ManualDemeritModal({
           <button
             type="button"
             onClick={() => reloadCurrent()}
+            className="t-btn"
             style={{
+              ...S.btnGhost,
               padding: "4px 12px",
-              background: "transparent",
+              fontSize: 12,
               color: T.danger,
               border: "1px solid #f5c6cb",
-              borderRadius: 6,
-              fontFamily: "inherit",
-              fontSize: 12,
-              cursor: "pointer",
+              borderRadius: 8,
               whiteSpace: "nowrap",
             }}
           >
@@ -959,6 +940,7 @@ function ManualDemeritModal({
           value={score}
           disabled={fetchState !== "ready"}
           onChange={(e) => setScore(e.target.value)}
+          className="t-input"
           style={{
             ...modalInputStyle(T),
             opacity: fetchState === "ready" ? 1 : 0.6,
@@ -971,6 +953,7 @@ function ManualDemeritModal({
           onChange={(e) => setReason(e.target.value)}
           placeholder="例：消灯後廊下で騒いでいた"
           disabled={fetchState !== "ready"}
+          className="t-input"
           style={modalInputStyle(T)}
         />
       </ModalField>
@@ -1215,7 +1198,7 @@ function ManualDemeritSearchModal({
             padding: "10px 12px",
             background: "#fff0f0",
             border: "1px solid #f5c6cb",
-            borderRadius: 8,
+            borderRadius: 10,
             color: T.danger,
             fontSize: 12,
             lineHeight: 1.5,
@@ -1233,15 +1216,14 @@ function ManualDemeritSearchModal({
           <button
             type="button"
             onClick={retryFetch}
+            className="t-btn"
             style={{
+              ...S.btnGhost,
               padding: "4px 12px",
-              background: "transparent",
+              fontSize: 12,
               color: T.danger,
               border: "1px solid #f5c6cb",
-              borderRadius: 6,
-              fontFamily: "inherit",
-              fontSize: 12,
-              cursor: "pointer",
+              borderRadius: 8,
               whiteSpace: "nowrap",
             }}
           >
@@ -1263,6 +1245,7 @@ function ManualDemeritSearchModal({
             scoreTouchedRef.current = true;
             setScore(e.target.value);
           }}
+          className="t-input"
           style={{
             ...modalInputStyle(T),
             opacity: student && fetchState === "ready" ? 1 : 0.6,
@@ -1275,6 +1258,7 @@ function ManualDemeritSearchModal({
           onChange={(e) => setReason(e.target.value)}
           placeholder="例：消灯後廊下で騒いでいた"
           disabled={!student || fetchState !== "ready"}
+          className="t-input"
           style={modalInputStyle(T)}
         />
       </ModalField>
@@ -1303,14 +1287,13 @@ function RulePill({
   return (
     <div
       style={{
+        ...S.pill,
         background: T.surfaceAlt,
         border: `1px solid ${T.line}`,
-        borderRadius: 999,
         padding: "6px 14px",
-        display: "inline-flex",
-        alignItems: "center",
         gap: 8,
         fontSize: 12,
+        fontWeight: 400,
       }}
     >
       <span style={{ color: T.ink3 }}>{label}</span>
@@ -1375,10 +1358,8 @@ function StudentCardRow({
     return (
       <div
         style={{
+          ...S.card,
           padding: "14px 16px",
-          background: T.surface,
-          border: `1px solid ${T.line}`,
-          borderRadius: 10,
           fontSize: 12,
           color: T.ink3,
           marginBottom: 18,
@@ -1396,15 +1377,14 @@ function StudentCardRow({
         marginBottom: 18,
       }}
     >
-      {list.map((d) => (
+      {list.map((d, i) => (
         <div
           key={d.id}
+          className="t-fade-up"
           style={{
-            background: T.surface,
-            border: `1px solid ${T.line}`,
-            borderRadius: 10,
+            ...S.card,
             padding: "12px 14px",
-            boxShadow: T.shadow1,
+            ...(i < 12 ? { animationDelay: `${i * 40}ms` } : null),
           }}
         >
           <div style={{ fontSize: 15, fontWeight: 700 }}>{d.name}</div>

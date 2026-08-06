@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
+import { RYO, S } from "../theme";
 import { api } from "../api/client";
 import type {
   StudentProfile,
@@ -159,23 +159,17 @@ export function StudentProfileModal({
     <div
       onClick={onClose}
       style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(20,23,31,.52)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        ...S.backdrop,
         zIndex: 300,
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="t-scale-in"
         style={{
+          ...S.modal,
           width: 740,
           maxHeight: "88vh",
-          background: T.surface,
-          borderRadius: 16,
-          boxShadow: T.shadowModal,
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
@@ -281,7 +275,7 @@ export function StudentProfileModal({
                 padding: "10px 14px",
                 background: T.dangerSoft,
                 border: `1px solid ${T.dangerBorder}`,
-                borderRadius: 8,
+                borderRadius: 10,
                 color: T.danger,
                 fontSize: 13,
               }}
@@ -430,15 +424,19 @@ export function StudentProfileModal({
                     )}
                   {(data.guidance_records || []).length > 0 && (
                     <div style={{ marginBottom: 16 }}>
-                      {(data.guidance_records || []).map((gr) => (
+                      {(data.guidance_records || []).map((gr, gi) => (
                         <div
                           key={gr.id}
+                          className="t-fade-up"
                           style={{
                             padding: "12px 14px",
                             marginBottom: 8,
                             background: T.surfaceAlt,
-                            borderRadius: 8,
+                            borderRadius: 10,
                             border: `1px solid ${T.line}`,
+                            ...(gi < 12
+                              ? { animationDelay: `${gi * 40}ms` }
+                              : null),
                           }}
                         >
                           <div
@@ -459,11 +457,11 @@ export function StudentProfileModal({
                               {gr.category && (
                                 <span
                                   style={{
+                                    ...S.pill,
                                     marginLeft: 8,
                                     padding: "1px 6px",
                                     background: T.cobaltSoft,
                                     color: T.cobaltDeep,
-                                    borderRadius: 4,
                                     fontSize: 11,
                                   }}
                                 >
@@ -502,7 +500,7 @@ export function StudentProfileModal({
                       style={{
                         padding: "16px",
                         background: T.surfaceAlt,
-                        borderRadius: 10,
+                        borderRadius: 12,
                         border: `1px solid ${T.line}`,
                       }}
                     >
@@ -537,14 +535,12 @@ export function StudentProfileModal({
                             type="date"
                             value={gDate}
                             onChange={(e) => setGDate(e.target.value)}
+                            className="t-input"
                             style={{
+                              ...S.input,
                               width: "100%",
                               padding: "8px 10px",
                               border: `1px solid ${T.lineStrong}`,
-                              borderRadius: 7,
-                              fontFamily: "inherit",
-                              fontSize: 13,
-                              background: T.surface,
                               boxSizing: "border-box",
                             }}
                           />
@@ -563,14 +559,12 @@ export function StudentProfileModal({
                             value={gCategory}
                             onChange={(e) => setGCategory(e.target.value)}
                             placeholder="例：生活態度、門限違反"
+                            className="t-input"
                             style={{
+                              ...S.input,
                               width: "100%",
                               padding: "8px 10px",
                               border: `1px solid ${T.lineStrong}`,
-                              borderRadius: 7,
-                              fontFamily: "inherit",
-                              fontSize: 13,
-                              background: T.surface,
                               boxSizing: "border-box",
                             }}
                           />
@@ -591,14 +585,12 @@ export function StudentProfileModal({
                           onChange={(e) => setGContent(e.target.value)}
                           rows={4}
                           placeholder="指導内容を記入してください（最大 4000 文字）"
+                          className="t-input"
                           style={{
+                            ...S.input,
                             width: "100%",
                             padding: "8px 10px",
                             border: `1px solid ${T.lineStrong}`,
-                            borderRadius: 7,
-                            fontFamily: "inherit",
-                            fontSize: 13,
-                            background: T.surface,
                             resize: "vertical",
                             boxSizing: "border-box",
                           }}
@@ -636,15 +628,10 @@ export function StudentProfileModal({
                         <button
                           onClick={submitGuidance}
                           disabled={gSubmitting}
+                          className="t-btn"
                           style={{
+                            ...S.btnPrimary,
                             padding: "9px 20px",
-                            background: T.cobalt,
-                            color: "#fff",
-                            border: "none",
-                            borderRadius: 8,
-                            fontFamily: "inherit",
-                            fontSize: 13,
-                            fontWeight: 700,
                             cursor: gSubmitting ? "not-allowed" : "pointer",
                             opacity: gSubmitting ? 0.7 : 1,
                           }}
@@ -656,15 +643,10 @@ export function StudentProfileModal({
                             setShowGuidanceForm(false);
                             setGError(null);
                           }}
+                          className="t-btn"
                           style={{
+                            ...S.btnGhost,
                             padding: "9px 18px",
-                            background: "transparent",
-                            color: T.ink,
-                            border: `1px solid ${T.lineStrong}`,
-                            borderRadius: 8,
-                            fontFamily: "inherit",
-                            fontSize: 13,
-                            cursor: "pointer",
                           }}
                         >
                           キャンセル
@@ -674,16 +656,10 @@ export function StudentProfileModal({
                   ) : (
                     <button
                       onClick={() => setShowGuidanceForm(true)}
+                      className="t-btn"
                       style={{
+                        ...S.btnPrimary,
                         padding: "9px 18px",
-                        background: T.cobalt,
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: 8,
-                        fontFamily: "inherit",
-                        fontSize: 13,
-                        fontWeight: 700,
-                        cursor: "pointer",
                       }}
                     >
                       ＋ 指導記録を登録
@@ -718,15 +694,19 @@ export function StudentProfileModal({
                     </div>
                   )}
                   {data.study_online_requests &&
-                    data.study_online_requests.map((so) => (
+                    data.study_online_requests.map((so, soi) => (
                       <div
                         key={so.id}
+                        className="t-fade-up"
                         style={{
                           padding: "12px 14px",
                           marginBottom: 8,
                           background: T.surfaceAlt,
-                          borderRadius: 8,
+                          borderRadius: 10,
                           border: `1px solid ${T.line}`,
+                          ...(soi < 12
+                            ? { animationDelay: `${soi * 40}ms` }
+                            : null),
                         }}
                       >
                         <div
@@ -785,16 +765,14 @@ export function StudentProfileModal({
                                 });
                               }
                             }}
+                            className="t-btn"
                             style={{
+                              ...S.btnSmall,
                               padding: "6px 12px",
                               background: T.cobaltSoft,
                               color: T.cobaltDeep,
                               border: "none",
-                              borderRadius: 6,
-                              fontFamily: "inherit",
-                              fontSize: 12,
                               fontWeight: 700,
-                              cursor: "pointer",
                             }}
                           >
                             📎 契約書を見る（{so.contract_file_name}）
@@ -823,7 +801,7 @@ export function StudentProfileModal({
               padding: "10px 20px",
               background: toast.type === "ok" ? T.ok : T.danger,
               color: "#fff",
-              borderRadius: 8,
+              borderRadius: 10,
               fontSize: 13,
               fontWeight: 600,
               pointerEvents: "none",
@@ -861,19 +839,18 @@ function ProfileList<T extends { id?: string | number }>({
   return (
     <div
       style={{
-        background: TH.surface,
-        border: `1px solid ${TH.line}`,
-        borderRadius: 10,
+        ...S.card,
         overflow: "hidden",
       }}
     >
+      {/* 表头 padding 比 S.tableHead 小，只换颜色不套配方 */}
       <div
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(${cols.length}, 1fr)`,
           background: TH.surfaceAlt,
           fontSize: 11,
-          color: TH.ink2,
+          color: TH.ink3,
           fontWeight: 600,
           letterSpacing: 1,
           borderBottom: `1px solid ${TH.line}`,
@@ -888,6 +865,7 @@ function ProfileList<T extends { id?: string | number }>({
       {items.map((item, i) => (
         <div
           key={item.id || i}
+          className="t-row"
           style={{
             display: "grid",
             gridTemplateColumns: `repeat(${cols.length}, 1fr)`,
