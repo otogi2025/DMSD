@@ -128,7 +128,9 @@ button {
 .t-card {
   transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.t-card:hover {
+/* 禁用态卡片不给 hover 反馈 — 跟 .t-btn 同一套逻辑。
+   注意 :disabled 只对表单元素生效，普通 <div class="t-card"> 永远匹配 :not(:disabled)，不受影响 */
+.t-card:not(:disabled):hover {
   transform: translateY(-2px);
   box-shadow:
     0 12px 32px rgba(15, 30, 34, 0.1),
