@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
+import { RYO, S } from "../theme";
 import { api } from "../api/client";
 import { ConfirmModal, StudentPicker, type PickerStudent } from "./shared";
 import { StudentProfileModal } from "./StudentProfileModal";
@@ -233,16 +233,10 @@ export function IncidentsPage({
         {canWrite && (
           <button
             onClick={openNew}
+            className="t-btn"
             style={{
+              ...S.btnPrimary,
               padding: "9px 18px",
-              background: T.cobalt,
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: "pointer",
             }}
           >
             ＋ 新規登録
@@ -256,7 +250,7 @@ export function IncidentsPage({
             padding: "10px 14px",
             background: T.dangerSoft,
             border: `1px solid ${T.dangerBorder}`,
-            borderRadius: 8,
+            borderRadius: 10,
             color: T.danger,
             fontSize: 13,
             marginBottom: 16,
@@ -269,11 +263,8 @@ export function IncidentsPage({
       {/* 一览表格 */}
       <div
         style={{
-          background: T.surface,
-          border: `1px solid ${T.line}`,
-          borderRadius: 12,
+          ...S.card,
           overflow: "hidden",
-          boxShadow: T.shadow1,
         }}
       >
         <div
@@ -282,7 +273,7 @@ export function IncidentsPage({
             gridTemplateColumns: "120px 1fr 120px 100px 150px",
             background: T.surfaceAlt,
             fontSize: 11,
-            color: T.ink2,
+            color: T.ink3,
             fontWeight: 600,
             letterSpacing: 1,
             borderBottom: `1px solid ${T.line}`,
@@ -324,6 +315,7 @@ export function IncidentsPage({
           incidents.map((inc, i) => (
             <div
               key={inc.id}
+              className="t-row"
               style={{
                 display: "grid",
                 gridTemplateColumns: "120px 1fr 120px 100px 150px",
@@ -388,14 +380,15 @@ export function IncidentsPage({
                           setProfileTarget({ id: s.id, name: s.name })
                         }
                         title="個人データを表示"
+                        className="t-btn"
                         style={{
+                          ...S.pill,
                           padding: "2px 8px",
                           fontSize: 11.5,
                           fontFamily: "inherit",
                           color: T.cobalt,
                           background: T.surfaceAlt,
                           border: `1px solid ${T.lineStrong}`,
-                          borderRadius: 999,
                           cursor: "pointer",
                         }}
                       >
@@ -414,16 +407,15 @@ export function IncidentsPage({
                 {canWrite && (
                   <button
                     onClick={() => openEdit(inc)}
+                    className="t-btn"
                     style={{
+                      ...S.btnSmall,
                       padding: "4px 10px",
                       fontSize: 11,
                       fontWeight: 700,
                       background: "transparent",
                       color: T.cobalt,
                       border: `1px solid ${T.cobalt}`,
-                      borderRadius: 6,
-                      cursor: "pointer",
-                      fontFamily: "inherit",
                     }}
                   >
                     編集
@@ -432,16 +424,15 @@ export function IncidentsPage({
                 {canWrite && (
                   <button
                     onClick={() => setConfirmDelete(inc)}
+                    className="t-btn"
                     style={{
+                      ...S.btnSmall,
                       padding: "4px 10px",
                       fontSize: 11,
                       fontWeight: 700,
                       background: "transparent",
                       color: T.danger,
                       border: `1px solid ${T.dangerBorder}`,
-                      borderRadius: 6,
-                      cursor: "pointer",
-                      fontFamily: "inherit",
                     }}
                   >
                     削除
@@ -457,23 +448,17 @@ export function IncidentsPage({
         <div
           onClick={closeForm}
           style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(20,23,31,.52)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            ...S.backdrop,
             zIndex: 300,
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
+            className="t-scale-in"
             style={{
+              ...S.modal,
               width: 600,
               maxHeight: "88vh",
-              background: T.surface,
-              borderRadius: 14,
-              boxShadow: T.shadowModal,
               overflow: "auto",
               padding: "24px 28px",
             }}
@@ -502,14 +487,12 @@ export function IncidentsPage({
                 onChange={(e) => setFTitle(e.target.value)}
                 maxLength={200}
                 placeholder="事案のタイトル（最大 200 文字）"
+                className="t-input"
                 style={{
+                  ...S.input,
                   width: "100%",
                   padding: "9px 12px",
                   border: `1px solid ${T.lineStrong}`,
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  background: T.surface,
                   boxSizing: "border-box",
                 }}
               />
@@ -528,14 +511,12 @@ export function IncidentsPage({
                 type="date"
                 value={fDate}
                 onChange={(e) => setFDate(e.target.value)}
+                className="t-input"
                 style={{
+                  ...S.input,
                   width: "100%",
                   padding: "9px 12px",
                   border: `1px solid ${T.lineStrong}`,
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  background: T.surface,
                   boxSizing: "border-box",
                 }}
               />
@@ -556,14 +537,12 @@ export function IncidentsPage({
                 rows={6}
                 maxLength={100000}
                 placeholder="事案の詳細内容を記入（最大 100000 文字）"
+                className="t-input"
                 style={{
+                  ...S.input,
                   width: "100%",
                   padding: "9px 12px",
                   border: `1px solid ${T.lineStrong}`,
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  background: T.surface,
                   resize: "vertical",
                   boxSizing: "border-box",
                 }}
@@ -615,15 +594,10 @@ export function IncidentsPage({
             >
               <button
                 onClick={closeForm}
+                className="t-btn"
                 style={{
+                  ...S.btnGhost,
                   padding: "9px 18px",
-                  background: "transparent",
-                  color: T.ink,
-                  border: `1px solid ${T.lineStrong}`,
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  cursor: "pointer",
                 }}
               >
                 キャンセル
@@ -631,15 +605,10 @@ export function IncidentsPage({
               <button
                 onClick={submitForm}
                 disabled={fSubmitting}
+                className="t-btn"
                 style={{
+                  ...S.btnPrimary,
                   padding: "9px 22px",
-                  background: T.cobalt,
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  fontWeight: 700,
                   cursor: fSubmitting ? "not-allowed" : "pointer",
                   opacity: fSubmitting ? 0.7 : 1,
                 }}
@@ -674,7 +643,7 @@ export function IncidentsPage({
             padding: "10px 20px",
             background: toast.type === "ok" ? T.ok : T.danger,
             color: "#fff",
-            borderRadius: 8,
+            borderRadius: 10,
             fontSize: 13,
             fontWeight: 600,
             zIndex: 999,

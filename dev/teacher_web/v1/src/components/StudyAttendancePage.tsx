@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
+import { RYO, S } from "../theme";
 import { api } from "../api/client";
 import type {
   StudyTodayOut,
@@ -294,7 +294,7 @@ export function StudyAttendancePage({
             background: T.dangerSoft,
             color: T.danger,
             border: `1px solid ${T.dangerBorder}`,
-            borderRadius: 10,
+            borderRadius: 12,
             fontSize: 13,
           }}
         >
@@ -356,48 +356,54 @@ export function StudyAttendancePage({
         <div style={{ display: "flex", gap: 8 }}>
           <button
             onClick={() => setView("attendance")}
+            className="t-btn"
             style={{
               padding: "8px 14px",
               background: view === "attendance" ? T.cobalt : T.surface,
               color: view === "attendance" ? "#fff" : T.ink2,
               border: `1px solid ${view === "attendance" ? T.cobalt : T.lineStrong}`,
-              borderRadius: 8,
+              borderRadius: 10,
               fontFamily: "inherit",
               fontSize: 12,
               fontWeight: 700,
               cursor: "pointer",
+              transition: T.ease,
             }}
           >
             出席リスト
           </button>
           <button
             onClick={() => setView("absence-inbox")}
+            className="t-btn"
             style={{
               padding: "8px 14px",
               background: view === "absence-inbox" ? T.cobalt : T.surface,
               color: view === "absence-inbox" ? "#fff" : T.ink2,
               border: `1px solid ${view === "absence-inbox" ? T.cobalt : T.lineStrong}`,
-              borderRadius: 8,
+              borderRadius: 10,
               fontFamily: "inherit",
               fontSize: 12,
               fontWeight: 700,
               cursor: "pointer",
+              transition: T.ease,
             }}
           >
             欠席届 {pendingAbsence.length > 0 && `(${pendingAbsence.length})`}
           </button>
           <button
             onClick={() => setView("roster")}
+            className="t-btn"
             style={{
               padding: "8px 14px",
               background: view === "roster" ? T.cobalt : T.surface,
               color: view === "roster" ? "#fff" : T.ink2,
               border: `1px solid ${view === "roster" ? T.cobalt : T.lineStrong}`,
-              borderRadius: 8,
+              borderRadius: 10,
               fontFamily: "inherit",
               fontSize: 12,
               fontWeight: 700,
               cursor: "pointer",
+              transition: T.ease,
             }}
           >
             名簿管理
@@ -412,7 +418,7 @@ export function StudyAttendancePage({
             background: T.dangerSoft,
             color: T.danger,
             border: `1px solid ${T.dangerBorder}`,
-            borderRadius: 8,
+            borderRadius: 10,
             fontSize: 12,
             marginBottom: 14,
           }}
@@ -442,11 +448,8 @@ export function StudyAttendancePage({
               <div
                 key={l}
                 style={{
-                  background: T.surface,
-                  border: `1px solid ${T.line}`,
-                  borderRadius: 12,
+                  ...S.card,
                   padding: "14px 18px",
-                  boxShadow: T.shadow1,
                 }}
               >
                 <div
@@ -479,15 +482,10 @@ export function StudyAttendancePage({
               <button
                 onClick={doFinalize}
                 disabled={!!acting.__finalize}
+                className="t-btn"
                 style={{
+                  ...S.btnPrimary,
                   padding: "10px 18px",
-                  background: T.cobalt,
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 10,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  fontWeight: 700,
                   cursor: acting.__finalize ? "not-allowed" : "pointer",
                   opacity: acting.__finalize ? 0.6 : 1,
                 }}
@@ -499,15 +497,12 @@ export function StudyAttendancePage({
               <button
                 onClick={doCancelToday}
                 disabled={!!acting.__cancel}
+                className="t-btn"
                 style={{
+                  ...S.btnGhost,
                   padding: "10px 18px",
-                  background: T.surface,
                   color: T.warn,
                   border: `1px solid ${T.warnBorder}`,
-                  borderRadius: 10,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  fontWeight: 600,
                   cursor: acting.__cancel ? "not-allowed" : "pointer",
                   opacity: acting.__cancel ? 0.6 : 1,
                 }}
@@ -517,16 +512,14 @@ export function StudyAttendancePage({
             )}
             <button
               onClick={() => refetch()}
+              className="t-btn"
               style={{
+                ...S.btnGhost,
                 marginLeft: "auto",
                 padding: "10px 14px",
-                background: T.surface,
-                color: T.ink2,
-                border: `1px solid ${T.lineStrong}`,
-                borderRadius: 10,
-                fontFamily: "inherit",
                 fontSize: 12,
-                cursor: "pointer",
+                fontWeight: 400,
+                color: T.ink2,
               }}
             >
               再読み込み
@@ -535,11 +528,8 @@ export function StudyAttendancePage({
 
           <div
             style={{
-              background: T.surface,
-              border: `1px solid ${T.line}`,
-              borderRadius: 12,
+              ...S.card,
               overflow: "hidden",
-              boxShadow: T.shadow1,
             }}
           >
             <div
@@ -547,7 +537,7 @@ export function StudyAttendancePage({
                 display: "grid",
                 gridTemplateColumns: "80px 100px 1fr 120px 130px 110px",
                 background: T.surfaceAlt,
-                color: T.ink2,
+                color: T.ink3,
                 fontSize: 11,
                 fontWeight: 600,
                 letterSpacing: 1,
@@ -576,17 +566,19 @@ export function StudyAttendancePage({
                 </div>
                 <button
                   onClick={() => setView("roster")}
+                  className="t-btn"
                   style={{
                     marginTop: 12,
                     padding: "8px 16px",
                     background: T.cobaltSoft,
                     color: T.cobaltDeep,
                     border: "none",
-                    borderRadius: 8,
+                    borderRadius: 10,
                     fontFamily: "inherit",
                     fontSize: 12,
                     fontWeight: 600,
                     cursor: "pointer",
+                    transition: T.ease,
                   }}
                 >
                   名簿管理へ →
@@ -602,6 +594,7 @@ export function StudyAttendancePage({
               return (
                 <div
                   key={a.student_id}
+                  className="t-row"
                   style={{
                     display: "grid",
                     gridTemplateColumns: "80px 100px 1fr 120px 130px 110px",
@@ -629,6 +622,7 @@ export function StudyAttendancePage({
                     {eb ? (
                       <span
                         style={{
+                          ...S.pill,
                           fontSize: 11,
                           fontWeight: 700,
                           padding: "2px 8px",
@@ -654,6 +648,7 @@ export function StudyAttendancePage({
                   <div style={{ padding: "10px 14px" }}>
                     <span
                       style={{
+                        ...S.pill,
                         fontSize: 11,
                         fontWeight: 700,
                         padding: "2px 8px",
@@ -689,15 +684,14 @@ export function StudyAttendancePage({
                       <button
                         onClick={() => doManualCheckin(a.student_id)}
                         disabled={acting[a.student_id]}
+                        className="t-btn"
                         style={{
+                          ...S.btnSmall,
                           padding: "4px 10px",
                           background: T.cobalt,
                           color: "#fff",
                           border: "none",
-                          borderRadius: 6,
-                          fontFamily: "inherit",
                           fontSize: 11,
-                          fontWeight: 600,
                           cursor: acting[a.student_id]
                             ? "not-allowed"
                             : "pointer",
@@ -717,11 +711,8 @@ export function StudyAttendancePage({
       {view === "absence-inbox" && (
         <div
           style={{
-            background: T.surface,
-            border: `1px solid ${T.line}`,
-            borderRadius: 12,
+            ...S.card,
             overflow: "hidden",
-            boxShadow: T.shadow1,
           }}
         >
           <div
@@ -729,7 +720,7 @@ export function StudyAttendancePage({
               display: "grid",
               gridTemplateColumns: "170px 100px 64px 1fr 90px 140px 170px",
               background: T.surfaceAlt,
-              color: T.ink2,
+              color: T.ink3,
               fontSize: 11,
               fontWeight: 600,
               letterSpacing: 1,
@@ -759,6 +750,7 @@ export function StudyAttendancePage({
           {(absenceList || []).map((a, i) => (
             <div
               key={a.id}
+              className="t-row"
               style={{
                 display: "grid",
                 gridTemplateColumns: "170px 100px 64px 1fr 90px 140px 170px",
@@ -812,6 +804,7 @@ export function StudyAttendancePage({
               <div style={{ padding: "10px 14px" }}>
                 <span
                   style={{
+                    ...S.pill,
                     fontSize: 11,
                     fontWeight: 700,
                     padding: "2px 8px",
@@ -862,13 +855,13 @@ export function StudyAttendancePage({
                     <button
                       onClick={() => doDecideAbsence(a.id, "approved")}
                       disabled={acting[a.id]}
+                      className="t-btn"
                       style={{
+                        ...S.btnSmall,
                         padding: "4px 12px",
                         background: T.ok,
                         color: "#fff",
                         border: "none",
-                        borderRadius: 6,
-                        fontFamily: "inherit",
                         fontSize: 11,
                         fontWeight: 700,
                         cursor: acting[a.id] ? "not-allowed" : "pointer",
@@ -879,13 +872,12 @@ export function StudyAttendancePage({
                     <button
                       onClick={() => doDecideAbsence(a.id, "rejected")}
                       disabled={acting[a.id]}
+                      className="t-btn"
                       style={{
+                        ...S.btnSmall,
                         padding: "4px 12px",
-                        background: T.surface,
                         color: T.danger,
                         border: `1px solid ${T.dangerBorder}`,
-                        borderRadius: 6,
-                        fontFamily: "inherit",
                         fontSize: 11,
                         fontWeight: 700,
                         cursor: acting[a.id] ? "not-allowed" : "pointer",
@@ -910,7 +902,7 @@ export function StudyAttendancePage({
                 background: T.dangerSoft,
                 color: T.danger,
                 border: `1px solid ${T.dangerBorder}`,
-                borderRadius: 8,
+                borderRadius: 10,
                 fontSize: 12,
                 marginBottom: 14,
               }}
@@ -926,11 +918,8 @@ export function StudyAttendancePage({
               gap: 10,
               alignItems: "center",
               marginBottom: 14,
-              background: T.surface,
-              border: `1px solid ${T.line}`,
-              borderRadius: 12,
+              ...S.card,
               padding: "14px 18px",
-              boxShadow: T.shadow1,
             }}
           >
             {canWrite && (
@@ -950,27 +939,22 @@ export function StudyAttendancePage({
                   onKeyDown={(e) => {
                     if (e.key === "Enter") doAddToRoster();
                   }}
+                  className="t-input"
                   style={{
+                    ...S.input,
                     width: 140,
                     padding: "8px 12px",
                     border: `1px solid ${T.lineStrong}`,
-                    borderRadius: 8,
                     fontFamily: T.mono,
-                    fontSize: 13,
                   }}
                 />
                 <button
                   onClick={doAddToRoster}
+                  className="t-btn"
                   style={{
+                    ...S.btnPrimary,
                     padding: "8px 16px",
-                    background: T.cobalt,
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 8,
-                    fontFamily: "inherit",
                     fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
                   }}
                 >
                   寮生追加
@@ -979,16 +963,14 @@ export function StudyAttendancePage({
             )}
             <button
               onClick={refetchRoster}
+              className="t-btn"
               style={{
+                ...S.btnGhost,
                 marginLeft: "auto",
                 padding: "8px 14px",
-                background: T.surface,
-                color: T.ink2,
-                border: `1px solid ${T.lineStrong}`,
-                borderRadius: 8,
-                fontFamily: "inherit",
                 fontSize: 12,
-                cursor: "pointer",
+                fontWeight: 400,
+                color: T.ink2,
               }}
             >
               再読み込み
@@ -998,11 +980,8 @@ export function StudyAttendancePage({
           {/* 名簿在籍者一览 */}
           <div
             style={{
-              background: T.surface,
-              border: `1px solid ${T.line}`,
-              borderRadius: 12,
+              ...S.card,
               overflow: "hidden",
-              boxShadow: T.shadow1,
             }}
           >
             <div
@@ -1010,7 +989,7 @@ export function StudyAttendancePage({
                 display: "grid",
                 gridTemplateColumns: "110px 1fr 120px 90px 130px",
                 background: T.surfaceAlt,
-                color: T.ink2,
+                color: T.ink3,
                 fontSize: 11,
                 fontWeight: 600,
                 letterSpacing: 1,
@@ -1050,6 +1029,7 @@ export function StudyAttendancePage({
             {(roster || []).map((r, i) => (
               <div
                 key={r.student_id}
+                className="t-row"
                 style={{
                   display: "grid",
                   gridTemplateColumns: "110px 1fr 120px 90px 130px",
@@ -1085,13 +1065,12 @@ export function StudyAttendancePage({
                     <button
                       onClick={() => doRemoveFromRoster(r.student_id, r.name)}
                       disabled={acting[r.student_id]}
+                      className="t-btn"
                       style={{
+                        ...S.btnSmall,
                         padding: "4px 12px",
-                        background: T.surface,
                         color: T.danger,
                         border: `1px solid ${T.dangerBorder}`,
-                        borderRadius: 6,
-                        fontFamily: "inherit",
                         fontSize: 11,
                         fontWeight: 700,
                         cursor: acting[r.student_id]

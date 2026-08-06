@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO, type RyoTokens } from "../theme";
+import { RYO, S, type RyoTokens } from "../theme";
 import { api } from "../api/client";
 import type {
   FrontDeskItem,
@@ -247,17 +247,10 @@ export function FrontDeskPage({
         {canWrite && (
           <button
             onClick={() => setComposing(true)}
+            className="t-btn"
             style={{
+              ...S.btnPrimary,
               padding: "8px 16px",
-              background: T.cobalt,
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: "pointer",
-              boxShadow: T.shadow1,
             }}
           >
             ＋ {tab === "delivery" ? "宅配通知を追加" : "忘れ物を登録"}
@@ -275,7 +268,7 @@ export function FrontDeskPage({
             padding: "10px 16px",
             background: "#fff0f0",
             border: "1px solid #f5c6cb",
-            borderRadius: 8,
+            borderRadius: 10,
             color: T.danger,
             fontSize: 13,
             marginBottom: 16,
@@ -287,15 +280,14 @@ export function FrontDeskPage({
           <span style={{ flex: 1 }}>{fetchError}</span>
           <button
             onClick={loadItems}
+            className="t-btn"
             style={{
+              ...S.btnGhost,
               padding: "4px 12px",
-              background: "transparent",
+              fontSize: 12,
               color: T.danger,
               border: "1px solid #f5c6cb",
-              borderRadius: 6,
-              fontFamily: "inherit",
-              fontSize: 12,
-              cursor: "pointer",
+              borderRadius: 8,
             }}
           >
             再試行
@@ -437,6 +429,7 @@ export function FrontDeskPage({
               <button
                 key={k}
                 onClick={() => setFilter(k)}
+                className="t-btn"
                 style={chipStyle(T, filter === k)}
               >
                 {l}
@@ -453,6 +446,7 @@ export function FrontDeskPage({
               <button
                 key={k}
                 onClick={() => setFilter(k)}
+                className="t-btn"
                 style={chipStyle(T, filter === k)}
               >
                 {l}
@@ -477,7 +471,7 @@ export function FrontDeskPage({
         (tab === "delivery" ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {delFiltered.length === 0 && <EmptyRow T={T} />}
-            {delFiltered.map((d) => (
+            {delFiltered.map((d, i) => (
               <DeliveryRow
                 key={d.id}
                 d={d}
@@ -486,13 +480,14 @@ export function FrontDeskPage({
                 pending={pendingActionIds.has(d.id)}
                 onNotify={handleNotify}
                 onPickup={handlePickup}
+                index={i}
               />
             ))}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {lostFiltered.length === 0 && <EmptyRow T={T} />}
-            {lostFiltered.map((l) => (
+            {lostFiltered.map((l, i) => (
               <LostItemRow
                 key={l.id}
                 l={l}
@@ -500,6 +495,7 @@ export function FrontDeskPage({
                 canWrite={canWrite}
                 pending={pendingActionIds.has(l.id)}
                 onPickup={handlePickup}
+                index={i}
               />
             ))}
           </div>
@@ -541,12 +537,15 @@ function FdStat({
   return (
     <div
       onClick={onClick || undefined}
+      className={onClick ? "t-card" : undefined}
       style={{
+        // 原无 boxShadow，不是四件套卡片；只做圆角映射，是否升 S.card 见卡点
         padding: "14px 16px",
         background: T.surface,
         border: `1px solid ${T.line}`,
-        borderRadius: 10,
+        borderRadius: 12,
         cursor: onClick ? "pointer" : "default",
+        transition: T.ease,
       }}
     >
       <div
@@ -587,6 +586,7 @@ function DeliveryRow({
   pending,
   onNotify,
   onPickup,
+  index = 0,
 }: {
   d: FrontDeskItem;
   T: RyoTokens;
@@ -594,6 +594,7 @@ function DeliveryRow({
   pending: boolean;
   onNotify: (id: string) => void;
   onPickup: (id: string) => void;
+  index?: number;
 }) {
   const isPicked = d.status === "picked_up";
   const isNotified = d.status === "notified";
@@ -615,23 +616,24 @@ function DeliveryRow({
     : "—";
   return (
     <div
+      className="t-fade-up"
       style={{
         display: "flex",
         alignItems: "center",
         gap: 14,
         padding: "12px 16px",
-        background: T.surface,
+        ...S.card,
         border: `1px solid ${isClosed ? T.line : T.warnBorder}`,
-        borderRadius: 10,
         opacity: pending ? 0.7 : 1,
+        ...(index < 12 ? { animationDelay: `${index * 40}ms` } : null),
       }}
     >
       <span
         style={{
+          ...S.pill,
           fontSize: 10,
           fontWeight: 700,
           padding: "3px 8px",
-          borderRadius: 4,
           background: isPicked
             ? T.okSoft
             : isNotified
@@ -651,6 +653,7 @@ function DeliveryRow({
           whiteSpace: "nowrap",
           minWidth: 68,
           textAlign: "center",
+          justifyContent: "center",
         }}
       >
         {statusLabel}
@@ -699,10 +702,15 @@ function DeliveryRow({
         <button
           disabled={pending}
           onClick={() => onNotify(d.id)}
+          className="t-btn"
           style={{
-            ...actionBtn(T, "ghost"),
+            ...S.btnGhost,
+            padding: "5px 12px",
+            fontSize: 11,
+            color: T.ink3,
             cursor: pending ? "not-allowed" : "pointer",
             opacity: pending ? 0.5 : 1,
+            whiteSpace: "nowrap",
           }}
         >
           通知済に
@@ -712,10 +720,14 @@ function DeliveryRow({
         <button
           disabled={pending}
           onClick={() => onPickup(d.id)}
+          className="t-btn"
           style={{
-            ...actionBtn(T, "ok"),
+            ...S.btnPrimary,
+            padding: "5px 12px",
+            fontSize: 11,
             cursor: pending ? "not-allowed" : "pointer",
             opacity: pending ? 0.5 : 1,
+            whiteSpace: "nowrap",
           }}
         >
           受取済に
@@ -734,12 +746,14 @@ function LostItemRow({
   canWrite,
   pending,
   onPickup,
+  index = 0,
 }: {
   l: FrontDeskItem;
   T: RyoTokens;
   canWrite: boolean;
   pending: boolean;
   onPickup: (id: string) => void;
+  index?: number;
 }) {
   const isReturned = l.status === "picked_up";
   const isClosed =
@@ -757,23 +771,24 @@ function LostItemRow({
   const dateStr = l.created_at ? l.created_at.slice(5, 10) : "—";
   return (
     <div
+      className="t-fade-up"
       style={{
         display: "flex",
         alignItems: "center",
         gap: 14,
         padding: "12px 16px",
-        background: T.surface,
+        ...S.card,
         border: `1px solid ${bd}`,
-        borderRadius: 10,
         opacity: pending ? 0.7 : 1,
+        ...(index < 12 ? { animationDelay: `${index * 40}ms` } : null),
       }}
     >
       <span
         style={{
+          ...S.pill,
           fontSize: 10,
           fontWeight: 700,
           padding: "3px 8px",
-          borderRadius: 4,
           background: bg,
           color: col,
           border: `1px solid ${bd}`,
@@ -781,6 +796,7 @@ function LostItemRow({
           whiteSpace: "nowrap",
           minWidth: 68,
           textAlign: "center",
+          justifyContent: "center",
         }}
       >
         {statusLabel}
@@ -812,10 +828,14 @@ function LostItemRow({
         <button
           disabled={pending}
           onClick={() => onPickup(l.id)}
+          className="t-btn"
           style={{
-            ...actionBtn(T, "ok"),
+            ...S.btnPrimary,
+            padding: "5px 12px",
+            fontSize: 11,
             cursor: pending ? "not-allowed" : "pointer",
             opacity: pending ? 0.5 : 1,
+            whiteSpace: "nowrap",
           }}
         >
           返却済に
@@ -860,6 +880,7 @@ function DeliveryComposeModal({
     fontWeight: 700,
     lineHeight: 1,
     cursor: "pointer",
+    transition: T.ease,
   };
 
   return (
@@ -879,8 +900,9 @@ function DeliveryComposeModal({
         <div style={{ display: "flex", alignItems: "center" }}>
           <button
             type="button"
+            className="t-btn"
             onClick={() => setItemCount((n) => Math.max(1, n - 1))}
-            style={{ ...stepBtn, borderRadius: "8px 0 0 8px" }}
+            style={{ ...stepBtn, borderRadius: "10px 0 0 10px" }}
           >
             −
           </button>
@@ -904,10 +926,11 @@ function DeliveryComposeModal({
           <button
             type="button"
             disabled={atMax}
+            className="t-btn"
             onClick={() => setItemCount((n) => Math.min(999, n + 1))}
             style={{
               ...stepBtn,
-              borderRadius: "0 8px 8px 0",
+              borderRadius: "0 10px 10px 0",
               opacity: atMax ? 0.4 : 1,
               cursor: atMax ? "not-allowed" : "pointer",
             }}
@@ -929,7 +952,7 @@ function DeliveryComposeModal({
           style={{
             padding: "9px 12px",
             border: `1px solid ${T.line}`,
-            borderRadius: 8,
+            borderRadius: 10,
             background: T.surfaceAlt,
             fontSize: 13,
             color: student ? T.ink : T.ink3,
@@ -943,6 +966,7 @@ function DeliveryComposeModal({
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="例: 冷蔵・大型 等（任意）"
+          className="t-input"
           style={inputStyle(T)}
         />
       </ModalField>
@@ -986,6 +1010,7 @@ function LostItemComposeModal({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="例：ピンクの水筒（サーモス）"
+          className="t-input"
           style={inputStyle(T)}
         />
       </ModalField>
@@ -994,6 +1019,7 @@ function LostItemComposeModal({
           value={location}
           onChange={(e) => setLocation(e.target.value)}
           placeholder="玄関 / 廊下 / 風呂場 / 共用キッチン 等"
+          className="t-input"
           style={inputStyle(T)}
         />
       </ModalField>
@@ -1023,7 +1049,7 @@ function EmptyRow({ T }: { T: RyoTokens }) {
         fontSize: 13,
         background: T.surface,
         border: `1px dashed ${T.lineStrong}`,
-        borderRadius: 10,
+        borderRadius: 12,
       }}
     >
       該当する項目はありません
@@ -1034,47 +1060,25 @@ function EmptyRow({ T }: { T: RyoTokens }) {
 // 样式助手
 function chipStyle(T: RyoTokens, on: boolean): React.CSSProperties {
   return {
+    ...S.pill,
     padding: "4px 10px",
+    fontSize: 11,
     background: on ? T.cobaltSoft : T.surface,
     color: on ? T.cobaltDeep : T.ink3,
     border: `1px solid ${on ? T.cobalt : T.lineStrong}`,
-    borderRadius: 999,
     fontFamily: "inherit",
-    fontSize: 11,
     fontWeight: 600,
     cursor: "pointer",
-  };
-}
-function actionBtn(T: RyoTokens, kind: "ok" | "ghost"): React.CSSProperties {
-  const map: Record<"ok" | "ghost", [string, string]> = {
-    ok: [T.ok, T.okBorder],
-    ghost: [T.ink3, T.lineStrong],
-  };
-  const [col, bd] = map[kind];
-  return {
-    padding: "5px 12px",
-    background: T.surface,
-    color: col,
-    border: `1px solid ${bd}`,
-    borderRadius: 6,
-    fontFamily: "inherit",
-    fontSize: 11,
-    fontWeight: 600,
-    cursor: "pointer",
-    whiteSpace: "nowrap",
+    transition: T.ease,
   };
 }
 function inputStyle(T: RyoTokens): React.CSSProperties {
   return {
+    ...S.input,
     width: "100%",
     padding: "9px 12px",
     border: `1px solid ${T.lineStrong}`,
-    borderRadius: 8,
-    fontSize: 13,
-    fontFamily: "inherit",
     boxSizing: "border-box",
-    background: T.surface,
-    color: T.ink,
   };
 }
 
