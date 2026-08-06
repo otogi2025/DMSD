@@ -116,11 +116,15 @@ button {
 }
 
 /* 进场：页面主内容 / 卡片列表用 */
+/* backwards 而非 both：动画播完后释放 opacity / transform 的控制权，
+   交还给元素自己的规则。否则 forwards 会永久锁住这两个属性，
+   压过 hover 抬起和内联的状态半透明（动画声明的优先级高于内联 style）。
+   末帧 opacity:1 / transform:none 本来就等于元素默认值，释放后视觉零变化 */
 .t-fade-up {
-  animation: tFadeUp 0.42s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: tFadeUp 0.42s cubic-bezier(0.4, 0, 0.2, 1) backwards;
 }
 .t-scale-in {
-  animation: tScaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: tScaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) backwards;
 }
 /* 列表逐项延迟：给第 n 个元素加 style={{animationDelay: `${n*40}ms`}} */
 
