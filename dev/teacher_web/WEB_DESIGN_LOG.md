@@ -148,6 +148,8 @@ itsuki 给出 Figma Community 的 ATS Resume Analyzer Dashboard 作视觉参考�
 
 新增 token 三组：强调色（`accent` `#5FBEC8` / `accentSoft` `#A8DCE2` / `accentPale` `#E8F6F7`）、渐变 6 条（`gradPrimary` `gradPage` `gradOk` `gradWarn` `gradDanger` `gradPrimarySoft`）、玻璃质感三件（`glassBg` `glassBorder` `glassBlur`）。另有卡片阴影两态（`shadowCard` / `shadowCardHover`）、按钮阴影 `shadowBtn`、统一过渡曲线 `ease`。
 
+**主按钮对比度 —— itsuki 2026-08-06 知情决定，保持现状**：`gradPrimary` 亮端 `#5FBEC8` 配白字对比度 2.17:1，按钮文字区实际约 3.5:1；按钮字 13px bold 属正文标准，WCAG AA 要求 4.5:1，未达标。物理上做不到「渐变明显 + 白字全程达标」——把亮端压深到达标（约 `#2A7C86`）就几乎看不出渐变。CC 提了三个方案（保持现状 / 压深亮端 / 只主按钮换纯色 `#1F6B74` 达 6.15:1），itsuki 选保持现状，视觉优先。**未来的无障碍审查会反复报这一条，这是已知取舍，不要自动改掉。**
+
 ### 3.5.3 `S` 样式配方对象 —— 本次改造的核心杠杆
 
 本端全部用内联 `style={{...}}`，没有 CSS 类可复用，同一个卡片样式在 29 个文件里各写一遍。改造时在 `theme.ts` 新增 `S` 对象收敛 13 个高频配方：`card` `cardHoverable` `cardSoft` `glass` `btnPrimary` `btnGhost` `btnDanger` `btnSmall` `pill` `input` `tableHead` `modal` `backdrop`，另有 `iconTile(gradient, size)` 函数产出渐变图标块。
