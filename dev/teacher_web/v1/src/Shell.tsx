@@ -325,12 +325,12 @@ export function Shell({
                 borderTop: gi === 0 ? "none" : `1px solid ${T.line}`,
               }}
             >
-              {/* 分组标题按 §5.2：muted / 11px / 700 / letterSpacing .06em */}
+              {/* 分组标题按 §5.2：ink3 / 11px / 700 / letterSpacing .06em */}
               <div
                 style={{
                   fontSize: 11,
                   fontWeight: 700,
-                  color: T.muted,
+                  color: T.ink3,
                   letterSpacing: ".06em",
                   padding: "0 12px 7px",
                 }}
