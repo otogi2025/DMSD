@@ -1,5 +1,7 @@
 html,
 body {
+  /* 本站只做浅色，显式声明防止系统深色模式把原生控件（select 弹层 / 日期日历 / placeholder）渲染成深色 */
+  color-scheme: light;
   margin: 0;
   padding: 0;
   background: linear-gradient(160deg, #f2f7f8 0%, #eff4f5 45%, #eaf3f4 100%);
@@ -149,8 +151,9 @@ button {
   transform: translateX(2px);
 }
 
-/* 输入框聚焦 */
-.t-input:focus {
+/* 输入框聚焦 — :focus-within 是给「外层 div 挂 t-input、真正可聚焦的是内层 input」的结构用的（顶栏全局搜索框） */
+.t-input:focus,
+.t-input:focus-within {
   border-color: #5fbec8 !important;
   box-shadow: 0 0 0 3px rgba(95, 190, 200, 0.18);
 }
