@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO, dormLabel } from "../theme";
+import { RYO, S, dormLabel } from "../theme";
 import { api } from "../api/client";
 import type { StudentAccountListItem } from "../api/types";
 
@@ -128,15 +128,13 @@ export function SearchPage({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="氏名・学籍番号で検索"
+            className="t-input"
             style={{
+              ...S.input,
               width: "100%",
               padding: "11px 14px",
-              background: T.surface,
               border: `1px solid ${T.lineStrong}`,
-              borderRadius: 10,
-              fontFamily: "inherit",
               fontSize: 14,
-              outline: "none",
               boxSizing: "border-box",
               marginBottom: 20,
             }}
@@ -147,7 +145,7 @@ export function SearchPage({
                 padding: "10px 14px",
                 background: T.dangerSoft,
                 border: `1px solid ${T.dangerBorder}`,
-                borderRadius: 8,
+                borderRadius: 10,
                 fontSize: 12,
                 color: T.danger,
                 marginBottom: 14,
@@ -176,13 +174,14 @@ export function SearchPage({
                 gap: 10,
               }}
             >
-              {results.map((s) => (
+              {results.map((s, i) => (
                 <StudentDossier
                   key={s.id}
                   room={s.room_no}
                   id={s.student_no}
                   name={s.name}
                   dorm={s.dorm_unit === 4 ? "women" : "men"}
+                  index={i}
                 />
               ))}
             </div>
@@ -206,11 +205,14 @@ function StudentDossier({
   id,
   name,
   dorm,
+  index = 0,
 }: {
   room: string;
   id: string;
   name: string;
   dorm: string;
+  // 列表序号 — 仅用于进场动画延迟
+  index?: number;
 }) {
   const T = RYO;
   const [open, setOpen] = React.useState<Record<string, boolean>>({
@@ -234,11 +236,8 @@ function StudentDossier({
   }) => (
     <div
       style={{
-        background: T.surface,
-        border: `1px solid ${T.line}`,
-        borderRadius: 12,
+        ...S.card,
         marginBottom: 10,
-        boxShadow: T.shadow1,
       }}
     >
       <button
@@ -283,14 +282,14 @@ function StudentDossier({
   );
 
   return (
-    <div>
+    <div
+      className="t-fade-up"
+      style={index < 12 ? { animationDelay: `${index * 40}ms` } : undefined}
+    >
       <div
         style={{
-          background: T.surface,
-          border: `1px solid ${T.line}`,
-          borderRadius: 12,
+          ...S.card,
           padding: "18px 22px",
-          boxShadow: T.shadow1,
           marginBottom: 16,
           display: "flex",
           alignItems: "center",
@@ -301,7 +300,7 @@ function StudentDossier({
           style={{
             width: 56,
             height: 56,
-            borderRadius: 28,
+            borderRadius: 20,
             background: T.cobaltSoft,
             color: T.cobaltDeep,
             fontSize: 22,
@@ -388,10 +387,11 @@ function DateSearchBody({ isDemo }: { isDemo: boolean }) {
         type="date"
         value={date}
         onChange={(e) => setDate(e.target.value)}
+        className="t-input"
         style={{
+          ...S.input,
           padding: "11px 14px",
           border: `1px solid ${T.lineStrong}`,
-          borderRadius: 10,
           fontFamily: T.mono,
           fontSize: 14,
           marginBottom: 18,
@@ -399,11 +399,8 @@ function DateSearchBody({ isDemo }: { isDemo: boolean }) {
       />
       <div
         style={{
-          background: T.surface,
-          border: `1px solid ${T.line}`,
-          borderRadius: 12,
+          ...S.card,
           padding: "18px 22px",
-          boxShadow: T.shadow1,
         }}
       >
         <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>
@@ -419,28 +416,76 @@ function DateSearchBody({ isDemo }: { isDemo: boolean }) {
               }}
             >
               <thead>
-                <tr style={{ color: T.ink3, fontSize: 11 }}>
-                  <th style={{ textAlign: "left", padding: "6px 8px" }}>寮</th>
-                  <th style={{ textAlign: "right", padding: "6px 8px" }}>
+                <tr>
+                  <th
+                    style={{
+                      ...S.tableHead,
+                      textAlign: "left",
+                      padding: "6px 8px",
+                      fontSize: 11,
+                    }}
+                  >
+                    寮
+                  </th>
+                  <th
+                    style={{
+                      ...S.tableHead,
+                      textAlign: "right",
+                      padding: "6px 8px",
+                      fontSize: 11,
+                    }}
+                  >
                     対象
                   </th>
-                  <th style={{ textAlign: "right", padding: "6px 8px" }}>
+                  <th
+                    style={{
+                      ...S.tableHead,
+                      textAlign: "right",
+                      padding: "6px 8px",
+                      fontSize: 11,
+                    }}
+                  >
                     出席
                   </th>
-                  <th style={{ textAlign: "right", padding: "6px 8px" }}>
+                  <th
+                    style={{
+                      ...S.tableHead,
+                      textAlign: "right",
+                      padding: "6px 8px",
+                      fontSize: 11,
+                    }}
+                  >
                     遅刻
                   </th>
-                  <th style={{ textAlign: "right", padding: "6px 8px" }}>
+                  <th
+                    style={{
+                      ...S.tableHead,
+                      textAlign: "right",
+                      padding: "6px 8px",
+                      fontSize: 11,
+                    }}
+                  >
                     欠席
                   </th>
-                  <th style={{ textAlign: "right", padding: "6px 8px" }}>
+                  <th
+                    style={{
+                      ...S.tableHead,
+                      textAlign: "right",
+                      padding: "6px 8px",
+                      fontSize: 11,
+                    }}
+                  >
                     外泊
                   </th>
                 </tr>
               </thead>
               <tbody style={{ fontFamily: T.mono }}>
                 {DEMO_DATE_SUMMARY.map((r) => (
-                  <tr key={r.dorm} style={{ borderTop: `1px solid ${T.line}` }}>
+                  <tr
+                    key={r.dorm}
+                    className="t-row"
+                    style={{ borderTop: `1px solid ${T.line}` }}
+                  >
                     <td
                       style={{
                         padding: "8px",
@@ -480,6 +525,7 @@ function DateSearchBody({ isDemo }: { isDemo: boolean }) {
                   </tr>
                 ))}
                 <tr
+                  className="t-row"
                   style={{
                     borderTop: `2px solid ${T.lineStrong}`,
                     fontWeight: 700,
@@ -516,7 +562,7 @@ function DateSearchBody({ isDemo }: { isDemo: boolean }) {
               fontSize: 13,
               lineHeight: 1.7,
               border: `1px dashed ${T.lineStrong}`,
-              borderRadius: 8,
+              borderRadius: 10,
             }}
           >
             準備中
@@ -541,7 +587,7 @@ function EmptyState({ msg }: { msg: string }) {
         fontSize: 13,
         background: T.surface,
         border: `1px dashed ${T.lineStrong}`,
-        borderRadius: 12,
+        borderRadius: 16,
       }}
     >
       {msg}

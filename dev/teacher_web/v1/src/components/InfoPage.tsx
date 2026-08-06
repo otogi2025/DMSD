@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
+import { RYO, S } from "../theme";
 import type { RyoTokens } from "../theme";
 import { api } from "../api/client";
 import { canManage, C_EVENT, C_BUS } from "../api/permissions";
@@ -19,17 +19,14 @@ import type {
 // 本文件含主组件 InfoPage + 9 个私有子组件（公告 / 行事日历 / 巴士），其余主组件不在此。
 
 // 输入框样式（源 front-desk 块 inputStyle / window.modalInputStyle 的本地副本）。
+// 视觉改造：展开 S.input，保留原 padding / 描边强度。
 function modalInputStyle(T: RyoTokens): React.CSSProperties {
   return {
+    ...S.input,
     width: "100%",
     padding: "9px 12px",
     border: `1px solid ${T.lineStrong}`,
-    borderRadius: 8,
-    fontSize: 13,
-    fontFamily: "inherit",
     boxSizing: "border-box",
-    background: T.surface,
-    color: T.ink,
   };
 }
 
@@ -387,17 +384,10 @@ export function InfoPage({
         {tab === "notice" && (
           <button
             onClick={() => setComposing(true)}
+            className="t-btn"
             style={{
+              ...S.btnPrimary,
               padding: "8px 16px",
-              background: T.cobalt,
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: "pointer",
-              boxShadow: T.shadow1,
             }}
           >
             ＋ 新規お知らせ投稿
@@ -447,7 +437,7 @@ export function InfoPage({
                 padding: "10px 16px",
                 background: "#fff0f0",
                 border: "1px solid #f5c6cb",
-                borderRadius: 8,
+                borderRadius: 10,
                 color: T.danger,
                 fontSize: 13,
                 marginBottom: 16,
@@ -459,15 +449,14 @@ export function InfoPage({
               <span style={{ flex: 1 }}>{fetchError}</span>
               <button
                 onClick={loadList}
+                className="t-btn"
                 style={{
+                  ...S.btnGhost,
                   padding: "4px 12px",
-                  background: "transparent",
+                  fontSize: 12,
                   color: T.danger,
                   border: "1px solid #f5c6cb",
-                  borderRadius: 6,
-                  fontFamily: "inherit",
-                  fontSize: 12,
-                  cursor: "pointer",
+                  borderRadius: 8,
                 }}
               >
                 再試行
@@ -488,26 +477,26 @@ export function InfoPage({
                 fontSize: 13,
                 background: T.surface,
                 border: `1px dashed ${T.lineStrong}`,
-                borderRadius: 10,
+                borderRadius: 12,
               }}
             >
               まだデータがありません
             </div>
           )}
 
-          {posts.map((p) => {
+          {posts.map((p, i) => {
             const isOpen = openId === p._id;
             const det = detailCache[p._id];
             return (
               <div
                 key={p._id}
+                className="t-fade-up"
                 style={{
-                  background: T.surface,
-                  border: `1px solid ${T.line}`,
-                  borderRadius: 10,
+                  ...S.card,
                   marginBottom: 10,
                   fontSize: 13,
                   overflow: "hidden",
+                  ...(i < 12 ? { animationDelay: `${i * 40}ms` } : null),
                 }}
               >
                 {/* カードヘッダー — クリックで展開 */}
@@ -537,10 +526,10 @@ export function InfoPage({
                     </span>
                     <span
                       style={{
+                        ...S.pill,
                         fontSize: 10,
                         fontWeight: 700,
                         padding: "1px 6px",
-                        borderRadius: 4,
                         background: T.cobaltSoft,
                         color: T.cobaltDeep,
                         border: `1px solid ${T.infoBorder}`,
@@ -564,15 +553,13 @@ export function InfoPage({
                             e.stopPropagation();
                             handleEditOpen(p);
                           }}
+                          className="t-btn"
                           style={{
+                            ...S.btnSmall,
                             padding: "3px 8px",
-                            background: T.surface,
                             color: T.ink2,
                             border: `1px solid ${T.lineStrong}`,
-                            borderRadius: 5,
-                            fontFamily: "inherit",
                             fontSize: 11,
-                            cursor: "pointer",
                           }}
                         >
                           編集
@@ -582,15 +569,13 @@ export function InfoPage({
                             e.stopPropagation();
                             handleDelete(p._id);
                           }}
+                          className="t-btn"
                           style={{
+                            ...S.btnSmall,
                             padding: "3px 8px",
-                            background: T.surface,
                             color: T.danger,
                             border: `1px solid ${T.dangerBorder}`,
-                            borderRadius: 5,
-                            fontFamily: "inherit",
                             fontSize: 11,
-                            cursor: "pointer",
                           }}
                         >
                           削除
@@ -667,7 +652,7 @@ export function InfoPage({
                                   padding: "8px 10px",
                                   background: T.surface,
                                   border: `1px solid ${T.line}`,
-                                  borderRadius: 7,
+                                  borderRadius: 10,
                                   marginBottom: 6,
                                   fontSize: 12,
                                 }}
@@ -706,15 +691,14 @@ export function InfoPage({
                                 </div>
                                 <button
                                   onClick={() => handleDeleteReply(p._id, r.id)}
+                                  className="t-btn"
                                   style={{
+                                    ...S.btnSmall,
                                     padding: "2px 7px",
                                     background: "transparent",
                                     color: T.danger,
                                     border: `1px solid ${T.dangerBorder}`,
-                                    borderRadius: 4,
-                                    fontFamily: "inherit",
                                     fontSize: 11,
-                                    cursor: "pointer",
                                     flexShrink: 0,
                                   }}
                                 >
@@ -745,13 +729,13 @@ export function InfoPage({
                               handleReply(p._id)
                             }
                             placeholder="返信を入力… (Enter で送信)"
+                            className="t-input"
                             style={{
+                              ...S.input,
                               flex: 1,
                               padding: "8px 10px",
                               border: `1px solid ${T.lineStrong}`,
-                              borderRadius: 7,
                               fontSize: 12,
-                              fontFamily: "inherit",
                             }}
                           />
                           <button
@@ -760,16 +744,17 @@ export function InfoPage({
                               !(replyInput[p._id] || "").trim() ||
                               !!replySubmitting[p._id]
                             }
+                            className="t-btn"
                             style={{
                               padding: "8px 14px",
                               background:
                                 (replyInput[p._id] || "").trim() &&
                                 !replySubmitting[p._id]
-                                  ? T.cobalt
+                                  ? T.gradPrimary
                                   : T.line,
                               color: "#fff",
                               border: "none",
-                              borderRadius: 7,
+                              borderRadius: 10,
                               fontFamily: "inherit",
                               fontSize: 12,
                               fontWeight: 700,
@@ -778,6 +763,12 @@ export function InfoPage({
                                 !replySubmitting[p._id]
                                   ? "pointer"
                                   : "not-allowed",
+                              boxShadow:
+                                (replyInput[p._id] || "").trim() &&
+                                !replySubmitting[p._id]
+                                  ? T.shadowBtn
+                                  : "none",
+                              transition: T.ease,
                             }}
                           >
                             {replySubmitting[p._id] ? "送信中..." : "送信"}
@@ -805,15 +796,12 @@ export function InfoPage({
                             e.stopPropagation();
                             fetchDetail(p._id);
                           }}
+                          className="t-btn"
                           style={{
+                            ...S.btnGhost,
                             padding: "6px 12px",
-                            background: "transparent",
                             color: T.cobalt,
-                            border: `1px solid ${T.lineStrong}`,
-                            borderRadius: 7,
-                            fontFamily: "inherit",
                             fontSize: 12,
-                            cursor: "pointer",
                           }}
                         >
                           再試行
@@ -922,27 +910,21 @@ function NoticeModal({
     <div
       onClick={onClose}
       style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(20,23,31,0.55)",
+        ...S.backdrop,
         zIndex: 90,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         padding: 20,
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="t-scale-in"
         style={{
-          background: T.surface,
-          borderRadius: 14,
+          ...S.modal,
           width: 680,
           maxWidth: "100%",
           maxHeight: "90vh",
           display: "flex",
           flexDirection: "column",
-          boxShadow: T.shadowModal,
           overflow: "hidden",
         }}
       >
@@ -995,13 +977,13 @@ function NoticeModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={titlePlaceholder}
+              className="t-input"
               style={{
+                ...S.input,
                 width: "100%",
                 padding: "10px 12px",
                 border: `1px solid ${T.lineStrong}`,
-                borderRadius: 8,
                 fontSize: 14,
-                fontFamily: "inherit",
                 boxSizing: "border-box",
               }}
             />
@@ -1023,13 +1005,13 @@ function NoticeModal({
               onChange={(e) => setBody(e.target.value)}
               placeholder={bodyPlaceholder}
               rows={12}
+              className="t-input"
               style={{
+                ...S.input,
                 width: "100%",
                 padding: "10px 12px",
                 border: `1px solid ${T.lineStrong}`,
-                borderRadius: 8,
                 fontSize: 13,
-                fontFamily: "inherit",
                 boxSizing: "border-box",
                 resize: "vertical",
                 lineHeight: 1.6,
@@ -1057,17 +1039,19 @@ function NoticeModal({
                 <button
                   key={o.k}
                   onClick={() => setScope(o.k as AnnouncementScope)}
+                  className="t-btn"
                   style={{
                     flex: 1,
                     padding: "8px 12px",
                     background: scope === o.k ? T.cobalt : T.surface,
                     color: scope === o.k ? "#fff" : T.ink2,
                     border: `1px solid ${scope === o.k ? T.cobalt : T.lineStrong}`,
-                    borderRadius: 8,
+                    borderRadius: 10,
                     fontSize: 12,
                     fontWeight: 600,
                     fontFamily: "inherit",
                     cursor: "pointer",
+                    transition: T.ease,
                   }}
                 >
                   {o.label}
@@ -1082,7 +1066,7 @@ function NoticeModal({
                 background: T.dangerSoft,
                 color: T.danger,
                 border: `1px solid ${T.danger}`,
-                borderRadius: 8,
+                borderRadius: 10,
                 fontSize: 12,
               }}
             >
@@ -1132,15 +1116,10 @@ function NoticeModal({
           <button
             onClick={onClose}
             disabled={submitting}
+            className="t-btn"
             style={{
+              ...S.btnGhost,
               padding: "8px 16px",
-              background: T.surface,
-              color: T.ink2,
-              border: `1px solid ${T.lineStrong}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 600,
               cursor: submitting ? "not-allowed" : "pointer",
             }}
           >
@@ -1149,16 +1128,19 @@ function NoticeModal({
           <button
             onClick={handleSubmit}
             disabled={!title.trim() || submitting}
+            className="t-btn"
             style={{
               padding: "8px 16px",
-              background: !title.trim() || submitting ? T.line : T.cobalt,
+              background: !title.trim() || submitting ? T.line : T.gradPrimary,
               color: "#fff",
               border: "none",
-              borderRadius: 8,
+              borderRadius: 12,
               fontFamily: "inherit",
               fontSize: 13,
               fontWeight: 700,
               cursor: !title.trim() || submitting ? "not-allowed" : "pointer",
+              boxShadow: !title.trim() || submitting ? "none" : T.shadowBtn,
+              transition: T.ease,
             }}
           >
             {submitting ? submittingLabel : submitLabel}
@@ -1380,11 +1362,8 @@ function EventCalendar({
     >
       <div
         style={{
-          background: T.surface,
-          border: `1px solid ${T.line}`,
-          borderRadius: 12,
+          ...S.card,
           padding: "18px 20px",
-          boxShadow: T.shadow1,
         }}
       >
         <div
@@ -1398,16 +1377,18 @@ function EventCalendar({
           <button
             onClick={() => navMonth(-1)}
             title="前月"
+            className="t-btn"
             style={{
               width: 32,
               height: 32,
               border: `1px solid ${T.line}`,
               background: T.surface,
-              borderRadius: 8,
+              borderRadius: 10,
               cursor: "pointer",
               fontSize: 14,
               color: T.ink2,
               fontFamily: "inherit",
+              transition: T.ease,
             }}
           >
             ‹
@@ -1425,16 +1406,18 @@ function EventCalendar({
           <button
             onClick={() => navMonth(1)}
             title="次月"
+            className="t-btn"
             style={{
               width: 32,
               height: 32,
               border: `1px solid ${T.line}`,
               background: T.surface,
-              borderRadius: 8,
+              borderRadius: 10,
               cursor: "pointer",
               fontSize: 14,
               color: T.ink2,
               fontFamily: "inherit",
+              transition: T.ease,
             }}
           >
             ›
@@ -1502,11 +1485,12 @@ function EventCalendar({
                   border: isSel
                     ? `1px solid ${T.cobalt}`
                     : `1px solid transparent`,
-                  borderRadius: 8,
+                  borderRadius: 10,
                   cursor: "pointer",
                   fontSize: 14,
                   fontWeight: isSel || isToday ? 700 : 500,
                   position: "relative",
+                  transition: T.ease,
                 }}
               >
                 <span>{d}</span>
@@ -1539,7 +1523,7 @@ function EventCalendar({
               padding: "8px 12px",
               background: "#fff0f0",
               border: "1px solid #f5c6cb",
-              borderRadius: 8,
+              borderRadius: 10,
               color: T.danger,
               fontSize: 12,
               marginBottom: 10,
@@ -1551,15 +1535,14 @@ function EventCalendar({
             <span style={{ flex: 1 }}>{evtError}</span>
             <button
               onClick={loadEvents}
+              className="t-btn"
               style={{
+                ...S.btnGhost,
                 padding: "3px 10px",
-                background: "transparent",
+                fontSize: 11,
                 color: T.danger,
                 border: "1px solid #f5c6cb",
-                borderRadius: 6,
-                fontFamily: "inherit",
-                fontSize: 11,
-                cursor: "pointer",
+                borderRadius: 8,
               }}
             >
               再試行
@@ -1580,12 +1563,12 @@ function EventCalendar({
           <div style={{ flex: 1 }} />
           <span
             style={{
+              ...S.pill,
               fontSize: 11,
               color: T.ink3,
               background: T.surfaceAlt,
               border: `1px solid ${T.line}`,
               padding: "3px 9px",
-              borderRadius: 999,
               fontFamily: T.mono,
             }}
           >
@@ -1594,16 +1577,11 @@ function EventCalendar({
           {canEdit && (
             <button
               onClick={() => setComposing(true)}
+              className="t-btn"
               style={{
+                ...S.btnPrimary,
                 padding: "5px 12px",
-                background: T.cobalt,
-                color: "#fff",
-                border: "none",
-                borderRadius: 6,
-                fontFamily: "inherit",
                 fontSize: 11,
-                fontWeight: 700,
-                cursor: "pointer",
               }}
             >
               ＋ 追加
@@ -1619,22 +1597,21 @@ function EventCalendar({
               fontSize: 13,
               background: T.surface,
               border: `1px dashed ${T.lineStrong}`,
-              borderRadius: 12,
+              borderRadius: 16,
             }}
           >
             この日に予定はありません
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {selEvents.map((e) => (
+            {selEvents.map((e, i) => (
               <div
                 key={e._id}
+                className="t-fade-up"
                 style={{
+                  ...S.card,
                   padding: "12px 14px",
-                  background: T.surface,
-                  border: `1px solid ${T.line}`,
-                  borderRadius: 10,
-                  boxShadow: T.shadow1,
+                  ...(i < 12 ? { animationDelay: `${i * 40}ms` } : null),
                 }}
               >
                 <div
@@ -1691,32 +1668,26 @@ function EventCalendar({
                     <div style={{ display: "flex", gap: 4 }}>
                       <button
                         onClick={() => setEditTarget(e)}
+                        className="t-btn"
                         style={{
+                          ...S.btnSmall,
                           padding: "3px 9px",
-                          background: T.surface,
                           color: T.ink2,
                           border: `1px solid ${T.lineStrong}`,
-                          borderRadius: 6,
-                          fontFamily: "inherit",
                           fontSize: 11,
-                          fontWeight: 600,
-                          cursor: "pointer",
                         }}
                       >
                         編集
                       </button>
                       <button
                         onClick={() => handleDelete(e._id)}
+                        className="t-btn"
                         style={{
+                          ...S.btnSmall,
                           padding: "3px 9px",
-                          background: T.surface,
                           color: T.danger,
                           border: `1px solid ${T.dangerBorder}`,
-                          borderRadius: 6,
-                          fontFamily: "inherit",
                           fontSize: 11,
-                          fontWeight: 600,
-                          cursor: "pointer",
                         }}
                       >
                         削除
@@ -1824,6 +1795,7 @@ function EventComposeModal({
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
+          className="t-input"
           style={inputStyle}
         />
       </Field>
@@ -1831,6 +1803,7 @@ function EventComposeModal({
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
+          className="t-input"
           style={inputStyle}
         >
           {["学校行事", "寮行事", "外部", "その他"].map((c) => (
@@ -1845,6 +1818,7 @@ function EventComposeModal({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="例：避難訓練"
+          className="t-input"
           style={inputStyle}
         />
       </Field>
@@ -1860,6 +1834,7 @@ function EventComposeModal({
             type="time"
             value={time}
             onChange={(e) => setTime(e.target.value)}
+            className="t-input"
             style={inputStyle}
           />
         </Field>
@@ -1868,6 +1843,7 @@ function EventComposeModal({
             type="time"
             value={endTime}
             onChange={(e) => setEndTime(e.target.value)}
+            className="t-input"
             style={inputStyle}
           />
         </Field>
@@ -1878,6 +1854,7 @@ function EventComposeModal({
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
           placeholder="例：グラウンド集合、雨天は体育館"
+          className="t-input"
           style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
         />
       </Field>
@@ -1888,7 +1865,7 @@ function EventComposeModal({
             background: T.dangerSoft,
             color: T.danger,
             border: `1px solid ${T.dangerBorder}`,
-            borderRadius: 8,
+            borderRadius: 10,
             fontSize: 12,
           }}
         >
@@ -2045,18 +2022,18 @@ export function BusSchedulePanel({
   // 时刻格式化：ISO → HH:MM
   const fmtTime = (iso: string | null) => (iso ? iso.slice(11, 16) : "—");
 
-  const RouteRow = ({ r }: { r: BusRoute }) => (
+  const RouteRow = ({ r, index = 0 }: { r: BusRoute; index?: number }) => (
     <div
+      className="t-fade-up"
       style={{
         display: "grid",
         gridTemplateColumns: "56px 1fr auto auto",
         alignItems: "center",
         gap: 10,
         padding: "10px 14px",
-        background: T.surface,
-        border: `1px solid ${T.line}`,
-        borderRadius: 8,
+        ...S.card,
         marginBottom: 6,
+        ...(index < 12 ? { animationDelay: `${index * 40}ms` } : null),
       }}
     >
       <span
@@ -2096,32 +2073,26 @@ export function BusSchedulePanel({
         <>
           <button
             onClick={() => setComposing(r)}
+            className="t-btn"
             style={{
+              ...S.btnSmall,
               padding: "3px 9px",
-              background: T.surface,
               color: T.ink2,
               border: `1px solid ${T.lineStrong}`,
-              borderRadius: 6,
-              fontFamily: "inherit",
               fontSize: 11,
-              fontWeight: 600,
-              cursor: "pointer",
             }}
           >
             編集
           </button>
           <button
             onClick={() => handleDeprecate(r.id)}
+            className="t-btn"
             style={{
+              ...S.btnSmall,
               padding: "3px 9px",
-              background: T.surface,
               color: T.danger,
               border: `1px solid ${T.dangerBorder}`,
-              borderRadius: 6,
-              fontFamily: "inherit",
               fontSize: 11,
-              fontWeight: 600,
-              cursor: "pointer",
             }}
           >
             運休
@@ -2145,8 +2116,8 @@ export function BusSchedulePanel({
         >
           {title}
         </div>
-        {items.map((r) => (
-          <RouteRow key={r.id} r={r} />
+        {items.map((r, i) => (
+          <RouteRow key={r.id} r={r} index={i} />
         ))}
       </div>
     );
@@ -2174,6 +2145,7 @@ export function BusSchedulePanel({
             <button
               key={k}
               onClick={() => setKindFilter(k)}
+              className="t-btn"
               style={{
                 padding: "5px 12px",
                 background: kindFilter === k ? T.cobaltSoft : T.surface,
@@ -2184,6 +2156,7 @@ export function BusSchedulePanel({
                 fontSize: 11,
                 fontWeight: 600,
                 cursor: "pointer",
+                transition: T.ease,
               }}
             >
               {l}
@@ -2193,17 +2166,11 @@ export function BusSchedulePanel({
         {canEdit && (
           <button
             onClick={() => setComposing("new")}
+            className="t-btn"
             style={{
+              ...S.btnPrimary,
               padding: "7px 14px",
-              background: T.cobalt,
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontFamily: "inherit",
               fontSize: 12,
-              fontWeight: 700,
-              cursor: "pointer",
-              boxShadow: T.shadow1,
               whiteSpace: "nowrap",
             }}
           >
@@ -2224,7 +2191,7 @@ export function BusSchedulePanel({
             padding: "8px 12px",
             background: "#fff0f0",
             border: "1px solid #f5c6cb",
-            borderRadius: 8,
+            borderRadius: 10,
             color: T.danger,
             fontSize: 12,
             marginBottom: 10,
@@ -2236,15 +2203,14 @@ export function BusSchedulePanel({
           <span style={{ flex: 1 }}>{loadError}</span>
           <button
             onClick={loadRoutes}
+            className="t-btn"
             style={{
+              ...S.btnGhost,
               padding: "3px 10px",
-              background: "transparent",
+              fontSize: 11,
               color: T.danger,
               border: "1px solid #f5c6cb",
-              borderRadius: 6,
-              fontFamily: "inherit",
-              fontSize: 11,
-              cursor: "pointer",
+              borderRadius: 8,
             }}
           >
             再試行
@@ -2262,7 +2228,7 @@ export function BusSchedulePanel({
             fontSize: 13,
             background: T.surface,
             border: `1px dashed ${T.lineStrong}`,
-            borderRadius: 10,
+            borderRadius: 12,
           }}
         >
           バス便はまだ登録されていません
@@ -2373,6 +2339,7 @@ function BusRouteModal({
           value={direction}
           onChange={(e) => setDirection(e.target.value)}
           placeholder="例：岡山駅西口 → 高校棟"
+          className="t-input"
           style={inputStyle}
         />
       </Field>
@@ -2388,6 +2355,7 @@ function BusRouteModal({
             type="date"
             value={schedDate}
             onChange={(e) => setSchedDate(e.target.value)}
+            className="t-input"
             style={inputStyle}
           />
         </Field>
@@ -2396,6 +2364,7 @@ function BusRouteModal({
             type="time"
             value={schedTime}
             onChange={(e) => setSchedTime(e.target.value)}
+            className="t-input"
             style={inputStyle}
           />
         </Field>
@@ -2412,6 +2381,7 @@ function BusRouteModal({
             type="date"
             value={arrDate}
             onChange={(e) => setArrDate(e.target.value)}
+            className="t-input"
             style={inputStyle}
           />
         </Field>
@@ -2420,6 +2390,7 @@ function BusRouteModal({
             type="time"
             value={arrTime}
             onChange={(e) => setArrTime(e.target.value)}
+            className="t-input"
             style={inputStyle}
           />
         </Field>
@@ -2428,6 +2399,7 @@ function BusRouteModal({
         <select
           value={visibleTo}
           onChange={(e) => setVisibleTo(e.target.value)}
+          className="t-input"
           style={inputStyle}
         >
           <option value="all">全員</option>
@@ -2442,6 +2414,7 @@ function BusRouteModal({
           onChange={(e) => setPurpose(e.target.value)}
           rows={2}
           placeholder="例：GW の外泊・帰省・買い物に使える臨時便です。"
+          className="t-input"
           style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
         />
       </Field>
@@ -2451,6 +2424,7 @@ function BusRouteModal({
           onChange={(e) => setNote(e.target.value)}
           rows={2}
           placeholder="例：部活対応 / 雨天中止"
+          className="t-input"
           style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
         />
       </Field>
@@ -2461,7 +2435,7 @@ function BusRouteModal({
             background: T.dangerSoft,
             color: T.danger,
             border: `1px solid ${T.dangerBorder}`,
-            borderRadius: 8,
+            borderRadius: 10,
             fontSize: 12,
           }}
         >

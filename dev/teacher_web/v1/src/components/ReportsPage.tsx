@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
+import { RYO, S } from "../theme";
 import { api } from "../api/client";
 import type { ContentReportOut } from "../api/types";
 
@@ -117,9 +117,10 @@ export function ReportsPage({ authToken }: { authToken: string | null }) {
     <button
       key={key}
       onClick={() => setStatusFilter(key)}
+      className="t-btn"
       style={{
         padding: "6px 14px",
-        borderRadius: 8,
+        borderRadius: 10,
         border: `1px solid ${statusFilter === key ? T.cobalt : T.line}`,
         background: statusFilter === key ? T.cobaltSoft : "transparent",
         color: statusFilter === key ? T.cobalt : T.ink2,
@@ -127,6 +128,7 @@ export function ReportsPage({ authToken }: { authToken: string | null }) {
         fontWeight: 600,
         cursor: "pointer",
         fontFamily: T.font,
+        transition: T.ease,
       }}
     >
       {label}
@@ -167,14 +169,14 @@ export function ReportsPage({ authToken }: { authToken: string | null }) {
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {items.map((r) => (
+        {items.map((r, i) => (
           <div
             key={r.id}
+            className="t-fade-up"
             style={{
-              border: `1px solid ${T.line}`,
-              borderRadius: 12,
+              ...S.card,
               padding: "14px 16px",
-              background: T.surface,
+              ...(i < 12 ? { animationDelay: `${i * 40}ms` } : null),
             }}
           >
             <div
@@ -187,10 +189,10 @@ export function ReportsPage({ authToken }: { authToken: string | null }) {
             >
               <span
                 style={{
+                  ...S.pill,
                   fontSize: 11,
                   fontWeight: 700,
                   padding: "2px 8px",
-                  borderRadius: 999,
                   background: T.cobaltSoft,
                   color: T.cobalt,
                 }}
@@ -219,16 +221,14 @@ export function ReportsPage({ authToken }: { authToken: string | null }) {
                 <button
                   onClick={() => deleteContent(r)}
                   disabled={busyId === r.id}
+                  className="t-btn"
                   style={{
+                    ...S.btnGhost,
                     padding: "6px 14px",
-                    borderRadius: 8,
-                    border: `1px solid ${T.danger}`,
-                    background: "transparent",
                     color: T.danger,
+                    border: `1px solid ${T.danger}`,
                     fontSize: 12.5,
                     fontWeight: 700,
-                    cursor: "pointer",
-                    fontFamily: T.font,
                   }}
                 >
                   投稿を削除
@@ -236,16 +236,13 @@ export function ReportsPage({ authToken }: { authToken: string | null }) {
                 <button
                   onClick={() => markHandled(r)}
                   disabled={busyId === r.id}
+                  className="t-btn"
                   style={{
+                    ...S.btnGhost,
                     padding: "6px 14px",
-                    borderRadius: 8,
-                    border: `1px solid ${T.line}`,
-                    background: "transparent",
                     color: T.ink2,
                     fontSize: 12.5,
                     fontWeight: 600,
-                    cursor: "pointer",
-                    fontFamily: T.font,
                   }}
                 >
                   問題なし（対応済みにする）
