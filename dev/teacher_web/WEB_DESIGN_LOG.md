@@ -197,7 +197,12 @@ itsuki 给出 Figma Community 的 ATS Resume Analyzer Dashboard 作视觉参考�
 - 同时挂 `t-card` 和 `t-fade-up` 的卡片，hover 的 `translateY(-2px)` 被 `transform: none` 压住 —— 阴影加深还在，抬起没了。
 - 用内联 `opacity: 0.7` 表示「已驳回」「处理中」的元素，被 `opacity: 1` 压成完全不透明，状态从界面上看不出来。
 
-对策：`both` 改成 `backwards`，只保留「动画开始前用首帧」，播完即释放属性控制权交还元素自己的规则。末帧值本来就等于元素默认值（`opacity: 1` / `transform: none`），释放后视觉零变化。
+对策分两步，缺一不可：
+
+1. **`both` 改成 `backwards`** —— 只保留「动画开始前用首帧」，播完即释放属性控制权交还元素自己的规则。这解决「动画结束后」。
+2. **`to` 帧删掉 `opacity: 1`** —— 只改第 1 步的话还剩个尾巴：`backwards` 管不到播放中的那 0.42 秒，动画期间 opacity 仍会按关键帧写死的值插到 1，半透明状态卡会「淡到全不透明 → 结束瞬间跳回 0.7」，闪一下。删掉终值后，CSS 的**隐式关键帧**规则会自动拿元素自己的基础样式值当终值 —— 普通元素淡入到 1，状态卡淡入到它自己的 0.7，各走各的。
+
+`transform: none` 则保留写死在 `to` 帧里：全站没有元素给自己内联 `transform`，终值写死比交给隐式规则更可控。
 
 **验证方法**：这两个陷阱都只能靠浏览器实测发现 —— 真实鼠标悬停后读 `getComputedStyle`。注意后台标签页的 CSS 动画会被浏览器节流，读到的常是动画中间帧，先跑 `document.getAnimations().forEach(a => a.finish())` 强制跳到结束态再读。
 
