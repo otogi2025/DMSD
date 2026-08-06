@@ -180,6 +180,27 @@ itsuki 给出 Figma Community 的 ATS Resume Analyzer Dashboard 作视觉参考�
 
 日语 UI 文案、业务逻辑、JSX 结构层级、依赖清单全程零改动。每批提交前用脚本抽取改动前后的日语字符串集合逐一比对确认。
 
+### 3.5.8 CSS 层叠的两个陷阱（改样式前必读）
+
+本页面是「内联 `style` 为主 + `styles.css` 放伪类和动画」的混合模式。这个模式下，写在 `styles.css` 里的规则随时可能被更高优先级的东西静默压掉 —— 不报错、不警告，只是没效果。改造过程中撞了两次，都是浏览器实测才发现，静态读代码看不出来。
+
+**陷阱一 · 内联 `style` 压过 CSS 类的伪类规则**
+
+内联样式优先级高于普通 CSS 规则。棘手的是「看起来什么都没设」的值同样算内联值 —— 例如导航按钮写 `background: isActive ? gradPrimary : "transparent"`，那个 `"transparent"` 照样压过 `.t-nav:hover { background: ... }`，非选中项悬停完全没反应。
+
+对策：hover 的底色改用 `box-shadow: inset 0 0 0 999px rgba(...)` 铺满整个元素。它绘制在背景层之上、内容之下，不受内联 `background` 影响，透明底也可见，而且**不覆盖**原有背景色 —— 未读通知行的高亮底和悬停反馈可以同时存在。这比加 `!important` 好，后者会把条件高亮一起冲掉。
+
+**陷阱二 · `animation-fill-mode: both` 永久锁死动画涉及的属性**
+
+`both` = `backwards` + `forwards`，其中 `forwards` 让动画播完后**永久保持末帧的值**。而 CSS 层叠里动画声明的优先级高于内联 `style`，也高于普通规则（只有作者写的 `!important` 压得过）。进场动画 `.t-fade-up` 的末帧是 `opacity: 1; transform: none`，于是所有挂了它的元素，这两个属性就被动画永久占用了，压死两处：
+
+- 同时挂 `t-card` 和 `t-fade-up` 的卡片，hover 的 `translateY(-2px)` 被 `transform: none` 压住 —— 阴影加深还在，抬起没了。
+- 用内联 `opacity: 0.7` 表示「已驳回」「处理中」的元素，被 `opacity: 1` 压成完全不透明，状态从界面上看不出来。
+
+对策：`both` 改成 `backwards`，只保留「动画开始前用首帧」，播完即释放属性控制权交还元素自己的规则。末帧值本来就等于元素默认值（`opacity: 1` / `transform: none`），释放后视觉零变化。
+
+**验证方法**：这两个陷阱都只能靠浏览器实测发现 —— 真实鼠标悬停后读 `getComputedStyle`。注意后台标签页的 CSS 动画会被浏览器节流，读到的常是动画中间帧，先跑 `document.getAnimations().forEach(a => a.finish())` 强制跳到结束态再读。
+
 ---
 
 ## 4. Claude Design 产出归档（已导入 repo）
