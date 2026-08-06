@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
+import { RYO, S } from "../theme";
 
 // 源 index.html 24086-24960（pages-records-search-etc 块）。
 // 界面原样搬：JSX 结构 + 所有内联 style 一字不改，仅把作用域引用从 window.RYO 改成 import 的 RYO。
@@ -297,6 +297,7 @@ export function CommunityPage({
               fontSize: 11,
               fontWeight: 600,
               cursor: "pointer",
+              transition: S.ease,
             }}
           >
             {l}
@@ -330,6 +331,7 @@ export function CommunityPage({
                     fontSize: 11,
                     fontWeight: 600,
                     cursor: "pointer",
+                    transition: S.ease,
                   }}
                 >
                   {l}{" "}
@@ -356,6 +358,7 @@ export function CommunityPage({
                   fontSize: 11,
                   fontWeight: 600,
                   cursor: "pointer",
+                  transition: S.ease,
                 }}
               >
                 {l}
@@ -388,6 +391,7 @@ export function CommunityPage({
                     fontSize: 11,
                     fontWeight: 600,
                     cursor: "pointer",
+                    transition: S.ease,
                   }}
                 >
                   {l}{" "}
@@ -406,7 +410,7 @@ export function CommunityPage({
           gap: 12,
         }}
       >
-        {visible.map((p) => (
+        {visible.map((p, i) => (
           <PostCard
             key={p.id}
             post={p}
@@ -414,6 +418,7 @@ export function CommunityPage({
             onPin={handlePin}
             onSongDecision={handleSongDecision}
             queueNo={approvedOrder[p.id]}
+            animIndex={i}
           />
         ))}
         {visible.length === 0 && (
@@ -426,7 +431,7 @@ export function CommunityPage({
               fontSize: 13,
               background: T.surface,
               border: `1px dashed ${T.lineStrong}`,
-              borderRadius: 12,
+              borderRadius: 16,
             }}
           >
             このカテゴリーに投稿はありません
@@ -455,12 +460,9 @@ function StatCard({
     <div
       onClick={onClick || undefined}
       style={{
+        ...S.card,
         padding: "14px 16px",
-        background: T.surface,
-        border: `1px solid ${T.line}`,
-        borderRadius: 10,
         cursor: onClick ? "pointer" : "default",
-        transition: "border-color .15s",
       }}
     >
       <div
@@ -495,12 +497,14 @@ function PostCard({
   onPin,
   onSongDecision,
   queueNo,
+  animIndex = 0,
 }: {
   post: CommunityPost;
   onDelete: (id: string | number) => void;
   onPin: (id: string | number) => void;
   onSongDecision: (id: string | number, decision: string) => void;
   queueNo?: number;
+  animIndex?: number;
 }) {
   const T = RYO;
   // 5-27 砍 anon tab — cat 已无 "anon" 值，isAnon 逻辑全删
@@ -542,16 +546,17 @@ function PostCard({
         : T.line;
   return (
     <div
+      className="t-fade-up"
       style={{
+        ...S.card,
         padding: 14,
-        background: T.surface,
         border: `1px solid ${borderColor}`,
-        borderRadius: 12,
         display: "flex",
         flexDirection: "column",
         gap: 10,
-        boxShadow: post.pinned ? T.shadow1 : "none",
+        boxShadow: post.pinned ? T.shadowCard : "none",
         opacity: songStatus === "rejected" ? 0.7 : 1,
+        ...(animIndex < 12 ? { animationDelay: `${animIndex * 40}ms` } : null),
       }}
     >
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
@@ -633,11 +638,11 @@ function PostCard({
           {slotLabel && (
             <span
               style={{
+                ...S.pill,
                 fontSize: 10,
                 color: T.cobaltDeep,
                 background: T.cobaltSoft,
                 padding: "2px 7px",
-                borderRadius: 4,
                 fontWeight: 700,
                 border: `1px solid ${T.cobalt}33`,
                 whiteSpace: "nowrap",
@@ -649,11 +654,11 @@ function PostCard({
           {st && (
             <span
               style={{
+                ...S.pill,
                 fontSize: 10,
                 color: st.fg,
                 background: st.bg,
                 padding: "2px 7px",
-                borderRadius: 4,
                 fontWeight: 700,
                 border: `1px solid ${st.bd}`,
                 whiteSpace: "nowrap",
@@ -665,11 +670,11 @@ function PostCard({
           {post.pinned && (
             <span
               style={{
+                ...S.pill,
                 fontSize: 10,
                 color: "#fff",
                 background: T.cobalt,
                 padding: "2px 6px",
-                borderRadius: 4,
                 fontWeight: 700,
                 letterSpacing: 1,
               }}
@@ -725,16 +730,14 @@ function PostCard({
               onClick={() =>
                 onSongDecision && onSongDecision(post.id, "rejected")
               }
+              className="t-btn"
               style={{
+                ...S.btnSmall,
                 padding: "4px 10px",
+                fontSize: 11,
                 background: T.surface,
                 color: T.danger,
                 border: `1px solid ${T.dangerBorder}`,
-                borderRadius: 6,
-                fontFamily: "inherit",
-                fontSize: 11,
-                fontWeight: 600,
-                cursor: "pointer",
               }}
             >
               拒否
@@ -743,16 +746,15 @@ function PostCard({
               onClick={() =>
                 onSongDecision && onSongDecision(post.id, "approved")
               }
+              className="t-btn"
               style={{
+                ...S.btnSmall,
                 padding: "4px 10px",
+                fontSize: 11,
+                fontWeight: 700,
                 background: T.ok,
                 color: "#fff",
                 border: `1px solid ${T.ok}`,
-                borderRadius: 6,
-                fontFamily: "inherit",
-                fontSize: 11,
-                fontWeight: 700,
-                cursor: "pointer",
               }}
             >
               承認
@@ -762,16 +764,14 @@ function PostCard({
         {isSong && songStatus !== "pending" && (
           <button
             onClick={() => onSongDecision && onSongDecision(post.id, "pending")}
+            className="t-btn"
             style={{
+              ...S.btnSmall,
               padding: "4px 10px",
+              fontSize: 11,
               background: T.surface,
               color: T.ink3,
               border: `1px solid ${T.lineStrong}`,
-              borderRadius: 6,
-              fontFamily: "inherit",
-              fontSize: 11,
-              fontWeight: 600,
-              cursor: "pointer",
             }}
           >
             審査取消
@@ -779,32 +779,26 @@ function PostCard({
         )}
         <button
           onClick={() => onPin(post.id)}
+          className="t-btn"
           style={{
+            ...S.btnSmall,
             padding: "4px 10px",
+            fontSize: 11,
             background: post.pinned ? T.cobaltSoft : T.surface,
             color: post.pinned ? T.cobaltDeep : T.ink3,
             border: `1px solid ${post.pinned ? T.cobalt : T.lineStrong}`,
-            borderRadius: 6,
-            fontFamily: "inherit",
-            fontSize: 11,
-            fontWeight: 600,
-            cursor: "pointer",
           }}
         >
           {post.pinned ? "ピン解除" : "ピン留め"}
         </button>
         <button
           onClick={() => onDelete(post.id)}
+          className="t-btn"
           style={{
+            ...S.btnDanger,
             padding: "4px 10px",
-            background: T.surface,
-            color: T.danger,
-            border: `1px solid ${T.dangerBorder}`,
-            borderRadius: 6,
-            fontFamily: "inherit",
             fontSize: 11,
             fontWeight: 600,
-            cursor: "pointer",
           }}
         >
           削除

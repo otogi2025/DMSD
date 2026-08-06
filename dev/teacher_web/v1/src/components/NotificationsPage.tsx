@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
+import { RYO, S } from "../theme";
 import { api } from "../api/client";
 import type { NotificationItem } from "../api/types";
 
@@ -225,12 +225,12 @@ export function NotificationsPage({
           {unread > 0 && (
             <span
               style={{
+                ...S.pill,
                 marginLeft: 8,
                 fontSize: 11,
                 background: T.danger,
                 color: "#fff",
                 padding: "1px 8px",
-                borderRadius: 10,
                 fontWeight: 700,
               }}
             >
@@ -241,15 +241,13 @@ export function NotificationsPage({
         <button
           onClick={markAllRead}
           disabled={unread === 0}
+          className="t-btn"
           style={{
+            ...S.btnGhost,
             padding: "5px 12px",
-            background: "transparent",
+            fontSize: 12,
             color: unread === 0 ? T.ink3 : T.cobalt,
             border: `1px solid ${unread === 0 ? T.line : T.cobalt}`,
-            borderRadius: 8,
-            fontFamily: "inherit",
-            fontSize: 12,
-            fontWeight: 600,
             cursor: unread === 0 ? "default" : "pointer",
           }}
         >
@@ -263,7 +261,7 @@ export function NotificationsPage({
             padding: "10px 14px",
             background: T.dangerSoft,
             border: `1px solid ${T.dangerBorder}`,
-            borderRadius: 8,
+            borderRadius: 10,
             color: T.danger,
             fontSize: 13,
             marginBottom: 12,
@@ -278,7 +276,7 @@ export function NotificationsPage({
           style={{
             background: T.surface,
             border: `1px dashed ${T.lineStrong}`,
-            borderRadius: 12,
+            borderRadius: 16,
             padding: "32px 0",
             textAlign: "center",
             color: T.ink3,
@@ -292,7 +290,7 @@ export function NotificationsPage({
           style={{
             background: T.surface,
             border: `1px dashed ${T.lineStrong}`,
-            borderRadius: 12,
+            borderRadius: 16,
             padding: "32px 0",
             textAlign: "center",
             color: T.ink3,
@@ -304,11 +302,8 @@ export function NotificationsPage({
       ) : (
         <div
           style={{
-            background: T.surface,
-            border: `1px solid ${T.line}`,
-            borderRadius: 12,
+            ...S.card,
             overflow: "hidden",
-            boxShadow: T.shadow1,
           }}
         >
           {items.map((n, i) => {
@@ -316,6 +311,7 @@ export function NotificationsPage({
             return (
               <div
                 key={n.id}
+                className="t-row t-fade-up"
                 onClick={() => handleClick(n)}
                 style={{
                   display: "flex",
@@ -328,9 +324,10 @@ export function NotificationsPage({
                     !n.is_read || NAV_TARGET[n.category]
                       ? "pointer"
                       : "default",
+                  ...(i < 12 ? { animationDelay: `${i * 40}ms` } : null),
                 }}
               >
-                {/* 未读小圆点 */}
+                {/* 未读小圆点 — 宽高 ≤20px，圆角保持原值 */}
                 <span
                   style={{
                     width: 8,
@@ -352,12 +349,12 @@ export function NotificationsPage({
                   >
                     <span
                       style={{
+                        ...S.pill,
                         fontSize: 10,
                         color: meta.color,
                         background: T.surfaceAlt,
                         border: `1px solid ${T.lineStrong}`,
                         padding: "1px 7px",
-                        borderRadius: 4,
                         fontWeight: 700,
                         whiteSpace: "nowrap",
                       }}
@@ -411,15 +408,12 @@ function NotifCard({
   return (
     <button
       onClick={onClick}
+      className="t-card"
       style={{
-        background: T.surface,
-        border: `1px solid ${T.line}`,
-        borderRadius: 12,
+        ...S.cardHoverable,
         padding: "18px 20px",
-        boxShadow: T.shadow1,
         textAlign: "left",
         fontFamily: "inherit",
-        cursor: "pointer",
       }}
     >
       <div

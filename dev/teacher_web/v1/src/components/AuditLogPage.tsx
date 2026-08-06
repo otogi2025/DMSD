@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
+import { RYO, S } from "../theme";
 import { api } from "../api/client";
 import type { AuditLogEntry } from "../api/types";
 
@@ -125,12 +125,14 @@ export function AuditLogPage({ authToken }: { authToken: string | null }) {
     );
   }
 
+  // 表格页保守：th padding 与 S.tableHead 同为「10px 14px」，可吃颜色；不加大 padding
   const th: React.CSSProperties = {
     textAlign: "left",
     padding: "10px 14px",
     fontSize: 12,
     fontWeight: 700,
-    color: T.ink2,
+    background: T.surfaceAlt,
+    color: T.ink3,
     borderBottom: `1px solid ${T.line}`,
     whiteSpace: "nowrap",
   };
@@ -161,7 +163,7 @@ export function AuditLogPage({ authToken }: { authToken: string | null }) {
             marginBottom: 12,
             background: T.dangerSoft,
             color: T.danger,
-            borderRadius: 8,
+            borderRadius: 10,
             fontSize: 13,
           }}
         >
@@ -171,9 +173,7 @@ export function AuditLogPage({ authToken }: { authToken: string | null }) {
 
       <div
         style={{
-          background: T.surface,
-          border: `1px solid ${T.line}`,
-          borderRadius: 12,
+          ...S.card,
           overflow: "hidden",
         }}
       >
@@ -202,7 +202,7 @@ export function AuditLogPage({ authToken }: { authToken: string | null }) {
               const isOpen = expanded === e.id;
               return (
                 <React.Fragment key={e.id}>
-                  <tr>
+                  <tr className="t-row">
                     <td
                       style={{
                         ...td,
@@ -222,15 +222,14 @@ export function AuditLogPage({ authToken }: { authToken: string | null }) {
                     <td style={{ ...td, textAlign: "right" }}>
                       <button
                         onClick={() => setExpanded(isOpen ? null : e.id)}
+                        className="t-btn"
                         style={{
+                          ...S.btnSmall,
                           border: `1px solid ${T.line}`,
                           background: isOpen ? T.cobaltSoft : "transparent",
                           color: isOpen ? T.cobaltDeep : T.ink3,
-                          borderRadius: 6,
                           padding: "3px 9px",
                           fontSize: 11,
-                          fontFamily: "inherit",
-                          cursor: "pointer",
                         }}
                       >
                         {isOpen ? "閉じる" : "詳細"}
@@ -273,15 +272,12 @@ export function AuditLogPage({ authToken }: { authToken: string | null }) {
         {!loading && items.length < total && (
           <button
             onClick={() => load(items.length)}
+            className="t-btn"
             style={{
-              border: `1px solid ${T.lineStrong}`,
-              background: T.surface,
-              color: T.ink2,
-              borderRadius: 8,
+              ...S.btnGhost,
               padding: "8px 18px",
-              fontSize: 13,
-              fontFamily: "inherit",
-              cursor: "pointer",
+              color: T.ink2,
+              background: T.surface,
             }}
           >
             もっと見る（残り{total - items.length}件）

@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
+import { RYO, S } from "../theme";
 import { api } from "../api/client";
 import type { RegistrationCode } from "../api/types";
 
@@ -172,7 +172,7 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
             background: T.dangerSoft,
             color: T.danger,
             border: `1px solid ${T.dangerBorder}`,
-            borderRadius: 10,
+            borderRadius: 12,
             fontSize: 13,
             lineHeight: 1.7,
           }}
@@ -212,11 +212,8 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
       {/* 当前注册码 block */}
       <div
         style={{
-          background: T.surface,
-          border: `1px solid ${T.line}`,
-          borderRadius: 14,
+          ...S.card,
           padding: "28px 24px",
-          boxShadow: T.shadow1,
           marginBottom: 18,
         }}
       >
@@ -322,15 +319,13 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
           <button
             onClick={() => setConfirm(true)}
             disabled={refreshing || locked}
+            className="t-btn"
             style={{
+              ...S.btnPrimary,
               padding: "10px 18px",
-              background: refreshing || locked ? T.lineStrong : T.cobalt,
-              color: "#fff",
-              border: "none",
-              borderRadius: 10,
-              fontFamily: "inherit",
-              fontSize: 13,
               fontWeight: 600,
+              background: refreshing || locked ? T.lineStrong : undefined,
+              boxShadow: refreshing || locked ? "none" : undefined,
               cursor: refreshing || locked ? "not-allowed" : "pointer",
             }}
           >
@@ -343,15 +338,11 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
           <button
             onClick={doCopy}
             disabled={!code}
+            className="t-btn"
             style={{
+              ...S.btnGhost,
               padding: "10px 18px",
               background: T.surface,
-              color: T.ink,
-              border: `1px solid ${T.lineStrong}`,
-              borderRadius: 10,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 600,
               cursor: code ? "pointer" : "not-allowed",
             }}
           >
@@ -367,7 +358,7 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
             background: T.dangerSoft,
             color: T.danger,
             border: `1px solid ${T.dangerBorder}`,
-            borderRadius: 8,
+            borderRadius: 10,
             fontSize: 12,
             marginBottom: 14,
           }}
@@ -379,9 +370,7 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
       {/* 用法说明 block */}
       <div
         style={{
-          background: T.surface,
-          border: `1px solid ${T.line}`,
-          borderRadius: 12,
+          ...S.card,
           padding: "16px 20px",
           fontSize: 12,
           lineHeight: 1.9,
@@ -414,23 +403,17 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
         <div
           onClick={() => setConfirm(false)}
           style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(20,23,31,.4)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            ...S.backdrop,
             zIndex: 1000,
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
+            className="t-scale-in"
             style={{
-              background: T.surface,
-              borderRadius: 14,
+              ...S.modal,
               padding: 24,
               width: 420,
-              boxShadow: T.shadowModal,
             }}
           >
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
@@ -457,31 +440,22 @@ export function RegistrationCodePanel({ authToken }: { authToken: string }) {
             >
               <button
                 onClick={() => setConfirm(false)}
+                className="t-btn"
                 style={{
+                  ...S.btnGhost,
                   padding: "8px 16px",
-                  background: T.surface,
                   color: T.ink2,
-                  border: `1px solid ${T.lineStrong}`,
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  cursor: "pointer",
+                  background: T.surface,
                 }}
               >
                 キャンセル
               </button>
               <button
                 onClick={doRefresh}
+                className="t-btn"
                 style={{
+                  ...S.btnPrimary,
                   padding: "8px 16px",
-                  background: T.cobalt,
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: "pointer",
                 }}
               >
                 発行

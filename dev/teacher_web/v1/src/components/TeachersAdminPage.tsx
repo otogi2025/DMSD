@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
+import { RYO, S } from "../theme";
 import { api } from "../api/client";
 import type { TeacherOut, TeacherCreateIn, TeacherProfile } from "../api/types";
 import {
@@ -149,16 +149,12 @@ export function TeachersAdminPage({
           <button
             type="button"
             onClick={() => setCreateMode("temp")}
+            className="t-btn"
             style={{
+              ...S.btnGhost,
               padding: "10px 18px",
-              background: "transparent",
               color: T.cobalt,
               border: `1px solid ${T.cobalt}`,
-              borderRadius: 10,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: "pointer",
             }}
           >
             + 臨時アカウントを追加
@@ -168,16 +164,11 @@ export function TeachersAdminPage({
           <button
             type="button"
             onClick={() => setCreateMode("normal")}
+            className="t-btn"
             style={{
+              ...S.btnPrimary,
               padding: "10px 18px",
-              background: T.cobalt,
-              color: "#fff",
-              border: "none",
-              borderRadius: 10,
-              fontFamily: "inherit",
-              fontSize: 13,
               fontWeight: 600,
-              cursor: "pointer",
             }}
           >
             + 新規教員を追加
@@ -204,7 +195,7 @@ export function TeachersAdminPage({
             background: T.dangerSoft,
             color: T.danger,
             border: `1px solid ${T.dangerBorder}`,
-            borderRadius: 10,
+            borderRadius: 12,
             fontSize: 13,
           }}
         >
@@ -214,9 +205,7 @@ export function TeachersAdminPage({
       {list !== null && !loadErr && (
         <div
           style={{
-            background: T.surface,
-            border: `1px solid ${T.line}`,
-            borderRadius: 12,
+            ...S.card,
             overflow: "hidden",
           }}
         >
@@ -281,6 +270,7 @@ export function TeachersAdminPage({
             return (
               <div
                 key={t.id}
+                className="t-row"
                 style={{
                   display: "grid",
                   gridTemplateColumns:
@@ -299,12 +289,12 @@ export function TeachersAdminPage({
                   {isSelf && (
                     <span
                       style={{
+                        ...S.pill,
                         marginLeft: 6,
                         fontSize: 10,
-                        color: T.cobalt,
                         padding: "2px 6px",
+                        color: T.cobalt,
                         background: T.cobaltSoft,
-                        borderRadius: 999,
                       }}
                     >
                       自分
@@ -314,12 +304,12 @@ export function TeachersAdminPage({
                   {isTemp && (
                     <span
                       style={{
+                        ...S.pill,
                         marginLeft: 6,
                         fontSize: 10,
-                        color: isExpired ? T.danger : T.cobalt,
                         padding: "2px 6px",
+                        color: isExpired ? T.danger : T.cobalt,
                         background: isExpired ? T.dangerSoft : T.cobaltSoft,
-                        borderRadius: 999,
                       }}
                     >
                       {isExpired ? "期限切れ" : `臨時 · 〜${expiryLabel}`}
@@ -350,15 +340,23 @@ export function TeachersAdminPage({
                       disabled={isSelf}
                       onClick={() => !isSelf && setConfirmDelete(t)}
                       title={isSelf ? "自分自身は削除できません" : ""}
+                      className="t-btn"
                       style={{
-                        padding: "6px 12px",
-                        background: isSelf ? T.surfaceAlt : T.dangerSoft,
-                        color: isSelf ? T.ink3 : T.danger,
-                        border: `1px solid ${isSelf ? T.line : T.dangerBorder}`,
-                        borderRadius: 8,
-                        fontFamily: "inherit",
-                        fontSize: 12,
-                        cursor: isSelf ? "not-allowed" : "pointer",
+                        ...(isSelf
+                          ? {
+                              ...S.btnSmall,
+                              padding: "6px 12px",
+                              background: T.surfaceAlt,
+                              color: T.ink3,
+                              border: `1px solid ${T.line}`,
+                              cursor: "not-allowed",
+                            }
+                          : {
+                              ...S.btnDanger,
+                              padding: "6px 12px",
+                              fontSize: 12,
+                              fontWeight: 600,
+                            }),
                       }}
                     >
                       削除
@@ -387,6 +385,7 @@ export function TeachersAdminPage({
       )}
       {toast && (
         <div
+          className="t-scale-in"
           style={{
             position: "fixed",
             bottom: 24,
@@ -396,7 +395,7 @@ export function TeachersAdminPage({
             background: toast.type === "ok" ? T.okSoft : T.dangerSoft,
             color: toast.type === "ok" ? T.ok : T.danger,
             border: `1px solid ${toast.type === "ok" ? T.okBorder : T.dangerBorder}`,
-            borderRadius: 10,
+            borderRadius: 12,
             fontSize: 13,
             fontWeight: 600,
             boxShadow: T.shadow2,
@@ -506,15 +505,7 @@ function TeachersAdminCreateModal({
   return (
     <div
       style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: "rgba(0,0,0,.4)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        ...S.backdrop,
         zIndex: 1000,
         padding: 24,
       }}
@@ -523,14 +514,13 @@ function TeachersAdminCreateModal({
       <form
         onSubmit={submit}
         onClick={(e) => e.stopPropagation()}
+        className="t-scale-in"
         style={{
-          background: T.surface,
-          borderRadius: 14,
+          ...S.modal,
           padding: "26px 28px",
           width: 460,
           maxHeight: "90vh",
           overflowY: "auto",
-          boxShadow: T.shadow2,
         }}
       >
         <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>
@@ -575,15 +565,11 @@ function TeachersAdminCreateModal({
           <select
             value={role}
             onChange={(e) => setRole(e.target.value)}
+            className="t-input"
             style={{
+              ...S.input,
               width: "100%",
-              padding: "10px 12px",
-              border: `1px solid ${T.lineStrong}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
               fontSize: 14,
-              background: T.surface,
-              color: T.ink,
             }}
           >
             {ROLES.map((r) => (
@@ -608,15 +594,11 @@ function TeachersAdminCreateModal({
           <select
             value={permissionGroup}
             onChange={(e) => setPermissionGroup(e.target.value)}
+            className="t-input"
             style={{
+              ...S.input,
               width: "100%",
-              padding: "10px 12px",
-              border: `1px solid ${T.lineStrong}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
               fontSize: 14,
-              background: T.surface,
-              color: T.ink,
             }}
           >
             {SELECTABLE_GROUPS.map((g) => (
@@ -646,15 +628,11 @@ function TeachersAdminCreateModal({
             <select
               value={assignedDorm}
               onChange={(e) => setAssignedDorm(e.target.value)}
+              className="t-input"
               style={{
+                ...S.input,
                 width: "100%",
-                padding: "10px 12px",
-                border: `1px solid ${T.lineStrong}`,
-                borderRadius: 8,
-                fontFamily: "inherit",
                 fontSize: 14,
-                background: T.surface,
-                color: T.ink,
               }}
             >
               <option value="">全寮（指定なし）</option>
@@ -681,15 +659,11 @@ function TeachersAdminCreateModal({
             <select
               value={expiryPreset}
               onChange={(e) => setExpiryPreset(e.target.value)}
+              className="t-input"
               style={{
+                ...S.input,
                 width: "100%",
-                padding: "10px 12px",
-                border: `1px solid ${T.lineStrong}`,
-                borderRadius: 8,
-                fontFamily: "inherit",
                 fontSize: 14,
-                background: T.surface,
-                color: T.ink,
               }}
             >
               <option value="today">今日中（本日 23:59 まで）</option>
@@ -703,16 +677,12 @@ function TeachersAdminCreateModal({
                 type="datetime-local"
                 value={customExpiry}
                 onChange={(e) => setCustomExpiry(e.target.value)}
+                className="t-input"
                 style={{
+                  ...S.input,
                   width: "100%",
                   marginTop: 8,
-                  padding: "10px 12px",
-                  border: `1px solid ${T.lineStrong}`,
-                  borderRadius: 8,
-                  fontFamily: "inherit",
                   fontSize: 14,
-                  background: T.surface,
-                  color: T.ink,
                   boxSizing: "border-box",
                 }}
               />
@@ -732,7 +702,7 @@ function TeachersAdminCreateModal({
               background: T.dangerSoft,
               color: T.danger,
               border: `1px solid ${T.dangerBorder}`,
-              borderRadius: 8,
+              borderRadius: 10,
             }}
           >
             {err}
@@ -750,15 +720,11 @@ function TeachersAdminCreateModal({
           <button
             type="button"
             onClick={onCancel}
+            className="t-btn"
             style={{
+              ...S.btnGhost,
               padding: "10px 18px",
-              background: "transparent",
               color: T.ink2,
-              border: `1px solid ${T.lineStrong}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              cursor: "pointer",
             }}
           >
             キャンセル
@@ -766,15 +732,13 @@ function TeachersAdminCreateModal({
           <button
             type="submit"
             disabled={submitting}
+            className="t-btn"
             style={{
+              ...S.btnPrimary,
               padding: "10px 18px",
-              background: submitting ? T.lineStrong : T.cobalt,
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
               fontWeight: 600,
+              background: submitting ? T.lineStrong : undefined,
+              boxShadow: submitting ? "none" : undefined,
               cursor: submitting ? "not-allowed" : "pointer",
             }}
           >
@@ -811,15 +775,7 @@ function TeachersAdminConfirmDelete({
   return (
     <div
       style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: "rgba(0,0,0,.4)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        ...S.backdrop,
         zIndex: 1000,
         padding: 24,
       }}
@@ -829,12 +785,11 @@ function TeachersAdminConfirmDelete({
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="t-scale-in"
         style={{
-          background: T.surface,
-          borderRadius: 14,
+          ...S.modal,
           padding: "24px 28px",
           width: 420,
-          boxShadow: T.shadow2,
         }}
       >
         <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 6 }}>
@@ -855,14 +810,11 @@ function TeachersAdminConfirmDelete({
             type="button"
             onClick={onCancel}
             disabled={deleting}
+            className="t-btn"
             style={{
+              ...S.btnGhost,
               padding: "10px 18px",
-              background: "transparent",
               color: T.ink2,
-              border: `1px solid ${T.lineStrong}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
               cursor: deleting ? "not-allowed" : "pointer",
             }}
           >
@@ -872,15 +824,13 @@ function TeachersAdminConfirmDelete({
             type="button"
             onClick={handleConfirm}
             disabled={deleting}
+            className="t-btn"
             style={{
+              ...S.btnDanger,
               padding: "10px 18px",
-              background: deleting ? T.lineStrong : T.danger,
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
               fontWeight: 600,
+              background: deleting ? T.lineStrong : undefined,
+              boxShadow: deleting ? "none" : undefined,
               cursor: deleting ? "not-allowed" : "pointer",
             }}
           >
@@ -924,16 +874,11 @@ function AdminField({
         value={value}
         autoFocus={autoFocus}
         onChange={(e) => onChange(e.target.value)}
+        className="t-input"
         style={{
+          ...S.input,
           width: "100%",
-          padding: "10px 12px",
-          border: `1px solid ${T.lineStrong}`,
-          borderRadius: 8,
-          fontFamily: "inherit",
           fontSize: 14,
-          background: T.surface,
-          color: T.ink,
-          outline: "none",
           boxSizing: "border-box",
         }}
       />
