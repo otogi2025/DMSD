@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
+import { RYO, S } from "../theme";
 
 // 源 index.html 13014-13450（components/override-modal.jsx 块）。界面原样搬，仅 window.RYO→RYO。
 // 手动调整弹窗 — 整合显示欠席届审批 / 健康报告 / 调整历史。
@@ -87,13 +87,7 @@ export function OverrideModal({
     <div
       onClick={onClose}
       style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(20,23,31,.48)",
-        backdropFilter: "blur(2px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        ...S.backdrop,
         zIndex: 100,
         fontFamily: T.font,
         padding: 20,
@@ -101,13 +95,12 @@ export function OverrideModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="t-scale-in"
         style={{
+          ...S.modal,
           width: 620,
           maxHeight: "92vh",
           overflow: "auto",
-          background: T.surface,
-          borderRadius: 14,
-          boxShadow: T.shadowModal,
           color: T.ink,
         }}
       >
@@ -160,7 +153,7 @@ export function OverrideModal({
                 padding: 14,
                 background: T.warnSoft,
                 border: `1px solid ${T.warnBorder}`,
-                borderRadius: 10,
+                borderRadius: 12,
                 marginBottom: 16,
               }}
             >
@@ -203,7 +196,7 @@ export function OverrideModal({
                 padding: 14,
                 background: T.dangerSoft,
                 border: `1px solid ${T.dangerBorder}`,
-                borderRadius: 10,
+                borderRadius: 12,
                 marginBottom: 16,
               }}
             >
@@ -234,7 +227,7 @@ export function OverrideModal({
                 padding: 12,
                 background: T.surfaceAlt,
                 border: `1px solid ${T.line}`,
-                borderRadius: 10,
+                borderRadius: 12,
                 marginBottom: 16,
               }}
             >
@@ -295,10 +288,11 @@ export function OverrideModal({
               <button
                 key={o.k}
                 onClick={() => setStatus(o.k)}
+                className="t-btn"
                 style={{
                   textAlign: "left",
                   padding: "11px 14px",
-                  borderRadius: 10,
+                  borderRadius: 12,
                   cursor: "pointer",
                   background: status === o.k ? o.soft : T.surface,
                   border:
@@ -307,6 +301,7 @@ export function OverrideModal({
                       : `1px solid ${T.line}`,
                   color: T.ink,
                   fontFamily: "inherit",
+                  transition: T.ease,
                 }}
               >
                 <div
@@ -316,6 +311,7 @@ export function OverrideModal({
                     gap: 10,
                   }}
                 >
+                  {/* 单选点 14×14 — 例外 2：≤20px 圆角保持原值 */}
                   <span
                     style={{
                       width: 14,
@@ -371,16 +367,12 @@ export function OverrideModal({
             onChange={(e) => setReason(e.target.value)}
             rows={3}
             placeholder="例：未携帯・対面で確認済み / 保健室で休養中"
+            className="t-input"
             style={{
+              ...S.input,
               width: "100%",
               padding: "10px 12px",
-              background: T.surface,
               border: `1px solid ${T.lineStrong}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              color: T.ink,
-              outline: "none",
               boxSizing: "border-box",
               resize: "vertical",
             }}
@@ -405,38 +397,31 @@ export function OverrideModal({
             display: "flex",
             justifyContent: "flex-end",
             gap: 8,
-            borderRadius: "0 0 14px 14px",
+            // 与 S.modal 圆角 20 对齐底角
+            borderRadius: "0 0 20px 20px",
           }}
         >
           <button
             onClick={onClose}
-            style={{
-              padding: "9px 18px",
-              background: "transparent",
-              color: T.ink,
-              border: `1px solid ${T.lineStrong}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
+            className="t-btn"
+            style={{ ...S.btnGhost, padding: "9px 18px" }}
           >
             キャンセル
           </button>
           <button
             disabled={!canSave}
             onClick={() => onSave({ status, reason })}
+            className="t-btn"
             style={{
+              ...S.btnPrimary,
               padding: "9px 20px",
-              background: canSave ? T.cobalt : T.lineStrong,
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: canSave ? "pointer" : "not-allowed",
+              ...(canSave
+                ? {}
+                : {
+                    background: T.lineStrong,
+                    boxShadow: "none",
+                    cursor: "not-allowed",
+                  }),
             }}
           >
             保存して反映

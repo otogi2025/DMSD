@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
+import { RYO, S } from "../theme";
 import type { RollCallSummaryOut } from "../api/types";
 
 // Task #13 —「点呼総結」中层页 (spec §5.6 + WEB_DESIGN_LOG §11.1 P0)
@@ -44,17 +44,8 @@ export function RollCallSummary({
         </div>
         <button
           onClick={onBack}
-          style={{
-            padding: "10px 20px",
-            background: T.cobalt,
-            color: "#fff",
-            border: "none",
-            borderRadius: 10,
-            fontFamily: "inherit",
-            fontSize: 14,
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
+          className="t-btn"
+          style={{ ...S.btnPrimary, fontSize: 14 }}
         >
           ホームに戻る
         </button>
@@ -139,15 +130,19 @@ export function RollCallSummary({
           marginBottom: 24,
         }}
       >
-        {sections.map((sec) => (
+        {sections.map((sec, i) => (
           <div
             key={sec.key}
+            className="t-fade-up"
             style={{
+              // 用彩色边框区分状态，不能直接套 S.card（会盖掉 sec.border）
               background: T.surface,
               border: `1px solid ${sec.border}`,
-              borderRadius: 12,
+              borderRadius: 16,
               padding: 16,
-              boxShadow: T.shadow1,
+              boxShadow: T.shadowCard,
+              transition: T.ease,
+              animationDelay: `${Math.min(i, 11) * 40}ms`,
             }}
           >
             <div
@@ -170,12 +165,12 @@ export function RollCallSummary({
               </div>
               <div
                 style={{
+                  ...S.pill,
+                  fontSize: 12,
+                  padding: "2px 10px",
                   background: sec.soft,
                   color: sec.color,
                   border: `1px solid ${sec.border}`,
-                  padding: "2px 10px",
-                  borderRadius: 999,
-                  fontSize: 12,
                   fontWeight: 700,
                   fontFamily: T.mono,
                 }}
@@ -208,7 +203,7 @@ export function RollCallSummary({
                     style={{
                       padding: "8px 10px",
                       background: T.surfaceAlt,
-                      borderRadius: 8,
+                      borderRadius: 10,
                       fontSize: 13,
                       display: "flex",
                       justifyContent: "space-between",
@@ -236,17 +231,11 @@ export function RollCallSummary({
 
       <button
         onClick={onBack}
+        className="t-btn"
         style={{
+          ...S.btnPrimary,
           padding: "12px 28px",
-          background: T.cobalt,
-          color: "#fff",
-          border: "none",
-          borderRadius: 10,
-          fontFamily: "inherit",
           fontSize: 14,
-          fontWeight: 700,
-          cursor: "pointer",
-          boxShadow: "0 4px 12px rgba(43,77,140,.22)",
         }}
       >
         ホームに戻る

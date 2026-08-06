@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO, dormLabel } from "../theme";
+import { RYO, S, dormLabel } from "../theme";
 import { api } from "../api/client";
 import type { StudentAccountListOut } from "../api/types";
 import { teacherLabel } from "../utils";
@@ -144,7 +144,7 @@ export function RollCallLanding({
             gap: 12,
             background: T.warnSoft,
             border: `1px solid ${T.warnBorder}`,
-            borderRadius: 12,
+            borderRadius: 16,
             padding: "12px 18px",
             marginBottom: 18,
             fontSize: 13,
@@ -156,16 +156,10 @@ export function RollCallLanding({
           {onNav && (
             <button
               onClick={() => onNav("accounts")}
+              className="t-btn"
               style={{
+                ...S.btnPrimary,
                 padding: "7px 14px",
-                background: T.cobalt,
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                fontFamily: "inherit",
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: "pointer",
                 whiteSpace: "nowrap",
               }}
             >
@@ -184,7 +178,7 @@ export function RollCallLanding({
             justifyContent: "space-between",
             background: T.cobaltSoft,
             border: `1px solid ${T.infoBorder}`,
-            borderRadius: 12,
+            borderRadius: 16,
             padding: "12px 18px",
             marginBottom: 18,
             fontSize: 13,
@@ -200,16 +194,11 @@ export function RollCallLanding({
           </div>
           <button
             onClick={onShowSummary}
+            className="t-btn"
             style={{
+              ...S.btnPrimary,
               padding: "7px 16px",
-              background: T.cobalt,
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontFamily: "inherit",
               fontSize: 12,
-              fontWeight: 700,
-              cursor: "pointer",
             }}
           >
             集計を見る →
@@ -220,11 +209,8 @@ export function RollCallLanding({
       {/* 开始卡片 */}
       <div
         style={{
-          background: T.surface,
-          border: `1px solid ${T.line}`,
-          borderRadius: 14,
+          ...S.card,
           padding: "22px 24px",
-          boxShadow: T.shadow1,
           marginBottom: 20,
           display: "grid",
           gridTemplateColumns: "1fr auto",
@@ -264,15 +250,11 @@ export function RollCallLanding({
             <select
               value={name}
               onChange={(e) => setName(e.target.value)}
+              className="t-input"
               style={{
+                ...S.input,
                 padding: "7px 10px",
-                background: T.surface,
                 border: `1px solid ${T.lineStrong}`,
-                borderRadius: 8,
-                fontFamily: "inherit",
-                fontSize: 13,
-                color: T.ink,
-                outline: "none",
               }}
             >
               <option>夜点呼</option>
@@ -282,17 +264,11 @@ export function RollCallLanding({
         </div>
         <button
           onClick={() => onStart(name)}
+          className="t-btn"
           style={{
-            padding: "16px 36px",
-            background: T.cobalt,
-            color: "#fff",
-            border: "none",
-            borderRadius: 12,
-            fontFamily: "inherit",
-            fontSize: 16,
-            fontWeight: 700,
-            cursor: "pointer",
-            boxShadow: "0 4px 12px rgba(43,77,140,.28)",
+            ...S.btnPrimary,
+            fontSize: 15,
+            padding: "14px 28px",
           }}
         >
           点呼を開始 →
@@ -315,6 +291,7 @@ export function RollCallLanding({
             suffix="/ 2"
             note="朝点呼 完了"
             onClick={() => onNav("records")}
+            animDelay={0}
           />
           <Stat
             label="欠席者"
@@ -322,6 +299,7 @@ export function RollCallLanding({
             color={T.danger}
             note="昨日は 1 名"
             onClick={() => onNav("records")}
+            animDelay={40}
           />
           <Stat
             label="審査待ち申請"
@@ -329,6 +307,7 @@ export function RollCallLanding({
             color={T.cobalt}
             note="外泊 2 · 免除 1"
             onClick={() => onNav("applications")}
+            animDelay={80}
           />
           <Stat
             label="警告リスト"
@@ -336,16 +315,14 @@ export function RollCallLanding({
             color={T.warn}
             note="今月累計"
             onClick={() => onNav("discipline")}
+            animDelay={120}
           />
         </div>
       ) : (
         <div
           style={{
-            background: T.surface,
-            border: `1px solid ${T.line}`,
-            borderRadius: 12,
+            ...S.card,
             padding: "18px 22px",
-            boxShadow: T.shadow1,
             marginBottom: 20,
           }}
         >
@@ -361,19 +338,16 @@ export function RollCallLanding({
       {onNav && (
         <button
           onClick={() => onNav("rollcall-reports")}
+          className="t-card"
           style={{
+            ...S.cardHoverable,
             width: "100%",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            background: T.surface,
-            border: `1px solid ${T.line}`,
-            borderRadius: 12,
             padding: "14px 20px",
             marginBottom: 20,
             fontFamily: "inherit",
-            cursor: "pointer",
-            boxShadow: T.shadow1,
             textAlign: "left",
           }}
         >
@@ -401,11 +375,8 @@ export function RollCallLanding({
       ) : (
         <div
           style={{
-            background: T.surface,
-            border: `1px solid ${T.line}`,
-            borderRadius: 12,
+            ...S.card,
             padding: "18px 22px",
-            boxShadow: T.shadow1,
           }}
         >
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>
@@ -434,23 +405,18 @@ export function RollCallLanding({
           </div>
           <div
             style={{
-              background: T.surface,
-              border: `1px solid ${T.line}`,
-              borderRadius: 12,
+              ...S.card,
               overflow: "hidden",
-              boxShadow: T.shadow1,
             }}
           >
             <div
               style={{
                 display: "grid",
                 gridTemplateColumns: "110px 1fr 110px 110px 110px 90px",
-                background: T.surfaceAlt,
-                color: T.ink2,
-                fontSize: 11,
-                fontWeight: 600,
+                ...S.tableHead,
                 letterSpacing: 1,
-                borderBottom: `1px solid ${T.line}`,
+                // tableHead 的 padding 在 th 上；这里是整行，单元格各自保留原 padding
+                padding: 0,
               }}
             >
               {["日付", "名称", "開始", "終了", "出席率", ""].map((h) => (
@@ -476,6 +442,7 @@ export function RollCallLanding({
               .map(([d, n, s, e, r, a], i) => (
                 <div
                   key={i}
+                  className="t-row"
                   style={{
                     display: "grid",
                     gridTemplateColumns: "110px 1fr 110px 110px 110px 90px",
@@ -524,15 +491,12 @@ export function RollCallLanding({
                   </div>
                   <button
                     onClick={() => onNav("records", { date: d })}
+                    className="t-btn"
                     style={{
+                      ...S.btnSmall,
                       padding: "10px 14px",
-                      color: T.cobalt,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      background: "transparent",
                       border: "none",
-                      fontFamily: "inherit",
+                      background: "transparent",
                       textAlign: "left",
                     }}
                   >
@@ -545,11 +509,8 @@ export function RollCallLanding({
       ) : (
         <div
           style={{
-            background: T.surface,
-            border: `1px solid ${T.line}`,
-            borderRadius: 12,
+            ...S.card,
             padding: "18px 22px",
-            boxShadow: T.shadow1,
             marginTop: 22,
           }}
         >
@@ -572,6 +533,7 @@ function Stat({
   color,
   note,
   onClick,
+  animDelay = 0,
 }: {
   label: string;
   value: string;
@@ -579,20 +541,21 @@ function Stat({
   color?: string;
   note?: string;
   onClick?: () => void;
+  /** 进场依次淡入延迟（毫秒）— 仅视觉，不影响业务 */
+  animDelay?: number;
 }) {
   const T = RYO;
   return (
     <button
       onClick={onClick}
+      className="t-card t-fade-up"
       style={{
-        background: T.surface,
-        border: `1px solid ${T.line}`,
-        borderRadius: 12,
+        ...S.card,
         padding: "14px 16px",
-        boxShadow: T.shadow1,
         textAlign: "left",
         fontFamily: "inherit",
         cursor: onClick ? "pointer" : "default",
+        animationDelay: `${animDelay}ms`,
       }}
     >
       <div
@@ -655,11 +618,8 @@ function TrendChart({
   return (
     <div
       style={{
-        background: T.surface,
-        border: `1px solid ${T.line}`,
-        borderRadius: 12,
+        ...S.card,
         padding: "18px 22px",
-        boxShadow: T.shadow1,
       }}
     >
       <div
@@ -724,7 +684,7 @@ function TrendChart({
                     color: "#fff",
                     fontSize: 11,
                     padding: "5px 9px",
-                    borderRadius: 6,
+                    borderRadius: 8,
                     whiteSpace: "nowrap",
                     fontFamily: T.mono,
                     zIndex: 2,

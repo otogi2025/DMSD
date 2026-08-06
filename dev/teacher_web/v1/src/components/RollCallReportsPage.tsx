@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
+import { RYO, S } from "../theme";
 import { api } from "../api/client";
 import type { RollCallReportOut, TeacherProfile } from "../api/types";
 import { canManage, C_ROLLCALL } from "../api/permissions";
@@ -121,20 +121,7 @@ export function RollCallReportsPage({
             点呼時に寮生が提出した体調・欠席などの報告を確認し、対応済みにできます
           </div>
         </div>
-        <button
-          onClick={onBack}
-          style={{
-            padding: "8px 18px",
-            background: T.surface,
-            color: T.ink2,
-            border: `1px solid ${T.line}`,
-            borderRadius: 10,
-            fontFamily: "inherit",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
+        <button onClick={onBack} className="t-btn" style={{ ...S.btnGhost }}>
           点呼ホームに戻る
         </button>
       </div>
@@ -148,16 +135,18 @@ export function RollCallReportsPage({
           <button
             key={String(opt.v)}
             onClick={() => setUnresolvedOnly(opt.v)}
+            className="t-btn"
             style={{
               padding: "6px 14px",
               background: unresolvedOnly === opt.v ? T.cobalt : T.surface,
               color: unresolvedOnly === opt.v ? "#fff" : T.ink2,
               border: `1px solid ${unresolvedOnly === opt.v ? T.cobalt : T.line}`,
-              borderRadius: 8,
+              borderRadius: 10,
               fontFamily: "inherit",
               fontSize: 12,
               fontWeight: 600,
               cursor: "pointer",
+              transition: T.ease,
             }}
           >
             {opt.label}
@@ -172,7 +161,7 @@ export function RollCallReportsPage({
             background: T.dangerSoft,
             color: T.danger,
             border: `1px solid ${T.dangerBorder}`,
-            borderRadius: 8,
+            borderRadius: 10,
             fontSize: 12,
             marginBottom: 14,
           }}
@@ -183,22 +172,19 @@ export function RollCallReportsPage({
 
       <div
         style={{
-          background: T.surface,
-          border: `1px solid ${T.line}`,
-          borderRadius: 12,
+          ...S.card,
           overflow: "hidden",
-          boxShadow: T.shadow1,
         }}
       >
-        {/* 表头 */}
+        {/* 表头 — div 网格仿表格；保守：padding 保持原值 */}
         <div
           style={{
             display: "grid",
             gridTemplateColumns: GRID,
             background: T.surfaceAlt,
-            color: T.ink2,
+            color: T.ink3,
             fontSize: 11,
-            fontWeight: 600,
+            fontWeight: 700,
             letterSpacing: 1,
             borderBottom: `1px solid ${T.line}`,
           }}
@@ -242,6 +228,7 @@ export function RollCallReportsPage({
           return (
             <div
               key={r.id}
+              className="t-row"
               style={{
                 display: "grid",
                 gridTemplateColumns: GRID,
@@ -274,14 +261,15 @@ export function RollCallReportsPage({
                   </span>
                 )}
               </div>
-              {/* 種別 badge */}
+              {/* 種別 badge — 表格内徽章：例外 1 圆角 ≤6 保持；尺寸铁律覆盖 fontSize/padding */}
               <div style={{ padding: "10px 14px" }}>
                 <span
                   style={{
+                    ...S.pill,
                     fontSize: 11,
-                    fontWeight: 700,
                     padding: "2px 8px",
                     borderRadius: 4,
+                    fontWeight: 700,
                     background: km.soft,
                     color: km.color,
                     border: `1px solid ${km.border}`,
@@ -317,10 +305,11 @@ export function RollCallReportsPage({
               <div style={{ padding: "10px 14px" }}>
                 <span
                   style={{
+                    ...S.pill,
                     fontSize: 11,
-                    fontWeight: 700,
                     padding: "2px 8px",
                     borderRadius: 4,
+                    fontWeight: 700,
                     background: resolved ? T.surfaceAlt : T.warnSoft,
                     color: resolved ? T.ink3 : T.warn,
                     border: `1px solid ${resolved ? T.line : T.warnBorder}`,
@@ -337,13 +326,13 @@ export function RollCallReportsPage({
                   <button
                     onClick={() => doResolve(r.id)}
                     disabled={acting[r.id]}
+                    className="t-btn"
                     style={{
+                      ...S.btnSmall,
                       padding: "4px 12px",
                       background: T.ok,
                       color: "#fff",
                       border: "none",
-                      borderRadius: 6,
-                      fontFamily: "inherit",
                       fontSize: 11,
                       fontWeight: 700,
                       cursor: acting[r.id] ? "not-allowed" : "pointer",

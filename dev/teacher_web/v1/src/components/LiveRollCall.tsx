@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO, dormLabel } from "../theme";
+import { RYO, S, dormLabel } from "../theme";
 import { teacherLabel } from "../utils";
 import tomoshibiIcon from "../assets/tomoshibi-icon.png";
 
@@ -115,7 +115,7 @@ export function LiveRollCall({
           justifyContent: "space-between",
           alignItems: "center",
           gap: 20,
-          boxShadow: T.shadow1,
+          boxShadow: T.shadowCard,
         }}
       >
         <div
@@ -130,7 +130,7 @@ export function LiveRollCall({
           <img
             src={tomoshibiIcon}
             alt=""
-            style={{ width: 32, height: 32, borderRadius: 8 }}
+            style={{ width: 32, height: 32, borderRadius: 10 }}
           />
           <div>
             <div
@@ -218,32 +218,23 @@ export function LiveRollCall({
           </div>
           <button
             onClick={onReset}
+            className="t-btn"
             style={{
+              ...S.btnGhost,
               padding: "11px 18px",
-              background: T.surface,
-              color: T.ink2,
-              border: `1px solid ${T.lineStrong}`,
-              borderRadius: 10,
-              fontFamily: "inherit",
               fontSize: 14,
               fontWeight: 700,
-              cursor: "pointer",
             }}
           >
             座席を再取得
           </button>
           <button
             onClick={onEnd}
+            className="t-btn"
             style={{
+              ...S.btnDanger,
               padding: "11px 22px",
-              background: T.danger,
-              color: "#fff",
-              border: "none",
-              borderRadius: 10,
-              fontFamily: "inherit",
               fontSize: 14,
-              fontWeight: 700,
-              cursor: "pointer",
             }}
           >
             点呼を終了
@@ -348,8 +339,13 @@ export function LiveRollCall({
             gap: 12,
           }}
         >
-          {students.map((s) => (
-            <SeatCard key={s.id} s={s} onClick={() => onOverride(s)} />
+          {students.map((s, i) => (
+            <SeatCard
+              key={s.id}
+              s={s}
+              onClick={() => onOverride(s)}
+              animDelay={i < 12 ? i * 40 : undefined}
+            />
           ))}
         </div>
       </div>
@@ -371,6 +367,7 @@ export function LiveRollCall({
         <div style={{ display: "flex", gap: 8 }}>
           <button
             onClick={() => setShowLegend(!showLegend)}
+            className="t-btn"
             style={fabBtn(T, showLegend)}
           >
             📖 凡例
@@ -387,12 +384,13 @@ const fabBtn = (T: typeof RYO, active: boolean) => ({
   background: active ? T.ink : T.surface,
   color: active ? "#fff" : T.ink2,
   border: `1px solid ${active ? T.ink : T.lineStrong}`,
-  borderRadius: 10,
+  borderRadius: 12,
   fontFamily: "inherit",
   fontSize: 12,
   fontWeight: 600,
   cursor: "pointer",
-  boxShadow: T.shadow1,
+  boxShadow: T.shadowCard,
+  transition: T.ease,
 });
 
 // NFC 接收状态指示灯（私有子组件）
@@ -420,15 +418,12 @@ function NfcIndicator({ status, seq }: { status: "idle" | "ok"; seq: number }) {
       // web#97: 与现网链路一致（点呼机签到 → WS → App nfcSeq），不再提过时快捷指令路径
       title={`seq=${seq} · 点呼機のチェックインを WebSocket で受信し座席を更新`}
       style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 6,
+        ...S.pill,
+        fontSize: 11,
         padding: "5px 10px",
         background: map.bg,
         color: map.fg,
         border: `1px solid ${map.bd}`,
-        borderRadius: 999,
-        fontSize: 11,
         fontWeight: 700,
         letterSpacing: 0.5,
       }}
@@ -506,7 +501,16 @@ function Metric({
 }
 
 // 单个座席卡片（私有子组件）
-function SeatCard({ s, onClick }: { s: SeatStudent; onClick: () => void }) {
+function SeatCard({
+  s,
+  onClick,
+  animDelay,
+}: {
+  s: SeatStudent;
+  onClick: () => void;
+  /** 进场依次淡入延迟（毫秒）；超过 12 项不传 */
+  animDelay?: number;
+}) {
   const T = RYO;
   const map = {
     ok: { fg: T.ok, bg: T.okSoft, bd: T.okBorder },
@@ -534,30 +538,26 @@ function SeatCard({ s, onClick }: { s: SeatStudent; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
+      className={animDelay !== undefined ? "t-card t-fade-up" : "t-card"}
       style={{
         position: "relative",
         background: map.bg,
         border: `1px solid ${map.bd}`,
         borderLeft: `4px solid ${map.fg}`,
-        borderRadius: 10,
+        borderRadius: 12,
         padding: "12px 16px 14px",
-        boxShadow: T.shadow1,
+        boxShadow: T.shadowCard,
         cursor: "pointer",
         fontFamily: T.font,
         textAlign: "left",
         minHeight: 106,
-        transition: "transform .12s, box-shadow .12s",
+        transition: T.ease,
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = T.shadow2;
-        e.currentTarget.style.transform = "translateY(-1px)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = T.shadow1;
-        e.currentTarget.style.transform = "translateY(0)";
+        ...(animDelay !== undefined
+          ? { animationDelay: `${animDelay}ms` }
+          : {}),
       }}
     >
       <div
@@ -672,12 +672,10 @@ function LegendPanel({ onClose }: { onClose: () => void }) {
   const T = RYO;
   return (
     <div
+      className="t-scale-in"
       style={{
+        ...S.card,
         width: 280,
-        background: T.surface,
-        border: `1px solid ${T.line}`,
-        borderRadius: 12,
-        boxShadow: T.shadow2,
         padding: 16,
       }}
     >

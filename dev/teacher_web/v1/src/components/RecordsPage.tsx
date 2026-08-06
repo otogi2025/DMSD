@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
+import { RYO, S } from "../theme";
 import { api } from "../api/client";
 import type { RollCallSessionOut } from "../api/types";
 
@@ -97,12 +97,12 @@ export function RecordsPage({
         <input
           type="date"
           defaultValue={date}
+          className="t-input"
           style={{
+            ...S.input,
             padding: "7px 10px",
             border: `1px solid ${T.lineStrong}`,
-            borderRadius: 8,
             fontFamily: T.mono,
-            fontSize: 13,
           }}
         />
         <label
@@ -116,12 +116,11 @@ export function RecordsPage({
           点呼名
         </label>
         <select
+          className="t-input"
           style={{
+            ...S.input,
             padding: "7px 10px",
             border: `1px solid ${T.lineStrong}`,
-            borderRadius: 8,
-            fontFamily: "inherit",
-            fontSize: 13,
           }}
         >
           <option>夜点呼・普通寮生</option>
@@ -133,30 +132,24 @@ export function RecordsPage({
         <div style={{ flex: 1 }} />
         <button
           onClick={() => alert("この機能は準備中です")}
+          className="t-btn"
           style={{
+            ...S.btnGhost,
             padding: "6px 12px",
-            background: "transparent",
-            color: T.ink3,
-            border: `1px solid ${T.lineStrong}`,
-            borderRadius: 8,
-            fontFamily: "inherit",
             fontSize: 12,
-            cursor: "pointer",
+            color: T.ink3,
           }}
         >
           CSV 出力
         </button>
         <button
           onClick={() => window.print()}
+          className="t-btn"
           style={{
+            ...S.btnGhost,
             padding: "6px 12px",
-            background: "transparent",
-            color: T.ink3,
-            border: `1px solid ${T.lineStrong}`,
-            borderRadius: 8,
-            fontFamily: "inherit",
             fontSize: 12,
-            cursor: "pointer",
+            color: T.ink3,
           }}
         >
           印刷・PDF 保存
@@ -167,29 +160,18 @@ export function RecordsPage({
       {loadError ? (
         <div
           style={{
+            ...S.card,
             padding: "32px 0",
             textAlign: "center",
             color: T.ink3,
             fontSize: 13,
-            background: T.surface,
-            border: `1px solid ${T.line}`,
-            borderRadius: 12,
           }}
         >
           <div style={{ marginBottom: 12 }}>{loadError}</div>
           <button
             onClick={() => setReloadKey((k) => k + 1)}
-            style={{
-              padding: "6px 14px",
-              background: T.cobalt,
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
+            className="t-btn"
+            style={{ ...S.btnPrimary, padding: "6px 14px", fontSize: 12 }}
           >
             再試行
           </button>
@@ -197,13 +179,11 @@ export function RecordsPage({
       ) : backendHistory === null ? (
         <div
           style={{
+            ...S.card,
             padding: "32px 0",
             textAlign: "center",
             color: T.ink3,
             fontSize: 13,
-            background: T.surface,
-            border: `1px solid ${T.line}`,
-            borderRadius: 12,
           }}
         >
           {authToken ? "点呼記録を読み込み中..." : "ログインしてください"}
@@ -211,13 +191,11 @@ export function RecordsPage({
       ) : backendHistory.length === 0 ? (
         <div
           style={{
+            ...S.card,
             padding: "32px 0",
             textAlign: "center",
             color: T.ink3,
             fontSize: 13,
-            background: T.surface,
-            border: `1px solid ${T.line}`,
-            borderRadius: 12,
           }}
         >
           点呼記録がありません
@@ -225,21 +203,19 @@ export function RecordsPage({
       ) : (
         <div
           style={{
-            background: T.surface,
-            border: `1px solid ${T.line}`,
-            borderRadius: 12,
+            ...S.card,
             overflow: "hidden",
-            boxShadow: T.shadow1,
           }}
         >
+          {/* 表格页保守：表头只换颜色，padding 保持原值不套 S.tableHead（会加大） */}
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "1fr 160px 120px 100px 100px",
               background: T.surfaceAlt,
               fontSize: 11,
-              color: T.ink2,
-              fontWeight: 600,
+              color: T.ink3,
+              fontWeight: 700,
               letterSpacing: 1,
               borderBottom: `1px solid ${T.line}`,
             }}
@@ -253,6 +229,7 @@ export function RecordsPage({
           {backendHistory.map((s, i) => (
             <div
               key={s.id || i}
+              className="t-row"
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 160px 120px 100px 100px",
