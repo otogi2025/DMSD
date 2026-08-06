@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
+import { RYO, S } from "../theme";
 import { api } from "../api/client";
 import type { Application, StudentBrief } from "../api/types";
 
@@ -69,6 +69,7 @@ export function ActiveLeavesPage({ authToken }: { authToken: string }) {
     return (
       <div
         key={app.id || i}
+        className="t-row"
         style={{
           display: "grid",
           gridTemplateColumns: "1.2fr 80px 70px 1.1fr 1.1fr 1.4fr",
@@ -146,11 +147,8 @@ export function ActiveLeavesPage({ authToken }: { authToken: string }) {
       </div>
       <div
         style={{
-          background: T.surface,
-          border: `1px solid ${T.line}`,
-          borderRadius: 12,
+          ...S.card,
           overflow: "hidden",
-          boxShadow: T.shadow1,
         }}
       >
         <div
@@ -248,25 +246,22 @@ export function ActiveLeavesPage({ authToken }: { authToken: string }) {
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
+          className="t-input"
           style={{
+            ...S.input,
             padding: "7px 10px",
             border: `1px solid ${T.lineStrong}`,
-            borderRadius: 8,
             fontFamily: T.mono,
-            fontSize: 13,
           }}
         />
         <button
           onClick={() => setReloadTick((t) => t + 1)}
+          className="t-btn"
           style={{
+            ...S.btnGhost,
             padding: "6px 12px",
-            background: "transparent",
-            color: T.ink3,
-            border: `1px solid ${T.lineStrong}`,
-            borderRadius: 8,
-            fontFamily: "inherit",
             fontSize: 12,
-            cursor: "pointer",
+            color: T.ink3,
           }}
         >
           更新
@@ -274,15 +269,12 @@ export function ActiveLeavesPage({ authToken }: { authToken: string }) {
         <div style={{ flex: 1 }} />
         <button
           onClick={() => window.print()}
+          className="t-btn"
           style={{
+            ...S.btnGhost,
             padding: "6px 12px",
-            background: "transparent",
-            color: T.ink3,
-            border: `1px solid ${T.lineStrong}`,
-            borderRadius: 8,
-            fontFamily: "inherit",
             fontSize: 12,
-            cursor: "pointer",
+            color: T.ink3,
           }}
         >
           印刷・PDF 保存
@@ -305,15 +297,12 @@ export function ActiveLeavesPage({ authToken }: { authToken: string }) {
               );
             }
           }}
+          className="t-btn"
           style={{
+            ...S.btnGhost,
             padding: "6px 12px",
-            background: "transparent",
-            color: T.ink3,
-            border: `1px solid ${T.lineStrong}`,
-            borderRadius: 8,
-            fontFamily: "inherit",
             fontSize: 12,
-            cursor: "pointer",
+            color: T.ink3,
           }}
         >
           食数表（今後1ヶ月）出力
@@ -323,13 +312,14 @@ export function ActiveLeavesPage({ authToken }: { authToken: string }) {
       {error !== null ? (
         <div
           style={{
+            ...S.card,
             padding: "32px 0",
             textAlign: "center",
             color: T.danger,
             fontSize: 13,
             background: T.dangerSoft,
             border: `1px solid ${T.dangerBorder}`,
-            borderRadius: 12,
+            boxShadow: "none",
           }}
         >
           出寮者一覧の取得に失敗しました
@@ -338,13 +328,11 @@ export function ActiveLeavesPage({ authToken }: { authToken: string }) {
       ) : rows === null ? (
         <div
           style={{
+            ...S.card,
             padding: "32px 0",
             textAlign: "center",
             color: T.ink3,
             fontSize: 13,
-            background: T.surface,
-            border: `1px solid ${T.line}`,
-            borderRadius: 12,
           }}
         >
           {authToken ? "読み込み中…" : "ログインしてください"}
@@ -352,13 +340,11 @@ export function ActiveLeavesPage({ authToken }: { authToken: string }) {
       ) : rows.length === 0 ? (
         <div
           style={{
+            ...S.card,
             padding: "32px 0",
             textAlign: "center",
             color: T.ink3,
             fontSize: 13,
-            background: T.surface,
-            border: `1px solid ${T.line}`,
-            borderRadius: 12,
           }}
         >
           この日に出寮中の寮生はいません

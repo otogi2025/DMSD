@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
+import { RYO, S } from "../theme";
 import { api } from "../api/client";
 import type { OutingOut, OutingStatus } from "../api/types";
 
@@ -199,16 +199,18 @@ export function OutingsPage({ authToken }: { authToken: string | null }) {
             <button
               key={value}
               onClick={() => setFilter(value)}
+              className="t-btn"
               style={{
                 padding: "8px 14px",
                 background: filter === value ? T.cobalt : T.surface,
                 color: filter === value ? "#fff" : T.ink2,
                 border: `1px solid ${filter === value ? T.cobalt : T.lineStrong}`,
-                borderRadius: 8,
+                borderRadius: 10,
                 fontFamily: "inherit",
                 fontSize: 12,
                 fontWeight: 700,
                 cursor: "pointer",
+                transition: T.ease,
               }}
             >
               {label}
@@ -216,15 +218,13 @@ export function OutingsPage({ authToken }: { authToken: string | null }) {
           ))}
           <button
             onClick={() => refetch()}
+            className="t-btn"
             style={{
+              ...S.btnGhost,
               padding: "8px 14px",
-              background: T.surface,
-              color: T.ink2,
-              border: `1px solid ${T.lineStrong}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
               fontSize: 12,
-              cursor: "pointer",
+              fontWeight: 400,
+              color: T.ink2,
             }}
           >
             再読み込み
@@ -236,10 +236,8 @@ export function OutingsPage({ authToken }: { authToken: string | null }) {
           所以这句话必须在页面最上方常驻，不能只写在帮助文档里 */}
       <div
         style={{
+          ...S.cardSoft,
           padding: "12px 16px",
-          background: T.cobaltSoft,
-          border: `1px solid ${T.infoBorder}`,
-          borderRadius: 10,
           fontSize: 12.5,
           lineHeight: 1.7,
           color: T.ink2,
@@ -258,7 +256,7 @@ export function OutingsPage({ authToken }: { authToken: string | null }) {
             background: T.dangerSoft,
             color: T.danger,
             border: `1px solid ${T.dangerBorder}`,
-            borderRadius: 8,
+            borderRadius: 10,
             fontSize: 12,
             marginBottom: 14,
           }}
@@ -269,11 +267,8 @@ export function OutingsPage({ authToken }: { authToken: string | null }) {
 
       <div
         style={{
-          background: T.surface,
-          border: `1px solid ${T.line}`,
-          borderRadius: 12,
+          ...S.card,
           overflow: "hidden",
-          boxShadow: T.shadow1,
         }}
       >
         <div
@@ -336,6 +331,7 @@ export function OutingsPage({ authToken }: { authToken: string | null }) {
             <div
               key={o.id}
               onClick={() => openDetail(o)}
+              className="t-row"
               style={{
                 display: "grid",
                 gridTemplateColumns: GRID,
@@ -411,6 +407,7 @@ export function OutingsPage({ authToken }: { authToken: string | null }) {
               <div style={{ padding: "10px 14px" }}>
                 <span
                   style={{
+                    ...S.pill,
                     fontSize: 11,
                     fontWeight: 700,
                     padding: "2px 8px",
@@ -525,12 +522,7 @@ function OutingDetailModal({
     <div
       onClick={onClose}
       style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(20,23,31,.55)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        ...S.backdrop,
         zIndex: 100,
         fontFamily: T.font,
         padding: 20,
@@ -538,13 +530,12 @@ function OutingDetailModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="t-scale-in"
         style={{
+          ...S.modal,
           width: 620,
           maxHeight: "94vh",
           overflow: "auto",
-          background: T.surface,
-          borderRadius: 14,
-          boxShadow: T.shadowModal,
           color: T.ink,
         }}
       >
@@ -553,7 +544,8 @@ function OutingDetailModal({
             padding: "20px 26px 16px",
             borderBottom: `1px solid ${T.line}`,
             background: T.surfaceAlt,
-            borderRadius: "14px 14px 0 0",
+            // 与 S.modal 圆角 20 对齐顶角
+            borderRadius: "20px 20px 0 0",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -570,10 +562,10 @@ function OutingDetailModal({
             <div style={{ flex: 1 }} />
             <span
               style={{
+                ...S.pill,
                 fontSize: 11,
                 fontWeight: 700,
                 padding: "2px 10px",
-                borderRadius: 4,
                 background: sm[2],
                 color: sm[1],
                 border: `1px solid ${sm[3]}`,
@@ -686,14 +678,13 @@ function OutingDetailModal({
                 rows={2}
                 maxLength={500}
                 placeholder="例：行き先が確認できないため"
+                className="t-input"
                 style={{
+                  ...S.input,
                   width: "100%",
                   boxSizing: "border-box",
                   padding: "8px 12px",
                   border: `1px solid ${T.lineStrong}`,
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 13,
                   resize: "vertical",
                 }}
               />
@@ -708,15 +699,10 @@ function OutingDetailModal({
                 <button
                   onClick={onConfirm}
                   disabled={busy}
+                  className="t-btn"
                   style={{
+                    ...S.btnPrimary,
                     padding: "10px 22px",
-                    background: T.ok,
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 10,
-                    fontFamily: "inherit",
-                    fontSize: 13,
-                    fontWeight: 700,
                     cursor: busy ? "not-allowed" : "pointer",
                     opacity: busy ? 0.6 : 1,
                   }}
@@ -726,15 +712,10 @@ function OutingDetailModal({
                 <button
                   onClick={onReject}
                   disabled={busy}
+                  className="t-btn"
                   style={{
+                    ...S.btnDanger,
                     padding: "10px 22px",
-                    background: T.surface,
-                    color: T.danger,
-                    border: `1px solid ${T.dangerBorder}`,
-                    borderRadius: 10,
-                    fontFamily: "inherit",
-                    fontSize: 13,
-                    fontWeight: 700,
                     cursor: busy ? "not-allowed" : "pointer",
                     opacity: busy ? 0.6 : 1,
                   }}
@@ -743,16 +724,13 @@ function OutingDetailModal({
                 </button>
                 <button
                   onClick={onClose}
+                  className="t-btn"
                   style={{
+                    ...S.btnGhost,
                     marginLeft: "auto",
                     padding: "10px 18px",
-                    background: T.surface,
-                    color: T.ink2,
-                    border: `1px solid ${T.lineStrong}`,
-                    borderRadius: 10,
-                    fontFamily: "inherit",
                     fontSize: 12,
-                    cursor: "pointer",
+                    color: T.ink2,
                   }}
                 >
                   閉じる
@@ -770,16 +748,13 @@ function OutingDetailModal({
               </div>
               <button
                 onClick={onClose}
+                className="t-btn"
                 style={{
+                  ...S.btnGhost,
                   marginLeft: "auto",
                   padding: "10px 18px",
-                  background: T.surface,
-                  color: T.ink2,
-                  border: `1px solid ${T.lineStrong}`,
-                  borderRadius: 10,
-                  fontFamily: "inherit",
                   fontSize: 12,
-                  cursor: "pointer",
+                  color: T.ink2,
                 }}
               >
                 閉じる

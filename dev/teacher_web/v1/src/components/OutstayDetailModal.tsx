@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
+import { RYO, S } from "../theme";
 import { api } from "../api/client";
 import { ConfirmModal, StateBadge } from "./shared";
 import {
@@ -180,12 +180,7 @@ export function OutstayDetailModal({
     <div
       onClick={closeIfIdle}
       style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(20,23,31,.55)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        ...S.backdrop,
         zIndex: 100,
         fontFamily: T.font,
         padding: 20,
@@ -193,13 +188,12 @@ export function OutstayDetailModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="t-scale-in"
         style={{
+          ...S.modal,
           width: 860,
           maxHeight: "94vh",
           overflow: "auto",
-          background: T.surface,
-          borderRadius: 14,
-          boxShadow: T.shadowModal,
           color: T.ink,
         }}
       >
@@ -209,7 +203,8 @@ export function OutstayDetailModal({
             padding: "22px 28px 18px",
             borderBottom: `1px solid ${T.line}`,
             background: T.surfaceAlt,
-            borderRadius: "14px 14px 0 0",
+            // 与 S.modal 圆角 20 对齐顶角
+            borderRadius: "20px 20px 0 0",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -261,9 +256,9 @@ export function OutstayDetailModal({
             <div
               style={{
                 padding: "10px 14px",
-                background: "#fff0f0",
-                border: "1px solid #f5c6cb",
-                borderRadius: 8,
+                background: T.dangerSoft,
+                border: `1px solid ${T.dangerBorder}`,
+                borderRadius: 10,
                 color: T.danger,
                 fontSize: 13,
                 marginBottom: 16,
@@ -397,7 +392,7 @@ export function OutstayDetailModal({
                   marginTop: 6,
                   background: T.surfaceAlt,
                   border: `1px solid ${T.line}`,
-                  borderRadius: 8,
+                  borderRadius: 10,
                   padding: "10px 12px",
                   fontSize: 13,
                   lineHeight: 1.7,
@@ -451,14 +446,14 @@ export function OutstayDetailModal({
                           padding: "10px 14px",
                           background: bg,
                           border: `1px solid ${bd}`,
-                          borderRadius: 8,
+                          borderRadius: 10,
                         }}
                       >
                         <span
                           style={{
                             width: 22,
                             height: 22,
-                            borderRadius: 11,
+                            borderRadius: 12,
                             background: col,
                             display: "flex",
                             alignItems: "center",
@@ -510,11 +505,11 @@ export function OutstayDetailModal({
                         </div>
                         <span
                           style={{
+                            ...S.pill,
                             fontSize: 11,
                             fontWeight: 700,
                             color: col,
                             padding: "2px 8px",
-                            borderRadius: 4,
                             border: `1px solid ${bd}`,
                             whiteSpace: "nowrap",
                           }}
@@ -547,7 +542,7 @@ export function OutstayDetailModal({
                       fontSize: 12,
                       padding: "7px 10px",
                       background: T.surfaceAlt,
-                      borderRadius: 6,
+                      borderRadius: 8,
                     }}
                   >
                     <span
@@ -593,14 +588,13 @@ export function OutstayDetailModal({
             onChange={(e) => setComment(e.target.value)}
             placeholder="例：書類の不備を修正してください"
             rows={2}
+            className="t-input"
             style={{
+              ...S.input,
               width: "100%",
               boxSizing: "border-box",
               padding: "8px 10px",
               border: `1px solid ${T.lineStrong}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
               resize: "vertical",
             }}
           />
@@ -614,21 +608,17 @@ export function OutstayDetailModal({
             background: T.surfaceAlt,
             display: "flex",
             gap: 8,
-            borderRadius: "0 0 14px 14px",
+            // 与 S.modal 圆角 20 对齐底角
+            borderRadius: "0 0 20px 20px",
           }}
         >
           <button
             onClick={closeIfIdle}
             disabled={acting}
+            className="t-btn"
             style={{
+              ...S.btnGhost,
               padding: "10px 18px",
-              background: "transparent",
-              color: T.ink,
-              border: `1px solid ${T.lineStrong}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 600,
               cursor: acting ? "not-allowed" : "pointer",
               opacity: acting ? 0.5 : 1,
             }}
@@ -648,14 +638,12 @@ export function OutstayDetailModal({
               setReturnError(null);
               setReturnOpen(true);
             }}
+            className="t-btn"
             style={{
+              ...S.btnGhost,
               padding: "10px 18px",
-              background: "transparent",
               color: T.warn,
               border: `1px solid ${T.warnBorder}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
               fontWeight: 700,
               cursor: acting ? "not-allowed" : "pointer",
               opacity: acting ? 0.5 : 1,
@@ -669,15 +657,10 @@ export function OutstayDetailModal({
               if (acting) return;
               setConfirm({ action: "rejected", label: "却下" });
             }}
+            className="t-btn"
             style={{
+              ...S.btnDanger,
               padding: "10px 18px",
-              background: "transparent",
-              color: T.danger,
-              border: `1px solid ${T.dangerBorder}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 700,
               cursor: acting ? "not-allowed" : "pointer",
               opacity: acting ? 0.5 : 1,
             }}
@@ -690,15 +673,10 @@ export function OutstayDetailModal({
               if (acting) return;
               setConfirm({ action: "approved", label: "承認" });
             }}
+            className="t-btn"
             style={{
+              ...S.btnPrimary,
               padding: "10px 20px",
-              background: T.cobalt,
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 700,
               cursor: acting ? "not-allowed" : "pointer",
               opacity: acting ? 0.5 : 1,
             }}
@@ -735,22 +713,16 @@ export function OutstayDetailModal({
         <div
           onClick={() => setReturnOpen(false)}
           style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(20,23,31,.48)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            ...S.backdrop,
             zIndex: 200,
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
+            className="t-scale-in"
             style={{
+              ...S.modal,
               width: 480,
-              background: T.surface,
-              borderRadius: 14,
-              boxShadow: T.shadowModal,
               padding: "24px 28px",
               fontFamily: T.font,
             }}
@@ -791,14 +763,13 @@ export function OutstayDetailModal({
               placeholder="例：出発時刻と帰寮予定時刻に矛盾があります。再確認のうえ修正してください。"
               rows={3}
               autoFocus
+              className="t-input"
               style={{
+                ...S.input,
                 width: "100%",
                 boxSizing: "border-box",
                 padding: "8px 10px",
                 border: `1px solid ${returnError ? T.danger : T.lineStrong}`,
-                borderRadius: 8,
-                fontFamily: "inherit",
-                fontSize: 13,
                 resize: "vertical",
               }}
             />
@@ -823,17 +794,8 @@ export function OutstayDetailModal({
             >
               <button
                 onClick={() => setReturnOpen(false)}
-                style={{
-                  padding: "9px 18px",
-                  background: "transparent",
-                  color: T.ink,
-                  border: `1px solid ${T.lineStrong}`,
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
+                className="t-btn"
+                style={{ ...S.btnGhost, padding: "9px 18px" }}
               >
                 キャンセル
               </button>
@@ -859,15 +821,12 @@ export function OutstayDetailModal({
                     setActing(false),
                   );
                 }}
+                className="t-btn"
                 style={{
+                  ...S.btnPrimary,
                   padding: "9px 18px",
                   background: T.warn,
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  fontWeight: 700,
+                  boxShadow: "0 2px 8px rgba(169,118,44,.24)",
                   cursor: acting ? "not-allowed" : "pointer",
                   opacity: acting ? 0.5 : 1,
                 }}
@@ -922,7 +881,7 @@ function DeadlineSection({ app }: { app: OutstayUiApp }) {
           padding: 14,
           background: late ? T.dangerSoft : T.okSoft,
           border: `1px solid ${late ? T.dangerBorder : T.okBorder}`,
-          borderRadius: 10,
+          borderRadius: 12,
         }}
       >
         <div
@@ -936,10 +895,10 @@ function DeadlineSection({ app }: { app: OutstayUiApp }) {
           {late ? (
             <span
               style={{
+                ...S.pill,
                 fontSize: 11,
                 fontWeight: 700,
                 padding: "3px 10px",
-                borderRadius: 4,
                 background: T.danger,
                 color: "#fff",
                 letterSpacing: 0.5,
@@ -951,10 +910,10 @@ function DeadlineSection({ app }: { app: OutstayUiApp }) {
           ) : (
             <span
               style={{
+                ...S.pill,
                 fontSize: 11,
                 fontWeight: 700,
                 padding: "3px 10px",
-                borderRadius: 4,
                 background: T.ok,
                 color: "#fff",
                 letterSpacing: 0.5,
@@ -996,7 +955,7 @@ function DeadlineSection({ app }: { app: OutstayUiApp }) {
               padding: "10px 12px",
               background: T.surface,
               border: `1px solid ${T.dangerBorder}`,
-              borderRadius: 8,
+              borderRadius: 10,
               fontSize: 12,
               lineHeight: 1.7,
               color: T.ink2,

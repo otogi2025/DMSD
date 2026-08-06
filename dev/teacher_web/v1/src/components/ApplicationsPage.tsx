@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
+import { RYO, S } from "../theme";
 import { DormBadge, StateBadge } from "./shared";
 import { isLateSubmission } from "../utils";
 import type { Application, StudyOnlineRequestOut } from "../api/types";
@@ -212,16 +212,12 @@ export function ApplicationsPage({
         {/* 代理提出（代学生提交出寮届）— 低频功能，从左侧导航移除后入口收到这里。 */}
         <button
           onClick={() => onNav("proxy-application")}
+          className="t-btn"
           style={{
+            ...S.btnGhost,
             padding: "8px 16px",
-            background: T.surface,
             color: T.cobaltDeep,
             border: `1px solid ${T.cobalt}`,
-            borderRadius: 8,
-            fontFamily: "inherit",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
             whiteSpace: "nowrap",
             flexShrink: 0,
           }}
@@ -264,12 +260,12 @@ export function ApplicationsPage({
             {t.badge > 0 && (
               <span
                 style={{
+                  ...S.pill,
                   marginLeft: 6,
                   fontSize: 10,
                   background: T.danger,
                   color: "#fff",
                   padding: "1px 6px",
-                  borderRadius: 8,
                   fontWeight: 700,
                 }}
               >
@@ -334,7 +330,7 @@ export function ApplicationsPage({
                 background: T.dangerSoft,
                 color: T.danger,
                 border: `1px solid ${T.dangerBorder}`,
-                borderRadius: 8,
+                borderRadius: 10,
                 fontSize: 12,
                 marginBottom: 14,
               }}
@@ -344,11 +340,8 @@ export function ApplicationsPage({
           )}
           <div
             style={{
-              background: T.surface,
-              border: `1px solid ${T.line}`,
-              borderRadius: 12,
+              ...S.card,
               overflow: "hidden",
-              boxShadow: T.shadow1,
             }}
           >
             <div
@@ -404,6 +397,7 @@ export function ApplicationsPage({
             {(onlineList || []).map((o, i) => (
               <div
                 key={o.id}
+                className="t-row"
                 style={{
                   display: "grid",
                   gridTemplateColumns: "180px 160px 1fr 80px 90px 150px 160px",
@@ -456,6 +450,7 @@ export function ApplicationsPage({
                 <div style={{ padding: "10px 14px" }}>
                   <span
                     style={{
+                      ...S.pill,
                       fontSize: 11,
                       fontWeight: 700,
                       padding: "2px 8px",
@@ -484,15 +479,11 @@ export function ApplicationsPage({
                   <button
                     onClick={() => doDecideOnline(o.id, "approved")}
                     disabled={onlineActing[o.id]}
+                    className="t-btn"
                     style={{
+                      ...S.btnPrimary,
                       padding: "4px 12px",
-                      background: T.ok,
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: 6,
-                      fontFamily: "inherit",
                       fontSize: 11,
-                      fontWeight: 700,
                       cursor: onlineActing[o.id] ? "not-allowed" : "pointer",
                     }}
                   >
@@ -501,15 +492,11 @@ export function ApplicationsPage({
                   <button
                     onClick={() => doDecideOnline(o.id, "rejected")}
                     disabled={onlineActing[o.id]}
+                    className="t-btn"
                     style={{
+                      ...S.btnDanger,
                       padding: "4px 12px",
-                      background: T.surface,
-                      color: T.danger,
-                      border: `1px solid ${T.dangerBorder}`,
-                      borderRadius: 6,
-                      fontFamily: "inherit",
                       fontSize: 11,
-                      fontWeight: 700,
                       cursor: onlineActing[o.id] ? "not-allowed" : "pointer",
                     }}
                   >
@@ -533,12 +520,13 @@ function OutstayRuleBanner() {
     return (
       <button
         onClick={() => setOpen(true)}
+        className="t-btn"
         style={{
           padding: "7px 14px",
           background: "transparent",
           color: T.ink3,
           border: `1px dashed ${T.lineStrong}`,
-          borderRadius: 8,
+          borderRadius: 10,
           fontFamily: "inherit",
           fontSize: 11,
           cursor: "pointer",
@@ -552,11 +540,9 @@ function OutstayRuleBanner() {
   return (
     <div
       style={{
+        ...S.cardSoft,
         padding: "12px 16px",
-        background: T.cobaltSoft,
         color: T.cobaltDeep,
-        border: `1px solid ${T.infoBorder}`,
-        borderRadius: 10,
         fontSize: 12,
         lineHeight: 1.7,
         marginBottom: 14,
@@ -638,6 +624,7 @@ function OutstayList({
           <button
             key={s}
             onClick={() => setSub(s)}
+            className="t-btn"
             style={{
               padding: "5px 12px",
               background: sub === s ? T.cobalt : T.surface,
@@ -648,6 +635,7 @@ function OutstayList({
               fontSize: 12,
               fontWeight: 600,
               cursor: "pointer",
+              transition: T.ease,
             }}
           >
             {subLabels[s]}
@@ -658,11 +646,8 @@ function OutstayList({
 
       <div
         style={{
-          background: T.surface,
-          border: `1px solid ${T.line}`,
-          borderRadius: 12,
+          ...S.card,
           overflow: "hidden",
-          boxShadow: T.shadow1,
         }}
       >
         <div
@@ -699,6 +684,7 @@ function OutstayList({
           <div
             key={a.id}
             onClick={() => onOpen(a)}
+            className="t-row"
             style={{
               display: "grid",
               gridTemplateColumns:
@@ -707,14 +693,8 @@ function OutstayList({
               fontSize: 12,
               alignItems: "center",
               cursor: "pointer",
-              transition: "background .1s",
+              transition: T.ease,
             }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.background = T.surfaceAlt)
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.background = "transparent")
-            }
           >
             <div style={{ padding: "10px 12px", fontWeight: 600 }}>
               {a.applicant}
@@ -804,7 +784,9 @@ function DeadlineBadge({
 }) {
   const T = RYO;
   const late = isLateSubmission(depart, submitted);
+  // 表格内期限徽章：例外 1 圆角 ≤6 保持；尺寸铁律覆盖 fontSize/padding
   const commonStyle = {
+    ...S.pill,
     fontSize: 11,
     fontWeight: 700,
     padding: "2px 8px",

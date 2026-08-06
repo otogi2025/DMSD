@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
+import { RYO, S } from "../theme";
 import { api } from "../api/client";
 import type {
   StudentBrief,
@@ -348,11 +348,9 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
     marginBottom: 4,
   };
   const inputStyle: React.CSSProperties = {
+    ...S.input,
     padding: "7px 10px",
     border: "1px solid " + T.lineStrong,
-    borderRadius: 8,
-    fontFamily: "inherit",
-    fontSize: 13,
     width: "100%",
     boxSizing: "border-box",
   };
@@ -361,12 +359,9 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
     fontFamily: T.mono,
   };
   const cardStyle: React.CSSProperties = {
-    background: T.surface,
-    border: "1px solid " + T.line,
-    borderRadius: 12,
+    ...S.card,
     padding: 18,
     marginBottom: 16,
-    boxShadow: T.shadow1,
   };
   const sectionTitle: React.CSSProperties = {
     fontSize: 13,
@@ -406,7 +401,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
               padding: "10px 12px",
               background: T.cobaltSoft,
               border: "1px solid " + T.infoBorder,
-              borderRadius: 8,
+              borderRadius: 10,
             }}
           >
             <div style={{ flex: 1 }}>
@@ -439,14 +434,12 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
                 resetForm();
                 setPicked(null);
               }}
+              className="t-btn"
               style={{
+                ...S.btnGhost,
                 padding: "5px 12px",
-                background: "transparent",
-                color: T.ink2,
-                border: "1px solid " + T.lineStrong,
-                borderRadius: 8,
                 fontSize: 12,
-                cursor: "pointer",
+                color: T.ink2,
               }}
             >
               選び直す
@@ -459,6 +452,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="氏名 または 学籍番号で検索"
+              className="t-input"
               style={inputStyle}
             />
             <div
@@ -467,7 +461,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
                 maxHeight: 240,
                 overflowY: "auto",
                 border: "1px solid " + T.line,
-                borderRadius: 8,
+                borderRadius: 10,
               }}
             >
               {loadingC ? (
@@ -491,6 +485,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
                       resetForm();
                       setPicked(c);
                     }}
+                    className="t-row"
                     style={{
                       padding: "9px 12px",
                       borderBottom: "1px solid " + T.line,
@@ -533,17 +528,19 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
             <button
               key={k}
               onClick={() => setKind(k)}
+              className="t-btn"
               style={{
                 flex: 1,
                 padding: "9px 0",
                 background: kind === k ? T.cobalt : "transparent",
                 color: kind === k ? "#fff" : T.ink2,
                 border: "1px solid " + (kind === k ? T.cobalt : T.lineStrong),
-                borderRadius: 8,
+                borderRadius: 10,
                 fontFamily: "inherit",
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: "pointer",
+                transition: T.ease,
               }}
             >
               {k}届
@@ -569,6 +566,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
               type="date"
               value={leaveDate}
               onChange={(e) => setLeaveDate(e.target.value)}
+              className="t-input"
               style={dateInputStyle}
             />
           </div>
@@ -577,6 +575,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
             <select
               value={leaveMethod}
               onChange={(e) => setLeaveMethod(e.target.value)}
+              className="t-input"
               style={inputStyle}
             >
               {LEAVE_TRANSPORTS.map((m) => (
@@ -592,6 +591,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
               type="time"
               value={leaveTime}
               onChange={(e) => setLeaveTime(e.target.value)}
+              className="t-input"
               style={dateInputStyle}
             />
           </div>
@@ -601,6 +601,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
               type="date"
               value={returnDate}
               onChange={(e) => setReturnDate(e.target.value)}
+              className="t-input"
               style={dateInputStyle}
             />
           </div>
@@ -609,6 +610,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
             <select
               value={returnMethod}
               onChange={(e) => setReturnMethod(e.target.value)}
+              className="t-input"
               style={inputStyle}
             >
               {RETURN_TRANSPORTS.map((m) => (
@@ -624,6 +626,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
               type="time"
               value={returnTime}
               onChange={(e) => setReturnTime(e.target.value)}
+              className="t-input"
               style={dateInputStyle}
             />
           </div>
@@ -637,6 +640,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
               type="time"
               value={taxiResvTime}
               onChange={(e) => setTaxiResvTime(e.target.value)}
+              className="t-input"
               style={{ ...dateInputStyle, maxWidth: 160 }}
             />
           </div>
@@ -648,6 +652,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
             value={contactPhone}
             onChange={(e) => setContactPhone(e.target.value)}
             placeholder="携帯・WeChat 等"
+            className="t-input"
             style={inputStyle}
           />
         </div>
@@ -665,6 +670,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder={kind === "帰省" ? "例：家庭の用事" : ""}
+            className="t-input"
             style={inputStyle}
           />
         </div>
@@ -705,6 +711,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
                   type="text"
                   value={companion}
                   onChange={(e) => setCompanion(e.target.value)}
+                  className="t-input"
                   style={inputStyle}
                 />
               </div>
@@ -714,6 +721,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
                   type="text"
                   value={destCities}
                   onChange={(e) => setDestCities(e.target.value)}
+                  className="t-input"
                   style={inputStyle}
                 />
               </div>
@@ -725,6 +733,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
                 onChange={(e) => setStayText(e.target.value)}
                 rows={3}
                 placeholder={"例：◯◯ホテル 086-xxx-xxxx\n親戚宅 岡山市…"}
+                className="t-input"
                 style={{ ...inputStyle, resize: "vertical" }}
               />
             </div>
@@ -764,6 +773,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
                   value={departAirport}
                   onChange={(e) => setDepartAirport(e.target.value)}
                   placeholder="例：岡山空港"
+                  className="t-input"
                   style={inputStyle}
                 />
               </div>
@@ -773,6 +783,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
                   type="time"
                   value={departFlightTime}
                   onChange={(e) => setDepartFlightTime(e.target.value)}
+                  className="t-input"
                   style={dateInputStyle}
                 />
               </div>
@@ -783,6 +794,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
                   value={arriveAirport}
                   onChange={(e) => setArriveAirport(e.target.value)}
                   placeholder="例：上海浦東"
+                  className="t-input"
                   style={inputStyle}
                 />
               </div>
@@ -792,6 +804,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
                   type="time"
                   value={arriveFlightTime}
                   onChange={(e) => setArriveFlightTime(e.target.value)}
+                  className="t-input"
                   style={dateInputStyle}
                 />
               </div>
@@ -815,6 +828,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
                 value={mealNote}
                 onChange={(e) => setMealNote(e.target.value)}
                 placeholder="例：8月10日朝食まで必要、8月20日夕食から必要"
+                className="t-input"
                 style={inputStyle}
               />
             </div>
@@ -853,6 +867,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
                         type="date"
                         value={skipStartDate}
                         onChange={(e) => setSkipStartDate(e.target.value)}
+                        className="t-input"
                         style={dateInputStyle}
                       />
                     </div>
@@ -861,6 +876,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
                       <select
                         value={skipStartMeal}
                         onChange={(e) => setSkipStartMeal(e.target.value)}
+                        className="t-input"
                         style={inputStyle}
                       >
                         {MEALS.map((m) => (
@@ -876,6 +892,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
                         type="date"
                         value={skipEndDate}
                         onChange={(e) => setSkipEndDate(e.target.value)}
+                        className="t-input"
                         style={dateInputStyle}
                       />
                     </div>
@@ -884,6 +901,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
                       <select
                         value={skipEndMeal}
                         onChange={(e) => setSkipEndMeal(e.target.value)}
+                        className="t-input"
                         style={inputStyle}
                       >
                         {MEALS.map((m) => (
@@ -912,7 +930,7 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
         <div
           style={{
             padding: "10px 14px",
-            borderRadius: 8,
+            borderRadius: 10,
             marginBottom: 12,
             fontSize: 13,
             fontWeight: 600,
@@ -928,16 +946,15 @@ export function ProxyApplicationPage({ authToken }: { authToken: string }) {
       <button
         onClick={submit}
         disabled={submitting || !picked}
+        className="t-btn"
         style={{
+          ...S.btnPrimary,
           width: "100%",
           padding: "12px 0",
-          background: submitting || !picked ? T.graySoft : T.cobalt,
-          color: submitting || !picked ? T.muted : "#fff",
-          border: "none",
-          borderRadius: 10,
-          fontFamily: "inherit",
+          background: submitting || !picked ? T.graySoft : undefined,
+          color: submitting || !picked ? T.muted : undefined,
+          boxShadow: submitting || !picked ? "none" : undefined,
           fontSize: 15,
-          fontWeight: 700,
           cursor: submitting || !picked ? "default" : "pointer",
           marginBottom: 40,
         }}
