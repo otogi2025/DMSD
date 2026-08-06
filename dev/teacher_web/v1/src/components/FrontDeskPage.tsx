@@ -266,8 +266,8 @@ export function FrontDeskPage({
         <div
           style={{
             padding: "10px 16px",
-            background: "#fff0f0",
-            border: "1px solid #f5c6cb",
+            background: T.dangerSoft,
+            border: `1px solid ${T.dangerBorder}`,
             borderRadius: 10,
             color: T.danger,
             fontSize: 13,
@@ -286,7 +286,7 @@ export function FrontDeskPage({
               padding: "4px 12px",
               fontSize: 12,
               color: T.danger,
-              border: "1px solid #f5c6cb",
+              border: `1px solid ${T.dangerBorder}`,
               borderRadius: 8,
             }}
           >
@@ -539,13 +539,9 @@ function FdStat({
       onClick={onClick || undefined}
       className={onClick ? "t-card" : undefined}
       style={{
-        // 原无 boxShadow，不是四件套卡片；只做圆角映射，是否升 S.card 见卡点
+        ...S.card,
         padding: "14px 16px",
-        background: T.surface,
-        border: `1px solid ${T.line}`,
-        borderRadius: 12,
         cursor: onClick ? "pointer" : "default",
-        transition: T.ease,
       }}
     >
       <div
@@ -637,14 +633,14 @@ function DeliveryRow({
           background: isPicked
             ? T.okSoft
             : isNotified
-              ? "#fffbe6"
+              ? T.lateSoft
               : isClosed
                 ? T.surfaceAlt
                 : T.warnSoft,
           color: isPicked
             ? T.ok
             : isNotified
-              ? "#b58c00"
+              ? T.warn
               : isClosed
                 ? T.ink3
                 : T.warn,

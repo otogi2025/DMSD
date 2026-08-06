@@ -93,7 +93,7 @@ export function LiveRollCall({
     <div
       style={{
         minHeight: "100vh",
-        background: T.paper,
+        background: T.gradPage,
         color: T.ink,
         fontFamily: T.font,
         display: "flex",

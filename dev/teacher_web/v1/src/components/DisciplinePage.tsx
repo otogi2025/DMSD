@@ -280,8 +280,8 @@ export function DisciplinePage({
             <div
               style={{
                 padding: "10px 16px",
-                background: "#fff0f0",
-                border: "1px solid #f5c6cb",
+                background: T.dangerSoft,
+                border: `1px solid ${T.dangerBorder}`,
                 borderRadius: 10,
                 color: T.danger,
                 fontSize: 13,
@@ -300,7 +300,7 @@ export function DisciplinePage({
                   padding: "4px 12px",
                   fontSize: 12,
                   color: T.danger,
-                  border: "1px solid #f5c6cb",
+                  border: `1px solid ${T.dangerBorder}`,
                   borderRadius: 8,
                 }}
               >
@@ -314,8 +314,8 @@ export function DisciplinePage({
             <div
               style={{
                 padding: "10px 16px",
-                background: "#f0fff4",
-                border: "1px solid #b7ebc8",
+                background: T.okSoft,
+                border: `1px solid ${T.okBorder}`,
                 borderRadius: 10,
                 color: T.ok,
                 fontSize: 13,
@@ -894,8 +894,8 @@ function ManualDemeritModal({
         <div
           style={{
             padding: "10px 12px",
-            background: "#fff0f0",
-            border: "1px solid #f5c6cb",
+            background: T.dangerSoft,
+            border: `1px solid ${T.dangerBorder}`,
             borderRadius: 10,
             color: T.danger,
             fontSize: 12,
@@ -920,7 +920,7 @@ function ManualDemeritModal({
               padding: "4px 12px",
               fontSize: 12,
               color: T.danger,
-              border: "1px solid #f5c6cb",
+              border: `1px solid ${T.dangerBorder}`,
               borderRadius: 8,
               whiteSpace: "nowrap",
             }}
@@ -1196,8 +1196,8 @@ function ManualDemeritSearchModal({
         <div
           style={{
             padding: "10px 12px",
-            background: "#fff0f0",
-            border: "1px solid #f5c6cb",
+            background: T.dangerSoft,
+            border: `1px solid ${T.dangerBorder}`,
             borderRadius: 10,
             color: T.danger,
             fontSize: 12,
@@ -1222,7 +1222,7 @@ function ManualDemeritSearchModal({
               padding: "4px 12px",
               fontSize: 12,
               color: T.danger,
-              border: "1px solid #f5c6cb",
+              border: `1px solid ${T.dangerBorder}`,
               borderRadius: 8,
               whiteSpace: "nowrap",
             }}

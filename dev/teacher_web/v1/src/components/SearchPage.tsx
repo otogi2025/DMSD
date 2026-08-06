@@ -300,7 +300,7 @@ function StudentDossier({
           style={{
             width: 56,
             height: 56,
-            borderRadius: 20,
+            borderRadius: 28,
             background: T.cobaltSoft,
             color: T.cobaltDeep,
             fontSize: 22,

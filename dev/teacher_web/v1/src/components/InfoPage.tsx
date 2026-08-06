@@ -435,8 +435,8 @@ export function InfoPage({
             <div
               style={{
                 padding: "10px 16px",
-                background: "#fff0f0",
-                border: "1px solid #f5c6cb",
+                background: T.dangerSoft,
+                border: `1px solid ${T.dangerBorder}`,
                 borderRadius: 10,
                 color: T.danger,
                 fontSize: 13,
@@ -455,7 +455,7 @@ export function InfoPage({
                   padding: "4px 12px",
                   fontSize: 12,
                   color: T.danger,
-                  border: "1px solid #f5c6cb",
+                  border: `1px solid ${T.dangerBorder}`,
                   borderRadius: 8,
                 }}
               >
@@ -1521,8 +1521,8 @@ function EventCalendar({
           <div
             style={{
               padding: "8px 12px",
-              background: "#fff0f0",
-              border: "1px solid #f5c6cb",
+              background: T.dangerSoft,
+              border: `1px solid ${T.dangerBorder}`,
               borderRadius: 10,
               color: T.danger,
               fontSize: 12,
@@ -1541,7 +1541,7 @@ function EventCalendar({
                 padding: "3px 10px",
                 fontSize: 11,
                 color: T.danger,
-                border: "1px solid #f5c6cb",
+                border: `1px solid ${T.dangerBorder}`,
                 borderRadius: 8,
               }}
             >
@@ -2189,8 +2189,8 @@ export function BusSchedulePanel({
         <div
           style={{
             padding: "8px 12px",
-            background: "#fff0f0",
-            border: "1px solid #f5c6cb",
+            background: T.dangerSoft,
+            border: `1px solid ${T.dangerBorder}`,
             borderRadius: 10,
             color: T.danger,
             fontSize: 12,
@@ -2209,7 +2209,7 @@ export function BusSchedulePanel({
               padding: "3px 10px",
               fontSize: 11,
               color: T.danger,
-              border: "1px solid #f5c6cb",
+              border: `1px solid ${T.dangerBorder}`,
               borderRadius: 8,
             }}
           >

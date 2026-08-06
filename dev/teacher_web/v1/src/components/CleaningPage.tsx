@@ -136,9 +136,9 @@ export function CleaningPage({
 
   const statusColors: Record<string, [string, string, string, string]> = {
     assigned: [T.warn, T.warnSoft, T.warnBorder, "未審査"],
-    done: [T.cobalt, "#e8f0ff", "#b3c9f7", "完了報告済"],
+    done: [T.cobalt, T.cobaltSoft, T.infoBorder, "完了報告済"],
     passed: [T.ok, T.okSoft, T.okBorder, "承認済"],
-    failed: [T.danger, "#fff0f0", "#f5c6cb", "却下"],
+    failed: [T.danger, T.dangerSoft, T.dangerBorder, "却下"],
     skipped: [T.ink3, T.surfaceAlt, T.line, "免除"],
   };
 
@@ -176,8 +176,8 @@ export function CleaningPage({
         <div
           style={{
             padding: "10px 16px",
-            background: "#fff0f0",
-            border: "1px solid #f5c6cb",
+            background: T.dangerSoft,
+            border: `1px solid ${T.dangerBorder}`,
             borderRadius: 10,
             color: T.danger,
             fontSize: 13,
@@ -196,7 +196,7 @@ export function CleaningPage({
               padding: "4px 12px",
               fontSize: 12,
               color: T.danger,
-              border: "1px solid #f5c6cb",
+              border: `1px solid ${T.dangerBorder}`,
               borderRadius: 8,
             }}
           >
