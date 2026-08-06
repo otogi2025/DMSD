@@ -56,6 +56,7 @@
 | 2026-04-22 下午 · 17:00 | itsuki 走查 Round 3 发现 3 个文案问题 + 要求重做 コミュニティ 页 + 审 bug。[Code-Agent] 修复：`申請中心 → 申請センター`（applications.jsx）· `寮コミュニティ → コミュニティ管理`（shell.jsx nav + pages.jsx h1）· **CommunityPage 大改**（卡片 + 头像 + 点赞/评论 + 老师管理按钮 删除/ピン留め/通報解除 + 4 个统计卡片 + 3 个过滤器 + 5 tab 真实 seed 21 条学生投稿含通报样本）· **InfoPage お知らせ投稿 button**（右上 + ComposeNoticeModal 标题+本文）· 审出 7 bug 全修（override 却下/既読 死按钮 · discipline+notifications+records 里 hardcoded 男寮人名 → dynamic 按 teacher.dorm · shell 顶栏 2026-04-21 硬编码日期 → live clock · roll-call landing 日期 → 动态 · applications 外泊 badge 3 → 实际 pending count） |
 | 2026-04-22 ~ 06-04（多次） | ⚠️ 本时间线在此有断档：4-22 之后到 6-04 的多次推进（backend 接入 / 晩自習出席页 / 出寮者一覧 / 食数导出按钮 / 晩自習名簿 等）未逐条入本表，真值见 git log。 |
 | 2026-06-05 | **代録（出寮届）表单页** `ProxyApplicationPage`（杭田五-3「教師用は当日入力可」收尾）：老师替学生补录帰省/外泊/帰国届。① 学生选择器走 `proxyCandidates`（GET /applications/proxy-candidates，按寮边界 + 姓名/学号搜）② 申請种类 3 按钮切换 ③ 共有字段（出寮/帰寮 日期·方法·时刻 + 本人連絡先），交通手段下拉选项与 iOS `ApplyStubs` LEAVE/RETURN_TRANSPORTS 一致 ④ 种类别：帰省理由 + 長期休暇 / 外泊·帰国 同行者+行先+宿泊先（必填≥1）/ 帰国 飞机信息 ⑤ 食事栏按学生 `is_overseas` 切换：留学生填食事不要期间（前端展开成 `[{date,meal}]`，照抄 iOS expandMealsSkip）、日本人显示「自己填食事入力表」提示。提交 `createByTeacher` → POST /applications/by-teacher。导航栏「代録」项限代録 5 角色（`DAIROKU_ROLES_FRONT`）可见。`client.js` 加 `proxyCandidates`+`createByTeacher`。验证 check_jsx 16 块 0 错误。| [Mac-Opus 4.8 1M] CC |
+| 2026-08-06 | **全站视觉改造 — 钴蓝改青绿 + 玻璃质感**（详见 §3.5）：itsuki 给 Figma Community 的 ATS Resume Analyzer Dashboard 当参考，要求「配色整体改成 iOS App 一样的浅蓝和白」。分工 = CC 出规格不写代码 / cursor-agent grok-4.5-high 施工。落地 = `theme.ts` 全部色值换成 iOS `TTokens` 青绿 + 新增 `S` 样式配方对象 13 项 + `iconTile()`；`styles.css` 新增 4 个 keyframes + 9 个工具类（全部包在 `prefers-reduced-motion` 守卫内）；`Shell.tsx` 玻璃侧栏顶栏 + 三团背景光晕；29 个页面组件分 7 批换配方。commit `1903687`→`e8bb8a4` 共 9 笔。| [Mac-Opus 5] CC |
 | 2026-06-14 | **公告页 UI 优化**（`InfoPage.tsx`）：① お知らせ展开去重复 —— 展开时头部摘要原地替换为全文（`whiteSpace:pre-wrap`）+ 删展开区冗余全文框，任意时刻只显一份正文（itsuki 反馈「展开后摘要 + 全文重复显示」，原话「后面的内容叠加到前面的内容上面」）② 编辑/新建公告弹窗加大 —— `width` 540→680 + `textarea rows` 6→12 + 外壳改 flex 列 `maxHeight:90vh` + 内容区 `overflowY:auto`（防正文加高把底部按钮顶出小屏）。富文本编辑（字号/粗体细体）itsuki 拍板放后续版本、记 TODO §B。`npm run build` ✓。commit `0fcf5b5`。| [Mac-Opus 4.8 1M] CC |
 
 ---
@@ -74,6 +75,8 @@
 ---
 
 ## 3. Design System "Ryō（涼）" 完整 tokens（Round 1 itsuki 从 3 variations 中选定）
+
+> **注意：本节色值已于 2026-08-06 全部被青绿一套取代，见 §3.5。** 保留原文用于追溯钴蓝时期的设计意图与命名由来 —— 变量名（`cobalt` 等）全部沿用未改，只有色值变了。
 
 摘自 `round2/theme.jsx`（以下为 Claude Design 产出的正式色值）：
 
@@ -120,6 +123,62 @@ shadowModal:  '0 24px 64px rgba(20,23,31,.28), 0 2px 8px rgba(20,23,31,.12)'
 **Round 1 未选中的 variations**（Claude Design 产出，保留为 alternative 方向）：
 - **A. 静 (Sei)** — ネイビー #1f3763 + 朱 #a8302a。ヒラギノ角ゴ ProN。normal density。"公文書" 堅実 感。
 - **B. 密 (Mitsu)** — チャコール #2a2a24 + 苔緑 #4e6b3f。游ゴシック + IBM Plex Mono。compact density。高密度デスク感。
+
+---
+
+## 3.5 全站视觉改造（2026-08-06）— 钴蓝改青绿 + 玻璃质感
+
+### 3.5.1 背景与分工
+
+itsuki 给出 Figma Community 的 ATS Resume Analyzer Dashboard 作视觉参考，要求「配色整体改成 iOS App 一样的浅蓝和白」，改造深度选「全套（配色 + 质感 + 动效）」。参考件是 React + shadcn/ui + Tailwind，与本端（全内联样式、无 CSS 框架）技术栈不同 —— **只取设计语言，不搬代码**。
+
+分工由 itsuki 指定：CC 出施工规格与裁决，不动手写代码；施工全部派 cursor-agent grok-4.5-high 执行。规格文件为一次性交付物，不入仓库。
+
+### 3.5.2 配色 —— 与学生端 iOS App 对齐
+
+色值源 = `dev/student_ios/.../TTokens.swift`。**`RYO` 里 35 个变量名一个未改**（`cobalt` 仍叫 cobalt），只有色值全换 —— 改名会波及 29 个组件几百处引用，收益为零。
+
+| 用途 | 旧（钴蓝） | 新（青绿） |
+|---|---|---|
+| 主色 `cobalt` | `#2b4d8c` | `#1F6B74` |
+| 深主色 `cobaltDeep` | `#1c3567` | `#0E3840` |
+| 页面底 `paper` | `#f4f5f7` | `#EFF2F3` |
+| 正文 `ink` | `#14171f` | `#0F1E22` |
+| 分隔线 `line` | `#e3e5eb` | `#E2EAEC` |
+
+新增 token 三组：强调色（`accent` `#5FBEC8` / `accentSoft` `#A8DCE2` / `accentPale` `#E8F6F7`）、渐变 6 条（`gradPrimary` `gradPage` `gradOk` `gradWarn` `gradDanger` `gradPrimarySoft`）、玻璃质感三件（`glassBg` `glassBorder` `glassBlur`）。另有卡片阴影两态（`shadowCard` / `shadowCardHover`）、按钮阴影 `shadowBtn`、统一过渡曲线 `ease`。
+
+### 3.5.3 `S` 样式配方对象 —— 本次改造的核心杠杆
+
+本端全部用内联 `style={{...}}`，没有 CSS 类可复用，同一个卡片样式在 29 个文件里各写一遍。改造时在 `theme.ts` 新增 `S` 对象收敛 13 个高频配方：`card` `cardHoverable` `cardSoft` `glass` `btnPrimary` `btnGhost` `btnDanger` `btnSmall` `pill` `input` `tableHead` `modal` `backdrop`，另有 `iconTile(gradient, size)` 函数产出渐变图标块。
+
+页面层的施工动作因此收敛成一句机械替换：`style={{...S.card, marginTop: 12}}`。以后调整卡片手感只改 `theme.ts` 一处。
+
+### 3.5.4 动效 —— `styles.css` 新增
+
+4 个 keyframes（`tFadeUp` 进场上浮 / `tScaleIn` 弹窗放大 / `tBlob` 背景光晕慢速漂浮 / `tShimmer` 骨架屏微光）+ 9 个工具类（`.t-fade-up` `.t-scale-in` `.t-card` `.t-btn` `.t-nav` `.t-input` `.t-row` `.t-blob` `.t-skeleton`）。列表项用 `animationDelay` 做错峰淡入，延迟上限 12 项 —— 再多就变成等动画放完。
+
+全部动效包在 `@media (prefers-reduced-motion: reduce)` 守卫内，系统开了「减弱动态效果」就整体关掉。
+
+### 3.5.5 三条施工约束（施工中补出来的规格漏洞）
+
+1. **圆角映射表例外 · 小元素**：元素宽或高 ≤ 20px 时圆角保持原值。16×16 的勾选框套 `borderRadius: 8` 会变成正圆，被误认成单选钮。
+2. **圆角映射表例外 · 正圆**：`borderRadius` 恰好等于宽高一半时（如 56×56 配 28），这是「变成正圆」的形状指令而非圆角风格，保持原值。批 G 曾照表把学生头像从正圆改成圆角方块。
+3. **徽章尺寸铁律**：表格单元格内的徽章套 `S.pill` 后必须覆盖回原 `fontSize` / `padding`。`S.pill` 默认值是给独立标签用的，直接套会把每一行撑高，与「表格页保守处理」冲突。
+
+### 3.5.6 刻意保留的写死颜色
+
+改造末尾把 32 处旧主题残留的写死 hex 收敛成 token（错误提示条淡红 20 处等），但以下三处**保留写死**：
+
+| 位置 | 色值 | 理由 |
+|---|---|---|
+| `Shell.tsx` 背景三团光晕 | `#A8DCE2` `#7FC4A6` `#5FBEC8` | 刻意挑三个不同色相做层次，统一即失效 |
+| `CommunityPage.tsx` 投稿分类 | `#7e57c2` `#0097a7` `#d84315` `#5d4037` | 靠色相差异区分分类 |
+| `AccountsPage.tsx` 学年更新按钮 | `#f59e0b` | 警示语义，主题内无对应 token |
+
+### 3.5.7 未改动的部分
+
+日语 UI 文案、业务逻辑、JSX 结构层级、依赖清单全程零改动。每批提交前用脚本抽取改动前后的日语字符串集合逐一比对确认。
 
 ---
 
