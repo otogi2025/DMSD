@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO, dormLabel, type RyoTokens } from "../theme";
+import { RYO, S, dormLabel, type RyoTokens } from "../theme";
 
 // 跨多个页面复用的小组件 —— 从旧 index.html 各块原样搬（界面冻结）。
 // ConfirmModal / DormBadge / StateBadge / StudentPicker 自带 RYO（内部 const T=RYO，不接收 T 参数）；
@@ -30,22 +30,16 @@ export function ConfirmModal({
     <div
       onClick={onCancel}
       style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(20,23,31,.48)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        ...S.backdrop,
         zIndex: 200,
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="t-scale-in"
         style={{
+          ...S.modal,
           width: 440,
-          background: T.surface,
-          borderRadius: 14,
-          boxShadow: T.shadowModal,
           padding: "24px 28px",
         }}
       >
@@ -72,33 +66,15 @@ export function ConfirmModal({
         >
           <button
             onClick={onCancel}
-            style={{
-              padding: "9px 18px",
-              background: "transparent",
-              color: T.ink,
-              border: `1px solid ${T.lineStrong}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
+            className="t-btn"
+            style={{ ...S.btnGhost }}
           >
             キャンセル
           </button>
           <button
             onClick={onConfirm}
-            style={{
-              padding: "9px 18px",
-              background: danger ? T.danger : T.cobalt,
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
+            className="t-btn"
+            style={{ ...(danger ? S.btnDanger : S.btnPrimary) }}
           >
             {confirmLabel || "確認"}
           </button>
@@ -115,11 +91,11 @@ export function DormBadge({ dorm }: { dorm: string }) {
   return (
     <span
       style={{
+        ...S.pill,
         fontSize: 10,
-        fontWeight: 700,
         padding: "2px 7px",
-        borderRadius: 4,
         letterSpacing: 0.5,
+        fontWeight: 700,
         background: isMen ? T.maleSoft : T.femaleSoft,
         color: isMen ? T.maleAccent : T.femaleAccent,
         border: `1px solid ${isMen ? T.maleAccent : T.femaleAccent}33`,
@@ -147,24 +123,18 @@ export function ModalShell({
     <div
       onClick={onClose}
       style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(20,23,31,0.55)",
+        ...S.backdrop,
         zIndex: 90,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         padding: 20,
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="t-scale-in"
         style={{
-          background: T.surface,
-          borderRadius: 14,
+          ...S.modal,
           width: 540,
           maxWidth: "100%",
-          boxShadow: T.shadowModal,
           overflow: "hidden",
         }}
       >
@@ -257,35 +227,23 @@ export function ModalFooter({
         marginTop: 6,
       }}
     >
-      <button
-        onClick={onClose}
-        style={{
-          padding: "8px 16px",
-          background: T.surface,
-          color: T.ink2,
-          border: `1px solid ${T.lineStrong}`,
-          borderRadius: 8,
-          fontFamily: "inherit",
-          fontSize: 13,
-          fontWeight: 600,
-          cursor: "pointer",
-        }}
-      >
+      <button onClick={onClose} className="t-btn" style={{ ...S.btnGhost }}>
         キャンセル
       </button>
       <button
         onClick={onSubmit}
         disabled={disabled}
+        className="t-btn"
         style={{
-          padding: "8px 16px",
-          background: disabled ? T.line : T.cobalt,
-          color: "#fff",
-          border: "none",
-          borderRadius: 8,
-          fontFamily: "inherit",
-          fontSize: 13,
-          fontWeight: 700,
-          cursor: disabled ? "not-allowed" : "pointer",
+          ...S.btnPrimary,
+          // 禁用态：配方无 disabled 样式，保留原灰底 + 禁点光标
+          ...(disabled
+            ? {
+                background: T.line,
+                boxShadow: "none",
+                cursor: "not-allowed",
+              }
+            : {}),
         }}
       >
         {/* web#41 */}
@@ -313,10 +271,10 @@ export function StateBadge({ s }: { s: string }) {
   return (
     <span
       style={{
+        ...S.pill,
         fontSize: 11,
-        fontWeight: 700,
         padding: "2px 8px",
-        borderRadius: 4,
+        fontWeight: 700,
         background: map[1],
         color: map[0],
         border: `1px solid ${map[2]}`,
@@ -454,13 +412,12 @@ export function StudentPicker({
       {/* 触发框 */}
       <div
         onClick={() => setOpen((o) => !o)}
+        className="t-input"
         style={{
+          ...S.input,
           width: "100%",
           minHeight: 40,
-          padding: "6px 10px",
           border: `1px solid ${open ? T.cobalt : T.lineStrong}`,
-          borderRadius: 8,
-          background: T.surface,
           boxSizing: "border-box",
           cursor: "pointer",
           display: "flex",
@@ -545,9 +502,9 @@ export function StudentPicker({
           style={{
             marginTop: 6,
             border: `1px solid ${T.lineStrong}`,
-            borderRadius: 10,
+            borderRadius: 12,
             overflow: "hidden",
-            boxShadow: T.shadow1,
+            boxShadow: T.shadow2,
           }}
         >
           <div style={{ padding: 8, borderBottom: `1px solid ${T.line}` }}>
@@ -556,16 +513,12 @@ export function StudentPicker({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="名前・部屋番号・学籍番号で検索…"
+              className="t-input"
               style={{
+                ...S.input,
                 width: "100%",
-                padding: "7px 10px",
-                border: `1px solid ${T.line}`,
-                borderRadius: 6,
-                fontFamily: "inherit",
-                fontSize: 13,
                 background: T.surfaceAlt,
                 boxSizing: "border-box",
-                outline: "none",
               }}
             />
           </div>
@@ -614,6 +567,7 @@ export function StudentPicker({
                   <div
                     key={s.id}
                     onClick={() => pick(s)}
+                    className="t-row"
                     style={{
                       display: "flex",
                       alignItems: "center",
