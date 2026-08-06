@@ -1,68 +1,214 @@
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        background: #f4f5f7;
-        font-family:
-          "Noto Sans JP",
-          -apple-system,
-          sans-serif;
-        color: #14171f;
-        -webkit-font-smoothing: antialiased;
-      }
-      button {
-        font-family: inherit;
-      }
-      *::-webkit-scrollbar {
-        width: 10px;
-        height: 10px;
-      }
-      *::-webkit-scrollbar-thumb {
-        background: #cdd0d8;
-        border-radius: 5px;
-        border: 2px solid transparent;
-        background-clip: padding-box;
-      }
-      *::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      @keyframes pulse {
-        0%,
-        100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.4;
-        }
-      }
-      @keyframes popIn {
-        0% {
-          opacity: 0;
-          transform: scale(0.85);
-        }
-        100% {
-          opacity: 1;
-          transform: scale(1);
-        }
-      }
-      @keyframes toastIn {
-        0% {
-          opacity: 0;
-          transform: translateX(-50%) translateY(8px);
-        }
-        100% {
-          opacity: 1;
-          transform: translateX(-50%) translateY(0);
-        }
-      }
-      @media print {
-        aside,
-        header,
-        button,
-        [data-print-hide] {
-          display: none !important;
-        }
-        body {
-          background: #fff !important;
-        }
-      }
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(160deg, #f2f7f8 0%, #eff4f5 45%, #eaf3f4 100%);
+  background-attachment: fixed;
+  font-family:
+    "Noto Sans JP",
+    -apple-system,
+    sans-serif;
+  color: #0f1e22;
+  -webkit-font-smoothing: antialiased;
+}
+button {
+  font-family: inherit;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #c4d0d5;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes toastIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+@media print {
+  aside,
+  header,
+  button,
+  [data-print-hide] {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+}
+
+/* ===== 视觉改造新增（2026-08-06）===== */
+
+@keyframes tFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tBlob {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(26px, -38px) scale(1.08);
+  }
+  66% {
+    transform: translate(-18px, 18px) scale(0.94);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+@keyframes tShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* 进场：页面主内容 / 卡片列表用 */
+.t-fade-up {
+  animation: tFadeUp 0.42s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.t-scale-in {
+  animation: tScaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+/* 列表逐项延迟：给第 n 个元素加 style={{animationDelay: `${n*40}ms`}} */
+
+/* 可点击卡片：hover 抬起 */
+.t-card {
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.t-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 12px 32px rgba(15, 30, 34, 0.1),
+    0 2px 6px rgba(15, 30, 34, 0.05);
+}
+
+/* 按钮通用 hover / active */
+.t-btn:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+.t-btn:active {
+  transform: translateY(0);
+  filter: brightness(0.97);
+}
+
+/* 侧栏导航项 */
+.t-nav:hover {
+  background: rgba(31, 107, 116, 0.07);
+  transform: translateX(2px);
+}
+
+/* 输入框聚焦 */
+.t-input:focus {
+  border-color: #5fbec8 !important;
+  box-shadow: 0 0 0 3px rgba(95, 190, 200, 0.18);
+}
+
+/* 表格行 hover */
+.t-row:hover {
+  background: #f5fafb;
+}
+
+/* 背景漂浮光晕（Shell 用，见 §5） */
+.t-blob {
+  position: absolute;
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.3;
+  animation: tBlob 18s infinite ease-in-out;
+  pointer-events: none;
+}
+.t-blob-2 {
+  animation-delay: -6s;
+}
+.t-blob-3 {
+  animation-delay: -12s;
+}
+
+/* 骨架屏加载条 */
+.t-skeleton {
+  background: linear-gradient(90deg, #eff2f3 25%, #e2eaec 50%, #eff2f3 75%);
+  background-size: 200% 100%;
+  animation: tShimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+/* 无障碍：系统开了「减少动态效果」就全部关掉 */
+@media (prefers-reduced-motion: reduce) {
+  .t-fade-up,
+  .t-scale-in,
+  .t-blob,
+  .t-skeleton {
+    animation: none !important;
+  }
+  .t-card,
+  .t-btn,
+  .t-nav {
+    transition: none !important;
+  }
+  .t-card:hover,
+  .t-btn:hover,
+  .t-nav:hover {
+    transform: none !important;
+  }
+}
+
+/* 打印时关掉所有装饰 */
+@media print {
+  .t-blob {
+    display: none !important;
+  }
+}

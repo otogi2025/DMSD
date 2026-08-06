@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO } from "./theme";
+import { RYO, S, iconTile } from "./theme";
 import { api } from "./api/client";
 import { DormBadge } from "./components/shared";
 import { teacherLabel } from "./utils";
@@ -244,19 +244,47 @@ export function Shell({
         color: T.ink,
         fontFamily: T.font,
         display: "flex",
+        position: "relative",
       }}
     >
+      {/* 背景漂浮光晕 — 纯装饰，不接收鼠标事件 */}
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          overflow: "hidden",
+          zIndex: 0,
+          pointerEvents: "none",
+        }}
+      >
+        <div
+          className="t-blob"
+          style={{ top: -120, left: -80, background: "#A8DCE2" }}
+        />
+        <div
+          className="t-blob t-blob-2"
+          style={{ top: -60, right: -100, background: "#7FC4A6" }}
+        />
+        <div
+          className="t-blob t-blob-3"
+          style={{ bottom: -140, left: "38%", background: "#5FBEC8" }}
+        />
+      </div>
       <aside
         style={{
           width: 232,
           flexShrink: 0,
-          background: T.surface,
-          borderRight: `1px solid ${T.line}`,
+          background: "rgba(255,255,255,.78)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          borderRight: "1px solid rgba(255,255,255,.7)",
+          boxShadow: "4px 0 24px rgba(15,30,34,.05)",
           display: "flex",
           flexDirection: "column",
           position: "sticky",
           top: 0,
           height: "100vh",
+          zIndex: 1,
         }}
       >
         <div
@@ -267,10 +295,15 @@ export function Shell({
             gap: 10,
           }}
         >
+          {/* logo 直接套 iconTile 配方（不增外层节点，避免重排 JSX） */}
           <img
             src={tomoshibiIcon}
             alt=""
-            style={{ width: 42, height: 42, borderRadius: 10, flexShrink: 0 }}
+            style={{
+              ...iconTile(T.gradPrimary, 38),
+              objectFit: "cover",
+              padding: 0,
+            }}
           />
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: 1 }}>
@@ -292,13 +325,13 @@ export function Shell({
                 borderTop: gi === 0 ? "none" : `1px solid ${T.line}`,
               }}
             >
-              {/* 7-17 适老化拍板⑦：组标题 11px→12px、导航项 13.5px→15px — 主用户是年长宿管，老花眼基准上调 */}
+              {/* 分组标题按 §5.2：muted / 11px / 700 / letterSpacing .06em */}
               <div
                 style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  color: T.ink2,
-                  letterSpacing: 1,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: T.muted,
+                  letterSpacing: ".06em",
                   padding: "0 12px 7px",
                 }}
               >
@@ -309,6 +342,7 @@ export function Shell({
                 return (
                   <button
                     key={id}
+                    className={isActive ? undefined : "t-nav"}
                     onClick={() => onNav && onNav(id)}
                     style={{
                       display: "flex",
@@ -317,15 +351,18 @@ export function Shell({
                       width: "100%",
                       padding: "9px 12px",
                       marginBottom: 2,
-                      background: isActive ? T.cobaltSoft : "transparent",
-                      color: isActive ? T.cobaltDeep : T.ink2,
+                      background: isActive ? T.gradPrimary : "transparent",
+                      color: isActive ? "#fff" : T.ink2,
                       fontFamily: "inherit",
                       fontSize: 15,
                       fontWeight: isActive ? 600 : 500,
                       border: "none",
-                      borderRadius: 8,
+                      borderRadius: 12,
                       cursor: "pointer",
                       textAlign: "left",
+                      boxShadow: isActive ? T.shadowBtn : undefined,
+                      transform: isActive ? "translateX(2px)" : undefined,
+                      transition: T.ease,
                     }}
                   >
                     <span>{label}</span>
@@ -333,10 +370,10 @@ export function Shell({
                       <span
                         style={{
                           fontSize: 11,
-                          background: isActive ? T.cobalt : T.lineStrong,
+                          background: T.gradDanger,
                           color: "#fff",
                           padding: "1px 8px",
-                          borderRadius: 10,
+                          borderRadius: 999,
                           fontWeight: 600,
                           fontVariantNumeric: "tabular-nums",
                         }}
@@ -413,7 +450,7 @@ export function Shell({
               color: T.ink3,
               cursor: "pointer",
               padding: 6,
-              borderRadius: 6,
+              borderRadius: 8,
               fontSize: 11,
             }}
           >
@@ -428,13 +465,16 @@ export function Shell({
           display: "flex",
           flexDirection: "column",
           minWidth: 0,
+          position: "relative",
+          zIndex: 1,
         }}
       >
         <header
           style={{
+            ...S.glass,
             height: 60,
-            borderBottom: `1px solid ${T.line}`,
-            background: T.surface,
+            borderRadius: 0,
+            borderBottom: "1px solid rgba(255,255,255,.7)",
             display: "flex",
             alignItems: "center",
             padding: "0 24px",
@@ -455,19 +495,22 @@ export function Shell({
             {pageLabel}
           </div>
 
-          {/* 全局搜索 */}
+          {/* 全局搜索 — 胶囊输入框 */}
           <div style={{ flex: 1, maxWidth: 520, position: "relative" }}>
             <div
+              className="t-input"
               style={{
+                ...S.input,
                 display: "flex",
                 alignItems: "center",
-                background: T.surfaceAlt,
-                border: `1px solid ${focused ? T.cobalt : T.line}`,
-                borderRadius: 10,
-                padding: "0 10px",
+                borderRadius: 999,
+                padding: "0 14px",
                 height: 38,
                 gap: 8,
-                transition: "border-color .15s",
+                border: `1px solid ${focused ? T.accent : T.line}`,
+                boxShadow: focused
+                  ? "0 0 0 3px rgba(95,190,200,.18)"
+                  : undefined,
               }}
             >
               <span style={{ color: T.ink3, fontSize: 14 }}>🔍</span>
@@ -498,7 +541,7 @@ export function Shell({
                   color: T.ink3,
                   padding: "2px 6px",
                   border: `1px solid ${T.line}`,
-                  borderRadius: 4,
+                  borderRadius: 8,
                   background: T.surface,
                 }}
               >
@@ -514,7 +557,7 @@ export function Shell({
                   right: 0,
                   background: T.surface,
                   border: `1px solid ${T.line}`,
-                  borderRadius: 10,
+                  borderRadius: 12,
                   boxShadow: T.shadow2,
                   overflow: "hidden",
                   zIndex: 20,
@@ -583,6 +626,7 @@ export function Shell({
               点呼実施中
             </button>
           )}
+          {/* 状态灯 — §5.3 pill + accentPale */}
           <div
             title={
               backendReachable === false
@@ -592,11 +636,9 @@ export function Shell({
                   : "サーバー接続を確認中（ログイン直後など）"
             }
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              fontSize: 11,
-              color: T.ink3,
+              ...S.pill,
+              background: T.accentPale,
+              color: T.cobalt,
               flexShrink: 0,
               whiteSpace: "nowrap",
             }}
@@ -618,10 +660,12 @@ export function Shell({
                   : "..."}
             </span>
           </div>
+          {/* 时钟 — §5.3 pill + accentPale */}
           <div
             style={{
-              fontSize: 12,
-              color: T.ink3,
+              ...S.pill,
+              background: T.accentPale,
+              color: T.cobalt,
               fontFamily: T.mono,
               flexShrink: 0,
               whiteSpace: "nowrap",
@@ -636,7 +680,7 @@ export function Shell({
               background: "transparent",
               color: T.ink3,
               border: `1px solid ${T.lineStrong}`,
-              borderRadius: 8,
+              borderRadius: 10,
               fontFamily: "inherit",
               fontSize: 11,
               cursor: "pointer",
@@ -679,7 +723,11 @@ export function Shell({
               "リアルタイム接続に失敗しました。画面の自動更新が停止しています。ページを再読み込みしてください"}
           </div>
         )}
-        <div style={{ flex: 1, overflow: "auto", position: "relative" }}>
+        <div
+          key={active}
+          className="t-fade-up"
+          style={{ flex: 1, overflow: "auto", position: "relative" }}
+        >
           {children}
         </div>
       </div>
