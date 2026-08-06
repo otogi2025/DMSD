@@ -75,7 +75,9 @@ button {
 /* to 帧刻意不写 opacity：CSS 的隐式关键帧规则会用元素自己的 opacity 当终值。
    这样普通元素淡入到 1，而用内联 opacity 表示「已驳回 / 处理中」的状态卡
    淡入到它自己的 0.7，不会先冲到 1 再跳回去。transform 保留 none 是刻意的 ——
-   全站没有元素给自己内联 transform，写死终值更可控 */
+   挂这两个进场动画的元素没有自己的业务 transform（全站仅
+   Shell.tsx 侧栏选中态和 App.tsx 提示条有内联 transform，都不挂这两个类），
+   写死终值比交给隐式规则更可控 */
 @keyframes tFadeUp {
   from {
     opacity: 0;

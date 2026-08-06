@@ -202,7 +202,9 @@ itsuki 给出 Figma Community 的 ATS Resume Analyzer Dashboard 作视觉参考�
 1. **`both` 改成 `backwards`** —— 只保留「动画开始前用首帧」，播完即释放属性控制权交还元素自己的规则。这解决「动画结束后」。
 2. **`to` 帧删掉 `opacity: 1`** —— 只改第 1 步的话还剩个尾巴：`backwards` 管不到播放中的那 0.42 秒，动画期间 opacity 仍会按关键帧写死的值插到 1，半透明状态卡会「淡到全不透明 → 结束瞬间跳回 0.7」，闪一下。删掉终值后，CSS 的**隐式关键帧**规则会自动拿元素自己的基础样式值当终值 —— 普通元素淡入到 1，状态卡淡入到它自己的 0.7，各走各的。
 
-`transform: none` 则保留写死在 `to` 帧里：全站没有元素给自己内联 `transform`，终值写死比交给隐式规则更可控。
+`transform: none` 则保留写死在 `to` 帧里：挂这两个进场动画的元素都没有自己的业务 `transform`（全站的内联 `transform` 只有两处 —— `Shell.tsx` 侧栏选中态的 `translateX(2px)` 和 `App.tsx` 提示条居中的 `translateX(-50%)`，两处都不挂这两个类），终值写死比交给隐式规则更可控。
+
+隐式关键帧不是浏览器的实现巧合，是 CSS Animations Level 1 规范明文规定的行为（缺端点时用被动画属性的 computed value 补齐，且按属性分别构造关键帧），WebKit 也专门修过「隐式关键帧必须始终取 underlying style」这一条。本页面的主力设备是寮管室的 iPad（见本文档「寮監 → 寮管室 iPad」），iPad 上的浏览器一律是 WebKit 内核，所以这条对真实使用环境成立。
 
 **验证方法**：这两个陷阱都只能靠浏览器实测发现 —— 真实鼠标悬停后读 `getComputedStyle`。注意后台标签页的 CSS 动画会被浏览器节流，读到的常是动画中间帧，先跑 `document.getAnimations().forEach(a => a.finish())` 强制跳到结束态再读。
 
