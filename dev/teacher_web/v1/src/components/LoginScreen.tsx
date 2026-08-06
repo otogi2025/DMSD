@@ -1,5 +1,5 @@
 import React from "react";
-import { RYO, APP_VERSION } from "../theme";
+import { RYO, S, iconTile, APP_VERSION } from "../theme";
 import { api } from "../api/client";
 import type { TeacherProfile } from "../api/types";
 import {
@@ -208,7 +208,7 @@ export function LoginScreen({
         style={{
           width: 48,
           height: 48,
-          borderRadius: 12,
+          borderRadius: 16,
           boxShadow: T.shadow1,
         }}
       />
@@ -256,12 +256,10 @@ export function LoginScreen({
           {brandHeader}
           <form
             onSubmit={submit}
+            className="t-scale-in"
             style={{
-              background: T.surface,
-              border: `1px solid ${T.line}`,
-              borderRadius: 14,
+              ...S.card,
               padding: "26px 28px 22px",
-              boxShadow: T.shadow2,
             }}
           >
             <button
@@ -273,16 +271,18 @@ export function LoginScreen({
                 setSelectedDorm(null);
                 setErr("");
               }}
+              className="t-btn"
               style={{
                 background: T.cobaltSoft,
                 color: T.cobalt,
                 border: "none",
-                borderRadius: 6,
+                borderRadius: 8,
                 padding: "8px 12px",
                 fontFamily: "inherit",
                 fontSize: 13,
                 cursor: "pointer",
                 marginBottom: 14,
+                transition: T.ease,
               }}
             >
               ← 別の先生を選ぶ
@@ -297,16 +297,8 @@ export function LoginScreen({
             >
               <div
                 style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
-                  background: T.cobaltSoft,
-                  color: T.cobalt,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 18,
-                  fontWeight: 700,
+                  ...iconTile(T.gradPrimary, 44),
+                  borderRadius: "50%",
                 }}
               >
                 {picked.initial}
@@ -343,16 +335,13 @@ export function LoginScreen({
                     setPassword(e.target.value);
                     setErr("");
                   }}
+                  className="t-input"
                   style={{
+                    ...S.input,
                     width: "100%",
                     padding: "11px 64px 11px 12px",
-                    background: T.surface,
                     border: `1px solid ${T.lineStrong}`,
-                    borderRadius: 8,
-                    fontFamily: "inherit",
                     fontSize: 14,
-                    color: T.ink,
-                    outline: "none",
                     boxSizing: "border-box",
                   }}
                 />
@@ -388,7 +377,7 @@ export function LoginScreen({
                   background: T.dangerSoft,
                   color: T.danger,
                   border: `1px solid ${T.dangerBorder}`,
-                  borderRadius: 8,
+                  borderRadius: 10,
                 }}
               >
                 {err}
@@ -400,23 +389,19 @@ export function LoginScreen({
               disabled={
                 submitting || !password || (cardNeedsDorm && !selectedDorm)
               }
+              className="t-btn"
               style={{
+                ...S.btnPrimary,
                 width: "100%",
                 padding: "12px 16px",
-                background:
-                  submitting || !password || (cardNeedsDorm && !selectedDorm)
-                    ? T.lineStrong
-                    : T.cobalt,
-                color: "#fff",
-                border: "none",
-                borderRadius: 10,
-                fontFamily: "inherit",
                 fontSize: 14,
-                fontWeight: 600,
-                cursor:
-                  submitting || !password || (cardNeedsDorm && !selectedDorm)
-                    ? "not-allowed"
-                    : "pointer",
+                ...(submitting || !password || (cardNeedsDorm && !selectedDorm)
+                  ? {
+                      background: T.line,
+                      boxShadow: "none",
+                      cursor: "not-allowed",
+                    }
+                  : {}),
               }}
             >
               {submitting ? "認証中…" : "ログイン"}
@@ -469,12 +454,10 @@ export function LoginScreen({
           {brandHeader}
           <form
             onSubmit={submitManual}
+            className="t-scale-in"
             style={{
-              background: T.surface,
-              border: `1px solid ${T.line}`,
-              borderRadius: 14,
+              ...S.card,
               padding: "26px 28px 22px",
-              boxShadow: T.shadow2,
             }}
           >
             <button
@@ -487,16 +470,18 @@ export function LoginScreen({
                 setSelectedDorm(null);
                 setErr("");
               }}
+              className="t-btn"
               style={{
                 background: T.cobaltSoft,
                 color: T.cobalt,
                 border: "none",
-                borderRadius: 6,
+                borderRadius: 8,
                 padding: "8px 12px",
                 fontFamily: "inherit",
                 fontSize: 13,
                 cursor: "pointer",
                 marginBottom: 14,
+                transition: T.ease,
               }}
             >
               ← 先生一覧に戻る
@@ -528,16 +513,13 @@ export function LoginScreen({
                   setManualId(e.target.value);
                   setErr("");
                 }}
+                className="t-input"
                 style={{
+                  ...S.input,
                   width: "100%",
                   padding: "11px 12px",
-                  background: T.surface,
                   border: `1px solid ${T.lineStrong}`,
-                  borderRadius: 8,
-                  fontFamily: "inherit",
                   fontSize: 14,
-                  color: T.ink,
-                  outline: "none",
                   boxSizing: "border-box",
                 }}
               />
@@ -563,16 +545,13 @@ export function LoginScreen({
                     setPassword(e.target.value);
                     setErr("");
                   }}
+                  className="t-input"
                   style={{
+                    ...S.input,
                     width: "100%",
                     padding: "11px 64px 11px 12px",
-                    background: T.surface,
                     border: `1px solid ${T.lineStrong}`,
-                    borderRadius: 8,
-                    fontFamily: "inherit",
                     fontSize: 14,
-                    color: T.ink,
-                    outline: "none",
                     boxSizing: "border-box",
                   }}
                 />
@@ -611,7 +590,7 @@ export function LoginScreen({
                   background: T.dangerSoft,
                   color: T.danger,
                   border: `1px solid ${T.dangerBorder}`,
-                  borderRadius: 8,
+                  borderRadius: 10,
                 }}
               >
                 {err}
@@ -621,23 +600,19 @@ export function LoginScreen({
             <button
               type="submit"
               disabled={submitting || !manualId || !password || !selectedDorm}
+              className="t-btn"
               style={{
+                ...S.btnPrimary,
                 width: "100%",
                 padding: "12px 16px",
-                background:
-                  submitting || !manualId || !password || !selectedDorm
-                    ? T.lineStrong
-                    : T.cobalt,
-                color: "#fff",
-                border: "none",
-                borderRadius: 10,
-                fontFamily: "inherit",
                 fontSize: 14,
-                fontWeight: 600,
-                cursor:
-                  submitting || !manualId || !password || !selectedDorm
-                    ? "not-allowed"
-                    : "pointer",
+                ...(submitting || !manualId || !password || !selectedDorm
+                  ? {
+                      background: T.line,
+                      boxShadow: "none",
+                      cursor: "not-allowed",
+                    }
+                  : {}),
               }}
             >
               {submitting ? "認証中…" : "ログイン"}
@@ -723,7 +698,7 @@ export function LoginScreen({
             background: loadErr ? T.dangerSoft : T.surfaceAlt,
             color: loadErr ? T.danger : T.ink2,
             border: `1px solid ${loadErr ? T.dangerBorder : T.line}`,
-            borderRadius: 12,
+            borderRadius: 16,
             fontSize: 13,
             textAlign: "center",
           }}
@@ -833,9 +808,9 @@ function DormPicker({
   onChange: (d: 1 | 4) => void;
 }) {
   const T = RYO;
-  const opts: { v: 1 | 4; label: string; accent: string; soft: string }[] = [
-    { v: 1, label: "男子寮", accent: T.maleAccent, soft: T.maleSoft },
-    { v: 4, label: "女子寮", accent: T.femaleAccent, soft: T.femaleSoft },
+  const opts: { v: 1 | 4; label: string }[] = [
+    { v: 1, label: "男子寮" },
+    { v: 4, label: "女子寮" },
   ];
   return (
     <div style={{ marginBottom: 14 }}>
@@ -857,19 +832,21 @@ function DormPicker({
               key={o.v}
               type="button"
               onClick={() => onChange(o.v)}
+              className="t-btn"
               style={{
+                ...S.btnGhost,
                 flex: 1,
                 padding: "10px 12px",
-                background: on ? o.soft : T.surface,
-                color: on ? o.accent : T.ink2,
-                border: on
-                  ? `2px solid ${o.accent}`
-                  : `1px solid ${T.lineStrong}`,
-                borderRadius: 8,
-                fontFamily: "inherit",
                 fontSize: 14,
                 fontWeight: 700,
-                cursor: "pointer",
+                ...(on
+                  ? {
+                      background: T.gradPrimary,
+                      color: "#fff",
+                      border: "none",
+                      boxShadow: T.shadowBtn,
+                    }
+                  : {}),
               }}
             >
               {o.label}
@@ -914,7 +891,7 @@ function LoginGroupColumn({
           style={{
             width: 32,
             height: 32,
-            borderRadius: 8,
+            borderRadius: 10,
             background: soft,
             color: accent,
             display: "flex",
@@ -936,12 +913,13 @@ function LoginGroupColumn({
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {teachers.map((t) => (
+        {teachers.map((t, i) => (
           <LoginTeacherCard
             key={t.id}
             t={t}
             isLast={t.id === lastTeacherId}
             onPick={onPick}
+            index={i}
           />
         ))}
         {teachers.length === 0 && (
@@ -951,7 +929,7 @@ function LoginGroupColumn({
               color: T.ink3,
               fontSize: 12,
               border: `1px dashed ${T.lineStrong}`,
-              borderRadius: 12,
+              borderRadius: 16,
               textAlign: "center",
             }}
           >
@@ -968,10 +946,12 @@ function LoginTeacherCard({
   t,
   isLast,
   onPick,
+  index = 0,
 }: {
   t: PickedTeacher;
   isLast: boolean;
   onPick: (t: PickedTeacher) => void;
+  index?: number;
 }) {
   const T = RYO;
   const loginText =
@@ -986,44 +966,26 @@ function LoginTeacherCard({
     <button
       type="button"
       onClick={() => onPick(t)}
+      className="t-card t-fade-up"
       style={{
+        ...S.cardHoverable,
         width: "100%",
         padding: "14px 18px",
-        background: T.surface,
         border: isLast ? `2px solid ${T.cobalt}` : `1px solid ${T.line}`,
-        borderRadius: 14,
-        boxShadow: T.shadow1,
         display: "flex",
         alignItems: "center",
         gap: 14,
         cursor: "pointer",
         fontFamily: "inherit",
         textAlign: "left",
-        transition: "all .12s",
         minHeight: 88,
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = T.shadow2;
-        e.currentTarget.style.transform = "translateY(-1px)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = T.shadow1;
-        e.currentTarget.style.transform = "translateY(0)";
+        ...(index < 12 ? { animationDelay: `${index * 40}ms` } : {}),
       }}
     >
       <div
         style={{
-          width: 44,
-          height: 44,
-          borderRadius: 22,
-          background: T.cobaltSoft,
-          color: T.cobalt,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 18,
-          fontWeight: 700,
-          flexShrink: 0,
+          ...iconTile(T.gradPrimary, 44),
+          borderRadius: "50%",
         }}
       >
         {(t.name || "?").charAt(0)}
@@ -1052,12 +1014,12 @@ function LoginTeacherCard({
       {isLast && (
         <div
           style={{
+            ...S.pill,
             fontSize: 10,
             color: T.cobalt,
             fontWeight: 700,
             padding: "3px 8px",
             background: T.cobaltSoft,
-            borderRadius: 999,
             flexShrink: 0,
           }}
         >

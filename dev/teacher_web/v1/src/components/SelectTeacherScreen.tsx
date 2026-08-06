@@ -1,7 +1,5 @@
 import React from "react";
-import { RYO } from "../theme";
-import { APP_VERSION } from "../theme";
-import { dormLabel } from "../theme";
+import { RYO, S, iconTile, APP_VERSION, dormLabel } from "../theme";
 import { ConfirmModal } from "./shared";
 import tomoshibiIcon from "../assets/tomoshibi-icon.png";
 
@@ -79,7 +77,7 @@ export function SelectTeacherScreen({
         <img
           src={tomoshibiIcon}
           alt="Tomoshibi"
-          style={{ width: 44, height: 44, borderRadius: 11 }}
+          style={{ width: 44, height: 44, borderRadius: 16 }}
         />
         <div>
           <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.2 }}>
@@ -92,15 +90,12 @@ export function SelectTeacherScreen({
         <div style={{ flex: 1 }} />
         <button
           onClick={onLogout}
+          className="t-btn"
           style={{
+            ...S.btnGhost,
             padding: "8px 14px",
-            background: "transparent",
             color: T.ink3,
-            border: `1px solid ${T.lineStrong}`,
-            borderRadius: 8,
-            fontFamily: "inherit",
             fontSize: 12,
-            cursor: "pointer",
           }}
         >
           ログアウト
@@ -145,6 +140,7 @@ export function SelectTeacherScreen({
       {/* 悬浮的编辑按钮（FAB） */}
       <button
         onClick={() => setEdit(!edit)}
+        className="t-btn"
         style={{
           position: "fixed",
           right: 36,
@@ -152,7 +148,8 @@ export function SelectTeacherScreen({
           width: edit ? "auto" : 64,
           height: 64,
           padding: edit ? "0 24px" : 0,
-          borderRadius: 32,
+          // 64×64 圆形 FAB：映射表 32→20 会破圆，改用 999 保持胶囊/圆形
+          borderRadius: 999,
           background: edit ? T.cobalt : T.ink,
           color: "#fff",
           border: "none",
@@ -164,8 +161,8 @@ export function SelectTeacherScreen({
           fontFamily: "inherit",
           fontSize: 14,
           fontWeight: 700,
-          boxShadow: "0 8px 24px rgba(20,23,31,.28)",
-          transition: "all .18s",
+          boxShadow: "0 8px 24px rgba(15,30,34,.28)",
+          transition: T.ease,
         }}
       >
         {edit ? (
@@ -257,7 +254,7 @@ function DormColumn({
           style={{
             width: 32,
             height: 32,
-            borderRadius: 8,
+            borderRadius: 10,
             background: soft,
             color: accent,
             display: "flex",
@@ -279,7 +276,7 @@ function DormColumn({
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {teachers.map((t) => (
+        {teachers.map((t, i) => (
           <TeacherCard
             key={t.id}
             t={t}
@@ -287,6 +284,7 @@ function DormColumn({
             edit={edit}
             onPick={onPick}
             onDelete={onDelete}
+            index={i}
           />
         ))}
         {edit && <AddCard onClick={onAdd} />}
@@ -302,12 +300,14 @@ function TeacherCard({
   edit,
   onPick,
   onDelete,
+  index = 0,
 }: {
   t: TeacherVM;
   isLast: boolean;
   edit: boolean;
   onPick: (t: TeacherVM) => void;
   onDelete: (t: TeacherVM) => void;
+  index?: number;
 }) {
   const T = RYO;
   // 距日本时间今日 0 点的分钟数（用于区分「今日已登」与「本日未ログイン」）
@@ -338,45 +338,26 @@ function TeacherCard({
       <button
         onClick={() => !edit && onPick(t)}
         disabled={edit}
+        className="t-card t-fade-up"
         style={{
+          ...S.cardHoverable,
           width: "100%",
           padding: "14px 18px",
-          background: T.surface,
           border: isLast ? `2px solid ${T.cobalt}` : `1px solid ${T.line}`,
-          borderRadius: 14,
-          boxShadow: T.shadow1,
           display: "flex",
           alignItems: "center",
           gap: 14,
           cursor: edit ? "default" : "pointer",
           fontFamily: "inherit",
           textAlign: "left",
-          transition: "all .12s",
           minHeight: 88,
+          ...(index < 12 ? { animationDelay: `${index * 40}ms` } : {}),
         }}
-        onMouseEnter={(e) =>
-          !edit &&
-          ((e.currentTarget.style.boxShadow = T.shadow2),
-          (e.currentTarget.style.transform = "translateY(-1px)"))
-        }
-        onMouseLeave={(e) => (
-          (e.currentTarget.style.boxShadow = T.shadow1),
-          (e.currentTarget.style.transform = "translateY(0)")
-        )}
       >
         <div
           style={{
-            width: 48,
-            height: 48,
-            borderRadius: 24,
-            background: T.cobaltSoft,
-            color: T.cobaltDeep,
-            fontSize: 18,
-            fontWeight: 700,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
+            ...iconTile(T.gradPrimary, 48),
+            borderRadius: "50%",
           }}
         >
           {t.initial}
@@ -395,12 +376,12 @@ function TeacherCard({
         {isLast && !edit && (
           <span
             style={{
+              ...S.pill,
               fontSize: 10,
               fontWeight: 700,
               color: T.cobaltDeep,
               background: T.cobaltSoft,
               padding: "3px 8px",
-              borderRadius: 4,
               letterSpacing: 1,
             }}
           >
@@ -417,7 +398,8 @@ function TeacherCard({
             right: -8,
             width: 28,
             height: 28,
-            borderRadius: 14,
+            // 28×28 圆形删除钮：映射表 14→16 会破圆，改用 50%
+            borderRadius: "50%",
             background: T.danger,
             color: "#fff",
             border: "2px solid #fff",
@@ -428,7 +410,7 @@ function TeacherCard({
             alignItems: "center",
             justifyContent: "center",
             animation: "popIn .18s ease-out",
-            boxShadow: "0 4px 10px rgba(179,58,58,.4)",
+            boxShadow: "0 4px 10px rgba(196,72,72,.4)",
           }}
         >
           ×
@@ -444,11 +426,12 @@ function AddCard({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
+      className="t-btn"
       style={{
         padding: "18px 18px",
         background: "transparent",
         border: `2px dashed ${T.grayBorder}`,
-        borderRadius: 14,
+        borderRadius: 16,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -460,6 +443,7 @@ function AddCard({ onClick }: { onClick: () => void }) {
         fontSize: 13,
         fontWeight: 600,
         animation: "popIn .22s ease-out",
+        transition: T.ease,
       }}
     >
       <span style={{ fontSize: 22, lineHeight: 1 }}>+</span>
@@ -504,22 +488,16 @@ function AddTeacherModal({
     <div
       onClick={onCancel}
       style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(20,23,31,.48)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        ...S.backdrop,
         zIndex: 200,
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="t-scale-in"
         style={{
+          ...S.modal,
           width: 460,
-          background: T.surface,
-          borderRadius: 14,
-          boxShadow: T.shadowModal,
           padding: "24px 28px",
         }}
       >
@@ -563,17 +541,8 @@ function AddTeacherModal({
         >
           <button
             onClick={onCancel}
-            style={{
-              padding: "9px 18px",
-              background: "transparent",
-              color: T.ink,
-              border: `1px solid ${T.lineStrong}`,
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
+            className="t-btn"
+            style={{ ...S.btnGhost }}
           >
             キャンセル
           </button>
@@ -582,16 +551,16 @@ function AddTeacherModal({
             onClick={() =>
               onAdd({ name: name.trim(), initial: name.trim().charAt(0) })
             }
+            className="t-btn"
             style={{
-              padding: "9px 18px",
-              background: ok ? T.cobalt : T.lineStrong,
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: ok ? "pointer" : "not-allowed",
+              ...S.btnPrimary,
+              ...(!ok
+                ? {
+                    background: T.line,
+                    boxShadow: "none",
+                    cursor: "not-allowed",
+                  }
+                : {}),
             }}
           >
             追加
@@ -638,16 +607,12 @@ function LField({
         value={value}
         autoFocus={autoFocus}
         onChange={(e) => onChange(e.target.value)}
+        className="t-input"
         style={{
+          ...S.input,
           width: "100%",
-          padding: "10px 12px",
-          border: `1px solid ${T.lineStrong}`,
-          borderRadius: 8,
-          fontFamily: "inherit",
           fontSize: 14,
-          background: T.surface,
-          color: T.ink,
-          outline: "none",
+          border: `1px solid ${T.lineStrong}`,
           boxSizing: "border-box",
         }}
       />
