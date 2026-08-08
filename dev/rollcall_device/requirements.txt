@@ -20,7 +20,7 @@ lgpio==0.2.2.0
 
 # --- 后端通信 ---
 httpx==0.28.1
-websockets==15.0.1
+websockets==16.1.1
 
 # --- 设备认证：Ed25519 密钥 + 签名 ---
 cryptography==44.0.0
