@@ -43,6 +43,33 @@ rsync -az --delete dist/ <生产服务器>:/var/www/teacher/
 
 浏览器可能因缓存仍加载旧版：`index.html` 不带哈希，但引用的 `assets/` 文件名含内容哈希，构建后文件名改变，强制刷新（Cmd+Shift+R）即可确认。
 
+### 3.1 更新前备份与回滚
+
+`rsync --delete` 会清掉服务器端旧文件，出问题无法就地撤销。故 rsync 之前先在服务器上整目录复制一份：
+
+```bash
+cp -a /var/www/teacher /var/www/teacher.bak_<日期>
+```
+
+回滚（把上一版换回来，静态文件即时生效，无需重载 nginx）：
+
+```bash
+rm -rf /var/www/teacher && mv /var/www/teacher.bak_<日期> /var/www/teacher
+```
+
+备份目录约 6 MB，确认新版稳定后删除即可。也可从 Git 回滚：切到旧 commit 重新 `npm run build` 再 rsync —— 但那要求旧 commit 的依赖仍能装上，直接留目录副本更稳。
+
+### 3.2 部署前必须确认后端是否同步
+
+本站与后端分开部署，前端传新版不会带上任何后端改动。若本次前端改动调用了后端新接口，而生产后端仍是旧版，网页会在运行时报错。部署前核对：
+
+```bash
+git log <上次部署的 tag 或 commit>..HEAD --oneline -- dev/backend
+git diff <上次部署的 tag 或 commit>..HEAD -- dev/teacher_web/v1/src/api/
+```
+
+后端无代码改动、且前端 `src/api/` 无改动时，单独部署前端才是安全的。否则须先按 `.claude/skills/deploy-backend/SKILL.md` 部署后端。
+
 ## 4. HTTPS 证书
 
 由 Let's Encrypt 签发，certbot 管理，已配置自动续期（systemd timer）。首次签发日 2026-07-29，有效期至 2026-10-27。
