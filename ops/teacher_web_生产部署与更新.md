@@ -51,6 +51,8 @@ rsync -az --delete dist/ <生产服务器>:/var/www/teacher/
 cp -a /var/www/teacher /var/www/teacher.bak_<日期>
 ```
 
+⚠️ **同一天部署第二次时，备份名必须换一个**（`teacher.bak_<日期>_2`），别沿用上面那个。`cp -a` 遇到已存在的同名目录不会报错、也不会停 —— 它会把整个 `teacher` 目录塞进那份备份里，变成 `teacher.bak_<日期>/teacher/`（实测确认过）。旧文件没被删，但备份目录从此混着两代内容，回滚时 `mv` 回来的是上一次那版、且多出一层垃圾目录；真正的问题是**这一次部署前的版本压根没留下回滚点**。跑之前先 `ls /var/www/ | grep teacher.bak` 看名字占没占。
+
 回滚（把上一版换回来，静态文件即时生效，无需重载 nginx）：
 
 ```bash
