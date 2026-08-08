@@ -15,7 +15,7 @@ adafruit-blinka==8.51.0
 smbus2==0.5.0
 
 # --- LED / GPO 中断（gpiozero + lgpio，Bookworm 默认 pin factory）---
-gpiozero==2.0.1
+gpiozero==2.0.1.post2
 lgpio==0.2.2.0
 
 # --- 后端通信 ---
