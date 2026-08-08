@@ -725,7 +725,12 @@ export function LoginScreen({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr 1fr",
+            // 老师卡片分组栏：列数随宽度自适应，不写死 4 列。
+            // 外层 padding 左右各 48px，gap 20px —— 200px 这个下限刚好让
+            // iPad 横屏（1024px，容器内宽 928px）仍是 4 列，竖屏（768px，
+            // 容器内宽 672px）自动降到 3 列。写死 4 列时竖屏每列只有 153px，
+            // 「デモ（一般）先生」这种名字会折成三行。
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
             gap: 20,
             maxWidth: 1280,
             margin: "0 auto",
