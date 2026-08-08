@@ -126,6 +126,14 @@ nano config/config.json
 
 ## 6. systemd 开机自启
 
+> ⛔ **装之前先看一眼 `config/tomoshibi-rollcall.service` 的 `ExecStart` 那行有没有 `--skip-card-reader`。**
+>
+> 这个参数的意思是「别去初始化 PN532 读卡模块」。PN532 还没焊上时必须带着它，否则硬件初始化失败、退出码 3 撞上 `RestartPreventExitStatus=3`，服务直接停在 failed，连手机碰 ST25DV 那条路（路径 B）也一起没了。
+>
+> **但 PN532 焊好之后必须把它删掉。**忘了删的后果不是报错 —— 是服务照常 `active (running)`、日志只有一行启动 warning、而实体学生卡**永远读不到**（主程序换成了假读卡器 `FakeCardReader`，采集线程照跑但永远不产生卡事件）。现场看到的现象是「刷卡毫无反应」，很容易误判成卡坏了 / 名单没同步 / 后端挂了，排查方向全错。
+>
+> 删法：编辑 `/etc/systemd/system/tomoshibi-rollcall.service` 去掉行尾的 ` --skip-card-reader`，然后 `sudo systemctl daemon-reload && sudo systemctl restart tomoshibi-rollcall`。仓库里那份 `config/tomoshibi-rollcall.service` 也一起改掉，免得下次重装又带回来。
+
 ```bash
 sudo cp config/tomoshibi-rollcall.service /etc/systemd/system/
 sudo systemctl daemon-reload
@@ -135,6 +143,8 @@ journalctl -u tomoshibi-rollcall -f        # 实时看日志
 ```
 
 断电重启后会自动跑（`After=network-online.target time-sync.target` 保证等到网 + 对时）。
+
+**装完必做一次**：刷一张实体 NTAG215 卡，确认日志里真打出卡号。`active (running)` 只证明进程起来了，不证明读卡器接上了 —— 上面那个参数没删的话，这两件事会同时成立。
 
 ---
 
