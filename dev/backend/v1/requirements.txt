@@ -13,7 +13,7 @@ python-jose[cryptography]>=3.4.0   # JWT
 cryptography>=43.0.0
 bcrypt>=4.2.0                       # 密码哈希 (passlib 不再使用 — bcrypt 4.x 互換性)
 python-multipart>=0.0.12            # FastAPI form/file
-python-dotenv>=1.0.1                # .env 读取
+python-dotenv>=1.2.2                # .env 读取
 
 # 邮件 (D1 SendGrid)
 sendgrid>=6.11.0
