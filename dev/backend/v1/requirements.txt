@@ -23,7 +23,7 @@ openpyxl>=3.1.5
 
 # DB drivers (用 SQLite for dev, PostgreSQL for prod)
 # sqlite 内蔵, psycopg は production deploy 時のみ
-psycopg[binary]>=3.2.0   # PostgreSQL 16+ (v1 production)
+psycopg[binary]>=3.3.4   # PostgreSQL 16+ (v1 production)
 
 # H-11：生产 WSGI server gunicorn 移进本文件统一锁版本，不再在 Dockerfile 内联裸 pip install
 # （psycopg[binary] 上面已声明，Dockerfile 那条重复 install 一并删）。沿用本文件 >= 约定。
